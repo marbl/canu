@@ -79,6 +79,7 @@ $/ESTmapperEXEC:  $/ESTmapper/leaff \
 		$/ESTmapper/sortPolishes \
                 $/ESTmapper/stripPolishes \
                 $/ESTmapper/filterPolishes \
+                $/ESTmapper/pickBestPolish \
                 $/ESTmapper/mergeCounts \
                 $/ESTmapper/ESTmapper.pl \
                 $/ESTmapper/libBri.pm \
@@ -145,6 +146,11 @@ $/ESTmapper/filterPolishes: sim4reader/filterPolishes
 	rm -f $/ESTmapper/filterPolishes
 	$(CP) $/sim4reader/filterPolishes $/ESTmapper/filterPolishes
 	chmod 555 $/ESTmapper/filterPolishes
+
+$/ESTmapper/pickBestPolish: sim4reader/pickBestPolish
+	rm -f $/ESTmapper/pickBestPolish
+	$(CP) $/sim4reader/pickBestPolish $/ESTmapper/pickBestPolish
+	chmod 555 $/ESTmapper/pickBestPolish
 
 $/ESTmapper/mergeCounts: estmapper-util/mergeCounts
 	rm -f $/ESTmapper/mergeCounts
