@@ -13,6 +13,7 @@ public:
   void       putBits(u64bit bits, u32bit size);
 private:
   FILE     *_out;
+  bool      _pipe;
   u64bit   *_bfr;
   u64bit    _bit;
   u32bit    _sta;
@@ -27,6 +28,7 @@ public:
   u64bit     getBits(u32bit size);
 private:
   FILE     *_in;
+  bool      _pipe;
   u64bit   *_bfr;
   u64bit    _bit;
   u32bit    _sta;

@@ -32,7 +32,7 @@ bitPackedFileWriter::~bitPackedFileWriter() {
 //
 void
 bitPackedFileWriter::putBits(u64bit bits, u32bit size) {
-  u64bit wd = (_bit >> 6) & 0x0000cfffffffffffllu;
+ u64bit wd = (_bit >> 6) & 0x0000cfffffffffffllu;
   u64bit bt = (_bit     ) & 0x000000000000003fllu;
   u64bit b1 = 64 - bt;
   u64bit b2 = size - b1;  //  Only used if siz > b1
@@ -82,13 +82,66 @@ bitPackedFileWriter::putBits(u64bit bits, u32bit size) {
 
 
 
-bitPackedFileReader::bitPackedFileReader(char *name) {
-  _in  = fopen(name, "rb");
+bitPackedFileReader::bitPackedFileReader(char *name) {
+  int   errno_fopen = 0;
+  int   errno_popen = 0;
+  char *command = 0L;
 
+  //  Try to open the original name
+  //
+  errno = 0;
+  _pipe = false;
+  _in   = fopen(name, "rb");
+  errno_fopen = errno;
+
+  //  If that fails, try to open the compressed version
+  //
   if (_in == 0L) {
-    fprintf(stderr, "Couldn't open bitPackedFile '%s'\n", name);
-    exit(1);
+    size_t  l = strlen(name);
+
+    command = new char [l + 64];
+
+    sprintf(command, "%s.bz2", name);
+    errno = 0;
+    _in   = fopen(command, "rb");
+    errno_popen = errno;
+
+    //  If the file exists, open a pipe.
+    //
+    if (_in) {
+      fclose(_in);
+
+      sprintf(command, "bzip2 -dc %s.bz2", name);
+
+      errno = 0;
+      _pipe = true;
+      _in   = popen(command, "r");
+      errno_popen = errno;
+    }
   }
+
+  //  Make sure we aren't at EOF
+  //
+  if (_in == 0L) {
+    fprintf(stderr, "bitPackedFileReader::bitPackedFileReader()-- Couldn't open bitPackedFile.\n");
+    fprintf(stderr, "bitPackedFileReader::bitPackedFileReader()-- %s: %s\n", name, strerror(errno_fopen));
+    fprintf(stderr, "bitPackedFileReader::bitPackedFileReader()-- %s: %s\n", command, strerror(errno_popen));
+    exit(1);
+  } else {
+    int c = getc(_in);
+
+    if (feof(_in)) {
+      if (command)
+        fprintf(stderr, "bitPackedFileReader::bitPackedFileReader()-- Empty bitPackedFile '%s.bz2'\n", name);
+      else
+        fprintf(stderr, "bitPackedFileReader::bitPackedFileReader()-- Empty bitPackedFile '%s'\n", name);
+      exit(1);
+    }
+
+    ungetc(c, _in);
+  }
+
+  delete [] command;
 
   _bfr = new u64bit [BUFFER_SIZE];
   _bit = u64bitZERO;
@@ -109,7 +162,11 @@ bitPackedFileWriter::putBits(u64bit bits, u32bit size) {
 
 bitPackedFileReader::~bitPackedFileReader() {
   delete [] _bfr;
-  fclose(_in);
+
+  if (_pipe)
+    pclose(_in);
+  else
+    fclose(_in);
 }
 
 //  Essentially getDecodedValue, but will update _WORD and _bit.
