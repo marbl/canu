@@ -12,14 +12,6 @@
 
 #include "alphabet.h"
 
-//  Create the O_LARGEFILE type for open(), if it doesn't already
-//  exist (FreeBSD, Tru64)
-//
-#ifndef O_LARGEFILE
-#define O_LARGEFILE    0
-#endif
-
-
 #ifdef __apple
 inline
 void

@@ -3,6 +3,19 @@
 
 #include <sys/types.h>
 
+//  Create the O_LARGEFILE type for open(), if it doesn't already
+//  exist (FreeBSD, Tru64).  We assume that by including the stuff
+//  needed for open(2) we'll get any definition of O_LARGEFILE.
+//
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
+#ifndef O_LARGEFILE
+#define O_LARGEFILE    0
+#endif
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
