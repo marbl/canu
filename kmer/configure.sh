@@ -86,10 +86,10 @@ EOF
 THRINC  = -qthreaded -D_THREAD_SAFE
 THRLIB  = -lpthread
 IBMLF	= -D_LARGE_FILES
-cc      = xlc
+cc      = xlc_r
 ccOPTS  = -q64 -O3 -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict \$(IBMLF) -qcpluscmt
 ccWARNS = 
-CC      = xlC
+CC      = xlC_r
 CCOPTS  = -q64 -O3 -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict \$(IBMLF)
 CCWARNS =
 AROPTS  = -X 64 ruv
