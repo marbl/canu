@@ -13,11 +13,12 @@ char     faild[16] = { 'p', 'o', 's', 'i', 't', 'i', 'o', 'n', 'D', 'B', 'f', 'a
 
 
 //  Split writes into smaller pieces, check the result of each piece.
+//  Really needed by OSF1 (V5.1)
 //
 void
 safeWrite(int filedes, const void *buffer, char *desc, size_t nbytes) {
   size_t  position = 0;
-  size_t  length   = 256 * 1024 * 1024;
+  size_t  length   = 32 * 1024 * 1024;
   size_t  towrite  = 0;
   size_t  written  = 0;
 
@@ -35,6 +36,38 @@ safeWrite(int filedes, const void *buffer, char *desc, size_t nbytes) {
       fprintf(stderr, "positionDB::saveState()-- Write failure on %s.\n", desc);
       fprintf(stderr, "positionDB::saveState()-- Wanted to write %ld bytes, wrote %ld.\n", towrite, written);
       fprintf(stderr, "positionDB::saveState()-- Error is %d '%s'\n", errno, strerror(errno));
+      exit(1);
+    }
+
+    position += written;
+  }
+}
+
+
+//  Split reads into smaller pieces, check the result of each piece.
+//  Really needed by OSF1 (V5.1)
+//
+void
+safeRead(int filedes, const void *buffer, char *desc, size_t nbytes) {
+  size_t  position = 0;
+  size_t  length   = 32 * 1024 * 1024;
+  size_t  toread   = 0;
+  size_t  written  = 0;  //  readen?
+
+  while (position < nbytes) {
+    fprintf(stderr, "read %ld to %ld\n", position, position+length);
+
+    toread = length;
+    if (position + toread > nbytes)
+      toread = nbytes - position;
+
+    errno = 0;
+    written = read(filedes, ((char *)buffer) + position, toread);
+
+    if ((errno) || (toread != written)) {
+      fprintf(stderr, "positionDB::safeRead()-- Read failure on %s.\n", desc);
+      fprintf(stderr, "positionDB::safeRead()-- Wanted to read %ld bytes, read %ld.\n", toread, written);
+      fprintf(stderr, "positionDB::safeRead()-- Error is %d '%s'\n", errno, strerror(errno));
       exit(1);
     }
 
@@ -105,11 +138,11 @@ positionDB::loadState(char const *filename, bool beNoisy, bool loadData) {
   errno = 0;
   int F = open(filename, O_RDONLY | O_LARGEFILE, 0);
   if (errno) {
-    fprintf(stderr, "Can't open '%s' for reading pre-built positionDB.\n%s\n", filename, strerror(errno));
+    fprintf(stderr, "Can't open '%s' for reading pre-built positionDB: %s\n", filename, strerror(errno));
     return(false);
   }
 
-  read(F, cigam, sizeof(char) * 16);
+  safeRead(F, cigam, "Magic Number", sizeof(char) * 16);
 
   if        (strncmp(faild, cigam, 16) == 0) {
     if (beNoisy) {
@@ -146,7 +179,7 @@ positionDB::loadState(char const *filename, bool beNoisy, bool loadData) {
     return(false);
   }
 
-  read(F, this, sizeof(positionDB) * 1);
+  safeRead(F, this, "positionDB", sizeof(positionDB) * 1);
 
   _hashTable = 0L;
   _buckets   = 0L;
@@ -161,17 +194,12 @@ positionDB::loadState(char const *filename, bool beNoisy, bool loadData) {
     _buckets   = new u64bit [bs];
     _positions = new u64bit [ps];
 
-    read(F, _hashTable, sizeof(u64bit) * hs);
-    read(F, _buckets,   sizeof(u64bit) * bs);
-    read(F, _positions, sizeof(u64bit) * ps);
+    safeRead(F, _hashTable, "_hashTable", sizeof(u64bit) * hs);
+    safeRead(F, _buckets,   "_buckets",   sizeof(u64bit) * bs);
+    safeRead(F, _positions, "_positions", sizeof(u64bit) * ps);
   }
 
   close(F);
-
-  if (errno) {
-    fprintf(stderr, "positionDB::loadState()-- Read failure.\n%s\n", strerror(errno));
-    exit(1);
-  }
 
   return(true);
 }
