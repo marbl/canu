@@ -275,8 +275,8 @@ if ($personality eq "-mapest") {
     configure      ("-configure", "$dir", "-genomic", "$gen", @ARGV);
     search         ("-searchsnp", "$dir", "-cdna", "$est", "-mersize", "20", "-species", "human", @ARGV);
     filter         ("-filtersnp", "$dir", @ARGV);
-    polish         ("-polish", "$dir", "-mincoverage", "50", "-minidentity", "95", @ARGV);
-    assembleOutput ("-assembleoutput", "$dir", "-mincoverage", "50", "-minidentity", "95", @ARGV);
+    polish         ("-polish", "$dir", "-mincoverage", "80", "-minidentity", "95", @ARGV);
+    assembleOutput ("-assembleoutput", "$dir", "-mincoverage", "80", "-minidentity", "95", @ARGV);
 } elsif ($personality eq "-mapmrna") {
     shift @ARGV;
     my $dir = shift @ARGV;
@@ -1172,7 +1172,7 @@ sub search {
         }
         if ($arg eq "-searchsnp") {
             $path = shift @ARGS;
-            $opts = "-singlelength 40 -multiplelength 40 -smallsequence 10000000 -extendminimum 100 -extendweight 2";
+            $opts = "-singlecoverage 0.3 -multiplecoverage 0.3 -smallsequence 10000000 -extendminimum 100 -extendweight 2";
         }
         if ($arg eq "-searchopts") {
             $opts .= " " . shift @ARGS;
