@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <errno.h>
 #include <ctype.h>
 
@@ -32,10 +33,10 @@ public:
 
     if (_theFile == 0L) {
       if (filename)
-        fprintf(stderr, "FastAstream::FastAstream()-- couldn't open the file '%s'?\n", filename);
+        fprintf(stderr, "FastAstream::FastAstream()-- couldn't open '%s'\n%s\n", filename, strerror(errno));
       else
-        fprintf(stderr, "FastAstream::FastAstream()-- couldn't open stdin?\n");
-      perror("FastAstream::FastAstream()-- ");
+        fprintf(stderr, "FastAstream::FastAstream()-- couldn't open stdin?\n%s\n", strerror(errno));
+      exit(1);
     }
 
     _thePosition       = 0;
