@@ -394,6 +394,6 @@ endif
 # sometimes we deploy on Solaris on Fancisco's machines
 ifeq (${_OS|FULL_},SunOS|francisco's)
   CXXFLAGS_LAPACK   :=-DFTN_UNDERSCORE -DFTN_LOWERCASE
-  CXXLDFLAGS_LAPACK :=-L/home/lipperra/local/lib
+  CXXLDFLAGS_LAPACK :=-L/usr/local/lib
   CXXLIBS_LAPACK    :=-llapack -lblas -lF77
 endif
