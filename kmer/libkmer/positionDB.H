@@ -10,6 +10,7 @@ public:
   positionDB(unsigned char const  *seq,
              char const           *filename,
              u32bit                merSize,
+             u32bit                merSkip,    //  mers to skip between mers
              u32bit                tblBits,
              bool                  beVerbose);
   ~positionDB();
@@ -55,6 +56,8 @@ private:
 
   u32bit      _merSizeInBases;
   u32bit      _merSizeInBits;
+
+  u32bit      _merSkipInBases;
 
   u32bit      _tableSizeInBits;
   u64bit      _tableSizeInEntries;

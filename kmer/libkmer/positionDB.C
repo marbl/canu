@@ -49,6 +49,7 @@ const char *spceUsedMsg  = "    Used:  Bucket %12llu    Position %12llu (64-bit 
 positionDB::positionDB(unsigned char const  *seq,
                        char const           *filename,
                        u32bit                merSize,
+                       u32bit                merSkip,
                        u32bit                tblBits,
                        bool                  beVerbose) {
   _bucketSizes           = 0L;
@@ -59,6 +60,7 @@ positionDB::positionDB(unsigned char const  *seq,
 
   _merSizeInBases        = merSize;
   _merSizeInBits         = 2 * _merSizeInBases;
+  _merSkipInBases        = merSkip;
   _tableSizeInBits       = tblBits;
   _tableSizeInEntries    = u64bitONE << _tableSizeInBits;
   _hashWidth             = u32bitZERO;
@@ -146,7 +148,7 @@ positionDB::positionDB(unsigned char const  *seq,
 
   speedCounter  *C = new speedCounter("    %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, beVerbose);
 
-  while (M->nextMer()) {
+  while (M->nextMer(_merSkipInBases)) {
     //fprintf(stderr, "%016llx -> %016llx\n", M->theFMer(), HASH(M->theFMer()));
 
     _bucketSizes[ HASH(M->theFMer()) ]++;
@@ -253,7 +255,7 @@ positionDB::positionDB(unsigned char const  *seq,
   fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING is defined!\n");
 #endif
 
-  while (M->nextMer()) {
+  while (M->nextMer(_merSkipInBases)) {
     u64bit h = HASH(M->theFMer());
 
     _bucketSizes[h]--;
