@@ -45,9 +45,13 @@ multipleOperations(merylArgs *args) {
 
   //  Verify that the mersizes are all the same
   //
+  bool    fail       = false;
   u32bit  merSize    = R[0]->merSize();
 
-  for (u32bit i=0; i<args->mergeFilesLen; i++) {
+  for (u32bit i=0; i<args->mergeFilesLen; i++)
+    fail |= (merSize != R[i]->merSize());
+
+  if (fail) {
     fprintf(stderr, "ERROR:  mer sizes are different.\n");
     exit(1);
   }
