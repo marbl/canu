@@ -14,17 +14,19 @@ public:
     _mersWid = 14;
     _mersMax = u32bitMASK(_mersWid);
     _mersLen = 0;
-    _ptrs[0] = new coord [_mersMax];
+    _ptrs[0] = new coord [_mersMax+1];
+
+    //fprintf(stderr, "new merList, _ptrs = %p, _mers = %p\n", _ptrs, _ptrs[0]);
   };
   ~merList() {
-    for (u32bit x=0; x<_ptrsLen; x++)
+    for (u32bit x=0; x<_ptrsLen+1; x++)
       delete [] _ptrs[x];
     delete [] _ptrs;
   };
 
   void  addMer(u32bit x, u32bit y) {
 
-    if (_mersLen >= _mersMax) {
+    if (_mersLen > _mersMax) {
       _ptrsLen++;
 
       if (_ptrsLen >= _ptrsMax) {
@@ -35,7 +37,7 @@ public:
         _ptrs = p;
       }
 
-      _ptrs[_ptrsLen] = new coord [_mersMax];
+      _ptrs[_ptrsLen] = new coord [_mersMax+1];
       _mersLen = 0;
     }
 
@@ -59,7 +61,8 @@ public:
   };
 
   void  clear(void) {
-    for (u32bit x=0; x<_ptrsLen; x++)
+    // Don't delete the first guy!  We write into it blindly!
+    for (u32bit x=1; x<_ptrsLen; x++)
       delete [] _ptrs[x];
     _ptrsLen = 0;
     _mersLen = 0;
