@@ -43,6 +43,9 @@ if [ "x$target" = "x" ] ; then
     OSF1)
       target="tru64$opts"
       ;;
+    Linux)
+      target="linux$opts"
+      ;;
     *)
       echo "ERROR: Unknown uname of `uname` -- try manual configuration."
       exit 1
@@ -281,17 +284,22 @@ CXX_TMP_ARCH      := cxx_repository
 EOF
     ;;
   linux)
-    echo "Linux is UNTESTED!"
     rm -f Make.compilers
     cat <<EOF > Make.compilers
 # -*- makefile -*-
 #  Linux, optimized
+THREADS           := -D_THREAD_SAFE -pthread
+THREADL           := -pthread
 CC                := cc
-SHLIB_FLAGS       := -shared #untested
-CFLAGS_COMPILE    := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -pthread -O3 -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+SHLIB_FLAGS       := -shared
+CFLAGS_COMPILE    := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -O3 \$(THREADS) -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CLDFLAGS          := -L/usr/local/lib
+CLIBS             := \$(THREADL)
 CXX               := g++
-CXXFLAGS_COMPILE  := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -pthread -O3 -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
-ARFLAGS           := ruv
+CXXFLAGS_COMPILE  := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -O3 \$(THREADS) -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CXXLDFLAGS        := -L/usr/local/lib
+CXXLIBS           := \$(THREADL)
+ARFLAGS           := ruvs
 EOF
     ;;
 
@@ -338,7 +346,7 @@ EOF
     echo "          tru64, compaq             Tru64, optimized"
     echo "          tru64-debug, compaq-debug Tru64, debug, warnings, trapuv"
     echo ""
-    echo "          linux                     Linux, optimized (STALE)"
+    echo "          linux                     Linux, optimized"
     echo ""
     echo "          solaris                   Solaris, gcc, optimized (STALE)"
     exit
