@@ -44,6 +44,8 @@ int MIN_ALIGNED_COLS=30; /* minimum length of a local overlap in the following
 			    purpose be the sum of the lengths of the segments
 			    that make up the overlap */
 
+int aimforlongest=0; /* prefer max align over min unaligned i.e. global over overlap */
+
 #define BIG_INT 0x7FFFFFFF
 
 #undef DEBUG_DP
@@ -687,21 +689,14 @@ Gen_Overlap:
       //      if (Trace[i].start >= 0)
       if (Trace[i].start >= 0&&Trace[i].colsAligned >= MIN_ALIGNED_COLS)
         { int sfx;
+          int thisscore;
           sfx = Alen - Segs[i].aepos;
           if (Blen - Segs[i].bepos < sfx)
             sfx = Blen - Segs[i].bepos;
           sfx *= 2;
-          if (Trace[i].value + sfx 
-#undef AIMFORLONGEST
-#ifdef AIMFORLONGEST
-	      -2*Trace[i].colsAligned
-#endif
-	      < best)
-            { best = Trace[i].value 
-#ifdef AIMFORLONGEST
-		-2*Trace[i].colsAligned
-#endif
-		+ sfx;
+	  thisscore =Trace[i].value + sfx + (aimforlongest ? -2*Trace[i].colsAligned : 0);
+          if (thisscore < best)
+            { best = thisscore;
               end  = i;
             }
         }  
