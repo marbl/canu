@@ -27,33 +27,35 @@ s4p_updateAlignmentScores(sim4polish *p) {
     nn = 0;
     nm = 0;
 
-    while (*est && *gen) {
-      estn = (*est == 'N') || (*est == 'n');
-      genn = (*gen == 'N') || (*gen == 'n');
+    if (est && gen) {
+      while (*est && *gen) {
+        estn = (*est == 'N') || (*est == 'n');
+        genn = (*gen == 'N') || (*gen == 'n');
 
-      if        ((*est == '-') || (*gen == '-')) {
-        ni++;
-        ne++;
-      } else if (estn && genn) {
-        //  Both are N.  It isn't a match and it isn't an edit.
-        //
-        nn++;
-      } else if (estn || genn) {
-        //  One is an N.  Someone has low quality sequence, and we
-        //  should penalize.  We need to special case this because
-        //  IUPACidentity[][] claims N matches all.
-        //
-        ne++;
-      } else if (IUPACidentity[(int)*est][(int)*gen]) {
-        //  Got a match.
-        nm++;
-      } else {
-        //  Got a substitution
-        ne++;
+        if        ((*est == '-') || (*gen == '-')) {
+          ni++;
+          ne++;
+        } else if (estn && genn) {
+          //  Both are N.  It isn't a match and it isn't an edit.
+          //
+          nn++;
+        } else if (estn || genn) {
+          //  One is an N.  Someone has low quality sequence, and we
+          //  should penalize.  We need to special case this because
+          //  IUPACidentity[][] claims N matches all.
+          //
+          ne++;
+        } else if (IUPACidentity[(int)*est][(int)*gen]) {
+          //  Got a match.
+          nm++;
+        } else {
+          //  Got a substitution
+          ne++;
+        }
+
+        est++;
+        gen++;
       }
-
-      est++;
-      gen++;
     }
 
     p->exons[exon].numMatches  = nm;
@@ -132,33 +134,35 @@ s4p_percentIdentity(sim4polish *p) {
     nn = 0;
     nm = 0;
 
-    while (*est && *gen) {
-      estn = (*est == 'N') || (*est == 'n');
-      genn = (*gen == 'N') || (*gen == 'n');
+    if (est && gen) {
+      while (*est && *gen) {
+        estn = (*est == 'N') || (*est == 'n');
+        genn = (*gen == 'N') || (*gen == 'n');
 
-      if        ((*est == '-') || (*gen == '-')) {
-        ni++;
-        ne++;
-      } else if (estn && genn) {
-        //  Both are N.  It isn't a match and it isn't an edit.
-        //
-        nn++;
-      } else if (estn || genn) {
-        //  One is an N.  Someone has low quality sequence, and we
-        //  should penalize.  We need to special case this because
-        //  IUPACidentity[][] claims N matches all.
-        //
-        ne++;
-      } else if (IUPACidentity[(int)*est][(int)*gen]) {
-        //  Got a match.
-        nm++;
-      } else {
-        //  Got a substitution
-        ne++;
+        if        ((*est == '-') || (*gen == '-')) {
+          ni++;
+          ne++;
+        } else if (estn && genn) {
+          //  Both are N.  It isn't a match and it isn't an edit.
+          //
+          nn++;
+        } else if (estn || genn) {
+          //  One is an N.  Someone has low quality sequence, and we
+          //  should penalize.  We need to special case this because
+          //  IUPACidentity[][] claims N matches all.
+          //
+          ne++;
+        } else if (IUPACidentity[(int)*est][(int)*gen]) {
+          //  Got a match.
+          nm++;
+        } else {
+          //  Got a substitution
+          ne++;
+        }
+
+        est++;
+        gen++;
       }
-
-      est++;
-      gen++;
     }
 
 #if 0
