@@ -165,9 +165,9 @@ sub assembleOutput {
     if (! -e "$path/polishes-best") {
         print STDERR "ESTmapper/assembleOutput--  Picking the best polish.\n";
         if      ($personality eq "-mapmrna") {
-            system("$sortPolishes -m 2000 -c -v < $path/polishes-good | $pickBest -mrna > $path/polishes-best");
+            system("$sortPolishes -m 2000 -c < $path/polishes-good | $pickBest -mrna > $path/polishes-best");
         } elsif ($personality eq "-mapest") {
-            system("$sortPolishes -m 2000 -c -v < $path/polishes-good | $pickBest -est > $path/polishes-best");
+            system("$sortPolishes -m 2000 -c < $path/polishes-good | $pickBest -est > $path/polishes-best");
         } else {
             print STDERR "ESTmapper/assembleOutput--  Not mRNA and not EST, so not picking the best polish.\n";
         }
