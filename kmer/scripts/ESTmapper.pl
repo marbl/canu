@@ -1593,11 +1593,9 @@ sub configure {
         my $idx = 0;
         open(F, "< $path/0-input/genomic.fastainf");
         while (<F>) {
-            #  Skip all the fasta file information
-            last if (m/^\d+\s+\d+\s+(\d+)\s+\d+\D/);
-        }
-        while (<F>) {
-            if (m/^\d+\s+\d+\s+(\d+)\s+\d+\D/) {
+            if (m/^#/) {
+                #  Comment line, do nothing
+            } elsif (m/^\d+\s+\d+\s+(\d+)\s+\d+\D/) {
                 push @scaffolds, "$1.$idx";
                 $idx++;
             } else {
