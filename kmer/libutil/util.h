@@ -332,6 +332,35 @@ void              md5_increment_finalize(md5_increment_s *m);
 void              md5_increment_destroy(md5_increment_s *m);
 
 
+////////////////////////////////////////
+//
+//  Matsumoto and Nichimura's Mersenne Twister pseudo random number
+//  generator.  The struct and functions are defined in external/mt19937ar.[ch]
+//
+typedef struct mt mt_s;
+
+mt_s          *mtInit(u32bit s);
+mt_s          *mtInitArray(u32bit *init_key, u32bit key_length);
+u32bit         mtRandom32(mt_s *mt);
+
+//  A u64bit random number
+//
+#define        mtRandom64(MT) ( (((u64bit)mtRandom32(MT)) << 32) | (u64bit)mtRandom32(MT) )
+
+//  Real valued randomness
+//    mtRandomRealOpen()    -- on [0,1) real interval
+//    mtRandomRealClosed()  -- on [0,1] real interval
+//    mrRandomRealOpen53()  -- on [0,1) real interval, using 53 bits
+//
+//  "These real versions are due to Isaku Wada, 2002/01/09 added" and were taken from
+//  the mt19937ar.c distribution (but they had actual functions, not macros)
+//
+//  They also had
+//    random number in (0,1) as (mtRandom32() + 0.5) * (1.0 / 4294967296.0)
+//
+#define        mtRandomRealOpen(MT)   ( (double)mtRandom32(MT) * (1.0 / 4294967296.0) )
+#define        mtRandomRealClosed(MT) ( (double)mtRandom32(MT) * (1.0 / 4294967295.0) )
+#define        mtRandomRealOpen53(MT) ( ((mtRandom32(MT) >> 5) * 67108864.0 + (mtRandom32(MT) >> 6)) * (1.0 / 9007199254740992.0) )
 
 
 #ifdef __cplusplus

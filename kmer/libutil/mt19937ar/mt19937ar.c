@@ -62,7 +62,7 @@
 
 //  initialize with a single seed
 mt_s*
-init_genrand(u32bit s) {
+mtInit(u32bit s) {
   mt_s *ctx = (mt_s *)malloc(sizeof(mt_s));
   if (ctx == NULL)
     return(NULL);
@@ -91,9 +91,9 @@ init_genrand(u32bit s) {
 /* key_length is its length */
 /* slight change for C++, 2004/2/26 */
 mt_s*
-init_by_array(u32bit *init_key, u32bit key_length) {
+mtInitArray(u32bit *init_key, u32bit key_length) {
 
-  mt_s *ctx = init_genrand(19650218UL);
+  mt_s *ctx = mtInit(19650218UL);
   int   i   = 1;
   int   j   = 0;
   int   k   = (MT_N > key_length ? MT_N : key_length);
@@ -126,7 +126,7 @@ init_by_array(u32bit *init_key, u32bit key_length) {
 
 /* generates a random number on [0,0xffffffff]-interval */
 u32bit
-genrand_int32(mt_s *ctx) {
+mtRandom32(mt_s *ctx) {
     u32bit y;
 
     //  generate MT_N words at one time
@@ -147,7 +147,7 @@ genrand_int32(mt_s *ctx) {
 
         ctx->mti = 0;
     }
-  
+
     y = ctx->mt[ctx->mti++];
 
     /* Tempering */
@@ -158,44 +158,3 @@ genrand_int32(mt_s *ctx) {
 
     return y;
 }
-
-
-
-
-
-
-
-/* generates a random number on [0,0x7fffffff]-interval */
-s32bit
-genrand_int31(mt_s *mt) {
-  return (s32bit)(genrand_int32(mt) >> 1);
-}
-
-/* generates a random number on [0,1]-real-interval */
-double
-genrand_real1(mt_s *mt) {
-    return genrand_int32(mt)*(1.0/4294967295.0); 
-    /* divided by 2^32-1 */ 
-}
-
-/* generates a random number on [0,1)-real-interval */
-double
-genrand_real2(mt_s *mt) {
-    return genrand_int32(mt)*(1.0/4294967296.0); 
-}
-
-/* generates a random number on (0,1)-real-interval */
-double
-genrand_real3(mt_s *mt) {
-    return (((double)genrand_int32(mt)) + 0.5)*(1.0/4294967296.0); 
-}
-
-/* generates a random number on [0,1) with 53-bit resolution*/
-double
-genrand_res53(mt_s *mt) { 
-    u32bit a = genrand_int32(mt) >> 5;
-    u32bit b = genrand_int32(mt) >> 6; 
-    return(a * 67108864.0 + b) * (1.0/9007199254740992.0); 
-} 
-/* These real versions are due to Isaku Wada, 2002/01/09 added */
-

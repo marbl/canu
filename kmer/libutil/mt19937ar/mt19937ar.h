@@ -7,10 +7,13 @@
 //    Coded by Takuji Nishimura and Makoto Matsumoto.
 //
 //  to make it thread safe and (hopefully) more portable.
+//
+//  20040421, bpw
 
-
+//  bri.h contains the function prototypes, but we hide the structure and
+//  implementation here.
+//
 #include "bri.h"
-
 
 /* Period parameters */  
 #define MT_N 624
@@ -20,7 +23,7 @@
 #define MT_LOWER_MASK 0x7fffffffUL /* least significant r bits */
 
 
-typedef struct {
+struct mt {
   //  The array for the state vector
   //
   u32bit  mt[MT_N];
@@ -34,17 +37,11 @@ typedef struct {
   //  mag01[x] = x * MT_MATRIX_A  for x=0,1
   //
   u32bit  mag01[2];
-} mt_s;
+};
 
+//  This is declared in bri.h
+//
+//typedef struct mt mt_s;
 
-
-mt_s          *init_genrand(u32bit s);
-mt_s          *init_by_array(u32bit *init_key, u32bit key_length);
-u32bit         genrand_int32(mt_s *mt);
-s32bit         genrand_int31(mt_s *mt);
-double         genrand_real1(mt_s *mt);
-double         genrand_real2(mt_s *mt);
-double         genrand_real3(mt_s *mt);
-double         genrand_res53(mt_s *mt);
 
 #endif  //  MT19937AR_H
