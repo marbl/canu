@@ -278,12 +278,14 @@ define .RULE-install-copy-PYTHON
 ${1:.=.install-copy}: ${1:.=.install-copy-PYTHON}
 ${1:.=.install-copy-PYTHON}:
 # python exes goto scripts with shebang added
+# bpw likes then in bin instead
 	$(call .FUN-install-copy-script,$${${1:.=.PY_EXES}},\
-                                         scripts/,\
+                                         bin/,\
                                          ${PYTHON} ${PYTHON_FLAGS})
 # python libs goto scripts
+# bpw likes then in bin instead
 	$(call .FUN-install-copy,$${${1:.=.PY_LIBS}}, \
-                                 scripts/$${${1:.=.PY_LIB/}})
+                                 bin/$${${1:.=.PY_LIB/}})
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-install-copy-PYTHON,$x)))
@@ -295,18 +297,18 @@ $(eval $(foreach x,${//},$(call .RULE-install-copy-PYTHON,$x)))
 # Same sort of spiel as python
 #__SUBGOALS__+=$${${1:.=.PERL_EXES}} $${${1:.=.PERL_LIBS}}
 
-   # install rules for python scripts
+   # install rules for perl scripts
 
 define .RULE-install-copy-PERL
 ${1:.=.install-copy}: ${1:.=.install-copy-PERL}
 ${1:.=.install-copy-PERL}:
 # perl exes goto scripts with shebang added
 	$(call .FUN-install-copy-script,$${${1:.=.PERL_EXES}},\
-                                         scripts/,\
+                                         bin/,\
                                          ${PERL} ${PERL_FLAGS})
 # perl libs goto scripts
 	$(call .FUN-install-copy,$${${1:.=.PERL_LIBS}}, \
-                                 scripts/$${${1:.=.PERL_LIB/}})
+                                 bin/$${${1:.=.PERL_LIB/}})
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-install-copy-PERL,$x)))
@@ -317,18 +319,18 @@ $(eval $(foreach x,${//},$(call .RULE-install-copy-PERL,$x)))
 # Same sort of spiel as python
 #__SUBGOALS__+=$${${1:.=.SH_EXES}} $${${1:.=.SH_LIBS}}
 
-   # install rules for python scripts
+   # install rules for sh scripts
 
 define .RULE-install-copy-SH
 ${1:.=.install-copy}: ${1:.=.install-copy-SH}
 ${1:.=.install-copy-SH}:
-# perl exes goto scripts with shebang added
+# sh exes goto scripts with shebang added
 	$(call .FUN-install-copy-script,$${${1:.=.SH_EXES}},\
-                                         scripts/,\
+                                         bin/,\
                                          ${SH} ${SH_FLAGS})
-# perl libs goto scripts
+# sh libs goto scripts
 	$(call .FUN-install-copy,$${${1:.=.SH_LIBS}}, \
-                                 scripts/$${${1:.=.SH_LIB/}})
+                                 bin/$${${1:.=.SH_LIB/}})
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-install-copy-SH,$x)))
