@@ -102,8 +102,25 @@ searchThread(void *U) {
         char *o = doPolish(state, seq, theHits, theHitsLen, theLog);
 
 
+#ifdef VERBOSE_SEARCH
+        double endTime = getTime();
+        if ((endTime - startTime) > 5.0) {
+          fprintf(stdout, u64bitFMT" done with idx = "u32bitFMT" ("u32bitFMT" bp, "u32bitFMT" hits) search %f filter %f polish %f  search %f chain %f polish %f\n",
+                  state->threadID, idx, seq->sequenceLength(), theHitsLen,
+                  searchTime - startTime,
+                  filterTime - searchTime,
+                  endTime - filterTime,
+                  state->searchTime,
+                  state->chainTime,
+                  state->polishTime);
+          fflush(stdout);
+        }
+#endif
+
         //  Clean up
         //
+        delete seq;
+
         for (u32bit h=0; h<theHitsLen; h++) {
           delete theHits[h]._ML;
           theHits[h]._ML = 0L;
@@ -121,34 +138,6 @@ searchThread(void *U) {
         output[idx]    = o;
 
         state->searched++;
-
-        //  Clean up stuff
-        //
-        delete    seq;
-
-#ifdef VERBOSE_SEARCH
-        double endTime = getTime();
-        if ((endTime - startTime) > 5.0) {
-          fprintf(stdout, u64bitFMT" done with idx = "u32bitFMT" ("u32bitFMT" bp, "u32bitFMT" hits) search %f filter %f polish %f  search %f chain %f polish %f\n",
-                  state->threadID, idx, seq->sequenceLength(), theHitsLen,
-                  searchTime - startTime,
-                  filterTime - searchTime,
-                  endTime - filterTime,
-                  state->searchTime,
-                  state->chainTime,
-                  state->polishTime);
-          fflush(stdout);
-        }
-#endif
-
-
-
-
-#ifdef MEMORY_DEBUG
-        //fprintf(stderr, "Memory dump in searchThread\n");
-        //_dump_allocated_delta(fileno(stderr));
-#endif
-
       } // end of seq != 0L
     } // end of idx < numberOfQueries
   } // end of inputTail < numberOfQueries

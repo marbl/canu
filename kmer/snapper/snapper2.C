@@ -157,11 +157,13 @@ main(int argc, char **argv) {
 #endif
 
 
+#if 0
   fprintf(stderr, "Hello.  I'm snapper2, pid %d\n", getpid());
   fprintf(stderr, "gdb snapper2 %d\n", getpid());
   fprintf(stderr, "Attach a debugger in the next 5 seconds.\n");
   sleep(5);
   fprintf(stderr, "Here I go!\n");
+#endif
 
 
   //
@@ -311,9 +313,15 @@ main(int argc, char **argv) {
     fprintf(stderr, "Opening the cDNA sequences.\n");
 
   qsFASTA = new FastAWrapper(config._qsFileName);
+
+#if 0
+  fprintf(stderr, "WARNING:  USING HARDCODED NUMBER OF QUERIES!\n");
+  numberOfQueries = 31917167;
+#else
   qsFASTA->openIndex();
 
   numberOfQueries  = qsFASTA->getNumberOfSequences();
+#endif
   input            = new FastASequenceInCore * [numberOfQueries];
   inputHead        = 0;
   inputTail        = 0;
@@ -332,13 +340,25 @@ main(int argc, char **argv) {
     logmsg[i]           = 0L;
   }
 
+#if 0
+  //  All we use the index for is to count the number of sequences for
+  //  the output display (and, OK, sizing the queues).  Close the
+  //  index to free up significant memory on large datasets.
+
+  delete qsFASTA;
+
+  //  And then open it again
+
+  qsFASTA = new FastAWrapper(config._qsFileName);
+#endif
+
+
 
   //  Init all done!
   //
   config._initTime = getTime() - config._startTime - config._buildTime;
 
 
-#if 0
 #ifdef MEMORY_DEBUG
   fprintf(stdout, "----------------------------------------\n");
   fprintf(stdout, "--\n");
@@ -347,7 +367,6 @@ main(int argc, char **argv) {
   fprintf(stdout, "--\n");
   fprintf(stdout, "--\n");
   _dump_allocated_delta(fileno(stdout));
-#endif
 #endif
 
   //
@@ -384,6 +403,17 @@ main(int argc, char **argv) {
   fprintf(stderr, "Deadlock detection enabled!\n");
   pthread_create(threadID + threadIDX++, &threadAttr, deadlockDetector, 0L);
   pthread_create(threadID + threadIDX++, &threadAttr, deadlockChecker, 0L);
+#endif
+
+
+#ifdef MEMORY_DEBUG
+  fprintf(stdout, "----------------------------------------\n");
+  fprintf(stdout, "--\n");
+  fprintf(stdout, "--\n");
+  fprintf(stdout, "--  Dump at middle\n");
+  fprintf(stdout, "--\n");
+  fprintf(stdout, "--\n");
+  _dump_allocated_delta(fileno(stdout));
 #endif
 
 
@@ -528,9 +558,9 @@ main(int argc, char **argv) {
         //
         if ((outputPos % 50) == 0)
           writeValidationFile(config._doValidationFileName, theFilters, numFilters);
-      }
+      } // doing validation
 
-      delete [] input[outputPos];
+      delete    input[outputPos];
       delete [] answer[outputPos];
       delete    logmsg[outputPos];
       delete [] output[outputPos];
@@ -605,6 +635,16 @@ main(int argc, char **argv) {
   //  Summarize the execution
   //
   dumpStats();
+
+#ifdef MEMORY_DEBUG
+  fprintf(stdout, "----------------------------------------\n");
+  fprintf(stdout, "--\n");
+  fprintf(stdout, "--\n");
+  fprintf(stdout, "--  Dump at before clean\n");
+  fprintf(stdout, "--\n");
+  fprintf(stdout, "--\n");
+  _dump_allocated_delta(fileno(stdout));
+#endif
 
 
   //  Clean up
