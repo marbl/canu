@@ -21,7 +21,7 @@ REFSEQANAL/ :=$/refseq-analysis/
 
 ########################## includes #############
 
-#$(eval $(call Include,${SNAPPER2/}))
+$(eval $(call Include,${SNAPPER2/}))
 
 $(eval $(call Include,${MERYL/}))
 
