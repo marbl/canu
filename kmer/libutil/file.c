@@ -8,7 +8,7 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(__FreeBSD__)
 #include <sys/syslimits.h>
 #endif
 
