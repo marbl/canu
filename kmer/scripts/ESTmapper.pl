@@ -287,7 +287,7 @@ if ($personality eq "-mapest") {
 
         if (! -e "$dir/polishes-good.sorted-by-cDNA") {
             print STDERR "ESTmapper--  Sorting polishes by sequence ID; using 4GB memory maximum.\n";
-            system("$sortPolishes -m 4000 -c -v < polishes-good > polishes-good.sorted-by-cDNA");
+            system("$sortPolishes -m 4000 -c -v < $dir/polishes-good > $dir/polishes-good.sorted-by-cDNA");
         }
 
         system("$parseSNPs -F $dir/snps-failed -O $dir/snps-parsed < $dir/polishes-good.sorted-by-cDNA");
