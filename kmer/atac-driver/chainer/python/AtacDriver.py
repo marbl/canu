@@ -38,9 +38,10 @@ import PerfectRuns
 import TrimMatchOverlaps
 import squeezeIntraRunGaps
 
+import localAlignerInterface
+
 import fillIntraRunGaps
 #import dedashMatches
-import countMisMatches
 
 STDERR=sys.stderr
 STDOUT=sys.stdout
@@ -242,6 +243,7 @@ def coalesceMatches ( inpfile, outfile, needs_to_share_diagonal ):
 # Resorting becomes making the inital sparse ranking dense then a
 # scattering to the destination.
 
+#  NOTE THAT outname is unused here.
 
 def boxRecovery( inpfile, rawfile, outname):
     inpfile.seek(0)
@@ -340,7 +342,7 @@ class AtacDriver(AtacFile.AtacFile):
         outprefix = self.runName
 
         step += 1
-        print >>STDERR, 'At step=' + str(step)
+        print >>STDERR, 'At uniqueFilter, step=' + str(step)
         print >>STDERR, 'Time elapsed=' + str(time.time()-t0)
         if (redo or ((keep < step) and not self.globals.has_key(ckpName))):
             redo = 1
@@ -353,20 +355,19 @@ class AtacDriver(AtacFile.AtacFile):
                 self.checkpoint(outprefix)
 
         step += 1
-        print >>STDERR, 'At step=' + str(step)
+        print >>STDERR, 'At filterByMatchLength, step=' + str(step)
         print >>STDERR, 'Time elapsed=' + str(time.time()-t0)
         if (redo or ((keep < step) and not self.globals.has_key(ckpName))):
             redo = 1
             print >>STDERR, 'Running filterByMatchLength'
             outfile = MyFile.myfile()
             filterByMatchLength( self.matches, outfile, opt_t)
-            #self.globals[ckpName]=1
             self.matches = outfile
             outprefix += '.t' + str(opt_t)
             self.checkpoint(outprefix)
 
         step += 1
-        print >>STDERR, 'At step=' + str(step)
+        print >>STDERR, 'At trimMatchOverlaps, step=' + str(step)
         print >>STDERR, 'Time elapsed=' + str(time.time()-t0)
         if (redo or ((keep < step) and not self.globals.has_key(ckpName))):
             redo = 1
@@ -383,7 +384,7 @@ class AtacDriver(AtacFile.AtacFile):
             rawfile = self.matches
 
         step += 1
-        print >>STDERR, 'At step=' + str(step)
+        print >>STDERR, 'At formPerfectRuns, step=' + str(step)
         print >>STDERR, 'Time elapsed=' + str(time.time()-t0)
         if (redo or ((keep < step) and not self.globals.has_key(ckpName))):
             redo = 1
@@ -394,24 +395,22 @@ class AtacDriver(AtacFile.AtacFile):
                                                    maxdiff,
                                                    'r')
             self.matches = tempdata
-            #self.globals[ckpName]=1
             outprefix += ".p6"
         # end if
 
         step += 1
-        print >>STDERR, 'At step=' + str(step)
+        print >>STDERR, 'At onlyKeepLongRuns, step=' + str(step)
         print >>STDERR, 'Time elapsed=' + str(time.time()-t0)
         if (redo or ((keep < step) and not self.globals.has_key(ckpName))):
             redo = 1
             print >>STDERR, 'from ' + outprefix + ' making ' + outprefix + '.l' + str(opt_l)
             tempdata = onlyKeepLongRuns( self.matches, outprefix, opt_l)
-            #self.globals[ckpName]=1
             self.matches = tempdata
             outprefix += '.l' + str(opt_l)
             self.checkpoint(outprefix)
 
         step += 1
-        print >>STDERR, 'At step=' + str(step) 
+        print >>STDERR, 'At formPerfectRuns, step=' + str(step) 
         print >>STDERR, 'Time elapsed=' + str(time.time()-t0)
         if (redo or ((keep < step) and not self.globals.has_key(ckpName))):
             redo = 1
@@ -422,13 +421,12 @@ class AtacDriver(AtacFile.AtacFile):
             self.matches = tempdata
             outprefix += '.pr'
             self.checkpoint(outprefix)
-            #self.globals[ckpName]=1
 
         if(boxRecoveryOn == 1): 
 
             # This is a box recovery step.
             step += 1
-            print >>STDERR, 'At step=' + str(step) 
+            print >>STDERR, 'At boxRecovery, step=' + str(step) 
             print >>STDERR, 'Time elapsed=' + str(time.time()-t0)
             if (redo or ((keep < step) and not self.globals.has_key(ckpName))):
                 redo = 1
@@ -442,11 +440,10 @@ class AtacDriver(AtacFile.AtacFile):
                 self.matches = tempdata
                 outprefix += '.br'
                 self.checkpoint(outprefix)
-                #self.globals[ckpName]=1
             # end if
 
             step += 1
-            print >>STDERR, 'At step=' + str(step)
+            print >>STDERR, 'At formPerfectRuns, step=' + str(step)
             print >>STDERR, 'Time elapsed=' + str(time.time()-t0)
             if (redo or ( (keep < step) and not self.globals.has_key(ckpName))):
                 print >>STDERR, "form perfect runs"
@@ -458,10 +455,9 @@ class AtacDriver(AtacFile.AtacFile):
                 self.matches = tempdata
                 outprefix += '.pr'
                 self.checkpoint(outprefix)
-                #self.globals[ckpName]=1
 
         step += 1
-        print >>STDERR, 'At step=' + str(step)
+        print >>STDERR, 'At squeezeIntraRunGaps, step=' + str(step)
         print >>STDERR, 'Time elapsed=' + str(time.time()-t0)
         if (redo or ((keep < step) and not self.globals.has_key(ckpName))):
             redo = 1
@@ -477,10 +473,9 @@ class AtacDriver(AtacFile.AtacFile):
             self.matches = tempy
             outprefix += '.sq'
             self.checkpoint(outprefix)
-            #self.globals[ckpName]=1
 
         step += 1
-        print >>STDERR, 'At step=' + str(step)
+        print >>STDERR, 'At TrimMatchOverlaps, step=' + str(step)
         print >>STDERR, 'Time elapsed=' + str(time.time()-t0)
         if (redo or ((keep < step) and not self.globals.has_key(ckpName))):
             redo = 1
@@ -489,25 +484,23 @@ class AtacDriver(AtacFile.AtacFile):
             TrimMatchOverlaps.trimMatchOverlapsInBoth(self.matches,tempdata,'u')
             self.matches = tempdata
             outprefix += '.trim'
-            #self.checkpoint(outprefix)
             print >>STDERR, "Finished trimming for bp one-to-one-ness"
 
         step += 1
-        print >>STDERR, 'At step=' + str(step)
+        print >>STDERR, 'At RunsAsMatches, step=' + str(step)
         print >>STDERR, 'Time elapsed=' + str(time.time()-t0)
         if (redo or ((keep < step) and not self.globals.has_key(ckpName))):
             redo = 1
             self.runs = PerfectRuns.runsAsMatches( self.matches)
             outprefix += '.runs'
             self.checkpoint(outprefix)
-            #self.globals[ckpName]=1
         # end if
 
         if(self.globals.has_key('fillIntraRunGapsOn') and self.globals['fillIntraRunGapsOn']=="1" ):
         
             # Next comes the DNA sequence dependent stuff.
             step += 1
-            print >>STDERR, 'At step=' + str(step)
+            print >>STDERR, 'At fillIntraRunGaps, step=' + str(step)
             print >>STDERR, 'Time elapsed=' + str(time.time()-t0)
             if (redo or ((keep < step) and not self.globals.has_key(ckpName))):
                 redo = 1
@@ -519,42 +512,26 @@ class AtacDriver(AtacFile.AtacFile):
                 fillIntraRunGapsErate = float(self.globals['fillIntraRunGapsErate'])
                 fillIntraRunGapsMaxGap = int(self.globals['fillIntraRunGapsMaxGap'])
                 tempdata = MyFile.myfile()
-                fillIntraRunGaps.mainLoop( self.matches, tempdata,
-                                           assemblyIdx1, assemblyIdx2,
-                                           fillIntraRunGapsMaxGap, fillIntraRunGapsErate)
-                #self.globals[ckpName]=1
+                fillIntraRunGaps.mainLoop(self.matches, tempdata,
+                                          assemblyIdx1, assemblyIdx2,
+                                          fillIntraRunGapsMaxGap, fillIntraRunGapsErate)
                 self.matches = tempdata
                 outprefix += '.fill'
                 self.checkpoint(outprefix)
 
             step += 1
-            print >>STDERR, 'At step=' + str(step)
+            print >>STDERR, 'At TrimMatchOverlaps, step=' + str(step)
             print >>STDERR, 'Time elapsed=' + str(time.time()-t0)
             if (redo or ((keep < step) and not self.globals.has_key(ckpName))):
                 redo = 1
                 print >>STDERR, "trim the overlaps"
                 tempdata = MyFile.myfile()
                 TrimMatchOverlaps.trimMatchOverlapsInBoth(self.matches,tempdata,'u')
-                #self.globals[ckpName]=1
                 self.matches = tempdata
                 outprefix += '.trim'
                 self.checkpoint(outprefix)
 
         # end if "fillIntraRunGapsOn"
-
-        step += 1
-        print >>STDERR, 'At step=' + str(step)
-        print >>STDERR, 'Time elapsed=' + str(time.time()-t0)
-        if (redo or ((keep < step) and not self.globals.has_key(ckpName))):
-            redo = 1
-            print >>STDERR, "count the number of substitutions"
-            tempdata = MyFile.myfile()
-            countMisMatches.countMisMatches(self.matches, tempdata, assemblyIdx1, assemblyIdx2)
-            #self.globals[ckpName]=1
-            self.matches = tempdata
-            outprefix += '.mm'
-            self.checkpoint(outprefix)
-        print >>STDERR, 'Time elapsed=' + str(time.time()-t0)
 
     # end def
         
@@ -572,6 +549,11 @@ class localExecutable :
 
 
 def main(runName):
+
+    if (0):
+        junkfile = sys.stderr
+        localAlignerInterface.hello(junkfile)
+        return
 
     print >>STDERR, "I read the output from MatchExtender.\n";
     print >>STDERR, "Start reading checkpoint ...."
@@ -598,19 +580,14 @@ def main(runName):
     assert(os.path.exists(assemblyFile1))
     assert(os.path.exists(assemblyFile2))
 
-    if(not os.path.exists(assemblyFile2+".idxStore")):
-        IdxStore.createIndexedFasta( assemblyFile2, assemblyId2, 1)
+    if(not os.path.exists(assemblyFile1+".idxStore")):
+        IdxStore.createIndexedFasta( assemblyFile1, assemblyId2)
 
     if(not os.path.exists(assemblyFile2+".idxStore")):
-        IdxStore.createIndexedFasta( assemblyFile2, assemblyId2, 1)
+        IdxStore.createIndexedFasta( assemblyFile2, assemblyId2)
 
-    assert(os.path.exists(assemblyFile1+".seqStore"))
     assert(os.path.exists(assemblyFile1+".idxStore"))
-    assert(os.path.exists(assemblyFile2+".seqStore"))
     assert(os.path.exists(assemblyFile2+".idxStore"))
-
-    # CMM Since we made a private copy of the assembly fasta files, we need to
-    # clean up the private copies of the assemblies.
 
     if not obj.globals.has_key('matchesFile'):
         print >>STDERR, "We need to make the raw matches."
@@ -640,9 +617,6 @@ def main(runName):
     print >>STDERR, "Ran in %d seconds." % (t1-t0)
     t0=t1
 
-    del obj.globals['inpname']
-    del obj.globals['outname']
-    
     obj.checkpoint(runName+".ckpLast")
     t1 = time.time()
     print >>STDERR, "Wrote checkpoint in %d seconds." % (t1-t0)
