@@ -107,6 +107,12 @@ const char *usage =
 "                    3) If a fastaidx file exists and checksums are present,\n"
 "                       the checksums are verified.\n"
 "\n"
+"       --testindex a.fasta [a.fastaidx]\n"
+"                    Test the index of 'file'.  If index is up-to-date, leaff\n"
+"                    exits successfully, else, leaff exits with code 1.  If an\n"
+"                    index file is supplied, that one is tested, otherwise, the\n"
+"                    default index file name is used.\n"
+"\n"
 "EXPERT OPTIONS\n"
 "       -A:  Read actions from 'file'\n"
 "\n"
@@ -970,135 +976,166 @@ processArray(int argc, char **argv) {
     } else if (strncmp(argv[arg], "--checksum", 3) == 0) {
       arg++;
       checksum(argv[arg]);
-    } else {
-    switch(argv[arg][1]) {
-      case 'V':
-        printOnLoad = !printOnLoad;
-        break;
-      case 'f':
-      case 'F':
-        sourceFile = argv[++arg];
-        f = openNewFile(sourceFile, argv[arg-1]);
-        break;
-      case 'I':
-        switch (argv[arg][2]) {
-          case 'i':
-            seqIDtype = 'i';
-            break;
-          case 'e':
-            seqIDtype = 'e';
-            break;
-          default:
-            fprintf(stderr, "WARNING: unknown id type '%c'\n", argv[arg][2]);
-            break;
-        }
-        break;
-      case 'i':
-        switch (argv[arg][2]) {
-          case 0:
-            failIfNoSource();
-            failIfNotRandomAccess();
-            f->printATADescription(stdout, argv[++arg]);
-            break;
-          case 'i':
-            failIfNoSource();
-            failIfNotRandomAccess();
-            f->printTextDescription(stdout);
-            break;
-          default:
-            fprintf(stderr, "WARNING: unknown option '%s'\n", argv[arg]);
-            break;
-        }
-        break;
-      case 'd':
-        failIfNoSource();
-        failIfNotRandomAccess();
-        printf(descMsg, f->getNumberOfSequences());
-        break;
-      case 'L':
-        failIfNoSource();
-        printSequenceBetweenSize(atoi(argv[arg+1]),
-                                 atoi(argv[arg+2]));
-        arg += 2;
-        break;
-      case 'W':
-        failIfNoSource();
-        printSequenceBetweenSize(u32bitZERO, ~u32bitZERO);
-        break;
-      case 'G':
-        printRandomlyGeneratedSequence(atoi(argv[arg+1]), atoi(argv[arg+2]), atoi(argv[arg+3])+1);
-        arg += 3;
-        break;
-      case 's':
-        failIfNoSource();
-        failIfNotRandomAccess();
-        findSequenceAndPrint(argv[++arg]);
-        break;
-      case 'S':
-        failIfNoSource();
-        failIfNotRandomAccess();
-        printRangeOfSequences(argv[arg+1], argv[arg+2]);
-        arg += 2;
-        break;
-      case 'r':
-        failIfNoSource();
-        failIfNotRandomAccess();
-        findAndPrintRandomSequences(atoi(argv[++arg]));
-        break;
-      case 'q':
-        failIfNoSource();
-        failIfNotRandomAccess();
-        printIDsFromFile(argv[++arg]);
-        break;
-      case '6':
-        //  If there is a next argument, and it doesn't begin with a
-        //  '-', assume it's the value for line breaking, otherwise,
-        //  use the default 60.
-        //
-        withLineBreaks = 60;
-        if ((argv[arg+1] != 0L) && (argv[arg+1][0] != '-')) {
-          arg++;
-          withLineBreaks = atoi(argv[arg]);
-        }
-        break;
-      case 'u':
-        toUppercase = !toUppercase;
+    } else if (strncmp(argv[arg], "--testindex", 3) == 0) {
+      f = new FastAWrapper(argv[arg+1]);
 
-        if (toUppercase)
-          for (int z=0; z<256; z++)
-            translate[z] = (char)toupper(z);
-        else
-          for (int z=0; z<256; z++)
-            translate[z] = (char)z;
-        break;
-      case 'R':
-        reverse = !reverse;
-        break;
-      case 'C':
-        complement = !complement;
-        break;
-      case 'H':
-        withDefLine    = !withDefLine;
-        specialDefLine = 0L;
-        break;
-      case 'h':
-        withDefLine    = true;
-        specialDefLine = argv[++arg];
-        break;
-      case 'e':
-        begPos = atoi(argv[arg+1]);
-        endPos = atoi(argv[arg+2]);
-        arg += 2;
-        break;
-      case 'm':
-        printMD5 = !printMD5;
-        break;
-      case 'A':
-        processFile(argv[++arg]);
-        break;
+#if 0
+      u32bit  indextype = FASTA_INDEX_ONLY;
+      u32bit  md5type   = 0;
+
+      for (int ap=2; argv[arg][ap]; ap++) {
+        if        (argv[arg][ap] == 'i') {
+          indextype = FASTA_INDEX_ONLY;
+        } else if (argv[arg][ap] == 'n') {
+          indextype = FASTA_INDEX_PLUS_IDS;
+        } else if (argv[arg][ap] == 'd') {
+          indextype = FASTA_INDEX_PLUS_DEFLINES;
+        } else if (argv[arg][ap] == 'c') {
+          md5type   = FASTA_INDEX_MD5;
+        } else {
+          fprintf(stderr, "Unknown option for '-T': '%c'\n", argv[arg][ap]);
+        }
+      }
+
+      if (f->isIndexValid(indextype | md5type, argv[arg+2]))
+        exit(0);
+
+      exit(1);
+#else
+      if (f->isIndexValid(argv[arg+2]))
+        exit(0);
+
+      exit(1);
+#endif
+    } else {
+      switch(argv[arg][1]) {
+        case 'V':
+          printOnLoad = !printOnLoad;
+          break;
+        case 'f':
+        case 'F':
+          sourceFile = argv[++arg];
+          f = openNewFile(sourceFile, argv[arg-1]);
+          break;
+        case 'I':
+          switch (argv[arg][2]) {
+            case 'i':
+              seqIDtype = 'i';
+              break;
+            case 'e':
+              seqIDtype = 'e';
+              break;
+            default:
+              fprintf(stderr, "WARNING: unknown id type '%c'\n", argv[arg][2]);
+              break;
+          }
+          break;
+        case 'i':
+          switch (argv[arg][2]) {
+            case 0:
+              failIfNoSource();
+              failIfNotRandomAccess();
+              f->printATADescription(stdout, argv[++arg]);
+              break;
+            case 'i':
+              failIfNoSource();
+              failIfNotRandomAccess();
+              f->printTextDescription(stdout);
+              break;
+            default:
+              fprintf(stderr, "WARNING: unknown option '%s'\n", argv[arg]);
+              break;
+          }
+          break;
+        case 'd':
+          failIfNoSource();
+          failIfNotRandomAccess();
+          printf(descMsg, f->getNumberOfSequences());
+          break;
+        case 'L':
+          failIfNoSource();
+          printSequenceBetweenSize(atoi(argv[arg+1]),
+                                   atoi(argv[arg+2]));
+          arg += 2;
+          break;
+        case 'W':
+          failIfNoSource();
+          printSequenceBetweenSize(u32bitZERO, ~u32bitZERO);
+          break;
+        case 'G':
+          printRandomlyGeneratedSequence(atoi(argv[arg+1]), atoi(argv[arg+2]), atoi(argv[arg+3])+1);
+          arg += 3;
+          break;
+        case 's':
+          failIfNoSource();
+          failIfNotRandomAccess();
+          findSequenceAndPrint(argv[++arg]);
+          break;
+        case 'S':
+          failIfNoSource();
+          failIfNotRandomAccess();
+          printRangeOfSequences(argv[arg+1], argv[arg+2]);
+          arg += 2;
+          break;
+        case 'r':
+          failIfNoSource();
+          failIfNotRandomAccess();
+          findAndPrintRandomSequences(atoi(argv[++arg]));
+          break;
+        case 'q':
+          failIfNoSource();
+          failIfNotRandomAccess();
+          printIDsFromFile(argv[++arg]);
+          break;
+        case '6':
+          //  If there is a next argument, and it doesn't begin with a
+          //  '-', assume it's the value for line breaking, otherwise,
+          //  use the default 60.
+          //
+          withLineBreaks = 60;
+          if ((argv[arg+1] != 0L) && (argv[arg+1][0] != '-')) {
+            arg++;
+            withLineBreaks = atoi(argv[arg]);
+          }
+          break;
+        case 'u':
+          toUppercase = !toUppercase;
+
+          if (toUppercase)
+            for (int z=0; z<256; z++)
+              translate[z] = (char)toupper(z);
+          else
+            for (int z=0; z<256; z++)
+              translate[z] = (char)z;
+          break;
+        case 'R':
+          reverse = !reverse;
+          break;
+        case 'C':
+          complement = !complement;
+          break;
+        case 'H':
+          withDefLine    = !withDefLine;
+          specialDefLine = 0L;
+          break;
+        case 'h':
+          withDefLine    = true;
+          specialDefLine = argv[++arg];
+          break;
+        case 'e':
+          begPos = atoi(argv[arg+1]);
+          endPos = atoi(argv[arg+2]);
+          arg += 2;
+          break;
+        case 'm':
+          printMD5 = !printMD5;
+          break;
+        case 'A':
+          processFile(argv[++arg]);
+          break;
+      }
+      arg++;
     }
-    arg++;
-  }
   }
 
   if (f) {
