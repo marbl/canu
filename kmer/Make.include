@@ -48,7 +48,7 @@ $(eval $(call Include,${CDNAGAPS/}))
 
 $(eval $(call Include,${LIBBRI/}))
 
-#$(eval $(call Include,${EXTERNAL/}))
+$(eval $(call Include,${EXTERNAL/}))
 
 
 #
