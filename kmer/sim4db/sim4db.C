@@ -551,8 +551,6 @@ main(int argc, char **argv) {
     sim4dball(GENs, ESTs, fOutput);
   }
 
-  fprintf(stderr, "sim4db-- run all done\n");
-
   //  Only close the file if it isn't stdout
   //
   if (strcmp(outputFileName, "-") != 0) {
@@ -578,8 +576,6 @@ main(int argc, char **argv) {
     FILE  *touchFile = fopen(touchFileName, "w");
     fclose(touchFile);
   }
-
-  fprintf(stderr, "sim4db-- deleting stuff\n");
 
   delete ESTs;
   delete GENs;
