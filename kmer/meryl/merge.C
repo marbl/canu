@@ -243,11 +243,11 @@ multipleOperations(char     personality,
   //
   mcBucket **B = new mcBucket* [mergeFilesLen];
   for (u32bit i=0; i<mergeFilesLen; i++)
-    B[i] = new mcBucket(IDX[i], DAT[i], mcd[i]._chckBits);
+    B[i] = new mcBucket(IDX[i], DAT[i], &mcd[i]);
 
   mcBucket  *mmB = 0L;
   if (mDAT)
-    mmB = new mcBucket(mIDX, mDAT, mmcd._chckBits);
+    mmB = new mcBucket(mIDX, mDAT, &mmcd);
 
   u64bit   currentCheck     = ~u64bitZERO;
   u32bit   currentCount     =  u32bitZERO;

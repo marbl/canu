@@ -36,7 +36,7 @@ dump(char *inputFile) {
   //
   //  Determine the count for each mer
   //
-  mcBucket *B = new mcBucket(IDX, DAT, mcd._chckBits);
+  mcBucket *B = new mcBucket(IDX, DAT, &mcd);
 
   for (u32bit i=0; i<mcd._tableSizeInEntries; i++)
     B->dump(stdout);
@@ -52,12 +52,6 @@ dumpThreshold(char *inputFile, u32bit threshold) {
     fprintf(stderr, "ERROR - no counted database file specified.\n");
     exit(1);
   }
-
-#ifdef TRUE64BIT
-  fprintf(stderr, "Dumping mers with at least %u hits\n", threshold);
-#else
-  fprintf(stderr, "Dumping mers with at least %lu hits\n", threshold);
-#endif
 
   //  Open the counted sequence files
   //
@@ -80,15 +74,12 @@ dumpThreshold(char *inputFile, u32bit threshold) {
   //
   //  Determine the count for each mer
   //
-  mcBucket *B = new mcBucket(IDX, DAT, mcd._chckBits);
+  mcBucket *B = new mcBucket(IDX, DAT, &mcd);
 
   u64bit mer;
   char   ms[33];
 
   for (u32bit i=0; i<mcd._tableSizeInEntries; i++) {
-
-    //  The first bucket is read already
-
     for (u32bit i=0; i<B->_items; i++) {
       if (B->_counts[i] >= threshold) {
         mer = B->_bucketID << B->_chckBits | B->_checks[i];
@@ -136,7 +127,7 @@ countUnique(char *inputFile) {
   u64bit numUnique   = 0;
   u64bit numDistinct = 0;
 
-  mcBucket *B = new mcBucket(IDX, DAT, mcd._chckBits);
+  mcBucket *B = new mcBucket(IDX, DAT, &mcd);
 
   for (u32bit i=0; i<mcd._tableSizeInEntries; i++) {
     numDistinct += B->_items;
@@ -187,7 +178,7 @@ plotDistanceBetweenMers(char *inputFile) {
 
   mcd.read(DAT);
 
-  mcBucket *B = new mcBucket(IDX, DAT, mcd._chckBits);
+  mcBucket *B = new mcBucket(IDX, DAT, &mcd);
 
   u64bit  lastMer = 0;
   u64bit  thisMer = 0;
@@ -250,7 +241,7 @@ plotHistogram(char *inputFile, char *outputFile) {
   u64bit numDistinct = 0;
   u64bit numHuge     = 0;
 
-  mcBucket *B = new mcBucket(IDX, DAT, mcd._chckBits);
+  mcBucket *B = new mcBucket(IDX, DAT, &mcd);
 
   for (u32bit i=0; i<16*1024*1024; i++)
     H[i] = 0;
@@ -356,7 +347,7 @@ dumpShared(char   **mergeFiles,
   mcBucket **B = new mcBucket* [mergeFilesLen];
 
   for (u32bit i=0; i<mergeFilesLen; i++)
-    B[i] = new mcBucket(IDX[i], DAT[i], mcd[i]._chckBits);
+    B[i] = new mcBucket(IDX[i], DAT[i], &mcd[i]);
 
 
 

@@ -2,6 +2,7 @@
 #define MCBUCKET_H
 
 #include <stdio.h>
+#include "mcDescription.H"
 #include "libbri.H"
 
 
@@ -35,6 +36,7 @@ public:
   u64bit                 _firstBit;
 
   u64bit                 _bucketID;
+  u64bit                 _lastBucketID;
 
   u64bit                 _items;
   u64bit                 _itemsMax;
@@ -44,13 +46,16 @@ public:
   u64bit                 _bitsRead;
 
 public:
-  mcBucket(bitPackedFileReader *IDX, bitPackedFileReader *DAT, u32bit chckBits) {
+  mcBucket(bitPackedFileReader *IDX, bitPackedFileReader *DAT, mcDescription *mcd) {
     _IDX = IDX;
     _DAT = DAT;
 
-    _chckBits  = chckBits;
-    _chckMask  = u64bitMASK(_chckBits);
-    _firstBit  = u64bitONE << _chckBits;
+    _chckBits     = mcd->_chckBits;
+    _chckMask     = u64bitMASK(_chckBits);
+    _firstBit     = u64bitONE << _chckBits;
+
+    _bucketID     = 0;
+    _lastBucketID = mcd->_tableSizeInEntries;
 
     //  Allocate some space
     //
@@ -63,7 +68,6 @@ public:
 
     //  Read the first bucket
     //
-    _bucketID = 0;
     readBucket();
     _bucketID = 0;
   };
@@ -72,7 +76,7 @@ public:
     delete [] _counts;
   };
 
-  void     readBucket(void);
+  bool     readBucket(void);
 
   void     read(mcMer *mer);
   void     scan(mcMer *mer);

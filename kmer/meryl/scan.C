@@ -256,7 +256,7 @@ scan(char   *queryFile,
   //
   //  Determine the count for each mer
   //
-  mcBucket *B = new mcBucket(IDX, DAT, mcd._chckBits);
+  mcBucket *B = new mcBucket(IDX, DAT, &mcd);
 
   for (u32bit i=0; i<_mersLen; i++) {
     if ((beVerbose) && ((i & 0xffff) == 0)) {

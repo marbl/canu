@@ -121,7 +121,7 @@ binaryOperations(char     personality,
   mcBucket **B = new mcBucket* [mergeFilesLen];
 
   for (u32bit i=0; i<mergeFilesLen; i++)
-    B[i] = new mcBucket(IDX[i], DAT[i], mcd[i]._chckBits);
+    B[i] = new mcBucket(IDX[i], DAT[i], &mcd[i]);
 
   u32bit   itemsWritten    =  u32bitZERO;
   u64bit   maxBucket       = mcd[0]._tableSizeInEntries;

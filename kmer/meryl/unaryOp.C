@@ -79,7 +79,7 @@ unaryOperations(char      personality,
 
   //  Create buckets
   //
-  mcBucket *B = new mcBucket(IDX, DAT, mcd._chckBits);
+  mcBucket *B = new mcBucket(IDX, DAT, &mcd);
 
   u32bit   itemsWritten    =  u32bitZERO;
   u64bit   maxBucket       = mcd._tableSizeInEntries;

@@ -1,26 +1,19 @@
 #include "mcBucket.H"
 
-void
+bool
 mcBucket::readBucket(void) {
 
   _bucketID++;
 
-  //if ((_bucketID & 0xffffff) == 0) {
-  //  fprintf(stderr, "reading              0x%016lx\r", _bucketID);
-  //  fflush(stderr);
-  //}
+  if (_bucketID >= _lastBucketID)
+    return(false);
 
   //  Read the number of items in this bucket
   //
   _items     = _IDX->getBits(32);
   _bitsRead += 32;
 
-  //fprintf(stderr, "getting %u items.\n", _items);
-
   if (_items > 0) {
-
-    //  Allocate enough space
-    //
     if (_items > _itemsMax) {
       delete _checks;
       delete _counts;
@@ -44,8 +37,21 @@ mcBucket::readBucket(void) {
       } else {
         _checks[i] = v;
 
-        //  Maximum number of shifts we can see is four.
-        //
+        u32bit shiftAmount = 0;
+        bool   moreBits    = true;
+
+        _counts[i] = 0;
+
+        while (moreBits) {
+          v = _DAT->getBits(_chckBits + 1);
+          _bitsRead   += _chckBits + 1;
+          _counts[i]  |=  (v & _chckMask) << shiftAmount;
+          shiftAmount += _chckBits;
+
+          moreBits = ((v & _firstBit) == u64bitZERO);
+        }
+
+#if 0
         v = _DAT->getBits(_chckBits + 1);
         _bitsRead   += _chckBits + 1;
         _counts[i]   =  v & _chckMask;
@@ -67,9 +73,13 @@ mcBucket::readBucket(void) {
             }
           }
         }
+#endif
+
       }
     }
   }
+
+  return(true);
 }
 
 

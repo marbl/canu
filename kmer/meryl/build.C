@@ -413,7 +413,6 @@ sortAndOutput(char   *outfilename,
 
     //  Output the index
     //
-    //IDX->putBits(b,     mcd._tableSizeInBits);
     IDX->putBits(items, 32);
   }
 
@@ -469,6 +468,18 @@ build(char   *inputFile,
 
   mcd._merSizeInBases      = merSize;
   mcd._merSizeInBits       = mcd._merSizeInBases << 1;
+
+  //  30jan03
+  //  It would appear that we need at least 2 bits in the table.
+  //
+  if (mcd._merSizeInBits < tblSize + 2) {
+    fprintf(stderr, "WARNING:  table is too big for the mer (mer is %u bits, table is %u bits).\n",
+            mcd._merSizeInBits, tblSize);
+    fprintf(stderr, "WARNING:  adjusting to table size (-t) of %u\n",
+            mcd._merSizeInBits - 2);
+
+    tblSize = mcd._merSizeInBits - 2;
+  }
 
   mcd._tableSizeInBits     = tblSize;
   mcd._tableSizeInEntries  = u32bitONE << mcd._tableSizeInBits;
