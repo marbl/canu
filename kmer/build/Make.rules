@@ -1,6 +1,7 @@
 # -*- makefile -*-
 
-# this might be useful for some future work
+# this might be useful for some future work if we want to make
+# actions more variable.
 define .Make-rule
 $1:
 	$2
@@ -118,40 +119,40 @@ $(eval $(foreach x,${//},$(call .RULE-install-copy-C-CXX-EXES,$x)))
 ## LIB targets
 ALL_C_LIBS   :=$(strip $(foreach x,${//},${${x:.=.C_LIBS}}))
 ${ALL_C_LIBS}:
-	rm -f $@
-	${AR} ${ARFLAGS} $@ $^
+	${RM} $@ && ${AR} ${ARFLAGS} $@ $^
 __SUBGOALS__+=$${${1:.=.C_LIBS}}
 
 ALL_CXX_LIBS     :=$(strip $(foreach x,${//},${${x:.=.CXX_LIBS}}))
 ${ALL_CXX_LIBS}:
-	rm -f $@
-	${AR} ${ARFLAGS} $@ $^
+	${RM} $@ && ${AR} ${ARFLAGS} $@ $^
 __SUBGOALS__+=$${${1:.=.CXX_LIBS}}
 
 ## Shared targets
+ALL_C_SHLIBS     :=$(strip $(foreach x,${//},${${x:.=.C_SHLIBS}}))
 ALL_CXX_SHLIBS   :=$(strip $(foreach x,${//},${${x:.=.CXX_SHLIBS}}))
-
-$(eval $(call Make.rule,${ALL_CXX_SHLIBS},${SHLIB.rule}))
 
 # AIX has really weird shared lib building.  Unfortunately, I could
 # not think of a way out of this hack.
 ifeq (${_OS_},AIX)
+${ALL_C_SHLIBS}:
+	${RM} $@ && ${C} ${CFLAGS} ${SHLIB_FLAGS} ${AIX_SHLIB_FLAGS} -o $@ $^ ${CLIBS}
 ${ALL_CXX_SHLIBS}:
-	${RM} $@
-	${CXX} ${CXXFLAGS} ${SHLIB_FLAGS} ${AIX_SHLIB_FLAGS} -o $@ $^ ${CXXLIBS}
+	${RM} $@ && ${CXX} ${CXXFLAGS} ${SHLIB_FLAGS} ${AIX_SHLIB_FLAGS} -o $@ $^ ${CXXLIBS}
 
 else
+${ALL_C_SHLIBS}:
+	${C} ${CFLAGS} ${SHLIB_FLAGS} -o $@ $^ ${CLIBS}
 ${ALL_CXX_SHLIBS}:
 	${CXX} ${CXXFLAGS} ${SHLIB_FLAGS} -o $@ $^ ${CXXLIBS}
 
 endif
-__SUBGOALS__+=$${${1:.=.CXX_SHLIBS}}
+__SUBGOALS__+=$${${1:.=.C_SHLIBS}} $${${1:.=.CXX_SHLIBS}}
 
 define .RULE-install-copy-C-CXX-LIBS
 ${1:.=.install-copy}: ${1:.=.install-copy-C-CXX-LIBS}
 ${1:.=.install-copy-C-CXX-LIBS}:
 # all libs go to lib/${.LIB/}
-	$(call .FUN-install-copy,$${${1:.=.C_LIBS}} $${${1:.=.CXX_LIBS}} \
+	$(call .FUN-install-copy,$${${1:.=.C_LIBS}} $${${1:.=.CXX_LIBS}}, \
                                  lib/$${${1.=.LIB/}})
 
 endef
@@ -161,7 +162,7 @@ define .RULE-install-copy-C-CXX-SHLIBS
 ${1:.=.install-copy}: ${1:.=.install-copy-CXX-SHLIBS}
 ${1:.=.install-copy-CXX-SHLIBS}:
 # all shlibs go to lib/${.LIB/}
-	$(call .FUN-install-copy,$${${1:.=.CXX_SHLIBS}}, \
+	$(call .FUN-install-copy,$${${1:.=.C_SHLIBS}} $${${1:.=.CXX_SHLIBS}}, \
                                  lib/$${${1.=.LIB/}})
 
 endef

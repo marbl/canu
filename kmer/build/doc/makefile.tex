@@ -80,13 +80,276 @@ types of files and the actions required to build them.  The current
 list of variables is as follows:
 
 \begin{tabular}{lc}
-\verb+$/.C_SRCS+ & C-sources
+\verb+$/.C_SRCS+ & C sources which need to have their dependencies analyzed\\
+\verb+$/.C_INCS+ & C header files\\
+\verb+$/.C_LIBS+ & C library subgoals\\
+\verb+$/.C_SHLIBS+ & C shared library subgoals\\
+\verb+$/.C_EXES+ & C program subgoals\\
+\verb+$/.CXX_<x>+ & same as \verb+$/.C_<x>+ but for C++\\
+\verb+$/.TEX_PS+ & Postscript subgoals to be built from \LaTeX files\\
+\verb+$/.TEX_PDF+ & PDF subgoals to be built from \LaTeX files\\
+\verb+$/.PERL_LIBS+ & Perl script libraries\\
+\verb+$/.PERL_EXES+ & Perl script executables\\
+\verb+$/.PY_LIBS+ & Python script libraries\\
+\verb+$/.PY_EXES+ & Python script executables\\
+\verb+$/.LIB/+  & subdirectory of \verb+lib/+ where \verb+$/.C_LIBS+ and \verb+$/.CXX_LIBS+ are installed\\
+\verb+$/.INCLUDE/+  & subdirectory of \verb+include/+ where \verb+$/.C_INCS+ and \verb+$/.CXX_INCS+ are installed\\
+\verb+$/.DOC/+  & subdirectory of \verb+doc/+ where \verb+$/.TEX_PS+ and \verb+$/.TEX_PDF+ are installed\\
+\verb+$/.PY_LIB/+  & subdirectory of \verb+scripts/+ where \verb+$/.PY_LIBS+ are installed\\
+\verb+$/.PERL_LIB/+  & subdirectory of \verb+scripts/+ where \verb+$/.PERL_LIBS+ are installed\\
+\verb+$/.CLEAN+ & files and patterns to be removed during a \verb+clean+\\
+\verb+$/.REAL-CLEAN+ & files and patterns to be removed during a \verb+real-clean+\\
 \end{tabular}
+Note: while the current build system removes all subgoals, intermediate
+files are not removed automatically.  If C/C++ programs are being build
+then patterns like \verb+$/*.o+ should be put in the \verb+$/.CLEAN+ variable
+or they will not get removed.  It is debatable whether this should be left
+up to each \verb+Make.include+ file to take care of on its own.
 
+There are a couple of routine tasks which are done a little
+differently.  One of these tasks is the specification of additional
+flags used when building the C/C++ programs.  For C programs, this is
+done by adding to the \verb+CFLAGS+ variable in a target specific
+manner.
+\begin{verbatim}
+$/myprogram.o $/myprogram.c.d: CFLAGS += -DTEST -I/usr/local/lib
+\end{verbatim}
+If you wish to have this take effect for all files defined in the
+current \verb+Make.include+ you can use a pattern rule.
+\begin{verbatim}
+$/%.o $/%.d: CFLAGS +=-DTEST -I/usr/local/lib
+\end{verbatim}
+One {\em gotcha} comes in the use of locally defined variables
+(like anything involving \verb+$/+).  It seems
+that any variable expansion on the target specific '\verbx+=x' is
+delayed until after all rules have been traversed, at which point
+\verb+$/+ is very likely to have the wrong value.  This does not
+happen with a target specific '\verb+:=+' so it may be a bug in what is
+a fairly new \verb+gmake+ feature.  The work around invokes another
+fairly new \verb+gmake+ feature.
+\begin{verbatim}
+$(eval $/%.o $/%.d: CFLAGS +=-I$/include)
+\end{verbatim}
+The second routine task is that of specifying external libraries to
+link to when building C/C++ executables.  If the libraries are
+external to the whole build, then one would use the usual \verb+-L-l+
+flags in a target specific variable modification.
+\begin{verbatim}
+$/myprogram: CLDFLAGS+=-L/usr/local/foodir
+$/myprogram: CLIBS +=-lfoo
+\end{verbatim}
+One must again wrap any variable expressions which are likely to change
+values with \verb+$(eval )+ to force variable expansion.  If the
+library is within the build system, using the \verb+-L-l+ flags would
+create a {\em dependency leak} as the build system would have no
+way of knowing that the library must be updated before the link.
+To avoid creating this leak, one should do the more explicit dependency.
+\begin{verbatim}
+$/myprogram: ${THELIBDIR/}libfoo.a
+\end{verbatim}
+Here no variable expansion needs to be forced, since dependency lines
+do expand variables imediately.  By making it a dependent, \verb+libfoo.a+
+will appear in the series of arguments to the linker for \verb+$/myprogram+
+in addition to avoiding the leak.
 
+\subsection{Two simple examples}
+
+Here is a walkthrough of the \verb+Make.include+ for
+\verb+AtacPipeline+, which builds a variety of executables and
+libraries.
+
+\begin{verbatim}
+$/.CXX_EXES :=$/heavyChains
+
+$/.CXX_SHLIBS :=$/localAlignerInterfacemodule.so $/halignmodule.so $/hellomodule
+.so
+\end{verbatim}
+One program and three shared libraries are subgoals to be created.
+
+\begin{verbatim}
+$/.CXX_SRCS:=$/GF_ALN_dpaligner.cc $/GF_ALN_local.cc \
+  $/GF_ALN_overlap.cc $/GF_ALN_qvaligner.cc \
+  $/GF_ALN_loverlapper.cc $/GF_ALN_pieceOlap.cc \
+  $/halign.cc $/halignDriver.cc $/halignmodule.cc \
+  $/heavyChains.cc \
+  $/localAlignerInterface.cc $/localAlignerInterfacemodule.cc \
+  $/hellomodule.cc $/byemodule.cc $/holignmodule.cc
+\end{varbatim}
+The source files are declared.
+
+\begin{verbatim}
+$/.CLEAN  := $/*.o $/*.pyc
+\end{verbatim}
+Since this directory will build both C++ programs and python programs,
+intermediates for both must be \verb+clean+-ed.
+
+\begin{verbatim}
+$/.PY_EXES :=$/AtacDriver.py
+$/.PY_LIBS :=$(filter-out ${$/.PY_EXES},$(wildcard $/*.py))
+\end{verbatim}
+Python executables declared and Python libraries are any file in
+this directory ending in '.py' which is not on the list of executables.
+\begin{verbatim}
+$/.PY_LIB/ :=AtacPipeline/
+\end{verbatim}
+The Python libraries are to be installed under \verb+scripts/AtacPipeline+.
+
+\begin{verbatim}
+$/heavyChains   :  $/heavyChains.o
+
+$/localAlignerInterfacemodule.so : \
+   $/localAlignerInterfacemodule.o $/localAlignerInterface.o \
+   $/GF_ALN_overlap.o $/GF_ALN_local.o \
+   $/GF_ALN_loverlapper.o $/GF_ALN_pieceOlap.o \
+   $/GF_ALN_dpaligner.o $/GF_ALN_qvaligner.o
+
+$/hellomodule.so: $/hellomodule.o
+
+$/halignmodule.so: $/halignmodule.o $/halign.o
+\end{verbatim}
+The linking dependencies for each of the targets is specified.
+
+\begin{verbatim}
+$(eval $/%.d $/%.o: CXXFLAGS+=${PYINC})
+\end{verbatim}
+The shared libraries being built are actually python extensions, so they
+will be including Python header files.  The \verb+${PYINC}+ path is
+specified in the \verb+Make.compilers+ directory and is not expected to
+change (so the \verb+$(eval )+ wrapper is a bit paranoid, but harmless).
+
+There are some extra flags which are needed for building python
+extensions at the end of this file when on AIX, but they are very
+exceptional, and an explanation of there here is of little value.
+\begin{verbatim}
+$(eval $/localAlignerInterfacemodule.so: AIX_SHLIB_FLAGS+=-einitlocalAlignerInterface -Wl,-bI:$/AIX_python-module-exports)
+$(eval $/halignmodule.so: AIX_SHLIB_FLAGS+=-einithalign -Wl,-bI:$/AIX_python-module-exports)
+$(eval $/hellomodule.so: AIX_SHLIB_FLAGS+=-einithello -Wl,-bI:$/AIX_python-module-exports)
+\end{verbatim}
+
+Our next example is the \verb+Make.include+ for
+\verb+MatchExtender+ which builds a series of C++ programs which
+depend on external libraries.
+
+\begin{verbatim}
+FRAMEWORK/  :=$(call MakePath,$/../Framework/)
+RASCAL/     :=$(call MakePath,$/../../../RASCAL/src/)
+\end{verbatim}
+External paths are defined by the \verb+MakePath+ function.  This
+function is explained later.
+
+\begin{verbatim}
+$/.CXX_EXES := $/testFastaReader $/MatchExtender $/MismatchCounter
+\end{verbatim}
+Three C++ programs are to be built.
+
+\begin{verbatim}
+ind_src  := $/IndexedFastaReader.cc
+test_src := $/testFastaReader.cc
+mch_src  := $/MEMatch.cc
+me_src   := $/MatchExtenderAtac.cc $/MatchExtender.cc
+mc_src   := $/MismatchCounterAtac.cc $/MismatchCounter.cc
+
+$/.CXX_SRCS := ${ind_src} ${test_src} ${mch_src} ${me_src}
+\end{verbatim}
+The sources are partitioned into four groups.
+
+\begin{verbatim}
+$/.CLEAN :=$/*.o $/*~ $/core
+\end{verbatim}
+On a \verb+clean+ we remove object files, emacs backups, and any cores.
+
+\begin{verbatim}
+$/testFastaReader: ${ind_src:.cc=.o} ${test_src:.cc=.o}
+$/MatchExtender:   ${ind_src:.cc=.o} ${mch_src:.cc=.o} ${me_src:.cc=.o} 
+$/MismatchCounter:   ${ind_src:.cc=.o} ${mch_src:.cc=.o} ${mc_src:.cc=.o} 
+\end{verbatim}
+Program dependencies are defined as combinations of the various
+groups defined above, with their '.cc' extensions turned to '.o'.
+
+\begin{verbatim}
+${$/.CXX_EXES}: \
+  ${RASCAL/}seq/libRASCAL_seq.a ${RASCAL/}base/libRASCAL_base.a \
+  ${FRAMEWORK/}libATAC.a
+
+$(eval $/%.d $/%.o:   CXXFLAGS+=-I${RASCAL/}. -I${FRAMEWORK/}.)
+\end{verbatim}
+All programs must link to several external libraries and use their
+header files.
+
+\subsection{The \verb+MakePath+ function}
+
+The \verb+Make.path+ file supplies a function \verb+MakePath+ which is
+meant to be called in \verb+Make.include+ files to canonicalize pathnames.
+The problem is addresses is one of \verb+gmake+'s inability to recognize
+the sameness of expressions like \verb+src/../src/foo+ and \verb+src/foo+.
+Suppose we had a set of files and directories as follows:
+\begin{verbatim}
+X/
+  Make.include Y/ Z/
+X/Y/
+  Make.include y.c
+X/Z/
+  Make.include z.c
+\end{verbatim}
+Where we build a library \verb+liby.a+ in \verb+Y/+ which is needed to
+compile the program \verb+z+ in \verb+Z/+.  The contents of
+\verb+X/Make.include+ is
+\begin{verbatim}
+$(eval $(call Include, $/Y/ $/Z/))
+\end{verbatim}
+and the contents of \verb+Y/Make.include+ is
+\begin{verbatim}
+$/.C_SRCS :=$/y.c
+$/.C_LIBS :=$/liby.a
+$/liby.a: $/y.o
+\end{verbatim}
+Then a natural choice for \verb+Z/Make.include+ would be
+\begin{verbatim}
+${Y/}  :=$/../Y/
+$/.C_SRCS :=$/z.c
+$/.C_EXES :=$/z
+$/z: $/z.o ${Y/}liby.a
+\end{verbatim}
+If \verb+liby.a+ is already built by the time \verb+z+ is being
+built, then there is no problem.  If not then, if the build
+is invoked in \verb+Z/+, one will get some error about not
+knowing how to build \verb+../Y/liby.a+, which is to be expected.
+However, if the build is invoked in \verb+X/+ then one gets
+a similar error about not knowing how to build \verb+X/../Y/liby.a+.
+The build, invoked from \verb+X/+, does know how to build \verb+Y/liby.a+,
+but does not understand that \verb+X/../Y/liby.a+ is the same thing.
+
+The function
+\begin{verbatim}
+$(call MakePath,P)
+\end{verbatim}
+takes a path \verb+P+ to an existing directory
+and returns the shortest (redundant dots and
+double dots collapsed) path to \verb+P+, in a fashion
+consistent with the pathname conventions used elsewhere
+in the build system
+(trailing '/' and '.' referred to by an empty string).
+
+Thus, the right version of the \verb+Z/Make.include+ file is,
+\begin{verbatim}
+${Y/}  :=$(call MakePath,$/../Y/)
+$/.C_SRCS :=$/z.c
+$/.C_EXES :=$/z
+$/z: $/z.o ${Y/}liby.a
+\end{verbatim}
+\verb+MakePath+ will issue a warning if the directory sought
+is not found, and return an empty string.
+
+The current implementation of the \verb+MakePath+ function is kind of
+kludgey, involving a shell-call to either a C program or a PERL
+program.  I have not found a better implementation yet for this
+functionality.
+
+\section{Invoking the build system}
+
+(in progress)
 
 \section{Anatomy of the Makefile}
-% cvs version 1.26
 
 Here we go line by line through the \verb+Makefile+ and discuss the function
 of every part.
@@ -125,6 +388,12 @@ that porting to a new architecture would require only the adjustment
 of this file.  This file can be overridden by a user supplied
 \verb+MAKE_COMPILERS+ argument, though it is probably a mistake
 to use this feature as anything but a temporary device.
+
+\begin{verbatim}
+include ${MAKEFILE/}Make.path
+\end{verbatim}
+The \verb+Make.path+ file supplies a crucial utility in canonicalizing
+directory names.
 
 We now begin the directory traversal part, where subdirectories are
 explored and build information is collected.
@@ -365,7 +634,7 @@ define .FUN-install-copy
 	        Fout=$${INSTALL/}$$$${D}`basename $$$${F}` ; \
 	        echo ":Copying $$$${F} to $$$${Fout}:" ; \
 	        mkdir -p `dirname $$$${Fout}` && \
-	        cp -fp $$$${F} $$$${Fout} ; \
+	        rm -f $$$${Fout} && cp -fp $$$${F} $$$${Fout} ; \
 	      done ; \
 	    fi ; \
 	  done ; \
@@ -378,9 +647,9 @@ define .FUN-install-copy-script
 	    if [ -f $$$${F} ] ; then \
 	      for D in $$$${dirs} ; do \
 	        Fout=$${INSTALL/}$$$${D}`basename $$$${F}` ; \
-	        echo ":Mangling script $$$${F} to $$$${Fout}:" ; \
+	        echo ":Mangling $$$${F} to $$$${Fout}:" ; \
 	        mkdir -p `dirname $$$${Fout}` && \
-	        cp -fp $$$${F} $$$${Fout} && \
+	        rm -f $$$${Fout} && cp -fp $$$${F} $$$${Fout} ; \
 	        chmod ugo+x $$$${Fout} && \
 	        ${PERL} -npi \
 	           -e"if(0==\$$$$i++){s|^#!.*|#! $$$${sheb}|}" $$$${Fout}; \
@@ -476,34 +745,59 @@ programs be copied to the subdirectory \verb+bin/+.
 \begin{verbatim}
 ALL_C_LIBS   :=$(strip $(foreach x,${//},${${x:.=.C_LIBS}}))
 ${ALL_C_LIBS}:
-	rm -f $@
-	${AR} ${ARFLAGS} $@ $^
+	${RM} $@ && ${AR} ${ARFLAGS} $@ $^
 __SUBGOALS__+=$${${1:.=.C_LIBS}}
 
 ALL_CXX_LIBS     :=$(strip $(foreach x,${//},${${x:.=.CXX_LIBS}}))
 ${ALL_CXX_LIBS}:
-	rm -f $@
-	${AR} ${ARFLAGS} $@ $^
+	${RM} $@ && ${AR} ${ARFLAGS} $@ $^
 __SUBGOALS__+=$${${1:.=.CXX_LIBS}}
 
+ALL_C_SHLIBS     :=$(strip $(foreach x,${//},${${x:.=.C_SHLIBS}}))
 ALL_CXX_SHLIBS   :=$(strip $(foreach x,${//},${${x:.=.CXX_SHLIBS}}))
+
+ifeq (${_OS_},AIX)
+${ALL_C_SHLIBS}:
+	${RM} $@ && ${C} ${CFLAGS} ${SHLIB_FLAGS} ${AIX_SHLIB_FLAGS} -o $@ $^ ${CLIBS}
+${ALL_CXX_SHLIBS}:
+	${RM} $@ && ${CXX} ${CXXFLAGS} ${SHLIB_FLAGS} ${AIX_SHLIB_FLAGS} -o $@ $^ ${CXXLIBS}
+
+else
+${ALL_C_SHLIBS}:
+	${C} ${CFLAGS} ${SHLIB_FLAGS} -o $@ $^ ${CLIBS}
 ${ALL_CXX_SHLIBS}:
 	${CXX} ${CXXFLAGS} ${SHLIB_FLAGS} -o $@ $^ ${CXXLIBS}
-__SUBGOALS__+=$${${1:.=.CXX_SHLIBS}}
+
+endif
+__SUBGOALS__+=$${${1:.=.C_SHLIBS}} $${${1:.=.CXX_SHLIBS}}
 \end{verbatim}
-Additional C,C++ subgoals include libraries and shared libraries.
+Additional C,C++ subgoals include libraries and shared libraries.  It is
+unfortunate that AIX has a fairly different means of producing shared
+libraries than other operatin systems.  This is the only place in the
+rules where the OS is a factor in determining the rule.  If more situations
+like this arise, it may be necessary to redesign the interactions
+between \verb+Make.rules+ and \verb+Make.compilers+.
 
 \begin{verbatim}
 define .RULE-install-copy-C-CXX-LIBS
 ${1:.=.install-copy}: ${1:.=.install-copy-C-CXX-LIBS}
 ${1:.=.install-copy-C-CXX-LIBS}:
 # all libs go to lib/${.LIB/}
-	$(call .FUN-install-copy,$${${1:.=.C_LIBS}} $${${1:.=.CXX_LIBS}} \
-                                 $${${1:.=.CXX_SHLIBS}}, \
+	$(call .FUN-install-copy,$${${1:.=.C_LIBS}} $${${1:.=.CXX_LIBS}}, \
                                  lib/$${${1.=.LIB/}})
 
 endef
-$(eval $(foreach x,${//},$(call .RULE-install-copy-C-CXX-LIBS,$x)))
+$(eval $(foreach x,${//},$(call .RULE-install-copy-CXX-LIBS,$x)))
+
+define .RULE-install-copy-C-CXX-SHLIBS
+${1:.=.install-copy}: ${1:.=.install-copy-CXX-SHLIBS}
+${1:.=.install-copy-CXX-SHLIBS}:
+# all shlibs go to lib/${.LIB/}
+	$(call .FUN-install-copy,$${${1:.=.C_SHLIBS}} $${${1:.=.CXX_SHLIBS}}, \
+                                 lib/$${${1.=.LIB/}})
+
+endef
+$(eval $(foreach x,${//},$(call .RULE-install-copy-CXX-SHLIBS,$x)))
 \end{verbatim}
 Libraries and shared libraries are copied to the subdirectory
 \verb+lib/$/.LIB/+, i.e. to \verb+lib/+ or some subdirectory of
@@ -601,30 +895,29 @@ list important variables being set and what they mean for the other
 parts of the build system.
 
 \begin{verbatim}
+_OS_:=$(shell uname)
 ifdef OPERATING_SYSTEM
   _OS_:=$(OPERATING_SYSTEM)
 else
-  _OS_:=$(shell uname)
   WITH_GNU:=1
 endif
+
+_CC_:=
 ifdef WITH_GNU
   _CC_:=-gcc
-else
-  _CC_:=
 endif
-ifdef WITH_DEBUG
+
+_OPT_:=
+ifeq (WITH_OPT,debug)
   _OPT_ :=-debug
-else
-  ifdef WITH_PROFILE
-    _OPT_ :=-prof
-  else
-    _OPT_ :=
-  endif
 endif
+ifeq (WITH_OPT,profile)
+  _OPT_ :=-prof
+endif
+
+_THR_:=
 ifdef WITH_THREADS
   _THR_:=-threaded
-else
-  _THR_:=
 endif
 \end{verbatim}
 \verb+_OS_+ holds the architecture.  If \verb+_CC_+ is set to '-gcc'
@@ -632,7 +925,12 @@ then GNU compilers will be used, and if it is empty and native
 compilers will be used if the \verb+_OS_+ is known (otherwise GNU
 will be used).  There are three \verb+_OPT_+ modes: 'debug', 'profile',
 and '' (normal).  There is also a \verb+_THR_+ variable which determines
-if the applications are to be compiled with threading.
+if the applications are to be compiled with threading.  A user wishing
+to build with profiling and threading enabled would do something like
+\begin{verbatim}
+$ gmake WITH_OPT=profile WITH_THREADS=1
+\end{verbatim}
+to turn these options on.
 
 \begin{verbatim}
 ifdef INSTALL_TAG
@@ -692,16 +990,9 @@ ifeq (${_OS_},TRU64)
   CXXLIBS_LAPACK    :=-ldxml
 endif
 ifeq (${_OS_},AIX)
-  CXXFLAGS_LAPACK   :=-DFTN_UNDERSCORE -DFTN_LOWERCASE
-  CXXLDFLAGS_LAPACK :=
-  CXXLIBS_LAPACK    :=-lessl
-endif
-
-ifeq (${_OS_},SunOS)
-  CXXFLAGS_LAPACK   :=-DFTN_UNDERSCORE -DFTN_LOWERCASE
-  CXXLDFLAGS_LAPACK :=-L/home/ross/local/lib
-  CXXLIBS_LAPACK    :=-llapack -lblas -lF77
-  PS2PDF            :=/remote/depot/bin/ps2pdf -I/remote/depot/share/ghostscript/5.50/
+  CXXFLAGS_LAPACK   :=-DFTN_LOWERCASE
+  CXXLDFLAGS_LAPACK :=-L/usr/local/ir/lib
+  CXXLIBS_LAPACK    :=-llapack -lessl -lxlf90
 endif
 \end{verbatim}
 Some modules use LAPACK.  Although these variables do not get used

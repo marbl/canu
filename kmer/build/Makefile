@@ -37,11 +37,7 @@ else
 endif
 
 ### a VERY experimental hack for pathnames
-#ifdef WITH_MAKEPATH
-
 include ${MAKEFILE/}Make.path
-
-#endif
 
 ##### non-recursive make magic
 # all directories which have been included

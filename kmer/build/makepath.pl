@@ -9,9 +9,10 @@ if ($#ARGV<0) {
 
 @path = split('/',abs_path($ARGV[0]));
 if (!@path) {
-    print STDERR "makepath.pl: The path '",$ARGV[0],"' does not exist\n";
-    print STDERR "makepath.pl: Ross wants to know about this.\n";
-    exit(2);
+    print STDERR "makepath.pl: The path '",$ARGV[0],"' does not exist.\n";
+    print STDERR "makepath.pl: perhaps you are building from an incomplete CVS?\n";
+    print "\n";
+    exit(0);
 }
 
 @subpath = ();
