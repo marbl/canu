@@ -108,7 +108,7 @@ main(int argc, char **argv) {
 
   fprintf(H, "//\n");
   fprintf(H, "//  Automagically generated -- DO NOT EDIT!\n");
-  fprintf(H, "//  See %s for details.\n", __FILE__);
+  fprintf(H, "//  See libbri/alphabet-generate.c for details.\n");
   fprintf(H, "//\n");
   fprintf(H, "\n");
   fprintf(H, "#ifdef __cplusplus\n");
