@@ -8,22 +8,22 @@ use Config;  #  for @signame
 if (scalar(@ARGV) < 6) {
     print STDERR "usage: $0 [opts]\n";
     print STDERR "\n";
-    print STDERR "    -dir run-directory\n";
+    print STDERR "    -dir run-directory\n"; # MANDATORY
     print STDERR "\n";
     print STDERR "Sequence specification:  If -seq is supplied, then that\n";
     print STDERR "sequence file is used with the id given by -id.  If there is\n";
     print STDERR "a conflict with an established id, the program exits.\n";
     print STDERR "\n";
-    print STDERR "    -id1  id1\n";
+    print STDERR "    -id1  id1\n"; # MANDATORY
     print STDERR "    -seq1 seq1.fasta\n";
-    print STDERR "    -id2  id2\n";
+    print STDERR "    -id2  id2\n"; # MANDATORY
     print STDERR "    -seq2 seq2.fasta\n";
     print STDERR "\n";
     print STDERR "Paths should be FULL PATHS, not relative paths.\n";
     print STDERR "\n";
-    print STDERR "    -genomedir path        -- path to the GENOMES directory\n"; 
-    print STDERR "    -meryldir  path        -- path to the MERYL directory\n";
-    print STDERR "    -bindir  path          -- path to the binaries (hack!)\n";
+    print STDERR "    -genomedir path        -- path to the GENOMES directory\n"; # MANDATORY
+    print STDERR "    -meryldir  path        -- path to the MERYL directory\n"; # MANDATORY
+    print STDERR "    -bindir  path          -- path to the binaries (hack!)\n"; # MANDATORY
     print STDERR "\n";
     print STDERR "    -numsegments s         -- number of segments to do the search in\n";
     print STDERR "    -numthreads t          -- number of threads to use per search\n";
@@ -50,8 +50,8 @@ my $seq1;
 my $id2;
 my $seq2;
 
-my $GENOMEdir     = "/prod/IR05/GENOMES";          #  Location of genome assemblies
-my $MERYLdir      = "/prod/IR08/walenz/hg5/data";  #  Location of genome mercount databases
+my $GENOMEdir     = "default";          #  Location of genome assemblies
+my $MERYLdir      = "default";  #  Location of genome mercount databases
 
 my $mersize   = 20; # the mer size
 my $merlimit  = 1;  # unique mers only
@@ -67,8 +67,8 @@ my $segmentIDtorun = undef;
 my $buildOnly      = undef;
 
 my $execHome;
-$execHome = "/work/assembly/walenzbp/releases";
-$execHome = "/test/IR/walenz/cds/IR/BRI/bin";
+#$execHome = "/work/assembly/walenzbp/releases";
+#$execHome = "/test/IR/walenz/cds/IR/BRI/bin";
 
 while (scalar(@ARGV) > 0) {
     my $arg = shift @ARGV;
@@ -117,8 +117,8 @@ print STDOUT "merlimit = $merlimit\n";
 print STDOUT "minfill = $minfill\n";
 print STDOUT "maxgap = $maxgap\n";
 
-$execHome = "/work/assembly/walenzbp/releases" if ($execHome eq "compaq");
-$execHome = "/test/IR/walenz/cds/IR/BRI/bin"   if ($execHome eq "aix");
+$execHome = "/work/assembly/walenzbp/releases"   if ($execHome eq "compaq");
+$execHome = "/IR/devel/mapping/cds/IR/BRI/bin"   if ($execHome eq "aix");
 
 
 #  Decide on a path to the executables.  This is probably
