@@ -33,7 +33,7 @@ hitMatrix::addMatch(u32bit         qsLo,
                     intervalList  *IL) {
   u32bit offset = 0;
 
-  offset = config._extendWeight * qsLo;
+  offset = (u32bit)(config._extendWeight * qsLo);
   if (offset < config._extendMinimum)
     offset = config._extendMinimum;
   if (dsLo < offset)
@@ -41,7 +41,7 @@ hitMatrix::addMatch(u32bit         qsLo,
   else
     dsLo -= offset;
 
-  offset = config._extendWeight * (_qsLen - qsHi);
+  offset = (u32bit)(config._extendWeight * (_qsLen - qsHi));
   if (offset < config._extendMinimum)
     offset = config._extendMinimum;
   dsHi += offset;

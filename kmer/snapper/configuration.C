@@ -32,7 +32,7 @@ configuration::configuration(void) {
   _maxDiagonal          = 25;
 
   //  Alternate match extension scheme
-  _extendWeight         = 2;
+  _extendWeight         = 2.0;
   _extendMinimum        = 100;
 
   _minHitLength         = 0;
@@ -89,8 +89,8 @@ static char const *usageString =
 "    -minhitcoverage c       Minimum coverage for a hit to be polished (0.0 to 1.0)\n"
 "    -minmatchidentity i     Minimum percent identity for matches (integer)\n"
 "    -minmatchcoverage c     Minimum coverage for matches (integer)\n"
-"    -extendweight w\n"
-"    -extendminimum e\n"
+"    -extendweight w         (default is 2)\n"
+"    -extendminimum e        (default is 100)\n"
 "\n"
 "  Filter and Filter Validation\n"
 "    -validate               Enable tuning of the filter (expensive!)\n"
@@ -402,7 +402,7 @@ configuration::read(int argc, char **argv) {
       _minMatchCoverage = atoi(argv[arg]);
     } else if (strncmp(argv[arg], "-extendweight", 7) == 0) {
       arg++;
-      _extendWeight = atoi(argv[arg]);
+      _extendWeight = atof(argv[arg]);
     } else if (strncmp(argv[arg], "-extendminimum", 7) == 0) {
       arg++;
       _extendMinimum = atoi(argv[arg]);

@@ -1,5 +1,9 @@
 # -*- makefile -*-
 
+ifndef UTIL/
+UTIL/     := $/../util/
+endif
+
 ifndef EXISTDB/
 EXISTDB/    := $/../existDB/
 endif
@@ -66,7 +70,7 @@ $/snapper2: \
 $/buildinfo-snapper2.c: $/buildinfo-snapper2.h
 $/buildinfo-snapper2.h: ${src}
 	${UTIL/}buildinfo.pl snapper2 "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
-	mv buildinfo-snapper2.[ch] `dirname $@`
+	[ `dirname $@` = "." ] || mv buildinfo-snapper2.[ch] `dirname $@`
 
 
 

@@ -99,7 +99,7 @@ public:
 
   u32bit           _maxDiagonal;
 
-  u32bit           _extendWeight;
+  double           _extendWeight;
   u32bit           _extendMinimum;
 
   //  Minimums for hits
