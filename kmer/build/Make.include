@@ -11,6 +11,7 @@ $(eval $(call Include,\
      $/../SUFFER/ \
      $/../RCM/ \
      $/../TCBB/ \
+     $/../../AS/ \
      ))
 
 $/.CLEAN:=$/*~ $/*.o

@@ -143,11 +143,12 @@ endif
   AIX_SUPPRESS_DUPLICATE_SYMBOL_WARNING:=-qstaticinline
   AIX_FLAG_TO_SUPPRESS_MANY_WARNINGS   :=-bhalt:8
   AIX_OPTIMIZATIONS                    :=-qarch=auto -qtune=auto -qcache=auto
+  AIX_COMFORT_FLAGS                    :=-qlanglvl=ext -qignerrno -qupconv
 
   AIX_FLAGS  :=$(AIX_LARGE_FILE_SUPPORT) $(AIX_OPTIMIZATIONS)
   AIX_FLAGS  +=$(AIX_FLAG_TO_SUPPRESS_MANY_WARNINGS)
   AIX_FLAGS  +=$(AIX_SUPPRESS_DUPLICATE_SYMBOL_WARNING)
-  AIX_FLAGS  +=$(AIX_OPTIMIZATIONS)
+  AIX_FLAGS  +=$(AIX_COMFORT_FLAGS)
 
   CFLAGS_COMPILE     :=-qcpluscmt ${AIX_FLAGS}
   CXXFLAGS_COMPILE   :=${AIX_RTTI_SUPPORT} ${AIX_FLAGS}
@@ -244,14 +245,14 @@ ifeq (${_OS_}${_CC_}${_THR_},AIX-threaded)
 endif
 ## ammendments to the above because we are threaded
 ifeq (${_THR_},-threaded)
-  CFLAGS           +=T_CFLAGS
-  CXXFLAGS         +=T_CXXFLAGS
-  CFLAGS_COMPILE   +=T_CFLAGS_COMPILE
-  CXXFLAGS_COMPILE +=T_CXXFLAGS_COMPILE
-  CLDFLAGS         +=T_CLDFLAGS
-  CXXLDFLAGS       +=T_CXXLDFLAGS
-  CLIBS            +=T_CLIBS
-  CXXLIBS          +=T_CXXLIBS
+  CFLAGS           +=${T_CFLAGS}
+  CXXFLAGS         +=${T_CXXFLAGS}
+  CFLAGS_COMPILE   +=${T_CFLAGS_COMPILE}
+  CXXFLAGS_COMPILE +=${T_CXXFLAGS_COMPILE}
+  CLDFLAGS         +=${T_CLDFLAGS}
+  CXXLDFLAGS       +=${T_CXXLDFLAGS}
+  CLIBS            +=${T_CLIBS}
+  CXXLIBS          +=${T_CXXLIBS}
 endif
 
 

@@ -276,6 +276,22 @@ endef
 $(eval $(foreach x,${//},$(call .RULE-install-copy-PERL,$x)))
 
 
+############################################################
+# share -- a random catchall for scripts and whatnot that
+# we should have real rules for but we don't right now
+############################################################
+#__SUBGOALS__+=$${${1:.=.SHARES}}
+
+define .RULE-install-copy-SHARE
+${1:.=.install-copy}: ${1:.=.install-copy-SHARE}
+${1:.=.install-copy-SHARE}:
+	$(call .FUN-install-copy,$${${1:.=.SHARES}}, \
+                                 scripts/$${${1:.=.SHARE/}})
+
+endef
+$(eval $(foreach x,${//},$(call .RULE-install-copy-SHARE,$x)))
+
+
 
 
 
