@@ -18,14 +18,6 @@ void          simseq(char *,char *,int,int,int,int,double);
 #include "buildinfo-libbio.h"
 #include "buildinfo-libutil.h"
 
-#ifdef TRUE64BIT
-const char *idxMsg   = "%8u] %5u %10u\n";
-const char *descMsg  = "%u\n";
-#else
-const char *idxMsg   = "%8lu] %5lu %10lu\n";
-const char *descMsg  = "%lu\n";
-#endif
-
 
 const char *usage =
 "usage: %s [--buildinfo] [-f|-F|-I <fasta-file>] [options]\n"
@@ -179,16 +171,18 @@ printSequence(FastASequenceInCore *b,
     end = l;
   }
 
+#if 0
   if ((beg > l) || (end > l) || (beg > end)) {
-#ifdef TRUE64BIT
-    fprintf(stderr, "WARNING:  Printing %u to %u of sequence %u (len=%u) is out of bounds -- NO SEQUENCE PRINTED!\n",
+    fprintf(stderr, "WARNING:  Printing "u32bitFMT" to "u32bitFMT" of sequence "u32bitFMT" (len="u32bitFMT") is out of bounds -- NO SEQUENCE PRINTED!\n",
             beg, end, b->getIID(), l);
-#else
-    fprintf(stderr, "WARNING:  Printing %lu to %lu of sequence %lu (len=%lu) is out of bounds -- NO SEQUENCE PRINTED!\n",
-            beg, end, b->getIID(), l);
-#endif
     return;
   }
+#else
+  if (beg > l)
+    beg = 0;
+  if (end > l)
+    end = l;
+#endif
 
   u32bit    limit = end - beg;
   char     *n = new char [end - beg + 1];
@@ -1106,7 +1100,7 @@ processArray(int argc, char **argv) {
         case 'd':
           failIfNoSource();
           failIfNotRandomAccess();
-          printf(descMsg, f->getNumberOfSequences());
+          printf(u32bitFMT"\n", f->getNumberOfSequences());
           break;
         case 'L':
           failIfNoSource();
