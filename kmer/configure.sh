@@ -12,6 +12,13 @@ if [ ! -s Makefile ] ; then
 fi
 
 
+
+
+#  This is quickly getting out of hand.  Look for python stuff.
+
+
+
+
 #  If no target, try to figure out one based on uname.  This defaults to
 #  the optimized target below.  If it works well, we can always use this
 #  mechanism, and extend with "debug" or "profile" (e.g., "./configure.sh debug")
@@ -129,7 +136,7 @@ CFLAGS_COMPILE    := -O3 \$(THREADS) -Wall -funroll-loops -fexpensive-optimizati
 CLDFLAGS          := -L/usr/local/lib
 CLIBS             := \$(THREADL)
 CXX               := g++
-CXXFLAGS_COMPILE  := -O3 \$(THREADS) -I/usr/local/include/pthread/linuxthreads -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CXXFLAGS_COMPILE  := -O3 \$(THREADS) -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := \$(THREADL)
 ARFLAGS           := ruvs
@@ -290,11 +297,11 @@ THREADS           := -D_THREAD_SAFE -pthread
 THREADL           := -pthread
 CC                := cc
 SHLIB_FLAGS       := -shared
-CFLAGS_COMPILE    := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -O3 \$(THREADS) -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CFLAGS_COMPILE    := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -O3 \$(THREADS) -I/home/bwalenz/linux/include/python2.4 -fmessage-length=0 -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CLDFLAGS          := -L/usr/local/lib
 CLIBS             := \$(THREADL) -ldl
 CXX               := g++
-CXXFLAGS_COMPILE  := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -O3 \$(THREADS) -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CXXFLAGS_COMPILE  := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -O3 \$(THREADS) -I/home/bwalenz/linux/include/python2.4 -fmessage-length=0 -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := \$(THREADL) -ldl
 ARFLAGS           := ruvs
@@ -309,11 +316,11 @@ THREADS           := -D_THREAD_SAFE -pthread
 THREADL           := -pthread
 CC                := cc
 SHLIB_FLAGS       := -shared
-CFLAGS_COMPILE    := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -g \$(THREADS) -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CFLAGS_COMPILE    := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -g \$(THREADS) -fmessage-length=0 -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CLDFLAGS          := -L/usr/local/lib
 CLIBS             := \$(THREADL) -ldl
 CXX               := g++
-CXXFLAGS_COMPILE  := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -g \$(THREADS) -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CXXFLAGS_COMPILE  := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -g \$(THREADS) -fmessage-length=0 -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := \$(THREADL) -ldl
 ARFLAGS           := ruvs

@@ -1,0 +1,24 @@
+# -*- makefile -*-
+
+LIBUTL/     :=$(call MakePath,$/../libutil/)
+LIBBIO/     :=$(call MakePath,$/../libbio/)
+FRAMEWORK/  :=$(call MakePath,$/../atac-framework/)
+
+$/.CXX_EXES := $/MatchExtender $/MismatchCounter
+
+mch_src  := $/MEMatch.C $/atacreader.C
+me_src   := $/MatchExtender.C
+mc_src   := $/MismatchCounter.C
+
+$/.CXX_SRCS := ${mch_src} ${me_src} ${mc_src}
+
+$/.CLEAN :=$/*.o $/*~ $/core
+
+$/MatchExtender:     ${mch_src:.C=.o} ${me_src:.C=.o} 
+$/MismatchCounter:   ${mch_src:.C=.o} ${mc_src:.C=.o} 
+
+${$/.CXX_EXES}: ${FRAMEWORK/}libATAC.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+
+$(eval $/%.d $/%.o:   CXXFLAGS+=-I${FRAMEWORK/}. -I${LIBBIO/} -I${LIBUTL/})
+
+

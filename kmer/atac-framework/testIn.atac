@@ -1,0 +1,26 @@
+! format atac 1.0
+# This is a comment!
+/assemblyFilePrefix1=humR27
+/assemblyId1=r27
+/assemblyFilePrefix2=humNCBI31
+/assemblyId2=b31
+/alpha=a
+#
+# Explicitly declared sequence sources and genomic axes would look like this:
+#S r27 humR27_123456.fasta
+#S b31 humNCBI31_654321.fasta
+#G c r27Chr2 . 0 r27 0 100000000 123456789 1
+#G c b31Chr2 . 0 b31 0 100000000 123456789 1
+#
+M x m1 r5 r27:1 101 50 1 b31:1 101 50 1 > stuff after the anglebracket
+M x m2 r5 r27:1 200 50 1 b31:1 200 50 1
+M x m3 r5 r27:1 308 50 1 b31:1 308 50 1
+/beta=b
+M x m4 r5 r27:1 407 50 1 b31:1 407 50 1 >a defline
+# This is another comment!
+M r r5 . r27:1  503 50 1 b31:1 503 50 1
+M x m6 r10 r27:1 602 50 1 b31:1 602 50 1
+M x m7 r10 r27:1 705 50 1 b31:1 705 50 1
+M x m8 r10 r27:1 809 50 1 b31:1 809 50 1
+M x m9 r10 r27:1 902 50 1 b31:1 902 50 1
+M r r10 . r27:1 1001 50 b31:1 10 1001 50 1

@@ -1,0 +1,65 @@
+! format atac 1.0
+# To parse this file, you must parse each line independently.
+# The first character of each line flags the line type.
+#
+# A line that starts with "#" is a human only comment that is
+# never intended to be parsed by a machine.
+#
+# A blank line is ignored or illegal.
+# A white space line is ignored or illegal.
+#
+# A line that whose first character is "/" is a machine parseable line
+# that is intended to be evaluated before any table data.  Global data
+# is represented by /key=value pairs.  These lines are meant to be stored
+# internally as an associative array.  E.g. Perl hash, C++ STL map,
+# Python dictionary, ...
+#
+# The character "!" declares a table's fields.  The table fields are
+# from a restricted vocabulary.  This is satisfies my paranoia for
+# versioning.  A "C" parser could check the order of the fields to
+# assert the consistency of the input file and the parser.
+#
+# A line that starts with an alphabetic character is a table row.  The
+# table must be previously declared.  The character ">" is reserved
+# and starts a defline like string.
+# Legend:
+# Field 0: the row class
+# Field 1: the match type u=ungapped, x=exact, ....
+# Filed 2: the match instance index
+# Field 3: the parent index
+# Field 4: the FASTA sequence id in the first assembly
+# Field 5: the offset from the start of the sequence for the match
+# Field 6: the length of the match in the first assembly
+# Field 7: the orientation of the match sequence in the first assembly.
+# Field 8: the FASTA sequence id for the second assembly
+# Field 9: the offset from the start of the sequence for the match
+# Field 10: the length of the match in the second assembly
+# Field 11: the orientation of the match sequence in the second assembly.
+# Field 12: percent mismatch ?
+/magic=ATAC
+/creationDate=Wed Apr 16 10:23:54 EDT 2003
+/modificationDate=Wed Apr 16 10:23:54 EDT 2003
+/atac_algorithm_version=1
+/atac_file_format_version=1
+/assemblyFilePrefix1=/prod/IR02/synteny/mers/humR27_030128
+/assemblyFilePrefix2=/prod/IR02/synteny/mers/human_build31_chr_030212
+/assemblyId1=r27
+/assemblyId2=b31
+/matchesFilePrefix=humR27_030128-vs-human_build31_chr_030212-le1_20mers
+#
+#/firstAssemblyFastaFile=/prod/IR02/synteny/mers/humR27_030128.seqStore
+#/secondAssemblyFastaFile=/prod/IR02/synteny/mers/human_build31_chr_030212.seqStore
+/rawMatchMerSize=20
+/rawMatchMerMaxDegeneracy=1
+/rawMatchMinSize=50
+/globalPerfectRunMinLen=1000
+/globalMaxGapLen=1000000
+/intraRunGapIsolatedMismatchLen=20
+/checkPointPhase=1
+/provider1=Celera
+/version1=R27
+/species1=Human
+/provider2=NCBI
+/version2=B31
+/species2=Human
+

@@ -1,0 +1,18 @@
+# -*- makefile -*-
+
+$/.CXX_EXES	:=$/ProcessAtacDataset
+$/.CXX_LIBS     :=$/libATAC.a
+
+$/.CXX_SRCS:=$/ProcessAtacDataset.cc $/AtacDataset.cc $/AtacMatch.cc $/AtacSequenceSource.cc $/AtacGenomicAxis.cc $/AtacAttribute.cc $/AtacComment.cc $/AtacRecord.cc
+
+$/.CLEAN    := $/*.o
+
+
+
+$/ProcessAtacDataset: $/ProcessAtacDataset.o $/AtacDataset.o \
+    $/AtacMatch.o $/AtacSequenceSource.o $/AtacGenomicAxis.o \
+    $/AtacAttribute.o $/AtacComment.o $/AtacRecord.o
+
+$/libATAC.a:  $/AtacDataset.o $/AtacMatch.o $/AtacSequenceSource.o \
+ $/AtacGenomicAxis.o $/AtacAttribute.o $/AtacComment.o $/AtacRecord.o
+

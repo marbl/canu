@@ -1,0 +1,70 @@
+# -*- makefile -*-
+
+
+# The arch-independent section
+# compiling
+CFLAGS          :=
+CXXFLAGS        :=${CFLAGS}
+# linkins
+CLDFLAGS        :=
+CXXLDFLAGS      :=${CLDFLAGS}
+CLIBS		:=-lm
+CXXLIBS         :=${CLIBS}
+
+# The dependency generator
+# although it can cause some troubles, it really is
+# probably best to keep these as GNU compilers
+CCDEP		 :=gcc -M
+CXXDEP		 :=g++ -M
+
+
+
+### ARCH specific compiler options ###################################
+
+### default to using GNU
+ifeq ($(OPERATING_SYSTEM),)
+  CC               :=gcc
+  CXX              :=g++
+  CFLAGS_ARCH      :=-g -O4 -Wall
+  CXXFLAGS_ARCH    :=$(CFLAGS_ARCH)
+  SHARED_FLAG       := -shared
+  CXXINC_ARCH      :=-I/usr/include/python2.2/
+endif
+
+### tru64
+ifeq ($(OPERATING_SYSTEM),TRU64)
+  CC               :=cc
+  CXX              :=cxx
+  CFLAGS_ARCH      :=-g3 -O4
+  CXXFLAGS_ARCH    :=$(CFLAGS_ARCH)
+  CXX_TMP_ARCH     :=cxx_repository
+  SHARED_FLAG      := -shared
+  CXXINC_ARCH      :=-I/usr/local/ir/Python-2.2.2 -I/usr/local/ir/Python-2.2.2/Include
+endif
+
+### aches
+ifeq ($(OPERATING_SYSTEM),AIX)
+  CC            :=xlc
+  CXX           :=xlC
+  SHARED_FLAG       := -share
+  CXXINC_ARCH      :=-I/homeibm/usr/local/include/python2.2
+
+  AIX_LARGE_FILE_SUPPORT               :=-q64 -qlonglong -D_LARGE_FILES
+  AIX_OPTIMIZATIONS                    :=-qarch=auto -qtune=auto -qcache=auto
+  AIX_SUPPRESS_DUPLICATE_SYMBOL_WARNING:=-qstaticinline
+  AIX_FLAG_TO_SUPPRESS_MANY_WARNINGS   :=-bhalt:8
+  AGRESSIVE_OPTIMIZATION               :=-O3 -qstrict
+
+  CFLAGS_ARCH	:=
+  CXXFLAGS_ARCH := $(CFLAGS_ARCH) \
+	$(AIX_LARGE_FILE_SUPPORT) \
+	$(AIX_OPTIMIZATIONS) \
+	$(AIX_SUPPRESS_DUPLICATE_SYMBOL_WARNING)
+  CLDFLAGS_ARCH	:=
+  CXXLDFLAGS_ARCH := $(CLDFLAGS_ARCH) \
+	$(AIX_LARGE_FILE_SUPPORT) \
+	$(AIX_OPTIMIZATIONS) \
+	$(AIX_SUPPRESS_DUPLICATE_SYMBOL_WARNING)
+  DEP_FLAGS	:=-E
+  DEP_FILE_EXT	:=u
+endif

@@ -1,0 +1,76 @@
+# -*- makefile -*-
+
+
+######################################################################
+# If you modify this, you are probably making a mistake
+######################################################################
+
+SUFFICES=.cc .c .h .o
+.SUFFIXES:=${SUFFICES}
+
+all: ${ALL_EXES}
+
+install: all
+	echo "install in ${WORK}"
+	cp ${C_EXES} ${CXX_EXES} ${WORK}/local/bin
+	cp ${CXX_SHARED} ${WORK}/local/lib
+
+depend: 
+
+depends: Make.depends
+
+Make.depends:
+	@ echo "(creating Make.depends file)"
+	@ echo "# -*- makefile -*-" > Make.depends
+	@ echo "# the Make.depends file" >> Make.depends
+	if [ -n "${C_SRCS}" ]; then \
+	   ${CCDEP} ${CFLAGS} ${CINC} ${CINC_ARCH} ${C_SRCS} >> Make.depends ; \
+	fi
+	if [ -n "${CXX_SRCS}" ]; then \
+	   ${CXXDEP} ${CXXFLAGS} ${CXXINC} ${CXXINC_ARCH} ${CXX_SRCS} >> Make.depends ; \
+	fi
+	for e in ${ALL_EXES} ; do \
+	   echo "$${e}: \$${$${e}_LNK}" >> Make.depends ; \
+	done
+
+######  dependecies, which are generated as above ####################
+include Make.depends
+######################################################################
+
+
+
+######################################################################
+#  generic rules
+######################################################################
+
+.cc.o:
+	${CXX} ${CXXFLAGS} ${CXXFLAGS_ARCH} ${CXXINC} ${CXXINC_ARCH} -c $<
+
+.c.o:
+	${CC} ${CFLAGS} ${CFLAGS_ARCH} ${CINC} ${CINC_ARCH} -c $<
+
+${C_EXES}:
+	${CC} ${CLDFLAGS} ${CLDFLAGS_ARCH} -o $@ ${$@_LNK} ${CLIBS} ${CLIBS_ARCH}
+
+${CXX_EXES}:
+	${CXX} ${CXXLDFLAGS} ${CXXLDFLAGS_ARCH} -o $@ ${$@_LNK} ${CXXLIBS} ${CXXLIBS_ARCH}
+
+${CXX_SHARED}:
+	${CXX} ${CXXFLAGS} ${CXXFLAGS_ARCH} ${SHARED_FLAG} -o $@ ${$@_LNK} ${CXXLIBS} ${CXXLIBS_ARCH}
+
+celan:	clean
+
+clena:	clean
+
+clean:
+	rm -f Make.depends
+	rm -f ${ALL_EXES}
+	rm -f ${ALL_LNK}
+
+cvs-clean:	real-clean
+
+real-clean:	clean
+	rm -f *.o core gmon.out
+	rm -rf ${C_TMP} ${CXX_TMP}
+	rm -f *~
+
