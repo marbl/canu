@@ -9,6 +9,7 @@
 
 #include "libbritypes.h"
 #include "alphabet.h"
+#include "readBuffer.H"
 
 //
 //  Reads sequence from a multiFastA file, letter by letter, saving
@@ -27,17 +28,9 @@ public:
   FastAstream(const char *filename) {
     if ((filename == 0L) ||
         ((filename[0] == '-') && (filename[1] == 0)))
-      _theFile = stdin;
+      _buffer = new readBuffer(fileno(stdin), "stdin");
     else
-      _theFile = fopen(filename, "r");
-
-    if (_theFile == 0L) {
-      if (filename)
-        fprintf(stderr, "FastAstream::FastAstream()-- couldn't open '%s'\n%s\n", filename, strerror(errno));
-      else
-        fprintf(stderr, "FastAstream::FastAstream()-- couldn't open stdin?\n%s\n", strerror(errno));
-      exit(1);
-    }
+      _buffer = new readBuffer(filename);
 
     _thePosition       = 0;
     _theSequenceNumber = 0;
@@ -48,8 +41,7 @@ public:
   };
 
   ~FastAstream() {
-    if (_theFile != stdin)
-      fclose(_theFile);
+    delete [] _buffer;
     delete [] _theDefLine;
   };
 
@@ -65,14 +57,14 @@ public:
     return(_theDefLine);
   };
 private:
-  FILE   *_theFile;
+  readBuffer  *_buffer;
 
-  u64bit  _thePosition;
-  u64bit  _theSequenceNumber;
+  u64bit       _thePosition;
+  u64bit       _theSequenceNumber;
 
-  u32bit  _theDefLineMax;
-  u32bit  _theDefLinePos;
-  char   *_theDefLine;
+  u32bit       _theDefLineMax;
+  u32bit       _theDefLinePos;
+  char        *_theDefLine;
 };
 
 
@@ -83,16 +75,16 @@ FastAstream::nextSymbol(void) {
 
   //  Grab the next character
   //
-  nc = (unsigned char)getc(_theFile);
+  nc = (unsigned char)_buffer->getc();
 
   //  Skip any whitespace
   //
-  while (isspace(nc) && !feof(_theFile))
-    nc = (unsigned char)getc(_theFile);
+  while (isspace(nc) && !_buffer->eof())
+    nc = (unsigned char)_buffer->getc();
 
   //  Are we at the EOF?
   //
-  if (feof(_theFile))
+  if (_buffer->eof())
     return(0);
 
   //  Looks like we are in the sequence.  Increment the position.  If
@@ -117,8 +109,8 @@ FastAstream::nextSymbol(void) {
 
     _theDefLinePos = 0;
 
-    nc = (unsigned char)getc(_theFile);
-    while ((nc != '\n') && (nc != '\r') && !feof(_theFile)) {
+    nc = (unsigned char)_buffer->getc();
+    while ((nc != '\n') && (nc != '\r') && !_buffer->eof()) {
 
       //  More space?  Must be a monster defline!
       //
@@ -137,7 +129,7 @@ FastAstream::nextSymbol(void) {
       //
       _theDefLine[_theDefLinePos++] = nc;
 
-      nc = (unsigned char)getc(_theFile);
+      nc = (unsigned char)_buffer->getc();
     }
 
     _theDefLine[_theDefLinePos] = 0;
