@@ -54,9 +54,14 @@ my $GENOMEdir     = "default";          #  Location of genome assemblies
 my $MERYLdir      = "default";  #  Location of genome mercount databases
 
 my $mersize   = 20; # the mer size
-my $merlimit  = 1;  # unique mers only
 my $minfill   = 20; # the mimimum fill for a reported match.
+my $merlimit  = 1;  # unique mers only
 my $maxgap    = 0;  # the maximum substitution gap
+
+my $filtername;
+my $filteropts;
+#my $filtername = "heavyChainsFilter.so";
+#my $filteropts = "-S 100 -J 100000";
 
 my $numSegments = 2;
 my $numThreads  = 4;
@@ -112,6 +117,15 @@ while (scalar(@ARGV) > 0) {
         $merlimit  = 9;  # unique mers only
         $minfill   = 18; # the mimimum fill for a reported match.
         $maxgap    = 0;  # the maximum substitution gap
+    } elsif($arg eq "-filtername") {
+        $filtername = shift @ARGV;
+    } elsif($arg eq "-filteropts") {
+        $filteropts = shift @ARGV;
+    } elsif ($arg eq "-mersize") {
+        $mersize   = shift @ARGV;
+        $minfill   = $mersize;
+    } elsif ($arg eq "-merlimit") {
+        $merlimit  = shift @ARGV;
     } else {
         die "unknown option $arg\n";
     }
@@ -121,8 +135,10 @@ print STDOUT "mersize = $mersize\n";
 print STDOUT "merlimit = $merlimit\n";
 print STDOUT "minfill = $minfill\n";
 print STDOUT "maxgap = $maxgap\n";
+print STDOUT "filtername = $filtername\n" if defined($filtername);
+print STDOUT "filteropts = $filteropts\n" if defined($filteropts);
 
-$execHome = "/work/assembly/walenzbp/releases"   if ($execHome eq "compaq");
+$execHome = "/IR/devel/IR10/assembly/walenzbp/releases"   if ($execHome eq "compaq");
 $execHome = "/IR/devel/mapping/cds/IR/BRI/bin"   if ($execHome eq "aix");
 
 
@@ -149,7 +165,6 @@ die "Can't find the MERYLdir '$MERYLdir'\n" if (! -d $MERYLdir);
 
 system("mkdir $ATACdir") if (! -d $ATACdir);
 system("mkdir ${ATACdir}/tmp")  if (! -d "${ATACdir}/tmp");
-
 
 
 findSources();
@@ -277,8 +292,9 @@ foreach my $segmentID (@segmentIDs) {
         $cmd .= "-output    $ATACdir/$matches-segment-$segmentID.matches \\\n";
         $cmd .= "-stats     $ATACdir/$matches-segment-$segmentID.stats \\\n";
         $cmd .= "-buildonly $ATACdir/$matches-segment-$segmentID.table \\\n" if (defined($buildOnly));
-        $cmd .= "-tmpfile   $ATACdir/$matches-segment-$segmentID.tmp";
-
+        $cmd .= "-tmpfile   $ATACdir/$matches-segment-$segmentID.tmp ";
+        $cmd .= "-filtername $filtername " if(defined($filtername));
+        $cmd .= "-filteropts $filteropts " if(defined($filtername) && defined($filteropts));
 
         #  Prevent me from overwriting a run in progress
         #
@@ -349,7 +365,7 @@ if (! -e "$ATACdir/$matches.matches.sorted") {
 
 
 if (! -e "$ATACdir/${id1}vs${id2}-template.atac") {
-    open(ATACFILE, "> $ATACdir/${id1}vs${id2}-C01.atac");
+    open(ATACFILE, "> $ATACdir/${id1}vs${id2}-template.atac");
     print ATACFILE  "!format atac 1.0\n";
     print ATACFILE  "# Legend:\n";
     print ATACFILE  "# Field 0: the row class\n";
