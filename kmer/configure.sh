@@ -179,7 +179,7 @@ EOF
 # -*- makefile -*-
 #  Tru64, native compilers, optimized
 CC                := cc
-SHLIB_FLAGS       := -G #untested
+SHLIB_FLAGS       := -shared   # -G is something else
 CFLAGS_COMPILE    := -D_REENTRANT -pthread -w0 -fast
 CLDFLAGS          := 
 CLIBS             := -lpthread -lrt
@@ -197,7 +197,7 @@ EOF
 # -*- makefile -*-
 #  Tru64, native compilers, debug
 CC                := cc
-SHLIB_FLAGS       := -G #untested
+SHLIB_FLAGS       := -shared
 CFLAGS_COMPILE    := -D_REENTRANT -pthread -g -w0 -trapuv
 CLDFLAGS          := 
 CLIBS             := -lpthread -lrt
