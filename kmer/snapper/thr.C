@@ -102,6 +102,14 @@ searchThread(void *U) {
         char *o = doPolish(state, seq, theHits, theHitsLen, theLog);
 
 
+        //  Clean up
+        //
+        for (u32bit h=0; h<theHitsLen; h++) {
+          delete theHits[h]._ML;
+          theHits[h]._ML = 0L;
+        }
+
+
         ///////////////////////////////////////
         //
         //  Signal that we are done.

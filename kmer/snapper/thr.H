@@ -15,17 +15,17 @@
 
 //  Define this to print a message whenever a search starts.
 //
-#define VERBOSE_SEARCH
+//#define VERBOSE_SEARCH
 
 //  Define this to print a message whenever a polish starts.
 //
-#define SHOW_POLISHING
+//#define SHOW_POLISHING
 
 //  Define these to show polishes that take a long time -- individual
 //  polishes, not all polishes for a single sequence.  The time is in
 //  seconds.
 //
-#define SHOW_POLISHING_EXPENSIVE  0.5
+//#define SHOW_POLISHING_EXPENSIVE  0.5
 
 //  Define this to create a bazillion files that contain information
 //  about the signal for each match.  One file per query sequence.
@@ -36,8 +36,13 @@
 //  that look like they are repeats are re-searched using nearly
 //  unique mers.
 //
-#define SHOW_HIT_DISCARDING
+//#define SHOW_HIT_DISCARDING
 
+//  Define this to show the hits being added to the sim4command from
+//  thr-polish.C.  This generates a lot of output!
+//
+//#define SHOW_HITS_ADDED
+//#define SHOW_HITS_ADDED_AFTER_QUERY   4600
 
 
 class searcherState {

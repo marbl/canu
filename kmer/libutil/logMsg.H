@@ -17,7 +17,7 @@ public:
 
   logMsg() {
     theLogLen = 0;
-    theLogMax = 1048576;
+    theLogMax = 8192;
     theLog    = new char [theLogMax];
   };
 
@@ -31,7 +31,8 @@ public:
   //
   void     resize(u32bit moreSpace) {
     if (theLogLen + moreSpace >= theLogMax) {
-      char *ll = new char [theLogMax + theLogMax + moreSpace];
+      theLogMax += theLogMax + moreSpace;
+      char *ll = new char [theLogMax];
       memcpy(ll, theLog, sizeof(char) * theLogLen);
       delete [] theLog;
       theLog = ll;

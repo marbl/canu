@@ -13,7 +13,6 @@ doPolish(searcherState       *state,
   u32bit   outputMax = 2 * 1024 * theHitsLen;
   char    *output    = 0L;
 
-
   if (theHitsLen == 0) {
     output    = new char [8];
     output[0] = 0;
@@ -54,16 +53,20 @@ doPolish(searcherState       *state,
         u32bit                GENlo  = theHits[h]._dsLo;
         u32bit                GENhi  = theHits[h]._dsHi;
 
+        if (GENhi > GENseq->sequenceLength())
+          GENhi = GENseq->sequenceLength();
+
         bool    doForward =  theHits[h]._status & AHIT_DIRECTION_MASK;
         bool    doReverse = !doForward;
 
 #ifdef SHOW_POLISHING
-        theLog->add("Hit %u out of %u (%u -> %u[%u-%u]) cov=%u matched=%u numMers=%u\n",
+        theLog->add("Hit %u out of %u (%u -> %u[%u-%u]) dir=%c cov=%u matched=%u numMers=%u\n",
                     h, theHitsLen,
                     ESTseq->getIID(),
                     theHits[h]._dsIdx,
                     theHits[h]._dsLo,
                     theHits[h]._dsHi,
+                    doForward ? 'F' : 'R',
                     theHits[h]._covered,
                     theHits[h]._matched,
                     theHits[h]._numMers);
@@ -81,32 +84,49 @@ doPolish(searcherState       *state,
                                               doForward,
                                               doReverse);
 
+
+
         ////////////////////////////////////////
         //
         //  Add hits to the command
         //
-
-        //  XXX: seeds in sim4 are sorted by increasing genomic
-        //  position.  Seeds here are sorted by diagonal, ties broken
-        //  with est position.  I think this is OK.  (see extend_hit
-        //  in mspManager.C)
-
-        for (u32bit i=0, x, y; theHits[h]._ML->getMer(i, x, y); i++) {
-#if 0
-          if ((i % 1000) == 0) {
-            fprintf(stderr, "Adding seeds: "u32bitFMT" -- "u32bitFMT" "u32bitFMT"\r", i, x, y);
-            fflush(stderr);
-          }
+        //  addSeed() expects base-based, of the last position in
+        //  the seed.  We have space-based, first position.  Adding
+        //  the size of a mer fixes both.
+        //
+        if (doForward) {
+          for (u32bit i=0, x, y; theHits[h]._ML->getMer(i, x, y); i++) {
+#ifdef SHOW_HITS_ADDED
+#ifdef SHOW_HITS_ADDED_AFTER_QUERY
+            if (ESTseq->getIID() > SHOW_HITS_ADDED_AFTER_QUERY)
 #endif
-
-          //  addSeed() expects base-based, of the last position in
-          //  the seed.  We have space-based, first position.  Adding
-          //  the size of a mer fixes both.
-          //
-          P4->addSeed(y - GENlo + config._merSize,
-                      x         + config._merSize,
-                      config._merSize);
+              fprintf(stderr, "FORWARDHIT GEN: hi:"u32bitFMT"-lo:"u32bitFMT" pos:"u32bitFMT" EST: len:"u32bitFMT" pos:"u32bitFMT"\n",
+                      (u32bit)GENhi, (u32bit)GENlo, (u32bit)y, (u32bit)ESTseq->sequenceLength(), (u32bit)x);
+#endif
+            P4->addSeed(y - GENlo + config._merSize,
+                        x         + config._merSize,
+                        config._merSize);
+          }
+        } else {
+          for (u32bit i=0, x, y; theHits[h]._ML->getMer(i, x, y); i++) {
+#ifdef SHOW_HITS_ADDED
+#ifdef SHOW_HITS_ADDED_AFTER_QUERY
+            if (ESTseq->getIID() > SHOW_HITS_ADDED_AFTER_QUERY)
+#endif
+              fprintf(stderr, "REVERSEHIT GEN: hi:"u32bitFMT"-lo:"u32bitFMT" pos:"u32bitFMT" EST: len:"u32bitFMT" pos:"u32bitFMT"\n",
+                      (u32bit)GENhi, (u32bit)GENlo, (u32bit)y, (u32bit)ESTseq->sequenceLength(), (u32bit)x);
+#endif
+            //  Original form was (GENhi-GENlo) - (y-GENlo), which
+            //  reduces to the below.  By reversing, we no longer need
+            //  to add in the mersize, we're representing the end of
+            //  the mer now!
+            //
+            P4->addSeed(GENhi                    - y,
+                        ESTseq->sequenceLength() - x,
+                        config._merSize);
+          }
         }
+
 
 
         //  The main loop deletes the hits, but we take care of deleting _ML here.

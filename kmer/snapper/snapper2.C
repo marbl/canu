@@ -157,6 +157,13 @@ main(int argc, char **argv) {
 #endif
 
 
+  fprintf(stderr, "Hello.  I'm snapper2, pid %d\n", getpid());
+  fprintf(stderr, "gdb snapper2 %d\n", getpid());
+  fprintf(stderr, "Attach a debugger in the next 5 seconds.\n");
+  sleep(5);
+  fprintf(stderr, "Here I go!\n");
+
+
   //
   //  Read the configuration from the command line
   //
@@ -174,8 +181,6 @@ main(int argc, char **argv) {
   u32bit        numFilters = 0;
   u32bit        maxFilters = 21 * 22 / 2 * 20;
   filterStats  *theFilters = 0L;
-
-  fprintf(stderr, "theFilters = %p\n", theFilters);
 
   if (config._doValidation) {
     theFilters = new filterStats [maxFilters];
@@ -268,8 +273,8 @@ main(int argc, char **argv) {
   if (config._beVerbose)
     fprintf(stderr, "Opening the genomic database.\n");
 
-  //cache = new FastACache(config._dbFileName, 0, true);
-  cache = new FastACache(config._dbFileName, 256, false);
+  cache = new FastACache(config._dbFileName, 0, true);
+  //cache = new FastACache(config._dbFileName, 256, false);
 
 
 
@@ -353,6 +358,7 @@ main(int argc, char **argv) {
   sim4params.setMinCoverage(0.75);
   sim4params.setMinPercentExonIdentity(95);
   sim4params.setIgnorePolyTails(false);
+
   //sim4params.setWordSize(14);
   //sim4params.setWordSizeInt(14);
   //sim4params.setWordSizeExt(14);
@@ -526,8 +532,8 @@ main(int argc, char **argv) {
 
       delete [] input[outputPos];
       delete [] answer[outputPos];
-      delete [] output[outputPos];
       delete    logmsg[outputPos];
+      delete [] output[outputPos];
 
       input[outputPos]     = 0L;
       answerLen[outputPos] = 0;

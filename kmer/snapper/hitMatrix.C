@@ -147,9 +147,9 @@ void
 hitMatrix::filter(char      direction,
                   double    minHitCoverage,
                   u32bit    minHitLength,
-                  aHit    *&theOutput,
-                  u32bit   &theOutputPos,
-                  u32bit   &theOutputMax) {
+                  aHit    *&theHits,
+                  u32bit   &theHitsPos,
+                  u32bit   &theHitsMax) {
 
   if (_hitsLen == 0)
     return;
@@ -382,22 +382,22 @@ hitMatrix::filter(char      direction,
         delete n;
       }
 
-      if (theOutputPos >= theOutputMax) {
-        theOutputMax <<= 1;
+      if (theHitsPos >= theHitsMax) {
+        theHitsMax <<= 1;
         aHit *o = 0L;
         try {
-          o = new aHit [theOutputMax];
+          o = new aHit [theHitsMax];
         } catch (std::bad_alloc) {
           fprintf(stderr, "hitMatrix::filter()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
-          fprintf(stderr, "hitMatrix::filter()-- tried to extend output string from %lu to %lu.\n", theOutputPos, theOutputMax);
+          fprintf(stderr, "hitMatrix::filter()-- tried to extend output string from %lu to %lu.\n", theHitsPos, theHitsMax);
           exit(1);
         }
-        memcpy(o, theOutput, theOutputPos * sizeof(aHit));
-        delete [] theOutput;
-        theOutput = o;
+        memcpy(o, theHits, theHitsPos * sizeof(aHit));
+        delete [] theHits;
+        theHits = o;
       }
 
-      aHit *a = theOutput + theOutputPos++;
+      aHit *a = theHits + theHitsPos++;
 
       a->_status    = (direction == 'f');
       a->_qsIdx     = _qsIdx;

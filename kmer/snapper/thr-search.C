@@ -16,7 +16,6 @@ doSearch(searcherState       *state,
   double         startTime  = 0.0;
 
 
-
   ///////////////////////////////////////
   //
   //  Build and mask the query
@@ -154,13 +153,6 @@ doSearch(searcherState       *state,
       //
       merStream            *MS     = new merStream(config._merSize, GENseq->sequence() + GENlo, GENhi - GENlo);
 
-      //  Rebuild the query -- the original above was masked
-      //
-      //  Doesn't matter
-      //
-      //query = new encodedQuery(seq->sequence(), seq->sequenceLength(), config._merSize, rc);
-
-
       //  Build a positionDB of the region.  This gets us both
       //  positions and counts.  Then fill out another hitMatrix,
       //  using about 2*length mers.
@@ -171,7 +163,7 @@ doSearch(searcherState       *state,
                                                     20,
                                                     0L, 0L, false);
 
-      hitMatrix *HM = new hitMatrix(seq->sequenceLength(), qMers, idx);
+      hitMatrix            *HM = new hitMatrix(seq->sequenceLength(), qMers, idx);
 
       //  We find the number of hits we would get if we use a
       //  countLimit of i.

@@ -37,12 +37,12 @@ configureFilter(double L,
   if (p == 0.0)  p = 1.0 - (1.0 - V) * (h - L) / (H - L);
 
   if (p > 1.0) {
-    fprintf(stderr, "error in p; p=%f h=%f (%f %f %f)\n", p, h, L, H, V);
+    fprintf(stderr, "error in p; p=%f > 1.0!  h=%f (L=%f H=%f V=%f)\n", p, h, L, H, V);
     p = 1.0;
   }
 
-  if (p < V) {
-    fprintf(stderr, "error in p; p=%f h=%f (%f %f %f)\n", p, h, L, H, V);
+  if (V - p > 1e-10) {
+    fprintf(stderr, "error in p; p=%f < V!  h=%f (L=%f H=%f V=%f)\n", p, h, L, H, V);
     p = V;
   }
 
