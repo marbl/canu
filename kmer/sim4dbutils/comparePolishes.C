@@ -121,8 +121,10 @@ main(int argc, char **argv) {
   //  Iterate over all the ESTs.
 
   for (u32bit iid=0; iid<largestIID; iid++) {
-    sim4polishList *A = Afile->getEST(iid);
-    sim4polishList *B = Bfile->getEST(iid);
+    sim4polishList *A  = Afile->getEST(iid);
+    sim4polishList *B  = Bfile->getEST(iid);
+    sim4polishList *Ta = 0L;
+    sim4polishList *Tb = 0L;
 
     //  Filter by quality.
     A->filterByQuality(minI, minC);
@@ -141,10 +143,55 @@ main(int argc, char **argv) {
 
 
 
-    //  For each match in A, find the one in B that overlaps it.
+    //  Find and remove those matches that are unique to either set.
+    //  Removing is a big pain, because we either have to know
+    //  something about the removal process, or we need to rebuild the
+    //  overlap matrix after each removal.  Instead, we build a new set.
+
+    bool *removeA = new bool [A->length()];
+    bool *removeB = new bool [B->length()];
+
+    for (u32bit a=0; a<A->length(); a++)
+      removeA[a] = false;
+
+    for (u32bit b=0; b<B->length(); b++)
+      removeB[b] = false;
+
 
     for (u32bit a=0; a<A->length(); a++) {
+      u32bit ovl = 0;
 
+      for (u32bit b=0; b<B->length(); b++)
+        if (overlap[a][b])
+          ovl++;
+
+      if (ovl == 0) {
+        removeA[a] = true;
+        novelInA++;
+        //  XXX OUTPUT
+      }
+    }
+
+    for (u32bit b=0; b<B->length(); b++) {
+      u32bit ovl = 0;
+
+      for (u32bit a=0; a<A->length(); a++)
+        if (overlap[a][b])
+          ovl++;
+
+      if (ovl == 0) {
+        removeB[b] = true;
+        novelInB++;
+        //  XXX OUTPUT
+      }
+    }    
+
+    //
+    //  Now find all those that are perfect matches.  Yeah, yeah, we
+    //  could ignore those that we already marked for removal.
+    //
+
+    for (u32bit a=0; a<A->length(); a++) {
       u32bit Boverlaps = 0;
       u32bit theBovl   = 0;
 
@@ -155,6 +202,170 @@ main(int argc, char **argv) {
           theBovl = b;
         }
       }
+
+      //  If exactly one overlap, we just need to check if the guy in B
+      //  also has one overlap with anybody in A.
+
+      if (Boverlaps == 1) {
+
+        //  Count the number of overlaps the guy in B has with A.  If
+        //  1, it's a goodOverlap, else it's a multipleInA.
+
+        u32bit Aoverlaps = 0;
+        for (u32bit x=0; x<A->length(); x++)
+          if (overlap[x][theBovl])
+            Aoverlaps++;
+
+        if (Aoverlaps == 1) {
+          removeA[a]       = true;
+          removeB[theBovl] = true;
+          goodOverlap++;
+          //  XXX OUTPUT
+        }
+      }
+    }
+
+    //
+    //  Rebuild
+    //
+
+    Ta = new sim4polishList;
+    Tb = new sim4polishList;
+
+    for (u32bit a=0; a<A->length(); a++)
+      if (removeA[a] == false)
+        Ta->push( s4p_copyPolish((*A)[a]) );
+
+    for (u32bit b=0; b<B->length(); b++)
+      if (removeB[b] == false)
+        Tb->push( s4p_copyPolish((*B)[b]) );
+
+    delete A;
+    delete B;
+    A = Ta;
+    B = Tb;
+    Ta = Tb = 0L;
+
+    //  Rebuild overlaps
+    //
+    for (u32bit a=0; a<A->length(); a++)
+      for (u32bit b=0; b<B->length(); b++)
+        overlap[a][b] = findOverlap((*A)[a], (*B)[b]);
+
+
+    //
+    //  And now all we're left with is a bunch of intersecting crud.
+    //
+
+
+    //  Grab the first match in A.  Find all the overlaps with things
+    //  in B.  For each of those, find the overlaps in A.  Repeat
+    //  until nothing changes.  Generate a report.  Remove all those
+    //  matches.  Do it all again until there are no more matches.
+
+    while (A->length()) {
+      for (u32bit a=0; a<A->length(); a++)
+        removeA[a] = false;
+
+      for (u32bit b=0; b<B->length(); b++)
+        removeB[b] = false;
+
+      removeA[0] = true;
+
+      bool keepGoing = true;
+
+      while (keepGoing) {
+        keepGoing = false;
+
+        //  For all of A, if we have something marked for removal, see if we
+        //  overlap with anything in B.  If that b is not marked for removal,
+        //  mark it, and keep going.
+        //
+        for (u32bit a=0; a<A->length(); a++) {
+          if (removeA[a]) {
+            for (u32bit b=0; b<B->length(); b++) {
+              if ((overlap[a][b]) && (removeB[b] == false)) {
+                removeB[b] = true;
+                keepGoing = true;
+              }
+            }
+          }
+        }
+
+        //  Same thing, but for B.
+        // 
+        for (u32bit b=0; b<B->length(); b++) {
+          if (removeB[b]) {
+            for (u32bit a=0; a<A->length(); a++) {
+              if ((overlap[a][b]) && (removeA[a] == false)) {
+                removeA[a] = true;
+                keepGoing = true;
+              }
+            }
+          }
+        }
+      }
+
+      //  Found a component.  Output it.
+
+      u32bit inA = 0;
+      u32bit inB = 0;
+
+      for (u32bit a=0; a<A->length(); a++)
+        if (removeA[a])
+          inA++;
+      for (u32bit b=0; b<B->length(); b++)
+        if (removeB[b])
+          inB++;
+
+      if        ((inA  > 1) && (inB  > 1)) {
+        hairyOverlap++;
+      } else if ((inA == 1) && (inB  > 1)) {
+        multipleInB++;
+      } else if ((inA  > 1) && (inB == 1)) {
+        multipleInA++;
+      } else {
+        fprintf(stderr, "ERROR!  inA="u32bitFMT" inB="u32bitFMT"\n", inA, inB);
+      }
+
+      //
+      //  Rebuild
+      //
+
+      Ta = new sim4polishList;
+      Tb = new sim4polishList;
+
+      for (u32bit a=0; a<A->length(); a++)
+        if (removeA[a] == false)
+          Ta->push( s4p_copyPolish((*A)[a]) );
+
+      for (u32bit b=0; b<B->length(); b++)
+        if (removeB[b] == false)
+          Tb->push( s4p_copyPolish((*B)[b]) );
+    
+      delete A;
+      delete B;
+      A = Ta;
+      B = Tb;
+      Ta = Tb = 0L;
+
+      //  Rebuild overlaps
+      //
+      for (u32bit a=0; a<A->length(); a++)
+        for (u32bit b=0; b<B->length(); b++)
+          overlap[a][b] = findOverlap((*A)[a], (*B)[b]);
+    }
+
+
+#if 0
+    //  For each match in A, find the one in B that overlaps it.
+
+    for (u32bit a=0; a<A->length(); a++) {
+
+      u32bit Boverlaps = 0;
+      u32bit theBovl   = 0;
+
+      //  Count the number of things we overlap in B.
 
       //  No overlaps --> novelInA
       //
@@ -227,7 +438,7 @@ main(int argc, char **argv) {
       if (Boverlaps == 0)
         novelInB++;
     }
-
+#endif
 
     if ((iid % 1234) == 0) {
       fprintf(stderr, "IID:"u32bitFMTW(8)" A:"u32bitFMTW(4)" B:"u32bitFMTW(4)"  good:"u32bitFMTW(4)" Anovel:"u32bitFMTW(4)" Amulti:"u32bitFMTW(4)" Bnovel:"u32bitFMTW(4)" Bmulti:"u32bitFMTW(4)" hairy:"u32bitFMTW(4)"\r",
@@ -244,9 +455,11 @@ main(int argc, char **argv) {
     //  by at least XX% of the longer guy.
 
 
-
     delete [] overlap[0];
     delete [] overlap;
+
+    delete [] removeA;
+    delete [] removeB;
 
     delete A;
     delete B;
