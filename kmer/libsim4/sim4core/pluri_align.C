@@ -342,8 +342,8 @@ Sim4::pluri_align(int *dist_ptr,
     st->numberOfNs      += nextExon->numNs;
 
     EditDistance    += nextExon->numEdits;
-    AlignmentLength += (nextExon->toGEN - nextExon->frGEN +
-                        nextExon->toEST - nextExon->frEST +
+    AlignmentLength += (nextExon->toGEN - nextExon->frGEN + 1 +
+                        nextExon->toEST - nextExon->frEST + 1 +
                         nextExon->numInDel);
 
     right->next = head;
