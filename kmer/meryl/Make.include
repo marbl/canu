@@ -5,8 +5,6 @@ LIBBRI/     :=$(call MakePath,$/../libbri/)
 
 src     := $/args.C $/binaryOp.C \
            $/build.C \
-           $/build-1-count.C \
-           $/build-2-fill.C \
            $/build-3-output.C \
            $/checkDescr.C $/dump.C $/estimate.C \
            $/mcBucket.C $/mcBucket.H $/mcDescription.H $/merge.C $/meryl.C $/meryl.H \
