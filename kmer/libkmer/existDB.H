@@ -11,14 +11,13 @@
 //  the positionDB.
 //
 
-//  If both of these are defined, the tables are half as big and half as fast.
-//
-//#define COMPRESSED_HASH
-//#define COMPRESSED_BUCKET
+//  Extend to allow runtime selection of COMPRESSED_HASH and COMPRESSED_BUCKET.
+//  Extend to allow runtime enable of VERBOSE (currently always not verbose)
+//  Extend to allow optimal memory sizing ala meryl (only if we are given meryl as input)
 
-#if defined COMPRESSED_HASH || defined COMPRESSED_BUCKET
-#include "bit-packing.H"
-#endif
+//  Print some statistics
+//
+//#define STATS
 
 class positionDB;
 
@@ -35,7 +34,10 @@ public:
           u32bit       tblBits,
           u32bit       lo = 0,
           u32bit       hi = ~u32bitZERO,
-          positionDB  *posDB = 0L);
+          positionDB  *posDB = 0L,
+          bool         compressHash = false,
+          bool         compressBuckets = false,
+          bool         beVerbose = false);
   ~existDB();
 
   void        saveState(char const *filename);
@@ -52,7 +54,8 @@ private:
                               u32bit       tblBits,
                               positionDB  *posDB);
   bool        createFromMeryl(char const  *filename,
-                              u32bit       merSize,
+                              u32bit       lo,
+                              u32bit       hi,
                               u32bit       tblBits,
                               positionDB  *posDB);
 
@@ -64,23 +67,19 @@ private:
     return(k & _mask2);
   };
 
+  bool        _compressedHash;
+  bool        _compressedBucket;
+  bool        _beVerbose;
+
   u32bit      _merSizeInBases;
-#ifdef __APPLE__
-  u32bit      _pad;
-#endif
 
   u32bit      _shift1;
   u32bit      _shift2;
   u64bit      _mask1;
   u64bit      _mask2;
 
-#ifdef COMPRESSED_HASH
-  u32bit      _hashWidth;
-#endif
-
-#ifdef COMPRESSED_BUCKET
-  u32bit      _chckWidth;
-#endif
+  u32bit      _hashWidth;  //  Only for the compressed hash
+  u32bit      _chckWidth;  //  Only for the compressed bucket
 
   u64bit      _hashMask;
   u64bit      _chckMask;

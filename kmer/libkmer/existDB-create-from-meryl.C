@@ -11,6 +11,7 @@ bool
 existDB::createFromMeryl(char const  *prefix,
                          u32bit       lo,
                          u32bit       hi,
+                         u32bit       tblBits,
                          positionDB  *posDB) {
 
   merylStreamReader *M = new merylStreamReader(prefix);
@@ -20,27 +21,25 @@ existDB::createFromMeryl(char const  *prefix,
 
   _merSizeInBases        = M->merSize();
 
-  //  XXX:  Should probably be a parameter.
-
-  u32bit tblBits = 19;
-
   _shift1                = 2 * _merSizeInBases - tblBits;
   _shift2                = _shift1 / 2;
   _mask1                 = u64bitMASK(tblBits);
   _mask2                 = u64bitMASK(_shift1);
 
-#ifdef COMPRESSED_HASH
   _hashWidth             = u32bitZERO;
-#endif
-#ifdef COMPRESSED_BUCKET
   _chckWidth             = 2 * _merSizeInBases - tblBits;
-#endif
+
   _hashMask              = u64bitMASK(tblBits);
   _chckMask              = u64bitMASK(2 * _merSizeInBases - tblBits);
 
   u64bit  tableSizeInEntries = u64bitONE << tblBits;
   u64bit  numberOfMers       = u64bitZERO;
   u64bit *countingTable      = new u64bit [tableSizeInEntries + 1];
+
+#if 1
+  fprintf(stderr, "existDB::createFromMeryl()-- countingTable is "u64bitFMT"MB\n",
+          tableSizeInEntries >> 17);
+#endif
 
   for (u64bit i=tableSizeInEntries+1; i--; )
     countingTable[i] = 0;
@@ -75,11 +74,11 @@ existDB::createFromMeryl(char const  *prefix,
 
   delete M;
   
-#ifdef COMPRESSED_HASH
-  _hashWidth = 1;
-  while ((numberOfMers+1) > (u64bitONE << _hashWidth))
-    _hashWidth++;
-#endif
+  if (_compressedHash) {
+    _hashWidth = 1;
+    while ((numberOfMers+1) > (u64bitONE << _hashWidth))
+      _hashWidth++;
+  }
 
   fprintf(stderr, "existDB: Found "u64bitFMT" mers between count of "u32bitFMT" and "u32bitFMT"\n",
           numberOfMers, lo, hi);
@@ -87,20 +86,23 @@ existDB::createFromMeryl(char const  *prefix,
 
   //  2) Allocate hash table, mer storage buckets
   //
-#ifdef COMPRESSED_HASH
-  _hashTableWords = (tableSizeInEntries + 1) * _hashWidth / 64 + 1;
-#else
   _hashTableWords = tableSizeInEntries + 2;
-#endif
+  if (_compressedHash)
+    _hashTableWords = _hashTableWords * _hashWidth / 64 + 1;
 
-#ifdef COMPRESSED_BUCKET
-  _bucketsWords = (numberOfMers + 1) * _chckWidth / 64 + 1;
-#else
   _bucketsWords = numberOfMers + 2;
-#endif
+  if (_compressedBucket)
+    _bucketsWords = _bucketsWords * _chckWidth / 64 + 1;
 
   _hashTable = new u64bit [_hashTableWords];
   _buckets   = new u64bit [_bucketsWords];
+
+#if 1
+  fprintf(stderr, "existDB::createFromMeryl()-- hashTable is "u64bitFMT"MB\n",
+          _hashTableWords >> 17);
+  fprintf(stderr, "existDB::createFromMeryl()-- buckets is "u64bitFMT"MB\n",
+          _bucketsWords >> 17);
+#endif
 
   ////////////////////////////////////////////////////////////////////////////////
   //
@@ -109,33 +111,35 @@ existDB::createFromMeryl(char const  *prefix,
   //
   u64bit  tmpPosition = 0;
   u64bit  begPosition = 0;
-#ifdef COMPRESSED_HASH
   u64bit  ptr         = 0;
-#endif
 
-  for (u64bit i=0; i<tableSizeInEntries; i++) {
-    tmpPosition    = countingTable[i];
-    countingTable[i] = begPosition;
+  if (_compressedHash) {
+    for (u64bit i=0; i<tableSizeInEntries; i++) {
+      tmpPosition    = countingTable[i];
+      countingTable[i] = begPosition;
 
-#ifdef COMPRESSED_HASH
+      setDecodedValue(_hashTable, ptr, _hashWidth, begPosition);
+      ptr         += _hashWidth;
+
+      begPosition += tmpPosition;
+    }
+
     setDecodedValue(_hashTable, ptr, _hashWidth, begPosition);
-    ptr         += _hashWidth;
-#else
-    _hashTable[i] = begPosition;
-#endif
+  } else {
+    for (u64bit i=0; i<tableSizeInEntries; i++) {
+      tmpPosition    = countingTable[i];
+      countingTable[i] = begPosition;
 
-    begPosition += tmpPosition;
+      _hashTable[i] = begPosition;
+
+      begPosition += tmpPosition;
+    }
+
+    //  Set the last position in the hash, but we don't care about
+    //  the temporary counting table.
+    //
+    _hashTable[tableSizeInEntries] = begPosition;
   }
-
-  //  Set the last position in the hash, but we don't care about
-  //  the temporary counting table.
-  //
-#ifdef COMPRESSED_HASH
-  setDecodedValue(_hashTable, ptr, _hashWidth, begPosition);
-#else
-  _hashTable[tableSizeInEntries] = begPosition;
-#endif
-
 
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -164,14 +168,13 @@ existDB::createFromMeryl(char const  *prefix,
       if ((lo <= M->theCount()) && (M->theCount() <= hi) && (posDB->exists(fmer))) {
         h = HASH(fmer);
 
-#ifdef COMPRESSED_BUCKET
-        setDecodedValue(_buckets,
-                        countingTable[h] * _chckWidth,
-                        _chckWidth,
-                        CHECK(fmer));
-#else
-        _buckets[countingTable[h]] = CHECK(fmer);
-#endif
+        if (_compressedBucket)
+          setDecodedValue(_buckets,
+                          countingTable[h] * _chckWidth,
+                          _chckWidth,
+                          CHECK(fmer));
+        else
+          _buckets[countingTable[h]] = CHECK(fmer);
 
         countingTable[h]++;
       }
@@ -179,14 +182,13 @@ existDB::createFromMeryl(char const  *prefix,
       if ((lo <= M->theCount()) && (M->theCount() <= hi) && (posDB->exists(rmer))) {
         h = HASH(rmer);
 
-#ifdef COMPRESSED_BUCKET
-        setDecodedValue(_buckets,
-                        countingTable[h] * _chckWidth,
-                        _chckWidth,
-                        CHECK(rmer));
-#else
-        _buckets[countingTable[h]] = CHECK(rmer);
-#endif
+        if (_compressedBucket)
+          setDecodedValue(_buckets,
+                          countingTable[h] * _chckWidth,
+                          _chckWidth,
+                          CHECK(rmer));
+        else
+          _buckets[countingTable[h]] = CHECK(rmer);
 
         countingTable[h]++;
       }
@@ -198,14 +200,13 @@ existDB::createFromMeryl(char const  *prefix,
       if ((lo <= M->theCount()) && (M->theCount() <= hi)) {
         h = HASH(M->theFMer());
 
-#ifdef COMPRESSED_BUCKET
-        setDecodedValue(_buckets,
-                        countingTable[h] * _chckWidth,
-                        _chckWidth,
-                        CHECK(M->theFMer()));
-#else
-        _buckets[countingTable[h]] = CHECK(M->theFMer());
-#endif
+        if (_compressedBucket)
+          setDecodedValue(_buckets,
+                          countingTable[h] * _chckWidth,
+                          _chckWidth,
+                          CHECK(M->theFMer()));
+        else
+          _buckets[countingTable[h]] = CHECK(M->theFMer());
 
         countingTable[h]++;
       }

@@ -6,11 +6,6 @@
 #include "positionDB.H"
 #include "bio++.H"
 
-//  Print some statistics
-//
-//#define STATS
-
-
 
 existDB::existDB(char const  *filename,
                  bool         loadData) {
@@ -26,7 +21,14 @@ existDB::existDB(char const  *filename,
                  u32bit       tblBits,
                  u32bit       lo,
                  u32bit       hi,
-                 positionDB  *posDB) {
+                 positionDB  *posDB,
+                 bool         compressHash,
+                 bool         compressBuckets,
+                 bool         beVerbose) {
+
+  _compressedHash   = compressHash;
+  _compressedBucket = compressBuckets;
+  _beVerbose        = beVerbose;
 
   //  Try to read state from the filename.  If successful, make sure that
   //  the merSize and tblBits are correct.
@@ -63,7 +65,7 @@ existDB::existDB(char const  *filename,
     createFromFastA(filename, merSize, tblBits, posDB);
   } else {
     //fprintf(stderr, "Loading mers from meryl '%s'\n", filename);
-    createFromMeryl(filename, lo, hi, posDB);
+    createFromMeryl(filename, lo, hi, tblBits, posDB);
   }
 }
 
@@ -79,38 +81,37 @@ existDB::~existDB() {
 
 bool
 existDB::exists(u64bit mer) {
-#ifdef COMPRESSED_HASH
-  u64bit  h = HASH(mer) * _hashWidth;
-  u64bit st = getDecodedValue(_hashTable, h,              _hashWidth);
-  u64bit ed = getDecodedValue(_hashTable, h + _hashWidth, _hashWidth);
-#else
-  u64bit  h = HASH(mer);
-  u64bit st = _hashTable[h];
-  u64bit ed = _hashTable[h+1];
-#endif
+  u64bit h, st, ed;
+
+  if (_compressedHash) {
+    h  = HASH(mer) * _hashWidth;
+    st = getDecodedValue(_hashTable, h,              _hashWidth);
+    ed = getDecodedValue(_hashTable, h + _hashWidth, _hashWidth);
+  } else {
+    h  = HASH(mer);
+    st = _hashTable[h];
+    ed = _hashTable[h+1];
+  }
 
   if (st == ed)
     return(false);
 
-#ifdef COMPRESSED_BUCKET
-  st *= _chckWidth;
-  ed *= _chckWidth;
-#endif
-
   u64bit  c = CHECK(mer);
 
+  if (_compressedBucket) {
+    st *= _chckWidth;
+    ed *= _chckWidth;
 
-#ifdef COMPRESSED_BUCKET
-  for (; st<ed; st += _chckWidth) {
-    if (getDecodedValue(_buckets, st, _chckWidth) == c)
-      return(true);
+    for (; st<ed; st += _chckWidth) {
+      if (getDecodedValue(_buckets, st, _chckWidth) == c)
+        return(true);
+    }
+  } else {
+    for (; st<ed; st++) {
+      if (_buckets[st] == c)
+        return(true);
+    }
   }
-#else
-  for (; st<ed; st++) {
-    if (_buckets[st] == c)
-      return(true);
-  }
-#endif
 
   return(false);
 }

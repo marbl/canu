@@ -23,12 +23,9 @@ existDB::createFromFastA(char const  *filename,
   _mask1                 = u64bitMASK(tblBits);
   _mask2                 = u64bitMASK(_shift1);
 
-#ifdef COMPRESSED_HASH
   _hashWidth             = u32bitZERO;
-#endif
-#ifdef COMPRESSED_BUCKET
   _chckWidth             = 2 * merSize - tblBits;
-#endif
+
   _hashMask              = u64bitMASK(tblBits);
   _chckMask              = u64bitMASK(2 * merSize - tblBits);
 
@@ -97,28 +94,24 @@ existDB::createFromFastA(char const  *filename,
   //  second mer is at position 1, and the end of the second mer is at
   //  position 2.
   //
-#ifdef COMPRESSED_HASH
-  _hashWidth = 1;
-  while ((numberOfMers+1) > (u64bitONE << _hashWidth))
-    _hashWidth++;
-#endif
+  if (_compressedHash) {
+    _hashWidth = 1;
+    while ((numberOfMers+1) > (u64bitONE << _hashWidth))
+      _hashWidth++;
+  }
 
 
   ////////////////////////////////////////////////////////////////////////////////
   //
   //  2)  Allocate a hash table and some mer storage buckets.
   //
-#ifdef COMPRESSED_HASH
-  _hashTableWords = (tableSizeInEntries + 1) * _hashWidth / 64 + 1;
-#else
   _hashTableWords = tableSizeInEntries + 2;
-#endif
+  if (_compressedHash)
+    _hashTableWords = _hashTableWords * _hashWidth / 64 + 1;
 
-#ifdef COMPRESSED_BUCKET
-  _bucketsWords = (numberOfMers + 1) * _chckWidth / 64 + 1;
-#else
   _bucketsWords = numberOfMers + 2;
-#endif
+  if (_compressedBucket)
+    _bucketsWords = _bucketsWords * _chckWidth / 64 + 1;
 
   _hashTable = new u64bit [_hashTableWords];
   _buckets   = new u64bit [_bucketsWords];
@@ -134,32 +127,36 @@ existDB::createFromFastA(char const  *filename,
   //
   u64bit  tmpPosition = 0;
   u64bit  begPosition = 0;
-#ifdef COMPRESSED_HASH
   u64bit  ptr         = 0;
-#endif
 
-  for (u64bit i=0; i<tableSizeInEntries; i++) {
-    tmpPosition    = countingTable[i];
-    countingTable[i] = begPosition;
+  if (_compressedHash) {
+    for (u64bit i=0; i<tableSizeInEntries; i++) {
+      tmpPosition    = countingTable[i];
+      countingTable[i] = begPosition;
 
-#ifdef COMPRESSED_HASH
+      setDecodedValue(_hashTable, ptr, _hashWidth, begPosition);
+      ptr         += _hashWidth;
+
+      begPosition += tmpPosition;
+    }
+
     setDecodedValue(_hashTable, ptr, _hashWidth, begPosition);
-    ptr         += _hashWidth;
-#else
-    _hashTable[i] = begPosition;
-#endif
+  } else {
+    for (u64bit i=0; i<tableSizeInEntries; i++) {
+      tmpPosition    = countingTable[i];
+      countingTable[i] = begPosition;
 
-    begPosition += tmpPosition;
+      _hashTable[i] = begPosition;
+
+      begPosition += tmpPosition;
+    }
+
+    //  Set the last position in the hash, but we don't care about
+    //  the temporary counting table.
+    //
+    _hashTable[tableSizeInEntries] = begPosition;
   }
 
-  //  Set the last position in the hash, but we don't care about
-  //  the temporary counting table.
-  //
-#ifdef COMPRESSED_HASH
-  setDecodedValue(_hashTable, ptr, _hashWidth, begPosition);
-#else
-  _hashTable[tableSizeInEntries] = begPosition;
-#endif
 
 
 
@@ -190,28 +187,26 @@ existDB::createFromFastA(char const  *filename,
       if (posDB->exists(fmer)) {
         h = HASH(fmer);
 
-#ifdef COMPRESSED_BUCKET
-        setDecodedValue(_buckets,
-                        countingTable[h] * _chckWidth,
-                        _chckWidth,
-                        CHECK(fmer));
-#else
-        _buckets[countingTable[h]] = CHECK(fmer);
-#endif
+        if (_compressedBucket)
+          setDecodedValue(_buckets,
+                          countingTable[h] * _chckWidth,
+                          _chckWidth,
+                          CHECK(fmer));
+        else
+          _buckets[countingTable[h]] = CHECK(fmer);
 
         countingTable[h]++;
       }
       if (posDB->exists(rmer)) {
         h = HASH(rmer);
 
-#ifdef COMPRESSED_BUCKET
-        setDecodedValue(_buckets,
-                        countingTable[h] * _chckWidth,
-                        _chckWidth,
-                        CHECK(rmer));
-#else
-        _buckets[countingTable[h]] = CHECK(rmer);
-#endif
+        if (_compressedBucket)
+          setDecodedValue(_buckets,
+                          countingTable[h] * _chckWidth,
+                          _chckWidth,
+                          CHECK(rmer));
+        else
+          _buckets[countingTable[h]] = CHECK(rmer);
 
         countingTable[h]++;
       }
@@ -222,14 +217,13 @@ existDB::createFromFastA(char const  *filename,
     while (M->nextMer()) {
       h = HASH(M->theFMer());
 
-#ifdef COMPRESSED_BUCKET
-      setDecodedValue(_buckets,
-                      countingTable[h] * _chckWidth,
-                      _chckWidth,
-                      CHECK(M->theFMer()));
-#else
-      _buckets[countingTable[h]] = CHECK(M->theFMer());
-#endif
+      if (_compressedBucket)
+        setDecodedValue(_buckets,
+                        countingTable[h] * _chckWidth,
+                        _chckWidth,
+                        CHECK(M->theFMer()));
+      else
+        _buckets[countingTable[h]] = CHECK(M->theFMer());
 
       countingTable[h]++;
     }

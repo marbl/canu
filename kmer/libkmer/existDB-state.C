@@ -21,13 +21,11 @@ existDB::saveState(char const *filename) {
     exit(1);
   }
 
-#ifdef COMPRESSED_HASH
-  magic[8] = 'h';
-#endif
+  if (_compressedHash)
+    magic[8] = 'h';
 
-#ifdef COMPRESSED_BUCKET
-  magic[9] = 'b';
-#endif
+  if (_compressedBucket)
+    magic[9] = 'b';
 
   fwrite(magic, sizeof(char), 16, F);
 
@@ -36,15 +34,8 @@ existDB::saveState(char const *filename) {
   fwrite(&_shift2, sizeof(u32bit), 1, F);
   fwrite(&_mask1, sizeof(u64bit), 1, F);
   fwrite(&_mask2, sizeof(u64bit), 1, F);
-
-#ifdef COMPRESSED_HASH
-  fwrite(&_hashWidth, sizeof(u32bit), 1, F);
-#endif
-
-#ifdef COMPRESSED_BUCKET
-  fwrite(&_chckWidth, sizeof(u32bit), 1, F);
-#endif
-
+  fwrite(&_hashWidth, sizeof(u32bit), 1, F);  //  only valid if _compressedHash
+  fwrite(&_chckWidth, sizeof(u32bit), 1, F);  //  only valid if _compressedBucket
   fwrite(&_hashMask, sizeof(u64bit), 1, F);
   fwrite(&_chckMask, sizeof(u64bit), 1, F);
 
@@ -77,13 +68,11 @@ existDB::loadState(char const *filename,
     return(false);
   }
 
-#ifdef COMPRESSED_HASH
-  magic[8] = 'h';
-#endif
+  if (_compressedHash)
+    magic[8] = 'h';
 
-#ifdef COMPRESSED_BUCKET
-  magic[9] = 'b';
-#endif
+  if (_compressedBucket)
+    magic[9] = 'b';
 
   fread(cigam, sizeof(char), 16, F);
 
@@ -111,14 +100,8 @@ existDB::loadState(char const *filename,
   fread(&_shift2, sizeof(u32bit), 1, F);
   fread(&_mask1, sizeof(u64bit), 1, F);
   fread(&_mask2, sizeof(u64bit), 1, F);
-
-#ifdef COMPRESSED_HASH
-  fread(&_hashWidth, sizeof(u32bit), 1, F);
-#endif
-
-#ifdef COMPRESSED_BUCKET
-  fread(&_chckWidth, sizeof(u32bit), 1, F);
-#endif
+  fread(&_hashWidth, sizeof(u32bit), 1, F);  //  only valid if _compressedHash
+  fread(&_chckWidth, sizeof(u32bit), 1, F);  //  only valid if _compressedBucket
 
   fread(&_hashMask, sizeof(u64bit), 1, F);
   fread(&_chckMask, sizeof(u64bit), 1, F);
@@ -162,15 +145,21 @@ existDB::printState(FILE *stream) {
   fprintf(stream, "_mask1            "u64bitHEX"\n", _mask1);
   fprintf(stream, "_mask2            "u64bitHEX"\n", _mask2);
 
-#ifdef COMPRESSED_HASH
-  fprintf(stream, "COMPRESSED_HASH   enabled\n");
-  fprintf(stream, "_hashWidth        "u32bitFMT"\n", _hashWidth);
-#endif
+  if (_compressedHash) {
+    fprintf(stream, "_compressedHash   true\n");
+    fprintf(stream, "_hashWidth        "u32bitFMT"\n", _hashWidth);
+  } else {
+    fprintf(stream, "_compressedHash   false\n");
+    fprintf(stream, "_hashWidth        undefined\n");
+  }
 
-#ifdef COMPRESSED_BUCKET
-  fprintf(stream, "COMPRESSED_BUCKET enabled\n");
-  fprintf(stream, "_chckWidth        "u32bitFMT"\n", _chckWidth);
-#endif
+  if (_compressedBucket) {
+    fprintf(stream, "_compressedBucket true\n");
+    fprintf(stream, "_chckWidth        "u32bitFMT"\n", _chckWidth);
+  } else {
+    fprintf(stream, "_compressedBucket false\n");
+    fprintf(stream, "_chckWidth        undefined\n");
+  }
 
   fprintf(stream, "_hashMask         "u64bitHEX"\n", _hashMask);
   fprintf(stream, "_chckMask         "u64bitHEX"\n", _chckMask);
