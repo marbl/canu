@@ -1,4 +1,9 @@
 # -*- makefile -*-
+
+ifndef UTIL/
+UTIL/ := $/../util/
+endif
+
 ifndef LIBBRI/
 LIBBRI/     := $/../libbri/
 endif
@@ -23,5 +28,5 @@ ${$/.CXX_EXES}:$/libpositionDB.a ${FASTA/}libfasta.a ${LIBBRI/}libbri.a
 $/buildinfo-positionDB.c: $/buildinfo-positionDB.h
 $/buildinfo-positionDB.h: ${src}
 	${UTIL/}buildinfo.pl positionDB "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
-	mv buildinfo-positionDB.[ch] `dirname $@`
+	[ `dirname $@` = "." ] || mv buildinfo-positionDB.[ch] `dirname $@`
 
