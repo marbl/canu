@@ -85,8 +85,6 @@ const char *usage =
 "       -H            set the relink weight factor\n"
 "       -K            set the first MSP threshold\n"
 "       -C            set the second MSP threshold\n"
-"       -W            ?\n"
-"       -X            ?\n"
 "       -Ma           set the limit of the number of MSPs allowed\n"
 "       -Mp           same, as percentage of bases in cDNA\n"
 "                     NOTE:  If used, both -Ma and -Mp must be specified!\n"
