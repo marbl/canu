@@ -886,6 +886,9 @@ partitionByBucket(u64bit partitionSize) {
   u32bit        n = f->getNumberOfSequences();
   partition_s  *p = loadPartition();
 
+  if (partitionSize > n)
+    partitionSize = n;
+
   u32bit       *s = new u32bit [partitionSize];
 
   for (u32bit i=0; i<partitionSize; i++)
