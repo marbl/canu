@@ -57,7 +57,7 @@ reverseBits32(u32bit x) {
 inline
 u64bit
 reverseBits64(u64bit x) {
-  x = ((x >>  2) & 0x5555555555555555LLU) | ((x <<  2) & 0xaaaaaaaaaaaaaaaaLLU);
+  x = ((x >>  1) & 0x5555555555555555LLU) | ((x <<  1) & 0xaaaaaaaaaaaaaaaaLLU);
   x = ((x >>  2) & 0x3333333333333333LLU) | ((x <<  2) & 0xccccccccccccccccLLU);
   x = ((x >>  4) & 0x0f0f0f0f0f0f0f0fLLU) | ((x <<  4) & 0xf0f0f0f0f0f0f0f0LLU);
   x = ((x >>  8) & 0x00ff00ff00ff00ffLLU) | ((x <<  8) & 0xff00ff00ff00ff00LLU);
