@@ -3,10 +3,12 @@
 # rules for LATEX
 %.dvi: %.tex
 	${LATEX} $< && ${LATEX} $<
-	if [ -e ${<:.tex=.blg} ] ; then \
-	  ${BIBTEX} ${<:.tex=} && \
-	  ${LATEX} $< && ${LATEX} $< ; \
-	fi
+
+%.aux: %.tex
+	${LATEX} $< && ${LATEX} $<
+
+%.bbl: %.aux
+	${BIBTEX} ${<:.aux=}
 
 ## Shared targets
 ALL_DVIPS   :=$(strip $(foreach x,${//},${${x:.=.DVIPS}}))

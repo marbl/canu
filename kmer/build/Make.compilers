@@ -14,12 +14,11 @@ endif
 ifdef WITH_DEBUG
   _OPT_ :=-debug
 else
-  _OPT_ :=
-endif
-ifdef WITH_PROFILE
-  _OPT_ :=-prof
-else
-  _OPT_ :=
+  ifdef WITH_PROFILE
+    _OPT_ :=-prof
+  else
+    _OPT_ :=
+  endif
 endif
 ifdef WITH_THREADS
   _THR_:=-threaded
