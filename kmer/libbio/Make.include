@@ -25,7 +25,11 @@ $/.CXX_LIBS  :=$/libbri.a
 
 $/.CLEAN := $/*.o
 
-$/.REAL-CLEAN :=$/buildinfo-* $/alphabet.[ch]
+#  Don't remove alphabet.[ch] anymore; removing them screws up
+#  a make real-clean && make cycle
+#
+#$/.REAL-CLEAN :=$/buildinfo-* $/alphabet.[ch]
+$/.REAL-CLEAN :=$/buildinfo-*
 
 # extra rules
 
