@@ -10,6 +10,7 @@
 #include <time.h>
 
 #include "libbri.H"
+#include "md5.h"
 #include "fasta.H"
 
 #include "buildinfo-leaff.h"
@@ -29,32 +30,35 @@ const char *usage =
 "usage: %s [--buildinfo] [-f|-F|-I <fasta-file>] [options]\n"
 "\n"
 "ENTERTAINMENT OPTIONS\n"
-"       -V:         whenever a sequence is read, print the defline to stderr\n"
+"       -V:          whenever a sequence is read, print the defline to stderr\n"
 "\n"
 "SOURCE FILE\n"
-"       -f file:    use 'file' as an UN-INDEXED source file\n"
-"       -Ft file:   use 'file' as an INDEXED source file (the index is built if\n"
-"                   it doesn't exist), where 't' is the type of index to build:\n"
-"                     i:  internal id's only (the default if t is not specified)\n"
-"                     n:  names only (the first word on defline)\n"
-"                     d:  full deflines\n"
-"       -Ii:        internal 'seqid' (an integer), this is the default for -Fi\n"
-"       -Ie:        external 'seqid' (a word), this is the default for -Fn or\n"
-"                   -Fd, and is an error for -Fi\n"
+"       -f file:     use 'file' as an UN-INDEXED source file\n"
+"       -Ft[c] file: use 'file' as an INDEXED source file (the index is built if\n"
+"                    it doesn't exist), where 't' is the type of index to build:\n"
+"                      i:  internal id's only (the default if t is not specified)\n"
+"                      n:  names only (the first word on defline)\n"
+"                      d:  full deflines\n"
+"                    The optional character c will build an index with checksums,\n"
+"                    and --checksum will verify the checksums.\n"
 "\n"
 "ACTIONS (no index needed)\n"
-"       -L s l:     print all sequences such that:  s <= length < l\n"
-"       -G n s l:   print n random sequences of length 0 < s <= length <= l)\n"
-"       -W:         print all sequences (do the whole file)\n"
+"       -L s l:      print all sequences such that:  s <= length < l\n"
+"       -G n s l:    print n random sequences of length 0 < s <= length <= l)\n"
+"       -W:          print all sequences (do the whole file)\n"
 "\n"
 "ACTIONS (index needed)\n"
-"       -d:             print the number of sequences in the fasta\n"
-"       -i name:        print an ATA compliant index, labelling the source 'name'\n"
-"       -ii:            print the index in an almost-human readable format\n"
-"       -s seqid:       print the single sequence 'seqid'\n"
-"       -S f l:         print all the sequences from IID 'f' to 'l' (inclusive)\n"
-"       -r num:         print 'num' randomly picked sequences\n"
-"       -q file:        print sequences from the seqid list in 'file'\n"
+"       -s seqid:    print the single sequence 'seqid'\n"
+"       -Ii:         'seqid' is an internal id (an integer), this is the default\n"
+"                      for -Fi\n"
+"       -Ie:         'seqid' is an external id (a word), this is the default for\n"
+"                      -Fn or -Fd, and is an error for -Fi\n"
+"       -d:          print the number of sequences in the fasta\n"
+"       -i name:     print an ATA compliant index, labelling the source 'name'\n"
+"       -ii:         print the index in an almost-human readable format\n"
+"       -S f l:      print all the sequences from IID 'f' to 'l' (inclusive)\n"
+"       -r num:      print 'num' randomly picked sequences\n"
+"       -q file:     print sequences from the seqid list in 'file'\n"
 "\n"
 "SEQUENCE OPTIONS\n"
 "       -6:          insert a newline every 60 letters\n"
@@ -93,6 +97,15 @@ const char *usage =
 "                    size nbp, nkbp, nmbp or ngbp.  Sequences larger that the\n"
 "                    partition size are in a partition by themself.\n"
 "                    Example: --partition 130mbp\n"
+"\n"
+"       --checksum a.fasta\n"
+"                    One of three actions:\n"
+"                    1) If no fastaidx file exists, this is equivalent to\n"
+"                       \"-Fc a.fasta\".\n"
+"                    2) If a fastaidx file exists, but doesn't have checksums,\n"
+"                       checksums are added to that index file.\n"
+"                    3) If a fastaidx file exists and checksums are present,\n"
+"                       the checksums are verified.\n"
 "\n"
 "EXPERT OPTIONS\n"
 "       -A:  Read actions from 'file'\n"
@@ -285,21 +298,30 @@ openNewFile(char *name, char *arg) {
 
   f = new FastAWrapper(name);
 
+  seqIDtype = 'i';
+
   if (arg[1] == 'F') {
-    switch (arg[2]) {
-      case 'n':
-        seqIDtype = 'e';
-        f->openIndex(FASTA_INDEX_PLUS_IDS);
-        break;
-      case 'd':
-        seqIDtype = 'e';
-        f->openIndex(FASTA_INDEX_PLUS_DEFLINES);
-        break;
-      default:
+    u32bit  indextype = FASTA_INDEX_ONLY;
+    u32bit  md5type   = 0;
+
+    for (int ap=2; arg[ap]; ap++) {
+      if        (arg[ap] == 'i') {
         seqIDtype = 'i';
-        f->openIndex(FASTA_INDEX_ONLY);
-        break;
+        indextype = FASTA_INDEX_ONLY;
+      } else if (arg[ap] == 'n') {
+        seqIDtype = 'e';
+        indextype = FASTA_INDEX_PLUS_IDS;
+      } else if (arg[ap] == 'd') {
+        seqIDtype = 'e';
+        indextype = FASTA_INDEX_PLUS_DEFLINES;
+      } else if (arg[ap] == 'c') {
+        md5type   = FASTA_INDEX_MD5;
+      } else {
+        fprintf(stderr, "Unknown option for '-F': '%c'\n", arg[ap]);
+      }
     }
+
+    f->openIndex(indextype | md5type);
   }
 
   delete lastSeq;
@@ -323,9 +345,7 @@ printIID(u32bit iid, FastASequenceInCore *s=0L) {
     md5_s     md5;
     char      sum[33];
 
-    md5_toascii(md5_string(&md5,
-                           s->sequence(), s->sequenceLength()),
-                sum);
+    md5_toascii(md5_string(&md5, s->sequence(), s->sequenceLength()), sum);
 
     fprintf(stdout, "%s %s\n", sum, s->header());
   } else {
@@ -724,6 +744,45 @@ mapDuplicates(char *filea, char *fileb) {
 }
 
 
+
+
+
+
+
+
+
+
+
+void
+checksum(char *name) {
+  char            stra[33];
+  char            strb[33];
+  FastAWrapper   *A = new FastAWrapper(name);
+  A->openIndex(FASTA_INDEX_ONLY | FASTA_INDEX_MD5);
+
+  md5_s *result   = computeMD5ForEachSequence(A);
+  u32bit  numSeqs = A->getNumberOfSequences();
+
+  for (u32bit idx=0; idx < numSeqs; idx++) {
+    if (md5_compare(result+idx, A->getMD5(idx)) != 0) {
+      fprintf(stderr, "Checksum mismatch for iid "u32bitFMT": computed %s saved %s\n",
+              idx,
+              md5_toascii(result+idx, stra),
+              md5_toascii(A->getMD5(idx), strb));
+    }
+  }
+
+  delete A;
+}
+
+
+
+
+
+
+
+
+
 struct partition_s {
   u32bit  length;
   u32bit  index;
@@ -853,6 +912,9 @@ partitionByBucket(u64bit partitionSize) {
 
 
 
+
+
+
 void
 processArray(int argc, char **argv) {
 
@@ -902,6 +964,9 @@ processArray(int argc, char **argv) {
       } else {
         partitionByBucket(ps);
       }
+    } else if (strncmp(argv[arg], "--checksum", 3) == 0) {
+      arg++;
+      checksum(argv[arg]);
     } else {
     switch(argv[arg][1]) {
       case 'V':
