@@ -1,8 +1,10 @@
+#ifdef ENABLE_THREADS
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-
+#include <pthread.h>
 
 #include "meryl.H"
 #include "merstreamfile.H"
@@ -10,29 +12,6 @@
 #include "britime.H"
 
 
-
-
-
-#ifndef ENABLE_THREADS
-
-void
-runThreaded(merylArgs *args) {
-}
-
-#else
-
-//  Rest of this file is for threading support.
-#include <pthread.h>
-
-
-
-//  launch t threads
-//    get the segmentNext (protected by a mutex)
-//    compute
-//    touch segmentFinished[s]
-//    repeat or exit if segmentNext >= segmentMax
-//  main waits for all segmentFinished[] to be touched
-//  close threads, cleanup, return
 
 
 void
@@ -66,7 +45,8 @@ buildThread(void *U) {
     }
   }
 
-  fprintf(stderr, "Thread exits.\n");
+  if (args->beVerbose)
+    fprintf(stderr, "Thread exits.\n");
 
   return(0L);
 }
@@ -121,7 +101,8 @@ runThreaded(merylArgs *args) {
   }
 
 
-  fprintf(stderr, "Threads all done, cleaning up.\n");
+  if (args->beVerbose)
+    fprintf(stderr, "Threads all done, cleaning up.\n");
 
 
   //  Cleanup
