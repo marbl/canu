@@ -29,7 +29,7 @@ ${$/.CXX_SRCS:.C=.o}: \
   CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} -I${EXISTDB/} ${THRINC}
 $/Make.depends: \
   CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} -I${EXISTDB/}
-$/Make.depends : $/buildinfo-searchGENOME.h
+$/Make.depends: | $/buildinfo-searchGENOME.h
 
 $/.install: ${$/.CXX_EXES}
 	cp -p $^ ${BIN/}

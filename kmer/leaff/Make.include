@@ -30,7 +30,7 @@ $/.install:  ${$/.C_EXES} ${$/.CXX_EXES}
 	cp -p $^ ${BIN/}
 
 $/Make.depends ${$/.CXX_SRCS:.C=.o}:  CXXFLAGS+=-I${LIBBRI/}
-$/Make.depends:   $/buildinfo-leaff.h $/buildinfo-libfasta.h
+$/Make.depends: | $/buildinfo-leaff.h $/buildinfo-libfasta.h
 
 ${$/.CXX_EXES}:   CXXLDFLAGS+=${EFENCE-L}
 ${$/.CXX_EXES}:   CXXLIBS+=${EFENCE-l}

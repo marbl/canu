@@ -28,7 +28,7 @@ ${$/.CXX_EXES}:   ${FASTA/}libfasta.a ${SIM4/}libsim4.a \
 
 $/Make.depends ${$/.CXX_SRCS:.C=.o}:  \
   CXXFLAGS+=      -I${FASTA/} -I${SIM4/} -I${SIM4POLISH/} -I${LIBBRI/}
-$/Make.depends: $/buildinfo-sim4db.h ${SIM4/}buildinfo-libsim4.h
+$/Make.depends: | $/buildinfo-sim4db.h ${SIM4/}buildinfo-libsim4.h
 
 $/buildinfo-sim4db.c $/buildinfo-sim4db.h: $/sim4db.C
 	${UTIL/}buildinfo.pl sim4db "${CXXFLAGS} ${CXXFLAGS_ARCH}" $^

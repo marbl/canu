@@ -33,7 +33,7 @@ $/.REAL-CLEAN :=$/buildinfo-*
 
 $/Make.depends ${$/.C_SRCS:.c=.o}:  CFLAGS+=-I${LIBBRI/}
 $/Make.depends ${$/.CXX_SRCS:.C=.o}:  CXXFLAGS+=-I${LIBBRI/}
-$/Make.depends: $/buildinfo-libsim4polish.h
+$/Make.depends: | $/buildinfo-libsim4polish.h
 
 $/libsim4polish.a    :  ${$/.C_SRCS:.c=.o} ${$/.CXX_SRCS:.C=.o} \
                         $/buildinfo-libsim4polish.o

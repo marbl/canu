@@ -21,7 +21,7 @@ ${$/.CXX_EXES}:$/libexistDB.a ${POSITIONDB/}libpositionDB.a ${LIBBRI/}libbri.a
 $/.install: ${$/.CXX_EXES}
 	cp -p $^ ${BIN/}
 
-$/Make.depends : $/buildinfo-existDB.h
+$/Make.depends : | $/buildinfo-existDB.h
 $/buildinfo-existDB.c $/buildinfo-existDB.h: $/existDB.C $/existDB.H
 	${UTIL/}buildinfo.pl existDB "${CXXFLAGS} ${CXXFLAGS_ARCH}" $^
 	mv buildinfo-existDB.[ch] `dirname $@`

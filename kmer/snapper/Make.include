@@ -28,7 +28,7 @@ ${$/.CXX_SRCS:.C=.o}: \
 $/Make.depends: \
   CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} \
             -I${SIM4/} -I${SIM4POLISH/} -I${EXISTDB/}
-$/Make.depends : $/buildinfo-snapper2.h
+$/Make.depends: | $/buildinfo-snapper2.h
 
 $/.install: ${$/.CXX_EXES}
 	cp -p $^ ${BIN/}

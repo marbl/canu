@@ -16,7 +16,7 @@ $/.CLEAN     :=$/*.o
 $/.REAL-CLEAN:=$/buildinfo-*
 
 $/Make.depends ${$/.CXX_SRCS:.C=.o}: CXXFLAGS+=-I${LIBBRI/}
-$/Make.depends : $/buildinfo-meryl.h $/buildinfo-merle.h
+$/Make.depends: | $/buildinfo-meryl.h $/buildinfo-merle.h
 
 $/.install: ${$/.CXX_EXES}
 	cp -p $^ ${BIN/}

@@ -28,7 +28,7 @@ $/.REAL-CLEAN :=$/buildinfo-* $/alphabet.[ch]
 
 # if we have gmake 3.80 we could use order prereqs instead of normal
 # prereqs here, and in the other Make.depends lines in the other files.
-$/Make.depends: $/buildinfo-libbri.h $/alphabet.h
+$/Make.depends: | $/buildinfo-libbri.h $/alphabet.h
 
 $/libbri.a   : ${$/.C_SRCS:.c=.o} ${$/.CXX_SRCS:.C=.o} $/alphabet.o $/buildinfo-libbri.o ${EXTERNAL/}md5lib/md5c.o  
 
