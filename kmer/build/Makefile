@@ -93,16 +93,21 @@ $(eval $(call Include_File,$/))
 
 
 
-# useful function to copy files into install directories
+# A useful function to copy files into install directories
+# $(call .FUN-install-copy,file1 file2 file3,dir1 dir2)
+# copies whichever file exists into each of ${INSTALL/}dir
+# mkdir-ing as necessary.
 define .FUN-install-copy
-	@ files='$$(strip $1)'; dir='$$(strip $2)'; \
-	if [ -n "$$$${files}" ] ; then \
-	  echo ":::::Installing into $$$${dir}::::: $$$${files}" ; \
-	  mkdir -p $dir ; \
+	@ files='$$(strip $1)'; dirs='$$(strip $2)'; \
+	if [ -n "$$$${files}" -a -n "$$$${dirs}" ] ; then \
 	  for F in $$$${files} ; do \
-	     if [ -e $$$${F} ] ; then \
-	        cp -fp $$$${F} $dir ; \
-	     fi ; \
+	    if [ -e $$$${F} ] ; then \
+	      for D in $$$${dirs} ; do \
+	        echo ":Installing $$$${F} into $${INSTALL/}$$$${D}:" ; \
+	        mkdir -p $${INSTALL/}$$$${D} ; \
+	        cp -fp $$$${F} $${INSTALL/}$$$${D} ; \
+	      done ; \
+	    fi ; \
 	  done ; \
         fi
 endef

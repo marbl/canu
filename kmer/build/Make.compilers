@@ -233,9 +233,11 @@ ifeq (${_OS_},AIX)
   PRINTPS:=lpr -Pcelprt05
 endif
 
-ifeq (${_OS_}${_CC_},TRU64)
-  CXXFLAGS_LAPACK :=-DFTN_UNDERSCORE -DFTN_LOWERCASE
-  CXXLDFLAGS_LAPACK :=-ldxml
+ifeq (${_OS_},TRU64)
+# this seems to work for both gcc and non-gcc
+  CXXFLAGS_LAPACK   :=-DFTN_UNDERSCORE -DFTN_LOWERCASE
+  CXXLDFLAGS_LAPACK :=
+  CXXLIBS_LAPACK    :=-ldxml
 endif
 
 

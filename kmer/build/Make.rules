@@ -8,7 +8,7 @@ ${1:.=.install-copy}: ${1:.=.install-copy-SHARES}
 ${1:.=.install-copy-SHARES}:
 # all share files go to share/${.SHARE/}
 	$(call .FUN-install-copy,$${${1:.=.SHARES}}, \
-                                 ${INSTALL/}share/$${${1:.=.SHARE/}})
+                                 share/$${${1:.=.SHARE/}})
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-install-copy-SHARES,$x)))
@@ -83,8 +83,7 @@ define .RULE-install-copy-C-CXX-EXES
 ${1:.=.install-copy}: ${1:.=.install-copy-C-CXX-EXES}
 ${1:.=.install-copy-C-CXX-EXES}:
 # all exes go to bin
-	$(call .FUN-install-copy,$${${1:.=.C_EXES}} $${${1:.=.CXX_EXES}}, \
-                                 ${INSTALL/}bin/)
+	$(call .FUN-install-copy,$${${1:.=.C_EXES}} $${${1:.=.CXX_EXES}},bin/)
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-install-copy-C-CXX-EXES,$x)))
@@ -113,10 +112,9 @@ define .RULE-install-copy-C-CXX-LIBS
 ${1:.=.install-copy}: ${1:.=.install-copy-C-CXX-LIBS}
 ${1:.=.install-copy-C-CXX-LIBS}:
 # all libs go to lib/${.LIB/}
-	$(call .FUN-install-copy,$${${1:.=.C_LIBS}} \
-                                 $${${1:.=.CXX_LIBS}}, \
+	$(call .FUN-install-copy,$${${1:.=.C_LIBS}} $${${1:.=.CXX_LIBS}} \
                                  $${${1:.=.CXX_SHLIBS}}, \
-                                 ${INSTALL/}lib/$${${1.=.LIB/}})
+                                 lib/$${${1.=.LIB/}})
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-install-copy-C-CXX-LIBS,$x)))
@@ -128,7 +126,7 @@ ${1:.=.install-copy}: ${1:.=.install-copy-C-CXX-INCS}
 ${1:.=.install-copy-C-CXX-INCS}:
 # all includes go to include/${.INCLUDE/}
 	$(call .FUN-install-copy,$${${1:.=.C_INCS}} $${${1:.=.CXX_INCS}}, \
-                                 ${INSTALL/}include/$${${1:.=.INCLUDE/}})
+                                 include/$${${1:.=.INCLUDE/}})
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-install-copy-C-CXX-INCS,$x)))
@@ -149,12 +147,13 @@ $(eval $(foreach x,${//},$(call .RULE-install-copy-C-CXX-INCS,$x)))
 	cd `dirname $<` && ${BIBTEX} `basename ${<:.aux=}`
 
 
-ALL_TEXPS   :=$(strip $(foreach x,${//},${${x:.=.TEXPS}}))
+ALL_TEX_PS    :=$(strip $(foreach x,${//},${${x:.=.TEX_PS}}))
+ALL_TEX_PDF   :=$(strip $(foreach x,${//},${${x:.=.TEX_PDF}}))
 
-${ALL_TEXPS}: %.ps: %.dvi
+${ALL_TEX_PS}: %.ps: %.dvi
 	cd `dirname $<` && ${DVIPS} -o `basename $@` `basename $<`
 
-${ALL_TEXPS:.ps=.pdf}: %.pdf: %.ps
+${ALL_TEX_PDF}: %.pdf: %.ps
 	${PS2PDF} $< $@
 
 # some extra tex goodies
@@ -165,21 +164,19 @@ ${ALL_TEXPS:.ps=.pdf}: %.pdf: %.ps
 	${PRINTPS} $<
 
 
-__SUBGOALS__+=$${${1:.=.TEXPS}}
+__SUBGOALS__+=$${${1:.=.TEX_PS}} $${${1:.=.TEX_PDF}}
 
    # install rules
-define .RULE-install-copy-TEXPS
-${1:.=.install-copy}: ${1:.=.install-copy-TEXPS}
-${1:.=.install-copy-TEXPS}:
+define .RULE-install-copy-TEX_PSPDF
+${1:.=.install-copy}: ${1:.=.install-copy-TEX_PSPDF}
+${1:.=.install-copy-TEX_PSPDF}:
 # TEXPS go to doc/
-	files='$$(strip $${${1:.=.TEXPS}})'; \
-	if [ -n "$$$${files}" ] ; then \
-	  mkdir -p ${INSTALL/}doc/$${${1:.=.DOC/}} ; \
-	  cp -fp $$$${files} ${INSTALL/}doc/$${${1:.=.DOC/}} ; \
-        fi
+	$(call .FUN-install-copy,$${${1:.=.TEX_PS}},doc/$${${1:.=.DOC/}})
+# TEXPDF go to doc/
+	$(call .FUN-install-copy,$${${1:.=.TEX_PDF}},doc/$${${1:.=.DOC/}})
 
 endef
-$(eval $(foreach x,${//},$(call .RULE-install-copy-TEXPS,$x)))
+$(eval $(foreach x,${//},$(call .RULE-install-copy-TEX_PSPDF,$x)))
 
 
 
@@ -201,11 +198,11 @@ define .RULE-install-copy-PYTHON
 ${1:.=.install-copy}: ${1:.=.install-copy-PYTHON}
 ${1:.=.install-copy-PYTHON}:
 # python exes goto bin/
-	$(call .FUN-install-copy,$${${1:.=.PY_EXES}},${INSTALL/}bin/)
+	$(call .FUN-install-copy,$${${1:.=.PY_EXES}},bin/)
 # python libs goto lib, I guess
-	$(call .FUN-install-copy,$${${1:.=.PY_LIBS}},${INSTALL/}share/$${${1:.=.PY_LIB/}})
+	$(call .FUN-install-copy,$${${1:.=.PY_LIBS}},share/$${${1:.=.PY_LIB/}})
 # if there is a distinction between python libs and python share, I don't know
-	$(call .FUN-install-copy,$${${1:.=.PY_SHARES}},${INSTALL/}share/$${${1:.=.PY_SHARE/}})
+	$(call .FUN-install-copy,$${${1:.=.PY_SHARES}},share/$${${1:.=.PY_SHARE/}})
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-install-copy-PYTHON,$x)))
