@@ -20,6 +20,12 @@
 //      dsPos - qsPos
 //  but that's not unsigned.
 //
+//  Results: on a human mapping, using chromosomes as the stream and
+//  the whole human as the table (so we need to actually store a large
+//  number of hits), we see a savings of 2GB and a small drop in
+//  runtime.  Process size went from 20.7GB to 18.7GB, CPU time from
+//  20578 to 20193 seconds (833MHz EV6.8AL (21264B)).
+//
 #define WITHOUT_DIAGONALID
 
 
