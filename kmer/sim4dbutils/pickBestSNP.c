@@ -417,6 +417,27 @@ main(int argc, char **argv) {
     arg++;
   }
 
+
+  //  Show help if we don't get an output file
+  //
+  if (validSNPMap == 0L) {
+    fprintf(stderr, "usage: %s [options]\n", argv[0]);
+    fprintf(stderr, "             -i min-identity     filter matches on percent identity\n");
+    fprintf(stderr, "             -c min-coverage     filter matches on percent coverage\n");
+    fprintf(stderr, "             -F failed           save matches that do not contain the\n");
+    fprintf(stderr, "                                 to the file 'failed'\n");
+    fprintf(stderr, "             -O output           save the parsed SNPs to the file\n");
+    fprintf(stderr, "                                 'output'\n");
+    fprintf(stderr, "             -D prefix           report debugging stuff into files\n");
+    fprintf(stderr, "                                 prefixed with 'prefix'\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "             only -O is required.  Input is read from stdin.\n");
+    fprintf(stderr, "\n");
+    exit(1);
+  }
+
+
+
   //  Read polishes, picking the best when we see a change in
   //  the estID.
 
