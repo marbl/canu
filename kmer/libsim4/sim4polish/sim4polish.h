@@ -128,7 +128,7 @@ void           s4p_insertExons(sim4polish     *p,
 sim4polish    *s4p_stringToPolish(char *s);
 char          *s4p_polishToString(sim4polish *p);
 
-
+void           s4p_normalize(sim4polish *p);
 
 int            s4p_compatable(sim4polish *A, sim4polish *B);
 int            s4p_IsSameRegion(sim4polish *A, sim4polish *B, u32bit tolerance);

@@ -43,3 +43,12 @@ s4p_makeReverse(sim4polish *p) {
   }
 }
 
+
+void
+s4p_normalize(sim4polish *p) {
+  int i;
+  for (i=0; i<p->numExons; i++) {
+    p->exons[i].genFrom += p->genLo;
+    p->exons[i].genTo   += p->genLo;
+  }
+}
