@@ -19,28 +19,28 @@ Sim4::get_polyAT(char *seq, int len, int *pT, int *pA, int flag)
 
   if (flag!=T_ONLY) {
     memset(encodingA, (char)1, 128);
-    encodingA['A'] = encodingA['X'] = encodingA['N'] = 0;
+    encodingA[(int)'A'] = encodingA[(int)'X'] = encodingA[(int)'N'] = 0;
 
     for (i=0, s=seq+len, sum10=0, last10=len+1; i<10 && s>seq && sum10<=MAX20; i++)  {
-      sum10 += encodingA[*(--s)];
+      sum10 += encodingA[(int)*(--s)];
       /*          if (!encodingA[*s] && sum10<=MAX10) last10 = s-seq+1; */
     }
 
     t = v = seq+len;
     sum20 = sum10;
     for ( ; s>=seq && (sum10<=MAX10 || sum20<=MAX20); ) {
-      if (!encodingA[*s] && sum10<=MAX10 && (seq+len>=s+20 || sum20<MAX10))
+      if (!encodingA[(int)*s] && sum10<=MAX10 && (seq+len>=s+20 || sum20<MAX10))
         last10 = (int)(s-seq+1);
       if (--s>seq) {
-        sum10 += encodingA[*s] - encodingA[*(--t)];
-        sum20 += encodingA[*s] -(((seq+len)-s>20) ? encodingA[*(--v)] : 0);
+        sum10 += encodingA[(int)*s] - encodingA[(int)*(--t)];
+        sum20 += encodingA[(int)*s] -(((seq+len)-s>20) ? encodingA[(int)*(--v)] : 0);
       }
     }
 
     if (last10>len-10) *pA = len+1;
     else {
       s = seq+last10+8;
-      while (s >= seq && !encodingA[*s]) s--;
+      while (s >= seq && !encodingA[(int)*s]) s--;
       if ((s-seq+1)-last10+1<=5)
         *pA = (int)(s-seq+2);
       else
@@ -52,28 +52,28 @@ Sim4::get_polyAT(char *seq, int len, int *pT, int *pA, int flag)
   if (flag!=A_ONLY) {
 
     memset(encodingT, (char)1, 128);
-    encodingT['T'] = encodingT['X'] = encodingT['N'] = 0;
+    encodingT[(int)'T'] = encodingT[(int)'X'] = encodingT[(int)'N'] = 0;
 
     for (i=0, s=seq-1, sum10=0, last10=0; i<10 && i<len-1 && sum10<=MAX20; i++) {
-      sum10 += encodingT[*(++s)];
+      sum10 += encodingT[(int)*(++s)];
       /*          if (!encodingT[*s] && sum10<=MAX10) last10 = s-seq+1; */
     }
 
     t = v = seq-1;
     sum20 = sum10;
     for ( ; s<seq+len && (sum10<=MAX10 || sum20<=MAX20); ) {
-      if (!encodingT[*s] && sum10<=MAX10 && (s-seq>=19 || sum20<MAX10))
+      if (!encodingT[(int)*s] && sum10<=MAX10 && (s-seq>=19 || sum20<MAX10))
         last10 = (int)(s-seq+1);
       if (++s<seq+len) {
-        sum10 += encodingT[*s] - encodingT[*(++t)];
-        sum20 += encodingT[*s] - ((s-seq>=20) ? encodingT[*(++v)] : 0);
+        sum10 += encodingT[(int)*s] - encodingT[(int)*(++t)];
+        sum20 += encodingT[(int)*s] - ((s-seq>=20) ? encodingT[(int)*(++v)] : 0);
       }
     }
 
     if (last10<=10) *pT = 0;
     else {
       s = seq+last10-10;
-      while (s < seq+len && !encodingT[*s]) s++;
+      while (s < seq+len && !encodingT[(int)*s]) s++;
       if (last10-(s-seq)+1<=5)
         *pT = (int)(s-seq);
       else

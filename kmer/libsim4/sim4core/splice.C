@@ -287,10 +287,10 @@ Sim4::splice(char *in_seqx, int ls, int us, int le, int ue,
     for (u32bit i=256; i;)
       encode[--i] = 4;
 
-    encode['A'] = encode['a'] = 0;
-    encode['C'] = encode['c'] = 1;
-    encode['G'] = encode['g'] = 2;
-    encode['T'] = encode['t'] = 3;
+    encode[(int)'A'] = encode[(int)'a'] = 0;
+    encode[(int)'C'] = encode[(int)'c'] = 1;
+    encode[(int)'G'] = encode[(int)'g'] = 2;
+    encode[(int)'T'] = encode[(int)'t'] = 3;
   }
 
   if (ori==FWD || ori==BOTH) {
@@ -304,9 +304,9 @@ Sim4::splice(char *in_seqx, int ls, int us, int le, int ue,
         agscore[q] = 0;
     } else {
       for (p=0, s=in_seqx+ls-1; p<=us-ls+1; p++, s++) 
-        gtscore[p] = gt[encode[*s]][encode[*(s+1)]];
+        gtscore[p] = gt[encode[(int)*s]][encode[(int)*(s+1)]];
       for (q=ue-le+1, s=in_seqx+ue-1; q>=0; q--, s--)
-        agscore[q] = ag[encode[*(s-1)]][encode[*s]]; 
+        agscore[q] = ag[encode[(int)*(s-1)]][encode[(int)*s]]; 
     }
 #if 0
     for (p=0, s=in_seqx+ls-1; p<=us-ls+1; p++, s++) 
@@ -323,9 +323,9 @@ Sim4::splice(char *in_seqx, int ls, int us, int le, int ue,
         acscore[q] = 0;
     } else {
       for (p=0, s=in_seqx+ls-1; p<=us-ls+1; p++, s++)  
-        ctscore[p] = ct[encode[*s]][encode[*(s+1)]];  
+        ctscore[p] = ct[encode[(int)*s]][encode[(int)*(s+1)]];  
       for (q=ue-le+1, s=in_seqx+ue-1; q>=0; q--, s--)
-        acscore[q] = ac[encode[*(s-1)]][encode[*s]];
+        acscore[q] = ac[encode[(int)*(s-1)]][encode[(int)*s]];
     }
   } 
 

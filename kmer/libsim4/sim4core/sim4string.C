@@ -110,8 +110,8 @@ Sim4::run(sim4command *cmd) {
   //  Reverse complement
   //
   for (u32bit i=0, j=cmd->getGENlo(), k=dblen-1; j<cmd->getGENhi(); i++, j++, k--) {
-    dbseq[i] = touppercache[dbseqorig[j]];
-    dbrev[k] = complementSymbol[dbseq[i]];
+    dbseq[i] = touppercache[(int)dbseqorig[j]];
+    dbrev[k] = complementSymbol[(int)dbseq[i]];
   }
   dbseq[dblen] = 0;
   dbrev[dblen] = 0;
