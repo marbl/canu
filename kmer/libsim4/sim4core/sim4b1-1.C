@@ -2,6 +2,59 @@
 
 
 int
+Sim4::resolve_overlap(Exon *tmp_block, Exon *tmp_block1, char *seq) {          
+  int   diff, best_u, l0, l1, u, cost;
+  int    GTAG_score, CTAC_score;
+  char *s1, *s2, *e1;
+  
+  diff = tmp_block1->frEST-tmp_block->toEST-1;
+  if (diff>=0) return (tmp_block1->frEST-1);
+
+  /* resolve overlap using the GT-AG criterion */
+  /* u-1 = actual position in the sequence */
+  
+  l0 = tmp_block->length-diff;
+  l1 = tmp_block1->length; 
+  
+  best_u = u = tmp_block1->frEST-1;
+  s1 = seq+tmp_block->toGEN-(tmp_block->toEST-u);
+  s2 = seq-2+tmp_block1->frGEN+u-tmp_block1->frEST;
+  
+  cost = 0;
+  e1 = seq+tmp_block->toGEN;
+  while (s1<=e1) {
+    GTAG_score = CTAC_score = 0;
+    GTAG_score += ((char)(*s1)=='G') ? 1 : 0;
+    GTAG_score += ((char)(*(s1+1))=='T') ? 1 : 0;
+    GTAG_score += ((char)(*s2)=='A') ? 1 : 0;
+    GTAG_score += ((char)(*(s2+1))=='G') ? 1 : 0;
+    
+    if (GTAG_score > abs(cost) && ((l0>=8) || (l1>=8))) {
+      cost = GTAG_score;
+      best_u = u;
+      if (cost == 4) break; 
+    }
+    
+    CTAC_score += ((char)(*s1)=='C') ? 1 : 0;
+    CTAC_score += ((char)(*(s1+1))=='T') ? 1 : 0;
+    CTAC_score += ((char)(*s2)=='A') ? 1 : 0;
+    CTAC_score += ((char)(*(s2+1))=='C') ? 1 : 0;
+    
+    if (CTAC_score > abs(cost)) {
+      cost = -CTAC_score;
+      best_u = u;
+      if (cost == 4) break;
+    }
+    
+    u++; s1++; s2++;
+    l0++; l1--;
+  }     
+  
+  return best_u;
+}      
+
+
+int
 Sim4::SIM4_block1(Exon*  &Lblock,
                   Exon*  &tmp_block,
                   Exon*  &tmp_block1) {
