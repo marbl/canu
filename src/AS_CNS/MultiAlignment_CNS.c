@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.4 2005-03-22 19:48:51 jason_miller Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.5 2005-03-30 21:00:37 eliv Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -982,7 +982,7 @@ int32 AppendFragToLocalStore(FragType type, int32 iid, int complement,int32 cont
 
       fragment.n_components = 
             GetNumIntMultiPoss(uma->f_list)+GetNumIntUnitigPoss(uma->u_list);
-      //      if(ALIGNMENT_CONTEXT!=AS_MERGE){
+      //      if(ALIGNMENT_CONTEXT!=AS_MERGE)
       if(1){
 	fprintf(stderr,"Merge context --> ungapped positions\n");
 	fragment.components = 
@@ -5674,9 +5674,7 @@ MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
    }    
    while (ci < cfrag->n_components) { 
       contig_component = &components[ci];
-      //if ( (ci >= range_bgn && ci < range_end)) {
-      //if ( (ci >= range_bgn && ci < range_end)) {
-      if ( contig_component->frg_or_utg == CNS_ELEMENT_IS_FRAGMENT && contig_component->idx.fragment.frgInUnitig > 0 ) {
+      if ( contig_component->frg_or_utg == CNS_ELEMENT_IS_FRAGMENT && contig_component->idx.fragment.frgInUnitig == unitig_iid ) {
         aligned_component = &tcomponents[tc++];
         if ( complement ) {
           bgn = tfrag->length-aligned_component->position.bgn;
@@ -5937,7 +5935,7 @@ MultiAlignT *MergeMultiAligns( tSequenceDB *sequenceDBp,
   cma->quality = CreateVA_char(GetMANodeLength(ma->lid)+1);
   cma->forced = 0;
   cma->refCnt = 0;
-  cma->source_alloc = NULL; /* need to update this below */
+  cma->source_alloc = 0; /* need to update this below */
   GetMANodeConsensus(ma->lid, cma->consensus, cma->quality);
   // no deltas required at this stage 
   cma->delta = CreateVA_int32(0);
@@ -5981,7 +5979,7 @@ MultiAlignT *MergeMultiAligns( tSequenceDB *sequenceDBp,
 	ConcatVA_IntMultiPos(cma->f_list,multiAlign->f_list);
 	ConcatVA_IntUnitigPos(cma->u_list,multiAlign->u_list);
 
-	if(cma->source_alloc == NULL){
+	if(cma->source_alloc == 0){
 	  cma->source_alloc = multiAlign->source_alloc;
 	}
 
