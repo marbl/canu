@@ -226,7 +226,7 @@ main(int argc, char **argv) {
   //  By default, AIX Visual Age C++ new() returns 0L; this turns on
   //  exceptions.
   //
-  fprintf(stderr, "Enabling excetions from new\n");
+  fprintf(stderr, "Enabling exceptions from new\n");
   //std::__set_new_throws_exception(true);
   std::set_new_handler(aix_new_handler);
 

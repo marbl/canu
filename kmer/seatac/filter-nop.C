@@ -90,7 +90,7 @@ public:
   }
 
   void show(FILE *file) {
-    fprintf(file, "statObj: num = %d\n", num);
+    fprintf(file, "/statObjNum=%d\n", num);
   }
   
 private:
