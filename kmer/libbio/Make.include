@@ -38,7 +38,7 @@ $/buildinfo-libbri.c $/buildinfo-libbri.h: ${src}
 
 $/alphabet.h $/alphabet.c:  $/alphabet-generate.c
 	$(CC) $(CFLAGS) $(CFLAGS_ARCH) -DMAIN $<
-	a.out
+	./a.out
 	mv alphabet.[ch] `dirname $@`
 	rm a.out
 
