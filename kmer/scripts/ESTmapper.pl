@@ -285,7 +285,7 @@ if ($personality eq "-mapest") {
     my $est = shift @ARGV;
     my $gen = shift @ARGV;
 
-    $runInformationFile = createRunInformation($dir, "-mapest", "$dir", "$est", "$gen", @ARGV);
+    $runInformationFile = createRunInformation($dir, "-mapest-nofilter", "$dir", "$est", "$gen", @ARGV);
 
     configure      ("-configure", "$dir", "-genomic", "$gen", @ARGV);
     search         ("-searchest", "$dir", "-cdna", "$est", "-mersize", "20", "-species", "human", @ARGV);
@@ -1277,7 +1277,6 @@ sub search {
         }
         if ($arg eq "-searchopts") {
             $opts .= " " . shift @ARGS;
-            print "$opts\n";
         }
         if ($arg eq "-cdna") {
             $cdna = shift @ARGS;
