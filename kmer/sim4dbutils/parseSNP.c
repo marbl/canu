@@ -15,28 +15,41 @@
 //
 
 
-//
-//  If these are rs SNPs, subtract one from the position returned!
-//
-//  Define this if the input SNPs are directly from dbSNP -- the
-//  defline is different, and the SNP position is base-based.
-//
-//#define SNPS_ARE_RS
-
-
 char *usage =
-"usage: %s <options> < polishes > unprocessed-polishes\n"
+"usage: %s [options]\n"
+"             -i min-identity     filter matches on percent identity\n"
+"             -c min-coverage     filter matches on percent coverage\n"
+"             -F failed           save matches that do not contain the\n"
+"                                 to the file 'failed'\n"
+"             -O output           save the parsed SNPs to the file\n"
+"                                 'output'\n"
+"             -D prefix           report debugging stuff into files\n"
+"                                 prefixed with 'prefix'\n"
+"             -d delimiter        Use the single character delimiter as\n"
+"                                 the end of the defline ID field.  The\n"
+"                                 default is to split on any whitespace.\n"
 "\n"
-"  -i I      Require that a mapping have at least I % identity overall (not just the exon with the SNP)\n"
-"  -c C      Require that a mapping have at least C % coverage\n"
-"  -F file   Print failed mappings to 'file'\n"
-"            A failed mapping is one that doesn't contain the SNP itself\n"
-"  -O file   Save parsed SNP mappings to 'file'\n"
+"             -s sizeTag          Use this tag as the size of the snp.\n"
+"             -p posTag           Use this tag as the position of the snp.\n"
 "\n"
-"  Mappings that are below the quality thresholds are printed to stdout.\n"
+"                                 TAGS: The number immediately after the first\n"
+"                                 occurance of the tag will be used.\n"
+"                                 The defaults are \"-s /size= -p /pos=\"\n"
+"\n"
+"             -o offset           An additive offset to the SNP position.\n"
+"                                 The default is 0.\n"
+"\n"
+"             only -O is required.  Input is read from stdin.\n"
+"\n"
+"             NOTE!  Sizes and sizeTag is NOT IMPLEMENTED!\n"
+"                    All SNPs are of size == 1\n"
+"\n"
+"             If you parse base-based SNPs, the result is returned base-based.\n"
+"             You should use an ofset of 0.\n"
+"\n"
+"             If you parse space-based SNPs, the result is returned base-based.\n"
+"             You should use an offset of 1.\n"
 "\n";
-
-
 
 FILE *multiMultiFile   = 0L;  //  multiple hits, at least one is multiple exon
 FILE *multiSingleFile  = 0L;  //  multiple hits, all are single exon
@@ -53,7 +66,6 @@ int   failedmatches = 0;
 
 FILE *validSNPMap   = 0L;
 FILE *failedSNPMap  = 0L;
-FILE *lowQualityMap = 0L;
 
 char  fieldDelimiter = 255;
 char *sizeTag        = "/size=";
@@ -201,9 +213,12 @@ printSNP(FILE *F, sim4polish *p) {
   //  the offset at the end of the sequence (not always the same as
   //  the offset at the start of the sequence).
   //
+  //  XXX:  Previous version had this as "- siz"  I don't understand
+  //  if this is a "size" or just a "+1" thing.
+  //
   seqOffset  = pos;
   if (p->matchOrientation == MATCH_COMPLEMENT)
-    seqOffset = p->estLen - pos - siz;
+    seqOffset = p->estLen - pos + siz;
 
   //  Now, we examine the alignment strings to decide exactly
   //  where the SNP is located in the genomic.
@@ -229,9 +244,12 @@ printSNP(FILE *F, sim4polish *p) {
     examinePos++;
   }
 
-  fprintf(F, "%s %s %d %s global[%d %d] exon[%d %d %d %d]\n",
-          SNPid, GENid,
+  fprintf(F, "%s %s %d %c/%c %s global[%d %d] exon[%d %d %d %d]\n",
+          SNPid,
+          GENid,
           genPosition,
+          p->exons[exonWithSNP].estAlignment[examinePos-1],
+          p->exons[exonWithSNP].genAlignment[examinePos-1],
           (p->matchOrientation == MATCH_FORWARD) ? "forward" : "complement",
           p->percentIdentity,
           p->querySeqIdentity,
@@ -359,7 +377,6 @@ main(int argc, char **argv) {
 
   validSNPMap   = 0L;
   failedSNPMap  = 0L;
-  lowQualityMap = 0L;
 
   while (arg < argc) {
     if        (strncmp(argv[arg], "-i", 2) == 0) {
@@ -436,33 +453,7 @@ main(int argc, char **argv) {
   //  Show help if we don't get an output file
   //
   if (validSNPMap == 0L) {
-    fprintf(stderr, "usage: %s [options]\n", argv[0]);
-    fprintf(stderr, "             -i min-identity     filter matches on percent identity\n");
-    fprintf(stderr, "             -c min-coverage     filter matches on percent coverage\n");
-    fprintf(stderr, "             -F failed           save matches that do not contain the\n");
-    fprintf(stderr, "                                 to the file 'failed'\n");
-    fprintf(stderr, "             -O output           save the parsed SNPs to the file\n");
-    fprintf(stderr, "                                 'output'\n");
-    fprintf(stderr, "             -D prefix           report debugging stuff into files\n");
-    fprintf(stderr, "                                 prefixed with 'prefix'\n");
-    fprintf(stderr, "             -d delimiter        Use the single character delimiter as\n");
-    fprintf(stderr, "                                 the end of the defline ID field.  The\n");
-    fprintf(stderr, "                                 default is to split on any whitespace.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "             -s sizeTag          Use this tag as the size of the snp.\n");
-    fprintf(stderr, "             -p posTag           Use this tag as the position of the snp.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "                                 TAGS: The number immediately after the first\n");
-    fprintf(stderr, "                                 occurance of the tag will be used.\n");
-    fprintf(stderr, "                                 The defaults are \"-s /size= -p /pos=\"\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "             -o offset           An additive offset to the SNP position.\n");
-    fprintf(stderr, "                                 The default is 0.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "             only -O is required.  Input is read from stdin.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "             NOTE!  Sizes and sizeTag is NOT IMPLEMENTED!\n");
-    fprintf(stderr, "                    All SNPs are of size == 1\n");
+    fprintf(stderr, usage, argv[0]);
     exit(1);
   }
 
@@ -503,8 +494,6 @@ main(int argc, char **argv) {
         (q->querySeqIdentity >= percentCO)) {
       p[pNum++] = q;
     } else {
-      if (lowQualityMap)
-        printPolish(lowQualityMap, q);
       destroyPolish(q);
     }
   }
@@ -512,18 +501,16 @@ main(int argc, char **argv) {
   if (pNum > 0)
     pickBest(p, pNum);
 
-  fprintf(stderr, "SNPs with:\n");
-  fprintf(stderr, "  single hit, single exon:        %6d\n", ss);
-  fprintf(stderr, "  single hit, multiple exons:     %6d\n", sm);
-  fprintf(stderr, "  multiple hits, single exon:     %6d\n", ms);
-  fprintf(stderr, "  multiple hits, multiple exons:  %6d\n", mm);
-  fprintf(stderr, "\n");
-  fprintf(stderr, "SNPs that failed:                 %6d\n", failedsnps);
-  fprintf(stderr, "matches that failed:              %6d\n", failedmatches);
+  fprintf(stdout, "SNPs with:\n");
+  fprintf(stdout, "  single hit, single exon:        %6d\n", ss);
+  fprintf(stdout, "  single hit, multiple exons:     %6d\n", sm);
+  fprintf(stdout, "  multiple hits, single exon:     %6d\n", ms);
+  fprintf(stdout, "  multiple hits, multiple exons:  %6d\n", mm);
+  fprintf(stdout, "SNPs that failed:                 %6d\n", failedsnps);
+  fprintf(stdout, "matches that failed:              %6d\n", failedmatches);
 
   fclose(validSNPMap);
   fclose(failedSNPMap);
-  //fclose(lowQualityMap);  //  It's stdout!
 
   fclose(multiMultiFile);
   fclose(multiSingleFile);
