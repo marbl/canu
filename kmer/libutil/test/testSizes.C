@@ -3,12 +3,16 @@
 
 void
 main(void) {
-  printf("sizeof(u64bit): %d\n", sizeof(u64bit));
-  printf("sizeof(u32bit): %d\n", sizeof(u32bit));
-  printf("sizeof(u16bit): %d\n", sizeof(u16bit));
 
+  if ((sizeof(u32bit) != 4) ||
+      (sizeof(u64bit) != 8)) {
+    fprintf(stderr, "ERROR: data size definitions are incorrect.\n");
+    fprintf(stderr, "       u32bit has %d bytes (should be 4)!\n", sizeof(u32bit));
+    fprintf(stderr, "       u64bit has %d bytes (should be 8)!\n", sizeof(u64bit));
+    return(1);
+  }
 
-  printf("u64bitZERO: 0x%016llx\n", u64bitZERO);
-  printf("u64bitONE:  0x%016llx\n", u64bitONE);
-  printf("u64bitMAX:  0x%016llx\n", u64bitMAX);
+  return(0);
 }
+
+
