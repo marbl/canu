@@ -7,6 +7,13 @@
 #include "bri.h"
 #include "aHit.H"
 
+//  Define this if your hits have answers and you're curious about how
+//  well the filter is performing.
+//
+//  This is used in filterEST.C also.
+//
+#define WITH_ANSWERS
+
 
 //  XXX:  Lots of this stuff can be moved into hitReader as temporary variables
 //
@@ -25,8 +32,8 @@ typedef struct {
   double   multiplicity;
   u32bit   estid;
 #ifdef WITH_ANSWERS
-  char     mappedIdentity;
-  char     mappedCoverage;
+  u32bit   mappedIdentity;
+  u32bit   mappedCoverage;
 #endif
 } hit_s;
 

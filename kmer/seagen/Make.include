@@ -12,12 +12,12 @@ src      := $/searchGENOME.C $/configuration.C $/encodedQuery.C \
             $/hitMatrix-sort.C \
             $/aHit.H $/aHit.C $/hitMatrix.H $/posix.H $/searchGENOME.H
 src_C    := $(filter %.C,${src})
-other_C  := $/hitConverter.C $/filterEST.C $/filterMRNA.C \
+other_C  := $/hitConverter.C $/filterEST.C $/filterEST-complicated.C $/filterMRNA.C \
             $/sortHits.C $/filtertest.C $/hitReader.C
 
 $/.CXX_SRCS  :=${src_C} ${other_C} $/hitMatrix.C
 ifdef WITH_THREADS
- $/.CXX_EXES := $/searchGENOME $/hitConverter $/filterEST $/filterMRNA $/filtertest $/sortHits
+ $/.CXX_EXES := $/searchGENOME $/hitConverter $/filterEST $/filterMRNA $/filtertest $/sortHits $/filterESTsimple
 else
  $/.CXX_EXES := $/hitConverter $/filterEST $/filterMRNA $/filtertest $/sortHits
  $(warning $/searchGENOME require threads: enable WITH_THREADS to build them.)
@@ -43,10 +43,12 @@ $/searchGENOME: ${src_C:.C=.o} \
                 ${LIBBRI/}libbri.a
 
 $/hitConverter: $/hitConverter.o $/aHit.o
-$/filterEST:    $/filterEST.o $/hitReader.o $/aHit.o
+$/filterEST:    $/filterEST.o $/filterEST-complicated.o $/hitReader.o $/aHit.o
 $/filterMRNA:   $/filterMRNA.o $/hitReader.o $/aHit.o
 $/sortHits:     $/sortHits.o $/aHit.o ${LIBBRI/}libbri.a
 $/filtertest:   $/filtertest.o
+
+$/filterESTsimple:    $/filterESTsimple.o $/hitReader.o $/aHit.o
 
 $/buildinfo-searchGENOME.c: $/buildinfo-searchGENOME.h
 $/buildinfo-searchGENOME.h: ${src}
