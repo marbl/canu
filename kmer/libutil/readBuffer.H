@@ -12,6 +12,12 @@
 
 #include "../libbri/libbritypes.H"
 
+//  Create the O_LARGEFILE type for open(), if it doesn't already
+//  exist (FreeBSD, alpha)
+//
+#ifndef O_LARGEFILE
+#define O_LARGEFILE    0
+#endif
 
 class readBuffer {
 public:
