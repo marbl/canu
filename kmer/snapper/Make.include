@@ -1,5 +1,13 @@
 # -*- makefile -*-
 
+ifndef EXISTDB/
+EXISTDB/    := $/../existDB/
+endif
+
+ifndef POSITIONDB/
+POSITIONDB/ := $/../positionDB/
+endif
+
 ifndef LIBBRI/
 LIBBRI/     := $/../libbri/
 endif
@@ -8,20 +16,12 @@ ifndef FASTA/
 FASTA/      := $/../fasta/
 endif
 
-ifndef POSITIONDB/
-POSITIONDB/ := $/../positionDB/
-endif
-
-ifndef EXISTDB/
-EXISTDB/    := $/../existDB/
+ifndef SIM4/
+SIM4/       := $/../sim4/
 endif
 
 ifndef SIM4POLISH/
 SIM4POLISH/ := $/../sim4polish/
-endif
-
-ifndef SIM4/
-SIM4/       := $/../sim4/
 endif
 
 src      := $/snapper2.C $/configuration.C $/encodedQuery.C \
@@ -39,7 +39,13 @@ $/.REAL-CLEAN:=$/buildinfo-*
 $/%.d $/%.o: \
   CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} \
             -I${SIM4/} -I${SIM4POLISH/} -I${EXISTDB/}
-$/configuration.C.d: $/buildinfo-snapper2.h
+$/configuration.C.d: $/buildinfo-snapper2.h \
+                     ${EXISTDB/}buildinfo-existDB.h \
+                     ${POSITIONDB/}buildinfo-positionDB.h \
+                     ${LIBBRI/}buildinfo-libbri.h \
+                     ${FASTA/}buildinfo-libfasta.h \
+                     ${SIM4/}buildinfo-libsim4.h \
+                     ${SIM4POLISH/}buildinfo-libsim4polish.h
 
 EFENCE-L :=# -L/dev2/adelcher/EFence
 EFENCE-l :=# -lefence
