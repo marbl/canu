@@ -68,7 +68,7 @@ hitMatrix::addHits(u32bit  qi,
                    u64bit  cn) {
 
   if ((_hitsLen + cn) >= _hitsMax) {
-    fprintf(stderr, "Need more diagonalLines: from %u to %u\n", _hitsMax, _hitsMax + _hitsMax + (u32bit)cn);
+    fprintf(stderr, "Need more diagonalLines: from "u32bitFMT" to "u32bitFMT"\n", _hitsMax, _hitsMax + _hitsMax + (u32bit)cn);
 
     _hitsMax = _hitsMax + _hitsMax + (u32bit)cn;
 
@@ -77,7 +77,7 @@ hitMatrix::addHits(u32bit  qi,
       h = new diagonalLine [_hitsMax];
     } catch (std::bad_alloc) {
       fprintf(stderr, "hitMatrix::addHits()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
-      fprintf(stderr, "hitMatrix::addHits()-- have %u hits, tried to add %u more\n", _hitsLen, cn);
+      fprintf(stderr, "hitMatrix::addHits()-- have "u32bitFMT" hits, tried to add "u64bitFMT" more\n", _hitsLen, cn);
       exit(1);
     }
 

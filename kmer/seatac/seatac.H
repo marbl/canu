@@ -71,9 +71,8 @@ public:
   bool             _beVerbose;
 
   u32bit           _merSize;
-  u32bit           _numSearchThreads;
-
   u32bit           _merSkip;
+  u32bit           _numSearchThreads;
 
   bool             _doReverse;
   bool             _doForward;
@@ -97,10 +96,17 @@ public:
   u32bit           _useListLen;
   u32bit           _useListMax;
   use_s           *_useList;
+  char            *_useListString;
 
 #ifdef __APPLE__
   void            *_pad1;
 #endif
+
+  //  Filter parameters
+  //
+  char            *_filtername;
+  char            *_filteropts;
+  sharedObj       *_filterObj;
 
   //  Wall clock times
   //
@@ -115,12 +121,6 @@ public:
   u32bit           _loaderHighWaterMark;
   struct timespec  _loaderSleep;
   bool             _loaderWarnings;
-
-  //  Filter parameters
-  //
-  char            *_filterpath;
-  sharedObj       *_filtername;
-  char            *_filteropts;
 
   //  Search parameters
   //
@@ -142,6 +142,7 @@ public:
   void  usage(char *name);
   void  read(int argc, char **argv);
   void  display(FILE *out=stdout);
+  void  writeATACheader(FILE *out);
 
   void  completeUseList(FastAWrapper *db);
 

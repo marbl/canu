@@ -39,9 +39,14 @@ configuration::configuration(void) {
 
   _tableFileName       = 0L;
 
-  _useList             = 0L;
   _useListLen          = 0;
   _useListMax          = 0;
+  _useList             = 0L;
+  _useListString       = 0L;
+
+  _filtername          = 0L;
+  _filteropts          = 0L;
+  _filterObj           = 0L;
 
   _startTime           = 0.0;
   _initTime            = 0.0;
@@ -61,10 +66,6 @@ configuration::configuration(void) {
   _writerSleep.tv_sec  = 1;
   _writerSleep.tv_nsec = 0;
   _writerWarnings      = false;
-
-  _filterpath          = 0L;
-  _filtername          = 0L;
-  _filteropts          = 0L;
 }
 
 configuration::~configuration() {
@@ -150,10 +151,10 @@ configuration::parseUseLine(char *line) {
   u32bit  v=0, u=0;
   char   *rest = line;
 
-  _useListLen = 0;
-  _useListMax = 1024;
-  _useList    = new use_s [_useListMax];
-
+  _useListLen    = 0;
+  _useListMax    = 1024;
+  _useList       = new use_s [_useListMax];
+  _useListString = strdup(line);
 
   //  line can be either a list of numbers, or a file.  See if "line" opens
   //  as a file.  If it does, read in the numbers.
@@ -163,11 +164,7 @@ configuration::parseUseLine(char *line) {
     if (_beVerbose)
       fprintf(stderr, "Reading use list from '%s'\n", line);
     while (!feof(F)) {
-#ifdef TRUE64BIT
-      fscanf(F, " %u ", &v);
-#else
-      fscanf(F, " %lu ", &v);
-#endif
+      fscanf(F, " "u32bitFMT" ", &v);
       addToUse(v);
     }
     fclose(F);
@@ -241,15 +238,6 @@ useListSortHelper(const void *a, const void *b) {
 }
 
 
-#ifdef TRUE64BIT
-char const *useListMessage       = "Completing use list: (%u)\n";
-char const *useAllGenomicMessage = "Using all sequences in the genomic (%u)\n";
-char const *notInMessage         = "WARNING: Sequence %u in -use list is not in '%s'\n";
-#else
-char const *useListMessage       = "Completing use list: (%lu)\n";
-char const *useAllGenomicMessage = "Using all sequences in the genomic (%lu)\n";
-char const *notInMessage         = "WARNING: Sequence %lu in -use list is not in '%s'\n";
-#endif
 
 //  Removes duplicate entries, sorts
 //
@@ -257,14 +245,14 @@ void
 configuration::completeUseList(FastAWrapper *db) {
 
   if (_beVerbose)
-    fprintf(stderr, useListMessage, _useListLen);
+    fprintf(stderr, "Completing use list: ("u32bitFMT")\n", _useListLen);
 
   //  If no use list given, create one using the db.  Otherwise,
   //  fix the existing one.
   //
   if (_useListLen == 0) {
     if (_beVerbose)
-      fprintf(stderr, useAllGenomicMessage, db->getNumberOfSequences());
+      fprintf(stderr, "Using all sequences in the genomic ("u32bitFMT")\n", db->getNumberOfSequences());
     _useListLen = 0;
     _useListMax = db->getNumberOfSequences();
     _useList    = new use_s [_useListMax];
@@ -283,7 +271,7 @@ configuration::completeUseList(FastAWrapper *db) {
 
     for (u32bit i=0; i<_useListLen; i++) {
       if (_useList[i].seq >= db->getNumberOfSequences()) {
-        fprintf(stderr, notInMessage, i, _dbFileName);
+        fprintf(stderr, "WARNING: Sequence "u32bitFMT" in -use list is not in '%s'\n", i, _dbFileName);
       } else {
         if (seen[_useList[i].seq] == 0) {
           seen[_useList[i].seq] = 1;
@@ -310,8 +298,6 @@ configuration::completeUseList(FastAWrapper *db) {
   }
 
   qsort(_useList, _useListLen, sizeof(use_s), useListSortHelper);
-
-  //fprintf(stderr, "Found %u sequences on the use list.\n", _useListLen);
 }
 
 
@@ -404,8 +390,8 @@ configuration::read(int argc, char **argv) {
       _writerWarnings = true;
     } else if (strcmp(argv[arg], "-filtername") == 0) {
       arg++;
-      _filterpath = argv[arg];
-      _filtername = new sharedObj(argv[arg]);
+      _filtername = argv[arg];
+      _filterObj  = new sharedObj(argv[arg]);
     } else if (strcmp(argv[arg], "-filteropts") == 0) {
       arg++;
       _filteropts = argv[arg];
@@ -447,10 +433,10 @@ configuration::read(int argc, char **argv) {
   //  Test that we can build filter and stat objects
   //
   if (_filtername) {
-    filterObj *testf = new filterObj(_filtername, _filteropts);
+    filterObj *testf = new filterObj(_filterObj, _filteropts);
     delete testf;
 
-    statObj *tests = new statObj(config._filtername, config._filteropts);
+    statObj *tests = new statObj(_filterObj, _filteropts);
     delete tests;
   }
 }
@@ -460,6 +446,7 @@ void
 configuration::display(FILE *out) {
   if ((out == stdout) && (_beVerbose)) {
     fprintf(out, "--Using these Options--\n");
+    fprintf(out, "beVerbose           = %s\n", _beVerbose ? "enabled" : "disabled");
     fprintf(out, "numSearchThreads    = "u32bitFMT"\n",   _numSearchThreads);
     fprintf(out, "\n");
     fprintf(out, "loaderHighWaterMark = "u32bitFMT"\n", _loaderHighWaterMark);
@@ -470,11 +457,6 @@ configuration::display(FILE *out) {
     fprintf(out, "writerSleep         = %f\n", (double)_writerSleep.tv_sec + (double)_writerSleep.tv_nsec * 1e-9);
     fprintf(out, "writerWarnings      = %s\n", _writerWarnings ? "true" : "false");
     fprintf(out, "\n");
-    fprintf(out, "merSize             = "u32bitFMT"\n",   _merSize);
-    fprintf(out, "merSkip             = "u32bitFMT"\n",   _merSkip);
-    fprintf(out, "doReverse           = %s\n",   _doReverse ? "true" : "false");
-    fprintf(out, "doForward           = %s\n",   _doForward ? "true" : "false");
-    fprintf(out, "\n");
     fprintf(out, "--Using these Parameters--\n");
     fprintf(out, "maxDiagonal         = "u32bitFMT"\n",   _maxDiagonal);
     fprintf(out, "maxGap              = "u32bitFMT"\n",   _maxGap);
@@ -482,14 +464,60 @@ configuration::display(FILE *out) {
     fprintf(out, "dsOverlap           = "u32bitFMT"\n",   _dsOverlap);
     fprintf(out, "minLength           = "u32bitFMT"\n",   _minLength + _merSize);
     fprintf(out, "\n");
+    fprintf(out, "merSize             = "u32bitFMT"\n",   _merSize);
+    fprintf(out, "merSkip             = "u32bitFMT"\n",   _merSkip);
+    fprintf(out, "doReverse           = %s\n",   (_doReverse) ? "true" : "false");
+    fprintf(out, "doForward           = %s\n",   (_doForward) ? "true" : "false");
+    fprintf(out, "\n");
+    fprintf(out, "filterName          = %s\n", (_filtername) ? _filtername : "None Specified.");
+    fprintf(out, "filterOpts          = %s\n", (_filteropts) ? _filteropts : "None Specified.");
+    fprintf(out, "\n");
+    fprintf(out, "--Using these Sequences--\n");
+    fprintf(out, "useList             = %s\n", (_useListString) ? _useListString : "Every sequence.");
+    fprintf(out, "\n");
     fprintf(out, "--Using these Files--\n");
     fprintf(out, "dbFile              = %s\n", (_dbFileName) ? _dbFileName : "None Specified.");
-    fprintf(out, "outputFile          = %s\n", (_outputFileName) ? _outputFileName : "None Specified.");
-    fprintf(out, "statsFile           = %s\n", (_statsFileName) ? _statsFileName : "None Specified.");
     fprintf(out, "qsFile              = %s\n", (_qsFileName) ? _qsFileName : "None Specified.");
     fprintf(out, "maskFile            = %s\n", (_maskFileName) ? _maskFileName : "None Specified.");
     fprintf(out, "onlyFile            = %s\n", (_onlyFileName) ? _onlyFileName : "None Specified.");
+    fprintf(out, "outputFile          = %s\n", (_outputFileName) ? _outputFileName : "None Specified.");
+    fprintf(out, "statsFile           = %s\n", (_statsFileName) ? _statsFileName : "None Specified.");
     fprintf(out, "tableFile           = %s\n", (_tableFileName) ? _tableFileName : "None Specified.");
     fprintf(out, "\n");
   }
+}
+
+
+
+void
+configuration::writeATACheader(FILE *out) {
+  fprintf(out, "! format atac 1.0\n");
+  fprintf(out, "/seatacBeVerbose=%s\n", _beVerbose ? "enabled" : "disabled");
+  fprintf(out, "/seatacNumSearchThreads="u32bitFMT"\n", _numSearchThreads);
+  fprintf(out, "/seatacLoaderHighWaterMark="u32bitFMT"\n", _loaderHighWaterMark);
+  fprintf(out, "/seatacLoaderSleep=%f\n", (double)_loaderSleep.tv_sec + (double)_loaderSleep.tv_nsec * 1e-9);
+  fprintf(out, "/seatacLoaderWarnings=%s\n", _loaderWarnings ? "true" : "false");
+  fprintf(out, "/seatacSearchSleep=%f\n", (double)_searchSleep.tv_sec + (double)_searchSleep.tv_nsec * 1e-9);
+  fprintf(out, "/seatacWriterHighWaterMark="u32bitFMT"\n", _writerHighWaterMark);
+  fprintf(out, "/seatacWriterSleep=%f\n", (double)_writerSleep.tv_sec + (double)_writerSleep.tv_nsec * 1e-9);
+  fprintf(out, "/seatacWriterWarnings=%s\n", _writerWarnings ? "true" : "false");
+  fprintf(out, "/seatacMaxDiagonal="u32bitFMT"\n", _maxDiagonal);
+  fprintf(out, "/seatacMaxGap="u32bitFMT"\n", _maxGap);
+  fprintf(out, "/seatacQsOverlap="u32bitFMT"\n", _qsOverlap);
+  fprintf(out, "/seatacDsOverlap="u32bitFMT"\n", _dsOverlap);
+  fprintf(out, "/seatacMinLength="u32bitFMT"\n", _minLength + _merSize);
+  fprintf(out, "/seatacMerSize="u32bitFMT"\n", _merSize);
+  fprintf(out, "/seatacMerSkip="u32bitFMT"\n", _merSkip);
+  fprintf(out, "/seatacDoReverse=%s\n", (_doReverse) ? "true" : "false");
+  fprintf(out, "/seatacDoForward=%s\n", (_doForward) ? "true" : "false");
+  fprintf(out, "/seatacFilterName=%s\n", (_filtername) ? _filtername : "None Specified.");
+  fprintf(out, "/seatacFilterOpts=%s\n", (_filteropts) ? _filteropts : "None Specified.");
+  fprintf(out, "/seatacUseList=%s\n", (_useListString) ? _useListString : "Every sequence.");
+  fprintf(out, "/seatacDbFile =%s\n", (_dbFileName) ? _dbFileName : "None Specified.");
+  fprintf(out, "/seatacQsFile =%s\n", (_qsFileName) ? _qsFileName : "None Specified.");
+  fprintf(out, "/seatacMaskFile=%s\n", (_maskFileName) ? _maskFileName : "None Specified.");
+  fprintf(out, "/seatacOnlyFile=%s\n", (_onlyFileName) ? _onlyFileName : "None Specified.");
+  fprintf(out, "/seatacOutputFile=%s\n", (_outputFileName) ? _outputFileName : "None Specified.");
+  fprintf(out, "/seatacStatsFile=%s\n", (_statsFileName) ? _statsFileName : "None Specified.");
+  fprintf(out, "/seatacTableFile=%s\n", (_tableFileName) ? _tableFileName : "None Specified.");
 }

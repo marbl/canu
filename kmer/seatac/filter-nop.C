@@ -1,11 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 //  A very simple seatac filter.  It reports the single longest match for each pair.
 //
 //  Also shows how to use a C++ object as a filter.  C is pretty much the same thing.
 
 #include "bio.h"
+#include "util++.H"
 
 extern "C" {
   void    *construct(char *options);
@@ -20,7 +22,7 @@ extern "C" {
                   u32bit  len2,
                   u32bit  filled);
   void     filter(void *handle);
-  void     output(void *handle, FILE *file);
+  u64bit   output(void *handle, FILE *file, u64bit matchid);
 
   void    *constructStats(char *options);
   void     destructStats(void *handle);
@@ -32,9 +34,10 @@ extern "C" {
 
 class filterLongest {
 public:
-  filterLongest() {
+  filterLongest(char *n1, char *n2) {
     fprintf(stderr, "Creating a filterLongest\n");
-    id1 = pos1 = len1 = id2 = pos2 = len2 = filled = maxfilled = 0;
+    strncpy(name1, n1, 31);
+    strncpy(name2, n2, 31);
   };
 
   ~filterLongest() {
@@ -54,9 +57,15 @@ public:
       fprintf(stderr, "filterNOP-- addHit\n");
 
       maxfilled = filled;
+#if 0
       sprintf(outstring,
               "-%c -e "u32bitFMT" "u32bitFMT" "u32bitFMT" -D "u32bitFMT" "u32bitFMT" "u32bitFMT" -F "u32bitFMT"\n",
               orientation, id1, pos1, len1, id2, pos2, len2, filled);
+#endif
+
+      sprintf(outstring,
+              "M x . . %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" 1 %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" %s "u32bitFMT"\n",
+              name1, id1, pos1, len1, name2, id2, pos2, len2, (orientation == 'f') ? "1" : "-1", filled);
     }
   };
 
@@ -64,15 +73,15 @@ public:
     fprintf(stderr, "filterNOP-- filter\n");
   };
 
-  void output(FILE *file) {
-    fprintf(stderr, "filterNOP-- output\n");
-    fprintf(stderr, "OUTPUT %s", outstring);
+  u64bit output(FILE *file, u64bit matchid) {
+    fprintf(stderr, "filterNOP-- output (ignoring matchid)\n");
     fprintf(file, "%s", outstring);
+    return(matchid);
   };
 private:
-  char   outstring[512];
-  u32bit id1, pos1, len1, id2, pos2, len2, filled;
-  u32bit maxfilled;
+  char     outstring[512];
+  char     name1[32], name2[32];
+  u32bit   maxfilled;
 };
 
 
@@ -104,7 +113,25 @@ private:
 
 void*
 construct(char *opts) {
-  return(new filterLongest);
+  char *seq1 = "UNK";
+  char *seq2 = "UNK";
+
+  //  Parse the options to find the parameters
+  //
+  splitToWords  W(opts);
+
+  u32bit arg = 0;
+  while (arg < W.numWords()) {
+    if        (strcmp(W.getWord(arg), "-1") == 0) {
+      seq1 = W.getWord(++arg);
+    } else if (strcmp(W.getWord(arg), "-2") == 0) {
+      seq2 = W.getWord(++arg);
+    }
+
+    arg++;
+  }
+
+  return(new filterLongest(seq1, seq2));
 }
 
 void
@@ -130,9 +157,9 @@ filter(void *handle) {
   ((filterLongest *)handle)->filter();
 }
 
-void
-output(void *handle, FILE *file) {
-  ((filterLongest *)handle)->output(file);
+u64bit
+output(void *handle, FILE *file, u64bit matchid) {
+  return(((filterLongest *)handle)->output(file, matchid));
 }
 
 

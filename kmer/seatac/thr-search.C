@@ -142,15 +142,16 @@ searchThread(void *U) {
         //
         while (idx > (outputPos + config._writerHighWaterMark)) {
           if (config._writerWarnings)
-            fprintf(stderr, "%lu Blocked by output (idx = %d, outputPos = %d).\n", (u64bit)U, idx, outputPos);
+            fprintf(stderr, u64bitFMT" Blocked by output (idx = "u32bitFMT", outputPos = "u32bitFMT").\n", (u64bit)U, idx, outputPos);
           blockedO++;
           nanosleep(&config._searchSleep, 0L);
         }
 
         //  Construct a filter object
         //
-        filterObj *FO = new filterObj(config._filtername, config._filteropts);
-        fprintf(stderr, "Created filterObj 0x%016lx\n", FO);
+        filterObj *FO = new filterObj(config._filterObj, config._filteropts);
+
+        //fprintf(stderr, "Created filterObj 0x%016lx\n", FO);
 
         //  Do searches.
         //

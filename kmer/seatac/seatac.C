@@ -5,15 +5,11 @@
 #include "seatac.H"
 
 #ifdef TRUE64BIT
-char const *buildMessage       = "Building chunk with %u sequences.\n";
 char const *outputDisplay      = "O:%7u S:%7u I:%7u T:%7u (%5.1f%%; %8.3f/sec) Finish in %5.2f seconds.\r";
 char const *outputDisplayFinal = "\n%7u sequences (%5.1f%%; %8.3f/sec) %5.2f seconds.\n";
-char const *countMessage       = "%u\n";
 #else
-char const *buildMessage       = "Building chunk with %lu sequences.\n";
 char const *outputDisplay      = "O:%7lu S:%7lu I:%7lu T:%7lu (%5.1f%%; %8.3f/sec) Finish in %5.2f seconds.\r";
 char const *outputDisplayFinal = "\n%7lu sequences (%5.1f%%; %8.3f/sec) %5.2f seconds.\n";
-char const *countMessage       = "%lu\n";
 #endif
 
 
@@ -47,7 +43,7 @@ buildTable(void) {
   config.completeUseList(dbFASTA);
 
   if (config._beVerbose)
-    fprintf(stderr, buildMessage, config._useListLen);
+    fprintf(stderr, "Building chunk with "u32bitFMT" sequences.\n", config._useListLen);
 
   //  sum the length of the sequences, including the padding.
   //
@@ -247,7 +243,7 @@ main(int argc, char **argv) {
 
   numberOfQueries  = qsFASTA->getNumberOfSequences();
   if (config._beVerbose)
-    fprintf(stderr, "Number of cDNA sequences is %d.\n", numberOfQueries);
+    fprintf(stderr, "Number of cDNA sequences is "u32bitFMT".\n", numberOfQueries);
 
   output    = new filterObj * [numberOfQueries];
   assert(output != NULL);
@@ -327,14 +323,23 @@ main(int argc, char **argv) {
   }
 
 
+  //  Dump our information to the output file.
+  //
+  config.writeATACheader(resultFILE);
+
+
+
   //  Initialize the statistics collection object
   //
-  statObj *stats = new statObj(config._filtername, config._filteropts);
-
+  statObj *stats = new statObj(config._filterObj, config._filteropts);
 
   //  Wait for threads to produce output
   //
   outputPos = 0;
+
+  //  The match id of each output record.
+  //
+  u64bit   matchID = 0;
 
   double  zeroTime = getTime() - 0.00000001;
 
@@ -354,7 +359,7 @@ main(int argc, char **argv) {
 
       if (output[outputPos] > 0) {
         errno = 0;
-        output[outputPos]->output(resultFILE);
+        matchID = output[outputPos]->output(resultFILE, matchID);
         if (errno) {
           fprintf(stderr, "Couldn't write to the output file '%s'.\n%s\n",
                   config._outputFileName, strerror(errno));

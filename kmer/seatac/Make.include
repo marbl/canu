@@ -20,14 +20,15 @@ src      := $/seatac.C \
 
 $/.CXX_SRCS  := $(filter %.C,${src})
 ifdef WITH_THREADS
- $/.CXX_EXES  := $/seatac
+ $/.CXX_EXES  := $/seatac $/heavychains
 else
  $(warning $/seatac requires threads: enable WITH_THREADS to build.)
 endif
 
-$/.CXX_SHLIBS  := $/filter-nop.so
+$/.CXX_SHLIBS  := $/filter-nop.so $/filter-heavychains.so
 
-$/filter-nop.so: $/filter-nop.o
+$/filter-nop.so:         $/filter-nop.o
+$/filter-heavychains.so: $/filter-heavychains.o heavychains.o
 
 $/.CLEAN     :=$/*.o
 $/.REAL-CLEAN:=$/buildinfo-*
@@ -40,6 +41,8 @@ $/configuration.C.d: $/buildinfo-seatac.h \
 
 $/seatac:  ${$/.CXX_SRCS:.C=.o} $/buildinfo-seatac.o \
            ${LIBKMER/}libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+
+$/heavychains: $/heavychains-driver.o $/heavychains.o
 
 $/buildinfo-seatac.c: $/buildinfo-seatac.h
 $/buildinfo-seatac.h: ${src}
