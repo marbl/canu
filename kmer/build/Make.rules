@@ -286,7 +286,7 @@ define .RULE-install-copy-SHARE
 ${1:.=.install-copy}: ${1:.=.install-copy-SHARE}
 ${1:.=.install-copy-SHARE}:
 	$(call .FUN-install-copy,$${${1:.=.SHARES}}, \
-                                 scripts/$${${1:.=.SHARE/}})
+                                 share/$${${1:.=.SHARE/}})
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-install-copy-SHARE,$x)))
