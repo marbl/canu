@@ -25,7 +25,19 @@
 //  Filters out matches that have non-unique pieces.  Does not discard
 //  the whole match, but just trims out the non-unique section.
 //
-//  Original implementation in Python by Clark Mobarry.
+//  Original implementation in Python by Clark Mobarry:
+//
+//    sort the matches in X
+//    apply the mask to the X
+//    sort the matchs in Y
+//    apply the mask to the Y
+//    output the matches
+//
+//  if we keep the coverage intervals in core, we get around sorting
+//  the matches.  how big can they be -- especially if we only keep
+//  things with > 1 coverage!  But, we also can't use an elegant
+//  algorithm for trimming/splitting.
+//
 
 char   *_inputName = 0L;
 char   *_outputName = 0L;
@@ -34,16 +46,16 @@ char   *_outputName = 0L;
 //  that have coverage > 1.
 //
 struct coverage1_s {
-  int  axis;
-  int  position;
-  int  increment;
+  u32bit  axis;
+  u32bit  position;
+  int     increment;
 };
 
 struct coverage2_s {
-  int  axis;
-  int  beg;
-  int  end;
-  int  coverage;
+  u32bit  axis;
+  u32bit  beg;
+  u32bit  end;
+  u32bit  coverage;
 };
 
 struct match_s {
@@ -53,8 +65,8 @@ struct match_s {
 
 int
 sortCoverage1(const void *a, const void *b) {
-  coverage1_s *A = *((coverage1_s **)a);
-  coverage1_s *B = *((coverage1_s **)b);
+  const coverage1_s *A = *((const coverage1_s * const *)a);
+  const coverage1_s *B = *((const coverage1_s * const *)b);
 
   if (A->axis      < B->axis)       return(-1);
   if (A->axis      > B->axis)       return(1);
@@ -71,8 +83,11 @@ sortCoverage1(const void *a, const void *b) {
 //
 int
 sortCoverage2(const void *a, const void *b) {
-  coverage2_s *A = *((coverage2_s **)a);
-  coverage2_s *B = *((coverage2_s **)b);
+  const coverage2_s *A = *((const coverage2_s * const *)a);
+  const coverage2_s *B = *((const coverage2_s * const *)b);
+
+
+
 
   if (A->axis     < B->axis)  return(-1);
   if (A->axis     > B->axis)  return(1);
@@ -122,9 +137,9 @@ public:
 
 void
 offsetsToCoverage(bigQueue *I, bigQueue *O, coverageIntervals *L) {
-  int  axis     = -1;
-  int  position = -1;
-  int  coverage = 0;
+  u32bit  axis     = ~u32bitZERO;
+  u32bit  position = ~u32bitZERO;
+  u32bit  coverage = 0;
 
   fprintf(stderr, "offsetsToCoverage()-- begin\n");
 
@@ -151,18 +166,22 @@ offsetsToCoverage(bigQueue *I, bigQueue *O, coverageIntervals *L) {
     }
 
     if ((coverage > 1) && (length > 0)) {
-      fprintf(stderr, "axis=%8d %8d-%8d cov=%d\n", axis, position, position+length, coverage);
+      fprintf(stderr, "axis="u32bitFMTW(8)" "u32bitFMTW(8)"-"u32bitFMTW(8)" cov="u32bitFMTW(8)"\n",
+              axis, position, position+length, coverage);
 
       L->addInterval(axis, position, position+length, coverage);
     }
 
+    //  Occasionally, we get stung by insisting to use unsigned
+    //  numbers.  This is one of them.
+    //
+    if ((coverage == 0) && (cov1->increment == -1))
+      fprintf(stderr, "Sorting error -- have negative coverage (axis="u32bitFMT" position="u32bitFMT")!\n",
+              axis, position), exit(1);
+
     coverage   += cov1->increment;
     axis        = cov1->axis;
     position    = cov1->position;
-
-    if (coverage < 0)
-      fprintf(stderr, "Sorting error -- have negative coverage (axis=%d position=%d)!\n",
-              axis, position), exit(1);
   }
 
   fprintf(stderr, "offsetsToCoverage()-- end\n");
@@ -244,20 +263,13 @@ findCoverageIntervals(bigQueue *Fcov, coverageIntervals *Fint,
 }
 
 
-//  sort the matches in X
-//  apply the mask to the X
-//  sort the matchs in Y
-//  apply the mask to the Y
-//  output the matches
-//
-//  if we keep the coverage intervals in core, we get around sorting
-//  the matches.  how big can they be -- especially if we only keep
-//  things with > 1 coverage!
-//
-//  need an interval list that answers "tell me any intervals from X
-//  to Y", build one interval list for each sequence in the input
-//  (yikes -- 100k of them?)
 
+
+//  This is used all over the place.
+//
+#define D08D2 u32bitFMTW(8)" "u32bitFMTW(8)
+#define KEY1THING "key1 = "u32bitFMTW(8)" "u32bitFMTW(8)" "u32bitFMTW(8)"    thing = "D08D2" "D08D2"\n"
+#define KEY2THING "key2 = "u32bitFMTW(8)" "u32bitFMTW(8)" "u32bitFMTW(8)"    thing = "D08D2" "D08D2"\n"
 
 int
 main(int argc, char **argv) {
@@ -383,7 +395,7 @@ main(int argc, char **argv) {
         }
 
         if (isect1) {
-          fprintf(stderr, "Intersect: key1 = %08d %08d %08d    thing = %08d %08d  %08d %08d\n",
+          fprintf(stderr, "Intersect: "KEY1THING,
                   key1->axis, key1->beg, key1->end,
                   extent.pos1, extent.pos1 + extent.len1,
                   extent.pos2, extent.pos2 + extent.len2);
@@ -399,7 +411,7 @@ main(int argc, char **argv) {
 
               //  Trim the whole thing?
               //
-              fprintf(stderr, "remove1    key1 = %08d %08d %08d    thing = %08d %08d  %08d %08d\n",
+              fprintf(stderr, "remove1    "KEY1THING,
                       key1->axis, key1->beg, key1->end,
                       matches[i].pos1, matches[i].pos1 + matches[i].len1,
                       matches[i].pos2, matches[i].pos2 + matches[i].len2);
@@ -434,7 +446,7 @@ main(int argc, char **argv) {
                 matches[matchesLen].ori2 = matches[i].ori2;
               }
 
-              fprintf(stderr, "cont1      key1 = %08d %08d %08d    thing = %08d %08d  %08d %08d\n",
+              fprintf(stderr, "cont1      "KEY1THING,
                       key1->axis, key1->beg, key1->end,
                       matches[matchesLen].pos1, matches[matchesLen].pos1 + matches[matchesLen].len1,
                       matches[matchesLen].pos2, matches[matchesLen].pos2 + matches[matchesLen].len2);
@@ -462,7 +474,7 @@ main(int argc, char **argv) {
                 matches[matchesLen].ori2 = matches[i].ori2;
               }
 
-              fprintf(stderr, "cont1      key1 = %08d %08d %08d    thing = %08d %08d  %08d %08d\n",
+              fprintf(stderr, "cont1      "KEY1THING,
                       key1->axis, key1->beg, key1->end,
                       matches[matchesLen].pos1, matches[matchesLen].pos1 + matches[matchesLen].len1,
                       matches[matchesLen].pos2, matches[matchesLen].pos2 + matches[matchesLen].len2);
@@ -489,7 +501,7 @@ main(int argc, char **argv) {
                 matches[i].pos2 += trimLen;
               matches[i].len2 -= trimLen;
 
-              fprintf(stderr, "begin1     key1 = %08d %08d %08d    thing = %08d %08d  %08d %08d\n",
+              fprintf(stderr, "begin1     "KEY1THING,
                       key1->axis, key1->beg, key1->end,
                       matches[i].pos1, matches[i].pos1 + matches[i].len1,
                       matches[i].pos2, matches[i].pos2 + matches[i].len2);
@@ -506,7 +518,7 @@ main(int argc, char **argv) {
                 matches[i].pos2 += trimLen;
               matches[i].len2 -= trimLen;
 
-              fprintf(stderr, "end1       key1 = %08d %08d %08d    thing = %08d %08d  %08d %08d\n",
+              fprintf(stderr, "end1       "KEY1THING,
                       key1->axis, key1->beg, key1->end,
                       matches[i].pos1, matches[i].pos1 + matches[i].len1,
                       matches[i].pos2, matches[i].pos2 + matches[i].len2);
@@ -529,7 +541,7 @@ main(int argc, char **argv) {
         }
 
         if (isect2) {
-          fprintf(stderr, "Intersect: key2 = %08d %08d %08d    thing = %08d %08d  %08d %08d\n",
+          fprintf(stderr, "Intersect: "KEY2THING,
                   key2->axis, key2->beg, key2->end,
                   extent.pos1, extent.pos1 + extent.len1,
                   extent.pos2, extent.pos2 + extent.len2);
@@ -540,7 +552,7 @@ main(int argc, char **argv) {
 
               //  Trim the whole thing?
               //
-              fprintf(stderr, "remove2    key2 = %08d %08d %08d    thing = %08d %08d  %08d %08d\n",
+              fprintf(stderr, "remove2    "KEY2THING,
                       key2->axis, key2->beg, key2->end,
                       matches[i].pos1, matches[i].pos1 + matches[i].len1,
                       matches[i].pos2, matches[i].pos2 + matches[i].len2);
@@ -576,7 +588,7 @@ main(int argc, char **argv) {
                 matches[matchesLen].ori2 = matches[i].ori2;
               }
 
-              fprintf(stderr, "cont2      key2 = %08d %08d %08d    thing = %08d %08d  %08d %08d\n",
+              fprintf(stderr, "cont2      "KEY2THING,
                       key2->axis, key2->beg, key2->end,
                       matches[matchesLen].pos1, matches[matchesLen].pos1 + matches[matchesLen].len1,
                       matches[matchesLen].pos2, matches[matchesLen].pos2 + matches[matchesLen].len2);
@@ -604,7 +616,7 @@ main(int argc, char **argv) {
                 matches[matchesLen].ori2 = matches[i].ori2;
               }
 
-              fprintf(stderr, "cont2      key2 = %08d %08d %08d    thing = %08d %08d  %08d %08d\n",
+              fprintf(stderr, "cont2      "KEY2THING,
                       key2->axis, key2->beg, key2->end,
                       matches[matchesLen].pos1, matches[matchesLen].pos1 + matches[matchesLen].len1,
                       matches[matchesLen].pos2, matches[matchesLen].pos2 + matches[matchesLen].len2);
@@ -631,7 +643,7 @@ main(int argc, char **argv) {
                 matches[i].pos1 += trimLen;
               matches[i].len1 -= trimLen;
 
-              fprintf(stderr, "begin2     key2 = %08d %08d %08d    thing = %08d %08d  %08d %08d\n",
+              fprintf(stderr, "begin2     "KEY2THING,
                       key2->axis, key2->beg, key2->end,
                       matches[i].pos1, matches[i].pos1 + matches[i].len1,
                       matches[i].pos2, matches[i].pos2 + matches[i].len2);
@@ -648,7 +660,7 @@ main(int argc, char **argv) {
                 matches[i].pos1 += trimLen;
               matches[i].len2 -= trimLen;
 
-              fprintf(stderr, "end2       key2 = %08d %08d %08d    thing = %08d %08d  %08d %08d\n",
+              fprintf(stderr, "end2       "KEY2THING,
                       key2->axis, key2->beg, key2->end,
                       matches[i].pos1, matches[i].pos1 + matches[i].len1,
                       matches[i].pos2, matches[i].pos2 + matches[i].len2);
@@ -668,7 +680,7 @@ main(int argc, char **argv) {
       //
       for (u32bit i=0; i<matchesLen; i++) {
         if ((matches[i].len1 > 0) && (matches[i].len2 > 0)) {
-          fprintf(stdout, "M %s %s.%d . %s %d %d %d %s %d %d %d\n",
+          fprintf(stdout, "M %s %s."u32bitFMT" . %s "u32bitFMT" "u32bitFMT" %d %s "u32bitFMT" "u32bitFMT" %d\n",
                   S[1], S[2], i,
                   S[4], matches[i].pos1, matches[i].len1, matches[i].ori1 ? 1 : -1,
                   S[8], matches[i].pos2, matches[i].len2, matches[i].ori2 ? 1 : -1);
