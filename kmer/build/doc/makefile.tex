@@ -4,6 +4,15 @@
 
 \begin{document}
 
+\section{Overview of the proposed new IR build system}
+
+The following points are necessary to balance in any
+build system.
+\begin{itemize}
+\item providing a uniform set of compile flags while allowing some deviation from these flags when necessary.
+\item directing execution of rebulding of files which respects dependency so that changes can propagate to their consumers without unnecessary rebuilding.
+\end{itemize}
+
 \section{Anatomy of the Makefile}
 % cvs version 1.26
 
