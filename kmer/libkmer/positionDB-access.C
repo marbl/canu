@@ -12,6 +12,11 @@ positionDB::get(u64bit   mer,
   u64bit ed = getDecodedValue(_hashTable, h * _hashWidth + _hashWidth, _hashWidth);
   u64bit le = ed - st;
 
+  //  We probably should always say the length is zero if we don't
+  //  find anything, not just return false.
+  //
+  posnLen = 0;
+
   if (le == 0) return(false);
 
   u64bit  v;
@@ -51,8 +56,6 @@ positionDB::get(u64bit   mer,
             abort();
           }
         }
-
-        posnLen = 0;
 
         for (; len > 0; len--) {
           ptr += _posnWidth;
