@@ -3,13 +3,18 @@
 LIBUTL/     :=$(call MakePath,$/../libutil/)
 LIBBIO/     :=$(call MakePath,$/../libbio/)
 
-$/.CXX_EXES := $/uniqueFilter   $/mismatchCounter   $/lengthFilter
-$/.CXX_SRCS := $/uniqueFilter.C $/mismatchCounter.C $/lengthFilter.C $/atac-common.C
+$/.CXX_EXES := $/uniqueFilter   $/matchExtender   $/mismatchCounter   $/lengthFilter
+$/.CXX_SRCS := $/uniqueFilter.C \
+               $/matchExtender.C $/matchExtender-dump.C $/matchExtender-func.C \
+               $/mismatchCounter.C \
+               $/lengthFilter.C \
+               $/atac-common.C
 
 $/.CLEAN :=$/*.o $/*~ $/core
 
 $/uniqueFilter:        $/uniqueFilter.o    $/atac-common.o
 $/mismatchCounter:     $/mismatchCounter.o $/atac-common.o
+$/matchExtender:       $/matchExtender.o   $/matchExtender-dump.o $/matchExtender-func.o $/atac-common.o
 $/lengthFilter:        $/lengthFilter.o
 
 ${$/.CXX_EXES}: ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a

@@ -66,6 +66,7 @@ main(int argc, char *argv[]) {
       fprintf(stderr, "  -c:     check that the next base on each side is a mismatch\n");
       exit(1);
     }
+    arg++;
   }
 
   char  inLine[1024] = {0};
@@ -118,8 +119,8 @@ main(int argc, char *argv[]) {
       FastAAccessor A1(S1, false);
       FastAAccessor A2(S2, (ori1 != ori2));
 
-      A1.setReverseComplementRange(pos1, len1);
-      A2.setReverseComplementRange(pos2, len2);
+      A1.setRange(pos1, len1);
+      A2.setRange(pos2, len2);
 
       u32bit extraMatches = 0;
       u32bit localMismatches = 0;
