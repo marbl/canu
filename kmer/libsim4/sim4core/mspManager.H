@@ -50,6 +50,7 @@ public:
   void          clear(void) {
     _numMSPs = 0;
   };
+
   void          clearDiagonal(int l1, int l2) {
 
     //  Allocate more space, if needed.
@@ -66,12 +67,9 @@ public:
       _diagExt = new int [_diagMax];
     }
 
-#if 0
+    //  Using the obvious for loop for this hurts.  Don't do it.
+    //
     bzero(_diagExt, sizeof(int) * (l1 + l2 + 1));
-#else
-    for (int j=l1+l2+1; j--; )
-      _diagExt[j] = 0;
-#endif
   };
 
   //  add an extended MSP to the list
@@ -81,19 +79,11 @@ public:
   //  add a single unextended hit to the list.
   //  this will do extensions if we haven't already extended through it.
   //
-  void  addHit_(char *s1, char *s2,
-                int   l1, int   l2,
-                int   p1, int   p2,
-                int   W,
-                int   K);
-
   void  addHit(char *s1, char *s2,
                int   l1, int   l2,
                int   p1, int   p2,
                int   W,
                int   K) {
-    _add_total++;
-
     if (_diagExt[l2 + p1 - p2 - 1] <= p1)
       addHit_(s1, s2, l1, l2, p1, p2, W, K);
   };
@@ -109,6 +99,12 @@ public:
                       char  *s2);
 
 private:
+  void  addHit_(char *s1, char *s2,
+                int   l1, int   l2,
+                int   p1, int   p2,
+                int   W,
+                int   K);
+
   bool           _sorted;
 
   u32bit         _allocMSPs;
@@ -128,9 +124,6 @@ private:
 
   int            _diagMax;
   int           *_diagExt;
-
-  int            _add_extended;
-  int            _add_total;
 };
 
 

@@ -36,25 +36,13 @@ mspManager::mspManager() {
 
   _diagMax          = 0;
   _diagExt          = 0L;
-
-  _add_extended     = 0;
-  _add_total        = 0;
 }
 
 
 mspManager::~mspManager() {
   delete [] _allMSPs;
   delete [] _diagExt;
-#if 0
-  fprintf(stderr, "mspManager:  added %d hits, extended %d.\n",
-          _add_total, _add_extended);
-#endif
 }
-
-
-
-
-
 
 
 
@@ -147,12 +135,8 @@ mspManager::doLinking(int    weight,
     return(0L);
   }
 
-  ////////////////////////////////////////
-  //
-  //last_msp = mspManager->link(rs.weight);
-  //
-  //last_msp = link_msps(msp, numMSPs, rs.weight);
-  //
+
+
   int f1, f2, best, diag, diff_diag, best_sc, tryval;
 
   best    = -1;
@@ -206,11 +190,6 @@ mspManager::doLinking(int    weight,
     }
   }
 
-  //return best;
-
-  //
-  //
-  ////////////////////////////////////////
 
 
 
@@ -218,16 +197,6 @@ mspManager::doLinking(int    weight,
   //  In the code below, last_msp = best.
   //
   int last_msp = best;
-
-
-  
-  ////////////////////////////////////////
-  //
-  //  Make exons
-  //
-  //  msp2exons(msp,last_msp,s1,s2); 
-  //
-
   int     diag_dist;
   int     diff;
 
@@ -298,13 +267,6 @@ mspManager::doLinking(int    weight,
 
 
 
-  //
-  //
-  ////////////////////////////////////////
-
-
-
-
 
   //  Fix them?  What does this do??
   //
@@ -342,8 +304,6 @@ mspManager::addHit_(char *s1, char *s2,
   int   left_sum  = 0;
   int   sum       = 0;
   int   score     = 0;
-
-  _add_extended++;
 
   //  We use diagonals directly -- original version offset the array of
   //  diagonal positions by the constant value included below.
