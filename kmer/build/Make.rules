@@ -193,7 +193,7 @@ ${1:.=.install-copy-C-CXX-LIBS}:
                                  lib/$${${1.=.LIB/}})
 
 endef
-$(eval $(foreach x,${//},$(call .RULE-install-copy-CXX-LIBS,$x)))
+$(eval $(foreach x,${//},$(call .RULE-install-copy-C-CXX-LIBS,$x)))
 
 define .RULE-install-copy-C-CXX-SHLIBS
 ${1:.=.install-copy}: ${1:.=.install-copy-C-CXX-SHLIBS}
