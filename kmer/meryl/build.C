@@ -519,9 +519,12 @@ build(merylArgs *args) {
     //  Check that all the files exist if we are -mergebatch and
     //  continue with execution
     //
+    //  MEMORY LEAK!  We should delete this at the end of the
+    //  function, but it's a pain, and who cares?
+    //
     merylArgs *savedArgs = new merylArgs(args->outputFile);
     savedArgs->beVerbose = args->beVerbose;
-    delete args;
+
     args = savedArgs;
 
     doMerge = true;
