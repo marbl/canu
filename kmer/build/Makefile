@@ -98,6 +98,12 @@ ${RECURSIVE:.=.ls}:
 %.o: %.C
 	${CXX} ${CXXFLAGS} ${CXXFLAGS_COMPILE} -o $@ -c $<
 
+%.dvi: %.tex
+	${LATEX} $< && ${LATEX} $<
+
+%.ps: %.dvi
+	${DVIPS} -o $@ $<
+
 ### Building depends goals
 __DEPGOALS__=
 

@@ -88,7 +88,7 @@ which do not exist and silently skipped.  However, the current, highly
 experimental, way to do this without deleting is by using the WITHOUT
 variable.  Specifying paths in this variable will cause the
 Make.include file in the directory to not be read.  For example,
-  make WITHOUT="../RCM/ ../TCBB/"
+  make WITHOUT="../RCM/src/ ../TCBB/"
 (terminating /'s are mandatory) will cause no build information to
 be read at all for these directories.
 

@@ -45,7 +45,7 @@ CXXLDFLAGS:=
 CLIBS:=-lm
 CXXLIBS:=-lm
 
-ifeq (${_CC_},gcc)
+ifeq (${_CC_},-gcc)
   CC               :=gcc
   CXX              :=g++
   SHLIB_FLAGS      +=-shared
@@ -191,3 +191,14 @@ ifeq (${_OS_},AIX)
   PERL  :=/usr/local/bin/perl5.6.1
 endif
 
+## tex stuff
+LATEX:=latex
+DVIPS:=dvips
+ifeq (${_OS_},TRU64)
+  LATEX  :=latex
+  DVIPS  :=dvips
+endif
+ifeq (${_OS_},AIX)
+  LATEX  :=latex
+  DVIPS  :=dvips
+endif
