@@ -297,6 +297,8 @@ static EditScript_t *Condense_script(EditScript_t *head, int free_flag)
    return head; 
 }
 
+#if 0
+//  unused
 static void Flip_script(struct EditScript_t **script)
 {
    struct EditScript_t *ep, *ahead, *behind;
@@ -311,6 +313,7 @@ static void Flip_script(struct EditScript_t **script)
   }
   *script = ep;
 }
+#endif
 
 
 // This is the EST-free version provided by Liliana. -- Jason
