@@ -28,7 +28,7 @@ endif
 $/.CXX_SHLIBS  := $/filter-nop.so $/filter-heavychains.so
 
 $/filter-nop.so:         $/filter-nop.o
-$/filter-heavychains.so: $/filter-heavychains.o heavychains.o
+$/filter-heavychains.so: $/filter-heavychains.o $/heavychains.o
 
 $/.CLEAN     :=$/*.o
 $/.REAL-CLEAN:=$/buildinfo-*
