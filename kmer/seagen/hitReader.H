@@ -51,11 +51,7 @@ public:
 
   hit_s &operator[](u32bit x) {
     if (x >= _listLen) {
-#ifdef TRUE64BIT
-      fprintf(stderr, "hitReader::operator[]()-- ERROR: asked for hit %u out of %u.\n", x, _listLen);
-#else
-      fprintf(stderr, "hitReader::operator[]()-- ERROR: asked for hit %lu out of %lu.\n", x, _listLen);
-#endif
+      fprintf(stderr, "hitReader::operator[]()-- ERROR: asked for hit "u32bitFMT" out of "u32bitFMT".\n", x, _listLen);
       exit(1);
     }
 

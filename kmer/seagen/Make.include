@@ -1,5 +1,6 @@
 # -*- makefile -*-
 
+UTIL/       :=$(call MakePath,$/../util/)
 MERYL/      :=$(call MakePath,$/../meryl/)
 LIBBRI/     :=$(call MakePath,$/../libbri/)
 FASTA/      :=$(call MakePath,$/../fasta/)
@@ -9,18 +10,16 @@ EXISTDB/    :=$(call MakePath,$/../existDB/)
 src      := $/searchGENOME.C $/configuration.C $/encodedQuery.C \
             $/thr-search.C $/thr-loader.C $/thr-deadlock.C \
             $/hitMatrix-sort.C \
-            $/aHit.H $/hitMatrix.H $/intervalList.H $/posix.H $/searchGENOME.H
+            $/aHit.H $/aHit.C $/hitMatrix.H $/intervalList.H $/posix.H $/searchGENOME.H
 src_C    := $(filter %.C,${src})
 other_C  := $/hitConverter.C $/filterEST.C $/filterMRNA.C \
-            $/sortHits.C $/filtertest.C
+            $/sortHits.C $/filtertest.C $/hitReader.C
 
 $/.CXX_SRCS  :=${src_C} ${other_C} $/hitMatrix.C $/hitMatrix-Exact.C
 ifdef WITH_THREADS
- $/.CXX_EXES  := $/searchGENOME $/searchGENOMEexactly \
-   $/hitConverter $/filterEST $/filterMRNA $/filtertest $/sortHits
+ $/.CXX_EXES := $/searchGENOME $/searchGENOMEexactly $/hitConverter $/filterEST $/filterMRNA $/filtertest $/sortHits
 else
- $/.CXX_EXES  := \
-   $/hitConverter $/filterEST $/filterMRNA $/filtertest $/sortHits
+ $/.CXX_EXES := $/hitConverter $/filterEST $/filterMRNA $/filtertest $/sortHits
  $(warning $/searchGENOME and $/searchGENOMEexactly require threads: enable WITH_THREADS to build them.)
 endif
 
@@ -32,7 +31,7 @@ $/.REAL-CLEAN:=$/buildinfo-*
 # $/%.d $/%.o: CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} -I${EXISTDB/}
 $(eval $/%.d $/%.o: CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} -I${EXISTDB/})
 
-$/configuration.C.d:  $/buildinfo-searchGENOME.h \
+$/configuration.C.d: $/buildinfo-searchGENOME.h \
                      ${EXISTDB/}buildinfo-existDB.h \
                      ${POSITIONDB/}buildinfo-positionDB.h \
                      ${LIBBRI/}buildinfo-libbri.h \
@@ -42,16 +41,19 @@ $/searchGENOME:        $/hitMatrix.o
 $/searchGENOMEexactly: $/hitMatrix-Exact.o
 
 $/searchGENOME $/searchGENOMEexactly: \
-              ${src_C:.C=.o} $/buildinfo-searchGENOME.o \
-              ${EXISTDB/}libexistDB.a ${POSITIONDB/}libpositionDB.a \
-              ${MERYL/}libmeryl.a \
-              ${FASTA/}libfasta.a ${LIBBRI/}libbri.a
+               ${src_C:.C=.o} \
+               $/buildinfo-searchGENOME.o \
+               ${EXISTDB/}libexistDB.a \
+               ${POSITIONDB/}libpositionDB.a \
+               ${MERYL/}libmeryl.a \
+               ${FASTA/}libfasta.a \
+               ${LIBBRI/}libbri.a
 
-$/hitConverter: $/hitConverter.o
-$/filterEST: $/filterEST.o
-$/filterMRNA: $/filterMRNA.o
-$/sortHits: $/sortHits.o
-$/filtertest: $/filtertest.o
+$/hitConverter: $/hitConverter.o $/aHit.o
+$/filterEST:    $/filterEST.o $/hitReader.o $/aHit.o
+$/filterMRNA:   $/filterMRNA.o $/hitReader.o $/aHit.o
+$/sortHits:     $/sortHits.o $/aHit.o ${LIBBRI/}libbri.a
+$/filtertest:   $/filtertest.o
 
 $/buildinfo-searchGENOME.c: $/buildinfo-searchGENOME.h
 $/buildinfo-searchGENOME.h: ${src}
