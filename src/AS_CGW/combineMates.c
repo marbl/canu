@@ -6,7 +6,7 @@
  *********************************************************************/
 
 
-static char CM_ID[] = "$Id: combineMates.c,v 1.1 2004-09-23 20:32:56 mcschatz Exp $";
+static char CM_ID[] = "$Id: combineMates.c,v 1.2 2005-03-22 19:04:02 jason_miller Exp $";
 
 
 /*********************************************************************/
@@ -343,12 +343,15 @@ int main( int argc, char *argv[])
     //ovl = DP_Compare(clear1, clear2, -len2,len1,1,.06,1e-6,40,AS_FIND_LOCAL_ALIGN_NO_TRACE);
 
     if(ovl==NULL)continue;
+
     if(ovl->begpos<0||ovl->endpos<0){
       fprintf(stderr,"NEGATIVE HANG(S) ENCOUNTERED: [%d,%d] for fragments (" F_UID ",%d) and (" F_UID ",%d)\n",
 	      ovl->begpos,ovl->endpos,
 	      fragUID,fragIID,mateUID,mateIID);
       continue;
     }
+
+    fprintf(stderr,"Using overlap with length %d\n",ovl->length);
 
 #undef REALLY_USE_CONSENSUS
 #ifdef REALLY_USE_CONSENSUS

@@ -21,7 +21,7 @@
 /* CountMessages
  *    Print counts of all 'top-level' messages
  *
- * $Id: CountMessages.c,v 1.2 2004-09-23 20:25:24 mcschatz Exp $
+ * $Id: CountMessages.c,v 1.3 2005-03-22 19:06:19 jason_miller Exp $
  *
  */
 

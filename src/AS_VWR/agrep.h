@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: agrep.h,v 1.2 2004-09-23 20:25:30 mcschatz Exp $ */
+/* $Id: agrep.h,v 1.3 2005-03-22 19:09:16 jason_miller Exp $ */
 
 /* REGULAR EXPRESSION DATA TYPE:
      An e-nfa and work storage to do approximate matching.  Occupies

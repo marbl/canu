@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /* All of the CGW celamy stuff is here */
-static char CM_ID[] = "$Id: Celamy_CGW.c,v 1.2 2004-09-23 20:25:19 mcschatz Exp $";
+static char CM_ID[] = "$Id: Celamy_CGW.c,v 1.3 2005-03-22 19:03:28 jason_miller Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>

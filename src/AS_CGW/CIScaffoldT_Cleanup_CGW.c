@@ -18,10 +18,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.2 2004-09-23 20:25:19 mcschatz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.3 2005-03-22 19:03:26 jason_miller Exp $";
 
 #define DEBUG 0
 #undef DEBUG_DETAILED
+#undef DEBUG_CONNECTEDNESS
 
 
 #include <stdio.h>
@@ -1095,7 +1096,8 @@ void PropagateOverlapsToNewContig(ContigT *contig,
   }
 
   AssertPtr(scaffold);
-#ifdef DEBUG
+#undef DEBUG_PROPAGATE
+#ifdef DEBUG_PROPAGATE
   fprintf(GlobalData->stderrc,"* PropagateOverlaps...initial\n");
   DumpContig(GlobalData->stderrc,ScaffoldGraph, GetGraphNode(ScaffoldGraph->RezGraph, contig->id),FALSE);
   fprintf(GlobalData->stderrc,"* Calling internal *\n");
@@ -1135,7 +1137,7 @@ void PropagateOverlapsToNewContig(ContigT *contig,
 
 
 
-#ifdef DEBUG
+#ifdef DEBUG_PROPAGATE
   DumpContig(GlobalData->stderrc,ScaffoldGraph, GetGraphNode(ScaffoldGraph->RezGraph, contig->id),FALSE);
 
   fprintf(GlobalData->stderrc,"* Calling extermal on " F_CID " *\n", aEndID);
@@ -1144,7 +1146,7 @@ void PropagateOverlapsToNewContig(ContigT *contig,
 // Propagate overlaps from the contig at the a end of the new contig
   PropagateExtremalOverlapsToNewContig(aEndID, aEndEnd, contig, A_END, contigBase, verbose);
 
-#ifdef DEBUG
+#ifdef DEBUG_PROPAGATE
   fprintf(GlobalData->stderrc,"* Calling extermal on " F_CID " *\n", bEndID);
   DumpContig(GlobalData->stderrc,ScaffoldGraph, GetGraphNode(ScaffoldGraph->RezGraph, contig->id),FALSE);
 #endif
@@ -1154,14 +1156,14 @@ void PropagateOverlapsToNewContig(ContigT *contig,
   // Propagate Internal, non-containment overlaps
   PropagateInternalOverlapsToNewContig(contig, ContigPositions, scaffold->id, contigBase, verbose);
 
-#ifdef DEBUG
+#ifdef DEBUG_PROPAGATE
   DumpContig(GlobalData->stderrc,ScaffoldGraph, GetGraphNode(ScaffoldGraph->RezGraph, contig->id),FALSE);
   fprintf(GlobalData->stderrc,"* Calling containment *\n");
 #endif
   // Propagate Containment Overlaps
   PropagateContainmentOverlapsToNewContig(contig, ContigPositions, contigBase, verbose);
 
-#ifdef DEBUG
+#ifdef DEBUG_PROPAGATE
   DumpContig(GlobalData->stderrc,ScaffoldGraph, GetGraphNode(ScaffoldGraph->RezGraph, contig->id),FALSE);
 #endif
 }
@@ -1500,10 +1502,13 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
 
 
     MarkInternalEdgeStatus(graph, scaffold, PAIRWISECHI2THRESHOLD_CGW,
-			   maxVariance, TRUE, TRUE, 0);
+			   maxVariance, TRUE, TRUE, 0,TRUE);
 
-    numComponents = IsScaffoldInternallyConnected(graph,scaffold);
-    assert(numComponents == 1);
+    numComponents = IsScaffoldInternallyConnected(graph,scaffold,ALL_TRUSTED_EDGES);
+    if(numComponents>1){
+      //assert(numComponents == 1);
+      fprintf(stderr,"WARNING  CUAS1: scaffold %d has %d components\n",scaffold->id,numComponents);
+    }
   }
 #endif
 
@@ -1557,7 +1562,16 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
 				currCI->offsetAEnd.mean, currCI->offsetBEnd.mean, -15000);
 
       if(((maxContigsInMerge == NULLINDEX) || (contig.count < maxContigsInMerge)) &&  // artificially break longs merges if != NULLINDEX
-	 actual> CGW_DP_MINLEN){ /*  || (lookForSmallOverlaps && SmallOverlapExists(ScaffoldGraph->RezGraph, prevCI, currCI, pairwiseOrient))){ */
+
+	 // if we are not careful elsewhere, DP_Compare can return overlaps shorter than minlen;
+	 // this makes the following tempting ... but since failed overlap gaps are set to -CGW_DP_MINLEN
+	 // it seems to be a bad idea in the end ... [ALH, 09/04]
+#ifdef ALLOW_SHORT_PERFECT
+	 actual> (CGW_DP_MINLEN-(int)ceil( CGW_DP_ERATE *(double)CGW_DP_MINLEN )) ){ /*  || (lookForSmallOverlaps && SmallOverlapExists(ScaffoldGraph->RezGraph, prevCI, currCI, pairwiseOrient))){ */
+#else
+	 actual> CGW_DP_MINLEN ){ /*  || (lookForSmallOverlaps && SmallOverlapExists(ScaffoldGraph->RezGraph, prevCI, currCI, pairwiseOrient))){ */
+#endif
+
 #ifdef DEBUG_CONTIG
 	fprintf(GlobalData->stderrc,
 		"* CI " F_CID " and " F_CID " mean positions overlap by " F_COORD " (%g,%g) (%g,%g)\n",
@@ -1687,10 +1701,13 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
     float maxVariance = 1000000.0;//useGuides ? 100000000000.0 : 1000000.0;
     int numComponents;
     MarkInternalEdgeStatus(graph, scaffold, PAIRWISECHI2THRESHOLD_CGW,
-			   maxVariance, TRUE, TRUE, 0);
+			   maxVariance, TRUE, TRUE, 0,TRUE);
 
-    numComponents = IsScaffoldInternallyConnected(graph,scaffold);
-    assert(numComponents == 1);
+    numComponents = IsScaffoldInternallyConnected(graph,scaffold,ALL_TRUSTED_EDGES);
+    if(numComponents>1){
+      //assert(numComponents == 1);
+      fprintf(stderr," CUAS: scaffold %d has %d components\n",scaffold->id,numComponents);
+    }
   }
 #endif
 
@@ -2395,6 +2412,57 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
 	  oldOffsetBEnd = extremeB->offsetAEnd;
 	else
 	  oldOffsetBEnd = extremeB->offsetBEnd;
+
+	{
+	  // In the course of interleaved scaffold merging, we may create a new contig
+	  // from pieces of both contributing scaffolds.  In this event, the adjusted
+	  // variances of the original pieces may not be monotonic, which was leading
+	  // to non-monotonic variances on the contigs in the resulting scaffold.  To
+	  // "fix" this, we ensure that the resulting variance is based on the input piece
+	  // with the lowest variance.
+	  // Something similar happens when contigs are reordered (fix up a suspicious overlap)
+
+	  int i,errflag=0,errID;
+	  double minvariance = newOffsetAEnd.variance;
+	  for(i = 0; i < GetNumIntElementPoss(ContigPositions); i++){
+	    IntElementPos *pos = GetIntElementPos(ContigPositions,i);
+	    ContigT *anOrigcontig = GetGraphNode(ScaffoldGraph->ContigGraph, pos->ident);
+	    if(anOrigcontig->offsetAEnd.variance<minvariance||
+	       anOrigcontig->offsetBEnd.variance<minvariance){
+	      errflag=1;
+	      errID = pos->ident;
+	      if(anOrigcontig->offsetAEnd.variance <
+		 anOrigcontig->offsetBEnd.variance){
+		minvariance = anOrigcontig->offsetAEnd.variance;
+	      } else {
+		minvariance = anOrigcontig->offsetBEnd.variance;
+	      }
+	    }
+	  }
+	  if(errflag){
+	    double vardiff = newOffsetAEnd.variance-minvariance;
+
+	    fprintf(stderr,
+		    "WARNING: NEG. VARIANCE: Looks like in creating contig %d, the variance of the contig may be screwed up!\n"
+		    "Set to %e based on extremal orig contig, but there is another, non-extremal orig contig with min variance %e, namely %d\n",
+		    contig->id,
+		    newOffsetAEnd.variance,
+		    minvariance,
+		    errID);
+	    fprintf(stderr,"This sometimes happens when ...\n"
+		    "\t(a) scaffolds are interleaved [variance computation here not really coherent :-(]\n"
+		    "\t(b) contigs are reordered (FOEXS suspicious overlap ...)\n");
+
+#ifdef DEBUG_NEG_VARIANCE
+	    DumpACIScaffoldNew(stderr,ScaffoldGraph,scaffold,FALSE);
+#endif
+	    newOffsetAEnd.variance -= vardiff;
+
+	    fprintf(stderr,
+		    "Resetting new contig AEnd variance to %e\n",
+		    newOffsetAEnd.variance);
+	  }
+	}
 
 	// Determine the NEW mean/variance of the B end of the contig
 	newOffsetBEnd.mean = newOffsetAEnd.mean + contig->bpLength.mean;

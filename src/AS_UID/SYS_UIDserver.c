@@ -21,10 +21,10 @@
 
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_UID/Attic/SYS_UIDserver.c,v $
-$Revision: 1.1 $
-$Date: 2004-09-23 20:32:58 $
+$Revision: 1.2 $
+$Date: 2005-03-22 19:08:58 $
 $Name: not supported by cvs2svn $
-$Author: mcschatz $
+$Author: jason_miller $
 $Log: not supported by cvs2svn $
 Revision 1.2  2004/09/10 12:31:43  mschatz
 Add standard copyright notice

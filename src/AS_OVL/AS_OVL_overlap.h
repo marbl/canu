@@ -26,8 +26,8 @@
  *********************************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap.h,v 1.2 2004-09-23 20:25:25 mcschatz Exp $
- * $Revision: 1.2 $
+ * $Id: AS_OVL_overlap.h,v 1.3 2005-03-22 19:06:42 jason_miller Exp $
+ * $Revision: 1.3 $
 */
 
 
@@ -179,14 +179,6 @@
 #define  BAD_WINDOW_VALUE         (8 * QUALITY_CUTOFF)
     //  This many or more errors in a window of  BAD_WINDOW_LEN
     //  invalidates an overlap
-#define  BRANCH_PT_MATCH_VALUE    0.272
-    //  Value to add for a match in finding branch points
-    //  1.20 was the calculated value for 6% vs 35% error discrimination
-    //  Converting to integers didn't make it faster
-#define  BRANCH_PT_ERROR_VALUE    -0.728
-    //  Value to add for a mismatch in finding branch points
-    //   -2.19 was the calculated value for 6% vs 35% error discrimination
-    //  Converting to integers didn't make it faster
 #define  CHECK_MASK              0xff
     //  To set Check field in hash bucket
 
@@ -199,6 +191,12 @@
     //  cannot initiate an overlap.  Can be changed on the command
     //  line with  -K  option
 
+#define  DEFAULT_BRANCH_MATCH_VAL    0.272
+#define  PARTIAL_BRANCH_MATCH_VAL    0.0566
+    //  Value to add for a match in finding branch points.
+    //  Value was for 6% vs 35% error discrimination.
+    //  Converting to integers didn't make it faster.
+    //  Corresponding error value is this value minus 1.0
 #define  DEFAULT_NUM_PTHREADS    4
     //  Number of threads to use if not overridden by  -t
     //  command-line option
@@ -212,7 +210,8 @@
     //  Probability limit to "band" edit-distance calculation
     //  Determines  NORMAL_DISTRIB_THOLD
 #define  ENTRIES_PER_BUCKET      21
-    //  In main hash table
+    //  In main hash table.  Recommended values are 21, 31 or 42
+    //  depending on cache line size.
 #define  ERRORS_FOR_FREE         1
     //  The number of errors that are ignored in setting probability
     //  bound for terminating alignment extensions in edit distance
@@ -271,10 +270,6 @@
     //  The largest error allowed in overlaps
 #define  MAX_FRAG_LEN            2048
     //  The longest fragment allowed
-#define  MAX_FRAGS_IN_MEMORY_STORE  100000
-    //  The most fragments to allow to be loaded into a temporary
-    //  memory fragment store when streaming through a disk-based
-    //  memory store.
 #define  MAX_ERRORS              (1 + (int) (MAX_ERROR_RATE * MAX_FRAG_LEN))
     //  Most errors in any edit distance computation
 #define  MAX_FRAGS_PER_THREAD    500
@@ -337,6 +332,10 @@
 #define  INITIAL_DATA_LEN        (EXPECTED_STRING_LEN * Max_Hash_Strings)
     //  The number of bytes to allocate initially for hash-table sequence
 
+#define  MAX_OLD_BATCH_SIZE      100000
+    //  Most old fragments to read at a time from the fragment store
+#define  MAX_HASH_LOAD           0.70
+    //  Maximum portion of hash table allowed to be filled
 #define  MAX_LINE_LEN            1000
     //  Maximum input line when reading FASTA file
 #define  MAX_NAME_LEN            500
@@ -563,6 +562,7 @@ typedef  struct Work_Area
 extern int  Hash_Mask_Bits;
 extern int  Max_Hash_Data_Len;
 extern int  Max_Hash_Strings;
+extern int  Max_Frags_In_Memory_Store;
 
 extern int  Contig_Mode;
 extern uint32  Last_Hash_Frag_Read;

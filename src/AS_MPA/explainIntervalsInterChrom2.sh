@@ -22,7 +22,7 @@
 #
 ###########################################################################
 #
-# $Id: explainIntervalsInterChrom2.sh,v 1.2 2004-09-23 20:25:24 mcschatz Exp $
+# $Id: explainIntervalsInterChrom2.sh,v 1.3 2005-03-22 19:05:50 jason_miller Exp $
 #
 
 # params: 1=assembly, 2=input file, 3=tempdir

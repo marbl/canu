@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: UpdateEratesOVL.c,v 1.2 2004-09-23 20:25:26 mcschatz Exp $
- * $Revision: 1.2 $
+ * $Id: UpdateEratesOVL.c,v 1.3 2005-03-22 19:07:12 jason_miller Exp $
+ * $Revision: 1.3 $
 */
 
-static char CM_ID[] = "$Id: UpdateEratesOVL.c,v 1.2 2004-09-23 20:25:26 mcschatz Exp $";
+static char CM_ID[] = "$Id: UpdateEratesOVL.c,v 1.3 2005-03-22 19:07:12 jason_miller Exp $";
 
 
 //  System include files
@@ -173,6 +173,10 @@ static void  Set_Corrected_Erate
   {
     FILE * fp = NULL;
     Short_Olap_Data_t  buff = {0};
+    // Warning: Next line can blow the stack at program startup. 
+    // Alter process stacksize ('limit') and IO_BUFF_SIZE setting.
+    // Switch to malloc() if necesary.
+    // Jason Miller, Jan 2005.
     Short_Olap_Data_t  io_buff [IO_BUFF_SIZE] = {{0}};
     uint32  * olap_offset = NULL, max_frag = 0, frags_per_file = 0;
     char  filename [MAX_FILENAME_LEN] = "\0";
@@ -290,6 +294,8 @@ static void  Set_Corrected_Erate
            file_index ++;
           }
    }
+
+   free(olap_offset);
 
    if  (ct != num)
        {

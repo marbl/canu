@@ -25,7 +25,7 @@
  * Jason Miller, 7/2001.
  *********************************************************************/
 
-static char CM_ID[]= "$Id: AS_MSG_Utility.c,v 1.2 2004-09-23 20:25:24 mcschatz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_Utility.c,v 1.3 2005-03-22 19:05:58 jason_miller Exp $";
 
 #include <assert.h>
 #include "AS_MSG_Utility.h"

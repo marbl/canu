@@ -35,8 +35,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: DataTypesREZ.h,v 1.2 2004-09-23 20:25:27 mcschatz Exp $
- * $Revision: 1.2 $
+ * $Id: DataTypesREZ.h,v 1.3 2005-03-22 19:07:33 jason_miller Exp $
+ * $Revision: 1.3 $
 */
 
 #ifndef DATA_TYPES_REZ_H

@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FragCorrectOVL.c,v 1.2 2004-09-23 20:25:25 mcschatz Exp $
- * $Revision: 1.2 $
+ * $Id: FragCorrectOVL.c,v 1.3 2005-03-22 19:07:04 jason_miller Exp $
+ * $Revision: 1.3 $
 */
 
-static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.2 2004-09-23 20:25:25 mcschatz Exp $";
+static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.3 2005-03-22 19:07:04 jason_miller Exp $";
 
 
 //  System include files
@@ -1104,7 +1104,7 @@ static void  Extract_Needed_Frags
           }
 
       result = getClearRegion_ReadStruct
-                   (frag_read, & clear_start, & clear_end, READSTRUCT_ORIGINAL);
+                   (frag_read, & clear_start, & clear_end, READSTRUCT_OVL);
       if  (result != 0)
           {
            fprintf (stderr, "Error reading clear range from frag store\n");
@@ -2193,7 +2193,7 @@ static void  Read_Frags
           }
 
       result = getClearRegion_ReadStruct
-                   (frag_read, & clear_start, & clear_end, READSTRUCT_ORIGINAL);
+                   (frag_read, & clear_start, & clear_end, READSTRUCT_OVL);
       if  (result != 0)
           {
            fprintf (stderr, "Error reading clear range from frag store\n");
@@ -2422,7 +2422,7 @@ static void  Stream_Old_Frags
           }
 
       result = getClearRegion_ReadStruct
-                   (frag_read, & clear_start, & clear_end, READSTRUCT_ORIGINAL);
+                   (frag_read, & clear_start, & clear_end, READSTRUCT_OVL);
       if  (result != 0)
           {
            fprintf (stderr, "Error reading clear range from frag store\n");

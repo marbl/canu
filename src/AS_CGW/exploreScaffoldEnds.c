@@ -74,7 +74,7 @@ int strhashcmp(const void *a , const void *b){
   return strcmp(A,B);
 }
 
-static int useFrgMaps = 1;
+static int useFrgMaps = 0;
 
 void setup_frg_maps(const char *subset_map, const char *full_map){
   FILE *subset_frg_map = fopen(subset_map,"r");
@@ -127,12 +127,10 @@ void setup_frg_maps(const char *subset_map, const char *full_map){
   }
 }
 
-void setup_ovlStore(char *OVL_Store_Path){
-
-  assert(my_store==NULL);
-  my_store = New_OVL_Store ();
-  Open_OVL_Store (my_store, OVL_Store_Path);
-
+void setup_ovlStore(void){
+  ScaffoldGraph->frgOvlStore = New_OVL_Store ();
+  Open_OVL_Store (ScaffoldGraph->frgOvlStore, GlobalData->OVL_Store_Name);
+  my_store=ScaffoldGraph->frgOvlStore;
 }
 
 void print_olap(Long_Olap_Data_t olap){
@@ -181,9 +179,8 @@ void finished_with_ovlStore(void){
 
 
 void usage(char *pgm){
-	fprintf (stderr, "USAGE:  %s -f <FragStoreName> -g <GatekeeperStoreName> -c <CkptFileName> -n <CkpPtNum> -1 <subset_map> [ -2 <full_map> ] -o <full_ovlStore>\n"
-		 "(set subset_map to NULL and omit full_map if using single asm)\n",
-		 pgm);
+  fprintf (stderr, "USAGE:  %s -f <FragStoreName> -g <GatekeeperStoreName> -c <CkptFileName> -n <CkpPtNum> -o <full_ovlStore>\n",
+	   pgm);
 }
 
 void find_first_and_last_unitigs(
@@ -521,6 +518,7 @@ int main (int argc , char * argv[] ) {
   char *prefix;
   int setFragStore = FALSE;
   int setGatekeeperStore = FALSE;
+  int setOvlStore = FALSE;
   int setPrefixName = FALSE;
   int ckptNum = NULLINDEX;
   int i, index;
@@ -543,7 +541,7 @@ int main (int argc , char * argv[] ) {
   { /* Parse the argument list using "man 3 getopt". */ 
     int ch,errflg=0;
     optarg = NULL;
-    while (!errflg && ((ch = getopt(argc, argv,"c:f:g:n:1:2:o:")) != EOF)){
+    while (!errflg && ((ch = getopt(argc, argv,"c:f:g:n:o:")) != EOF)){
       switch(ch) {
       case 'c':
 	strcpy( data->File_Name_Prefix, argv[optind - 1]);
@@ -561,17 +559,9 @@ int main (int argc , char * argv[] ) {
 	ckptNum = atoi(argv[optind - 1]);
 	break;
       case 'o':
-	strcpy(ovlPath,argv[optind-1]);
-	setFullOvl=1;
-	break;
-      case '1':
-	strcpy(subset_map,argv[optind-1]);
-	setSubsetMap=1;
-	break;
-      case '2':
-	strcpy(full_map,argv[optind-1]);
-	setFullMap=1;
-	break;
+	strcpy( data->OVL_Store_Name, argv[optind - 1]);
+	setOvlStore = TRUE;
+	break;	  
       case '?':
 	fprintf(stderr,"Unrecognized option -%c",optopt);
       default :
@@ -579,7 +569,7 @@ int main (int argc , char * argv[] ) {
       }
     }
 
-    if((setPrefixName == FALSE) || (setFragStore == 0) || (setGatekeeperStore == 0) || !setSubsetMap || (!setFullMap&& strcmp(subset_map,"NULL") != 0) || !setFullOvl)
+    if((setPrefixName == FALSE) || (setFragStore == 0) || (setGatekeeperStore == 0) || (setOvlStore==0))
       {
 	fprintf(stderr,"* argc = %d optind = %d setFragStore = %d setGatekeeperStore = %d\n",
 		argc, optind, setFragStore,setGatekeeperStore);
@@ -591,23 +581,18 @@ int main (int argc , char * argv[] ) {
 
   ScaffoldGraph = 
     LoadScaffoldGraphFromCheckpoint( data->File_Name_Prefix, ckptNum, FALSE);
-
-  if(strcmp(subset_map,"NULL") != 0){
-    setup_frg_maps(subset_map, full_map);
-  } else {
-    useFrgMaps=0;
-  }
-
-  setup_ovlStore(ovlPath);
-
+  setup_ovlStore();
   init_frg_processing();
 
   // over all scfs in graph
-  { int sid;
-  for (sid = 0; sid < GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph); sid++){
-    explore_ends_of_a_scaffold(sid);
+  { 
+    int sid;
+    int numScaf= GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph);
+    for (sid = 0; sid < numScaf; sid++){
+      NodeCGW_T *scf = GetGraphNode(ScaffoldGraph->ScaffoldGraph,sid);
+      if(scf->flags.bits.isDead)continue;
+      explore_ends_of_a_scaffold(sid);
+    }
   }
-  }
-  finished_with_ovlStore();  
 }
 

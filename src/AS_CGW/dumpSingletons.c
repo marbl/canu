@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpSingletons.c,v 1.1 2004-09-23 20:32:56 mcschatz Exp $";
+static char CM_ID[] = "$Id: dumpSingletons.c,v 1.2 2005-03-22 19:04:02 jason_miller Exp $";
 
 
 /*********************************************************************/
@@ -295,8 +295,12 @@ int main( int argc, char *argv[])
 	      error(AS_TER_UIDSERVER_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
 	    }
 
+	  // make sure the following chain of Ns is divisible by three; the exact
+	  // length is arbitrary but Doug Rusch points out that by making it
+	  // divisible by 3, we can get lucky and maintain the phase of a protein ...
+	  // which helps in the auto-annotation of environmental samples
 	  printf(">" F_S64 " /type=mini_scaffold /frgs=(" F_S64 "," F_S64 ")\n"
-		 "%sNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN%s\n",
+		 "%sNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN%s\n",
 		 uid,
 		 gkpFrag.readUID,gkpMate.readUID,
 		 toprint1,toprint2);

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_CGB_testhisto.c,v 1.2 2004-09-23 20:25:01 mcschatz Exp $
+ * $Id: AS_CGB_testhisto.c,v 1.3 2005-03-22 19:02:32 jason_miller Exp $
  * Module:
  * Description:
  * Assumptions:
@@ -32,7 +32,7 @@
 #define max(a,b) (a>b ? a : b)
 
 /*************************************************************************/
-static char CM_ID[] = "$Id: AS_CGB_testhisto.c,v 1.2 2004-09-23 20:25:01 mcschatz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_testhisto.c,v 1.3 2005-03-22 19:02:32 jason_miller Exp $";
 /*************************************************************************/
 
 typedef struct {

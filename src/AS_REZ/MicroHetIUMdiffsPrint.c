@@ -25,7 +25,7 @@
  Assumptions:
 **********************************************************************/
 
-static char CM_ID[] = "$Id: MicroHetIUMdiffsPrint.c,v 1.1 2004-09-23 20:32:58 mcschatz Exp $";
+static char CM_ID[] = "$Id: MicroHetIUMdiffsPrint.c,v 1.2 2005-03-22 19:07:42 jason_miller Exp $";
 
 
 #include <unistd.h> /* man 3 getopt */

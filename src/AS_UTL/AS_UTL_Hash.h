@@ -173,6 +173,7 @@ UIDHashNode_AS *AllocUIDHashNode_AS(UIDHashTable_AS *table,
 int InsertInUID2IIDHashTable_AS(UIDHashTable_AS *table, uint64 key, int32 value);
 
 int32* LookupInUID2IIDHashTable_AS(UIDHashTable_AS *table, uint64 key);
+void DeleteUIDHashTable_AS(UIDHashTable_AS *table);
 
 #endif
 

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.2 2004-09-23 20:25:19 mcschatz Exp $";
+static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.3 2005-03-22 19:03:29 jason_miller Exp $";
 
 #include "AS_global.h"
 #include <assert.h>
@@ -2806,7 +2806,11 @@ Overlap* OverlapSequences( char *seq1, char *seq2,
   // return seq1 to its original state
   if (orientation == BA_AB || orientation == BA_BA)
 	Complement_Seq( seq1 );
-  
+
+  // to protect against overlaps shorter than minlen that could be extended
+  // by end-gaps to minlen long ...
+  if(omesg!=NULL&&omesg->length<=minlen)return NULL;
+
   // omesg->begpos is the a-hang, omesg->endpos is the b-hang
   return omesg;
 }

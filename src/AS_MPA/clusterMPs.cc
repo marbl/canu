@@ -18,19 +18,23 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: clusterMPs.cc,v 1.2 2004-09-23 20:25:23 mcschatz Exp $ */
+/* $Id: clusterMPs.cc,v 1.3 2005-03-22 19:05:47 jason_miller Exp $ */
 #include <iostream>
 #include <vector>
 #include <list>
 #include <map>
 
-#include "MPTypes.h"
+#include "clusterMPs.h"
+
+using namespace std;
+
 #include "Rectangle.h"
 #include "TwoDIntervalClique.h"
 #include "IntervalSetCoverSolver.h"
 #include "CompositeMPPolygon.h"
 #include "PolygonIntersector.h"
-#include "clusterMPs.h"
+#include "MPTypes.h"
+
 
 //#define DEBUG_CLUSTERMPS
 //#define DEBUG_CLUSTERMPS_BIGTIME

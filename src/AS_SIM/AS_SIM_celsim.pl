@@ -85,9 +85,9 @@ $base_index{t} = 3;
 # $dummy is justa device to get around CVS mechanisms.  If there is just a $ then
 # Perl complains.  If you put \$ and check-in CVS removes the \.  So $dummy fools
 # them both.
-@revFields = split(' ', "\$Revision: 1.2 $dummy", 9999);
+@revFields = split(' ', "\$Revision: 1.3 $dummy", 9999);
 $revision = $revFields[2];
-@dateFields = split(' ', "\$Date: 2004-09-23 20:25:28 $dummy", 9999);
+@dateFields = split(' ', "\$Date: 2005-03-22 19:08:33 $dummy", 9999);
 $date = $dateFields[2];
 print $STDERR . 'date = ' . $date . ' revision = ' . $revision;
 while ($base < ($#ARGV+1) - 1) {

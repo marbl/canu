@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: get-uid-olaps.c,v 1.2 2004-09-23 20:25:26 mcschatz Exp $
- * $Revision: 1.2 $
+ * $Id: get-uid-olaps.c,v 1.3 2005-03-22 19:07:13 jason_miller Exp $
+ * $Revision: 1.3 $
 */
 
-static char fileID[] = "$Id: get-uid-olaps.c,v 1.2 2004-09-23 20:25:26 mcschatz Exp $";
+static char fileID[] = "$Id: get-uid-olaps.c,v 1.3 2005-03-22 19:07:13 jason_miller Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>

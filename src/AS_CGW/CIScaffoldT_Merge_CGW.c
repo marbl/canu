@@ -18,14 +18,15 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.2 2004-09-23 20:25:19 mcschatz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.3 2005-03-22 19:03:27 jason_miller Exp $";
 
 #undef ORIG_MERGE_EDGE_INVERT
-#define DEBUG_MERGE_EDGE_INVERT	  
 #define MINSATISFIED_CUTOFF 0.985
-#define DEBUG_BAD_MATE_RATIO
+#undef DEBUG_MERGE_EDGE_INVERT	  
+#undef  DEBUG_BAD_MATE_RATIO
+//#define DRAW_BAD_MATE_CAMS    // was leading to assert on fopen. Jason 12/9/04
 
-#ifdef DEBUG_BAD_MATE_RATIO
+#ifdef DRAW_BAD_MATE_CAMS
   #include <sys/types.h>
   #include <dirent.h>
 #endif
@@ -3282,6 +3283,8 @@ int isQualityScaffoldMergingEdge(SEdgeT * curEdge,
 #ifdef DEBUG_BAD_MATE_RATIO
       DumpACIScaffoldNew(stderr,ScaffoldGraph,scaffoldA,FALSE);
       DumpACIScaffoldNew(stderr,ScaffoldGraph,scaffoldB,FALSE);
+#endif
+#ifdef DRAW_BAD_MATE_CAMS
       {
 	int64 scaffoldAEndCoord = 0, scaffoldBEndCoord = 0, endcoord=0;
 	char camname[1000];
@@ -4071,7 +4074,7 @@ void ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
           */
           
 	  // this is still a problem but why?  (MP)
-	  //assert(sai->numSegs==GetNumSegmentsInList(sai->segmentList));
+	  assert(sai->numSegs==GetNumSegmentsInList(sai->segmentList));
 
           if((sai->segmentList =
               Align_Scaffold(sai->segmentList,
@@ -4236,6 +4239,8 @@ void ExamineUsableSEdges(VA_TYPE(PtrT) *sEdges,
       {
         if(sEdge[i]->distance.mean > 0)
         {
+	  if(isBadScaffoldMergeEdge(sEdge[i], iSpec->badSEdges))continue;
+
           maxWeightEdge = sEdge[i]->edgesContributing;
           break;
         }
@@ -4243,7 +4248,14 @@ void ExamineUsableSEdges(VA_TYPE(PtrT) *sEdges,
     }
     else
     {
-      maxWeightEdge = sEdge[0]->edgesContributing;
+
+      for(i = 0; i < GetNumVA_PtrT(sEdges); i++)
+      {
+	if(isBadScaffoldMergeEdge(sEdge[i], iSpec->badSEdges))continue;
+	maxWeightEdge = sEdge[i]->edgesContributing;
+	break;
+      }
+      
     }
     
     if ( maxWeightEdge/EDGE_WEIGHT_FACTOR < minWeightThreshold )
@@ -4265,12 +4277,13 @@ void ExamineUsableSEdges(VA_TYPE(PtrT) *sEdges,
       
       for ( i = 0; i < 128; i++)
         edgeWeightCount[i] = 0;
+      assert(maxWeightEdge < 128);
       
       for ( i = 0; i < GetNumPtrTs( sEdges ); i++)
       {
         edgeWeightCount[ sEdge[i]->edgesContributing ]++;
       }
-      
+
       for ( i = 0; i <= maxWeightEdge; i++)
       {
         if ( edgeWeightCount[i] > 0 )
@@ -4431,7 +4444,7 @@ int MergeScaffolds(VA_TYPE(CDS_CID_t) * deadScaffoldIDs,
   GraphNodeIterator scaffolds;
   CIScaffoldT *thisScaffold;
   CDS_CID_t thisScaffoldID; /* The index of the thisScaffold. We have to be careful about thisScaffold since
-                           it is a poitner to a an element of the scaffolds array, which may be reallocated
+                           it is a pointer to a an element of the scaffolds array, which may be reallocated
                            during the loop. */
   CDS_CID_t currentSetID = 0;
   int cntScaffold = 1;
@@ -4771,6 +4784,12 @@ v      if(GetMateStatsBad(&(matesBefore.intra)) +
                                PAIRWISECHI2THRESHOLD_CGW,
                                1000.0 * SLOPPY_EDGE_VARIANCE_THRESHHOLD,
                                TRUE, TRUE, 0, TRUE);
+
+	assert(IsScaffoldInternallyConnected(ScaffoldGraph,
+					     GetGraphNode(ScaffoldGraph->ScaffoldGraph,
+							  newScaffoldID),
+					     ALL_EDGES));
+
         status =
           RecomputeOffsetsInScaffold(ScaffoldGraph,
                                      GetGraphNode(ScaffoldGraph->ScaffoldGraph,
@@ -4840,7 +4859,7 @@ v      if(GetMateStatsBad(&(matesBefore.intra)) +
 			  GetMateStatsHappy(&(matesBefore.inter)) +  GetMateStatsHappy(&(matesBefore.intra))) 
 		 > MAX_FRAC_BAD_TO_GOOD)
 		)
-#endif
+#endif  // REQUIRE_BAD
 	    )
 	   )
 	  {
@@ -4848,13 +4867,13 @@ v      if(GetMateStatsBad(&(matesBefore.intra)) +
 		    "Scaffold merging results did not meet expectations!\n");
 	  }
       }
-#endif
+#endif // INSTRUMENT_CGW
       
 #ifdef CHECK_CONTIG_ORDERS
       CompareNewOrientations(ScaffoldGraph, newScaffold, coc);
 #endif
     }
-#endif
+#endif // INSTRUMENT_CGW || CHECK_CONTIG_ORDERS
     
     ScaffoldGraph->numLiveScaffolds += (1 - numMerged);
     currentSetID++;
@@ -5095,7 +5114,7 @@ void MergeScaffoldsAggressive(ScaffoldGraphT *graph, int verbose)
   InterleavingSpec iSpec;
   
   if(verbose){
-    fprintf(GlobalData->stderrc, "Starting MergeScaffoldsAggressive_new\n");
+    fprintf(GlobalData->stderrc, "Starting MergeScaffoldsAggressive\n");
     
   }
   CheckCIScaffoldTs(ScaffoldGraph);

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.2 2004-09-23 20:25:29 mcschatz Exp $";
+static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.3 2005-03-22 19:09:01 jason_miller Exp $";
 /********************************************************************/
 /* Variable Length C Array Package 
  * 
@@ -30,8 +30,8 @@ static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.2 2004-09-23 20:25:29 mcschatz Exp 
  * It defines a basic set of operations, and provides a set of
  * macros that expand to support typesafe manipulation of the
  * arrays.
- * Revision: $Revision: 1.2 $
- * Date:     $Date: 2004-09-23 20:25:29 $
+ * Revision: $Revision: 1.3 $
+ * Date:     $Date: 2005-03-22 19:09:01 $
  * CMM, 1999/03/29:  Ported to large arrays on the Digital systems by declaring
  * array sizes using size_t, rather than unit32.
  *

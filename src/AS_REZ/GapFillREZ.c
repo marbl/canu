@@ -37,7 +37,7 @@
 
 
 
-static char fileID[] = "$Id: GapFillREZ.c,v 1.2 2004-09-23 20:25:27 mcschatz Exp $";
+static char fileID[] = "$Id: GapFillREZ.c,v 1.3 2005-03-22 19:07:37 jason_miller Exp $";
 
 
 #include <stdio.h>
@@ -501,7 +501,8 @@ static int  Choose_Best_Stones
 static void  Choose_Safe_Chunks
     (Scaffold_Fill_t * fill_chunks, int min_good_links, int min_cover_stat);
 static void  Choose_Stones
-    (Scaffold_Fill_t * fill_chunks, int min_good_links, int min_cover_stat);
+    (Scaffold_Fill_t * fill_chunks, int min_good_links, int min_cover_stat,
+     int allow_bogus_edges);
 static int  Chunk_Contained_In_Chunk
     (Gap_Chunk_t * A, Gap_Chunk_t * B);
 static int  Chunk_Contained_In_Scaff
@@ -612,7 +613,7 @@ void  Print_Fill_Info_One_Scaffold
 static void  Print_Frag_Info
     (FILE * fp, int cid);
 static void  Print_Potential_Fill_Chunks
-    (FILE * fp, int (* has_potential) (ContigT *));
+    (FILE * fp, int (* has_potential) (ContigT *), int allow_bogus_edges);
 static void  Print_Scaffolds
     (FILE * fp);
 static void  Print_Unique_Chunks
@@ -679,7 +680,6 @@ static void   Verify_Single_Placement
     (Scaffold_Fill_t * fill);
 static int  Violates_Scaff_Edges
     (Scaff_Join_t  * p);
-static int IsSurrogate(ChunkInstanceT * chunk);
 static void  Adjust_By_Ref_Variance_One_Scaffold(Scaffold_Fill_t * fill_chunks, int scaff_id);
 
 
@@ -1880,9 +1880,9 @@ fprintf (stderr, ">>> Adding cid = %d to gap %d in scaff %d\n",
        {
         left_extreme = left_end . mean + 5.0 * sqrt (left_end . variance);
         right_extreme = right_end . mean - 5.0 * sqrt (right_end . variance);
-        if  (g -> len <= 0
-               || (right_extreme > g -> start . mean
-                     && left_extreme < g -> end . mean))
+
+        if  (g -> len > 0 && right_extreme > g -> start . mean
+                  && left_extreme < g -> end . mean)
            {
 #if  VERBOSE
             fprintf (stderr, ">>> Chunk %d not a contained at gap %d of scaff %d\n",
@@ -4009,7 +4009,8 @@ static void  Choose_Safe_Chunks
 
 
 static void  Choose_Stones
-    (Scaffold_Fill_t * fill_chunks, int min_good_links, int min_cover_stat)
+    (Scaffold_Fill_t * fill_chunks, int min_good_links, int min_cover_stat,
+     int allow_bogus_edges)
 
 //  Choose unresolved chunks that have at least  min_good_links
 //  to a scaffold and assign them to gaps in the  fill_chunks  structure.
@@ -4017,6 +4018,8 @@ static void  Choose_Stones
 //  inconsistent.
 //  Chunks whose coverage statistic is below  min_cover_stat  are not
 //  selected.
+//  If  allow_bogus_edges  is true, can use mate links that are marked
+//   isProbablyBogusEdge () ; otherwise, ignore those edges.
 //  Global  Ref  has information about positions of unique chunks in
 //  scaffolds.
 //
@@ -4154,7 +4157,6 @@ static void  Choose_Stones
                     CGB_Type_As_String (chunk -> flags . bits . cgbType));
 #endif
 
-
            if  (Single_Fragment_Only)
                {
                 ChunkInstanceT  * first_chunk;
@@ -4212,7 +4214,7 @@ static void  Choose_Stones
              {
               ChunkInstanceT  * other_chunk;
 
-              if  (isProbablyBogusEdge (edge)
+              if  ((isProbablyBogusEdge (edge) && ! allow_bogus_edges)
                      || isSloppyEdge (edge))
                   continue;
 
@@ -4590,7 +4592,8 @@ static void  Confirm_Contained
 //  of the scaffold contigs bounding the gap to be considered
 //  contained in that contig.  If so mark its  keep  flag
 //  and set its position; otherwise, set its  keep  flag
-//  false.  Send output log to  fp .
+//  false.  Send output log to  fp .  If  fp  is  NULL , do
+//  no actual writing.
 //  If  use_all  is true, use all the chunks in  fill_chunks ;
 //  otherwise, use only the ones whose  keep  flag is already
 //  true.
@@ -4598,7 +4601,8 @@ static void  Confirm_Contained
   {
    int  scaff_id;
 
-fprintf (fp, "\n Confirm_Contained:\n");
+   if  (fp != NULL)
+       fprintf (fp, "\n Confirm_Contained:\n");
 
    for  (scaff_id = 0;  scaff_id < Num_Scaffolds;  scaff_id ++)
      {
@@ -4616,7 +4620,8 @@ fprintf (fp, "\n Confirm_Contained:\n");
              continue;
 
 #if  VERBOSE
-fprintf (fp, "\nConfirm_Contained Scaff %d  Gap %d\n", scaff_id, j);
+if  (fp != NULL)
+    fprintf (fp, "\nConfirm_Contained Scaff %d  Gap %d\n", scaff_id, j);
 #endif
 
          if  (this_gap -> left_cid >= 0)
@@ -4675,7 +4680,8 @@ fprintf (fp, "\nConfirm_Contained Scaff %d  Gap %d\n", scaff_id, j);
                         && left_olap != NULL
                         && left_olap -> length >= this_chunk -> len)
                      {
-                      fprintf (fp, "cid %5d Left olap  %6d %6d %6d\n",
+                      if  (fp != NULL)
+                          fprintf (fp, "cid %5d Left olap  %6d %6d %6d\n",
                                this_chunk -> chunk_id,
                                left_olap -> begpos, left_olap -> endpos,
                                left_olap -> length);
@@ -4688,7 +4694,8 @@ fprintf (fp, "\nConfirm_Contained Scaff %d  Gap %d\n", scaff_id, j);
                         && right_olap != NULL
                         && right_olap -> length >= this_chunk -> len)
                      {
-                      fprintf (fp, "cid %5d Right olap  %6d %6d %6d\n",
+                      if  (fp != NULL)
+                          fprintf (fp, "cid %5d Right olap  %6d %6d %6d\n",
                                this_chunk -> chunk_id,
                                right_olap -> begpos, right_olap -> endpos,
                                right_olap -> length);
@@ -6519,7 +6526,8 @@ if  (good_edge < 0)
          scaff_chunk . start = REF (stack [i] . chunk_id) . a_end;
          scaff_chunk . end = REF (stack [i] . chunk_id) . b_end;
 
-         if  (Is_Edge_Consistent (stack [i] . edge, & new_chunk, & scaff_chunk))
+         if  (Single_Fragment_Only
+                  || Is_Edge_Consistent (stack [i] . edge, & new_chunk, & scaff_chunk))
              {
               (* edge_quality) += CIEdge_Quality (stack [i] . edge);
               good_links += stack [i] . num_good_mates;
@@ -6729,7 +6737,7 @@ fprintf (stderr, ">>> Before  Print_Scaffolds\n");
    Print_Scaffolds (log_file);
 
 fprintf (stderr, ">>> Before  Print_Potential_Fill_Chunks\n");
-   Print_Potential_Fill_Chunks (log_file, Maybe_Rock);
+   Print_Potential_Fill_Chunks (log_file, Maybe_Rock, FALSE);
 
    StartTimerT(&GlobalData->ChooseChunksTimer);
 
@@ -7578,7 +7586,7 @@ fprintf (stderr, ">>> Before  Print_Scaffolds\n");
    Print_Scaffolds (log_file);
 
 fprintf (stderr, ">>> Before  Print_Potential_Fill_Chunks\n");
-   Print_Potential_Fill_Chunks (log_file, Maybe_Rock);
+   Print_Potential_Fill_Chunks (log_file, Maybe_Rock, TRUE);
 
    StartTimerT(&GlobalData->ChooseChunksTimer);
 
@@ -9315,7 +9323,8 @@ static void  Print_Scaffolds
 
 //  Print list of all scaffolds and the chunks in them, sending output
 //  to  fp .  Set global  Ref  to array of references of scaffold and relative
-//  position in it for each scaffold.
+//  position in it for each scaffold.  If  fp  is  NULL  do no
+//  actual printing.
 
   {
    GraphNodeIterator scaffolds;
@@ -9323,7 +9332,8 @@ static void  Print_Scaffolds
    int  scaff_id;
    int  last_coord_used = 0;
 
-   fprintf (fp, "\nScaffolds\n");
+   if  (fp != NULL)
+       fprintf (fp, "\nScaffolds\n");
 
    InitGraphNodeIterator (& scaffolds, ScaffoldGraph -> ScaffoldGraph,
                           GRAPH_NODE_DEFAULT);
@@ -9341,18 +9351,21 @@ static void  Print_Scaffolds
 #endif
 
       scaff_id = scaffold -> id;
-      fprintf (fp, "Scaffold %3d:\n", scaff_id);
-      fprintf (fp, "  %3s  %7s    (%8s, %8s)  (%8s, %8s)"
+      if  (fp != NULL)
+          {
+           fprintf (fp, "Scaffold %3d:\n", scaff_id);
+           fprintf (fp, "  %3s  %7s    (%8s, %8s)  (%8s, %8s)"
 #if  CHECK_CELSIM_COORDS
-      "  [%8s  %-8s]"
+           "  [%8s  %-8s]"
 #endif
-      "  %7s\n",
-               "Idx",  "Chunk", "Start", "Variance",
-               "End", "Variance",
+           "  %7s\n",
+                    "Idx",  "Chunk", "Start", "Variance",
+                    "End", "Variance",
 #if  CHECK_CELSIM_COORDS
-               "Celsim", "Coords",
+                    "Celsim", "Coords",
 #endif
-               "Len");
+                    "Len");
+          }
 
 #if  MAKE_CAM_FILE
       fprintf (Cam_File, "LNK: ");
@@ -9402,7 +9415,8 @@ static void  Print_Scaffolds
          double  denom;
 #endif
 
-         fprintf (fp,
+         if  (fp != NULL)
+             fprintf (fp,
                   "  %3d: %7d    (%8.0f, %8.0f)  (%8.0f, %8.0f)"
 #if  CHECK_CELSIM_COORDS
                   "  [%8ld, %8ld]"
@@ -9432,7 +9446,8 @@ static void  Print_Scaffolds
               fprintf (stderr,
                        "ERROR:  Negative variance for chunk %d in scaffold %d\n",
                        chunk -> id, scaff_id);
-              fclose (fp);
+              if  (fp != NULL)
+                  fclose (fp);
               assert (FALSE);
              }
          if  ((dip = chunk -> offsetAEnd . variance - prev_variance) < 0.0
@@ -9441,7 +9456,8 @@ static void  Print_Scaffolds
               fprintf (stderr,
                        "ERROR:  Variance dip by %f for chunk %d in scaffold %d\n",
                        dip, chunk -> id, scaff_id);
-              fclose (fp);
+              if  (fp != NULL)
+                  fclose (fp);
               assert (FALSE);
              }
 #if CHECK_CELSIM_COORDS
@@ -9454,7 +9470,7 @@ static void  Print_Scaffolds
               target = slope * chunk -> offsetAEnd . mean + y_intercept;
               diff = fabs (chunk -> aEndCoord - target);
               tolerance = fabs (slope * delta);
-              if  (diff > tolerance)
+              if  (diff > tolerance && fp != NULL)
                   fprintf (fp,
                   "OOPS  AEnd:  dif = %.0f tol = %.0f slope = %.1f y_int = %.1f\n",
                            diff, tolerance, slope, y_intercept);
@@ -9466,7 +9482,7 @@ static void  Print_Scaffolds
               tolerance = fabs (slope * delta);
               if  (tolerance < 50.0)
                   tolerance = 50.0;
-              if  (diff > tolerance)
+              if  (diff > tolerance && fp != NULL)
                   fprintf (fp,
                   "OOPS  BEnd:  dif = %.0f tol = %.0f slope = %.1f y_int = %.1f\n",
                            diff, tolerance, slope, y_intercept);
@@ -9489,7 +9505,10 @@ static void  Print_Scaffolds
               slope = (chunk -> bEndCoord - chunk -> aEndCoord)
                         / denom;
               if  (fabs (fabs (slope) - 1.0) > 1.0)
-                  fprintf (fp, "OOPS:  Bad slope = %.3f\n", slope);
+                  {
+                   if  (fp != NULL)
+                       fprintf (fp, "OOPS:  Bad slope = %.3f\n", slope);
+                  }
               else if  (slope > 0.0)
                   slope = 1.0;
                 else
@@ -9527,7 +9546,8 @@ static void  Print_Scaffolds
               fprintf (stderr, "chunk -> id = %d\n", chunk -> id);
               fprintf (stderr, "REF . scaff_id = %d\n", REF (chunk -> id) . scaff_id);
               fprintf (stderr, "scaff_id = %d\n", scaff_id);
-              fflush (fp);
+              if  (fp != NULL)
+                  fflush (fp);
              }
          assert (REF (chunk -> id) . scaff_id == scaff_id);
          REF (chunk -> id) . rel_pos = scaff_index;
@@ -9554,7 +9574,8 @@ static void  Print_Scaffolds
 
    // List all scaffold edges
 
-   fprintf (fp, "\nScaffold Edges\n");
+   if  (fp != NULL)
+       fprintf (fp, "\nScaffold Edges\n");
 
    InitGraphNodeIterator (& scaffolds, ScaffoldGraph -> ScaffoldGraph,
                           GRAPH_NODE_DEFAULT);
@@ -9564,51 +9585,57 @@ static void  Print_Scaffolds
       SEdgeT  * edge;
 
       scaff_id = scaffold -> id;
-      fprintf (fp, "Scaffold %3d:\n", scaff_id);
+      if  (fp != NULL)
+          {
+           fprintf (fp, "Scaffold %3d:\n", scaff_id);
 
-      fprintf (fp, "A Edges\n");
-      InitGraphEdgeIterator(ScaffoldGraph->ScaffoldGraph, scaff_id, A_END, ALL_EDGES, 
-			  GRAPH_EDGE_DEFAULT,   &SEdges);
-      
-      //      InitSEdgeTIterator (ScaffoldGraph, scaff_id, FALSE, FALSE,
-      //                          A_END, FALSE,  & SEdges);
-      while  ((edge = NextGraphEdgeIterator (& SEdges)) != NULL)
-        {
-         fprintf (fp, " %3d -> %3d  [%8.0f,%8.0f]  %5s  %3d  %4s  %5s\n",
-                  edge -> idA, edge -> idB,
-                  edge -> distance . mean,
-                  sqrt (edge -> distance . variance),
-                  Orientation_As_String (edge -> orient),
-                  edge -> edgesContributing,
-                  Is_Good_Scaff_Edge (edge) ? "good" : "bad",
-                  edge -> flags . bits . isBogus ? "bogus" : "valid");
-        }
+           fprintf (fp, "A Edges\n");
+           InitGraphEdgeIterator(ScaffoldGraph->ScaffoldGraph, scaff_id, A_END, ALL_EDGES, 
+                               GRAPH_EDGE_DEFAULT,   &SEdges);
 
-      fprintf (fp, "B Edges\n");
-      InitGraphEdgeIterator(ScaffoldGraph->ScaffoldGraph, scaff_id, B_END, ALL_EDGES, 
-			  GRAPH_EDGE_DEFAULT,   &SEdges);
-      
-      //InitSEdgeTIterator (ScaffoldGraph, scaff_id, FALSE, FALSE,
-      //                          B_END, FALSE,  & SEdges);
-      while  ((edge = NextGraphEdgeIterator (& SEdges)) != NULL)
-        {
-         fprintf (fp, " %3d -> %3d  [%8.0f,%8.0f]  %5s  %3d  %4s  %5s\n",
-                  edge -> idA, edge -> idB,
-                  edge -> distance . mean,
-                  sqrt (edge -> distance . variance),
-                  Orientation_As_String (edge -> orient),
-                  edge -> edgesContributing,
-                  Is_Good_Scaff_Edge (edge) ? "good" : "bad",
-                  edge -> flags . bits . isBogus ? "bogus" : "valid");
-        }
+           //      InitSEdgeTIterator (ScaffoldGraph, scaff_id, FALSE, FALSE,
+           //                          A_END, FALSE,  & SEdges);
+           while  ((edge = NextGraphEdgeIterator (& SEdges)) != NULL)
+             {
+              fprintf (fp, " %3d -> %3d  [%8.0f,%8.0f]  %5s  %3d  %4s  %5s\n",
+                       edge -> idA, edge -> idB,
+                       edge -> distance . mean,
+                       sqrt (edge -> distance . variance),
+                       Orientation_As_String (edge -> orient),
+                       edge -> edgesContributing,
+                       Is_Good_Scaff_Edge (edge) ? "good" : "bad",
+                       edge -> flags . bits . isBogus ? "bogus" : "valid");
+             }
+
+           fprintf (fp, "B Edges\n");
+           InitGraphEdgeIterator(ScaffoldGraph->ScaffoldGraph, scaff_id, B_END, ALL_EDGES, 
+                               GRAPH_EDGE_DEFAULT,   &SEdges);
+
+           //InitSEdgeTIterator (ScaffoldGraph, scaff_id, FALSE, FALSE,
+           //                          B_END, FALSE,  & SEdges);
+           while  ((edge = NextGraphEdgeIterator (& SEdges)) != NULL)
+             {
+              fprintf (fp, " %3d -> %3d  [%8.0f,%8.0f]  %5s  %3d  %4s  %5s\n",
+                       edge -> idA, edge -> idB,
+                       edge -> distance . mean,
+                       sqrt (edge -> distance . variance),
+                       Orientation_As_String (edge -> orient),
+                       edge -> edgesContributing,
+                       Is_Good_Scaff_Edge (edge) ? "good" : "bad",
+                       edge -> flags . bits . isBogus ? "bogus" : "valid");
+             }
+          }
      }
 
 #if  CHECK_CELSIM_COORDS
-   fprintf (fp, "\nCelsim coordinates of scaffolds\n");
+   if  (fp != NULL)
+       {
+        fprintf (fp, "\nCelsim coordinates of scaffolds\n");
 
-   for  (scaff_id = 0;  scaff_id < Num_Scaffolds;  scaff_id ++)
-     fprintf (fp, "Scaffold %2d:  start = %7ld  end = %7ld\n",
-              scaff_id, Scaffold_Start [scaff_id], Scaffold_End [scaff_id]);
+        for  (scaff_id = 0;  scaff_id < Num_Scaffolds;  scaff_id ++)
+          fprintf (fp, "Scaffold %2d:  start = %7ld  end = %7ld\n",
+                   scaff_id, Scaffold_Start [scaff_id], Scaffold_End [scaff_id]);
+       }
 #endif
 
    return;
@@ -10137,13 +10164,17 @@ static void  Print_Frag_Info
    for  (i = 0;  i < num_frags;  i ++)
      {
       IntMultiPos  * mp = GetIntMultiPos (ma -> f_list, i);
-      CIFragT  * frag = GetCIFragT (ScaffoldGraph -> CIFrags,
-                            (CDS_CID_t) mp -> source);
       CDS_CID_t  fragID = (CDS_CID_t) mp -> source;
+        // This is an internal-data-structure ID
+      CDS_CID_t  ident = (CDS_CID_t) mp -> ident;
+        // This is the read's IID
+      CIFragT  * frag = GetCIFragT (ScaffoldGraph -> CIFrags,
+                            fragID);
 
+      assert (ident == frag -> iid);
       fprintf (fp,
                "    %7" F_CIDP "/%7" F_CIDP "/%c [%5.0f,%5.0f]",
-               fragID, frag -> iid, (char) frag -> type,
+               fragID, ident, (char) frag -> type,
                frag -> offset5p . mean, frag -> offset3p . mean);
 
       if  (frag -> numLinks == 1 && frag -> mateOf != NULLINDEX)
@@ -10184,18 +10215,23 @@ static void  Print_Frag_Info
 
 
 static void  Print_Potential_Fill_Chunks
-    (FILE * fp, int (* has_potential) (ContigT *))
+    (FILE * fp, int (* has_potential) (ContigT *), int allow_bogus_edges)
 
 //  Print list of all chunks that have edges to chunks already in
 //  scaffolds.  Output goes to  fp .   has_potential ()  is a predicate
 //  to screen entries to process.  Only chunks for which it is
 //  true are printed.
+//  If  allow_bogus_edges  is true, can use mate links that are marked
+//   isProbablyBogusEdge () ; otherwise, ignore those edges.
+//  If  fp  is NULL, do no actual printing.
+
 
   {
    GraphNodeIterator  contig_iterator;
    ContigT  * chunk;
 
-   fprintf (fp, "\nConnections from unresolved chunks to uniques\n");
+   if  (fp != NULL)
+       fprintf (fp, "\nConnections from unresolved chunks to uniques\n");
 
    assert (Num_Chunks == GetNumGraphNodes (ScaffoldGraph -> RezGraph));
 
@@ -10223,7 +10259,7 @@ static void  Print_Potential_Fill_Chunks
              {
               ChunkInstanceT  * other_chunk;
 
-              if  (isProbablyBogusEdge (edge)
+              if  ((isProbablyBogusEdge (edge) && ! allow_bogus_edges)
                      || isSloppyEdge (edge))
                   continue;
 
@@ -10251,42 +10287,43 @@ static void  Print_Potential_Fill_Chunks
                   
              }
 
-           if  (stack_top > 0)
+           if  (fp != NULL && stack_top > 0)
                {
                 ChunkInstanceT  * ci = GetGraphNode (ScaffoldGraph -> CIGraph,
                                                      chunk -> info . Contig . AEndCI);
-                int  i, ct = 0;
+                int  i;
 
                 fprintf (fp,
-                         "Non-unique #%d (len = %.0f  frags = %d)"
+                    "Non-unique #%d (len = %.0f  frags = %d)"
 #if  CHECK_CELSIM_COORDS
-                         " [%7d,%7d] CGB_Type = %s"
+                    " [%7d,%7d] CGB_Type = %s"
 #endif
-                         " Links to non-unique = %d  %s\n",
+                    " Links to non-unique = %d  %s\n",
                     cid, chunk -> bpLength . mean,
-                    ci -> info . CI . numFragments
+                    ci -> info . CI . numFragments,
 #if  CHECK_CELSIM_COORDS
-                    , chunk -> aEndCoord, chunk -> bEndCoord,
+                    chunk -> aEndCoord, chunk -> bEndCoord,
                     CGB_Type_As_String (chunk -> flags . bits . cgbType)
 #endif
-                    , other_links,
+                    other_links,
                     Is_Unique (chunk) ? "*UNIQUE*" : "");
                 fprintf (fp,
                     "  %8s %6s %6s %8s %6s %6s %7s  %5s\n",
                     "To Chunk", "Scaff", "RelPos", "Gap Len", "Orient",
                     "Items", "Quality", "Flags");
+
 		assert (stack_top < STACK_SIZE);
                 for  (i = 0;  i < stack_top;  i ++)
                   {
                    fprintf (fp, "  %8d %6d %6d %8.0f %6s %6d %7.1f  ",
-                            stack [i] . chunk_id,
-                            REF (stack [i] . chunk_id) . scaff_id,
-                            REF (stack [i] . chunk_id) . rel_pos,
-                            stack [i] . edge -> distance . mean,
-                            Orientation_As_String
-                                (GetEdgeOrientationWRT (stack [i] . edge, cid)),
-                            stack [i] . edge -> edgesContributing,
-                            CIEdge_Quality (stack [i] . edge));
+                        stack [i] . chunk_id,
+                        REF (stack [i] . chunk_id) . scaff_id,
+                        REF (stack [i] . chunk_id) . rel_pos,
+                        stack [i] . edge -> distance . mean,
+                        Orientation_As_String
+                            (GetEdgeOrientationWRT (stack [i] . edge, cid)),
+                        stack [i] . edge -> edgesContributing,
+                        CIEdge_Quality (stack [i] . edge));
                    if  (isOverlapEdge (stack [i] . edge))
                        fprintf (fp, " Olap");
                    if  (stack [i] . edge -> flags . bits . isPossibleChimera)
@@ -10303,11 +10340,10 @@ static void  Print_Potential_Fill_Chunks
                    fprintf (fp, " numInstances=%d", ci -> info . CI . numInstances);
 #endif
                    fprintf (fp, "\n");
-                   ct += stack [i] . edge -> edgesContributing;
-                   if  (isOverlapEdge (stack [i] . edge))
-                       ct --;
                   }
-#if  SHOW_FRAG_DETAILS
+//**ALD
+//#if  SHOW_FRAG_DETAILS
+#if  1
                 Print_Frag_Info (fp, cid);
 #endif
                }
@@ -10326,7 +10362,7 @@ static void  Print_Unique_Chunks
 //  Allocate memory for global reference array  Ref  and fill in
 //  chunk id's for unique chunks.
 //  Also sets global  Num_Chunks  to the number of nodes in
-//  the  RezGraph .
+//  the  RezGraph .  Do no actual printing if  fp  is  NULL .
 
   {
    int  i, cid, unique_ct;
@@ -10336,7 +10372,8 @@ static void  Print_Unique_Chunks
    
    Num_Chunks = GetNumGraphNodes (ScaffoldGraph -> RezGraph);
 
-   fprintf (fp, "### Contigs in graph = %d\n", Num_Chunks);
+   if  (fp != NULL)
+       fprintf (fp, "### Contigs in graph = %d\n", Num_Chunks);
 
 PALLOC (Num_Chunks * sizeof (Chunk_Ref_t));
 #if  0
@@ -10369,10 +10406,13 @@ fprintf (stderr, "Size of Ref = " F_SIZE_T "\n",
 fprintf (stderr, "Size of Chunk_Info = " F_SIZE_T "\n",
          Num_Chunks * sizeof (Chunk_Info_t));
 
-   fprintf (fp, "\nUnique Chunks\n");
-   fprintf (fp, "%6s %8s %8s %8s (Celsim coords)\n",
-            "Chunk#", "Scaff#",
-            "A End", "B End");
+   if  (fp != NULL)
+       {
+        fprintf (fp, "\nUnique Chunks\n");
+        fprintf (fp, "%6s %8s %8s %8s (Celsim coords)\n",
+                 "Chunk#", "Scaff#",
+                 "A End", "B End");
+       }
 
    InitGraphNodeIterator(& chunk_iterator, ScaffoldGraph -> RezGraph,
                          GRAPH_NODE_DEFAULT);
@@ -10413,14 +10453,16 @@ fprintf (stderr, "Size of Chunk_Info = " F_SIZE_T "\n",
            if  (chunk -> flags . bits . isContig)
                UpdateContigSimCoordinates (chunk);
 
-           fprintf (fp, "%6d %8" F_CIDP " %8" F_COORDP " %8" F_COORDP "\n",
-                    cid, chunk -> scaffoldID,
-                    chunk -> aEndCoord, chunk -> bEndCoord);
+           if  (fp != NULL)
+               fprintf (fp, "%6d %8" F_CIDP " %8" F_COORDP " %8" F_COORDP "\n",
+                        cid, chunk -> scaffoldID,
+                        chunk -> aEndCoord, chunk -> bEndCoord);
            unique_ct ++;
           }
      }
 
-   fprintf (fp, "\n### total unique chunks = %d\n", unique_ct);
+   if  (fp != NULL)
+       fprintf (fp, "\n### total unique chunks = %d\n", unique_ct);
    fprintf (stderr, "### actual Ref entries = %d  size= " F_SIZE_T "\n",
             ref_entry_ct, ref_entry_ct * sizeof (Chunk_Ref_t));
 
@@ -12407,11 +12449,11 @@ PALLOC (Num_Scaffolds * sizeof (char));
    Print_Scaffolds (log_file);
 
 //   Print_Potential_Fill_Chunks (log_file, Maybe_Stone);
-   Print_Potential_Fill_Chunks (log_file, Just_True);
+   Print_Potential_Fill_Chunks (log_file, Just_True, FALSE);
 
    fill_stones = Scan_Gaps ();
 
-   Choose_Stones (fill_stones, 1, MIN_STONE_COVER_STAT);
+   Choose_Stones (fill_stones, 1, MIN_STONE_COVER_STAT, FALSE);
 
 #if  0
    {
@@ -12825,7 +12867,7 @@ int  Toss_Contained_Stones
 //  renumbering or merging scaffolds
 
   {
-   FILE  * log_file;
+   FILE  * log_file = NULL;
    char  filename [1000], iter_string [20];
    Scaffold_Fill_t  * fill_stones;
    static int  iteration = 0;
@@ -12874,11 +12916,14 @@ int  Toss_Contained_Stones
             iter_string, ctime (& now));
    start_time = clock ();
 
-   strcpy (filename, prefix);
-   strcat (filename, ".cstones.i");
-   strcat (filename, iter_string);
-   strcat (filename, ".log");
-   log_file = file_open (filename, "w");
+   if  (GlobalData -> write_stone_log)
+       {
+        strcpy (filename, prefix);
+        strcat (filename, ".cstones.i");
+        strcat (filename, iter_string);
+        strcat (filename, ".log");
+        log_file = file_open (filename, "w");
+       }
 
 #if  MAKE_CAM_FILE
    strcpy (filename, prefix);
@@ -12916,29 +12961,30 @@ PALLOC (Num_Scaffolds * sizeof (char));
    for  (i = 0;  i < Num_Scaffolds;  i ++)
      Scaffold_Start [i] = Scaffold_End [i] = -1;
 
-fprintf (stderr, ">>> Before  Print_Unique_Chunks\n");
+   fprintf (stderr, ">>> Before  Print_Unique_Chunks\n");
    Print_Unique_Chunks (log_file);
 
-fprintf (stderr, ">>> Before  Print_Scaffolds\n");
+   fprintf (stderr, ">>> Before  Print_Scaffolds\n");
    Print_Scaffolds (log_file);
 
-fprintf (stderr, ">>> Before  Print_Potential_Fill_Chunks\n");
-//   Print_Potential_Fill_Chunks (log_file, Maybe_Stone);
-   Print_Potential_Fill_Chunks (log_file, Just_True);
+   fprintf (stderr, ">>> Before  Print_Potential_Fill_Chunks\n");
+   //   Print_Potential_Fill_Chunks (log_file, Maybe_Stone);
+   Print_Potential_Fill_Chunks (log_file, Just_True, TRUE);
 
    StartTimerT(&GlobalData->ChooseChunksTimer);
 
-fprintf (stderr, ">>> Before  Scan_Gaps\n");
+   fprintf (stderr, ">>> Before  Scan_Gaps\n");
    fill_stones = Scan_Gaps ();
 
-fprintf (stderr, ">>> Before  Choose_Stones\n");
-   Choose_Stones (fill_stones, 1, MIN_STONE_COVER_STAT);
+   fprintf (stderr, ">>> Before  Choose_Stones\n");
+   Choose_Stones (fill_stones, 1, MIN_STONE_COVER_STAT, TRUE);
 
 #if  VERBOSE
-{
- fprintf (log_file, "\n>>> Fill after Choose_Stones <<<\n");
- Print_Fill_Info (log_file, fill_stones);
-}
+   if  (GlobalData -> write_stone_log)
+       {
+        fprintf (log_file, "\n>>> Fill after Choose_Stones <<<\n");
+        Print_Fill_Info (log_file, fill_stones);
+       }
 #endif
 
    StopTimerT(&GlobalData->ChooseChunksTimer);
@@ -12946,10 +12992,11 @@ fprintf (stderr, ">>> Before  Choose_Stones\n");
    Add_Gap_Ends (fill_stones);
 
 #if  VERBOSE
-{
- fprintf (log_file, "\n>>> Fill after Add_Gap_Ends <<<\n");
- Print_Fill_Info (log_file, fill_stones);
-}
+   if  (GlobalData -> write_stone_log)
+       {
+        fprintf (log_file, "\n>>> Fill after Add_Gap_Ends <<<\n");
+        Print_Fill_Info (log_file, fill_stones);
+       }
 #endif
 
    Confirm_Contained (log_file, fill_stones, TRUE);
@@ -12974,21 +13021,26 @@ fprintf (stderr, ">>> Before  Choose_Stones\n");
 #endif
 #endif
 
-fprintf (stderr, "Set_Split_Flags\n");
+   fprintf (stderr, "Set_Split_Flags\n");
    Set_Split_Flags (fill_stones, ALL_FALSE);
-fprintf (stderr, "After Set_Split_Flags\n");
-fprintf (log_file, "\n>>> Fill before  Update_Scaffold_Graph <<<\n");
-   Print_Fill_Info (log_file, fill_stones);
+   fprintf (stderr, "After Set_Split_Flags\n");
 
-   fclose (log_file);
+   if  (GlobalData -> write_stone_log)
+       {
+        fprintf (log_file, "\n>>> Fill before  Update_Scaffold_Graph <<<\n");
+        Print_Fill_Info (log_file, fill_stones);
 
-   strcpy (filename, prefix);
-   strcat (filename, ".cstones.i");
-   strcat (filename, iter_string);
-   strcat (filename, ".analysis");
-   log_file = file_open (filename, "w");
-   Analyze_Rock_Fill (log_file, fill_stones);
-   fclose (log_file);
+        fclose (log_file);
+
+        strcpy (filename, prefix);
+        strcat (filename, ".cstones.i");
+        strcat (filename, iter_string);
+        strcat (filename, ".analysis");
+        log_file = file_open (filename, "w");
+        Analyze_Rock_Fill (log_file, fill_stones);
+
+        fclose (log_file);
+       }
 
 
    StartTimerT(&GlobalData->UpdateTimer);

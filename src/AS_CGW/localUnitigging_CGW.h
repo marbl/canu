@@ -23,6 +23,7 @@
 
 #include "AS_UTL_Var.h"
 
+
 typedef enum {
    CGW_IN_SCAFFOLD = (int) 'S',
    CGW_PLACED =      (int) 'P',
@@ -40,6 +41,9 @@ typedef struct ChunkPlacement {
   CDS_COORD_t   scaff_bpLength;
   CDS_CID_t     scaff_numCI;
   DirectionType orient;
+  FragType      type;  
 } ChunkPlacement;
+
+
 
 #endif

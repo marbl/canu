@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: clusterMPs.h,v 1.2 2004-09-23 20:25:23 mcschatz Exp $ */
+/* $Id: clusterMPs.h,v 1.3 2005-03-22 19:05:47 jason_miller Exp $ */
 #ifndef CLUSTERMPS_H
 #define CLUSTERMPS_H
 
@@ -27,9 +27,11 @@
 #include <map>
 #include <vector>
 
+#include "CompositeMPPolygon.h"
+using namespace std;
+
 #include "CloneLibrary.h"
 #include "MatePair.h"
-#include "CompositeMPPolygon.h"
 
 void ReadCloneLibs(map<ID_TYPE, CloneLibrary> & libs, ifstream & fin);
 void ReadMatePairs(vector<MatePair> & mps, ifstream & fin);

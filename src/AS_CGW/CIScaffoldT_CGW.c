@@ -18,9 +18,14 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.2 2004-09-23 20:25:19 mcschatz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.3 2005-03-22 19:03:22 jason_miller Exp $";
 
-//#define DEBUG 1
+#undef DEBUG
+#undef DEBUG_INSERT
+#undef DEBUG_DIAG
+#undef DEBUG_SPLIT
+#undef DEBUG_DEMOTE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -291,8 +296,6 @@ int InsertCIInScaffold(ScaffoldGraphT *sgraph,
   int32 reversed;
   LengthT *maxOffset, *minOffset;
 
-#undef DEBUG_INSERT
-
   assert(!chunkInstance->flags.bits.isDead);
   assert(!ciScaffold->flags.bits.isDead);
 
@@ -380,7 +383,9 @@ int InsertCIInScaffold(ScaffoldGraphT *sgraph,
 #endif
 	return 0; // we did it already
     }else{
+#ifdef DEBUG_INSERT
          fprintf(stderr,"* InsertCI " F_CID " InScaffold  " F_CID " *Old Fashioned way *\n", ci, sid);
+#endif
     }
     }
 #endif
@@ -394,7 +399,9 @@ int InsertCIInScaffold(ScaffoldGraphT *sgraph,
 #endif
       return 0; // we did it already
     }else{
+#ifdef DEBUG_INSERT
          fprintf(stderr,"* InsertCI " F_CID " InScaffold  " F_CID " *Old Fashioned way *\n", ci, sid);
+#endif
     }
   }
 
@@ -467,11 +474,18 @@ fprintf(GlobalData->logfp,"* Inserting cid " F_CID " into scaffold " F_CID " at 
       CDS_COORD_t CImin = (CDS_COORD_t) min(CI->offsetAEnd.mean,
                                             CI->offsetBEnd.mean);
       if(CImin > chunkInstanceMin) {
+
+	/*          ------- chunkInstance
+		         ------- CI           
+
+			 (including containment of CI or positive gap) */
+
+	ChunkInstanceT *prevCI;
+
 	// WARNING: this condition is ok ONLY if AEndToBend == TRUE
 	// When we traverse the list of CIs from the Bend, the condition 
 	// (CImin > chunkInstanceMin) will be satisfied immediately and therefore
 	// the chunk will end up in the wrong position (SteLo)
-	ChunkInstanceT *prevCI;
 	assert(AEndToBend);
 
 #ifdef DEBUG_INSERT
@@ -505,6 +519,12 @@ fprintf(GlobalData->logfp,"* Inserting cid " F_CID " into scaffold " F_CID " at 
 	break;
       }else if(CI->id == ciScaffold->info.Scaffold.BEndCI &&
 	       CImin <= chunkInstanceMin ){ // append
+
+	/*   -------- CI (last chunk currently in scaffold)
+                   -------- chunkInstance
+
+		   (includes containment or positive gap) */
+
 	ciScaffold->info.Scaffold.BEndCI = ci;
 	CI->BEndNext = ci;
 	chunkInstance->AEndNext = CI->id;
@@ -529,6 +549,11 @@ fprintf(GlobalData->logfp,"* Inserting cid " F_CID " into scaffold " F_CID " at 
 	break;
       }else if(CI->id == ciScaffold->info.Scaffold.AEndCI &&
 	       CImin > chunkInstanceMin ){ // prepend
+
+	// ALH: it does not appear we ever get here -- doesn't the first case cover this?
+	// Let us find out ...  (9/21/04)
+	assert(0);
+
 	ciScaffold->info.Scaffold.AEndCI = ci;
 	CI->AEndNext = ci;
 
@@ -544,6 +569,7 @@ fprintf(GlobalData->logfp,"* Inserting cid " F_CID " into scaffold " F_CID " at 
 		ciScaffold->aEndCoord, ciScaffold->bEndCoord);
 	break;
 
+      } else { /* fall through to next existing chunk */
       }
     }
 
@@ -952,7 +978,6 @@ void FindScaffoldComponents(ScaffoldGraphT *graph, int findPaths){
     CIScaffoldT *scaffold = (CIScaffoldT *)scaffoldSet->data;
 
     scaffold->setID = scaffoldSet->component;
-#undef DEBUG_DIAG
 #ifdef DEBUG_DIAG
     fprintf(GlobalData->logfp,"* Scaffold " F_CID " has component " F_CID "\n",
 	    scaffold->id, scaffold->setID);
@@ -1245,6 +1270,10 @@ int IsScaffoldInternallyConnectedCheck(ScaffoldGraphT *sgraph,
        if(verbose)
 	 DumpACIScaffold(stderr,graph, scaffold, FALSE);
 
+#ifdef DEBUG_SPLIT
+       fprintf(stderr,"Prior to split ...");
+	 DumpACIScaffoldNew(stderr,graph, scaffold, FALSE);
+#endif 
 
        nodesEnd = nodes + numNodes;
        InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &scaffoldNodes);
@@ -1300,6 +1329,14 @@ int IsScaffoldInternallyConnectedCheck(ScaffoldGraphT *sgraph,
 	 assert((GetGraphNode(graph->ScaffoldGraph,
 			      newScaffoldID))->info.Scaffold.numElements > 0);
 	 fprintf(stderr," " F_CID "", newScaffoldID);
+
+#ifdef DEBUG_SPLIT
+	 fprintf(stderr,"... post split ...");
+	 DumpACIScaffoldNew(stderr,graph,
+			    GetGraphNode(graph->ScaffoldGraph,newScaffoldID), 
+			    TRUE);
+#endif 
+
        }
        fprintf(stderr,"\n");
      }
@@ -1937,9 +1974,25 @@ void DemoteSmallSingletonScaffolds(void){
 
     numDemoted++;
     /* We've found a victim!!! */
+
+#ifdef DEBUG_DEMOTE
     fprintf(GlobalData->stderrc,
 	    "** Demoting Contig/Unitig " F_CID "/" F_CID " with coverage stat %d length %g scaffold " F_CID "\n",
 	    contig->id, CI->id, CI->info.CI.coverageStat, scaffold->bpLength.mean, scaffold->id);
+#else
+    { 
+      static int first=1;
+      if(first){
+	fprintf(GlobalData->stderrc,
+		"** Demoting Contig/Unitig " F_CID "/" F_CID " with coverage stat %d length %g scaffold " F_CID "\n",
+		contig->id, CI->id, CI->info.CI.coverageStat, scaffold->bpLength.mean, scaffold->id);
+	fprintf(GlobalData->stderrc,
+		"** THE PRECEDING MESSAGE TYPE WILL ONLY BE PRINTED ONCE--TO SEE ALL DEMOTIONS, SET DEBUG_DEMOTE in %s near line %d\n",
+		__FILE__,__LINE__);
+	first=0;
+      }
+    }
+#endif
 
   /* Remove the Contig from the Scaffold 
      We don't need to use the RemoveCIFromScaffold machinery, since we are

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.2 2004-09-23 20:25:19 mcschatz Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.3 2005-03-22 19:03:35 jason_miller Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -157,7 +157,7 @@ int ProcessInput(Global_CGW *data, int optind, int argc, char *argv[]){
 	  adt_mesg = pmesg->m;
 	  pmesg->t = MESG_ADT;
 
-	  AppendAuditLine_AS(adt_mesg, &auditLine, time(0), "CGW", "$Revision: 1.2 $", "(empty)");
+	  AppendAuditLine_AS(adt_mesg, &auditLine, time(0), "CGW", "$Revision: 1.3 $", "(empty)");
 
 	  (data->writer)(data->outfp,pmesg);      // Echo to output
 

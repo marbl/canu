@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.2 2004-09-23 20:25:25 mcschatz Exp $
- * $Revision: 1.2 $
+ * $Id: AS_OVL_overlap_common.h,v 1.3 2005-03-22 19:06:43 jason_miller Exp $
+ * $Revision: 1.3 $
 */
 
 
@@ -167,11 +167,19 @@ static int64  Bad_Short_Window_Ct = 0;
 static int64  Bad_Long_Window_Ct = 0;
     //  The number of overlaps rejected because of too many errors in
     //  a long window
+static double  Branch_Match_Value = DEFAULT_BRANCH_MATCH_VAL;
+static double  Branch_Error_Value = DEFAULT_BRANCH_MATCH_VAL - 1.0;
+    //  Scores of matches and mismatches in alignments.  Alignment
+    //  ends at maximum score.
 static char  * Data = NULL;
     //  Stores sequence data of fragments in hash table
 static char  * Quality_Data = NULL;
     //  Stores quality data of fragments in hash table
 static size_t  Data_Len = 0;
+static int  Doing_Partial_Overlaps = FALSE;
+    //  If set true by the G option (G for Granger)
+    //  then allow overlaps that do not extend to the end
+    //  of either read.
 static int64  Extra_Ref_Ct = 0;
 static String_Ref_t  * Extra_Ref_Space = NULL;
 static int  Frag_Olap_Limit = FRAG_OLAP_LIMIT;
@@ -201,6 +209,10 @@ static uint64  * Loc_ID = NULL;
     //  Locale ID field of each frag in hash table if in  Contig_Mode .
 static int64  Multi_Overlap_Ct = 0;
 static String_Ref_t  * Next_Ref = NULL;
+static int  Single_Line_Output = FALSE;
+    //  If set true by -q option, output a single ASCII line
+    //  for each overlap in the same format as used by
+    //  partial overlaps
 static int  String_Ct;
     //  Number of fragments in the hash table
 static Hash_Frag_Info_t  * String_Info = NULL;
@@ -235,8 +247,9 @@ static int  Char_Is_Bad [256] = {0};
 static FragType  * Kind_Of_Frag = NULL;
     //  Type of fragment in hash table, read or guide
 
+static int64  Hash_Entries = 0;
 #if  SHOW_STATS
-static int64  Collision_Ct = 0, Hash_Entries = 0, Match_Ct = 0;
+static int64  Collision_Ct = 0, Match_Ct = 0;
 static int64  Hash_Find_Ct = 0, Edit_Dist_Ct = 0;
 static int32  Overlap_Ct;
 #endif
@@ -281,6 +294,9 @@ Align_Entry_t  * Align_P;
 int  Hash_Mask_Bits;
 int  Max_Hash_Strings;
 int  Max_Hash_Data_Len;
+int  Max_Frags_In_Memory_Store;
+  // The number of fragments to read in a batch when streaming
+  // the old reads against the hash table.
 
 int  Contig_Mode = FALSE;
 uint32  Last_Hash_Frag_Read;
@@ -394,6 +410,10 @@ static int  Lies_On_Alignment
     (int, int, int, int, Work_Area_t *);
 static void  Mail_Error_Message
     (char * person, int num, char * store);
+static void  Mark_Screened_Ends_Chain
+    (String_Ref_t ref);
+static void  Mark_Screened_Ends_Single
+    (String_Ref_t ref);
 static void  Mark_Skip_Kmers
     (void);
 static void  Merge_Intersecting_Olaps
@@ -403,6 +423,9 @@ static int64  Next_Odd_Prime
 static void  Output_Overlap
     (Int_Frag_ID_t, int, Direction_t, Int_Frag_ID_t,
      int, Olap_Info_t *);
+static void  Output_Partial_Overlap
+    (Int_Frag_ID_t s_id, Int_Frag_ID_t t_id, Direction_t dir,
+     const Olap_Info_t * p, int s_len, int t_len);
 static int  Passes_Screen
     (int, int, int);
 static int  Prefix_Edit_Dist
@@ -414,6 +437,8 @@ static void  Process_Matches
 static int  Process_String_Olaps
     (char *, int, char * quality, Int_Frag_ID_t, Direction_t,
      Work_Area_t *);
+static void  Put_String_In_Hash
+    (int i);
 static int  Read_Next_Frag
     (char frag [AS_READ_MAX_LEN + 1], char quality [AS_READ_MAX_LEN + 1],
      FragStreamHandle stream, ReadStructp, Screen_Info_t *,
@@ -427,6 +452,13 @@ static int  Rev_Prefix_Edit_Dist
      Work_Area_t *);
 static void  Reverse_String
     (char *, int);
+static void  Set_Left_Delta
+    (int e, int d, int * leftover, int * t_end, int t_len,
+     Work_Area_t * WA);
+static void  Set_Right_Delta
+    (int e, int d, Work_Area_t * WA);
+static void  Set_Screened_Ends
+    (void);
 static void  Show_Alignment
     (char *, char *, Olap_Info_t *);
 static void  Show_Match
@@ -464,6 +496,8 @@ int  main  (int argc, char * argv [])
    Hash_Mask_Bits = DEF_HASH_MASK_BITS;
    Max_Hash_Strings = DEF_MAX_HASH_STRINGS;
    Max_Hash_Data_Len = DEF_MAX_HASH_DATA_LEN;
+   Max_Frags_In_Memory_Store
+        = OVL_Min_int (Max_Hash_Strings, MAX_OLD_BATCH_SIZE);
 
 #ifdef CONTIG_OVERLAPPER_VERSION
 fprintf (stderr, "Running Contig version, AS_READ_MAX_LEN = %d\n",
@@ -494,7 +528,7 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
      int ch, errflg = 0;
      optarg = NULL;
      while  (! errflg
-               && ((ch = getopt (argc, argv, "ab:cfh:I:k:K:l:mM:no:Pr:st:uw")) != EOF))
+               && ((ch = getopt (argc, argv, "ab:cfGh:I:k:K:l:mM:no:Pqr:st:uw")) != EOF))
        switch  (ch)
          {
           case  'a' :
@@ -512,6 +546,11 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
           case  'f' :
             force  = 1;
             append = 0;
+            break;
+          case  'G' :
+            Doing_Partial_Overlaps = TRUE;
+            Branch_Match_Value = PARTIAL_BRANCH_MATCH_VAL;
+            Branch_Error_Value = Branch_Match_Value - 1.0;
             break;
           case  'h' :
             Get_Range (optarg, ch, & Lo_Hash_Frag, & Hi_Hash_Frag);
@@ -578,38 +617,47 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
             break;
           case  'M' :
 #ifdef CONTIG_OVERLAPPER_VERSION
-fprintf (stderr, "M option not allowed for Contig Version--ignored\n");
-break;
-#endif
+            fprintf (stderr, "M option not allowed for Contig Version--ignored\n");
+#else
             if  (strcmp (optarg, "8GB") == 0)
-                { // Set parameters for 4GB memory machine
-                 Hash_Mask_Bits = 23;
-                 Max_Hash_Strings = 400000;
-                 Max_Hash_Data_Len = 280000000;
+                { // Set parameters for 8GB memory machine
+                 Hash_Mask_Bits = 24;
+                 Max_Hash_Strings = 500000;
+                 Max_Hash_Data_Len = 360000000;
+                 Max_Frags_In_Memory_Store
+                      = OVL_Min_int (Max_Hash_Strings, MAX_OLD_BATCH_SIZE);
                 }
             else if  (strcmp (optarg, "4GB") == 0)
                 { // Set parameters for 4GB memory machine
-                 Hash_Mask_Bits = 22;
-                 Max_Hash_Strings = 200000;
-                 Max_Hash_Data_Len = 140000000;
+                 Hash_Mask_Bits = 23;
+                 Max_Hash_Strings = 250000;
+                 Max_Hash_Data_Len = 180000000;
+                 Max_Frags_In_Memory_Store
+                      = OVL_Min_int (Max_Hash_Strings, MAX_OLD_BATCH_SIZE);
                 }
             else if  (strcmp (optarg, "2GB") == 0)
                 { // Set parameters for 2GB memory machine
-                 Hash_Mask_Bits = 21;
+                 Hash_Mask_Bits = 22;
                  Max_Hash_Strings = 100000;
-                 Max_Hash_Data_Len = 70000000;
+                 Max_Hash_Data_Len = 75000000;
+                 Max_Frags_In_Memory_Store
+                      = OVL_Min_int (Max_Hash_Strings, MAX_OLD_BATCH_SIZE);
                 }
             else if  (strcmp (optarg, "1GB") == 0)
                 { // Set parameters for 1GB memory machine
-                 Hash_Mask_Bits = 20;
-                 Max_Hash_Strings = 50000;
-                 Max_Hash_Data_Len = 35000000;
+                 Hash_Mask_Bits = 21;
+                 Max_Hash_Strings = 40000;
+                 Max_Hash_Data_Len = 30000000;
+                 Max_Frags_In_Memory_Store
+                      = OVL_Min_int (Max_Hash_Strings, MAX_OLD_BATCH_SIZE);
                 }
             else if  (strcmp (optarg, "256MB") == 0)
                 { // Set parameters for 256MB memory machine
-                 Hash_Mask_Bits = 18;
-                 Max_Hash_Strings = 12500;
-                 Max_Hash_Data_Len = 8750000;
+                 Hash_Mask_Bits = 19;
+                 Max_Hash_Strings = 10000;
+                 Max_Hash_Data_Len = 6000000;
+                 Max_Frags_In_Memory_Store
+                      = OVL_Min_int (Max_Hash_Strings, MAX_OLD_BATCH_SIZE);
                 }
               else
                 {
@@ -617,6 +665,7 @@ break;
                       optarg);
                  errflg ++;
                 }
+#endif
             break;
           case  'n' :
             noOverlaps = 1;
@@ -628,6 +677,9 @@ break;
             break;
           case  'P' :
             Write_Msg_Fn = OutputFileType_AS(AS_PROTO_OUTPUT);
+            break;
+          case  'q' :
+            Single_Line_Output = TRUE;
             break;
           case  'r' :
             Get_Range (optarg, ch, & Lo_Old_Frag, & Hi_Old_Frag);
@@ -682,6 +734,7 @@ break;
                   "Writes .ovl output to <InputFilename>.ovl\n"
                   "Use -a to append to frag store\n"
                   "Use -f to force a new frag store\n"
+                  "Use -G to do partial overlaps\n"
                   "Use -h <range> to specify fragments to put in hash table\n"
                   "    Implies LSF mode (no changes to frag store)\n"
                   "Use -I to designate a file of frag iids to limit olaps to\n"
@@ -702,6 +755,7 @@ break;
                   "Use -n to skip overlaps (only update frag store)\n"
                   "Use -o to specify output file name\n"
                   "Use -P to force ASCII output\n"
+                  "Use -q to make single-line output (same format as -G)\n"
                   "Use -r <range> to specify old fragments to overlap\n"
                   "Use -s to ignore screen information with fragments\n"
                   "Use -t to designate number of parallel threads\n"
@@ -953,7 +1007,8 @@ break;
 
 	pmesg -> m = adtmesg;
 #if  ! (FOR_CARL_FOSLER || SHOW_SNPS)
-        Write_Msg_Fn (Out_Stream, pmesg);
+        if  (! Doing_Partial_Overlaps && ! Single_Line_Output)
+            Write_Msg_Fn (Out_Stream, pmesg);
 #endif
 
         free (adtmesg);
@@ -1351,22 +1406,30 @@ int  Build_Hash_Index
    String_Ref_t  ref;
    Screen_Info_t  screen;
    int64  total_len;
-   static int64  max_total_len = 0;
    static int64  max_extra_ref_ct = 0;
+   static int64  old_ref_len, new_ref_len;
    int  frag_status;
    int64  i;
-   int  screen_blocks_used = 0, screen_lo, screen_hi;
-   int  j, curr_sub;
+   int  screen_blocks_used = 0;
+   int  hash_entry_limit;
+   int  j;
 
    Hash_String_Num_Offset = first_frag_id;
    String_Ct = 0;
    total_len = 0;
    if  (Data == NULL)
        {
-        Data_Len = INITIAL_DATA_LEN;
+        Data_Len = Max_Hash_Data_Len + AS_READ_MAX_LEN;
         Data = (char *) Safe_realloc (Data, Data_Len);
         Quality_Data = (char *) Safe_realloc (Quality_Data, Data_Len);
+        old_ref_len = Data_Len / (HASH_KMER_SKIP + 1);
+        Next_Ref = (String_Ref_t *) Safe_realloc
+             (Next_Ref, old_ref_len * sizeof (String_Ref_t));
        }
+
+   memset (Next_Ref, '\377', old_ref_len * sizeof (String_Ref_t));
+   memset (Hash_Table, 0, HASH_TABLE_SIZE * sizeof (Hash_Bucket_t));
+   memset (Hash_Check_Array, 0, HASH_TABLE_SIZE * sizeof (Check_Vector_t));
 
    screen . match = (IntScreenMatch *) Safe_malloc
                          (INIT_SCREEN_MATCHES * sizeof (IntScreenMatch));
@@ -1375,14 +1438,19 @@ int  Build_Hash_Index
    screen . match_len = INIT_SCREEN_MATCHES;
    screen . num_matches = 0;
 
-fprintf (stderr, "### Build_Hash:  first_frag_id = %d  Max_Hash_Strings = %d\n",
-     first_frag_id, Max_Hash_Strings);
+   fprintf (stderr, "### Build_Hash:  first_frag_id = %d  Max_Hash_Strings = %d\n",
+        first_frag_id, Max_Hash_Strings);
 
    if  (LSF_Mode)
        screen_blocks_used = 1;
 
+   Extra_Ref_Ct = 0;
+   Hash_Entries = 0;
+   hash_entry_limit = MAX_HASH_LOAD * HASH_TABLE_SIZE * ENTRIES_PER_BUCKET;
+
    while  (String_Ct < Max_Hash_Strings
              && total_len < Max_Hash_Data_Len
+             && Hash_Entries < hash_entry_limit
              && (frag_status
                      = Read_Next_Frag (Sequence_Buffer, Quality_Buffer, stream,
                                        myRead, & screen, & Last_Hash_Frag_Read)))
@@ -1475,11 +1543,20 @@ Align_Ct [String_Ct] = (Align_Entry_t *)
                     Data_Len);
            Data = (char *) Safe_realloc (Data, Data_Len);
            Quality_Data = (char *) Safe_realloc (Quality_Data, Data_Len);
+           new_ref_len = Data_Len / (HASH_KMER_SKIP + 1);
+           Next_Ref = (String_Ref_t *) Safe_realloc
+                (Next_Ref, new_ref_len * sizeof (String_Ref_t));
+           memset (Next_Ref + old_ref_len, '\377',
+                (new_ref_len - old_ref_len) * sizeof (String_Ref_t));
+           old_ref_len = new_ref_len;
           }
 
       strcpy (Data + total_len, Sequence_Buffer);
       memcpy (Quality_Data + total_len, Quality_Buffer, len + 1);
       total_len = new_len;
+
+      Put_String_In_Hash (String_Ct);
+
       String_Ct ++;
      }
 
@@ -1514,127 +1591,22 @@ Align_Ct [String_Ct] = (Align_Entry_t *)
    fprintf (stderr, "### Kmer hash hit limit = %d\n", Hi_Hit_Limit);
    if  (Hi_Hit_Limit > HIGHEST_KMER_LIMIT)
        fprintf (stderr, "  is too large and has no effect\n");
+     else
+       Set_Screened_Ends ();
 
 #if  SHOW_STATS
 fprintf (Stat_File, "Num_Strings:\n %10ld\n", String_Ct);
 fprintf (Stat_File, "total_len:\n %10ld\n", total_len);
 #endif
 
-   memset (Hash_Table, 0, HASH_TABLE_SIZE * sizeof (Hash_Bucket_t));
-   memset (Hash_Check_Array, 0, HASH_TABLE_SIZE * sizeof (Check_Vector_t));
-
-   if  (total_len > max_total_len)
-       {
-        max_total_len = total_len * MEMORY_EXPANSION_FACTOR;
-        if  (max_total_len < total_len)
-            max_total_len = total_len;
-        fprintf (stderr, "### realloc  Next_Ref  max_total_len = %lld  entries = %lld\n",
-                 max_total_len, (max_total_len / (HASH_KMER_SKIP + 1)));
-        Next_Ref = (String_Ref_t *) Safe_realloc
-                       (Next_Ref, (max_total_len / (HASH_KMER_SKIP + 1))
-                                     * sizeof (String_Ref_t));
-       }
-
-   memset (Next_Ref, '\377', (total_len / (HASH_KMER_SKIP + 1)) * sizeof (String_Ref_t));
-
-   Extra_Ref_Ct = 0;
-   for  (i = 0;  i < String_Ct;  i ++)
-     {
-      char  * p, * window;
-      int  kmers_inserted = 0;
-      int  skip_ct;
-#if  SCREEN_CHECK_ONLY
-      int  kmers_screened = 0;
-#endif
-      uint64  key, key_is_bad;
-
-      if  (String_Info [i] . length < WINDOW_SIZE)
-          continue;
-
-      curr_sub = Screen_Sub [i];
-      if  (curr_sub == 0)
-          screen_lo = screen_hi = INT_MAX;
-        else
-          {
-           screen_lo = Screen_Space [curr_sub] . bgn;
-           screen_hi = Screen_Space [curr_sub] . end;
-          }
-
-      p = window = Data + String_Start [i];
-      key = key_is_bad = 0;
-      for  (j = 0;  j < WINDOW_SIZE;  j ++)
-        {
-         key_is_bad |= (uint64) (Char_Is_Bad [(int) * p]) << j;
-         key |= (uint64) (Bit_Equivalent [(int) * (p ++)]) << (2 * j);
-        }
-
-      ref . String_Num = i;
-      ref . Offset = 0;
-      skip_ct = 0;
-      ref . Empty = FALSE;
-
-      if  ((int) (ref . Offset) <= screen_lo - WINDOW_SIZE + WINDOW_SCREEN_OLAP
-               && ! key_is_bad)
-          {
-#if  ! SCREEN_CHECK_ONLY
-           Hash_Insert (ref, key, window);
-#endif
-           kmers_inserted ++;
-          }
-#if  SCREEN_CHECK_ONLY
-        else
-          kmers_screened ++;
-#endif
-
-      while  ((* p) != '\0')
-        {
-         if  ((int) (ref . Offset) == screen_hi - 1 - WINDOW_SCREEN_OLAP)
-             {
-              if  (Screen_Space [curr_sub] . last)
-                  screen_lo = screen_hi = INT_MAX;
-                else
-                  {
-                   curr_sub ++;
-                   screen_lo = Screen_Space [curr_sub] . bgn;
-                   screen_hi = Screen_Space [curr_sub] . end;
-                  }
-             }
-
-         window ++;
-         ref . Offset ++;
-         if  (++ skip_ct > HASH_KMER_SKIP)
-             skip_ct = 0;
-
-         key_is_bad >>= 1;
-         key_is_bad |= (uint64) (Char_Is_Bad [(int) * p]) << (WINDOW_SIZE - 1);
-         key >>= 2;
-         key |= (uint64)
-                    (Bit_Equivalent [(int) * (p ++)]) << (2 * (WINDOW_SIZE - 1));
-
-         if  (skip_ct == 0
-                  && (int) (ref . Offset)
-                        <= screen_lo - WINDOW_SIZE + WINDOW_SCREEN_OLAP
-                  && ! key_is_bad)
-             {
-#if  ! SCREEN_CHECK_ONLY
-              Hash_Insert (ref, key, window);
-#endif
-              kmers_inserted ++;
-             }
-#if  SCREEN_CHECK_ONLY
-           else
-             kmers_screened ++;
-#endif
-        }
-#if  LIST_TOTALLY_SCREENED
-      if  (kmers_inserted == 0)
-          fprintf (Total_Screen_File, "%ld\n", first_frag_id + i);
-#endif
-     }
+   fprintf (stderr, "Hash_Entries = " F_S64 "  Load = %.1f%%\n",
+        Hash_Entries, (100.0 * Hash_Entries) / (HASH_TABLE_SIZE * ENTRIES_PER_BUCKET));
 
    if  (Extra_Ref_Ct > max_extra_ref_ct)
        {
-        max_extra_ref_ct = Extra_Ref_Ct * MEMORY_EXPANSION_FACTOR;
+        max_extra_ref_ct *= MEMORY_EXPANSION_FACTOR;
+        if  (Extra_Ref_Ct > max_extra_ref_ct)
+            max_extra_ref_ct = Extra_Ref_Ct;
         fprintf (stderr,
                  "### realloc  Extra_Ref_Space  max_extra_ref_ct = " F_S64 "\n",
                  max_extra_ref_ct);
@@ -1675,6 +1647,7 @@ Collision_Ct = 0;
    if  (Kmer_Skip_File != NULL)
        Mark_Skip_Kmers ();
 
+   // Coalesce reference chain into adjacent entries in  Extra_Ref_Space
    Extra_Ref_Ct = 0;
    for  (i = 0;  i < HASH_TABLE_SIZE;  i ++)
      for  (j = 0;  j < Hash_Table [i] . Entry_Ct;  j ++)
@@ -2086,6 +2059,7 @@ static Overlap_t  Extend_Alignment
 //  a  DOVETAIL  overlap.
 
   {
+   Overlap_t  return_type;
    int  S_Left_Begin, S_Right_Begin, S_Right_Len;
    int  T_Left_Begin, T_Right_Begin, T_Right_Len;
    int  Error_Limit, Left_Errors, Right_Errors, Total_Olap;
@@ -2159,40 +2133,40 @@ static Overlap_t  Extend_Alignment
 
    if  (! Right_Match_To_End)
        {
-        WA -> Left_Delta_Len = 0;
+        if  (! Doing_Partial_Overlaps)
+            WA -> Left_Delta_Len = 0;
         if  (! Left_Match_To_End)
-            return  NONE;
+            return_type = NONE;
           else
-            {
-             return  RIGHT_BRANCH_PT;
-            }
+            return_type = RIGHT_BRANCH_PT;
        }
      else
        {
         if  (! Left_Match_To_End)
-            {
-             return  LEFT_BRANCH_PT;
-            }
+            return_type = LEFT_BRANCH_PT;
           else
-            ;  // Continue on
+            return_type = DOVETAIL;
        }
 
-   (* Errors) = Left_Errors + Right_Errors;
-   assert ((* Errors) <= Error_Limit);
-
-   if  (WA -> Right_Delta_Len > 0)
+   if  (return_type == DOVETAIL || Doing_Partial_Overlaps)
        {
-        if  (WA -> Right_Delta [0] > 0)
-            WA -> Left_Delta [WA -> Left_Delta_Len ++] = WA -> Right_Delta [0] + Leftover
-                                                + Match -> Len;
-          else
-            WA -> Left_Delta [WA -> Left_Delta_Len ++] = WA -> Right_Delta [0] - Leftover
-                                                - Match -> Len;
-       }
-   for  (i = 1;  i < WA -> Right_Delta_Len;  i ++)
-     WA -> Left_Delta [WA -> Left_Delta_Len ++] = WA -> Right_Delta [i];
+        (* Errors) = Left_Errors + Right_Errors;
+        assert ((* Errors) <= Error_Limit);
 
-   return  DOVETAIL;
+        if  (WA -> Right_Delta_Len > 0)
+            {
+             if  (WA -> Right_Delta [0] > 0)
+                 WA -> Left_Delta [WA -> Left_Delta_Len ++]
+                      = WA -> Right_Delta [0] + Leftover + Match -> Len;
+               else
+                 WA -> Left_Delta [WA -> Left_Delta_Len ++]
+                      = WA -> Right_Delta [0] - Leftover - Match -> Len;
+            }
+        for  (i = 1;  i < WA -> Right_Delta_Len;  i ++)
+          WA -> Left_Delta [WA -> Left_Delta_Len ++] = WA -> Right_Delta [i];
+       }
+
+   return  return_type;
   }
 
 
@@ -2294,6 +2268,7 @@ static void  Find_Overlaps
    Next_Sub = HASH_FUNCTION (Next_Key);
    Next_Shift = HASH_CHECK_FUNCTION (Next_Key);
    Next_Check = Hash_Check_Array [Next_Sub];
+
    if  ((Hash_Check_Array [Sub] & (((Check_Vector_t) 1) << Shift)) != 0
           && Offset <= screen_lo - WINDOW_SIZE + WINDOW_SCREEN_OLAP)
        {
@@ -2359,7 +2334,7 @@ Match_Ct ++;
                {
                 if  (Offset < HOPELESS_MATCH)
                     WA -> screen_info . left_end_screened = TRUE;
-                if  (Frag_Len - Offset < HOPELESS_MATCH)
+                if  (Frag_Len - Offset - WINDOW_SIZE + 1 < HOPELESS_MATCH)
                     WA -> screen_info . right_end_screened = TRUE;
                }
            if  (! Ref . Empty)
@@ -2402,7 +2377,6 @@ fprintf (stderr, "Frag %6d %c has %6d matches\n",
          Frag_Num, Dir == FORWARD ? 'f' : 'r', WA -> Next_Avail_Match_Node - 1);
 #endif
 
-
    Process_String_Olaps  (Frag, Frag_Len, quality, Frag_Num, Dir, WA);
 
    return;
@@ -2421,6 +2395,9 @@ static void  Flip_Screen_Range
   {
    int  i, j, k;
    Screen_Range_t  save;
+
+   screen -> left_end_screened = FALSE;
+   screen -> right_end_screened = FALSE;
 
    if  (screen -> num_matches < 1)
        return;
@@ -2441,9 +2418,11 @@ static void  Flip_Screen_Range
         screen -> range [i] . bgn = len - k;
        }
 
-   k = screen -> left_end_screened;
-   screen -> left_end_screened = screen -> right_end_screened;
-   screen -> right_end_screened = k;
+   screen -> left_end_screened
+       = screen -> range [0] . bgn < HOPELESS_MATCH;
+   screen -> right_end_screened
+       = screen -> range [screen -> num_matches - 1] . end
+                > len - HOPELESS_MATCH;
 
    return;
   }
@@ -2802,14 +2781,8 @@ if  (i != Hash_Table [Sub] . Entry_Ct)
            Hash_Table [Sub] . Entry [i] = Ref;
            Hash_Table [Sub] . Check [i] = Key_Check;
            Hash_Table [Sub] . Entry_Ct ++;
-#if  SHOW_STATS
-Hash_Entries ++;
-#endif
-
-// #if  ANALYZE_HITS && DO_KMER_HITS_PROFILE
+           Hash_Entries ++;
            Hash_Table [Sub] . Hits [i] = 1;
-// #endif
-
            return;
           }
 #if  SHOW_STATS
@@ -2831,6 +2804,9 @@ static void  Hash_Mark_Empty
 
 //  Set the  empty  bit to true for the hash table entry
 //  corresponding to string  s  whose hash key is  key .
+//  Also set global  String_Info . left/right_end_screened
+//  true if the entry occurs near the left/right end, resp.,
+//  of the string in the hash table.
 
   {
    String_Ref_t  h_ref;
@@ -2854,6 +2830,7 @@ static void  Hash_Mark_Empty
              t = Data + String_Start [h_ref . String_Num] + h_ref . Offset;
              if  (strncmp (s, t, WINDOW_SIZE) == 0)
                  {
+                  Mark_Screened_Ends_Chain (Hash_Table [sub] . Entry [i]);
                   Hash_Table [sub] . Entry [i] . Empty = TRUE;
                   return;
                  }
@@ -2914,7 +2891,7 @@ static void  Initialize_Globals
      Guide_Error_Bound [i] = (int) (i * AS_GUIDE_ERROR_RATE + 0.0000000000001);
 
    for  (i = 0;  i <= AS_READ_MAX_LEN;  i ++)
-     Branch_Cost [i] = i * BRANCH_PT_MATCH_VALUE + BRANCH_PT_ERROR_VALUE;
+     Branch_Cost [i] = i * Branch_Match_Value + Branch_Error_Value;
 
    Bit_Equivalent ['a'] = Bit_Equivalent ['A'] = 0;
    Bit_Equivalent ['c'] = Bit_Equivalent ['C'] = 1;
@@ -3206,6 +3183,51 @@ static void  Mail_Error_Message
         sprintf (buff, "rm -f %s", filename);
         system (buff);
        }
+
+   return;
+  }
+
+
+
+static void  Mark_Screened_Ends_Chain
+    (String_Ref_t ref)
+
+//  Mark  left/right_end_screened in global  String_Info  for
+//   ref  and everything in its list, if they occur near
+//  enough to the end of the string.
+
+  {
+   Mark_Screened_Ends_Single (ref);
+
+   while  (! ref . Last)
+       {
+        ref = Next_Ref [(String_Start [ref . String_Num] + ref . Offset)
+                          / (HASH_KMER_SKIP + 1)];
+        Mark_Screened_Ends_Single (ref);
+       }
+
+   return;
+  }
+
+
+
+static void  Mark_Screened_Ends_Single
+    (String_Ref_t ref)
+
+//  Mark  left/right_end_screened in global  String_Info  for
+//  single reference  ref , if it occurs near
+//  enough to the end of its string.
+
+  {
+   int  s_num, len;
+
+   s_num = ref . String_Num;
+   len = String_Info [s_num] . length;
+
+   if  (ref . Offset < HOPELESS_MATCH)
+       String_Info [s_num] . left_end_screened = TRUE;
+   if  (len - ref . Offset - WINDOW_SIZE + 1 < HOPELESS_MATCH)
+       String_Info [s_num] . right_end_screened = TRUE;
 
    return;
   }
@@ -3804,6 +3826,56 @@ if  (ovMesg.min_offset + 3 < ovMesg.ahg)
 
 
 
+static void  Output_Partial_Overlap
+    (Int_Frag_ID_t s_id, Int_Frag_ID_t t_id, Direction_t dir,
+     const Olap_Info_t * p, int s_len, int t_len)
+
+//  Output the overlap between strings  s_id  and  t_id  which
+//  have lengths  s_len  and  t_len , respectively.
+//  The overlap information is in  p .
+//  dir  indicates the orientation of the S string.
+
+  {
+   int  a, b, c, d;
+   char  dir_ch;
+
+   Total_Overlaps ++;
+
+   // Convert to canonical form with s forward and use space-based
+   // coordinates
+   if  (dir == FORWARD)
+       {
+        a = p -> s_lo;
+        b = p -> s_hi + 1;
+        c = p -> t_lo;
+        d = p -> t_hi + 1;
+        dir_ch = 'f';
+       }
+     else
+       {
+        a = s_len - p -> s_hi - 1;
+        b = s_len - p -> s_lo;
+        c = p -> t_hi + 1;
+        d = p -> t_lo;
+        dir_ch = 'r';
+       }
+#if  USE_THREADS
+   if  (Num_PThreads > 1)
+       pthread_mutex_lock (& Write_Proto_Mutex);
+#endif
+   fprintf (Out_Stream, "%7d %7d  %c %4d %4d %4d  %4d %4d %4d  %5.2f\n",
+        s_id, t_id, dir_ch, a, b, s_len, c, d, t_len,
+        100.0 * p -> quality);
+#if  USE_THREADS
+   if  (Num_PThreads > 1)
+       pthread_mutex_unlock (& Write_Proto_Mutex);
+#endif
+
+   return;
+  }
+
+
+
 static int  Passes_Screen
     (int lo, int hi, int sub)
 
@@ -3914,7 +3986,27 @@ Incr_Distrib (& Edit_Depth_Dist, 0);
 
          if  (Row == m || Row + d == n)
              {
-#if  1
+#if  SHOW_STATS
+Incr_Distrib (& Edit_Depth_Dist, e);
+#endif
+              //  Check for branch point here caused by uneven
+              //  distribution of errors
+              Score = Row * Branch_Match_Value - e;
+                        // Assumes  Branch_Match_Value
+                        //             - Branch_Error_Value == 1.0
+              Tail_Len = Row - Max_Score_Len;
+              if  ((Doing_Partial_Overlaps && Score < Max_Score)
+                     ||  (e > MIN_BRANCH_END_DIST / 2
+                           && Tail_Len >= MIN_BRANCH_END_DIST
+                           && (Max_Score - Score) / Tail_Len >= MIN_BRANCH_TAIL_SLOPE))
+                  {
+                   (* A_End) = Max_Score_Len;
+                   (* T_End) = Max_Score_Len + Max_Score_Best_d;
+                   Set_Right_Delta (Max_Score_Best_e, Max_Score_Best_d, WA);
+                   (* Match_To_End) = FALSE;
+                   return  Max_Score_Best_e;
+                  }
+
               // Force last error to be mismatch rather than insertion
               if  (Row == m
                      && 1 + WA -> Edit_Array [e - 1] [d + 1]
@@ -3924,69 +4016,10 @@ Incr_Distrib (& Edit_Depth_Dist, 0);
                    d ++;
                    WA -> Edit_Array [e] [d] = WA -> Edit_Array [e] [d - 1];
                   }
-#endif
+
               (* A_End) = Row;           // One past last align position
               (* T_End) = Row + d;
-              // Compute Delta
-              Last = Row;
-              WA -> Right_Delta_Len = 0;
-              for  (k = e;  k > 0;  k --)
-                {
-                 From = d;
-                 Max = 1 + WA -> Edit_Array [k - 1] [d];
-                 if  ((j = WA -> Edit_Array [k - 1] [d - 1]) > Max)
-                     {
-                      From = d - 1;
-                      Max = j;
-                     }
-                 if  ((j = 1 + WA -> Edit_Array [k - 1] [d + 1]) > Max)
-                     {
-                      From = d + 1;
-                      Max = j;
-                     }
-                 if  (From == d - 1)
-                     {
-                      Delta_Stack [WA -> Right_Delta_Len ++] = Max - Last - 1;
-                      d --;
-                      Last = WA -> Edit_Array [k - 1] [From];
-                     }
-                 else if  (From == d + 1)
-                     {
-                      Delta_Stack [WA -> Right_Delta_Len ++] = Last - (Max - 1);
-                      d ++;
-                      Last = WA -> Edit_Array [k - 1] [From];
-                     }
-                }
-              Delta_Stack [WA -> Right_Delta_Len ++] = Last + 1;
-
-              k = 0;
-              for  (i = WA -> Right_Delta_Len - 1;  i > 0;  i --)
-                WA -> Right_Delta [k ++]
-                    = abs (Delta_Stack [i]) * Sign (Delta_Stack [i - 1]);
-              WA -> Right_Delta_Len --;
-
-#if  SHOW_STATS
-Incr_Distrib (& Edit_Depth_Dist, e);
-#endif
-              //  Check for branch point here caused by uneven
-              //  distribution of errors
-
-#if  1
-              Score = Row * BRANCH_PT_MATCH_VALUE - e;
-                        // Assumes  BRANCH_PT_MATCH_VALUE
-                        //             - BRANCH_PT_ERROR_VALUE == 1.0
-              Tail_Len = Row - Max_Score_Len;
-              if  (e > MIN_BRANCH_END_DIST / 2
-                       && Tail_Len >= MIN_BRANCH_END_DIST
-                       && (Max_Score - Score) / Tail_Len >= MIN_BRANCH_TAIL_SLOPE)
-                  {
-                   (* A_End) = Max_Score_Len;
-                   (* T_End) = Max_Score_Len + Max_Score_Best_d;
-                   (* Match_To_End) = FALSE;
-                   return  Max_Score_Best_e;
-                  }
-#endif
-
+              Set_Right_Delta (e, d, WA);
               (* Match_To_End) = TRUE;
               return  e;
              }
@@ -4016,9 +4049,9 @@ Incr_Distrib (& Edit_Depth_Dist, e);
              Best_e = e;
              Longest = WA -> Edit_Array [e] [d];
             }
-#if  1
-      Score = Longest * BRANCH_PT_MATCH_VALUE - e;
-               // Assumes  BRANCH_PT_MATCH_VALUE - BRANCH_PT_ERROR_VALUE == 1.0
+
+      Score = Longest * Branch_Match_Value - e;
+               // Assumes  Branch_Match_Value - Branch_Error_Value == 1.0
       if  (Score > Max_Score)
           {
            Max_Score = Score;
@@ -4026,58 +4059,17 @@ Incr_Distrib (& Edit_Depth_Dist, e);
            Max_Score_Best_d = Best_d;
            Max_Score_Best_e = Best_e;
           }
-#endif
      }
-
-// Compute branch point here
-
-#if  0
-   From = d = Best_d;
-   Cost_Sum = 0.0;
-   Min_Cost_Sum = DBL_MAX;
-   for  (k = Best_e;  k > 0;  k --)
-     {
-      Max = 1 + WA -> Edit_Array [k - 1] [d];
-      Adjustment = 1;
-      if  ((j = 1 + WA -> Edit_Array [k - 1] [d + 1]) > Max)
-          {
-           From = d + 1;
-           Max = j;
-          }
-      if  ((j = WA -> Edit_Array [k - 1] [d - 1]) > Max)
-          {
-           From = d - 1;
-           Max = j;
-           Adjustment = 0;
-          }
-
-      Cost_Sub = WA -> Edit_Array [k] [d]
-                     - WA -> Edit_Array [k - 1] [From] - Adjustment;
-      Cost_Sum += Branch_Cost [Cost_Sub];
-
-      if  (Cost_Sum <= Min_Cost_Sum)
-          {
-           Min_Cost_Sum = Cost_Sum;
-           Longest = WA -> Edit_Array [k - 1] [From];
-           Best_e = k - 1;
-           Best_d = From;
-          }
-      d = From;
-     }
-
-   (* A_End) = Longest;
-   (* T_End) = Longest + Best_d;
-#else
-   (* A_End) = Max_Score_Len;
-   (* T_End) = Max_Score_Len + Max_Score_Best_d;
-#endif
 
 #if  SHOW_STATS
 Incr_Distrib (& Edit_Depth_Dist, 1 + Error_Limit);
 #endif
 
+   (* A_End) = Max_Score_Len;
+   (* T_End) = Max_Score_Len + Max_Score_Best_d;
+   Set_Right_Delta (Max_Score_Best_e, Max_Score_Best_d, WA);
    (* Match_To_End) = FALSE;
-   return  Best_e;
+   return  Max_Score_Best_e;
   }
 
 
@@ -4142,9 +4134,10 @@ Is_Duplicate_Olap = FALSE;
 
    assert ((* Start) != 0);
 
-       // If a singleton kmer is hopeless on either side
+       // If a singleton match is hopeless on either side
        // it needn't be processed
-   if  (WA -> Match_Node_Space [(* Start)] . Next == 0)
+   if  (WA -> Match_Node_Space [(* Start)] . Next == 0
+          && ! Doing_Partial_Overlaps)
        {
         int  s_head, t_head, s_tail, t_tail;
         int  is_hopeless = FALSE;
@@ -4217,7 +4210,7 @@ Is_Duplicate_Olap = FALSE;
            Kind_Of_Olap = Extend_Alignment (Longest_Match, S, S_Len, T, t_len,
                              & S_Lo, & S_Hi, & T_Lo, & T_Hi, & Errors, WA);
 
-           if  (Kind_Of_Olap == DOVETAIL)
+           if  (Kind_Of_Olap == DOVETAIL || Doing_Partial_Overlaps)
                {
                 if  (1 + S_Hi - S_Lo >= MIN_OLAP_LEN
                        && 1 + T_Hi - T_Lo >= MIN_OLAP_LEN)
@@ -4472,7 +4465,11 @@ Align_P = Align_Ct [T_ID - Hash_String_Num_Offset];
 
                 if  (! rejected)
                     {
-                     Output_Overlap (S_ID, S_Len, Dir, T_ID, t_len, p);
+                     if  (Doing_Partial_Overlaps || Single_Line_Output)
+                         Output_Partial_Overlap (S_ID, T_ID, Dir, p,
+                              S_Len, t_len);
+                       else
+                         Output_Overlap (S_ID, S_Len, Dir, T_ID, t_len, p);
                      overlaps_output ++;
                      if  (p -> s_lo == 0)
                          WA -> A_Olaps_For_Frag ++;
@@ -5071,6 +5068,113 @@ void  Profile_Hits
 
 
 
+static void  Put_String_In_Hash
+    (int i)
+
+//  Insert string subscript  i  into the global hash table.
+//  Sequence and information about the string are in
+//  global variables  Data, String_Start, String_Info, ....
+
+  {
+   String_Ref_t  ref;
+   char  * p, * window;
+   int  kmers_inserted = 0;
+   int  skip_ct;
+   int  screen_sub, screen_lo, screen_hi;
+#if  SCREEN_CHECK_ONLY
+   int  kmers_screened = 0;
+#endif
+   uint64  key, key_is_bad;
+   int  j;
+
+   if  (String_Info [i] . length < WINDOW_SIZE)
+       return;
+
+   screen_sub = Screen_Sub [i];
+   if  (screen_sub == 0)
+       screen_lo = screen_hi = INT_MAX;
+     else
+       {
+        screen_lo = Screen_Space [screen_sub] . bgn;
+        screen_hi = Screen_Space [screen_sub] . end;
+       }
+
+   p = window = Data + String_Start [i];
+   key = key_is_bad = 0;
+   for  (j = 0;  j < WINDOW_SIZE;  j ++)
+     {
+      key_is_bad |= (uint64) (Char_Is_Bad [(int) * p]) << j;
+      key |= (uint64) (Bit_Equivalent [(int) * (p ++)]) << (2 * j);
+     }
+
+   ref . String_Num = i;
+   ref . Offset = 0;
+   skip_ct = 0;
+   ref . Empty = FALSE;
+
+   if  ((int) (ref . Offset) <= screen_lo - WINDOW_SIZE + WINDOW_SCREEN_OLAP
+            && ! key_is_bad)
+       {
+#if  ! SCREEN_CHECK_ONLY
+        Hash_Insert (ref, key, window);
+#endif
+        kmers_inserted ++;
+       }
+#if  SCREEN_CHECK_ONLY
+     else
+       kmers_screened ++;
+#endif
+
+   while  ((* p) != '\0')
+     {
+      if  ((int) (ref . Offset) == screen_hi - 1 - WINDOW_SCREEN_OLAP)
+          {
+           if  (Screen_Space [screen_sub] . last)
+               screen_lo = screen_hi = INT_MAX;
+             else
+               {
+                screen_sub ++;
+                screen_lo = Screen_Space [screen_sub] . bgn;
+                screen_hi = Screen_Space [screen_sub] . end;
+               }
+          }
+
+      window ++;
+      ref . Offset ++;
+      if  (++ skip_ct > HASH_KMER_SKIP)
+          skip_ct = 0;
+
+      key_is_bad >>= 1;
+      key_is_bad |= (uint64) (Char_Is_Bad [(int) * p]) << (WINDOW_SIZE - 1);
+      key >>= 2;
+      key |= (uint64)
+                 (Bit_Equivalent [(int) * (p ++)]) << (2 * (WINDOW_SIZE - 1));
+
+      if  (skip_ct == 0
+               && (int) (ref . Offset)
+                     <= screen_lo - WINDOW_SIZE + WINDOW_SCREEN_OLAP
+               && ! key_is_bad)
+          {
+#if  ! SCREEN_CHECK_ONLY
+           Hash_Insert (ref, key, window);
+#endif
+           kmers_inserted ++;
+          }
+#if  SCREEN_CHECK_ONLY
+        else
+          kmers_screened ++;
+#endif
+     }
+#if  LIST_TOTALLY_SCREENED
+   if  (kmers_inserted == 0)
+       fprintf (Total_Screen_File, "%ld\n", first_frag_id + i);
+#endif
+
+   return;
+  }
+
+
+
 static int  Read_Next_Frag
     (char frag [AS_READ_MAX_LEN + 1], 
      char quality [AS_READ_MAX_LEN + 1], 
@@ -5136,8 +5240,12 @@ static int  Read_Next_Frag
            frag [i] = tolower (frag [i]);
         }
 
-        result = getClearRegion_ReadStruct
-                     (myRead, & clear_start, & clear_end, READSTRUCT_LATEST);
+        if  (Doing_Partial_Overlaps)
+            result = getClearRegion_ReadStruct
+                         (myRead, & clear_start, & clear_end, READSTRUCT_ORIGINAL);
+          else
+            result = getClearRegion_ReadStruct
+                         (myRead, & clear_start, & clear_end, READSTRUCT_OVL);
         if  (result != 0)
             {
              fprintf (stderr, "Error reading frag store\n");
@@ -5349,58 +5457,6 @@ Incr_Distrib (& Edit_Depth_Dist, 0);
 
          if  (Row == m || Row + d == n)
              {
-              (* A_End) = - Row;           // One past last align position
-              (* T_End) = - Row - d;
-              // Compute Delta
-              Last = Row;
-              WA -> Left_Delta_Len = 0;
-              for  (k = e;  k > 0;  k --)
-                {
-                 From = d;
-                 Max = 1 + WA -> Edit_Array [k - 1] [d];
-                 if  ((j = WA -> Edit_Array [k - 1] [d - 1]) > Max)
-                     {
-                      From = d - 1;
-                      Max = j;
-                     }
-                 if  ((j = 1 + WA -> Edit_Array [k - 1] [d + 1]) > Max)
-                     {
-                      From = d + 1;
-                      Max = j;
-                     }
-                 if  (From == d - 1)
-                     {
-                      WA -> Left_Delta [WA -> Left_Delta_Len ++] = Max - Last - 1;
-                      d --;
-                      Last = WA -> Edit_Array [k - 1] [From];
-                     }
-                 else if  (From == d + 1)
-                     {
-                      WA -> Left_Delta [WA -> Left_Delta_Len ++] = Last - (Max - 1);
-                      d ++;
-                      Last = WA -> Edit_Array [k - 1] [From];
-                     }
-                }
-              (* Leftover) = Last;
-
-              // Don't allow first delta to be +1 or -1
-              assert (WA -> Left_Delta_Len == 0 || WA -> Left_Delta [0] != -1);
-              if  (WA -> Left_Delta_Len > 0 && WA -> Left_Delta [0] == 1
-                     && (* T_End) + n > 0)
-                  {
-                   int  i;
-
-                   if  (WA -> Left_Delta [1] > 0)
-                       WA -> Left_Delta [0] = WA -> Left_Delta [1] + 1;
-                     else
-                       WA -> Left_Delta [0] = WA -> Left_Delta [1] - 1;
-                   for  (i = 2;  i < WA -> Left_Delta_Len;  i ++)
-                     WA -> Left_Delta [i - 1] = WA -> Left_Delta [i];
-                   WA -> Left_Delta_Len --;
-                   (* T_End) --;
-                   if  (WA -> Left_Delta_Len == 0)
-                       (* Leftover) ++;
-                  }
 #if  SHOW_STATS
 Incr_Distrib (& Edit_Depth_Dist, e);
 #endif
@@ -5408,23 +5464,26 @@ Incr_Distrib (& Edit_Depth_Dist, e);
               //  Check for branch point here caused by uneven
               //  distribution of errors
 
-#if  1
-              Score = Row * BRANCH_PT_MATCH_VALUE - e;
-                        // Assumes  BRANCH_PT_MATCH_VALUE
-                        //             - BRANCH_PT_ERROR_VALUE == 1.0
+              Score = Row * Branch_Match_Value - e;
+                        // Assumes  Branch_Match_Value
+                        //             - Branch_Error_Value == 1.0
               Tail_Len = Row - Max_Score_Len;
-              if  (e > MIN_BRANCH_END_DIST / 2
-                       && Tail_Len >= MIN_BRANCH_END_DIST
-                       && (Max_Score - Score) / Tail_Len >= MIN_BRANCH_TAIL_SLOPE)
+              if  ((Doing_Partial_Overlaps && Score < Max_Score)
+                     || (e > MIN_BRANCH_END_DIST / 2
+                           && Tail_Len >= MIN_BRANCH_END_DIST
+                           && (Max_Score - Score) / Tail_Len >= MIN_BRANCH_TAIL_SLOPE))
                   {
                    (* A_End) = - Max_Score_Len;
                    (* T_End) = - Max_Score_Len - Max_Score_Best_d;
-                   (* Leftover) = 0;
+                   Set_Left_Delta (Max_Score_Best_e, Max_Score_Best_d,
+                        Leftover, T_End, n, WA);
                    (* Match_To_End) = FALSE;
                    return  Max_Score_Best_e;
                   }
-#endif
 
+              (* A_End) = - Row;           // One past last align position
+              (* T_End) = - Row - d;
+              Set_Left_Delta (e, d, Leftover, T_End, n, WA);
               (* Match_To_End) = TRUE;
               return  e;
              }
@@ -5454,9 +5513,9 @@ Incr_Distrib (& Edit_Depth_Dist, e);
              Best_e = e;
              Longest = WA -> Edit_Array [e] [d];
             }
-#if  1
-      Score = Longest * BRANCH_PT_MATCH_VALUE - e;
-               // Assumes  BRANCH_PT_MATCH_VALUE - BRANCH_PT_ERROR_VALUE == 1.0
+
+      Score = Longest * Branch_Match_Value - e;
+               // Assumes  Branch_Match_Value - Branch_Error_Value == 1.0
       if  (Score > Max_Score)
           {
            Max_Score = Score;
@@ -5464,59 +5523,18 @@ Incr_Distrib (& Edit_Depth_Dist, e);
            Max_Score_Best_d = Best_d;
            Max_Score_Best_e = Best_e;
           }
-#endif
-
      }
-
-// Compute branch point here
-
-#if  0
-   From = d = Best_d;
-   Cost_Sum = 0.0;
-   Min_Cost_Sum = DBL_MAX;
-   for  (k = Best_e;  k > 0;  k --)
-     {
-      Max = 1 + WA -> Edit_Array [k - 1] [d];
-      Adjustment = 1;
-      if  ((j = 1 + WA -> Edit_Array [k - 1] [d + 1]) > Max)
-          {
-           From = d + 1;
-           Max = j;
-          }
-      if  ((j = WA -> Edit_Array [k - 1] [d - 1]) > Max)
-          {
-           From = d - 1;
-           Max = j;
-           Adjustment = 0;
-          }
-
-      Cost_Sub = WA -> Edit_Array [k] [d] - WA -> Edit_Array [k - 1] [From] - Adjustment;
-      Cost_Sum += Branch_Cost [Cost_Sub];
-
-      if  (Cost_Sum <= Min_Cost_Sum)
-          {
-           Min_Cost_Sum = Cost_Sum;
-           Longest = WA -> Edit_Array [k - 1] [From];
-           Best_e = k - 1;
-           Best_d = From;
-          }
-      d = From;
-     }
-
-   (* A_End) = - Longest;
-   (* T_End) = - Longest - Best_d;
-#else
-   (* A_End) = - Max_Score_Len;
-   (* T_End) = - Max_Score_Len - Max_Score_Best_d;
-#endif
-   (* Leftover) = 0;
 
 #if  SHOW_STATS
 Incr_Distrib (& Edit_Depth_Dist, 1 + Error_Limit);
 #endif
 
+   (* A_End) = - Max_Score_Len;
+   (* T_End) = - Max_Score_Len - Max_Score_Best_d;
+   Set_Left_Delta (Max_Score_Best_e, Max_Score_Best_d,
+        Leftover, T_End, n, WA);
    (* Match_To_End) = FALSE;
-   return  Best_e;
+   return  Max_Score_Best_e;
   }
 
 
@@ -5537,6 +5555,161 @@ static void  Reverse_String
       s [i] = s [j];
       s [j] = ch;
      }
+
+   return;
+  }
+
+
+
+static void  Set_Left_Delta
+    (int e, int d, int * leftover, int * t_end, int t_len,
+     Work_Area_t * WA)
+
+//  Put the delta encoding of the alignment represented in  WA -> Edit_Array
+//  starting at row  e  (which is the number of errors) and column  d
+//  (which is the diagonal) and working back to the start, into
+//  WA -> Left_Delta .  Set  WA -> Left_Delta_Len  to the number of
+//  delta entries and set  (* leftover)  to the number of
+//  characters that match after the last  WA -> Left_Delta  entry.
+//  Don't allow the first delta to be an indel if it can be
+//  converted to a substitution by adjusting  (* t_end)  which
+//  is where the alignment ends in the T string, which has length
+//   t_len .
+
+  {
+   int  from, last, max;
+   int  j, k;
+
+   last = WA -> Edit_Array [e] [d];
+   WA -> Left_Delta_Len = 0;
+   for  (k = e;  k > 0;  k --)
+     {
+      from = d;
+      max = 1 + WA -> Edit_Array [k - 1] [d];
+      if  ((j = WA -> Edit_Array [k - 1] [d - 1]) > max)
+          {
+           from = d - 1;
+           max = j;
+          }
+      if  ((j = 1 + WA -> Edit_Array [k - 1] [d + 1]) > max)
+          {
+           from = d + 1;
+           max = j;
+          }
+      if  (from == d - 1)
+          {
+           WA -> Left_Delta [WA -> Left_Delta_Len ++] = max - last - 1;
+           d --;
+           last = WA -> Edit_Array [k - 1] [from];
+          }
+      else if  (from == d + 1)
+          {
+           WA -> Left_Delta [WA -> Left_Delta_Len ++] = last - (max - 1);
+           d ++;
+           last = WA -> Edit_Array [k - 1] [from];
+          }
+     }
+   (* leftover) = last;
+
+   // Don't allow first delta to be +1 or -1
+   assert (WA -> Left_Delta_Len == 0 || WA -> Left_Delta [0] != -1);
+   if  (WA -> Left_Delta_Len > 0 && WA -> Left_Delta [0] == 1
+          && (* t_end) + t_len > 0)
+       {
+        int  i;
+
+        if  (WA -> Left_Delta [1] > 0)
+            WA -> Left_Delta [0] = WA -> Left_Delta [1] + 1;
+          else
+            WA -> Left_Delta [0] = WA -> Left_Delta [1] - 1;
+        for  (i = 2;  i < WA -> Left_Delta_Len;  i ++)
+          WA -> Left_Delta [i - 1] = WA -> Left_Delta [i];
+        WA -> Left_Delta_Len --;
+        (* t_end) --;
+        if  (WA -> Left_Delta_Len == 0)
+            (* leftover) ++;
+       }
+
+   return;
+  }
+
+
+
+static void  Set_Right_Delta
+    (int e, int d, Work_Area_t * WA)
+
+//  Put the delta encoding of the alignment represented in  WA -> Edit_Array
+//  starting at row  e  (which is the number of errors) and column  d
+//  (which is the diagonal) and working back to the start, into
+//  WA -> Right_Delta .  Set  WA -> Right_Delta_Len  to the number of
+//  delta entries.
+
+  {
+   int  delta_stack [MAX_ERRORS];
+   int  from, last, max;
+   int  i, j, k;
+
+   last = WA -> Edit_Array [e] [d];
+   WA -> Right_Delta_Len = 0;
+   for  (k = e;  k > 0;  k --)
+     {
+      from = d;
+      max = 1 + WA -> Edit_Array [k - 1] [d];
+      if  ((j = WA -> Edit_Array [k - 1] [d - 1]) > max)
+          {
+           from = d - 1;
+           max = j;
+          }
+      if  ((j = 1 + WA -> Edit_Array [k - 1] [d + 1]) > max)
+          {
+           from = d + 1;
+           max = j;
+          }
+      if  (from == d - 1)
+          {
+           delta_stack [WA -> Right_Delta_Len ++] = max - last - 1;
+           d --;
+           last = WA -> Edit_Array [k - 1] [from];
+          }
+      else if  (from == d + 1)
+          {
+           delta_stack [WA -> Right_Delta_Len ++] = last - (max - 1);
+           d ++;
+           last = WA -> Edit_Array [k - 1] [from];
+          }
+     }
+   delta_stack [WA -> Right_Delta_Len ++] = last + 1;
+
+   k = 0;
+   for  (i = WA -> Right_Delta_Len - 1;  i > 0;  i --)
+     WA -> Right_Delta [k ++]
+         = abs (delta_stack [i]) * Sign (delta_stack [i - 1]);
+   WA -> Right_Delta_Len --;
+
+   return;
+  }
+
+
+
+static void  Set_Screened_Ends
+    (void)
+
+//  Set  left/right_end_screened  fields true in global  String_Info
+//  for reads with a kmer count higher than  Hi_Hit_Limit
+//  sufficiently near the respective end of the the string.
+//  Also mark the hash table entry as empty so it won't be
+//  coalesced.
+
+  {
+   int  i, j;
+
+   for  (i = 0;  i < HASH_TABLE_SIZE;  i ++)
+     for  (j = 0;  j < Hash_Table [i] . Entry_Ct;  j ++)
+       if  (Hash_Table [i] . Hits [j] >= Hi_Hit_Limit)
+           {
+            Mark_Screened_Ends_Chain (Hash_Table [i] . Entry [j]);
+            Hash_Table [i] . Entry [j] . Empty = TRUE;
+           }
 
    return;
   }

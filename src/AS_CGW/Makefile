@@ -89,7 +89,8 @@ CGW_SOURCES = AS_CGW_LoadCheckpoint.c AS_CGW_main.c AS_CGW_dataTypes.c \
 	fixZLFContigs.c fixECRCheckpoint.c dumpBinaryUnitigMAs.c \
 	assemblyStructure.c dumpContigFromCkpt.c exploreGapStructure.c \
 	asmInfoForFrg.c exploreScaffoldEnds.c dumpCloneMiddles.c \
-	whereAreMyOverlaps.c findAnEdge.c dumpSingletons.c combineMates.c
+	whereAreMyOverlaps.c findAnEdge.c dumpSingletons.c combineMates.c \
+	resolveSurrogates.c fragmentPlacement.c
 #	smallLargeScaffolds.c FixContigMultiAligns.c fixZLFContigs.c
 #	ChunkOverlap_CGW.c SplitScaffolds_CGW.c CIScaffoldT_Biconnected_CGW.c UnitigSplitter.c FindFragments.c
 
@@ -101,7 +102,7 @@ CGW_LIB_SOURCES = AS_CGW_dataTypes.c GraphCGW_T.c Stats_CGW.c\
 	Output_CGW.c Input_CGW.c TransitiveReduction_CGW.c \
 	ChunkOverlap_CGW.c SplitScaffolds_CGW.c CIScaffoldT_Biconnected_CGW.c \
 	SplitChunks_CGW.c Instrument_CGW.c AS_CGW_EdgeDiagnostics.c \
-	InterleavedMerging.c fixZLFContigs.c
+	InterleavedMerging.c fixZLFContigs.c fragmentPlacement.c
 
 TSC_SOURCES = testSplitChunks.c
 TSC_OBJECTS = $(TSC_SOURCES:.c=.o)
@@ -138,7 +139,7 @@ PROGS = cgw CheckILK Checkpoint process_scaffolds loadcgw \
 	dumpBinaryUnitigMAs assemblyStructure dumpContigFromCkpt \
 	exploreGapStructure exploreScaffoldEnds asmInfoForFrg \
 	dumpCloneMiddles whereAreMyOverlaps findAnEdge \
-	dumpSingletons combineMates
+	dumpSingletons combineMates resolveSurrogates
 #	smallLargeScaffolds fixContigMultiAligns
 #        ScaffoldMap splitutgs findFragments 
 
@@ -214,6 +215,8 @@ whereAreMyOverlaps: whereAreMyOverlaps.o libAS_CGW.a libAS_CNS.a libAS_PER.a lib
 
 combineMates: combineMates.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a  libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a libAS_TER.a libAS_REZ.a libAS_UID.a $(CURLLIB) 
 libAS_CGW.a: $(CGW_LIB_OBJECTS)
+
+resolveSurrogates: resolveSurrogates.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_CGW.a libAS_ALN.a libAS_SDB.a  libAS_CGW.a $(LIN_ALG_LIB) libAS_MSG.a libAS_CGW.a libAS_UTL.a libAS_OVL.a
 
 #LoadChunkStore: LoadChunkStore.o  libAS_CGW.a libAS_PER.a libAS_UTL.a libAS_MSG.a libAS_CGW.a libAS_UTL.a  
 

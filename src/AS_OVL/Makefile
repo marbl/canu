@@ -53,7 +53,7 @@ SCRIPT_OBJS = $(SCRIPT_SRCS:.c=.o)
 
 TOOL_SRCS = get-degrees.c get-subgraph.c get-iidgraph.c get-uid-olaps.c \
   iid2fastaOVL.c isn2frgOVL.c LastFragInStoreOVL.c \
-  fgbovlhits.c rev-olaps.c Hit_Limit_OVL.c
+  fgbovlhits.c ModifyClearRangeOVL.c rev-olaps.c Hit_Limit_OVL.c
 TOOL_OBJS = $(TOOL_SRCS:.c=.o)
 
 CXX_SOURCES =  olapcoverage.cc
@@ -81,7 +81,8 @@ SCREEN_PROGS = screen_analyze frag-anomaly screen-anomaly auto-screen combine-mu
 SCRIPT_PROGS = correct-script make-ovl-script make-newbactigovl-script \
   make-newfragovl-script
 TOOL_PROGS = get-degrees get-subgraph get-iidgraph get-uid-olaps iid2fasta \
-  isn2frg lastfraginstore olapcoverage fgbovlhits rev-olaps hit-limit
+  isn2frg lastfraginstore olapcoverage fgbovlhits modify-clear-range \
+  rev-olaps hit-limit
 
 PROGS = $(AS_OVL_PROGS) $(CORRECT_PROGS) $(SCREEN_PROGS) $(SCRIPT_PROGS) \
   $(TOOL_PROGS) $(OLAPSTORE_PROGS)
@@ -169,6 +170,8 @@ make-newbactigovl-script:  NewBactigScriptOVL.o AS_OVL_delcher.o $(AS_LIBRARIES)
 make-newfragovl-script:  NewFragScriptOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
 
 make-ovl-script:  MakeScriptOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
+
+modify-clear-range:  ModifyClearRangeOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
 
 olapcoverage:  olapcoverage.o
 

@@ -27,7 +27,7 @@
                  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: Consensus_CNS.c,v 1.2 2004-09-23 20:25:20 mcschatz Exp $";
+static char CM_ID[] = "$Id: Consensus_CNS.c,v 1.3 2005-03-22 19:04:24 jason_miller Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -727,7 +727,7 @@ int main (int argc, char *argv[]) {
     VA_TYPE(char) *quality=CreateVA_char(200000);
     time_t t;
     t = time(0);
-    fprintf(stderr,"# Consensus $Revision: 1.2 $ processing. Started %s\n",ctime(&t));
+    fprintf(stderr,"# Consensus $Revision: 1.3 $ processing. Started %s\n",ctime(&t));
     InitializeAlphTable();
     if ( ! align_ium && USE_SDB && extract > -1 ) {
        IntConConMesg ctmp;
@@ -748,10 +748,11 @@ int main (int argc, char *argv[]) {
           ma = CreateMultiAlignTFromICM(&ctmp,-1,0);
           PrintMultiAlignT(cnslog,ma,global_fragStore,global_fragStorePartition, global_bactigStore,
                            1,0,READSTRUCT_LATEST);
+         fflush(cnslog);
          tmesg.t = MESG_ICM; 
          tmesg.m = &ctmp; 
-         writer(cnslog,&tmesg); 
-         fflush(cnslog);
+         writer(cnsout,&tmesg); 
+         fflush(cnsout);
        }
        exit(0); 
     }
@@ -910,7 +911,7 @@ int main (int argc, char *argv[]) {
         {
           AuditLine auditLine;
           AppendAuditLine_AS(adt_mesg, &auditLine, t,
-                             "Consensus", "$Revision: 1.2 $","(empty)");
+                             "Consensus", "$Revision: 1.3 $","(empty)");
         }
 #endif
         VersionStampADT(adt_mesg,argc,argv);
@@ -933,7 +934,7 @@ int main (int argc, char *argv[]) {
     fflush(cnslog);
   }
   t = time(0);
-  fprintf(stderr,"# Consensus $Revision: 1.2 $ Finished %s\n",ctime(&t));
+  fprintf(stderr,"# Consensus $Revision: 1.3 $ Finished %s\n",ctime(&t));
   if (printcns) {
     int unitig_length = (unitig_count>0)? (int) input_lengths/unitig_count: 0; 
     int contig_length = (contig_count>0)? (int) output_lengths/contig_count: 0;

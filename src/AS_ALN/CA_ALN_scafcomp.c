@@ -46,6 +46,8 @@ int MaxWindow = 0;
 #undef  DEBUG_ALIGN
 #undef  DEBUG_ANALYSIS
 #undef  DEBUG_LOCAL
+#undef  DEBUG_OPTTAIL
+#undef  DEBUG_SEGORDER
 #undef  XFIG
 #undef  STATS
 
@@ -673,6 +675,8 @@ static double scale_factor;
 static FILE *figfile;
 
 #define MAP(x)  ((int) ((x)*scale_factor + 600))
+#define UNMAP(y)  (int)(((y)-600.)/scale_factor)
+
 #endif
 
 #ifdef XFIG
@@ -785,8 +789,10 @@ int Link_Horizontal(Scaffold *A, Scaffold *B, int varwin,
 
   if (low != hgh)
     { xl = A->ctgs[i].lft_end + A->ctgs[i].length + B->ctgs[j].lft_end;
-      zl = MAP(xl - hgh);
-      zh = MAP(xl - low);
+      zl = MAP(xl - hgh > A->ctgs[i].lft_end + A->ctgs[i].length ? 
+	       xl - hgh : A->ctgs[i].lft_end + A->ctgs[i].length);
+      zh = MAP(xl - low > A->ctgs[i].lft_end + A->ctgs[i].length ? 
+	       xl - low : A->ctgs[i].lft_end + A->ctgs[i].length);
       xl = MAP(B->ctgs[j].lft_end);
       gapped = 1;
     }
@@ -878,9 +884,30 @@ int Link_Horizontal(Scaffold *A, Scaffold *B, int varwin,
                     edgecount += 1;
 #endif
 #ifdef DEBUG_ALIGN
-                    fprintf(stderr,"    Finds (%d,%d) = %d\n",
-                           af->seg->a_contig,af->seg->b_contig,af->best);
+                    fprintf(stderr,"    Finds (%d,%d) hangs(%d,%d)= %d\n",
+                           af->seg->a_contig,af->seg->b_contig,af->seg->overlap->begpos,af->seg->overlap->endpos,af->best);
 #endif
+
+// If you are reading this, it is possible you are confused as to whether we should 
+// recurse on segments reached from Link_Horizontal or Link_Vertical; it appears that
+// we should NOT.  Instead, Align_Scaffold proceeds as follows, in three stages:
+// (a) determine all the segments that can be reached directly from starting 
+// in a gap on the entry border; each such segment has its "best" set to its length
+// (b) determine all segments that can be reached by starting from a segment that
+// begins on the entry border; again, reachable segments have "best" set to length
+// (c) consider all segments with best >= 0 (i.e. those that can be reached from
+// the entry border via gaps or segments previously visited); determine where these
+// segments can reach--any segment they can reach itself becomes reachable.
+// To avoid redundant computation for segments in path tails, once we reach
+// a segment, we do not recursively follow it but instead mark it as accessible (i.e.
+// set its best > 0).  For this to work, we must be sure to evaluate segments in the
+// right order -- it would work to go in increasing order of A contigs, with subsorting
+// on increasing B contigs, or vice versa ... but critically we can't go in reverse order
+// on either.
+//
+// As an aside, it appears that repeated evaluation of the same gap intervals is not
+// prevented by this scheme ....  Better might be to proceed one A contig or gap at a time.
+//
                   }
               }
         }
@@ -933,6 +960,7 @@ int Link_Horizontal(Scaffold *A, Scaffold *B, int varwin,
 #ifdef DEBUG_RAYSHOOT
               fprintf(stderr,"    Ray overlaps gap B%d:%d to B%d:%d\n",k,beg,k+1,end);
 #endif
+
               if (Link_Vertical(A,B,varwin,
                                 i+1,k,l - (end-x),l - (beg-x),source)) 
                 terminal = 1;
@@ -965,7 +993,7 @@ int Link_Horizontal(Scaffold *A, Scaffold *B, int varwin,
             // th = MAP(A->ctgs[i+1].lft_end);
 	    th = A->ctgs[i+1].lft_end - ((low-var) -end);
             if (th > A->ctgs[i+1].lft_end)
-              tl = A->ctgs[i+1].lft_end ;
+              th = A->ctgs[i+1].lft_end ;  /* tl -> th; did this fix anything? */
     	    th = MAP(th);
             fprintf(figfile,"2 3 0 1 4 4  98 0 35 4.03 1 0 0 0 0 5\n\t");
             if (gapped)
@@ -1003,8 +1031,10 @@ int Link_Vertical(Scaffold *A, Scaffold *B, int varwin,
 
   if (low != hgh)
     { yl = B->ctgs[j].lft_end + B->ctgs[j].length + A->ctgs[i].lft_end;
-      zl = MAP(yl - hgh);
-      zh = MAP(yl - low);
+      zl = MAP(yl - hgh > B->ctgs[j].lft_end + B->ctgs[j].length ? 
+	       yl - hgh : B->ctgs[j].lft_end + B->ctgs[j].length);
+      zh = MAP(yl - low > B->ctgs[j].lft_end + B->ctgs[j].length ? 
+	       yl - low : B->ctgs[j].lft_end + B->ctgs[j].length);
       yl = MAP(A->ctgs[i].lft_end);
       gapped = 1;
     }
@@ -1079,9 +1109,20 @@ int Link_Vertical(Scaffold *A, Scaffold *B, int varwin,
 #ifdef DEBUG_RAYSHOOT
           fprintf(stderr,"    Ray overlaps A%d[%d,%d]\n",k,beg,end);
 #endif
-          while (bfing != NULL && bfing->seg->a_contig < k)
+          while (bfing != NULL && bfing->seg->a_contig < k){
+#ifdef DEBUG_RAYSHOOT
+	    fprintf(stderr,"Skipping over segment involving A%d, ahg:%d\n",
+		    bfing->seg->a_contig,
+		    bfing->seg->overlap->begpos);
+#endif
             bfing = bfing->Blink; 
-          for (bf = bfing; bf != NULL && bf->seg->a_contig == k; bf = bf->Blink)
+	  }
+          for (bf = bfing; bf != NULL && bf->seg->a_contig == k; bf = bf->Blink){
+#ifdef DEBUG_RAYSHOOT
+	    fprintf(stderr,"Examining segment involving A%d ahg:%d\n",
+		    bf->seg->a_contig,
+		    bf->seg->overlap->begpos);
+#endif
             if (bf->seg->overlap->begpos >= 0)
               { pnt = A->ctgs[k].lft_end + bf->seg->overlap->begpos;
                 if (beg <= pnt && pnt <= end)
@@ -1096,11 +1137,12 @@ int Link_Vertical(Scaffold *A, Scaffold *B, int varwin,
                     edgecount += 1;
 #endif
 #ifdef DEBUG_ALIGN
-                    fprintf(stderr,"    Finds (%d,%d) = %d\n",
-                           bf->seg->a_contig,bf->seg->b_contig,bf->best);
+                    fprintf(stderr,"    Finds (%d,%d) hangs(%d,%d)= %d\n",
+                           bf->seg->a_contig,bf->seg->b_contig,bf->seg->overlap->begpos,bf->seg->overlap->endpos,bf->best);
 #endif
                   }
               }
+	  }
         }
 
       if (k < A->num_gaps)
@@ -1183,9 +1225,9 @@ int Link_Vertical(Scaffold *A, Scaffold *B, int varwin,
             // th = MAP(B->ctgs[j+1].lft_end);
 	    th = B->ctgs[j+1].lft_end - ((low-var) -end);
             if (th > B->ctgs[j+1].lft_end)
-              tl = B->ctgs[j+1].lft_end ;
+              th = B->ctgs[j+1].lft_end ; /* tl -> th : did this fix anything? */
     	    th = MAP(th);
-            fprintf(figfile,"2 3 0 1 5 5  98 0 35 4.00 1 0 0 0 0 5\n\t");
+            fprintf(figfile,"2 3 0 1 5 5  98 0 35 4.06 1 0 0 0 0 5\n\t");
             if (gapped)
               { fprintf(figfile," %d %d",yl,zl);
                 fprintf(figfile," %d %d",yl,zh);
@@ -1220,6 +1262,7 @@ Segment *Align_Scaffold(Segment *seglist, int numsegs, int varwin,
                                Scaffold *AF, Scaffold *BF, int *best)
 #endif
 { int optc = 0, mval=-1;
+ COvlps *optco = NULL; 
  int     score=0, term;
  
 #ifdef XFIG
@@ -1261,22 +1304,55 @@ Segment *Align_Scaffold(Segment *seglist, int numsegs, int varwin,
   { int i,c;
     Segment *s;
 
+
     for (i = 0; i <= AF->num_gaps; i++)
       ABuckets[i] = NULL;
     for (i = 0; i <= BF->num_gaps; i++)
       BBuckets[i] = NULL;
-  
+
     c = numsegs;
     for (s = seglist; s != NULL; s = s->next)
       { c -= 1;
         CtgOvls[c].seg = s;
         CtgOvls[c].best = -1;
         CtgOvls[c].trace = NULL;
+
+#ifdef DEBUG_SEGORDER
+	fprintf(stderr,"CtgOvls[%d] actg: %d bctg: %d\n",
+		c,CtgOvls[c].seg->a_contig,
+		CtgOvls[c].seg->b_contig);
+#endif
+	// push segment onto Alink list; this needs to result in all 
+	// segments involving s->a_contig being linked together,
+	// and the order of the elements should be such that
+	// s->b_contig <= s->Alink->b_contig (if s->Alink != NULL)
+
         CtgOvls[c].Alink = ABuckets[s->a_contig];
         ABuckets[s->a_contig] = CtgOvls+c;
-        CtgOvls[c].Blink = BBuckets[s->b_contig];
-        BBuckets[s->b_contig] = CtgOvls+c;
+	if(ABuckets[s->a_contig]->Alink!=NULL)
+	  assert(ABuckets[s->a_contig]->seg->b_contig <= ABuckets[s->a_contig]->Alink->seg->b_contig);
+
+	// original code did something similar for BBuckets and Blink,
       }
+
+
+    // push segment onto Blink list; this needs to result in all 
+    // segments involving s->b_contig being linked together,
+    // and the order of the elements should be such that
+    // s->a_contig <= s->Blink->a_contig (if s->Blink != NULL)
+    
+    for(i=AF->num_gaps;i>=0;i--){
+      COvlps *co;
+      co = ABuckets[i];
+      while(co!=NULL){
+	co->Blink = BBuckets[co->seg->b_contig];
+        BBuckets[co->seg->b_contig] = co;
+	if(co->Blink!=NULL)
+	  assert(co->seg->a_contig <= co->Blink->seg->a_contig);
+	co=co->Alink;
+      }
+    }
+
   }
 
 #ifdef DEBUG_ALIGN
@@ -1319,11 +1395,16 @@ Segment *Align_Scaffold(Segment *seglist, int numsegs, int varwin,
 	if(hgh>bandend)hgh=bandend;
 #endif
 
+
+#ifdef DEBUG_ALIGN
+        fprintf(stderr,"  Start ray A[%d,%d] at %d,%d\n",low,hgh,0,i);
+#endif
+
 	term = Link_Horizontal(AF, BF, varwin, i, 0, 
 			     // begin point negative by hgh - gap begin
-			     -( hgh - (BF->ctgs[i].lft_end+BF->ctgs[i].length)),
+			     -( hgh - (AF->ctgs[i].lft_end+AF->ctgs[i].length)),
 			     // end point negative by low - gap begin
-			     -( low - (BF->ctgs[i].lft_end+BF->ctgs[i].length)),
+			     -( low - (AF->ctgs[i].lft_end+AF->ctgs[i].length)),
 			     NULL);
 
 #ifdef ALLOW_NO_OVERLAP_INTERLEAVINGS
@@ -1393,7 +1474,9 @@ Segment *Align_Scaffold(Segment *seglist, int numsegs, int varwin,
 
   { COvlps *c;
 
+    // over all segments involving the first A contig
     for (c = ABuckets[0]; c != NULL; c = c->Alink)
+      // if ahang is negative, the overlap starts along the B edge, so it is a starting point
       if (c->seg->overlap->begpos <= 0)
         { score = c->seg->overlap->length;
           if (score > c->best)
@@ -1405,7 +1488,9 @@ Segment *Align_Scaffold(Segment *seglist, int numsegs, int varwin,
                  c->seg->a_contig,c->seg->b_contig,c->best);
 #endif
         }
+    // over all segments involving the first B contig
     for (c = BBuckets[0]; c != NULL; c = c->Blink)
+      // if ahang is positive, the overlap starts along the A edge, so it is a starting point
       if (c->seg->overlap->begpos >= 0)
         { score = c->seg->overlap->length;
           if (score > c->best)
@@ -1413,26 +1498,38 @@ Segment *Align_Scaffold(Segment *seglist, int numsegs, int varwin,
               c->trace = NULL;
             }
 #ifdef DEBUG_ALIGN
-          fprintf(stderr,"  Start path (%d,%d) = %d\n",
+           fprintf(stderr,"  Start path (%d,%d) = %d\n",
                  c->seg->a_contig,c->seg->b_contig,c->best);
 #endif
         }
   }
 
 
-  { int c;
+  {
+    int ca;
+    for( ca=0; ca<=AF->num_gaps;ca++){
+      COvlps *co = ABuckets[ca];
+      while(co!=NULL){
+	Segment *s = co->seg;
+	int pnt;
 
-    for (c = 0; c < numsegs; c++)
-      { int pnt;
-        Segment *s;
+	if(co->Alink!=NULL){
+	  Segment *t = co->Alink->seg;
+	  assert(s->a_contig==t->a_contig);
+	  assert(s->b_contig<=t->b_contig);
+	}
 
-        s = CtgOvls[c].seg;
+
 #ifdef DEBUG_ALIGN
-	fprintf(stderr,"working on ctg[%d,%d] score %d\n",s->a_contig,s->b_contig,CtgOvls[c].best);
+	fprintf(stderr,"working on ctg[%d,%d] score %d\n",s->a_contig,s->b_contig,co->best);
 #endif
+
         term = 0;
-        if ((score = CtgOvls[c].best) >= 0)
-          { if (s->overlap->endpos < 0)
+
+	// if this is either along the starting boundary or is an internal segment that has
+	// already been reached from starting in a gap ...
+        if ((score = co->best) >= 0){
+            if (s->overlap->endpos < 0)
               { pnt = AF->ctgs[s->a_contig].lft_end +
                       (AF->ctgs[s->a_contig].length + s->overlap->endpos); 
 #ifdef DEBUG_ALIGN
@@ -1441,7 +1538,7 @@ Segment *Align_Scaffold(Segment *seglist, int numsegs, int varwin,
 #endif
                 term = Link_Vertical(AF, BF, varwin,
                                      s->a_contig, s->b_contig,
-                                     pnt, pnt, CtgOvls+c);
+                                     pnt, pnt, co);
               }
             else 
               { pnt = BF->ctgs[s->b_contig].lft_end +
@@ -1452,7 +1549,7 @@ Segment *Align_Scaffold(Segment *seglist, int numsegs, int varwin,
 #endif
                 term = Link_Horizontal(AF, BF, varwin,
                                        s->a_contig, s->b_contig,
-                                       pnt, pnt, CtgOvls+c);
+                                       pnt, pnt, co);
               }
           }
         if (term && score > mval)
@@ -1460,10 +1557,22 @@ Segment *Align_Scaffold(Segment *seglist, int numsegs, int varwin,
 #ifdef STATS
             edgecount += 1;
 #endif
-            optc = c;
+
+            optco = co;
+#ifdef DEBUG_OPTTAIL
+	    fprintf(stderr, "Best path so far ends at ctgs[%d,%d} score  %d\n",
+		    optco->seg->a_contig,
+		    optco->seg->b_contig,
+		    mval);
+#endif
           }
+	co=co->Alink;
+        }
+
       }
   }
+
+
 
   if (mval <= 0)
     { seglist = NULL;
@@ -1485,7 +1594,18 @@ Segment *Align_Scaffold(Segment *seglist, int numsegs, int varwin,
     { Segment *s, *r;
       COvlps  *c;
 
+      for(optc=0;optc<numsegs;optc++){
+	if(CtgOvls+optc==optco)break;
+      }
+      assert(optc<numsegs);
+#ifdef DEBUG_OPTTAIL
+      fprintf(stderr,"Optimal path ends at ctgs[%d,%d] score %d\n",
+	      CtgOvls[optc].seg->a_contig,
+	      CtgOvls[optc].seg->b_contig,
+	      CtgOvls[optc].best);
+#endif
       assert(optc>=0);
+
       for (c = CtgOvls + optc; c != NULL; c = c->trace)
 	c->seg->alow = - (c->seg->alow+1);
 
@@ -2191,5 +2311,6 @@ void Free_Scaffold_Overlaps(Scaffold_Overlap *SO)
       free(s);
     }
 }
+
 
 

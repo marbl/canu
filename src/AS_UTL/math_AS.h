@@ -24,7 +24,7 @@
  *     Clark M. Mobarry
  *     April 1999
  *
- * $Id: math_AS.h,v 1.2 2004-09-23 20:25:29 mcschatz Exp $
+ * $Id: math_AS.h,v 1.3 2005-03-22 19:09:04 jason_miller Exp $
  */
 
 #ifndef AS_UTL_MATH_H

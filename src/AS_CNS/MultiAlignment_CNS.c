@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.2 2004-09-23 20:25:20 mcschatz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.3 2005-03-22 19:04:31 jason_miller Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -93,6 +93,36 @@ static double PROB[CNS_MAX_QV-CNS_MIN_QV+1];  // prob of correct call for each q
 static int RINDEX[128];
 static ReadStructp fsread=NULL;
 char SRCBUFFER[2048];
+
+
+int isRead(FragType type){
+  switch(type){
+  case  AS_READ   :
+  case  AS_EXTR   :
+  case  AS_TRNR   :
+  case  AS_EBAC   :
+  case  AS_LBAC   :
+  case  AS_UBAC   :
+  case  AS_FBAC   :
+  case  AS_STS    :
+  case  AS_BACTIG :
+  case  AS_FULLBAC:
+  case  AS_B_READ :
+    return 1;
+  default:
+    return 0;
+  }
+}
+
+int isChunk(FragType type){
+  switch(type){
+  case AS_UNITIG  :
+  case AS_CONTIG  :
+    return 1;
+  default:
+    return 0;
+  }
+}
 
 int InitializeAlphTable(void) {
    int count=sizeof(RINDEX)/sizeof(int);
@@ -1444,9 +1474,9 @@ Calculate the consensus call for the given column
 Column *column=GetColumn(columnStore,cid);
 Bead *call = GetBead(beadStore,column->call);
 Bead *bead;
-int read_base_count[CNS_NALPHABET]={0,0,0,0,0,0};
+int read_base_count[CNS_NP]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 int read_depth=0;
-int other_base_count[CNS_NALPHABET]={0,0,0,0,0,0};
+int other_base_count[CNS_NP]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 int other_depth=0;
 int score=0;
 int bi;
@@ -1550,7 +1580,7 @@ if (quality > 0) {
       type = GetFragment(fragmentStore,gb->frag_index)->type;
       utype = GetFragment(fragmentStore,gb->frag_index)->utype;
       //if ( type == AS_UNITIG && frag_cov > 0 ) {
-      if ( type == AS_UNITIG && utype != AS_STONE_UNITIG && utype != AS_PEBBLE_UNITIG && utype != AS_OTHER_UNITIG) {
+      if ( type == AS_UNITIG && ((utype != AS_STONE_UNITIG && utype != AS_PEBBLE_UNITIG && utype != AS_OTHER_UNITIG) || read_depth > 0)) {
          continue;
       }
       used_surrogate=1;
@@ -2520,6 +2550,7 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
    int32 *aindex;
    Bead *abead;
    Bead *gbead;
+   int32 ipx, off;
    int align_to_consensus=0;
    if ( afid < 0 ) align_to_consensus = 1;
    if ( align_to_consensus) {
@@ -2585,8 +2616,11 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
            apos++; bpos++;
            binsert = bboffset+bpos-1;
            while ( abead->next > -1 && (abead = GetBead(beadStore,abead->next))->boffset != aindex[apos] ) {
+	     // remember bead offset in case AppendGapBead messes up the pointer (MP)
+	     int32 off = abead->boffset;
              // insert a gap bead in b and align to    
              binsert = AppendGapBead(binsert);
+	     abead = GetBead(beadStore, off);
              AlignBead(abead->column_index, binsert);
              last_a_aligned = abead->boffset;
              last_b_aligned = binsert;
@@ -2640,14 +2674,16 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
            apos++; bpos++;
            binsert = bboffset+bpos-1;
            while ( abead->next > -1 && (abead = GetBead(beadStore,abead->next))->boffset != aindex[apos] ) {
+	     // remember bead offset in case AppendGapBead messes up the pointer (MP)
+	     int32 off = abead->boffset;
              // insert a gap bead in b and align to    
              binsert = AppendGapBead(binsert);
+	     abead = GetBead(beadStore, off);
              AlignBead(abead->column_index, binsert);
              last_a_aligned = abead->boffset;
              last_b_aligned = binsert;
            }
         }
-        abead = GetBead(beadStore,aindex[apos]);
         // insert a gap bead at bpos to represent bpos "delete"
         // and align the gap position with abead
         //                           apos
@@ -2668,13 +2704,28 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
         //                             b b b b
         //                             bpos
         //              (no new column is required)
-        binsert = AlignBead(abead->column_index, AppendGapBead(last_b_aligned));
-        last_a_aligned = aindex[apos];
+
+	// Jason 24-Jan-2005. Modified this code block to be resistant to the
+	// stale-pointer effect when AppendGapBead realloc's the array.
+	// Similar to bug fix below by MP.
+	// Compare back to the original if the assert ever fails.
+	ipx = aindex[apos];
+        abead = GetBead(beadStore,ipx);
+	off = abead->boffset;
+	assert (off == ipx); 
+        binsert = AppendGapBead(last_b_aligned);
+	abead = GetBead(beadStore, off);
+        binsert = AlignBead(abead->column_index, binsert);
+        last_a_aligned = ipx;
         last_b_aligned = binsert;
         apos++;
+
         while ( abead->next > -1 && (abead = GetBead(beadStore,abead->next))->boffset != aindex[apos] ) {
+	   // remember bead offset in case AppendGapBead messes up the pointer (MP)
+	   off = abead->boffset;
            // insert a gap bead in b and align to    
            binsert = AppendGapBead(binsert);
+	   abead = GetBead(beadStore, off);
            AlignBead(abead->column_index, binsert);
            last_a_aligned = abead->boffset;
            last_b_aligned = binsert;
@@ -4643,6 +4694,7 @@ int32 PlaceFragments(int32 fid, Overlap *(*COMPARE_FUNC)(COMPARE_ARGS)) {
    for (i=0;bfrag->frg_or_utg==CNS_ELEMENT_IS_FRAGMENT;i++,bfrag++,n_frags++) 
      {
      int align_failure=0;
+     int containFound=0;
 
      PHashTable_AS *thash =  
           ( bfrag->idx.fragment.frgType == AS_BACTIG) ? 
@@ -4730,14 +4782,23 @@ int32 PlaceFragments(int32 fid, Overlap *(*COMPARE_FUNC)(COMPARE_ARGS)) {
 		      "Could not find containing fragment %d in local store\n",
 		      bfrag->idx.fragment.frgContained);
 
+#define ALLOW_MISSING_CONTAINER_TO_HANDLE_SURROGATE_RESOLUTION
+#ifndef ALLOW_MISSING_CONTAINER_TO_HANDLE_SURROGATE_RESOLUTION
             CleanExit("",__LINE__,1);
+#else
+	      fprintf(stderr,
+		      "This might be due to surrogate resolution???\n");
+#endif
           } else {
+	    containFound=1;
             afid = fid;
           }
         } else {
+	  containFound=1;
           afid = value.IID; 
         }
-     } else {
+     }
+     if(!containFound){ // either not contained or container not found
       // afrag = GetFragment(fragmentStore,blid-1); 
       // if ( afrag->type == AS_UNITIG ) {
       //   afrag = GetFragment(fragmentStore,fid); 
@@ -5689,94 +5750,178 @@ MultiAlignT *MergeMultiAligns( tSequenceDB *sequenceDBp,
      // DeleteVA_int32(trace);
   }
   {
+
+  // Now, want to generate a new MultiAlignT which merges the u_list and f_list of the contigs
+  // merge the f_lists and u_lists by cloning and concating (or constructing dummy, when dealing with single read
+
   int ifrag;
   int iunitig;
   IntMultiPos *imp;
   IntUnitigPos *iup;
-  MultiAlignT *multiAlign = LoadMultiAlignTFromSequenceDB(sequenceDB, cpositions[0].ident, cpositions[0].type == AS_UNITIG);
+  MultiAlignT *multiAlign;
 
-  // Now, want to generate a new MultiAlignT which merges the u_list and f_list of the contigs
   cma = CreateMultiAlignT();
   cma->consensus = CreateVA_char(GetMANodeLength(ma->lid)+1);
   cma->quality = CreateVA_char(GetMANodeLength(ma->lid)+1);
   cma->forced = 0;
   cma->refCnt = 0;
-  cma->source_alloc = multiAlign->source_alloc;
+  cma->source_alloc = NULL; /* need to update this below */
   GetMANodeConsensus(ma->lid, cma->consensus, cma->quality);
   // no deltas required at this stage 
-  // merge the f_lists and u_lists by cloning and concating
-  cma->f_list = Clone_VA(multiAlign->f_list);
   cma->delta = CreateVA_int32(0);
-  cma->u_list = Clone_VA(multiAlign->u_list);
   cma->udelta = CreateVA_int32(0);
-  for (i=1;i<num_contigs;i++) {
-    multiAlign = LoadMultiAlignTFromSequenceDB(sequenceDB, cpositions[i].ident, cpositions[i].type == AS_UNITIG);
-      ConcatVA_IntMultiPos(cma->f_list,multiAlign->f_list);
-      ConcatVA_IntUnitigPos(cma->u_list,multiAlign->u_list);
+  
+  if( isChunk(cpositions[0].type) ){
+
+    multiAlign = LoadMultiAlignTFromSequenceDB(sequenceDB, cpositions[0].ident, cpositions[0].type == AS_UNITIG);
+
+    cma->source_alloc = multiAlign->source_alloc;
+
+    // init the f_lists and u_lists by cloning
+    cma->f_list = Clone_VA(multiAlign->f_list);
+    cma->u_list = Clone_VA(multiAlign->u_list);
+
+  } else {
+    
+    assert(isRead(cpositions[0].type));
+
+    cma->f_list = CreateVA_IntMultiPos(0);
+    cma->u_list = CreateVA_IntUnitigPos(0);
+
+#if 0 // stupid, we don't need to recreate cpositions, do we?    
+    IntMultiPos imp;
+    imp.type = cpositions[0].type;
+    imp.ident = cpositions[0].ident;
+    imp.position.bgn = offsets[0].bgn;
+    imp.position.end = offsets[0].end;
+    imp.contained = cpositions[0].???;
+    imp.delta_length=0;
+    imp.delta=NULL;
+#endif
+    AppendVA_IntMultiPos(cma->f_list,cpositions+0);
   }
+
+  for (i=1;i<num_contigs;i++) {
+
+      if( isChunk(cpositions[i].type) ){
+
+	multiAlign = LoadMultiAlignTFromSequenceDB(sequenceDB, cpositions[i].ident, cpositions[i].type == AS_UNITIG);
+	ConcatVA_IntMultiPos(cma->f_list,multiAlign->f_list);
+	ConcatVA_IntUnitigPos(cma->u_list,multiAlign->u_list);
+
+	if(cma->source_alloc == NULL){
+	  cma->source_alloc = multiAlign->source_alloc;
+	}
+
+      } else {
+
+	assert(isRead(cpositions[i].type));
+	AppendVA_IntMultiPos(cma->f_list,cpositions+i);
+
+      }
+  }
+
+
   ifrag=0;
   iunitig=0;
   for (i=0;i<num_contigs;i++) {
+
       Fragment *cfrag=GetFragment(fragmentStore,i);  /* contig pseudo-frag */
 
-      CNS_AlignedContigElement *components=GetCNS_AlignedContigElement
-           (fragment_positions,cfrag->components);
-      CNS_AlignedContigElement *compci;
+      if(isChunk(cfrag->type)){
 
-      int ci=0;
-      int32 bgn,end,left,right,tmp;
-      // make adjustments to positions
-      while (ci < cfrag->n_components) { 
-        compci = &components[ci];
-        if ( cfrag->complement ) {
-           bgn = cfrag->length-compci->position.bgn;
-           end = cfrag->length-compci->position.end;
-        } else {
-           bgn = compci->position.bgn;
-           end = compci->position.end;
-        }
-        left = (bgn<end)?bgn:end;
-        right = (bgn<end)?end:bgn;
-        left = GetColumn(columnStore, 
-	       GetBead(beadStore,cfrag->beads + left)
-               ->column_index)->ma_index;
-        right   = GetColumn(columnStore, 
-               GetBead(beadStore,cfrag->beads + right-1)
-               ->column_index)->ma_index + 1;
-        tmp = bgn;
-        bgn = (bgn<end)?left:right;
-        end = (tmp<end)?right:left;
+	CNS_AlignedContigElement *components=GetCNS_AlignedContigElement
+	  (fragment_positions,cfrag->components);
+	CNS_AlignedContigElement *compci;
 
-//      if (compci->idx.fragment.frgType == AS_UNITIG ) {
-	if (compci->frg_or_utg==CNS_ELEMENT_IS_UNITIG) {
-          iup = GetIntUnitigPos(cma->u_list,iunitig);
-          iup->position.bgn = bgn;
-          iup->position.end = end;
-          iup->delta_length = 0;
-          iup->delta = NULL;
-          ci++;iunitig++;
-        } else {
-          imp = GetIntMultiPos(cma->f_list,ifrag);
-          imp->ident = compci->idx.fragment.frgIdent;
-          imp->source = compci->idx.fragment.frgSource;
-          imp->position.bgn = bgn;
-          imp->position.end = end;
-          imp->delta_length = 0;
-          imp->delta = NULL;
+	int ci=0;
+	int32 bgn,end,left,right,tmp;
+	// make adjustments to positions
+	while (ci < cfrag->n_components) { 
+	  compci = &components[ci];
+	  if ( cfrag->complement ) {
+	    bgn = cfrag->length-compci->position.bgn;
+	    end = cfrag->length-compci->position.end;
+	  } else {
+	    bgn = compci->position.bgn;
+	    end = compci->position.end;
+	  }
+	  left = (bgn<end)?bgn:end;
+	  right = (bgn<end)?end:bgn;
+	  left = GetColumn(columnStore, 
+			   GetBead(beadStore,cfrag->beads + left)
+			   ->column_index)->ma_index;
+	  right   = GetColumn(columnStore, 
+			      GetBead(beadStore,cfrag->beads + right-1)
+			      ->column_index)->ma_index + 1;
+	  tmp = bgn;
+	  bgn = (bgn<end)?left:right;
+	  end = (tmp<end)?right:left;
+
+	  //      if (compci->idx.fragment.frgType == AS_UNITIG ) {
+	  if (compci->frg_or_utg==CNS_ELEMENT_IS_UNITIG) {
+	    iup = GetIntUnitigPos(cma->u_list,iunitig);
+	    iup->position.bgn = bgn;
+	    iup->position.end = end;
+	    iup->delta_length = 0;
+	    iup->delta = NULL;
+	    ci++;iunitig++;
+	  } else {
+	    imp = GetIntMultiPos(cma->f_list,ifrag);
+	    imp->ident = compci->idx.fragment.frgIdent;
+	    imp->source = compci->idx.fragment.frgSource;
+	    imp->position.bgn = bgn;
+	    imp->position.end = end;
+	    imp->delta_length = 0;
+	    imp->delta = NULL;
 #if 0
-	  fprintf(stderr,
-		  "Placing " F_CID " at " F_COORD "," F_COORD 
-		  " based on positions " F_COORD "," F_COORD
-		  " (compl %d length %d within input parent)\n",
-		  imp->ident, bgn,end,
-		  compci->position.bgn,compci->position.end,
-		  cfrag->complement, cfrag->length);
+	    fprintf(stderr,
+		    "Placing " F_CID " at " F_COORD "," F_COORD 
+		    " based on positions " F_COORD "," F_COORD
+		    " (compl %d length %d within input parent)\n",
+		    imp->ident, bgn,end,
+		    compci->position.bgn,compci->position.end,
+		    cfrag->complement, cfrag->length);
 #endif
-          ci++;ifrag++;
-        }
+	    ci++;ifrag++;
+	  }
+	}
+      } else {
+
+	int32 bgn,end;
+
+	assert(isRead(cfrag->type));
+
+	// make adjustments to positions due to application of traces??
+
+	bgn = GetBead(beadStore,cfrag->beads)->column_index;
+	end = GetBead(beadStore,cfrag->beads + cfrag->length -1 )->column_index + 1;
+	if(cfrag->complement){
+	  int32 tmp = bgn;
+	  bgn = end;
+	  end = tmp;
+	}
+
+	imp = GetIntMultiPos(cma->f_list,ifrag);
+	imp->position.bgn = bgn;
+	imp->position.end = end;
+
+#if 0
+	    fprintf(stderr,
+		    "Placing " F_CID " at " F_COORD "," F_COORD 
+		    " based on positions " F_COORD "," F_COORD
+		    " (compl %d length %d within input parent)\n",
+		    imp->ident, bgn,end,
+		    offsets[i].bgn, offsets[i].end,
+		    cfrag->complement, cfrag->length);
+#endif
+	    ifrag++;
       }
+	
   }
   }
+
+
   // TestFragmentPositions(cma);
 #ifdef TEST_GET_COVERAGE
 { VA_TYPE(int) *cov=CreateVA_int( GetMultiAlignLength(cma));

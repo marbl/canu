@@ -30,6 +30,7 @@
 #include "ScaffoldGraphIterator_CGW.h"
 #include "GraphCGW_T.h"
 #include "UtilsREZ.h"
+#include "ChiSquareTest_CGW.h"
 
 #include "CA_ALN_local.h"
 #include "CA_ALN_scafcomp.h"
@@ -40,7 +41,7 @@
 
 #undef DEBUG1
 
-#define PRINT_OVERLAPS
+#undef PRINT_OVERLAPS
 
 /*
   What this code is supposed to do:
@@ -415,7 +416,6 @@ void ResetScaffoldAlignmentInterface(ScaffoldAlignmentInterface * sai)
   ResetScaffoldStuff(sai->scaffoldB);
 
   DeleteSegmentList(sai->segmentList);
-  sai->lastSegment = NULL;
   sai->segmentList = NULL;
 }
 
@@ -724,12 +724,17 @@ void PopulateScaffoldStuff(ScaffoldStuff * ss,
   ss->scaffold->ctgs = GetVA_Scaffold_Tig(ss->pools->tigPool, 0);
 
   // above, the determination of ss->bandBeg and ss->bandEnd is pretty
-  // elaborate; a much simpler computation suffices for the purposes
-  // of Align_Scaffolds() ... the following does the simpler version:
+  // elaborate, and seemed at one point to be the cause of some trouble with
+  // some improperly (un)connected scaffolds; a much simpler computation 
+  // that often suffices for Align_Scaffolds(), which itself does some
+  // adjustments similar to the above, is the following simpler version.
+  // All that said, we have made some progress towards cleaning up the 
+  // problem with disconnected scaffolds, so perhaps it is worth trying
+  // to use the version above once again.  -- ALH, 9/28/04
 
-#define SIMPLE_BAND_COMPUTE
+#undef SIMPLE_BAND_COMPUTE
 #ifdef SIMPLE_BAND_COMPUTE
-  if(isA) {
+  if(isA){
     ss->bandBeg =
       scaffold->bpLength.mean 
       + sEdge->distance.mean 
@@ -895,12 +900,14 @@ Overlap * LookForChunkOverlapFromContigElements(ContigElement * ceA,
                                  ceA->id, ceB->id, overlapOrient,
                                  minOverlap, maxOverlap,
                                  CGW_DP_ERATE, FALSE);
-    
+
+#ifdef PRINT_OVERLAPS    
     fprintf(stderr,"B_A: Trying to find overlap between " F_CID " and "
             F_CID " overlap range " F_COORD "," F_COORD
             " orientation %c --> " F_COORD "\n",
 	    ceA->id,ceB->id,minOverlap,maxOverlap,
             overlapOrient,chunkOverlap.overlap);
+#endif
 
     if(chunkOverlap.overlap != 0)
     {
@@ -908,13 +915,22 @@ Overlap * LookForChunkOverlapFromContigElements(ContigElement * ceA,
       {
         myOverlap.begpos = chunkOverlap.ahg;
         myOverlap.endpos = chunkOverlap.bhg;
+	myOverlap.length = chunkOverlap.overlap;
       }
       else
       {
+
+        //     non-canonical return:
+	//
+	//     -------        B
+        //        -------     A
+        //
+
+	
         myOverlap.begpos = -(ceB->length - chunkOverlap.overlap);
         myOverlap.endpos = -(ceA->length - chunkOverlap.overlap);
+	myOverlap.length = chunkOverlap.overlap - myOverlap.begpos - myOverlap.endpos;
       }
-      myOverlap.length = chunkOverlap.overlap;
       myOverlap.diffs = 0;
       retOverlap = &myOverlap;
     }
@@ -1007,7 +1023,7 @@ int PopulateScaffoldAlignmentInterface(CIScaffoldT * scaffoldA,
 	  // overlaps between later contigs precede overlaps between
 	  // earlier contigs ... so, we need to push new overlaps onto 
 	  // the head rather than tail
-          if(sai->lastSegment == NULL)
+          if(sai->segmentList == NULL)
           {
             sai->segmentList = safe_calloc(1, sizeof(Segment));
             assert(sai->segmentList != NULL);
@@ -1027,11 +1043,31 @@ int PopulateScaffoldAlignmentInterface(CIScaffoldT * scaffoldA,
           sai->segmentList->overlap->length = overlap->length;
           sai->segmentList->a_contig = ceA->index;
           sai->segmentList->b_contig = ceB->index;
-          sai->segmentList->alow = max(0,overlap->begpos);  
-          sai->segmentList->ahgh = max(0,overlap->begpos) + overlap->length; 
-          sai->segmentList->blow = -min(0,overlap->begpos);  
-          sai->segmentList->bhgh = overlap->length-min(0,overlap->begpos); 
+
           sai->numSegs++;
+
+
+	  // The following are used only for the XFIG diagrams produced by CA_ALN_scafcomp routines;
+	  // there are four cases to be concerned with:
+
+	  //            -------    A     alow = begpos; ahgh = begpos + length 
+          //                -----  B     blow = 0 ; bhgh = length
+          //  
+	  //            -------    A     alow = 0; ahgh = Alen + endpos = length + begpos + endpos 
+          //         -----         B     blow = -begpos ; bhgh = length + endpos
+          //
+	  //         ------------  A     alow = begpos; ahgh = length + begpos + endpos
+	  //            -----      B     blow = 0 = ?; bhgh = length + endpos
+          // 
+	  //            -----      A     alow = 0; ahgh = length + begpos
+	  //         ------------  B     blow = -begpos; bhgh = length
+          //
+
+          sai->segmentList->alow = max(0,overlap->begpos);  
+          sai->segmentList->blow = max(0,-(overlap->begpos));  
+          sai->segmentList->ahgh = overlap->length + overlap->begpos + min(0,overlap->endpos);
+	  sai->segmentList->bhgh = overlap->length + min(0,overlap->endpos);
+
         }
         else
         {
@@ -1940,11 +1976,18 @@ void AdjustForPureInterleaving(Scaffold_Tig * contigsA,
   float64 edgeStddev = sqrt((double) sEdge->distance.variance);
   float64 deltaAB;
   float64 deltaBA;
+  double adjust =  -sEdge->distance.mean - (contigsA[numContigsA-1].lft_end +
+                                                     contigsA[numContigsA-1].length);
+
+  fprintf(stderr,
+	  "Adjusting positions of Scaffold A contigs by %f, edge length %f len(A) %d len(B) %d\n",
+	  adjust,sEdge->distance.mean,
+	  (contigsA[numContigsA-1].lft_end +contigsA[numContigsA-1].length),
+	  (contigsB[numContigsB-1].lft_end +contigsB[numContigsB-1].length));
 
   // adjust contigs in scaffold A
   for(ia = 0; ia < numContigsA; ia++)
-    contigsA[ia].lft_end += -sEdge->distance.mean - (contigsA[numContigsA-1].lft_end +
-                                                     contigsA[numContigsA-1].length);
+    contigsA[ia].lft_end += adjust;
   
   for(ia = 0, ib = 0; ia == 0 || ib == 0; )
   {
@@ -2279,12 +2322,63 @@ SEdgeT * MakeScaffoldAlignmentAdjustments(CIScaffoldT * scaffoldA,
      
   // now map the adjustments over to the cgw scaffold/contig data structures
   // adjust scaffoldA
+
+
+#define CONNECTEDNESS_CHECKS  // not sure whether the MarkInternalEdgeStatus calls below are helpful or not?
+#ifdef CONNECTEDNESS_CHECKS
+  MarkInternalEdgeStatus(ScaffoldGraph,scaffoldA, 
+			 PAIRWISECHI2THRESHOLD_CGW,
+			 1000.0 * SLOPPY_EDGE_VARIANCE_THRESHHOLD,
+			 TRUE, TRUE, 0, TRUE);
+  MarkInternalEdgeStatus(ScaffoldGraph,scaffoldB, 
+			 PAIRWISECHI2THRESHOLD_CGW,
+			 1000.0 * SLOPPY_EDGE_VARIANCE_THRESHHOLD,
+			 TRUE, TRUE, 0, TRUE);
+
+  if(!IsScaffoldInternallyConnected(ScaffoldGraph,scaffoldA,ALL_TRUSTED_EDGES)){
+    fprintf(stderr,"WARNING: Interleaved merging: scaffoldA %d pre-adjustment is not internally connected\n",scaffoldA->id);
+  }
+  if(!IsScaffoldInternallyConnected(ScaffoldGraph,scaffoldB,ALL_TRUSTED_EDGES)){
+    fprintf(stderr,"WARNING: Interleaved merging: scaffoldB %d pre-adjustment is not internally connected\n",scaffoldB->id);
+  }
+  if(!IsScaffold2EdgeConnected(ScaffoldGraph,scaffoldA)){
+    fprintf(stderr,"WARNING: Interleaved merging: scaffoldA %d pre-adjustment is not 2-edge connected\n",scaffoldA->id);
+  }
+  if(!IsScaffold2EdgeConnected(ScaffoldGraph,scaffoldB)){
+    fprintf(stderr,"WARNING: Interleaved merging: scaffoldB %d pre-adjustment is not 2-edge connected\n",scaffoldB->id);
+  }
+#endif
+
   AdjustScaffoldContigPositions(scaffoldA, contigsA, numContigsA,
                                 (sEdge->orient == AB_AB ||
                                  sEdge->orient == AB_BA));
   AdjustScaffoldContigPositions(scaffoldB, contigsB, numContigsB,
                                 (sEdge->orient == AB_AB ||
                                  sEdge->orient == BA_AB));
+
+#ifdef CONNECTEDNESS_CHECKS
+  MarkInternalEdgeStatus(ScaffoldGraph,scaffoldA, 
+			 PAIRWISECHI2THRESHOLD_CGW,
+			 1000.0 * SLOPPY_EDGE_VARIANCE_THRESHHOLD,
+			 TRUE, TRUE, 0, TRUE);
+  MarkInternalEdgeStatus(ScaffoldGraph,scaffoldB, 
+			 PAIRWISECHI2THRESHOLD_CGW,
+			 1000.0 * SLOPPY_EDGE_VARIANCE_THRESHHOLD,
+			 TRUE, TRUE, 0, TRUE);
+
+  if(!IsScaffoldInternallyConnected(ScaffoldGraph,scaffoldA,ALL_TRUSTED_EDGES)){
+    fprintf(stderr,"WARNING: Interleaved merging: scaffoldA %d post-adjustment is not internally connected\n",scaffoldA->id);
+  }
+  if(!IsScaffoldInternallyConnected(ScaffoldGraph,scaffoldB,ALL_TRUSTED_EDGES)){
+    fprintf(stderr,"WARNING: Interleaved merging: scaffoldB %d post-adjustment is not internally connected\n",scaffoldB->id);
+  }
+  if(!IsScaffold2EdgeConnected(ScaffoldGraph,scaffoldA)){
+    fprintf(stderr,"WARNING: Interleaved merging: scaffoldA %d post-adjustment is not 2-edge connected\n",scaffoldA->id);
+  }
+  if(!IsScaffold2EdgeConnected(ScaffoldGraph,scaffoldB)){
+    fprintf(stderr,"WARNING: Interleaved merging: scaffoldB %d post-adjustment is not 2-edge connected\n",scaffoldB->id);
+  }
+#endif
 
   // change sEdge back to what it was
   sEdge->idA = idA;
@@ -2296,15 +2390,16 @@ SEdgeT * MakeScaffoldAlignmentAdjustments(CIScaffoldT * scaffoldA,
   mySEdge.distance.mean = newEdgeMean;
 
 #ifdef DEBUG1
-  fprintf(GlobalData->stderrc, "Scaffold A CGW data structure:\n");
+  fprintf(GlobalData->stderrc, "Post-adjustment: Scaffold A CGW data structure:\n");
   DumpCIScaffold(GlobalData->stderrc, ScaffoldGraph, scaffoldA, FALSE);
-  fprintf(GlobalData->stderrc, "Scaffold B CGW data structure:\n");
+  fprintf(GlobalData->stderrc, "Post-adjustment: Scaffold B CGW data structure:\n");
   DumpCIScaffold(GlobalData->stderrc, ScaffoldGraph, scaffoldB, FALSE);
   fprintf(GlobalData->stderrc, "\nsEdge cgw data structure:\n");
   PrintSEdgeT(GlobalData->stderrc, ScaffoldGraph, "sEdge", sEdge,
               scaffoldA->id);
 #endif
-  
+
+
   return &mySEdge;
 }
 

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_SDB_SequenceDB.c,v 1.2 2004-09-23 20:25:28 mcschatz Exp $";
+static char CM_ID[] = "$Id: AS_SDB_SequenceDB.c,v 1.3 2005-03-22 19:08:06 jason_miller Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -341,6 +341,59 @@ void InsertMultiAlignTInSequenceDB(tSequenceDB *db,
   db->positionedAtEnd = 1;
   //  fprintf(stderr,"* Appending " F_SIZE_T " bytes offset now " F_SIZE_T "\n", totalSize, db->offsetOfEOF);
 }
+
+
+/* UpdateMultiAlignTInSequenceDB
+   Inserts a new MultiAlignT for a given chunk that will replace an old MultiAlignT.  The old data is actually
+   left on disk, but the substore and offset indicators for the chunk index portion of the (latest version of)
+   the SDB will be updated to point to the new ma.
+*/
+
+void UpdateMultiAlignTInSequenceDB(tSequenceDB *db,
+                                   int index,
+                                   int isUnitig,
+                                   MultiAlignT *ma,
+                                   int keepInCache){
+ tMARecord *maRecord = GettMARecord(isUnitig?db->Unitigs:db->Contigs, index);
+ MultiAlignStoreT *maStore = (isUnitig?db->UnitigStore:db->ContigStore);
+ int32 fileID = GetNumPtrTs(db->SubStores) - 1;
+ FILE *file = (FILE *)*GetPtrT(db->SubStores, fileID);
+ size_t totalSize = 0;
+ // off_t pos;
+
+ assert( maRecord  != NULL );
+
+ if(keepInCache){
+   if(GetReferenceCountMultiAlignT(ma) == 0){ // we are the original owner
+     db->totalCacheSize+= GetMemorySize(ma);
+   }
+  SetMultiAlignInStore(maStore,index,ma);
+ }
+ //  fflush(file);
+ // fprintf(stderr,"* Appending at " F_SIZE_T "\n", db->offsetOfEOF);
+ if(!db->positionedAtEnd)
+   CDS_FSEEK(file, db->offsetOfEOF, SEEK_SET);
+  //  pos = CDS_FTELL(file);
+
+  if(maRecord){
+    maRecord->storeID = fileID;
+    maRecord->offset = db->offsetOfEOF;
+  }else{
+    tMARecord mar;
+    mar.flags.all = 0;
+    mar.storeID = fileID;
+    mar.offset = db->offsetOfEOF;
+    SettMARecord(isUnitig?db->Unitigs:db->Contigs, index, &mar);
+  }
+  //  fprintf(stderr,"* ma %d saved at offset " F_SIZE_T "\n", index, db->offsetOfEOF);
+  totalSize += SaveMultiAlignTToStream(ma,file);
+  db->offsetOfEOF += totalSize;
+  db->positionedAtEnd = 1;
+  //  fprintf(stderr,"* Appending " F_SIZE_T " bytes offset now " F_SIZE_T "\n", totalSize, db->offsetOfEOF);
+}
+
+
+
 
 /* DeleteMultiAlignTFromSequenceDB
    Mark the appropriate entry as deleted in an index.  This does not change the data file

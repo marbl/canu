@@ -22,7 +22,7 @@
 #define AS_ORA_REPEATS_H
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_ORA/Attic/AS_ORA_repeats.h,v $
-$Revision: 1.2 $
+$Revision: 1.3 $
 **********************************************************************/
 
 

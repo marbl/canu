@@ -22,7 +22,7 @@
 #
 ###########################################################################
 #
-# $Id: morphInter.sh,v 1.2 2004-09-23 20:25:24 mcschatz Exp $
+# $Id: morphInter.sh,v 1.3 2005-03-22 19:05:57 jason_miller Exp $
 #
 
 cat *.elsewhere.txt | \

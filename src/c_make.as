@@ -78,7 +78,10 @@ ifeq ($(OSTYPE), Linux)
   # CFLAGS_WARNINGS = -Wall
 
   ifeq ($(MACHINETYPE), x86_64)
+    CC = /usr/local/bin/gcc
+    CXX = /usr/local/bin/g++
     CFLAGS += -m64 -mcmodel=medium 
+    CXXFLAGS += -m64 -mcmodel=medium
   endif
 else
   ifeq ($(OSTYPE), Darwin)
@@ -89,10 +92,17 @@ else
     CXXDEFS = -D__cplusplus
  else 
   ifeq ($(OSTYPE), SunOS)
-    CC = cc
-    CXX = cxx
-    CFLAGS += -DBYTE_ORDER=BIG_ENDIAN -DMAP_FILE=0 -g
-    LDFLAGS += -lsocket -lnsl
+    ifeq ($(MACHINETYPE), i86pc)
+      CC = gcc
+      CXX = g++
+      CFLAGS += -DBYTE_ORDER=LITTLE_ENDIAN
+      LDFLAGS += -lm
+    else
+      CC = cc
+      CXX = cxx
+      CFLAGS += -DBYTE_ORDER=BIG_ENDIAN -DMAP_FILE=0 -g
+      LDFLAGS += -lsocket -lnsl
+    endif
   else
   ifeq ($(OSTYPE), aix)
     CC = xlc
@@ -148,7 +158,7 @@ else
     ifeq ($(OSTYPE), OSF1)
       CC = cc
       CXX = c++
-      CFLAGS_OPT=  -pthread -fast -O3
+      CFLAGS_OPT=  -pthread -fast -O4
       # To get accurate variable prints in the debuggers:
       # CFLAGS_OPT= -g 
       # CFLAGS_OPT= -g -check_bounds

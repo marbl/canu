@@ -223,6 +223,7 @@ LOCAL_OS=$(LOCAL_WORK)/$(LOCAL_OS_TYPE)
 LOCAL_BIN=$(LOCAL_OS)/bin
 LOCAL_LIB=$(LOCAL_OS)/lib
 LOCAL_OBJ=$(LOCAL_OS)/obj
+LOCAL_DEP=$(LOCAL_OS)/dep
 
 #### Various flags
 #### Do not redefine if (a) passed in on command line, or (b)
@@ -280,6 +281,7 @@ if [ ! -e $(LOCAL_OS)  ] ; then mkdir $(LOCAL_OS)  ; fi ; \
 if [ ! -e $(LOCAL_BIN) ] ; then mkdir $(LOCAL_BIN) ; fi ; \
 if [ ! -e $(LOCAL_OBJ) ] ; then mkdir $(LOCAL_OBJ) ; fi ; \
 if [ ! -e $(LOCAL_LIB) ] ; then mkdir $(LOCAL_LIB) ; fi ; \
+if [ ! -e $(LOCAL_DEP) ] ; then mkdir $(LOCAL_DEP) ; fi ; \
 if [ ! -e $(LOCAL_INC) ] ; then mkdir $(LOCAL_INC) ; fi ;
 endef
 dummy_expected_directories := $(shell $(make_expected_directories))
@@ -331,10 +333,10 @@ CXX_OBJECTS_C  := $(patsubst %.C, %.o, $(filter %.C, $(SOURCES)))
 CXX_OBJECTS    := $(CXX_OBJECTS_CC) $(CXX_OBJECTS_C)
 OBJECTS        := $(C_OBJECTS) $(CXX_OBJECTS)
 
-C_DEPS         := $(patsubst %.c, %.d, $(filter %.c, $(SOURCES)))
-CXX_DEPS_CC    := $(patsubst %.cc, %.d, $(filter %.cc, $(SOURCES)))
-CXX_DEPS_CPP   := $(patsubst %.cpp, %.d, $(filter %.cpp, $(SOURCES)))
-CXX_DEPS_C     := $(patsubst %.C, %.d, $(filter %.C, $(SOURCES)))
+C_DEPS         := $(patsubst %.c, $(LOCAL_DEP)/%.d, $(filter %.c, $(SOURCES)))
+CXX_DEPS_CC    := $(patsubst %.cc, $(LOCAL_DEP)/%.d, $(filter %.cc, $(SOURCES)))
+CXX_DEPS_CPP   := $(patsubst %.cpp, $(LOCAL_DEP)/%.d, $(filter %.cpp, $(SOURCES)))
+CXX_DEPS_C     := $(patsubst %.C, $(LOCAL_DEP)/%.d, $(filter %.C, $(SOURCES)))
 CXX_DEPS       := $(CXX_DEPS_CC) $(CXX_DEPS_C)
 DEPS           := $(C_DEPS) $(CXX_DEPS)
 
@@ -395,48 +397,31 @@ $(PROGS):
 	  if eval "$$todo"; then true; else rm -f $(LOCAL_BIN)/$(notdir $@); fi
 
 #### For making dependencies
-$(C_DEPS): %.d: %.c
+$(C_DEPS): $(LOCAL_DEP)/%.d: %.c
 	@echo Making .d dependency list for $<
 	@rm -f $@
-	@echo "\$$(OBJDIR)/$*.o \$$(DEPDIR)/$*.d: $< \\" > $@
-	@$(SHELL) -ec '$(CC) -c -E $(CFLAGS) $(INC_DIRS) $< | sed -n -e '\''/^#/s/^.*[<"]\(.*\)[">].*$$/  \1 \\/p'\'' | sort -u | fgrep -v /usr/include | fgrep -v $< | sed -e '\''$$s/ \\//'\'' >> $@'
-#	@ if [ -e $(notdir $<) ] ; then \
-#	  $(SHELL) -ec '$(CC) -M $(CPPFLAGS) $(INC_DIRS) $< \
-#	    | sed '\''s/$*\\.o[ :]*/& $@/g'\'' > $@' ; \
-#        fi ;
+	@echo "$*.o $*.d: $< \\" > $@
+	@$(SHELL) -ec '$(CC) -c -E $(CFLAGS) $(INC_DIRS) $< | fgrep -v pragma | fgrep -v "built-in>" | fgrep -v "command" | sed -n -e '\''/^#/s/^.*[<"]\(.*\)[">].*$$/  \1 \\/p'\'' | sort -u | fgrep -v /include/ | fgrep -v $< | sed -e '\''$$s/ \\//'\'' >> $@'
 
-$(CXX_DEPS_CC): %.d: %.cc
+$(CXX_DEPS_CC): $(LOCAL_DEP)/%.d: %.cc
 	@echo Making .d dependency list for $<
 	@rm -f $@
-	@echo "\$$(OBJDIR)/$*.o \$$(DEPDIR)/$*.d: $< \\" > $@
-	@$(SHELL) -ec '$(CXX) -c -E $(CPPFLAGS) $(INC_DIRS) $< | sed -n -e '\''/^#/s/^.*[<"]\(.*\)[">].*$$/  \1 \\/p'\'' | sort -u | fgrep -v /usr/include | fgrep -v $< | sed -e '\''$$s/ \\//'\'' >> $@'
-#	@ if [ -e $(notdir $<) ] ; then \
-#	  $(SHELL) -ec '$(CXX) -M $(CPPFLAGS) $(INC_DIRS) $< \
-#	    | sed '\''s/$*\\.o[ :]*/& $@/g'\'' > $@' ; \
-#        fi ;
+	@echo "$*.o $*.d: $< \\" > $@
+	@$(SHELL) -ec '$(CXX) -c -E $(CPPFLAGS) $(CXXFLAGS) $(INC_DIRS) $< | fgrep -v pragma | fgrep -v "built-in>" | fgrep -v "command" | sed -n -e '\''/^#/s/^.*[<"]\(.*\)[">].*$$/  \1 \\/p'\'' | sort -u | fgrep -v /include/ | fgrep -v $< | sed -e '\''$$s/ \\//'\'' >> $@'
 
-$(CXX_DEPS_C): %.d: %.C
+$(CXX_DEPS_C): $(LOCAL_DEP)/%.d: %.C
 	@echo Making .d dependency list for $<
 	@rm -f $@
-	@echo "\$$(OBJDIR)/$*.o \$$(DEPDIR)/$*.d: $< \\" > $@
-	@$(SHELL) -ec '$(CXX) -c -E $(CPPFLAGS) $(INC_DIRS) $< | sed -n -e '\''/^#/s/^.*[<"]\(.*\)[">].*$$/  \1 \\/p'\'' | sort -u | fgrep -v /usr/include | fgrep -v $< | sed -e '\''$$s/ \\//'\'' >> $@'
-#	@ if [ -e $(notdir $<) ] ; then \
-#	  $(SHELL) -ec '$(CXX) -M $(CPPFLAGS) $(INC_DIRS) $< \
-#	    | sed '\''s/$*\\.o[ :]*/& $@/g'\'' > $@' ; \
-#        fi ;
+	@echo "$*.o $*.d: $< \\" > $@
+	@$(SHELL) -ec '$(CXX) -c -E $(CPPFLAGS) $(CXXFLAGS) $(INC_DIRS) $< | fgrep -v pragma | fgrep -v "built-in>" | fgrep -v "command" | sed -n -e '\''/^#/s/^.*[<"]\(.*\)[">].*$$/  \1 \\/p'\'' | sort -u | fgrep -v /include/ | fgrep -v $< | sed -e '\''$$s/ \\//'\'' >> $@'
 
-$(CXX_DEPS_CPP): %.d: %.cpp
+$(CXX_DEPS_CPP): $(LOCAL_DEP)/%.d: %.cpp
 	@echo Making .d dependency list for $<
 	@rm -f $@
-	@echo "\$$(OBJDIR)/$*.o \$$(DEPDIR)/$*.d: $< \\" > $@
-	@$(SHELL) -ec '$(CC) -c -E $(CFLAGS) $(INC_DIRS) $< | sed -n -e '\''/^#/s/^.*[<"]\(.*\)[">].*$$/  \1 \\/p'\'' | sort -u | fgrep -v /usr/include | fgrep -v $< | sed -e '\''$$s/ \\//'\'' >> $@'
-#	@ if [ -e $(notdir $<) ] ; then \
-#	  $(SHELL) -ec '$(CC) -M $(CPPFLAGS) $(INC_DIRS) $< \
-#	    | sed '\''s/$*\\.o[ :]*/& $@/g'\'' > $@' ; \
-#        fi ;
+	@echo "$*.o $*.d: $< \\" > $@
+	@$(SHELL) -ec '$(CXX) -c -E $(CPPFLAGS) $(CXXFLAGS) $(INC_DIRS) $< | fgrep -v pragma | fgrep -v "built-in>" | fgrep -v "command" | sed -n -e '\''/^#/s/^.*[<"]\(.*\)[">].*$$/  \1 \\/p'\'' | sort -u | fgrep -v /include/ | fgrep -v $< | sed -e '\''$$s/ \\//'\'' >> $@'
 
 
--include $(DEPS)
 
 #### Specific target to make objects
 objs: $(OBJECTS)
@@ -447,8 +432,7 @@ libs: $(LIBRARIES)
 #### Specific target to make progs
 progs: $(PROGS)
 
-#### Specific target to make objects
-#incs:
+-include $(DEPS)
 
 #### Phony
 .PHONY: all clean clean_obj clean_lib clean_bin clean_dep

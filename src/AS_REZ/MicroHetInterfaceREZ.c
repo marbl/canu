@@ -29,7 +29,7 @@
  Assumptions: 
 **********************************************************************/
 
-static char CM_ID[] = "$Id: MicroHetInterfaceREZ.c,v 1.2 2004-09-23 20:25:28 mcschatz Exp $";
+static char CM_ID[] = "$Id: MicroHetInterfaceREZ.c,v 1.3 2005-03-22 19:07:42 jason_miller Exp $";
 
 #include <math.h>
 #include <assert.h>

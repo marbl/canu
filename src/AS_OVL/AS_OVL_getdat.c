@@ -30,11 +30,11 @@
 *************************************************/
 
 /* RCS info
- * $Author: mcschatz $
+ * $Author: jason_miller $
  * $Locker:  $
- * $Date: 2004-09-23 20:25:25 $
- * $Id: AS_OVL_getdat.c,v 1.2 2004-09-23 20:25:25 mcschatz Exp $
- * $Revision: 1.2 $
+ * $Date: 2005-03-22 19:06:40 $
+ * $Id: AS_OVL_getdat.c,v 1.3 2005-03-22 19:06:40 jason_miller Exp $
+ * $Revision: 1.3 $
  * $State: Exp $
  * $Log: not supported by cvs2svn $
  * Revision 1.2  2004/06/17 13:25:42  mpop

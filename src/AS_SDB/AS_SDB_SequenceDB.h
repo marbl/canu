@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_SDB_SequenceDB.h,v 1.2 2004-09-23 20:25:28 mcschatz Exp $	 */
+/* 	$Id: AS_SDB_SequenceDB.h,v 1.3 2005-03-22 19:08:07 jason_miller Exp $	 */
 /*
   This SequenceDB is a more sophisticated version of the MultiAlignStore idea.
   We have the following design requirements:
@@ -151,6 +151,13 @@ void SaveSequenceDB(tSequenceDB *db);  // Save the current revision of the indic
    appends it to the data file.
 */
 void InsertMultiAlignTInSequenceDB(tSequenceDB *db, int index, int isUnitig, MultiAlignT *ma, int keepInCache);
+
+/* UpdateMultiAlignTInSequenceDB
+   Inserts a new MultiAlignT for a given chunk that will replace an old MultiAlignT.  The old data is actually
+   left on disk, but the substore and offset indicators for the chunk index portion of the (latest version of)
+   the SDB will be updated to point to the new ma.
+*/
+void UpdateMultiAlignTInSequenceDB(tSequenceDB *db, int index, int isUnitig, MultiAlignT *ma, int keepInCache);
 
 /* DuplicateEntryInSequenceDB
 */

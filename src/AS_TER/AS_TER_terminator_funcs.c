@@ -25,7 +25,7 @@
  Assumptions: There is no UID 0
 **********************************************************************/
 
-static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.2 2004-09-23 20:25:29 mcschatz Exp $";
+static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.3 2005-03-22 19:08:36 jason_miller Exp $";
 
 
 

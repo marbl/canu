@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: CorrectOlapsOVL.c,v 1.2 2004-09-23 20:25:25 mcschatz Exp $
- * $Revision: 1.2 $
+ * $Id: CorrectOlapsOVL.c,v 1.3 2005-03-22 19:06:48 jason_miller Exp $
+ * $Revision: 1.3 $
 */
 
-static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.2 2004-09-23 20:25:25 mcschatz Exp $";
+static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.3 2005-03-22 19:06:48 jason_miller Exp $";
 
 
 //  System include files
@@ -418,11 +418,18 @@ int  main
    fprintf (stderr, "Starting Read_Olaps ()\n");
    Read_Olaps ();
 
-   fprintf (stderr, "Starting qsort ()\n");
-   qsort (Olap, Num_Olaps, sizeof (Olap_Info_t), By_B_IID);
+   if (Num_Olaps != 0)
+   {
+     fprintf (stderr, "Starting qsort ()\n");
+     qsort (Olap, Num_Olaps, sizeof (Olap_Info_t), By_B_IID);
 
-   fprintf (stderr, "Starting Redo_Olaps ()\n");
-   Redo_Olaps ();
+     fprintf (stderr, "Starting Redo_Olaps ()\n");
+     Redo_Olaps ();
+   }
+   else
+   {
+     fprintf(stderr, "No overlaps in fragment range, skipping Redo_Olaps()\n");
+   }
 
    if  (OVL_fp != NULL)
        fclose (OVL_fp);
@@ -439,9 +446,16 @@ int  main
             }
           else
             {
-             fprintf (stderr, "Saving corrected error rates to store %s\n",
-                      Olap_Path);
-             Set_Corrected_Erate (Olap_Path, Lo_Frag_IID, Hi_Frag_IID, Olap, Num_Olaps);
+              if (Num_Olaps != 0)
+              {
+                fprintf (stderr, "Saving corrected error rates to store %s\n",
+                         Olap_Path);
+                Set_Corrected_Erate (Olap_Path, Lo_Frag_IID, Hi_Frag_IID, Olap, Num_Olaps);
+              }
+              else
+              {
+                fprintf(stderr, "No overlaps for fragment range, not updating store\n");
+              }
             }
        }
 
@@ -451,7 +465,7 @@ int  main
         fclose (Dump_Olap_fp);
        }
 
-   if  (Use_CGB_File)
+   if  (Use_CGB_File && Num_Olaps != 0)
        {
         FILE  * fp;
         int  len;
@@ -2689,7 +2703,7 @@ static void  Read_Frags
           }
 
       result = getClearRegion_ReadStruct
-                   (frag_read, & clear_start, & clear_end, READSTRUCT_ORIGINAL);
+                   (frag_read, & clear_start, & clear_end, READSTRUCT_OVL);
       if  (result != 0)
           {
            fprintf (stderr, "Error reading clear range from frag store\n");
@@ -2867,7 +2881,7 @@ static void  Redo_Olaps
           }
 
       result = getClearRegion_ReadStruct
-                   (frag_read, & clear_start, & clear_end, READSTRUCT_ORIGINAL);
+                   (frag_read, & clear_start, & clear_end, READSTRUCT_OVL);
       if  (result != 0)
           {
            fprintf (stderr, "Error reading clear range from frag store\n");

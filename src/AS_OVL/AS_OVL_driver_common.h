@@ -26,8 +26,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_driver_common.h,v 1.2 2004-09-23 20:25:25 mcschatz Exp $
- * $Revision: 1.2 $
+ * $Id: AS_OVL_driver_common.h,v 1.3 2005-03-22 19:06:40 jason_miller Exp $
+ * $Revision: 1.3 $
 */
 
 
@@ -394,7 +394,7 @@ break;
               Frag_Segment_Lo = lowest_old_frag;
               if  (IID_List == NULL)
                   {
-                   Frag_Segment_Hi = Frag_Segment_Lo + MAX_FRAGS_IN_MEMORY_STORE - 1;
+                   Frag_Segment_Hi = Frag_Segment_Lo + Max_Frags_In_Memory_Store - 1;
                    if  (Frag_Segment_Hi > highest_old_frag)
                        Frag_Segment_Hi = highest_old_frag;
                   }
@@ -467,7 +467,7 @@ break;
               closeFragStore (curr_frag_store);
 
               if  (IID_List == NULL)
-                  lowest_old_frag += MAX_FRAGS_IN_MEMORY_STORE;
+                  lowest_old_frag += Max_Frags_In_Memory_Store;
                 else
                   {
                    IID_Lo = IID_Hi + 1;
@@ -602,7 +602,7 @@ static int  Choose_Hi_IID_Sub
    for  (i = lo + 1;
            i < n
              && List [i] - List [i - 1] < IID_GAP_LIMIT
-             && List [i] - List [lo] < MAX_FRAGS_IN_MEMORY_STORE;
+             && List [i] - List [lo] < Max_Frags_In_Memory_Store;
            i ++)
      ;
 

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.2 2004-09-23 20:25:26 mcschatz Exp $";
+static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.3 2005-03-22 19:07:31 jason_miller Exp $";
 /*************************************************************************
  Module:  AS_PER_genericStore
  Description:
@@ -52,8 +52,8 @@ static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.2 2004-09-23 20:25:26 mcsc
  *************************************************************************/
 
 /* RCS Info
- * $Id: AS_PER_genericStore.c,v 1.2 2004-09-23 20:25:26 mcschatz Exp $
- * $Revision: 1.2 $
+ * $Id: AS_PER_genericStore.c,v 1.3 2005-03-22 19:07:31 jason_miller Exp $
+ * $Revision: 1.3 $
  *
  */
 

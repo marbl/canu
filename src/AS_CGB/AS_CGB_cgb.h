@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_CGB_cgb.h,v 1.2 2004-09-23 20:25:01 mcschatz Exp $
+ * $Id: AS_CGB_cgb.h,v 1.3 2005-03-22 19:01:49 jason_miller Exp $
  *
  * Module: AS_CGB_cgb.h
  *
@@ -116,13 +116,13 @@ static float compute_coverage_statistic
   // single coverage, negative for multiple coverage, and near zero
   // for indecisive.
 
-#define ADJUST_FOR_PARTIAL_EXCESS
+//#define ADJUST_FOR_PARTIAL_EXCESS
   // the standard statistic gives log likelihood ratio of expected depth vs.
   // twice expected depth; but when enough fragments are present, we can actually
   // test whether depth exceeds expected even fractionally; in deeply sequenced datasets
   // (e.g. bacterial genomes), this has been observed for repetitive segments
 #ifdef ADJUST_FOR_PARTIAL_EXCESS
-  if(rho>0){
+  if(rho>0&&global_fragment_arrival_rate>0.f){
     float lambda = global_fragment_arrival_rate * rho;
     float zscore = ((number_of_randomly_sampled_fragments_in_chunk -1)-lambda)/
       sqrt(lambda);

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: ScaffoldGraphIterator_CGW.h,v 1.2 2004-09-23 20:25:19 mcschatz Exp $ */
+/* $Id: ScaffoldGraphIterator_CGW.h,v 1.3 2005-03-22 19:03:59 jason_miller Exp $ */
 /*****************************************************************************
  *  ScaffoldGraphIterators
  *  
@@ -45,6 +45,10 @@
 		   TENTATIVE_UNTRUSTED_EDGE_STATUS | \
 		   UNKNOWN_EDGE_STATUS | UNTRUSTED_EDGE_STATUS | \
 		   LARGE_VARIANCE_EDGE_STATUS | INTER_SCAFFOLD_EDGE_STATUS)
+
+#define ALL_INTERNAL_EDGES (TENTATIVE_TRUSTED_EDGE_STATUS | TRUSTED_EDGE_STATUS | \
+		   TENTATIVE_UNTRUSTED_EDGE_STATUS | \
+		   UNKNOWN_EDGE_STATUS | UNTRUSTED_EDGE_STATUS)
 
 
 /* ************************************************************************ */

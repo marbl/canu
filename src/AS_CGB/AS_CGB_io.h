@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_CGB_io.h,v 1.2 2004-09-23 20:25:01 mcschatz Exp $
+ * $Id: AS_CGB_io.h,v 1.3 2005-03-22 19:02:15 jason_miller Exp $
  *
  * Module: AS_CGB_io.h
  * Description: Header file for the code that reads and writes the 

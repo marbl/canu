@@ -22,7 +22,7 @@
 ###########################################################################
 #
 # *********************************************************************
-# $Id: Makefile,v 1.2 2004-09-23 20:25:23 mcschatz Exp $
+# $Id: Makefile,v 1.3 2005-03-22 19:04:58 jason_miller Exp $
 # Module: AS_MER
 # Description: The merCounter.
 # Assumptions:
@@ -66,9 +66,7 @@ CXXDEFS =
 #CXXFLAGS += -g -pg -qcpluscmt -qstrict 
 # DEC cxx requires tlocal for template linking. Not recognized by g++.
 ifeq "$(OSTYPE)" "osf1"
-CXX = cxx -tlocal
-else
-CXX = g++
+CXXFLAGS += -tlocal
 endif
 
 DEPEND_FILES = *.c *.h

@@ -33,7 +33,7 @@
 
  **********************************************************************/
 
-static char fileID[] = "$Id: UpdateREZ.c,v 1.2 2004-09-23 20:25:28 mcschatz Exp $";
+static char fileID[] = "$Id: UpdateREZ.c,v 1.3 2005-03-22 19:08:01 jason_miller Exp $";
 
 #include <stdio.h>
 #include <assert.h>

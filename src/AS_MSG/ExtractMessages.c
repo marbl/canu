@@ -21,7 +21,7 @@
 /* CountMessages
  *    Extracts messages of a given set of types
  *
- * $Id: ExtractMessages.c,v 1.2 2004-09-23 20:25:24 mcschatz Exp $
+ * $Id: ExtractMessages.c,v 1.3 2005-03-22 19:06:20 jason_miller Exp $
  *
  */
 

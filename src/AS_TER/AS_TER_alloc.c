@@ -25,7 +25,7 @@
  Assumptions:
 **********************************************************************/
 
-static char CM_ID[] = "$Id: AS_TER_alloc.c,v 1.2 2004-09-23 20:25:29 mcschatz Exp $";
+static char CM_ID[] = "$Id: AS_TER_alloc.c,v 1.3 2005-03-22 19:08:35 jason_miller Exp $";
 
 #include "AS_TER_alloc.h"
 #include "AS_MSG_pmesg.h"

@@ -38,11 +38,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: get-subgraph.c,v 1.2 2004-09-23 20:25:26 mcschatz Exp $
- * $Revision: 1.2 $
+ * $Id: get-subgraph.c,v 1.3 2005-03-22 19:07:13 jason_miller Exp $
+ * $Revision: 1.3 $
 */
 
-static char fileID[] = "$Id: get-subgraph.c,v 1.2 2004-09-23 20:25:26 mcschatz Exp $";
+static char fileID[] = "$Id: get-subgraph.c,v 1.3 2005-03-22 19:07:13 jason_miller Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -158,7 +158,7 @@ fprintf (stderr, "Hash table size = %d\n", hash_table_size);
            sprintf (label_line, "%s %s %s", argv [0], infile_name,
                     argv [optind]);
            AppendAuditLine_AS (adt_mesg, & audit_line, time (0), "get-subgraph",
-                               "$Revision: 1.2 $", label_line);
+                               "$Revision: 1.3 $", label_line);
            write_msg_fn (outfile, gmesg);
            break;
           }

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGW_main.c,v 1.2 2004-09-23 20:25:18 mcschatz Exp $";
+static char CM_ID[] = "$Id: AS_CGW_main.c,v 1.3 2005-03-22 19:03:03 jason_miller Exp $";
 
 
 /*********************************************************************
@@ -192,7 +192,9 @@ int main(int argc, char *argv[]){
   int annotateUnitigs = 0;
   int debugLevel = 0;
   int repeatRezLevel = 0;
+  int write_rock_log = FALSE;
   int stoneLevel = 0;
+  int write_stone_log = FALSE;
   int startScaffoldWalkFrom = NULLINDEX;
   int starting_stone_scaffold = 0;
   int walkScaffoldsBiggestFirst = TRUE;
@@ -252,6 +254,8 @@ int main(int argc, char *argv[]){
 
   { /* Parse the argument list using "man 3 getopt". */ 
     int ch,errflg=0;
+    char  * p;
+
     optarg = NULL;
     while (!errflg && ((ch = getopt(argc, argv,
 		       "abcde:f:g:hi:j:k:l:m:n:o:p:q:r:s:tuvw:xz:ABCD:EGHIJK:L:N:O:PQR:STUV:W:X:Y:Z")) != EOF)){
@@ -408,11 +412,13 @@ int main(int argc, char *argv[]){
 	break;
 
       case 'r':
-	repeatRezLevel = atoi(optarg);
+	repeatRezLevel = (int) strtol (optarg, & p, 10);
+        write_rock_log = (* p == 'L');
 	fprintf(GlobalData->stderrc,"* repeatRezLevel set to %d\n", repeatRezLevel);
 	break;
       case 's':
-	stoneLevel = atoi(optarg);
+	stoneLevel = (int) strtol (optarg, & p, 10);
+        write_stone_log = (* p == 'L');
 	fprintf(GlobalData->stderrc,"* stoneLevel set to %d\n", stoneLevel);
 	break;
       case 'S':
@@ -488,7 +494,9 @@ int main(int argc, char *argv[]){
       {
 	fprintf(GlobalData->stderrc,"* argc = %d optind = %d setFragStore = %d setGatekeeperStore = %d outputPath = %s\n",
 		argc, optind, setFragStore,setGatekeeperStore, outputPath);
-	fprintf (GlobalData->stderrc, "USAGE:  cgw [-deEcvPuUtTjXY] [-j <uniqueCutoff>] [-D <debugLevel>] [-r <repeatRezLevel>] [-p <preMergeRezLevel>] [-s <stoneLevel>] [-w <walkLevel>] [-R <checkpoint>] [-N <checkpoint>] [-K <aligner>] -f <FragStoreName> -g <GatekeeperStoreName> -o <OutputPath> [<InputFileName>.<ext>]*\n"
+	fprintf (GlobalData->stderrc, "USAGE:  cgw [-deEcvPuUtTjXY] [-j <uniqueCutoff>] [-D <debugLevel>] [-r <repeatRezLevel>] [-p <preMergeRezLevel>[L]] [-s <stoneLevel>[L]] [-w <walkLevel>] [-R <checkpoint>] [-N <checkpoint>] [-K <aligner>] -f <FragStoreName> -g <GatekeeperStoreName> -o <OutputPath> [<InputFileName>.<ext>]*\n"
+                 "Use 'L' after <repeatRezLevel> or <stoneLevel> to generate\n"
+                 "  copious .log and .analysis files\n"
 		 "Opens ALL [<InputFileName>.<ext>]* to read input\n"
 		 "Writes diagnostic output to <OutputPath>.cgwlog\n"
 		 "Writes multiAlignments to <OutputPath>.SeqStore\n"
@@ -514,7 +522,9 @@ int main(int argc, char *argv[]){
     } else {
       data->repeatRezLevel = repeatRezLevel;
     }
+    data -> write_rock_log = write_rock_log;
     data->stoneLevel     = stoneLevel;
+    data -> write_stone_log = write_stone_log;
     data->walkLevel      = walkLevel;
     data->debugLevel     = debugLevel;
     data->failOn_NoOverlapFound = failOn_NoOverlapFound;
@@ -529,9 +539,6 @@ int main(int argc, char *argv[]){
 
     if(optind < argc) 
       {
-	char *suffix;
-	char oldSuffix = '\0';
-
 	//	fprintf(GlobalData->stderrc,"Input file is %s suffix is %s\n",argv[optind], suffix);
 	strcpy(data->Input_File_Name, argv[optind]);
 	infp = File_Open (data->Input_File_Name, "r", TRUE);     // frg file
@@ -540,11 +547,6 @@ int main(int argc, char *argv[]){
 	data->writer = writer = OutputFileType_AS(outputFormat);
 	data->errorWriter = OutputFileType_AS(AS_PROTO_OUTPUT);
 
-	suffix = strrchr(outputPath,(int)'.');
-	if(suffix){
-	  oldSuffix = *suffix;
-	  *suffix = '\0';
-	}
 	strcpy(data->File_Name_Prefix, outputPath);
 	sprintf(data->TempFileName,"%s.tempium", outputPath);
 
@@ -570,9 +572,6 @@ int main(int argc, char *argv[]){
 	data->outfp1 = outfp1 = File_Open (data->Output_File_Name, "w", TRUE);     // cgw file
 	sprintf(data->Output_File_Name,"%s.cgw_scaffolds",outputPath);
 	data->outfp2 = outfp2 = File_Open (data->Output_File_Name, "w", TRUE);     // cgw file
-
-	if(suffix)
-	  *suffix = oldSuffix;
 
 	//	optind++;
       }
@@ -615,8 +614,8 @@ int main(int argc, char *argv[]){
   data->saveCheckPoints = checkPoint;
   data->outputCalculatedOffsets = (geneOutput == 0);
 
-  if(restartFromCheckpoint < restartFromLogicalCheckpoint){
-    fprintf(GlobalData->stderrc,"* Logical Checkpoint (%d)  MUST be greater than restart checkpoint (%d)\n",
+  if(restartFromCheckpoint < restartFromLogicalCheckpoint && restartFromLogicalCheckpoint !=  CHECKPOINT_BEFORE_FINAL_CLEANUP){
+    fprintf(GlobalData->stderrc,"* Logical Checkpoint (%d)  MUST be no greater than restart checkpoint (%d)\n",
 	    restartFromLogicalCheckpoint, restartFromCheckpoint);
     exit(1);
   }
@@ -770,7 +769,7 @@ int main(int argc, char *argv[]){
   // Build scaffolds and do rocks
 
   if(immediateOutput == 0 && 
-     ((restartFromLogicalCheckpoint < CHECKPOINT_AFTER_BUILDING_AND_CLEANING_SCAFFOLDS) ||
+     ((restartFromLogicalCheckpoint < CHECKPOINT_AFTER_BUILDING_AND_CLEANING_SCAFFOLDS) &&
      data->repeatRezLevel > 0)){
   
     int skipInitialScaffolds = (restartFromLogicalCheckpoint >= CHECKPOINT_AFTER_BUILDING_SCAFFOLDS);
@@ -1295,13 +1294,12 @@ int main(int argc, char *argv[]){
 #ifdef INSTRUMENT_CGW
     MateInstrumenter mi_before;
     ScaffoldGraphInstrumenter * sg_inst;
-
+    
     sg_inst =
       CreateScaffoldGraphInstrumenter(ScaffoldGraph, INST_OPT_ALL_MATES);
 #endif
   
-  if( GlobalData->walkLevel > 0 )
-    {
+    if( GlobalData->walkLevel > 0 ){
       fprintf(GlobalData->stderrc,"**** Running Aggressive Walking level %d ****\n",GlobalData->walkLevel);
       if(GlobalData->debugLevel > 0){
 	DumpCIScaffolds(GlobalData->stderrc,ScaffoldGraph, FALSE);

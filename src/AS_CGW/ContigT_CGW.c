@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ContigT_CGW.c,v 1.2 2004-09-23 20:25:19 mcschatz Exp $";
+static char CM_ID[] = "$Id: ContigT_CGW.c,v 1.3 2005-03-22 19:03:32 jason_miller Exp $";
 
 //#define DEBUG 1
 //#define TRY_IANS_EDGES
@@ -224,7 +224,7 @@ void DumpContigInScfContext(FILE *stream, ScaffoldGraphT *graph,
     if(raw)
       flags |= GRAPH_EDGE_RAW_ONLY;
 
-    fprintf(stream, "* Contig " F_CID " tan:%s fbac:%d sc:" F_CID " [" F_COORD "," F_COORD "] aoff:%d boff:%d ANext:" F_CID " BNext:" F_CID " bp:[" F_COORD "," F_COORD "] len:%d AEnd:" F_CID " BEnd:" F_CID " numCI:%d\nCIs:\n",
+    fprintf(stream, "* Contig " F_CID " tan:%s fbac:%d sc:" F_CID " [" F_COORD "," F_COORD "] aoff:(%d,%e) boff:(%d,%e) ANext:" F_CID " BNext:" F_CID " bp:[" F_COORD "," F_COORD "] len:%d AEnd:" F_CID " BEnd:" F_CID " numCI:%d\nCIs:\n",
 	    contig->id, 
 	    tandem,
 	    contig->flags.bits.includesFinishedBacFragments,
@@ -232,7 +232,9 @@ void DumpContigInScfContext(FILE *stream, ScaffoldGraphT *graph,
 	    contig->aEndCoord,
 	    contig->bEndCoord,
 	    (int32)contig->offsetAEnd.mean,
+	    contig->offsetAEnd.variance,
 	    (int32)contig->offsetBEnd.mean,
+	    contig->offsetBEnd.variance,
 	    contig->AEndNext, contig->BEndNext, 
 	    contig->info.Contig.branchPointA,
 	    contig->info.Contig.branchPointB,
@@ -257,14 +259,16 @@ void DumpContigInScfContext(FILE *stream, ScaffoldGraphT *graph,
     while((CI = NextContigTIterator(&CIs))!=NULL){
       int isSurrogate = IsSurrogateNode(CI);
       numCI++;
-      fprintf(stream,"\t%c:" F_CID " cov:%d [" F_COORD "," F_COORD "] aoff:%d boff:%d anxt:" F_CID " bnxt:" F_CID " ctg:" F_CID " scf:" F_CID "\n",
+      fprintf(stream,"\t%c:" F_CID " cov:%d [" F_COORD "," F_COORD "] aoff:(%d,%e) boff:(%d,%e) anxt:" F_CID " bnxt:" F_CID " ctg:" F_CID " scf:" F_CID "\n",
 	      (isSurrogate?'s':'u'),
 	      CI->id,
 	      CI->info.CI.coverageStat,
 	      CI->aEndCoord,
 	      CI->bEndCoord,
 	      (int)CI->offsetAEnd.mean,
+	      CI->offsetAEnd.variance,
 	      (int)CI->offsetBEnd.mean,
+	      CI->offsetBEnd.variance,
 	      CI->AEndNext,
 	      CI->BEndNext,
 	      CI->info.CI.contigID,
