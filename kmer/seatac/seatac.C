@@ -149,9 +149,9 @@ buildTable(void) {
 
       fprintf(stderr, "\n");
       fprintf(stderr, "Dumping finished.  Exiting.\n");
-
-      exit(0);
     }
+
+    exit(0);
   }
 
   delete maskDB;
