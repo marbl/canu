@@ -1,13 +1,14 @@
 #include "posix.H"
 #include "searchGENOME.H"
 #include "buildnumber.H"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-//
-//  This is our "singleton"
+//  $Id$
+//  $Log$
+//  Revision 1.2  2003/01/03 15:57:13  walenz
+//  added cvs stuff
 //
 
 configuration::configuration(int x) {

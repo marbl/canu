@@ -6,6 +6,12 @@
 #include <errno.h>
 #include "aHit.H"
 
+//  $Id$
+//  $Log$
+//  Revision 1.2  2003/01/03 15:57:13  walenz
+//  added cvs stuff
+//
+
 #define MAX_ESTS    (16 * 1024 * 1024)
 
 typedef struct {

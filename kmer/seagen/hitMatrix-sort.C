@@ -1,6 +1,12 @@
 #include "posix.H"
 #include "hitMatrix.H"
 
+//  $Id$
+//  $Log$
+//  Revision 1.2  2003/01/03 15:57:14  walenz
+//  added cvs stuff
+//
+
 //
 //  Sort by dsPos
 //

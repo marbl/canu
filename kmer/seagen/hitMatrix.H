@@ -5,6 +5,12 @@
 #include "positionDB.H"
 #include "intervalList.H"
 
+//  $Id$
+//  $Log$
+//  Revision 1.2  2003/01/03 15:57:14  walenz
+//  added cvs stuff
+//
+
 struct diagonalLine {
   u32bit   _qsPos;
   u32bit   _dsPos;

@@ -10,6 +10,12 @@
 #include <fcntl.h>
 #include <assert.h>
 
+//  $Id$
+//  $Log$
+//  Revision 1.2  2003/01/03 15:57:14  walenz
+//  added cvs stuff
+//
+
 typedef unsigned short ushort;
 
 #include <pthread.h>

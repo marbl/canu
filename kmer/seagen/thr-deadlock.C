@@ -1,9 +1,19 @@
 #include "posix.H"
 #include "searchGENOME.H"
 
-#define ABORT_INSTEAD_OF_EXIT
+//  $Id$
+//  $Log$
+//  Revision 1.2  2003/01/03 15:57:14  walenz
+//  added cvs stuff
+//
 
-#ifdef ABORT_INSTEAD_OF_EXIT
+//  Define this to kill the process with a vengance instead of
+//  gracefully exiting.  exit() tries to free memory, and is thus gets
+//  caught in the deadlock -- but is useful for debugging.
+//
+#define KILL_INSTEAD_OF_EXIT
+
+#ifdef KILL_INSTEAD_OF_EXIT
 #include <signal.h>
 #endif
 
@@ -51,8 +61,8 @@ deadlockChecker(void *) {
   if (deadlockPassed == 0) {
     fprintf(stderr, "\n\n\nESTmapper/search-- Deadlock detected!  Aborting the process!\n\n");
     fflush(stderr);
-#ifdef ABORT_INSTEAD_OF_EXIT
-    kill(getpid(), SIGABRT);
+#ifdef KILL_INSTEAD_OF_EXIT
+    kill(getpid(), SIGKILL);
 #endif
     exit(1);
   }

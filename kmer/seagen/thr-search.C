@@ -1,6 +1,12 @@
 #include "posix.H"
 #include "searchGENOME.H"
 
+//  $Id$
+//  $Log$
+//  Revision 1.2  2003/01/03 15:57:15  walenz
+//  added cvs stuff
+//
+
 #define VERBOSE
 #ifdef TRUE64BIT
 char const *srchGbye = "[%lu] computed: %8lu  blocked: %4lu/%4lu  encodeTime: %7.2f   searchTime: %7.2f   filterTime: %7.2f\n";

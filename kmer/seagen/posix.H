@@ -1,7 +1,12 @@
-
 //
 //  Sun5.6 and Linux do not work if we define this.
 //  BSD and Tru64 don't work if this isn't defined.
+//
+
+//  $Id$
+//  $Log$
+//  Revision 1.2  2003/01/03 15:57:14  walenz
+//  added cvs stuff
 //
 
 #if defined(__bsd) || defined(__alpha)
