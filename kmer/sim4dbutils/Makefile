@@ -1,6 +1,6 @@
 PROG    = filterPolishes mergePolishes stripPolishes sortPolishes \
           pickBestPolish pickBestPolish-debug parseSNP \
-          plotCoverageVsIdentity cleanPolishes
+          plotCoverageVsIdentity cleanPolishes uniqPolishes
 INCLUDE = -I../libbri
 LIBS    = -L../libbri -lbri -lm
 
@@ -51,6 +51,9 @@ comparePolishes: comparePolishes.o $(OBJS)
 #  Trim sequences based on the largest region mapped
 trimSequencesBasedOnMatches: trimSequencesBasedOnMatches.o $(OBJS)
 	$(CC) $(CCOPTS) -o trimSequencesBasedOnMatches trimSequencesBasedOnMatches.o $(OBJS) $(LIBS) $(EFENCE)
+
+uniqPolishes: uniqPolishes.o $(OBJS)
+	$(CC) $(CCOPTS) -o uniqPolishes uniqPolishes.o $(OBJS) $(LIBS) $(EFENCE)
 
 clean:
 	rm -f $(PROG) *.o
