@@ -1,10 +1,11 @@
 # -*- makefile -*-
-ifndef LIBBRI/
-LIBBRI/     := $/../libbri/
-endif
 
 ifndef UTIL/
 UTIL/ := $/../util/
+endif
+
+ifndef LIBBRI/
+LIBBRI/     := $/../libbri/
 endif
 
 ifndef EXTERNAL/
