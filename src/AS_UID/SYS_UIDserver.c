@@ -21,11 +21,14 @@
 
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_UID/Attic/SYS_UIDserver.c,v $
-$Revision: 1.3 $
-$Date: 2005-03-22 19:49:28 $
+$Revision: 1.4 $
+$Date: 2005-03-30 21:11:56 $
 $Name: not supported by cvs2svn $
-$Author: jason_miller $
+$Author: eliv $
 $Log: not supported by cvs2svn $
+Revision 1.3  2005/03/22 19:49:28  jason_miller
+The TIGR tip as of March 22 2005. Commit by Jason Miller at TIGR.
+
 Revision 1.2  2004/09/10 12:31:43  mschatz
 Add standard copyright notice
 
@@ -728,7 +731,7 @@ cds_int32  PositionRead(void)
 	      current_UID);
       SYS_UIDerrorMsg(SYS_UIDerr_str);
    }
-   if (feof(read_fp) != NULL)
+   if (feof(read_fp) != 0)
    {
       sprintf(SYS_UIDerr_str,"UID Server: position file %s not correct format\n",
 	      positionfile_name);
@@ -1171,7 +1174,7 @@ Notes:
 cds_int32  UIDIsValid(cds_uint64 block_size)
 {
    cds_uint64 end_of_block;
-   cds_uint64 max_ul = 0xffffffffffffffffL;
+   cds_uint64 max_ul = UINT64_MAX;
 
 
    // do 64-bit bounds check
