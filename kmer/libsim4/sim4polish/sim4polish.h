@@ -95,6 +95,24 @@ void           s4p_insertExon(sim4polish *p, int a, sim4polishExon *e);
 sim4polish    *s4p_stringToPolish(char *s);
 char          *s4p_polishToString(sim4polish *p);
 
+
+
+int            s4p_compatable(sim4polish *A, sim4polish *B);
+int            s4p_IsSameRegion(sim4polish *A, sim4polish *B, u32bit tolerance);
+int            s4p_IsSameExonModel(sim4polish *A, sim4polish *B, u32bit tolerance);
+void           s4p_compareExons_Overlap(sim4polish *A,
+                                        sim4polish *B,
+                                        int        *numSame,
+                                        int        *numMissing,
+                                        int        *numExtra);
+void           s4p_compareExons_Ends(sim4polish *A,
+                                     sim4polish *B,
+                                     int         tolerance,
+                                     int        *numSame,
+                                     int        *numMissing,
+                                     int        *numExtra);
+
+
 #ifdef __cplusplus
 }
 #endif
