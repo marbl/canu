@@ -1,7 +1,10 @@
-#include <new.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <new>
 
 #include "positionDB.H"
-#include "time.H"
+#include "bit-packing.H"
+#include "merstream.H"
 
 #define REUSE_BUCKETS
 
@@ -9,12 +12,22 @@
 //#define ERROR_CHECK_COUNTING_ENCODING
 //#define ERROR_CHECK_EMPTY_BUCKETS
 
+
+#ifndef SILENTPOSITIONDB
+#include "time.h"
+#endif
+
+
+
+//  Progress messages disabled if we're silent.
+//
+#ifndef SILENTPOSITIONDB
+
 #define MSG_OUTPUT  stderr
 
 #ifdef TRUE64BIT
 const char *buckCountMsg = "    Allocated bucket size counting space with total size %lu KB\n";
 const char *foundMersMsg = "\n    Found %lu mers\n";
-const char *cntSizeMsg   = "ERROR: wCnt=%u and wFin=%u (should be 64 or less).\n";
 const char *cbktAllocMsg = "    Allocated %12lu KB for buckets (%lu 64-bit words)\n";
 const char *mersStatsMsg = "    Found %10lu total mers\n"
                            "    Found %10lu distinct mers\n"
@@ -23,15 +36,12 @@ const char *mersStatsMsg = "    Found %10lu total mers\n"
 const char *hashAllocMsg = "    Allocated %12luKB for hash table (%lu 64-bit words)\n";
 const char *buckAllocMsg = "    Allocated %12luKB for buckets    (%lu 64-bit words)\n";
 const char *posnAllocMsg = "    Allocated %12luKB for positions  (%lu 64-bit words)\n";
-const char *buckReuseErr = "ERROR:  I didn't allocate enough space to reuse buckets!\n"
-                           "        Have: %lu  Need: %lu (64-bit words)\n";
 const char *buckReuseMsg = "    Reusing bucket space; Have: %lu  Need: %lu (64-bit words)\n";
 const char *spceAvalMsg  = "    Avail: Bucket %12lu    Position %12lu (64-bit words)\n";
 const char *spceUsedMsg  = "    Used:  Bucket %12lu    Position %12lu (64-bit words)\n";
 #else
 const char *buckCountMsg = "    Allocated bucket size counting space with total size %llu KB\n";
 const char *foundMersMsg = "\n    Found %llu mers\n";
-const char *cntSizeMsg   = "ERROR: data sizes to big: wCnt=%lu and wFin=%lu.\n";
 const char *cbktAllocMsg = "    Allocated %12llu KB for buckets (%llu 64-bit words)\n";
 const char *mersStatsMsg = "    Found %10llu total mers\n"
                            "    Found %10llu distinct mers\n"
@@ -40,12 +50,26 @@ const char *mersStatsMsg = "    Found %10llu total mers\n"
 const char *hashAllocMsg = "    Allocated %12lluKB for hash table (%llu 64-bit words)\n";
 const char *buckAllocMsg = "    Allocated %12lluKB for buckets    (%llu 64-bit words)\n";
 const char *posnAllocMsg = "    Allocated %12lluKB for positions  (%llu 64-bit words)\n";
-const char *buckReuseErr = "ERROR:  I didn't allocate enough space to reuse buckets!\n"
-                           "        Have: %llu  Need: %llu (64-bit words)\n";
 const char *buckReuseMsg = "    Reusing bucket space; Have: %llu  Need: %llu (64-bit words)\n";
 const char *spceAvalMsg  = "    Avail: Bucket %12llu    Position %12llu (64-bit words)\n";
 const char *spceUsedMsg  = "    Used:  Bucket %12llu    Position %12llu (64-bit words)\n";
 #endif
+
+#endif  //  SILENTPOSITIONDB
+
+
+//  Error messages are always present.
+//
+#ifdef TRUE64BIT
+const char *cntSizeMsg   = "ERROR: wCnt=%u and wFin=%u (should be 64 or less).\n";
+const char *buckReuseErr = "ERROR:  I didn't allocate enough space to reuse buckets!\n"
+                           "        Have: %lu  Need: %lu (64-bit words)\n";
+#else
+const char *cntSizeMsg   = "ERROR: data sizes to big: wCnt=%lu and wFin=%lu.\n";
+const char *buckReuseErr = "ERROR:  I didn't allocate enough space to reuse buckets!\n"
+                           "        Have: %llu  Need: %llu (64-bit words)\n";
+#endif  //  TRUE64BIT
+
 
 
 positionDB::positionDB(char const  *seq,
@@ -144,8 +168,10 @@ positionDB::positionDB(char const  *seq,
     _errbucketSizes[i] = 0;
 #endif
 
+#ifndef SILENTPOSITIONDB
   if (beVerbose)
     fprintf(MSG_OUTPUT, buckCountMsg, _tableSizeInEntries >> 8);
+#endif
 
   merStream     *M;
 
@@ -155,7 +181,9 @@ positionDB::positionDB(char const  *seq,
   if (filename)
     M = new merStream(_merSizeInBases, filename);
 
+#ifndef SILENTPOSITIONDB
   speedCounter  *C = new speedCounter("    %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, beVerbose);
+#endif
 
   while (M->nextMer(_merSkipInBases)) {
     //fprintf(stderr, "%016llx -> %016llx\n", M->theFMer(), HASH(M->theFMer()));
@@ -168,15 +196,20 @@ positionDB::positionDB(char const  *seq,
 
     _numberOfMers++;
     _numberOfPositions = M->thePosition();
+#ifndef SILENTPOSITIONDB
     C->tick();
+#endif
   }
 
   delete M;
+#ifndef SILENTPOSITIONDB
   delete C;
+#endif
 
+#ifndef SILENTPOSITIONDB
   if (beVerbose)
     fprintf(MSG_OUTPUT, foundMersMsg, _numberOfMers);
-
+#endif
 
   //  This is _numberOfMers+1 because we need to store the first
   //  position after the last mer.  That is, if there are two mers, we
@@ -216,22 +249,20 @@ positionDB::positionDB(char const  *seq,
 
   if ((_wCnt > 64) || (_wFin > 64)) {
     fprintf(stderr, "ERROR: data size too big.  Reduce mersize, number of mers, or both.\n");
-    fprintf(MSG_OUTPUT, cntSizeMsg, _wCnt, _wFin);
+    fprintf(stderr, cntSizeMsg, _wCnt, _wFin);
     exit(1);
   }
 
+#ifndef SILENTPOSITIONDB
   if (beVerbose)
     fprintf(MSG_OUTPUT, cbktAllocMsg, bucketsSpace >> 7, bucketsSpace);
+#endif
   try {
     _countingBuckets = new u64bit [bucketsSpace];
   } catch (std::bad_alloc) {
     fprintf(stderr, "hitMatrix::filter()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
     fprintf(stderr, "hitMatrix::filter()-- _countingBuckets of %lu\n", bucketsSpace);
     exit(1);
-  }
-
-  if (_countingBuckets == 0L) {
-    fprintf(stderr, "ERROR:  Null _countingBuckets?\n");
   }
 
   for (u64bit i=bucketsSpace; i--; )
@@ -260,8 +291,10 @@ positionDB::positionDB(char const  *seq,
   //
   //  3)  Build list of mers with positions
   //
+#ifndef SILENTPOSITIONDB
   if (beVerbose)
     fprintf(MSG_OUTPUT, "    Building lists with positions.\n");
+#endif
 
   if (seq)
     M = new merStream(_merSizeInBases, seq, 0);
@@ -269,7 +302,9 @@ positionDB::positionDB(char const  *seq,
   if (filename)
     M = new merStream(_merSizeInBases, filename);
 
+#ifndef SILENTPOSITIONDB
   C = new speedCounter("    %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, beVerbose);
+#endif
 
 #ifdef ERROR_CHECK_COUNTING_ENCODING
   fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING is defined!\n");
@@ -323,11 +358,15 @@ positionDB::positionDB(char const  *seq,
 #endif
 #endif
 
+#ifndef SILENTPOSITIONDB
     C->tick();
+#endif
   }
 
   delete M;
+#ifndef SILENTPOSITIONDB
   delete C;
+#endif
 
 
 #ifdef ERROR_CHECK_COUNTING
@@ -351,14 +390,18 @@ positionDB::positionDB(char const  *seq,
   //        3) number of entries in position table ( sum mercount+1 for all mercounts > 1)
   //      also need to repack the sorted things
   //
+#ifndef SILENTPOSITIONDB
   if (beVerbose)
     fprintf(MSG_OUTPUT, "\n    Sorting and repacking buckets.\n");
+#endif
 
   for (u32bit i=0; i<_tableSizeInEntries; i++)
     sortAndRepackBucket(i);
 
+#ifndef SILENTPOSITIONDB
   if (beVerbose)
     fprintf(MSG_OUTPUT, mersStatsMsg, _numberOfMers, _numberOfDistinct, _numberOfUnique, _numberOfEntries, _maximumEntries);
+#endif
 
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -370,14 +413,18 @@ positionDB::positionDB(char const  *seq,
   u64bit  ps = _numberOfEntries    * _posnWidth / 64 + 1;
 
   if (_hashWidth < 32) {
+#ifndef SILENTPOSITIONDB
     if (beVerbose)
       fprintf(MSG_OUTPUT, "    Reusing bucket counting space for hash table.\n");
+#endif
 
     _hashTable     = bktAlloc;
     bktAllocIsJunk = false;
   } else {
+#ifndef SILENTPOSITIONDB
     if (beVerbose)
       fprintf(MSG_OUTPUT, hashAllocMsg, hs >> 7, hs);
+#endif
 
     try {
       _hashTable     = new u64bit [hs];
@@ -391,18 +438,22 @@ positionDB::positionDB(char const  *seq,
 
 #ifdef REUSE_BUCKETS
   if (bucketsSpace < bs) {
-    fprintf(MSG_OUTPUT, buckReuseErr, bucketsSpace, bs);
+    fprintf(stderr, buckReuseErr, bucketsSpace, bs);
     exit(1);
   }
+#ifndef SILENTPOSITIONDB
   if (beVerbose)
     fprintf(MSG_OUTPUT, buckReuseMsg, bucketsSpace, bs);
+#endif
 
   _buckets   = _countingBuckets;
 
   bs = bucketsSpace; // for output at the end
 #else
+#ifndef SILENTPOSITIONDB
   if (beVerbose)
     fprintf(MSG_OUTPUT, buckAllocMsg, bs >> 7, bs);
+#endif
   try {
     _buckets   = new u64bit [bs];
   } catch (std::bad_alloc) {
@@ -412,8 +463,10 @@ positionDB::positionDB(char const  *seq,
   }
 #endif
 
+#ifndef SILENTPOSITIONDB
   if (beVerbose)
     fprintf(MSG_OUTPUT, posnAllocMsg, ps >> 7, ps);
+#endif
   try {
     _positions = new u64bit [ps];
   } catch (std::bad_alloc) {
@@ -426,8 +479,10 @@ positionDB::positionDB(char const  *seq,
   //
   //  6)  Transfer from the sorted buckets to the hash table.
   //
+#ifndef SILENTPOSITIONDB
   if (beVerbose)
     fprintf(MSG_OUTPUT, "    Transferring to final structure.\n");
+#endif
 
   u64bit   bucketStartPosition = 0;
   u64bit   checkMask = ~_posnMask;
@@ -550,10 +605,12 @@ positionDB::positionDB(char const  *seq,
   //
   setDecodedValue(_hashTable, b * _hashWidth, _hashWidth, bucketStartPosition);
 
+#ifndef SILENTPOSITIONDB
   if (beVerbose) {
     fprintf(MSG_OUTPUT, spceAvalMsg, bs, ps);
     fprintf(MSG_OUTPUT, spceUsedMsg, currentBbit / 64, currentPbit / 64);
   }
+#endif
 
   //  Clean up our temporary tables
   //
@@ -561,7 +618,10 @@ positionDB::positionDB(char const  *seq,
   //  space allocated by _bucketSizes!
   //
 #ifndef REUSE_BUCKETS
-  fprintf(MSG_OUTPUT, "    Deleting counting buckets.\n");
+#ifndef SILENTPOSITIONDB
+  if (beVerbose)
+    fprintf(MSG_OUTPUT, "    Deleting counting buckets.\n");
+#endif
   delete [] _countingBuckets;
 #endif
 

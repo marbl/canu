@@ -1,9 +1,14 @@
 #ifndef POSITIONDB_H
 #define POSITIONDB_H
 
-#include "libbri.H"
+#include "libbritypes.h"
 
 typedef u64bit heapbit;
+
+//  Define this to leave out references to getTime(), speedCounter()
+//  and make the positionDB build very quiet.
+//
+//#define SILENTPOSITIONDB
 
 class positionDB {
 public:

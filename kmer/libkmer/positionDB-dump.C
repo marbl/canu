@@ -1,4 +1,8 @@
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "positionDB.H"
+#include "bit-packing.H"
 
 #ifdef TRUE64BIT
 const char *dumpUniq    = "U mer=0x%016lx -- uniq pos=%12lu chck=0x%016lx (0x%016lx)\n";

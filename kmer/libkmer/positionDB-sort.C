@@ -1,4 +1,5 @@
 #include "positionDB.H"
+#include "bit-packing.H"
 
 //#define ERROR_CHECK
 //#define SORT_CHECK

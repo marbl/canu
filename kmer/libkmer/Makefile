@@ -1,6 +1,6 @@
 PROG    = 
 INCLUDE = -I../libbri
-LIBS    = -L../libbri -lbri
+LIBS    = 
 
 SRCS     = positionDB.C positionDB-access.C positionDB-dump.C positionDB-sort.C positionDB.H
 OBJS     = positionDB.o positionDB-access.o positionDB-dump.o positionDB-sort.o
