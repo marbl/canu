@@ -75,7 +75,7 @@ buildPositionDB(void) {
     sLen += config._useList[i].size + 100;
   }
 
-  if (config._psFileName) {
+  if ((config._psFileName) && (fileExists(config._psFileName))) {
     fprintf(stderr, "Loading positionDB state from '%s'\n", config._psFileName);
     positions = new positionDB(config._psFileName, true);
   } else {
@@ -120,6 +120,13 @@ buildPositionDB(void) {
     positions = new positionDB(s, 0L, config._merSize, config._merSkip, tblSize, config._beVerbose);
 
     delete [] s;
+
+    if (config._psFileName) {
+      if (config._beVerbose)
+        fprintf(stderr, "Dumping positions table to '%s'\n", config._psFileName);
+      positions->saveState(config._psFileName);
+      exit(0);
+    }
   }
 }
 
