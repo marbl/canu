@@ -13,16 +13,18 @@
 
 #define TRACE    0
 
-hitMatrix::hitMatrix(u32bit qsLen, u32bit qsMers, u32bit qsIdx) {
-  _qsLen  = qsLen;
-  _qsMers = qsMers;
-  _qsIdx  = qsIdx;
+hitMatrix::hitMatrix(u32bit qsLen, u32bit qsMers, u32bit qsIdx, bool reversed) {
+  _qsLen    = qsLen;
+  _qsMers   = qsMers;
+  _qsIdx    = qsIdx;
 
-  _hitsLen = 0;
-  _hitsMax = 128;
-  _hits    = new diagonalLine [_hitsMax];
+  _hitsLen  = 0;
+  _hitsMax  = 128;
+  _hits     = new diagonalLine [_hitsMax];
 
-  _matches = 0L;
+  _reversed = reversed;
+
+  _matches  = 0L;
 }
 
 
@@ -226,7 +228,13 @@ hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit
 
         if (theOutputPos + 128 >= theOutputMax) {
           theOutputMax <<= 1;
-          char *o = new char [theOutputMax];
+          char *o = 0L;
+          try {
+            o = new char [theOutputMax];
+          } catch (bad_alloc) {
+            fprintf(stderr, "hitMatrix::filter()-- caught bad_alloc in %s at line %d\n", __FILE__, __LINE__);
+            fprintf(stderr, "hitMatrix::filter()-- tried to extend output string from %lu to %lu bytes.\n", theOutputPos, theOutputMax);
+          }
           memcpy(o, theOutput, theOutputPos);
           delete [] theOutput;
           theOutput = o;

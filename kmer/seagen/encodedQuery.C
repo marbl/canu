@@ -4,23 +4,21 @@
 #include "searchGENOME.H"
 #include "libbri.H"
 
-//  $Id$
-
 encodedQuery::encodedQuery(unsigned char const  *seq,
                            u32bit                seqLen,
                            u32bit                k,
                            bool                  rc) {
+  _mersTotal = seqLen - k + 1;
+  _mersAvail = 0;
   _mers = 0L;
   _skip = 0L;
 
-  if (k > seqLen) {
-    _mersLen = 0;
+  if (k > seqLen)
     return;
-  }
 
-  _mersLen   = seqLen - k + 1;
-  _mers      = new u64bit [_mersLen];
-  _skip      = new u32bit [_mersLen];
+  _mersAvail = 0;
+  _mers      = new u64bit [_mersTotal];
+  _skip      = new u32bit [_mersTotal];
 
   u64bit   substring      = u64bitZERO;
   u64bit   mermask        = u64bitMASK(2 * k);
@@ -41,8 +39,9 @@ encodedQuery::encodedQuery(unsigned char const  *seq,
       i++;
 
       if (i >= k) {
-        _mers[i-k] = substring;
-        _skip[i-k] = timeUntilValid > 0;
+        _mers[i-k]  = substring;
+        _skip[i-k]  = timeUntilValid > 0;
+        _mersAvail += 1 - _skip[i-k];
       }
     }
   } else {
@@ -60,8 +59,9 @@ encodedQuery::encodedQuery(unsigned char const  *seq,
       i++;
 
       if (i >= k) {
-        _mers[i-k] = substring;
-        _skip[i-k] = timeUntilValid > 0;
+        _mers[i-k]  = substring;
+        _skip[i-k]  = timeUntilValid > 0;
+        _mersAvail += 1 - _skip[i-k];
       }
     }
   }

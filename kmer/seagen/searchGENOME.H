@@ -28,7 +28,8 @@ typedef unsigned short ushort;
 
 class encodedQuery {
 private:
-  u32bit    _mersLen;    //  Number of mers
+  u32bit    _mersTotal;  //  Number of mers possible in the query
+  u32bit    _mersAvail;  //  Number of mers not masked out
   u64bit   *_mers;       //  List of mers
   u32bit   *_skip;
 public:
@@ -38,11 +39,17 @@ public:
                bool                  rc);
   ~encodedQuery();
 
-  u32bit           numberOfMers(void)        { return(_mersLen); };
+  u32bit           numberOfMers(void)        { return(_mersTotal); };
+  u32bit           numberOfValidMers(void)   { return(_mersAvail); };
   u64bit           getMer(u32bit i)          { return(_mers[i]); };
 
   u32bit           getSkip(u32bit i)         { return(_skip[i]); };
-  void             setSkip(u32bit i)         { _skip[i] = 1;     };
+  void             setSkip(u32bit i)         {
+    //  If skip[i] is already set, don't adjust; otherwise, subtract
+    //  one from the available.
+    _mersAvail -= 1 - _skip[i];
+    _skip[i]    = 1;
+  };
 };
 
 
@@ -87,6 +94,8 @@ public:
   double           _minCoverageSingle;
   u32bit           _minLengthMultiple;
   double           _minCoverageMultiple;
+
+  bool             _reversed;
 
 #if 0
   u32bit           _regionMergeDistance;

@@ -1,14 +1,20 @@
 #include "posix.H"
 #include "searchGENOME.H"
 
-//  $Id$
 
-#define VERBOSE
+//  If you really, really, really want to know the exact number
+//  of bases left in the query, use the interval list.  Otherwise,
+//  it's faster to guess.
+//
+//#define USEEXACTSIZE
+
+
 #ifdef TRUE64BIT
 char const *srchGbye = "[%lu] computed: %8lu  blocked: %4lu/%4lu  encodeTime: %7.2f   searchTime: %7.2f   filterTime: %7.2f\n";
 #else
 char const *srchGbye = "[%llu] computed: %8lu  blocked: %4lu/%4lu  encodeTime: %7.2f   searchTime: %7.2f   filterTime: %7.2f\n";
 #endif
+
 
 class searcherState {
 public:
@@ -51,81 +57,51 @@ doSearch(searcherState *state,
   //  Build and mask the query
   //
   startTime = getTime();
-  query = new encodedQuery(seq,
-                           seqLen,
-                           config._merSize,
-                           rc);
+  query = new encodedQuery(seq, seqLen, config._merSize, rc);
   state->encodeTime += getTime() - startTime;
 
-  qMers = query->numberOfMers();
 
-  if (maskDB) {
-    //fprintf(stderr, "Begin masking qMers=%u\n", qMers);
-
-    //  If you really, really, really want to know the exact number
-    //  of bases left in the query, use the interval list.  Otherwise,
-    //  it's faster to guess.
-    //
-    //intervalList   *IL = new intervalList(config._merSize);
-
-    startTime = getTime();
-    for (u32bit qi=0; qi<query->numberOfMers(); qi++) {
+  startTime = getTime();
+  if (maskDB)
+    for (u32bit qi=0; qi<query->numberOfMers(); qi++)
       if ((query->getSkip(qi) == false) &&
-          (maskDB->exists(query->getMer(qi)))) {
-        qMers--;
+          (maskDB->exists(query->getMer(qi))))
         query->setSkip(qi);
-      }
 
-      //if (query->getSkip(qi) == false)
-      //  IL->addInterval(qi);
-    }
+  if (onlyDB)
+    for (u32bit qi=0; qi<query->numberOfMers(); qi++)
+      if ((query->getSkip(qi) == false) &&
+          (!onlyDB->exists(query->getMer(qi))))
+        query->setSkip(qi);
 
-    //qMers = IL->sumIntervalLengths();
-    //delete IL;
+#ifdef USEEXACTSIZE
+  intervalList   *IL = new intervalList(config._merSize);
 
-    state->maskTime += getTime() - startTime;
+  for (u32bit qi=0; qi<query->numberOfMers(); qi++) {
+    if (query->getSkip(qi) == false)
+      IL->addInterval(qi);
   }
 
-  if (onlyDB) {
-    startTime = getTime();
-    for (u32bit qi=0; qi<query->numberOfMers(); qi++) {
-      if ((query->getSkip(qi) == false) &&
-          (!onlyDB->exists(query->getMer(qi)))) {
-        qMers--;
-        query->setSkip(qi);
-      }
-    }
+  qMers = IL->sumIntervalLengths();
+  delete IL;
+#else
+  qMers = query->numberOfValidMers();
+#endif
+  state->maskTime += getTime() - startTime;
 
-    state->maskTime += getTime() - startTime;
-  }
 
-  //  Construct a new hitMatrix.  There is only one of these for all sequences in the
-  //  positionDB.
-  //
-  matrix = new hitMatrix(seqLen, qMers, idx);
 
   //  Get the hits
   //
   startTime = getTime();
-
-  for (u32bit qi=0; qi<query->numberOfMers(); qi++) {
+  matrix = new hitMatrix(seqLen, qMers, idx);
+  for (u32bit qi=0; qi<query->numberOfMers(); qi++)
     if ((query->getSkip(qi) == false) &&
-        (positions->get(query->getMer(qi), state->posn, state->posnMax, state->posnLen))) {
-#if 0
-      if (state->posnLen != 1) {
-        fprintf(stderr, "ERROR: Got %lu hits for mer qi=%u\n", state->posnLen, qi);
-        for (int x=0; x<state->posnLen; x++)
-          fprintf(stderr, "  %lu\n", state->posn[x]);
-      }
-#endif
-
+        (positions->get(query->getMer(qi), state->posn, state->posnMax, state->posnLen)))
       matrix->addHits(qi, state->posn, state->posnLen);
-    }
-  }
-
   state->searchTime += getTime() - startTime;
 
-  //  Filter, storing the resutls
+  //  Filter, storing the resutls into theOutput
   //
   startTime = getTime();
   matrix->filter(rc ? 'r' : 'f', theOutput, theOutputPos, theOutputMax);
@@ -145,8 +121,6 @@ searchThread(void *U) {
   u32bit         blockedI = 0;
   u32bit         blockedO = 0;
   u32bit         computed = 0;
-
-  //fprintf(stderr, "Hello!  I'm a searcher!\n");
 
   searcherState *state    = new searcherState;
 
@@ -205,18 +179,13 @@ searchThread(void *U) {
           nanosleep(&searchSleepShort, 0L);
         }
 
-#if 0
-        if (config._beVerbose)
-          fprintf(stderr, "%lu Working on %u of length %u.\n", (u64bit)U, idx, seqLen);
-#endif
-
         //  Allocate space for the output -- 1MB should be enough for
         //  about 29000 signals.  Make it 32K -> 900 signals.
         //
         theOutputPos = 0;
         theOutputMax = 32 * 1024;
         theOutput    = new char [theOutputMax];
-      
+
         //  Do searches.
         //
         if (config._doForward)
