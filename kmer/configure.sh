@@ -86,11 +86,11 @@ EOF
 #  AIX5, optimized
 #  Tested, verified on 30jan03
 CC              := xlc_r
-CFLAGS_COMPILE     := -qthreaded -D_THREAD_SAFE -D_LARGE_FILES -q64 -O3 -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict -qcpluscmt
+CFLAGS_COMPILE     := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES -q64 -O3 -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict -qcpluscmt
 CLDFLAGS   := 
 CLIBS      := 
 CXX             := xlC_r
-CXXFLAGS_COMPILE   := -qthreaded -D_THREAD_SAFE -D_LARGE_FILES -q64 -O3 -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict
+CXXFLAGS_COMPILE   := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES -q64 -O3 -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict
 CXXLDFLAGS := 
 CXXLIBS    := 
 ARFLAGS         := -X 64 ruv
@@ -103,11 +103,11 @@ EOF
 #  AIX5, optimized, profiled
 #  Untested; might not work with optimization
 CC              := xlc_r
-CFLAGS_COMPILE     := -qthreaded -D_THREAD_SAFE -D_LARGE_FILES -q64 -O3 -pg -qfullpath -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict -qcpluscmt
+CFLAGS_COMPILE     := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES -q64 -O3 -pg -qfullpath -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict -qcpluscmt
 CLDFLAGS   := 
 CLIBS      := 
 CXX             := xlC_r
-CXXFLAGS_COMPILE   := -qthreaded -D_THREAD_SAFE -D_LARGE_FILES -q64 -O3 -pg -qfullpath -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict
+CXXFLAGS_COMPILE   := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES -q64 -O3 -pg -qfullpath -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict
 CXXLDFLAGS := 
 CXXLIBS    := 
 ARFLAGS         := -X 64 ruv
@@ -121,11 +121,11 @@ EOF
 ccDBUG          := -qheapdebug -qcheck=all -DMEMORY_DEBUG
 ccDBUG          := 
 CC              := xlc_r
-CFLAGS_COMPILE     := -qthreaded -D_THREAD_SAFE -D_LARGE_FILES \$(ccDBUG) -q64 -g -qfullpath -qcpluscmt
+CFLAGS_COMPILE     := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES \$(ccDBUG) -q64 -g -qfullpath -qcpluscmt
 CLDFLAGS   := 
 CLIBS      := 
 CXX             := xlC_r
-CXXFLAGS_COMPILE   := -qthreaded -D_THREAD_SAFE -D_LARGE_FILES \$(ccDBUG) -q64 -g -qfullpath
+CXXFLAGS_COMPILE   := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES \$(ccDBUG) -q64 -g -qfullpath
 CXXLDFLAGS := 
 CXXLIBS    := 
 ARFLAGS         := -X 64 ruv
