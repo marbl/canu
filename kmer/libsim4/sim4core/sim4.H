@@ -325,8 +325,7 @@ private:
 
   void   get_stats(Exon *,sim4_stats_t *); 
   int    get_edist(int,int,int,int,char *,char *);
-  //int    find_log_entry(long const *log4s, int n, int len, int offset);
-  //Exon  *new_exon(int,int,int,int,int,int,int,Exon *);
+
   void   add_word(int,int);
   int     extend_hit(int,int,const char *const,const char * const,int,int,int,int);
   void   search(char *,char *,int,int,int,int); 
@@ -424,14 +423,30 @@ public:
     seq1 = 0L;
     seq2 = 0L;
 
+    len1 = 0;
+    len2 = 0;
+
+    for (u32bit i=256; i;)
+      encoding[--i] = -1;
+    encoding[(int)'A'] = encoding[(int)'a'] = 0;
+    encoding[(int)'C'] = encoding[(int)'c'] = 1;
+    encoding[(int)'G'] = encoding[(int)'g'] = 2;
+    encoding[(int)'T'] = encoding[(int)'t'] = 3;
+
+    last_GT.pos1 = last_GT.pos2 = 0;
+    last_CT.pos1 = last_CT.pos2 = 0;
+    last_AG.pos1 = last_AG.pos2 = 0;
+    last_AC.pos1 = last_AC.pos2 = 0;
+
+    X             = DEFAULT_X;
     wordSize      = DEFAULT_W;
     mspThreshold1 = p->_mspThresh1;  //K;
     mspThreshold2 = p->_mspThresh2;  //C;
 
-    X        = DEFAULT_X;
-
     G_score = 0;
     C_score = 0;
+
+    exon_list = 0L;
 
     mask = 0;
 
@@ -445,22 +460,7 @@ public:
     thashtable.nodes     = 0L;
     thashtable.nodesused = 0;
 
-    //  Initialize the encoding
-    //
-    for (u32bit i=256; i;)
-      encoding[--i] = -1;
-
-    encoding['A'] = encoding['a'] = 0;
-    encoding['C'] = encoding['c'] = 1;
-    encoding['G'] = encoding['g'] = 2;
-    encoding['T'] = encoding['t'] = 3;
-
     _accurateSequences = false;
-
-    last_AG.pos1 = last_AG.pos2 = 0;
-    last_AC.pos1 = last_AC.pos2 = 0;
-    last_GT.pos1 = last_GT.pos2 = 0;
-    last_CT.pos1 = last_CT.pos2 = 0;
   };
 
   ~Sim4() {
