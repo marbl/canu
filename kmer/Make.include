@@ -22,6 +22,8 @@ MERTABLES/  :=$/merTables/
 
 ########################## includes #############
 
+$(eval $(call Include,${EXTERNAL/}))
+$(eval $(call Include,${LIBBRI/}))
 $(eval $(call Include,${SNAPPER2/}))
 $(eval $(call Include,${EMMA/}))
 $(eval $(call Include,${SEARCHGEN/}))
@@ -34,8 +36,7 @@ $(eval $(call Include,${SIM4READER/}))
 $(eval $(call Include,${SIM4POLISH/}))
 $(eval $(call Include,${FASTA/}))
 $(eval $(call Include,${CDNAGAPS/}))
-$(eval $(call Include,${LIBBRI/}))
-$(eval $(call Include,${EXTERNAL/}))
 $(eval $(call Include,${REFSEQANAL/}))
 $(eval $(call Include,${MERTABLES/}))
 $(eval $(call Include,${MERYL/}))
+

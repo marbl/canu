@@ -17,7 +17,7 @@ documentation and/or software.
   defined with C compiler flags.
  */
 #ifndef MD
-#define MD MD5
+#define MD 5  //  XXX:  Used to be "MD5", but this is a bug, bpw
 #endif
 
 #include <stdio.h>
