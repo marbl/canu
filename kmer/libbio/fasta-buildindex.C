@@ -163,7 +163,7 @@ FastAWrapper::createIndex(u32bit indextype) {
 
     //  Skip any whitespace before the defline
     //
-    while ((!B.eof()) && isspace(B.get()))
+    while ((!B.eof()) && whitespaceSymbol[B.get()])
       B.next();
 
 
@@ -198,7 +198,7 @@ FastAWrapper::createIndex(u32bit indextype) {
 
     while ((!B.eof()) && (B.get() != '\r') && (B.get() != '\n')) {
 
-      if (((theGlobalDesc._indexType & FASTA_INDEX_MASK) == FASTA_INDEX_PLUS_IDS) && (isspace(B.get())))
+      if (((theGlobalDesc._indexType & FASTA_INDEX_MASK) == FASTA_INDEX_PLUS_IDS) && (whitespaceSymbol[B.get()]))
         saveDefLine = false;
 
       if (saveDefLine) {
@@ -222,7 +222,7 @@ FastAWrapper::createIndex(u32bit indextype) {
 
     //  Skip any whitespace between the defline and the start of the sequence
     //
-    while ((!B.eof()) && isspace(B.get()))
+    while ((!B.eof()) && whitespaceSymbol[B.get()])
       B.next();
 
 
@@ -244,7 +244,7 @@ FastAWrapper::createIndex(u32bit indextype) {
     while ((!B.eof()) &&
            (B.get() != '>')) {
 
-      if (!isspace(B.get())) {
+      if (!whitespaceSymbol[B.get()]) {
         seqLen++;
         thisLineLen++;
         theGlobalDesc._alphabet[(int)B.get()] = 1;
@@ -287,7 +287,7 @@ FastAWrapper::createIndex(u32bit indextype) {
           //  the same as seqlineLength.
           //
           B.next();
-          while ((!B.eof()) && (isspace(B.get()))) {
+          while ((!B.eof()) && (whitespaceSymbol[B.get()])) {
             thisLineSpaces++;
             B.next();
           }

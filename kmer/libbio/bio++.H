@@ -19,6 +19,7 @@
 #include "mers.h"
 #include "fasta.H"
 #include "fasta-cache.H"
+#include "fasta-accessor.H"
 
 ////////////////////////////////////////
 //
@@ -532,7 +533,7 @@ merStream::nextSymbol(void) {
   
   //  Skip any whitespace
   //
-  while (isspace(_st_string[_st_stringPos]) && (_st_string[_st_stringPos]) && (_st_stringPos < _st_stringLen))
+  while (whitespaceSymbol[_st_string[_st_stringPos]] && (_st_string[_st_stringPos]) && (_st_stringPos < _st_stringLen))
     _st_stringPos++;
 
   //  Are we at a defline?  If so, zip along until we hit a

@@ -93,7 +93,6 @@ private:
   //  squeezing.  If the source file is fixed width, we know the
   //  length of each line, and the number of bytes between lines.
   //
-  bool           _isspacecache[256];
   _idxfa_len     _lineLength;
   _idxfa_len     _lineSep;
 
@@ -122,7 +121,7 @@ FastASequenceOnDisk::next(void) {
   _readBuffer->next();
 
   if (_sourceType != 0)
-    while (_isspacecache[(int)_readBuffer->get()])
+    while (whitespaceSymbol[(int)_readBuffer->get()])
       _readBuffer->next();    
 
   _sequencePosition++;
@@ -142,7 +141,7 @@ FastASequenceOnDisk::get(void) {
     return(0);
 
 #ifdef CHECK_SANITY
-  if (_isspacecache[(int)_readBuffer->get()]) {
+  if (whitespaceSymbol[(int)_readBuffer->get()]) {
     fprintf(stderr, "WARNING:  FastASequenceOnDisk::get() got a space!\n");
     //next();
   }

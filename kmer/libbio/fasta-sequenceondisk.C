@@ -41,9 +41,6 @@ FastASequenceOnDisk::FastASequenceOnDisk(char const *filename,
   else
     _sourceType   = 2;
 
-  for (int a=0; a<256; a++)
-    _isspacecache[a] = isspace(a);
-
   _lineLength = sl;
   _lineSep    = ss;
 }
@@ -95,7 +92,7 @@ FastASequenceOnDisk::getChars(char *block, u32bit position, u32bit length) {
       for (u32bit i=0; i<length; i++) {
         block[i] = _readBuffer->get();
         _readBuffer->next();    
-        while (_isspacecache[(int)_readBuffer->get()])
+        while (whitespaceSymbol[(int)_readBuffer->get()])
           _readBuffer->next();    
       }
       break;
@@ -108,14 +105,14 @@ FastASequenceOnDisk::getChars(char *block, u32bit position, u32bit length) {
       _readBuffer->seek(_sequenceStart);
       for (u32bit i=0; i<position; i++) {
         _readBuffer->next();    
-        while (_isspacecache[(int)_readBuffer->get()])
+        while (whitespaceSymbol[(int)_readBuffer->get()])
           _readBuffer->next();    
       }
 
       for (u32bit i=0; i<length; i++) {
         block[i] = _readBuffer->get();
         _readBuffer->next();    
-        while (_isspacecache[(int)_readBuffer->get()])
+        while (whitespaceSymbol[(int)_readBuffer->get()])
           _readBuffer->next();    
       }
       break;

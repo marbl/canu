@@ -44,7 +44,7 @@ FastAWrapper::getSequence(void) {
 
   //  Skip whitespace at the start of the sequence.
   //
-  while ((!_filebuffer->eof()) && isspace(_filebuffer->get()))
+  while ((!_filebuffer->eof()) && whitespaceSymbol[_filebuffer->get()])
     _filebuffer->next();
 
   if (_filebuffer->eof())
@@ -79,7 +79,7 @@ FastAWrapper::getSequence(void) {
     //  Skip any whitespace between the defline and the start of the sequence
     //  (Rather than a seek, we just skip the spaces)
     //
-    while ((!_filebuffer->eof()) && isspace(_filebuffer->get()))
+    while ((!_filebuffer->eof()) && whitespaceSymbol[_filebuffer->get()])
       _filebuffer->next();
 
     if (_theGlobalDesc._squeezedSequences) {
@@ -98,7 +98,7 @@ FastAWrapper::getSequence(void) {
         //  Skip any whitespace between the defline and the start of the sequence
         //  (Rather than a seek, we just skip the spaces)
         //
-        while ((!_filebuffer->eof()) && isspace(_filebuffer->get()))
+        while ((!_filebuffer->eof()) && whitespaceSymbol[_filebuffer->get()])
           _filebuffer->next();
       }
     }
@@ -145,12 +145,12 @@ FastAWrapper::getSequence(void) {
 
     //  Skip any whitespace between the defline and the start of the sequence
     //
-    while ((!_filebuffer->eof()) && isspace(_filebuffer->get()))
+    while ((!_filebuffer->eof()) && whitespaceSymbol[_filebuffer->get()])
       _filebuffer->next();
 
     while ((!_filebuffer->eof()) &&
            (_filebuffer->get() != '>')) {
-      if (!isspace(_filebuffer->get())) {
+      if (!whitespaceSymbol[_filebuffer->get()]) {
         if (sLen >= sMax) {
           sMax += 32 * 1024 * 1024;
           char *stmp = new char [sMax + 1];
@@ -172,7 +172,7 @@ FastAWrapper::getSequence(void) {
 
   //  Skip whitespace at the end of the sequence.
   //
-  while ((!_filebuffer->eof()) && isspace(_filebuffer->get()))
+  while ((!_filebuffer->eof()) && whitespaceSymbol[_filebuffer->get()])
     _filebuffer->next();
 
 

@@ -290,7 +290,7 @@ FastAWrapper::printATADescription(FILE *out, char *name) {
         case FASTA_INDEX_PLUS_DEFLINES:
           strcpy(seqid, names+1);
           for (u32bit x=0; seqid[x]; x++)
-            if (isspace(seqid[x])) {
+            if (whitespaceSymbol[seqid[x]]) {
               seqid[x] = 0;
               break;
             }

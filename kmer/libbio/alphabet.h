@@ -7,6 +7,7 @@
 extern "C" {
 #endif
 
+extern unsigned char const   whitespaceSymbol[256];
 extern unsigned char const   compressSymbol[256];
 extern const unsigned char   validSymbol[256];
 extern const unsigned char   decompressSymbol[256];

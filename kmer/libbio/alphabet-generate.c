@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <ctype.h>
 
 //
 //  Instead of forcing client applications to explicitly call
@@ -14,12 +15,18 @@
 //    A=00, C=01, G=10 and T=11
 //
 
+unsigned char  whitespaceSymbol[256];
 unsigned char  compressSymbol[256];
 unsigned char  validSymbol[256];
 unsigned char  decompressSymbol[256];
 unsigned char  complementSymbol[256];
 unsigned char  validCompressedSymbol[256];
 unsigned char  IUPACidentity[128][128];
+
+//  Huh?  g++ 2.95.4 (FreeBSD 4.10, still!) was complaining about no
+//  previous prototype for this, so we made one.
+//
+void  initCompressionTables(void);
 
 void
 initCompressionTables(void) {
@@ -34,12 +41,16 @@ initCompressionTables(void) {
   //
 
   for (i=0; i<256; i++) {
+    whitespaceSymbol[i]      = (unsigned char)0x00;
     compressSymbol[i]        = (unsigned char)0x00;
     validSymbol[i]           = (unsigned char)0x00;
     decompressSymbol[i]      = (unsigned char)0x00;
     complementSymbol[i]      = (unsigned char)i;
     validCompressedSymbol[i] = (unsigned char)0xff;
   }
+
+  for (i=0; i<256; i++)
+    whitespaceSymbol[i] = isspace(i);
 
   for (i=0; i<128; i++)
     for (j=0; j<128; j++)
@@ -184,13 +195,19 @@ main(int argc, char **argv) {
   fprintf(H, "extern \"C\" {\n");
   fprintf(H, "#endif\n");
   fprintf(H, "\n");
-  fprintf(H, "extern unsigned char const   compressSymbol[256];\n");
 
   fprintf(C, "//\n");
   fprintf(C, "//  Automagically generated -- DO NOT EDIT!\n");
   fprintf(C, "//  See %s for details.\n", __FILE__);
   fprintf(C, "//\n");
-  fprintf(C, "\n");
+
+  fprintf(H, "extern unsigned char const   whitespaceSymbol[256];\n");
+  fprintf(C, "unsigned char const   whitespaceSymbol[256] = { %d", whitespaceSymbol[0]);
+  for (i=1; i<256; i++)
+    fprintf(C, ", %d", whitespaceSymbol[i]);
+  fprintf(C, " };\n");
+
+  fprintf(H, "extern unsigned char const   compressSymbol[256];\n");
   fprintf(C, "unsigned char const   compressSymbol[256] = { %d", compressSymbol[0]);
   for (i=1; i<256; i++)
     fprintf(C, ", %d", compressSymbol[i]);

@@ -44,7 +44,7 @@ FastAWrapper::find(char *id) {
   u32bit         len = 0;
 
   char *tmpid = new char [ strlen(id) + 1];
-  while (*id && isspace(*id))
+  while (*id && whitespaceCache[*id])
     id++;
 
   for (len=0; *id; len++, id++)
@@ -55,7 +55,7 @@ FastAWrapper::find(char *id) {
     return(false);
   }
 
-  while (isspace(tmpid[len]))
+  while (whitespaceCache[tmpid[len]])
     len--;
 
   len++;

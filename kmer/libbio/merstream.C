@@ -111,7 +111,7 @@ merStream::merStream(u32bit merSize, const char *seq, u32bit len) {
   //  the stream position on a defline.  So, we skip the first defline
   //  before we do anything else.
   //
-  while (isspace(_st_string[_st_stringPos]) && (_st_string[_st_stringPos]) && (_st_stringPos < _st_stringLen))
+  while (whitespaceSymbol[_st_string[_st_stringPos]] && (_st_string[_st_stringPos]) && (_st_stringPos < _st_stringLen))
     _st_stringPos++;
   if (_st_string[_st_stringPos] == '>')
     while ((_st_string[_st_stringPos] != '\n') && (_st_string[_st_stringPos]) && (_st_stringPos < _st_stringLen))

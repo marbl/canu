@@ -125,7 +125,7 @@ FastAstream::nextSymbol(void) {
 
   //  Skip any whitespace
   //
-  while (isspace(nc) && !isEOF())
+  while (whitespaceSymbol[nc] && !isEOF())
     nc = getNextCharacter();
 
   //  Are we at the EOF?
