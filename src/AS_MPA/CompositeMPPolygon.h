@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: CompositeMPPolygon.h,v 1.1.1.1 2004-04-14 13:51:59 catmandew Exp $ */
+/* $Id: CompositeMPPolygon.h,v 1.2 2004-09-23 20:25:23 mcschatz Exp $ */
 #ifndef COMPOSITEMPPOLYGON_H
 #define COMPOSITEMPPOLYGON_H
 
@@ -51,8 +51,8 @@ public:
       os << "F " << bpKey << " " << bpKey << assembly << "-" << id
          << " " << parentKey << assembly << "-" << id
          << " " << assembly << ":" << chromosome
-         << " " << getMinX()
-         << " " << getMaxX() - getMinX()
+         << " " << this->getMinX()
+         << " " << this->getMaxX() - this->getMinX()
          << " . . . ." << endl;
     }
   
@@ -66,8 +66,8 @@ public:
       os << "F " << bpKey << " " << bpKey << assembly << "-" << id
          << " " << parentKey << assembly << "-" << id
          << " " << assembly << ":" << chromosome
-         << " " << getMinY()
-         << " " << getMaxY() - getMinY()
+         << " " << this->getMinY()
+         << " " << this->getMaxY() - this->getMinY()
          << " . . . ." << endl;
     }
   
@@ -96,8 +96,8 @@ public:
              << assembly << "-" << id
              << " ."
              << " " << assembly << ":" << chromosome
-             << " " << getMinX()
-             << " " << getMaxY() - getMinX()
+             << " " << this->getMinX()
+             << " " << this->getMaxY() - this->getMinX()
              << " -1"
              << " 0"
              << " ."
@@ -113,8 +113,8 @@ public:
              << assembly << "-" << id
              << " ."
              << " " << assembly << ":" << chromosome
-             << " " << getMinX()  // leftmost possible breakpoint
-             << " " << getMaxX() - getMinX()
+             << " " << this->getMinX()  // leftmost possible breakpoint
+             << " " << this->getMaxX() - this->getMinX()
              << " -1"
              << " 0"
              << " ."
@@ -124,8 +124,8 @@ public:
              << assembly << "s-" << id
              << " ."
              << " " << assembly << ":" << chromosome
-             << " " << getMinY()  // smallest possible size
-             << " " << getMaxY()
+             << " " << this->getMinY()  // smallest possible size
+             << " " << this->getMaxY()
              << " -1"
              << " 0"
              << " ."
@@ -138,8 +138,8 @@ public:
              << assembly << "-" << id
              << " ."
              << " " << assembly << ":" << chromosome
-             << " " << getMinX()
-             << " " << getMinY() - getMinX()
+             << " " << this->getMinX()
+             << " " << this->getMinY() - this->getMinX()
              << " -1"
              << " 0"
              << " ."
@@ -154,8 +154,8 @@ public:
              << assembly << "-" << id
              << " ."
              << " " << assembly << ":" << chromosome
-             << " " << getMaxX()
-             << " " << getMaxY() - getMaxX()
+             << " " << this->getMaxX()
+             << " " << this->getMaxY() - this->getMaxX()
              << " -1"
              << " 0"
              << " ."
@@ -170,8 +170,8 @@ public:
              << assembly << "-" << id
              << " ."
              << " " << assembly << ":" << chromosome
-             << " " << getMaxX()
-             << " " << getMinY() - getMaxX()
+             << " " << this->getMaxX()
+             << " " << this->getMinY() - this->getMaxX()
              << " -1"
              << " 0"
              << " ."
@@ -187,8 +187,8 @@ public:
              << assembly << "-" << id
              << " ."
              << " " << assembly << ":" << chromosome
-             << " " << getMinX()
-             << " " << getMaxY() - getMinX()
+             << " " << this->getMinX()
+             << " " << this->getMaxY() - this->getMinX()
              << " -1"
              << " 0"
              << " ."
@@ -203,8 +203,8 @@ public:
              << assembly << "-" << id
              << " ."
              << " " << assembly << ":" << chromosome
-             << " " << getMinX()
-             << " " << getMaxY() - getMinX()
+             << " " << this->getMinX()
+             << " " << this->getMaxY() - this->getMinX()
              << " -1"
              << " 0"
              << " ."
@@ -219,8 +219,8 @@ public:
              << assembly << "-" << id
              << " ."
              << " " << assembly << ":" << chromosome
-             << " " << getMinX()
-             << " " << getMaxY() - getMinX()
+             << " " << this->getMinX()
+             << " " << this->getMaxY() - this->getMinX()
              << " -1"
              << " 0"
              << " ."
@@ -235,8 +235,8 @@ public:
              << assembly << "-" << id
              << " ."
              << " " << assembly << ":" << chromosome
-             << " " << getMinX()
-             << " " << getMaxY() - getMinX()
+             << " " << this->getMinX()
+             << " " << this->getMaxY() - this->getMinX()
              << " -1"
              << " 0"
              << " ."
@@ -260,13 +260,13 @@ public:
 
       if(isCompressed())
       {
-        for(unsigned int i = 0; i < pPolys.size(); i++)
+        for(unsigned int i = 0; i < this->pPolys.size(); i++)
         {
           Polygon<UnitType> tempP;
-          UnitType minX = getMinX();
-          UnitType maxX = getMaxX();
-          UnitType minY = getMinY();
-          UnitType maxY = getMaxY();
+          UnitType minX = this->getMinX();
+          UnitType maxX = this->getMaxX();
+          UnitType minY = this->getMinY();
+          UnitType maxY = this->getMaxY();
           tempP.append(minX, minY);
           tempP.append(minX, maxY);
           tempP.append(maxX, maxY);
@@ -276,9 +276,9 @@ public:
       }
       else
       {
-        for(unsigned int i = 0; i < pPolys.size(); i++)
+        for(unsigned int i = 0; i < this->pPolys.size(); i++)
         {
-          pPolys[i].printForGnuplot(os);
+          this->pPolys[i].printForGnuplot(os);
         }
       }
     }

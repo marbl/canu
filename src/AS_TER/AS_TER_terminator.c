@@ -29,12 +29,12 @@ accession numbers.
 **********************************************************************/
 
 /* RCS info
- * $Id: AS_TER_terminator.c,v 1.1.1.1 2004-04-14 13:53:43 catmandew Exp $
- * $Revision: 1.1.1.1 $
+ * $Id: AS_TER_terminator.c,v 1.2 2004-09-23 20:25:29 mcschatz Exp $
+ * $Revision: 1.2 $
  */
 
 
-static char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.1.1.1 2004-04-14 13:53:43 catmandew Exp $";
+static char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.2 2004-09-23 20:25:29 mcschatz Exp $";
 
 
 /*************************************************************************/
@@ -66,7 +66,7 @@ int main (int argc, char *argv[]) {
   char *fragStoreName   = NULL;
   char *bactigStoreName = NULL;
   char *gkpStoreName    = NULL;
-
+  char *euidServerNames = NULL;
   /*Variable defintions for parsing the commandline */
 
   /* The default behaviour of the Terminator. Should
@@ -82,11 +82,14 @@ int main (int argc, char *argv[]) {
   { /* Parse the argument list using "man 3 getopt". */
     int ch,errflg=FALSE;
     optarg = NULL;
-    while (!errflg && ((ch = getopt(argc, argv, "Pb:f:g:i:o:m:rs:hQ")) != EOF))
+    while (!errflg && ((ch = getopt(argc, argv, "Pub:f:g:i:o:m:rs:E:hQ")) != EOF))
       switch(ch) 
 	{
 	case 'P':
 	  output = AS_PROTO_OUTPUT;
+	  break;
+	case 'u':	  
+	  realUIDs = TRUE;
 	  break;
 	case 'r':	  
 	  random = TRUE;
@@ -95,7 +98,7 @@ int main (int argc, char *argv[]) {
 	  quiet = TRUE;
 	  break;
 	case 's':	  
-	  uidStart = STR_TO_UID(optarg,(char**) NULL,10);
+	  uidStart = strtoul(optarg,(char**) NULL,10);
 	  break;
 	case 'f':	  
 	  fragStoreName = strdup(optarg);
@@ -126,6 +129,12 @@ int main (int argc, char *argv[]) {
 	  mapFileName = strdup(optarg);
 	  assert(mapFileName != NULL);
 	  break;
+#ifdef USE_SOAP_UID
+	case 'E':
+	  realUIDs = TRUE;
+	  SYS_UIDset_euid_server(optarg);
+	  break;
+#endif
 	case 'h':	  
 	  help = TRUE;
 	  break;
@@ -137,14 +146,18 @@ int main (int argc, char *argv[]) {
 	}
   }
   
-  if((illegal == 1)  || help || (uidStart == 0 && random)){
+  if((illegal == 1)  || help || (realUIDs != TRUE && uidStart == 0 && random)){
     fprintf (stderr,
-	     "USAGE:  terminator [-P -b<bactig_store_directory> -g <gatekeeper_store_directory] <input files>*\n"
+	     "USAGE:  terminator [-P -u -b<bactig_store_directory> -g <gatekeeper_store_directory] <input files>*\n"
 	     "specify zero or more input files at end of command line.  Zero files means read from stdin\n"
 	     "-f <frag_store_directory> [-i <input_file>] -o <output_file> -m <map_file> \n"
 	     "-s <uid_start> sets dummy UIDs start has to be > 0 (only required for -r)\n"
 	     "-r puts terminator in random access mode\n"
 	     "-P forces ASCII output\n"
+#ifdef USE_SOAP_UID
+	     "-E <server:port> changes default EUID server from tools.tigr.org:8190 (implies -u)\n"
+#endif
+	     "-u forces real UIDs\n"
 	     "-Q runs also for simulator\n");
     exit (AS_TER_EXIT_FAILURE);
   }

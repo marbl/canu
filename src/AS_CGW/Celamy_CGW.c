@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /* All of the CGW celamy stuff is here */
-static char CM_ID[] = "$Id: Celamy_CGW.c,v 1.1.1.1 2004-04-14 13:50:16 catmandew Exp $";
+static char CM_ID[] = "$Id: Celamy_CGW.c,v 1.2 2004-09-23 20:25:19 mcschatz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -45,6 +45,9 @@ static char CM_ID[] = "$Id: Celamy_CGW.c,v 1.1.1.1 2004-04-14 13:50:16 catmandew
 #include "ScaffoldGraphIterator_CGW.h"
 
 #define ANNOTATED_CELAMY_OUTPUT 1
+
+int do_draw_frags_in_CelamyScaffold =0;
+int do_compute_missing_overlaps=0;
 
 /* The following is in support of defining a set of Celamy colors to draw with */
 
@@ -135,8 +138,6 @@ static void CelamyOrderedScaffolds(FILE *fout,  FILE *fdregs,
                                    int64 *enda, int64 *endb);
 static void OrderScaffoldsForOutput(CIScaffoldT **scaffoldOrder,
                                     int64 *enda, int64 *endb);
-static void CelamyScaffold(FILE *fout, CIScaffoldT *scaffold,
-                           int64 aend, int64 bend);
 
 #define SCAFFOLD_ROW 1
 #define CONTIG_ROW 1
@@ -279,7 +280,7 @@ static int ComputeCIColor(ChunkInstanceT *ci, CIScaffoldT *scaffold){
 
 /*******************************************************************************/
 /* DumpCelamy Colors */
-static void DumpCelamyColors(FILE *file){
+void DumpCelamyColors(FILE *file){
    { int icolour;
     for(icolour=0; icolour<NUM_COLOURS; icolour++) {
       fprintf(file,"%dCGBColor: %s\n",icolour,Colour_String[icolour]);
@@ -302,6 +303,40 @@ static void DumpCelamyColors(FILE *file){
   }
 
 }
+
+
+/*******************************************************************************/
+/* print header/color info for mate pair indications (clone middle) */
+void DumpCelamyMateColors(FILE *file){
+  fprintf(file,"1CMColor: C00FF00 T2 S  # Satisfied\n");
+  fprintf(file,"2CMColor: CFF0000 T2 S  # Anti\n");
+  fprintf(file,"3CMColor: C0000FF T2 S  # TooClose\n");
+  fprintf(file,"4CMColor: CFFFF00 T2 S  # TooFar\n");
+  fprintf(file,"5CMColor: CFF00FF T2 S  # Normal\n");
+  fprintf(file,"6CMColor: C00FFFF T2 S  # Transposed\n");
+  fprintf(file,"7CMColor: C88FF88 T2 S  # ExtMateA_B\n");
+  fprintf(file,"8CMColor: C880088 T2 S  # ExtMateB_A\n");
+  fprintf(file,"9CMColor: CFFFFFF T2 S  # Unmated\n");
+  fprintf(file,"0InterScfColor: CFFFFFF T3 S  # InterScaf\n");
+  return;
+}
+
+/* print header/color info for fragments */
+void DumpCelamyFragColors(FILE *file){
+  fprintf(file,"0FragColor: C008080 T2 S  # ForwardFrg\n");
+  fprintf(file,"1FragColor: C008000 T2 S  # ReverseFrg\n");
+  fprintf(file,"2FragColor: C808000 T2 S  # ForwardSurro\n");
+  fprintf(file,"3FragColor: C800080 T2 S  # ReverseSurro\n");
+  return;
+}
+
+typedef enum {
+  FWD_FRG_COLOR,
+  REV_FRG_COLOR,
+  FWD_SURRO_COLOR,
+  REV_SURRO_COLOR
+} fragColors;
+
 
 /* CelamyAssembly
    Dumps a simulator-coordinate independent view of the assembly. Currently, scaffolds are drawn
@@ -413,6 +448,292 @@ void CelamyOrderedScaffolds(FILE *fout,  FILE *fdregs,
 
 
 
+void safelyAppendOvlInfo(char **ovlsString,Long_Olap_Data_t olap, int *lenString, int *lenUsed){
+  char teststring[100];
+  int testsize;
+   
+  testsize = snprintf(teststring,99," %d",
+		      olap . b_iid);
+  assert(testsize <= 100); /* test against truncation */
+  assert(testsize >0); /* test against other error */
+  if(*lenUsed+testsize>*lenString){
+    *lenString+=1000;
+    *ovlsString = (char *) realloc(*ovlsString, *lenString * sizeof(char));
+  }
+  strcat(*ovlsString,teststring);
+  *lenUsed+=testsize-1; /* -1 because snprintf includes the '\0' in its return,
+			   but strcat effectively adds one less since the '\0'
+			   at the previous string end is overwritten */
+}
+
+
+void compute_overlaps_off_ends(int id, int *offAEnd, int *offBEnd,char **AEstr, char **BEstr){
+
+  Long_Olap_Data_t  olap;
+  static OVL_Stream_t  * my_stream = NULL;
+  int retval=0;
+  static char *AEndString=NULL,*BEndString=NULL;
+  static int lenAstring=0,lenBstring=0;
+  int lenAused=0,lenBused=0;
+
+  if(AEndString==NULL){
+    lenAstring = 1000;
+    AEndString = (char *) malloc(lenAstring*sizeof(char));
+    assert(AEndString!=NULL);
+  }
+  AEndString[0]='\0';
+
+  if(BEndString==NULL){
+    lenBstring = 1000;
+    BEndString = (char *) malloc(lenBstring*sizeof(char));
+    assert(BEndString!=NULL);
+  }
+  BEndString[0]='\0';
+
+  if(my_stream == NULL){
+    my_stream = New_OVL_Stream ();
+  } else {
+    //    Renew_OVL_Stream (my_stream);
+  }
+
+  Init_OVL_Stream (my_stream, id, id, ScaffoldGraph->frgOvlStore);
+
+  while  (Next_From_OVL_Stream (& olap, my_stream)){
+    //    print_olap(olap);
+    if  (olap . a_hang < 0){
+      (*offAEnd)++;
+      safelyAppendOvlInfo(&AEndString,olap,&lenAstring,&lenAused);
+    }
+    if  (olap . b_hang > 0){
+      (*offBEnd)++;
+      safelyAppendOvlInfo(&BEndString,olap,&lenBstring,&lenBused);
+    }
+  }
+  *AEstr = AEndString;
+  *BEstr = BEndString;
+}
+
+
+
+void draw_surroFrags_in_contig_for_CelamyScaffold(FILE *fout, ContigT *ctg, int globallyReversed,int AEndCoord){
+  static MultiAlignT *contig=NULL, *unitig=NULL;
+  IntUnitigPos *u_list;
+  int num_unitigs;
+  int i,j;
+
+  if(contig==NULL){
+    contig = CreateEmptyMultiAlignT();
+    unitig = CreateEmptyMultiAlignT();
+  }
+  ReLoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB,contig,ctg->id,FALSE);
+
+  num_unitigs = GetNumIntUnitigPoss(contig->u_list);
+  u_list = GetIntUnitigPos(contig->u_list,0);
+  for (i=0;i<num_unitigs;i++) {
+    cds_int32 utgID = u_list[i].ident;
+    int numLeftEndOvls=0,	numRightEndOvls=0;
+    char *leftEndOvls,*rightEndOvls; // do not free these -- we don't own them
+    ChunkInstanceT *utg = GetChunkInstanceT(ScaffoldGraph->ChunkInstances,utgID);
+    assert(utg!=NULL);
+    if(utg->flags.bits.isStoneSurrogate ||
+       utg->flags.bits.isWalkSurrogate){
+      int utgAEnd,utgBEnd,num_frags,baseUtg;
+      IntMultiPos *f_list;
+      utg = GetGraphNode(ScaffoldGraph->CIGraph, utg->info.CI.baseID);
+      utgAEnd = u_list[i].position.bgn;
+      utgBEnd = u_list[i].position.end;
+      ReLoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB,unitig,utg->id,TRUE);
+      num_frags = GetNumIntMultiPoss(unitig->f_list);
+      f_list = GetIntMultiPos(unitig->f_list,0);
+      for(j=0;j<num_frags;j++){
+	int frgAEnd = f_list[j].position.bgn;
+	int frgBEnd = f_list[j].position.end;
+	int surroColor;
+
+
+	//	fprintf(stderr,"Surrogate idx %d frag %d [%d,%d]\n",
+	//		j,f_list[j].ident,frgAEnd,frgBEnd);
+
+	if(utgAEnd<utgBEnd){
+	  frgAEnd += utgAEnd;
+	  frgBEnd += utgAEnd;
+	} else {
+	  frgAEnd = utgAEnd - frgAEnd;
+	  frgBEnd = utgAEnd - frgBEnd;
+	}	  
+
+	if(globallyReversed){
+	  frgAEnd = AEndCoord - frgAEnd;
+	  frgBEnd = AEndCoord - frgBEnd;
+	} else {
+	  frgAEnd += AEndCoord;
+	  frgBEnd += AEndCoord;
+	}
+
+	if(do_compute_missing_overlaps){
+	  compute_overlaps_off_ends(f_list[j].ident,&numLeftEndOvls,&numRightEndOvls,&leftEndOvls,&rightEndOvls);
+	}
+
+	if(frgAEnd < frgBEnd){
+	  surroColor = FWD_SURRO_COLOR;
+	} else {
+	  int tmp;
+	  char *tmpstr;
+	  tmp=frgAEnd;
+	  frgAEnd = frgBEnd;
+	  frgBEnd=tmp;
+	  surroColor = REV_SURRO_COLOR;
+	  tmp=numLeftEndOvls;
+	  numLeftEndOvls=numRightEndOvls;
+	  numRightEndOvls=tmp;
+	  tmpstr=leftEndOvls;
+	  leftEndOvls = rightEndOvls;
+	  rightEndOvls = tmpstr;
+	}
+	
+
+
+	if(do_compute_missing_overlaps){
+	  fprintf(fout,"%dCtgSurro%d: %d A%dFragColor %d R10 # Contig %d Surrogate Frag %d Overlaps L/R %d/%d details: %s / %s\n",
+		ctg->id, f_list[j].ident,
+		frgAEnd,
+		surroColor,     
+		frgBEnd,
+		ctg->id,
+		f_list[j].ident,
+		numLeftEndOvls,
+		numRightEndOvls,
+		leftEndOvls,
+		rightEndOvls
+		);
+
+	}else{
+	  fprintf(fout,"%dCtgSurro%d: %d A%dFragColor %d R10 # Contig %d Surrogate Frag %d\n",
+		ctg->id, f_list[j].ident,
+		frgAEnd,
+		surroColor,     
+		frgBEnd,
+		ctg->id,
+		f_list[j].ident
+		);
+	}
+      }
+    }
+  }
+}
+
+
+void draw_frags_in_contig_for_CelamyScaffold(FILE *fout, ContigT *ctg, int globallyReversed,int AEndCoord){
+  static MultiAlignT *contig=NULL;
+  IntMultiPos *f_list;
+  IntMultiPos *frag;
+  int num_frags;
+  int32 ci_leftcoord, ci_rightcoord;
+  int32 t_leftcoord, t_rightcoord;
+  int i;
+  char buffer[64];
+  SeqInterval sim;
+  char *coord_start;
+  fragColors frgcolor;
+
+  // color is contig
+  // output a line for the contig in the contig row with contig color
+  // then, loop through the unitigs, outputting them too;
+
+  if(contig==NULL){
+    contig = CreateEmptyMultiAlignT();
+  }
+
+  ReLoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB,contig,ctg->id,FALSE);
+  num_frags=GetNumIntMultiPoss(contig->f_list);
+
+  f_list = GetIntMultiPos(contig->f_list,0);
+  for (i=0;i<num_frags;i++) {
+     uint64 fuid;
+     int numLeftEndOvls=0,numRightEndOvls=0;
+     char *leftEndOvls, *rightEndOvls; // do not free these -- we don't own them
+     frag = &f_list[i];
+     t_rightcoord = max(frag->position.bgn,frag->position.end);
+     t_leftcoord =  min(frag->position.bgn,frag->position.end);
+     if(globallyReversed){
+	ci_leftcoord = AEndCoord - t_rightcoord;
+	ci_rightcoord = AEndCoord - t_leftcoord;
+     }else{
+        ci_leftcoord = AEndCoord + t_leftcoord;
+        ci_rightcoord = AEndCoord + t_rightcoord;
+     }
+#if 0
+     if ( frag->source ) {
+       coord_start = strchr(frag->source,'[');
+     } else {
+       coord_start = NULL;
+     }
+     if ( coord_start != NULL && (sscanf(coord_start,"[%d,%d]",&sim.bgn,&sim.end) == 2) ) {
+       sprintf(buffer," [%d,%d]",sim.bgn,sim.end);
+     } else {
+        sprintf(buffer,"");
+     }
+     if (show_uids) {
+      if (frag->type == AS_BACTIG ) {
+       getFragStore(bactig_store,frag->ident,FRAG_S_FIXED,rsp);
+      } else {
+       getFragStore(frag_store,frag->ident,FRAG_S_FIXED,rsp);
+      }
+      getAccID_ReadStruct(rsp, &fuid);
+     } else {
+      fuid = 0;
+     }
+#endif
+     frgcolor = 
+       globallyReversed ? 
+       ( frag->position.bgn < frag->position.end ? REV_FRG_COLOR : FWD_FRG_COLOR ) :
+       ( frag->position.bgn < frag->position.end ? FWD_FRG_COLOR : REV_FRG_COLOR );
+
+
+     if(do_compute_missing_overlaps){
+       compute_overlaps_off_ends(frag->ident,&numLeftEndOvls,&numRightEndOvls,&leftEndOvls,&rightEndOvls);
+     }
+
+     if(frgcolor == REV_FRG_COLOR){
+       int tmp;
+       char *tmpstr;
+       tmp=numLeftEndOvls;
+       numLeftEndOvls=numRightEndOvls;
+       numRightEndOvls=tmp;
+       tmpstr=leftEndOvls;
+       leftEndOvls = rightEndOvls;
+       rightEndOvls = tmpstr;
+     }
+       
+     if(do_compute_missing_overlaps){
+       fprintf(fout,"%dCtgFrag%d: %d A%dFragColor %d R10 # Contig %d Frag %d Overlaps L/R %d/%d details: %s / %s\n",
+	     ctg->id, frag->ident,
+	     ci_leftcoord,
+	     frgcolor,     
+	     ci_rightcoord,
+	     ctg->id,
+	     frag->ident,
+	     numLeftEndOvls,
+	     numRightEndOvls,
+	     leftEndOvls,
+	     rightEndOvls
+	     );
+     } else {
+       fprintf(fout,"%dCtgFrag%d: %d A%dFragColor %d R10 # Contig %d Frag %d\n",
+	     ctg->id, frag->ident,
+	     ci_leftcoord,
+	     frgcolor,     
+	     ci_rightcoord,
+	     ctg->id,
+	     frag->ident
+	     );
+     }
+  }
+  
+  return;
+}
+
+
 /* Celamy Scaffold
    The workhorse routine for drawing a simulator-coordinate independent view of a scaffold.
 */
@@ -459,11 +780,11 @@ void CelamyScaffold(FILE *fout, CIScaffoldT *scaffold,
 	  CIbCoord = scaffoldAEndCoord - scaffoldMin + (int64)max(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
 	}
 
-	contigMin = min(CIaCoord, CIbCoord);
-	contigMax = max(CIaCoord, CIbCoord);
+	contigMin = min(CIaCoord, CIbCoord); // seems like CIaCoord <= CIbCoord
+	contigMax = max(CIaCoord, CIbCoord); // should be invariant?
 
-	if(contigMin < scaffoldAEndCoord ||
-	   contigMax > scaffoldBEndCoord){
+	if(contigMin < min(scaffoldAEndCoord,scaffoldBEndCoord) ||
+	   contigMax > max(scaffoldAEndCoord,scaffoldBEndCoord)){
 	  fprintf(stderr,"* Contig " F_CID " in scaffold " F_CID " has drawing offsets [" F_S64 "," F_S64 "] outside of scaffold length [" F_S64 "," F_S64 "]\n",
 		  CI->id, scaffold->id,
 		  contigMax,contigMin,
@@ -583,6 +904,20 @@ void CelamyScaffold(FILE *fout, CIScaffoldT *scaffold,
 	  }
 #endif
           fprintf(fout,"\n");
+	}
+	if(do_draw_frags_in_CelamyScaffold){
+	  draw_frags_in_contig_for_CelamyScaffold(
+			  fout,
+			  CI,
+			  scaffoldReversed ^ contigReversed,
+			  scaffoldReversed ^ contigReversed ? contigMax : contigMin);
+	  draw_surroFrags_in_contig_for_CelamyScaffold(
+                            fout,
+			    CI,
+			    scaffoldReversed ^ contigReversed,
+			    scaffoldReversed ^ contigReversed ? contigMax : contigMin);
+
+	  
 	}
   }
   

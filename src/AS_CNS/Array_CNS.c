@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: Array_CNS.c,v 1.1.1.1 2004-04-14 13:51:10 catmandew Exp $";
+static char CM_ID[] = "$Id: Array_CNS.c,v 1.2 2004-09-23 20:25:20 mcschatz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -45,7 +45,6 @@ static char CM_ID[] = "$Id: Array_CNS.c,v 1.1.1.1 2004-04-14 13:51:10 catmandew 
 #include "MultiAlignment_CNS.h"
 #include "Array_CNS.h"
 
-#define ESTDEPTH 32
 #undef CNS_QVLOOK
 
 typedef struct LaneNode {
@@ -262,7 +261,7 @@ int IMP2Array(IntMultiPos *all_frags,
      // if all lanes are occupied, then depth will still be -1 here,
      //  and should be set to lane_depth
      if ( *depth == -1 ) *depth = lane_depth;
-     if ( *depth < 40 ) {
+     if ( *depth < lane_depth ) {
         rc = 1;
 
      multia = (char **)safe_malloc(2*(*depth)*sizeof(char *));

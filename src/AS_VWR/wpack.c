@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: wpack.c,v 1.1.1.1 2004-04-14 13:54:19 catmandew Exp $ */
+/* $Id: wpack.c,v 1.2 2004-09-23 20:25:30 mcschatz Exp $ */
 
 #undef DEBUG
 
@@ -2870,7 +2870,7 @@ static void initHexTable(void)
 /*
  *      read next hex value in the input stream, return -1 if EOF
  */
-static NextInt(FILE *fstream)
+static int NextInt(FILE *fstream)
 {
     int ch;
     int value = 0;
@@ -3360,7 +3360,7 @@ decode_image(unsigned char *inpix, unsigned char *outpix, unsigned int lin)
  * it into an integer.
  */
 
-static msb_int(unsigned char *cp)
+static int msb_int(unsigned char *cp)
 {
         return ((cp[0] << 24) | (cp[1] << 16) | (cp[2] << 8) | cp[3]);
 }

@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: CombineMUMsOVL.c,v 1.1.1.1 2004-04-14 13:52:31 catmandew Exp $
- * $Revision: 1.1.1.1 $
+ * $Id: CombineMUMsOVL.c,v 1.2 2004-09-23 20:25:25 mcschatz Exp $
+ * $Revision: 1.2 $
 */
 
-static char CM_ID[] = "$Id: CombineMUMsOVL.c,v 1.1.1.1 2004-04-14 13:52:31 catmandew Exp $";
+static char CM_ID[] = "$Id: CombineMUMsOVL.c,v 1.2 2004-09-23 20:25:25 mcschatz Exp $";
 
 
 //  System include files
@@ -225,7 +225,7 @@ static Overlap *  Find_Overlap
      double erate, double thresh, int minlen, CompareOptions what);
 static void  Initialize_Globals
     (void);
-static FILE *  Local_File_Open
+extern FILE *  Local_File_Open
     (const char * filename, const char * mode);
 static int  OVL_Max_int
     (int a, int b);
@@ -1037,27 +1037,6 @@ static void  Initialize_Globals
   }
 
 
-
-static FILE *  Local_File_Open
-    (const char * filename, const char * mode)
-
-/* Open  Filename  in  Mode  and return a pointer to its control
-*  block.  If fail, print a message and exit. */
-
-  {
-   FILE  *  fp;
-
-   fp = fopen (filename, mode);
-   if  (fp == NULL)
-       {
-        fprintf (stderr, "ERROR %d:  Could not open file  %s \n",
-                 errno, filename);
-        perror (strerror (errno));
-        exit (EXIT_FAILURE);
-       }
-
-   return  fp;
-  }
 
 
 

@@ -18,10 +18,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.1.1.1 2004-04-14 13:50:51 catmandew Exp $";
+static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.2 2004-09-23 20:25:19 mcschatz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
+#include <float.h>
 #include <math.h>
 #include <float.h>
 #include <assert.h>
@@ -2335,9 +2337,17 @@ void PrintFragment(CIFragT * frag, CDS_CID_t index, FILE * printTo)
 {
   fprintf(printTo, "Fragment iid " F_CID ", index " F_CID "\n",
           frag->iid, index);
-  fprintf(printTo, "  index of %s " F_CID "\n",
-          (frag->numLinks == 1) ? "only mate:" : "first of multiple mates:",
-          frag->mateOf);
+
+  if(frag->numLinks > 0){
+    fprintf(printTo, "  index of %s " F_CID "\n",
+	   ((frag->numLinks == 1) ? " mate:" : "first of multiple mates:"),
+	    frag->mateOf);
+    fprintf(printTo, "  iid of %s " F_CID "\n",
+	   ((frag->numLinks == 1) ? " mate:" : "first of multiple mates:"),
+	    GetCIFragT(ScaffoldGraph->CIFrags, frag->mateOf)->iid);
+  } else {
+    fprintf(printTo, "  unmated");
+  }
   switch(frag->type)
   {
     case AS_READ:
@@ -2446,6 +2456,115 @@ void PrintMateDetailAndDist(MateDetail * md,
 }
 
 
+
+#ifdef TRACK_3P
+
+void safelyAppendInstInfo(char **locs,int32 utgIID, int *lenloc, int *lenUsed){
+  ChunkInstanceT *mateUtg;
+  cds_int32 mateCtg;
+  cds_int32 mateScf;
+  char teststring[100];
+  int testsize;
+   
+  mateUtg = GetGraphNode(ScaffoldGraph->CIGraph,utgIID);
+  mateCtg = mateUtg->info.CI.contigID;
+  mateScf = mateUtg->scaffoldID;
+  testsize = snprintf(teststring,99," surroTig " F_CID " ctg " F_CID " scf " F_CID,
+		      mateUtg->id,mateCtg,mateScf);
+  assert(testsize <= 100); /* test against truncation */
+  assert(testsize >0); /* test against other error */
+  if(*lenUsed+testsize>*lenloc){
+    *lenloc+=1000;
+    *locs = (char *) realloc(*locs, *lenloc * sizeof(char));
+  }
+  strcat(*locs,teststring);
+  *lenUsed+=testsize-1; /* -1 because snprintf includes the '\0' in its return,
+			   but strcat effectively adds one less since the '\0'
+			   at the previous string end is overwritten */
+}
+
+
+void PrintExternalMateDetailAndDist(MateDetail * md,
+                            DistT * dptr,
+                            char * prefix,
+                            FILE * printTo,
+			    int printtype)
+{
+  if(printtype==PRINTTABLE){
+    fprintf(printTo,
+	    "%sIn (" F_CID "," F_CID ") fid: " F_CID ", 5p: %.f\tmid: " F_CID ", 5p: %.f, type: %c, dist: %.2f, stddev: %.2f\n",
+	    prefix,
+	    md->fragChunkIID, md->mateChunkIID,
+	    md->fragIID, md->fragOffset5p,
+	    md->mateIID, md->mateOffset5p,
+	    md->type, dptr->mean, dptr->stddev);
+  } else {
+    int fragLeftEnd,fragRightEnd,fragOri;
+    int32 mateChunk,mateScf,mateCtg;
+    assert(PRINTCELAMY==printtype);
+    if(md->fragOffset5p<md->fragOffset3p){
+      fragLeftEnd = md->fragOffset5p;
+      fragRightEnd = md->fragOffset3p;
+      fragOri = A_B;
+    } else {
+      fragRightEnd = md->fragOffset5p;
+      fragLeftEnd = md->fragOffset3p;
+      fragOri = B_A;
+    }
+    mateChunk = md->mateChunkIID;
+    {
+      ChunkInstanceT *unitig = GetGraphNode(ScaffoldGraph->CIGraph,mateChunk);
+      int numInst = unitig->info.CI.numInstances;
+      if(unitig->info.CI.numInstances>0){
+	static char *locs=NULL;
+	static int lenloc=0;
+	int lenUsed = 0;
+	if(locs==NULL){
+	  lenloc = 1000;
+	  locs = (char *) malloc(lenloc*sizeof(char));
+	  assert(locs!=NULL);
+	}
+	locs[0]='\0';
+	if(numInst<=2){
+	  safelyAppendInstInfo(&locs,unitig->info.CI.instances.in_line.instance1,&lenloc,&lenUsed);
+	  if(numInst==2){
+	    safelyAppendInstInfo(&locs,unitig->info.CI.instances.in_line.instance2,&lenloc,&lenUsed);
+	  }
+	} else {
+	  int i,n;
+          int32 *inst_list;
+	  n=unitig->info.CI.numInstances;
+	  assert(n == GetNumint32s(unitig->info.CI.instances.va));
+	  inst_list = Getint32(unitig->info.CI.instances.va,0);
+	  for(i=0;i<n;i++){
+	    safelyAppendInstInfo(&locs,inst_list[i],&lenloc,&lenUsed);
+	  }
+	}
+
+	fprintf(printTo,F_CID "Fragment: " F_COORD " %s " F_COORD " R50 # Externally-mated fragment " F_CID " ori:%s lib %f +/- %f Mate info: BaseCI " F_CID " Instances(%d): %s\n",
+		md->fragIID,fragLeftEnd,
+		fragOri==A_B ? "A7CMColor" : "A8CMColor" ,
+		fragRightEnd,md->fragIID,fragOri==A_B?"A_B":"B_A",
+		dptr->mean,dptr->stddev,
+		unitig->id,
+		unitig->info.CI.numInstances,
+		locs);
+      } else {
+	mateCtg = unitig->info.CI.contigID;
+	mateScf = unitig->scaffoldID;
+	fprintf(printTo,F_CID "Fragment: " F_COORD " %s " F_COORD " R50 # Externally-mated fragment " F_CID " ori:%s lib %f +/- %f mateChunk " F_CID " mateCtg %d mateScf %d\n",
+		md->fragIID,fragLeftEnd,
+		fragOri==A_B ? "A7CMColor" : "A8CMColor" ,
+		fragRightEnd,md->fragIID,fragOri==A_B?"A_B":"B_A",
+		dptr->mean,dptr->stddev,
+		mateChunk,mateCtg,mateScf);
+      }
+    }
+  }
+}
+#endif
+
+
 /*
   For debugging - call from gdb, for instance
 */
@@ -2463,6 +2582,28 @@ void PrintMateDetailsAndDists(ScaffoldGraphT * graph,
     PrintMateDetailAndDist(md, dptr, prefix, printTo);
   }
 }
+
+#ifdef TRACK_3P
+/*
+  For debugging - call from gdb, for instance
+*/
+
+void PrintExternalMateDetailsAndDists(ScaffoldGraphT * graph,
+                              VA_TYPE(MateDetail) * mda,
+                              char * prefix,
+                              FILE * printTo,
+			      int printtype)
+{
+  int i;
+  
+  for(i = 0; i < GetNumVA_MateDetail(mda); i++)
+  {
+    MateDetail * md = GetVA_MateDetail(mda, i);
+    DistT * dptr = GetDistT(graph->Dists, md->libIID);
+    PrintExternalMateDetailAndDist(md, dptr, prefix, printTo,printtype);
+  }
+}
+#endif
 
 
 void PrintMateComparison(cds_int32 numBefore,
@@ -2491,8 +2632,8 @@ void PrintMateComparison(cds_int32 numBefore,
 
   if(printRawNumbers)
     fprintf(printTo, "(%8d = %7.3f%% before, %8d = %7.3f%% after)\n",
-            numBefore, 100.f * ratioBefore,
-            numAfter, 100.f * ratioAfter);
+            (int) numBefore, 100.f * ratioBefore,
+            (int) numAfter, 100.f * ratioAfter);
   else
     fprintf(printTo, "(%7.3f%% before, %7.3f%% after)\n",
             100.f * ratioBefore, 100.f * ratioAfter);
@@ -3932,7 +4073,8 @@ int AppendContigPairSets(ScaffoldGraphT * graph,
                      Functions for instrumenting
 ********************************************************************/
 /*
-  Initial version ignores fragments in surrogates
+  Initial version ignores fragments in surrogates;
+  as of Feb, 2004, ALH trying to take surrogates into account ...
 */
 int AddFragmentToUnitigInstrumenter(ScaffoldGraphT * graph,
                                     MultiAlignT * uma,
@@ -4021,6 +4163,7 @@ int AddFragmentToUnitigInstrumenter(ScaffoldGraphT * graph,
 
 
 int AddFragmentToSurrogateTracker(ScaffoldGraphT * graph,
+				  HashTable_AS *cpHT,
                                   CDS_CID_t contigID,
                                   IntMultiPos * imp,
                                   cds_float32 aEnd,
@@ -4034,6 +4177,10 @@ int AddFragmentToSurrogateTracker(ScaffoldGraphT * graph,
     return 1;
   }
 
+  // the goal is to compute the fragment's coordinates relative to the
+  // contig, and store them appropriately in the SurrogateTracker;
+  // so, we want aEnd,bEnd to be the ends of the unitig relative to 
+  // the contig ...
   {
     SurrogateFragLocation * sflp;
     int addToHashTable = 1;
@@ -4065,11 +4212,25 @@ int AddFragmentToSurrogateTracker(ScaffoldGraphT * graph,
     */
     // populate the new surrogate fragment entry in the array
     st->surrogateFragLocs[st->numUsedLocs].contig = contigID;
+#if 0
     st->surrogateFragLocs[st->numUsedLocs].offset5p =
       imp->position.bgn + (aEnd < bEnd) ? aEnd : bEnd;
     st->surrogateFragLocs[st->numUsedLocs].offset3p =
       imp->position.end + (aEnd < bEnd) ? aEnd : bEnd;
     st->surrogateFragLocs[st->numUsedLocs].nextIndex = 0;
+#else
+    if(aEnd<bEnd){
+      st->surrogateFragLocs[st->numUsedLocs].offset5p =
+	aEnd + imp->position.bgn;
+      st->surrogateFragLocs[st->numUsedLocs].offset3p =
+	aEnd + imp->position.end;
+    }else{
+      st->surrogateFragLocs[st->numUsedLocs].offset5p =
+	aEnd - imp->position.bgn;
+      st->surrogateFragLocs[st->numUsedLocs].offset3p =
+	aEnd - imp->position.end;
+    }
+#endif
 
     // if the fragment wasn't in the hashtable, add it
     if(addToHashTable)
@@ -4179,12 +4340,14 @@ int GetFragmentPositionInFauxScaffold(HashTable_AS * cpHT,
 void GetFragmentPosition(HashTable_AS * cpHT,
                          CIFragT * frag,
                          CDS_COORD_t * frag5p,
+                         CDS_COORD_t * frag3p,
                          FragOrient * fragOrient)
 {
   if(cpHT == NULL)
   {
     // get fragment position & orientation in contig
-    *frag5p = frag->contigOffset5p.mean;
+    *frag5p = (CDS_COORD_t) frag->contigOffset5p.mean;
+    *frag3p = (CDS_COORD_t) frag->contigOffset3p.mean;
     *fragOrient = ((frag->contigOffset5p.mean < frag->contigOffset3p.mean) ?
                    A_B : B_A);
   }
@@ -4201,7 +4364,127 @@ void GetFragmentPosition(HashTable_AS * cpHT,
                                       &fragOrientInScaffold);
     *fragOrient = (fragOrientInScaffold == 0) ? A_B : B_A;
     *frag5p = (*fragOrient == A_B) ? fragLeftEnd : fragRightEnd;
+    *frag3p = (*fragOrient == B_A) ? fragLeftEnd : fragRightEnd;
   }
+}
+
+
+
+
+int GetFragment5pPositionInFauxScaffoldGivenCtgPsn(HashTable_AS * cpHT,
+						   cds_int32 contigIID,
+						   CDS_COORD_t ctg5p,
+						   CDS_COORD_t *scf5p)
+{
+  ContigPlacement * cp;
+  static int firstTime=1;
+
+  cp = LookupInHashTable_AS(cpHT,
+                            &contigIID,
+                            sizeof(cds_int32));
+  if(cp == NULL)
+  {
+    fprintf(stderr, "Contig %u is not in hashtable!\n",
+            contigIID);
+    return 1;
+  }
+
+  if(cp->orient == A_B)
+  {
+    *scf5p = (CDS_COORD_t) (cp->offset + ctg5p);
+  }
+  else
+  {
+    *scf5p = (CDS_COORD_t) (cp->offset + cp->length - ctg5p);
+  }
+
+
+  return 0;
+}
+
+
+void GetFragment5pPositionGivenCtgPsn(HashTable_AS * cpHT,
+				      cds_int32 contigIID,
+				      CDS_COORD_t ctg5p,
+				      CDS_COORD_t *newPsn)
+{
+  if(cpHT == NULL)
+  {
+    // get fragment position & orientation in contig
+    *newPsn = ctg5p;
+  }
+  else
+  {
+    // get fragment position & orientation in scaffold
+    GetFragment5pPositionInFauxScaffoldGivenCtgPsn(cpHT,contigIID,
+						   ctg5p,
+						   newPsn);
+  }
+}
+
+
+
+
+int GetSurrogatePositionInFauxScaffoldFromSFL(HashTable_AS * cpHT,
+				       cds_int32 contigID,
+				       CDS_COORD_t *frag5p,
+				       CDS_COORD_t *frag3p)
+{
+  ContigPlacement * cp;
+
+  // on entry, *frag5p should be set to the position on the contig
+  // of the 5p end of the fragment; likewise for *frag3p
+  CDS_COORD_t AEndOnCtg = *frag5p;
+  CDS_COORD_t BEndOnCtg = *frag3p;
+
+  cp = LookupInHashTable_AS(cpHT,
+                            (void *) &(contigID),
+                            sizeof(cds_int32));
+  if(cp == NULL)
+  {
+    fprintf(stderr, "A surrogate fragment's contig %u is not in hashtable!\n",
+            contigID);
+    return 1;
+  }
+
+
+  // 0 means A_B, non-0 means B_A
+  if(cp->orient == A_B)
+  {
+    *frag5p = (CDS_COORD_t) cp->offset + AEndOnCtg; 
+    *frag3p = (CDS_COORD_t) cp->offset + BEndOnCtg; 
+  }
+  else
+  {
+    *frag5p = (CDS_COORD_t) (cp->offset + cp->length) - AEndOnCtg;
+    *frag3p = (CDS_COORD_t) (cp->offset + cp->length) - BEndOnCtg;
+  }
+#if 0
+  fprintf(stderr,"Looking for surrogate position: from [" F_COORD "," F_COORD "] to [" F_COORD "," F_COORD "] using offset %g, orient %s , length %g\n",
+	  AEndOnCtg,BEndOnCtg,*frag5p,*frag3p,
+	  cp->offset, cp->orient == A_B ? "A_B" : "B_A",cp->length);
+#endif
+  return 0;
+}
+
+
+void GetSurrogatePositionFromSFL(HashTable_AS * cpHT,
+				 SurrogateFragLocation *sflp,
+				 CDS_COORD_t *frag5p,
+				 CDS_COORD_t *frag3p){
+  *frag5p = (CDS_COORD_t) sflp->offset5p;
+  *frag3p = (CDS_COORD_t) sflp->offset3p;
+  if( cpHT != NULL ){
+    // get fragment position in scaffold
+    GetSurrogatePositionInFauxScaffoldFromSFL(cpHT,
+				       sflp->contig,
+				       frag5p,
+				       frag3p);
+  }
+#if 0
+  fprintf(stderr,"Looking for surrogate position: from [" F_COORD "," F_COORD "] to [" F_COORD "," F_COORD "] using cpHT %x\n",
+	  sflp->offset5p,sflp->offset3p,*frag5p,*frag3p,cpHT);
+#endif
 }
 
 
@@ -4211,28 +4494,63 @@ void PrintScaffoldMateDetail(HashTable_AS * cpHT,
                              ChunkOrientationType oIs,
                              char * category,
                              CDS_CID_t id,
-                             FILE * printTo)
+                             FILE * printTo,
+			     int printType)
 {
   CDS_CID_t fragIID;
   CDS_CID_t mateIID;
   CDS_CID_t fragChunkIID;
   CDS_CID_t mateChunkIID;
-  CDS_COORD_t frag5p;
-  CDS_COORD_t mate5p;
+  CDS_COORD_t frag5p,frag3p;
+  CDS_COORD_t mate5p,mate3p;
   FragOrient fragOrient;
   FragOrient mateOrient;
   char oString[1024];
-  
-  GetFragmentPosition(cpHT,
-                      GetCIFragT(ScaffoldGraph->CIFrags,
-                                 GetInfoByIID(ScaffoldGraph->iidToFragIndex,
-                                              md->fragIID)->fragIndex),
-                      &frag5p, &fragOrient);
-  GetFragmentPosition(cpHT,
-                      GetCIFragT(ScaffoldGraph->CIFrags,
-                                 GetInfoByIID(ScaffoldGraph->iidToFragIndex,
-                                              md->mateIID)->fragIndex),
-                      &mate5p, &mateOrient);
+  CIFragT *tmpfrg;
+
+  tmpfrg = GetCIFragT(ScaffoldGraph->CIFrags,
+		      GetInfoByIID(ScaffoldGraph->iidToFragIndex,
+				   md->fragIID)->fragIndex);
+  if(LookupInHashTable_AS(cpHT,&(tmpfrg->contigID),sizeof(cds_int32))==NULL){
+    // this should apply only to surrogate fragments
+
+    /* intra-ctg mate pair; coordinates are relative to the contig */
+    /* inter-ctg mate pair; coordinates are relative to the scaffold */
+    
+    //    GetFragment5pPositionGivenCtgPsn(cpHT,
+    GetFragment5pPositionGivenCtgPsn( (md->fragChunkIID==md->mateChunkIID) ? cpHT : NULL,
+				      md->fragChunkIID,
+				      md->fragOffset5p,
+				      &frag5p);
+  } else {
+    GetFragmentPosition(cpHT,
+			tmpfrg,
+			&frag5p,
+			&frag3p,
+			&fragOrient);
+  }
+
+  tmpfrg = GetCIFragT(ScaffoldGraph->CIFrags,
+		      GetInfoByIID(ScaffoldGraph->iidToFragIndex,
+				   md->mateIID)->fragIndex);
+  if(LookupInHashTable_AS(cpHT,&(tmpfrg->contigID),sizeof(cds_int32))==NULL){
+    // this should apply only to surrogate fragments
+
+    /* intra-ctg mate pair; coordinates are relative to the contig */
+    /* inter-ctg mate pair; coordinates are relative to the scaffold */
+
+    //    GetFragment5pPositionGivenCtgPsn(cpHT,
+    GetFragment5pPositionGivenCtgPsn( (md->fragChunkIID==md->mateChunkIID) ? cpHT : NULL,
+				      md->mateChunkIID,
+				      md->mateOffset5p,
+				      &mate5p);
+  } else {
+    GetFragmentPosition(cpHT,
+			tmpfrg,
+			&mate5p,
+			&mate3p,
+			&mateOrient);
+  }
 
   if(mate5p < frag5p)
   {
@@ -4255,6 +4573,14 @@ void PrintScaffoldMateDetail(HashTable_AS * cpHT,
     mateChunkIID = md->mateChunkIID;
   }
 
+#if 0
+  fprintf(stderr,"pair (" F_CID "," F_CID ") assigned 5p positions " F_COORD " " F_COORD " based on offsets %g %g on ctgs " F_CID " " F_CID "\n",
+	  fragIID,mateIID,frag5p,mate5p,
+	  ( md->fragChunkIID == fragChunkIID) ? md->fragOffset5p : md->mateOffset5p,	  
+	  ( md->fragChunkIID == fragChunkIID) ? md->mateOffset5p : md->fragOffset5p,	  
+	  fragChunkIID,mateChunkIID);
+#endif
+
   if(oShouldBe == oIs)
   {
     sprintf(oString, "%s",
@@ -4272,13 +4598,68 @@ void PrintScaffoldMateDetail(HashTable_AS * cpHT,
             (oIs == AB_BA ? "AB_BA" :
              (oIs == BA_AB ? "BA_AB" : "BA_BA")));
   }
-  fprintf(printTo,
-          "%s\t%s\t" F_CID "\t" F_CID "\t%c\t"
-          "" F_CID "\t" F_COORD "\t" F_CID "\t"
-          "" F_CID "\t" F_COORD "\t" F_CID "\n",
-          category, oString, id, md->libIID, md->type,
-          fragIID, frag5p, fragChunkIID,
-          mateIID, mate5p, mateChunkIID);
+  if(printType == PRINTTABLE ){
+    fprintf(printTo,
+	    "%s\t%s\t" F_CID "\t" F_CID "\t%c\t"
+	    "" F_CID "\t" F_COORD "\t" F_CID "\t"
+	    "" F_CID "\t" F_COORD "\t" F_CID "\n",
+	    category, oString, id, md->libIID, md->type,
+	    fragIID, frag5p, fragChunkIID,
+	    mateIID, mate5p, mateChunkIID);
+  } else {
+
+    char markString[300] = "";
+    char catString[50];
+    int row;
+
+#define MARK_INTER_SCAFFOLD_MATES
+#ifdef MARK_INTER_SCAFFOLD_MATES
+    int frgScf,mateScf;
+    InfoByIID * info;
+    CIFragT * frag;
+    int32 scfId;
+#endif
+    
+    // new version here
+    if(strcmp(category,"SATISFIED")==0){
+      strcpy(catString,"A1CMColor");
+      row=110;
+    } else if(strcmp(category,"MISORIENTED")==0){
+      if(oIs == BA_BA){
+	strcpy(catString,"A2CMColor");
+	row=70;
+      } else if(oIs ==AB_AB) {
+	strcpy(catString,"A5CMColor");
+	row=80;
+      } else {
+	strcpy(catString,"A6CMColor");
+	row=90;
+      }
+    } else if(strcmp(category,"TOO_CLOSE")==0){ 
+      strcpy(catString,"A3CMColor");
+      row=100;
+    } else if(strcmp(category,"TOO_FAR")==0){
+      strcpy(catString,"A4CMColor");
+      row=100;
+    }
+
+#ifdef MARK_INTER_SCAFFOLD_MATES
+    frgScf = GetGraphNode(ScaffoldGraph->ContigGraph,
+			  fragChunkIID)->scaffoldID;
+    mateScf = GetGraphNode(ScaffoldGraph->ContigGraph,
+			   mateChunkIID)->scaffoldID;
+    if(frgScf==mateScf){
+      markString[0]='\0';
+    }else{
+      sprintf(markString,"%s " F_COORD " A0InterScfColor " F_COORD " ",catString,frag5p+(mate5p-frag5p)/3,frag5p+2*(mate5p-frag5p)/3);
+    }
+#endif
+
+    fprintf(printTo,F_CID "Mate" F_CID ": " F_COORD " %s%s " F_COORD " R%d # %s " F_CID " " F_CID "\n",
+	    fragIID,mateIID,frag5p,markString,catString,mate5p,row,category,fragIID,mateIID);
+
+
+  }
 }
 
 
@@ -4288,18 +4669,20 @@ void PrintScaffoldMateDetailArray(HashTable_AS * cpHT,
                                   ChunkOrientationType oIs,
                                   char * category,
                                   CDS_CID_t id,
-                                  FILE * printTo)
+                                  FILE * printTo,
+				  int printType)
 {
   cds_int32 i;
   for(i = 0; i < GetNumVA_MateDetail(mda); i++)
     PrintScaffoldMateDetail(cpHT,
                             GetVA_MateDetail(mda, i),
-                            oShouldBe, oIs, category, id, printTo);
+                            oShouldBe, oIs, category, id, printTo,printType);
 }
 
 
 void PrintScaffoldInstrumenterMateDetails(ScaffoldInstrumenter * si,
-                                          FILE * printTo)
+                                          FILE * printTo,
+					  int printType)
 {
   int ori1, ori2;
   MateStatusPositions * msp = si->mates.mateStatus->intra;
@@ -4333,11 +4716,11 @@ void PrintScaffoldInstrumenterMateDetails(ScaffoldInstrumenter * si,
       /*
         PrintScaffoldMateDetailArray(si->cpHT, wExtMates, oShouldBe, oIs,
         (doingScaffold) ? "INTER-SCAFFOLD" : "INTER-CONTIG",
-        si->id, printTo);
+        si->id, printTo,printType);
       */
       
       PrintScaffoldMateDetailArray(si->cpHT, msp->happy[ori1], oShouldBe, oIs,
-                                   "SATISFIED", si->id, printTo);
+                                   "SATISFIED", si->id, printTo,printType);
       
       for(ori2 = 0; ori2 < NUM_ORIENTATIONS_INSTR; ori2++)
       {
@@ -4361,23 +4744,66 @@ void PrintScaffoldInstrumenterMateDetails(ScaffoldInstrumenter * si,
         }
         PrintScaffoldMateDetailArray(si->cpHT,
                                      msp->misoriented[ori1][ori2], oShouldBe, oIs,
-                                     "MISORIENTED", si->id, printTo);
+                                     "MISORIENTED", si->id, printTo,printType);
       }
       oIs = oShouldBe;
       PrintScaffoldMateDetailArray(si->cpHT,
                                    msp->misseparatedClose[ori1],
                                    oShouldBe, oIs,
-                                   "TOO_CLOSE", si->id, printTo);
+                                   "TOO_CLOSE", si->id, printTo,printType);
       PrintScaffoldMateDetailArray(si->cpHT,
                                    msp->misseparatedFar[ori1],
                                    oShouldBe, oIs,
-                                   "TOO_FAR", si->id, printTo);
+                                   "TOO_FAR", si->id, printTo,printType);
     }
     if(msp == si->mates.mateStatus->intra)
       msp = si->mates.mateStatus->inter;
     else
       msp = NULL;
   }
+}
+
+
+void PrintUnmatedDetails(ScaffoldInstrumenter * si,
+			 FILE * printTo,
+			 int printType)
+{
+  assert(printType==PRINTCELAMY); // nothing else coded yet ..
+  assert(si->cpHT != NULL);
+  {//  stuff based on CheckFragmentMatePairs() ...
+
+    int i;
+    for(i = 0; i < GetNumVA_FragDetail(si->mates.noMate); i++){
+      CIFragT * frag;
+      FragDetail *fd;
+      cds_int32 fragIID;
+      CDS_COORD_t fragLeftEnd, fragRightEnd,frag5p, frag3p;
+      FragOrient fragOrient;
+      
+      fd=GetVA_FragDetail(si->mates.noMate,i);
+      fragIID = fd->iid;
+      //      fprintf(stderr,"Got frag detail %x iid %d\n",fd,fragIID);
+      frag = getFragByIID(ScaffoldGraph,fragIID);
+      //      fprintf(stderr,"Got frag %x\n",frag);
+
+
+      GetFragmentPosition(si->cpHT,frag,&frag5p,&frag3p,&fragOrient);
+      //      fprintf(stderr,"Got frag positions\n",frag);
+      
+      if(frag5p<frag3p){
+	fragLeftEnd=frag5p;
+	fragRightEnd=frag3p;
+      }else{
+	fragLeftEnd=frag3p;
+	fragRightEnd=frag5p;
+      }
+
+      fprintf(printTo,F_CID "Fragment: " F_COORD " A9CMColor " F_COORD " R45 # Unmated Fragment " F_CID " ori:%s\n",
+	      frag->iid,fragLeftEnd,fragRightEnd,frag->iid,
+	      fragOrient==0 ? "A_B" : "B_A");
+    }
+  }
+  return;
 }
 
 
@@ -4397,6 +4823,9 @@ int CheckFragmentMatePairs(ScaffoldGraphT * graph,
   int doingContig = (cpHT == NULL) ? 1 : 0;
   MateStatusPositions * msp = (doingContig) ? msps->intra : msps->inter;
 
+  //  fprintf(stderr,"CheckFragmentMatePairs applied to %d cases\n",
+  //	  GetNumVA_cds_int32(bookkeeping->fragArray));
+
   for(i = 0; i < GetNumVA_CDS_CID_t(bookkeeping->fragArray); i++)
   {
     CIFragT * frag;
@@ -4406,15 +4835,18 @@ int CheckFragmentMatePairs(ScaffoldGraphT * graph,
     InstrumentOrientations orientShouldBe;
     InstrumentOrientations orientIs;
     InstrumentDistStatus distStatus;
-    CDS_COORD_t frag5p;
+    CDS_COORD_t frag5p,frag3p;
     FragOrient fragOrient;
-    CDS_COORD_t mate5p;
+    CDS_COORD_t mate5p,mate3p;
     FragOrient mateOrient;
 
     // get current fragment & its mate
     frag = getBookkeepingFrag(graph, bookkeeping->fragArray, i);
-    GetFragmentPosition(cpHT, frag, &frag5p, &fragOrient);
+    GetFragmentPosition(cpHT, frag, &frag5p, &frag3p, &fragOrient);
     
+    /*    fprintf(stderr,"checking mates of %d CIid %d doingContig %d\n",
+	  frag->iid,frag->CIid,doingContig);*/
+
     graphMate = GetCIFragT(graph->CIFrags, frag->mateOf);
 
     // see if the mate is in a unitig
@@ -4427,44 +4859,71 @@ int CheckFragmentMatePairs(ScaffoldGraphT * graph,
       SurrogateFragLocation * sflp;
       if((sflp = LookupInHashTable_AS(st->surrogateFragHT,
                                       &(graphMate->iid),
-                                      sizeof(CDS_CID_t))) != NULL)
+                                      sizeof(CDS_CID_t))) != NULL
+	 && (!doingContig /* i.e. working on scf */ || 
+	     sflp->contig == chunkIID /* surrogate is in same contig */)
+	 )
       {
         // found mate in a surrogate, make a mock fragment with usable coords
         if((doingContig && (options & INST_OPT_INTRA_MATES)) ||
-           (!doingContig && (options & INST_OPT_INTER_MATES)))
+           (!doingContig && (options & INST_OPT_INTER_MATES))){
           lookupMate = &mockMate;
-        else
-          lookupMate = NULL;
+	  //	  fprintf(stderr,"found mate in a surrogate, make a mock fragment with usable coords\n");
         
-        mockMate.iid = graphMate->iid;
-        do
-        {
-          // see if it's a good pair: coords should be in appropriate reference
-          mate5p = sflp->offset5p;
-          mateOrient = (sflp->offset5p < sflp->offset3p) ? A_B : B_A;
-          mockMate.CIid = sflp->contig;
-          CheckMateLinkStatus(frag->flags.bits.innieMate,
-                              GetDistT(graph->Dists,frag->dist),
-                              frag5p,
-                              fragOrient,
-                              mate5p,
-                              mateOrient,
-                              &orientShouldBe,
-                              &orientIs,
-                              &distStatus);
+	  mockMate.iid = graphMate->iid;
+	  do
+	    {
+	      // see if it's a good pair: coords should be in appropriate reference
+#if 0
+	      mate5p = sflp->offset5p; // this is relative to a contig!
+	      mateOrient = (sflp->offset5p < sflp->offset3p) ? A_B : B_A;
+	      mockMate.CIid = sflp->contig;
+#else
+	      // get position; if analyzing contig, this is relative to
+	      // the contig; if analyzing scaffold, this is relative to
+	      // the scaffold.
+	      GetSurrogatePositionFromSFL(cpHT,sflp,&mate5p,&mate3p);
+	      mateOrient = ( mate5p < mate3p ) ? A_B : B_A;
+	      mockMate.contigID = sflp->contig;
+ #if 0
+	      fprintf(stderr,"Found a surrogate mate (%d, frag = %d), was ctg %d [%d,%d], mapped to [%d,%d], orientation %c\n",
+		      mockMate.iid,frag->iid,sflp->contig,sflp->offset5p,sflp->offset3p,mate5p,mate3p,mateOrient);
+	      fprintf(stderr,"  paired to %d at 5p %d, orient %c contig %d doingContig %d\n",
+		      frag->iid,frag5p,fragOrient,frag->CIid,doingContig);
+  #endif
+#endif
+	      CheckMateLinkStatus(frag->flags.bits.innieMate,
+				  GetDistT(graph->Dists,frag->dist),
+				  frag5p,
+				  fragOrient,
+				  mate5p,
+				  mateOrient,
+				  &orientShouldBe,
+				  &orientIs,
+				  &distStatus);
+#if 0
+	      fprintf(stderr,"   CheckMateLinkStatus gives orientIs %d\n",
+		      orientIs);
+#endif
 
-          if(orientShouldBe == orientIs &&
-             distStatus == DISTANCE_OKAY_INSTR)
-          {
-            break; // preference is given to good ones
-          }
-          sflp = &(st->surrogateFragLocs[sflp->nextIndex]);
-        } while(sflp->nextIndex != 0);
-        /* here, we've found the best or the last mate position/orientation
-           NOTE: The problem is, there may be a 'good' link to an
-           instance of the mate fragment in a surrogate in another
-           scaffold
-        */
+
+	      if(orientShouldBe == orientIs &&
+		 distStatus == DISTANCE_OKAY_INSTR)
+		{
+		  break; // preference is given to good ones
+		}
+	      sflp = &(st->surrogateFragLocs[sflp->nextIndex]);
+	    } while(sflp->nextIndex != 0);
+	  /* here, we've found the best or the last mate position/orientation
+	     NOTE: The problem is, there may be a 'good' link to an
+	     instance of the mate fragment in a surrogate in another
+	     scaffold
+	  */
+	}else{
+          lookupMate = NULL;
+	  //	  fprintf(stderr,"found mate in a surrogate, but don't make a mock fragment with usable coords\n");
+	}
+
       }
       else
       {
@@ -4477,7 +4936,11 @@ int CheckFragmentMatePairs(ScaffoldGraphT * graph,
         md.type = frag->type;
         md.mateIID = graphMate->iid;
         md.mateOffset5p = -1.f;
-        md.mateChunkIID = NULLINDEX;
+#ifdef TRACK_3P
+        md.fragOffset3p = frag3p;
+        md.mateOffset3p = -1.f;
+#endif
+        md.mateChunkIID = getFragByIID(ScaffoldGraph,md.mateIID)->cid;
         AppendVA_MateDetail(bookkeeping->wExtMates, &(md));
         lookupMate = NULL;
       }
@@ -4488,7 +4951,7 @@ int CheckFragmentMatePairs(ScaffoldGraphT * graph,
       if(graphMate->iid > frag->iid)
         continue;
 
-      GetFragmentPosition(cpHT, graphMate, &mate5p, &mateOrient);
+      GetFragmentPosition(cpHT, graphMate, &mate5p, &mate3p, &mateOrient);
       
       // check orientation, separation...
       CheckMateLinkStatus(frag->flags.bits.innieMate,
@@ -4517,6 +4980,10 @@ int CheckFragmentMatePairs(ScaffoldGraphT * graph,
       {
         matePair.fragOffset5p = frag5p;
         matePair.mateOffset5p = mate5p;
+#ifdef TRACK_3P
+        matePair.fragOffset3p = frag3p;
+        matePair.mateOffset3p = mate3p;
+#endif
         matePair.fragIID = frag->iid;
         matePair.mateIID = lookupMate->iid;
         matePair.fragChunkIID = frag->contigID;
@@ -4526,6 +4993,10 @@ int CheckFragmentMatePairs(ScaffoldGraphT * graph,
       {
         matePair.fragOffset5p = mate5p;
         matePair.mateOffset5p = frag5p;
+#ifdef TRACK_3P
+        matePair.fragOffset3p = mate3p;
+        matePair.mateOffset3p = frag3p;
+#endif
         matePair.fragIID = lookupMate->iid;
         matePair.mateIID = frag->iid;
         matePair.fragChunkIID = lookupMate->contigID;
@@ -4583,6 +5054,7 @@ int CheckFragmentMatePairs(ScaffoldGraphT * graph,
 
 
 int InstrumentUnitig(ScaffoldGraphT * graph,
+		     HashTable_AS *cpHT,
                      SurrogateTracker * st,
                      ChunkInstanceT * unitig,
                      cds_float32 contigAEnd,
@@ -4594,9 +5066,16 @@ int InstrumentUnitig(ScaffoldGraphT * graph,
   cds_int32 numMiso;
   cds_int32 numFar;
   cds_int32 numClose;
+  cds_uint32 ctgID;
 
 #ifdef DEBUG
-  fprintf(stderr, "\t\tInstrumenting unitig " F_CID "\n", unitig->id);
+  fprintf(stderr, 
+	  "\t\tInstrumenting unitig " F_CID
+	  " [" F_COORD "," F_COORD "] relative to contig [" F_COORD "," F_COORD "]\n",
+	  unitig->id,
+	  unitig->offsetAEnd.mean,
+	  unitig->offsetBEnd.mean,
+	  contigAEnd,contigBEnd);
 #endif
 
   InitializeUnitigInstrumenter(graph, ui);
@@ -4606,6 +5085,7 @@ int InstrumentUnitig(ScaffoldGraphT * graph,
   ui->rightEnd = max(unitig->offsetAEnd.mean, unitig->offsetBEnd.mean) + 0.5f;
   ui->orientation =
     (unitig->offsetAEnd.mean < unitig->offsetBEnd.mean) ? A_B : B_A;
+  ctgID = unitig->info.CI.contigID;
   
   // surrogate? make sure we have a real unitig
   if(unitig->flags.bits.isStoneSurrogate || unitig->flags.bits.isWalkSurrogate)
@@ -4630,17 +5110,22 @@ int InstrumentUnitig(ScaffoldGraphT * graph,
   
   if(ui->isSurrogate)
   {
+#define DO_SURROGATE_TRACKING
+#ifdef DO_SURROGATE_TRACKING
+    cds_float32 utgAEndOnCtg,utgBEndOnCtg;
+    utgAEndOnCtg = ((ui->orientation == A_B) ? ui->leftEnd : ui->rightEnd );
+    utgBEndOnCtg = ((ui->orientation == B_A) ? ui->leftEnd : ui->rightEnd );
+
     // iterate over fragments in surrogate
     for(fi = 0; fi < GetNumIntMultiPoss(uma->f_list); fi++)
     {
       // add to surrogate set - position & orientation in contig
-      /*
-      AddFragmentToSurrogateTracker(graph, unitig->info.CI.contigID,
-                                    GetIntMultiPos(uma->f_list, fi),
-                                    contigAEnd, contigBEnd,
-                                    st);
-      */
+      AddFragmentToSurrogateTracker(graph, cpHT, ctgID,
+				    GetIntMultiPos(uma->f_list, fi),
+				    utgAEndOnCtg,utgBEndOnCtg,
+				    st);
     }
+#endif
   }
   else
   {
@@ -4740,6 +5225,7 @@ int InstrumentUnitig(ScaffoldGraphT * graph,
    report #reads, #bac ends, #locales
  */
 int InstrumentContig(ScaffoldGraphT * graph,
+		     HashTable_AS *cpHT,
                      SurrogateTracker * st,
                      ChunkInstanceT * contig,
                      ContigInstrumenter * ci,
@@ -4778,7 +5264,7 @@ int InstrumentContig(ScaffoldGraphT * graph,
 #ifdef LIST_TERMINAL_TYPES
     UnitigOffset = min(unitig->offsetAEnd.mean, unitig->offsetBEnd.mean);
 #endif
-    InstrumentUnitig(graph, st, unitig, aEnd, bEnd, &(ci->reusableUI));
+    InstrumentUnitig(graph, cpHT, st, unitig, aEnd, bEnd, &(ci->reusableUI));
     AddUnitigToContigInstrumenter(graph, ci, &(ci->reusableUI));
   }
 #ifdef LIST_TERMINAL_TYPES
@@ -5127,7 +5613,7 @@ int InstrumentScaffoldNextContig(ScaffoldGraphT * graph,
   AddContigPlacementToScaffoldInstrumenter(si, &cp);
   
   // instrument the contig
-  if(InstrumentContig(graph, &(si->surrogateTracker),
+  if(InstrumentContig(graph, si->cpHT, &(si->surrogateTracker),
                       contig, &(si->reusableCI),
                       (cp.orient == A_B) ? cp.offset : cp.offset + cp.length,
                       (cp.orient == A_B) ? cp.offset + cp.length: cp.offset))
@@ -5252,6 +5738,7 @@ int InstrumentIntScaffoldMesg(ScaffoldGraphT * graph,
 #endif
   // convert surrogate fragment positions from contig to scaffold coords
 
+  //  fprintf(stderr,"Checking mate pairs within scaffold; cpHT = %x\n",si->cpHT);
   CheckFragmentMatePairs(graph,
                          &(si->bookkeeping),
                          &(si->surrogateTracker),
@@ -5263,6 +5750,7 @@ int InstrumentIntScaffoldMesg(ScaffoldGraphT * graph,
                          &numFar,
                          &numClose,
                          si->id);
+  //  fprintf(stderr,"End checking mate pairs within scaffold\n");
 
 #ifdef DUMP_MATE_PAIRS
   {
@@ -5278,7 +5766,7 @@ int InstrumentIntScaffoldMesg(ScaffoldGraphT * graph,
 
     fp = fopen("sMates.txt", "a");
     assert(fp != NULL);
-    PrintScaffoldInstrumenterMateDetails(si, fp);
+    PrintScaffoldInstrumenterMateDetails(si, fp, PRINTTABLE);
     
     fclose(fp);
   }
@@ -5424,6 +5912,10 @@ int FinishMissingMateList(ScaffoldGraphInstrumenter * sgi)
       wExtMates[i].mateOffset5p = mate->fragOffset5p;
       wExtMates[i].mateChunkIID = mate->fragChunkIID;
       mate->mateOffset5p = wExtMates[i].fragOffset5p;
+#ifdef TRACK_3P
+      wExtMates[i].mateOffset3p = mate->fragOffset3p;
+      mate->mateOffset3p = wExtMates[i].fragOffset3p;
+#endif
       mate->mateChunkIID = wExtMates[i].fragChunkIID;
     }
   }
@@ -6198,9 +6690,27 @@ int InstrumentScaffoldPair(ScaffoldGraphT * graph,
   assert(ism.contig_pairs != NULL);
 
   // populate contig_pairs with contigs, not contig pairs:
-  PopulateICPContigs(graph, &ism, scaffoldA, sEdge, offset, 0);
-  PopulateICPContigs(graph, &ism, scaffoldB, sEdge, scaffoldA->bpLength,
-                     scaffoldA->info.Scaffold.numElements);
+  {
+    // first, determine starting position of A scaffold;
+    // normally, this is 0;
+    LengthT offset = {0, 0};
+    // but if the overlap is longer than A (does this happen
+    // only when A is contained by B?), then we need to put
+    // the beginning of B at 0, and the beginning of A at
+    // - length of overlap - length of A
+    if(scaffoldA->bpLength.mean<-sEdge->distance.mean){
+      offset.mean = -sEdge->distance.mean - scaffoldA->bpLength.mean;
+      offset.variance = sEdge->distance.variance;
+    }
+
+    PopulateICPContigs(graph, &ism, scaffoldA, sEdge, offset, 0);
+
+    offset.mean+=scaffoldA->bpLength.mean;
+    offset.variance+=scaffoldA->bpLength.variance;
+
+    PopulateICPContigs(graph, &ism, scaffoldB, sEdge, scaffoldA->bpLength,
+		       scaffoldA->info.Scaffold.numElements);
+  }
   // sort by start
   qsort(ism.contig_pairs,
         ism.num_contig_pairs + 1,
@@ -6212,7 +6722,6 @@ int InstrumentScaffoldPair(ScaffoldGraphT * graph,
   {
     ChunkInstanceT * ci = GetGraphNode(graph->RezGraph,
                                        ism.contig_pairs[i].contig1);
-    
     ism.contig_pairs[i].contig2 = ism.contig_pairs[i+1].contig1;
     if(ism.contig_pairs[i].orient == AB_AB)
       ism.contig_pairs[i].orient =
@@ -6230,6 +6739,14 @@ int InstrumentScaffoldPair(ScaffoldGraphT * graph,
                ci->bpLength.variance));
   }
   
+#if 0
+  fprintf(stderr,"Instrumenting a scaffold pair ... %d to %d, orient %s to %s, mean %g\n",
+	  scaffoldA->id,scaffoldB->id,
+	  ( sEdge->orient == AB_AB || sEdge->orient == AB_BA ) ? "AB" : "BA",
+	  ( sEdge->orient == AB_AB || sEdge->orient == BA_AB ) ? "AB" : "BA",
+	  sEdge->distance.mean);
+#endif
+
   InstrumentIntScaffoldMesg(graph, si, &ism, verbose, printTo);
   ComputeScaffoldInstrumenterStats(graph, si);
   free(ism.contig_pairs);

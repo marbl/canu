@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /* RCS info
- * $Id: OlapStoreOVL.h,v 1.1.1.1 2004-04-14 13:52:44 catmandew Exp $
+ * $Id: OlapStoreOVL.h,v 1.2 2004-09-23 20:25:26 mcschatz Exp $
 */
 
 
@@ -144,6 +144,8 @@ OVL_Store_t *  New_OVL_Store
     (void);
 OVL_Stream_t *  New_OVL_Stream
     (void);
+void  Renew_OVL_Stream
+    (OVL_Stream_t *stream);
 int  Next_From_OVL_Stream
     (Long_Olap_Data_t * olap, OVL_Stream_t * stream);
 int  Open_OVL_Store

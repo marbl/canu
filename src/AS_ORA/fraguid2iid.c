@@ -20,7 +20,7 @@
  *************************************************************************/
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_ORA/Attic/fraguid2iid.c,v $
-$Revision: 1.1.1.1 $
+$Revision: 1.2 $
 **********************************************************************/
 
 //  Convert a list of fragment uids to iids using a fragment store

@@ -659,6 +659,16 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
 
 */
 
+/* Given fragments a and b, find the best chain of local alignments, trimmed
+   to non-overlapping.  Related to Local_Overlap_AS, but returns really bad
+   alignments if that's the best there is to be had. 
+*/
+OverlapMesg *BoxFill_AS(InternalFragMesg *a, InternalFragMesg *b,
+			int beg, int end, int opposite,
+			double erate, double thresh, int minlen,
+			CompareOptions what, int *where);
+
+
 void *ckalloc(size_t size);	/* Guarded malloc utility */
 void *ckrealloc(void* ptr, size_t size);	/* Guarded realloc utility */
 void *ckreallocNullOK(void* ptr, size_t size);	/* Guarded realloc utility,

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.1.1.1 2004-04-14 13:52:14 catmandew Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.2 2004-09-23 20:25:24 mcschatz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -46,7 +46,7 @@ ProtoIOMode GetProtoMode_AS(void);
 
 
 #define AS_FRAG_MAX_LEN (2048)
-#define AS_FRAG_MIN_LEN (150)
+#define AS_FRAG_MIN_LEN (64)
 
 #define AS_BACTIG_MAX_LEN (500000)
 #define AS_BACTIG_MIN_LEN (150)
@@ -59,7 +59,7 @@ ProtoIOMode GetProtoMode_AS(void);
 #else
 #define AS_READ_MAX_LEN AS_FRAG_MAX_LEN
 #endif
-#define AS_READ_MIN_LEN  (150)
+#define AS_READ_MIN_LEN AS_FRAG_MIN_LEN
 #define DEFINE_IDs(type)\
 typedef CDS_UID_t type##_ID;\
 typedef CDS_IID_t Int##type##_ID;
@@ -730,13 +730,24 @@ typedef struct MultiPos {
 typedef struct IntMultiPos {
   FragType        type;
   IntFragment_ID  ident;
-  IntFragment_ID  contained;
+
 # ifdef AS_ENABLE_SOURCE
   char		  *source;
+#ifdef i386
+  int32 ptrPad1;
+#endif
 # endif
+
   SeqInterval     position;
+
+  IntFragment_ID       contained;
   int32           delta_length;
+
   int32           *delta;
+#ifdef i386
+  int32 ptrPad2;
+#endif
+
 } IntMultiPos;
 
 /* This is a variant of IntMultiPos to handle deltas in a longer (unitig) sequence */
@@ -745,7 +756,11 @@ typedef struct {
   IntUnitig_ID  ident;
   SeqInterval   position;
   int32         delta_length;
+  int32                 wordPad;
   int32         *delta;
+#ifdef i386
+  int32 ptrPad;
+#endif
 } IntUnitigPos;
 
 

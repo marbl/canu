@@ -34,7 +34,7 @@
  **********************************************************************/
 
 
-static char fileID[] = "$Id: SubgraphREZ.c,v 1.1.1.1 2004-04-14 13:53:33 catmandew Exp $";
+static char fileID[] = "$Id: SubgraphREZ.c,v 1.2 2004-09-23 20:25:28 mcschatz Exp $";
 
 
 #include <stdio.h>
@@ -66,9 +66,6 @@ extern char
 * GW_Filename_Prefix;
 
 extern int
-start_index[4],
-  end_index[4],
-  new_end[NUM_ORIENTATIONS],
   orient[NUM_ORIENTATIONS];
 
 //
@@ -836,9 +833,9 @@ void Print_Subgraph(chunk_subgraph * s) {
 		  "--- Table ---\n");
   for (i = 0; i < s->max; i++)
     fprintf(GlobalData->gwlogfp,
-			"id %d ptr %d \n",
+			"id %d ptr F_X \n",
 			i,
-			(int)s->table[i]);
+			s->table[i]);
 # endif
 
   for (i = 0; i < s->max; i++)

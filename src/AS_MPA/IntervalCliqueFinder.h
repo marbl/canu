@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: IntervalCliqueFinder.h,v 1.1.1.1 2004-04-14 13:52:02 catmandew Exp $ */
+/* $Id: IntervalCliqueFinder.h,v 1.2 2004-09-23 20:25:23 mcschatz Exp $ */
 #ifndef INTERVALCLIQUEFINDER_H
 #define INTERVALCLIQUEFINDER_H
 
@@ -71,9 +71,9 @@ public:
                    list<IntervalClique<IDType, UnitType> > & cliques)
     {
       list<Interval<IDType, UnitType> > myIntervals(intervals);
-      list<Interval<IDType, UnitType> >::iterator miter;
+      typename list<Interval<IDType, UnitType> >::iterator miter;
       list<Interval<IDType, UnitType> > ends;
-      list<Interval<IDType, UnitType> >::iterator eiter;
+      typename list<Interval<IDType, UnitType> >::iterator eiter;
       UnitType lastStart;
       bool lastAction; // true = add, false = delete
       
@@ -171,7 +171,7 @@ public:
                     const list<IntervalClique<IDType, UnitType> > & cliques,
                     ostream & fout)
     {
-      list<IntervalClique<IDType, UnitType> >::const_iterator iter;
+      typename list<IntervalClique<IDType, UnitType> >::const_iterator iter;
 
       fout << comment << endl;
 
@@ -191,7 +191,7 @@ private:
         cerr << "  none.\n";
       else
       {
-        list<Interval<IDType, UnitType> >::const_iterator iter;
+        typename list<Interval<IDType, UnitType> >::const_iterator iter;
         for(iter = cis.begin(); iter != cis.end(); iter++)
           cerr << "  " << *iter << endl;
       }

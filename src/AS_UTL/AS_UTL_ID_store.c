@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_UTL_ID_store.c,v 1.1.1.1 2004-04-14 13:53:47 catmandew Exp $ */
+/* $Id: AS_UTL_ID_store.c,v 1.2 2004-09-23 20:25:29 mcschatz Exp $ */
 
 /*
   This is a set of utility functions for managing a list of UIDS.

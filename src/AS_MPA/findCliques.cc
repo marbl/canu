@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: findCliques.cc,v 1.1.1.1 2004-04-14 13:52:00 catmandew Exp $ */
+/* $Id: findCliques.cc,v 1.2 2004-09-23 20:25:24 mcschatz Exp $ */
 
 #include <cstdio>  // for sscanf
 #include <iostream>
@@ -27,6 +27,8 @@
 #include <list>
 
 using namespace std;
+
+#include "cds.h"
 
 #include "Interval.h"
 #include "Quadrilateral.h"
@@ -54,13 +56,8 @@ using namespace std;
 #define ID_TYPE          int
 #define ID_SCAN_FORMAT   "%d"
 #else
-#ifndef i386
-#define ID_TYPE          unsigned long
-#define ID_SCAN_FORMAT   "%lu"
-#else
-#define ID_TYPE          unsigned long long
-#define ID_SCAN_FORMAT   "%Lu"
-#endif
+#define ID_TYPE          cds_uint64
+#define ID_SCAN_FORMAT   F_U64
 #endif
 
 #define USE_INT_UNITS
@@ -72,6 +69,7 @@ using namespace std;
 #define UNIT_SCAN_FORMAT "%lf"
 #endif
 #endif
+
 
 
 void ReadQuadrilaterals(vector<Quadrilateral<ID_TYPE, UNIT_TYPE> > & quads,

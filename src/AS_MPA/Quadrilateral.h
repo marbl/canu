@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: Quadrilateral.h,v 1.1.1.1 2004-04-14 13:52:07 catmandew Exp $ */
+/* $Id: Quadrilateral.h,v 1.2 2004-09-23 20:25:23 mcschatz Exp $ */
 #ifndef QUADRILATERAL_H
 #define QUADRILATERAL_H
 
@@ -59,11 +59,11 @@ public:
   Quadrilateral(Point<UnitType> const ps[4], IDType id = 0) :
     pid(id)
     {
-      points[0] = p0;
+      points[0] = this->p0;
       initializeXProjection(ps[0]);
       initializeYProjection(ps[0]);
 
-      for(i = 1; i < 4; i++)
+      for(int i = 1; i < 4; i++)
         setPoint(ps[i], i);
       xProjection.setID(pid);
       yProjection.setID(pid);

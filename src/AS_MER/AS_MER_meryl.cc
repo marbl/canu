@@ -21,9 +21,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "cds.h"
 
 #include "AS_MER_stream.h"
 
+static cds_int64 mersToCount = 999999999999LL;
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -160,7 +162,7 @@ cds_uint64     *_hash;
 
 //  Stuff for sorting the list of mers.
 //
-typedef cds_uint32 heapbit;
+typedef cds_uint64 heapbit;
 
 
 
@@ -174,6 +176,8 @@ const char *usage =
 "        -m #                    (size of a mer)\n"
 "        -s /path/to/fragstore   (a fragstore)\n"
 "        -n #                    (threshold to output)\n"
+"        -N #                    (number of mers to examine)\n"
+"        -K #                    (read only every Kth ffragment)\n"
 "        -o tblprefix            (output table prefix)\n";
 
 
@@ -231,7 +235,7 @@ estimateTableSize(cds_uint64 numMers, cds_uint32 merSize) {
 //
 
 void
-createHashTable(char *inputFile) {
+createHashTable(char *inputFile, cds_uint32 skipNum) {
   cds_uint64  mer;
 
   cds_uint32 *_ctbl = new cds_uint32 [ mcd._tableSizeInEntries ];
@@ -245,9 +249,9 @@ createHashTable(char *inputFile) {
   //  seems to have only 9 million mers in the first bucket.  Should
   //  probably check for overflow, though.
   //  
-  merStream          M(mcd._merSizeInBases, inputFile);
-
-  while (M.nextMer()) {
+  merStream          M(mcd._merSizeInBases, inputFile, skipNum);
+  cds_int64 nummers=0;
+  while (M.nextMer()&&(nummers++)<mersToCount) {
     mer = M.theFMer();
     if (mer > M.theRMer())
       mer = M.theRMer();
@@ -341,7 +345,7 @@ verifyHashTable(void) {
 
 //  0.52 Mb per second on viking5
 void
-fillCheckTable(char *inputFile) {
+fillCheckTable(char *inputFile, cds_uint32 skipNum) {
   cds_uint64  mer, b, c;
 
   //  Allocate space for mcd._actualNumberOfMers mers in the _chck array.
@@ -349,9 +353,10 @@ fillCheckTable(char *inputFile) {
   //
   _chck = new cds_uint64 [mcd._actualNumberOfMers * mcd._chckBits / 64 + 1];
 
-  merStream   M(mcd._merSizeInBases, inputFile);
+  merStream   M(mcd._merSizeInBases, inputFile,skipNum);
+  cds_int64 nummers=0;
 
-  while (M.nextMer()) {
+  while (M.nextMer()&&(nummers++)<mersToCount) {
     mer = M.theFMer();
     if (mer > M.theRMer())
       mer = M.theRMer();
@@ -513,7 +518,8 @@ void
 build(char   *fragStore,
       char   *outputFile,
       cds_uint32  merSize,
-      cds_uint32  targetCount) {
+      cds_uint32  targetCount,
+      cds_uint32 skipNum) {
 
   mcd._merSizeInBases      = merSize;
   mcd._merSizeInBits       = mcd._merSizeInBases << 1;
@@ -534,9 +540,9 @@ build(char   *fragStore,
 
   mcd._actualNumberOfMers  = 0;
 
-  createHashTable(fragStore);
+  createHashTable(fragStore,skipNum);
   verifyHashTable();
-  fillCheckTable(fragStore);
+  fillCheckTable(fragStore,skipNum);
   sortAndOutput(outputFile, targetCount);
 
   delete [] _chck;
@@ -560,6 +566,7 @@ main(int argc, char **argv) {
   char             *fragStore        = 0L;
   char             *outputFile       = 0L;
   cds_uint64            minimumCount     = 0;
+  cds_uint32            skipNum = 1;
 
   if (argc == 1) {
     fprintf(stderr, usage, argv[0], argv[0]);
@@ -584,6 +591,23 @@ main(int argc, char **argv) {
           arg++;
           minimumCount = STR_TO_UINT64(argv[arg], NULL, 10);
           break;
+        case 'K':
+	  arg++;
+	  skipNum = atoi(argv[arg]);
+	  break;
+        case 'N':
+	  arg++;
+#ifdef i386
+          mersToCount = atoll(argv[arg]);
+#else
+          mersToCount = atol(argv[arg]);
+#endif
+ 	  if(mersToCount<=0){
+ 	    fprintf(stderr,"Trouble getting number of mers to count from %s (option -N)\n",
+ 		    argv[arg]);
+ 	    exit(1);
+ 	  }
+	  break;
         case 'o':
           arg++;
           outputFile = argv[arg];
@@ -608,5 +632,6 @@ main(int argc, char **argv) {
   build(fragStore,
         outputFile,
         merSize,
-        minimumCount);
+        minimumCount,
+	skipNum);
 }

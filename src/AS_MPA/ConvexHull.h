@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: ConvexHull.h,v 1.1.1.1 2004-04-14 13:51:59 catmandew Exp $ */
+/* $Id: ConvexHull.h,v 1.2 2004-09-23 20:25:23 mcschatz Exp $ */
 #ifndef CONVEXHULL_H
 #define CONVEXHULL_H
 
@@ -35,7 +35,7 @@ template <class UnitType>
 class CVHPoint : public Point<UnitType>
 {
 public:
-  CVHPoint() {px = 0; py = 0; ppoly = pindex = -1;}
+  CVHPoint() {this->px = 0; this->py = 0; this->ppoly = this->pindex = -1;}
   CVHPoint(const UnitType & x, const UnitType & y,
            int poly = -1, int index = -1) : Point<UnitType> (x, y)
     {
@@ -54,10 +54,10 @@ public:
     }
   void set(const UnitType & x, const UnitType & y, int id = -1, int index = -1)
     {
-      px = x;
-      py = y;
-      ppoly = id;
-      pindex = index;
+      this->px = x;
+      this->py = y;
+      this->ppoly = id;
+      this->pindex = index;
     }
   
   void setPolygon(int id) {ppoly = id;}
@@ -104,7 +104,7 @@ public:
       
       if(points.size() < 4)
       {
-        list<CVHPoint<UnitType> >::const_iterator clfiter;
+        typename list<CVHPoint<UnitType> >::const_iterator clfiter;
         for(clfiter = points.begin(); clfiter != points.end(); clfiter++)
           ppts.push_back(*clfiter);
         return;
@@ -114,7 +114,7 @@ public:
       mp.sort();
 
       // eliminate duplicates & keep lower polygon index
-      list<CVHPoint<UnitType> >::iterator lfiter;
+      typename list<CVHPoint<UnitType> >::iterator lfiter;
       lfiter = mp.begin();
       CVHPoint<UnitType> lastPoint = *lfiter;
       for(lfiter++; lfiter != mp.end(); lfiter++)
@@ -140,7 +140,7 @@ public:
               ppts[ppts.size()-1].getLineSide(ppts[ppts.size()-3],
                                               ppts[ppts.size()-2]) != TP_CLOCKWISE)
         {
-          vector<CVHPoint<UnitType> >::iterator vfiter;
+          typename vector<CVHPoint<UnitType> >::iterator vfiter;
           vfiter = ppts.end();
           vfiter--;
           vfiter--;
@@ -151,7 +151,7 @@ public:
 //#ifdef DEBUG_CONVEXHULL
       if(debugCreate)
       {
-        vector<CVHPoint<UnitType> >::iterator debugiter;
+        typename vector<CVHPoint<UnitType> >::iterator debugiter;
         cerr << "Upper convex hull:\n";
         for(debugiter = ppts.begin(); debugiter != ppts.end(); debugiter++)
           cerr << *debugiter << endl;
@@ -159,7 +159,7 @@ public:
 //#endif
       
       vector<CVHPoint<UnitType> > lower;
-      list<CVHPoint<UnitType> >::reverse_iterator lriter;
+      typename list<CVHPoint<UnitType> >::reverse_iterator lriter;
       lriter = mp.rbegin();
       for(int i = 0; i < 2; i++, lriter++)
         lower.push_back(*lriter);
@@ -170,7 +170,7 @@ public:
               lower[lower.size()-1].getLineSide(lower[lower.size()-3],
                                                 lower[lower.size()-2]) != TP_CLOCKWISE)
         {
-          vector<CVHPoint<UnitType> >::iterator vfiter;
+          typename vector<CVHPoint<UnitType> >::iterator vfiter;
           vfiter = lower.end();
           vfiter--;
           vfiter--;
@@ -181,7 +181,7 @@ public:
 //#ifdef DEBUG_CONVEXHULL
       if(debugCreate)
       {
-        vector<CVHPoint<UnitType> >::iterator debugiter;
+        typename vector<CVHPoint<UnitType> >::iterator debugiter;
         cerr << "Lower convex hull:\n";
         for(debugiter = lower.begin(); debugiter != lower.end(); debugiter++)
           cerr << *debugiter << endl;
@@ -195,7 +195,7 @@ public:
 //#ifdef DEBUG_CONVEXHULL
       if(debugCreate)
       {
-        vector<CVHPoint<UnitType> >::iterator debugiter;
+        typename vector<CVHPoint<UnitType> >::iterator debugiter;
         cerr << "Convex hull:\n";
         for(debugiter = ppts.begin(); debugiter != ppts.end(); debugiter++)
           cerr << *debugiter << endl;

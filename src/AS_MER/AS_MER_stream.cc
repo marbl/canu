@@ -52,7 +52,45 @@ merStream::merStream(cds_uint32 merSize, char *fragstore) {
   _fsh = openFragStream(_fs, _fsBuffer, _fsBufferSize);
   _rs  = new_ReadStruct();
 
+  _skipNum = 1;
   loadMer(_merSize - 1);
+}
+
+
+merStream::merStream(cds_uint32 merSize, char *fragstore, int skipNum) {
+  _theAlloc        = 1024;
+  _theSeq          = new char [_theAlloc];
+  _theQlt          = new char [_theAlloc];
+  _theLen          = 0;
+  _thePos          = 0;
+  _endPos          = 0;
+
+  _merSize         = merSize;
+  _timeUntilValid  = 0;
+  _theMerMask      = CDS_UINT64_MASK(_merSize << 1);
+
+  _theFMer         = 0;
+  _theRMer         = 0;
+
+  _theRMerShift    = (_merSize << 1) - 2;
+
+  //  Open the fragstore
+  //
+  _fs = openFragStore(fragstore, "rw");
+  if (_fs == NULLSTOREHANDLE) {
+    fprintf(stderr, "ERROR:  couldn't open the fragStore '%s'\n", fragstore);
+    exit(1);
+  }
+
+  _fsBufferSize = 1024 * 1024;
+  _fsBuffer     = new char [_fsBufferSize];
+
+  _fsh = openFragStream(_fs, _fsBuffer, _fsBufferSize);
+  _rs  = new_ReadStruct();
+
+  _skipNum=skipNum;
+  loadMer(_merSize - 1);
+
 }
 
 merStream::~merStream() {

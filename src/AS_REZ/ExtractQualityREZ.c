@@ -32,7 +32,7 @@
  Assumptions: 
 **********************************************************************/
 
-static char CM_ID[] = "$Id: ExtractQualityREZ.c,v 1.1.1.1 2004-04-14 13:52:59 catmandew Exp $";
+static char CM_ID[] = "$Id: ExtractQualityREZ.c,v 1.2 2004-09-23 20:25:27 mcschatz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>

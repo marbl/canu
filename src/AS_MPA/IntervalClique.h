@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: IntervalClique.h,v 1.1.1.1 2004-04-14 13:52:03 catmandew Exp $ */
+/* $Id: IntervalClique.h,v 1.2 2004-09-23 20:25:23 mcschatz Exp $ */
 #ifndef CLIQUE_H
 #define CLIQUE_H
 
@@ -33,14 +33,14 @@ class IntervalClique
 public:
   IntervalClique()
     {
-      interval.setMin(0);
-      interval.setMax(0);
+      this->interval.setMin(0);
+      this->interval.setMax(0);
     }
 
   IntervalClique(const list<Interval<IDType, UnitType> > & intervals,
                  UnitType min, UnitType max)
     {
-      list<Interval<IDType, UnitType> >::const_iterator iter;
+      typename list<Interval<IDType, UnitType> >::const_iterator iter;
       
       for(iter = intervals.begin(); iter != intervals.end(); iter++)
         pids.push_back(iter->getID());
@@ -65,7 +65,7 @@ public:
 
   void addID(IDType id)
     {
-      list<IDType>::iterator iter;
+      typename list<IDType>::iterator iter;
       for(iter = pids.begin(); *iter < id && iter != pids.end(); iter++);
       pids.insert(iter, id);
     }
@@ -80,8 +80,8 @@ public:
     }
   void getCommonIDs(const list<IDType> & ids, list<IDType> & commonIDs) const
     {
-      list<IDType>::const_iterator piter;
-      list<IDType>::const_iterator iter;
+      typename list<IDType>::const_iterator piter;
+      typename list<IDType>::const_iterator iter;
 
       commonIDs.clear();
       for(iter = ids.begin(), piter = pids.begin();
@@ -134,7 +134,7 @@ public:
     {
       os << c.pinterval.getMin() << " , " << c.pinterval.getMax()
          << " : " << c.getNumMembers() << " members: ";
-      list<IDType>::const_iterator iter;
+      typename list<IDType>::const_iterator iter;
       for(iter = c.pids.begin(); iter != c.pids.end(); iter++)
         os << "  " << *iter;
       os << endl;
@@ -148,7 +148,7 @@ private:
     {
       to.clear();
       
-      list<Interval<IDType, UnitType> >::iterator iter = from.begin();
+      typename list<Interval<IDType, UnitType> >::iterator iter = from.begin();
       for(last = iter->getID(); iter != from.end(); iter++)
         to.push_back(iter->getID());
     }
@@ -164,7 +164,7 @@ private:
       
       // iterate through from & add to to
       // find out if they're sorted low to high
-      list<Interval<IDType, UnitType> >::iterator iter = from.begin();
+      typename list<Interval<IDType, UnitType> >::iterator iter = from.begin();
       for(last = iter->getID(); iter != from.end(); iter++)
       {
         to.push_back(iter->getID());
@@ -186,7 +186,7 @@ private:
     {
       IDType last;
       bool inOrder = true;
-      list<IDType>::const_iterator iter;
+      typename list<IDType>::const_iterator iter;
       
       // iterate through from & add to to
       // find out if they're sorted low to high

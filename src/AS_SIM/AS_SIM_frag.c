@@ -50,7 +50,7 @@
 #include "AS_global.h"
 #include "AS_UTL_rand.h"
 
-char FragVersion[] = "$Revision: 1.1.1.1 $";
+char FragVersion[] = "$Revision: 1.2 $";
 
 double drand48();
 void   srand48();

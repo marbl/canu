@@ -494,7 +494,7 @@ static int *AnalyzeAlign(int prefix, int suffix,
   alength += 1;
   blength += 1;
   if (mislen < alength+blength)
-    { mislen = (int)(1.4*(alength+blength)) + 500;
+    { mislen = (int)(2*(alength+blength)) + 4;
       mistake = (int *)realloc(mistake,mislen*sizeof(int));
     } 
   amistake = mistake;

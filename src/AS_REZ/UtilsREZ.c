@@ -31,7 +31,7 @@
 
 **********************************************************************/
 
-static char CM_ID[] = "$Id: UtilsREZ.c,v 1.1.1.1 2004-04-14 13:53:34 catmandew Exp $";
+static char CM_ID[] = "$Id: UtilsREZ.c,v 1.2 2004-09-23 20:25:28 mcschatz Exp $";
 
 #include <stdio.h>
 #include <assert.h>

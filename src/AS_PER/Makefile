@@ -33,7 +33,8 @@ AS_PER_SOURCES = AS_PER_ReadStruct.c AS_PER_fragStore.c \
 AS_PER_TEST_SOURCES = testFragStore.c dumpFragStore.c testLoad.c \
 	FragStoreStats.c binaryDumpFragStore.c loadBinaryDump.c \
 	AS_PER_fragDB.c dumpFragDB.c PopulateFragStore.c \
-	partitionFragStore.c dumpFrag.c dumpFragFromPartition.c
+	partitionFragStore.c dumpFrag.c dumpFragFromPartition.c\
+	testFrgStoreSizes.c test_include.c
 
 #stressFragStore.c 
 
@@ -49,7 +50,7 @@ LIBRARIES = libAS_PER.a
 
 PROGS = testFragStore dumpFragStore testLoad FragStoreStats \
 	dumpFragDB PopulateFragStore partitionFragStore \
-	dumpFrag dumpFragFromPartition
+	dumpFrag dumpFragFromPartition testFrgStoreSizes
 #binaryDumpFragStore loadBinaryDump 
 #stressFragStore 
 
@@ -87,31 +88,33 @@ objects: $(AS_PER_OBJS)
 
 # Test for Frag Store
 # Should have additional tests for generic stores
-testFragStore: $(AS_PER_OBJS) testFragStore.o libAS_UTL.a -lm
+testFragStore: $(AS_PER_OBJS) testFragStore.o libAS_UTL.a 
 
-#stressFragStore: $(AS_PER_OBJS) stressFragStore.o AS_PER_fragDB.o libAS_UTL.a -lm $(OCISHAREDLIBS) 
+#stressFragStore: $(AS_PER_OBJS) stressFragStore.o AS_PER_fragDB.o libAS_UTL.a  $(OCISHAREDLIBS) 
 
 
-testLoad: $(AS_PER_OBJS) testLoad.o libAS_UTL.a -lm
+testLoad: $(AS_PER_OBJS) testLoad.o libAS_UTL.a 
 
 dumpFragDB: $(AS_PER_OBJS) AS_PER_fragDB.o dumpFragDB.o \
-	libAS_UTL.a $(OCISHAREDLIBS) -lm
+	libAS_UTL.a $(OCISHAREDLIBS) 
 
-dumpFragStore: $(AS_PER_OBJS)  dumpFragStore.o libAS_UTL.a -lm
+dumpFragStore: $(AS_PER_OBJS)  dumpFragStore.o libAS_UTL.a 
 
-dumpFrag: $(AS_PER_OBJS)  dumpFrag.o libAS_UTL.a -lm
+dumpFrag: $(AS_PER_OBJS)  dumpFrag.o libAS_UTL.a 
 
-dumpFragFromPartition: $(AS_PER_OBJS) dumpFragFromPartition.o libAS_UTL.a -lm
+dumpFragFromPartition: $(AS_PER_OBJS) dumpFragFromPartition.o libAS_UTL.a 
 
 PopulateFragStore: $(AS_PER_OBJS)  PopulateFragStore.o \
-	libAS_UTL.a libAS_MSG.a libAS_PER.a -lm
+	libAS_UTL.a libAS_MSG.a libAS_PER.a 
 
-binaryDumpFragStore: $(AS_PER_OBJS) binaryDumpFragStore.o libAS_UTL.a -lm
+binaryDumpFragStore: $(AS_PER_OBJS) binaryDumpFragStore.o libAS_UTL.a 
 
-loadBinaryDump: $(AS_PER_OBJS) loadBinaryDump.o libAS_UTL.a -lm
+loadBinaryDump: $(AS_PER_OBJS) loadBinaryDump.o libAS_UTL.a 
 
-FragStoreStats: $(AS_PER_OBJS) FragStoreStats.o libAS_UTL.a -lm
+FragStoreStats: $(AS_PER_OBJS) FragStoreStats.o libAS_UTL.a 
 
-partitionFragStore: $(AS_PER_OBJS) partitionFragStore.o libAS_UTL.a -lm
+partitionFragStore: $(AS_PER_OBJS) partitionFragStore.o libAS_UTL.a 
+
+testFrgStoreSizes: $(AS_PER_OBJS) testFrgStoreSizes.o libAS_UTL.a
 
 libAS_PER.a: $(AS_PER_OBJS)

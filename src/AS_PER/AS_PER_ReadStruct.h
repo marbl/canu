@@ -38,9 +38,9 @@
  *************************************************************************/
 
 /* RCS Info
- * $Date: 2004-04-14 13:52:53 $
- * $Id: AS_PER_ReadStruct.h,v 1.1.1.1 2004-04-14 13:52:53 catmandew Exp $
- * $Revision: 1.1.1.1 $
+ * $Date: 2004-09-23 20:25:26 $
+ * $Id: AS_PER_ReadStruct.h,v 1.2 2004-09-23 20:25:26 mcschatz Exp $
+ * $Revision: 1.2 $
  *
  */
 #ifndef AS_PER_READSTRUCT_H

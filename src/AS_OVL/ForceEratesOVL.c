@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: ForceEratesOVL.c,v 1.1.1.1 2004-04-14 13:52:36 catmandew Exp $";
+static char CM_ID[] = "$Id: ForceEratesOVL.c,v 1.2 2004-09-23 20:25:25 mcschatz Exp $";
 
 
 //  System include files
@@ -101,6 +101,15 @@ int  main
    Parse_Command_Line  (argc, argv);
 
    Olap_List_fp = File_Open (Olap_List_File_Path, "r");
+
+   {
+    struct stat buffer ;
+    fstat(fileno(Olap_List_fp),&buffer);
+    if(buffer.st_size == 0){
+      fprintf(stderr,"%s: Empty list of overlaps with erates to force (not necessarily a problem!)\n",argv[0]);
+      exit(0);
+    }
+   }
 
    B_ID_List_Size = 100;
    B_ID_List = (int32 *) Safe_calloc (B_ID_List_Size, sizeof (int32));
@@ -238,7 +247,7 @@ static void  Set_New_Erates
 
      num_frags = 2 + hi_id - lo_id;   // go 1 past the end
      olap_offset = (uint32 *) Safe_malloc (num_frags * sizeof (uint32));
-     fseek (fp, lo_id * sizeof (uint32), SEEK_CUR);
+     CDS_FSEEK (fp, lo_id * sizeof (uint32), SEEK_CUR);
      Safe_fread (olap_offset, sizeof (uint32), num_frags, fp);
      
      assert(NULL != fp);
@@ -269,7 +278,7 @@ static void  Set_New_Erates
            file_position = olap_offset [i - lo_id] * sizeof (Short_Olap_Data_t);
            io_buff_start = file_position;
            io_buff_ct = 0;
-           fseek (fp, file_position, SEEK_SET);
+           CDS_FSEEK (fp, file_position, SEEK_SET);
            first = FALSE;
           }
 
@@ -290,11 +299,11 @@ static void  Set_New_Erates
               if  (io_buff_ct >= IO_BUFF_SIZE)
                   {
                    assert (io_buff_ct == IO_BUFF_SIZE);
-                   fseek (fp, io_buff_start, SEEK_SET);
+                   CDS_FSEEK (fp, io_buff_start, SEEK_SET);
                    Safe_fwrite (io_buff, sizeof (Short_Olap_Data_t), io_buff_ct, fp);
                    io_buff_ct = 0;
                    io_buff_start = file_position;
-                   fseek (fp, file_position, SEEK_SET);
+                   CDS_FSEEK (fp, file_position, SEEK_SET);
                   }
              }
           }
@@ -316,11 +325,11 @@ static void  Set_New_Erates
               if  (io_buff_ct >= IO_BUFF_SIZE)
                   {
                    assert (io_buff_ct == IO_BUFF_SIZE);
-                   fseek (fp, io_buff_start, SEEK_SET);
+                   CDS_FSEEK (fp, io_buff_start, SEEK_SET);
                    Safe_fwrite (io_buff, sizeof (Short_Olap_Data_t), io_buff_ct, fp);
                    io_buff_ct = 0;
                    io_buff_start = file_position;
-                   fseek (fp, file_position, SEEK_SET);
+                   CDS_FSEEK (fp, file_position, SEEK_SET);
                   }
              }
           }
@@ -330,7 +339,7 @@ static void  Set_New_Erates
            assert(NULL != fp);
            if  (io_buff_ct > 0)
                {
-                fseek (fp, io_buff_start, SEEK_SET);
+                CDS_FSEEK (fp, io_buff_start, SEEK_SET);
                 Safe_fwrite (io_buff, sizeof (Short_Olap_Data_t), io_buff_ct, fp);
                }
            fclose (fp); 

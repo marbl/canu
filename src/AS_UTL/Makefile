@@ -84,7 +84,7 @@ include $(LOCAL_WORK)/src/c_make.as
 all: $(OBJECTS) $(LIBRARIES) $(PROGS) install
 
 install: $(SCRIPTS)
-	cp -f $(SCRIPTS) $(LOCAL_WORK)/bin
+	cp -f $(SCRIPTS) $(LOCAL_BIN)
 
 testBuckets: $(BUCKET_OBJECTS) $(LIB_OBJECTS) libm.a $(REQ_LIB)
 

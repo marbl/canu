@@ -23,11 +23,20 @@
 #include <string.h>
 #include <memory.h>
 #include <unistd.h>
+#include <getopt.h>
 
 #include "AS_global.h"
 #include "AS_PER_ReadStruct.h"
 #include "AS_PER_fragStore.h"
 #include "AS_ALN_aligners.h"
+
+// commented out until good solution found for UIDs
+//#define NEED_REAL_UID
+
+#ifdef NEED_REAL_UID
+#include "SYS_UIDcommon.h"
+#include "SYS_UIDclient.h"
+#endif
 
 #define CHECK_FOR_BAD_BREAKERS
 
@@ -1368,6 +1377,8 @@ typedef struct
   MesgWriter writer;
   BreakerSetp chims;
   BreakerSetp craps;
+  int realUID;
+  char *euidServerName;
 } CheckGlobals;
 typedef CheckGlobals * CheckGlobalsp;
 
@@ -1375,7 +1386,7 @@ typedef CheckGlobals * CheckGlobalsp;
 void InitializeGlobals( CheckGlobalsp globals, char * program_name )
 {
   globals->program_name = program_name;
-  globals->version = "$Revision: 1.1.1.1 $";
+  globals->version = "$Revision: 1.2 $";
   globals->chims_file = NULL;
   globals->craps_file = NULL;
   globals->cgb_file = NULL;
@@ -1388,6 +1399,8 @@ void InitializeGlobals( CheckGlobalsp globals, char * program_name )
   globals->writer = WriteBinaryMesg_AS;
   globals->chims = NULL;
   globals->craps = NULL;
+  globals->realUID = 0;
+  globals->euidServerName = NULL;
 }
 
 // called
@@ -1493,6 +1506,18 @@ void InitializeOVLFile( CheckGlobalsp globals )
   AuditMesg   adt;
   AuditLine   adl;
   
+#ifdef NEED_REAL_UID
+  cds_uint64  max_block_size;
+  cds_int32   uid_status;
+  cds_uint64  uid_interval[4];
+
+  // set up the UID system to get 1 uid
+  uid_status = SYS_UIDgetMaxUIDSize( &max_block_size );
+  SYS_UIDsetUIDSize( 1 );
+  uid_status = SYS_UIDgetNewUIDInterval( uid_interval );
+  SYS_UIDgetNextUID( &bat.eaccession );
+#endif
+
   // BAT messages
   bat.name       = globals->program_name;
   bat.created    = time(0);

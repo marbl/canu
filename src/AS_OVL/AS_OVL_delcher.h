@@ -28,8 +28,8 @@
 
 
 /* RCS info
- * $Id: AS_OVL_delcher.h,v 1.1.1.1 2004-04-14 13:52:27 catmandew Exp $
- * $Revision: 1.1.1.1 $
+ * $Id: AS_OVL_delcher.h,v 1.2 2004-09-23 20:25:25 mcschatz Exp $
+ * $Revision: 1.2 $
 */
 
 

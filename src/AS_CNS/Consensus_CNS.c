@@ -27,7 +27,7 @@
                  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: Consensus_CNS.c,v 1.1.1.1 2004-04-14 13:51:12 catmandew Exp $";
+static char CM_ID[] = "$Id: Consensus_CNS.c,v 1.2 2004-09-23 20:25:20 mcschatz Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -123,9 +123,6 @@ int32 GetUngappedSequenceLength(char *seq) {
 }
 
 int main (int argc, char *argv[]) {
-  USE_SDB=0;
-  USE_SDB_PART=0;
-
     MesgReader   reader;
     MesgWriter   writer;
     int binary_io;
@@ -180,6 +177,9 @@ int main (int argc, char *argv[]) {
     OutputType output=AS_BINARY_OUTPUT;
     int num_of_threads = 0;
     time_t time_limit = 0, tp1 = 0;
+
+    USE_SDB=0;
+    USE_SDB_PART=0;
 
     optarg = NULL;
     debug_out = 1;
@@ -727,7 +727,7 @@ int main (int argc, char *argv[]) {
     VA_TYPE(char) *quality=CreateVA_char(200000);
     time_t t;
     t = time(0);
-    fprintf(stderr,"# Consensus $Revision: 1.1.1.1 $ processing. Started %s\n",ctime(&t));
+    fprintf(stderr,"# Consensus $Revision: 1.2 $ processing. Started %s\n",ctime(&t));
     InitializeAlphTable();
     if ( ! align_ium && USE_SDB && extract > -1 ) {
        IntConConMesg ctmp;
@@ -910,7 +910,7 @@ int main (int argc, char *argv[]) {
         {
           AuditLine auditLine;
           AppendAuditLine_AS(adt_mesg, &auditLine, t,
-                             "Consensus", "$Revision: 1.1.1.1 $","(empty)");
+                             "Consensus", "$Revision: 1.2 $","(empty)");
         }
 #endif
         VersionStampADT(adt_mesg,argc,argv);
@@ -933,7 +933,7 @@ int main (int argc, char *argv[]) {
     fflush(cnslog);
   }
   t = time(0);
-  fprintf(stderr,"# Consensus $Revision: 1.1.1.1 $ Finished %s\n",ctime(&t));
+  fprintf(stderr,"# Consensus $Revision: 1.2 $ Finished %s\n",ctime(&t));
   if (printcns) {
     int unitig_length = (unitig_count>0)? (int) input_lengths/unitig_count: 0; 
     int contig_length = (contig_count>0)? (int) output_lengths/contig_count: 0;

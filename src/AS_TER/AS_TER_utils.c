@@ -25,7 +25,7 @@ with the Terminator. Could be used by anyone.
  Assumptions: none
 **********************************************************************/
 
-static char CM_ID[] = "$Id: AS_TER_utils.c,v 1.1.1.1 2004-04-14 13:53:43 catmandew Exp $";
+static char CM_ID[] = "$Id: AS_TER_utils.c,v 1.2 2004-09-23 20:25:29 mcschatz Exp $";
 
 #include "AS_TER_utils.h"
 

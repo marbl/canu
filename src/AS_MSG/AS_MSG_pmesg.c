@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.1.1.1 2004-04-14 13:52:13 catmandew Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.2 2004-09-23 20:25:24 mcschatz Exp $";
 
 #define AFG_BACKWARDS_COMPATIBLE
 //#define FIX_DANIELS_MESS
@@ -1552,7 +1552,7 @@ static void *Read_BUG_Mesg(FILE *fin)
   int i;
   char ch;
   
-  GET_FIELD(ch,TYP1_FORMAT "[CRAS]", "bug type");
+  GET_TYPE(ch,TYP1_FORMAT "[CRAS]", "bug type");
   mesg.type = (BugMesgType) ch;
   sidx = GetText("src:", fin, FALSE);
   mesg.source = MemBuffer + sidx;
@@ -2890,7 +2890,7 @@ static void Write_IUL_Mesg(FILE *fout, void *vmesg)
   for (i=0; i < npairs; ++i)
     fprintf(fout,F_IID "," F_IID ",%c\n",
             mesg->jump_list[i].in1,mesg->jump_list[i].in2,
-            mesg->jump_list[i].type);
+            (char)(mesg->jump_list[i].type));
   fprintf(fout,"}\n");
   return;
 }
@@ -2917,7 +2917,7 @@ static void Write_ICL_Mesg(FILE *fout, void *vmesg)
   for (i=0; i < npairs; ++i)
     fprintf(fout,F_IID "," F_IID ",%c\n",
             mesg->jump_list[i].in1,mesg->jump_list[i].in2,
-            mesg->jump_list[i].type);
+            (char)(mesg->jump_list[i].type));
   fprintf(fout,"}\n");
   return;
 }
@@ -2940,7 +2940,7 @@ static void Write_ISL_Mesg(FILE *fout, void *vmesg)
   for (i=0; i < npairs; ++i)
     fprintf(fout,F_IID "," F_IID ",%c\n",
             mesg->jump_list[i].in1,mesg->jump_list[i].in2,
-            mesg->jump_list[i].type);
+            (char)(mesg->jump_list[i].type));
   fprintf(fout,"}\n");
   return;
 }
@@ -3165,7 +3165,7 @@ static void Write_ULK_Mesg(FILE *fout, void *vmesg)
     fprintf(fout, F_UID "," F_UID ",%c\n",
             mesg->jump_list[i].in1,
             mesg->jump_list[i].in2,
-            mesg->jump_list[i].type);
+            (char)(mesg->jump_list[i].type));
   fprintf(fout,"}\n");
   return;
 }
@@ -3216,7 +3216,7 @@ static void Write_CLK_Mesg(FILE *fout, void *vmesg)
     fprintf(fout, F_UID "," F_UID ",%c\n",
             mesg->jump_list[i].in1,
             mesg->jump_list[i].in2,
-            mesg->jump_list[i].type);
+            (char)(mesg->jump_list[i].type));
   fprintf(fout,"}\n");
   return;
 }
@@ -3240,7 +3240,7 @@ static void Write_SLK_Mesg(FILE *fout, void *vmesg)
     fprintf(fout, F_UID "," F_UID ",%c\n",
             mesg->jump_list[i].in1,
             mesg->jump_list[i].in2,
-            mesg->jump_list[i].type);
+            (char)(mesg->jump_list[i].type));
   fprintf(fout,"}\n");
   return;
 }

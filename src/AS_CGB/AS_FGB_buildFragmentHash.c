@@ -41,7 +41,7 @@ FragmentHashObject * build_FragmentHash
         const IntFragment_ID iid = get_iid_fragment(frags,iv);
         /* reset afr_to_avx[] */
         max_iid = max(max_iid,iid);
-        min_iid = min(max_iid,iid);
+        min_iid = min(min_iid,iid);
       }
       max_frag_iid = max_iid;
       min_frag_iid = min_iid;

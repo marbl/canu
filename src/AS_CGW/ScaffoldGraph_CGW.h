@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: ScaffoldGraph_CGW.h,v 1.1.1.1 2004-04-14 13:51:00 catmandew Exp $	 */
+/* 	$Id: ScaffoldGraph_CGW.h,v 1.2 2004-09-23 20:25:19 mcschatz Exp $	 */
 /***************************************************************************
  *  ScaffoldGraph
  *  
@@ -38,6 +38,7 @@
 #include "PrimitiveVA.h"
 #include "Globals_CGW.h"
 #include "AS_SDB_SequenceDB.h"
+#include "OlapStoreOVL.h"
 
 //#define RAT_RUN_1
 //#define RAT_RUN_2
@@ -138,6 +139,7 @@ typedef struct{
   FragStoreHandle fragStore;
   GateKeeperStore gkpStore; // See AS_PER_gkpStore.h
   tSequenceDB *sequenceDB; // See AS_SDB_SequenceDB.h
+  OVL_Store_t *frgOvlStore; // See OlapStoreOVL.h
 }ScaffoldGraphT;
 
 
@@ -424,8 +426,15 @@ void LeastSquaresGapEstimates(ScaffoldGraphT *graph, int markEdges,
 			      int checkConnectivity, int verbose);
 
 /***** Celamy *****/
+void DumpCelamyColors(FILE *file);
+void DumpCelamyMateColors(FILE *file);
+void DumpCelamyFragColors(FILE *file);
 void MarkMisplacedContigs(void);
 void CelamyCIScaffolds(char * name, ScaffoldGraphT *graph);
+ /* Celamy Scaffold
+   The workhorse routine for drawing a simulator-coordinate independent view of a scaffold.
+ */
+void CelamyScaffold(FILE *fout, CIScaffoldT *scaffold, int64 scaffoldAEndCoord, int64 scaffoldBEndCoord);
 void CelamyAssembly(char *name);
  
 

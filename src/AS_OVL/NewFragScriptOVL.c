@@ -33,12 +33,12 @@
 *************************************************/
 
 /* RCS info
- * $Id: NewFragScriptOVL.c,v 1.1.1.1 2004-04-14 13:52:43 catmandew Exp $
- * $Revision: 1.1.1.1 $
+ * $Id: NewFragScriptOVL.c,v 1.2 2004-09-23 20:25:25 mcschatz Exp $
+ * $Revision: 1.2 $
 */
 
 static char  CM_ID []
-    = "$Id: NewFragScriptOVL.c,v 1.1.1.1 2004-04-14 13:52:43 catmandew Exp $";
+    = "$Id: NewFragScriptOVL.c,v 1.2 2004-09-23 20:25:25 mcschatz Exp $";
 
 
 /*************************************************************************/

@@ -36,9 +36,9 @@ BEGIN {
     base    = 1;
     prompt = 0;
     protoflag = " -P ";
-    split("$Revision: 1.1.1.1 $", revFields, " ");
+    split("$Revision: 1.2 $", revFields, " ");
     revision = revFields[2];
-    split("$Date: 2004-04-14 13:53:37 $", dateFields, " ");
+    split("$Date: 2004-09-23 20:25:28 $", dateFields, " ");
     date = dateFields[2];
     print STDERR "date = " date " revision = " revision;
     while (base < ARGC-1)

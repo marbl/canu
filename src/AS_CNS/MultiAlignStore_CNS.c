@@ -25,7 +25,7 @@
    Assumptions:  libAS_UTL.a
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.1.1.1 2004-04-14 13:51:19 catmandew Exp $";
+static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.2 2004-09-23 20:25:20 mcschatz Exp $";
 
 
 #include <assert.h>
@@ -40,6 +40,9 @@ static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.1.1.1 2004-04-14 13:51:19 
 #include "MultiAlignStore_CNS.h"
 #include "Array_CNS.h"
 #include "AS_PER_encodeSequenceQuality.h"
+
+VA_DEF(SnapMultiPos)
+VA_DEF(UnitigPos)
 
 MultiAlignT *RevcomplMultiAlignT(MultiAlignT *ma){
   MultiAlignT *new_ma = CloneMultiAlignT(ma);
@@ -621,6 +624,114 @@ MultiAlignT *CreateMultiAlignTFromICM(IntConConMesg *icm, int localID, int seque
   CheckMAValidity(ma);
   return ma;
 }
+
+MultiAlignT *CreateMultiAlignTFromCCO(SnapConConMesg *icm, int localID, int sequenceOnly){
+/* if localID is negative, use NULL source field, else, use source for localID */
+  int cfr,deltai;
+  MultiAlignT *ma = (MultiAlignT *)malloc(sizeof(MultiAlignT));
+  char *ptr;
+  UnitigPos unitigPos;
+  int localFragID = localID;
+  int delta_len=0;
+
+  assert(icm->length == strlen(icm->consensus));
+  assert(icm->length == strlen(icm->quality));
+  
+  ma->id = icm->iaccession;
+
+  ma->forced = icm->forced;
+  ma->refCnt = 0; // set on insertion into a store
+  if ( localID < 0 ) {
+     ma->source_alloc = 1;
+  } else {
+     ma->source_alloc = 0;
+  }
+  ma->consensus = CreateVA_char(icm->length + 1);
+  EnableRangeVA_char(ma->consensus, icm->length + 1);
+
+  ma->quality = CreateVA_char(icm->length + 1);
+  EnableRangeVA_char(ma->quality, icm->length + 1);
+
+  for(cfr = 0; cfr < icm->num_pieces; cfr++){
+    delta_len+=icm->pieces[cfr].delta_length;
+  }
+
+  if( ! sequenceOnly )
+    {
+      ma->delta = CreateVA_int32(delta_len);
+      ma->f_list = CreateVA_SnapMultiPos(icm->num_pieces);
+      ma->udelta = CreateVA_int32(0);
+      ma->u_list = CreateVA_UnitigPos(0);
+      
+
+      for(cfr = 0,delta_len=0; cfr < icm->num_pieces; cfr++){
+	SnapMultiPos *cfr_mesg = icm->pieces + cfr;
+	SnapMultiPos tmp;
+	
+	int length = cfr_mesg->delta_length * sizeof(int32);
+	
+	tmp.type = cfr_mesg->type;
+	tmp.eident = cfr_mesg->eident;
+	/* if (localFragID == -2) {
+             tmp.source = cfr_mesg->source;
+			 } else */
+	if (localFragID < 0) {
+          int32 src_len;
+          if (cfr_mesg->source) {
+             src_len =  strlen(cfr_mesg->source);
+             tmp.source = (char *) malloc((src_len+1)*sizeof(char));
+             strcpy(tmp.source,cfr_mesg->source);
+	  } else {
+             tmp.source = cfr_mesg->source;
+          }
+	} else {
+	  tmp.source = (char *)localFragID++;
+	}
+	tmp.position = cfr_mesg->position;
+	//	tmp.contained = cfr_mesg->contained;
+	tmp.delta_length = cfr_mesg->delta_length;
+	for (deltai=0;deltai<cfr_mesg->delta_length;deltai++) {
+	  //      fprintf(stderr,"* deltai = %d delta = %d\n",
+	  //	      deltai, cfr_mesg->delta[deltai]);
+	  AppendVA_int32(ma->delta,cfr_mesg->delta + deltai);
+	} 
+	tmp.delta = Getint32(ma->delta,delta_len);
+	delta_len+=cfr_mesg->delta_length;
+	SetSnapMultiPos(ma->f_list, cfr, &tmp);
+      }
+    }
+
+  ptr = Getchar(ma->consensus,0);
+  strcpy(ptr, icm->consensus);
+
+  ptr = Getchar(ma->quality,0);
+  strcpy(ptr, icm->quality);
+
+
+  if( ! sequenceOnly )
+    {
+      { int32 ui,deltai;
+      /* Add a unitigpos for each Unitig in icm->unitigs*/
+      /* not authentic, since icm doesn't retain deltas */
+      for (ui = 0;ui<icm->num_unitigs;ui++) {
+        unitigPos.type = icm->unitigs[ui].type;
+        unitigPos.eident = icm->unitigs[ui].eident;
+        unitigPos.position = icm->unitigs[ui].position;
+        unitigPos.delta_length = 0;
+        unitigPos.delta = NULL;
+        AppendUnitigPos(ma->u_list, &unitigPos);
+      }
+      }
+    }
+
+  if( ! sequenceOnly )
+    assert(icm->num_pieces == GetNumIntMultiPoss(ma->f_list));
+
+  
+  CheckMAValidity(ma);
+  return ma;
+}
+
 
 
 /********************************************************************************/

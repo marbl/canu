@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_fragStore.c,v 1.1.1.1 2004-04-14 13:52:49 catmandew Exp $";
+static char CM_ID[] = "$Id: AS_PER_fragStore.c,v 1.2 2004-09-23 20:25:26 mcschatz Exp $";
 
 /*************************************************************************
  Module:  AS_PER_fragStore
@@ -2077,4 +2077,39 @@ int getNDumpFragStore(FragStoreHandle fs, int64 index, ReadStructp rs, FILE *out
 	 index, fr->frag.readIndex, fr->source, fr->sequence, fr->quality);
 #endif
  return(0);
+}
+
+
+
+int kNextFragStream(FragStreamHandle fh, ReadStructp rs, int streamFlags,
+		    int skipNum){
+  FragStream *fs = FragStream_myStruct(fh);
+  FragRecord *fr = (FragRecord *)rs;
+  FragStore *myStore = FragStore_myStruct(fs->fragStore);
+  int result;
+
+  assert(fs->status == ActiveStore);
+
+#ifdef DEBUGNEXT
+  fprintf(stderr,"*** kNextFragStream\n");
+#endif
+
+  result = 0;
+  
+  fr->frag.sequenceOffset = 0;
+  fr->frag.sourceOffset = 0;
+  if(kNextStream(fs->fragStream, &fr->frag, skipNum) == 0)
+    return 0;
+#ifdef DEBUGNEXT
+  fprintf(stderr,"\tRead Frag, source @ " F_U64 "  sequence@ " F_U64 "\n",
+	  fr->frag.sourceOffset, fr->frag.sequenceOffset);
+#endif  
+  unloadFragRecord(myStore,fr, streamFlags);
+
+#ifdef DEBUG
+  fprintf(stderr,"* kNextFragStream Got Frag with id " F_IID " src: %s  seq: %s \n qu: %s\n",
+	 fr->frag.readIndex, fr->source, fr->sequence, fr->quality);
+#endif  
+  return (1);
+
 }

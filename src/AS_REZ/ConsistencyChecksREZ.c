@@ -30,7 +30,7 @@
 
 **********************************************************************/
 
-static char CM_ID[] = "$Id: ConsistencyChecksREZ.c,v 1.1.1.1 2004-04-14 13:52:58 catmandew Exp $";
+static char CM_ID[] = "$Id: ConsistencyChecksREZ.c,v 1.2 2004-09-23 20:25:27 mcschatz Exp $";
 
 
 /* ---------------------------------------------------- */
@@ -103,9 +103,8 @@ static bool test_coordinates(const Gap_Chunk_t *);
 /* variable declarations */
 /* ---------------------------------------------------- */
 
-extern char * Filename_Prefix;
-
 #if DEBUG > 1
+extern char * Filename_Prefix;
 static  FILE* logFile;
 #endif
 

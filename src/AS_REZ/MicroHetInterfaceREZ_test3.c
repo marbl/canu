@@ -29,7 +29,7 @@
  Assumptions: 
 **********************************************************************/
 
-static char CM_ID[] = "$Id: MicroHetInterfaceREZ_test3.c,v 1.1.1.1 2004-04-14 13:53:24 catmandew Exp $";
+static char CM_ID[] = "$Id: MicroHetInterfaceREZ_test3.c,v 1.2 2004-09-23 20:25:28 mcschatz Exp $";
 
 #include <math.h>
 #include <assert.h>
@@ -58,10 +58,19 @@ static char CM_ID[] = "$Id: MicroHetInterfaceREZ_test3.c,v 1.1.1.1 2004-04-14 13
 Alignment_t *AS_REZ_convert_array_to_alignment(char **ar, int c, int r){
   int i,j;
 
+  //  fprintf(stderr,"Working on an array of size rXc %d X %d\n",r,c);
   Alignment_t *a = AS_REZ_allocate_alignment(c,r);
   for(i=0; i<c; i++)
     for(j=0; j<r; j++)
       {
+	/*
+	if(!( ar[2*j][i] == 'A' || ar[2*j][i] == 'C' || 
+		ar[2*j][i] == 'G' || ar[2*j][i] == 'T' ||
+		ar[2*j][i] == '-' || ar[2*j][i] == ' ' ||
+		ar[2*j][i] == 'N'	))
+	  fprintf(stderr,"Unexpected char %c at row %d col %d\n",
+		  ar[2*j][i],j,i);
+	*/
 	assert( ar[2*j][i] == 'A' || ar[2*j][i] == 'C' || 
 		ar[2*j][i] == 'G' || ar[2*j][i] == 'T' ||
 		ar[2*j][i] == '-' || ar[2*j][i] == ' ' ||
@@ -450,7 +459,8 @@ static void MicroHet_discount_multibase_gaps(int c, int r,  char **array){
 
 Alignment_t* AS_REZ_convert_IUM_to_alignment(IntUnitigMesg* ium,
                                              FragStoreHandle handle,
-                                             tFragStorePartition *phandle)
+                                             tFragStorePartition *phandle,
+					     int compress)
 {
   int i;
   int rows;
@@ -473,6 +483,7 @@ Alignment_t* AS_REZ_convert_IUM_to_alignment(IntUnitigMesg* ium,
 
   ali = AS_REZ_convert_array_to_alignment(bqarray,ium->length,rows);
 
+  if(compress){
 #define DEBUG_COMPRESS_AND_NULL 0
 #if DEBUG_COMPRESS_AND_NULL  == 1
   printf("BEFORE COMPRESSION\n");
@@ -484,6 +495,7 @@ Alignment_t* AS_REZ_convert_IUM_to_alignment(IntUnitigMesg* ium,
   printf("AFTER COMPRESSION\n");
   AS_REZ_print_alignment(ali,90);
 #endif
+  }
 
   /* free the space that is allocated by IMP2Array */
   for(i=0; i<2*rows; i++)

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: Segment.h,v 1.1.1.1 2004-04-14 13:52:08 catmandew Exp $ */
+/* $Id: Segment.h,v 1.2 2004-09-23 20:25:23 mcschatz Exp $ */
 #ifndef SEGMENT_H
 #define SEGMENT_H
 

@@ -22,7 +22,7 @@
 #
 ###########################################################################
 #
-# $Id: doRunsSpanningTranspositions.sh,v 1.1.1.1 2004-04-14 13:51:59 catmandew Exp $
+# $Id: doRunsSpanningTranspositions.sh,v 1.2 2004-09-23 20:25:23 mcschatz Exp $
 #
 
 if [ -z ${DATA_DIR} ]; then

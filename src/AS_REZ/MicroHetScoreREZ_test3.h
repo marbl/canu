@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
-   CVS_ID:  $Id: MicroHetScoreREZ_test3.h,v 1.1.1.1 2004-04-14 13:53:21 catmandew Exp $
+   CVS_ID:  $Id: MicroHetScoreREZ_test3.h,v 1.2 2004-09-23 20:25:28 mcschatz Exp $
  *********************************************************************/
 #ifndef AS_REZ_MICROHETSCOREREZ_H
 #define AS_REZ_MICROHETSCOREREZ_H

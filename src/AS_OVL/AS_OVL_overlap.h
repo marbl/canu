@@ -26,8 +26,8 @@
  *********************************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap.h,v 1.1.1.1 2004-04-14 13:52:26 catmandew Exp $
- * $Revision: 1.1.1.1 $
+ * $Id: AS_OVL_overlap.h,v 1.2 2004-09-23 20:25:25 mcschatz Exp $
+ * $Revision: 1.2 $
 */
 
 
@@ -131,11 +131,11 @@
 // Limitations:
 // 
 //   The number of fragments in the New stream stored in the hash
-//   table is assumed to be at most  MAX_HASH_STRINGS .
+//   table is assumed to be at most  Max_Hash_Strings .
 // 
 //   MAX_ERRORS  must be at least  ERROR_RATE * AS_READ_MAX_LEN .
 //
-//   MAX_HASH_STRINGS  must be  < 2^21 .
+//   Max_Hash_Strings  must be  < 2^21 .
 // 
 // Status:
 // 
@@ -232,9 +232,10 @@
 #define  HASH_EXPANSION_FACTOR   1.4
     //  Hash table size is >= this times  MAX_HASH_STRINGS
 
-    // HASH_MASK_BITS is now defined in cds.h
-#define  HASH_MASK               ((1 << HASH_MASK_BITS) - 1)
-    //  Extract right HASH_MASK_BITS bits of hash key
+    // DEF_HASH_MASK_BITS is now defined in cds.h
+
+#define  HASH_MASK               ((1 << Hash_Mask_Bits) - 1)
+    //  Extract right Hash_Mask_Bits bits of hash key
 #define  HASH_TABLE_SIZE         (1 + HASH_MASK)
     //  Number of buckets in hash table
 #define  HIGHEST_KMER_LIMIT      255
@@ -295,12 +296,12 @@
     //  Mask used to extract bits to put in  Offset  field
 
 #ifdef  USE_4GB_MEMORY
-  #define  MAX_HASH_DATA_LEN       140000000
+  #define  DEF_MAX_HASH_DATA_LEN       140000000
 #else
   #ifdef ON_JTC_LINUX_FARM
-    #define  MAX_HASH_DATA_LEN        40000000
+    #define  DEF_MAX_HASH_DATA_LEN        40000000
   #else
-    #define  MAX_HASH_DATA_LEN        35000000
+    #define  DEF_MAX_HASH_DATA_LEN        35000000
   #endif
 #endif
     //  Maximum total bytes of all strings in the hash table
@@ -308,22 +309,22 @@
 #ifdef BIG_MEMORY_BOX
   #ifdef  CONTIG_OVERLAPPER_VERSION
     #ifdef  USE_4GB_MEMORY
-      #define  MAX_HASH_STRINGS          2040
+      #define  DEF_MAX_HASH_STRINGS          2040
     #else
-      #define  MAX_HASH_STRINGS          1500
+      #define  DEF_MAX_HASH_STRINGS          1500
     #endif
   #else
     #ifdef  USE_4GB_MEMORY
-      #define  MAX_HASH_STRINGS        200000
+      #define  DEF_MAX_HASH_STRINGS        200000
     #else
-      #define  MAX_HASH_STRINGS        100000
+      #define  DEF_MAX_HASH_STRINGS        100000
     #endif
   #endif
 #else 
   #ifdef ON_JTC_LINUX_FARM
-    #define  MAX_HASH_STRINGS           40000
+    #define  DEF_MAX_HASH_STRINGS           40000
   #else
-    #define  MAX_HASH_STRINGS            2000
+    #define  DEF_MAX_HASH_STRINGS            2000
   #endif
 #endif
     //  Most strings in hash table  Must be less than (1 << STRING_NUM_BITS).
@@ -333,7 +334,7 @@
 #else
 #define  EXPECTED_STRING_LEN     (MAX_FRAG_LEN / 2)
 #endif
-#define  INITIAL_DATA_LEN        (EXPECTED_STRING_LEN * MAX_HASH_STRINGS)
+#define  INITIAL_DATA_LEN        (EXPECTED_STRING_LEN * Max_Hash_Strings)
     //  The number of bytes to allocate initially for hash-table sequence
 
 #define  MAX_LINE_LEN            1000
@@ -414,9 +415,9 @@
     //  Length of segments hashed, i.e., the  k  value in k-mer.
     //  There must be an exact match of this length or more to
     //  find a match.
-#define  HSF1                    (WINDOW_SIZE - (HASH_MASK_BITS / 2))
+#define  HSF1                    (WINDOW_SIZE - (Hash_Mask_Bits / 2))
     //  First shift value for HASH_FUNCTION
-#define  HSF2                    (2 * WINDOW_SIZE - HASH_MASK_BITS)
+#define  HSF2                    (2 * WINDOW_SIZE - Hash_Mask_Bits)
     //  Second shift value for HASH_FUNCTION
 #define  SV1                     (HSF1 + 2)
 #define  SV2                     ((HSF1 + HSF2) / 2)
@@ -559,6 +560,10 @@ typedef  struct Work_Area
   }  Work_Area_t;
 
 
+extern int  Hash_Mask_Bits;
+extern int  Max_Hash_Data_Len;
+extern int  Max_Hash_Strings;
+
 extern int  Contig_Mode;
 extern uint32  Last_Hash_Frag_Read;
 extern int  LSF_Mode;
@@ -572,7 +577,7 @@ extern clock_t  Start_Time, Stop_Time;
 
 extern Screen_Range_t  * Screen_Space;
 extern int  Screen_Space_Size;
-extern int  Screen_Sub [];
+extern int  * Screen_Sub;
     //  To keep track of screened sections of fragments in the
     //  hash table.  K-mers from screened sections are *NOT*
     //  put into the hash table.   For fragment  i  in the hash

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.1.1.1 2004-04-14 13:50:46 catmandew Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.2 2004-09-23 20:25:19 mcschatz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -138,6 +138,8 @@ int ProcessInput(Global_CGW *data, int optind, int argc, char *argv[]){
 	break;
       case MESG_IUM:  // IntUnitigMesg
 	numIUM++;
+	if(numIUM % 10000 == 0)
+	  fprintf(stderr,"Read %d unitigs\n",numIUM);
 	ProcessIUM(pmesg->m);
 	//      if(!ScaffoldGraph->doRezOnContigs )
 	//	(data->writer)(tempfp,pmesg);      // Echo to output
@@ -155,7 +157,7 @@ int ProcessInput(Global_CGW *data, int optind, int argc, char *argv[]){
 	  adt_mesg = pmesg->m;
 	  pmesg->t = MESG_ADT;
 
-	  AppendAuditLine_AS(adt_mesg, &auditLine, time(0), "CGW", "$Revision: 1.1.1.1 $", "(empty)");
+	  AppendAuditLine_AS(adt_mesg, &auditLine, time(0), "CGW", "$Revision: 1.2 $", "(empty)");
 
 	  (data->writer)(data->outfp,pmesg);      // Echo to output
 
@@ -656,7 +658,6 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg,
 	  ium_mesg->iaccession, length);
 #endif
   CI.id = ium_mesg->iaccession;
-  CI.setID = NULLINDEX;
   CI.bpLength.mean = length;
   CI.bpLength.variance = max(1.0,ComputeFudgeVariance(CI.bpLength.mean));
   CI.edgeHead = NULLINDEX;
@@ -782,7 +783,7 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg,
 		  CI.id, ium_mesg->coverage_stat, CI.microhetScore, GlobalData->cgbMicrohetProb);
 	  isUnique = FALSE;
 	  if(CI.flags.bits.cgbType == XX_CGBTYPE)
-	    CI.flags.bits.cgbType == RR_CGBTYPE;
+	    CI.flags.bits.cgbType = RR_CGBTYPE;
 	  CI.type = UNRESOLVEDCHUNK_CGW;
 	}else{
 	  isUnique = TRUE;
@@ -803,12 +804,12 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg,
       CI.flags.bits.isUnique = 1;
       CI.type = DISCRIMINATORUNIQUECHUNK_CGW;
       if(CI.flags.bits.cgbType == XX_CGBTYPE)
-	CI.flags.bits.cgbType == UU_CGBTYPE;
+	CI.flags.bits.cgbType = UU_CGBTYPE;
     }else{
       CI.flags.bits.isUnique = 0;
       CI.type = UNRESOLVEDCHUNK_CGW;
       if(CI.flags.bits.cgbType == XX_CGBTYPE)
-	CI.flags.bits.cgbType == RR_CGBTYPE;
+	CI.flags.bits.cgbType = RR_CGBTYPE;
     }
   }
 
@@ -1487,12 +1488,16 @@ void ProcessFrags(void)
 	continue;
       }
 
-      if(GKPLink.frag2 >= GetNumCIFragTs(ScaffoldGraph->CIFrags)){
+
+#define WORRY_ABOUT_DELETED_FRAGS_NOT_INCREMENTAL_RUNS
+#ifndef WORRY_ABOUT_DELETED_FRAGS_NOT_INCREMENTAL_RUNS
+      if(GKPLink.frag2 > GetNumCIFragTs(ScaffoldGraph->CIFrags)){
 	//		  fprintf(stderr,"* Skipping (" F_CID "," F_CID ")\n",
 	//			  GKPLink.frag1, GKPLink.frag2);
 	/* This can happen in an incremental run */
 	continue;
       }
+#endif
 
 #if 0
       /* These asserts protect against the case that the input has
@@ -1503,6 +1508,7 @@ void ProcessFrags(void)
       j = GetInfoByIID(ScaffoldGraph->iidToFragIndex, GKPLink.frag2)->fragIndex;
       assert(i == GetInfoByIID(ScaffoldGraph->iidToFragIndex, GKPLink.frag1)->fragIndex);
 #endif
+
       j = GKPLink.frag2;
       {
 	InfoByIID *infoj = GetInfoByIID(ScaffoldGraph->iidToFragIndex,j);
@@ -1570,9 +1576,15 @@ void ProcessFrags(void)
     }
   }
 
-  fprintf(stderr,"* Found %d unmated frags (%g %%)\n",
-	  unmatedFrags, 100. * (double)unmatedFrags / (double) (GetNumCIFragTs(ScaffoldGraph->CIFrags)));
-
+  {
+    double numCIFrags = (double) GetNumCIFragTs(ScaffoldGraph->CIFrags);
+    if (0 < numCIFrags) 
+      fprintf(stderr,"* Found %d unmated frags (%g %%)\n",
+  	      unmatedFrags, 100. * (double)unmatedFrags / numCIFrags);
+    else
+      fprintf(stderr, "* Found %d unmated frags\n", unmatedFrags);
+  }
+  
 }
 
 

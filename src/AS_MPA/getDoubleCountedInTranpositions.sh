@@ -22,7 +22,7 @@
 #
 ###########################################################################
 #
-# $Id: getDoubleCountedInTranpositions.sh,v 1.1.1.1 2004-04-14 13:52:01 catmandew Exp $
+# $Id: getDoubleCountedInTranpositions.sh,v 1.2 2004-09-23 20:25:24 mcschatz Exp $
 #
 
 if [ -z ${1} ] || [ ${1} == "bell-style" ]; then

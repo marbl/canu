@@ -34,8 +34,7 @@
 /* safely copy a substring of a string into static space which is enlarged
    as needed */
 
-static void safe_substr(char **seg,int *segspace,
-                        const char *seq,int beg,int end){
+static void safe_substr(char **seg,int *segspace,const char *seq,int beg,int end){
 
   if(*segspace<end-beg+1){
     *segspace=2*(end-beg)+1;
@@ -57,8 +56,8 @@ static void safe_substr(char **seg,int *segspace,
    can call AS_ALN_OKNAlign on the second local segment without losing the
    result */
 
-static int *get_trace(const char *aseq, const char *bseq,
-                      Local_Overlap *O,int piece, int which){
+static int *get_trace(const char *aseq, const char *bseq,Local_Overlap *O,int piece,
+		int which){
   static char *aseg=NULL, *bseg=NULL;
   static int asegspace=0,bsegspace=0;
   static int *segtrace[2], tracespace[2]={0,0};
@@ -180,9 +179,7 @@ static void safe_add_to_seg(char **seg,int pos,char c,int *len){
 
 
 
-static PAIRALIGN *construct_pair_align(const char *aseq,const char *bseq,
-                                       Local_Overlap *O,int piece,
-                                       int *trace,int which){
+static PAIRALIGN *construct_pair_align(const char *aseq,const char *bseq,Local_Overlap *O,int piece,int *trace,int which){
   static char *aseg[2]={NULL,NULL},*bseg[2]={NULL,NULL};
   static int alen[2]={0,0},blen[2]={0,0};
   static PAIRALIGN pairalign[2];
@@ -258,8 +255,8 @@ fprintf(stdout,"epos:%d %d\n",O->chain[piece].piece.aepos,O->chain[piece].piece.
 }
 
 
-static PAIRALIGN *get_align(const char *aseq,const char *bseq,
-                            Local_Overlap *O,int piece,int which){
+static PAIRALIGN *get_align(const char *aseq,const char *bseq,Local_Overlap *O,int piece,
+		      int which){
   int *trace=get_trace(aseq,bseq,O,piece,which);
   PAIRALIGN *pairalign=construct_pair_align(aseq,bseq,O,piece,trace,which);
   return(pairalign);
@@ -273,11 +270,9 @@ void fix_overlapping_pieces(char *aseq, char *bseq,
 
   int offseta1,offsetb1,offseta2,offsetb2;
   int bestend1a,bestend1b,bestbeg2a,bestbeg2b;
-  int into1,into2;
+  int into1,into2,bestinto2,bestinto1;
   int errs1,errs2,minerrs;
-#ifdef MODS_NOT_FOR_BUBBLES
-  int bestinto1,bestinto2;
-#endif
+
 
   assert(O->chain[piece0].piece.aepos>=O->chain[piece1].piece.abpos||
 	 O->chain[piece0].piece.bepos>=O->chain[piece1].piece.bbpos);
@@ -312,12 +307,12 @@ fprintf(stdout,"fixing gap(%d,%d) (%d,%d)---(%d,%d) vs. gap(%d,%d)  (%d,%d)---(%
 
 
   /* if, in finding the alignments, we shift the ends of the
-     alignment of the first segment to after the starts of the
+     alignment of the first segment to before the starts of the
      alignment of the second segment, then the overlap has been
      resolved, so we do nothing more */
 
-  if(!(O->chain[piece0].piece.aepos>=O->chain[piece1].piece.abpos||
-	 O->chain[piece0].piece.bepos>=O->chain[piece1].piece.bbpos)){
+  if(!(O->chain[piece0].piece.aepos>O->chain[piece1].piece.abpos||
+	 O->chain[piece0].piece.bepos>O->chain[piece1].piece.bbpos)){
 
 #ifdef DEBUG_FIX_OLAP
 fprintf(stdout," ... overlap between segments disappeared in perfecting\n"
@@ -400,17 +395,36 @@ fprintf(stdout,"Fixing by deleting first segment since apparently contained (pie
      first segment and that column contains the first possible
      overlap with the second segment */
 
-  offseta1=O->chain[piece0].piece.abpos;
-  offsetb1=O->chain[piece0].piece.bbpos;
-  into1=0;
+  offseta1=O->chain[piece0].piece.abpos-1;
+  offsetb1=O->chain[piece0].piece.bbpos-1;
+  into1=-1;
+  /*fprintf(stderr,"piece1 alignmentlength %d == %d\n",
+	  strlen(pair_align1->aseg),
+	  strlen(pair_align1->bseg));*/
   while(offseta1<O->chain[piece1].piece.abpos&&
 	offsetb1<O->chain[piece1].piece.bbpos){
+    into1++;
     assert(pair_align1->aseg[into1]!='\0');
     assert(pair_align1->bseg[into1]!='\0');
+
     if(pair_align1->aseg[into1]!='-')offseta1++;
     if(pair_align1->bseg[into1]!='-')offsetb1++;
-    into1++;
+
+    /*    fprintf(stderr,"%c : %c\toffsets %d %d\tinto %d\n",pair_align1->bseg[into1],
+	  pair_align1->bseg[into1],offseta1,offsetb1,into1);*/
   }
+#ifdef DEBUG_FIX_OLAP
+  fprintf(stdout,"Advanced to overlapping region; offseta1,offsetb1 = %d,%d\n",
+	  offseta1,offsetb1);
+  if(into1>0){
+    fprintf(stdout,"Revised trace of piece 1:\n%c.%s\n%c.%s\n",
+	    pair_align1->aseg[into1-1],pair_align1->aseg+into1,
+	    pair_align1->bseg[into1-1],pair_align1->bseg+into1);
+  } else {
+    fprintf(stdout,"Piece 1 first column overlaps piece 2\n");
+  }
+
+#endif
 
 
   /* count mismatches in the second alignment */
@@ -431,28 +445,22 @@ fprintf(stdout,"Fixing by deleting first segment since apparently contained (pie
   minerrs=errs2;
   offseta2=O->chain[piece1].piece.abpos;
   offsetb2=O->chain[piece1].piece.bbpos;
-  bestend1a=offseta1 - (pair_align1->aseg[into1-1]!='-' ? 1 : 0);
-  bestend1b=offsetb1 - (pair_align1->bseg[into1-1]!='-' ? 1 : 0);
+  bestend1a=offseta1 - (pair_align1->aseg[into1]!='-' ? 1 : 0);
+  bestend1b=offsetb1 - (pair_align1->bseg[into1]!='-' ? 1 : 0);
   bestbeg2a=offseta2;
   bestbeg2b=offsetb2;
-
-#ifdef MODS_NOT_FOR_BUBBLES
   bestinto1=into1-1;
   bestinto2=0;
-#endif
   
+
 #ifdef DEBUG_FIX_OLAP
-  fprintf(stdout,"init bestend1:%d %d\n",bestend1a,bestend1b);
-  fprintf(stdout,"init bestbeg2:%d %d\n",bestbeg2a,bestbeg2b);
+fprintf(stdout,"init bestend1:%d %d\n",bestend1a,bestend1b);
+fprintf(stdout,"init bestbeg2:%d %d\n",bestbeg2a,bestbeg2b);
 #endif
 
   /* while there is potential overlap still to come ... */
 
-  while(pair_align1->aseg[into1]!='\0' 
-#ifdef MODS_NOT_FOR_BUBBLES
-        && pair_align2->aseg[into2]!='\0'
-#endif
-    ){
+  while(pair_align1->aseg[into1]!='\0'&&pair_align2->aseg[into2]!='\0'){
 
     #ifdef DEBUG_FIX_OLAP
     fprintf(stdout,"Top of major fix loop into[%d,%d] (%d,%d)] [ (%d,%d)\n",
@@ -475,17 +483,13 @@ fprintf(stdout,"Fixing by deleting first segment since apparently contained (pie
     }
     #endif
 
-#ifdef MODS_NOT_FOR_BUBBLES
-    /*
-      Once, we did the following assert, assuming that the alignment
-      of pair_align2 would not run out before pair_align1, since otherwise
-      there would be a containment or some such that shouldn't happen.
-      But, as luck would have it, alignment trimming quirks, etc, can
-      make it happen. So, no more assert.
-    */
-#else
-    assert(pair_align2->aseg[into2]!='\0');
-#endif
+    // Once, we did the following assert, assuming that the alignment
+    // of pair_align2 would not run out before pair_align1, since otherwise
+    // there would be a containment or some such that shouldn't happen;
+    // But, as luck would have it, alignment trimming quirks etc can
+    // make it happen.  So ... no more assert
+    //
+    // assert(pair_align2->aseg[into2]!='\0');
 
     /* while a position in the second segment is no greater than
        the position in the first segment, 
@@ -496,47 +500,47 @@ fprintf(stdout,"Fixing by deleting first segment since apparently contained (pie
        position */
   
     while(offseta1>=offseta2||offsetb1>=offsetb2
-#ifdef MODS_NOT_FOR_BUBBLES
 #undef ADVANCE_PAST_MISMATCHES
 #ifdef ADVANCE_PAST_MISMATCHES
-          || pair_align2->aseg[into2]!=pair_align2->bseg[into2]
+	  || pair_align2->aseg[into2]!=pair_align2->bseg[into2]
 #endif
-#endif
-      ){
+	  ){
       errs2-= (pair_align2->aseg[into2]!=pair_align2->bseg[into2] ? 1 : 0);
       offseta2+= ( pair_align2->aseg[into2]!='-'  ? 1 : 0 );
       offsetb2+= ( pair_align2->bseg[into2]!='-'  ? 1 : 0 );
       into2++;
-      if(pair_align2->aseg[into2]=='\0') break;
+      if(pair_align2->aseg[into2]=='\0'){
+	break;
+      }
 #ifdef DEBUG_FIX_OLAP
       fprintf(stdout,"Once through minor fix loop1 into[%d,%d] (%d,%d)] [ (%d,%d)  -- skipped over (%c,%c)\n",
 	    into1,into2,offseta1,offsetb1,offseta2,offsetb2,
-              pair_align2->aseg[into2-1],pair_align2->bseg[into2-1]);
+	      pair_align2->aseg[into2-1],pair_align2->bseg[into2-1]);
 #endif
     }
 
-    if(errs1+errs2<=minerrs
-#ifdef MODS_NOT_FOR_BUBBLES
-#undef NEWVER
+#define NEWVER
 #ifdef NEWVER
-       && pair_align1->aseg[into1]==pair_align1->bseg[into1]
+    if(errs1+errs2<=minerrs&&
+       pair_align1->aseg[into1]==pair_align1->bseg[into1]){
+#else
+    if(errs1+errs2<=minerrs){
 #endif
-#endif
-      ){
+
       minerrs=errs1+errs2;
       bestend1a=offseta1;
       bestend1b=offsetb1;
       bestbeg2a=offseta2;
       bestbeg2b=offsetb2;
-#ifdef MODS_NOT_FOR_BUBBLES
       bestinto2=into2;
       bestinto1=into1;
-#endif
+
 #ifdef DEBUG_FIX_OLAP
-      fprintf(stdout,
-              "  accept new solution (%d,%d) ] [ (%d,%d) minerrs %d+%d\n",
-              bestend1a, bestend1b, bestbeg2a, bestend2a, errs1, errs2);
-#endif              
+      fprintf(stdout,"  accept new solution (%d,%d)] [ (%d,%d)  minerrs %d+%d\n",
+	      bestend1a,bestend1b,bestbeg2a,bestbeg2b,errs1,errs2);
+#endif
+
+
     }
 
     /* while the positions in the first segment are no greater than
@@ -548,27 +552,18 @@ fprintf(stdout,"Fixing by deleting first segment since apparently contained (pie
        position */
   
     while(offseta1<offseta2&&offsetb1<offsetb2){
-#ifdef MODS_NOT_FOR_BUBBLES
-      offseta1+= ( pair_align1->aseg[into1+1]!='-'  ? 1 : 0 );
-      offsetb1+= ( pair_align1->bseg[into1+1]!='-'  ? 1 : 0 );
       into1++;
+      offseta1+= ( pair_align1->aseg[into1]!='-'  ? 1 : 0 );
+      offsetb1+= ( pair_align1->bseg[into1]!='-'  ? 1 : 0 );
       if(pair_align1->aseg[into1]=='\0'){
 	break;
       }
-#else
-      offseta1+= ( pair_align1->aseg[into1]!='-'  ? 1 : 0 );
-      offsetb1+= ( pair_align1->bseg[into1]!='-'  ? 1 : 0 );
-      into1++;
-#endif
       errs1+= (pair_align1->aseg[into1]!=pair_align1->bseg[into1] ? 1 : 0);
 #ifdef DEBUG_FIX_OLAP
       fprintf(stdout,"Once through minor fix loop2 into[%d,%d] (%d,%d)] [ (%d,%d)  -- now include (%c,%c)  errs %d/%d\n",
-              into1,into2,offseta1,offsetb1,offseta2,offsetb2,
+	    into1,into2,offseta1,offsetb1,offseta2,offsetb2,
 	      pair_align1->aseg[into1],pair_align1->bseg[into1],
 	      errs1,errs2);
-#endif
-#ifndef MODS_NOT_FOR_BUBBLES
-      if(pair_align1->aseg[into1]=='\0')break;
 #endif
     }
       
@@ -578,15 +573,10 @@ fprintf(stdout,"Fixing by deleting first segment since apparently contained (pie
 #endif
   }
 
-#ifdef MODS_NOT_FOR_BUBBLES
   if(bestend1a<O->chain[piece0].piece.aepos)
     bestend1a++;
   if(bestend1b<O->chain[piece0].piece.bepos)
     bestend1b++;
-#else
-  bestend1a++;
-  bestend1b++;
-#endif
   O->chain[piece0].piece.aepos=bestend1a;
   O->chain[piece0].piece.bepos=bestend1b;
   O->chain[piece1].piece.abpos=bestbeg2a;
@@ -606,7 +596,6 @@ fprintf(stdout,"Fixing by deleting first segment since apparently contained (pie
   assert(O->chain[piece1].bgap>=0);
   assert(O->chain[piece1].agap==0||O->chain[piece1].bgap==0);
 
-#ifdef MODS_NOT_FOR_BUBBLES
   // now, adjust the segments to trim off any mismatches at trimmed ends
   while(pair_align1->aseg[bestinto1]!=pair_align1->bseg[bestinto1]&&
 	bestinto1>=0){
@@ -638,5 +627,4 @@ fprintf(stdout,"Fixing by deleting first segment since apparently contained (pie
   fflush(stdout); 
 #endif
 
-#endif
 }

@@ -204,16 +204,25 @@
 ######################################################################
 
 #### Use GNU make
+# MP - commenting it out may actually work 
 #MAKE = /usr/local/bin/gmake
+#MAKE = /usr/bin/gnumake 
 
 #### Soft link programs
 LINKS_PGM = /cm/cmtools/bin/links.pl
 
+LOCAL_OS_TYPE = $(OSTYPE)
+
+ifeq ($(MACHINETYPE), x86_64)
+  LOCAL_OS_TYPE = Linux64
+endif
+
 #### Set up paths
 LOCAL_INC=$(LOCAL_WORK)/inc
-LOCAL_BIN=$(LOCAL_WORK)/bin
-LOCAL_LIB=$(LOCAL_WORK)/lib
-LOCAL_OBJ=$(LOCAL_WORK)/obj
+LOCAL_OS=$(LOCAL_WORK)/$(LOCAL_OS_TYPE)
+LOCAL_BIN=$(LOCAL_OS)/bin
+LOCAL_LIB=$(LOCAL_OS)/lib
+LOCAL_OBJ=$(LOCAL_OS)/obj
 
 #### Various flags
 #### Do not redefine if (a) passed in on command line, or (b)
@@ -256,7 +265,7 @@ ARFLAGS = rvs
 endif
 
 ifneq "$(origin LDFLAGS)" "environment"
-LDFLAGS =
+LDFLAGS = -lm
 endif
 
 #### Delete default suffix rules
@@ -267,6 +276,7 @@ endif
 
 #### Make expected directories
 define make_expected_directories
+if [ ! -e $(LOCAL_OS)  ] ; then mkdir $(LOCAL_OS)  ; fi ; \
 if [ ! -e $(LOCAL_BIN) ] ; then mkdir $(LOCAL_BIN) ; fi ; \
 if [ ! -e $(LOCAL_OBJ) ] ; then mkdir $(LOCAL_OBJ) ; fi ; \
 if [ ! -e $(LOCAL_LIB) ] ; then mkdir $(LOCAL_LIB) ; fi ; \
@@ -309,6 +319,10 @@ clean_lib:
 	-cd $(LOCAL_LIB); rm -f $(LIBRARIES) $(IMPORTED_LIBRARIES)
 clean_bin:
 	-cd $(LOCAL_BIN); rm -f $(PROGS)
+
+dep-clean:
+	find . -name "*.d" -exec rm {} \;
+
 
 #### Separate source types
 C_OBJECTS      := $(patsubst %.c, %.o, $(filter %.c, $(SOURCES)))
@@ -421,6 +435,7 @@ $(CXX_DEPS_CPP): %.d: %.cpp
 #	    | sed '\''s/$*\\.o[ :]*/& $@/g'\'' > $@' ; \
 #        fi ;
 
+
 -include $(DEPS)
 
 #### Specific target to make objects
@@ -436,8 +451,11 @@ progs: $(PROGS)
 #incs:
 
 #### Phony
-.PHONY: all clean clean_obj clean_lib clean_bin
+.PHONY: all clean clean_obj clean_lib clean_bin clean_dep
 
+## Unfortunately, this TGT can't easily be set in the make rule
+## So set it to be the target (typically objs, libs, progs, all, ...)
+TGT = $@
 
 # The following recurses the subdirectories that exist
 define dosubdirs
@@ -447,7 +465,7 @@ for i in $(SUBDIRS);\
     if [ -d $$i ]; then \
       cd $$i;\
       echo "#####    Making Directory " `pwd` " " $(TGT) " #####";\
-      gmake $(TGT);\
+      $(MAKE) $(TGT);\
       cd ..;\
     fi; \
   done;

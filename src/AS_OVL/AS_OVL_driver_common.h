@@ -26,8 +26,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_driver_common.h,v 1.1.1.1 2004-04-14 13:52:27 catmandew Exp $
- * $Revision: 1.1.1.1 $
+ * $Id: AS_OVL_driver_common.h,v 1.2 2004-09-23 20:25:25 mcschatz Exp $
+ * $Revision: 1.2 $
 */
 
 
@@ -153,10 +153,10 @@ fprintf (stderr, "### sizeof (Work_Area_t) = " F_SIZE_T "\n",
          sizeof (Work_Area_t));
 #if  USE_THREADS
 fprintf (stderr, "### Using %d pthreads  %d hash bits  %d bucket entries\n",
-         Num_PThreads, HASH_MASK_BITS, ENTRIES_PER_BUCKET);
+         Num_PThreads, Hash_Mask_Bits, ENTRIES_PER_BUCKET);
 #else
 fprintf (stderr, "### Not using threads  %d hash bits  %d bucket entries\n",
-         HASH_MASK_BITS, ENTRIES_PER_BUCKET);
+         Hash_Mask_Bits, ENTRIES_PER_BUCKET);
 #endif
 
 #if  USE_THREADS
@@ -252,7 +252,7 @@ Source_Log_File = File_Open ("ovl-srcinfo.log", "w");
             Hi_Hash_Frag = id;
        }
 
-   while (ReadFrags (MAX_HASH_STRINGS, NewFragStore, NewDistStore, argc, argv))
+   while (ReadFrags (Max_Hash_Strings, NewFragStore, NewDistStore, argc, argv))
      {
       int startIndex;
 

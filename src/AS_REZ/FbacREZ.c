@@ -34,7 +34,7 @@
 
  **********************************************************************/
 
-static char fileID[] = "$Id: FbacREZ.c,v 1.1.1.1 2004-04-14 13:53:03 catmandew Exp $";
+static char fileID[] = "$Id: FbacREZ.c,v 1.2 2004-09-23 20:25:27 mcschatz Exp $";
 
 #define FBACDEBUG 2
 
@@ -55,6 +55,7 @@ static char fileID[] = "$Id: FbacREZ.c,v 1.1.1.1 2004-04-14 13:53:03 catmandew E
 #include "Globals_CGW.h"
 #include "ScaffoldGraph_CGW.h"
 #include "ChiSquareTest_CGW.h"
+#include "GraphCGW_T.h"
 
 //
 // AS_REZ
@@ -86,6 +87,8 @@ static VA_TYPE(char) *quality2 = NULL;
 
 void ResetFrag( CIFragT *currFrag, int currFragOriginalContig, 
 	       double currFragOriginalOffset5p, double currFragOriginalOffset3p);
+int CheckWalkOverlaps( ChunkInsertInfoT *walkedContigs, int numChunks, int fixOverlapFailures);
+int CheckRchunkContainment( ChunkInsertInfoT *walkedChunks, ChunkInsertInfoT *lastWalkedChunk);
 
 // used to allow filter function to detect which locale we're filtering on
 // int buildLocale;
@@ -2935,7 +2938,7 @@ int GetFragInfo (ChunkInstanceT* chunk, int locale, unsigned int* minFragIid, un
   MultiAlignT *uma;
   IntMultiPos *ump;
   
-  *minFragIid = -1;
+  *minFragIid = CDS_INT32_MAX;
   *maxFragIid = 0;
   
   // then get multi-align for the node

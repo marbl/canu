@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /* RCS info
- * $Id: AS_SIM_tobatches.c,v 1.1.1.1 2004-04-14 13:53:41 catmandew Exp $
+ * $Id: AS_SIM_tobatches.c,v 1.2 2004-09-23 20:25:28 mcschatz Exp $
  */
 
 
@@ -193,7 +193,7 @@ int main(int argc, char *argv[])
    }
    
   fprintf(stderr,__FILE__ " "  __DATE__ " " __TIME__ "\n");
-  fprintf(stderr,"$Id: AS_SIM_tobatches.c,v 1.1.1.1 2004-04-14 13:53:41 catmandew Exp $\n");
+  fprintf(stderr,"$Id: AS_SIM_tobatches.c,v 1.2 2004-09-23 20:25:28 mcschatz Exp $\n");
   fprintf(stderr,"Batch size = %d\n",batch_size);
 
   fin = fopen(File_Name,"r");

@@ -23,7 +23,7 @@ cc -g -pg -qfullpath   -qstrict -qbitfields=signed -qchars=signed -qlanglvl=ext 
 -o /work/assembly/rbolanos/IBM_PORT_CDS/ibm_migration_work_dir/cds/AS/obj/GraphCGW_T.o GraphCGW_T.c
 */
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.1.1.1 2004-04-14 13:50:43 catmandew Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.2 2004-09-23 20:25:19 mcschatz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,7 +46,6 @@ static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.1.1.1 2004-04-14 13:50:43 catmandew
 #include "AS_MSG_Utility.h"
 #include "FbacREZ.h"
 #include "UtilsREZ.h"
-
 
 void InitializeChunkInstance(ChunkInstanceT *ci, ChunkInstanceType type){
   ClearChunkInstance(ci);
@@ -1535,6 +1534,14 @@ CDS_CID_t AddGraphEdge(GraphCGW_T *graph,
           isRepeatOverlap,
           isExtremalA,
           isExtremalB);
+    fprintf(GlobalData->stderrc,"* ... isIndByUnkOri %d isSTSGuide %d isMayJoin %d isMustJoin %d isAContainsB %d isBContainsA %d isTransChunk %d\n",
+		   isInducedByUnknownOrientation,
+		   isSTSGuide,
+		   isMayJoin,
+		   isMustJoin,
+		   isAContainsB,
+		   isBContainsA,
+	    isTransChunk);
 #endif
   
 #ifdef DEBUG_DATA
@@ -2080,14 +2087,14 @@ void UpdateNodeUnitigs(MultiAlignT *ma, ContigT *contig){
     int flip = (pos->position.end < pos->position.bgn);
     CDS_COORD_t bgn, end;
     
-    // mp->position is an interval.  We need to subtract one from
+    // mp->position is an interval.  We used to think we needed to subtract one from
     // the upper end of the interval
     if(flip){
-      bgn = pos->position.bgn - 1;
+      bgn = pos->position.bgn /* - 1*/;
       end = pos->position.end;
     }else{
       bgn = pos->position.bgn;
-      end = pos->position.end - 1;
+      end = pos->position.end /* - 1 */;
     }
     // Set the contigID
     node->info.CI.contigID = contigID;
@@ -2175,29 +2182,55 @@ void UpdateNodeFragments(GraphCGW_T *graph, CDS_CID_t cid,
     int flip = (mp->position.end < mp->position.bgn);
     CDS_COORD_t bgn, end;
     
+
+    // the original code here called for changing from space-based to 0-base-based
+    // coordinates ... but this seems incompatible with the behavior of GetMultiAlignUngappedOffsets???
+    // So, let's stop adjusting the interval coordinates!
+#undef CONVERT_INTERVAL_TO_BASES_WHICH_IS_A_BAD_IDEA
+#ifdef CONVERT_INTERVAL_TO_BASES_WHICH_IS_A_BAD_IDEA
+  #define INTERVAL_TO_BASE_END_CONVERSION 1
+#else
+  #define INTERVAL_TO_BASE_END_CONVERSION 0
+#endif
+
     // mp->position is an interval.  We need to subtract one from
     // the upper end of the interval
     if(flip){
-      bgn = mp->position.bgn - 1;
+      bgn = mp->position.bgn - INTERVAL_TO_BASE_END_CONVERSION;
       end = mp->position.end;
     }else{
       bgn = mp->position.bgn;
-      end = mp->position.end - 1;
+      end = mp->position.end - INTERVAL_TO_BASE_END_CONVERSION;
     }
-    
     ubgn = *GetCDS_COORD_t(ungappedOffsets, bgn);
     uend = *GetCDS_COORD_t(ungappedOffsets, end);
     
     if(ubgn == uend){
-      fprintf(GlobalData->stderrc,"* Fragment " F_CID " now has ZERO length (" F_COORD "," F_COORD ")...originally (" F_COORD "," F_COORD ")...probably bad multi-alignment\n",
-              mp->ident, ubgn, uend, bgn,end);
-#ifdef RAT_RUN
+      fprintf(GlobalData->stderrc,"* Fragment " F_CID " now has ungapped length = %d (" F_COORD "," F_COORD ")...from gapped (" F_COORD "," F_COORD ")...either bad multi-alignment\n"
+	      "* or a fragment fully contained within a gap in the consensus due to a bubble\n",
+              mp->ident,(int)abs(ubgn-uend), ubgn, uend, bgn,end);
+      if(!markUnitigAndContig){
+	fprintf(GlobalData->stderrc,"* Details: fragment in CI " F_CID " [" F_COORD "," F_COORD "] CtgID " F_CID " [" F_COORD "," F_COORD "]\n",
+		frag->cid,(int)(frag->offset5p.mean),(int)(frag->offset3p.mean),
+		frag->contigID,(int)(frag->contigOffset5p.mean),(int)(frag->contigOffset3p.mean));
+      }
+      fprintf(GlobalData->stderrc,"* More details: graph node " F_CID "\n",cid);
+
       fprintf(GlobalData->stderrc,"* Setting length to ONE for now...\n");
-      if(ubgn==0)
-        uend++;
-      else
-        ubgn--;
-#endif
+      if(bgn < end){
+	if(ubgn<1){
+	  uend++;
+	} else {
+	  ubgn--;
+	}
+      } else {
+	assert(end<bgn);
+	if(uend<1){
+	  ubgn++;
+	} else {
+	  uend--;
+	}
+      }
     }
     offset5p.mean = ubgn;
     offset5p.variance = ComputeFudgeVariance(offset5p.mean);
@@ -2219,10 +2252,24 @@ void UpdateNodeFragments(GraphCGW_T *graph, CDS_CID_t cid,
       frag->offset3p = offset3p;
       frag->offset5p = offset5p;
     }
+
+#if 0
+    fprintf(stderr,"* result: " F_CID " frag->offset to " F_COORD "," F_COORD " and frag->contigOffset " F_COORD "," F_COORD " of " F_CID " (frag->cid " F_CID " CIid " F_CID " contigID " F_CID " )\n",
+	    frag->iid,
+	    (int) frag->offset5p.mean,
+	    (int) frag->offset3p.mean,
+	    (int) frag->contigOffset5p.mean,
+	    (int) frag->contigOffset3p.mean,
+	    node->id,
+	    frag->cid,
+	    frag->CIid,
+	    frag->contigID);
+#endif
+
     if(i == extremalA){
       frag->label = AS_INTERCHUNK_A; 
     }else if(i == extremalB){
-      frag->label = AS_INTERCHUNK_A; 
+      frag->label = AS_INTERCHUNK_B;  /*  A->B? */
     }else{
       frag->label = AS_INTRACHUNK; 
     }
@@ -3082,11 +3129,26 @@ void PropagateRawEdgeStatusToFrag(EdgeCGW_T *edge){
 */
 void PropagateEdgeStatusToFrag(GraphCGW_T *graph, EdgeCGW_T *edge){
   if(edge->flags.bits.isRaw){
+    if(edge->fragA == NULLINDEX||edge->fragB == NULLINDEX){
+      PrintGraphEdge(stderr,graph," PESTF1 : ",edge,edge->idA);
+      fprintf(stderr," * .... isInferred %d\n",
+	      edge->flags.bits.isInferred);
+      assert(0);
+    }
+
     PropagateRawEdgeStatusToFrag(edge);
     return;
   }
   // Propagate to raw edges that are attached
   while(NULL != (edge = GetGraphEdge(graph, edge->nextRawEdge))){
+
+    if(edge->fragA == NULLINDEX||edge->fragB == NULLINDEX){
+      PrintGraphEdge(stderr,graph," PESTF2 : ",edge,edge->idB);
+      fprintf(stderr," * .... isInferred %d\n",
+	      edge->flags.bits.isInferred);
+      assert(0);
+    }
+
     PropagateRawEdgeStatusToFrag(edge);
   }
   return;
@@ -3527,8 +3589,8 @@ CDS_CID_t SplitUnresolvedContig(GraphCGW_T *graph,
                                 CDS_CID_t nodeID,
                                 VA_TYPE(CDS_CID_t) *fragments,
                                 int32 copyAllOverlaps){
-  NodeCGW_T *node = GetGraphNode(graph, nodeID);
   NodeCGW_T *newNode = CreateNewGraphNode(graph);
+  NodeCGW_T *node = GetGraphNode(graph, nodeID);
   int numFrags = (fragments == NULL?0:GetNumCDS_CID_ts(fragments));
   MultiAlignT *oldMA = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, node->id, graph->type == CI_GRAPH); 
   //  GetMultiAlignInStore(graph->maStore, node->id);
@@ -3562,6 +3624,11 @@ CDS_CID_t SplitUnresolvedContig(GraphCGW_T *graph,
   newCI->flags.bits.isSurrogate = TRUE;
   newCI->flags.bits.isStoneSurrogate = copyAllOverlaps;
   newCI->flags.bits.isWalkSurrogate = !copyAllOverlaps;
+
+  // regenerate base CI pointer in case the CIGraph gets reallocated (MP)
+  baseCI = GetGraphNode(ScaffoldGraph->CIGraph, u->ident);
+
+
   assert(newCI->type == RESOLVEDREPEATCHUNK_CGW);
   
   newCI->info.CI.contigID = newNode->id; // Set the contig id
@@ -3734,6 +3801,24 @@ void ComputeMatePairStatistics( int operateOnNodes,
   VA_TYPE(CDS_CID_t) *dptrFrags[NN];
   VA_TYPE(CDS_CID_t) *dptrMates[NN];
   
+
+  // make the stat directory if it doesn't exist already
+  {
+	char filename[128];
+	DIR *dout;
+	
+	sprintf( filename, "stat");
+	fprintf( stderr, "opening directory: %s\n", filename);
+	dout = opendir( filename);
+	if ( dout == NULL )
+	{
+	  fprintf( stderr, "could not open directory: %s, creating...\n", filename);
+	  system( "mkdir stat" );
+	  dout=opendir(filename);
+	  assert(dout !=NULL);
+	}
+	closedir(dout);
+  }
   
   if (operateOnNodes == UNITIG_OPERATIONS)
     graph = ScaffoldGraph->CIGraph;

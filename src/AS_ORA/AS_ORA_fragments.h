@@ -22,7 +22,7 @@
 #define AS_ORA_FRAGMENTS_H
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_ORA/Attic/AS_ORA_fragments.h,v $
-$Revision: 1.1.1.1 $
+$Revision: 1.2 $
 **********************************************************************/
 
 

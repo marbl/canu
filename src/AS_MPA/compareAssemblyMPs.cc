@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: compareAssemblyMPs.cc,v 1.1.1.1 2004-04-14 13:51:58 catmandew Exp $ */
+/* $Id: compareAssemblyMPs.cc,v 1.2 2004-09-23 20:25:23 mcschatz Exp $ */
 #include <cstdio>  // for sscanf
 #include <iostream>
 #include <iomanip>
@@ -134,7 +134,7 @@ void ReadIntraMPs(vector<AssessedMatePair> & amps,
     char orient;
     ID_TYPE leftUID, rightUID, libUID;
     COORD_TYPE left5, right5;
-    sscanf(line, "%c " _LU " " _LU " " _LU " %d %d",
+    sscanf(line, "%c " F_U64 " " F_U64 " " F_U64 " %d %d",
            &orient, &leftUID, &rightUID, &libUID, &left5, &right5);
     switch(orient)
     {
@@ -181,7 +181,7 @@ void ReadInterMPs(vector<AssessedMatePair> & amps,
     int32 leftChrom, rightChrom;
     COORD_TYPE left5, right5;
     
-    sscanf(line, _LU " %d %d %s " _LU " %d %d %s " _LU,
+    sscanf(line, F_U64 " %d %d %s " F_U64 " %d %d %s " F_U64,
            &leftUID, &leftChrom, &left5, leftOrient,
            &rightUID, &rightChrom, &right5, leftOrient,
            &libUID);
@@ -479,7 +479,7 @@ void CompareUnsatisfiedMPGs(vector<AssessedMatePair> & rawMPs,
               // get left uid
               COORD_TYPE start, length;
               ID_TYPE leftUID, rightUID;
-              sscanf(line, "%*c %*s %*s %*s %*s %d %d . . . . > /leftUID=" _LU " > /rightUID=" _LU,
+              sscanf(line, "%*c %*s %*s %*s %*s %d %d . . . . > /leftUID=" F_U64 " > /rightUID=" F_U64,
                      &start, &length, &leftUID, &rightUID);
 
               cout << "( " << leftUID << " " << rightUID << " ): ";

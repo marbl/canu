@@ -35,8 +35,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: DataTypesREZ.h,v 1.1.1.1 2004-04-14 13:52:58 catmandew Exp $
- * $Revision: 1.1.1.1 $
+ * $Id: DataTypesREZ.h,v 1.2 2004-09-23 20:25:27 mcschatz Exp $
+ * $Revision: 1.2 $
 */
 
 #ifndef DATA_TYPES_REZ_H
@@ -262,9 +262,9 @@ typedef struct {
       \__            \_
          v             v
    +---+---+------+---+---+
-   ! 5 ! 2 ! .... !234!123! cid        \ 
+   ! 5 ! 2 ! .... !234!123! cid        } 
    +---+---+------+---+---+             >  chunk_subgraph_node(s)
-   !   !   ! .... !   !   ! other info /
+   !   !   ! .... !   !   ! other info }
    +---+---+------+---+---+
   
    the following relation MUST be maintained for all 0 <= i < s->size

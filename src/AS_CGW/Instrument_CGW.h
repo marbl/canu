@@ -52,6 +52,8 @@ VA_DEF(IntContigPairs)
 #define INST_ONE_CELAMY        32
 #define INST_ALL_CELAMY        64
 
+#define TRACK_3P  /*store fragment 3-prime end locations*/
+
 /*
   levels of verbosity
 */
@@ -65,6 +67,8 @@ typedef enum
   InstrumenterVerbose5
 } InstrumenterVerbosity;
 
+/* what to print for mate details for scaffold instrumenter */
+typedef enum { PRINTCELAMY, PRINTTABLE }  printtypes;
 
 /*
   types of results
@@ -144,6 +148,10 @@ typedef struct
   CDS_CID_t   mateChunkIID;
   CDS_CID_t   libIID;
   FragType    type;
+#ifdef TRACK_3P
+  cds_float32 fragOffset3p;
+  cds_float32 mateOffset3p;
+#endif
 } MateDetail;
 VA_DEF(MateDetail)
 
@@ -559,6 +567,7 @@ ContigInstrumenter * CreateContigInstrumenter(ScaffoldGraphT * graph,
 int InitializeContigInstrumenter(ScaffoldGraphT * graph,
                                  ContigInstrumenter * ci);
 int InstrumentContig(ScaffoldGraphT * graph,
+		     HashTable_AS *cpHT,
                      SurrogateTracker * st,
                      ChunkInstanceT * contig,
                      ContigInstrumenter * ci,
@@ -571,6 +580,19 @@ void PrintContigInstrumenter(ScaffoldGraphT * graph,
                              InstrumenterVerbosity verbose,
                              char * prefix,
                              FILE * printTo);
+
+void PrintScaffoldInstrumenterMateDetails(ScaffoldInstrumenter * si,
+                                          FILE * printTo,
+					  int printType);
+void PrintExternalMateDetailsAndDists(ScaffoldGraphT * graph,
+				      VA_TYPE(MateDetail) * mda,
+				      char * prefix,
+				      FILE * printTo,
+				      int printtype);
+void PrintUnmatedDetails(ScaffoldInstrumenter * si,
+			 FILE * printTo,
+			 int printType);
+
 
 void DestroyScaffoldInstrumenter(ScaffoldInstrumenter * si);
 ScaffoldInstrumenter * CreateScaffoldInstrumenter(ScaffoldGraphT * graph,
@@ -644,5 +666,9 @@ void PrintBreakpoint(InstrumenterBreakpoint * bp,
                      char * prefix,
                      FILE * printTo);
 void FindRockStoneUnitigs(ScaffoldGraphT * graph);
+
+#ifdef TRACK_3P
+void safelyAppendInstInfo(char **locs,int32 utgIID, int *lenloc, int *lenUsed);
+#endif
 
 #endif

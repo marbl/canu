@@ -22,14 +22,14 @@
 ###########################################################################
 #
 # *********************************************************************
-# $Id: Makefile,v 1.1.1.1 2004-04-14 13:51:56 catmandew Exp $
+# $Id: Makefile,v 1.2 2004-09-23 20:25:23 mcschatz Exp $
 # Module: AS_MER
 # Description: The merCounter.
 # Assumptions:
 # *********************************************************************
 #
 #######################################################################
-VERBOSE=1
+#VERBOSE=1
 LOCAL_WORK = $(shell cd ../..; pwd)
 
 AS_MER_GENERAL_SOURCES = \
@@ -37,6 +37,9 @@ AS_MER_GENERAL_SOURCES = \
 
 AS_MER_MAIN_SOURCES = \
 	AS_MER_meryl.cc
+
+CXX_SOURCES = $(AS_MER_GENERAL_SOURCES) $(AS_MER_MAIN_SOURCES)
+CXX_OBJECTS = $(CXX_SOURCES:.cc=.o)
 
 TEST_SOURCES = 
 
@@ -60,10 +63,13 @@ include $(LOCAL_WORK)/src/c_make.as
 LDFLAGS += -lm
 
 CXXDEFS = 
-#CXXFLAGS += -g -pg -qcpluscmt -qstrict -I/scratch/hannone/incl
+#CXXFLAGS += -g -pg -qcpluscmt -qstrict 
 # DEC cxx requires tlocal for template linking. Not recognized by g++.
-#CXX = cxx -tlocal
-#CXX = xlC
+ifeq "$(OSTYPE)" "osf1"
+CXX = cxx -tlocal
+else
+CXX = g++
+endif
 
 DEPEND_FILES = *.c *.h
 CLEANABLE_FILES = *.o *~
@@ -78,16 +84,3 @@ all: $(OBJECTS) $(LIBRARIES) $(PROGS)
 meryl: AS_MER_meryl.o \
 	$(AS_MER_GENERAL_OBJECTS) \
 	$(STORE_LIBS)
-
-
-
-
-
-
-
-
-
-
-
-
-

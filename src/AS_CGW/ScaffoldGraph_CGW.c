@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.1.1.1 2004-04-14 13:51:01 catmandew Exp $";
+static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.2 2004-09-23 20:25:19 mcschatz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -176,7 +176,7 @@ void CheckpointScaffoldGraph(ScaffoldGraphT *graph){
     fprintf(GlobalData->timefp,"* Time in Consensus %g seconds (%ld calls)\n",
 	    TotalTimerT(&GlobalData->ConsensusTimer, &cycles), cycles);
   }
-  fflush(NULL);
+  //  fflush(NULL);
 
   outStream = File_Open(buffer,"w",TRUE);
   

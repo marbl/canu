@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: RepeatRez.h,v 1.1.1.1 2004-04-14 13:53:29 catmandew Exp $	 */
+/* 	$Id: RepeatRez.h,v 1.2 2004-09-23 20:25:28 mcschatz Exp $	 */
 
 /************************************************************************
  *  RepeatRez.h
@@ -51,6 +51,6 @@ int  Throw_Stones
 int  Toss_Contained_Stones
     (char * prefix, int level, int redo_index);
 
-int Inter_Scaffold_Walking();
+int Inter_Scaffold_Walking(void);
 
 #endif

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: GraphCGW_T.h,v 1.1.1.1 2004-04-14 13:50:45 catmandew Exp $	 */
+/* 	$Id: GraphCGW_T.h,v 1.2 2004-09-23 20:25:19 mcschatz Exp $	 */
 
 /**************************************************************************
  *  GraphCGW
@@ -1257,6 +1257,9 @@ void InsertGraphEdgeInList(GraphCGW_T *graph, CDS_CID_t CIedgeID,
 void PrintGraphEdge(FILE *logfp, GraphCGW_T *graph, char *label,
                     EdgeCGW_T *edge, CDS_CID_t cid);
 
+void PrintContigEdgeInScfContext(FILE *logfp, GraphCGW_T *graph, char *label, EdgeCGW_T *edge, int cid);
+
+
 
 CDS_CID_t AddGraphEdge( GraphCGW_T *graph,
                         CDS_CID_t cidA, CDS_CID_t cidB, 
@@ -1609,5 +1612,6 @@ void InitGraphEdge(EdgeCGW_T *edge);
 void AssignFragsToResolvedCI(GraphCGW_T *graph,
                              CDS_CID_t fromID, CDS_CID_t toID,
                              VA_TYPE(CDS_CID_t) *fragments);
+
 #endif
 

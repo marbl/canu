@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: TransitiveReduction_CGW.c,v 1.1.1.1 2004-04-14 13:51:10 catmandew Exp $";
+static char CM_ID[] = "$Id: TransitiveReduction_CGW.c,v 1.2 2004-09-23 20:25:19 mcschatz Exp $";
 
 // This file contains the code for computing the candidate
 // chunks of scaffolds.
@@ -1441,6 +1441,19 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
     inferredEdge->flags.bits.isTentative = TRUE;
     setEssentialEdgeStatus(inferredEdge, TRUE);
     //    inferredEdge->flags.bits.isEssential = TRUE;
+
+#if 0
+    fprintf(GlobalData->stderrc,"* Added inferred GraphEdge v2 (%d,%d,%c) isAContainsB:%d isBContainsA:%d fragA %d fragB %d isInferred %d isRaw %d\n",
+	    inferredEdge->idA, inferredEdge->idB, 
+	    inferredEdge->orient,
+	    inferredEdge->flags.bits.aContainsB,
+	    inferredEdge->flags.bits.bContainsA,
+	    inferredEdge->fragA,inferredEdge->fragB,
+	    inferredEdge->flags.bits.isInferred,
+	    inferredEdge->flags.bits.isRaw);
+#endif
+
+
   }
   if(failedInfer){
 
@@ -2737,6 +2750,18 @@ void AddScaffoldInferredEdges(ScaffoldGraphT *graph,  int verbose){
       inferredEdge->flags.bits.isActive = TRUE;
       inferredEdge->flags.bits.isConfirmed = TRUE;
       inferredEdge->flags.bits.isLeastSquares = TRUE;
+
+#if 0
+      fprintf(GlobalData->stderrc,"* Added inferred GraphEdge v1 (%d,%d,%c) isAContainsB:%d isBContainsA:%d fragA %d fragB %d isInferred %d isRaw %d\n",
+	      inferredEdge->idA, inferredEdge->idB, 
+	      inferredEdge->orient,
+	      inferredEdge->flags.bits.aContainsB,
+	      inferredEdge->flags.bits.bContainsA,
+	      inferredEdge->fragA,inferredEdge->fragB,
+	      inferredEdge->flags.bits.isInferred,
+	      inferredEdge->flags.bits.isRaw);
+#endif
+
       }else{
 	// This is a containment edge
 	fprintf(stderr,"* Did NOT add inferred edge (" F_CID "," F_CID ",%c) offsets [%g,%g] [%g,%g]... a containment?\n",
@@ -2965,7 +2990,7 @@ void BuildUniqueCIScaffolds(ScaffoldGraphT *graph,
   // markShakyBifurcations = FALSE;
   
   // off_on
-  markShakyBifurcations = TRUE;
+  markShakyBifurcations = TRUE;  // ALH, 6/20/2004: why turn this on?
   
   /*  if(verbose)
       DumpScaffoldGraph(graph);*/
@@ -2992,8 +3017,8 @@ void BuildUniqueCIScaffolds(ScaffoldGraphT *graph,
 	fflush(GlobalData->logfp);
       }
     }
-    DeleteInferredEdges(graph, verbose);
   }
+  DeleteInferredEdges(graph, verbose);
   MarkEssentialEdges(graph,FALSE,verbose);
 
   CreateScaffolds(graph,  verbose);

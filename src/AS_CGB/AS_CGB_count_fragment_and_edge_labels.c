@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_count_fragment_and_edge_labels.c,v 1.1.1.1 2004-04-14 13:49:46 catmandew Exp $";
+= "$Id: AS_CGB_count_fragment_and_edge_labels.c,v 1.2 2004-09-23 20:25:01 mcschatz Exp $";
 /* *******************************************************************
  *
  * Module: AS_CGB_count_fragment_and_edge_labels

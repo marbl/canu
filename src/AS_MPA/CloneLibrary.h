@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: CloneLibrary.h,v 1.1.1.1 2004-04-14 13:51:56 catmandew Exp $ */
+/* $Id: CloneLibrary.h,v 1.2 2004-09-23 20:25:23 mcschatz Exp $ */
 #ifndef CLONELIBRARY_H
 #define CLONELIBRARY_H
 
@@ -44,7 +44,7 @@ public:
 
   void setFromString(char * line)
     {
-      sscanf(line, _LU " %lf %lf", &pUID, &pMean, &pStddev);
+      sscanf(line, F_U64 " %lf %lf", &pUID, &pMean, &pStddev);
       pOrient = PAIR_INNIE;
     }
 

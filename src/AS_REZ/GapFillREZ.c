@@ -37,7 +37,7 @@
 
 
 
-static char fileID[] = "$Id: GapFillREZ.c,v 1.1.1.1 2004-04-14 13:53:14 catmandew Exp $";
+static char fileID[] = "$Id: GapFillREZ.c,v 1.2 2004-09-23 20:25:27 mcschatz Exp $";
 
 
 #include <stdio.h>
@@ -679,6 +679,8 @@ static void   Verify_Single_Placement
     (Scaffold_Fill_t * fill);
 static int  Violates_Scaff_Edges
     (Scaff_Join_t  * p);
+static int IsSurrogate(ChunkInstanceT * chunk);
+static void  Adjust_By_Ref_Variance_One_Scaffold(Scaffold_Fill_t * fill_chunks, int scaff_id);
 
 
 int  Global_Debug_Flag = FALSE;

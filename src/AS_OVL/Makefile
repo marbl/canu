@@ -35,7 +35,7 @@ AS_OVL_CMN_SRCS = AS_OVL_delcher.c
 AS_OVL_CMN_OBJS = $(AS_OVL_CMN_SRCS:.c=.o)
 
 CORRECT_SRCS = FragCorrectOVL.c ShowCorrectsOVL.c CorrectOlapsOVL.c DeleteOlapsOVL.c \
-  FilterOlapsOVL.c CatCorrectsOVL.c 
+  FilterOlapsOVL.c CatCorrectsOVL.c CatEratesOVL.c
 CORRECT_OBJS = $(CORRECT_SRCS:.c=.o)
 
 LIBSOURCES =  OlapStoreOVL.c  MatchListOVL.c
@@ -52,14 +52,17 @@ SCRIPT_SRCS = CorrectScriptOVL.c MakeScriptOVL.c NewBactigScriptOVL.c NewFragScr
 SCRIPT_OBJS = $(SCRIPT_SRCS:.c=.o)
 
 TOOL_SRCS = get-degrees.c get-subgraph.c get-iidgraph.c get-uid-olaps.c \
-  iid2fastaOVL.c isn2frgOVL.c LastFragInStoreOVL.c olapcoverage.cc \
+  iid2fastaOVL.c isn2frgOVL.c LastFragInStoreOVL.c \
   fgbovlhits.c rev-olaps.c Hit_Limit_OVL.c
 TOOL_OBJS = $(TOOL_SRCS:.c=.o)
 
+CXX_SOURCES =  olapcoverage.cc
+CXX_OBJECTSS = $(TOOL_CXX_SRCS:.cc=.o)
+
 SOURCES = $(AS_OVL_CA_SRCS) $(AS_OVL_SRCS) $(AS_OVL_CMN_SRCS) $(CORRECT_SRCS) \
-  $(SCREEN_SRCS) $(SCRIPT_SRCS) $(TOOL_SRCS) $(OLAPSTORE_SRCS) $(LIBSOURCES)
+  $(SCREEN_SRCS) $(SCRIPT_SRCS) $(TOOL_SRCS) $(OLAPSTORE_SRCS) $(LIBSOURCES) $(CXX_SOURCES)
 OBJECTS = $(AS_OVL_CA_OBJS) $(AS_OVL_OBJS) $(AS_OVL_CMN_OBJS) $(CORRECT_OBJS) \
-  $(SCREEN_OBJS) $(SCRIPT_OBJS) $(TOOL_OBJS) $(OLAPSTORE_OBJS)
+  $(SCREEN_OBJS) $(SCRIPT_OBJS) $(TOOL_OBJS) $(OLAPSTORE_OBJS) $(CXX_OBJECTS)
 
 LIBRARIES = libAS_OVL.a
 
@@ -67,11 +70,11 @@ AS_LIBRARIES = libAS_PER.a libAS_UTL.a libAS_MSG.a libAS_ALN.a libAS_CNS.a \
 	libAS_CGW.a libAS_REZ.a libAS_SDB.a libAS_CNS.a libAS_CGW.a \
 	libAS_REZ.a libAS_SDB.a libAS_ALN.a libAS_UTL.a libAS_PER.a \
 	libAS_OVL.a libAS_MSG.a libAS_LIN.a
-SYS_LIBRARIES = libm.a
+SYS_LIBRARIES = 
 
 AS_OVL_PROGS = overlap overlap_ca
 CORRECT_PROGS = correct-frags show-corrects correct-olaps delete-olaps filter-olaps \
-  cat-corrects
+  cat-corrects cat-erates
 OLAPSTORE_PROGS = dump-olap-store force-erates grow-olap-store update-erates
 SCREEN_PROGS = screen_analyze frag-anomaly screen-anomaly auto-screen combine-mums \
   remove-dup-screen removedups
@@ -89,24 +92,39 @@ SCRIPTS = overlap_script.pl make-screen.csh
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
 
-# CFLAGS+=-pthread
+# (MP) this should take care of intermittent "don't know how to make 
+# libpthread.a" problems 
+LDFLAGS+= -lpthread
+CFLAGS+= -pthread
+CPPFLAGS+= -pthread
+#PTHREADS_LIBS=-lpthread
 
-ifeq ($(OSTYPE), aix)
-  PTHREADS_LIBS=libc_r.so libpthread.so
-  PTHREADS_LIBS=libc_r.a libpthread.a
-else
-  PTHREADS_LIBS=libpthread.so
-endif
+#ifeq ($(OSTYPE), aix)
+#  PTHREADS_LIBS=libc_r.so /usr/lib/libpthread.so
+#  PTHREADS_LIBS=libc_r.a /usr/lib/libpthread.a
+#else 
+#  ifeq ($(OSTYPE), Darwin)
+#    PTHREADS_LIBS=libc_r.so /usr/lib/libpthread.dylib
+#    PTHREADS_LIBS=libc_r.a /usr/lib/libpthread.dylib
+#  else
+#   ifeq ($(OSTYPE), OSF1)
+#    PTHREADS_LIBS=-lpthread
+    #PTHREADS_LIBS=/usr/lib/libpthread.so
+#   endif
+#  endif
+#endif
 
 all:    $(OBJECTS) $(LIBRARIES) $(PROGS) install
 
 install: $(SCRIPTS)
 	chmod ugo+x $(SCRIPTS)
-	cp -f $(SCRIPTS) $(LOCAL_WORK)/bin
+	cp -f $(SCRIPTS) $(LOCAL_BIN)
 
 auto-screen:  AutoScreenOVL.o libAS_OVL.a $(AS_LIBRARIES) $(SYS_LIBRARIES)
 
 cat-corrects:  CatCorrectsOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
+
+cat-erates:  CatEratesOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
 
 combine-mums:  CombineMUMsOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
 

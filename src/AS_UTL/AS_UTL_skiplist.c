@@ -33,7 +33,7 @@
  Assumptions: - All inserted keys are bigger than minf and smaller than pinf   
 **********************************************************************/
 
-static char CM_ID[] = "$Id: AS_UTL_skiplist.c,v 1.1.1.1 2004-04-14 13:53:45 catmandew Exp $";
+static char CM_ID[] = "$Id: AS_UTL_skiplist.c,v 1.2 2004-09-23 20:25:29 mcschatz Exp $";
 
 
 /* 

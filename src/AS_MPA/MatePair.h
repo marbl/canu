@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: MatePair.h,v 1.1.1.1 2004-04-14 13:52:04 catmandew Exp $ */
+/* $Id: MatePair.h,v 1.2 2004-09-23 20:25:23 mcschatz Exp $ */
 #ifndef MATEPAIR_H
 #define MATEPAIR_H
 
@@ -82,7 +82,7 @@ public:
       COORD_TYPE left5p, right5p;
       char leftO[4], rightO[4];
       
-      sscanf(line, _LU " %d " _LU " %s " _LU " %d " _LU " %s " _LU,
+      sscanf(line, F_U64 " %d " F_U64 " %s " F_U64 " %d " F_U64 " %s " F_U64,
              &leftUID, &leftChrom, &left5p, leftO,
              &rightUID, &rightChrom, &right5p, rightO,
              &pLibUID);
@@ -96,7 +96,7 @@ public:
       ID_TYPE leftUID, rightUID;
       COORD_TYPE left5p, right5p;
       char orient;
-      sscanf(line, "%c " _LU " " _LU " " _LU " " _LU " " _LU,
+      sscanf(line, "%c " F_U64 " " F_U64 " " F_U64 " " F_U64 " " F_U64,
              &orient, &leftUID, &rightUID, &pLibUID, &left5p, &right5p);
       pLeftFrag.set(leftUID, left5p);
       pRightFrag.set(rightUID, right5p);

@@ -22,27 +22,78 @@
 ###########################################################################
 #
 # Tell c_make.gen to echo commands.
-VERBOSE = 1
+
+## Uncomment to enable
+#VERBOSE=1
+ifdef $(VERBOSE)
+export VERBOSE
+endif
+
+OSTYPE = $(shell echo `uname`)
+export OSTYPE
+
+MACHINETYPE = $(shell echo `uname -m`)
+export MACHINETYPE
 
 # AS Project Standards
 include $(LOCAL_WORK)/src/c_make.gen
 
-SUBDIRS = AS_MSG AS_UTL AS_PER AS_ALN AS_SDB \
-        AS_SIM AS_OVL AS_CNS AS_CGB \
-        AS_ORA AS_GKP AS_REZ AS_LIN\
-        AS_CGW AS_VWR AS_TER AS_SDB AS_CVT AS_MER AS_MPA
+SUBDIRS = AS_MSG \
+          AS_UTL \
+          AS_PER \
+          AS_ALN \
+          AS_SIM \
+          AS_OVL \
+          AS_CNS \
+          AS_CGB \
+          AS_ORA \
+          AS_GKP \
+          AS_REZ \
+          AS_LIN \
+          AS_CGW \
+          AS_VWR \
+          AS_TER \
+          AS_SDB \
+          AS_CVT \
+          AS_MER \
+          AS_MPA \
+          AS_UID
 
 # Compiler & flags
 
-ifeq ($(OSTYPE), linux)
+CC = gcc
+CXX = g++
+CFLAGS_OPT = -g #-mcpu=powerpc
+CXXDEFS = -D__cplusplus
+ARFLAGS = rvs
+
+ifeq ($(OSTYPE), Linux)
   CC = gcc
   CXX = g++
-  CFLAGS_OPT= -O3 -ffast-math
+  CFLAGS_OPT= -g 
+  CFLAGS+= -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -O3
   CXXDEFS= -D__cplusplus
   # CFLAGS_OPT= -g
   # CFLAGS_OPT += -DGENERIC_STORE_USE_LONG_STRINGS
   # CFLAGS_WARNINGS = -Wall
+
+  ifeq ($(MACHINETYPE), x86_64)
+    CFLAGS += -m64 -mcmodel=medium 
+  endif
 else
+  ifeq ($(OSTYPE), Darwin)
+    CC = gcc
+    CXX = g++
+    CFLAGS_OPT = -g #-mcpu=powerpc
+    CFLAGS+= -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+    CXXDEFS = -D__cplusplus
+ else 
+  ifeq ($(OSTYPE), SunOS)
+    CC = cc
+    CXX = cxx
+    CFLAGS += -DBYTE_ORDER=BIG_ENDIAN -DMAP_FILE=0 -g
+    LDFLAGS += -lsocket -lnsl
+  else
   ifeq ($(OSTYPE), aix)
     CC = xlc
     CFLAGS_OPT = -O3
@@ -94,10 +145,10 @@ else
     #CCOPTS  = -q64 -O3 -qstrict -D_LARGE_FILES
     #CCWARNS =
   else
-    ifeq ($(OSTYPE), osf3.2)
+    ifeq ($(OSTYPE), OSF1)
       CC = cc
-      CXX = g++
-      CFLAGS_OPT= -fast -O4
+      CXX = c++
+      CFLAGS_OPT=  -pthread -fast -O3
       # To get accurate variable prints in the debuggers:
       # CFLAGS_OPT= -g 
       # CFLAGS_OPT= -g -check_bounds
@@ -150,13 +201,31 @@ else
     endif
   endif
 endif
-CFLAGS += $(CFLAGS_OPT) $(CFLAGS_WARNINGS)
+endif
+endif
+CFLAGS += $(CFLAGS_OPT) $(CFLAGS_WARNINGS) -D_FILE_OFFSET_BITS=64
 
 INC_IMPORT_DIRS += \
                 $(patsubst %, $(LOCAL_WORK)/src/%, $(strip $(SUBDIRS))) \
-                $(LOCAL_WORK)/inc \
-                $(patsubst %, $(AS_BUILD_DIR)/src/%, $(strip $(SUBDIRS))) \
-                $(AS_BUILD_DIR)/inc
-LIB_IMPORT_DIRS += $(LOCAL_WORK)/lib $(AS_BUILD_DIR)/lib /usr/lib /usr/shlib $(LOCAL_WORK)/src/AS_TER /usr/X11R6/lib
-OBJ_SEARCH_PATH = $(LOCAL_WORK)/obj
+                $(LOCAL_WORK)/inc 
+
+ifeq ($(OSTYPE), OSF1)
+  INC_IMPORT_DIRS +=  /usr/local/include
+endif
+
+LIB_IMPORT_DIRS += $(LOCAL_LIB) /usr/lib  /usr/shlib /usr/X11R6/lib /usr/X/lib /usr/shlib/X11
+
+OBJ_SEARCH_PATH = $(LOCAL_OBJ)
+
+
+## Load if we are using SOAP or CURL as our UID transport
+## This has to be external to this file so that AS_UID/Makefile will work
+include $(LOCAL_WORK)/src/AS_UID/uid_transport.as
+
+ifeq ($(USE_SOAP_UID), 1)
+  CFLAGS += -DUSE_SOAP_UID
+  CXXFLAGS += -DUSE_SOAP_UID
+else
+  CURLLIB = -lcurl
+endif
 

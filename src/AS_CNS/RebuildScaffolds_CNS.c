@@ -78,7 +78,7 @@ echo 53 | rebuildscaffolds -f oct01.fStore -s oct01.sStore -V 23 -c oct01.cStore
 
  *********************************************************************/
 
-static char CM_ID[] = "$Id: RebuildScaffolds_CNS.c,v 1.1.1.1 2004-04-14 13:51:21 catmandew Exp $";
+static char CM_ID[] = "$Id: RebuildScaffolds_CNS.c,v 1.2 2004-09-23 20:25:20 mcschatz Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -474,10 +474,10 @@ int OutputScaffoldProfile(FILE *profileFile,ScaffoldData *scaff,IntContigPairs *
 
 	  if( contigOk ) {
 	    if ( show_ma ) {
-	      PrintMultiAlignT(profileFile,contig,global_fragStore,NULL, NULLINDEX, 1,1,READSTRUCT_LATEST);
+	      PrintMultiAlignT(profileFile,contig,global_fragStore,(tFragStorePartition*)NULL, (FragStoreHandle)NULLINDEX, 1,1,READSTRUCT_LATEST);
 	    } else {
 	      if ( show_colcorr ) {
-		PrintColumnCorrelation(profileFile,contig,global_fragStore,NULL, NULLINDEX, 1,1,READSTRUCT_LATEST,gapped_length);
+		PrintColumnCorrelation(profileFile,contig,global_fragStore,(tFragStorePartition*)NULL, (FragStoreHandle)NULLINDEX, 1,1,READSTRUCT_LATEST,gapped_length);
 	      } else 
 		if ( show_coordmap) {
 		  OutputCoordinateMap(profileFile,scaffoldID,contig,sequenceDB,&mapoffset,gapped_length);
@@ -498,10 +498,10 @@ int OutputScaffoldProfile(FILE *profileFile,ScaffoldData *scaff,IntContigPairs *
 	     }
 	     if ( show_ma ) {
 	       fprintf(profileFile,"Scaffold offset %d\n",gapped_length);
-	       PrintMultiAlignT(profileFile,contig,global_fragStore,NULL, NULLINDEX, 1,1,READSTRUCT_LATEST);
+	       PrintMultiAlignT(profileFile,contig,global_fragStore,(tFragStorePartition*)NULL, (FragStoreHandle)NULLINDEX, 1,1,READSTRUCT_LATEST);
 	     } else {
 	       if ( show_colcorr ) {
-		 PrintColumnCorrelation(profileFile,contig,global_fragStore,NULL, NULLINDEX, 1,1,READSTRUCT_LATEST,gapped_length);
+		 PrintColumnCorrelation(profileFile,contig,global_fragStore,(tFragStorePartition*)NULL, (FragStoreHandle)NULLINDEX, 1,1,READSTRUCT_LATEST,gapped_length);
 	       } else {
 		 if ( show_coordmap) {
 		   OutputCoordinateMap(profileFile,scaffoldID,contig,sequenceDB,&mapoffset,gapped_length);
@@ -562,10 +562,10 @@ int OutputScaffoldProfile(FILE *profileFile,ScaffoldData *scaff,IntContigPairs *
 
                if ( show_ma ) {
                   fprintf(profileFile,"Scaffold offset %d\n",gapped_length);
-                  PrintMultiAlignT(profileFile,contig,global_fragStore,NULL, NULLINDEX, 1,1,READSTRUCT_LATEST);
+                  PrintMultiAlignT(profileFile,contig,global_fragStore,(tFragStorePartition*)NULL, (FragStoreHandle)NULLINDEX, 1,1,READSTRUCT_LATEST);
                } else {
 		 if ( show_colcorr ) {
-		   PrintColumnCorrelation(profileFile,contig,global_fragStore,NULL, NULLINDEX, 1,1,READSTRUCT_LATEST,gapped_length);
+		   PrintColumnCorrelation(profileFile,contig,global_fragStore,(tFragStorePartition*)NULL, (FragStoreHandle)NULLINDEX, 1,1,READSTRUCT_LATEST,gapped_length);
 		 } else {
 		   if ( show_coordmap) {
 		     OutputCoordinateMap(profileFile,scaffoldID,contig,sequenceDB,&mapoffset,gapped_length);

@@ -22,7 +22,7 @@
 #
 ###########################################################################
 #
-# $Id: processInterRuns.sh,v 1.1.1.1 2004-04-14 13:52:06 catmandew Exp $
+# $Id: processInterRuns.sh,v 1.2 2004-09-23 20:25:24 mcschatz Exp $
 #
 
 if [ -z ${DATA_DIR} ]; then

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: MicroHetREZ_test3.c,v 1.1.1.1 2004-04-14 13:53:23 catmandew Exp $";
+static char CM_ID[] = "$Id: MicroHetREZ_test3.c,v 1.2 2004-09-23 20:25:28 mcschatz Exp $";
 
 #include "MicroHetREZ_test3.h"
 #include "MicroHetScoreREZ_test3.h"
@@ -224,6 +224,470 @@ void AS_REZ_print_alignment(Alignment_t *a,  int w)
 }
 
 
+/* an informative-cols-only print function for alignments */
+
+void AS_REZ_print_informatives_alignment(Alignment_t *a,int nfrag)
+{
+  int i,j,l;
+  int c = a->cols;
+  int r = a->rows;
+  int iter = 0;
+  char *consensus,*printArray;
+  int count[7]; // A C G T Dash N and total
+  int *row2frag,lastfrag,infcols,currcol;
+    
+  consensus = (char*)malloc (sizeof(char)*(a->cols));
+  assert(consensus!=NULL);
+
+  row2frag = (int*)malloc(sizeof(int)*r);
+  assert(row2frag!=NULL);
+
+  infcols=0;
+  for(i=0; i<c; i++)
+    {
+      int submax,max,k;
+      for(k=0; k<7; k++)
+	count[k] = 0;
+      for(j=0; j<r; j++)
+	{
+	  switch(a->ali[i][j])
+	    {
+	    case 'A' :
+	      count[0]++;
+	      count[6]++;
+	      break;	
+	    case 'C' :
+	      count[1]++;
+	      count[6]++;
+	      break;
+	    case 'G' :
+	      count[2]++;
+	      count[6]++;
+	      break;
+	    case 'T' :
+	      count[3]++;
+	      count[6]++;
+	      break;
+	    case '-' :
+	      count[4]++;
+	      count[6]++;
+	      break;
+	    }	
+	}	
+
+      max = 0;
+      for(k=0; k<6; k++){
+	if( count[max] < count[k] ){
+	  max = k;
+	}
+      }
+	
+      submax = (max==0 ? 1 : 0);
+      for(k=0;k<5;k++){
+	if(k!=max)
+	  if(count[submax] <= count[k])
+	    submax=k;
+      }
+      if(count[submax]>1){
+	switch( max )
+	  {
+	  case 0 :
+	    consensus[i] = 'A';
+	    infcols++;
+	    break;	
+	  case 1 :
+	    consensus[i] = 'C';
+	    infcols++;
+	    break;
+	  case 2 :
+	    consensus[i] = 'G';
+	    infcols++;
+	    break;
+	  case 3 :
+	    consensus[i] = 'T';
+	    infcols++;
+ 	    break;
+	  case 4 :
+	    consensus[i] = '-';
+	    infcols++;
+	    break;
+	  }
+      } else {
+	consensus[i] = '.';
+      }
+
+    }
+
+
+  //  for(j=0;j<c;j++)
+  //      if(consensus[j]!='.')printf("%c",consensus[j]);
+  //  printf("\tconsensus\n");
+  printArray = (char *) malloc(sizeof(char)*(infcols+1)*nfrag);
+  assert(printArray!=NULL);
+  for(i=0;i<nfrag;i++){
+    for(j=0;j<infcols;j++)
+      (printArray+i*(infcols+1))[j]=' ';
+    (printArray+i*(infcols+1))[j]='\0';
+  }
+
+  for(i=0;i<r;i++){
+    row2frag[i] = -1;
+  }
+  lastfrag=-1;
+  currcol=-1;
+  for(j=0;j<c;j++){
+    if(consensus[j]!='.')
+      currcol++;
+    for(i=0;i<r;i++){
+      if(a->ali[j][i] != ' '){
+	if(j==0||a->ali[j-1][i]==' '){
+	  row2frag[i] = ++lastfrag;
+	  //	  fprintf(stderr,"Advanced row2frag[%d] to %d at col %d\n",i,row2frag[i],j);
+	}
+	if(consensus[j]!='.')
+	  (printArray+row2frag[i]*(infcols+1))[currcol] =
+	    (consensus[j] != a->ali[j][i] ? a->ali[j][i] : '.' );
+      }
+    }
+  }
+
+  //  fprintf(stderr,"Here\n");  
+  assert(lastfrag+1==nfrag);
+  for(i=0;i<nfrag;i++)
+    printf("%s\t%d\n",printArray+i*(infcols+1),i);
+
+  free(consensus);
+  free(printArray);
+  free(row2frag);
+}
+
+
+
+void AS_REZ_print_informative_splits(Alignment_t *a,int nfrag)
+{
+  int i,j,l;
+  int c = a->cols;
+  int r = a->rows;
+  int iter = 0;
+  char *consensus,*printArray;
+  int count[7]; // A C G T Dash N and total
+  int *row2frag,lastfrag,infcols,currcol;
+  int submax,max,k,subct,currct,clades;
+    
+  consensus = (char*)malloc (sizeof(char)*(a->cols));
+  assert(consensus!=NULL);
+
+  row2frag = (int*)malloc(sizeof(int)*r);
+  assert(row2frag!=NULL);
+
+  infcols=0;
+  for(i=0; i<c; i++)
+    {
+      for(k=0; k<7; k++)
+	count[k] = 0;
+      for(j=0; j<r; j++)
+	{
+	  switch(a->ali[i][j])
+	    {
+	    case 'A' :
+	      count[0]++;
+	      count[6]++;
+	      break;	
+	    case 'C' :
+	      count[1]++;
+	      count[6]++;
+	      break;
+	    case 'G' :
+	      count[2]++;
+	      count[6]++;
+	      break;
+	    case 'T' :
+	      count[3]++;
+	      count[6]++;
+	      break;
+	    case '-' :
+	      count[4]++;
+	      count[6]++;
+	      break;
+	    }	
+	}	
+
+      max = 0;
+      for(k=0; k<6; k++){
+	if( count[max] < count[k] ){
+	  max = k;
+	}
+      }
+	
+      submax = (max==0 ? 1 : 0);
+      for(k=0;k<5;k++){
+	if(k!=max)
+	  if(count[submax] <= count[k])
+	    submax=k;
+      }
+      if(count[submax]>1){
+	switch( max )
+	  {
+	  case 0 :
+	    consensus[i] = 'A';
+	    infcols++;
+	    break;	
+	  case 1 :
+	    consensus[i] = 'C';
+	    infcols++;
+	    break;
+	  case 2 :
+	    consensus[i] = 'G';
+	    infcols++;
+	    break;
+	  case 3 :
+	    consensus[i] = 'T';
+	    infcols++;
+ 	    break;
+	  case 4 :
+	    consensus[i] = '-';
+	    infcols++;
+	    break;
+	  }
+      } else {
+	consensus[i] = '.';
+      }
+
+    }
+
+
+  //  for(j=0;j<c;j++)
+  //      if(consensus[j]!='.')printf("%c",consensus[j]);
+  //  printf("\tconsensus\n");
+  printArray = (char *) malloc(sizeof(char)*(infcols+1)*nfrag);
+  assert(printArray!=NULL);
+  for(i=0;i<nfrag;i++){
+    for(j=0;j<infcols;j++)
+      (printArray+i*(infcols+1))[j]=' ';
+    (printArray+i*(infcols+1))[j]='\0';
+  }
+
+  for(i=0;i<r;i++){
+    row2frag[i] = -1;
+  }
+  lastfrag=-1;
+  currcol=-1;
+  for(j=0;j<c;j++){
+    // determine what fragment is in each row at this column
+    for(i=0;i<r;i++)
+      if(a->ali[j][i] != ' ')
+	if(j==0||a->ali[j-1][i]==' ')
+	  row2frag[i] = ++lastfrag;
+
+    // if the column is informative ...
+    if(consensus[j]!='.'){
+      printf("(");
+
+      clades=0; // number of non-empty character classes already seen
+
+      // HANDLE FRAGMENTS WITH 'A' AT THIS COLUMN
+
+      // count number of As
+      currct=0;
+      for(i=0;i<r;i++){
+	if(a->ali[j][i]=='A')currct++;
+      } 
+
+      // if non-zero count, we will print for this state
+      if(currct>0){
+
+	// if not the first char state, need a separating comma
+	if(clades>0)	  printf(",");
+
+	// if count is 2 or more, we need an open bracket
+	if(currct>1)	  printf("(");
+
+	// find and print the fragments for this state
+	subct=0;
+	for(i=0;i<r;i++){
+	  if(a->ali[j][i]=='A'){
+	    // if not the first, separate from previous with comma
+	    if(subct>0)	      printf(",");
+	    // print the identifier
+	    printf("F%d",row2frag[i]);
+	    subct++;
+	  }
+	}
+	assert(subct==currct);
+
+	// if two or more, need close bracket
+	if(currct>1) printf(")");
+
+	// increment character states (classes) already output
+	clades++;
+      }
+
+
+      // HANDLE FRAGMENTS WITH 'C' AT THIS COLUMN
+
+      // count number of Cs
+      currct=0;
+      for(i=0;i<r;i++){
+	if(a->ali[j][i]=='C')currct++;
+      } 
+
+      // if non-zero count, we will print for this state
+      if(currct>0){
+
+	// if not the first char state, need a separating comma
+	if(clades>0)	  printf(",");
+
+	// if count is 2 or more, we need an open bracket
+	if(currct>1)	  printf("(");
+
+	// find and print the fragments for this state
+	subct=0;
+	for(i=0;i<r;i++){
+	  if(a->ali[j][i]=='C'){
+	    // if not the first, separate from previous with comma
+	    if(subct>0)	      printf(",");
+	    // print the identifier
+	    printf("F%d",row2frag[i]);
+	    subct++;
+	  }
+	}
+	assert(subct==currct);
+
+	// if two or more, need close bracket
+	if(currct>1) printf(")");
+
+	// increment character states (classes) already output
+	clades++;
+      }
+
+
+      // HANDLE FRAGMENTS WITH 'G' AT THIS COLUMN
+
+      // count number of Cs
+      currct=0;
+      for(i=0;i<r;i++){
+	if(a->ali[j][i]=='G')currct++;
+      } 
+
+      // if non-zero count, we will print for this state
+      if(currct>0){
+
+	// if not the first char state, need a separating comma
+	if(clades>0)	  printf(",");
+
+	// if count is 2 or more, we need an open bracket
+	if(currct>1)	  printf("(");
+
+	// find and print the fragments for this state
+	subct=0;
+	for(i=0;i<r;i++){
+	  if(a->ali[j][i]=='G'){
+	    // if not the first, separate from previous with comma
+	    if(subct>0)	      printf(",");
+	    // print the identifier
+	    printf("F%d",row2frag[i]);
+	    subct++;
+	  }
+	}
+	assert(subct==currct);
+
+	// if two or more, need close bracket
+	if(currct>1) printf(")");
+
+	// increment character states (classes) already output
+	clades++;
+      }
+
+
+      // HANDLE FRAGMENTS WITH 'T' AT THIS COLUMN
+
+      // count number of Cs
+      currct=0;
+      for(i=0;i<r;i++){
+	if(a->ali[j][i]=='T')currct++;
+      } 
+
+      // if non-zero count, we will print for this state
+      if(currct>0){
+
+	// if not the first char state, need a separating comma
+	if(clades>0)	  printf(",");
+
+	// if count is 2 or more, we need an open bracket
+	if(currct>1)	  printf("(");
+
+	// find and print the fragments for this state
+	subct=0;
+	for(i=0;i<r;i++){
+	  if(a->ali[j][i]=='T'){
+	    // if not the first, separate from previous with comma
+	    if(subct>0)	      printf(",");
+	    // print the identifier
+	    printf("F%d",row2frag[i]);
+	    subct++;
+	  }
+	}
+	assert(subct==currct);
+
+	// if two or more, need close bracket
+	if(currct>1) printf(")");
+
+	// increment character states (classes) already output
+	clades++;
+      }
+
+
+      // HANDLE FRAGMENTS WITH '-' AT THIS COLUMN
+
+      // count number of Cs
+      currct=0;
+      for(i=0;i<r;i++){
+	if(a->ali[j][i]=='-')currct++;
+      } 
+
+      // if non-zero count, we will print for this state
+      if(currct>0){
+
+	// if not the first char state, need a separating comma
+	if(clades>0)	  printf(",");
+
+	// if count is 2 or more, we need an open bracket
+	if(currct>1)	  printf("(");
+
+	// find and print the fragments for this state
+	subct=0;
+	for(i=0;i<r;i++){
+	  if(a->ali[j][i]=='-'){
+	    // if not the first, separate from previous with comma
+	    if(subct>0)	      printf(",");
+	    // print the identifier
+	    printf("F%d",row2frag[i]);
+	    subct++;
+	  }
+	}
+	assert(subct==currct);
+
+	// if two or more, need close bracket
+	if(currct>1) printf(")");
+
+	// increment character states (classes) already output
+	clades++;
+      }
+
+
+      // CLOSE PARTITION
+      printf(");\n");
+
+
+    }
+  }
+
+  free(consensus);
+  free(printArray);
+  free(row2frag);
+}
+
+
 void AS_REZ_count_columns(Alignment_t* a, Marker_t* m)
 {
   register int i,j;
@@ -355,7 +819,7 @@ UnitigStatus_t AS_REZ_is_IUM_MPsimple(IntUnitigMesg* ium, FragStoreHandle handle
   
   *pval=1.0; //Sets up default return for cases when no test can be made.
 
-  *ali = AS_REZ_convert_IUM_to_alignment(ium,handle,phandle);
+  *ali = AS_REZ_convert_IUM_to_alignment(ium,handle,phandle,TRUE);
 
   /* for this test we allocate a marker that is by default TRUE
      for all columns */

@@ -22,7 +22,7 @@
 #
 ###########################################################################
 #
-# $Id: setup_status_file.sh,v 1.1.1.1 2004-04-14 13:51:34 catmandew Exp $
+# $Id: setup_status_file.sh,v 1.2 2004-09-23 20:25:21 mcschatz Exp $
 #
 umask 2
 

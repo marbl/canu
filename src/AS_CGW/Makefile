@@ -86,7 +86,10 @@ CGW_SOURCES = AS_CGW_LoadCheckpoint.c AS_CGW_main.c AS_CGW_dataTypes.c \
 	extendClearRanges.c localUnitigging_CGW.c \
 	AS_CGW_EdgeDiagnostics.c findMissedOverlaps.c scaffold2fasta.c \
 	examineFragStore.c InterleavedMerging.c exploreMates.c \
-	fixZLFContigs.c fixECRCheckpoint.c dumpBinaryUnitigMAs.c
+	fixZLFContigs.c fixECRCheckpoint.c dumpBinaryUnitigMAs.c \
+	assemblyStructure.c dumpContigFromCkpt.c exploreGapStructure.c \
+	asmInfoForFrg.c exploreScaffoldEnds.c dumpCloneMiddles.c \
+	whereAreMyOverlaps.c findAnEdge.c dumpSingletons.c combineMates.c
 #	smallLargeScaffolds.c FixContigMultiAligns.c fixZLFContigs.c
 #	ChunkOverlap_CGW.c SplitScaffolds_CGW.c CIScaffoldT_Biconnected_CGW.c UnitigSplitter.c FindFragments.c
 
@@ -132,7 +135,10 @@ PROGS = cgw CheckILK Checkpoint process_scaffolds loadcgw \
         ScaffoldMap testSplitChunks instrumentCheckpoint \
 	traceNodes extendClearRanges findMissedOverlaps localUnitigging_CGW \
 	scaffold2fasta examineFragStore exploreMates fixECRCheckpoint \
-	dumpBinaryUnitigMAs
+	dumpBinaryUnitigMAs assemblyStructure dumpContigFromCkpt \
+	exploreGapStructure exploreScaffoldEnds asmInfoForFrg \
+	dumpCloneMiddles whereAreMyOverlaps findAnEdge \
+	dumpSingletons combineMates
 #	smallLargeScaffolds fixContigMultiAligns
 #        ScaffoldMap splitutgs findFragments 
 
@@ -144,55 +150,74 @@ include $(LOCAL_WORK)/src/c_make.as
 
 all: $(OBJECTS) $(LIBRARIES) $(PROGS)
 
-cgw: AS_CGW_main.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_UTL.a libm.a
+cgw: AS_CGW_main.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_UTL.a libAS_OVL.a
 
-splitutgs: UnitigSplitter.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_CGW.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_UTL.a libm.a
+splitutgs: UnitigSplitter.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_CGW.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_UTL.a 
 
-loadcgw: AS_CGW_LoadCheckpoint.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_CGW.a libAS_ALN.a libAS_SDB.a libAS_CGW.a $(LIN_ALG_LIB) libAS_MSG.a libAS_CGW.a libAS_UTL.a libm.a
+loadcgw: AS_CGW_LoadCheckpoint.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_CGW.a libAS_ALN.a libAS_SDB.a libAS_CGW.a $(LIN_ALG_LIB) libAS_MSG.a libAS_CGW.a libAS_OVL.a libAS_UTL.a 
 
-dumpBinaryUnitigMAs: dumpBinaryUnitigMAs.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_CGW.a libAS_ALN.a libAS_SDB.a libAS_CGW.a $(LIN_ALG_LIB) libAS_MSG.a libAS_CGW.a libAS_UTL.a libm.a
+dumpBinaryUnitigMAs: dumpBinaryUnitigMAs.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_CGW.a libAS_ALN.a libAS_SDB.a libAS_CGW.a $(LIN_ALG_LIB) libAS_MSG.a libAS_CGW.a libAS_OVL.a libAS_UTL.a 
 
-fixECRCheckpoint: fixECRCheckpoint.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_CGW.a libAS_ALN.a libAS_SDB.a libAS_CGW.a $(LIN_ALG_LIB) libAS_MSG.a libAS_CGW.a libAS_UTL.a libm.a
+fixECRCheckpoint: fixECRCheckpoint.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_CGW.a libAS_ALN.a libAS_SDB.a libAS_CGW.a $(LIN_ALG_LIB) libAS_MSG.a libAS_CGW.a libAS_OVL.a libAS_UTL.a 
 
-exploreMates: exploreMates.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_CGW.a libAS_ALN.a libAS_SDB.a libAS_CGW.a $(LIN_ALG_LIB) libAS_MSG.a libAS_CGW.a libAS_UTL.a libm.a
+exploreMates: exploreMates.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_CGW.a libAS_ALN.a libAS_SDB.a libAS_CGW.a $(LIN_ALG_LIB) libAS_MSG.a libAS_CGW.a libAS_OVL.a libAS_UTL.a 
 
-#smallLargeScaffolds: smallLargeScaffolds.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_CGW.a libAS_ALN.a libAS_SDB.a libAS_CGW.a $(LIN_ALG_LIB) libAS_MSG.a libAS_CGW.a libAS_UTL.a libm.a
+#smallLargeScaffolds: smallLargeScaffolds.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_CGW.a libAS_ALN.a libAS_SDB.a libAS_CGW.a $(LIN_ALG_LIB) libAS_MSG.a libAS_CGW.a libAS_UTL.a 
 
-extendClearRanges: extendClearRanges.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_CGW.a libAS_ALN.a libAS_SDB.a libAS_CGW.a $(LIN_ALG_LIB) libAS_MSG.a libAS_CGW.a libAS_UTL.a libm.a
+extendClearRanges: extendClearRanges.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_CGW.a libAS_ALN.a libAS_SDB.a libAS_CGW.a $(LIN_ALG_LIB) libAS_MSG.a libAS_CGW.a libAS_UTL.a libAS_OVL.a
 
-#fixContigMultiAligns: FixContigMultiAligns.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_CGW.a libAS_ALN.a libAS_SDB.a libAS_CGW.a $(LIN_ALG_LIB) libAS_MSG.a libAS_CGW.a libAS_UTL.a libm.a
+#fixContigMultiAligns: FixContigMultiAligns.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_CGW.a libAS_ALN.a libAS_SDB.a libAS_CGW.a $(LIN_ALG_LIB) libAS_MSG.a libAS_CGW.a libAS_UTL.a 
 
-scaffold2fasta: scaffold2fasta.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_CGW.a libAS_ALN.a libAS_SDB.a libAS_CGW.a $(LIN_ALG_LIB) libAS_MSG.a libAS_CGW.a libAS_UTL.a libm.a
+scaffold2fasta: scaffold2fasta.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_CGW.a libAS_ALN.a libAS_SDB.a libAS_CGW.a $(LIN_ALG_LIB) libAS_MSG.a libAS_CGW.a libAS_OVL.a libAS_UTL.a 
 
-examineFragStore: examineFragStore.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_CGW.a libAS_SDB.a  libAS_CGW.a $(LIN_ALG_LIB) libAS_MSG.a libAS_CGW.a libAS_UTL.a libm.a
+examineFragStore: examineFragStore.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_CGW.a libAS_SDB.a  libAS_CGW.a $(LIN_ALG_LIB) libAS_MSG.a libAS_CGW.a libAS_OVL.a libAS_ALN.a libAS_UTL.a 
 
-findMissedOverlaps: findMissedOverlaps.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_CGW.a libAS_ALN.a libAS_SDB.a  libAS_CGW.a $(LIN_ALG_LIB) libAS_MSG.a libAS_CGW.a libAS_UTL.a libm.a
+findMissedOverlaps: findMissedOverlaps.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_CGW.a libAS_ALN.a libAS_SDB.a  libAS_CGW.a $(LIN_ALG_LIB) libAS_MSG.a libAS_CGW.a libAS_UTL.a libAS_OVL.a
 
-localUnitigging_CGW: localUnitigging_CGW.o libAS_CGB.a libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CNS.a libAS_OVL.a libAS_CGW.a libAS_ALN.a libAS_SDB.a  libAS_CGW.a $(LIN_ALG_LIB) libAS_MSG.a libAS_UTL.a libAS_CGW.a libAS_UTL.a libm.a
+localUnitigging_CGW: localUnitigging_CGW.o libAS_CGB.a libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CNS.a libAS_OVL.a libAS_CGW.a libAS_ALN.a libAS_SDB.a  libAS_CGW.a $(LIN_ALG_LIB) libAS_MSG.a libAS_UTL.a libAS_CGW.a libAS_UTL.a 
 
-GetDregsStats: GetDregsStats.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_CGW.a libAS_SDB.a  libAS_CGW.a $(LIN_ALG_LIB) libAS_MSG.a libAS_CGW.a libAS_UTL.a libm.a
+GetDregsStats: GetDregsStats.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_CGW.a libAS_SDB.a  libAS_CGW.a $(LIN_ALG_LIB) libAS_MSG.a libAS_CGW.a libAS_UTL.a 
 
-findFragments: FindFragments.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_CGW.a libAS_SDB.a  libAS_CGW.a $(LIN_ALG_LIB) libAS_MSG.a libAS_CGW.a libAS_UTL.a libm.a
+findFragments: FindFragments.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_CGW.a libAS_SDB.a  libAS_CGW.a $(LIN_ALG_LIB) libAS_MSG.a libAS_CGW.a libAS_UTL.a 
 
-CheckILK: CheckILK.o libAS_CNS.a libAS_UTL.a libAS_MSG.a libAS_CGW.a libAS_UTL.a libm.a 
+CheckILK: CheckILK.o libAS_CNS.a libAS_UTL.a libAS_MSG.a libAS_CGW.a libAS_UTL.a  
 
-Checkpoint: Checkpoint.o                  libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_CGW.a libAS_ALN.a libAS_MSG.a libAS_SDB.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_UTL.a libm.a
+Checkpoint: Checkpoint.o                  libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_CGW.a libAS_ALN.a libAS_MSG.a libAS_SDB.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a 
 
-process_scaffolds: ProcessScaffolds_CGW.o libAS_MSG.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_SDB.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_CGW.a $(LIN_ALG_LIB) libAS_UTL.a libm.a
+process_scaffolds: ProcessScaffolds_CGW.o libAS_MSG.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_SDB.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_CGW.a $(LIN_ALG_LIB) libAS_UTL.a libAS_REZ.a libAS_OVL.a libAS_MSG.a libAS_CGW.a libAS_ALN.a libAS_PER.a
 
-ScaffoldMap: ScaffoldMap.o libAS_MSG.a  libAS_UTL.a libAS_CGW.a libAS_UTL.a libm.a
+ScaffoldMap: ScaffoldMap.o libAS_MSG.a  libAS_UTL.a libAS_CGW.a libAS_UTL.a 
 
-testSplitChunks: testSplitChunks.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_UTL.a libm.a
+testSplitChunks: testSplitChunks.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a 
 
-instrumentCheckpoint: InstrumentCheckpoint.o  libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_UTL.a libm.a
+instrumentCheckpoint: InstrumentCheckpoint.o  libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_UTL.a libAS_OVL.a
 
-traceNodes: TraceNodes.o  libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_UTL.a libm.a
+traceNodes: TraceNodes.o  libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_UTL.a libAS_OVL.a
 
+asmInfoForFrg: asmInfoForFrg.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a 
+
+dumpSingletons: dumpSingletons.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a libAS_TER.a libAS_UID.a ${CURLLIB}
+
+assemblyStructure: assemblyStructure.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a 
+
+dumpContigFromCkpt: dumpContigFromCkpt.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a 
+
+exploreGapStructure: exploreGapStructure.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a 
+
+exploreScaffoldEnds: exploreScaffoldEnds.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a 
+
+dumpCloneMiddles: dumpCloneMiddles.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a 
+
+findAnEdge: findAnEdge.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a 
+
+whereAreMyOverlaps: whereAreMyOverlaps.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a 
+
+combineMates: combineMates.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a  libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a libAS_TER.a libAS_REZ.a libAS_UID.a $(CURLLIB) 
 libAS_CGW.a: $(CGW_LIB_OBJECTS)
 
-#LoadChunkStore: LoadChunkStore.o  libAS_CGW.a libAS_PER.a libAS_UTL.a libAS_MSG.a libAS_CGW.a libAS_UTL.a libm.a 
+#LoadChunkStore: LoadChunkStore.o  libAS_CGW.a libAS_PER.a libAS_UTL.a libAS_MSG.a libAS_CGW.a libAS_UTL.a  
 
-#CreateChunkStore: CreateChunkStore.o  libAS_CGW.a libAS_UTL.a libAS_MSG.a libAS_PER.a  libAS_CGW.a libAS_UTL.a libm.a 
+#CreateChunkStore: CreateChunkStore.o  libAS_CGW.a libAS_UTL.a libAS_MSG.a libAS_PER.a  libAS_CGW.a libAS_UTL.a  
 
 #testChunkOverlap: testChunkOverlap.o ChunkStore_AS.o libAS_UTL.a libAS_MSG.a  \
-#	libAS_ALN.a libAS_PER.a  libAS_CGW.a libAS_UTL.a libm.a
+#	libAS_ALN.a libAS_PER.a  libAS_CGW.a libAS_UTL.a 

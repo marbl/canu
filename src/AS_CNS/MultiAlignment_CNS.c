@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.1.1.1 2004-04-14 13:51:18 catmandew Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.2 2004-09-23 20:25:20 mcschatz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -81,6 +81,7 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.1.1.1 2004-04-14 13:51:18 c
 #include "dpc_CNS.h"
 #include "MicroHetREZ_test3.h"
 #include "Array_CNS.h"
+#include "UtilsREZ.h"
 //#include "CA_ALN_local.h"
 
 //=================================================================================
@@ -644,6 +645,25 @@ int SetUngappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) 
      epos.idx.fragment.frgSource = frag->source;
      epos.position.bgn = *Getint32(gapped_positions,frag->position.bgn);
      epos.position.end = *Getint32(gapped_positions,frag->position.end);
+     if(epos.position.bgn==epos.position.end){
+       fprintf(stderr,"Encountered bgn==end==" F_COORD " in ungapped coords within SetUngappedFragmentPositions for " F_CID "(gapped coords " F_COORD "," F_COORD ")\n",
+	       epos.position.bgn,frag->ident,frag->position.bgn,frag->position.end);
+       assert(frag->position.bgn!=frag->position.end);
+       if(frag->position.bgn<frag->position.end){
+	 if(epos.position.bgn>0)
+	   epos.position.bgn--;
+	 else
+	   epos.position.end++;
+       } else {
+	 if(epos.position.end>0)
+	   epos.position.end--;
+	 else
+	   epos.position.bgn++;
+       }	 
+       fprintf(stderr,"  Reset to " F_COORD "," F_COORD "\n",
+	   epos.position.bgn,
+	   epos.position.end);
+     }
      AppendVA_CNS_AlignedContigElement (fragment_positions,&epos);
    }
    last_frag = GetNumCNS_AlignedContigElements(fragment_positions)-1;
@@ -2219,6 +2239,9 @@ int GetAlignmentTrace(int32 afid, int32 aoffset, int32 bfid, int32 *ahang, int32
      SequenceComplement(a,NULL);
      SequenceComplement(b,NULL);
      ahang_tmp = alen - ahang_input - blen; // calculate the hang if coming from the right instead
+     // note: the preceding calc may be problematic: we really would like to have the bhang, and
+     // the equation above gives exactly the bhang only if the number of gaps in A and B is the
+     // same -- otherwise, we are off by the number of gaps
 
      params.bandBgn = ahang_tmp-CNS_TIGHTSEMIBANDWIDTH;
      params.bandEnd = ahang_tmp+CNS_TIGHTSEMIBANDWIDTH;
@@ -2227,6 +2250,13 @@ int GetAlignmentTrace(int32 afid, int32 aoffset, int32 bfid, int32 *ahang, int32
          params.bandBgn = ahang_tmp-2*CNS_LOOSESEMIBANDWIDTH;
          params.bandEnd = ahang_tmp+2*CNS_LOOSESEMIBANDWIDTH;
          //params.bandEnd = (ALIGNMENT_CONTEXT==AS_MERGE || bfrag->type==AS_UNITIG)?ahang_tmp+2*CNS_LOOSESEMIBANDWIDTH:0,
+         if ( ALIGNMENT_CONTEXT == AS_MERGE || bfrag->type == AS_UNITIG ) params.erate=2*CNS_ERATE;
+         O = Compare(a,alen,b,blen,COMPARE_FUNC,&params);
+     }
+     if ( O == NULL || O->endpos  > -CNS_NEG_AHANG_CUTOFF ) {
+       //try full length of fragments, due to troubles estimating the original bhang
+       params.bandBgn = -blen;
+       params.bandEnd = alen;
          if ( ALIGNMENT_CONTEXT == AS_MERGE || bfrag->type == AS_UNITIG ) params.erate=2*CNS_ERATE;
          O = Compare(a,alen,b,blen,COMPARE_FUNC,&params);
      }
@@ -2332,8 +2362,9 @@ int GetAlignmentTrace(int32 afid, int32 aoffset, int32 bfid, int32 *ahang, int32
      PrintOverlap(cnslog, a, b, O);
      PrintAlarm(cnslog,"NOTE: Slip is unacceptably large. Will not use this overlap.\n");
      fprintf(stderr," DIAGNOSTIC: would have accepted bad olap with %d bp slip\n",slip); // diagnostic - remove soon!
-     if (O->begpos < 0 && slip < 15 ) {} //added to get last 3 human partitions through
-        else return 0;
+     //     if (O->begpos < 0 && slip < 15 ) {} //added to get last 3 human partitions through
+     //        else 
+     return 0;
    }
 
   if ( trick != CNS_ALN_NONE || show_olap) {
@@ -2660,12 +2691,19 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
       last_b_aligned = bboffset+bpos;
       apos++;bpos++; 
       binsert = bboffset+bpos-1;
-      while ( abead->next > -1 && (abead = GetBead(beadStore,abead->next))->boffset != aindex[apos] ) {
+      while ( abead->next > -1 && 
+	      (abead = GetBead(beadStore,abead->next))->boffset != 
+	      aindex[apos] ) {
          // insert a gap bead in b and align to    
-         binsert = AppendGapBead(binsert);
-         AlignBead(abead->column_index, binsert);
-         last_a_aligned = abead->boffset;
-         last_b_aligned = binsert;
+	// variables needed because realloc in AppendGapBead may invalidate
+        // the abead pointer (MP)
+	int32 abeadIndex = abead->column_index;
+	int32 abeadOffset = abead->boffset;
+	binsert = AppendGapBead(binsert);
+	AlignBead(abeadIndex, binsert);
+	abead = GetBead(beadStore, abeadOffset);
+	last_a_aligned = abeadOffset;
+	last_b_aligned = binsert;
       }
    }
    column_appends = blen-bpos;
@@ -3525,7 +3563,7 @@ int MergeAbacus(Abacus *abacus) {
 // sweep through abacus from left to right
 // testing for Level 1 (neighbor) merge compatibility of each column with right neighbor
 // and merge if compatible
-   int i,j,mergeok,merged=0;
+   int i,j,mergeok,merged=0,nrc;
    char b,m;
    int last_non_null=abacus->columns-1;
    for (j=abacus->columns-1;j>0;j--) {
@@ -3535,21 +3573,25 @@ int MergeAbacus(Abacus *abacus) {
      for (j=0;j<last_non_null;j++) {
      //for (j=0;j<abacus->columns-1;j++) {
        mergeok=1;
+       nrc=1;
        for (i=0;i<abacus->rows;i++) {
         b = *GetAbacus(abacus,i,j);
         m = *GetAbacus(abacus,i,j+1);
+	if (m != '-' && m!= 'm' ) { nrc=0; }
         if ( ! ((b == '-') | ( m == '-')) ) mergeok = 0;
        }
        if ( mergeok ) { // go ahead and do merge
-         for (i=0;i<abacus->rows;i++) {
-           b = *GetAbacus(abacus,i,j);
-           m = *GetAbacus(abacus,i,j+1);
-           if ( b != '-' && b != 'n' ) { 
-            SetAbacus(abacus,i,j,m);
-            SetAbacus(abacus,i,j+1,b);
-           } 
-         }
-         merged++;
+	 if ( ! ( nrc && j+1==last_non_null) ) {
+	   for (i=0;i<abacus->rows;i++) {
+	     b = *GetAbacus(abacus,i,j);
+	     m = *GetAbacus(abacus,i,j+1);
+	     if ( b != '-' && b != 'n' ) { 
+	       SetAbacus(abacus,i,j,m);
+	       SetAbacus(abacus,i,j+1,b);
+	     } 
+	   }
+	 }
+	 merged++;
        }
      }
      return merged;
@@ -3691,7 +3733,16 @@ int ApplyAbacus(Abacus *a) {
                //fprintf(stderr,"Uh-oh... out of beads in window. (LEFT_SHIFT)\n");
                eid = AppendGapBead(exch_bead->boffset);
                //fprintf(stderr,"Adding gapbead %d\n",eid);
-               ColumnAppend(exch_bead->column_index,eid);
+              // ColumnAppend(exch_bead->column_index,eid);
+               { // mods (ALH) to handle reallocation of columnStore
+
+                 int curridx = column->lid;
+
+                 ColumnAppend(exch_bead->column_index,eid);
+
+                 column=GetColumn(columnStore,curridx);
+
+               } 
              }
              exch_bead = GetBead(beadStore,exch_bead->next);
            }
@@ -3732,12 +3783,14 @@ int ApplyAbacus(Abacus *a) {
            //  Look for matching bead in frag and exchange
            exch_bead = GetBead(beadStore,bead->boffset);
            if ( NULL == exch_bead ) {
-               //fprintf(stderr,"Uh-oh... out of beads in fragment. (RIGHT_SHIFT)\n");
-               eid = PrependGapBead(bead->boffset);
-               //fprintf(stderr,"Adding gapbead %d\n",eid);
-               AlignBead(GetColumn(columnStore,bead->column_index)->prev,eid);
-               exch_bead = GetBead(beadStore,eid);
-           }
+	     //fprintf(stderr,"Uh-oh... out of beads in fragment. (RIGHT_SHIFT)\n");
+	     eid = PrependGapBead(bead->boffset);
+	     //fprintf(stderr,"Adding gapbead %d\n",eid);
+	     
+	     AlignBead(GetColumn(columnStore,bead->column_index)->prev,eid);
+	     exch_bead = GetBead(beadStore,eid);
+	   }
+
            while (  a_entry != *Getchar(sequenceStore,exch_bead->soffset)) {
              if (exch_bead->prev == -1 ) {
                 //fprintf(stderr,"Uh-oh... out of beads in fragment. (RIGHT_SHIFT)\n");
@@ -3748,7 +3801,11 @@ int ApplyAbacus(Abacus *a) {
                 //fprintf(stderr,"Uh-oh... out of beads in window. (RIGHT_SHIFT)\n");
                eid = AppendGapBead(exch_bead->prev);
                 //fprintf(stderr,"Adding gapbead %d\n",eid);
-               ColumnAppend(GetColumn(columnStore,exch_bead->column_index)->prev,eid);
+
+               {// ALH's change to fix reallocation of column store
+	         int curridx = column->lid;
+		 ColumnAppend(GetColumn(columnStore,exch_bead->column_index)->prev,eid);	         column = GetColumn(columnStore, curridx);
+	       }
              }
              exch_bead = GetBead(beadStore,exch_bead->prev);
            }
@@ -5706,6 +5763,15 @@ MultiAlignT *MergeMultiAligns( tSequenceDB *sequenceDBp,
           imp->position.end = end;
           imp->delta_length = 0;
           imp->delta = NULL;
+#if 0
+	  fprintf(stderr,
+		  "Placing " F_CID " at " F_COORD "," F_COORD 
+		  " based on positions " F_COORD "," F_COORD
+		  " (compl %d length %d within input parent)\n",
+		  imp->ident, bgn,end,
+		  compci->position.bgn,compci->position.end,
+		  cfrag->complement, cfrag->length);
+#endif
           ci++;ifrag++;
         }
       }

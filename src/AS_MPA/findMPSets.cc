@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: findMPSets.cc,v 1.1.1.1 2004-04-14 13:52:01 catmandew Exp $ */
+/* $Id: findMPSets.cc,v 1.2 2004-09-23 20:25:24 mcschatz Exp $ */
 #include <cstdio>  // for sscanf
 #include <iostream>
 #include <fstream>
@@ -31,6 +31,7 @@ using namespace std;
 #include "Rectangle.h"
 #include "TwoDIntervalClique.h"
 #include "IntervalSetCoverSolver.h"
+#include "cds.h"
 
 //#define DEBUG_FMPS
 //#define FEEDBACK_FMPS
@@ -41,13 +42,8 @@ using namespace std;
 #define ID_TYPE          int
 #define ID_SCAN_FORMAT   "%d"
 #else
-#ifndef i386
-#define ID_TYPE          unsigned long
-#define ID_SCAN_FORMAT   "%lu"
-#else
-#define ID_TYPE          unsigned long long
-#define ID_SCAN_FORMAT   "%Lu"
-#endif
+#define ID_TYPE          cds_uint64
+#define ID_SCAN_FORMAT   F_U64
 #endif
 
 #define USE_INT_UNITS

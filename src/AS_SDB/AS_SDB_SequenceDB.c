@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_SDB_SequenceDB.c,v 1.1.1.1 2004-04-14 13:53:35 catmandew Exp $";
+static char CM_ID[] = "$Id: AS_SDB_SequenceDB.c,v 1.2 2004-09-23 20:25:28 mcschatz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -210,9 +210,9 @@ tSequenceDB *OpenSequenceDB(char *path, int readWrite, int revision){
 void SaveSequenceDB(tSequenceDB *db){  // Save the current revision of the indices
   char buffer[FILENAME_MAX + 30];
   FILE *currentDatafp, *indexfp;
-  size_t end = db->offsetOfEOF;
+  int64 end = db->offsetOfEOF;
 
-  fprintf(stderr,"* SaveSequenceDB  end = " F_SIZE_T "\n", end);
+  fprintf(stderr,"* SaveSequenceDB  end = " F_S64 "\n", end);
   sprintf(buffer,"%s/seqDB.unitigs.%d",db->path, db->currentRevision);
   indexfp = fopen(buffer,"w");
   CopyToFileVA_tMARecord(db->Unitigs, indexfp);
@@ -240,11 +240,11 @@ void SaveSequenceDB(tSequenceDB *db){  // Save the current revision of the indic
       int result;
       currentDatafp = fopen(buffer,"r");
       result = CDS_FSEEK(currentDatafp,
-                         (off_t) (((end == 0) ? 0 : (end -1))),SEEK_SET);
+                         (off_t) (((end == 0) ? 0 : (end - (off_t)1))),SEEK_SET);
       if(result  == 0){ // couldn't seek until the end...still flushing
 	break;
       }
-      fprintf(stderr,"* Sleeping 15 seconds while buffers flush. Seeking to offset " F_SIZE_T " returned %d\n",
+      fprintf(stderr,"* Sleeping 15 seconds while buffers flush. Seeking to offset " F_S64 " returned %d\n",
 	      end, result);
       perror("Error: ");
       CDS_FSEEK(currentDatafp, (off_t) 0, SEEK_END);

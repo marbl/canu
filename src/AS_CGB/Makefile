@@ -137,40 +137,40 @@ all: $(OBJECTS) $(LIBRARIES) $(PROGS) install
 libAS_CGB.a: $(LIB_OBJECTS)
 
 WriteUnitigsFromCheckPoint : WriteUnitigsFromCheckPoint.o ${LIB_OBJECTS} libAS_OVL.a libAS_ALN.a \
- libAS_MSG.a libAS_PER.a libAS_UTL.a libm.a
+ libAS_MSG.a libAS_PER.a libAS_UTL.a 
 
-make_OFG_from_FragStore: make_OFG_from_FragStore.o libAS_PER.a libAS_UTL.a libm.a
+make_OFG_from_FragStore: make_OFG_from_FragStore.o libAS_PER.a libAS_UTL.a 
 
-miniunitigger_test: miniunitigger_test.o $(LIB_OBJECTS) libAS_OVL.a libAS_PER.a libAS_ALN.a libAS_MSG.a libAS_UTL.a libm.a
+miniunitigger_test: miniunitigger_test.o $(LIB_OBJECTS) libAS_OVL.a libAS_PER.a libAS_ALN.a libAS_MSG.a libAS_UTL.a 
 
-unitigger: AS_CGB_unitigger.o $(LIB_OBJECTS) libAS_OVL.a libAS_PER.a libAS_ALN.a libAS_MSG.a libAS_UTL.a libm.a
+unitigger: AS_CGB_unitigger.o $(LIB_OBJECTS) libAS_OVL.a libAS_PER.a libAS_ALN.a libAS_MSG.a libAS_UTL.a 
 
 
-# fgb: $(AS_FGB_OBJS) $(AS_OGB_OBJS) $(UTILITY4_OBJS) libAS_OVL.a libAS_PER.a libAS_MSG.a libAS_UTL.a libm.a
+# fgb: $(AS_FGB_OBJS) $(AS_OGB_OBJS) $(UTILITY4_OBJS) libAS_OVL.a libAS_PER.a libAS_MSG.a libAS_UTL.a 
 
-# cgb: $(UNITIG_OBJS) libAS_PER.a libAS_ALN.a libAS_MSG.a libAS_UTL.a libm.a
+# cgb: $(UNITIG_OBJS) libAS_PER.a libAS_ALN.a libAS_MSG.a libAS_UTL.a 
 # libAS_CNS.a
 
-aug-cam: $(VIEWER_OBJS) libm.a
+aug-cam: $(VIEWER_OBJS) 
 
 strip-out: $(UTILITY1_OBJS) libAS_MSG.a libAS_UTL.a
 
-get-iid-from-frag-src: $(UTILITY2_OBJS) AS_CGB_histo.o libAS_MSG.a libAS_UTL.a libm.a
+get-iid-from-frag-src: $(UTILITY2_OBJS) AS_CGB_histo.o libAS_MSG.a libAS_UTL.a 
 
-cgi2fasta:  $(UTILITY3_OBJS) AS_CGB_histo.o libAS_MSG.a libAS_UTL.a libm.a
+cgi2fasta:  $(UTILITY3_OBJS) AS_CGB_histo.o libAS_MSG.a libAS_UTL.a 
 
-AS_CGB_fom2uom: $(FOM2UOM_OBJS) AS_CGB_histo.o libAS_MSG.a libAS_UTL.a libm.a
+AS_CGB_fom2uom: $(FOM2UOM_OBJS) AS_CGB_histo.o libAS_PER.a libAS_OVL.a libAS_MSG.a libAS_UTL.a 
 
-AS_CGB_iid2cid: $(IID2CID_OBJS) AS_CGB_histo.o libAS_MSG.a libAS_UTL.a libm.a
+AS_CGB_iid2cid: $(IID2CID_OBJS) AS_CGB_histo.o libAS_PER.a libAS_OVL.a libAS_MSG.a libAS_UTL.a 
 
-check_breakers: $(CHKBRK_OBJS) libAS_ALN.a libAS_MSG.a libAS_PER.a libAS_UTL.a libm.a
+check_breakers: $(CHKBRK_OBJS) libAS_ALN.a libAS_MSG.a libAS_PER.a libAS_UTL.a libAS_UID.a ${CURLLIB}
 
-#repair_breakers: $(RPRBRKS_OBJS) $(AS_BRK_OBJS) $(UTILITY4_OBJS) AS_FGB_io.o $(AS_OGB_OBJS) libAS_OVL.a libAS_ALN.a libAS_PER.a libAS_MSG.a libAS_UTL.a libm.a
+#repair_breakers: $(RPRBRKS_OBJS) $(AS_BRK_OBJS) $(UTILITY4_OBJS) AS_FGB_io.o $(AS_OGB_OBJS) libAS_OVL.a libAS_ALN.a libAS_PER.a libAS_MSG.a libAS_UTL.a 
 
-#no_overlaps: $(NO_OVL_OBJS) $(AS_OGB_OBJS) libAS_ALN.a libAS_PER.a libAS_MSG.a libAS_UTL.a libm.a
+#no_overlaps: $(NO_OVL_OBJS) $(AS_OGB_OBJS) libAS_ALN.a libAS_PER.a libAS_MSG.a libAS_UTL.a 
 
 install: 
-	cp -f display-repeats show-feature $(LOCAL_WORK)/bin
+	cp -f display-repeats show-feature $(LOCAL_BIN)
 regression:
 	@echo "NO REGRESSION"
 tester:

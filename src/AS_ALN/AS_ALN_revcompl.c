@@ -66,12 +66,13 @@ void *ckrealloc(void* ptr, size_t size)	/* Guarded realloc utility */
   return(newp);
 }
 
-char *get_sequence(FILE *input)
-{ static char *seqbuf, linebuf[LBUFLEN];
+
+char *get_sequence(FILE *input, char **seq, char **name )
+{ static char *seqbuf, *namebuf,nextname[LBUFLEN],linebuf[LBUFLEN];
   static int   first = 1;
   static int   top, nei;
 
-  register char *newbuf;
+  register char *newbuf,*newbuf2;
   register size_t l;
   register int e, bol, beg;
 
@@ -79,14 +80,51 @@ char *get_sequence(FILE *input)
     { first  = 0;
       top    = 2048;
       seqbuf = (char *) ckalloc(sizeof(char)*top);
+      namebuf = (char *) ckalloc(sizeof(char)*top);
       if (fgets(linebuf,LBUFLEN,input) == NULL) return (NULL);
       if (*linebuf != '>')
         { fprintf(stderr,"First line must start with an >-sign\n");
           exit (1);
         }
+      else
+	{
+	  char *newname;
+	  newname = (char*) ckalloc(2048*sizeof(char));
+	  if(sscanf(linebuf,">%s",newname)!=1){
+	    if(sscanf(linebuf,"> %s",newname)!=1){
+	      fprintf(stderr,"Abort: Couldn't resolve defline %s\n",linebuf);
+	    }
+	  } 
+	  if(strlen(newname)>2047){
+	    fprintf(stderr,"identifier %s too long -- abort!\n",
+		    newname);
+	  }
+	  newname = (char *)realloc(newname,strlen(newname)+1);
+	  assert(newname!=NULL);
+	  *name = newname;
+	}   
+
     }
   else
-    { if (!nei) return (NULL); }
+    { 
+      if (!nei) return (NULL); 
+      if(*nextname == '>'){
+	char *newname;
+	newname = (char*) ckalloc(2048*sizeof(char));
+	if(sscanf(nextname,">%s",newname)!=1){
+	  if(sscanf(nextname,"> %s",newname)!=1){
+	    fprintf(stderr,"Abort: Couldn't resolve defline %s\n",linebuf);
+	  }
+	} 
+	if(strlen(newname)>2047){
+	  fprintf(stderr,"identifier %s too long -- abort!\n",
+		  newname);
+	}
+	newname = (char *)realloc(newname,strlen(newname)+1);
+	assert(newname!=NULL);
+	*name = newname;
+      }   
+    }
 
   do
     { l = strlen(linebuf);
@@ -97,21 +135,26 @@ char *get_sequence(FILE *input)
   bol = 1;
   beg = 1;
   e   = 0;
-  while ((nei = (fgets(linebuf,LBUFLEN,input) != NULL)) != 0)
-    { if (bol && *linebuf == '>')
+  while((nei = (fgets(linebuf,LBUFLEN,input) != NULL)) != 0)
+    {
+      if (bol && *linebuf == '>')
+      {
         if (beg)
-          { do
+          { 
+	    do
               { l = strlen(linebuf);
                 if (linebuf[l-1] == '\n') break;
               }
             while (fgets(linebuf,LBUFLEN,input) != NULL);
           }
-        else
+        else{
+	  strcpy(nextname,linebuf);
           break;
-      else
+	}
+      }else
         { l = strlen(linebuf);
           if (e + l >= top)
-            { top = (int)(1.5*(e+l) + 200);
+            { top = (int) (1.5*(e+l) + 200);
               newbuf = (char *) ckalloc(sizeof(char)*top);
               seqbuf[e] = '\0';
               strcpy(newbuf,seqbuf);
@@ -128,8 +171,16 @@ char *get_sequence(FILE *input)
 
   newbuf = (char *) ckalloc(sizeof(char)*(e+1));
   strcpy(newbuf,seqbuf);
+
+  {
+    int i;
+    for(i=0;newbuf[i]!='\0';i++){
+      newbuf[i]=toupper(newbuf[i]);
+    }
+  }
   
-  return (newbuf);
+  *seq = newbuf;
+  return newbuf;
 }
 
 /* Get_sequences gets all the FASTA formatted sequences from input, where
@@ -139,30 +190,37 @@ char *get_sequence(FILE *input)
    the sequences.
 */
 
-char **get_sequences(FILE *input, int *nseq)
+void get_sequences(FILE *input, int *nseq,char ***seqs,char ***names)
 { int    max, k;
   char **seqa, **seqn;
+  char **namea, **namen;
 
   max  = 32;
   seqa = (char **) ckalloc(max*sizeof(char *));
+  namea = (char **) ckalloc(max*sizeof(char *));
 
   k = 0;
   while (1)
     { for (; k < max; k++)
-        { seqa[k] = get_sequence(input);
-          if (seqa[k] == NULL) break;
+        { if (get_sequence(input,&(seqa[k]),&(namea[k]))== NULL) break;
         }
       if (k < max) break;
       seqn = (char **) ckalloc(2*max*sizeof(char *));
-      for (k = 0; k < max; k++)
+      namen = (char **) ckalloc(2*max*sizeof(char *));
+      for (k = 0; k < max; k++){
         seqn[k] = seqa[k];
+        namen[k] = namea[k];
+      }
       free(seqa);
+      free(namea);
       seqa = seqn;
+      namea = namen;
       max *= 2;
     }
 
   *nseq = k-1;
-  return (seqa);
+  *seqs=seqa;
+  *names=namea;
 }
 
 static void Complement(char *seq, int len)
@@ -209,14 +267,15 @@ static void Complement(char *seq, int len)
 int main(int argc, char *argv[])
 { int    K;
   char **Seqs;
+  char **Names;
   int i, j;
   int len;
 
-  Seqs = get_sequences(stdin,&K);
+  get_sequences(stdin,&K,&Seqs,&Names);
   for (j = 0; j <= K; j++){
     len=strlen(Seqs[j]);
     Complement(Seqs[j],len);
-    printf(">%d\n",j);
+    printf(">%s revcompl\n",Names[j]);
     for(i=0;i<len;i+=60){
       //      printf("%.60s\n",Seqs[j]+i);
       int left;

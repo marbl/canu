@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: CliquePairIntersection.h,v 1.1.1.1 2004-04-14 13:51:56 catmandew Exp $ */
+/* $Id: CliquePairIntersection.h,v 1.2 2004-09-23 20:25:23 mcschatz Exp $ */
 #ifndef CLIQUEPAIRINTERSECTION_H
 #define CLIQUEPAIRINTERSECTION_H
 
@@ -57,9 +57,9 @@ public:
 
   void addID(const IDType & id)
     {
-      list<IDType>::iterator iter = pcommonIDs.begin();
+      typename list<IDType>::iterator iter = pcommonIDs.begin();
       while(*iter > id && iter != pcommonIDs.end()) iter++;
-      ends.insert(iter, id);
+      this->ends.insert(iter, id);
     }
 
   int getNumCommonIDs() const
@@ -92,8 +92,8 @@ public:
     }
   void deleteCommonIDs(const list<IDType> & idList)
     {
-      list<IDType>::const_iterator iter;
-      list<IDType>::iterator piter;
+      typename list<IDType>::const_iterator iter;
+      typename list<IDType>::iterator piter;
       int i = 0;
       int pi = 0;
       int numDeleted = 0;
@@ -129,8 +129,8 @@ public:
       if(pcommonIDs.size() != other.pcommonIDs.size())
         return false;
       
-      list<IDType>::const_iterator oiter;
-      list<IDType>::const_iterator iter;
+      typename list<IDType>::const_iterator oiter;
+      typename list<IDType>::const_iterator iter;
       for(oiter = other.pcommonIDs.begin(), iter = pcommonIDs.begin();
           oiter != other.pcommonIDs.end() && iter != pcommonIDs.end();
           oiter++, iter++)
@@ -143,8 +143,8 @@ public:
   
   bool operator<(const CliquePairIntersection<IDType, UnitType> & other) const
     {
-      list<IDType>::const_iterator oiter;
-      list<IDType>::const_iterator iter;
+      typename list<IDType>::const_iterator oiter;
+      typename list<IDType>::const_iterator iter;
       for(oiter = other.pcommonIDs.begin(), iter = pcommonIDs.begin();
           oiter != other.pcommonIDs.end() && iter != pcommonIDs.end();
           oiter++, iter++)
@@ -165,7 +165,7 @@ public:
     {
       os << cpi.pxIndex << " , " << cpi.pyIndex;
 
-      list<IDType>::const_iterator iter;
+      typename list<IDType>::const_iterator iter;
       for(iter = cpi.pcommonIDs.begin(); iter != cpi.pcommonIDs.end(); iter++)
         os << " " << *iter;
       os << endl;

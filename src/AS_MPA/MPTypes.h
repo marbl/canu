@@ -18,30 +18,22 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: MPTypes.h,v 1.1.1.1 2004-04-14 13:52:04 catmandew Exp $ */
+/* $Id: MPTypes.h,v 1.2 2004-09-23 20:25:23 mcschatz Exp $ */
 #ifndef MPTYPES_H
-#define MPTYPES_H
+#define MPTYPES_H 1
 
-#ifdef i386
-#define _LU "%llu"
-#define _LS "%ll"
-typedef unsigned long long uint64;
-typedef long long int64;
-#else
-#define _LU "%lu"
-#define _LS "%l"
-typedef unsigned long uint64;
-typedef long int64;
-#endif
+#include "cds.h"
 
-typedef unsigned int uint32;
-typedef int int32;
-typedef float float32;
+//typedef cds_uint64 uint64;
+//typedef cds_int64  int64;
+
+//typedef cds_uint32 uint32;
+//typedef cds_int32  int32;
 
 #define ID_TYPE uint64
-#define ID_SCAN_FORMAT _LU
+#define ID_SCAN_FORMAT F_U64
 #define UNIT_TYPE int64
-#define UNIT_SCAN_FORMAT  _LS
+#define UNIT_SCAN_FORMAT  F_S64
 
 #define COINCIDENT_THRESHOLD  50  // bp
 #define CONFIRMATION_THRESHOLD 2  // 2 agreeing unsatisfieds confirm each other

@@ -34,7 +34,7 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_buildfragindex.c,v 1.1.1.1 2004-04-14 13:52:27 catmandew Exp $
+ * $Id: AS_OVL_buildfragindex.c,v 1.2 2004-09-23 20:25:25 mcschatz Exp $
  */
 
 #include "AS_global.h"

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_PER_gkpStore.h,v 1.1.1.1 2004-04-14 13:52:47 catmandew Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.2 2004-09-23 20:25:26 mcschatz Exp $	 */
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
 /*************************************************************************
@@ -149,7 +149,10 @@ typedef struct{
 typedef struct{
   unsigned int deleted:1;
   unsigned int spare:31;
+  int32 padTo8byteWord;
+
   char which[256];
+
   CDS_UID_t UID;
 }GateKeeperRepeatRecord;
 
@@ -158,23 +161,29 @@ typedef struct{
   unsigned int deleted:1;
   unsigned int spare:31;
   CDS_IID_t repeatID;           /* Repeat ID that is referenced */
+
   CDS_UID_t UID;
+
   uint16 birthBatch;         /* This entry is valid */
   uint16 deathBatch;         /* [birthBatch, deatchBatch) */
+  int32 padTo8byteWord;
 }GateKeeperScreenRecord;
 
 // NEW as of 12/2000
 // One for each Plate
 typedef struct{
   Plate_ID UID;
+
   uint deleted:1;
   uint redefined:1;
   uint spare:14;
   uint numWells:16;
   CDS_IID_t prevInstanceID;
+
   CDS_IID_t prevID;
   uint16 birthBatch;
   uint16 deathBatch;
+
   CDS_IID_t firstWell;
   CDS_IID_t mate;  // plate with complentary sequencing reaction
 }GateKeeperSequencePlateRecord;
@@ -185,7 +194,9 @@ typedef struct{
   uint deleted:1;
   uint spare:15;
   uint ewell:16;    // 'external' well number on plate
+
   CDS_IID_t ilib;
+  int32 padTo8byteWord;
 }GateKeeperWellRecord;
 
 // One for each frag
@@ -195,13 +206,17 @@ typedef struct{
   uint deleted:1;
   uint set:1;   // initialized to zero when upgraded or fragment is allocated
   uint iwell:30;
+
   CDS_IID_t ilib;
+  int32 padTo8byteWord;
 }GateKeeperAuxFragRecord;
 
 // One for each donor association
 typedef struct{
   uint deleted:1;
   uint spare:31;
+  int32 padTo8byteWord;
+
   Donor_ID UID;
 }GateKeeperDonorRecord;
 
@@ -211,6 +226,8 @@ typedef struct{
   uint    deleted:1;  // needed but not used - DistanceStore manages this
   uint    set:1;  // initialized to zero when upgraded or distance is allocated
   uint    idonor:30;
+  int32 padTo8byteWord;
+
   char    source[256];
 }GateKeeperLibDonorRecord;
 
@@ -230,12 +247,16 @@ typedef struct{
   unsigned int orientation:3;
   unsigned int spare:23;
   CDS_IID_t distance;   // iid of distance
+
   CDS_IID_t frag1;      // iid of frag1
   CDS_IID_t frag2;      // iid of frag2
+
   CDS_IID_t frag1Next;
   CDS_IID_t frag2Next;
+
   uint16 birthBatch;         /* This entry is valid */
   uint16 deathBatch;         /* [birthBatch, deatchBatch) */
+  uint32 padTo8byteWords;
 }GateKeeperLinkRecord;
 
 static char getLinkOrientation(GateKeeperLinkRecord *gkpl){

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Output_CGW.c,v 1.1.1.1 2004-04-14 13:50:59 catmandew Exp $";
+static char CM_ID[] = "$Id: Output_CGW.c,v 1.2 2004-09-23 20:25:19 mcschatz Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -306,13 +306,17 @@ void OutputContigsFromMultiAligns(){
     
     {
       CIScaffoldT *scaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph, ctg->scaffoldID);
+      CDS_IID_t numFrag;
+      CDS_IID_t numUnitig;
+      CDS_IID_t * tmpSource;
+      IntMultiPos *mp;
+      IntUnitigPos *up;
       //    MultiAlignT *ma = GetMultiAlignInStore(graph->maStore, ctg->id);
       ReLoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ma, ctg->id, FALSE);
-      CDS_IID_t numFrag = GetNumIntMultiPoss(ma->f_list);
-      IntMultiPos *mp = GetIntMultiPos(ma->f_list,0);
-      CDS_IID_t numUnitig = GetNumIntUnitigPoss(ma->u_list);
-      IntUnitigPos *up = GetIntUnitigPos(ma->u_list,0);
-      CDS_IID_t * tmpSource;
+      numFrag = GetNumIntMultiPoss(ma->f_list);
+      mp = GetIntMultiPos(ma->f_list,0);
+      numUnitig = GetNumIntUnitigPoss(ma->u_list);
+      up = GetIntUnitigPos(ma->u_list,0);
       
       tmpSource = safe_malloc((GetNumIntMultiPoss(ma->f_list) + 1) * sizeof(CDS_IID_t));
       

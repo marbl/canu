@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
-   CVS_ID:  $Id: MicroHetInterfaceREZ_test3.h,v 1.1.1.1 2004-04-14 13:53:24 catmandew Exp $
+   CVS_ID:  $Id: MicroHetInterfaceREZ_test3.h,v 1.2 2004-09-23 20:25:28 mcschatz Exp $
  *********************************************************************/
 #ifndef AS_REZ_MicroHetInterfaceREZ_H
 #define AS_REZ_MicroHetInterfaceREZ_H
@@ -35,7 +35,7 @@
 
 
 Alignment_t *AS_REZ_convert_array_to_alignment(char **ar, int c, int r);
-Alignment_t *AS_REZ_convert_IUM_to_alignment(IntUnitigMesg* ium, FragStoreHandle handle, tFragStorePartition *phandle);
+Alignment_t *AS_REZ_convert_IUM_to_alignment(IntUnitigMesg* ium, FragStoreHandle handle, tFragStorePartition *phandle,int compress);
 CGB_Type AS_REZ_get_simulator_type(IntUnitigMesg* ium_mesg);
 
 

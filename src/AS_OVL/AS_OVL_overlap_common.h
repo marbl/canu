@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.1.1.1 2004-04-14 13:52:25 catmandew Exp $
- * $Revision: 1.1.1.1 $
+ * $Id: AS_OVL_overlap_common.h,v 1.2 2004-09-23 20:25:25 mcschatz Exp $
+ * $Revision: 1.2 $
 */
 
 
@@ -82,7 +82,6 @@
 #include  "AS_MSG_pmesg.h"
 #include  "AS_OVL_overlap.h"
 #include  "AS_UTL_version.h"
-
 
 
 
@@ -198,14 +197,14 @@ static int64  Kmer_Hits_Without_Olap_Ct = 0;
 static double  Kmer_Prob_Limit = -1.0;
     //  Probability threshold for setting  Hi_Hit_Limit .
     //  Gotten from  -K  option.
-static uint64  Loc_ID [MAX_HASH_STRINGS];
+static uint64  * Loc_ID = NULL;
     //  Locale ID field of each frag in hash table if in  Contig_Mode .
 static int64  Multi_Overlap_Ct = 0;
 static String_Ref_t  * Next_Ref = NULL;
 static int  String_Ct;
     //  Number of fragments in the hash table
-static Hash_Frag_Info_t  String_Info [MAX_HASH_STRINGS];
-static int64  String_Start [MAX_HASH_STRINGS];
+static Hash_Frag_Info_t  * String_Info = NULL;
+static int64  * String_Start = NULL;
 static int  Unique_Olap_Per_Pair = TRUE;
     //  If true will allow at most
     //  one overlap output message per oriented fragment pair
@@ -233,7 +232,7 @@ static int  Bit_Equivalent [256] = {0};
     //  Table to convert characters to 2-bit integer code
 static int  Char_Is_Bad [256] = {0};
     //  Table to check if character is not a, c, g or t.
-static FragType  Kind_Of_Frag [MAX_HASH_STRINGS];
+static FragType  * Kind_Of_Frag = NULL;
     //  Type of fragment in hash table, read or guide
 
 #if  SHOW_STATS
@@ -250,9 +249,9 @@ static int64  Dovetail_Overlap_Ct = 0;
 #define  MAX_SOURCE_LENGTH    2048
 static char  Global_Left_Annotation, Global_Right_Annotation;
 static char  Global_Other_Annotation;
-static char  Left_Repeat_Tag [MAX_HASH_STRINGS];
-static char  Right_Repeat_Tag [MAX_HASH_STRINGS];
-static char  Other_Repeat_Tag [MAX_HASH_STRINGS];
+static char  * Left_Repeat_Tag = NULL;
+static char  * Right_Repeat_Tag = NULL;
+static char  * Other_Repeat_Tag = NULL;
 FILE  * Source_Log_File = NULL;
 #endif
 
@@ -279,6 +278,10 @@ Align_Entry_t  * Align_P;
 /* External Global Definitions */
 /*************************************************************************/
 
+int  Hash_Mask_Bits;
+int  Max_Hash_Strings;
+int  Max_Hash_Data_Len;
+
 int  Contig_Mode = FALSE;
 uint32  Last_Hash_Frag_Read;
 int  LSF_Mode = FALSE;
@@ -295,7 +298,7 @@ clock_t  Start_Time = 0, Stop_Time = 0;
 Screen_Range_t  * Screen_Space;
 
 int  Screen_Space_Size;
-int  Screen_Sub [MAX_HASH_STRINGS];
+int  * Screen_Sub = NULL;
 
 char  Sequence_Buffer [2 * AS_READ_MAX_LEN];
 char  Quality_Buffer [2 * AS_READ_MAX_LEN];
@@ -443,6 +446,7 @@ static void  Show_SNPs
 #endif
 
 
+
 int  main  (int argc, char * argv [])
 
   {
@@ -455,6 +459,12 @@ int  main  (int argc, char * argv [])
 
    assert (8 * sizeof (uint64) > 2 * WINDOW_SIZE);
 //   assert (sizeof (Hash_Bucket_t) <= 64);
+
+   // Set default hash-table parameters;  can be changed by -M option
+   Hash_Mask_Bits = DEF_HASH_MASK_BITS;
+   Max_Hash_Strings = DEF_MAX_HASH_STRINGS;
+   Max_Hash_Data_Len = DEF_MAX_HASH_DATA_LEN;
+
 #ifdef CONTIG_OVERLAPPER_VERSION
 fprintf (stderr, "Running Contig version, AS_READ_MAX_LEN = %d\n",
          AS_READ_MAX_LEN);
@@ -462,8 +472,6 @@ fprintf (stderr, "Running Contig version, AS_READ_MAX_LEN = %d\n",
 fprintf (stderr, "Running Fragment version, AS_READ_MAX_LEN = %d\n",
          AS_READ_MAX_LEN);
 #endif
-fprintf (stderr, "  MAX_HASH_STRINGS = %d\n", MAX_HASH_STRINGS);
-fprintf (stderr, "       Kmer Length = %d\n", WINDOW_SIZE);
 
 {
  time_t  now = time (NULL);
@@ -486,7 +494,7 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
      int ch, errflg = 0;
      optarg = NULL;
      while  (! errflg
-               && ((ch = getopt (argc, argv, "ab:cfh:I:k:K:l:mno:Pr:st:uw")) != EOF))
+               && ((ch = getopt (argc, argv, "ab:cfh:I:k:K:l:mM:no:Pr:st:uw")) != EOF))
        switch  (ch)
          {
           case  'a' :
@@ -568,6 +576,48 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
           case  'm' :
             Unique_Olap_Per_Pair = FALSE;
             break;
+          case  'M' :
+#ifdef CONTIG_OVERLAPPER_VERSION
+fprintf (stderr, "M option not allowed for Contig Version--ignored\n");
+break;
+#endif
+            if  (strcmp (optarg, "8GB") == 0)
+                { // Set parameters for 4GB memory machine
+                 Hash_Mask_Bits = 23;
+                 Max_Hash_Strings = 400000;
+                 Max_Hash_Data_Len = 280000000;
+                }
+            else if  (strcmp (optarg, "4GB") == 0)
+                { // Set parameters for 4GB memory machine
+                 Hash_Mask_Bits = 22;
+                 Max_Hash_Strings = 200000;
+                 Max_Hash_Data_Len = 140000000;
+                }
+            else if  (strcmp (optarg, "2GB") == 0)
+                { // Set parameters for 2GB memory machine
+                 Hash_Mask_Bits = 21;
+                 Max_Hash_Strings = 100000;
+                 Max_Hash_Data_Len = 70000000;
+                }
+            else if  (strcmp (optarg, "1GB") == 0)
+                { // Set parameters for 1GB memory machine
+                 Hash_Mask_Bits = 20;
+                 Max_Hash_Strings = 50000;
+                 Max_Hash_Data_Len = 35000000;
+                }
+            else if  (strcmp (optarg, "256MB") == 0)
+                { // Set parameters for 256MB memory machine
+                 Hash_Mask_Bits = 18;
+                 Max_Hash_Strings = 12500;
+                 Max_Hash_Data_Len = 8750000;
+                }
+              else
+                {
+                 fprintf (stderr, "ERROR:  Unknown memory size \"%s\"\n",
+                      optarg);
+                 errflg ++;
+                }
+            break;
           case  'n' :
             noOverlaps = 1;
             fprintf(stderr,"* No Overlaps will be generated!\n");
@@ -647,6 +697,8 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
                   "Use -l to specify the maximum number of overlaps per\n"
                   "    fragment-end per batch of fragments.\n"
                   "Use -m to allow multiple overlaps per oriented fragment pair\n"
+                  "Use -M to specify memory size.  Valid values are '8GB', '4GB',\n"
+                  "    '2GB', '1GB', '256MB'.  (Not for Contig mode)\n"
                   "Use -n to skip overlaps (only update frag store)\n"
                   "Use -o to specify output file name\n"
                   "Use -P to force ASCII output\n"
@@ -758,6 +810,11 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
 #if  LIST_TOTALLY_SCREENED
    Total_Screen_File = File_Open (TOTAL_SCREEN_FILE_NAME, "w");
 #endif
+
+   fprintf (stderr, "    Hash_Mask_Bits = %d\n", Hash_Mask_Bits);
+   fprintf (stderr, "  Max_Hash_Strings = %d\n", Max_Hash_Strings);
+   fprintf (stderr, " Max_Hash_Data_Len = %d\n", Max_Hash_Data_Len);
+   fprintf (stderr, "       Kmer Length = %d\n", WINDOW_SIZE);
 
    Initialize_Globals ();
 
@@ -1287,7 +1344,7 @@ int  Build_Hash_Index
 /* Read the next batch of strings from  stream  and create a hash
 *  table index of their  WINDOW_SIZE -mers.  Return  1  if successful;
 *  0 otherwise.  The batch ends when either end-of-file is encountered
-*  or  MAX_HASH_STRINGS  have been read in.   first_frag_id  is the
+*  or  Max_Hash_Strings  have been read in.   first_frag_id  is the
 *  internal ID of the first fragment in the hash table. */
 
   {
@@ -1318,13 +1375,14 @@ int  Build_Hash_Index
    screen . match_len = INIT_SCREEN_MATCHES;
    screen . num_matches = 0;
 
-fprintf (stderr, "### Build_Hash:  first_frag_id = %d\n", first_frag_id);
+fprintf (stderr, "### Build_Hash:  first_frag_id = %d  Max_Hash_Strings = %d\n",
+     first_frag_id, Max_Hash_Strings);
 
    if  (LSF_Mode)
        screen_blocks_used = 1;
 
-   while  (String_Ct < MAX_HASH_STRINGS
-             && total_len < MAX_HASH_DATA_LEN
+   while  (String_Ct < Max_Hash_Strings
+             && total_len < Max_Hash_Data_Len
              && (frag_status
                      = Read_Next_Frag (Sequence_Buffer, Quality_Buffer, stream,
                                        myRead, & screen, & Last_Hash_Frag_Read)))
@@ -2873,7 +2931,7 @@ static void  Initialize_Globals
           Char_Is_Bad [i] = 1;
      }
 
-   Screen_Space_Size = MAX_HASH_STRINGS;
+   Screen_Space_Size = Max_Hash_Strings;
    Screen_Space
        = (Screen_Range_t *) Safe_malloc
              (Screen_Space_Size * sizeof (Screen_Range_t));
@@ -2885,6 +2943,18 @@ static void  Initialize_Globals
    
    Hash_Check_Array = (Check_Vector_t *) Safe_malloc
                           (HASH_TABLE_SIZE * sizeof (Check_Vector_t));
+   Loc_ID = (uint64 *) Safe_calloc (Max_Hash_Strings, sizeof (uint64));
+   String_Info = (Hash_Frag_Info_t *) Safe_calloc (Max_Hash_Strings,
+                     sizeof (Hash_Frag_Info_t));
+   String_Start = (int64 *) Safe_calloc (Max_Hash_Strings, sizeof (int64));
+   Kind_Of_Frag = (FragType *) Safe_calloc (Max_Hash_Strings, sizeof (FragType));
+   Screen_Sub = (int *) Safe_calloc (Max_Hash_Strings, sizeof (int));
+
+#if  USE_SOURCE_FIELD
+   Left_Repeat_Tag = (char *) Safe_malloc (Max_Hash_Strings);
+   Right_Repeat_Tag = (char *) Safe_malloc (Max_Hash_Strings);
+   Other_Repeat_Tag = (char *) Safe_malloc (Max_Hash_Strings);
+#endif
 
 #if  SHOW_STATS
  Init_Distrib (& Olap_Len_Dist, 14);

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.1.1.1 2004-04-14 13:52:52 catmandew Exp $";
+static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.2 2004-09-23 20:25:26 mcschatz Exp $";
 /*************************************************************************
  Module:  AS_PER_genericStore
  Description:
@@ -52,8 +52,8 @@ static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.1.1.1 2004-04-14 13:52:52 
  *************************************************************************/
 
 /* RCS Info
- * $Id: AS_PER_genericStore.c,v 1.1.1.1 2004-04-14 13:52:52 catmandew Exp $
- * $Revision: 1.1.1.1 $
+ * $Id: AS_PER_genericStore.c,v 1.2 2004-09-23 20:25:26 mcschatz Exp $
+ * $Revision: 1.2 $
  *
  */
 
@@ -101,15 +101,6 @@ typedef struct{
 }StoreStruct;
 
 
-/* This is the structure maintained for each store Stream */
-typedef struct{
-  StoreHandle store;
-  void *buffer;
-  int32 bufferSize;
-  int64 startIndex;
-  int64 endIndex;
-  StoreStatus status; 
-}StreamStruct;
 
 
 /* Utility routines for reading, writing, and dumping a store Header */
@@ -1151,6 +1142,32 @@ int nextStream(StreamHandle sh, void *buffer){
   return(1);
 
 }
+
+
+int kNextStream(StreamHandle sh, void *buffer, int skipNum){
+  StreamStruct *ss= Stream_myStruct(sh);
+  //  int next;
+
+  if(ss->status != ActiveStore){
+    fprintf(stderr,"nextStream: status = %d start = " F_S64 " >= end = " F_S64 " .... bailing out\n", 
+	    ss->status,ss->startIndex, ss->endIndex);
+    assert(0);
+  }
+
+  if(ss->startIndex >  ss->endIndex){
+    #ifdef DEBUG
+    fprintf(stderr,"nextStream: start = " F_S64 " > end = " F_S64 ".... bailing out\n", 
+	    ss->startIndex, ss->endIndex);
+    #endif
+    return(0);
+  }
+
+  getIndexStore(ss->store, ss->startIndex, buffer);
+  ss->startIndex+=skipNum;
+  return(1);
+
+}
+
 
 
 /****************************************************************************/

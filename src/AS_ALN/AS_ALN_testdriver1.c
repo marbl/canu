@@ -41,13 +41,20 @@
    sequence and returns a pointer to it.  */
 
 #define LBUFLEN 512
+ 
+void usage(void)
+{
+	fprintf( stderr, "usage: AS_ALN_testdriver1 <-a abnd> <-b bbnd> <-e error_rate> <-m minlen> <-P proto_output_file>\n");
+	exit(1);
+}
 
-char *get_sequence(FILE *input)
-{ static char *seqbuf, linebuf[LBUFLEN];
+
+char *get_sequence(FILE *input, char **seq, char **name )
+{ static char *seqbuf, *namebuf,nextname[LBUFLEN],linebuf[LBUFLEN];
   static int   first = 1;
   static int   top, nei;
 
-  register char *newbuf;
+  register char *newbuf,*newbuf2;
   register size_t l;
   register int e, bol, beg;
 
@@ -55,14 +62,51 @@ char *get_sequence(FILE *input)
     { first  = 0;
       top    = 2048;
       seqbuf = (char *) ckalloc(sizeof(char)*top);
+      namebuf = (char *) ckalloc(sizeof(char)*top);
       if (fgets(linebuf,LBUFLEN,input) == NULL) return (NULL);
       if (*linebuf != '>')
         { fprintf(stderr,"First line must start with an >-sign\n");
           exit (1);
         }
+      else
+	{
+	  char *newname;
+	  newname = (char*) ckalloc(2048*sizeof(char));
+	  if(sscanf(linebuf,">%s",newname)!=1){
+	    if(sscanf(linebuf,"> %s",newname)!=1){
+	      fprintf(stderr,"Abort: Couldn't resolve defline %s\n",linebuf);
+	    }
+	  } 
+	  if(strlen(newname)>2047){
+	    fprintf(stderr,"identifier %s too long -- abort!\n",
+		    newname);
+	  }
+	  newname = (char *)realloc(newname,strlen(newname)+1);
+	  assert(newname!=NULL);
+	  *name = newname;
+	}   
+
     }
   else
-    { if (!nei) return (NULL); }
+    { 
+      if (!nei) return (NULL); 
+      if(*nextname == '>'){
+	char *newname;
+	newname = (char*) ckalloc(2048*sizeof(char));
+	if(sscanf(nextname,">%s",newname)!=1){
+	  if(sscanf(nextname,"> %s",newname)!=1){
+	    fprintf(stderr,"Abort: Couldn't resolve defline %s\n",linebuf);
+	  }
+	} 
+	if(strlen(newname)>2047){
+	  fprintf(stderr,"identifier %s too long -- abort!\n",
+		  newname);
+	}
+	newname = (char *)realloc(newname,strlen(newname)+1);
+	assert(newname!=NULL);
+	*name = newname;
+      }   
+    }
 
   do
     { l = strlen(linebuf);
@@ -74,17 +118,22 @@ char *get_sequence(FILE *input)
   beg = 1;
   e   = 0;
   while((nei = (fgets(linebuf,LBUFLEN,input) != NULL)) != 0)
-    { if (bol && *linebuf == '>')
+    {
+      if (bol && *linebuf == '>')
+      {
         if (beg)
-          { do
+          { 
+	    do
               { l = strlen(linebuf);
                 if (linebuf[l-1] == '\n') break;
               }
             while (fgets(linebuf,LBUFLEN,input) != NULL);
           }
-        else
+        else{
+	  strcpy(nextname,linebuf);
           break;
-      else
+	}
+      }else
         { l = strlen(linebuf);
           if (e + l >= top)
             { top = (int) (1.5*(e+l) + 200);
@@ -104,8 +153,16 @@ char *get_sequence(FILE *input)
 
   newbuf = (char *) ckalloc(sizeof(char)*(e+1));
   strcpy(newbuf,seqbuf);
+
+  {
+    int i;
+    for(i=0;newbuf[i]!='\0';i++){
+      newbuf[i]=toupper(newbuf[i]);
+    }
+  }
   
-  return (newbuf);
+  *seq = newbuf;
+  return newbuf;
 }
 
 /* Get_sequences gets all the FASTA formatted sequences from input, where
@@ -115,30 +172,37 @@ char *get_sequence(FILE *input)
    the sequences.
 */
 
-char **get_sequences(FILE *input, int *nseq)
+void get_sequences(FILE *input, int *nseq,char ***seqs,char ***names)
 { int    max, k;
   char **seqa, **seqn;
+  char **namea, **namen;
 
   max  = 32;
   seqa = (char **) ckalloc(max*sizeof(char *));
+  namea = (char **) ckalloc(max*sizeof(char *));
 
   k = 0;
   while (1)
     { for (; k < max; k++)
-        { seqa[k] = get_sequence(input);
-          if (seqa[k] == NULL) break;
+        { if (get_sequence(input,&(seqa[k]),&(namea[k]))== NULL) break;
         }
       if (k < max) break;
       seqn = (char **) ckalloc(2*max*sizeof(char *));
-      for (k = 0; k < max; k++)
+      namen = (char **) ckalloc(2*max*sizeof(char *));
+      for (k = 0; k < max; k++){
         seqn[k] = seqa[k];
+        namen[k] = namea[k];
+      }
       free(seqa);
+      free(namea);
       seqa = seqn;
+      namea = namen;
       max *= 2;
     }
 
   *nseq = k-1;
-  return (seqa);
+  *seqs=seqa;
+  *names=namea;
 }
 
 /* Write seq on the standard output, 50 symbols to a line. */
@@ -157,6 +221,7 @@ void show_sequence(char *seq)
 int main(int argc, char *argv[])
 { int    K;
   char **Seqs;
+  char **Names;
   InternalFragMesg  A, B;
   OverlapMesg  *O;
   FILE *OVLFile=NULL;
@@ -164,19 +229,62 @@ int main(int argc, char *argv[])
   int ori;
   int abnd;
   int bbnd;
+  int abndFromUser=0;
+  int bbndFromUser=0;
   int minlen=40;
   int first=1;
   double err=.06;
 
-  Seqs = get_sequences(stdin,&K);
 
-  if(argc>2&&strcmp(argv[1],"-P")==0){
-    fprintf(stderr,"Printing OVLs to %s\n",argv[2]);
-    OVLFile=fopen(argv[2],"w");
-    assert(OVLFile!=NULL);
-    WriteMesg_AS = OutputFileType_AS(AS_PROTO_OUTPUT);
-    assert(WriteMesg_AS!=NULL);
+  { /* Parse the argument list using "man 3 getopt". */ 
+    int ch,errflg=0;
+    optarg = NULL;
+    while (!errflg && ((ch = getopt(argc, argv, "a:b:e:hm:P:")) != EOF))
+      {
+#if 0
+	fprintf(GlobalData->stderrc,"* ch = %c optopt= %c optarg = %s\n", ch, optopt, (optarg?optarg:"(NULL)"));
+	fflush(stderr);
+#endif
+	switch(ch) {
+	case 'a':
+	  abnd = atoi(optarg);
+	  abndFromUser = TRUE;
+	  break;
+	case 'b':
+	  bbnd = atoi(optarg);
+	  bbndFromUser = TRUE;
+	  break;
+	case 'e':
+	  err = atof(optarg);
+	  break;
+	case 'h':
+	  usage();
+	  break;
+	case 'm':
+	  minlen = atoi(optarg);
+	  break;
+	case 'P':
+	  // outputPath = strdup(optarg);
+	  fprintf(stderr,"Printing OVLs to %s\n", optarg);
+	  OVLFile=fopen( optarg, "w");
+	  assert(OVLFile!=NULL);
+	  WriteMesg_AS = OutputFileType_AS(AS_PROTO_OUTPUT);
+	  assert(WriteMesg_AS!=NULL);
+	  break;
+	case '?':
+	  fprintf( stderr, "Unrecognized option -%c\n", optopt);
+	  usage();
+	default :
+	  errflg++;
+	  usage();
+	}
+      }
   }
+
+
+  get_sequences(stdin,&K,&Seqs,&Names);
+  fprintf(stderr,"Read in %d sequences\n",K+1);
+
 
 fprintf(stderr,"Read in %d sequences\n",K+1);
 
@@ -208,30 +316,13 @@ fprintf(stderr,"Read in %d sequences\n",K+1);
 	  A.iaccession = A.eaccession = j+1;
 	  B.iaccession = B.eaccession = i+1;
 
-	  abnd=strlen(A.sequence);
+
+	  if(strlen(A.sequence)<abnd)
 	  bbnd=-strlen(B.sequence);
 
-
-	  if(argc>2){
-	    if(strcmp(argv[1],"-P")!=0|| argc>=6){
-	      assert(argc>=4);
-	      err=atof(argv[argc-3]);
-	      abnd=atoi(argv[argc-1]);
-	      bbnd=atoi(argv[argc-2]);
-	      if((strcmp(argv[1],"-P")!=0&&argc>4)||argc>6){
-		minlen=atoi(argv[argc-4]);
-	      }
-	    }
-	    if(first){
-	      first=0;
-	      fprintf(stderr,"Calling Local_Overlap_AS with band %d to %d,erate %f, minlen %d\n",
-		      bbnd,abnd,err,minlen);
-	    }
-
-	  }
-
-
-	  O = DP_Compare_AS(&A,&B,bbnd,abnd,
+	  O = DP_Compare_AS(&A,&B,
+			    bbndFromUser?bbnd : -strlen(B.sequence),
+			    abndFromUser?abnd : strlen(A.sequence),
 			    ori,err,1e-6,minlen,AS_FIND_ALIGN,&where);
           if (O != NULL){
             olaps += 1;
@@ -256,6 +347,9 @@ fprintf(stderr,"Read in %d sequences\n",K+1);
 		     affdel,affins,blockdel,blockins);
 	      printf("Simple mismatch rate %f\n",errRate);
 	      printf("Affine mismatch rate %f\n",errRateAffine);
+	      printf("dp_olap: %s %s %e\n",
+		     Names[j],Names[i],errRate);
+	      
 	    }
 	    O->min_offset=O->max_offset=O->ahg;
 	    if(OVLFile!=NULL){

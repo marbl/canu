@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: CatCorrectsOVL.c,v 1.1.1.1 2004-04-14 13:52:30 catmandew Exp $
- * $Revision: 1.1.1.1 $
+ * $Id: CatCorrectsOVL.c,v 1.2 2004-09-23 20:25:25 mcschatz Exp $
+ * $Revision: 1.2 $
 */
 
-static char CM_ID[] = "$Id: CatCorrectsOVL.c,v 1.1.1.1 2004-04-14 13:52:30 catmandew Exp $";
+static char CM_ID[] = "$Id: CatCorrectsOVL.c,v 1.2 2004-09-23 20:25:25 mcschatz Exp $";
 
 
 //  System include files
@@ -66,7 +66,7 @@ static char CM_ID[] = "$Id: CatCorrectsOVL.c,v 1.1.1.1 2004-04-14 13:52:30 catma
 #include  "AS_UTL_PHash.h"
 #include  "AS_MSG_pmesg.h"
 #include  "OlapStoreOVL.h"
-
+#include  "FragCorrectOVL.h"
 
 
 //  Constants
@@ -76,28 +76,6 @@ static char CM_ID[] = "$Id: CatCorrectsOVL.c,v 1.1.1.1 2004-04-14 13:52:30 catma
 
 
 
-//  Type definitions
-
-typedef  struct
-  {
-   unsigned  is_ID : 1;
-   unsigned  keep_left : 1;     // set true if left overlap degree is low
-   unsigned  keep_right : 1;    // set true if right overlap degree is low
-   unsigned  iid : 29;
-  }  Frag_ID_t;
-
-typedef  struct
-  {
-   unsigned  is_ID : 1;
-   unsigned  pos : 20;    // position in fragment
-   unsigned  type : 11;
-  }  Correction_t;
-
-typedef  union
-  {
-   Frag_ID_t  frag;
-   Correction_t  corr;
-  }  Correction_Output_t;
 
 typedef  char *  char_Ptr_t;
 

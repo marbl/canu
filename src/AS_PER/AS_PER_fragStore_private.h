@@ -28,13 +28,18 @@
  *************************************************************************/
 
 /* RCS Info
- * $Date: 2004-04-14 13:52:47 $
- * $Id: AS_PER_fragStore_private.h,v 1.1.1.1 2004-04-14 13:52:47 catmandew Exp $
- * $Revision: 1.1.1.1 $
+ * $Date: 2004-09-23 20:25:26 $
+ * $Id: AS_PER_fragStore_private.h,v 1.2 2004-09-23 20:25:26 mcschatz Exp $
+ * $Revision: 1.2 $
  *
  */
 
+#include <sys/types.h>
 #include "AS_global.h"
+#include "AS_UTL_Var.h"
+#include "AS_PER_genericStore.h"
+#include "AS_PER_ReadStruct.h"
+#include "AS_PER_fragStore.h"
 
 
 /*   FragStore
@@ -47,7 +52,6 @@
  *
  */
 
-#include <sys/types.h>
 
 static uint8 checkSumBlob(char *blob, int length){
   uint8 checksum = 0;
@@ -65,21 +69,46 @@ typedef struct{
   StoreHandle sequenceStore;
 
   StoreHandle sourceStore;
+  int spare;
+
 #else
   int numPartitions;     // length of the following two arrays
+
   StoreHandle *sequenceStore;
+ #ifdef i386
+  int32 ptrPad1;
+ #endif
 
   StoreHandle *sourceStore;
+ #ifdef i386
+  int32 ptrPad2;
+ #endif
 
   StoreHandle *partitionStore; // a fragStore structure per partition
+ #ifdef i386
+  int32 ptrPad3;
+ #endif
 
 #endif
+
 #if FRAGSTORE_VERSION > FRAGSTORE_VERSION_PRODUCTION
   VA_TYPE(int32) *index; // index[iid] is the offset of the information for fragment iid
+ #ifdef i386
+  int32 ptrPad4;
+ #endif
+
   int32  indexModified;
+ #ifdef i386
+  int32  anotherPad;
+ #endif
+
 #endif
+
   StoreStatus status;
-  char storePath[FILENAME_MAX];
+  int32 stillMorePadding;
+
+  //  char storePath[FILENAME_MAX];
+  char storePath[1024];
 }FragStore;
 
 
@@ -115,6 +144,8 @@ typedef struct{
  */
 
 typedef struct {
+  // BLANK  LINES SHOW GROUPING INTO 8-byte BLOCKS
+
   uint   deleted:1;
   uint   readType:8;
   uint   hasQuality:1;
@@ -124,27 +155,39 @@ typedef struct {
   uint   hasOVLClearRegion:1; 
   uint   hasCNSClearRegion:1; 
   uint   hasCGWClearRegion:1; 
-#endif
   uint   spare1:2;
+#else
+  uint   spare1:5;
+#endif
   VLSTRING_SIZE_T clearRegionStart;
+
   VLSTRING_SIZE_T clearRegionEnd;
 #if FRAGSTORE_VERSION >= VERSION_OF_FRAGSTORE_WITH_MODIFIED_CLEARRANGES 
   VLSTRING_SIZE_T ovlRegionStart; 
+
   VLSTRING_SIZE_T ovlRegionEnd; 
   VLSTRING_SIZE_T cnsRegionStart; 
+
   VLSTRING_SIZE_T cnsRegionEnd; 
   VLSTRING_SIZE_T cgwRegionStart; 
+
   VLSTRING_SIZE_T cgwRegionEnd; 
 #endif
-  CDS_UID_t accID;             /* Accession ID of this read */
   CDS_IID_t readIndex;         /* Internal ID of this read */
+
+  CDS_UID_t accID;             /* Accession ID of this read */
+
+  uint64 sequenceOffset;    /* Offset of the sequence/quality data in the seq Store */
+
+  uint64 sourceOffset;      /* Offset of the source in the source, localePos, and screen Matches */
+
 #if FRAGSTORE_VERSION > FRAGSTORE_VERSION_PRODUCTION
   CDS_IID_t localIndex;        /* Local ID of this read, assigned by appendFragStore */
+#else
+  uint32 blankPadTo8byteword;
 #endif
-  uint64 sequenceOffset;    /* Offset of the sequence/quality data in the seq Store */
-  uint64 sourceOffset;      /* Offset of the source in the source, localePos, and screen Matches 
-			       in source Store */
   time_t entryTime;
+
 }ShortFragRecord;
 
 
@@ -203,9 +246,9 @@ static uint64 SET_FILEID(uint64 X, uint16 fileID){
 
 
 #if VLSTRING_MAX_SIZE < 64 * 2048
-#define MAX_SEQUENCE_LENGTH (64 * 2048 - 1)
+ #define MAX_SEQUENCE_LENGTH (64 * 2048 - 1)
 #else
-#define MAX_SEQUENCE_LENGTH (2048 * 2048 - 1)
+ #define MAX_SEQUENCE_LENGTH (2048 * 2048 - 1)
 #endif
 
 #define MAX_SOURCE_LENGTH 512
@@ -237,7 +280,6 @@ int setSourceOffset_ReadStruct(ReadStructp rs, int64 offset);
 int setSequenceOffset_ReadStruct(ReadStructp rs, int64 offset);
 
 
-#include "AS_UTL_Var.h"
 
 /******************************************************************************
  * Function: loadDumpFragRecord
@@ -254,4 +296,5 @@ int appendDumpToFragStore(FragStoreHandle store, ShortFragRecord *fr, VA_TYPE(ch
 void unloadFragRecordPartition(StoreHandle seqStore, StoreHandle srcStore, FragRecord *fr, int32 getFlags);
 
 FragStore *FragStore_myStruct(FragStoreHandle s);
+
 #endif

@@ -22,7 +22,7 @@
 #define AS_ORA_STATISTICS_H
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_ORA/Attic/AS_ORA_statistics.h,v $
-$Revision: 1.1.1.1 $
+$Revision: 1.2 $
 **********************************************************************/
 
 

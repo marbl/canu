@@ -90,7 +90,7 @@ int max_indel_AS_ALN_LOCOLAP_GLOBAL;
 
 
 /* safely copy a substring into memory pointed to by a static pointer */
-void safe_suffix(char **Dest,int *DestLen,char *src,int start){
+static void safe_suffix(char **Dest,int *DestLen,char *src,int start){
   int len=strlen(src+start);
   if(*DestLen==0||*DestLen<len+1){
     *DestLen=len+1;

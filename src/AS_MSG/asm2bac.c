@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /* RCS info
- * $Id: asm2bac.c,v 1.1.1.1 2004-04-14 13:52:09 catmandew Exp $
+ * $Id: asm2bac.c,v 1.2 2004-09-23 20:25:24 mcschatz Exp $
  */
 
 #include <stdio.h>
@@ -39,6 +39,7 @@
 #include "PrimitiveVA.h"
 #include "PrimitiveVA_MSG.h"
 #include "MultiAlignStore_CNS.h"
+#include "SYS_UIDcommon.h"
 
 static FILE *gbatFile;
 static char *gbatName;

@@ -33,7 +33,7 @@
 
  **********************************************************************/
 
-static char fileID[] = "$Id: BccREZ.c,v 1.1.1.1 2004-04-14 13:52:56 catmandew Exp $";
+static char fileID[] = "$Id: BccREZ.c,v 1.2 2004-09-23 20:25:26 mcschatz Exp $";
 
 #include <stdio.h>
 #include <assert.h>
@@ -72,9 +72,6 @@ extern char
   * GW_Filename_Prefix;
 
 extern int
-  start_index[4],
-  end_index[4],
-  new_end[NUM_ORIENTATIONS],
   orient[NUM_ORIENTATIONS];
 
 

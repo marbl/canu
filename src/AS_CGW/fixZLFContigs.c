@@ -39,7 +39,6 @@
 #include "Instrument_CGW.h"
 #include "UtilsREZ.h"
 
-
 void WriteIMPToFile(IntMultiPos * imp, FILE * fp)
 {
   fwrite(&(imp->type), sizeof(imp->type), 1, fp);

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: CreateCelamy.c,v 1.1.1.1 2004-04-14 13:52:15 catmandew Exp $ */
+/* $Id: CreateCelamy.c,v 1.2 2004-09-23 20:25:24 mcschatz Exp $ */
 
 //  This program is intended to create a celamy .cam file for the 
 //  object given by UID as the single command line argument.

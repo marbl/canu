@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_SDB_SequenceDB.h,v 1.1.1.1 2004-04-14 13:53:35 catmandew Exp $	 */
+/* 	$Id: AS_SDB_SequenceDB.h,v 1.2 2004-09-23 20:25:28 mcschatz Exp $	 */
 /*
   This SequenceDB is a more sophisticated version of the MultiAlignStore idea.
   We have the following design requirements:
@@ -66,22 +66,52 @@ VA_DEF(tMARecord)
 
 typedef struct SequenceDB_tag{
   char *path;      
+#ifdef i386
+  int32 ptrPad1;
+#endif
+
   VA_TYPE(tMARecord) *Unitigs;
+#ifdef i386
+  int32 ptrPad2;
+#endif
+
   VA_TYPE(tMARecord) *Contigs;
+#ifdef i386
+  int32 ptrPad3;
+#endif
 
   // The following are caches of MultiAlignTs.
   MultiAlignStoreT *UnitigStore;
+#ifdef i386
+  int32 ptrPad4;
+#endif
+
   MultiAlignStoreT *ContigStore;
+#ifdef i386
+  int32 ptrPad5;
+#endif
 
   // All but the last store are opened read only
   // The last store is opened r/w
   VA_TYPE(PtrT) *SubStores;
+#ifdef i386
+  int32 ptrPad6;
+#endif
 
   int32 currentRevision;
-  size_t totalCacheSize;
-  size_t totalCacheLimit;
-  off_t offsetOfEOF;
   int positionedAtEnd;
+
+  size_t totalCacheSize;
+#ifdef i386
+  int32 sztPad1;
+#endif
+
+  size_t totalCacheLimit;
+#ifdef i386
+  int32 sztPad2;
+#endif
+
+  off_t offsetOfEOF;
 }tSequenceDB;
 
 

@@ -25,7 +25,7 @@
  * Jason Miller, 7/2001.
  *********************************************************************/
 
-/* $Id: AS_MSG_Utility.h,v 1.1.1.1 2004-04-14 13:52:14 catmandew Exp $ */
+/* $Id: AS_MSG_Utility.h,v 1.2 2004-09-23 20:25:24 mcschatz Exp $ */
 
 #ifndef AS_MSG_UTILITY_INCLUDE
 #define AS_MSG_UTILITY_INCLUDE

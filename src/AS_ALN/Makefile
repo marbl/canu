@@ -29,7 +29,8 @@ LIB_SOURCES = AS_ALN_dpaligner.c AS_ALN_qvaligner.c \
               AS_ALN_sataligner.c AS_ALN_satfinder.c \
               AS_ALN_trim_vector.c \
 	      AS_ALN_loverlapper.c AS_ALN_pieceOlap.c AS_ALN_forcns.c \
-	      CA_ALN_local.c CA_ALN_overlap.c CA_ALN_scafcomp.c
+	      CA_ALN_local.c CA_ALN_overlap.c CA_ALN_scafcomp.c\
+	      AS_ALN_boxfilling.c
 	      
 LIB_OBJECTS = $(LIB_SOURCES:.c=.o)
 
@@ -54,16 +55,21 @@ VT_TEST_OBJECTS = $(VT_TEST_SOURCES:.c=.o)
 RC_SOURCES = AS_ALN_revcompl.c
 RC_OBJECTS = $(RC_SOURCES:.c=.o)
 
+BOXFILL_SOURCES = AS_ALN_boxfiller.c
+BOXFILL_OBJECTS = $(BOXFILL_SOURCES:.c=.o)
+
 SOURCES = $(TEST1_SOURCES) $(TEST2_SOURCES)\
 	  $(TEST4_SOURCES) $(TEST5_SOURCES)\
           $(SATTEST_SOURCES) $(VT_TEST_SOURCES) \
+	  $(BOXFILL_SOURCES)\
           $(LIB_SOURCES) $(RC_SOURCES) 
 OBJECTS = $(SOURCES:.c=.o)
 
 LIBRARIES = libAS_ALN.a
 
 PROGS = AS_ALN_testdriver1 AS_ALN_testdriver2 AS_ALN_testdriver4\
-	AS_ALN_testdriver5 AS_ALN_testsat AS_ALN_test_vt AS_ALN_revcompl
+	AS_ALN_testdriver5 AS_ALN_testsat AS_ALN_test_vt AS_ALN_revcompl\
+	AS_ALN_boxfiller
 
 include $(LOCAL_WORK)/src/c_make.as
 #CFLAGS = -g
@@ -74,13 +80,15 @@ all: $(OBJECTS) $(LIBRARIES) $(PROGS)
 
 libAS_ALN.a: $(LIB_OBJECTS)
 
-AS_ALN_testdriver1: $(TEST1_OBJECTS) $(LIBRARIES) libAS_MSG.a libAS_UTL.a libm.a
+AS_ALN_testdriver1: $(TEST1_OBJECTS) $(LIBRARIES) libAS_MSG.a libAS_UTL.a libAS_PER.a libAS_OVL.a libm.a
 
 AS_ALN_testdriver2: $(TEST2_OBJECTS) $(LIB_OBJECTS) libAS_UTL.a libm.a
 
-AS_ALN_testdriver4: $(TEST4_OBJECTS) $(LIBRARIES) libAS_MSG.a libAS_UTL.a libm.a
+AS_ALN_testdriver4: $(TEST4_OBJECTS) $(LIBRARIES) libAS_MSG.a libAS_UTL.a libAS_PER.a libAS_OVL.a libm.a
 
-AS_ALN_testdriver5: $(TEST5_OBJECTS) $(LIBRARIES) libAS_MSG.a libAS_UTL.a libm.a
+AS_ALN_testdriver5: $(TEST5_OBJECTS) $(LIBRARIES) libAS_MSG.a libAS_UTL.a libAS_PER.a libAS_OVL.a libm.a
+
+AS_ALN_boxfiller: $(BOXFILL_OBJECTS) $(LIBRARIES) libAS_MSG.a libAS_UTL.a libAS_PER.a libAS_OVL.a libm.a
 
 AS_ALN_revcompl:  $(RC_OBJECTS) $(LIBRARIES) libAS_UTL.a libm.a
 

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_UTL_Hash.c,v 1.1.1.1 2004-04-14 13:53:47 catmandew Exp $";
+static char CM_ID[] = "$Id: AS_UTL_Hash.c,v 1.2 2004-09-23 20:25:29 mcschatz Exp $";
 
 #include <string.h>
 #include <math.h>
@@ -190,7 +190,7 @@ int InsertNodeInHashBucket(HashTable_AS *table, HashNode_AS *newnode){
 
 #ifdef DEBUGHASH
   fprintf(stderr,
-	  "InsertNodeInHashBucket key 0x%d keyLength %d  "
+	  "InsertNodeInHashBucket key 0x%x keyLength %d  "
 	  "value 0x%x hashkey = %d bucket = %d\n",
 	  newnode->key, newnode->keyLength, newnode->value, hashkey, bucket);
 #endif
@@ -418,3 +418,305 @@ int NextHashTable_Iterator_AS(HashTable_Iterator_AS *iterator,
      return HASH_SUCCESS;
  }
 
+ 
+ 
+ 
+ /****** stuff for UID2IID maps: key and value actually in table ******/
+ 
+ UIDHashTable_AS *CreateUIDHashTable_AS(int numItemsToHash){
+   UIDHashTable_AS *table= (UIDHashTable_AS *)malloc(sizeof(UIDHashTable_AS));
+   UIDHashNode_AS *node;
+ 
+   table->collisions = 0;
+   table->numNodes = 0;
+   table->numNodesAllocated = 0;
+   table->compare = Int64HashCmpFn_AS;
+   table->hash = Int64HashFn_AS;
+   table->freeList = NULL;
+   assert(numItemsToHash > 0);
+   {
+     int logsize = (int) ceil(log2(numItemsToHash * 2.0));
+     int i;
+     table->numBuckets = hashsize(logsize);
+     table->hashmask = hashmask(logsize);
+ //  Commenting out this diagnostic. -- KAR
+     //  fprintf(stderr,"***Allocating %d buckets for %d elements, mask = 0x%x\n",
+     //	    table->numBuckets, numItemsToHash, table->hashmask);
+ 
+     table->buckets = (UIDHashNode_AS **)malloc(table->numBuckets 
+ 					    * sizeof(UIDHashNode_AS *));
+     for(i = 0; i < table->numBuckets; i++){
+       table->buckets[i] = NULL;
+     }
+   }	
+   {
+     int logsize = (int) ceil(log2(numItemsToHash));
+     table->numNodesAllocated = hashsize(logsize);
+ 
+     table->allocated = AllocateUIDHashNode_ASHeap(table->numNodesAllocated);
+   }
+   assert(table->freeList == NULL);
+   return table;
+ }
+ 
+ int InsertNodeInUIDHashBucket(UIDHashTable_AS *table, UIDHashNode_AS *newnode){
+   int32 hashkey = (*table->hash)(&(newnode->key), newnode->keyLength);
+   int bucket = hashkey & table->hashmask ; 
+   UIDHashNode_AS *node, *prevnode;
+   int comparison;
+ 
+ #ifdef DEBUGHASH
+   fprintf(stderr,
+ 	  "InsertNodeInUIDHashBucket key " F_U64 " keyLength %d  "
+ 	  "value %u hashkey = %u bucket = %d\n",
+ 	  newnode->key, newnode->keyLength, newnode->value, hashkey, bucket);
+ #endif
+   node = table->buckets[bucket];
+   /* If bucket is empty, insert at head of bucket */
+   if(!node){   /* Should usually be this way */
+     table->buckets[bucket] = newnode;
+     return HASH_SUCCESS;
+   }
+ #ifdef DEBUG_HASH
+     fprintf(stderr,"*** Collision on insert in bucket %d for key " F_U64 "\n",
+ 	    bucket, newnode->key);
+ #endif
+     table->collisions++;
+ 
+   comparison = (*table->compare)(&(node->key),&(newnode->key));
+   if(comparison == 0){
+     /* element already present */
+     return(HASH_FAILURE);
+   }
+   if(comparison < 0){   /* Insert at head of bucket */
+ #ifdef DEBUG_HASH
+     fprintf(stderr,"*** Inserted befire key " F_U64 "\n",
+ 	    table->buckets[bucket]->key);
+ #endif
+     newnode->next = table->buckets[bucket];
+     table->buckets[bucket] = newnode;
+     return HASH_SUCCESS;
+   }
+ 
+   prevnode = node;
+   node = node->next;
+   while(node){
+     comparison = (*table->compare)(&(node->key),&(newnode->key));
+     if(comparison == 0){
+       /* element already present */
+       return(HASH_FAILURE);
+     }
+     if(comparison < 0){
+ #ifdef DEBUG_HASH
+     fprintf(stderr,"*** Inserted after key " F_U64 " and before " F_U64 "\n",
+ 	    prevnode->key, node->key);
+ #endif
+       newnode->next = node;
+       prevnode->next = newnode;
+       return(HASH_SUCCESS);
+     }
+     prevnode = node;
+     node = node->next;
+   }
+   /* if we got here, we're appending on the end of the list */
+ #ifdef DEBUG_HASH
+     fprintf(stderr,"*** Inserted after key " F_U64 "\n",    prevnode->key);
+ #endif
+   newnode->next = NULL;
+   prevnode->next = newnode;
+   return(HASH_SUCCESS);
+ 
+ 
+ }
+ 
+ int ReallocUIDHashTable_AS(UIDHashTable_AS *htable){
+   /* Increase the size to the next power of two */
+   int oldNumNodes = htable->numNodesAllocated;
+   int oldNumBuckets = htable->numBuckets;
+ 
+   /* Allocate and clear the new buckets */
+     htable->freeList = NULL;
+     htable->numBuckets = oldNumBuckets * 2;
+     htable->numNodesAllocated = oldNumNodes *2;
+     htable->hashmask = ((htable->hashmask + 1)<<1) - 1;
+     free(htable->buckets);
+     htable->buckets = (UIDHashNode_AS **)malloc
+       (htable->numBuckets * sizeof(UIDHashNode_AS *));
+     //    htable->allocated = (UIDHashNode_AS *)realloc
+     //      (htable->allocated, htable->numNodesAllocated * sizeof(UIDHashNode_AS));
+ #ifdef DEBUG_HASH
+     fprintf(stderr,"***Reallocating %d buckets and %d nodes, mask = 0x%x\n",
+ 	    htable->numBuckets, htable->numNodesAllocated, htable->hashmask);
+ #endif
+     {
+       int i;
+       UIDHashNode_AS *node;
+       HEAP_ITERATOR(UIDHashNode_AS) iterator;
+ 
+       InitUIDHashNode_ASHeapIterator(htable->allocated, &iterator);
+ 
+       for(i = 0; i < htable->numBuckets; i++){
+ 	htable->buckets[i] = NULL;
+       }
+ 
+       while(NULL != (node = NextUIDHashNode_ASHeapIterator(&iterator))){
+ 	if(node->isFree || (node->key == 0) || (node->keyLength == 0))
+ 	  continue;
+ 	node->next = NULL;
+ 	InsertNodeInUIDHashBucket(htable, node);
+       }
+ 
+     }
+     return(HASH_SUCCESS);
+ 
+ }
+ 
+ /* Get from Free List */
+ UIDHashNode_AS *AllocUIDHashNode_AS(UIDHashTable_AS *table, 
+ 			      uint64 *key, uint keyLength, void *value){
+   UIDHashNode_AS *node;
+ 
+   if(table->freeList){
+     node = table->freeList;
+     table->freeList = node->next;
+     table->numNodes++;
+   }else{
+     if(table->numNodes++ >= table->numNodesAllocated)
+       ReallocUIDHashTable_AS(table);
+     node = GetUIDHashNode_ASHeapItem(table->allocated);
+   }
+   node->isFree = FALSE;
+   node->next = NULL;
+   node->keyLength = keyLength;
+   node->key = *(uint64*)key;
+   node->value = *(uint32*)value;
+ #ifdef DEBUG_HASH
+   //  fprintf(stderr,"* Allocated node " F_X " with key " F_U64 " and length %d\n",
+   //	  node, node->key, node->keyLength);
+   fprintf(stderr,"* Allocated node %p",node);
+   fprintf(stderr," with key " F_U64,node->key);
+   fprintf(stderr," and length %d\n",node->keyLength);
+ #endif
+   return node;
+ }
+ 
+ static int InsertNodeInUID2IIDHashBucket(UIDHashTable_AS *table, UIDHashNode_AS *newnode){
+   int32 hashkey = (*table->hash)(&(newnode->key), 8);
+   int bucket = hashkey & table->hashmask ; 
+   UIDHashNode_AS *node, *prevnode;
+   int comparison;
+ 
+ #ifdef DEBUGHASH
+   fprintf(stderr,
+ 	  "InsertNodeInUID2IIDHashBucket key " F_U64 " keyLength %d  "
+ 	  "value %d hashkey = %d bucket = %d\n",
+ 	  newnode->key, newnode->keyLength, newnode->value, hashkey, bucket);
+ #endif
+   node = table->buckets[bucket];
+   /* If bucket is empty, insert at head of bucket */
+   if(!node){   /* Should usually be this way */
+     table->buckets[bucket] = newnode;
+     return HASH_SUCCESS;
+   }
+ #ifdef DEBUG_HASH
+     fprintf(stderr,"*** Collision on insert in bucket %d for key " F_U64 "\n",
+ 	    bucket, newnode->key);
+ #endif
+     table->collisions++;
+ 
+   comparison = (*table->compare)(&(node->key),&(newnode->key));
+   if(comparison == 0){
+     /* element already present */
+     return(HASH_FAILURE);
+   }
+   if(comparison < 0){   /* Insert at head of bucket */
+ #ifdef DEBUG_HASH
+     fprintf(stderr,"*** Inserted before key " F_U64 "\n",
+ 	    table->buckets[bucket]->key);
+ #endif
+     newnode->next = table->buckets[bucket];
+     table->buckets[bucket] = newnode;
+     return HASH_SUCCESS;
+   }
+ 
+   prevnode = node;
+   node = node->next;
+   while(node){
+     comparison = (*table->compare)(&(node->key),&(newnode->key));
+     if(comparison == 0){
+       /* element already present */
+       return(HASH_FAILURE);
+     }
+     if(comparison < 0){
+ #ifdef DEBUG_HASH
+     fprintf(stderr,"*** Inserted after key " F_U64 " and before " F_U64 "\n",
+ 	    prevnode->key, node->key);
+ #endif
+       newnode->next = node;
+       prevnode->next = newnode;
+       return(HASH_SUCCESS);
+     }
+     prevnode = node;
+     node = node->next;
+   }
+   /* if we got here, we're appending on the end of the list */
+ #ifdef DEBUG_HASH
+     fprintf(stderr,"*** Inserted after key " F_U64 "\n",    prevnode->key);
+ #endif
+   newnode->next = NULL;
+   prevnode->next = newnode;
+   return(HASH_SUCCESS);
+ 
+ 
+ }
+ 
+ /* Insert in UIDHashTable */
+ /* Returns NULL if already in Hash Table */
+ int InsertInUID2IIDHashTable_AS(UIDHashTable_AS *table, 
+ 			uint64 key, int32 value){
+   
+   UIDHashNode_AS * newnode = AllocUIDHashNode_AS(table,&key,8, &value);
+   assert(NULL != newnode);
+   
+   return(InsertNodeInUID2IIDHashBucket(table, newnode));
+ }
+ 
+ 
+ int32* LookupInUID2IIDHashTable_AS(UIDHashTable_AS *table, uint64 key){
+   int32 hashkey = (*table->hash)((void*)&key, 8);
+   int bucket = hashkey & table->hashmask ; 
+   UIDHashNode_AS *node;
+ 
+ #ifdef DEBUG_HASH
+     fprintf(stderr,"Lookup of key %lld hashkey %x bucket %d\n", key, hashkey, bucket);
+ #endif
+   assert(bucket >= 0 && bucket <= table->numBuckets);
+ 
+   node = table->buckets[bucket];
+   /* If bucket is empty, return */
+   if(!node)
+     return NULL;
+ 
+   while(node){
+     int comparison = (*table->compare)(&(node->key),&key);
+ #ifdef DEBUG_HASH
+     fprintf(stderr,"\tComparing with key " F_U64 ", comparison = %d\n",
+ 	    node->key, comparison);
+ #endif
+     if(comparison == 0){
+ #ifdef DEBUG_HASH
+       fprintf(stderr,"\tFound it: %d\n",node->value);
+ #endif
+       //      return (int32*)(((char*)&(node->value))+(sizeof(void*)-sizeof(int32)));
+       return (int32*)&(node->value);
+     }else if(comparison < 0){
+ #ifdef DEBUG_HASH
+       fprintf(stderr,"\tGave Up\n");
+ #endif
+       return NULL; /* The nodes are ordered by key */
+     }
+ 
+     node = node->next;
+   }
+   return NULL;
+ }

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.1.1.1 2004-04-14 13:51:05 catmandew Exp $";
+static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.2 2004-09-23 20:25:19 mcschatz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -650,6 +650,13 @@ static int positionCompare(const IntMultiPos * a, const IntMultiPos * b)
 
 static int AddIMPToIUMStruct(IUMStruct * is, IntMultiPos * imp)
 {
+#define USE_UNGAPPED_POSITION
+#ifdef USE_UNGAPPED_POSITION  
+  InfoByIID * info = GetInfoByIID(ScaffoldGraph->iidToFragIndex,
+				  imp->ident);
+  CIFragT   * frag = GetCIFragT(ScaffoldGraph->CIFrags,
+				info->fragIndex);
+#endif
   if(is->ium.num_frags == is->numFragsAllocated)
   {
     is->ium.f_list = (IntMultiPos *) safe_realloc(is->ium.f_list,
@@ -663,12 +670,21 @@ static int AddIMPToIUMStruct(IUMStruct * is, IntMultiPos * imp)
   is->ium.f_list[is->ium.num_frags].type = imp->type;
   is->ium.f_list[is->ium.num_frags].ident = imp->ident;
   is->ium.f_list[is->ium.num_frags].contained = imp->contained;
+#ifdef USE_UNGAPPED_POSITION
+  is->ium.f_list[is->ium.num_frags].position.bgn = frag->offset5p.mean;
+  is->ium.f_list[is->ium.num_frags].position.end = frag->offset3p.mean;
+#else
   is->ium.f_list[is->ium.num_frags].position = imp->position;
+#endif
   is->ium.f_list[is->ium.num_frags].delta_length = 0;
   is->ium.f_list[is->ium.num_frags].delta = NULL;
   
   // update the min & max
+#ifdef USE_UNGAPPED_POSITION
+  is->minPos = min(frag->offset5p.mean,frag->offset3p.mean);
+#else
   is->minPos = min(is->minPos,min(imp->position.bgn, imp->position.end));
+#endif
 
   is->ium.num_frags++;
   is->numRandomFragments += (imp->type == AS_READ ||
@@ -1107,6 +1123,9 @@ static int SplitChunkByIntervals(ScaffoldGraphT * graph,
             currInterval->bgn, currInterval->end, imp->ident,
             minPos, maxPos, imp->position.bgn, imp->position.end);
 #endif
+    fprintf(stderr, "Interval: " F_COORD ", " F_COORD "\tfragment(" F_IID "): " F_COORD ", " F_COORD " (" F_COORD ", " F_COORD ")\n",
+            currInterval->bgn, currInterval->end, imp->ident,
+            minPos, maxPos, imp->position.bgn, imp->position.end);
 
     /* keep contained with containing - avoids problem of consensus failures
        if overlap of contained & next fragment is very short

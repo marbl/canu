@@ -21,20 +21,9 @@
 #
 ###########################################################################
 #
-VERBOSE=1
+#VERBOSE=1
 
 # Makefile for celamy viewer
-
-LOCAL_WORK = $(shell cd ../../; pwd)
-
-LOCAL_LIBS = libXt.a libX11.a libm.a libSM.a libICE.a libdnet_stub.a
-ifeq ($(OSTYPE),linux)
-LOCAL_LIBS = libXt.a libX11.a libm.a libSM.a libICE.a libdl.a
-endif
-ifeq ($(OSTYPE),aix)
-LOCAL_LIBS = libXt.a libX11.a libm.a libSM.a libICE.a
-endif
-
 
 COMMON_SOURCES = wpack.c button.c
 COMMON_OBJECTS = $(COMMON_SOURCES:.c=.o)
@@ -51,15 +40,26 @@ OBJECTS = $(SOURCES:.c=.o)
 
 PROGS = celamy celagram query_celamy
 
+## Pick up global definitions after defining OBJECTS and PROGS, but before
+## Using OSTYPE
+LOCAL_WORK = $(shell cd ../../; pwd)
 include $(LOCAL_WORK)/src/c_make.as
 
-default: all
+LOCAL_LIBS = libXt.a libX11.a libm.a libSM.a libICE.a libdnet_stub.a
+ifeq ($(OSTYPE),Linux)
+LOCAL_LIBS = libXt.a libX11.a libm.a libSM.a libICE.a libdl.a
+endif
+ifeq ($(OSTYPE),aix)
+LOCAL_LIBS = libXt.a libX11.a libm.a libSM.a libICE.a
+endif
 
+
+default: all
 all: $(OBJECTS) $(PROGS)
 
 celamy: $(CELAMY_OBJECTS) $(COMMON_OBJECTS) libAS_UTL.a $(LOCAL_LIBS)
 
-query_celamy: layout_uint.o query_celamy.o hash.o agrep.o libAS_UTL.a $(COMMON_OBJECTS) $(LOCAL_LIBS)
+query_celamy: layout_uint.o query_celamy.o hash.o agrep.o $(COMMON_OBJECTS) libAS_UTL.a $(LOCAL_LIBS)
 
 celagram: $(CELAGRAM_OBJECTS) $(COMMON_OBJECTS) libAS_UTL.a $(LOCAL_LIBS)
 

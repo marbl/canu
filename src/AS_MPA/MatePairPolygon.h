@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: MatePairPolygon.h,v 1.1.1.1 2004-04-14 13:52:04 catmandew Exp $ */
+/* $Id: MatePairPolygon.h,v 1.2 2004-09-23 20:25:23 mcschatz Exp $ */
 #ifndef MATEPAIRPOLYGON_H
 #define MATEPAIRPOLYGON_H
 
@@ -228,15 +228,15 @@ public:
 
   void printForGnuplot(ostream & os) const
     {
-      if(ppts.size() == 0) return;
+      if(this->ppts.size() == 0) return;
 
       for(int i = 0; i < getNumMPs(); i++)
         os << "# " << pmps[i] << endl;
 
       if(isCompressed())
       {
-        UnitType minX = getMinX();
-        UnitType maxX = getMaxX();
+        UnitType minX = this->getMinX();
+        UnitType maxX = this->getMaxX();
         os << minX << " " << minX << endl;
         os << minX << " " << maxX << endl;
         os << maxX << " " << maxX << endl;
@@ -245,24 +245,24 @@ public:
       }
       else
       {
-        for(unsigned int i = 0; i < ppts.size(); i++)
-          os << ppts[i].getX() << " " << ppts[i].getY() << endl;
-        os << ppts[0].getX() << " " << ppts[0].getY() << endl << endl;
+        for(unsigned int i = 0; i < this->ppts.size(); i++)
+          os << this->ppts[i].getX() << " " << this->ppts[i].getY() << endl;
+        os << this->ppts[0].getX() << " " << this->ppts[0].getY() << endl << endl;
       }
     }
   
   void print(ostream & os) const
     {
-      if(ppts.size() == 0) return;
+      if(this->ppts.size() == 0) return;
 
       for(int i = 0; i < getNumMPs(); i++)
         os << "# " << pmps[i] << endl;
       
-      for(unsigned int i = 0; i < poly.ppts.size(); i++)
-        os << " " << poly.ppts[i];
-      os << "\n" << poly.getNumMPs() << " mate pairs:\n";
-      for(int i = 0; i < poly.getNumMPs(); i++)
-        os << poly.pmps[i] << endl;
+      for(unsigned int i = 0; i < this->poly.ppts.size(); i++)
+        os << " " << this->poly.ppts[i];
+      os << "\n" << this->poly.getNumMPs() << " mate pairs:\n";
+      for(int i = 0; i < this->poly.getNumMPs(); i++)
+        os << this->poly.pmps[i] << endl;
       return os;
     }
   

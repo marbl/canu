@@ -71,7 +71,7 @@ int main(int argc, char *argv[]){
      fprintf(stderr,"* Frag with IID %d is not part of this partition\n",i);
    }
      getFragStorePartition(source, i, FRAG_S_ALL, myRead);
-     dump_ReadStruct(&myRead, stderr, FALSE);
+     dump_ReadStruct(myRead, stderr, FALSE);
 
    fflush(stderr);
  }

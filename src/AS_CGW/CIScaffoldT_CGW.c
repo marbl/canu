@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.1.1.1 2004-04-14 13:50:29 catmandew Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.2 2004-09-23 20:25:19 mcschatz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -291,6 +291,8 @@ int InsertCIInScaffold(ScaffoldGraphT *sgraph,
   int32 reversed;
   LengthT *maxOffset, *minOffset;
 
+#undef DEBUG_INSERT
+
   assert(!chunkInstance->flags.bits.isDead);
   assert(!ciScaffold->flags.bits.isDead);
 
@@ -322,7 +324,7 @@ int InsertCIInScaffold(ScaffoldGraphT *sgraph,
 	  aEndOffset.variance = bEndOffset.variance + chunkInstance->bpLength.variance;
   }
 
-#ifdef DEBUG
+#if defined( DEBUG) || defined(DEBUG_INSERT)
   fprintf(stderr,"* Insert ci:" F_CID " sid:" F_CID " contigNow:0x%x [%g,%g]\n",
     	  ci,sid,contigNow, aEndOffset.mean, bEndOffset.mean);
 #endif
@@ -351,23 +353,31 @@ int InsertCIInScaffold(ScaffoldGraphT *sgraph,
   chunkInstance->offsetAEnd = aEndOffset;
   chunkInstance->offsetBEnd = bEndOffset;
 
+#ifndef DEBUG_INSERT
   if(GlobalData->debugLevel > 0){
+#endif
     fprintf(stderr,"*&&& BEFORE inserting ci " F_CID " in scaffold " F_CID " at (%g,%g) (%g,%g)\n",
 	    ci,sid, 
 	    aEndOffset.mean, aEndOffset.variance,
 	    bEndOffset.mean, bEndOffset.variance);
     DumpCIScaffold(stderr, sgraph, ciScaffold, FALSE);
+#ifndef DEBUG_INSERT
   }
+#endif
 
 #if 0
     if(contigNow & CONTAINMENT_CONTIGGING){
       if( CheckForContainmentContigs(sgraph, ci, sid, aEndOffset, bEndOffset)){
 
+#ifndef DEBUG_INSERT
 	if(GlobalData->debugLevel > 0){
+#endif
 	  fprintf(stderr,"* InsertCI " F_CID " InScaffold  " F_CID " returned after CheckForContigs\n", ci, sid);
 	  fprintf(stderr,"* AFTER\n");
 	  DumpCIScaffold(stderr,sgraph, ciScaffold, FALSE);
+#ifndef DEBUG_INSERT
 	}
+#endif
 	return 0; // we did it already
     }else{
          fprintf(stderr,"* InsertCI " F_CID " InScaffold  " F_CID " *Old Fashioned way *\n", ci, sid);
@@ -377,7 +387,7 @@ int InsertCIInScaffold(ScaffoldGraphT *sgraph,
     
   if(contigNow & DOVETAIL_CONTIGGING){
     if(CheckForContigs(sgraph, ci, sid, aEndOffset, bEndOffset)){
-#if 0
+#ifdef DEBUG_INSERT
       fprintf(stderr,"* InsertCI " F_CID " InScaffold  " F_CID " returned after CheckForContigs\n", ci, sid);
       fprintf(stderr,"* AFTER\n");
       DumpCIScaffold(stderr,sgraph, ciScaffold, FALSE);
@@ -421,8 +431,10 @@ int InsertCIInScaffold(ScaffoldGraphT *sgraph,
       ciScaffold->bEndCoord = (reversed?chunkInstance->aEndCoord:chunkInstance->bEndCoord);
     }
   }
-  //fprintf(GlobalData->logfp,"* Inserting cid " F_CID " into scaffold " F_CID " at offset %d, %d\n",
-  //  ci, sid, (int) aEndOffset.mean, (int) bEndOffset.mean);
+#ifdef DEBUG_INSERT  
+fprintf(GlobalData->logfp,"* Inserting cid " F_CID " into scaffold " F_CID " at offset %d, %d\n",
+	ci, sid, (int) aEndOffset.mean, (int) bEndOffset.mean);
+#endif
 
   if(ciScaffold->info.Scaffold.AEndCI == NULLINDEX){ /* Empty scaffold */
 
@@ -439,6 +451,10 @@ int InsertCIInScaffold(ScaffoldGraphT *sgraph,
 
 #ifdef DEBUG_CISCAFFOLD
     fprintf(GlobalData->logfp,"* Inserted into empty scaffold aEndCoord=" F_COORD " bEndCoord=" F_COORD "\n",
+	    ciScaffold->aEndCoord, ciScaffold->bEndCoord);
+#endif
+#ifdef DEBUG_INSERT
+    fprintf(stderr,"* Inserted into empty scaffold aEndCoord=%d bEndCoord=%d\n",
 	    ciScaffold->aEndCoord, ciScaffold->bEndCoord);
 #endif
   }else{
@@ -458,8 +474,9 @@ int InsertCIInScaffold(ScaffoldGraphT *sgraph,
 	ChunkInstanceT *prevCI;
 	assert(AEndToBend);
 
-	//fprintf(GlobalData->logfp,"* Inserting before " F_CID "\n", CI->id);
-
+#ifdef DEBUG_INSERT
+	fprintf(GlobalData->logfp,"* Inserting before " F_CID "\n", CI->id);
+#endif
 	chunkInstance->BEndNext = CI->id;
 	chunkInstance->AEndNext = CI->AEndNext;
 	if (CI->AEndNext != NULLINDEX) {
@@ -475,9 +492,13 @@ int InsertCIInScaffold(ScaffoldGraphT *sgraph,
 	  if(chunkInstance->flags.bits.cgbType == UU_CGBTYPE){
 	    ciScaffold->aEndCoord = (reversed?chunkInstance->bEndCoord:chunkInstance->aEndCoord);
 	  }
-	  //fprintf(GlobalData->logfp,"* Inserted at head\n");
+#ifdef DEBUG_INSERT
+	  fprintf(GlobalData->logfp,"* Inserted at head\n");
+#endif
 	}else{
-	  //fprintf(GlobalData->logfp,"* Inserted in middle\n");
+#ifdef DEBUG_INSERT
+	  fprintf(GlobalData->logfp,"* Inserted in middle\n");
+#endif
 	}
 
 
@@ -500,8 +521,10 @@ int InsertCIInScaffold(ScaffoldGraphT *sgraph,
 	  ciScaffold->bpLength.variance = maxOffset->variance;
 
 
-	//	fprintf(GlobalData->logfp,"* Inserted at end aEndCoord:" F_COORD " bEndCoord:" F_COORD " bpLength = %g\n",
-	//		ciScaffold->aEndCoord, ciScaffold->bEndCoord, ciScaffold->bpLength.mean);
+#ifdef DEBUG_INSERT
+	fprintf(GlobalData->logfp,"* Inserted at end aEndCoord:" F_COORD " bEndCoord:" F_COORD " bpLength = %g\n",
+		ciScaffold->aEndCoord, ciScaffold->bEndCoord, ciScaffold->bpLength.mean);
+#endif
 
 	break;
       }else if(CI->id == ciScaffold->info.Scaffold.AEndCI &&
@@ -511,8 +534,9 @@ int InsertCIInScaffold(ScaffoldGraphT *sgraph,
 
 	chunkInstance->BEndNext = CI->id;
 	chunkInstance->AEndNext = NULLINDEX;
-	//fprintf(GlobalData->logfp,"* CImin " F_COORD ", chunkInstanceMin " F_COORD "\n", CImin, chunkInstanceMin);
-
+#ifdef DEBUG_INSERT
+	fprintf(GlobalData->logfp,"* CImin " F_COORD ", chunkInstanceMin " F_COORD "\n", CImin, chunkInstanceMin);
+#endif
 	  if(chunkInstance->flags.bits.cgbType == UU_CGBTYPE){
 	    ciScaffold->aEndCoord = (reversed?chunkInstance->bEndCoord:chunkInstance->aEndCoord);
 	  }
@@ -524,8 +548,10 @@ int InsertCIInScaffold(ScaffoldGraphT *sgraph,
     }
 
 
-    //fprintf(GlobalData->logfp,"* Inserted CI " F_CID " in scaffold " F_CID "  Anext = " F_CID "   Bnext = " F_CID "\n",
-    //    chunkInstance->id, sid, chunkInstance->AEndNext, chunkInstance->BEndNext);
+#ifndef DEBUG_INSERT
+    fprintf(GlobalData->logfp,"* Inserted CI " F_CID " in scaffold " F_CID "  Anext = " F_CID "   Bnext = " F_CID "\n",
+	    chunkInstance->id, sid, chunkInstance->AEndNext, chunkInstance->BEndNext);
+#endif
 
     // Due to containments, the CI with the maximal mean does not
     // have the maximal variance.
@@ -926,7 +952,7 @@ void FindScaffoldComponents(ScaffoldGraphT *graph, int findPaths){
     CIScaffoldT *scaffold = (CIScaffoldT *)scaffoldSet->data;
 
     scaffold->setID = scaffoldSet->component;
-#define DEBUG_DIAG
+#undef DEBUG_DIAG
 #ifdef DEBUG_DIAG
     fprintf(GlobalData->logfp,"* Scaffold " F_CID " has component " F_CID "\n",
 	    scaffold->id, scaffold->setID);

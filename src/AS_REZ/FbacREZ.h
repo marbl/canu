@@ -33,7 +33,7 @@
  **********************************************************************/
 
 /*********************************************************************
-   CVS_ID: $Id: FbacREZ.h,v 1.1.1.1 2004-04-14 13:53:03 catmandew Exp $
+   CVS_ID: $Id: FbacREZ.h,v 1.2 2004-09-23 20:25:27 mcschatz Exp $
  *********************************************************************/
 
 #ifndef FBAC_REZ_H
@@ -46,6 +46,8 @@
 #define RIGHTEND 1
 
 #define MAX_SCAFFOLDS_CHECKED 1024*1024
+
+#include "InputDataTypes_CGW.h"  /* for LengthT */
 
 typedef enum {
   BAC_CONSISTENT,
@@ -287,4 +289,5 @@ int CheckRchunkContainment( ChunkInsertInfoT *walkedChunks,
 
 int CheckWalkOverlaps( ChunkInsertInfoT *walkedContigs,
                        int numChunks, int fixOverlapFailures);
+
 #endif

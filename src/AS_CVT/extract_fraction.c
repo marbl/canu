@@ -279,7 +279,7 @@ int PopulateFile( char * prog_name,
     adl.next = NULL;
     adl.name = prog_name;
     adl.complete = time(0);
-    adl.version = "$Revision: 1.1.1.1 $";
+    adl.version = "$Revision: 1.2 $";
     adl.comment = "Contact Ian @x3036 to report problems";
 
     gen.m = &adt;

@@ -21,7 +21,7 @@
 #
 ###########################################################################
 #
-VERBOSE=1
+#VERBOSE=1
 
 #     SOURCES = 
 #       Lists all sources compiled by this makefile.
@@ -73,7 +73,7 @@ ARTSOURCES = batchify.c chunk_analyze.c screen-degrees.c screen-olaps.c OverlapC
 #MHETSOURCES =  MicroHetREZ.c MicroHetSimulatorREZ.c CheckDistributionREZ. PartitionsREZ.c ScoreREZ.c MicroHetPartitionsREZ.c MicroHetScoreREZ.c MicroHetIUMREZ.c MicroHetInterfaceREZ.c
 MHETSOURCES =   MicroHetSimulatorREZ.c CheckDistributionREZ. PartitionsREZ.c ScoreREZ.c \
                 MicroHetPartitionsREZ.c MicroHetScoreREZ.c MicroHetIUMREZ.c  MicroHetPairSimREZ.c \
-                MicroHetIUMREZ_test3.c 
+                MicroHetIUMREZ_test3.c MicroHetIUMdiffsPrint.c
 # MicroHetInterfaceREZ.c MicroHetREZ.c
 #OVERLAPSOURCES = GreedyOverlapMainREZ.c LengthAdaptionREZ.c
 OVERLAPSOURCES = 
@@ -98,7 +98,7 @@ LIBRARIES = libAS_REZ.a
 # PROGS = batchify chunk_analyze getrep pc screen-degrees screen-olaps st st2 mh
 #PROGS = batchify chunk_analyze screen-degrees screen-olaps  microhet-simulator  greedy-overlap microhet length-adaption extract-quality-uoms
 #PROGS = batchify chunk_analyze screen-degrees screen-olaps microhet-simulator microhet microhet-pairsim microhet-test3
-PROGS = batchify chunk_analyze screen-degrees screen-olaps microhet-test3
+PROGS = batchify chunk_analyze screen-degrees screen-olaps microhet-test3 MicroHetIUMdiffsPrint
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
@@ -106,7 +106,7 @@ include $(LOCAL_WORK)/src/c_make.as
 #-include make.conf
 
 install: $(SCRIPTS)
-	chmod ugo+x $(SCRIPTS); cp -f $(SCRIPTS) $(LOCAL_WORK)/bin
+	chmod ugo+x $(SCRIPTS); cp -f $(SCRIPTS) $(LOCAL_BIN)
 
 
 all: $(OBJECTS) $(LIBRARIES) $(PROGS) install
@@ -145,7 +145,9 @@ check-distributions: CheckDistributionREZ.o PartitionsREZ.o ScoreREZ.o UtilsREZ.
 libAS_REZ.a: $(LIBOBJECTS) 
 
 microhet-clean :
-	rm  MicroHet*.o ${LOCAL_WORK}/obj/MicroHet*.o
+	rm  MicroHet*.o ${LOCAL_OBJ}/MicroHet*.o
 
 
-microhet-test3 :  MicroHetIUMREZ_test3.o libAS_REZ.a libAS_CGW.a libAS_REZ.a  libAS_CGW.a libAS_CNS.a libAS_SDB.a libAS_PER.a libAS_UTL.a libAS_MSG.a libAS_ALN.a $(LIN_ALG_LIB) libm.a
+microhet-test3 :  MicroHetIUMREZ_test3.o libAS_REZ.a libAS_CGW.a libAS_REZ.a  libAS_CGW.a libAS_CNS.a libAS_SDB.a libAS_PER.a libAS_UTL.a libAS_MSG.a libAS_ALN.a libAS_OVL.a $(LIN_ALG_LIB) libm.a
+
+MicroHetIUMdiffsPrint : MicroHetIUMdiffsPrint.o libAS_REZ.a libAS_CGW.a libAS_REZ.a  libAS_CGW.a libAS_CNS.a libAS_SDB.a libAS_PER.a libAS_UTL.a libAS_MSG.a libAS_ALN.a libAS_OVL.a $(LIN_ALG_LIB) libm.a

@@ -134,12 +134,17 @@ class  Skyline_t
       int  i, j, end, top;
 
       for  (i = 0;  i < n && p -> rlo > pt [i] . x;  i ++)
-        ;
+	/*printf ("ADVANCE:   p rlo = %d hlo = %d pt[%d] x = %d y = %d\n",
+	  p->rlo,p->hlo,i,pt[i].x,pt[i].y)*/;
+
+      /*      printf ("INFO:   p rlo = %d hlo = %d pt[%d] x = %d y = %d\n",
+	      p->rlo,p->hlo,i,pt[i].x,pt[i].y)*/;
+
 
       if  (p -> rlo != pt [i] . x
              || p -> hlo != pt [i] . y + 1)
           {
-           printf ("ERROR:  Unexpected new block p rlo=%d hlo=%d pt[%d]x=%d y=%d\n",
+           printf ("ERROR11:  Unexpected new block p rlo=%d hlo=%d pt[%d]x=%d y=%d\n",
                    p->rlo, p->hlo, i, pt[i].x, pt[i].y);
            Error_Ct ++;
            // exit (EXIT_FAILURE);
@@ -189,7 +194,7 @@ class  Skyline_t
                     top = p -> hhi;
                   else
                     top = pt [i + 1] . y;
-                printf ("ERROR:  Duplicate coverage of r%d-%d vs h%d-%d\n",
+                printf ("ERROR12:  Duplicate coverage of r%d-%d vs h%d-%d\n",
                         pt [i + 1] . x, end, p -> hlo, top);
                 Error_Ct ++;
                 exit (EXIT_FAILURE);
@@ -263,7 +268,7 @@ class  Skyline_t
                top = p -> hhi;
              else
                top = pt [i + 1] . y;
-           printf ("ERROR:  Duplicate coverage of r%d-%d vs h%d-%d\n",
+           printf ("ERROR13:  Duplicate coverage of r%d-%d vs h%d-%d\n",
                    pt [i + 1] . x, end, p -> hlo, top);
            Error_Ct ++;
            exit (EXIT_FAILURE);
@@ -309,19 +314,19 @@ class  Skyline_t
                  next = y + 1;
              if  (next <= x)
                  {
-                  printf ("ERROR:  Uncovered range r%d-%d vs h%d-%d\n",
+                  printf ("ERROR1:  Uncovered range r%d-%d vs h%d-%d\n",
                           pt [i] . x, next - 1, pt [i] . y + 1, y);
                   Error_Ct ++;
                   pt [i] . y = y;
                  }
                else
                  {
-                  printf ("ERROR:  Uncovered range r%d-%d vs h%d-%d\n",
+                  printf ("ERROR2:  Uncovered range r%d-%d vs h%d-%d\n",
                           pt [i] . x, x - 1, pt [i] . y + 1, y);
                   Error_Ct ++;
                   if  (pt [i] . y < y - 1)
                       {
-                       printf ("ERROR:  Uncovered range r%d-%d vs h%d-%d\n",
+                       printf ("ERROR3:  Uncovered range r%d-%d vs h%d-%d\n",
                                x, next - 1, pt [i] . y + 1, y - 1);
                        Error_Ct ++;
                       }
@@ -347,7 +352,7 @@ class  Skyline_t
                  next = pt [i + 1] . x;
                else
                  next = y;
-             printf ("ERROR:  Uncovered range r%d-%d vs h%d-%d\n",
+             printf ("ERROR4:  Uncovered range r%d-%d vs h%d-%d\n",
                      pt [i] . x, next - 1, pt [i] . y + 1, y - 1);
              Error_Ct ++;
              pt [i] . y = y - 1;
@@ -679,7 +684,7 @@ int  main
           {
            if  (list [i] . rlo != old_rhi + 1)
                {
-                printf ("ERROR:  Gap in r coverage\n");
+                printf ("ERROR5:  Gap in r coverage\n");
                 exit (-1);
                }
            if  (list [i] . hlo != list [i] . rlo)
@@ -688,7 +693,7 @@ int  main
                }
            if  (old_hhi != old_max)
                {
-                printf ("ERROR:  Missing hi coverage\n");
+                printf ("ERROR6:  Missing hi coverage\n");
                 exit (-1);
                }
 
@@ -700,12 +705,12 @@ int  main
           {
            if  (list [i] . rhi <= old_hhi)
                {
-                printf ("ERROR:  Unexpected jump in rhi\n");
+                printf ("ERROR7:  Unexpected jump in rhi\n");
                 exit (-1);
                }
            if  (list [i] . hlo != old_hhi + 1)
                {
-                printf ("ERROR:  Gap in h coverage\n");
+                printf ("ERROR8:  Gap in h coverage\n");
                 exit (-1);
                }
 
@@ -718,7 +723,7 @@ int  main
           {
            if  (list [i] . hlo != old_hhi + 1)
                {
-                printf ("ERROR:  Gap in h coverage\n");
+                printf ("ERROR9:  Gap in h coverage\n");
                 exit (-1);
                }
 
@@ -732,7 +737,7 @@ int  main
 #if  1
    if  (old_hhi != old_max || old_rhi != old_max)
        {
-        printf ("ERROR:  Missing hi coverage\n");
+        printf ("ERROR10:  Missing hi coverage\n");
         exit (-1);
        }
 #endif

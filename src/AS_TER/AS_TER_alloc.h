@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
-   CVS_ID:  $Id: AS_TER_alloc.h,v 1.1.1.1 2004-04-14 13:53:43 catmandew Exp $
+   CVS_ID:  $Id: AS_TER_alloc.h,v 1.2 2004-09-23 20:25:29 mcschatz Exp $
  *********************************************************************/
 #ifndef AS_TER_ALLOC_H
 #define AS_TER_ALLOC_H
@@ -28,7 +28,9 @@
 #include "AS_TER_utils.h"
 #include "AS_MSG_pmesg.h"
 
-#define UID_CODE_OK                     101
+#include <SYS_UIDcommon.h>
+#include <SYS_UIDclient.h>
+
 
 /*****************************************************************/
 /* UID ALLOCATION */

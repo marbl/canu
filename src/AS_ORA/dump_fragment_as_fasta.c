@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: dump_fragment_as_fasta.c,v 1.1.1.1 2004-04-14 13:52:19 catmandew Exp $";
+static char CM_ID[] = "$Id: dump_fragment_as_fasta.c,v 1.2 2004-09-23 20:25:25 mcschatz Exp $";
 
 
 #include <assert.h>
@@ -85,7 +85,7 @@ int main (int argc, char *argv[]) {
 
   InitGateKeeperStore(&gkpStore,gkpName);
   assert(existsFragStore(storeName) == TRUE);
-  assert(TestOpenGateKeeperStore(&gkpStore) == TRUE);
+  //  assert(TestOpenGateKeeperStore(&gkpStore) == TRUE);
   storeHandle = openFragStore(storeName,"r");
   OpenReadOnlyGateKeeperStore(&gkpStore);
   input = fopen (fileName,"r");

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: ProcessScaffolds_CGW.c,v 1.1.1.1 2004-04-14 13:51:00 catmandew Exp $ */
+/* $Id: ProcessScaffolds_CGW.c,v 1.2 2004-09-23 20:25:19 mcschatz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -602,6 +602,7 @@ int FastaScaffold(FILE *out, IntScaffoldMesg *scaff, int alternate_gap_spec)  {
 
   // append first contig to scaffold_sequence
   contig = GetMultiAlignInStore(cstore,contigid);
+  assert(contig!=NULL);
   contig_length = GetMultiAlignUngappedLength(contig);
   GetMultiAlignUngappedConsensus(contig,ctmp,qtmp);
   cseq = Getchar(ctmp,0);
@@ -703,7 +704,7 @@ int FastaDegenerateScaffold(FILE *out, IntDegenerateScaffoldMesg *scaff,VA_TYPE(
   return 1;
 }
 
-int CelamyScaffold(FILE *out, IntScaffoldMesg *scaff)  {
+int CelamyProcessScaffold(FILE *out, IntScaffoldMesg *scaff)  {
   CDS_IID_t i,num_pairs=scaff->num_contig_pairs; 
   CDS_IID_t contigid;
   int reverse;
@@ -804,7 +805,6 @@ int main(int argc, char *argv[])
           fasta = 1;
           strcpy(fastaNameBuffer, optarg);
           HandleDir(fastaNameBuffer,fastaFileName);
-	  sprintf(fastaDregsFileName,"%s.dregs",fastaFileName);
           fastaFile = fopen(fastaFileName,"w");
           if (fastaFile == NULL ) {
             fprintf(stderr,"Failure to create fasta file %s\n", fastaFileName);
@@ -884,6 +884,16 @@ int main(int argc, char *argv[])
           }
         }
   }
+
+  if(fasta&&fastaDregs){
+    sprintf(fastaDregsFileName,"%s.dregs",fastaFileName);
+    fastaDregsFile = fopen(fastaDregsFileName,"w");
+    if (fastaDregsFile == NULL ) {
+      fprintf(stderr,"Failure to create fasta file %s\n", fastaDregsFileName);
+      CleanExit(1);
+    }
+  }
+
   reader = InputFileType_AS( stdin );
 #if 0
   sublist_file = argv[1];
@@ -944,8 +954,10 @@ int main(int argc, char *argv[])
       }
       SetVA_CDS_IID_t(is_placed, unitig->iaccession,  
                       ((unitig->status == AS_SEP) ? &placed : &unplaced));
-      ma = CreateMultiAlignTFromIUM(unitig, -1,  0);
-      SetMultiAlignInStore(ustore,ma->id,ma);
+      if(celamy){
+	ma = CreateMultiAlignTFromIUM(unitig, -1,  0);
+	SetMultiAlignInStore(ustore,ma->id,ma);
+      }
     }
     if (pmesg->t ==MESG_ICM)  {
       contig = pmesg->m;
@@ -976,7 +988,7 @@ int main(int argc, char *argv[])
     }
     if (pmesg->t ==MESG_ISF)  {
       if ( celamy ) {
-        CelamyScaffold(celamyFile, (IntScaffoldMesg *)pmesg->m);
+        CelamyProcessScaffold(celamyFile, (IntScaffoldMesg *)pmesg->m);
       }
       if ( fasta ) {
         FastaScaffold(fastaFile, (IntScaffoldMesg *)pmesg->m, alternate_gap_spec);

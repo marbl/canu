@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: MicroHetScoreREZ_test3.c,v 1.1.1.1 2004-04-14 13:53:21 catmandew Exp $";
+static char CM_ID[] = "$Id: MicroHetScoreREZ_test3.c,v 1.2 2004-09-23 20:25:28 mcschatz Exp $";
 
 #include <stdarg.h>
 #include <stdlib.h>
@@ -47,11 +47,12 @@ double AS_REZ_guess_seqErr(Alignment_t *a, Marker_t* m, int s, int e)
   int i,j,k;
   int rows = 0;
   int charcount = 0;
+  int count[6]; // A C G T Dash (Blank or N)
   for(i=0; i<a->rows; i++)
     if( m->set[i] == TRUE )
       rows++;
 
-  if( FALSE ){    
+#if 0
     for(i=s; i<e; i++)
       for(j=0; j<a->rows; j++)
 	if( m->set[j] == TRUE )
@@ -60,9 +61,7 @@ double AS_REZ_guess_seqErr(Alignment_t *a, Marker_t* m, int s, int e)
 	    seqErr += a->seqErrArray[i][j];
 	  }
     seqErr /= charcount;
-  }
-  else{ 
-    int count[6]; // A C G T Dash (Blank or N)
+#else
         
     for(i=s; i<e; i++){
       int max;
@@ -111,7 +110,7 @@ double AS_REZ_guess_seqErr(Alignment_t *a, Marker_t* m, int s, int e)
 	seqErr += ((double)(rows-count[5]-count[max]))/((double) (rows-count[5]));
     }
     seqErr /= (e-s+1);
-  }
+#endif
   return seqErr;
 }
 

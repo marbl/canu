@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGW_LoadCheckpoint.c,v 1.1.1.1 2004-04-14 13:50:14 catmandew Exp $";
+static char CM_ID[] = "$Id: AS_CGW_LoadCheckpoint.c,v 1.2 2004-09-23 20:25:18 mcschatz Exp $";
 
 
 /*********************************************************************

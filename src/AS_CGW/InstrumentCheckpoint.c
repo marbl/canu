@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: InstrumentCheckpoint.c,v 1.1.1.1 2004-04-14 13:50:51 catmandew Exp $";
+static char CM_ID[] = "$Id: InstrumentCheckpoint.c,v 1.2 2004-09-23 20:25:19 mcschatz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -355,7 +355,7 @@ int main(int argc, char *argv[])
         ChunkInstanceT * contig = GetGraphNode(graph->RezGraph, *c_iid);
         if(contig != NULL)
         {
-          InstrumentContig(graph, NULL, contig, ci,
+          InstrumentContig(graph, NULL, NULL, contig, ci,
                            0.0f, contig->bpLength.mean);
           PrintContigInstrumenter(graph, ci, verbosity, "", stdout);
         }

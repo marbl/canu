@@ -22,7 +22,7 @@
 #
 ###########################################################################
 #
-# $Id: run_components_thru_grande.sh,v 1.1.1.1 2004-04-14 13:51:33 catmandew Exp $
+# $Id: run_components_thru_grande.sh,v 1.2 2004-09-23 20:25:21 mcschatz Exp $
 #
 #
 #set:
@@ -85,7 +85,7 @@
 
 
 # Globals - defined here for convenience
-CVS_REVISION="\$Revision: 1.1.1.1 $"
+CVS_REVISION="\$Revision: 1.2 $"
 
 library_filename_stub="screen_items.lib"
 lsf_job_group="/Assembly"

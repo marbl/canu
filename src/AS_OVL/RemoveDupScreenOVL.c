@@ -37,11 +37,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: RemoveDupScreenOVL.c,v 1.1.1.1 2004-04-14 13:52:44 catmandew Exp $
- * $Revision: 1.1.1.1 $
+ * $Id: RemoveDupScreenOVL.c,v 1.2 2004-09-23 20:25:26 mcschatz Exp $
+ * $Revision: 1.2 $
 */
 
-static char CM_ID[] = "$Id: RemoveDupScreenOVL.c,v 1.1.1.1 2004-04-14 13:52:44 catmandew Exp $";
+static char CM_ID[] = "$Id: RemoveDupScreenOVL.c,v 1.2 2004-09-23 20:25:26 mcschatz Exp $";
 
 
 #include  "AS_OVL_delcher.h"

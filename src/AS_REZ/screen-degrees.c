@@ -37,11 +37,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: screen-degrees.c,v 1.1.1.1 2004-04-14 13:53:30 catmandew Exp $
- * $Revision: 1.1.1.1 $
+ * $Id: screen-degrees.c,v 1.2 2004-09-23 20:25:28 mcschatz Exp $
+ * $Revision: 1.2 $
 */
 
-static char fileID[] = "$Id: screen-degrees.c,v 1.1.1.1 2004-04-14 13:53:30 catmandew Exp $";
+static char fileID[] = "$Id: screen-degrees.c,v 1.2 2004-09-23 20:25:28 mcschatz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>

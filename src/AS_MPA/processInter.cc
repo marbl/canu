@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: processInter.cc,v 1.1.1.1 2004-04-14 13:52:07 catmandew Exp $ */
+/* $Id: processInter.cc,v 1.2 2004-09-23 20:25:24 mcschatz Exp $ */
 #include <cstdio>  // for sscanf
 #include <iostream>
 #include <iomanip>
@@ -26,6 +26,7 @@
 #include <vector>
 #include <list>
 #include <map>
+#include <unistd.h> /* man 3 getopt */
 
 using namespace std;
 
@@ -39,6 +40,8 @@ using namespace std;
 #include "CompositeMPPolygon.h"
 #include "CloneLibrary.h"
 #include "clusterMPs.h"
+
+#include <unistd.h> /* for getopt */
 
 //#define USE_SATISFIEDS
 

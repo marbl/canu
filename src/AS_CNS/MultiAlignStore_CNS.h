@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: MultiAlignStore_CNS.h,v 1.1.1.1 2004-04-14 13:51:19 catmandew Exp $	 */
+/* 	$Id: MultiAlignStore_CNS.h,v 1.2 2004-09-23 20:25:20 mcschatz Exp $	 */
 #ifndef MULTIALIGNSTORE_H
 #define MULTIALIGNSTORE_H
 
@@ -84,6 +84,7 @@ MultiAlignT *CreateMultiAlignT(void);
 MultiAlignT *CreateEmptyMultiAlignT(void);
 MultiAlignT *CreateMultiAlignTFromIUM(IntUnitigMesg *ium, int32 localFragID, int sequenceOnly);
 MultiAlignT *CreateMultiAlignTFromICM(IntConConMesg *ium, int32 localFragID, int sequenceOnly);
+MultiAlignT *CreateMultiAlignTFromCCO(SnapConConMesg *ium, int32 localFragID, int sequenceOnly);
 MultiAlignT *CloneMultiAlignT(MultiAlignT *ma);
 void CopyMultiAlignT(MultiAlignT *newma, MultiAlignT *oldma);
 

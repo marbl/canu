@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: findMissedOverlaps.c,v 1.1.1.1 2004-04-14 13:50:37 catmandew Exp $";
+static char CM_ID[] = "$Id: findMissedOverlaps.c,v 1.2 2004-09-23 20:25:19 mcschatz Exp $";
 
 
 /*********************************************************************/
@@ -97,7 +97,7 @@ void initVarArrays(void)
 int evalGap( CDS_CID_t sid,
 	     ContigT *lcontig, 
 	     ContigT *rcontig,
-	     int gapNumber)
+	     int gapNumber,int dumpSeqs)
 {
 #define CNS_DP_ERATE .06
 #define CNS_DP_THRESH 1e-6
@@ -156,6 +156,12 @@ int evalGap( CDS_CID_t sid,
 	SequenceComplement( rSequence, NULL);  // flip contig sequence to its orientation in scaffold
   }
   
+  if(dumpSeqs){
+    fprintf(stdout,"\n>ctg %d%s\n%s\n>ctg %d%s\n%s\n",
+	    lcontig->id,(lContigOrientation == B_A ? " rc" : ""),lSequence,
+	    rcontig->id,(rContigOrientation == B_A ? " rc" : ""),rSequence);
+  }
+
   
   what       = AS_FIND_ALIGN;
   opposite   = 0;
@@ -454,6 +460,7 @@ int main( int argc, char *argv[])
   int numGaps = 0, gapNumber = 0;
   int numGapsVarTooSmall = 0;
   int overlapFound = 0, noOverlapFound = 0;
+  int dumpSeqs=0;
 
   GlobalData  = data = CreateGlobal_CGW();
   data->stderrc = stderr;
@@ -468,7 +475,7 @@ int main( int argc, char *argv[])
     int ch,errflg=0;
     optarg = NULL;
     while (!errflg && ((ch = getopt(argc, argv,
-				    "c:C:f:g:m:n:s:")) != EOF)){
+				    "c:C:df:g:m:n:s:")) != EOF)){
       switch(ch) {
 		case 'c':
 		{
@@ -480,6 +487,11 @@ int main( int argc, char *argv[])
 		  startingGap = atoi(argv[optind - 1]);
 		  setStartingGap = TRUE;
 		  break;
+                case 'd':
+		{
+		  dumpSeqs=1;
+		}
+		break;
 		case 'f':
 		{
 		  strcpy( data->Frag_Store_Name, argv[optind - 1]);
@@ -517,7 +529,7 @@ int main( int argc, char *argv[])
       {
 	fprintf(stderr,"* argc = %d optind = %d setFragStore = %d setGatekeeperStore = %d outputPath = %s\n",
 		argc, optind, setFragStore,setGatekeeperStore, outputPath);
-	fprintf (stderr, "USAGE:  %s -f <FragStoreName> -g <GatekeeperStoreName> -c <CkptFileName> -n <CkpPtNum>\n",argv[0]);
+	fprintf (stderr, "USAGE:  %s [-d] -f <FragStoreName> -g <GatekeeperStoreName> -c <CkptFileName> -n <CkpPtNum>\n\t-d option causes contig seqeunces to be dumped\n",argv[0]);
 	exit (EXIT_FAILURE);
       }
   }
@@ -619,7 +631,7 @@ int main( int argc, char *argv[])
       if ( gapSize.mean > NUM_STDDEV_CUTOFF * sqrt(gapSize.variance) && gapSize.mean > 100.0){
 	numGapsVarTooSmall++;
       }else{ 
-	if(evalGap( sid, lcontig, rcontig, gapNumber)) {
+	if(evalGap( sid, lcontig, rcontig, gapNumber,dumpSeqs)) {
 	  overlapFound++;
 	}else{
 	  noOverlapFound++;

@@ -40,6 +40,16 @@ typedef struct HashNode_tag{
 
 HEAP_DEF(HashNode_AS)
 
+typedef struct UIDHashNode_tag{
+ uint64 key;
+ uint32 keyLength;
+  unsigned int isFree:1;
+ uint32 value;
+ struct UIDHashNode_tag *next;
+}UIDHashNode_AS;
+
+HEAP_DEF(UIDHashNode_AS)
+
 typedef struct{
   int32 numBuckets;
   HashNode_AS **buckets;
@@ -53,6 +63,20 @@ typedef struct{
   HashFn_AS hash;
   uint32 hashmask;
 } HashTable_AS;
+
+typedef struct{
+  int32 numBuckets;
+  UIDHashNode_AS **buckets;
+  UIDHashNode_AS *freeList;
+  HEAP_TYPE(UIDHashNode_AS) *allocated;
+  //UIDHashNode_AS *allocated;
+  int32 numNodes;
+  int32 numNodesAllocated;
+  int32 collisions;
+  HashCmpFn_AS compare;
+  HashFn_AS hash;
+  uint32 hashmask;
+} UIDHashTable_AS;
 
 
 int IntegerHashFn_AS(const void *pointerToInt, int length);
@@ -140,6 +164,15 @@ int NextHashTable_Iterator_AS(HashTable_Iterator_AS *iterator,
 			       void **key, 
 			       void **value);
 
+
+UIDHashTable_AS *CreateUIDHashTable_AS(int numItemsToHash); 
+int InsertNodeInUIDHashBucket(UIDHashTable_AS *table, UIDHashNode_AS *newnode);
+int ReallocUIDHashTable_AS(UIDHashTable_AS *htable);
+UIDHashNode_AS *AllocUIDHashNode_AS(UIDHashTable_AS *table, 
+				    uint64 *key, uint keyLength, void *value);
+int InsertInUID2IIDHashTable_AS(UIDHashTable_AS *table, uint64 key, int32 value);
+
+int32* LookupInUID2IIDHashTable_AS(UIDHashTable_AS *table, uint64 key);
 
 #endif
 

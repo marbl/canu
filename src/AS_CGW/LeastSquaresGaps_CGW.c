@@ -18,10 +18,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: LeastSquaresGaps_CGW.c,v 1.1.1.1 2004-04-14 13:50:56 catmandew Exp $";
+static char CM_ID[] = "$Id: LeastSquaresGaps_CGW.c,v 1.2 2004-09-23 20:25:19 mcschatz Exp $";
 
-#define MOSQUITO_RUN
-#define MOUSE_20010307
+//#define MOSQUITO_RUN
+//#define MOUSE_20010307
+#undef FIXED_RECOMPUTE_SINGULAR /* long standing bug: is it fixed yet? */
+#undef FIXED_RECOMPUTE_NOT_ENOUGH_CLONES /* long standing bug: is it fixed yet? */
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -32,7 +34,8 @@ static char CM_ID[] = "$Id: LeastSquaresGaps_CGW.c,v 1.1.1.1 2004-04-14 13:50:56
 #include <dirent.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <values.h>
+#include <limits.h>
+#include <float.h>
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -573,6 +576,11 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
   int32 numCIs;
   int32 indexCIs;
 
+#undef DEBUG_LS
+#ifdef DEBUG_LS
+  verbose=1;
+#endif
+
   int numGaps, numComputeGaps;
   LengthT *lengthCIs, *lengthCIsPtr;
   int maxDiagonals = 1;
@@ -634,6 +642,11 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
     if(verbose)
       fprintf(GlobalData->logfp, "Length of CI %d," F_CID " %f\n",
 	      indexCIs, thisCI->id, lengthCIsPtr->mean);
+
+#ifdef DEBUG_LS
+      fprintf(stderr, "Length of CI %d," F_CID " %f\n",
+	      indexCIs, thisCI->id, lengthCIsPtr->mean);
+#endif
     indexCIs++;
     lengthCIsPtr++;
   }
@@ -662,20 +675,29 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
 	continue; // Only interested in looking at an edge once
       }
       numClones++;
+#ifdef DEBUG_LS
+fprintf(stderr,"RecomputeOffsets: adding clone between %d and %d\n",
+	thisCI->id,otherCI->id);
+#endif
       if((otherCI->indexInScaffold - thisCI->indexInScaffold) >
 	 maxDiagonals){
 	maxDiagonals = otherCI->indexInScaffold - thisCI->indexInScaffold;
-	if(verbose)
+	if(verbose){
 	  fprintf(GlobalData->logfp, "Max Diagonals %d (%d,%d) [" F_CID "." F_CID "," F_CID "." F_CID "]\n",
 		  maxDiagonals, thisCI->indexInScaffold,
 		  otherCI->indexInScaffold, thisCI->scaffoldID,
 		  thisCI->id, otherCI->scaffoldID, otherCI->id);
+	  fprintf(stderr, "Max Diagonals %d (%d,%d) [" F_CID "." F_CID "," F_CID "." F_CID "]\n",
+		  maxDiagonals, thisCI->indexInScaffold,
+		  otherCI->indexInScaffold, thisCI->scaffoldID,
+		  thisCI->id, otherCI->scaffoldID, otherCI->id);
+	}
       }
     }
   }
   if(numClones < numGaps){
     freeRecomputeData(&data);
-#ifndef MOSQUITO_RUN
+#ifdef  FIXED_RECOMPUTE_NOT_ENOUGH_CLONES
     assert(0 /* Not enough clones */);
 #endif
     return (RECOMPUTE_NOT_ENOUGH_CLONES);
@@ -925,7 +947,7 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
               rows, bands, ldab, info);
       dpbtrf_("L", &rows, &bands, gapCoefficients, &ldab, &info);
       if(verbose)
-	fprintf(GlobalData->logfp, "rows " F_FTN_INT " bands " F_FTN_INT " ldab " F_FTN_INT " info " F_FTN_INT "\n",
+	fprintf(GlobalData->logfp, "dpbtrf: rows " F_FTN_INT " bands " F_FTN_INT " ldab " F_FTN_INT " info " F_FTN_INT "\n",
 		rows, bands, ldab, info);
       if(info < 0){
 	freeRecomputeData(&data);
@@ -933,16 +955,15 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
 	return (RECOMPUTE_LAPACK);
       }else if(info > 0){
 	freeRecomputeData(&data);
-        
-#ifndef MOUSE_20010307
+
+#ifdef FIXED_RECOMPUTE_SINGULAR        
         // mjf 3/9/2001
         // this assert was causing trouble in the mouse_20010307 run, commented it out
         // and the run proceeded w/o further trouble
         // need to figure out why scaffolds that were apparently connected go singular
         assert(0 /* RECOMPUTE_SINGULAR */);
-#else
-	return (RECOMPUTE_SINGULAR);
 #endif
+	return (RECOMPUTE_SINGULAR);
       }
       /* Call an LAPACK routine to multiply the inverse of the gapCoefficients
 	 matrix by the gapConstants vector resulting in the least squares
@@ -951,7 +972,7 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
       dpbtrs_("L", &rows, &bands, &nrhs, gapCoefficients, &ldab,
 	      gapConstants, &rows, &info);
       if(verbose)
-	fprintf(GlobalData->logfp, "rows " F_FTN_INT " bands " F_FTN_INT " ldab " F_FTN_INT " nrhs " F_FTN_INT " info " F_FTN_INT "\n",
+	fprintf(GlobalData->logfp, "dpbtrs (call1): rows " F_FTN_INT " bands " F_FTN_INT " ldab " F_FTN_INT " nrhs " F_FTN_INT " info " F_FTN_INT "\n",
 		rows, bands, ldab, nrhs, info);
       if(info < 0){
 	freeRecomputeData(&data);
@@ -960,7 +981,7 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
       }else if(info > 0){
 	freeRecomputeData(&data);
 	assert(0 /* RECOMPUTE_SINGULAR */);
-	return (RECOMPUTE_LAPACK);
+	return (RECOMPUTE_SINGULAR);
       }
     }
     
@@ -1012,7 +1033,7 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
 	dpbtrs_("L", &rows, &bands, &nrhs, gapCoefficients, &ldab,
 		spannedGaps, &rows, &info);
 	if(verbose)
-	  fprintf(GlobalData->logfp, "rows " F_FTN_INT " bands " F_FTN_INT " ldab " F_FTN_INT " nrhs " F_FTN_INT " info " F_FTN_INT "\n",
+	  fprintf(GlobalData->logfp, "dpbtrs (call2): rows " F_FTN_INT " bands " F_FTN_INT " ldab " F_FTN_INT " nrhs " F_FTN_INT " info " F_FTN_INT "\n",
 		  rows, bands, ldab, nrhs, info);
 	if(info < 0){
 	  freeRecomputeData(&data);

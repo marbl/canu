@@ -25,12 +25,12 @@
       Definitions of functions declared in  delcher.h
    Assumptions:  Input meets specifications in the ProtoIO documents
  *********************************************************************/
-static char fileID[] = "$Id: AS_OVL_delcher.c,v 1.1.1.1 2004-04-14 13:52:27 catmandew Exp $";
+static char fileID[] = "$Id: AS_OVL_delcher.c,v 1.2 2004-09-23 20:25:25 mcschatz Exp $";
 
 
 /* RCS info
- * $Id: AS_OVL_delcher.c,v 1.1.1.1 2004-04-14 13:52:27 catmandew Exp $
- * $Revision: 1.1.1.1 $
+ * $Id: AS_OVL_delcher.c,v 1.2 2004-09-23 20:25:25 mcschatz Exp $
+ * $Revision: 1.2 $
 */
 
 

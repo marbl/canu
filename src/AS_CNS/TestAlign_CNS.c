@@ -25,7 +25,7 @@
                  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: TestAlign_CNS.c,v 1.1.1.1 2004-04-14 13:51:22 catmandew Exp $";
+static char CM_ID[] = "$Id: TestAlign_CNS.c,v 1.2 2004-09-23 20:25:20 mcschatz Exp $";
 
 // Operating System includes:
 #include <stdlib.h>

@@ -21,33 +21,23 @@
 #
 ###########################################################################
 #
-VERBOSE=1
-TGT= $@
 
+## Enable verbose mode in c_make.as
 
-all:
-	@ TGT=objs
+## Make all is equivalent to 'make objs libs progs all' in each subdir
+all: objs libs progs version
 	@ $(dosubdirs)
-	@ TGT=libs
-	@ $(dosubdirs)
-	@ TGT=progs
+
+objs libs progs install clean tester regression:
 	@ $(dosubdirs)
 
 
-install: all
-	@ $(dosubdirs)
-
-clean:
-	@ $(dosubdirs)
-
-
-tester: 
-	@ $(dosubdirs)
-
-
-regression: 
-	@ $(dosubdirs)
-
-LOCAL_WORK = $(shell cd ..; pwd)
 # Include for AS project rules
+LOCAL_WORK = $(shell cd ..; pwd)
 include $(LOCAL_WORK)/src/c_make.as
+
+.PHONY: version
+version:
+	cat version.c.tmpl | sed 's/CA_BUILDER_STR/${USER}/' | sed 's/CA_BUILD_DATE_STR/$(shell date)/' > version.c
+	$(CC) -o $(LOCAL_BIN)/version version.c
+	rm -f version.c

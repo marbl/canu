@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
-   CVS_ID:  $Id: MicroHetREZ.h,v 1.1.1.1 2004-04-14 13:53:23 catmandew Exp $
+   CVS_ID:  $Id: MicroHetREZ.h,v 1.2 2004-09-23 20:25:28 mcschatz Exp $
  *********************************************************************/
 #ifndef MICROHETREZ_H
 #define MICROHETREZ_H

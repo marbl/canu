@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.1.1.1 2004-04-14 13:50:19 catmandew Exp $";
+static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.2 2004-09-23 20:25:19 mcschatz Exp $";
 
 #include "AS_global.h"
 #include <assert.h>
@@ -523,7 +523,6 @@ int InsertOverlapInHashTable(Overlap *tempOlap,
 }
 
 /************************************************************************/
-//#define DEBUG_CHUNKOVERLAP
 
 void CollectChunkOverlap(GraphCGW_T *graph,
                          CDS_CID_t cidA, CDS_CID_t cidB,
@@ -643,7 +642,6 @@ void CollectChunkOverlap(GraphCGW_T *graph,
   }
 }
 
-// #define DEBUG_CHUNKOVERLAP
 /************************************************************************/
 static VA_TYPE(char) *consensusA = NULL;
 static VA_TYPE(char) *consensusB = NULL;
@@ -1010,7 +1008,7 @@ CDS_CID_t InsertComputedOverlapEdge(GraphCGW_T *graph,
   LengthT overlap;
   ChunkOrientationType orient = olap->spec.orientation;
   EdgeCGW_T *existing = FindGraphOverlapEdge(graph, olap->spec.cidA, olap->spec.cidB, orient);
-  int verbose = TRUE;
+  int verbose = FALSE;
 
   overlap.mean   = -olap->overlap;
   overlap.variance = max(1.0, ComputeFudgeVariance((double)olap->overlap));
@@ -1970,21 +1968,28 @@ void ComputeOverlaps(GraphCGW_T *graph, int addEdgeMates,
 		  numOverlaps++;
 
 #ifdef USE_NEW_DP_COMPARE
+		  {
+		  ChunkOverlapSpecT inSpec;
+		  inSpec = olap->spec;
 		  ComputeCanonicalOverlap_new(graph, olap);
 		  if(olap->suspicious)
 		  {
-			fprintf(GlobalData->stderrc,"* CO: SUSPICIOUS Overlap found! Looked for (" F_CID "," F_CID ",%c)[" F_COORD "," F_COORD "] found (" F_CID "," F_CID ",%c) " F_COORD "\n",
-                                olap->spec.cidA, olap->spec.cidB,
-                                orientation,
-                                olap->minOverlap, olap->maxOverlap,
-                                olap->spec.cidA, olap->spec.cidB,
-                                olap->spec.orientation, olap->overlap);
+		    int lengthA, lengthB;
+		    lengthA = GetConsensus(graph, olap->spec.cidA, consensusA, qualityA);
+		    lengthB = GetConsensus(graph, olap->spec.cidB, consensusB, qualityB);
+
+		    fprintf(GlobalData->stderrc,"* CO: SUSPICIOUS Overlap found! Looked for (" F_CID "," F_CID ",%c)[" F_COORD "," F_COORD "]"
+			    "found (" F_CID "," F_CID ",%c) " F_COORD "; contig lengths as found (%d,%d)\n",
+			    inSpec.cidA, inSpec.cidB, orientation, olap->minOverlap, olap->maxOverlap,
+			    olap->spec.cidA, olap->spec.cidB, olap->spec.orientation, olap->overlap,
+			    lengthA,lengthB);
+		  }
 		  }
 #else
 		  ComputeCanonicalOverlap(graph, olap);
 #endif
 		  
-#ifdef DEBUG_CHUNKOVERLAPS
+#ifdef DEBUG_CHUNKOVERLAP
 		  fprintf(GlobalData->stderrc,"* addEdgeMates = %d fromCGB = %d (" F_CID "," F_CID ",%c) olap:" F_COORD "\n",
                           addEdgeMates, olap->fromCGB,
                           olap->spec.cidA, olap->spec.cidB,

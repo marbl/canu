@@ -46,8 +46,8 @@
  *************************************************************************/
 
 /* RCS Info
- * $Id: AS_PER_fragStore.h,v 1.1.1.1 2004-04-14 13:52:49 catmandew Exp $
- * $Revision: 1.1.1.1 $
+ * $Id: AS_PER_fragStore.h,v 1.2 2004-09-23 20:25:26 mcschatz Exp $
+ * $Revision: 1.2 $
  *
  */
 
@@ -597,6 +597,7 @@ int closeFragStream(FragStreamHandle fs);
  *****************************************************************************/
 int nextFragStream(FragStreamHandle fs, ReadStructp rs, int streamFlags);
 
+int kNextFragStream(FragStreamHandle fs, ReadStructp rs, int streamFlags, int skipNum);
 
 /******************************************************************************
  * WORK IN PROGRESS : JASON, OCT 2001
@@ -619,5 +620,6 @@ int nextFragStream(FragStreamHandle fs, ReadStructp rs, int streamFlags);
  *     FragStreamHandle of FragStore stream
  *****************************************************************************/
 // int nextFragStream(FragStreamHandle fs, ReadStructp rs, int streamFlags);
+
 
 #endif  //  AS_PER_FRAGSTORE_H

@@ -49,14 +49,14 @@
 #undef   BP_RATDP
 #undef   BP_TAILS
 
+#undef     WARN_SHORT
+
 #define  BP_RATIO .25
 
-/* Use more aggressive LD_RATIO for vector trimming */
-#ifdef AS_ALN_AGGRESSIVE_TRIM
-#define  LD_RATIO .25
-#else
-#define  LD_RATIO .1
-#endif
+#define  LD_RATIO .3 /* longer alignments favored over shorter alignments with error up to this;
+			but note that this includes comparing no alignment against any alignment,
+			thus this ratio limits the maximum error rate that can meaningfully be
+			requested of the DP_Compare aligner */
 
 static double ld_ratio = LD_RATIO;
 
@@ -176,9 +176,23 @@ static int Space_n_Tables(int max, double erate, double thresh)
             double p;
 
             d = newd[WorkLimit];
-            p = 2.*erate - erate*erate;
+ #undef ERATE_ONE_SEQ
+ #ifdef ERATE_ONE_SEQ
+ 	    /* this doesn't look quite right, even assuming erate is for
+ 	       error in one seq rather than mismatch; the problem is
+ 	       that two errors cancel each other only if the changes
+ 	       happen to be the same ... */
+ 	    p = 2.*erate - erate*erate; 
+ #else
+             p = erate;
+ #endif
             for (n = WorkLimit + 1; n <= max; n += 1)
-              { while (d <= n && BinomialProb(n+d,d,p) >= thresh)
+ #undef NplusDchooseD
+ #ifdef NplusDchooseD
+               { while (d <= n && BinomialProb(n+d,d,p) >= thresh) /* why n+d,d, rather than just n,d? */
+ #else
+               { while (d <= n && BinomialProb(n,d,p) >= thresh) 
+ #endif
                   d += 1;
                 newd[n] = d;
               }
@@ -208,9 +222,21 @@ static int Space_n_Tables(int max, double erate, double thresh)
       Firstime   = 0;
 
       DistThresh[0] = d = 1;
+#ifdef ERATE_ONE_SEQ
+      /* this doesn't look quite right, even assuming erate is for
+	 error in one seq rather than mismatch; the problem is
+	 that two errors cancel eachother only if the changes
+	 happen to be the same ... */
       p = 2.*erate - erate*erate;
+#else
+      p = erate;
+#endif
       for (n = 1; n <= WorkLimit; n += 1)
-        { while (d <= n && BinomialProb(n+d,d,p) >= thresh)
+#ifdef NplusDchooseD
+      { while (d <= n && BinomialProb(n+d,d,p) >= thresh)
+#else
+        { while (d <= n && BinomialProb(n,d,p) >= thresh)
+#endif
             d += 1;
           DistThresh[n] = d;
         }
@@ -997,7 +1023,7 @@ static int Boundary(char *a, int alen, char *b, int blen,
 
             p = bval;
 #ifdef BOUND_DEBUG
-            printf("\n  Boundary Segment: P-thresh = %d\n",prob_thresh);
+            printf("\n  Boundary Segment: P-thresh = %d row %d\n",prob_thresh,row);
 #endif
             for (i = j+1; i <= row; i++) 
               { if (P & 0x1)
@@ -1053,6 +1079,11 @@ static int Boundary(char *a, int alen, char *b, int blen,
 		    }
 		  } else { // if overlap is long enough
 		    // if better than best so far
+
+#ifdef BOUND_DEBUG
+		    printf(" [%d >?= %d (%f)] ",(int)((i-boundpos)*ld_ratio + boundval),p,p/(double)(i));
+#endif
+
 		    if ((i-boundpos)*ld_ratio + boundval >= p) {
 
 		      // if equivalent to best_too_short plus external gaps
@@ -1061,11 +1092,12 @@ static int Boundary(char *a, int alen, char *b, int blen,
 			printf("=");
 #endif
 
+#ifdef WARN_SHORT
 			fprintf(stderr,
 "WARNING: DP_Compare using overlap shorter than minlen\n"
 "WARNING: because gaps external to the overlap can be placed to\n"
 "WARNING: create an overlap that passes all tests and is long enough\n");
-
+#endif
 			// ... favor the short overlap
 			// (the idea is ... the longer overlap was
 			// good enough to be used, so we'll allow *some*
@@ -1079,10 +1111,12 @@ static int Boundary(char *a, int alen, char *b, int blen,
 			// if consistent with extension of previous local best
 			if (i-lastlocalminpos == p-lastlocalminscore){
 
+#ifdef WARN_SHORT
 			  fprintf(stderr,
 "WARNING: DP_Compare using overlap shorter than minlen\n"
 "WARNING: because gaps external to the overlap can be placed to\n"
 "WARNING: create an overlap that passes all tests and is long enough\n");
+#endif
 
 #ifdef BOUND_DEBUG
 			  printf("^");
@@ -1095,7 +1129,7 @@ static int Boundary(char *a, int alen, char *b, int blen,
 			  boundpos = i;
 			  boundval = p;
 #ifdef BOUND_DEBUG
-			  printf("+");
+			  printf("+\\");
 #endif
 			}
 		      }
@@ -1145,7 +1179,12 @@ static int Boundary(char *a, int alen, char *b, int blen,
     if (j >= blen && lft <= rgt)  /* Reached a-boundary: check values there */
       { int i, v, p;
 
-        v = boundval + (int)(boundpos*ld_ratio);
+        v = boundval + (int)(((double)boundpos)*ld_ratio);
+#ifdef BOUND_DEBUG
+	printf("v = %d = %d + [ %d = %d * %f\n",
+	       v,boundval,(int)(((double)boundpos)*ld_ratio),
+	       boundpos,ld_ratio);
+#endif
         p = (int)rval;
         if (lft < minlen) lft = minlen;
         for (i = rgt; i >= lft; i--)
@@ -1158,11 +1197,11 @@ static int Boundary(char *a, int alen, char *b, int blen,
 #endif
 
             if (p < prob_thresh)
-              { if (v > p)
+              { if (v >= p)
                   { boundpos = i-alen;
                     boundval = v = p;
 #ifdef BOUND_DEBUG
-                    printf("+");
+                    printf("+/");
                   }
                 printf("*");
               }
@@ -1348,6 +1387,16 @@ Overlap *DP_Compare(char *aseq, char *bseq,
   int   dif1,  dif2;
 
   static Overlap OVL;
+  assert(erate>=0&&erate<1);
+  ld_ratio=erate/(1.-erate); 
+                             /* we want to balance ld_ratio with erate such that any alignment
+				with mismatch rate <= erate will have mismatches <= ld_ratio * aligned length of one aligned substring;
+
+				max mismatches for a given length is achieved by putting that number of gaps in the short side, i.e.
+				max mismatches = d such that d/(n+d) = erate, i.e. d = n*erate/(1-erate)
+
+				but we also want d <= ld_ratio * n, or n*erate/(1-erate) <= ld_ratio *n, so ld_ratio >= erate/(1-erate)
+			     */
 
   alen = strlen(aseq);
   blen = strlen(bseq);
@@ -1428,9 +1477,9 @@ Overlap *DP_Compare(char *aseq, char *bseq,
         else
           olen2 = alen+olen2;
         if (olen1 < olen2)
-          which = (dif1 + LD_RATIO*(olen2-olen1) >= dif2);
+          which = (dif1 + ld_ratio*(olen2-olen1) >= dif2);
         else
-          which = (dif2 + LD_RATIO*(olen1-olen2) < dif1);
+          which = (dif2 + ld_ratio*(olen1-olen2) < dif1);
       }
     if (which)
       { pos1 = pos2; dif1 = dif2; }

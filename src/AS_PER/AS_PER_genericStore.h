@@ -64,8 +64,8 @@
  *************************************************************************/
 
 /* RCS Info
- * $Id: AS_PER_genericStore.h,v 1.1.1.1 2004-04-14 13:52:53 catmandew Exp $
- * $Revision: 1.1.1.1 $
+ * $Id: AS_PER_genericStore.h,v 1.2 2004-09-23 20:25:26 mcschatz Exp $
+ * $Revision: 1.2 $
  *
  */
 
@@ -115,6 +115,16 @@ typedef struct{
   time_t lastUpdateTime;
 }StoreStat;
 
+
+/* This is the structure maintained for each store Stream */
+typedef struct{
+  StoreHandle store;
+  void *buffer;
+  int32 bufferSize;
+  int64 startIndex;
+  int64 endIndex;
+  StoreStatus status; 
+}StreamStruct;
 
 /******************************************************************************
  * Function: createIndexStore:
@@ -719,6 +729,8 @@ int getStartIndexStream(StreamHandle stream);
  *****************************************************************************/
 	
 int nextStream(StreamHandle sh, void *buffer);
+
+int kNextStream(StreamHandle sh, void *buffer, int skipNum);
 
 /******************************************************************************
  * Function: nextStringStream

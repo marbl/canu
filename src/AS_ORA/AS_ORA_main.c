@@ -20,7 +20,7 @@
  *************************************************************************/
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_ORA/Attic/AS_ORA_main.c,v $
-$Revision: 1.1.1.1 $
+$Revision: 1.2 $
 **********************************************************************/
 
 /**********************************************************************
@@ -1290,7 +1290,7 @@ int GenerateOverlapFile( char * output_ovl_filename,
     // regressor ADL message
     auditLine2.complete = time(0);
     auditLine2.name = "overlap_regressor";
-    auditLine2.version = "$Revision: 1.1.1.1 $ $Date: 2004-04-14 13:52:18 $";
+    auditLine2.version = "$Revision: 1.2 $ $Date: 2004-09-23 20:25:25 $";
     auditLine2.comment = "(empty)";
     auditLine2.next = NULL;
 

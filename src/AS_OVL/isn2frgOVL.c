@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: isn2frgOVL.c,v 1.1.1.1 2004-04-14 13:52:40 catmandew Exp $
- * $Revision: 1.1.1.1 $
+ * $Id: isn2frgOVL.c,v 1.2 2004-09-23 20:25:26 mcschatz Exp $
+ * $Revision: 1.2 $
 */
 
-static char fileID[] = "$Id: isn2frgOVL.c,v 1.1.1.1 2004-04-14 13:52:40 catmandew Exp $";
+static char fileID[] = "$Id: isn2frgOVL.c,v 1.2 2004-09-23 20:25:26 mcschatz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -97,7 +97,7 @@ int main  (int argc, char * argv [])
 
            sprintf (label_line, "%s", argv [0]);
            AppendAuditLine_AS (adt_mesg, & audit_line, time (0), "get-subgraph",
-                               "$Revision: 1.1.1.1 $", label_line);
+                               "$Revision: 1.2 $", label_line);
            write_msg_fn (stdout, gmesg);
            break;
           }

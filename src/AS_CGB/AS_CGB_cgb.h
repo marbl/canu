@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_CGB_cgb.h,v 1.1.1.1 2004-04-14 13:49:46 catmandew Exp $
+ * $Id: AS_CGB_cgb.h,v 1.2 2004-09-23 20:25:01 mcschatz Exp $
  *
  * Module: AS_CGB_cgb.h
  *
@@ -98,7 +98,9 @@ static float compute_coverage_statistic
   // Therefore they should not contribute to the fragment count in the
   // local arrival rate discriminator statistic.
   
+  // to avoid recomputing ...
   const float ln2 = 0.693147f; // Logarithm base 2 of "e".
+  const float sqrt2 = 1.414213f;
 
   const float coverage_statistic =
     ( global_fragment_arrival_rate > 0.f
@@ -113,6 +115,27 @@ static float compute_coverage_statistic
   // The coverage discriminator statistic should be positive for
   // single coverage, negative for multiple coverage, and near zero
   // for indecisive.
+
+#define ADJUST_FOR_PARTIAL_EXCESS
+  // the standard statistic gives log likelihood ratio of expected depth vs.
+  // twice expected depth; but when enough fragments are present, we can actually
+  // test whether depth exceeds expected even fractionally; in deeply sequenced datasets
+  // (e.g. bacterial genomes), this has been observed for repetitive segments
+#ifdef ADJUST_FOR_PARTIAL_EXCESS
+  if(rho>0){
+    float lambda = global_fragment_arrival_rate * rho;
+    float zscore = ((number_of_randomly_sampled_fragments_in_chunk -1)-lambda)/
+      sqrt(lambda);
+    float p = .5 - erf(zscore/sqrt2)*.5;
+    if(coverage_statistic>5 && p < .001){
+      fprintf(stderr,"Standard unitigger a-stat for is %f , but only %e chance of this great an excess of fragments: obs = %d, expect = %g  Resetting a-stat to 1.5\n",
+	      coverage_statistic,p,
+	      number_of_randomly_sampled_fragments_in_chunk-1,
+	      lambda);
+      return 1.5;
+    }
+  }
+#endif
 
   return coverage_statistic;
 }

@@ -27,8 +27,8 @@
  *********************************************************************/
 
 /* RCS info
- * $Id: MakeScriptOVL.h,v 1.1.1.1 2004-04-14 13:52:42 catmandew Exp $
- * $Revision: 1.1.1.1 $
+ * $Id: MakeScriptOVL.h,v 1.2 2004-09-23 20:25:25 mcschatz Exp $
+ * $Revision: 1.2 $
 */
 
 

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: TwoDIntervalClique.h,v 1.1.1.1 2004-04-14 13:52:08 catmandew Exp $ */
+/* $Id: TwoDIntervalClique.h,v 1.2 2004-09-23 20:25:23 mcschatz Exp $ */
 #ifndef TWODINTERVALCLIQUE_H
 #define TWODINTERVALCLIQUE_H
 
@@ -48,7 +48,7 @@ public:
                      map<IDType, int> & id2Quad)
     {
       pids = clique.getIDs();
-      list<IDType>::iterator iter = pids.begin();
+      typename list<IDType>::iterator iter = pids.begin();
 
       if(isXClique)
       {
@@ -83,7 +83,7 @@ public:
     {
       pids = cpi.getCommonIDs();
       // iterate over ids to find x & y intersection intervals
-      list<IDType>::iterator iter = pids.begin();
+      typename list<IDType>::iterator iter = pids.begin();
 
       pxinterval = quads[id2Quad[IDType (*iter)]].getXProjection();
       pyinterval = quads[id2Quad[IDType (*iter)]].getYProjection();
@@ -99,8 +99,8 @@ public:
   
   void getCommonIDs(const list<IDType> & ids, list<IDType> & commonIDs) const
     {
-      list<IDType>::const_iterator piter;
-      list<IDType>::const_iterator iter;
+      typename list<IDType>::const_iterator piter;
+      typename list<IDType>::const_iterator iter;
 
       commonIDs.clear();
       for(iter = ids.begin(), piter = pids.begin();
@@ -130,7 +130,7 @@ public:
       pxinterval.setIntervalToUnion(t.getXInterval());
       pyinterval.setIntervalToUnion(t.getYInterval());
 
-      list<IDType>::const_iterator iter;
+      typename list<IDType>::const_iterator iter;
       for(iter = t.pids.begin(); iter != t.pids.end(); iter++)
         pids.push_back(*iter);
     }
@@ -205,7 +205,7 @@ public:
          << t.pxinterval.getMin() << " " << t.pyinterval.getMax() << "\t"
          << t.pxinterval.getMax() << " " << t.pyinterval.getMax() << "\t"
          << t.pxinterval.getMax() << " " << t.pyinterval.getMin() << "\t";
-      list<IDType>::const_iterator iter;
+      typename list<IDType>::const_iterator iter;
       for(iter = t.pids.begin(); iter != t.pids.end(); iter++)
         os << *iter << " ";
       return os;

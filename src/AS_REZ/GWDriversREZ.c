@@ -34,7 +34,7 @@
  **********************************************************************/
 
 
-static char fileID[] = "$Id: GWDriversREZ.c,v 1.1.1.1 2004-04-14 13:53:20 catmandew Exp $";
+static char fileID[] = "$Id: GWDriversREZ.c,v 1.2 2004-09-23 20:25:27 mcschatz Exp $";
 
 #include <stdio.h>
 #include <assert.h>
@@ -879,7 +879,7 @@ void Intra_Scaffold_Path_Finding( int startWalkFrom, double gapSizeStdDevs, int 
   return;
 }
 
-void Inter_Scaffold_Analysis()
+void Inter_Scaffold_Analysis(void)
 {
   CDS_CID_t sid1, sid2;
   GapInfoT *scaffoldGapInfoArray;
@@ -1105,7 +1105,7 @@ void Inter_Scaffold_Analysis()
 // 3. Prioritize walking order (by frag separation in locale?)
 // 4. Attempt walks by using walkScaffolds
 
-int Inter_Scaffold_Walking()
+int Inter_Scaffold_Walking(void)
 {
   CDS_CID_t sid;
   int i;
@@ -1425,10 +1425,10 @@ int Inter_Scaffold_Walking()
   // now make an array of all scaffold ends we're interested in
   // mark the ones that are to be involved in a walk as indicated by scaffoldEnds
   AEnds = (int *) calloc( GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph), sizeof(int));
-  assert (AEnds);
+  AssertPtr (AEnds);
   
   BEnds = (int *) calloc( GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph), sizeof(int));
-  assert (BEnds);
+  AssertPtr (BEnds);
   
   for ( i = 0; i < scaffoldEndCount; i++)
   {
@@ -1575,10 +1575,10 @@ int Inter_Scaffold_Walking()
 
 	// grab the extremal frags so we know how far apart they are in locale
 	leftExtremalFrag = GetCIFragT( ScaffoldGraph->CIFrags, (int32) scaffoldEnds[i].leftExtremalFragID );
-	assert( leftExtremalFrag );
+	AssertPtr( leftExtremalFrag );
 	
 	rightExtremalFrag = GetCIFragT( ScaffoldGraph->CIFrags, (int32) scaffoldEnds[i].rightExtremalFragID );
-	assert( rightExtremalFrag );
+	AssertPtr( rightExtremalFrag );
 
 	separationInLocale = rightExtremalFrag->localePos.bgn - leftExtremalFrag->localePos.end;
 
@@ -1688,7 +1688,7 @@ int Inter_Scaffold_Walking()
   return interScaffoldWalkSuccesses;
 }
 
-CIScaffoldT* CreateNewScaffold()
+CIScaffoldT* CreateNewScaffold(void)
 {
   CIScaffoldT* newScaffold;
   LengthT NullLength = {0.0, 0.0};
@@ -1998,7 +1998,7 @@ void Test_Walker3(int32 begin_pos,
 
 #define BASE_CUTOFF 50
 
-void ComputeGapStatisitics()
+void ComputeGapStatisitics(void)
 {
   int sc, numGaps = 0, numGapsInScaffoldsWithBACFrags = 0;
   double basesInThisGap, basesInGaps = 0.0, basesInGapsInScaffoldsWithBACFrags = 0.0;

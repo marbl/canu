@@ -30,13 +30,18 @@
 *************************************************/
 
 /* RCS info
- * $Author: catmandew $
+ * $Author: mcschatz $
  * $Locker:  $
- * $Date: 2004-04-14 13:52:28 $
- * $Id: AS_OVL_getdat.c,v 1.1.1.1 2004-04-14 13:52:28 catmandew Exp $
- * $Revision: 1.1.1.1 $
+ * $Date: 2004-09-23 20:25:25 $
+ * $Id: AS_OVL_getdat.c,v 1.2 2004-09-23 20:25:25 mcschatz Exp $
+ * $Revision: 1.2 $
  * $State: Exp $
  * $Log: not supported by cvs2svn $
+ * Revision 1.2  2004/06/17 13:25:42  mpop
+ * A few bug fixes dealing with memory allocation, specifically pointers into
+ * arrays become invalid when the array is realloc'd.  The current code also
+ * compiles on Linux, OSX, OSF1 without changes.
+ *
  * Revision 1.1  2004/02/10 14:15:07  dewim
  * Initial release0 of the assembler source code.
  * Compiles on aix, tru64/osf, and linux.

@@ -22,7 +22,7 @@
 #define AS_ORA_INLINES_H
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_ORA/Attic/AS_ORA_inlines.h,v $
-$Revision: 1.1.1.1 $
+$Revision: 1.2 $
 **********************************************************************/
 
 

@@ -37,6 +37,7 @@ extern unsigned char   validCompressedSymbol[256];
 class merStream {
 public:
   merStream(cds_uint32 merSize, char *fragstore);
+  merStream(cds_uint32 merSize, char *fragstore, int skipNum);
   ~merStream();
 
   //  Guess the number of mers based on the number of fragments.
@@ -45,7 +46,7 @@ public:
     StoreStat  st;
 
     statsFragStore(_fs, &st);
-    return((st.lastElem - st.firstElem) * 600);
+    return((st.lastElem - st.firstElem)/ _skipNum * 850 );
   };
 
   cds_uint64       theFMer(void)        { return(_theFMer); };
@@ -77,7 +78,9 @@ private:
     //  Otherwise, we need to read another fragment and return an 'N'
     //  to break the merstream.
     //
-    if (nextFragStream(_fsh, _rs, FRAG_S_SEQUENCE) == 0)
+
+
+    if (kNextFragStream(_fsh, _rs, FRAG_S_SEQUENCE, _skipNum) == 0)
       return(0);
 
     getClearRegion_ReadStruct(_rs, &_thePos, &_endPos, READSTRUCT_ORIGINAL);
@@ -105,6 +108,7 @@ private:
   unsigned int                _thePos;
   unsigned int                _endPos;
 
+  cds_uint32               _skipNum;
   cds_uint32                _merSize;
   cds_int32                _timeUntilValid;
   cds_uint64                _theMerMask;

@@ -26,8 +26,8 @@
 
 
 /* RCS info
- * $Id: OlapStoreOVL.c,v 1.1.1.1 2004-04-14 13:52:43 catmandew Exp $
- * $Revision: 1.1.1.1 $
+ * $Id: OlapStoreOVL.c,v 1.2 2004-09-23 20:25:25 mcschatz Exp $
+ * $Revision: 1.2 $
 */
 
 
@@ -267,6 +267,18 @@ OVL_Stream_t *  New_OVL_Stream
    stream -> curr_file_index = -1;   // To avoid random matches
 
    return  stream;
+  }
+
+void  Renew_OVL_Stream(OVL_Stream_t *stream)
+//  take an existing overlap stream and "refresh" it
+
+  {
+    assert(stream!=NULL);
+    stream -> store = NULL;
+    stream -> offset_buff = NULL; // For realloc of PC/Linux/gcc !
+    stream -> start_id = stream -> stop_id = stream -> curr_id = 0;
+    stream -> fp = NULL;
+    stream -> curr_file_index = -1;   // To avoid random matches
   }
 
 

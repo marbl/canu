@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_UTL_PHash.h,v 1.1.1.1 2004-04-14 13:53:49 catmandew Exp $	 */
+/* 	$Id: AS_UTL_PHash.h,v 1.2 2004-09-23 20:25:29 mcschatz Exp $	 */
 #ifndef AS_UTL_PHASH_H
 #define AS_UTL_PHASH_H
 /*************************************************************************
@@ -41,11 +41,12 @@
  *************************************************************************/
 
 /* RCS Info
- * $Id: AS_UTL_PHash.h,v 1.1.1.1 2004-04-14 13:53:49 catmandew Exp $
- * $Revision: 1.1.1.1 $
+ * $Id: AS_UTL_PHash.h,v 1.2 2004-09-23 20:25:29 mcschatz Exp $
+ * $Revision: 1.2 $
  *
  */
 
+#include <limits.h>
 
 /* If the following is defined, the hash table assigns the IIDs */
 #define COUNTS 1
@@ -135,21 +136,43 @@ typedef struct PHashNode_tag{
 typedef struct{
   int32 numBuckets;
   int32 freeList;           /* Index of head of free list, relative to allocated */
+
   int32 numNodes;           /* Total number of nodes in use */
   int32 numNodesAllocated;  /* Total number of nodes allocated */
-  int32 lastNodeAllocated;  /* Highest index of an allocated node -- used to conserve on output */
+
   CDS_UID_t lastKey;           /* The value of the key of the last element inserted */
+
+  int32 lastNodeAllocated;  /* Highest index of an allocated node -- used to conserve on output */
   int32 collisions;         /* For statistics */
+
   uint32 hashmask;          /* Mask for hash value, depends directly on numBuckets */
+  int32 dummy1For8byteWordPadding;
+
 #if COUNTS
   CDS_IID_t counts[1<<LOG_NUM_TYPES]; /* Used to assign IIDs for each type */
 #endif
   /**** The following are meaningful only when the hash file is open ****/
 
   PHashNode_AS *allocated;  /* All node indices are relative to allocated */
+#if LONG_MAX == 2147483647
+  void *dummyPadPtr1;
+#endif
+
   int32 *buckets;           /* Array of indices of PHashNodes, relative to allocated */
+#if LONG_MAX == 2147483647
+  void *dummyPadPtr2;
+#endif
+
   char *fileName;           /* Name of file in which this hashtable resides */
+#if LONG_MAX == 2147483647
+  void *dummyPadPtr3;
+#endif
+
   FILE *fp;                 /* File * of hash file */
+#if LONG_MAX == 2147483647
+  void *dummyPadPtr4;
+#endif
+
   int32 isDirty;
   int32 isReadWrite;  // if true, hashtable is in memory, otherwise, it is mmapped
 } PHashTable_AS;

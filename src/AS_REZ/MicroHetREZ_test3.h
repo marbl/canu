@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
-   CVS_ID:  $Id: MicroHetREZ_test3.h,v 1.1.1.1 2004-04-14 13:53:22 catmandew Exp $
+   CVS_ID:  $Id: MicroHetREZ_test3.h,v 1.2 2004-09-23 20:25:28 mcschatz Exp $
  *********************************************************************/
 #ifndef AS_REZ_MICROHETREZ_H
 #define AS_REZ_MICROHETREZ_H
@@ -111,6 +111,12 @@ typedef struct mpstat {
 void        AS_REZ_print_alignment(Alignment_t *p, int w);
 Alignment_t *AS_REZ_allocate_alignment(int c, int r);
 void        AS_REZ_free_alignment(Alignment_t *p);
+
+// print only informative columns:
+void AS_REZ_print_informatives_alignment(Alignment_t *a,int nfrag);
+
+// print informative (partial) splits as partially resolved NEWICK trees
+void AS_REZ_print_informative_splits(Alignment_t *a,int nfrag);
 
 // The minimum length for which we test for Aarons MP score
 #define MIN_MPTEST_LENGTH_REZ 50

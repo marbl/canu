@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: IntervalSetCoverSolver.h,v 1.1.1.1 2004-04-14 13:52:02 catmandew Exp $ */
+/* $Id: IntervalSetCoverSolver.h,v 1.2 2004-09-23 20:25:23 mcschatz Exp $ */
 #ifndef INTERVALSETCOVERSOLVER_H
 #define INTERVALSETCOVERSOLVER_H
 
@@ -45,7 +45,7 @@ public:
     {
       PopulateQuads(rects);
       
-      vector<Rectangle<IDType, UnitType> >::iterator iter;
+      typename vector<Rectangle<IDType, UnitType> >::iterator iter;
       list<Interval<IDType, UnitType > > xIntervals;
       list<Interval<IDType, UnitType > > yIntervals;
       for(iter = rects.begin(); iter != rects.end(); iter++)
@@ -54,7 +54,7 @@ public:
         yIntervals.push_back(iter->getYInterval());
       }
 #ifdef DEBUG_ISCS
-      list<Interval<IDType, UnitType > >::iterator iiter;
+      typename list<Interval<IDType, UnitType > >::iterator iiter;
       cerr << "X intervals:\n";
       for(iiter = xIntervals.begin(); iiter != xIntervals.end(); iiter++)
         cerr << *iiter << endl;
@@ -81,7 +81,7 @@ public:
     {
       PopulateQuads(quads);
       
-      vector<Quadrilateral<IDType, UnitType> >::iterator qiter;
+      typename vector<Quadrilateral<IDType, UnitType> >::iterator qiter;
       list<Interval<IDType, UnitType > > xIntervals;
       list<Interval<IDType, UnitType > > yIntervals;
       for(qiter = quads.begin(); qiter != quads.end(); qiter++)
@@ -133,11 +133,11 @@ public:
       int ix, iy;
       int numIDsRemaining = pquads.size();
       int lpNumIDs = 0;
-      list<IntervalClique<IDType, UnitType> >::iterator xiter;
-      list<TwoDIntervalClique<IDType, UnitType> >::iterator yiter;
-      list<TwoDIntervalClique<IDType, UnitType> >::iterator ysiter;
-      list<CliquePairIntersection<IDType, UnitType> >::iterator cpiIter;
-      list<CliquePairIntersection<IDType, UnitType> >::iterator cpiIter2;
+      typename list<IntervalClique<IDType, UnitType> >::iterator xiter;
+      typename list<TwoDIntervalClique<IDType, UnitType> >::iterator yiter;
+      typename list<TwoDIntervalClique<IDType, UnitType> >::iterator ysiter;
+      typename list<CliquePairIntersection<IDType, UnitType> >::iterator cpiIter;
+      typename list<CliquePairIntersection<IDType, UnitType> >::iterator cpiIter2;
 
 #ifdef DEBUG_ISCS
       cerr << "X cliques sorted left to right (X dimension end)\n";
@@ -186,7 +186,7 @@ public:
           {
 #ifdef DEBUG_ISCS
             cerr << ix << ":" << iy << ": ";
-            list<IDType>::iterator tempI;
+            typename list<IDType>::iterator tempI;
             for(tempI = commonIDs.begin();
                 tempI != commonIDs.end();
                 tempI++)
@@ -248,7 +248,7 @@ public:
       }
       
       // now greedily select xy pairs
-      list<IDType>::const_iterator tdiiter;
+      typename list<IDType>::const_iterator tdiiter;
       do
       {
         /*
@@ -310,7 +310,7 @@ public:
       } while(numIDsRemaining > 0 && cpis.size() > 0 && lpNumIDs > 0);
 
       // create cliques for uncliqued quadrilaterals
-      vector<Quadrilateral<IDType, UnitType> >::iterator qiter;
+      typename vector<Quadrilateral<IDType, UnitType> >::iterator qiter;
       for(qiter = pquads.begin(); qiter != pquads.end(); qiter++)
       {
         if(!idCliqued[qiter->getID()])
@@ -353,7 +353,7 @@ private:
   void SetUpCliques(const list<IntervalClique<IDType, UnitType> > & xCliques,
                     const list<IntervalClique<IDType, UnitType> > & yCliques)
     {
-      list<IntervalClique<IDType, UnitType> >::const_iterator iter;
+      typename list<IntervalClique<IDType, UnitType> >::const_iterator iter;
 
       pxes = xCliques;
       pxes.sort();

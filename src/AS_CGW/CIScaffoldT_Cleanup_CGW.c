@@ -18,9 +18,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.1.1.1 2004-04-14 13:50:27 catmandew Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.2 2004-09-23 20:25:19 mcschatz Exp $";
 
-//#define DEBUG 1
+#define DEBUG 0
+#undef DEBUG_DETAILED
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -559,8 +562,11 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
 	    CDS_CID_t eid;
 	    int32  isContainment = (min(-distance1.mean,-distance2.mean) > otherContig->bpLength.mean);
 
+            CDS_CID_t edgeID = 
+                   GetVAIndex_EdgeCGW_T(ScaffoldGraph->RezGraph->edges, edge);
 	    newEdge = GetFreeGraphEdge(ScaffoldGraph->RezGraph);
 	    eid = GetVAIndex_EdgeCGW_T(ScaffoldGraph->RezGraph->edges, newEdge);
+	    edge = GetGraphEdge(ScaffoldGraph->RezGraph, edgeID);
 	    AppendCDS_CID_t(CollectedEdges, &eid);
 
 	    newEdge->idA = newContig->id;
@@ -877,6 +883,7 @@ void PropagateExtremalOverlapsToNewContig(CDS_CID_t contigID, int contigEnd, Con
   GraphEdgeIterator edges;
   EdgeCGW_T *edge;
   int first = 0;
+  CDS_CID_t rawEdgeID;
 
   if(verbose){
     fprintf(GlobalData->stderrc,"* PropagateExtremalOverlaps from (" F_CID ",%c) to (" F_CID ",%c)\n",
@@ -928,8 +935,12 @@ void PropagateExtremalOverlapsToNewContig(CDS_CID_t contigID, int contigEnd, Con
     }else{
       first++;
     }
-    //    UnlinkGraphEdge(ScaffoldGraph->RezGraph, rawEdge); // Unlink it from the graph
+    //UnlinkGraphEdge(ScaffoldGraph->RezGraph, rawEdge); // Unlink it from the graph
+
+    rawEdgeID = GetVAIndex_EdgeCGW_T(ScaffoldGraph->RezGraph->edges, rawEdge);
     newEdge = GetFreeGraphEdge(ScaffoldGraph->RezGraph);
+
+    rawEdge = GetGraphEdge(ScaffoldGraph->RezGraph, rawEdgeID);
     newEdge->flags = rawEdge->flags;
     newEdge->idA = rawEdge->idA;
     newEdge->idB = rawEdge->idB;
@@ -1536,7 +1547,7 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
       CDS_COORD_t actual;
       // ChunkOrientationType pairwiseOrient;
 
-      //#define DEBUG_CONTIG
+#undef DEBUG_CONTIG
 
 #ifdef DEBUG_CONTIG
       fprintf(GlobalData->stderrc,"* contig.min = %g contig.max = %g\n",
@@ -1745,9 +1756,9 @@ int CheckForContigs(ScaffoldGraphT *sgraph,
   CDS_COORD_t maxPos;
   LengthT myOffsetAEnd;
   LengthT myOffsetBEnd;
-
+#if DEBUG > 0
   fprintf(GlobalData->stderrc,"* CheckForContigs scaffold " F_CID "\n", scaffold->id);
-
+#endif
   if(ContigPositions == NULL){
     ContigPositions = CreateVA_IntElementPos(10);
   }
@@ -1774,15 +1785,23 @@ int CheckForContigs(ScaffoldGraphT *sgraph,
     myOffsetBEnd = offsetAEnd;
   }
 
+#undef DEBUG_CHECKFORCTGS
+
   // iterate over all contigs in this scaffold to append those that overlap
   // with the offsetAEnd-offsetBEnd interval
   InitCIScaffoldTIterator(ScaffoldGraph, scaffold, TRUE,
                           FALSE, &contigIterator);
   while((contig = NextCIScaffoldTIterator(&contigIterator)) != NULL)
   {
+#ifdef DEBUG_CHECKFORCTGS
+    fprintf(stderr,"  Testing contig %d ... ",contig->id);
+#endif
     if(IntervalsOverlap(contig->offsetAEnd.mean, contig->offsetBEnd.mean,
                         minPos, maxPos, CGW_DP_MINLEN))
     {
+#ifdef DEBUG_CHECKFORCTGS
+      fprintf(stderr," overlap!\n");
+#endif
       pos.ident = contig->id;
       pos.position.bgn = contig->offsetAEnd.mean;
       pos.position.end = contig->offsetBEnd.mean;
@@ -1801,10 +1820,28 @@ int CheckForContigs(ScaffoldGraphT *sgraph,
           contig->offsetAEnd : myOffsetBEnd;
       }
       AppendVA_IntElementPos(ContigPositions, &pos);
+#ifdef DEBUG_CHECKFORCTGS
+      fprintf(stderr," adding overlap with %d [%g,%g]\n",
+	      pos.ident,pos.position.bgn,pos.position.end);
+#endif
     }
-    else if(maxPos < min(contig->offsetAEnd.mean, contig->offsetBEnd.mean))
-      break;
+    else {
+#ifdef DEBUG_CHECKFORCTGS
+      fprintf(stderr," no overlap!\n");
+#endif
+      if(maxPos < min(contig->offsetAEnd.mean, contig->offsetBEnd.mean)){
+#ifdef DEBUG_CHECKFORCTGS
+	fprintf(stderr," done checking for contigs that overlap!\n");
+#endif
+	break;
+      }
+    }
   }
+
+#ifdef DEBUG_CHECKFORCTGS
+  fprintf(stderr,"  should insert a new contig based on %d old ones\n",
+	  GetNumIntElementPoss(ContigPositions));
+#endif
 
   if(GetNumIntElementPoss(ContigPositions) > 1)
   {

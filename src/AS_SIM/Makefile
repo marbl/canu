@@ -21,28 +21,22 @@
 #
 ###########################################################################
 #
-VERBOSE=1
+#VERBOSE=1
 
 # gmake Makefile for AS_SIM
 
-LOCAL_WORK = $(shell cd ../..; pwd)
-
-SOURCES = AS_SIM_frag.c AS_SIM_poly.c AS_SIM_massage.c AS_SIM_outputADT.c AS_SIM_outputBAC.c AS_SIM_outputDST.c AS_SIM_tobatches.c
-
-OBJECTS = $(SOURCES:.c=.o)
-
 LIBRARIES =
-
+SOURCES = AS_SIM_frag.c AS_SIM_poly.c AS_SIM_massage.c AS_SIM_outputADT.c AS_SIM_outputBAC.c AS_SIM_outputDST.c AS_SIM_tobatches.c
+OBJECTS = $(SOURCES:.c=.o)
 PROGS = massage frag poly outputADT outputDST tobatches outputBAC
-
-SCRIPTS = AS_SIM_celsim.awk AS_SIM_labelfrag.pl AS_SIM_extractLength.pl \
-	celsim
+SCRIPTS = AS_SIM_celsim.awk AS_SIM_labelfrag.pl AS_SIM_extractLength.pl celsim
 
 # Include for AS project rules
+LOCAL_WORK = $(shell cd ../..; pwd)
 include $(LOCAL_WORK)/src/c_make.as
 
 install: $(SCRIPTS) 
-	cp -f $(SCRIPTS) $(LOCAL_WORK)/bin
+	cp -f $(SCRIPTS) $(LOCAL_BIN)
 
 objects: $(OBJECTS)
 

@@ -39,7 +39,7 @@
  **********************************************************************/
 
 
-static char fileID[] = "$Id: GapWalkerREZ.c,v 1.1.1.1 2004-04-14 13:53:17 catmandew Exp $";
+static char fileID[] = "$Id: GapWalkerREZ.c,v 1.2 2004-09-23 20:25:27 mcschatz Exp $";
 
 
 #include <stdio.h>

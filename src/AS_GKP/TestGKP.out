@@ -9,7 +9,7 @@ gatekeeperStorePath = TestGKP
 * allocate = 10000
 ***Initializing 4096 buckets for 1024 elements, mask = 0xfff
 ***Initializing 4 count buckets 
-# GateKeeper $Revision: 1.1.1.1 $
+# GateKeeper $Revision: 1.2 $
 # Check_DistanceMessage:  Distance 1 DOES NOT exist!!!Can't delete it... bye
 # Line 13 of input
 {DST

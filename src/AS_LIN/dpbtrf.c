@@ -1,4 +1,5 @@
 #include "f2c.h"
+#include <stdio.h>
 
 /* Subroutine */ int dpbtrf_(char *uplo, integer *n, integer *kd, doublereal *
 	ab, integer *ldab, integer *info)
@@ -139,6 +140,7 @@
     } else if (*kd < 0) {
 	*info = -3;
     } else if (*ldab < *kd + 1) {
+      fprintf(stderr,"bad LAPAC call: %ld !< %ld\n",*ldab,*kd);
 	*info = -5;
     }
     if (*info != 0) {

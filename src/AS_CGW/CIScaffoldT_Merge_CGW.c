@@ -18,10 +18,17 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.1.1.1 2004-04-14 13:50:24 catmandew Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.2 2004-09-23 20:25:19 mcschatz Exp $";
 
 #undef ORIG_MERGE_EDGE_INVERT
 #define DEBUG_MERGE_EDGE_INVERT	  
+#define MINSATISFIED_CUTOFF 0.985
+#define DEBUG_BAD_MATE_RATIO
+
+#ifdef DEBUG_BAD_MATE_RATIO
+  #include <sys/types.h>
+  #include <dirent.h>
+#endif
 
 
 //#define INSTRUMENT_CGW
@@ -67,6 +74,12 @@ static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.1.1.1 2004-04-14 13:50:2
 #include "AS_CGW_EdgeDiagnostics.h"
 #endif
 #include "InterleavedMerging.h"
+
+#undef REQUIRE_MORE_THAN_ONE_BAD_TO_REJECT
+#define REQUIRE_BAD_APPROACHING_HAPPY_TO_REJECT
+#define MAX_FRAC_BAD_TO_GOOD .3
+
+extern int do_draw_frags_in_CelamyScaffold;
 
 void SaveEdgeMeanForLater(SEdgeT * edge)
 {
@@ -257,7 +270,7 @@ int InsertScaffoldContentsIntoScaffold(ScaffoldGraphT *sgraph,
   
 #if 0
   fprintf(GlobalData->stderrc,"* InsertContents of Scaffold " F_CID " into scaffold " F_CID " at offset %g +/- %g orient %c oldScaffold length %g\n",
-          oldScaffoldID, newScaffoldID, offset->mean, offset->variance, orient, oldScaffold->bpLength.mean);
+          oldScaffoldID, newScaffoldID, offset->mean, sqrt(offset->variance), orient, oldScaffold->bpLength.mean);
 #endif
   assert(offset->mean >= 0.0 && offset->variance >= 0.0);
   
@@ -308,12 +321,12 @@ int InsertScaffoldContentsIntoScaffold(ScaffoldGraphT *sgraph,
     InsertCIInScaffold(sgraph, CI->id, newScaffoldID,
                        offsetAEnd, offsetBEnd,
                        TRUE, contigNow);
-/*
-  if(!ContigCoordinatesOkay(newScaffold))
-  {
-    fprintf(GlobalData->stderrc, "Problem with contig coordinates!\n");
-  }
-*/
+#if 1
+    if(!ContigCoordinatesOkay(newScaffold))
+      {
+	fprintf(GlobalData->stderrc, "Problem with contig coordinates!\n");
+      }
+#endif
   }
   CheckCIScaffoldTLength(sgraph, newScaffold);
   
@@ -1503,7 +1516,7 @@ int FindScaffoldMerge(ScaffoldGraphT *graph, CIScaffoldT *scaffoldAnchor,
   return(FALSE);
 }
 
-//#define EMIT_STATS 1
+#define EMIT_STATS 1
 
 static  FILE *fMergeWeight, *fInterleavedMergeWeight;
 static  FILE *fMergeDistance, *fInterleavedMergeDistance;
@@ -3136,22 +3149,6 @@ int isQualityScaffoldMergingEdge(SEdgeT * curEdge,
     MateInstrumenter matesBefore;
     float fractMatesHappyBefore;
     
-    InstrumentScaffoldPair(ScaffoldGraph,
-                           curEdge,
-                           si,
-                           InstrumenterVerbose2,
-                           GlobalData->stderrc);
-    GetMateInstrumenterFromScaffoldInstrumenter(&matesAfter,
-                                                si);
-    
-    fractMatesHappyAfter =
-      ((float) (GetMateStatsHappy(&(matesAfter.intra)) +
-                GetMateStatsHappy(&(matesAfter.inter)))) /
-      (GetMateStatsBad(&(matesAfter.intra)) +
-       GetMateStatsBad(&(matesAfter.inter)) +
-       GetMateStatsHappy(&(matesAfter.intra)) +
-       GetMateStatsHappy(&(matesAfter.inter)));
-    
     if(GetNumVA_PtrT(MIs) > scaffoldA->id &&
        *GetVA_PtrT(MIs, scaffoldA->id) != NULL)
     {
@@ -3190,6 +3187,23 @@ int isQualityScaffoldMergingEdge(SEdgeT * curEdge,
     }
     AddMateInstrumenterCounts(&matesBefore, sBBefore);
     
+    InstrumentScaffoldPair(ScaffoldGraph,
+                           curEdge,
+                           si,
+                           InstrumenterVerbose2,
+                           GlobalData->stderrc);
+    GetMateInstrumenterFromScaffoldInstrumenter(&matesAfter,
+                                                si);
+    
+    fractMatesHappyAfter =
+      ((float) (GetMateStatsHappy(&(matesAfter.intra)) +
+                GetMateStatsHappy(&(matesAfter.inter)))) /
+      (GetMateStatsBad(&(matesAfter.intra)) +
+       GetMateStatsBad(&(matesAfter.inter)) +
+       GetMateStatsHappy(&(matesAfter.intra)) +
+       GetMateStatsHappy(&(matesAfter.inter)));
+    
+
     if(GetMateStatsBad(&(matesBefore.intra)) +
        GetMateStatsBad(&(matesBefore.inter)) +
        GetMateStatsHappy(&(matesBefore.intra)) +
@@ -3221,13 +3235,105 @@ int isQualityScaffoldMergingEdge(SEdgeT * curEdge,
             ((curEdge->orient == AB_AB) ? "AB_AB" :
              ((curEdge->orient == AB_BA) ? "AB_BA" :
               ((curEdge->orient == BA_AB) ? "BA_AB" : "BA_BA"))));
-    
+
+#if 0    
+      fprintf(GlobalData->stderrc,
+	      "******** after bad mates: %d\n",
+	      GetMateStatsBad(&(matesAfter.inter))+GetMateStatsBad(&(matesAfter.intra)));
+      fprintf(GlobalData->stderrc,
+	      "******** after good mates: %d\n",
+	      GetMateStatsHappy(&(matesAfter.inter))+GetMateStatsHappy(&(matesAfter.intra)));
+      fprintf(GlobalData->stderrc,
+	      "******** before bad mates: %d\n",
+	      GetMateStatsBad(&(matesBefore.inter))+GetMateStatsBad(&(matesBefore.intra)));
+      fprintf(GlobalData->stderrc,
+	      "******** before good mates: %d\n",
+	      GetMateStatsHappy(&(matesBefore.inter))+GetMateStatsHappy(&(matesBefore.intra)));
+#endif
+
     if(fractMatesHappyAfter < minSatisfied &&
-       fractMatesHappyAfter < fractMatesHappyBefore)
+       fractMatesHappyAfter < fractMatesHappyBefore
+#ifdef REQUIRE_MORE_THAN_ONE_BAD_TO_REJECT
+       &&  GetMateStatsBad(&(matesAfter.inter)) +  GetMateStatsBad(&(matesAfter.intra))  - 
+           (GetMateStatsBad(&(matesBefore.inter)) +  GetMateStatsBad(&(matesBefore.intra)))
+           >1
+#endif
+#ifdef REQUIRE_BAD_APPROACHING_HAPPY_TO_REJECT
+       &&( (          (float) (GetMateStatsHappy(&(matesAfter.inter)) +  GetMateStatsHappy(&(matesAfter.intra))  - 
+			       GetMateStatsHappy(&(matesBefore.inter)) +  GetMateStatsHappy(&(matesBefore.intra)))
+ 	     <= 0.) ? TRUE : 
+	            ((float) (GetMateStatsBad(&(matesAfter.inter)) +  GetMateStatsBad(&(matesAfter.intra))  - 
+			      GetMateStatsBad(&(matesBefore.inter)) +  GetMateStatsBad(&(matesBefore.intra))) 
+		     /
+		     (float) (GetMateStatsHappy(&(matesAfter.inter)) +  GetMateStatsHappy(&(matesAfter.intra))  - 
+			      GetMateStatsHappy(&(matesBefore.inter)) +  GetMateStatsHappy(&(matesBefore.intra))) 
+		     > MAX_FRAC_BAD_TO_GOOD)
+	   )
+#endif
+       )
     {
       fprintf(GlobalData->stderrc,
               "***** Merging would result in too low a satisfied mate fraction (%.3f < %.3f) - shouldn't merge\n",
               fractMatesHappyAfter, minSatisfied);
+      fprintf(GlobalData->stderrc,
+	      "******** inter bad mates: %d\n",GetMateStatsBad(&(matesAfter.inter)));
+      fprintf(GlobalData->stderrc,
+	      "******** inter good mates: %d\n",GetMateStatsHappy(&(matesAfter.inter)));
+#ifdef DEBUG_BAD_MATE_RATIO
+      DumpACIScaffoldNew(stderr,ScaffoldGraph,scaffoldA,FALSE);
+      DumpACIScaffoldNew(stderr,ScaffoldGraph,scaffoldB,FALSE);
+      {
+	int64 scaffoldAEndCoord = 0, scaffoldBEndCoord = 0, endcoord=0;
+	char camname[1000];
+	static DIR *camdir=NULL;
+	FILE *camfile=NULL;
+
+	camdir=opendir("MergeCams");
+	if(camdir==NULL){
+	  system("mkdir MergeCams");
+	  camdir=opendir("MergeCams");
+	  assert(camdir!=NULL);
+	}
+	sprintf(camname,"MergeCams/lowmate_failure_%d_%d.cam",scaffoldA->id,scaffoldB->id);
+	camfile = fopen(camname,"w");
+	assert(camfile!=NULL);
+	DumpCelamyColors(camfile);
+	DumpCelamyMateColors(camfile);
+
+	do_draw_frags_in_CelamyScaffold=1;
+	DumpCelamyFragColors(camfile);
+	//	if(endcoord!=0)endcoord+=1000000;
+	if(scaffoldA->bpLength.mean < -curEdge->distance.mean){
+	  endcoord+=-curEdge->distance.mean-scaffoldA->bpLength.mean;
+	}
+	if(curEdge->orient == AB_AB || curEdge->orient == AB_BA){
+	  scaffoldAEndCoord = endcoord;
+	  scaffoldBEndCoord = endcoord + scaffoldA->bpLength.mean;
+	} else {
+	  scaffoldBEndCoord = endcoord;
+	  scaffoldAEndCoord = endcoord + scaffoldA->bpLength.mean;
+	}
+	CelamyScaffold(camfile,scaffoldA,scaffoldAEndCoord,scaffoldBEndCoord);
+	endcoord += scaffoldA->bpLength.mean;
+	endcoord += curEdge->distance.mean;
+	if(curEdge->orient == AB_AB || curEdge->orient == BA_AB){
+	  scaffoldAEndCoord = endcoord;
+	  scaffoldBEndCoord = endcoord + scaffoldB->bpLength.mean;
+	} else {
+	  scaffoldBEndCoord = endcoord;
+	  scaffoldAEndCoord = endcoord + scaffoldB->bpLength.mean;
+	}
+	CelamyScaffold(camfile,scaffoldB,scaffoldAEndCoord,scaffoldBEndCoord);
+	do_draw_frags_in_CelamyScaffold=0;
+	//	endcoord += scaffoldB->bpLength.mean;
+	PrintScaffoldInstrumenterMateDetails(si,camfile,PRINTCELAMY);
+	PrintExternalMateDetailsAndDists(ScaffoldGraph,si->bookkeeping.wExtMates,"\t",camfile,PRINTCELAMY);
+	PrintUnmatedDetails(si,camfile,PRINTCELAMY);
+
+
+	fclose(camfile);
+      }
+#endif
       return FALSE;
     }
     
@@ -3881,7 +3987,7 @@ void ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
           }
           else
             mergeEdge->distance.mean = overlapEdge->distance.mean;
-#else // new merge edge invert, courtesy of TIGR
+#else // new merge edge invert, courtesy of TCAG
 	  if(edgeEndsOrient!=GetEdgeOrientationWRT(overlapEdge,endNodeA->id))
 	  {
             overlapEdge->distance.mean = 
@@ -3925,7 +4031,6 @@ void ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
         if(PopulateScaffoldAlignmentInterface(scaffoldA, scaffoldB,
                                               mergeEdge, sai) == 0)
         {
-          // int numSegments = GetNumSegmentsInList(sai->segmentList);
           
           
           if(verbose)
@@ -3939,7 +4044,7 @@ void ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
           
           /*
             // punt if the edge distance is too negative & there are no overlaps
-            if(numSegments == 0 &&
+            if( (int) GetNumSegmentsInList(sai->segmentList) == 0 &&
             endNodeA->bpLength.mean + aGapSize < -minMergeDistance &&
             endNodeB->bpLength.mean + bGapSize < -minMergeDistance)
             {
@@ -3965,9 +4070,13 @@ void ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
              BUT THIS DOESN'T MEAN THAT THE SEGMENT LIST GOT FREED ...
           */
           
+	  // this is still a problem but why?  (MP)
+	  //assert(sai->numSegs==GetNumSegmentsInList(sai->segmentList));
+
           if((sai->segmentList =
               Align_Scaffold(sai->segmentList,
-                             sai->numSegs,
+                             //sai->numSegs,
+			     GetNumSegmentsInList(sai->segmentList), 
                              sai->varWin,
                              sai->scaffoldA->scaffold,
                              sai->scaffoldB->scaffold,
@@ -4120,7 +4229,7 @@ void ExamineUsableSEdges(VA_TYPE(PtrT) *sEdges,
     int32 maxWeightEdge = 0;
     int i;
     
-    if(iSpec->doInterleaving)
+    if(! iSpec->doInterleaving)
     {
       // find the max weight non-negative distance edge
       for(i = 0; i < GetNumVA_PtrT(sEdges); i++)
@@ -4453,7 +4562,7 @@ int MergeScaffolds(VA_TYPE(CDS_CID_t) * deadScaffoldIDs,
                          InstrumenterVerbose2, GlobalData->stderrc);
       AddMateInstrumenterCounts(&matesBefore, &(scaff_inst->mates));
       
-      if(GetMateStatsBad(&(matesBefore.intra)) +
+v      if(GetMateStatsBad(&(matesBefore.intra)) +
          GetMateStatsBad(&(matesBefore.inter)) +
          GetMateStatsHappy(&(matesBefore.intra)) +
          GetMateStatsHappy(&(matesBefore.inter)) > 0)
@@ -4714,11 +4823,30 @@ int MergeScaffolds(VA_TYPE(CDS_CID_t) * deadScaffoldIDs,
         if(iSpec->maxDelta > 0.0 &&
            (fractMatesHappyAfter + iSpec->maxDelta < fractMatesHappyBefore) ||
            (fractMatesHappyAfter < fractMatesHappyBefore &&
-            fractMatesHappyAfter < iSpec->minSatisfied))
-        {
-          fprintf(GlobalData->stderrc,
-                  "Scaffold merging results did not meet expectations!\n");
-        }
+            fractMatesHappyAfter < iSpec->minSatisfied
+#ifdef REQUIRE_MORE_THAN_ONE_BAD_TO_REJECT
+	    &&  GetMateStatsBad(&(matesAfter.inter)) +  GetMateStatsBad(&(matesAfter.intra))  - 
+	    (GetMateStatsBad(&(matesBefore.inter)) +  GetMateStatsBad(&(matesBefore.intra)))
+	    >1
+#endif
+#ifdef REQUIRE_BAD_APPROACHING_HAPPY_TO_REJECT
+	    &&( (          (float) (GetMateStatsHappy(&(matesAfter.inter)) +  GetMateStatsHappy(&(matesAfter.intra))  - 
+				    GetMateStatsHappy(&(matesBefore.inter)) +  GetMateStatsHappy(&(matesBefore.intra)))
+			   <= 0.) ? TRUE : 
+		((float) (GetMateStatsBad(&(matesAfter.inter)) +  GetMateStatsBad(&(matesAfter.intra))  - 
+			  GetMateStatsBad(&(matesBefore.inter)) +  GetMateStatsBad(&(matesBefore.intra))) 
+		 /
+		 (float) (GetMateStatsHappy(&(matesAfter.inter)) +  GetMateStatsHappy(&(matesAfter.intra))  - 
+			  GetMateStatsHappy(&(matesBefore.inter)) +  GetMateStatsHappy(&(matesBefore.intra))) 
+		 > MAX_FRAC_BAD_TO_GOOD)
+		)
+#endif
+	    )
+	   )
+	  {
+	    fprintf(GlobalData->stderrc,
+		    "Scaffold merging results did not meet expectations!\n");
+	  }
       }
 #endif
       
@@ -4984,7 +5112,7 @@ void MergeScaffoldsAggressive(ScaffoldGraphT *graph, int verbose)
   iSpec.MIs = CreateVA_PtrT(GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph));
   iSpec.maxDelta = -1; //0.005;
 
-  iSpec.minSatisfied = .985;
+  iSpec.minSatisfied = MINSATISFIED_CUTOFF;
 
   iSpec.badSEdges = CreateChunkOverlapper();
   iSpec.checkAbutting = TRUE;
