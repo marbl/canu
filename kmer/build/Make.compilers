@@ -28,6 +28,7 @@ VALID_OPERATING_SYSTEM:=$(strip \
     cygwin \
     SunOS|foster-city   \
     FreeBSD \
+    Linux|RH7 \
     Linux|RH9 \
     default|I-will-take-my-chances \
 )
@@ -109,6 +110,13 @@ CXXLIBS:=-lm
 SHLIB_FLAGS:=-shared
 C_TMP_COMPILE:=
 CXX_TMP_COMPILE:=
+
+# Red Hat Linux 9 uses the current default values, but Red Hat 7
+# needs gcc3/g++3 explicitly 
+ifeq (${_OS|FULL_},Linux|RH7)
+   CC:=gcc3
+   CXX:=g++3
+endif
 
 ifeq (${_OS_}${_CC_},TRU64)
   CC               :=cc
@@ -346,5 +354,6 @@ ifeq (${_OS|FULL_},SunOS|foster-city)
   CXXLIBS_LAPACK    :=-llapack -lblas -lF77
   PS2PDF            :=/remote/depot/bin/ps2pdf -I/remote/depot/share/ghostscript/5.50/
 endif
+
 
 
