@@ -40,7 +40,7 @@ intervalList::operator=(intervalList &src) {
 }
 
 void
-intervalList::add(u32bit position, u32bit length) {
+intervalList::add(intervalNumber position, intervalNumber length) {
 
 #ifdef DEBUG_LIST
   fprintf(stderr, "Adding %u - %u\n", position, position+length);
@@ -75,10 +75,10 @@ intervalList_sort_helper(const void *a, const void *b) {
   _intervalPair *A = (_intervalPair *)a;
   _intervalPair *B = (_intervalPair *)b;
 
-  if (A->lo < B->lo)
-    return(-1);
-  if (A->lo > B->lo)
-    return(1);
+  if (A->lo < B->lo) return(-1);
+  if (A->lo > B->lo) return(1);
+  if (A->hi < B->hi) return(-1);
+  if (A->hi > B->hi) return(1);
   return(0);
 }
 
@@ -102,80 +102,81 @@ intervalList::sort(void) {
 
 void
 intervalList::merge(void) {
-  u32bit  targetInterval  = 0;
-  u32bit  examineInterval = 1;
+  u32bit  thisInterval  = 0;
+  u32bit  nextInterval = 1;
 
   if (_listLen < 2)
     return;
 
   sort();
 
-  while (examineInterval < _listLen) {
+  while (nextInterval < _listLen) {
 
-    if ((_list[targetInterval].lo == 0) &&
-        (_list[targetInterval].hi == 0)) {
+    if ((_list[thisInterval].lo == 0) &&
+        (_list[thisInterval].hi == 0)) {
 
-      //  Our target interval is empty.  Copy in the interval we are
+      //  Our interval is empty.  Copy in the interval we are
       //  examining and move to the next.
 
-      _list[targetInterval].lo = _list[examineInterval].lo;
-      _list[targetInterval].hi = _list[examineInterval].hi;
-      examineInterval++;
+      //  XXX This is probably useless, thisInterval should always be
+      //  valid.
+
+      _list[thisInterval].lo = _list[nextInterval].lo;
+      _list[thisInterval].hi = _list[nextInterval].hi;
+      nextInterval++;
     } else {
 
-      //  We have a valid targetInterval.  See if it overlaps
-      //  with the interval we are examining.
+      //  This interval is valid.  See if it overlaps with the next
+      //  interval.
 
-      if (_list[examineInterval].lo <= _list[targetInterval].hi) {
+      if (_list[thisInterval].hi >= _list[nextInterval].lo) {
 
         //  Got an intersection.
 
-        //  Merge examineInterval into targetInterval -- the hi range
-        //  is extended if the examineInterval range is larger.
+        //  Merge nextInterval into thisInterval -- the hi range
+        //  is extended if the nextInterval range is larger.
         //
-        if (_list[targetInterval].hi < _list[examineInterval].hi)
-          _list[targetInterval].hi = _list[examineInterval].hi;
+        if (_list[thisInterval].hi < _list[nextInterval].hi)
+          _list[thisInterval].hi = _list[nextInterval].hi;
         
-        //  Clear the just merged examineInterval
+        //  Clear the just merged nextInterval and move to the next one.
         //
-        _list[examineInterval].lo = 0;
-        _list[examineInterval].hi = 0;
-
-        //  Move to the next interval to examine.
-        //
-        examineInterval++;
+        _list[nextInterval].lo = 0;
+        _list[nextInterval].hi = 0;
+        nextInterval++;
       } else {
 
         //  No intersection.  Move along.  Nothing to see here.
 
-        //  If there is a gap between the target and the examine (we already
-        //  merged sometime in the past), copy examine to the next target.
+        //  If there is a gap between the target and the examine (we
+        //  must have merged sometime in the past), copy examine to
+        //  the next target.
 
-        targetInterval++;
+        thisInterval++;
 
-        if (targetInterval != examineInterval) {
-          _list[targetInterval].lo = _list[examineInterval].lo;
-          _list[targetInterval].hi = _list[examineInterval].hi;
+        if (thisInterval != nextInterval) {
+          _list[thisInterval].lo = _list[nextInterval].lo;
+          _list[thisInterval].hi = _list[nextInterval].hi;
         }
 
-        examineInterval++;
+        nextInterval++;
       }
     }
   }
 
-  if (targetInterval+1 < _listLen)
-    _listLen = targetInterval + 1;
+  if (thisInterval+1 < _listLen)
+    _listLen = thisInterval + 1;
 }
 
 
 
 
 u32bit
-intervalList::overlapping(u32bit    rangelo,
-                          u32bit    rangehi,
-                          u32bit  *&intervals,
-                          u32bit   &intervalsLen,
-                          u32bit   &intervalsMax) {
+intervalList::overlapping(intervalNumber    rangelo,
+                          intervalNumber    rangehi,
+                          u32bit          *&intervals,
+                          u32bit           &intervalsLen,
+                          u32bit           &intervalsMax) {
 
 
   //  XXX: Naive implementation that is easy to verify (and that works

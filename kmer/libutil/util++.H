@@ -306,14 +306,16 @@ private:
 ////////////////////////////////////////
 //
 //  intervalList
-//
+
 
 //  I don't want this to be public, but the sort function
 //  in intervalList.C needs it so.
 //
+typedef u64bit  intervalNumber;
+
 struct _intervalPair {
-  u32bit    lo;
-  u32bit    hi;
+  intervalNumber    lo;
+  intervalNumber    hi;
 };
 
 class intervalList {
@@ -330,7 +332,7 @@ public:
   }
 
   //  Insert a new interval into the list
-  void        add(u32bit position, u32bit length);
+  void        add(intervalNumber position, intervalNumber length);
 
   //  Sort the set of intervals by the lo value
   void        sort(void);
@@ -344,9 +346,9 @@ public:
   };
 
   //  Returns the sum of the length of all intervals
-  u32bit      sumOfLengths(void) {
-    u32bit len = 0;
-    u32bit i   = numberOfIntervals();
+  intervalNumber      sumOfLengths(void) {
+    intervalNumber len = 0;
+    u32bit         i   = numberOfIntervals();
 
     if (i > 0)
       while (i--)
@@ -358,14 +360,14 @@ public:
   //  Populates an array with the intervals that are within the
   //  supplied interval.  Return
   //
-  u32bit      overlapping(u32bit    lo,
-                          u32bit    hi,
-                          u32bit  *&intervals,
-                          u32bit   &intervalsLen,
-                          u32bit   &intervalsMax);
+  u32bit      overlapping(intervalNumber    lo,
+                          intervalNumber    hi,
+                          u32bit          *&intervals,
+                          u32bit           &intervalsLen,
+                          u32bit           &intervalsMax);
 
-  u32bit      lo(u32bit i) { return(_list[i].lo); };
-  u32bit      hi(u32bit i) { return(_list[i].hi); };
+  intervalNumber      lo(u32bit i) { return(_list[i].lo); };
+  intervalNumber      hi(u32bit i) { return(_list[i].hi); };
 
 private:
   bool                      _isSorted;
