@@ -25,7 +25,7 @@ $/md5:      $/md5c.o $/mddriver.o $/test.o
 
 # test.rfc is taken from Appendix 5 of RFC 1321.
 #
-$/test.c: ${MD5DIR/}md5test
+$/test.c: $/md5test
 	@echo 'MD5: Testing md5 algorithm.'
 	@echo 'MD5 test suite:' > ${MD5DIR/}/test.rfc
 	@echo 'MD5 ("") = d41d8cd98f00b204e9800998ecf8427e' >> ${MD5DIR/}/test.rfc
