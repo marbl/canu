@@ -52,6 +52,8 @@
 
 /* Note, KMERLEN 5, MINMATCH 20, MAXERROR 2, KTHRESH 6 is reasonable for performing fragment against fragment comparisons; it permits relatively small segments to be found; but it will not give acceptable run time for large comparisons such as a BAC against a BAC etc.  So, ... */
 
+
+// default values controlling sensitivity and performance:
 #define LOCAL_TUNED_FOR_FRAGMENTS
 #ifdef LOCAL_TUNED_FOR_FRAGMENTS
 #define KMERLEN   5   /* Must be >= 1 */
@@ -60,10 +62,20 @@
 #define KTHRESH   6   /*  MINMATCH - (KMERLEN-1) - KMERLEN*MAXERROR */
 
 #else
+
+#define LOCAL_TUNED_FOR_MODERATE_ALIGNS
+#ifdef LOCAL_TUNED_FOR_MODERATE_ALIGNS
 #define KMERLEN   8   /* Must be >= 1 */
 #define MINMATCH 36
 #define MAXERROR  2
 #define KTHRESH  13   /*  MINMATCH - (KMERLEN-1) - KMERLEN*MAXERROR */
+#else  // near-identity long matches
+#define KMERLEN   12   /* Must be >= 1 */
+#define MINMATCH 100
+#define MAXERROR  2
+#define KTHRESH  65   /*  MINMATCH - (KMERLEN-1) - KMERLEN*MAXERROR */
+#endif
+
 #endif
 
 
@@ -74,6 +86,10 @@
 #define max(a,b) (a>b?a:b)
 #endif
 
+int kmerlen=KMERLEN;
+int minmatch=MINMATCH;
+int maxerror=MAXERROR;
+int kthresh=KTHRESH;
 
 
 
@@ -143,7 +159,8 @@ static int samecost=SAMECOST;
 /* Trapezoid merging padding */
 
 #define DPADDING   2
-#define BPADDING   KMERLEN+2
+int bpadding;
+
 
 static int BLOCKCOST = DIFFCOST*MAXIGAP;
 static int MATCHCOST = DIFFCOST+SAMECOST;
@@ -231,10 +248,10 @@ typedef struct {
 
 static int  Kmask = -1;
 static int *Table;          /* [0..Kmask+1] */
-static int *Tuples = NULL;  /* [0..<Seqlen>-KMERLEN] */
+static int *Tuples = NULL;  /* [0..<Seqlen>-kmerlen] */
 static int  Map[128];
 
-static DiagRecord *DiagVec; /* [-(Alen-KMERLEN)..(Blen-KMERLEN) + MAXERROR] */
+static DiagRecord *DiagVec; /* [-(Alen-kmerlen)..(Blen-kmerlen) + maxerror] */
 
 /* Reverse complement sequences -- so we do not recompute them over and over */
 static char *ArevC,*BrevC;
@@ -247,49 +264,49 @@ static void TableBuild(char *S, int Slen)
   int   x, h;
   char *s;
 
-  s = S+(KMERLEN-1);
+  s = S+(kmerlen-1);
 
   for (c = 0; c <= Kmask; c++)
     Table[c] = 0;
 
-  h = -KMERLEN;
+  h = -kmerlen;
   c = 0;
-  for (i = 0; i < KMERLEN-1; i++)
+  for (i = 0; i < kmerlen-1; i++)
     { x = Map[(int) (S[i])];
       if (x >= 0)
         c = (c << 2) | x;
       else
-        { c <<= 2; h = i-(KMERLEN-1); }
+        { c <<= 2; h = i-(kmerlen-1); }
     }
-  for (i = 0; i <= Slen-KMERLEN; i++)
+  for (i = 0; i <= Slen-kmerlen; i++)
     { x = Map[(int) (s[i])];
       if (x >= 0)
         c = ((c << 2) | x) & Kmask;
       else
         { c = (c << 2) & Kmask; h = i; }
-      if (i >= h+KMERLEN)
+      if (i >= h+kmerlen)
         Table[c+1] += 1;
     }
 
   for (c = 2; c <= Kmask; c++)
     Table[c] += Table[c-1];
 
-  h = -KMERLEN;
+  h = -kmerlen;
   c = 0;
-  for (i = 0; i < KMERLEN-1; i++)
+  for (i = 0; i < kmerlen-1; i++)
     { x = Map[(int) (S[i])];
       if (x >= 0)
         c = (c << 2) | x;
       else
-        { c <<= 2; h = i-(KMERLEN-1); }
+        { c <<= 2; h = i-(kmerlen-1); }
     }
-  for (i = 0; i <= Slen-KMERLEN; i++)
+  for (i = 0; i <= Slen-kmerlen; i++)
     { x = Map[(int) (s[i])];
       if (x >= 0)
         c = ((c << 2) | x) & Kmask;
       else
         { c = (c << 2) & Kmask; h = i; }
-      if (i >= h+KMERLEN)
+      if (i >= h+kmerlen)
         Tuples[Table[c]++] = i;
     }
 
@@ -304,11 +321,11 @@ static void TableBuild(char *S, int Slen)
 
     for (c = 0; c <= Kmask; c++)
       { printf("Table[%d = ",c);
-        for (i = KMERLEN-1; i >= 0; i--)
+        for (i = kmerlen-1; i >= 0; i--)
           printf("%c",Convert[c>>(i*2) & 0x3]);
         printf("]\n");
         for (i = Table[c]; i < Table[c+1]; i++)
-          printf("  %d (%.*s)\n",Tuples[i],KMERLEN,S+Tuples[i]);
+          printf("  %d (%.*s)\n",Tuples[i],kmerlen,S+Tuples[i]);
       }
   }
 #endif
@@ -343,42 +360,42 @@ static HitRecord *Find_Hits(char *A, int Alen, char *B, int Blen, int *Hitlen)
     int x, h;
     char *b;
 
-    for (j = -Alen; j <= Blen+MAXERROR; j++)
+    for (j = -Alen; j <= Blen+maxerror; j++)
       { DiagRecord *dp;
         dp = DiagVec + j;
         dp->count = dp->maxim = 0;
       }
 
     hits = 0;
-    disconnect = MINMATCH - KMERLEN;
+    disconnect = minmatch - kmerlen;
 #ifdef REPORT_SIZES
     sum = 0;
 #endif
-    h = -KMERLEN;
+    h = -kmerlen;
     c = 0;
-    for (i = 0; i < KMERLEN-1; i++)
+    for (i = 0; i < kmerlen-1; i++)
       { x = Map[(int) (B[i])];
         if (x >= 0)
           c = (c << 2) | x;
         else
-          { c <<= 2; h = i-(KMERLEN-1); }
+          { c <<= 2; h = i-(kmerlen-1); }
       }
-    b = B + (KMERLEN-1);
-    for (i = 0; i <= Blen-KMERLEN; i++)
+    b = B + (kmerlen-1);
+    for (i = 0; i <= Blen-kmerlen; i++)
       { x = Map[(int) (b[i])];
         if (x >= 0)
           c = ((c << 2) | x) & Kmask;
         else
           { c = (c << 2) & Kmask; h = i; }
-        if (i >= h+KMERLEN)
+        if (i >= h+kmerlen)
           for (j = Table[c]; j < Table[c+1]; j++)
             { DiagRecord *dp;
               int e, k;
               k  = i-Tuples[j];
               dp = DiagVec + k;
-              for (e = 0; e <= MAXERROR; e++)
+              for (e = 0; e <= maxerror; e++)
                 { if (dp->maxim < i-disconnect)
-                    { if (dp->count >= KTHRESH)
+                    { if (dp->count >= kthresh)
                         { HitRecord *hp;
                           if (hits >= HitMax)
                             { HitMax = (int)(1.2*hits) + 5000;
@@ -390,7 +407,7 @@ static HitRecord *Find_Hits(char *A, int Alen, char *B, int Blen, int *Hitlen)
                           hp = HitList + hits;
                           hp->diagonal = k;
                           hp->bstart   = dp->minim;
-                          hp->bfinish  = dp->maxim + KMERLEN;
+                          hp->bfinish  = dp->maxim + kmerlen;
                           hits += 1;
                         }
                       dp->count = 0;
@@ -407,10 +424,10 @@ static HitRecord *Find_Hits(char *A, int Alen, char *B, int Blen, int *Hitlen)
 #endif
       }
 
-    for (j = -Alen; j <= Blen+MAXERROR; j++)
+    for (j = -Alen; j <= Blen+maxerror; j++)
       { DiagRecord *dp;
         dp = DiagVec + j;
-        if (dp->count >= KTHRESH)
+        if (dp->count >= kthresh)
           { HitRecord *hp;
             if (hits >= HitMax)
               { HitMax = (int)(1.2*hits) + 5000;
@@ -421,7 +438,7 @@ static HitRecord *Find_Hits(char *A, int Alen, char *B, int Blen, int *Hitlen)
             hp = HitList + hits;
             hp->diagonal = j;
             hp->bstart   = dp->minim;
-            hp->bfinish  = dp->maxim + KMERLEN;
+            hp->bfinish  = dp->maxim + kmerlen;
             hits += 1;
           }
       }
@@ -430,7 +447,7 @@ static HitRecord *Find_Hits(char *A, int Alen, char *B, int Blen, int *Hitlen)
   qsort(HitList,hits,sizeof(HitRecord),HSORT);
 
 #ifdef REPORT_SIZES
-  printf("\n  %9d %d-mers (%f%% of matrix)\n",sum,KMERLEN,(100.*sum/Alen)/Blen);
+  printf("\n  %9d %d-mers (%f%% of matrix)\n",sum,kmerlen,(100.*sum/Alen)/Blen);
   printf("  %9d seed hits (%f%% of matrix)\n",hits,(100.*hits/Alen)/Blen);
 #endif
 
@@ -785,7 +802,7 @@ static Trapezoid *Build_Trapezoids(char *A, int Alen, char *B, int Blen,
       f = NULL;
       for (b = traporder; b != NULL; b = t)
         { t = b->next;
-          if (b->top < list[i].bstart - BPADDING)
+          if (b->top < list[i].bstart - bpadding)
             { trapcount += 1;
               traparea  += (b->top - b->bot + 1) * (b->rgt - b->lft + 1);
               if (f == NULL)
@@ -946,7 +963,7 @@ static Trapezoid *Build_Trapezoids(char *A, int Alen, char *B, int Blen,
 #endif
     tailend = NULL;
     for (b = traplist; b != NULL; b = b->next)
-      { if (b->top - b->bot < KMERLEN) continue;
+      { if (b->top - b->bot < kmerlen) continue;
 
         abot = b->bot - b->rgt;
         atop = b->top - b->lft;
@@ -1424,7 +1441,7 @@ static Local_Segment *Align_Trapezoids(char *A, int Alen, char *B, int Blen,
   for (i = 0; i < Traplen; i++)
     if (! Covered[i])
       { b = Tarray[i];
-        if (b->top - b->bot < KMERLEN) continue;
+        if (b->top - b->bot < kmerlen) continue;
 	//printf("Trying hit %d\n",i);
         Align_Recursion(A,Alen,B,Blen,b,i,comp,MinLen,MaxDiff,Traplen);
       }
@@ -1518,6 +1535,7 @@ Local_Segment *Find_Local_Segments
   Local_Segment *segs = NULL;
 
 
+  bpadding=   kmerlen+2;
 
 #ifdef VARIABLE_SCORE_SCHEME
   samecost=ceil(100.*MaxDiff);
@@ -1553,7 +1571,7 @@ Local_Segment *Find_Local_Segments
           Map['c'] = Map['C'] = 1;
           Map['g'] = Map['G'] = 2;
           Map['t'] = Map['T'] = 3;
-          Kmask = (1 << (2*KMERLEN)) - 1;
+          Kmask = (1 << (2*kmerlen)) - 1;
           Table = (int *)malloc(sizeof(int)*(Kmask+2));
           if (Table == NULL)
             OutOfMemory("K-mer index");
@@ -1564,7 +1582,7 @@ Local_Segment *Find_Local_Segments
         DagMax = (int)(1.2*Blen) + 5000;
       DagMax += sizeof(DiagRecord) - (DagMax % sizeof(DiagRecord));
       Tuples = (int *)realloc(Tuples,sizeof(int)*DagMax +
-                              sizeof(DiagRecord)*(2*DagMax+MAXERROR+1));
+                              sizeof(DiagRecord)*(2*DagMax+maxerror+1));
       if (Tuples == NULL)
         OutOfMemory("K-mer index");
       DiagVec = ((DiagRecord *) (Tuples + DagMax)) + (DagMax+1);
