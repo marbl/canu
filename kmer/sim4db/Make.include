@@ -24,5 +24,4 @@ $(eval $/%: CXXFLAGS+=  -I${FASTA/} -I${SIM4/} -I${SIM4POLISH/} -I${LIBBRI/})
 $/buildinfo-sim4db.c: $/buildinfo-sim4db.h
 $/buildinfo-sim4db.h: $/sim4db.C
 	${UTIL/}buildinfo.pl sim4db "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
-	[ `dirname $@` = "." ] || mv buildinfo-sim4db.[ch] `dirname $@
-
+	[ `dirname $@` = "." ] || mv buildinfo-sim4db.[ch] `dirname $@`
