@@ -76,4 +76,12 @@ main(int argc, char **argv) {
       fclose(F);
     }
   }
+
+  delete args;
+
+#ifdef MEMORY_DEBUG
+  _dump_allocated_delta(fileno(stdout));
+#endif
+
+  return(0);
 }

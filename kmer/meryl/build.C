@@ -422,6 +422,8 @@ runSegment(merylArgs *args, u64bit segment) {
     }
   }
 
+  delete [] sortedList;
+
   delete C;
   delete W;
 
@@ -471,6 +473,8 @@ build(merylArgs *args) {
   //
   //    
 
+  bool  doMerge = false;
+
 #ifdef ENABLE_THREADS
   if (args->numThreads > 1) {
 
@@ -490,7 +494,6 @@ build(merylArgs *args) {
     for (u64bit s=0; s<args->segmentLimit; s++)
       fprintf(stdout, "%s -countbatch "u64bitFMT" -o %s\n", args->execName, s, args->outputFile);
     fprintf(stdout, "%s -mergebatch -o %s\n", args->execName, args->outputFile);
-    exit(0);
   } else   if (args->countBatch) {
 
     //  Read back the configuration, run the segment and exit if we
@@ -499,7 +502,7 @@ build(merylArgs *args) {
     merylArgs *savedArgs = new merylArgs(args->outputFile);
     savedArgs->beVerbose = args->beVerbose;
     runSegment(savedArgs, args->batchNumber);
-    exit(0);
+    delete savedArgs;
   } else if (args->mergeBatch) {
 
     //  Check that all the files exist if we are -mergebatch and
@@ -509,12 +512,16 @@ build(merylArgs *args) {
     savedArgs->beVerbose = args->beVerbose;
     delete args;
     args = savedArgs;
+
+    doMerge = true;
   } else {
 
     //  No special options given, do all the work here and now
     //
     for (u64bit s=0; s<args->segmentLimit; s++)
       runSegment(args, s);
+
+    doMerge = true;
   }
   
 
@@ -527,31 +534,43 @@ build(merylArgs *args) {
   //
   //  ./meryl -M add [-v] -s batch1 -s batch2 ... -s batchN -o outputFile
   //
-  if (args->segmentLimit > 1) {
+  if ((doMerge) && (args->segmentLimit > 1)) {
     int     argc = 0;
     char  **argv = new char* [7 + 2 * args->segmentLimit];
+    bool   *arga = new bool  [7 + 2 * args->segmentLimit];
 
-    argv[argc++] = "meryl-build-merge";
-    argv[argc++] = "-M";
-    argv[argc++] = "add";
+    arga[argc] = false;  argv[argc++] = "meryl-build-merge";
+    arga[argc] = false;  argv[argc++] = "-M";
+    arga[argc] = false;  argv[argc++] = "add";
 
-    if (args->beVerbose)
+    if (args->beVerbose) {
+      arga[argc] = false;
       argv[argc++] = "-v";
+    }
 
     for (u32bit i=0; i<args->segmentLimit; i++) {
+      arga[argc] = false;
       argv[argc++] = "-s";
+      arga[argc] = true;
       argv[argc] = new char [strlen(args->outputFile) + 33];
       sprintf(argv[argc], "%s.batch"u32bitFMT, args->outputFile, i);
       argc++;
     }
 
-    argv[argc++] = "-o";
-    argv[argc++] = args->outputFile;
+    arga[argc] = false;  argv[argc++] = "-o";
+    arga[argc] = false;  argv[argc++] = args->outputFile;
 
     merylArgs *addArgs = new merylArgs(argc, argv);
     multipleOperations(addArgs);
 
     //  Cleanup the memory leak.
+    //
+    delete addArgs;
+    for (u32bit i=0; i<argc; i++)
+      if (arga[i])
+        delete [] argv[i];
+    delete [] argv;
+    delete [] arga;
 
     //  Remove temporary files
     //
