@@ -18,9 +18,21 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "util++.H"
 #include "atac-common.H"
+
+//  DEBUG emits voluminous debugging information on what actions were taken.
+//  TEST performs some simple tests on the trimming -- do we intersect anyghing,
+//      and did we extend past the initial match.
+//  NOOUTPUT dosables the normal output.
+//
+//#define DEBUG
+#define DEBUG_MATCH  704960
+#define TEST
+//#define NOOUTPUT
+
 
 //  Filters out matches that have non-unique pieces.  Does not discard
 //  the whole match, but just trims out the non-unique section.
@@ -37,10 +49,14 @@
 //  the matches.  how big can they be -- especially if we only keep
 //  things with > 1 coverage!  But, we also can't use an elegant
 //  algorithm for trimming/splitting.
-//
 
-char   *_inputName = 0L;
-char   *_outputName = 0L;
+
+//  We can abuse this to subtract matches from other matches.  The
+//  operation done for removing non-unique is to first find any
+//  overlapping intervals in the set, then subract those from the
+//  input.  If we instead just find all intervals in a set of matches,
+//  and subtract those from the input, we get subtraction.
+
 
 //  Reads the input, builds an interval list of the regions
 //  that have coverage > 1.
@@ -94,27 +110,56 @@ sortCoverage2(const void *a, const void *b) {
 }
 
 
+//  Same as sortCoverage2, but the array being sorted is not
+//  an array of pointers.
+//
+int
+sortCoverage3(const void *a, const void *b) {
+  const coverage2_s *A = (const coverage2_s *)a;
+  const coverage2_s *B = (const coverage2_s *)b;
+
+  if (A->axis     < B->axis)  return(-1);
+  if (A->axis     > B->axis)  return(1);
+  if (A->beg      < B->beg)   return(-1);
+  if (A->beg      > B->beg)   return(1);
+  return(0);
+}
+
+
 
 
 //  An interval list, searchable
 //
 class coverageIntervals {
 public:
-  dict_t    *_il;
-
+  dict_t       *_il;
+  dict_load_t   _load;
 public:
   coverageIntervals() {
     _il = dict_create(DICTCOUNT_T_MAX, sortCoverage2);
   };
 
   ~coverageIntervals() {
-    //  XXX: probably also need to release all the nodes
     dict_free(_il);
+    pfree();
   };
 
-  void        addInterval(int axis, int beg, int end, int coverage) {
-    dnode_t      *node = (dnode_t *)malloc(sizeof(dnode_t));
-    coverage2_s  *cov  = (coverage2_s *)malloc(sizeof(coverage2_s));
+
+  //  We want to return the first node that is before our thing.  Our comparison
+  //  tests the start position.  If there is no first node before our thing,
+  //  return the next node.
+  //
+  dnode_t  *lookup(void *thing) {
+    dnode_t  *it = dict_upper_bound(_il, thing);
+    if (it == 0L)
+      it = dict_lower_bound(_il, thing);
+    return(it);
+  };
+
+
+  void  addInterval(int axis, int beg, int end, int coverage) {
+    dnode_t      *node = (dnode_t *)palloc(sizeof(dnode_t));
+    coverage2_s  *cov  = (coverage2_s *)palloc(sizeof(coverage2_s));
 
     cov->axis     = axis;
     cov->beg      = beg;
@@ -127,17 +172,43 @@ public:
     //  insert the node into the tree using the key
     dict_insert(_il, node, (void *)cov);
   };
+
+  void  beginLoad(void) {
+    dict_load_begin(&_load, _il);
+  };
+  void  endLoad(void) {
+    dict_load_end(&_load);
+  };
+  void  loadInterval(int axis, int beg, int end, int coverage) {
+    dnode_t      *node = (dnode_t *)palloc(sizeof(dnode_t));
+    coverage2_s  *cov  = (coverage2_s *)palloc(sizeof(coverage2_s));
+
+    cov->axis     = axis;
+    cov->beg      = beg;
+    cov->end      = end;
+    cov->coverage = coverage;
+
+    //  initialize the node with the value
+    dnode_init(node, 0L);
+
+    //  insert the node into the tree using the key
+    dict_load_next(&_load, node, (void *)cov);
+  };
 };
 
 
 
 
 void
-offsetsToCoverage(bigQueue *I, bigQueue *O, coverageIntervals *L) {
+offsetsToCoverage(u32bit minCov, bigQueue *I, coverageIntervals *L) {
   u32bit  axis     = ~u32bitZERO;
   u32bit  position = ~u32bitZERO;
   u32bit  coverage = 0;
+  u64bit  covered  = 0;
 
+
+  L->beginLoad();
+  speedCounter D(" %8.0f matches treed  (%8.2f matches/sec)\r", 1, 511, true);
   while (I->next()) {
     coverage1_s  *cov1 = (coverage1_s *)I->get();
 
@@ -146,27 +217,10 @@ offsetsToCoverage(bigQueue *I, bigQueue *O, coverageIntervals *L) {
 
     int length = cov1->position - position;
 
-    //  Add this interval to the interval list.  We only really care
-    //  about coverage > 1 though
-    //
-    if ((coverage > 0) && (length > 0)) {
-      coverage2_s  *cov2 = (coverage2_s *)malloc(sizeof(coverage2_s));
-
-      cov2->axis      = axis;
-      cov2->beg       = position;
-      cov2->end       = position + length;
-      cov2->coverage  = coverage;
-
-      O->add(cov2);
-    }
-
-    if ((coverage > 1) && (length > 0)) {
-#ifdef DEBUG
-      fprintf(stderr, "axis="u32bitFMTW(8)" "u32bitFMTW(8)"-"u32bitFMTW(8)" cov="u32bitFMTW(8)"\n",
-              axis, position, position+length, coverage);
-#endif
-
-      L->addInterval(axis, position, position+length, coverage);
+    if ((coverage >= minCov) && (length > 0)) {
+      D.tick();
+      L->loadInterval(axis, position, position+length, coverage);
+      covered += length;
     }
 
     //  Occasionally, we get stung by insisting to use unsigned
@@ -180,6 +234,11 @@ offsetsToCoverage(bigQueue *I, bigQueue *O, coverageIntervals *L) {
     axis        = cov1->axis;
     position    = cov1->position;
   }
+  D.finish();
+  L->endLoad();
+
+  fprintf(stderr, "offsetsToCoverage()-- Found "u64bitFMT" bases at coverage "u32bitFMT" or greater.\n",
+          covered, minCov);
 }
 
 
@@ -187,21 +246,26 @@ offsetsToCoverage(bigQueue *I, bigQueue *O, coverageIntervals *L) {
 
 
 void
-findCoverageIntervals(bigQueue *Fcov, coverageIntervals *Fint,
-                      bigQueue *Rcov, coverageIntervals *Rint) {
+findCoverageIntervals(char const *fileName,
+                      u32bit      minCov,
+                      coverageIntervals *Fint,
+                      coverageIntervals *Rint) {
   bigQueue  F(sortCoverage1, 0L, 0L, 0L, sizeof(coverage1_s), 128, 0L);
   bigQueue  R(sortCoverage1, 0L, 0L, 0L, sizeof(coverage1_s), 128, 0L);
   char      inLine[1024];
-  FILE     *inFile = fopen(_inputName, "r");
-
-  fgets(inLine, 1024, inFile);
 
   //
   //  Read the input file, building a bigQueue of the interval offsets
   //
 
+  FILE     *inFile = fopen(fileName, "r");
+  fgets(inLine, 1024, inFile);
+
+  speedCounter C(" %8.0f matches loaded (%8.2f matches/sec)\r", 1, 511, true);
+
   while (!feof(inFile)) {
     if (inLine[0] == 'M') {
+      C.tick();
       splitToWords  S(inLine);
 
       if ((S[1][0] == 'u') || (S[1][0] == 'x')) {
@@ -239,6 +303,7 @@ findCoverageIntervals(bigQueue *Fcov, coverageIntervals *Fint,
 
     fgets(inLine, 1024, inFile);
   }
+  C.finish();
 
   fclose(inFile);
 
@@ -249,9 +314,121 @@ findCoverageIntervals(bigQueue *Fcov, coverageIntervals *Fint,
 
   //  Convert the interval offsets into a coverage interval list
   //
-  offsetsToCoverage(&F, Fcov, Fint);
-  offsetsToCoverage(&R, Rcov, Rint);
+  offsetsToCoverage(minCov, &F, Fint);
+  offsetsToCoverage(minCov, &R, Rint);
 }
+
+
+
+
+
+
+
+
+
+
+void
+intersectTest(match_s            *matches,
+              u32bit              matchesLen,
+              coverageIntervals  *Fint,
+              coverageIntervals  *Rint,
+              u32bit              matchNumber) {
+  bool errors = false;
+
+  for (u32bit i=0; i<matchesLen; i++) {
+    coverage2_s   thing;
+
+    //  Query the tree for the first interval intersecting iid1
+    //
+    thing.axis     = matches[i].iid1;
+    thing.beg      = matches[i].pos1;
+    thing.end      = matches[i].pos1 + matches[i].len1;
+    thing.coverage = 0;
+    dnode_t *node1 = Fint->lookup(&thing);
+
+    thing.axis     = matches[i].iid2;
+    thing.beg      = matches[i].pos2;
+    thing.end      = matches[i].pos2 + matches[i].len2;
+    thing.coverage = 0;
+    dnode_t *node2 = Rint->lookup(&thing);
+
+
+    //  Keep iterating until the node returned from the tree
+    //  is empty, or it is after our region
+    //
+    while (node1 && node2) {
+      const coverage2_s *key1 = 0L, *key2 = 0L;
+
+      bool  isect1=false, before1=false;
+      bool  isect2=false, before2=false;
+
+      if (node1) {
+        key1   = (const coverage2_s *)dnode_getkey(node1);
+
+        isect1 = ((key1->axis == matches[i].iid1) &&
+                  (matches[i].pos1 < key1->end) &&
+                  (key1->beg       < matches[i].pos1 + matches[i].len1));
+
+        before1 = ((key1->axis  < matches[i].iid1) ||
+                   ((key1->axis == matches[i].iid1) && (key1->beg < matches[i].pos1 + matches[i].len1)));
+      }
+
+
+      if (node2) {
+        key2   = (const coverage2_s *)dnode_getkey(node2);
+
+        isect2 = ((key2->axis == matches[i].iid2) &&
+                  (matches[i].pos2 < key2->end) &&
+                  (key2->beg       <  matches[i].pos2 + matches[i].len2));
+
+        before2 = ((key2->axis  < matches[i].iid2) ||
+                   ((key2->axis == matches[i].iid2) && (key2->beg < matches[i].pos2 + matches[i].len2)));
+      }
+
+
+      if (isect1) {
+        fprintf(stderr, "Got fwd intersection on i="u32bitFMT" matchNumber="u32bitFMT"\n", i, matchNumber);
+        fprintf(stdout, "--"u32bitFMT" "u32bitFMT" 1    "u32bitFMT" "u32bitFMT" %d\n",
+                matches[i].pos1, matches[i].pos1 + matches[i].len1,
+                matches[i].pos2, matches[i].pos2 + matches[i].len2, matches[i].ori2 ? 1 : -1);
+        fprintf(stdout, "--key1 beg="u32bitFMT" end="u32bitFMT"\n",
+                key1->beg, key1->end);
+        errors = true;
+      }
+      if (isect2) {
+        fprintf(stderr, "Got rev intersection on i="u32bitFMT" matchNumber="u32bitFMT"\n", i, matchNumber);
+        fprintf(stdout, "--"u32bitFMT" "u32bitFMT" 1    "u32bitFMT" "u32bitFMT" %d\n",
+                matches[i].pos1, matches[i].pos1 + matches[i].len1,
+                matches[i].pos2, matches[i].pos2 + matches[i].len2, matches[i].ori2 ? 1 : -1);
+        fprintf(stdout, "--key2 beg="u32bitFMT" end="u32bitFMT"\n",
+                key2->beg, key2->end);
+        errors = true;
+      }
+
+
+      //  If we intersected or were before, move to the next, otherwise,
+      //  stop
+      //
+      if (isect1 || before1)
+        node1 = dict_next(Fint->_il, node1);
+      else
+        node1 = 0L;
+
+      if (isect2 || before2)
+        node2 = dict_next(Rint->_il, node2);
+      else
+        node2 = 0L;
+    }
+  }
+
+  if (errors)
+    abort();
+}
+
+
+
+
+
 
 
 
@@ -264,15 +441,20 @@ findCoverageIntervals(bigQueue *Fcov, coverageIntervals *Fint,
 
 int
 main(int argc, char **argv) {
+  char   *_inputName = 0L;
+  char   *_subtractName = 0L;
 
   int arg = 1;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-i") == 0) {
       _inputName = argv[++arg];
-    } else if (strcmp(argv[arg], "-o") == 0) {
-      _outputName = argv[++arg];
+    } else if (strcmp(argv[arg], "-s") == 0) {
+      _subtractName = argv[++arg];
     } else {
-      fprintf(stderr, "usage: %s [-i inputfile] [-o outputfile] [-h]\n", argv[0]);
+      fprintf(stderr, "usage: %s [-h] [-s subtractFile] [-i inputFile]\n", argv[0]);
+      fprintf(stderr, "  -s     instead of finding regions to remove by looking\n");
+      fprintf(stderr, "         for duplicatd regions in inputFile, load them\n");
+      fprintf(stderr, "         from subtractFile.\n");
       exit(1);
     }
     arg++;
@@ -281,21 +463,18 @@ main(int argc, char **argv) {
   if (_inputName == 0L)
     fprintf(stderr, "usage: %s [-i inputfile] [-o outputfile] [-h]\n", argv[0]), exit(1);
 
-  bigQueue            *Fcov = new bigQueue(0L, 0L, 0L, 0L, sizeof(coverage2_s), 128, 0L);
-  bigQueue            *Rcov = new bigQueue(0L, 0L, 0L, 0L, sizeof(coverage2_s), 128, 0L);
   coverageIntervals   *Fint = new coverageIntervals;
   coverageIntervals   *Rint = new coverageIntervals;
 
-  //  For silly reasons, we build both the coverage list and the
-  //  interval list.  We do this so we can easily get back to the
-  //  original out-of-core algorithm.
-
-  findCoverageIntervals(Fcov, Fint, Rcov, Rint);
+  if (_subtractName)
+    findCoverageIntervals(_subtractName, 1, Fint, Rint);
+  else
+    findCoverageIntervals(_inputName, 2, Fint, Rint);
 
 
 
   //  The original implementation would then sort the matches in X,
-  //  merge the sorted Fcov and the sorted matches together, resort
+  //  merge the sorted intervals and the sorted matches together, resort
   //  the matches by Y, and merge with Rcov.  That is a lot of work to
   //  avoid keeping two interval lists in memory.
   //
@@ -319,6 +498,8 @@ main(int argc, char **argv) {
   match_s      *matches    = new match_s [matchesMax];
   match_s       extent;
 
+  u32bit        matchNumber = 0;
+
   while (!feof(inFile)) {
     if (inLine[0] == 'M') {
       splitToWords  S(inLine);
@@ -328,42 +509,39 @@ main(int argc, char **argv) {
                   matches[0].iid1, matches[0].pos1, matches[0].len1, matches[0].ori1,
                   matches[0].iid2, matches[0].pos2, matches[0].len2, matches[0].ori2);
 
+
+      //  Save the original, we'll use this to test for intersections.
+      //
       memcpy(&extent, matches, sizeof(match_s));
 
       bool fwd = (matches[0].ori1 == matches[0].ori2);
 
 #ifdef DEBUG
-      chomp(inLine);
-      fprintf(stderr, "%s\n", inLine);
+      if (matchNumber > DEBUG_MATCH) {
+        chomp(inLine);
+        fprintf(stderr, "%s\n", inLine);
+      }
 #endif
 
       //  Query the tree for the first interval intersecting iid1
+      //    XXX: Should this be upper_bound instead?
       //
-      thing.axis     = matches[0].iid1;
-      thing.beg      = matches[0].pos1;
-      thing.end      = matches[0].pos1 + matches[0].len1;
-      thing.coverage = 0;
-      dnode_t *node1 = dict_lower_bound(Fint->_il, &thing);
+      thing.axis          = extent.iid1;
+      thing.beg           = extent.pos1;
+      thing.end           = extent.pos1 + extent.len1;
+      thing.coverage      = 0;
+      dnode_t *node1start = Fint->lookup(&thing);
+      dnode_t *node1      = node1start;
 
-      thing.axis     = matches[0].iid2;
-      thing.beg      = matches[0].pos2;
-      thing.end      = matches[0].pos2 + matches[0].len2;
-      thing.coverage = 0;
-      dnode_t *node2 = dict_lower_bound(Rint->_il, &thing);
 
-#ifdef DEBUGMORE
-      if (node1) {
-        const coverage2_s *key1 = (const coverage2_s *)dnode_getkey(node1);
-        fprintf(stderr, "Got node1 = %08d %08d %08d\n",
-                key1->axis, key1->beg, key1->end);
-      }
 
-      if (node2) {
-        const coverage2_s *key1 = (const coverage2_s *)dnode_getkey(node2);
-        fprintf(stderr, "Got node2 = %08d %08d %08d\n",
-                key1->axis, key1->beg, key1->end);
-      }
-#endif
+
+      thing.axis          = extent.iid2;
+      thing.beg           = extent.pos2;
+      thing.end           = extent.pos2 + extent.len2;
+      thing.coverage      = 0;
+      dnode_t *node2start = Rint->lookup(&thing);
+      dnode_t *node2      = node2start;
 
       //  while the node intersects the match, trim or split it, then
       //  get the next node.
@@ -373,44 +551,82 @@ main(int argc, char **argv) {
       //  if there is one match, then it is in [0].  If there is more
       //  than one match, then the trimmed match is in [0], but the
       //  split matches are in [1] on.
+
+
+      //  XXX  the problem is that we split off things, then move
+      //  to the next match, without checking previously split
+      //  things against this match
+      //
+
+      //  Keep iterating until the node returned from the tree
+      //  is empty, or it is after our region
       //
       while (node1 || node2) {
-        const coverage2_s *key1 = 0L, *key2 = 0L;
 
-        bool  isect1 = false;
-        bool  isect2 = false;
+#ifdef DEBUG
+        if (matchNumber > DEBUG_MATCH) {
+          if (node1) {
+            const coverage2_s *key1 = (const coverage2_s *)dnode_getkey(node1);
+            fprintf(stderr, "Got node1 = %08d %08d %08d\n",
+                    key1->axis, key1->beg, key1->end);
+          }
+
+          if (node2) {
+            const coverage2_s *key1 = (const coverage2_s *)dnode_getkey(node2);
+            fprintf(stderr, "Got node2 = %08d %08d %08d\n",
+                    key1->axis, key1->beg, key1->end);
+          }
+        }
+#endif
+
+        bool  before1=false;
+        bool  before2=false;
+
+        bool  modified=false;
+
+        const coverage2_s *key1 = 0L;
+        const coverage2_s *key2 = 0L;
 
         if (node1) {
-          key1   = (const coverage2_s *)dnode_getkey(node1);
-          isect1 = ((key1->axis == extent.iid1) &&
-                    (key1->end  >= extent.pos1) &&
-                    (key1->beg  <= extent.pos1 + extent.len1));
-        }
+          key1    = (const coverage2_s *)dnode_getkey(node1);
+          before1 = ((key1->axis  < extent.iid1) ||
+                     ((key1->axis == extent.iid1) && (key1->beg < extent.pos1 + extent.len1)));
 
-        if (isect1) {
-#ifdef DEBUG
-          fprintf(stderr, "Intersect: "KEY1THING,
-                  key1->axis, key1->beg, key1->end,
-                  extent.pos1, extent.pos1 + extent.len1,
-                  extent.pos2, extent.pos2 + extent.len2);
-#endif
 
           //  Three cases: (1) we trim off the front, (2) trim off the
           //  back or (3) split.  And, (4) delete the whole damn thing.
           //
           //  Further complicated by having multiple things to try.
+          //
+          //  If anything is modified, reset the node to the start
+          //
 
           for (u32bit i=0; i<matchesLen; i++) {
+#ifdef DEBUG
+            if (matchNumber > DEBUG_MATCH) {
+              fprintf(stderr, "Intersect: "KEY1THING,
+                      key1->axis, key1->beg, key1->end,
+                      matches[i].pos1, matches[i].pos1 + matches[i].len1,
+                      matches[i].pos2, matches[i].pos2 + matches[i].len2);
+            }
+#endif
+
+            if (matches[i].len1 == 0)
+              continue;
+
             if ((key1->beg <= matches[i].pos1) &&
                 ((matches[i].pos1 + matches[i].len1) <= key1->end)) {
+              modified = true;
 
               //  Trim the whole thing?
               //
 #ifdef DEBUG
-              fprintf(stderr, "remove1    "KEY1THING,
-                      key1->axis, key1->beg, key1->end,
-                      matches[i].pos1, matches[i].pos1 + matches[i].len1,
-                      matches[i].pos2, matches[i].pos2 + matches[i].len2);
+              if (matchNumber > DEBUG_MATCH) {
+                fprintf(stderr, "remove1    "KEY1THING,
+                        key1->axis, key1->beg, key1->end,
+                        matches[i].pos1, matches[i].pos1 + matches[i].len1,
+                        matches[i].pos2, matches[i].pos2 + matches[i].len2);
+              }
 #endif
 
               matches[i].pos1 = 0;
@@ -419,6 +635,8 @@ main(int argc, char **argv) {
               matches[i].len2 = 0;
             } else if ((matches[i].pos1 < key1->beg) &&
                        (key1->end < (matches[i].pos1 + matches[i].len1))) {
+              modified = true;
+
               //  Contained.  Split it.
               //
 
@@ -444,10 +662,12 @@ main(int argc, char **argv) {
               }
 
 #ifdef DEBUG
-              fprintf(stderr, "cont1      "KEY1THING,
-                      key1->axis, key1->beg, key1->end,
-                      matches[matchesLen].pos1, matches[matchesLen].pos1 + matches[matchesLen].len1,
-                      matches[matchesLen].pos2, matches[matchesLen].pos2 + matches[matchesLen].len2);
+              if (matchNumber > DEBUG_MATCH) {
+                fprintf(stderr, "cont1      "KEY1THING,
+                        key1->axis, key1->beg, key1->end,
+                        matches[matchesLen].pos1, matches[matchesLen].pos1 + matches[matchesLen].len1,
+                        matches[matchesLen].pos2, matches[matchesLen].pos2 + matches[matchesLen].len2);
+              }
 #endif
 
               matchesLen++;
@@ -457,7 +677,7 @@ main(int argc, char **argv) {
               newLen = matches[i].pos1 + matches[i].len1 - key1->end;
 
               matches[matchesLen].iid1 = matches[i].iid1;
-              matches[matchesLen].pos1 = matches[i].pos1 + (key1->end - matches[i].pos1);
+              matches[matchesLen].pos1 = key1->end;
               matches[matchesLen].len1 = newLen;
               matches[matchesLen].ori1 = matches[i].ori1;
 
@@ -474,10 +694,12 @@ main(int argc, char **argv) {
               }
 
 #ifdef DEBUG
-              fprintf(stderr, "cont1      "KEY1THING,
-                      key1->axis, key1->beg, key1->end,
-                      matches[matchesLen].pos1, matches[matchesLen].pos1 + matches[matchesLen].len1,
-                      matches[matchesLen].pos2, matches[matchesLen].pos2 + matches[matchesLen].len2);
+              if (matchNumber > DEBUG_MATCH) {
+                fprintf(stderr, "cont1      "KEY1THING,
+                        key1->axis, key1->beg, key1->end,
+                        matches[matchesLen].pos1, matches[matchesLen].pos1 + matches[matchesLen].len1,
+                        matches[matchesLen].pos2, matches[matchesLen].pos2 + matches[matchesLen].len2);
+              }
 #endif
 
               matchesLen++;
@@ -490,6 +712,7 @@ main(int argc, char **argv) {
               matches[i].len2 = 0;
             } else if ((key1->beg <= matches[i].pos1) &&
                        (matches[i].pos1 < key1->end)) {
+              modified = true;
 
               //  Trim the begin?
               //
@@ -503,13 +726,16 @@ main(int argc, char **argv) {
               matches[i].len2 -= trimLen;
 
 #ifdef DEBUG
-              fprintf(stderr, "begin1     "KEY1THING,
-                      key1->axis, key1->beg, key1->end,
-                      matches[i].pos1, matches[i].pos1 + matches[i].len1,
-                      matches[i].pos2, matches[i].pos2 + matches[i].len2);
+              if (matchNumber > DEBUG_MATCH) {
+                fprintf(stderr, "begin1     "KEY1THING,
+                        key1->axis, key1->beg, key1->end,
+                        matches[i].pos1, matches[i].pos1 + matches[i].len1,
+                        matches[i].pos2, matches[i].pos2 + matches[i].len2);
+              }
 #endif
             } else if ((key1->beg < (matches[i].pos1 + matches[i].len1)) &&
                        ((matches[i].pos1 + matches[i].len1) <= key1->end)) {
+              modified = true;
 
               //  Trim the end?
               //
@@ -522,45 +748,50 @@ main(int argc, char **argv) {
               matches[i].len2 -= trimLen;
 
 #ifdef DEBUG
-              fprintf(stderr, "end1       "KEY1THING,
-                      key1->axis, key1->beg, key1->end,
-                      matches[i].pos1, matches[i].pos1 + matches[i].len1,
-                      matches[i].pos2, matches[i].pos2 + matches[i].len2);
+              if (matchNumber > DEBUG_MATCH) {
+                fprintf(stderr, "end1       "KEY1THING,
+                        key1->axis, key1->beg, key1->end,
+                        matches[i].pos1, matches[i].pos1 + matches[i].len1,
+                        matches[i].pos2, matches[i].pos2 + matches[i].len2);
+              }
 #endif
             }
           } 
+        }  // isect
 
-          node1 = dict_next(Fint->_il, node1);
-        } else {
-          node1 = 0L;
-        }
+
 
         if (node2) {
-          key2   = (const coverage2_s *)dnode_getkey(node2);
-          isect2 = ((key2->axis == extent.iid2) &&
-                    (key2->end  >= extent.pos2) &&
-                    (key2->beg  <= extent.pos2 + extent.len2));
-        }
-
-        if (isect2) {
-#ifdef DEBUG
-          fprintf(stderr, "Intersect: "KEY2THING,
-                  key2->axis, key2->beg, key2->end,
-                  extent.pos1, extent.pos1 + extent.len1,
-                  extent.pos2, extent.pos2 + extent.len2);
-#endif
+          key2    = (const coverage2_s *)dnode_getkey(node2);
+          before2 = ((key2->axis  < extent.iid2) ||
+                     ((key2->axis == extent.iid2) && (key2->beg < extent.pos2 + extent.len2)));
 
           for (u32bit i=0; i<matchesLen; i++) {
+#ifdef DEBUG
+            if (matchNumber > DEBUG_MATCH) {
+              fprintf(stderr, "Intersect: "KEY2THING,
+                      key2->axis, key2->beg, key2->end,
+                      matches[i].pos1, matches[i].pos1 + matches[i].len1,
+                      matches[i].pos2, matches[i].pos2 + matches[i].len2);
+            }
+#endif
+
+            if (matches[i].len2 == 0)
+              continue;
+
             if ((key2->beg <= matches[i].pos2) &&
                 ((matches[i].pos2 + matches[i].len2) <= key2->end)) {
+              modified = true;
 
               //  Trim the whole thing?
               //
 #ifdef DEBUG
-              fprintf(stderr, "remove2    "KEY2THING,
-                      key2->axis, key2->beg, key2->end,
-                      matches[i].pos1, matches[i].pos1 + matches[i].len1,
-                      matches[i].pos2, matches[i].pos2 + matches[i].len2);
+              if (matchNumber > DEBUG_MATCH) {
+                fprintf(stderr, "remove2    "KEY2THING,
+                        key2->axis, key2->beg, key2->end,
+                        matches[i].pos1, matches[i].pos1 + matches[i].len1,
+                        matches[i].pos2, matches[i].pos2 + matches[i].len2);
+              }
 #endif
 
               matches[i].pos1 = 0;
@@ -568,67 +799,87 @@ main(int argc, char **argv) {
               matches[i].pos2 = 0;
               matches[i].len2 = 0;
             } else if ((matches[i].pos2 < key2->beg) &&
-                (key2->end < (matches[i].pos2 + matches[i].len2))) {
+                       (key2->end < (matches[i].pos2 + matches[i].len2))) {
+              modified = true;
 
               //  Contained.  Split it.
               //
 
-              //  The left half
+              //  The left (forward strand) half
               //
-              int newLen = key2->beg - matches[i].pos2;
-
-              matches[matchesLen].iid1 = matches[i].iid1;
-              matches[matchesLen].pos1 = matches[i].pos1;
-              matches[matchesLen].len1 = newLen;
-              matches[matchesLen].ori1 = matches[i].ori1;
 
               if (fwd) {
+                int newLen = key2->beg - matches[i].pos2;
+
+                matches[matchesLen].iid1 = matches[i].iid1;
+                matches[matchesLen].pos1 = matches[i].pos1;
+                matches[matchesLen].len1 = newLen;
+                matches[matchesLen].ori1 = matches[i].ori1;
+
                 matches[matchesLen].iid2 = matches[i].iid2;
                 matches[matchesLen].pos2 = matches[i].pos2;
                 matches[matchesLen].len2 = newLen;
                 matches[matchesLen].ori2 = matches[i].ori2;
               } else {
+                int newLen = matches[i].pos2 + matches[i].len2 - key2->end;
+
+                matches[matchesLen].iid1 = matches[i].iid1;
+                matches[matchesLen].pos1 = matches[i].pos1;
+                matches[matchesLen].len1 = newLen;
+                matches[matchesLen].ori1 = matches[i].ori1;
+
                 matches[matchesLen].iid2 = matches[i].iid2;
-                matches[matchesLen].pos2 = matches[i].pos2 + matches[i].len2 - (key2->end - matches[i].pos2) - newLen;
+                matches[matchesLen].pos2 = key2->end;
                 matches[matchesLen].len2 = newLen;
                 matches[matchesLen].ori2 = matches[i].ori2;
               }
 
 #ifdef DEBUG
-              fprintf(stderr, "cont2      "KEY2THING,
-                      key2->axis, key2->beg, key2->end,
-                      matches[matchesLen].pos1, matches[matchesLen].pos1 + matches[matchesLen].len1,
-                      matches[matchesLen].pos2, matches[matchesLen].pos2 + matches[matchesLen].len2);
+              if (matchNumber > DEBUG_MATCH) {
+                fprintf(stderr, "cont2      "KEY2THING,
+                        key2->axis, key2->beg, key2->end,
+                        matches[matchesLen].pos1, matches[matchesLen].pos1 + matches[matchesLen].len1,
+                        matches[matchesLen].pos2, matches[matchesLen].pos2 + matches[matchesLen].len2);
+              }
 #endif
 
               matchesLen++;
 
-              //  The right half
+              //  The right (forward strand) half
               //
-              newLen = matches[i].pos2 + matches[i].len2 - key2->end;
-
-              matches[matchesLen].iid1 = matches[i].iid1;
-              matches[matchesLen].pos1 = matches[i].pos1 + (key2->end - matches[i].pos2);
-              matches[matchesLen].len1 = newLen;
-              matches[matchesLen].ori1 = matches[i].ori1;
-
               if (fwd) {
+                int newLen = matches[i].pos2 + matches[i].len2 - key2->end;
+
+                matches[matchesLen].iid1 = matches[i].iid1;
+                matches[matchesLen].pos1 = matches[i].pos1 + key2->end - matches[i].pos2;
+                matches[matchesLen].len1 = newLen;
+                matches[matchesLen].ori1 = matches[i].ori1;
+
                 matches[matchesLen].iid2 = matches[i].iid2;
-                matches[matchesLen].pos2 = matches[i].pos2 + (key2->end - matches[i].pos2);
+                matches[matchesLen].pos2 = key2->end;
                 matches[matchesLen].len2 = newLen;
                 matches[matchesLen].ori2 = matches[i].ori2;
               } else {
+                int newLen = key2->beg - matches[i].pos2;
+
+                matches[matchesLen].iid1 = matches[i].iid1;
+                matches[matchesLen].pos1 = matches[i].pos1 + matches[i].pos2 + matches[i].len2 - key2->beg;
+                matches[matchesLen].len1 = newLen;
+                matches[matchesLen].ori1 = matches[i].ori1;
+
                 matches[matchesLen].iid2 = matches[i].iid2;
-                matches[matchesLen].pos2 = matches[i].pos2 + matches[i].len2 - newLen;
+                matches[matchesLen].pos2 = matches[i].pos2;
                 matches[matchesLen].len2 = newLen;
                 matches[matchesLen].ori2 = matches[i].ori2;
               }
 
 #ifdef DEBUG
-              fprintf(stderr, "cont2      "KEY2THING,
-                      key2->axis, key2->beg, key2->end,
-                      matches[matchesLen].pos1, matches[matchesLen].pos1 + matches[matchesLen].len1,
-                      matches[matchesLen].pos2, matches[matchesLen].pos2 + matches[matchesLen].len2);
+              if (matchNumber > DEBUG_MATCH) {
+                fprintf(stderr, "cont2      "KEY2THING,
+                        key2->axis, key2->beg, key2->end,
+                        matches[matchesLen].pos1, matches[matchesLen].pos1 + matches[matchesLen].len1,
+                        matches[matchesLen].pos2, matches[matchesLen].pos2 + matches[matchesLen].len2);
+              }
 #endif
 
               matchesLen++;
@@ -641,6 +892,7 @@ main(int argc, char **argv) {
               matches[i].len2 = 0;
             } else if ((key2->beg <= matches[i].pos2) &&
                        (matches[i].pos2 < key2->end)) {
+              modified = true;
 
               //  Trim the begin?  fwdOK, revOK
               //
@@ -654,15 +906,18 @@ main(int argc, char **argv) {
               matches[i].len1 -= trimLen;
 
 #ifdef DEBUG
-              fprintf(stderr, "begin2     "KEY2THING,
-                      key2->axis, key2->beg, key2->end,
-                      matches[i].pos1, matches[i].pos1 + matches[i].len1,
-                      matches[i].pos2, matches[i].pos2 + matches[i].len2);
+              if (matchNumber > DEBUG_MATCH) {
+                fprintf(stderr, "begin2     "KEY2THING,
+                        key2->axis, key2->beg, key2->end,
+                        matches[i].pos1, matches[i].pos1 + matches[i].len1,
+                        matches[i].pos2, matches[i].pos2 + matches[i].len2);
+              }
 #endif
             } else if ((key2->beg < (matches[i].pos2 + matches[i].len2)) &&
                        ((matches[i].pos2 + matches[i].len2) <= key2->end)) {
+              modified = true;
 
-              //  Trim the end?  fwdOK
+              //  Trim the end?
               //
 
               int trimLen = matches[i].pos2 + matches[i].len2 - key2->beg;
@@ -673,54 +928,103 @@ main(int argc, char **argv) {
               matches[i].len2 -= trimLen;
 
 #ifdef DEBUG
-              fprintf(stderr, "end2       "KEY2THING,
-                      key2->axis, key2->beg, key2->end,
-                      matches[i].pos1, matches[i].pos1 + matches[i].len1,
-                      matches[i].pos2, matches[i].pos2 + matches[i].len2);
+              if (matchNumber > DEBUG_MATCH) {
+                fprintf(stderr, "end2       "KEY2THING,
+                        key2->axis, key2->beg, key2->end,
+                        matches[i].pos1, matches[i].pos1 + matches[i].len1,
+                        matches[i].pos2, matches[i].pos2 + matches[i].len2);
+              }
 #endif
             }
           } 
-
-          node2 = dict_next(Rint->_il, node2);
-        } else {
-          node2 = 0L;
         }
+
+        //  If we intersected or were before, move to the next, otherwise,
+        //  stop.
+        //
+        if (modified)
+          node1 = node1start;
+        else if (before1)
+          node1 = dict_next(Fint->_il, node1);
+        else
+          node1 = 0L;
+
+        if (modified)
+          node2 = node2start;
+        else if (before2)
+          node2 = dict_next(Rint->_il, node2);
+        else
+          node2 = 0L;
       }  //  end of while (node1 || node2)
 
-      //  Print out all the modified matches
+
+#ifdef TEST
+      //  Nobody should be outside the extent
       //
       for (u32bit i=0; i<matchesLen; i++) {
         if ((matches[i].len1 > 0) && (matches[i].len2 > 0)) {
-          fprintf(stdout, "M %s %s."u32bitFMT" . %s "u32bitFMT" "u32bitFMT" %d %s "u32bitFMT" "u32bitFMT" %d\n",
+          if ((matches[i].pos1 < extent.pos1) ||
+              (matches[i].pos1 + matches[i].len1 > extent.pos1 + extent.len1) ||
+              (matches[i].pos2 < extent.pos2) ||
+              (matches[i].pos2 + matches[i].len2 > extent.pos2 + extent.len2)) {
+            fprintf(stderr, "match %d is outside the extent!\n");
+            abort();
+          }
+        }
+      }
+#endif
+
+
+      //  Print out all the modified matches
+      //
+#ifndef NOOUTPUT
+      for (u32bit i=0; i<matchesLen; i++) {
+        if ((matches[i].len1 > 0) && (matches[i].len2 > 0)) {
+          fprintf(stdout, "M %s %s."u32bitFMT" . %s "u32bitFMT" "u32bitFMT" 1 %s "u32bitFMT" "u32bitFMT" %d\n",
                   S[1], S[2], i,
-                  S[4], matches[i].pos1, matches[i].len1, matches[i].ori1 ? 1 : -1,
+                  S[4], matches[i].pos1, matches[i].len1,
                   S[8], matches[i].pos2, matches[i].len2, matches[i].ori2 ? 1 : -1);
         }
       }
+#endif
+
+#ifdef TEST
+      //  Check that the modified matches do not intersect anything in
+      //  the tree.
+      //
+      intersectTest(matches, matchesLen, Fint, Rint, matchNumber);
+#endif
+
+
 #ifdef DEBUG
-      fflush(stdout);
-      fflush(stderr);
-      fprintf(stderr, "----------------------------------------\n");
-      fflush(stdout);
-      fflush(stderr);
+      if (matchNumber > DEBUG_MATCH) {
+        fflush(stdout);
+        fflush(stderr);
+        fprintf(stderr, "----------------------------------------\n");
+        fflush(stdout);
+        fflush(stderr);
+      }
 #endif
     } else {
 #ifdef DEBUG
-      fflush(stdout);
-      fflush(stderr);
+      if (matchNumber > DEBUG_MATCH) {
+        fflush(stdout);
+        fflush(stderr);
+      }
 #endif
       fputs(inLine, stdout);
 #ifdef DEBUG
-      fflush(stdout);
-      fflush(stderr);
+      if (matchNumber > DEBUG_MATCH) {
+        fflush(stdout);
+        fflush(stderr);
+      }
 #endif
     }
 
     fgets(inLine, 1024, inFile);
+
+    matchNumber++;
   }
 
   fclose(inFile);
-
-  delete Fcov;
-  delete Rcov;
 }
