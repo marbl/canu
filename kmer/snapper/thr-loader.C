@@ -1,8 +1,7 @@
+#include "posix.H"
 #include <stdio.h>
 #include <stdlib.h>
 #include <new.h>
-
-#include "posix.H"
 #include "snapper2.H"
 
 //  Define this to print a message whenever a sequence is loaded.
@@ -16,6 +15,8 @@ loaderThread(void *) {
   u32bit               waterLevel = 0;
   FastASequenceInCore *B          = 0L;
   bool                 slept      = false;
+
+  fprintf(stderr, "Hello!  I'm a loaderThread!\n");
 
   while (inputHead < numberOfQueries) {
 

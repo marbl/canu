@@ -3,8 +3,8 @@ INCLUDE = -I../existDB -I../positionDB -I../sim4 -I../sim4polish -I../fasta -I..
 LIBS    = -L../existDB -L../positionDB -L../sim4 -L../sim4polish -L../fasta -L../libbri \
           -lexistDB -lpositionDB -lsim4 -lsim4polish -lfasta -lbri
 
+EFENCE  = -L/home/walenzbp/ElectricFence/ElectricFence-2.2.2 -lefence
 EFENCE  = -L/dev2/adelcher/EFence -lefence
-EFENCE  = -L/home/walenzbp/projects/EF -lefence
 EFENCE  = 
 
 SRCS      = snapper2.C configuration.C encodedQuery.C \

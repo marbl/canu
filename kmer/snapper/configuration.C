@@ -1,9 +1,12 @@
 #include "posix.H"
 #include "snapper2.H"
 #include "buildinfo-snapper2.h"
-#include "buildinfo-libbri.h"
 #include "buildinfo-existDB.h"
 #include "buildinfo-positionDB.h"
+#include "buildinfo-libbri.h"
+#include "buildinfo-libfasta.h"
+#include "buildinfo-libsim4.h"
+#include "buildinfo-libsim4polish.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,55 +14,63 @@
 
 configuration::configuration(void) {
 
-  _beVerbose           = false;
+  _beVerbose            = false;
 
-  _merSize             = 20;
-  _merSkip             = 0;
-  _numSearchThreads    = 4;
+  _merSize              = 20;
+  _merSkip              = 0;
+  _numSearchThreads     = 4;
 
-  _doReverse           = true;
-  _doForward           = true;
-  _doValidation        = false;
+  _doReverse            = true;
+  _doForward            = true;
+  _doValidation         = false;
+  _doValidationFileName = 0L;
 
-  _maxDiagonal         = 25;
+  _L                    = 0.5;
+  _H                    = 1.0;
+  _V                    = 0.6;
+
+  _maxDiagonal          = 25;
 
   //  Alternate match extension scheme
-  _extendWeight        = 0;
-  _extendMinimum       = 0;
-  _extendAlternate     = false;
+  _extendWeight         = 0;
+  _extendMinimum        = 0;
+  _extendAlternate      = false;
 
-  _minLength           = 0;
-  _minCoverage         = 0.0;
+  _minHitLength         = 0;
+  _minHitCoverage       = 0.2;
 
-  _dbFileName          = 0L;
-  _qsFileName          = 0L;
-  _maskFileName        = 0L;
-  _onlyFileName        = 0L;
-  _outputFileName      = 0L;
-  _statsFileName       = 0L;
+  _minMatchIdentity     = 98;
+  _minMatchCoverage     = 96;
 
-  _useList             = 0L;
-  _useListLen          = 0;
-  _useListMax          = 0;
+  _dbFileName           = 0L;
+  _qsFileName           = 0L;
+  _maskFileName         = 0L;
+  _onlyFileName         = 0L;
+  _outputFileName       = 0L;
+  _statsFileName        = 0L;
 
-  _startTime           = 0.0;
-  _initTime            = 0.0;
-  _buildTime           = 0.0;
-  _searchTime          = 0.0;
-  _totalTime           = 0.0;
+  _useList              = 0L;
+  _useListLen           = 0;
+  _useListMax           = 0;
 
-  _loaderHighWaterMark = 16 * 1024;
-  _loaderSleep.tv_sec  = 1;
-  _loaderSleep.tv_nsec = 0;
-  _loaderWarnings      = false;
+  _startTime            = 0.0;
+  _initTime             = 0.0;
+  _buildTime            = 0.0;
+  _searchTime           = 0.0;
+  _totalTime            = 0.0;
 
-  _searchSleep.tv_sec  = 0;
-  _searchSleep.tv_nsec = 10000000;
+  _loaderHighWaterMark  = 16 * 1024;
+  _loaderSleep.tv_sec   = 1;
+  _loaderSleep.tv_nsec  = 0;
+  _loaderWarnings       = false;
 
-  _writerHighWaterMark = 32 * 1024;
-  _writerSleep.tv_sec  = 1;
-  _writerSleep.tv_nsec = 0;
-  _writerWarnings      = false;
+  _searchSleep.tv_sec   = 0;
+  _searchSleep.tv_nsec  = 10000000;
+
+  _writerHighWaterMark  = 32 * 1024;
+  _writerSleep.tv_sec   = 1;
+  _writerSleep.tv_nsec  = 0;
+  _writerWarnings       = false;
 }
 
 configuration::~configuration() {
@@ -69,26 +80,44 @@ static char const *usageString =
 "usage: %s [--buildinfo] [options]\n"
 "\n"
 "Algorithm Options:\n"
+"    -forward                Search only the normal cDNA\n"
+"    -reverse                Search only the reverse-complement cDNA\n"
+"\n"
 "    -mersize k              Use k-mers\n"
-"    -numthreads n           Use n search threads\n"
+"    -merskip l              Skip l mers between\n"
+"    -maxdiagonal d\n"
+"    -minhitlength l\n"
+"    -minhitcoverage c\n"
+"    -minmatchidentity i\n"
+"    -minmatchcoverage c\n"
+"    -extendweight w\n"
+"    -extendminimum e\n"
+"\n"
+"  Filter and Filter Validation\n"
+"    -validate               Enable tuning of the filter (expensive!)\n"
+"    -setfilter L H V        Use { L,H,V } as the filter parameters\n"
 "\n"
 "Input Options:\n"
 "    -mask f                 Ignore all mers listed in file f\n"
 "    -only f                 Ignore all mers EXCEPT those listed in file f\n"
 "                              (use only the mers listed in file f)\n"
-"    -cdna c.fasta           Query sequences (the cDNA, the stream)\n"
-"    -genomic g.fasta        Database sequences (the genome, the table)\n"
+"    -queries c.fasta        Query sequences\n"
+"    -genomic g.fasta        Database sequences\n"
+"    -use [...]\n"
 "\n"
-"Search Options\n"
-"    -forward                Search only the normal cDNA\n"
-"    -reverse                Search only the reverse-complement cDNA\n"
-"\n"
-"\n"
+"Process Options\n"
+"    -numthreads n           Use n search threads\n"
+"    -loaderhighwatermark h  Size of the loader queue\n"
+"    -loadersleep t          Time the loader will sleep when its output queue is full\n"
+"    -loaderwarnings         Enable warning messages for the loader\n"
+"    -searchsleep t          Time the searcher will sleep when it has no input\n"
+"    -writerhighwatermark h  Size of the output queue\n"
+"    -writersleep t          Time the writer will sleep when it has nothing to write\n"
+"    -writerwarnings         Enable warning messages for the writer\n"
 "\n"
 "Output Options\n"
 "    -verbose                Entertain the user\n"
 "    -output f               Write output to file f\n"
-"    -count f                Write counts of hits to file f\n"
 "    -stats f                Write resource statistics to f\n";
 
 void
@@ -283,8 +312,6 @@ configuration::completeUseList(u32bit numSeqs) {
   }
 
   qsort(_useList, _useListLen, sizeof(use_s), useListSortHelper);
-
-  //fprintf(stderr, "Found %u sequences on the use list.\n", _useListLen);
 }
 
 
@@ -314,16 +341,10 @@ configuration::read(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-only") == 0) {
       arg++;
       _onlyFileName = argv[arg];
-    } else if (strcmp(argv[arg], "-cdna") == 0) {
-      arg++;
-      _qsFileName = argv[arg];
-    } else if (strcmp(argv[arg], "-stream") == 0) {
+    } else if (strcmp(argv[arg], "-queries") == 0) {
       arg++;
       _qsFileName = argv[arg];
     } else if (strcmp(argv[arg], "-genomic") == 0) {
-      arg++;
-      _dbFileName = argv[arg];
-    } else if (strcmp(argv[arg], "-table") == 0) {
       arg++;
       _dbFileName = argv[arg];
     } else if (strcmp(argv[arg], "-use") == 0) {
@@ -336,7 +357,15 @@ configuration::read(int argc, char **argv) {
       _doReverse = true;
       _doForward = false;
     } else if (strcmp(argv[arg], "-validate") == 0) {
-      _doValidation = true;
+      arg++;
+      _doValidation         = true;
+      _doValidationFileName = argv[arg];
+    } else if ((strcmp(argv[arg], "-setfilter") == 0) ||
+               (strcmp(argv[arg], "-lhv") == 0) ||
+               (strcmp(argv[arg], "-LHV") == 0)) {
+      arg++;  _L = atof(argv[arg]);
+      arg++;  _H = atof(argv[arg]);
+      arg++;  _V = atof(argv[arg]);
     } else if (strcmp(argv[arg], "-verbose") == 0) {
       _beVerbose = true;
     } else if (strcmp(argv[arg], "-output") == 0) {
@@ -348,12 +377,20 @@ configuration::read(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-maxdiagonal") == 0) {
       arg++;
       _maxDiagonal = atoi(argv[arg]);
-    } else if (strcmp(argv[arg], "-length") == 0) {
+    } else if (strcmp(argv[arg], "-minhitlength") == 0) {
       arg++;
-      _minLength = atoi(argv[arg]);
-    } else if (strcmp(argv[arg], "-coverage") == 0) {
+      _minHitLength = atoi(argv[arg]);
+
+    } else if (strcmp(argv[arg], "-minmatchidentity") == 0) {
       arg++;
-      _minCoverage = atof(argv[arg]);
+      _minMatchIdentity = atoi(argv[arg]);
+    } else if (strcmp(argv[arg], "-minmatchcoverage") == 0) {
+      arg++;
+      _minMatchCoverage = atoi(argv[arg]);
+
+    } else if (strcmp(argv[arg], "-minhitcoverage") == 0) {
+      arg++;
+      _minHitCoverage = atof(argv[arg]);
     } else if (strncmp(argv[arg], "-extendweight", 7) == 0) {
       arg++;
       _extendWeight = atoi(argv[arg]);
@@ -380,9 +417,14 @@ configuration::read(int argc, char **argv) {
 
     } else if (strncmp(argv[arg], "--buildinfo", 3) == 0) {
       buildinfo_snapper2(stderr);
-      buildinfo_libbri(stderr);
+#if 0
       buildinfo_existDB(stderr);
       buildinfo_positionDB(stderr);
+      buildinfo_libbri(stderr);
+      buildinfo_libfasta(stderr);
+      buildinfo_libsim4(stderr);
+      buildinfo_libsim4polish(stderr);
+#endif
       exit(1);
     } else {
       fprintf(stderr, "Unknown option '%s'\n", argv[arg]);
@@ -404,34 +446,67 @@ configuration::read(int argc, char **argv) {
     exit(-1);
   }
 
-  //
-  //  Check that the mers are at least adjacent
-  //
   if (_merSkip >= _merSize) {
     fprintf(stderr, "ERROR:  Mers are not adjacent; make sure merskip <= mersize.\n");
     exit(-1);
   }
 
-  //  Fail if we don't get reasonable signal criteria
+  //  Fail if no query sequences
   //
-  if ((_minLength == 0) && (_minCoverage == 0.0)) {
-    fprintf(stderr, "ERROR:  Minimum match lengths not specified.\n");
-    fprintf(stderr, "        -length or -coverage\n");
-    exit(-1);
+  if (_qsFileName == 0L) {
+    fprintf(stderr, "ERROR: No query file supplied.\n");
+    exit(1);
+  }
+
+  if (_dbFileName == 0L) {
+    fprintf(stderr, "ERROR: No genome file supplied.\n");
+    exit(1);
   }
 }
 
 void
 configuration::display(FILE *out) {
   if ((out == stdout) && (_beVerbose)) {
-    fprintf(out, "--Using these Options--\n");
+    fprintf(out, "--Using these Algorithm Options--\n");
+
+#ifdef TRUE64BIT
+    fprintf(out, "merSize             = %u\n",   _merSize);
+    fprintf(out, "merSkip             = %u\n",   _merSkip);
+#else
+    fprintf(out, "merSize             = %lu\n",   _merSize);
+    fprintf(out, "merSkip             = %lu\n",   _merSkip);
+#endif
+    fprintf(out, "doReverse           = %s\n",   _doReverse ? "true" : "false");
+    fprintf(out, "doForward           = %s\n",   _doForward ? "true" : "false");
+    fprintf(out, "\n");
+#ifdef TRUE64BIT
+    fprintf(out, "maxDiagonal         = %u\n",   _maxDiagonal);
+    fprintf(out, "minHitLength        = %u\n",   _minHitLength + _merSize);
+    fprintf(out, "minHitCoverage      = %lf\n",  _minHitCoverage);
+    fprintf(out, "minMatchIdentity    = %u\n",   _minMatchIdentity);
+    fprintf(out, "minMatchCoverage    = %u\n",   _minMatchCoverage);
+#else
+    fprintf(out, "maxDiagonal         = %lu\n",   _maxDiagonal);
+    fprintf(out, "minHitLength        = %lu\n",   _minHitLength + _merSize);
+    fprintf(out, "minHitCoverage      = %lf\n",   _minHitCoverage);
+    fprintf(out, "minMatchIdentity    = %lu\n",   _minMatchIdentity);
+    fprintf(out, "minMatchCoverage    = %lu\n",   _minMatchCoverage);
+#endif
+
+    fprintf(out, "\n");
+
+    if (_doValidation) {
+      fprintf(out, "--VALIDATION ENABLED--\n");
+      fprintf(out, "\n");
+    }
+
+    fprintf(out, "--Using these Process Options--\n");
+    fprintf(out, "\n");
 #ifdef TRUE64BIT
     fprintf(out, "numSearchThreads    = %u\n",   _numSearchThreads);
 #else
     fprintf(out, "numSearchThreads    = %lu\n",   _numSearchThreads);
 #endif
-
-    fprintf(out, "\n");
 
 #ifdef TRUE64BIT
     fprintf(out, "loaderHighWaterMark = %u\n", _loaderHighWaterMark);
@@ -450,53 +525,15 @@ configuration::display(FILE *out) {
     fprintf(out, "writerWarnings      = %s\n", _writerWarnings ? "true" : "false");
 
     fprintf(out, "\n");
-
-
-#ifdef TRUE64BIT
-    fprintf(out, "merSize             = %u\n",   _merSize);
-    fprintf(out, "merSkip             = %u\n",   _merSkip);
-#else
-    fprintf(out, "merSize             = %lu\n",   _merSize);
-    fprintf(out, "merSkip             = %lu\n",   _merSkip);
-#endif
-    fprintf(out, "doReverse           = %s\n",   _doReverse ? "true" : "false");
-    fprintf(out, "doForward           = %s\n",   _doForward ? "true" : "false");
+    fprintf(out, "--Using the use-list:--\n");
+    fprintf(out, "\n");
+    fprintf(out, "XXXX:  Need this!\n");
     fprintf(out, "\n");
 
-
-
-
-    fprintf(out, "--Using these Parameters--\n");
-#ifdef TRUE64BIT
-    fprintf(out, "maxDiagonal         = %u\n",   _maxDiagonal);
-    fprintf(out, "minLength           = %u\n",   _minLength + _merSize);
-    fprintf(out, "minCoverage         = %lf\n",   _minCoverage);
-#else
-    fprintf(out, "maxDiagonal         = %lu\n",   _maxDiagonal);
-    fprintf(out, "minLength           = %lu\n",   _minLength + _merSize);
-    fprintf(out, "minCoverage         = %lf\n",   _minCoverage);
-#endif
     fprintf(out, "\n");
     fprintf(out, "--Using these Files--\n");
-    if (_dbFileName)
-      fprintf(out, "dbFile              = '%s'\n", _dbFileName);
-    else
-      fprintf(out, "dbFile              = None Specified.\n");
-      
-    if (_outputFileName)
-      fprintf(out, "outputFile          = '%s'\n", _outputFileName);
-    else
-      fprintf(out, "outputFile          = None Specified.\n");
-
-    if (_statsFileName)
-      fprintf(out, "statsFile           = '%s'\n", _statsFileName);
-    else
-      fprintf(out, "statsFile           = None Specified.\n");
-
-    if (_qsFileName)
-      fprintf(out, "qsFile              = '%s'\n", _qsFileName);
-    else
-      fprintf(out, "qsFile              = None Specified.\n");
+    fprintf(out, "Genomic File          = '%s'\n", _dbFileName);
+    fprintf(out, "Query File            = '%s'\n", _qsFileName);
 
     if (_maskFileName)
       fprintf(out, "maskFile            = '%s'\n", _maskFileName);
@@ -507,6 +544,16 @@ configuration::display(FILE *out) {
       fprintf(out, "onlyFile            = '%s'\n", _onlyFileName);
     else
       fprintf(out, "onlyFile            = None Specified.\n");
+
+    if (_outputFileName)
+      fprintf(out, "outputFile          = '%s'\n", _outputFileName);
+    else
+      fprintf(out, "outputFile          = None Specified.\n");
+
+    if (_statsFileName)
+      fprintf(out, "statsFile           = '%s'\n", _statsFileName);
+    else
+      fprintf(out, "statsFile           = None Specified.\n");
 
     fprintf(out, "\n");
   }

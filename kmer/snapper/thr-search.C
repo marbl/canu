@@ -9,6 +9,10 @@
 //
 //#define USEEXACTSIZE
 
+//  Define this to print a message whenever a search starts.
+//
+//#define VERBOSE_LOADER
+
 
 #ifdef TRUE64BIT
 char const *srchGbye = "[%lu] processed: %8lu@%8lu/%8lu blocked: %4lu/%4lu Time: encode:%8.2f search:%8.2f chain:%8.2f filter:%8.2f polish:%8.2f\n";
@@ -135,24 +139,12 @@ doSearch(searcherState       *state,
 
 
 
-
-void
-doFilter(searcherState       *state,
-         FastASequenceInCore *seq,
-         u32bit               idx,
-         aHit               *&theHits,
-         u32bit              &theHitsLen,
-         u32bit              &theHitsMax) {
-  double   startTime = getTime();
-
-  if (theHitsLen == 0)
-    return;
-
-  //fprintf(stderr, "Found %u hits for %u\n", theHitsLen, idx);
-
-  double L  = 0.5;
-  double H  = 1.0;
-  double V  = 0.6;
+u32bit
+configureFilter(double L,
+                double H,
+                double V,
+                aHit  *theHits,
+                u32bit theHitsLen) {
 
   //  Find the highest and lowest quality hit
   //
@@ -166,10 +158,14 @@ doFilter(searcherState       *state,
       loQ = theHits[i]._covered;
   }
 
-  double h = (double)(hiQ - loQ) / (double)theHits[0]._numMers;
   double p = 0.0;
 
-  //  _numMers is not the same as the number covered.
+  //  _numMers is not the same as the number covered, so we should
+  //  ensure that h is in range.
+  //
+  //  Note: _numMers is constant for all hits, so we can use any of them
+  //
+  double h = (double)(hiQ - loQ) / (double)theHits[0]._numMers;
   if (h > 1.0)
     h = 1.0;
 
@@ -177,7 +173,6 @@ doFilter(searcherState       *state,
   if (h >= H)    p = V;
   if (p == 0.0)  p = 1.0 - (1.0 - V) * (h - L) / (H - L);
 
-  //  check p; it should be between V and 1.0
   if (p > 1.0) {
     fprintf(stderr, "error in p; p=%f h=%f (%f %f %f)\n", p, h, L, H, V);
     p = 1.0;
@@ -188,14 +183,31 @@ doFilter(searcherState       *state,
     p = V;
   }
 
-  //  Filter the hits.  Any thing above cutL is good, and we should
-  //  polish it.  Anything below is junk, and we should ignore it.
+  //  Any thing at or above cutL is good, and we should polish it.
+  //  Anything below is junk, and we should ignore it.
   //
-  u32bit cutL = (u32bit)floor(hiQ - p * h);
+  return((u32bit)floor(hiQ - p * h * theHits[0]._numMers));
+}
 
-  for (u32bit i=0; i < theHitsLen; i++)
-    if (theHits[i]._covered < cutL)
-      theHits[i]._direction |= 0x00000002;
+
+void
+doFilter(searcherState       *state,
+         aHit               *&theHits,
+         u32bit              &theHitsLen) {
+  double   startTime = getTime();
+
+  if (theHitsLen == 0)
+    return;
+
+  u32bit cutL = configureFilter(config._L,
+                                config._H,
+                                config._V, theHits, theHitsLen);
+
+  for (u32bit i=0; i < theHitsLen; i++) {
+    theHits[i]._status &= 0x00000001;  //  XXX:  This should be useless, but we also should guarantee that the flag is clear
+    if (theHits[i]._covered >= cutL)
+      theHits[i]._status |= 0x00000002;
+  }
 
   state->filterTime += getTime() - startTime;
 }
@@ -208,10 +220,8 @@ doFilter(searcherState       *state,
 char*
 doPolish(searcherState       *state,
          FastASequenceInCore *seq,
-         u32bit               idx,
          aHit               *&theHits,
-         u32bit              &theHitsLen,
-         u32bit              &theHitsMax) {
+         u32bit              &theHitsLen) {
   double   startTime = getTime();
   u32bit   outputLen = 0;
   u32bit   outputMax = 1024 * 1024;
@@ -219,25 +229,16 @@ doPolish(searcherState       *state,
 
   output[0] = 0;
 
-  for (u32bit i=0; i<theHitsLen; i++) {
-
-    
-
-
+  for (u32bit h=0; h<theHitsLen; h++) {
     if ((config._doValidation) ||
-        (theHits[i]._direction & 0x00000002)) {
+        (theHits[h]._status & 0x00000002)) {
       FastASequenceInCore  *ESTseq = seq;
-      FastASequenceInCore  *GENseq = cache->getSequence(theHits[i]._dsIdx);
-      u32bit                GENlo  = theHits[i]._dsLo;
-      u32bit                GENhi  = theHits[i]._dsHi;
+      FastASequenceInCore  *GENseq = cache->getSequence(theHits[h]._dsIdx);
+      u32bit                GENlo  = theHits[h]._dsLo;
+      u32bit                GENhi  = theHits[h]._dsHi;
 
-      //fprintf(stderr, "Polish %u vs %u[%u-%u]\n", idx, theHits[i]._dsIdx, GENlo, GENhi);
-      //fprintf(stderr, "edef=%s\nddef=%s\n", ESTseq->header(), GENseq->header());
-
-      bool    doForward =  theHits[i]._direction & 0x00000001;
+      bool    doForward =  theHits[h]._status & 0x00000001;
       bool    doReverse = !doForward;
-
-      doForward = doReverse = true;
 
       sim4command     *P4 = new sim4command(ESTseq,
                                             GENseq,
@@ -246,33 +247,66 @@ doPolish(searcherState       *state,
                                             doForward,
                                             doReverse);
       Sim4            *S4 = new Sim4(&sim4params);
-      char            *O4 = S4->run(P4);
+      sim4polishList  *l4 = S4->run(P4);
+      sim4polishList  &L4 = *l4;
 
-      if (O4 && O4[0]) {
-        //fputs(O4, stderr);
+      //  Even though we don't expect multiple polishes, we still have to deal with
+      //  them.  :-(
 
-        u32bit l = strlen(O4);
-        if (outputLen + l + 1 > outputMax) {
-          outputMax <<= 1;
-          char *o = new char [outputMax];
-          memcpy(o, output, sizeof(char) * outputLen);
-          delete [] output;
-          output = o;
+      //  Clear the 'match' flag and set qualities to zero.  XXX:
+      //  Again, this should be already done, but we need to guarantee
+      //  it.
+      //
+      theHits[h]._status &= 0x00000003;
+
+      u32bit  pi = 0;
+      u32bit  pc = 0;
+
+      for (u32bit i=0; L4[i]; i++) {
+
+        //  We need to remember the best pair of percent
+        //  identity/coverage.  These wil be stored in the hit after
+        //  we process all matches.
+        //
+        if ((L4[i]->percentIdentity >= pi) && (L4[i]->querySeqIdentity >= pc)) {
+          pi = L4[i]->percentIdentity;
+          pc = L4[i]->querySeqIdentity;
         }
-        memcpy(output + outputLen, O4, sizeof(char) * l);
-        outputLen += l;
-        output[outputLen] = 0;
 
-        //  XXX:  Need to set the quality values, and dump the answer
+        //fprintf(stderr, "found est=%u : %u %u\n", seq->getIID(), L4[i]->percentIdentity, L4[i]->querySeqIdentity);
 
-        theHits[i]._direction |= 0x00000004;  //  Set the 'match' flag.
-      } else {
-        theHits[i]._direction &= 0x00000003;  //  Clear the 'match' flag, set everything else to zero.
+        //  If we have a real hit, set the flag and save the output
+        //
+        if ((L4[i]->percentIdentity  >= config._minMatchIdentity) &&
+            (L4[i]->querySeqIdentity >= config._minMatchCoverage)) {
+          theHits[h]._status |= 0x00000004;
+
+          char *pstr = s4p_polishToString(L4[i]);
+
+          u32bit l = (u32bit)strlen(pstr);
+          if (outputLen + l + 1 > outputMax) {
+            outputMax <<= 1;
+            char *o = new char [outputMax];
+            memcpy(o, output, sizeof(char) * outputLen);
+            delete [] output;
+            output = o;
+          }
+          memcpy(output + outputLen, pstr, sizeof(char) * l);
+          outputLen += l;
+          output[outputLen] = 0;
+
+          free(pstr);
+        }
       }
 
-      delete [] O4;
-      delete    S4;
-      delete    P4;
+      //  Save the best scores
+      //
+      theHits[h]._status |= pi << 16;
+      theHits[h]._status |= pc << 24;
+
+      delete l4;
+      delete S4;
+      delete P4;
 
       state->polished++;
     } else {
@@ -298,6 +332,8 @@ searchThread(void *U) {
   u32bit               blockedO = 0;
 
   searcherState       *state    = new searcherState;
+
+  fprintf(stderr, "Hello!  I'm a searchThread (number %u)!\n", (u64bit)U);
 
   //  Allocate and fill out the thread stats -- this ensures that we
   //  always have stats (even if they're bogus).
@@ -337,6 +373,9 @@ searchThread(void *U) {
         blockedI++;
         nanosleep(&config._searchSleep, 0L);
       } else {
+#ifdef VERBOSE_SEARCH
+        fprintf(stderr, "%lu starting (idx = %d, outputPos = %d).\n", (u64bit)U, idx, outputPos);
+#endif
 
         //  If our idx is too far away from the output thread, sleep
         //  a little bit.  We keep the idx and seq that we have obtained,
@@ -349,11 +388,9 @@ searchThread(void *U) {
           nanosleep(&config._searchSleep, 0L);
         }
 
-
         u32bit               theHitsLen = 0;
         u32bit               theHitsMax = 4;
         aHit                *theHits    = new aHit [theHitsMax];
-
 
         ///////////////////////////////////////
         //
@@ -364,33 +401,31 @@ searchThread(void *U) {
         if (config._doReverse)
           doSearch(state, seq, idx, true,  theHits, theHitsLen, theHitsMax);
 
-
         ///////////////////////////////////////
         //
         //  Filter the hits
         //
-        doFilter(state, seq, idx, theHits, theHitsLen, theHitsMax);
-
+        doFilter(state, theHits, theHitsLen);
 
         ///////////////////////////////////////
         //
         //  Polish the filtered hits
         //
-        char *o = doPolish(state, seq, idx, theHits, theHitsLen, theHitsMax);
-
+        char *o = doPolish(state, seq, theHits, theHitsLen);
 
         ///////////////////////////////////////
         //
         //  Signal that we are done.
         //
-        outputLen[idx] = strlen(o);
+        answerLen[idx] = theHitsLen;
+        answer[idx]    = theHits;
+        outputLen[idx] = (u32bit)strlen(o);
         output[idx]    = o;
 
         state->searched++;
 
         //  Clean up stuff
         //
-        delete [] theHits;
         delete    seq;
       } // end of seq != 0L
     } // end of idx < numberOfQueries

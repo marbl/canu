@@ -144,9 +144,9 @@ hitMatrix::filter(char      direction,
   //  Decide on the minimum quality values; we pick the larger of
   //  the fixed lengths, and the sequence length * coverage.
   //
-  u32bit   minLength = (u32bit)(config._minCoverage * _qsLen);
-  if (minLength < config._minLength)
-    minLength = config._minLength;
+  u32bit   minLength = (u32bit)(config._minHitCoverage * _qsLen);
+  if (minLength < config._minHitLength)
+    minLength = config._minHitLength;
 
   //  First, sort by the dsPos.  This is done so that we can find all the hits for
   //  a specific scaffold.
@@ -364,7 +364,7 @@ hitMatrix::filter(char      direction,
 
       aHit *a = theOutput + theOutputPos++;
 
-      a->_direction = (direction == 'f');
+      a->_status    = (direction == 'f');
       a->_qsIdx     = _qsIdx;
       a->_dsIdx     = config._useList[currentSeq].seq;
       a->_dsLo      = dsLow;

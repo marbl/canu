@@ -14,14 +14,14 @@
 //
 //  _status
 //  & 0x00000001 -- direction
-//    0x00000002 -- filtered
+//    0x00000002 -- not filtered, if set, polish the hit
 //    0x00000004 -- match verified via polishng
 //    0x0000fff8 -- unused
 //    0x00ff0000 -- percent idendity of match
 //    0xff000000 -- percent coverage of match
 //
 struct aHit {
-  u32bit  _direction;
+  u32bit  _status;
   u32bit  _qsIdx;
   u32bit  _dsIdx;
   u32bit  _dsLo;

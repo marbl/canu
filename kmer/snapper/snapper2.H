@@ -90,6 +90,12 @@ public:
 
   bool             _doReverse;
   bool             _doForward;
+  bool             _doValidation;
+  char            *_doValidationFileName;
+
+  double           _L;
+  double           _H;
+  double           _V;
 
   u32bit           _maxDiagonal;
 
@@ -97,8 +103,13 @@ public:
   u32bit           _extendMinimum;
   bool             _extendAlternate;
 
-  u32bit           _minLength;
-  double           _minCoverage;
+  //  Minimums for hits
+  u32bit           _minHitLength;
+  double           _minHitCoverage;
+
+  //  Minimums for matches
+  u32bit           _minMatchIdentity;
+  u32bit           _minMatchCoverage;
 
   char            *_dbFileName;
   char            *_qsFileName;
@@ -177,6 +188,8 @@ extern positionDB            *positions;
 
 extern volatile u32bit        numberOfQueries;
 
+extern aHit                 **answer;
+extern u32bit                *answerLen;
 extern char                 **output;
 extern u32bit                *outputLen;
 
@@ -194,3 +207,9 @@ void     *deadlockChecker(void *U);
 
 void     *loaderThread(void *U);
 void     *searchThread(void *U);
+
+u32bit    configureFilter(double L,
+                          double H,
+                          double V,
+                          aHit  *theHits,
+                          u32bit theHitsLen);

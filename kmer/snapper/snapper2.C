@@ -20,6 +20,22 @@ char const *countMessage       = "%lu\n";
 #endif
 
 
+//  The (private) structure for testing various filters.
+//
+struct filterStats {
+  double L;
+  double H;
+  double V;
+  u32bit tp;
+  u32bit tn;
+  u32bit fp;
+  u32bit fn;
+};
+
+
+
+
+
 //  Shared data
 //
 configuration          config;
@@ -30,6 +46,8 @@ existDB               *maskDB;
 existDB               *onlyDB;
 positionDB            *positions;
 volatile u32bit        numberOfQueries;
+aHit                 **answer;
+u32bit                *answerLen;
 char                 **output;
 u32bit                *outputLen;
 pthread_mutex_t        inputTailMutex;
@@ -86,17 +104,11 @@ buildPositionDB(void) {
   //  XXX:  This probably should be tuned.
   //
   u32bit tblSize = 25;
-
-  if (sLen < 64 * 1024 * 1024)
-    tblSize = 24;
-  if (sLen < 16 * 1024 * 1024)
-    tblSize = 23;
-  if (sLen <  4 * 1024 * 1024)
-    tblSize = 22;
-  if (sLen <  2 * 1024 * 1024)
-    tblSize = 21;
-  if (sLen <  1 * 1024 * 1024)
-    tblSize = 20;
+  if (sLen < 64 * 1024 * 1024) tblSize = 24;
+  if (sLen < 16 * 1024 * 1024) tblSize = 23;
+  if (sLen <  4 * 1024 * 1024) tblSize = 22;
+  if (sLen <  2 * 1024 * 1024) tblSize = 21;
+  if (sLen <  1 * 1024 * 1024) tblSize = 20;
 
   positions = new positionDB(s, 0L, config._merSize, config._merSkip, tblSize, config._beVerbose);
 
@@ -107,6 +119,46 @@ buildPositionDB(void) {
 
 
 
+void
+writeValidationFile(char *name, filterStats *theFilters, u32bit numFilters) {
+
+  FILE *F = fopen(name, "wb");
+  if (F == 0L) {
+    fprintf(stderr, "Couldn't open the validation output file '%s'?\n", name);
+    F = stdout;
+  }
+
+  fprintf(F, "%6s %6s %6s  %6s %6s  %8s %8s %8s %8s\n",
+          "L", "H", "V",
+          "sens", "spec",
+          "tp", "fp", "tn", "fn");
+
+  for (u32bit f=0; f<numFilters; f++) {
+    double sens = 0.0;
+    double spec = 0.0;
+
+    if (theFilters[f].tp + theFilters[f].fn > 0)
+      sens = (double)theFilters[f].tp / (theFilters[f].tp + theFilters[f].fn);
+
+    if (theFilters[f].tn + theFilters[f].fp > 0)
+      spec = (double)theFilters[f].tn / (theFilters[f].tn + theFilters[f].fp);
+
+    fprintf(F, "%6.4f %6.4f %6.4f  %6.4f %6.4f  %8lu %8lu %8lu %8lu\n",
+            theFilters[f].L,
+            theFilters[f].H,
+            theFilters[f].V,
+            sens, spec,
+            theFilters[f].tp,
+            theFilters[f].fp,
+            theFilters[f].tn,
+            theFilters[f].fn);
+  }
+
+  fclose(F);
+}
+
+
+
 int
 main(int argc, char **argv) {
 
@@ -114,8 +166,11 @@ main(int argc, char **argv) {
   //  By default, AIX Visual Age C++ new() returns 0L; this turns on
   //  exceptions.
   //
+  fprintf(stderr, "Enabling excetions from new\n");
   std::__set_new_throws_exception(true);
 #endif
+
+
 
   //
   //  Read the configuration from the command line
@@ -128,6 +183,46 @@ main(int argc, char **argv) {
   config.display();
 
   config._startTime = getTime();
+
+
+
+  //
+  //  Allocate some structures for doing a validation run.  This is
+  //  done pretty early, just in case it needs to abort.
+  //
+  u32bit        numFilters = 0;
+  u32bit        maxFilters = 21 * 22 / 2 * 20;
+  filterStats  *theFilters = 0L;
+
+  if (config._doValidation) {
+    theFilters = new filterStats [maxFilters];
+
+    for (u32bit h=0; h<=100; h+=5) {
+      for (u32bit l=0; l<=h; l+=5) {
+        for (u32bit v=5; v<=100; v+=5) {
+          if (numFilters >= maxFilters) {
+            fprintf(stderr, "ERROR:  Ran out of filterStats structures while configuring the filters!\n");
+            exit(1);
+          }
+
+          theFilters[numFilters].L  = l / 100.0;
+          theFilters[numFilters].H  = h / 100.0;
+          theFilters[numFilters].V  = v / 100.0;
+          theFilters[numFilters].tp = 0;
+          theFilters[numFilters].tn = 0;
+          theFilters[numFilters].fp = 0;
+          theFilters[numFilters].fn = 0;
+          numFilters++;
+        }
+      }
+    }
+
+    fprintf(stderr, "Created %u filters (out of %u available) to test/validate.\n", numFilters, maxFilters);
+  }
+
+
+
+
 
   //
   //  Open and init the query sequence
@@ -142,14 +237,31 @@ main(int argc, char **argv) {
   input            = new FastASequenceInCore * [numberOfQueries];
   inputHead        = 0;
   inputTail        = 0;
-  output           = new char * [numberOfQueries];
+  answerLen        = new u32bit [numberOfQueries];
+  answer           = new aHit * [numberOfQueries];
   outputLen        = new u32bit [numberOfQueries];
+  output           = new char * [numberOfQueries];
 
-  for (u32bit i=numberOfQueries; i--; ) {
+  for (u32bit i=0; i<numberOfQueries; i++) {
     input[i]            = 0L;
-    output[i]           = 0L;
+    answerLen[i]        = 0;
+    answer[i]           = 0L;
     outputLen[i]        = 0;
+    output[i]           = 0L;
   }
+
+
+
+
+
+#if 0
+  fprintf(stderr, "Sleeping a bit...before the loader\n");
+  sleep(2);
+  fprintf(stderr, "Sleeping a bit...before the loader - DONE\n");
+  junk = new double [1024*1024];
+  for (int i=0; i<1024*1024; i++)
+    junk[i] = 0;
+#endif
 
   //
   //  Open and init the genomic sequences.
@@ -159,8 +271,8 @@ main(int argc, char **argv) {
 
   cache = new FastACache(config._dbFileName, 0, true);
 
-
   config._initTime = getTime();
+
 
 
   //
@@ -194,11 +306,20 @@ main(int argc, char **argv) {
   sim4params.setMinPercentExonIdentity(95);
 
 
+#if 0
+  junk = new double [1024*1024];
+  for (int i=0; i<1024*1024; i++)
+    junk[i] = 0;
+#endif
+
+
+
   //
   //  Initialize threads
   //
   pthread_attr_t   threadAttr;
-  pthread_t        threadID;
+  u32bit           threadIDX = 0;
+  pthread_t        threadID[MAX_THREADS + 4];
 
   pthread_mutex_init(&inputTailMutex, NULL);
 
@@ -207,28 +328,58 @@ main(int argc, char **argv) {
   pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_DETACHED);
   pthread_attr_setschedpolicy(&threadAttr, SCHED_OTHER);
 
+#if 0
+  double *junk = new double [1024*1024];
+  for (int i=0; i<1024*1024; i++)
+    junk[i] = 0;
+#endif
+
   //
   //  Start the deadlock detection threads
   //
 #ifdef __alpha
   fprintf(stderr, "Deadlock detection enabled!\n");
-  pthread_create(&threadID, &threadAttr, deadlockDetector, 0L);
-  pthread_create(&threadID, &threadAttr, deadlockChecker, 0L);
+  pthread_create(threadID + threadIDX++, &threadAttr, deadlockDetector, 0L);
+  pthread_create(threadID + threadIDX++, &threadAttr, deadlockChecker, 0L);
 #endif
+
+#if 0
+  fprintf(stderr, "Sleeping a bit...\n");
+  sleep(2);
+  junk = new double [1024*1024];
+  for (int i=0; i<1024*1024; i++)
+    junk[i] = 0;
+#endif
+
+
 
   //
   //  Start the loader thread
   //
-  pthread_create(&threadID, &threadAttr, loaderThread, 0L);
+  pthread_create(threadID + threadIDX++, &threadAttr, loaderThread, 0L);
+
+#if 0
+  fprintf(stderr, "Sleeping a bit...after the loader\n");
+  sleep(2);
+  junk = new double [1024*1024];
+  for (int i=0; i<1024*1024; i++)
+    junk[i] = 0;
+  fprintf(stderr, "Sleeping a bit...after the loader - DONE\n");
+#endif
+
 
   //
   //  Start the search threads
   //
-  for (u64bit i=0; i<config._numSearchThreads; i++) {
-    threadStats[i] = 0L;
-    pthread_create(&threadID, &threadAttr, searchThread, (void *)i);
-  }
+  for (u64bit i=0; i<config._numSearchThreads; i++)
+    pthread_create(threadID + threadIDX++, &threadAttr, searchThread, (void *)i);
 
+
+#if 0
+  junk = new double [1024*1024];
+  for (int i=0; i<1024*1024; i++)
+    junk[i] = 0;
+#endif
 
   //
   //  Open output files
@@ -252,19 +403,20 @@ main(int argc, char **argv) {
   //
   outputPos = 0;
 
-  double  zeroTime = getTime() - 0.00000001;
+  double  zeroTime = getTime();
 
   while (outputPos < numberOfQueries) {
     if (output[outputPos]) {
-      if (config._beVerbose && ((outputPos & 0xff) == 0xff)) {
+      if (config._beVerbose && ((outputPos & 0xf) == 0xf)) {
+        double thisTimeD = getTime() - zeroTime + 0.0000001;
         fprintf(stderr, outputDisplay,
                 outputPos,
                 inputTail,
                 inputHead,
                 numberOfQueries,
                 100.0 * outputPos / numberOfQueries,
-                outputPos / (getTime() - zeroTime),
-                (numberOfQueries - outputPos) / (outputPos / (getTime() - zeroTime)));
+                outputPos / thisTimeD,
+                (numberOfQueries - outputPos) * thisTimeD / outputPos);
         fflush(stderr);
       }
 
@@ -278,12 +430,61 @@ main(int argc, char **argv) {
         }
       }
 
+      //  If we are supposed to be doing validation, test a bunch of
+      //  filters here.
+      //
+      if (config._doValidation &&
+          (answerLen[outputPos] > 0)) {
+        for (u32bit f=0; f<numFilters; f++) {
+          u32bit cutL = configureFilter(theFilters[f].L,
+                                        theFilters[f].H,
+                                        theFilters[f].V,
+                                        answer[outputPos],
+                                        answerLen[outputPos]);
+
+          for (u32bit a=0; a<answerLen[outputPos]; a++) {
+
+            if (answer[outputPos][a]._covered < cutL) {
+              //  These hits would have been discarded by the filter.
+              //
+              if (answer[outputPos][a]._status & 0x00000004) {
+                //  Oops.  We found a high-quality match.
+                theFilters[f].fn++;
+              } else {
+                //  Good call.  Nothing there!
+                theFilters[f].tn++;
+              }
+            } else {
+              //  These hits would have been kept by the filter.
+              //
+              if (answer[outputPos][a]._status & 0x00000004) {
+                //  Allright!  Got a high-quality match!
+                theFilters[f].tp++;
+              } else {
+                //  Dang.  Nothing there.
+                theFilters[f].fp++;
+              }
+            }
+          }
+        }
+
+        //  Dump a snapshot of the filter testing
+        //
+        //  XXX:  This should be removed from production runs, I think
+        //
+        if ((outputPos % 50) == 0)
+          writeValidationFile(config._doValidationFileName, theFilters, numFilters);
+      }
+
       delete [] input[outputPos];
+      delete [] answer[outputPos];
       delete [] output[outputPos];
 
       input[outputPos]     = 0L;
-      output[outputPos]    = 0L;
+      answerLen[outputPos] = 0;
+      answer[outputPos]    = 0L;
       outputLen[outputPos] = 0;
+      output[outputPos]    = 0L;
 
       outputPos++;
     } else {
@@ -313,6 +514,20 @@ main(int argc, char **argv) {
   pthread_mutex_destroy(&inputTailMutex);
 
   config._totalTime = getTime();
+
+
+
+
+
+
+  //  Summarize the filter test results
+  //
+  if (config._doValidation)
+    writeValidationFile(config._doValidationFileName, theFilters, numFilters);
+
+
+
+
 
   //  Write the stats
   //
