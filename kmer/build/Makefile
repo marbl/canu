@@ -104,13 +104,11 @@ __DEPGOALS__=
 ### include all rules for all targets to be made
 -include ${MAKEFILE/}Make.rules
 
-__DEPENDS__:=$(strip $(foreach x,${//},$(call __DEPGOALS__,$x)))
-$(eval _DEPENDS_:=${__DEPENDS__})
-DEPENDS :=$(strip ${_DEPENDS_})
-ifneq (${DEPENDS},)
+$(eval DEPENDS:=$(foreach x,${//},$(call __DEPGOALS__,$x)))
+ifneq ($(strip ${DEPENDS}),)
   # this conditional gets us a way out if things go way wrong
   ifeq ($(filter %-clean,${MAKECMDGOALS}),)
-    include ${DEPENDS}
+    include ${DEPENDS} 
   endif
 endif
 
@@ -163,11 +161,6 @@ $(eval $(foreach x,${//},$(call .RULE-all,$x)))
 ## INSTALL:
 # Define targets which give a basic recursive traversal to hang
 # things from for anything install related that I haven't thought of
-define .RULE-pre-install
-${1:.=.pre-install}: $${${1:.=.SUBS}:.=.pre-install}
-
-endef
-$(eval $(foreach x,${//},$(call .RULE-pre-install,$x)))
 
 # this does the copy part of the install
 ${RECURSIVE:.=.install-copy}:
@@ -181,9 +174,8 @@ $(eval $(foreach x,${//},$(call .RULE-install-copy,$x)))
 # all target plus the pre-/install-copy targets
 
 install:       ${RECURSIVE:.=.install}    $/.install
-
 define .RULE-install
-${1:.=.install}: ${1:.=.all} ${1:.=.pre-install} ${1:.=.install-copy}
+${1:.=.install}: ${1:.=.all} ${1:.=.install-copy}
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-install,$x)))

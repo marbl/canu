@@ -192,9 +192,9 @@ __SUBGOALS__+=$${${1:.=.TEX_PS}} $${${1:.=.TEX_PDF}}
 define .RULE-install-copy-TEX_PSPDF
 ${1:.=.install-copy}: ${1:.=.install-copy-TEX_PSPDF}
 ${1:.=.install-copy-TEX_PSPDF}:
-# TEXPS go to doc/
+# TEX_PS go to doc/
 	$(call .FUN-install-copy,$${${1:.=.TEX_PS}},doc/$${${1:.=.DOC/}})
-# TEXPDF go to doc/
+# TEX_PDF go to doc/
 	$(call .FUN-install-copy,$${${1:.=.TEX_PDF}},doc/$${${1:.=.DOC/}})
 
 endef

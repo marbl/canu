@@ -8,6 +8,7 @@ SUFFER/   :=$/../SUFFER/
 RD2/      :=$/../RD2/
 
 $(eval $(call Include,\
+     $/doc/ \
      ${RD2/} \
      ${COMPASS/} \
      ${LILIANA/} \
