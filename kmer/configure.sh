@@ -20,19 +20,28 @@ fi
 #  the optimized target below.  If it works well, we can always use this
 #  mechanism, and extend with "debug" or "profile" (e.g., "./configure.sh debug")
 #
+if [ "x$target" = "xdebug" ] ; then
+  opts="-debug";
+  target=""
+fi
+if [ "x$target" = "xprofile" ] ; then
+  opts="-profile";
+  target=""
+fi
+
 if [ "x$target" = "x" ] ; then
   case `uname` in
     Darwin)
-      target="osx"
+      target="osx$opts"
       ;;
     FreeBSD)
-      target="freebsd"
+      target="freebsd$opts"
       ;;
     AIX)
-      target="aix"
+      target="aix$opts"
       ;;
     OSF1)
-      target="tru64"
+      target="tru64$opts"
       ;;
     *)
       echo "ERROR: Unknown uname of `uname` -- try manual configuration."
@@ -40,6 +49,7 @@ if [ "x$target" = "x" ] ; then
       ;;
   esac
 fi
+
 
 case $target in
   osx)
@@ -52,12 +62,9 @@ case $target in
 #  Using this breaks dynamic library building:  -mdynamic-no-pic
 #    We could have instead included -fPIC on the compile line.
 #
-FAST :=  -O3 -funroll-loops -fstrict-aliasing -fsched-interblock -falign-loops=16 -falign-jumps=16 -falign-functions=16 \
--falign-jumps-max-skip=15 -falign-loops-max-skip=15 -malign-natural -ffast-math -mpowerpc-gpopt -force_cpusubtype_ALL \
--fstrict-aliasing -mtune=G5 -mcpu=G5
+FAST              := -O3 -funroll-loops -fstrict-aliasing -fsched-interblock -falign-loops=16 -falign-jumps=16 -falign-functions=16 -falign-jumps-max-skip=15 -falign-loops-max-skip=15 -malign-natural -ffast-math -mpowerpc-gpopt -force_cpusubtype_ALL -fstrict-aliasing -mtune=G5 -mcpu=G5
 CC                := gcc
 SHLIB_FLAGS       := -dynamiclib
-CFLAGS_COMPILE    := -O3 -D_THREAD_SAFE -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CFLAGS_COMPILE    := \$(FAST) -D_THREAD_SAFE -Wall
 CLDFLAGS          := 
 CLIBS             := 
@@ -72,7 +79,7 @@ EOF
     rm -f Make.compilers
     cat <<EOF > Make.compilers
 # -*- makefile -*-
-#  OS-X, optimized
+#  OS-X, debug
 #
 CC                := gcc
 SHLIB_FLAGS       := -dynamiclib
@@ -82,6 +89,25 @@ CLIBS             :=
 CXX               := g++
 CXXFLAGS_COMPILE  := -O3 -g3 -D_THREAD_SAFE -Wall
 CXXLDFLAGS        := 
+CXXLIBS           := 
+ARFLAGS           := ruvs
+EOF
+    ;;
+  osx-profile)
+    rm -f Make.compilers
+    cat <<EOF > Make.compilers
+# -*- makefile -*-
+#  OS-X, optimized, profiled (same as OS-X, optimized, but includes -pg)
+#
+FAST              := -pg -O3 -funroll-loops -fstrict-aliasing -fsched-interblock -falign-loops=16 -falign-jumps=16 -falign-functions=16 -falign-jumps-max-skip=15 -falign-loops-max-skip=15 -malign-natural -ffast-math -mpowerpc-gpopt -force_cpusubtype_ALL -fstrict-aliasing -mtune=G5 -mcpu=G5
+CC                := gcc
+SHLIB_FLAGS       := -dynamiclib
+CFLAGS_COMPILE    := \$(FAST) -D_THREAD_SAFE -Wall
+CLDFLAGS          := -pg
+CLIBS             := 
+CXX               := g++
+CXXFLAGS_COMPILE  := \$(FAST) -D_THREAD_SAFE -Wall
+CXXLDFLAGS        := -pg
 CXXLIBS           := 
 ARFLAGS           := ruvs
 EOF
@@ -290,6 +316,9 @@ EOF
     ;;
   *)
     echo "usage: $0 <configuration>"
+    echo "          osx                       OS-X, optimized"
+    echo "          osx-debug                 OS-X, debug"
+    echo ""
     echo "          freebsd                   FreeBSD, optimized"
     echo "          freebsd-profile           FreeBSD, optimized, profiled"
     echo "          freebsd-debug             FreeBSD, debug and warnings"
