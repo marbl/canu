@@ -10,19 +10,24 @@
 %.bbl: %.aux
 	${BIBTEX} ${<:.aux=}
 
-## Shared targets
-ALL_DVIPS   :=$(strip $(foreach x,${//},${${x:.=.DVIPS}}))
 
-${ALL_DVIPS}: %.ps :%.dvi
+## Shared targets
+ALL_TEXPS   :=$(strip $(foreach x,${//},${${x:.=.TEXPS}}))
+
+${ALL_TEXPS}: %.ps: %.dvi
 	${DVIPS} -o $@ $<
 
+${ALL_TEXPS:.ps=.pdf}: %.pdf: %.ps
+	${PS2PDF} $< $@
+
 # some extra goodies
-${ALL_DVIPS:.ps=.gv}: %.gv: %.ps
+%.gv: %.ps
 	${VIEWPS} $<
 
-${ALL_DVIPS:.ps=.print}: %.print: %.ps
+%.print: %.ps
 	${PRINTPS} $<
 
 
-__SUBGOALS__+=$${${1:.=.DVIPS}}
+__SUBGOALS__+=$${${1:.=.TEXPS}}
+
 
