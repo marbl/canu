@@ -44,7 +44,7 @@
 #include "mt19937ar.h"
 
 #include <stdlib.h>
-
+#include <math.h>
 
 
 //  Buried in genrand_in32 was this:
@@ -157,4 +157,33 @@ mtRandom32(mt_s *ctx) {
     y ^= (y >> 18);
 
     return y;
+}
+
+
+//  generates a random number on gaussian distribution with 0 median and 1 std.dev.
+double
+mtRandomGaussian(mt_s *mt) {
+  double  x1=0, x2=0, w=0, y1=0, y2=0;
+
+  //  from http://www.taygeta.com/random/gaussian.html
+  //
+  //  supposedly equivalent to
+  //
+  //  y1 = sqrt(-2*ln(x1)) cos(2*pi*x2)
+  //  y2 = sqrt(-2*ln(x1)) sin(2*pi*x2)
+  //
+  //  but stable when x1 close to zero
+
+  do {
+    x1 = 2.0 * mtRandomRealClosed(mt) - 1.0;
+    x2 = 2.0 * mtRandomRealClosed(mt) - 1.0;
+    w = x1 * x1 + x2 * x2;
+  } while (w >= 1.0);
+
+  w = sqrt( (-2.0 * log(w)) / w);
+
+  y1 = x1 * w;
+  y2 = x2 * w;
+
+  return(y1);
 }

@@ -358,6 +358,10 @@ u32bit         mtRandom32(mt_s *mt);
 #define        mtRandomRealClosed(MT) ( (double)mtRandom32(MT) * (1.0 / 4294967295.0) )
 #define        mtRandomRealOpen53(MT) ( ((mtRandom32(MT) >> 5) * 67108864.0 + (mtRandom32(MT) >> 6)) * (1.0 / 9007199254740992.0) )
 
+//  returns a random number with gaussian distribution, mean of zero and std.dev. of 1
+//
+double  mtRandomGaussian(mt_s *mt);
+
 
 #ifdef __cplusplus
 }
