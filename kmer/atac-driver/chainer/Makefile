@@ -1,27 +1,44 @@
-# -*- makefile -*-
 
-build:=$(shell while [ `pwd` != "/" -a ! -d build ] ; do \
-                 cd .. ; \
-               done ; \
-               echo `pwd` )
+# Ross's build system wasn't doing well here.  We need to include
+# -fpic to make the python shared libraries work, and I wanted to put
+# the C++ gunk in subdirectories.
 
-ifeq (${build},/)
-  $(error Unable to find the build directory cds/IR/build. Check out this directory.)
-endif
+CC      = g++
+CCFLAGS = -fpic -O -Wall -I/usr/local/include/python2.3
 
-build:=${build}/build/
+SOURCE  = localalign/GF_ALN_dpaligner.cc \
+          localalign/GF_ALN_local.cc \
+          localalign/GF_ALN_overlap.cc \
+          localalign/GF_ALN_qvaligner.cc \
+          localalign/GF_ALN_loverlapper.cc \
+          localalign/GF_ALN_pieceOlap.cc \
+          localalign/localAlignerInterface.cc \
+          localalign/localAlignerInterfacemodule.cc \
+          halign/halign.cc \
+          halign/halignmodule.cc
 
-all clean:
-	@ echo "(Build directory found at ${build})"
-	@ echo "* If you are in a hurry:"
-	@ echo "** If using bash then"
-	@ echo "**    alias make='/usr/local/ir/bin/gmake -f ${build}Makefile'"
-	@ echo "** If using tcsh then"
-	@ echo "**    alias make '/usr/local/ir/bin/gmake -f ${build}Makefile'"
-	@ echo "** and then do"
-	@ echo "**    make"
-	@ echo "* If you have some time:"
-	@ echo "**    cd ${build}"
-	@ echo "**    cvs update"
-	@ echo "**    more NOTES"
+all: localAlignerInterfacemodule.so halignmodule.so
 
+clean:
+	rm -f */*.o *.pyc
+real-clean:
+	rm -f */*.o *.pyc
+
+localAlignerInterfacemodule.so:   localalign/GF_ALN_dpaligner.o \
+                                  localalign/GF_ALN_local.o \
+                                  localalign/GF_ALN_overlap.o \
+                                  localalign/GF_ALN_qvaligner.o \
+                                  localalign/GF_ALN_loverlapper.o \
+                                  localalign/GF_ALN_pieceOlap.o \
+                                  localalign/localAlignerInterface.o \
+                                  localalign/localAlignerInterfacemodule.o
+	$(CC) -shared -o $@ $^
+
+halignmodule.so: halign/halignmodule.o halign/halign.o
+	$(CC) -shared -o $@ $^
+
+%.o: %.cc
+	${CC} ${CCFLAGS} -o $@ -c $<
+
+%.so:
+	ar 
