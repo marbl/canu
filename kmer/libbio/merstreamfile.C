@@ -9,6 +9,23 @@
 static
 char     magic[16] = { 'm', 'e', 'r', 'S', 't', 'r', 'e', 'a', 'm', '1', ' ', ' ', ' ', ' ', ' ', ' '  };
 
+//  Define this to get diagnostics when the block number changes
+//#define REPORT_BLOCK_CHANGES
+
+
+
+//  Returns true if the merStreamFile exists.
+bool
+merStreamFileExists(const char *i) {
+  char  *streamName = new char [strlen(i) + 17];
+  sprintf(streamName, "%s.merStream", i);
+  bool exists = fileExists(streamName);
+  delete [] streamName;
+  return(exists);
+}
+
+
+
 
 merStreamFileBuilder::merStreamFileBuilder(u32bit m, const char *i, const char *o) {
   _merSize    = m;
@@ -34,6 +51,9 @@ merStreamFileBuilder::build(bool beVerbose) {
   u64bit             numBlocks   = 0;
   u64bit             numDefs     = 0;
   u64bit             defLength   = 0;
+
+  if (beVerbose)
+    fprintf(stderr, "Building merStreamFile from '%s'\n", _inputFile);
 
   //  Open the output files
   //
@@ -109,12 +129,6 @@ merStreamFileBuilder::build(bool beVerbose) {
     } else {
       //  Must be a mer break.  Write the count, and the new mer.
       //
-
-#if DEBUG
-      fprintf(stderr, "Block: blocksize="u64bitFMT" seqNum="u64bitFMT" position="u64bitFMT"\n",
-              blockSize, lastSeq, lastPos);
-#endif
-
       STREAM->putBits(thisMer, _merSize * 2);
       BLOCKS->putNumber(blockSize);
       BLOCKS->putNumber(lastSeq);
@@ -205,6 +219,9 @@ merStreamFileBuilder::build(bool beVerbose) {
   delete [] streamName;
   delete [] outputName;
 
+  if (beVerbose)
+    fprintf(stderr, "\n");
+
   return(numMers);
 }
 
@@ -224,6 +241,7 @@ merStreamFileReader::merStreamFileReader(const char *i) {
 
   sprintf(streamName, "%s.merStream", _inputFile);
 
+  errno = 0;
   FILE *rawFile = fopen(streamName, "r");
   if (errno) {
     fprintf(stderr, "merStreamFileReader()-- Failed to open merStream '%s': %s\n", streamName, strerror(errno));
@@ -233,7 +251,6 @@ merStreamFileReader::merStreamFileReader(const char *i) {
   _streamFile = new bitPackedFileReader(streamName);
 
   errno = 0;
-
   fread(cigam,             sizeof(char),   16, rawFile);
   fread(&_merSize,         sizeof(u32bit), 1,  rawFile);
   fread(&_merSize,         sizeof(u32bit), 1,  rawFile);
@@ -275,8 +292,6 @@ merStreamFileReader::merStreamFileReader(const char *i) {
   //  Read the blocks
   //
   _streamFile->seek(_blkStart);
-
-  fprintf(stderr, "Allocating "u64bitFMT" bytes to store the blocks.\n", sizeof(u32bit) * _numBlocks * 4);
 
   _blockSize     = new u32bit [_numBlocks];
   _blockSequence = new u32bit [_numBlocks];
@@ -342,6 +357,9 @@ merStreamFileReader::merStreamFileReader(const char *i) {
   _theFMer       = u64bitZERO;
   _theRMer       = u64bitZERO;
   _firstMer      = u64bitZERO;
+
+  _iterationLimit = ~u64bitZERO;
+  _iteration      =  u64bitZERO;
 }
 
 
@@ -357,6 +375,13 @@ merStreamFileReader::~merStreamFileReader() {
 bool
 merStreamFileReader::seekToMer(u64bit merNumber) {
 
+  //  Did someone request a mer number too high?
+  //
+  if (merNumber >= _numMers) {
+    _thisBlock = _numBlocks;
+    return(false);
+  }
+
   //  Special case for merNumber == 0.  We treat it just like a normal
   //  creation.
   //
@@ -370,10 +395,9 @@ merStreamFileReader::seekToMer(u64bit merNumber) {
     return(true);
   }
 
-  //  Did someone request a mer number too high?
+  //  Otherwise, it's not the first mer, and we should clear the firstMer reset
   //
-  if (merNumber >= _numMers)
-    return(false);
+  _firstMer = ~u64bitZERO;
   
   //  Search for the first block that is larger than merNumber
   //
@@ -406,6 +430,11 @@ merStreamFileReader::seekToMer(u64bit merNumber) {
   _theFMer       = _streamFile->getBits(_merSize * 2 - 2);
   _theRMer       = reverseComplementMer(_merSize, _theFMer);
 
+#ifdef REPORT_BLOCK_CHANGES
+  fprintf(stderr, "seek to block="u64bitFMT" size="u64bitFMT" pos="u64bitFMT" seq="u64bitFMT"\n",
+          _thisBlock, _thisBlockSize, _thePosition, _theSequence);
+#endif
+
   return(true);
 }
 
@@ -419,6 +448,9 @@ merStreamFileReader::seekToSequence(u64bit seqNumber) {
 bool
 merStreamFileReader::nextMer(u32bit skip) {
 
+  if (_iteration >= _iterationLimit)
+    return(false);
+
 again:
   if (_thisBlock >= _numBlocks)
     return(false);
@@ -428,9 +460,9 @@ again:
     //
     _thisBlock++;
 
-    //  To get around an extra if here we do a multiply to reset
-    //  _thisBlock to the first block if we are the first mer
-    //  (_firstMer is initially set to zero).
+    //  To avoid another if here we do a multiply to reset _thisBlock
+    //  to the first block if we are the first mer (_firstMer is
+    //  initially set to zero).
     //
     _thisBlock &= _firstMer;
     _firstMer   = ~u64bitZERO;
@@ -446,7 +478,11 @@ again:
 
     _theFMer = _streamFile->getBits(_merSize * 2);
     _theRMer = reverseComplementMer(_merSize, _theFMer);
-    
+
+#ifdef REPORT_BLOCK_CHANGES
+    fprintf(stderr, "New block="u64bitFMT" size="u64bitFMT" pos="u64bitFMT" seq="u64bitFMT"\n",
+            _thisBlock, _thisBlockSize, _thePosition, _theSequence);
+#endif
   } else {
     //  Still in the same block, just move to the next mer.
     //
@@ -469,6 +505,8 @@ again:
 
   if (skip--)
     goto again;
+
+  _iteration++;
 
   return(true);
 }
@@ -500,6 +538,7 @@ merStreamFileReader::theRMerString(void) {
 
 
 #ifdef TEST_MERSTREAMFILE
+#include <math.h>
 
 int
 main(int argc, char **argv) {
@@ -518,6 +557,7 @@ main(int argc, char **argv) {
 
   merStreamFileReader    *R = 0L;
   merStream              *M = 0L;
+  speedCounter           *C = 0L;
 
   u64bit compared = 0;
   u64bit errors   = 0;
@@ -533,18 +573,21 @@ main(int argc, char **argv) {
   //
   //  Random access test
   //
+#if 0
   R = new merStreamFileReader("merStreamFileTest");
   M = new merStream(20, argv[1]);
 
   //  Load the first mer from the stream.
   M->nextMer();
 
-  u64bit numSeeks = 100000;
-  while (numMers / numSeeks < 10)
-    numSeeks = numSeeks * 0.8;
+  u64bit numSeeks = 100;
+  while (numMers / numSeeks < 1000)
+    numSeeks = (u64bit)floor(numSeeks * 0.8);
 
   fprintf(stderr, "Testing random access on "u64bitFMT" seeks of size "u64bitFMT".\n", numSeeks, numMers / numSeeks);
   for (u64bit s=numSeeks; --s; ) {
+    fprintf(stderr, " "u64bitFMT" seeks remain\r", s);
+    fflush(stderr);
 
     //  Skip 'skipSize' mers in M
     //
@@ -577,8 +620,15 @@ main(int argc, char **argv) {
   }
   delete R;
   delete M;
+#endif
 
 
+
+
+
+
+
+  fprintf(stderr, "\n");
 
   ////////////////////////////////////////
   //

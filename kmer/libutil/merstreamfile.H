@@ -19,6 +19,10 @@
 //  number.  If we then store the deflines, we get everything!
 
 
+//  Returns true if the merStreamFile exists.
+bool  merStreamFileExists(const char *i);
+
+
 class merStreamFileBuilder {
 public:
   merStreamFileBuilder(u32bit merSize, const char *inputFile, const char *outputFile);
@@ -55,6 +59,17 @@ public:
   bool                   seekToMer(u64bit merNumber);
   bool                   seekToSequence(u64bit seqNumber);
 
+  //  This will limit the number of mers returned to 'limit'.  The
+  //  seek*() methods do not reset the count or the limit.  The
+  //  current count is reset when this function is called.  Set to
+  //  ~u64bitZERO for an infinite limit.  Zero really does mean zero,
+  //  not infinity.
+  //
+  void                   setIterationLimit(u64bit limit) {
+    _iterationLimit = limit;
+    _iteration      = u64bitZERO;
+  };
+
   bool                   nextMer(u32bit skip=0);
 private:
   const char           *_inputFile;
@@ -85,6 +100,11 @@ private:
   u64bit                _thisBlockSize;
   u64bit                _merMask;
   u64bit                _firstMer;
+
+  //  Things used to stop the stream
+  //
+  u64bit                _iterationLimit;
+  u64bit                _iteration;
 
   //  Things returned by the accessors.  These are set/updated by
   //  nextMer().
