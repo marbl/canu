@@ -186,6 +186,7 @@ printSequence(FastASequenceInCore *b,
     fprintf(stderr, "WARNING:  Printing %lu to %lu of sequence %lu (len=%lu) is out of bounds -- NO SEQUENCE PRINTED!\n",
             beg, end, b->getIID(), l);
 #endif
+    return;
   }
 
   u32bit    limit = end - beg;

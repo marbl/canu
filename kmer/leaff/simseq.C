@@ -135,6 +135,9 @@ print_simseq(char *seq, char *hdr, Align_t *aln, double P, int CUT, int COPY) {
   s = seq + aln->offset-1;
 
   for (t=aln->script; t; t=t->next) {
+    if (*s == 0) 
+      break;
+
     switch (t->optype) {
       case INS:
         for (k=0; k<t->num; k++) {
@@ -144,7 +147,10 @@ print_simseq(char *seq, char *hdr, Align_t *aln, double P, int CUT, int COPY) {
         break;
 
       case DEL:
-        s += t->num;
+        while (*s && t->num) {
+          s++;
+          t->num--;
+        }
         break;
 
       case SUB:
@@ -161,7 +167,12 @@ print_simseq(char *seq, char *hdr, Align_t *aln, double P, int CUT, int COPY) {
                      
       case MOV:
         for (k=0; k<t->num; k++) {
-          fprintf(stdout, "%c", *s); s++;
+          if (*s == 0) {
+            k = t->num;
+          } else {
+            fprintf(stdout, "%c", *s);
+            s++;
+          }
         }
         break;
 
