@@ -87,7 +87,10 @@ readBuffer::fillBuffer(void) {
 
   _bufferPos = 0;
   errno = 0;
+ again:
   _bufferLen = (u32bit)::read(_file, _buffer, _bufferMax * sizeof(char));
+  if (errno == EAGAIN)
+    goto again;
   if (errno) {
     fprintf(stderr, "readBuffer::fillBuffer()-- couldn't read %d bytes from '%s': %s\n",
             (int)(_bufferMax * sizeof(char)), _filename, strerror(errno));
