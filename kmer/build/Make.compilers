@@ -428,6 +428,7 @@ LATEX  :=latex
 DVIPS  :=dvips
 BIBTEX :=bibtex
 PS2PDF :=ps2pdf
+PDFLATEX := pdflatex
 VIEWPS :=ghostview
 PRINTPS:=lpr
 ifeq (${_OS_},TRU64)

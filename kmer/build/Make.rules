@@ -240,11 +240,11 @@ $(eval $(foreach x,${//},$(call .RULE-install-copy-C-CXX-INCS,$x)))
 ALL_TEX_PS    :=$(strip $(foreach x,${//},${${x:.=.TEX_PS}}))
 ALL_TEX_PDF   :=$(strip $(foreach x,${//},${${x:.=.TEX_PDF}}))
 
-${ALL_TEX_PS} ${ALL_TEX_PDF:.pdf=.ps}: %.ps: %.dvi
+${ALL_TEX_PS}: %.ps: %.dvi
 	${-LATEX} cd `dirname $<` && ${DVIPS} -o `basename $@` `basename $<`
 
-${ALL_TEX_PDF}: %.pdf: %.ps
-	${-LATEX} ${PS2PDF} $< $@
+${ALL_TEX_PDF}: %.pdf: %.tex %.aux 
+	${-LATEX} cd `dirname $<` && ${PDFLATEX} `basename $<` && ${PDFLATEX} `basename $<` 
 __SUBGOALS__+=$${${1:.=.TEX_PS}} $${${1:.=.TEX_PDF}}
 
    # install rules
