@@ -14,11 +14,15 @@ foreach my $file (@ARGV) {
     my %line;
 
     open(F, "< $file");
+    my $hdr = <F>;
+    chomp $hdr;
 
     while (<F>) {
         chomp;
 
         my @vals = split '\s+', $_;
+
+        #  3 -> sensitivity
 
         if ($spec{$vals[3]} < $vals[4]) {
             $spec{$vals[3]} = $vals[4];
@@ -28,7 +32,7 @@ foreach my $file (@ARGV) {
 
     close(F);
 
-    print "\n$file\n";
+    print "\n$file\n                 $hdr\n";
     my @sortedK = sort { $b <=> $a } keys %spec;
     $#sortedK = $numToShow - 1;
     foreach my $k (@sortedK) {
