@@ -39,7 +39,8 @@
 //
 //  Useful types.
 //
-//  *MASK() is defined for only unsigned types
+//  *MASK(x) is only defined for unsigned types, with x != 0 and less
+//  than the datawidth.
 //
 
 #ifdef TRUE64BIT

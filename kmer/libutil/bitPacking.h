@@ -2,8 +2,11 @@
 #define BRI_BITPACKING_H
 
 //  Routines used for stuffing bits into a word array.
-//
-//
+
+//  Define this to enable testing that the width of the data element
+//  is greater than zero.  The u64bitMASK() macro (bri.h) does not
+//  generate a mask for 0.
+#define CHECK_WIDTH
 
 
 //  Returns 'siz' bits from the stream based at 'ptr' and currently at
@@ -98,6 +101,13 @@ getDecodedValue(u64bit *ptr,
   u64bit b2  = siz - b1;  //  Only used if siz > b1
   u64bit ret = 0;
 
+#ifdef CHECK_WIDTH
+  if (siz == 0) {
+    fprintf(stderr, "ERROR: getDecodedValue() called with zero size!\n");
+    abort();
+  }
+#endif
+
   if (b1 >= siz) {
     ret = ptr[wrd] >> (b1 - siz);
   } else {
@@ -122,6 +132,13 @@ setDecodedValue(u64bit *ptr,
   u64bit bit = (pos     ) & 0x000000000000003fllu;
   u64bit b1  = 64 - bit;
   u64bit b2  = siz - b1;  //  Only used if siz > b1
+
+#ifdef CHECK_WIDTH
+  if (siz == 0) {
+    fprintf(stderr, "ERROR: setDecodedValue() called with zero size!\n");
+    abort();
+  }
+#endif
 
   val &= u64bitMASK(siz);
 
@@ -149,6 +166,13 @@ preIncrementDecodedValue(u64bit *ptr,
   u64bit b1  = 64 - bit;
   u64bit b2  = siz - b1;  //  Only used if siz > b1
   u64bit ret  = 0;
+
+#ifdef CHECK_WIDTH
+  if (siz == 0) {
+    fprintf(stderr, "ERROR: preIncrementDecodedValue() called with zero size!\n");
+    abort();
+  }
+#endif
 
   if (b1 >= siz) {
     ret  = ptr[wrd] >> (b1 - siz);
@@ -188,6 +212,13 @@ preDecrementDecodedValue(u64bit *ptr,
   u64bit b2  = siz - b1;  //  Only used if siz > b1
   u64bit ret = 0;
 
+#ifdef CHECK_WIDTH
+  if (siz == 0) {
+    fprintf(stderr, "ERROR: preDecrementDecodedValue() called with zero size!\n");
+    abort();
+  }
+#endif
+
   if (b1 >= siz) {
     ret = ptr[wrd] >> (b1 - siz);
 
@@ -225,6 +256,13 @@ postIncrementDecodedValue(u64bit *ptr,
   u64bit b1  = 64 - bit;
   u64bit b2  = siz - b1;  //  Only used if siz > b1
   u64bit ret = 0;
+
+#ifdef CHECK_WIDTH
+  if (siz == 0) {
+    fprintf(stderr, "ERROR: postIncrementDecodedValue() called with zero size!\n");
+    abort();
+  }
+#endif
 
   if (b1 >= siz) {
     ret = ptr[wrd] >> (b1 - siz);
@@ -268,6 +306,13 @@ postDecrementDecodedValue(u64bit *ptr,
   u64bit b1  = 64 - bit;
   u64bit b2  = siz - b1;  //  Only used if siz > b1
   u64bit ret = 0;
+
+#ifdef CHECK_WIDTH
+  if (siz == 0) {
+    fprintf(stderr, "ERROR: postDecrementDecodedValue() called with zero size!\n");
+    abort();
+  }
+#endif
 
   if (b1 >= siz) {
     ret = ptr[wrd] >> (b1 - siz);
