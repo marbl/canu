@@ -21,6 +21,10 @@ public:
   u64bit         posnLen;
   u64bit        *posn;
 
+#ifdef __APPLE__
+  u32bit         pad;
+#endif
+
   double         encodeTime;
   double         maskTime;
   double         searchTime;

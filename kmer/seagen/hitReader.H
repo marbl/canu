@@ -21,9 +21,9 @@ typedef struct {
 
 typedef struct {
   aHit     a;
-  u32bit   estid;
   double   coverage;
   double   multiplicity;
+  u32bit   estid;
 #ifdef WITH_ANSWERS
   char     mappedIdentity;
   char     mappedCoverage;
@@ -76,9 +76,9 @@ private:
   u32bit        _listMax;
   hit_s        *_list;
 
-  u32bit        _iid;
   double        _bestScore;
   double        _worstScore;
+  u32bit        _iid;
 };
 
 

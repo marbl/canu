@@ -41,8 +41,14 @@ private:
   bitPackedFile         *_DAT;
 
   u32bit                 _merSizeInBits;
+
   u32bit                 _prefixSize;
   u64bit                 _prefixMask;
+
+#ifdef __APPLE__
+  u32bit                 _pad1;
+#endif
+
   u32bit                 _merDataSize;
   u64bit                 _merDataMask;
 
@@ -57,6 +63,10 @@ private:
   u64bit                 _numTotal;
 
   bool                   _validMer;
+
+#ifdef __APPLE__
+  u32bit                 _pad2;
+#endif
 };
 
 inline
@@ -109,8 +119,14 @@ private:
   bitPackedFile         *_DAT;
 
   u32bit                 _merSizeInBits;
+
   u32bit                 _prefixSize;
   u64bit                 _prefixMask;
+
+#ifdef __APPLE__
+  u32bit                 _pad1;
+#endif
+
   u32bit                 _merDataSize;
   u64bit                 _merDataMask;
 

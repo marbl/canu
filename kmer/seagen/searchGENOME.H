@@ -96,6 +96,11 @@ public:
 
   u32bit           _minLengthSingle;
   double           _minCoverageSingle;
+
+#ifdef __APPLE__
+  u32bit           _pad;
+#endif
+
   u32bit           _minLengthMultiple;
   double           _minCoverageMultiple;
 

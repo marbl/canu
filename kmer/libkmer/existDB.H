@@ -65,6 +65,9 @@ private:
   };
 
   u32bit      _merSizeInBases;
+#ifdef __APPLE__
+  u32bit      _pad;
+#endif
 
   u32bit      _shift1;
   u32bit      _shift2;
@@ -83,8 +86,8 @@ private:
   u64bit      _chckMask;
 
   u64bit      _hashTableWords;
-  u64bit     *_hashTable;
   u64bit      _bucketsWords;
+  u64bit     *_hashTable;
   u64bit     *_buckets;
 };
 
