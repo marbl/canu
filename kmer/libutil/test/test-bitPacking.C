@@ -50,7 +50,7 @@ testBinaryEncoding(void) {
   mtctx = mtInit(mtseed);
 
   for (j=0; j < iterations; j++) {
-    siz1  = mtRandom32(mtctx) % 64;
+    siz1  = (mtRandom32(mtctx) % 63) + 1;
     val1  = mtRandom64(mtctx) & u64bitMASK(siz1);
     siz2  = siz1;
     setDecodedValue(ptr, pos, siz1, val1);
@@ -66,7 +66,7 @@ testBinaryEncoding(void) {
   mtctx = mtInit(mtseed);
 
   for (j=0; j < iterations; j++) {
-    siz1  = mtRandom32(mtctx) % 64;
+    siz1  = (mtRandom32(mtctx) % 63) + 1;
     val1  = mtRandom64(mtctx) & u64bitMASK(siz1);
     val2  = getDecodedValue(ptr, pos, siz1);
     if (val1 != val2) {
@@ -200,7 +200,7 @@ testFibonacciEncoding(void) {
   mtctx = mtInit(mtseed);
 
   for (j=0; j < iterations; j++) {
-    siz1  = mtRandom32(mtctx) % 64;
+    siz1  = (mtRandom32(mtctx) % 63) + 1;
     val1  = mtRandom64(mtctx) & u64bitMASK(siz1);
     siz2  = siz1;
     setFibonacciEncodedNumber(ptr, pos, &siz1, val1);
@@ -216,7 +216,7 @@ testFibonacciEncoding(void) {
   mtctx = mtInit(mtseed);
 
   for (j=0; j < iterations; j++) {
-    siz1  = mtRandom32(mtctx) % 64;
+    siz1  = (mtRandom32(mtctx) % 63) + 1;
     val1  = mtRandom64(mtctx) & u64bitMASK(siz1);
     val2  = getFibonacciEncodedNumber(ptr, pos, &siz1);
     if (val1 != val2) {

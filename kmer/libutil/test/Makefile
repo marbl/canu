@@ -34,8 +34,8 @@ test-intervalList: test-intervalList.C ../libbri.a ../bri.h ../bri++.H
 	./test-intervalList
 
 test-md5: test-md5.c ../libbri.a ../bri.h ../bri++.H
-	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-md5.o test-md5.C $(INCLUDE)
-	$(CXX) $(CXXLDFLAGS) -o test-md5 test-md5.o $(LIBS)
+	$(CC) $(CFLAGS_COMPILE) -c -o test-md5.o test-md5.c $(INCLUDE)
+	$(CC) $(CLDFLAGS) -o test-md5 test-md5.o $(LIBS)
 	./test-md5
 
 test-merstream: test-merstream.C ../libbri.a ../bri.h ../bri++.H
@@ -66,23 +66,23 @@ test-merstream: test-merstream.C ../libbri.a ../bri.h ../bri++.H
 	./test-merstream
 
 test-mmap: test-mmap.c ../libbri.a ../bri.h ../bri++.H
-	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-mmap.o test-mmap.C $(INCLUDE)
-	$(CXX) $(CXXLDFLAGS) -o test-mmap test-mmap.o $(LIBS)
+	$(CC) $(CFLAGS_COMPILE) -c -o test-mmap.o test-mmap.c $(INCLUDE)
+	$(CC) $(CLDFLAGS) -o test-mmap test-mmap.o $(LIBS)
 	./test-mmap 16
 
 test-palloc: test-palloc.c ../libbri.a ../bri.h ../bri++.H
-	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-palloc.o test-palloc.C $(INCLUDE)
-	$(CXX) $(CXXLDFLAGS) -o test-palloc test-palloc.o $(LIBS)
+	$(CC) $(CFLAGS_COMPILE) -c -o test-palloc.o test-palloc.c $(INCLUDE)
+	$(CC) $(CLDFLAGS) -o test-palloc test-palloc.o $(LIBS)
 	./test-palloc
 
-test-readBuffer: test-readBuffer.c ../libbri.a ../bri.h ../bri++.H
+test-readBuffer: test-readBuffer.C ../libbri.a ../bri.h ../bri++.H
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-readBuffer.o test-readBuffer.C $(INCLUDE)
 	$(CXX) $(CXXLDFLAGS) -o test-readBuffer test-readBuffer.o $(LIBS)
 	./test-readBuffer
 
 test-types: test-types.c ../libbri.a ../bri.h ../bri++.H
-	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-types.o test-types.C $(INCLUDE)
-	$(CXX) $(CXXLDFLAGS) -o test-types test-types.o $(LIBS)
+	$(CC) $(CFLAGS_COMPILE) -c -o test-types.o test-types.c $(INCLUDE)
+	$(CC) $(CLDFLAGS) -o test-types test-types.o $(LIBS)
 	./test-types
 
 clean:

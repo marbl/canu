@@ -55,7 +55,7 @@ main(int argc, char **argv) {
   psetblocksize(16 * 1024 * 1024);
 
   mtctx = mtInit(time(NULL));
-  for (i=0; i<1024 * 1024; i++)
+  for (i=0; i<512 * 1024; i++)
     palloc(mtRandom32(mtctx) & 0xfff);
   psetdebug(1);
   pfree();

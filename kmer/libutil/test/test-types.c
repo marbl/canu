@@ -11,10 +11,10 @@ main(void) {
   s64bit   s6 = -1;
 
   if (sizeof(u32bit) != 4)
-    fprintf(stderr, "u32bit has %ld bytes (should be 4)!\n", sizeof(u32bit)), errors++;
+    fprintf(stderr, "u32bit has %d bytes (should be 4)!\n", (int)sizeof(u32bit)), errors++;
 
   if (sizeof(u64bit) != 8)
-    fprintf(stderr, "u64bit has %ld bytes (should be 8)!\n", sizeof(u64bit)), errors++;
+    fprintf(stderr, "u64bit has %d bytes (should be 8)!\n", (int)sizeof(u64bit)), errors++;
 
   if (u3 < 0)
     fprintf(stderr, "u32bit is signed (should be unsigned)!\n"), errors++;

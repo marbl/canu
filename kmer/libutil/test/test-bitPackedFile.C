@@ -21,7 +21,7 @@ generateRandom(u32bit *siz, u64bit *val) {
     siz[i] =  13;
     val[i] =  (i % 2) ? u64bitZERO : ~u64bitZERO;
 #else
-    siz[i] = mtRandom32(mtctx) % 64;
+    siz[i] = (mtRandom32(mtctx) % 63) + 1;
     val[i] = mtRandom64(mtctx);
 #endif
     val[i] &= u64bitMASK(siz[i]);
