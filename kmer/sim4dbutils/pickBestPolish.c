@@ -3,10 +3,19 @@
 #include <unistd.h>
 #include <string.h>
 
-#include "sim4polish.h"
+#include "bio.h"
+#include "sim4.H"
 
 //  Picks the best polish (or set of polishes that are all of the same
 //  best quality) for each cDNA.
+//
+//  Validate mode will print out ALL input matches, in the following
+//  format
+//
+//  estid gaid nummatches percentid (genFr genTo %) () ()
+//
+//  With a * somewhere to denote the best ones.  Separate ESTs with
+//  a dashed line.
 
 
 #define    EPS_X	1
@@ -15,47 +24,25 @@
 #define    EPS_I	3
 
 
-char const *usage =
-"usage: %s [-mrna|-ests] < file > file\n"
-"\n";
+int EPS_N       = EPS_N_ESTS;
+int doValidate  = 0;
 
 
-static int EPS_N;
-
-//  Validate mode will print out ALL input matches, in the following
-//  format
-//
-//  estid gaid nummatches percentid (genFr genTo %) () ()
-//
-//  With a * somewhere to denote the best ones.  Separate ESTs with
-//  a dashed line.
-//
-//#define VALIDATE
-
-#ifdef VALIDATE
 void
 printPolishValidate(FILE *O, sim4polish *p, int isBest) {
   int i;
 
-#ifdef TRUE64BIT
-  fprintf(O, "%8u %8u %4u %4u", p->estID, p->genID, p->percentIdentity, p->numMatches);
-#else
-  fprintf(O, "%8lu %8lu %4lu %4lu", p->estID, p->genID, p->percentIdentity, p->numMatches);
-#endif
+  fprintf(O, u32bitFMTW(8)" "u32bitFMTW(8)" "u32bitFMTW(4)" "u32bitFMTW(4), p->estID, p->genID, p->percentIdentity, p->numMatches);
 
   for (i=0; i<p->numExons; i++)
-#ifdef TRUE64BIT
-    fprintf(O, " (%6u/%6u %6u/%6u %3u)", p->exons[i].estFrom, p->genLo + p->exons[i].genFrom, p->exons[i].estTo, p->genLo + p->exons[i].genTo, p->exons[i].percentIdentity);
-#else
-    fprintf(O, " (%6lu/%6lu %6lu/%6lu %3lu)", p->exons[i].estFrom, p->genLo + p->exons[i].genFrom, p->exons[i].estTo, p->genLo + p->exons[i].genTo, p->exons[i].percentIdentity);
-#endif
+    fprintf(O, " ("u32bitFMTW(6)"/"u32bitFMTW(6)" "u32bitFMTW(6)"/"u32bitFMTW(6)" "u32bitFMTW(3)")", p->exons[i].estFrom, p->genLo + p->exons[i].genFrom, p->exons[i].estTo, p->genLo + p->exons[i].genTo, p->exons[i].percentIdentity);
 
   if (isBest)
     fprintf(O, " *");
 
   fprintf(O, "\n");
 }
-#endif
+
 
 void
 pickBestSlave(sim4polish **p, int pNum) {
@@ -69,9 +56,8 @@ pickBestSlave(sim4polish **p, int pNum) {
   //  Difficult choice here....
   //
   if (pNum == 1) {
-#ifndef VALIDATE
-    s4p_printPolish(stdout, p[0], S4P_PRINTPOLISH_FULL);
-#endif
+    if (doValidate == 0)
+      s4p_printPolish(stdout, p[0], S4P_PRINTPOLISH_FULL);
     return;
   }
 
@@ -134,22 +120,22 @@ pickBestSlave(sim4polish **p, int pNum) {
     //  scan both the mList and iList, as those probably contain
     //  duplicates.
 
-#ifndef VALIDATE
-    for (i=0; i<pNum; i++)
-      if ((p[i]->percentIdentity == identityi) &&
-          (p[i]->numMatches == tmp_nmatches) &&
-          (p[i]->numExons == numExons))
-        s4p_printPolish(stdout, p[i], S4P_PRINTPOLISH_FULL);
-#else
-    if (tmp_nmatches == nmatchesi) 
-    fprintf(stdout, "--------------------1 (Clear Winner)\n");
-    else
-    fprintf(stdout, "--------------------2 (Exon Clear Winner)\n");
-    for (i=0; i<pNum; i++)
-      printPolishValidate(stdout, p[i], ((p[i]->percentIdentity == identityi) &&
-                                         (p[i]->numMatches == tmp_nmatches) &&
-                                         (p[i]->numExons == numExons)));
-#endif
+    if (doValidate) {
+      if (tmp_nmatches == nmatchesi) 
+        fprintf(stdout, "--------------------1 (Clear Winner)\n");
+      else
+        fprintf(stdout, "--------------------2 (Exon Clear Winner)\n");
+      for (i=0; i<pNum; i++)
+        printPolishValidate(stdout, p[i], ((p[i]->percentIdentity == identityi) &&
+                                           (p[i]->numMatches == tmp_nmatches) &&
+                                           (p[i]->numExons == numExons)));
+    } else {
+      for (i=0; i<pNum; i++)
+        if ((p[i]->percentIdentity == identityi) &&
+            (p[i]->numMatches == tmp_nmatches) &&
+            (p[i]->numExons == numExons))
+          s4p_printPolish(stdout, p[i], S4P_PRINTPOLISH_FULL);
+    }
 
     return;
   }
@@ -219,26 +205,27 @@ pickBestSlave(sim4polish **p, int pNum) {
       if ((p[i]->percentIdentity == identityi) &&
           (p[i]->numMatches >= nmatchesi - EPS_N) &&
           (numExons < p[i]->numExons - EPS_X)) {
-           numExons = p[i]->numExons;
-           tmp_nmatches = p[i]->numMatches;
+        numExons = p[i]->numExons;
+        tmp_nmatches = p[i]->numMatches;
       }
 
-#ifndef VALIDATE
-    for (i=0; i<pNum; i++)
-      if ((p[i]->percentIdentity == identityi) &&
-          (p[i]->numMatches      == tmp_nmatches) &&
-          (p[i]->numExons	 == numExons))
-        s4p_printPolish(stdout, p[i], S4P_PRINTPOLISH_FULL);
-#else
-    if (tmp_nmatches == nmatchesi)
-    fprintf(stdout, "--------------------3 (?)\n");
-    else 
-    fprintf(stdout, "--------------------4 (Exon ?)\n");
-    for (i=0; i<pNum; i++)
-      printPolishValidate(stdout, p[i], ((p[i]->percentIdentity == identityi) &&
-                                         (p[i]->numMatches      == tmp_nmatches) &&
-                                         (p[i]->numExons 	== numExons)));
-#endif
+    if (doValidate) {
+      if (tmp_nmatches == nmatchesi)
+        fprintf(stdout, "--------------------3 (?)\n");
+      else 
+        fprintf(stdout, "--------------------4 (Exon ?)\n");
+      for (i=0; i<pNum; i++)
+        printPolishValidate(stdout, p[i], ((p[i]->percentIdentity == identityi) &&
+                                           (p[i]->numMatches      == tmp_nmatches) &&
+                                           (p[i]->numExons        == numExons)));
+    } else {
+      for (i=0; i<pNum; i++)
+        if ((p[i]->percentIdentity == identityi) &&
+            (p[i]->numMatches      == tmp_nmatches) &&
+            (p[i]->numExons	 == numExons))
+          s4p_printPolish(stdout, p[i], S4P_PRINTPOLISH_FULL);
+    }
+
     return;
   }
 
@@ -261,19 +248,20 @@ pickBestSlave(sim4polish **p, int pNum) {
           (numExons < p[i]->numExons))
            numExons = p[i]->numExons;
 
-#ifndef VALIDATE
-    for (i=0; i<pNum; i++)
-      if ((p[i]->percentIdentity == identityi) &&
-          (p[i]->numMatches      == nmatchesi) &&
-          (p[i]->numExons 	 == numExons))
-        s4p_printPolish(stdout, p[i], S4P_PRINTPOLISH_FULL);
-#else
-    fprintf(stdout, "--------------------5 (alpha < 0.8)\n");
-    for (i=0; i<pNum; i++)
-      printPolishValidate(stdout, p[i], ((p[i]->percentIdentity == identityi) &&
-                                         (p[i]->numMatches      == nmatchesi) &&
-                                         (p[i]->numExons	== numExons)));
-#endif
+    if (doValidate) {
+      fprintf(stdout, "--------------------5 (alpha < 0.8)\n");
+      for (i=0; i<pNum; i++)
+        printPolishValidate(stdout, p[i], ((p[i]->percentIdentity == identityi) &&
+                                           (p[i]->numMatches      == nmatchesi) &&
+                                           (p[i]->numExons	== numExons)));
+    } else {
+      for (i=0; i<pNum; i++)
+        if ((p[i]->percentIdentity == identityi) &&
+            (p[i]->numMatches      == nmatchesi) &&
+            (p[i]->numExons 	 == numExons))
+          s4p_printPolish(stdout, p[i], S4P_PRINTPOLISH_FULL);
+    }
+
     return;
   }
 
@@ -310,23 +298,23 @@ pickBestSlave(sim4polish **p, int pNum) {
 
   if ((numExonsi > numExonsm + EPS_X) || (identityi > identitym + EPS_I)) {
 
-#ifndef VALIDATE
-  for (i=0; i<pNum; i++)
-    if ((p[i]->percentIdentity == identityi) &&
-        (p[i]->numMatches      == nmatchesi) &&
-        (p[i]->numExons	       == numExonsi))
-      s4p_printPolish(stdout, p[i], S4P_PRINTPOLISH_FULL);
-#else
-  if (numExonsi > numExonsm + EPS_X)
-  fprintf(stdout, "--------------------6 (Exon Plus alpha > 0.8)\n");
-  else 
-  fprintf(stdout, "--------------------7 (Pctid Plus alpha > 0.8)\n");
+    if (doValidate) {
+      if (numExonsi > numExonsm + EPS_X)
+        fprintf(stdout, "--------------------6 (Exon Plus alpha > 0.8)\n");
+      else 
+        fprintf(stdout, "--------------------7 (Pctid Plus alpha > 0.8)\n");
 
-  for (i=0; i<pNum; i++)
-    printPolishValidate(stdout, p[i], ((p[i]->percentIdentity == identityi) &&
-                                       (p[i]->numMatches      == nmatchesi) &&
-                                       (p[i]->numExons	      == numExonsi)));
-#endif
+      for (i=0; i<pNum; i++)
+        printPolishValidate(stdout, p[i], ((p[i]->percentIdentity == identityi) &&
+                                           (p[i]->numMatches      == nmatchesi) &&
+                                           (p[i]->numExons	      == numExonsi)));
+    } else {
+      for (i=0; i<pNum; i++)
+        if ((p[i]->percentIdentity == identityi) &&
+            (p[i]->numMatches      == nmatchesi) &&
+            (p[i]->numExons	       == numExonsi))
+          s4p_printPolish(stdout, p[i], S4P_PRINTPOLISH_FULL);
+    }
   } else {
     numExons = numExonsm;
     tmp_nmatches = nmatchesm;
@@ -338,22 +326,22 @@ pickBestSlave(sim4polish **p, int pNum) {
           numExons = p[i]->numExons;
       }
  
-#ifndef VALIDATE
-  for (i=0; i<pNum; i++)
-    if ((p[i]->percentIdentity == identitym) &&
-        (p[i]->numMatches      == tmp_nmatches) &&
-        (p[i]->numExons        == numExons))
-      s4p_printPolish(stdout, p[i], S4P_PRINTPOLISH_FULL);
-#else
-  if (numExons == numExonsm)
-  fprintf(stdout, "--------------------8 (alpha > 0.8)\n");
-  else 
-  fprintf(stdout, "--------------------9 (Exon alpha > 0.8)\n");
-  for (i=0; i<pNum; i++)
-    printPolishValidate(stdout, p[i], ((p[i]->percentIdentity == identitym) &&
-                                       (p[i]->numMatches      == tmp_nmatches) &&
-                                       (p[i]->numExons        == numExons)));
-#endif
+    if (doValidate) {
+      if (numExons == numExonsm)
+        fprintf(stdout, "--------------------8 (alpha > 0.8)\n");
+      else 
+        fprintf(stdout, "--------------------9 (Exon alpha > 0.8)\n");
+      for (i=0; i<pNum; i++)
+        printPolishValidate(stdout, p[i], ((p[i]->percentIdentity == identitym) &&
+                                           (p[i]->numMatches      == tmp_nmatches) &&
+                                           (p[i]->numExons        == numExons)));
+    } else {
+      for (i=0; i<pNum; i++)
+        if ((p[i]->percentIdentity == identitym) &&
+            (p[i]->numMatches      == tmp_nmatches) &&
+            (p[i]->numExons        == numExons))
+          s4p_printPolish(stdout, p[i], S4P_PRINTPOLISH_FULL);
+    }
   }
 }
 
@@ -380,50 +368,33 @@ main(int argc, char **argv) {
   sim4polish  *q      = 0L;
   int          estID  = ~0;
 
-  int          isEST  = -1;
-
   int arg = 1;
   while (arg < argc) {
     if        (strncmp(argv[arg], "-n", 2) == 0) {
       pAlloc = atoi(argv[++arg]);
     } else if (strncmp(argv[arg], "-mrna", 2) == 0) {
-      if (isEST == 1) {
-        fprintf(stderr, "error: input type already set to EST!\n\n"); exit(1);
-      }
-      isEST = 0;
       EPS_N = EPS_N_MRNA;
     } else if (strncmp(argv[arg], "-ests", 2) == 0) {
-      if (isEST == 0) {
-        fprintf(stderr, "error: input type already set to mRNA!\n\n"); exit(1);
-      }
-      isEST = 1;
       EPS_N = EPS_N_ESTS;
+    } else if (strncmp(argv[arg], "-validate", 2) == 0) {
+      doValidate = 1;
     } else {
       fprintf(stderr, "unknown option: %s\n", argv[arg]);
     }
     arg++;
   }
 
-  if (isEST == -1) {
-    fprintf(stderr, "warning: input type unspecified; setting to EST.\n\n"); 
-    isEST = 1;
-    EPS_N = EPS_N_ESTS;
-  }
-
-  if (isatty(fileno(stdin)) || isatty(fileno(stdout))) {
-    fprintf(stderr, usage, argv[0]);
+  if (isatty(fileno(stdin))) {
+    fprintf(stderr, "usage: %s [-mrna|-ests] [-validate] < file > file\n", argv[0]);
 
     if (isatty(fileno(stdin)))
       fprintf(stderr, "error: I cannot read polishes from the terminal!\n\n");
 
-    if (isatty(fileno(stdout)))
-      fprintf(stderr, "error: Please redirect the output to a file.\n\n");
-
     exit(1);
   }
 
-  //  Read polishes, picking the best when we see a change in
-  //  the estID.
+  //  Read polishes, picking the best when we see a change in the
+  //  estID.
 
   p = (sim4polish **)malloc(sizeof(sim4polish *) * pAlloc);
 

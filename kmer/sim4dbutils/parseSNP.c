@@ -6,13 +6,12 @@
 #include <ctype.h>
 #include <errno.h>
 
-#include "sim4polish.h"
+#include "bio.h"
+#include "sim4.H"
 
-//
 //  Writes things with mappings that don't contain the snp itself to a
 //  failure file.  Otherwise, if the mapping is above the threshold, a
 //  line describing the snp is output.
-//
 
 
 char *usage =

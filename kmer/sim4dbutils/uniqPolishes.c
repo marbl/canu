@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include <string.h>
 
-#include "sim4polish.h"
+#include "sim4.H"
 
 
 char const *usage =

@@ -1,44 +1,58 @@
 # -*- makefile -*-
 
-LIBBRI/     :=$(call MakePath,$/../libbri/)
-FASTA/      :=$(call MakePath,$/../fasta/)
-SIM4POLISH/ :=$(call MakePath,$/../sim4polish/)
-SIM4/       :=$(call MakePath,$/../sim4/)
+LIBUTL/     :=$(call MakePath,$/../libutil/)
+LIBBIO/     :=$(call MakePath,$/../libbio/)
+LIBMERYL/   :=$(call MakePath,$/../libmeryl/)
+LIBKMER/    :=$(call MakePath,$/../libkmer/)
+LIBSIM4/    :=$(call MakePath,$/../libsim4/)
 
-# declarations
-
-src  := $/cleanPolishes.C $/comparePolishes.C $/filterPolishes.c \
-        $/mergePolishes.C $/parseSNP.c $/pickBestPolish.c \
-        $/plotCoverageVsIdentity.c $/removeDuplicate.c $/sortPolishes.c \
-        $/summarizePolishes.C $/uniqPolishes.c $/vennPolishes.C \
-        $/realignPolishes.C $/removeRedundant.C $/s4p_overlap.C
+src  := $/cleanPolishes.C \
+        $/comparePolishes.C \
+        $/filterPolishes.c \
+        $/mergePolishes.C \
+        $/parseSNP.c \
+        $/pickBestPolish.c \
+        $/plotCoverageVsIdentity.c \
+        $/removeDuplicate.c \
+        $/sortPolishes.c \
+        $/summarizePolishes.C \
+        $/uniqPolishes.c \
+        $/vennPolishes.C \
+        $/realignPolishes.C \
+        $/removeRedundant.C \
+        $/s4p_overlap.C
 
 $/.C_SRCS   :=${filter %.c,${src}}
 $/.CXX_SRCS :=${filter %.C,${src}}
 
-obj_c := ${$/.C_SRCS:.c=.o} $/pickBestPolish-debug.o
+obj_c := ${$/.C_SRCS:.c=.o}
 obj_C := ${$/.CXX_SRCS:.C=.o}
 
 # always using c++ to link
-$/.CXX_EXES := $/cleanPolishes $/comparePolishes $/filterPolishes \
-               $/mergePolishes $/parseSNP $/pickBestPolish $/pickBestPolish-debug \
-               $/plotCoverageVsIdentity $/removeDuplicate $/sortPolishes \
-               $/summarizePolishes $/uniqPolishes $/vennPolishes \
-               $/realignPolishes $/removeRedundant
+$/.CXX_EXES := $/cleanPolishes \
+               $/comparePolishes \
+               $/filterPolishes \
+               $/mergePolishes \
+               $/parseSNP \
+               $/pickBestPolish \
+               $/plotCoverageVsIdentity \
+               $/removeDuplicate \
+               $/sortPolishes \
+               $/summarizePolishes \
+               $/uniqPolishes \
+               $/vennPolishes \
+               $/realignPolishes \
+               $/removeRedundant
 
 $/.CLEAN := $/*.o
 
-$(eval $/%.d $/%.o:  CFLAGS+=-I${FASTA/} -I${SIM4POLISH/} -I${LIBBRI/})
-$(eval $/%.d $/%.o:  CXXFLAGS+=-I${FASTA/} -I${SIM4POLISH/} -I${LIBBRI/})
-
-$/pickBestPolish-debug.o: $/pickBestPolish.c
-	${CC} ${WARNS} -DVALIDATE ${CFLAGS} ${CFLAGS_COMPILE} -o $@ -c $<
+$(eval $/%.d $/%.o:  CFLAGS+=-I${LIBUTL/} -I${LIBBIO/} -I${LIBSIM4/})
+$(eval $/%.d $/%.o:  CXXFLAGS+=-I${LIBUTL/} -I${LIBBIO/} -I${LIBSIM4/})
 
 $/filterPolishes              : $/filterPolishes.o
 $/mergePolishes               : $/mergePolishes.o
 $/sortPolishes                : $/sortPolishes.o
 $/pickBestPolish              : $/pickBestPolish.o
-$/pickBestPolish-debug        : $/pickBestPolish-debug.o
 $/cleanPolishes               : $/cleanPolishes.o
 $/plotIntronSize              : $/plotIntronSize.o
 $/plotCoverageVsIdentity      : $/plotCoverageVsIdentity.o
@@ -52,7 +66,7 @@ $/vennPolishes                : $/vennPolishes.o
 $/realignPolishes             : $/realignPolishes.o
 $/removeRedundant             : $/removeRedundant.o $/s4p_overlap.o
 
-${$/.C_EXES} ${$/.CXX_EXES}: ${SIM4POLISH/}libsim4polish.a ${LIBBRI/}libbri.a
+${$/.C_EXES} ${$/.CXX_EXES}: ${LIBSIM4/}libsim4.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 
 #  Run the test cases for parseSNP
 $/.parseSNP-test: $/parseSNP ${SIM4DB/}sim4db

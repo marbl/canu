@@ -35,9 +35,8 @@ int const ac[4][4] = {{2, 5, 2, 2},{0, 2, 0, 0},{0, 2, 0, 0},{0, 2, 0, 0}};
 
 
 
-splice_t *
-Sim4::new_splice(char c, int xs, int xe, int ys, int ye, int score, splice_t *next)
-{
+Sim4::splice_t *
+Sim4::new_splice(char c, int xs, int xe, int ys, int ye, int score, splice_t *next) {
   splice_t *sp = (splice_t *)ckalloc(sizeof(splice_t));
 
   sp->type = c; sp->xs = xs; sp->xe = xe; 

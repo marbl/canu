@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "bri++.H"
-#include "fasta.H"
-#include "sim4polish.h"
+#include "bio++.H"
+//#include "fasta.H"
+#include "sim4.H"
 
 using namespace std;
 #include <vector>

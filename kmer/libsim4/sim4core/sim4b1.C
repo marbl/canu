@@ -6,7 +6,7 @@
 #define PRINTEXONS(S, L)
 #endif
 
-struct edit_script_list *
+Sim4::edit_script_list *
 Sim4::SIM4(int            *dist_ptr,
            Exon          **Exons,
            int            *pA,

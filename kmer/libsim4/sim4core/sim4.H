@@ -72,6 +72,10 @@ enum { OK = 0, FREE_START = 1, FREE_END = 2, FREE_BOTH_ENDS = 3};
 
 /* data structures */
 
+#if 0
+
+//  Moved all data structures into the sim4 class itself
+
 typedef struct coordinates {
   int pos1;
   int pos2;
@@ -132,10 +136,75 @@ struct hash_table {
   int                 nodesused;
 };
 
+#endif
+
+
+#define GEN_LOG4_ENTRIES 45
+#define CDNA_LOG4_ENTRIES 25
+
+#define HASH_SIZE 32767        /* 2**15 - 1 */
 
 
 
 class Sim4 {
+private:
+
+typedef struct coordinates {
+  int pos1;
+  int pos2;
+} coords;
+
+/* used only in the alignment stage */
+typedef struct edit_script {
+  int                 op_type;    /* SUB, INS, or DEL */
+  int                 num;        /* Number of operations */
+  struct edit_script *next;
+} edit_script;
+
+typedef struct edit_script_list {
+  int   offset1, offset2;
+  int   len1, len2; 
+  int    score;
+  struct edit_script *script;
+  struct edit_script_list *next_script;
+} edit_script_list;
+
+typedef struct spliced {
+  int              xs;
+  int              xe;
+  int              ys;
+  int              ye;
+  int              score;
+  int              type;
+  struct spliced  *next;
+} splice_t;
+
+typedef struct sim4_stats {
+  int    internal;
+  int    icoverage;
+  int    numberOfMatches;
+  int    numberOfNs;
+  int    orientation;
+  int    percentID;
+  bool   tooManyMSPs;
+} sim4_stats_t;
+
+struct hash_node {
+  int                 ecode;              /* integer encoding of the word */
+  int                 pos;                /* positions where word hits query sequence */
+  struct hash_node   *link; /* next word with same last 7.5 letters */
+};
+
+struct hash_table {
+  struct hash_node   *table[HASH_SIZE+1];
+  int                *nextPos;
+  struct hash_node   *nodes;
+  int                 nodesused;
+};
+
+
+
+
 private:
   mspManager        _mspManager;
 

@@ -1,5 +1,5 @@
-#include "bri++.H"
-#include "sim4polish.h"
+#include "util++.H"
+#include "sim4.H"
 
 //  Build an interval list with all exons (from both guys), merge
 //  overlapping regions, compute the length, subtract from the total.

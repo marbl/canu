@@ -2,12 +2,10 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
-#include "bri++.H"
-#include "sim4polish.h"
-#include "sim4polishBuilder.H"
-#include "sim4polishFile.H"
 
-//
+#include "bio++.H"
+#include "sim4.H"
+
 //  Matches two sets of polishes to each other using a simple overlap
 //  heuristic.
 //
@@ -22,8 +20,6 @@
 //    stuff about the 'same' matches:
 //
 //    ESTiid ESTlen  overlap  A%id A%cov #cdnagaps #exons  B%id B%cov #cdnagaps #exons
-//
-
 
 //  Try to analyze cDNA gaps.
 //

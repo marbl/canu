@@ -8,8 +8,8 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 
-#include "bri.h"
-#include "sim4polish.h"
+#include "bio.h"
+#include "sim4.H"
 
 //  Sorts a file of polishes by cDNA or genomic idx.
 

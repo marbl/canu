@@ -54,7 +54,7 @@ $/.CXX_SRCS   := $(filter %.C,${s4csrc}) $(filter %.C,${s4psrc})
 $/.CXX_LIBS   := $/libsim4.a
 
 $/.CLEAN      := $/*.o $/sim4core/*.o $/sim4polish/*.o
-$/.REAL-CLEAN := $/sim4core/buildinfo-* $/sim4polish/buildinfo-*
+$/.REAL-CLEAN := $/sim4core/buildinfo-* $/sim4polish/buildinfo-* $/buildinfo-*
 
 $/.CXX_LIBS   :=$/libsim4.a
 

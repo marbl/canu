@@ -4,7 +4,7 @@
 #include <string.h>
 #include <errno.h>
 
-#include "sim4polish.h"
+#include "sim4.H"
 
 int
 main(int argc, char ** argv) {

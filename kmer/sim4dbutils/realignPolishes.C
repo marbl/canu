@@ -3,10 +3,8 @@
 #include <errno.h>
 #include <string.h>
 
-#include "bri++.H"
-#include "fasta.H"
-#include "fasta-cache.H"
-#include "sim4polish.h"
+#include "bio++.H"
+#include "sim4.H"
 
 //  This code takes basic sim4db format polishes and recomputes the
 //  alignments and scores.  Required in the input polishes are the EST

@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
-#include "bri++.H"
-#include "sim4polish.h"
-#include "sim4polishBuilder.H"
+
+#include "bio++.H"
+#include "sim4.H"
 
 
 const char *usage = 

@@ -17,6 +17,8 @@ add_offset_exons(Exon *exons, int offset) {
   }
 }
 
+
+#if 0
 static void
 add_offset_aligns(edit_script_list *aligns, int offset) {
   if (!offset || !aligns)
@@ -25,6 +27,8 @@ add_offset_aligns(edit_script_list *aligns, int offset) {
   for (; aligns; aligns = aligns->next_script)
     aligns->offset2 += offset;
 }
+#endif
+
 
 void
 Sim4::maskExonsFromSeeds(sim4command *cmd,
@@ -35,7 +39,8 @@ Sim4::maskExonsFromSeeds(sim4command *cmd,
       for (u32bit x=0; x<cmd->numberOfExternalSeeds(); x++) {
         int pos = cmd->externalSeedGENPosition(x);
 
-        if ((theExon->frGEN-1 <= pos) && (pos - cmd->externalSeedLength(x) <= theExon->toGEN ))
+        if ((theExon->frGEN-1 <= pos) &&
+            (pos - cmd->externalSeedLength(x) <= theExon->toGEN ))
           cmd->maskExternalSeed(x);
       }
     }
@@ -348,7 +353,10 @@ Sim4::run(sim4command *cmd) {
 
       if (globalParams->_ignorePolyTails) {
         add_offset_exons(fExons, g_pT);  
-        add_offset_aligns(fAligns, g_pT);
+        
+        //add_offset_aligns(fAligns, g_pT);
+        for (edit_script_list *aligns = fAligns; aligns; aligns = aligns->next_script)
+          aligns->offset2 += g_pT;
       }
 
       B.setPolyTails(g_pA + f_pA, g_pT + f_pT);
@@ -379,7 +387,10 @@ Sim4::run(sim4command *cmd) {
 
       if (globalParams->_ignorePolyTails) {
         add_offset_exons(rExons, g_pT); 
-        add_offset_aligns(rAligns, g_pT);
+
+        //add_offset_aligns(rAligns, g_pT);
+        for (edit_script_list *aligns = rAligns; aligns; aligns = aligns->next_script)
+          aligns->offset2 += g_pT;
       }
 
       B.setPolyTails(g_pA + r_pA, g_pT + r_pT);

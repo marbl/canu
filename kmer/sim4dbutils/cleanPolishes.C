@@ -4,7 +4,8 @@
 #include <string.h>
 #include <errno.h>
 
-#include "sim4polish.h"
+#include "bio++.H"
+#include "sim4.H"
 
 char const *usage =
 "usage: %s [-threshold t] [-savejunk] [-quiet] [-debug]\n"
@@ -14,8 +15,6 @@ char const *usage =
 "  -segregate    Save (in separate files) the after of each modified match\n"
 "  -savejunk     Also print the trimmed pieces (as separate matches)\n"
 "\n";
-
-
 
 //#define  MIN_EXON_LENGTH       50
 //#define  MIN_PERCENT_IDENTITY  88

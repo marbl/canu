@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <errno.h>
 
-#include "bri++.H"
-#include "fasta.H"
-#include "sim4polish.h"
+#include "bio++.H"
+//#include "fasta.H"
+#include "sim4.H"
 
 //
 //  usage: mergeInput -m match1 cdna1 -m match2 cdna2 -m ... -o match cdna
