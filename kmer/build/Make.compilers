@@ -154,17 +154,17 @@ endif
 # Change the CC and CXX to point to Microsoft's binaries. 
 ifeq (${_OS|FULL_},cygwin|msvc)
    VCBASE:=c:/Program Files/Microsoft Visual Studio .NET 2003/Vc7
-   CC:=${MAKEFILE/}Make_utils/msvc.pl -nologo -I\'${VCBASE}/include\' -EHsc -Ox
+   CC:=${MAKEFILE/}Make_utils/msvc.pl -nologo -I\'${VCBASE}/include\' -I\'${VCBASE}/PlatformSDK/include\' -EHsc -Ox
    CFLAGS:=
-   CXX:=${MAKEFILE/}Make_utils/msvc.pl -nologo -I\'${VCBASE}/include\' -EHsc -Ox
+   CXX:=${MAKEFILE/}Make_utils/msvc.pl -nologo -I\'${VCBASE}/include\' -I\'${VCBASE}/PlatformSDK/include\'  -EHsc -Ox
    CXXFLAGS:=
-   AR:=${MAKEFILE}Make_utils/msar.pl
+   AR:=${MAKEFILE/}Make_utils/msar.pl
    ARFLAGS:=-nologo
-   CLD:=${MAKEFILE}Make_utils/msld.pl
-   CLDFLAGS:=-nologo -LIBPATH:\'${VCBASE}/lib\'
+   CLD:=${MAKEFILE/}Make_utils/msld.pl
+   CLDFLAGS:=-nologo -LIBPATH:\'${VCBASE}/lib\' -LIBPATH:\'${VCBASE}/PlatformSDK/lib\'
    CLIBS:=
-   CXXLD:=${MAKEFILE}Make_utils/msld.pl
-   CXXLDFLAGS:=-nologo -LIBPATH:\'${VCBASE}/lib\'
+   CXXLD:=${MAKEFILE/}Make_utils/msld.pl
+   CXXLDFLAGS:=-nologo -LIBPATH:\'${VCBASE}/lib\' -LIBPATH:\'${VCBASE}/PlatformSDK/lib\' 
    CXXLIBS:=
 endif
 

@@ -36,12 +36,20 @@ define .FUN-install-copy-exe
 	@ files='$$(strip $1)'; dirs='$$(strip $2)'; \
 	if [ -n "$$$${files}" -a -n "$$$${dirs}" ] ; then \
 	  for F in $$$${files} ; do \
-	    if [ -f $$$${F}${.EXE} ] ; then \
+	    if [ "${.EXE}" != "" -a -f $$$${F}${.EXE} ] ; then \
 	      for D in $$$${dirs} ; do \
 	        Fout=$${INSTALL/}$$$${D}`basename $$$${F}` ; \
 	        echo ":Copying $$$${F}${.EXE} to $$$${Fout}${.EXE}:" ; \
 	        mkdir -p `dirname $$$${Fout}` && \
 	        rm -f $$$${Fout}${.EXE} && cp -fp $$$${F}${.EXE} $$$${Fout}${.EXE} ; \
+	      done ; \
+	    fi ; \
+	    if [ -f $$$${F} ] ; then \
+	      for D in $$$${dirs} ; do \
+	        Fout=$${INSTALL/}$$$${D}`basename $$$${F}` ; \
+	        echo ":Copying $$$${F} to $$$${Fout}:" ; \
+	        mkdir -p `dirname $$$${Fout}` && \
+	        rm -f $$$${Fout} && cp -fp $$$${F} $$$${Fout} ; \
 	      done ; \
 	    fi ; \
 	  done ; \
