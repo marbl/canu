@@ -1,0 +1,652 @@
+\documentclass{article}
+
+\usepackage{fullpage}
+
+\begin{document}
+
+\section{Anatomy of the Makefile}
+% cvs version 1.26
+
+Here we go line by line through the \verb+Makefile+ and discuss the function
+of every part.
+
+\begin{verbatim}
+default:   all
+\end{verbatim}
+First a default target is created.  The first goal listed is always
+the default target.  Typically people use \verb+all+ for this.  Since
+we do not know what verb+all+ will mean until much later in the file,
+we can not define \verb+all+ yet.
+
+\begin{verbatim}
+ifndef MAKEFILE/
+  MAKEFILE/ :=$(dir $(firstword $(MAKEFILE_LIST)))
+endif
+\end{verbatim}
+Some files are looked for in the directory where the
+\verb+Makefile+ was found, by extracting this information from the
+built-in variable \verb+MAKEFILE_LIST+.  The \verb+MAKEFILE/+ variable
+thus created should then point to the place where \verb+Make.compilers+
+and \verb+Make.rules+ can be found.
+
+\begin{verbatim}
+ifdef MAKE_COMPILERS
+ include ${MAKE_COMPILERS}
+else
+ include ${MAKEFILE/}Make.compilers
+endif
+\end{verbatim}
+We load the \verb+Make.compilers+ file, which is more of a
+configuration file, since it contains definitions not just of the
+compilers but also of basic utilities.  One design goal was to have
+all architectural dependencies captured by a single file so
+that porting to a new architecture would require only the adjustment
+of this file.  This file can be overridden by a user supplied
+\verb+MAKE_COMPILERS+ argument, though it is probably a mistake
+to use this feature as anything but a temporary device.
+
+We now begin the directory traversal part, where subdirectories are
+explored and build information is collected.
+
+\begin{verbatim}
+//           :=
+RECURSIVE    :=
+/            :=
+\end{verbatim}
+Three important variables are being initialized here.  The variable
+\verb+//+ holds the list of all directories which have been traversed
+and also have not opted out of the build system.  The directories are
+kept in {\em dotted} form (i.e. \verb+.+, \verb+subdir/.+).  The
+\verb+RECURSIVE+ variable holds those directories (in dotted form)
+which have been traverse and have opted out of the build system.  The
+variable \verb+/+ is the current relative path variable, which is
+meant to be used by traversed \verb+Make.include+ files.
+
+
+\begin{verbatim}
+define Include
+ $(foreach x,$(strip ${1}),$(call Include_File,$x))
+endef
+
+define Include_File
+  ifeq ($(filter ${1}.,${WITHOUT_}),)
+    ifeq ($(wildcard ${1}Make.include),${1}Make.include)
+      $/.SUBS +=${1}.
+      // +=${1}.
+      ${1}.SUBS :=
+      /  :=${1}
+      include ${1}Make.include
+      /  :=$/
+    endif
+  endif
+
+endef
+
+ifndef WITHOUT
+  WITHOUT:=
+endif
+WITHOUT_:=$(patsubst %,%.,$(strip ${WITHOUT}))
+\end{verbatim}
+The normal \verb+include+ syntax is wrapped in a function which will
+maintain \verb+/+ properly while adding newly traversed directories to
+\verb+//+ and keeping track of who is who's children (kept in
+\verb+$/.SUBS+).  Each directory
+is traverse if its \verb+Make.include+ file exists and is not on
+a set of special suppressed directories.  Traversed directories
+have their \verb+Make.include+ files included.  Within those
+\verb+Make.include+ files, \verb+/+ will hold the relative path
+to the directory.  The \verb+Include+ function is meant for external
+use, while the \verb+Include_File+ is a technicality and should not
+be employed except within this file.
+
+\begin{verbatim}
+$(eval $(call Include_File,$/))
+\end{verbatim}
+We include the \verb+Make.include+ file which sits in the {\em current}
+directory (as opposed to the build directory).  Since traversal
+starts in the current directory, the only build information which
+will be considered is that from this directory and its children.
+This allows a user to build within their source directory, if they
+do not which to check lateral dependencies for some reason (e.g.
+efficiency).
+
+\begin{verbatim}
+//            :=$(filter-out ${RECURSIVE},${//})
+\end{verbatim}
+After traversal, \verb+//+ holds all directories which have been
+traverse.  We now remove from it all those paths which have opted
+out.  At this point, \verb+//+ holds those directories which are
+considered to be properly participating in the build and
+\verb+RECURSIVE+ holds those which will be built in a more or less
+{\em legacy} fashion.  At this point, \verb+/+ should be an
+empty string (even though it does appear below).
+
+A second design goal was the separation of the specification of
+build rules from the primary \verb+Makefile+ so that new file types
+and build commands could be added to the build system by appending
+them to \verb+Make.rules+.
+
+\begin{verbatim}
+__SUBGOALS__=
+__DEPGOALS__=
+\end{verbatim}
+The \verb+__SUBGOALS__+ variable is intended to hold all those targets
+which must be made for the \verb+all+ target.  The \verb+__DEPGOALS__+
+holds patterns for dependency files which are to be included.
+These variables will be
+dynamically scoped (the one exception we make to the usual static scoping).
+This allows for a variable capture which we exploit later.  The
+\verb+__SUBGOALS__+ and \verb+__DEPGOALS__+ variables are
+determined in the \verb+Make.rules+
+file.
+
+\begin{verbatim}
+-include ${MAKEFILE/}Make.rules
+\end{verbatim}
+If the \verb+Make.rules+ file exists in the directory of the 
+\verb+Makefile+ then it is included.  If it does not exist, the system will
+use the default rules built-in to \verb+make+, which have a
+chance of working right.
+
+\begin{verbatim}
+$(eval DEPENDS:=$(foreach x,${//},$(call __DEPGOALS__,$x)))
+ifneq ($(strip ${DEPENDS}),)
+  ifeq ($(filter %-clean,${MAKECMDGOALS}),)
+    include ${DEPENDS}
+  endif
+endif
+\end{verbatim}
+The \verb+__DEPGOALS__+ pattern is evaluated on every directory and
+expanded into a set of files in the variable \verb+DEPENDS+.  Unless
+one of the command goals of the build contains the suffix \verb+-clean+,
+these files will be included.  The {\em clean} conditional exists to
+prevent certain kind of wedged conditions the build system could get
+in as well as allowing the clean targets to be processed without a
+building of any automatically created \verb+DEPENDS+ files.
+
+We now define the standard make targets, which are applied to all
+subdirectory targets.  The basic target, \verb+TARG+ is also defined
+on a per-subdirectory basis with targets of the form \verb+$/.TARG+
+with \verb+TARG+ being nearly an alias for \verb+.TARG+ (aside from
+\verb+RECURSIVE+ directories).  This allows
+the user to selectively build only those subgoals which are in a
+single directory.  Target \verb+TARG+ for \verb+RECURSIVE+ builds are
+done before the \verb+$/.TARG+ target.  Building all legacy targets
+first seems like a good idea.
+
+\begin{verbatim}
+clean:         ${RECURSIVE:.=.clean}      $/.clean
+define .RULE-clean
+${1:.=.clean}: $${${1:.=.SUBS}:.=.clean}
+	${RM} $${${1:.=.CLEAN}} ${__SUBGOALS__}
+	(cd $1 && ${RM} -r ${C_TMP_COMPILE} ${CXX_TMP_COMPILE})
+
+endef
+$(eval $(foreach x,${//},$(call .RULE-clean,$x)))
+\end{verbatim}
+The \verb+clean+ target executes for recursive directories first
+and then for \verb+.clean+.  The \verb+$/.clean+ target for
+each subdirectory depends on the \verb+$/.clean+ target of its
+children and executes by removing those files or patterns which were listed
+in the \verb+$/.CLEAN+ variable of that directory, any subgoals of
+that directory, and any temporary compiler files which may have been
+created in that directory (e.g. \verb+so_locations/+).
+
+\begin{verbatim}
+depends-clean:                            $/.depends-clean
+${RECURSIVE:.=.depends-clean}:
+define .RULE-depends-clean
+${1:.=.depends-clean}: $${${1:.=.SUBS}:.=.depends-clean}
+	${RM} ${1:.=Make.depends} ${__DEPGOALS__}
+
+endef
+$(eval $(foreach x,${//},$(call .RULE-depends-clean,$x)))
+\end{verbatim}
+Similar to \verb+clean+ only we remove only dependency files which
+may have been built to satisfy the \verb+include ${DEPENDS}+ line
+previous.
+
+\begin{verbatim}
+real-clean:    ${RECURSIVE:.=.real-clean} $/.real-clean
+define .RULE-real-clean
+${1:.=.real-clean}: $${${1:.=.SUBS}:.=.real-clean}
+	${RM} $${${1:.=.CLEAN}} ${__SUBGOALS__}
+	(cd $1 && ${RM} -r ${C_TMP_COMPILE} ${CXX_TMP_COMPILE})
+	${RM} ${1:.=Make.depends} ${__DEPGOALS__}
+	${RM} $${${1:.=.REAL-CLEAN}}
+
+endef
+$(eval $(foreach x,${//},$(call .RULE-real-clean,$x)))
+\end{verbatim}
+A combination of the previous two \verb+clean+ targets.
+
+\begin{verbatim}
+all:           ${RECURSIVE:.=.all}        $/.all
+define .RULE-all
+${1:.=.all}: $${${1:.=.SUBS}:.=.all} ${__SUBGOALS__}
+
+endef
+$(eval $(foreach x,${//},$(call .RULE-all,$x)))
+\end{verbatim}
+The \verb+all+ target depends on all subdirectory \verb+all+'s
+and all subgoals for this directory.
+
+
+The last major section of the \verb+Makefile+ is the installer.
+Installation currently proceeds by depending on the subgoals
+and doing a copy of those built subgoals to a special directory,
+\verb+INSTALL/+ which is determined in the \verb+Make.compilers+
+file.  Because different directories may wish to do different
+kinds of pre and post installation actions, the \verb+.install+
+targets have been written to provide a number of hooks.  It is
+up to the \verb+Make.rules+ file to make use of those hooks.
+
+\begin{verbatim}
+${RECURSIVE:.=.install-copy}:
+define .RULE-install-copy
+${1:.=.install-copy}: $${${1:.=.SUBS}:.=.install-copy}
+
+endef
+$(eval $(foreach x,${//},$(call .RULE-install-copy,$x)))
+\end{verbatim}
+All \verb+.install+ targets have a \verb+.install-copy+ target defined
+which depends on the \verb+.install-copy+'s of the children.  A dummy
+target is defined for legacy builds to prevent certain kinds of
+build problems, but it is never normally invoked.
+
+\begin{verbatim}
+install:       ${RECURSIVE:.=.install}    $/.install
+define .RULE-install
+${1:.=.install}: ${1:.=.all} ${1:.=.install-copy}
+
+endef
+$(eval $(foreach x,${//},$(call .RULE-install,$x)))
+\end{verbatim}
+An install in a directory is equivalent to doing an install in
+the legacy directories, a build in the current directory (and
+its children) and an install copy in the current directory
+(and its children).
+
+\section{Anatomy of the Make.rules}
+% cvs revision 1.25
+
+The execution of commands other than cleaning commands is
+determined by the file \verb+Make.rules+.  This file defines
+file types and actions to be taken to rebuild files.
+
+\begin{verbatim}
+define .FUN-install-copy
+	@ files='$$(strip $1)'; dirs='$$(strip $2)'; \
+	if [ -n "$$$${files}" -a -n "$$$${dirs}" ] ; then \
+	  for F in $$$${files} ; do \
+	    if [ -f $$$${F} ] ; then \
+	      for D in $$$${dirs} ; do \
+	        Fout=$${INSTALL/}$$$${D}`basename $$$${F}` ; \
+	        echo ":Copying $$$${F} to $$$${Fout}:" ; \
+	        mkdir -p `dirname $$$${Fout}` && \
+	        cp -fp $$$${F} $$$${Fout} ; \
+	      done ; \
+	    fi ; \
+	  done ; \
+        fi
+endef
+define .FUN-install-copy-script
+	@ files='$$(strip $1)'; dirs='$$(strip $2)'; sheb='$$(strip $3)'; \
+	if [ -n "$$$${files}" -a -n "$$$${dirs}" ] ; then \
+	  for F in $$$${files} ; do \
+	    if [ -f $$$${F} ] ; then \
+	      for D in $$$${dirs} ; do \
+	        Fout=$${INSTALL/}$$$${D}`basename $$$${F}` ; \
+	        echo ":Mangling script $$$${F} to $$$${Fout}:" ; \
+	        mkdir -p `dirname $$$${Fout}` && \
+	        cp -fp $$$${F} $$$${Fout} && \
+	        chmod ugo+x $$$${Fout} && \
+	        ${PERL} -npi \
+	           -e"if(0==\$$$$i++){s|^#!.*|#! $$$${sheb}|}" $$$${Fout}; \
+	      done ; \
+	    fi ; \
+	  done ; \
+        fi
+endef
+\end{verbatim}
+These are two helper functions.  The first of these installs is first
+argument, \verb+files+, into all of the directories specified in the
+second argument, \verb+dirs+ (which are assumed to be subdirs of
+\verb+INSTALL/+).  It checks for existence and tries to make
+direectories which need making.  The second function is similar to the
+first, but it also takes a third argument \verb+sheb+ which is the
+{\em shebang} line for a script.  It replaces the shebang line of the
+contents of the \verb+sheb+ variable.
+
+The rest of the file is the set of blocks, each block dealing with
+a certain file type and its rules.
+
+The first section, which is the largest is the one for C and C++.
+\begin{verbatim}
+__DEPGOALS__     +=                 $$(patsubst %,%.d,$${${1:.=.C_SRCS}})
+ALL_C_DEPS       :=$(foreach x,${//},$(patsubst %,%.d,${${x:.=.C_SRCS}}))
+${ALL_C_DEPS}:%.d:%
+	@ echo "making $@"
+	 dir=`echo $< | sed -e's~[^/]*$$~~'`; \
+	  ${CCDEP} ${CDEPFLAGS} ${CFLAGS} $< | \
+	  sed -e"/:/s!^!$${dir}!" > $@
+
+__DEPGOALS__     +=                 $$(patsubst %,%.d,$${${1:.=.CXX_SRCS}})
+ALL_CXX_DEPS     :=$(foreach x,${//},$(patsubst %,%.d,${${x:.=.CXX_SRCS}}))
+${ALL_CXX_DEPS}:%.d:%
+	@ echo "making $@"
+	 dir=`echo $< | sed -e's~[^/]*$$~~'`; \
+	  ${CXXDEP} ${CXXDEPFLAGS} ${CXXFLAGS} $< | \
+	  sed -e"/:/s!^!$${dir}!" > $@
+\end{verbatim}
+This section specifies the compiler dependencies which must be
+detected.  Dependency files are made for all source files
+(set to \verb+$/.C_SRCS+ and \verb+$/.CXX_SRCS+ presumably in
+the \verb+$/Make.include+ file).  These
+names are added to the \verb+___DEPGOALS__+ to be included later
+in the \verb+Makefile+.  We also have the rule for constructing
+dependency files from source files.
+
+\begin{verbatim}
+.PRECIOUS: %.o
+
+%.o: %.c
+	${CC} ${CFLAGS} ${CFLAGS_COMPILE} -o $@ -c $<
+
+%.o: %.cc
+	${CXX} ${CXXFLAGS} ${CXXFLAGS_COMPILE} -o $@ -c $<
+
+%.o: %.cpp
+	${CXX} ${CXXFLAGS} ${CXXFLAGS_COMPILE} -o $@ -c $<
+
+%.o: %.C
+	${CXX} ${CXXFLAGS} ${CXXFLAGS_COMPILE} -o $@ -c $<
+\end{verbatim}
+Pattern-driven rules are specified for several kinds of
+object code builds.
+
+\begin{verbatim}
+ALL_C_EXES   :=$(strip $(foreach x,${//},${${x:.=.C_EXES}}))
+${ALL_C_EXES}:
+	${CC} ${CLDFLAGS} -o $@ $^ ${CLIBS}
+__SUBGOALS__+=$${${1:.=.C_EXES}}
+
+ALL_CXX_EXES :=$(strip $(foreach x,${//},${${x:.=.CXX_EXES}}))
+${ALL_CXX_EXES}:
+	${CXX} ${CXXLDFLAGS} -o $@ $^ ${CXXLIBS}
+__SUBGOALS__+=$${${1:.=.CXX_EXES}}
+\end{verbatim}
+We add to the subgoals the executable programs \verb+$/.C_EXES+ and
+\verb+$/.CXX_EXES+.  They are constructed by a link command.
+
+\begin{verbatim}
+define .RULE-install-copy-C-CXX-EXES
+${1:.=.install-copy}: ${1:.=.install-copy-C-CXX-EXES}
+${1:.=.install-copy-C-CXX-EXES}:
+# all exes go to bin
+	$(call .FUN-install-copy,$${${1:.=.C_EXES}} $${${1:.=.CXX_EXES}},bin/)
+
+endef
+$(eval $(foreach x,${//},$(call .RULE-install-copy-C-CXX-EXES,$x)))
+\end{verbatim}
+We add to each \verb+.install-copy+ rule the action that executable
+programs be copied to the subdirectory \verb+bin/+.
+
+\begin{verbatim}
+ALL_C_LIBS   :=$(strip $(foreach x,${//},${${x:.=.C_LIBS}}))
+${ALL_C_LIBS}:
+	rm -f $@
+	${AR} ${ARFLAGS} $@ $^
+__SUBGOALS__+=$${${1:.=.C_LIBS}}
+
+ALL_CXX_LIBS     :=$(strip $(foreach x,${//},${${x:.=.CXX_LIBS}}))
+${ALL_CXX_LIBS}:
+	rm -f $@
+	${AR} ${ARFLAGS} $@ $^
+__SUBGOALS__+=$${${1:.=.CXX_LIBS}}
+
+ALL_CXX_SHLIBS   :=$(strip $(foreach x,${//},${${x:.=.CXX_SHLIBS}}))
+${ALL_CXX_SHLIBS}:
+	${CXX} ${CXXFLAGS} ${SHLIB_FLAGS} -o $@ $^ ${CXXLIBS}
+__SUBGOALS__+=$${${1:.=.CXX_SHLIBS}}
+\end{verbatim}
+Additional C,C++ subgoals include libraries and shared libraries.
+
+\begin{verbatim}
+define .RULE-install-copy-C-CXX-LIBS
+${1:.=.install-copy}: ${1:.=.install-copy-C-CXX-LIBS}
+${1:.=.install-copy-C-CXX-LIBS}:
+# all libs go to lib/${.LIB/}
+	$(call .FUN-install-copy,$${${1:.=.C_LIBS}} $${${1:.=.CXX_LIBS}} \
+                                 $${${1:.=.CXX_SHLIBS}}, \
+                                 lib/$${${1.=.LIB/}})
+
+endef
+$(eval $(foreach x,${//},$(call .RULE-install-copy-C-CXX-LIBS,$x)))
+\end{verbatim}
+Libraries and shared libraries are copied to the subdirectory
+\verb+lib/$/.LIB/+, i.e. to \verb+lib/+ or some subdirectory of
+\verb+lib/+ specified by the  variable \verb+$/.LIB/+, which is
+presumably set in the \verb+$/Make.include+.
+
+\begin{verbatim}
+define .RULE-install-copy-C-CXX-INCS
+${1:.=.install-copy}: ${1:.=.install-copy-C-CXX-INCS}
+${1:.=.install-copy-C-CXX-INCS}:
+# all includes go to include/${.INCLUDE/}
+	$(call .FUN-install-copy,$${${1:.=.C_INCS}} $${${1:.=.CXX_INCS}}, \
+                                 include/$${${1:.=.INCLUDE/}})
+
+endef
+$(eval $(foreach x,${//},$(call .RULE-install-copy-C-CXX-INCS,$x)))
+\end{verbatim}
+If include files are defined in \verb+$/.C_INCS+ or \verb+$/.CXX_INC+
+then these are copied directly to \verb+include/+ or one of its
+subdirectories, specified by \verb+$/.INCLUDE/+.
+
+We now start on the section which builds ps and pdf documents from
+\LaTeX files.
+\begin{verbatim}
+.PRECIOUS: %.pdf %.ps %.dvi %.aux %.bbl
+
+%.dvi: %.tex
+	cd `dirname $<` && ${LATEX} `basename $<` && ${LATEX} `basename $<`
+
+%.aux: %.tex
+	cd `dirname $<` && ${LATEX} `basename $<` && ${LATEX} `basename $<`
+
+%.bbl: %.aux
+	cd `dirname $<` && ${BIBTEX} `basename ${<:.aux=}`
+\end{verbatim}
+These are the commands to invoke \LaTeX, based on file pattern.
+
+\begin{verbatim}
+ALL_TEX_PS    :=$(strip $(foreach x,${//},${${x:.=.TEX_PS}}))
+ALL_TEX_PDF   :=$(strip $(foreach x,${//},${${x:.=.TEX_PDF}}))
+
+${ALL_TEX_PS}: %.ps: %.dvi
+	cd `dirname $<` && ${DVIPS} -o `basename $@` `basename $<`
+
+${ALL_TEX_PDF}: %.pdf: %.ps
+	${PS2PDF} $< $@
+
+__SUBGOALS__+=$${${1:.=.TEX_PS}} $${${1:.=.TEX_PDF}}
+\end{verbatim}
+The \verb+$/.TEX_PS+ and \verb+$/.TEX_PDF+ files are added to the
+subgoals.  The commands to actually construct ps and pdf files 
+have been defined.
+
+\begin{verbatim}
+define .RULE-install-copy-TEX_PSPDF
+${1:.=.install-copy}: ${1:.=.install-copy-TEX_PSPDF}
+${1:.=.install-copy-TEX_PSPDF}:
+	$(call .FUN-install-copy,$${${1:.=.TEX_PS}},doc/$${${1:.=.DOC/}})
+	$(call .FUN-install-copy,$${${1:.=.TEX_PDF}},doc/$${${1:.=.DOC/}})
+
+endef
+$(eval $(foreach x,${//},$(call .RULE-install-copy-TEX_PSPDF,$x)))
+\end{verbatim}
+The ps and pdf files are copied to \verb+doc/+ or the
+\verb+$/.DOC/+ subdirectory of \verb+doc/+.
+
+\begin{verbatim}
+define .RULE-install-copy-PYTHON
+${1:.=.install-copy}: ${1:.=.install-copy-PYTHON}
+${1:.=.install-copy-PYTHON}:
+	$(call .FUN-install-copy-script,$${${1:.=.PY_EXES}},\
+                                         scripts/,\
+                                         ${PYSHEBANG})
+	$(call .FUN-install-copy,$${${1:.=.PY_LIBS}}, \
+                                 scripts/$${${1:.=.PY_LIB/}})
+
+endef
+$(eval $(foreach x,${//},$(call .RULE-install-copy-PYTHON,$x)))
+\end{verbatim}
+Python scripts require only copying, but with the shebang mangling
+on the \verb+$/.PY_EXES+ files.  The \verb+$/.PY_EXES+ files get
+copied (and shebang-ed) to \verb+scripts/+, and the
+\verb+$/.PY_LIBS+ get copied to \verb+lib/$/.PY_LIB/+.
+
+\section{Anatomy of Make.compilers}
+
+The \verb+Make.compilers+ file sets many architecture dependent
+variables as well as compiling modes such as debugging or profiling.
+Additionally, the paths for various libraries and utilities are set.
+The first part of the file ascertains the architecture and build mode,
+and the rest of the file sets variables based on them.  This is done
+in sections broken down by application rather than architecture or
+mode.  This will not be a line by line walkthrough.  Instead we will
+list important variables being set and what they mean for the other
+parts of the build system.
+
+\begin{verbatim}
+ifdef OPERATING_SYSTEM
+  _OS_:=$(OPERATING_SYSTEM)
+else
+  _OS_:=$(shell uname)
+  WITH_GNU:=1
+endif
+ifdef WITH_GNU
+  _CC_:=-gcc
+else
+  _CC_:=
+endif
+ifdef WITH_DEBUG
+  _OPT_ :=-debug
+else
+  ifdef WITH_PROFILE
+    _OPT_ :=-prof
+  else
+    _OPT_ :=
+  endif
+endif
+ifdef WITH_THREADS
+  _THR_:=-threaded
+else
+  _THR_:=
+endif
+\end{verbatim}
+\verb+_OS_+ holds the architecture.  If \verb+_CC_+ is set to '-gcc'
+then GNU compilers will be used, and if it is empty and native
+compilers will be used if the \verb+_OS_+ is known (otherwise GNU
+will be used).  There are three \verb+_OPT_+ modes: 'debug', 'profile',
+and '' (normal).  There is also a \verb+_THR_+ variable which determines
+if the applications are to be compiled with threading.
+
+\begin{verbatim}
+ifdef INSTALL_TAG
+  INSTALL/:=${MAKEFILE/}${_OS_}${_CC_}${_OPT_}${_THR_}-${INSTALL_TAG}/
+else
+  INSTALL/:=${MAKEFILE/}${_OS_}${_CC_}${_OPT_}${_THR_}/
+endif
+\end{verbatim}
+The \verb+INSTALL/+ directory is set.  It is based on the location
+of the \verb+Makefile+ and the given tags.
+If the user has defined a the variable \verb+INSTALL_TAG+ than this
+will be added to the \verb+INSTALL/+ directory.
+
+\begin{verbatim}
+CCDEP		 :=gcc
+CXXDEP		 :=g++
+CDEPFLAGS        :=-MM -MG
+CXXDEPFLAGS      :=-MM -MG
+\end{verbatim}
+The GNU compilers have much more sophisticated dependency producers than
+the native compilers, so we will use them for all architectures.  In
+theory this could cause bugs due to the mismatch between depends and
+build compilers.  In practise, it does not.
+
+\begin{verbatim}
+CC:=
+CXX:=
+CFLAGS:=
+CXXFLAGS:=
+CFLAGS_COMPILE:=
+CXXFLAGS_COMPILE:=
+CLDFLAGS:=
+CXXLDFLAGS:=
+CLIBS:=-lm
+CXXLIBS:=-lm
+SHLIB_FLAGS:=
+\end{verbatim}
+The \verb+CC,CXX+ variables are obvious.  The \verb+CFLAGS,CXX_FLAGS+
+variables are those compile flags which are needed by bith the
+dependency check and by the actual compile such as
+include paths.  The \verb+CFLAGS_COMPILE+
+and \verb+CXXFLAGS_COMPILE+ flags are those which are only needed by
+the actual compile, not by the dependency checker, like debugging
+and profiling flags.  The \verb+CLDFLAGS,CXXLDFLAGS+ are the flags
+for the compiler when functioning as a loader and are placed on
+the loader command line ahead of the object files.  The
+\verb+CLIBS,CXXLIBS+ are placed on the loader command line after the
+object files.
+
+The \verb+Make.compilers+ file is not just about defining the compilers
+and interpreters on the system.  It is also used to make available certain
+architecture dependent package locations.
+\begin{verbatim}
+ifeq (${_OS_},TRU64)
+  CXXFLAGS_LAPACK   :=-DFTN_UNDERSCORE -DFTN_LOWERCASE
+  CXXLDFLAGS_LAPACK :=
+  CXXLIBS_LAPACK    :=-ldxml
+endif
+ifeq (${_OS_},AIX)
+  CXXFLAGS_LAPACK   :=-DFTN_UNDERSCORE -DFTN_LOWERCASE
+  CXXLDFLAGS_LAPACK :=
+  CXXLIBS_LAPACK    :=-lessl
+endif
+
+ifeq (${_OS_},SunOS)
+  CXXFLAGS_LAPACK   :=-DFTN_UNDERSCORE -DFTN_LOWERCASE
+  CXXLDFLAGS_LAPACK :=-L/home/ross/local/lib
+  CXXLIBS_LAPACK    :=-llapack -lblas -lF77
+  PS2PDF            :=/remote/depot/bin/ps2pdf -I/remote/depot/share/ghostscript/5.50/
+endif
+\end{verbatim}
+Some modules use LAPACK.  Although these variables do not get used
+in any of the rules of the build system, we define them in 
+\verb+Make.compilers+ so that they can be used in the various
+\verb+Make.include+ files which need LAPACK.
+
+\begin{verbatim}
+PYTHON    :=$(shell which python)
+PYTHON_FLAGS :=
+PYINC     :=
+PYSHEBANG :=${PYTHON}
+ifeq (${_OS_}${_CC_},TRU64)
+  PYINC     :=-I/usr/local/ir/Python-2.2.2 -I/usr/local/ir/Python-2.2.2/Include
+  PYTHON    :=/usr/local/ir/bin/python
+  PYSHEBANG :=${PYTHON} ${PYTHON_FLAGS}
+endif
+ifeq (${_OS_}${_CC_},AIX)
+  PYINC   :=-I/usr/local/include/python2.2
+  PYTHON  :=/usr/local/bin/python
+  PYSHEBANG :=${PYTHON} ${PYTHON_FLAGS}
+endif
+\end{verbatim}
+Python and its paths for the known architectures are determined here.  On
+unknown architectures we guess where python is based on the users path.
+
+
+\end{document}
+
