@@ -68,7 +68,10 @@ test1(char *filename) {
     return(true);
   }
 
-  for (u32bit j=0; T->nextMer(); j++) {
+  u64bit pos = 0;
+  u64bit seq = 0;
+
+  while (T->nextMer()) {
     if (M->get(T->theFMer(),
                 posn,
                 posnMax,
@@ -76,20 +79,28 @@ test1(char *filename) {
 
       missing = u32bitZERO;
       for (u32bit i=0; i<posnLen; i++)
-        if (posn[i] == T->thePosition())
+        if (posn[i] == T->thePositionInStream())
           missing++;
 
       if (missing != 1) {
         failed++;
 
-        fprintf(stdout, "Found "u64bitFMT" table entries, and "u32bitFMT" matching positions for mer=%s at pos="u64bitFMT"\n",
-                posnLen, missing, T->theFMerString(), T->thePosition());
+        fprintf(stdout, "%s @ "u64bitFMT"/"u64bitFMT": Found "u64bitFMT" table entries, and "u32bitFMT" matching positions (",
+                T->theFMerString(), T->theSequenceNumber(), T->thePositionInStream(), posnLen, missing);
+
+        for (u32bit i=0; i<posnLen; i++) {
+          fprintf(stdout, u64bitFMT, posn[i]);
+          if (i < posnLen - 1)
+            fprintf(stdout, " ");
+          else
+            fprintf(stdout, ")\n");
+        }
       }
     } else {
       failed++;
 
       fprintf(stdout, "Found no matches for mer=%s at pos="u64bitFMT"\n",
-              T->theFMerString(), T->thePosition());
+              T->theFMerString(), T->thePositionInStream());
     }
   }
 
@@ -112,21 +123,21 @@ test2(char *filename, char *query) {
   delete T;
   T = new merStream(MERSIZE, query);
 
-  for (u32bit j=0; T->nextMer(); j++) {
+  while (T->nextMer()) {
     if (M->get(T->theFMer(),
                 posn,
                 posnMax,
                 posnLen)) {
-      fprintf(stdout, "Got a F match for mer=%s at onePos=%d (in mers), numMatches=%ld\n",
-              T->theFMerString(), j, posnLen);
+      fprintf(stdout, "Got a F match for mer=%s at "u64bitFMT"/"u64bitFMT" (in mers), numMatches="u64bitFMT"\n",
+              T->theFMerString(), T->theSequenceNumber(), T->thePositionInStream(), posnLen);
     }
 
     if (M->get(T->theRMer(),
                 posn,
                 posnMax,
                 posnLen)) {
-      fprintf(stdout, "Got a R match for mer=%s at onePos=%d (in mers), numMatches=%ld\n",
-              T->theRMerString(), j, posnLen);
+      fprintf(stdout, "Got a R match for mer=%s at "u64bitFMT"/"u64bitFMT" (in mers), numMatches="u64bitFMT"\n",
+              T->theRMerString(), T->theSequenceNumber(), T->thePositionInStream(), posnLen);
     }
   }
 

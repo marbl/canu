@@ -388,12 +388,13 @@ public:
     else
       _rb = new readBuffer(filename);
 
-    _thePosition       = 0;
-    _theSequenceNumber = 0;
+    _thePositionInSequence  = 0;
+    _thePositionInStream    = 0;
+    _theSequenceNumber      = 0;
 
-    _theDefLineMax     = 2048;
-    _theDefLinePos     = 0;
-    _theDefLine        = new char [_theDefLineMax + 1];
+    _theDefLineMax          = 2048;
+    _theDefLinePos          = 0;
+    _theDefLine             = new char [_theDefLineMax + 1];
   };
 
   ~FastAstream() {
@@ -402,15 +403,20 @@ public:
   };
 
   bool              rewind(void) {
-    _thePosition        = 0;
-    _theSequenceNumber  = 0;
+    _thePositionInSequence  = 0;
+    _thePositionInStream    = 0;
+    _theSequenceNumber      = 0;
     return(_rb->seek(0));
   };
 
   unsigned char     nextSymbol(void);
 
-  u64bit            thePosition(void) {
-    return(_thePosition);
+  u64bit            thePositionInSequence(void) {
+    return(_thePositionInSequence);
+  };
+  u64bit            thePositionInStream(void) {
+    //  See the comment below why there is a -1 here.
+    return(_thePositionInStream - 1);
   };
   u64bit            theSequenceNumber(void) {
     return(_theSequenceNumber);
@@ -419,7 +425,8 @@ public:
     return(_theDefLine);
   };
 private:
-  u64bit       _thePosition;
+  u64bit       _thePositionInSequence;
+  u64bit       _thePositionInStream;
   u64bit       _theSequenceNumber;
 
   readBuffer  *_rb;
@@ -452,7 +459,11 @@ FastAstream::nextSymbol(void) {
   //  Looks like we are in the sequence.  Increment the position.  If
   //  this is the start of a defline, the position is reset to zero.
   //
-  _thePosition++;
+  //  The stream position is off by one because we pre-increment.  It
+  //  is adjusted on access.
+  //  
+  _thePositionInSequence++;
+  _thePositionInStream++;
 
   //  If it's valid, just return it.
   //
@@ -466,7 +477,7 @@ FastAstream::nextSymbol(void) {
 
     //  Reset thePosition and increment theSequenceNumber
     //
-    _thePosition = 0;
+    _thePositionInSequence = 0;
     _theSequenceNumber++;
 
     _theDefLinePos = 0;
@@ -525,10 +536,12 @@ FastAstream::nextSymbol(void) {
 //  Returns true if the merStreamFile exists.
 bool  merStreamFileExists(const char *i);
 
+class merStream;
 
 class merStreamFileBuilder {
 public:
   merStreamFileBuilder(u32bit merSize, const char *inputFile, const char *outputFile);
+  merStreamFileBuilder(merStream *MS, const char *outputFile);
   ~merStreamFileBuilder();
 
   //  Returns the number of mers written
@@ -536,6 +549,7 @@ public:
 
 private:
   u32bit                _merSize;
+  merStream            *_merStream;
   const char           *_inputFile;
   const char           *_outputFile;
 };
@@ -555,9 +569,10 @@ public:
   char const            *theFMerString(void);
   char const            *theRMerString(void);
 
-  u64bit                 thePosition(void)       { return(_thePosition); };
-  u64bit                 theSequenceNumber(void) { return(_theSequence); };
-  char const            *theDefLine(void)        { return(_theDefline);  };
+  u64bit                 thePositionInSequence(void) { return(_thePosInSeq); };
+  u64bit                 thePositionInStream(void)   { return(_thePosInStr); };
+  u64bit                 theSequenceNumber(void)     { return(_theSequence); };
+  char const            *theDefLine(void)            { return(_theDefline);  };
 
   bool                   seekToMer(u64bit merNumber);
   bool                   seekToSequence(u64bit seqNumber);
@@ -577,6 +592,12 @@ public:
 private:
   const char           *_inputFile;
 
+  bitPackedFile        *_streamFile;
+
+#ifdef __APPLE__
+  u32bit                _pad;
+#endif
+
   u32bit                _merSize;
   u64bit                _numMers;
   u64bit                _numBlocks;
@@ -591,11 +612,10 @@ private:
 
   u32bit               *_blockSize;
   u32bit               *_blockSequence;
-  u64bit               *_blockPosition;
+  u64bit               *_blockPosInSeq;
+  u64bit               *_blockPosInStr;
   char                 *_deflineStorage;
   char                **_deflines;
-
-  bitPackedFile        *_streamFile;
 
   //  Things used to decode the stream
   //
@@ -614,8 +634,10 @@ private:
   //
   u64bit                _theFMer;
   u64bit                _theRMer;
-  u64bit                _thePosition;
+  u64bit                _thePosInSeq;
+  u64bit                _thePosInStr;
   u64bit                _theSequence;
+
   char                 *_theDefline;
 
   char                  _theMerString[36];
@@ -667,37 +689,54 @@ public:
   char const  *theFMerString(void);
   char const  *theRMerString(void);
 
+  u32bit       theMerSize(void) { return(_merSize); };
+
   bool         rewind(void) {
     bool  ret = false;
 
+
     if (_theMers) {
       ret = _theMers->seekToMer(0);
+      _theFMer = _theMers->theFMer();
+      _theRMer = _theMers->theRMer();
     } else if (_theFile) {
       ret = _theFile->rewind();
       loadMer(_merSize - 1);
     } else {
       ret = true;
       _theStringPos = 0;
-      _thePos       = 0;
+      _thePosInSeq  = 0;
+      _thePosInStr  = 0;
+      _theNum       = 0;
       loadMer(_merSize - 1);
+      _thePosInStr--;
     }
 
     return(ret);
   };
 
-  u64bit       thePosition(void) {
+  u64bit       thePositionInSequence(void) {
     if      (_theMers)
-      return(_theMers->thePosition());
+      return(_theMers->thePositionInSequence());
     else if (_theFile)
-      return(_theFile->thePosition() - _merSize);
+      return(_theFile->thePositionInSequence() - _merSize);
     else
-      return(_thePos - _merSize);
+      return(_thePosInSeq - _merSize);
+  };
+
+  u64bit       thePositionInStream(void) {
+    if      (_theMers)
+      return(_theMers->thePositionInStream());
+    else if (_theFile)
+      return(_theFile->thePositionInStream() - _merSize);
+    else
+      return(_thePosInStr - _merSize);
   };
 
   u64bit       theSequenceNumber(void) {
     if      (_theMers)
       return(_theMers->theSequenceNumber());
-    else if (_theFile)
+    else  if (_theFile)
       return(_theFile->theSequenceNumber());
     else
       return(_theNum);
@@ -720,6 +759,9 @@ private:
     if (_theFile) {
       return(_theFile->nextSymbol());
     } else {
+      //  See also the constructor for character strings -- it skips
+      //  white space and the first defline.
+
       //  Skip any whitespace
       //
       while (isspace(_theString[_theStringPos]) && (_theString[_theStringPos]) && (_theStringPos < _theStringLen))
@@ -732,7 +774,10 @@ private:
       if (_theString[_theStringPos] == '>') {
         while ((_theString[_theStringPos] != '\n') && (_theString[_theStringPos]) && (_theStringPos < _theStringLen))
           _theStringPos++;
-        _thePos = 0;
+
+        _thePosInSeq = 0;
+        _thePosInStr++;
+
         _theNum++;
         return(254);
       }
@@ -742,9 +787,11 @@ private:
       if ((_theString[_theStringPos] == 0) || (_theStringPos >= _theStringLen))
         return(0);
 
-      //  Update the position of the character in this sequence.
+      //  Update the position of the character in this sequence, and
+      //  the positon in the stream.
       //
-      _thePos++;
+      _thePosInSeq++;
+      _thePosInStr++;
 
       return(_theString[_theStringPos++]);
     }
@@ -762,9 +809,10 @@ private:
   //  Data specific to the character string input
   //
   char const           *_theString;
-  u32bit                _theStringPos;
-  u32bit                _theStringLen;
-  u32bit                _thePos;
+  u64bit                _theStringPos;
+  u64bit                _theStringLen;
+  u64bit                _thePosInSeq;
+  u64bit                _thePosInStr;
   u32bit                _theNum;
 
   //  Data specific to nobody
@@ -849,7 +897,11 @@ merStream::loadMer(u32bit s) {
 
 
 
-
+//  how to get thePositionInStream if we don't know the length of ....
+//  we need to add one for each character we get from the source
+//    does the fasta stream eat characters?
+//    do we really need to add separators between sequences?
+//
 
 
 inline

@@ -5,11 +5,6 @@
 #include <string.h>
 
 #include "bri++.H"
-#if 0
-#include "bitOperations.h"
-#include "bitPacking.h"
-#include "fibonacciEncoding.h"
-#endif
 
 //
 //  N.B. any read/write pair (either way) must have a seek (or a fflush) in between.
@@ -47,8 +42,8 @@ bitPackedFile::bitPackedFile(char const *name) {
     exit(1);
   }
 
-  _bfrmax = 1048576 / 8;
   _bfrmax = 4096;
+  _bfrmax = 1048576 / 8;
   _bfr    = new u64bit [_bfrmax];
   _pos    = u64bitZERO;
   _bit    = u64bitZERO;

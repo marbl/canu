@@ -222,14 +222,14 @@ positionDB::positionDB(merStream   *MS,
       if (!mask->exists(canonicalmer)) {
         _bucketSizes[ HASH(MS->theFMer()) ]++;
         _numberOfMers++;
-        _numberOfPositions = MS->thePosition();
+        _numberOfPositions = MS->thePositionInStream();
 
 #if 0
         //  We probably don't want to use putNumber instead of putBits
         //  because our distribution of number is uniform up to
         //  (usually) 31 bits.
         ms->putBits(MS->theFMer(),     _merSizeInBits);
-        ms->putBits(MS->thePosition(), 32);
+        ms->putBits(MS->thePositionInStream(), 32);
 #endif
       }
 
@@ -246,14 +246,14 @@ positionDB::positionDB(merStream   *MS,
       if (only->exists(canonicalmer)) {
         _bucketSizes[ HASH(MS->theFMer()) ]++;
         _numberOfMers++;
-        _numberOfPositions = MS->thePosition();
+        _numberOfPositions = MS->thePositionInStream();
 
 #if 0
         //  We probably don't want to use putNumber instead of putBits
         //  because our distribution of number is uniform up to
         //  (usually) 31 bits.
         ms->putBits(MS->theFMer(),     _merSizeInBits);
-        ms->putBits(MS->thePosition(), 32);
+        ms->putBits(MS->thePositionInStream(), 32);
 #endif
       }
 
@@ -270,7 +270,7 @@ positionDB::positionDB(merStream   *MS,
 #endif
 
       _numberOfMers++;
-      _numberOfPositions = MS->thePosition();
+      _numberOfPositions = MS->thePositionInStream();
 #ifndef SILENTPOSITIONDB
       C->tick();
 #endif
@@ -318,8 +318,8 @@ positionDB::positionDB(merStream   *MS,
   u32bit   endPosition   = 0;
 
   if ((_wCnt > 64) || (_wFin > 64)) {
-    fprintf(stderr, "ERROR: data size too big.  Reduce mersize, number of mers, or both.\n");
-    fprintf(stderr, "ERROR: data sizes to big: wCnt="u64bitFMT" and wFin="u64bitFMT".\n", _wCnt, _wFin);
+    fprintf(stderr, "ERROR: Data sizes to big: wCnt="u32bitFMT" and wFin="u32bitFMT", should be <= 64.\n", _wCnt, _wFin);
+    fprintf(stderr, "       Reduce mersize, number of mers, or both.\n");
     exit(1);
   }
 
@@ -378,6 +378,13 @@ positionDB::positionDB(merStream   *MS,
   while (MS->nextMer(_merSkipInBases)) {
     u64bit h = HASH(MS->theFMer());
 
+#ifdef ERROR_CHECK_COUNTING
+    if (_bucketSizes[h] == 0) {
+      fprintf(stderr, "ERROR_CHECK_COUNTING: Bucket "u64bitFMT" ran out of things!  '%s'\n", h, MS->theFMerString());
+      fprintf(stderr, "ERROR_CHECK_COUNTING: Stream is at "u64bitFMT"\n", MS->thePositionInStream());
+    }
+#endif
+
     _bucketSizes[h]--;
 
 #ifdef ERROR_CHECK_COUNTING
@@ -391,8 +398,16 @@ positionDB::positionDB(merStream   *MS,
 #endif
 
     setDecodedValue(_countingBuckets, (u64bit)_bucketSizes[h] * (u64bit)_wCnt, _wCnt,
-                    (CHECK(MS->theFMer()) << _posnWidth) | (MS->thePosition() & _posnMask));
+                    (CHECK(MS->theFMer()) << _posnWidth) | (MS->thePositionInStream() & _posnMask));
 
+
+#ifdef ERROR_CHECK_COUNTING_ENCODING
+    if ((MS->thePositionInStream() & _posnMask) != MS->thePositionInStream())
+      fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  POSNMASK "u64bitHEX" invalid!  Wanted "u64bitHEX" got "u64bitHEX"\n",
+              _posnMask,
+              MS->thePositionInStream(),
+              MS->thePositionInStream() & _posnMask);
+#endif
 
 #ifdef ERROR_CHECK_COUNTING_ENCODING
     u64bit v = getDecodedValue(_countingBuckets, (u64bit)_bucketSizes[h] * (u64bit)_wCnt, _wCnt);
@@ -402,13 +417,13 @@ positionDB::positionDB(merStream   *MS,
     //
     if ((_wCnt == _wFin) && (0 != (v >> (_wCnt - 1))))
       fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error: HBIT is set!      Wanted "u64bitHEX" got "u64bitHEX"\n",
-              (CHECK(MS->theFMer()) << _posnWidth) | (MS->thePosition() & _posnMask), v);
+              (CHECK(MS->theFMer()) << _posnWidth) | (MS->thePositionInStream() & _posnMask), v);
     if (CHECK(MS->theFMer()) != ((v >> _posnWidth) & _chckMask))
       fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  CHCK corrupted!  Wanted "u64bitHEX" got "u64bitHEX"\n",
-              (CHECK(MS->theFMer()) << _posnWidth) | (MS->thePosition() & _posnMask), v);
-    if (MS->thePosition() != (v & _posnMask))
+              (CHECK(MS->theFMer()) << _posnWidth) | (MS->thePositionInStream() & _posnMask), v);
+    if (MS->thePositionInStream() != (v & _posnMask))
       fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  POSN corrupted!  Wanted "u64bitHEX" got "u64bitHEX"\n",
-              (CHECK(MS->theFMer()) << _posnWidth) | (MS->thePosition() & _posnMask), v);
+              (CHECK(MS->theFMer()) << _posnWidth) | (MS->thePositionInStream() & _posnMask), v);
 #endif
 
 #ifndef SILENTPOSITIONDB
@@ -425,7 +440,7 @@ positionDB::positionDB(merStream   *MS,
   fprintf(stdout, "Checking for unfilled buckets\n");
   for (u32bit i=0; i<_tableSizeInEntries; i++)
     if (_errbucketSizes[i] != 0)
-      fprintf(stdout, "ERROR_CHECK_COUNTING: Bucket "u32bitFMT" wasn't filled fully?  "u64bitFMT" left over.\n", i, _errbucketSizes[i]);
+      fprintf(stdout, "ERROR_CHECK_COUNTING: Bucket "u32bitFMT" wasn't filled fully?  "u32bitFMT" left over.\n", i, _errbucketSizes[i]);
   fprintf(stdout, "ERROR_CHECK_COUNTING\n");
 #endif
 

@@ -11,69 +11,70 @@
 
 configuration::configuration(void) {
 
-  _beVerbose           = false;
+  _beVerbose               = false;
 
-  _merSize             = 20;
-  _merSkip             = 0;
-  _numSearchThreads    = 4;
+  _merSize                 = 20;
+  _merSkip                 = 0;
+  _numSearchThreads        = 4;
 
-  _doReverse           = true;
-  _doForward           = true;
+  _doReverse               = true;
+  _doForward               = true;
 
-  _maxDiagonal         = 25;
-  _maxGap              = 0;
-  _qsOverlap           = 15;
-  _dsOverlap           = 15;
+  _maxDiagonal             = 25;
+  _maxGap                  = 0;
+  _qsOverlap               = 15;
+  _dsOverlap               = 15;
 
   //  Alternate match extension scheme
-  _extendWeight        = 0;
-  _extendMinimum       = 0;
-  _extendAlternate     = false;
+  _extendWeight            = 0;
+  _extendMinimum           = 0;
+  _extendAlternate         = false;
 
-  _maxIntronLength     = 1000000000;
+  _maxIntronLength         = 1000000000;
 
-  _smallSequenceCutoff = 0;
+  _smallSequenceCutoff     = 0;
 
-  _minLengthSingle     = 0;
-  _minCoverageSingle   = 0.0;
-  _minLengthMultiple   = 0;
-  _minCoverageMultiple = 0.0;
+  _minLengthSingle         = 0;
+  _minCoverageSingle       = 0.0;
+  _minLengthMultiple       = 0;
+  _minCoverageMultiple     = 0.0;
 
-  _dbFileName          = 0L;
-  _qsFileName          = 0L;
-  _maskFileName        = 0L;
-  _onlyFileName        = 0L;
-  _outputFileName      = 0L;
-  _queryMatchFileName  = 0L;
-  _statsFileName       = 0L;
+  _dbFileName              = 0L;
+  _qsFileName              = 0L;
+  _maskFileName            = 0L;
+  _onlyFileName            = 0L;
+  _outputFileName          = 0L;
+  _queryMatchFileName      = 0L;
+  _statsFileName           = 0L;
 
-  _tableFileName       = 0L;
-  _tableBuildOnly      = false;
+  _tableTemporaryFileName  = 0L;
+  _tableFileName           = 0L;
+  _tableBuildOnly          = false;
 
-  _useList             = 0L;
-  _useListLen          = 0;
-  _useListMax          = 0;
+  _useList                 = 0L;
+  _useListLen              = 0;
+  _useListMax              = 0;
 
-  _binaryOutput        = false;
+  _binaryOutput            = false;
 
-  _startTime           = 0.0;
-  _initTime            = 0.0;
-  _buildTime           = 0.0;
-  _searchTime          = 0.0;
-  _totalTime           = 0.0;
+  _startTime               = 0.0;
+  _initTime                = 0.0;
+  _buildTime               = 0.0;
+  _searchTime              = 0.0;
+  _totalTime               = 0.0;
 
-  _loaderHighWaterMark = 16 * 1024;
-  _loaderSleep.tv_sec  = 1;
-  _loaderSleep.tv_nsec = 0;
-  _loaderWarnings      = false;
+  _loaderHighWaterMark     = 16 * 1024;
+  _loaderSleep.tv_sec      = 1;
+  _loaderSleep.tv_nsec     = 0;
+  _loaderWarnings          = false;
 
-  _searchSleep.tv_sec  = 0;
-  _searchSleep.tv_nsec = 10000000;
+  _searchSleep.tv_sec      = 0;
+  _searchSleep.tv_nsec     = 10000000;
 
-  _writerHighWaterMark = 32 * 1024;
-  _writerSleep.tv_sec  = 1;
-  _writerSleep.tv_nsec = 0;
-  _writerWarnings      = false;
+  _writerHighWaterMark     = 32 * 1024;
+  _writerSleep.tv_sec      = 1;
+  _writerSleep.tv_nsec     = 0;
+  _writerWarnings          = false;
 }
 
 configuration::~configuration() {
@@ -367,6 +368,9 @@ configuration::read(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-table") == 0) {
       arg++;
       _dbFileName = argv[arg];
+    } else if (strcmp(argv[arg], "-buildtemporary") == 0) {
+      arg++;
+      _tableTemporaryFileName = argv[arg];
     } else if (strcmp(argv[arg], "-buildtables") == 0) {
       arg++;
       _tableFileName  = argv[arg];

@@ -42,6 +42,7 @@ test-md5: test-md5.c ../libbri.a ../bri.h ../bri++.H
 test-merstream: test-merstream.C ../libbri.a ../bri.h ../bri++.H ../../fasta/leaff
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-merstream.o test-merstream.C $(INCLUDE)
 	$(CXX) $(CXXLDFLAGS) -o test-merstream test-merstream.o $(LIBS)
+	./test-merstream
 	../../fasta/leaff -G 1000 10000 30000 > x.fasta
 	./test-merstream x.fasta
 	rm x.fasta

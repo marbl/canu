@@ -23,31 +23,33 @@ merStreamFileExists(const char *i) {
 
 merStreamFileBuilder::merStreamFileBuilder(u32bit m, const char *i, const char *o) {
   _merSize    = m;
+  _merStream  = new merStream(m, i);
   _inputFile  = i;
   _outputFile = o;
 }
 
+merStreamFileBuilder::merStreamFileBuilder(merStream *MS, const char *o) {
+  _merSize    = MS->theMerSize();
+  _merStream  = MS;
+  _inputFile  = 0L;
+  _outputFile = o;
+}
+
 merStreamFileBuilder::~merStreamFileBuilder() {
+  if (_inputFile)
+    delete _merStream;
 }
 
 u64bit
 merStreamFileBuilder::build(bool beVerbose) {
-  u64bit             lastMer     = u64bitZERO;
-  u64bit             lastMerPos  = u64bitZERO;
-  u64bit             lastSeq     = u64bitZERO;
-  u64bit             lastPos     = u64bitZERO;
-  u32bit             lastDef     = ~u32bitZERO;
 
-  u64bit             thisMer     = u64bitZERO;
+  u64bit             thisMer           = u64bitZERO;
 
-  u64bit             blockSize   = 0;
-  u64bit             numMers     = 0;
-  u64bit             numBlocks   = 0;
-  u64bit             numDefs     = 0;
-  u64bit             defLength   = 0;
-
-  if (beVerbose)
-    fprintf(stderr, "Building merStreamFile from '%s'\n", _inputFile);
+  u64bit             blockSize         = 0;
+  u64bit             numMers           = 0;
+  u64bit             numBlocks         = 0;
+  u64bit             numDefs           = 0;
+  u64bit             defLength         = 0;
 
   //  Open the output files
   //
@@ -72,36 +74,37 @@ merStreamFileBuilder::build(bool beVerbose) {
   }
 
 
-  merStream          M(_merSize, _inputFile);
   speedCounter       C("    %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, beVerbose);
 
   //  Write the first mer, and initialize things.
   //
-  M.nextMer();
-
-  lastMer     = M.theFMer();
-  lastMerPos  = M.thePosition();
-  lastSeq     = M.theSequenceNumber();
-  lastPos     = M.thePosition();
+  _merStream->nextMer();
+  
+  u64bit lastMer           = _merStream->theFMer();
+  u64bit lastMerPos        = _merStream->thePositionInStream();
+  u64bit lastSeq           = _merStream->theSequenceNumber();
+  u64bit lastBlockPosInSeq = _merStream->thePositionInSequence();
+  u64bit lastBlockPosInStr = _merStream->thePositionInStream();
+  u32bit lastDef           = ~u32bitZERO;
 
   STREAM->putBits(lastMer, _merSize * 2);
   blockSize = 1;
   numMers   = 1;
 
-  M.nextMer();
+  _merStream->nextMer();
 
   do {
-    thisMer = M.theFMer();
+    thisMer = _merStream->theFMer();
 
     //  Save the defline if the sequence number has changed.
     //
-    if (lastDef != M.theSequenceNumber()) {
-      u32bit  l = strlen(M.theDefLine()) + 1;
+    if (lastDef != _merStream->theSequenceNumber()) {
+      u32bit  l = strlen(_merStream->theDefLine()) + 1;
 
       fwrite(&l, sizeof(u32bit), 1, DEFLIN);
-      fwrite(M.theDefLine(), sizeof(char), l, DEFLIN);
+      fwrite(_merStream->theDefLine(), sizeof(char), l, DEFLIN);
 
-      lastDef = M.theSequenceNumber();
+      lastDef = _merStream->theSequenceNumber();
 
       numDefs++;
       defLength += l;
@@ -116,7 +119,7 @@ merStreamFileBuilder::build(bool beVerbose) {
     //
     lastMerPos++;
 
-    if (lastMerPos == M.thePosition()) {
+    if (lastMerPos == _merStream->thePositionInStream()) {
       //  Consecutive mers, just emit the new base, and add one to our count
       //
       STREAM->putBits(thisMer & 0x03, 2);
@@ -124,14 +127,22 @@ merStreamFileBuilder::build(bool beVerbose) {
     } else {
       //  Must be a mer break.  Write the count, and the new mer.
       //
+
+#ifdef REPORT_BLOCK_CHANGES
+      fprintf(stderr, "new block="u64bitFMT" size="u64bitFMT" pos="u64bitFMT"/"u64bitFMT" seq="u64bitFMT"\n",
+              numBlocks, blockSize, lastBlockPosInSeq, lastBlockPosInStr, lastSeq);
+#endif
+
       STREAM->putBits(thisMer, _merSize * 2);
       BLOCKS->putNumber(blockSize);
       BLOCKS->putNumber(lastSeq);
-      BLOCKS->putNumber(lastPos);
+      BLOCKS->putNumber(lastBlockPosInSeq);
+      BLOCKS->putNumber(lastBlockPosInStr);
 
-      lastSeq    = M.theSequenceNumber();
-      lastPos    = M.thePosition();
-      lastMerPos = lastPos;
+      lastSeq           = _merStream->theSequenceNumber();
+      lastBlockPosInSeq = _merStream->thePositionInSequence();
+      lastBlockPosInStr = _merStream->thePositionInStream();
+      lastMerPos        = lastBlockPosInStr;
 
       numBlocks++;
       blockSize = 1;
@@ -142,13 +153,14 @@ merStreamFileBuilder::build(bool beVerbose) {
     lastMer = thisMer;
 
     C.tick();
-  } while (M.nextMer());
+  } while (_merStream->nextMer());
 
   //  Be sure to write out the last block!
   //
   BLOCKS->putNumber(blockSize);
   BLOCKS->putNumber(lastSeq);
-  BLOCKS->putNumber(lastPos);
+  BLOCKS->putNumber(lastBlockPosInSeq);
+  BLOCKS->putNumber(lastBlockPosInStr);
   numBlocks++;
 
   fclose(DEFLIN);
@@ -196,6 +208,21 @@ merStreamFileBuilder::build(bool beVerbose) {
   fwrite(&blkStart,        sizeof(off_t),  1,  fOUT);
   fwrite(&defStart,        sizeof(off_t),  1,  fOUT);
   fwrite(&strStart,        sizeof(off_t),  1,  fOUT);
+
+#if 0
+  fprintf(stderr, "merStreamFileWriter()-- merSize:         "u32bitFMT" bases\n", _merSize);
+  fprintf(stderr, "merStreamFileWriter()-- numMers:         "u64bitFMT" mers\n", numMers);
+  fprintf(stderr, "merStreamFileWriter()-- numBlocks:       "u64bitFMT" blocks\n", numBlocks);
+  fprintf(stderr, "merStreamFileWriter()-- numDefs:         "u64bitFMT" lines\n", numDefs);
+  fprintf(stderr, "merStreamFileWriter()-- defLength:       "u64bitFMT" characters\n", defLength);
+  fprintf(stderr, "merStreamFileWriter()-- blockFileSize:   "u64bitFMT" bytes\n", blockFileSize);
+  fprintf(stderr, "merStreamFileWriter()-- deflineFileSize: "u64bitFMT" bytes\n", deflineFileSize);
+  fprintf(stderr, "merStreamFileWriter()-- streamFileSize:  "u64bitFMT" bytes\n", streamFileSize);
+  fprintf(stderr, "merStreamFileWriter()-- blkStart:        "u64bitFMT" bits\n", blkStart);
+  fprintf(stderr, "merStreamFileWriter()-- defStart:        "u64bitFMT" bits\n", defStart);
+  fprintf(stderr, "merStreamFileWriter()-- strStart:        "u64bitFMT" bits\n", strStart);
+#endif
+
 
   //  To keep the bitPackedFiles aligned on 64-bit boundaries, we put the deflines last.
   //
@@ -288,14 +315,21 @@ merStreamFileReader::merStreamFileReader(const char *i) {
   //
   _streamFile->seek(_blkStart);
 
-  _blockSize     = new u32bit [_numBlocks];
-  _blockSequence = new u32bit [_numBlocks];
-  _blockPosition = new u64bit [_numBlocks];
+  _blockSize      = new u32bit [_numBlocks];
+  _blockSequence  = new u32bit [_numBlocks];
+  _blockPosInSeq  = new u64bit [_numBlocks];
+  _blockPosInStr  = new u64bit [_numBlocks];
 
   for (u64bit b=0; b<_numBlocks; b++) {
     _blockSize[b]     = (u32bit)_streamFile->getNumber();
-    _blockSequence[b] = (u64bit)_streamFile->getNumber();
-    _blockPosition[b] = (u32bit)_streamFile->getNumber();
+    _blockSequence[b] = (u32bit)_streamFile->getNumber();
+    _blockPosInSeq[b] = (u64bit)_streamFile->getNumber();
+    _blockPosInStr[b] = (u64bit)_streamFile->getNumber();
+
+#if 0
+    fprintf(stderr, "Block "u64bitFMTW(2)" : "u32bitFMT" "u32bitFMT" "u64bitFMT" "u64bitFMT"\n",
+            b, _blockSize[b], _blockSequence[b], _blockPosInSeq[b], _blockPosInStr[b]);
+#endif
   }
 
   //  Read the deflines (maybe)
@@ -348,20 +382,29 @@ merStreamFileReader::merStreamFileReader(const char *i) {
   //
   _thisBlock     = 0;
   _thisBlockSize = 0;
+
   _merMask       = u64bitMASK(_merSize * 2);
-  _theFMer       = u64bitZERO;
-  _theRMer       = u64bitZERO;
+
   _firstMer      = u64bitZERO;
 
   _iterationLimit = ~u64bitZERO;
   _iteration      =  u64bitZERO;
+
+  _theFMer       = u64bitZERO;
+  _theRMer       = u64bitZERO;
+  _thePosInSeq   = 0;
+  _thePosInStr   = 0;
+  _theSequence   = 0;
+
+  _theDefline    = 0L;
 }
 
 
 merStreamFileReader::~merStreamFileReader() {
   delete [] _blockSize;
   delete [] _blockSequence;
-  delete [] _blockPosition;
+  delete [] _blockPosInSeq;
+  delete [] _blockPosInStr;
   delete [] _deflineStorage;
   delete [] _deflines;
   delete    _streamFile;
@@ -384,10 +427,19 @@ merStreamFileReader::seekToMer(u64bit merNumber) {
   if (merNumber == 0) {
     _thisBlock     = 0;
     _thisBlockSize = 0;
-    _merMask       = u64bitMASK(_merSize * 2);
+
+    _firstMer      = u64bitZERO;
+
     _theFMer       = u64bitZERO;
     _theRMer       = u64bitZERO;
-    _firstMer      = u64bitZERO;
+    _thePosInSeq   = 0;
+    _thePosInStr   = 0;
+    _theSequence   = 0;
+
+    _theDefline    = 0L;
+
+    _streamFile->seek(_strStart);
+
     return(true);
   }
 
@@ -416,7 +468,8 @@ merStreamFileReader::seekToMer(u64bit merNumber) {
   _thisBlock     = block;
   _thisBlockSize = _blockSize[_thisBlock] - (merNumber - totalMers);
 
-  _thePosition  = _blockPosition[_thisBlock] + (merNumber - totalMers) - 1;
+  _thePosInSeq  = _blockPosInSeq[_thisBlock] + (merNumber - totalMers) - 1;
+  _thePosInStr  = _blockPosInStr[_thisBlock] + (merNumber - totalMers) - 1;
   _theSequence  = _blockSequence[_thisBlock];
 
   //  We read in mersize-1 bases into the FMer, but reverse complement
@@ -427,8 +480,8 @@ merStreamFileReader::seekToMer(u64bit merNumber) {
   _theRMer       = reverseComplementMer(_merSize, _theFMer);
 
 #ifdef REPORT_BLOCK_CHANGES
-  fprintf(stderr, "seek to block="u64bitFMT" size="u64bitFMT" pos="u64bitFMT" seq="u64bitFMT"\n",
-          _thisBlock, _thisBlockSize, _thePosition, _theSequence);
+  fprintf(stderr, "seek to block="u64bitFMT" size="u64bitFMT" pos="u64bitFMT"/"u64bitFMT" seq="u64bitFMT"\n",
+          _thisBlock, _thisBlockSize, _thePosInSeq, _thePosInStr, _theSequence);
 #endif
 
   return(true);
@@ -469,15 +522,16 @@ merStreamFileReader::nextMer(u32bit skip) {
 
       _thisBlockSize = _blockSize[_thisBlock] - 1;
 
-      _thePosition  = _blockPosition[_thisBlock];
+      _thePosInSeq  = _blockPosInSeq[_thisBlock];
+      _thePosInStr  = _blockPosInStr[_thisBlock];
       _theSequence  = _blockSequence[_thisBlock];
 
       _theFMer = _streamFile->getBits(_merSize * 2);
       _theRMer = reverseComplementMer(_merSize, _theFMer);
 
 #ifdef REPORT_BLOCK_CHANGES
-      fprintf(stderr, "New block="u64bitFMT" size="u64bitFMT" pos="u64bitFMT" seq="u64bitFMT"\n",
-              _thisBlock, _thisBlockSize, _thePosition, _theSequence);
+      fprintf(stderr, "New block="u64bitFMT" size="u64bitFMT" pos="u64bitFMT"/"u64bitFMT" seq="u64bitFMT"\n",
+              _thisBlock, _thisBlockSize, _thePosInSeq, _thePosInStr, _theSequence);
 #endif
     } else {
       //  Still in the same block, just move to the next mer.
@@ -496,7 +550,8 @@ merStreamFileReader::nextMer(u32bit skip) {
 
       _thisBlockSize--;
 
-      _thePosition++;
+      _thePosInSeq++;
+      _thePosInStr++;
     }
   } while (skip--);
 

@@ -6,18 +6,6 @@
 #include "bri++.H"
 #include "existDB.H"
 
-#ifdef TRUE64BIT
-char const *buildMessage       = "Building chunk with %u sequences.\n";
-char const *outputDisplay      = "O:%7u S:%7u I:%7u T:%7u (%5.1f%%; %8.3f/sec) Finish in %5.2f seconds.\r";
-char const *outputDisplayFinal = "\n%7u sequences (%5.1f%%; %8.3f/sec) %5.2f seconds.\n";
-char const *countMessage       = "%u\n";
-#else
-char const *buildMessage       = "Building chunk with %lu sequences.\n";
-char const *outputDisplay      = "O:%7lu S:%7lu I:%7lu T:%7lu (%5.1f%%; %8.3f/sec) Finish in %5.2f seconds.\r";
-char const *outputDisplayFinal = "\n%7lu sequences (%5.1f%%; %8.3f/sec) %5.2f seconds.\n";
-char const *countMessage       = "%lu\n";
-#endif
-
 
 //  Shared data
 //
@@ -54,17 +42,7 @@ buildChunk(void) {
   config.completeUseList(dbFASTA);
 
   if (config._beVerbose)
-    fprintf(stderr, buildMessage, config._useListLen);
-
-  //  sum the length of the sequences, including the padding.
-  //
-  u32bit sLen = 0;
-  for (u32bit i=0; i<config._useListLen; i++) {
-    config._useList[i].size  = dbFASTA->sequenceLength(config._useList[i].seq);
-    config._useList[i].start = sLen;
-
-    sLen += config._useList[i].size + 100;
-  }
+    fprintf(stderr, "Building chunk with "u32bitFMT" sequences.\n", config._useListLen);
 
   //  If we are given a pointer to a prebuilt table, just load it.
   //  Otherwise, chain the sequence together and build a fresh table,
@@ -82,6 +60,17 @@ buildChunk(void) {
         fprintf(stderr, "Loading finished.\n");
     }
   } else {
+
+    //  sum the length of the sequences, including the padding.
+    //
+    u32bit sLen = 0;
+    for (u32bit i=0; i<config._useListLen; i++) {
+      config._useList[i].size  = dbFASTA->sequenceLength(config._useList[i].seq);
+      config._useList[i].start = sLen;
+
+      sLen += config._useList[i].size + 100;
+    }
+
 
     //  Allocate space for the chained sequence
     //
@@ -132,7 +121,22 @@ buildChunk(void) {
     //  we could make a bigger table in the same footprint if we didn't have
     //  the sequence in core too.
     //
-    merStream *MS = new merStream(config._merSize, s, 0);
+    merStream            *MS = 0L;
+    merStreamFileBuilder *MB = 0L;
+    merStreamFileReader  *MR = 0L;
+
+    if (config._beVerbose)
+      fprintf(stderr, "Storing the sequence in a compressed merStreamFile.\n");
+    MS = new merStream(config._merSize, s, sLen);
+    MB = new merStreamFileBuilder(MS, config._tableTemporaryFileName);
+    MB->build();
+
+    delete    MB;
+    delete    MS;
+    delete [] s;
+
+    MR = new merStreamFileReader(config._tableTemporaryFileName);
+    MS = new merStream(MR);
 
 
 
@@ -153,10 +157,14 @@ buildChunk(void) {
     if (sLen <  1 * 1024 * 1024)
       tblSize = 20;
 
+
+
+    if (config._beVerbose)
+      fprintf(stderr, "Building the positionDB.\n");
     positions = new positionDB(MS, config._merSize, config._merSkip, tblSize, 0L, 0L, config._beVerbose);
 
     delete    MS;
-    delete [] s;
+    delete    MR;
 
     if (config._tableFileName) {
       if (config._beVerbose)
@@ -338,7 +346,7 @@ main(int argc, char **argv) {
   while (outputPos < numberOfQueries) {
     if (output[outputPos]) {
       if (config._beVerbose && ((outputPos & 0x1ff) == 0x1ff)) {
-        fprintf(stderr, outputDisplay,
+        fprintf(stderr, "O:"u32bitFMTW(7)" S:"u32bitFMTW(7)" I:%7u T:"u32bitFMTW(7)" (%5.1f%%; %8.3f/sec) Finish in %5.2f seconds.\r",
                 outputPos,
                 inputTail,
                 inputHead,
@@ -373,10 +381,10 @@ main(int argc, char **argv) {
   }
 
   if (config._beVerbose) {
-    fprintf(stderr, outputDisplayFinal,
+    fprintf(stderr, "\n"u32bitFMTW(7)" sequences in %5.2f seconds, %8.3f per second.\n",
             numberOfQueries,
-            100.0 * outputPos / numberOfQueries,
-            getTime() - zeroTime);
+            getTime() - zeroTime,
+            numberOfQueries / (getTime() - zeroTime));
   }
 
   errno = 0;
@@ -408,7 +416,7 @@ main(int argc, char **argv) {
     char   mcfstr[256];
     size_t mcfstrend = 0;
     for (u32bit i=0; i<numberOfQueries; i++) {
-      sprintf(mcfstr, countMessage, queryMatchCounts[i]);
+      sprintf(mcfstr, u32bitFMT"\n", queryMatchCounts[i]);
       for (mcfstrend=0; mcfstr[mcfstrend]; mcfstrend++)
         ; 
       errno = 0;

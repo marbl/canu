@@ -14,21 +14,22 @@ streamingTest(char *msfile) {
   fprintf(stderr, "Testing streaming access.\n");
   while (M->nextMer() && R->nextMer()) {
     compared++;
-    if ((M->theFMer()           != R->theFMer()) ||
-        (M->theRMer()           != R->theRMer()) ||
-        (M->thePosition()       != R->thePosition()) ||
-        (M->theSequenceNumber() != R->theSequenceNumber())) {
-      fprintf(stderr, u64bitFMT": !!! M got F="u64bitHEX" R="u64bitHEX" "u64bitFMT" "u64bitFMT" but R got F="u64bitHEX" R="u64bitHEX" "u64bitFMT" "u64bitFMT"\n",
+    if ((M->theFMer()                != R->theFMer()) ||
+        (M->theRMer()                != R->theRMer()) ||
+        (M->thePositionInSequence()  != R->thePositionInSequence()) ||
+        (M->thePositionInStream()    != R->thePositionInStream()) ||
+        (M->theSequenceNumber()      != R->theSequenceNumber())) {
+      fprintf(stderr, u64bitFMT": !!! M got F="u64bitHEX" R="u64bitHEX" "u64bitFMT" "u64bitFMT" "u64bitFMT" but R got F="u64bitHEX" R="u64bitHEX" "u64bitFMT" "u64bitFMT" "u64bitFMT"\n",
               compared,
-              M->theFMer(), M->theRMer(), M->thePosition(), M->theSequenceNumber(),
-              R->theFMer(), R->theRMer(), R->thePosition(), R->theSequenceNumber());
+              M->theFMer(), M->theRMer(), M->thePositionInSequence(), M->thePositionInStream(), M->theSequenceNumber(),
+              R->theFMer(), R->theRMer(), R->thePositionInSequence(), R->thePositionInStream(), R->theSequenceNumber());
       errors++;
 #if DEBUG
     } else {
-      fprintf(stderr, u64bitFMT":     M got F="u64bitHEX" R="u64bitHEX" "u64bitFMT" "u64bitFMT" but R got F="u64bitHEX" R="u64bitHEX" "u64bitFMT" "u64bitFMT"\n",
+      fprintf(stderr, u64bitFMT":     M got F="u64bitHEX" R="u64bitHEX" "u64bitFMT" "u64bitFMT" "u64bitFMT" but R got F="u64bitHEX" R="u64bitHEX" "u64bitFMT" "u64bitFMT" "u64bitFMT"\n",
               compared,
-              M->theFMer(), M->theRMer(), M->thePosition(), M->theSequenceNumber(),
-              R->theFMer(), R->theRMer(), R->thePosition(), R->theSequenceNumber());
+              M->theFMer(), M->theRMer(), M->thePositionInSequence(), M->thePositionInStream(), M->theSequenceNumber(),
+              R->theFMer(), R->theRMer(), R->thePositionInSequence(), R->thePositionInStream(), R->theSequenceNumber());
 #endif
     }
   }
@@ -85,21 +86,22 @@ randomAccessTest(char *msfile, u64bit numMers) {
     R->seekToMer(merNum);
     R->nextMer();
 
-    if ((M->theFMer()           != R->theFMer()) ||
-        (M->theRMer()           != R->theRMer()) ||
-        (M->thePosition()       != R->thePosition()) ||
-        (M->theSequenceNumber() != R->theSequenceNumber())) {
-      fprintf(stderr, u64bitFMT": !!! M got F="u64bitHEX" R="u64bitHEX" "u64bitFMT" "u64bitFMT" but R got F="u64bitHEX" R="u64bitHEX" "u64bitFMT" "u64bitFMT"\n",
+    if ((M->theFMer()               != R->theFMer()) ||
+        (M->theRMer()               != R->theRMer()) ||
+        (M->thePositionInSequence() != R->thePositionInSequence()) ||
+        (M->thePositionInStream()   != R->thePositionInStream()) ||
+        (M->theSequenceNumber()     != R->theSequenceNumber())) {
+      fprintf(stderr, u64bitFMT": !!! M got F="u64bitHEX" R="u64bitHEX" "u64bitFMT" "u64bitFMT" "u64bitFMT" but R got F="u64bitHEX" R="u64bitHEX" "u64bitFMT" "u64bitFMT" "u64bitFMT"\n",
               merNum,
-              M->theFMer(), M->theRMer(), M->thePosition(), M->theSequenceNumber(),
-              R->theFMer(), R->theRMer(), R->thePosition(), R->theSequenceNumber());
+              M->theFMer(), M->theRMer(), M->thePositionInSequence(), M->thePositionInStream(), M->theSequenceNumber(),
+              R->theFMer(), R->theRMer(), R->thePositionInSequence(), R->thePositionInStream(), R->theSequenceNumber());
       errors++;
 #if DEBUG
     } else {
-      fprintf(stderr, u64bitFMT":     M got F="u64bitHEX" R="u64bitHEX" "u64bitFMT" "u64bitFMT" but R got F="u64bitHEX" R="u64bitHEX" "u64bitFMT" "u64bitFMT"\n",
+      fprintf(stderr, u64bitFMT":     M got F="u64bitHEX" R="u64bitHEX" "u64bitFMT" "u64bitFMT" "u64bitFMT" but R got F="u64bitHEX" R="u64bitHEX" "u64bitFMT" "u64bitFMT" "u64bitFMT"\n",
               merNum,
-              M->theFMer(), M->theRMer(), M->thePosition(), M->theSequenceNumber(),
-              R->theFMer(), R->theRMer(), R->thePosition(), R->theSequenceNumber());
+              M->theFMer(), M->theRMer(), M->thePositionInSequence(), M->thePositionInStream(), M->theSequenceNumber(),
+              R->theFMer(), R->theRMer(), R->thePositionInSequence(), R->thePositionInStream(), R->theSequenceNumber());
 #endif
     }
   }

@@ -97,18 +97,8 @@ public:
   u32bit           _minLengthSingle;
   double           _minCoverageSingle;
 
-#ifdef __APPLE__
-  u32bit           _pad;
-#endif
-
-  u32bit           _minLengthMultiple;
   double           _minCoverageMultiple;
-
-  bool             _reversed;
-
-#if 0
-  u32bit           _regionMergeDistance;
-#endif
+  u32bit           _minLengthMultiple;
 
   char            *_dbFileName;
   char            *_qsFileName;
@@ -118,6 +108,8 @@ public:
   char            *_queryMatchFileName;
   char            *_statsFileName;
 
+  char            *_tableTemporaryFileName;
+
   char            *_tableFileName;
   bool             _tableBuildOnly;
 
@@ -126,6 +118,10 @@ public:
   use_s           *_useList;
 
   bool             _binaryOutput;
+
+#ifdef __APPLE__
+  u32bit           _pad1;
+#endif
 
   //  Wall clock times
   //

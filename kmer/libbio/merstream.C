@@ -6,10 +6,11 @@ merStream::merStream(merStreamFileReader *msf) {
   _theString       = 0L;
   _theStringPos    = 0;
   _theStringLen    = 0;
-  _thePos          = 0;
+  _thePosInSeq     = 0;
+  _thePosInStr     = 0;
   _theNum          = 0;
 
-  _merSize         = msf->merSize();
+  _merSize         = _theMers->merSize();
   _timeUntilValid  = 0;
   _theMerMask      = u64bitMASK(_merSize << 1);
 
@@ -25,7 +26,8 @@ merStream::merStream(u32bit merSize, const char *filename) {
   _theString       = 0L;
   _theStringPos    = 0;
   _theStringLen    = 0;
-  _thePos          = 0;
+  _thePosInSeq     = 0;
+  _thePosInStr     = 0;
   _theNum          = 0;
 
   _merSize         = merSize;
@@ -46,7 +48,8 @@ merStream::merStream(u32bit merSize, const char *seq, u32bit len) {
   _theString       = seq;
   _theStringPos    = 0;
   _theStringLen    = len;
-  _thePos          = 0;
+  _thePosInSeq     = 0;
+  _thePosInStr     = 0;
   _theNum          = 0;
 
   _merSize         = merSize;
@@ -65,7 +68,23 @@ merStream::merStream(u32bit merSize, const char *seq, u32bit len) {
   if (_theStringLen == 0)
     _theStringLen = ~u32bitZERO;
 
+  //  We want to start numbering sequences and stream positions at
+  //  zero.  nextSymbol() always increments the sequence number and
+  //  the stream position on a defline.  So, we skip the first defline
+  //  before we do anything else.
+  //
+  while (isspace(_theString[_theStringPos]) && (_theString[_theStringPos]) && (_theStringPos < _theStringLen))
+    _theStringPos++;
+  if (_theString[_theStringPos] == '>')
+    while ((_theString[_theStringPos] != '\n') && (_theString[_theStringPos]) && (_theStringPos < _theStringLen))
+      _theStringPos++;
+
   loadMer(_merSize - 1);
+
+  //_thePosInStr--;
+
+  //fprintf(stderr, "after load: thePosInSeq: "u64bitFMT"/"u64bitHEX"\n", _thePosInSeq, _thePosInSeq);
+  //fprintf(stderr, "after load: thePosInStr: "u64bitFMT"/"u64bitHEX"\n", _thePosInStr, _thePosInStr);
 }
 
 merStream::~merStream() {
