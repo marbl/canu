@@ -9,13 +9,26 @@
 #  the xml generator.
 #
 
+
+#  perl ~/projects/scripts/toXML.pl \
+#    -tier rat_GenBank_mRNA \
+#    -tag CELERA \
+#    -uid server \
+#    -dir gb \
+#    -asmversion 1031254098 \
+#    -asmtaxon "Rattus norvegicus"
+#
+#  Labels the <program> as EM:rat_GenBank_mRNA, uses the UID server
+#
+
+
 $| = 1;
 
 use strict;
 
-#  We use the libBri package of usefull stuff.  It's located in the same place
-#  as the ESTmapper.pl script.  That's what FindBin tells us.
-#
+use lib "/prod/gcmp/cps/lib";
+use util::UID_wrapper;
+
 use FindBin;
 use lib "$FindBin::Bin";
 use libBri;
@@ -38,6 +51,11 @@ my $verbose = 0;
 my $asmversion = "";
 my $asmtaxon   = "";
 
+#  Enable this to use the celera UID server (or give "-uid server" on the command line)
+#
+my $useUIDserver = 0;
+
+
 
 ############################################################
 #
@@ -56,6 +74,7 @@ sub getSCFid {
     } elsif ($d =~ m/^>CRA\|(\d+)\s/) {
         return("CELERA:$1");
     } else {
+        print STDERR "Can't figure out the scf ID of '$d'\n";
         return(generateUID());
     }
 }
@@ -69,6 +88,7 @@ sub getESTid {
     if ($d =~ m/^>CRA\|(\d+)\s/) {
         return("CELERA:$1");
     } else {
+        print STDERR "Can't figure out the est ID of '$d'\n";
         return(generateUID());
     }
 }
@@ -90,14 +110,19 @@ sub XMLify {
 #  Returns a UID in our namespace
 #
 sub generateUID {
-    $uid++;
+
+    if ($useUIDserver) {
+        $uid = UID_incr;
+    } else {
+        $uid++;
+    }
     return "$tag:$uid";
 }
 
 #  The usage
 #
 sub usage {
-    print STDERR "usage: $0 [-verbose] -tier GBtier -tag UIDtag [-uid StartingUID] -dir outputDirectory\n";
+    print STDERR "usage: $0 [-verbose] -tier GBtier -tag UIDtag [-uid StartingUID | 'server'] -dir outputDirectory\n";
     print STDERR "    -asmversion version -asmtaxon taxon\n";
     print STDERR "\n";
     print STDERR "The following aliases exist:\n";
@@ -123,6 +148,11 @@ while (scalar @ARGV > 0) {
         $tag = shift @ARGV;
     } elsif ($arg eq "-uid") {
         $uid = shift @ARGV;
+        if ($uid eq "server") {
+            print STDERR "Connecting to the UID server.\n";
+            $useUIDserver = 1;
+            UID_init(1, 1000);
+        }
     } elsif ($arg eq "-dir") {
         $dir = shift @ARGV;
     } elsif ($arg eq "-verbose") {
@@ -217,6 +247,11 @@ sub dumpXML {
     open(F, "> $dir/$subdir/$filename.gbf");
 
     print F "<game version=\"1.002\" assembly_version=\"$asmversion\" taxon=\"$asmtaxon\">\n";
+
+    #
+    #  dump the seq tags here!
+    #
+
     print F "<computational_analysis id=\"" . generateUID() . "\">\n";
 
     my ($day, $month, $year) = (localtime)[3,4,5];
@@ -224,8 +259,8 @@ sub dumpXML {
     $year += 1900;
 
     print F " <date day=\"$day\" month=\"$month\" year=\"$year\"></date>\n";
-    print F " <program>$tier</program>\n";
-    print F " <type>Sim4_hit</type>\n";
+    print F " <program>EM:$tier</program>\n";
+    print F " <type>ESTmapper_Hit</type>\n";
 
     foreach my $P (@polishes) {
         print F " <result_set id=\"" . generateUID() . "\">\n";
@@ -244,7 +279,6 @@ sub dumpXML {
 
             my ($genB, $genE, $estB, $estE);
 
-            #
             #  Convert all the coordinated to 0-space based
             #
             $genB = int($P->{'dbLo'} + $E->{'GENOMICstart'}) - 1;
@@ -258,18 +292,6 @@ sub dumpXML {
                 $estB = int($P->{'estLen'}) - int($E->{'cDNAend'});
                 $estE = int($P->{'estLen'}) - int($E->{'cDNAstart'} - 1);
             }
-
-            #if ($strand == -1) {
-            #    $genB = int($P->{'dbLo'} + $E->{'GENOMICend'});
-            #    $genE = int($P->{'dbLo'} + $E->{'GENOMICstart'}) - 1;
-            #    $estB = int($P->{'estLen'}) + 1 - int($E->{'cDNAend'}) - 1;
-            #    $estE = int($P->{'estLen'}) + 1 - int($E->{'cDNAstart'});
-            #} else {
-            #    $genB = int($P->{'dbLo'} + $E->{'GENOMICstart'}) - 1;
-            #    $genE = int($P->{'dbLo'} + $E->{'GENOMICend'}) - 1;
-            #    $estB = int($E->{'cDNAstart'});
-            #    $estE = int($E->{'cDNAend'});
-            #}
 
             #  The genomic description
             print F "  <seq_relationship id=\"$ids{$P->{'dbDefLine'}}\" type=\"query\">\n";
@@ -314,7 +336,6 @@ sub dumpXML {
             print F "  <property name=\"num_identical\"      value=\"$E->{'numMatches'}\"></property>\n";
             print F "  <property name=\"num_similar\"        value=\"$E->{'numMatches'}\"></property>\n";
             print F "  <property name=\"num_gaps\"           value=\"$numGaps\"></property>\n";
-            #print F "  <property name=\"score\"              value=\" ??? \"></property>\n";
             print F " </result_span>\n";
         }
 
