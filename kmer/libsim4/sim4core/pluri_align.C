@@ -109,7 +109,7 @@ Sim4::pluri_align(int *dist_ptr,
                   struct edit_script_list **Aligns,
                   sim4_stats_t *st) {
   int    i, end1, end2, diff, ali_dist;
-  uchar *a, *b;
+  char *a, *b;
 
   Exon  *thisExon = theExons;
   Exon  *nextExon;

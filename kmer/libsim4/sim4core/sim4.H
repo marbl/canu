@@ -14,6 +14,7 @@
 #include <errno.h>
 
 #include "sim4parameters.H"
+#include "sim4command.H"
 #include "exon.H"
 #include "mspManager.H"
 
@@ -85,8 +86,6 @@ typedef struct sim4_stats {
 #define GEN_LOG4_ENTRIES 45
 #define CDNA_LOG4_ENTRIES 25
 
-typedef unsigned char uchar;
-
 #ifndef FOR_BRI_TABLE
 
 #define HASH_SIZE 32767        /* 2**15 - 1 */
@@ -106,12 +105,6 @@ struct hash_table {
 
 #endif
 
-class Sim4Results {
-private:
-public:
-};
-
-
 
 
 
@@ -119,8 +112,10 @@ class Sim4 {
 private:
   mspManager   _mspManager;
 
-  uchar      *seq1;
-  uchar      *seq2;
+  sim4parameters   *globalParams;
+
+  char       *seq1;
+  char       *seq2;
 
   int         len1;
   int         len2;
@@ -171,7 +166,7 @@ private:
     free(val);
   };
 
-  int    EXTEND_BW(uchar *a, uchar *b, int c, int d, int e, int f, int *g, int *h) {
+  int    EXTEND_BW(char *a, char *b, int c, int d, int e, int f, int *g, int *h) {
     if (_accurateSequences) {
       fprintf(stderr, "extend_bw -- Xextend_bw NOT OPTIMIZED\n");
       return(Xextend_bw(a,b,c,d,e,f,g,h));
@@ -180,7 +175,7 @@ private:
     }
   };
 
-  int    EXTEND_FW(uchar *a, uchar *b, int c, int d, int e, int f, int *g, int *h) {
+  int    EXTEND_FW(char *a, char *b, int c, int d, int e, int f, int *g, int *h) {
     if (_accurateSequences) {
       fprintf(stderr, "extend_bw -- Xextend_fw NOT OPTIMIZED\n");
       return(Xextend_fw(a,b,c,d,e,f,g,h));
@@ -189,8 +184,8 @@ private:
     }
   };
 
-  int    Xextend_bw(uchar *,uchar *,int,int,int,int,int *,int *);
-  int    Xextend_fw(uchar *,uchar *,int,int,int,int,int *,int *);
+  int    Xextend_bw(char *,char *,int,int,int,int,int *,int *);
+  int    Xextend_fw(char *,char *,int,int,int,int,int *,int *);
 
 
 
@@ -248,13 +243,13 @@ private:
 
   char *checkExonsForOverlaps(Exon *theExons);
   char *appendExons(char *outputstring, Exon *theExon);
-  void  maskExonsFromGenomic(Exon *theExons, unsigned char *f, unsigned char *r, int l);
+  void  maskExonsFromGenomic(Exon *theExons, char *f, char *r, int l);
 
   char   *IDISPLAY(char *outputstring,
                    char *aString,
                    char *bString,
-                   uchar A[],
-                   uchar B[],
+                   char A[],
+                   char B[],
                    int M,
                    int N,
                    int S[],
@@ -263,8 +258,8 @@ private:
                    int est_strand,
                    Exon *exons);
   char   *appendAlignments(char *outputstring,
-                           uchar *seq1,
-                           uchar *seq2,
+                           char *seq1,
+                           char *seq2,
                            int len1,
                            int len2, 
                            edit_script_list **Aligns,
@@ -295,13 +290,13 @@ private:
 
 
 #ifndef FOR_BRI_TABLE
-  void bld_table(uchar *,int,int,int);
+  void bld_table(char *,int,int,int);
 #else
-  void bld_table(uchar *,int,int,int) {}
+  void bld_table(char *,int,int,int) {}
 #endif
 
 
-  struct edit_script_list *SIM4(uchar*,uchar*,int,int,int*,Exon**,
+  struct edit_script_list *SIM4(char*,char*,int,int,int*,Exon**,
                                 int *pA,
                                 int *pT,
                                 sim4_stats_t *);
@@ -310,14 +305,14 @@ private:
   bool   get_sync_flag(Exon *, Exon *, int);
   void   slide_intron(int w, Exon **, sim4_stats_t *);
   void   sync_slide_intron(int w, Exon **, sim4_stats_t *);
-  void   wobble(Exon **,Exon **,const char *,const char *,uchar *seq1);
-  Exon  *bmatch(uchar *,uchar *,int,int,int,int);
-  Exon  *fmatch(uchar *,uchar *,int,int,int,int);
+  void   wobble(Exon **,Exon **,const char *,const char *,char *seq1);
+  Exon  *bmatch(char *,char *,int,int,int,int);
+  Exon  *fmatch(char *,char *,int,int,int,int);
   void   compact_list(Exon **Lblock, Exon **Rblock);
-  int    resolve_overlap(Exon *,Exon *,uchar *);
-  int    greedy(uchar *,uchar *,int,int,int,int,Exon **, Exon **);
-  int    extend_bw(uchar *,uchar *,int,int,int,int,int *,int *);
-  int    extend_fw(uchar *,uchar *,int,int,int,int,int *,int *);
+  int    resolve_overlap(Exon *,Exon *,char *);
+  int    greedy(char *,char *,int,int,int,int,Exon **, Exon **);
+  int    extend_bw(char *,char *,int,int,int,int,int *,int *);
+  int    extend_fw(char *,char *,int,int,int,int,int *,int *);
 
   void   pluri_align(int *dist_ptr,
                      Exon *lblock,
@@ -327,13 +322,13 @@ private:
                           sim4_stats_t *st);
 
   void   get_stats(Exon *,sim4_stats_t *); 
-  int    get_edist(int,int,int,int,uchar *,uchar *);
+  int    get_edist(int,int,int,int,char *,char *);
   //int    find_log_entry(long const *log4s, int n, int len, int offset);
   Exon  *new_exon(int,int,int,int,int,int,int,Exon *);
   void   add_word(int,int);
-  int     extend_hit(int,int,const uchar *const,const uchar * const,int,int,int,int);
-  void   search(uchar *,uchar *,int,int,int,int); 
-  void   exon_cores(uchar*,uchar*,int,int,int,int,int,int,int,int);
+  int     extend_hit(int,int,const char *const,const char * const,int,int,int,int);
+  void   search(char *,char *,int,int,int,int); 
+  void   exon_cores(char*,char*,int,int,int,int,int,int,int,int);
   Exon  *find_previous(Exon *,Exon *);
   bool   get_match_quality(Exon *,Exon *,sim4_stats_t *,int);
   void   check_consistency_intron_ori(Exon *,int,char *);
@@ -341,15 +336,15 @@ private:
 
   //  splice.h
   //
-  void splice_donor(uchar *xseq, uchar *yseq, int M, int N, int *gt_score,
+  void splice_donor(char *xseq, char *yseq, int M, int N, int *gt_score,
                     int *ct_score, int **max_Gf, int **max_Cf,
                     int **start_Gi, int **start_Ci);
-  void splice_donor_uni(uchar *xseq, uchar *yseq, int M, int N,
+  void splice_donor_uni(char *xseq, char *yseq, int M, int N,
                         int *It_score, int **max_IF, int **end_Ii);
-  void splice_acceptor(uchar *xseq, uchar *yseq, int M, int N,
+  void splice_acceptor(char *xseq, char *yseq, int M, int N,
                        int *ag_score, int *ac_score, int **max_Gb,  
                        int **max_Cb, int **end_Gi, int **end_Ci);
-  void splice_acceptor_uni(uchar *xseq, uchar *yseq, int M, int N,
+  void splice_acceptor_uni(char *xseq, char *yseq, int M, int N,
                            int *aI_score, int **max_Ib, int **end_Ii);
   int  stepct(int n) {
     if (n<0) fatal("splice.c: Negative value in stepct().");
@@ -360,8 +355,8 @@ private:
   };
 
   splice_t *new_splice(char,int,int,int,int,int,splice_t *);
-  void splice(uchar *in_seqx, int ls, int us, int le, int ue, 
-              uchar *in_seqy, int ys, int ye, splice_t **g, splice_t **c, int ori);
+  void splice(char *in_seqx, int ls, int us, int le, int ue, 
+              char *in_seqy, int ys, int ye, splice_t **g, splice_t **c, int ori);
 
 
 
@@ -380,13 +375,17 @@ private:
   void *ckalloc(size_t amount) {
     void *p;
 
-    //  size_t is unsigned long on Tru64
-
+#if 0
     if (amount > u64bitONE << 31) {
+#ifdef TRUE64BIT
+      fprintf(stderr, "Allocation invalid: %llu bytes.\n", amount);
+#else
       fprintf(stderr, "Allocation invalid: %lu bytes.\n", amount);
+#endif
       kill(getpid(), SIGSEGV);
       amount = 8;
     }
+#endif
 
     if (amount == 0) {
       amount = 8;
@@ -413,19 +412,19 @@ private:
 #define A_ONLY    2
 #define BOTH_AT   3
 
-  void get_polyAT(uchar *seq,
+  void get_polyAT(char *seq,
                   int    len,
                   int   *pA,
                   int   *pT,
                   int    flag=BOTH_AT);
 
-  //void remove_poly(struct edit_script_list **,Exon *,uchar *,uchar *,int,int *,int *);
+  //void remove_poly(struct edit_script_list **,Exon *,char *,char *,int,int *,int *);
 
 
-  void remove_polyA_back(struct edit_script_list **,Exon *,uchar *,uchar*,int,int *);
-  void remove_polyT_front(struct edit_script_list **,Exon *,uchar *,uchar*,int *);
-  void trim_polyT_align(struct edit_script_list **,Exon **,const int,int *,uchar *,uchar *);
-  void trim_polyA_align(struct edit_script_list **,Exon *,Exon **,const int,int *,uchar *,uchar *);
+  void remove_polyA_back(struct edit_script_list **,Exon *,char *,char*,int,int *);
+  void remove_polyT_front(struct edit_script_list **,Exon *,char *,char*,int *);
+  void trim_polyT_align(struct edit_script_list **,Exon **,const int,int *,char *,char *);
+  void trim_polyA_align(struct edit_script_list **,Exon *,Exon **,const int,int *,char *,char *);
 
 
 
@@ -447,10 +446,15 @@ script_flip_list(edit_script_list **left) {
 
 
 public:
-  Sim4(int K, int C) {
-#ifdef PRINT_ALLOC
-    numAllocs = 0;
+  Sim4(sim4parameters *p) {
+    //  used to take "int K, int C"
+
+    globalParams = p;
+
+#if ABORT_EXPENSIVE
+    _mspManager.setLimits(p->_mspLimitAbsolute, p->_mspLimitPercent);
 #endif
+
     seq1 = 0L;
     seq2 = 0L;
 
@@ -458,8 +462,8 @@ public:
     //N = 0;
 
     wordSize      = DEFAULT_W;
-    mspThreshold1 = K;
-    mspThreshold2 = C;
+    mspThreshold1 = p->_mspThresh1;  //K;
+    mspThreshold2 = p->_mspThresh2;  //C;
 
     X        = DEFAULT_X;
 
@@ -477,7 +481,7 @@ public:
 #endif
 
 #if 0
-    for (unsigned int i=0; i<HASH_SIZE+1; i++) {
+    for (u32bit i=0; i<HASH_SIZE+1; i++) {
       phashtable.table[i] = 0L;
       thashtable.table[i] = 0L;
     }
@@ -495,7 +499,7 @@ public:
 
     //  Initialize the encoding
     //
-    for (unsigned int i=256; i;)
+    for (u32bit i=256; i;)
       encoding[--i] = -1;
 
     encoding['A'] = encoding['a'] = 0;
@@ -521,5 +525,5 @@ public:
 #endif
   };
 
-  char  *run(sim4parameters *s4Params);
+  char  *run(sim4command *cmd);
 };

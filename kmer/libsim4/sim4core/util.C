@@ -1,8 +1,5 @@
 #include "sim4.H"
-#include "sim4db.H"
 
-
-/* --------------------   exon_cores()   --------------------- */
 
 
 void
@@ -160,7 +157,7 @@ Sim4::get_stats(Exon *lblock, sim4_stats_t *st) {
     t = t1;
   }
 
-  if (!dbParams._forceStrandPrediction) {
+  if (!globalParams->_forceStrandPrediction) {
     if (((st->orientation != BOTH) && (st->percentID < 90)) ||
         (st->internal == 0)) {
       st->orientation = BOTH;
@@ -171,11 +168,11 @@ Sim4::get_stats(Exon *lblock, sim4_stats_t *st) {
 
 
 int
-Sim4::resolve_overlap(Exon *tmp_block, Exon *tmp_block1, uchar *seq)
+Sim4::resolve_overlap(Exon *tmp_block, Exon *tmp_block1, char *seq)
 {          
   int   diff, best_u, l0, l1, u, cost;
   int    GTAG_score, CTAC_score;
-  uchar *s1, *s2, *e1;
+  char *s1, *s2, *e1;
   
   diff = tmp_block1->frEST-tmp_block->toEST-1;
   if (diff>=0) return (tmp_block1->frEST-1);
@@ -384,7 +381,7 @@ Sim4::free_list(Exon *left)
 
 
 Exon *
-Sim4::bmatch (uchar *s1, uchar *s2, int l1, int l2, int offset1, int offset2)
+Sim4::bmatch (char *s1, char *s2, int l1, int l2, int offset1, int offset2)
 {
   int  i, j, i1, score;
   Exon *newthing=NULL;
@@ -414,7 +411,7 @@ Sim4::bmatch (uchar *s1, uchar *s2, int l1, int l2, int offset1, int offset2)
 }
 
 Exon *
-Sim4::fmatch (uchar *s1, uchar *s2, int l1, int l2, int offset1, int offset2)
+Sim4::fmatch (char *s1, char *s2, int l1, int l2, int offset1, int offset2)
 {
   int  i, j, i1, score;
   Exon *newthing=NULL;
@@ -639,10 +636,10 @@ Sim4::sync_slide_intron(int in_w, Exon **lblock, sim4_stats_t *st)
 }
 
 void 
-Sim4::wobble(Exon **t0, Exon **t1, const char *donor, const char *acceptor, uchar *seq)
+Sim4::wobble(Exon **t0, Exon **t1, const char *donor, const char *acceptor, char *seq)
 {
-  uchar *s = seq+(*t0)->toGEN;  /* first nt of donor */
-  uchar *q = seq+(*t1)->frGEN-3;  /* first nt of acceptor */
+  char *s = seq+(*t0)->toGEN;  /* first nt of donor */
+  char *q = seq+(*t1)->frGEN-3;  /* first nt of acceptor */
 
   if (!strncmp((char *)(s), donor, 2)) {
     /* match in place */
@@ -722,7 +719,7 @@ Sim4::slide_intron(int in_w, Exon **lblock, sim4_stats_t *st)
       }
       else {      
         int gtag=0, ctac=0;
-        uchar *s;
+        char *s;
         
         w1 = min(in_w, min(t0->length-2, t0->toGEN-t0->frGEN-1));
         w2 = min(in_w, min(t1->length-2, t1->toGEN-t1->frGEN-1));
@@ -784,7 +781,7 @@ Sim4::slide_intron(int in_w, Exon **lblock, sim4_stats_t *st)
     st->orientation = BWD;
   }
 
-  if ((dbParams._forceStrandPrediction) && (st->orientation == BOTH)) {
+  if ((globalParams->_forceStrandPrediction) && (st->orientation == BOTH)) {
     if (numG > numC)
       st->orientation = FWD;
     if (numG < numC)

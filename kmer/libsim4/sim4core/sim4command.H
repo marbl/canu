@@ -2,11 +2,11 @@
 #define SIM4COMMAND_H
 
 #include "libbri.H"
-#include "fastafile.H"
+#include "fasta.H"
 
 //
 //  Contains the variable stuff for an execution of sim4
-//    access to sequences (via FastAFileWrappers)
+//    access to sequences (via FastAWrappers)
 //    genomic iid
 //    genomic range
 //    est iid (maybe more than one)
@@ -20,14 +20,14 @@ public:
 
   //  Run a single EST against a genomic range
   //
-  sim4command(u32bit            ESTid,
-              FastAFileWrapper *ESTs,
-              u32bit            GENid,
-              u32bit            GENlo,
-              u32bit            GENhi,
-              FastAFileWrapper *GENs,
-              bool              doForward,
-              bool              doReverse);
+  sim4command(u32bit        ESTid,
+              FastAWrapper *ESTs,
+              u32bit        GENid,
+              u32bit        GENlo,
+              u32bit        GENhi,
+              FastAWrapper *GENs,
+              bool          doForward,
+              bool          doReverse);
 
   //  Single EST against a genomic range, using alternative
   //  interface.
@@ -38,13 +38,6 @@ public:
               u32bit                GENhi,
               bool                  doForward,
               bool                  doReverse);
-
-  //  Run multiple ESTs against a genomic range
-  //
-#if 0
-  sim4command(FastAFileWrapper *ESTs,
-              FastAFileWrapper *GENs);
-#endif
 
   //  Use two char*'s for sequence sources -- both sequence deflines
   //  and iid's are undefined!
@@ -79,19 +72,10 @@ public:
     _genHi  = hi;
   };
 
-  void   addESTid(u32bit id);
-
-  u32bit          getNumberOfESTs(void) {
-    if (_ESTsequence)
-      return(1);
-    else
-      return(_ESTlistLen);
-  };
-
-  u32bit          getESTidx(u32bit i);
-  char           *getESTheader(u32bit i);
-  char           *getESTsequence(u32bit i);
-  u32bit          getESTlength(u32bit i);
+  u32bit          getESTidx();
+  char           *getESTheader();
+  char           *getESTsequence();
+  u32bit          getESTlength();
 
   u32bit          getGENidx(void)           { return(_genIdx); };
   u32bit          getGENlo(void)            { return(_genLo); };
@@ -108,23 +92,21 @@ public:
     return(_strandIndicator);
   };
 private:
-  void            loadEST(u32bit i);
+  void            loadEST(void);
   void            loadGEN(void);
 
-  u32bit                _ESTlistLen;
-  u32bit                _ESTlistMax;
-  u32bit               *_ESTlist;
+  u32bit                _estIdx;
+
+  FastAWrapper         *_ESTs;
+  FastASequenceInCore  *_ESTloaded;
+  char                 *_ESTsequence;
+  u32bit                _ESTsequenceLength;  //  valid only for _ESTsequence
 
   u32bit                _genIdx;
   u32bit                _genLo;
   u32bit                _genHi;
 
-  FastAFileWrapper     *_ESTs;
-  FastASequenceInCore  *_ESTloaded;
-  char                 *_ESTsequence;
-  u32bit                _ESTsequenceLength;  //  valid only for _ESTsequence
-
-  FastAFileWrapper     *_GENs;
+  FastAWrapper         *_GENs;
   FastASequenceInCore  *_GENloaded;
   char                 *_GENsequence;
   u32bit                _GENsequenceLength;

@@ -1,11 +1,5 @@
 #include "sim4.H"
-#include "sim4db.H"
 
-#ifndef __lint
-/*@unused@*/
-static const char rcsid[] =
-"$Id$";
-#endif
 
 int const gt[5][5] = {{0, 0, 0, 2, 0},
                       {0, 0, 0, 2, 0},
@@ -54,13 +48,13 @@ Sim4::new_splice(char c, int xs, int xe, int ys, int ye, int score, splice_t *ne
 }
 
 void
-Sim4::splice_donor(uchar *xseq, uchar *yseq, int M, int N, int *gt_score,
+Sim4::splice_donor(char *xseq, char *yseq, int M, int N, int *gt_score,
                    int *ct_score, int **max_Gf, int **max_Cf, 
                    int **start_Gi, int **start_Ci)
 {
   int *CCf, *mG, *mC, *sC, *sG, *Xt;
   int i, j, tmp, ss, ssx, cx, c;
-  uchar *s, *t;
+  char *s, *t;
 
   CCf = (int *)ckalloc((M+1)*sizeof(int));
   Xt = (int *)ckalloc((M+1)*sizeof(int));
@@ -111,12 +105,12 @@ Sim4::splice_donor(uchar *xseq, uchar *yseq, int M, int N, int *gt_score,
 }  
 
 void
-Sim4::splice_donor_uni(uchar *xseq, uchar *yseq, int M, int N,
+Sim4::splice_donor_uni(char *xseq, char *yseq, int M, int N,
                        int *It_score, int **max_If, int **start_Ii)
 {
   int *CCf, *mI, *sI, *Xt;
   int i, j, tmp, ss, ssx, cx, c;
-  uchar *s, *t;
+  char *s, *t;
 
   CCf = (int *)ckalloc((M+1)*sizeof(int));
   Xt = (int *)ckalloc((M+1)*sizeof(int));
@@ -157,13 +151,13 @@ Sim4::splice_donor_uni(uchar *xseq, uchar *yseq, int M, int N,
 
 
 void
-Sim4::splice_acceptor(uchar *xseq, uchar *yseq, int M, int N, 
+Sim4::splice_acceptor(char *xseq, char *yseq, int M, int N, 
                       int *ag_score, int *ac_score, int **max_Gb, 
                       int **max_Cb, int **end_Gi, int **end_Ci)
 {
   int *CCb, *Xt, *mC, *mG, *eC, *eG;
   int tmp, i, j, ss, ssx, cx, c;
-  uchar *t, *s;
+  char *t, *s;
 
   CCb = (int *)ckalloc((M+1)*sizeof(int));
   Xt = (int *)ckalloc((M+1)*sizeof(int));
@@ -211,12 +205,12 @@ Sim4::splice_acceptor(uchar *xseq, uchar *yseq, int M, int N,
 
 
 void
-Sim4::splice_acceptor_uni(uchar *xseq, uchar *yseq, int M, int N,
+Sim4::splice_acceptor_uni(char *xseq, char *yseq, int M, int N,
                           int *aI_score, int **max_Ib, int **end_Ii)
 {
   int *CCb, *Xt, *mI, *eI;
   int tmp, i, j, ss, ssx, cx, c;
-  uchar *t, *s;
+  char *t, *s;
 
   CCb = (int *)ckalloc((M+1)*sizeof(int));
   Xt = (int *)ckalloc((M+1)*sizeof(int));
@@ -259,8 +253,8 @@ Sim4::splice_acceptor_uni(uchar *xseq, uchar *yseq, int M, int N,
 
 
 void
-Sim4::splice(uchar *in_seqx, int ls, int us, int le, int ue,
-             uchar *in_seqy, int ys, int ye, 
+Sim4::splice(char *in_seqx, int ls, int us, int le, int ue,
+             char *in_seqy, int ys, int ye, 
              splice_t **gcell, splice_t **ccell, int ori)
 {
   int p, q, *gtscore=NULL, *ctscore=NULL, *agscore=NULL, *acscore=NULL;
@@ -268,7 +262,7 @@ Sim4::splice(uchar *in_seqx, int ls, int us, int le, int ue,
   int maxCscore, maxGscore, Gxs, Gxe, Gy, Cxs, Cxe, Cy, keep_Ci, keep_Gi;
   int *max_Cf=NULL, *max_Gf=NULL, *max_Cb=NULL, *max_Gb=NULL;
   int *start_Gi=NULL, *start_Ci=NULL, *end_Gi=NULL, *end_Ci=NULL;
-  uchar *s;
+  char *s;
 
 #if 0
   fprintf(stderr, "Hello from splice()!\n");
@@ -285,7 +279,7 @@ Sim4::splice(uchar *in_seqx, int ls, int us, int le, int ue,
   if (encodeInitialized == 0) {
     encodeInitialized = 1;
 
-    for (unsigned int i=256; i;)
+    for (u32bit i=256; i;)
       encode[--i] = 4;
 
     encode['A'] = encode['a'] = 0;
@@ -298,7 +292,7 @@ Sim4::splice(uchar *in_seqx, int ls, int us, int le, int ue,
     gtscore = (int *)ckalloc(((us-ls+2)+(ue-le+2))*sizeof(int));
     agscore = gtscore+(us-ls+2);
 
-    if (dbParams._dontForceCanonicalSplicing) {
+    if (globalParams->_dontForceCanonicalSplicing) {
       for (p=0, s=in_seqx+ls-1; p<=us-ls+1; p++, s++) 
         gtscore[p] = 0;
       for (q=ue-le+1, s=in_seqx+ue-1; q>=0; q--, s--)
@@ -317,7 +311,7 @@ Sim4::splice(uchar *in_seqx, int ls, int us, int le, int ue,
   if (ori==BWD || ori==BOTH) {
     ctscore = (int *)ckalloc(((us-ls+2)+(ue-le+2))*sizeof(int));
     acscore = ctscore+(us-ls+2);
-    if (dbParams._dontForceCanonicalSplicing) {
+    if (globalParams->_dontForceCanonicalSplicing) {
       for (p=0, s=in_seqx+ls-1; p<=us-ls+1; p++, s++)  
         ctscore[p] = 0;
       for (q=ue-le+1, s=in_seqx+ue-1; q>=0; q--, s--)

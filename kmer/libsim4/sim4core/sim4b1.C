@@ -1,13 +1,4 @@
 #include "sim4.H"
-#include "sim4db.H"
-
-
-#ifndef __lint
-/*@unused@*/
-static const char rcsid[] = 
-"$Id$";
-#endif
-
 
 #define  DEFAULT_W         12
 #define  DEFAULT_X         12    
@@ -18,7 +9,7 @@ static const char rcsid[] =
 void
 Sim4::adjustBoundariesOfMarginalExons(Exon *Lblock) {
   coords *sig;
-  uchar   tmp[50];
+  char   tmp[50];
   Exon   *newthing;
   Exon   *tmp_block = Lblock->next_exon;
 
@@ -138,7 +129,7 @@ printExons(char *label, Exon *l) {
 
 /* seq1 = genomic  DNA (text); seq2 = cDNA */
 struct edit_script_list *
-Sim4::SIM4(uchar *in_seq1, uchar *in_seq2, 
+Sim4::SIM4(char *in_seq1, char *in_seq2, 
            int in_len1, int in_len2,
            int *dist_ptr, Exon **Exons,
            int *pA, int *pT,
@@ -160,7 +151,7 @@ Sim4::SIM4(uchar *in_seq1, uchar *in_seq2,
   _mspManager.setLength(len2);
 #endif
 
-  //fprintf(stderr, "maskTail=%d percent=%f\n", dbParams._ignorePolyTails, dbParams._polyTailPercent);
+  //fprintf(stderr, "maskTail=%d percent=%f\n", globalParams->_ignorePolyTails, globalParams->_polyTailPercent);
 
   /* Compute the distance between two sequences A and B */
 
@@ -192,7 +183,7 @@ Sim4::SIM4(uchar *in_seq1, uchar *in_seq2,
        ((len1-Rblock->toGEN>50000) && (len2-Rblock->toEST>100)))) {
     free_list(exon_list);
 
-    exon_list = _mspManager.link(dbParams._relinkWeight,
+    exon_list = _mspManager.link(globalParams->_relinkWeight,
                                  DEFAULT_DRANGE,
                                  1,
                                  1,
@@ -327,7 +318,7 @@ Sim4::SIM4(uchar *in_seq1, uchar *in_seq2,
                   /* possible large intron; increase the score weight */
                   free_list(tmp_Lblock); 
 
-                  exon_list = _mspManager.link(dbParams._relinkWeight,
+                  exon_list = _mspManager.link(globalParams->_relinkWeight,
                                                DEFAULT_DRANGE, 
                                                tmp_block->toGEN + 1,
                                                tmp_block->toEST + 1,
@@ -405,7 +396,7 @@ Sim4::SIM4(uchar *in_seq1, uchar *in_seq2,
                 /* possible large intron; increase the score weight */
                 free_list(tmp_Lblock);
 
-                exon_list = _mspManager.link(dbParams._relinkWeight,
+                exon_list = _mspManager.link(globalParams->_relinkWeight,
                                              DEFAULT_DRANGE,
                                              tmp_block->toGEN + 1,
                                              tmp_block->toEST + 1,
@@ -489,7 +480,7 @@ Sim4::SIM4(uchar *in_seq1, uchar *in_seq2,
                 /* possible large intron; increase the score weight */
                 free_list(tmp_Lblock);
 
-                exon_list = _mspManager.link(dbParams._relinkWeight,
+                exon_list = _mspManager.link(globalParams->_relinkWeight,
                                              DEFAULT_DRANGE, 
                                              tmp_block->toGEN + 1,
                                              tmp_block->toEST + 1,
@@ -599,7 +590,7 @@ Sim4::SIM4(uchar *in_seq1, uchar *in_seq2,
   *pT = 0;
   *pA = 0;
   if (Script_head) {
-    if (dbParams._ignorePolyTails) {
+    if (globalParams->_ignorePolyTails) {
       remove_polyT_front(&Script_head, Lblock, seq1, seq2, pT); 
       remove_polyA_back(&Script_head, Lblock, seq1, seq2, len2, pA);
 

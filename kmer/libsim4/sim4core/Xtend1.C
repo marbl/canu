@@ -2,7 +2,7 @@
 
 
 int
-Sim4::Xextend_bw(uchar *s1, uchar *s2, int m, int n, int offset1, int offset2, int *line1, int *line2)  
+Sim4::Xextend_bw(char *s1, char *s2, int m, int n, int offset1, int offset2, int *line1, int *line2)  
 { 
   int     col,                    /* column number */
           row,                    /* row number */
@@ -264,7 +264,7 @@ Sim4::Xextend_bw(uchar *s1, uchar *s2, int m, int n, int offset1, int offset2, i
 }                       
 
 int
-Sim4::Xextend_fw(uchar *s1, uchar *s2, int m, int n, int offset1, int offset2, int *line1, int *line2)              
+Sim4::Xextend_fw(char *s1, char *s2, int m, int n, int offset1, int offset2, int *line1, int *line2)              
 { 
   int     col,                    /* column number */
           row,                    /* row number */

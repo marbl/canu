@@ -1,3 +1,7 @@
+#ifndef MSP_MANAGER_H
+#define MSP_MANAGER_H
+
+#include "libbri.H"
 #include "exon.H"
 
 #define ABORT_EXPENSIVE 1
@@ -20,28 +24,29 @@ struct msp {
 //  initially.
 //
 class mspManager {
-private:
-  unsigned int   _allocMSPs;
-  unsigned int   _numMSPs;
-  msp           *_allMSPs;
-#if ABORT_EXPENSIVE
-  bool           _tooManyMSPs;
-  int            _cDNALength;
-#endif
 public:
   mspManager() {
-    _allocMSPs   = 16384;
-    _numMSPs     = 0;
-    _allMSPs     = new msp [_allocMSPs];
+    _allocMSPs        = 16384;
+    _numMSPs          = 0;
+    _allMSPs          = new msp [_allocMSPs];
 #if ABORT_EXPENSIVE
-    _tooManyMSPs = false;
-    _cDNALength  = 0;
+    _tooManyMSPs      = false;
+    _cDNALength       = 0;
+    _mspLimitAbsolute = 0;
+    _mspLimitPercent  = 0;
 #endif
   };
 
   ~mspManager() {
     delete [] _allMSPs;
   };
+
+#if ABORT_EXPENSIVE
+  void   setLimits(u32bit a, double p) {
+    _mspLimitAbsolute = a;
+    _mspLimitPercent  = p;
+  };
+#endif
 
   void   addMSP(int l, int p1, int p2, int sc) {
 
@@ -52,7 +57,7 @@ public:
 
       msp *n = new msp [_allocMSPs];
 
-      for (unsigned int i=0; i<_numMSPs; i++) {
+      for (u32bit i=0; i<_numMSPs; i++) {
         n[i].len          = _allMSPs[i].len;
         n[i].pos1         = _allMSPs[i].pos1;
         n[i].pos2         = _allMSPs[i].pos2;
@@ -86,7 +91,7 @@ public:
   bool          tooManyMSPs(void) {
     return(_tooManyMSPs);
   };
-  unsigned int  numberOfMSPs(void) {
+  u32bit        numberOfMSPs(void) {
     return(_numMSPs);
   };
   void          setLength(int l) {
@@ -102,7 +107,7 @@ public:
   Exon_ptr  link(int weight, int drange,
                  int offset1, int offset2,
                  int flag, int relinkFlag,
-                 unsigned char *s1, unsigned char *s2);
+                 char *s1, char *s2);
 
   void      swapMSPpositions(void) {
     register int   p, q, i;
@@ -115,4 +120,17 @@ public:
       _allMSPs[i].pos2 = p;
     }
   };
+private:
+  u32bit         _allocMSPs;
+  u32bit         _numMSPs;
+  msp           *_allMSPs;
+#if ABORT_EXPENSIVE
+  bool           _tooManyMSPs;
+  int            _cDNALength;
+  u32bit         _mspLimitAbsolute;
+  double         _mspLimitPercent;
+#endif
 };
+
+
+#endif  //  MSP_MANAGER_H

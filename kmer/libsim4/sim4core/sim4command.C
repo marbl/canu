@@ -8,30 +8,28 @@
 
 //  Run a single EST against a genomic range
 //
-//  XXX: We should pull out the EST and GEN from the FastAFileWrapper,
+//  XXX: We should pull out the EST and GEN from the FastAWrapper,
 //  and store them as the "two char*" method.
 //
-sim4command::sim4command(u32bit            ESTid,
-                         FastAFileWrapper *ESTs,
-                         u32bit            GENid,
-                         u32bit            GENlo,
-                         u32bit            GENhi,
-                         FastAFileWrapper *GENs,
-                         bool              doForward,
-                         bool              doReverse) {
-  _ESTlistLen = 1;
-  _ESTlistMax = 1;
-  _ESTlist    = new u32bit [_ESTlistMax];
-  _ESTlist[0] = ESTid;
+sim4command::sim4command(u32bit        ESTid,
+                         FastAWrapper *ESTs,
+                         u32bit        GENid,
+                         u32bit        GENlo,
+                         u32bit        GENhi,
+                         FastAWrapper *GENs,
+                         bool          doForward,
+                         bool          doReverse) {
 
-  _genIdx = GENid;
-  _genLo  = GENlo;
-  _genHi  = GENhi;
+  _estIdx = ESTid;
 
   _ESTs              = ESTs;
   _ESTloaded         = 0L;
   _ESTsequence       = 0L;
   _ESTsequenceLength = 0;
+
+  _genIdx = GENid;
+  _genLo  = GENlo;
+  _genHi  = GENhi;
 
   _GENs              = GENs;
   _GENloaded         = 0L;
@@ -51,19 +49,17 @@ sim4command::sim4command(FastASequenceInCore  *EST,
                          u32bit                GENhi,
                          bool                  doForward,
                          bool                  doReverse) {
-  _ESTlistLen = 1;
-  _ESTlistMax = 1;
-  _ESTlist    = new u32bit [_ESTlistMax];
-  _ESTlist[0] = EST->getIID();
 
-  _genIdx = GEN->getIID();
-  _genLo  = GENlo;
-  _genHi  = GENhi;
+  _estIdx = EST->getIID();
 
   _ESTs              = 0L;
   _ESTloaded         = EST;
   _ESTsequence       = 0L;
   _ESTsequenceLength = 0;
+
+  _genIdx = GEN->getIID();
+  _genLo  = GENlo;
+  _genHi  = GENhi;
 
   _GENs              = 0L;
   _GENloaded         = GEN;
@@ -77,38 +73,6 @@ sim4command::sim4command(FastASequenceInCore  *EST,
 }
 
 
-//  Set things up for a more-than-one-est run
-//
-#if 0
-sim4command::sim4command(FastAFileWrapper *ESTs,
-                         FastAFileWrapper *GENs) {
-  _ESTlistLen = 0;
-  _ESTlistMax = 4;
-  _ESTlist    = new u32bit [_ESTlistMax];
-
-  _genIdx = ~u32bitZERO;
-  _genLo  = ~u32bitZERO;
-  _genHi  = ~u32bitZERO;
-
-  _ESTs              = ESTs;
-  _ESTloaded         = 0L;
-  _ESTsequence       = 0L;
-  _ESTsequenceLength = 0;
-
-  _GENs              = GENs;
-  _GENloaded         = 0L;
-  _GENsequence       = 0L;
-  _GENsequenceLength = 0;
-
-  _doForward = false;
-  _doReverse = false;
-
-  _strandIndicator = 0L;
-}
-#endif
-
-
-
 //  Use two char*'s for sequence sources
 //
 sim4command::sim4command(char             *EST,
@@ -119,18 +83,16 @@ sim4command::sim4command(char             *EST,
                          u32bit            GENhi,
                          bool              doForward,
                          bool              doReverse) {
-  _ESTlistLen = 0;
-  _ESTlistMax = 0;
-  _ESTlist    = 0L;
-
-  _genIdx = 0;
-  _genLo  = GENlo;
-  _genHi  = GENhi;
+  _estIdx = 0;
 
   _ESTs              = 0L;
   _ESTloaded         = 0L;
   _ESTsequence       = EST;
   _ESTsequenceLength = ESTlen;
+
+  _genIdx = 0;
+  _genLo  = GENlo;
+  _genHi  = GENhi;
 
   _GENs              = 0L;
   _GENloaded         = 0L;
@@ -145,7 +107,6 @@ sim4command::sim4command(char             *EST,
 
 
 sim4command::~sim4command() {
-  delete [] _ESTlist;
   if (_ESTs)
     delete _ESTloaded;
   if (_GENs)
@@ -182,31 +143,9 @@ sim4command::finalize(void) {
 
 
 
-void
-sim4command::addESTid(u32bit id) {
-
-  if ((_ESTs == 0L) || (_ESTlist == 0L)) {
-    fprintf(stderr, "ERROR: sim4commnd::addESTid()-- no FastAFileWrapper of ESTs to add to!\n");
-    exit(1);
-  }
-
-  if (_ESTlistLen >= _ESTlistMax) {
-    _ESTlistMax *= 2;
-    u32bit *newlist = new u32bit [_ESTlistMax];
-    memcpy(newlist, _ESTlist, sizeof(u32bit) * _ESTlistLen);
-    delete [] _ESTlist;
-    _ESTlist = newlist;
-  }
-
-  _ESTlist[_ESTlistLen++] = id;
-}
-
-
-
-
 //  get() routines have multple cases
 //
-//  if no fastafilewrapper, they can quickly return
+//  if no fastawrapper, they can quickly return
 //  otherwise
 //  if nothing loaded or the thing loaded isn't right:
 //    delete the current
@@ -214,12 +153,12 @@ sim4command::addESTid(u32bit id) {
 //
 
 void
-sim4command::loadEST(u32bit i) {
+sim4command::loadEST(void) {
   if ((_ESTloaded == 0L) ||
-      (_ESTloaded->getIID() != i)) {
+      (_ESTloaded->getIID() != _estIdx)) {
     delete _ESTloaded;
-    if (_ESTs->find(i) == false) {
-      fprintf(stderr, "ERROR: Can't find IID %lu in the set of ESTs\n", i);
+    if (_ESTs->find(_estIdx) == false) {
+      fprintf(stderr, "ERROR: Can't find IID %lu in the set of ESTs\n", _estIdx);
       exit(1);
     }
     _ESTloaded = _ESTs->getSequence();
@@ -228,36 +167,33 @@ sim4command::loadEST(u32bit i) {
 
 
 u32bit
-sim4command::getESTidx(u32bit i) {
+sim4command::getESTidx(void) {
   if (_ESTsequence)
     return(0);
-  return(_ESTlist[i]);
+  return(_estIdx);
 }
 
 char*
-sim4command::getESTheader(u32bit i) {
-  //fprintf(stderr, "getESTheader--%d\n", i);
+sim4command::getESTheader(void) {
   if (_ESTsequence)
     return("anonymous cDNA sequence");
-  loadEST(_ESTlist[i]);
+  loadEST();
   return(_ESTloaded->header());
 }
 
 char*
-sim4command::getESTsequence(u32bit i) {
-  //fprintf(stderr, "getESTsequence--%d\n", i);
+sim4command::getESTsequence(void) {
   if (_ESTsequence)
     return(_ESTsequence);
-  loadEST(_ESTlist[i]);
+  loadEST();
   return(_ESTloaded->sequence());
 }
 
 u32bit
-sim4command::getESTlength(u32bit i) {
-  //fprintf(stderr, "getESTlength--%d\n", i);
+sim4command::getESTlength(void) {
   if (_ESTsequence)
     return(_ESTsequenceLength);
-  loadEST(_ESTlist[i]);
+  loadEST();
   return(_ESTloaded->sequenceLength());
 }
 

@@ -1,10 +1,11 @@
 #include "sim4.H"
-#include "sim4db.H"
 #include "libbri.H"
 
 //#define MASKTEST
 //#define BUGS
 //#define SHOW_OVERLAPPING_EXONS
+
+//#define DEBUG
 
 static void
 add_offset_exons(Exon *exons, int offset) {
@@ -69,7 +70,8 @@ appendOutput(char *outstring, char const *appendstring) {
 
 void
 Sim4::maskExonsFromGenomic(Exon *theExons,
-                           unsigned char *f, unsigned char *r,
+                           char *f,
+                           char *r,
                            int l) {
   Exon          *theExon = theExons;
 
@@ -102,8 +104,8 @@ Sim4::maskExonsFromGenomic(Exon *theExons,
 
 
 char *
-Sim4::run(sim4parameters *s4Params) {
-  unsigned int  lineBufferSize = 4096;
+Sim4::run(sim4command *cmd) {
+  u32bit        lineBufferSize = 4096;
   char         *lineBuffer     = new char [lineBufferSize];
 
   int    dist, match_ori;
@@ -122,41 +124,23 @@ Sim4::run(sim4parameters *s4Params) {
   for (int i=0; i<256; i++)
     touppercache[i] = (char)toupper(i);
 
-  //  Make absolutely sure that the database sequence start and end
-  //  positions are within the valid range.  Ideally, this should be
-  //  checked by whatever generates the input, but it probably isn't.
-  //
-  //  If the end position is too big, make it the same as the sequence
-  //  length.
-  //
-  //  If the start position is bigger than the (corrected) end
-  //  position, make it 100K less than the end position.
-  //
-  if (s4Params->_dbHi > s4Params->getDBlength(s4Params->_dbIdx))
-    s4Params->_dbHi = s4Params->getDBlength(s4Params->_dbIdx);
+  cmd->finalize();
 
-  if (s4Params->_dbLo > s4Params->_dbHi)
-    if (s4Params->_dbHi > 100000)
-      s4Params->_dbLo = s4Params->_dbHi - 100000;
-    else
-      s4Params->_dbLo = 0;
-
-
-  int              dblen       = s4Params->_dbHi - s4Params->_dbLo;
-  unsigned char   *dbseq       = 0L;
-  unsigned char   *dbrev       = 0L;
-  unsigned char   *dbseqorig   = s4Params->getDBsequence(s4Params->_dbIdx);
-  bool             dbWasMasked = false;
+  u32bit  dblen       = cmd->getGENhi() - cmd->getGENlo();
+  char   *dbseq       = 0L;
+  char   *dbrev       = 0L;
+  char   *dbseqorig   = cmd->getGENsequence();
+  bool    dbWasMasked = false;
 
   int              estlen     = 0;
-  unsigned char   *estseq     = 0L;
-  unsigned char   *estrev     = 0L;
-  unsigned char   *estseqorig = 0L;
+  char   *estseq     = 0L;
+  char   *estrev     = 0L;
+  char   *estseqorig = 0L;
 
-  unsigned int     pleaseContinueComputing = false;
+  bool    pleaseContinueComputing = false;
 
-  char            *outputString    = 0L;
-  char const      *strandIndicator = 0L;
+  char        *outputString    = 0L;
+  char const  *strandIndicator = 0L;
 
 
   //  Allocate space for temporary sequence storage.  We need
@@ -164,24 +148,18 @@ Sim4::run(sim4parameters *s4Params) {
   //  for the longest EST (in case we need to print it out
   //  reverse complemented).
   //
-  unsigned char   *seqStorage     = 0L;
-  unsigned int     seqStorageSize = 0;
+  char   *seqStorage     = 0L;
+  u32bit  seqStorageSize = 0;
 
-  for (unsigned int e=0; e<s4Params->_numESTs; e++)
-    if (estlen < s4Params->getESTlength(s4Params->_ESTlist[e]))
-      estlen = s4Params->getESTlength(s4Params->_ESTlist[e]);
-
-  seqStorageSize  = dblen + dblen + estlen + estlen + 8;
-  seqStorage      = new unsigned char [seqStorageSize];
+  seqStorageSize  = 2 * dblen + 2 * cmd->getESTlength() + 8;
+  seqStorage      = new char [seqStorageSize];
 
   //  Original, forward, reverse, cdna
   //
-  //fprintf(stderr, "Allocating %d bytes for sequence storage\n", seqStorageSize);
-
   dbseq  = seqStorage;
   dbrev  = seqStorage + dblen + 2;
   estseq = seqStorage + dblen + 2 + dblen + 2;
-  estrev = seqStorage + dblen + 2 + dblen + 2 + estlen + 2;
+  estrev = seqStorage + dblen + 2 + dblen + 2 + cmd->getESTlength() + 2;
 
 
   //  Prepare the database sequence
@@ -190,170 +168,170 @@ Sim4::run(sim4parameters *s4Params) {
   //  Convert to uppercase
   //  Reverse complement
   //
-  for (unsigned int i=0, j=s4Params->_dbLo, k=dblen-1; j<s4Params->_dbHi; i++, j++, k--) {
+  for (u32bit i=0, j=cmd->getGENlo(), k=dblen-1; j<cmd->getGENhi(); i++, j++, k--) {
     dbseq[i] = touppercache[dbseqorig[j]];
     dbrev[k] = complementSymbol[dbseq[i]];
   }
   dbseq[dblen] = 0;
   dbrev[dblen] = 0;
 
-  for (unsigned int e=0; e<s4Params->_numESTs; e++) {
-    sim4_stats_t   st, rev_st;
+  sim4_stats_t   st, rev_st;
 
-    estseqorig = s4Params->getESTsequence(s4Params->_ESTlist[e]);
-    estlen     = s4Params->getESTlength(s4Params->_ESTlist[e]);
+  estseqorig = cmd->getESTsequence();
+  estlen     = cmd->getESTlength();
 
-    for (unsigned int i=0; i<estlen; i++)
-      estseq[i] = touppercache[estseqorig[i]];
-    estseq[estlen] = 0;
+  for (u32bit i=0; i<estlen; i++)
+    estseq[i] = touppercache[estseqorig[i]];
+  estseq[estlen] = 0;
 
-    g_pT = g_pA = 0;
+  g_pT = g_pA = 0;
 
-    if (dbParams._ignorePolyTails) {
-      get_polyAT(estseq, estlen, &g_pT, &g_pA);
-      //fprintf(stderr, "Masked: %d %d\n", g_pT, g_pA);
+  if (globalParams->_ignorePolyTails) {
+    get_polyAT(estseq, estlen, &g_pT, &g_pA);
+    //fprintf(stderr, "Masked: %d %d\n", g_pT, g_pA);
+  }
+
+  if (estlen - g_pA - g_pT <= 0)
+    goto abort;
+
+
+  //  If the database was masked, restore it to the original state.
+  //
+  if (dbWasMasked) {
+    dbWasMasked = false;
+    for (u32bit i=0, j=cmd->getGENlo(), k=dblen-1; j<cmd->getGENhi(); i++, j++, k--) {
+      dbseq[i] = touppercache[dbseqorig[j]];
+      dbrev[k] = complementSymbol[dbseq[i]];
     }
+    dbseq[dblen] = 0;
+    dbrev[dblen] = 0;
+  }
 
-    if (estlen - g_pA - g_pT <= 0)
-      continue;
+  matchesPrinted = 0;
 
-    //  If the database was masked, restore it to the original state.
-    //
-    if (dbWasMasked) {
-      dbWasMasked = false;
-      for (unsigned int i=0, j=s4Params->_dbLo, k=dblen-1; j<s4Params->_dbHi; i++, j++, k--) {
-        dbseq[i] = touppercache[dbseqorig[j]];
-        dbrev[k] = complementSymbol[dbseq[i]];
-      }
-      dbseq[dblen] = 0;
-      dbrev[dblen] = 0;
-    }
+  do {
+    memset(&st,     0, sizeof(sim4_stats_t));
+    memset(&rev_st, 0, sizeof(sim4_stats_t));
 
-    matchesPrinted = 0;
+    bld_table(estseq - 1 + g_pT, estlen - g_pA - g_pT, DEFAULT_W, INIT);
 
-    do {
-      memset(&st,     0, sizeof(sim4_stats_t));
-      memset(&rev_st, 0, sizeof(sim4_stats_t));
+    if (cmd->doForward()) {
+      Aligns = SIM4(dbseq, estseq + g_pT,
+                    dblen, estlen - g_pT - g_pA,
+                    &dist,
+                    &Exons,
+                    &f_pA,
+                    &f_pT,
+                    &st);
 
-      bld_table(estseq - 1 + g_pT, estlen - g_pA - g_pT, DEFAULT_W, INIT);
-
-      if (s4Params->_doForward) {
-        Aligns = SIM4(dbseq, estseq + g_pT,
-                      dblen, estlen - g_pT - g_pA,
-                      &dist,
-                      &Exons,
-                      &f_pA,
-                      &f_pT,
-                      &st);
-
-        //  Continued from util.C :: slide_intron()
-        //
-        //  If we are forcing the strand prediction, and we are still unknown,
-        //  set the strand prediction to the match orientation. Since this 
-        //  will be reversed later on, set it to FWD here.
-        //
-        if ((dbParams._forceStrandPrediction) && (st.orientation == BOTH))
-          st.orientation = FWD;
+      //  Continued from util.C :: slide_intron()
+      //
+      //  If we are forcing the strand prediction, and we are still unknown,
+      //  set the strand prediction to the match orientation. Since this 
+      //  will be reversed later on, set it to FWD here.
+      //
+      if ((globalParams->_forceStrandPrediction) && (st.orientation == BOTH))
+        st.orientation = FWD;
 
 #if ABORT_EXPENSIVE
-        if (st.tooManyMSPs) { 
-          unsigned int    lbs = (strlen((char *)s4Params->getESTheader(s4Params->_ESTlist[e])) +
-                                 strlen((char *)s4Params->getDBheader(s4Params->_dbIdx)) +
-                                 2048);
+      if (st.tooManyMSPs) { 
+        u32bit    lbs = (strlen((char *)cmd->getESTheader()) +
+                         strlen((char *)cmd->getGENheader()) +
+                         2048);
 
-          if (lineBufferSize < lbs) {
-            delete [] lineBuffer;
-            lineBufferSize  = lbs;
-            lineBuffer      = new char [lineBufferSize];
-          }
-
-          sprintf(lineBuffer, "sim4begin\n%d[%d-0-0] %d[%d-%d] <0-0-0-forward-intractable>\n",
-                  s4Params->_ESTlist[e],
-                  estlen,
-                  s4Params->_dbIdx,
-                  s4Params->_dbLo,
-                  s4Params->_dbHi);
-          outputString = appendOutput(outputString, lineBuffer); 
-
-          if (dbParams._includeDefLine) {
-            sprintf(lineBuffer, "edef=%s\nddef=%s\n",
-                    s4Params->getESTheader(s4Params->_ESTlist[e]),
-                    s4Params->getDBheader(s4Params->_dbIdx));
-            outputString = appendOutput(outputString, lineBuffer); 
-          }
-
-          sprintf(lineBuffer, "1-%d (1-%d) <%d-0-0>\nsim4end\n",
-                  estlen,
-                  s4Params->_dbHi - s4Params->_dbLo,
-                  st.numberOfMatches);
-          outputString = appendOutput(outputString, lineBuffer); 
-
-          goto abort;
+        if (lineBufferSize < lbs) {
+          delete [] lineBuffer;
+          lineBufferSize  = lbs;
+          lineBuffer      = new char [lineBufferSize];
         }
-#endif
+
+        sprintf(lineBuffer, "sim4begin\n%d[%d-0-0] %d[%d-%d] <0-0-0-forward-intractable>\n",
+                cmd->getESTidx(),
+                estlen,
+                cmd->getGENidx(),
+                cmd->getGENlo(),
+                cmd->getGENhi());
+        outputString = appendOutput(outputString, lineBuffer); 
+
+        if (globalParams->_includeDefLine) {
+          sprintf(lineBuffer, "edef=%s\nddef=%s\n",
+                  cmd->getESTheader(),
+                  cmd->getGENheader());
+          outputString = appendOutput(outputString, lineBuffer); 
+        }
+
+        sprintf(lineBuffer, "1-%d (1-%d) <%d-0-0>\nsim4end\n",
+                estlen,
+                cmd->getGENhi() - cmd->getGENlo(),
+                st.numberOfMatches);
+        outputString = appendOutput(outputString, lineBuffer); 
+
+        goto abort;
       }
+#endif
+    }
 
-      if (s4Params->_doReverse) {
-        rev_Aligns = SIM4(dbrev, estseq + g_pT,
-                          dblen, estlen - g_pT - g_pA,
-                          &dist,
-                          &rev_Exons,
-                          &r_pA,
-                          &r_pT,
-                          &rev_st);
+    if (cmd->doReverse()) {
+      rev_Aligns = SIM4(dbrev, estseq + g_pT,
+                        dblen, estlen - g_pT - g_pA,
+                        &dist,
+                        &rev_Exons,
+                        &r_pA,
+                        &r_pT,
+                        &rev_st);
 
-        //  Continued from util.C :: slide_intron()
-        //
-        //  If we are forcing the strand prediction, and we are still unknown,
-        //  set the strand prediction to the match orientation. 
-        //
-        if ((dbParams._forceStrandPrediction) && (rev_st.orientation == BOTH))
-          rev_st.orientation = FWD;
+      //  Continued from util.C :: slide_intron()
+      //
+      //  If we are forcing the strand prediction, and we are still unknown,
+      //  set the strand prediction to the match orientation. 
+      //
+      if ((globalParams->_forceStrandPrediction) && (rev_st.orientation == BOTH))
+        rev_st.orientation = FWD;
 
 #if ABORT_EXPENSIVE
-        if (rev_st.tooManyMSPs) { 
-          unsigned int    lbs = (strlen((char *)s4Params->getESTheader(s4Params->_ESTlist[e])) +
-                                 strlen((char *)s4Params->getDBheader(s4Params->_dbIdx)) +
-                                 2048);
+      if (rev_st.tooManyMSPs) { 
+        u32bit    lbs = (strlen((char *)cmd->getESTheader()) +
+                         strlen((char *)cmd->getGENheader()) +
+                         2048);
 
-          if (lineBufferSize < lbs) {
-            delete [] lineBuffer;
-            lineBufferSize  = lbs;
-            lineBuffer      = new char [lineBufferSize];
-          }
-
-          sprintf(lineBuffer, "sim4begin\n%d[%d-0-0] %d[%d-%d] <0-0-0-complement-intractable>\n",
-                  s4Params->_ESTlist[e],
-                  estlen,
-                  s4Params->_dbIdx,
-                  s4Params->_dbLo,
-                  s4Params->_dbHi);
-          outputString = appendOutput(outputString, lineBuffer); 
-
-          if (dbParams._includeDefLine) {
-            sprintf(lineBuffer, "edef=%s\nddef=%s\n",
-                    s4Params->getESTheader(s4Params->_ESTlist[e]),
-                    s4Params->getDBheader(s4Params->_dbIdx));
-            outputString = appendOutput(outputString, lineBuffer); 
-          }
-
-          sprintf(lineBuffer, "1-%d (1-%d) <%d-0-0>\nsim4end\n",
-                  estlen,
-                  s4Params->_dbHi - s4Params->_dbLo,
-                  rev_st.numberOfMatches);
-          outputString = appendOutput(outputString, lineBuffer); 
-
-          goto abort;
+        if (lineBufferSize < lbs) {
+          delete [] lineBuffer;
+          lineBufferSize  = lbs;
+          lineBuffer      = new char [lineBufferSize];
         }
-#endif
+
+        sprintf(lineBuffer, "sim4begin\n%d[%d-0-0] %d[%d-%d] <0-0-0-complement-intractable>\n",
+                cmd->getESTidx(),
+                estlen,
+                cmd->getGENidx(),
+                cmd->getGENlo(),
+                cmd->getGENhi());
+        outputString = appendOutput(outputString, lineBuffer); 
+
+        if (globalParams->_includeDefLine) {
+          sprintf(lineBuffer, "edef=%s\nddef=%s\n",
+                  cmd->getESTheader(),
+                  cmd->getGENheader());
+          outputString = appendOutput(outputString, lineBuffer); 
+        }
+
+        sprintf(lineBuffer, "1-%d (1-%d) <%d-0-0>\nsim4end\n",
+                estlen,
+                cmd->getGENhi() - cmd->getGENlo(),
+                rev_st.numberOfMatches);
+        outputString = appendOutput(outputString, lineBuffer); 
+
+        goto abort;
       }
+#endif
+    }
 
 
-      if (st.numberOfMatches >= rev_st.numberOfMatches) {
-        match_ori = FWD;
+    if (st.numberOfMatches >= rev_st.numberOfMatches) {
+      match_ori = FWD;
 
-        if (s4Params->_strandIndicator == 0L) {
-          switch (st.orientation) {
+      if (cmd->getStrandIndicator() == 0L) {
+        switch (st.orientation) {
           case FWD:
             strandIndicator = "forward";
             break;
@@ -363,276 +341,273 @@ Sim4::run(sim4parameters *s4Params) {
           default:
             strandIndicator = "unknown";
             break;
-          }
-        } else {
-          strandIndicator = s4Params->_strandIndicator;
-        }
-
-        if (dbParams._ignorePolyTails) {
-          add_offset_exons(Exons, g_pT);  
-          add_offset_aligns(Aligns, g_pT);
-        }
-
-        if (rev_Exons) { free_list(rev_Exons); rev_Exons = NULL; }
-        if (rev_Aligns) { free_align(rev_Aligns); rev_Aligns = NULL; }
-
-        pT = g_pT + f_pT;
-        pA = g_pA + f_pA;
-
-        if (Exons) {
-          char *result = checkExonsForOverlaps(Exons);
-          if (result) {
-#ifdef SHOW_OVERLAPPING_EXONS
-            unsigned int    lbs = (strlen((char *)s4Params->getESTheader(s4Params->_ESTlist[e])) +
-                                   strlen((char *)s4Params->getDBheader(s4Params->_dbIdx)) +
-                                   2048);
-
-            if (lineBufferSize < lbs) {
-              delete [] lineBuffer;
-              lineBufferSize  = lbs;
-              lineBuffer      = new char [lineBufferSize];
-            }
-
-            if (dbParams._includeDefLine) {
-              sprintf(lineBuffer, "sim4begin\n%d[%d-0-0] %d[%d-%d] <0-0-0-forward-failed>\nedef=%s\nddef=%s\n%ssim4end\n",
-                      s4Params->_ESTlist[e],
-                      estlen,
-                      s4Params->_dbIdx,
-                      s4Params->_dbLo,
-                      s4Params->_dbHi,
-                      s4Params->getESTheader(s4Params->_ESTlist[e]),
-                      s4Params->getDBheader(s4Params->_dbIdx),
-                      result);
-            } else {
-              sprintf(lineBuffer, "sim4begin\n%d[%d-0-0] %d[%d-%d] <0-0-0-forward-failed>\n%ssim4end\n",
-                      s4Params->_ESTlist[e],
-                      estlen,
-                      s4Params->_dbIdx,
-                      s4Params->_dbLo,
-                      s4Params->_dbHi,
-                      result);
-            }
-
-            outputString = appendOutput(outputString, lineBuffer);
-#endif
-            delete [] result;
-            goto abort;
-          }
         }
       } else {
-        match_ori = BWD;
-
-        if (s4Params->_strandIndicator == 0L) {
-          switch (rev_st.orientation) {
-            case FWD:
-              strandIndicator = "reverse";
-              break;
-            case BWD:
-              strandIndicator = "forward";
-              break;
-            default:
-              strandIndicator = "unknown";
-              break;
-          }
-        } else {
-          strandIndicator = s4Params->_strandIndicator;
-        }
-
-        if (dbParams._ignorePolyTails) {
-          add_offset_exons(rev_Exons, g_pT); 
-          add_offset_aligns(rev_Aligns, g_pT);
-        }
-
-        if (rev_Aligns && rev_Aligns->next_script)
-          script_flip_list(&rev_Aligns);
-
-        //  This used to be right before appendExons() in
-        //  the reverse match section, but we need it
-        //  before we test for overlapping exons
-        //
-        complement_exons(&rev_Exons, dblen, estlen);
-
-        if (Exons) { free_list(Exons);  Exons = NULL; }
-        if (Aligns) { free_align(Aligns); Aligns = NULL; }
-
-        pT = g_pT + r_pT;
-        pA = g_pA + r_pA;
-
-        if (rev_Exons) {
-          char *result = checkExonsForOverlaps(rev_Exons);
-          if (result) {
-#ifdef SHOW_OVERLAPPING_EXONS
-            unsigned int    lbs = (strlen((char *)s4Params->getESTheader(s4Params->_ESTlist[e])) +
-                                   strlen((char *)s4Params->getDBheader(s4Params->_dbIdx)) +
-                                   2048);
-
-            if (lineBufferSize < lbs) {
-              delete [] lineBuffer;
-              lineBufferSize  = lbs;
-              lineBuffer      = new char [lineBufferSize];
-            }
-
-
-            if (dbParams._includeDefLine) {
-              sprintf(lineBuffer, "sim4begin\n%d[%d-0-0] %d[%d-%d] <0-0-0-reverse-failed>\nedef=%s\nddef=%s\n%ssim4end\n",
-                      s4Params->_ESTlist[e],
-                      estlen,
-                      s4Params->_dbIdx,
-                      s4Params->_dbLo,
-                      s4Params->_dbHi,
-                      s4Params->getESTheader(s4Params->_ESTlist[e]),
-                      s4Params->getDBheader(s4Params->_dbIdx),
-                      result);
-            } else {
-              sprintf(lineBuffer, "sim4begin\n%d[%d-0-0] %d[%d-%d] <0-0-0-reverse-failed>\n%ssim4end\n",
-                      s4Params->_ESTlist[e],
-                      estlen,
-                      s4Params->_dbIdx,
-                      s4Params->_dbLo,
-                      s4Params->_dbHi,
-                      result);
-            }
-
-            outputString = appendOutput(outputString, lineBuffer);
-#endif
-            delete [] result;
-            goto abort;
-          }
-        }
-
+        strandIndicator = cmd->getStrandIndicator();
       }
 
+      if (globalParams->_ignorePolyTails) {
+        add_offset_exons(Exons, g_pT);  
+        add_offset_aligns(Aligns, g_pT);
+      }
 
+      if (rev_Exons) { free_list(rev_Exons); rev_Exons = NULL; }
+      if (rev_Aligns) { free_align(rev_Aligns); rev_Aligns = NULL; }
 
+      pT = g_pT + f_pT;
+      pA = g_pA + f_pA;
 
-
-
-
-      int     nmatches  = (match_ori==FWD) ? st.numberOfMatches  : rev_st.numberOfMatches;
-      double  coverage  = (double)nmatches / (double)estlen;
-      int     percentid = (match_ori==FWD) ? st.percentID        : rev_st.percentID;
-
-
-      //  Is this match decent?
-      //
-      pleaseContinueComputing = ((coverage  >= dbParams._minCoverage) &&
-                                 (percentid >= dbParams._minPercentExonIdentity) &&
-                                 (nmatches  >= dbParams._minCoverageLength) &&
-                                 (nmatches  > 0));
-
-      //  If we're supposed to print at least _alwaysReport things,
-      //  and we found a match, keep going.
-      //
-      if ((matchesPrinted < dbParams._alwaysReport) && (nmatches > 0))
-        pleaseContinueComputing = true;
-
-      //  However, if we have printed enough stuff, and the last one is
-      //  below the thresholds, stop.
-      //
-      if ((matchesPrinted >= dbParams._alwaysReport) &&
-          ((coverage  < dbParams._minCoverage) ||
-           (percentid < dbParams._minPercentExonIdentity)))
-        pleaseContinueComputing = false;
-
-
-      if (pleaseContinueComputing) {
-        matchesPrinted++;
-
-        outputString = appendOutput(outputString, "sim4begin\n");
-        if (dbParams._includeDefLine) {
-          unsigned int    lbs = (strlen((char *)s4Params->getESTheader(s4Params->_ESTlist[e])) +
-                                 strlen((char *)s4Params->getDBheader(s4Params->_dbIdx)) +
-                                 2048);
+      if (Exons) {
+        char *result = checkExonsForOverlaps(Exons);
+        if (result) {
+#ifdef SHOW_OVERLAPPING_EXONS
+          u32bit    lbs = (strlen((char *)cmd->getESTheader()) +
+                           strlen((char *)cmd->getGENheader()) +
+                           2048);
 
           if (lineBufferSize < lbs) {
             delete [] lineBuffer;
             lineBufferSize  = lbs;
             lineBuffer      = new char [lineBufferSize];
           }
-          
-          sprintf(lineBuffer, "%d[%d-%d-%d] %d[%d-%d] <%d-%d-%d-%s-%s>\nedef=%s\nddef=%s\n",
-                  s4Params->_ESTlist[e],
-                  estlen,
-                  pA,
-                  pT,
 
-                  s4Params->_dbIdx,
-                  s4Params->_dbLo,
-                  s4Params->_dbHi,
+          if (globalParams->_includeDefLine) {
+            sprintf(lineBuffer, "sim4begin\n%d[%d-0-0] %d[%d-%d] <0-0-0-forward-failed>\nedef=%s\nddef=%s\n%ssim4end\n",
+                    cmd->getESTidx(),
+                    estlen,
+                    cmd->getGENidx(),
+                    cmd->getGENlo(),
+                    cmd->getGENhi(),
+                    cmd->getESTheader(),
+                    cmd->getGENheader(),
+                    result);
+          } else {
+            sprintf(lineBuffer, "sim4begin\n%d[%d-0-0] %d[%d-%d] <0-0-0-forward-failed>\n%ssim4end\n",
+                    cmd->getESTidx(),
+                    estlen,
+                    cmd->getGENidx(),
+                    cmd->getGENlo(),
+                    cmd->getGENhi(),
+                    result);
+          }
 
-                  (match_ori==FWD) ? st.numberOfMatches  : rev_st.numberOfMatches,
-                  (match_ori==FWD) ? st.numberOfNs       : rev_st.numberOfNs,
-                  (match_ori==FWD) ? st.percentID        : rev_st.percentID,
-                  (match_ori==FWD) ? "forward"           : "complement",
-                  strandIndicator,
-
-                  s4Params->getESTheader(s4Params->_ESTlist[e]),
-                  s4Params->getDBheader(s4Params->_dbIdx));
-        } else {
-          sprintf(lineBuffer, "%d[%d-%d-%d] %d[%d-%d] <%d-%d-%d-%s-%s>\n",
-                  s4Params->_ESTlist[e],
-                  estlen,
-                  pA,
-                  pT,
-
-                  s4Params->_dbIdx,
-                  s4Params->_dbLo,
-                  s4Params->_dbHi,
-
-                  (match_ori==FWD) ? st.numberOfMatches  : rev_st.numberOfMatches,
-                  (match_ori==FWD) ? st.numberOfNs       : rev_st.numberOfNs,
-                  (match_ori==FWD) ? st.percentID        : rev_st.percentID,
-                  (match_ori==FWD) ? "forward"           : "complement",
-                  strandIndicator);
+          outputString = appendOutput(outputString, lineBuffer);
+#endif
+          delete [] result;
+          goto abort;
         }
-        outputString = appendOutput(outputString, lineBuffer);
-        
-        if (match_ori == FWD) {
-          outputString = appendExons(outputString, Exons);
-          if (dbParams._printAlignments) {
-            outputString = appendAlignments(outputString,
-                                            estseq, dbseq, estlen, dblen,
-                                            &Aligns, Exons,
-                                            FWD);
-          }
+      }
+    } else {
+      match_ori = BWD;
 
-          if (dbParams._findAllExons) {
-            maskExonsFromGenomic(Exons, dbseq, dbrev, dblen);
-            dbWasMasked = true;
-          }
-        } else {
-          outputString = appendExons(outputString, rev_Exons);
-
-          if (dbParams._printAlignments) {
-            for (int i=0, k=estlen-1; i<estlen; i++, k--)
-              estrev[k] = complementSymbol[estseq[i]];
-            estrev[estlen] = 0;
-
-            outputString = appendAlignments(outputString,
-                                            estrev, dbseq, estlen, dblen,
-                                            &rev_Aligns, rev_Exons,
-                                            BWD);
-          }
-
-          if (dbParams._findAllExons) {
-            maskExonsFromGenomic(rev_Exons, dbseq, dbrev, dblen);
-            dbWasMasked = true;
-          }
+      if (cmd->getStrandIndicator() == 0L) {
+        switch (rev_st.orientation) {
+          case FWD:
+            strandIndicator = "reverse";
+            break;
+          case BWD:
+            strandIndicator = "forward";
+            break;
+          default:
+            strandIndicator = "unknown";
+            break;
         }
-
-        outputString = appendOutput(outputString, "sim4end\n");
+      } else {
+        strandIndicator = cmd->getStrandIndicator();
       }
 
-      if (Aligns)     { free_align(Aligns);     Aligns = NULL; }
-      if (rev_Aligns) { free_align(rev_Aligns); rev_Aligns = NULL; }
-      if (Exons)      { free_list(Exons);       Exons = NULL; }
-      if (rev_Exons)  { free_list(rev_Exons);   rev_Exons = NULL; }
-    } while (dbParams._findAllExons && pleaseContinueComputing);
-  }
+      if (globalParams->_ignorePolyTails) {
+        add_offset_exons(rev_Exons, g_pT); 
+        add_offset_aligns(rev_Aligns, g_pT);
+      }
 
-#if ABORT_EXPENSIVE
- abort:
+      if (rev_Aligns && rev_Aligns->next_script)
+        script_flip_list(&rev_Aligns);
+
+      //  This used to be right before appendExons() in
+      //  the reverse match section, but we need it
+      //  before we test for overlapping exons
+      //
+      complement_exons(&rev_Exons, dblen, estlen);
+
+      if (Exons) { free_list(Exons);  Exons = NULL; }
+      if (Aligns) { free_align(Aligns); Aligns = NULL; }
+
+      pT = g_pT + r_pT;
+      pA = g_pA + r_pA;
+
+      if (rev_Exons) {
+        char *result = checkExonsForOverlaps(rev_Exons);
+        if (result) {
+#ifdef SHOW_OVERLAPPING_EXONS
+          u32bit    lbs = (strlen((char *)cmd->getESTheader()) +
+                           strlen((char *)cmd->getGENheader()) +
+                           2048);
+
+          if (lineBufferSize < lbs) {
+            delete [] lineBuffer;
+            lineBufferSize  = lbs;
+            lineBuffer      = new char [lineBufferSize];
+          }
+
+
+          if (globalParams->_includeDefLine) {
+            sprintf(lineBuffer, "sim4begin\n%d[%d-0-0] %d[%d-%d] <0-0-0-reverse-failed>\nedef=%s\nddef=%s\n%ssim4end\n",
+                    cmd->getESTidx(),
+                    estlen,
+                    cmd->getGENidx(),
+                    cmd->getGENlo(),
+                    cmd->getGENhi(),
+                    cmd->getESTheader(),
+                    cmd->getGENheader(),
+                    result);
+          } else {
+            sprintf(lineBuffer, "sim4begin\n%d[%d-0-0] %d[%d-%d] <0-0-0-reverse-failed>\n%ssim4end\n",
+                    cmd->getESTidx(),
+                    estlen,
+                    cmd->getGENidx(),
+                    cmd->getGENlo(),
+                    cmd->getGENhi(),
+                    result);
+          }
+
+          outputString = appendOutput(outputString, lineBuffer);
 #endif
+          delete [] result;
+          goto abort;
+        }
+      }
+
+    }
+
+
+
+
+
+
+
+    int     nmatches  = (match_ori==FWD) ? st.numberOfMatches  : rev_st.numberOfMatches;
+    double  coverage  = (double)nmatches / (double)estlen;
+    int     percentid = (match_ori==FWD) ? st.percentID        : rev_st.percentID;
+
+
+    //  Is this match decent?
+    //
+    pleaseContinueComputing = ((coverage  >= globalParams->_minCoverage) &&
+                               (percentid >= globalParams->_minPercentExonIdentity) &&
+                               (nmatches  >= globalParams->_minCoverageLength) &&
+                               (nmatches  > 0));
+
+    //  If we're supposed to print at least _alwaysReport things,
+    //  and we found a match, keep going.
+    //
+    if ((matchesPrinted < globalParams->_alwaysReport) && (nmatches > 0))
+      pleaseContinueComputing = true;
+
+    //  However, if we have printed enough stuff, and the last one is
+    //  below the thresholds, stop.
+    //
+    if ((matchesPrinted >= globalParams->_alwaysReport) &&
+        ((coverage  < globalParams->_minCoverage) ||
+         (percentid < globalParams->_minPercentExonIdentity)))
+      pleaseContinueComputing = false;
+
+
+    if (pleaseContinueComputing) {
+      matchesPrinted++;
+
+      outputString = appendOutput(outputString, "sim4begin\n");
+      if (globalParams->_includeDefLine) {
+        u32bit    lbs = (strlen((char *)cmd->getESTheader()) +
+                         strlen((char *)cmd->getGENheader()) +
+                         2048);
+
+        if (lineBufferSize < lbs) {
+          delete [] lineBuffer;
+          lineBufferSize  = lbs;
+          lineBuffer      = new char [lineBufferSize];
+        }
+          
+        sprintf(lineBuffer, "%d[%d-%d-%d] %d[%d-%d] <%d-%d-%d-%s-%s>\nedef=%s\nddef=%s\n",
+                cmd->getESTidx(),
+                estlen,
+                pA,
+                pT,
+
+                cmd->getGENidx(),
+                cmd->getGENlo(),
+                cmd->getGENhi(),
+
+                (match_ori==FWD) ? st.numberOfMatches  : rev_st.numberOfMatches,
+                (match_ori==FWD) ? st.numberOfNs       : rev_st.numberOfNs,
+                (match_ori==FWD) ? st.percentID        : rev_st.percentID,
+                (match_ori==FWD) ? "forward"           : "complement",
+                strandIndicator,
+
+                cmd->getESTheader(),
+                cmd->getGENheader());
+      } else {
+        sprintf(lineBuffer, "%d[%d-%d-%d] %d[%d-%d] <%d-%d-%d-%s-%s>\n",
+                cmd->getESTidx(),
+                estlen,
+                pA,
+                pT,
+
+                cmd->getGENidx(),
+                cmd->getGENlo(),
+                cmd->getGENhi(),
+
+                (match_ori==FWD) ? st.numberOfMatches  : rev_st.numberOfMatches,
+                (match_ori==FWD) ? st.numberOfNs       : rev_st.numberOfNs,
+                (match_ori==FWD) ? st.percentID        : rev_st.percentID,
+                (match_ori==FWD) ? "forward"           : "complement",
+                strandIndicator);
+      }
+      outputString = appendOutput(outputString, lineBuffer);
+        
+      if (match_ori == FWD) {
+        outputString = appendExons(outputString, Exons);
+        if (globalParams->_printAlignments) {
+          outputString = appendAlignments(outputString,
+                                          estseq, dbseq, estlen, dblen,
+                                          &Aligns, Exons,
+                                          FWD);
+        }
+
+        if (globalParams->_findAllExons) {
+          maskExonsFromGenomic(Exons, dbseq, dbrev, dblen);
+          dbWasMasked = true;
+        }
+      } else {
+        outputString = appendExons(outputString, rev_Exons);
+
+        if (globalParams->_printAlignments) {
+          for (int i=0, k=estlen-1; i<estlen; i++, k--)
+            estrev[k] = complementSymbol[estseq[i]];
+          estrev[estlen] = 0;
+
+          outputString = appendAlignments(outputString,
+                                          estrev, dbseq, estlen, dblen,
+                                          &rev_Aligns, rev_Exons,
+                                          BWD);
+        }
+
+        if (globalParams->_findAllExons) {
+          maskExonsFromGenomic(rev_Exons, dbseq, dbrev, dblen);
+          dbWasMasked = true;
+        }
+      }
+
+      outputString = appendOutput(outputString, "sim4end\n");
+    }
+
+    if (Aligns)     { free_align(Aligns);     Aligns = NULL; }
+    if (rev_Aligns) { free_align(rev_Aligns); rev_Aligns = NULL; }
+    if (Exons)      { free_list(Exons);       Exons = NULL; }
+    if (rev_Exons)  { free_list(rev_Exons);   rev_Exons = NULL; }
+  } while (globalParams->_findAllExons && pleaseContinueComputing);
+
+ abort:
 
   delete [] seqStorage;
   delete [] lineBuffer;
@@ -707,30 +682,30 @@ Sim4::appendExons(char *outstring, Exon *theExons) {
 
       if ((theExon->next_exon) && (theExon->next_exon->toGEN)) {
         switch (theExon->ori) {
-        case 'C':  //  <-
-          *(exonPrint++) = ' ';
-          *(exonPrint++) = '<';
-          *(exonPrint++) = '-';
-          break;
-        case 'E':  //  ==
-          *(exonPrint++) = ' ';
-          *(exonPrint++) = '=';
-          *(exonPrint++) = '=';
-          break;
-        case 'G':  //  ->
-          *(exonPrint++) = ' ';
-          *(exonPrint++) = '-';
-          *(exonPrint++) = '>';
-          break;
-        case 'N':  //  --
-          *(exonPrint++) = ' ';
-          *(exonPrint++) = '-';
-          *(exonPrint++) = '-';
-          break;
-        default:
-          sprintf(exonPrint, " appendExon: Inconsistent exon orientation '%c'.", theExon->ori);
-          while (*exonPrint)
-            exonPrint++;
+          case 'C':  //  <-
+            *(exonPrint++) = ' ';
+            *(exonPrint++) = '<';
+            *(exonPrint++) = '-';
+            break;
+          case 'E':  //  ==
+            *(exonPrint++) = ' ';
+            *(exonPrint++) = '=';
+            *(exonPrint++) = '=';
+            break;
+          case 'G':  //  ->
+            *(exonPrint++) = ' ';
+            *(exonPrint++) = '-';
+            *(exonPrint++) = '>';
+            break;
+          case 'N':  //  --
+            *(exonPrint++) = ' ';
+            *(exonPrint++) = '-';
+            *(exonPrint++) = '-';
+            break;
+          default:
+            sprintf(exonPrint, " appendExon: Inconsistent exon orientation '%c'.", theExon->ori);
+            while (*exonPrint)
+              exonPrint++;
         }  
       }
 
@@ -766,8 +741,8 @@ char*
 Sim4::IDISPLAY(char *outputstring,
                char *aString,
                char *bString,
-               uchar A[],
-               uchar B[],
+               char A[],
+               char B[],
                int M, int N,
                int S[],
                int AP, int BP,
@@ -941,8 +916,8 @@ Sim4::S2A(edit_script *head, int *S)
 
 char*
 Sim4::appendAlignments(char *outputstring,
-                       uchar *s1,
-                       uchar *s2,
+                       char *s1,
+                       char *s2,
                        int l1,
                        int l2, 
                        edit_script_list **Aligns,

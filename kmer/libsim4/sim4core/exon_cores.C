@@ -1,6 +1,4 @@
 #include "sim4.H"
-#include "sim4db.H"
-#include "libbri.H"
 
 //  diag_lev is used only in these functions.
 //
@@ -10,7 +8,7 @@
 
 
 void
-Sim4::exon_cores(uchar *s1, uchar *s2,
+Sim4::exon_cores(char *s1, char *s2,
                  int l1, int l2,
                  int offset1, int offset2,
                  int flag,
@@ -29,7 +27,7 @@ Sim4::exon_cores(uchar *s1, uchar *s2,
   double tmpTime;
 #endif
 
-  //K = getMSPthreshold(dbParams._useDefaultCforK && flag, in_K, l1, l2);
+  //K = getMSPthreshold(globalParams->_useDefaultCforK && flag, in_K, l1, l2);
   K = getMSPthreshold(flag, in_K, l1, l2);
 
 #ifdef INTERSPECIES
@@ -61,10 +59,10 @@ Sim4::exon_cores(uchar *s1, uchar *s2,
 
 
 void
-Sim4::search(uchar *s1, uchar *s2, int l1, int l2, int in_W, int in_K)
+Sim4::search(char *s1, char *s2, int l1, int l2, int in_W, int in_K)
 {
   register struct hash_node *h;
-  register uchar *t;
+  register char *t;
   register int ecode;
   register int i, p;
 
@@ -140,10 +138,10 @@ Sim4::search(uchar *s1, uchar *s2, int l1, int l2, int in_W, int in_K)
 /* extend_hit - extend a word-sized hit to a longer match */
 int
 Sim4::extend_hit(int pos1, int pos2, 
-                 const uchar * const s1, const uchar * const s2,
+                 const char * const s1, const char * const s2,
                  int l1, int l2, int in_W, int in_K)
 {
-  const uchar *beg2, *beg1, *end1, *q, *s;
+  const char *beg2, *beg1, *end1, *q, *s;
   int right_sum, left_sum, sum, score;
 
   /* extend to the right */

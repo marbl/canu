@@ -1,18 +1,12 @@
 #include "sim4.H"
-#include "sim4db.H"
-
-#ifndef __lint
-/*@unused@*/
-static const char rcsid[] = "$Id$";
-#endif
 
 #define MIN_EXON 12
 
 void
-Sim4::get_polyAT(uchar *seq, int len, int *pT, int *pA, int flag)
+Sim4::get_polyAT(char *seq, int len, int *pT, int *pA, int flag)
 {
   register int i, sum10, sum20;
-  register uchar *s, *t, *v;
+  register char *s, *t, *v;
   int last10;
 
   int MAX10 = 2;
@@ -88,12 +82,12 @@ Sim4::get_polyAT(uchar *seq, int len, int *pT, int *pA, int flag)
 }
 
 void
-Sim4::trim_polyA_align(struct edit_script_list **Sptr, Exon *lblock, Exon **exons, const int bc, int *pA, uchar *s1,uchar *s2) 
+Sim4::trim_polyA_align(struct edit_script_list **Sptr, Exon *lblock, Exon **exons, const int bc, int *pA, char *s1,char *s2) 
 {
   edit_script_list *head = *Sptr;
   edit_script *tp;
   int tmpi = 0, num, idents = 0, identsN = 0;
-  uchar *a, *b;
+  char *a, *b;
   Exon *prev;
 
   int i, j;  /* i index in the cDNA */
@@ -257,10 +251,10 @@ Sim4::trim_polyA_align(struct edit_script_list **Sptr, Exon *lblock, Exon **exon
 
 void
 Sim4::remove_polyA_back(struct edit_script_list **Sptr, Exon *Exons,
-                        uchar *s1, uchar *s2,
+                        char *s1, char *s2,
                         int l2, int *lastA) {
   Exon *t, *exons_tail, *prev; /* start from Lblock */
-  uchar *b, *end;
+  char *b, *end;
   int numA, pA, dummy, trim_p, reverse_script=0;
   int startPos=0, cutAmount=0;
 
@@ -286,7 +280,7 @@ Sim4::remove_polyA_back(struct edit_script_list **Sptr, Exon *Exons,
     while ((t=exons_tail)!=NULL && t->toGEN && trim_p) {
       /* compute the 'A' contents of the exon */
       b = s2 + t->toEST-1; end = s2+t->frEST-1; numA = 0;
-      while (b>=end && numA+(b-end)>=dbParams._polyTailPercent*t->length) { 
+      while (b>=end && numA+(b-end)>=globalParams->_polyTailPercent*t->length) { 
         numA += (*b--=='A'); 
       }
 
@@ -297,7 +291,7 @@ Sim4::remove_polyA_back(struct edit_script_list **Sptr, Exon *Exons,
       //
       //cutAmount = l2 - *lastA + 1;
 
-      if (numA>=dbParams._polyTailPercent*t->length) {
+      if (numA>=globalParams->_polyTailPercent*t->length) {
         /* remove the entire exon */
         trim_polyA_align(Sptr,Exons,&exons_tail,t->frEST,lastA,s1,s2);
         cutAmount = startPos - *lastA + 1;
@@ -326,12 +320,12 @@ Sim4::remove_polyA_back(struct edit_script_list **Sptr, Exon *Exons,
 
 /* s2 is the cdna */
 void
-Sim4::trim_polyT_align(struct edit_script_list **Sptr, Exon **exons, const int ec, int *pT, uchar *s1, uchar *s2)
+Sim4::trim_polyT_align(struct edit_script_list **Sptr, Exon **exons, const int ec, int *pT, char *s1, char *s2)
 {
   edit_script_list *head = *Sptr;
   edit_script *tp;
   int tmpi = 0, num, idents = 0, identsN = 0;
-  uchar *a, *b;
+  char *a, *b;
   Exon *t;
 
   int i, j;  /* i index in the cDNA */
@@ -485,10 +479,10 @@ Sim4::trim_polyT_align(struct edit_script_list **Sptr, Exon **exons, const int e
 
 
 void
-Sim4::remove_polyT_front(struct edit_script_list **Sptr, Exon *Exons, uchar *s1, uchar *s2, int *lastT)
+Sim4::remove_polyT_front(struct edit_script_list **Sptr, Exon *Exons, char *s1, char *s2, int *lastT)
 {
   Exon *t, *exons_head; /* start from Lblock */
-  uchar *b, *end;
+  char *b, *end;
   int numT, dummy, trim_p, reverse_script=0, pT;
   int startPos=0, cutAmount=0;
 
@@ -509,7 +503,7 @@ Sim4::remove_polyT_front(struct edit_script_list **Sptr, Exon *Exons, uchar *s1,
     while ((t=exons_head)!=NULL && t->toGEN && trim_p) {
       /* compute the 'T' contents of the exon */
       b = s2 + t->frEST-1; end = s2+t->toEST; numT = 0;
-      while (b<end && (numT+t->toEST-(b-s2)>=dbParams._polyTailPercent*t->length)) {
+      while (b<end && (numT+t->toEST-(b-s2)>=globalParams->_polyTailPercent*t->length)) {
         numT += (*b++=='T');
       }
 
@@ -520,7 +514,7 @@ Sim4::remove_polyT_front(struct edit_script_list **Sptr, Exon *Exons, uchar *s1,
       //
       //cutAmount = l2 - *lastT + 1;
 
-      if (numT>=dbParams._polyTailPercent*t->length) {
+      if (numT>=globalParams->_polyTailPercent*t->length) {
         /* remove the entire exon */
         trim_polyT_align(Sptr,&exons_head,t->toEST,lastT,s1,s2);
         cutAmount = *lastT - startPos + 1;

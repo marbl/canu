@@ -20,8 +20,8 @@ struct exon {
 
 class exonManager {
 private:
-  unsigned int   _allocExons;
-  unsigned int   _numExons;
+  u32bit         _allocExons;
+  u32bit         _numExons;
   exon          *_allExons;
 public:
   exonManager() {
@@ -44,7 +44,7 @@ public:
 
       msp *n = new msp [_allocExons];
 
-      for (unsigned int i=0; i<_numExons; i++) {
+      for (u32bit i=0; i<_numExons; i++) {
         n[i].len          = _allExons[i].len;
         n[i].pos1         = _allExons[i].pos1;
         n[i].pos2         = _allExons[i].pos2;

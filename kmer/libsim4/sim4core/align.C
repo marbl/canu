@@ -1,13 +1,6 @@
 #include "sim4.H"
 
 
-#ifndef __lint
-/*@unused@*/
-static const char rcsid[] =
-"$Id$";
-#endif
-
-
 void
 Sim4::align_path(int i1, int j1, int i2, int j2, int dist, edit_script **head, edit_script **tail)
 {

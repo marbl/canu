@@ -5,7 +5,6 @@
 #include "mspManager.H"
 #include "sim4defines.H"
 #include "exon.H"
-#include "sim4db.H"
 
 
 //
@@ -61,9 +60,9 @@ static
 int
 get_edist(int f1, int f2,
           int t1, int t2,
-          unsigned char *seq1,
-          unsigned char *seq2) {
-  unsigned char *s1, *s2, *q1, *q2;
+          char *seq1,
+          char *seq2) {
+  char *s1, *s2, *q1, *q2;
   int dist=0;
 
   s1 = seq1+f1+1;   /* bc at this stage, the msp pos do not have added +1 */
@@ -86,7 +85,7 @@ Exon_ptr
 mspManager::link(int weight, int drange,
                  int offset1, int offset2,
                  int flag, int relinkFlag,
-                 unsigned char *s1, unsigned char *s2) {
+                 char *s1, char *s2) {
 
   //
   //  Assumes the exon list is cleared
@@ -97,8 +96,8 @@ mspManager::link(int weight, int drange,
 
 #if ABORT_EXPENSIVE
   if ((_cDNALength > 0) &&
-      (dbParams._mspLimitAbsolute > 0) && (dbParams._mspLimitAbsolute < _numMSPs) &&
-      (dbParams._mspLimitPercent > 0.0) && (dbParams._mspLimitPercent * _cDNALength < _numMSPs)) {
+      (_mspLimitAbsolute > 0) && (_mspLimitAbsolute < _numMSPs) &&
+      (_mspLimitPercent > 0.0) && (_mspLimitPercent * _cDNALength < _numMSPs)) {
     _tooManyMSPs = true;
     return(0L);
   }
@@ -115,13 +114,13 @@ mspManager::link(int weight, int drange,
   best    = -1;
   best_sc = INT_MIN;
 
-  for (unsigned int i = 0; i < _numMSPs; ++i) {
+  for (u32bit i = 0; i < _numMSPs; ++i) {
     f1 = _allMSPs[i].pos1;      /* start position in seq1 */
     f2 = _allMSPs[i].pos2;      /* start position in seq2 */
     diag = f1 - f2;
     _allMSPs[i].prev = -1;
     _allMSPs[i].linkingScore = 0;
-    for (unsigned int j = 0; j < i; ++j) {
+    for (u32bit j = 0; j < i; ++j) {
       //  12 == default word size.  A Magic Value.
       int vL = L; 
       if ((_allMSPs[i].pos2 + _allMSPs[i].len - _allMSPs[j].pos2 - _allMSPs[j].len > 2 * 12) &&

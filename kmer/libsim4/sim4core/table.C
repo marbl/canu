@@ -26,11 +26,11 @@ Sim4::add_word(int ecode, int pos) {
 
 
 void
-Sim4::bld_table(uchar *s, int len, int in_W, int type)
+Sim4::bld_table(char *s, int len, int in_W, int type)
 {
   int ecode;
   int i, j;
-  uchar *t;
+  char *t;
 
   //fprintf(stdout, "Building table: len=%d type=%d\n", len, type);
 

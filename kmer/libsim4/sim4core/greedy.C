@@ -4,7 +4,7 @@
 #define ANNOUNCEEXIT(S)
 
 int
-Sim4::greedy(uchar *s1, uchar *s2, int m, int n0, int OFFSET1, int OFFSET2, Exon **lblock, Exon **rblock)
+Sim4::greedy(char *s1, char *s2, int m, int n0, int OFFSET1, int OFFSET2, Exon **lblock, Exon **rblock)
 {
   int     col,                    /* column number */
   d,                      /* current distance */
@@ -48,10 +48,10 @@ Sim4::greedy(uchar *s1, uchar *s2, int m, int n0, int OFFSET1, int OFFSET2, Exon
   const int L_ORIGIN = MAX_D;
   const int R_ORIGIN = MAX_D - DELTA;
 
-  const unsigned char *l_s1 = s1;
-  const unsigned char *r_s1 = s1;
-  const unsigned char *l_s2 = s2;
-  const unsigned char *r_s2 = s2 + n0 - n2;
+  const char *l_s1 = s1;
+  const char *r_s1 = s1;
+  const char *l_s2 = s2;
+  const char *r_s2 = s2 + n0 - n2;
 
 
   for (row=m, col=n2; row>0 && col>0 && (r_s1[row-1]==r_s2[col-1]); row--,col--)

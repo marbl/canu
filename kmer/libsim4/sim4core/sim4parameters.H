@@ -1,77 +1,108 @@
-#ifndef SIM4PARAMETERS
-#define SIM4PARAMETERS
+#ifndef SIM4_PARAMETERS_H
+#define SIM4_PARAMETERS_H
 
-#include "fasta.H"
-#include "sequencemanager.H"
+#include "mspManager.H"
 
 class sim4parameters {
 public:
-  sim4parameters(char *cmd, SequenceManager *ESTs, SequenceManager *DBs);
-  sim4parameters(unsigned int ESTid,
-                 unsigned int DBid,
-                 SequenceManager *ESTs, SequenceManager *DBs);
+  sim4parameters();
   ~sim4parameters();
 
-  //  COMMAND STRING
-  //
-  char           *_cmd;
-  char          **_arg;
-
-  //  EST SEQUENCE SPECIFICATION
-  //
-  unsigned int      _numESTs;
-  unsigned int      _maxESTs;
-  unsigned int     *_ESTlist;
-
-  unsigned int      _dbIdx;
-  unsigned int      _dbLo;
-  unsigned int      _dbHi;
-
-  SequenceManager  *_ESTs;
-  SequenceManager  *_DBs;
-  bool              _DBsIsPrivate;
-
-  void            loadAll(void) {
-    for (unsigned int i=0; i<_numESTs; i++)
-      _ESTs->getSequence(_ESTlist[i]);
-
-    _DBs->getSequence(_dbIdx);
-  }
-
-  unsigned char  *getESTsequence(unsigned int i) {
-    return(_ESTs->getSequence(i));
+#if 0
+  void  setUseDefaultCforK(bool x) {
+    _useDefaultCforK = x;
   };
-  unsigned char  *getDBsequence(unsigned int i) {
-    return(_DBs->getSequence(i));
+#endif
+
+  void  setFindAllExons(bool x) {
+    _findAllExons = x;
+  };
+  void  setMinCoverage(double x) {
+    _minCoverage = x;
+  };
+  void  setMinCoverageLength(int l) {
+    _minCoverageLength = l;
+  };
+  void  setMinPercentExonIdentity(int l) {
+    _minPercentExonIdentity = l;
+  };
+  void  setIncludeDefLine(bool x) {
+    _includeDefLine = x;
+  };
+  void  setPrintAlignments(bool x) {
+    _printAlignments = x;
   };
 
-  unsigned int    getESTlength(unsigned int i) {
-    return(_ESTs->getSequenceLength(i));
-  };
-  unsigned int    getDBlength(unsigned int i) {
-    return(_DBs->getSequenceLength(i));
+  void  setAlwaysReport(int n) {
+    _alwaysReport = n;
   };
 
-  unsigned char  *getESTheader(unsigned int i) {
-    return(_ESTs->getHeader(i));
+  void  setIgnorePolyTails(bool x) {
+    _ignorePolyTails = x;
   };
-  unsigned char  *getDBheader(unsigned int i) {
-    return(_DBs->getHeader(i));
+  void  setPolyTailPercent(double x) {
+    _polyTailPercent = x;
   };
 
-  //  OPTIONS FOR SIM4
-  //
-  bool            _doForward;
-  bool            _doReverse;
+  void  setMSPThreshold1(int t) {
+    _mspThresh1 = t;
+  };
+  void  setMSPThreshold2(int t) {
+    _mspThresh2 = t;
+  };
 
-  char           *_strandIndicator;
+#if ABORT_EXPENSIVE
+  void  setMSPLimitAbsolute(u32bit t) {
+    _mspLimitAbsolute = t;
+  };
+  void  setMSPLimitPercent(double p) {
+    _mspLimitPercent = p;
+  };
+#endif
 
-  unsigned int    _accurateSequences;
-  unsigned int    DRANGE;
-  //unsigned int    weight;
-  unsigned int    cutoff; 
+  void  setRelinkWeight(int x) {
+    _relinkWeight = x;
+  };
+  void  setDontForceCanonicalSplicing(bool x) {
+    _dontForceCanonicalSplicing = x;
+  };
 
+  void  setForceStrandPrediction(bool x) {
+    _forceStrandPrediction = x;
+  };
+
+
+private:
+#if 0
+  bool          _useDefaultCforK;
+#endif
+
+  bool          _findAllExons;
+  double        _minCoverage;
+  int           _minCoverageLength;
+  int           _minPercentExonIdentity;
+
+  bool          _includeDefLine;
+  bool          _printAlignments;
+
+  int           _alwaysReport;
+
+  bool          _ignorePolyTails;
+  double        _polyTailPercent;
+
+  int           _mspThresh1;
+  int           _mspThresh2;
+#if ABORT_EXPENSIVE
+  u32bit        _mspLimitAbsolute;  //  Number of MSPs allowed per hit
+  double        _mspLimitPercent;   //  Same, as percentage of length of cDNA
+#endif
+  int           _relinkWeight;
+
+  bool          _dontForceCanonicalSplicing;
+  bool          _forceStrandPrediction;
+
+  friend class Sim4;
 };
 
 
-#endif  //  SIM4PARAMETERS
+#endif  //  SIM4_PARAMETERS_H
