@@ -18,6 +18,7 @@
 // License along with this program; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+#include <errno.h>
 #include "heavychains.H"
 
 
@@ -52,47 +53,35 @@ void StrandPair::addHit(char   direction,
                         u32bit ylo,
                         u32bit yln,
                         u32bit filled) {
-
   Match tmp;
 
-  // ignoring id1 and id2 ?
-  // Assert that the data is proper:
+  tmp.xlo   = xlo;
+  tmp.ylo   = ylo;
 
-  if ((xln <= 0) || (yln <= 0) || (xlo < 0) || (ylo < 0)) {
-    fprintf(stderr, "StrandPair::addHit()-- bogus data.\n");
-    fprintf(stderr, "StrandPair::addHit()-- xln = %d\n", xln);
-    fprintf(stderr, "StrandPair::addHit()-- yln = %d\n", yln);
-    fprintf(stderr, "StrandPair::addHit()-- xlo = %d\n", xlo);
-    fprintf(stderr, "StrandPair::addHit()-- ylo = %d\n", ylo);
-    exit(1);
-  }
+  tmp.xhi   = xlo + xln;
+  tmp.yhi   = ylo + yln;
 
-  old_stra1 = id1;
-  old_stra2 = id2;
-
-  tmp.ori = direction;
-  tmp.xlo = xlo;
-  tmp.ylo = ylo;
-  tmp.filled = filled;
-
-  // convert to a bounding box
-  tmp.xhi = tmp.xlo + xln;
-  tmp.yhi = tmp.ylo + yln;
-  tmp.xhi = tmp.xlo + xln;
-  tmp.yhi = tmp.ylo + yln;
-  tmp.S = 0; tmp.neS = 0; tmp.nwS = 0; tmp.seS = 0; tmp.swS = 0;
-
-#if 1
   // Use the match lengths to initialize the self scores.
+  tmp.selfS = xln;
   if (yln < xln) 
     tmp.selfS = yln;
-  else
-    tmp.selfS = xln;
-#else
-  tmp.selfS = filled;
-#endif
-    
-  P.push_back(tmp);
+
+  tmp.S     = 0.0;
+  tmp.neS   = 0;
+  tmp.nwS   = 0;
+  tmp.seS   = 0;
+  tmp.swS   = 0;
+
+  tmp.filled = filled;
+  tmp.ori    = direction;
+
+  iid1 = id1;
+  iid2 = id2;
+
+  if (beVerbose > 1)
+    fprintf(stderr, "heavychains: add %8d %8d %8d -- %8d %8d %8d\n", id1, tmp.xlo, tmp.xhi, id2, tmp.ylo, tmp.yhi);
+
+  Padd(&tmp);
 }
 
 
@@ -101,36 +90,32 @@ void StrandPair::addHit(char   direction,
 //
 void StrandPair::process(void) {
 
-  if (beVerbose > 0)
-    fprintf(stderr,"HeavyChains: filtering strands %d %d %d\n",old_stra1,old_stra2,P.size());
+  if (Plen > 0) {
+    if (beVerbose > 0)
+      fprintf(stderr,"HeavyChains: filtering strands "u32bitFMT" "u32bitFMT" "u32bitFMT"\n", iid1, iid2, Plen);
 
-  if (P.size() > 0) {
     DPTree *dp = NULL;
-    dp = new DPTree(P.size(),&(P[0]));
+    dp = new DPTree(Plen, P);
     dp->setParams(maxJump);
 
     for(int quadrant=0; quadrant < 4; ++quadrant) {
       if (beVerbose > 1)
 	fprintf(stderr,"HeavyChains: arranging process quadrant %d\n", quadrant);
 
-      switch(quadrant) {
-        case 0:
-	case 2:
-          for(unsigned i=0; i < P.size(); ++i) {
-            int swapi;
-            swapi = -P[i].xlo; P[i].xlo = -P[i].xhi; P[i].xhi = swapi;
-          }
-          break;
-        case 1:
-        case 3:
-          for(unsigned i=0; i < P.size(); ++i) {
-            int swapi;
-            swapi = -P[i].ylo; P[i].ylo = -P[i].yhi; P[i].yhi = swapi;
-          }
-          break;
-        default:
-          fprintf(stderr, "StrandPair::process()-- got invalid quadrant %d\n", quadrant);
-          exit(127);
+      if ((quadrant == 0) || (quadrant == 2)) {
+        for(unsigned i=0; i < Plen; ++i) {
+          int swapi;
+          swapi    = -P[i].xlo;
+          P[i].xlo = -P[i].xhi;
+          P[i].xhi = swapi;
+        }
+      } else {
+        for(unsigned i=0; i < Plen; ++i) {
+          int swapi;
+          swapi    = -P[i].ylo;
+          P[i].ylo = -P[i].yhi;
+          P[i].yhi = swapi;
+        }
       }
 
       if (beVerbose > 1)
@@ -138,29 +123,20 @@ void StrandPair::process(void) {
 	  
       dp->treeScore();
 	  
-      if (beVerbose>1) {
+      if (beVerbose>1)
 	fprintf(stderr,"HeavyChains: recording scores\n");
-      }
+
       switch(quadrant) {
-      case 0:
-	for(unsigned i=0; i < P.size(); ++i) P[i].nwS = P[i].S;
-	break;
-      case 1:
-	for(unsigned i=0; i < P.size(); ++i) P[i].swS = P[i].S;
-	break;
-      case 2:
-	for(unsigned i=0; i < P.size(); ++i) P[i].seS = P[i].S;
-	break;
-      case 3:
-	for(unsigned i=0; i < P.size(); ++i) P[i].neS = P[i].S;
-	break;
-      default:
-	exit(127);
+        case 0: for(unsigned i=0; i < Plen; ++i) P[i].nwS = P[i].S; break;
+        case 1: for(unsigned i=0; i < Plen; ++i) P[i].swS = P[i].S; break;
+        case 2: for(unsigned i=0; i < Plen; ++i) P[i].seS = P[i].S; break;
+        case 3: for(unsigned i=0; i < Plen; ++i) P[i].neS = P[i].S; break;
       }
 	  
       if (beVerbose > 1)
 	fprintf(stderr,"HeavyChains: done quadrant\n");
     }
+
     // All output information is now in the match records of P.
     delete dp;
   }
@@ -168,12 +144,12 @@ void StrandPair::process(void) {
 
 
 
-long
-StrandPair::print(FILE *outF,
-                  long matchid) {
+u64bit
+StrandPair::print(FILE   *outF,
+                  u64bit  matchid) {
   double inc, dec;
 
-  for(unsigned i=0; i < P.size(); ++i) {
+  for(unsigned i=0; i < Plen; ++i) {
 
     // symmetrize the forward and backward scores
     inc = P[i].neS + P[i].swS - P[i].selfS; // forward complement orientations
@@ -186,29 +162,34 @@ StrandPair::print(FILE *outF,
       int len2 = (P[i].yhi-P[i].ylo);
       matchid++;
 
-      fprintf(outF, "M x H%ld . %s:%d %d %d %d %s:%d %d %d %d > /hf=%.1f /hr=%.1f\n",
+      if (beVerbose > 1)
+        fprintf(stderr, "heavychains: out "u32bitFMTW(8)" %8d %8d -- "u32bitFMTW(8)" %8d %8d\n",
+                iid1, P[i].xlo, P[i].xhi,
+                iid2, P[i].ylo, P[i].yhi);
+
+      errno = 0;
+      fprintf(outF, "M x H"u64bitFMT" . %s:"u32bitFMT" %d %d %d %s:"u32bitFMT" %d %d %d %d > /hf=%.1f /hr=%.1f\n",
               matchid,
-              assemblyId1, old_stra1, P[i].xlo, len1, 1,
-              assemblyId2, old_stra2, P[i].ylo, len2, (P[i].ori == 'f'? 1 : -1),
-              inc, dec );
+              assemblyId1, iid1, P[i].xlo, len1, 1,
+              assemblyId2, iid2, P[i].ylo, len2, (P[i].ori == 'f'? 1 : -1),
+              inc, dec);
+      if (errno) {
+        fprintf(stderr, "StrandPair::print()-- write failed:\n%d: %s\n",
+                errno, strerror(errno));
+      }
 
-      sumlen1 += len1;
-      sumlen2 += len2;
-      maxlen1 = ( maxlen1 > len1 ? maxlen1 : len1);
-      maxlen2 = ( maxlen2 > len2 ? maxlen2 : len2);
-      maxScoreFwd = (maxScoreFwd > inc ? maxScoreFwd : inc);
-      maxScoreRev = (maxScoreRev > dec ? maxScoreRev : dec);
+      sumlen1    += len1;
+      sumlen2    += len2;
+      maxlen1     = (maxlen1 > len1) ? maxlen1 : len1;
+      maxlen2     = (maxlen2 > len2) ? maxlen2 : len2;
+      maxScoreFwd = (maxScoreFwd > inc) ? maxScoreFwd : inc;
+      maxScoreRev = (maxScoreRev > dec) ? maxScoreRev : dec;
     }
-  }
 
-  if (beVerbose > 0)
-    fprintf(stderr,"HeavyChains: finished strands %d %d %f %f %f %f\n",
-            old_stra1,
-            old_stra2,
-            maxlen1,
-            maxlen2,
-            maxScoreFwd,
-            maxScoreRev);
+    if (beVerbose > 0)
+      fprintf(stderr, "HeavyChains: finished strands "u32bitFMTW(8)" "u32bitFMTW(8)" maxlen1=%f maxlen2=%f maxScoreFwd=%f maxScoreRef=%f\n",
+              iid1, iid2, maxlen1, maxlen2, maxScoreFwd, maxScoreRev);
+  }
 
   return(matchid);
 }

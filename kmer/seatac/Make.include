@@ -16,7 +16,9 @@ src      := $/seatac.C \
             $/hitMatrix-sort.C \
             $/hitMatrix.H \
             $/posix.H \
-            $/seatac.H
+            $/seatac.H \
+            $/filterObj.H \
+            $/statObj.H
 
 $/.CXX_SRCS  := $(filter %.C,${src})
 ifdef WITH_THREADS
@@ -26,6 +28,9 @@ else
 endif
 
 $/.CXX_SHLIBS  := $/filter-nop.so $/filter-heavychains.so
+
+$/filter-nop.o:          $/filterObj.H $/statObj.H $/filter-nop.C
+$/filter-heavychains.o:  $/filterObj.H $/statObj.H $/filter-heavychains.C $/heavychains.C $/heavychains.H
 
 $/filter-nop.so:         $/filter-nop.o
 $/filter-heavychains.so: $/filter-heavychains.o $/heavychains.o

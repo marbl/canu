@@ -92,11 +92,9 @@ public:
   char            *_statsFileName;
 
   char            *_tableFileName;
+  bool             _tableBuildOnly;
 
-  u32bit           _useListLen;
-  u32bit           _useListMax;
-  use_s           *_useList;
-  char            *_useListString;
+  chainedSequence  _useList;
 
 #ifdef __APPLE__
   void            *_pad1;

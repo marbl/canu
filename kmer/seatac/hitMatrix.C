@@ -17,6 +17,11 @@ hitMatrix::hitMatrix(u32bit qsLen, u32bit qsIdx, bool reversed) {
 
 
 hitMatrix::~hitMatrix() {
+#if 0
+  if (_hitsLen > 0)
+    fprintf(stderr, "hitMatrix::~hitMatrix()-- qsIdx="u32bitFMTW(6)": releasing _hits "u32bitFMTW(8)" used (%4dMB) out of "u32bitFMTW(8)" allocated (%4dMB).\n",
+            _qsIdx, _hitsLen, (sizeof(diagonalLine) * _hitsLen) >> 20, _hitsMax, (sizeof(diagonalLine) * _hitsMax) >> 20);
+#endif
   delete [] _hits;
 }
 
@@ -170,8 +175,8 @@ hitMatrix::processMatrix(char direction, filterObj *FO) {
 
     //  Move the currentSeq until the firstHit is below it.
     //
-    while ((currentSeq < config._useListLen) &&
-           (config._useList[currentSeq].start <= _hits[firstHit]._dsPos))
+    while ((currentSeq < config._useList.numberOfSequences()) &&
+           (config._useList.startOf(currentSeq) <= _hits[firstHit]._dsPos))
       currentSeq++;
 
     //
@@ -181,10 +186,10 @@ hitMatrix::processMatrix(char direction, filterObj *FO) {
     //  Find the first hit that is in currentSeq.  If this is the last sequence,
     //  then, of course, all remaining hits are in it.
     //
-    if (currentSeq < config._useListLen) {
+    if (currentSeq < config._useList.numberOfSequences()) {
       lastHit = firstHit + 1;
       while ((lastHit < _hitsLen) &&
-             (_hits[lastHit]._dsPos < config._useList[currentSeq].start))
+             (_hits[lastHit]._dsPos < config._useList.startOf(currentSeq)))
         lastHit++;
     } else {
       lastHit = _hitsLen;
@@ -197,8 +202,17 @@ hitMatrix::processMatrix(char direction, filterObj *FO) {
 
     //  Adjust the hits to be relative to the start of this sequence
     //
-    for (u32bit i=firstHit; i<lastHit; i++)
-      _hits[i]._dsPos -= config._useList[currentSeq].start;
+#if 0
+    fprintf(stderr, "subtracting "u32bitFMT"\n", config._useList.startOf(currentSeq));
+#endif
+    for (u32bit i=firstHit; i<lastHit; i++) {
+      _hits[i]._dsPos -= config._useList.startOf(currentSeq);
+
+#if 0
+      fprintf(stderr, "adjusted seq "u32bitFMT" to "u32bitFMT" from "u32bitFMT" (offset = "u64bitFMT")\n",
+              currentSeq, _hits[i]._dsPos, _hits[i]._dsPos + (u32bit)config._useList.startOf(currentSeq), config._useList.startOf(currentSeq));
+#endif
+    }
 
     //  Sort them, if needed.
     //
@@ -267,6 +281,10 @@ hitMatrix::processMatrix(char direction, filterObj *FO) {
 
     for (u32bit i=firstHit; i<lastHit; i++) {
 
+#if 0
+      fprintf(stdout, "hit[%6u] seq=%8u qs=%5u ds=%5u\n", i, currentSeq, _hits[i]._qsPos, _hits[i]._dsPos);
+#endif
+
       //
       //  Extend if on the same diagonal, and consecutive sequence.
       //
@@ -296,21 +314,21 @@ hitMatrix::processMatrix(char direction, filterObj *FO) {
         if (ILlength >= config._minLength) {
           if (direction == 'r') {
             FO->addHit(direction,
+                       config._useList.IIDOf(currentSeq),
+                       dsLow,
+                       dsHigh - dsLow + config._merSize,
                        _qsIdx,
                        _qsLen - qsHigh - config._merSize,
                        qsHigh - qsLow + config._merSize,
-                       config._useList[currentSeq].seq,
-                       dsLow,
-                       dsHigh - dsLow + config._merSize,
                        ILlength);
           } else {
             FO->addHit(direction,
+                       config._useList.IIDOf(currentSeq),
+                       dsLow,
+                       dsHigh - dsLow + config._merSize,
                        _qsIdx,
                        qsLow,
                        qsHigh - qsLow + config._merSize,
-                       config._useList[currentSeq].seq,
-                       dsLow,
-                       dsHigh - dsLow + config._merSize,
                        ILlength);
           }
         }
@@ -336,21 +354,21 @@ hitMatrix::processMatrix(char direction, filterObj *FO) {
     if (ILlength >= config._minLength) {
       if (direction == 'r') {
         FO->addHit(direction,
+                   config._useList.IIDOf(currentSeq),
+                   dsLow,
+                   dsHigh - dsLow + config._merSize,
                    _qsIdx,
                    _qsLen - qsHigh - config._merSize,
                    qsHigh - qsLow + config._merSize,
-                   config._useList[currentSeq].seq,
-                   dsLow,
-                   dsHigh - dsLow + config._merSize,
                    ILlength);
       } else {
         FO->addHit(direction,
+                   config._useList.IIDOf(currentSeq),
+                   dsLow,
+                   dsHigh - dsLow + config._merSize,
                    _qsIdx,
                    qsLow,
                    qsHigh - qsLow + config._merSize,
-                   config._useList[currentSeq].seq,
-                   dsLow,
-                   dsHigh - dsLow + config._merSize,
                    ILlength);
       }
     }

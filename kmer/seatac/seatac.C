@@ -8,192 +8,54 @@
 //  Shared data
 //
 configuration          config;
-FastAWrapper          *qsFASTA;
-positionDB            *positions;
-volatile u32bit        numberOfQueries;
-filterObj            **output;
+FastAWrapper          *qsFASTA          = 0L;
+positionDB            *positions        = 0L;
+volatile u32bit        numberOfQueries  = 0;
+filterObj            **output           = 0L;
 pthread_mutex_t        inputTailMutex;
-FastASequenceInCore  **input;
-volatile u32bit        inputHead;
-volatile u32bit        inputTail;
-volatile u32bit        outputPos;
-char                  *threadStats[MAX_THREADS];
+FastASequenceInCore  **input            = 0L;
+volatile u32bit        inputHead        = 0;
+volatile u32bit        inputTail        = 0;
+volatile u32bit        outputPos        = 0;
+char                  *threadStats[MAX_THREADS] = { 0L };
 
 
 
 void
-buildTable(void) {
+dumpStats(void) {
 
-  if (config._beVerbose)
-    fprintf(stderr, "Opening the genomic database.\n");
-
-  FastAWrapper *dbFASTA = new FastAWrapper(config._dbFileName);
-  dbFASTA->openIndex();
-
-  //  Complete the configuration
-  //
-  config.completeUseList(dbFASTA);
-
-  if (config._beVerbose)
-    fprintf(stderr, "Building chunk with "u32bitFMT" sequences.\n", config._useListLen);
-
-  //  sum the length of the sequences, including the padding.
-  //
-  u32bit sLen = 0;
-  for (u32bit i=0; i<config._useListLen; i++) {
-    config._useList[i].size  = dbFASTA->sequenceLength(config._useList[i].seq);
-    config._useList[i].start = sLen;
-
-    sLen += config._useList[i].size + 100;
-  }
-
-  //  Allocate space for the chained sequence
-  //
-  char *s = new char [sLen + 1];
-  char *t = s;
-
-  //  Chain
-  //
-  u32bit i;
-  for (i=0; i<config._useListLen; i++) {
-    dbFASTA->find(config._useList[i].seq);
-
-    //
-    //  XXX: This should be a FastASequenceOnDisk, but that isn't
-    //  existing yet.
-    //
-
-    FastASequenceInCore  *B = dbFASTA->getSequence();
-
-    char const *g  = B->sequence();
-
-    while (*g)
-      *(t++) = *(g++);
-
-    for (u32bit gn = 100; gn--; )
-      *(t++) = '.';
-
-    delete B;
-  }
-
-  *t = 0;
-
-  //  Figure out a nice size of the hash.
-  //
-  //  XXX:  This probably should be tuned.
-  //
-  u32bit tblSize = 25;
-
-  if (sLen < 64 * 1024 * 1024)
-    tblSize = 24;
-  if (sLen < 16 * 1024 * 1024)
-    tblSize = 23;
-  if (sLen <  4 * 1024 * 1024)
-    tblSize = 22;
-  if (sLen <  2 * 1024 * 1024)
-    tblSize = 21;
-  if (sLen <  1 * 1024 * 1024)
-    tblSize = 20;
-
-  existDB *maskDB = 0L;
-  if (config._maskFileName) {
-    if (config._beVerbose)
-      fprintf(stderr, "Building maskDB from '%s'\n", config._maskFileName);
-    maskDB = new existDB(config._maskFileName, config._merSize, 19);
-  }
-
-  existDB *onlyDB = 0L;
-  if (config._onlyFileName) {
-    if (config._beVerbose)
-      fprintf(stderr, "Building onlyDB from '%s'\n", config._onlyFileName);
-    onlyDB = new existDB(config._onlyFileName, config._merSize, 19);
-  }
-
-  //  Create a merStream.  Write this to disk in the future.
-  //
-  merStream *MS = new merStream(config._merSize, s, 0);
-
-  positions = new positionDB(MS, config._merSize, config._merSkip, tblSize, maskDB, onlyDB, config._beVerbose);
-
-  delete maskDB;
-  delete onlyDB;
-
-  delete    MS;
-  delete [] s;
-  delete    dbFASTA;
-
-  if (config._tableFileName) {
-    if (config._beVerbose)
-      fprintf(stderr, "Dumping positions table to '%s'\n", config._tableFileName);
-
-    positions->saveState(config._tableFileName);
-
-    if (config._beVerbose) {
-      write_rusage(stderr);
-
-      fprintf(stderr, "wallClockTimes--------------------------\n");
-      fprintf(stderr, "init:     %9.5f\n", config._initTime   - config._startTime);
-      fprintf(stderr, "build:    %9.5f\n", getTime()  - config._initTime);
-
-      fprintf(stderr, "\n");
-      fprintf(stderr, "Dumping finished.  Exiting.\n");
+  if (config._statsFileName) {
+    FILE *F = fopen(config._statsFileName, "wb");
+    if (F == 0L) {
+      fprintf(stderr, "Couldn't open the stats file '%s'?\n", config._statsFileName);
+      fprintf(stderr, "Stats going to stderr.\n");
+      config._statsFileName = 0L;
+      F = stderr;
     }
 
-    exit(0);
+    config.display(F);
+
+    write_rusage(F);
+      
+    fprintf(F, "wallClockTimes--------------------------\n");
+    fprintf(F, "init:     %9.5f\n", config._initTime   - config._startTime);
+    fprintf(F, "build:    %9.5f\n", config._buildTime  - config._initTime);
+    fprintf(F, "search:   %9.5f\n", config._searchTime - config._buildTime);
+    fprintf(F, "total:    %9.5f\n", config._totalTime  - config._startTime);
+
+    fprintf(F, "searchThreadInfo------------------------\n");
+    for (u64bit i=0; i<config._numSearchThreads; i++)
+      if (threadStats[i])
+        fprintf(F, threadStats[i]);
+
+    if (config._statsFileName)
+      fclose(F);
   }
 }
 
 
 
 
-void
-loadTable(void) {
-
-  if (config._beVerbose)
-    fprintf(stderr, "Opening the genomic database.\n");
-
-  FastAWrapper *dbFASTA = new FastAWrapper(config._dbFileName);
-  dbFASTA->openIndex();
-
-  //  Complete the configuration
-  //
-  config.completeUseList(dbFASTA);
-
-  //  sum the length of the sequences, including the padding.
-  //
-  u32bit sLen = 0;
-  for (u32bit i=0; i<config._useListLen; i++) {
-    config._useList[i].size  = dbFASTA->sequenceLength(config._useList[i].seq);
-    config._useList[i].start = sLen;
-
-    sLen += config._useList[i].size + 100;
-  }
-
-  delete dbFASTA;
-
-  fprintf(stderr, "Loading positions table from '%s'\n", config._tableFileName);
-  positions = new positionDB(config._tableFileName);
-
-  fprintf(stderr, "Loading finished.\n");
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//  If we're AIX, define a new handler.  Other OS's reliably throw exceptions.
-//
 #ifdef _AIX
 static
 void
@@ -207,10 +69,10 @@ aix_new_handler() {
 int
 main(int argc, char **argv) {
 
+#ifdef _AIX
   //  By default, AIX Visual Age C++ new() returns 0L; this turns on
   //  exceptions.
   //
-#ifdef _AIX
   std::set_new_handler(aix_new_handler);
 #endif
 
@@ -227,20 +89,14 @@ main(int argc, char **argv) {
 
   //  Open and init the query sequence
   //
-  if (config._beVerbose)
-    fprintf(stderr, "Opening the cDNA sequences.\n");
-
   qsFASTA = new FastAWrapper(config._qsFileName);
   qsFASTA->openIndex();
 
   numberOfQueries  = qsFASTA->getNumberOfSequences();
-  if (config._beVerbose)
-    fprintf(stderr, "Number of cDNA sequences is "u32bitFMT".\n", numberOfQueries);
-
-  output    = new filterObj * [numberOfQueries];
-  input     = new FastASequenceInCore * [numberOfQueries];
-  inputHead = 0;
-  inputTail = 0;
+  output           = new filterObj * [numberOfQueries];
+  input            = new FastASequenceInCore * [numberOfQueries];
+  inputHead        = 0;
+  inputTail        = 0;
 
   for (u32bit i=numberOfQueries; i--; ) {
     output[i]    = 0L;
@@ -250,13 +106,70 @@ main(int argc, char **argv) {
   config._initTime = getTime();
 
 
+  //  Complete the configuration
+  //
+  config._useList.setSource(config._dbFileName);
+  config._useList.setSeparatorLength(1);
+  config._useList.finish();
+
+
   //  Create the chunk, returning a positionDB.  Threads will use both
   //  chain and postions to build hitMatrices.
   //
-  if ((config._tableFileName == 0L) || (!fileExists(config._tableFileName))) {
-    buildTable();
+  if ((config._tableFileName) && (fileExists(config._tableFileName))) {
+    if (config._tableBuildOnly) {
+      fprintf(stderr, "All done.  Table '%s' already build.\n", config._tableFileName);
+      exit(0);
+    } else {
+      fprintf(stderr, "Loading positionDB state from '%s'\n", config._tableFileName);
+      positions = new positionDB(config._tableFileName, true);
+    }
   } else {
-    loadTable();
+    merStream *MS = new merStream(config._merSize, &config._useList);
+
+    //  Figure out a nice size of the hash.
+    //
+    //  XXX:  This probably should be tuned.
+    //
+    u32bit tblSize = 25;
+    if (config._useList.lengthOfSequences() < 64 * 1024 * 1024)  tblSize = 24;
+    if (config._useList.lengthOfSequences() < 16 * 1024 * 1024)  tblSize = 23;
+    if (config._useList.lengthOfSequences() <  4 * 1024 * 1024)  tblSize = 22;
+    if (config._useList.lengthOfSequences() <  2 * 1024 * 1024)  tblSize = 21;
+    if (config._useList.lengthOfSequences() <  1 * 1024 * 1024)  tblSize = 20;
+
+    existDB *maskDB = 0L;
+    if (config._maskFileName) {
+      if (config._beVerbose)
+        fprintf(stderr, "Building maskDB from '%s'\n", config._maskFileName);
+      maskDB = new existDB(config._maskFileName, config._merSize, 19);
+    }
+
+    existDB *onlyDB = 0L;
+    if (config._onlyFileName) {
+      if (config._beVerbose)
+        fprintf(stderr, "Building onlyDB from '%s'\n", config._onlyFileName);
+      onlyDB = new existDB(config._onlyFileName, config._merSize, 19);
+    }
+
+    positions = new positionDB(MS, config._merSize, config._merSkip, tblSize, maskDB, onlyDB, config._beVerbose);
+
+    delete maskDB;
+    delete onlyDB;
+
+    delete    MS;
+
+    if (config._tableFileName) {
+      if (config._beVerbose)
+        fprintf(stderr, "Dumping positions table to '%s'\n", config._tableFileName);
+
+      positions->saveState(config._tableFileName);
+
+      if (config._tableBuildOnly) {
+        dumpStats();
+        exit(0);
+      }
+    }
   }
 
   config._buildTime = getTime();
@@ -348,14 +261,12 @@ main(int argc, char **argv) {
         fflush(stderr);
       }
 
-      if (output[outputPos] > 0) {
-        errno = 0;
-        matchID = output[outputPos]->output(resultFILE, matchID);
-        if (errno) {
-          fprintf(stderr, "Couldn't write to the output file '%s'.\n%s\n",
-                  config._outputFileName, strerror(errno));
-          exit(1);
-        }
+      errno = 0;
+      matchID = output[outputPos]->output(resultFILE, matchID);
+      if (errno) {
+        fprintf(stderr, "Couldn't write to the output file '%s'.\n%d: %s\n",
+                config._outputFileName, errno, strerror(errno));
+        exit(1);
       }
 
       //  Add this set of results to the statistics collector
@@ -407,32 +318,7 @@ main(int argc, char **argv) {
 
   //  Write the stats
   //
-  if (config._statsFileName) {
-    FILE *F = fopen(config._statsFileName, "wb");
-    if (F == 0L) {
-      fprintf(stderr, "Couldn't open the stats file '%s'?\n", config._statsFileName);
-      fprintf(stderr, "Stats going to stderr.\n");
-      config._statsFileName = 0L;
-      F = stderr;
-    }
-
-    config.display(F);
-
-    write_rusage(F);
-      
-    fprintf(F, "wallClockTimes--------------------------\n");
-    fprintf(F, "init:     %9.5f\n", config._initTime   - config._startTime);
-    fprintf(F, "build:    %9.5f\n", config._buildTime  - config._initTime);
-    fprintf(F, "search:   %9.5f\n", config._searchTime - config._buildTime);
-    fprintf(F, "total:    %9.5f\n", config._totalTime  - config._startTime);
-
-    fprintf(F, "searchThreadInfo------------------------\n");
-    for (u64bit i=0; i<config._numSearchThreads; i++)
-      fprintf(F, threadStats[i]);
-
-    if (config._statsFileName)
-      fclose(F);
-  }
+dumpStats();
 
   delete [] input;
   delete [] output;

@@ -1,13 +1,7 @@
 #include "posix.H"
 #include "seatac.H"
 
-
-#ifdef TRUE64BIT
-char const *srchGbye = "[%lu] computed: %8lu  blocked: %4lu/%4lu  encodeTime: %7.2f   searchTime: %7.2f   processTime: %7.2f\n";
-#else
-char const *srchGbye = "[%llu] computed: %8lu  blocked: %4lu/%4lu  encodeTime: %7.2f   searchTime: %7.2f   processTime: %7.2f\n";
-#endif
-
+char const *srchGbye = "["u64bitFMT"] computed: "u64bitFMTW(8)"  blocked: "u64bitFMTW(4)"/"u64bitFMTW(4)"  encodeTime: %7.2f   searchTime: %7.2f   processTime: %7.2f\n";
 
 class searcherState {
 public:
@@ -43,9 +37,11 @@ doSearch(searcherState *state,
          u32bit idx,
          bool rc,
          filterObj *FO) {
-  encodedQuery  *query  = 0L;
-  hitMatrix     *matrix = 0L;
+  encodedQuery  *query      = 0L;
+  hitMatrix     *matrix     = 0L;
   double         startTime  = 0.0;
+  u64bit         mer        = u64bitZERO;
+  u32bit         pos        = u32bitZERO;
 
   //  Build and mask the query
   //
@@ -53,21 +49,14 @@ doSearch(searcherState *state,
   query = new encodedQuery(seq->sequence(), seq->sequenceLength(), config._merSize, rc);
   state->encodeTime += getTime() - startTime;
 
-  startTime = getTime();
-
-  state->maskTime += getTime() - startTime;
+  //  bpw, 20050310 - there was no masking?
+  //startTime = getTime();
+  //state->maskTime += getTime() - startTime;
 
   //  Get the hits
   //
   startTime = getTime();
   matrix = new hitMatrix(seq->sequenceLength(), idx);
-
-  u64bit mer = u64bitZERO;
-  u32bit pos = u32bitZERO;
-
-#ifdef VERBOSE
-  fprintf(stderr, "Retrieving hits for rc=%d %s\n", rc, seq->header());
-#endif
 
   while (query->getMer(mer, pos) == true)
     if (positions->get(mer, state->posn, state->posnMax, state->posnLen))
@@ -75,17 +64,11 @@ doSearch(searcherState *state,
 
   state->searchTime += getTime() - startTime;
 
-#ifdef VERBOSE
-  fprintf(stderr, "Filtering hits for  rc=%d %s\n", rc, seq->header());
-#endif
-
+  //  Begin processing
+  //
   startTime = getTime();
   matrix->processMatrix(rc ? 'r' : 'f', FO);
   state->processTime += getTime() - startTime;
-
-#ifdef VERBOSE
-  fprintf(stderr, "Finished with       rc=%d %s\n", rc, seq->header());
-#endif
 
   delete matrix;
   delete query;
@@ -157,8 +140,6 @@ searchThread(void *U) {
         //
         filterObj *FO = new filterObj(config._filterObj, config._filteropts);
 
-        //fprintf(stderr, "Created filterObj 0x%016lx\n", FO);
-
         //  Do searches.
         //
         if (config._doForward)
@@ -166,22 +147,16 @@ searchThread(void *U) {
         if (config._doReverse)
           doSearch(state, seq, idx, true, FO);
 
-        // CMM
+        //  Do filtering.
+        //
         FO->filter();
+
         //  Signal that we are done.
         //
         output[idx] = FO;
         computed++;
 
         delete seq;
-
-#if 0
-        fprintf(stderr, "I sleep\n");
-        for (int i=0; i<1000; i++) {
-          nanosleep(&config._searchSleep, 0L);
-        }
-        fprintf(stderr, "I awake\n");
-#endif
 
       } // end of seq != 0L
     } // end of idx < numberOfQueries

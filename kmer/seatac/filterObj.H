@@ -98,6 +98,12 @@ filterObj::filterObj(sharedObj *so_, char *op_) {
     sofilter    = (void   (*)(void*))so->get("filter");
     sooutput    = (u64bit (*)(void*,FILE*,u64bit))so->get("output");
 
+    if (!soconstruct) fprintf(stderr, "construct not found!\n");
+    if (!sodestruct)  fprintf(stderr, "destruct not found!\n");
+    if (!soaddHit)    fprintf(stderr, "addHit not found!\n");
+    if (!sofilter)    fprintf(stderr, "filter not found!\n");
+    if (!sooutput)    fprintf(stderr, "output not found!\n");
+
     handle = (*soconstruct)(soOpts);
   }
 
@@ -111,9 +117,8 @@ filterObj::filterObj(sharedObj *so_, char *op_) {
 
 inline
 filterObj::~filterObj() {
-  if (sodestruct) {
+  if (sodestruct)
     (*sodestruct)(handle);
-  }
   delete [] soOpts;
   delete [] theOutput;
 }
@@ -147,12 +152,6 @@ filterObj::addHit(char   orientation,
       delete [] theOutput;
       theOutput = o;
     }
-
-#if 0
-    sprintf(theOutput + theOutputPos,
-            "-%c -e "u32bitFMT" "u32bitFMT" "u32bitFMT" -D "u32bitFMT" "u32bitFMT" "u32bitFMT" -F "u32bitFMT"\n",
-            orientation, id1, pos1, len1, id2, pos2, len2, filled);
-#endif
 
     sprintf(theOutput + theOutputPos,
             "M x ############ . %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" 1 %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" %s "u32bitFMT"\n",

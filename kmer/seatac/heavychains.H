@@ -33,7 +33,9 @@ struct Match {
   double swS;
   double nwS;
   double seS;
+
   int filled;  // Is this the same as selfS ?
+
   char ori;
 };
 
@@ -52,19 +54,17 @@ public:
     maxJump      = maxjump;
     minScore     = minscore;
 
-    old_stra1 = -1;
-    old_stra2 = -1;
+    Plen = 0;
+    Pmax = 1024;
+    P    = new Match [Pmax];
 
-    sumlen1     = 0.0;
-    sumlen2     = 0.0;
-    maxlen1     = 0.0;
-    maxlen2     = 0.0;
-    maxScoreFwd = 0.0; // Maximum forward chain score for the strand pair.
-    maxScoreRev = 0.0; // Maximum reverse chain score for the strand pair.
+    clear();
   };
 
   ~StrandPair(void) {
-    P.clear();
+    if (beVerbose > 1)
+      fprintf(stderr, "StrandPair::StrandPair()-- delete %s vs %s with %d hits\n", assemblyId1, assemblyId2, Plen);
+    delete [] P;
   };
 
   void addHit(char   direction,
@@ -78,15 +78,33 @@ public:
 
   void process(void);
 
-  long print(FILE *outF, long matchid);
+  u64bit print(FILE *outF, u64bit matchid);
 
   void clear(void) {
-    P.clear();
+    iid1        = ~u32bitZERO;
+    iid2        = ~u32bitZERO;
+
+    _next       = 0L;
+
+    sumlen1     = 0.0;
+    sumlen2     = 0.0;
+    maxlen1     = 0.0;
+    maxlen2     = 0.0;
+    maxScoreFwd = 0.0; // Maximum forward chain score for the strand pair.
+    maxScoreRev = 0.0; // Maximum reverse chain score for the strand pair.
+
+    Plen = 0;
   };
 
-  size_t size(void) const {
-    return(P.size());
-  };
+  //  The StrandPairManager (in filter-strandpair.H) is lazy and makes
+  //  StrandPairs keep track of the next one.
+  //
+  StrandPair  *_next;
+  StrandPair  *next(void)             { return(_next); };
+  void         addNext(StrandPair *n) { _next = n;     };
+
+  u32bit       sequenceIID1(void) { return(iid1); };
+  //u32bit       sequenceIID2(void) { return(iid2); };
 
   double getsumlen1(void) const { return(sumlen1); };
   double getsumlen2(void) const { return(sumlen2); };
@@ -96,26 +114,42 @@ public:
   double getmaxScoreRev(void) const { return(maxScoreRev); };
 
 private:
-  vector<Match> P;
+  //  This used to use a vector<Match>, but DPTree wants a pointer to the
+  //  array of matches
+  //
+  int    Plen;
+  int    Pmax;
+  Match *P;
+
+  void   Padd(Match *m) {
+    if (Plen >= Pmax) {
+      Pmax *= 2;
+      Match *n = new Match [Pmax];
+      memcpy(n, P, sizeof(Match) * Plen);
+      delete [] P;
+      P = n;
+    }
+    memcpy(P+Plen, m, sizeof(Match));
+    Plen++;
+  };
 
 private:
-  int    old_stra1;
-  int    old_stra2;
-  int    beVerbose;
-  char   assemblyId1[32];
-  char   assemblyId2[32];
-  int    maxJump;          // Default maximum intra-run jump allowed in a good run.
-  double minScore;         // Default minimum of bp filled in a good run.
+  u32bit     iid1;
+  u32bit     iid2;
+  u32bit     beVerbose;
+  char       assemblyId1[32];
+  char       assemblyId2[32];
+  int        maxJump;          // Default maximum intra-run jump allowed in a good run.
+  double     minScore;         // Default minimum of bp filled in a good run.
 
   // The following are only known after StrandPair::print().
 
-  double sumlen1;
-  double sumlen2;
-  double maxlen1;
-  double maxlen2;
-  double maxScoreFwd; // Maximum forward chain score for the strand pair.
-  double maxScoreRev; // Maximum reverse chain score for the strand pair.
-
+  double     sumlen1;
+  double     sumlen2;
+  double     maxlen1;
+  double     maxlen2;
+  double     maxScoreFwd; // Maximum forward chain score for the strand pair.
+  double     maxScoreRev; // Maximum reverse chain score for the strand pair.
 };
 
 
@@ -130,9 +164,8 @@ public:
            char  *assemblyid2,
            int    maxjump,
            double minscore) {
-
     beVerbose    = verbose;
-    strncpy(assemblyId1, assemblyid1, 31);
+    strncpy(assemblyId1, assemblyid1, 31);  //  Note the cap 'i'
     strncpy(assemblyId2, assemblyid2, 31);
     maxJump      = maxjump;
     minScore     = minscore;
@@ -209,9 +242,7 @@ class DPTree {
   int MaxJump;
   
   struct kd_node {
-    //private:
     bool Xy;
-    //public:
     int start,stop; // The indices to define a segment of the vector.
     int intv;       // some index
     kd_node() {};
@@ -282,8 +313,9 @@ public:
 
   double treeScore() {
     init();
-    if (match_size>0)
+    if (match_size > 0)
       privScore(root(),root());
+
     return node[root().intv].S;
   }
 

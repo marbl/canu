@@ -150,12 +150,11 @@ int main(int argc, char *argv[]) {
 
     if ((new_stra1 != old_stra1) ||
         (new_stra2 != old_stra2) || endOfInput) {
-      if (sp->size() > 0) {
-        sp->process();
-        matchid = sp->print(outF, matchid);
+      sp->process();
+      matchid = sp->print(outF, matchid);
 
-        ts->add(sp);
-      }
+      ts->add(sp);
+
       delete sp;
       sp = new StrandPair(beVerbose, assemblyId1, assemblyId2, maxJump, minScore);
     }

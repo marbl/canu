@@ -46,7 +46,7 @@ public:
     return(ptr != 0L);
   }
 
-  void   *get(char *name) {
+  void   *get(char const *name) {
     void *ptr = 0L;
 
     errno = 0;

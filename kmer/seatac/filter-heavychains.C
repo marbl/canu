@@ -47,13 +47,156 @@ extern "C" {
 }
 
 
+
+//  HeavyChains is implemented in the StrandPair class.  It takes all
+//  hits for a single pair of sequences and....does something.  Seatac
+//  gives the filterObj interface (aka, the interface in this file)
+//  all hits for a single sequence to the whole genome (or part of).
+//  So, the StrandPairManager acts as the, uhhh, manager for a bunch
+//  of StrandPairs, ensuring that each StrandPair is in fact a pair.
+//  
+//  It is interface compatible with a StrandPair.
+//
+class StrandPairManager {
+private:
+  int          beVerbose;
+  char         assemblyId1[32];
+  char         assemblyId2[32];
+  int          maxJump;          // Default maximum intra-run jump allowed in a good run.
+  double       minScore;         // Default minimum of bp filled in a good run.
+
+  bool         isForward;
+
+  StrandPair  *P;
+  StrandPair  *Proot;
+public:
+  StrandPairManager(bool   verbose,
+                    char  *assemblyid1,
+                    char  *assemblyid2,
+                    int    maxjump,
+                    double minscore) {
+    beVerbose    = verbose;
+    strncpy(assemblyId1, assemblyid1, 31);
+    strncpy(assemblyId2, assemblyid2, 31);
+    maxJump      = maxjump;
+    minScore     = minscore;
+
+    isForward    = true;
+
+    Proot        = 0L;
+    P            = 0L;
+  };
+
+  ~StrandPairManager(void) {
+    P = Proot;
+    while (Proot) {
+      Proot = Proot->next();
+      delete P;
+      P = Proot;
+    }
+  };
+
+  void addHit(char   direction,
+              u32bit id1,
+              u32bit xlo,
+              u32bit xln,
+              u32bit id2,
+              u32bit ylo,
+              u32bit yln,
+              u32bit filled) {
+
+    //  We're given hits for exactly one id2 and all id1, forward hits
+    //  followed by reverse hits.  Which means that id1 makes two
+    //  passes through, both passes are increasing (enforced by the
+    //  chainedSequence used in seatac).
+    //
+    //  A linked list of strand pairs is kept (the links are built
+    //  into StrandPair for convenience), each strand pair knows it's
+    //  pair of ids.
+    //
+
+    //  No root?  Make one and add the hit.
+    //
+    if (Proot == 0L) {
+      P = Proot = new StrandPair(beVerbose, assemblyId1, assemblyId2, maxJump, minScore);
+      P->addHit(direction, id1, xlo, xln, id2, ylo, yln, filled);
+      return;
+    }
+
+    //  Reset to the start if we just switched from forward to
+    //  reverse.  This is also the only time that the sequence id can
+    //  decrease, and we might have to make a new root.
+    //
+    if (isForward && (direction == 'r')) {
+      isForward = false;
+
+      if (id1 < Proot->sequenceIID1()) {
+        StrandPair *N = new StrandPair(beVerbose, assemblyId1, assemblyId2, maxJump, minScore);
+        N->addHit(direction, id1, xlo, xln, id2, ylo, yln, filled);
+        N->addNext(Proot);
+        P = Proot = N;
+        return;
+      }
+
+      P = Proot;
+    }
+
+    //  Verify that id1 didn't decrease.
+    //
+    if (id1 < P->sequenceIID1()) {
+      fprintf(stderr, "Why did the sequence id just decrease?  This should not have happened.\n");
+      fprintf(stderr, "Crash.  %s at line %d\n", __FILE__, __LINE__ - 2);
+      exit(1);
+    }
+
+    //  Move to the node just before, or exactly at, the one we want
+    //  to add to.  Remember, id1 never decreases.
+    //
+    while ((P->next()) && (P->next()->sequenceIID1() <= id1))
+      P = P->next();
+
+    //  If we're not at the correct node, insert one after the
+    //  current, and make it the correct one.
+    //
+    if (P->sequenceIID1() != id1) {
+      StrandPair *NP = new StrandPair(beVerbose, assemblyId1, assemblyId2, maxJump, minScore);
+      NP->addNext(P->next());
+      P->addNext(NP);
+      P = NP;  //  Hooray!
+    }
+
+    //  And now we can just add the hit.
+    //
+    P->addHit(direction, id1, xlo, xln, id2, ylo, yln, filled);
+  };
+
+  void process(void) {
+    for (StrandPair *SP=Proot; SP; SP=SP->next())
+      SP->process();
+  };
+
+  u64bit print(FILE *outF, u64bit matchid) {
+    for (StrandPair *SP=Proot; SP; SP=SP->next())
+      matchid = SP->print(outF, matchid);
+    return(matchid);
+  };
+};
+
+
+
+
+
+
+
+
 void*
 construct(char *options) {
-  int    beVerbose    = 0;
-  char  *assemblyId1  = "UNK";
-  char  *assemblyId2  = "UNK";
-  double minScore     = 100.0;   // Default minimum of bp filled in a good run.
-  int    maxJump      = 100000;  // Default maximum intra-run jump allowed in a good run.
+  int    beVerbose       = 0;
+  char   assemblyIdD[4]  = { 'U', 'N', 'K', 0 };
+  char  *assemblyId1     = assemblyIdD;
+  char  *assemblyId2     = assemblyIdD;
+  double minScore        = 100.0;   // Default minimum of bp filled in a good run.
+  int    maxJump         = 100000;  // Default maximum intra-run jump allowed in a good run.
 
   //  Parse the options to find the parameters
   //
@@ -76,12 +219,12 @@ construct(char *options) {
     arg++;
   }
 
-  return((void *)(new StrandPair(beVerbose, assemblyId1, assemblyId2, maxJump, minScore)));
+  return((void *)(new StrandPairManager(beVerbose, assemblyId1, assemblyId2, maxJump, minScore)));
 }
 
 void
 destruct(void *handle) {
-  delete (StrandPair *)handle;
+  delete (StrandPairManager *)handle;
 }
 
 void
@@ -94,18 +237,18 @@ addHit(void   *handle,
        u32bit  pos2,
        u32bit  len2,
        u32bit  filled) {
-  ((StrandPair *)handle)->addHit(orientation, id1, pos1, len1, id2, pos2, len2, filled);
+  ((StrandPairManager *)handle)->addHit(orientation, id1, pos1, len1, id2, pos2, len2, filled);
 }
 
 void
 filter(void *handle) {
-  ((StrandPair *)handle)->process();
+  ((StrandPairManager *)handle)->process();
 }
 
 
 u64bit
 output(void *handle, FILE *file, u64bit matchid) {
-  return(((StrandPair *)handle)->print(file, matchid));
+  return(((StrandPairManager *)handle)->print(file, matchid));
 }
 
 
@@ -115,11 +258,12 @@ output(void *handle, FILE *file, u64bit matchid) {
 
 void*
 constructStats(char *options) {
-  int    beVerbose    = 0;
-  char  *assemblyId1  = 0L;
-  char  *assemblyId2  = 0L;
-  double minScore     = 100.0;   // Default minimum of bp filled in a good run.
-  int    maxJump      = 100000;  // Default maximum intra-run jump allowed in a good run.
+  int    beVerbose       = 0;
+  char   assemblyIdD[4]  = { 'U', 'N', 'K', 0 };
+  char  *assemblyId1     = assemblyIdD;
+  char  *assemblyId2     = assemblyIdD;
+  double minScore        = 100.0;   // Default minimum of bp filled in a good run.
+  int    maxJump         = 100000;  // Default maximum intra-run jump allowed in a good run.
 
   //  Parse the options to find the parameters
   //
