@@ -3,49 +3,58 @@ This is a collection of codes written/supported by Brian Walenz
 (Informatics Research).  All codes are intertwined, hence the grouping
 under BRI/ instead of ESTmapper/ and emma/ and meryl/ and etc.
 
-
-Applications included here are:
-
-
-ESTmapper / snapper
--------------------
-massive cDNA and SNP tag mapping.  Includes sim4dbseq.
-
-
-emma
-----
-Exact Mer MAtches, an exact search mechanism for mapping k-mer tags to
-sequence
-
-
-meryl
------
-The (magic) mer counter
-
-
 ----------------------------------------
 
 How to build:
 
-Unfortunately, I don't really use the IR standard build system.  There
-is a better way to do this, but I know this way works.
+If you haven't already, you need to check out cds/IR/build.
+Documentation for the build system is in cds/IR/build/doc.
 
-ln -s ../build/Make.path
-ln -s ../build/Make.rules
-ln -s ../build/Make_utils
-ln -s ../build/Makefile
+----------
+1)  Create machine dependent configuration files.
 
-You might have to
-  cd ../build/Make_utils && cc -o makepath makepath.c
+% sh configure.sh
 
-setenv WITH_THREADS yes
-alias mbri gmake -f /IR/devel/mapping/cds/IR/BRI/Makefile
-alias mbri gmake -f /work/cds/IR//BRI/Makefile
+If it reports that your architecture is unsupported, you'll have to
+port.  Supplying 'debug' as an argument will build debug versions.
+Good luck!
 
-sh ./configure.sh
+----------
+2)  Build
 
-Then, in cds/IR/BRI, mbri to build the stuff and
-cd ESTmapper && mbri to make ESTmapper.
+Most of the tools here use pthreads.  You must enable pthread support
+by setting the environment variable WITH_THREADS to 1.
+        bash:   export WITH_THREADS=1
+        tcsh:   setenv WITH_THREADS 1
 
-In theory, you can build out of ../build, but I don't do that.
-Clark Mobarry does, so check with him.
+Then build everything
+
+% gmake
+
+If this crashes or returns
+        gmake: *** No rule to make target `.all', needed by `all'.  Stop.
+then you unfortunately need to update your gmake.  Instructions for
+doing this are in cds/IR/build/patches/README
+
+----------
+3)  Install things, other build targets
+
+A 'make install' will copy all the executables into a 'bin' directory
+in cds/IR/BRI/bin.
+
+To install ESTmapper, 'cd ESTmapper && make -f ../Makefile'.
+ESTmapper is now installed in cds/IR/BRI/ESTmapper, and you can copy
+it wherever.
+
+----------
+4)  Other build targets
+
+A 'make clean' will remove the object files, leaving the binaries.
+
+A 'make real-clean' will remove all traces of a build, leaving you
+with only a few files more than a freshly checked out copy.
+
+
+
+bpw
+Thu Aug 12 14:01:34 EDT 2004
