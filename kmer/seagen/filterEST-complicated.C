@@ -16,6 +16,7 @@ extern char        *label;
 extern u32bit       hitsToSave;
 extern double       qualToSave;
 
+double difference = 0.1;
 
 void
 complicatedFilter_1_unique(hitReader &HR) {
@@ -28,7 +29,7 @@ complicatedFilter_1_unique(hitReader &HR) {
 
     //  Try being a little more aggressive.  Search for the last
     //  point where the score difference across 10 hits is more than
-    //  0.1 and use that for a limit.
+    //  difference and use that for a limit.
 
 
     //  On the 100k test set #1 (ESTmapper paper, 1 Oct 2004) this modification
@@ -43,11 +44,19 @@ complicatedFilter_1_unique(hitReader &HR) {
     //  need to polish.
     //
     u32bit i = HR.numHits() - 1;
-    while ((i >= 10) && ((HR[i-10].coverage - HR[i].coverage) < 0.1))
+    while ((i >= 10) && ((HR[i-10].coverage - HR[i].coverage) < difference))
       i--;
 
     hitsToSave = HR.numHits();
     qualToSave = HR[i].coverage;
+
+#if 0
+    //  Take the middle hit, not the end.  This doesn't hurt too much
+    //  (20 matches out of 100,000 ESTs, and we missed one EST
+    //  completely) but only gains us 0.08% additional filtering.
+    if (i >= 15)
+      qualToSave = HR[i-5].coverage;
+#endif
 
     //  Save all hits with this coverage score!  This isn't really needed, but it
     //  makes the log message correct.
@@ -72,11 +81,18 @@ complicatedFilter_2_knee(hitReader &HR) {
   hitsToSave = 0;
   qualToSave = 0.0;
 
+#if 0
+  decided    = true;
+  hitsToSave = 0;
+  qualToSave = 1.1;
+  return;
+#endif
+
   //  Apply the same filter as used in #1 (the aggressive part), and accept
   //  it if the number of hits saved is below some threshold.
 
   u32bit i = HR.numHits() - 1;
-  while ((i >= 10) && ((HR[i-10].coverage - HR[i].coverage) < 0.1))
+  while ((i >= 10) && ((HR[i-10].coverage - HR[i].coverage) < difference))
     i--;
 
   //  If i==9, then we failed to find a knee, and we fail this filter
@@ -92,7 +108,7 @@ complicatedFilter_2_knee(hitReader &HR) {
   while ((i < HR.numHits()) && (qualToSave == HR[i].coverage))
     i++;
 
-  if (i <= reptThresh) {
+  if (i <= uniqThresh) {
     decided = true;
     label   = "knee";
 
@@ -114,7 +130,7 @@ complicatedFilter_3_uniform(hitReader &HR) {
   hitsToSave = 0;
   qualToSave = 0.0;
 
-  if ((HR.bestScore() - HR.worstScore()) < 0.1) {
+  if ((HR.bestScore() - HR.worstScore()) < difference) {
     decided    = true;
     label      = "uniform";
     hitsToSave = reptThresh;
@@ -149,7 +165,7 @@ complicatedFilter_4_largestdifference(hitReader &HR) {
   //  If the largest difference is below 10% coverage, then it's not
   //  clear how to pick a threshold and we just save a bunch of hits.
   //
-  if (largestDifference < 0.1) {
+  if (largestDifference < difference) {
     decided    = true;
     label      = "diff";
     hitsToSave = reptThresh;
@@ -171,7 +187,7 @@ complicatedFilter_4_largestdifference(hitReader &HR) {
 //  have a spike and we output uniqThresh hits.
 //
 //  To narrow the range more, we find the last spot where the
-//  difference in scores over 10 hits is > 0.1.  This is a
+//  difference in scores over 10 hits is > difference.  This is a
 //  generous heuristic.
 //
 void
@@ -183,12 +199,17 @@ complicatedFilter_5_spikes(hitReader &HR) {
 
   u32bit  spikeFound = 0;
   for (u32bit i=1; i < uniqThresh; i++)
-    if ((HR[i-1].coverage - HR[i].coverage) > 0.1)
+    if ((HR[i-1].coverage - HR[i].coverage) > difference)
       spikeFound = i;
 
   //  If we have found a spike, start at hit[uniqThresh], search
   //  backwards for the first point where the difference in
-  //  scores across 10 hits is larger than 0.1
+  //  scores across 10 hits is larger than difference
+  //
+  //  Seems like a NOP, but it loosens things up a bit.  Consider a
+  //  spike between hits 3 and 4, but 1=2=3 and 4=5=6=7=8=9=10=11.  We
+  //  find a spike, then find a nice place to cut it.  If we never
+  //  find a nice place, we save the top uniqThresh hits.
 
   if (spikeFound) {
     decided    = true;
@@ -197,7 +218,7 @@ complicatedFilter_5_spikes(hitReader &HR) {
     qualToSave = 0.0;
 
     for (u32bit i=uniqThresh-1; i > 9; i--)
-      if ((HR[i-10].coverage - HR[i].coverage) > 0.1) {
+      if ((HR[i-10].coverage - HR[i].coverage) > difference) {
         hitsToSave = i + 1;
         break;
       }
