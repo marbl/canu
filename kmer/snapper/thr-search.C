@@ -11,7 +11,7 @@
 
 //  Define this to print a message whenever a search starts.
 //
-//#define VERBOSE_LOADER
+//#define VERBOSE_SEARCH
 
 
 #ifdef TRUE64BIT
@@ -23,6 +23,7 @@ char const *srchGbye = "[%llu] processed: %8llu@%8llu/%8lu blocked: %4lu/%4lu Ti
 
 class searcherState {
 public:
+  u32bit         threadID;
   u64bit         posnMax;
   u64bit         posnLen;
   u64bit        *posn;
@@ -38,7 +39,9 @@ public:
   u64bit         polished;
   u64bit         discarded;
 
-  searcherState() {
+  searcherState(u32bit U) {
+    threadID   = U;
+
     posnMax    = 16384;
     posnLen    = 0;
     posn       = new u64bit [ posnMax ];
@@ -225,7 +228,14 @@ doPolish(searcherState       *state,
   double   startTime = getTime();
   u32bit   outputLen = 0;
   u32bit   outputMax = 1024 * 1024;
-  char    *output    = new char [outputMax];
+  char    *output    = 0L;
+
+  try {
+    output = new char [outputMax];
+  } catch (...) {
+    fprintf(stderr, "Can't allocate space for the output string in thread %lu\n", state->threadID);
+    abort();
+  }
 
   output[0] = 0;
 
@@ -286,7 +296,13 @@ doPolish(searcherState       *state,
           u32bit l = (u32bit)strlen(pstr);
           if (outputLen + l + 1 > outputMax) {
             outputMax <<= 1;
-            char *o = new char [outputMax];
+            char *o = 0L;
+            try {
+              o = new char [outputMax];
+            } catch (...) {
+              fprintf(stderr, "Can't allocate space for the output string in thread %lu\n", state->threadID);
+              abort();
+            }
             memcpy(o, output, sizeof(char) * outputLen);
             delete [] output;
             output = o;
@@ -312,6 +328,11 @@ doPolish(searcherState       *state,
     } else {
       state->discarded++;
     }
+
+#ifdef MEMORY_DEBUG
+    fprintf(stderr, "Memory dump in polish\n");
+    _dump_allocated_delta(fileno(stderr));
+#endif
   }
 
   state->polishTime += getTime() - startTime;
@@ -322,6 +343,18 @@ doPolish(searcherState       *state,
 
 
 
+#ifdef _AIX
+//  If we're AIX, define a new handler.  Other OS's reliably throw exceptions.
+//
+static
+void
+aix_new_handler() {
+  fprintf(stderr, "aix_new_handler()-- Memory allocation failed for search.\n");
+  throw std::bad_alloc();
+}
+
+#endif
+
 
 
 void*
@@ -331,7 +364,11 @@ searchThread(void *U) {
   u32bit               blockedI = 0;
   u32bit               blockedO = 0;
 
-  searcherState       *state    = new searcherState;
+#ifdef _AIX
+  std::set_new_handler(aix_new_handler);
+#endif
+
+  searcherState       *state    = new searcherState((u64bit)U);
 
   fprintf(stderr, "Hello!  I'm a searchThread (number %u)!\n", (u64bit)U);
 
@@ -427,6 +464,11 @@ searchThread(void *U) {
         //  Clean up stuff
         //
         delete    seq;
+
+#ifdef MEMORY_DEBUG
+        fprintf(stderr, "Memory dump in searchThread\n");
+        _dump_allocated_delta(fileno(stderr));
+#endif
       } // end of seq != 0L
     } // end of idx < numberOfQueries
   } // end of inputTail < numberOfQueries

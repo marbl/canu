@@ -81,7 +81,13 @@ buildPositionDB(void) {
 
   //  Allocate space for the chained sequence
   //
-  char *s = new char [sLen + 1];
+  char *s = 0L;
+  try {
+    s = new char [sLen + 1];
+  } catch (...) {
+    fprintf(stderr, "Can't allocate space for the genomic sequence!\n");
+    abort();
+  }
   char *t = s;
 
   //  Chain
@@ -158,6 +164,20 @@ writeValidationFile(char *name, filterStats *theFilters, u32bit numFilters) {
 }
 
 
+#ifdef _AIX
+//  If we're AIX, define a new handler.  Other OS's reliably throw exceptions.
+//
+//  -qnewexecp
+static
+void
+aix_new_handler() {
+  fprintf(stderr, "aix_new_handler()-- Memory allocation failed.\n");
+  throw std::bad_alloc();
+}
+
+#endif
+
+
 
 int
 main(int argc, char **argv) {
@@ -167,7 +187,8 @@ main(int argc, char **argv) {
   //  exceptions.
   //
   fprintf(stderr, "Enabling excetions from new\n");
-  std::__set_new_throws_exception(true);
+  //std::__set_new_throws_exception(true);
+  std::set_new_handler(aix_new_handler);
 #endif
 
 
@@ -365,6 +386,11 @@ main(int argc, char **argv) {
   for (int i=0; i<1024*1024; i++)
     junk[i] = 0;
   fprintf(stderr, "Sleeping a bit...after the loader - DONE\n");
+#endif
+
+
+#ifdef MEMORY_DEBUG
+  _dump_allocated_delta(fileno(stdout));
 #endif
 
 
