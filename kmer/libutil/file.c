@@ -7,8 +7,15 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
+
+#ifndef _AIX
 #include <sys/param.h>
 #include <sys/mount.h>
+#endif
+
+#ifdef _AIX
+#include <sys/statfs.h>
+#endif
 
 #ifdef linux
 #include <sys/vfs.h>
