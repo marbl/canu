@@ -1,6 +1,6 @@
 //
 //  Automagically generated -- DO NOT EDIT!
-//  See libbri/alphabet-generate.c for details.
+//  See ../BRI/libbri/alphabet-generate.c for details.
 //
 
 #ifdef __cplusplus
