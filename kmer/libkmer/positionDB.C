@@ -3,6 +3,7 @@
 #include <new>
 
 #include "positionDB.H"
+#include "existDB.H"
 #include "bit-packing.H"
 #include "merstream.H"
 
@@ -86,7 +87,10 @@ positionDB::positionDB(char const  *seq,
                        u32bit       merSize,
                        u32bit       merSkip,
                        u32bit       tblBits,
-                       bool         beVerbose) {
+                       bool         beVerbose,
+                       existDB       *mask,
+                       existDB       *only,
+                       char const    *streamFileName) {
   _bucketSizes           = 0L;
   _countingBuckets       = 0L;
   _hashTable             = 0L;
@@ -157,7 +161,7 @@ positionDB::positionDB(char const  *seq,
   }
 
 
-  ////////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////////
   //
   //  1)  Count bucket sizes
   //
@@ -208,8 +212,6 @@ positionDB::positionDB(char const  *seq,
   if (filename)
     M = new merStream(_merSizeInBases, filename);
 
-  //  Yes, yes, logically this shouldn't happen.  Computers aren't always logical.
-  //
   if (M == 0L) {
     fprintf(stderr, "ERROR:  Nothing to initialize with!\n");
     exit(1);
@@ -219,24 +221,93 @@ positionDB::positionDB(char const  *seq,
   speedCounter  *C = new speedCounter("    %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, beVerbose);
 #endif
 
-  while (M->nextMer(_merSkipInBases)) {
-    _bucketSizes[ HASH(M->theFMer()) ]++;
+  //  Two choices here
+  //
+  //  1)  No masking or onlying is done.  Stream the mers and just
+  //      count the positions.  This is the original behavior.
+  //
+  //  2)  Masking or onlyint is done.  Open the output stream file,
+  //      stream the mers by, checking for mask/only of both
+  //      forward and reverse mers.  If either is found, push
+  //      the (forward) mer and position onto the stream.
+  //      close the output stream.
+  //
+  if (streamFileName == 0L) {
+    while (M->nextMer(_merSkipInBases)) {
+      _bucketSizes[ HASH(M->theFMer()) ]++;
 
 #ifdef ERROR_CHECK_COUNTING
-    _errbucketSizes[ HASH(M->theFMer()) ]++;
+      _errbucketSizes[ HASH(M->theFMer()) ]++;
 #endif
 
-    _numberOfMers++;
-    _numberOfPositions = M->thePosition();
+      _numberOfMers++;
+      _numberOfPositions = M->thePosition();
 #ifndef SILENTPOSITIONDB
-    C->tick();
+      C->tick();
 #endif
+    }
+  } else {
+
+    //  XXXX:  HACK THIS!
+
+    bitPackedFileWriter *ms = new bitPackedFileWriter(streamFileName);
+
+    while (M->nextMer(_merSkipInBases)) {
+
+      //  Save the mer if it doesn't exist in the mask (both f and r),
+      //  or does exist in the only (either f or r), add it.
+      //
+      //  The input databases for mask and only are (currently) made
+      //  using canonical mers.  We halve the number of exists() by
+      //  also using canonical mers here.
+      //
+      bool  save = false;
+
+#if 0
+      if (mask && (!mask->exists(M->theFMer()) && !mask->exists(M->theRMer())))
+        save = true;
+      if (only && (only->exists(M->theFMer()) || only->exists(M->theRMer())))
+        save = true;
+#else
+      u64bit  canonicalmer = M->theFMer();
+      if (canonicalmer > M->theRMer())
+        canonicalmer = M->theRMer();
+
+      if (mask && !mask->exists(canonicalmer))
+        save = true;
+      if (only &&  only->exists(canonicalmer))
+        save = true;
+#endif
+
+
+      if (save) {
+        _bucketSizes[ HASH(M->theFMer()) ]++;
+        _numberOfMers++;
+        _numberOfPositions = M->thePosition();
+
+        //  We probably don't want to use putNumber instead of putBits
+        //  because our distribution of number is uniform up to
+        //  (usually) 31 bits.
+
+        ms->putBits(M->theFMer(),     _merSizeInBits);
+        ms->putBits(M->thePosition(), 32);
+      }
+
+#ifndef SILENTPOSITIONDB
+      C->tick();
+#endif
+    }
+
+    delete ms;
   }
 
   delete M;
 #ifndef SILENTPOSITIONDB
   delete C;
 #endif
+
+  M = 0L;
+  C = 0L;
 
 #ifndef SILENTPOSITIONDB
   if (beVerbose)
@@ -319,7 +390,7 @@ positionDB::positionDB(char const  *seq,
 #endif
 
 
-  ////////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////////
   //
   //  3)  Build list of mers with positions
   //
@@ -327,12 +398,6 @@ positionDB::positionDB(char const  *seq,
   if (beVerbose)
     fprintf(MSG_OUTPUT, "    Building lists with positions.\n");
 #endif
-
-  if (seq)
-    M = new merStream(_merSizeInBases, seq, 0);
-
-  if (filename)
-    M = new merStream(_merSizeInBases, filename);
 
 #ifndef SILENTPOSITIONDB
   C = new speedCounter("    %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, beVerbose);
@@ -342,64 +407,103 @@ positionDB::positionDB(char const  *seq,
   fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING is defined!\n");
 #endif
 
-  while (M->nextMer(_merSkipInBases)) {
-    u64bit h = HASH(M->theFMer());
 
-    _bucketSizes[h]--;
+  //  XXX:  Two choices again
+  //
+  //  If no file of pre-encoded mers, read the mers from a merStream.
+  //  Otherwise, read the pre-encoded mers.
+  //
+
+  if (streamFileName == 0L) {
+    if (seq)
+      M = new merStream(_merSizeInBases, seq, 0);
+
+    if (filename)
+      M = new merStream(_merSizeInBases, filename);
+
+
+    while (M->nextMer(_merSkipInBases)) {
+      u64bit h = HASH(M->theFMer());
+
+      _bucketSizes[h]--;
 
 #ifdef ERROR_CHECK_COUNTING
-    _errbucketSizes[h]--;
+      _errbucketSizes[h]--;
 #endif
 
 
 #ifdef ERROR_CHECK_EMPTY_BUCKETS
-    if ((~getDecodedValue(_countingBuckets, (u64bit)_bucketSizes[h] * (u64bit)_wCnt, _wCnt)) & u64bitMASK(_wCnt))
-      fprintf(stdout, "ERROR_CHECK_EMPTY_BUCKETS: countingBucket not empty!  pos=%lu\n", _bucketSizes[h] * _wCnt);
+      if ((~getDecodedValue(_countingBuckets, (u64bit)_bucketSizes[h] * (u64bit)_wCnt, _wCnt)) & u64bitMASK(_wCnt))
+        fprintf(stdout, "ERROR_CHECK_EMPTY_BUCKETS: countingBucket not empty!  pos=%lu\n", _bucketSizes[h] * _wCnt);
 #endif
 
-    setDecodedValue(_countingBuckets, (u64bit)_bucketSizes[h] * (u64bit)_wCnt, _wCnt,
-                    (CHECK(M->theFMer()) << _posnWidth) | (M->thePosition() & _posnMask));
+      setDecodedValue(_countingBuckets, (u64bit)_bucketSizes[h] * (u64bit)_wCnt, _wCnt,
+                      (CHECK(M->theFMer()) << _posnWidth) | (M->thePosition() & _posnMask));
 
 
 #ifdef ERROR_CHECK_COUNTING_ENCODING
-    u64bit v = getDecodedValue(_countingBuckets, (u64bit)_bucketSizes[h] * (u64bit)_wCnt, _wCnt);
+      u64bit v = getDecodedValue(_countingBuckets, (u64bit)_bucketSizes[h] * (u64bit)_wCnt, _wCnt);
 
-    //  This test is only valid if we have an extra bit at the start --
-    //  if we are planning on reusing the counting space for buckets.
-    //
+      //  This test is only valid if we have an extra bit at the start --
+      //  if we are planning on reusing the counting space for buckets.
+      //
 #ifdef TRUE64BIT
-    if ((_wCnt == _wFin) && (0 != (v >> (_wCnt - 1))))
-      fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error: HBIT is set!      Wanted 0x%016lx got 0x%016lx\n",
-              (CHECK(M->theFMer()) << _posnWidth) | (M->thePosition() & _posnMask), v);
-    if (CHECK(M->theFMer()) != ((v >> _posnWidth) & _chckMask))
-      fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  CHCK corrupted!  Wanted 0x%016lx got 0x%016lx\n",
-              (CHECK(M->theFMer()) << _posnWidth) | (M->thePosition() & _posnMask), v);
-    if (M->thePosition() != (v & _posnMask))
-      fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  POSN corrupted!  Wanted 0x%016lx got 0x%016lx\n",
-              (CHECK(M->theFMer()) << _posnWidth) | (M->thePosition() & _posnMask), v);
+      if ((_wCnt == _wFin) && (0 != (v >> (_wCnt - 1))))
+        fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error: HBIT is set!      Wanted 0x%016lx got 0x%016lx\n",
+                (CHECK(M->theFMer()) << _posnWidth) | (M->thePosition() & _posnMask), v);
+      if (CHECK(M->theFMer()) != ((v >> _posnWidth) & _chckMask))
+        fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  CHCK corrupted!  Wanted 0x%016lx got 0x%016lx\n",
+                (CHECK(M->theFMer()) << _posnWidth) | (M->thePosition() & _posnMask), v);
+      if (M->thePosition() != (v & _posnMask))
+        fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  POSN corrupted!  Wanted 0x%016lx got 0x%016lx\n",
+                (CHECK(M->theFMer()) << _posnWidth) | (M->thePosition() & _posnMask), v);
 #else
-    if ((_wCnt == _wFin) && (0 != (v >> (_wCnt - 1))))
-      fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error: HBIT is set!      Wanted 0x%016llx got 0x%016llx\n",
-              (CHECK(M->theFMer()) << _posnWidth) | (M->thePosition() & _posnMask), v);
-    if (CHECK(M->theFMer()) != ((v >> _posnWidth) & _chckMask))
-      fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  CHCK corrupted!  Wanted 0x%016llx got 0x%016llx\n",
-              (CHECK(M->theFMer()) << _posnWidth) | (M->thePosition() & _posnMask), v);
-    if (M->thePosition() != (v & _posnMask))
-      fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  POSN corrupted!  Wanted 0x%016llx got 0x%016llx\n",
-              (CHECK(M->theFMer()) << _posnWidth) | (M->thePosition() & _posnMask), v);
+      if ((_wCnt == _wFin) && (0 != (v >> (_wCnt - 1))))
+        fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error: HBIT is set!      Wanted 0x%016llx got 0x%016llx\n",
+                (CHECK(M->theFMer()) << _posnWidth) | (M->thePosition() & _posnMask), v);
+      if (CHECK(M->theFMer()) != ((v >> _posnWidth) & _chckMask))
+        fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  CHCK corrupted!  Wanted 0x%016llx got 0x%016llx\n",
+                (CHECK(M->theFMer()) << _posnWidth) | (M->thePosition() & _posnMask), v);
+      if (M->thePosition() != (v & _posnMask))
+        fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  POSN corrupted!  Wanted 0x%016llx got 0x%016llx\n",
+                (CHECK(M->theFMer()) << _posnWidth) | (M->thePosition() & _posnMask), v);
 #endif
 #endif
 
 #ifndef SILENTPOSITIONDB
-    C->tick();
+      C->tick();
 #endif
+    }
+
+    delete M;
+    M = 0L;
+  } else {
+    bitPackedFileReader *ms = new bitPackedFileReader(streamFileName);
+
+    for (u64bit i=0; i<_numberOfMers; i++) {
+      u64bit  mer = ms->getBits(_merSizeInBits);
+      u64bit  pos = ms->getBits(32);
+      
+      u64bit  h = HASH(mer);
+        
+      _bucketSizes[h]--;
+
+      setDecodedValue(_countingBuckets, (u64bit)_bucketSizes[h] * (u64bit)_wCnt, _wCnt,
+                      (CHECK(mer) << _posnWidth) | (pos & _posnMask));
+
+#ifndef SILENTPOSITIONDB
+      C->tick();
+#endif
+    }
+
+    delete ms;
   }
 
-  delete M;
+
 #ifndef SILENTPOSITIONDB
   delete C;
 #endif
-
+  C = 0L;
 
 #ifdef ERROR_CHECK_COUNTING
   fprintf(stdout, "Checking for unfilled buckets\n");
@@ -507,7 +611,7 @@ positionDB::positionDB(char const  *seq,
     exit(1);
   }
 
-  ////////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////////
   //
   //  6)  Transfer from the sorted buckets to the hash table.
   //

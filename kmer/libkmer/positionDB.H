@@ -15,6 +15,8 @@ typedef u64bit heapbit;
 //
 //#define DEBUGPOSDB
 
+class existDB;
+
 class positionDB {
 public:
   positionDB(char const    *filename,
@@ -24,7 +26,10 @@ public:
              u32bit         merSize,
              u32bit         merSkip,    //  mers to skip between mers
              u32bit         tblBits,
-             bool           beVerbose);
+             bool           beVerbose,
+             existDB       *mask = 0L,
+             existDB       *only = 0L,
+             char const    *streamFileName = 0L);
   ~positionDB();
 
   //  Returns position in posn, resizing it if needed.  Space is

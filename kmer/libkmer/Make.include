@@ -8,8 +8,20 @@ ifndef LIBBRI/
 LIBBRI/     := $/../libbri/
 endif
 
+ifndef MERYL/
+MERYL/     := $/../meryl/
+endif
+
 ifndef FASTA/
 FASTA/      := $/../fasta/
+endif
+
+ifndef EXISTDB/
+EXISTDB/     := $/../existDB/
+endif
+
+ifndef MERTABLES/
+EXISTDB/     := $/../merTables/
 endif
 
 src           :=$/positionDB.C $/positionDB.H $/positionDB-access.C $/positionDB-dump.C $/positionDB-sort.C $/positionDB-file.C 
@@ -22,8 +34,8 @@ $/.REAL-CLEAN := $/buildinfo-*
 $/libpositionDB.a:   $/buildinfo-positionDB.o $/positionDB.o $/positionDB-access.o $/positionDB-dump.o $/positionDB-sort.o $/positionDB-file.o
 $/positionDB:        $/driver.o
 
-$/%.d $/%.o:    CXXFLAGS+= -I${FASTA/} -I${LIBBRI/}
-${$/.CXX_EXES}:$/libpositionDB.a ${FASTA/}libfasta.a ${LIBBRI/}libbri.a
+$/%.d $/%.o:    CXXFLAGS+= -I${EXISTDB/} -I${FASTA/} -I${MERYL/} -I${LIBBRI/}
+${$/.CXX_EXES}: ${MERTABLES/}libmerTables.a ${FASTA/}libfasta.a ${MERYL/}libmeryl.a ${LIBBRI/}libbri.a
 
 $/buildinfo-positionDB.c: $/buildinfo-positionDB.h
 $/buildinfo-positionDB.h: ${src}
