@@ -471,6 +471,11 @@ public:
 
     delete [] thashtable.nextPos;
     delete [] thashtable.nodes;
+
+#ifdef WITH_PALLOC
+    pfree();
+#endif
+
   };
 
   sim4polishList *run(sim4command *cmd);

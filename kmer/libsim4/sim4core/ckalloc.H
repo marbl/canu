@@ -9,12 +9,34 @@
 
 //#define CHECK_MEMORY
 
+//#define WITH_PALLOC
+
+
+
+#ifdef WITH_PALLOC
+
+inline
+void*
+ckalloc(size_t amount) {
+  return(palloc(amount));
+}
+
+
+#define ckfree(P)
+
+#else
+
 inline
 void *
 ckalloc(size_t amount) {
 
+#ifdef __APPLE__
+  if (amount == 0)
+    amount = 16;
+#else
   if (amount == 0)
     amount = 8;
+#endif
 
   void *p = malloc(amount);
 
@@ -36,7 +58,8 @@ ckalloc(size_t amount) {
 #define ckfree(P) { fprintf(stderr, "ckfree "u64bitHEX" at %s,%d\n", (u64bit)(P), __FILE__, __LINE__); free(P); }
 #else
 #define ckfree(P) free(P)
-#endif
+#endif  //  CHECK_MEMORY
 
+#endif  //  WITH_PALLOC
 
 #endif  //  CKALLOC_H
