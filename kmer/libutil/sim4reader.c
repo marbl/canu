@@ -91,10 +91,13 @@ readLine(FILE *F, _line *L) {
 
     while ((L->l + 1 >= L->a) &&
            (L->s[L->l - 1] != '\n')) {
-      //fprintf(stderr, "Realloc to %d bytes.\n", L->a * 2);
-
       L->a *= 2;
+      errno = 0;
       L->s  = (char *)realloc(L->s, sizeof(char) * L->a);
+      if (errno) {
+        fprintf(stderr, "realloc() error in sim4reader::readLine -- can't allocate more char\n%s\n", strerror(errno));
+        exit(1);
+      }
       fgets(L->s + L->l, L->a - L->l, F);
       L->l += strlen(L->s + L->l);
     }
@@ -276,8 +279,13 @@ readPolish(FILE *F) {
   while (sscanf(l->s, "%d-%d (%d-%d) <%d-%d-%d>",
                 &ef, &et, &gf, &gt, &nm, &nn, &id) == 7) {
     if (el >= em) {
+      errno = 0;
       em *= 2;
       ex  = (sim4polishExon *)realloc(ex, sizeof(sim4polishExon) * em);
+      if (errno) {
+        fprintf(stderr, "realloc() error in sim4reader::readPolish -- can't allocate more sim4polishExon\n%s\n", strerror(errno));
+        exit(1);
+      }
     }
 
     ex[el].estFrom           = ef;
@@ -391,10 +399,13 @@ readString(FILE *F, _line *L) {
 
     while ((L->l + 1 >= L->a) &&
            (L->s[L->l - 1] != '\n')) {
-      //fprintf(stderr, "Realloc to %d bytes.\n", L->a * 2);
-
       L->a *= 2;
+      errno = 0;
       L->s  = (char *)realloc(L->s, sizeof(char) * L->a);
+      if (errno) {
+        fprintf(stderr, "realloc() error in sim4reader::readString -- can't allocate more char\n%s\n", strerror(errno));
+        exit(1);
+      }
       fgets(L->s + L->l, L->a - L->l, F);
       L->l += strlen(L->s + L->l);
     }
@@ -655,7 +666,12 @@ s4p_stringToPolish(char *s) {
                 &ef, &et, &gf, &gt, &nm, &nn, &id) == 7) {
     if (el >= em) {
       em *= 2;
+      errno = 0;
       ex  = (sim4polishExon *)realloc(ex, sizeof(sim4polishExon) * em);
+      if (errno) {
+        fprintf(stderr, "realloc() error in sim4reader::readPolish -- can't allocate more sim4polishExon\n%s\n", strerror(errno));
+        exit(1);
+      }
     }
 
     ex[el].estFrom           = ef;
