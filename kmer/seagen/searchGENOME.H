@@ -158,7 +158,7 @@ public:
     ts->tv_sec = (time_t)floor(t);
     t -= ts->tv_sec;
     t *= 1e9;
-    ts->tv_nsec = (int32_t)t;
+    ts->tv_nsec = (int)t;
   };
 private:
   void  addToUse(u32bit v);
