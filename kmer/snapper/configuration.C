@@ -85,10 +85,10 @@ static char const *usageString =
 "    -mersize k              Use k-mers\n"
 "    -merskip l              Skip l mers between\n"
 "    -maxdiagonal d\n"
-"    -minhitlength l\n"
-"    -minhitcoverage c\n"
-"    -minmatchidentity i\n"
-"    -minmatchcoverage c\n"
+"    -minhitlength l         Minimum length for a hit to be polished\n"
+"    -minhitcoverage c       Minimum coverage for a hit to be polished (0.0 to 1.0)\n"
+"    -minmatchidentity i     Minimum percent identity for matches (integer)\n"
+"    -minmatchcoverage c     Minimum coverage for matches (integer)\n"
 "    -extendweight w\n"
 "    -extendminimum e\n"
 "\n"
@@ -379,17 +379,15 @@ configuration::read(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-minhitlength") == 0) {
       arg++;
       _minHitLength = atoi(argv[arg]);
-
+    } else if (strcmp(argv[arg], "-minhitcoverage") == 0) {
+      arg++;
+      _minHitCoverage = atof(argv[arg]);
     } else if (strcmp(argv[arg], "-minmatchidentity") == 0) {
       arg++;
       _minMatchIdentity = atoi(argv[arg]);
     } else if (strcmp(argv[arg], "-minmatchcoverage") == 0) {
       arg++;
       _minMatchCoverage = atoi(argv[arg]);
-
-    } else if (strcmp(argv[arg], "-minhitcoverage") == 0) {
-      arg++;
-      _minHitCoverage = atof(argv[arg]);
     } else if (strncmp(argv[arg], "-extendweight", 7) == 0) {
       arg++;
       _extendWeight = atoi(argv[arg]);
