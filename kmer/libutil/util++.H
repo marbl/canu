@@ -1009,6 +1009,7 @@ private:
 
 
 #include "merCovering.H"
+#include "merList.H"
 
 
 #endif  //  BRI_PLUS_PLUS_H
