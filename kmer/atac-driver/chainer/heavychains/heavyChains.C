@@ -739,9 +739,9 @@ int main(int argc, char *argv[]) {
       P.clear();
 
       if (VERBOSE>0) {
-	fprintf(stderr,"HeavyChains: finished strands %d %d %lf %lf %lf %lf\n",old_stra1,old_stra2, maxlen1, maxlen2, maxScoreFwd, maxScoreRev);
+	fprintf(stderr,"HeavyChains: finished strands %d %d %f %f %f %f\n",old_stra1,old_stra2, maxlen1, maxlen2, maxScoreFwd, maxScoreRev);
       }
-      //fprintf(outF,"# HeavyChains: finished strands %d %d %lf %lf %lf %lf\n", old_stra1,old_stra2, maxlen1, maxlen2, maxScoreFwd, maxScoreRev);
+      //fprintf(outF,"# HeavyChains: finished strands %d %d %f %f %f %f\n", old_stra1,old_stra2, maxlen1, maxlen2, maxScoreFwd, maxScoreRev);
       sumMaxLen1 += maxlen1;
       sumMaxLen2 += maxlen2;
       sumMaxScoreFwd += maxScoreFwd;
@@ -761,19 +761,19 @@ int main(int argc, char *argv[]) {
   {
     char tmpbuffer[100];
     // #include <strstream>
-    sprintf(tmpbuffer,"%lf",sumlen1);
+    sprintf(tmpbuffer,"%f",sumlen1);
     globals[string("heavySumLen1")] = string(tmpbuffer);
-    sprintf(tmpbuffer,"%lf",sumlen2);
+    sprintf(tmpbuffer,"%f",sumlen2);
     globals[string("heavySumLen2")] = string(tmpbuffer);
     
-    sprintf(tmpbuffer,"%lf",sumMaxLen1);
+    sprintf(tmpbuffer,"%f",sumMaxLen1);
     globals[string("heavySumMaxLen1")] = string(tmpbuffer);
-    sprintf(tmpbuffer,"%lf",sumMaxLen2);
+    sprintf(tmpbuffer,"%f",sumMaxLen2);
     globals[string("heavySumMaxLen2")] = string(tmpbuffer);
 
-    sprintf(tmpbuffer,"%lf",sumMaxScoreFwd);
+    sprintf(tmpbuffer,"%f",sumMaxScoreFwd);
     globals[string("heavySumMaxScoreFwd")] = string(tmpbuffer);
-    sprintf(tmpbuffer,"%lf",sumMaxScoreRev);
+    sprintf(tmpbuffer,"%f",sumMaxScoreRev);
     globals[string("heavySumMaxScoreRev")] = string(tmpbuffer);
   }
   

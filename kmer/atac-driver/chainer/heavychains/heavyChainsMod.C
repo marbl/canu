@@ -460,10 +460,8 @@ long StrandPair::print(
 		       const char * assemblyId2,
                        long matchid
  ) {
-  fprintf(stderr, "HeavyChainsMod: begin output of the matches\n");
-  fprintf(stderr, "HeavyChainsMod: P.size,MAXJUMP,MINSCORE=%d,%d,%lf\n", P.size(), MAXJUMP, MINSCORE);
-  fprintf(stderr, "HeavyChainsMod: assemblyId1 = %s\n", assemblyId1);
-  fprintf(stderr, "HeavyChainsMod: assemblyId2 = %s\n", assemblyId2);
+  fprintf(stderr,"HeavyChainsMod: begin output of the matches\n");
+  fprintf(stderr,"HeavyChainsMod: P.size,MAXJUMP,MINSCORE=%d,%d,%f\n", P.size(), MAXJUMP, MINSCORE);
 
   if(output_in_brians_format) {
     // Output the results in Brian's format.
@@ -505,14 +503,7 @@ long StrandPair::print(
 	int len1 = (P[i].xhi-P[i].xlo);
 	int len2 = (P[i].yhi-P[i].ylo);
 	matchid += 1;
-
-        fprintf(stderr, "assemblyId1 = %p %s\n", assemblyId1, assemblyId1);
-        fprintf(stderr, "assemblyId2 = %p %s\n", assemblyId2, assemblyId2);
-
-        //  Was %Ld, but that's an error.  It crashes Linux.  BPW left in
-        //  lots of debugging printf's
-
-	fprintf(outF, "M x H%ld . %s:%d %d %d %d %s:%d %d %d %d > /hf=%.1f /hr=%.1f\n",
+	fprintf(outF,"M x H%Ld . %s:%d %d %d %d %s:%d %d %d %d > /hf=%.1f /hr=%.1f\n",
 		matchid,
 		assemblyId1, old_stra1, P[i].xlo, len1, 1,
 		assemblyId2, old_stra2, P[i].ylo, len2, (P[i].ori == 'f'? 1 : -1),
@@ -534,9 +525,9 @@ long StrandPair::print(
 #endif
   
   if (VERBOSE>0) {
-    fprintf(stderr,"HeavyChains: finished strands %d %d %lf %lf %lf %lf\n",old_stra1,old_stra2, maxlen1, maxlen2, maxScoreFwd, maxScoreRev);
+    fprintf(stderr,"HeavyChains: finished strands %d %d %f %f %f %f\n",old_stra1,old_stra2, maxlen1, maxlen2, maxScoreFwd, maxScoreRev);
   }
-  //fprintf(outF,"# HeavyChains: finished strands %d %d %lf %lf %lf %lf\n", old_stra1,old_stra2, maxlen1, maxlen2, maxScoreFwd, maxScoreRev);
+  //fprintf(outF,"# HeavyChains: finished strands %d %d %f %f %f %f\n", old_stra1,old_stra2, maxlen1, maxlen2, maxScoreFwd, maxScoreRev);
   return matchid;
 }
 
@@ -607,13 +598,13 @@ void TheStats::print(FILE *outF) const {
   }
 #endif
   
-  fprintf(outF, "/heavySumLen1=%lf\n", this->sumlen1);
-  fprintf(outF, "/heavySumLen2=%lf\n", this->sumlen2);
+  fprintf(outF, "/heavySumLen1=%f\n", this->sumlen1);
+  fprintf(outF, "/heavySumLen2=%f\n", this->sumlen2);
 
-  fprintf(outF, "/heavySumMaxLen1=%lf\n", this->sumMaxLen1);
-  fprintf(outF, "/heavySumMaxLen2=%lf\n", this->sumMaxLen2);
+  fprintf(outF, "/heavySumMaxLen1=%f\n", this->sumMaxLen1);
+  fprintf(outF, "/heavySumMaxLen2=%f\n", this->sumMaxLen2);
   
-  fprintf(outF, "/heavySumMaxScoreFwd=%lf\n", this->sumMaxScoreFwd);
-  fprintf(outF, "/heavySumMaxScoreRev=%lf\n", this->sumMaxScoreRev);
+  fprintf(outF, "/heavySumMaxScoreFwd=%f\n", this->sumMaxScoreFwd);
+  fprintf(outF, "/heavySumMaxScoreRev=%f\n", this->sumMaxScoreRev);
   fprintf(stderr,"TheStats::print() ending\n");
 }
