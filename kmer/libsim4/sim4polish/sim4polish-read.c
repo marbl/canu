@@ -73,8 +73,6 @@ readLine(FILE *F, _line *L) {
             (L->s[L->l - 1] == '\n')))
       L->s[--L->l] = 0;
   }
-
-  fprintf(stdout, "%s\n", L->s);
 }
 
 
