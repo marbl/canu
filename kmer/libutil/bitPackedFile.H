@@ -7,7 +7,7 @@
 
 class bitPackedFileWriter {
 public:
-  bitPackedFileWriter(char *name);
+  bitPackedFileWriter(char const *name);
   ~bitPackedFileWriter();
 
   void       putBits(u64bit bits, u32bit size);
@@ -24,7 +24,7 @@ private:
 
 class bitPackedFileReader {
 public:
-  bitPackedFileReader(char *name);
+  bitPackedFileReader(char const *name);
   ~bitPackedFileReader();
 
   u64bit     getBits(u32bit size);

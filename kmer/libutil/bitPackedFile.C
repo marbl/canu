@@ -9,7 +9,7 @@
 
 #define BUFFER_SIZE   131072
 
-bitPackedFileWriter::bitPackedFileWriter(char *name) {
+bitPackedFileWriter::bitPackedFileWriter(char const *name) {
   _out = fopen(name, "wb");
   _bfr = new u64bit [BUFFER_SIZE];
   _bit = u64bitZERO;
@@ -81,7 +81,7 @@ bitPackedFileWriter::putNumber(u64bit val) {
 
 
 
-bitPackedFileReader::bitPackedFileReader(char *name) {
+bitPackedFileReader::bitPackedFileReader(char const *name) {
   int   errno_fopen = 0;
   int   errno_popen = 0;
   char *command = 0L;
