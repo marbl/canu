@@ -18,7 +18,9 @@ src     :=$/sim4polish.c \
           $/sim4polish-updatescores.c \
           $/sim4polish.h \
           $/sim4polishBuilder.H \
-          $/sim4polishBuilder.C
+          $/sim4polishBuilder.C \
+          $/sim4polishFile.H \
+          $/sim4polishFile.C
 
 $/.C_SRCS    :=$(filter %.c,${src})
 $/.CXX_SRCS  :=$(filter %.C,${src})
