@@ -21,7 +21,8 @@
 #ifndef CDSH
 #define CDSH
 
-#include <values.h>
+#include <limits.h>
+#include <float.h>
 #include <inttypes.h>
 #include <time.h>
 
@@ -84,17 +85,17 @@ typedef uint16_t cds_uint16;
 typedef uint32_t cds_uint32;
 typedef uint64_t cds_uint64;
 
-typedef uint8_t  uint8;
-typedef uint16_t uint16;
-typedef uint32_t uint32;
-typedef uint64_t uint64;
-
 #ifndef _AIX
   typedef int8_t  int8;
   typedef int16_t int16;
   typedef int32_t int32;
   typedef int64_t int64;
 #endif
+
+typedef uint8_t  uint8;
+typedef uint16_t uint16;
+typedef uint32_t uint32;
+typedef uint64_t uint64;
 
 typedef float  cds_float32;
 typedef double cds_float64;
@@ -186,9 +187,9 @@ typedef double float64;
   #define MAX_OLAP_BATCH          900000
   // overlapper hashtable is 2^(HASH_MASK_BITS)
   #ifdef ON_JTC_LINUX_FARM
-    #define HASH_MASK_BITS     21
+    #define DEF_HASH_MASK_BITS     21
   #else
-    #define HASH_MASK_BITS     18
+    #define DEF_HASH_MASK_BITS     18
   #endif
   // specifies if overlapper should use threads
   #define USE_THREADS         1
@@ -196,7 +197,7 @@ typedef double float64;
   #define  IO_BUFF_SIZE   10000
 
   //========== CGB-specific
-  #define CGB_MULTIPLIER               1
+  #define CGB_MULTIPLIER               1000
 
   //========== CGW-specific
   // Used in cgw: 1024^3
@@ -219,7 +220,10 @@ typedef double float64;
     #define CDS_UINT64_MAX ULONG_MAX
     
     // included here for downstream .c files
+    // I don't know if this is needed anywhere else but on the alphas (MP)
+    #ifdef _OSF_SOURCE
     #include <sys/mode.h>
+    #endif
     
     #define F_S16    "%d"
     #define F_U16    "%u"
@@ -253,21 +257,20 @@ typedef double float64;
       #endif
     #else
       // these are valid for __alpha, perhaps not for others...
-
       #define F_TIME_T  "%d"
       #define F_TIME_TP  "d"
 
       #define F_PID_T   "%d"
       #define F_PID_TP   "d"
 
-      #ifdef _KERNEL
-        #define F_OFF_T   "%lu"
-        #define F_OFF_TP   "lu"
-      #else
-        #define F_OFF_T   "%ld"
-        #define F_OFF_TP   "ld"
+        #ifdef _KERNEL
+          #define F_OFF_T   "%lu"
+          #define F_OFF_TP   "lu"
+        #else
+          #define F_OFF_T   "%ld"
+          #define F_OFF_TP   "ld"
+        #endif
       #endif
-    #endif    
     
     #define STR_TO_UID     strtoul
     #define STR_TO_UINT64  strtoul
@@ -297,14 +300,14 @@ typedef double float64;
       // The most overlaps that can be stored in memory at a time
       #define MAX_OLAP_BATCH        90000000
       // overlapper hashtable is 2^(HASH_MASK_BITS)
-      #define HASH_MASK_BITS     23
+      #define DEF_HASH_MASK_BITS     23
       // specifies if overlapper should use threads
       #define USE_THREADS         0
     #else
       // The most overlaps that can be stored in memory at a time
       #define MAX_OLAP_BATCH          900000
       // overlapper hashtable is 2^(HASH_MASK_BITS)
-      #define HASH_MASK_BITS     22
+      #define DEF_HASH_MASK_BITS     22
       // specifies if overlapper should use threads
       #define USE_THREADS         1
     #endif
@@ -315,7 +318,7 @@ typedef double float64;
     #ifndef __alpha
       #define CGB_MULTIPLIER            1000
     #else
-      #define CGB_MULTIPLIER               1
+      #define CGB_MULTIPLIER               1000
     #endif
     
     //========== CGW-specific
