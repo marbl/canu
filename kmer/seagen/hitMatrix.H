@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <new.h>
+#include <new>
 
 #include "libbri.H"
 #include "positionDB.H"
