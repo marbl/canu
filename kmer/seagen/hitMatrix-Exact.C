@@ -22,7 +22,7 @@ hitMatrix::hitMatrix(u32bit qsLen, u32bit qsMers, u32bit qsIdx, bool reversed) {
   _hitsMax  = 128;
   _hits     = new diagonalLine [_hitsMax];
 
-  _reversed = reversed;
+  //_reversed = reversed;
 
   _matches  = 0L;
 }
