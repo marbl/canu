@@ -52,6 +52,8 @@ hitMatrix::addHits(u32bit  qi,
                    u64bit  cn) {
 
   if ((_hitsLen + cn) >= _hitsMax) {
+    fprintf(stderr, "Need more diagonalLines: from %u to %u\n", _hitsMax, _hitsMax + _hitsMax + (u32bit)cn);
+
     _hitsMax = _hitsMax + _hitsMax + (u32bit)cn;
 
     diagonalLine *h;

@@ -63,22 +63,18 @@ doSearch(searcherState *state,
   startTime = getTime();
   matrix = new hitMatrix(seq->sequenceLength(), idx);
 
-
-#if 0
-  for (u32bit qi=0; qi<query->numberOfMers(); qi++)
-    if ((query->getSkip(qi) == false) &&
-        (positions->get(query->getMer(qi), state->posn, state->posnMax, state->posnLen)))
-      matrix->addHits(qi, state->posn, state->posnLen);
-#endif
-
   u64bit mer = u64bitZERO;
   u32bit pos = u32bitZERO;
+
+  fprintf(stderr, "Retrieving hits for %s\n", seq->header());
 
   while (query->getMer(mer, pos) == true)
     if (positions->get(mer, state->posn, state->posnMax, state->posnLen))
       matrix->addHits(pos, state->posn, state->posnLen);
 
   state->searchTime += getTime() - startTime;
+
+  fprintf(stderr, "Filtering hits for %s\n", seq->header());
 
   //  Filter, storing the resutls into theOutput
   //

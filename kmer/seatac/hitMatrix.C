@@ -12,8 +12,12 @@ hitMatrix::hitMatrix(u32bit qsLen, u32bit qsIdx, bool reversed) {
   _qsLen    = qsLen;
   _qsIdx    = qsIdx;
 
+  //  Because this is doing scaffolds or chromosomes against more than
+  //  1/4 a genome, we expect a LOT of hits.  Start off with a good
+  //  amount of memory.
+  //
   _hitsLen  = 0;
-  _hitsMax  = 128;
+  _hitsMax  = 16 * 1024 * 1024;
   _hits     = new diagonalLine [_hitsMax];
 }
 
