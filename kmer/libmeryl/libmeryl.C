@@ -28,7 +28,7 @@ merStreamFromMeryl::merStreamFromMeryl(const char *prefix, u32bit merSize) {
     exit(1);
   }
 
-  _B = new mcBucket(_IDX, _DAT, &_mcd);
+  _Bkt = new mcBucket(_IDX, _DAT, &_mcd);
 
   _tPos = 0;
   _bPos = 0;

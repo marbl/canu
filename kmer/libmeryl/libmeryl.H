@@ -81,7 +81,7 @@ private:
   bitPackedFileReader  *_IDX;
   bitPackedFileReader  *_DAT;
 
-  mcBucket             *_B;
+  mcBucket             *_Bkt;
   u32bit                _tPos;  //  Position in the table of buckets
   u32bit                _bPos;  //  Position in the bucket
 
@@ -95,18 +95,18 @@ merStreamFromMeryl::nextMer(void) {
 
   //  Use a while here, so that we skip buckets that are empty
   //
-  while ((_bPos >= _B->_items) &&
+  while ((_bPos >= _Bkt->_items) &&
          (_tPos <  _mcd._tableSizeInEntries)) {
     _tPos++;
     _bPos = 0;
-    _B->readBucket();
+    _Bkt->readBucket();
   }
 
   if (_tPos >= _mcd._tableSizeInEntries)
     return(false);
 
-  _mer = _B->_bucketID << _B->_chckBits | _B->_checks[_bPos];
-  _cnt = _B->_counts[_bPos];
+  _mer = _Bkt->_bucketID << _Bkt->_chckBits | _Bkt->_checks[_bPos];
+  _cnt = _Bkt->_counts[_bPos];
 
   _bPos++;
 
