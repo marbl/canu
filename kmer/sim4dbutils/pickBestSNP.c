@@ -14,6 +14,13 @@
 //  line describing the snp is output.
 //
 
+
+//  Define this if the input SNPs are directly from dbSNP -- the
+//  defline is different, and the SNP position is base-based.
+//
+//#define SNPS_ARE_RS
+
+
 char *usage =
 "usage: %s <options> < polishes > unprocessed-polishes\n"
 "\n"
@@ -107,18 +114,18 @@ int
 findPosition(char *defline) {
   int   i=0;
 
-#if 0
-  while ((defline[i+4] != 0) && ((defline[i]   != '/') ||
-                                 (defline[i+1] != 'p') ||
-                                 (defline[i+2] != 'o') ||
-                                 (defline[i+3] != 's') ||
-                                 (defline[i+4] != '=')))
-    i++;
-#else
+#ifdef SNPS_ARE_RS
   while ((defline[i+4] != 0) && ((defline[i]   != 'E') ||
                                  (defline[i+1] != 'P') ||
                                  (defline[i+2] != 'O') ||
                                  (defline[i+3] != 'S') ||
+                                 (defline[i+4] != '=')))
+    i++;
+#else
+  while ((defline[i+4] != 0) && ((defline[i]   != '/') ||
+                                 (defline[i+1] != 'p') ||
+                                 (defline[i+2] != 'o') ||
+                                 (defline[i+3] != 's') ||
                                  (defline[i+4] != '=')))
     i++;
 #endif
@@ -128,9 +135,11 @@ findPosition(char *defline) {
     exit(1);
   }
 
-  //  XXX:  for dbSNP rs sequences, the position we need is -1 from what they say.
-
+#ifdef SNPS_ARE_RS
   return(atoi(defline+i+5) - 1);
+#else
+  return(atoi(defline+i+5));
+#endif
 }
 
 
@@ -138,7 +147,7 @@ int
 findSize(char *defline) {
   int   i=0;
 
-#if 1
+#ifdef SNPS_ARE_RS
   return(1);
 #else
   while ((defline[i+5] != 0) && ((defline[i]   != '/') ||
@@ -415,7 +424,7 @@ main(int argc, char **argv) {
 
   while ((q = readPolish(stdin)) != 0L) {
 
-    printSNP(stdout, q);
+    //printSNP(stdout, q);
 
     if (q->estID < estID) {
       fprintf(stderr, "ERROR:  Polishes not sorted by SNP idx!\n");
