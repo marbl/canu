@@ -40,8 +40,6 @@ s4p_deleteExon(sim4polish *p, int a) {
 
   //  Delete any alignment in the soon to be deleted exon
   //
-  fprintf(stderr, "deleting alignments: [%d] '%s' and '%s'\n", a, p->exons[a].estAlignment, p->exons[a].genAlignment);
-
   free(p->exons[a].genAlignment);
   free(p->exons[a].estAlignment);
 
