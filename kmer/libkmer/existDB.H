@@ -20,7 +20,8 @@ class positionDB;
 
 class existDB {
 public:
-  existDB(char        *filename);
+  existDB(char        *filename,
+          bool         noData=false);
   existDB(char        *filename,
           u32bit       merSize,
           u32bit       tblBits,
@@ -28,7 +29,9 @@ public:
   ~existDB();
 
   void        saveState(char *filename);
-  bool        readState(char *filename, bool beNoisy);
+  bool        readState(char *filename, bool beNoisy=false, bool noData=false);
+
+  void        printState(FILE *stream);
 
   //  Inlining this is a loss on x86.
   //

@@ -17,8 +17,9 @@
 
 #include "bit-packing.H"
 
-existDB::existDB(char        *filename) {
-  if (readState(filename, true) == false) {
+existDB::existDB(char        *filename,
+                 bool         noData) {
+  if (readState(filename, true, noData) == false) {
     fprintf(stderr, "existDB::existDB()-- Tried to read state from '%s', but failed.\n", filename);
     exit(1);
   }
@@ -32,7 +33,7 @@ existDB::existDB(char        *filename,
   //  Try to read state from the filename.  If successful, make sure that
   //  the merSize and tblBits are correct.
   //
-  if (readState(filename, false)) {
+  if (readState(filename)) {
     bool fail = false;
 
     if (_merSizeInBases != merSize) {
@@ -349,7 +350,9 @@ existDB::saveState(char *filename) {
 
 
 bool
-existDB::readState(char *filename, bool beNoisy) {
+existDB::readState(char  *filename,
+                   bool   beNoisy,
+                   bool   noData) {
   char     magic[16] = { 'e', 'x', 'i', 's', 't', 'D', 'B', '1', 
                          ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '  };
   char     cigam[16];
@@ -412,11 +415,16 @@ existDB::readState(char *filename, bool beNoisy) {
   fread(&_hashTableWords, sizeof(u64bit), 1, F);
   fread(&_bucketsWords,   sizeof(u64bit), 1, F);
 
-  _hashTable = new u64bit [_hashTableWords];
-  _buckets   = new u64bit [_bucketsWords];
+  if (noData == false) {
+    _hashTable = new u64bit [_hashTableWords];
+    _buckets   = new u64bit [_bucketsWords];
 
-  fread(_hashTable, sizeof(u64bit), _hashTableWords, F);
-  fread(_buckets,   sizeof(u64bit), _bucketsWords,   F);
+    fread(_hashTable, sizeof(u64bit), _hashTableWords, F);
+    fread(_buckets,   sizeof(u64bit), _bucketsWords,   F);
+  } else {
+    _hashTable = 0L;
+    _buckets   = 0L;
+  }
 
   fclose(F);
 
@@ -429,6 +437,33 @@ existDB::readState(char *filename, bool beNoisy) {
 }
 
 
+void
+existDB::printState(FILE *stream) {
+
+  fprintf(stream, "merSizeInBases:   %u\n", _merSizeInBases);
+  fprintf(stream, "tableBits         %u\n", 2 * _merSizeInBases - _shift1);
+  fprintf(stream, "-----------------\n");
+  fprintf(stream, "_hashTableWords   %lu (%lu KB)\n", _hashTableWords, _hashTableWords >> 7);
+  fprintf(stream, "_bucketsWords     %lu (%lu KB)\n", _bucketsWords, _bucketsWords >> 7);
+  fprintf(stream, "-----------------\n");
+  fprintf(stream, "_shift1:          %u\n", _shift1);
+  fprintf(stream, "_shift2           %u\n", _shift2);
+  fprintf(stream, "_mask1            0x%016lx\n", _mask1);
+  fprintf(stream, "_mask2            0x%016lx\n", _mask2);
+
+#ifdef COMPRESSED_HASH
+  fprintf(stream, "COMPRESSED_HASH   enabled\n");
+  fprintf(stream, "_hashWidth        %u\n", _hashWidth);
+#endif
+
+#ifdef COMPRESSED_BUCKET
+  fprintf(stream, "COMPRESSED_BUCKET enabled\n");
+  fprintf(stream, "_chckWidth        %u\n", _chckWidth);
+#endif
+
+  fprintf(stream, "_hashMask         0x%016lx\n", _hashMask);
+  fprintf(stream, "_chckMask         0x%016lx\n", _chckMask);
+}
 
 
 
