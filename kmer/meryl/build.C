@@ -591,7 +591,9 @@ build(merylArgs *args) {
     char *filename = new char [strlen(args->outputFile) + 17];
 
     for (u32bit i=0; i<args->segmentLimit; i++) {
-      sprintf(filename, "%s.batch"u32bitFMT, args->outputFile, i);
+      sprintf(filename, "%s.batch"u32bitFMT".mcidx", args->outputFile, i);
+      unlink(filename);
+      sprintf(filename, "%s.batch"u32bitFMT".mcdat", args->outputFile, i);
       unlink(filename);
     }
 
