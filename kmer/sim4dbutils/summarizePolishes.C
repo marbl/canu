@@ -120,30 +120,33 @@ main(int argc, char **argv) {
   u32bit     id[101]      = { 0 };
   u32bit     cvLen        = 0;
   u32bit     cv[101]      = { 0 };
+  bool       formatExcel  = false;
 
   if (argc == 1) {
-    fprintf(stderr, "usage: %s [-p polishes-file] [-n num-seqs | -nf seq-file] [-i val ...] [-c val ...]\n", argv[0]);
+    fprintf(stderr, "usage: %s [-excel] [-p polishes-file] [-n num-seqs | -nf seq-file] [-i val ...] [-c val ...]\n", argv[0]);
     exit(1);
   }
 
   int arg = 1;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-p") == 0) {
+    if        (strncmp(argv[arg], "-polishes", 2) == 0) {
       polishesFile = argv[++arg];
-    } else if (strcmp(argv[arg], "-n") == 0) {
+    } else if (strncmp(argv[arg], "-n", 3) == 0) {
       numSeqs = atoi(argv[++arg]);
-    } else if (strcmp(argv[arg], "-nf") == 0) {
+    } else if (strncmp(argv[arg], "-nf", 3) == 0) {
       sequenceFile = argv[++arg];
-    } else if (strcmp(argv[arg], "-i") == 0) {
+    } else if (strncmp(argv[arg], "-identity", 2) == 0) {
       arg++;
       while ((argv[arg]) && (argv[arg][0] != '-'))
         id[idLen++] = atoi(argv[arg++]);
       arg--;
-    } else if (strcmp(argv[arg], "-c") == 0) {
+    } else if (strncmp(argv[arg], "-coverage", 2) == 0) {
       arg++;
       while ((argv[arg]) && (argv[arg][0] != '-'))
         cv[cvLen++] = atoi(argv[arg++]);
       arg--;
+    } else if (strncmp(argv[arg], "-excel", 2) == 0) {
+      formatExcel=true;
     }
     arg++;
   }
@@ -203,6 +206,11 @@ main(int argc, char **argv) {
   u32bit   uniqest;
   u32bit   uniqgen;
 
+  if (formatExcel) {
+    fprintf(stdout, "identity\tcoverage\tmapped\tnotmapped\tuniqest\tuniqgen\n");
+    fflush(stdout);
+  }
+
   //  Foreach identity and each coverage, find how many things
   //  are above that level.
   //
@@ -236,10 +244,14 @@ main(int argc, char **argv) {
         if (gencounts[z])
           uniqgen++;
 
-      fprintf(stdout, "%3u %3u: mapped= %8u notmapped= %8u  est= %8u gen= %8u\n", id[i], cv[c], mapped, notmapped, uniqest, uniqgen);
-      fflush(stdout);
+      if (formatExcel) {
+        fprintf(stdout, "%u\t%u\t%u\t%u\t%u\t%u\n", id[i], cv[c], mapped, notmapped, uniqest, uniqgen);
+        fflush(stdout);
+      } else {
+        fprintf(stdout, "%3u %3u: mapped= %8u notmapped= %8u  est= %8u gen= %8u\n", id[i], cv[c], mapped, notmapped, uniqest, uniqgen);
+        fflush(stdout);
+      }
     }
   }
-
 }
 
