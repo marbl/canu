@@ -4,10 +4,14 @@
 #include "libbri.H"
 #include "sim4reader.h"
 
-#define MAX_POLISHES     700000
-#define MAX_ESTS         764724  //  Should be set to exactly the number of ESTs
+#define MAX_POLISHES   10000000
+#define MAX_ESTS        5000000  //  Should be set to exactly the number of ESTs
 #define REGION_TOLERANCE     15
 #define EXON_TOLERANCE       15
+
+//  This will compare two runs of ESTmapper.  The est set and the
+//  genomic must be the same for both runs.  It was used to evaluate
+//  parameter choices during ESTmapper development.
 
 int *
 readRepeats(char *path) {
@@ -26,7 +30,8 @@ readRepeats(char *path) {
   FILE *F = fopen(repeatFile, "r");
   if (errno) {
     fprintf(stderr, "Can't open repeats file '%s': %s\n", repeatFile, strerror(errno));
-    exit(1);
+    fprintf(stderr, "Not labelling things as repeats.\n");
+    return(repeatList);
   }
 
   int anInt;
@@ -259,24 +264,22 @@ compareExons(sim4polish   *A,
 int
 main(int argc, char **argv) {
 
-  if (argc != 3) {
-    fprintf(stderr, "usage: %s <path-to-A> <path-to-B>\n", argv[0]);
+  if (argc != 6) {
+    fprintf(stderr, "usage: %s <polishes-filename> <minid> <mincov> <path-to-A> <path-to-B>\n", argv[0]);
     exit(1);
   }
 
-  char       *Apath = argv[1];
-  char       *Bpath = argv[2];
+  char       *Fname = argv[1];
+  int         minI  = atoi(argv[2]);
+  int         minC  = atoi(argv[3]);
+  char       *Apath = argv[4];
+  char       *Bpath = argv[5];
 
   //int        *Arepeat = readRepeats(Apath);
   int        *Brepeat = readRepeats(Bpath);
 
-#if 0
-  sortedPolishSet   *A = readPolishes(Apath, "polishes-good");
-  sortedPolishSet   *B = readPolishes(Bpath, "polishes-good");
-#else
-  sortedPolishSet   *A = readPolishes(Apath, "polishes-all-longintronfixed");
-  sortedPolishSet   *B = readPolishes(Bpath, "polishes-all-longintronfixed");
-#endif
+  sortedPolishSet   *A = readPolishes(Apath, Fname);
+  sortedPolishSet   *B = readPolishes(Bpath, Fname);
 
   //  Construct lists of the ESTs found in either A or B.
   //
@@ -287,13 +290,13 @@ main(int argc, char **argv) {
     Afound[i] = Bfound[i] = 0;
 
   for (int i=0; i<A->num; i++)
-    if ((A->polishes[i]->percentIdentity  >= 95) ||
-        (A->polishes[i]->querySeqIdentity >= 50))
+    if ((A->polishes[i]->percentIdentity  >= minI) ||
+        (A->polishes[i]->querySeqIdentity >= minC))
       Afound[A->polishes[i]->estID]++;
 
   for (int i=0; i<B->num; i++)
-    if ((B->polishes[i]->percentIdentity  >= 95) ||
-        (B->polishes[i]->querySeqIdentity >= 50))
+    if ((B->polishes[i]->percentIdentity  >= minI) ||
+        (B->polishes[i]->querySeqIdentity >= minC))
       Bfound[B->polishes[i]->estID]++;
 
 
@@ -310,8 +313,8 @@ main(int argc, char **argv) {
 
     //  If this polish is below our quality level, we don't care about it.
     //
-    if ((A->polishes[i]->percentIdentity  < 95) ||
-        (A->polishes[i]->querySeqIdentity < 50)) {
+    if ((A->polishes[i]->percentIdentity  < minI) ||
+        (A->polishes[i]->querySeqIdentity < minC)) {
       numBelow++;
       continue;
     }
@@ -382,7 +385,7 @@ main(int argc, char **argv) {
       } else {
         numExtra++;
 
-        if ((A->polishes[i]->percentIdentity  >= 95) &&
+        if ((A->polishes[i]->percentIdentity  >= minI) &&
             (A->polishes[i]->querySeqIdentity >= 80)) {
           fprintf(stdout, "----------Found ZERO matches HIGH-ID -- numExonsFound=%d numExonsMissing=%d numExonsExtra=%d\n",
                   numFound, numMissing, numExtra);
