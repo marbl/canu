@@ -9,9 +9,6 @@
 
 #define  DEFAULT_L       8
 
-//  Define this to get a detailed report on hit extension
-//
-//#define DEBUG_EXTENSION
 
 mspManager::mspManager() {
   _sorted           = true;
@@ -423,40 +420,45 @@ mspManager::addHit_(char *genSeq, char *estSeq,
   int   score      = 0;
 
 #ifdef DEBUG_EXTENSION
+  fprintf(stderr, "mspManager::addHit()-- extending hit from GEN %d to %d and EST %d to %d (length = %d)\n", 
+          genPos-W, genPos, estPos-W, estPos, W);
+#endif
+
+#ifdef DEBUG_EXTENSION
   {
     char L[41], M[41], R[41];
     int  x;
 
-    if (genPos > 20) genTmp = genSeq + genPos - 20;
-    else             genTmp = genSeq;
+    if (genPos-W > 20) genTmp = genSeq + 1 + genPos - W - 20;
+    else               genTmp = genSeq + 1;
 
     x=0;
-    while (genTmp < genSeq + genPos)
+    while (genTmp < genSeq + 1 + genPos - W)
       L[x++] = *genTmp++;
     L[x] = 0;
     x=0;
-    while (genTmp < genSeq + genPos + W)
+    while (genTmp < genSeq + 1 + genPos)
       M[x++] = *genTmp++;
     M[x] = 0;
     x=0;
-    while (genTmp < genSeq + genPos + W + 20)
+    while (genTmp < genSeq + 1 + genPos + 20)
       R[x++] = *genTmp++;
     R[x] = 0;
     fprintf(stderr, "GEN=%8d %s:%s:%s\n", genPos, L, M, R);
 
-    if (estPos > 20) estTmp = estSeq + estPos - 20;
-    else             estTmp = estSeq;
+    if (estPos-W > 20) estTmp = estSeq + 1 + estPos - W - 20;
+    else               estTmp = estSeq + 1;
 
     x=0;
-    while (estTmp < estSeq + estPos)
+    while (estTmp < estSeq + 1 + estPos - W)
       L[x++] = *estTmp++;
     L[x] = 0;
     x=0;
-    while (estTmp < estSeq + estPos + W)
+    while (estTmp < estSeq + 1 + estPos)
       M[x++] = *estTmp++;
     M[x] = 0;
     x=0;
-    while (estTmp < estSeq + estPos + W + 20)
+    while (estTmp < estSeq + 1 + estPos + 20)
       R[x++] = *estTmp++;
     R[x] = 0;
     fprintf(stderr, "EST=%8d %s:%s:%s\n", estPos, L, M, R);
@@ -492,21 +494,30 @@ mspManager::addHit_(char *genSeq, char *estSeq,
     }
   }
 
-#ifdef DEBUG_EXTENSION
+#ifdef TEST_SEEDS_IN_EXTENSION
   //  Check the bases that the seed supposedly matched
   //
   middle_sum = 0;
   sum        = 0;
-  genTmp     = genSeq + 1 + genPos - W;
-  estTmp     = estSeq + 1 + estPos - W;
+  genTmp     = genSeq + 1 + genPos - 1;
+  estTmp     = estSeq + 1 + estPos - 1;
 
   for (int x=0; x<W; x++) {
     middle_sum += _match;
     if (*genTmp != *estTmp)
       middle_sum -= _matchdiff;
 
-    estTmp++;
-    genTmp++;
+    //fprintf(stderr, "%c %c\n", *genTmp, *estTmp);
+
+    estTmp--;
+    genTmp--;
+  }
+
+  if (middle_sum != W) {
+    fprintf(stderr, "mspManager::addHit()-- ERROR:  i didn't find an exact match for the seed you supplied!\n");
+    fprintf(stderr, "mspManager::addHit()-- ERROR:  GEN=%40.40s\n", genTmp);
+    fprintf(stderr, "mspManager::addHit()-- ERROR:  EST=%40.40s\n", estTmp);
+    exit(1);
   }
 #endif
 
@@ -546,9 +557,9 @@ mspManager::addHit_(char *genSeq, char *estSeq,
            score);
 
 #ifdef DEBUG_EXTENSION
-  fprintf(stderr, "mspManager::addHit()-- added from EST %d to %d and GEN %d to %d (length = %d) with score %d (needed %d) l,m,r sums %d %d %d\n", 
-          (int)(estBeg - (estSeq + 1)), (int)(estBeg - (estSeq + 1)) + W,
-          (int)(genBeg - (genSeq + 1)), (int)(genBeg - (genSeq + 1)) + W,
+  fprintf(stderr, "mspManager::addHit()-- added from GEN %d to %d and EST %d to ? (length = %d) with score %d (needed %d) l,m,r sums %d %d %d\n", 
+          (int)(genBeg - (genSeq + 1)), (int)(genEnd - (genSeq + 1)) + W,
+          (int)(estBeg - (estSeq + 1)),
           W,
           score, _minMSPScore, left_sum, middle_sum, right_sum);
 #endif

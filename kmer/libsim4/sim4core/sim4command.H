@@ -69,6 +69,7 @@ public:
   u32bit externalSeedESTPosition(u32bit i) { return(_externalSeeds[i]._ESTposition); };
   u32bit externalSeedGENPosition(u32bit i) { return(_externalSeeds[i]._GENposition); };
   u32bit externalSeedLength(u32bit i)      { return(_externalSeeds[i]._length);      };
+  void   maskExternalSeed(u32bit i)        { _externalSeeds[i]._length = 0; };
 
 
   //  Load the sequences, make some checks.  This isn't done in the

@@ -30,6 +30,40 @@
 //  A wrapper for the sim4 subroutines
 //
 
+
+
+
+
+//  Define this to get a detailed report on hit extension (in mspManager.C)
+//
+//#define DEBUG_EXTENSION
+
+//  Define this to test the seeds when doing extension -- it tests
+//  if the seed is infact an exact match (in mspManager.C)
+//
+#define TEST_SEEDS_IN_EXTENSION
+
+
+//  Debug of sim4b1.C and related.
+//
+//  SHOW_PROGRESS -- write the progress of Sim4::SIM4 to stderr
+//  DEBUG_EXONS   -- dump the exons at various places
+//
+//#define SHOW_PROGRESS
+//#define DEBUG_EXONS
+
+
+//  Show what is being done for external seeding in sim4string.C
+//
+//#define SHOW_EXTERNAL_SEEDING
+
+
+
+
+
+
+
+
 enum { INIT = 0, PERM = 1, TEMP = 2};
 enum { FWD = 0, BWD = 1, BOTH = 2 };
 enum { OK = 0, FREE_START = 1, FREE_END = 2, FREE_BOTH_ENDS = 3};
@@ -239,6 +273,7 @@ private:
 
   bool  checkExonsForOverlaps(Exon *theExons);
   void  appendExons(sim4polishBuilder &B, Exon *theExon);
+  void  maskExonsFromSeeds(sim4command *cmd, Exon *theExons);
   void  maskExonsFromGenomic(Exon *theExons, char *f, char *r, int l);
 
   void    IDISPLAY(sim4polishBuilder &builder,
@@ -336,7 +371,19 @@ private:
   int     extend_hit(int,int,const char *const,const char * const,int,int,int,int);
   void   search(char *,char *,int,int,int); 
   void   exon_cores(char*,char*,int,int,int,int,int,int,int,int);
-  Exon  *find_previous(Exon *,Exon *);
+
+  Exon *find_previous(Exon *head, Exon *target) {
+    while (head && (head->next_exon != target))
+      head = head->next_exon; 
+#if 0
+    if (head == NULL) {
+      fprintf(stderr, "Corrupted exon list: could not find previous.");
+      kill(getpid(), SIGKILL);
+    }
+#endif
+    return(head);
+  };
+
   bool   get_match_quality(Exon *,Exon *,sim4_stats_t *,int);
 #if 0
   //  Dead code, 05 apr 2004, bpw

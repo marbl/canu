@@ -3,6 +3,7 @@
 
 //#define SHOW_OVERLAPPING_EXONS
 
+
 static void
 add_offset_exons(Exon *exons, int offset) {
   if (!offset || !exons)
@@ -26,11 +27,29 @@ add_offset_aligns(edit_script_list *aligns, int offset) {
 }
 
 void
-Sim4::maskExonsFromGenomic(Exon *theExons,
+Sim4::maskExonsFromSeeds(sim4command *cmd,
+                         Exon *theExon) {
+
+  while (theExon) {
+    if (theExon->toGEN) {
+      for (u32bit x=0; x<cmd->numberOfExternalSeeds(); x++) {
+        int pos = cmd->externalSeedGENPosition(x);
+
+        if ((theExon->frGEN-1 <= pos) && (pos - cmd->externalSeedLength(x) <= theExon->toGEN )) {
+          //fprintf(stderr, "MASKED seed %d at position %d (%d-%d)\n", (int)x, pos, theExon->frGEN-1, theExon->toGEN);
+          cmd->maskExternalSeed(x);
+        }
+      }
+    }
+    theExon = theExon->next_exon;
+  }
+}
+
+void
+Sim4::maskExonsFromGenomic(Exon *theExon,
                            char *f,
                            char *r,
                            int l) {
-  Exon          *theExon = theExons;
 
   while (theExon) {
     if (theExon->toGEN) {
@@ -39,7 +58,6 @@ Sim4::maskExonsFromGenomic(Exon *theExons,
       for (int i=l-theExon->frGEN; i>=l-theExon->toGEN; i--)
         r[i] = 'N';
     }
-
     theExon = theExon->next_exon;
   }
 }
@@ -142,6 +160,8 @@ Sim4::run(sim4command *cmd) {
   matchesPrinted = 0;
 
   do {
+    //fprintf(stderr, "sim4string::main loop begins!\n");
+
     int     nmatches  = 0;
     double  coverage  = 0;
     int     percentid = 0;
@@ -159,12 +179,8 @@ Sim4::run(sim4command *cmd) {
     memset(&st,     0, sizeof(sim4_stats_t));
     memset(&rev_st, 0, sizeof(sim4_stats_t));
 
-    if (cmd->externalSeedsExist() == false) {
-      //fprintf(stderr, "NOT USING EXTERNAL SEEDS!\n");
+    if (cmd->externalSeedsExist() == false)
       bld_table(estseq - 1 + g_pT, estlen - g_pA - g_pT, wordSize, INIT);
-    } else {
-      //fprintf(stderr, "USING EXTERNAL SEEDS!\n");
-    }
 
     if (cmd->doForward()) {
 
@@ -183,30 +199,38 @@ Sim4::run(sim4command *cmd) {
       _mspManager.clearDiagonal(_genLen, _estLen);
       _mspManager.setScoreThreshold(mspThreshold1, globalParams->_interspecies);
 
-      //fprintf(stderr, "FWD: estLen = %d  genLen = %d\n", _estLen, _genLen);
+#ifdef SHOW_EXTERNAL_SEEDING
+      fprintf(stderr, "FWD: estLen = %d  genLen = %d\n", _estLen, _genLen);
+#endif
 
       //  Find the seeds.
       //
       if (cmd->externalSeedsExist() == false) {
         exon_cores(_genSeq-1, _estSeq-1, _genLen, _estLen, 1, 1, 0, wordSize, mspThreshold1, PERM);
       } else {
-        //fprintf(stderr, "FWD: Using external seeds -- adding "u32bitFMT" seeds to sim4.\n", cmd->numberOfExternalSeeds());
+#ifdef SHOW_EXTERNAL_SEEDING
+        fprintf(stderr, "FWD: Using external seeds -- adding "u32bitFMT" seeds to sim4.\n", cmd->numberOfExternalSeeds());
+#endif
 
         cmd->sortExternalSeeds();
 
         for (u32bit x=0; x<cmd->numberOfExternalSeeds(); x++)
-          _mspManager.addHit(_genSeq-1, _estSeq-1,
-                             _genLen, _estLen,
-                             cmd->externalSeedGENPosition(x),
-                             cmd->externalSeedESTPosition(x),
-                             cmd->externalSeedLength(x));
+          if (cmd->externalSeedLength(x) > 0)
+            _mspManager.addHit(_genSeq-1, _estSeq-1,
+                               _genLen, _estLen,
+                               cmd->externalSeedGENPosition(x),
+                               cmd->externalSeedESTPosition(x),
+                               cmd->externalSeedLength(x));
 
         exon_list = _mspManager.doLinking(DEFAULT_WEIGHT, DEFAULT_DRANGE,
                                           1, 1,
                                           0,
                                           false,
                                           _genSeq, _estSeq);
-        //fprintf(stderr, "FWD: Added and chained, starting SIM4() run.\n");
+
+#ifdef SHOW_EXTERNAL_SEEDING
+        fprintf(stderr, "FWD: Added and chained, starting SIM4() run.\n");
+#endif
       }
 
       fAligns = SIM4(&dist,
@@ -255,27 +279,41 @@ Sim4::run(sim4command *cmd) {
       _mspManager.clearDiagonal(_genLen, _estLen);
       _mspManager.setScoreThreshold(mspThreshold1, globalParams->_interspecies);
 
-      //fprintf(stderr, "BWD: estLen = %d  genLen = %d\n", _estLen, _genLen);
+#ifdef SHOW_EXTERNAL_SEEDING
+      fprintf(stderr, "BWD: estLen = %d  genLen = %d g_pT=%d g_pA=%d\n", _estLen, _genLen, g_pT, g_pA);
+#endif
 
       //  Find the seeds.
       //
       if (cmd->externalSeedsExist() == false) {
         exon_cores(_genSeq-1, _estSeq-1, _genLen, _estLen, 1, 1, 0, wordSize, mspThreshold1, PERM);
       } else {
-        //fprintf(stderr, "BWD: Using external seeds -- adding "u32bitFMT" seeds to sim4.\n", cmd->numberOfExternalSeeds());
-        for (u32bit x=0; x<cmd->numberOfExternalSeeds(); x++)
-          _mspManager.addHit(_genSeq-1, _estSeq-1,
-                             _genLen, _estLen,
-                             _genLen - cmd->externalSeedGENPosition(x) + 1,
-                             _estLen - cmd->externalSeedESTPosition(x) + 1,
-                             cmd->externalSeedLength(x));
+#ifdef SHOW_EXTERNAL_SEEDING
+        fprintf(stderr, "BWD: Using external seeds -- adding "u32bitFMT" seeds to sim4.\n", cmd->numberOfExternalSeeds());
+#endif
+
+        cmd->sortExternalSeeds();
+
+        //  We have sorted the seeds in incresing genomic position,
+        //  but we need to reverse everything.  We can do this by just
+        //  adding the seeds backwards!
+        //
+        for (u32bit x=cmd->numberOfExternalSeeds(); x--; )
+          if (cmd->externalSeedLength(x) > 0)
+            _mspManager.addHit(_genSeq-1, _estSeq-1,
+                               _genLen, _estLen,
+                               cmd->externalSeedGENPosition(x),
+                               cmd->externalSeedESTPosition(x),
+                               cmd->externalSeedLength(x));
 
         exon_list = _mspManager.doLinking(DEFAULT_WEIGHT, DEFAULT_DRANGE,
                                           1, 1,
                                           0,
                                           false,
                                           _genSeq, _estSeq);
-        //fprintf(stderr, "BWD: Added and chained, starting SIM4() run.\n");
+#ifdef SHOW_EXTERNAL_SEEDING
+        fprintf(stderr, "BWD: Added and chained, starting SIM4() run.\n");
+#endif
       }
 
       rAligns = SIM4(&dist,
@@ -318,6 +356,13 @@ Sim4::run(sim4command *cmd) {
       B.setPolyTails(g_pA + f_pA, g_pT + f_pT);
 
       if (fExons) {
+        //  We used to mask the seeds down with the masking of the
+        //  genomic, but reverse exons are flipped here, and we need
+        //  unflipped exons to mask.
+        //
+        if (cmd->externalSeedsExist() && globalParams->_findAllExons)
+          maskExonsFromSeeds(cmd, fExons);
+
         if (checkExonsForOverlaps(fExons)) {
 #ifdef SHOW_OVERLAPPING_EXONS
           B.setNumberOfMatches(0, 0);
@@ -344,13 +389,16 @@ Sim4::run(sim4command *cmd) {
       if (rAligns && rAligns->next_script)
         script_flip_list(&rAligns);
 
-      //  This used to be right before appendExons() in
-      //  the reverse match section, but we need it
-      //  before we test for overlapping exons
-      //
-      complement_exons(&rExons, dblen, estlen);
-
       if (rExons) {
+        if (cmd->externalSeedsExist() && globalParams->_findAllExons)
+          maskExonsFromSeeds(cmd, rExons);
+
+        //  This used to be right before appendExons() in
+        //  the reverse match section, but we need it
+        //  before we test for overlapping exons
+        //
+        complement_exons(&rExons, dblen, estlen);
+
         if (checkExonsForOverlaps(rExons)) {
 #ifdef SHOW_OVERLAPPING_EXONS
           B.setNumberOfMatches(0, 0);
@@ -436,9 +484,20 @@ Sim4::run(sim4command *cmd) {
             break;
         }
       }
-        
+
+
+      //  If we have external seeds, we need to mask out seeds that we
+      //  used BEFORE we print alignments -- printing reverse
+      //  alignments also switches from reverse-complemented genomic
+      //  to reverse-complemented EST, and then we can't (easily) mask
+      //  seeds!
+      //
+      //  Likewise, we can't do the normal masking before we print the
+      //  alignments, else we'd just print out N's for the genome.
+      //
       if (match_ori == FWD) {
         appendExons(B, fExons);
+
         if (globalParams->_printAlignments) {
           appendAlignments(B,
                            estseq, dbseq, estlen, dblen,
@@ -446,9 +505,8 @@ Sim4::run(sim4command *cmd) {
                            FWD);
         }
 
-        if (globalParams->_findAllExons) {
+        if (globalParams->_findAllExons)
           maskExonsFromGenomic(fExons, dbseq, dbrev, dblen);
-        }
       } else {
         appendExons(B, rExons);
 
@@ -463,9 +521,8 @@ Sim4::run(sim4command *cmd) {
                            BWD);
         }
 
-        if (globalParams->_findAllExons) {
+        if (globalParams->_findAllExons)
           maskExonsFromGenomic(rExons, dbseq, dbrev, dblen);
-        }
       }
     }
 

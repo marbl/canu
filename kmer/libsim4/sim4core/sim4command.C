@@ -284,15 +284,11 @@ sim4command::addSeed(u32bit GENpos, u32bit ESTpos, u32bit length) {
     _externalSeeds = n;
   }
 
-  //  Sim4 seeds are all from the last position in the seed, but we
-  //  are given seeds at the start!  So we add the length-1 to get
-  //  to the last position.
-
   _externalSeeds[_externalSeedsLen]._GENposition = GENpos;
   _externalSeeds[_externalSeedsLen]._ESTposition = ESTpos;
   _externalSeeds[_externalSeedsLen]._length      = length;
 
-  fprintf(stderr, "sim4command::addSeed()-- GEN="u32bitFMT" EST="u32bitFMT" to sim4command\n", GENpos, ESTpos);
+  //fprintf(stderr, "sim4command::addSeed()-- GEN="u32bitFMT" EST="u32bitFMT" of length "u32bitFMT"\n", GENpos, ESTpos, length);
 
   _externalSeedsLen++;
 }

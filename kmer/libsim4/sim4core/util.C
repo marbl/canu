@@ -747,17 +747,6 @@ Sim4::slide_intron(int in_w, Exon **lblock, sim4_stats_t *st)
 }
 
 
-Exon *
-Sim4::find_previous(Exon *head, Exon *target) {
-
-  while (head && (head->next_exon != target))
-    head = head->next_exon; 
-
-  if (head == NULL) 
-    fatal("sim4b1.c: Corrupted exon list: could not find previous.");
-
-  return(head);
-}    
 
 bool
 Sim4::get_match_quality(Exon *lblock, Exon *rblock, sim4_stats_t *st, int N)

@@ -92,6 +92,15 @@ public:
                int   genLen, int   estLen,
                int   genPos, int   estPos,
                int   W) {
+
+#if 0
+    //  We'd like to tie this into DEBUG_EXTENSION, but I want
+    //  to keep those defines in the source file.  Oh well.
+    //
+    fprintf(stderr, "mspManager::addHit()-- adding hit from GEN %d to %d and EST %d to %d (length = %d)\n", 
+            genPos-W, genPos, estPos-W, estPos, W);
+#endif
+
     if (_diagExt[estLen + genPos - estPos - 1] <= genPos)
       addHit_(genSeq, estSeq, genLen, estLen, genPos, estPos, W);
   };

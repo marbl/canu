@@ -69,7 +69,7 @@ Sim4::SIM4_block1(Exon*  &Lblock,
   if (((tmp_block1->toEST - tmp_block1->frEST + 1) < 8) ||
       ((tmp_block1->toGEN - tmp_block1->frGEN + 1) < 8)) { 
 
-    /* remove exon associated with tmp_block1 */ 
+    // remove exon associated with tmp_block1
 
     tmp_block->next_exon = tmp_block1->next_exon;
     tmp_block->flag = tmp_block1->flag; 
@@ -84,11 +84,21 @@ Sim4::SIM4_block1(Exon*  &Lblock,
   if (((tmp_block->toEST - tmp_block->frEST + 1) < 8) || 
       ((tmp_block->toGEN - tmp_block->frGEN + 1) < 8)) {
 
-    /* remove exon defined by tmp_block */
-
-    //fprintf(stderr, "sim4_block1()-- Lblock=%p tmp_block=%p tmp_block1=%p\n", Lblock, tmp_block, tmp_block1);
+    // remove exon defined by tmp_block
 
     Exon *prev = find_previous(Lblock, tmp_block);
+
+    if (prev == 0L) {
+      fprintf(stderr, "SIM4_block1(): Corrupted exon list, cannot find the previous exon.\n");
+      for (; Lblock; Lblock = Lblock->next_exon)
+        if (tmp_block == Lblock)
+          fprintf(stderr, "  GEN f=%8d t=%8d  EST f=%8d t=%8d   flag=%d <- tried to find previous of this one\n",
+                  Lblock->frGEN, Lblock->toGEN, Lblock->frEST, Lblock->toEST, Lblock->flag);
+        else
+          fprintf(stderr, "  GEN f=%8d t=%8d  EST f=%8d t=%8d   flag=%d\n",
+                  Lblock->frGEN, Lblock->toGEN, Lblock->frEST, Lblock->toEST, Lblock->flag);
+      kill(getpid(), SIGKILL);
+    }
 
     prev->next_exon = tmp_block->next_exon;
     prev->flag = tmp_block->flag; 

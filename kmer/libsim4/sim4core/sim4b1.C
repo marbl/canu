@@ -1,11 +1,5 @@
 #include "sim4.H"
 
-//  SHOW_PROGRESS -- write the progress of Sim4::SIM4 to stderr
-//  DEBUG_EXONS   -- dump the exons at various places
-//
-//#define SHOW_PROGRESS
-//#define DEBUG_EXONS
-
 
 #ifdef DEBUG_EXONS
 void

@@ -105,6 +105,15 @@ Sim4::trim_polyA_align(struct edit_script_list **Sptr, Exon *lblock, Exon **exon
     ckfree(head);
     while ((*exons)->frEST>=bc) {
       prev = find_previous(lblock,*exons);
+
+      if (prev == 0L) {
+        fprintf(stderr, "trim_polyA_align(): Corrupted exon list, cannot find the previous exon (remove entire script).\n");
+        for (; lblock; lblock = lblock->next_exon)
+          fprintf(stderr, "  GEN f=%8d t=%8d  EST f=%8d t=%8d   flag=%d\n",
+                  lblock->frGEN, lblock->toGEN, lblock->frEST, lblock->toEST, lblock->flag);
+        kill(getpid(), SIGKILL);
+      }
+
       prev->next_exon = (*exons)->next_exon;
       ckfree(*exons);
       *exons = prev;
@@ -234,6 +243,15 @@ Sim4::trim_polyA_align(struct edit_script_list **Sptr, Exon *lblock, Exon **exon
 
   if ((*exons)->frEST>i) {
     prev = find_previous(lblock,*exons);
+
+    if (prev == 0L) {
+      fprintf(stderr, "trim_polyA_align(): Corrupted exon list, cannot find the previous exon (frEST).\n");
+      for (; lblock; lblock = lblock->next_exon)
+        fprintf(stderr, "  GEN f=%8d t=%8d  EST f=%8d t=%8d   flag=%d\n",
+                lblock->frGEN, lblock->toGEN, lblock->frEST, lblock->toEST, lblock->flag);
+      kill(getpid(), SIGKILL);
+    }
+
     prev->next_exon = (*exons)->next_exon;
     ckfree(*exons);
     *exons = prev;
