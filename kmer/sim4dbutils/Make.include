@@ -9,6 +9,7 @@ LIBSIM4/    :=$(call MakePath,$/../libsim4/)
 src  := $/cleanPolishes.C \
         $/comparePolishes.C \
         $/filterPolishes.c \
+        $/headPolishes.c \
         $/mergePolishes.C \
         $/parseSNP.c \
         $/pickBestPolish.c \
@@ -32,6 +33,7 @@ obj_C := ${$/.CXX_SRCS:.C=.o}
 $/.CXX_EXES := $/cleanPolishes \
                $/comparePolishes \
                $/filterPolishes \
+               $/headPolishes \
                $/mergePolishes \
                $/parseSNP \
                $/pickBestPolish \
@@ -50,6 +52,7 @@ $(eval $/%.d $/%.o:  CFLAGS+=-I${LIBUTL/} -I${LIBBIO/} -I${LIBSIM4/})
 $(eval $/%.d $/%.o:  CXXFLAGS+=-I${LIBUTL/} -I${LIBBIO/} -I${LIBSIM4/})
 
 $/filterPolishes              : $/filterPolishes.o
+$/headPolishes                : $/headPolishes.o
 $/mergePolishes               : $/mergePolishes.o
 $/sortPolishes                : $/sortPolishes.o
 $/pickBestPolish              : $/pickBestPolish.o
@@ -66,6 +69,8 @@ $/vennPolishes                : $/vennPolishes.o
 $/realignPolishes             : $/realignPolishes.o
 $/removeRedundant             : $/removeRedundant.o $/s4p_overlap.o
 
+#  Yeah, not everyone needs all these libraries.  Live with it.
+#
 ${$/.C_EXES} ${$/.CXX_EXES}: ${LIBSIM4/}libsim4.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 
 #  Run the test cases for parseSNP
