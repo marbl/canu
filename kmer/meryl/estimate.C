@@ -77,11 +77,10 @@ optimalNumberOfBuckets(u32bit merSize,
   //  We have two tables:
   //    the bucket pointers num buckets * pointer width   == 2 << h * hwidth
   //    the mer data:       num mers * (mersize - hwidth)
-  //    
-  for (h=2; h<=64 && h<2*merSize; h++) {
+  //
+  u64bit hmax = 64 - logBaseTwo64(hwidth + numMers * (2 * merSize - h));
+  for (h=2; h<=hmax && h<2*merSize; h++) {
     s = (u64bitONE << h) * hwidth + numMers * (2 * merSize - h);
-
-    //fprintf(stderr, "optimalNumberfOfBuckets()-- numBuckets_log2: "u64bitFMT"  memory: "u64bitFMT"MB\n", h, s >> 23);
 
     if (s < opts) {
       opth = h;
