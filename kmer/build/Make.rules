@@ -128,24 +128,16 @@ ${ALL_CXX_LIBS}:
 __SUBGOALS__+=$${${1:.=.CXX_LIBS}}
 
 ## Shared targets
-ALL_C_SHLIBS     :=$(strip $(foreach x,${//},${${x:.=.C_SHLIBS}}))
-ALL_CXX_SHLIBS   :=$(strip $(foreach x,${//},${${x:.=.CXX_SHLIBS}}))
-
-# AIX has really weird shared lib building.  Unfortunately, I could
+# AIX has really weird shared lib building flags.  Unfortunately, I could
 # not think of a way out of this hack.
-ifeq (${_OS_},AIX)
+${_OS_}_SHLIB_FLAGS:=
+ALL_C_SHLIBS     :=$(strip $(foreach x,${//},${${x:.=.C_SHLIBS}}))
 ${ALL_C_SHLIBS}:
-	${RM} $@ && ${C} ${CFLAGS} ${SHLIB_FLAGS} ${AIX_SHLIB_FLAGS} -o $@ $^ ${CLIBS}
-${ALL_CXX_SHLIBS}:
-	${RM} $@ && ${CXX} ${CXXFLAGS} ${SHLIB_FLAGS} ${AIX_SHLIB_FLAGS} -o $@ $^ ${CXXLIBS}
+	${RM} $@ && ${C} ${CFLAGS} ${SHLIB_FLAGS} ${${_OS_}_SHLIB_FLAGS} -o $@ $^ ${CLIBS}
 
-else
-${ALL_C_SHLIBS}:
-	${C} ${CFLAGS} ${SHLIB_FLAGS} -o $@ $^ ${CLIBS}
+ALL_CXX_SHLIBS   :=$(strip $(foreach x,${//},${${x:.=.CXX_SHLIBS}}))
 ${ALL_CXX_SHLIBS}:
-	${CXX} ${CXXFLAGS} ${SHLIB_FLAGS} -o $@ $^ ${CXXLIBS}
-
-endif
+	${RM} $@ && ${CXX} ${CXXFLAGS} ${SHLIB_FLAGS} ${${_OS_}_SHLIB_FLAGS} -o $@ $^ ${CXXLIBS}
 __SUBGOALS__+=$${${1:.=.C_SHLIBS}} $${${1:.=.CXX_SHLIBS}}
 
 define .RULE-install-copy-C-CXX-LIBS

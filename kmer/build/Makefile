@@ -13,7 +13,7 @@ default:   all
 # the non-recursive includes found and a bunch of targets
 debug:
 	@echo DIRS ${//}
-	@echo RECS ${RECURSIVE}
+	@echo RECS ${//-RECURSIVE}
 	@echo ALL_C_EXES ${ALL_C_EXES}
 	@echo ALL_C_LIBS ${ALL_C_LIBS}
 	@echo ALL_CXX_EXES ${ALL_CXX_EXES}
@@ -42,11 +42,15 @@ include ${MAKEFILE/}Make.path
 ##### non-recursive make magic
 # all directories which have been included
 //           :=
-# recursive directories to be filtered out of //
-# and handled differently
-RECURSIVE    :=
 # current path (empty)
 /            :=
+
+# recursive directories to be filtered out of //
+# and handled differently
+//-RECURSIVE    :=
+define MakeRecursive
+//-RECURSIVE :=$$/.
+endef
 
 ## Include -hack
 # Include is wrapped in something which will push and pop /
@@ -92,9 +96,9 @@ $(eval $(call Include_File,$/))
 
 #### Targets which have been declared RECURSIVE are removed
 # from // and processed separately.
-//            :=$(filter-out ${RECURSIVE},${//})
+//            :=$(filter-out ${//-RECURSIVE},${//})
 
-# RECURSIVE now holds the paths which are being done legacy style
+# //-RECURSIVE now holds the paths which are being done legacy style
 # and // holds the paths which are going to be part of the system.
 
 ### Building subgoals in Make.rules
@@ -125,7 +129,7 @@ endif
 #  with all, clean, real-clean, install being required targets
 #  of recursive makes.
 
-clean:         ${RECURSIVE:.=.clean}      $/.clean
+clean:         ${//-RECURSIVE:.=.clean}      $/.clean
 define .RULE-clean
 ${1:.=.clean}: $${${1:.=.SUBS}:.=.clean}
 	${RM} $${${1:.=.CLEAN}} ${__SUBGOALS__}
@@ -135,7 +139,7 @@ endef
 $(eval $(foreach x,${//},$(call .RULE-clean,$x)))
 
 depends-clean:                            $/.depends-clean
-${RECURSIVE:.=.depends-clean}:
+${//-RECURSIVE:.=.depends-clean}:
 define .RULE-depends-clean
 ${1:.=.depends-clean}: $${${1:.=.SUBS}:.=.depends-clean}
 	${RM} ${1:.=Make.depends} ${__DEPGOALS__}
@@ -143,7 +147,7 @@ ${1:.=.depends-clean}: $${${1:.=.SUBS}:.=.depends-clean}
 endef
 $(eval $(foreach x,${//},$(call .RULE-depends-clean,$x)))
 
-real-clean:    ${RECURSIVE:.=.real-clean} $/.real-clean
+real-clean:    ${//-RECURSIVE:.=.real-clean} $/.real-clean
 define .RULE-real-clean
 ${1:.=.real-clean}: $${${1:.=.SUBS}:.=.real-clean}
 	${RM} $${${1:.=.CLEAN}} ${__SUBGOALS__}
@@ -154,7 +158,7 @@ ${1:.=.real-clean}: $${${1:.=.SUBS}:.=.real-clean}
 endef
 $(eval $(foreach x,${//},$(call .RULE-real-clean,$x)))
 
-all:           ${RECURSIVE:.=.all}        $/.all
+all:           ${//-RECURSIVE:.=.all}        $/.all
 define .RULE-all
 ${1:.=.all}: $${${1:.=.SUBS}:.=.all} ${__SUBGOALS__}
 
@@ -166,7 +170,7 @@ $(eval $(foreach x,${//},$(call .RULE-all,$x)))
 # things from for anything install related that I haven't thought of
 
 # this does the copy part of the install
-${RECURSIVE:.=.install-copy}:
+${//-RECURSIVE:.=.install-copy}:
 define .RULE-install-copy
 ${1:.=.install-copy}: $${${1:.=.SUBS}:.=.install-copy}
 
@@ -176,7 +180,7 @@ $(eval $(foreach x,${//},$(call .RULE-install-copy,$x)))
 # define the actual install target as being a combination of the
 # all target plus the pre-/install-copy targets
 
-install:       ${RECURSIVE:.=.install}    $/.install
+install:       ${//-RECURSIVE:.=.install}    $/.install
 define .RULE-install
 ${1:.=.install}: ${1:.=.all} ${1:.=.install-copy}
 
@@ -189,7 +193,7 @@ $(eval $(foreach x,${//},$(call .RULE-install,$x)))
 # actually didn't get made, or got partially made
 LSOPTS:=-l
 ls:                                       $/.ls
-${RECURSIVE:.=.ls}:
+${//-RECURSIVE:.=.ls}:
 define .RULE-ls
 ${1:.=.ls}: $${${1:.=.SUBS}:.=.ls}
 	@ files='$$(strip ${__SUBGOALS__})'; \
