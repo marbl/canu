@@ -96,6 +96,12 @@ s4p_updateAlignmentScores(sim4polish *p) {
 
 
 
+double
+s4p_percentCoverage(sim4polish *p) {
+  return( 100 * (double)(p->numCovered) / (double)(p->estLen - p->estPolyA - p->estPolyT) );
+}
+
+
 
 //  A very expensive and accurate calculation of the percent identity.
 double

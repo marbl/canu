@@ -101,6 +101,7 @@ void           s4p_updateAlignmentScores(sim4polish *p);
 //  A very expensive and accurate calculation of the percent identity.
 //
 double         s4p_percentIdentity(sim4polish *p);
+double         s4p_percentCoverage(sim4polish *p);
 
 
 //  We allow the polish to be printed in different ways:
