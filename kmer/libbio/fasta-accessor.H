@@ -3,6 +3,9 @@
 
 #include "bio++.H"
 
+//  Define this to do bounds checking
+#define SANITY
+
 class FastAAccessor {
 public:
   FastAAccessor(FastASequenceInCore *S, bool revcomp=false) {
@@ -43,6 +46,10 @@ public:
 
 private:
   u32bit  rc(u32bit p) const {
+#ifdef SANITY
+    if (p > _len)
+      fprintf(stderr, "FastAAccessor::rc()-- position "u32bitFMT" larger than length "u32bitFMT"\n", p, _len);
+#endif
     return(_rcBase + _rcBase + _rcLen - p - 1);
   };
 
@@ -60,6 +67,10 @@ public:
   //  Set both to zero (also the default) to unset the range
   //
   void  setReverseComplementRange(u32bit base=0, u32bit length=0) {
+#ifdef SANITY
+    if (base > _len)
+      fprintf(stderr, "FastAAccessor::setReverseComplementRange()-- position "u32bitFMT" larger than length "u32bitFMT"\n", base, _len);
+#endif
     if ((base == 0) && (length == 0)) {
       _rcBase = 0;
       _rcLen  = _len;
@@ -70,17 +81,29 @@ public:
   };
 
   char operator[](u32bit p) const {
+#ifdef SANITY
+    if (p > _len)
+      fprintf(stderr, "FastAAccessor::operator[]-- position "u32bitFMT" larger than length "u32bitFMT"\n", p, _len);
+#endif
     if (_doRevComp) return(complementSymbol[(int)_seq[rc(p)]]);
     else            return(_seq[p]);
   };
 
 
   char operator*(void) const {
+#ifdef SANITY
+    if (_pos > _len)
+      fprintf(stderr, "FastAAccessor::operator*()-- position "u32bitFMT" larger than length "u32bitFMT"\n", _pos, _len);
+#endif
     if (_doRevComp) return(complementSymbol[(int)_seq[_pos]]);
     else            return(_seq[_pos]);
   };
 
   char get(void) const {
+#ifdef SANITY
+    if (_pos > _len)
+      fprintf(stderr, "FastAAccessor::get()-- position "u32bitFMT" larger than length "u32bitFMT"\n", _pos, _len);
+#endif
     if (_doRevComp) return(complementSymbol[(int)_seq[_pos]]);
     else            return(_seq[_pos]);
   };
@@ -89,11 +112,19 @@ public:
   FastAAccessor &operator--(void) {
     if (_doRevComp) _pos++;
     else            _pos--;
+#ifdef SANITY
+    if (_pos > _len)
+      fprintf(stderr, "FastAAccessor::operator--()-- position "u32bitFMT" larger than length "u32bitFMT"\n", _pos, _len);
+#endif
     return(*this);
   };
   FastAAccessor &operator++(void) {
     if (_doRevComp) _pos--;
     else            _pos++;
+#ifdef SANITY
+    if (_pos > _len)
+      fprintf(stderr, "FastAAccessor::operator++()-- position "u32bitFMT" larger than length "u32bitFMT"\n", _pos, _len);
+#endif
     return(*this);
   };
 
@@ -102,6 +133,10 @@ public:
   };
 
   bool setPosition(u32bit p) {
+#ifdef SANITY
+    if (p > _len)
+      fprintf(stderr, "FastAAccessor::setPosition()-- position "u32bitFMT" larger than length "u32bitFMT"\n", p, _len);
+#endif
     if (_doRevComp) _pos = rc(p);
     else            _pos = p;
     return(_pos < _len);
