@@ -1,0 +1,26 @@
+Fri Apr 26 14:24:29 EDT 2002
+Test for overlapping exons in sim4string.C.  If SHOW_OVERLAPPING_EXONS
+is defined, they will be printed to stderr.
+
+
+Mon Apr 29 03:57:10 EDT 2002 (build 2333)
+Added '-V' option to print script lines as they are processed.
+Changed the wording of the status ('-v') output.
+
+
+Wed Aug 14 12:59:42 EDT 2002
+Added -forcestrand to force the strand prediction to always be
+'forward' or 'reverse'.  Changes to sim4string.C/run() and
+util.C/slide_intron(), and sim4db.H.  Added
+dbParams._forceStrandPrediction flag to enable/disable this behavior.
+
+Wed Aug 14 16:18:03 EDT 2002
+Fixed sync_slide_intron to increase the limit of Glist, Clist and oris
+from 200 exons to anything.  titin mapped to ncbi human genome had
+more than 200 exons.
+
+Wed Aug 28 14:03:50 EDT 2002
+Fixed get_stats() to _not_ check/reset the strand prediction when
+-forcestrand is in effect. In addition, fixed run() to set the 
+orientation of 'unknown' matches to FWD first. For complement matches,
+this will later become BWD.
