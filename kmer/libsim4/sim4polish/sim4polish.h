@@ -98,6 +98,11 @@ int            s4p_makeReverse(sim4polish *p);
 //
 void           s4p_updateAlignmentScores(sim4polish *p);
 
+//  A very expensive and accurate calculation of the percent identity.
+//
+double         s4p_percentIdentity(sim4polish *p);
+
+
 //  We allow the polish to be printed in different ways:
 //
 //  Normalized to the start of the genomic sequence (gets rid of the
