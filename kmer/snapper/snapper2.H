@@ -101,7 +101,6 @@ public:
 
   u32bit           _extendWeight;
   u32bit           _extendMinimum;
-  bool             _extendAlternate;
 
   //  Minimums for hits
   u32bit           _minHitLength;

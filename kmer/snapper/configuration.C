@@ -32,9 +32,8 @@ configuration::configuration(void) {
   _maxDiagonal          = 25;
 
   //  Alternate match extension scheme
-  _extendWeight         = 0;
-  _extendMinimum        = 0;
-  _extendAlternate      = false;
+  _extendWeight         = 2;
+  _extendMinimum        = 100;
 
   _minHitLength         = 0;
   _minHitCoverage       = 0.2;
@@ -394,12 +393,9 @@ configuration::read(int argc, char **argv) {
     } else if (strncmp(argv[arg], "-extendweight", 7) == 0) {
       arg++;
       _extendWeight = atoi(argv[arg]);
-      _extendAlternate = true;
     } else if (strncmp(argv[arg], "-extendminimum", 7) == 0) {
       arg++;
       _extendMinimum = atoi(argv[arg]);
-      _extendAlternate = true;
-
     } else if (strncmp(argv[arg], "-loaderhighwatermark", 8) == 0) {
       _loaderHighWaterMark = atoi(argv[++arg]);
     } else if (strncmp(argv[arg], "-loadersleep",         8) == 0) {
