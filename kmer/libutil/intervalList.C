@@ -167,3 +167,41 @@ intervalList::merge(void) {
     _listLen = targetInterval + 1;
 }
 
+
+
+
+u32bit
+intervalList::overlapping(u32bit    rangelo,
+                          u32bit    rangehi,
+                          u32bit  *&intervals,
+                          u32bit   &intervalsLen,
+                          u32bit   &intervalsMax) {
+
+
+  //  XXX: Naive implementation that is easy to verify (and that works
+  //  on an unsorted list).
+
+  if (intervals == 0L) {
+    intervalsMax = 256;
+    intervals    = new u32bit [intervalsMax];
+  }
+
+  intervalsLen = 0;
+
+  for (u32bit i=0; i<_listLen; i++) {
+    if ((rangelo <= _list[i].hi) &&
+        (rangehi >= _list[i].lo)) {
+      if (intervalsLen >= intervalsMax) {
+        intervalsMax *= 2;
+        u32bit *X = new u32bit [intervalsMax];
+        memcpy(X, intervals, sizeof(u32bit) * intervalsLen);
+        delete [] intervals;
+        intervals = X;
+      }
+
+      intervals[intervalsLen++] = i;
+    }
+  }
+
+  return(intervalsLen);
+}

@@ -303,10 +303,6 @@ private:
 
 
 
-
-
-
-
 ////////////////////////////////////////
 //
 //  intervalList
@@ -326,7 +322,6 @@ public:
   ~intervalList();
 
   intervalList &operator=(intervalList &src);
-
 
   //  Clear a list
   void        clear(void) {
@@ -360,12 +355,17 @@ public:
     return(len);
   };
 
-  u32bit      lo(u32bit i) {
-    return(_list[i].lo);
-  };
-  u32bit      hi(u32bit i) {
-    return(_list[i].hi);
-  };
+  //  Populates an array with the intervals that are within the
+  //  supplied interval.  Return
+  //
+  u32bit      overlapping(u32bit    lo,
+                          u32bit    hi,
+                          u32bit  *&intervals,
+                          u32bit   &intervalsLen,
+                          u32bit   &intervalsMax);
+
+  u32bit      lo(u32bit i) { return(_list[i].lo); };
+  u32bit      hi(u32bit i) { return(_list[i].hi); };
 
 private:
   bool                      _isSorted;
