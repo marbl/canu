@@ -111,6 +111,7 @@ s4p_IsSameRegion(sim4polish *A, sim4polish *B, u32bit tolerance) {
 //
 int
 s4p_IsSameExonModel(sim4polish *A, sim4polish *B, u32bit tolerance) {
+  int i;
   int Alo=0, Ahi=0;
   int Blo=0, Bhi=0;
   int Dlo=0, Dhi=0;
@@ -118,7 +119,7 @@ s4p_IsSameExonModel(sim4polish *A, sim4polish *B, u32bit tolerance) {
   if (A->numExons != B->numExons)
     return(0);
 
-  for (int i=0; i<A->numExons; i++) {
+  for (i=0; i<A->numExons; i++) {
     Alo = A->genLo + A->exons[i].genFrom;
     Ahi = A->genLo + A->exons[i].genTo;
 
@@ -193,15 +194,19 @@ s4p_compareExons_Overlap(sim4polish *A,
   for (i=0; i<A->numExons; i++) {
     if (numExtra && (foundA[i] == 0))
       (*numExtra)++;
+#if 0
     if (foundA[i] > 1)
       fprintf(stderr, "WARNING: Found exon %d %d times in A!\n", i, foundA[i]);
+#endif
   }
 
   for (i=0; i<B->numExons; i++) {
     if (numMissing && (foundB[i] == 0))
       (*numMissing)++;
+#if 0
     if (foundB[i] > 1)
       fprintf(stderr, "WARNING: Found exon %d %d times in B!\n", i, foundB[i]);
+#endif
   }
 
   free(foundA);
@@ -263,15 +268,19 @@ s4p_compareExons_Ends(sim4polish *A,
   for (i=0; i<A->numExons; i++) {
     if (numExtra && (foundA[i] == 0))
       (*numExtra)++;
+#if 0
     if (foundA[i] > 1)
       fprintf(stderr, "WARNING: Found exon %d %d times in A!\n", i, foundA[i]);
+#endif
   }
 
   for (i=0; i<B->numExons; i++) {
     if (numMissing && (foundB[i] == 0))
       (*numMissing)++;
+#if 0
     if (foundB[i] > 1)
       fprintf(stderr, "WARNING: Found exon %d %d times in B!\n", i, foundB[i]);
+#endif
   }
 
   free(foundA);
