@@ -1,36 +1,24 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "libbri.H"
+#include "meryl.H"
 #include "mcBucket.H"
 #include "mcDescription.H"
 #include "libmeryl.H"
 
-#ifdef TRUE64BIT
-const char *str_count      = ">%lu\n%s\n";
-const char *str_uniq       = "Found %lu mers.\nFound %lu distinct mers.\nFound %lu unique mers.\n";
-const char *str_u32bit     = "%lu\n";
-const char *str_hist       = "Found %lu mers.\nFound %lu distinct mers.\nFound %lu unique mers.\nFound %lu huge mers (count >= %lu).\nLargest mercount is %lu.\n";
-#else
-const char *str_count      = ">%llu\n%s\n";
-const char *str_uniq       = "Found %llu mers.\nFound %llu distinct mers.\nFound %llu unique mers.\n";
-const char *str_u32bit     = "%llu\n";
-const char *str_hist       = "Found %llu mers.\nFound %llu distinct mers.\nFound %llu unique mers.\nFound %llu huge mers (count >= %llu).\nLargest mercount is %llu.\n";
-#endif
-
 
 void
-dumpThreshold(char *inputFile, u32bit threshold) {
-  merStreamFromMeryl  *M = new merStreamFromMeryl(inputFile);
+dumpThreshold(merylArgs *args) {
+  merStreamFromMeryl  *M = new merStreamFromMeryl(args->inputFile);
   char                 ms[33];
 
   while (M->nextMer()) {
-    if (M->theCount() >= threshold) {
+    if (M->theCount() >= args->numMersEstimated) {
       for (u32bit z=0; z<M->merSize(); z++)
         ms[M->merSize()-z-1] = decompressSymbol[(M->theFMer() >> (2*z)) & 0x03];
       ms[M->merSize()] = 0;
 
-      fprintf(stdout, str_count, M->theCount(), ms);
+      fprintf(stdout, ">"u64bitFMT"\n%s\n", M->theCount(), ms);
     }
   }
 
@@ -39,8 +27,8 @@ dumpThreshold(char *inputFile, u32bit threshold) {
 
 
 void
-countUnique(char *inputFile) {
-  merStreamFromMeryl  *M = new merStreamFromMeryl(inputFile);
+countUnique(merylArgs *args) {
+  merStreamFromMeryl  *M = new merStreamFromMeryl(args->inputFile);
 
   u64bit numDistinct = 0;
   u64bit numUnique   = 0;
@@ -58,13 +46,15 @@ countUnique(char *inputFile) {
 
   delete M;
 
-  fprintf(stderr, str_uniq, numMers, numDistinct, numUnique);
+  fprintf(stderr, "Found "u64bitFMT" mers.\n", numMers);
+  fprintf(stderr, "Found "u64bitFMT" distinct mers.\n", numDistinct);
+  fprintf(stderr, "Found "u64bitFMT" unique mers.\n", numUnique);
 }
 
 
 void
-plotHistogram(char *inputFile) {
-  merStreamFromMeryl  *M = new merStreamFromMeryl(inputFile);
+plotHistogram(merylArgs *args) {
+  merStreamFromMeryl  *M = new merStreamFromMeryl(args->inputFile);
 
   u64bit   numMers     = 0;
   u64bit   numUnique   = 0;
@@ -95,10 +85,14 @@ plotHistogram(char *inputFile) {
     }
   }
 
-  fprintf(stderr, str_hist, numMers, numDistinct, numUnique, numHuge, hugeCount, maxCount);
+  fprintf(stderr, "Found %llu mers.\n", numMers);
+  fprintf(stderr, "Found %llu distinct mers.\n", numDistinct);
+  fprintf(stderr, "Found %llu unique mers.\n", numUnique);
+  fprintf(stderr, "Found %llu huge mers (count >= %llu).\n", numHuge, hugeCount);
+  fprintf(stderr, "Largest mercount is %llu.\n", maxCount);
 
   for (u32bit i=0; i<=maxCount; i++)
-    fprintf(stdout, str_u32bit, H[i]);
+    fprintf(stdout, u32bitFMT"\n", H[i]);
 
   delete    M;
   delete [] H;
@@ -106,8 +100,8 @@ plotHistogram(char *inputFile) {
 
 
 void
-plotDistanceBetweenMers(char *inputFile) {
-  merStreamFromMeryl  *M = new merStreamFromMeryl(inputFile);
+plotDistanceBetweenMers(merylArgs *args) {
+  merStreamFromMeryl  *M = new merStreamFromMeryl(args->inputFile);
   u32bit               hugeD = 16 * 1024 * 1024;
   u32bit              *D = new u32bit [hugeD];
 
@@ -123,13 +117,13 @@ plotDistanceBetweenMers(char *inputFile) {
     if ((thisMer - lastMer) < hugeD)
       D[thisMer - lastMer]++;
     else
-      fprintf(stderr, "Too large!  %lu\n", thisMer - lastMer);
+      fprintf(stderr, "Too large!  "u64bitFMT"\n", thisMer - lastMer);
 
     lastMer = thisMer;
   }
 
   for (u32bit i=0; i< hugeD; i++)
-    fprintf(stdout, str_u32bit, D[i]);
+    fprintf(stdout, u32bitFMT"\n", D[i]);
 
   delete    M;
   delete [] D;

@@ -146,48 +146,57 @@ merylArgs::usage(void) {
 }
 
 merylArgs::merylArgs(int argc, char **argv) {
-  execName         = argv[0];
+  execName           = argv[0];
 
-  doForward        = true;
-  doReverse        = false;
-  doCanonical      = false;
-  merSize          = 20;
-  tblSize          = 24;
-  hashSize         = 0;
-  inputFile        = 0L;
-  outputFile       = 0L;
-  queryFile        = 0L;
-  maskFile         = 0L;
-  beVerbose        = false;
+  beVerbose          = false;
 
-  memoryLimit      = 0;
-  segmentLimit     = 0;
-  mersPerBatch     = 0;
-  numThreads       = 0;
-  tempDir          = 0L;
-  batchPrefix      = 0L;
-  batchNumber      = 0;
+  inputFile          = 0L;
+  outputFile         = 0L;
+  queryFile          = 0L;
+  maskFile           = 0L;
 
-  lowCount         = 0;
-  highCount        = ~lowCount;
-  desiredCount     = 0;
+  merSize            = 20;
 
-  outputCount      = false;
-  outputAll        = false;
-  outputPosition   = false;
+  doForward          = true;
+  doReverse          = false;
+  doCanonical        = false;
 
-  includeDefLine   = false;
-  includeMer       = false;
+  numMersEstimated   = 0;
+  numMersActual      = 0;
 
-  mergeFilesMax    = 0;
-  mergeFilesLen    = 0;
-  mergeFiles       = 0L;
+  numBuckets         = 0;
+  numBuckets_log2    = 0;
+  mersPerBatch       = 0;
+  merDataWidth       = 0;
+  merDataMask        = u64bitZERO;
+  bucketPointerWidth = 0;
+  bucketPointerMask  = u64bitZERO;
 
-  estimatedNumMers = 0;
+  memoryLimit        = 0;
+  segmentLimit       = 0;
+  numThreads         = 0;
+  tempDir            = 0L;
+  batchPrefix        = 0L;
+  batchNumber        = 0;
 
-  personality      = 0;
+  lowCount           = 0;
+  highCount          = ~lowCount;
+  desiredCount       = 0;
 
-  statsFile        = 0L;
+  outputCount        = false;
+  outputAll          = false;
+  outputPosition     = false;
+
+  includeDefLine     = false;
+  includeMer         = false;
+
+  mergeFilesMax      = 0;
+  mergeFilesLen      = 0;
+  mergeFiles         = 0L;
+
+  personality        = 0;
+
+  statsFile          = 0L;
 
   if (argc == 1) {
     usage();
@@ -224,7 +233,7 @@ merylArgs::merylArgs(int argc, char **argv) {
       statsFile = argv[arg];
     } else if (strcmp(argv[arg], "-n") == 0) {
       arg++;
-      estimatedNumMers = strtou64bit(argv[arg], 0L);
+      numMersEstimated = strtou64bit(argv[arg], 0L);
     } else if (strcmp(argv[arg], "-f") == 0) {
       doForward   = true;
       doReverse   = false;
@@ -243,12 +252,6 @@ merylArgs::merylArgs(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-U") == 0) {
       arg++;
       highCount = strtou32bit(argv[arg], 0L);
-    } else if (strcmp(argv[arg], "-t") == 0) {
-      arg++;
-      tblSize = strtou32bit(argv[arg], 0L);
-    } else if (strcmp(argv[arg], "-H") == 0) {
-      arg++;
-      hashSize = strtou32bit(argv[arg], 0L);
     } else if (strcmp(argv[arg], "-o") == 0) {
       arg++;
       outputFile = argv[arg];
@@ -347,7 +350,7 @@ merylArgs::merylArgs(int argc, char **argv) {
       segmentLimit = strtou64bit(argv[arg], 0L);
     } else if (strcmp(argv[arg], "-threads") == 0) {
       arg++;
-      numThreads = strtou32bit(argv[arg], 0L);
+      numThreads   = strtou32bit(argv[arg], 0L);
     } else if (strcmp(argv[arg], "-tempdir") == 0) {
       arg++;
       tempDir = argv[arg];
@@ -366,4 +369,25 @@ merylArgs::merylArgs(int argc, char **argv) {
       fprintf(stderr, "Unknown option '%s'.\n", argv[arg]);
     }
   }
+
+  //  Check some stuff
+
+  bool fail = false;
+
+  if ((numThreads && segmentLimit) || (numThreads && memoryLimit))
+    fprintf(stderr, "ERROR: -threads incompatible with -memory and -segments.\n"), fail=true;
+
+  if (segmentLimit && memoryLimit)
+    fprintf(stderr, "ERROR: Only one of -memory and -segments can be specified.\n"), fail=true;
+
+
+  //  If there are n threads, then there are n segments.  We'll set
+  //  that now.  In the future, we might want to allow n threads and m
+  //  segments, m >= n.  That would be cool!
+  //
+  if (numThreads)
+    segmentLimit = numThreads;
+
+  if (fail)
+    exit(1);
 }

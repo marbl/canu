@@ -1,24 +1,38 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "libbri.H"
+#include "meryl.H"
 #include "britime.H"
 
 
-u32bit
-partition(u32bit merSize,
-          u32bit mem,
-          bool   beVerbose) {
+u64bit
+estimateNumMersInMemorySize(u32bit merSize,
+                            u32bit mem,
+                            bool   beVerbose) {
   u64bit memLimt = ((u64bit)mem) << 23;
 
-  u32bit maxN  = 0;
-  u32bit bestT = 0;
+  u64bit maxN  = 0;
+  u64bit bestT = 0;
 
+  //  For each possible number of buckets
   for (u64bit t=2; t < merSize - 2; t++) {
+
+    //  Try all poissible number of mers
     for (u64bit N=1; N<33; N++) {
-      u64bit bucketsize = (u64bitONE << t) * N;
+
+      //  The minimum and maximum number of mers that could
+      //  be stored with these parameters.
+      //
       u64bit Nmin = u64bitONE << (N - 1);
       u64bit Nmax = u64bitONE << (N);
 
+      //  The size in bits of the bucket pointer table
+      //
+      u64bit bucketsize = (u64bitONE << t) * N;
+
+      //  If our bucket pointer table size hasn't already blown our
+      //  memory limit, compute the number of mers that we can stuff
+      //  into the list.
+      //
       if (memLimt > bucketsize) {
         u64bit n = (memLimt - bucketsize) / (merSize - t);
 
@@ -31,36 +45,64 @@ partition(u32bit merSize,
   }
 
   if (beVerbose)
-    fprintf(stdout, "Can fit %10lu mers into table with t=%8lu using %10luKB\n",
+    fprintf(stdout, "Can fit "u64bitFMT" mers into table with t="u64bitFMT" using "u64bitFMT"KB\n",
             maxN,
             bestT,
             ((u64bitONE << bestT) * logBaseTwo(maxN) + maxN * (merSize - bestT)) >> 3);
 
-  return(bestT);
+  return(maxN);
 }
 
 
+
+u32bit
+optimalNumberOfBuckets(u32bit merSize,
+                       u64bit numMers) {
+  u32bit opth   = ~u32bitZERO;
+  u32bit opts   = ~u32bitZERO;
+  u32bit h      = 0;
+  u32bit s      = 0;
+  u32bit hwidth = logBaseTwo_64(numMers);
+
+  //  Find the table size (in bits, h) that minimizes memory usage
+  //  for the given merSize and numMers
+  //
+  //  We have two tables:
+  //    the bucket pointers num buckets * pointer width   == 2 << h * hwidth
+  //    the mer data:       num mers * (mersize - hwidth)
+  //    
+  for (h=16; h<=32 && h<2*merSize; h++) {
+    s = (u64bitONE << h) * h + numMers * (2 * merSize - hwidth);
+
+    if (s < opts) {
+      opth = h;
+      opts = s;
+    }
+  }
+
+  return(opth);
+}
+
+
+
 void
-estimate(char   *inputFile,
-         u32bit  merSize,
-         u64bit  numMers,
-         bool    beVerbose) {
+estimate(merylArgs *args) {
 
-  if (inputFile) {
-    merStream          M(merSize, inputFile);
-    speedCounter       C(" %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, beVerbose);
+  if (args->inputFile) {
+    merStream          M(args->merSize, args->inputFile);
+    speedCounter       C(" %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, args->beVerbose);
 
-    if (beVerbose)
-      fprintf(stderr, "Counting mers in '%s'\n", inputFile);
+    if (args->beVerbose)
+      fprintf(stderr, "Counting mers in '%s'\n", args->inputFile);
 
-    numMers = 0;
+    args->numMersEstimated = 0;
 
     while (M.nextMer()) {
       C.tick();
-      numMers++;
+      args->numMersEstimated++;
     }
 
-    if (beVerbose)
+    if (args->beVerbose)
       fprintf(stderr, "\n");
   }
 
@@ -68,7 +110,7 @@ estimate(char   *inputFile,
   //  How many bits do we need in the hash table to store all the mers?
   //
   u32bit hBits = 1;
-  while ((numMers+1) > (u64bitONE << hBits))
+  while ((args->numMersEstimated+1) > (u64bitONE << hBits))
     hBits++;
 
   u64bit h, hSize, c, cSize;
@@ -76,35 +118,20 @@ estimate(char   *inputFile,
 
   //  Find the optimial memory settings, so we can mark it in the output
   //
-  u32bit opth = ~u32bitZERO;
-  u32bit opts = ~u32bitZERO;
+  u32bit opth = optimalNumberOfBuckets(args->merSize, args->numMersEstimated);
 
-  for (h=16; h<=32 && h<2*merSize; h++) {
-    c     = 2 * merSize - h;
 
-    hSize = (u64bitONE << h) * hBits;
-    cSize = numMers * c;
-
-    hSize >>= 23;
-    cSize >>= 23;
-
-    if (hSize + cSize < opts) {
-      opth = h;
-      opts = hSize + cSize;
-    }
-  }
-
-  fprintf(stderr, "For "u64bitFMT" mers ("u32bitFMT" bits/hash), the optimal memory usage is achieved\n", numMers, hBits);
+  fprintf(stderr, "For "u64bitFMT" mers ("u32bitFMT" bits/hash), the optimal memory usage is achieved\n", args->numMersEstimated, hBits);
   fprintf(stderr, "by picking the 'h' with the smallest 't'.\n");
   fprintf(stderr, "\n");
   fprintf(stderr, " h |  h MB |  c |  c MB |  t MB\n");
   fprintf(stderr, "---+-------+----+-------+------\n");
 
-  for (h=16; h<=32 && h<2*merSize; h++) {
-    c     = 2 * merSize - h;
+  for (h=16; h<=32 && h<2*args->merSize; h++) {
+    c     = 2 * args->merSize - h;
 
     hSize = (u64bitONE << h) * hBits;
-    cSize = numMers * c;
+    cSize = args->numMersEstimated * c;
 
     hSize >>= 23;
     cSize >>= 23;

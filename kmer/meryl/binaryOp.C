@@ -15,23 +15,18 @@
 //    abs
 //
 void
-binaryOperations(char     personality,
-                 char    **mergeFiles,
-                 u32bit   mergeFilesLen,
-		 char    *maskFile,
-                 char    *outputFile,
-                 bool     beVerbose) {
+binaryOperations(merylArgs *args) {
 
-  if (mergeFilesLen != 2) {
+  if (args->mergeFilesLen != 2) {
     fprintf(stderr, "ERROR - must have exactly two files to use reduce!\n");
     exit(1);
   }
-  if (outputFile == 0L) {
+  if (args->outputFile == 0L) {
     fprintf(stderr, "ERROR - no output file specified.\n");
     exit(1);
   }
-  if ((personality != PERSONALITY_SUB) &&
-      (personality != PERSONALITY_ABS)) {
+  if ((args->personality != PERSONALITY_SUB) &&
+      (args->personality != PERSONALITY_ABS)) {
     fprintf(stderr, "ERROR - only personalities sub and abs\n");
     fprintf(stderr, "ERROR - are supported in binaryOperations().\n");
     fprintf(stderr, "ERROR - this is a coding error, not a user error.\n");
@@ -40,16 +35,16 @@ binaryOperations(char     personality,
 
   //  Open all the input files.
   //
-  bitPackedFileReader   **IDX = new bitPackedFileReader* [mergeFilesLen];
-  bitPackedFileReader   **DAT = new bitPackedFileReader* [mergeFilesLen];
+  bitPackedFileReader   **IDX = new bitPackedFileReader* [args->mergeFilesLen];
+  bitPackedFileReader   **DAT = new bitPackedFileReader* [args->mergeFilesLen];
 
-  for (u32bit i=0; i<mergeFilesLen; i++) {
-    char *inpath = new char [strlen(mergeFiles[i]) + 17];
+  for (u32bit i=0; i<args->mergeFilesLen; i++) {
+    char *inpath = new char [strlen(args->mergeFiles[i]) + 17];
 
-    sprintf(inpath, "%s.mcidx", mergeFiles[i]);
+    sprintf(inpath, "%s.mcidx", args->mergeFiles[i]);
     IDX[i] = new bitPackedFileReader(inpath);
 
-    sprintf(inpath, "%s.mcdat", mergeFiles[i]);
+    sprintf(inpath, "%s.mcdat", args->mergeFiles[i]);
     DAT[i] = new bitPackedFileReader(inpath);
 
     delete [] inpath;
@@ -58,12 +53,12 @@ binaryOperations(char     personality,
 
   //  Open the output file
   //
-  char *outpath = new char [strlen(outputFile) + 17];
+  char *outpath = new char [strlen(args->outputFile) + 17];
 
-  sprintf(outpath, "%s.mcidx", outputFile);
+  sprintf(outpath, "%s.mcidx", args->outputFile);
   bitPackedFileWriter   *oIDX = new bitPackedFileWriter(outpath);
 
-  sprintf(outpath, "%s.mcdat", outputFile);
+  sprintf(outpath, "%s.mcdat", args->outputFile);
   bitPackedFileWriter   *oDAT = new bitPackedFileWriter(outpath);
 
   delete [] outpath;
@@ -72,11 +67,11 @@ binaryOperations(char     personality,
   //  Read the parameters for each of the input files.  Check
   //  that the input files are compatable.
   //
-  mcDescription *mcd  = new mcDescription [mergeFilesLen];
-  for (u32bit i=0; i<mergeFilesLen; i++)
+  mcDescription *mcd  = new mcDescription [args->mergeFilesLen];
+  for (u32bit i=0; i<args->mergeFilesLen; i++)
     mcd[i].read(DAT[i]);
 
-  if (checkSingleDescription(mcd+0, mergeFiles[0], mcd+1, mergeFiles[1])) {
+  if (checkSingleDescription(mcd+0, args->mergeFiles[0], mcd+1, args->mergeFiles[1])) {
     fprintf(stderr, "ERROR:  Files are not compatable.\n");
     exit(1);
   }
@@ -90,7 +85,7 @@ binaryOperations(char     personality,
   //
 #if 0
   omcd._actualNumberOfMers = 0;
-  for (u32bit i=0; i<mergeFilesLen; i++)
+  for (u32bit i=0; i<args->mergeFilesLen; i++)
     omcd._actualNumberOfMers += mcd[i]._actualNumberOfMers;
 
   omcd._hashWidth  = 1;
@@ -118,9 +113,9 @@ binaryOperations(char     personality,
 
   //  Create buckets
   //
-  mcBucket **B = new mcBucket* [mergeFilesLen];
+  mcBucket **B = new mcBucket* [args->mergeFilesLen];
 
-  for (u32bit i=0; i<mergeFilesLen; i++)
+  for (u32bit i=0; i<args->mergeFilesLen; i++)
     B[i] = new mcBucket(IDX[i], DAT[i], &mcd[i]);
 
   u32bit   itemsWritten    =  u32bitZERO;
@@ -130,12 +125,8 @@ binaryOperations(char     personality,
   //
   for (u64bit b=0; b<maxBucket; b++) {
 
-    if ((beVerbose) && ((b & 0xfff) == 0)) {
-#ifdef TRUE64BIT
-      fprintf(stderr, "Bucket 0x%016lx\r", b);
-#else
-      fprintf(stderr, "Bucket 0x%016llx\r", b);
-#endif
+    if ((args->beVerbose) && ((b & 0xfff) == 0)) {
+      fprintf(stderr, "Bucket "u64bitHEX"\r", b);
       fflush(stderr);
     }
 
@@ -158,8 +149,8 @@ binaryOperations(char     personality,
     //  first bucket.
     //
     if ((B[0]->_bucketID == b) && (B[1]->_bucketID != b)) {
-      for (int i=0; i<B[0]->_items; i++) {
-        outputMer(oDAT, mcd[0], b, B[0]->_checks[i], (u32bit)B[0]->_counts[i]);
+      for (u32bit i=0; i<B[0]->_items; i++) {
+        outputMer(oDAT, &mcd[0], b, B[0]->_checks[i], (u32bit)B[0]->_counts[i]);
         itemsWritten++;
       }
     }
@@ -168,7 +159,7 @@ binaryOperations(char     personality,
     //  second one is.
     //
     if ((B[0]->_bucketID != b) && (B[1]->_bucketID == b)) {
-      fprintf(stderr, "WARNING: Negative count for bck=0x%016lx; %d mers with zero output!\n",
+      fprintf(stderr, "WARNING: Negative count for bck="u64bitHEX"; "u64bitFMT" mers with zero output!\n",
               B[1]->_bucketID, B[1]->_items);
     }
 
@@ -179,37 +170,37 @@ binaryOperations(char     personality,
       //  The size of each bucket can be different, and we're probably
       //  not going to get the same mers in each.
       //
-      int pos1 = 0;
-      int pos2 = 0;
+      u32bit pos1 = 0;
+      u32bit pos2 = 0;
 
       while ((pos1 < B[0]->_items) && (pos2 < B[1]->_items)) {
 
 
-          switch (personality) {
+          switch (args->personality) {
             case PERSONALITY_SUB:
               if        (B[0]->_checks[pos1] == B[1]->_checks[pos2]) {
                 if (B[0]->_counts[pos1] < B[1]->_counts[pos2]) {
-                  fprintf(stderr, "WARNING: Negative count for bck=0x%016lx chk=0x%016lx, counts = %u - %u; zero output instead\n",
+                  fprintf(stderr, "WARNING: Negative count for bck="u64bitHEX" chk="u64bitHEX", counts = "u64bitFMT" - "u64bitFMT"; zero output instead\n",
                           B[0]->_bucketID, B[0]->_checks[pos1],
                           B[0]->_counts[pos1], B[1]->_counts[pos2]);
-                  outputMer(oDAT, mcd[0], b, B[0]->_checks[pos1], 0);
+                  outputMer(oDAT, &mcd[0], b, B[0]->_checks[pos1], 0);
                   itemsWritten++;
                 }
                 if (B[0]->_counts[pos1] > B[1]->_counts[pos2]) {
-                  outputMer(oDAT, mcd[0], b, B[0]->_checks[pos1], (u32bit)B[0]->_counts[pos1] - (u32bit)B[1]->_counts[pos2]);
+                  outputMer(oDAT, &mcd[0], b, B[0]->_checks[pos1], (u32bit)B[0]->_counts[pos1] - (u32bit)B[1]->_counts[pos2]);
                   itemsWritten++;
                 }
                 pos1++;
                 pos2++;
               } else if (B[0]->_checks[pos1] < B[1]->_checks[pos2]) {
-                outputMer(oDAT, mcd[0], b, B[0]->_checks[pos1], (u32bit)B[0]->_counts[pos1]);
+                outputMer(oDAT, &mcd[0], b, B[0]->_checks[pos1], (u32bit)B[0]->_counts[pos1]);
                 itemsWritten++;
                 pos1++;
               } else {
-                fprintf(stderr, "WARNING: Negative count for bck=0x%016lx chk=0x%016lx, counts = %u - %u; zero output instead\n",
+                fprintf(stderr, "WARNING: Negative count for bck="u64bitHEX" chk="u64bitHEX", counts = "u64bitFMT" - "u64bitFMT"; zero output instead\n",
                         B[0]->_bucketID, B[0]->_checks[pos1],
                         B[0]->_counts[pos1], B[1]->_counts[pos2]);
-                outputMer(oDAT, mcd[0], b, B[0]->_checks[pos1], u32bitZERO);
+                outputMer(oDAT, &mcd[0], b, B[0]->_checks[pos1], u32bitZERO);
                 itemsWritten++;
                 pos2++;
               }
@@ -217,21 +208,21 @@ binaryOperations(char     personality,
             case PERSONALITY_ABS:
               if        (B[0]->_checks[pos1] == B[1]->_checks[pos2]) {
                 if (B[0]->_counts[pos1] < B[1]->_counts[pos2]) {
-                  outputMer(oDAT, mcd[0], b, B[0]->_checks[pos1], (u32bit)B[1]->_counts[pos2] - (u32bit)B[0]->_counts[pos1]);
+                  outputMer(oDAT, &mcd[0], b, B[0]->_checks[pos1], (u32bit)B[1]->_counts[pos2] - (u32bit)B[0]->_counts[pos1]);
                   itemsWritten++;
                 }
                 if (B[0]->_counts[pos1] > B[1]->_counts[pos2]) {
-                  outputMer(oDAT, mcd[0], b, B[0]->_checks[pos1], (u32bit)B[0]->_counts[pos1] - (u32bit)B[1]->_counts[pos2]);
+                  outputMer(oDAT, &mcd[0], b, B[0]->_checks[pos1], (u32bit)B[0]->_counts[pos1] - (u32bit)B[1]->_counts[pos2]);
                   itemsWritten++;
                 }
                 pos1++;
                 pos2++;
               } else if (B[0]->_checks[pos1] < B[1]->_checks[pos2]) {
-                outputMer(oDAT, mcd[0], b, B[0]->_checks[pos1], (u32bit)B[0]->_counts[pos1]);
+                outputMer(oDAT, &mcd[0], b, B[0]->_checks[pos1], (u32bit)B[0]->_counts[pos1]);
                 itemsWritten++;
                 pos1++;
               } else {
-                outputMer(oDAT, mcd[0], b, B[1]->_checks[pos2], (u32bit)B[1]->_counts[pos2]);
+                outputMer(oDAT, &mcd[0], b, B[1]->_checks[pos2], (u32bit)B[1]->_counts[pos2]);
                 itemsWritten++;
                 pos2++;
               }
@@ -239,7 +230,7 @@ binaryOperations(char     personality,
 #if 0
             case PERSONALITY_MASK:
               if        (B[0]->_checks[pos1] == B[1]->_checks[pos2]) {
-                outputMer(oDAT, mcd[0], b, B[1]->_checks[pos2], (u32bit)B[1]->_counts[pos2]);
+                outputMer(oDAT, &mcd[0], b, B[1]->_checks[pos2], (u32bit)B[1]->_counts[pos2]);
                 itemsWritten++;
                 pos1++;
                 pos2++;
@@ -267,7 +258,7 @@ binaryOperations(char     personality,
       B[1]->readBucket();
   }
 
-  for (u32bit i=0; i<mergeFilesLen; i++)
+  for (u32bit i=0; i<args->mergeFilesLen; i++)
     delete B[i];
 
   delete [] B;
@@ -277,7 +268,7 @@ binaryOperations(char     personality,
   delete oIDX;
   delete oDAT;
 
-  for (u32bit i=0; i<mergeFilesLen; i++) {
+  for (u32bit i=0; i<args->mergeFilesLen; i++) {
     delete IDX[i];
     delete DAT[i];
   }

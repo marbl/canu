@@ -55,28 +55,28 @@ multipleWrite(char                   personality,
     case PERSONALITY_MINEXIST:
     case PERSONALITY_MAX:
     case PERSONALITY_ADD:
-      outputMer(oDAT, mcd[0], b, currentCheck, currentCount);
+      outputMer(oDAT, &mcd[0], b, currentCheck, currentCount);
       itemsWritten++;
       break;
     case PERSONALITY_AND:
       if (currentTimes == mergeFilesLen) {
-        outputMer(oDAT, mcd[0], b, currentCheck, u32bitONE);
+        outputMer(oDAT, &mcd[0], b, currentCheck, u32bitONE);
         itemsWritten++;
       }
       break;
     case PERSONALITY_NAND:
       if (currentTimes != mergeFilesLen) {
-        outputMer(oDAT, mcd[0], b, currentCheck, u32bitONE);
+        outputMer(oDAT, &mcd[0], b, currentCheck, u32bitONE);
         itemsWritten++;
       }
       break;
     case PERSONALITY_OR:
-      outputMer(oDAT, mcd[0], b, currentCheck, u32bitONE);
+      outputMer(oDAT, &mcd[0], b, currentCheck, u32bitONE);
       itemsWritten++;
       break;
     case PERSONALITY_XOR:
       if ((currentTimes % 2) == 1) {
-        outputMer(oDAT, mcd[0], b, currentCheck, u32bitONE);
+        outputMer(oDAT, &mcd[0], b, currentCheck, u32bitONE);
         itemsWritten++;
       }
       break;
@@ -93,29 +93,24 @@ multipleWrite(char                   personality,
 
 
 void
-multipleOperations(char     personality,
-                   char    **mergeFiles,
-                   u32bit   mergeFilesLen,
-		   char    *maskFile,
-                   char    *outputFile,
-                   bool     beVerbose) {
+multipleOperations(merylArgs *args) {
 
-  if (mergeFilesLen < 2) {
+  if (args->mergeFilesLen < 2) {
     fprintf(stderr, "ERROR - must have at least two databases!\n");
     exit(1);
   }
-  if (outputFile == 0L) {
+  if (args->outputFile == 0L) {
     fprintf(stderr, "ERROR - no output file specified.\n");
     exit(1);
   }
-  if ((personality != PERSONALITY_MIN) &&
-      (personality != PERSONALITY_MINEXIST) &&
-      (personality != PERSONALITY_MAX) &&
-      (personality != PERSONALITY_ADD) &&
-      (personality != PERSONALITY_AND) &&
-      (personality != PERSONALITY_NAND) &&
-      (personality != PERSONALITY_OR) &&
-      (personality != PERSONALITY_XOR)) {
+  if ((args->personality != PERSONALITY_MIN) &&
+      (args->personality != PERSONALITY_MINEXIST) &&
+      (args->personality != PERSONALITY_MAX) &&
+      (args->personality != PERSONALITY_ADD) &&
+      (args->personality != PERSONALITY_AND) &&
+      (args->personality != PERSONALITY_NAND) &&
+      (args->personality != PERSONALITY_OR) &&
+      (args->personality != PERSONALITY_XOR)) {
     fprintf(stderr, "ERROR - only personalities min, minexist, max, add, and, nand, or, xor\n");
     fprintf(stderr, "ERROR - are supported in multipleOperations().\n");
     fprintf(stderr, "ERROR - this is a coding error, not a user error.\n");
@@ -127,16 +122,16 @@ multipleOperations(char     personality,
 
   //  Open all the input files.
   //
-  bitPackedFileReader   **IDX = new bitPackedFileReader* [mergeFilesLen];
-  bitPackedFileReader   **DAT = new bitPackedFileReader* [mergeFilesLen];
+  bitPackedFileReader   **IDX = new bitPackedFileReader* [args->mergeFilesLen];
+  bitPackedFileReader   **DAT = new bitPackedFileReader* [args->mergeFilesLen];
 
-  for (u32bit i=0; i<mergeFilesLen; i++) {
-    char *inpath = new char [strlen(mergeFiles[i]) + 17];
+  for (u32bit i=0; i<args->mergeFilesLen; i++) {
+    char *inpath = new char [strlen(args->mergeFiles[i]) + 17];
 
-    sprintf(inpath, "%s.mcidx", mergeFiles[i]);
+    sprintf(inpath, "%s.mcidx", args->mergeFiles[i]);
     IDX[i] = new bitPackedFileReader(inpath);
 
-    sprintf(inpath, "%s.mcdat", mergeFiles[i]);
+    sprintf(inpath, "%s.mcdat", args->mergeFiles[i]);
     DAT[i] = new bitPackedFileReader(inpath);
 
     delete [] inpath;
@@ -146,13 +141,13 @@ multipleOperations(char     personality,
   //
   bitPackedFileReader *mIDX = 0L;
   bitPackedFileReader *mDAT = 0L;
-  if (maskFile) {
-    char *maskpath = new char [strlen(maskFile) + 17];
+  if (args->maskFile) {
+    char *maskpath = new char [strlen(args->maskFile) + 17];
 
-    sprintf(maskpath, "%s.mcidx", maskFile);
+    sprintf(maskpath, "%s.mcidx", args->maskFile);
     mIDX = new bitPackedFileReader(maskpath);
 
-    sprintf(maskpath, "%s.mcdat", maskFile);
+    sprintf(maskpath, "%s.mcdat", args->maskFile);
     mDAT = new bitPackedFileReader(maskpath);
 
     delete [] maskpath;
@@ -161,12 +156,12 @@ multipleOperations(char     personality,
 
   //  Open the output file
   //
-  char *outpath = new char [strlen(outputFile) + 17];
+  char *outpath = new char [strlen(args->outputFile) + 17];
 
-  sprintf(outpath, "%s.mcidx", outputFile);
+  sprintf(outpath, "%s.mcidx", args->outputFile);
   bitPackedFileWriter   *oIDX = new bitPackedFileWriter(outpath);
 
-  sprintf(outpath, "%s.mcdat", outputFile);
+  sprintf(outpath, "%s.mcdat", args->outputFile);
   bitPackedFileWriter   *oDAT = new bitPackedFileWriter(outpath);
 
   delete [] outpath;
@@ -175,10 +170,10 @@ multipleOperations(char     personality,
   //  Read the parameters for each of the input (and mask) files.
   //  Check that they are compatable.
   //
-  mcDescription *mcd  = new mcDescription [mergeFilesLen];
+  mcDescription *mcd  = new mcDescription [args->mergeFilesLen];
   mcDescription  mmcd;
 
-  for (u32bit i=0; i<mergeFilesLen; i++)
+  for (u32bit i=0; i<args->mergeFilesLen; i++)
     mcd[i].read(DAT[i]);
 
   bool    fail = false;
@@ -187,12 +182,12 @@ multipleOperations(char     personality,
     mmcd.read(mDAT);
 
     fprintf(stderr, "Checking files AND mask.\n");
-    for (u32bit i=0; i<mergeFilesLen; i++)
-      fail |= checkSingleDescription(mcd+i, mergeFiles[i], &mmcd, maskFile);
+    for (u32bit i=0; i<args->mergeFilesLen; i++)
+      fail |= checkSingleDescription(mcd+i, args->mergeFiles[i], &mmcd, args->maskFile);
   } else {
     fprintf(stderr, "Checking files.\n");
-    for (u32bit i=1; i<mergeFilesLen; i++)
-      fail |= checkSingleDescription(mcd+i-1, mergeFiles[i-1], mcd+i, mergeFiles[i]);
+    for (u32bit i=1; i<args->mergeFilesLen; i++)
+      fail |= checkSingleDescription(mcd+i-1, args->mergeFiles[i-1], mcd+i, args->mergeFiles[i]);
   }
 
   if (fail) {
@@ -212,7 +207,7 @@ multipleOperations(char     personality,
   //  XXX:  WHY?!
 
   omcd._actualNumberOfMers = 0;
-  for (u32bit i=0; i<mergeFilesLen; i++)
+  for (u32bit i=0; i<args->mergeFilesLen; i++)
     omcd._actualNumberOfMers += mcd[i]._actualNumberOfMers;
 
   omcd._hashWidth  = 1;
@@ -241,8 +236,8 @@ multipleOperations(char     personality,
 
   //  Create buckets
   //
-  mcBucket **B = new mcBucket* [mergeFilesLen];
-  for (u32bit i=0; i<mergeFilesLen; i++)
+  mcBucket **B = new mcBucket* [args->mergeFilesLen];
+  for (u32bit i=0; i<args->mergeFilesLen; i++)
     B[i] = new mcBucket(IDX[i], DAT[i], &mcd[i]);
 
   mcBucket  *mmB = 0L;
@@ -253,7 +248,7 @@ multipleOperations(char     personality,
   u32bit   currentCount     =  u32bitZERO;
   u32bit   currentTimes     =  u32bitZERO;
 
-  u32bit  *bucketPosition   = new u32bit [mergeFilesLen];
+  u32bit  *bucketPosition   = new u32bit [args->mergeFilesLen];
   u32bit   mmbucketPosition = u32bitZERO;
 
   u32bit   newPosition      =  u32bitZERO;
@@ -269,12 +264,8 @@ multipleOperations(char     personality,
   //
   for (u64bit b=0; b<maxBucket; b++) {
 
-    if ((beVerbose) && ((b & 0xfff) == 0)) {
-#ifdef TRUE64BIT
-      fprintf(stderr, "Bucket 0x%016lx\r", b);
-#else
-      fprintf(stderr, "Bucket 0x%016llx\r", b);
-#endif
+    if ((args->beVerbose) && ((b & 0xfff) == 0)) {
+      fprintf(stderr, "Bucket "u64bitHEX"\r", b);
       fflush(stderr);
     }
 
@@ -284,7 +275,7 @@ multipleOperations(char     personality,
     currentCount     =  u32bitZERO;
     currentTimes     =  u32bitZERO;
 
-    for(u32bit i=0; i<mergeFilesLen; i++)
+    for(u32bit i=0; i<args->mergeFilesLen; i++)
       bucketPosition[i] = u32bitZERO;
 
     mmbucketPosition = u32bitZERO;
@@ -299,7 +290,7 @@ multipleOperations(char     personality,
     //  How many items?  If none, skip the merge and just write the index
     //  (otherwise, we would always be writing a count)
     //
-    for (u32bit i=0; i<mergeFilesLen; i++)
+    for (u32bit i=0; i<args->mergeFilesLen; i++)
       totalItems += B[i]->_items;
 
     if (totalItems > 0) {
@@ -312,7 +303,7 @@ multipleOperations(char     personality,
       //  How many buckets still have stuff in them?
       //
       u32bit   notDone = u32bitZERO;
-      for (u32bit i=0; i<mergeFilesLen; i++)
+      for (u32bit i=0; i<args->mergeFilesLen; i++)
         if (bucketPosition[i] < B[i]->_items)
           notDone++;
 
@@ -325,7 +316,7 @@ multipleOperations(char     personality,
         newCheck    = ~u64bitZERO;
         newCount    =  u32bitZERO;
         newPosition =  u32bitZERO;
-        for (u32bit i=0; i<mergeFilesLen; i++) {
+        for (u32bit i=0; i<args->mergeFilesLen; i++) {
           if ((bucketPosition[i] < B[i]->_items) &&
               (newCheck >= B[i]->_checks[bucketPosition[i]])) {
             newCheck    = B[i]->_checks[bucketPosition[i]];
@@ -346,11 +337,11 @@ multipleOperations(char     personality,
         if ((isFirstEntryInBucket == false) &&
             (decideIfMasked(mmB, mmbucketPosition, currentCheck) == false) &&
             (newCheck != currentCheck)) {
-          itemsWritten = multipleWrite(personality,
+          itemsWritten = multipleWrite(args->personality,
                                        oDAT,
                                        mcd,
                                        b,
-                                       mergeFilesLen,
+                                       args->mergeFilesLen,
                                        currentCheck, currentCount, currentTimes, itemsWritten);
 
           currentCount = u32bitZERO;
@@ -372,7 +363,7 @@ multipleOperations(char     personality,
         //
         //  Perform the operation
         //
-        switch (personality) {
+        switch (args->personality) {
           case PERSONALITY_MIN:
           case PERSONALITY_MINEXIST:
             if (currentTimes == 0) {
@@ -415,11 +406,11 @@ multipleOperations(char     personality,
       //  write the final entry
       //
       if (decideIfMasked(mmB, mmbucketPosition, currentCheck) == false)
-        itemsWritten = multipleWrite(personality,
+        itemsWritten = multipleWrite(args->personality,
                                      oDAT,
                                      mcd,
                                      b,
-                                     mergeFilesLen,
+                                     args->mergeFilesLen,
                                      currentCheck, currentCount, currentTimes, itemsWritten);
     }
 
@@ -429,7 +420,7 @@ multipleOperations(char     personality,
 
     //  read the next set of buckets
     //
-    for (u32bit i=0; i<mergeFilesLen; i++)
+    for (u32bit i=0; i<args->mergeFilesLen; i++)
       B[i]->readBucket();
 
     if (mmB)
@@ -438,7 +429,7 @@ multipleOperations(char     personality,
 
   delete [] bucketPosition;
 
-  for (u32bit i=0; i<mergeFilesLen; i++)
+  for (u32bit i=0; i<args->mergeFilesLen; i++)
     delete B[i];
 
   delete [] B;
@@ -448,7 +439,7 @@ multipleOperations(char     personality,
   delete oIDX;
   delete oDAT;
 
-  for (u32bit i=0; i<mergeFilesLen; i++) {
+  for (u32bit i=0; i<args->mergeFilesLen; i++) {
     delete IDX[i];
     delete DAT[i];
   }

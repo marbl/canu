@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
-//#include "meryl.H"
 #include "libbri.H"
 #include "britime.H"
 #include "buildinfo-merle.h"
@@ -26,7 +25,7 @@ main(int argc, char **argv) {
   int arg = 1;
   while (arg < argc) {
     if (strncmp(argv[arg], "-mersize", 2) == 0) {
-      merSizeInBases = atoi(argv[++arg]);
+      merSizeInBases = strtou32bit(argv[++arg], 0L);
       merSizeInBits  = merSizeInBases << 1;
       numMers        = u32bitONE << merSizeInBits;
     } else if (strncmp(argv[arg], "-sequence", 2) == 0) {
@@ -58,9 +57,9 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  fprintf(stderr, "Using mersize of %u bases (%u bits).\n", merSizeInBases, merSizeInBits);
-  fprintf(stderr, "This mersize has %u mers.\n", numMers);
-  fprintf(stderr, "Attempting to allocate %u bytes for counts.\n", numMers * sizeof(u32bit));
+  fprintf(stderr, "Using mersize of "u32bitFMT" bases ("u32bitFMT" bits).\n", merSizeInBases, merSizeInBits);
+  fprintf(stderr, "This mersize has "u32bitFMT" mers.\n", numMers);
+  fprintf(stderr, "Attempting to allocate "u32bitFMT" bytes for counts.\n", numMers * sizeof(u32bit));
   counts = new u32bit [numMers];
 
   fprintf(stderr, "Clearing.\n");
@@ -102,7 +101,7 @@ main(int argc, char **argv) {
         ms[merSizeInBases-z-1] = decompressSymbol[(mer >> (2*z)) & 0x03];
       ms[merSizeInBases] = 0;
 
-      fprintf(stdout, ">%u\n%s\n", counts[mer], ms);
+      fprintf(stdout, ">"u32bitFMT"\n%s\n", counts[mer], ms);
     }
   }
 }

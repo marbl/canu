@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "libbri.H"
+#include "meryl.H"
 #include "mcBucket.H"
 #include "mcDescription.H"
 
@@ -44,45 +45,38 @@ sortByPosition(mcMer **m, u32bit l) {
 
 
 void
-scan(char   *queryFile,
-     char   *inputFile,
-     char   *outputFile,
-     bool    includeDefLine,
-     bool    includeMer,
-     bool    doForward,
-     bool    doReverse,
-     bool    doCanonical,
-     bool    outputCount,
-     bool    outputAll,
-     bool    outputPosition,
-     bool    beVerbose) {
+scan(merylArgs *args) {
 
-  if (queryFile == 0L) {
+  if (args->queryFile == 0L) {
     fprintf(stderr, "ERROR - no query file specified.\n");
     exit(1);
   }
 
-  if (inputFile == 0L) {
+  if (args->inputFile == 0L) {
     fprintf(stderr, "ERROR - no counted database file specified.\n");
     exit(1);
   }
 
-  if (outputFile == 0L) {
+  if (args->outputFile == 0L) {
     fprintf(stderr, "ERROR - no output file specified.\n");
     exit(1);
   }
 
-  if (!outputCount && !outputAll && !outputPosition) {
+  if (!args->outputCount && !args->outputAll && !args->outputPosition) {
     fprintf(stderr, "ERROR:  You need to specify an output format: -c, -a or -p\n");
     exit(1);
   }
 
   //  these should never happen, unles main() is broken.
-  if ((doForward == false) && (doReverse == false) && (doCanonical == false)) {
+  if ((args->doForward == false) &&
+      (args->doReverse == false) &&
+      (args->doCanonical == false)) {
     fprintf(stderr, "ERROR - need to specify at least one of -f, -r, -C\n");
     exit(1);
   }
-  if ((doForward && doReverse) || (doForward && doCanonical) || (doReverse && doCanonical)) {
+  if ((args->doForward && args->doReverse) ||
+      (args->doForward && args->doCanonical) ||
+      (args->doReverse && args->doCanonical)) {
     fprintf(stderr, "ERROR - only one of -f, -r and -C may be specified!\n");
     exit(1);
   }
@@ -91,12 +85,12 @@ scan(char   *queryFile,
 
   //  Open the counted sequence files
   //
-  char *inpath = new char [strlen(inputFile) + 17];
+  char *inpath = new char [strlen(args->inputFile) + 17];
 
-  sprintf(inpath, "%s.mcidx", inputFile);
+  sprintf(inpath, "%s.mcidx", args->inputFile);
   bitPackedFileReader *IDX = new bitPackedFileReader(inpath);
 
-  sprintf(inpath, "%s.mcdat", inputFile);
+  sprintf(inpath, "%s.mcdat", args->inputFile);
   bitPackedFileReader *DAT = new bitPackedFileReader(inpath);
 
   delete [] inpath;
@@ -110,7 +104,7 @@ scan(char   *queryFile,
 
   //  Open the output file
   //
-  FILE *O = fopen(outputFile, "w");
+  FILE *O = fopen(args->outputFile, "w");
 
 
 
@@ -123,7 +117,7 @@ scan(char   *queryFile,
   u32bit  *_seqLengths      = 0L;
   u32bit   _numberOfSeqs    = 0;
 
-  if (includeDefLine || outputAll) {
+  if (args->includeDefLine || args->outputAll) {
     _defLinesMax     = 16384;
     _defLines        = new char*  [_defLinesMax];
     _seqLengths      = new u32bit [_defLinesMax];
@@ -136,10 +130,10 @@ scan(char   *queryFile,
     _seqLengths[0] = 0;
 
 
-    if (beVerbose)
+    if (args->beVerbose)
       fprintf(stderr, " 0) Reading deflines and sequence lengths.\n");
 
-    FastAstream    F(queryFile);
+    FastAstream    F(args->queryFile);
     unsigned char  ch = 255;
 
     while (ch != 0) {
@@ -190,14 +184,14 @@ scan(char   *queryFile,
     }
   }
 
-  if (beVerbose)
+  if (args->beVerbose)
     fprintf(stderr, " 1) Reading mers.\n");
 
   //
   //  Read all the mers, sort them, then ask the counted sequence what
   //  the counts are.
   //
-  merStream  *M = new merStream(mcd._merSizeInBases, queryFile);
+  merStream  *M = new merStream(mcd._merSizeInBases, args->queryFile);
   while (M->nextMer()) {
 
     //  Do we need more?
@@ -220,9 +214,9 @@ scan(char   *queryFile,
     _mers[_mersLen]->sequence = (u32bit)M->theSequenceNumber();
     _mers[_mersLen]->count    = 0;
 
-    if (doForward) {
+    if (args->doForward) {
       _mers[_mersLen]->mer = M->theFMer();
-    } else if (doReverse) {
+    } else if (args->doReverse) {
       _mers[_mersLen]->mer = M->theRMer();
     } else {
       _mers[_mersLen]->mer = M->theFMer();
@@ -235,7 +229,7 @@ scan(char   *queryFile,
   delete M;
 
 
-  if (beVerbose) {
+  if (args->beVerbose) {
     fprintf(stderr, "    Found "u32bitFMT" mers.\n", _mersLen);
     fprintf(stderr, " 2) Sorting by mer.\n");
   }
@@ -245,7 +239,7 @@ scan(char   *queryFile,
   sortByMer(_mers, _mersLen);
 
 
-  if (beVerbose)
+  if (args->beVerbose)
     fprintf(stderr, " 3) Scanning the mcFiles.\n");
 
 
@@ -255,8 +249,8 @@ scan(char   *queryFile,
   mcBucket *B = new mcBucket(IDX, DAT, &mcd);
 
   for (u32bit i=0; i<_mersLen; i++) {
-    if ((beVerbose) && ((i & 0xfff) == 0)) {
-      fprintf(stderr, "%8.5lf%% done, "u64bitFMT" bytes read.\r",
+    if ((args->beVerbose) && ((i & 0xfff) == 0)) {
+      fprintf(stderr, "%8.5f%% done, "u64bitFMT" bytes read.\r",
               100.0 * (double)i / (double)_mersLen,
               B->bitsRead() >> 3);
       fflush(stderr);
@@ -265,10 +259,10 @@ scan(char   *queryFile,
     B->scan(_mers[i]);
   }
 
-  if (beVerbose)
+  if (args->beVerbose)
     fprintf(stderr, "\n");
 
-  if (beVerbose)
+  if (args->beVerbose)
     fprintf(stderr, " 4) Sorting by position.\n");
 
   //  Sort again, putting things back into the original ordering
@@ -278,16 +272,16 @@ scan(char   *queryFile,
 
   //  Dump the output
   //
-  if (beVerbose)
+  if (args->beVerbose)
     fprintf(stderr, " 5) Writing the output.\n");
 
   u32bit  style = 0;
   u32bit  lastS = 0;
 
-  if (includeDefLine)  style += 1;
-  if (includeMer)      style += 2;
+  if (args->includeDefLine)  style += 1;
+  if (args->includeMer)      style += 2;
 
-  if (outputCount) {
+  if (args->outputCount) {
     switch (style) {
     case 0:
       for (u32bit i=0; i<_mersLen; i++) {
@@ -322,7 +316,7 @@ scan(char   *queryFile,
 
 
 
-  if (outputAll) {
+  if (args->outputAll) {
     u32bit thisMer = 0;  //  mer in the list
     u32bit thisPos = 0;  //  position in the current sequence
     u32bit thisSeq = 0;
@@ -384,7 +378,7 @@ scan(char   *queryFile,
   
 
 
-  if (outputPosition) {
+  if (args->outputPosition) {
     switch (style) {
     case 0:
       for (u32bit i=0; i<_mersLen; i++) {

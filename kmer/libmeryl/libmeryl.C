@@ -23,7 +23,7 @@ merStreamFromMeryl::merStreamFromMeryl(const char *prefix, u32bit merSize) {
   _mcd.read(_DAT);
 
   if ((merSize > 0) && (merSize != _mcd._merSizeInBases)) {
-    fprintf(stderr, "ERROR:  User requested mersize=%u but '%s' is mersize=%u\n",
+    fprintf(stderr, "ERROR:  User requested mersize="u32bitFMT" but '%s' is mersize="u32bitFMT"\n",
             merSize, prefix, _mcd._merSizeInBases);
     exit(1);
   }

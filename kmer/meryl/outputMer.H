@@ -6,7 +6,7 @@
 
 void
 outputMer(bitPackedFileWriter *DAT,
-          mcDescription&       mcd,
+          mcDescription       *mcd,
           u64bit               prefix,
           u64bit               check,
           u32bit               count);
