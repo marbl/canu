@@ -28,13 +28,13 @@ int   isHuman(FILE *F);
 //  the test main() in mmap.c fails.
 //
 void*
-mapFile(char     *filename,
-        size_t   *length,
-        char      mode);
+mapFile(const char *filename,
+        size_t     *length,
+        char        mode);
 
 void
-unmapFile(void   *addr,
-          size_t  length);
+unmapFile(void     *addr,
+          size_t    length);
 
 #ifdef __cplusplus
 }

@@ -47,7 +47,7 @@ unsigned long __sbrk_override = 1;  //  See malloc(3) for details.
 
 
 void*
-mapFile(char *filename, size_t *length, char mode) {
+mapFile(const char *filename, size_t *length, char mode) {
   void        *ptr = 0L;
   struct stat  sb;
   int          f;

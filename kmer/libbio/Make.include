@@ -42,7 +42,7 @@ $/libbri.a: ${$/.C_SRCS:.c=.o} ${$/.CXX_SRCS:.C=.o} $/alphabet.o $/buildinfo-lib
 $/buildinfo-libbri.c: $/buildinfo-libbri.h
 $/buildinfo-libbri.h: ${src}
 	${UTIL/}buildinfo.pl libbri "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
-	mv buildinfo-libbri.[ch] `dirname $@`
+	[ `dirname $@` = "." ] || mv buildinfo-libbri.[ch] `dirname $@`
 
 $/alphabet.c: $/alphabet.h
 $/alphabet.h:  $/alphabet-generate.c

@@ -42,10 +42,13 @@ off_t     stat_getSize(stat_s *sb);
 
 //  Convenience functions
 //
-int   fileExists(char *path);
-off_t sizeOfFile(char *path);
-int   fileIsDirectory(char *path);
-int   fileIsRegular(char *path);
+int   fileExists(const char *path);
+off_t sizeOfFile(const char *path);
+
+#if 0
+int   fileIsDirectory(const char *path);
+int   fileIsRegular(const char *path);
+#endif
 
 #ifdef __cplusplus
 }

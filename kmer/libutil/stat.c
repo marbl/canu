@@ -161,7 +161,7 @@ off_t     stat_getSize(stat_s *sb) {
 
 
 int
-fileExists(char *path) {
+fileExists(const char *path) {
   stat_s  s;
   int     r;
 
@@ -174,7 +174,7 @@ fileExists(char *path) {
 
 
 off_t
-sizeOfFile(char *path) {
+sizeOfFile(const char *path) {
   struct stat s;
 
   stat_onPath(path, &s);
