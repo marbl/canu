@@ -42,7 +42,7 @@
 */
 
 #include "mt19937ar.h"
-#include <stdio.h>
+
 #include <stdlib.h>
 
 
@@ -64,10 +64,8 @@
 mt_s*
 init_genrand(u32bit s) {
   mt_s *ctx = (mt_s *)malloc(sizeof(mt_s));
-  if (ctx == NULL) {
-    fprintf(stderr, "mersenneTwister()-- failed to allocate context.\n");
-    exit(1);
-  }
+  if (ctx == NULL)
+    return(NULL);
 
   ctx->mt[0] = s;
 
@@ -162,34 +160,42 @@ genrand_int32(mt_s *ctx) {
 }
 
 
-#if 0
 
-//  The MD5 checksum of the correct output is
-//    cb33e6acc162cbe20f7fcac26adddd02
-//  and it is 22465 bytes long.
 
-int main(void) {
-    int i;
-    u32bit init[4] = {0x123, 0x234, 0x345, 0x456};
-    u32bit length  = 4;
-    mt_s *ctx = init_by_array(init, length);
 
-    printf("1000 outputs of genrand_int32()\n");
 
-    for (i=0; i<1000; i++) {
-      printf("%10lu ", genrand_int32(ctx));
-      if (i%5==4) printf("\n");
-    }
 
-    printf("\n1000 outputs of genrand_real2()\n");
-
-    for (i=0; i<1000; i++) {
-      printf("%10.8f ", genrand_real2(ctx));
-      if (i%5==4) printf("\n");
-    }
-
-    return 0;
+/* generates a random number on [0,0x7fffffff]-interval */
+s32bit
+genrand_int31(mt_s *mt) {
+  return (s32bit)(genrand_int32(mt) >> 1);
 }
 
+/* generates a random number on [0,1]-real-interval */
+double
+genrand_real1(mt_s *mt) {
+    return genrand_int32(mt)*(1.0/4294967295.0); 
+    /* divided by 2^32-1 */ 
+}
 
-#endif
+/* generates a random number on [0,1)-real-interval */
+double
+genrand_real2(mt_s *mt) {
+    return genrand_int32(mt)*(1.0/4294967296.0); 
+}
+
+/* generates a random number on (0,1)-real-interval */
+double
+genrand_real3(mt_s *mt) {
+    return (((double)genrand_int32(mt)) + 0.5)*(1.0/4294967296.0); 
+}
+
+/* generates a random number on [0,1) with 53-bit resolution*/
+double
+genrand_res53(mt_s *mt) { 
+    u32bit a = genrand_int32(mt) >> 5;
+    u32bit b = genrand_int32(mt) >> 6; 
+    return(a * 67108864.0 + b) * (1.0/9007199254740992.0); 
+} 
+/* These real versions are due to Isaku Wada, 2002/01/09 added */
+
