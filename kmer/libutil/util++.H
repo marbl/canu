@@ -135,108 +135,6 @@ private:
 
 
 inline
-void
-readBuffer::fillBuffer(void) {
-
-  _bufferPos = 0;
-  errno = 0;
-  _bufferLen = (u32bit)::read(_file, _buffer, _bufferMax * sizeof(char));
-  if (errno) {
-    fprintf(stderr, "readBuffer()-- couldn't read %d bytes from '%s'\n%s\n",
-            (int)(_bufferMax * sizeof(char)), _filename, strerror(errno));
-    exit(1);
-  }
-  if (_bufferLen == 0)
-    _eof = true;
-}
-
-
-inline
-void
-readBuffer::init(int fileptr, const char *filename, u32bit bufferMax) {
-
-  _filename  = new char [strlen(filename) + 1];
-  strcpy(_filename, filename);
-
-  if (bufferMax == 0) {
-    _file        = 0;
-    _fileType    = 2;
-    _filePos     = 0;
-    _eof         = false;
-    _bufferPos   = 0;
-    _bufferLen   = 0;
-    _bufferMax   = 0;
-    _buffer      = (char *)mapFile(_filename, &_bufferLen, 'r');
-  } else {
-    if (fileptr == -1) {
-      _fileType = 1;
-      errno = 0;
-      fileptr = open(filename, O_RDONLY | O_LARGEFILE);
-      if (errno) {
-        fprintf(stderr, "readBuffer()-- ERROR: couldn't open the file '%s'.\n%s\n",
-                filename, strerror(errno));
-        exit(1);
-      }
-    } else {
-      _fileType    = 0;
-    }
-    _file        = fileptr;
-    _filePos     = 0;
-    _eof         = false;
-    _bufferPos   = 0;          //  Position we are at in the buffer
-    _bufferLen   = 0;          //  Valid length of the buffer
-    _bufferMax   = bufferMax;  //  Maximum size of the buffer
-    _buffer      = new char [_bufferMax];
-
-    fillBuffer();
-  }
-}
-
-
-inline
-readBuffer::readBuffer(const char *filename, u32bit bufferMax) {
-  init(-1, filename, bufferMax);
-}
-
-
-inline
-readBuffer::readBuffer(int fileptr, const char *filename, u32bit bufferMax) {
-  if (bufferMax == 0) {
-    fprintf(stderr, "readBuffer::readBuffer()-- file '%s' requested memory mapped I/O on previously\n", filename);
-    fprintf(stderr, "readBuffer::readBuffer()-- opened file, but that's not allowed.  bufferMax reset to 32KB.\n");
-    bufferMax = 32 * 1024;
-  }
-  init(fileptr, filename, bufferMax);
-}
-
-
-inline
-readBuffer::~readBuffer() {
-
-  switch (_fileType) {
-    case 0:
-      delete [] _filename;
-      delete [] _buffer;
-      break;
-    case 1:
-      delete [] _filename;
-      delete [] _buffer;
-      errno = 0;
-      close(_file);
-      if (errno) {
-        fprintf(stderr, "readBuffer()-- WARNING: couldn't close the file '%s'\n%s\n",
-                _filename, strerror(errno));
-      }
-      break;
-    case 2:
-      delete [] _filename;
-      unmapFile(_buffer, _bufferLen);
-      break;
-  }
-}
-
-
-inline
 bool
 readBuffer::eof(void) {
   return(_eof);
@@ -287,116 +185,6 @@ readBuffer::getnext(void) {
 
 
 inline
-void
-readBuffer::seek(off_t pos) {
-
-  switch(_fileType) {
-    case 0:
-      fprintf(stderr, "readBuffer()-- seek() not available for file '%s'.\n", _filename);
-      break;
-    case 1:
-      errno = 0;
-      lseek(_file, pos, SEEK_SET);
-      if (errno) {
-        fprintf(stderr, "readBuffer()-- '%s' couldn't seek to position "s64bitFMT".\n%s\n",
-                _filename, pos, strerror(errno));
-        exit(1);
-      }
-
-      _filePos = pos;
-      _eof     = false;
-
-      //  We really do need to do a fillBuffer() here.  If the next
-      //  operation is a get() we should return something valid.
-      //
-      //  Of course, we could put a check into get() to see if bufferPos
-      //  is valid, but I don't want the overhead on EVERY get().
-      //
-      fillBuffer();
-      break;
-    case 2:
-      if (pos < _bufferLen) {
-        _bufferPos = pos;
-        _eof       = false;
-      } else {
-        _eof       = true;
-      }
-      break;
-  }
-}
-
-
-inline
-size_t
-readBuffer::read(char *buf, size_t len) {
-
-  if (_fileType == 2) {
-    size_t c = 0;
-
-    while ((_bufferPos < _bufferLen) && (c < len))
-      buf[c++] = _buffer[_bufferPos++];
-
-    return(c);
-  } else {
-    //  The trick here is to use the existing buffered input first,
-    //  then do a direct read to get the rest.
-    //
-    //  We fill the buffer again if it is empty.
-    //
-    //  The number of bytes actually put into buf is returned.
-      
-    size_t   bCopied = 0;   //  Number of bytes copied into the buffer
-    size_t   bRead   = 0;   //  Number of bytes read into the buffer
-    size_t   bAct    = 0;   //  Number of bytes actually read from disk
-
-    //  Easy case; the next len bytes are already in the buffer; just
-    //  copy and move the position.
-    //
-    //  XXX:  Check the zero-left-in-buffer case
-    //
-    if (_bufferLen - _bufferPos > len) {
-      bCopied = len;
-      bRead   = 0;
-
-      memcpy(buf, _buffer + _bufferPos, sizeof(char) * len);
-      _bufferPos += (u32bit)len;
-    } else {
-
-      //  Existing buffer not big enough.  Copy what's there, then finish
-      //  with a read.
-      //
-      memcpy(buf, _buffer + _bufferPos, (_bufferLen - _bufferPos) * sizeof(char));
-      bCopied    = _bufferLen - _bufferPos;
-      _bufferPos = _bufferLen;
-
-      while (bCopied + bRead < len) {
-        errno = 0;
-        bAct = (u32bit)::read(_file, buf + bCopied + bRead, (len - bCopied - bRead) * sizeof(char));
-        if (errno) {
-          fprintf(stderr, "readBuffer()-- couldn't read %d bytes from '%s'\n%s\n",
-                  len * sizeof(char), _filename, strerror(errno));
-          exit(1);
-        }
-        if (bAct == 0) {
-          fprintf(stderr, "readBuffer()-- EOF hit while reading %d bytes from '%s'\n%s\n",
-                  len * sizeof(char), _filename, strerror(errno));
-          exit(1);
-        }
-        bRead += bAct;
-      }
-    }
-
-    if (_bufferPos == _bufferLen)
-      fillBuffer();
-
-    //fprintf(stdout, "bCopied = %d  bRead = %d\n", bCopied, bRead);
-
-    return(bCopied + bRead);
-  }
-}
-
-
-inline
 off_t
 readBuffer::tell(void) {
 
@@ -439,10 +227,6 @@ public:
     _arg      = new char * [cmdWords];
     _argWords = 0;
 
-#ifdef DEBUG
-    fprintf(stderr, "splitToWords()-- found %u characters.\n", cmdChars);
-    fprintf(stderr, "splitToWords()-- found %u potential words.\n", cmdWords);
-#endif
 
     //  Step One:
     //
@@ -484,10 +268,6 @@ public:
     //
     *cmdO           = 0;
     _arg[_argWords] = 0L;
-
-#ifdef DEBUG
-    fprintf(stderr, "splitToWords()-- found %u words.\n", _argWords);
-#endif
   };
 
   ~splitToWords() {
@@ -596,9 +376,9 @@ public:
   FastAstream(const char *filename) {
     if ((filename == 0L) ||
         ((filename[0] == '-') && (filename[1] == 0)))
-      _buffer = new readBuffer(fileno(stdin), "stdin");
+      _rb = new readBuffer(fileno(stdin), "stdin");
     else
-      _buffer = new readBuffer(filename);
+      _rb = new readBuffer(filename);
 
     _thePosition       = 0;
     _theSequenceNumber = 0;
@@ -609,7 +389,7 @@ public:
   };
 
   ~FastAstream() {
-    delete    _buffer;
+    delete    _rb;
     delete [] _theDefLine;
   };
 
@@ -625,7 +405,7 @@ public:
     return(_theDefLine);
   };
 private:
-  readBuffer  *_buffer;
+  readBuffer  *_rb;
 
   u64bit       _thePosition;
   u64bit       _theSequenceNumber;
@@ -643,16 +423,16 @@ FastAstream::nextSymbol(void) {
 
   //  Grab the next character
   //
-  nc = (unsigned char)_buffer->getnext();
+  nc = (unsigned char)_rb->getnext();
 
   //  Skip any whitespace
   //
-  while (isspace(nc) && !_buffer->eof())
-    nc = (unsigned char)_buffer->getnext();
+  while (isspace(nc) && !_rb->eof())
+    nc = (unsigned char)_rb->getnext();
 
   //  Are we at the EOF?
   //
-  if (_buffer->eof())
+  if (_rb->eof())
     return(0);
 
   //  Looks like we are in the sequence.  Increment the position.  If
@@ -677,8 +457,8 @@ FastAstream::nextSymbol(void) {
 
     _theDefLinePos = 0;
 
-    nc = (unsigned char)_buffer->getnext();
-    while ((nc != '\n') && (nc != '\r') && !_buffer->eof()) {
+    nc = (unsigned char)_rb->getnext();
+    while ((nc != '\n') && (nc != '\r') && !_rb->eof()) {
 
       //  More space?  Must be a monster defline!
       //
@@ -697,7 +477,7 @@ FastAstream::nextSymbol(void) {
       //
       _theDefLine[_theDefLinePos++] = nc;
 
-      nc = (unsigned char)_buffer->getnext();
+      nc = (unsigned char)_rb->getnext();
     }
 
     _theDefLine[_theDefLinePos] = 0;
@@ -715,15 +495,18 @@ FastAstream::nextSymbol(void) {
 
 ////////////////////////////////////////
 //
-//  merstream
+//  This is the merStream.  Given a file of sequence and deflines, or
+//  a string of sequence, it returns mers.
 //
-
-
+//  The file based merstream uses a fastastream to get sequence, and
+//  that doesn't care if there is whitespace or deflines in the
+//  stream.  It returns only valid sequence.
 //
-//  This is the string-based merStreamer.  It gets sequence from
-//  a character string.
+//  If the sequence/length method is used, we assume that 'seq'
+//  contains no whitespace, and no extra characters (e.g., deflines),
+//  just pure sequence.  It will work if you give it deflines and
+//  whitespcae, but positions will be wrong.
 //
-
 class merStream {
 public:
   merStream(u32bit merSize, const char *filename);
@@ -759,14 +542,42 @@ public:
 private:
   void               loadMer(u32bit s);
   char               nextSymbol(void) {
-    if (_theFile)
+    if (_theFile) {
       return(_theFile->nextSymbol());
-    else
-      return(_theSeq[_thePos++]);
+    } else {
+
+      //  Skip any whitespace
+      //
+      while (isspace(_theSeq[_theSeqPos]) && (_theSeqPos < _theLen))
+        _theSeqPos++;
+
+      //  Are we at a defline?  If so, zip along until we hit a
+      //  newline.  Then we return the code (fastastream) for a
+      //  sequence break.
+      //
+      if (_theSeq[_theSeqPos] == '>') {
+        while ((_theSeq[_theSeqPos] != '\n') && (_theSeqPos < _theLen))
+          _theSeqPos++;
+        _thePos = 0;
+        return(254);
+      }
+
+      //  Are we at the EOF?
+      //
+      if (_theSeqPos >= _theLen)
+        return(0);
+
+      //  Update the position of the character in this sequence.
+      //
+      _thePos++;
+
+      return(_theSeq[_theSeqPos++]);
+    }
   };
 
   FastAstream          *_theFile;
   char const           *_theSeq;
+  u32bit                _theSeqPos;
   u32bit                _theLen;
   u32bit                _thePos;
 
