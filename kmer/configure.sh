@@ -338,12 +338,12 @@ EOF
 esac
 
 cat <<EOF >> Make.compilers
-.EXE              :=
-.SO               :=.so
-.A                :=.a
-.O                :=.o
-CCLD              := \$(CC)
-CXXLD             := \$(CXX)
+.EXE              := 
+.SO               := .so
+.A                := .a
+.O                := .o
+CLD               := \${CC}
+CXXLD             := \${CXX}
 CCDEP		  := gcc -MM -MG
 CXXDEP	          := g++ -MM -MG
 CLIBS             += -lm
