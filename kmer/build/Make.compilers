@@ -312,35 +312,32 @@ endif
 PYTHON    :=$(shell which python)
 PYTHON_FLAGS :=
 PYINC     :=
-PYSHEBANG :=${PYTHON}
 ifeq (${_OS_}${_CC_},TRU64)
   PYINC     :=-I/usr/local/ir/Python-2.2.2 -I/usr/local/ir/Python-2.2.2/Include
   PYTHON    :=/usr/local/ir/bin/python
-  PYSHEBANG :=${PYTHON} ${PYTHON_FLAGS}
 endif
 ifeq (${_OS_}${_CC_},AIX)
   PYINC   :=-I/usr/local/include/python2.2
   PYTHON  :=/usr/local/bin/python
-  PYSHEBANG :=${PYTHON} ${PYTHON_FLAGS}
 endif
 ifeq (${_OS_},cygwin)
   PYINC   :=-I/usr/include/python2.3
   # PYTHON  :=/usr/bin/python
-  # PYSHEBANG :=${PYTHON} ${PYTHON_FLAGS}
 endif
 
 ## where is perl?
 PERL:=$(shell which perl)
 PERL_FLAGS:=
-PERLSHEBANG  :=${PERL}
 ifeq (${_OS_},TRU64)
   PERL  :=/usr/local/bin/perl
-  PERLSHEBANG  :=${PERL} ${PERL_FLAGS}
 endif
 ifeq (${_OS_},AIX)
   PERL  :=/usr/local/bin/perl5.6.1
-  PERLSHEBANG  :=${PERL} ${PERL_FLAGS}
 endif
+
+## where is sh?
+SH:=${SHELL}   # gmake should define where sh is
+SH_FLAGS:=
 
 ## tex stuff
 -LATEX :=
