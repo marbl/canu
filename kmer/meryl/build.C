@@ -11,18 +11,6 @@ static mcDescription   mcd;
 u64bit     *_chck;
 u64bit     *_hash;
 
-//  Stuff for sorting the list of mers.
-//
-//  This used to be u32bit, as the check shouldn't be more than 32
-//  bits but it could.
-//
-typedef u64bit heapbit;
-
-////////////////////////////////////////////////////////////////////////////////
-//
-//  BUILD
-//
-//
 
 void
 createHashTable(char *inputFile,
@@ -42,13 +30,6 @@ createHashTable(char *inputFile,
   if (beVerbose)
     fprintf(stderr, " 1) Counting mers in buckets.\n");
 
-  //
-  //  XXX:  Huge stalls accessing _ctbl.
-  //
-  //  I think we can get by with 24 bits of count here; the fragstore
-  //  seems to have only 9 million mers in the first bucket.  Should
-  //  probably check for overflow, though.
-  //  
   merStream          M(mcd._merSizeInBases, inputFile);
   speedCounter       C("    %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, beVerbose);
 
@@ -69,8 +50,6 @@ createHashTable(char *inputFile,
       mcd._actualNumberOfMers++;
       C.tick();
     }
-
-    //fprintf(stderr, "F=0x%016lx R=0x%016lx\n", M.theFMer(), M.theRMer());
   }
 
   if (beVerbose)
@@ -141,29 +120,19 @@ createHashTable(char *inputFile,
   if (beVerbose)
     fprintf(stderr, " 4) Releasing counting table.\n");
   delete [] _ctbl;
-}
 
 
-void
-verifyHashTable(void) {
-  u64bit i=0, j=0, c=0, d=0;
-
-  //fprintf(stderr, "    Verifying hash table.\n");
-
-  while (i <= mcd._tableSizeInEntries) {
+#if DEBUG
+  //  Verify that the bucket table is constructed properly
+  //
+  for (u64bit i=0, j=0, c=0, d=0; i <= mcd._tableSizeInEntries; d=c, j += mcd._hashWidth, i++) {
     c = getDecodedValue(_hash, j, mcd._hashWidth);
-
     if (c < d)
       fprintf(stderr, "ERROR:  Table["u32bitFMT"] out of order.\n", i);
-
-    d = c;
-
-    j += mcd._hashWidth;
-    i++;
   }
-
-  //fprintf(stderr, "    Verify finished.\n");
+#endif
 }
+
 
 
 void
@@ -215,8 +184,8 @@ fillCheckTable(char *inputFile,
       C.tick();
     }
 
-    //  this is here so that we have something to do while we are stalling on
-    //  the cfp/crp stuff above
+    //  this is here so that we have something to do while we are
+    //  stalling on the cfp/crp stuff above, maybe.
     //
     moreMers = M.nextMer();
 
@@ -245,8 +214,8 @@ fillCheckTable(char *inputFile,
 //  OUTPUT
 //
 void
-adjustHeap(heapbit *M, s64bit i, s64bit n) {
-  heapbit   m = M[i];
+adjustHeap(u64bit *M, s64bit i, s64bit n) {
+  u64bit   m = M[i];
   s64bit    j = (i << 1) + 1;  //  let j be the left child
 
   while (j < n) {
@@ -271,13 +240,12 @@ sortAndOutput(char   *outfilename,
               u32bit  lowCount,
               u32bit  highCount,
               bool    beVerbose) {
-  u64bit m     = u64bitONE << mcd._tableSizeInBits;
-  u32bit count = 0;
-  u32bit items = 0;
-
-  heapbit *_sortedList    = 0L;
-  u32bit   _sortedListMax = 0;
-  u32bit   _sortedListLen = 0;
+  u64bit   m     = u64bitONE << mcd._tableSizeInBits;
+  u32bit   count = 0;
+  u32bit   items = 0;
+  u64bit  *sortedList    = 0L;
+  u32bit   sortedListMax = 0;
+  u32bit   sortedListLen = 0;
 
 
   if (beVerbose)
@@ -320,43 +288,43 @@ sortAndOutput(char   *outfilename,
     if (ed < st)
       fprintf(stderr, "ERROR: Bucket "u64bitFMT" ends before it starts!  start="u64bitFMT" end="u64bitFMT"\n", b, st, ed);
 
-    _sortedListLen = (u32bit)(ed - st);
+    sortedListLen = (u32bit)(ed - st);
 
     count = 0;
     items = 0;
 
-    if (_sortedListLen > 0) {
+    if (sortedListLen > 0) {
 
       //  Allocate more space, if we need to.
       //
-      if (_sortedListLen > _sortedListMax) {
-        delete [] _sortedList;
-        _sortedList    = new heapbit [_sortedListLen + 1];
-        _sortedListMax = _sortedListLen;
+      if (sortedListLen > sortedListMax) {
+        delete [] sortedList;
+        sortedList    = new u64bit [sortedListLen + 1];
+        sortedListMax = sortedListLen;
       }
 
       //  Unpack the check values
       //
       for (u64bit i=st, J=st*mcd._chckBits; i<ed; i++, J += mcd._chckBits)
-        _sortedList[i-st] = getDecodedValue(_chck, J, mcd._chckBits);
+        sortedList[i-st] = getDecodedValue(_chck, J, mcd._chckBits);
 
       //  Sort if there is more than one item
       //
-      if (_sortedListLen > 1) {
+      if (sortedListLen > 1) {
 
         //  Create the heap of lines.
         //
-        for (s64bit t=(_sortedListLen-2)/2; t>=0; t--)
-          adjustHeap(_sortedList, t, _sortedListLen);
+        for (s64bit t=(sortedListLen-2)/2; t>=0; t--)
+          adjustHeap(sortedList, t, sortedListLen);
 
         //  Interchange the new maximum with the element at the end of the tree
         //
-        for (s64bit t=_sortedListLen-1; t>0; t--) {
-          heapbit          tv = _sortedList[t];
-          _sortedList[t]      = _sortedList[0];
-          _sortedList[0]      = tv;
+        for (s64bit t=sortedListLen-1; t>0; t--) {
+          u64bit           tv = sortedList[t];
+          sortedList[t]      = sortedList[0];
+          sortedList[0]      = tv;
 
-          adjustHeap(_sortedList, 0, t);
+          adjustHeap(sortedList, 0, t);
         }
       }
 
@@ -365,11 +333,11 @@ sortAndOutput(char   *outfilename,
       //  know the count, output it.
       //
       count = 1;
-      if (_sortedListLen > 0) {
-        for (u32bit t=1; t<_sortedListLen; t++) {
-          if (_sortedList[t] != _sortedList[t-1]) {
+      if (sortedListLen > 0) {
+        for (u32bit t=1; t<sortedListLen; t++) {
+          if (sortedList[t] != sortedList[t-1]) {
             if ((lowCount <= count) && (count <= highCount)) {
-              outputMer(DAT, mcd, b, _sortedList[t-1], count);
+              outputMer(DAT, mcd, b, sortedList[t-1], count);
               items++;
             }
             count = 0;
@@ -379,7 +347,7 @@ sortAndOutput(char   *outfilename,
         }
 
         if ((lowCount <= count) && (count <= highCount)) {
-          outputMer(DAT, mcd, b, _sortedList[_sortedListLen-1], count);
+          outputMer(DAT, mcd, b, sortedList[sortedListLen-1], count);
           items++;
         }
       }
@@ -414,31 +382,27 @@ build(char   *inputFile,
       bool    doReverse,
       bool    doCanonical,
       bool    beVerbose) {
+  bool  fatalError = false;
 
-  if (inputFile == 0L) {
-    fprintf(stderr, "ERROR - no input file specified.\n");
-    exit(1);
-  }
+  if (inputFile == 0L)
+    fprintf(stderr, "ERROR - no input file specified.\n"), fatalError = true;
 
-  if (outputFile == 0L) {
-    fprintf(stderr, "ERROR - no output file specified.\n");
-    exit(1);
-  }
+  if (outputFile == 0L)
+    fprintf(stderr, "ERROR - no output file specified.\n"), fatalError = true;
 
   //  these should never happen, unles main() is broken.
-  if ((doForward == false) && (doReverse == false) && (doCanonical == false)) {
-    fprintf(stderr, "ERROR - need to specify at least one of -f, -r, -C\n");
-    exit(1);
-  }
-  if ((doForward && doReverse) || (doForward && doCanonical) || (doReverse && doCanonical)) {
-    fprintf(stderr, "ERROR - only one of -f, -r and -C may be specified!\n");
-    exit(1);
-  }
+  if ((doForward == false) && (doReverse == false) && (doCanonical == false))
+    fprintf(stderr, "ERROR - need to specify at least one of -f, -r, -C\n"), fatalError = true;
 
-  if (lowCount > highCount) {
-    fprintf(stderr, "ERROR - lowCount > highCount??\n");
+  if ((doForward && doReverse) || (doForward && doCanonical) || (doReverse && doCanonical))
+    fprintf(stderr, "ERROR - only one of -f, -r and -C may be specified!\n"), fatalError = true;
+
+  if (lowCount > highCount)
+    fprintf(stderr, "ERROR - lowCount > highCount??\n"), fatalError = true;
+
+  if (fatalError)
     exit(1);
-  }
+      
 
   mcd._merSizeInBases      = merSize;
   mcd._merSizeInBits       = mcd._merSizeInBases << 1;
@@ -447,11 +411,8 @@ build(char   *inputFile,
   //  It would appear that we need at least 2 bits in the table.
   //
   if (mcd._merSizeInBits < tblSize + 2) {
-    fprintf(stderr, "WARNING:  table is too big for the mer (mer is %u bits, table is %u bits).\n",
-            mcd._merSizeInBits, tblSize);
-    fprintf(stderr, "WARNING:  adjusting to table size (-t) of %u\n",
-            mcd._merSizeInBits - 2);
-
+    fprintf(stderr, "WARNING:  "u32bitFMT" bit table is too big for "u32bitFMT" bit mers.\n", tblSize, mcd._merSizeInBits);
+    fprintf(stderr, "WARNING:  adjusting table size (-t) to "u32bitFMT"\n", mcd._merSizeInBits - 2);
     tblSize = mcd._merSizeInBits - 2;
   }
 
@@ -472,7 +433,6 @@ build(char   *inputFile,
     mcd.print(stderr);
 
   createHashTable(inputFile, doForward, doReverse, doCanonical, beVerbose);
-  verifyHashTable();
   fillCheckTable(inputFile, doForward, doReverse, doCanonical, beVerbose);
   sortAndOutput(outputFile, lowCount, highCount, beVerbose);
 
