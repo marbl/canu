@@ -325,6 +325,7 @@ main(int argc, char **argv) {
   sim4params.setFindAllExons();
   sim4params.setMinCoverage(0.75);
   sim4params.setMinPercentExonIdentity(95);
+  sim4params.setIgnorePolyTails(false);
 
 
 #if 0
