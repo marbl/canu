@@ -50,31 +50,6 @@ mcBucket::readBucket(void) {
 
           moreBits = ((v & _firstBit) == u64bitZERO);
         }
-
-#if 0
-        v = _DAT->getBits(_chckBits + 1);
-        _bitsRead   += _chckBits + 1;
-        _counts[i]   =  v & _chckMask;
-
-        if ((v & _firstBit) == u64bitZERO) {
-          v = _DAT->getBits(_chckBits + 1);
-          _bitsRead   += _chckBits + 1;
-          _counts[i]  |=  (v & _chckMask) << _chckBits;
-
-          if ((v & _firstBit) == u64bitZERO) {
-            v = _DAT->getBits(_chckBits + 1);
-            _bitsRead   += _chckBits + 1;
-            _counts[i]  |=  (v & _chckMask) << (_chckBits + _chckBits);
-
-            if ((v & _firstBit) == u64bitZERO) {
-              v = _DAT->getBits(_chckBits + 1);
-              _bitsRead   += _chckBits + 1;
-              _counts[i]  |=  (v & _chckMask) << (_chckBits + _chckBits + _chckBits);
-            }
-          }
-        }
-#endif
-
       }
     }
   }

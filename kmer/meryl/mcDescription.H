@@ -64,12 +64,19 @@ public:
     fprintf(F, "tableSizeInBits    = %u\n", _tableSizeInBits);
     fprintf(F, "tableSizeInEntries = %lu\n", _tableSizeInEntries);
     fprintf(F, "chckBits           = %u\n", _chckBits);
+    fprintf(F, "chckMask           = 0x%016lx\n", _chckMask);
+    fprintf(F, "hashWidth          = %u\n", _hashWidth);
+    fprintf(F, "hashMask           = 0x%016lx\n", _hashMask);
+    fprintf(F, "actualNumberOfMers = %lu\n", _actualNumberOfMers);
 #else
     fprintf(F, "merSizeInBases     = %lu\n", _merSizeInBases);
     fprintf(F, "merSizeInBits      = %lu\n", _merSizeInBits);
     fprintf(F, "tableSizeInBits    = %lu\n", _tableSizeInBits);
     fprintf(F, "tableSizeInEntries = %llu\n", _tableSizeInEntries);
-    fprintf(F, "chckBits           = %lu\n", _chckBits);
+    fprintf(F, "chckMask           = 0x%016lx\n", _chckMask);
+    fprintf(F, "hashWidth          = %lu\n", _hashWidth);
+    fprintf(F, "hashMask           = 0x%016lx\n", _hashMask);
+    fprintf(F, "actualNumberOfMers = %llu\n", _actualNumberOfMers);
 #endif
   }
 };
