@@ -2,14 +2,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include "meryl.H"
-#include "mcBucket.H"
-#include "mcDescription.H"
 #include "libmeryl.H"
 
 
 void
 dumpThreshold(merylArgs *args) {
-  merStreamFromMeryl  *M = new merStreamFromMeryl(args->inputFile);
+  merylStreamReader   *M = new merylStreamReader(args->inputFile);
   char                 ms[33];
 
   while (M->nextMer()) {
@@ -28,7 +26,7 @@ dumpThreshold(merylArgs *args) {
 
 void
 countUnique(merylArgs *args) {
-  merStreamFromMeryl  *M = new merStreamFromMeryl(args->inputFile);
+  merylStreamReader   *M = new merylStreamReader(args->inputFile);
 
   u64bit numDistinct = 0;
   u64bit numUnique   = 0;
@@ -54,7 +52,7 @@ countUnique(merylArgs *args) {
 
 void
 plotHistogram(merylArgs *args) {
-  merStreamFromMeryl  *M = new merStreamFromMeryl(args->inputFile);
+  merylStreamReader   *M = new merylStreamReader(args->inputFile);
 
   u64bit   numMers     = 0;
   u64bit   numUnique   = 0;
@@ -101,7 +99,7 @@ plotHistogram(merylArgs *args) {
 
 void
 plotDistanceBetweenMers(merylArgs *args) {
-  merStreamFromMeryl  *M = new merStreamFromMeryl(args->inputFile);
+  merylStreamReader   *M = new merylStreamReader(args->inputFile);
   u32bit               hugeD = 16 * 1024 * 1024;
   u32bit              *D = new u32bit [hugeD];
 

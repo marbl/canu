@@ -3,12 +3,14 @@
 UTIL/       :=$(call MakePath,$/../util/)
 LIBBRI/     :=$(call MakePath,$/../libbri/)
 
-src     := $/args.C $/binaryOp.C \
+src     := $/args.C \
+           $/binaryOp.C \
            $/build.C \
-           $/build-3-output.C \
-           $/checkDescr.C $/dump.C $/estimate.C \
-           $/mcBucket.C $/mcBucket.H $/mcDescription.H $/merge.C $/meryl.C $/meryl.H \
-           $/outputMer.C $/outputMer.H $/scan.C $/unaryOp.C
+           $/dump.C \
+           $/estimate.C \
+           $/merge.C \
+           $/meryl.C $/meryl.H \
+           $/unaryOp.C
 src_C   := $(filter %.C,${src})
 
 $/.CXX_SRCS   := ${src_C} $/merle.C
@@ -17,7 +19,7 @@ $/.CXX_LIBS   := $/libmeryl.a
 $/.CLEAN      := $/*.o
 $/.REAL-CLEAN := $/buildinfo-*
 
-$/libmeryl.a    : $/libmeryl.o $/mcBucket.o
+$/libmeryl.a    : $/libmeryl.o
 $/merle         : $/buildinfo-merle.o $/merle.o
 $/meryl         : ${src_C:.C=.o} $/buildinfo-meryl.o $/libmeryl.a
 $/meryl $/merle : ${LIBBRI/}libbri.a

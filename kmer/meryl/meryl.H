@@ -1,9 +1,7 @@
 #ifndef MERYL_H
 #define MERYL_H
 
-#include "libbri.H"
-#include "mcBucket.H"
-#include "mcDescription.H"
+#include "libbritypes.h"
 
 #define PERSONALITY_MIN           0x01
 #define PERSONALITY_MINEXIST      0x02
@@ -95,13 +93,8 @@ u32bit
 optimalNumberOfBuckets(u32bit merSize,
                        u64bit numMers);
 
-bool
-checkSingleDescription(mcDescription *a, char *A,
-                       mcDescription *b, char *B);
-
 void estimate(merylArgs *args);
 void build(merylArgs *args);
-void scan(merylArgs *args);
 
 void multipleOperations(merylArgs *args);
 void binaryOperations(merylArgs *args);

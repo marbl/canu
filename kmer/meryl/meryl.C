@@ -1,5 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
+#include <string.h>
+
+#include "libbri.H"
 #include "meryl.H"
 
 int
@@ -10,11 +14,9 @@ main(int argc, char **argv) {
     case 'P':
       estimate(args);
       break;
+
     case 'B':
       build(args);
-      break;
-    case 'S':
-      scan(args);
       break;
 
     case 't':

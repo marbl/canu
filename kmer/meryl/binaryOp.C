@@ -2,23 +2,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include "meryl.H"
-#include "mcBucket.H"
-#include "mcDescription.H"
-#include "outputMer.H"
+#include "libmeryl.H"
 
 
-
-///////////////////////////////////////
-//
-//  Implements binary operations
-//    sub
-//    abs
-//
 void
 binaryOperations(merylArgs *args) {
 
   if (args->mergeFilesLen != 2) {
-    fprintf(stderr, "ERROR - must have exactly two files to use reduce!\n");
+    fprintf(stderr, "ERROR - must have exactly two files!\n");
     exit(1);
   }
   if (args->outputFile == 0L) {
@@ -33,245 +24,113 @@ binaryOperations(merylArgs *args) {
     exit(1);
   }
 
-  //  Open all the input files.
+  //  Open the input files, read in the first mer
   //
-  bitPackedFileReader   **IDX = new bitPackedFileReader* [args->mergeFilesLen];
-  bitPackedFileReader   **DAT = new bitPackedFileReader* [args->mergeFilesLen];
+  merylStreamReader *A = new merylStreamReader(args->mergeFiles[0]);
+  merylStreamReader *B = new merylStreamReader(args->mergeFiles[1]);
 
-  for (u32bit i=0; i<args->mergeFilesLen; i++) {
-    char *inpath = new char [strlen(args->mergeFiles[i]) + 17];
+  A->nextMer();
+  B->nextMer();
 
-    sprintf(inpath, "%s.mcidx", args->mergeFiles[i]);
-    IDX[i] = new bitPackedFileReader(inpath);
-
-    sprintf(inpath, "%s.mcdat", args->mergeFiles[i]);
-    DAT[i] = new bitPackedFileReader(inpath);
-
-    delete [] inpath;
-  }
-
-
-  //  Open the output file
+  //  Make sure that the mersizes agree, and pick a prefix size for
+  //  the output
   //
-  char *outpath = new char [strlen(args->outputFile) + 17];
-
-  sprintf(outpath, "%s.mcidx", args->outputFile);
-  bitPackedFileWriter   *oIDX = new bitPackedFileWriter(outpath);
-
-  sprintf(outpath, "%s.mcdat", args->outputFile);
-  bitPackedFileWriter   *oDAT = new bitPackedFileWriter(outpath);
-
-  delete [] outpath;
-
-
-  //  Read the parameters for each of the input files.  Check
-  //  that the input files are compatable.
-  //
-  mcDescription *mcd  = new mcDescription [args->mergeFilesLen];
-  for (u32bit i=0; i<args->mergeFilesLen; i++)
-    mcd[i].read(DAT[i]);
-
-  if (checkSingleDescription(mcd+0, args->mergeFiles[0], mcd+1, args->mergeFiles[1])) {
-    fprintf(stderr, "ERROR:  Files are not compatable.\n");
+  if (A->merSize() != B->merSize()) {
+    fprintf(stderr, "ERROR - mersizes are different!\n");
+    fprintf(stderr, "ERROR - mersize of '%s' is "u32bitFMT"\n", args->mergeFiles[0], A->merSize());
+    fprintf(stderr, "ERROR - mersize of '%s' is "u32bitFMT"\n", args->mergeFiles[1], B->merSize());
     exit(1);
   }
 
-  mcDescription  omcd(mcd[0]);
-
-
-  //  Determine the number of mers in all the input files, and
-  //  the number of bits needed in the hash table for these
-  //  mers.
+  //  Open the output file, using the larger of the two prefix sizes
   //
-#if 0
-  omcd._actualNumberOfMers = 0;
-  for (u32bit i=0; i<args->mergeFilesLen; i++)
-    omcd._actualNumberOfMers += mcd[i]._actualNumberOfMers;
+  merylStreamWriter *W = new merylStreamWriter(args->outputFile,
+                                               A->merSize(),
+                                               (A->prefixSize() > B->prefixSize()) ? A->prefixSize() : B->prefixSize());
 
-  omcd._hashWidth  = 1;
-  while ((omcd._actualNumberOfMers+1) > (u64bitONE << omcd._hashWidth))
-    omcd._hashWidth++;
 
+
+
+  //  SUB - report A - B
+  //  ABS - report the absolute difference between the two files
   //
-  //  XXX: if -H is given on the command line, override the setting of
-  //  hashWidth.
+  //  These two operations are very similar (SUB was derived from ABS), so
+  //  any bug found in one is probably in the other.
   //
-  //  Also needed in binaryOp
-  //
-  omcd._hashWidth = 20;
-#endif
+  u64bit  Amer = u64bitZERO;
+  u32bit  Acnt = u32bitZERO;
+  u64bit  Bmer = u64bitZERO;
+  u32bit  Bcnt = u32bitZERO;
 
+  switch (args->personality) {
+    case PERSONALITY_SUB:
+      while (A->validMer() || B->validMer()) {
+        Amer = A->theFMer();
+        Acnt = A->theCount();
+        Bmer = B->theFMer();
+        Bcnt = B->theCount();
 
-  //  Write the description to the output.
-  //
-  omcd.write(oDAT);
+        //  If the A stream is all out of mers, set Amer to be the
+        //  same as Bmer, and set Acnt to zero.  Similar for B.
+        //
+        if (!A->validMer()) {
+          Amer = Bmer;
+          Acnt = u32bitZERO;
+        }
+        if (!B->validMer()) {
+          Bmer = Amer;
+          Bcnt = u32bitZERO;
+        }
 
+        fprintf(stderr, "sub A="u64bitHEX" B="u64bitHEX"\n", Amer, Bmer);
 
-  //
-  //  Read buckets from each file, merging them into the output
-  //
-
-  //  Create buckets
-  //
-  mcBucket **B = new mcBucket* [args->mergeFilesLen];
-
-  for (u32bit i=0; i<args->mergeFilesLen; i++)
-    B[i] = new mcBucket(IDX[i], DAT[i], &mcd[i]);
-
-  u32bit   itemsWritten    =  u32bitZERO;
-  u64bit   maxBucket       = mcd[0]._tableSizeInEntries;
-
-  //  For each bucket, build and output the merged bucket.
-  //
-  for (u64bit b=0; b<maxBucket; b++) {
-
-    if ((args->beVerbose) && ((b & 0xfff) == 0)) {
-      fprintf(stderr, "Bucket "u64bitHEX"\r", b);
-      fflush(stderr);
-    }
-
-    //  We'll count the number of things we have written.
-    //
-    itemsWritten    =  u32bitZERO;
-
-    //  If the second bucket isn't the current bucket, there are no counts
-    //  to write.  We'll print a warning.
-    //
-    //  If both buckets are the current bucket, we have to subtract.
-    //
-    //  If only the first bucket is the current, we just dump it.
-    //
-    //  If neither bucket is the current, we do nothing until we get
-    //  to the current.
-
-    //  If the first bucketID is the current bucket, but the second isn't,
-    //  there is nothing to subtract, and we just need to write out the
-    //  first bucket.
-    //
-    if ((B[0]->_bucketID == b) && (B[1]->_bucketID != b)) {
-      for (u32bit i=0; i<B[0]->_items; i++) {
-        outputMer(oDAT, &mcd[0], b, B[0]->_checks[i], (u32bit)B[0]->_counts[i]);
-        itemsWritten++;
+        if (Amer == Bmer) {
+          W->addMer(Amer, (Acnt > Bcnt) ? Acnt - Bcnt : 0);
+          A->nextMer();
+          B->nextMer();
+        } else if (Amer < Bmer) {
+          W->addMer(Amer, Acnt);
+          A->nextMer();
+        } else {
+          B->nextMer();
+        }
       }
-    }
+      break;
+    case PERSONALITY_ABS:
+      while (A->validMer() || B->validMer()) {
+        Amer = A->theFMer();
+        Acnt = A->theCount();
+        Bmer = B->theFMer();
+        Bcnt = B->theCount();
 
-    //  Scream and should if the first bucket is not current, but the
-    //  second one is.
-    //
-    if ((B[0]->_bucketID != b) && (B[1]->_bucketID == b)) {
-      fprintf(stderr, "WARNING: Negative count for bck="u64bitHEX"; "u64bitFMT" mers with zero output!\n",
-              B[1]->_bucketID, B[1]->_items);
-    }
+        //  If the A stream is all out of mers, set Amer to be the
+        //  same as Bmer, and set Acnt to zero.  Similar for B.
+        //
+        if (!A->validMer()) {
+          Amer = Bmer;
+          Acnt = u32bitZERO;
+        }
+        if (!B->validMer()) {
+          Bmer = Amer;
+          Bcnt = u32bitZERO;
+        }
 
-    //  If the buckets are the same, we need to subtract the counts.
-    //
-    if ((B[0]->_bucketID == b) && (B[1]->_bucketID == b)) {
-
-      //  The size of each bucket can be different, and we're probably
-      //  not going to get the same mers in each.
-      //
-      u32bit pos1 = 0;
-      u32bit pos2 = 0;
-
-      while ((pos1 < B[0]->_items) && (pos2 < B[1]->_items)) {
-
-
-          switch (args->personality) {
-            case PERSONALITY_SUB:
-              if        (B[0]->_checks[pos1] == B[1]->_checks[pos2]) {
-                if (B[0]->_counts[pos1] < B[1]->_counts[pos2]) {
-                  fprintf(stderr, "WARNING: Negative count for bck="u64bitHEX" chk="u64bitHEX", counts = "u64bitFMT" - "u64bitFMT"; zero output instead\n",
-                          B[0]->_bucketID, B[0]->_checks[pos1],
-                          B[0]->_counts[pos1], B[1]->_counts[pos2]);
-                  outputMer(oDAT, &mcd[0], b, B[0]->_checks[pos1], 0);
-                  itemsWritten++;
-                }
-                if (B[0]->_counts[pos1] > B[1]->_counts[pos2]) {
-                  outputMer(oDAT, &mcd[0], b, B[0]->_checks[pos1], (u32bit)B[0]->_counts[pos1] - (u32bit)B[1]->_counts[pos2]);
-                  itemsWritten++;
-                }
-                pos1++;
-                pos2++;
-              } else if (B[0]->_checks[pos1] < B[1]->_checks[pos2]) {
-                outputMer(oDAT, &mcd[0], b, B[0]->_checks[pos1], (u32bit)B[0]->_counts[pos1]);
-                itemsWritten++;
-                pos1++;
-              } else {
-                fprintf(stderr, "WARNING: Negative count for bck="u64bitHEX" chk="u64bitHEX", counts = "u64bitFMT" - "u64bitFMT"; zero output instead\n",
-                        B[0]->_bucketID, B[0]->_checks[pos1],
-                        B[0]->_counts[pos1], B[1]->_counts[pos2]);
-                outputMer(oDAT, &mcd[0], b, B[0]->_checks[pos1], u32bitZERO);
-                itemsWritten++;
-                pos2++;
-              }
-              break;
-            case PERSONALITY_ABS:
-              if        (B[0]->_checks[pos1] == B[1]->_checks[pos2]) {
-                if (B[0]->_counts[pos1] < B[1]->_counts[pos2]) {
-                  outputMer(oDAT, &mcd[0], b, B[0]->_checks[pos1], (u32bit)B[1]->_counts[pos2] - (u32bit)B[0]->_counts[pos1]);
-                  itemsWritten++;
-                }
-                if (B[0]->_counts[pos1] > B[1]->_counts[pos2]) {
-                  outputMer(oDAT, &mcd[0], b, B[0]->_checks[pos1], (u32bit)B[0]->_counts[pos1] - (u32bit)B[1]->_counts[pos2]);
-                  itemsWritten++;
-                }
-                pos1++;
-                pos2++;
-              } else if (B[0]->_checks[pos1] < B[1]->_checks[pos2]) {
-                outputMer(oDAT, &mcd[0], b, B[0]->_checks[pos1], (u32bit)B[0]->_counts[pos1]);
-                itemsWritten++;
-                pos1++;
-              } else {
-                outputMer(oDAT, &mcd[0], b, B[1]->_checks[pos2], (u32bit)B[1]->_counts[pos2]);
-                itemsWritten++;
-                pos2++;
-              }
-              break;
-#if 0
-            case PERSONALITY_MASK:
-              if        (B[0]->_checks[pos1] == B[1]->_checks[pos2]) {
-                outputMer(oDAT, &mcd[0], b, B[1]->_checks[pos2], (u32bit)B[1]->_counts[pos2]);
-                itemsWritten++;
-                pos1++;
-                pos2++;
-              } else if (B[0]->_checks[pos1] < B[1]->_checks[pos2]) {
-                pos1++;
-              } else {
-                pos2++;
-              }
-              break;
-#endif
-          }
+        if (Amer == Bmer) {
+          W->addMer(Amer, (Acnt > Bcnt) ? Acnt - Bcnt : Bcnt - Acnt);
+          A->nextMer();
+          B->nextMer();
+        } else if (Amer < Bmer) {
+          W->addMer(Amer, Acnt);
+          A->nextMer();
+        } else {
+          W->addMer(Bmer, Bcnt);
+          B->nextMer();
+        }
       }
-    }
-
-    //  write the number of entries
-    //
-    oIDX->putBits(itemsWritten, 32);
-
-    //  read the next set of buckets
-    //
-    if (B[0]->_bucketID == b)
-      B[0]->readBucket();
-
-    if (B[1]->_bucketID == b)
-      B[1]->readBucket();
+      break;
   }
 
-  for (u32bit i=0; i<args->mergeFilesLen; i++)
-    delete B[i];
-
-  delete [] B;
-
-  delete [] mcd;
-
-  delete oIDX;
-  delete oDAT;
-
-  for (u32bit i=0; i<args->mergeFilesLen; i++) {
-    delete IDX[i];
-    delete DAT[i];
-  }
-  delete [] IDX;
-  delete [] DAT;
+  delete A;
+  delete B;
+  delete W;
 }

@@ -3,10 +3,33 @@
 #include <string.h>
 #include "libbri.H"
 #include "meryl.H"
-#include "mcBucket.H"
-#include "mcDescription.H"
 
-static mcDescription mcd;
+
+
+#error  Obsolete!  This file is going to be turned into merylScanner
+
+
+
+"-S:  Given a table, and a list of mers, print the count for each mer.\n"
+"        -s tblprefix  (use these tables)\n"
+"        -q mers.fasta (get the list of mers from here; the query)"
+"\n"
+"        -o            (output file name)\n"
+"\n"
+"        -d            (include the defline in the output)\n"
+"        -e            (state the mer explicitly)\n"
+"\n"
+"        -c            (basic output; for each mer, just the count)\n"
+"        -p            (position output; for each mer, the position of the mer and the count)\n"
+"        -a            (count for every base)\n"
+"\n"
+"     -d and -e only apply to -c and -p\n"
+"     -a prints the count for every base, with deflines\n"
+"\n"
+"\n"
+
+
+
 
 int
 sortByMerHelper(const void *a, const void *b) {
@@ -67,39 +90,10 @@ scan(merylArgs *args) {
     exit(1);
   }
 
-  //  these should never happen, unles main() is broken.
-  if ((args->doForward == false) &&
-      (args->doReverse == false) &&
-      (args->doCanonical == false)) {
-    fprintf(stderr, "ERROR - need to specify at least one of -f, -r, -C\n");
-    exit(1);
-  }
-  if ((args->doForward && args->doReverse) ||
-      (args->doForward && args->doCanonical) ||
-      (args->doReverse && args->doCanonical)) {
-    fprintf(stderr, "ERROR - only one of -f, -r and -C may be specified!\n");
-    exit(1);
-  }
 
 
+  merylStreamReader  *R = new merylStreamReader(args->inputFile);
 
-  //  Open the counted sequence files
-  //
-  char *inpath = new char [strlen(args->inputFile) + 17];
-
-  sprintf(inpath, "%s.mcidx", args->inputFile);
-  bitPackedFileReader *IDX = new bitPackedFileReader(inpath);
-
-  sprintf(inpath, "%s.mcdat", args->inputFile);
-  bitPackedFileReader *DAT = new bitPackedFileReader(inpath);
-
-  delete [] inpath;
-
-
-  //
-  //  Read the parameters
-  //
-  mcd.read(DAT);
 
 
   //  Open the output file

@@ -69,23 +69,6 @@ const char *usagestring =
 "        -mergesegments  /path/prefix\n"
 "\n"
 "\n"
-"-S:  Given a table, and a list of mers, print the count for each mer.\n"
-"        -s tblprefix  (use these tables)\n"
-"        -q mers.fasta (get the list of mers from here; the query)"
-"\n"
-"        -o            (output file name)\n"
-"\n"
-"        -d            (include the defline in the output)\n"
-"        -e            (state the mer explicitly)\n"
-"\n"
-"        -c            (basic output; for each mer, just the count)\n"
-"        -p            (position output; for each mer, the position of the mer and the count)\n"
-"        -a            (count for every base)\n"
-"\n"
-"     -d and -e only apply to -c and -p\n"
-"     -a prints the count for every base, with deflines\n"
-"\n"
-"\n"
 "-M:  Given a list of tables, perform a math, logical or threshold operation.\n"
 "     Unless specified, all operations take any number of databases.\n"
 "\n"
@@ -142,7 +125,7 @@ const char *usagestring =
 
 void
 merylArgs::usage(void) {
-  fprintf(stderr, usagestring, execName, execName);
+  fprintf(stderr, usagestring, execName, execName, execName);
 }
 
 merylArgs::merylArgs(int argc, char **argv) {

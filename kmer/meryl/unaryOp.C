@@ -2,18 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include "meryl.H"
-#include "mcBucket.H"
-#include "mcDescription.H"
-#include "outputMer.H"
+#include "libmeryl.H"
 
 
-
-///////////////////////////////////////
-//
-//  Implements binary operations
-//    sub
-//    abs
-//
 void
 unaryOperations(merylArgs *args) {
 
@@ -35,102 +26,33 @@ unaryOperations(merylArgs *args) {
     exit(1);
   }
 
-  //  Open all the input files.
+  //  Open the input and output files -- we don't know the number
+  //  unique, distinct, and total until after the operation, so we
+  //  leave them zero.
   //
-  char *inpath = new char [strlen(args->mergeFiles[0]) + 17];
+  merylStreamReader   *R = new merylStreamReader(args->mergeFiles[0]);
+  merylStreamWriter   *W = new merylStreamWriter(args->outputFile, R->merSize(), R->prefixSize());
 
-  sprintf(inpath, "%s.mcidx", args->mergeFiles[0]);
-  bitPackedFileReader   *IDX = new bitPackedFileReader(inpath);
+  switch (args->personality) {
+    case PERSONALITY_LEQ:
+      while (R->nextMer())
+        if (R->theCount() <= args->desiredCount)
+          W->addMer(R->theFMer(), R->theCount());
+      break;
 
-  sprintf(inpath, "%s.mcdat", args->mergeFiles[0]);
-  bitPackedFileReader   *DAT = new bitPackedFileReader(inpath);
+    case PERSONALITY_GEQ:
+      while (R->nextMer())
+        if (R->theCount() >= args->desiredCount)
+          W->addMer(R->theFMer(), R->theCount());
+      break;
 
-  delete [] inpath;
-
-
-  //  Open the output file
-  //
-  char *outpath = new char [strlen(args->outputFile) + 17];
-
-  sprintf(outpath, "%s.mcidx", args->outputFile);
-  bitPackedFileWriter   *oIDX = new bitPackedFileWriter(outpath);
-
-  sprintf(outpath, "%s.mcdat", args->outputFile);
-  bitPackedFileWriter   *oDAT = new bitPackedFileWriter(outpath);
-
-  delete [] outpath;
-
-
-  //  Read the parameters for the input file, and write them into the output file.
-  //
-  mcDescription  mcd;
-  mcd.read(DAT);
-  mcd.write(oDAT);
-
-
-  //
-  //  Read buckets from each file, merging them into the output
-  //
-
-  //  Create buckets
-  //
-  mcBucket *B = new mcBucket(IDX, DAT, &mcd);
-
-  u32bit   itemsWritten    =  u32bitZERO;
-  u64bit   maxBucket       = mcd._tableSizeInEntries;
-
-  //  For each bucket, build and output the merged bucket.
-  //
-  for (u64bit b=0; b<maxBucket; b++) {
-
-    if ((args->beVerbose) && ((b & 0xfff) == 0)) {
-      fprintf(stderr, "Bucket "u64bitHEX"\r", b);
-      fflush(stderr);
-    }
-
-    //  We'll count the number of things we have written.
-    //
-    itemsWritten    =  u32bitZERO;
-
-    switch (args->personality) {
-      case PERSONALITY_LEQ:
-        for (u32bit pos=0; pos < B->_items; pos++) {
-          if (B->_counts[pos] <= args->desiredCount) {
-            outputMer(oDAT, &mcd, b, B->_checks[pos], (u32bit)B->_counts[pos]);
-            itemsWritten++;
-          }
-        }
-        break;
-      case PERSONALITY_GEQ:
-        for (u32bit pos=0; pos < B->_items; pos++) {
-          if (B->_counts[pos] >= args->desiredCount) {
-            outputMer(oDAT, &mcd, b, B->_checks[pos], (u32bit)B->_counts[pos]);
-            itemsWritten++;
-          }
-        }
-        break;
-      case PERSONALITY_EQ:
-        for (u32bit pos=0; pos < B->_items; pos++) {
-          if (B->_counts[pos] == args->desiredCount) {
-            outputMer(oDAT, &mcd, b, B->_checks[pos], (u32bit)B->_counts[pos]);
-            itemsWritten++;
-          }
-        }
-        break;
-    }
-
-    //  write the number of entries
-    //
-    oIDX->putBits(itemsWritten, 32);
-
-    //  read the next bucket
-    //
-    B->readBucket();
+    case PERSONALITY_EQ:
+      while (R->nextMer())
+        if (R->theCount() == args->desiredCount)
+          W->addMer(R->theFMer(), R->theCount());
+      break;
   }
 
-  delete B;
-  delete oIDX;
-  delete oDAT;
-  delete IDX;
-  delete DAT;
+  delete R;
+  delete W;
 }
