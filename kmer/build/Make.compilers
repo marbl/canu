@@ -88,8 +88,6 @@ ifeq (${_OS_}${_CC_}${_OPT_},TRU64-debug)
   CXXFLAGS_COMPILE         +=-g
 endif
 ifeq (${_OS_}${_CC_}${_OPT_},AIX-debug)
-  CFLAGS_COMPILE           +=-g
-  CXXFLAGS_COMPILE         +=-g
   CFLAGS_COMPILE           +=-g -qfullpath -qlinedebug
   CXXFLAGS_COMPILE         +=-g -qfullpath -qlinedebug
 endif
@@ -102,12 +100,10 @@ ifeq (${_OS_}${_CC_}${_OPT_},TRU64)
   CXXFLAGS_COMPILE         +=-g3 -fast
 endif
 ifeq (${_OS_}${_CC_}${_OPT_},AIX)
-  CFLAGS_COMPILE           +=-g
-  CXXFLAGS_COMPILE         +=-g
   CFLAGS_COMPILE           +=-O3 -qstrict
   CXXFLAGS_COMPILE         +=-O3 -qstrict
-  CLDFLAGS                 +=-O3 -qstrict
-  CXXLDFLAGS               +=-O3 -qstrict
+#  CLDFLAGS                 +=-O3 -qstrict
+#  CXXLDFLAGS               +=-O3 -qstrict
 endif
 
 # goofy AIX-ness for GCC
