@@ -332,8 +332,10 @@ private:
   void   exon_cores(char*,char*,int,int,int,int,int,int,int,int);
   Exon  *find_previous(Exon *,Exon *);
   bool   get_match_quality(Exon *,Exon *,sim4_stats_t *,int);
+#if 0
+  //  Dead code, 05 apr 2004, bpw
   void   check_consistency_intron_ori(Exon *,int,char *);
-
+#endif
 
   //  splice.h
   //

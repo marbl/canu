@@ -56,6 +56,10 @@ Sim4::complement_exons(Exon **left, int M, int N)
 }
 
 
+#if 0
+
+//  Dead code, 05 apr 2004, bpw
+
 void
 Sim4::check_consistency_intron_ori(Exon *exons, int match_ori, char *gene)
 {
@@ -90,7 +94,7 @@ Sim4::check_consistency_intron_ori(Exon *exons, int match_ori, char *gene)
   return;
 }
 
-
+#endif
 
 
 void
