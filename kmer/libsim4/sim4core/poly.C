@@ -202,7 +202,7 @@ Sim4::trim_polyA_align(struct edit_script_list **Sptr, Exon *lblock, Exon **exon
   }
   assert(i==bc-1);
 
-  while (tp->op_type!=SUBSTITUTE && j+1>=(*exons)->frGEN) {
+  while ((tp->op_type != SUBSTITUTE) && (j+1 >= (*exons)->frGEN) && (j > 0)) {
     if (tp->op_type==INSERT) {
       i -= tp->num;
       tmpi += tp->num;
@@ -437,8 +437,8 @@ Sim4::trim_polyT_align(struct edit_script_list **Sptr, Exon **exons, const int e
     /* indel walk */
   }
   assert(i==ec+1);
-     
-  while (tp->op_type!=SUBSTITUTE && j-1<=(*exons)->toGEN) {
+
+  while ((tp->op_type!=SUBSTITUTE) && (j-1<=(*exons)->toGEN) && (j > 0)) {
     if (tp->op_type==INSERT) {
       i += tp->num;
       tmpi += tp->num;
