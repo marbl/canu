@@ -1,0 +1,101 @@
+# -*- makefile -*-
+
+FASTA/      :=$(call MakePath,$/../fasta/)
+SEARCHGEN/  :=$(call MakePath,$/../searchGENOME/)
+SIM4DB/     :=$(call MakePath,$/../sim4db/)
+SIM4READER/ :=$(call MakePath,$/../sim4reader/)
+
+CP=cp -p
+RM=rm -f
+
+EXECS =   $/leaff \
+          $/sim4db \
+          $/searchGENOME \
+          $/filterEST \
+          $/filterMRNA \
+          $/sortHits \
+          $/cleanPolishes \
+          $/sortPolishes \
+          $/stripPolishes \
+          $/filterPolishes \
+          $/pickBestPolish \
+          $/mergeCounts \
+          $/parseSNP
+
+
+# $/.CXX_SRCS  := $/mergeCounts.C
+# $/.CXX_EXES  := $/mergeCounts
+
+$/mergeCounts: $/mergeCounts.o
+
+$/.CLEAN      := $/*.o
+$/.REAL-CLEAN := mergeCounts ${EXECS}
+
+# $/ESTmapper.pl: $/scripts/ESTmapper.pl
+# $/libBri.pm: $/scripts/libBri.pm
+# $/toXML.pl: $/scripts/toXML.pl
+# $/mergeXML.pl: $/scripts/mergeXML.pl
+# $/flattenXML.pl: $/scripts/flattenXML.pl
+
+
+all:  ${EXECS}
+
+$/leaff: ${FASTA/}leaff
+	$(RM) $/leaff
+	$(CP) ${FASTA/}leaff $/leaff
+	chmod 555 $/leaff
+
+$/sim4db: ${SIM4DB/}sim4db
+	$(RM) $/sim4db
+	$(CP) ${SIM4DB/}sim4db $/sim4db
+	chmod 555 $/sim4db
+
+$/searchGENOME: ${SEARCHGEN/}searchGENOME
+	$(RM) $/searchGENOME
+	$(CP) ${SEARCHGEN/}searchGENOME $/searchGENOME
+	chmod 555 $/searchGENOME
+
+$/filterEST: ${SEARCHGEN/}filterEST
+	$(RM) $/filterEST
+	$(CP) ${SEARCHGEN/}filterEST $/filterEST
+	chmod 555 $/filterEST
+
+$/filterMRNA: ${SEARCHGEN/}filterMRNA
+	$(RM) $/filterMRNA
+	$(CP) ${SEARCHGEN/}filterMRNA $/filterMRNA
+	chmod 555 $/filterMRNA
+
+$/sortHits: ${SEARCHGEN/}sortHits
+	$(RM) $/sortHits
+	$(CP) ${SEARCHGEN/}sortHits $/sortHits
+	chmod 555 $/sortHits
+
+$/cleanPolishes: ${SIM4READER/}cleanPolishes
+	$(RM) $/cleanPolishes
+	$(CP) ${SIM4READER/}cleanPolishes $/cleanPolishes
+	chmod 555 $/cleanPolishes
+
+$/sortPolishes: ${SIM4READER/}sortPolishes
+	$(RM) $/sortPolishes
+	$(CP) ${SIM4READER/}sortPolishes $/sortPolishes
+	chmod 555 $/sortPolishes
+
+$/parseSNP: ${SIM4READER/}parseSNP
+	$(RM) $/parseSNP
+	$(CP) ${SIM4READER/}parseSNP $/parseSNP
+	chmod 555 $/parseSNP
+
+$/stripPolishes: ${SIM4READER/}stripPolishes
+	$(RM) $/stripPolishes
+	$(CP) ${SIM4READER/}stripPolishes $/stripPolishes
+	chmod 555 $/stripPolishes
+
+$/filterPolishes: ${SIM4READER/}filterPolishes
+	$(RM) $/filterPolishes
+	$(CP) ${SIM4READER/}filterPolishes $/filterPolishes
+	chmod 555 $/filterPolishes
+
+$/pickBestPolish: ${SIM4READER/}pickBestPolish
+	$(RM) $/pickBestPolish
+	$(CP) ${SIM4READER/}pickBestPolish $/pickBestPolish
+	chmod 555 $/pickBestPolish
