@@ -1,0 +1,304 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "sim4command.H"
+
+
+
+//  Run a single EST against a genomic range
+//
+//  XXX: We should pull out the EST and GEN from the FastAFileWrapper,
+//  and store them as the "two char*" method.
+//
+sim4command::sim4command(u32bit            ESTid,
+                         FastAFileWrapper *ESTs,
+                         u32bit            GENid,
+                         u32bit            GENlo,
+                         u32bit            GENhi,
+                         FastAFileWrapper *GENs,
+                         bool              doForward,
+                         bool              doReverse) {
+  _ESTlistLen = 1;
+  _ESTlistMax = 1;
+  _ESTlist    = new u32bit [_ESTlistMax];
+  _ESTlist[0] = ESTid;
+
+  _genIdx = GENid;
+  _genLo  = GENlo;
+  _genHi  = GENhi;
+
+  _ESTs              = ESTs;
+  _ESTloaded         = 0L;
+  _ESTsequence       = 0L;
+  _ESTsequenceLength = 0;
+
+  _GENs              = GENs;
+  _GENloaded         = 0L;
+  _GENsequence       = 0L;
+  _GENsequenceLength = 0;
+
+  _doForward = doForward;
+  _doReverse = doReverse;
+
+  _strandIndicator = 0L;
+}
+
+
+sim4command::sim4command(FastASequenceInCore  *EST,
+                         FastASequenceInCore  *GEN,
+                         u32bit                GENlo,
+                         u32bit                GENhi,
+                         bool                  doForward,
+                         bool                  doReverse) {
+  _ESTlistLen = 1;
+  _ESTlistMax = 1;
+  _ESTlist    = new u32bit [_ESTlistMax];
+  _ESTlist[0] = EST->getIID();
+
+  _genIdx = GEN->getIID();
+  _genLo  = GENlo;
+  _genHi  = GENhi;
+
+  _ESTs              = 0L;
+  _ESTloaded         = EST;
+  _ESTsequence       = 0L;
+  _ESTsequenceLength = 0;
+
+  _GENs              = 0L;
+  _GENloaded         = GEN;
+  _GENsequence       = 0L;
+  _GENsequenceLength = 0;
+
+  _doForward = doForward;
+  _doReverse = doReverse;
+
+  _strandIndicator = 0L;
+}
+
+
+//  Set things up for a more-than-one-est run
+//
+#if 0
+sim4command::sim4command(FastAFileWrapper *ESTs,
+                         FastAFileWrapper *GENs) {
+  _ESTlistLen = 0;
+  _ESTlistMax = 4;
+  _ESTlist    = new u32bit [_ESTlistMax];
+
+  _genIdx = ~u32bitZERO;
+  _genLo  = ~u32bitZERO;
+  _genHi  = ~u32bitZERO;
+
+  _ESTs              = ESTs;
+  _ESTloaded         = 0L;
+  _ESTsequence       = 0L;
+  _ESTsequenceLength = 0;
+
+  _GENs              = GENs;
+  _GENloaded         = 0L;
+  _GENsequence       = 0L;
+  _GENsequenceLength = 0;
+
+  _doForward = false;
+  _doReverse = false;
+
+  _strandIndicator = 0L;
+}
+#endif
+
+
+
+//  Use two char*'s for sequence sources
+//
+sim4command::sim4command(char             *EST,
+                         u32bit            ESTlen,
+                         char             *GEN,
+                         u32bit            GENlen,
+                         u32bit            GENlo,
+                         u32bit            GENhi,
+                         bool              doForward,
+                         bool              doReverse) {
+  _ESTlistLen = 0;
+  _ESTlistMax = 0;
+  _ESTlist    = 0L;
+
+  _genIdx = 0;
+  _genLo  = GENlo;
+  _genHi  = GENhi;
+
+  _ESTs              = 0L;
+  _ESTloaded         = 0L;
+  _ESTsequence       = EST;
+  _ESTsequenceLength = ESTlen;
+
+  _GENs              = 0L;
+  _GENloaded         = 0L;
+  _GENsequence       = GEN;
+  _GENsequenceLength = GENlen;
+
+  _doForward = doForward;
+  _doReverse = doReverse;
+
+  _strandIndicator = 0L;
+}
+
+
+sim4command::~sim4command() {
+  delete [] _ESTlist;
+  if (_ESTs)
+    delete _ESTloaded;
+  if (_GENs)
+    delete _GENloaded;
+  delete [] _strandIndicator;
+}
+
+
+//  Make absolutely sure that the genomic sequence start and end
+//  positions are within the actual sequence.  Ideally, this should
+//  be checked by whatever generates the input, but it probably
+//  isn't.
+//
+//  If the end position is too big, make it the same as the sequence
+//  length.
+//
+//  If the start position is bigger than the (corrected) end
+//  position, make it 100K less than the end position.
+//
+//  This has the side-effect of loading the genomic sequence.
+//
+void
+sim4command::finalize(void) {
+
+  if (_genHi > getGENlength())
+    _genHi = getGENlength();
+
+  if (_genLo > _genHi)
+    if (_genHi > 100000)
+      _genLo = _genHi - 100000;
+    else
+      _genLo = 0;
+}
+
+
+
+void
+sim4command::addESTid(u32bit id) {
+
+  if ((_ESTs == 0L) || (_ESTlist == 0L)) {
+    fprintf(stderr, "ERROR: sim4commnd::addESTid()-- no FastAFileWrapper of ESTs to add to!\n");
+    exit(1);
+  }
+
+  if (_ESTlistLen >= _ESTlistMax) {
+    _ESTlistMax *= 2;
+    u32bit *newlist = new u32bit [_ESTlistMax];
+    memcpy(newlist, _ESTlist, sizeof(u32bit) * _ESTlistLen);
+    delete [] _ESTlist;
+    _ESTlist = newlist;
+  }
+
+  _ESTlist[_ESTlistLen++] = id;
+}
+
+
+
+
+//  get() routines have multple cases
+//
+//  if no fastafilewrapper, they can quickly return
+//  otherwise
+//  if nothing loaded or the thing loaded isn't right:
+//    delete the current
+//    load the correct
+//
+
+void
+sim4command::loadEST(u32bit i) {
+  if ((_ESTloaded == 0L) ||
+      (_ESTloaded->getIID() != i)) {
+    delete _ESTloaded;
+    if (_ESTs->find(i) == false) {
+      fprintf(stderr, "ERROR: Can't find IID %lu in the set of ESTs\n", i);
+      exit(1);
+    }
+    _ESTloaded = _ESTs->getSequence();
+  }
+}
+
+
+u32bit
+sim4command::getESTidx(u32bit i) {
+  if (_ESTsequence)
+    return(0);
+  return(_ESTlist[i]);
+}
+
+char*
+sim4command::getESTheader(u32bit i) {
+  //fprintf(stderr, "getESTheader--%d\n", i);
+  if (_ESTsequence)
+    return("anonymous cDNA sequence");
+  loadEST(_ESTlist[i]);
+  return(_ESTloaded->header());
+}
+
+char*
+sim4command::getESTsequence(u32bit i) {
+  //fprintf(stderr, "getESTsequence--%d\n", i);
+  if (_ESTsequence)
+    return(_ESTsequence);
+  loadEST(_ESTlist[i]);
+  return(_ESTloaded->sequence());
+}
+
+u32bit
+sim4command::getESTlength(u32bit i) {
+  //fprintf(stderr, "getESTlength--%d\n", i);
+  if (_ESTsequence)
+    return(_ESTsequenceLength);
+  loadEST(_ESTlist[i]);
+  return(_ESTloaded->sequenceLength());
+}
+
+
+
+
+
+void
+sim4command::loadGEN(void) {
+  if ((_GENloaded == 0L) ||
+      (_GENloaded->getIID() != _genIdx)) {
+    delete _GENloaded;
+    if (_GENs->find(_genIdx) == false) {
+      fprintf(stderr, "ERROR: Can't find IID %lu in the set of genomic sequences\n", _genIdx);
+      exit(1);
+    }
+    _GENloaded = _GENs->getSequence();
+  }
+}
+
+char*
+sim4command::getGENheader(void) {
+  if (_GENsequence)
+    return("anonymous genomic sequence");
+  loadGEN();
+  return(_GENloaded->header());
+}
+
+char*
+sim4command::getGENsequence(void) {
+  if (_GENsequence)
+    return(_GENsequence);
+  loadGEN();
+  return(_GENloaded->sequence());
+}
+
+u32bit
+sim4command::getGENlength(void) {
+  if (_GENsequence)
+    return(_GENsequenceLength);
+  loadGEN();
+  return(_GENloaded->sequenceLength());
+}
+
