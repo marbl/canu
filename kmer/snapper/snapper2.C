@@ -33,9 +33,6 @@ struct filterStats {
 };
 
 
-
-
-
 //  Shared data
 //
 configuration          config;
@@ -56,7 +53,6 @@ volatile u32bit        inputHead;
 volatile u32bit        inputTail;
 volatile u32bit        outputPos;
 char                  *threadStats[MAX_THREADS];
-
 
 
 void
@@ -122,9 +118,6 @@ buildPositionDB(void) {
 }
 
 
-
-
-
 void
 writeValidationFile(char *name, filterStats *theFilters, u32bit numFilters) {
 
@@ -167,7 +160,6 @@ writeValidationFile(char *name, filterStats *theFilters, u32bit numFilters) {
 #ifdef _AIX
 //  If we're AIX, define a new handler.  Other OS's reliably throw exceptions.
 //
-//  -qnewexecp
 static
 void
 aix_new_handler() {
@@ -191,8 +183,6 @@ main(int argc, char **argv) {
   std::set_new_handler(aix_new_handler);
 #endif
 
-
-
   //
   //  Read the configuration from the command line
   //
@@ -204,8 +194,6 @@ main(int argc, char **argv) {
   config.display();
 
   config._startTime = getTime();
-
-
 
   //
   //  Allocate some structures for doing a validation run.  This is
@@ -241,10 +229,6 @@ main(int argc, char **argv) {
     fprintf(stderr, "Created %u filters (out of %u available) to test/validate.\n", numFilters, maxFilters);
   }
 
-
-
-
-
   //
   //  Open and init the query sequence
   //
@@ -271,19 +255,6 @@ main(int argc, char **argv) {
     output[i]           = 0L;
   }
 
-
-
-
-
-#if 0
-  fprintf(stderr, "Sleeping a bit...before the loader\n");
-  sleep(2);
-  fprintf(stderr, "Sleeping a bit...before the loader - DONE\n");
-  junk = new double [1024*1024];
-  for (int i=0; i<1024*1024; i++)
-    junk[i] = 0;
-#endif
-
   //
   //  Open and init the genomic sequences.
   //
@@ -293,8 +264,6 @@ main(int argc, char **argv) {
   cache = new FastACache(config._dbFileName, 0, true);
 
   config._initTime = getTime();
-
-
 
   //
   //  Build the position database and any masking databases
@@ -317,7 +286,6 @@ main(int argc, char **argv) {
 
   config._buildTime = getTime();
 
-
   //
   //  Configure sim4
   //
@@ -326,15 +294,6 @@ main(int argc, char **argv) {
   sim4params.setMinCoverage(0.75);
   sim4params.setMinPercentExonIdentity(95);
   sim4params.setIgnorePolyTails(false);
-
-
-#if 0
-  junk = new double [1024*1024];
-  for (int i=0; i<1024*1024; i++)
-    junk[i] = 0;
-#endif
-
-
 
   //
   //  Initialize threads
@@ -350,12 +309,6 @@ main(int argc, char **argv) {
   pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_DETACHED);
   pthread_attr_setschedpolicy(&threadAttr, SCHED_OTHER);
 
-#if 0
-  double *junk = new double [1024*1024];
-  for (int i=0; i<1024*1024; i++)
-    junk[i] = 0;
-#endif
-
   //
   //  Start the deadlock detection threads
   //
@@ -365,48 +318,20 @@ main(int argc, char **argv) {
   pthread_create(threadID + threadIDX++, &threadAttr, deadlockChecker, 0L);
 #endif
 
-#if 0
-  fprintf(stderr, "Sleeping a bit...\n");
-  sleep(2);
-  junk = new double [1024*1024];
-  for (int i=0; i<1024*1024; i++)
-    junk[i] = 0;
-#endif
-
-
-
   //
   //  Start the loader thread
   //
   pthread_create(threadID + threadIDX++, &threadAttr, loaderThread, 0L);
 
-#if 0
-  fprintf(stderr, "Sleeping a bit...after the loader\n");
-  sleep(2);
-  junk = new double [1024*1024];
-  for (int i=0; i<1024*1024; i++)
-    junk[i] = 0;
-  fprintf(stderr, "Sleeping a bit...after the loader - DONE\n");
-#endif
-
-
 #ifdef MEMORY_DEBUG
   _dump_allocated_delta(fileno(stdout));
 #endif
-
 
   //
   //  Start the search threads
   //
   for (u64bit i=0; i<config._numSearchThreads; i++)
     pthread_create(threadID + threadIDX++, &threadAttr, searchThread, (void *)i);
-
-
-#if 0
-  junk = new double [1024*1024];
-  for (int i=0; i<1024*1024; i++)
-    junk[i] = 0;
-#endif
 
   //
   //  Open output files
@@ -423,7 +348,6 @@ main(int argc, char **argv) {
       exit(1);
     }
   }
-
 
   //
   //  Wait for threads to produce output
@@ -545,19 +469,10 @@ main(int argc, char **argv) {
 
   config._totalTime = getTime();
 
-
-
-
-
-
   //  Summarize the filter test results
   //
   if (config._doValidation)
     writeValidationFile(config._doValidationFileName, theFilters, numFilters);
-
-
-
-
 
   //  Write the stats
   //
