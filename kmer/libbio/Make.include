@@ -1,13 +1,7 @@
 # -*- makefile -*-
-ifndef UTIL/
-UTIL/ := $/../util/
-endif
 
-ifndef EXTERNAL/
-EXTERNAL/    := $/../external/
-endif
-
-# declarations
+UTIL/          :=$(call MakePath,$/../util/)
+EXTERNAL/      :=$(call MakePath,$/../external/)
 
 src    := $/alphabet.c $/bit-operations.H $/bit-packing.H $/bit-packing.C \
           $/bitPackedFile.C $/bitPackedFile.H $/fastastream.H \
@@ -22,16 +16,9 @@ $/.C_SRCS    :=$(filter %.c,${src})
 $/.CXX_SRCS  :=$(filter %.C,${src})
 $/.CXX_LIBS  :=$/libbri.a
 
-
 $/.CLEAN := $/*.o
 
-#  Don't remove alphabet.[ch] anymore; removing them screws up
-#  a make real-clean && make cycle
-#
-#$/.REAL-CLEAN :=$/buildinfo-* $/alphabet.[ch]
 $/.REAL-CLEAN :=$/buildinfo-*
-
-# extra rules
 
 $/reversecomplement.c.d: $/alphabet.h
 $/merstream.C.d: $/alphabet.h

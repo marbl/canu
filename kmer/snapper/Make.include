@@ -1,9 +1,9 @@
 # -*- makefile -*-
 
-UTIL/     :=$(call MakePath,$/../util/)
+UTIL/       :=$(call MakePath,$/../util/)
 EXISTDB/    :=$(call MakePath,$/../existDB/)
 POSITIONDB/ :=$(call MakePath,$/../positionDB/)
-MERYL/    :=$(call MakePath,$/../meryl/)
+MERYL/      :=$(call MakePath,$/../meryl/)
 LIBBRI/     :=$(call MakePath,$/../libbri/)
 FASTA/      :=$(call MakePath,$/../fasta/)
 SIM4/       :=$(call MakePath,$/../sim4/)
@@ -25,9 +25,6 @@ endif
 $/.CLEAN     :=$/*.o
 $/.REAL-CLEAN:=$/buildinfo-*
 
-# bug in target variables worked around with an eval
-#$/%:  CXXFLAGS+= -I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} \
-#            -I${SIM4/} -I${SIM4POLISH/} -I${EXISTDB/}
 $(eval $/%:  CXXFLAGS+= -I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} \
              -I${SIM4/} -I${SIM4POLISH/} -I${EXISTDB/})
 $/configuration.C.d: $/buildinfo-snapper2.h \

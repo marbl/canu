@@ -1,28 +1,11 @@
 # -*- makefile -*-
 
-ifndef UTIL/
-UTIL/ := $/../util/
-endif
-
-ifndef MERYL/
-MERYL/      := $/../meryl/
-endif
-
-ifndef LIBBRI/
-LIBBRI/     := $/../libbri/
-endif
-
-ifndef FASTA/
-FASTA/      := $/../fasta/
-endif
-
-ifndef POSITIONDB/
-POSITIONDB/ := $/../positionDB/
-endif
-
-ifndef EXISTDB/
-EXISTDB/    := $/../existDB/
-endif
+UTIL/       :=$(call MakePath,$/../util/)
+MERYL/      :=$(call MakePath,$/../meryl/)
+LIBBRI/     :=$(call MakePath,$/../libbri/)
+FASTA/      :=$(call MakePath,$/../fasta/)
+POSITIONDB/ :=$(call MakePath,$/../positionDB/)
+EXISTDB/    :=$(call MakePath,$/../existDB/)
 
 src      := $/seatac.C $/configuration.C $/encodedQuery.C \
             $/hitMatrix.C $/thr-search.C $/thr-loader.C $/thr-deadlock.C \
@@ -38,8 +21,6 @@ endif
 
 $/.CLEAN     :=$/*.o
 $/.REAL-CLEAN:=$/buildinfo-*
-
-
 
 $/%.d $/%.o: CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} -I${EXISTDB/}
 $/configuration.C.d:  $/buildinfo-seatac.h \

@@ -28,10 +28,10 @@ $/leaff.C.d: $/buildinfo-leaff.h $/buildinfo-libfasta.h ${LIBBRI/}buildinfo-libb
 $/libfasta.a    : \
     ${src_C:.C=.o} ${EXTERNAL/}md5lib/md5c.o $/buildinfo-libfasta.o
 
-$/leaff         : $/leaff.o  $/buildinfo-leaff.o  $/libfasta.a
-$/fragmenter    : $/fragmenter.o $/libfasta.a
-$/dumpBlocks    : $/dumpBlocks.o $/libfasta.a
-$/chainedSequence-test    : $/chainedSequence-test.o $/libfasta.a
+$/leaff                : $/leaff.o  $/buildinfo-leaff.o  $/libfasta.a
+$/fragmenter           : $/fragmenter.o $/libfasta.a
+$/dumpBlocks           : $/dumpBlocks.o $/libfasta.a
+$/chainedSequence-test : $/chainedSequence-test.o $/libfasta.a
 
 ${$/.CXX_EXES}:   ${LIBBRI/}libbri.a
 
@@ -45,10 +45,4 @@ $/buildinfo-libfasta.h: ${src}
 	${UTIL/}buildinfo.pl libfasta "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
 	[ `dirname $@` = "." ] || mv buildinfo-libfasta.[ch] `dirname $@`
 
-# bug in += target vars
-#$/%:  CXXFLAGS+=-I${LIBBRI/}
 $(eval $/%:  CXXFLAGS+=-I${LIBBRI/})
-
-
-
-

@@ -3,8 +3,8 @@
 MERYL/      :=$(call MakePath,$/../meryl/)
 LIBBRI/     :=$(call MakePath,$/../libbri/)
 FASTA/      :=$(call MakePath,$/../fasta/)
-POSITIONDB/     :=$(call MakePath,$/../positionDB/)
-EXISTDB/        :=$(call MakePath,$/../existDB/)
+POSITIONDB/ :=$(call MakePath,$/../positionDB/)
+EXISTDB/    :=$(call MakePath,$/../existDB/)
 
 src      := $/searchGENOME.C $/configuration.C $/encodedQuery.C \
             $/thr-search.C $/thr-loader.C $/thr-deadlock.C \
@@ -27,9 +27,6 @@ endif
 $/.CLEAN     :=$/*.o
 $/.REAL-CLEAN:=$/buildinfo-*
 
-
-# bug in += target vars
-# $/%: CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} -I${EXISTDB/}
 $(eval $/%: CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} -I${EXISTDB/})
 
 $/configuration.C.d:  $/buildinfo-searchGENOME.h \

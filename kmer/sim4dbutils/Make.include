@@ -18,14 +18,11 @@ $/.CXX_SRCS :=${filter %.C,${src}}
 obj_c := ${$/.C_SRCS:.c=.o} $/pickBestPolish-debug.o
 obj_C := ${$/.CXX_SRCS:.C=.o}
 
-  # always using c++ to link
+# always using c++ to link
 $/.CXX_EXES:= ${obj_C:.o=} ${obj_c:.o=}
 
 $/.CLEAN := $/*.o
 
-# bug in += target variables, fixed with wrapper
-#$/%:  CFLAGS+=-I${FASTA/} -I${SIM4POLISH/} -I${LIBBRI/}
-#$/%:  CXXFLAGS+=-I${FASTA/} -I${SIM4POLISH/} -I${LIBBRI/}
 $(eval $/%:  CFLAGS+=-I${FASTA/} -I${SIM4POLISH/} -I${LIBBRI/})
 $(eval $/%:  CXXFLAGS+=-I${FASTA/} -I${SIM4POLISH/} -I${LIBBRI/})
 

@@ -1,9 +1,9 @@
 # -*- makefile -*-
+
+UTIL/       :=$(call MakePath,$/../util/)
 LIBBRI/     :=$(call MakePath,$/../libbri/)
 FASTA/      :=$(call MakePath,$/../fasta/)
 SIM4POLISH/ :=$(call MakePath,$/../sim4polish/)
-UTIL/       :=$(call MakePath,$/../util/)
-
 
 src    := $/sim4command.C $/sim4parameters.C $/sim4string.C \
           $/Xtend1.C $/align.C $/exon.H $/exonManager.H $/exon_cores.C \
@@ -20,16 +20,12 @@ $/.CXX_LIBS := $/libsim4.a
 $/.CLEAN    := $/*.o
 $/.REAL-CLEAN  := $/buildinfo-*
 
-# extra rules
-
 $/libsim4.a: ${$/.CXX_SRCS:.C=.o} $/buildinfo-libsim4.o
 
-#bug in += target vars
-#$/%: CXXFLAGS += -I${FASTA/} -I${SIM4POLISH/} -I${LIBBRI/}
 $(eval $/%: CXXFLAGS += -I${FASTA/} -I${SIM4POLISH/} -I${LIBBRI/})
 
 $/buildinfo-libsim4.c: $/buildinfo-libsim4.h
 $/buildinfo-libsim4.h: ${src}
 	${UTIL/}buildinfo.pl libsim4 "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
-	mv buildinfo-libsim4.[ch] `dirname $@`
+	[ `dirname $@` = "." ] || mv buildinfo-sim4db.[ch] `dirname $@
 
