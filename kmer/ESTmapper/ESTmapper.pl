@@ -7,8 +7,9 @@
 $| = 1;
 
 use FindBin;
-use lib "$FindBin::Bin";
-use libBri;
+use lib "$FindBin::Bin/util";
+use scheduler;
+use fasta;
 
 use strict;
 
@@ -50,6 +51,7 @@ die "Can't find/execute $pickBest\n"      if (! -x $pickBest);
 require "util/checkArgs.pl";
 require "util/run.pl";
 require "util/lsf.pl";
+require "util/util.pl";
 require "util/1-configure.pl";
 require "util/2-search.pl";
 require "util/3-filter.pl";

@@ -8,7 +8,8 @@ SIM4READER/ :=$(call MakePath,$/../sim4reader/)
 CP=cp -p
 RM=rm -f
 
-EXECS =   $/libBri.pm \
+EXECS =   $/scheduler.pm \
+          $/fasta.pm \
           $/leaff \
           $/sim4db \
           $/searchGENOME \
@@ -20,7 +21,6 @@ EXECS =   $/libBri.pm \
           $/filterPolishes \
           $/pickBestPolish \
           $/parseSNP
-
 
 $/.CXX_SRCS  := $/mergeCounts.C
 $/.CXX_EXES  := $/mergeCounts
@@ -39,10 +39,15 @@ $/.REAL-CLEAN := mergeCounts ${EXECS}
 
 all:  mergeCounts ${EXECS}
 
-$/libBri.pm: ../scripts/libBri.pm
-	$(RM) $/libBri.pm
-	$(CP) ../scripts/libBri.pm $/libBri.pm
-	chmod 444 $/libBri.pm
+$/util/scheduler.pm: ../scripts/scheduler.pm
+	$(RM) $/util/scheduler.pm
+	$(CP) ../scripts/scheduler.pm $/util/scheduler.pm
+	chmod 444 $/util/scheduler.pm
+
+$/util/fasta.pm: ../scripts/fasta.pm
+	$(RM) $/util/fasta.pm
+	$(CP) ../scripts/fasta.pm $/util/fasta.pm
+	chmod 444 $/util/fasta.pm
 
 $/leaff: ${FASTA/}leaff
 	$(RM) $/leaff

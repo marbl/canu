@@ -199,10 +199,10 @@ sub assembleOutput {
         #  cDNA-good.fasta, cDNA-lowquality.fasta, cDNA-zero.fasta, cDNA-missing.fasta
         #
         print STDERR "ESTmapper/assembleOutput-- finding 'good' cDNA.\n";
-        &libBri::splitFastABasedOnPolishes("$path/0-input/cDNA.fasta",
-                                           "$path/polishes-good",
-                                           "$path/cDNA-good.fasta",
-                                           "$path/cDNA-lost.fasta");
+        splitFastABasedOnPolishes("$path/0-input/cDNA.fasta",
+                                  "$path/polishes-good",
+                                  "$path/cDNA-good.fasta",
+                                  "$path/cDNA-lost.fasta");
 
         if (-e "$path/2-filter/repeats") {
             print STDERR "ESTmapper/assembleOutput-- finding 'repeat' cDNA.\n";
@@ -213,18 +213,18 @@ sub assembleOutput {
         }
 
         print STDERR "ESTmapper/assembleOutput-- finding 'zero hit' cDNA.\n";
-        &libBri::copyZeroFastA("$path/0-input/cDNA.fasta",
-                               "$path/2-filter/hitCounts",
-                               "$path/cDNA-zero.fasta");
+        copyZeroFastA("$path/0-input/cDNA.fasta",
+                      "$path/2-filter/hitCounts",
+                      "$path/cDNA-zero.fasta");
 
         #  subtractFastAfromFastA checks for input file existance, so we need
         #  not worry that cDNA-repeat.fasta might not exist
         #
         print STDERR "ESTmapper/assembleOutput-- finding 'missing' cDNA.\n";
-        &libBri::subtractFastAfromFastA("$path/cDNA-lost.fasta",
-                                        "$path/cDNA-repeat.fasta",
-                                        "$path/cDNA-zero.fasta",
-                                        "$path/cDNA-missing.fasta");
+        subtractFastAfromFastA("$path/cDNA-lost.fasta",
+                               "$path/cDNA-repeat.fasta",
+                               "$path/cDNA-zero.fasta",
+                               "$path/cDNA-missing.fasta");
 
         #  Remove the temporary files
         #
@@ -241,7 +241,7 @@ sub assembleOutput {
         open(F, "> $path/summary");
 
         print STDERR "ESTmapper/assembleOutput-- counting 'good' matches.\n";
-        ($mat, $est, $scf) = &libBri::summarizePolishes("$path/polishes-good");
+        ($mat, $est, $scf) = summarizePolishes("$path/polishes-good");
         print F "GOOD: >= $mini% identity, >= $minc% composite, >= $minl bp\n"; 
         if ($mat > 0) {
             print F "cDNA-genomic matches  $mat matches ($est different cDNA and $scf genomic)\n";

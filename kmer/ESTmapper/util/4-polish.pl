@@ -236,15 +236,15 @@ sub polish {
             if (!defined($farmqueue)) {
                 print STDERR "ESTmapper/polish-- Running locally, $numproc at a time.\n";
 
-                &libBri::schedulerSetNumberOfProcesses($numproc);
-                &libBri::schedulerSetShowCommands(0);
-                &libBri::schedulerSetShowStatus(1);
+                &scheduler::schedulerSetNumberOfProcesses($numproc);
+                &scheduler::schedulerSetShowCommands(0);
+                &scheduler::schedulerSetShowStatus(1);
 
                 foreach my $cmd (@jobsToRun) {
-                    &libBri::schedulerSubmit($cmd);
+                    &scheduler::schedulerSubmit($cmd);
                 }
 
-                &libBri::schedulerFinish();
+                &scheduler::schedulerFinish();
 
                 unlink "$path/3-polish/run.sh";
             } else {

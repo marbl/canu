@@ -290,13 +290,13 @@ sub search {
             #  to the user, but much easier for the implementor.
             #
             if (scalar(@searchesToRun) > 0) {
-                &libBri::schedulerSetNumberOfProcesses($numproc);
-                &libBri::schedulerSetShowCommands(0);
-                &libBri::schedulerSetShowStatus(1);
+                &scheduler::schedulerSetNumberOfProcesses($numproc);
+                &scheduler::schedulerSetShowCommands(0);
+                &scheduler::schedulerSetShowStatus(1);
                 foreach my $s (@searchesToRun) {
-                    &libBri::schedulerSubmit("sh $s");
+                    &scheduler::schedulerSubmit("sh $s");
                 }
-                &libBri::schedulerFinish();
+                &scheduler::schedulerFinish();
 
                 #  See if anything failed.
                 #
