@@ -1,18 +1,45 @@
 # -*- makefile -*-
 
-############################################################
-# scripts and whatnot which are copied to share/
-############################################################
-define .RULE-install-copy-SHARES
-${1:.=.install-copy}: ${1:.=.install-copy-SHARES}
-${1:.=.install-copy-SHARES}:
-# all share files go to share/${.SHARE/}
-	$(call .FUN-install-copy,$${${1:.=.SHARES}}, \
-                                 share/$${${1:.=.SHARE/}})
 
+############################################################
+# useful functions for the install methods mentioned below
+############################################################
+# $(call .FUN-install-copy,file1 file2 file3,dir1/ dir2/)
+# copies whichever file exists into each of ${INSTALL/}dir
+# mkdir-ing as necessary.
+define .FUN-install-copy
+	@ files='$$(strip $1)'; dirs='$$(strip $2)'; \
+	if [ -n "$$$${files}" -a -n "$$$${dirs}" ] ; then \
+	  for F in $$$${files} ; do \
+	    if [ -e $$$${F} ] ; then \
+	      for D in $$$${dirs} ; do \
+	        Fout=$${INSTALL/}$$$${D}`basename $$$${F}` ; \
+	        echo ":Copying $$$${F} to $$$${Fout}:" ; \
+	        mkdir -p `dirname $$$${Fout}` && \
+	        cp -fp $$$${F} $$$${Fout} ; \
+	      done ; \
+	    fi ; \
+	  done ; \
+        fi
 endef
-$(eval $(foreach x,${//},$(call .RULE-install-copy-SHARES,$x)))
-
+# use this one for executable scripts with sheband  substitution
+define .FUN-install-copy-script
+	@ files='$$(strip $1)'; dirs='$$(strip $2)'; sheb='$$(strip $3)'; \
+	if [ -n "$$$${files}" -a -n "$$$${dirs}" ] ; then \
+	  for F in $$$${files} ; do \
+	    if [ -e $$$${F} ] ; then \
+	      for D in $$$${dirs} ; do \
+	        Fout=$${INSTALL/}$$$${D}`basename $$$${F}` ; \
+	        echo ":Mangling script $$$${F} to $$$${Fout}:" ; \
+	        mkdir -p `dirname $$$${Fout}` && \
+	        sed -e"s|#!.*|#! $$$${sheb}|" $$$${F} > $$$${Fout} && \
+	        chmod ugo+x $$$${Fout} ; \
+	      done ; \
+	    fi ; \
+	  done ; \
+        fi
+endef
+ 
 
 ############################################################
 # C and C++ stuff
@@ -55,6 +82,9 @@ ifeq ($(filter %-clean,${MAKECMDGOALS}),)
 endif
 
 ######  generic pattern rules for subgoals
+# don't want .o's getting deleted as intermediates
+.PRECIOUS: %.o
+
 %.o: %.c
 	${CC} ${CFLAGS} ${CFLAGS_COMPILE} -o $@ -c $<
 
@@ -137,6 +167,10 @@ $(eval $(foreach x,${//},$(call .RULE-install-copy-C-CXX-INCS,$x)))
 # latex and some ps/pdf stuff
 ############################################################
 
+# we don't want these intermediate files deleted when something
+# finishes getting built.
+.PRECIOUS: %.pdf %.ps %.dvi %.aux %.bbl
+
 %.dvi: %.tex
 	cd `dirname $<` && ${LATEX} `basename $<` && ${LATEX} `basename $<`
 
@@ -150,10 +184,10 @@ $(eval $(foreach x,${//},$(call .RULE-install-copy-C-CXX-INCS,$x)))
 ALL_TEX_PS    :=$(strip $(foreach x,${//},${${x:.=.TEX_PS}}))
 ALL_TEX_PDF   :=$(strip $(foreach x,${//},${${x:.=.TEX_PDF}}))
 
-${ALL_TEX_PS}: %.ps: %.dvi
+%.ps: %.dvi
 	cd `dirname $<` && ${DVIPS} -o `basename $@` `basename $<`
 
-${ALL_TEX_PDF}: %.pdf: %.ps
+%.pdf: %.ps
 	${PS2PDF} $< $@
 
 # some extra tex goodies
@@ -184,25 +218,25 @@ $(eval $(foreach x,${//},$(call .RULE-install-copy-TEX_PSPDF,$x)))
 # Python
 ############################################################
 
-ALL_PY_EXES :=$(strip $(foreach x,${//},${${x:.=.PY_EXES}}))
+# python exes and libs are not subgoals.
+# Otherwise, they'd be deleted when we cleaned.
+# if we ever introduce some notion of 'file prep', beyond
+# adding the she-bang line, then we might want to do something
+# different here.
+#__SUBGOALS__+=$${${1:.=.PY_EXES}} $${${1:.=.PY_LIBS}}
 
-${ALL_PY_EXES}: %: %.in
-	(echo "#!${PYSHEBANG}" && cat $<) > $@
-	chmod ugo+x $@
-
-__SUBGOALS__+=$${${1:.=.PY_EXES}}
-
-   # install rules for python
+   # install rules for python scripts
 
 define .RULE-install-copy-PYTHON
 ${1:.=.install-copy}: ${1:.=.install-copy-PYTHON}
 ${1:.=.install-copy-PYTHON}:
-# python exes goto bin/
-	$(call .FUN-install-copy,$${${1:.=.PY_EXES}},bin/)
-# python libs goto lib, I guess
-	$(call .FUN-install-copy,$${${1:.=.PY_LIBS}},share/$${${1:.=.PY_LIB/}})
-# if there is a distinction between python libs and python share, I don't know
-	$(call .FUN-install-copy,$${${1:.=.PY_SHARES}},share/$${${1:.=.PY_SHARE/}})
+# python exes goto scripts with shebang added
+	$(call .FUN-install-copy-script,$${${1:.=.PY_EXES}},\
+                                         scripts/,\
+                                         ${PYSHEBANG})
+# python libs goto scripts
+	$(call .FUN-install-copy,$${${1:.=.PY_LIBS}}, \
+                                 scripts/$${${1:.=.PY_LIB/}})
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-install-copy-PYTHON,$x)))

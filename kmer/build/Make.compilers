@@ -34,7 +34,12 @@ CXXDEPFLAGS      :=-MM -MG
 AR:=ar
 ARFLAGS:=-crvs
 
-INSTALL/:=${MAKEFILE/}${_OS_}${_CC_}${_OPT_}${_THR_}/
+# allow additional tag for install directories
+ifdef INSTALL_TAG
+  INSTALL/:=${MAKEFILE/}${_OS_}${_CC_}${_OPT_}${_THR_}-${INSTALL_TAG}/
+else
+  INSTALL/:=${MAKEFILE/}${_OS_}${_CC_}${_OPT_}${_THR_}/
+endif
 
 ## CC and CXX compilers and flags
 
@@ -83,6 +88,8 @@ ifeq (${_OS_}${_CC_},AIX)
   CXXLDFLAGS         +=${AIX_RTTI_SUPPORT} ${AIX_FLAGS}
 endif
 
+OPTFLAGS:=
+OPTFLAGS_COMPILE:=
 # optimize or not
 ifeq (${_CC_}${_OPT_},-gcc-debug)
   OPTFLAGS_COMPILE         :=-Wall
@@ -193,30 +200,32 @@ ifeq (${_OS_},AIX)
 endif
 
 ## where is python?
-PYINC     :=
 PYTHON    :=$(shell which python)
-PYSHEBANG :=${PYPATH}
+PYTHON_FLAGS :=
+PYINC     :=
+PYSHEBANG :=${PYTHON}
 ifeq (${_OS_}${_CC_},TRU64)
   PYINC     :=-I/usr/local/ir/Python-2.2.2 -I/usr/local/ir/Python-2.2.2/Include
   PYTHON    :=/usr/local/ir/bin/python
-  PYSHEBANG :=/usr/bin/env ${PYTHON}
+  PYSHEBANG :=${PYTHON} ${PYTHON_FLAGS}
 endif
 ifeq (${_OS_}${_CC_},AIX)
   PYINC   :=-I/usr/local/include/python2.2
   PYTHON  :=/usr/local/bin/python
-  PYSHEBANG :=/usr/bin/env ${PYTHON}
+  PYSHEBANG :=${PYTHON} ${PYTHON_FLAGS}
 endif
 
 ## where is perl?
 PERL:=$(shell which perl)
+PERL_FLAGS:=
 PERLSHEBANG  :=${PERL}
 ifeq (${_OS_},TRU64)
   PERL  :=/usr/local/bin/perl
-  PERLSHEBANG  :=${PERL}
+  PERLSHEBANG  :=${PERL} ${PERL_FLAGS}
 endif
 ifeq (${_OS_},AIX)
   PERL  :=/usr/local/bin/perl5.6.1
-  PERLSHEBANG  :=${PERL}
+  PERLSHEBANG  :=${PERL} ${PERL_FLAGS}
 endif
 
 ## tex stuff

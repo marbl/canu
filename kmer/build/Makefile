@@ -77,6 +77,9 @@ endef
 ## WITHOUT
 # If the user specifies a WITHOUT, then those paths are not
 # followed.
+ifndef WITHOUT
+  WITHOUT:=
+endif
 WITHOUT_:=$(patsubst %,%.,$(strip ${WITHOUT}))
 
 ## First Make.include inclusion
@@ -91,27 +94,6 @@ $(eval $(call Include_File,$/))
 # RECURSIVE now holds the paths which are being done legacy style
 # and // holds the paths which are going to be part of the system.
 
-
-
-# A useful function to copy files into install directories
-# $(call .FUN-install-copy,file1 file2 file3,dir1 dir2)
-# copies whichever file exists into each of ${INSTALL/}dir
-# mkdir-ing as necessary.
-define .FUN-install-copy
-	@ files='$$(strip $1)'; dirs='$$(strip $2)'; \
-	if [ -n "$$$${files}" -a -n "$$$${dirs}" ] ; then \
-	  for F in $$$${files} ; do \
-	    if [ -e $$$${F} ] ; then \
-	      for D in $$$${dirs} ; do \
-	        echo ":Installing $$$${F} into $${INSTALL/}$$$${D}:" ; \
-	        mkdir -p $${INSTALL/}$$$${D} ; \
-	        cp -fp $$$${F} $${INSTALL/}$$$${D} ; \
-	      done ; \
-	    fi ; \
-	  done ; \
-        fi
-endef
- 
 
 ### Building subgoals
 # subgoals are done with the deferred '=' not the ':='.
@@ -136,8 +118,8 @@ __SUBGOALS__=
 clean:         ${RECURSIVE:.=.clean}      $/.clean
 define .RULE-clean
 ${1:.=.clean}: $${${1:.=.SUBS}:.=.clean}
-	rm -f $${${1:.=.CLEAN}} ${__SUBGOALS__}
-	(cd $1. && rm -rf ${C_TMP} ${CXX_TMP})
+	${RM} $${${1:.=.CLEAN}} ${__SUBGOALS__}
+	(cd $1 && ${RM} -r ${C_TMP_COMPILE} ${CXX_TMP_COMPILE})
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-clean,$x)))
@@ -146,7 +128,7 @@ depends-clean:                            $/.depends-clean
 ${RECURSIVE:.=.depends-clean}:
 define .RULE-depends-clean
 ${1:.=.depends-clean}: $${${1:.=.SUBS}:.=.depends-clean}
-	rm -f ${1:.=Make.depends} ${__DEPGOALS__}
+	${RM} ${1:.=Make.depends} ${__DEPGOALS__}
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-depends-clean,$x)))
@@ -154,10 +136,10 @@ $(eval $(foreach x,${//},$(call .RULE-depends-clean,$x)))
 real-clean:    ${RECURSIVE:.=.real-clean} $/.real-clean
 define .RULE-real-clean
 ${1:.=.real-clean}: $${${1:.=.SUBS}:.=.real-clean}
-	rm -f $${${1:.=.CLEAN}} ${__SUBGOALS__}
-	(cd $1. && rm -rf ${C_TMP} ${CXX_TMP})
-	rm -f ${1:.=Make.depends} ${__DEPGOALS__}
-	rm -f $${${1:.=.REAL-CLEAN}}
+	${RM} $${${1:.=.CLEAN}} ${__SUBGOALS__}
+	(cd $1 && ${RM} -r ${C_TMP_COMPILE} ${CXX_TMP_COMPILE})
+	${RM} ${1:.=Make.depends} ${__DEPGOALS__}
+	${RM} $${${1:.=.REAL-CLEAN}}
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-real-clean,$x)))
