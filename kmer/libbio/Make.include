@@ -19,7 +19,6 @@ src    := $/alphabet.c \
           $/reversecomplement.c \
           $/stat.c \
           $/bitOperations.h \
-          $/bitPackedFile.H \
           $/bitPackedFile.C \
           $/bitPacking.h \
           $/fibonacciEncoding.H \
