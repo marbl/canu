@@ -470,6 +470,7 @@ recursive \verb+Make.include+'s.  Each of these rules is just a
 recursive build invocation after changing into the appropriate
 directory, or an empty rule, signifying no action.
 
+
 \section{Anatomy of the Makefile}
 
 Here we go line by line through the \verb+Makefile+ and discuss the function
@@ -1023,10 +1024,10 @@ ifdef WITH_GNU
 endif
 
 _OPT_:=
-ifeq (WITH_OPT,debug)
+ifeq (${WITH_OPT},debug)
   _OPT_ :=-debug
 endif
-ifeq (WITH_OPT,profile)
+ifeq (${WITH_OPT},profile)
   _OPT_ :=-prof
 endif
 
