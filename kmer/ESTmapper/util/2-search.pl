@@ -21,7 +21,7 @@ sub checkFinished {
         if ($c != $cdnaInInput) {
             print STDERR "ESTmapper/search-- Found signal for $c cDNA out of $cdnaInInput for segment $s.\n";
 
-            print S "$path/1-search/$s.cmd";
+            print S "$path/1-search/$s.cmd\n";
             push @searchesToRun, "$path/1-search/$s.cmd";
         }
     }
