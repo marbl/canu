@@ -103,16 +103,19 @@ __DEPGOALS__=
 ALL_C_SRCS       :=$(strip $(foreach x,${//},${${x:.=.C_SRCS}}))
 ALL_C_DEPS       :=${ALL_C_SRCS:=.d}
 ${ALL_C_DEPS}:%.d:%
-	dir=`echo $< | sed -e's~[^/]*$$~~'`; \
-	${CCDEP} ${CDEPFLAGS} ${CFLAGS} $< | \
-	sed -e"/:/s!^!$${dir}!" > $@
+	@ echo "making $@"
+	@ dir=`echo $< | sed -e's~[^/]*$$~~'`; \
+	  ${CCDEP} ${CDEPFLAGS} ${CFLAGS} $< | \
+	  sed -e"/:/s!^!$${dir}!" > $@
 
 ALL_CXX_SRCS     :=$(strip $(foreach x,${//},${${x:.=.CXX_SRCS}}))
 ALL_CXX_DEPS     :=${ALL_CXX_SRCS:=.d}
 ${ALL_CXX_DEPS}:%.d:%
-	dir=`echo $< | sed -e's~[^/]*$$~~'`; \
-	${CXXDEP} ${CXXDEPFLAGS} ${CXXFLAGS} $< | \
-	sed -e"/:/s!^!$${dir}!" > $@
+	@ echo "making $@"
+	@ dir=`echo $< | sed -e's~[^/]*$$~~'`; \
+	  ${CXXDEP} ${CXXDEPFLAGS} ${CXXFLAGS} $< | \
+	  sed -e"/:/s!^!$${dir}!" > $@
+
 __DEPGOALS__+=$${${1:.=.C_SRCS}:=.d}
 __DEPGOALS__+=$${${1:.=.CXX_SRCS}:=.d}
 

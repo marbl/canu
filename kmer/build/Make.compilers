@@ -35,10 +35,13 @@ INSTALL/  :=${MAKEFILE/}unknown-arch/
 
 ### ARCH specific compiler options ###################################
 
-# for multi-threaded stuff
-
-THREAD_LIBS  :=-lpthread -lrt
-THREAD_FLAGS :=-pthread
+### default to using GNU on i386
+ifeq ($(OPERATING_SYSTEM),)
+  WITH_GNU:=1
+  PYINC            :=-I/usr/include/python2.2/
+  INSTALL/         :=${MAKEFILE/}gnu-i386/
+  PERL             :=/usr/bin/perl
+endif
 
 # have WITH_GNU override any spec
 ifdef WITH_GNU
@@ -51,24 +54,10 @@ ifdef WITH_GNU
     CFLAGS_ARCH      :=-g -O4 -Wall
     CXXFLAGS_ARCH    :=-g -O4 -Wall
   endif
+  SHLIB_FLAGS      :=-shared
+  THREAD_FLAGS :=-pthread -D_THREAD_SAFE
 endif
 
-### default to using GNU on i386
-ifeq ($(OPERATING_SYSTEM),)
-  CC               :=gcc
-  CXX              :=g++
-  ifdef WITH_DEBUG
-    CFLAGS_ARCH      :=-g -Wall
-    CXXFLAGS_ARCH    :=-g -Wall
-  else
-    CFLAGS_ARCH      :=-g -O4 -Wall
-    CXXFLAGS_ARCH    :=-g -O4 -Wall
-  endif
-  SHLIB_FLAGS      :=-shared
-  PYINC            :=-I/usr/include/python2.2/
-  INSTALL/         :=${MAKEFILE/}gnu-i386/
-  PERL             :=/usr/bin/perl
-endif
 
 ### tru64
 ifeq ($(OPERATING_SYSTEM),TRU64)
@@ -88,6 +77,8 @@ ifeq ($(OPERATING_SYSTEM),TRU64)
   else
     LEDA/     :=/usr/local/ir/LEDA-4.3/
   endif
+  THREAD_FLAGS :=-pthread -D_REENTRANT
+  THREAD_LIBS  :=-lpthread -lrt
   PYINC     :=-I/usr/local/ir/Python-2.2.2 -I/usr/local/ir/Python-2.2.2/Include
   INSTALL/  :=${MAKEFILE/}tru64/
   PERL      :=/usr/local/bin/perl
@@ -103,7 +94,6 @@ ifeq ($(OPERATING_SYSTEM),AIX)
     CC            :=xlc
     CXX           :=xlC
     SHLIB_FLAGS   :=-G
-    LEDA/     :=/scratch/edwardnj/LEDA-AIX-XLC/
     AIX_RTTI_SUPPORT:=-qrtti
     AIX_LARGE_FILE_SUPPORT               :=-q64 -qlonglong -D_LARGE_FILES
     AIX_SUPPRESS_DUPLICATE_SYMBOL_WARNING:=-qstaticinline
@@ -131,6 +121,11 @@ ifeq ($(OPERATING_SYSTEM),AIX)
       $(AIX_FLAG_TO_SUPPRESS_MANY_WARNINGS) \
       $(AIX_SUPPRESS_DUPLICATE_SYMBOL_WARNING)
     CXX_TMP_ARCH     :=so_locations
+
+    LEDA/     :=/scratch/edwardnj/LEDA-AIX-XLC/
+    THREAD_FLAGS :=-qthreaded -D_THREAD_SAFE
+    THREAD_LIBS  :=-lpthread
+
     CCDEPFLAGS  +=-maix64
     CXXDEPFLAGS +=-maix64
   endif

@@ -45,6 +45,7 @@ $/searchGENOME:        $/hitMatrix.o
 $/searchGENOMEexactly: $/hitMatrix-Exact.o
 
 $/searchGENOME $/searchGENOMEexactly: CXXLIBS_ARCH+=${THREAD_LIBS}
+$/searchGENOME $/searchGENOMEexactly: CXXLDFLAGS_ARCH+=${THREAD_FLAGS}
 $/searchGENOME $/searchGENOMEexactly: \
               ${src_C:.C=.o} $/buildinfo-searchGENOME.o \
               ${EXISTDB/}libexistDB.a ${POSITIONDB/}libpositionDB.a \

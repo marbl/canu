@@ -50,6 +50,7 @@ $/configuration.C.d: $/buildinfo-snapper2.h \
                      ${SIM4POLISH/}buildinfo-libsim4polish.h
 
 $/snapper2: CXXLIBS_ARCH +=${THREAD_LIBS}
+$/snapper2: CXXLDFLAGS_ARCH +=${THREAD_FLAGS}
 $/snapper2: \
               ${$/.CXX_SRCS:.C=.o} $/buildinfo-snapper2.o \
               ${EXISTDB/}libexistDB.a ${POSITIONDB/}libpositionDB.a \
