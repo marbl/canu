@@ -102,6 +102,10 @@ ifeq (${_OS_},cygwin)
   .EXE:=.exe
   .SO :=.dll
 endif
+ifeq (${_OS_},cygwin|mingw)
+  .EXE:=.exe
+  .SO :=.dll
+endif
 
 
 # C and CXX dependency programs/flags (don't change!  GNU is great!)
@@ -161,10 +165,6 @@ ifeq (${_OS_}${_CC_},TRU64)
   CXX_TMP_COMPILE     :=so_locations cxx_repository
 endif
 
-ifeq (${_OS_},AIX)
-# These might be needed, but so far, not, -G suffices
-#  AIX_SHLIB_FLAGS      :=-Wl,-bhalt:4 -Wl,-T512 -Wl,-H512 -Wl,-bM:SRE
-endif
 ifeq (${_OS_}${_CC_},AIX)
   CC               :=xlc
   CXX              :=xlC
@@ -285,6 +285,14 @@ ifeq (${_OS_},FreeBSD)
   T_CLIBS            :=
   T_CXXLIBS          :=
 endif
+ifeq (${_OS_},cygwin)
+  T_CFLAGS_COMPILE   :=
+  T_CXXFLAGS_COMPILE :=
+  T_CLIBS            :=-lpthread
+  T_CXXLIBS          :=-lpthread
+endif
+
+
 
 ## ammendments to the above because we are threaded
 ifeq (${_THR_},-threaded)
@@ -341,8 +349,12 @@ ifeq (${_OS_}${_CC_},TRU64)
   PYTHON    :=/usr/local/ir/bin/python
 endif
 ifeq (${_OS_}${_CC_},AIX)
-  CFLAGS_PY :=-I/usr/local/include/python2.2
-  PYTHON    :=/usr/local/bin/python
+  #CLDFLAGS_PY :=-Wl,-bI:/usr/local/src/Python/2.2.2/src/Python-2.2.2/Modules/python.exp
+  #CFLAGS_PY :=-I/usr/local/include/python2.2
+  #PYTHON    :=/usr/local/bin/python
+  CLDFLAGS_PY :=-Wl,-bI:/usr/local/src/Python/2.3.3/src/Python-2.3.3/Modules/python.exp -bexpall
+  CFLAGS_PY  :=-I/usr/local/src/Python/2.3.3/include/python2.3/
+  PYTHON    :=/usr/local/src/Python/2.3.3/bin/python
 endif
 ifeq (${_OS_},cygwin)
   CFLAGS_PY :=-I/usr/include/python2.3
