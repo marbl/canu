@@ -31,10 +31,10 @@ main(int argc, char **argv) {
 
   int arg = 1;
   while (arg < argc) {
-    if        (strncmp(argv[arg], " -mersize", 6) == 0) {
+    if        (strncmp(argv[arg], "-mersize", 6) == 0) {
       arg++;
       mersize = atoi(argv[arg]);
-    } else if (strncmp(argv[arg], " -merskip", 6) == 0) {
+    } else if (strncmp(argv[arg], "-merskip", 6) == 0) {
       arg++;
       merskip = atoi(argv[arg]);
     } else if (strncmp(argv[arg], "-tablesize", 2) == 0) {
@@ -48,6 +48,8 @@ main(int argc, char **argv) {
     }
     arg++;
   }
+
+  fprintf(stderr, "Building table with merSize %u, merSkip %u and table size %u\n", mersize, merskip, tblsize);
 
   u64bit    seqlen  = 0;
   u32bit    ts      = 25;
