@@ -17,14 +17,15 @@ src    := $/fasta-buildindex.C $/fasta-find-id.C \
           $/fasta-sequenceincore.H $/fasta-sequenceincore.C \
           $/fasta-sequenceondisk.H $/fasta-sequenceondisk.C \
 	  $/fasta-types.H $/fasta.C $/fasta.H $/filewrapperbase.H \
-          $/fasta-c.C $/fasta-cache.C
+          $/fasta-c.C $/fasta-cache.C \
+          $/chainedSequence.H $/chainedSequence.C $/chainedSequence-parse.C $/chainedSequence-finish.C
 
 src_C  := $(filter %.C,${src})
 
-$/.CXX_SRCS  :=${src_C} $/leaff.C $/fragmenter.C $/dumpBlocks.C
+$/.CXX_SRCS  :=${src_C} $/leaff.C $/fragmenter.C $/dumpBlocks.C $/chainedSequence-test.C
 $/.CXX_LIBS  :=$/libfasta.a
 
-$/.CXX_EXES  :=$/leaff $/fragmenter $/dumpBlocks
+$/.CXX_EXES  :=$/leaff $/fragmenter $/dumpBlocks $/chainedSequence-test
 
 $/.CLEAN  :=$/*.o
 
@@ -44,6 +45,7 @@ $/libfasta.a    : \
 $/leaff         : $/leaff.o  $/buildinfo-leaff.o  $/libfasta.a
 $/fragmenter    : $/fragmenter.o $/libfasta.a
 $/dumpBlocks    : $/dumpBlocks.o $/libfasta.a
+$/chainedSequence-test    : $/chainedSequence-test.o $/libfasta.a
 
 ${$/.CXX_EXES}:   ${LIBBRI/}libbri.a
 
