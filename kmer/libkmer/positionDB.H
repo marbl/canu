@@ -7,12 +7,12 @@ typedef u64bit heapbit;
 
 class positionDB {
 public:
-  positionDB(unsigned char const  *seq,
-             char const           *filename,
-             u32bit                merSize,
-             u32bit                merSkip,    //  mers to skip between mers
-             u32bit                tblBits,
-             bool                  beVerbose);
+  positionDB(char const    *seq,
+             char const    *filename,
+             u32bit         merSize,
+             u32bit         merSkip,    //  mers to skip between mers
+             u32bit         tblBits,
+             bool           beVerbose);
   ~positionDB();
 
   void        dump(u64bit mer);

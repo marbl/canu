@@ -46,12 +46,12 @@ const char *spceUsedMsg  = "    Used:  Bucket %12llu    Position %12llu (64-bit 
 #endif
 
 
-positionDB::positionDB(unsigned char const  *seq,
-                       char const           *filename,
-                       u32bit                merSize,
-                       u32bit                merSkip,
-                       u32bit                tblBits,
-                       bool                  beVerbose) {
+positionDB::positionDB(char const  *seq,
+                       char const  *filename,
+                       u32bit       merSize,
+                       u32bit       merSkip,
+                       u32bit       tblBits,
+                       bool         beVerbose) {
   _bucketSizes           = 0L;
   _countingBuckets       = 0L;
   _hashTable             = 0L;
