@@ -42,20 +42,29 @@ public:
     _mspLimitPercent  = p;
   };
 
+  void   setScoreThreshold(int K, int interspecies);
+
   bool          tooManyMSPs(void)  { return(_tooManyMSPs); };
   u32bit        numberOfMSPs(void) { return(_numMSPs);     };
 
-  void          setLength(int l)   { _cDNALength = l;      };
-
-  void          clear(void) {
-    _numMSPs = 0;
+  void          setLength(int l)   {
+    _cDNALength = l;
   };
 
-  void          clearDiagonal(int l1, int l2) {
+  void          clear(void) { _numMSPs = 0; };
+
+  void          clearDiagonal(int genlen, int estlen) {
+
+    //  XXX: These aren't always the real EST and GENOMIC lengths.  If
+    //  we are working in a subsequence of the whole sequence they
+    //  will be the length of the subsequence.
+    //
+    _GENlen = genlen;
+    _ESTlen = estlen;
 
     //  Allocate more space, if needed.
     //
-    if (l1 + l2 + 1 > _diagMax) {
+    if (_GENlen + _ESTlen + 1 > _diagMax) {
       delete _diagExt;
 
       //  Allocate space for the list of extension ends.  Each diagonal
@@ -63,13 +72,13 @@ public:
       //  lets us throw out new hits without extending or merging in new
       //  extensions.  Assumes that hits are added in order.
       //
-      _diagMax = l1 + l2 + 1;
+      _diagMax = _GENlen + _ESTlen + 1;
       _diagExt = new int [_diagMax];
     }
 
     //  Using the obvious for loop for this hurts.  Don't do it.
     //
-    bzero(_diagExt, sizeof(int) * (l1 + l2 + 1));
+    bzero(_diagExt, sizeof(int) * (_GENlen + _ESTlen + 1));
   };
 
   //  add an extended MSP to the list
@@ -82,10 +91,9 @@ public:
   void  addHit(char *s1, char *s2,
                int   l1, int   l2,
                int   p1, int   p2,
-               int   W,
-               int   K) {
+               int   W) {
     if (_diagExt[l2 + p1 - p2 - 1] <= p1)
-      addHit_(s1, s2, l1, l2, p1, p2, W, K);
+      addHit_(s1, s2, l1, l2, p1, p2, W);
   };
 
 
@@ -102,10 +110,12 @@ private:
   void  addHit_(char *s1, char *s2,
                 int   l1, int   l2,
                 int   p1, int   p2,
-                int   W,
-                int   K);
+                int   W);
 
   bool           _sorted;
+
+  int            _ESTlen;
+  int            _GENlen;
 
   u32bit         _allocMSPs;
   u32bit         _numMSPs;
@@ -121,6 +131,8 @@ private:
   int            _matchdiff;
   double         _percentError;
   int            _wordExtAllow;
+
+  int            _minMSPScore;
 
   int            _diagMax;
   int           *_diagExt;

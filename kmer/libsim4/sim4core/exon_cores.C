@@ -1,18 +1,6 @@
 #include "sim4.H"
 #include <math.h>
 
-//  diag_lev is used only in these functions.
-//
-//  search() and extend_hit() are used only here.
-//
-
-
-//  Define this to get some profiling of building, searching, sorting and linking
-//
-//#define PROFILE_EXON_CORE
-
-
-
 
 void
 Sim4::exon_cores(char *s1,
@@ -22,54 +10,30 @@ Sim4::exon_cores(char *s1,
                  int   offset1,
                  int   offset2,
                  int   flag,
-                 int   in_W,
-                 int   in_K,
+                 int   W,
+                 int   K,
                  int   type) {
-
-  int K;
-  if (globalParams->_interspecies)
-    K = (int)(((int)(log(.75*(double)_genLen)+log((double)_estLen))/log(4.0)) * 1.0);
-  else
-    K = getMSPthreshold(in_K, l1, l2);
 
   _mspManager.clear();
   _mspManager.clearDiagonal(l1, l2);
+  _mspManager.setScoreThreshold(K, globalParams->_interspecies);
 
-  exon_list = NULL;
-
-#ifdef PROFILE_EXON_CORE
-  double startTime = getTime();
-#endif
-
-  bld_table(s2,l2,in_W,type);
-  search(s1,s2,l1,l2,in_W,K);
-
-#ifdef PROFILE_EXON_CORE
-  fprintf(stderr, "build+search took %f seconds.\n", getTime() - startTime);
-#endif
+  bld_table(s2,l2,W,type);
+  search(s1,s2,l1,l2,W);
 
   //  Cleaning up after the bld_table() is done at the next call, or
   //  in the destructor.
   //
   hashtable = 0L;
 
-#ifdef PROFILE_EXON_CORE
-  startTime = getTime();
-  fprintf(stderr, "Linking "u32bitFMT" MSPs\n", _mspManager.numberOfMSPs());
-#endif
-
   exon_list = _mspManager.doLinking(DEFAULT_WEIGHT, DEFAULT_DRANGE, offset1, offset2, flag, false, s1, s2);
-
-#ifdef PROFILE_EXON_CORE
-  fprintf(stderr, "linking took %f seconds.\n", getTime() - startTime);
-#endif
 }
 
 
 
 
 void
-Sim4::search(char *s1, char *s2, int l1, int l2, int in_W, int in_K) {
+Sim4::search(char *s1, char *s2, int l1, int l2, int W) {
   struct hash_node *h;
   char             *t;
   int               ecode;
@@ -77,13 +41,13 @@ Sim4::search(char *s1, char *s2, int l1, int l2, int in_W, int in_K) {
 
   //  Too short?  Abort!
   //
-  if (l1 < in_W)
+  if (l1 < W)
     return;
 
   t = s1+1;
   i = 0;
 
-  int   validEncoding = 1 - in_W;
+  int   validEncoding = 1 - W;
   int   pos1;
 
   ecode = 0L;
@@ -107,13 +71,13 @@ Sim4::search(char *s1, char *s2, int l1, int l2, int in_W, int in_K) {
               _mspManager.addHit(s1, s2,
                                  l1, l2,
                                  pos1, p,
-                                 in_W, in_K);
+                                 W);
             break;
           }
         }
       }
     } else {
-      validEncoding = 1 - in_W;
+      validEncoding = 1 - W;
     }
   }
 }

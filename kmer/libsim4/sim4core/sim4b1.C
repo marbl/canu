@@ -40,7 +40,7 @@ Sim4::SIM4(int            *dist_ptr,
            int            *pT,
            sim4_stats_t   *st) {
 
-  int    rollbflag;
+  int     rollbflag;
   Exon   *Lblock=0L, *tmp_Lblock=0L;
   Exon   *Rblock=0L, *tmp_Rblock=0L;
   Exon   *tmp_block=0L;
@@ -56,19 +56,8 @@ Sim4::SIM4(int            *dist_ptr,
   //  Initialize the mspManager to fail if the match looks expensive.
   //
   st->tooManyMSPs = false;
-  _mspManager.setLength(_estLen);
 
-
-#ifdef SHOW_PROGRESS
-  fprintf(stderr, "before exon_cores\n");
-  double beforeExonCoresStartTime = getTime();
-#endif
-
-  exon_cores(_genSeq-1, _estSeq-1, _genLen, _estLen, 1, 1, 0, wordSize, mspThreshold1, PERM);
-
-#ifdef SHOW_PROGRESS
-  fprintf(stderr, "after exon_cores -- took %f seconds.\n", getTime() - beforeExonCoresStartTime);
-#endif
+  //exon_cores(_genSeq-1, _estSeq-1, _genLen, _estLen, 1, 1, 0, wordSize, mspThreshold1, PERM);
 
   //  See if there are too many MSPs found.  If so, fail.
   //

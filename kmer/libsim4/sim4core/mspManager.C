@@ -289,12 +289,125 @@ mspManager::doLinking(int    weight,
 
 
 
+
+
+
+
+// The log4 arrays were computed to mimick the behaviour of the log formula
+// for computing the msp threshold in exon_cores(). For genomic_log4s,
+// entry i stores the value for the length of a genomic sequence
+// for which the contribution to the msp threshold is i/2, i.e.:
+//    1.4*log_4(3/4*len1) = i/2;  
+//
+// Similarly, cDNA_log4s entries store lengths of the cDNA sequence for which
+// the contribution to the msp threshold is i/2, i.e.:
+//    1.4*log_4(len2) = i/2;
+//
+// Both arrays are sorted in increasing order, and can be searched with 
+// binary search.
+//
+#define GEN_LOG4_ENTRIES  45
+#define CDNA_LOG4_ENTRIES 25
+
+const int
+genomic_log4s[GEN_LOG4_ENTRIES]= {1, 2, 3, 5, 9, 15, 26, 42, 70, 114,
+                                  188, 309, 507, 832, 1365, 1365, 2240, 2240, 3675, 6029,
+                                  9892, 16231, 26629, 43690, 71681,
+                                  117606, 192953, 316573, 519392, 852152,
+                                  1398101, 2293823, 3763409, 6174516, 10130347,
+                                  16620564, 27268873, 44739242, 73402365, 120429110,
+                                  197584514, 324171126, 531858072, 872603963, 1431655765 };
+
+const int
+cDNA_log4s[CDNA_LOG4_ENTRIES]= {1, 1, 2, 4, 7, 11, 19, 32, 52, 86,
+                                141, 231, 380, 624, 1024, 1680, 2756, 4522, 7419, 12173,
+                                19972, 32768, 53761, 88204, 144715 };
+
+
+//  The original used a binary search but with so few entries brute
+//  force works better.
+//
+int
+get_msp_threshold(int len1, int len2) {
+  int   i, j;
+
+  //  Find the index of the largest value smaller than our lengths.
+  //
+  i = 0;
+  while (i<GEN_LOG4_ENTRIES) {
+    if (genomic_log4s[i] > len1)
+      break;
+    i++;
+  }
+  i--;
+
+  j = 0;
+  while (j<CDNA_LOG4_ENTRIES) {
+    if (cDNA_log4s[j] > len2)
+      break;
+    j++;
+  }
+  j--;
+
+  //
+  //  XXX:  This looks suspicious!
+  //
+
+  if ((i % 2) == 0)
+    return(i/2+j/2);
+
+  if ((j % 2) == 0)
+    return(i/2+j/2);
+
+  return(i/2+j/2+1);
+}
+
+
+
+
+
+void
+mspManager::setScoreThreshold(int K, int interspecies) {
+
+  if (interspecies) {
+    _minMSPScore = (int)(((int)(log(.75*(double)_GENlen)+log((double)_ESTlen))/log(4.0)) * 1.0);
+  } else {
+    if (K <= 0) {
+      _minMSPScore = get_msp_threshold(_GENlen, _ESTlen);
+        
+      //  compensate for the rounding in the log formula
+      if (_minMSPScore >= 0)
+        _minMSPScore--;
+    } else {
+      _minMSPScore = K;
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void
 mspManager::addHit_(char *s1, char *s2,
                     int   l1, int   l2,
                     int   p1, int   p2,
-                    int   W,
-                    int   K) {
+                    int   W) {
   char *beg2 = 0L;
   char *beg1 = 0L;
   char *end1 = 0L;
@@ -362,11 +475,19 @@ mspManager::addHit_(char *s1, char *s2,
 
   score = W + left_sum + right_sum;
 
-  if (score >= K)
+  if (score >= _minMSPScore)
     addMSP((int)(end1 - beg1),
            (int)(beg1 - (s1 + 1)),
            (int)(beg2 - (s2 + 1)),
            score);
+
+#if 0
+  fprintf(stderr, "mspManager::addHit()-- added from EST %d to %d and GEN %d to %d (length = %d) with score %d (needed %d)\n", 
+          (int)(beg2 - (s2 + 1)), (int)(beg2 - (s2 + 1)) + W,
+          (int)(beg1 - (s1 + 1)), (int)(beg1 - (s1 + 1)) + W,
+          W,
+          score, _minMSPScore);
+#endif
 
   _diagExt[l2 + p1 - p2 - 1] = (int)(end1 - s1 - 1 + W);
 }

@@ -267,8 +267,6 @@ private:
 
 
 
-  //  log.C
-  int    getMSPthreshold(int defaultK, int len1, int len2);
 
 
   //  Functions from sim4b1.h
@@ -336,7 +334,7 @@ private:
 
   void   add_word(int,int);
   int     extend_hit(int,int,const char *const,const char * const,int,int,int,int);
-  void   search(char *,char *,int,int,int,int); 
+  void   search(char *,char *,int,int,int); 
   void   exon_cores(char*,char*,int,int,int,int,int,int,int,int);
   Exon  *find_previous(Exon *,Exon *);
   bool   get_match_quality(Exon *,Exon *,sim4_stats_t *,int);

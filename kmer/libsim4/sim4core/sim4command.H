@@ -63,10 +63,10 @@ public:
   //
   void   addSeed(u32bit ESTposition, u32bit GENposition, u32bit length);
 
-  u32bit externalSeedsExist(void)          { return(_externalSeedsExist); };
+  bool   externalSeedsExist(void)          { return(_externalSeedsLen > 0); };
   u32bit numberOfExternalSeeds(void)       { return(_externalSeedsLen); };
-  u32bit externalSeedESTposition(u32bit i) { return(_externalSeeds[i]._ESTposition); };
-  u32bit externalSeedGENpostiion(u32bit i) { return(_externalSeeds[i]._GENposition); };
+  u32bit externalSeedESTPosition(u32bit i) { return(_externalSeeds[i]._ESTposition); };
+  u32bit externalSeedGENPosition(u32bit i) { return(_externalSeeds[i]._GENposition); };
   u32bit externalSeedLength(u32bit i)      { return(_externalSeeds[i]._length);      };
 
 
@@ -131,7 +131,6 @@ private:
     u32bit    _length;
   };
 
-  bool                  _externalSeedsExist;
   u32bit                _externalSeedsLen;
   u32bit                _externalSeedsMax;
   externalSeed         *_externalSeeds;

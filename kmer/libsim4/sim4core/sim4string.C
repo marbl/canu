@@ -159,9 +159,12 @@ Sim4::run(sim4command *cmd) {
     memset(&st,     0, sizeof(sim4_stats_t));
     memset(&rev_st, 0, sizeof(sim4_stats_t));
 
-    if (cmd->externalSeedsExist() == false)
+    if (cmd->externalSeedsExist() == false) {
+      fprintf(stderr, "NOT USING EXTERNAL SEEDS!\n");
       bld_table(estseq - 1 + g_pT, estlen - g_pA - g_pT, wordSize, INIT);
-
+    } else {
+      fprintf(stderr, "USING EXTERNAL SEEDS!\n");
+    }
 
     if (cmd->doForward()) {
 
@@ -175,10 +178,32 @@ Sim4::run(sim4command *cmd) {
       _genLen = dblen;
       _estLen = estlen - g_pT - g_pA;
 
+      //  This should be in a better spot.
+      _mspManager.setLength(_estLen);
+      _mspManager.clearDiagonal(_genLen, _estLen);
+      _mspManager.setScoreThreshold(mspThreshold1, globalParams->_interspecies);
+
+      fprintf(stderr, "FWD: estLen = %d  genLen = %d\n", _estLen, _genLen);
+
       //  Find the seeds.
       //
       if (cmd->externalSeedsExist() == false) {
+        exon_cores(_genSeq-1, _estSeq-1, _genLen, _estLen, 1, 1, 0, wordSize, mspThreshold1, PERM);
       } else {
+        fprintf(stderr, "FWD: Using external seeds -- adding "u32bitFMT" seeds to sim4.\n", cmd->numberOfExternalSeeds());
+        for (u32bit x=0; x<cmd->numberOfExternalSeeds(); x++)
+          _mspManager.addHit(_genSeq, _estSeq,
+                             _genLen, _estLen,
+                             cmd->externalSeedESTPosition(x) + 1,
+                             cmd->externalSeedGENPosition(x) + 1,
+                             cmd->externalSeedLength(x));
+
+        exon_list = _mspManager.doLinking(DEFAULT_WEIGHT, DEFAULT_DRANGE,
+                                          0, 0,
+                                          0,
+                                          false,
+                                          _genSeq, _estSeq);
+        fprintf(stderr, "FWD: Added and chained.\n");
       }
 
       fAligns = SIM4(&dist,
@@ -222,10 +247,33 @@ Sim4::run(sim4command *cmd) {
       _genLen = dblen;
       _estLen = estlen - g_pT - g_pA;
 
-      //  Find the seeds.
+      //  This should be in a better spot.
+      _mspManager.setLength(_estLen);
+      _mspManager.clearDiagonal(_genLen, _estLen);
+      _mspManager.setScoreThreshold(mspThreshold1, globalParams->_interspecies);
+
+      fprintf(stderr, "BWD: estLen = %d  genLen = %d\n", _estLen, _genLen);
+
+      //  Find the seeds.  N.B. addHit() does a merged reverse-complement
+      //  and space-base to base-based conversion.
       //
       if (cmd->externalSeedsExist() == false) {
+        exon_cores(_genSeq-1, _estSeq-1, _genLen, _estLen, 1, 1, 0, wordSize, mspThreshold1, PERM);
       } else {
+        fprintf(stderr, "BWD: Using external seeds -- adding "u32bitFMT" seeds to sim4.\n", cmd->numberOfExternalSeeds());
+        for (u32bit x=0; x<cmd->numberOfExternalSeeds(); x++)
+          _mspManager.addHit(_genSeq, _estSeq,
+                             _genLen, _estLen,
+                             _estLen - cmd->externalSeedESTPosition(x),
+                             _genLen - cmd->externalSeedGENPosition(x),
+                             cmd->externalSeedLength(x));
+
+        exon_list = _mspManager.doLinking(DEFAULT_WEIGHT, DEFAULT_DRANGE,
+                                          0, 0,
+                                          0,
+                                          false,
+                                          _genSeq, _estSeq);
+        fprintf(stderr, "BWD: Added and chained.\n");
       }
 
       rAligns = SIM4(&dist,

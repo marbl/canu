@@ -39,7 +39,6 @@ sim4command::sim4command(u32bit        ESTid,
   _doForward = doForward;
   _doReverse = doReverse;
 
-  _externalSeedsExist = false;
   _externalSeedsLen   = 0;
   _externalSeedsMax   = 0;
   _externalSeeds      = 0;
@@ -72,7 +71,6 @@ sim4command::sim4command(FastASequenceInCore  *EST,
   _doForward = doForward;
   _doReverse = doReverse;
 
-  _externalSeedsExist = false;
   _externalSeedsLen   = 0;
   _externalSeedsMax   = 0;
   _externalSeeds      = 0;
@@ -108,7 +106,6 @@ sim4command::sim4command(char             *EST,
   _doForward = doForward;
   _doReverse = doReverse;
 
-  _externalSeedsExist = false;
   _externalSeedsLen   = 0;
   _externalSeedsMax   = 0;
   _externalSeeds      = 0;
