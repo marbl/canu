@@ -7,6 +7,9 @@ endif
 ifndef LIBBRI/
 LIBBRI/     := $/../libbri/
 endif
+ifndef UTIL/
+UTIL/     := $/../util/
+endif
 
 
 src     := $/binaryOp.C $/build.C $/checkDescr.C $/dump.C $/estimate.C \
@@ -14,8 +17,8 @@ src     := $/binaryOp.C $/build.C $/checkDescr.C $/dump.C $/estimate.C \
            $/outputMer.C $/outputMer.H $/scan.C $/unaryOp.C $/usage.C
 src_C   := $(filter %.C,${src})
 
-$/.CXX_SRCS   := ${src_C} $/merle.C
-$/.CXX_EXES   := $/meryl $/merle
+$/.CXX_SRCS := ${src_C} $/merle.C
+$/.CXX_EXES := $/meryl $/merle
 $/.CXX_LIBS   := $/libmeryl.a
 $/.CLEAN      := $/*.o
 $/.REAL-CLEAN := $/buildinfo-*
