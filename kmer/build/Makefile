@@ -244,25 +244,25 @@ ${1:.=.install}: $${${1:.=.SUBS}:.=.install} ${__SUBGOALS__} \
 	files='$$(strip $${${1:.=.C_EXES}} $${${1:.=.CXX_EXES}})'; \
 	if [ -n "$$$${files}" ] ; then \
 	  mkdir -p ${INSTALL/}bin ; \
-	  cp -p $$$${files} ${INSTALL/}bin ; \
+	  cp -fp $$$${files} ${INSTALL/}bin ; \
         fi
 # all libs go to lib/${.LIB/}
 	files='$$(strip $${${1:.=.C_LIBS}} $${${1:.=.CXX_LIBS}} $${${1:.=.CXX_SHLIBS}})'; \
 	if [ -n "$$$${files}" ] ; then \
 	  mkdir -p ${INSTALL/}lib/$${${1:.=.LIB/}} ; \
-	  cp -p $$$${files} ${INSTALL/}lib/$${${1:.=.LIB/}} ; \
+	  cp -fp $$$${files} ${INSTALL/}lib/$${${1:.=.LIB/}} ; \
         fi
 # all includes go to include/${.INCLUDE/}
 	files='$$(strip $${${1:.=.C_INCS}} $${${1:.=.CXX_INCS}})'; \
 	if [ -n "$$$${files}" ] ; then \
 	  mkdir -p ${INSTALL/}include/$${${1:.=.INCLUDE/}} ; \
-	  cp -p $$$${files} ${INSTALL/}include/$${${1:.=.INCLUDE/}} ; \
+	  cp -fp $$$${files} ${INSTALL/}include/$${${1:.=.INCLUDE/}} ; \
         fi
 # all share files go to share/${.SHARE/}
 	files='$$(strip $${${1:.=.SHARES}})'; \
 	if [ -n "$$$${files}" ] ; then \
 	  mkdir -p ${INSTALL/}share/$${${1:.=.SHARE/}} ; \
-	  cp -p $$$${files} ${INSTALL/}share/$${${1:.=.SHARE/}} ; \
+	  cp -fp $$$${files} ${INSTALL/}share/$${${1:.=.SHARE/}} ; \
         fi
 
 endef
