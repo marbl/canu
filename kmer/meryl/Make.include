@@ -32,8 +32,8 @@ $/meryl         : ${src_C:.C=.o} $/buildinfo-meryl.o ${LIBMERYL/}libmeryl.a ${LI
 $(eval $/%.d $/%.o:  CXXFLAGS+=-I${LIBMERYL/} -I${LIBBIO/} -I${LIBUTL/})
 
 $/%.d:  ${LIBBIO/}buildinfo-libbio.h ${LIBBIO/}alphabet.h
-$/meryl.C.d: $/buildinfo-meryl.h ${LIBBIO/}buildinfo-libbio.h
-$/merle.C.d: $/buildinfo-merle.h ${LIBBIO/}buildinfo-libbio.h
+$/meryl.C.d: $/buildinfo-meryl.h ${LIBBIO/}buildinfo-libbio.h ${LIBUTL/}buildinfo-libutil.h
+$/merle.C.d: $/buildinfo-merle.h ${LIBBIO/}buildinfo-libbio.h ${LIBUTL/}buildinfo-libutil.h
 
 $/buildinfo-meryl.c: $/buildinfo-meryl.h
 $/buildinfo-meryl.h: ${src}
