@@ -230,7 +230,7 @@ public:
 private:
   u32bit   _valueWidth;
   u32bit   _segmentSize;
-  u32bit   _nextElement;  //  the first invalid element
+  u64bit   _nextElement;  //  the first invalid element
   u32bit   _valuesPerSegment;
 
   u32bit   _numSegments;
