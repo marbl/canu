@@ -226,9 +226,9 @@ main(int argc, char **argv) {
     for (p=0; p<pos; p++) {
       memcpy(buf, seq + sta[p], sizeof(char) * (end[p] - sta[p]));
       buf[ end[p] - sta[p] ] = 0;
-      fprintf(O, "%s sta=%d end=%d\n%s\n",
+      fprintf(O, "%s sta="u32bitFMT" end="u32bitFMT"\n%s\n",
               B->header(), sta[p], end[p], buf);
-      fprintf(L, "%d : %d[%d-%d]\n",
+      fprintf(L, u32bitFMT" : "u32bitFMT"["u32bitFMT"-"u32bitFMT"]\n",
               fragmentIndex++,
               B->getIID(),
               sta[p],
