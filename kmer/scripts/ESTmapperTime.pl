@@ -56,9 +56,9 @@ $usrTimeH = int($usrTimeH);
 $clkTimeS = int($clkTimeS);
 $sysTimeS = int($sysTimeS);
 $usrTimeS = int($usrTimeS);
-printf STDERR "ESTmapper: search required %7d seconds wall   (%3d:%02d).\n", $clkTimeS, $clkTimeH, $clkTimeM;
-printf STDERR "ESTmapper: search required %7d seconds system (%3d:%02d).\n", $sysTimeS, $sysTimeH, $sysTimeM;
-printf STDERR "ESTmapper: search required %7d seconds user   (%3d:%02d).\n", $usrTimeS, $usrTimeH, $usrTimeM;
+printf STDOUT "ESTmapper: search required %7d seconds wall   (%3d:%02d).\n", $clkTimeS, $clkTimeH, $clkTimeM;
+printf STDOUT "ESTmapper: search required %7d seconds system (%3d:%02d).\n", $sysTimeS, $sysTimeH, $sysTimeM;
+printf STDOUT "ESTmapper: search required %7d seconds user   (%3d:%02d).\n", $usrTimeS, $usrTimeH, $usrTimeM;
 
 $sysTimeS = 0;
 $usrTimeS = 0;
@@ -103,8 +103,8 @@ $usrTimeH = int($usrTimeH);
 $clkTimeS = int($clkTimeS);
 $sysTimeS = int($sysTimeS);
 $usrTimeS = int($usrTimeS);
-printf STDERR "ESTmapper: polish required %7d seconds wall   (%3d:%02d).\n", $clkTimeS, $clkTimeH, $clkTimeM;
-printf STDERR "ESTmapper: polish required %7d seconds system (%3d:%02d).\n", $sysTimeS, $sysTimeH, $sysTimeM;
-printf STDERR "ESTmapper: polish required %7d seconds user   (%3d:%02d).\n", $usrTimeS, $usrTimeH, $usrTimeM;
+printf STDOUT "ESTmapper: polish required %7d seconds wall   (%3d:%02d).\n", $clkTimeS, $clkTimeH, $clkTimeM;
+printf STDOUT "ESTmapper: polish required %7d seconds system (%3d:%02d).\n", $sysTimeS, $sysTimeH, $sysTimeM;
+printf STDOUT "ESTmapper: polish required %7d seconds user   (%3d:%02d).\n", $usrTimeS, $usrTimeH, $usrTimeM;
 
 
