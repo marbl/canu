@@ -63,6 +63,7 @@ my %validArgs = ("-help"            => "0",
                  "-nomaskmers"      => "0",
                  "-nostats"         => "0",
                  "-numbatches"      => "1",
+                 "-prebuild"        => "2",
                  "-relink"          => "1",
                  "-runlater"        => "0",
                  "-searchopts"      => "1",
@@ -72,12 +73,7 @@ my %validArgs = ("-help"            => "0",
                  "-stats"           => "0",
                  "-verbose"         => "0" );
 
-
-
-
-
-my $scriptVersion = "7";           # analogous to a buildNumber
-my $scriptDate    = "14may03";
+my $scriptVersion = "8";
 
 #  We use the libBri package of usefull stuff.  It's located in the same place
 #  as the ESTmapper.pl script.  That's what FindBin tells us.
@@ -760,7 +756,7 @@ sub polish {
     my $numcpus      = 4;
     my $runnow       = 1;
     my $aligns       = "-align";
-    my $stats        = 0;
+    my $stats        = 1;
     my $abort        = "";
     my $interspecies = "";
 
@@ -1179,34 +1175,29 @@ sub filter {
         my $scmd;
 
         if ($type eq "est") {
-            #print STDERR "\n\nWARNING:  USING MODIFIED VALUE FOR REPEAT THRESHOLD.  SHOULD BY 100!\n\n\n";
-            $fcmd  = "$filterEST $verbose -u 100 -r 100 -q 0.2 -c $path/2-filter/hitCounts ";
-            $fcmd .= "-Fu $path/2-filter/uniqHits ";
-            $fcmd .= "-Ff $path/2-filter/filtHits ";
-            $fcmd .= "-Fr $path/2-filter/repeats ";
-            $fcmd .= "$path/1-search/*hits";
+            #$fcmd  = "$filterEST $verbose -u 100 -r 100 -q 0.2 -c $path/2-filter/hitCounts ";
+            #$fcmd .= "-Fu $path/2-filter/uniqHits ";
+            #$fcmd .= "-Ff $path/2-filter/filtHits ";
+            #$fcmd .= "-Fr $path/2-filter/repeats ";
+            #$fcmd .= "$path/1-search/*hits";
 
-            $scmd = "$sortHits $verbose -m $hitMemory -t $path/2-filter/sorttmp $path/2-filter/uniqHits $path/2-filter/filtHits > $path/2-filter/filteredHits";
+            $fcmd  = "$filterEST -u 200 -r 200 -q 0.2 -log $path/2-filter/filterLog $path/1-search/*hits > $path/2-filter/filtHits";
+            $scmd = "$sortHits $verbose -m $hitMemory -t $path/2-filter $path/2-filter/filtHits > $path/2-filter/filteredHits";
         }
 
         if ($type eq "snp") {
             $fcmd  = "$filterMRNA $verbose -c $path/2-filter/hitCounts $path/1-search/*hits > $path/2-filter/filtHits";
-
-            $scmd = "$sortHits $verbose -m $hitMemory -t $path/2-filter/sorttmp $path/2-filter/filtHits > $path/2-filter/filteredHits";
+            $scmd = "$sortHits $verbose -m $hitMemory -t $path/2-filter $path/2-filter/filtHits > $path/2-filter/filteredHits";
         }
 
         if ($type eq "mrna") {
             $fcmd  = "$filterMRNA $verbose -c $path/2-filter/hitCounts $path/1-search/*hits > $path/2-filter/filtHits";
-
-            $scmd = "$sortHits $verbose -m $hitMemory -t $path/2-filter/sorttmp $path/2-filter/filtHits > $path/2-filter/filteredHits";
+            $scmd = "$sortHits $verbose -m $hitMemory -t $path/2-filter $path/2-filter/filtHits > $path/2-filter/filteredHits";
         }
 
         if ($type eq "none") {
             $fcmd  = "echo";
-
-            $scmd = "$sortHits $verbose -m $hitMemory -t $path/2-filter/sorttmp $path/1-search/*hits > $path/2-filter/filteredHits";
-
-            print STDERR "RUNNING FILTER: $scmd\n";
+            $scmd = "$sortHits $verbose -m $hitMemory -t $path/2-filter $path/1-search/*hits > $path/2-filter/filteredHits";
         }
 
         print STDERR "ESTmapper/filter-- Filtering.\n";
@@ -1214,6 +1205,7 @@ sub filter {
             die "Failed to filter!\n! = $!\n? = $?\n";
 
         print STDERR "ESTmapper/filter-- Sorting.\n";
+        print STDERR "ESTmapper/filter-- Sorting -- $scmd\n";
         system($scmd) == 0 or
             die "Failed to sort!\n! = $!\n? = $?\n";
    }
@@ -1255,24 +1247,26 @@ sub countTheCountFile {
 
 sub search {
     my $startTime = time();
-    my $errHdr     = "ERROR: ESTmapper/search--";
-    my @ARGS       = @_;
-    my $path       = "";
-    my $opts       = "";
-    my $cdna       = "";
-    my $mersize    = 20;
-    my $maskFile   = "";
-    my $verbose    = "";
-    my $stats      = 0;
-    my $farm       = 0;
-    my $farmqueue  = "";
-    my $farmcode   = "";
-    my $local      = 1;
-    my $numthread  = 2;
-    my $numproc    = 4;
-    my $runnow     = 1;
-    my $maxintron  = "-maxintron 2000000";
-    my $species    = "";
+    my $errHdr       = "ERROR: ESTmapper/search--";
+    my @ARGS         = @_;
+    my $path         = "";
+    my $opts         = "";
+    my $cdna         = "";
+    my $mersize      = 20;
+    my $maskFile     = "";
+    my $builddir     = undef;
+    my $buildprefix  = undef;
+    my $verbose      = "";
+    my $stats        = 1;
+    my $farm         = 0;
+    my $farmqueue    = "";
+    my $farmcode     = "";
+    my $local        = 1;
+    my $numthread    = 2;
+    my $numproc      = 4;
+    my $runnow       = 1;
+    my $maxintron    = "-maxintron 2000000";
+    my $species      = "";
 
     print STDERR "ESTmapper: Performing a search.\n";
 
@@ -1303,6 +1297,10 @@ sub search {
         if ($arg eq "-maskmers") {
             $species  = "";
             $maskFile = shift @ARGS;
+        }
+        if ($arg eq "-prebuild") {
+            $builddir    = shift @ARGS;
+            $buildprefix = shift @ARGS;
         }
         if ($arg eq "-nomaskmers") {
             $maskFile = "";
@@ -1403,6 +1401,7 @@ sub search {
     foreach my $s (@scafList) {
         open(F, "> $path/1-search/$s.cmd");
         print F "$searchGENOME $verbose -binary -mersize $mersize $maxintron $opts -numthreads $numthread";
+        print F " -buildonly $builddir/$buildprefix.$mersize.$s" if (defined($buildprefix));
         print F " -cdna $path/0-input/cDNA.fasta";
         print F " -genomic $path/0-input/genomic.fasta";
         print F " -use $path/0-input/scaffolds-$s";
