@@ -186,7 +186,7 @@ configuration::read(int argc, char **argv) {
       _tableBuildOnly = false;
     } else if (strcmp(argv[arg], "-use") == 0) {
       arg++;
-      config._useList.parse(argv[arg]);
+      _useList.parse(argv[arg]);
     } else if (strcmp(argv[arg], "-forward") == 0) {
       _doForward = true;
       _doReverse = false;
