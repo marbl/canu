@@ -294,11 +294,11 @@ CC                := cc
 SHLIB_FLAGS       := -shared
 CFLAGS_COMPILE    := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -O3 \$(THREADS) -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CLDFLAGS          := -L/usr/local/lib
-CLIBS             := \$(THREADL)
+CLIBS             := \$(THREADL) -ldl
 CXX               := g++
 CXXFLAGS_COMPILE  := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -O3 \$(THREADS) -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CXXLDFLAGS        := -L/usr/local/lib
-CXXLIBS           := \$(THREADL)
+CXXLIBS           := \$(THREADL) -ldl
 ARFLAGS           := ruvs
 EOF
     ;;
