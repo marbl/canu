@@ -14,6 +14,7 @@ endif
 # declarations
 src     :=$/sim4polish-comparisons.c \
           $/sim4polish-copy.c \
+          $/sim4polish-compare.c \
           $/sim4polish-deleteexon.c \
           $/sim4polish-destroypolish.c \
           $/sim4polish-exons.c \
@@ -44,7 +45,6 @@ $/%.d $/%.o:  CXXFLAGS+=-I${LIBBRI/}
 $/buildinfo-libsim4polish.c: $/buildinfo-libsim4polish.h
 $/buildinfo-libsim4polish.h: ${src}
 	${UTIL/}buildinfo.pl libsim4polish "${CXXFLAGS} ${CXXFLAGS_COMPILE}" ${src}
-	mv buildinfo-libsim4polish.[ch] `dirname $@`
-
+	[ `dirname $@` = "." ] || mv buildinfo-libsim4polish.[ch] `dirname $@`
 
 
