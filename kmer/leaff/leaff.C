@@ -3,22 +3,12 @@
 #include <unistd.h>
 #include <math.h>
 
-#define WITH_MD5
-
-#ifdef WITH_MD5
-#include "../external/md5lib/global.h"
-#include "../external/md5lib/md5.h"
-#endif
-
 //  Linux needs to include time.h; others can use sys/time.h.
 //  Tru64 is ok with time.h
 //
 #include <time.h>
 
-
-//  only for complementSymbol
 #include "libbri.H"
-
 #include "fasta.H"
 
 #include "buildinfo-leaff.h"
@@ -34,23 +24,23 @@ const char *descMsg  = "%lu\n";
 #endif
 
 
-
 const char *usage =
 "usage: %s [--buildinfo] [-f|-F|-I <fasta-file>] [options]\n"
 "\n"
 "SOURCE FILE\n"
 "       -f file:    use 'file' as an UN-INDEXED source file\n"
-"       -Ft file:   use 'file' as an INDEXED source file (the index is built if it doesn't exist)\n"
-"                   where 't' is the type of index to build:\n"
+"       -Ft file:   use 'file' as an INDEXED source file (the index is built if\n"
+"                   it doesn't exist), where 't' is the type of index to build:\n"
 "                     i:  internal id's only (the default if t is not specified)\n"
 "                     n:  names only (the first word on defline)\n"
 "                     d:  full deflines\n"
-"       -Ii:        internal 'seqid' (an integer), the default for -Fi\n"
-"       -Ie:        external 'seqid' (a word), the default for -Fn or -Fd, error for -Fi\n"
+"       -Ii:        internal 'seqid' (an integer), this is the default for -Fi\n"
+"       -Ie:        external 'seqid' (a word), this is the default for -Fn or\n"
+"                   -Fd, and is an error for -Fi\n"
 "\n"
 "ACTIONS (no index needed)\n"
 "       -L s l:     print all sequences such that:  s <= length < l\n"
-"       -G n s l:   print n random sequences of length between s and l (0 < s <= l)\n"
+"       -G n s l:   print n random sequences of length 0 < s <= length <= l)\n"
 "       -W:         print all sequences (do the whole file)\n"
 "\n"
 "ACTIONS (index needed)\n"
@@ -58,7 +48,7 @@ const char *usage =
 "       -i name:        print an ATA compliant index, labelling the source 'name'\n"
 "       -ii:            print the index in an almost-human readable format\n"
 "       -s seqid:       print the single sequence 'seqid'\n"
-"       -S first last:  print all the sequences from 'first' to 'last' (inclusive)\n"
+"       -S f l:         print all the sequences from IID 'f' to 'l' (inclusive)\n"
 "       -r num:         print 'num' randomly picked sequences\n"
 "       -q file:        print sequences from the seqid list in 'file'\n"
 "\n"
@@ -70,15 +60,24 @@ const char *usage =
 "       -H:          DON'T print the defline\n"
 "       -h:          Use the next word as the defline\n"
 "                      (use \"-H -H\" to resume using the original defline)\n"
-"       -e beg end:  Print only the bases from position 'beg' to position 'end' (space\n"
-"                    based!)  If beg == end, then the entire sequence is printed.  It\n"
-"                    is an error to specify beg > end, or beg > len, or end > len.\n"
-#ifdef WITH_MD5
+"       -e beg end:  Print only the bases from position 'beg' to position 'end'\n"
+"                    (space based!)  If beg == end, then the entire sequence is\n"
+"                    printed.  It is an error to specify beg > end, or beg > len,\n"
+"                    or end > len.\n"
 "       -md5:        Don't print the sequence, but print the md5 checksum\n"
 "                    (of the entire sequence) followed by the entire defline.\n"
-#endif
 "\n"
 "           XXXXXXXXXXX: how does -e handle reverse complement??\n"
+"\n"
+"ANALYSIS OPTIONS\n"
+"\n"
+"       --findduplicates a.fasta\n"
+"                    Reports sequences that are present more than once.  Output\n"
+"                    is a list of pairs of deflines, separated by a newline.\n"
+"\n"
+"       --mapduplicates a.fasta b.fasta\n"
+"                    Builds a map of IIDs from a.fasta and b.fasta that have\n"
+"                    identical sequences.  Format is \"IIDa <-> IIDb\"\n"
 "\n"
 "EXPERT OPTIONS\n"
 "       -A:  Read actions from 'file'\n"
@@ -101,13 +100,8 @@ const char *usage =
 //
 char translate[256];
 
-
-
 void  processFile(char  *filename);
 void  processArray(int argc, char **argv);
-
-
-
 
 void
 printSequence(FastASequenceInCore *b,
@@ -127,22 +121,15 @@ printSequence(FastASequenceInCore *b,
     end = l;
   }
 
-#if 0
-  if (beg > l)  beg = 0;
-  if (end > l)  end = l;
-
-  if (beg > end) {
-    beg = 0;
-    end = l;
-  }
-#else
   if ((beg > l) || (end > l) || (beg > end)) {
+#ifdef TRUE64BIT
     fprintf(stderr, "WARNING:  Printing %u to %u of sequence %u (len=%u) is out of bounds -- NO SEQUENCE PRINTED!\n",
             beg, end, b->getIID(), l);
-  }
+#else
+    fprintf(stderr, "WARNING:  Printing %lu to %lu of sequence %lu (len=%lu) is out of bounds -- NO SEQUENCE PRINTED!\n",
+            beg, end, b->getIID(), l);
 #endif
-
-
+  }
 
   u32bit    limit = end - beg;
   char     *n = new char [end - beg + 1];
@@ -298,26 +285,16 @@ printIID(u32bit iid, FastASequenceInCore *s=0L) {
     s = f->getSequence();
   }
 
-#ifdef WITH_MD5
   if (printMD5) {
-    MD5_CTX         ctx;
-    unsigned char   dig[16];
-    char           *prt     = "0123456789abcdef";
-    char            sum[33];
+    md5_s     md5;
+    char      sum[33];
 
-    MD5Init(&ctx);
-    MD5Update(&ctx, (unsigned char *)s->sequence(), s->sequenceLength());
-    MD5Final(dig, &ctx);
-
-    for (int i=0; i<16; i++) {
-      sum[2*i  ] = prt[(dig[i] >> 4) & 0x0f];
-      sum[2*i+1] = prt[(dig[i])      & 0x0f];
-    }
-    sum[32] = 0;
+    md5_toascii(md5_string(&md5,
+                           s->sequence(), s->sequenceLength()),
+                sum);
 
     fprintf(stdout, "%s %s\n", sum, s->header());
   } else {
-#endif
     if (withDefLine)
       if (specialDefLine)
         fprintf(stdout, ">%s\n", specialDefLine);
@@ -326,9 +303,7 @@ printIID(u32bit iid, FastASequenceInCore *s=0L) {
 
     printSequence(s, begPos, endPos, withLineBreaks, reverse, complement);
     fprintf(stdout, "\n");
-#ifdef WITH_MD5
   }
-#endif
 
   if (mySeq)
     delete s;
@@ -536,19 +511,207 @@ printIDsFromFile(char *name) {
 }
 
 
+md5_s *
+computeMD5ForEachSequence(FastAWrapper *F) {
+  u32bit   numSeqs = F->getNumberOfSequences();
+  md5_s   *result  = new md5_s [numSeqs];
+
+  F->find((u32bit)0);
+
+  for (u32bit idx=0; idx < numSeqs; idx++) {
+    FastASequenceInCore *s1 = F->getSequence();
+    md5_string(result+idx, s1->sequence(), s1->sequenceLength());
+    result[idx].i = s1->getIID();
+    delete s1;
+  }
+
+  return(result);
+}
+
+void
+findDuplicates(char *filename) {
+  FastASequenceInCore  *s1 = 0L;
+  FastASequenceInCore  *s2 = 0L;
+  FastAWrapper         *A = new FastAWrapper(filename);
+
+  A->openIndex(FASTA_INDEX_ONLY);
+
+  u32bit numSeqs = A->getNumberOfSequences();
+
+  fprintf(stderr, "Computing MD5's for each sequence in '%s'.\n", filename);
+  md5_s *result = computeMD5ForEachSequence(A);
+
+  fprintf(stderr, "Sorting MD5's.\n");
+  qsort(result, numSeqs, sizeof(md5_s), md5_compare);
+
+  fprintf(stderr, "Verifying identity, and output\n");
+  for (u32bit idx=1; idx<numSeqs; idx++) {
+    if (md5_compare(result+idx-1, result+idx) == 0) {
+      if (result[idx-1].i == result[idx].i) {
+#ifdef TRUE64BIT
+        fprintf(stderr, "Internal error: found two copies of the same sequence iid (%u)!\n", result[idx].i);
+#else
+        fprintf(stderr, "Internal error: found two copies of the same sequence iid (%lu)!\n", result[idx].i);
+#endif
+        exit(1);
+      }
+
+      A->find(result[idx-1].i);
+      s1 = A->getSequence();
+
+      A->find(result[idx].i);
+      s2 = A->getSequence();
+
+      if (strcmp(s1->sequence(), s2->sequence()) == 0) {
+        fprintf(stdout, "%s\n%s\n\n", s1->header(), s2->header());
+      } else {
+#ifdef TRUE64BIT
+        fprintf(stderr, "COLLISION DETECTED BETWEEN IID %u AND %u!\nPLEASE REPORT THIS TO brian.walenz@celera.com!\n",
+                result[idx-1].i, result[idx].i);
+#else
+        fprintf(stderr, "COLLISION DETECTED BETWEEN IID %lu AND %lu!\nPLEASE REPORT THIS TO brian.walenz@celera.com!\n",
+                result[idx-1].i, result[idx].i);
+#endif
+      }
+
+      delete s1;
+      delete s2;
+    }
+  }
+
+  delete [] result;
+  delete    A;
+}
+
+
+
+void
+mapDuplicates_Print(char *filea, FastASequenceInCore *sa,
+                    char *fileb, FastASequenceInCore *sb) {
+  if (strcmp(sa->sequence(), sb->sequence()) == 0) {
+#ifdef TRUE64BIT
+    fprintf(stdout, "%u <-> %u\n", sa->getIID(), sb->getIID());
+#else
+    fprintf(stdout, "%lu <-> %lu\n", sa->getIID(), sb->getIID());
+#endif
+  } else {
+#ifdef TRUE64BIT
+    fprintf(stderr, "COLLISION DETECTED BETWEEN %s:%u AND %s:%u!\nPLEASE REPORT THIS TO brian.walenz@celera.com!\n",
+            filea, sa->getIID(), fileb, sb->getIID());
+#else
+    fprintf(stderr, "COLLISION DETECTED BETWEEN %s:%lu AND %s:%lu!\nPLEASE REPORT THIS TO brian.walenz@celera.com!\n",
+            filea, sa->getIID(), fileb, sb->getIID());
+#endif
+  }
+}
+
+
+
+void
+mapDuplicates(char *filea, char *fileb) {
+  FastAWrapper   *A = new FastAWrapper(filea);
+  A->openIndex(FASTA_INDEX_ONLY);
+  fprintf(stderr, "Computing MD5's for each sequence in '%s'.\n", filea);
+  md5_s *resultA = computeMD5ForEachSequence(A);
+
+  FastAWrapper   *B = new FastAWrapper(fileb);
+  B->openIndex(FASTA_INDEX_ONLY);
+  fprintf(stderr, "Computing MD5's for each sequence in '%s'.\n", fileb);
+  md5_s *resultB = computeMD5ForEachSequence(B);
+
+  u32bit  numSeqsA = A->getNumberOfSequences();
+  u32bit  numSeqsB = B->getNumberOfSequences();
+  u32bit  idxA = 0;
+  u32bit  idxB = 0;
+
+  fprintf(stderr, "Sorting MD5's.\n");
+  qsort(resultA, numSeqsA, sizeof(md5_s), md5_compare);
+  qsort(resultB, numSeqsB, sizeof(md5_s), md5_compare);
+
+  fprintf(stderr, "Finding duplicates.\n");
+  while ((idxA<numSeqsA) && (idxB<numSeqsB)) {
+    int res = md5_compare(resultA+idxA, resultB+idxB);
+
+    if (res == 0) {
+      A->find(resultA[idxA].i);
+      FastASequenceInCore *sa = A->getSequence();
+
+      B->find(resultB[idxB].i);
+      FastASequenceInCore *sb = B->getSequence();
+
+      mapDuplicates_Print(filea, sa, fileb, sb);
+
+      //  While the B sequence matches the current A sequence, output a match
+      //
+      u32bit idxBb = idxB+1;
+      int resb = md5_compare(resultA+idxA, resultB+idxBb);
+      while (resb == 0) {
+        B->find(resultB[idxBb].i);
+        FastASequenceInCore *sbb = B->getSequence();
+
+        mapDuplicates_Print(filea, sa, fileb, sbb);
+
+        delete sbb;
+
+        idxBb++;
+        resb = md5_compare(resultA+idxA, resultB+idxBb);
+      }
+
+      //  And likewise for A
+      //
+      u32bit idxAa = idxA+1;
+      int resa = md5_compare(resultA+idxAa, resultB+idxB);
+      while (resa == 0) {
+        A->find(resultA[idxAa].i);
+        FastASequenceInCore *saa = A->getSequence();
+
+        mapDuplicates_Print(filea, saa, fileb, sb);
+
+        delete saa;
+
+        idxAa++;
+        resa = md5_compare(resultA+idxAa, resultB+idxB);
+      }
+
+      delete sa;
+      delete sb;
+
+      idxA++;
+      idxB++;
+    } else {
+      if (res < 0)
+        idxA++;
+      else
+        idxB++;
+    }
+  }
+
+  delete A;
+  delete B;
+}
+
+
+
+
 
 void
 processArray(int argc, char **argv) {
 
   int arg = 1;
   while (arg < argc) {
+    if        (strncmp(argv[arg], "--buildinfo", 3) == 0) {
+      buildinfo_leaff(stderr);
+      buildinfo_libfasta(stderr);
+      buildinfo_libbri(stderr);
+      exit(1);
+    } else if (strncmp(argv[arg], "--findduplicates", 3) == 0) {
+      arg++;
+      findDuplicates(argv[arg]);
+    } else if (strncmp(argv[arg], "--mapduplicates", 3) == 0) {
+      arg += 2;
+      mapDuplicates(argv[arg-1], argv[arg]);
+    } else {
     switch(argv[arg][1]) {
-      case '-':  //  Ick!  Must be --buildinfo
-        buildinfo_leaff(stderr);
-        buildinfo_libfasta(stderr);
-        buildinfo_libbri(stderr);
-        exit(1);
-        break;
       case 'f':
       case 'F':
         sourceFile = argv[++arg];
@@ -656,18 +819,16 @@ processArray(int argc, char **argv) {
         endPos = atoi(argv[arg+2]);
         arg += 2;
         break;
-#ifdef WITH_MD5
       case 'm':
         printMD5 = !printMD5;
         break;
-#endif
       case 'A':
         processFile(argv[++arg]);
         break;
     }
     arg++;
   }
-
+  }
 
   if (f) {
     delete f;
@@ -699,8 +860,13 @@ processFile(char  *filename) {
       errno = 0;
       len = fread(data+pos, 1, max - pos, stdin);
       if (errno) {
+#ifdef TRUE64BIT
         fprintf(stderr, "error: Couldn't read %llu bytes from '%s'\n%s\n",
                 max-pos, filename, strerror(errno));
+#else
+        fprintf(stderr, "error: Couldn't read %d bytes from '%s'\n%s\n",
+                max-pos, filename, strerror(errno));
+#endif
         exit(1);
       }
       pos += len;
@@ -729,7 +895,13 @@ processFile(char  *filename) {
     }
     fread(data, 1, len, F);
     if (errno) {
-      fprintf(stderr, "error: Couldn't read %llu bytes from '%s'\n%s\n", len, filename, strerror(errno));
+#ifdef TRUE64BIT
+      fprintf(stderr, "error: Couldn't read %llu bytes from '%s'\n%s\n",
+              len, filename, strerror(errno));
+#else
+      fprintf(stderr, "error: Couldn't read %d bytes from '%s'\n%s\n",
+              len, filename, strerror(errno));
+#endif
       exit(1);
     }
     fclose(F);
