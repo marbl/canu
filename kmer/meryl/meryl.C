@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include "meryl.H"
 #include "libbri.H"
+#include "buildinfo-meryl.h"
+#include "buildinfo-libbri.h"
 
 extern const char *usage;
 
@@ -61,6 +63,11 @@ main(int argc, char **argv) {
       exit(1);
     } else {
       switch (argv[arg][1]) {
+        case '-':  //  Ugh!  --buildinfo?
+          buildinfo_meryl(stderr);
+          buildinfo_libbri(stderr);
+          exit(1);
+          break;
         case 'm':
           if        (strcmp(argv[arg], "-m") == 0) {
 	    arg++;
