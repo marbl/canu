@@ -75,46 +75,52 @@ buildPositionDB(void) {
     sLen += config._useList[i].size + 100;
   }
 
-  //  Allocate space for the chained sequence
-  //
-  char *s = 0L;
-  try {
-    s = new char [sLen + 1];
-  } catch (...) {
-    fprintf(stderr, "Can't allocate space for the genomic sequence!\n");
-    abort();
+  if (config._psFileName) {
+    fprintf(stderr, "Loading positionDB state from '%s'\n", config._psFileName);
+    positions = new positionDB(config._psFileName, true);
+  } else {
+
+    //  Allocate space for the chained sequence
+    //
+    char *s = 0L;
+    try {
+      s = new char [sLen + 1];
+    } catch (...) {
+      fprintf(stderr, "Can't allocate space for the genomic sequence!\n");
+      abort();
+    }
+    char *t = s;
+
+    //  Chain
+    //
+    u32bit i;
+    for (i=0; i<config._useListLen; i++) {
+      char const *g  = cache->getSequence(config._useList[i].seq)->sequence();
+
+      while (*g)
+        *(t++) = *(g++);
+
+      for (u32bit gn = 100; gn--; )
+        *(t++) = '.';
+    }
+    
+    *t = 0;
+
+    //  Figure out a nice size of the hash.
+    //
+    //  XXX:  This probably should be tuned.
+    //
+    u32bit tblSize = 25;
+    if (sLen < 64 * 1024 * 1024) tblSize = 24;
+    if (sLen < 16 * 1024 * 1024) tblSize = 23;
+    if (sLen <  4 * 1024 * 1024) tblSize = 22;
+    if (sLen <  2 * 1024 * 1024) tblSize = 21;
+    if (sLen <  1 * 1024 * 1024) tblSize = 20;
+
+    positions = new positionDB(s, 0L, config._merSize, config._merSkip, tblSize, config._beVerbose);
+
+    delete [] s;
   }
-  char *t = s;
-
-  //  Chain
-  //
-  u32bit i;
-  for (i=0; i<config._useListLen; i++) {
-    char const *g  = cache->getSequence(config._useList[i].seq)->sequence();
-
-    while (*g)
-      *(t++) = *(g++);
-
-    for (u32bit gn = 100; gn--; )
-      *(t++) = '.';
-  }
-
-  *t = 0;
-
-  //  Figure out a nice size of the hash.
-  //
-  //  XXX:  This probably should be tuned.
-  //
-  u32bit tblSize = 25;
-  if (sLen < 64 * 1024 * 1024) tblSize = 24;
-  if (sLen < 16 * 1024 * 1024) tblSize = 23;
-  if (sLen <  4 * 1024 * 1024) tblSize = 22;
-  if (sLen <  2 * 1024 * 1024) tblSize = 21;
-  if (sLen <  1 * 1024 * 1024) tblSize = 20;
-
-  positions = new positionDB(s, 0L, config._merSize, config._merSkip, tblSize, config._beVerbose);
-
-  delete [] s;
 }
 
 

@@ -42,6 +42,7 @@ configuration::configuration(void) {
   _minMatchCoverage     = 96;
 
   _dbFileName           = 0L;
+  _psFileName           = 0L;
   _qsFileName           = 0L;
   _maskFileName         = 0L;
   _onlyFileName         = 0L;
@@ -104,6 +105,7 @@ static char const *usageString =
 "                            For only, mers with count <= n are used.\n"
 "    -queries c.fasta        Query sequences\n"
 "    -genomic g.fasta        Database sequences\n"
+"    -positions p.positionDB positionDB build from g.fasta.  Assumes you aren't using -use\n"
 "    -use [...]\n"
 "\n"
 "Process Options\n"
@@ -358,6 +360,9 @@ configuration::read(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-genomic") == 0) {
       arg++;
       _dbFileName = argv[arg];
+    } else if (strcmp(argv[arg], "-positions") == 0) {
+      arg++;
+      _psFileName = argv[arg];
     } else if (strcmp(argv[arg], "-use") == 0) {
       arg++;
       parseUseLine(argv[arg]);
@@ -539,6 +544,7 @@ configuration::display(FILE *out) {
     fprintf(out, "\n");
     fprintf(out, "--Using these Files--\n");
     fprintf(out, "Genomic File          = '%s'\n", _dbFileName);
+    fprintf(out, "Positions File        = '%s'\n", _psFileName);
     fprintf(out, "Query File            = '%s'\n", _qsFileName);
 
     if (_maskFileName)

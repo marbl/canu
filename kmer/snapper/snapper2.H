@@ -111,6 +111,7 @@ public:
   u32bit           _minMatchCoverage;
 
   char            *_dbFileName;
+  char            *_psFileName;
   char            *_qsFileName;
 
   char            *_maskFileName;
