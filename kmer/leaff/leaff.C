@@ -5,10 +5,17 @@
 
 //  Linux needs to include time.h; others can use sys/time.h.
 //  Tru64 is ok with time.h
+//
 #include <time.h>
+
+
+//  only for complementSymbol
 #include "libbri.H"
 
+#include "fasta.H"
+
 #include "buildinfo-leaff.h"
+#include "buildinfo-libfasta.h"
 #include "buildinfo-libbri.h"
 
 #ifdef TRUE64BIT
@@ -34,34 +41,41 @@ const char *usage =
 "usage: %s [--buildinfo] [-f|-F|-I <fasta-file>] [options]\n"
 "\n"
 "SOURCE FILE\n"
-"       -f:  use 'fasta-file' as the source file\n"
-"       -F:  use 'fasta-file' as the source file, building the index if needed\n"
-"       -I:  only build the index\n"
-"       -v:  be verbose\n"
+"       -f file:    use 'file' as an UN-INDEXED source file\n"
+"       -Ft file:   use 'file' as an INDEXED source file (the index is built if it doesn't exist)\n"
+"                   where 't' is the type of index to build:\n"
+"                     i:  internal id's only (the default if t is not specified)\n"
+"                     n:  names only (the first word on defline)\n"
+"                     d:  full deflines\n"
+"       -Ii:        internal 'seqid' (an integer), the default for -Fi\n"
+"       -Ie:        external 'seqid' (a word), the default for -Fn or -Fd, error for -Fi\n"
 "\n"
 "ACTIONS (no index needed)\n"
-"       -i:  print the index in an almost-human readable format\n"
-"       -d:  print the number of sequences in the fasta\n"
-"       -L:  print all sequences such that:  smallest <= length < largest\n"
-"       -G:  print n random sequences of length between l and h\n"
-"       -W:  print all sequences (do the whole file)\n"
+"       -L s l:     print all sequences such that:  s <= length < l\n"
+"       -G n s l:   print n random sequences of length between s and l (0 < s <= l)\n"
+"       -W:         print all sequences (do the whole file)\n"
 "\n"
 "ACTIONS (index needed)\n"
-"       -s:  print the single sequence 'seqid'; 0 <= seqid < max\n"
-"       -S:  print all the sequences such that:  first <= seqid < last\n"
-"       -r:  print n randomly picked sequences; 0 <= n < max\n"
-"       -q:  print sequences from the list in 'file'; 0 <= n < max\n"
+"       -d:             print the number of sequences in the fasta\n"
+"       -i:             print the index in an almost-human readable format\n"
+"       -ie:            print the index in an almost-human readable format, including external ids\n"
+"       -s seqid:       print the single sequence 'seqid'\n"
+"       -S first last:  print all the sequences from 'first' to 'last' (inclusive)\n"
+"       -r num:         print 'num' randomly picked sequences\n"
+"       -q file:        print sequences from the seqid list in 'file'\n"
 "\n"
 "SEQUENCE OPTIONS\n"
-"       -6:  reformat the input fasta with newlines every 60 bases\n"
-"       -u:  uppercase all bases\n"
-"       -R:  print the sequence reversed\n"
-"       -C:  print the sequence complemented\n"
-"       -H:  DON'T print the defline\n"
-"       -h:  Use the next word as the defline\n"
-"            (use \"-H -H\" to resume using the original defline)\n"
-"       -e:  Print only the bases from position 'begin' to position 'end'\n"
-"          counting starts at zero!\n"
+"       -6:          insert a newline every 60 bases\n"
+"       -u:          uppercase all bases\n"
+"       -R:          print the sequence reversed\n"
+"       -C:          print the sequence complemented\n"
+"       -H:          DON'T print the defline\n"
+"       -h:          Use the next word as the defline\n"
+"                      (use \"-H -H\" to resume using the original defline)\n"
+"       -e beg end:  Print only the bases from position 'beg' to position 'end'\n"
+"                      (space based!)\n"
+"\n"
+"           XXXXXXXXXXX: how does it handle reverse complement??\n"
 "\n"
 "EXPERT OPTIONS\n"
 "       -A:  Read actions from 'file'\n"
@@ -93,16 +107,17 @@ void  processArray(int argc, char **argv);
 
 
 void
-printSequence(FastABuffer &b,
-              unsigned int beg, unsigned int end,
-              bool withLineBreaks=false,
-              bool reverse=false, bool complement=false) {
-  unsigned int    style = 0;
-
+printSequence(FastASequenceInCore *b,
+              u32bit               beg,
+              u32bit               end,
+              bool                 withLineBreaks=false,
+              bool                 reverse=false,
+              bool                 complement=false) {
+  u32bit           style  = 0;
   if (reverse)     style += 1;
   if (complement)  style += 2;
 
-  u32bit l = b.sequenceLength();
+  u32bit l = b->sequenceLength();
 
   if (beg > l)  beg = 0;
   if (end > l)  end = l;
@@ -112,10 +127,10 @@ printSequence(FastABuffer &b,
     end = l;
   }
 
-  unsigned int    limit = end - beg;
-  unsigned char  *n = new unsigned char [end - beg + 1];
-  unsigned char  *m;
-  unsigned char  *s = b.sequence();
+  u32bit    limit = end - beg;
+  char     *n = new char [end - beg + 1];
+  char     *m;
+  char     *s = b->sequence();
 
   switch (style) {
     case 0:
@@ -155,9 +170,9 @@ printSequence(FastABuffer &b,
   n[end-beg] = 0;
 
   if (withLineBreaks) {
-    unsigned char *t = n;
-    unsigned char  b[62];
-    int            i = 0;
+    char      *t = n;
+    char       b[62];
+    int        i = 0;
 
     while (*t) {
       for (i=0; (*t) && (i < 60); )
@@ -170,14 +185,14 @@ printSequence(FastABuffer &b,
     fprintf(stdout, "%s", n);
   }
 
-  delete n;
+  delete [] n;
 }
 
 
 int
 comp(const void *a, const void *b) {
-  const unsigned int A = *((const unsigned int *)a);
-  const unsigned int B = *((const unsigned int *)b);
+  const u32bit A = *((const u32bit *)a);
+  const u32bit B = *((const u32bit *)b);
   if (A < B)
     return(-1);
   if (A > B)
@@ -192,19 +207,276 @@ comp(const void *a, const void *b) {
 //  that the user can select between "new state" and
 //  "old state"
 //
-bool           beVerbose         = false;
-bool           reverse           = false;
-bool           complement        = false;
-bool           withDefLine       = true;
-char          *specialDefLine    = 0L;
-bool           withLineBreaks    = false;
-bool           toUppercase       = false;
-char          *sourceFile        = 0L;
-FastA         *f                 = 0L;
-FastABuffer    b;
-u32bit         bid;
-unsigned int   begPos           = ~(unsigned int)0;
-unsigned int   endPos           = ~(unsigned int)0;
+bool             reverse           = false;
+bool             complement        = false;
+bool             withDefLine       = true;
+char            *specialDefLine    = 0L;
+bool             withLineBreaks    = false;
+bool             toUppercase       = false;
+char            *sourceFile        = 0L;
+FastAWrapper    *f                 = 0L;
+char             seqIDtype         = 'i';
+u32bit           begPos            = ~(u32bit)0;
+u32bit           endPos            = ~(u32bit)0;
+
+
+
+void
+failIfNoSource(void) {
+  if (f == 0L) {
+    fprintf(stderr, "No source file specified.\n");
+    exit(1);
+  }
+}
+
+void
+failIfNotRandomAccess(void) {
+  if (f->isRandomAccess() == false) {
+    fprintf(stderr, "No index exists for %s\n", sourceFile);
+    exit(1);
+  }
+}
+
+
+FastAWrapper*
+openNewFile(char *name, char *arg) {
+
+  f = new FastAWrapper(name);
+
+  if (arg[1] == 'F') {
+    seqIDtype = 'i';
+    if (arg[2] == 'n') {
+      f->setIndexToSaveIDs();
+      seqIDtype = 'e';
+    }
+    if (arg[2] == 'd') {
+      f->setIndexToSaveDeflines();
+      seqIDtype = 'e';
+    }
+    f->openIndex();
+  }
+
+  return(f);
+}
+
+
+void
+printIID(u32bit iid, FastASequenceInCore *s=0L) {
+  bool  mySeq = false;
+
+  if (s == 0L) {
+    mySeq = true;
+    f->find(iid);
+    s = f->getSequence();
+  }
+
+  if (withDefLine)
+    if (specialDefLine)
+      fprintf(stdout, ">%s\n", specialDefLine);
+    else
+      fprintf(stdout, ">%s\n", s->header()+1);
+
+  printSequence(s, begPos, endPos, withLineBreaks, reverse, complement);
+  fprintf(stdout, "\n");
+
+  if (mySeq)
+    delete s;
+}
+
+
+
+void
+printSequenceBetweenSize(u32bit small, u32bit large) {
+
+  //  XXX: could be faster (maybe) with an index
+
+  while (!f->eof()) {
+    FastASequenceInCore *s = f->getSequence();
+
+    if ((small <= s->sequenceLength()) &&
+        (s->sequenceLength() < large))
+      printIID(0, s);
+
+    delete s;
+  }
+}
+
+void
+printRandomlyGeneratedSequence(u32bit n, u32bit s, u32bit l) {
+  char      bases[4] = {'A', 'C', 'G', 'T'};
+  char     *seq      = new char [l + 1];
+
+  if (s > l) {
+    u32bit t = s;
+    s = l;
+    l = t;
+  }
+
+  if (s == 0)
+    s = 1;
+
+  for (u32bit i=0; i<n; i++) {
+    u32bit j = s + (random() % (l-s));
+    seq[j] = 0;
+
+    while (j)
+      seq[--j] = bases[random() & 0x3];            
+
+    if (withDefLine)
+      if (specialDefLine)
+        fprintf(stdout, ">%s\n", specialDefLine);
+      else
+        fprintf(stdout, ">%lu\n", i);
+
+    fprintf(stdout, "%s\n", seq);
+  }
+
+  delete [] seq;
+}
+
+void
+findSequenceAndPrint(char *id) {
+
+  bool found = false;
+
+  if (seqIDtype == 'i')
+    found = f->find((u32bit)atoi(id));
+  else
+    found = f->find(id);
+
+  if (found) {
+    printIID(f->currentIID());
+  } else {
+    fprintf(stderr, "WARNING: Didn't find %s id '%s'\n",
+            seqIDtype == 'i' ? "internal" : "external",
+            id);
+  }
+}
+
+void
+printRangeOfSequences(char *argl, char *argh) {
+  u32bit lowID  = 0;
+  u32bit highID = 0;
+  bool   fail   = false;
+
+  if (seqIDtype == 'i') {
+    lowID  = atoi(argl);
+    if (lowID >= f->getNumberOfSequences()) {
+      fprintf(stderr, "ERROR: Internal id of %lu for starting sequence is too large; only %lu sequences.\n",
+              lowID, f->getNumberOfSequences());
+      fail = true;
+    }
+
+    highID = atoi(argh);
+    if (highID >= f->getNumberOfSequences()) {
+      fprintf(stderr, "ERROR: Internal id of %lu for ending sequence is too large; only %lu sequences.\n",
+              lowID, f->getNumberOfSequences());
+      fail = true;
+    }
+  } else {
+    if (f->find(argl)) {
+      lowID = f->currentIID();
+    } else {
+      fprintf(stderr, "ERROR: Can't find external id '%s' of starting sequence.\n", argl);
+      fail = true;
+    }
+    
+    if (f->find(argh)) {
+      highID = f->currentIID();
+    } else {
+      fprintf(stderr, "ERROR: Can't find external id '%s' of ending sequence.\n", argh);
+      fail = true;
+    }
+  }
+
+  if (fail)
+    exit(1);
+
+  //  Silently swap the ranges if needed.
+  //
+  if (lowID > highID) {
+    u32bit t = lowID;
+    lowID    = highID;
+    highID   = t;
+  }
+
+  for (u32bit seqID=lowID; seqID <= highID; seqID++)
+    printIID(seqID);
+}
+
+
+void
+findAndPrintRandomSequences(u32bit num) {
+
+  if (num >= f->getNumberOfSequences()) {
+    fprintf(stderr, "WARNING: file has %lu sequences, and you asked for %lu.\n",
+            f->getNumberOfSequences(), num);
+    printSequenceBetweenSize(u32bitZERO, ~u32bitZERO);
+    return;
+  }
+
+  u32bit  *seqs = new u32bit [f->getNumberOfSequences()];
+
+  for (u32bit i=0; i<f->getNumberOfSequences(); i++)
+    seqs[i] = i;
+
+  for (u32bit i=0; i<f->getNumberOfSequences(); i++) {
+    u32bit j = (unsigned int)(random() % f->getNumberOfSequences());
+    u32bit t = seqs[j];
+    seqs[j] = seqs[i];
+    seqs[i] = t;
+  }
+
+  qsort(seqs, num, sizeof(unsigned int), comp);
+
+  for (u32bit i=0; i<num; i++)
+    printIID(seqs[i]);
+
+  delete [] seqs;
+}
+
+
+void
+printIDsFromFile(char *name) {
+  u32bit      idLen = 0;
+  u32bit      idMax = 63;
+  char       *id    = new char [idMax+1];
+
+  readBuffer  B(name);
+
+  //  For optimal performance, we should sort the list of ID's given
+  //  by their IID, but the user might have a good reason for wanting
+  //  them unsorted.
+
+  while (B.eof() == false) {
+    while (isspace(B.get()) && (B.eof() == false))
+      B.next();
+
+    if (B.eof() == false) {
+      idLen = 0;
+
+      while (!isspace(B.get()) && (B.eof() == false)) {
+        id[idLen++] = B.get();
+
+        if (idLen >= idMax) {
+          idMax *= 2;
+          char *newid = new char [idMax+1];
+          memcpy(newid, id, sizeof(char) * idLen);
+          delete [] id;
+          id = newid;
+        }
+
+        B.next();
+      }
+
+      id[idLen] = 0;
+
+      findSequenceAndPrint(id);
+    }
+  }
+
+  delete [] id;
+}
 
 
 
@@ -216,229 +488,86 @@ processArray(int argc, char **argv) {
     switch(argv[arg][1]) {
       case '-':  //  Ick!  Must be --buildinfo
         buildinfo_leaff(stderr);
+        buildinfo_libfasta(stderr);
         buildinfo_libbri(stderr);
         exit(1);
         break;
-      case 'v':
-        beVerbose = true;
-        break;
       case 'f':
-        if (f)
-          delete f;
-        sourceFile = argv[++arg];
-        f = new FastA(sourceFile, false, beVerbose);
-        break;
       case 'F':
-      case 'I':
         if (f)
           delete f;
         sourceFile = argv[++arg];
-        f = new FastA(sourceFile, true, beVerbose);
+        f = openNewFile(sourceFile, argv[arg-1]);
+        break;
+      case 'I':
+        switch (argv[arg][2]) {
+          case 'i':
+            seqIDtype = 'i';
+            break;
+          case 'e':
+            seqIDtype = 'e';
+            break;
+          default:
+            fprintf(stderr, "WARNING: unknown id type '%c'\n", argv[arg][2]);
+            break;
+        }
         break;
       case 'i':
-        if (f == 0L) {
-          fprintf(stderr, "No source file specified.\n");
-          exit(1);
-        } else {
-          //  See if the index exists; if so, use a fast method
-          //
-          if (f->numberOfSequences() > 0) {
-            for (u32bit i=0; i < f->numberOfSequences(); i++)
-              fprintf(stdout, idxMsg, i, f->headerLength(i), f->sequenceLength(i));
-          } else {
-            u32bit i;
-            for (i=0, f->first(b); f->eof() == false; f->next(b), i++)
-              fprintf(stdout, idxMsg, i, b.headerLength(), b.sequenceLength());
-          }
+        switch (argv[arg][2]) {
+          case 0:
+            failIfNoSource();
+            failIfNotRandomAccess();
+            f->printTextDescription(stdout, true);
+            break;
+          case 'e':
+            failIfNoSource();
+            failIfNotRandomAccess();
+            f->printTextDescription(stdout);
+            break;
+          default:
+            fprintf(stderr, "WARNING: unknown option '%s'\n", argv[arg]);
+            break;
         }
         break;
       case 'd':
-        if (f == 0L) {
-          fprintf(stderr, "No source file specified.\n");
-          exit(1);
-        } else {
-          printf(descMsg, f->numberOfSequences());
-        }
+        failIfNoSource();
+        failIfNotRandomAccess();
+        printf(descMsg, f->getNumberOfSequences());
         break;
       case 'L':
-        if (f == 0L) {
-          fprintf(stderr, "No source file specified.\n");
-          exit(1);
-        } else {
-          u32bit small = atoi(argv[++arg]);
-          u32bit large = atoi(argv[++arg]);
-
-          for (f->first(b); f->eof() == false; f->next(b))
-            if ((small <= b.sequenceLength()) && (b.sequenceLength() < large)) {
-              if (specialDefLine)
-                fprintf(stdout, ">%s\n", specialDefLine);
-              else
-                if (withDefLine)
-                  fprintf(stdout, ">%s\n", b.header()+1);
-              printSequence(b, begPos, endPos, withLineBreaks, reverse, complement);
-              fprintf(stdout, "\n");
-            }
-        }
+        failIfNoSource();
+        printSequenceBetweenSize(atoi(argv[arg+1]),
+                                 atoi(argv[arg+2]));
+        arg += 2;
         break;
       case 'W':
-        if (f == 0L) {
-          fprintf(stderr, "No source file specified.\n");
-          exit(1);
-        } else {
-          for (f->first(b); f->eof() == false; f->next(b)) {
-              if (specialDefLine)
-                fprintf(stdout, ">%s\n", specialDefLine);
-              else
-                if (withDefLine)
-                  fprintf(stdout, ">%s\n", b.header()+1);
-            printSequence(b, 0, b.sequenceLength(), withLineBreaks, reverse, complement);
-            fprintf(stdout, "\n");
-          }
-        }
+        failIfNoSource();
+        printSequenceBetweenSize(u32bitZERO, ~u32bitZERO);
         break;
       case 'G':
-        //  Give the variables below their own scope.
-        {
-          unsigned int    n, s, l;
-          char            bases[4] = {'A', 'C', 'G', 'T'};
-
-          n = atoi(argv[++arg]);
-          s = atoi(argv[++arg]);
-          l = atoi(argv[++arg]) + 1;
-
-          char           *seq      = new char [l + 1];
-
-          srandom(getpid() * time(NULL));
-
-          for (unsigned int i=0; i<n; i++) {
-            unsigned int j = s + (random() % (l-s));
-            seq[j] = 0;
-            while (j)
-              seq[--j] = bases[random() & 0x3];            
-            if (specialDefLine)
-              fprintf(stdout, ">%s\n", specialDefLine);
-            else
-              if (withDefLine)
-                fprintf(stdout, ">%s\n", b.header()+1);
-            fprintf(stdout, "%s\n", seq);
-          }
-        }
+        printRandomlyGeneratedSequence(atoi(argv[arg+1]), atoi(argv[arg+2]), atoi(argv[arg+3])+1);
+        arg += 3;
         break;
       case 's':
-        if (f == 0L) {
-          fprintf(stderr, "No source file specified.\n");
-          exit(1);
-        } else {
-          u32bit seqID = atoi(argv[++arg]);
-
-          if (seqID < f->numberOfSequences()) {
-            f->seek(b, seqID);
-            if (specialDefLine)
-              fprintf(stdout, ">%s\n", specialDefLine);
-            else
-              if (withDefLine)
-                fprintf(stdout, ">%s\n", b.header()+1);
-            printSequence(b, begPos, endPos, withLineBreaks, reverse, complement);
-            fprintf(stdout, "\n");
-          }
-        }
+        failIfNoSource();
+        failIfNotRandomAccess();
+        findSequenceAndPrint(argv[++arg]);
         break;
       case 'S':
-        if (f == 0L) {
-          fprintf(stderr, "No source file specified.\n");
-          exit(1);
-        } else {
-          u32bit lowID  = atoi(argv[++arg]);
-          u32bit highID = atoi(argv[++arg]);
-
-          if (highID > f->numberOfSequences())
-            highID = f->numberOfSequences();
-
-          if (lowID >= highID) {
-            fprintf(stderr, "Make sure that lowID < highID!  You gave lowID = %d and highID = %d\n", lowID, highID);
-          } else {
-            if ((lowID < f->numberOfSequences()) && (highID <= f->numberOfSequences())) {
-              unsigned int i;
-              for (i=lowID, f->seek(b, lowID); (f->eof() == false) && (i<highID); f->next(b), i++) {
-                if (specialDefLine)
-                  fprintf(stdout, ">%s\n", specialDefLine);
-                else
-                  if (withDefLine)
-                    fprintf(stdout, ">%s\n", b.header()+1);
-                printSequence(b, begPos, endPos, withLineBreaks, reverse, complement);
-                fprintf(stdout, "\n");
-              }
-            }
-          }
-        }
+        failIfNoSource();
+        failIfNotRandomAccess();
+        printRangeOfSequences(argv[arg+1], argv[arg+2]);
+        arg += 2;
         break;
       case 'r':
-        if (f == 0L) {
-          fprintf(stderr, "No source file specified.\n");
-          exit(1);
-        } else {
-          unsigned int numberSeqs = atoi(argv[++arg]);
-
-          if (numberSeqs < f->numberOfSequences()) {
-            unsigned int  *useThisSequence = new unsigned int [f->numberOfSequences()];
-            unsigned int   i, j, t;
-
-	    srandom(getpid() * time(NULL));
-
-            for (i=0; i<f->numberOfSequences(); i++)
-              useThisSequence[i] = i;
-
-            for (i=0; i<f->numberOfSequences(); i++) {
-              j = (unsigned int)(random() % f->numberOfSequences());
-              t = useThisSequence[j];
-              useThisSequence[j] = useThisSequence[i];
-              useThisSequence[i] = t;
-            }
-
-            qsort(useThisSequence, numberSeqs, sizeof(unsigned int), comp);
-
-            for (i=0; i<numberSeqs; i++) {
-              f->seek(b, useThisSequence[i]);
-              if (specialDefLine)
-                fprintf(stdout, ">%s\n", specialDefLine);
-              else
-                if (withDefLine)
-                  fprintf(stdout, ">%s\n", b.header()+1);
-              printSequence(b, begPos, endPos, withLineBreaks, reverse, complement);
-              fprintf(stdout, "\n");
-            }
-
-            delete useThisSequence;
-          }
-        }
+        failIfNoSource();
+        failIfNotRandomAccess();
+        findAndPrintRandomSequences(atoi(argv[++arg]));
         break;
       case 'q':
-        if (f == 0L) {
-          fprintf(stderr, "No source file specified!\n");
-          exit(1);
-        } else {
-          FILE *In = fopen(argv[++arg], "r");
-          if (In) {
-            while (!feof(In)) {
-              int i;
-
-              if (fscanf(In, " %d ", &i) == 1) {
-                f->seek(b, i);
-                if (specialDefLine)
-                  fprintf(stdout, ">%s\n", specialDefLine);
-                else
-                  if (withDefLine)
-                    fprintf(stdout, ">%s\n", b.header()+1);
-                printSequence(b, begPos, endPos, withLineBreaks, reverse, complement);
-                fprintf(stdout, "\n");
-              }
-            }
-
-            fclose(In);
-          } else {
-            fprintf(stderr, "Couldn't open '%s'\n", argv[arg]);
-          }
-        }
+        failIfNoSource();
+        failIfNotRandomAccess();
+        printIDsFromFile(argv[++arg]);
         break;
       case '6':
         withLineBreaks = !withLineBreaks;
@@ -460,11 +589,11 @@ processArray(int argc, char **argv) {
         complement = !complement;
         break;
       case 'H':
-        withDefLine = !withDefLine;
-        if (withDefLine)
-          specialDefLine = 0L;
+        withDefLine    = !withDefLine;
+        specialDefLine = 0L;
         break;
       case 'h':
+        withDefLine    = true;
         specialDefLine = argv[++arg];
         break;
       case 'e':
@@ -507,14 +636,14 @@ processFile(char  *filename) {
       errno = 0;
       len = fread(data+pos, 1, max - pos, stdin);
       if (errno) {
-        fprintf(stderr, "error: Couldn't read %lu bytes from '%s'\n%s\n",
+        fprintf(stderr, "error: Couldn't read %llu bytes from '%s'\n%s\n",
                 max-pos, filename, strerror(errno));
         exit(1);
       }
       pos += len;
       
       if (pos >= max) {
-        max += 0.2 * max;
+        max += (size_t)floor(0.2 * max);
         char *tmpd = new char [max];
         memcpy(tmpd, data, pos);
         delete [] data;
@@ -537,7 +666,7 @@ processFile(char  *filename) {
     }
     fread(data, 1, len, F);
     if (errno) {
-      fprintf(stderr, "error: Couldn't read %lu bytes from '%s'\n%s\n", len, filename, strerror(errno));
+      fprintf(stderr, "error: Couldn't read %llu bytes from '%s'\n%s\n", len, filename, strerror(errno));
       exit(1);
     }
     fclose(F);
@@ -546,7 +675,7 @@ processFile(char  *filename) {
 
   //  (over)count the number of words
   //
-  for (int i=0; i<len; i++) {
+  for (u32bit i=0; i<len; i++) {
     if (isspace(data[i])) {
       argc++;
       data[i] = 0;
@@ -564,7 +693,7 @@ processFile(char  *filename) {
   argv[0] = filename;
   argc = 1;
 
-  for (int pos=0; pos<len; pos++) {
+  for (u32bit pos=0; pos<len; pos++) {
 
     //  Skip leading whitespace
     while (data[pos] == 0 && pos < len)
@@ -598,6 +727,8 @@ main(int argc, char **argv) {
 
   for (int z=0; z<256; z++)
     translate[z] = (char)z;
+
+  srandom(getpid() * time(NULL));
 
   processArray(argc, argv);
 }
