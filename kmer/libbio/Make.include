@@ -16,6 +16,7 @@ src    := $/alphabet.c \
           $/merstream.C \
           $/merstreamfile.C \
           $/palloc.c \
+          $/readBuffer.C \
           $/reversecomplement.c \
           $/stat.c \
           $/bitOperations.h \
