@@ -135,11 +135,21 @@ buildTable(void) {
   positions = new positionDB(s, 0L, config._merSize, config._merSkip, tblSize, config._beVerbose, maskDB, onlyDB, config._tmpFileName);
 
   if (config._tableFileName) {
-    if (config._beVerbose) {
+    if (config._beVerbose)
       fprintf(stderr, "Dumping positions table to '%s'\n", config._tableFileName);
-      positions->saveState(config._tableFileName);
 
+    positions->saveState(config._tableFileName);
+
+    if (config._beVerbose) {
+      write_rusage(stderr);
+
+      fprintf(stderr, "wallClockTimes--------------------------\n");
+      fprintf(stderr, "init:     %9.5f\n", config._initTime   - config._startTime);
+      fprintf(stderr, "build:    %9.5f\n", getTime()  - config._initTime);
+
+      fprintf(stderr, "\n");
       fprintf(stderr, "Dumping finished.  Exiting.\n");
+
       exit(0);
     }
   }
