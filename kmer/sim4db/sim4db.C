@@ -20,17 +20,6 @@
 #include "buildinfo-libfasta.h"
 
 
-//  Some malloc options
-//
-#if 0
-int __delayed_free  = 0;
-int __fast_free_max = 100;
-int __first_fit     = 2;
-unsigned long __noshrink = 1;
-#endif
-
-
-
 //  Run options set from the command line.
 //
 char           *cdnaFileName     = 0L;
@@ -92,6 +81,8 @@ const char *usage =
 "       -forcestrand  Force the strand prediction to always be\n"
 "                     'forward' or 'reverse'\n"
 "\n"
+"       -interspecies Configure sim4 for better inter-species alignments\n"
+"\n"
 "  The following are for use only by immortals.\n"
 "       -H            set the relink weight factor\n"
 "       -K            set the first MSP threshold\n"
@@ -101,13 +92,6 @@ const char *usage =
 "       -Ma           set the limit of the number of MSPs allowed\n"
 "       -Mp           same, as percentage of bases in cDNA\n"
 "                     NOTE:  If used, both -Ma and -Mp must be specified!\n"
-#ifdef INTERSPECIES
-#warn INTERSPECIES MODE ENABLED IN sim4db.H
-"\n"
-"!!! NOTE !!!  This is a modified version tuned for interspecies comparisons\n"
-"Direct questions to liliana.florea@celera.com, brian.walenz@celera.com\n"
-"\n"
-#endif
 ;
 
 
@@ -118,22 +102,22 @@ parseCommandLine(int argc, char **argv) {
   int arg = 1;
 
   while (arg < argc) {
-    if        (strncmp(argv[arg], "--b", 3) == 0) {
+    if        (strncmp(argv[arg], "--buildinfo", 3) == 0) {
         buildinfo_sim4db(stderr);
         buildinfo_libbri(stderr);
         buildinfo_libsim4(stderr);
         buildinfo_libfasta(stderr);
         exit(1);
-    } else if (strncmp(argv[arg], "-ali", 4) == 0) {
+    } else if (strncmp(argv[arg], "-alignments", 4) == 0) {
       sim4params.setPrintAlignments(true);
-    } else if (strncmp(argv[arg], "-alw", 4) == 0) {
+    } else if (strncmp(argv[arg], "-alwaysprint", 4) == 0) {
       sim4params.setFindAllExons(true);
       arg++;
       sim4params.setAlwaysReport(atoi(argv[arg]));
-    } else if (strncmp(argv[arg], "-cd", 3) == 0) {
+    } else if (strncmp(argv[arg], "-cdna", 3) == 0) {
       arg++;
       cdnaFileName = argv[arg];
-    } else if (strncmp(argv[arg], "-cu", 3) == 0) {
+    } else if (strncmp(argv[arg], "-cut", 3) == 0) {
       arg++;
       double x = atof(argv[arg]);
       if (x < 0.0) {
@@ -145,7 +129,7 @@ parseCommandLine(int argc, char **argv) {
         x = 1.0;
       }
       sim4params.setPolyTailPercent(x);
-    } else if (strncmp(argv[arg], "-g", 2) == 0) {
+    } else if (strncmp(argv[arg], "-genomic", 2) == 0) {
       arg++;
       databaseFileName = argv[arg];
     } else if (strncmp(argv[arg], "-minc", 5) == 0) {
@@ -203,6 +187,8 @@ parseCommandLine(int argc, char **argv) {
       arg++;
       sim4params.setMSPLimitPercent(atof(argv[arg]));
 #endif
+    } else if (strncmp(argv[arg], "-interspecies", 2) == 0) {
+      sim4params.setInterspecies(true);
     } else {
       fprintf(stderr, "Unknown option '%s'.\n", argv[arg]);
     }
