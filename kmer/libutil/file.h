@@ -22,8 +22,6 @@ extern "C" {
 
 //  Useful routines for dealing with the existence of files
 
-int   fileExists(char *path);
-off_t sizeOfFile(char *path);
 int   isHuman(FILE *F);
 
 //  Handles mmap() of files.  Write is not tested -- in particluar,

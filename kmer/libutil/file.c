@@ -12,28 +12,6 @@
 
 
 int
-fileExists(char *path) {
-  struct stat s;
-
-  return(stat(path, &s) == 0);
-}
-
-
-off_t
-sizeOfFile(char *path) {
-  struct stat s;
-
-  errno = 0;
-  if (stat(path, &s) != 0) {
-    fprintf(stderr, "Couldn't stat '%s': %s\n", path, strerror(errno));
-    exit(1);
-  }
-
-  return(s.st_size);
-}
-
-
-int
 isHuman(FILE *F) {
   return(isatty(fileno(F)));
 }
