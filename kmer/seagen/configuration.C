@@ -77,8 +77,8 @@ static char const *usageString =
 "    -mask f            Ignore all mers listed in file f\n"
 "    -only f            Ignore all mers EXCEPT those listed in file f\n"
 "                       (use only the mers listed in file f)\n"
-"    -cdna c.fasta      Query sequences (the cDNA)\n"
-"    -genomic g.fasta   Database sequences (the genome)\n"
+"    -cdna c.fasta      Query sequences (the cDNA, the stream)\n"
+"    -genomic g.fasta   Database sequences (the genome, the table)\n"
 "\n"
 "    -use #,#,#,#       Use only those sequences with # specified\n"
 "    -use file          Use only those sequences listed in the file\n"
@@ -318,7 +318,13 @@ configuration::read(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-cdna") == 0) {
       arg++;
       _qsFileName = argv[arg];
+    } else if (strcmp(argv[arg], "-stream") == 0) {
+      arg++;
+      _qsFileName = argv[arg];
     } else if (strcmp(argv[arg], "-genomic") == 0) {
+      arg++;
+      _dbFileName = argv[arg];
+    } else if (strcmp(argv[arg], "-table") == 0) {
       arg++;
       _dbFileName = argv[arg];
     } else if (strcmp(argv[arg], "-use") == 0) {
