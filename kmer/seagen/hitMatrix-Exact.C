@@ -231,8 +231,8 @@ hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit
           char *o = 0L;
           try {
             o = new char [theOutputMax];
-          } catch (bad_alloc) {
-            fprintf(stderr, "hitMatrix::filter()-- caught bad_alloc in %s at line %d\n", __FILE__, __LINE__);
+          } catch (std::bad_alloc) {
+            fprintf(stderr, "hitMatrix::filter()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
             fprintf(stderr, "hitMatrix::filter()-- tried to extend output string from %lu to %lu bytes.\n", theOutputPos, theOutputMax);
           }
           memcpy(o, theOutput, theOutputPos);

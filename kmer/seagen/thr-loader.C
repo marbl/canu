@@ -66,7 +66,7 @@ loaderThread(void *) {
         pthread_mutex_unlock(&inputTailMutex);
       }
     }
-  } catch (bad_alloc) {
+  } catch (std::bad_alloc) {
     fprintf(stderr, "loaderThread()-- caught bad_alloc in %s at line %d\n", __FILE__, __LINE__);
   }
 
