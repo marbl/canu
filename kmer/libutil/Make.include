@@ -14,6 +14,7 @@ src    := $/util++.H \
           $/readBuffer.C \
           $/stat.c \
           $/bitOperations.h \
+          $/bitPackedArray.C \
           $/bitPackedFile.C \
           $/bitPacking.h \
           $/fibonacciEncoding.h \
