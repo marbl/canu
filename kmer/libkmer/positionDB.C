@@ -121,7 +121,8 @@ positionDB::positionDB(merStream   *MS,
   }
 
   if (MS->rewind() == false) {
-    fprintf(stderr, "ERROR: Failed to rewind the merStream to the beginning!\n");
+    fprintf(stderr, "positionDB::positionDB(): Failed initial rewind of merStream!\n");
+    fprintf(stderr, "positionDB::positionDB(): Your merStream doesn't support rewind?!!\n");
     exit(1);
   }
 
@@ -209,7 +210,7 @@ positionDB::positionDB(merStream   *MS,
   //
 
   if (MS->rewind() == false) {
-    fprintf(stderr, "ERROR: Failed to rewind the merStream to the beginning!\n");
+    fprintf(stderr, "positionDB::positionDB(): Failed second rewind of merStream!\n");
     exit(1);
   }
 
@@ -371,7 +372,7 @@ positionDB::positionDB(merStream   *MS,
 
 
   if (MS->rewind() == false) {
-    fprintf(stderr, "ERROR: Failed to rewind the merStream to the beginning!\n");
+    fprintf(stderr, "positionDB::positionDB(): Failed third rewind of merStream!\n");
     exit(1);
   }
 

@@ -44,99 +44,22 @@ char                  *threadStats[MAX_THREADS];
 void
 buildPositionDB(void) {
 
-  //  Complete the configuration
+  merStream *MS = new merStream(config._merSize, &config._useList);
+
+  //  Figure out a nice size of the hash.
   //
-  config.completeUseList(cache->fasta()->getNumberOfSequences());
-
-  if (config._beVerbose)
-    fprintf(stderr, "Building chunk with "u32bitFMT" sequences.\n", config._useListLen);
-
-  //  sum the length of the sequences, including the padding.
+  //  XXX:  This probably should be tuned.
   //
-  u32bit sLen = 0;
-  for (u32bit i=0; i<config._useListLen; i++) {
-    config._useList[i].size  = cache->getSequence(config._useList[i].seq)->sequenceLength();
-    config._useList[i].start = sLen;
+  u32bit tblSize = 25;
+  if (config._useList.lengthOfSequences() < 64 * 1024 * 1024) tblSize = 24;
+  if (config._useList.lengthOfSequences() < 16 * 1024 * 1024) tblSize = 23;
+  if (config._useList.lengthOfSequences() <  4 * 1024 * 1024) tblSize = 22;
+  if (config._useList.lengthOfSequences() <  2 * 1024 * 1024) tblSize = 21;
+  if (config._useList.lengthOfSequences() <  1 * 1024 * 1024) tblSize = 20;
 
-    sLen += config._useList[i].size + 100;
-  }
+  positions = new positionDB(MS, config._merSize, config._merSkip, tblSize, 0L, 0L, config._beVerbose);
 
-  if ((config._psFileName) && (fileExists(config._psFileName))) {
-    fprintf(stderr, "Loading positionDB state from '%s'\n", config._psFileName);
-    positions = new positionDB(config._psFileName, true);
-  } else {
-
-    //  Allocate space for the chained sequence
-    //
-    char *s = 0L;
-    try {
-      s = new char [sLen + 1];
-    } catch (...) {
-      fprintf(stderr, "Can't allocate space for the genomic sequence!\n");
-      abort();
-    }
-    char *t = s;
-
-    //  Chain
-    //
-    u32bit i;
-    for (i=0; i<config._useListLen; i++) {
-      char const *g  = cache->getSequence(config._useList[i].seq)->sequence();
-
-      while (*g)
-        *(t++) = *(g++);
-
-      for (u32bit gn = 100; gn--; )
-        *(t++) = '.';
-    }
-    
-    *t = 0;
-
-
-    //  Build a merStream from the sequence.  In the future, we should put this
-    //  thing on disk, since the search doesn't require sequence, and thus
-    //  we could make a bigger table in the same footprint if we didn't have
-    //  the sequence in core too.
-    //
-    merStream            *MS = 0L;
-    merStreamFileBuilder *MB = 0L;
-    merStreamFileReader  *MR = 0L;
-
-    if (config._beVerbose)
-      fprintf(stderr, "Storing the sequence in a compressed merStreamFile.\n");
-    MS = new merStream(config._merSize, s, sLen);
-    MB = new merStreamFileBuilder(MS, config._tmpFileName);
-    MB->build();
-
-    delete    MB;
-    delete    MS;
-    delete [] s;
-
-    MR = new merStreamFileReader(config._tmpFileName);
-    MS = new merStream(MR);
-
-    //  Figure out a nice size of the hash.
-    //
-    //  XXX:  This probably should be tuned.
-    //
-    u32bit tblSize = 25;
-    if (sLen < 64 * 1024 * 1024) tblSize = 24;
-    if (sLen < 16 * 1024 * 1024) tblSize = 23;
-    if (sLen <  4 * 1024 * 1024) tblSize = 22;
-    if (sLen <  2 * 1024 * 1024) tblSize = 21;
-    if (sLen <  1 * 1024 * 1024) tblSize = 20;
-
-    positions = new positionDB(MS, config._merSize, config._merSkip, tblSize, 0L, 0L, config._beVerbose);
-
-    delete    MS;
-
-    if (config._psFileName) {
-      if (config._beVerbose)
-        fprintf(stderr, "Dumping positions table to '%s'\n", config._psFileName);
-      positions->saveState(config._psFileName);
-      exit(0);
-    }
-  }
+  delete    MS;
 }
 
 
@@ -179,6 +102,63 @@ writeValidationFile(char *name, filterStats *theFilters, u32bit numFilters) {
 }
 
 
+
+
+
+
+void
+dumpStats(void) {
+
+  if (config._statsFileName) {
+    FILE *F = fopen(config._statsFileName, "wb");
+    if (F == 0L) {
+      fprintf(stderr, "Couldn't open the stats file '%s'?\n", config._statsFileName);
+      fprintf(stderr, "Stats going to stderr.\n");
+      config._statsFileName = 0L;
+      F = stderr;
+    }
+
+    config.display(F);
+
+    write_rusage(F);
+      
+    fprintf(F, "wallClockTimes--------------------------\n");
+    fprintf(F, "init:     %9.5f\n", config._initTime);
+    fprintf(F, "build:    %9.5f\n", config._buildTime);
+    fprintf(F, "search:   %9.5f\n", config._searchTime);
+    fprintf(F, "total:    %9.5f\n", getTime() - config._startTime);
+
+    fprintf(F, "searchThreadInfo------------------------\n");
+    for (u64bit i=0; i<config._numSearchThreads; i++) {
+      if (threadStats[i])
+        fprintf(F, threadStats[i]);
+      delete [] threadStats[i];
+    }
+
+    if (config._statsFileName)
+      fclose(F);
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifdef _AIX
 //  If we're AIX, define a new handler.  Other OS's reliably throw exceptions.
 //
@@ -205,6 +185,7 @@ main(int argc, char **argv) {
   std::set_new_handler(aix_new_handler);
 #endif
 
+
   //
   //  Read the configuration from the command line
   //
@@ -215,9 +196,7 @@ main(int argc, char **argv) {
   config.read(argc, argv);
   config.display();
 
-  config._startTime = getTime();
 
-  //
   //  Allocate some structures for doing a validation run.  This is
   //  done pretty early, just in case it needs to abort.
   //
@@ -251,34 +230,60 @@ main(int argc, char **argv) {
     fprintf(stderr, "Created %u filters (out of %u available) to test/validate.\n", numFilters, maxFilters);
   }
 
+
+
+  //  Complete the configuration
   //
-  //  Open and init the query sequence
+  config._useList.setSource(config._dbFileName);
+  config._useList.finish();
+
+
+  //  Take a snapshot of the init time here.  We build next, then we finish some
+  //  more initialization
   //
-  if (config._beVerbose)
-    fprintf(stderr, "Opening the cDNA sequences.\n");
+  config._initTime = getTime() - config._startTime;
 
-  qsFASTA = new FastAWrapper(config._qsFileName);
-  qsFASTA->openIndex();
 
-  numberOfQueries  = qsFASTA->getNumberOfSequences();
-  input            = new FastASequenceInCore * [numberOfQueries];
-  inputHead        = 0;
-  inputTail        = 0;
-  answerLen        = new u32bit [numberOfQueries];
-  answer           = new aHit * [numberOfQueries];
-  outputLen        = new u32bit [numberOfQueries];
-  output           = new char * [numberOfQueries];
+  //  Read in the positionDB if it's already built, or build a new one.
+  //
+  if ((config._psFileName) && (fileExists(config._psFileName))) {
+    if (config._buildOnly) {
+      fprintf(stderr, "All done.  Table '%s' already built.\n", config._psFileName);
+      exit(1);
+    } else {
+      fprintf(stderr, "Loading positionDB state from '%s'\n", config._psFileName);
+      positions = new positionDB(config._psFileName, true);
+    }
+  } else {
+    buildPositionDB();
 
-  for (u32bit i=0; i<numberOfQueries; i++) {
-    input[i]            = 0L;
-    answerLen[i]        = 0;
-    answer[i]           = 0L;
-    outputLen[i]        = 0;
-    output[i]           = 0L;
+    if (config._psFileName) {
+      if (config._beVerbose)
+        fprintf(stderr, "Dumping positions table to '%s'\n", config._psFileName);
+
+      positions->saveState(config._psFileName);
+
+      if (config._buildOnly) {
+        dumpStats();
+        exit(0);
+      }
+    }
   }
 
+  config._buildTime = getTime() - config._startTime - config._initTime;
+
+
+
+  //  Open and init the genomic sequences.
   //
-  //  Build the position database and any masking databases
+  if (config._beVerbose)
+    fprintf(stderr, "Opening the genomic database.\n");
+
+  cache = new FastACache(config._dbFileName, 0, true);
+
+
+
+  //  The masking databases
   //
   maskDB = 0L;
   if (config._maskFileName) {
@@ -304,19 +309,36 @@ main(int argc, char **argv) {
     onlyDB = new existDB(config._onlyPrefix, config._merSize, 19, 0, config._onlyThreshold);
   }
 
-  //
-  //  Open and init the genomic sequences.
+
+  //  Open and init the query sequence
   //
   if (config._beVerbose)
-    fprintf(stderr, "Opening the genomic database.\n");
+    fprintf(stderr, "Opening the cDNA sequences.\n");
 
-  cache = new FastACache(config._dbFileName, 0, true);
+  qsFASTA = new FastAWrapper(config._qsFileName);
+  qsFASTA->openIndex();
 
-  config._initTime = getTime();
+  numberOfQueries  = qsFASTA->getNumberOfSequences();
+  input            = new FastASequenceInCore * [numberOfQueries];
+  inputHead        = 0;
+  inputTail        = 0;
+  answerLen        = new u32bit [numberOfQueries];
+  answer           = new aHit * [numberOfQueries];
+  outputLen        = new u32bit [numberOfQueries];
+  output           = new char * [numberOfQueries];
 
-  buildPositionDB();
+  for (u32bit i=0; i<numberOfQueries; i++) {
+    input[i]            = 0L;
+    answerLen[i]        = 0;
+    answer[i]           = 0L;
+    outputLen[i]        = 0;
+    output[i]           = 0L;
+  }
 
-  config._buildTime = getTime();
+
+  //  Init all done!
+  //
+  config._initTime = getTime() - config._startTime - config._buildTime;
 
 
 #if 0
@@ -513,7 +535,7 @@ main(int argc, char **argv) {
   if (errno)
     fprintf(stderr, "WARNING: Couldn't close to the output file '%s'.\n%s\n", config._outputFileName, strerror(errno));
 
-  config._searchTime = getTime();
+  config._searchTime = getTime() - config._initTime - config._buildTime;
 
   //  Clean up
   //
@@ -538,43 +560,15 @@ main(int argc, char **argv) {
   pthread_attr_destroy(&threadAttr);
   pthread_mutex_destroy(&inputTailMutex);
 
-  config._totalTime = getTime();
 
   //  Summarize the filter test results
   //
   if (config._doValidation)
     writeValidationFile(config._doValidationFileName, theFilters, numFilters);
 
-  //  Write the stats
-  //
-  if (config._statsFileName) {
-    FILE *F = fopen(config._statsFileName, "wb");
-    if (F == 0L) {
-      fprintf(stderr, "Couldn't open the stats file '%s'?\n", config._statsFileName);
-      fprintf(stderr, "Stats going to stderr.\n");
-      config._statsFileName = 0L;
-      F = stderr;
-    }
 
-    config.display(F);
+  dumpStats();
 
-    write_rusage(F);
-      
-    fprintf(F, "wallClockTimes--------------------------\n");
-    fprintf(F, "init:     %9.5f\n", config._initTime   - config._startTime);
-    fprintf(F, "build:    %9.5f\n", config._buildTime  - config._initTime);
-    fprintf(F, "search:   %9.5f\n", config._searchTime - config._buildTime);
-    fprintf(F, "total:    %9.5f\n", config._totalTime  - config._startTime);
-
-    fprintf(F, "searchThreadInfo------------------------\n");
-    for (u64bit i=0; i<config._numSearchThreads; i++) {
-      fprintf(F, threadStats[i]);
-      delete [] threadStats[i];
-    }
-
-    if (config._statsFileName)
-      fclose(F);
-  }
 
 #ifdef MEMORY_DEBUG
   fprintf(stdout, "----------------------------------------\n");

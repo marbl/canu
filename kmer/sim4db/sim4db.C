@@ -16,7 +16,6 @@
 #include "buildinfo-sim4db.h"
 #include "buildinfo-libbri.h"
 #include "buildinfo-libsim4.h"
-#include "buildinfo-libfasta.h"
 
 
 //  Run options set from the command line.
@@ -105,7 +104,6 @@ parseCommandLine(int argc, char **argv) {
         buildinfo_sim4db(stderr);
         buildinfo_libbri(stderr);
         buildinfo_libsim4(stderr);
-        buildinfo_libfasta(stderr);
         exit(1);
     } else if (strncmp(argv[arg], "-alignments", 4) == 0) {
       sim4params.setPrintAlignments(true);

@@ -30,13 +30,11 @@ $/%.d $/%.o: CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} -I${EXISTDB/}
 $/configuration.C.d:  $/buildinfo-seatac.h \
                      ${EXISTDB/}buildinfo-existDB.h \
                      ${POSITIONDB/}buildinfo-positionDB.h \
-                     ${LIBBRI/}buildinfo-libbri.h \
-                     ${FASTA/}buildinfo-libfasta.h
+                     ${LIBBRI/}buildinfo-libbri.h
 
 $/seatac:  ${$/.CXX_SRCS:.C=.o} $/buildinfo-seatac.o \
            ${EXISTDB/}libexistDB.a ${POSITIONDB/}libpositionDB.a \
-           ${MERYL/}libmeryl.a \
-           ${FASTA/}libfasta.a ${LIBBRI/}libbri.a
+           ${MERYL/}libmeryl.a ${LIBBRI/}libbri.a
 
 $/buildinfo-seatac.c: $/buildinfo-seatac.h
 $/buildinfo-seatac.h: ${src}

@@ -4,7 +4,6 @@
 #include "buildinfo-existDB.h"
 #include "buildinfo-positionDB.h"
 #include "buildinfo-libbri.h"
-#include "buildinfo-libfasta.h"
 #include "buildinfo-libsim4.h"
 #include "buildinfo-libsim4polish.h"
 #include <stdio.h>
@@ -50,15 +49,12 @@ configuration::configuration(void) {
   _statsFileName        = 0L;
   _tmpFileName          = 0L;
 
-  _useList              = 0L;
-  _useListLen           = 0;
-  _useListMax           = 0;
+  _buildOnly            = false;
 
-  _startTime            = 0.0;
+  _startTime            = getTime();
   _initTime             = 0.0;
   _buildTime            = 0.0;
   _searchTime           = 0.0;
-  _totalTime            = 0.0;
 
   _loaderHighWaterMark  = 16 * 1024;
   _loaderSleep.tv_sec   = 1;
@@ -75,7 +71,6 @@ configuration::configuration(void) {
 }
 
 configuration::~configuration() {
-  delete [] _useList;
 }
 
 static char const *usageString =
@@ -87,13 +82,13 @@ static char const *usageString =
 "\n"
 "    -mersize k              Use k-mers\n"
 "    -merskip l              Skip l mers between\n"
-"    -maxdiagonal d\n"
-"    -minhitlength l         Minimum length for a hit to be polished\n"
-"    -minhitcoverage c       Minimum coverage for a hit to be polished (0.0 to 1.0)\n"
-"    -minmatchidentity i     Minimum percent identity for matches (integer)\n"
-"    -minmatchcoverage c     Minimum coverage for matches (integer)\n"
-"    -extendweight w         (default is 2)\n"
-"    -extendminimum e        (default is 100)\n"
+"    -maxdiagonal d          Maximum diagonal gap within a hit (25)\n"
+"    -minhitlength l         Minimum length for a hit to be polished (0)\n"
+"    -minhitcoverage c       Minimum coverage for a hit to be polished (0.2, 0.0 to 1.0)\n"
+"    -minmatchidentity i     Minimum percent identity for matches (98, integer)\n"
+"    -minmatchcoverage c     Minimum coverage for matches (96, integer)\n"
+"    -extendweight w         For each unhit base, extend by this much (2)\n"
+"    -extendminimum e        Always extend hits by at least this much (100)\n"
 "\n"
 "  Filter and Filter Validation\n"
 "    -validate               Enable tuning of the filter (expensive!)\n"
@@ -107,7 +102,8 @@ static char const *usageString =
 "                            For only, mers with count <= n are used.\n"
 "    -queries c.fasta        Query sequences\n"
 "    -genomic g.fasta        Database sequences\n"
-"    -positions p.positionDB positionDB build from g.fasta.  Assumes you aren't using -use\n"
+"    -positions p.positionDB Build and save / use positionDB.  Assumes you aren't using -use\n"
+"    -buildonly              Only do the build and save.\n"
 "    -use [...]\n"
 "\n"
 "Process Options\n"
@@ -129,200 +125,6 @@ void
 configuration::usage(char *name) {
   fprintf(stderr, usageString, name);
 }
-
-
-
-void
-configuration::addToUse(u32bit v) {
-
-  if (_useListLen >= _useListMax) {
-    _useListMax <<= 1;
-    use_s *u = new use_s [_useListMax];
-    for (u32bit i=0; i<_useListLen; i++) {
-      u[i].seq  = _useList[i].seq;
-      u[i].size = _useList[i].size;
-    }
-    delete [] _useList;
-    _useList = u;
-  }
-
-  _useList[_useListLen].seq  = v;
-  _useList[_useListLen].size = 0;
-  _useListLen++;
-}
-
-
-void
-configuration::parseUseLine(char *line) {
-  u32bit  v=0, u=0;
-  char   *rest = line;
-
-  _useListLen = 0;
-  _useListMax = 1024;
-  _useList    = new use_s [_useListMax];
-
-
-  //  line can be either a list of numbers, or a file.  See if "line" opens
-  //  as a file.  If it does, read in the numbers.
-  //
-  FILE *F = fopen(line, "r");
-  if (F) {
-    if (_beVerbose)
-      fprintf(stderr, "Reading use list from '%s'\n", line);
-    while (!feof(F)) {
-#ifdef TRUE64BIT
-      fscanf(F, " %u ", &v);
-#else
-      fscanf(F, " %lu ", &v);
-#endif
-      addToUse(v);
-    }
-    fclose(F);
-  } else {
-    while (*line) {
-
-      //  We are at a number.  Get it.
-      //
-      v = (u32bit)strtoul(line, &rest, 10);
-      line = rest;
-      
-      //  If we get ',' or 0, add the single number to the list.
-      //  If we get '-', decode the rest of the range.
-      //
-      switch (*line) {
-        case 0:
-        case ',':
-          addToUse(v);
-          break;
-        case '-':
-          line++;
-          u = (u32bit)strtoul(line, &rest, 10);
-          line = rest;
-
-          if (v > u)
-            for (; u <= v; u++)
-              addToUse(u);
-          else
-            for (; v <= u; v++)
-              addToUse(v);
-          break;
-        default:
-          fprintf(stderr, "Invalid -use specification -- got number, but no separator.\n");
-          fprintf(stderr, "Trouble starts at '%s'\n", line);
-          exit(1);
-          break;
-      }
-
-      //  We should be at a ',' (or end of line).  Anything else is
-      //  an error.  If ',', move to the next number.
-      //
-      switch (*line) {
-        case 0:
-          break;
-        case ',':
-          line++;
-          break;
-        default:
-          fprintf(stderr, "Invalid -use specification -- didn't get separator.\n");
-          fprintf(stderr, "Trouble starts at '%s'\n", line);
-          exit(1);
-          break;
-      }
-    }
-  }
-}
-
-
-static
-int
-useListSortHelper(const void *a, const void *b) {
-  use_s const *A = (use_s const *)a;
-  use_s const *B = (use_s const *)b;
-
-  if (A->seq < B->seq)
-    return(-1);
-  if (A->seq > B->seq)
-    return(1);
-
-  return(0);
-}
-
-
-#ifdef TRUE64BIT
-char const *useListMessage       = "Completing use list: (%u)\n";
-char const *useAllGenomicMessage = "Using all sequences in the genomic (%u)\n";
-char const *notInMessage         = "WARNING: Sequence %u in -use list is not in '%s'\n";
-#else
-char const *useListMessage       = "Completing use list: (%lu)\n";
-char const *useAllGenomicMessage = "Using all sequences in the genomic (%lu)\n";
-char const *notInMessage         = "WARNING: Sequence %lu in -use list is not in '%s'\n";
-#endif
-
-//  Removes duplicate entries, sorts
-//
-void
-configuration::completeUseList(u32bit numSeqs) {
-
-  if (_beVerbose)
-    fprintf(stderr, useListMessage, _useListLen);
-
-  //  If no use list given, create one using the db.  Otherwise,
-  //  fix the existing one.
-  //
-  if (_useListLen == 0) {
-    if (_beVerbose)
-      fprintf(stderr, useAllGenomicMessage, numSeqs);
-    _useListLen = 0;
-    _useListMax = numSeqs;
-    _useList    = new use_s [_useListMax];
-
-    for (u32bit i=numSeqs; i--; ) {
-      _useList[_useListLen].seq   = i;
-      _useList[_useListLen].size  = 0;
-      _useList[_useListLen].start = 0;
-      _useListLen++;
-    }
-  } else {
-    char    *seen    = new char [numSeqs];
-    u32bit   seenLen = 0;
-    for (u32bit i=numSeqs; i--; )
-      seen[i] = 0;
-
-    for (u32bit i=0; i<_useListLen; i++) {
-      if (_useList[i].seq >= numSeqs) {
-        fprintf(stderr, notInMessage, i, _dbFileName);
-      } else {
-        if (seen[_useList[i].seq] == 0) {
-          seen[_useList[i].seq] = 1;
-          seenLen++;
-        }
-      }
-    }
-
-    delete [] _useList;
-
-    _useListLen = 0;
-    _useListMax = seenLen;
-    _useList    = new use_s [_useListMax];
-
-    for (u32bit i=numSeqs; i--; ) {
-      if (seen[i]) {
-        _useList[_useListLen].seq   = i;
-        _useList[_useListLen].size  = 0;
-        _useList[_useListLen].start = 0;
-
-        _useListLen++;
-      }
-    }
-  }
-
-  qsort(_useList, _useListLen, sizeof(use_s), useListSortHelper);
-}
-
-
-
-
-
 
 
 
@@ -365,9 +167,11 @@ configuration::read(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-positions") == 0) {
       arg++;
       _psFileName = argv[arg];
+    } else if (strcmp(argv[arg], "-buildonly") == 0) {
+      _buildOnly = argv[arg];
     } else if (strcmp(argv[arg], "-use") == 0) {
       arg++;
-      parseUseLine(argv[arg]);
+      _useList.parse(argv[arg]);
     } else if (strcmp(argv[arg], "-forward") == 0) {
       _doForward = true;
       _doReverse = false;
@@ -437,7 +241,6 @@ configuration::read(int argc, char **argv) {
       buildinfo_existDB(stderr);
       buildinfo_positionDB(stderr);
       buildinfo_libbri(stderr);
-      buildinfo_libfasta(stderr);
       buildinfo_libsim4(stderr);
       buildinfo_libsim4polish(stderr);
 #endif
@@ -469,7 +272,7 @@ configuration::read(int argc, char **argv) {
 
   //  Fail if no query sequences
   //
-  if (_qsFileName == 0L) {
+  if ((_qsFileName == 0L) && (_buildOnly == false)) {
     fprintf(stderr, "ERROR: No query file supplied.\n");
     exit(1);
   }
@@ -490,67 +293,35 @@ configuration::display(FILE *out) {
   if ((out == stdout) && (_beVerbose)) {
     fprintf(out, "--Using these Algorithm Options--\n");
 
-#ifdef TRUE64BIT
-    fprintf(out, "merSize             = %u\n",   _merSize);
-    fprintf(out, "merSkip             = %u\n",   _merSkip);
-#else
-    fprintf(out, "merSize             = %lu\n",   _merSize);
-    fprintf(out, "merSkip             = %lu\n",   _merSkip);
-#endif
+    fprintf(out, "merSize             = "u32bitFMT"\n",   _merSize);
+    fprintf(out, "merSkip             = "u32bitFMT"\n",   _merSkip);
     fprintf(out, "doReverse           = %s\n",   _doReverse ? "true" : "false");
     fprintf(out, "doForward           = %s\n",   _doForward ? "true" : "false");
     fprintf(out, "\n");
-#ifdef TRUE64BIT
-    fprintf(out, "maxDiagonal         = %u\n",   _maxDiagonal);
-    fprintf(out, "minHitLength        = %u\n",   _minHitLength + _merSize);
+    fprintf(out, "maxDiagonal         = "u32bitFMT"\n",   _maxDiagonal);
+    fprintf(out, "minHitLength        = "u32bitFMT"\n",   _minHitLength + _merSize);
     fprintf(out, "minHitCoverage      = %lf\n",  _minHitCoverage);
-    fprintf(out, "minMatchIdentity    = %u\n",   _minMatchIdentity);
-    fprintf(out, "minMatchCoverage    = %u\n",   _minMatchCoverage);
-#else
-    fprintf(out, "maxDiagonal         = %lu\n",   _maxDiagonal);
-    fprintf(out, "minHitLength        = %lu\n",   _minHitLength + _merSize);
-    fprintf(out, "minHitCoverage      = %lf\n",   _minHitCoverage);
-    fprintf(out, "minMatchIdentity    = %lu\n",   _minMatchIdentity);
-    fprintf(out, "minMatchCoverage    = %lu\n",   _minMatchCoverage);
-#endif
-
+    fprintf(out, "minMatchIdentity    = "u32bitFMT"\n",   _minMatchIdentity);
+    fprintf(out, "minMatchCoverage    = "u32bitFMT"\n",   _minMatchCoverage);
     fprintf(out, "\n");
 
-    if (_doValidation) {
-      fprintf(out, "--VALIDATION ENABLED--\n");
-      fprintf(out, "\n");
-    }
+    if (_doValidation)
+      fprintf(out, "--VALIDATION ENABLED--\n\n");
 
     fprintf(out, "--Using these Process Options--\n");
     fprintf(out, "\n");
-#ifdef TRUE64BIT
-    fprintf(out, "numSearchThreads    = %u\n",   _numSearchThreads);
-#else
-    fprintf(out, "numSearchThreads    = %lu\n",   _numSearchThreads);
-#endif
-
-#ifdef TRUE64BIT
-    fprintf(out, "loaderHighWaterMark = %u\n", _loaderHighWaterMark);
-#else
-    fprintf(out, "loaderHighWaterMark = %lu\n", _loaderHighWaterMark);
-#endif
+    fprintf(out, "numSearchThreads    = "u32bitFMT"\n",   _numSearchThreads);
+    fprintf(out, "loaderHighWaterMark = "u32bitFMT"\n", _loaderHighWaterMark);
     fprintf(out, "loaderSleep         = %f\n", (double)_loaderSleep.tv_sec + (double)_loaderSleep.tv_nsec * 1e-9);
     fprintf(out, "loaderWarnings      = %s\n", _loaderWarnings ? "true" : "false");
     fprintf(out, "searchSleep         = %f\n", (double)_searchSleep.tv_sec + (double)_searchSleep.tv_nsec * 1e-9);
-#ifdef TRUE64BIT
-    fprintf(out, "writerHighWaterMark = %u\n", _writerHighWaterMark);
-#else
-    fprintf(out, "writerHighWaterMark = %lu\n", _writerHighWaterMark);
-#endif
+    fprintf(out, "writerHighWaterMark = "u32bitFMT"\n", _writerHighWaterMark);
     fprintf(out, "writerSleep         = %f\n", (double)_writerSleep.tv_sec + (double)_writerSleep.tv_nsec * 1e-9);
     fprintf(out, "writerWarnings      = %s\n", _writerWarnings ? "true" : "false");
-
     fprintf(out, "\n");
     fprintf(out, "--Using the use-list:--\n");
     fprintf(out, "\n");
     fprintf(out, "XXXX:  Need this!\n");
-    fprintf(out, "\n");
-
     fprintf(out, "\n");
     fprintf(out, "--Using these Files--\n");
     fprintf(out, "Genomic File          = '%s'\n", _dbFileName);
@@ -578,7 +349,7 @@ configuration::display(FILE *out) {
       fprintf(out, "statsFile           = None Specified.\n");
 
     if (_tmpFileName)
-      fprintf(out, "tmpFile             = '%s'\n", _statsFileName);
+      fprintf(out, "tmpFile             = '%s'\n", _tmpFileName);
     else
       fprintf(out, "tmpFile             = None Specified.\n");
 

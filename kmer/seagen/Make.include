@@ -26,27 +26,21 @@ endif
 $/.CLEAN     :=$/*.o
 $/.REAL-CLEAN:=$/buildinfo-*
 
-
-# bug in += target vars
-# $/%.d $/%.o: CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} -I${EXISTDB/}
 $(eval $/%.d $/%.o: CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} -I${EXISTDB/})
 
 $/configuration.C.d: $/buildinfo-searchGENOME.h \
                      ${EXISTDB/}buildinfo-existDB.h \
                      ${POSITIONDB/}buildinfo-positionDB.h \
-                     ${LIBBRI/}buildinfo-libbri.h \
-                     ${FASTA/}buildinfo-libfasta.h
+                     ${LIBBRI/}buildinfo-libbri.h
 
 $/searchGENOME:        $/hitMatrix.o
 
-$/searchGENOME: \
-               ${src_C:.C=.o} \
-               $/buildinfo-searchGENOME.o \
-               ${EXISTDB/}libexistDB.a \
-               ${POSITIONDB/}libpositionDB.a \
-               ${MERYL/}libmeryl.a \
-               ${FASTA/}libfasta.a \
-               ${LIBBRI/}libbri.a
+$/searchGENOME: ${src_C:.C=.o} \
+                $/buildinfo-searchGENOME.o \
+                ${EXISTDB/}libexistDB.a \
+                ${POSITIONDB/}libpositionDB.a \
+                ${MERYL/}libmeryl.a \
+                ${LIBBRI/}libbri.a
 
 $/hitConverter: $/hitConverter.o $/aHit.o
 $/filterEST:    $/filterEST.o $/hitReader.o $/aHit.o

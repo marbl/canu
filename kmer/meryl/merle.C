@@ -64,7 +64,8 @@ main(int argc, char **argv) {
   fprintf(stderr, "Clearing.\n");
   bzero(counts, sizeof(u32bit) * numMers);
 
-  merStream    M(merSizeInBases, inputName);
+  FastAstream  F(inputName);
+  merStream    M(merSizeInBases, &F);
   speedCounter C("    %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, true);
 
   if (forward) {

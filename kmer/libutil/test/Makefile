@@ -1,5 +1,6 @@
 PROG    = test-bitPackedFile \
           test-bitPacking \
+          test-chainedSequence \
           test-intervalList \
           test-md5 \
           test-merstream \
@@ -29,6 +30,11 @@ test-bitPacking: test-bitPacking.C ../libbri.a ../bri.h ../bri++.H
 	$(CXX) $(CXXLDFLAGS) -o test-bitPacking test-bitPacking.o $(LIBS)
 	./test-bitPacking
 
+test-chainedSequence: test-chainedSequence.C ../libbri.a ../bri.h ../bri++.H
+	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-chainedSequence.o test-chainedSequence.C $(INCLUDE)
+	$(CXX) $(CXXLDFLAGS) -o test-chainedSequence test-chainedSequence.o $(LIBS)
+	./test-chainedSequence
+
 test-intervalList: test-intervalList.C ../libbri.a ../bri.h ../bri++.H
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-intervalList.o test-intervalList.C $(INCLUDE)
 	$(CXX) $(CXXLDFLAGS) -o test-intervalList test-intervalList.o $(LIBS)
@@ -43,24 +49,24 @@ test-merstream: test-merstream.C ../libbri.a ../bri.h ../bri++.H ../../fasta/lea
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-merstream.o test-merstream.C $(INCLUDE)
 	$(CXX) $(CXXLDFLAGS) -o test-merstream test-merstream.o $(LIBS)
 	./test-merstream
-	../../fasta/leaff -G 1000 10000 30000 > x.fasta
-	./test-merstream x.fasta
-	rm x.fasta
+	../../fasta/leaff -G 1000 10000 30000 > junk.fasta
+	./test-merstream junk.fasta
+	rm -f junk.fasta junk.fastaidx
 
 test-merstreamfile: test-merstreamfile.C ../libbri.a ../bri.h ../bri++.H ../../fasta/leaff
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-merstreamfile.o test-merstreamfile.C $(INCLUDE)
 	$(CXX) $(CXXLDFLAGS) -o test-merstreamfile test-merstreamfile.o $(LIBS)
-	../../fasta/leaff -G 1000 5000 10000 > x.fasta
-	./test-merstreamfile x.fasta
-	rm x.fasta
+	../../fasta/leaff -G 1000 5000 10000 > junk.fasta
+	./test-merstreamfile junk.fasta
+	rm -f junk.fasta junk.fastaidx
 
 test-merstream-speed: test-merstream-speed.C ../libbri.a ../bri.h ../bri++.H ../../fasta/leaff
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-merstream-speed.o test-merstream-speed.C $(INCLUDE)
 	$(CXX) $(CXXLDFLAGS) -o test-merstream-speed test-merstream-speed.o $(LIBS)
-	../../fasta/leaff -G 10000 1000 10000 > x.fasta
-	cat x.fasta > /dev/null
-	./test-merstream-speed x.fasta
-	rm x.fasta
+	../../fasta/leaff -G 10000 1000 10000 > junk.fasta
+	cat junk.fasta > /dev/null
+	./test-merstream-speed junk.fasta
+	rm -f junk.fasta junk.fastaidx
 
 test-mmap: test-mmap.c ../libbri.a ../bri.h ../bri++.H
 	$(CC) $(CFLAGS_COMPILE) -c -o test-mmap.o test-mmap.c $(INCLUDE)
@@ -83,4 +89,4 @@ test-types: test-types.c ../libbri.a ../bri.h ../bri++.H
 	./test-types
 
 clean:
-	rm -f $(PROG) *.o x.fasta bittest.junk merStreamFileTest* test-merstream.merstreamfile.junk.merStream mmap.test.junk
+	rm -f $(PROG) *.o *junk*

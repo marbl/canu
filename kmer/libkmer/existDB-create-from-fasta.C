@@ -45,7 +45,8 @@ existDB::createFromFastA(char const  *filename,
   //
   //  1)  Count bucket sizes
   //
-  merStream     *M = new merStream(_merSizeInBases, filename);
+  FastAstream   *F = new FastAstream(filename);
+  merStream     *M = new merStream(_merSizeInBases, F);
 
   if (posDB) {
     while (M->nextMer()) {
@@ -66,6 +67,7 @@ existDB::createFromFastA(char const  *filename,
   }
     
   delete M;
+  delete F;
 
 #ifdef STATS
   u64bit  dist[32] = {0};
@@ -165,7 +167,8 @@ existDB::createFromFastA(char const  *filename,
   //
   //  3)  Build list of mers, placed into buckets
   //
-  M = new merStream(_merSizeInBases, filename);
+  F = new FastAstream(filename);
+  M = new merStream(_merSizeInBases, F);
 
   //  XXX:  Pretty big code bloat here
   //
@@ -233,6 +236,7 @@ existDB::createFromFastA(char const  *filename,
   }
 
   delete M;
+  delete F;
 
   //  All done.  Delete temporary stuff
   //

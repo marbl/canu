@@ -25,16 +25,12 @@ endif
 $/.CLEAN     :=$/*.o
 $/.REAL-CLEAN:=$/buildinfo-*
 
-# bug in target variables worked around with an eval
-#$/%.d $/%.o:  CXXFLAGS+= -I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} \
-#            -I${SIM4/} -I${SIM4POLISH/} -I${EXISTDB/}
 $(eval $/%.d $/%.o:  CXXFLAGS+= -I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} \
              -I${SIM4/} -I${SIM4POLISH/} -I${EXISTDB/})
 $/configuration.C.d: $/buildinfo-snapper2.h \
                      ${EXISTDB/}buildinfo-existDB.h \
                      ${POSITIONDB/}buildinfo-positionDB.h \
                      ${LIBBRI/}buildinfo-libbri.h \
-                     ${FASTA/}buildinfo-libfasta.h \
                      ${SIM4/}buildinfo-libsim4.h \
                      ${SIM4POLISH/}buildinfo-libsim4polish.h
 
@@ -43,7 +39,7 @@ $/snapper2: \
               ${EXISTDB/}libexistDB.a ${POSITIONDB/}libpositionDB.a \
               ${MERYL/}libmeryl.a \
               ${SIM4POLISH/}libsim4polish.a ${SIM4/}libsim4.a \
-              ${FASTA/}libfasta.a ${LIBBRI/}libbri.a
+              ${LIBBRI/}libbri.a
 
 $/buildinfo-snapper2.c: $/buildinfo-snapper2.h
 $/buildinfo-snapper2.h: ${src}

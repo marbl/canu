@@ -2,6 +2,7 @@
 
 UTIL/       :=$(call MakePath,$/../util/)
 LIBBRI/     :=$(call MakePath,$/../libbri/)
+FASTA/      :=$(call MakePath,$/../fasta/)
 
 src     := $/args.C \
            $/binaryOp.C \
@@ -31,9 +32,7 @@ $/merle         : $/buildinfo-merle.o $/merle.o
 $/meryl         : ${src_C:.C=.o} $/buildinfo-meryl.o $/libmeryl.a
 $/meryl $/merle : ${LIBBRI/}libbri.a
 
-# bug in += target vars
-#$/%.d $/%.o:  CXXFLAGS+=-I${LIBBRI/}
-$(eval $/%.d $/%.o:  CXXFLAGS+=-I${LIBBRI/})
+$(eval $/%.d $/%.o:  CXXFLAGS+=-I${LIBBRI/} -I${FASTA/})
 
 $/%.d:  ${LIBBRI/}buildinfo-libbri.h ${LIBBRI/}alphabet.h
 $/meryl.C.d: $/buildinfo-meryl.h ${LIBBRI/}buildinfo-libbri.h

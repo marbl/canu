@@ -55,21 +55,19 @@ char const *usage =
 
 int
 test1(char *filename) {
-  merStream  *T       = new merStream(MERSIZE, filename);
-  positionDB *M       = new positionDB(T, MERSIZE, 0, TBLSIZE, 0L, 0L, true);
-  u64bit     *posn    = new u64bit [1024];
-  u64bit      posnMax = 1024;
-  u64bit      posnLen = u64bitZERO;
-  u32bit      missing = u32bitZERO;
-  u32bit      failed  = u32bitZERO;
+  FastAstream *F       = new FastAstream(filename);
+  merStream   *T       = new merStream(MERSIZE, F);
+  positionDB  *M       = new positionDB(T, MERSIZE, 0, TBLSIZE, 0L, 0L, true);
+  u64bit      *posn    = new u64bit [1024];
+  u64bit       posnMax = 1024;
+  u64bit       posnLen = u64bitZERO;
+  u32bit       missing = u32bitZERO;
+  u32bit       failed  = u32bitZERO;
 
   if (T->rewind() == false) {
     fprintf(stderr, "test 1 failed to rewind the merStream.\n");
     return(true);
   }
-
-  u64bit pos = 0;
-  u64bit seq = 0;
 
   while (T->nextMer()) {
     if (M->get(T->theFMer(),
@@ -106,6 +104,7 @@ test1(char *filename) {
 
   delete M;
   delete T;
+  delete F;
 
   return(failed != 0);
 }
@@ -114,14 +113,18 @@ test1(char *filename) {
 
 int
 test2(char *filename, char *query) {
-  merStream  *T       = new merStream(MERSIZE, filename);
-  positionDB *M       = new positionDB(T, MERSIZE, 0, TBLSIZE, 0L, 0L, true);
-  u64bit     *posn    = new u64bit [1024];
-  u64bit      posnMax = 1024;
-  u64bit      posnLen = u64bitZERO;
+  FastAstream *F       = new FastAstream(filename);
+  merStream   *T       = new merStream(MERSIZE, F);
+  positionDB  *M       = new positionDB(T, MERSIZE, 0, TBLSIZE, 0L, 0L, true);
+  u64bit      *posn    = new u64bit [1024];
+  u64bit       posnMax = 1024;
+  u64bit       posnLen = u64bitZERO;
 
   delete T;
-  T = new merStream(MERSIZE, query);
+  delete F;
+
+  F = new FastAstream(query);
+  T = new merStream(MERSIZE, F);
 
   while (T->nextMer()) {
     if (M->get(T->theFMer(),
@@ -141,6 +144,7 @@ test2(char *filename, char *query) {
     }
   }
 
+  delete F;
   delete M;
   delete T;
 

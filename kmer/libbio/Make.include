@@ -2,12 +2,29 @@
 
 UTIL/          :=$(call MakePath,$/../util/)
 EXTERNAL/      :=$(call MakePath,$/../external/)
+LIBBRI/        :=$(call MakePath,$/../libbri/)
 
 src    := $/alphabet.c \
           $/alphabet.h \
           $/bri++.H \
           $/bri.h \
           $/britime.C \
+          $/chainedSequence.C \
+          $/fasta-buildindex.C \
+          $/fasta-c.C \
+          $/fasta-c.h \
+          $/fasta-cache.C \
+          $/fasta-cache.H \
+          $/fasta-find-id.C \
+          $/fasta-find-iid.C \
+          $/fasta-openindex.C \
+          $/fasta-sequenceincore.C \
+          $/fasta-sequenceincore.H \
+          $/fasta-sequenceondisk.C \
+          $/fasta-sequenceondisk.H \
+          $/fasta-types.H \
+          $/fasta.C \
+          $/fasta.H \
           $/file.c \
           $/intervalList.C \
           $/md5.c \
@@ -36,6 +53,15 @@ $/.CXX_LIBS  :=$/libbri.a
 $/.CLEAN := $/*.o
 $/.REAL-CLEAN :=$/buildinfo-*
 
+#  For reasons bri doesn't know, we must explicitly include libbri.
+#  It's related to things in fasta needing to include things in libbri,
+#  and possibly has root cause in that when building libbri, we don't
+#  use fasta/Make.include -- perhaps we should be using relative
+#  includes "../libbri/bri.h" or have an include directory?
+#
+$(eval $/%.d $/%.o: CFLAGS+=-I${LIBBRI/})
+$(eval $/%.d $/%.o: CXXFLAGS+=-I${LIBBRI/})
+
 $/reversecomplement.c.d: $/alphabet.h
 $/merstream.C.d: $/alphabet.h
 
@@ -51,24 +77,6 @@ $/alphabet.c: $/alphabet.h
 $/alphabet.h:  $/alphabet-generate.c
 	$(CC) $(CFLAGS) $(CFLAGS_COMPILE) -o `dirname $@`/a.out -DMAIN $<
 	cd `dirname $@` ; ./a.out && rm -f a.out
-
-$/test-bitpackedfile: libbri.a
-	$(CXX) $(CXXFLAGS) $(CXXFLAGS_COMPILE) -o $/bitPackedFileTester -DTEST_BITPACKEDFILE $/bitPackedFile.C $/libbri.a
-	$/./bitPackedFileTester 500000 200
-	rm -f $/bitPackedFileTester
-	@echo Tests passed\!
-
-$/test-merstreamfile: libbri.a
-	$(CXX) $(CXXFLAGS) $(CXXFLAGS_COMPILE) -o $/merStreamFileTester -DTEST_MERSTREAMFILE $/merstreamfile.C $/libbri.a
-	$/./merStreamFileTester some.fasta
-	rm -f $/merStreamFileTester
-	@echo Tests passed\!
-
-$/test-unaryencoding: libbri.a
-	$(CXX) $(CXXFLAGS) $(CXXFLAGS_COMPILE) -o $/unaryEncodingTester $/unaryEncodingTester.C $/libbri.a
-	$/./unaryEncodingTester 4 400000
-	rm -f $/unaryEncodingTester
-	@echo Tests passed\!
 
 # note: explicit serialization is required here
 $/buildinfo-libbri.c: $/buildinfo-libbri.h

@@ -18,7 +18,7 @@ EMMA/       :=$/emma/
 MERYL/      :=$/meryl/
 SNAPPER2/   :=$/snapper2/
 REFSEQANAL/ :=$/refseq-analysis/
-MERTABLES/  :=$/merTables/
+#MERTABLES/  :=$/merTables/
 
 ########################## includes #############
 
@@ -60,4 +60,4 @@ $(eval $(call Include,${FASTA/}))
 
 $(eval $(call Include,${EXISTDB/}))
 $(eval $(call Include,${POSITIONDB/}))
-$(eval $(call Include,${MERTABLES/}))
+#$(eval $(call Include,${MERTABLES/}))

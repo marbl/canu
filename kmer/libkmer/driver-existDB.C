@@ -56,15 +56,17 @@ testFiles(char *filename, char *prefix, u32bit merSize, u32bit tblSize) {
 
 int
 testExistence(char *filename, u32bit merSize, u32bit tblSize) {
-  existDB    *E      = new existDB(filename, merSize, tblSize);
-  merStream  *M      = new merStream(merSize, filename);
-  u64bit      lost   = 0;
+  existDB     *E      = new existDB(filename, merSize, tblSize);
+  FastAstream *F      = new FastAstream(filename);
+  merStream   *M      = new merStream(merSize, F);
+  u64bit       lost   = 0;
 
   while (M->nextMer())
     if (!E->exists(M->theFMer()))
       lost++;
 
   delete M;
+  delete F;
   delete E;
 
   if (lost) {

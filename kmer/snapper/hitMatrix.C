@@ -131,7 +131,7 @@ adjustHeap(diagonalLine *L, s32bit p, s32bit n) {
   L[p]._diagonalID = l;
 }
 
-void
+void
 hitMatrix::filter(char      direction,
                   aHit    *&theOutput,
                   u32bit   &theOutputPos,
@@ -158,13 +158,24 @@ hitMatrix::filter(char      direction,
   u32bit  lastHit    = 0;
   u32bit  currentSeq = 0;
 
+#ifdef MAJORDEBUG
+  fprintf(stderr, "filter: got "u32bitFMT" hits\n", _hitsLen);
+#endif
+
   while (firstHit < _hitsLen) {
 
     //  Move the currentSeq until the firstHit is below it.
     //
-    while ((currentSeq < config._useListLen) &&
-           (config._useList[currentSeq].start <= _hits[firstHit]._dsPos))
+    while ((currentSeq < config._useList.numberOfSequences()) &&
+           (config._useList.startOf(currentSeq) <= _hits[firstHit]._dsPos)) {
+#ifdef MAJORDEBUG
+      fprintf(stderr, "currentSeq: "u32bitFMT" length "u64bitFMT" hit "u64bitFMT"\n",
+              currentSeq,
+              config._useList.startOf(currentSeq),
+              _hits[firstHit]._dsPos);
+#endif
       currentSeq++;
+    }
 
     //
     //  currentSeq is now the sequence AFTER the one that we want hits in.
@@ -173,10 +184,10 @@ hitMatrix::filter(char      direction,
     //  Find the first hit that is in currentSeq.  If this is the last sequence,
     //  then, of course, all remaining hits are in it.
     //
-    if (currentSeq < config._useListLen) {
+    if (currentSeq < config._useList.numberOfSequences()) {
       lastHit = firstHit + 1;
       while ((lastHit < _hitsLen) &&
-             (_hits[lastHit]._dsPos < config._useList[currentSeq].start))
+             (_hits[lastHit]._dsPos < config._useList.startOf(currentSeq)))
         lastHit++;
     } else {
       lastHit = _hitsLen;
@@ -186,11 +197,14 @@ hitMatrix::filter(char      direction,
     //
     currentSeq--;
 
+#ifdef MAJORDEBUG
+    fprintf(stderr, "Found sequence "u32bitFMT" for hits "u32bitFMT" to "u32bitFMT"\n", currentSeq, firstHit, lastHit);
+#endif
 
     //  Adjust the hits to be relative to the start of this sequence
     //
     for (u32bit i=firstHit; i<lastHit; i++)
-      _hits[i]._dsPos -= config._useList[currentSeq].start;
+      _hits[i]._dsPos -= config._useList.startOf(currentSeq);
 
     //  Sort them, if needed.
     //
@@ -365,7 +379,7 @@ hitMatrix::filter(char      direction,
 
       a->_status    = (direction == 'f');
       a->_qsIdx     = _qsIdx;
-      a->_dsIdx     = config._useList[currentSeq].seq;
+      a->_dsIdx     = config._useList.IIDOf(currentSeq);
       a->_dsLo      = dsLow;
       a->_dsHi      = dsHigh;
       a->_covered   = IL->sumLengths();

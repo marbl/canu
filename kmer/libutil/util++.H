@@ -18,7 +18,6 @@
 //  C++ objects for libbri
 
 
-
 //  These are all inlined, and C doesn't want to listen to that.
 //
 #include "bitOperations.h"
@@ -48,7 +47,7 @@
 
 class speedCounter {
 public:
-  //  fmt specifies the status format.  And example:
+  //  fmt specifies the status format.  An example:
   //    "    %8f [unit]things (%8.5f [unit]things/sec)\r"
   //
   speedCounter(char const   *fmt,
@@ -89,116 +88,7 @@ private:
 //
 //  readBuffer
 //
-class readBuffer {
-public:
-  //  If bufferMax is zero, then the file is accessed using memory
-  //  mapped I/O.  Otherwise, a small buffer is used.
-  //
-  readBuffer(const char *filename, u32bit bufferMax = 32 * 1024);
-
-  //  This constructor always uses a small buffer; memory mapped I/O
-  //  is not allowed.  This lets us pass in fileno(stdin).
-  //
-  readBuffer(int fileptr, const char *filename, u32bit bufferMax = 32 * 1024);
-
-  ~readBuffer();
-
-  bool      eof(void);
-  bool      next(void);
-  char      get(void);
-  char      getnext(void);
-  bool      seek(off_t pos);
-  size_t    read(char *buf, size_t len);   //  read the next len bytes into the user buffer buf
-  off_t     tell(void);
-
-private:
-  void      fillBuffer(void);
-  void      init(int fileptr, const char *filename, u32bit bufferMax);
-
-  char    *_filename;
-
-  int      _file;
-  int      _fileType;  //  0=stdin, 1=normal, 2=mmap
-#ifdef __APPLE__
-  int      _pad1;
-#endif
-  off_t    _filePos;
-
-  bool     _eof;
-
-  //  If bufferMax is zero, then we are using the mmapped interface, otherwise,
-  //  we are using a open()/read() and a small buffer.
-
-  size_t   _bufferPos;
-  size_t   _bufferLen;
-  size_t   _bufferMax;
-  char    *_buffer;
-#ifdef __APPLE__
-  int      _pad2;
-#endif
-};
-
-
-inline
-bool
-readBuffer::eof(void) {
-  return(_eof);
-}
-
-
-inline
-bool
-readBuffer::next(void) {
-
-  if (_eof)
-    return(true);
-
-  switch (_fileType) {
-    case 0:
-    case 1:
-      _bufferPos++;
-      _filePos++;
-
-      if (_bufferPos >= _bufferLen)
-        fillBuffer();
-      break;
-    case 2:
-      _bufferPos++;
-      if (_bufferPos >= _bufferLen)
-        _eof = true;
-      break;
-  }
-
-  return(_eof);
-}
-
-
-inline
-char
-readBuffer::get(void) {
-  return(_buffer[_bufferPos]);
-}
-
-
-inline
-char
-readBuffer::getnext(void) {
-  char  x = _buffer[_bufferPos];
-  next();
-  return(x);
-}
-
-
-inline
-off_t
-readBuffer::tell(void) {
-
-  if (_fileType == 2)
-    return((size_t)_bufferPos);
-
-  return(_filePos);
-}
-
+#include "readBuffer.H"
 
 
 
@@ -360,6 +250,200 @@ private:
 };
 
 
+////////////////////////////////////////
+//
+//
+//
+#include "fasta.H"
+
+
+////////////////////////////////////////
+//
+//  chainedSequence
+//
+//  Build a chained sequence from a source file or source
+//  FastAWrapper.  In the case of a file, a FastAWrapper (with iid
+//  index) is opened.
+//
+//  It "assembles" sequences, separated by a fixed number of any
+//  single character (say 10 N's) and allows streaming access, or
+//  random block access.
+//
+class chainedSequence {
+public:
+  chainedSequence();
+  ~chainedSequence();
+
+  //  Sets the separator and the length of
+  //
+  void         setSeparator(char sep);
+  void         setSeparatorLength(u32bit len);
+
+  //  Sets the source file
+  //
+  void         setSource(char *filename);
+  void         setSource(FastAWrapper *file);
+
+  //  Adds sequences to the useList.  For parse(), sequences are
+  //  specified in a character string, e.g., "10,20,30-40,50".  add()
+  //  pushes one sequence iid onto the list.
+  //
+  //  Multiple calls to parse() and add() are allowed.  There is
+  //  (currently) no way to remove sequences from the useList.
+  //
+  void         parse(char *line);
+  void         add(u32bit v);
+  void         finish(void);
+
+  //  get() returns 0 at the end of the chained sequence.  It operates
+  //  like getc() -- the stream is advanced after each call.
+  //
+  //  eof() returns true if the last get() returned eof()
+  //
+  char         get(void);
+  bool         eof(void);
+
+  //  These positions are pre-incremented, so they're off by one.
+
+  u64bit       thePositionInSequence(void) { return(_positionInSequence - 1); };
+  u64bit       thePositionInStream(void)   { return(_positionInStream - 1);   };
+
+  //  This returns the sequence number in the chain, not the IID of the sequence.  See IIDOf().
+  u64bit       theSequenceNumber(void) {
+    return(_currentSeq);
+  };
+
+  //  Return the length of, position of (in the chain) and IID of the
+  //  (s)th sequence in the chain.
+  //
+  u32bit       numberOfSequences(void) { return(_useListLen); };
+  u64bit       lengthOfSequences(void) { return(_lengthOfSequences); };
+  u64bit       lengthOf(u32bit s);
+  u64bit       startOf(u32bit s);
+  u64bit       IIDOf(u32bit s);
+
+
+  //  Move the file pointer back to the start of the chained sequence
+  //
+  bool         rewind(void);
+
+private:
+  struct use_s {
+    u32bit   iid;
+    u32bit   length;
+    u32bit   start;
+  };
+
+  char                 *_filename;
+  FastAWrapper         *_file;
+  FastAWrapper         *_fileToDelete;
+  FastASequenceOnDisk  *_sequence;
+
+  u32bit                _useListLen;
+  u32bit                _useListMax;
+  use_s                *_useList;
+
+  //  The position we are at in the stream -- each sequence knows
+  //  where it is at, so we just need to remember which sequence we
+  //  are at.
+  //
+  u32bit                _currentSeq;
+
+  //  Various things the user will find useful
+  //
+  u64bit                _positionInSequence;
+  u64bit                _positionInStream;
+  u64bit                _lengthOfSequences;
+
+  //  Geez, very obnoxiously, we can tell if the _next_ get()
+  //  is going to return EOF, but we cannot tell if the _last_
+  //  get() was an eof.  So we set a flag.
+  //
+  bool                  _eof;
+
+  //  If _separatorPosition is positive, we are sending
+  //  _separatorLength _separator's out.
+  //
+  u32bit                _separator;
+  bool                  _separatorDone;
+  u32bit                _separatorLength;
+  u32bit                _separatorPosition;
+
+#ifdef __APPLE__
+  u32bit                _pad;
+#endif
+};
+
+
+
+
+inline
+bool
+chainedSequence::eof(void) {
+
+  //  It's easy to tell if the _next_ get() is going to return
+  //  eof, but that's not what we need to return.
+  //return((_sequence->get() == 0) && (_currentSeq + 1 >= _useListLen));
+  //
+  return(_eof);
+}
+
+
+
+inline
+char
+chainedSequence::get(void) {
+  char ret = _sequence->get();
+
+  _positionInStream++;
+
+  if (ret == 0) {
+
+    //  Are we at the end of the chained sequence?
+    //
+    if (_currentSeq + 1 >= _useListLen) {
+      _eof = true;
+      return(0);
+    }
+
+    //  Nope, are we doing the separator?
+    //
+    if (_separatorPosition > 0) {
+      _separatorPosition--;
+      return(_separator);
+    }
+
+    //  Nope, did we just finish the separator, or do we need to start
+    //  it?  The flow being: the first time _sequence->get() returns
+    //  0, _separatorDone is false, and we start the separator.  We do
+    //  the separator.  It finishes, and we're back here, with
+    //  _separatorDone set to true.
+    //
+    if (_separatorDone) {
+      delete _sequence;
+      _currentSeq++;
+      _file->find(_useList[_currentSeq].iid);
+      _sequence           = _file->getSequenceOnDisk();
+      _separatorDone      = false;
+      _positionInSequence = u64bitZERO;
+    } else {
+      _separatorPosition  = _separatorLength;
+      _separatorDone      = true;
+      _positionInSequence = ~u64bitZERO;
+    }
+
+    return(_separator);
+  }
+
+  //  Got a good read, bump to the next character and return
+  //
+  _sequence->next();
+  _positionInSequence++;
+  return(ret);
+}
+
+
+
 
 
 ////////////////////////////////////////
@@ -367,155 +451,8 @@ private:
 //  fastastream
 //
 
-//
-//  Reads sequence from a multiFastA file, letter by letter, saving
-//  the defline.  Returns values are:
-//
-//  0    EOF
-//  254  New sequence starting
-//  253  Break in contiguous sequence
-//
-//  If the letter is a valid symbol the letter is returned.
-//  Otherwise, one of code 253 or 254 is returned.
-//
+#include "fastastream.H"
 
-class FastAstream {
-public:
-  FastAstream(const char *filename) {
-    if ((filename == 0L) ||
-        ((filename[0] == '-') && (filename[1] == 0)))
-      _rb = new readBuffer(fileno(stdin), "stdin");
-    else
-      _rb = new readBuffer(filename);
-
-    _thePositionInSequence  = 0;
-    _thePositionInStream    = 0;
-    _theSequenceNumber      = 0;
-
-    _theDefLineMax          = 2048;
-    _theDefLinePos          = 0;
-    _theDefLine             = new char [_theDefLineMax + 1];
-  };
-
-  ~FastAstream() {
-    delete    _rb;
-    delete [] _theDefLine;
-  };
-
-  bool              rewind(void) {
-    _thePositionInSequence  = 0;
-    _thePositionInStream    = 0;
-    _theSequenceNumber      = 0;
-    return(_rb->seek(0));
-  };
-
-  unsigned char     nextSymbol(void);
-
-  u64bit            thePositionInSequence(void) {
-    return(_thePositionInSequence);
-  };
-  u64bit            thePositionInStream(void) {
-    //  See the comment below why there is a -1 here.
-    return(_thePositionInStream - 1);
-  };
-  u64bit            theSequenceNumber(void) {
-    return(_theSequenceNumber);
-  };
-  char             *theDefLine(void) {
-    return(_theDefLine);
-  };
-private:
-  u64bit       _thePositionInSequence;
-  u64bit       _thePositionInStream;
-  u64bit       _theSequenceNumber;
-
-  readBuffer  *_rb;
-
-  u32bit       _theDefLineMax;
-  u32bit       _theDefLinePos;
-  char        *_theDefLine;
-};
-
-
-inline
-unsigned char
-FastAstream::nextSymbol(void) {
-  unsigned char  nc;
-
-  //  Grab the next character
-  //
-  nc = (unsigned char)_rb->getnext();
-
-  //  Skip any whitespace
-  //
-  while (isspace(nc) && !_rb->eof())
-    nc = (unsigned char)_rb->getnext();
-
-  //  Are we at the EOF?
-  //
-  if (_rb->eof())
-    return(0);
-
-  //  Looks like we are in the sequence.  Increment the position.  If
-  //  this is the start of a defline, the position is reset to zero.
-  //
-  //  The stream position is off by one because we pre-increment.  It
-  //  is adjusted on access.
-  //  
-  _thePositionInSequence++;
-  _thePositionInStream++;
-
-  //  If it's valid, just return it.
-  //
-  if (validSymbol[nc])
-    return(nc);
-
-  //  It's not a valid character.  If it's a defline, read until we
-  //  hit a '\n' or '\r'.
-  //
-  if (nc == '>') {
-
-    //  Reset thePosition and increment theSequenceNumber
-    //
-    _thePositionInSequence = 0;
-    _theSequenceNumber++;
-
-    _theDefLinePos = 0;
-
-    nc = (unsigned char)_rb->getnext();
-    while ((nc != '\n') && (nc != '\r') && !_rb->eof()) {
-
-      //  More space?  Must be a monster defline!
-      //
-      if (_theDefLinePos >= _theDefLineMax) {
-        _theDefLineMax <<= 1;
-        char *d = new char [_theDefLineMax + 1];
-
-        for (u32bit i=_theDefLinePos; --i; )
-          d[i] = _theDefLine[i];
-
-        delete [] _theDefLine;
-        _theDefLine = d;
-      }
-
-      //  Push the letter onto the end of the defline
-      //
-      _theDefLine[_theDefLinePos++] = nc;
-
-      nc = (unsigned char)_rb->getnext();
-    }
-
-    _theDefLine[_theDefLinePos] = 0;
-
-    //  Return 254; we've just read in the defline.
-    //
-    return(254);
-  }
-
-  //  We've hit a break, return 253.
-  //
-  return(253);
-}
 
 
 ////////////////////////////////////////
@@ -532,6 +469,11 @@ FastAstream::nextSymbol(void) {
 //  Each mer block can store the position start, and the sequence
 //  number.  If we then store the deflines, we get everything!
 
+//
+//  N.B. because we create a merStream internally, and that uses
+//  the FastAstream to get sequence from the file, the sequence
+//  file MUST BE SQUEEZED to get the correct positionInStream.
+//
 
 //  Returns true if the merStreamFile exists.
 bool  merStreamFileExists(const char *i);
@@ -549,8 +491,8 @@ public:
 
 private:
   u32bit                _merSize;
+  FastAstream          *_fastaStream;
   merStream            *_merStream;
-  const char           *_inputFile;
   const char           *_outputFile;
 };
 
@@ -563,16 +505,16 @@ public:
   u32bit                 merSize(void)      { return(_merSize); };
   u64bit                 numberOfMers(void) { return(_numMers); };
 
-  u64bit                 theFMer(void) { return(_theFMer); };
-  u64bit                 theRMer(void) { return(_theRMer); };
+  u64bit                 theFMer(void) { return(_fMer); };
+  u64bit                 theRMer(void) { return(_rMer); };
 
   char const            *theFMerString(void);
   char const            *theRMerString(void);
 
-  u64bit                 thePositionInSequence(void) { return(_thePosInSeq); };
-  u64bit                 thePositionInStream(void)   { return(_thePosInStr); };
-  u64bit                 theSequenceNumber(void)     { return(_theSequence); };
-  char const            *theDefLine(void)            { return(_theDefline);  };
+  u64bit                 thePositionInSequence(void) { return(_posInSeq); };
+  u64bit                 thePositionInStream(void)   { return(_posInStr); };
+  u64bit                 theSequenceNumber(void)     { return(_sequence); };
+  char const            *theDefLine(void)            { return(_defline);  };
 
   bool                   seekToMer(u64bit merNumber);
   bool                   seekToSequence(u64bit seqNumber);
@@ -632,15 +574,15 @@ private:
   //  Things returned by the accessors.  These are set/updated by
   //  nextMer().
   //
-  u64bit                _theFMer;
-  u64bit                _theRMer;
-  u64bit                _thePosInSeq;
-  u64bit                _thePosInStr;
-  u64bit                _theSequence;
+  u64bit                _fMer;
+  u64bit                _rMer;
+  u64bit                _posInSeq;
+  u64bit                _posInStr;
+  u64bit                _sequence;
 
-  char                 *_theDefline;
+  char                 *_defline;
 
-  char                  _theMerString[36];
+  char                  _merString[36];
 };
 
 
@@ -660,15 +602,24 @@ private:
 //  just pure sequence.  It will work if you give it deflines and
 //  whitespcae, but positions will be wrong.
 //
+//  **********
+//
+//  N.B. white-space in the source (applies to FastAstream and char*
+//  only) result in an incorrect positionInStream().  If this troubles
+//  you, use a chainedSequence instead of a FastAstream, or squeeze
+//  the sequences.
+//
+
 class merStream {
 public:
   merStream(merStreamFileReader *merstreamfile);
-  merStream(u32bit merSize, const char *filename);
+  merStream(u32bit merSize, FastAstream *str);
+  merStream(u32bit merSize, chainedSequence *cs);
   merStream(u32bit merSize, const char *seq, u32bit len);
   ~merStream();
 
 
-  //  The merstream has three modes of operation, depending
+  //  The merstream has many modes of operation, depending
   //  on what the input format is.  We could:
   //  1)  subclass an interface template
   //  2)  use function pointers set at create time
@@ -683,70 +634,67 @@ public:
   //  will remove the overhead of the if tests.
 
 
-  u64bit       theFMer(void)        { return(_theFMer); };
-  u64bit       theRMer(void)        { return(_theRMer); };
+  u64bit       theFMer(void)        { return(_fMer); };
+  u64bit       theRMer(void)        { return(_rMer); };
 
   char const  *theFMerString(void);
   char const  *theRMerString(void);
 
   u32bit       theMerSize(void) { return(_merSize); };
 
-  bool         rewind(void) {
-    bool  ret = false;
+  bool         rewind(void);
 
-
-    if (_theMers) {
-      ret = _theMers->seekToMer(0);
-      _theFMer = _theMers->theFMer();
-      _theRMer = _theMers->theRMer();
-    } else if (_theFile) {
-      ret = _theFile->rewind();
-      loadMer(_merSize - 1);
-    } else {
-      ret = true;
-      _theStringPos = 0;
-      _thePosInSeq  = 0;
-      _thePosInStr  = 0;
-      _theNum       = 0;
-      loadMer(_merSize - 1);
-      _thePosInStr--;
-    }
-
-    return(ret);
-  };
-
+  //  This returns the position relative to the start of the sequence.
+  //  The sequences are squeezed.
+  //
+  //  Why the +1?  FastAstream->thePositionInSequence() returns the
+  //  position that the last character retrieved is at.  We need to go
+  //  back _merSize-1 positions to get to the start of the mer.
+  //
+  //  ?
+  //
   u64bit       thePositionInSequence(void) {
-    if      (_theMers)
-      return(_theMers->thePositionInSequence());
-    else if (_theFile)
-      return(_theFile->thePositionInSequence() - _merSize);
+    if      (_ms_mers)
+      return(_ms_mers->thePositionInSequence());
+    else if (_fs_file)
+      return(_fs_file->thePositionInSequence() - _merSize + 1);
+    else if (_cs_chainedSeq)
+      return(_cs_chainedSeq->thePositionInSequence() - _merSize + 1);
     else
-      return(_thePosInSeq - _merSize);
+      return(_st_posInSeq - _merSize);
   };
 
+  //  This returns the position relative to the start of the source.
+  //  It is a _byte_ position.  No squeezing.  If you give it a fasta
+  //  file, it includes any deflines and white space.
+  //
   u64bit       thePositionInStream(void) {
-    if      (_theMers)
-      return(_theMers->thePositionInStream());
-    else if (_theFile)
-      return(_theFile->thePositionInStream() - _merSize);
+    if      (_ms_mers)
+      return(_ms_mers->thePositionInStream());
+    else if (_fs_file)
+      return(_fs_file->thePositionInStream() - _merSize + 1);
+    else if (_cs_chainedSeq)
+      return(_cs_chainedSeq->thePositionInStream() - _merSize + 1);
     else
-      return(_thePosInStr - _merSize);
+      return(_st_stringPos - _merSize);  //  was _st_posInStr
   };
 
   u64bit       theSequenceNumber(void) {
-    if      (_theMers)
-      return(_theMers->theSequenceNumber());
-    else  if (_theFile)
-      return(_theFile->theSequenceNumber());
+    if      (_ms_mers)
+      return(_ms_mers->theSequenceNumber());
+    else  if (_fs_file)
+      return(_fs_file->theSequenceNumber());
+    else if (_cs_chainedSeq)
+      return(_cs_chainedSeq->theSequenceNumber());
     else
-      return(_theNum);
+      return(_st_num);
   };
 
   char const  *theDefLine(void) {
-    if      (_theMers)
-      return(_theMers->theDefLine());
-    else if (_theFile)
-      return(_theFile->theDefLine());
+    if      (_ms_mers)
+      return(_ms_mers->theDefLine());
+    else if (_fs_file)
+      return(_fs_file->theDefLine());
     else
       return(">");
   };
@@ -754,80 +702,101 @@ public:
   bool               nextMer(u32bit skip=0);
 private:
   void               loadMer(u32bit s);
-
-  char               nextSymbol(void) {
-    if (_theFile) {
-      return(_theFile->nextSymbol());
-    } else {
-      //  See also the constructor for character strings -- it skips
-      //  white space and the first defline.
-
-      //  Skip any whitespace
-      //
-      while (isspace(_theString[_theStringPos]) && (_theString[_theStringPos]) && (_theStringPos < _theStringLen))
-        _theStringPos++;
-
-      //  Are we at a defline?  If so, zip along until we hit a
-      //  newline.  Then we return the code (fastastream) for a
-      //  sequence break.
-      //
-      if (_theString[_theStringPos] == '>') {
-        while ((_theString[_theStringPos] != '\n') && (_theString[_theStringPos]) && (_theStringPos < _theStringLen))
-          _theStringPos++;
-
-        _thePosInSeq = 0;
-        _thePosInStr++;
-
-        _theNum++;
-        return(254);
-      }
-
-      //  Are we at the EOF?
-      //
-      if ((_theString[_theStringPos] == 0) || (_theStringPos >= _theStringLen))
-        return(0);
-
-      //  Update the position of the character in this sequence, and
-      //  the positon in the stream.
-      //
-      _thePosInSeq++;
-      _thePosInStr++;
-
-      return(_theString[_theStringPos++]);
-    }
-  };
+  char               nextSymbol(void);
 
 
   //  Data specific to the merStreamFileReader input
   //
-  merStreamFileReader  *_theMers;
+  merStreamFileReader  *_ms_mers;
+
 
   //  Data specific to the FastA file input
   //
-  FastAstream          *_theFile;
+  FastAstream          *_fs_file;
+
+
+  //  Data specific to the chainedSequence input
+  //
+  chainedSequence      *_cs_chainedSeq;
+
 
   //  Data specific to the character string input
   //
-  char const           *_theString;
-  u64bit                _theStringPos;
-  u64bit                _theStringLen;
-  u64bit                _thePosInSeq;
-  u64bit                _thePosInStr;
-  u32bit                _theNum;
+  char const           *_st_string;
+  u64bit                _st_stringPos;
+  u64bit                _st_stringLen;
+  u64bit                _st_posInSeq;
+  u64bit                _st_posInStr;
+  u32bit                _st_num;
 
-  //  Data specific to nobody
+
+  //  Data specific to nobody or everybody
   //
   u32bit                _merSize;
   s32bit                _timeUntilValid;
-  u32bit                _theRMerShift;
+  u32bit                _rMerShift;
 
-  u64bit                _theMerMask;
+  u64bit                _merMask;
 
-  u64bit                _theFMer;
-  u64bit                _theRMer;
+  u64bit                _fMer;
+  u64bit                _rMer;
 
-  char                  _theMerString[64];
+  //  Used for returning the mer as a character string.
+  //
+  char                  _merString[64];
 };
+
+
+
+inline
+char
+merStream::nextSymbol(void) {
+
+  //  This is called only for FastAstreams, chainedSequences and char* input.
+
+  if (_fs_file)
+    return(_fs_file->nextSymbol());
+
+  if (_cs_chainedSeq)
+    return(_cs_chainedSeq->get());
+
+  //  See also the constructor for character strings -- it skips
+  //  white space and the first defline.
+  
+  //  Skip any whitespace
+  //
+  while (isspace(_st_string[_st_stringPos]) && (_st_string[_st_stringPos]) && (_st_stringPos < _st_stringLen))
+    _st_stringPos++;
+
+  //  Are we at a defline?  If so, zip along until we hit a
+  //  newline.  Then we return the code (fastastream) for a
+  //  sequence break.
+  //
+  if (_st_string[_st_stringPos] == '>') {
+    while ((_st_string[_st_stringPos] != '\n') && (_st_string[_st_stringPos]) && (_st_stringPos < _st_stringLen))
+      _st_stringPos++;
+
+    _st_posInSeq = 0;
+    _st_posInStr++;
+
+    _st_num++;
+    return(254);
+  }
+
+  //  Are we at the EOF?
+  //
+  if ((_st_string[_st_stringPos] == 0) || (_st_stringPos >= _st_stringLen))
+    return(0);
+
+  //  Update the position of the character in this sequence, and
+  //  the positon in the stream.
+  //
+  _st_posInSeq++;
+  _st_posInStr++;
+  
+  return(_st_string[_st_stringPos++]);
+}
+
 
 
 
@@ -886,11 +855,11 @@ merStream::loadMer(u32bit s) {
     //  all bits of any invalid mers are removed.  Sure, we could
     //  put this into the else, but I suspect that it will be faster outside.
     //
-    _theFMer <<= 2;
-    _theRMer >>= 2;
+    _fMer <<= 2;
+    _rMer >>= 2;
 
-    _theFMer |= cf;
-    _theRMer |= cr << _theRMerShift;
+    _fMer |= cf;
+    _rMer |= cr << _rMerShift;
   }
 }
 
@@ -908,11 +877,11 @@ inline
 bool
 merStream::nextMer(u32bit skip) {
 
-  if (_theMers) {
-    bool ret = _theMers->nextMer(skip);
+  if (_ms_mers) {
+    bool ret = _ms_mers->nextMer(skip);
 
-    _theFMer = _theMers->theFMer();
-    _theRMer = _theMers->theRMer();
+    _fMer = _ms_mers->theFMer();
+    _rMer = _ms_mers->theRMer();
 
     return(ret);
   } else {
@@ -927,11 +896,11 @@ merStream::nextMer(u32bit skip) {
 
       //  Push the ch onto the mer.
       //
-      _theFMer <<= 2;
-      _theRMer >>= 2;
+      _fMer <<= 2;
+      _rMer >>= 2;
 
-      _theFMer |= cf;
-      _theRMer |= cr << _theRMerShift;
+      _fMer |= cf;
+      _rMer |= cr << _rMerShift;
 
       //  If the ch is invalid, we need to make a whole new mer.
       //  This also implies that we're done skipping.
@@ -942,8 +911,8 @@ merStream::nextMer(u32bit skip) {
       }
     } while (skip--);
 
-    _theFMer &= _theMerMask;
-    _theRMer &= _theMerMask;
+    _fMer &= _merMask;
+    _rMer &= _merMask;
 
     //  Still need to check if we are valid -- we could
     //  have run off the end of the sequence before a valid

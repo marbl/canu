@@ -22,22 +22,24 @@ merStreamFileExists(const char *i) {
 
 
 merStreamFileBuilder::merStreamFileBuilder(u32bit m, const char *i, const char *o) {
-  _merSize    = m;
-  _merStream  = new merStream(m, i);
-  _inputFile  = i;
-  _outputFile = o;
+  _merSize     = m;
+  _fastaStream = new FastAstream(i);
+  _merStream   = new merStream(m, _fastaStream);
+  _outputFile  = o;
 }
 
 merStreamFileBuilder::merStreamFileBuilder(merStream *MS, const char *o) {
-  _merSize    = MS->theMerSize();
-  _merStream  = MS;
-  _inputFile  = 0L;
-  _outputFile = o;
+  _merSize     = MS->theMerSize();
+  _fastaStream = 0L;
+  _merStream   = MS;
+  _outputFile  = o;
 }
 
 merStreamFileBuilder::~merStreamFileBuilder() {
-  if (_inputFile)
+  if (_fastaStream) {
+    delete _fastaStream;
     delete _merStream;
+  }
 }
 
 u64bit
@@ -390,13 +392,13 @@ merStreamFileReader::merStreamFileReader(const char *i) {
   _iterationLimit = ~u64bitZERO;
   _iteration      =  u64bitZERO;
 
-  _theFMer       = u64bitZERO;
-  _theRMer       = u64bitZERO;
-  _thePosInSeq   = 0;
-  _thePosInStr   = 0;
-  _theSequence   = 0;
+  _fMer       = u64bitZERO;
+  _rMer       = u64bitZERO;
+  _posInSeq   = 0;
+  _posInStr   = 0;
+  _sequence   = 0;
 
-  _theDefline    = 0L;
+  _defline    = 0L;
 }
 
 
@@ -430,13 +432,13 @@ merStreamFileReader::seekToMer(u64bit merNumber) {
 
     _firstMer      = u64bitZERO;
 
-    _theFMer       = u64bitZERO;
-    _theRMer       = u64bitZERO;
-    _thePosInSeq   = 0;
-    _thePosInStr   = 0;
-    _theSequence   = 0;
+    _fMer       = u64bitZERO;
+    _rMer       = u64bitZERO;
+    _posInSeq   = 0;
+    _posInStr   = 0;
+    _sequence   = 0;
 
-    _theDefline    = 0L;
+    _defline    = 0L;
 
     _streamFile->seek(_strStart);
 
@@ -468,20 +470,20 @@ merStreamFileReader::seekToMer(u64bit merNumber) {
   _thisBlock     = block;
   _thisBlockSize = _blockSize[_thisBlock] - (merNumber - totalMers);
 
-  _thePosInSeq  = _blockPosInSeq[_thisBlock] + (merNumber - totalMers) - 1;
-  _thePosInStr  = _blockPosInStr[_thisBlock] + (merNumber - totalMers) - 1;
-  _theSequence  = _blockSequence[_thisBlock];
+  _posInSeq  = _blockPosInSeq[_thisBlock] + (merNumber - totalMers) - 1;
+  _posInStr  = _blockPosInStr[_thisBlock] + (merNumber - totalMers) - 1;
+  _sequence  = _blockSequence[_thisBlock];
 
   //  We read in mersize-1 bases into the FMer, but reverse complement
   //  the whole mer.  On the nextMer(), we shift out the extra junk
   //  base from both.
   //
-  _theFMer       = _streamFile->getBits(_merSize * 2 - 2);
-  _theRMer       = reverseComplementMer(_merSize, _theFMer);
+  _fMer       = _streamFile->getBits(_merSize * 2 - 2);
+  _rMer       = reverseComplementMer(_merSize, _fMer);
 
 #ifdef REPORT_BLOCK_CHANGES
   fprintf(stderr, "seek to block="u64bitFMT" size="u64bitFMT" pos="u64bitFMT"/"u64bitFMT" seq="u64bitFMT"\n",
-          _thisBlock, _thisBlockSize, _thePosInSeq, _thePosInStr, _theSequence);
+          _thisBlock, _thisBlockSize, _posInSeq, _posInStr, _sequence);
 #endif
 
   return(true);
@@ -522,36 +524,36 @@ merStreamFileReader::nextMer(u32bit skip) {
 
       _thisBlockSize = _blockSize[_thisBlock] - 1;
 
-      _thePosInSeq  = _blockPosInSeq[_thisBlock];
-      _thePosInStr  = _blockPosInStr[_thisBlock];
-      _theSequence  = _blockSequence[_thisBlock];
+      _posInSeq  = _blockPosInSeq[_thisBlock];
+      _posInStr  = _blockPosInStr[_thisBlock];
+      _sequence  = _blockSequence[_thisBlock];
 
-      _theFMer = _streamFile->getBits(_merSize * 2);
-      _theRMer = reverseComplementMer(_merSize, _theFMer);
+      _fMer = _streamFile->getBits(_merSize * 2);
+      _rMer = reverseComplementMer(_merSize, _fMer);
 
 #ifdef REPORT_BLOCK_CHANGES
       fprintf(stderr, "New block="u64bitFMT" size="u64bitFMT" pos="u64bitFMT"/"u64bitFMT" seq="u64bitFMT"\n",
-              _thisBlock, _thisBlockSize, _thePosInSeq, _thePosInStr, _theSequence);
+              _thisBlock, _thisBlockSize, _posInSeq, _posInStr, _sequence);
 #endif
     } else {
       //  Still in the same block, just move to the next mer.
       //
       u64bit  theBase = _streamFile->getBits(2);
 
-      _theFMer <<= 2;
-      _theFMer  |= theBase;
-      _theFMer  &= _merMask;
+      _fMer <<= 2;
+      _fMer  |= theBase;
+      _fMer  &= _merMask;
 
       theBase  ^= 0x3;
       theBase <<= (_merSize << 1) - 2;
 
-      _theRMer >>= 2;
-      _theRMer  |= theBase;
+      _rMer >>= 2;
+      _rMer  |= theBase;
 
       _thisBlockSize--;
 
-      _thePosInSeq++;
-      _thePosInStr++;
+      _posInSeq++;
+      _posInStr++;
     }
   } while (skip--);
 
@@ -567,16 +569,16 @@ merStreamFileReader::nextMer(u32bit skip) {
 char const *
 merStreamFileReader::theFMerString(void) {
   for (u32bit i=0; i<_merSize; i++)
-    _theMerString[_merSize-i-1] = decompressSymbol[(_theFMer >> (2*i)) & 0x03];
-  _theMerString[_merSize] = 0;
-  return(_theMerString);
+    _merString[_merSize-i-1] = decompressSymbol[(_fMer >> (2*i)) & 0x03];
+  _merString[_merSize] = 0;
+  return(_merString);
 }
 
 char const *
 merStreamFileReader::theRMerString(void) {
   for (u32bit i=0; i<_merSize; i++)
-    _theMerString[_merSize-i-1] = decompressSymbol[(_theRMer >> (2*i)) & 0x03];
-  _theMerString[_merSize] = 0;
-  return(_theMerString);
+    _merString[_merSize-i-1] = decompressSymbol[(_rMer >> (2*i)) & 0x03];
+  _merString[_merSize] = 0;
+  return(_merString);
 }
 

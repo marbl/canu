@@ -3,23 +3,32 @@
 
 #include "bri++.H"
 
-//  This is the input file.  Files are tested in test-merstream-speed.C
+
+//  XXX I have malloc errors.
+
+
+//  This is the input file.  Deflines are exactly 10 characters long
+//  because the chained sequence uses 10 characters as a separator.
+//  This allows us to use the same test harness for everything.
 //
-const char *sequence =
-">(one)\n"
+//  sequenceU is unsqueezed -- use it with the MSFR and the chainedSeq
+//  sequenceS is squeezed   -- use it with the FastAstream and char*
+//
+const char *sequenceU =
+">(one...)\n"
 "TTTTTTTTTT\n"
 "AAAAAAAAAACGNTTTTTTTTTTNGGGGGGGGGGNAAAAAAAAANTTTTTTTTTT\n"
-">(two)\n"
+">(two...)\n"
 "TTTTTTTTAA\n"
-">(thr)\n"
+">(thr...)\n"
 "TTTTTTTTAC\n"
-">(fou)\n"
+">(fou...)\n"
 "T       T       T       T       T\n"
 "T       T       T       A       G\n"
-">(fiv)\n"
+">(fiv...)\n"
 "T T T T T T T T A T C\n"
 "\n"
-">(six)\n"
+">(six...)\n"
 "\n"
 "T\n"
 "T\n"
@@ -31,6 +40,21 @@ const char *sequence =
 "T\n"
 "T\n"
 "T\n";
+
+//1234567890123456789012345678901234567890123456789012345678901234567890
+const char *sequenceS =
+">(one...)\n"   // 10 long, including newline
+"TTTTTTTTTTAAAAAAAAAACGNTTTTTTTTTTNGGGGGGGGGGNAAAAAAAAANTTTTTTTTTT\n"  //  76 long
+">(two...)\n"
+"TTTTTTTTAA\n"
+">(thr...)\n"
+"TTTTTTTTAC\n"
+">(fou...)\n"
+"TTTTTTTTAG\n"
+">(fiv...)\n"
+"TTTTTTTTATC\n"
+">(six...)\n"
+"TTTTTTTTTT\n";
 
 //  This is the correct output
 //
@@ -44,33 +68,40 @@ struct answers {
 //  verified each one.
 //
 answers correct[22] = {
-  { 0x00000000000fffff, 0,  0   },
-  { 0x00000000000ffffc, 1,  1   },
-  { 0x00000000000ffff0, 2,  2   },
-  { 0x00000000000fffc0, 3,  3   },
-  { 0x00000000000fff00, 4,  4   },
-  { 0x00000000000ffc00, 5,  5   },
-  { 0x00000000000ff000, 6,  6   },
-  { 0x00000000000fc000, 7,  7   },
-  { 0x00000000000f0000, 8,  8   },
-  { 0x00000000000c0000, 9,  9   },
-  { 0x0000000000000000, 10, 10  },
-  { 0x0000000000000001, 11, 11  },
-  { 0x0000000000000006, 12, 12  },
-  { 0x00000000000fffff, 23, 23  },
-  { 0x00000000000aaaaa, 34, 34  },
-  { 0x00000000000fffff, 55, 55  },
-  { 0x00000000000ffff0, 0,  66  },
-  { 0x00000000000ffff1, 0,  77  },
-  { 0x00000000000ffff2, 0,  88  },
-  { 0x00000000000ffff3, 0,  99  },
-  { 0x00000000000fffcd, 1,  100 },
-  { 0x00000000000fffff, 0,  111 }
+  { 0x00000000000fffff, 0,  10  },  //  Yes, this entry is correct.
+  { 0x00000000000ffffc, 1,  11  },
+  { 0x00000000000ffff0, 2,  12  },
+  { 0x00000000000fffc0, 3,  13  },
+  { 0x00000000000fff00, 4,  14  },
+  { 0x00000000000ffc00, 5,  15  },
+  { 0x00000000000ff000, 6,  16  },
+  { 0x00000000000fc000, 7,  17  },
+  { 0x00000000000f0000, 8,  18  },
+  { 0x00000000000c0000, 9,  19  },
+  { 0x0000000000000000, 10, 20  },
+  { 0x0000000000000001, 11, 21  },
+  { 0x0000000000000006, 12, 22  },
+  { 0x00000000000fffff, 23, 33  },
+  { 0x00000000000aaaaa, 34, 44  },
+  { 0x00000000000fffff, 55, 65  },
+  { 0x00000000000ffff0, 0,  86  },
+  { 0x00000000000ffff1, 0,  107 },
+  { 0x00000000000ffff2, 0,  128 },
+  { 0x00000000000ffff3, 0,  149 },
+  { 0x00000000000fffcd, 1,  150 },
+  { 0x00000000000fffff, 0,  171 }
 };
 
 
+//  The positionInStream() that a correct FastAstream should return.
+//  Initialized in main()
+//
+u32bit fastastreamcorrect[200];
+
+
+
 int
-test1(merStream *S, char *id) {
+test1(merStream *S, char *id, int offset) {
   int c = 0;
   int e = 0;
 
@@ -79,7 +110,7 @@ test1(merStream *S, char *id) {
       fprintf(stderr, "merStream(char): Too many mers in stream.\n"), e++;
     else if ((S->theFMer()               != correct[c].mer) ||
              (S->thePositionInSequence() != correct[c].pos) ||
-             (S->thePositionInStream()   != correct[c].str))
+             (S->thePositionInStream()   != correct[c].str - offset))
       fprintf(stderr, "merStream(%s): "u64bitHEX"/"u64bitFMT"/"u64bitFMT" != correct: "u64bitHEX"/"u64bitFMT"/"u64bitFMT".\n",
               id,
               S->theFMer(), S->thePositionInSequence(), S->thePositionInStream(),
@@ -140,10 +171,20 @@ test2(merStream *MS1,
 
 int
 main(int argc, char **argv) {
-  merStream  *S = 0L;
-  FILE       *F = 0L;
-  u32bit      c = 0;
-  u32bit      e = 0;
+  u32bit       e = 0;
+
+
+  //  Initialize correct answers -- FastAstream only returns ACGT.
+  //
+  for (u32bit i=0, j=0; i<strlen(sequenceS); i++) {
+    if ((sequenceS[i] == 'A') ||
+        (sequenceS[i] == 'C') ||
+        (sequenceS[i] == 'G') ||
+        (sequenceS[i] == 'T')) {
+      fastastreamcorrect[j++] = i;
+    }
+  }
+
 
 
   //  This code does two tests.
@@ -158,56 +199,136 @@ main(int argc, char **argv) {
 
   if (argc == 1) {
 
+    {
+      FILE *F = fopen("junkU", "w");
+      fwrite(sequenceU, sizeof(char), strlen(sequenceU), F);
+      fclose(F);
+    }
+
+    {
+      FILE *F = fopen("junkS", "w");
+      fwrite(sequenceS, sizeof(char), strlen(sequenceS), F);
+      fclose(F);
+    }
+
+
+    ////////////////////////////////////////
+    //
+    //  Test that the FastAstream works
+    //
+    {
+      FastAstream *F = new FastAstream("junkS");
+      unsigned char  r;
+
+      for (u32bit j=0; r = F->nextSymbol(); ) {
+
+        //  We need to skip the FastAstream new sequence and gap
+        //  status codes (253 and 254).
+
+        if (r < 128) {
+          if (fastastreamcorrect[j] != F->thePositionInStream()) {
+            fprintf(stderr, "FastAstream positions wrong: got "u64bitFMT" expected "u32bitFMT"\n",
+                    F->thePositionInStream(),
+                    fastastreamcorrect[j]);
+          }
+          j++;
+        }
+      }
+      delete F;
+    }
+
+
     ////////////////////////////////////////
     //
     //  Test the merstream using a character string as input
     //
-    S = new merStream(10, sequence, strlen(sequence));
-    e += test1(S, "char1");
-    S->rewind();
-    e += test1(S, "char2");
-    delete S;
+    {
+      merStream *S = new merStream(10, sequenceS, strlen(sequenceS));
+      e += test1(S, "char1s", 0);
+      S->rewind();
+      e += test1(S, "char2s", 0);
+      delete S;
 
-    if (e)
-      return(e);
+      if (e)
+        return(e);
+    }
+
 
     ////////////////////////////////////////
     //
-    //  Test the merstream using a fasta file as input
+    //  Test the merstream using a FastAstream as input
     //
-    F = fopen("test-merstream.junk", "w");
-    fwrite(sequence, sizeof(char), strlen(sequence) + 1, F);
-    fclose(F);
+    {
+      FastAstream *F = new FastAstream("junkS");
+      merStream   *S = new merStream(10, F);
+      e += test1(S, "file1s", 0);
+      S->rewind();
+      e += test1(S, "file2s", 0);
+      delete S;
 
-    S = new merStream(10, "test-merstream.junk");
-    c += test1(S, "file1");
-    S->rewind();
-    c += test1(S, "file2");
-    delete S;
+      if (e)
+        return(e);
+    }
 
-    if (e)
-      return(e);
+
+    ////////////////////////////////////////
+    //
+    //  Test the merstream using a chainedSequence as input
+    //
+    {
+      chainedSequence *C = new chainedSequence;
+      C->setSource("junkS");
+      C->finish();
+      merStream       *S = new merStream(10, C);
+      e += test1(S, "chain1s", 10);
+      S->rewind();
+      e += test1(S, "chain2s", 10);
+      delete S;
+
+      if (e)
+        return(e);
+    }
+
+    {
+      chainedSequence *C = new chainedSequence;
+      C->setSource("junkU");
+      C->finish();
+      merStream       *S = new merStream(10, C);
+      e += test1(S, "chain1u", 10);
+      S->rewind();
+      e += test1(S, "chain2u", 10);
+      delete S;
+
+      if (e)
+        return(e);
+    }
+
+
 
     ////////////////////////////////////////
     //
     //  Test the merstream using a merStreamFile as input
     //
-    merStreamFileBuilder *B = new merStreamFileBuilder(10, "test-merstream.junk", "test-merstream.merstreamfile.junk");
-    B->build();
-    delete B;
+    {
+      merStreamFileBuilder *B = new merStreamFileBuilder(10, "junkS", "junk.msf");
+      B->build();
+      delete B;
 
-    merStreamFileReader  *R = new merStreamFileReader("test-merstream.merstreamfile.junk");
-    S = new merStream(R);
-    c += test1(S, "msfr1");
-    S->rewind();
-    c += test1(S, "msfr1");
-    delete S;
-    delete R;
+      merStreamFileReader  *R = new merStreamFileReader("junk.msf");
+      merStream            *S = new merStream(R);
+      e += test1(S, "msfr1s", 0);
+      S->rewind();
+      e += test1(S, "msfr1s", 0);
+      delete S;
+      delete R;
 
-    unlink("test-merstream.junk");
+      if (e)
+        return(e);
+    }
 
-    if (e)
-      return(e);
+
+    unlink("junkS");
+    unlink("junkU");
   } else {
 
     //  We build three merStreams all from the same input.
@@ -237,9 +358,12 @@ main(int argc, char **argv) {
     //  Create some merStreams
     //
     fprintf(stderr, "Creating merStreams\n");
-    merStream  *MS1 = new merStream(MS1r);
-    merStream  *MS2 = new merStream(27, argv[1]);
-    merStream  *MS3 = new merStream(27, sequence, sequenceLen);
+    merStream   *MS1 = new merStream(MS1r);
+
+    FastAstream *FS2 = new FastAstream(argv[1]);
+    merStream   *MS2 = new merStream(27, FS2);
+
+    merStream   *MS3 = new merStream(27, sequence, sequenceLen);
 
     //  And another one, to test out merStreamFile buliding from a merStream
     //
@@ -274,6 +398,7 @@ main(int argc, char **argv) {
 
     delete MS1;
     delete MS2;
+    delete FS2;
     delete MS3;
 #if 0
     delete MS4;

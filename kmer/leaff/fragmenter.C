@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "fasta.H"
+#include "bri++.H"
 
 
 //
@@ -30,8 +30,8 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  int   desiredLength = atoi(argv[1]);
-  char *seqFile       = argv[2];
+  u32bit   desiredLength = strtou32bit(argv[1], 0L);
+  char    *seqFile       = argv[2];
 
   FastAWrapper         *F = new FastAWrapper(seqFile);
   FastASequenceInCore  *B;

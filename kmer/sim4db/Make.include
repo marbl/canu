@@ -14,13 +14,10 @@ $/.REAL-CLEAN := $/buildinfo-*
 
 $/sim4db: $/buildinfo-sim4db.o ${$/.CXX_SRCS:.C=.o}
 
-${$/.CXX_EXES}:   ${FASTA/}libfasta.a ${SIM4/}libsim4.a \
-         ${SIM4POLISH/}libsim4polish.a ${LIBBRI/}libbri.a
+${$/.CXX_EXES}:  ${SIM4/}libsim4.a ${SIM4POLISH/}libsim4polish.a ${LIBBRI/}libbri.a
 
-$/sim4db.C.d:  $/buildinfo-sim4db.h ${FASTA/}buildinfo-libfasta.h ${SIM4/}buildinfo-libsim4.h ${LIBBRI/}buildinfo-libbri.h
+$/sim4db.C.d:  $/buildinfo-sim4db.h ${SIM4/}buildinfo-libsim4.h ${LIBBRI/}buildinfo-libbri.h
 
-# bug in += target vars
-#$/%.d $/%.o: CXXFLAGS+=  -I${FASTA/} -I${SIM4/} -I${SIM4POLISH/} -I${LIBBRI/}
 $(eval $/%.d $/%.o: CXXFLAGS+=  -I${FASTA/} -I${SIM4/} -I${SIM4POLISH/} -I${LIBBRI/})
 
 $/buildinfo-sim4db.c: $/buildinfo-sim4db.h

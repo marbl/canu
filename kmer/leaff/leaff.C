@@ -13,7 +13,6 @@
 #include "fasta.H"
 
 #include "buildinfo-leaff.h"
-#include "buildinfo-libfasta.h"
 #include "buildinfo-libbri.h"
 
 #ifdef TRUE64BIT
@@ -112,6 +111,14 @@ const char *usage =
 "                    index file is supplied, that one is tested, otherwise, the\n"
 "                    default index file name is used.\n"
 "\n"
+"       --dumpblocks\n"
+"                    Generates a list of the blocks of N and non-N.  Output\n"
+"                    format is 'base seq# position'.  'N 84 483' means that\n"
+"                    a block of N's starts at space-based position 483 in\n"
+"                    sequence ordinal 84.  The length of the block is found\n"
+"                    using the start of the next block.  A '.' is the end of\n"
+"                    sequence marker.\n"
+"\n"
 "EXPERT OPTIONS\n"
 "       -A:  Read actions from 'file'\n"
 "\n"
@@ -176,7 +183,7 @@ printSequence(FastASequenceInCore *b,
       s += beg;
 
       while (limit--)
-        *(m++) = translate[*(s++)];
+        *(m++) = translate[(int)*(s++)];
       break;
     case 1:
       //  reverse
@@ -184,7 +191,7 @@ printSequence(FastASequenceInCore *b,
       s += beg;
 
       while (limit--)
-        *(m--) = translate[*(s++)];
+        *(m--) = translate[(int)*(s++)];
       break;
     case 2:
       //  complement
@@ -192,7 +199,7 @@ printSequence(FastASequenceInCore *b,
       s += beg;
 
       while (limit--)
-        *(m++) = complementSymbol[translate[*(s++)]];
+        *(m++) = complementSymbol[(int)translate[(int)*(s++)]];
       break;
     case 3:
       //  reverse complement
@@ -200,7 +207,7 @@ printSequence(FastASequenceInCore *b,
       s += beg;
 
       while (limit--)
-        *(m--) = complementSymbol[translate[*(s++)]];
+        *(m--) = complementSymbol[(int)translate[(int)*(s++)]];
       break;
   }
 
@@ -921,6 +928,50 @@ partitionByBucket(u64bit partitionSize) {
 
 
 
+void
+dumpBlocks(void) {
+  FastASequenceInCore  *S = 0L;
+  u32bit                seqno = 0;
+
+  failIfNoSource();
+  failIfNotRandomAccess();
+
+  fprintf(stderr, "dumpBlocks is a memory pig.  Someone should rewrite it\n");
+  fprintf(stderr, "to not load the whole sequence into core.\n");
+
+  bool                  V[256];
+  for (u32bit i=0; i<256; i++)
+    V[i] = false;
+  V[(int)'n'] = true;
+  V[(int)'N'] = true;
+
+  S = f->getSequence();
+  while (S) {
+    char   *seq = S->sequence();
+    u32bit  len = S->sequenceLength();
+    bool    nnn = V[(int)seq[0]];
+    u32bit  i   = 0;
+
+    fprintf(stdout, "%c %d %d\n", seq[0], seqno, 0);
+
+    for (; i<len; i++) {
+      if (nnn != V[(int)seq[i]]) {
+        fprintf(stdout, "%c %d %d\n", seq[i], seqno, i);
+        nnn = V[(int)seq[i]];
+      }
+    }
+
+    fprintf(stdout, ". %d %d\n", seqno, i);
+
+    delete S;
+    S = f->getSequence();
+
+    seqno++;
+  }
+}
+
+
+
 
 
 void
@@ -930,7 +981,6 @@ processArray(int argc, char **argv) {
   while (arg < argc) {
     if        (strncmp(argv[arg], "--buildinfo", 3) == 0) {
       buildinfo_leaff(stderr);
-      buildinfo_libfasta(stderr);
       buildinfo_libbri(stderr);
       exit(1);
     } else if (strncmp(argv[arg], "--findduplicates", 3) == 0) {
@@ -978,34 +1028,12 @@ processArray(int argc, char **argv) {
     } else if (strncmp(argv[arg], "--testindex", 3) == 0) {
       f = new FastAWrapper(argv[arg+1]);
 
-#if 0
-      u32bit  indextype = FASTA_INDEX_ONLY;
-      u32bit  md5type   = 0;
-
-      for (int ap=2; argv[arg][ap]; ap++) {
-        if        (argv[arg][ap] == 'i') {
-          indextype = FASTA_INDEX_ONLY;
-        } else if (argv[arg][ap] == 'n') {
-          indextype = FASTA_INDEX_PLUS_IDS;
-        } else if (argv[arg][ap] == 'd') {
-          indextype = FASTA_INDEX_PLUS_DEFLINES;
-        } else if (argv[arg][ap] == 'c') {
-          md5type   = FASTA_INDEX_MD5;
-        } else {
-          fprintf(stderr, "Unknown option for '-T': '%c'\n", argv[arg][ap]);
-        }
-      }
-
-      if (f->isIndexValid(indextype | md5type, argv[arg+2]))
-        exit(0);
-
-      exit(1);
-#else
       if (f->isIndexValid(argv[arg+2]))
         exit(0);
 
       exit(1);
-#endif
+    } else if (strncmp(argv[arg], "--dumpblocks", 3) == 0) {
+      dumpBlocks();
     } else {
       switch(argv[arg][1]) {
         case 'V':

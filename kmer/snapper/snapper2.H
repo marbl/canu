@@ -61,25 +61,11 @@ public:
 
 
 
-
-
-
-
-
-
-
 //
 //  A singleton for working with the command line parameters.
 //
 #define MAX_THREADS  64
 
-//  Stuff for -use
-//
-struct use_s {
-  u32bit   seq;
-  u32bit   size;
-  u32bit   start;
-};
 
 class configuration {
 public:
@@ -119,6 +105,8 @@ public:
   char            *_maskFileName;
   char            *_onlyFileName;
 
+  bool             _buildOnly;
+
   char            *_maskPrefix;
   u32bit           _maskThreshold;
   char            *_onlyPrefix;
@@ -129,9 +117,7 @@ public:
 
   char            *_tmpFileName;
 
-  u32bit           _useListLen;
-  u32bit           _useListMax;
-  use_s           *_useList;
+  chainedSequence  _useList;
 
   //  Wall clock times
   //
@@ -139,7 +125,6 @@ public:
   double           _initTime;
   double           _buildTime;
   double           _searchTime;
-  double           _totalTime;
 
   //  Loader parameters
   //
@@ -170,9 +155,6 @@ public:
     ts->tv_sec  = (time_t)floor(t);
     ts->tv_nsec = (long)((t - ts->tv_sec) * 1e9);
   };
-private:
-  void  addToUse(u32bit v);
-  void  parseUseLine(char *line);
 };
 
 

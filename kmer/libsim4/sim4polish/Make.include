@@ -2,6 +2,7 @@
 
 UTIL/       :=$(call MakePath,$/../util/)
 LIBBRI/     :=$(call MakePath,$/../libbri/)
+FASTA/      :=$(call MakePath,$/../fasta/)
 
 # declarations
 src     :=$/sim4polish.c \
@@ -28,11 +29,8 @@ $/.REAL-CLEAN :=$/buildinfo-*
 $/libsim4polish.a    :  ${$/.C_SRCS:.c=.o} ${$/.CXX_SRCS:.C=.o} \
                         $/buildinfo-libsim4polish.o
 
-# bug in += target vars
-#$/%.d $/%.o:  CFLAGS+=-I${LIBBRI/}
-#$/%.d $/%.o:  CXXFLAGS+=-I${LIBBRI/}
-$(eval $/%.d $/%.o:  CFLAGS+=-I${LIBBRI/})
-$(eval $/%.d $/%.o:  CXXFLAGS+=-I${LIBBRI/})
+$(eval $/%.d $/%.o:  CFLAGS+=-I${LIBBRI/} -I${FASTA/})
+$(eval $/%.d $/%.o:  CXXFLAGS+=-I${LIBBRI/} -I${FASTA/})
 
 $/buildinfo-libsim4polish.c: $/buildinfo-libsim4polish.h
 $/buildinfo-libsim4polish.h: ${src}

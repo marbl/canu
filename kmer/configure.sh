@@ -67,11 +67,11 @@ case $target in
 FAST              := -Wpadded -O3 -funroll-loops -fstrict-aliasing -fsched-interblock -falign-loops=16 -falign-jumps=16 -falign-functions=16 -falign-jumps-max-skip=15 -falign-loops-max-skip=15 -malign-natural -ffast-math -mpowerpc-gpopt -force_cpusubtype_ALL -fstrict-aliasing -mtune=G5 -mcpu=G5
 CC                := gcc
 SHLIB_FLAGS       := -dynamiclib
-CFLAGS_COMPILE    := \$(FAST) -D_THREAD_SAFE -Wall
+CFLAGS_COMPILE    := \$(FAST) -fmessage-length=0 -D_THREAD_SAFE -Wall
 CLDFLAGS          := 
 CLIBS             := 
 CXX               := g++
-CXXFLAGS_COMPILE  := \$(FAST) -D_THREAD_SAFE -Wall
+CXXFLAGS_COMPILE  := \$(FAST) -fmessage-length=0 -D_THREAD_SAFE -Wall
 CXXLDFLAGS        := 
 CXXLIBS           := 
 ARFLAGS           := ruvs
@@ -85,11 +85,11 @@ EOF
 #
 CC                := gcc
 SHLIB_FLAGS       := -dynamiclib
-CFLAGS_COMPILE    := -g3 -D_THREAD_SAFE -Wall
+CFLAGS_COMPILE    := -g3 -fmessage-length=0 -D_THREAD_SAFE -Wall
 CLDFLAGS          := 
 CLIBS             := 
 CXX               := g++
-CXXFLAGS_COMPILE  := -g3 -D_THREAD_SAFE -Wall
+CXXFLAGS_COMPILE  := -g3 -fmessage-length=0 -D_THREAD_SAFE -Wall
 CXXLDFLAGS        := 
 CXXLIBS           := 
 ARFLAGS           := ruvs
@@ -104,11 +104,11 @@ EOF
 FAST              := -pg -O3 -funroll-loops -fstrict-aliasing -fsched-interblock -falign-loops=16 -falign-jumps=16 -falign-functions=16 -falign-jumps-max-skip=15 -falign-loops-max-skip=15 -malign-natural -ffast-math -mpowerpc-gpopt -force_cpusubtype_ALL -fstrict-aliasing -mtune=G5 -mcpu=G5
 CC                := gcc
 SHLIB_FLAGS       := -dynamiclib
-CFLAGS_COMPILE    := \$(FAST) -D_THREAD_SAFE -Wall
+CFLAGS_COMPILE    := \$(FAST) -fmessage-length=0 -D_THREAD_SAFE -Wall
 CLDFLAGS          := -pg
 CLIBS             := 
 CXX               := g++
-CXXFLAGS_COMPILE  := \$(FAST) -D_THREAD_SAFE -Wall
+CXXFLAGS_COMPILE  := \$(FAST) -fmessage-length=0 -D_THREAD_SAFE -Wall
 CXXLDFLAGS        := -pg
 CXXLIBS           := 
 ARFLAGS           := ruvs

@@ -8,8 +8,9 @@ int
 streamingTest(char *msfile) {
   int                  errors = 0;
   u64bit               compared = 0;
-  merStreamFileReader *R = new merStreamFileReader("merStreamFileTest");
-  merStream           *M = new merStream(20, msfile);
+  merStreamFileReader *R = new merStreamFileReader("junk");
+  FastAstream         *F = new FastAstream(msfile);
+  merStream           *M = new merStream(20, F);
 
   fprintf(stderr, "Testing streaming access.\n");
   while (M->nextMer() && R->nextMer()) {
@@ -47,6 +48,7 @@ streamingTest(char *msfile) {
   }
 
   delete M;
+  delete F;
   delete R;
 
   return(errors);
@@ -58,8 +60,9 @@ int
 randomAccessTest(char *msfile, u64bit numMers) {
   int                  errors = 0;
   u64bit               merNum   = 0;
-  merStreamFileReader *R = new merStreamFileReader("merStreamFileTest");
-  merStream           *M = new merStream(20, msfile);
+  merStreamFileReader *R = new merStreamFileReader("junk");
+  FastAstream         *F = new FastAstream(msfile);
+  merStream           *M = new merStream(20, F);
 
   //  Load the first mer from the stream.
   M->nextMer();
@@ -106,8 +109,9 @@ randomAccessTest(char *msfile, u64bit numMers) {
     }
   }
 
-  delete R;
   delete M;
+  delete F;
+  delete R;
 
   return(errors);
 }
@@ -127,7 +131,7 @@ main(int argc, char **argv) {
 
   //  Build a compressed merstreamfile.
   //
-  merStreamFileBuilder   *B = new merStreamFileBuilder(20, argv[1], "merStreamFileTest");
+  merStreamFileBuilder   *B = new merStreamFileBuilder(20, argv[1], "junk");
   u64bit numMers = B->build(true);
   delete B;
 
@@ -142,7 +146,7 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  unlink("merStreamFileTest.merStream");
+  unlink("junk.merStream");
 
   exit(0);
 }

@@ -89,7 +89,6 @@ testBinaryEncodingPrePost(void) {
   u64bit    *ptr        = new u64bit [2 * iterations];
   u64bit     pos        = u64bitZERO;
   u32bit     siz1       = u64bitZERO;
-  u32bit     siz2       = u64bitZERO;
   u64bit     val1       = u64bitZERO;
   u64bit     val2       = u64bitZERO;
   time_t     mtseed     = time(0L);

@@ -2,6 +2,7 @@
 
 UTIL/       :=$(call MakePath,$/../util/)
 LIBBRI/     :=$(call MakePath,$/../libbri/)
+FASTA/      :=$(call MakePath,$/../fasta/)
 MERYL/      :=$(call MakePath,$/../meryl/)
 POSITIONDB/ :=$(call MakePath,$/../positionDB/)
 
@@ -14,7 +15,7 @@ $/.REAL-CLEAN := $/buildinfo-*
 $/libexistDB.a : $/buildinfo-existDB.o $/existDB.o $/create-from-fasta.o $/create-from-meryl.o $/state.o
 $/existDB      : $/driver.o
 
-$(eval $/%.d $/%.o: CXXFLAGS+=-I${LIBBRI/} -I${MERYL/} -I${POSITIONDB/})
+$(eval $/%.d $/%.o: CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${MERYL/} -I${POSITIONDB/})
 
 ${$/.CXX_EXES}:$/libexistDB.a ${MERYL/}libmeryl.a ${POSITIONDB/}libpositionDB.a ${LIBBRI/}libbri.a
 

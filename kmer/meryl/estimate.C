@@ -97,7 +97,8 @@ void
 estimate(merylArgs *args) {
 
   if (args->inputFile) {
-    merStream          M(args->merSize, args->inputFile);
+    FastAstream        F(args->inputFile);
+    merStream          M(args->merSize, &F);
     speedCounter       C(" %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, args->beVerbose);
 
     if (args->beVerbose)

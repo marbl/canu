@@ -23,9 +23,6 @@ $/.CXX_EXES:= ${obj_C:.o=} ${obj_c:.o=}
 
 $/.CLEAN := $/*.o
 
-# bug in += target variables, fixed with wrapper
-#$/%.d $/%.o:  CFLAGS+=-I${FASTA/} -I${SIM4POLISH/} -I${LIBBRI/}
-#$/% $/%.o:  CXXFLAGS+=-I${FASTA/} -I${SIM4POLISH/} -I${LIBBRI/}
 $(eval $/%.d $/%.o:  CFLAGS+=-I${FASTA/} -I${SIM4POLISH/} -I${LIBBRI/})
 $(eval $/%.d $/%.o:  CXXFLAGS+=-I${FASTA/} -I${SIM4POLISH/} -I${LIBBRI/})
 
@@ -48,9 +45,7 @@ $/summarizePolishes           : $/summarizePolishes.o
 $/removeDuplicate             : $/removeDuplicate.o
 $/vennPolishes                : $/vennPolishes.o
 
-${$/.C_EXES} ${$/.CXX_EXES}:   \
-   ${FASTA/}libfasta.a ${SIM4POLISH/}libsim4polish.a ${LIBBRI/}libbri.a
-
+${$/.C_EXES} ${$/.CXX_EXES}: ${SIM4POLISH/}libsim4polish.a ${LIBBRI/}libbri.a
 
 #  Run the test cases for parseSNP
 $/.parseSNP-test: $/parseSNP ${SIM4DB/}sim4db

@@ -14,13 +14,11 @@ $/.CLEAN      := $/*.o
 $/.REAL-CLEAN := $/buildinfo-*
 
 $/libpositionDB.a:   $/buildinfo-positionDB.o $/positionDB.o $/positionDB-access.o $/positionDB-dump.o $/positionDB-sort.o $/positionDB-file.o
-$/positionDB:        $/driver.o ${FASTA/}libfasta.a ${MERYL/}libmeryl.a ${EXISTDB/}libexistDB.a $/libpositionDB.a
+$/positionDB:        $/driver.o ${MERYL/}libmeryl.a ${EXISTDB/}libexistDB.a $/libpositionDB.a
 
-# bug in += target vars
-#$/%.d $/%.o:    CXXFLAGS+= -I${FASTA/} -I${LIBBRI/}
 $(eval $/%.d $/%.o:    CXXFLAGS+= -I${EXISTDB/} -I${FASTA/} -I${MERYL/} -I${LIBBRI/})
 
-${$/.CXX_EXES}: ${FASTA/}libfasta.a ${EXISTDB/}libexistDB.a ${MERYL/}libmeryl.a ${LIBBRI/}libbri.a $/libpositionDB.a
+${$/.CXX_EXES}: ${EXISTDB/}libexistDB.a ${MERYL/}libmeryl.a ${LIBBRI/}libbri.a $/libpositionDB.a
 
 $/buildinfo-positionDB.c: $/buildinfo-positionDB.h
 $/buildinfo-positionDB.h: ${src}
