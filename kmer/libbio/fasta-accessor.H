@@ -94,7 +94,7 @@ public:
   //  not the meaning.
   //
   bool  setRange(u32bit base=0, u32bit length=0) {
-    if ((base < _len) && (base + length < _len)) {
+    if ((base < _len) && (base + length <= _len)) {
       if ((base == 0) && (length == 0)) {
         _rcBase = 0;
         _rcLen  = _len;
@@ -141,7 +141,7 @@ public:
       else            _pos = p;
       return(true);
     } else {
-      fprintf(stderr, "setPosition()-- Tried to set to %d, but range is %d-%d.\n",
+      fprintf(stderr, "setPosition()-- Tried to set to "u32bitFMT", but range is "u32bitFMT"-"u32bitFMT".\n",
               p, _rcBase, _rcBase + _rcLen);
       abort();
       return(false);
