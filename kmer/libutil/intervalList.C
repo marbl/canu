@@ -1,6 +1,8 @@
 #include "intervalList.H"
 
-
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 //  Define this to print some debugging information
 //
@@ -8,7 +10,7 @@
 
 
 intervalList::intervalList() {
-  _isSorted = false;
+  _isSorted = true;
   _listLen  = 0;
   _listMax  = 16;
   _list     = new _intervalPair [_listMax];
@@ -19,6 +21,22 @@ intervalList::~intervalList() {
   delete [] _list;
 }
 
+
+intervalList &
+intervalList::operator=(intervalList &src) {
+  _isSorted = src._isSorted;
+  _listLen = src._listLen;
+
+  if (_listMax < src._listMax) {
+    delete [] _list;
+    _listMax = src._listMax;
+    _list    = new _intervalPair [_listMax];
+  }
+
+  memcpy(_list, src._list, _listLen * sizeof(_intervalPair));
+
+  return(*this);
+}
 
 void
 intervalList::add(u32bit position, u32bit length) {
@@ -74,7 +92,8 @@ intervalList::sort(void) {
     return;
   }
 
-  qsort(_list, _listLen, sizeof(_intervalPair), intervalList_sort_helper);
+  if (_listLen > 1)
+    qsort(_list, _listLen, sizeof(_intervalPair), intervalList_sort_helper);
 
   _isSorted = true;
 }

@@ -24,6 +24,15 @@ public:
   intervalList();
   ~intervalList();
 
+  intervalList &operator=(intervalList &src);
+
+
+  //  Clear a list
+  void        clear(void) {
+    _isSorted = true;
+    _listLen  = 0;
+  }
+
   //  Insert a new interval into the list
   void        add(u32bit position, u32bit length);
 
@@ -41,10 +50,11 @@ public:
   //  Returns the sum of the length of all intervals
   u32bit      sumOfLengths(void) {
     u32bit len = 0;
-    u32bit i   = numberOfIntervals()-1;
+    u32bit i   = numberOfIntervals();
 
-    while (i--)
-      len += _list[i].hi - _list[i].lo;
+    if (i > 0)
+      while (i--)
+        len += _list[i].hi - _list[i].lo;
 
     return(len);
   };
