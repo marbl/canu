@@ -57,10 +57,10 @@ merStreamFileBuilder::build(bool beVerbose) {
 
   //  Open the output files
   //
-  char *blocksName = new char [strlen(_outputFile) + 17];
-  char *deflinName = new char [strlen(_outputFile) + 17];
-  char *streamName = new char [strlen(_outputFile) + 17];
-  char *outputName = new char [strlen(_outputFile) + 17];
+  char *blocksName = new char [strlen(_outputFile) + 32];
+  char *deflinName = new char [strlen(_outputFile) + 32];
+  char *streamName = new char [strlen(_outputFile) + 32];
+  char *outputName = new char [strlen(_outputFile) + 32];
 
   sprintf(blocksName, "%s.merstreamfilebuilder.b.tmp", _outputFile);
   sprintf(deflinName, "%s.merstreamfilebuilder.d.tmp", _outputFile);
