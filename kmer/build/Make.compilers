@@ -1,4 +1,4 @@
-# -*- makefile -*-
+
 
 ifdef OPERATING_SYSTEM
   _OS_:=$(OPERATING_SYSTEM)
@@ -194,10 +194,13 @@ endif
 
 ## where is python?
 PYINC     :=
+PYPATH    :=
 ifeq (${_OS_}${_CC_},TRU64)
+  PYPATH  :=/usr/local/ir/bin/python
   PYINC   :=-I/usr/local/ir/Python-2.2.2 -I/usr/local/ir/Python-2.2.2/Include
 endif
 ifeq (${_OS_}${_CC_},AIX)
+  PYPATH  :=/usr/local/bin/python
   PYINC   :=-I/usr/local/include/python2.2
 endif
 
@@ -228,6 +231,11 @@ ifeq (${_OS_},AIX)
   PS2PDF :=ps2pdf
   VIEWPS :=ghostview
   PRINTPS:=lpr -Pcelprt05
+endif
+
+ifeq (${_OS_}${_CC_},TRU64)
+  CXXFLAGS_LAPACK :=-DFTN_UNDERSCORE -DFTN_LOWERCASE
+  CXXLDFLAGS_LAPACK :=-ldxml
 endif
 
 

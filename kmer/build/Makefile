@@ -180,9 +180,6 @@ ${ALL_CXX_SHLIBS}:
 	${CXX} ${CXXFLAGS} ${SHLIB_FLAGS} -o $@ $^ ${CXXLIBS}
 __SUBGOALS__+=$${${1:.=.CXX_SHLIBS}}
 
-# any other targets and target rules we dump in here
--include ${MAKEFILE/}Make.rules
-
 ####### recursive rules, applied to all subdirectory targets
 # We define the basic form of the all, clean, ... rules on a
 # per-path basis (the $/.all, $..clean, ... targets).  This allows
@@ -231,42 +228,96 @@ ${1:.=.all}: $${${1:.=.SUBS}:.=.all} ${__SUBGOALS__}
 endef
 $(eval $(foreach x,${//},$(call .RULE-all,$x)))
 
-## this is kind of a horrible hack right now.  Maybe there is a
-## better way to do this.
-install:       ${RECURSIVE:.=.install}    $/.install
-define .RULE-install
-${1:.=.install}: $${${1:.=.SUBS}:.=.install} ${__SUBGOALS__} \
-    $${1:.=.C_INCS} \
-    $${1:.=.CXX_INCS} \
-    $${1:.=.SHARES}
-	@echo "========| $$@ |========"
+## INSTALL:
+## This is kind of a horrible hack right now.  But it gets better
+## every day.
+
+# Define targets which give a basic recursive traversal to hang
+# things from
+
+# for anything install related that I haven't thought of
+define .RULE-pre-install
+${1:.=.pre-install}: $${${1:.=.SUBS}:.=.pre-install}
+
+endef
+$(eval $(foreach x,${//},$(call .RULE-pre-install,$x)))
+
+# this does the copy part of the install
+define .RULE-install-copy
+${1:.=.install-copy}: $${${1:.=.SUBS}:.=.install-copy}
+
+endef
+$(eval $(foreach x,${//},$(call .RULE-install-copy,$x)))
+
+
+# helper function to copy files into install directories
+define .FUN-install-copy
+	@ files='$$(strip $1)'; dir='$$(strip $2)'; \
+	if [ -n "$$$${files}" ] ; then \
+	  echo ":::::Installing into $$$${dir}::::: $$$${files}" ; \
+	  mkdir -p $dir ; \
+	  for F in $$$${files} ; do \
+	     if [ -e $$$${F} ] ; then \
+	        cp -fp $$$${F} $dir ; \
+	     fi ; \
+	  done ; \
+        fi
+endef
+ 
+define .RULE-install-copy-C-CXX-EXES
+${1:.=.install-copy}: ${1:.=.install-copy-C-CXX-EXES}
+${1:.=.install-copy-C-CXX-EXES}:
 # all exes go to bin
-	files='$$(strip $${${1:.=.C_EXES}} $${${1:.=.CXX_EXES}})'; \
-	if [ -n "$$$${files}" ] ; then \
-	  mkdir -p ${INSTALL/}bin ; \
-	  cp -fp $$$${files} ${INSTALL/}bin ; \
-        fi
+	$(call .FUN-install-copy,$${${1:.=.C_EXES}} $${${1:.=.CXX_EXES}}, \
+                                 ${INSTALL/}bin/)
+
+endef
+$(eval $(foreach x,${//},$(call .RULE-install-copy-C-CXX-EXES,$x)))
+
+
+define .RULE-install-copy-C-CXX-LIBS
+${1:.=.install-copy}: ${1:.=.install-copy-C-CXX-LIBS}
+${1:.=.install-copy-C-CXX-LIBS}:
 # all libs go to lib/${.LIB/}
-	files='$$(strip $${${1:.=.C_LIBS}} $${${1:.=.CXX_LIBS}} $${${1:.=.CXX_SHLIBS}})'; \
-	if [ -n "$$$${files}" ] ; then \
-	  mkdir -p ${INSTALL/}lib/$${${1:.=.LIB/}} ; \
-	  cp -fp $$$${files} ${INSTALL/}lib/$${${1:.=.LIB/}} ; \
-        fi
+	$(call .FUN-install-copy,$${${1:.=.C_LIBS}} $${${1:.=.CXX_LIBS}}, \
+                                 ${INSTALL/}lib/$${${1.=.LIB/}})
+
+endef
+$(eval $(foreach x,${//},$(call .RULE-install-copy-C-CXX-LIBS,$x)))
+
+
+define .RULE-install-copy-C-CXX-INCS
+${1:.=.install-copy}: ${1:.=.install-copy-C-CXX-INCS}
+${1:.=.install-copy-C-CXX-INCS}:
 # all includes go to include/${.INCLUDE/}
-	files='$$(strip $${${1:.=.C_INCS}} $${${1:.=.CXX_INCS}})'; \
-	if [ -n "$$$${files}" ] ; then \
-	  mkdir -p ${INSTALL/}include/$${${1:.=.INCLUDE/}} ; \
-	  cp -fp $$$${files} ${INSTALL/}include/$${${1:.=.INCLUDE/}} ; \
-        fi
+	$(call .FUN-install-copy,$${${1:.=.C_INCS}} $${${1:.=.CXX_INCS}}, \
+                                 ${INSTALL/}include/$${${1:.=.INCLUDE/}})
+
+endef
+$(eval $(foreach x,${//},$(call .RULE-install-copy-C-CXX-INCS,$x)))
+
+define .RULE-install-copy-SHARES
+${1:.=.install-copy}: ${1:.=.install-copy-SHARES}
+${1:.=.install-copy-SHARES}:
 # all share files go to share/${.SHARE/}
-	files='$$(strip $${${1:.=.SHARES}})'; \
-	if [ -n "$$$${files}" ] ; then \
-	  mkdir -p ${INSTALL/}share/$${${1:.=.SHARE/}} ; \
-	  cp -fp $$$${files} ${INSTALL/}share/$${${1:.=.SHARE/}} ; \
-        fi
+	$(call .FUN-install-copy,$${${1:.=.SHARES}}, \
+                                 ${INSTALL/}share/$${${1:.=.SHARE/}})
+
+endef
+$(eval $(foreach x,${//},$(call .RULE-install-copy-SHARES,$x)))
+
+
+# define the actual install target as being a combination of the
+# all target plus the pre-/install-copy targets
+
+install:       ${RECURSIVE:.=.install}    $/.install
+
+define .RULE-install
+${1:.=.install}: ${1:.=.all} ${1:.=.pre-install} ${1:.=.install-copy}
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-install,$x)))
+
 
 # another sort of debugging thing.  Let's me check on which targets
 # actually didn't get made, or got partially made
@@ -282,5 +333,9 @@ ${1:.=.ls}: $${${1:.=.SUBS}:.=.ls}
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-ls,$x)))
+
+
+# any other targets and target rules we dump in here
+-include ${MAKEFILE/}Make.rules
 
 

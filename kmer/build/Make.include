@@ -5,8 +5,10 @@ BRI/      :=$/../BRI/
 RCM/      :=$/../RCM/
 TCBB/     :=$/../TCBB/
 SUFFER/   :=$/../SUFFER/
+RD2/      :=$/../RD2/
 
 $(eval $(call Include,\
+     ${RD2/} \
      ${COMPASS/} \
      ${LILIANA/} \
      ${RASCAL/} \

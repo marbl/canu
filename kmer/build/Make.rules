@@ -1,6 +1,6 @@
 # -*- makefile -*-
 
-# rules for LATEX
+## LATEX
 %.dvi: %.tex
 	${LATEX} $< && ${LATEX} $<
 
@@ -29,5 +29,46 @@ ${ALL_TEXPS:.ps=.pdf}: %.pdf: %.ps
 
 
 __SUBGOALS__+=$${${1:.=.TEXPS}}
+
+   # install rules
+define .RULE-install-copy-TEXPS
+${1:.=.install-copy}: ${1:.=.install-copy-TEXPS}
+${1:.=.install-copy-TEXPS}:
+# TEXPS go to doc/
+	files='$$(strip $${${1:.=.TEXPS}})'; \
+	if [ -n "$$$${files}" ] ; then \
+	  mkdir -p ${INSTALL/}doc/$${${1:.=.DOC/}} ; \
+	  cp -fp $$$${files} ${INSTALL/}doc/$${${1:.=.DOC/}} ; \
+        fi
+
+endef
+$(eval $(foreach x,${//},$(call .RULE-install-copy-TEXPS,$x)))
+
+
+
+## PYTHON
+# build rules for python executable scripts
+ALL_PY_EXES :=$(strip $(foreach x,${//},${${x:.=.PY_EXES}}))
+
+${ALL_PY_EXES}: %: %.in
+	sed -e's|PYTHONPATH|${PYPATH}|g' $< > $@
+	chmod ugo+x $@
+
+__SUBGOALS__+=$${${1:.=.PY_EXES}}
+
+   # install rules for python
+
+define .RULE-install-copy-PYTHON
+${1:.=.install-copy}: ${1:.=.install-copy-PYTHON}
+${1:.=.install-copy-PYTHON}:
+# python exes goto bin/
+	$(call .FUN-install-copy,$${${1:.=.PY_EXES}},${INSTALL/}bin/)
+# python libs goto lib, I guess
+	$(call .FUN-install-copy,$${${1:.=.PY_LIBS}},${INSTALL/}share/$${${1:.=.PY_LIB/}})
+# if there is a distinction between python libs and python share, I don't know
+	$(call .FUN-install-copy,$${${1:.=.PY_SHARES}},${INSTALL/}share/$${${1:.=.PY_SHARE/}})
+
+endef
+$(eval $(foreach x,${//},$(call .RULE-install-copy-PYTHON,$x)))
 
 
