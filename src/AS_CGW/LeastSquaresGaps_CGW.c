@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: LeastSquaresGaps_CGW.c,v 1.3 2005-03-22 19:03:50 jason_miller Exp $";
+static char CM_ID[] = "$Id: LeastSquaresGaps_CGW.c,v 1.4 2005-03-22 19:48:36 jason_miller Exp $";
 
 #define FIXED_RECOMPUTE_SINGULAR /* long standing bug: is it fixed yet? */
 #undef LIVE_ON_THE_EDGE	 /* abort on singularities -- this would be a good idea, unless you
@@ -1686,7 +1686,10 @@ static int EdgeAndGapAreVaguelyCompatible(double distDiff,
 				     double maxDiffSlop,
 				     double maxSigmaSlop){
   if(distDiff>maxDiffSlop)return FALSE;
-  if(abs(distDiff)/sqrt(diffVar)>maxSigmaSlop)return FALSE;
+  if(diffVar<0){
+    fprintf(stderr,"WARNING: variance difference is negative -- probably trouble with variances after interleaving\n"); 
+  }
+  if(abs(distDiff)/sqrt(abs(diffVar))>maxSigmaSlop)return FALSE;
   return TRUE;
 }
 
@@ -1897,11 +1900,12 @@ void LeastSquaresGapEstimates(ScaffoldGraphT *graph, int markEdges,
     // that it needs to invert - if it is not, break it into a set of maximal
     // scaffolds which are connected.
     if(checkConnectivity){
+      CDS_CID_t  scaffid = scaffold -> id;
       int numComponents = CheckScaffoldConnectivityAndSplit(graph,scaffold, ALL_TRUSTED_EDGES, verbose);
       
       if(numComponents > 1){ // we split the scaffold because it wasn't connected
 	fprintf(stderr,"* Scaffold not connected: Split scaffold " F_CID " into %d pieces\n",
-		scaffold->id, numComponents);
+		scaffid, numComponents);
 	continue;
       }else{
 	if(!IsScaffold2EdgeConnected(ScaffoldGraph, scaffold)){
@@ -1910,7 +1914,7 @@ void LeastSquaresGapEstimates(ScaffoldGraphT *graph, int markEdges,
 	  numComponents = CheckScaffoldConnectivityAndSplit(ScaffoldGraph, scaffold, ALL_TRUSTED_EDGES, FALSE);
 	  if(numComponents > 1){
 	    fprintf(stderr,"* Scaffold not 2 edge-connected: Split scaffold " F_CID " into %d pieces\n",
-		    scaffold->id, numComponents);
+		    scaffid, numComponents);
 	    continue;
 	  }
 	}

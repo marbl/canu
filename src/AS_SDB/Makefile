@@ -78,7 +78,7 @@ LIB_SOURCES = $(SDB_LIB_SOURCES)
 SDB_LIB_OBJECTS = $(SDB_LIB_SOURCES:.c=.o) 
 
 TST_SOURCES = LookAtSDB.c ViewMultiAlignment.c AlignContigs.c BeatOnSDB.c FetchContigs.c PartitionSequenceDB1.c  PartitionSequenceDB2.c \
-	TestSequenceDBPartition.c dumpSDB_MultiAlignConsensus.c
+	TestSequenceDBPartition.c dumpSDB_MultiAlignConsensus.c ReplaceEndUnitigTest.c
 
 OBJECTS = $(SDB_OBJECTS) $(SDB_LIB_OBJECTS) $(TST_SOURCES)
 SOURCES = $(SDB_SOURCES) $(SDB_LIB_SOURCES) $(TST_SOURCES)
@@ -87,7 +87,7 @@ SOURCES = $(SDB_SOURCES) $(SDB_LIB_SOURCES) $(TST_SOURCES)
 LIBRARIES = libAS_SDB.a
 
 #PROGS = AlignContigs 
-PROGS = TestSDBP BuildSequenceDB LookAtSDB ViewMultiAlignT AlignContigs BeatOnSDB FetchContigs PartitionSDB1 PartitionSDB2 dumpSDB_MultiAlignConsensus
+PROGS = TestSDBP BuildSequenceDB LookAtSDB ViewMultiAlignT AlignContigs BeatOnSDB FetchContigs PartitionSDB1 PartitionSDB2 dumpSDB_MultiAlignConsensus ReplaceEndUnitigTest
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
@@ -109,4 +109,4 @@ dumpSDB_MultiAlignConsensus: dumpSDB_MultiAlignConsensus.o  libAS_SDB.a libAS_CN
 ViewMultiAlignT: ViewMultiAlignment.o libAS_SDB.a libAS_CNS.a libAS_REZ.a libAS_CNS.a libAS_PER.a  libAS_UTL.a libAS_REZ.a libAS_SDB.a libAS_MSG.a libAS_ALN.a libAS_CGW.a libAS_REZ.a libAS_MSG.a libAS_UTL.a libAS_PER.a libAS_OVL.a libAS_CGW.a libAS_ALN.a $(LIN_ALG_LIB)
 PartitionSDB1: PartitionSequenceDB1.o libAS_SDB.a libAS_CNS.a libAS_REZ.a libAS_CNS.a libAS_PER.a  libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_ALN.a libAS_CGW.a libAS_REZ.a libAS_MSG.a libAS_UTL.a libAS_PER.a libAS_OVL.a libAS_CGW.a libAS_ALN.a $(LIN_ALG_LIB) 
 PartitionSDB2: PartitionSequenceDB2.o libAS_SDB.a libAS_CNS.a libAS_REZ.a libAS_SDB.a libAS_CNS.a libAS_PER.a  libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_ALN.a libAS_CGW.a libAS_REZ.a libAS_MSG.a libAS_UTL.a libAS_PER.a libAS_OVL.a libAS_CGW.a libAS_ALN.a $(LIN_ALG_LIB) 
-
+ReplaceEndUnitigTest: ReplaceEndUnitigTest.o libAS_SDB.a libAS_CNS.a libAS_REZ.a libAS_SDB.a libAS_CNS.a libAS_PER.a  libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_ALN.a libAS_CGW.a libAS_REZ.a libAS_MSG.a libAS_UTL.a libAS_PER.a libAS_OVL.a libAS_CGW.a libAS_ALN.a $(LIN_ALG_LIB)

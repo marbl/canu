@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: extendClearRanges.c,v 1.3 2005-03-22 19:04:16 jason_miller Exp $";
+static char CM_ID[] = "$Id: extendClearRanges.c,v 1.4 2005-03-22 19:48:37 jason_miller Exp $";
 
 
 /*********************************************************************
@@ -70,6 +70,7 @@ static char CM_ID[] = "$Id: extendClearRanges.c,v 1.3 2005-03-22 19:04:16 jason_
 #include "FbacREZ.h"
 #include "PublicAPI_CNS.h"
 #include "AS_PER_SafeIO.h"
+#include "ChiSquareTest_CGW.h"
 
 #define NUM_STDDEV_CUTOFF 5.0
 #define CONTIG_BASES 1000
@@ -585,6 +586,16 @@ int main( int argc, char *argv[])
 	IntElementPos contigPos;
 	ContigT *lcontig, *rcontig, *newContig;
 	int lunitigID, runitigID;
+
+	// speed hack
+	if ( singleSid != -1 )
+	{
+	  if ( sid != singleSid )
+		continue;
+	  else  // we want all the scaffolds from singleSid on
+		singleSid = -1;
+	}
+
 	
  	lextension = rextension = 0;
 	
@@ -592,14 +603,19 @@ int main( int argc, char *argv[])
 	// make sure the scaffold is there
 	assert(scaff != NULL);
     
+
+
 	// not interested in dead scaffold, not real scaffolds, or singleton scaffolds
     
+
 	if ((isDeadCIScaffoldT(scaff)) ||
 		(scaff->type != REAL_SCAFFOLD) ||
 		(scaff->info.Scaffold.numElements < 2))
 	{
 	  continue;
 	}
+
+
 	{
 	  time_t tt = time(0);
 
@@ -617,14 +633,6 @@ int main( int argc, char *argv[])
 	// 	 sid, alteredScaffoldLengths[ sid ]);
 
 
-	// speed hack
-	if ( singleSid != -1 )
-	{
-	  if ( sid != singleSid )
-		continue;
-	  else  // we want all the scaffolds from singleSid on
-		singleSid = -1;
-	}
 	
 	// make sure the scaffold is there
 	assert(scaff != NULL);
@@ -858,21 +866,6 @@ int main( int argc, char *argv[])
 			  // save off copies of everything we might alter so we can restore if gap closing fails
 			  saveFragAndUnitigData( lFragIid, rFragIid );
 
-#if 0
-			  if (alteredScaffoldLengths[ sid ] + closedGapDelta[ gapNumber ] < 0)
-			  {
-				fprintf( stderr, "length of scaffold %d is about to go negative to %d!!!\n",
-						 sid, alteredScaffoldLengths[ sid ] + closedGapDelta[ gapNumber ]);
-				fprintf( stderr, "currently, alteredScaffoldLengths[ %d ]: %d, closedGapDelta[ %d ] : %d\n",
-						 sid, alteredScaffoldLengths[ sid ], gapNumber, closedGapDelta[ gapNumber ]);
-			  }
-			  fprintf( stderr, "scaffold %d length going from %d to %d, closedGapDelta[ %d ] : %d\n",
-					   sid, alteredScaffoldLengths[ sid ], 
-					   alteredScaffoldLengths[ sid ] + closedGapDelta[ gapNumber ],
-					   gapNumber, closedGapDelta[ gapNumber ]);			
-				
-			  alteredScaffoldLengths[ sid ] += closedGapDelta[ gapNumber ];
-#endif
 			  totalBasesInClosedGaps += (int) gapSize.mean;
 				
 			  if ( CONTIG_BASES < 2000 )
@@ -901,14 +894,6 @@ int main( int argc, char *argv[])
 				}
 			  }
 
-			  // hack!!!!!!!!!!!!!!!!!!!
-			  // if ( /* gapNumber != 42 && */ (lFragIid == -1 || rFragIid == -1)) keepGap = FALSE;
-			  // if ( gapNumber != 7 ) keepGap = FALSE;
-			  // if ( gapNumber < 938 ) keepGap = FALSE;
-			  // if ( rcontig->id == 51038 || rcontig->id == 1335 || rcontig->id == 34336 
-			  // || rcontig->id == 52130 ) keepGap = FALSE;
-
-
 			  gotNewLeftMA = gotNewRightMA = TRUE;
 
 			  if (keepGap)
@@ -919,17 +904,27 @@ int main( int argc, char *argv[])
 				  if (leftExtFragsArray[ leftFragIndex ].addedBases - leftFragFlapLength < 0)
 					// || leftExtFragsArray[ leftFragIndex ].extension - leftFragFlapLength < 0)
 					keepGap = FALSE;
-				  else
+				  else {
+				    fprintf(stderr,"adjusting left frg clear range by %d - %d = %d bases\n",
+					    leftExtFragsArray[ leftFragIndex ].addedBases,leftFragFlapLength,
+					    leftExtFragsArray[ leftFragIndex ].addedBases - leftFragFlapLength);
+
 					extendCgwClearRange( lFragIid,
 										 leftExtFragsArray[ leftFragIndex ].addedBases - leftFragFlapLength);
+				  }
 				}
 				if (rFragIid != -1)
 				{
 				  if (rightExtFragsArray[ rightFragIndex ].addedBases - rightFragFlapLength < 0)
 					keepGap = FALSE;
-				  else
+				  else{
+				    fprintf(stderr,"adjusting right frg clear range by %d - %d = %d bases\n",
+					    rightExtFragsArray[ rightFragIndex ].addedBases,rightFragFlapLength,
+					    rightExtFragsArray[ rightFragIndex ].addedBases - rightFragFlapLength);
+
 					extendCgwClearRange( rFragIid,
 										 rightExtFragsArray[ rightFragIndex ].addedBases - rightFragFlapLength); 
+				  }
 				}
 			  }
 
@@ -1307,6 +1302,35 @@ int main( int argc, char *argv[])
 	numLargeGapsClosedInScaffold[sid] = numLargeGapsClosedThisScaff;
 	numGapsInScaffold[sid] = numSmallGapsInScaffold[sid] + numLargeGapsInScaffold[sid];
 	numGapsClosedInScaffold[sid] = numSmallGapsClosedInScaffold[sid] + numLargeGapsClosedInScaffold[sid];	
+
+
+	if(numSmallGapsClosedInScaffold[sid]+numLargeGapsClosedInScaffold[sid]>0){
+	  int status = RECOMPUTE_SINGULAR;
+	  int recomputeIteration = 0;
+	  while(recomputeIteration < 3 &&
+		(status == RECOMPUTE_SINGULAR ||
+		 status == RECOMPUTE_CONTIGGED_CONTAINMENTS))
+	    {
+	      // need to make sure scaffold is connected with trusted raw edges
+	      MarkInternalEdgeStatus(ScaffoldGraph,
+				     GetGraphNode(ScaffoldGraph->ScaffoldGraph,
+						  sid),
+				     PAIRWISECHI2THRESHOLD_CGW,
+				     1000.0 * SLOPPY_EDGE_VARIANCE_THRESHHOLD,
+				     TRUE, TRUE, 0, TRUE);
+
+	      assert(IsScaffoldInternallyConnected(ScaffoldGraph,
+						   GetGraphNode(ScaffoldGraph->ScaffoldGraph,
+								sid),
+						   ALL_EDGES));
+	      
+	      status =
+		RecomputeOffsetsInScaffold(ScaffoldGraph,
+					   GetGraphNode(ScaffoldGraph->ScaffoldGraph,
+							sid),
+					   TRUE, TRUE, FALSE);
+	    }
+	}
 
 	if ( sumScaffoldLengths - sumScaffoldLengthsLastCkp > 90000000 )
 	{
@@ -2651,8 +2675,10 @@ int examineGap( ContigT *lcontig, int lFragIid, ContigT *rcontig, int rFragIid,
 
 
 	// basesToNextFrag is the number of bases back to the first frag that gets us to 2x
-	MaxEndGap = strlen( lFragSeqBuffer ) - lclr_end - lFragContigOverlapLength + lBasesToNextFrag + 20;  // 20 is slop
-	
+      // used to be, but Aaron thought it looked fishy
+	//MaxEndGap = strlen( lFragSeqBuffer ) - lclr_end - lFragContigOverlapLength + lBasesToNextFrag + 20;  // 20 is slop
+	MaxEndGap = strlen( lFragSeqBuffer ) - lclr_end + lBasesToNextFrag + 20;  // 20 is slop
+	fprintf(stderr,"## MaxEndGap %d\n",MaxEndGap);
 	for ( i = lclr_end; i < strlen( lFragSeqBuffer ); i++)
 	  lcompBuffer[ lcontigBasesUsed + i - lclr_end ] = lFragSeqBuffer[ i ];
 	lcompBuffer[ lcontigBasesUsed + i - lclr_end ] = '\0';
@@ -2682,7 +2708,10 @@ int examineGap( ContigT *lcontig, int lFragIid, ContigT *rcontig, int rFragIid,
   if ( rFragIid != -1)
   {
 	// basesToNextFrag is the number of bases back to the first frag that gets us to 2x
-	MaxBegGap = rclr_bgn - rFragContigOverlapLength + rBasesToNextFrag + 20;  // 20 is slop	
+      // used to be, but Aaron thought it looked fishy
+	//MaxBegGap = rclr_bgn - rFragContigOverlapLength + rBasesToNextFrag + 20;  // 20 is slop	
+	MaxBegGap = rclr_bgn + rBasesToNextFrag + 20;  // 20 is slop	
+	fprintf(stderr,"## MaxBegGap %d\n",MaxBegGap);
   }
   else
   {
@@ -2705,7 +2734,7 @@ int examineGap( ContigT *lcontig, int lFragIid, ContigT *rcontig, int rFragIid,
   rcontigBasesUsed = min( CONTIG_BASES - rFragContigOverlapLength, 
 						  (int) rcontig->bpLength.mean - rFragContigOverlapLength);
   for ( i = 0; i < rcontigBasesUsed; i++)
-	rcompBuffer[ rclr_bgn + i ] = rSequence[ i ];
+	rcompBuffer[ rclr_bgn + i ] = rSequence[ i + rFragContigOverlapLength ]; //Aaron ad rFragContigOverlapLength
   rcompBuffer[ rclr_bgn + i ] = '\0';
 
   fprintf( stderr, "> lcompBuffer gap %d (len: " F_SIZE_T "): \n%s\n", gapNumber, strlen( lcompBuffer ), lcompBuffer);
@@ -3197,6 +3226,19 @@ int GetNewUnitigMultiAlign( NodeCGW_T *unitig, fragPositions *fragPoss, int exte
   UnitigStatus   status;
   // IUMStruct * is;
   
+#define  USE_UNGAPPED_CONSENSUS_FOR_UNITIG
+#ifdef USE_UNGAPPED_CONSENSUS_FOR_UNITIG
+  static VA_TYPE(char) *ungappedSequence=NULL,*ungappedQuality=NULL;
+  if (ungappedSequence== NULL ) {
+    ungappedSequence = CreateVA_char(0);
+    ungappedQuality = CreateVA_char(0);
+  } else {
+    ResetVA_char(ungappedSequence);
+    ResetVA_char(ungappedQuality);
+  }
+#endif
+
+
   pmesg.m = &ium_mesg;
   pmesg.t = MESG_IUM;
 
@@ -3274,14 +3316,24 @@ int GetNewUnitigMultiAlign( NodeCGW_T *unitig, fragPositions *fragPoss, int exte
 #endif
     
     ium_mesg.iaccession = unitig->id;
-	// ium_mesg.source
+
+    ium_mesg.source = NULL;
+
     ium_mesg.coverage_stat = unitig->info.CI.coverageStat;
     ium_mesg.status = status;
     ium_mesg.a_branch_point = unitig->info.CI.branchPointA;
     ium_mesg.b_branch_point = unitig->info.CI.branchPointB;
+
+#ifdef USE_UNGAPPED_CONSENSUS_FOR_UNITIG
+    GetMultiAlignUngappedConsensus(ma, ungappedSequence, ungappedQuality);
+    ium_mesg.consensus = Getchar(ungappedSequence,0);
+    ium_mesg.quality = Getchar(ungappedQuality,0);
+    ium_mesg.length = GetMultiAlignUngappedLength(ma);
+#else
     ium_mesg.length = GetMultiAlignLength(ma);
     ium_mesg.consensus = Getchar(ma->consensus,0);
     ium_mesg.quality = Getchar(ma->quality,0);
+#endif
     ium_mesg.forced = 0;
     ium_mesg.num_frags = GetNumIntMultiPoss(ma->f_list);
 
@@ -4270,7 +4322,7 @@ static int DefaultMaxBegGap, DefaultMaxEndGap, DefaultMaxGaps, DefaultMaxInterio
 void saveDefaultLocalAlignerVariables( void )
 {
   DefaultMaxBegGap = MaxBegGap;
-  DefaultMaxEndGap = MaxBegGap;
+  DefaultMaxEndGap = MaxEndGap;
   DefaultMaxGaps = MaxGaps;
   DefaultMaxInteriorGap = MaxInteriorGap;
   DefaultAsymmetricEnds = asymmetricEnds;
@@ -4279,7 +4331,7 @@ void saveDefaultLocalAlignerVariables( void )
 void saveLocalAlignerVariables( void )
 {
   MaxBegGapSaved = MaxBegGap;
-  MaxEndGapSaved = MaxBegGap;
+  MaxEndGapSaved = MaxEndGap;
   MaxGapsSaved = MaxGaps;
   MaxInteriorGapSaved = MaxInteriorGap;
   asymmetricEndsSaved = asymmetricEnds;

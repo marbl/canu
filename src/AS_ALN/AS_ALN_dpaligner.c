@@ -90,7 +90,7 @@ static double BinomialProb(int n, int d, double e)
     { int     max;
       double *newp;
 				/* Re-allocate */
-      max = (int)(n*1.2 + 2048);
+      max = (int)((float)n*1.2 + 2048);
       fprintf(stderr,"DP_COMPARE (BinomialProb): reallocing " F_SIZE_T " bytes\n",(max+1)*sizeof(double));
       newp = (double *) realloc(LogTable,(max+1)*sizeof(double));
       if (newp == NULL) return (-1.);
@@ -162,7 +162,8 @@ static int Space_n_Tables(int max, double erate, double thresh)
                    and compute new DistThresh entries (if not about
                    to be computed below.                             */
     if (max > WorkLimit)
-      { max  = (int)(1.2*max);
+      { 
+	max  = (int)(1.2*max);
         max  = ((max + 2048)/WordSize + 1)*WordSize;
 	BinomialProb(2*max,1,.1);
         fprintf(stderr,"DP_COMPARE (Space_n_Tables): reallocing " F_SIZE_T " bytes\n",(2*max+2)*sizeof(int)+
@@ -193,7 +194,11 @@ static int Space_n_Tables(int max, double erate, double thresh)
  #else
                { while (d <= n && BinomialProb(n,d,p) >= thresh) 
  #endif
-                  d += 1;
+                 {
+		   d += 1;
+		   //		   fprintf(stderr,"BP of d=%d\n",d);
+		 }
+
                 newd[n] = d;
               }
 #ifdef THRESH_DEBUG
@@ -237,7 +242,10 @@ static int Space_n_Tables(int max, double erate, double thresh)
 #else
         { while (d <= n && BinomialProb(n,d,p) >= thresh)
 #endif
+	  {
+	    //	    fprintf(stdout,"BP of d=%d\n",d);
             d += 1;
+	  }
           DistThresh[n] = d;
         }
 #ifdef THRESH_DEBUG
@@ -251,7 +259,7 @@ static int Space_n_Tables(int max, double erate, double thresh)
 }
 
 /* O(kn) identity-based alignment algorithm.  Find alignment between
-   a and b (of lengths alen and blen), that begins at finishing
+   a and b (of lengths alen and blen), that begins at finishing 
    boundary position *spnt.  Return at *spnt the diagonal at which the
    alignment starts.                                                   */
 
@@ -426,8 +434,8 @@ zeroscript:
 
 /* O(kn) affine gap cost alignment algorithm.  Find best alignment between
    a and b (of lengths alen and blen), within a band of width 2*diff centered
-   on the diagonal containing finishing boundary position *spnt.  Return at
-   *spnt the diagonal at which the alignment starts.  A quick implementation
+   on the diagonal containing finishing boundary position *epnt.  Return at
+   *bpnt the diagonal at which the alignment starts.  A quick implementation
    that is space inefficient, takes O(kn) space as opposed to the O(n) that
    is possible.                                                             */
 
@@ -444,16 +452,12 @@ int *AS_ALN_OKNAffine(char *a, int alen, char *b, int blen,
 
   bwide = 2*diff + 1;
   if ((blen+1)*(2*bwide+2) >= Amax)
-    { int *newp, max;
-
-      max = (blen+501)*(2*bwide+202);
-      newp = (int *) realloc(Afarr,max*sizeof(int));
+    {
+      Amax = (blen+501)*(2*bwide+202);
+      Afarr = (int *) ckrealloc(Afarr,Amax*sizeof(int));
 #ifdef AFFINE_DEBUG
       fprintf(stderr,"Affine align allocating %d bytes\n",max*2*sizeof(int));
 #endif
-      if (newp == NULL) return (NULL);
-      Afarr = newp;
-      Amax  = max;
     }
   atop = (blen+1)*bwide;
   TraceBuffer = Afarr + 2*atop;
@@ -653,7 +657,21 @@ int *AS_ALN_OKNAffine(char *a, int alen, char *b, int blen,
         }
       }
     TraceBuffer[top] = 0;
-    //    *epnt = i-jcrd;
+
+#define ADJUST_EPNT
+#ifdef ADJUST_EPNT
+    *epnt=0;
+    if(i!=alen){
+      assert(i<alen);
+      assert(jcrd==blen);
+      *epnt=i-alen;
+    } 
+    if(jcrd!=blen){
+      assert(jcrd<blen);
+      assert(i==alen);
+      *epnt=blen-jcrd;
+    }
+#endif
   }
 
   { int i, j;
@@ -846,7 +864,7 @@ static int Boundary(char *a, int alen, char *b, int blen,
   int prob_thresh;
   int boundpos, boundval;
   int preminpos, preminval;
-  int lastlocalminpos, lastlocalminscore;
+  int lastlocalminpos, lastlocalminscore,lastlft;
 
   static int Firstime = 1;
   static WORD bvect[256];	/* bvect[a] is equal-bit vector of symbol a */
@@ -885,6 +903,7 @@ static int Boundary(char *a, int alen, char *b, int blen,
 
     lastlocalminpos=0;
     lastlocalminscore=alen-end;
+    lastlft=0;
   }
 
   { int j, bmax;	/* For every WordSize'th row do */ 
@@ -1064,17 +1083,46 @@ static int Boundary(char *a, int alen, char *b, int blen,
 		      printf(",");
 #endif
 		    }else { 
-		      // if new local best
+		      // if new local best -- i.e. prev local best plus gaps is worse than here
 		      if (i-lastlocalminpos>p-lastlocalminscore){
 			lastlocalminpos=i;
 			lastlocalminscore=p;
-
+			lastlft=lft;
 #ifdef BOUND_DEBUG		      
 			printf("~");
 #endif
 
-		      } else { //this should not happen
-			assert(0);
+		      } else { 
+
+			//this should not happen???
+
+			//... except that the
+			//previous best might have been in a different
+			//stripe (set of WordSize bases) and might
+			//have involved an entry point that is now
+			//lost due to restrictions on lft and rgt.
+			//
+			//... and perhaps other cases not yet forseen
+
+			#if 0
+			if( lft<=lastlft || i % WordSize != 1){
+			  fprintf(stderr,"Possible logic problem: lft %d lastlft %d i %d WordSize %d i%%WordSize %d\n",
+				  lft,lastlft,i,WordSize,i%WordSize);
+			}
+			assert( lft>lastlft && i % WordSize == 1);
+			#endif
+
+			//In this case, we really should consider this
+			//location a new local best, so, even though
+			//it is strictly worse,
+
+			lastlocalminpos=i;
+			lastlocalminscore=p;
+			lastlft=lft;
+#ifdef BOUND_DEBUG		      
+			printf("^");
+#endif
+
 		      }
 		    }
 		  } else { // if overlap is long enough
@@ -1161,13 +1209,16 @@ static int Boundary(char *a, int alen, char *b, int blen,
         while (rgt >= lft)
           { if (rval < prob_thresh)
               break;
+	  //	  printf("rval %d still greater than prob_thresh %d for rgt %d\n",rval,prob_thresh,rgt);
             rval -= HorzDelta[rgt--];
           }
 
         if (rgt < lft) break;
     
-        while (lval >= prob_thresh)
+        while (lval >= prob_thresh){
+	  //	  printf("lval %d still greater than prob_thresh %d for lft %d\n",lval,prob_thresh,lft);
           lval += HorzDelta[++lft];
+	}
 
 #ifdef DP_DEBUG
         printf("  Range: (%d,%d)\n",lft,rgt);

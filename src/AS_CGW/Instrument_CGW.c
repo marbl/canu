@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.3 2005-03-22 19:03:36 jason_miller Exp $";
+static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.4 2005-03-22 19:48:36 jason_miller Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -57,6 +57,13 @@ CDS_COORD_t UnitigOffset;
 #define INSTRUMENT_CUTOFF         CGW_CUTOFF
 
 #define INTERVAL(a)  ((a)->mean + INSTRUMENT_CUTOFF * (a)->stddev)
+
+
+// should we print mate info for all clones or only long ones?
+#define USE_LONG_MATES 0
+#define USE_ALL_MATES 1
+
+int do_surrogate_tracking=1;
 
 typedef struct
 {
@@ -2502,6 +2509,11 @@ void PrintExternalMateDetailAndDist(MateDetail * md,
     int fragLeftEnd,fragRightEnd,fragOri;
     int32 mateChunk,mateScf,mateCtg;
     assert(PRINTCELAMY==printtype);
+
+    {
+      if(! USE_ALL_MATES && ! (USE_LONG_MATES && dptr->mean>15000))return;
+    }
+
     if(md->fragOffset5p<md->fragOffset3p){
       fragLeftEnd = md->fragOffset5p;
       fragRightEnd = md->fragOffset3p;
@@ -4089,6 +4101,7 @@ int AddFragmentToUnitigInstrumenter(ScaffoldGraphT * graph,
   fprintf(stderr, "Adding fragment " F_CID " (index = " F_CID ") to unitig instrumenter\n",
           frag->iid, info->fragIndex);
 #endif
+
   switch(frag->type)
   {
     case AS_READ:
@@ -4511,6 +4524,17 @@ void PrintScaffoldMateDetail(HashTable_AS * cpHT,
   tmpfrg = GetCIFragT(ScaffoldGraph->CIFrags,
 		      GetInfoByIID(ScaffoldGraph->iidToFragIndex,
 				   md->fragIID)->fragIndex);
+
+  
+  {
+    DistT *dst=GetDistT(ScaffoldGraph->Dists,tmpfrg->dist);
+    if(dst==NULL){
+      fprintf(stderr,"tried to get dst %d but failed\n",tmpfrg->dist);
+    }
+    assert(dst!=NULL);
+    if(! USE_ALL_MATES && ! (USE_LONG_MATES && dst->mean>15000))return;
+  }
+
   if(LookupInHashTable_AS(cpHT,&(tmpfrg->contigID),sizeof(cds_int32))==NULL){
     // this should apply only to surrogate fragments
 
@@ -5110,22 +5134,21 @@ int InstrumentUnitig(ScaffoldGraphT * graph,
   
   if(ui->isSurrogate)
   {
-#define DO_SURROGATE_TRACKING
-#ifdef DO_SURROGATE_TRACKING
-    cds_float32 utgAEndOnCtg,utgBEndOnCtg;
-    utgAEndOnCtg = ((ui->orientation == A_B) ? ui->leftEnd : ui->rightEnd );
-    utgBEndOnCtg = ((ui->orientation == B_A) ? ui->leftEnd : ui->rightEnd );
+    if(do_surrogate_tracking){
+      cds_float32 utgAEndOnCtg,utgBEndOnCtg;
+      utgAEndOnCtg = ((ui->orientation == A_B) ? ui->leftEnd : ui->rightEnd );
+      utgBEndOnCtg = ((ui->orientation == B_A) ? ui->leftEnd : ui->rightEnd );
 
-    // iterate over fragments in surrogate
-    for(fi = 0; fi < GetNumIntMultiPoss(uma->f_list); fi++)
-    {
-      // add to surrogate set - position & orientation in contig
-      AddFragmentToSurrogateTracker(graph, cpHT, ctgID,
-				    GetIntMultiPos(uma->f_list, fi),
-				    utgAEndOnCtg,utgBEndOnCtg,
-				    st);
+      // iterate over fragments in surrogate
+      for(fi = 0; fi < GetNumIntMultiPoss(uma->f_list); fi++)
+	{
+	  // add to surrogate set - position & orientation in contig
+	  AddFragmentToSurrogateTracker(graph, cpHT, ctgID,
+					GetIntMultiPos(uma->f_list, fi),
+					utgAEndOnCtg,utgBEndOnCtg,
+					st);
+	}
     }
-#endif
   }
   else
   {

@@ -6,7 +6,7 @@
  *********************************************************************/
 
 
-static char CM_ID[] = "$Id: combineMates.c,v 1.2 2005-03-22 19:04:02 jason_miller Exp $";
+static char CM_ID[] = "$Id: combineMates.c,v 1.3 2005-03-22 19:48:36 jason_miller Exp $";
 
 
 /*********************************************************************/
@@ -163,6 +163,8 @@ int main( int argc, char *argv[])
   VA_TYPE(int32) *deltas=CreateVA_int32(1);
   VA_TYPE(char) *sequence=CreateVA_char(200000);
   VA_TYPE(char) *quality=CreateVA_char(200000);
+  int firstIID =1;
+  int lastIID = 0;
 
   //  setbuf(stdout,NULL);
 
@@ -170,8 +172,12 @@ int main( int argc, char *argv[])
     int ch,errflg=0;
     optarg = NULL;
     while (!errflg && ((ch = getopt(argc, argv,
-				    "f:g:U")) != EOF)){
+				    "f:g:Us:e:")) != EOF)){
       switch(ch) {
+      case 'e':
+	lastIID = atoi(argv[optind-1]);
+	assert(lastIID>=1);
+	break;
       case 'f':
 	strcpy( Frag_Store_Name, argv[optind - 1]);
 	setFragStore = TRUE;
@@ -180,6 +186,10 @@ int main( int argc, char *argv[])
 	strcpy( GKP_Store_Name, argv[optind - 1]);
 	setGatekeeperStore = TRUE;
 	break;	  
+      case 's':
+	firstIID = atoi(argv[optind-1]);
+	assert(firstIID>=1);
+	break;
       case 'U':
 	realUID=1;
 	break;
@@ -194,7 +204,10 @@ int main( int argc, char *argv[])
       {
 	fprintf(stderr,"* argc = %d optind = %d setFragStore = %d setGatekeeperStore = %d\n",
 		argc, optind, setFragStore,setGatekeeperStore);
-	fprintf (stderr, "USAGE:  %s -f <FragStoreName> -g <GatekeeperStoreName> [-U]\n",argv[0]);
+	fprintf (stderr, "USAGE:  %s -f <FragStoreName> -g <GatekeeperStoreName> [-U] [-s <firstIID>] [-e <lastIID>]\n",argv[0]);
+	fprintf (stderr, "\t-U causes generation of real UIDs\n");
+	fprintf (stderr, "\t-s specifies first IID to examine (default = 1)\n");
+	fprintf (stderr, "\t-e specifies last IID to examine (default = last frag in stores)\n");
 	exit (EXIT_FAILURE);
       }
 
@@ -234,7 +247,7 @@ int main( int argc, char *argv[])
       CDS_UID_t interval_UID[4];
       if(firstUID){
 	firstUID=0;
-	AS_TER_uidStart = UIDstart; /* used if readUID == FALSE */
+	AS_TER_uidStart = UIDstart; /* used if realUID == FALSE */
 	get_uids(blockSize,interval_UID,realUID);
       }
 
@@ -265,9 +278,15 @@ int main( int argc, char *argv[])
   /*************************/
   // over all fragments, check for overlap with (previously unseen) mate
   /*************************/
-  
-  lastfrg = getLastElemFragStore (frgStore) ;
-  for (fragIID = 1; fragIID <= lastfrg; fragIID++){
+
+  if(lastIID==0){
+    lastfrg = getLastElemFragStore (frgStore) ;
+  } else {
+    lastfrg = lastIID;
+    assert(lastfrg<=getLastElemFragStore (frgStore) );
+  }
+  assert(firstIID<=lastfrg);
+  for (fragIID = firstIID; fragIID <= lastfrg; fragIID++){
     int rv1,rv2;
 
     /*************************/
@@ -339,8 +358,8 @@ int main( int argc, char *argv[])
     // check for an overlap
     /*************************/
 
-    ovl = Local_Overlap_AS_forCNS(clear1, clear2, -len1,len2,1,.06,1e-6,40,AS_FIND_LOCAL_ALIGN_NO_TRACE);
-    //ovl = DP_Compare(clear1, clear2, -len2,len1,1,.06,1e-6,40,AS_FIND_LOCAL_ALIGN_NO_TRACE);
+    //ovl = Local_Overlap_AS_forCNS(clear1, clear2, -len1,len2,1,.06,1e-6,40,AS_FIND_LOCAL_ALIGN_NO_TRACE);
+    ovl = DP_Compare(clear1, clear2, -len2,len1,1,.06,1e-6,40,AS_FIND_LOCAL_ALIGN_NO_TRACE);
 
     if(ovl==NULL)continue;
 
@@ -460,7 +479,7 @@ int main( int argc, char *argv[])
       CDS_UID_t interval_UID[4];
       if(firstUID){
 	firstUID=0;
-	AS_TER_uidStart = UIDstart; /* used if readUID == FALSE */
+	AS_TER_uidStart = UIDstart; /* used if realUID == FALSE */
 	get_uids(blockSize,interval_UID,realUID);
       }
 

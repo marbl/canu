@@ -21,8 +21,8 @@
 
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_UID/Attic/SYS_UIDclient_cpp.h,v $
-$Revision: 1.2 $
-$Date: 2005-03-22 19:08:53 $
+$Revision: 1.3 $
+$Date: 2005-03-22 19:49:28 $
 $Name: not supported by cvs2svn $
 $Author: jason_miller $
 $Log: not supported by cvs2svn $

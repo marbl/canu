@@ -49,7 +49,7 @@ extern int max_indel_AS_ALN_LOCOLAP_GLOBAL;
 
 void usage(void)
 {
-	fprintf( stderr, "usage: AS_ALN_testdriver5 <-a abnd> <-b bbnd> <-e error_rate> <-m minlen> <-P proto_output_file>\n");
+	fprintf( stderr, "usage: AS_ALN_boxfiller <-a abnd> <-b bbnd> <-e error_rate> <-m minlen> <-P proto_output_file>\n");
 	exit(1);
 }
 

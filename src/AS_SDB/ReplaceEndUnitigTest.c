@@ -47,10 +47,14 @@ MultiAlignT *newma;
 fragStore = openFragStore(argv[3], "rb");
 unitig_id=GetIntUnitigPos(ma1->u_list,0)->ident;
 ma2 =  LoadMultiAlignTFromSequenceDB(sequenceDB, unitig_id, TRUE);
+PrintMultiAlignT(stderr,ma1,fragStore,NULL,NULLFRAGSTOREHANDLE,0,0,READSTRUCT_CNS);
+
 myerr=stderr;
 fprintf(stderr,"Accomplished the loading of the multialigns\n");
-newma = ReplaceEndUnitigInContig(sequenceDB, fragStore, contig_id, unitig_id, DP_Compare);
+newma = ReplaceEndUnitigInContig(sequenceDB, fragStore, contig_id, unitig_id, 1, DP_Compare);
 
-fprintf(stderr,"Returned from MergeMultiAlignsFast_new\n");
+PrintMultiAlignT(stderr,newma,fragStore,NULL,NULLFRAGSTOREHANDLE,0,0,READSTRUCT_CNS);
+
+fprintf(stderr,"Returned from ReplaceEndUnitigInContig\n");
 
 }

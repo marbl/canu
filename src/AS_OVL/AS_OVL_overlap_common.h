@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.3 2005-03-22 19:06:43 jason_miller Exp $
- * $Revision: 1.3 $
+ * $Id: AS_OVL_overlap_common.h,v 1.4 2005-03-22 19:49:17 jason_miller Exp $
+ * $Revision: 1.4 $
 */
 
 
@@ -180,8 +180,16 @@ static int  Doing_Partial_Overlaps = FALSE;
     //  If set true by the G option (G for Granger)
     //  then allow overlaps that do not extend to the end
     //  of either read.
+static size_t  Extra_Data_Len;
+    //  Total length available for hash table string data,
+    //  including both regular strings and extra strings
+    //  added from kmer screening
 static int64  Extra_Ref_Ct = 0;
 static String_Ref_t  * Extra_Ref_Space = NULL;
+static int  Extra_String_Ct = 0;
+    //  Number of extra strings of screen kmers added to hash table
+static int  Extra_String_Subcount = 0;
+    //  Number of kmers already added to last extra string in hash table
 static int  Frag_Olap_Limit = FRAG_OLAP_LIMIT;
     //  Maximum number of overlaps for end of an old fragment against
     //  a single hash table of frags, in each orientation
@@ -217,11 +225,22 @@ static int  String_Ct;
     //  Number of fragments in the hash table
 static Hash_Frag_Info_t  * String_Info = NULL;
 static int64  * String_Start = NULL;
+static int  String_Start_Size = 0;
+    //  Number of available positions in  String_Start
 static int  Unique_Olap_Per_Pair = TRUE;
     //  If true will allow at most
     //  one overlap output message per oriented fragment pair
     //  Set true by  -u  command-line option; set false by  -m
+static size_t  Used_Data_Len = 0;
+    //  Number of bytes of Data currently occupied, including
+    //  regular strings and extra kmer screen strings
+static int  Use_Hopeless_Check = TRUE;
+    //  Determines whether check for absence of kmer matches
+    //  at the end of a read is used to abort the overlap before
+    //  the extension from a single kmer match is attempted.
 static int  Use_Window_Filter = FALSE;
+    //  Determines whether check for a window containing too many
+    //  errors is used to disqualify overlaps.
 
 static int  Read_Edit_Match_Limit [MAX_ERRORS] = {0};
     //  This array [e] is the minimum value of  Edit_Array [e] [d]
@@ -351,6 +370,8 @@ FILE  * High_Hits_File = NULL;
 /* Function prototypes for internal static functions */
 /*************************************************************************/
 
+static String_Ref_t  Add_Extra_Hash_String
+    (const char * s);
 static void  Add_Match
     (String_Ref_t, int *, int, int *, Work_Area_t *);
 static void  Add_Overlap
@@ -528,7 +549,7 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
      int ch, errflg = 0;
      optarg = NULL;
      while  (! errflg
-               && ((ch = getopt (argc, argv, "ab:cfGh:I:k:K:l:mM:no:Pqr:st:uw")) != EOF))
+               && ((ch = getopt (argc, argv, "ab:cfGh:I:k:K:l:mM:no:Pqr:st:uwz")) != EOF))
        switch  (ch)
          {
           case  'a' :
@@ -619,7 +640,15 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
 #ifdef CONTIG_OVERLAPPER_VERSION
             fprintf (stderr, "M option not allowed for Contig Version--ignored\n");
 #else
-            if  (strcmp (optarg, "8GB") == 0)
+            if  (strcmp (optarg, "16GB") == 0)
+                { // Set parameters for 16GB memory machine
+                 Hash_Mask_Bits = 25;
+                 Max_Hash_Strings = 1000000;
+                 Max_Hash_Data_Len = 720000000;
+                 Max_Frags_In_Memory_Store
+                      = OVL_Min_int (Max_Hash_Strings, MAX_OLD_BATCH_SIZE);
+                }
+            else if  (strcmp (optarg, "8GB") == 0)
                 { // Set parameters for 8GB memory machine
                  Hash_Mask_Bits = 24;
                  Max_Hash_Strings = 500000;
@@ -703,6 +732,9 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
             break;
           case  'w' :
             Use_Window_Filter = TRUE;
+            break;
+          case  'z' :
+            Use_Hopeless_Check = FALSE;
             break;
           case  '?' :
             fprintf (stderr, "Unrecognized option -%c\n", optopt);
@@ -1164,6 +1196,66 @@ fprintf (stderr, "### Return from main\n");
 
 
 
+static String_Ref_t  Add_Extra_Hash_String
+    (const char * s)
+
+//  Add string  s  as an extra hash table string and return
+//  a single reference to the beginning of it.
+
+  {
+   String_Ref_t  ref;
+   size_t  new_len;
+   int  len, sub;
+
+   new_len = Used_Data_Len + KMER_LEN;
+   if  (Extra_String_Subcount < MAX_EXTRA_SUBCOUNT)
+       sub = String_Ct + Extra_String_Ct - 1;
+     else
+       {
+        sub = String_Ct + Extra_String_Ct;
+        if  (sub >= String_Start_Size)
+            {
+             String_Start_Size *= MEMORY_EXPANSION_FACTOR;
+             if  (sub >= String_Start_Size)
+                 String_Start_Size = sub;
+             String_Start = (int64 *) Safe_realloc (String_Start,
+                  String_Start_Size * sizeof (int64));
+            }
+        String_Start [sub] = Used_Data_Len;
+        Extra_String_Ct ++;
+        Extra_String_Subcount = 0;
+        new_len ++;
+       }
+
+   if  (new_len >= Extra_Data_Len)
+       {
+        Extra_Data_Len = (size_t) (Extra_Data_Len * MEMORY_EXPANSION_FACTOR);
+        if  (new_len > Extra_Data_Len)
+            Extra_Data_Len = new_len;
+        Data = (char *) Safe_realloc (Data, Extra_Data_Len);
+       }
+   strncpy (Data + String_Start [sub] + KMER_LEN * Extra_String_Subcount,
+        s, KMER_LEN + 1);
+   Used_Data_Len = new_len;
+
+   ref . String_Num = sub;
+   if  (sub > MAX_STRING_NUM)
+       {
+        fprintf (stderr, "Too many skip kmer strings for hash table.\n"
+             "Try skipping hopeless check (-z option)\n"
+             "Exiting\n");
+        exit (EXIT_FAILURE);
+       }
+   ref . Offset = Extra_String_Subcount * KMER_LEN;
+   ref . Last = TRUE;
+   ref . Empty = TRUE;
+   Extra_String_Subcount ++;
+
+   return  ref;
+  }
+
+
+
 static void  Add_Match
     (String_Ref_t ref, int * start, int offset, int * consistent,
      Work_Area_t * wa)
@@ -1415,11 +1507,12 @@ int  Build_Hash_Index
    int  j;
 
    Hash_String_Num_Offset = first_frag_id;
-   String_Ct = 0;
+   String_Ct = Extra_String_Ct = 0;
+   Extra_String_Subcount = MAX_EXTRA_SUBCOUNT;
    total_len = 0;
    if  (Data == NULL)
        {
-        Data_Len = Max_Hash_Data_Len + AS_READ_MAX_LEN;
+        Extra_Data_Len = Data_Len = Max_Hash_Data_Len + AS_READ_MAX_LEN;
         Data = (char *) Safe_realloc (Data, Data_Len);
         Quality_Data = (char *) Safe_realloc (Quality_Data, Data_Len);
         old_ref_len = Data_Len / (HASH_KMER_SKIP + 1);
@@ -1541,7 +1634,11 @@ Align_Ct [String_Ct] = (Align_Entry_t *)
                Data_Len = new_len;
            fprintf (stderr, "### reallocing  Data and Quality_Data  Data_Len = " F_SIZE_T "\n",
                     Data_Len);
-           Data = (char *) Safe_realloc (Data, Data_Len);
+           if  (Data_Len > Extra_Data_Len)
+               {
+                Data = (char *) Safe_realloc (Data, Data_Len);
+                Extra_Data_Len = Data_Len;
+               }
            Quality_Data = (char *) Safe_realloc (Quality_Data, Data_Len);
            new_ref_len = Data_Len / (HASH_KMER_SKIP + 1);
            Next_Ref = (String_Ref_t *) Safe_realloc
@@ -1569,6 +1666,7 @@ Align_Ct [String_Ct] = (Align_Entry_t *)
 
    fprintf (stderr, "strings read = %d  total_len = " F_S64 "\n",
             String_Ct, total_len);
+   Used_Data_Len = total_len;
 
    if  (Genome_Len > 0.0)
        {
@@ -2806,7 +2904,8 @@ static void  Hash_Mark_Empty
 //  corresponding to string  s  whose hash key is  key .
 //  Also set global  String_Info . left/right_end_screened
 //  true if the entry occurs near the left/right end, resp.,
-//  of the string in the hash table.
+//  of the string in the hash table.  If not found, add an
+//  entry to the hash table and mark it empty.
 
   {
    String_Ref_t  h_ref;
@@ -2814,7 +2913,7 @@ static void  Hash_Mark_Empty
    unsigned char  key_check;
    int64  ct, probe;
    int64  sub;
-   int  i;
+   int  i, shift;
 
    sub = HASH_FUNCTION (key);
    key_check = KEY_CHECK_FUNCTION (key);
@@ -2830,14 +2929,28 @@ static void  Hash_Mark_Empty
              t = Data + String_Start [h_ref . String_Num] + h_ref . Offset;
              if  (strncmp (s, t, WINDOW_SIZE) == 0)
                  {
-                  Mark_Screened_Ends_Chain (Hash_Table [sub] . Entry [i]);
+                  if  (! Hash_Table [sub] . Entry [i] . Empty)
+                      Mark_Screened_Ends_Chain (Hash_Table [sub] . Entry [i]);
                   Hash_Table [sub] . Entry [i] . Empty = TRUE;
                   return;
                  }
             }
       assert (i == Hash_Table [sub] . Entry_Ct);
       if  (Hash_Table [sub] . Entry_Ct < ENTRIES_PER_BUCKET)
-          return;     // Not found
+          {  // Not found
+           if  (Use_Hopeless_Check)
+               {
+                Hash_Table [sub] . Entry [i] = Add_Extra_Hash_String (s);
+                Hash_Table [sub] . Entry [i] . Empty = TRUE;
+                Hash_Table [sub] . Check [i] = key_check;
+                Hash_Table [sub] . Entry_Ct ++;
+                Hash_Table [sub] . Hits [i] = 0;
+                Hash_Entries ++;
+                shift = HASH_CHECK_FUNCTION (key);
+                Hash_Check_Array [sub] |= (((Check_Vector_t) 1) << shift);
+               }
+           return;    
+          }
       sub = (sub + probe) % HASH_TABLE_SIZE;
      }  while  (++ ct < HASH_TABLE_SIZE);
 
@@ -2924,6 +3037,7 @@ static void  Initialize_Globals
    String_Info = (Hash_Frag_Info_t *) Safe_calloc (Max_Hash_Strings,
                      sizeof (Hash_Frag_Info_t));
    String_Start = (int64 *) Safe_calloc (Max_Hash_Strings, sizeof (int64));
+   String_Start_Size = Max_Hash_Strings;
    Kind_Of_Frag = (FragType *) Safe_calloc (Max_Hash_Strings, sizeof (FragType));
    Screen_Sub = (int *) Safe_calloc (Max_Hash_Strings, sizeof (int));
 
@@ -3239,6 +3353,7 @@ static void  Mark_Skip_Kmers
 
 //  Set  Empty  bit true for all entries in global  Hash_Table
 //  that match a kmer in file  Kmer_Skip_File .
+//  Add the entry (and then mark it empty) if it's not in  Hash_Table.
 
   {
    uint64  key;
@@ -3273,6 +3388,7 @@ static void  Mark_Skip_Kmers
            fputs (line, stderr);
            exit (EXIT_FAILURE);
           }
+      line [len] = '\0';
 
       key = 0;
       for  (i = 0;  i < len;  i ++)
@@ -3289,6 +3405,8 @@ static void  Mark_Skip_Kmers
       Hash_Mark_Empty (key, line);
      }
 
+   fprintf (stderr, "String_Ct = %d  Extra_String_Ct = %d  Extra_String_Subcount = %d\n",
+        String_Ct, Extra_String_Ct, Extra_String_Subcount);
    fprintf (stderr, "Read %d kmers to mark to skip\n", ct / 2);
 
    return;
@@ -4136,7 +4254,9 @@ Is_Duplicate_Olap = FALSE;
 
        // If a singleton match is hopeless on either side
        // it needn't be processed
-   if  (WA -> Match_Node_Space [(* Start)] . Next == 0
+
+   if  (Use_Hopeless_Check
+          && WA -> Match_Node_Space [(* Start)] . Next == 0
           && ! Doing_Partial_Overlaps)
        {
         int  s_head, t_head, s_tail, t_tail;
@@ -4634,7 +4754,9 @@ Dump_Screen_Info (Curr_String_Num, & (WA -> screen_info), 'f');
 
            Rev_Complement (Frag, Len);
            Reverse_String (quality, Len);
+
            Flip_Screen_Range (& (WA -> screen_info), Len);
+
 #ifdef  CHECK_SCREENING
 Dump_Screen_Info (Curr_String_Num, & (WA -> screen_info), 'r');
 #endif
@@ -5108,6 +5230,11 @@ static void  Put_String_In_Hash
      }
 
    ref . String_Num = i;
+   if  (i > MAX_STRING_NUM)
+       {
+        fprintf (stderr, "Too many strings for hash table--exiting\n");
+        exit (EXIT_FAILURE);
+       }
    ref . Offset = 0;
    skip_ct = 0;
    ref . Empty = FALSE;

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: resolveSurrogates.c,v 1.1 2005-03-22 19:27:47 jason_miller Exp $";
+static char CM_ID[] = "$Id: resolveSurrogates.c,v 1.2 2005-03-22 19:48:38 jason_miller Exp $";
 
 
 /*********************************************************************/
@@ -62,6 +62,10 @@ static char CM_ID[] = "$Id: resolveSurrogates.c,v 1.1 2005-03-22 19:27:47 jason_
 
 int main( int argc, char *argv[])
 {
+  int placeAllFragsInSinglePlacedSurros = 0;  /* if 1, aggressively place fragments in surrogates that are
+						 only used once in the assembly; "aggressively" means place
+						 all the fragments in the unitig, regardless of mate status,
+					         alignment quality etc */
   Global_CGW *data;
   char *outputPath = NULL;
   int setFragStore = FALSE;
@@ -77,7 +81,7 @@ int main( int argc, char *argv[])
   GraphNodeIterator
 	CIGraphIterator;
   VA_TYPE(IntMultiPos) **impLists = NULL;
-  int allocedImpLists = 10;
+  int allocedImpLists = 100;
   int i;
   int numReallyPlaced=0;
 
@@ -105,7 +109,7 @@ int main( int argc, char *argv[])
     int ch,errflg=0;
     optarg = NULL;
     while (!errflg && ((ch = getopt(argc, argv,
-				    "c:f:g:n:")) != EOF)){
+				    "c:f:g:n:1")) != EOF)){
       switch(ch) {
 		case 'c':
 		{
@@ -128,6 +132,9 @@ int main( int argc, char *argv[])
 		case 'n':
 		  ckptNum = atoi(argv[optind - 1]);
 		  break;
+		case '1':
+		  placeAllFragsInSinglePlacedSurros = 1;
+		  break;
 		default :
 		  fprintf(stderr,"Unrecognized option -%c",optopt);
 		  errflg++;
@@ -138,7 +145,8 @@ int main( int argc, char *argv[])
       {
 	fprintf(stderr,"* argc = %d optind = %d setFragStore = %d setGatekeeperStore = %d outputPath = %s\n",
 		argc, optind, setFragStore,setGatekeeperStore, outputPath);
-	fprintf (stderr, "USAGE:  %s [-d] -f <FragStoreName> -g <GatekeeperStoreName> -c <CkptFileName> -n <CkpPtNum>\n\t-d option causes contig seqeunces to be dumped\n",argv[0]);
+	fprintf (stderr, "USAGE:  %s -f <FragStoreName> -g <GatekeeperStoreName> -c <CkptFileName> -n <CkpPtNum> [-1]\n",argv[0]);
+	fprintf (stderr, "\t-1 option causes aggressive placement of fragments in singly-placed surrogates\n");
 	exit (EXIT_FAILURE);
       }
   }
@@ -210,22 +218,31 @@ int main( int argc, char *argv[])
 	while(NextCIFragTInChunkIterator(&frags, &nextfrg)){
 	  CIFragT *mate;
 	  ChunkInstanceT *mateChunk;
-	  if(matePlacedOnlyIn(nextfrg,sid,&mate,&mateChunk)){
-	    assert(nextfrg->flags.bits.innieMate);
-	    if(FragAndMateAreCompatible(nextfrg,candidateChunk,mate,mateChunk,AS_INNIE)){
-	      // we're hot to trot ... now do something!
-	      IntMultiPos imp;
-	      imp.type = nextfrg->type;
-	      imp.ident = nextfrg->iid;  
-	      imp.position.bgn = nextfrg->offset5p.mean;
-	      imp.position.end = nextfrg->offset3p.mean;
-	      imp.contained = 0; /* this might be wrong! */
-	      imp.delta_length=0;
-	      imp.delta=NULL;
-	      AppendVA_IntMultiPos(impLists[i],&imp);
-	      
-	      numFrgsToPlace++;
+	  int fragIsGood = 0;
+
+	  if( placeAllFragsInSinglePlacedSurros ) {
+	    fragIsGood=1;
+	  } else {
+	    if(matePlacedOnlyIn(nextfrg,sid,&mate,&mateChunk)){
+	      assert(nextfrg->flags.bits.innieMate);
+	      if(FragAndMateAreCompatible(nextfrg,candidateChunk,mate,mateChunk,AS_INNIE)){
+		fragIsGood= 1;
+	      }
 	    }
+	  }
+	  if(fragIsGood){
+	    // we're hot to trot ... now do something!
+	    IntMultiPos imp;
+	    imp.type = nextfrg->type;
+	    imp.ident = nextfrg->iid;  
+	    imp.position.bgn = nextfrg->offset5p.mean;
+	    imp.position.end = nextfrg->offset3p.mean;
+	    imp.contained = 0; /* this might be wrong! */
+	    imp.delta_length=0;
+	    imp.delta=NULL;
+	    AppendVA_IntMultiPos(impLists[i],&imp);
+	      
+	    numFrgsToPlace++;
 	  }
 	}
 	CleanupCIFragTInChunkIterator(&frags);

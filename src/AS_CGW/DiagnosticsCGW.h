@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: DiagnosticsCGW.h,v 1.3 2005-03-22 19:03:33 jason_miller Exp $	 */
+/* 	$Id: DiagnosticsCGW.h,v 1.4 2005-03-22 19:48:35 jason_miller Exp $	 */
 #ifndef DIAGNOSTICSCGW_H
 #define DIAGNOSTICSCGW_H
 

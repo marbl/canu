@@ -20,7 +20,7 @@
  *************************************************************************/
 
 
-static char CM_ID[] = "$Id: dumpContigFromCkpt.c,v 1.2 2005-03-22 19:04:02 jason_miller Exp $";
+static char CM_ID[] = "$Id: dumpContigFromCkpt.c,v 1.3 2005-03-22 19:48:37 jason_miller Exp $";
 
 
 /*********************************************************************/

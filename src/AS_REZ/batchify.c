@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: batchify.c,v 1.3 2005-03-22 19:08:03 jason_miller Exp $
- * $Revision: 1.3 $
+ * $Id: batchify.c,v 1.4 2005-03-22 19:49:26 jason_miller Exp $
+ * $Revision: 1.4 $
 */
 
-static char fileID[] = "$Id: batchify.c,v 1.3 2005-03-22 19:08:03 jason_miller Exp $";
+static char fileID[] = "$Id: batchify.c,v 1.4 2005-03-22 19:49:26 jason_miller Exp $";
 
 #define FILE_NAME_FORMAT "b%03d."
 
@@ -165,7 +165,7 @@ int main  (int argc, char * argv [])
           adt_mesg = (AuditMesg *) gmesg -> m;
           sprintf (batch_line, "Batch %d", batch_num);
           AppendAuditLine_AS (adt_mesg, & audit_line, time (0), "batchify",
-                              "$Revision: 1.3 $", batch_line);
+                              "$Revision: 1.4 $", batch_line);
           write_msg_fn (outfile, gmesg);
           break;
 
@@ -193,7 +193,7 @@ int main  (int argc, char * argv [])
                audit_line . next = NULL;
                audit_line . name = "batchify";
                audit_line . complete = time (0);
-               audit_line . version = "$Revision: 1.3 $";
+               audit_line . version = "$Revision: 1.4 $";
                sprintf (batch_line, "Batch %d", batch_num);
                audit_line . comment = batch_line;
                write_msg_fn (outfile, pmesg);

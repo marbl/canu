@@ -24,7 +24,7 @@
  Assumptions:
 **********************************************************************/
 
-static char CM_ID[] = "$Id: MicroHetSimulatorREZ.c,v 1.3 2005-03-22 19:07:57 jason_miller Exp $";
+static char CM_ID[] = "$Id: MicroHetSimulatorREZ.c,v 1.4 2005-03-22 19:49:25 jason_miller Exp $";
 
 //TO CONDUCT TESTS OF SIMPLE ONLY (NO ATTEMPT TO RESOLVE), DEFINE TESTSIMPLEONLY
 #define TESTSIMPLEONLY

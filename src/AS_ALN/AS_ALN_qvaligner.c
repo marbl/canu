@@ -167,9 +167,16 @@ void Complement_Fragment_AS(InternalFragMesg *a)
    caller must copy its contents to a memory area they have allocated.   */
 
 int *Unpack_Alignment_AS(OverlapMesg *align)
-{ static int    UnpackBuffer[2*AS_READ_MAX_LEN+1];
+{ static int    *UnpackBuffer=NULL;
+  static int buffalloc=0; 
+  int buffused=0;
   signed char  *calign;
   int           apos, bpos;
+
+  if(UnpackBuffer==NULL){
+    UnpackBuffer = (int*) ckalloc (sizeof(int)*(2*AS_READ_MAX_LEN+1));
+    buffalloc=(2*AS_READ_MAX_LEN+1);
+  }
 
   apos   = align->ahg + 1;  /* ahg >= 0 for all overlaps */
   bpos   = 1;
@@ -190,12 +197,24 @@ int *Unpack_Alignment_AS(OverlapMesg *align)
             while (c < 0)
               { c    += 1;
                 bpos += 1;
+		if(buffused==buffalloc){
+		  buffalloc=buffalloc*2+10;
+		  UnpackBuffer = (int*)ckrealloc(UnpackBuffer,sizeof(int)*buffalloc);
+		  spt=UnpackBuffer+buffused;
+		}
+		buffused++;
                 *spt++ = -apos;
               }
           else
             while (c > 0)
               { c    -= 1;
                 apos += 1;
+		if(buffused==buffalloc){
+		  buffalloc=buffalloc*2+10;
+		  UnpackBuffer = (int*)ckrealloc(UnpackBuffer,sizeof(int)*buffalloc);
+		  spt=UnpackBuffer+buffused;
+		}
+		buffused++;
                 *spt++ = -bpos;
               }
         }
@@ -203,11 +222,23 @@ int *Unpack_Alignment_AS(OverlapMesg *align)
         { if (c < 0)        /* Single gap */
             { bpos -= c;
               apos -= (c+1);
+	      if(buffused==buffalloc){
+		buffalloc=buffalloc*2+10;
+		UnpackBuffer = (int*)ckrealloc(UnpackBuffer,sizeof(int)*buffalloc);
+		spt=UnpackBuffer+buffused;
+	      }
+	      buffused++;
               *spt++ = -apos;
             }
           else
             { bpos += (c-1);
               apos += c;
+	      if(buffused==buffalloc){
+		buffalloc=buffalloc*2+10;
+		UnpackBuffer = (int*)ckrealloc(UnpackBuffer,sizeof(int)*buffalloc);
+		spt=UnpackBuffer+buffused;
+	      }
+	      buffused++;
               *spt++ = bpos;
             }
         }
@@ -256,7 +287,7 @@ signed char *Pack_Alignment_AS(int *trace, int prefix)
 
   if (size > PackSize)
     { PackSize = (int)(1.4*size) + 1000;
-      PackBuffer = (signed char *) realloc(PackBuffer,PackSize);
+      PackBuffer = (signed char *) ckrealloc(PackBuffer,PackSize);
     }
 
   spt  = PackBuffer;
@@ -484,9 +515,9 @@ static int *AnalyzeAlign(int prefix, int suffix,
 { int i, j, oa, ob;
   int inserts, deletes, subtit;
   int alength, blength;
-  int *amistake, *bmistake;
+  int *amismatch, *bmismatch;
   int dodels, doins, dosubs;
-  static int *mistake = NULL;
+  static int *mismatch = NULL;
   static int mislen  = -1;
 
   alength = strlen(a);
@@ -495,10 +526,11 @@ static int *AnalyzeAlign(int prefix, int suffix,
   blength += 1;
   if (mislen < alength+blength)
     { mislen = (int)(2*(alength+blength)) + 4;
-      mistake = (int *)realloc(mistake,mislen*sizeof(int));
+      fprintf(stderr,"(Re)allocating %d for mismatch array at %d\n",mislen,__LINE__);
+      mismatch = (int *)ckrealloc(mismatch,mislen*sizeof(int));
     } 
-  amistake = mistake;
-  bmistake = mistake + alength;
+  amismatch = mismatch;
+  bmismatch = mismatch + alength;
 
   dodels = doins = dosubs = 0;
   if (amode == AS_ANALYZE_ALL)
@@ -533,8 +565,8 @@ static int *AnalyzeAlign(int prefix, int suffix,
             { if (a[i++] != b[j++])
                 { subtit += 1;
                   if (dosubs)
-                    { amistake[oa++] = i-1;
-                      bmistake[ob++] = j-1;
+                    { amismatch[oa++] = i-1;
+                      bmismatch[ob++] = j-1;
                     }
                 }
               alength += 1;
@@ -542,9 +574,9 @@ static int *AnalyzeAlign(int prefix, int suffix,
             }
           inserts += 1;
           if (dodels)
-            amistake[oa++] = i;
+            amismatch[oa++] = i;
           if (doins)
-            bmistake[ob++] = j;
+            bmismatch[ob++] = j;
           blength += 1;
           j += 1;
         }
@@ -553,8 +585,8 @@ static int *AnalyzeAlign(int prefix, int suffix,
             { if (a[i++] != b[j++])
                 { subtit += 1;
                   if (dosubs)
-                    { amistake[oa++] = i-1;
-                      bmistake[ob++] = j-1;
+                    { amismatch[oa++] = i-1;
+                      bmismatch[ob++] = j-1;
                     }
                 }
               alength += 1;
@@ -562,9 +594,9 @@ static int *AnalyzeAlign(int prefix, int suffix,
             }
           deletes += 1;
           if (doins)
-            amistake[oa++] = i;
+            amismatch[oa++] = i;
           if (dodels)
-            bmistake[ob++] = j;
+            bmismatch[ob++] = j;
           alength += 1;
           i += 1;
         }
@@ -578,8 +610,8 @@ static int *AnalyzeAlign(int prefix, int suffix,
 	{ if (x != y)
             { subtit += 1;
               if (dosubs)
-	      { amistake[oa++] = i-1;
-	        bmistake[ob++] = j-1;
+	      { amismatch[oa++] = i-1;
+	        bmismatch[ob++] = j-1;
 	      }
 	    }
 	  alength += 1;
@@ -590,8 +622,8 @@ static int *AnalyzeAlign(int prefix, int suffix,
       }
   }
 
-  amistake[oa] = -1;
-  bmistake[ob] = -1;
+  amismatch[oa] = -1;
+  bmismatch[ob] = -1;
 
   *alen = alength;
   *blen = blength;
@@ -599,7 +631,7 @@ static int *AnalyzeAlign(int prefix, int suffix,
   *sub  = subtit;
   *ins  = inserts;
   
-  return (mistake);
+  return (mismatch);
 }
 
 
@@ -631,9 +663,9 @@ static int *AnalyzeAffineAlign(int prefix, int suffix,
   int inserts, deletes, subtit;
   int affinserts, affdeletes, lastindel,blockcount;
   int alength, blength;
-  int *amistake, *bmistake;
+  int *amismatch, *bmismatch;
   int dodels, doins, dosubs;
-  static int *mistake = NULL;
+  static int *mismatch = NULL;
   static int mislen  = -1;
 
   alength = strlen(a);
@@ -642,10 +674,11 @@ static int *AnalyzeAffineAlign(int prefix, int suffix,
   blength += 1;
   if (mislen < alength+blength)
     { mislen = (int)(1.4*(alength+blength)) + 500;
-      mistake = (int *) realloc(mistake,mislen*sizeof(int));
+      fprintf(stderr,"(Re)allocating %d for mismatch at %d\n",mislen,__LINE__);
+      mismatch = (int *) ckrealloc(mismatch,mislen*sizeof(int));
     } 
-  amistake = mistake;
-  bmistake = mistake + alength;
+  amismatch = mismatch;
+  bmismatch = mismatch + alength;
 
   dodels = doins = dosubs = 0;
   if (amode == AS_ANALYZE_ALL)
@@ -694,8 +727,8 @@ static int *AnalyzeAffineAlign(int prefix, int suffix,
             { if (a[i++] != b[j++])
                 { subtit += 1;
                   if (dosubs)
-                    { amistake[oa++] = i-1;
-                      bmistake[ob++] = j-1;
+                    { amismatch[oa++] = i-1;
+                      bmismatch[ob++] = j-1;
                     }
                 }
               alength += 1;
@@ -703,9 +736,9 @@ static int *AnalyzeAffineAlign(int prefix, int suffix,
             }
           inserts += 1;
           if (dodels)
-            amistake[oa++] = i;
+            amismatch[oa++] = i;
           if (doins)
-            bmistake[ob++] = j;
+            bmismatch[ob++] = j;
           blength += 1;
           j += 1;
         }
@@ -721,8 +754,8 @@ static int *AnalyzeAffineAlign(int prefix, int suffix,
             { if (a[i++] != b[j++])
                 { subtit += 1;
                   if (dosubs)
-                    { amistake[oa++] = i-1;
-                      bmistake[ob++] = j-1;
+                    { amismatch[oa++] = i-1;
+                      bmismatch[ob++] = j-1;
                     }
                 }
               alength += 1;
@@ -730,9 +763,9 @@ static int *AnalyzeAffineAlign(int prefix, int suffix,
             }
           deletes += 1;
           if (doins)
-            amistake[oa++] = i;
+            amismatch[oa++] = i;
           if (dodels)
-            bmistake[ob++] = j;
+            bmismatch[ob++] = j;
           alength += 1;
           i += 1;
         }
@@ -746,8 +779,8 @@ static int *AnalyzeAffineAlign(int prefix, int suffix,
           if (x != y)
             { subtit += 1;
               if (dosubs)
-                { amistake[oa++] = i-1;
-                  bmistake[ob++] = j-1;
+                { amismatch[oa++] = i-1;
+                  bmismatch[ob++] = j-1;
                 }
             }
 	  alength += 1;
@@ -757,8 +790,8 @@ static int *AnalyzeAffineAlign(int prefix, int suffix,
       }
   }
 
-  amistake[oa] = -1;
-  bmistake[ob] = -1;
+  amismatch[oa] = -1;
+  bmismatch[ob] = -1;
 
   *alen = alength;
   *blen = blength;
@@ -768,7 +801,7 @@ static int *AnalyzeAffineAlign(int prefix, int suffix,
   *affdel = affdeletes;
   *affins = affinserts;
 
-  return (mistake);
+  return (mismatch);
 }
 
 
@@ -782,9 +815,9 @@ static int *AnalyzeAffineAlign_MaxIndelSize(int prefix, int suffix,
   int inserts, deletes, subtit;
   int affinserts, affdeletes, lastindel,blockcount;
   int alength, blength;
-  int *amistake, *bmistake;
+  int *amismatch, *bmismatch;
   int dodels, doins, dosubs;
-  static int *mistake = NULL;
+  static int *mismatch = NULL;
   static int mislen  = -1;
 
   alength = strlen(a);
@@ -793,10 +826,11 @@ static int *AnalyzeAffineAlign_MaxIndelSize(int prefix, int suffix,
   blength += 1;
   if (mislen < alength+blength)
     { mislen = (int)(1.4*(alength+blength)) + 500;
-      mistake = (int *) realloc(mistake,mislen*sizeof(int));
+      fprintf(stderr,"(Re)allocating %d for mismatch at %d\n",mislen,__LINE__);
+      mismatch = (int *) ckrealloc(mismatch,mislen*sizeof(int));
     } 
-  amistake = mistake;
-  bmistake = mistake + alength;
+  amismatch = mismatch;
+  bmismatch = mismatch + alength;
 
 
   *biggestBlock =0;
@@ -848,8 +882,8 @@ static int *AnalyzeAffineAlign_MaxIndelSize(int prefix, int suffix,
             { if (a[i++] != b[j++])
                 { subtit += 1;
                   if (dosubs)
-                    { amistake[oa++] = i-1;
-                      bmistake[ob++] = j-1;
+                    { amismatch[oa++] = i-1;
+                      bmismatch[ob++] = j-1;
                     }
                 }
               alength += 1;
@@ -857,9 +891,9 @@ static int *AnalyzeAffineAlign_MaxIndelSize(int prefix, int suffix,
             }
           inserts += 1;
           if (dodels)
-            amistake[oa++] = i;
+            amismatch[oa++] = i;
           if (doins)
-            bmistake[ob++] = j;
+            bmismatch[ob++] = j;
           blength += 1;
           j += 1;
         }
@@ -876,8 +910,8 @@ static int *AnalyzeAffineAlign_MaxIndelSize(int prefix, int suffix,
             { if (a[i++] != b[j++])
                 { subtit += 1;
                   if (dosubs)
-                    { amistake[oa++] = i-1;
-                      bmistake[ob++] = j-1;
+                    { amismatch[oa++] = i-1;
+                      bmismatch[ob++] = j-1;
                     }
                 }
               alength += 1;
@@ -885,9 +919,9 @@ static int *AnalyzeAffineAlign_MaxIndelSize(int prefix, int suffix,
             }
           deletes += 1;
           if (doins)
-            amistake[oa++] = i;
+            amismatch[oa++] = i;
           if (dodels)
-            bmistake[ob++] = j;
+            bmismatch[ob++] = j;
           alength += 1;
           i += 1;
         }
@@ -901,8 +935,8 @@ static int *AnalyzeAffineAlign_MaxIndelSize(int prefix, int suffix,
           if (x != y)
             { subtit += 1;
               if (dosubs)
-                { amistake[oa++] = i-1;
-                  bmistake[ob++] = j-1;
+                { amismatch[oa++] = i-1;
+                  bmismatch[ob++] = j-1;
                 }
             }
 	  alength += 1;
@@ -912,8 +946,8 @@ static int *AnalyzeAffineAlign_MaxIndelSize(int prefix, int suffix,
       }
   }
 
-  amistake[oa] = -1;
-  bmistake[ob] = -1;
+  amismatch[oa] = -1;
+  bmismatch[ob] = -1;
 
   *alen = alength;
   *blen = blength;
@@ -923,7 +957,7 @@ static int *AnalyzeAffineAlign_MaxIndelSize(int prefix, int suffix,
   *affdel = affdeletes;
   *affins = affinserts;
 
-  return (mistake);
+  return (mismatch);
 }
 
 
@@ -940,7 +974,7 @@ static int *AnalyzeAffineAlign_MaxIndelSize(int prefix, int suffix,
 int *Analyze_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
                         OverlapMesg *align, int amode,
                         int *alen, int *blen, int *del, int *sub, int *ins)
-{ int *mistakes = NULL;
+{ int *mismatches = NULL;
   int swap;
 
   swap = 0;
@@ -971,7 +1005,7 @@ int *Analyze_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
       else if (align->orientation == AS_OUTTIE)
         Complement_Fragment_AS(a);
 
-      mistakes = AnalyzeAlign(align->ahg,align->bhg,
+      mismatches = AnalyzeAlign(align->ahg,align->bhg,
 			      a->sequence,b->sequence,trace,amode,
                               alen,blen,del,sub,ins);
 
@@ -980,28 +1014,28 @@ int *Analyze_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
           Complement_Fragment_AS(b);
           alength = strlen(a->sequence)+1;
           blength = strlen(b->sequence)+1;
-          for (i = alength; mistakes[i] >= 0; i++)
-            mistakes[i] = blength - mistakes[i];
+          for (i = alength; mismatches[i] >= 0; i++)
+            mismatches[i] = blength - mismatches[i];
           j = alength;
           i -= 1;
           while (j < i)
-            { c = mistakes[i];
-              mistakes[i--] = mistakes[j];
-              mistakes[j++] = c;
+            { c = mismatches[i];
+              mismatches[i--] = mismatches[j];
+              mismatches[j++] = c;
             }
         }
       else if (align->orientation == AS_OUTTIE)
         { int alength, i, j, c;
           Complement_Fragment_AS(a);
           alength = strlen(a->sequence)+1;
-          for (i = 0; mistakes[i] >= 0; i++)
-            mistakes[i] = alength - mistakes[i];
+          for (i = 0; mismatches[i] >= 0; i++)
+            mismatches[i] = alength - mismatches[i];
           j = 0;
           i -= 1;
           while (j < i)
-            { c = mistakes[i];
-              mistakes[i--] = mistakes[j];
-              mistakes[j++] = c;
+            { c = mismatches[i];
+              mismatches[i--] = mismatches[j];
+              mismatches[j++] = c;
             }
         }
     }
@@ -1014,9 +1048,9 @@ int *Analyze_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
       x = *del;
       *del = *ins;
       *ins = x;
-      return (mistakes + strlen(a->sequence) + 1);
+      return (mismatches + strlen(a->sequence) + 1);
     }
-  return (mistakes);
+  return (mismatches);
 } 
 
 
@@ -1040,7 +1074,7 @@ int *Analyze_Affine_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
                         int *alen, int *blen, int *del, int *sub, int *ins,
                         int *affdel, int *affins, 
 			int *blockdel, int *blockins, int blocksize)
-{ int *mistakes = NULL;
+{ int *mismatches = NULL;
   int swap;
 
   swap = 0;
@@ -1071,7 +1105,7 @@ int *Analyze_Affine_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
       else if (align->orientation == AS_OUTTIE)
         Complement_Fragment_AS(a);
 
-      mistakes = AnalyzeAffineAlign(align->ahg,align->bhg,
+      mismatches = AnalyzeAffineAlign(align->ahg,align->bhg,
 				    a->sequence,b->sequence,trace,amode,
 				    alen,blen,del,sub,ins,
 				    affdel,affins,
@@ -1082,28 +1116,28 @@ int *Analyze_Affine_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
           Complement_Fragment_AS(b);
           alength = strlen(a->sequence)+1;
           blength = strlen(b->sequence)+1;
-          for (i = alength; mistakes[i] >= 0; i++)
-            mistakes[i] = blength - mistakes[i];
+          for (i = alength; mismatches[i] >= 0; i++)
+            mismatches[i] = blength - mismatches[i];
           j = alength;
           i -= 1;
           while (j < i)
-            { c = mistakes[i];
-              mistakes[i--] = mistakes[j];
-              mistakes[j++] = c;
+            { c = mismatches[i];
+              mismatches[i--] = mismatches[j];
+              mismatches[j++] = c;
             }
         }
       else if (align->orientation == AS_OUTTIE)
         { int alength, i, j, c;
           Complement_Fragment_AS(a);
           alength = strlen(a->sequence)+1;
-          for (i = 0; mistakes[i] >= 0; i++)
-            mistakes[i] = alength - mistakes[i];
+          for (i = 0; mismatches[i] >= 0; i++)
+            mismatches[i] = alength - mismatches[i];
           j = 0;
           i -= 1;
           while (j < i)
-            { c = mistakes[i];
-              mistakes[i--] = mistakes[j];
-              mistakes[j++] = c;
+            { c = mismatches[i];
+              mismatches[i--] = mismatches[j];
+              mismatches[j++] = c;
             }
         }
     }
@@ -1119,9 +1153,9 @@ int *Analyze_Affine_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
       x = *affdel;
       *affdel = *affins;
       *affins = x;
-      return (mistakes + strlen(a->sequence) + 1);
+      return (mismatches + strlen(a->sequence) + 1);
     }
-  return (mistakes);
+  return (mismatches);
 } 
 
 
@@ -1133,7 +1167,7 @@ int *Analyze_Affine_Overlap_IndelSize_AS(InternalFragMesg *a, InternalFragMesg *
                         int *alen, int *blen, int *del, int *sub, int *ins,
 			int *affdel, int *affins, 
 			int *blockdel, int *blockins, int blocksize,int *biggestBlock)
-{ int *mistakes = NULL;
+{ int *mismatches = NULL;
   int swap;
 
   swap = 0;
@@ -1164,7 +1198,7 @@ int *Analyze_Affine_Overlap_IndelSize_AS(InternalFragMesg *a, InternalFragMesg *
       else if (align->orientation == AS_OUTTIE)
         Complement_Fragment_AS(a);
 
-      mistakes = AnalyzeAffineAlign_MaxIndelSize(align->ahg,align->bhg,
+      mismatches = AnalyzeAffineAlign_MaxIndelSize(align->ahg,align->bhg,
 				    a->sequence,b->sequence,trace,amode,
 				    alen,blen,del,sub,ins,
 				    affdel,affins,
@@ -1175,28 +1209,28 @@ int *Analyze_Affine_Overlap_IndelSize_AS(InternalFragMesg *a, InternalFragMesg *
           Complement_Fragment_AS(b);
           alength = strlen(a->sequence)+1;
           blength = strlen(b->sequence)+1;
-          for (i = alength; mistakes[i] >= 0; i++)
-            mistakes[i] = blength - mistakes[i];
+          for (i = alength; mismatches[i] >= 0; i++)
+            mismatches[i] = blength - mismatches[i];
           j = alength;
           i -= 1;
           while (j < i)
-            { c = mistakes[i];
-              mistakes[i--] = mistakes[j];
-              mistakes[j++] = c;
+            { c = mismatches[i];
+              mismatches[i--] = mismatches[j];
+              mismatches[j++] = c;
             }
         }
       else if (align->orientation == AS_OUTTIE)
         { int alength, i, j, c;
           Complement_Fragment_AS(a);
           alength = strlen(a->sequence)+1;
-          for (i = 0; mistakes[i] >= 0; i++)
-            mistakes[i] = alength - mistakes[i];
+          for (i = 0; mismatches[i] >= 0; i++)
+            mismatches[i] = alength - mismatches[i];
           j = 0;
           i -= 1;
           while (j < i)
-            { c = mistakes[i];
-              mistakes[i--] = mistakes[j];
-              mistakes[j++] = c;
+            { c = mismatches[i];
+              mismatches[i--] = mismatches[j];
+              mismatches[j++] = c;
             }
         }
     }
@@ -1212,9 +1246,9 @@ int *Analyze_Affine_Overlap_IndelSize_AS(InternalFragMesg *a, InternalFragMesg *
       x = *affdel;
       *affdel = *affins;
       *affins = x;
-      return (mistakes + strlen(a->sequence) + 1);
+      return (mismatches + strlen(a->sequence) + 1);
     }
-  return (mistakes);
+  return (mismatches);
 } 
 
 
@@ -1844,7 +1878,7 @@ void *ckalloc(size_t size)	/* Guarded malloc utility */
 void *ckrealloc(void* ptr, size_t size)	/* Guarded realloc utility */
 { 
   void* newp;
-  assert(ptr!=NULL);
+  //  assert(ptr!=NULL);
   assert(size>0);
 #ifdef DEBUG_MEMALLOC
   fprintf(stderr,"\nReallocating %X to size %d\n",ptr,size);
@@ -1882,3 +1916,25 @@ void *ckreallocNullOK(void* ptr, size_t size)	/* Guarded realloc utility */
   return(newp);
 }
 
+
+
+
+void Compute_Olap_Version(InternalFragMesg* a,InternalFragMesg *b,OverlapMesg *O,int *ahang,int *bhang, char *ori){
+  
+  if (a->iaccession == O->bifrag)
+    {
+      InternalFragMesg *c;
+      c = a;
+      a = b;
+      b = c;
+      *ahang = -O->ahg;
+      *bhang = -O->bhg;
+    } else {
+      *ahang = O->ahg;
+      *bhang = O->bhg;
+    }
+
+  *ori = (( O->orientation == AS_INNIE || O->orientation == AS_OUTTIE) ?  'I' : 'N');
+  
+  return;
+}

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGB_repair_breakers.c,v 1.3 2005-03-22 19:02:27 jason_miller Exp $";
+static char CM_ID[] = "$Id: AS_CGB_repair_breakers.c,v 1.4 2005-03-22 19:48:30 jason_miller Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1415,7 +1415,7 @@ static int write_overlap_file
     adl.next = NULL;
     adl.name = rg->program_name;
     adl.complete = time(0);
-    adl.version = "$Revision: 1.3 $";
+    adl.version = "$Revision: 1.4 $";
     adl.comment = "";
     adt.list = &adl;
     gen.m = &adt;

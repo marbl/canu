@@ -26,6 +26,7 @@
 #include "AS_global.h"
 #include "CA_ALN_local.h"
 #include "AS_ALN_aligners.h"
+#include "AS_ALN_local.h"
 
 #define DEBUG_LOCALOVL 0
 #if DEBUG_LOCALOVL > 3
@@ -86,7 +87,7 @@ int max_indel_AS_ALN_LOCOLAP_GLOBAL;
 #define max(a,b) (a>b?a:b)
 #endif      
 
-#define AFFINE_QUALITY   /* overlap diff and length reported in affine terms */
+#undef AFFINE_QUALITY   /* overlap diff and length reported in affine terms */
 
 
 /* safely copy a substring into memory pointed to by a static pointer */
@@ -103,6 +104,95 @@ static void safe_suffix(char **Dest,int *DestLen,char *src,int start){
   strcpy(*Dest,src+start);
   assert(strlen(*Dest)==len);
 }
+
+/* print alignment of a "piece" -- one local alignment in the overlap chain*/
+static void print_piece(Local_Overlap *O,int piece,char *aseq,char *bseq){
+  int alen,blen,segdiff,spnt,epnt;
+  static char *aseg,*bseg;
+  static int aseglen=0,bseglen=0, *segtrace;
+
+  alen=O->chain[piece].piece.aepos-O->chain[piece].piece.abpos;
+  blen=O->chain[piece].piece.bepos-O->chain[piece].piece.bbpos;
+
+    /* make sure there is (persistant) space for the strings */
+    if(aseglen<alen+1){
+      aseglen=2*(alen+1);
+      if(aseg==NULL){
+	aseg=(char*)ckalloc(sizeof(char)*aseglen);
+      } else {
+	aseg=(char*)ckrealloc(aseg,sizeof(char)*aseglen);
+      }
+    }
+    if(bseglen<blen+1){
+      bseglen=2*(blen+1);
+      if(bseg==NULL){
+	bseg=(char*)ckalloc(sizeof(char)*bseglen);
+      } else {
+	bseg=(char*)ckrealloc(bseg,sizeof(char)*bseglen);
+      }
+    }
+
+    /* copy the segments */
+    strncpy(aseg,aseq+O->chain[piece].piece.abpos,alen);
+    aseg[alen]='\0';
+    strncpy(bseg,bseq+O->chain[piece].piece.bbpos,blen);
+    bseg[blen]='\0';
+
+    assert(strlen(bseg)==blen);
+    assert(strlen(aseg)==alen);
+
+    /* guesstimate the required number of diagonals/edits to consider to
+       get optimal alignment */
+    segdiff=1+(int)((O->chain[piece].piece.aepos     
+		     -O->chain[piece].piece.abpos)   
+		    *1.5*O->chain[piece].piece.error);
+
+
+    /* get trace for the segment from AS_ALN_OKNAlign */
+    spnt=0; 
+    /* subtract from aseg, bseg because Gene likes to index from 1, not 0 */
+#ifdef OKNAFFINE
+    epnt=0;
+    segtrace=AS_ALN_OKNAffine(aseg-1,alen,bseg-1,blen,&spnt,&epnt,segdiff);
+#else
+    segtrace=AS_ALN_OKNAlign(aseg-1,alen,bseg-1,blen,&spnt,segdiff);
+#endif
+
+#if DEBUG_LOCALOVL > 4
+    { int p=0,pos=0,neg=0;
+    while(segtrace[p]!=0){
+      printf("trace[%d] = %d\n",p,segtrace[p]);
+      if(segtrace[p]>0){
+	pos++;
+      } else {
+	neg++;
+      }
+      p++;
+    }
+      printf("alen %d blen %d pos %d neg %d spnt %d epnt %d\n",alen,blen,pos,neg,spnt,epnt);
+    }
+#endif
+
+    if(epnt!=0){
+      if(epnt<0){
+	aseg[alen+epnt]='\0';
+      } else {
+	bseg[blen-epnt]='\0';
+      }
+    }
+    if(spnt<0){
+      int i=0;
+      printf("(B sequence on top (2nd place in src); spnt=%d!!!\n",spnt);
+      while(segtrace[piece]!=0){segtrace[i++]*=-1;}
+      PrintAlign(stdout,-spnt,0,bseg,aseg,segtrace);
+      i=0; while(segtrace[piece]!=0){segtrace[i++]*=-1;}
+    } else {
+      PrintAlign(stdout,spnt,0,aseg,bseg,segtrace);
+    }
+  
+
+}
+
 
 /* Create a trace to be interpreted as with DP_Compare_AS, but based
    on a Local_Overlap record.  A Local_Segment within the overlap
@@ -141,6 +231,9 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
   int abeg=0,bbeg=0; /* begining of segment; overloaded */
   int tracep=0; /* index into TraceBuffer */
   int spnt=0; /* to pass to AS_ALN_OKNAlign */
+#ifdef OKNAFFINE
+  int epnt=0; /* to pass to AS_ALN_OKNAffine */
+#endif
   int alen,blen;
   int ahang = 0;
 
@@ -188,6 +281,13 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
      (for all but the final piece) the associated aligned segment */
   for(i=0;i<=O->num_pieces;i++){
 
+#if DEBUG_LOCALOVL > 3
+    if(i<O->num_pieces){
+      printf("Top of main loop in AS_Local_Trace, segment %d alignment:\n",i);
+      print_piece(O,i,aseq,bseq);
+    }
+#endif
+
     /* if conditions indicate the segment was deleted in previous loop,
        skip! */
     if(O->chain[i].agap==0 &&
@@ -232,8 +332,11 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
 	continue;
       }
 
-#if DEBUG_LOCALOVL > 3
+#if DEBUG_LOCALOVL > 4
 fprintf(stdout,"Checking for overlaps of %d to %d\n",i,k);
+    printf("Currently, segment %d alignment:\n",k);
+    print_piece(O,k,aseq,bseq);
+
 #endif
 
       if(O->chain[k].piece.abpos<O->chain[i].piece.aepos||
@@ -461,14 +564,20 @@ fprintf(stdout,"Warning: deleting contained piece of local_overlap: a projection
 		O->chain[i].piece.bbpos=0;
 		O->chain[i].piece.bepos=0;
 	      }
-	      O->chain[k].agap=O->chain[k].piece.abpos-
-		O->chain[i].piece.aepos;
-	      O->chain[k].bgap=O->chain[k].piece.bbpos-
-		O->chain[i].piece.bepos;
-	      if(lastgood<0){
-		//printf("Shrinking gaps for segment %d\n",k);
-		O->chain[k].agap--;
-		O->chain[k].bgap--;
+	      
+	      { // need to adjust gaps for all segments between i and k (inclusive of k)
+		int l;
+		for(l=i+1;l<=k;l++){
+		  O->chain[l].agap=O->chain[l].piece.abpos-
+		    O->chain[i].piece.aepos;
+		  O->chain[l].bgap=O->chain[l].piece.bbpos-
+		    O->chain[i].piece.bepos;
+		  if(lastgood<0){
+		    //printf("Shrinking gaps for segment %d\n",l);
+		    O->chain[l].agap--;
+		    O->chain[l].bgap--;
+		  }
+		}
 	      }
 	    }
 	  }
@@ -516,7 +625,7 @@ fprintf(stdout,"Warning: deleting contained piece of local_overlap: a projection
       abeg=O->chain[lastgood].piece.aepos+
 	O->chain[i].agap + MINUS_ONE ;
     }
-
+  
     /*handle boundary case to prevent gaps preceding the b sequence*/
     if((i==0||lastgood<0)&&O->chain[i].bgap>0){
       assert(O->chain[i].agap>=0);
@@ -765,8 +874,24 @@ fprintf(stdout,"Warning: deleting contained piece of local_overlap: a projection
     /* get trace for the segment from AS_ALN_OKNAlign */
     spnt=0; 
     /* subtract from aseg, bseg because Gene likes to index from 1, not 0 */
-    segtrace=AS_ALN_OKNAlign(aseg-1,alen,bseg-1,blen,&spnt,segdiff);
+#ifdef OKNAFFINE
+    epnt=0;
+    segtrace=AS_ALN_OKNAffine(aseg-1,alen,bseg-1,blen,&spnt,&epnt,segdiff);
 
+    if(epnt!=0){
+      if(epnt>0){ /* throwing away some of B segment */
+	O->chain[i+1].bgap+=epnt;
+	O->chain[i].piece.bepos-=epnt;
+	assert(O->chain[i].piece.bbpos<=O->chain[i].piece.bepos);
+      } else {
+	O->chain[i+1].agap-=epnt;
+	O->chain[i].piece.aepos+=epnt;
+	assert(O->chain[i].piece.abpos<=O->chain[i].piece.aepos);
+      }
+    }
+#else
+    segtrace=AS_ALN_OKNAlign(aseg-1,alen,bseg-1,blen,&spnt,segdiff);
+#endif
     if(spnt>0){
       O->chain[i].agap+=spnt;
       O->chain[i].piece.abpos+=spnt;
@@ -788,14 +913,18 @@ fprintf(stdout,"Warning: deleting contained piece of local_overlap: a projection
     }
 #endif
 
-    /* get trace for the segment from AS_ALN_OKNAffine */
-    /* Seems like it should be a good idea, but doesn't work as well
-       as we might expect! */
-    //bpnt=0; 
-    //epnt=0; 
-    //segtrace=AS_ALN_OKNAffine(aseg,alen,bseg,blen,&bpnt,&epnt,segdiff);
-
     assert(segtrace!=NULL);
+
+
+#undef PRINT_SUMMARY
+#ifdef PRINT_SUMMARY
+    fprintf(stdout,"  Match A[%d,%d] to B[%d,%d]\n",
+	    O->chain[i].piece.abpos,
+	    O->chain[i].piece.aepos,
+	    O->chain[i].piece.bbpos,
+	    O->chain[i].piece.bepos);
+#endif
+
 
     /* Now copy the segment trace into master trace, adjusting positions */
     j=0;
@@ -812,13 +941,36 @@ fprintf(stdout,"Warning: deleting contained piece of local_overlap: a projection
       }
     }
 
+#ifdef PRINT_SUMMARY
+    fprintf(stdout,"\t");
+#endif
     while(segtrace[j]!=0){
+#ifdef PRINT_SUMMARY
+      fprintf(stdout," %d",segtrace[j]+(segtrace[j]<0 ? 1 +max(0,spnt) : -1-max(0,-spnt)));
+#endif
       if(segtrace[j]<0){
 	TraceBuffer[tracep++]=-abeg+segtrace[j++]+1 /* -max(0,spnt) ?? */;
       } else {
 	TraceBuffer[tracep++]=bbeg+segtrace[j++]-1 /* +max(0,-spnt) ?? */;
       }
     }
+
+#ifdef PRINT_SUMMARY
+      fprintf(stdout,"\n");
+#undef VERBOSE_SUMMARY
+#ifdef VERBOSE_SUMMARY
+    if(spnt<0){
+      int i=0;
+      printf("(B sequence on top (2nd place in src); spnt=%d!!!\n",spnt);
+      while(segtrace[i]!=0){segtrace[i++]*=-1;}
+      PrintAlign(stdout,-spnt,0,bseg,aseg,segtrace);
+      i=0; while(segtrace[i]!=0){segtrace[i++]*=-1;}
+    } else {
+      PrintAlign(stdout,spnt,0,aseg,bseg,segtrace);
+    }
+#endif
+#endif
+
 
     /* set lastgood to this segment */
 

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: RepeatRez.h,v 1.3 2005-03-22 19:07:58 jason_miller Exp $	 */
+/* 	$Id: RepeatRez.h,v 1.4 2005-03-22 19:49:25 jason_miller Exp $	 */
 
 /************************************************************************
  *  RepeatRez.h
@@ -35,6 +35,9 @@
 
 int  Fill_Gaps
     (Global_CGW * data, char *, int, int redo_index);
+
+int  Show_Reads_In_Gaps
+    (char * prefix);
 
 int  Hurl_Contained_Rocks
     (char * prefix, int level, int redo_index);

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_CGB_miniunitigger.c,v 1.3 2005-03-22 19:02:16 jason_miller Exp $
+ * $Id: AS_CGB_miniunitigger.c,v 1.4 2005-03-22 19:48:29 jason_miller Exp $
  * Module:  AS_CGB_miniunitigger
  * Description: 
  * Assumptions:
@@ -42,7 +42,7 @@
 #endif
 
 /*************************************************************************/
-static char CM_ID[] = "$Id: AS_CGB_miniunitigger.c,v 1.3 2005-03-22 19:02:16 jason_miller Exp $";
+static char CM_ID[] = "$Id: AS_CGB_miniunitigger.c,v 1.4 2005-03-22 19:48:29 jason_miller Exp $";
 /*************************************************************************/
 
 extern int REAPER_VALIDATION;

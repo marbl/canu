@@ -22,7 +22,7 @@
 #
 ###########################################################################
 #
-# $Id: setup_status_file.sh,v 1.3 2005-03-22 19:04:52 jason_miller Exp $
+# $Id: setup_status_file.sh,v 1.4 2005-03-22 19:48:52 jason_miller Exp $
 #
 umask 2
 

@@ -26,9 +26,10 @@
 #include "AS_global.h"
 #include "CA_ALN_local.h"
 #include "AS_ALN_aligners.h"
-
+#include "AS_ALN_local.h"
 
 #undef DEBUG_FIX_OLAP
+
 
 
 /* safely copy a substring of a string into static space which is enlarged
@@ -51,9 +52,9 @@ static void safe_substr(char **seg,int *segspace,const char *seq,int beg,int end
 
 
 
-/* construct a trace (with AS_ALN_OKNAlign) for the first local segment,
+/* construct a trace (with AS_ALN_OKNAffine) for the first local segment,
    copying the result into its own static location (so that we
-   can call AS_ALN_OKNAlign on the second local segment without losing the
+   can call AS_ALN_OKNAffine on the second local segment without losing the
    result */
 
 static int *get_trace(const char *aseq, const char *bseq,Local_Overlap *O,int piece,
@@ -63,6 +64,9 @@ static int *get_trace(const char *aseq, const char *bseq,Local_Overlap *O,int pi
   static int *segtrace[2], tracespace[2]={0,0};
   int alen,blen;
   int spnt, *tmptrace;
+#ifdef OKNAFFINE  
+  int epnt;
+#endif
   int segdiff;
   int i;
 
@@ -91,8 +95,16 @@ static int *get_trace(const char *aseq, const char *bseq,Local_Overlap *O,int pi
   bseg--;
   segdiff=(int)((O->chain[piece].piece.aepos-O->chain[piece].piece.abpos)
 		*(1.5*O->chain[piece].piece.error)    +10);
-  
+
+#ifdef OKNAFFINE  
+  epnt=0;
+  tmptrace=AS_ALN_OKNAffine(aseg,alen,bseg,blen,&spnt,&epnt,segdiff);
+#ifdef DEBUG_FIX_OLAP
+  fprintf(stdout,"epnt %d\n",epnt);
+#endif
+#else
   tmptrace=AS_ALN_OKNAlign(aseg,alen,bseg,blen,&spnt,segdiff);
+#endif
   //  assert(spnt==0);
 
 
@@ -102,6 +114,15 @@ static int *get_trace(const char *aseq, const char *bseq,Local_Overlap *O,int pi
   {
     fprintf(stdout,"Trace for segments of lengths %d %d\n",strlen(aseg+1),
 	    strlen(bseg+1));
+
+    if(epnt!=0){
+      if(epnt<0){
+	aseg[alen+epnt+1]='\0';
+      } else {
+	bseg[blen-epnt+1]='\0';
+      }
+    }
+
     if(spnt<0){
       int i;
       fprintf(stdout,"(B sequence on top (2nd place in src); spnt=%d!!!\n",spnt);
@@ -126,6 +147,7 @@ static int *get_trace(const char *aseq, const char *bseq,Local_Overlap *O,int pi
       while(tmptrace[i]!=0){
 	if(tmptrace[i]<0){
 	  tmptrace[i]+=spnt;
+	  assert(tmptrace[i]<0);
 	}
 	i++;
       }
@@ -136,11 +158,27 @@ static int *get_trace(const char *aseq, const char *bseq,Local_Overlap *O,int pi
       while(tmptrace[i]!=0){
 	if(tmptrace[i]>0){
 	  tmptrace[i]+=spnt;
+	  assert(tmptrace[i]>0);
 	}
 	i++;
       }
     }
   }      
+
+#ifdef OKNAFFINE  
+  if(epnt!=0){
+    if(epnt>0){ /* throwing away some of B segment */
+      O->chain[piece+1].bgap+=epnt;
+      O->chain[piece].piece.bepos-=epnt;
+      assert(O->chain[piece].piece.bbpos<=O->chain[piece].piece.bepos);
+    } else {
+      O->chain[piece+1].agap-=epnt;
+      O->chain[piece].piece.aepos+=epnt;
+      assert(O->chain[piece].piece.abpos<=O->chain[piece].piece.aepos);
+    }
+  }
+#endif
+
   aseg++; /* restore because need to know where memory block is allocated,
   		 and so that next time around strncpy will work right! */
   bseg++;
@@ -323,7 +361,7 @@ fprintf(stdout," ... overlap between segments disappeared in perfecting\n"
   }
 
   /* if, in finding the alignments, we shift the end of the
-     alignment of the second segment to before the start of the
+     alignment of the second segment to before the end of the
      alignment of the first segment, then the second is contained
      in the first and we need to do something exceptional;
      the most heuristic, but consistent with the practice elsewhere
@@ -432,6 +470,9 @@ fprintf(stdout,"Fixing by deleting first segment since apparently contained (pie
   into2=0;
   errs2=0;
   while(pair_align2->aseg[into2]!='\0'){
+#ifdef DEBUG_FIX_OLAP
+    fflush(0);
+#endif
     assert(pair_align2->bseg[into2]!='\0');
     if(pair_align2->aseg[into2]!=pair_align2->bseg[into2]){
       errs2++;
@@ -601,18 +642,31 @@ fprintf(stdout,"init bestbeg2:%d %d\n",bestbeg2a,bestbeg2b);
 	bestinto1>=0){
     bestend1a -= ( pair_align1->aseg[bestinto1]!='-'  ? 1 : 0 );
     bestend1b -= ( pair_align1->bseg[bestinto1]!='-'  ? 1 : 0 );
+#ifdef DEBUG_FIX_OLAP
+    fprintf(stdout,"trimming off %c~%c to give bestends %d and %d\n",
+	   pair_align1->aseg[bestinto1],
+	   pair_align1->bseg[bestinto1],
+	   bestend1a,bestend1b);
+#endif
     bestinto1--;
   }
+
   while(pair_align2->aseg[bestinto2]!=pair_align2->bseg[bestinto2]&&
 	pair_align2->aseg[bestinto2]!='\0'){
     bestbeg2a += ( pair_align2->aseg[bestinto2]!='-'  ? 1 : 0 );
     bestbeg2b += ( pair_align2->bseg[bestinto2]!='-'  ? 1 : 0 );
     bestinto2++;
   }
+
+  O->chain[piece0].piece.aepos=bestend1a;
+  O->chain[piece0].piece.bepos=bestend1b;
   O->chain[piece1].piece.abpos=bestbeg2a;
   O->chain[piece1].piece.bbpos=bestbeg2b;
   O->chain[piece1].agap=bestbeg2a-bestend1a;
   O->chain[piece1].bgap=bestbeg2b-bestend1b;
+
+  assert(O->chain[piece0].piece.abpos<=O->chain[piece0].piece.aepos);
+  assert(O->chain[piece0].piece.bbpos<=O->chain[piece0].piece.bepos);
   assert(O->chain[piece1].piece.abpos<=O->chain[piece1].piece.aepos);
   assert(O->chain[piece1].piece.bbpos<=O->chain[piece1].piece.bepos);
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
-   CVS_ID:  $Id: AS_TER_terminator.h,v 1.3 2005-03-22 19:08:36 jason_miller Exp $
+   CVS_ID:  $Id: AS_TER_terminator.h,v 1.4 2005-03-22 19:49:27 jason_miller Exp $
  *********************************************************************/
 #ifndef AS_TER_TERMINATOR_H
 #define AS_TER_TERMINATOR_H

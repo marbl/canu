@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_CGB_cgb.h,v 1.3 2005-03-22 19:01:49 jason_miller Exp $
+ * $Id: AS_CGB_cgb.h,v 1.4 2005-03-22 19:48:24 jason_miller Exp $
  *
  * Module: AS_CGB_cgb.h
  *
@@ -116,26 +116,32 @@ static float compute_coverage_statistic
   // single coverage, negative for multiple coverage, and near zero
   // for indecisive.
 
-//#define ADJUST_FOR_PARTIAL_EXCESS
+#undef ADJUST_FOR_PARTIAL_EXCESS
   // the standard statistic gives log likelihood ratio of expected depth vs.
   // twice expected depth; but when enough fragments are present, we can actually
   // test whether depth exceeds expected even fractionally; in deeply sequenced datasets
   // (e.g. bacterial genomes), this has been observed for repetitive segments
-#ifdef ADJUST_FOR_PARTIAL_EXCESS
   if(rho>0&&global_fragment_arrival_rate>0.f){
     float lambda = global_fragment_arrival_rate * rho;
     float zscore = ((number_of_randomly_sampled_fragments_in_chunk -1)-lambda)/
       sqrt(lambda);
     float p = .5 - erf(zscore/sqrt2)*.5;
     if(coverage_statistic>5 && p < .001){
-      fprintf(stderr,"Standard unitigger a-stat for is %f , but only %e chance of this great an excess of fragments: obs = %d, expect = %g  Resetting a-stat to 1.5\n",
+      fprintf(stderr,"Standard unitigger a-stat is %f , but only %e chance of this great an excess of fragments: obs = %d, expect = %g rho = " F_S64 " Will%s reset a-stat to 1.5\n",
 	      coverage_statistic,p,
 	      number_of_randomly_sampled_fragments_in_chunk-1,
-	      lambda);
+	      lambda,rho,
+#ifdef ADJUST_FOR_PARTIAL_EXCESS
+	      ""
+#else
+	      " not"
+#endif
+	      );
+#ifdef ADJUST_FOR_PARTIAL_EXCESS
       return 1.5;
+#endif
     }
   }
-#endif
 
   return coverage_statistic;
 }

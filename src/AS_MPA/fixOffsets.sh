@@ -22,7 +22,7 @@
 #
 ###########################################################################
 #
-# $Id: fixOffsets.sh,v 1.3 2005-03-22 19:05:53 jason_miller Exp $
+# $Id: fixOffsets.sh,v 1.4 2005-03-22 19:48:58 jason_miller Exp $
 #
 
 if [ -z ${DATA_DIR} ]; then

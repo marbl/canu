@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGW_main.c,v 1.3 2005-03-22 19:03:03 jason_miller Exp $";
+static char CM_ID[] = "$Id: AS_CGW_main.c,v 1.4 2005-03-22 19:48:33 jason_miller Exp $";
 
 
 /*********************************************************************
@@ -158,10 +158,11 @@ FILE *  File_Open (const char * Filename, const char * Mode, int exitOnFailure);
 #define CHECKPOINT_BEFORE_STONES 8
 #define CHECKPOINT_BEFORE_AGGRESSIVE_WALKING 9
 #define CHECKPOINT_BEFORE_2ND_SCAFF_MERGE 10
-#define CHECKPOINT_BEFORE_PARTIAL_STONES 11
-#define CHECKPOINT_BEFORE_FINAL_CONTAINED_STONES 12
-#define CHECKPOINT_BEFORE_INTER_SCAFFOLD_WALKING 13
-#define CHECKPOINT_BEFORE_FINAL_CLEANUP 14
+#define CHECKPOINT_BEFORE_FINAL_ROCKS 11
+#define CHECKPOINT_BEFORE_PARTIAL_STONES 12
+#define CHECKPOINT_BEFORE_FINAL_CONTAINED_STONES 13
+#define CHECKPOINT_BEFORE_INTER_SCAFFOLD_WALKING 14
+#define CHECKPOINT_BEFORE_FINAL_CLEANUP 15
 
 /* more recently, it used to be
 #define CHECKPOINT_AFTER_BUILDING_EDGES 1
@@ -1392,8 +1393,42 @@ int main(int argc, char *argv[]){
     //  }
   }  // No immediate output
 
+
   CheckScaffoldGraphCache(ScaffoldGraph);
-  
+
+  if  (immediateOutput == 0
+         && (restartFromLogicalCheckpoint <= CHECKPOINT_BEFORE_FINAL_ROCKS)
+         && GlobalData -> repeatRezLevel > 0)
+      {
+       const int  MAX_EXTRA_ROCKS_ITERS = 5;
+       int  iter = 0, extra_rocks;
+
+       fprintf (GlobalData -> stderrc,
+            "** Running Final Round of RepeatRez (Rocks) **\n");
+       do
+         {
+          extra_rocks = Fill_Gaps (GlobalData, GlobalData -> File_Name_Prefix,
+               GlobalData -> repeatRezLevel, iter);
+          fprintf (GlobalData -> stderrc, "Threw additional %d rocks on iter %d\n",
+               extra_rocks, iter);
+
+          if  (extra_rocks > 0)
+              CheckScaffoldGraphCache (ScaffoldGraph);
+         }  while  (extra_rocks > 1 && iter < MAX_EXTRA_ROCKS_ITERS);
+
+       if  (checkPoint)
+           {
+            fprintf (GlobalData -> stderrc,
+                 "Checkpoint %d written after Final Rocks\n",
+                 ScaffoldGraph -> checkPointIteration);
+            fprintf (data->timefp,
+                 "Checkpoint %d written after Final Rocks\n",
+                 ScaffoldGraph -> checkPointIteration);
+            CheckpointScaffoldGraph (ScaffoldGraph);
+           }
+      }
+
+
 #if  1
   if  (immediateOutput == 0
          && (restartFromLogicalCheckpoint <= CHECKPOINT_BEFORE_PARTIAL_STONES)
@@ -1577,6 +1612,8 @@ int main(int argc, char *argv[]){
     }
   }
 #endif
+
+  Show_Reads_In_Gaps (GlobalData -> File_Name_Prefix);
 
   // now recompute mate pair statistics, once on scaffolds, once on contigs, with 
   // the results on contigs being the ones that are output in OutputMateDists

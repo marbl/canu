@@ -125,16 +125,19 @@ SMA_OBJS=$(SMA_SRCS:.c=.o)
 PRCSCF_SRCS=asmProcessScaffolds_TER.c
 PRCSCF_OBJS=$(PRCSCF_SRCS:.c=.o)
 
+CTGOUT_SRCS=asmOutputContigsFasta.c
+CTGOUT_OBJS=$(CTGOUT_SRCS:.c=.o)
+
 LIB_SRCS = AS_TER_utils.c AS_TER_terminator_funcs.c AS_TER_alloc.c
 LIB_OBJS = $(LIB_SRCS:.c=.o)
 
-SOURCES = $(TERM_SRCS) $(SMA_SRCS) $(PRCSCF_SRCS)
+SOURCES = $(TERM_SRCS) $(SMA_SRCS) $(PRCSCF_SRCS) $(CTGOUT_SRCS)
 OBJECTS = $(TERM_OBJS)
 
 AS_LIBRARIES = libAS_CNS.a libAS_CGW.a libAS_SDB.a libAS_REZ.a libAS_CGW.a  libAS_PER.a libAS_UTL.a libAS_MSG.a libAS_ALN.a libAS_LIN.a libAS_OVL.a libAS_UID.a ${CURLLIB}
 LIBRARIES = libAS_TER.a
 
-PROGS = terminator count-sma asmProcessScaffolds_TER
+PROGS = terminator count-sma asmProcessScaffolds_TER asmOutputContigsFasta
 
 
 ################### Project Rule Makefile Inclusion ###################
@@ -148,5 +151,6 @@ count-sma : $(SMA_OBJS)  libAS_MSG.a libAS_UTL.a
 #CFLAGS+=-DGENERIC_STORE_USE_LONG_STRINGS -DCONTIG_OVERLAPPER_VERSION
 terminator  : $(TERM_OBJS) $(AS_LIBRARIES) 
 asmProcessScaffolds_TER: $(PRCSCF_OBJS) $(AS_LIBRARIES) 
+asmOutputContigsFasta: $(CTGOUT_OBJS) $(AS_LIBRARIES) 
 libAS_TER.a : $(LIB_OBJS)
 

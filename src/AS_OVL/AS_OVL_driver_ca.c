@@ -24,11 +24,11 @@
       pairs of DNA strings.
    Assumptions:  Input meets specifications in the ProtoIO documents
  *********************************************************************/
-static char CM_ID[] = "$Id: AS_OVL_driver_ca.c,v 1.3 2005-03-22 19:06:40 jason_miller Exp $";
+static char CM_ID[] = "$Id: AS_OVL_driver_ca.c,v 1.4 2005-03-22 19:49:17 jason_miller Exp $";
 
 /* RCS info
- * $Id: AS_OVL_driver_ca.c,v 1.3 2005-03-22 19:06:40 jason_miller Exp $
- * $Revision: 1.3 $
+ * $Id: AS_OVL_driver_ca.c,v 1.4 2005-03-22 19:49:17 jason_miller Exp $
+ * $Revision: 1.4 $
 */
 
 

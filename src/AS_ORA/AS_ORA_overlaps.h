@@ -22,7 +22,7 @@
 #define AS_ORA_OVERLAPS_H
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_ORA/Attic/AS_ORA_overlaps.h,v $
-$Revision: 1.3 $
+$Revision: 1.4 $
 **********************************************************************/
 
 

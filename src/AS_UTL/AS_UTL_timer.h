@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_UTL_timer.h,v 1.3 2005-03-22 19:09:04 jason_miller Exp $	 */
+/* 	$Id: AS_UTL_timer.h,v 1.4 2005-03-22 19:49:30 jason_miller Exp $	 */
 /***************************************************************************
  *  AS_UTL_timer
  *  

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_CGB_histo.c,v 1.3 2005-03-22 19:02:11 jason_miller Exp $
+ * $Id: AS_CGB_histo.c,v 1.4 2005-03-22 19:48:27 jason_miller Exp $
  * Module:  AS_CGB_histo.c
  * Description: A histogramming routine and auxillary functions.
  * Assumptions:
@@ -39,7 +39,7 @@
 #undef DEBUGGING2
 
 /*************************************************************************/
-static char CM_ID[] = "$Id: AS_CGB_histo.c,v 1.3 2005-03-22 19:02:11 jason_miller Exp $";
+static char CM_ID[] = "$Id: AS_CGB_histo.c,v 1.4 2005-03-22 19:48:27 jason_miller Exp $";
 /*************************************************************************/
 
 /* Histogram library */

@@ -26,8 +26,8 @@
  *********************************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap.h,v 1.3 2005-03-22 19:06:42 jason_miller Exp $
- * $Revision: 1.3 $
+ * $Id: AS_OVL_overlap.h,v 1.4 2005-03-22 19:49:17 jason_miller Exp $
+ * $Revision: 1.4 $
 */
 
 
@@ -283,6 +283,8 @@
 #endif
     //  Number of bits used to store the string number in the
     //  hash table
+#define  MAX_STRING_NUM          ((1 << STRING_NUM_BITS) - 1)
+   //   Largest string number that can fit in the hash table
 
 #define  OFFSET_BITS             (30 - STRING_NUM_BITS)
     //  Number of bits used to store lengths of strings stored
@@ -414,6 +416,11 @@
     //  Length of segments hashed, i.e., the  k  value in k-mer.
     //  There must be an exact match of this length or more to
     //  find a match.
+#define  KMER_LEN  WINDOW_SIZE
+    //  A more descriptive alias
+#define  MAX_EXTRA_SUBCOUNT        (AS_FRAG_MAX_LEN / KMER_LEN)
+
+
 #define  HSF1                    (WINDOW_SIZE - (Hash_Mask_Bits / 2))
     //  First shift value for HASH_FUNCTION
 #define  HSF2                    (2 * WINDOW_SIZE - Hash_Mask_Bits)

@@ -21,7 +21,7 @@
 /* ScaffoldMap
  *    Prints an iid-uid map of the SCF messages in a protoIO file
  *
- * $Id: ScaffoldMap.c,v 1.3 2005-03-22 19:04:01 jason_miller Exp $
+ * $Id: ScaffoldMap.c,v 1.4 2005-03-22 19:48:36 jason_miller Exp $
  *
  */
 

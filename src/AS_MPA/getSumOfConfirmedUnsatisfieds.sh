@@ -22,7 +22,7 @@
 #
 ###########################################################################
 #
-# $Id: getSumOfConfirmedUnsatisfieds.sh,v 1.3 2005-03-22 19:05:54 jason_miller Exp $
+# $Id: getSumOfConfirmedUnsatisfieds.sh,v 1.4 2005-03-22 19:48:58 jason_miller Exp $
 #
 
 function DoIt

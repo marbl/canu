@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: GraphCGW_T.h,v 1.3 2005-03-22 19:03:34 jason_miller Exp $	 */
+/* 	$Id: GraphCGW_T.h,v 1.4 2005-03-22 19:48:35 jason_miller Exp $	 */
 
 /**************************************************************************
  *  GraphCGW
@@ -824,8 +824,10 @@ static int isTransChunkEdge(EdgeCGW_T *edge){
 #if 1
 #define SLOPPY_EDGE_VARIANCE_THRESHHOLD (4.0e+6)    // sigma = 2000
 #else
-// for test run on mosquito to treat 10ks libraries as guides
-#define SLOPPY_EDGE_VARIANCE_THRESHHOLD (38025)    // sigma = 195
+//#define SLOPPY_EDGE_VARIANCE_THRESHHOLD (38025)    // sigma = 195
+    // for test run on mosquito to treat 10ks libraries as guides
+#define SLOPPY_EDGE_VARIANCE_THRESHHOLD (14.0e+6)    // sigma = 3700
+    // for TVG run to use fosmids in initial scaffolding  ALD
 #endif
 static int isSloppyEdge(EdgeCGW_T *edge){
   if(edge->flags.bits.isInferred){

@@ -90,7 +90,7 @@ CGW_SOURCES = AS_CGW_LoadCheckpoint.c AS_CGW_main.c AS_CGW_dataTypes.c \
 	assemblyStructure.c dumpContigFromCkpt.c exploreGapStructure.c \
 	asmInfoForFrg.c exploreScaffoldEnds.c dumpCloneMiddles.c \
 	whereAreMyOverlaps.c findAnEdge.c dumpSingletons.c combineMates.c \
-	resolveSurrogates.c fragmentPlacement.c
+	resolveSurrogates.c fragmentPlacement.c ckp_scflen.c frgs2clones.c createFrgDeletes.c
 #	smallLargeScaffolds.c FixContigMultiAligns.c fixZLFContigs.c
 #	ChunkOverlap_CGW.c SplitScaffolds_CGW.c CIScaffoldT_Biconnected_CGW.c UnitigSplitter.c FindFragments.c
 
@@ -139,7 +139,7 @@ PROGS = cgw CheckILK Checkpoint process_scaffolds loadcgw \
 	dumpBinaryUnitigMAs assemblyStructure dumpContigFromCkpt \
 	exploreGapStructure exploreScaffoldEnds asmInfoForFrg \
 	dumpCloneMiddles whereAreMyOverlaps findAnEdge \
-	dumpSingletons combineMates resolveSurrogates
+	dumpSingletons combineMates resolveSurrogates ckp_scflen frgs2clones createFrgDeletes
 #	smallLargeScaffolds fixContigMultiAligns
 #        ScaffoldMap splitutgs findFragments 
 
@@ -207,6 +207,8 @@ exploreGapStructure: exploreGapStructure.o libAS_CGW.a libAS_CNS.a libAS_PER.a l
 
 exploreScaffoldEnds: exploreScaffoldEnds.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a 
 
+ckp_scflen: ckp_scflen.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a 
+
 dumpCloneMiddles: dumpCloneMiddles.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a 
 
 findAnEdge: findAnEdge.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a 
@@ -214,7 +216,14 @@ findAnEdge: findAnEdge.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_R
 whereAreMyOverlaps: whereAreMyOverlaps.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a 
 
 combineMates: combineMates.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a  libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a libAS_TER.a libAS_REZ.a libAS_UID.a $(CURLLIB) 
+
+createFrgDeletes: createFrgDeletes.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a  libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a libAS_TER.a libAS_REZ.a libAS_UID.a $(CURLLIB) 
+
+frgs2clones: frgs2clones.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a  libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a libAS_TER.a libAS_REZ.a libAS_UID.a $(CURLLIB) 
 libAS_CGW.a: $(CGW_LIB_OBJECTS)
+
+libAS_CGW.a: $(CGW_LIB_OBJECTS)
+
 
 resolveSurrogates: resolveSurrogates.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_CGW.a libAS_ALN.a libAS_SDB.a  libAS_CGW.a $(LIN_ALG_LIB) libAS_MSG.a libAS_CGW.a libAS_UTL.a libAS_OVL.a
 

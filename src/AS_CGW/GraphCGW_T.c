@@ -23,7 +23,7 @@ cc -g -pg -qfullpath   -qstrict -qbitfields=signed -qchars=signed -qlanglvl=ext 
 -o /work/assembly/rbolanos/IBM_PORT_CDS/ibm_migration_work_dir/cds/AS/obj/GraphCGW_T.o GraphCGW_T.c
 */
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.3 2005-03-22 19:03:33 jason_miller Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.4 2005-03-22 19:48:35 jason_miller Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2202,7 +2202,18 @@ void UpdateNodeFragments(GraphCGW_T *graph, CDS_CID_t cid,
       bgn = mp->position.bgn;
       end = mp->position.end - INTERVAL_TO_BASE_END_CONVERSION;
     }
+
+    if(bgn>=ungappedOffsets->numElements){
+      fprintf(stderr,"WARNING: fragment %d falls off end of multialignment %d; fudging ...\n",
+	      mp->ident,ma->id);
+      bgn=ungappedOffsets->numElements-1;
+    }
     ubgn = *GetCDS_COORD_t(ungappedOffsets, bgn);
+    if(end>=ungappedOffsets->numElements){
+      fprintf(stderr,"WARNING: fragment %d falls off end of multialignment %d; fudging ...\n",
+	      mp->ident,ma->id);
+      end=ungappedOffsets->numElements-1;
+    }
     uend = *GetCDS_COORD_t(ungappedOffsets, end);
     
     if(ubgn == uend){
@@ -4593,7 +4604,7 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
       
       frag = GetCIFragT(ScaffoldGraph->CIFrags, (CDS_CID_t)mp->source);
       assert(frag->iid == mp->ident);
-      
+
 #if 0
       fprintf(GlobalData->stderrc,"* frag " F_CID " (" F_CID ") mate:" F_CID " numLinks:%d extCI:%d extCon:%d\n",
               (CDS_CID_t)mp->source, frag->iid, frag->mateOf, frag->numLinks, 
@@ -4604,15 +4615,20 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
       // We skip fragments that have external links only, or no links
       if (frag->numLinks == 0)
         continue;
+
+
       if (frag->numLinks == 1 &&  // the typical case
           (operateOnNodes == CONTIG_OPERATIONS && !frag->flags.bits.hasInternalOnlyContigLinks))
         //     ||    (!operateOnContigs && !frag->flags.bits.hasInternalOnlyCILinks))
         continue;
       
+
+
       mate = GetCIFragT(ScaffoldGraph->CIFrags,frag->mateOf);
       
       if (operateOnNodes == UNITIG_OPERATIONS && mate != NULL && (mate->cid != frag->cid))
         numExternalLinks++;
+
       
       // If the id of the current fragment is greater than its mate, skip it, to
       // avoid double counting.
@@ -4621,6 +4637,7 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
         continue;		// only examine each pair once
       }
       
+
       // now make sure the 5p end is less than the 3p end
       // what about outtie mates????????????????????????????????????????????????????????????????????
       if ( frag->offset5p.mean > frag->offset3p.mean)
@@ -4630,15 +4647,12 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
       dptr = GetDistT(ScaffoldGraph->Dists, frag->dist);
       dptr->numReferences++;
       
+      
       if (operateOnNodes == UNITIG_OPERATIONS)
       {
         NodeCGW_T *unitig = GetGraphNode( ScaffoldGraph->CIGraph, frag->cid);
-        
+
         if (frag->cid != mate->cid)
-          continue;
-        
-        // try to sample fairly by only doing mates where ones of any length could live
-        if ( frag->offset5p.mean + dptr->mean + 5 * dptr->stddev > unitig->bpLength.mean)
           continue;
         
         dist = mate->offset5p.mean - frag->offset5p.mean;
@@ -4651,6 +4665,11 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
           dptr->numBad++;
           continue;
         }
+
+        // try to sample fairly by only doing mates where ones of any length could live
+        if ( frag->offset5p.mean + dptr->mean + 5 * dptr->stddev > unitig->bpLength.mean)
+          continue;
+
         if((frag->flags.bits.innieMate && getCIFragOrient(frag) == B_A) ||
            (!frag->flags.bits.innieMate && getCIFragOrient(frag) == A_B) )
           dist = -dist;
@@ -4787,6 +4806,8 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
           frag->flags.bits.edgeStatus = UNTRUSTED_EDGE_STATUS;
           mate->flags.bits.edgeStatus = UNTRUSTED_EDGE_STATUS;
           dptr->numBad++;
+
+
         }
         else
         {
@@ -4800,6 +4821,7 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
           dptr->numSamples++;
           dptr->mu += dist;
           dptr->sigma += (((double)dist)*(double)dist);
+
         }
       }
     }

@@ -34,7 +34,7 @@ AS_PER_TEST_SOURCES = testFragStore.c dumpFragStore.c testLoad.c \
 	FragStoreStats.c binaryDumpFragStore.c loadBinaryDump.c \
 	AS_PER_fragDB.c dumpFragDB.c PopulateFragStore.c \
 	partitionFragStore.c dumpFrag.c dumpFragFromPartition.c\
-	testFrgStoreSizes.c test_include.c
+	testFrgStoreSizes.c test_include.c resetFrgStoreToCNSClr.c
 
 #stressFragStore.c 
 
@@ -50,7 +50,8 @@ LIBRARIES = libAS_PER.a
 
 PROGS = testFragStore dumpFragStore testLoad FragStoreStats \
 	dumpFragDB PopulateFragStore partitionFragStore \
-	dumpFrag dumpFragFromPartition testFrgStoreSizes
+	dumpFrag dumpFragFromPartition testFrgStoreSizes \
+	resetFrgStoreToCNSClr
 #binaryDumpFragStore loadBinaryDump 
 #stressFragStore 
 
@@ -116,5 +117,7 @@ FragStoreStats: $(AS_PER_OBJS) FragStoreStats.o libAS_UTL.a
 partitionFragStore: $(AS_PER_OBJS) partitionFragStore.o libAS_UTL.a 
 
 testFrgStoreSizes: $(AS_PER_OBJS) testFrgStoreSizes.o libAS_UTL.a
+
+resetFrgStoreToCNSClr: $(AS_PER_OBJS) resetFrgStoreToCNSClr.o libAS_UTL.a
 
 libAS_PER.a: $(AS_PER_OBJS)

@@ -21,7 +21,7 @@
 /* SMAcount 
  *    scans all AFG messages and orints out their id and the number of screenmatches they have
  *
- * $Id: SMAcount.c,v 1.3 2005-03-22 19:08:38 jason_miller Exp $
+ * $Id: SMAcount.c,v 1.4 2005-03-22 19:49:28 jason_miller Exp $
  *
  */
 

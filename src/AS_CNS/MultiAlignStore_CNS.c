@@ -25,7 +25,7 @@
    Assumptions:  libAS_UTL.a
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.3 2005-03-22 19:04:27 jason_miller Exp $";
+static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.4 2005-03-22 19:48:40 jason_miller Exp $";
 
 
 #include <assert.h>

@@ -18,17 +18,18 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.3 2005-03-22 19:03:27 jason_miller Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.4 2005-03-22 19:48:34 jason_miller Exp $";
 
 #undef ORIG_MERGE_EDGE_INVERT
 #define MINSATISFIED_CUTOFF 0.985
 #undef DEBUG_MERGE_EDGE_INVERT	  
 #undef  DEBUG_BAD_MATE_RATIO
-//#define DRAW_BAD_MATE_CAMS    // was leading to assert on fopen. Jason 12/9/04
+#undef DRAW_BAD_MATE_CAMS    // was leading to assert on fopen. Jason 12/9/04
 
 #ifdef DRAW_BAD_MATE_CAMS
   #include <sys/types.h>
   #include <dirent.h>
+  extern int do_draw_frags_in_CelamyScaffold;
 #endif
 
 
@@ -79,8 +80,6 @@ static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.3 2005-03-22 19:03:27 ja
 #undef REQUIRE_MORE_THAN_ONE_BAD_TO_REJECT
 #define REQUIRE_BAD_APPROACHING_HAPPY_TO_REJECT
 #define MAX_FRAC_BAD_TO_GOOD .3
-
-extern int do_draw_frags_in_CelamyScaffold;
 
 void SaveEdgeMeanForLater(SEdgeT * edge)
 {
@@ -5163,7 +5162,7 @@ void MergeScaffoldsAggressive(ScaffoldGraphT *graph, int verbose)
     // GlobalData->aligner = Local_Overlap_AS_forCNS;
     iSpec.checkForTinyScaffolds = FALSE;
     iSpec.doInterleaving = TRUE;
-    LeastSquaresGapEstimates(graph, TRUE, FALSE, TRUE, TRUE, FALSE);
+    //    LeastSquaresGapEstimates(graph, TRUE, FALSE, TRUE, TRUE, FALSE);
     MergeScaffoldsExhaustively(graph, &iSpec, verbose);
     // GlobalData->aligner = DP_Compare;
 #endif    

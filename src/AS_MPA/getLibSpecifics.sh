@@ -22,7 +22,7 @@
 #
 ###########################################################################
 #
-# $Id: getLibSpecifics.sh,v 1.3 2005-03-22 19:05:54 jason_miller Exp $
+# $Id: getLibSpecifics.sh,v 1.4 2005-03-22 19:48:58 jason_miller Exp $
 #
 
 AS=${1}

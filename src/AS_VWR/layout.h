@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: layout.h,v 1.3 2005-03-22 19:09:20 jason_miller Exp $ */
+/* $Id: layout.h,v 1.4 2005-03-22 19:49:32 jason_miller Exp $ */
 
 void SetCurrentFile(char *name);
 void ReadAssembly(FILE *);

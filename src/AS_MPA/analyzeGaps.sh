@@ -22,7 +22,7 @@
 #
 ###########################################################################
 #
-# $Id: analyzeGaps.sh,v 1.3 2005-03-22 19:05:33 jason_miller Exp $
+# $Id: analyzeGaps.sh,v 1.4 2005-03-22 19:48:56 jason_miller Exp $
 #
 
 if [ -z ${DATA_DIR} ]; then

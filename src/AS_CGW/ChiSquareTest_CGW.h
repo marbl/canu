@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: ChiSquareTest_CGW.h,v 1.3 2005-03-22 19:03:29 jason_miller Exp $	 */
+/* 	$Id: ChiSquareTest_CGW.h,v 1.4 2005-03-22 19:48:35 jason_miller Exp $	 */
 #ifndef ChiSquareTest_CGW_H
 #define ChiSquareTest_CGW_H
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /* All of the CGW celamy stuff is here */
-static char CM_ID[] = "$Id: Celamy_CGW.c,v 1.3 2005-03-22 19:03:28 jason_miller Exp $";
+static char CM_ID[] = "$Id: Celamy_CGW.c,v 1.4 2005-03-22 19:48:35 jason_miller Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -148,6 +148,14 @@ static void OrderScaffoldsForOutput(CIScaffoldT **scaffoldOrder,
 
 static VA_TYPE(CDS_UID_t) *BactigUIDs = NULL;
 static VA_TYPE(CDS_CID_t) *BactigBacIDs = NULL;
+
+
+static CIFragT * getFragByIID(ScaffoldGraphT * graph,
+                       CDS_CID_t iid)
+{
+  InfoByIID * info = GetInfoByIID(graph->iidToFragIndex, iid);
+  return(GetCIFragT(graph->CIFrags, info->fragIndex));
+}
 
 static void LoadBactigUIDs(void){
   int numBactigs = getNumGateKeeperBactigs(ScaffoldGraph->gkpStore.btgStore);
@@ -458,7 +466,10 @@ void safelyAppendOvlInfo(char **ovlsString,Long_Olap_Data_t olap, int *lenString
   assert(testsize >0); /* test against other error */
   if(*lenUsed+testsize>*lenString){
     *lenString+=1000;
-    *ovlsString = (char *) realloc(*ovlsString, *lenString * sizeof(char));
+    //    fprintf(stderr,"Reallocing ovlsString (pointer x%x) to length %d\n",*ovlsString,*lenString);
+    *ovlsString = (char *) realloc((void*)*ovlsString, (*lenString) * sizeof(char));
+    //    fprintf(stderr," now x%x\n",*ovlsString);
+    assert(*ovlsString!=NULL);
   }
   strcat(*ovlsString,teststring);
   *lenUsed+=testsize-1; /* -1 because snprintf includes the '\0' in its return,
@@ -474,17 +485,17 @@ void compute_overlaps_off_ends(int id, int *offAEnd, int *offBEnd,char **AEstr, 
   int retval=0;
   static char *AEndString=NULL,*BEndString=NULL;
   static int lenAstring=0,lenBstring=0;
-  int lenAused=0,lenBused=0;
+  int lenAused=1,lenBused=1;
 
   if(AEndString==NULL){
-    lenAstring = 1000;
+    lenAstring = 50000;
     AEndString = (char *) malloc(lenAstring*sizeof(char));
     assert(AEndString!=NULL);
   }
   AEndString[0]='\0';
 
   if(BEndString==NULL){
-    lenBstring = 1000;
+    lenBstring = 50000;
     BEndString = (char *) malloc(lenBstring*sizeof(char));
     assert(BEndString!=NULL);
   }
@@ -500,6 +511,7 @@ void compute_overlaps_off_ends(int id, int *offAEnd, int *offBEnd,char **AEstr, 
 
   while  (Next_From_OVL_Stream (& olap, my_stream)){
     //    print_olap(olap);
+    if(olap.corr_erate>15)continue; /* skip overlaps missing the default conditions for unitigging */
     if  (olap . a_hang < 0){
       (*offAEnd)++;
       safelyAppendOvlInfo(&AEndString,olap,&lenAstring,&lenAused);
@@ -507,6 +519,7 @@ void compute_overlaps_off_ends(int id, int *offAEnd, int *offBEnd,char **AEstr, 
     if  (olap . b_hang > 0){
       (*offBEnd)++;
       safelyAppendOvlInfo(&BEndString,olap,&lenBstring,&lenBused);
+      //      fprintf(stderr,"BEndString x%x\n",BEndString);
     }
   }
   *AEstr = AEndString;
@@ -531,8 +544,6 @@ void draw_surroFrags_in_contig_for_CelamyScaffold(FILE *fout, ContigT *ctg, int 
   u_list = GetIntUnitigPos(contig->u_list,0);
   for (i=0;i<num_unitigs;i++) {
     cds_int32 utgID = u_list[i].ident;
-    int numLeftEndOvls=0,	numRightEndOvls=0;
-    char *leftEndOvls,*rightEndOvls; // do not free these -- we don't own them
     ChunkInstanceT *utg = GetChunkInstanceT(ScaffoldGraph->ChunkInstances,utgID);
     assert(utg!=NULL);
     if(utg->flags.bits.isStoneSurrogate ||
@@ -546,6 +557,8 @@ void draw_surroFrags_in_contig_for_CelamyScaffold(FILE *fout, ContigT *ctg, int 
       num_frags = GetNumIntMultiPoss(unitig->f_list);
       f_list = GetIntMultiPos(unitig->f_list,0);
       for(j=0;j<num_frags;j++){
+	char *leftEndOvls,*rightEndOvls; // do not free these -- we don't own them
+	int numLeftEndOvls=0,	numRightEndOvls=0;
 	int frgAEnd = f_list[j].position.bgn;
 	int frgBEnd = f_list[j].position.end;
 	int surroColor;
@@ -594,6 +607,10 @@ void draw_surroFrags_in_contig_for_CelamyScaffold(FILE *fout, ContigT *ctg, int 
 
 
 	if(do_compute_missing_overlaps){
+
+	  //CIFragT *f = getFragByIID(ScaffoldGraph,f_list[j].ident);
+	  //	  if(f->dist>=0&&GetDistT(ScaffoldGraph->Dists,f->dist)->mean>15000)
+
 	  fprintf(fout,"%dCtgSurro%d: %d A%dFragColor %d R10 # Contig %d Surrogate Frag %d Overlaps L/R %d/%d details: %s / %s\n",
 		ctg->id, f_list[j].ident,
 		frgAEnd,
@@ -706,6 +723,8 @@ void draw_frags_in_contig_for_CelamyScaffold(FILE *fout, ContigT *ctg, int globa
      }
        
      if(do_compute_missing_overlaps){
+       //CIFragT *f = getFragByIID(ScaffoldGraph,frag->ident);
+       //       if(f->dist>=0&&GetDistT(ScaffoldGraph->Dists,f->dist)->mean>15000)
        fprintf(fout,"%dCtgFrag%d: %d A%dFragColor %d R10 # Contig %d Frag %d Overlaps L/R %d/%d details: %s / %s\n",
 	     ctg->id, frag->ident,
 	     ci_leftcoord,

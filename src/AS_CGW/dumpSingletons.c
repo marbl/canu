@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpSingletons.c,v 1.2 2005-03-22 19:04:02 jason_miller Exp $";
+static char CM_ID[] = "$Id: dumpSingletons.c,v 1.3 2005-03-22 19:48:37 jason_miller Exp $";
 
 
 /*********************************************************************/
@@ -272,7 +272,7 @@ int main( int argc, char *argv[])
 	  Complement(toprint2,strlen(toprint2));
 	}
 	{
-	  int32 blockSize = 300;
+	  uint64 blockSize = 300;
 	  CDS_UID_t uid;
 	  int32  uidStatus;
 	  CDS_UID_t interval_UID[4];

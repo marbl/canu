@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.3 2005-03-22 19:04:31 jason_miller Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.4 2005-03-22 19:48:51 jason_miller Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -54,7 +54,8 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.3 2005-03-22 19:04:31 jason
 #define DONT_SHOW_OLAP 0
 #define SHOW_OLAP 1
 #undef ALIGN_TO_CONSENSUS
-#undef PRINTUIDS
+#define PRINTUIDS
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
@@ -93,6 +94,10 @@ static double PROB[CNS_MAX_QV-CNS_MIN_QV+1];  // prob of correct call for each q
 static int RINDEX[128];
 static ReadStructp fsread=NULL;
 char SRCBUFFER[2048];
+
+// Utility variable to control width of "pages" of PrintAlignment output
+static int ALNPAGEWIDTH=100;
+
 
 
 int isRead(FragType type){
@@ -737,6 +742,130 @@ int SetUngappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) 
    return first_frag;
 }
 
+int SetGappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) {
+   int num_columns = GetMultiAlignLength(uma);
+   char *consensus=Getchar(uma->consensus,0);
+   VA_TYPE(int32) *gapped_positions = CreateVA_int32(num_columns+1);
+   int num_frags,num_unitigs,ungapped_pos=0;
+   int32 ifrag,ipos,first_frag,last_frag;
+   IntMultiPos *frag;
+   IntUnitigPos *unitig;
+   CNS_AlignedContigElement epos;
+   PHashTable_AS *unitigFrags;
+   int hash_rc;
+   PHashValue_AS value;
+   PHashValue_AS ovalue;
+
+   num_frags = GetNumIntMultiPoss(uma->f_list);
+   num_unitigs = GetNumIntUnitigPoss(uma->u_list);
+   unitigFrags = CreatePHashTable_AS(2*(num_frags+num_unitigs),NULL);
+   frag = GetIntMultiPos(uma->f_list,0);
+   for (ifrag=0;ifrag<num_frags;ifrag++,frag++){
+      SetVA_int32(gapped_positions,frag->position.bgn,&frag->position.bgn);
+      SetVA_int32(gapped_positions,frag->position.end,&frag->position.end);
+   }
+   unitig = GetIntUnitigPos(uma->u_list,0);
+   for (ifrag=0;ifrag<num_unitigs;ifrag++,unitig++){
+      SetVA_int32(gapped_positions,unitig->position.bgn,&unitig->position.bgn);
+      SetVA_int32(gapped_positions,unitig->position.end,&unitig->position.end);
+   }
+   if ( Getint32(gapped_positions,num_columns) == NULL ) {
+      fprintf(stderr,"Misformed Multialign... fragment positions only extend to bp %d out of %d/n",
+              (int) GetNumint32s(gapped_positions),num_columns+1);
+      return -1;
+   }
+
+   for (ipos=0;ipos<num_columns+1;ipos++) {
+      if ( *Getint32(gapped_positions,ipos)>0 ) {
+        SetVA_int32(gapped_positions,ipos,&ungapped_pos);
+      }
+      ungapped_pos++; 
+   }
+   frag = GetIntMultiPos(uma->f_list,0);
+
+   first_frag=GetNumCNS_AlignedContigElements(fragment_positions);
+
+   for (ifrag=0;ifrag<num_frags;ifrag++,frag++){
+     epos.frg_or_utg = CNS_ELEMENT_IS_FRAGMENT;
+     epos.idx.fragment.frgIdent = frag->ident;
+     hash_rc = LookupInPHashTable_AS (unitigFrags, IDENT_NAMESPACE, frag->ident, &ovalue);
+     if (hash_rc == HASH_SUCCESS ) {
+       // this indicates a problem... the fragment is already in the hashtable at this point
+       fprintf(cnslog,"Failure to insert ident %d in hashtable, entry already appears\n",frag->ident); 
+       assert(FALSE);
+     }
+     hash_rc = InsertInPHashTable_AS(&unitigFrags,IDENT_NAMESPACE, (uint64) frag->ident, &value, FALSE,FALSE);
+     if ( hash_rc != HASH_SUCCESS) {
+        fprintf(stderr,"Failure to insert ident %d in hashtable\n",frag->ident); 
+     }
+     epos.idx.fragment.frgType = frag->type;
+     epos.idx.fragment.frgContained = frag->contained;
+     epos.idx.fragment.frgInUnitig = (type == AS_CONTIG)?0:uma->id;
+     epos.idx.fragment.frgSource = frag->source;
+     epos.position.bgn = *Getint32(gapped_positions,frag->position.bgn);
+     epos.position.end = *Getint32(gapped_positions,frag->position.end);
+     if(epos.position.bgn==epos.position.end){
+       fprintf(stderr,"Encountered bgn==end==" F_COORD " in ungapped coords within SetUngappedFragmentPositions for " F_CID "(gapped coords " F_COORD "," F_COORD ")\n",
+	       epos.position.bgn,frag->ident,frag->position.bgn,frag->position.end);
+       assert(frag->position.bgn!=frag->position.end);
+       if(frag->position.bgn<frag->position.end){
+	 if(epos.position.bgn>0)
+	   epos.position.bgn--;
+	 else
+	   epos.position.end++;
+       } else {
+	 if(epos.position.end>0)
+	   epos.position.end--;
+	 else
+	   epos.position.bgn++;
+       }	 
+       fprintf(stderr,"  Reset to " F_COORD "," F_COORD "\n",
+	   epos.position.bgn,
+	   epos.position.end);
+     }
+     AppendVA_CNS_AlignedContigElement (fragment_positions,&epos);
+   }
+   last_frag = GetNumCNS_AlignedContigElements(fragment_positions)-1;
+   unitig = GetIntUnitigPos(uma->u_list,0);
+   for (ifrag=0;ifrag<num_unitigs;ifrag++,unitig++){
+     epos.frg_or_utg = CNS_ELEMENT_IS_UNITIG;
+     epos.idx.unitig.utgIdent = unitig->ident;
+     epos.idx.unitig.utgType = unitig->type;
+     epos.idx.unitig.utgFirst = first_frag;
+     epos.idx.unitig.utgLast = last_frag;
+     //epos.contained = 0;
+     //epos.source = NULL;
+     epos.position.bgn = *Getint32(gapped_positions,unitig->position.bgn);
+     epos.position.end = *Getint32(gapped_positions,unitig->position.end);
+     AppendVA_CNS_AlignedContigElement(fragment_positions,&epos);
+   }
+   if (type != AS_CONTIG) { 
+     Fragment *anchor = GetFragment(fragmentStore,0);
+     CNS_AlignedContigElement *anchor_frag;
+
+     if ( anchor != NULL && anchor->type == AS_CONTIG ) {
+        // mark fragments in "anchoring" contig that belong to this unitig
+        uint32 first_id,last_id;
+        int in_unitig_frags=0;
+        first_id = GetCNS_AlignedContigElement(fragment_positions,first_frag)->idx.fragment.frgIdent;
+        last_id = GetCNS_AlignedContigElement(fragment_positions,last_frag)->idx.fragment.frgIdent;
+        anchor_frag=GetCNS_AlignedContigElement(fragment_positions,anchor->components);
+        for (ifrag=0;ifrag<anchor->n_components;ifrag++,anchor_frag++) { 
+           if ( anchor_frag->frg_or_utg == CNS_ELEMENT_IS_FRAGMENT ) {
+             int lookup_rc = LookupInPHashTable_AS (unitigFrags, IDENT_NAMESPACE, anchor_frag->idx.fragment.frgIdent, &value);
+             if (lookup_rc == HASH_SUCCESS ) {
+               anchor_frag->idx.fragment.frgInUnitig=uma->id;
+               in_unitig_frags++;
+             }
+           }
+        }
+        fprintf(stderr,"Marked %d fragments as belonging to unitig %d\n",in_unitig_frags,uma->id);
+    }
+   }
+   ClosePHashTable_AS(unitigFrags);
+   return first_frag;
+}
+
 //=================================================================================
 // Add a fragment to the basic local store for fragment data
 //=================================================================================
@@ -827,6 +956,7 @@ int32 AppendFragToLocalStore(FragType type, int32 iid, int complement,int32 cont
       sequence = Getchar(uma->consensus,0);
       quality = Getchar(uma->quality,0);
       fragment.length = GetMultiAlignLength(uma);
+      //      fprintf(stderr,"Getting consensus from non-merge context: %s\n",sequence);
     } else {
       GetMultiAlignUngappedConsensus(uma, ungappedSequence, ungappedQuality);
       sequence = Getchar(ungappedSequence,0);
@@ -852,8 +982,15 @@ int32 AppendFragToLocalStore(FragType type, int32 iid, int complement,int32 cont
 
       fragment.n_components = 
             GetNumIntMultiPoss(uma->f_list)+GetNumIntUnitigPoss(uma->u_list);
-      fragment.components = 
-            SetUngappedFragmentPositions(type,fragment.n_components,uma);
+      //      if(ALIGNMENT_CONTEXT!=AS_MERGE){
+      if(1){
+	fprintf(stderr,"Merge context --> ungapped positions\n");
+	fragment.components = 
+	  SetUngappedFragmentPositions(type,fragment.n_components,uma);
+      } else {
+	fragment.components = 
+	  SetGappedFragmentPositions(type,fragment.n_components,uma);
+      }
       if ( fragment.components == -1) { // error was encountered in SetUngapped...
          fprintf(stderr,"Bad multialignment for contig/unitig %d\n", iid);
          assert(0);
@@ -1907,11 +2044,17 @@ int * UnpackTrace(int ahang, signed char *rdelta) {
 
 
 #define CNS_DP_RANGE 40
-#define CNS_DP_ERATE .06
 #define CNS_DP_THRESH 1e-6
 #define CNS_DP_MINLEN 30
 #define CNS_DP_THIN_MINLEN 10
-#define CNS_TIGHTSEMIBANDWIDTH 6
+#undef GOS_ALIGNMENTS_FOR_RECRUITED_FRGS
+#ifdef GOS_ALIGNMENTS_FOR_RECRUITED_FRGS
+  #define CNS_TIGHTSEMIBANDWIDTH 100
+  #define CNS_DP_ERATE .35
+#else
+  #define CNS_TIGHTSEMIBANDWIDTH 6
+  #define CNS_DP_ERATE .06
+#endif
 #define CNS_LOOSESEMIBANDWIDTH 100
 #define CNS_NEG_AHANG_CUTOFF -5
 #define CNS_MAX_ALIGN_SLIP 20
@@ -3117,6 +3260,11 @@ void PrintAlignment(FILE *print, int32 mid, int32 from, int32 to, CNS_PrintKey w
   } else { 
     to = ((int) to/100)*100;
   }
+
+#ifdef GOS_ALIGNMENTS_FOR_RECRUITED_FRGS
+  ALNPAGEWIDTH=to-from+1;
+#endif
+
   sequenceSpace = CreateVA_char(ma_length);
   qualitySpace = CreateVA_char(ma_length);
   GetMANodeConsensus(mid,sequenceSpace,qualitySpace);
@@ -3156,11 +3304,12 @@ void PrintAlignment(FILE *print, int32 mid, int32 from, int32 to, CNS_PrintKey w
   window_start = from;
   fprintf(print,"\n\n================  MultiAlignment ID %d ==================\n\n",ma->iid);
   while ( window_start < to ) {
-    fprintf(print,"\n%d\n%-100.100s <<< consensus\n",window_start,&sequence[window_start]);
-    fprintf(print,"%-100.100s <<< quality\n\n",&quality[window_start]);
+
+    fprintf(print,"\n%d\n%-*.*s <<< consensus\n",window_start,ALNPAGEWIDTH,ALNPAGEWIDTH,&sequence[window_start]);
+    fprintf(print,"%-*.*s <<< quality\n\n",ALNPAGEWIDTH,ALNPAGEWIDTH,&quality[window_start]);
     for (i=0;i<num_frags;i++) {
       if ( fids[i] == 0 ) continue;
-      for (wi = window_start;wi<window_start+100;wi++) { 
+      for (wi = window_start;wi<window_start+ALNPAGEWIDTH;wi++) { 
         if ( IsNULLIterator(&read_it[i]) ) {
           if ( positions[i].bgn < wi && positions[i].end > wi ) {
             if(!CreateFragmentBeadIterator(i,&read_it[i])){
@@ -3185,9 +3334,9 @@ void PrintAlignment(FILE *print, int32 mid, int32 from, int32 to, CNS_PrintKey w
             if(!CreateFragmentBeadIterator(i,&read_it[i])){
               CleanExit("PrintAlignment CreateFragmentBeadIterator failed",__LINE__,1);
             }
-          } else if ( positions[i].bgn > window_start &&  positions[i].bgn < window_start+100) {
+          } else if ( positions[i].bgn > window_start &&  positions[i].bgn < window_start+ALNPAGEWIDTH) {
             fprintf(print," ");
-          } else if ( positions[i].end >= window_start &&  positions[i].end < window_start+100) {
+          } else if ( positions[i].end >= window_start &&  positions[i].end < window_start+ALNPAGEWIDTH) {
             fprintf(print," ");
           } else {
             break;
@@ -3212,13 +3361,13 @@ void PrintAlignment(FILE *print, int32 mid, int32 from, int32 to, CNS_PrintKey w
           }
         }  
 #ifdef PRINTUIDS
-        if ( wi == window_start+100 - 1 ) fprintf(print," <<< %ld (%c)\n",fids[i],types[i]);
+        if ( wi == window_start+ALNPAGEWIDTH - 1 ) fprintf(print," <<< %ld (%c)\n",fids[i],types[i]);
 #else
-        if ( wi == window_start+100 - 1 ) fprintf(print," <<< %d (%c)\n",fids[i],types[i]);
+        if ( wi == window_start+ALNPAGEWIDTH - 1 ) fprintf(print," <<< %d (%c)\n",fids[i],types[i]);
 #endif
       }
     }
-    window_start+=100;
+    window_start+=ALNPAGEWIDTH;
   }
   free(read_it);
   free(fids);
@@ -4368,7 +4517,7 @@ int32 num_reads=0,num_guides=0,num_columns=0;
 #ifdef ALIGN_TO_CONSENSUS
 int32 aoffset;
 #endif 
-int do_rez=0; // command line arg that is now obsolete
+int do_rez=1; // command line arg that is now obsolete
 // mark_contains is used in the case where post-unitigging processes (SplitUnitig, extendClearRange,e.g.)
 //   are used to re-align unitigs after fragments have been altered... With an extended clear range, 
 //   the fragment may now "contain" another which it used to be a dovetail relationship with, or which
@@ -4562,7 +4711,10 @@ MergeRefine(ma->lid);
 if ( cnslog != NULL && printwhat == CNS_VERBOSE) PrintAlignment(cnslog,ma->lid,0,-1,printwhat);
 AbacusRefine(ma,0,-1,CNS_INDEL);
 MergeRefine(ma->lid);
-if ( cnslog != NULL && printwhat == CNS_VERBOSE) PrintAlignment(cnslog,ma->lid,0,-1,printwhat);
+if ( cnslog != NULL && printwhat != CNS_QUIET && printwhat != CNS_STATS_ONLY ) {
+  fprintf(stderr,"Should print alignment!\n");
+  PrintAlignment(cnslog,ma->lid,0,-1,printwhat);
+}
 }
 //PrintAlignment(cnslog,ma->lid,0,-1,'C');
 GetMANodeConsensus(ma->lid,sequence,quality);
@@ -5376,6 +5528,9 @@ MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
    Fragment *cfrag; 
    Fragment *tfrag = NULL;
    static VA_TYPE(int32) *trace=NULL;
+
+   //ALIGNMENT_CONTEXT=AS_CONSENSUS;
+   ALIGNMENT_CONTEXT=AS_MERGE;
    
    cnslog = stderr;
    USE_SDB=1;
@@ -5392,14 +5547,16 @@ MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
    //PrintIMPInfo(stderr,num_frags,f_list);
    //PrintIUPInfo(stderr,num_unitigs,u_list);
    cid = AppendFragToLocalStore(AS_CONTIG,contig_iid,0,0,0,AS_OTHER_UNITIG,NULL);
-     
+
+   fprintf(stderr,"ReplaceEndUnitigInContig: contig %d unitig %d isLeft(%d)\n",
+	   contig_iid,unitig_iid,extendingLeft);   
    /*
      The only real value-added from ReplaceUnitigInContig is a new consensus sequence for the contig
      some adjustments to positions go along with this, but the real compute is an alignment
      between the old contig consensus and the updated unitig
 
       firt we want to determine whether unitig is on left or right of contig,
-      so that alignment can be done with a positiove ahang
+      so that alignment can be done with a positive ahang
       if u is at left, i.e.:
 
                  C---------------C
@@ -5459,8 +5616,10 @@ MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
            olap_success = GetAlignmentTrace(aid, 0,bid,&ahang,ovl,trace,&otype,COMPARE_FUNC,SHOW_OLAP,0);
          }
          assert(olap_success);
-         ApplyAlignment(aid,0,bid,ahang,Getint32(trace,0));
+	 ApplyAlignment(aid,0,bid,ahang,Getint32(trace,0));
          RefreshMANode(ma->lid,0);
+
+	 //PrintAlignment(stderr,ma->lid,0,-1,'C');
          pos_offset=ahang;
          tigs_adjusted_pos=GetColumn(columnStore,GetBead(beadStore,tfrag->beads+tfrag->length)->column_index)->ma_index;
          break;
@@ -5527,7 +5686,9 @@ MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
           end = aligned_component->position.end;
         }
         frag = tfrag;
-        //fprintf(stderr,"compci->idx %12d bgn: %10d end: %10d\n",compci->idx.fragment.frgIdent,bgn,end);
+#ifdef DEBUG_POSITIONS
+fprintf(stderr,"compci->idx %12d bgn: %10d end: %10d\n",ci,bgn,end);
+#endif
       } else if ( ci == new_tig ) {
         aligned_component =  &tcomponents[tc++];
         if ( complement ) {
@@ -5538,13 +5699,17 @@ MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
           end = aligned_component->position.end;
         }
         frag = tfrag;
-        //fprintf(stderr,"compci->idx %12d bgn: %10d end: %10d\n",compci->idx.unitig.utgIdent,bgn,end);
+#ifdef DEBUG_POSITIONS
+fprintf(stderr,"compci->idx %12d bgn: %10d end: %10d\n",ci,bgn,end);
+#endif
       } else {
         aligned_component =  contig_component;
         bgn = aligned_component->position.bgn;
         end = aligned_component->position.end;
         frag = cfrag;
-        //fprintf(stderr,"compci->idx %12d bgn: %10d end: %10d\n",compci->idx.fragment.frgIdent,bgn,end);
+#ifdef DEBUG_POSITIONS
+fprintf(stderr,"compci->idx %12d bgn: %10d end: %10d\n",ci,bgn,end);
+#endif
       }
       left = (bgn<end)?bgn:end;
       right = (bgn<end)?end:bgn;
@@ -5565,6 +5730,10 @@ MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
           iup->position.end = end;
           iup->delta_length = 0;
           iup->delta = NULL;
+#ifdef DEBUG_POSITIONS
+	  fprintf(stderr," element %d at %d,%d\n",
+		  ci,bgn,end);
+#endif
           ci++;iunitig++;
        } else {
           imp = GetIntMultiPos(cma->f_list,ifrag);
@@ -5573,6 +5742,9 @@ MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
           imp->source = aligned_component->idx.fragment.frgSource;
           imp->position.bgn = bgn;
           imp->position.end = end;
+#ifdef DEBUG_POSITIONS
+fprintf(stderr," element %d at %d,%d\n", ci,bgn,end);
+#endif
           imp->delta_length = 0;
           imp->delta = NULL;
           ci++;ifrag++;

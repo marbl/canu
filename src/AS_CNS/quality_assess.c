@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /* RCS info
- * $Id: quality_assess.c,v 1.3 2005-03-22 19:04:48 jason_miller Exp $
+ * $Id: quality_assess.c,v 1.4 2005-03-22 19:48:52 jason_miller Exp $
  */
 
 #include <stdio.h>

@@ -58,6 +58,7 @@ static ScaffoldInstrumenter *si;
 
 extern int do_draw_frags_in_CelamyScaffold;
 extern int do_compute_missing_overlaps;
+extern do_surrogate_tracking;
 
 void dumpCloneMiddle(int sid){
   char camname[1000];
@@ -111,7 +112,7 @@ void finished_with_ovlStore(void){
 }
 
 void usage(char *pgm){
-  fprintf (stderr, "USAGE:  %s -f <FragStoreName> -g <GatekeeperStoreName> -o <OVLStoreName> -c <CkptFileName> -n <CkpPtNum> [ -s <single scfIID> ] \n",
+  fprintf (stderr, "USAGE:  %s -f <FragStoreName> -g <GatekeeperStoreName> -o <OVLStoreName> -c <CkptFileName> -n <CkpPtNum> [ -s <single scfIID> ] [-l <min length>] \n",
 		 pgm);
 }
 
@@ -132,6 +133,7 @@ int main (int argc , char * argv[] ) {
   char ovlPath[1000];
   int setFullOvl=0;
   int specificScf = NULLINDEX;
+  int minLen=0;
 
   GlobalData  = data = CreateGlobal_CGW();
   data->stderrc = stderr;
@@ -145,7 +147,7 @@ int main (int argc , char * argv[] ) {
   { /* Parse the argument list using "man 3 getopt". */ 
     int ch,errflg=0;
     optarg = NULL;
-    while (!errflg && ((ch = getopt(argc, argv,"c:f:g:n:s:o:")) != EOF)){
+    while (!errflg && ((ch = getopt(argc, argv,"c:f:g:n:s:o:l:S")) != EOF)){
       switch(ch) {
       case 'c':
 	strcpy( data->File_Name_Prefix, argv[optind - 1]);
@@ -159,6 +161,10 @@ int main (int argc , char * argv[] ) {
 	strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
 	setGatekeeperStore = TRUE;
 	break;	  
+      case 'l':
+	minLen=atoi(optarg);
+	assert(minLen>0);
+	break;
       case 'n':
 	ckptNum = atoi(argv[optind - 1]);
 	break;
@@ -169,6 +175,9 @@ int main (int argc , char * argv[] ) {
       case 's':
 	specificScf = atoi(argv[optind - 1]);
 	break;	  
+      case 'S':
+	do_surrogate_tracking=0;
+	break;
       case '?':
 	fprintf(stderr,"Unrecognized option -%c",optopt);
       default :
@@ -210,8 +219,9 @@ int main (int argc , char * argv[] ) {
     } else {
       int sid;
       for (sid = 0; sid < GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph); sid++){
-      
-	dumpCloneMiddle(sid);
+	if(GetGraphNode(ScaffoldGraph->ScaffoldGraph,sid)->bpLength.mean>=minLen){
+	  dumpCloneMiddle(sid);
+	}
       }
     }
     DestroyScaffoldInstrumenter(si);

@@ -697,8 +697,6 @@ int *AS_ALN_OKNAffine(char *a, int alen, char *b, int blen,
    that is space inefficient, takes O(kn) space as opposed to the O(n) that
    is possible.                                                             */
 
-#endif
-
 
 // From AS_ALN_pieceOlap.c
 
@@ -709,3 +707,11 @@ int *AS_ALN_OKNAffine(char *a, int alen, char *b, int blen,
 
 void fix_overlapping_pieces(char *aseq, char *bseq,
 			    Local_Overlap *O,int piece0, int piece1);
+
+
+/*  Compute_Olap_Version converts and OverlapMesg into the orientation and hangs that would be reported as an "olap" (e.g. by dump-olap-store) */
+
+void Compute_Olap_Version(InternalFragMesg* a,InternalFragMesg *b,OverlapMesg *O,int *ahang,int *bhang, char *ori);
+
+#endif
+

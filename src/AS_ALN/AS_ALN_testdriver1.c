@@ -44,22 +44,22 @@
  
 void usage(void)
 {
-	fprintf( stderr, "usage: AS_ALN_testdriver1 <-a abnd> <-b bbnd> <-e error_rate> <-m minlen> <-P proto_output_file>\n");
+	fprintf( stderr, "usage: AS_ALN_testdriver1 <-a abnd> <-b bbnd> <-e error_rate> <-m minlen> <-o|-O> <-P proto_output_file> [-1 <Aseq.fasta> -2 <Bseq.fasta>]\n");
 	exit(1);
 }
 
+static int firstget =1;
 
 char *get_sequence(FILE *input, char **seq, char **name )
 { static char *seqbuf, *namebuf,nextname[LBUFLEN],linebuf[LBUFLEN];
-  static int   first = 1;
   static int   top, nei;
 
   register char *newbuf,*newbuf2;
   register size_t l;
   register int e, bol, beg;
 
-  if (first)
-    { first  = 0;
+  if (firstget)
+    { firstget  = 0;
       top    = 2048;
       seqbuf = (char *) ckalloc(sizeof(char)*top);
       namebuf = (char *) ckalloc(sizeof(char)*top);
@@ -219,9 +219,11 @@ void show_sequence(char *seq)
 }
 
 int main(int argc, char *argv[])
-{ int    K;
+{ int    K,KB;
   char **Seqs;
   char **Names;
+  char **SeqsB;
+  char **NamesB;
   InternalFragMesg  A, B;
   OverlapMesg  *O;
   FILE *OVLFile=NULL;
@@ -233,13 +235,17 @@ int main(int argc, char *argv[])
   int bbndFromUser=0;
   int minlen=40;
   int first=1;
+  int printOlaps=0;
+  int printOlapsOnly=0;
+  int printAligns=1;
   double err=.06;
+  FILE *file1=stdin,*file2=NULL;
 
 
   { /* Parse the argument list using "man 3 getopt". */ 
     int ch,errflg=0;
     optarg = NULL;
-    while (!errflg && ((ch = getopt(argc, argv, "a:b:e:hm:P:")) != EOF))
+    while (!errflg && ((ch = getopt(argc, argv, "a:b:e:hm:oOP:1:2:")) != EOF))
       {
 #if 0
 	fprintf(GlobalData->stderrc,"* ch = %c optopt= %c optarg = %s\n", ch, optopt, (optarg?optarg:"(NULL)"));
@@ -263,6 +269,13 @@ int main(int argc, char *argv[])
 	case 'm':
 	  minlen = atoi(optarg);
 	  break;
+	case 'O':
+	  printOlapsOnly=1;
+	  printOlaps=1;
+	  break;
+	case 'o':
+	  printOlaps=1;
+	  break;
 	case 'P':
 	  // outputPath = strdup(optarg);
 	  fprintf(stderr,"Printing OVLs to %s\n", optarg);
@@ -271,10 +284,20 @@ int main(int argc, char *argv[])
 	  WriteMesg_AS = OutputFileType_AS(AS_PROTO_OUTPUT);
 	  assert(WriteMesg_AS!=NULL);
 	  break;
+	case '1':
+	  file1=fopen(optarg,"r");
+	  assert(file1!=NULL);
+	  break;
+	case '2':
+	  file2=fopen(optarg,"r");
+	  assert(file2!=NULL);
+	  break;
 	case '?':
-	  fprintf( stderr, "Unrecognized option -%c\n", optopt);
+	  errflg++;
 	  usage();
+	  break;
 	default :
+	  fprintf( stderr, "Unrecognized option -%c\n", optopt);
 	  errflg++;
 	  usage();
 	}
@@ -282,11 +305,14 @@ int main(int argc, char *argv[])
   }
 
 
-  get_sequences(stdin,&K,&Seqs,&Names);
+  get_sequences(file1,&K,&Seqs,&Names);
   fprintf(stderr,"Read in %d sequences\n",K+1);
+  if(file2!=NULL){
+    firstget=1;
+    get_sequences(file2,&KB,&SeqsB,&NamesB);
+    fprintf(stderr,"Read in %d sequences\n",KB+1);
+  }
 
-
-fprintf(stderr,"Read in %d sequences\n",K+1);
 
 #ifdef INPUT
   { int i;
@@ -296,6 +322,16 @@ fprintf(stderr,"Read in %d sequences\n",K+1);
       { printf("> %d\n",i+1);
         show_sequence(Seqs[i]);
       }
+
+
+    if(file2!=NULL){
+      printf("\nThe OTHER Sequences %d:\n\n",K+1);
+      for (i = 0; i <= KB; i++)
+	{ printf("> %d\n",i+1);
+        show_sequence(Seqs[i]);
+	}
+    }
+
   }
 #endif
 
@@ -307,14 +343,15 @@ fprintf(stderr,"Read in %d sequences\n",K+1);
     A.quality = NULL;
     B.quality = NULL;
     tlaps = olaps = 0;
-    for (j = 0; j < K; j++){
-      for (i = j+1; i <= K; i++){
+    for (j = 0; j <= K; j++){
+      for (i = (file2==NULL ? j+1 : 0); i <= (file2==NULL ? K : KB); i++){
+	tlaps += 1;
+	A.sequence = Seqs[j];
+	B.sequence = (file2==NULL ? Seqs[i] : SeqsB[i]);
+	A.iaccession = A.eaccession = j+1;
+	B.iaccession = B.eaccession = i+1 + (file2!=NULL ? (K+1) : 0);
+
 	for(ori=0;ori<=1;ori++){
-	  tlaps += 1;
-	  A.sequence = Seqs[j];
-	  B.sequence = Seqs[i];
-	  A.iaccession = A.eaccession = j+1;
-	  B.iaccession = B.eaccession = i+1;
 
 
 	  if(strlen(A.sequence)<abnd)
@@ -326,8 +363,8 @@ fprintf(stderr,"Read in %d sequences\n",K+1);
 			    ori,err,1e-6,minlen,AS_FIND_ALIGN,&where);
           if (O != NULL){
             olaps += 1;
-	    Print_Overlap_AS(stdout,&A,&B,O);
-	    printf("Overlap quality: %f\n",O->quality);
+	    if(!printOlapsOnly)Print_Overlap_AS(stdout,&A,&B,O);
+	    if(!printOlapsOnly)printf("Overlap quality: %f\n",O->quality);
 
 	    { int del, sub, ins, affdel, affins, alen, blen, blockdel, blockins;
 	      float errRate, errRateAffine;
@@ -341,15 +378,25 @@ fprintf(stderr,"Read in %d sequences\n",K+1);
 	      errRateAffine = (sub+affins+affdel)/
 		(double)(alen+ins-(del-affdel+ins-affins));
 	      
-	      printf("Alen %d, Blen %d, del %d, sub %d, ins %d\n"
+	      if(!printOlapsOnly)printf("Alen %d, Blen %d, del %d, sub %d, ins %d\n"
 		     " affdel %d, affins %d, blockdel %d, blockins %d\n",
 		     alen,blen,del,sub,ins,
 		     affdel,affins,blockdel,blockins);
-	      printf("Simple mismatch rate %f\n",errRate);
-	      printf("Affine mismatch rate %f\n",errRateAffine);
-	      printf("dp_olap: %s %s %e\n",
-		     Names[j],Names[i],errRate);
+	      if(!printOlapsOnly)printf("Simple mismatch rate %f\n",errRate);
+	      if(!printOlapsOnly)printf("Affine mismatch rate %f\n",errRateAffine);
+	      if(!printOlapsOnly)printf("dp_olap: %s %s %e\n",
+		       Names[j],(file2==NULL ? Names[i] : NamesB[i]),errRate);
 	      
+
+	      if(printOlaps){
+		char ori;
+		int ahang,bhang;
+		
+		Compute_Olap_Version(&A,&B,O,&ahang,&bhang,&ori);
+		printf("OLAP: %s %s %c %d %d %f %f Len= %d\n",
+		       Names[j],(file2==NULL ? Names[i] : NamesB[i]),ori,ahang,bhang,errRate,errRateAffine, (alen < blen ) ? alen : blen);
+	      }
+
 	    }
 	    O->min_offset=O->max_offset=O->ahg;
 	    if(OVLFile!=NULL){

@@ -37,7 +37,7 @@
 
 
 
-static char fileID[] = "$Id: GapFillREZ.c,v 1.3 2005-03-22 19:07:37 jason_miller Exp $";
+static char fileID[] = "$Id: GapFillREZ.c,v 1.4 2005-03-22 19:49:21 jason_miller Exp $";
 
 
 #include <stdio.h>
@@ -660,6 +660,10 @@ static void  Set_Split_Flags_One_Scaffold
 static int  Should_Overlap
     (Placement_t * left, Placement_t * right, ChunkOrientationType * orient,
      double * how_much);
+void  Show_Gap_Reads_One_Scaff
+    (FILE * fp, Scaffold_Fill_t * fill_chunks, int scaff_id);
+static void  Show_Read_Info
+    (FILE * fp, int cid);
 static void  Sort_Insertions
     (Scaffold_Fill_t * fill_chunks,
      int (* cmp) (const void *, const void *));
@@ -3240,6 +3244,35 @@ static int  Check_Scaffold_and_Orientation
    for  (i = 0;  i < stack_top;  i ++)
      if  (REF (stack [i] . chunk_id) . scaff_id != scaff_id [0])
          stack [i] . is_bad = TRUE;
+
+#if  0
+   //**ALD
+   // If multiple links to same contig, mark links
+   // with fewer than max good mates as bad
+   // Must be same contig if is good and rel_pos is same
+   // This should help prevent collapsed tandems.
+   for  (i = 0;  i < stack_top - 1;  i ++)
+     {
+      if  (stack [i] . is_bad)
+          continue;
+      for  (j = i + 1;  j < stack_top;  j ++)
+        if  (! stack [j] . is_bad
+                && REF (stack [i] . chunk_id) . rel_pos
+                      == REF (stack [i] . chunk_id) . rel_pos)
+            {
+             if  (stack [i] . num_good_mates <= stack [j] . num_good_mates)
+                 {
+                  stack [i] . is_bad = TRUE;
+                  (* bad_links) += stack [i] . num_good_mates;
+                 }
+               else
+                 {
+                  stack [j] . is_bad = TRUE;
+                  (* bad_links) += stack [j] . num_good_mates;
+                 }
+            }
+     }
+#endif
    
    // Check for orientation discrepancy
    flipped_ct = non_flipped_ct = 0;
@@ -5566,16 +5599,13 @@ fprintf (stderr, "Determine_Components:\n");
 
  if  (target_sub >= 0)
      {
-      fprintf (stderr, "Target Component:  links = %d\n",
-               path_info [target_sub] . path_len);
-
       ct = 0;
       for  (i = target_sub;  i >= 0;  i = path_info [i] . from)
         {
          ct ++;
          path_info [i] . hit = TRUE;
          fprintf (stderr,
-         "%3d (%5d)  hi_pos = %6d  AEnd = (%6.0f,%6.0f)  BEnd = (%6.0f,%6.0f)\n",
+            "%3d (%5d)  hi_pos = %6d  AEnd = (%6.0f,%6.0f)  BEnd = (%6.0f,%6.0f)\n",
                   i, node [i] -> chunk_id, path_info [i] . hi_position,
                   node [i] -> start . mean, sqrt (node [i] -> start . variance),
                   node [i] -> end . mean, sqrt (node [i] -> end . variance));
@@ -5624,7 +5654,7 @@ fprintf (stderr, "Determine_Components:\n");
          for  (i = hi_unhit;  i >= 0;  i = path_info [i] . from)
            {
             fprintf (stderr,
-            "%3d (%5d)  hi_pos = %6d  AEnd = (%6.0f,%6.0f)  BEnd = (%6.0f,%6.0f)\n",
+               "%3d (%5d)  hi_pos = %6d  AEnd = (%6.0f,%6.0f)  BEnd = (%6.0f,%6.0f)\n",
                      i, node [i] -> chunk_id, path_info [i] . hi_position,
                      node [i] -> start . mean, sqrt (node [i] -> start . variance),
                      node [i] -> end . mean, sqrt (node [i] -> end . variance));
@@ -6852,7 +6882,11 @@ fprintf (stderr, "Before Confirm_Stones\n");
    Print_Fill_Info (log_file, fill_chunks);
    fflush (log_file);
 #endif
-        New_Confirm_Stones (log_file, fill_chunks, FALSE);
+
+        Use_Partial_Stone_Paths = TRUE;
+        New_Confirm_Stones (log_file, fill_chunks, TRUE);
+        Use_Partial_Stone_Paths = FALSE;
+
 #if  VERBOSE
    fprintf (log_file, "\n\n>>>> Fill AFTER New_Confirm_Stones <<<<\n");
    Print_Fill_Info (log_file, fill_chunks);
@@ -8934,6 +8968,7 @@ if  (use_all && Use_Partial_Stone_Paths)   // for stones only
         target_sub = i;
    }
 
+ fprintf (stderr, "\nScaff %d  Gap %d\n", scaff_id, j);
  fprintf (stderr, "Before Build_Path_Subgraph\n");
  fprintf (stderr, "  Gap start = (%.0f,%.0f)  end = (%.0f,%.0f)\n",
           this_gap -> start . mean, sqrt (this_gap -> start . variance),
@@ -10341,9 +10376,7 @@ static void  Print_Potential_Fill_Chunks
 #endif
                    fprintf (fp, "\n");
                   }
-//**ALD
-//#if  SHOW_FRAG_DETAILS
-#if  1
+#if  SHOW_FRAG_DETAILS
                 Print_Frag_Info (fp, cid);
 #endif
                }
@@ -12302,6 +12335,260 @@ static int  Should_Overlap
        }
 
    return  ((* how_much) >= MIN_OLAP_LEN);
+  }
+
+
+
+void  Show_Gap_Reads_One_Scaff
+    (FILE * fp, Scaffold_Fill_t * fill_chunks, int scaff_id)
+
+//  Show the unitigs and reads in the gaps in scaffold  fill_chunks [scaff_id] .
+//  Output goes to  fp .
+
+  {
+   int  num_entries;
+   int  j;
+
+   num_entries = 0;
+   for  (j = 0;  j < fill_chunks [scaff_id] . num_gaps;  j ++)
+     num_entries += fill_chunks [scaff_id] . gap [j] . num_chunks;
+   if  (num_entries == 0)
+       return;
+
+   fprintf (fp, "\nScaff %d  num_gaps= %d\n",
+            scaff_id, fill_chunks [scaff_id] . num_gaps);
+
+   for  (j = 0;  j < fill_chunks [scaff_id] . num_gaps;  j ++)
+     {
+      Gap_Fill_t  * this_gap = fill_chunks [scaff_id] . gap + j;
+      ChunkInstanceT  * scaff_chunk;
+      int  k;
+      double ref_var;
+      
+      if  (j > 0)
+          {
+           scaff_chunk
+               = GetGraphNode(ScaffoldGraph->RezGraph, this_gap -> left_cid);
+           ref_var = Max_double (scaff_chunk -> offsetAEnd . variance,
+                                 scaff_chunk -> offsetBEnd . variance);
+          }
+        else
+          {
+           scaff_chunk
+               = GetGraphNode(ScaffoldGraph->RezGraph, this_gap -> right_cid);
+           ref_var = Min_double (scaff_chunk -> offsetAEnd . variance,
+                                 scaff_chunk -> offsetBEnd . variance);
+          }
+
+      fprintf (fp,
+               "Gap %3d  %8.0f .. %-8.0f  len= %.0f  L/Rnbrs= %d %d\n",
+               j,
+               this_gap -> start . mean,
+               this_gap -> end . mean,
+               this_gap -> len,
+               this_gap -> left_cid,
+               this_gap -> right_cid);
+
+      for  (k = 0;  k < this_gap -> num_chunks;  k ++)
+        {
+         Gap_Chunk_t  * this_chunk = this_gap -> chunk + k;
+         ChunkInstanceT  * contig;
+         ChunkInstanceT  * chunk;
+
+         if  (REF (this_chunk -> chunk_id) . scaff_id != NULLINDEX
+                && this_chunk -> copy_letter != GAP_END_CHAR
+                && REF (this_chunk -> chunk_id) . is_unthrowable)
+             {
+              fprintf (fp, "   Chunk %6d%c is unthrowable\n",
+                       this_chunk -> chunk_id, this_chunk -> copy_letter);
+              break;
+             }
+             
+
+         contig = GetGraphNode
+                    (ScaffoldGraph -> RezGraph, this_chunk -> chunk_id);
+         if  (contig -> flags . bits . isDead)
+             continue;
+
+         chunk = GetGraphNode
+                   (ScaffoldGraph -> CIGraph, contig -> info . Contig . AEndCI);
+         fprintf (fp,
+"Uni %6d %c  %7.0f .. %-7.0f  cov= %3d links= %2d len= %7.0f nfr= %3d\n",
+                  this_chunk -> chunk_id,
+                  this_chunk -> copy_letter,
+                  this_chunk -> start . mean,
+                  this_chunk -> end . mean,
+                  this_chunk -> cover_stat,
+                  this_chunk -> link_ct,
+                  contig -> bpLength . mean,
+                  chunk -> info . CI . numFragments);
+         Show_Read_Info (fp, this_chunk -> chunk_id);
+        }
+     }
+
+   return;
+  }
+
+
+
+static void  Show_Read_Info
+    (FILE * fp, int cid)
+
+//  Print to  fp  info about the reads in unitig  cid .
+
+  {
+   ChunkInstanceT  * contig
+       = GetGraphNode (ScaffoldGraph -> RezGraph, cid);
+   ChunkInstanceT  * chunk;
+   MultiAlignT  * ma;
+   int  cover_stat;
+   int  i, chunk_id, num_frags;
+
+   chunk_id = contig -> info . Contig . AEndCI;
+   chunk = GetGraphNode (ScaffoldGraph -> CIGraph, chunk_id);
+   cover_stat = GetCoverageStat (chunk);
+
+   ma = LoadMultiAlignTFromSequenceDB
+            (ScaffoldGraph -> sequenceDB, cid,
+             ScaffoldGraph -> RezGraph -> type == CI_GRAPH);
+   assert (ma != NULL);
+
+   // cycle through fragments 
+   num_frags = GetNumIntMultiPoss (ma -> f_list);
+
+   fprintf (fp, " %7s %13s %13s %6s %4s %6s %6s\n",
+            "ReadIID", "Place", "Mate: Place", "Contig", "nfr",
+            "Scaff", "Dist");
+
+   for  (i = 0;  i < num_frags;  i ++)
+     {
+      IntMultiPos  * mp = GetIntMultiPos (ma -> f_list, i);
+      CDS_CID_t  fragID = (CDS_CID_t) mp -> source;
+        // This is an internal-data-structure ID
+      CDS_CID_t  ident = (CDS_CID_t) mp -> ident;
+        // This is the read's IID
+      CIFragT  * frag = GetCIFragT (ScaffoldGraph -> CIFrags,
+                            fragID);
+
+      fprintf (fp,
+               " %7" F_CIDP " %6.0f %6.0f",
+               ident, frag -> offset5p . mean, frag -> offset3p . mean);
+
+      if  (frag -> numLinks == 1 && frag -> mateOf != NULLINDEX)
+          {
+           CIFragT  * mateFrag
+               = GetCIFragT (ScaffoldGraph -> CIFrags, frag -> mateOf);
+           ChunkInstanceT  * mateChunk
+               = GetGraphNode (ScaffoldGraph -> CIGraph,
+                     mateFrag -> CIid);
+           DistT  * fragDist
+               = GetDistT (ScaffoldGraph -> Dists, frag -> dist);
+           assert (mateChunk != NULL);
+           fprintf (fp, " %6.0f %6.0f %6d %4d %6d %6.0f",
+                    mateFrag -> offset5p . mean,
+                    mateFrag -> offset3p . mean,
+                    mateChunk -> info . CI . contigID,
+                    mateChunk -> info . CI . numFragments,
+                    mateChunk -> scaffoldID,
+                    fragDist -> mean);
+          }
+      fprintf (fp, "\n");
+     }
+
+   return;
+  }
+
+
+
+
+int  Show_Reads_In_Gaps
+    (char * prefix)
+
+//  Print unitigs and reads in them that could go in gaps of
+//  current scaffolds.  Output goes to file <prefix>.gapreads
+
+  {
+   FILE  * fp;
+   char  filename [1000];
+   Scaffold_Fill_t  * fill_stones;
+   clock_t  start_time, stop_time;
+   time_t  now;
+   int  i, scaff_id;
+     
+   Num_Scaffolds = GetNumGraphNodes (ScaffoldGraph -> ScaffoldGraph);
+   if (Num_Scaffolds == 0)
+     return 0;
+
+   now = time (NULL);
+   fprintf (stderr, "### Start Show_Reads_In_Gaps at %s\n",
+            ctime (& now));
+   start_time = clock ();
+
+#if  TEST_HOPELESS_SCAFFS
+   Hopeless_False_Mask = '\373';
+   Hopeless_True_Mask = '\004';
+   if  (Is_Hopeless_Scaff == NULL)
+       Is_Hopeless_Scaff
+           = (char *) safe_calloc (Num_Scaffolds, sizeof (char));
+     else
+       {
+        Is_Hopeless_Scaff
+            = (char *) safe_realloc (Is_Hopeless_Scaff,
+                                     Num_Scaffolds * sizeof (char));
+        for  (i = 0;  i < Num_Scaffolds;  i ++)
+          Is_Hopeless_Scaff [i] &= Hopeless_False_Mask;
+        for  (i = Is_Hopeless_Size;  i < Num_Scaffolds;  i ++)
+          Is_Hopeless_Scaff [i] = '\0';
+       }
+   Is_Hopeless_Size = Num_Scaffolds;
+#endif
+
+   strcpy (filename, prefix);
+   strcat (filename, ".gapreads");
+   fp = file_open (filename, "w");
+
+PALLOC (Num_Scaffolds * sizeof (int64));
+   Scaffold_Start = (int64 *) safe_calloc
+                      (Num_Scaffolds, sizeof (int64));
+PALLOC (Num_Scaffolds * sizeof (int64));
+   Scaffold_End = (int64 *) safe_calloc
+                    (Num_Scaffolds, sizeof (int64));
+PALLOC (Num_Scaffolds * sizeof (char));
+   Scaffold_Flipped = (char *) safe_calloc
+                        (Num_Scaffolds, sizeof (char));
+
+   Scaff_Join = CreateVA_Scaff_Join_t (INITIAL_SCAFF_JOIN_SIZE);
+
+   // Need these to allocate global arrays
+   Print_Unique_Chunks (NULL);
+   Print_Scaffolds (NULL);
+   Print_Potential_Fill_Chunks (NULL, Just_True, TRUE);
+
+   fill_stones = Scan_Gaps ();
+
+   Choose_Stones (fill_stones, 1, -1e6, FALSE);
+
+   Clear_Keep_Flags (fill_stones, 0);
+
+   Kill_Duplicate_Stones (fill_stones);
+
+   for  (scaff_id = 0;  scaff_id < Num_Scaffolds;  scaff_id ++)
+     Show_Gap_Reads_One_Scaff
+         (fp, fill_stones, scaff_id);
+
+   fclose (fp);
+
+   Free_Fill_Array (fill_stones);
+   Free_Global_Arrays ();
+
+   now = time (NULL);
+   fprintf (stderr, "### Finish Show_Reads_In_Gaps at %s\n",
+            ctime (& now));
+   stop_time = clock ();
+   fprintf (stderr, "### cpu time = %.1f sec\n",
+               (double) (stop_time - start_time) / CLOCKS_PER_SEC);
+
+   return  0;
   }
 
 

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: MultiAlignStore_CNS.h,v 1.3 2005-03-22 19:04:27 jason_miller Exp $	 */
+/* 	$Id: MultiAlignStore_CNS.h,v 1.4 2005-03-22 19:48:51 jason_miller Exp $	 */
 #ifndef MULTIALIGNSTORE_H
 #define MULTIALIGNSTORE_H
 

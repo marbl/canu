@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_CGB_unitigger_globals.h,v 1.3 2005-03-22 19:02:34 jason_miller Exp $
+ * $Id: AS_CGB_unitigger_globals.h,v 1.4 2005-03-22 19:48:31 jason_miller Exp $
  *
  * Module: AS_CGB_unitigger_globals.h
  * Description: A subroutine interface for the unitigger.

@@ -2,7 +2,7 @@
 {ADL
 who:Barney
 ctm:123
-vsn:$Id: AS_MSG_testfile.in,v 1.3 2005-03-22 19:06:17 jason_miller Exp $
+vsn:$Id: AS_MSG_testfile.in,v 1.4 2005-03-22 19:49:00 jason_miller Exp $
 com:
 A purple dinosaur
 .

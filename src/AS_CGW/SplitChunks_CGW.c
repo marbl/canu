@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.3 2005-03-22 19:04:01 jason_miller Exp $";
+static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.4 2005-03-22 19:48:36 jason_miller Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -681,7 +681,8 @@ static int AddIMPToIUMStruct(IUMStruct * is, IntMultiPos * imp)
   
   // update the min & max
 #ifdef USE_UNGAPPED_POSITION
-  is->minPos = min(frag->offset5p.mean,frag->offset3p.mean);
+  //  is->minPos = min(frag->offset5p.mean,frag->offset3p.mean); /* 3/22/05 ALH: this looks wrong! */
+  is->minPos = min(is->minPos,min(frag->offset5p.mean,frag->offset3p.mean));
 #else
   is->minPos = min(is->minPos,min(imp->position.bgn, imp->position.end));
 #endif
@@ -933,6 +934,7 @@ static int StoreIUMStruct(ScaffoldGraphT * graph,
                            0.f);
 
 #ifdef DEBUG
+  fprintf(GlobalData->stderrc, "accession = %d\n", is -> ium . iaccession);
   fprintf(GlobalData->stderrc, "length = " F_COORD ", egfar = %f, rho = %d, num random frags = %d, coverage stat = %f\n",
           is->ium.length,
           egfar, rho, is->numRandomFragments,

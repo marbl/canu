@@ -29,12 +29,12 @@ accession numbers.
 **********************************************************************/
 
 /* RCS info
- * $Id: AS_TER_terminator.c,v 1.3 2005-03-22 19:08:36 jason_miller Exp $
- * $Revision: 1.3 $
+ * $Id: AS_TER_terminator.c,v 1.4 2005-03-22 19:49:27 jason_miller Exp $
+ * $Revision: 1.4 $
  */
 
 
-static char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.3 2005-03-22 19:08:36 jason_miller Exp $";
+static char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.4 2005-03-22 19:49:27 jason_miller Exp $";
 
 
 /*************************************************************************/
