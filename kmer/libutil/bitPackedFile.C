@@ -19,7 +19,8 @@ bitPackedFile::bitPackedFile(char const *name) {
   //  "r+" of fopen(3) will not create.
   //
   errno = 0;
-  _file = open(name, O_RDWR | O_CREAT | O_LARGEFILE,
+  _file = open(name,
+               O_RDWR | O_CREAT | O_LARGEFILE,
                S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
   int errno_fopen = errno;
 
