@@ -146,7 +146,7 @@ $(eval $(foreach x,${//},$(call .RULE-install-copy-C-CXX-INCS,$x)))
 	cd `dirname $<` && ${LATEX} `basename $<` && ${LATEX} `basename $<`
 
 %.bbl: %.aux
-	cd `dirname $<` && ${BIBTEX} ${<:.aux=}
+	cd `dirname $<` && ${BIBTEX} `basename ${<:.aux=}`
 
 
 ALL_TEXPS   :=$(strip $(foreach x,${//},${${x:.=.TEXPS}}))
