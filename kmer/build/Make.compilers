@@ -423,11 +423,14 @@ ifeq (${_OS|FULL_},SunOS|foster-city)
 endif
 # sometimes we deploy on Solaris on Fancisco's machines
 ifeq (${_OS|FULL_},SunOS|francisco's)
+  CXXLDFLAGS_LAPACK :=-L/home/lipperra/local/lib
   CXXLIBS_LAPACK    :=-llapack -lblas -lF77
 endif
-CXXFLAGS_LAPACK   :=${CFLAGS_LAPACK}
-CXXLDFLAGS_LAPACK :=${CLDFLAGS_LAPACK}
-CXXLIBS_LAPACK    :=${CLIBS_LAPACK}
+#Bjarni: someone just recently added these lines and screwed me over
+#This voids the previous definitions above
+#CXXFLAGS_LAPACK   :=${CFLAGS_LAPACK}
+#CXXLDFLAGS_LAPACK :=${CLDFLAGS_LAPACK}
+#CXXLIBS_LAPACK    :=${CLIBS_LAPACK}
 
 
 
