@@ -26,10 +26,10 @@ s4p_deleteExon(sim4polish *p, int a) {
   //    If we are deleting the last exon, set the previous to SIM4_INTRON_NONE
   //    Otherwise, set the previous to SIM4_INTRON_GAP
   //
-  if (a == p->numExons-1) {
-    p->exons[a-1].intronOrientation = SIM4_INTRON_NONE;
-  } else {
-    if (a > 0)
+  if (p->numExons > 1) {
+    if (a == p->numExons-1)
+      p->exons[a-1].intronOrientation = SIM4_INTRON_NONE;
+    else if (a > 0)
       p->exons[a-1].intronOrientation = SIM4_INTRON_GAP;
   }
 
@@ -40,8 +40,10 @@ s4p_deleteExon(sim4polish *p, int a) {
 
   //  Delete any alignment in the soon to be deleted exon
   //
-  free(p->exons[a].estAlignment);
+  fprintf(stderr, "deleting alignments: [%d] '%s' and '%s'\n", a, p->exons[a].estAlignment, p->exons[a].genAlignment);
+
   free(p->exons[a].genAlignment);
+  free(p->exons[a].estAlignment);
 
   //  Shift all the exons down by one, and decrement the number of
   //  exons present in the list.
@@ -56,10 +58,10 @@ s4p_deleteExon(sim4polish *p, int a) {
   //
   memset(p->exons+p->numExons, 0, sizeof(sim4polishExon));
 
-  //  The strand orientation doesn't change if we are deleting the
-  //  first or last exon....unless we now have only one exon.
+  //  The strand orientation becomes unknown if we delete internal
+  //  exons, or we end up with only one exon.
   //
-  if (((0 < a) && (a < p->numExons-1)) ||
+  if (((0 < a) && (a < p->numExons)) ||
       (p->numExons == 1))
     p->strandOrientation = SIM4_STRAND_UNKNOWN;
 
