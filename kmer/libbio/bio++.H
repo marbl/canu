@@ -469,7 +469,7 @@ public:
   bool               nextMer(u32bit skip=0);
 private:
   void               loadMer(u32bit s);
-  char               nextSymbol(void);
+  u64bit             nextSymbol(void);
 
 
   //  Data specific to the merStreamFileReader input
@@ -500,7 +500,7 @@ private:
   //  Data specific to nobody or everybody
   //
   u32bit                _merSize;
-  s32bit                _timeUntilValid;
+  s64bit                _timeUntilValid;
   u32bit                _rMerShift;
 
   u64bit                _merMask;
@@ -516,7 +516,7 @@ private:
 
 
 inline
-char
+u64bit
 merStream::nextSymbol(void) {
 
   //  This is called only for FastAstreams, chainedSequences and char* input.
@@ -560,7 +560,7 @@ merStream::nextSymbol(void) {
   //
   _st_posInSeq++;
   _st_posInStr++;
-  
+
   return(_st_string[_st_stringPos++]);
 }
 
