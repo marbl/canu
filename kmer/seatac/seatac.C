@@ -248,9 +248,13 @@ main(int argc, char **argv) {
   qsFASTA->openIndex();
 
   numberOfQueries  = qsFASTA->getNumberOfSequences();
-  output           = new filterObj * [numberOfQueries];
+  if (config._beVerbose)
+    fprintf(stderr, "Number of cDNA sequences is %d.\n", numberOfQueries);
 
+  output    = new filterObj * [numberOfQueries];
+  assert(output != NULL);
   input     = new FastASequenceInCore * [numberOfQueries];
+  assert(input != NULL);
   inputHead = 0;
   inputTail = 0;
 
@@ -365,9 +369,9 @@ main(int argc, char **argv) {
       stats->add(output[outputPos]);
 
       //stats->show(stderr);
-
-      delete [] input[outputPos];
-      delete [] output[outputPos];
+ 
+      delete input[outputPos];
+      delete output[outputPos];
 
       input[outputPos]     = 0L;
       output[outputPos]    = 0L;
@@ -437,4 +441,3 @@ main(int argc, char **argv) {
 
   return(0);
 }
-
