@@ -8,132 +8,216 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 
-//
-//  XXX: Still need to clean up if ctrl-c or crash while reading
-//  polishes before the merge
-//
-
-
-double
-findMemorySize(void) {
-  struct rlimit rlp;
-
-  errno = 0;
-
-#if 0
-  getrlimit(RLIMIT_AS,   &rlp);
-  if (errno) {
-    fprintf(stderr, "Can't getrlimit(RLIMIT_AS, ...)\n%s\n", strerror(errno));
-    exit(1);
-  }
-  //fprintf(stderr, "AS:   %lu %lu\n", rlp.rlim_cur, rlp.rlim_max);
-
-  getrlimit(RLIMIT_RSS,  &rlp);
-  if (errno) {
-    fprintf(stderr, "Can't getrlimit(RLIMIT_RSS, ...)\n%s\n", strerror(errno));
-    exit(1);
-  }
-  //fprintf(stderr, "RSS:  %lu %lu\n", rlp.rlim_cur, rlp.rlim_max);
-#endif
-
-  getrlimit(RLIMIT_DATA, &rlp);
-  if (errno) {
-    fprintf(stderr, "Can't getrlimit(RLIMIT_DATA, ...)\n%s\n", strerror(errno));
-    exit(1);
-  }
-  //fprintf(stderr, "DATA: %lu %lu\n", rlp.rlim_cur, rlp.rlim_max);
-
-  return(rlp.rlim_cur);
-}
-
-
-
-#include "sim4polish.h"
 #include "libbritypes.h"
+#include "sim4polish.h"
 #include "palloc.h"
+#include "file.h"
+#include "memory.h"
 
-
-//  Sorts, by estID, a file of polishes.
-//
-//  This is an ONLINE sort.  All the polishes must fit in core.
-//  Memory usage is displayed while polishes are being read.
-//
-//  To keep memory use down, please strip deflines and alignments from
-//  the polishes, if they are not needed.
+//  Sorts a file of polishes by cDNA or genomic idx.
 
 char const *usage =
 "usage: %s [-c | -g] [-m M] [-t T]\n"
 "  -c         Sort by the cDNA index.\n"
 "  -g         Sort by the genomic index.\n"
-"  -m M       Use at most M MB of core (will use a disk-based merge if\n"
-"             needed).\n"
-"  -t T       Use \"T.%03d\" for temporary file names.\n"
+"  -m M       Use at most M MB of core, using a disk-based merge if memory\n"
+"             is exhausted.  Default: 4096.\n"
+"  -t T       Use directory 'T' for temporary files.  Default is the current\n"
+"             working directory.  The sort unlinks files immediately after\n"
+"             creation: no files will exist, but space will be used.\n"
 "  -v         Be verbose.\n"
 "\n"
-"  defaults:  M == 4096 (4GB, includes the cost for N)\n"
-"             T == sortPolish.PID\n"
-"\n"
-"  Both sort methods use the OTHER index as a secondary key\n"
-"\n";
-
-char *filePrefix = "sortPolishes";
+"  Both sort methods use the OTHER index as a secondary key.\n";
 
 
-int
-writeTemporary(sim4polish **p, int pNum, int numTemporary) {
-  char   name[1024];
-  FILE  *file;
-  int    i;
 
-  sprintf(name, "%s.%d.%d", filePrefix, (int)getpid(), numTemporary);
-  file = fopen(name, "wb");
-  if (file == 0L) {
-    fprintf(stderr, "Can't open '%s' for writing\n", name);
+
+double
+findMemorySize(double upperAlloc) {
+  struct rlimit rlp;
+
+  errno = 0;
+  getrlimit(RLIMIT_DATA, &rlp);
+  if (errno) {
+    fprintf(stderr, "Can't getrlimit(RLIMIT_DATA, ...)\n%s\n", strerror(errno));
     exit(1);
   }
 
-  for (i=0; i<pNum; i++)
-    s4p_printPolish(file, p[i], S4P_PRINTPOLISH_FULL);
+  //  If there is a shell imposed limit, use that, but a little less
+  //  so we don't get killed.
+  //
+  if (rlp.rlim_cur - 32 * 1024 * 1024 < upperAlloc) {
+    fprintf(stderr, "WARNING:  You appear to have a memory limit of %.3fMB, but requested %.3fMB.\n",
+            rlp.rlim_cur / 1048576.0, upperAlloc / 1048576.0);
+    upperAlloc = rlp.rlim_cur - 32 * 1024 * 1024;
+    fprintf(stderr, "WARNING:  Memory limit reset to %.3fMB - 32MB margin of safety = %.3fMB.\n", rlp.rlim_cur / 1048576.0, upperAlloc / 1048576.0);
+  }
 
-  fclose(file);
-
-  return(numTemporary+1);
+  return(upperAlloc);
 }
+
+
+
+//fprintf(stderr, "Current process size is %.3fMB / %.3fMB\n", arrayAlloc / 1048576.0, getProcessSize() / 1048576.0);
+
+
+double
+getProcessSize(void) {
+  struct rusage  ru;
+  double         sz = 0;
+
+  errno = 0;
+  if (getrusage(RUSAGE_SELF, &ru) == -1) {
+    fprintf(stderr, "Can't getrusage(RUSAGE_SELF, ...)\n%s\n", strerror(errno));
+  } else {
+    sz = ru.ru_maxrss * 1024;
+  }
+
+  return(sz);
+}
+
+
+
+FILE*
+writeTemporary(char *filePrefix, sim4polish **p, int pLen, int (*fcn)(const void *, const void *)) {
+  FILE  *F = NULL;
+  int    i = 0;
+
+  qsort(p, pLen, sizeof(sim4polish *), fcn);
+
+  F = makeTempFile(filePrefix);
+
+  for (i=0; i<pLen; i++)
+    s4p_printPolish(F, p[i], S4P_PRINTPOLISH_FULL);
+
+  rewind(F);
+
+  return(F);
+}
+
+
+
+
+
+
+
+//  Save the polish using palloc
+//
+sim4polish *
+savePolish(sim4polish *q, double *alloc) {
+  sim4polish   *r = NULL;
+  int           l = 0;
+  int           i = 0;
+
+  //  Copy the base polish structure.
+  //
+  r = (sim4polish *)palloc(sizeof(sim4polish));
+  memcpy(r, q, sizeof(sim4polish));
+  *alloc += sizeof(sim4polish);
+
+  //  Copy the deflines.
+  //
+  if (q->estDefLine && q->genDefLine) {
+    l = strlen(q->estDefLine) + 1;
+    r->estDefLine = (char *)palloc(sizeof(char) * l);
+    memcpy(r->estDefLine, q->estDefLine, sizeof(char) * l);
+    *alloc += l * sizeof(char);
+ 
+    l = strlen(q->genDefLine) + 1;
+    r->genDefLine = (char *)palloc(sizeof(char) * l);
+    memcpy(r->genDefLine, q->genDefLine, sizeof(char) * l);
+    *alloc += l * sizeof(char);
+  } else {
+    r->estDefLine = 0L;
+    r->genDefLine = 0L;
+  }
+
+  //  Copy the base exon structure.
+  //
+  r->exons = (sim4polishExon *)palloc(sizeof(sim4polishExon) * q->numExons);
+  memcpy(r->exons, q->exons, sizeof(sim4polishExon) * q->numExons);
+  *alloc += sizeof(sim4polishExon) * q->numExons;
+
+  //  Copy the exon alignments.
+  //
+  for (i=0; i<q->numExons; i++) {
+    if (q->exons[i].estAlignment) {
+      l = strlen(q->exons[i].estAlignment) + 1;
+      r->exons[i].estAlignment = (char *)palloc(sizeof(char) * l);
+      memcpy(r->exons[i].estAlignment, q->exons[i].estAlignment, sizeof(char) * l);
+      *alloc += l * sizeof(char);
+    }
+
+    if (q->exons[i].genAlignment) {
+      l = strlen(q->exons[i].genAlignment) + 1;
+      r->exons[i].genAlignment = (char *)palloc(sizeof(char) * l);
+      memcpy(r->exons[i].genAlignment, q->exons[i].genAlignment, sizeof(char) * l);
+      *alloc += l * sizeof(char);
+    }
+  }
+
+  return(r);
+}
+
+
+void
+statusReport(int pLen, int mergeFilesLen, double arrayAlloc, double matchAlloc) {
+  fprintf(stderr, "Read: %8d polishes -- %5d temporary files -- %8.3fMB / %8.3fMB -- %8.3f bytes/polish\r",
+          pLen,
+          mergeFilesLen,
+          (arrayAlloc + matchAlloc) / 1048576.0,
+          getProcessSize() / 1048576.0,
+          matchAlloc / pLen);
+  fflush(stderr);
+}
+
+
+
+
+//  The OS limit is usually hit before this, but this is
+//  the maximum number of files we can have open at once.
+//
+#define MERGE_FILES_MAX  OPEN_MAX
 
 
 int
 main(int argc, char **argv) {
   int          beVerbose = 0;
-  int          pNum   = 0;
-  int          pAlloc = 131072;
-  sim4polish **p      = 0L;
-  sim4polish  *q      = 0L;
-  double       allocI = 0;
-  double       allocM = 4096.0 * 1024 * 1024;
-  double       alloc  = 0;
+  char        *filePrefix = NULL;
+
+  sim4polish **p    = 0L;
+  int          pLen = 0;
+  int          pMax = 1 * 1024 * 1024;
+
+  sim4polish  *q    = 0L;
+
+  double       upperAlloc = 4096.0 * 1024 * 1024;  //  Maximum allowed memory usage
+  double       arrayAlloc = 0;                     //  Static stuff: the process, arrays
+  double       matchAlloc = 0;                     //  palloc size, matches
+
   int          i      = 0;
+
   int        (*fcn)(const void *, const void *) = 0L;
 
-  int          edl = 0;
-  int          gdl = 0;
-
-  int          numTemporary = 0;
   int          moreInput = 1;
 
-  int arg = 1;
+  FILE        *mergeFiles[MERGE_FILES_MAX];
+  int          mergeFilesLen = 0;
+
+  int          arg = 1;
   while (arg < argc) {
-    if        (strncmp(argv[arg], "-c", 2) == 0) {
+    if        (strncmp(argv[arg], "-v", 2) == 0) {
+      beVerbose = 1;
+    } else if (strncmp(argv[arg], "-c", 2) == 0) {
       fcn = s4p_estIDcompare;
     } else if (strncmp(argv[arg], "-g", 2) == 0) {
       fcn = s4p_genIDcompare;
     } else if (strncmp(argv[arg], "-m", 2) == 0) {
       arg++;
-      allocM = atof(argv[arg]) * 1024.0 * 1024.0;
+      upperAlloc = atof(argv[arg]) * 1048576.0;
     } else if (strncmp(argv[arg], "-t", 2) == 0) {
       arg++;
       filePrefix = argv[arg];
-    } else if (strncmp(argv[arg], "-v", 2) == 0) {
-      beVerbose = 1;
     } else {
       fprintf(stderr, "unknown option: %s\n", argv[arg]);
     }
@@ -141,20 +225,17 @@ main(int argc, char **argv) {
   }
 
   if (isatty(fileno(stdin))) {
-    fprintf(stderr, usage, argv[0]);
-    fprintf(stderr, "\nI cannot read polishes from the terminal.\n");
+    fprintf(stderr, "%s: cannot read polishes from the terminal.\n", argv[0]);
     exit(1);
   }
 
   if (isatty(fileno(stdout))) {
-    fprintf(stderr, usage, argv[0]);
-    fprintf(stderr, "\nI will not write polishes to the terminal.\n");
+    fprintf(stderr, "%s: will not write polishes to the terminal.\n", argv[0]);
     exit(1);
   }
 
   if (fcn == 0L) {
-    fprintf(stderr, usage, argv[0]);
-    fprintf(stderr, "\nYou must tell me what key to sort with (-c or -g)\n");
+    fprintf(stderr, "%s: what key do you want to sort on (-c or -g)\n", argv[0]);
     exit(1);
   }
 
@@ -163,27 +244,26 @@ main(int argc, char **argv) {
   //  memory available (or, to at least, determine if this process can
   //  get to be as big as the silly user said it can.
   //
-  {
-    double   maxmemory = findMemorySize();
+  upperAlloc = findMemorySize(upperAlloc);
 
-    if (maxmemory < allocM) {
-      allocM = (int)(maxmemory / (1024 * 1024) - 128 - 64);
-      fprintf(stderr, "WARNING:  You have a memory limit of %8.3fMB.  -m reset to %.0f\n",
-              maxmemory / (1024 * 1024),
-              allocM);
-      allocM *= 1024 * 1024;
-    }
-  }
+  arrayAlloc = getProcessSize();
 
-
-  allocI = sizeof(sim4polish *) * pAlloc;
   errno = 0;
-  p      = (sim4polish **)malloc(sizeof(sim4polish *) * pAlloc);
+  p     = (sim4polish **)calloc(pMax, sizeof(sim4polish *));
   if (errno) {
     fprintf(stderr, "ERROR: Can't allocate initial polish storage!\n%s\n", strerror(errno));
     exit(1);
   }
 
+  arrayAlloc += sizeof(sim4polish *) * pMax;
+
+
+  //  XXX: With small memory sizes, we occasionally run out of data
+  //  space.  This looks like an artifact of not having palloc() use
+  //  a blocksize that divides our upperAlloc size.  This attempts to
+  //  sync them up.
+  //
+  psetblocksize(upperAlloc / 16);
 
 
   while (!feof(stdin)) {
@@ -193,187 +273,122 @@ main(int argc, char **argv) {
 
       //  Allocate more pointer space, if we need to
       //
-      if (pNum >= pAlloc) {
-        sim4polish **N = (sim4polish **)realloc(p, sizeof(sim4polish *) * pAlloc * 2);
+      if ((pLen >= pMax) ||\
+          (arrayAlloc + matchAlloc >= upperAlloc)) {
 
-        //  If we cannot allocate more pointer space, save the current stuff
-        //  in a temporary file, and continue.
+        //  If reallocating more pointer space doesn't blow our memory
+        //  limit, try allocating some more space.  We might need
+        //  space for both the original array and the new one, so we
+        //  can copy the old into the new.
+        //
+        sim4polish **N = 0L;
+
+        if (arrayAlloc + matchAlloc + sizeof(sim4polish*) * pMax * 2 < upperAlloc) {
+          fprintf(stderr, "realloc to %d\n", pMax * 2);
+          N = (sim4polish **)realloc(p, sizeof(sim4polish *) * pMax * 2);
+        }
+
+        //  If N is NULL, then we were unable to get more space,
+        //  either by a soft limit or failure of realloc.  Save the
+        //  current stuff in a temporary file, and continue.
         //
         if (N == 0L) {
-          qsort(p, pNum, sizeof(sim4polish *), fcn);
-          numTemporary = writeTemporary(p, pNum, numTemporary);
+          if (beVerbose) {
+            statusReport(pLen, mergeFilesLen+1, arrayAlloc, matchAlloc);
+            fprintf(stderr, "\n");
+          }
+
+          if (mergeFilesLen >= MERGE_FILES_MAX) {
+            fprintf(stderr, "Too many open files.  Try increasing memory size.\n");
+            exit(1);
+          }
+          mergeFiles[mergeFilesLen++] = writeTemporary(filePrefix, p, pLen, fcn);
+
           pfree();
-          alloc = 0;
-          pNum = 0;
+          matchAlloc = 0;
+          pLen = 0;
         } else {
-          pAlloc *= 2;
+          pMax *= 2;
           p       = N;
+
+          arrayAlloc += sizeof(sim4polish *) * pMax;
         }
       }
 
+      //  Save, then kill, the polish
       //
-      //  Save the polish using palloc
-      //
-
-      p[pNum] = (sim4polish *)palloc(sizeof(sim4polish));
-      memcpy(p[pNum], q, sizeof(sim4polish));
-
-      //  Copy the deflines
-      //
-      if (q->estDefLine && q->genDefLine) {
-        edl = strlen(q->estDefLine) + 1;
-        gdl = strlen(q->genDefLine) + 1;
-
-        p[pNum]->estDefLine = (char *)palloc(sizeof(char) * edl);
-        p[pNum]->genDefLine = (char *)palloc(sizeof(char) * gdl);
-
-        memcpy(p[pNum]->estDefLine, q->estDefLine, sizeof(char) * edl);
-        memcpy(p[pNum]->genDefLine, q->genDefLine, sizeof(char) * gdl);
-      } else {
-        p[pNum]->estDefLine = 0L;
-        p[pNum]->genDefLine = 0L;
-      }
-
-      //  Copy exons
-      //
-      p[pNum]->exons = (sim4polishExon *)palloc(sizeof(sim4polishExon) * q->numExons);
-      memcpy(p[pNum]->exons, q->exons, sizeof(sim4polishExon) * q->numExons);
-
-      alloc += (sizeof(sim4polish) +
-                sizeof(sim4polishExon) * q->numExons +
-                sizeof(char) * (edl + gdl));
-
-      for (i=0; i<q->numExons; i++) {
-        if (q->exons[i].estAlignment) {
-          edl = strlen(q->exons[i].estAlignment) + 1;
-          p[pNum]->exons[i].estAlignment = (char *)palloc(sizeof(char) * edl);
-          memcpy(p[pNum]->exons[i].estAlignment, q->exons[i].estAlignment, sizeof(char) * edl);
-          alloc += edl * sizeof(char);
-        }
-        if (q->exons[i].genAlignment) {
-          edl = strlen(q->exons[i].genAlignment) + 1;
-          p[pNum]->exons[i].genAlignment = (char *)palloc(sizeof(char) * edl);
-          memcpy(p[pNum]->exons[i].genAlignment, q->exons[i].genAlignment, sizeof(char) * edl);
-          alloc += edl * sizeof(char);
-        }
-      }
-
-      pNum++;
-
-      if (beVerbose && ((pNum % 25000) == 0)) {
-        fprintf(stderr, "Read: %8d polishes -- %8.3fMB -- %8.3f bytes/polish\n",
-                pNum,
-                (allocI + alloc) / (1024.0 * 1024.0),
-                alloc / pNum);
-        fflush(stderr);
-      }
-
-      //  Saved the polish.  Kill it.
-      //
+      p[pLen++] = savePolish(q, &matchAlloc);
       s4p_destroyPolish(q);
-
-      //  If we're out of space, save everything (sorted) to a temporary file.
-      //
-      if (allocI + alloc >= allocM) {
-        qsort(p, pNum, sizeof(sim4polish *), fcn);
-        numTemporary = writeTemporary(p, pNum, numTemporary);
-        pfree();
-        alloc = 0;
-        pNum = 0;
-      }
     }
+
+    if (beVerbose && ((pLen % 2000) == 0))
+      statusReport(pLen, mergeFilesLen+1, arrayAlloc, matchAlloc);
   }
 
   if (beVerbose) {
-    fprintf(stderr, "Read: %8d polishes -- %8.3fMB -- %8.3f bytes/polish\n",
-            pNum,
-            alloc / (1024.0 * 1024.0),
-            alloc / pNum);
-    fflush(stderr);
+    statusReport(pLen, mergeFilesLen+1, arrayAlloc, matchAlloc);
+    fprintf(stderr, "\n");
   }
 
 
-  if (numTemporary == 0) {
+  if (mergeFilesLen == 0) {
     //  No temporary files.  Sort the polishes, and dump.
-    qsort(p, pNum, sizeof(sim4polish *), fcn);
+    qsort(p, pLen, sizeof(sim4polish *), fcn);
 
-    for (i=0; i<pNum; i++)
+    for (i=0; i<pLen; i++)
       s4p_printPolish(stdout, p[i], S4P_PRINTPOLISH_FULL);
   } else {
-    FILE        **InF;
-    sim4polish  **q;
 
     //  Crud.  Temporary files.  Sort the last batch, dump it, then do
     //  a merge.
     //
-    qsort(p, pNum, sizeof(sim4polish *), fcn);
-    numTemporary = writeTemporary(p, pNum, numTemporary);
-    pfree();
-    alloc = 0;
-    pNum = 0;
-
-    InF = (FILE **)malloc(sizeof(FILE *) * numTemporary);
-    if (InF == 0L) {
-      fprintf(stderr, "Couldn't allocate file pointers in merge!\n");
+    if (mergeFilesLen >= MERGE_FILES_MAX) {
+      fprintf(stderr, "Too many open files.  Try increasing memory size.\n");
       exit(1);
     }
+    mergeFiles[mergeFilesLen++] = writeTemporary(filePrefix, p, pLen, fcn);
 
-    q = (sim4polish **)malloc(sizeof(sim4polish) * numTemporary);
-    if (q == 0L) {
+    pfree();
+    matchAlloc = 0;
+    pLen = 0;
+
+    //
+    //  The merge
+    //
+
+    free(p);
+
+    p = (sim4polish **)malloc(sizeof(sim4polish) * mergeFilesLen);
+    if (p == 0L) {
       fprintf(stderr, "Couldn't allocate polish pointers in merge!\n");
       exit(1);
     }
 
-    //  Open all the files, reading the first polish from each.
-    //
-    for (i=0; i<numTemporary; i++) {
-      char   name[1024];
-
-      sprintf(name, "%s.%d.%d", filePrefix, (int)getpid(), i);
-      InF[i] = fopen(name, "rb");
-      if (InF[i] == 0L) {
-        fprintf(stderr, "Can't open '%s' for reading\n", name);
-        exit(1);
-      }
-
-      //  Now that we have an active handle, we can unlink the file.
-      //  If the user aborts us early, the OS will remove the file for
-      //  us.
-      //
-      unlink(name);
-
-      q[i] = s4p_readPolish(InF[i]);
-    }
-
-    //
-    //  While there are open files, print the lowest polish, reading the next
-    //
+    for (i=0; i<mergeFilesLen; i++)
+      p[i] = s4p_readPolish(mergeFiles[i]);
 
     while (moreInput) {
       int smallestPolish = 0;
       int nextPolish     = 1;
 
-      for (nextPolish = smallestPolish+1; nextPolish < numTemporary; nextPolish++) {
-        if ((*fcn)(q+smallestPolish, q+nextPolish) > 0)
+      //  Find the smallest polish.
+      //
+      for (nextPolish = smallestPolish+1; nextPolish < mergeFilesLen; nextPolish++) {
+        if ((*fcn)(p+smallestPolish, p+nextPolish) > 0)
           smallestPolish = nextPolish;
       }
 
-      //  If the smallestPolish is 0L, we're all done.
+      //  If the smallestPolish is 0L, we're all done.  Otherwise, dump
+      //  the current smallest and fill it with a new polish.
       //
-      if (q[smallestPolish] == 0L) {
+      if (p[smallestPolish] == 0L) {
         moreInput = 0;
       } else {
-        s4p_printPolish(stdout, q[smallestPolish], S4P_PRINTPOLISH_FULL);
-        s4p_destroyPolish(q[smallestPolish]);
-        q[smallestPolish] = s4p_readPolish(InF[smallestPolish]);
+        s4p_printPolish(stdout, p[smallestPolish], S4P_PRINTPOLISH_FULL);
+        s4p_destroyPolish(p[smallestPolish]);
+        p[smallestPolish] = s4p_readPolish(mergeFiles[smallestPolish]);
       }
     }
-
-    //
-    //  Close everybody
-    //
-    for (i=0; i<numTemporary; i++)
-      fclose(InF[i]);
   }
 
 
