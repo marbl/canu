@@ -35,6 +35,12 @@ public:
   sim4polishFile(char *path);
   ~sim4polishFile();
 
+  //  Number of EST's actually present
+  //
+  u32bit    maxIID(void) {
+    return(_maxEST);
+  };
+
   //  Returns all matches with:
   //    ESTid == iid
   //    GENid == iid AND that overlap the range lo...hi
