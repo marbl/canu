@@ -9,7 +9,8 @@
 default:   all
 
 # kind of useful for debugging
-
+# this target just prints out the directories traversed,
+# the non-recursive includes found and a bunch of targets
 debug:
 	@echo DIRS ${//}
 	@echo RECS ${RECURSIVE}
@@ -20,8 +21,11 @@ debug:
 	@echo ALL_CXX_SHLIBS ${ALL_CXX_SHLIBS}
 	@echo INSTALL ${INSTALL/}
 
-# Compiler information and options.  Always get it from the same directory
-# as this makefile.
+## loading Make.compilers
+# Compiler information and options.
+# Always get it from the same directory as this makefile.
+# Note: I should really change the name of Make.compilers to
+#       Makeconf or Make.config or something like that.
 MAKEFILE/ :=$(dir $(firstword $(MAKEFILE_LIST)))
 ifdef MAKE_COMPILERS
  include ${MAKE_COMPILERS}
@@ -30,10 +34,23 @@ else
 endif
 
 ##### non-recursive make magic
+# all directories which have been included
 //           :=
+# recursive directories to be filtered out of //
+# and handled differently
 RECURSIVE    :=
+# current path (empty)
 /            :=
 
+## Include -hack
+# Include is wrapped in something which will push and pop /
+# properly while adding newly discovered directories to //
+# and keeping track of who is who's children (.SUBS).
+#
+# Each directory so included has its Make.include file included.
+# Those Make.include files can use $/ prepended to local names
+# to prevent name pollution, and define their own subtargets.
+#
 define Include
  $(foreach x,$(strip ${1}),$(call Include_File,$x))
 endef
@@ -53,39 +70,26 @@ define Include_File
 endef
 
 ##### System specific includes
+
+## WITHOUT
+# If the user specifies a WITHOUT, then those paths are not
+# followed.
 WITHOUT_:=$(patsubst %,%.,$(strip ${WITHOUT}))
 
-# invoke the toplevel include file
+## First Make.include inclusion
+# invoke the toplevel include file.
+# We use 'Include_File' instead of 'Include' since $/ is empty
 $(eval $(call Include_File,$/))
 
-#### Targets which have been declared RECURSIVE are not pulled up
+#### Targets which have been declared RECURSIVE are removed
+# from // and processed separately.
 //            :=$(filter-out ${RECURSIVE},${//})
 
-## rules for each subtarget
-#  current subtargets are :
-#        all, ls, clean, real-clean, depends-clean, install
+# RECURSIVE now holds the paths which are being done legacy style
+# and // holds the paths which are going to be part of the system.
 
-###
-# the global make targets
-all:           recursive-all           $/.all
-clean:         recursive-clean         $/.clean
-real-clean:    recursive-real-clean    $/.real-clean
-depends-clean:                         $/.depends-clean
-install:       recursive-install       $/.install
-ls:                                    $/.ls
-
-## some general targets must be supported for legacy recursive-make
-#  these targets will come before the non-recursive targets.
-#  Maybe it would be better to have before and after recmakedirs.
-recursive-all:           ${RECURSIVE:.=.all}
-recursive-clean:         ${RECURSIVE:.=.clean}
-recursive-real-clean:    ${RECURSIVE:.=.real-clean}
-recursive-install:       ${RECURSIVE:.=.install}
-# depends clean is an optional recursive target
-${RECURSIVE:.=.depends-clean}:
-${RECURSIVE:.=.ls}:
-
-##  generic pattern rules for subgoals
+######  generic pattern rules for subgoals
+# rules for C/C++
 %.o: %.c
 	${CC} ${CFLAGS} ${CFLAGS_COMPILE} -o $@ -c $<
 
@@ -98,6 +102,7 @@ ${RECURSIVE:.=.ls}:
 %.o: %.C
 	${CXX} ${CXXFLAGS} ${CXXFLAGS_COMPILE} -o $@ -c $<
 
+# rules for LATEX
 %.dvi: %.tex
 	${LATEX} $< && ${LATEX} $<
 
@@ -105,10 +110,16 @@ ${RECURSIVE:.=.ls}:
 	${DVIPS} -o $@ $<
 
 ### Building depends goals
+# using '=' instead of ':=' for that dynamic scoping
 __DEPGOALS__=
 
+# really, only C/C++ depends goals are built here right now.
+# C_SRCS and CXX_SRCS are collected together and turned into
+# associated *.d dependency files.
+
 # WISHLIST: does not propagate failure to the parent make
-# for some reason.  It really should.
+# for some reason.  It really should.  I think the pipe to
+# sed masks the exit code.
 ALL_C_SRCS       :=$(strip $(foreach x,${//},${${x:.=.C_SRCS}}))
 ALL_C_DEPS       :=${ALL_C_SRCS:=.d}
 ${ALL_C_DEPS}:%.d:%
@@ -116,6 +127,7 @@ ${ALL_C_DEPS}:%.d:%
 	 dir=`echo $< | sed -e's~[^/]*$$~~'`; \
 	  ${CCDEP} ${CDEPFLAGS} ${CFLAGS} $< | \
 	  sed -e"/:/s!^!$${dir}!" > $@
+__DEPGOALS__+=$${${1:.=.C_SRCS}:=.d}
 
 ALL_CXX_SRCS     :=$(strip $(foreach x,${//},${${x:.=.CXX_SRCS}}))
 ALL_CXX_DEPS     :=${ALL_CXX_SRCS:=.d}
@@ -124,18 +136,22 @@ ${ALL_CXX_DEPS}:%.d:%
 	 dir=`echo $< | sed -e's~[^/]*$$~~'`; \
 	  ${CXXDEP} ${CXXDEPFLAGS} ${CXXFLAGS} $< | \
 	  sed -e"/:/s!^!$${dir}!" > $@
-
-__DEPGOALS__+=$${${1:.=.C_SRCS}:=.d}
 __DEPGOALS__+=$${${1:.=.CXX_SRCS}:=.d}
 
 ## include the .d files
-# this gives us a way out if something goes horribly wrong...
+# This contional gives us a way out if something goes horribly
+# wrong...
 ifeq ($(filter %-clean,${MAKECMDGOALS}),)
   include ${ALL_C_DEPS} ${ALL_CXX_DEPS}
 endif
 
 ### Building subgoals
-# subgoals are done with the deferred '=' not the ':='
+#   The goals are C/C++ programs, libs, and anything else we add
+#   to the mix below.  It would not be unreasonable to allow some
+#   sort of extension system whereby rules get included too.
+
+# subgoals are done with the deferred '=' not the ':='.
+# This is because we want dynamic scoping.
 __SUBGOALS__=
 
 ## EXE targets
@@ -169,10 +185,19 @@ ${ALL_CXX_SHLIBS}:
 __SUBGOALS__+=$${${1:.=.CXX_SHLIBS}}
 
 
-#####################################################################
-# recursive rules, applied to all subdirectory targets
-#####################################################################
+####### recursive rules, applied to all subdirectory targets
+# We define the basic form of the all, clean, ... rules on a
+# per-path basis (the $/.all, $..clean, ... targets).  This allows
+# selective targeting.
 
+
+## rules for each subtarget
+#  current subtargets are :
+#        all, ls, clean, real-clean, depends-clean, install
+#  with all, clean, real-clean, install being required targets
+#  of recursive makes.
+
+clean:         ${RECURSIVE:.=.clean}      $/.clean
 define .RULE-clean
 ${1:.=.clean}: $${${1:.=.SUBS}:.=.clean}
 	rm -f $${${1:.=.CLEAN}} ${__SUBGOALS__}
@@ -181,6 +206,8 @@ ${1:.=.clean}: $${${1:.=.SUBS}:.=.clean}
 endef
 $(eval $(foreach x,${//},$(call .RULE-clean,$x)))
 
+depends-clean:                            $/.depends-clean
+${RECURSIVE:.=.depends-clean}:
 define .RULE-depends-clean
 ${1:.=.depends-clean}: $${${1:.=.SUBS}:.=.depends-clean}
 	rm -f ${1:.=Make.depends} ${__DEPGOALS__}
@@ -188,6 +215,7 @@ ${1:.=.depends-clean}: $${${1:.=.SUBS}:.=.depends-clean}
 endef
 $(eval $(foreach x,${//},$(call .RULE-depends-clean,$x)))
 
+real-clean:    ${RECURSIVE:.=.real-clean} $/.real-clean
 define .RULE-real-clean
 ${1:.=.real-clean}: $${${1:.=.SUBS}:.=.real-clean}
 	rm -f $${${1:.=.CLEAN}} ${__SUBGOALS__}
@@ -198,6 +226,7 @@ ${1:.=.real-clean}: $${${1:.=.SUBS}:.=.real-clean}
 endef
 $(eval $(foreach x,${//},$(call .RULE-real-clean,$x)))
 
+all:           ${RECURSIVE:.=.all}        $/.all
 define .RULE-all
 ${1:.=.all}: $${${1:.=.SUBS}:.=.all} ${__SUBGOALS__}
 
@@ -206,6 +235,7 @@ $(eval $(foreach x,${//},$(call .RULE-all,$x)))
 
 ## this is kind of a horrible hack right now.  Maybe there is a
 ## better way to do this.
+install:       ${RECURSIVE:.=.install}    $/.install
 define .RULE-install
 ${1:.=.install}: $${${1:.=.SUBS}:.=.install} ${__SUBGOALS__} \
     $${1:.=.C_INCS} \
@@ -240,7 +270,10 @@ ${1:.=.install}: $${${1:.=.SUBS}:.=.install} ${__SUBGOALS__} \
 endef
 $(eval $(foreach x,${//},$(call .RULE-install,$x)))
 
+
 LSOPTS:=-l
+ls:                                       $/.ls
+${RECURSIVE:.=.ls}:
 define .RULE-ls
 ${1:.=.ls}: $${${1:.=.SUBS}:.=.ls}
 	@ files='$$(strip ${__SUBGOALS__})'; \
