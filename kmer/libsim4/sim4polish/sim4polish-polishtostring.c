@@ -41,7 +41,7 @@ s4p_polishToString(sim4polish *p) {
       mOri = "error";
       break;
     default:
-      fprintf(stderr, "sim4reader: Unknown matchOrientation '%c' in printPolish()\n", p->matchOrientation);
+      fprintf(stderr, "sim4reader: Unknown matchOrientation '"u32bitFMT"' in printPolish()\n", p->matchOrientation);
       mOri = "UNKNOWN";
       break;
   }
@@ -66,12 +66,12 @@ s4p_polishToString(sim4polish *p) {
       sOri = "error";
       break;
     default:
-      fprintf(stderr, "sim4reader: Unknown strandOrientation '%c' in printPolish()\n", p->matchOrientation);
+      fprintf(stderr, "sim4reader: Unknown strandOrientation '"u32bitFMT"' in printPolish()\n", p->matchOrientation);
       sOri = "UNKNOWN";
       break;
   }
 
-  sprintf(outc, "sim4begin\n%d[%d-%d-%d] %d[%d-%d] <%d-%d-%d-%s-%s>\n",
+  sprintf(outc, "sim4begin\n"u32bitFMT"["u32bitFMT"-"u32bitFMT"-"u32bitFMT"] "u32bitFMT"["u32bitFMT"-"u32bitFMT"] <"u32bitFMT"-"u32bitFMT"-"u32bitFMT"-%s-%s>\n",
           p->estID, p->estLen, p->estPolyA, p->estPolyT,
           p->genID, p->genLo, p->genHi,
           p->numMatches, p->numMatchesN, p->percentIdentity, mOri, sOri);
@@ -114,7 +114,7 @@ s4p_polishToString(sim4polish *p) {
         break;
     }
 
-    sprintf(outc, "%d-%d (%d-%d) <%d-%d-%d>%s\n",
+    sprintf(outc, ""u32bitFMT"-"u32bitFMT" ("u32bitFMT"-"u32bitFMT") <"u32bitFMT"-"u32bitFMT"-"u32bitFMT">%s\n",
             p->exons[i].estFrom, p->exons[i].estTo,
             p->exons[i].genFrom, p->exons[i].genTo,
             p->exons[i].numMatches, p->exons[i].numMatchesN, p->exons[i].percentIdentity, iOri);

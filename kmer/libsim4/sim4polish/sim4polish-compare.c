@@ -134,6 +134,7 @@ s4p_IsSameExonModel(sim4polish *A, sim4polish *B, u32bit tolerance) {
       return(0);
     }
   }
+  return(1);
 }
 
 
@@ -146,7 +147,7 @@ s4p_compareExons_Overlap(sim4polish *A,
                          int        *numMissing,
                          int        *numExtra) {
   int       i, j;
-  int       Dlo=0, Dhi=0;
+  //int       Dlo=0, Dhi=0;
   int       al=0, ah=0, bl=0, bh=0;
   int      *foundA = 0L;
   int      *foundB = 0L;
@@ -155,11 +156,13 @@ s4p_compareExons_Overlap(sim4polish *A,
   if (numMissing)  *numMissing = 0;
   if (numExtra)    *numExtra   = 0;
 
+  errno = 0;
+
   foundA = (int *)malloc(sizeof(int) * (A->numExons + B->numExons));
   foundB = foundA + A->numExons;
 
   if (errno) {
-    fprintf(stderr, "s4p_compareExons()-- Can't allocate %u + %u int's for counting exons.\n%s\n", A->numExons, B->numExons, strerror(errno));
+    fprintf(stderr, "s4p_compareExons()-- Can't allocate "u32bitFMT" + "u32bitFMT" words for counting exons.\n%s\n", A->numExons, B->numExons, strerror(errno));
     exit(1);
   }
 
@@ -225,7 +228,7 @@ s4p_compareExons_Ends(sim4polish *A,
                       int        *numExtra) {
   int       i, j;
   int       Dlo=0, Dhi=0;
-  int       al=0, ah=0, bl=0, bh=0;
+  //int       al=0, ah=0, bl=0, bh=0;
   int      *foundA = 0L;
   int      *foundB = 0L;
 
@@ -237,7 +240,7 @@ s4p_compareExons_Ends(sim4polish *A,
   foundB = foundA + A->numExons;
 
   if (errno) {
-    fprintf(stderr, "s4p_compareExons()-- Can't allocate %u + %u int's for counting exons.\n%s\n", A->numExons, B->numExons, strerror(errno));
+    fprintf(stderr, "s4p_compareExons()-- Can't allocate "u32bitFMT" + "u32bitFMT" words for counting exons.\n%s\n", A->numExons, B->numExons, strerror(errno));
     exit(1);
   }
 

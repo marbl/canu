@@ -19,8 +19,6 @@ s4p_removeAlignments(sim4polish *p) {
 
 void
 s4p_removeDeflines(sim4polish *p) {
-  int i;
-
   if (p) {
     free(p->estDefLine);
     p->estDefLine = 0L;
@@ -33,9 +31,8 @@ s4p_removeDeflines(sim4polish *p) {
 
 void
 s4p_destroyPolish(sim4polish *p) {
-  int i;
-
   if (p) {
+    int i;
     for (i=0; i<p->numExons; i++) {
       free(p->exons[i].estAlignment);
       free(p->exons[i].genAlignment);

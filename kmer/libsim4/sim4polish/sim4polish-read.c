@@ -93,7 +93,7 @@ s4p_readPolish(FILE *F) {
   sim4polish      *p = 0L;
   _line           *l = newLine();
   int              r;
-  int              ef, et, gf, gt, nm, nn, id;
+  u32bit           ef, et, gf, gt, nm, nn, id;
   int              el = 0;
   int              em = 256;
   sim4polishExon  *ex = 0L;
@@ -130,7 +130,7 @@ s4p_readPolish(FILE *F) {
 
   mOri[0] = 0;
   sOri[0] = 0;
-  r = sscanf(l->s, "%d[%d %d %d] %d[%d %d] <%d %d %d %s %s>",
+  r = sscanf(l->s, ""u32bitFMT"["u32bitFMT" "u32bitFMT" "u32bitFMT"] "u32bitFMT"["u32bitFMT" "u32bitFMT"] <"u32bitFMT" "u32bitFMT" "u32bitFMT" %s %s>",
              &p->estID,
              &p->estLen,
              &p->estPolyA,
@@ -246,7 +246,7 @@ s4p_readPolish(FILE *F) {
 
   p->numCovered = 0;
 
-  while (sscanf(l->s, "%d-%d (%d-%d) <%d-%d-%d>",
+  while (sscanf(l->s, ""u32bitFMT"-"u32bitFMT" ("u32bitFMT"-"u32bitFMT") <"u32bitFMT"-"u32bitFMT"-"u32bitFMT">",
                 &ef, &et, &gf, &gt, &nm, &nn, &id) == 7) {
     if (el >= em) {
       errno = 0;
@@ -347,7 +347,7 @@ s4p_readPolish(FILE *F) {
         }
         el = p->numExons;
 
-        fprintf(stderr, "Full alignment not found for EST=%d GEN=%d; all alignment removed.\n",
+        fprintf(stderr, "Full alignment not found for EST="u32bitFMT" GEN="u32bitFMT"; all alignment removed.\n",
                 p->estID, p->genID);
       }
     }

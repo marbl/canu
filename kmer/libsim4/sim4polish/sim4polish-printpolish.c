@@ -52,7 +52,7 @@ s4p_printPolish(FILE *O, sim4polish *o, u32bit flags) {
       mOri = "complement";
       break;
     default:
-      fprintf(stderr, "sim4reader: Unknown matchOrientation '%d' in printPolish()\n", p->matchOrientation);
+      fprintf(stderr, "sim4reader: Unknown matchOrientation '"u32bitFMT"' in printPolish()\n", p->matchOrientation);
       mOri = "UNKNOWN";
       break;
   }
@@ -74,12 +74,12 @@ s4p_printPolish(FILE *O, sim4polish *o, u32bit flags) {
       sOri = "aborted";
       break;
     default:
-      fprintf(stderr, "sim4reader: Unknown strandOrientation '%d' in printPolish()\n", p->matchOrientation);
+      fprintf(stderr, "sim4reader: Unknown strandOrientation '"u32bitFMT"' in printPolish()\n", p->matchOrientation);
       sOri = "UNKNOWN";
       break;
   }
 
-  fprintf(O, "%d[%d-%d-%d] %d[%d-%d] <%d-%d-%d-%s-%s>\n",
+  fprintf(O, ""u32bitFMT"["u32bitFMT"-"u32bitFMT"-"u32bitFMT"] "u32bitFMT"["u32bitFMT"-"u32bitFMT"] <"u32bitFMT"-"u32bitFMT"-"u32bitFMT"-%s-%s>\n",
           p->estID, p->estLen, p->estPolyA, p->estPolyT,
           p->genID, p->genLo, p->genHi,
           p->numMatches, p->numMatchesN, p->percentIdentity, mOri, sOri);
@@ -91,7 +91,7 @@ s4p_printPolish(FILE *O, sim4polish *o, u32bit flags) {
   if (p->genDefLine)
     fprintf(O, "ddef=%s\n", p->genDefLine);
   for (i=0; i<p->numExons; i++) {
-    fprintf(O, "%d-%d (%d-%d) <%d-%d-%d>",
+    fprintf(O, ""u32bitFMT"-"u32bitFMT" ("u32bitFMT"-"u32bitFMT") <"u32bitFMT"-"u32bitFMT"-"u32bitFMT">",
             p->exons[i].estFrom, p->exons[i].estTo,
             p->exons[i].genFrom, p->exons[i].genTo,
             p->exons[i].numMatches, p->exons[i].numMatchesN, p->exons[i].percentIdentity);

@@ -15,7 +15,7 @@ sim4polish*
 s4p_stringToPolish(char *s) {
   sim4polish      *p = 0L;
   int              r;
-  int              ef, et, gf, gt, nm, nn, id;
+  u32bit           ef, et, gf, gt, nm, nn, id;
   int              el = 0;
   int              em = 256;
   sim4polishExon  *ex = 0L;
@@ -134,7 +134,7 @@ s4p_stringToPolish(char *s) {
 
   mOri[0] = 0;
   sOri[0] = 0;
-  r = sscanf(lines[curLine], "%d[%d %d %d] %d[%d %d] <%d %d %d %s %s>",
+  r = sscanf(lines[curLine], ""u32bitFMT"["u32bitFMT" "u32bitFMT" "u32bitFMT"] "u32bitFMT"["u32bitFMT" "u32bitFMT"] <"u32bitFMT" "u32bitFMT" "u32bitFMT" %s %s>",
              &p->estID,
              &p->estLen,
              &p->estPolyA,
@@ -248,7 +248,7 @@ s4p_stringToPolish(char *s) {
   //  While we get exons, make exons.
   //
 
-  while (sscanf(lines[curLine], "%d-%d (%d-%d) <%d-%d-%d>",
+  while (sscanf(lines[curLine], ""u32bitFMT"-"u32bitFMT" ("u32bitFMT"-"u32bitFMT") <"u32bitFMT"-"u32bitFMT"-"u32bitFMT">",
                 &ef, &et, &gf, &gt, &nm, &nn, &id) == 7) {
     if (el >= em) {
       em *= 2;
@@ -339,7 +339,7 @@ s4p_stringToPolish(char *s) {
         }
         el = p->numExons;
 
-        fprintf(stderr, "Full alignment not found for EST=%d GEN=%d; all alignment removed.\n",
+        fprintf(stderr, "Full alignment not found for EST="u32bitFMT" GEN="u32bitFMT"; all alignment removed.\n",
                 p->estID, p->genID);
       }
     }
