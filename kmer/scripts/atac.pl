@@ -23,6 +23,7 @@ if (scalar(@ARGV) < 6) {
     print STDERR "\n";
     print STDERR "    -genomedir path        -- path to the GENOMES directory\n"; 
     print STDERR "    -meryldir  path        -- path to the MERYL directory\n";
+    print STDERR "    -bindir  path          -- path to the binaries (hack!)\n";
     print STDERR "\n";
     print STDERR "    -numsegments s         -- number of segments to do the search in\n";
     print STDERR "    -numthreads t          -- number of threads to use per search\n";
@@ -47,10 +48,9 @@ my $maxgap    = 0;  # the maximum substitution gap
 my $numSegments = 2;
 my $numThreads  = 4;
 
-my $leaff   = "/work/assembly/walenzbp/releases/leaff";
-my $meryl   = "/work/assembly/walenzbp/releases/meryl";
-my $existDB = "/work/assembly/walenzbp/releases/existDB";
-my $seatac  = "/work/assembly/walenzbp/releases/seatac";
+my $execHome;
+$execHome = "/work/assembly/walenzbp/releases";
+$execHome = "/test/IR/walenz/cds/IR/BRI/bin";
 
 while (scalar(@ARGV) > 0) {
     my $arg = shift @ARGV;
@@ -73,13 +73,31 @@ while (scalar(@ARGV) > 0) {
         $numSegments = shift @ARGV;
     } elsif ($arg eq "-numthreads") {
         $numThreads = shift @ARGV;
+    } elsif ($arg eq "-bindir") {
+        $execHome = shift @ARGV;
     }
 }
+
+$execHome = "/work/assembly/walenzbp/releases" if ($execHome eq "compaq");
+$execHome = "/test/IR/walenz/cds/IR/BRI/bin"   if ($execHome eq "aix");
+
+
+#  Decide on a path to the executables.  This is probably
+#  a hack.
+#
+my $leaff   = "$execHome/leaff";
+my $meryl   = "$execHome/meryl";
+my $existDB = "$execHome/existDB";
+my $seatac  = "$execHome/seatac";
 
 die "Can't run $leaff\n"   if (! -x $leaff);
 die "Can't run $meryl\n"   if (! -x $meryl);
 die "Can't run $existDB\n" if (! -x $existDB);
 die "Can't run $seatac\n"  if (! -x $seatac);
+
+die "Unset GENOMEdir?'\n" if (! defined($GENOMEdir));
+die "Unset MERYLdir?'\n"  if (! defined($MERYLdir));
+die "Unset ATACdir?'\n"   if (! defined($ATACdir));
 
 die "Can't find the GENOMEdir '$GENOMEdir'\n" if (! -d $GENOMEdir);
 die "Can't find the assembly descriptions '$GENOMEdir/assemblies.atai'\n" if (! -e "$GENOMEdir/assemblies.atai");
@@ -103,7 +121,7 @@ if (! -e "$ATACdir/.mask.done") {
 
     if (! -e "$ATACdir/min.$mercount1.$mercount2.mcdat") {
         print STDERR "Finding the min count between $mercount1 and $mercount2.\n";
-        if (runCommand("$meryl -v -M min -s $MERYLdir/$mercount1 -s $MERYLdir/$mercount2 -o $ATACdir/min.$mercount1.$mercount2")) {
+        if (runCommand("$meryl -M min -s $MERYLdir/$mercount1 -s $MERYLdir/$mercount2 -o $ATACdir/min.$mercount1.$mercount2")) {
             #unlink "$ATACdir/min.$mercount1.$mercount2.mcidx";
             #unlink "$ATACdir/min.$mercount1.$mercount2.mcdat";
             rename "$ATACdir/min.$mercount1.$mercount2.mcidx", "$ATACdir/min.$mercount1.$mercount2.mcidx.crash";
@@ -148,7 +166,7 @@ if (! -e "$ATACdir/.mask.done") {
 
         if (! -e "$ATACdir/$matches.exclude.mcdat") {
             print STDERR "Finding 'exclude' mers!\n";
-            if (runCommand("$meryl -v -M xor -s $MERYLdir/$id1 -s $ATACdir/min.$mercount1.$mercount2 -o $ATACdir/$matches.exclude")) {
+            if (runCommand("$meryl -M xor -s $MERYLdir/$id1 -s $ATACdir/min.$mercount1.$mercount2 -o $ATACdir/$matches.exclude")) {
                 #unlink "$ATACdir/$matches.exclude.mcidx";
                 #unlink "$ATACdir/$matches.exclude.mcdat";
                 rename "$ATACdir/$matches.exclude.mcidx", "$ATACdir/$matches.exclude.mcidx.crash";
@@ -335,6 +353,9 @@ if (! -e "$ATACdir/${id1}vs${id2}-C13.atac") {
 #
 sub runCommand {
     my $cmd = shift @_;
+
+    print STDERR "$cmd\n";
+
     my $rc = 0xffff & system($cmd);
 
     #  Pretty much copied from Programming Perl page 230
@@ -432,7 +453,7 @@ sub countMers {
     #  sequences that are genome size.
 
     if (! -e "$MERYLdir/$id.mcdat") {
-        if (runCommand("$meryl -v -B -C -m $mersize -t 27 -H 32 -s $MERYLdir/$id.fasta -o $MERYLdir/$id")) {
+        if (runCommand("$meryl -B -C -m $mersize -t 27 -H 32 -s $MERYLdir/$id.fasta -o $MERYLdir/$id")) {
             #unlink "$MERYLdir/$id.mcidx";
             #unlink "$MERYLdir/$id.mcdat";
             rename "$MERYLdir/$id.mcidx", "$MERYLdir/$id.mcidx.crash";
