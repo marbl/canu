@@ -247,16 +247,20 @@ openNewFile(char *name, char *arg) {
   f = new FastAWrapper(name);
 
   if (arg[1] == 'F') {
-    seqIDtype = 'i';
-    if (arg[2] == 'n') {
-      f->setIndexToSaveIDs();
-      seqIDtype = 'e';
+    switch (arg[2]) {
+      case 'n':
+        seqIDtype = 'e';
+        f->openIndex(FASTA_INDEX_PLUS_IDS);
+        break;
+      case 'd':
+        seqIDtype = 'e';
+        f->openIndex(FASTA_INDEX_PLUS_DEFLINES);
+        break;
+      default:
+        seqIDtype = 'i';
+        f->openIndex(FASTA_INDEX_ONLY);
+        break;
     }
-    if (arg[2] == 'd') {
-      f->setIndexToSaveDeflines();
-      seqIDtype = 'e';
-    }
-    f->openIndex();
   }
 
   return(f);
