@@ -273,6 +273,12 @@ ifeq (${_OS_},TRU64)
   CXXLDFLAGS_LAPACK :=
   CXXLIBS_LAPACK    :=-ldxml
 endif
+ifeq (${_OS_},AIX)
+# this seems to work for both gcc and non-gcc
+  CXXFLAGS_LAPACK   :=-DFTN_UNDERSCORE -DFTN_LOWERCASE
+  CXXLDFLAGS_LAPACK :=
+  CXXLIBS_LAPACK    :=-lessl
+endif
 
 # sometimes we deploy on Solaris with CDX
 ifeq (${_OS_},SunOS)
