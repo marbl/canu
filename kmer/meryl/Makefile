@@ -27,6 +27,6 @@ buildinfo-merle.c: merle.C
 	../util/buildinfo.pl merle "$(CCOPTS)" merle.C
 
 clean:
-	rm -f *.o $(PROG) buildinfo-meryl.*
+	rm -f *.o $(PROG) buildinfo-meryl.* buildinfo-merle.*
 
 include ../Makefile-configuration
