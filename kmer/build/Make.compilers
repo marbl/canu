@@ -81,11 +81,14 @@ ifeq (${_OS_}${_CC_},TRU64)
   SHLIB_FLAGS      +=-shared
   CXX_TMP_COMPILE     +=so_locations cxx_repository
 endif
+
+ifeq (${_OS_},AIX)
+  AIX_SHLIB_FLAGS      :=-Wl,-bhalt:4 -Wl,-T512 -Wl,-H512 -Wl,-bM:SRE
+endif
 ifeq (${_OS_}${_CC_},AIX)
   CC               :=xlc
   CXX              :=xlC
   SHLIB_FLAGS      +=-G
-
   AIX_RTTI_SUPPORT:=-qrtti
 ifdef WITH_AIX32
   $(warning Large files support has been disabled)
@@ -276,8 +279,10 @@ ifeq (${_OS_},TRU64)
 endif
 ifeq (${_OS_},AIX)
 # this seems to work for both gcc and non-gcc
-  CXXFLAGS_LAPACK   :=-DFTN_UNDERSCORE -DFTN_LOWERCASE
-  CXXLDFLAGS_LAPACK :=
+#  CXXFLAGS_LAPACK   :=-DFTN_UNDERSCORE -DFTN_LOWERCASE
+  CXXFLAGS_LAPACK   :=-DFTN_LOWERCASE
+  CXXLDFLAGS_LAPACK :=-L/usr/local/ir/lib
+#  CXXLIBS_LAPACK    :=-llapack -lessl
   CXXLIBS_LAPACK    :=-lessl
 endif
 
