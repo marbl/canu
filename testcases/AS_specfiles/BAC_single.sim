@@ -1,0 +1,55 @@
+#
+###########################################################################
+#
+# This file is part of Celera Assembler, a software program that 
+# assembles whole-genome shotgun reads into contigs and scaffolds.
+# Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
+# 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received (LICENSE.txt) a copy of the GNU General Public 
+# License along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+###########################################################################
+#
+# A short finished BAC from Genbank, used for testing Consensus module.
+# Genbank accession info:
+# AC001662 : DS00131 (P1 D35). Finished; 5557 bases.
+#
+#
+.comment $Id: BAC_single.sim,v 1.1.1.1 2004-04-14 13:55:40 catmandew Exp $
+.seed
+4379
+.dna
+Z < BAC_single.fasta ;
+# A FASTA file has the format: 
+# > commment
+# ([ACGT]*\n)*
+#
+# Suppose the genome is 5 K bp and each fragment is 500 bp. 
+# Then 1x coverage is 10 fragments.
+# Thus we want 100 fragments for 10x coverage.
+#
+# 30% no mate, 0.7*(80% 2k separated mate, 20% 10k separated mate)
+# 30% no mate, 56% 2k separated mate, 14% 10k separated mate
+.sample
+80
+300 800 0.5
+0 0 0 0
+0.005 0.020 0.33 0.33
+0.3 1800 2200 0.01
+.sample
+20
+300 800 0.5
+0 0 0 0
+0.005 0.020 0.33 0.33
+0.3 9000 11000 0.01

@@ -1,0 +1,455 @@
+#
+###########################################################################
+#
+# This file is part of Celera Assembler, a software program that 
+# assembles whole-genome shotgun reads into contigs and scaffolds.
+# Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
+# 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received (LICENSE.txt) a copy of the GNU General Public 
+# License along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+###########################################################################
+#
+######################################################################
+# Module:
+#
+#   c_make.gen
+#
+# Description:
+#
+#   Generic makefile for C compilation and link
+#
+# Assumptions:
+#
+#   This makefile requires the use of GNU make.
+#
+#   It is assumed that the following working directories exist:
+#     <subsystem_level>/src
+#     <subsystem_level>/inc
+#     <subsystem_level>/obj
+#     <subsystem_level>/lib
+#     <subsystem_level>/bin
+#   (The obj, lib, bin, and inc directories will be created automatically
+#   if they do not already exist.)
+#
+#   All objects created by this makefile will be placed immediately in:
+#       <subsystem_level>/obj
+#   All libraries created by this makefile will be placed immediately in:
+#       <subsystem_level>/lib
+#   All executables created by this makefile will be placed immediately in:
+#       <subsystem_level>/bin
+#   All include files belonging to this subsystem (not necessarily all
+#   include files required by this subsystem) are located immediately in:
+#       <subsystem_level>/inc
+#   Source files (and their associated makefiles) are contained
+#   directly or indirectly in <subsystem_level>/src:
+#     <subsystem_level>/src
+#            or
+#     <subsystem_level>/src/<component_level_1>
+#            or
+#     <subsystem_level>/src/<component_level_1>/.../<component_level_N>
+#   A makefile is located in the same directory as all source files
+#   that the makefile requires.
+#
+#   This makefile is to be included at the end of a makefile that
+#   provides instance-specific definitions and dependencies, with the
+#   directive:
+#
+#       include c_make.gen
+#
+#   Variables defined by the instance-specific makefile:
+#   ----------------------------------------------------
+#
+#     SOURCES = 
+#       Lists all sources compiled by this makefile.
+#
+#     OBJECTS = 
+#       Lists all objects compiled by this makefile (i.e., one-to-one
+#       with SOURCES). OBJECTS can be listed explicitly or can be
+#       specified with the following definition:
+#
+#          OBJECTS = $(patsubst %.c, %.o, $(SOURCES))
+#
+#     LIBRARIES = 
+#       Lists simple name (in "libx.a" form) of each library that is
+#       built by this makefile.
+#
+#     PROGS = 
+#       Lists each executable created by this makefile.
+#
+#     INC_IMPORT_DIRS +=
+#       Lists directories containing header files that must be imported
+#       from other subsystems.
+#       Format is white-space-separated list of paths.
+#
+#     LIB_IMPORT_DIRS +=
+#       Lists directories containing libraries that must be imported
+#       from other subsystems.
+#       Format is white-space-separated list of paths.
+#       Paths must be absolute (beginning with '/'). Path beginning
+#       with $(LOCAL_WORK) will work.
+#
+#     LOCAL_WORK =
+#       Identifies the <subsystem_level> directory (parent of
+#       the inc, src, lib, obj, and bin subdirectories) with
+#       an absolute path.
+#       For a makefile located in
+#         <subsystem_level>/src/<component_level_1>
+#       the following definition would work:
+#          LOCAL_WORK = $(shell cd ../..; pwd)
+#
+#   Dependencies defined in the instance-specific makefile:
+#   -------------------------------------------------------
+#
+#   (1) Dependencies of OBJECTS on .h files will be automatically
+#       computed and the appropriate dependency lines will be
+#       automatically included. They need not be specified in
+#       the instance-specific makefile.
+#   (2) Dependencies of individual PROGS and LIBRARIES on objects
+#       and libraries must be explicitly specified. When specifying
+#       a dependency on a library, use the "libx.a" form, e.g.:
+#                my_target: abc.o def.o libxyz.a
+#       Use the simple name of each item on which there is a dependency
+#       (including dependencies on imported libraries). However,
+#       if a dependence on a standard library is explicitly specified,
+#       then the path to that standard library must be specified as
+#       part of the INC_IMPORT_DIRS.
+#
+#   The included make.conf file:
+#   ----------------------------
+#
+#   This makefile attempts to include another makefile, "make.conf"
+#   (but will execute correctly whether "make.conf" exists or not).
+#   "make.conf" serves two purposes:
+#       1. It provides a way to override definitions in this
+#          generic makefile.
+#       2. It provies a way to specify search paths for include files,
+#          objects, and libraries that the instance-specific makefile
+#          expects to exist but are "missing." For example, an expected
+#          object file might be "missing" from an individual programmer's
+#          working directory because the intention was to use an object
+#          file that was already compiled in a group working directory
+#          or a release directory. The make.conf search variables are:
+#            INC_SEARCH_PATH
+#              White-space-separated list of paths.
+#              Specifies where to look for "missing" header files.
+#            OBJ_SEARCH_PATH
+#              White-space-separated list of paths.
+#              Specifies where to look for "missing" object files that
+#              should be made by this makefile but cannot because the
+#              source files are "missing."
+#            LIB_SEARCH_PATH
+#              White-space-separated list of paths.
+#              Specifies where to look for "missing" library files.
+#   In a completely populated working directory (e.g., a directory
+#   from which a release is to be made), the makefile should work
+#   correctly without the existence of a make.conf file.
+#   It is also possible to redefine the LOCAL_WORK variable in the
+#   make.conf file to reflect a working directory depth that differs
+#   from the standard.
+#
+#  Targets defined in this makefile:
+#  ---------------------------------
+#
+#  objs
+#  libs
+#  progs
+#  clean
+#  clean_obj
+#  clean_lib
+#  clean_bin
+#  clean_dep
+#
+#  Compile and link variables/flags:
+#  ---------------------------------
+#
+#  The generic makefile makes use of the following compile and link
+#  variables/flags:
+#
+#    CC               (C compiler)
+#    CPPFLAGS         (C preprocessor options [but not -I paths] )
+#    CFLAGS           (C compiler options [but not -I paths] )
+#    CDEFS            (C compiler defines [ -D ])
+#    CXX              (C++ compiler)
+#    CXXFLAGS         (C++ compiler options [but not -I paths] )
+#    CXXDEFS          (C++ compiler defines [ -D ])
+#    AR               (archive program [create binary libraries] )
+#    ARFLAGS          (archive program options)
+#    LDFLAGS          (linker options [but not -L paths] )
+#
+#  There are three ways to override the values for these variables:
+#
+#     1. Assign values on the "make" command line.
+#     2. Assign values in the make.conf file (or in a file included
+#        by the make.conf file).
+#     3. Assign values to these variables in the environment.
+#
+#  The order of precedence is as follows:
+#
+#     - Environment variable overrides value in the generic makefile.
+#     - Value in make.conf overrrides value on environment.
+#     - Value on command line overrides value in make.conf.
+#
+######################################################################
+
+#### Use GNU make
+#MAKE = /usr/local/bin/gmake
+
+#### Soft link programs
+LINKS_PGM = /cm/cmtools/bin/links.pl
+
+#### Set up paths
+LOCAL_INC=$(LOCAL_WORK)/inc
+LOCAL_BIN=$(LOCAL_WORK)/bin
+LOCAL_LIB=$(LOCAL_WORK)/lib
+LOCAL_OBJ=$(LOCAL_WORK)/obj
+
+#### Various flags
+#### Do not redefine if (a) passed in on command line, or (b)
+#### defined in an environment variable.
+
+ifneq "$(origin CC)" "environment"
+CC      = gcc
+endif
+
+ifneq "$(origin CPPFLAGS)" "environment"
+CPPFLAGS=
+endif
+
+ifneq "$(origin CFLAGS)" "environment"
+CFLAGS  =
+endif
+
+ifneq "$(origin CDEFS)" "environment"
+CDEFS  =
+endif
+
+ifneq "$(origin CXX)" "environment"
+CXX	= g++
+endif
+
+ifneq "$(origin CXXFLAGS)" "environment"
+CXXFLAGS=
+endif
+
+ifneq "$(origin CXXDEFS)" "environment"
+#CXXDEFS= -D__cplusplus
+endif
+
+ifneq "$(origin AR)" "environment"
+AR      = ar
+endif
+
+ifneq "$(origin ARFLAGS)" "environment"
+ARFLAGS = rvs
+endif
+
+ifneq "$(origin LDFLAGS)" "environment"
+LDFLAGS =
+endif
+
+#### Delete default suffix rules
+.SUFFIXES:
+
+#### Include customization of flags and additional search paths
+-include make.conf
+
+#### Make expected directories
+define make_expected_directories
+if [ ! -e $(LOCAL_BIN) ] ; then mkdir $(LOCAL_BIN) ; fi ; \
+if [ ! -e $(LOCAL_OBJ) ] ; then mkdir $(LOCAL_OBJ) ; fi ; \
+if [ ! -e $(LOCAL_LIB) ] ; then mkdir $(LOCAL_LIB) ; fi ; \
+if [ ! -e $(LOCAL_INC) ] ; then mkdir $(LOCAL_INC) ; fi ;
+endef
+dummy_expected_directories := $(shell $(make_expected_directories))
+
+
+#### Set INC_DIRS for finding headers
+INC_DIRS = $(patsubst %, -I%, \
+    $(strip $(LOCAL_INC) \
+            $(INC_IMPORT_DIRS) \
+            $(INC_SEARCH_PATH)))
+
+#### Set LD_DIRS for finding libraries
+LD_DIRS = $(patsubst %, -L%, \
+    $(strip $(LOCAL_LIB) \
+            $(LIB_IMPORT_DIRS) \
+            $(LIB_SEARCH_PATH)))
+
+#### VPATH
+VPATH = $(shell pwd)$(patsubst %, :%, \
+    $(strip $(LOCAL_OBJ) \
+            $(LOCAL_LIB) \
+            $(LOCAL_BIN) \
+            $(LIB_IMPORT_DIRS) \
+            $(LIB_SEARCH_PATH)))
+
+#### no target, make all!
+default_target: all
+
+#### Clean
+clean:	clean_obj clean_lib clean_bin clean_dep
+
+clean_dep:
+	rm -f $(DEPS)
+clean_obj:
+	-cd $(LOCAL_OBJ); rm -f $(OBJECTS)
+clean_lib:
+	-cd $(LOCAL_LIB); rm -f $(LIBRARIES) $(IMPORTED_LIBRARIES)
+clean_bin:
+	-cd $(LOCAL_BIN); rm -f $(PROGS)
+
+#### Separate source types
+C_OBJECTS      := $(patsubst %.c, %.o, $(filter %.c, $(SOURCES)))
+CXX_OBJECTS_CC := $(patsubst %.cc, %.o, $(filter %.cc, $(SOURCES)))
+CXX_OBJECTS_C  := $(patsubst %.C, %.o, $(filter %.C, $(SOURCES)))
+CXX_OBJECTS    := $(CXX_OBJECTS_CC) $(CXX_OBJECTS_C)
+OBJECTS        := $(C_OBJECTS) $(CXX_OBJECTS)
+
+C_DEPS         := $(patsubst %.c, %.d, $(filter %.c, $(SOURCES)))
+CXX_DEPS_CC    := $(patsubst %.cc, %.d, $(filter %.cc, $(SOURCES)))
+CXX_DEPS_CPP   := $(patsubst %.cpp, %.d, $(filter %.cpp, $(SOURCES)))
+CXX_DEPS_C     := $(patsubst %.C, %.d, $(filter %.C, $(SOURCES)))
+CXX_DEPS       := $(CXX_DEPS_CC) $(CXX_DEPS_C)
+DEPS           := $(C_DEPS) $(CXX_DEPS)
+
+#### Generic object, lib, and bin commands
+
+# Check for local pesence of source file to accommodate referencing
+# of objects in other working directories.
+
+#### *.c
+$(C_OBJECTS): %.o: %.c
+	@ echo "@@@@@@@@@@@@@@@@@@@ " $< "@@@@@@@@@@@@@@@@@@@@@";
+	@ if [ -e $(notdir $<) ] ; then \
+	  todo='$(CC) $(CPPFLAGS) $(CDEFS) $(CFLAGS) -c $(INC_DIRS) -o $(LOCAL_OBJ)/$*.o $<' ; \
+	else \
+	  todo='$(LINKS_PGM) $(LOCAL_OBJ) "$(patsubst %, :%, $(strip $(OBJ_SEARCH_PATH)))" $(notdir $@)' ; \
+	fi ; \
+	(if [ -n "$(VERBOSE)" ]; then echo "$$todo"; fi; eval "$$todo")
+
+#### *.cc
+$(CXX_OBJECTS_CC): %.o: %.cc
+	@ echo "@@@@@@@@@@@@@@@@@@@ " $< "@@@@@@@@@@@@@@@@@@@@@";
+	@ if [ -e $(notdir $<) ] ; then \
+	  todo='$(CXX) $(CPPFLAGS) $(CXXDEFS) $(CXXFLAGS) -c $(INC_DIRS) -o $(LOCAL_OBJ)/$*.o $<' ; \
+	else \
+	  todo='$(LINKS_PGM) $(LOCAL_OBJ) "$(patsubst %, :%, $(strip $(OBJ_SEARCH_PATH)))" $(notdir $@)' ; \
+	fi ; \
+	(if [ -n "$(VERBOSE)" ]; then echo "$$todo"; fi; eval "$$todo")
+
+#### *.C
+$(CXX_OBJECTS_C): %.o: %.C
+	@ echo "@@@@@@@@@@@@@@@@@@@ " $< "@@@@@@@@@@@@@@@@@@@@@";
+	@ if [ -e $(notdir $<) ] ; then \
+	  todo='$(CXX) $(CPPFLAGS) $(CXXDEFS) $(CXXFLAGS) -c $(INC_DIRS) -o $(LOCAL_OBJ)/$*.o $<' ; \
+	else \
+	  todo='$(LINKS_PGM) $(LOCAL_OBJ) "$(patsubst %, :%, $(strip $(OBJ_SEARCH_PATH)))" $(notdir $@)'; \
+	fi ; \
+	(if [ -n "$(VERBOSE)" ]; then echo "$$todo"; fi; eval "$$todo")
+
+#### To accommodate referencing of objects in other working directories.
+$(SOURCES):
+	@ echo "@@@@@@@@@@@@@@@@@@@ " $@ "@@@@@@@@@@@@@@@@@@@@@";
+	@ echo $@ not present
+
+$(LIBRARIES):
+	@ echo "################### " $@ "#####################";
+	@ cd $(LOCAL_OBJ); \
+	  $(AR) $(ARFLAGS) $(LOCAL_LIB)/$(notdir $@) $+ 
+
+$(PROGS):
+	@ echo "++++++++++++++++++++ " $@ "++++++++++++++++++++++";
+	@ cd $(LOCAL_OBJ); \
+          if [ -z "$(filter $(CXX_OBJECTS), $(notdir $+))" ] ; then \
+	    todo='$(CC) -o $(LOCAL_BIN)/$(notdir $@) $(LDFLAGS) $(LD_DIRS) $(filter-out lib%.a, $+) $(patsubst lib%.a, -l%, $(filter lib%.a, $+))'; \
+	  else \
+	    todo='$(CXX) -o $(LOCAL_BIN)/$(notdir $@) $(LDFLAGS) $(LD_DIRS) $(filter-out lib%.a, $+) $(patsubst lib%.a, -l%, $(filter lib%.a, $+))'; \
+	  fi ; \
+	  if [ -n "$(VERBOSE)" ]; then echo "$$todo"; fi; \
+	  if eval "$$todo"; then true; else rm -f $(LOCAL_BIN)/$(notdir $@); fi
+
+#### For making dependencies
+$(C_DEPS): %.d: %.c
+	@echo Making .d dependency list for $<
+	@rm -f $@
+	@echo "\$$(OBJDIR)/$*.o \$$(DEPDIR)/$*.d: $< \\" > $@
+	@$(SHELL) -ec '$(CC) -c -E $(CFLAGS) $(INC_DIRS) $< | sed -n -e '\''/^#/s/^.*[<"]\(.*\)[">].*$$/  \1 \\/p'\'' | sort -u | fgrep -v /usr/include | fgrep -v $< | sed -e '\''$$s/ \\//'\'' >> $@'
+#	@ if [ -e $(notdir $<) ] ; then \
+#	  $(SHELL) -ec '$(CC) -M $(CPPFLAGS) $(INC_DIRS) $< \
+#	    | sed '\''s/$*\\.o[ :]*/& $@/g'\'' > $@' ; \
+#        fi ;
+
+$(CXX_DEPS_CC): %.d: %.cc
+	@echo Making .d dependency list for $<
+	@rm -f $@
+	@echo "\$$(OBJDIR)/$*.o \$$(DEPDIR)/$*.d: $< \\" > $@
+	@$(SHELL) -ec '$(CXX) -c -E $(CPPFLAGS) $(INC_DIRS) $< | sed -n -e '\''/^#/s/^.*[<"]\(.*\)[">].*$$/  \1 \\/p'\'' | sort -u | fgrep -v /usr/include | fgrep -v $< | sed -e '\''$$s/ \\//'\'' >> $@'
+#	@ if [ -e $(notdir $<) ] ; then \
+#	  $(SHELL) -ec '$(CXX) -M $(CPPFLAGS) $(INC_DIRS) $< \
+#	    | sed '\''s/$*\\.o[ :]*/& $@/g'\'' > $@' ; \
+#        fi ;
+
+$(CXX_DEPS_C): %.d: %.C
+	@echo Making .d dependency list for $<
+	@rm -f $@
+	@echo "\$$(OBJDIR)/$*.o \$$(DEPDIR)/$*.d: $< \\" > $@
+	@$(SHELL) -ec '$(CXX) -c -E $(CPPFLAGS) $(INC_DIRS) $< | sed -n -e '\''/^#/s/^.*[<"]\(.*\)[">].*$$/  \1 \\/p'\'' | sort -u | fgrep -v /usr/include | fgrep -v $< | sed -e '\''$$s/ \\//'\'' >> $@'
+#	@ if [ -e $(notdir $<) ] ; then \
+#	  $(SHELL) -ec '$(CXX) -M $(CPPFLAGS) $(INC_DIRS) $< \
+#	    | sed '\''s/$*\\.o[ :]*/& $@/g'\'' > $@' ; \
+#        fi ;
+
+$(CXX_DEPS_CPP): %.d: %.cpp
+	@echo Making .d dependency list for $<
+	@rm -f $@
+	@echo "\$$(OBJDIR)/$*.o \$$(DEPDIR)/$*.d: $< \\" > $@
+	@$(SHELL) -ec '$(CC) -c -E $(CFLAGS) $(INC_DIRS) $< | sed -n -e '\''/^#/s/^.*[<"]\(.*\)[">].*$$/  \1 \\/p'\'' | sort -u | fgrep -v /usr/include | fgrep -v $< | sed -e '\''$$s/ \\//'\'' >> $@'
+#	@ if [ -e $(notdir $<) ] ; then \
+#	  $(SHELL) -ec '$(CC) -M $(CPPFLAGS) $(INC_DIRS) $< \
+#	    | sed '\''s/$*\\.o[ :]*/& $@/g'\'' > $@' ; \
+#        fi ;
+
+-include $(DEPS)
+
+#### Specific target to make objects
+objs: $(OBJECTS)
+
+#### Specific target to make libraries
+libs: $(LIBRARIES)
+
+#### Specific target to make progs
+progs: $(PROGS)
+
+#### Specific target to make objects
+#incs:
+
+#### Phony
+.PHONY: all clean clean_obj clean_lib clean_bin
+
+
+# The following recurses the subdirectories that exist
+define dosubdirs
+echo "* Make Target is " $(TGT);
+for i in $(SUBDIRS);\
+  do \
+    if [ -d $$i ]; then \
+      cd $$i;\
+      echo "#####    Making Directory " `pwd` " " $(TGT) " #####";\
+      gmake $(TGT);\
+      cd ..;\
+    fi; \
+  done;
+endef
+

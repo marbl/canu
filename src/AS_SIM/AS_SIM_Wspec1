@@ -1,0 +1,45 @@
+#
+###########################################################################
+#
+# This file is part of Celera Assembler, a software program that 
+# assembles whole-genome shotgun reads into contigs and scaffolds.
+# Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
+# 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received (LICENSE.txt) a copy of the GNU General Public 
+# License along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+###########################################################################
+#
+.dna
+A = 150 p(.3,.2,.2);
+B = Ar A;
+C = 10;
+D = C m(0.,.2) n(15);
+E = 50000
+       B m(.05,.1) n(3)
+       D o(.5) n(2);
+.poly .2 .3 .4
+S .001
+D 1-1 .001
+X 10-20 .01
+.sample
+100
+400 500 1.
+.04 .06 .33 .33
+.3 1800 2200 .01
+.sample
+100
+400 500 1.
+.04 .06 .33 .33
+.3 9000 11000 .01

@@ -1,0 +1,77 @@
+#! /bin/ksh
+#
+###########################################################################
+#
+# This file is part of Celera Assembler, a software program that 
+# assembles whole-genome shotgun reads into contigs and scaffolds.
+# Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
+# 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received (LICENSE.txt) a copy of the GNU General Public 
+# License along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+###########################################################################
+#
+#
+# $Id: SetupNuggetizer2_0,v 1.1.1.1 2004-04-14 13:48:18 catmandew Exp $
+#
+# Usage: $ SetupNuggetizer2_0
+#
+# Purpose: Sets environment for Nuggetizer2_0.
+#
+# These are the release dependent environmental variables.
+# You may have to change these settings.
+#CDS_TAG=Nuggetizer2_0 ; export CDS_VERSION
+RELEASE_PATH=/work/assembly/asteam/releases/$CDS_VERSION ; export RELEASE_PATH
+
+CDS_TAG=AS_PRIV_GRANDE_UNDER_VANILLA_TEST ; export CDS_TAG
+RELEASE_PATH=/dev1/cmobarry/data/chr22 ; export RELEASE_PATH
+
+PROJECT_DIR=/dev1/cmobarry/data/chr22
+AS_BIN=${PROJECT_DIR}/bin
+export PROJECT_DIR
+export AS_BIN
+
+# ***BY THE WAY****
+# The relevant documents are in:
+# $RELEASE_PATH/cds/doc/Assembler/Programs/Nuggetizer.
+# Microsoft junk will not automagicly detect that there is a 
+# new version of your document caused by the "cvs checkout".
+# Microsoft junk caches a copy of the documents in some squirrelly 
+# directory. Be very sure that you are looking at the correct document.
+#
+# Contact: Clark Mobarry, x3125
+# Written: 1999/04/20
+# Expires: 1999/05/28
+#
+####################################################################
+#
+# Environment setup
+
+CVSROOT=/cm/cvs ; export CVSROOT
+export CVSREAD
+umask 2
+( cd $RELEASE_PATH ; cvs update -r $CDS_TAG cds/SEP cds/AS cds/SYS/UID )
+
+AS_ROOT=$RELEASE_PATH/cds/AS ; export AS_ROOT
+SEP_PATH=$RELEASE_PATH/cds/SEP ; export SEP_PATH
+#PATH=$AS_ROOT/scripts:$AS_ROOT/bin:$PATH ; export PATH
+
+echo "Compling started"
+( cd $AS_ROOT/src ; gmake all install )
+echo "Compiling done"
+echo "Installation done"
+
+#mkdir ${AS_BIN}
+cp -rf ${AS_ROOT}/{bin,scripts}/* ${AS_BIN}
+

@@ -1,0 +1,9 @@
+SDB = Sequence Data base
+
+This module is used for storing multi-alignments of unitigs and
+contigs in cgw.
+
+June 13, 2000
+
+Saul Kravitz
+

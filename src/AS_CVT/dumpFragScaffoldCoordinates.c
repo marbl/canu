@@ -1,0 +1,102 @@
+
+/**************************************************************************
+ * This file is part of Celera Assembler, a software program that 
+ * assembles whole-genome shotgun reads into contigs and scaffolds.
+ * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ * License along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *************************************************************************/
+#include  <stdlib.h>
+#include  <stdio.h>
+#include  <unistd.h>
+
+#include "AS_global.h"
+#include "ASMData.h"
+
+int main(int argc, char ** argv)
+{
+  char * inputStoreName = NULL;
+  int doInstances = FALSE;
+  int doSingleSurrogates = FALSE;
+  int doDegenerates = FALSE;
+  int doChaff = FALSE;
+  int doLinks = FALSE;
+  int doUnreferenced = FALSE;
+  {
+    int ch,errflg=FALSE;
+    while (!errflg && ((ch = getopt(argc, argv, "s:iSdclu")) != EOF))
+    {
+      switch(ch) 
+      {
+	case 's':
+          inputStoreName = optarg;
+          break;
+        case 'i':
+          doInstances = TRUE;
+          break;
+        case 'S':
+          doSingleSurrogates = TRUE;
+          break;
+        case 'd':
+          doDegenerates = TRUE;
+          break;
+        case 'c':
+          doChaff = TRUE;
+          break;
+        case 'l':
+          doLinks = TRUE;
+          break;
+        case 'u':
+          doUnreferenced = TRUE;
+          break;
+        default:
+	  fprintf(stderr,"Unrecognized option -%c\n",optopt);
+	  errflg++;
+          break;
+      }
+    }
+  }
+  
+  if(inputStoreName == NULL)
+  {
+    fprintf(stderr, "Usage: %s [-s inputStore] [-iSdclu]\n"
+            "\t-i      print instances - fragments in surrogate unitigs\n"
+            "\t          that were multiply placed\n"
+            "\t-S      print fragments in uniquely placed surrogates\n"
+            "\t-d      print fragments in degenerate scaffolds\n"
+            "\t-c      print chaff fragments\n"
+            "\t-l      print mate links (extra fields on same line)\n"
+            "\t-u      print unreferenced fragments that are in scaffolds\n",
+            argv[0]);
+    exit(-1);
+  }
+
+  {
+    AssemblyStore * asmStore;
+
+    asmStore = OpenReadOnlyAssemblyStore(inputStoreName);
+    PrintFragmentScaffoldCoordinates(asmStore,
+                                     doInstances,
+                                     doSingleSurrogates,
+                                     doDegenerates,
+                                     doChaff,
+                                     doLinks,
+                                     doUnreferenced,
+                                     stdout);
+    CloseAssemblyStore(asmStore);
+  }
+  
+  return 0;
+}

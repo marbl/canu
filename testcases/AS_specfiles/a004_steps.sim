@@ -1,0 +1,230 @@
+#
+###########################################################################
+#
+# This file is part of Celera Assembler, a software program that 
+# assembles whole-genome shotgun reads into contigs and scaffolds.
+# Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
+# 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received (LICENSE.txt) a copy of the GNU General Public 
+# License along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+###########################################################################
+#
+# A member of the "a" family of DNA specification files are intended for 
+# end-to-end run checks.  
+#
+# The first of the family a001.sim is a full sized
+# synthetic human without the natural 0.2% polymorphism. 
+# Later members of the family are reduced in size, 
+# but not by a straight forward size scaling. 
+# Sometimes amount of important features were maintained as while
+# reducing the total problem size.
+# The a002.sim is the 1/10th human.
+# The a003.sim is the 1/100th human intended for week-end runs.
+# The a004.sim is the 1/1000th intended for nightly runs.
+#
+.comment $Id: a004_steps.sim,v 1.1.1.1 2004-04-14 13:55:39 catmandew Exp $
+.seed
+5131
+.dna
+# This is derived from Granger^s synthetic human (98Dec18).
+A = 141                        ; # half of ALU
+@ B = A A m(.25)               ; # whole ALU
+@ C = 7000                     ; # LINE
+D = 2-8                        ; # short tandem repeat unit
+@ E = D m(0.01,0.02) n(30,150) ; # short tandem repeat
+F = 200 - 400                  ; # medium tandem repeat unit
+@ G = F m(0.00,0.07) n(2,20)   ; # medium tandem repeat
+# H ~ 5000                     ; # long tandem satellite unit (rDNA)
+# @ I = H m(0.001,0.003) n(5,35) ; # long tandem satellite "16s RNA units"
+@ J = 1000 - 5000              ; # genes
+@ K = 50000 - 130000           ; # translocations (1M,10M,100M)
+# Z should be 3500000000 for human sized problem
+# Z should be  125000000 for fruit fly sized problem
+Z = 3500000
+# 10% of human genome is ALUs with about 15% variation
+  B o(.5) m(0.05,0.3)  n(0.1)   f(0.05,0.05,0.02,0.20,0.95)
+  B o(.5) m(0.05,0.3)  n(0.001) f(0.00,0.00,1.00,0.20,0.70)
+#  5% of human genome is LINEs with suffix fractures
+  C o(.5) m(0.05,0.15) n(0.047) f(0.00,1.00,0.00,0.05,0.20)
+  C o(.5) m(0.05,0.15) n(0.003) f(0.00,1.00,0.00,0.20,1.00)
+  C o(.5) m(0.05,0.15) n(0.0001)
+# We have used 15.1% of the genome so far in ALUs and LINEs.
+#
+# We will use !(floating number) to represent the fraction of
+# base pairs involved with this structure.
+# Three kinds of tandem repeats:
+  E o(.5) !(6) # Stuck at a003 instance number
+  G o(.5) !(1) # Stuck at a003 instance number
+#  I o(.5) !(1) # Stuck at a003 instance number
+# genes
+  J o(.5) m(0.01,0.05) n(2)   !(6) # Stuck at a003 instance number
+  J o(.5) m(0.01,0.05) n(3,5) !(3) # Stuck at a002 instance number
+# 
+  K o(.5) m(0.01,0.05) n(2)   !(1) # Stuck at a002 instance number
+;
+# 30% no mate, 0.7*(80% 2k separated mate, 20% 10k separated mate)
+# 30% no mate, 56% 2k separated mate, 14% 10k separated mate
+# Let G be the genome length and B the BAC length: 15*G = B*n/2 
+# Bac ends are a bit shorter, higher error rate, higher chimer rate,
+# low single rate. The desired length range is mean 150k stddev 33k
+# (2*10**(-4))*G  BAC END Fragments 
+#
+.bacends
+700
+300 500 0.5
+0 0 0 0
+0.004 0.020 .33 .33
+.01 50000 250000 .20
+#
+# 1x coverage
+.sample
+5600
+300 800 0.5
+0 0 0 0
+.005 .020 .33 .33
+.3 1800 2200 .01
+.sample
+1400
+300 800 0.5
+0 0 0 0
+.005 .020 .33 .33
+.3 9000 11000 .01
+#
+# 2x coverage
+.sample
+5600
+300 800 0.5
+0 0 0 0
+.005 .020 .33 .33
+.3 1800 2200 .01
+.sample
+1400
+300 800 0.5
+0 0 0 0
+.005 .020 .33 .33
+.3 9000 11000 .01
+#
+# 3x coverage
+.sample
+5600
+300 800 0.5
+0 0 0 0
+.005 .020 .33 .33
+.3 1800 2200 .01
+.sample
+1400
+300 800 0.5
+0 0 0 0
+.005 .020 .33 .33
+.3 9000 11000 .01
+#
+# 4x coverage
+.sample
+5600
+300 800 0.5
+0 0 0 0
+.005 .020 .33 .33
+.3 1800 2200 .01
+.sample
+1400
+300 800 0.5
+0 0 0 0
+.005 .020 .33 .33
+.3 9000 11000 .01
+#
+# 5x coverage
+.sample
+5600
+300 800 0.5
+0 0 0 0
+.005 .020 .33 .33
+.3 1800 2200 .01
+.sample
+1400
+300 800 0.5
+0 0 0 0
+.005 .020 .33 .33
+.3 9000 11000 .01
+#
+# 6x coverage
+.sample
+5600
+300 800 0.5
+0 0 0 0
+.005 .020 .33 .33
+.3 1800 2200 .01
+.sample
+1400
+300 800 0.5
+0 0 0 0
+.005 .020 .33 .33
+.3 9000 11000 .01
+#
+# 7x coverage
+.sample
+5600
+300 800 0.5
+0 0 0 0
+.005 .020 .33 .33
+.3 1800 2200 .01
+.sample
+1400
+300 800 0.5
+0 0 0 0
+.005 .020 .33 .33
+.3 9000 11000 .01
+#
+# 8x coverage
+.sample
+5600
+300 800 0.5
+0 0 0 0
+.005 .020 .33 .33
+.3 1800 2200 .01
+.sample
+1400
+300 800 0.5
+0 0 0 0
+.005 .020 .33 .33
+.3 9000 11000 .01
+#
+# 9x coverage
+.sample
+5600
+300 800 0.5
+0 0 0 0
+.005 .020 .33 .33
+.3 1800 2200 .01
+.sample
+1400
+300 800 0.5
+0 0 0 0
+.005 .020 .33 .33
+.3 9000 11000 .01
+#
+# 10x coverage
+.sample
+5600
+300 800 0.5
+0 0 0 0
+.005 .020 .33 .33
+.3 1800 2200 .01
+.sample
+1400
+300 800 0.5
+0 0 0 0
+.005 .020 .33 .33
+.3 9000 11000 .01
+#

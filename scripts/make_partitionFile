@@ -1,0 +1,66 @@
+#!/usr/bin/perl
+#
+###########################################################################
+#
+# This file is part of Celera Assembler, a software program that 
+# assembles whole-genome shotgun reads into contigs and scaffolds.
+# Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
+# 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received (LICENSE.txt) a copy of the GNU General Public 
+# License along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+###########################################################################
+#
+#
+#  Requires 1) that the executable be located in the working directory
+#           2) all .cgb input be located in working directory
+#           3) script is run from desired working directory
+#              (a current working directory
+#              call is made to assign a value to the working directory
+#              for the batch jobs)
+#
+#  Usage:   make_partitionFile start_batch# end_batch# data_set_prefix
+#
+#
+#  Note: currently geared for cgb input with files with 01,02 style
+# (as opposed to 1,2) to change, remove the '0' in all '%03d' below
+#
+
+use Cwd;
+
+$prefix = $ARGV[0]; # data set prefix
+$s = $ARGV[1]; # starting partition
+$e = $ARGV[2]; # ending parition
+
+$prod = cwd();  # path to working directory
+# $asbin = ".";  # path to executable
+$asbin = $ENV{AS_BIN};
+print "AS_BIN = $asbin\n";
+
+for($i=$s; $i<=$e;$i=$i+1){
+  $cmd = sprintf("grep mid: %s_%03d.cgb | sed \"s/mid:/$i /\" > %s_%03d.partFile ",$prefix,$i,$prefix,$i);
+  print "$cmd\n";
+  system($cmd);
+}
+
+ $cmd = sprintf("cat %s_*.partFile > %s.partFile",$prefix,$prefix);
+ print "$cmd\n";
+ system($cmd);
+
+ $cmd = sprintf("%s/partitionFragStore %s.partFile %s.frgStore %s.frgStore_part",$asbin,$prefix,$prefix,$prefix);
+ print "$cmd\n";
+ system($cmd);
+
+
+

@@ -1,0 +1,125 @@
+-----------------------------------------------------------------------
+
+Request for: 
+Celera Assembler Software
+Copyright 1999-2004 Applera Corporation. All Rights reserved.
+
+The Celera Assembler is described below. To request a copy,
+complete this form and FAX it to "Genome Software" at 240-453-3324 (USA).
+
+The Celera Assembler Software (Copyright 1999-2004, Applera Corporation. All 
+rights reserved.) (the "Software") is covered by one or more U.S. patents and is 
+being made available free of charge by Applera Corporation subject to the terms 
+and conditions of the GNU General Public License, version 2, as published by the 
+Free Software Foundation (the "GNU General Public License"). The Software is 
+free software; you can redistribute it and/or modify it under the terms of the 
+GNU General Public License. The Software is distributed in the hope that it will 
+be useful, but WITHOUT ANY WARRANTIES, EXPRESS OR IMPLIED (INCLUDING, WITHOUT 
+LIMITATION, ANY WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR 
+PURPOSE). You may obtain a copy of the GNU General Public License at 
+http://www.gnu.org or by requesting a copy from the Free Software Foundation, 
+Inc., 59 Temple Place- Suite 330, Boston, MA 02111-1307 USA.
+
+Please send me a copy of the "Celera Assembler Software" subject to the terms of 
+the GNU General Public License, version 2, as published by the Free Software 
+Foundation.
+
+I have read and agree to the terms of the GNU General Public License, version 2.
+
+
+   PRINT CLEARLY
+
+
+   my name:
+
+
+
+   my organization:
+
+
+
+   my address:
+ 
+                 
+
+
+                  
+
+   my phone number: 
+
+
+
+   my e-mail address:
+
+
+
+   signature:
+
+-----------------------------------------------------------------------
+
+
+
+
+
+
+
+The Celera Assembler Source Code
+================================
+
+Software Background
+
+The Celera Assembler [Myers 2000] was designed to reconstruct mammalian 
+chromosomal DNA sequences from the short fragments of a whole genome shotgun 
+sequencing project. The Celera Assembler was used to produce reconstructions of 
+several large genomes, namely those of Homo sapiens [Venter 2001], Mus musculus 
+[Mural 2002], Rattus norvegicus [unpublished data], Canis familiaris [Kirkness 
+2003], Drosophila melanogaster [Adams 2000], and Anopheles gambiae [Holt 2001]. 
+The Celera Assembler was shown to be very accurate when its reconstruction of 
+the human genome was compared to independent reconstructions completed later 
+[Istrail 2004]. 
+
+The Celera Assembler is a pipeline consisting of several executable programs. 
+The source code includes programs in the C language with Unix make scripts. The 
+program was designed to run under Compaq(R) Tru64(R) Unix with access to 32GB 
+RAM. It has also run under IBM(R) AIX(R) and Red Hat Linux. The latest version 
+of the Celera Assembler source code is distributed on CD on an "as-is" basis.
+
+Software Availability
+
+As a supplement to the publication [Istrail 2004], Celera and Applied Biosystems 
+are making the Celera Assembler available under the terms and conditions of the 
+GNU General Public License, version 2, as published by the Free Software 
+Foundation. This license allows unrestricted use of the software subject to 
+provisions designed to ensure that any modifications or distributions of the 
+software remain in the public domain. For more information, see 
+http://www.gnu.org/copyleft/gpl.html
+
+To obtain a copy of the source code, subject to the GNU General Public License, 
+please print the top of this page, fill in the blanks, and FAX it to the 
+number shown. You will receive a CD by mail. If you have questions about the 
+form, please send them to genomesoftware@celera.com
+
+Consulting Services
+
+Celera and Applied Biosystems also offer consulting services to laboratories 
+making use of the whole genome shotgun assembly technique. Send inquiries about 
+consulting services by e-mail to genomesoftware@celera.com
+
+References
+
+Adams et al. (2000) The Genome Sequence of Drosophila melanogaster. Science 287 
+2185-2195.
+Holt et al. (2002) The Genome Sequence of the Malaria Mosquito Anopheles 
+gambiae. Science 298 129-149.
+Istrail et al. (2004) Whole Genome Shotgun Assembly and Comparison of Human 
+Genome Assemblies. PNAS 101 1916-1921.
+Kirkness et al. (2003) The Dog Genome: Survey Sequencing and Comparative 
+Analysis. Science 301 1898-1903.
+Mural et al. (2002) A Comparison of Whole-Genome Shotgun-Derived Mouse 
+Chromosome 16 and the Human Genome. Science 296 1661-1671.
+Myers et al. (2000) A Whole-Genome Assembly of Drosophila. Science 287 2196-
+2204.
+Venter et al. (2001) The Sequence of the Human Genome. Science 291 1304-1351.
+
+
+

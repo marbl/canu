@@ -1,0 +1,157 @@
+#!/usr/local/bin/bash
+#
+###########################################################################
+#
+# This file is part of Celera Assembler, a software program that 
+# assembles whole-genome shotgun reads into contigs and scaffolds.
+# Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
+# 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received (LICENSE.txt) a copy of the GNU General Public 
+# License along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+###########################################################################
+#
+#
+#
+# Usage: $ assembler_snap [-P] arg1
+#
+# arg1 : The first argument is the project name,
+#
+#######################################################################
+OUTPUT_MODE="-P"
+#CGBopts=""
+#CGWopts=""
+
+rc=0
+trap "rm -f $s $t; exit \$rc" 0
+case $? in 0);; *) rc=$?; exit;; esac
+
+function expert_main {
+saved_OPTIND=${OPTIND}
+#echo "$@"
+export $@
+#declare opta
+#while getopts ":bw" opt ; do
+#  echo opta=$opt
+#  case $opt in
+#    b )
+#    # cgb
+#    CGBopts="Z"
+#    echo hi b
+#  ;;
+#    w )
+#     # cgw
+#    CGWopts="Z"
+#    echo hi w
+#  ;;
+#  esac
+#done
+#shift $(($OPTIND - 1))
+
+OPTIND=${saved_OPTIND}
+}
+
+echo "$@"
+while getopts ":PQl:X:" opt ; do
+#  echo opt=$opt
+case $opt in
+l ) ESTIMATED_GENOME_LENGTH=${OPTARG} ;;
+P )	OUTPUT_MODE="-P" ;;
+Q )	SIM_MODE="-XQ"   ;;
+X )
+  expert=${OPTARG}
+  echo expert=${expert}
+  IFS="," ; expert_main ${OPTARG} ; IFS=" "
+  ;;
+\? )
+   echo "invalid parameter ${opt}" 1>&2
+   exit 1
+esac
+done
+shift $(($OPTIND - 1))
+
+# The command options are now parsed.
+#
+##########################################################
+
+prefix=${1}
+
+gkpStore=${prefix}.gkpStore
+urcStore=${prefix}.urcStore
+frgStore=${prefix}.frgStore
+fgbStore=${prefix}.fgbStore
+#cgbStore=${prefix}.cgbStore
+cgbStore=${fgbStore}
+paramFile=${prefix}.param
+
+if [ -e ${paramFile} ] ; then 
+ parameters="-p ${paramFile}"
+else
+ parameters=""
+fi 
+
+TIMER="/usr/bin/time"
+
+#UNITIGGER_CMD1="${AS_BIN}/fgb ${OUTPUT_MODE} -A 1 -M 1 ${CGBopts}"
+UNITIGGER_CMD2="${AS_BIN}/cgb ${OUTPUT_MODE} -A 1 -j 5 -b 4 ${CGBopts}"
+#UNITIGGER_CMD2="${AS_BIN}/cgb ${OUTPUT_MODE} -A 1 -S -b 4 ${CGBopts}"
+#UNITIGGER_CMD2="${AS_BIN}/cgb ${OUTPUT_MODE} -A 1 -S ${CGBopts}"
+UNITIGGER_CMD3="${AS_BIN}/consensus ${OUTPUT_MODE} -U -z ${CGBopts}"
+UNITIGGER_CMD4="${AS_BIN}/AS_CGB_fom2uom ${OUTPUT_MODE} ${CGBopts}"
+CGW_CMD="${AS_BIN}/cgw -c -j 1 -k 5 -w 1 -s 2 -r 4 ${OUTPUT_MODE} ${CGWopts}"
+#CGW_CMD="${AS_BIN}/cgw -c -w 1 -s 2 -r 3 -T ${OUTPUT_MODE} ${CGWopts}"
+#CGW_CMD="${AS_BIN}/cgw -c -r 3 -T ${OUTPUT_MODE} ${CGWopts}"
+CONSENSUS_CMD="${AS_BIN}/consensus ${OUTPUT_MODE} ${CNSopts}"
+TERMINATOR_CMD="${AS_BIN}/terminator -P ${TERopts}"
+# TESTER_CMD="${AS_BIN}/tester -h"
+
+echo "Began the Celera Assembler at " `date` " in " `pwd` "."
+echo "By the way, this script depends on AS_BIN=$AS_BIN"
+echo "  ${gkpStore} is the gatekeeper store directory"
+echo "  ${urcStore} is the screen library store directory"
+echo "  ${frgStore} is the fragment store directory"
+echo "  ${fgbStore} is the fragment overlap graph store directory"
+echo "  ${parameters} is the parameters file"
+echo "  CGBopts=${CGBopts}"
+echo "  CGWopts=${CGWopts}"
+echo ""
+#echo "=========== FGB: fragment graph marking ============"
+#if $TIMER $UNITIGGER_CMD1 -i ${fgbStore} -f -o ${cgbStore} 2>> $prefix.log
+#then echo "unitigger (overlap marking) successful" ; else echo "fatal error" ; exit 1 ; fi
+echo "=========== CGB: chunk graph builder ============"
+if $TIMER $UNITIGGER_CMD2  ${frgStore} ${cgbStore} 2>> $prefix.log
+then echo "unitigger (pre-consensus) successful" ; else echo "fatal error" ; exit 1 ; fi
+if $TIMER $UNITIGGER_CMD3 ${frgStore} $prefix.cgb 2>> $prefix.log
+then echo "unitigger (consensus) successful" ; else echo "fatal error" ; exit 1 ; fi
+if $TIMER $UNITIGGER_CMD4 < $prefix.cgi > $prefix.utg 2>> $prefix.log
+then echo "unitigger (post-consensus) successful" ; else echo "fatal error" ; exit 1 ; fi
+echo ""
+echo "=========== CGW: chunk graph walker ============="
+if $TIMER $CGW_CMD -f ${frgStore} -g ${gkpStore} -o $prefix $prefix.utg 2>> $prefix.log
+then echo "cgw successful" ; else echo "fatal error" ; exit 1 ; fi
+echo ""
+echo "=========== CNS: consensus builder  ============="
+if $TIMER $CONSENSUS_CMD ${frgStore} $prefix.cgw 2>> $prefix.log
+then echo "consensus successful" ; else echo "fatal error" ; exit 1 ; fi
+echo ""
+# echo "=========== TST: tester ========================="
+# if $TIMER $TESTER_CMD $prefix 2>> $prefix.log
+# then echo "tester successful" ; else echo "tester unsuccessful"; fi
+# echo ""
+echo "=========== TER: terminator ====================="
+if $TIMER $TERMINATOR_CMD -g ${gkpStore} -f ${frgStore} -i $prefix.cns -o $prefix.asm -m $prefix.map 2>> $prefix.log
+then echo "Terminator successful" ; else echo "fatal error" ; exit 1 ; fi
+echo ""
+#echo "Clean the directory of working files *.inp *.ovl *.cgb *cgw."
+echo "Assembler finished at " `date` 

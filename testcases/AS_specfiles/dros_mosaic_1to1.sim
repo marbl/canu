@@ -1,0 +1,86 @@
+#
+###########################################################################
+#
+# This file is part of Celera Assembler, a software program that 
+# assembles whole-genome shotgun reads into contigs and scaffolds.
+# Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
+# 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received (LICENSE.txt) a copy of the GNU General Public 
+# License along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+###########################################################################
+#
+# The dros. contigs are in fasta file in the current directory.
+# It contains the 93 independant contigs put together by Berkley.
+# The total length is about 22.11 Mbp.
+# Gene think we can artifically put them together, make
+# it a single 22.11 Mbp single contig and shred it . Then put them back.
+# If you can shred it, make a 1X, 2X, 4X , I will try to run it on
+# nuggetizer and see what will happen? The fragment size should be
+# about 400-500bps which close to what we have now. 
+#
+# The genome size is 22.11 Mbp.
+#----------------------------------------------
+# This file is modified from 
+# Droscontig_mosaic.sim,v 1.2 1999/07/14 17:15:04 cmobarry
+# based on the data we obtained from seqQA groop in chromosome team
+# To make the simulation closer to the reality
+# Change the number of bac end from 15x to 10x
+# Change the 2k library chimaric rate to  2%
+# Change the std of clone length to      20%
+# Change the 10K library chimeric rate to 3%
+# 2k to 10k = 4:1
+# Lin Chen
+# ---------------------------------------------
+#
+.comment $Id: dros_mosaic_1to1.sim,v 1.1.1.1 2004-04-14 13:55:40 catmandew Exp $
+.seed
+79715
+.dna
+Z < Droscontig_moasic.fasta ;
+# A FASTA file has the format: 
+# > commment
+# ([ACGT]*\n)*
+#
+# Suppose the genome is 22 M bp and each fragment is 500 bp. 
+# Then 1x coverage is 44000  fragments.
+# Thus we want 440000 fragments for 10x coverage.
+#
+# 30% no mate, 0.7*(80% 2k separated mate, 20% 10k separated mate)
+# 30% no mate, 56% 2k separated mate, 14% 10k separated mate
+# Let G be the genome length and B the BAC length: 15*G = B*n/2 
+# Bac ends are a bit shorter, higher error rate, higher chimer rate,
+# low single rate. The desired length range is mean 150k stddev 33k
+# (2*10**(-4))*G  BAC END Fragments 
+#
+# Start 10x
+.sample
+220000
+300 800 0.5
+0 0 0 0
+0.005 0.020 0.33 0.33
+0.3 1600 2400 0.02
+.sample
+220000
+300 800 0.5
+0 0 0 0
+0.005 0.020 0.33 0.33
+0.3 8000 12000 0.03
+.bacends
+3000
+300 500 0.5
+0 0 0 0
+.005 .020 .33 .33
+.01 50000 250000 .20
+#

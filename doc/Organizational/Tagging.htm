@@ -1,0 +1,319 @@
+<HTML>
+<HEAD>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=windows-1252">
+<META NAME="Generator" CONTENT="Microsoft Word 97">
+<TITLE>Tagging Scheme</TITLE>
+<META NAME="Version" CONTENT="8.0.3410">
+<META NAME="Date" CONTENT="10/11/96">
+<META NAME="Template" CONTENT="C:\Program Files\Microsoft Office\Office\HTML.DOT">
+</HEAD>
+<BODY TEXT="#000000" LINK="#0000ff" VLINK="#800080" BGCOLOR="#ffffff">
+
+<B><FONT FACE="Arial" SIZE=4><P>Assembler Tagging Scheme</P>
+</B></FONT><P>This document describes the current Assembler tagging
+scheme used in support of daily and weekly builds and runs.  This
+scheme currently supports three types of tests (see below).  Each test
+set involves checking out the cds/AS tree sources with a particular
+tag (detailed below) running the script cds/AS/scripts/assembler on a
+set of inputs.</P> 
+
+<P><A HREF="#PeriodicBuild">Periodic Build</A></P>
+<P><A HREF="#DailyTest">Daily Test</A></P> 
+<P><A HREF="#WeeklyTest">Weekly Test</A></P> 
+<P><A HREF="#DROSTest">Drosophila Test</A></P> 
+<P><A HREF="#Tags">Summary of Tags<BR> </A></P> 
+<P ALIGN="CENTER"><IMG SRC="line2.gif" WIDTH=623
+HEIGHT=6></P> <P>&nbsp;</P> <B><I><FONT FACE="Arial"><P><A
+NAME="PeriodicBuild"></A>Periodic Build</P> </B></I></FONT><P>This
+periodic build checks out the tip of the trunk, and attempts to build
+it.  If successful, the checked out revisions are tagged
+"AS_PRIV_ASSEMBLER_BUILT". </P>
+<TABLE BORDER CELLSPACING=1 CELLPADDING=7 WIDTH=605>
+<TR><TD WIDTH="35%" VALIGN="TOP" HEIGHT=20>
+<P>Checkout Tag</TD>
+<TD WIDTH="65%" VALIGN="TOP" HEIGHT=20>
+<P>Head of Trunk</TD>
+</TR>
+<TR><TD WIDTH="35%" VALIGN="TOP" HEIGHT=20>
+<P>Checkout and Build Script</TD>
+<TD WIDTH="65%" VALIGN="TOP" HEIGHT=20>
+<P>/work/assembly/asteam/periodic_build/scripts/build.sh</TD>
+</TR>
+<TR><TD WIDTH="35%" VALIGN="TOP" HEIGHT=22>
+<P>Build Area</TD>
+<TD WIDTH="65%" VALIGN="TOP" HEIGHT=22>
+<P>/work/assembly/asteam/periodic_build/cds/</TD>
+</TR>
+<TR><TD WIDTH="35%" VALIGN="TOP" HEIGHT=24>
+<P>Successful Completion Tag</TD>
+<TD WIDTH="65%" VALIGN="TOP" HEIGHT=24>
+<P>AS_PRIV_ASSEMBLER_BUILT</TD>
+</TR>
+</TABLE>
+
+<P ALIGN="CENTER"><IMG SRC="line2.gif" WIDTH=623 HEIGHT=6></P>
+<P>&nbsp;</P>
+<B><I><FONT FACE="Arial"><P><A NAME="DailyTest"></A>Daily Test</P>
+</B></I><P>Daily Checkout and Build</P>
+</FONT>
+<TABLE BORDER CELLSPACING=1 CELLPADDING=7 WIDTH=605>
+<TR><TD WIDTH="35%" VALIGN="TOP" HEIGHT=20>
+<P>Checkout Tag</TD>
+<TD WIDTH="65%" VALIGN="TOP" HEIGHT=20>
+<P>AS_PRIV_ASSEMBLER_BUILT</TD>
+</TR>
+<TR><TD WIDTH="35%" VALIGN="TOP" HEIGHT=20>
+<P>Checkout and Build Script</TD>
+<TD WIDTH="65%" VALIGN="TOP" HEIGHT=20>
+<P>Cds/AS/scripts/get_DAILY</TD>
+</TR>
+<TR><TD WIDTH="35%" VALIGN="TOP" HEIGHT=22>
+<P>Build Area</TD>
+<TD WIDTH="65%" VALIGN="TOP" HEIGHT=22>
+<P>/work/assembly/asteam/periodic_run/DAILY.dir/cds/</TD>
+</TR>
+<TR><TD WIDTH="35%" VALIGN="TOP" HEIGHT=24>
+<P>Successful Completion Tag</TD>
+<TD WIDTH="65%" VALIGN="TOP" HEIGHT=24>
+<P>AS_PRIV_ASSEMBLER_UNDER_DAILY_TEST</TD>
+</TR>
+</TABLE>
+
+<P>&nbsp;</P>
+<FONT FACE="Arial"><P>Daily Run Test</P>
+</FONT>
+<TABLE BORDER CELLSPACING=1 CELLPADDING=7 WIDTH=605>
+<TR><TD WIDTH="34%" VALIGN="TOP" HEIGHT=20>
+<P>Checkout Tag</TD>
+<TD WIDTH="66%" VALIGN="TOP" HEIGHT=20>
+<P>AS_PRIV_ASSEMBLER_UNDER_DAILY_TEST</TD>
+</TR>
+<TR><TD WIDTH="34%" VALIGN="TOP" HEIGHT=20>
+<P>Checkout and Build Script</TD>
+<TD WIDTH="66%" VALIGN="TOP" HEIGHT=20>
+<P>Cds/AS/scripts/run_DAILY</TD>
+</TR>
+<TR><TD WIDTH="34%" VALIGN="TOP" HEIGHT=22>
+<P>Build Area</TD>
+<TD WIDTH="66%" VALIGN="TOP" HEIGHT=22>
+<P>/work/assembly/asteam/periodic_run/DAILY.dir/cds/</TD>
+</TR>
+<TR><TD WIDTH="34%" VALIGN="TOP" HEIGHT=22>
+<P>Run Area</TD>
+<TD WIDTH="66%" VALIGN="TOP" HEIGHT=22>
+<P>/data/assembly2/testcases/periodic/DAILY.dir</TD>
+</TR>
+<TR><TD WIDTH="34%" VALIGN="TOP" HEIGHT=22>
+<P>Tests Run</TD>
+<TD WIDTH="66%" VALIGN="TOP" HEIGHT=22>
+<P>a006, a005, a004, hflu001, adh3</TD>
+</TR>
+<TR><TD WIDTH="34%" VALIGN="TOP" HEIGHT=24>
+<P>Successful Completion Tags</TD>
+<TD WIDTH="66%" VALIGN="TOP" HEIGHT=24>
+<P>AS_PRIV_ASSEMBLER_RAN_DAILY_TEST</P>
+<P>AS_PRIV_ASSEMBLER_RAN_DAILY_TEST&lt;date&gt;</TD>
+</TR>
+</TABLE>
+
+<P>&nbsp;</P>
+<P ALIGN="CENTER"><IMG SRC="line2.gif" WIDTH=623 HEIGHT=6></P>
+<P>&nbsp;</P>
+<B><I><FONT FACE="Arial"><P><A NAME="WeeklyTest">Weekly Test</A></P>
+</B></I>
+<P></A>Weekly Checkout and Build</P>
+</FONT>
+<TABLE BORDER CELLSPACING=1 CELLPADDING=7 WIDTH=605>
+<TR><TD WIDTH="35%" VALIGN="TOP" HEIGHT=20>
+<P>Checkout Tag</TD>
+<TD WIDTH="65%" VALIGN="TOP" HEIGHT=20>
+<P>AS_PRIV_ASSEMBLER_RAN_DAILY_TEST</TD>
+</TR>
+<TR><TD WIDTH="35%" VALIGN="TOP" HEIGHT=20>
+<P>Weekly Checkout and Build Script</TD>
+<TD WIDTH="65%" VALIGN="TOP" HEIGHT=20>
+<P>Cds/AS/scripts/get_WEEKLY</TD>
+</TR>
+<TR><TD WIDTH="35%" VALIGN="TOP" HEIGHT=22>
+<P>Build Area</TD>
+<TD WIDTH="65%" VALIGN="TOP" HEIGHT=22>
+<P>/work/assembly/asteam/periodic_run/WEEKLY.dir/cds/</TD>
+</TR>
+<TR><TD WIDTH="35%" VALIGN="TOP" HEIGHT=24>
+<P>Successful Completion Tag</TD>
+<TD WIDTH="65%" VALIGN="TOP" HEIGHT=24>
+<P>AS_PRIV_ASSEMBLER_UNDER_WEEKLY_TEST</TD>
+</TR>
+</TABLE>
+
+<P>&nbsp;</P>
+<FONT FACE="Arial"><P>Weekly Run Test</P>
+</FONT>
+<TABLE BORDER CELLSPACING=1 CELLPADDING=7 WIDTH=605>
+<TR><TD WIDTH="34%" VALIGN="TOP" HEIGHT=20>
+<P>Checkout Tag</TD>
+<TD WIDTH="66%" VALIGN="TOP" HEIGHT=20>
+<P>AS_PRIV_ASSEMBLER_UNDER_WEEKLY_TEST</TD>
+</TR>
+<TR><TD WIDTH="34%" VALIGN="TOP" HEIGHT=20>
+<P>Checkout and Build Script</TD>
+<TD WIDTH="66%" VALIGN="TOP" HEIGHT=20>
+<P>Cds/AS/scripts/run_WEEKLY</TD>
+</TR>
+<TR><TD WIDTH="34%" VALIGN="TOP" HEIGHT=22>
+<P>Build Area</TD>
+<TD WIDTH="66%" VALIGN="TOP" HEIGHT=22>
+<P>/work/assembly/asteam/periodic_run/WEEKLY.dir/cds/</TD>
+</TR>
+<TR><TD WIDTH="34%" VALIGN="TOP" HEIGHT=22>
+<P>Run Area</TD>
+<TD WIDTH="66%" VALIGN="TOP" HEIGHT=22>
+<P>/data/assembly2/testcases/periodic/WEEKLY.dir</TD>
+</TR>
+<TR><TD WIDTH="34%" VALIGN="TOP" HEIGHT=22>
+<P>Tests Run</TD>
+<TD WIDTH="66%" VALIGN="TOP" HEIGHT=22>
+<P>a003, ww001</TD>
+</TR>
+<TR><TD WIDTH="34%" VALIGN="TOP" HEIGHT=24>
+<P>Successful Completion Tags</TD>
+<TD WIDTH="66%" VALIGN="TOP" HEIGHT=24>
+<P>AS_PRIV_ASSEMBLER_RAN_WEEKLY_TEST</P>
+<P>AS_PRIV_ASSEMBLER_RAN_WEEKLY_TEST&lt;date&gt;</TD>
+</TR>
+</TABLE>
+
+<B><I><FONT FACE="Arial"><P><A NAME="DROSTest">DROS Test</P>
+</B></I><P>Drosophila Checkout and Build</P>
+</FONT>
+<TABLE BORDER CELLSPACING=1 CELLPADDING=7 WIDTH=605>
+<TR><TD WIDTH="35%" VALIGN="TOP" HEIGHT=20>
+<P>Checkout Tag</TD>
+<TD WIDTH="65%" VALIGN="TOP" HEIGHT=20>
+<P>AS_PRIV_ASSEMBLER_RAN_WEEKLY_TEST</TD>
+</TR>
+<TR><TD WIDTH="35%" VALIGN="TOP" HEIGHT=20>
+<P>Drosophila Checkout and Build Script</TD>
+<TD WIDTH="65%" VALIGN="TOP" HEIGHT=20>
+<P>Cds/AS/scripts/get_DROS</TD>
+</TR>
+<TR><TD WIDTH="35%" VALIGN="TOP" HEIGHT=22>
+<P>Build Area</TD>
+<TD WIDTH="65%" VALIGN="TOP" HEIGHT=22>
+<P>/work/assembly/asteam/periodic_run/DROS.dir/cds/</TD>
+</TR>
+<TR><TD WIDTH="35%" VALIGN="TOP" HEIGHT=24>
+<P>Successful Completion Tag</TD>
+<TD WIDTH="65%" VALIGN="TOP" HEIGHT=24>
+<P>AS_PRIV_ASSEMBLER_UNDER_DROS_TEST</TD>
+</TR>
+</TABLE>
+
+<P>&nbsp;</P>
+<FONT FACE="Arial"><P>Drosophila Run Test</P>
+</FONT>
+<TABLE BORDER CELLSPACING=1 CELLPADDING=7 WIDTH=605>
+<TR><TD WIDTH="34%" VALIGN="TOP" HEIGHT=20>
+<P>Checkout Tag</TD>
+<TD WIDTH="66%" VALIGN="TOP" HEIGHT=20>
+<P>AS_PRIV_ASSEMBLER_UNDER_DROS_TEST</TD>
+</TR>
+<TR><TD WIDTH="34%" VALIGN="TOP" HEIGHT=20>
+<P>Checkout and Build Script</TD>
+<TD WIDTH="66%" VALIGN="TOP" HEIGHT=20>
+<P>Cds/AS/scripts/run_DROS</TD>
+</TR>
+<TR><TD WIDTH="34%" VALIGN="TOP" HEIGHT=22>
+<P>Build Area</TD>
+<TD WIDTH="66%" VALIGN="TOP" HEIGHT=22>
+<P>/work/assembly/asteam/periodic_run/DROS.dir/cds/</TD>
+</TR>
+<TR><TD WIDTH="34%" VALIGN="TOP" HEIGHT=22>
+<P>Run Area</TD>
+<TD WIDTH="66%" VALIGN="TOP" HEIGHT=22>
+<P>/data/assembly2/testcases/periodic/DROS.dir</TD>
+</TR>
+<TR><TD WIDTH="34%" VALIGN="TOP" HEIGHT=22>
+<P>Tests Run</TD>
+<TD WIDTH="66%" VALIGN="TOP" HEIGHT=22>
+<P>drosophila</TD>
+</TR>
+<TR><TD WIDTH="34%" VALIGN="TOP" HEIGHT=24>
+<P>Successful Completion Tags</TD>
+<TD WIDTH="66%" VALIGN="TOP" HEIGHT=24>
+<P>AS_PRIV_ASSEMBLER_RAN_DROS_TEST</P>
+<P>AS_PRIV_ASSEMBLER_RAN_DROS_TEST&lt;date&gt;</TD>
+</TR>
+</TABLE>
+
+<P>&nbsp;</P>
+<P ALIGN="CENTER"><IMG SRC="line2.gif" WIDTH=623 HEIGHT=6></P>
+<B><I><FONT FACE="Arial"><P><A NAME="Tags"></A>Tags</P>
+</B></I><P>Scratch Tags</P></FONT>
+<TABLE BORDER CELLSPACING=1 WIDTH=624>
+<TR><TD WIDTH="73%" VALIGN="MIDDLE">
+<P>AS_PRIV_ASSEMBLER_BUILT</TD>
+<TD WIDTH="27%" VALIGN="MIDDLE">
+<P>Code most recently built as part of a periodic build.</TD>
+</TR>
+<TR><TD WIDTH="73%" VALIGN="MIDDLE">
+<P>AS_PRIV_ASSEMBLER_UNDER_DAILY_TEST</TD>
+<TD WIDTH="27%" VALIGN="MIDDLE">
+<P>Code that was successfully built as part of most recent daily test</TD>
+</TR>
+<TR><TD WIDTH="73%" VALIGN="MIDDLE">
+<P>AS_PRIV_ASSEMBLER_RAN_DAILY_TEST</TD>
+<TD WIDTH="27%" VALIGN="MIDDLE">
+<P>Code that successfully ran as part of most recent daily test</TD>
+</TR>
+<TR><TD WIDTH="73%" VALIGN="MIDDLE">
+<P>AS_PRIV_ASSEMBLER_UNDER_WEEKLY_TEST</TD>
+<TD WIDTH="27%" VALIGN="MIDDLE">
+<P>Code that was successfully built as part of most recent weekly test</TD>
+</TR>
+<TR><TD WIDTH="73%" VALIGN="MIDDLE">
+<P>AS_PRIV_ASSEMBLER_RAN_WEEKLY_TEST</TD>
+<TD WIDTH="27%" VALIGN="MIDDLE">
+<P>Code that successfully ran as part of most recent weekly test</TD>
+</TR>
+<TR><TD WIDTH="73%" VALIGN="MIDDLE">
+<P>AS_PRIV_ASSEMBLER_UNDER_DROS_TEST</TD>
+<TD WIDTH="27%" VALIGN="MIDDLE">
+<P>Code that was successfully built as part of most recent DROS test</TD>
+</TR>
+<TR><TD WIDTH="73%" VALIGN="MIDDLE">
+<P>AS_PRIV_ASSEMBLER_RAN_DROS_TEST</TD>
+<TD WIDTH="27%" VALIGN="MIDDLE">
+<P>Code that successfully ran as part of most recent DROS test</TD>
+</TR>
+</TABLE>
+
+<P>&nbsp;</P>
+<H2>Dated Tags</H2>
+<P>&nbsp;</P>
+<P>&nbsp;</P>
+<TABLE BORDER CELLSPACING=1 WIDTH=624>
+<TR><TD WIDTH="73%" VALIGN="MIDDLE">
+<P>AS_PRIV_ASSEMBLER_RAN_DROS_TEST_&lt;date&gt;</TD>
+<TD WIDTH="27%" VALIGN="MIDDLE">
+<P>Code that successfully ran as part of the DROS test on &lt;date&gt;</TD>
+</TR>
+<TR><TD WIDTH="73%" VALIGN="MIDDLE">
+<P>AS_PRIV_ASSEMBLER_RAN_ WEEKLY_TEST_&lt;date&gt;</TD>
+<TD WIDTH="27%" VALIGN="MIDDLE">
+<P>.Code that successfully ran as part of the weekly test on &lt;date&gt;</TD>
+</TR>
+<TR><TD WIDTH="73%" VALIGN="MIDDLE">
+<P>AS_PRIV_ASSEMBLER_RAN_DAILY_TEST_&lt;date&gt;</TD>
+<TD WIDTH="27%" VALIGN="MIDDLE">
+<P>.Code that successfully ran as part of the daily test on &lt;date&gt;</TD>
+</TR>
+</TABLE>
+
+<H2>&nbsp;</H2>
+<P><HR></P>
+<P><BR>
+$Source: /work/NIGHTLY/wgs-assembler-cvs/doc/Organizational/Attic/Tagging.htm,v $ <BR>
+$Id: Tagging.htm,v 1.1.1.1 2004-04-14 13:45:44 catmandew Exp $ </P>
+</BODY>
+</HTML>

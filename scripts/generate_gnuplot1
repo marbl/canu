@@ -1,0 +1,86 @@
+#!/usr/bin/perl -w
+#
+###########################################################################
+#
+# This file is part of Celera Assembler, a software program that 
+# assembles whole-genome shotgun reads into contigs and scaffolds.
+# Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
+# 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received (LICENSE.txt) a copy of the GNU General Public 
+# License along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+###########################################################################
+#
+#********************************************************************
+#        Script:  
+#   Description:  Perl script that generates and runs a simfile
+#                 for different parameter and outputs the results
+#                 in a gnuplot file
+#    Programmer:  Knut Reinert
+#       Written:  10 June 99
+#  Last Revised:  10 June 99
+#********************************************************************
+
+$file = shift(@ARGV);
+$mut_err = 0.0;
+
+open(F,"> $file.gpc");
+print F "set output \"$file.ps\"\n";
+print F "set terminal postscript \n";
+print F "set xlabel \"coverage\"\n";
+print F "set ylabel \"sequencing error\"\n";
+print F "set zlabel \"number of chunks\"\n";
+print F "splot \"$file.gpd\" w lines\n";
+close F;
+
+open(G,"> $file.gpd");
+
+for ($coverage = 5; $coverage <= 20; $coverage += 5) {
+  for ($seq_err = 0.05; $seq_err <= 0.07; $seq_err += 0.005) {
+    $out = `create-sim1 $file $coverage $seq_err $mut_err`;
+    print $out,"\n";
+
+    if (! -e "$file.cga") { 
+      die "There is no file $file.cga \n";
+    }
+
+    open(INPUT,"$file.cga") || die "Could not open file $file.cga\n";
+    while(<INPUT>) {
+	chop;
+	if ($_ =~ /Total number of chunks/) {
+	  ($nc, $_) = split;
+	}
+      }
+    close INPUT;
+    print "cov=$coverage mut=$mut_err seq=$seq_err chunks=$nc\n";
+    flock (G, 2);
+    print G "$coverage $seq_err $nc\n";
+    flock (G, 8);
+    `rm -rf $file-GKP`;
+    `rm -rf $file-OVL`;
+    `rm -f $file.cam`;
+    `rm -f $file.cga`;
+    `rm -f $file.cgb`;
+    `rm -f $file.cms`;
+    `rm -f $file.fgb`;
+    `rm -f $file.frg`;
+    `rm -f $file.inp`;
+    `rm -f $file.ovl`;
+    `rm -f $file.sim`;
+  }
+  print G "\n";
+}
+close G;
+    
+
