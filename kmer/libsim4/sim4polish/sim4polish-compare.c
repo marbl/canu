@@ -185,21 +185,21 @@ s4p_compareExons_Overlap(sim4polish *A,
         foundB[j]++;
 
         if (numSame)
-          numSame++;
+          *numSame++;
       }
     }
   }
 
   for (i=0; i<A->numExons; i++) {
     if (numExtra && (foundA[i] == 0))
-      numExtra++;
+      *numExtra++;
     if (foundA[i] > 1)
       fprintf(stderr, "WARNING: Found exon %d %d times in A!\n", i, foundA[i]);
   }
 
   for (i=0; i<B->numExons; i++) {
     if (numMissing && (foundB[i] == 0))
-      numMissing++;
+      *numMissing++;
     if (foundB[i] > 1)
       fprintf(stderr, "WARNING: Found exon %d %d times in B!\n", i, foundB[i]);
   }
@@ -255,21 +255,21 @@ s4p_compareExons_Ends(sim4polish *A,
         foundB[j]++;
 
         if (numSame)
-          numSame++;
+          *numSame++;
       }
     }
   }
 
   for (i=0; i<A->numExons; i++) {
     if (numExtra && (foundA[i] == 0))
-      numExtra++;
+      *numExtra++;
     if (foundA[i] > 1)
       fprintf(stderr, "WARNING: Found exon %d %d times in A!\n", i, foundA[i]);
   }
 
   for (i=0; i<B->numExons; i++) {
     if (numMissing && (foundB[i] == 0))
-      numMissing++;
+      *numMissing++;
     if (foundB[i] > 1)
       fprintf(stderr, "WARNING: Found exon %d %d times in B!\n", i, foundB[i]);
   }
