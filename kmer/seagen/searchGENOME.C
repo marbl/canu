@@ -41,6 +41,17 @@ buildChunk(void) {
   //
   config.completeUseList(dbFASTA);
 
+  //  Construct the useList mapping from the chained sequence back to
+  //  the original sequence.  Also sum the length of the sequences,
+  //  including the padding (for use when we build the table).
+  //
+  u32bit sLen = 0;
+  for (u32bit i=0; i<config._useListLen; i++) {
+    config._useList[i].size  = dbFASTA->sequenceLength(config._useList[i].seq);
+    config._useList[i].start = sLen;
+    sLen += config._useList[i].size + 100;
+  }
+
   if (config._beVerbose)
     fprintf(stderr, "Building chunk with "u32bitFMT" sequences.\n", config._useListLen);
 
@@ -60,17 +71,6 @@ buildChunk(void) {
         fprintf(stderr, "Loading finished.\n");
     }
   } else {
-
-    //  sum the length of the sequences, including the padding.
-    //
-    u32bit sLen = 0;
-    for (u32bit i=0; i<config._useListLen; i++) {
-      config._useList[i].size  = dbFASTA->sequenceLength(config._useList[i].seq);
-      config._useList[i].start = sLen;
-
-      sLen += config._useList[i].size + 100;
-    }
-
 
     //  Allocate space for the chained sequence
     //
