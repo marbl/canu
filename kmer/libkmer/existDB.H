@@ -20,11 +20,15 @@ class positionDB;
 
 class existDB {
 public:
+  existDB(char        *filename);
   existDB(char        *filename,
           u32bit       merSize,
           u32bit       tblBits,
           positionDB  *posDB = 0L);
   ~existDB();
+
+  void        saveState(char *filename);
+  bool        readState(char *filename, bool beNoisy);
 
   //  Inlining this is a loss on x86.
   //
@@ -38,9 +42,6 @@ private:
   u64bit       CHECK(u64bit k) {
     return(k & _mask2);
   };
-
-  u64bit     *_hashTable;
-  u64bit     *_buckets;
 
   u32bit      _merSizeInBases;
   //u32bit      _merSizeInBases_div2;
@@ -60,7 +61,11 @@ private:
 
   u64bit      _hashMask;
   u64bit      _chckMask;
+
+  u64bit      _hashTableWords;
+  u64bit     *_hashTable;
+  u64bit      _bucketsWords;
+  u64bit     *_buckets;
 };
 
 #endif  //  EXISTDB_H
-

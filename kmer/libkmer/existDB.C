@@ -1,3 +1,7 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
 #include "existDB.H"
 #include "positionDB.H"
 #include "merstream.H"
@@ -13,10 +17,40 @@
 
 #include "bit-packing.H"
 
+existDB::existDB(char        *filename) {
+  if (readState(filename, true) == false) {
+    fprintf(stderr, "existDB::existDB()-- Tried to read state from '%s', but failed.\n", filename);
+    exit(1);
+  }
+}
+
 existDB::existDB(char        *filename,
                  u32bit       merSize,
                  u32bit       tblBits,
                  positionDB  *posDB) {
+
+  //  Try to read state from the filename.  If successful, make sure that
+  //  the merSize and tblBits are correct.
+  //
+  if (readState(filename, false)) {
+    bool fail = false;
+
+    if (_merSizeInBases != merSize) {
+      fprintf(stderr, "existDB::existDB()-- Read state from '%s', but got different mer sizes\n", filename);
+      fprintf(stderr, "existDB::existDB()-- Got %d, expected %d\n", _merSizeInBases, merSize);
+      fail = true;
+    }
+    if (_mask1 != u64bitMASK(tblBits)) {
+      fprintf(stderr, "existDB::existDB()-- Read state from '%s', but got different table sizes\n", filename);
+      fprintf(stderr, "existDB::existDB()-- Got %d, expected %d\n", 2 * _merSizeInBases - _shift1, tblBits);
+      fail = true;
+    }
+
+    if (fail)
+      exit(1);
+
+    return;
+  }
 
   _hashTable = 0L;
   _buckets   = 0L;
@@ -117,23 +151,22 @@ existDB::existDB(char        *filename,
   //  2)  Allocate a hash table and some mer storage buckets.
   //
 #ifdef COMPRESSED_HASH
-  u64bit   hs = (tableSizeInEntries + 1) * _hashWidth / 64 + 1;
+  _hashTableWords = (tableSizeInEntries + 1) * _hashWidth / 64 + 1;
 #else
-  u64bit   hs = tableSizeInEntries + 2;
+  _hashTableWords = tableSizeInEntries + 2;
 #endif
 
 #ifdef COMPRESSED_BUCKET
-  u64bit   bs = (numberOfMers + 1) * _chckWidth / 64 + 1;
+  _bucketsWords = (numberOfMers + 1) * _chckWidth / 64 + 1;
 #else
-  u64bit   bs = numberOfMers + 2;
+  _bucketsWords = numberOfMers + 2;
 #endif
 
-  _hashTable = new u64bit [hs];
-  _buckets   = new u64bit [bs];
-
+  _hashTable = new u64bit [_hashTableWords];
+  _buckets   = new u64bit [_bucketsWords];
 
 #ifdef STATS
-  fprintf(stderr, "existDB::allocated %lu bytes of storage.\n", 8 * (hs + bs));
+  fprintf(stderr, "existDB::allocated %lu bytes of storage.\n", 8 * (_hashTableWords + _bucketsWords));
 #endif
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -257,6 +290,135 @@ existDB::~existDB() {
   delete [] _hashTable;
   delete [] _buckets;
 }
+
+
+
+void
+existDB::saveState(char *filename) {
+  char     magic[16] = { 'e', 'x', 'i', 's', 't', 'D', 'B', '1', 
+                         ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '  };
+
+  errno = 0;
+  FILE *F = fopen(filename, "wb");
+  if (errno) {
+    fprintf(stderr, "Can't open '%s' for writing\n%s\n", strerror(errno));
+    exit(1);
+  }
+
+#ifdef COMPRESSED_HASH
+  magic[8] = 'h';
+#endif
+
+#ifdef COMPRESSED_BUCKET
+  magic[9] = 'b';
+#endif
+
+  fwrite(magic, sizeof(char), 16, F);
+
+  fwrite(&_merSizeInBases, sizeof(u32bit), 1, F);
+  fwrite(&_shift1, sizeof(u32bit), 1, F);
+  fwrite(&_shift2, sizeof(u32bit), 1, F);
+  fwrite(&_mask1, sizeof(u64bit), 1, F);
+  fwrite(&_mask2, sizeof(u64bit), 1, F);
+
+#ifdef COMPRESSED_HASH
+  fwrite(&_hashWidth, sizeof(u32bit), 1, F);
+#endif
+
+#ifdef COMPRESSED_BUCKET
+  fwrite(&_chckWidth, sizeof(u32bit), 1, F);
+#endif
+
+  fwrite(&_hashMask, sizeof(u64bit), 1, F);
+  fwrite(&_chckMask, sizeof(u64bit), 1, F);
+
+  fwrite(&_hashTableWords, sizeof(u64bit), 1, F);
+  fwrite(&_bucketsWords,   sizeof(u64bit), 1, F);
+
+  fwrite(_hashTable, sizeof(u64bit), _hashTableWords, F);
+  fwrite(_buckets,   sizeof(u64bit), _bucketsWords,   F);
+
+  fclose(F);
+}
+
+
+
+bool
+existDB::readState(char *filename, bool beNoisy) {
+  char     magic[16] = { 'e', 'x', 'i', 's', 't', 'D', 'B', '1', 
+                         ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '  };
+  char     cigam[16];
+
+  errno = 0;
+  FILE *F = fopen(filename, "rb");
+  if (errno) {
+    fprintf(stderr, "Can't open '%s' for reading\n%s\n", strerror(errno));
+    return(false);
+  }
+
+#ifdef COMPRESSED_HASH
+  magic[8] = 'h';
+#endif
+
+#ifdef COMPRESSED_BUCKET
+  magic[9] = 'b';
+#endif
+
+  fread(cigam, sizeof(char), 16, F);
+
+  if (strncmp(magic, cigam, 16) != 0) {
+
+    //  XXX:  Could use a better message
+    if (beNoisy) {
+      fprintf(stderr, "existDB::readState()-- Not an existDB binary file, must be a sequence file.\n");
+      fprintf(stderr, "existDB::readState()-- Read     '%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c'\n",
+              cigam[0],  cigam[1],  cigam[2],  cigam[3],
+              cigam[4],  cigam[5],  cigam[6],  cigam[7],
+              cigam[8],  cigam[9],  cigam[10], cigam[11],
+              cigam[12], cigam[13], cigam[14], cigam[15]);
+      fprintf(stderr, "existDB::readState()-- Expected '%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c'\n",
+              magic[0],  magic[1],  magic[2],  magic[3],
+              magic[4],  magic[5],  magic[6],  magic[7],
+              magic[8],  magic[9],  magic[10], magic[11],
+              magic[12], magic[13], magic[14], magic[15]);
+    }
+
+    fclose(F);
+    return(false);
+  }
+
+  fread(&_merSizeInBases, sizeof(u32bit), 1, F);
+  fread(&_shift1, sizeof(u32bit), 1, F);
+  fread(&_shift2, sizeof(u32bit), 1, F);
+  fread(&_mask1, sizeof(u64bit), 1, F);
+  fread(&_mask2, sizeof(u64bit), 1, F);
+
+#ifdef COMPRESSED_HASH
+  fread(&_hashWidth, sizeof(u32bit), 1, F);
+#endif
+
+#ifdef COMPRESSED_BUCKET
+  fread(&_chckWidth, sizeof(u32bit), 1, F);
+#endif
+
+  fread(&_hashMask, sizeof(u64bit), 1, F);
+  fread(&_chckMask, sizeof(u64bit), 1, F);
+
+  fread(&_hashTableWords, sizeof(u64bit), 1, F);
+  fread(&_bucketsWords,   sizeof(u64bit), 1, F);
+
+  _hashTable = new u64bit [_hashTableWords];
+  _buckets   = new u64bit [_bucketsWords];
+
+  fread(_hashTable, sizeof(u64bit), _hashTableWords, F);
+  fread(_buckets,   sizeof(u64bit), _bucketsWords,   F);
+
+  fclose(F);
+
+  return(true);
+}
+
+
 
 
 
