@@ -69,11 +69,12 @@ sim4polishFile::~sim4polishFile() {
 
 sim4polishList*
 sim4polishFile::getEST(u32bit iid) {
+  sim4polishList *l = new sim4polishList();
 
   if (iid >= _maxEST)
-    fprintf(stderr, "Invalid EST iid "u32bitFMT", max is "u32bitFMT"\n", iid, _maxEST), exit(1);
+    //fprintf(stderr, "Invalid EST iid "u32bitFMT", max is "u32bitFMT"\n", iid, _maxEST), exit(1);
+    return(l);
 
-  sim4polishList *l = new sim4polishList();
   sim4polish     *p = 0L;
   u32bit          i = _ESTiidLocation[iid];
 
