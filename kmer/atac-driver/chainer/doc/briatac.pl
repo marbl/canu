@@ -30,6 +30,13 @@ if (scalar(@ARGV) < 6) {
     print STDERR "\n";
     print STDERR "    -merylonly             -- only run the meryl components\n";
     print STDERR "\n";
+    print STDERR "\n";
+    print STDERR "ADVANCED OPTIONS:\n";
+    print STDERR "\n";
+    print STDERR "    -segmentid x           -- only run segment with id x\n";
+    print STDERR "                              (don't use unless you really know what it does)\n";
+    print STDERR "    -buildonly             -- if defined, don't run the search if the table exists\n";
+    print STDERR "\n";
     exit(1);
 }
 
@@ -51,6 +58,9 @@ my $numSegments = 2;
 my $numThreads  = 4;
 
 my $merylOnly = 0;
+
+my $segmentIDtorun = undef;
+my $buildOnly      = undef;
 
 my $execHome;
 $execHome = "/work/assembly/walenzbp/releases";
@@ -81,6 +91,10 @@ while (scalar(@ARGV) > 0) {
         $execHome = shift @ARGV;
     } elsif ($arg eq "-merylonly") {
         $merylOnly = 1;
+    } elsif ($arg eq "-segmentid") {
+        $segmentIDtorun = shift @ARGV;
+    } elsif ($arg eq "-buildonly") {
+        $buildOnly = 1;
     }
 }
 
@@ -127,11 +141,9 @@ if (! -e "$ATACdir/.mask.done") {
 
     if (! -e "$ATACdir/min.$mercount1.$mercount2.mcdat") {
         print STDERR "Finding the min count between $mercount1 and $mercount2.\n";
-        if (runCommand("$meryl -M min -s $MERYLdir/$mercount1 -s $MERYLdir/$mercount2 -o $ATACdir/min.$mercount1.$mercount2")) {
-            #unlink "$ATACdir/min.$mercount1.$mercount2.mcidx";
-            #unlink "$ATACdir/min.$mercount1.$mercount2.mcdat";
-            rename "$ATACdir/min.$mercount1.$mercount2.mcidx", "$ATACdir/min.$mercount1.$mercount2.mcidx.crash";
-            rename "$ATACdir/min.$mercount1.$mercount2.mcdat", "$ATACdir/min.$mercount1.$mercount2.mcdat.crash";
+        if (runCommand("$meryl -M min -s $MERYLdir/$mercount1 -s $MERYLdir/$mercount2 -o $ATACdir/min.$mercount1.$mercount2 -stats $ATACdir/min.$mercount1.$mercount2.stats")) {
+            unlink "$ATACdir/min.$mercount1.$mercount2.mcidx";
+            unlink "$ATACdir/min.$mercount1.$mercount2.mcdat";
             die "Failed to find the min count between $mercount1 and $mercount2\n";
         }
     }
@@ -150,47 +162,25 @@ if (! -e "$ATACdir/.mask.done") {
     print STDERR "includeSize is about $includeSize\n";
     print STDERR "excludeSize is about $excludeSize\n";
 
-    #
-    #  Since we usually run multiple copies of the search, and since building
-    #  the existDB structure takes > thirty minutes, we pre-build it.
-    #
-
     if ($includeSize < $excludeSize) {
-
-        #if (! -e "$ATACdir/$matches.include.existDB") {
-        #    print STDERR "Building 'include' existDB structure.\n";
-        #    if (runCommand("$existDB -m 20 -t 19 $ATACdir/min.$mercount1.$mercount2 $ATACdir/$matches.include.existDB")) {
-        #        unlink "$ATACdir/$matches.include.existDB";
-        #        die "Failed to make include existDB?\n";
-        #    }
-        #}
-        #die "Failed to make include existDB?\n" if (! -e "$ATACdir/$matches.include.existDB");
-
-        system("ln -s $ATACdir/min.$mercount1.$mercount2.mcidx $ATACdir/$matches.include.mcidx");
-        system("ln -s $ATACdir/min.$mercount1.$mercount2.mcdat $ATACdir/$matches.include.mcdat");
+        rename "$ATACdir/min.$mercount1.$mercount2.mcidx", "$ATACdir/$matches.include.mcidx";
+        rename "$ATACdir/min.$mercount1.$mercount2.mcdat", "$ATACdir/$matches.include.mcdat";
     } else {
-
         if (! -e "$ATACdir/$matches.exclude.mcdat") {
             print STDERR "Finding 'exclude' mers!\n";
-            if (runCommand("$meryl -M xor -s $MERYLdir/$id1 -s $ATACdir/min.$mercount1.$mercount2 -o $ATACdir/$matches.exclude")) {
-                #unlink "$ATACdir/$matches.exclude.mcidx";
-                #unlink "$ATACdir/$matches.exclude.mcdat";
-                rename "$ATACdir/$matches.exclude.mcidx", "$ATACdir/$matches.exclude.mcidx.crash";
-                rename "$ATACdir/$matches.exclude.mcdat", "$ATACdir/$matches.exclude.mcdat.crash";
+            if (runCommand("$meryl -M xor -s $MERYLdir/$id1 -s $ATACdir/min.$mercount1.$mercount2 -o $ATACdir/$matches.exclude -stats $ATACdir/$matches.exclude.stats")) {
+                unlink "$ATACdir/$matches.exclude.mcidx";
+                unlink "$ATACdir/$matches.exclude.mcdat";
                 die "Failed to make exclude mers!\n";
             }
         }
 
-        die "Failed to find exclude mers?\n" if (! -e "$ATACdir/$matches.exclude.mcdat");
-
-        #if (! -e "$ATACdir/$matches.exclude.existDB") {
-        #    print STDERR "Building 'exclude' existDB structure.\n";
-        #    if (runCommand("$existDB -m 20 -t 19 $ATACdir/$matches.exclude $ATACdir/$matches.exclude.existDB")) {
-        #        unlink "$ATACdir/$matches.exclude.existDB";
-        #        die "Failed to make exclude existDB?\n";
-        #    }
-        #}
-        #die "Failed to make exclude existDB?\n" if (! -e "$ATACdir/$matches.exclude.existDB");
+        if (-e "$ATACdir/$matches.exclude.mcdat") {
+            unlink "$ATACdir/min.$mercount1.$mercount2.mcdat";
+            unlink "$ATACdir/min.$mercount1.$mercount2.mcidx";
+        } else {
+            die "Failed to find exclude mers?\n";
+        }
     }
 
     #  Success!
@@ -242,6 +232,9 @@ close(F);
 #  Now, for each segment that hasn't run, run it.
 #
 foreach my $segmentID (@segmentIDs) {
+    next if (defined($segmentIDtorun) && ($segmentID ne $segmentIDtorun));
+    next if (defined($buildOnly)      && (-e "$ATACdir/$matches-segment-$segmentID.table"));
+
     if (! -e "$ATACdir/$matches-segment-$segmentID.stats") {
         my $cmd = "";
 
@@ -251,22 +244,28 @@ foreach my $segmentID (@segmentIDs) {
         $cmd .= "-minlength $minfill \\\n";
         $cmd .= "-maxgap $maxgap \\\n";
         $cmd .= "-numthreads $numThreads \\\n";
-        $cmd .= "-genomic $MERYLdir/$id2.fasta \\\n";
-        $cmd .= "-cdna    $MERYLdir/$id1.fasta \\\n";
-        $cmd .= "-only    $ATACdir/$matches.include \\\n" if (-e "$ATACdir/$matches.include.mcdat");
-        $cmd .= "-mask    $ATACdir/$matches.exclude \\\n" if (-e "$ATACdir/$matches.exclude.mcdat");
-        $cmd .= "-use     $ATACdir/$matches-segment-$segmentID \\\n";
-        $cmd .= "-output  $ATACdir/$matches-segment-$segmentID.matches \\\n";
-        $cmd .= "-stats   $ATACdir/$matches-segment-$segmentID.stats \\\n";
-        $cmd .= "-tmpfile $ATACdir/$matches-segment-$segmentID.tmp";
+        $cmd .= "-genomic   $MERYLdir/$id2.fasta \\\n";
+        $cmd .= "-cdna      $MERYLdir/$id1.fasta \\\n";
+        $cmd .= "-only      $ATACdir/$matches.include \\\n" if (-e "$ATACdir/$matches.include.mcdat");
+        $cmd .= "-mask      $ATACdir/$matches.exclude \\\n" if (-e "$ATACdir/$matches.exclude.mcdat");
+        $cmd .= "-use       $ATACdir/$matches-segment-$segmentID \\\n";
+        $cmd .= "-output    $ATACdir/$matches-segment-$segmentID.matches \\\n";
+        $cmd .= "-stats     $ATACdir/$matches-segment-$segmentID.stats \\\n";
+        $cmd .= "-buildonly $ATACdir/$matches-segment-$segmentID.table \\\n";
+        $cmd .= "-tmpfile   $ATACdir/$matches-segment-$segmentID.tmp";
+
+
+        #  Prevent me from overwriting a run in progress
+        #
+        if (-e "$ATACdir/$matches-segment-$segmentID.matches") {
+            die "WARNING:  Matches already exist!  Exiting!\n";
+        }
 
         open(F, "> $ATACdir/$matches-$segmentID.cmd");
         print F "$cmd\n";
         close(F);
 
         if (runCommand($cmd)) {
-            #unlink "$ATACdir/$matches-segment-$segmentID.matches";
-            #unlink "$ATACdir/$matches-segment-$segmentID.stats";
             unlink "$ATACdir/$matches-segment-$segmentID.tmp";
             rename "$ATACdir/$matches-segment-$segmentID.matches", "$ATACdir/$matches-segment-$segmentID.matches.crash";
             rename "$ATACdir/$matches-segment-$segmentID.stats", "$ATACdir/$matches-segment-$segmentID.stats.crash";
@@ -277,10 +276,19 @@ foreach my $segmentID (@segmentIDs) {
     }
 }
 
+
+#  End early if the segment id to run is defined.
+#
+if (defined($segmentIDtorun)) {
+    print STDERR "Terminating execution because a specific segmentID was supplied.\n";
+    exit(0);
+}
+
+
 #
 #  Join and sort the matches
 #
-if (! -e "$ATACdir/$matches.matches") {
+if (! -e "$ATACdir/$matches.matches.sorted") {
     my $mfiles;
 
     #  Check that each search finished, and build a list of all the match files.
@@ -293,11 +301,20 @@ if (! -e "$ATACdir/$matches.matches") {
         }
     }
 
-    if (runCommand("cat $mfiles | sort -y -T $ATACdir/sortingjunk -k 3n -k 7n > $ATACdir/$matches.matches.sorted &")) {
+    #  Ok, all the matches look good, so we can remove the tables.
+    #
+    foreach my $segmentID (@segmentIDs) {
+        unlink "$ATACdir/$matches-segment-$segmentID.table";
+    }
+
+    if (runCommand("cat $mfiles | sort -y -T $ATACdir -k 3n -k 7n > $ATACdir/$matches.matches.sorted")) {
         die "Failed to sort $ATACdir!\n";
     }
 
-    #system("rm -f $mfiles");
+    #foreach my $segmentID (@segmentIDs) {
+    #    unlink "$ATACdir/$matches-segment-$segmentID.matches";
+    #    unlink "$ATACdir/$matches-segment-$segmentID.table";
+    #}
 }
 
 
@@ -462,21 +479,17 @@ sub countMers {
     #  sequences that are genome size.
 
     if (! -e "$MERYLdir/$id.mcdat") {
-        if (runCommand("$meryl -B -C -m $mersize -t 27 -H 32 -s $MERYLdir/$id.fasta -o $MERYLdir/$id")) {
-            #unlink "$MERYLdir/$id.mcidx";
-            #unlink "$MERYLdir/$id.mcdat";
-            rename "$MERYLdir/$id.mcidx", "$MERYLdir/$id.mcidx.crash";
-            rename "$MERYLdir/$id.mcdat", "$MERYLdir/$id.mcdat.crash";
+        if (runCommand("$meryl -B -C -m $mersize -t 27 -H 32 -s $MERYLdir/$id.fasta -o $MERYLdir/$id -stats $MERYLdir/$id.stats")) {
+            unlink "$MERYLdir/$id.mcidx";
+            unlink "$MERYLdir/$id.mcdat";
             die "Failed to count mers in $id\n";
         }
     }
 
     if (! -e "$MERYLdir/$id.le$merlimit.mcdat") {
-        if (runCommand("$meryl -v -M lessthanorequal $merlimit -s $MERYLdir/$id -o $MERYLdir/$id.le$merlimit")) {
-            #unlink "$MERYLdir/$id.le$merlimit.mcidx";
-            #unlink "$MERYLdir/$id.le$merlimit.mcdat";
-            rename "$MERYLdir/$id.le$merlimit.mcidx", "$MERYLdir/$id.le$merlimit.mcidx.crash";
-            rename "$MERYLdir/$id.le$merlimit.mcdat", "$MERYLdir/$id.le$merlimit.mcdat.crash";
+        if (runCommand("$meryl -v -M lessthanorequal $merlimit -s $MERYLdir/$id -o $MERYLdir/$id.le$merlimit -stats $MERYLdir/$id.le$merlimit.stats")) {
+            unlink "$MERYLdir/$id.le$merlimit.mcidx";
+            unlink "$MERYLdir/$id.le$merlimit.mcdat";
             die "Failed to count mers lessthanorequal $merlimit in $id\n";
         }
     }
