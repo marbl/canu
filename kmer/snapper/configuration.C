@@ -97,9 +97,11 @@ static char const *usageString =
 "    -setfilter L H V        Use { L,H,V } as the filter parameters\n"
 "\n"
 "Input Options:\n"
-"    -mask f                 Ignore all mers listed in file f\n"
-"    -only f                 Ignore all mers EXCEPT those listed in file f\n"
-"                              (use only the mers listed in file f)\n"
+"    -mask f                 Ignore (only use) all mers listed in file f\n"
+"    -only f\n"
+"    -maskn n f              Ignore (only use) the mers listed in meryl prefix f\n"
+"    -onlyn n f              For mask, mers with count >= n are masked.\n"
+"                            For only, mers with count <= n are used.\n"
 "    -queries c.fasta        Query sequences\n"
 "    -genomic g.fasta        Database sequences\n"
 "    -use [...]\n"
@@ -340,6 +342,16 @@ configuration::read(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-only") == 0) {
       arg++;
       _onlyFileName = argv[arg];
+    } else if (strcmp(argv[arg], "-maskn") == 0) {
+      arg++;
+      _maskPrefix    = argv[arg];
+      arg++;
+      _maskThreshold = atoi(argv[arg]);
+    } else if (strcmp(argv[arg], "-onlyn") == 0) {
+      arg++;
+      _onlyPrefix    = argv[arg];
+      arg++;
+      _onlyThreshold = atoi(argv[arg]);
     } else if (strcmp(argv[arg], "-queries") == 0) {
       arg++;
       _qsFileName = argv[arg];
@@ -431,7 +443,7 @@ configuration::read(int argc, char **argv) {
   //
 
   if (_numSearchThreads > MAX_THREADS) {
-    fprintf(stderr, "ERROR:  Threads are limited to %d.\n", MAX_THREADS);
+    fprintf(stderr, "ERROR:  Number of threads is limited to %d.\n", MAX_THREADS);
     exit(1);
   }
 

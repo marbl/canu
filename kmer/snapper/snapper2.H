@@ -112,8 +112,15 @@ public:
 
   char            *_dbFileName;
   char            *_qsFileName;
+
   char            *_maskFileName;
   char            *_onlyFileName;
+
+  char            *_maskPrefix;
+  u32bit           _maskThreshold;
+  char            *_onlyPrefix;
+  u32bit           _onlyThreshold;
+
   char            *_outputFileName;
   char            *_statsFileName;
 

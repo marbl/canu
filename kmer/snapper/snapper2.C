@@ -273,15 +273,25 @@ main(int argc, char **argv) {
   maskDB = 0L;
   if (config._maskFileName) {
     if (config._beVerbose)
-      fprintf(stderr, "Building maskDB from '%s'\n", config._maskFileName);
-    maskDB = new existDB(config._maskFileName, config._merSize, 19, positions);
+      fprintf(stderr, "Building maskDB from fasta file '%s'\n", config._maskFileName);
+    maskDB = new existDB(config._maskFileName, config._merSize, 19, 0, 0, positions);
+  }
+  if (config._maskPrefix) {
+    if (config._beVerbose)
+      fprintf(stderr, "Building maskDB from meryl prefix '%s'\n", config._maskPrefix);
+    maskDB = new existDB(config._maskPrefix, config._merSize, 19, config._maskThreshold, ~u32bitZERO);
   }
 
   onlyDB = 0L;
   if (config._onlyFileName) {
     if (config._beVerbose)
-      fprintf(stderr, "Building onlyDB from '%s'\n", config._onlyFileName);
-    onlyDB = new existDB(config._onlyFileName, config._merSize, 19, positions);
+      fprintf(stderr, "Building onlyDB from fasta file '%s'\n", config._onlyFileName);
+    onlyDB = new existDB(config._onlyFileName, config._merSize, 19, 0, 0, positions);
+  }
+  if (config._onlyPrefix) {
+    if (config._beVerbose)
+      fprintf(stderr, "Building onlyDB from meryl prefix '%s'\n", config._onlyPrefix);
+    onlyDB = new existDB(config._onlyPrefix, config._merSize, 19, 0, config._onlyThreshold);
   }
 
   config._buildTime = getTime();

@@ -44,7 +44,7 @@ main(int argc, char **argv) {
     }
   }
 
-  existDB  *e = new existDB(argv[argc-2], mersize, tblsize, 0L);
+  existDB  *e = new existDB(argv[argc-2], mersize, tblsize);
   e->saveState(argv[argc-1]);
   delete e;
   exit(0);

@@ -8,6 +8,10 @@ ifndef POSITIONDB/
 POSITIONDB/ := $/../positionDB/
 endif
 
+ifndef MERYL/
+MERYL/    := $/../meryl/
+endif
+
 ifndef LIBBRI/
 LIBBRI/     := $/../libbri/
 endif
@@ -55,6 +59,7 @@ $/configuration.C.d: $/buildinfo-snapper2.h \
 $/snapper2: \
               ${$/.CXX_SRCS:.C=.o} $/buildinfo-snapper2.o \
               ${EXISTDB/}libexistDB.a ${POSITIONDB/}libpositionDB.a \
+              ${MERYL/}libmeryl.a \
               ${SIM4POLISH/}libsim4polish.a ${SIM4/}libsim4.a \
               ${FASTA/}libfasta.a ${LIBBRI/}libbri.a
 

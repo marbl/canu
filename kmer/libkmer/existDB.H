@@ -11,23 +11,34 @@
 //  the positionDB.
 //
 
+//  If both of these are defined, the tables are half as big and half as fast.
+//
 //#define COMPRESSED_HASH
 //#define COMPRESSED_BUCKET
+
+#if defined COMPRESSED_HASH || defined COMPRESSED_BUCKET
+#include "bit-packing.H"
+#endif
 
 class positionDB;
 
 class existDB {
 public:
+
+  //  Read state from an existDB file
   existDB(char const  *filename,
           bool         loadData=true);
+
+  //  Load mers from an existing existDB file, a fastafile, or a meryl database
   existDB(char const  *filename,
           u32bit       merSize,
           u32bit       tblBits,
+          u32bit       lo = 0,
+          u32bit       hi = ~u32bitZERO,
           positionDB  *posDB = 0L);
   ~existDB();
 
   void        saveState(char const *filename);
-  bool        loadState(char const *filename, bool beNoisy=false, bool loadData=true);
 
   void        printState(FILE *stream);
 
@@ -35,6 +46,14 @@ public:
   //
   bool        exists(u64bit mer);
 private:
+  bool        loadState(char const *filename, bool beNoisy=false, bool loadData=true);
+  bool        createFromFastA(char const  *filename,
+                              u32bit       merSize,
+                              u32bit       tblBits,
+                              positionDB  *posDB);
+  bool        createFromMeryl(char const  *filename,
+                              u32bit       merSize,
+                              u32bit       tblBits);
 
   u64bit       HASH(u64bit k) {
     return(((k >> _shift1) ^ (k >> _shift2) ^ k) & _mask1);
@@ -45,7 +64,6 @@ private:
   };
 
   u32bit      _merSizeInBases;
-  //u32bit      _merSizeInBases_div2;
 
   u32bit      _shift1;
   u32bit      _shift2;

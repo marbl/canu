@@ -1,5 +1,9 @@
 # -*- makefile -*-
 
+ifndef MERYL/
+MERYL/      := $/../meryl/
+endif
+
 ifndef LIBBRI/
 LIBBRI/     := $/../libbri/
 endif
@@ -52,6 +56,7 @@ $/searchGENOMEexactly: $/hitMatrix-Exact.o
 $/searchGENOME $/searchGENOMEexactly: \
               ${src_C:.C=.o} $/buildinfo-searchGENOME.o \
               ${EXISTDB/}libexistDB.a ${POSITIONDB/}libpositionDB.a \
+              ${MERYL/}libmeryl.a \
               ${FASTA/}libfasta.a ${LIBBRI/}libbri.a
 
 $/hitConverter: $/hitConverter.o
