@@ -59,127 +59,49 @@
 //
 //#define SHOW_EXTERNAL_SEEDING
 
-
-
-
-
-
-
-
 enum { INIT = 0, PERM = 1, TEMP = 2};
 enum { FWD = 0, BWD = 1, BOTH = 2 };
 enum { OK = 0, FREE_START = 1, FREE_END = 2, FREE_BOTH_ENDS = 3};
 
-/* data structures */
-
-#if 0
-
-//  Moved all data structures into the sim4 class itself
-
-typedef struct coordinates {
-  int pos1;
-  int pos2;
-}  coords;
-
-/* used only in the alignment stage */
-typedef struct edit_script {
-  int                 op_type;    /* SUB, INS, or DEL */
-  int                 num;        /* Number of operations */
-  struct edit_script *next;
-} edit_script;
-
-typedef struct edit_script_list {
-  int   offset1, offset2;
-  int   len1, len2; 
-  int    score;
-  struct edit_script *script;
-  struct edit_script_list *next_script;
-} edit_script_list;
-
-typedef struct spliced {
-  int              xs;
-  int              xe;
-  int              ys;
-  int              ye;
-  int              score;
-  int              type;
-  struct spliced  *next;
-} splice_t;
-
-typedef struct sim4_stats {
-  int    internal;
-  int    icoverage;
-  int    numberOfMatches;
-  int    numberOfNs;
-  int    orientation;
-  int    percentID;
-  bool   tooManyMSPs;
-} sim4_stats_t;
-
-
-
 #define GEN_LOG4_ENTRIES 45
 #define CDNA_LOG4_ENTRIES 25
 
 #define HASH_SIZE 32767        /* 2**15 - 1 */
-
-struct hash_node {
-  int                 ecode;              /* integer encoding of the word */
-  int                 pos;                /* positions where word hits query sequence */
-  struct hash_node   *link; /* next word with same last 7.5 letters */
-};
-
-struct hash_table {
-  struct hash_node   *table[HASH_SIZE+1];
-  int                *nextPos;
-  struct hash_node   *nodes;
-  int                 nodesused;
-};
-
-#endif
-
-
-#define GEN_LOG4_ENTRIES 45
-#define CDNA_LOG4_ENTRIES 25
-
-#define HASH_SIZE 32767        /* 2**15 - 1 */
-
-
 
 class Sim4 {
 private:
 
-typedef struct coordinates {
+struct coords {
   int pos1;
   int pos2;
-} coords;
+};
 
 /* used only in the alignment stage */
-typedef struct edit_script {
+struct edit_script {
   int                 op_type;    /* SUB, INS, or DEL */
   int                 num;        /* Number of operations */
   struct edit_script *next;
-} edit_script;
+};
 
-typedef struct edit_script_list {
+struct edit_script_list {
   int   offset1, offset2;
   int   len1, len2; 
   int    score;
   struct edit_script *script;
   struct edit_script_list *next_script;
-} edit_script_list;
+};
 
-typedef struct spliced {
-  int              xs;
-  int              xe;
-  int              ys;
-  int              ye;
-  int              score;
-  int              type;
-  struct spliced  *next;
-} splice_t;
+struct splice_t {
+  int               xs;
+  int               xe;
+  int               ys;
+  int               ye;
+  int               score;
+  int               type;
+  struct splice_t  *next;
+};
 
-typedef struct sim4_stats {
+struct sim4_stats_t {
   int    internal;
   int    icoverage;
   int    numberOfMatches;
@@ -187,7 +109,7 @@ typedef struct sim4_stats {
   int    orientation;
   int    percentID;
   bool   tooManyMSPs;
-} sim4_stats_t;
+};
 
 struct hash_node {
   int                 ecode;              /* integer encoding of the word */
@@ -435,20 +357,10 @@ private:
   Exon *find_previous(Exon *head, Exon *target) {
     while (head && (head->next_exon != target))
       head = head->next_exon; 
-#if 0
-    if (head == NULL) {
-      fprintf(stderr, "Corrupted exon list: could not find previous.");
-      kill(getpid(), SIGKILL);
-    }
-#endif
     return(head);
   };
 
   bool   get_match_quality(Exon *,Exon *,sim4_stats_t *,int);
-#if 0
-  //  Dead code, 05 apr 2004, bpw
-  void   check_consistency_intron_ori(Exon *,int,char *);
-#endif
 
   //  splice.h
   //
