@@ -13,8 +13,8 @@ Sim4::get_polyAT(char *seq, int len, int *pT, int *pA, int flag)
   int MAX10 = 2;
   int MAX20 = 5;
 
-  static char encodingA[128];
-  static char encodingT[128];
+  char encodingA[128];
+  char encodingT[128];
 
 
   if (flag!=T_ONLY) {
