@@ -233,7 +233,7 @@ doPolish(searcherState       *state,
   try {
     output = new char [outputMax];
   } catch (...) {
-    fprintf(stderr, "Can't allocate space for the output string in thread %lu\n", state->threadID);
+    fprintf(stderr, "doPolish()-- Can't allocate space for the output string (%u bytes) in thread %lu \n", outputMax, state->threadID);
     abort();
   }
 
@@ -300,7 +300,7 @@ doPolish(searcherState       *state,
             try {
               o = new char [outputMax];
             } catch (...) {
-              fprintf(stderr, "Can't allocate space for the output string in thread %lu\n", state->threadID);
+              fprintf(stderr, "doPolish()-- Can't reallocate space for the output string (%u bytes) in thread %lu\n", outputMax, state->threadID);
               abort();
             }
             memcpy(o, output, sizeof(char) * outputLen);
