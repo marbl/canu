@@ -34,7 +34,11 @@ configuration::configuration(void) {
   _smallSequenceCutoff = 0;
 
   _minLengthSingle     = 0;
+  _minCoverageSingle   = 0.0;
   _minLengthMultiple   = 0;
+  _minCoverageMultiple = 0.0;
+
+  _reversed            = false;
 
 #if 0
   _regionMergeDistance = 50000;
@@ -70,30 +74,35 @@ static char const *usageString =
 "usage: %s [--buildinfo] [options]\n"
 "\n"
 "Algorithm Options:\n"
-"    -mersize k         Use k-mers\n"
-"    -numthreads n      Use n search threads\n"
+"    -mersize k              Use k-mers\n"
+"    -numthreads n           Use n search threads\n"
 "\n"
 "Input Options:\n"
-"    -mask f            Ignore all mers listed in file f\n"
-"    -only f            Ignore all mers EXCEPT those listed in file f\n"
-"                       (use only the mers listed in file f)\n"
-"    -cdna c.fasta      Query sequences (the cDNA, the stream)\n"
-"    -genomic g.fasta   Database sequences (the genome, the table)\n"
+"    -mask f                 Ignore all mers listed in file f\n"
+"    -only f                 Ignore all mers EXCEPT those listed in file f\n"
+"                              (use only the mers listed in file f)\n"
+"    -cdna c.fasta           Query sequences (the cDNA, the stream)\n"
+"    -genomic g.fasta        Database sequences (the genome, the table)\n"
 "\n"
-"    -use #,#,#,#       Use only those sequences with # specified\n"
-"    -use file          Use only those sequences listed in the file\n"
-"                       Default is to use ALL sequences in g.fasta\n"
+"k-Mer Table Creation (\"The k-mer table is built ....\")\n"
+"    -buildtablefromcdna     from the cdna sequences\n"
+"    -buildtablefromgenomic  from the genomic sequences\n"
+"\n"
+"    -use #,#,#,#            using only those sequences specified\n"
+"    -use file               using only those sequences listed in the file\n"
 "\n"
 "Search Options\n"
-"    -forward           Search only the normal cDNA\n"
-"    -reverse           Search only the reverse-complement cDNA\n"
+"    -forward                Search only the normal cDNA\n"
+"    -reverse                Search only the reverse-complement cDNA\n"
+"\n"
+"\n"
 "\n"
 "Output Options\n"
-"    -verbose           Entertain the user\n"
-"    -binary            Write the hits in a binary format\n"
-"    -output f          Write output to file f\n"
-"    -count f           Write counts of hits to file f\n"
-"    -stats f           Write resource statistics to f\n";
+"    -verbose                Entertain the user\n"
+"    -binary                 Write the hits in a binary format\n"
+"    -output f               Write output to file f\n"
+"    -count f                Write counts of hits to file f\n"
+"    -stats f                Write resource statistics to f\n";
 
 void
 configuration::usage(char *name) {
@@ -379,6 +388,10 @@ configuration::read(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-multiplecoverage") == 0) {
       arg++;
       _minCoverageMultiple = atof(argv[arg]);
+    } else if (strcmp(argv[arg], "-buildtablefromcdna") == 0) {
+      _reversed = true;
+    } else if (strcmp(argv[arg], "-buildtablefromgenomic") == 0) {
+      _reversed = false;
 #if 0
     } else if (strcmp(argv[arg], "-mergedistance") == 0) {
       arg++;
@@ -420,8 +433,8 @@ configuration::read(int argc, char **argv) {
 
   //  Fail if we don't get reasonable signal criteria
   //
-  if (((_minLengthSingle   == 0) && (_minCoverageSingle   == 0)) ||
-      ((_minLengthMultiple == 0) && (_minCoverageMultiple == 0))) {
+  if (((_minLengthSingle   == 0) && (_minCoverageSingle   == 0.0)) ||
+      ((_minLengthMultiple == 0) && (_minCoverageMultiple == 0.0))) {
     fprintf(stderr, "ERROR:  Minimum match lengths not specified.  Both single and multiple must be specified.\n");
     fprintf(stderr, "        Use one of -singlelength or -singlecoverage\n");
     fprintf(stderr, "        Use one of -multiplelength or -multiplecoverage\n");
