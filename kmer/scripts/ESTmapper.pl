@@ -346,8 +346,7 @@ if ($personality eq "-mapest") {
 
         #  PARSE!
         #
-        #print ("$parseSNPs $snpdelimiter $snpsizetag $snppostag $snpoffset -F $dir/snps-failed -O $dir/snps-parsed < $dir/polishes-good.sorted-by-cDNA\n");
-        system("$parseSNPs $snpdelimiter $snpsizetag $snppostag $snpoffset -F $dir/snps-failed -O $dir/snps-parsed < $dir/polishes-good.sorted-by-cDNA > summary-snps");
+        system("$parseSNPs $snpdelimiter $snpsizetag $snppostag $snpoffset -F $dir/snps-failed -O $dir/snps-parsed < $dir/polishes-good.sorted-by-cDNA > $dir/summary-snps");
     }
 
 } elsif ($personality eq "-mapmrna") {
