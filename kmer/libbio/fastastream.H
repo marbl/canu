@@ -41,7 +41,7 @@ public:
   };
 
   ~FastAstream() {
-    delete [] _buffer;
+    delete    _buffer;
     delete [] _theDefLine;
   };
 
