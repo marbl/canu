@@ -162,13 +162,15 @@ savePolish(sim4polish *q, double *alloc) {
 
 void
 statusReport(int pLen, int mergeFilesLen, double arrayAlloc, double matchAlloc) {
-  fprintf(stderr, "Read: %8d polishes -- %5d temporary files -- %8.3fMB / %8.3fMB -- %8.3f bytes/polish\r",
-          pLen,
-          mergeFilesLen,
-          (arrayAlloc + matchAlloc) / 1048576.0,
-          getProcessSize() / 1048576.0,
-          matchAlloc / pLen);
-  fflush(stderr);
+  if (pLen > 0) {
+    fprintf(stderr, "Read: %8d polishes -- %5d temporary files -- %8.3fMB / %8.3fMB -- %8.3f bytes/polish\r",
+            pLen,
+            mergeFilesLen,
+            (arrayAlloc + matchAlloc) / 1048576.0,
+            getProcessSize() / 1048576.0,
+            matchAlloc / pLen);
+    fflush(stderr);
+  }
 }
 
 
