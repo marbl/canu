@@ -285,12 +285,43 @@ if ($personality eq "-mapest") {
     if (! -e "$dir/snps-parsed") {
         print STDERR "ESTmapper--  Parsing the SNPs\n";
 
+        #  Sort, if needed.
+        #
         if (! -e "$dir/polishes-good.sorted-by-cDNA") {
             print STDERR "ESTmapper--  Sorting polishes by sequence ID; using 4GB memory maximum.\n";
             system("$sortPolishes -m 4000 -c -v < $dir/polishes-good > $dir/polishes-good.sorted-by-cDNA");
         }
 
-        system("$parseSNPs -F $dir/snps-failed -O $dir/snps-parsed < $dir/polishes-good.sorted-by-cDNA");
+        #  Parse the options, looking for SNP specific ones
+        #
+        my @ARGS = @ARGV;
+        my $snpdelimiter = "";
+        my $snpsizetag   = "";
+        my $snppostag    = "";
+        my $snpoffset    = "";
+
+        while (scalar @ARGS > 0) {
+            my $arg = shift @ARGS;
+
+            if ($arg eq "-snpdelimiter") {
+                $arg = shift @ARGS;
+                $snpdelimiter = "-d \"$arg\"";
+            } elsif ($arg eq "-snpsizetag") {
+                $arg = shift @ARGS;
+                $snpsizetag = "-s \"$arg\"";
+            } elsif ($arg eq "-snppostag") {
+                $arg = shift @ARGS;
+                $snppostag = "-p \"$arg\"";
+            } elsif ($arg eq "-snpoffset") {
+                $arg = shift @ARGS;
+                $snpoffset = "-o $arg";
+            }
+        }
+
+        #  PARSE!
+        #
+        print ("$parseSNPs $snpdelimiter $snpsizetag $snppostag $snpoffset -F $dir/snps-failed -O $dir/snps-parsed < $dir/polishes-good.sorted-by-cDNA\n");
+        system("$parseSNPs $snpdelimiter $snpsizetag $snppostag $snpoffset -F $dir/snps-failed -O $dir/snps-parsed < $dir/polishes-good.sorted-by-cDNA");
     }
 
 } elsif ($personality eq "-mapmrna") {
