@@ -225,12 +225,7 @@ main(int argc, char **argv) {
   }
 
   if (isatty(fileno(stdin))) {
-    fprintf(stderr, "%s: cannot read polishes from the terminal.\n", argv[0]);
-    exit(1);
-  }
-
-  if (isatty(fileno(stdout))) {
-    fprintf(stderr, "%s: will not write polishes to the terminal.\n", argv[0]);
+    fputs(usage, stderr);
     exit(1);
   }
 
