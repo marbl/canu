@@ -128,6 +128,7 @@ positionDB::positionDB(char const  *seq,
   } catch (std::bad_alloc) {
     fprintf(stderr, "hitMatrix::filter()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
     fprintf(stderr, "hitMatrix::filter()-- tableSizeInEntries of %lu\n", _tableSizeInEntries);
+    exit(1);
   }
   bool     bktAllocIsJunk = false;
 
@@ -226,9 +227,7 @@ positionDB::positionDB(char const  *seq,
   } catch (std::bad_alloc) {
     fprintf(stderr, "hitMatrix::filter()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
     fprintf(stderr, "hitMatrix::filter()-- _countingBuckets of %lu\n", bucketsSpace);
-  } catch (...) {
-    fprintf(stderr, "hitMatrix::filter()-- caught default in %s at line %d\n", __FILE__, __LINE__);
-    fprintf(stderr, "hitMatrix::filter()-- _countingBuckets of %lu\n", bucketsSpace);
+    exit(1);
   }
 
   if (_countingBuckets == 0L) {
@@ -385,6 +384,7 @@ positionDB::positionDB(char const  *seq,
     } catch (std::bad_alloc) {
       fprintf(stderr, "hitMatrix::filter()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
       fprintf(stderr, "hitMatrix::filter()-- _hashTable of %lu\n", hs);
+      exit(1);
     }
     bktAllocIsJunk = true;
   }
@@ -408,6 +408,7 @@ positionDB::positionDB(char const  *seq,
   } catch (std::bad_alloc) {
     fprintf(stderr, "hitMatrix::filter()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
     fprintf(stderr, "hitMatrix::filter()-- _buckets of %lu\n", bs);
+    exit(1);
   }
 #endif
 
@@ -418,6 +419,7 @@ positionDB::positionDB(char const  *seq,
   } catch (std::bad_alloc) {
     fprintf(stderr, "hitMatrix::filter()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
     fprintf(stderr, "hitMatrix::filter()-- _positions of %lu\n", ps);
+    exit(1);
   }
 
   ////////////////////////////////////////////////////////////////////////////////
