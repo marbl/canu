@@ -84,6 +84,8 @@ readMatches(char *inLine,
   FastASequenceInCore *S1 = C1->getSequence(iid1);
   FastASequenceInCore *S2 = C2->getSequence(iid2);
 
+  fprintf(stderr, "%30.30s vs %30.30s", (*C)[4], (*C)[8]);
+
   while (!feof(stdin) &&
          (iid1 == thisiid1) &&
          (iid2 == thisiid2)) {
@@ -108,6 +110,9 @@ readMatches(char *inLine,
                   thisiid2, pos2, len2, ori2);
     }
   }
+
+  fprintf(stderr, " with %8d fwd and %8d rev matches\r", fwdMatches.size(), revMatches.size());
+  fflush(stderr);
 
   delete C;
 }
@@ -136,22 +141,14 @@ main(int argc, char *argv[]) {
 
   //  cachesize, loadall, report
   //
-  FastACache  *C1 = new FastACache(file1, 1, true, false);
-  FastACache  *C2 = new FastACache(file2, 1, true, false);
+  FastACache  *C1 = new FastACache(file1, 1, true,  false);
+  FastACache  *C2 = new FastACache(file2, 1, false, false);
 
   vector<match_s *>  fwdMatches;
   vector<match_s *>  revMatches;
 
-  u32bit    iid1 = ~u32bitZERO;
-  u32bit    iid2 = ~u32bitZERO;
-
   while (!feof(stdin)) {
     readMatches(inLine, C1, C2, fwdMatches, revMatches);
-
-#if 0
-    fprintf(stderr, "read %d fwd and %d rev matches.\n",
-            fwdMatches.size(), revMatches.size());
-#endif
 
     if (fwdMatches.size() > 0)
       sort(fwdMatches.begin(), fwdMatches.end(), MatchCompare());
@@ -186,18 +183,20 @@ main(int argc, char *argv[]) {
     //  Dump and destroy all the matches
     //
     for (u32bit i=0; i<fwdMatches.size(); i++) {
-      fprintf(stdout, "M u %s . %s %d %d 1 %s %d %d 1\n",
-              fwdMatches[i]->_matchId,
-              fwdMatches[i]->_id1, fwdMatches[i]->_acc1->getRangeBegin(), fwdMatches[i]->_acc1->getRangeLength(),
-              fwdMatches[i]->_id2, fwdMatches[i]->_acc2->getRangeBegin(), fwdMatches[i]->_acc2->getRangeLength());
+      if (!fwdMatches[i]->isDeleted())
+        fprintf(stdout, "M u %s . %s %d %d 1 %s %d %d 1\n",
+                fwdMatches[i]->_matchId,
+                fwdMatches[i]->_id1, fwdMatches[i]->_acc1->getRangeBegin(), fwdMatches[i]->_acc1->getRangeLength(),
+                fwdMatches[i]->_id2, fwdMatches[i]->_acc2->getRangeBegin(), fwdMatches[i]->_acc2->getRangeLength());
       delete fwdMatches[i];
     }
 
     for (u32bit i=0; i<revMatches.size(); i++) {
-      fprintf(stdout, "M u %s . %s %d %d 1 %s %d %d -1\n",
-              revMatches[i]->_matchId,
-              revMatches[i]->_id1, revMatches[i]->_acc1->getRangeBegin(), revMatches[i]->_acc1->getRangeLength(),
-              revMatches[i]->_id2, revMatches[i]->_acc2->getRangeBegin(), revMatches[i]->_acc2->getRangeLength());
+      if (!revMatches[i]->isDeleted())
+        fprintf(stdout, "M u %s . %s %d %d 1 %s %d %d -1\n",
+                revMatches[i]->_matchId,
+                revMatches[i]->_id1, revMatches[i]->_acc1->getRangeBegin(), revMatches[i]->_acc1->getRangeLength(),
+                revMatches[i]->_id2, revMatches[i]->_acc2->getRangeBegin(), revMatches[i]->_acc2->getRangeLength());
       delete revMatches[i];
     }
 

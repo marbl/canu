@@ -38,10 +38,24 @@ u32bit   DEF_MAX_NBR_SEP       = 100;
 u32bit   DEF_MAX_NBR_PATH_MM   = 5;
 
 //#define DEBUG_TRACE
-//#define DEBUG_EXTEND
 //#define DEBUG_TRIMTOPERCENT
+//#define DEBUG_EXTEND
+//#define DEBUG_EXTEND_CONSUME
 //#define DEBUG_EXTEND_BACK
 //#define DEBUG_EXTEND_FORWARD
+
+
+
+//  Return true if c1 and c2 are identities, false otherwise.
+//
+bool
+isIdentity(char c1, char c2) {
+  return(validSymbol[c1] &&
+         validSymbol[c2] &&
+         IUPACidentity[c1][c2]);
+}
+
+
 
 bool
 trim_to_pct(vector<match_s *>& matches, u32bit midx, double pct) {
@@ -60,7 +74,7 @@ trim_to_pct(vector<match_s *>& matches, u32bit midx, double pct) {
   B.setPosition(m->pos2());
 
 #ifdef DEBUG_TRIMTOPERCENT
-  m->dump(stderr, "TrimToPercent", true);
+  //m->dump(stderr, "TrimToPercent", false);
 #endif
 
   for (u32bit start = 0; start < m->len(); ++start) {
@@ -74,9 +88,7 @@ trim_to_pct(vector<match_s *>& matches, u32bit midx, double pct) {
       char c1 = *A;
       char c2 = *B;
 
-      if (validSymbol[c1] &&
-          validSymbol[c2] &&
-          IUPACidentity[c1][c2])
+      if (isIdentity(c1, c2))
 	sum++;
 
       if (sum >= pct * len)
@@ -100,12 +112,19 @@ trim_to_pct(vector<match_s *>& matches, u32bit midx, double pct) {
 
   if (best_len < m->len()) {
 #ifdef DEBUG_TRIMTOPERCENT
+    fprintf(stderr, "============================================================\n");
     fprintf(stderr, "Trimming to substring with start="u32bitFMT" and len="u32bitFMT" for percent identity\n",
             best_start, best_len);
+    m->dump(stderr, "BEFORE", true);
 #endif
 
     m->extendLeft(-(s32bit)best_start);
     m->extendRight(-(s32bit)(m->len() - best_len));
+
+#ifdef DEBUG_TRIMTOPERCENT
+    m->dump(stderr, "AFTER", true);
+    fprintf(stderr, "============================================================\n");
+#endif
 
     return(true);
   }
@@ -147,9 +166,7 @@ extend_match_backward(vector<match_s *>& matches,
     char c1 = *A;
     char c2 = *B;
 
-    if (validSymbol[c1] &&
-        validSymbol[c2] &&
-        IUPACidentity[c1][c2]) {
+    if (isIdentity(c1, c2)) {
       good_run_len++; 
 
       //  If we've gone long enough, erase our mismatch record
@@ -209,34 +226,42 @@ can_reach_nearby_match(match_s *src, match_s *dest) {
   fprintf(stderr, "can_reach_nearby_match()\n");
 #endif
 
-  u32bit   num_mismatch = 0;
-
-  if (dest->pos1() - (src->pos1() + src->len()) > (u32bit) DEF_MAX_NBR_SEP)
+  if (dest->pos1() - (src->pos1() + src->len()) > (u32bit) DEF_MAX_NBR_SEP)  // 100
     return false;
+
+#if 0
+  src->dump(stderr, "src:");
+  dest->dump(stderr, "dst:");
+#endif
 
   FastAAccessor  &A = *src->_acc1;
   FastAAccessor  &B = *src->_acc2;
 
-  A.setPosition(src->_acc1->getRangeBegin());
-  B.setPosition(src->_acc2->getRangeBegin());
+  A.setPosition(A.getRangeEnd() - 1);
+  B.setPosition(B.getRangeEnd() - 1);
 
-  while ((num_mismatch    <= DEF_MAX_NBR_PATH_MM) &&
+  ++A;
+  ++B;
+
+  u32bit  num_mismatch = 0;
+
+  while ((num_mismatch    <= DEF_MAX_NBR_PATH_MM) &&  // 5
          (A.getPosition() <  dest->pos1()) &&
          (A.isValid()) &&
          (B.isValid())) {
-    char c1 = *A;
-    char c2 = *B;
-
-    if (validSymbol[c1] &&
-        validSymbol[c2] &&
-        !IUPACidentity[c1][c2])
+    if (!isIdentity(*A, *B))
       num_mismatch++;
 
     ++A;
     ++B;
   }
 
-  return(num_mismatch <= DEF_MAX_NBR_PATH_MM);
+#if 0
+  fprintf(stderr, "num_mismatch=%d  pos: %d %d   valid: A:%d B:%d\n",
+          num_mismatch, A.getPosition(), dest->pos1(), A.isValid(), B.isValid());
+#endif
+
+  return(num_mismatch <= DEF_MAX_NBR_PATH_MM);  // 5
 }
 
 
@@ -277,10 +302,10 @@ extend_match_forward(vector<match_s *>& matches, u32bit midx, match_s *target) {
     char c1 = *A;
     char c2 = *B;
 
-    if (validSymbol[c1] &&
-        validSymbol[c2] &&
-        IUPACidentity[c1][c2]) {
+    if (isIdentity(c1, c2)) {
       good_run_len++;
+
+      //fprintf(stderr, "extend-forward %c %c\n", c1, c2);
 
       // Pass Go and collect $200
       //
@@ -366,14 +391,15 @@ extend_matches_on_diagonal(vector<match_s *>& matches, u32bit diag_start) {
 
     m = matches[idx];
 
-#ifdef DEBUG_EXTEND
+#ifdef DEBUG_EXTEND_BACK
     m->dump(stderr, "Before back extension:", true);
 #endif
+
     extend_match_backward(matches, idx, prev_end);
-#ifdef DEBUG_EXTEND
+
+#ifdef DEBUG_EXTEND_BACK
     m->dump(stderr, "After back extension:", true);
 #endif
-
 
 #ifdef DEBUG_EXTEND
     fprintf(stderr, "1M u %s . %s %d %d 1 %s %d %d 1\n",
@@ -422,13 +448,13 @@ extend_matches_on_diagonal(vector<match_s *>& matches, u32bit diag_start) {
     //  start the loop again with the same match (now extended)
     //
     if (next_m && can_reach_nearby_match(m, next_m)) {
-#ifdef DEBUG_EXTEND
-      m->dump(stderr, "I extend this:", false);
-      next_m->dump(stderr, "with this:", false);
+#ifdef DEBUG_EXTEND_CONSUME
+      m->dump(stderr, "I can_reach_nearby_match and extend this", true);
+      next_m->dump(stderr, "with this", true);
 #endif
       m->consume(next_m);
       next_m->setDeleted();
-#ifdef DEBUG_EXTEND
+#ifdef DEBUG_EXTEND_CONSUME
       m->dump(stderr, "Extended through next match via neighbor search:", true);
 #endif
       continue;
@@ -441,21 +467,21 @@ extend_matches_on_diagonal(vector<match_s *>& matches, u32bit diag_start) {
     //  match.
     //
     if (extend_match_forward(matches, idx, next_m)) {
-#ifdef DEBUG_EXTEND
-        m->dump(stderr, "I extend this:", false);
-        next_m->dump(stderr, "with this:", false);
+#ifdef DEBUG_EXTEND_CONSUME
+        m->dump(stderr, "I extend_match_forward and extend this", true);
+        next_m->dump(stderr, "with this", true);
 #endif
       m->consume(next_m);
       next_m->setDeleted();
-#ifdef DEBUG_EXTEND
+#ifdef DEBUG_EXTEND_CONSUME
       m->dump(stderr, "Extended through next match via forward extension:", true);
 #endif
       continue;
-    } else {
-#ifdef DEBUG_EXTEND
-      m->dump(stderr, "Failed to make next match.  Final extended version:", true);
-#endif
     }
+
+#ifdef DEBUG_EXTEND
+    //m->dump(stderr, "Failed to make next match.  Final extended version:", true);
+#endif
 
 #ifdef DEBUG_EXTEND
     fprintf(stderr, "3M u %s . %s %d %d 1 %s %d %d 1\n",
@@ -467,11 +493,11 @@ extend_matches_on_diagonal(vector<match_s *>& matches, u32bit diag_start) {
     //  Didn't make it, so trim and move on
     //
     if (trim_to_pct(matches, idx, DEF_MIN_IDENTITY)) {
-#ifdef DEBUG_EXTEND
+#ifdef DEBUG_EXTEND_TRIMMING
       m->dump(stderr, "After trimming:", true);
 #endif
     } else {
-#ifdef DEBUG_EXTEND
+#ifdef DEBUG_EXTEND_TRIMMING
       fprintf(stderr, "No trimming done.\n");
 #endif
     }

@@ -28,14 +28,13 @@
 
 void
 match_s::dump(FILE *out, const char *descr, bool showSeq) {
-  fprintf(stderr, "%s\n", descr);
-
-  fprintf(out, "ID: %s  range1:"u32bitFMT","u32bitFMT" _pos="u32bitFMT" (seqlen="u32bitFMT") range2:"u32bitFMT","u32bitFMT" _pos="u32bitFMT" (seqlen="u32bitFMT")  diag:"u32bitFMT" %s\n",
-          _matchId,
-          _acc1->getRangeBegin(), _acc1->getRangeLength(), _acc1->_pos, _seq1->sequenceLength(),
+  fprintf(out, "%s: ID:%s range1:"u32bitFMT","u32bitFMT" _pos="u32bitFMT" (seqlen="u32bitFMT")\n",
+          descr, _matchId,
+          _acc1->getRangeBegin(), _acc1->getRangeLength(), _acc1->_pos, _seq1->sequenceLength());
+  fprintf(out, "%s  ID:%s range2:"u32bitFMT","u32bitFMT" _pos="u32bitFMT" (seqlen="u32bitFMT")  diag:"u32bitFMT" %s\n",
+          descr, _matchId,
           _acc2->getRangeBegin(), _acc2->getRangeLength(), _acc2->_pos, _seq2->sequenceLength(),
-          _diagonal,
-          (_ori1 != _ori2) ? "reversed" : "");
+          _diagonal, (_ori1 != _ori2) ? "reversed" : "");
 
   if (showSeq) {
     FastAAccessor  &A = *_acc1;

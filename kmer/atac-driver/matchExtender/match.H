@@ -68,7 +68,6 @@ public:
       _diagonal = seq1->sequenceLength() - _pos1 + _pos2;
     else
       _diagonal = seq1->sequenceLength() - _pos1 + seq2->sequenceLength() - (_pos2 + _len2);
-    //_diagonal = seq2->sequenceLength() - (_pos2 + _len2) + _pos1;
   };
 
   //  Compare by diagonal, then by position in the first sequence.
@@ -104,7 +103,7 @@ public:
   bool canMergeWith(match_s *m) {
     return((m != 0L) &&
            (_diagonal == m->_diagonal) &&
-           (_acc1->getRangeBegin() + _acc1->getRangeEnd() >= m->_acc1->getRangeBegin()));
+           (_acc1->getRangeEnd() >= m->_acc1->getRangeBegin()));
   };
 
   //  Extend us to end where m ends
