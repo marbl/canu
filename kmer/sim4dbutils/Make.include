@@ -11,7 +11,7 @@ src  := $/cleanPolishes.C $/comparePolishes.C $/filterPolishes.c \
         $/mergePolishes.C $/parseSNP.c $/pickBestPolish.c \
         $/plotCoverageVsIdentity.c $/removeDuplicate.c $/sortPolishes.c \
         $/summarizePolishes.C $/uniqPolishes.c $/vennPolishes.C \
-        $/realignPolishes.C $/removeRedundant.C
+        $/realignPolishes.C $/removeRedundant.C $/s4p_overlap.C
 
 $/.C_SRCS   :=${filter %.c,${src}}
 $/.CXX_SRCS :=${filter %.C,${src}}
@@ -20,7 +20,11 @@ obj_c := ${$/.C_SRCS:.c=.o} $/pickBestPolish-debug.o
 obj_C := ${$/.CXX_SRCS:.C=.o}
 
 # always using c++ to link
-$/.CXX_EXES:= ${obj_C:.o=} ${obj_c:.o=}
+$/.CXX_EXES := $/cleanPolishes $/comparePolishes $/filterPolishes \
+               $/mergePolishes $/parseSNP $/pickBestPolish \
+               $/plotCoverageVsIdentity $/removeDuplicate $/sortPolishes \
+               $/summarizePolishes $/uniqPolishes $/vennPolishes \
+               $/realignPolishes $/removeRedundant
 
 $/.CLEAN := $/*.o
 
@@ -39,14 +43,14 @@ $/cleanPolishes               : $/cleanPolishes.o
 $/plotIntronSize              : $/plotIntronSize.o
 $/plotCoverageVsIdentity      : $/plotCoverageVsIdentity.o
 $/parseSNP                    : $/parseSNP.o
-$/comparePolishes             : $/comparePolishes.o
+$/comparePolishes             : $/comparePolishes.o $/s4p_overlap.o
 $/trimSequencesBasedOnMatches : $/trimSequencesBasedOnMatches.o
 $/uniqPolishes                : $/uniqPolishes.o
 $/summarizePolishes           : $/summarizePolishes.o
 $/removeDuplicate             : $/removeDuplicate.o
 $/vennPolishes                : $/vennPolishes.o
 $/realignPolishes             : $/realignPolishes.o
-$/removeRedundant             : $/removeRedundant.o
+$/removeRedundant             : $/removeRedundant.o $/s4p_overlap.o
 
 ${$/.C_EXES} ${$/.CXX_EXES}: ${SIM4POLISH/}libsim4polish.a ${LIBBRI/}libbri.a
 

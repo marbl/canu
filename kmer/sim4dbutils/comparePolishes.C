@@ -1,78 +1,90 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <string.h>
 #include "bri++.H"
 #include "sim4polish.h"
 #include "sim4polishBuilder.H"
 #include "sim4polishFile.H"
 
-
-sim4polishList*
-filterByQuality(u32bit minI, u32bit minC, sim4polishList *A) {
-  sim4polishList *l = new sim4polishList;
-
-  for (u32bit i=0; i<A->length(); i++)
-    if (((*A)[i]->percentIdentity  >= minI) &&
-        ((*A)[i]->querySeqIdentity >= minC))
-      l->push( s4p_copyPolish((*A)[i]) );
-
-  delete A;
-
-  return(l);
-}
-
-
-//  Build an interval list with all exons (from both guys), merge
-//  overlapping regions, compute the length, subtract from the
-//  total.
 //
-u32bit
-findOverlap(sim4polish *A, sim4polish *B) {
+//  Matches two sets of polishes to each other using a simple overlap
+//  heuristic.
+//
+//  Output is:
+//    AmatchIID BmatchIID  ESTlen  A%id A%cov  B%id B%cov  overlap
+//
+//  Arguments:
+//   
+//    -i min-percent-id (default 95)
+//    -c min-percent-coverage (default 50)
+//    -a polishes-file-1
+//    -b polishes-file-1
+//
+//    -O output-file
+//    -A output-polishes-from-file-a
+//    -B output-polishes-from-file-b
+//    -L log-output-file
+//
+//  The default is to output on stdout.  -A, -B write the overlapped
+//  matches in order.  -L reports a log of weird stuff.
+//
 
-  if ((A->genID != B->genID) || (A->matchOrientation != B->matchOrientation))
-    return(0);
+u32bit  findOverlap(sim4polish *A, sim4polish *B);
 
-  u32bit        length = 0;
-  u32bit        total  = 0;
-  intervalList  IL;
+int
+main(int argc, char **argv) {
+  u32bit           minI = 95;
+  u32bit           minC = 50;
+  sim4polishFile  *Afile = 0L;
+  sim4polishFile  *Bfile = 0L;
+  FILE            *outfile = stdout;
+  FILE            *Aout = 0L;
+  FILE            *Bout = 0L;
 
-  for (u32bit i=0; i<A->numExons; i++) {
-    length = A->exons[i].genTo - A->exons[i].genFrom + 1;
-    total  += length;
-    IL.add(A->genLo + A->exons[i].genFrom, length);
+  //  Stats
+  u32bit           goodOverlap = 0;
+  u32bit           multipleInA = 0;
+  u32bit           multipleInB = 0;
+
+  int arg=1;
+  while(arg < argc) {
+    if        (strcmp(argv[arg], "-i") == 0) {
+      minI = atoi(argv[++arg]);
+    } else if (strcmp(argv[arg], "-c") == 0) {
+      minC = atoi(argv[++arg]);
+    } else if (strcmp(argv[arg], "-a") == 0) {
+      Afile = new sim4polishFile(argv[++arg]);
+    } else if (strcmp(argv[arg], "-b") == 0) {
+      Bfile = new sim4polishFile(argv[++arg]);
+    } else if (strcmp(argv[arg], "-O") == 0) {
+      errno = 0L;
+      outfile = fopen(argv[++arg], "w");
+      if (errno)
+        fprintf(stderr, "Failed to open '%s' for output: %s\n", argv[arg], strerror(errno)), exit(1);
+    } else if (strcmp(argv[arg], "-A") == 0) {
+      errno = 0L;
+      Aout = fopen(argv[++arg], "w");
+      if (errno)
+        fprintf(stderr, "Failed to open '%s' for output: %s\n", argv[arg], strerror(errno)), exit(1);
+    } else if (strcmp(argv[arg], "-B") == 0) {
+      errno = 0L;
+      Bout = fopen(argv[++arg], "w");
+      if (errno)
+        fprintf(stderr, "Failed to open '%s' for output: %s\n", argv[arg], strerror(errno)), exit(1);
+    }
+    arg++;
   }
 
-  for (u32bit i=0; i<B->numExons; i++) {
-    length = B->exons[i].genTo - B->exons[i].genFrom + 1;
-    total  += length;
-    IL.add(B->genLo + B->exons[i].genFrom, length);
+  if ((Afile == 0L) || (Bfile == 0L)) {
+    fprintf(stderr, "usage: %s [read-the-code]\n");
+    exit(1);
   }
-
-  IL.merge();
-
-  return(total - IL.sumOfLengths());
-}
-
-
-void
-comparePolishFiles(int argc, char **argv) {
-  u32bit      minI  = atoi(argv[1]);
-  u32bit      minC  = atoi(argv[2]);
-  char       *Apath = argv[3];
-  char       *Bpath = argv[4];
-
-  sim4polishFile *Afile = new sim4polishFile(Apath);
-  sim4polishFile *Bfile = new sim4polishFile(Bpath);
 
   //  Force index builds
   //
   Afile->setPosition(0);
   Bfile->setPosition(0);
-
-
-  u32bit  goodOverlap = 0;
-  u32bit  multipleInA = 0;
-  u32bit  multipleInB = 0;
 
 
   //  Ask both for the largest EST iid seen, then iterate over those.
@@ -86,8 +98,8 @@ comparePolishFiles(int argc, char **argv) {
     sim4polishList *B = Bfile->getEST(iid);
 
     //  Filter by quality
-    A = filterByQuality(minI, minC, A);
-    B = filterByQuality(minI, minC, B);
+    A->filterByQuality(minI, minC);
+    B->filterByQuality(minI, minC);
 
     //  fill out the overlap matrix
 
@@ -214,18 +226,6 @@ comparePolishFiles(int argc, char **argv) {
 
   delete Afile;
   delete Bfile;
-}
-
-
-int
-main(int argc, char **argv) {
-
-  if (argc != 5) {
-    fprintf(stderr, "       %s <minid> <mincov> <polishes-file-1> <polishes-file-2>\n", argv[0]);
-    exit(1);
-  }
-
-  comparePolishFiles(argc, argv);
 }
 
 
