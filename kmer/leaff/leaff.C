@@ -34,15 +34,6 @@ const char *descMsg  = "%lu\n";
 #endif
 
 
-//  Tue Jun  4 11:11:11 EDT 2002
-//  Made -i use the index if it exists.  Run time from 215 seconds to
-//  13 seconds (dbEST).
-//
-//  Tue Sep  3 13:26:57 EDT 2002
-//  Modified -S to limit highID to the number of sequenecs (it used to just exit)
-//  and to warn when lowID >= highID
-
-
 
 const char *usage =
 "usage: %s [--buildinfo] [-f|-F|-I <fasta-file>] [options]\n"
@@ -130,6 +121,7 @@ printSequence(FastASequenceInCore *b,
 
   u32bit l = b->sequenceLength();
 
+#if 0
   if (beg > l)  beg = 0;
   if (end > l)  end = l;
 
@@ -137,6 +129,14 @@ printSequence(FastASequenceInCore *b,
     beg = 0;
     end = l;
   }
+#else
+  if ((beg > l) || (end > l) || (beg > end)) {
+    fprintf(stderr, "WARNING:  Printing %u to %u of sequence %u (len=%u) is out of bounds -- NO SEQUENCE PRINTED!\n",
+            beg, end, b->getIID(), l);
+  }
+#endif
+
+
 
   u32bit    limit = end - beg;
   char     *n = new char [end - beg + 1];
