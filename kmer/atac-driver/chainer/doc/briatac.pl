@@ -112,6 +112,8 @@ while (scalar(@ARGV) > 0) {
         $merlimit  = 9;  # unique mers only
         $minfill   = 18; # the mimimum fill for a reported match.
         $maxgap    = 0;  # the maximum substitution gap
+    } else {
+        die "unknown option $arg\n";
     }
 }
 
@@ -340,15 +342,14 @@ if (! -e "$ATACdir/$matches.matches.sorted") {
         die "Failed to bzip2 $ATACdir!\n";
     }
 
-    #foreach my $segmentID (@segmentIDs) {
-    #    unlink "$ATACdir/$matches-segment-$segmentID.matches";
-    #    unlink "$ATACdir/$matches-segment-$segmentID.table";
-    #}
+    foreach my $segmentID (@segmentIDs) {
+        unlink "$ATACdir/$matches-segment-$segmentID.matches";
+    }
 }
 
 
 if (! -e "$ATACdir/${id1}vs${id2}-template.atac") {
-    open(ATACFILE, "> $ATACdir/${id1}vs${id2}-C13.atac");
+    open(ATACFILE, "> $ATACdir/${id1}vs${id2}-C01.atac");
     print ATACFILE  "!format atac 1.0\n";
     print ATACFILE  "# Legend:\n";
     print ATACFILE  "# Field 0: the row class\n";
