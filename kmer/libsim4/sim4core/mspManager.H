@@ -1,6 +1,10 @@
 #ifndef MSP_MANAGER_H
 #define MSP_MANAGER_H
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <strings.h>
+
 #include "bri++.H"
 #include "exon.H"
 
@@ -28,12 +32,9 @@ public:
 
   void   setParameters(int match, int mismatch, double percenterror, int wordextallow) {
     _match            = match;
-    _mismatch         = mismatch;
     _matchdiff        = match - mismatch;
     _percentError     = percenterror;
     _wordExtAllow     = wordextallow;
-    //int MATCH    = globalParams->_match;
-    //int MISMATCH = globalParams->_mismatch;
   };
 
   void   setLimits(u32bit a, double p) {
@@ -46,8 +47,32 @@ public:
 
   void          setLength(int l)   { _cDNALength = l;      };
 
-  void          clear(void);
+  void          clear(void) {
+    _numMSPs = 0;
+  };
+  void          clearDiagonal(int l1, int l2) {
 
+    //  Allocate more space, if needed.
+    //
+    if (l1 + l2 + 1 > _diagMax) {
+      delete _diagExt;
+
+      //  Allocate space for the list of extension ends.  Each diagonal
+      //  remembers the lowest position that it has been extended to.  This
+      //  lets us throw out new hits without extending or merging in new
+      //  extensions.  Assumes that hits are added in order.
+      //
+      _diagMax = l1 + l2 + 1;
+      _diagExt = new int [_diagMax];
+    }
+
+#if 0
+    bzero(_diagExt, sizeof(int) * (l1 + l2 + 1));
+#else
+    for (int j=l1+l2+1; j--; )
+      _diagExt[j] = 0;
+#endif
+  };
 
   //  add an extended MSP to the list
   //
@@ -56,11 +81,22 @@ public:
   //  add a single unextended hit to the list.
   //  this will do extensions if we haven't already extended through it.
   //
+  void  addHit_(char *s1, char *s2,
+                int   l1, int   l2,
+                int   p1, int   p2,
+                int   W,
+                int   K);
+
   void  addHit(char *s1, char *s2,
                int   l1, int   l2,
                int   p1, int   p2,
                int   W,
-               int   K);
+               int   K) {
+    _add_total++;
+
+    if (_diagExt[l2 + p1 - p2 - 1] <= p1)
+      addHit_(s1, s2, l1, l2, p1, p2, W, K);
+  };
 
 
   Exon_ptr  doLinking(int    weight,
@@ -86,13 +122,15 @@ private:
   double         _mspLimitPercent;
 
   int            _match;
-  int            _mismatch;
   int            _matchdiff;
   double         _percentError;
   int            _wordExtAllow;
 
   int            _diagMax;
   int           *_diagExt;
+
+  int            _add_extended;
+  int            _add_total;
 };
 
 

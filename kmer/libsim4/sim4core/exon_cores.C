@@ -33,6 +33,7 @@ Sim4::exon_cores(char *s1,
     K = getMSPthreshold(in_K, l1, l2);
 
   _mspManager.clear();
+  _mspManager.clearDiagonal(l1, l2);
 
   exon_list = NULL;
 
