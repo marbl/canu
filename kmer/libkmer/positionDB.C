@@ -160,6 +160,11 @@ positionDB::positionDB(char const  *seq,
     exit(1);
   }
 
+  if ((mask || only) && !streamFileName) {
+    fprintf(stderr, "positionDB()-- WARNING: You supplied a mask/only existDB but no temporary file!  The\n");
+    fprintf(stderr, "positionDB()--          temporary file is required for masking to occur!\n");
+  }
+
 
   ////////////////////////////////////////////////////////////////////////////////
   //
