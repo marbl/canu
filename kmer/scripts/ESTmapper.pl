@@ -905,7 +905,11 @@ sub polish {
             #    the second is the command
             #
             print S "$idx\n";
-            print S "bsub -q $farmqueue -o $path/3-polish/$idx.stdout -R \"select[physmem>300]rusage[physmem=600]\" -P $farmcode " if ($farm);
+            if (`uname` =~ m/aix/i) {
+                print S "bsub -q $farmqueue -o $path/3-polish/$idx.stdout -R \"select[mem>600]rusage[mem=500]\" -P $farmcode " if ($farm);
+            } else {
+                print S "bsub -q $farmqueue -o $path/3-polish/$idx.stdout -R \"select[physmem>600]rusage[physmem=500]\" -P $farmcode " if ($farm);
+            }
             print S "$sim4db -cdna $path/0-input/cDNA.fasta -genomic $path/0-input/genomic.fasta ";
             print S "$aligns $always $relink $abort -cut 0.6 ";
             print S "-mincoverage $minsim4c ";
@@ -1450,8 +1454,11 @@ sub search {
             foreach my $s (@scafList) {
                 if (countTheCountFile($path, $s) != $cdnaInInput) {
                     print STDERR "ESTmapper/search-- submitting search $s\n";
-                    #print STDERR "bsub -q $farmqueue -o $path/1-search/$s.stdout -R \"select[physmem>$farmMemory]rusage[physmem=$farmMemory]\" -P $farmcode $path/1-search/$s.cmd";
-                    system("bsub -q $farmqueue -o $path/1-search/$s.stdout -R \"select[physmem>$farmMemory]rusage[physmem=$farmMemory]\" -P $farmcode $path/1-search/$s.cmd");
+                    if (`uname` =~ m/aix/i) {
+                        system("bsub -q $farmqueue -o $path/1-search/$s.stdout -R \"select[mem>$farmMemory]rusage[mem=$farmMemory]\" -P $farmcode $path/1-search/$s.cmd");
+                    } else {
+                        system("bsub -q $farmqueue -o $path/1-search/$s.stdout -R \"select[physmem>$farmMemory]rusage[physmem=$farmMemory]\" -P $farmcode $path/1-search/$s.cmd");
+                    }
                     $jobsToRun++;
                 } else {
                     print STDERR "ESTmapper/search-- search $s finished successfully!\n";
