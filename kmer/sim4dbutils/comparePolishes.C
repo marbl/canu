@@ -96,7 +96,7 @@ main(int argc, char **argv) {
   }
 
   if ((Afile == 0L) || (Bfile == 0L)) {
-    fprintf(stderr, "usage: %s [-i percent-identity] [-c percent-coverage] -a input-set-a -b input-set-b [-p output-prefix]\n");
+    fprintf(stderr, "usage: %s [-i percent-identity] [-c percent-coverage] -a input-set-a -b input-set-b [-p output-prefix]\n", argv[0]);
     fprintf(stderr, "only -a and -b are mandatory, but you should give all anyway\n");
     exit(1);
   }
@@ -408,7 +408,7 @@ main(int argc, char **argv) {
       if        ((inA  > 1) && (inB  > 1)) {
         hairyOverlap++;
 
-        fprintf(fhairy, "EST=%d %d %d\n", (*A)[0]->estID, inA, inB);
+        fprintf(fhairy, "EST="u32bitFMT" "u32bitFMT" "u32bitFMT"\n", (*A)[0]->estID, inA, inB);
         for (u32bit a=0; a<A->length(); a++)
           if (removeA[a])
             s4p_printPolish(fhairy, (*A)[a], S4P_PRINTPOLISH_NORMALIZED);
@@ -418,7 +418,7 @@ main(int argc, char **argv) {
       } else if ((inA == 1) && (inB  > 1)) {
         multipleInB++;
 
-        fprintf(fbmulti, "EST=%d %d %d\n", (*A)[0]->estID, inA, inB);
+        fprintf(fbmulti, "EST="u32bitFMT" "u32bitFMT" "u32bitFMT"\n", (*A)[0]->estID, inA, inB);
         for (u32bit a=0; a<A->length(); a++)
           if (removeA[a])
             s4p_printPolish(fbmulti, (*A)[a], S4P_PRINTPOLISH_NORMALIZED);
@@ -428,7 +428,7 @@ main(int argc, char **argv) {
       } else if ((inA  > 1) && (inB == 1)) {
         multipleInA++;
 
-        fprintf(famulti, "EST=%d %d %d\n", (*A)[0]->estID, inA, inB);
+        fprintf(famulti, "EST="u32bitFMT" "u32bitFMT" "u32bitFMT"\n", (*A)[0]->estID, inA, inB);
         for (u32bit a=0; a<A->length(); a++)
           if (removeA[a])
             s4p_printPolish(famulti, (*A)[a], S4P_PRINTPOLISH_NORMALIZED);

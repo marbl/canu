@@ -837,18 +837,18 @@ outputPartition(partition_s *p, u32bit openP, u32bit n) {
   //
   for (u32bit i=0; i<n; i++)
     if (p[i].used == 0)
-      fprintf(stderr, "ERROR: Failed to partition %u\n", i);
+      fprintf(stderr, "ERROR: Failed to partition "u32bitFMT"\n", i);
 
-  fprintf(stdout, "%u\n", openP);
+  fprintf(stdout, u32bitFMT"\n", openP);
   for (u32bit o=1; o<=openP; o++) {
     u32bit  sizeP = 0;
     for (u32bit i=0; i<n; i++)
       if (p[i].used == o)
         sizeP += p[i].length;
-    fprintf(stdout, "%u](%u)", o, sizeP);
+    fprintf(stdout, u32bitFMT"]("u32bitFMT")", o, sizeP);
     for (u32bit i=0; i<n; i++)
       if (p[i].used == o)
-        fprintf(stdout, " %u(%u)", p[i].index, p[i].length);
+        fprintf(stdout, " "u32bitFMT"("u32bitFMT")", p[i].index, p[i].length);
     fprintf(stdout, "\n");
   }
 }
@@ -955,16 +955,16 @@ dumpBlocks(void) {
     bool    nnn = V[(int)seq[0]];
     u32bit  i   = 0;
 
-    fprintf(stdout, "%c %d %d\n", seq[0], seqno, 0);
+    fprintf(stdout, "%c "u32bitFMT" 0\n", seq[0], seqno);
 
     for (; i<len; i++) {
       if (nnn != V[(int)seq[i]]) {
-        fprintf(stdout, "%c %d %d\n", seq[i], seqno, i);
+        fprintf(stdout, "%c "u32bitFMT" "u32bitFMT"\n", seq[i], seqno, i);
         nnn = V[(int)seq[i]];
       }
     }
 
-    fprintf(stdout, ". %d %d\n", seqno, i);
+    fprintf(stdout, ". "u32bitFMT" "u32bitFMT"\n", seqno, i);
 
     delete S;
     S = f->getSequence();

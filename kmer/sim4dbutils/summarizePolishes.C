@@ -168,15 +168,15 @@ main(int argc, char **argv) {
 
 
   fprintf(stderr, "Polishes:      %s\n", polishesFile);
-  fprintf(stderr, "numSeqs:       %d\n", numSeqs);
-  fprintf(stderr, "sequenceFile:  %d\n", sequenceFile);
-  fprintf(stderr, "ids:           %d -- ", idLen);
+  fprintf(stderr, "numSeqs:       "u32bitFMT"\n", numSeqs);
+  fprintf(stderr, "sequenceFile:  %s\n", sequenceFile);
+  fprintf(stderr, "ids:           "u32bitFMT" -- ", idLen);
   for (u32bit i=0; i<idLen; i++)
-    fprintf(stderr, " %d", id[i]);
+    fprintf(stderr, " "u32bitFMT"", id[i]);
   fprintf(stderr, "\n");
-  fprintf(stderr, "cvs:           %d -- ", cvLen);
+  fprintf(stderr, "cvs:           "u32bitFMT" -- ", cvLen);
   for (u32bit i=0; i<cvLen; i++)
-    fprintf(stderr, " %d", cv[i]);
+    fprintf(stderr, " "u32bitFMT"", cv[i]);
   fprintf(stderr, "\n");
 
   vector<match>  matches;
@@ -245,10 +245,10 @@ main(int argc, char **argv) {
           uniqgen++;
 
       if (formatExcel) {
-        fprintf(stdout, "%u\t%u\t%u\t%u\t%u\t%u\n", id[i], cv[c], mapped, notmapped, uniqest, uniqgen);
+        fprintf(stdout, u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\n", id[i], cv[c], mapped, notmapped, uniqest, uniqgen);
         fflush(stdout);
       } else {
-        fprintf(stdout, "%3u %3u: mapped= %8u notmapped= %8u  est= %8u gen= %8u\n", id[i], cv[c], mapped, notmapped, uniqest, uniqgen);
+        fprintf(stdout, u32bitFMTW(3)" "u32bitFMTW(3)": mapped="u32bitFMTW(8)" notmapped="u32bitFMTW(8)"  est="u32bitFMTW(8)" gen="u32bitFMTW(8)"\n", id[i], cv[c], mapped, notmapped, uniqest, uniqgen);
         fflush(stdout);
       }
     }

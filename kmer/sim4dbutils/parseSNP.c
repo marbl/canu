@@ -189,10 +189,10 @@ findPosition(char *defline) {
 //
 int
 printSNP(FILE *F, sim4polish *p) {
-  int   pos           = findPosition(p->estDefLine);
-  int   exonWithSNP   = -1;
-  int   i             = 0;
-  int   seqOffset     = 0;
+  u32bit   pos           = findPosition(p->estDefLine);
+  u32bit   exonWithSNP   = ~u32bitZERO;
+  u32bit   i             = 0;
+  u32bit   seqOffset     = 0;
 
   //  If the match is complement, then the alignment is printed using
   //  the reverse complemented SNP sequence, and so we need to find
@@ -214,7 +214,7 @@ printSNP(FILE *F, sim4polish *p) {
     if (((p->exons[i].estFrom-1) <= seqOffset) && (seqOffset <= (p->exons[i].estTo-1)))
       exonWithSNP = i;
 
-  if (exonWithSNP == -1)
+  if (exonWithSNP == ~u32bitZERO)
     return(0);
 
   //  If we are printing to a file, continue to find the location, otherwise,
@@ -234,9 +234,11 @@ printSNP(FILE *F, sim4polish *p) {
     //  alignment (counted in the snp), +1 because we are currently at
     //  the bp before the alignment (so we need to skip one more space).
     //
-    int  bpToExamine = seqOffset - (p->exons[exonWithSNP].estFrom - 1) + 1;
-    int  examinePos  = 0;
-    int  genPosition = p->genLo + p->exons[exonWithSNP].genFrom - 1;
+    //  XXX:  these used to be int!
+    //
+    u32bit  bpToExamine = seqOffset - (p->exons[exonWithSNP].estFrom - 1) + 1;
+    u32bit  examinePos  = 0;
+    u32bit  genPosition = p->genLo + p->exons[exonWithSNP].genFrom - 1;
 
     //  Recent runs of dbSNP showed that we are off by one (too many if forward, too few if complement).  This is a hack to fix it.
     //
@@ -277,7 +279,7 @@ printSNP(FILE *F, sim4polish *p) {
 
 
     if (outputFormat == 1) {
-      fprintf(F, "%s %s %d %c/%c %s global["u32bitFMT" "u32bitFMT"] exon["u32bitFMT" %d "u32bitFMT" %d]\n",
+      fprintf(F, "%s %s "u32bitFMT" %c/%c %s global["u32bitFMT" "u32bitFMT"] exon["u32bitFMT" "u32bitFMT" "u32bitFMT" "u32bitFMT"]\n",
               SNPid,
               GENid,
               genPosition,
@@ -289,7 +291,7 @@ printSNP(FILE *F, sim4polish *p) {
               p->numExons,
               exonWithSNP,
               p->exons[exonWithSNP].percentIdentity,
-              (int)floor(100.0 * (double)p->exons[exonWithSNP].numMatches / (double)p->estLen));
+              (u32bit)floor(100.0 * (double)p->exons[exonWithSNP].numMatches / (double)p->estLen));
     } else if (outputFormat == 2) {
 
       //  The format is all on one line, data fields separated by tab.
@@ -317,20 +319,20 @@ printSNP(FILE *F, sim4polish *p) {
       //  The order and content should be consistent for any given
       //  version of the software.
       //
-      fprintf(F, "%s %s %d sa=%c ga=%c mo=%c pi="u32bitFMT" pc="u32bitFMT" nb="u32bitFMT" bl=%d bp="u32bitFMT" bi="u32bitFMT" bc=%d\n",
+      fprintf(F, "%s %s "u32bitFMT" sa=%c ga=%c mo=%c pi="u32bitFMT" pc="u32bitFMT" nb="u32bitFMT" bl="u32bitFMT" bp="u32bitFMT" bi="u32bitFMT" bc="u32bitFMT"\n",
               "a", //SNPid,
               "b", //GENid,
               genPosition,
-              p->exons[exonWithSNP].estAlignment[examinePos-1],                                    // sa
-              p->exons[exonWithSNP].genAlignment[examinePos-1],                                    // ga
-              (p->matchOrientation == SIM4_MATCH_FORWARD) ? 'f' : 'r',                             // mo
-              p->percentIdentity,                                                                  // pi
-              p->querySeqIdentity,                                                                 // pc
-              p->numExons,                                                                         // nb
-              exonWithSNP,                                                                         // bl
-              examinePos,                                                                          // bp
-              p->exons[exonWithSNP].percentIdentity,                                               // bi
-              (int)floor(100.0 * (double)p->exons[exonWithSNP].numMatches / (double)p->estLen));   // bc
+              p->exons[exonWithSNP].estAlignment[examinePos-1],                                       // sa
+              p->exons[exonWithSNP].genAlignment[examinePos-1],                                       // ga
+              (p->matchOrientation == SIM4_MATCH_FORWARD) ? 'f' : 'r',                                // mo
+              p->percentIdentity,                                                                     // pi
+              p->querySeqIdentity,                                                                    // pc
+              p->numExons,                                                                            // nb
+              exonWithSNP,                                                                            // bl
+              examinePos,                                                                             // bp
+              p->exons[exonWithSNP].percentIdentity,                                                  // bi
+              (u32bit)floor(100.0 * (double)p->exons[exonWithSNP].numMatches / (double)p->estLen));   // bc
     } else {
     }
 

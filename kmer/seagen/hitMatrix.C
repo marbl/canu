@@ -589,7 +589,7 @@ hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit
 
 
 
-        sprintf(theOutput + theOutputPos, "-%c -e "u32bitFMT" -D "u32bitFMT" "u32bitFMT" "u32bitFMT" -M "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
+        sprintf(theOutput + theOutputPos, "-%c -e "u32bitFMT" -D "u64bitFMT" "u32bitFMT" "u32bitFMT" -M "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
                 direction, _qsIdx,
                 config._useList.IIDOf(currentSeq),
                 dsLow, dsHigh, IL->sumLengths(), ML, _qsMers);

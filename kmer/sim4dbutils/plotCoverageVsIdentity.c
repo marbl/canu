@@ -31,7 +31,7 @@ main(int argc, char ** argv) {
   S = fopen("c-vs-i.scatter", "w");
 
   while ((p = s4p_readPolish(stdin)) != 0L) {
-    fprintf(S, "%d %d\n", p->percentIdentity, p->querySeqIdentity);
+    fprintf(S, u32bitFMT" "u32bitFMT"\n", p->percentIdentity, p->querySeqIdentity);
 
     i[p->percentIdentity]++;
     c[p->querySeqIdentity]++;

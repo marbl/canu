@@ -364,9 +364,9 @@ configuration::display(FILE *out) {
     fprintf(out, "maxIntron           = %lu\n",   _maxIntronLength);
     fprintf(out, "smallSeqCutoff      = %lu\n",   _smallSequenceCutoff);
     fprintf(out, "minLengthSingle     = %lu\n",   _minLengthSingle   + _merSize);
-    fprintf(out, "minCoverageSingle   = %lf\n",   _minCoverageSingle);
+    fprintf(out, "minCoverageSingle   = %f\n",    _minCoverageSingle);
     fprintf(out, "minLengthMultiple   = %lu\n",   _minLengthMultiple + _merSize);
-    fprintf(out, "minCoverageMultiple = %lf\n",   _minCoverageMultiple);
+    fprintf(out, "minCoverageMultiple = %f\n",    _minCoverageMultiple);
 #endif
     fprintf(out, "\n");
     fprintf(out, "--Using these Files--\n");

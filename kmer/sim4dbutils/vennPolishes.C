@@ -30,7 +30,7 @@ u32bit   minI      = 95;
 u32bit   minC      = 50;
 u32bit   foundMax  = 100000;
 u32bit   dumpIID   = ~u32bitZERO;
-u32bit   numArgs   = 0;
+int      numArgs   = 0;
 bool     plot      = false;
 u32bit   numFiles = 0;
 u32bit **found    = 0L;
@@ -70,7 +70,7 @@ doVenn(u32bit minI, u32bit minC) {
     }
 
     if (membership == dumpIID)
-      fprintf(stdout, "%u\n", thisguy);
+      fprintf(stdout, u32bitFMT"\n", thisguy);
 
     counts[membership]++;
   }
@@ -112,11 +112,11 @@ main(int argc, char **argv) {
   found    = new u32bit * [numFiles];
 
   if (numFiles > 16) {
-    fprintf(stderr, "WARNING:  You gave me %d files!  That's pretty big.  I don't know if\n", numFiles);
-    fprintf(stderr, "          I'm up to it.  Fasten seat belts and hang on!\n");
+    fprintf(stderr, "WARNING:  You gave me "u32bitFMT" files!  That's pretty big.  I don't know\n", numFiles);
+    fprintf(stderr, "          if I'm up to it.  Fasten seat belts and hang on!\n");
   }
 
-  for (u32bit arg=numArgs; arg<argc; arg++) {
+  for (int arg=numArgs; arg<argc; arg++) {
     fprintf(stderr, "Reading '%s'\n", argv[arg]);
 
     found[arg-numArgs]    = new u32bit [foundMax];
@@ -174,13 +174,13 @@ main(int argc, char **argv) {
     for (u32bit id=minI; id <= 100; id++) {
       doVenn(id, minC);
 
-      fprintf(stdout, "%3d ", id);
+      fprintf(stdout, u32bitFMTW(3)" ", id);
       for (u32bit i=0; i<numFiles; i++)
-        fprintf(stdout, "%8u ", sizes[i]);
-      for (int index=0; index < indexMax; index++) {
+        fprintf(stdout, u32bitFMTW(8)" ", sizes[i]);
+      for (u32bit index=0; index < indexMax; index++) {
         for (u32bit dataset=0; dataset < numFiles; dataset++)
-          fprintf(stdout, "%c", (index & (1 << dataset)) ? 'A' + dataset : '-');
-        fprintf(stdout, " %8u ", counts[index]);
+          fprintf(stdout, "%c", (index & (1 << dataset)) ? 'A' + (char)dataset : '-');
+        fprintf(stdout, " "u32bitFMTW(8)" ", counts[index]);
       }
       fprintf(stdout, "\n");
     }
@@ -188,13 +188,13 @@ main(int argc, char **argv) {
     doVenn(minI, minC);
 
     for (u32bit i=0; i<numFiles; i++)
-      fprintf(stdout, "%c = (%8u total) %s\n", 'A' + i, sizes[i], argv[i+numArgs]);
+      fprintf(stdout, "%c = ("u32bitFMTW(8)" total) %s\n", 'A' + (char)i, sizes[i], argv[i+numArgs]);
 
-    for (int index=0; index < indexMax; index++) {
-      fprintf(stdout, "%4d [", index);
+    for (u32bit index=0; index < indexMax; index++) {
+      fprintf(stdout, u32bitFMTW(4)" [", index);
       for (u32bit dataset=0; dataset < numFiles; dataset++)
-        fprintf(stdout, "%c", (index & (1 << dataset)) ? 'A' + dataset : '-');
-      fprintf(stdout, "]  %u\n", counts[index]);
+        fprintf(stdout, "%c", (index & (1 << dataset)) ? 'A' + (char)dataset : '-');
+      fprintf(stdout, "]  "u32bitFMT"\n", counts[index]);
     }
   }
 }
