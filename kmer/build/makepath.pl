@@ -8,6 +8,12 @@ if ($#ARGV<0) {
 }
 
 @path = split('/',abs_path($ARGV[0]));
+if (!@path) {
+    print STDERR "makepath.pl: The path '",$ARGV[0],"' does not exist\n";
+    print STDERR "makepath.pl: Ross wants to know about this.\n";
+    exit(2);
+}
+
 @subpath = ();
 if ($#ARGV) {
     @subpath = split('/',abs_path($ARGV[1])) ;

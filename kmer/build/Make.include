@@ -1,22 +1,15 @@
-COMPASS/  :=$/../COMPASS/
-LILIANA/  :=$/../LF/
-RASCAL/   :=$/../RASCAL/
-BRI/      :=$/../BRI/
-RCM/      :=$/../RCM/
-TCBB/     :=$/../TCBB/
-SUFFER/   :=$/../SUFFER/
-RD2/      :=$/../RD2/
+# -*- makefile -*-
 
 $(eval $(call Include,\
      $/doc/ \
-     ${RD2/} \
-     ${COMPASS/} \
-     ${LILIANA/} \
-     ${RASCAL/} \
-     ${BRI/} \
-     ${SUFFER/} \
-     ${RCM/} \
-     ${TCBB/}\
+     $/../RD2/ \
+     $/../COMPASS/ \
+     $/../LF/ \
+     $/../RASCAL/ \
+     $/../BRI/ \
+     $/../SUFFER/ \
+     $/../RCM/ \
+     $/../TCBB/ \
      ))
 
 $/.CLEAN:=$/*~ $/*.o

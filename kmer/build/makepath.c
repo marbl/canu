@@ -14,7 +14,11 @@ int main(int argc,char **argv) {
     fprintf(stderr,"usage: %s path [subpath]\n",argv[0]);
     exit(1);
   }
-  if ( !realpath(argv[1],path) ) exit(2);
+  if ( !realpath(argv[1],path) ) {
+    fprintf(stderr,"%s: the path '%s' does not exists\n",argv[0],argv[1]);
+    fprintf(stderr,"%s: Ross wants to know about this.\n",argv[0]);
+    exit(2);
+  }
   /**fprintf(stderr,"   path:%s\n",   path);**/
 
   /** if subpath is found then it is non-empty otherwise empty **/
