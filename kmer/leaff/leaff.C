@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <math.h>
+#include <ctype.h>
 
 //  Linux needs to include time.h; others can use sys/time.h.
 //  Tru64 is ok with time.h
@@ -66,13 +67,13 @@ const char *usage =
 "       -h:          Use the next word as the defline\n"
 "                      (use \"-H -H\" to resume using the original defline)\n"
 "       -e beg end:  Print only the bases from position 'beg' to position 'end'\n"
-"                    (space based!)  If beg == end, then the entire sequence is\n"
-"                    printed.  It is an error to specify beg > end, or beg > len,\n"
-"                    or end > len.\n"
+"                    (space based, relative to the FORWARD sequence!)  If\n"
+"                    beg == end, then the entire sequence is printed.  It is an\n"
+"                    error to specify beg > end, or beg > len, or end > len.\n"
+"                    NOTE: The coordinates are always relative to the unreversed\n"
+"                          sequence, even if -R is specified\n"
 "       -md5:        Don't print the sequence, but print the md5 checksum\n"
 "                    (of the entire sequence) followed by the entire defline.\n"
-"\n"
-"           XXXXXXXXXXX: how does -e handle reverse complement??\n"
 "\n"
 "ANALYSIS OPTIONS\n"
 "\n"
@@ -83,6 +84,15 @@ const char *usage =
 "       --mapduplicates a.fasta b.fasta\n"
 "                    Builds a map of IIDs from a.fasta and b.fasta that have\n"
 "                    identical sequences.  Format is \"IIDa <-> IIDb\"\n"
+"\n"
+"       --partition n\n"
+"                    Partition the sequences into n roughly equal size pieces\n"
+"\n"
+"       --partition n[gmk]bp\n"
+"                    Partition the sequences into roughly equal size pieces of\n"
+"                    size nbp, nkbp, nmbp or ngbp.  Sequences larger that the\n"
+"                    partition size are in a partition by themself.\n"
+"                    Example: --partition 130mbp\n"
 "\n"
 "EXPERT OPTIONS\n"
 "       -A:  Read actions from 'file'\n"
@@ -714,6 +724,132 @@ mapDuplicates(char *filea, char *fileb) {
 }
 
 
+struct partition_s {
+  u32bit  length;
+  u32bit  index;
+  u32bit  used;
+};
+
+int
+partition_s_compare(const void *A, const void *B) {
+  partition_s *a = (partition_s *)A;
+  partition_s *b = (partition_s *)B;
+  if (a->length < b->length)
+    return(1);
+  if (a->length > b->length)
+    return(-1);
+  return(0);
+}
+
+partition_s *loadPartition(void) {
+  u32bit        n = f->getNumberOfSequences();
+  partition_s  *p = new partition_s [n];
+
+  for (u32bit i=0; i<n; i++) {
+    p[i].length = f->sequenceLength(i);
+    p[i].index  = i;
+    p[i].used   = 0;
+  }
+
+  qsort(p, n, sizeof(partition_s), partition_s_compare);
+
+  return(p);
+}
+
+void
+outputPartition(partition_s *p, u32bit openP, u32bit n) {
+
+  //  Check that everything has been partitioned
+  //
+  for (u32bit i=0; i<n; i++)
+    if (p[i].used == 0)
+      fprintf(stderr, "ERROR: Failed to partition %u\n", i);
+
+  fprintf(stdout, "%u\n", openP);
+  for (u32bit o=1; o<=openP; o++) {
+    u32bit  sizeP = 0;
+    for (u32bit i=0; i<n; i++)
+      if (p[i].used == o)
+        sizeP += p[i].length;
+    fprintf(stdout, "%u](%u)", o, sizeP);
+    for (u32bit i=0; i<n; i++)
+      if (p[i].used == o)
+        fprintf(stdout, " %u(%u)", p[i].index, p[i].length);
+    fprintf(stdout, "\n");
+  }
+}
+
+
+void
+partitionBySize(u64bit partitionSize) {
+  u32bit        n = f->getNumberOfSequences();
+  partition_s  *p = loadPartition();
+
+  u32bit  openP = 1;  //  Currently open partition
+  u32bit  sizeP = 0;  //  Size of open partition
+  u32bit  seqsP = n;  //  Number of sequences to partition
+
+  //  For any sequences larger than partitionSize, create
+  //  partitions containing just one sequence
+  //
+  for (u32bit i=0; i<n; i++) {
+    if (p[i].length > partitionSize) {
+      p[i].used = openP++;
+      seqsP--;
+    }
+  }
+
+  //  For the remaining, iterate through the list,
+  //  greedily placing the longest sequence that fits
+  //  into the open partition
+  //
+  while (seqsP > 0) {
+    for (u32bit i=0; i<n; i++) {
+      if ((p[i].used == 0) &&
+          (p[i].length + sizeP < partitionSize)) {
+        p[i].used = openP;
+        sizeP += p[i].length;
+        seqsP--;
+      }
+    }
+
+    openP++;
+    sizeP = 0;
+  }
+
+  outputPartition(p, openP-1, n);
+  delete [] p;
+}
+
+
+void
+partitionByBucket(u64bit partitionSize) {
+  u32bit        n = f->getNumberOfSequences();
+  partition_s  *p = loadPartition();
+
+  u32bit       *s = new u32bit [partitionSize];
+
+  for (u32bit i=0; i<partitionSize; i++)
+    s[i] = 0;
+
+  for (u32bit nextS=0; nextS<n; nextS++) {
+
+    //  find the smallest partition
+    //
+    u32bit openP = 0;
+    for (u32bit i=0; i<partitionSize; i++)
+      if (s[i] < s[openP])
+        openP = i;
+
+    //  add the next largest sequence to the open partition
+    //
+    s[openP] += p[nextS].length;
+    p[nextS].used = openP+1;
+  }
+
+  outputPartition(p, (u32bit)partitionSize, n);
+  delete [] p;
+}
 
 
 
@@ -733,6 +869,39 @@ processArray(int argc, char **argv) {
     } else if (strncmp(argv[arg], "--mapduplicates", 3) == 0) {
       arg += 2;
       mapDuplicates(argv[arg-1], argv[arg]);
+    } else if (strncmp(argv[arg], "--partition", 3) == 0) {
+      failIfNoSource();
+      failIfNotRandomAccess();
+
+      arg++;
+      //  does the next arg end with gbp, mbp, kbp or bp?  If so,
+      //  partition by length, else partition into buckets.
+      //
+      int     al = (int)strlen(argv[arg]);
+      u64bit  ps = (u32bit)atoi(argv[arg]);
+
+      char a3 = (al<3) ? '0' : (char)tolower(argv[arg][al-3]);
+      char a2 = (al<2) ? '0' : (char)tolower(argv[arg][al-2]);
+      char a1 = (al<1) ? '0' : (char)tolower(argv[arg][al-1]);
+
+      if (!isdigit(a1) || !isdigit(a2) || !isdigit(a3)) {
+        if        ((a3 == 'g') && (a2 == 'b') && (a1 == 'p')) {
+          ps *= 1000000000;
+        } else if ((a3 == 'm') && (a2 == 'b') && (a1 == 'p')) {
+          ps *= 1000000;
+        } else if ((a3 == 'k') && (a2 == 'b') && (a1 == 'p')) {
+          ps *= 1000;
+        } else if (isdigit(a3) && (a2 == 'b') && (a1 == 'p')) {
+          ps *= 1;
+        } else {
+          fprintf(stderr, "Unknown partition option '%s'\n", argv[arg]);
+          exit(1);
+        }
+
+        partitionBySize(ps);
+      } else {
+        partitionByBucket(ps);
+      }
     } else {
     switch(argv[arg][1]) {
       case 'V':
