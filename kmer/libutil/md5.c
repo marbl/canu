@@ -46,7 +46,7 @@ md5_string(md5_s *m, char *s, u32bit l) {
 
   if (m == NULL) {
     errno = 0;
-    m = (md5_s *)malloc(sizeof(md5_s *));
+    m = (md5_s *)malloc(sizeof(md5_s));
     if (errno) {
       fprintf(stderr, "md5_string()-- Can't allocate a md5_s.\n%s\n", strerror(errno));
       exit(1);
