@@ -59,7 +59,8 @@ FastASequenceOnDisk::getChars(char *block, u32bit position, u32bit length) {
   //  Check that there is enough sequence left!
   //
   if (position >= _sequenceLength) {
-    fprintf(stderr, "FastASequenceOnDisk::getChars()-- position "u32bitFMT" not in sequence of length "u32bitFMT".\n");
+    fprintf(stderr, "FastASequenceOnDisk::getChars()-- position "u32bitFMT" not in sequence of length "u32bitFMT".\n",
+            position, length);
     return(0L);
   }
 

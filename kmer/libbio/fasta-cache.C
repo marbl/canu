@@ -29,7 +29,7 @@ FastACache::FastACache(const char *filename, u32bit cachesize, bool loadall, boo
     _cacheNext = 0;
     _cache     = new FastASequenceInCore* [_cacheSize];
 
-    fprintf(stderr, "Loading %u sequences from '%s'\n",
+    fprintf(stderr, "Loading "u32bitFMT" sequences from '%s'\n",
             _cacheSize,
             filename);
 
@@ -56,7 +56,7 @@ FastACache::getSequence(u32bit iid)  {
     if (iid < _cacheSize) {
       return(_cache[iid]);
     } else {
-      fprintf(stderr, "ERROR: FastACache of '%s' was asked for iid=%u, but only %u available.\n",
+      fprintf(stderr, "ERROR: FastACache of '%s' was asked for iid="u32bitFMT", but only "u32bitFMT" available.\n",
               _fastawrapper->getSourceName(), iid, _cacheSize);
       return(0L);
     }

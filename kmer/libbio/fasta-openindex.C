@@ -97,13 +97,16 @@ FastAWrapper::isIndexOnDiskCompatible(u32bit indextype, const char *indexname, b
       fprintf(stderr, "WARNING: Index found, but stale or wrong type!\n");
 
       if (theGlobalDesc._magic != FASTA_MAGICNUMBER)
-        fprintf(stderr, "           Magic number incorrect; perhaps not an index file?  got=0x%016lx expected=0x%016lx\n", theGlobalDesc._magic, FASTA_MAGICNUMBER);
+        fprintf(stderr, "           Magic number incorrect; perhaps not an index file?  got="u64bitHEX" expected="u64bitHEX"\n",
+                theGlobalDesc._magic, (u64bit)FASTA_MAGICNUMBER);
 
       if (theGlobalDesc._version != FASTA_VERSIONNUMBER)
-        fprintf(stderr, "           Version number incorrect; got %d, expected %d.\n", theGlobalDesc._version, FASTA_VERSIONNUMBER);
+        fprintf(stderr, "           Version number incorrect; got "u32bitFMT", expected "u32bitFMT".\n",
+                theGlobalDesc._version, (u32bit)FASTA_VERSIONNUMBER);
 
       if (theGlobalDesc._fastaModificationTime != st.st_mtime)
-        fprintf(stderr, "           File age not correct; got %ld, expected %ld.\n", theGlobalDesc._fastaModificationTime, st.st_mtime);
+        fprintf(stderr, "           File age not correct; got %ld, expected %ld.\n",
+                theGlobalDesc._fastaModificationTime, st.st_mtime);
 
       if ((theGlobalDesc._indexType & FASTA_INDEX_MASK) < (indextype & FASTA_INDEX_MASK))
         fprintf(stderr, "           Type of index insufficient; got %s, need %s.\n",
@@ -319,7 +322,7 @@ FastAWrapper::printATADescription(FILE *out, char *name) {
 void
 FastAWrapper::printTextDescription(FILE *out) {
 
-  fprintf(out, "/FastAIndex magic=0x%016lx version=0x%08x\n",
+  fprintf(out, "/FastAIndex magic="u64bitHEX" version="u32bitFMT"\n",
           _theGlobalDesc._magic,
           _theGlobalDesc._version);
 

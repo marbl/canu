@@ -172,7 +172,7 @@ FastAWrapper::createIndex(u32bit indextype) {
     if (B.get() != '>') {
       fprintf(stderr, "FastA::buildIndex()-- In file %s, expected '>' at beginning of defline, got '%c' instead.\n",
               _filename, B.get());
-      fprintf(stderr, "FastA::buildIndex()-- File position is %ld, sequence number %u\n", B.tell(), numSeqs);
+      fprintf(stderr, "FastA::buildIndex()-- File position is "s64bitFMT", sequence number "u32bitFMT"\n", (s64bit)B.tell(), numSeqs);
 
       exit(1);
     }
