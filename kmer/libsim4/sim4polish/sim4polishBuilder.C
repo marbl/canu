@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <math.h>
 
 //#include "sim4reader.h"
 
@@ -169,7 +170,7 @@ sim4polishBuilder::setPercentIdentity(u32bit id) {
     fprintf(stderr, "sim4polishBuilder::setPercentIdentitysetPercentIdentity()-- no polish to build; create() not called\n");
     return;
   }
-  it->percentIdentity = id;
+  it->percentIdentity  = id;
 }
 
 
@@ -308,6 +309,10 @@ sim4polishBuilder::release(void) {
     ex[i]->estAlignment = 0L;
     ex[i]->genAlignment = 0L;
   }
+
+  //  Last, compute the querySeqIdentity using other fields.
+  //
+  it->querySeqIdentity = it->querySeqIdentity = (int)floor(100 * (double)(it->numMatches) / (double)(it->estLen - it->estPolyA - it->estPolyT));
 
   it    = 0L;
 
