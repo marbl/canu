@@ -9,13 +9,17 @@
 class sim4polishList {
 public:
   sim4polishList();
+  sim4polishList(char const *filename);
   ~sim4polishList();
+
   void          push(sim4polish *p);
   u32bit        length(void)         { return(len); };
 
-  //  pretty useless as I return a pointer to a sim4polishList...
   sim4polish   *operator[](u32bit i) { if (i >= len) return(0L); return(list[i]); };
   sim4polish   *get(u32bit i)        { if (i >= len) return(0L); return(list[i]); };
+
+  void          sortBycDNAIID(void);
+  void          sortByGenomicIID(void);
 private:
   u32bit        len;
   u32bit        max;

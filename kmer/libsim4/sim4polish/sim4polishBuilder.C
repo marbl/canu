@@ -14,6 +14,24 @@ sim4polishList::sim4polishList() {
   list = new sim4polish* [max];
 }
 
+sim4polishList::sim4polishList(char const *filename) {
+  len  = 0;
+  max  = 4;
+  list = new sim4polish* [max];
+
+  errno=0;
+  FILE *F = fopen(filename, "r");
+  if (errno) {
+    fprintf(stderr, "sim4polishList()--  Can't open '%s' for reading\n%s\n", filename, strerror(errno));
+    exit(1);
+  }
+
+  while (!feof(F))
+    push(s4p_readPolish(F));
+
+  fclose(F);
+}
+
 sim4polishList::~sim4polishList() {
   for (u32bit i=0; i<len; i++)
     s4p_destroyPolish(list[i]);
@@ -37,6 +55,15 @@ sim4polishList::push(sim4polish *p) {
   list[len++] = p;
 }
 
+void
+sim4polishList::sortBycDNAIID(void) {
+  qsort(list, len, sizeof(sim4polish *), s4p_estIDcompare);
+}
+
+void
+sim4polishList::sortByGenomicIID(void) {
+  qsort(list, len, sizeof(sim4polish *), s4p_genIDcompare);
+}
 
 
 
