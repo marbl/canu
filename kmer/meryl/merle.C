@@ -91,6 +91,7 @@ main(int argc, char **argv) {
     }
   }
 
+  C.finish();
 
   for (u32bit mer=0; mer<numMers; mer++) {
     char  ms[33];

@@ -110,8 +110,7 @@ estimate(merylArgs *args) {
       args->numMersEstimated++;
     }
 
-    if (args->beVerbose)
-      fprintf(stderr, "\n");
+    C.finish();
   }
 
   u32bit opth = optimalNumberOfBuckets(args->merSize, args->numMersEstimated);
