@@ -29,7 +29,7 @@ bitPackedFileWriter::~bitPackedFileWriter() {
   u64bit wd = (_bit >> 6) & 0x0000cfffffffffffllu;
 
   errno = 0;
-  size_t wrote = fwrite(_bfr, sizeof(u64bit), wd+1, _out);
+  fwrite(_bfr, sizeof(u64bit), wd+1, _out);
   if (errno) {
     fprintf(stderr, "bitPackedFileWriter::~bitPackedFileWriter got %s\n", strerror(errno));
     exit(1);
@@ -50,7 +50,7 @@ bitPackedFileWriter::flush(void) {
 
   if ((_bit >> 6) >= (BUFFER_SIZE - 2)) {
     errno = 0;
-    size_t wrote = fwrite(_bfr, sizeof(u64bit), BUFFER_SIZE-2, _out);
+    fwrite(_bfr, sizeof(u64bit), BUFFER_SIZE-2, _out);
     if (errno) {
       fprintf(stderr, "bitPackedFileWriter::flush() got %s\n", strerror(errno));
       exit(1);
@@ -306,6 +306,7 @@ main(int argc, char **argv) {
   for (i=0; i<testSize; i++) {
     W->putBits(val[i], siz[i]);
     W->putNumber(val[i]);
+    W->putNumber(val[i]);
 
     if ((i & 0xfffff) == 0) {
       fprintf(stderr, "Write "u32bitFMT"            \r", i);
@@ -318,13 +319,16 @@ main(int argc, char **argv) {
   //
   R = new bitPackedFileReader("bittest.junk");
   for (i=0; i<testSize; i++) {
-    u64bit r = R->getBits(siz[i]);
-    if (r != val[i]) {
-      fprintf(stderr, u32bitFMT"] ERROR in getBits()   -- retrieved "u64bitHEX" != expected "u64bitHEX" ("u32bitFMT" bits).\n", i, r, val[i], siz[i]);
+    u64bit v;
+
+    v = R->getBits(siz[i]);
+    if (v != val[i]) {
+      fprintf(stderr, u32bitFMT"] ERROR in getBits()   -- retrieved "u64bitHEX" != expected "u64bitHEX" ("u32bitFMT" bits).\n", i, v, val[i], siz[i]);
       errs++;
     }
 
-    u64bit v = R->getNumber();
+    v = R->getNumber();
+    v = R->getNumber();
     if (v != val[i]) {
       fprintf(stderr, u32bitFMT"] ERROR in getNumber() -- retrieved "u64bitHEX" != expected "u64bitHEX".\n", i, v, val[i]);
       errs++;
