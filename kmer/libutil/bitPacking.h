@@ -8,7 +8,7 @@
 //  generate a mask for 0.  Compiler warnings are issued, because you
 //  shouldn't use this in production code.
 //
-#define CHECK_WIDTH
+//#define CHECK_WIDTH
 
 
 //  Returns 'siz' bits from the stream based at 'ptr' and currently at
