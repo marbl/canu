@@ -6,7 +6,7 @@
 #include "sim4polishBuilder.H"
 
 #define MAX_POLISHES   10000000
-#define MAX_ESTS        5000000  //  Should be set to exactly the number of ESTs
+#define MAX_ESTS         100000  //  Should be set to exactly the number of ESTs
 #define REGION_TOLERANCE     15
 #define EXON_TOLERANCE       15
 
@@ -39,7 +39,8 @@ readRepeats(char *path) {
 
   while (!feof(F)) {
     fscanf(F, " %d ", &anInt);
-    repeatList[anInt] = 1;
+    if (!feof(F))
+      repeatList[anInt] = 1;
   }
 
   fclose(F);
@@ -55,8 +56,8 @@ readRepeats(char *path) {
 //          0 otherwise
 //
 int
-comparePolish(sim4polish *A,
-              sim4polish *B) {
+isApproximatelySamePolish(sim4polish *A,
+                          sim4polish *B) {
 
   //  If not from the same EST/GEN pair, or mapped to different
   //  strands, they aren't compatible.
@@ -67,26 +68,20 @@ comparePolish(sim4polish *A,
     return(0);
 
   if (s4p_IsSameRegion(A, B, REGION_TOLERANCE) &&
-      s4p_IsSameExonModel(A, B, EXON_TOLERANCE))
+      s4p_IsSameExonModel(A, B, EXON_TOLERANCE)) {
     return(1);
-  else
+  } else {
     return(0);
+  }
 }
 
 
 
-
-int
-main(int argc, char **argv) {
-
-  if (argc != 6) {
-    fprintf(stderr, "usage: %s <polishes-filename> <minid> <mincov> <path-to-A> <path-to-B>\n", argv[0]);
-    exit(1);
-  }
-
-  char       *Fname = argv[1];
-  int         minI  = atoi(argv[2]);
-  int         minC  = atoi(argv[3]);
+void
+compareESTmapperDirectories(int argc, char **argv) {
+  int         minI  = atoi(argv[1]);
+  int         minC  = atoi(argv[2]);
+  char       *Fname = argv[3];
   char       *Apath = argv[4];
   char       *Bpath = argv[5];
 
@@ -150,7 +145,7 @@ main(int argc, char **argv) {
       if (A[i]->estID > B[j]->estID)
         minB = j;
 
-      if (comparePolish(A[i], B[j]))
+      if (isApproximatelySamePolish(A[i], B[j]))
         found++;
 
       //  Save the polish in B with the highest number of found exons.
@@ -245,6 +240,154 @@ main(int argc, char **argv) {
 
   fprintf(stdout, "only A found    = %d (cdna)\n", onlyAfound);
   fprintf(stdout, "only B found    = %d (cdna)\n", onlyBfound);
+}
+
+
+
+void
+comparePolishFiles(int argc, char **argv) {
+  int         minI  = atoi(argv[1]);
+  int         minC  = atoi(argv[2]);
+  char       *Apath = argv[3];
+  char       *Bpath = argv[4];
+
+  fprintf(stderr, "reading A from %s\n", Apath);
+  sim4polishList     A(Apath);
+  A.sortBycDNAIID();
+
+  fprintf(stderr, "reading B from %s\n", Bpath);
+  sim4polishList     B(Bpath);
+  B.sortBycDNAIID();
+
+  int  thisA = 0;
+  int  thisB = 0;
+  int  lastB = 0;
+
+  int  Bmissed = 0;
+  int  Abetter = 0;
+  int  Bbetter = 0;
+  int  Nbetter = 0;
+  int  Equal   = 0;
+
+  while (thisA < A.length()) {
+    int  largestF = 0;
+    int  largestA = 0;
+    int  largestB = 0;
+    int  bestB    = 0;
+
+#if 1
+    //  Remember the first B that has the correct estID
+    //
+    while ((A[thisA]->estID > B[lastB]->estID) && (lastB < B.length()))
+      lastB++;
+#endif
+
+    thisB = lastB;
+
+    //  Scan forward in B comparing matches with the same IID.
+    //
+    while ((A[thisA]->estID == B[thisB]->estID) && (thisB < B.length())) {
+      //while (thisB < B.length()) {
+      if ((A[thisA]->estID            == B[thisB]->estID) &&
+          (A[thisA]->genID            == B[thisB]->genID) &&
+          (A[thisA]->matchOrientation == B[thisB]->matchOrientation)) {
+        int  f, a, b;
+
+        s4p_compareExons_Ends(A[thisA], B[thisB], 15, &f, &a, &b);
+
+        //fprintf(stderr, "A=%d B=%d  f=%d a=%d b=%d\n", thisA, thisB, f, a, b);
+
+        //  We want to maximize F while minimizing A+B
+        //
+        //  This hopefully will get us around the problem of having
+        //  duplicate matches that are subsets:
+        //    match 1 has exons 1 2 3 4 5 6
+        //    match 2 has exons     3 4 5
+        //
+        //  When finding the correct pair for match 2, we need to
+        //  ignore match 1, because it has 3 missing exons, and
+        //  pick match 2 with no missing exons.
+        //
+        if ((largestF < f) ||
+            ((largestF <= f) && (largestA + largestB >= a + b))) {
+          largestF = f;
+          largestA = a;
+          largestB = b;
+          bestB = thisB;
+        }
+      }
+
+      thisB++;
+    }
+
+    if (largestF == 0) {
+      //  Thing in A was not found in B
+      Bmissed++;
+    } else if ((largestF == A[thisA]->numExons) && (largestF == B[bestB]->numExons)) {
+      //  We matched all exons
+      Equal++;
+      //fprintf(stderr, "Equal for A=%d B=%d\n", thisA, bestB);
+    } else if ((largestA == 0) && (largestB == 0)) {
+      //  Shouldn't happen; didn't match all exons, and didn't miss any.
+      fprintf(stderr, "\nBoth A and B are zero and f != num exons  f=%d  a=%d  b=%d??\n", largestF, A[thisA]->numExons, B[bestB]->numExons);
+    } else if ((largestA > 0) && (largestB > 0)) {
+      //  They both have exons not matched in the other one.
+      Nbetter++;
+    } else if (largestA > 0) {
+      //  A has extra exons, so A is better.
+      Abetter++;
+      fprintf(stdout, "Abetter f=%f a=%d b=%d\n", largestF, largestA, largestB);
+      s4p_printPolish(stdout, A[thisA], S4P_PRINTPOLISH_FULL | S4P_PRINTPOLISH_NORMALIZED);
+      s4p_printPolish(stdout, A[bestB], S4P_PRINTPOLISH_FULL | S4P_PRINTPOLISH_NORMALIZED);
+    } else if (largestB > 0) {
+      //  B has extra exons, so B is better.
+      Bbetter++;
+      fprintf(stdout, "Bbetter f=%f a=%d b=%d\n", largestF, largestA, largestB);
+      s4p_printPolish(stdout, A[thisA], S4P_PRINTPOLISH_FULL | S4P_PRINTPOLISH_NORMALIZED);
+      s4p_printPolish(stdout, A[bestB], S4P_PRINTPOLISH_FULL | S4P_PRINTPOLISH_NORMALIZED);
+    } else {
+      fprintf(stderr, "\nUnmatched case at a=%d b=%d!\n", thisA, bestB);
+    }
+
+#if 0
+    s4p_printPolish(stderr, A[thisA], S4P_PRINTPOLISH_FULL | S4P_PRINTPOLISH_NORMALIZED);
+    s4p_printPolish(stderr, A[bestB], S4P_PRINTPOLISH_FULL | S4P_PRINTPOLISH_NORMALIZED);
+#endif
+
+    thisA++;
+
+#if 1
+    fprintf(stderr, "A=%6d  B=%6d  Equal %6d  Bmissed %6d  Abetter %6d  Bbetter %6d  Nbetter %6d\r",
+            thisA, lastB, Equal, Bmissed, Abetter, Bbetter, Nbetter);
+    fflush(stderr);
+#endif
+  }
+
+  fprintf(stderr, "A=%6d  B=%6d  Equal %6d  Bmissed %6d  Abetter %6d  Bbetter %6d  Nbetter %6d\n",
+          thisA, lastB, Equal, Bmissed, Abetter, Bbetter, Nbetter);
+}
+
+
+
+
+
+
+
+
+int
+main(int argc, char **argv) {
+
+  if ((argc != 6) && (argc != 5)) {
+    fprintf(stderr, "usage: %s <minid> <mincov> <polishes-filename> <path-to-A> <path-to-B>\n", argv[0]);
+    fprintf(stderr, "       %s <minid> <mincov> <polishes-file-1> <polishes-file-2>\n", argv[0]);
+    exit(1);
+  }
+
+  if (argc == 6)
+    compareESTmapperDirectories(argc, argv);
+
+  if (argc == 5)
+    comparePolishFiles(argc, argv);
 }
 
 
