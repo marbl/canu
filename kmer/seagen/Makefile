@@ -20,10 +20,10 @@ all: $(PROG)
 #  -pthread removed from lines below -- didn't work on solaris
 
 searchGENOME: hitMatrix.o buildinfo-searchGENOME.o $(OBJS)
-	$(CC) $(CCOPTS) $(INCLUDE) -o searchGENOME $(OBJS) hitMatrix.o buildinfo-searchGENOME.o $(LIBS) $(THRLIB) $(EFENCE)
+	$(CC) $(CCOPTS) $(INCLUDE) -o searchGENOME $(OBJS) hitMatrix.o buildinfo-searchGENOME.o $(LIBS) $(THRLIB) $(EFENCE) -lm
 
 searchGENOMEexactly: hitMatrix-Exact.o buildinfo-searchGENOME.o $(OBJS)
-	$(CC) $(CCOPTS) $(INCLUDE) -o searchGENOMEexactly $(OBJS) hitMatrix-Exact.o buildinfo-searchGENOME.o $(LIBS) $(THRLIB) $(EFENCE)
+	$(CC) $(CCOPTS) $(INCLUDE) -o searchGENOMEexactly $(OBJS) hitMatrix-Exact.o buildinfo-searchGENOME.o $(LIBS) $(THRLIB) $(EFENCE) -lm
 
 hitConverter: hitConverter.o
 	$(CC) $(CCOPTS) -o hitConverter hitConverter.o
