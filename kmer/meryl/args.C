@@ -322,7 +322,7 @@ merylArgs::merylArgs(int argc, char **argv) {
       doForward   = true;
       doReverse   = false;
       doCanonical = false;
-    } else if (strcmp(argv[arg], "-4") == 0) {
+    } else if (strcmp(argv[arg], "-r") == 0) {
       doForward   = false;
       doReverse   = true;
       doCanonical = false;
