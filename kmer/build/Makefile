@@ -91,101 +91,37 @@ $(eval $(call Include_File,$/))
 # RECURSIVE now holds the paths which are being done legacy style
 # and // holds the paths which are going to be part of the system.
 
-######  generic pattern rules for subgoals
-# rules for C/C++
-%.o: %.c
-	${CC} ${CFLAGS} ${CFLAGS_COMPILE} -o $@ -c $<
 
-%.o: %.cc
-	${CXX} ${CXXFLAGS} ${CXXFLAGS_COMPILE} -o $@ -c $<
 
-%.o: %.cpp
-	${CXX} ${CXXFLAGS} ${CXXFLAGS_COMPILE} -o $@ -c $<
-
-%.o: %.C
-	${CXX} ${CXXFLAGS} ${CXXFLAGS_COMPILE} -o $@ -c $<
-
-### Building depends goals
-# using '=' instead of ':=' for that dynamic scoping
-__DEPGOALS__=
-
-# really, only C/C++ depends goals are built here right now.
-# C_SRCS and CXX_SRCS are collected together and turned into
-# associated *.d dependency files.
-
-# WISHLIST: does not propagate failure to the parent make
-# for some reason.  It really should.  I think the pipe to
-# sed masks the exit code.
-ALL_C_SRCS       :=$(strip $(foreach x,${//},${${x:.=.C_SRCS}}))
-ALL_C_DEPS       :=${ALL_C_SRCS:=.d}
-${ALL_C_DEPS}:%.d:%
-	@ echo "making $@"
-	 dir=`echo $< | sed -e's~[^/]*$$~~'`; \
-	  ${CCDEP} ${CDEPFLAGS} ${CFLAGS} $< | \
-	  sed -e"/:/s!^!$${dir}!" > $@
-__DEPGOALS__+=$${${1:.=.C_SRCS}:=.d}
-
-ALL_CXX_SRCS     :=$(strip $(foreach x,${//},${${x:.=.CXX_SRCS}}))
-ALL_CXX_DEPS     :=${ALL_CXX_SRCS:=.d}
-${ALL_CXX_DEPS}:%.d:%
-	@ echo "making $@"
-	 dir=`echo $< | sed -e's~[^/]*$$~~'`; \
-	  ${CXXDEP} ${CXXDEPFLAGS} ${CXXFLAGS} $< | \
-	  sed -e"/:/s!^!$${dir}!" > $@
-__DEPGOALS__+=$${${1:.=.CXX_SRCS}:=.d}
-
-## include the .d files
-# This contional gives us a way out if something goes horribly
-# wrong...
-ifeq ($(filter %-clean,${MAKECMDGOALS}),)
-  include ${ALL_C_DEPS} ${ALL_CXX_DEPS}
-endif
+# useful function to copy files into install directories
+define .FUN-install-copy
+	@ files='$$(strip $1)'; dir='$$(strip $2)'; \
+	if [ -n "$$$${files}" ] ; then \
+	  echo ":::::Installing into $$$${dir}::::: $$$${files}" ; \
+	  mkdir -p $dir ; \
+	  for F in $$$${files} ; do \
+	     if [ -e $$$${F} ] ; then \
+	        cp -fp $$$${F} $dir ; \
+	     fi ; \
+	  done ; \
+        fi
+endef
+ 
 
 ### Building subgoals
-#   The goals are C/C++ programs, libs, and anything else we add
-#   to the mix below.  It would not be unreasonable to allow some
-#   sort of extension system whereby rules get included too.
-
 # subgoals are done with the deferred '=' not the ':='.
 # This is because we want dynamic scoping.
 __SUBGOALS__=
 
-## EXE targets
-ALL_C_EXES   :=$(strip $(foreach x,${//},${${x:.=.C_EXES}}))
-${ALL_C_EXES}:
-	${CC} ${CLDFLAGS} -o $@ $^ ${CLIBS}
-__SUBGOALS__+=$${${1:.=.C_EXES}}
 
-ALL_CXX_EXES :=$(strip $(foreach x,${//},${${x:.=.CXX_EXES}}))
-${ALL_CXX_EXES}:
-	${CXX} ${CXXLDFLAGS} -o $@ $^ ${CXXLIBS}
-__SUBGOALS__+=$${${1:.=.CXX_EXES}}
+### include all rules for all targets to be made
+-include ${MAKEFILE/}Make.rules
 
-## LIB targets
-ALL_C_LIBS   :=$(strip $(foreach x,${//},${${x:.=.C_LIBS}}))
-${ALL_C_LIBS}:
-	rm -f $@
-	${AR} ${ARFLAGS} $@ $^
-__SUBGOALS__+=$${${1:.=.C_LIBS}}
 
-ALL_CXX_LIBS     :=$(strip $(foreach x,${//},${${x:.=.CXX_LIBS}}))
-${ALL_CXX_LIBS}:
-	rm -f $@
-	${AR} ${ARFLAGS} $@ $^
-__SUBGOALS__+=$${${1:.=.CXX_LIBS}}
-
-## Shared targets
-ALL_CXX_SHLIBS   :=$(strip $(foreach x,${//},${${x:.=.CXX_SHLIBS}}))
-${ALL_CXX_SHLIBS}:
-	${CXX} ${CXXFLAGS} ${SHLIB_FLAGS} -o $@ $^ ${CXXLIBS}
-__SUBGOALS__+=$${${1:.=.CXX_SHLIBS}}
-
-####### recursive rules, applied to all subdirectory targets
+### the standard make targets, applied to all subdirectory targets
 # We define the basic form of the all, clean, ... rules on a
 # per-path basis (the $/.all, $..clean, ... targets).  This allows
 # selective targeting.
-
-
 ## rules for each subtarget
 #  current subtargets are :
 #        all, ls, clean, real-clean, depends-clean, install
@@ -196,7 +132,7 @@ clean:         ${RECURSIVE:.=.clean}      $/.clean
 define .RULE-clean
 ${1:.=.clean}: $${${1:.=.SUBS}:.=.clean}
 	rm -f $${${1:.=.CLEAN}} ${__SUBGOALS__}
-	(cd $1 && rm -rf ${C_TMP} ${CXX_TMP})
+	(cd $1. && rm -rf ${C_TMP} ${CXX_TMP})
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-clean,$x)))
@@ -214,7 +150,7 @@ real-clean:    ${RECURSIVE:.=.real-clean} $/.real-clean
 define .RULE-real-clean
 ${1:.=.real-clean}: $${${1:.=.SUBS}:.=.real-clean}
 	rm -f $${${1:.=.CLEAN}} ${__SUBGOALS__}
-	(cd $1 && rm -rf ${C_TMP} ${CXX_TMP})
+	(cd $1. && rm -rf ${C_TMP} ${CXX_TMP})
 	rm -f ${1:.=Make.depends} ${__DEPGOALS__}
 	rm -f $${${1:.=.REAL-CLEAN}}
 
@@ -229,13 +165,8 @@ endef
 $(eval $(foreach x,${//},$(call .RULE-all,$x)))
 
 ## INSTALL:
-## This is kind of a horrible hack right now.  But it gets better
-## every day.
-
 # Define targets which give a basic recursive traversal to hang
-# things from
-
-# for anything install related that I haven't thought of
+# things from for anything install related that I haven't thought of
 define .RULE-pre-install
 ${1:.=.pre-install}: $${${1:.=.SUBS}:.=.pre-install}
 
@@ -249,64 +180,6 @@ ${1:.=.install-copy}: $${${1:.=.SUBS}:.=.install-copy}
 endef
 $(eval $(foreach x,${//},$(call .RULE-install-copy,$x)))
 
-
-# helper function to copy files into install directories
-define .FUN-install-copy
-	@ files='$$(strip $1)'; dir='$$(strip $2)'; \
-	if [ -n "$$$${files}" ] ; then \
-	  echo ":::::Installing into $$$${dir}::::: $$$${files}" ; \
-	  mkdir -p $dir ; \
-	  for F in $$$${files} ; do \
-	     if [ -e $$$${F} ] ; then \
-	        cp -fp $$$${F} $dir ; \
-	     fi ; \
-	  done ; \
-        fi
-endef
- 
-define .RULE-install-copy-C-CXX-EXES
-${1:.=.install-copy}: ${1:.=.install-copy-C-CXX-EXES}
-${1:.=.install-copy-C-CXX-EXES}:
-# all exes go to bin
-	$(call .FUN-install-copy,$${${1:.=.C_EXES}} $${${1:.=.CXX_EXES}}, \
-                                 ${INSTALL/}bin/)
-
-endef
-$(eval $(foreach x,${//},$(call .RULE-install-copy-C-CXX-EXES,$x)))
-
-
-define .RULE-install-copy-C-CXX-LIBS
-${1:.=.install-copy}: ${1:.=.install-copy-C-CXX-LIBS}
-${1:.=.install-copy-C-CXX-LIBS}:
-# all libs go to lib/${.LIB/}
-	$(call .FUN-install-copy,$${${1:.=.C_LIBS}} $${${1:.=.CXX_LIBS}}, \
-                                 ${INSTALL/}lib/$${${1.=.LIB/}})
-
-endef
-$(eval $(foreach x,${//},$(call .RULE-install-copy-C-CXX-LIBS,$x)))
-
-
-define .RULE-install-copy-C-CXX-INCS
-${1:.=.install-copy}: ${1:.=.install-copy-C-CXX-INCS}
-${1:.=.install-copy-C-CXX-INCS}:
-# all includes go to include/${.INCLUDE/}
-	$(call .FUN-install-copy,$${${1:.=.C_INCS}} $${${1:.=.CXX_INCS}}, \
-                                 ${INSTALL/}include/$${${1:.=.INCLUDE/}})
-
-endef
-$(eval $(foreach x,${//},$(call .RULE-install-copy-C-CXX-INCS,$x)))
-
-define .RULE-install-copy-SHARES
-${1:.=.install-copy}: ${1:.=.install-copy-SHARES}
-${1:.=.install-copy-SHARES}:
-# all share files go to share/${.SHARE/}
-	$(call .FUN-install-copy,$${${1:.=.SHARES}}, \
-                                 ${INSTALL/}share/$${${1:.=.SHARE/}})
-
-endef
-$(eval $(foreach x,${//},$(call .RULE-install-copy-SHARES,$x)))
-
-
 # define the actual install target as being a combination of the
 # all target plus the pre-/install-copy targets
 
@@ -319,7 +192,8 @@ endef
 $(eval $(foreach x,${//},$(call .RULE-install,$x)))
 
 
-# another sort of debugging thing.  Let's me check on which targets
+
+# a sort of debugging thing.  Let's me check on which targets
 # actually didn't get made, or got partially made
 LSOPTS:=-l
 ls:                                       $/.ls
@@ -335,7 +209,5 @@ endef
 $(eval $(foreach x,${//},$(call .RULE-ls,$x)))
 
 
-# any other targets and target rules we dump in here
--include ${MAKEFILE/}Make.rules
 
 

@@ -1,26 +1,163 @@
 # -*- makefile -*-
 
-## LATEX
-%.dvi: %.tex
-	${LATEX} $< && ${LATEX} $<
+############################################################
+# scripts and whatnot which are copied to share/
+############################################################
+define .RULE-install-copy-SHARES
+${1:.=.install-copy}: ${1:.=.install-copy-SHARES}
+${1:.=.install-copy-SHARES}:
+# all share files go to share/${.SHARE/}
+	$(call .FUN-install-copy,$${${1:.=.SHARES}}, \
+                                 ${INSTALL/}share/$${${1:.=.SHARE/}})
 
-%.aux: %.tex
-	${LATEX} $< && ${LATEX} $<
+endef
+$(eval $(foreach x,${//},$(call .RULE-install-copy-SHARES,$x)))
 
-%.bbl: %.aux
-	${BIBTEX} ${<:.aux=}
 
+############################################################
+# C and C++ stuff
+############################################################
+# Building depends goals for C/CXX things
+# using '=' instead of ':=' for that dynamic scoping
+__DEPGOALS__=
+
+# really, only C/C++ depends goals are built here right now.
+# C_SRCS and CXX_SRCS are collected together and turned into
+# associated *.d dependency files.
+
+# WISHLIST: does not propagate failure to the parent make
+# for some reason.  It really should.  I think the pipe to
+# sed masks the exit code.
+ALL_C_SRCS       :=$(strip $(foreach x,${//},${${x:.=.C_SRCS}}))
+ALL_C_DEPS       :=${ALL_C_SRCS:=.d}
+${ALL_C_DEPS}:%.d:%
+	@ echo "making $@"
+	 dir=`echo $< | sed -e's~[^/]*$$~~'`; \
+	  ${CCDEP} ${CDEPFLAGS} ${CFLAGS} $< | \
+	  sed -e"/:/s!^!$${dir}!" > $@
+__DEPGOALS__+=$${${1:.=.C_SRCS}:=.d}
+
+ALL_CXX_SRCS     :=$(strip $(foreach x,${//},${${x:.=.CXX_SRCS}}))
+ALL_CXX_DEPS     :=${ALL_CXX_SRCS:=.d}
+${ALL_CXX_DEPS}:%.d:%
+	@ echo "making $@"
+	 dir=`echo $< | sed -e's~[^/]*$$~~'`; \
+	  ${CXXDEP} ${CXXDEPFLAGS} ${CXXFLAGS} $< | \
+	  sed -e"/:/s!^!$${dir}!" > $@
+__DEPGOALS__+=$${${1:.=.CXX_SRCS}:=.d}
+
+
+## include the .d files
+# This contional gives us a way out if something goes horribly
+# wrong...
+ifeq ($(filter %-clean,${MAKECMDGOALS}),)
+  include ${ALL_C_DEPS} ${ALL_CXX_DEPS}
+endif
+
+######  generic pattern rules for subgoals
+%.o: %.c
+	${CC} ${CFLAGS} ${CFLAGS_COMPILE} -o $@ -c $<
+
+%.o: %.cc
+	${CXX} ${CXXFLAGS} ${CXXFLAGS_COMPILE} -o $@ -c $<
+
+%.o: %.cpp
+	${CXX} ${CXXFLAGS} ${CXXFLAGS_COMPILE} -o $@ -c $<
+
+%.o: %.C
+	${CXX} ${CXXFLAGS} ${CXXFLAGS_COMPILE} -o $@ -c $<
+
+
+## EXE targets
+ALL_C_EXES   :=$(strip $(foreach x,${//},${${x:.=.C_EXES}}))
+${ALL_C_EXES}:
+	${CC} ${CLDFLAGS} -o $@ $^ ${CLIBS}
+__SUBGOALS__+=$${${1:.=.C_EXES}}
+
+ALL_CXX_EXES :=$(strip $(foreach x,${//},${${x:.=.CXX_EXES}}))
+${ALL_CXX_EXES}:
+	${CXX} ${CXXLDFLAGS} -o $@ $^ ${CXXLIBS}
+__SUBGOALS__+=$${${1:.=.CXX_EXES}}
+
+define .RULE-install-copy-C-CXX-EXES
+${1:.=.install-copy}: ${1:.=.install-copy-C-CXX-EXES}
+${1:.=.install-copy-C-CXX-EXES}:
+# all exes go to bin
+	$(call .FUN-install-copy,$${${1:.=.C_EXES}} $${${1:.=.CXX_EXES}}, \
+                                 ${INSTALL/}bin/)
+
+endef
+$(eval $(foreach x,${//},$(call .RULE-install-copy-C-CXX-EXES,$x)))
+
+
+## LIB targets
+ALL_C_LIBS   :=$(strip $(foreach x,${//},${${x:.=.C_LIBS}}))
+${ALL_C_LIBS}:
+	rm -f $@
+	${AR} ${ARFLAGS} $@ $^
+__SUBGOALS__+=$${${1:.=.C_LIBS}}
+
+ALL_CXX_LIBS     :=$(strip $(foreach x,${//},${${x:.=.CXX_LIBS}}))
+${ALL_CXX_LIBS}:
+	rm -f $@
+	${AR} ${ARFLAGS} $@ $^
+__SUBGOALS__+=$${${1:.=.CXX_LIBS}}
 
 ## Shared targets
+ALL_CXX_SHLIBS   :=$(strip $(foreach x,${//},${${x:.=.CXX_SHLIBS}}))
+${ALL_CXX_SHLIBS}:
+	${CXX} ${CXXFLAGS} ${SHLIB_FLAGS} -o $@ $^ ${CXXLIBS}
+__SUBGOALS__+=$${${1:.=.CXX_SHLIBS}}
+
+define .RULE-install-copy-C-CXX-LIBS
+${1:.=.install-copy}: ${1:.=.install-copy-C-CXX-LIBS}
+${1:.=.install-copy-C-CXX-LIBS}:
+# all libs go to lib/${.LIB/}
+	$(call .FUN-install-copy,$${${1:.=.C_LIBS}} \
+                                 $${${1:.=.CXX_LIBS}}, \
+                                 $${${1:.=.CXX_SHLIBS}}, \
+                                 ${INSTALL/}lib/$${${1.=.LIB/}})
+
+endef
+$(eval $(foreach x,${//},$(call .RULE-install-copy-C-CXX-LIBS,$x)))
+
+
+
+define .RULE-install-copy-C-CXX-INCS
+${1:.=.install-copy}: ${1:.=.install-copy-C-CXX-INCS}
+${1:.=.install-copy-C-CXX-INCS}:
+# all includes go to include/${.INCLUDE/}
+	$(call .FUN-install-copy,$${${1:.=.C_INCS}} $${${1:.=.CXX_INCS}}, \
+                                 ${INSTALL/}include/$${${1:.=.INCLUDE/}})
+
+endef
+$(eval $(foreach x,${//},$(call .RULE-install-copy-C-CXX-INCS,$x)))
+
+
+
+############################################################
+# latex and some ps/pdf stuff
+############################################################
+
+%.dvi: %.tex
+	cd `dirname $<` && ${LATEX} `basename $<` && ${LATEX} `basename $<`
+
+%.aux: %.tex
+	cd `dirname $<` && ${LATEX} `basename $<` && ${LATEX} `basename $<`
+
+%.bbl: %.aux
+	cd `dirname $<` && ${BIBTEX} ${<:.aux=}
+
+
 ALL_TEXPS   :=$(strip $(foreach x,${//},${${x:.=.TEXPS}}))
 
 ${ALL_TEXPS}: %.ps: %.dvi
-	${DVIPS} -o $@ $<
+	cd `dirname $<` && ${DVIPS} -o `basename $@` `basename $<`
 
 ${ALL_TEXPS:.ps=.pdf}: %.pdf: %.ps
 	${PS2PDF} $< $@
 
-# some extra goodies
+# some extra tex goodies
 %.gv: %.ps
 	${VIEWPS} $<
 
@@ -46,8 +183,10 @@ $(eval $(foreach x,${//},$(call .RULE-install-copy-TEXPS,$x)))
 
 
 
-## PYTHON
-# build rules for python executable scripts
+############################################################
+# Python
+############################################################
+
 ALL_PY_EXES :=$(strip $(foreach x,${//},${${x:.=.PY_EXES}}))
 
 ${ALL_PY_EXES}: %: %.in
@@ -70,5 +209,9 @@ ${1:.=.install-copy-PYTHON}:
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-install-copy-PYTHON,$x)))
+
+
+
+
 
 
