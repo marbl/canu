@@ -9,18 +9,7 @@ def createIndexedFasta( prefix, nickname, makeseqstore):
   # This is a class method (as opposed to an object method).
   # This method creates an indexed FASTA file on disk.
 
-  recalled_filename = ""
-  the_recalled_scaf = {}
-  if(os.path.exists(recalled_filename)):
-    RECALLED = file("recalled","r")
-    for line in RECALLED :
-      ga_uid = line.strip()
-      the_recalled_scaf[ga_uid] = 1
-    # end for
-    RECALLED.close()
-  # end if
-
-  print >>sys.stderr, "Openning %s to write %s.seqStore and %s.idxStore" % (prefix, prefix, prefix, )
+  print >>sys.stderr, "Opening %s to write %s.seqStore and %s.idxStore" % (prefix, prefix, prefix, )
 
   the_uid = None
   defline = None
@@ -29,17 +18,15 @@ def createIndexedFasta( prefix, nickname, makeseqstore):
   cur_offset = 0
 
   FASTA    = file( prefix, "r")
-  # IDXSTORE = file( nickname + ".idxStore", "w")
   IDXSTORE = file( prefix + ".idxStore", "w")
   if(makeseqstore):
-    # SEQSTORE = file(nickname + ".seqStore", "w")
     SEQSTORE = file(prefix + ".seqStore", "w")
   for line in FASTA:
     linenumber += 1
     line = line.strip()
     if(line[0:1] == ">"):
       # Clear current data to make space for new data.
-      if( the_uid != None ): # and not (the_uid in the_recalled_scaf)
+      if( the_uid != None ):
         # The first time thru the_uid is equal to None.
         assert(defline != None)
         assert(seqline != None)
@@ -170,14 +157,13 @@ class IdxStore:
       scaf_iid = self.uid2iid[scaf_uid]
     except KeyError:
       scaf_iid = eval(scaf_uid)
-      # sys.stderr.write("scaf_uid=<%s> is not found.\n" % scaf_uid)
       if(scaf_iid < 1000000000):
         # sys.stderr.write("Using scaf_uid as the index\n")
         pass
       else:
         sys.stderr.write("scaf_uid=<%s> is invalid.\n" % scaf_uid)
         return ""
-   
+
     seq_length = self.iid2seq_length[scaf_iid];
     seq_offset = self.iid2seq_offset[scaf_iid];
     # print >>sys.stderr, "seq_length, seq_offset, start =", seq_length, seq_offset, start
