@@ -99,6 +99,9 @@ s4p_readPolish(FILE *F) {
   sim4polishExon  *ex = 0L;
   char             mOri[65];
   char             sOri[65];
+#ifndef OLD_COVERAGE
+  int              exonCoverage = 0;
+#endif
 
   readLine(F, l);
   while(!feof(F) && strcmp(l->s, "sim4begin")) {
@@ -187,7 +190,9 @@ s4p_readPolish(FILE *F) {
       break;
   }
 
+#ifdef OLD_COVERAGE
   p->querySeqIdentity = (int)floor(100 * (double)(p->numMatches) / (double)(p->estLen - p->estPolyA - p->estPolyT));
+#endif
 
   readLine(F, l);
 
@@ -274,6 +279,10 @@ s4p_readPolish(FILE *F) {
     if ((l->s[l->l-2] == '=') && (l->s[l->l-1] == '='))
       ex[el].intronOrientation = '=';
 
+#ifndef OLD_COVERAGE
+    exonCoverage += ex[el].estTo - ex[el].estFrom + 1;
+#endif
+
     el++;
 
     readLine(F, l);
@@ -282,6 +291,12 @@ s4p_readPolish(FILE *F) {
   if (el == 0) {
     fprintf(stderr, "WARNING: sim4reader::readPolish -- found ZERO exons?\n");
   }
+
+
+#ifndef OLD_COVERAGE
+  p->querySeqIdentity = (int)floor(100 * (double)(exonCoverage) / (double)(p->estLen - p->estPolyA - p->estPolyT));
+#endif
+
 
   //  All done.  Save the exons to the sim4polish.
   //
