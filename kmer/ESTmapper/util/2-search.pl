@@ -251,6 +251,7 @@ sub search {
     foreach my $s (@scafList) {
         open(F, "> $path/1-search/$s.cmd");
         print F "$searchGENOME $verbose -binary -mersize $mersize $opts -numthreads $numthread";
+        print F " -buildtemporary $path/1-search/$s.tmp";
         print F " -buildtables $builddir/$buildprefix.$mersize.$s" if (defined($buildprefix) &&  $buildonly);
         print F " -usetables   $builddir/$buildprefix.$mersize.$s" if (defined($buildprefix) && !$buildonly);
         print F " -cdna $path/0-input/cDNA.fasta";
