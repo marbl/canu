@@ -1599,6 +1599,7 @@ sub configure {
         while (<F>) {
             if (m/^\d+\s+\d+\s+(\d+)\s+\d+\D/) {
                 push @scaffolds, "$1.$idx";
+                $idx++;
             } else {
                 die "$errHdr Invalid line in information file: $_.\n";
             }
