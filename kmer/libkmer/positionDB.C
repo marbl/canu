@@ -14,7 +14,7 @@
 
 
 #ifndef SILENTPOSITIONDB
-#include "time.h"
+#include "time.H"
 #endif
 
 
