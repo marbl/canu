@@ -12,6 +12,8 @@
 //#define PROFILE_EXON_CORE
 
 
+
+
 void
 Sim4::exon_cores(char *s1,
                  char *s2,
@@ -64,8 +66,6 @@ Sim4::exon_cores(char *s1,
 
 
 
-#define OLD_EXONCORE
-
 
 void
 Sim4::search(char *s1, char *s2, int l1, int l2, int in_W, int in_K) {
@@ -79,29 +79,19 @@ Sim4::search(char *s1, char *s2, int l1, int l2, int in_W, int in_K) {
   if (l1 < in_W)
     return;
 
-#ifdef OLD_EXONCORE
-  int               lower = -l1;
-  int              *allocated;
-  int              *diag_lev;
-
-  allocated = new int [l1 + l2 + 1];
-  for (i = l1 + l2 + 1; i; )
-    allocated[--i] = 0;
-
-  diag_lev = allocated - lower;
-#endif
-
   t = s1+1;
   i = 0;
 
-  register int   validEncoding = 1 - in_W;
-  register int   pos1;
+  int   validEncoding = 1 - in_W;
+  int   pos1;
 
   ecode = 0L;
 
   //  5% win (tested on on small examples) if we use t[] instead of *t below.
 
   for (i=0; i < l1; i++) {
+    pos1 = (int)(t-s1) + i;
+
     if (encoding[(int)t[i]] >= 0) {
       validEncoding++;
 
@@ -112,26 +102,11 @@ Sim4::search(char *s1, char *s2, int l1, int l2, int in_W, int in_K) {
       if (validEncoding > 0) {
         for (h = hashtable->table[ecode & HASH_SIZE]; h; h = h->link) {
           if (h->ecode == ecode) {
-            for (p = h->pos; p >= 0; p = hashtable->nextPos[p]) {
-              pos1 = (int)(t-s1) + i;
-
-              //fprintf(stdout, "p = %8d  pos1 = %8d\n", p, pos1);
-              //fprintf(stdout, "p1=%8d o1=%8d p2=%8d o2=%8d\n", pos1, 0, p, 0);
-
-#ifdef OLD_EXONCORE
-              if (diag_lev[p-pos1] <= pos1) {
-                diag_lev[p-pos1] = extend_hit(pos1, p,
-                                              s1,s2,l1,l2,
-                                              in_W, in_K);
-              }
-#else
+            for (p = h->pos; p >= 0; p = hashtable->nextPos[p])
               _mspManager.addHit(s1, s2,
                                  l1, l2,
                                  pos1, p,
                                  in_W, in_K);
-#endif
-
-            }
             break;
           }
         }
@@ -140,70 +115,4 @@ Sim4::search(char *s1, char *s2, int l1, int l2, int in_W, int in_K) {
       validEncoding = 1 - in_W;
     }
   }
-
-#ifdef OLD_EXONCORE
-  delete [] allocated;
-#endif
 }
-
-
-
-#ifdef OLD_EXONCORE
-
-/* extend_hit - extend a word-sized hit to a longer match */
-int
-Sim4::extend_hit(int pos1,
-                 int pos2, 
-                 const char * const s1,
-                 const char * const s2,
-                 int l1,
-                 int l2,
-                 int in_W,
-                 int in_K) {
-
-  const char *beg2, *beg1, *end1, *q, *s;
-  int right_sum, left_sum, sum, score;
-
-  int MATCH    = globalParams->_match;
-  int MISMATCH = globalParams->_mismatch;
-
-  /* extend to the right */
-  left_sum = sum = 0;
-  q = s1+1+pos1;
-  s = s2+1+pos2;
-  end1 = q;
-  while ((*s != '\0') && (*q != '\0') &&
-         (s<=s2+l2) && (q<=s1+l1) && sum >= left_sum - wordExtensionAllowance) {
-    sum += ((*s++ == *q++) ? MATCH : MISMATCH);
-    if (sum > left_sum) {
-      left_sum = sum;
-      end1 = q;
-    }
-  }
-
-  /* extend to the left */
-  right_sum = sum = 0;
-  beg1 = q = (s1+1+pos1) - in_W;
-  beg2 = s = (s2+1+pos2) - in_W;
-  while ((s>s2+1) && (q>s1+1) && sum >= right_sum - wordExtensionAllowance) {
-    sum += ((*(--s) == *(--q)) ? MATCH : MISMATCH);
-    if (sum > right_sum) {
-      right_sum = sum;
-      beg2 = s;
-      beg1 = q;
-    }
-  }
-
-  //  XXX: new
-  score = in_W + left_sum + right_sum;
-
-  if (score >= in_K)
-    _mspManager.addMSP((int)(end1 - beg1),
-                       (int)(beg1 - (s1 + 1)),
-                       (int)(beg2 - (s2 + 1)),
-                       score);
-
-  return((int)(end1 - s1 - 1 + in_W));
-}
-
-#endif

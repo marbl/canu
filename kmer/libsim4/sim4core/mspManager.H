@@ -28,6 +28,7 @@ public:
 
   void   setParameters(int match, int mismatch, double percenterror, int wordextallow) {
     _match            = match;
+    _mismatch         = mismatch;
     _matchdiff        = match - mismatch;
     _percentError     = percenterror;
     _wordExtAllow     = wordextallow;
@@ -45,15 +46,7 @@ public:
 
   void          setLength(int l)   { _cDNALength = l;      };
 
-
-
-  //  Clear the msp list -- doesn't delete them, just puts them on
-  //  a free list.
-  //
-  void      clear(void) {
-    _numMSPs = 0;
-  };
-
+  void          clear(void);
 
 
   //  add an extended MSP to the list
@@ -93,6 +86,7 @@ private:
   double         _mspLimitPercent;
 
   int            _match;
+  int            _mismatch;
   int            _matchdiff;
   double         _percentError;
   int            _wordExtAllow;
@@ -127,6 +121,11 @@ mspManager::addMSP(int l, int p1, int p2, int sc) {
     delete _allMSPs;
     _allMSPs = n;
   }
+
+#if 0
+  fprintf(stdout, "ADDMSP: p1=%8d p2=%8d l=%8d sc=%8d\n",
+          p1, p2, l, sc);
+#endif
 
   _allMSPs[_numMSPs].len          = l;
   _allMSPs[_numMSPs].pos1         = p1;
