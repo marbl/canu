@@ -92,6 +92,7 @@ merStreamFileBuilder::build(bool beVerbose) {
 
   STREAM->putBits(lastMer, _merSize * 2);
   blockSize = 1;
+  numMers   = 1;
 
   M.nextMer();
 
