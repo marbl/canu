@@ -20,9 +20,9 @@ SOURCE  = localalign/GF_ALN_dpaligner.cc \
 all: localAlignerInterfacemodule.so halignmodule.so
 
 clean:
-	rm -f */*.o *.pyc
+	rm -f */*.o *.so *.pyc
 real-clean:
-	rm -f */*.o *.pyc
+	rm -f */*.o *.so *.pyc
 
 localAlignerInterfacemodule.so:   localalign/GF_ALN_dpaligner.o \
                                   localalign/GF_ALN_local.o \
