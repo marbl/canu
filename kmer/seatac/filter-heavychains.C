@@ -180,6 +180,11 @@ public:
       matchid = SP->print(outF, matchid);
     return(matchid);
   };
+
+  void addStats(TheStats *ST) {
+    for (StrandPair *SP=Proot; SP; SP=SP->next())
+      ST->add(SP);
+  };
 };
 
 
@@ -296,7 +301,12 @@ destructStats(void *handle) {
 
 void
 addStats(void   *handle, void *sp) {
-  ((TheStats *)handle)->add((StrandPair *)sp);
+
+  //  We aren't getting a single StrandPair anymore, we're getting a StrandPairManager now.
+  //
+  //((TheStats *)handle)->add((StrandPair *)sp);
+  //
+  ((StrandPairManager *)sp)->addStats((TheStats *)handle);
 }
 
 void
