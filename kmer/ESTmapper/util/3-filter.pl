@@ -118,7 +118,16 @@ sub filter {
         $scmd = "$sortHits $verbose -m $hitMemory -t $path/2-filter $path/2-filter/filtHits > $path/2-filter/filteredHits";
 
         if      ($type eq "est") {
-            $fcmd = "$filterEST -u 200 -r 200 -q 0.2 -log $path/2-filter/filterLog $path/1-search/*hits | $extrafilter > $path/2-filter/filtHits";
+            #  Original settings, but $filterEST was rewritten to fix
+            #  a bug, and now these settings stink.
+            #
+            #$fcmd = "$filterEST -u 200 -r 200 -q 0.2 -log $path/2-filter/filterLog $path/1-search/*hits | $extrafilter > $path/2-filter/filtHits";
+
+            #  bpw, 20051005, this isn't the perfect filter, but it
+            #  does nearly as good as the best filter I've seen, and
+            #  produces significantly fewer false positives.
+            #
+            $fcmd = "$filterEST -u 200000000000 -r 0 -log $path/2-filter/filterLog $path/1-search/*hits | $extrafilter > $path/2-filter/filtHits";
         } elsif ($type eq "snp") {
             $fcmd = "$filterMRNA $verbose -c $path/2-filter/hitCounts $path/1-search/*hits | $extrafilter > $path/2-filter/filtHits";
         } elsif ($type eq "mrna") {
