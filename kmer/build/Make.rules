@@ -29,6 +29,24 @@ define .FUN-install-copy
 	  done ; \
         fi
 endef
+# because SOME PLATFORMS (like cygwin) use a special .exe extension
+# in executables, we have to do a little hack here.  We assume that
+# Make.compilers has set a variable called .EXE
+define .FUN-install-copy-exe
+	@ files='$$(strip $1)'; dirs='$$(strip $2)'; \
+	if [ -n "$$$${files}" -a -n "$$$${dirs}" ] ; then \
+	  for F in $$$${files} ; do \
+	    if [ -f $$$${F}${.EXE} ] ; then \
+	      for D in $$$${dirs} ; do \
+	        Fout=$${INSTALL/}$$$${D}`basename $$$${F}` ; \
+	        echo ":Copying $$$${F}${.EXE} to $$$${Fout}${.EXE}:" ; \
+	        mkdir -p `dirname $$$${Fout}` && \
+	        rm -f $$$${Fout}${.EXE} && cp -fp $$$${F}${.EXE} $$$${Fout}${.EXE} ; \
+	      done ; \
+	    fi ; \
+	  done ; \
+        fi
+endef
 # use this one for executable scripts with sheband  substitution
 define .FUN-install-copy-script
 	@ files='$$(strip $1)'; dirs='$$(strip $2)'; sheb='$$(strip $3)'; \
@@ -110,7 +128,7 @@ define .RULE-install-copy-C-CXX-EXES
 ${1:.=.install-copy}: ${1:.=.install-copy-C-CXX-EXES}
 ${1:.=.install-copy-C-CXX-EXES}:
 # all exes go to bin
-	$(call .FUN-install-copy,$${${1:.=.C_EXES}} $${${1:.=.CXX_EXES}},bin/)
+	$(call .FUN-install-copy-exe,$${${1:.=.C_EXES}} $${${1:.=.CXX_EXES}},bin/)
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-install-copy-C-CXX-EXES,$x)))

@@ -84,6 +84,13 @@ ifdef WITH_THREADS
   _THR_:=-threaded
 endif
 
+# installing stuff
+# some platforms put an extension on the executables (like cygwin)
+.EXE:=
+ifeq (${_OS_},cygwin)
+  .EXE:=.exe
+endif
+
 # allow additional tag for install directories
 ifdef INSTALL_TAG
   INSTALL/:=${MAKEFILE/}${_OS_}${_CC_}${_OPT_}${_THR_}-${INSTALL_TAG}/
@@ -91,6 +98,7 @@ else
   INSTALL/:=${MAKEFILE/}${_OS_}${_CC_}${_OPT_}${_THR_}/
 endif
 
+# C and CXX dependency programs/flags (don't change!  GNU is great!)
 CCDEP		 :=gcc
 CXXDEP		 :=g++
 CDEPFLAGS        :=-MM -MG
@@ -312,6 +320,11 @@ ifeq (${_OS_}${_CC_},AIX)
   PYINC   :=-I/usr/local/include/python2.2
   PYTHON  :=/usr/local/bin/python
   PYSHEBANG :=${PYTHON} ${PYTHON_FLAGS}
+endif
+ifeq (${_OS_},cygwin)
+  PYINC   :=-I/usr/include/python2.3
+  # PYTHON  :=/usr/bin/python
+  # PYSHEBANG :=${PYTHON} ${PYTHON_FLAGS}
 endif
 
 ## where is perl?
