@@ -15,8 +15,6 @@ public:
     _mersMax = u32bitMASK(_mersWid);
     _mersLen = 0;
     _ptrs[0] = new coord [_mersMax+1];
-
-    //fprintf(stderr, "new merList, _ptrs = %p, _mers = %p\n", _ptrs, _ptrs[0]);
   };
   ~merList() {
     for (u32bit x=0; x<_ptrsLen+1; x++)
@@ -25,7 +23,6 @@ public:
   };
 
   void  addMer(u32bit x, u32bit y) {
-
     if (_mersLen > _mersMax) {
       _ptrsLen++;
 
@@ -74,13 +71,7 @@ public:
       addMer(x, y);
   };
 
-#if 0
-  void  sortByQueryPosition(void);
-  void  sortByGenomicPosition(void);
-  void  sortByDiagonal(void);
-#endif
 private:
-
   struct coord {
     u32bit  _qPos;
     u32bit  _gPos;
