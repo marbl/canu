@@ -129,7 +129,8 @@ readPolish(FILE *F) {
 
   readLine(F, l);
   while(!feof(F) && strcmp(l->s, "sim4begin")) {
-    fprintf(stderr, "sim4reader: Got %d:'%s', expecting 'sim4begin'\n", l->lineNumber, l->s);
+    fprintf(stderr, "sim4reader: Got '%s', expecting 'sim4begin' at line %u\n",
+            l->s, l->lineNumber);
     readLine(F, l);
   }
 
@@ -169,10 +170,8 @@ readPolish(FILE *F) {
              &p->percentIdentity,
              mOri, sOri);
   if (r != 12) {
-    fprintf(stderr, "sim4reader: Got %d:'%s'\n", l->lineNumber, l->s);
+    fprintf(stderr, "sim4reader: line %u: '%s'\n", l->lineNumber, l->s);
     fprintf(stderr, "sim4reader: Expecting description line, found %d tokens instead of 12.\n", r);
-    fprintf(stderr, "sim4reader: mOri='%s'\n", mOri);
-    fprintf(stderr, "sim4reader: sOri='%s'\n", sOri);
   }
 
   switch (mOri[0]) {
@@ -188,8 +187,8 @@ readPolish(FILE *F) {
       p->matchOrientation = MATCH_COMPLEMENT;
       break;
     default:
-      fprintf(stderr, "sim4reader: Got %d:'%s'\n", l->lineNumber, l->s);
-      fprintf(stderr, "sim4reader: Unknown match orientation.\n");
+      fprintf(stderr, "sim4reader: line %u: '%s'\n", l->lineNumber, l->s);
+      fprintf(stderr, "sim4reader: unknown match orientation\n");
       break;
   }
 
@@ -210,8 +209,8 @@ readPolish(FILE *F) {
       p->strandOrientation = STRAND_FAILED;
       break;
     default:
-      fprintf(stderr, "sim4reader: Got %d:'%s'\n", l->lineNumber, l->s);
-      fprintf(stderr, "sim4reader: Unknown strand orientation.\n");
+      fprintf(stderr, "sim4reader: line %u: '%s'\n", l->lineNumber, l->s);
+      fprintf(stderr, "sim4reader: unknown strand orientation\n");
       break;
   }
 
@@ -229,8 +228,6 @@ readPolish(FILE *F) {
     }
     strcpy(p->comment, l->s + 8);
 
-    //fprintf(stdout, "sim4reader: Got comment='%s'\n", p->comment);
-
     readLine(F, l);
   }
 
@@ -244,8 +241,6 @@ readPolish(FILE *F) {
     }
     strcpy(p->estDefLine, l->s + 5);
 
-    //fprintf(stdout, "sim4reader: Got edef='%s'\n", p->estDefLine);
-
     readLine(F, l);
   }
 
@@ -258,8 +253,6 @@ readPolish(FILE *F) {
       exit(1);
     }
     strcpy(p->genDefLine, l->s + 5);
-
-    //fprintf(stdout, "sim4reader: Got ddef='%s'\n", p->genDefLine);
 
     readLine(F, l);
   }

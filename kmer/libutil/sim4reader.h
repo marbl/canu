@@ -26,10 +26,10 @@ extern "C" {
 //  Utility for reading a whole line, safely, from a file.
 //
 typedef struct {
-  int   l;
-  int   a;
-  char *s;
-  int   lineNumber;
+  unsigned int   l;
+  unsigned int   a;
+  char          *s;
+  unsigned int   lineNumber;
 } _line;
 
 _line  *newLine(void);
