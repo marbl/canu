@@ -105,6 +105,35 @@ s4p_IsSameRegion(sim4polish *A, sim4polish *B, int tolerance) {
 
 
 
+//  Returns true if the two polishes overlap genomic regions
+//
+int
+s4p_IsRegionOverlap(sim4polish *A, sim4polish *B) {
+  int Alo=0, Ahi=0;
+  int Blo=0, Bhi=0;
+  int Dlo=0, Dhi=0;
+
+  if (A->genID != B->genID)
+    return(0);
+
+  if (A->numExons > 0) {
+    Alo = A->genLo + A->exons[0].genFrom;
+    Ahi = A->genLo + A->exons[A->numExons-1].genTo;
+  }
+
+  if (B->numExons > 0) {
+    Blo = B->genLo + B->exons[0].genFrom;
+    Bhi = B->genLo + B->exons[B->numExons-1].genTo;
+  }
+
+  if (((Alo <= Blo) && (Blo <= Ahi)) ||
+      ((Blo <= Alo) && (Alo <= Bhi)))
+    return(1);
+  return(0);
+}
+
+
+
 //  Returns true if the two polishes have the same number of exons,
 //  and each exon is mapped to about the same genomic region.
 //
