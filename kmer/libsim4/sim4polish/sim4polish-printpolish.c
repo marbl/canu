@@ -12,7 +12,9 @@ s4p_printPolish(FILE *O, sim4polish *o, u32bit flags) {
 
   //  If there are flags, modify the polish before printing.
   //
-  if (flags != S4P_PRINTPOLISH_FULL) {
+  if (flags & (S4P_PRINTPOLISH_NORMALIZED |
+               S4P_PRINTPOLISH_NOALIGNS |
+               S4P_PRINTPOLISH_NODEFS)) {
 
     //  If the NOTVALUABLE flag is given, we modify the input polish.  Otherwise,
     //  we should copy the input polish to a temporary, and modify that.

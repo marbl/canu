@@ -109,6 +109,10 @@ int           s4p_makeReverse(sim4polish *p);
 
 #define S4P_PRINTPOLISH_MINIMAL     (S4P_PRINTPOLISH_NOALIGNS | S4P_PRINTPOLISH_NODEFS)
 
+//  The polish is not valuable, and the print routine is allowed to
+//  modify it.  If this is not set, and you use NORMALIZED, NOALIGNS
+//  or NODEFS, a copy of the polish is made at some non-zero expense.
+//
 #define S4P_PRINTPOLISH_NOTVALUABLE  0x8000
 
 void           s4p_printPolish(FILE *O, sim4polish *p, u32bit flags);
