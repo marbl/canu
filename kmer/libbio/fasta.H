@@ -10,10 +10,8 @@
 #ifndef FILE_WRAPPER_H
 #define FILE_WRAPPER_H
 
-//  If we don't have RASCAL, we need to define IID_t
-//
 typedef u32bit IID_t;
-typedef u32bit SeqOff_t;
+typedef u64bit SeqOff_t;
 
 class FileWrapper {
 public:
