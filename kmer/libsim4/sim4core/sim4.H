@@ -295,6 +295,23 @@ private:
   void bld_table(char *,int,int,int) {}
 #endif
 
+  int SIM4_block1(Exon*  &Lblock,
+                  Exon*  &tmp_block,
+                  Exon*  &tmp_block1);
+  int SIM4_block2(Exon*   &tmp_Lblock,
+                  Exon*   &tmp_Rblock,
+                  Exon*   &tmp_block,
+                  Exon*   &tmp_block1);
+  int SIM4_block3(bool     good_match,
+                  Exon*   &tmp_Lblock,
+                  Exon*   &tmp_Rblock,
+                  Exon*   &tmp_block,
+                  Exon*   &tmp_block1);
+  int SIM4_block4(bool     good_match,
+                  Exon*   &tmp_Lblock,
+                  Exon*   &tmp_Rblock,
+                  Exon*   &tmp_block,
+                  Exon*   &tmp_block1);
 
   struct edit_script_list *SIM4(char*,char*,int,int,int*,Exon**,
                                 int *pA,
@@ -393,11 +410,17 @@ private:
 
     p = malloc(amount);
 
+#ifdef TRUE64BIT
+    fprintf(stderr, "Allocate %lu bytes -- %p.\n", amount, p);
+#else
+    fprintf(stderr, "Allocate %u bytes -- %p.\n", amount, p);
+#endif
+
     if (p == NULL) {
 #ifdef TRUE64BIT
-      fprintf(stderr, "XCan't allocate %lu bytes.\n", amount);
+      fprintf(stderr, "Can't allocate %lu bytes.\n", amount);
 #else
-      fprintf(stderr, "YCan't allocate %u bytes.\n", amount);
+      fprintf(stderr, "Can't allocate %u bytes.\n", amount);
 #endif
       kill(getpid(), SIGKILL);
     }
