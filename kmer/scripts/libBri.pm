@@ -134,6 +134,7 @@ sub readPolish (*) {
     $p{'numMatches'} = undef;
     $p{'numMatchesN'} = undef;
     $p{'percentID'} = undef;
+    $p{'coveragebp'} = undef;
     $p{'coverage'} = undef;
     $p{'matchOrientation'} = undef;
     $p{'strandPrediction'} = undef;
@@ -262,7 +263,8 @@ sub readPolish (*) {
     if (($p{'pA'} + $p{'pT'}) >= $p{'estLen'}) {
         $p{'coverage'} = 0;
     } else {
-        $p{'coverage'} = 100.0 * $exonCoverage / ($p{'estLen'} - $p{'pA'} - $p{'pT'});
+        $p{'coveragebp'} = $exonCoverage;
+        $p{'coverage'}   = 100.0 * $exonCoverage / ($p{'estLen'} - $p{'pA'} - $p{'pT'});
     }
 
     $p{'raw'} = $save;
