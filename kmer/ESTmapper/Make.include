@@ -8,7 +8,8 @@ SIM4READER/ :=$(call MakePath,$/../sim4reader/)
 CP=cp -p
 RM=rm -f
 
-EXECS =   $/leaff \
+EXECS =   $/libBri.pm \
+          $/leaff \
           $/sim4db \
           $/searchGENOME \
           $/filterEST \
@@ -37,6 +38,11 @@ $/.REAL-CLEAN := mergeCounts ${EXECS}
 
 
 all:  mergeCounts ${EXECS}
+
+$/libBri.pm: ../scripts/libBri.pm
+	$(RM) $/libBri.pm
+	$(CP) ../scripts/libBri.pm $/libBri.pm
+	chmod 444 $/libBri.pm
 
 $/leaff: ${FASTA/}leaff
 	$(RM) $/leaff
