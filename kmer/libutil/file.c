@@ -135,16 +135,14 @@ unmapFile(void *addr, size_t length) {
 #ifdef MAIN
 int
 main(int argc, char **argv) {
-
   size_t   lw;
   char    *ww = mapFile("mmap.c.test", &lw, 'w');
+  int      a;
 
-  for (int a=0; a<256; a++)
+  for (a=0; a<256; a++)
     ww[a] = a;
 
   unmapFile(ww, lw);
-
-  //
 
   ww = mapFile("mmap.c.test", &lw, 'r');
 
