@@ -297,7 +297,7 @@ main(int argc, char **argv) {
 
       outputPos++;
     } else {
-      struct timespec outputSleep = { 0, 50000000 };
+      struct timespec outputSleep = { 1, 0 };
       nanosleep(&outputSleep, 0L);
     }
   }
