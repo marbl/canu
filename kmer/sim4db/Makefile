@@ -12,6 +12,9 @@ EFENCE  =
 
 all:  $(PROG)
 
+#sim4dbg: buildinfo-sim4db.o $(OBJS)
+#	$(CC) $(CCOPTS) -o sim4dbg buildinfo-sim4db.o $(OBJS) $(LIBS) $(EFENCE)
+
 sim4db: buildinfo-sim4db.o $(OBJS)
 	$(CC) $(CCOPTS) -o sim4db buildinfo-sim4db.o $(OBJS) $(LIBS) $(EFENCE)
 
