@@ -69,8 +69,8 @@ readBuffer::fillBuffer(void) {
   errno = 0;
   _bufferLen = (u32bit)::read(_file, _buffer, _bufferMax * sizeof(char));
   if (errno) {
-    fprintf(stderr, "readBuffer()-- couldn't read "s64bitFMT" bytes from '%s'\n%s\n",
-            _bufferMax * sizeof(char), _filename, strerror(errno));
+    fprintf(stderr, "readBuffer()-- couldn't read %d bytes from '%s'\n%s\n",
+            (int)(_bufferMax * sizeof(char)), _filename, strerror(errno));
     exit(1);
   }
   if (_bufferLen == 0)
@@ -225,7 +225,7 @@ readBuffer::seek(off_t pos) {
       errno = 0;
       lseek(_file, pos, SEEK_SET);
       if (errno) {
-        fprintf(stderr, "readBuffer()-- '%s' couldn't seek to position %d.\n%s\n",
+        fprintf(stderr, "readBuffer()-- '%s' couldn't seek to position "s64bitFMT".\n%s\n",
                 _filename, pos, strerror(errno));
         exit(1);
       }
