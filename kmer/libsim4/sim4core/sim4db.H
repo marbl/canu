@@ -10,7 +10,8 @@
 #include <fcntl.h>
 
 #include "libbri.H"
-#include "buildnumber.H"
+#include "buildinfo-sim4.h"
+#include "buildinfo-libbri.h"
 
 #if 0
 class sim4dbTiming {
@@ -184,11 +185,9 @@ public:
     fprintf(stderr, "       -Mp           same, as percentage of bases in cDNA\n");
     fprintf(stderr, "       -W            ?\n");
     fprintf(stderr, "       -X            ?\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "This is sim4dbseq, built on %s %s (build number %d)\n", __DATE__, __TIME__, buildNumber());
-    fprintf(stderr, "\n");
 #ifdef INTERSPECIES
 #warn INTERSPECIES MODE ENABLED IN sim4db.H
+    fprintf(stderr, "\n");
     fprintf(stderr, "!!! NOTE !!!  This is a modified version tuned for interspecies comparisons\n");
     fprintf(stderr, "Direct questions to liliana.florea@celera.com, brian.walenz@celera.com\n");
     fprintf(stderr, "\n");
@@ -200,6 +199,11 @@ public:
 
     while (arg < argc) {
       switch (argv[arg][1]) {
+      case '-':  //  Ick!  --buildinfo!
+        buildinfo_sim4(stderr);
+        buildinfo_libbri(stderr);
+        exit(1);
+        break;
       case 'a':
         if (strncmp(argv[arg], "-ali", 4) == 0) {
           _printAlignments = true;

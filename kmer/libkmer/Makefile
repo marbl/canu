@@ -2,11 +2,17 @@ PROG    =
 INCLUDE = -I../libbri
 LIBS    = -L../libbri -lbri
 
-OBJS     = positionDB.o positionDB-sort.o positionDB-access.o positionDB-dump.o
+SRCS     = positionDB.C positionDB-access.C positionDB-dump.C positionDB-sort.C positionDB.H
+OBJS     = positionDB.o positionDB-access.o positionDB-dump.o positionDB-sort.o
 
-all: $(OBJS)
+all: buildinfo-positionDB.o $(OBJS)
+	rm -f libpositionDB.a
+	ar ruv libpositionDB.a buildinfo-positionDB.o $(OBJS)
+
+buildinfo-positionDB.c: $(SRCS)
+	../util/buildinfo.pl positionDB "$(CCOPTS)" $(SRCS)
 
 clean:
-	rm -f *.o $(PROG)
+	rm -f *.o $(PROG) buildinfo-positionDB.*
 
 include ../Makefile-configuration

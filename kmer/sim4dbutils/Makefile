@@ -7,6 +7,7 @@ LIBS    = -L../libbri -lbri -lm
 OBJS    =
 
 EFENCE  = -L/dev2/adelcher/EFence -lefence
+EFENCE  = -L/home/walenzbp/projects/EF -lefence
 EFENCE  = 
 
 all: $(PROG)
