@@ -140,6 +140,7 @@ s4p_IsSameExonModel(sim4polish *A, sim4polish *B, int tolerance) {
 void
 s4p_compareExons_Overlap(sim4polish *A,
                          sim4polish *B,
+                         double      overlapThreshold,
                          u32bit     *numSame,
                          u32bit     *numAMissed,
                          u32bit     *numBMissed) {
@@ -147,6 +148,7 @@ s4p_compareExons_Overlap(sim4polish *A,
   u32bit    al=0, ah=0, bl=0, bh=0;
   u32bit   *foundA = 0L;
   u32bit   *foundB = 0L;
+  double    overlap = 0;
 
   if (numSame)     *numSame    = 0;
   if (numAMissed)  *numAMissed = 0;
@@ -177,8 +179,54 @@ s4p_compareExons_Overlap(sim4polish *A,
       bl = B->genLo + B->exons[j].genFrom;
       bh = B->genLo + B->exons[j].genTo;
 
-      if (((al <= bl) && (bl <= ah)) ||
-          ((bl <= al) && (al <= bh))) {
+      overlap = 0;
+
+      //  Compute the percent overlapping as:
+      //
+      //     ----------
+      //            ----------
+      //            ^^^ = 3
+      //     ^^^^^^^^^^^^^^^^^ = 17
+      //
+      //  overlap = 3/17
+      //
+
+      if ((al <= bl) && (bl <= ah)) {
+        //  B starts somewhere in A
+        //
+        if (ah < bh) {
+          //  B ends outside A
+          //
+          //  aaaaaaaaaaa
+          //     bbbbbbbbbbbbb
+          overlap = (double)(ah-bl) / (double)(bh-al);
+        } else {
+          //  B ends inside A
+          //
+          //  aaaaaaaaaaa
+          //     bbbbb
+          overlap = (double)(bh-bl) / (double)(ah-al);
+        }
+      }
+      if ((bl <= al) && (al <= bh)) {
+        //  B ends somewhere in A
+        //
+        if (bh < ah) {
+          //  B starts outside A
+          //
+          //       aaaaaaaaaaa
+          //  bbbbbbbbbbbbb
+          overlap = (double)(bh-al) / (double)(ah-bl);
+        } else {
+          //  B starts inside A
+          //
+          //       aaaa
+          //  bbbbbbbbbbbbb
+          overlap = (double)(ah-al) / (double)(bh-bl);
+        }
+      }
+
+      if (overlap >= overlapThreshold) {
         foundA[i]++;
         foundB[j]++;
 
@@ -186,6 +234,7 @@ s4p_compareExons_Overlap(sim4polish *A,
           (*numSame)++;
       }
     }
+
   }
 
   for (i=0; i<A->numExons; i++) {

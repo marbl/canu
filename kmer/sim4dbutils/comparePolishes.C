@@ -152,7 +152,7 @@ compareESTmapperDirectories(int argc, char **argv) {
       //
       u32bit  f, m, e;
 
-      s4p_compareExons_Overlap(A[i], B[j], &f, &m, &e);
+      s4p_compareExons_Overlap(A[i], B[j], 1e-10, &f, &m, &e);
 
       //  Check that we've not already found a best??
 
@@ -293,7 +293,9 @@ comparePolishFiles(int argc, char **argv) {
           (A[thisA]->matchOrientation == B[thisB]->matchOrientation)) {
         u32bit  f, a, b;
 
-        s4p_compareExons_Ends(A[thisA], B[thisB], 15, &f, &a, &b);
+        //s4p_compareExons_Ends(A[thisA], B[thisB], 15, &f, &a, &b);
+        s4p_compareExons_Overlap(A[thisA], B[thisB], 0.75, &f, &a, &b);
+
 
         //fprintf(stderr, "A=%d B=%d  f=%d a=%d b=%d\n", thisA, thisB, f, a, b);
 

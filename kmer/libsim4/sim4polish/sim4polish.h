@@ -139,6 +139,7 @@ int            s4p_IsSameRegion(sim4polish *A, sim4polish *B, int tolerance);
 int            s4p_IsSameExonModel(sim4polish *A, sim4polish *B, int tolerance);
 void           s4p_compareExons_Overlap(sim4polish *A,
                                         sim4polish *B,
+                                        double      overlapThreshold,
                                         u32bit     *numSame,
                                         u32bit     *numAOnly,
                                         u32bit     *numBOnly);
