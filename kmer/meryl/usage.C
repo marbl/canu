@@ -96,7 +96,6 @@ const char *usage =
 "\n"
 "-D:  Dump the table (not all of these work).\n"
 "\n"
-"     -Dd        Raw dump.\n"
 "     -Dt        Dump mers >= a threshold.  Use -n to specify the threshold.\n"
 "     -Dc        Count the number of mers, distinct mers and unique mers.\n"
 "     -Dp        Plot the distance between mers.\n"

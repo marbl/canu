@@ -209,7 +209,6 @@ main(int argc, char **argv) {
         case 'D':
           switch (argv[arg][2]) {
             case 'c':
-            case 'd':
             case 'p':
             case 't':
             case 'h':
@@ -237,9 +236,6 @@ main(int argc, char **argv) {
            includeDefLine, includeMer, doForward, doReverse, doCanonical,
            outputCount, outputAll, outputPosition, beVerbose);
       break;
-    case 'd':
-      dump(inputFile);
-      break;
     case 't':
       dumpThreshold(inputFile, (u32bit)estimatedNumMers);
       break;
@@ -250,22 +246,8 @@ main(int argc, char **argv) {
       plotDistanceBetweenMers(inputFile);
       break;
     case 'h':
-      plotHistogram(inputFile, outputFile);
+      plotHistogram(inputFile);
       break;
-#if 0
-    case '2':
-      //  Reads two counted files, reports statistics on the
-      //  shared / unshared mers
-      //
-      dumpStatsOnTwoFiles(mergeFiles, mergeFilesLen);
-      break;
-    case 'u':
-      //  Reads two counted files, generates a single list of
-      //  the mers that are shared n times, lowCount <= n <= highCount.
-      //
-      dumpShared(mergeFiles, mergeFilesLen, lowCount, highCount);
-      break;
-#endif
 
     case PERSONALITY_MIN:
     case PERSONALITY_MINEXIST:

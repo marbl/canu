@@ -89,22 +89,3 @@ mcBucket::scan(mcMer *mer) {
     }
   }
 }
-
-
-void
-mcBucket::dump(FILE *F) {
-  u64bit  mer;
-
-  //  The first bucket is read already
-
-  for (u32bit i=0; i<_items; i++) {
-    mer = _bucketID << _chckBits | _checks[i];
-#ifdef TRUE64BIT
-    fprintf(F, "0x%016lx %lu\n", mer, _counts[i]);
-#else
-    fprintf(F, "0x%016llx %llu\n", mer, _counts[i]);
-#endif
-  }
-
-  readBucket();
-}

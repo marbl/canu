@@ -1,5 +1,9 @@
 # -*- makefile -*-
 
+ifndef UTIL/
+UTIL/ := $/../util/
+endif
+
 ifndef LIBBRI/
 LIBBRI/     := $/../libbri/
 endif
@@ -10,11 +14,16 @@ src     := $/binaryOp.C $/build.C $/checkDescr.C $/dump.C $/estimate.C \
            $/outputMer.C $/outputMer.H $/scan.C $/unaryOp.C $/usage.C
 src_C   := $(filter %.C,${src})
 
-$/.CXX_SRCS := ${src_C} $/merle.C
-$/.CXX_EXES := $/meryl $/merle
+$/.CXX_SRCS   := ${src_C} $/merle.C
+$/.CXX_EXES   := $/meryl $/merle
+$/.CXX_LIBS   := $/libmeryl.a
+$/.CLEAN      := $/*.o
+$/.REAL-CLEAN := $/buildinfo-*
 
-$/.CLEAN     :=$/*.o
-$/.REAL-CLEAN:=$/buildinfo-*
+$/libmeryl.a    : $/libmeryl.o
+$/merle         : $/buildinfo-merle.o $/merle.o
+$/meryl         : ${src_C:.C=.o} $/buildinfo-meryl.o $/libmeryl.a
+$/meryl $/merle : ${LIBBRI/}libbri.a
 
 $/%.d $/%.o:  CXXFLAGS+=-I${LIBBRI/}
 
@@ -22,19 +31,15 @@ $/%.d:  ${LIBBRI/}buildinfo-libbri.h ${LIBBRI/}alphabet.h
 $/meryl.C.d: $/buildinfo-meryl.h ${LIBBRI/}buildinfo-libbri.h
 $/merle.C.d: $/buildinfo-merle.h ${LIBBRI/}buildinfo-libbri.h
 
-$/merle: $/buildinfo-merle.o $/merle.o
-$/meryl: ${src_C:.C=.o} $/buildinfo-meryl.o
-$/meryl $/merle: ${LIBBRI/}libbri.a
-
 $/buildinfo-meryl.c: $/buildinfo-meryl.h
 $/buildinfo-meryl.h: ${src}
 	${UTIL/}buildinfo.pl meryl "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
-	mv buildinfo-meryl.[ch] `dirname $@`
+	[ `dirname $@` = "." ] || mv buildinfo-meryl.[ch] `dirname $@`
 
 $/buildinfo-merle.c: $/buildinfo-merle.h
 $/buildinfo-merle.h: $/merle.C
 	${UTIL/}buildinfo.pl merle "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
-	mv buildinfo-merle.[ch] `dirname $@`
+	[ `dirname $@` = "." ] || mv buildinfo-merle.[ch] `dirname $@`
 
 
 

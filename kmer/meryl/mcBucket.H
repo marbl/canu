@@ -80,7 +80,6 @@ public:
 
   void     read(mcMer *mer);
   void     scan(mcMer *mer);
-  void     dump(FILE *F);
 
   u64bit   bitsRead(void) {
     return(_bitsRead);

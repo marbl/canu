@@ -92,20 +92,7 @@ void dump(char *inputFile);
 void dumpThreshold(char *inputFile, u32bit threshold);
 void countUnique(char *inputFile);
 void plotDistanceBetweenMers(char *inputFile);
-void plotHistogram(char *inputFile, char *outputFile);
-
-#if 0
-//  These are incompletely implemented.
-//
-void dumpStatsOnTwoFiles(char   **mergeFiles,
-                         u32bit   mergeFilesLen);
-
-void dumpShared(char   **mergeFiles,
-                u32bit   mergeFilesLen,
-                u32bit   lowCount,
-                u32bit   highCount);
-#endif
-
+void plotHistogram(char *inputFile);
 
 
 
