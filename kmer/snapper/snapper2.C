@@ -282,8 +282,6 @@ main(int argc, char **argv) {
     onlyDB = new existDB(config._onlyPrefix, config._merSize, 19, 0, config._onlyThreshold);
   }
 
-  buildPositionDB();
-
   //
   //  Open and init the genomic sequences.
   //
@@ -293,6 +291,8 @@ main(int argc, char **argv) {
   cache = new FastACache(config._dbFileName, 0, true);
 
   config._initTime = getTime();
+
+  buildPositionDB();
 
   config._buildTime = getTime();
 
