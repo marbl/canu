@@ -14,6 +14,8 @@
 //  The longest of the overlapping matches is saved.
 
 
+//#define DEBUGOUT
+
 
 //  Build an interval list with all exons (from both guys), merge
 //  overlapping regions, compute the length, subtract from the
@@ -32,13 +34,13 @@ findOverlap(sim4polish *A, sim4polish *B) {
   for (u32bit i=0; i<A->numExons; i++) {
     length = A->exons[i].genTo - A->exons[i].genFrom + 1;
     total  += length;
-    IL.add(A->genLo + A->exons[i].genTo, length);
+    IL.add(A->genLo + A->exons[i].genFrom, length);
   }
 
   for (u32bit i=0; i<B->numExons; i++) {
     length = B->exons[i].genTo - B->exons[i].genFrom + 1;
     total  += length;
-    IL.add(B->genLo + B->exons[i].genTo, length);
+    IL.add(B->genLo + B->exons[i].genFrom, length);
   }
 
   IL.merge();
@@ -47,8 +49,14 @@ findOverlap(sim4polish *A, sim4polish *B) {
 }
 
 
-void
-comparePolishFiles(int argc, char **argv) {
+u32bit
+findLength(sim4polish *A) {
+  u32bit        length = 0;
+
+  for (u32bit i=0; i<A->numExons; i++)
+    length += A->exons[i].genTo - A->exons[i].genFrom + 1;
+
+  return(length);
 }
 
 
@@ -61,8 +69,9 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  u32bit  ESTaffected    = 0;
-  u32bit  matchesRemoved = 0;
+  u32bit  matchesWithNoOverlap       = 0;
+  u32bit  matchesWithOverlap         = 0;
+  u32bit  notPerfectClique           = 0;
 
   //  Open a polishFile and force the index to build
   //
@@ -77,7 +86,6 @@ main(int argc, char **argv) {
     sim4polishList *A = Afile->getEST(iid);
 
     if (A->length() > 0) {
-      bool affected = false;
 
       //  fill out the overlap matrix
 
@@ -88,30 +96,173 @@ main(int argc, char **argv) {
 
       for (u32bit a=0; a<A->length(); a++)
         for (u32bit b=0; b<A->length(); b++)
-          overlap[a][b] = findOverlap((*A)[a], (*A)[b]);
+          if (a == b)
+            overlap[a][b] = 0;
+          else
+            overlap[a][b] = findOverlap((*A)[a], (*A)[b]);
 
-      //  For each match, find the ones that overlap.
+      //  look for guys with no overlaps, print and remove them
+
+      sim4polishList *W = new sim4polishList;
 
       for (u32bit a=0; a<A->length(); a++) {
-        u32bit longest = 0;
+        bool nooverlaps = true;
 
-        for (u32bit b=0; b<A->length(); b++) {
-          if (overlap[a][longest] < overlap[a][b])
-            longest = b;
-        }
+        for (u32bit b=0; b<A->length(); b++)
+          if (overlap[a][b])
+            nooverlaps = false;
 
-        //  Emit the match if we are the longest.
+        if (nooverlaps) {
+          matchesWithNoOverlap++;
 
-        if (a == longest)
           s4p_printPolish(stdout, (*A)[a], 0);
-        else {
-          affected = true;
-          matchesRemoved++;
+        } else {
+          matchesWithOverlap++;
+          W->push(s4p_copyPolish((*A)[a]));
         }
       }
 
-      if (affected)
-        ESTaffected++;
+
+#if 1
+      fprintf(stderr, "IID="u32bitFMTW(8)" -- overlap:"u32bitFMT" noOverlap:"u32bitFMT"\r",
+              iid, matchesWithOverlap, matchesWithNoOverlap);
+      fflush(stderr);
+#endif
+
+
+      //  A is junk, W contains the matches that overlap.
+
+      delete A;
+      A = 0L;
+
+
+      //  Report all the overlaps
+
+#ifdef DEBUGOUT
+      for (u32bit a=0; a<W->length(); a++) {
+        sim4polish *p = (*W)[a];
+        fprintf(stderr, u32bitFMTW(3)": "u32bitFMTW(3)"--"u32bitFMTW(3)"\n",
+                iid, p->exons[0].genFrom, p->exons[p->numExons-1].genTo);
+      }
+#endif
+
+
+
+      //  while we have matches in the set of overlapping matches,
+      //  find a connected component, check that it is/is not a
+      //  clique, and decide which match to keep.
+
+      u32bit  *clique      = new u32bit [W->length()];
+      u32bit   cliqueSize  = 0;
+      bool     inserted    = false;
+      u32bit   *length     = new u32bit [W->length()];
+
+      while (W->length() > 0) {
+
+#ifdef DEBUGOUT
+        fprintf(stderr, "IID="u32bitFMTW(8)" -- examine "u32bitFMT" matches\n",
+                iid, W->length());
+#endif
+
+        //  Find the length of all the matches in this set
+
+        for (u32bit a=0; a<W->length(); a++)
+          length[a] = findLength((*W)[a]);
+
+        //  reconstruct the overlap matrix -- hey, if you want to be
+        //  efficient and recover this from the existing one, nobody is
+        //  stopping you.
+        
+        for (u32bit a=0; a<W->length(); a++)
+          for (u32bit b=0; b<W->length(); b++)
+            if (a == b)
+              overlap[a][b] = 0;
+            else
+              overlap[a][b] = findOverlap((*W)[a], (*W)[b]);
+
+        //  OK, now find the clique/connected component
+
+        for (u32bit i=0; i<W->length(); i++)
+          clique[i] = 0;
+
+        clique[0]   = 1;
+        cliqueSize  = 1;
+        inserted    = true;
+
+        while (inserted) {
+          inserted = false;
+
+          //  If a is in the clique, add all it's overlaps
+
+          for (u32bit a=0; a<W->length(); a++) {
+            if (clique[a]) {
+              for (u32bit b=0; b<W->length(); b++) {
+                if ((overlap[a][b]) && (!clique[b])) {
+                  clique[b] = 1;
+                  cliqueSize++;
+                  inserted  = true;
+                }
+              }
+            }
+          }
+        }
+
+#ifdef DEBUGOUT
+        fprintf(stderr, "IID="u32bitFMTW(8)" -- examine "u32bitFMT" matches, found "u32bitFMT" overlapping\n",
+                iid, W->length(), cliqueSize);
+#endif
+
+        //  Check that it is a clique
+
+        if (cliqueSize > 2) {
+
+          u32bit num = 0;
+
+          for (u32bit a=0; a<W->length(); a++)
+            for (u32bit b=0; b<W->length(); b++)
+              if (clique[a] && clique[b] && overlap[a][b])
+                num++;
+
+          if (num != cliqueSize * (cliqueSize-1)) {
+            notPerfectClique++;
+
+            fprintf(stderr, "\nNOT A PERFECT CLIQUE!  Found "u32bitFMT" overlaps, wanted "u32bitFMT" in the clique.\n",
+                    num, cliqueSize * (cliqueSize-1));
+
+            for (u32bit a=0; a<W->length(); a++)
+              if (clique[a])
+                s4p_printPolish(stderr, (*W)[a], S4P_PRINTPOLISH_MINIMAL);
+          }
+          
+        }
+
+        //  Find the longest member, output it
+
+        u32bit longest = 0;
+        while (clique[longest] == 0)
+          longest++;
+
+        for (u32bit i=0; i<W->length(); i++)
+          if ((clique[i]) && (length[longest] < length[i]))
+            longest = i;
+
+        s4p_printPolish(stdout, (*W)[longest], 0);
+
+        //  Remove the clique from the set of overlaps
+
+        A = new sim4polishList;
+        for (u32bit i=0; i<W->length(); i++) {
+          if (clique[i] == 0)
+            A->push(s4p_copyPolish( (*W)[i] ));
+        }
+
+        delete W;
+        W = A;
+        A = 0L;
+      }
+
+      delete [] clique;
+      delete    W;
 
       delete [] overlap[0];
       delete [] overlap;
@@ -120,7 +271,9 @@ main(int argc, char **argv) {
     delete A;
   }
 
-  fprintf(stderr, "Removed "u32bitFMT" matches, affecting "u32bitFMT" ESTs\n", matchesRemoved, ESTaffected);
+  fprintf(stderr, "\nmatches withOvl:"u32bitFMT" withoutOvl:"u32bitFMT"\n",
+          matchesWithOverlap, matchesWithNoOverlap);
+  fprintf(stderr, "not perfect clique:"u32bitFMT"\n", notPerfectClique);
 
   delete Afile;
 }
