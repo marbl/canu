@@ -26,7 +26,6 @@ main(int argc, char **argv) {
     fgetc(F), C->tick();
   delete C;
   fclose(F);
-  fprintf(stderr, "\n");
 
   S = new FastAstream(argv[1]);
   C = new speedCounter("FastAstream:   %7.2f Mthings -- %5.2f Mthings/second\r", 1000000.0, 0x3fffff, true);
@@ -34,7 +33,6 @@ main(int argc, char **argv) {
     C->tick();
   delete C;
   delete S;
-  fprintf(stderr, "\n");
 
   M = new merStream(20, argv[1]);
   C = new speedCounter("merStream:     %7.2f Mthings -- %5.2f Mthings/second\r", 1000000.0, 0x3fffff, true);
@@ -42,7 +40,6 @@ main(int argc, char **argv) {
     C->tick();
   delete C;
   delete M;
-  fprintf(stderr, "\n");
 
   msfB = new merStreamFileBuilder(20, argv[1], "merStreamFileTest");
   msfB->build(true);
@@ -54,8 +51,6 @@ main(int argc, char **argv) {
     C->tick();
   delete C;
   delete msfR;
-  fprintf(stderr, "\n");
-  
 
   exit(0);
 }

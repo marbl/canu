@@ -39,21 +39,21 @@ test-md5: test-md5.c ../libbri.a ../bri.h ../bri++.H
 	$(CC) $(CLDFLAGS) -o test-md5 test-md5.o $(LIBS)
 	./test-md5
 
-test-merstream: test-merstream.C ../libbri.a ../bri.h ../bri++.H
+test-merstream: test-merstream.C ../libbri.a ../bri.h ../bri++.H ../../fasta/leaff
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-merstream.o test-merstream.C $(INCLUDE)
 	$(CXX) $(CXXLDFLAGS) -o test-merstream test-merstream.o $(LIBS)
-	../../fasta/leaff -G 100 1000 10000 > x.fasta
+	../../fasta/leaff -G 1000 10000 30000 > x.fasta
 	./test-merstream x.fasta
 	rm x.fasta
 
-test-merstreamfile: test-merstreamfile.C ../libbri.a ../bri.h ../bri++.H
+test-merstreamfile: test-merstreamfile.C ../libbri.a ../bri.h ../bri++.H ../../fasta/leaff
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-merstreamfile.o test-merstreamfile.C $(INCLUDE)
 	$(CXX) $(CXXLDFLAGS) -o test-merstreamfile test-merstreamfile.o $(LIBS)
 	../../fasta/leaff -G 1000 5000 10000 > x.fasta
 	./test-merstreamfile x.fasta
 	rm x.fasta
 
-test-merstream-speed: test-merstream-speed.C ../libbri.a ../bri.h ../bri++.H
+test-merstream-speed: test-merstream-speed.C ../libbri.a ../bri.h ../bri++.H ../../fasta/leaff
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-merstream-speed.o test-merstream-speed.C $(INCLUDE)
 	$(CXX) $(CXXLDFLAGS) -o test-merstream-speed test-merstream-speed.o $(LIBS)
 	../../fasta/leaff -G 10000 1000 10000 > x.fasta
@@ -82,4 +82,4 @@ test-types: test-types.c ../libbri.a ../bri.h ../bri++.H
 	./test-types
 
 clean:
-	rm -f $(PROG) *.o x.fasta bittest.junk merStreamFileTest* mmap.test.junk
+	rm -f $(PROG) *.o x.fasta bittest.junk merStreamFileTest* test-merstream.merstreamfile.junk.merStream mmap.test.junk
