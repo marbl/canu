@@ -18,6 +18,9 @@
  * $Name$
  */
 
+#define NDEBUG
+
+#include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
 #include <assert.h>
@@ -398,22 +401,22 @@ int dict_verify(dict_t *dict)
 
     /* check that the sentinel node and root node are black */
     if (root->color != dnode_black)
-	return 0;
+      return(0 * fprintf(stderr, "dict_verify()-- Root node not black!\n"));
     if (nil->color != dnode_black)
-	return 0;
+      return(0 * fprintf(stderr, "dict_verify()-- Nil node not black!\n"));
     if (nil->right != nil)
-	return 0;
+      return(0 * fprintf(stderr, "dict_verify()-- Nul->right not Nil!\n"));
     /* nil->left is the root node; check that its parent pointer is nil */
     if (nil->left->parent != nil)
-	return 0;
+      return(0 * fprintf(stderr, "dict_verify()-- Nul->left->parent is not Nil!\n"));
     /* perform a weak test that the tree is a binary search tree */
     if (!verify_bintree(dict))
-	return 0;
+      return(0 * fprintf(stderr, "dict_verify()-- Not a binary search tree!\n"));
     /* verify that the tree is a red-black tree */
     if (!verify_redblack(nil, root))
-	return 0;
+      return(0 * fprintf(stderr, "dict_verify()-- Not a red-black tree!\n"));
     if (verify_node_count(nil, root) != dict_count(dict))
-	return 0;
+      return(0 * fprintf(stderr, "dict_verify()-- Node count is wrong!\n"));
     return 1;
 }
 
