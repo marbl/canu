@@ -195,7 +195,7 @@ $(eval $(foreach x,${//},$(call .RULE-install-copy-C-CXX-INCS,$x)))
 ALL_TEX_PS    :=$(strip $(foreach x,${//},${${x:.=.TEX_PS}}))
 ALL_TEX_PDF   :=$(strip $(foreach x,${//},${${x:.=.TEX_PDF}}))
 
-${ALL_TEX_PS}: %.ps: %.dvi
+${ALL_TEX_PS} ${ALL_TEX_PDF:.pdf=.ps}: %.ps: %.dvi
 	cd `dirname $<` && ${DVIPS} -o `basename $@` `basename $<`
 
 ${ALL_TEX_PDF}: %.pdf: %.ps
