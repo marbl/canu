@@ -4,14 +4,8 @@
 #include <time.h>
 #include "libbritypes.h"
 
-#ifdef __CYGWIN__
-extern "C" {
-#endif
 double  getTime(void);
 void    write_rusage(FILE *F);
-#ifdef __CYGWIN__
-}
-#endif
 
 //  Format should be
 //    "    %8f [unit]things (%8.5f [unit]things/sec)\r"

@@ -4,7 +4,7 @@
 #include <new>
 #include "searchGENOME.H"
 #include "libbri.H"
-#include "time.H"
+#include "britime.H"
 #include "existDB.H"
 
 #ifdef TRUE64BIT

@@ -5,7 +5,7 @@
 #include "sim4.H"
 #include "libbri.H"
 #include "fasta-cache.H"
-#include "time.H"
+#include "britime.H"
 
 #include <umalloc.h>
 

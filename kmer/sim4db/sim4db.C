@@ -12,7 +12,6 @@
 
 #include "sim4.H"
 #include "libbri.H"
-#include "time.H"
 #include "fasta.H"
 #include "buildinfo-sim4db.h"
 #include "buildinfo-libbri.h"

@@ -8,7 +8,7 @@ src    := $/alphabet.c $/bit-operations.H $/bit-packing.H $/bit-packing.C \
           $/file.h $/file.c $/libbri.H \
           $/libbritypes.h $/md5.c $/merstream.C $/merstream.H \
           $/palloc.c $/palloc.h $/readBuffer.H $/reversecomplement.c \
-          $/splittowords.H $/time.C $/time.H \
+          $/splittowords.H $/britime.C $/britime.H \
           $/memory.c $/memory.h $/stat.c $/stat.h \
           $/intervalList.C $/intervalList.H
 
