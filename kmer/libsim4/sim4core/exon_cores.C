@@ -94,19 +94,21 @@ Sim4::search(char *s1, char *s2, int l1, int l2, int in_W, int in_K)
 
   ecode = 0L;
 
-  while (i < l1) {
-    if (encoding[*t] >= 0) {
+  //  5% win (tested on on small examples) if we use t[] instead of *t below.
+
+  for (i=0; i < l1; i++) {
+    if (encoding[t[i]] >= 0) {
       validEncoding++;
 
       ecode  &= mask;
       ecode <<= 2;
-      ecode  |= encoding[*t];
+      ecode  |= encoding[t[i]];
 
       if (validEncoding > 0) {
         for (h = hashtable->table[ecode & HASH_SIZE]; h; h = h->link) {
           if (h->ecode == ecode) {
             for (p = h->pos; p >= 0; p = hashtable->nextPos[p]) {
-              pos1 = (int)(t-s1);
+              pos1 = (int)(t-s1) + i;
 
               //fprintf(stdout, "p = %8d  pos1 = %8d\n", p, pos1);
               //fprintf(stdout, "p1=%8d o1=%8d p2=%8d o2=%8d\n", pos1, 0, p, 0);
@@ -124,10 +126,7 @@ Sim4::search(char *s1, char *s2, int l1, int l2, int in_W, int in_K)
     } else {
       validEncoding = 1 - in_W;
     }
-
-    t++;
-    i++;
-  }     
+  }
 
   delete [] allocated;
 }
