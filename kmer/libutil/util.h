@@ -378,6 +378,12 @@ double  mtRandomGaussian(mt_s *mt);
 #include "kazlib/sfx.h"
 
 
+////////////////////////////////////////
+//
+//  perl's chomp is pretty nice
+//
+#define chomp(S) { char *t=S; while (*t) t++; t--; while (isspace(*t)) *t--=0; }
+
 #ifdef __cplusplus
 }
 #endif
