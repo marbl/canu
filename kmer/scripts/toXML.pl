@@ -26,7 +26,13 @@ $| = 1;
 
 use strict;
 
-use lib "/prod/gcmp/cps/lib";
+#  For old compaq, use this lib.
+#
+#use lib "/prod/gcmp/cps/lib";
+
+#  For new AIX, use this lib.
+use lib "/csprod/cps/lib";
+
 use util::UID_wrapper;
 
 use FindBin;
