@@ -197,6 +197,25 @@ CXXLIBS           := \$(THREADL)
 ARFLAGS           := ruvs
 EOF
     ;;
+  freebsd-debug-34)
+    rm -f Make.compilers
+    cat <<EOF > Make.compilers
+# -*- makefile -*-
+#  FreeBSD, debug, warnings
+THREADS           := -D_THREAD_SAFE -pthread
+THREADL           := -pthread
+CC                := cc
+SHLIB_FLAGS       := -shared
+CFLAGS_COMPILE    := -g \$(THREADS) $python -Wall -Wshadow -Wtraditional -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Wconversion -Waggregate-return -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls -Wnested-externs  
+CLDFLAGS          := -L/usr/local/lib
+CLIBS             := \$(THREADL)
+CXX               := g++
+CXXFLAGS_COMPILE  := -g \$(THREADS) $python -Wall -Wshadow -Wtraditional -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Wconversion -Waggregate-return -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls -Wnested-externs  
+CXXLDFLAGS        := -L/usr/local/lib
+CXXLIBS           := \$(THREADL)
+ARFLAGS           := ruvs
+EOF
+    ;;
   aix)
     rm -f Make.compilers
     cat <<EOF > Make.compilers
@@ -271,16 +290,19 @@ EOF
     ;;
   compaq|tru64)
     rm -f Make.compilers
+    echo "We need -D_XOPEN_SOURCE=500 to get fseeko()...but that breaks other stuff."
     cat <<EOF > Make.compilers
 # -*- makefile -*-
 #  Tru64, native compilers, optimized
-CC                := cc
+CC                := cxx
 SHLIB_FLAGS       := -shared   # -G is something else
-CFLAGS_COMPILE    := -D_REENTRANT -pthread -w0 -fast
+CFLAGS_COMPILE    := -D_REENTRANT -std -D_XOPEN_SOURCE=500 -D_OSF_SOURCE -pthread -w0 -fast
+CDEPFLAGS         := -pthread -D_XOPEN_SOURCE=500
 CLDFLAGS          := 
 CLIBS             := -lpthread -lrt
 CXX               := cxx
-CXXFLAGS_COMPILE  := -D_REENTRANT -pthread -w0 -fast
+CXXFLAGS_COMPILE  := -D_REENTRANT -std -D_XOPEN_SOURCE=500 -D_OSF_SOURCE -pthread -w0 -fast
+CXXDEPFLAGS       := -pthread -D_XOPEN_SOURCE=500
 CXXLDFLAGS        := 
 CXXLIBS           := -lpthread -lrt
 ARFLAGS           := ruv
