@@ -27,7 +27,7 @@ dumpThreshold(char *inputFile, u32bit threshold) {
   while (M->nextMer()) {
     if (M->theCount() >= threshold) {
       for (u32bit z=0; z<M->merSize(); z++)
-        ms[M->merSize()-z-1] = decompressSymbol[(M->theMer() >> (2*z)) & 0x03];
+        ms[M->merSize()-z-1] = decompressSymbol[(M->theFMer() >> (2*z)) & 0x03];
       ms[M->merSize()] = 0;
 
       fprintf(stdout, str_count, M->theCount(), ms);
@@ -118,7 +118,7 @@ plotDistanceBetweenMers(char *inputFile) {
   u64bit  thisMer = 0;
 
   while (M->nextMer()) {
-    thisMer = M->theMer();
+    thisMer = M->theFMer();
 
     if ((thisMer - lastMer) < hugeD)
       D[thisMer - lastMer]++;
