@@ -77,7 +77,7 @@ filterObj::filterObj(sharedObj *so_, char *op_) {
   strcpy(name2, "UNK");
 
   if (op_) {
-    soOpts = new char (strlen(op_) + 1);
+    soOpts = new char [strlen(op_) + 1];
     strcpy(soOpts, op_);
 
     splitToWords  W(soOpts);
@@ -105,6 +105,7 @@ filterObj::filterObj(sharedObj *so_, char *op_) {
     theOutputPos = 0;
     theOutputMax = 1048576;
     theOutput    = new char [theOutputMax];
+    theOutput[0] = 0;
   }
 }
 
@@ -208,8 +209,9 @@ filterObj::output(FILE *F, u64bit matchid) {
       while (*pos == '#')
         *pos++ = ' ';
 
-      if (*matchIDiterator != ' ')
-        fprintf(stderr, "WARNING:  there isn't enough space in the match to insert the match id!\n");
+      if (*matchIDiterator != 0)
+        fprintf(stderr, "WARNING:  there isn't enough space in the match to insert the match id "u64bitFMT" '%s'!\n",
+                matchid, matchIDstring);
 
       //  Skip to the next record
       //

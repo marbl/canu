@@ -4,14 +4,6 @@
 #include <new>
 #include "seatac.H"
 
-#ifdef TRUE64BIT
-char const *outputDisplay      = "O:%7u S:%7u I:%7u T:%7u (%5.1f%%; %8.3f/sec) Finish in %5.2f seconds.\r";
-char const *outputDisplayFinal = "\n%7u sequences (%5.1f%%; %8.3f/sec) %5.2f seconds.\n";
-#else
-char const *outputDisplay      = "O:%7lu S:%7lu I:%7lu T:%7lu (%5.1f%%; %8.3f/sec) Finish in %5.2f seconds.\r";
-char const *outputDisplayFinal = "\n%7lu sequences (%5.1f%%; %8.3f/sec) %5.2f seconds.\n";
-#endif
-
 
 //  Shared data
 //
@@ -246,9 +238,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "Number of cDNA sequences is "u32bitFMT".\n", numberOfQueries);
 
   output    = new filterObj * [numberOfQueries];
-  assert(output != NULL);
   input     = new FastASequenceInCore * [numberOfQueries];
-  assert(input != NULL);
   inputHead = 0;
   inputTail = 0;
 
@@ -346,7 +336,8 @@ main(int argc, char **argv) {
   while (outputPos < numberOfQueries) {
     if (output[outputPos]) {
       if (config._beVerbose && ((outputPos & 0x1ff) == 0x1ff)) {
-        fprintf(stderr, outputDisplay,
+        fprintf(stderr,
+                "O:"u32bitFMTW(7)" S:"u32bitFMTW(7)" I:"u32bitFMTW(7)" T:"u32bitFMTW(7)" (%5.1f%%; %8.3f/sec) Finish in %5.2f seconds.\r",
                 outputPos,
                 inputTail,
                 inputHead,
@@ -386,16 +377,17 @@ main(int argc, char **argv) {
   }
 
   if (config._beVerbose) {
-    fprintf(stderr, outputDisplayFinal,
+    fprintf(stderr, "\n"u32bitFMTW(7)" sequences (%5.1f%%; %8.3f/sec) %5.2f seconds.\n",
             numberOfQueries,
             100.0 * outputPos / numberOfQueries,
+            outputPos / (getTime() - zeroTime),
             getTime() - zeroTime);
   }
 
   //  Print statistics
   //
   stats->show(resultFILE);
-
+  delete stats;
 
   errno = 0;
   fclose(resultFILE);
@@ -441,6 +433,9 @@ main(int argc, char **argv) {
     if (config._statsFileName)
       fclose(F);
   }
+
+  delete [] input;
+  delete [] output;
 
   return(0);
 }

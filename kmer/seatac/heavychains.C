@@ -58,10 +58,14 @@ void StrandPair::addHit(char   direction,
   // ignoring id1 and id2 ?
   // Assert that the data is proper:
 
-  assert(xln > 0);
-  assert(yln > 0);
-  assert(xlo >= 0);
-  assert(ylo >= 0);
+  if ((xln <= 0) || (yln <= 0) || (xlo < 0) || (ylo < 0)) {
+    fprintf(stderr, "StrandPair::addHit()-- bogus data.\n");
+    fprintf(stderr, "StrandPair::addHit()-- xln = %d\n", xln);
+    fprintf(stderr, "StrandPair::addHit()-- yln = %d\n", yln);
+    fprintf(stderr, "StrandPair::addHit()-- xlo = %d\n", xlo);
+    fprintf(stderr, "StrandPair::addHit()-- ylo = %d\n", ylo);
+    exit(1);
+  }
 
   old_stra1 = id1;
   old_stra2 = id2;

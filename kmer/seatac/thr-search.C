@@ -65,7 +65,9 @@ doSearch(searcherState *state,
   u64bit mer = u64bitZERO;
   u32bit pos = u32bitZERO;
 
+#ifdef VERBOSE
   fprintf(stderr, "Retrieving hits for rc=%d %s\n", rc, seq->header());
+#endif
 
   while (query->getMer(mer, pos) == true)
     if (positions->get(mer, state->posn, state->posnMax, state->posnLen))
@@ -73,13 +75,17 @@ doSearch(searcherState *state,
 
   state->searchTime += getTime() - startTime;
 
+#ifdef VERBOSE
   fprintf(stderr, "Filtering hits for  rc=%d %s\n", rc, seq->header());
+#endif
 
   startTime = getTime();
   matrix->processMatrix(rc ? 'r' : 'f', FO);
   state->processTime += getTime() - startTime;
 
+#ifdef VERBOSE
   fprintf(stderr, "Finished with       rc=%d %s\n", rc, seq->header());
+#endif
 
   delete matrix;
   delete query;

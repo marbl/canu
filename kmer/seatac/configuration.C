@@ -295,6 +295,8 @@ configuration::completeUseList(FastAWrapper *db) {
         _useListLen++;
       }
     }
+
+    delete [] seen;
   }
 
   qsort(_useList, _useListLen, sizeof(use_s), useListSortHelper);
@@ -513,8 +515,8 @@ configuration::writeATACheader(FILE *out) {
   fprintf(out, "/seatacFilterName=%s\n", (_filtername) ? _filtername : "None Specified.");
   fprintf(out, "/seatacFilterOpts=%s\n", (_filteropts) ? _filteropts : "None Specified.");
   fprintf(out, "/seatacUseList=%s\n", (_useListString) ? _useListString : "Every sequence.");
-  fprintf(out, "/seatacDbFile =%s\n", (_dbFileName) ? _dbFileName : "None Specified.");
-  fprintf(out, "/seatacQsFile =%s\n", (_qsFileName) ? _qsFileName : "None Specified.");
+  fprintf(out, "/seatacDbFile=%s\n", (_dbFileName) ? _dbFileName : "None Specified.");
+  fprintf(out, "/seatacQsFile=%s\n", (_qsFileName) ? _qsFileName : "None Specified.");
   fprintf(out, "/seatacMaskFile=%s\n", (_maskFileName) ? _maskFileName : "None Specified.");
   fprintf(out, "/seatacOnlyFile=%s\n", (_onlyFileName) ? _onlyFileName : "None Specified.");
   fprintf(out, "/seatacOutputFile=%s\n", (_outputFileName) ? _outputFileName : "None Specified.");

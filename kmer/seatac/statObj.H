@@ -47,7 +47,7 @@ statObj::statObj(sharedObj *so_, char *op_) {
   sodestruct   = 0L;
 
   if (op_) {
-    soOpts = new char (strlen(op_) + 1);
+    soOpts = new char [strlen(op_) + 1];
     strcpy(soOpts, op_);
   }
 

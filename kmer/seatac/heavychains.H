@@ -300,7 +300,6 @@ private:
     const int larger_jump = (ix < iy)?iy:ix;  // must be < MaxJump for an interaction
 
     int intersection = smaller_jump * (smaller_jump < 0); 
-    assert(intersection <= 0);
 
     return (dx >= 0 && dy >= 0 && larger_jump < MaxJump) 
       * (pl.S + intersection );
