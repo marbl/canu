@@ -101,27 +101,27 @@ ${ALL_CXX_DEPS}:%.d:%
 .PRECIOUS: %.o
 
 %.o: %.c
-	${CC} ${CFLAGS} ${CFLAGS_COMPILE} -o $@ -c $<
+	${-CC} ${CC} ${CFLAGS} ${CFLAGS_COMPILE} -o $@ -c $<
 
 %.o: %.cc
-	${CXX} ${CXXFLAGS} ${CXXFLAGS_COMPILE} -o $@ -c $<
+	${-CXX} ${CXX} ${CXXFLAGS} ${CXXFLAGS_COMPILE} -o $@ -c $<
 
 %.o: %.cpp
-	${CXX} ${CXXFLAGS} ${CXXFLAGS_COMPILE} -o $@ -c $<
+	${-CXX} ${CXX} ${CXXFLAGS} ${CXXFLAGS_COMPILE} -o $@ -c $<
 
 %.o: %.C
-	${CXX} ${CXXFLAGS} ${CXXFLAGS_COMPILE} -o $@ -c $<
+	${-CXX} ${CXX} ${CXXFLAGS} ${CXXFLAGS_COMPILE} -o $@ -c $<
 
 
 ## EXE targets
 ALL_C_EXES   :=$(strip $(foreach x,${//},${${x:.=.C_EXES}}))
 ${ALL_C_EXES}:
-	${CC} ${CLDFLAGS} -o $@ $^ ${CLIBS}
+	${-CC} ${CC} ${CLDFLAGS} -o $@ $^ ${CLIBS}
 __SUBGOALS__+=$${${1:.=.C_EXES}}
 
 ALL_CXX_EXES :=$(strip $(foreach x,${//},${${x:.=.CXX_EXES}}))
 ${ALL_CXX_EXES}:
-	${CXX} ${CXXLDFLAGS} -o $@ $^ ${CXXLIBS}
+	${-CXX} ${CXX} ${CXXLDFLAGS} -o $@ $^ ${CXXLIBS}
 __SUBGOALS__+=$${${1:.=.CXX_EXES}}
 
 define .RULE-install-copy-C-CXX-EXES
@@ -137,12 +137,12 @@ $(eval $(foreach x,${//},$(call .RULE-install-copy-C-CXX-EXES,$x)))
 ## LIB targets
 ALL_C_LIBS   :=$(strip $(foreach x,${//},${${x:.=.C_LIBS}}))
 ${ALL_C_LIBS}:
-	${RM} $@ && ${AR} ${ARFLAGS} $@ $^
+	${-CC} ${RM} $@ && ${AR} ${ARFLAGS} $@ $^
 __SUBGOALS__+=$${${1:.=.C_LIBS}}
 
 ALL_CXX_LIBS     :=$(strip $(foreach x,${//},${${x:.=.CXX_LIBS}}))
 ${ALL_CXX_LIBS}:
-	${RM} $@ && ${AR} ${ARFLAGS} $@ $^
+	${-CXX} ${RM} $@ && ${AR} ${ARFLAGS} $@ $^
 __SUBGOALS__+=$${${1:.=.CXX_LIBS}}
 
 ## Shared targets
@@ -151,11 +151,11 @@ __SUBGOALS__+=$${${1:.=.CXX_LIBS}}
 ${_OS_}_SHLIB_FLAGS:=
 ALL_C_SHLIBS     :=$(strip $(foreach x,${//},${${x:.=.C_SHLIBS}}))
 ${ALL_C_SHLIBS}:
-	${RM} $@ && ${C} ${CFLAGS} ${SHLIB_FLAGS} ${${_OS_}_SHLIB_FLAGS} -o $@ $^ ${CLIBS}
+	${-CC} ${RM} $@ && ${C} ${CFLAGS} ${SHLIB_FLAGS} ${${_OS_}_SHLIB_FLAGS} -o $@ $^ ${CLIBS}
 
 ALL_CXX_SHLIBS   :=$(strip $(foreach x,${//},${${x:.=.CXX_SHLIBS}}))
 ${ALL_CXX_SHLIBS}:
-	${RM} $@ && ${CXX} ${CXXFLAGS} ${SHLIB_FLAGS} ${${_OS_}_SHLIB_FLAGS} -o $@ $^ ${CXXLIBS}
+	${-CXX} ${RM} $@ && ${CXX} ${CXXFLAGS} ${SHLIB_FLAGS} ${${_OS_}_SHLIB_FLAGS} -o $@ $^ ${CXXLIBS}
 __SUBGOALS__+=$${${1:.=.C_SHLIBS}} $${${1:.=.CXX_SHLIBS}}
 
 define .RULE-install-copy-C-CXX-LIBS
@@ -201,32 +201,23 @@ $(eval $(foreach x,${//},$(call .RULE-install-copy-C-CXX-INCS,$x)))
 .PRECIOUS: %.pdf %.ps %.dvi %.aux %.bbl
 
 %.dvi: %.tex
-	cd `dirname $<` && ${LATEX} `basename $<` && ${LATEX} `basename $<`
+	${-LATEX} cd `dirname $<` && ${LATEX} `basename $<` && ${LATEX} `basename $<`
 
 %.aux: %.tex
-	cd `dirname $<` && ${LATEX} `basename $<` && ${LATEX} `basename $<`
+	${-LATEX} cd `dirname $<` && ${LATEX} `basename $<` && ${LATEX} `basename $<`
 
 %.bbl: %.aux
-	cd `dirname $<` && ${BIBTEX} `basename ${<:.aux=}`
+	${-LATEX} cd `dirname $<` && ${BIBTEX} `basename ${<:.aux=}`
 
 
 ALL_TEX_PS    :=$(strip $(foreach x,${//},${${x:.=.TEX_PS}}))
 ALL_TEX_PDF   :=$(strip $(foreach x,${//},${${x:.=.TEX_PDF}}))
 
 ${ALL_TEX_PS} ${ALL_TEX_PDF:.pdf=.ps}: %.ps: %.dvi
-	cd `dirname $<` && ${DVIPS} -o `basename $@` `basename $<`
+	${-LATEX} cd `dirname $<` && ${DVIPS} -o `basename $@` `basename $<`
 
 ${ALL_TEX_PDF}: %.pdf: %.ps
-	${PS2PDF} $< $@
-
-# some extra tex goodies
-%.gv: %.ps
-	${VIEWPS} $<
-
-%.print: %.ps
-	${PRINTPS} $<
-
-
+	${-LATEX} ${PS2PDF} $< $@
 __SUBGOALS__+=$${${1:.=.TEX_PS}} $${${1:.=.TEX_PDF}}
 
    # install rules
