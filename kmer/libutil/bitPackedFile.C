@@ -7,7 +7,7 @@
 #include "bitPackedFile.H"
 #include "bit-packing.H"
 
-#define BUFFER_SIZE   (16)   //(131072)
+#define BUFFER_SIZE   131072
 
 bitPackedFileWriter::bitPackedFileWriter(char *name) {
   _out = fopen(name, "wb");
