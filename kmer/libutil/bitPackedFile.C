@@ -7,7 +7,17 @@
 #include "bitPackedFile.H"
 #include "bit-packing.H"
 
-#define BUFFER_SIZE   131072
+//  This is the size (in 64-bit words) of the buffer the bit packed
+//  file uses.  Too small and we spend lots of time doing I/O
+//  requests, too big and we use excessive amounts of memory.
+//
+#define BUFFER_SIZE   (1048576 / 8)
+
+//  Define this to build a short test executable.  A nice test size is
+//  50000000 5000.
+//
+//#define TEST
+
 
 bitPackedFileWriter::bitPackedFileWriter(char const *name) {
   _out = fopen(name, "wb");
@@ -145,18 +155,7 @@ bitPackedFileReader::bitPackedFileReader(char const *name) {
   _bfr = new u64bit [BUFFER_SIZE];
   _bit = u64bitZERO;
 
-  //  Read the initial buffer
-  //
-  errno = 0;
-  size_t bytesread = fread(_bfr, sizeof(u64bit), BUFFER_SIZE, _in);
-  if (errno) {
-    fprintf(stderr, "bitPackedFileReader::bitPackedFileReader got %s\n", strerror(errno));
-    exit(1);
-  }
-
-  //  Clear any bytes that we didn't read (EOF)
-  while (bytesread < BUFFER_SIZE)
-    _bfr[bytesread++] = 0;
+  fillBufferFromDisk(0);
 }
 
 bitPackedFileReader::~bitPackedFileReader() {
@@ -169,6 +168,28 @@ bitPackedFileReader::~bitPackedFileReader() {
 }
 
 
+//  Fills the buffer from the disk file.  The parameter is how much of
+//  the buffer (at the start) should remain.  '0' results in a
+//  complete fill, while '10' would save the first 10 64-bit words.
+//
+void
+bitPackedFileReader::fillBufferFromDisk(u32bit bufferpos) {
+
+  errno = 0;
+  size_t bytesread = fread(_bfr + bufferpos, sizeof(u64bit), BUFFER_SIZE - bufferpos, _in);
+  if (errno) {
+    fprintf(stderr, "bitPackedFileReader::bitPackedFileReader got %s\n", strerror(errno));
+    exit(1);
+  }
+
+  //  Clear any bytes that we didn't read (supposedly, because we
+  //  hit EOF).  The +2 is because we started with a buffer with 2
+  //  words in it.
+  //
+  for (bytesread += bufferpos; bytesread < BUFFER_SIZE; bytesread++)
+    _bfr[bytesread] = u64bitZERO;
+}
+
 
 void
 bitPackedFileReader::fill(void) {
@@ -178,20 +199,26 @@ bitPackedFileReader::fill(void) {
     _bfr[1] = _bfr[BUFFER_SIZE-1];
     _bit   -= ((BUFFER_SIZE-2) * 64);
 
-    errno = 0;
-    size_t bytesread = fread(_bfr+2, sizeof(u64bit), BUFFER_SIZE-2, _in);
-    if (errno) {
-      fprintf(stderr, "bitPackedFileReader::getBits got %s\n", strerror(errno));
-      exit(1);
-    }
-
-    //  Clear any bytes that we didn't read (supposedly, because we
-    //  hit EOF).  The +2 is because we started with a buffer with 2
-    //  words in it.
-    //
-    for (bytesread += 2; bytesread < BUFFER_SIZE; bytesread++)
-      _bfr[bytesread] = u64bitZERO;
+    fillBufferFromDisk(2);
   }
+}
+
+
+//  Seeks to bitposition pos in the file.
+//
+void
+bitPackedFileReader::seek(u64bit pos) {
+
+  _bit = pos & 0x003f;
+
+  errno = 0;
+  fseeko(_in, (pos >> 6) << 3, SEEK_SET);
+  if (errno) {
+    fprintf(stderr, "bitPackedFileReader::seek() failed: %s\n", strerror(errno));
+    exit(1);
+  }
+
+  fillBufferFromDisk(0);
 }
 
 
@@ -215,3 +242,139 @@ bitPackedFileReader::getNumber(void) {
   return(ret);
 }
 
+
+
+
+#ifdef TEST
+#include <time.h>
+#include <math.h>
+
+int
+main(int argc, char **argv) {
+
+  if (argc == 1) {
+    fprintf(stderr, "usage: %s testsize testiters\n", argv[0]);
+    fprintf(stderr, "  This will perform various tests on the bitPackedFile* classes,\n");
+    fprintf(stderr, "  returning 0 if OK and 1 if error.\n");
+    exit(1);
+  }
+
+  u32bit    testSize = strtou32bit(argv[1], 0L);
+  u32bit    testIter = strtou32bit(argv[2], 0L);
+
+  u32bit    i;
+  u32bit   *siz = new u32bit [testSize];
+  u64bit   *val = new u64bit [testSize];
+  u32bit    errs = 0;
+
+  bitPackedFileWriter *W;
+  bitPackedFileReader *R;
+
+  srand48(time(NULL));
+
+  //  Generate a list of random 64-bit numbers, remember the number and the size
+  //
+  fprintf(stderr, "Initializing\n");
+  for (i=0; i<testSize; i++) {
+    siz[i] =  (u32bit)floor(drand48() * 64) + 1;
+    val[i] = ((u64bit)lrand48()) << 32 | ((u64bit)lrand48());
+    val[i] &= u64bitMASK(siz[i]);
+
+    if ((i & 0xfffff) == 0) {
+      fprintf(stderr, "Init  "u32bitFMT"            \r", i);
+      fflush(stderr);
+    }
+  }
+
+  fprintf(stderr, "Testing bitPackedFile\n");
+
+  //  Write those numbers to a bitPackedFile, both binary encoded and
+  //  fibonacci encoded.
+  //
+  W = new bitPackedFileWriter("bittest.junk");
+  for (i=0; i<testSize; i++) {
+    W->putBits(val[i], siz[i]);
+    W->putNumber(val[i]);
+
+    if ((i & 0xfffff) == 0) {
+      fprintf(stderr, "Write "u32bitFMT"            \r", i);
+      fflush(stderr);
+    }
+  }
+  delete W;
+
+  //  Open the file and check what we just wrote.
+  //
+  R = new bitPackedFileReader("bittest.junk");
+  for (i=0; i<testSize; i++) {
+    u64bit r = R->getBits(siz[i]);
+    if (r != val[i]) {
+      fprintf(stderr, u32bitFMT"] ERROR in getBits()   -- retrieved "u64bitHEX" != expected "u64bitHEX" ("u32bitFMT" bits).\n", i, r, val[i], siz[i]);
+      errs++;
+    }
+
+    u64bit v = R->getNumber();
+    if (v != val[i]) {
+      fprintf(stderr, u32bitFMT"] ERROR in getNumber() -- retrieved "u64bitHEX" != expected "u64bitHEX".\n", i, v, val[i]);
+      errs++;
+    }
+
+    if ((i & 0xffff) == 0) {
+      fprintf(stderr, "Read  "u32bitFMT"            \r", i);
+      fflush(stderr);
+    }
+  }
+  delete R;
+
+  fprintf(stderr, "Testing bitPackedFile::seek()\n");
+
+  //  Create a new bitpacked file, writing just numbers as binary encoded.
+  //
+  W = new bitPackedFileWriter("bittest.junk");
+  for (i=0; i<testSize; i++) {
+    W->putBits(val[i], siz[i]);
+
+    if ((i & 0xffff) == 0) {
+      fprintf(stderr, "Write "u32bitFMT"            \r", i);
+      fflush(stderr);
+    }
+  }
+  delete W;
+
+  //  Do several seek tests.  Seek to a random element, and read it.
+  //
+  R = new bitPackedFileReader("bittest.junk");
+  for (i=0; i<testIter; i++) {
+    u32bit idx = (u32bit)lrand48() % testSize;
+    u64bit pos = 0;
+
+    for (u32bit j=0; j<idx; j++)
+      pos += siz[j];
+
+    R->seek(pos);
+    u64bit r = R->getBits(siz[idx]);
+
+    if (r != val[idx]) {
+      fprintf(stderr, u32bitFMT"] ERROR in seek()/getBits()   -- retrieved "u64bitHEX" != expected "u64bitHEX" ("u32bitFMT" bits).\n", i, r, val[i], siz[i]);
+      errs++;
+    }
+
+    if ((i & 0xf) == 0) {
+      fprintf(stderr, "Read  "u32bitFMT"            \r", i);
+      fflush(stderr);
+    }
+  }
+  delete R;
+
+  unlink("bittest.junk");
+
+  if (errs > 0) {
+    fprintf(stderr, "There are "u32bitFMT" errors.\n", errs);
+    exit(1);
+  } else {
+    exit(0);
+  }
+}
+
+
+#endif  //  TEST

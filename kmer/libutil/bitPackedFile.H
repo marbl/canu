@@ -19,7 +19,7 @@ private:
   bool      _pipe;
   u64bit   *_bfr;
   u64bit    _bit;
-  u32bit    _sta;
+  //u32bit    _sta;
 };
 
 class bitPackedFileReader {
@@ -29,14 +29,17 @@ public:
 
   u64bit     getBits(u32bit size);
   u64bit     getNumber(void);
+
+  void       seek(u64bit pos);
 private:
+  void       fillBufferFromDisk(u32bit bufferpos);
   void       fill(void);
 
   FILE     *_in;
   bool      _pipe;
   u64bit   *_bfr;
   u64bit    _bit;
-  u32bit    _sta;
+  //u32bit    _sta;
 };
 
 #endif  //  BITPACKEDFILE_H
