@@ -2,9 +2,12 @@
 
 $(eval $(call Include,$/md5lib/))
 $(eval $(call Include,$/mt19937ar/))
+$(eval $(call Include,$/kazlib/))
 
 src    := $/util++.H \
           $/util.h \
+          $/bigQueue.H \
+          $/bigQueue.C \
           $/time.C \
           $/file.c \
           $/intervalList.C \
@@ -32,7 +35,12 @@ $/.REAL-CLEAN :=$/buildinfo-*
 
 $/libutil.a: ${$/.C_SRCS:.c=.o} ${$/.CXX_SRCS:.C=.o} $/buildinfo-libutil.o \
         $/md5lib/md5c.o \
-	$/mt19937ar/mt19937ar.o
+	$/mt19937ar/mt19937ar.o \
+        $/kazlib/dict.o \
+        $/kazlib/except.o \
+        $/kazlib/hash.o \
+        $/kazlib/list.o \
+        $/kazlib/sfx.o
 
 $/buildinfo-libutil.c: $/buildinfo-libutil.h
 $/buildinfo-libutil.h: ${src}

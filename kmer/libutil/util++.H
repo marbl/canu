@@ -1,8 +1,6 @@
 #ifndef UTIL_PLUS_PLUS_H
 #define UTIL_PLUS_PLUS_H
 
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -313,20 +311,13 @@ private:
 //  intervalList
 //
 
-//
-//  An interval list -- 
-//
-
 //  I don't want this to be public, but the sort function
 //  in intervalList.C needs it so.
 //
-
 struct _intervalPair {
   u32bit    lo;
   u32bit    hi;
 };
-
-
 
 class intervalList {
 public:
@@ -382,6 +373,12 @@ private:
   _intervalPair            *_list;
 };
 
+
+////////////////////////////////////////
+//
+//  A disk-based queue, with ability to sort.
+//
+#include "bigQueue.H"
 
 
 

@@ -1,4 +1,5 @@
-PROG    = test-bitPackedArray \
+PROG    = test-bigQueue \
+          test-bitPackedArray \
           test-bitPackedFile \
           test-bitPacking \
           test-freeDiskSpace \
@@ -17,6 +18,13 @@ include ../../Make.compilers
 
 all: $(PROG)
 	@echo Tests passed!
+
+test-bigQueue: test-bigQueue.C ../libutil.a ../util.h ../util++.H
+	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-bigQueue.o test-bigQueue.C $(INCLUDE)
+	$(CXX) $(CXXLDFLAGS) -o test-bigQueue test-bigQueue.o $(LIBS)
+	time ./test-bigQueue
+	time sort -k2n < junk-bigQueue-out-2 > junk-bigQueue-out-2.s
+	diff junk-bigQueue-out-1 junk-bigQueue-out-2.s
 
 test-bitPackedArray: test-bitPackedArray.C ../libutil.a ../util.h ../util++.H
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-bitPackedArray.o test-bitPackedArray.C $(INCLUDE)
