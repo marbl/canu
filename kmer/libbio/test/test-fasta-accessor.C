@@ -4,6 +4,15 @@
 
 int
 main(int argc, char **argv) {
+
+  //
+  //  Yup, real sequence.  I don't remember what it belongs to.
+  //
+  //  rev is the reverse complement of fwd, so if we make an accessor
+  //  from it, and set the reverse-complement flag we should get back
+  //  exactly fwd.
+  //
+
   char *fwd =
     "CGCTTTAATGGGCGAACAGCCCAACCCTTGGGAGAGACTCCACCCCCAGGATGCGACGAGCCGACATCGAGGTGCCAAAC"
     "CATGCCGTCGATATGGACTCTGAGCGACGCCGCTTCCACAAGCCAGCGCCGGGTCACTAGTTCCGACTTTCGTCCCTGCT"
@@ -33,14 +42,6 @@ main(int argc, char **argv) {
     "TAAGTGCACAAGGGAGCTTGACTGCGAGACCGGCAGGTCGAGCAGGGACGAAAGTCGGAACTAGTGACCCGGCGCTGGCT"
     "TGTGGAAGCGGCGTCGCTCAGAGTCCATATCGACGGCATGGTTTGGCACCTCGATGTCGGCTCGTCGCATCCTGGGGGTG"
     "GAGTCTCTCCCAAGGGTTGGGCTGTTCGCCCATTAAAGCG";
-
-  //
-  //  Yup, real sequence.  I don't remember what it belongs to.
-  //
-  //  rev is the reverse complement of fwd, so if we make an accessor
-  //  from it, and set the reverse-complement flag we should get back
-  //  exactly fwd.
-  //
 
   FastAAccessor F(fwd, 1000, false);
   FastAAccessor R(rev, 1000, true);
@@ -72,20 +73,21 @@ main(int argc, char **argv) {
   //  the reverse complement sequence.
   //
   char sub[1000];
+  int  i;
 
   //  The forward sequence is:
   //
   //  100A 200N 100T 400N 200G
   //
-  for (int i=0; i<1000; i++)
+  for (i=0; i<1000; i++)
     sub[i] = 'N';
-  for (int i=0; i<100; i++)
+  for (i=0; i<100; i++)
     sub[i] = 'A';
-  for (int i=300; i<400; i++)
+  for (i=300; i<400; i++)
     sub[i] = 'T';
-  for (int i=600; i<700; i++)
+  for (i=600; i<700; i++)
     sub[i] = 'R';
-  for (int i=800; i<1000; i++)
+  for (i=800; i<1000; i++)
     sub[i] = 'G';
 
   FastAAccessor S(sub, 1000, true);
@@ -99,17 +101,15 @@ main(int argc, char **argv) {
   //  Without setting the range, we'd get back the sequence at
   //  700-600, the location when globally reverse-complemented.
   //
-  S.setReverseComplementRange(300, 100);
-  for (int i=300; i<400; i++)
+  S.setRange(300, 100);
+  for (i=300; i<400; i++)
     if (S[i] != 'A')
       fprintf(stderr, "got %c at pos %d\n", S[i], i), exit(5);
 
-  S.setReverseComplementRange(0, 0);
-  for (int i=300; i<400; i++)
+  S.setRange(0, 0);
+  for (i=300; i<400; i++)
     if (S[i] != 'Y')
       fprintf(stderr, "got %c at pos %d\n", S[i], i), exit(6);
-
-
 
   exit(0);
 }
