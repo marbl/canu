@@ -23,6 +23,11 @@
 #define PERSONALITY_EQ            0x0f
 
 
+u32bit
+partition(u32bit merSize,
+          u32bit mem,
+          bool   beVerbose);
+
 void
 estimate(char   *inputFile,
          u32bit  merSize,
