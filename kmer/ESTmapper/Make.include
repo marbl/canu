@@ -16,15 +16,13 @@ EXECS =   $/leaff \
           $/sortHits \
           $/cleanPolishes \
           $/sortPolishes \
-          $/stripPolishes \
           $/filterPolishes \
           $/pickBestPolish \
-          $/mergeCounts \
           $/parseSNP
 
 
-# $/.CXX_SRCS  := $/mergeCounts.C
-# $/.CXX_EXES  := $/mergeCounts
+$/.CXX_SRCS  := $/mergeCounts.C
+$/.CXX_EXES  := $/mergeCounts
 
 $/mergeCounts: $/mergeCounts.o
 
@@ -38,7 +36,7 @@ $/.REAL-CLEAN := mergeCounts ${EXECS}
 # $/flattenXML.pl: $/scripts/flattenXML.pl
 
 
-all:  ${EXECS}
+all:  mergeCounts ${EXECS}
 
 $/leaff: ${FASTA/}leaff
 	$(RM) $/leaff
@@ -84,11 +82,6 @@ $/parseSNP: ${SIM4READER/}parseSNP
 	$(RM) $/parseSNP
 	$(CP) ${SIM4READER/}parseSNP $/parseSNP
 	chmod 555 $/parseSNP
-
-$/stripPolishes: ${SIM4READER/}stripPolishes
-	$(RM) $/stripPolishes
-	$(CP) ${SIM4READER/}stripPolishes $/stripPolishes
-	chmod 555 $/stripPolishes
 
 $/filterPolishes: ${SIM4READER/}filterPolishes
 	$(RM) $/filterPolishes
