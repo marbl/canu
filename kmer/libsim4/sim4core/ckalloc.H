@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <signal.h>
 
-#include "bri.h"
+#include "bio.h"
 
 //#define CHECK_MEMORY
 

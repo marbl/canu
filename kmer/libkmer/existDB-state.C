@@ -4,7 +4,7 @@
 #include <errno.h>
 #include "existDB.H"
 #include "positionDB.H"
-#include "bri++.H"
+#include "bio++.H"
 
 
 char     magic[16] = { 'e', 'x', 'i', 's', 't', 'D', 'B', '1', 

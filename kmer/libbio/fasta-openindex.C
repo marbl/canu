@@ -5,7 +5,7 @@
 #include <string.h>
 #include <ctype.h>
 
-#include "bri++.H"
+#include "bio++.H"
 
 //  If the index exists, check the global information in the index
 //  against the version of this code, and the fasta file it is

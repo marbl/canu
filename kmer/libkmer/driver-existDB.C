@@ -3,9 +3,9 @@
 #include <string.h>
 #include <errno.h>
 
-#include "bri++.H"
-#include "libmeryl.H"
+#include "bio++.H"
 #include "existDB.H"
+#include "libmeryl.H"
 
 //  Driver for the existDB creation.  Reads a sequence.fasta, builds
 //  an existDB for the mers in the file, and then writes the internal

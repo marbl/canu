@@ -1,11 +1,11 @@
 #ifndef FASTA_H
 #define FASTA_H
 
-#ifndef BRI_PLUS_PLUS_H
-#error Please use bri++.H instead of fasta.H
+#ifndef BIO_PLUS_PLUS_H
+#error Please use bio++.H instead of fasta.H
 #endif
 
-//#include "bri++.H"
+//#include "bio++.H"
 
 #ifndef FILE_WRAPPER_H
 #define FILE_WRAPPER_H

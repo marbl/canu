@@ -1,0 +1,40 @@
+# -*- makefile -*-
+
+$(eval $(call Include,$/md5lib/))
+$(eval $(call Include,$/mt19937ar/))
+
+src    := $/util++.H \
+          $/util.h \
+          $/time.C \
+          $/file.c \
+          $/intervalList.C \
+          $/md5.c \
+          $/memory.c \
+          $/palloc.c \
+          $/readBuffer.C \
+          $/stat.c \
+          $/bitOperations.h \
+          $/bitPackedFile.C \
+          $/bitPacking.h \
+          $/fibonacciEncoding.h \
+          $/fibonacciNumbers.C \
+          $/eliasGammaEncoding.h \
+          $/eliasDeltaEncoding.h \
+          $/unaryEncoding.h
+
+$/.C_SRCS    :=$(filter %.c,${src})
+$/.CXX_SRCS  :=$(filter %.C,${src})
+$/.CXX_LIBS  :=$/libutil.a
+
+$/.CLEAN := $/*.o
+$/.REAL-CLEAN :=$/buildinfo-*
+
+$/libutil.a: ${$/.C_SRCS:.c=.o} ${$/.CXX_SRCS:.C=.o} $/buildinfo-libutil.o \
+        $/md5lib/md5c.o \
+	$/mt19937ar/mt19937ar.o
+
+$/buildinfo-libutil.c: $/buildinfo-libutil.h
+$/buildinfo-libutil.h: ${src}
+	@${LIBUTL/}buildinfo.pl libutil "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
+	@[ `dirname $@` = "." ] || mv buildinfo-libutil.[ch] `dirname $@`
+

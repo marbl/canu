@@ -1,5 +1,5 @@
-#ifndef BRI_H
-#define BRI_H
+#ifndef UTIL_H
+#define UTIL_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,33 +15,14 @@
 
 
 
-//  C interfaces and datastructures for libbri
-//
-//  Things included here used to be in
-//
-//    #include "alphabet.h"
-//    #include "britime.H"
-//    #include "file.h"
-//    #include "stat.h"
-//    #include "memory.h"
-//    #include "palloc.h"
-//    #include "md5.h"
-//
-
-////////////////////////////////////////
-//
-//  libbritypes.h
-//
-#if defined(__alpha) || defined(_AIX)
-#define TRUE64BIT
-#endif
-
-//
 //  Useful types.
 //
 //  *MASK(x) is only defined for unsigned types, with x != 0 and less
 //  than the datawidth.
-//
+
+#if defined(__alpha) || defined(_AIX)
+#define TRUE64BIT
+#endif
 
 #ifdef TRUE64BIT
 
@@ -149,14 +130,7 @@ extern "C" {
 
 ////////////////////////////////////////
 //
-//  alphabet
-//
-#include "alphabet.h"
-
-
-////////////////////////////////////////
-//
-//  britime
+//  time
 //
 double  getTime(void);
 void    write_rusage(FILE *F);
@@ -213,13 +187,6 @@ off_t copyFile(char *srcName, FILE *dstFile);
 //  file.
 //
 u32bit freeDiskSpace(char *path);
-
-
-////////////////////////////////////////
-//
-//  reversecomplement.c
-//
-char *reverseComplementSequence(char *seq, u32bit seqlen);
 
 
 
@@ -396,4 +363,4 @@ u32bit         mtRandom32(mt_s *mt);
 }
 #endif
 
-#endif  //  BRI_H
+#endif  //  UTIL_H

@@ -1,7 +1,7 @@
 #ifndef FASTA_SEQUENCEINCORE_H
 #define FASTA_SEQUENCEINCORE_H
 
-#include "bri.h"
+#include "bio.h"
 #include "fasta-types.H"
 
 class FastASequenceInCore {

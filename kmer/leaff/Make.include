@@ -1,7 +1,7 @@
 # -*- makefile -*-
 
-UTIL/       :=$(call MakePath,$/../util/)
-LIBBRI/     :=$(call MakePath,$/../libbri/)
+LIBUTL/     :=$(call MakePath,$/../libutil/)
+LIBBIO/     :=$(call MakePath,$/../libbio/)
 
 $/.CXX_SRCS  :=$/leaff.C $/fragmenter.C $/simseq.C
 $/.CXX_EXES  :=$/leaff $/fragmenter
@@ -10,21 +10,18 @@ $/.CLEAN  :=$/*.o
 
 $/.REAL-CLEAN :=$/buildinfo-*
 
-$/leaff.C.d: $/buildinfo-leaff.h ${LIBBRI/}buildinfo-libbri.h
+$/leaff.C.d: $/buildinfo-leaff.h ${LIBBIO/}buildinfo-libbio.h
 
-$/leaff                : $/leaff.o $/buildinfo-leaff.o $/simseq.o ${LIBBRI/}libbri.a
-$/fragmenter           : $/fragmenter.o ${LIBBRI/}libbri.a
+$/leaff                : $/leaff.o $/buildinfo-leaff.o $/simseq.o ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+$/fragmenter           : $/fragmenter.o ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 
-#  The driver is out of date wrt the code
-#$/simseq               : $/simseq.o $/simseqdriver.o ${LIBBRI/}libbri.a
-
-$(eval $/%.d $/%.o:  CXXFLAGS+=-I${LIBBRI/})
-$(eval $/%.d $/%.o:  CFLAGS+=-I${LIBBRI/})
-$(eval $/%.d      :  ${LIBBRI/}buildinfo-libbri.h )
+$(eval $/%.d $/%.o:  CXXFLAGS+=-I${LIBBIO/} -I${LIBUTL/})
+$(eval $/%.d $/%.o:  CFLAGS  +=-I${LIBBIO/} -I${LIBUTL/})
+$(eval $/%.d      :  ${LIBBIO/}buildinfo-libbio.h ${LIBUTL/}buildinfo-libutil.h )
 
 $/buildinfo-leaff.c: $/buildinfo-leaff.h
 $/buildinfo-leaff.h: $/leaff.C
-	@${UTIL/}buildinfo.pl leaff "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
+	@${LIBUTL/}buildinfo.pl leaff "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
 	@[ `dirname $@` = "." ] || mv buildinfo-leaff.[ch] `dirname $@`
 
 

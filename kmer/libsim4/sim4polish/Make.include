@@ -1,10 +1,8 @@
 # -*- makefile -*-
 
-UTIL/       :=$(call MakePath,$/../util/)
-LIBBRI/     :=$(call MakePath,$/../libbri/)
-FASTA/      :=$(call MakePath,$/../fasta/)
+LIBUTL/ :=$(call MakePath,$/../../libutil/)
+LIBBIO/ :=$(call MakePath,$/../../libbio/)
 
-# declarations
 src     :=$/sim4polish.c \
           $/sim4polish-copy.c \
           $/sim4polish-compare.c \
@@ -34,10 +32,10 @@ $/.REAL-CLEAN :=$/buildinfo-*
 $/libsim4polish.a    :  ${$/.C_SRCS:.c=.o} ${$/.CXX_SRCS:.C=.o} \
                         $/buildinfo-libsim4polish.o
 
-$(eval $/%.d $/%.o:  CFLAGS+=-I${LIBBRI/} -I${FASTA/})
-$(eval $/%.d $/%.o:  CXXFLAGS+=-I${LIBBRI/} -I${FASTA/})
+$(eval $/%.d $/%.o:  CFLAGS  +=-I${LIBUTL/} -I${LIBBIO/})
+$(eval $/%.d $/%.o:  CXXFLAGS+=-I${LIBUTL/} -I${LIBBIO/})
 
 $/buildinfo-libsim4polish.c: $/buildinfo-libsim4polish.h
 $/buildinfo-libsim4polish.h: ${src}
-	@${UTIL/}buildinfo.pl libsim4polish "${CXXFLAGS} ${CXXFLAGS_COMPILE}" ${src}
+	@../../buildinfo.pl libsim4polish "${CXXFLAGS} ${CXXFLAGS_COMPILE}" ${src}
 	@[ `dirname $@` = "." ] || mv buildinfo-libsim4polish.[ch] `dirname $@`

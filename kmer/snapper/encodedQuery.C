@@ -1,8 +1,9 @@
 #include "posix.H"
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "bio++.H"
 #include "snapper2.H"
-#include "bri++.H"
 
 encodedQuery::encodedQuery(char const           *seq,
                            u32bit                seqLen,

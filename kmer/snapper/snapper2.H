@@ -17,10 +17,10 @@ typedef unsigned short ushort;
 #include <pthread.h>
 #include <semaphore.h>
 
-#include "bri++.H"
+#include "bio++.H"
 
-#include "fasta.H"
-#include "fasta-cache.H"
+//#include "fasta.H"
+//#include "fasta-cache.H"
 
 #include "positionDB.H"
 #include "existDB.H"

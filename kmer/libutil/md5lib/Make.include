@@ -8,11 +8,8 @@
 #
 # See the source code for copyright restrictions.
 
-#  For who knows what reason, $/ is not this directory when building
-# from BRI/.  This is a gross hack to fix it, but it also breaks
-# building in this directory.  See also mt19937ar.
-#
-MD5DIR = ${EXTERNAL/}md5lib
+LIBUTL/     :=$(call MakePath,$/../../libutil/)
+MD5DIR/     :=${LIBUTL/}md5lib/
 
 $/.C_EXES     := $/md5 $/md5test
 $/.C_SRCS     := $/md5c.c $/mddriver.c $/test.c
@@ -28,18 +25,18 @@ $/md5:      $/md5c.o $/mddriver.o $/test.o
 
 # test.rfc is taken from Appendix 5 of RFC 1321.
 #
-$/test.c: $/md5test
+$/test.c: ${MD5DIR/}md5test
 	@echo 'MD5: Testing md5 algorithm.'
-	@echo 'MD5 test suite:' > ${MD5DIR}/test.rfc
-	@echo 'MD5 ("") = d41d8cd98f00b204e9800998ecf8427e' >> ${MD5DIR}/test.rfc
-	@echo 'MD5 ("a") = 0cc175b9c0f1b6a831c399e269772661' >> ${MD5DIR}/test.rfc
-	@echo 'MD5 ("abc") = 900150983cd24fb0d6963f7d28e17f72' >> ${MD5DIR}/test.rfc
-	@echo 'MD5 ("message digest") = f96b697d7cb7938d525a2f31aaf161d0' >> ${MD5DIR}/test.rfc
-	@echo 'MD5 ("abcdefghijklmnopqrstuvwxyz") = c3fcd3d76192e4007dfb496cca67e13b' >> ${MD5DIR}/test.rfc
-	@echo 'MD5 ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789") = d174ab98d277d9f5a5611c2c9f419d9f' >> ${MD5DIR}/test.rfc
-	@echo 'MD5 ("12345678901234567890123456789012345678901234567890123456789012345678901234567890") = 57edf4a22be3c955ac49da2e2107b67a' >> ${MD5DIR}/test.rfc
-	@-${MD5DIR}/md5test -x | diff - ${MD5DIR}/test.rfc > ${MD5DIR}/diffs 2>&1
-	@if test -s ${MD5DIR}/diffs ; then echo 'MD5: TEST FAILED'; else echo 'MD5: Test Passed'; fi
-	${MD5DIR}/md5test -x | diff - ${MD5DIR}/test.rfc
-	@rm ${MD5DIR}/diffs
-	@touch ${MD5DIR}/test.c
+	@echo 'MD5 test suite:' > ${MD5DIR/}/test.rfc
+	@echo 'MD5 ("") = d41d8cd98f00b204e9800998ecf8427e' >> ${MD5DIR/}/test.rfc
+	@echo 'MD5 ("a") = 0cc175b9c0f1b6a831c399e269772661' >> ${MD5DIR/}/test.rfc
+	@echo 'MD5 ("abc") = 900150983cd24fb0d6963f7d28e17f72' >> ${MD5DIR/}/test.rfc
+	@echo 'MD5 ("message digest") = f96b697d7cb7938d525a2f31aaf161d0' >> ${MD5DIR/}/test.rfc
+	@echo 'MD5 ("abcdefghijklmnopqrstuvwxyz") = c3fcd3d76192e4007dfb496cca67e13b' >> ${MD5DIR/}/test.rfc
+	@echo 'MD5 ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789") = d174ab98d277d9f5a5611c2c9f419d9f' >> ${MD5DIR/}/test.rfc
+	@echo 'MD5 ("12345678901234567890123456789012345678901234567890123456789012345678901234567890") = 57edf4a22be3c955ac49da2e2107b67a' >> ${MD5DIR/}/test.rfc
+	@-${MD5DIR/}md5test -x | diff - ${MD5DIR/}/test.rfc > ${MD5DIR/}/diffs 2>&1
+	@if test -s ${MD5DIR/}/diffs ; then echo 'MD5: TEST FAILED'; else echo 'MD5: Test Passed'; fi
+	${MD5DIR/}md5test -x | diff - ${MD5DIR/}/test.rfc
+	@rm ${MD5DIR/}/diffs
+	@touch ${MD5DIR/}/test.c

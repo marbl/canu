@@ -9,13 +9,14 @@
 //
 #include <time.h>
 
-#include "bri++.H"
-#include "fasta.H"
+#include "bio++.H"
+//#include "fasta.H"
 
 void          simseq(char *,char *,int,int,int,int,double);
 
 #include "buildinfo-leaff.h"
-#include "buildinfo-libbri.h"
+#include "buildinfo-libbio.h"
+#include "buildinfo-libutil.h"
 
 #ifdef TRUE64BIT
 const char *idxMsg   = "%8u] %5u %10u\n";
@@ -983,7 +984,8 @@ processArray(int argc, char **argv) {
   while (arg < argc) {
     if        (strncmp(argv[arg], "--buildinfo", 3) == 0) {
       buildinfo_leaff(stderr);
-      buildinfo_libbri(stderr);
+      buildinfo_libbio(stderr);
+      buildinfo_libutil(stderr);
       exit(1);
     } else if (strncmp(argv[arg], "--findduplicates", 3) == 0) {
       arg++;

@@ -4,7 +4,7 @@
 #include <errno.h>
 #include <string.h>
 
-#include "bri++.H"
+#include "util++.H"
 
 //
 //  N.B. any read/write pair (either way) must have a seek (or a fflush) in between.

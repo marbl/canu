@@ -4,7 +4,7 @@
 #include <errno.h>
 #include "existDB.H"
 #include "positionDB.H"
-#include "bri++.H"
+#include "bio++.H"
 
 //  Print some statistics
 //

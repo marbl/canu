@@ -3,7 +3,7 @@
 #include <string.h>
 #include <errno.h>
 #include <math.h>
-#include "bri++.H"
+#include "bio++.H"
 #include "sim4polish.h"
 #include "sim4polishBuilder.H"
 

@@ -1,0 +1,25 @@
+# -*- makefile -*-
+
+LIBUTL/     :=$(call MakePath,$/../libutil/)
+LIBBIO/     :=$(call MakePath,$/../libbio/)
+
+ifdef WITH_THREADS
+ CXXFLAGS+=-DENABLE_THREADS
+else
+ $(warning Use WITH_THREADS to build $/meryl with multithreading support.)
+endif
+
+$/.CXX_SRCS   := $/libmeryl.C
+$/.CXX_LIBS   := $/libmeryl.a
+$/.CLEAN      := $/*.o
+$/.REAL-CLEAN :=$/buildinfo-*
+
+$/libmeryl.a    : $/libmeryl.o $/buildinfo-libmeryl.o
+
+$(eval $/%.d $/%.o:  CXXFLAGS+=-I${LIBBIO/} -I${LIBUTL/})
+
+$/buildinfo-libmeryl.c: $/buildinfo-libmeryl.h
+$/buildinfo-libmeryl.h: $/libmeryl.C $/libmeryl.H
+	@${LIBUTL/}buildinfo.pl libmeryl "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
+	@[ `dirname $@` = "." ] || mv buildinfo-libmeryl.[ch] `dirname $@`
+

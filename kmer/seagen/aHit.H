@@ -1,7 +1,7 @@
 #ifndef AHIT_H
 #define AHIT_H
 
-#include "bri.h"
+#include "bio.h"
 #include <stdio.h>
 
 //  The field called _flgas used to be _direction and held just the

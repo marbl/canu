@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "bri.h"
+#include "util.h"
 
 int
 main(int argc, char **argv) {

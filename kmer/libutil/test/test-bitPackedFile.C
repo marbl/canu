@@ -2,7 +2,7 @@
 #include <time.h>
 #include <math.h>
 
-#include "bri++.H"
+#include "util++.H"
 
 u32bit   testSize = 5000000;
 u32bit   testIter = 200;

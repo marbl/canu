@@ -8,20 +8,18 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 
-#ifndef _AIX
-#include <sys/param.h>
-#include <sys/mount.h>
-#endif
-
 #ifdef _AIX
 #include <sys/statfs.h>
+#else
+#include <sys/param.h>
+#include <sys/mount.h>
 #endif
 
 #ifdef linux
 #include <sys/vfs.h>
 #endif
 
-#include "bri.h"
+#include "util.h"
 
 
 int

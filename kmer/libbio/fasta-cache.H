@@ -1,7 +1,7 @@
 #ifndef FASTA_CACHE_H
 #define FASTA_CACHE_H
 
-#include "bri++.H"
+#include "bio++.H"
 
 //  Keeps a cache of the last N sequences accessed.  If N==0, then the
 //  cache is unlimited in size.

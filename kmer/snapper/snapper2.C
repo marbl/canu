@@ -2,8 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <new>
+
+#include "bio++.H"
 #include "snapper2.H"
-#include "bri++.H"
 
 
 //  The (private) structure for testing various filters.

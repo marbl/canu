@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "bri.h"
+#include "bio.h"
 #include "aHit.H"
 
 //  Define this if your hits have answers and you're curious about how

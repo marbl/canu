@@ -2,7 +2,7 @@
 #define POSITIONDB_H
 
 #include <stdio.h>
-#include "bri++.H"
+#include "bio++.H"
 
 typedef u64bit heapbit;
 
@@ -94,6 +94,10 @@ private:
   u32bit      _chckWidth;
   u32bit      _posnWidth;
   u32bit      _posnPtrWidth;
+
+#ifdef __APPLE__
+  u32bit      _pad1;
+#endif
 
   u64bit      _hashMask;
   u64bit      _chckMask;

@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "bri.h"
+#include "util.h"
 
 //
 //  Performs the md5 test suite using libbri.  MD5 itself is tested in

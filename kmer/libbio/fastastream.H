@@ -1,5 +1,5 @@
-#ifndef BRI_PLUS_PLUS_H
-#error Please use bri++.H instead of fastastream.H
+#ifndef BIO_PLUS_PLUS_H
+#error Please use bio++.H instead of fastastream.H
 #endif
 
 #ifndef FASTASTREAM_H

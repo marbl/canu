@@ -3,9 +3,9 @@
 #include <string.h>
 #include <math.h>
 
+#include "bio++.H"
 #include "meryl.H"
 #include "libmeryl.H"
-#include "bri++.H"
 
 #ifdef ENABLE_THREADS
 void runThreaded(merylArgs *args);
@@ -580,7 +580,7 @@ build(merylArgs *args) {
     //  Cleanup the memory leak.
     //
     delete addArgs;
-    for (u32bit i=0; i<argc; i++)
+    for (int i=0; i<argc; i++)
       if (arga[i])
         delete [] argv[i];
     delete [] argv;

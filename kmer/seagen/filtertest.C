@@ -5,7 +5,7 @@
 #include <string.h>
 #include <errno.h>
 
-#include "bri.h"
+#include "bio.h"
 
 #define MAX_ESTS    (16 * 1024 * 1024)
 #define MAX_HITS    (18474961)  //  for 20-03-5000-0.4

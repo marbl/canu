@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "bio++.H"
 #include "meryl.H"
-#include "bri++.H"
 
 
 u64bit

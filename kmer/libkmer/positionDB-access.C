@@ -1,5 +1,5 @@
 #include "positionDB.H"
-#include "bri++.H"
+#include "bio++.H"
 
 bool
 positionDB::get(u64bit   mer,

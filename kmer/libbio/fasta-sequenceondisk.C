@@ -1,4 +1,4 @@
-#include "bri++.H"
+#include "bio++.H"
 
 
 FastASequenceOnDisk::FastASequenceOnDisk(char const *filename,

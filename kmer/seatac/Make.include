@@ -1,16 +1,22 @@
 # -*- makefile -*-
 
-UTIL/       :=$(call MakePath,$/../util/)
-MERYL/      :=$(call MakePath,$/../meryl/)
-LIBBRI/     :=$(call MakePath,$/../libbri/)
-FASTA/      :=$(call MakePath,$/../fasta/)
-POSITIONDB/ :=$(call MakePath,$/../positionDB/)
-EXISTDB/    :=$(call MakePath,$/../existDB/)
+LIBUTL/     :=$(call MakePath,$/../libutil/)
+LIBBIO/     :=$(call MakePath,$/../libbio/)
+LIBMERYL/   :=$(call MakePath,$/../libmeryl/)
+LIBKMER/    :=$(call MakePath,$/../libkmer/)
+LIBSIM4/    :=$(call MakePath,$/../libsim4/)
 
-src      := $/seatac.C $/configuration.C $/encodedQuery.C \
-            $/hitMatrix.C $/thr-search.C $/thr-loader.C $/thr-deadlock.C \
+src      := $/seatac.C \
+            $/configuration.C \
+            $/encodedQuery.C \
+            $/hitMatrix.C \
+            $/thr-search.C \
+            $/thr-loader.C \
+            $/thr-deadlock.C \
             $/hitMatrix-sort.C \
-            $/hitMatrix.H $/posix.H $/seatac.H
+            $/hitMatrix.H \
+            $/posix.H \
+            $/seatac.H
 
 $/.CXX_SRCS  := $(filter %.C,${src})
 ifdef WITH_THREADS
@@ -26,17 +32,16 @@ $/filter-nop.so: $/filter-nop.o
 $/.CLEAN     :=$/*.o
 $/.REAL-CLEAN:=$/buildinfo-*
 
-$/%.d $/%.o: CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} -I${EXISTDB/}
-$/configuration.C.d:  $/buildinfo-seatac.h \
-                     ${EXISTDB/}buildinfo-existDB.h \
-                     ${POSITIONDB/}buildinfo-positionDB.h \
-                     ${LIBBRI/}buildinfo-libbri.h
+$/%.d $/%.o: CXXFLAGS+=-I${LIBKMER/} -I${LIBBIO/} -I${LIBUTL/}
+$/configuration.C.d: $/buildinfo-seatac.h \
+                     ${LIBKMER/}buildinfo-libkmer.h \
+                     ${LIBBIO/}buildinfo-libbio.h \
+                     ${LIBUTL/}buildinfo-libutil.h
 
 $/seatac:  ${$/.CXX_SRCS:.C=.o} $/buildinfo-seatac.o \
-           ${EXISTDB/}libexistDB.a ${POSITIONDB/}libpositionDB.a \
-           ${MERYL/}libmeryl.a ${LIBBRI/}libbri.a
+           ${LIBKMER/}libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 
 $/buildinfo-seatac.c: $/buildinfo-seatac.h
 $/buildinfo-seatac.h: ${src}
-	@${UTIL/}buildinfo.pl seatac "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
+	@${LIBUTL/}buildinfo.pl seatac "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
 	@[ `dirname $@` = "." ] || mv buildinfo-seatac.[ch] `dirname $@`

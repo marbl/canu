@@ -1,9 +1,9 @@
 #include "posix.H"
 #include "seatac.H"
 #include "buildinfo-seatac.h"
-#include "buildinfo-libbri.h"
-#include "buildinfo-existDB.h"
-#include "buildinfo-positionDB.h"
+#include "buildinfo-libkmer.h"
+#include "buildinfo-libbio.h"
+#include "buildinfo-libutil.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -411,9 +411,9 @@ configuration::read(int argc, char **argv) {
       _filteropts = argv[arg];
     } else if (strncmp(argv[arg], "--buildinfo", 3) == 0) {
       buildinfo_seatac(stderr);
-      buildinfo_libbri(stderr);
-      buildinfo_existDB(stderr);
-      buildinfo_positionDB(stderr);
+      buildinfo_libkmer(stderr);
+      buildinfo_libbio(stderr);
+      buildinfo_libutil(stderr);
       exit(1);
     } else {
       fprintf(stderr, "Unknown option '%s'\n", argv[arg]);

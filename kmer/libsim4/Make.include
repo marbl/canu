@@ -1,0 +1,72 @@
+# -*- makefile -*-
+
+LIBUTL/ :=$(call MakePath,$/../libutil/)
+LIBBIO/ :=$(call MakePath,$/../libbio/)
+LIBS4P/ :=$(call MakePath,$/sim4polish/)
+
+s4csrc := $/sim4core/sim4command.C \
+          $/sim4core/sim4parameters.C \
+          $/sim4core/sim4string.C \
+          $/sim4core/Xtend1.C \
+          $/sim4core/align.C \
+          $/sim4core/exon.H \
+          $/sim4core/exon_cores.C \
+          $/sim4core/extend.C \
+          $/sim4core/greedy.C \
+          $/sim4core/mspManager.C \
+          $/sim4core/mspManager.H \
+          $/sim4core/pluri_align.C \
+          $/sim4core/poly.C \
+          $/sim4core/sim4.H \
+          $/sim4core/sim4b1.C \
+          $/sim4core/sim4b1a.C \
+          $/sim4core/sim4b1-1.C \
+          $/sim4core/sim4b1-2.C \
+          $/sim4core/sim4b1-3.C \
+          $/sim4core/sim4b1-4.C \
+          $/sim4core/sim4defines.H \
+          $/sim4core/sim4parameters.H \
+          $/sim4core/splice.C \
+          $/sim4core/table.C \
+          $/sim4core/util.C
+
+s4psrc  :=$/sim4polish/sim4polish.c \
+          $/sim4polish/sim4polish-copy.c \
+          $/sim4polish/sim4polish-compare.c \
+          $/sim4polish/sim4polish-deleteexon.c \
+          $/sim4polish/sim4polish-destroypolish.c \
+          $/sim4polish/sim4polish-exons.c \
+          $/sim4polish/sim4polish-polishtostring.c \
+          $/sim4polish/sim4polish-printpolish.c \
+          $/sim4polish/sim4polish-read.c \
+          $/sim4polish/sim4polish-stringtopolish.c \
+          $/sim4polish/sim4polish-updatescores.c \
+          $/sim4polish/sim4polish.h \
+          $/sim4polish/sim4polishList.H \
+          $/sim4polish/sim4polishList.C \
+          $/sim4polish/sim4polishBuilder.H \
+          $/sim4polish/sim4polishBuilder.C \
+          $/sim4polish/sim4polishFile.H \
+          $/sim4polish/sim4polishFile.C
+
+$/.C_SRCS     := $(filter %.c,${s4csrc}) $(filter %.c,${s4psrc})
+$/.CXX_SRCS   := $(filter %.C,${s4csrc}) $(filter %.C,${s4psrc})
+$/.CXX_LIBS   := $/libsim4.a
+
+$/.CLEAN      := $/*.o $/sim4core/*.o $/sim4polish/*.o
+$/.REAL-CLEAN := $/sim4core/buildinfo-* $/sim4polish/buildinfo-*
+
+$/.CXX_LIBS   :=$/libsim4.a
+
+$/libsim4.a: ${$/.C_SRCS:.c=.o} ${$/.CXX_SRCS:.C=.o} \
+             $/buildinfo-libsim4.o
+
+$(eval $/%.d $/%.o: CFLAGS   += -I${LIBUTL/} -I${LIBBIO/} -I${LIBS4P/})
+$(eval $/%.d $/%.o: CXXFLAGS += -I${LIBUTL/} -I${LIBBIO/} -I${LIBS4P/})
+
+$/buildinfo-libsim4.c: $/buildinfo-libsim4.h
+$/buildinfo-libsim4.h: ${src}
+	@${LIBUTL/}buildinfo.pl libsim4 "${CXXFLAGS} ${CXXFLAGS_COMPILE}" ${s4csrc} ${s4psrc}
+	@[ `dirname $@` = "." ] || mv buildinfo-libsim4.[ch] `dirname $@`
+
+

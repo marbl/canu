@@ -1,5 +1,5 @@
 #include "positionDB.H"
-#include "bri++.H"
+#include "bio++.H"
 
 //#define ERROR_CHECK
 //#define SORT_CHECK

@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#include "bri++.H"
+#include "util++.H"
 
 int
 main(int argc, char **argv) {

@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#include "bri++.H"
+#include "util++.H"
 
 char            *filename = 0L;
 md5_s           *correct  = 0L;

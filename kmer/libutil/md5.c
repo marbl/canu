@@ -3,10 +3,10 @@
 #include <errno.h>
 #include <string.h>
 
-#include "bri.h"
+#include "util.h"
 
-#include "../external/md5lib/global.h"
-#include "../external/md5lib/md5.h"
+#include "md5lib/global.h"
+#include "md5lib/md5.h"
 
 
 int

@@ -1,14 +1,11 @@
 # -*- makefile -*-
 
-UTIL/          :=$(call MakePath,$/../util/)
-EXTERNAL/      :=$(call MakePath,$/../external/)
-LIBBRI/        :=$(call MakePath,$/../libbri/)
+LIBUTL/        :=$(call MakePath,$/../libutil/)
 
 src    := $/alphabet.c \
           $/alphabet.h \
-          $/bri++.H \
-          $/bri.h \
-          $/britime.C \
+          $/bio++.H \
+          $/bio.h \
           $/chainedSequence.C \
           $/fasta-buildindex.C \
           $/fasta-c.C \
@@ -25,62 +22,39 @@ src    := $/alphabet.c \
           $/fasta-types.H \
           $/fasta.C \
           $/fasta.H \
-          $/file.c \
-          $/intervalList.C \
-          $/md5.c \
-          $/memory.c \
           $/mers.h \
           $/merstream.C \
           $/merstreamfile.C \
-          $/palloc.c \
-          $/readBuffer.C \
-          $/reversecomplement.c \
-          $/stat.c \
-          $/bitOperations.h \
-          $/bitPackedFile.C \
-          $/bitPacking.h \
-          $/fibonacciEncoding.h \
-          $/fibonacciNumbers.C \
-          $/eliasGammaEncoding.h \
-          $/eliasDeltaEncoding.h \
-          $/unaryEncoding.h
-
+          $/reversecomplement.c
 
 $/.C_SRCS    :=$(filter %.c,${src})
 $/.CXX_SRCS  :=$(filter %.C,${src})
-$/.CXX_LIBS  :=$/libbri.a
+$/.CXX_LIBS  :=$/libbio.a
 
 $/.CLEAN := $/*.o
 $/.REAL-CLEAN :=$/buildinfo-*
 
-#  For reasons bri doesn't know, we must explicitly include libbri.
-#  It's related to things in fasta needing to include things in libbri,
-#  and possibly has root cause in that when building libbri, we don't
+#  For reasons bri doesn't know, we must explicitly include libbio.
+#  It's related to things in fasta needing to include things in libbio,
+#  and possibly has root cause in that when building libbio, we don't
 #  use fasta/Make.include -- perhaps we should be using relative
-#  includes "../libbri/bri.h" or have an include directory?
+#  includes "../libbio/bri.h" or have an include directory?
 #
-$(eval $/%.d $/%.o: CFLAGS+=-I${LIBBRI/})
-$(eval $/%.d $/%.o: CXXFLAGS+=-I${LIBBRI/})
+$(eval $/%.d $/%.o: CFLAGS+=-I${LIBUTL/})
+$(eval $/%.d $/%.o: CXXFLAGS+=-I${LIBUTL/})
 
 $/reversecomplement.c.d: $/alphabet.h
-$/merstream.C.d: $/alphabet.h
+$/merstream.C.d:         $/alphabet.h
 
-$/libbri.a: ${$/.C_SRCS:.c=.o} ${$/.CXX_SRCS:.C=.o} $/alphabet.o $/buildinfo-libbri.o \
-        ${EXTERNAL/}md5lib/md5c.o \
-        ${EXTERNAL/}mt19937ar/mt19937ar.o
-
-#        ${EXTERNAL/}md5lib/libmd5.a \
-#        ${EXTERNAL/}mt19937ar/libmt19937ar.a
-
+$/libbio.a: ${$/.C_SRCS:.c=.o} ${$/.CXX_SRCS:.C=.o} $/alphabet.o $/buildinfo-libbio.o
 
 $/alphabet.c: $/alphabet.h
 $/alphabet.h:  $/alphabet-generate.c
 	$(CC) $(CFLAGS) $(CFLAGS_COMPILE) -o `dirname $@`/a.out -DMAIN $<
 	cd `dirname $@` ; ./a.out && rm -f a.out
 
-# note: explicit serialization is required here
-$/buildinfo-libbri.c: $/buildinfo-libbri.h
-$/buildinfo-libbri.h: ${src}
-	@${UTIL/}buildinfo.pl libbri "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
-	@[ `dirname $@` = "." ] || mv buildinfo-libbri.[ch] `dirname $@`
+$/buildinfo-libbio.c: $/buildinfo-libbio.h
+$/buildinfo-libbio.h: ${src}
+	@${LIBUTL/}buildinfo.pl libbio "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
+	@[ `dirname $@` = "." ] || mv buildinfo-libbio.[ch] `dirname $@`
 

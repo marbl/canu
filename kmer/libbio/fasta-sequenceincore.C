@@ -3,7 +3,7 @@
 #include <string.h>
 #include <ctype.h>
 
-#include "bri++.H"
+#include "bio++.H"
 
 
 FastASequenceInCore::FastASequenceInCore(IID_t iid) {

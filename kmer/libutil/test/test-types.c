@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#include "bri.h"
+#include "util.h"
 
 int
 main(void) {

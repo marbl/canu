@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "bri++.H"
+#include "bio++.H"
 
 int
 streamingTest(char *msfile) {

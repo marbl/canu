@@ -13,7 +13,7 @@
 //  bri.h contains the function prototypes, but we hide the structure and
 //  implementation here.
 //
-#include "bri.h"
+#include "../util.h"
 
 /* Period parameters */  
 #define MT_N 624
@@ -39,7 +39,7 @@ struct mt {
   u32bit  mag01[2];
 };
 
-//  This is declared in bri.h
+//  This is declared in util.h
 //
 //typedef struct mt mt_s;
 

@@ -1,57 +1,31 @@
 # -*- makefile -*-
 
-UTIL/       :=$/util/
-EXTERNAL/   :=$/external/
-BIN/        :=$/bin/
-LIBBRI/     :=$/libbri/
-FASTA/      :=$/fasta/
-SIM4POLISH/ :=$/sim4polish/
-SIM4READER/ :=$/sim4reader/
-SIM4DB/     :=$/sim4db/
-SIM4/       :=$/sim4/
-CDNAGAPS/   :=$/cdnagaps/
-POSITIONDB/ :=$/positionDB/
-EXISTDB/    :=$/existDB/
-SEARCHGEN/  :=$/searchGENOME/
-SEATAC/     :=$/seatac/
-EMMA/       :=$/emma/
-MERYL/      :=$/meryl/
-SNAPPER2/   :=$/snapper2/
-REFSEQANAL/ :=$/refseq-analysis/
-#MERTABLES/  :=$/merTables/
+LIBUTL/       :=$/libutl/
+LIBBIO/       :=$/libbio/
+LIBMERYL/     :=$/libmeryl/
+LIBKMER/      :=$/libkmer/
+LIBSIM4/      :=$/libsim4/
 
-########################## includes #############
-
-#  Bah!  Order is important here.  It would be nice to get things to
+# Bah!  Order is important here.  It would be nice to get things to
 # build in order of dependency (e.g., libbri, then fasta, then
 # existdb, then posdb, then searchgen), but the .d dependency
 # generation goes BACKWARDS and it also makes the buildinfo files that
 # other things include.
 #
 # So, this list is backwards.
-#
-$(eval $(call Include,${MERYL/}))
-$(eval $(call Include,${REFSEQANAL/}))
-$(eval $(call Include,${CDNAGAPS/}))
 
-$(eval $(call Include,${SIM4DB/}))
-$(eval $(call Include,${SIM4READER/}))
-$(eval $(call Include,${SIM4POLISH/}))
-$(eval $(call Include,${SIM4/}))
+#$(eval $(call Include,$/ESTmapper/))
 
-$(eval $(call Include,${EMMA/}))
+$(eval $(call Include,$/leaff/))
+$(eval $(call Include,$/meryl/))
+$(eval $(call Include,$/seagen/))
+$(eval $(call Include,$/seatac/))
+$(eval $(call Include,$/sim4db/))
+$(eval $(call Include,$/snapper/))
 
-$(eval $(call Include,${SEATAC/}))
-$(eval $(call Include,${SNAPPER2/}))
-
-$(eval $(call Include,${SEARCHGEN/}))
-
-#$(eval $(call Include,${MERTABLES/}))
-$(eval $(call Include,${POSITIONDB/}))
-$(eval $(call Include,${EXISTDB/}))
-
-$(eval $(call Include,${FASTA/}))
-
-$(eval $(call Include,${LIBBRI/}))
-$(eval $(call Include,${EXTERNAL/}))
+$(eval $(call Include,${LIBSIM4/}))
+$(eval $(call Include,${LIBMERYL/}))
+$(eval $(call Include,${LIBKMER/}))
+$(eval $(call Include,${LIBBIO/}))
+$(eval $(call Include,${LIBUTL/}))
 

@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <new>
 #include "searchGENOME.H"
-#include "bri++.H"
+#include "bio++.H"
 #include "existDB.H"
 
 

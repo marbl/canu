@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <strings.h>
 
-#include "bri++.H"
+#include "util++.H"
 #include "exon.H"
 
 struct msp {
@@ -133,11 +133,16 @@ private:
   bool           _tooManyMSPs;
   int            _cDNALength;
 
-  u32bit         _mspLimitAbsolute;
   double         _mspLimitPercent;
+  u32bit         _mspLimitAbsolute;
 
   int            _match;
   int            _matchdiff;
+
+#ifdef __APPLE__
+  int            _pad1;
+#endif
+
   double         _percentError;
   int            _wordExtAllow;
 

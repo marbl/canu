@@ -1,7 +1,7 @@
 #ifndef MERYL_H
 #define MERYL_H
 
-#include "bri.h"
+#include "bio.h"
 
 #define PERSONALITY_MIN           0x01
 #define PERSONALITY_MINEXIST      0x02
@@ -35,31 +35,31 @@ public:
   char             *execName;
 
   bool              beVerbose;
-
-  char             *inputFile;
-  char             *outputFile;
-  char             *queryFile;
-
-  u32bit            merSize;
-
   bool              doForward;
   bool              doReverse;
   bool              doCanonical;
 
+  char             *inputFile;
+  char             *outputFile;
+  char             *queryFile;
+  char             *statsFile;
+
+  u32bit            merSize;
+
   u64bit            numMersEstimated;
   u64bit            numMersActual;
 
+  u64bit            mersPerBatch;
   u64bit            numBuckets;
   u32bit            numBuckets_log2;
-  u64bit            mersPerBatch;
   u32bit            merDataWidth;
   u64bit            merDataMask;
-  u32bit            bucketPointerWidth;
   u64bit            bucketPointerMask;
+  u32bit            bucketPointerWidth;
 
+  u32bit            numThreads;
   u64bit            memoryLimit;
   u64bit            segmentLimit;
-  u32bit            numThreads;
   bool              configBatch;
   bool              countBatch;
   bool              mergeBatch;
@@ -81,8 +81,10 @@ public:
   char            **mergeFiles;
 
   char              personality;
+#ifdef __APPLE__
+  char              pad1[3];
+#endif
 
-  char             *statsFile;
 };
 
 

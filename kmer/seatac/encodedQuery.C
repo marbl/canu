@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "seatac.H"
-#include "bri++.H"
+#include "bio++.H"
 
 encodedQuery::encodedQuery(char const    *seq,
                            u32bit         seqLen,

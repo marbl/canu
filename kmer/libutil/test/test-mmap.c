@@ -4,7 +4,7 @@
 #include <errno.h>
 #include <string.h>
 
-#include "bri.h"
+#include "util.h"
 
 //  Does a quick test of memory mapped files.  First, writes a small
 //  file, then it reads it back, checking the data.

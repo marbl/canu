@@ -3,8 +3,8 @@
 #include <string.h>
 #include <errno.h>
 
+#include "bio++.H"
 #include "positionDB.H"
-#include "fasta.H"
 
 //  Driver for the positionDB creation.  Reads a sequence.fasta, builds
 //  a positionDB for the mers in the file, and then writes the internal

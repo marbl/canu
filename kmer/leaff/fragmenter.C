@@ -1,10 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "bri++.H"
 
+#include "bio++.H"
 
-//
-//
 //  Splits a sequence into itty-bitty pieces.
 //
 //  By default, splits into non-overlapping pieces of length L.
@@ -16,7 +14,6 @@
 //  If a piece has more than (currently) 50 N's, it will be broken --
 //  the first piece and last piece will be saved, and the middle (with
 //  the N's) will be discarded.
-//
 
 
 //#define DEBUG

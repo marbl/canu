@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "bri.h"
+#include "bio.h"
 
 
 #define SIM4_INTRON_ERROR        '?'  //  '??'

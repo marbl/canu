@@ -3,7 +3,7 @@
 #include <string.h>
 #include <ctype.h>
 
-#include "bri++.H"
+#include "bio++.H"
 
 FastAWrapper::FastAWrapper(const char *filename, u32bit bufferSize) {
   _theSeqs               = 0L;

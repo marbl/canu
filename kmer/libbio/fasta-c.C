@@ -1,4 +1,4 @@
-#include "bri++.H"
+#include "bio++.H"
 #include "fasta-c.h"
 
 typedef struct {

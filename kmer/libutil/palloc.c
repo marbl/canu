@@ -3,7 +3,7 @@
 #include <errno.h>
 #include <string.h>
 
-#include "bri.h"
+#include "util.h"
 
 typedef struct pallocroot pallocroot;
 typedef struct pallocnode pallocnode;

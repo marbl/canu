@@ -1,7 +1,7 @@
 #ifndef FASTA_SEQUENCEONDISK_H
 #define FASTA_SEQUENCEONDISK_H
 
-#include "bri.h"
+#include "bio.h"
 #include "fasta-types.H"
 
 

@@ -134,7 +134,8 @@ private:
   //
   bool          _interspecies;
 #ifdef __APPLE__
-  bool          _pad4[7];
+  bool          _pad4[3];
+  u32bit        _pad5;
 #endif
 
   double        _percentError;

@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <new>
 
-#include "bri++.H"
+#include "bio++.H"
 #include "positionDB.H"
 
 struct diagonalLine {

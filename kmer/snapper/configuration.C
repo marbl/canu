@@ -1,11 +1,12 @@
 #include "posix.H"
 #include "snapper2.H"
 #include "buildinfo-snapper2.h"
-#include "buildinfo-existDB.h"
-#include "buildinfo-positionDB.h"
-#include "buildinfo-libbri.h"
+#include "buildinfo-libutil.h"
+#include "buildinfo-libbio.h"
+#include "buildinfo-libmeryl.h"
+#include "buildinfo-libkmer.h"
 #include "buildinfo-libsim4.h"
-#include "buildinfo-libsim4polish.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

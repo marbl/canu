@@ -1,56 +1,64 @@
 # -*- makefile -*-
 
-UTIL/       :=$(call MakePath,$/../util/)
-MERYL/      :=$(call MakePath,$/../meryl/)
-LIBBRI/     :=$(call MakePath,$/../libbri/)
-FASTA/      :=$(call MakePath,$/../fasta/)
-POSITIONDB/ :=$(call MakePath,$/../positionDB/)
-EXISTDB/    :=$(call MakePath,$/../existDB/)
+LIBUTL/     :=$(call MakePath,$/../libutil/)
+LIBBIO/     :=$(call MakePath,$/../libbio/)
+LIBMERYL/   :=$(call MakePath,$/../libmeryl/)
+LIBKMER/    :=$(call MakePath,$/../libkmer/)
+LIBSIM4/    :=$(call MakePath,$/../libsim4/)
 
-src      := $/searchGENOME.C $/configuration.C $/encodedQuery.C \
-            $/thr-search.C $/thr-loader.C $/thr-deadlock.C \
+src      := $/searchGENOME.C \
+            $/configuration.C \
+            $/encodedQuery.C \
+            $/thr-search.C \
+            $/thr-loader.C \
+            $/thr-deadlock.C \
             $/hitMatrix-sort.C \
-            $/aHit.H $/aHit.C $/hitMatrix.H $/posix.H $/searchGENOME.H
+            $/aHit.H \
+            $/aHit.C \
+            $/hitMatrix.H \
+            $/posix.H \
+            $/searchGENOME.H
 src_C    := $(filter %.C,${src})
-other_C  := $/hitConverter.C $/filterEST.C $/filterEST-complicated.C $/filterMRNA.C \
-            $/sortHits.C $/filtertest.C $/hitReader.C
+other_C  := $/hitConverter.C \
+            $/filterEST.C \
+            $/filterEST-complicated.C \
+            $/filterMRNA.C \
+            $/sortHits.C \
+            $/filtertest.C \
+            $/hitReader.C
 
 $/.CXX_SRCS  :=${src_C} ${other_C} $/hitMatrix.C
 ifdef WITH_THREADS
- $/.CXX_EXES := $/searchGENOME $/hitConverter $/filterEST $/filterMRNA $/filtertest $/sortHits $/filterESTsimple
+ $/.CXX_EXES := $/seagen $/hitConverter $/filterEST $/filterMRNA $/filtertest $/sortHits $/filterESTsimple
 else
  $/.CXX_EXES := $/hitConverter $/filterEST $/filterMRNA $/filtertest $/sortHits
- $(warning $/searchGENOME require threads: enable WITH_THREADS to build them.)
+ $(warning $/seagen require threads: enable WITH_THREADS to build them.)
 endif
 
 $/.CLEAN     :=$/*.o
 $/.REAL-CLEAN:=$/buildinfo-*
 
-$(eval $/%.d $/%.o: CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} -I${EXISTDB/})
+$(eval $/%.d $/%.o: CXXFLAGS+=-I${LIBKMER/} -I${LIBBIO/} -I${LIBUTL/})
 
-$/configuration.C.d: $/buildinfo-searchGENOME.h \
-                     ${EXISTDB/}buildinfo-existDB.h \
-                     ${POSITIONDB/}buildinfo-positionDB.h \
-                     ${LIBBRI/}buildinfo-libbri.h
+$/configuration.C.d: $/buildinfo-seagen.h \
+                     ${LIBKMER/}buildinfo-libkmer.h \
+                     ${LIBBIO/}buildinfo-libbio.h \
+                     ${LIBUTL/}buildinfo-libutil.h
 
-$/searchGENOME:        $/hitMatrix.o
+$/seagen:        $/hitMatrix.o
 
-$/searchGENOME: ${src_C:.C=.o} \
-                $/buildinfo-searchGENOME.o \
-                ${EXISTDB/}libexistDB.a \
-                ${POSITIONDB/}libpositionDB.a \
-                ${MERYL/}libmeryl.a \
-                ${LIBBRI/}libbri.a
+$/seagen: ${src_C:.C=.o} $/buildinfo-seagen.o \
+                ${LIBKMER/}libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 
 $/hitConverter: $/hitConverter.o $/aHit.o
 $/filterEST:    $/filterEST.o $/filterEST-complicated.o $/hitReader.o $/aHit.o
 $/filterMRNA:   $/filterMRNA.o $/hitReader.o $/aHit.o
-$/sortHits:     $/sortHits.o $/aHit.o ${LIBBRI/}libbri.a
+$/sortHits:     $/sortHits.o $/aHit.o ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 $/filtertest:   $/filtertest.o
 
 $/filterESTsimple:    $/filterESTsimple.o $/hitReader.o $/aHit.o
 
-$/buildinfo-searchGENOME.c: $/buildinfo-searchGENOME.h
-$/buildinfo-searchGENOME.h: ${src}
-	@${UTIL/}buildinfo.pl searchGENOME "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
-	@[ `dirname $@` = "." ] || mv buildinfo-searchGENOME.[ch] `dirname $@`
+$/buildinfo-seagen.c: $/buildinfo-seagen.h
+$/buildinfo-seagen.h: ${src}
+	@${LIBUTL/}buildinfo.pl seagen "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
+	@[ `dirname $@` = "." ] || mv buildinfo-seagen.[ch] `dirname $@`

@@ -1,7 +1,7 @@
 #include <errno.h>
 #include <string.h>
 
-#include "bri.h"
+#include "util.h"
 
 void *
 memdup(const void *orig, size_t size) {
@@ -12,7 +12,8 @@ memdup(const void *orig, size_t size) {
     rslt = malloc(size);
     if (errno) {
       //  Some ugliness to print out a size_t.  This might be useless,
-      //  as it might be determined by TRUE64BIT.
+      //  as it might be determined by TRUE64BIT.  You also get a
+      //  compiler warning here, probably.
       //
       if (sizeof(size_t) == 8)
         fprintf(stderr, "memdup()-- can't allocate "s64bitFMT" bytes.\n%s\n", size, strerror(errno));

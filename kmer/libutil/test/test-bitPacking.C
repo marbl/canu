@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "bri++.H"
+#include "util++.H"
 
 //  An integer multiplier on the test length.  1 is pretty quick, but
 //  10 is the default.

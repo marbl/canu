@@ -17,11 +17,10 @@ typedef unsigned short ushort;
 #include <pthread.h>
 #include <semaphore.h>
 
-#include "bri++.H"
-#include "fasta.H"
+#include "bio++.H"
 
-#include "positionDB.H"
 #include "existDB.H"
+#include "positionDB.H"
 
 #include "hitMatrix.H"
 
@@ -37,9 +36,10 @@ private:
 
   u32bit       _seqPos;
 
+  s32bit       _timeUntilValid;
+
   u64bit       _substring;
   u64bit       _mermask;
-  s32bit       _timeUntilValid;
 public:
   encodedQuery(char const           *seq,
                u32bit                seqLen,
@@ -98,6 +98,10 @@ public:
   u32bit           _useListMax;
   use_s           *_useList;
 
+#ifdef __APPLE__
+  void            *_pad1;
+#endif
+
   //  Wall clock times
   //
   double           _startTime;
@@ -127,6 +131,10 @@ public:
   u32bit           _writerHighWaterMark;
   struct timespec  _writerSleep;
   bool             _writerWarnings;
+
+#ifdef __APPLE__
+  char             _pad2[4];
+#endif
 
   configuration();
   ~configuration();

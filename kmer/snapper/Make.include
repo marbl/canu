@@ -1,13 +1,10 @@
 # -*- makefile -*-
 
-UTIL/       :=$(call MakePath,$/../util/)
-EXISTDB/    :=$(call MakePath,$/../existDB/)
-POSITIONDB/ :=$(call MakePath,$/../positionDB/)
-MERYL/      :=$(call MakePath,$/../meryl/)
-LIBBRI/     :=$(call MakePath,$/../libbri/)
-FASTA/      :=$(call MakePath,$/../fasta/)
-SIM4/       :=$(call MakePath,$/../sim4/)
-SIM4POLISH/ :=$(call MakePath,$/../sim4polish/)
+LIBUTL/     :=$(call MakePath,$/../libutil/)
+LIBBIO/     :=$(call MakePath,$/../libbio/)
+LIBMERYL/   :=$(call MakePath,$/../libmeryl/)
+LIBKMER/    :=$(call MakePath,$/../libkmer/)
+LIBSIM4/    :=$(call MakePath,$/../libsim4/)
 
 src      := $/snapper2.C \
             $/configuration.C \
@@ -35,32 +32,31 @@ endif
 $/.CLEAN     :=$/*.o
 $/.REAL-CLEAN:=$/buildinfo-*
 
-$(eval $/%.d $/%.o:  CXXFLAGS+= -I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} -I${SIM4/} -I${SIM4POLISH/} -I${EXISTDB/})
-$(eval $/%.d      :  ${EXISTDB/}buildinfo-libbri.h )
-$(eval $/%.d      :  ${POSITIONDB/}buildinfo-positionDB.h )
-$(eval $/%.d      :  ${LIBBRI/}buildinfo-libbri.h )
-$(eval $/%.d      :  ${SIM4/}buildinfo-libsim4.h )
-$(eval $/%.d      :  ${SIM4POLISH/}buildinfo-libsim4polish.h )
+$(eval $/%.d $/%.o:  CXXFLAGS+= -I${LIBUTL/} -I${LIBBIO/} -I${LIBMERYL/} -I${LIBKMER/} -I${LIBSIM4/})
+$(eval $/%.d      :  ${LIBUTL/}buildinfo-libutil.h )
+$(eval $/%.d      :  ${LIBBIO/}buildinfo-libbio.h )
+$(eval $/%.d      :  ${LIBMERYL/}buildinfo-libmeryl.h )
+$(eval $/%.d      :  ${LIBKMER/}buildinfo-libkmer.h )
+$(eval $/%.d      :  ${LIBSIM4/}buildinfo-libsim4.h )
 
 $/configuration.C.d: $/buildinfo-snapper2.h \
-                     ${EXISTDB/}buildinfo-existDB.h \
-                     ${POSITIONDB/}buildinfo-positionDB.h \
-                     ${LIBBRI/}buildinfo-libbri.h \
-                     ${SIM4/}buildinfo-libsim4.h \
-                     ${SIM4POLISH/}buildinfo-libsim4polish.h
+                     ${LIBUTL/}buildinfo-libutil.h \
+                     ${LIBBIO/}buildinfo-libbio.h \
+                     ${LIBMERYL/}buildinfo-libmeryl.h \
+                     ${LIBKMER/}buildinfo-libkmer.h \
+                     ${LIBSIM4/}buildinfo-libsim4.h
 
 $/snapper2:   ${$/.CXX_SRCS:.C=.o} \
               $/buildinfo-snapper2.o \
-              ${EXISTDB/}libexistDB.a \
-              ${POSITIONDB/}libpositionDB.a \
-              ${MERYL/}libmeryl.a \
-              ${SIM4/}libsim4.a \
-              ${SIM4POLISH/}libsim4polish.a \
-              ${LIBBRI/}libbri.a
+              ${LIBSIM4/}libsim4.a \
+              ${LIBKMER/}libkmer.a \
+              ${LIBMERYL/}libmeryl.a \
+              ${LIBBIO/}libbio.a \
+              ${LIBUTL/}libutil.a
 
 $/buildinfo-snapper2.c: $/buildinfo-snapper2.h
 $/buildinfo-snapper2.h: ${src}
-	@${UTIL/}buildinfo.pl snapper2 "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
+	@${LIBUTL/}buildinfo.pl snapper2 "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
 	@[ `dirname $@` = "." ] || mv buildinfo-snapper2.[ch] `dirname $@`
 
 

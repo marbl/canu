@@ -1,8 +1,7 @@
 #ifndef SIM4COMMAND_H
 #define SIM4COMMAND_H
 
-#include "bri++.H"
-#include "fasta.H"
+#include "bio++.H"
 
 //
 //  Contains the variable stuff for an execution of sim4

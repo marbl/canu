@@ -1,27 +1,34 @@
 # -*- makefile -*-
 
-LIBBRI/     :=$(call MakePath,$/../libbri/)
-FASTA/      :=$(call MakePath,$/../fasta/)
-MERYL/      :=$(call MakePath,$/../meryl/)
-EXISTDB/    :=$(call MakePath,$/../existDB/)
-UTIL/       :=$(call MakePath,$/../util/)
+LIBUTL/     :=$(call MakePath,$/../libutil/)
+LIBBIO/     :=$(call MakePath,$/../libbio/)
+LIBMERYL/   :=$(call MakePath,$/../libmeryl/)
 
-src           :=$/positionDB.C $/positionDB.H $/positionDB-access.C $/positionDB-dump.C $/positionDB-sort.C $/positionDB-file.C 
-$/.CXX_SRCS   := $/driver.C $(filter %.C,${src})
-$/.CXX_EXES   := $/positionDB
-$/.CXX_LIBS   := $/libpositionDB.a
+src := $/existDB-create-from-fasta.C \
+       $/existDB-create-from-meryl.C \
+       $/existDB-state.C \
+       $/existDB.C \
+       $/existDB.H \
+       $/positionDB-access.C \
+       $/positionDB-dump.C \
+       $/positionDB-file.C \
+       $/positionDB-sort.C \
+       $/positionDB.C \
+       $/positionDB.H
+
+$/.CXX_SRCS   := $/driver-existDB.C $/driver-posDB.C $(filter %.C,${src})
+$/.CXX_EXES   := $/existDB $/positionDB
+$/.CXX_LIBS   := $/libkmer.a
 $/.CLEAN      := $/*.o
 $/.REAL-CLEAN := $/buildinfo-*
 
-$/libpositionDB.a:   $/buildinfo-positionDB.o $/positionDB.o $/positionDB-access.o $/positionDB-dump.o $/positionDB-sort.o $/positionDB-file.o
-$/positionDB:        $/driver.o ${MERYL/}libmeryl.a ${EXISTDB/}libexistDB.a $/libpositionDB.a
+$/libkmer.a:   $/buildinfo-libkmer.o $(filter %.o,${src:.C=.o})
+$/existDB:     $/driver-existDB.o $/libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a 
+$/positionDB:  $/driver-posDB.o   $/libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a 
 
-$(eval $/%.d $/%.o:    CXXFLAGS+= -I${EXISTDB/} -I${FASTA/} -I${MERYL/} -I${LIBBRI/})
+$(eval $/%.d $/%.o:    CXXFLAGS+= -I${LIBMERYL/} -I${LIBBIO/} -I${LIBUTL/})
 
-${$/.CXX_EXES}: ${EXISTDB/}libexistDB.a ${MERYL/}libmeryl.a ${LIBBRI/}libbri.a $/libpositionDB.a
-
-$/buildinfo-positionDB.c: $/buildinfo-positionDB.h
-$/buildinfo-positionDB.h: ${src}
-	@${UTIL/}buildinfo.pl positionDB "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
-	@[ `dirname $@` = "." ] || mv buildinfo-positionDB.[ch] `dirname $@`
-
+$/buildinfo-libkmer.c: $/buildinfo-libkmer.h
+$/buildinfo-libkmer.h: ${src}
+	@${LIBUTL/}buildinfo.pl libkmer "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
+	@[ `dirname $@` = "." ] || mv buildinfo-libkmer.[ch] `dirname $@`

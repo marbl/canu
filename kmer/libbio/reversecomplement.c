@@ -1,4 +1,4 @@
-#include "bri.h"
+#include "bio.h"
 
 //  Inplace reverse-complement the sequence.  A pointer
 //  the the character string is returned.

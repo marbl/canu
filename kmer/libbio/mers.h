@@ -1,5 +1,5 @@
-#ifndef BRI_MERS_H
-#define BRI_MERS_H
+#ifndef BIO_MERS_H
+#define BIO_MERS_H
 
 
 
@@ -33,4 +33,4 @@ reverseComplementMer(u32bit ms, u64bit fmer) {
 
 
 
-#endif  //  BRI_MERS_H
+#endif  //  BIO_MERS_H

@@ -17,8 +17,7 @@ typedef unsigned short ushort;
 #include <pthread.h>
 #include <semaphore.h>
 
-#include "bri++.H"
-#include "fasta.H"
+#include "bio++.H"
 
 #include "positionDB.H"
 #include "existDB.H"

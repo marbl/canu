@@ -1,4 +1,4 @@
-#include "bri++.H"
+#include "bio++.H"
 
 merStream::merStream(merStreamFileReader *msf) {
   _ms_mers         = msf;

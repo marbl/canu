@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 #include "positionDB.H"
-#include "bri++.H"
+#include "bio++.H"
 
 #ifdef DEBUGPOSDB
 

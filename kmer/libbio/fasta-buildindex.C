@@ -1,6 +1,6 @@
 #include <ctype.h>
 
-#include "bri++.H"
+#include "bio++.H"
 
 char*
 FastAWrapper::indexTypeNames(u32bit indextype) {

@@ -4,7 +4,7 @@
 
 #include "positionDB.H"
 #include "existDB.H"
-#include "bri++.H"
+#include "bio++.H"
 
 //#define ERROR_CHECK_COUNTING
 //#define ERROR_CHECK_COUNTING_ENCODING

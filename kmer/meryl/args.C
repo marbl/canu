@@ -3,10 +3,11 @@
 #include <errno.h>
 #include <string.h>
 
+#include "bio++.H"
 #include "meryl.H"
-#include "bri++.H"
 #include "buildinfo-meryl.h"
-#include "buildinfo-libbri.h"
+#include "buildinfo-libbio.h"
+#include "buildinfo-libutil.h"
 
 
 
@@ -290,7 +291,8 @@ merylArgs::merylArgs(int argc, char **argv) {
   for (int arg=1; arg < argc; arg++) {
     if        (strncmp(argv[arg], "--buildinfo", 3) == 0) {
       buildinfo_meryl(stderr);
-      buildinfo_libbri(stderr);
+      buildinfo_libbio(stderr);
+      buildinfo_libutil(stderr);
       exit(1);
     } else if (strcmp(argv[arg], "-m") == 0) {
       arg++;

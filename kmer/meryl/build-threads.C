@@ -6,9 +6,9 @@
 #include <math.h>
 #include <pthread.h>
 
+#include "bio++.H"
 #include "meryl.H"
 #include "libmeryl.H"
-#include "bri++.H"
 
 
 

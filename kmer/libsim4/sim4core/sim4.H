@@ -15,7 +15,7 @@
 #include <ctype.h>
 #include <errno.h>
 
-#include "bri++.H"
+#include "util++.H"
 
 #include "ckalloc.H"
 #include "sim4parameters.H"
@@ -23,9 +23,10 @@
 #include "exon.H"
 #include "mspManager.H"
 #include "sim4defines.H"
-#include "sim4polish.h"
-#include "sim4polishList.H"
-#include "sim4polishBuilder.H"
+
+#include "../sim4polish/sim4polish.h"
+#include "../sim4polish/sim4polishList.H"
+#include "../sim4polish/sim4polishBuilder.H"
 
 //
 //  A wrapper for the sim4 subroutines

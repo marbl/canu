@@ -4,7 +4,7 @@
 #include <string.h>
 #include <ctype.h>
 
-#include "bri.h"
+#include "bio.h"
 
 //  This is Liliana Florea's sequencing error simulator.  Bri hacked
 //  it to use a real RNG, and to make it work from leaff.
