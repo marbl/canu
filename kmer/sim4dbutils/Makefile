@@ -55,6 +55,24 @@ trimSequencesBasedOnMatches: trimSequencesBasedOnMatches.o $(OBJS)
 uniqPolishes: uniqPolishes.o $(OBJS)
 	$(CC) $(CCOPTS) -o uniqPolishes uniqPolishes.o $(OBJS) $(LIBS) $(EFENCE)
 
+
+#  Run the test cases for parseSNP
+#
+parseSNP-test: parseSNP
+	@echo See page 85 in Big Bad Bri IR#2 for notes on parseSNP-test.
+	@../sim4db/sim4db -align -cdna test/parsesnp-snp.fasta -genomic test/parsesnp-gen.fasta -o test/parsesnp-sim4.out
+	@./parseSNP -O test/parsesnp-good -F test/parsesnp-fail < test/parsesnp-sim4.out
+	@-diff test/parsesnp-good test/parsesnp-correct-parsed > test/parsesnp-diffs
+	@if test -s test/parsesnp-diffs ; then \
+          echo "parseSNP tests FAILED" ; \
+          cat test/parsesnp-diffs ; \
+          exit 13 ; \
+         else \
+          echo "parseSNP tests passed" ; \
+          rm -f test/parsesnp-good test/parsesnp-fail test/parsesnp-sim4.out test/parsesnp-diffs test/parsesnp-gen.fastaidx test/parsesnp-snp.fastaidx; \
+         fi
+
+
 clean:
 	rm -f $(PROG) *.o
 

@@ -1,0 +1,8 @@
+rev_comp_end_of_first_exon genomicTestChunk 51 C/X complement global[98 98] exon[2 0 98 49]
+forward_end_of_first_exon genomicTestChunk 51 C/X forward global[98 98] exon[2 0 98 49]
+rev_comp_start_of_second_exon genomicTestChunk 643 C/Y complement global[98 98] exon[2 1 98 48]
+forward_start_of_second_exon genomicTestChunk 643 C/Y forward global[98 98] exon[2 1 98 48]
+reverse_end_of_second_exon genomicTestChunk 692 g/g complement global[98 98] exon[2 1 98 48]
+forward_end_of_second_exon genomicTestChunk 692 g/g forward global[98 98] exon[2 1 98 48]
+reverse_start_of_first_exon genomicTestChunk 1 t/t complement global[98 98] exon[2 0 98 49]
+forward_start_of_first_exon genomicTestChunk 1 t/t forward global[98 98] exon[2 0 98 49]
