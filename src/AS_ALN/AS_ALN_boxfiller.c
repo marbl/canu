@@ -46,10 +46,18 @@
 #define LBUFLEN 512
 
 extern int max_indel_AS_ALN_LOCOLAP_GLOBAL;
+extern int aimforlongest;
+extern int kmerlen;
+extern int minmatch;
+extern int maxerror;
+extern int kthresh;
 
 void usage(void)
 {
-	fprintf( stderr, "usage: AS_ALN_boxfiller <-a abnd> <-b bbnd> <-e error_rate> <-m minlen> <-P proto_output_file>\n");
+	fprintf( stderr, "usage: AS_ALN_boxfiller <-a abnd> <-b bbnd> <-e error_rate> <-m minlen> <-P proto_output_file> [-f.orwardOnly] [-n.oAlign] [-I]\n");
+	fprintf( stderr, "\t-n suppresses printing of alignment\n");
+	fprintf( stderr, "\t-f causes only forward orientations to be searched\n");
+	fprintf( stderr, "\t-I uses near-identity settings, appropriate for finding 2% errors in 100-bp matches (much faster)\n");
 	exit(1);
 }
 
@@ -184,7 +192,12 @@ int main(int argc, char *argv[])
   int bbnd, bbndFromUser = FALSE;
   int minlen=40;
   int first=1;
+  int doRevToo=1;
+  int noAlign=0;
+
   double err=.06;
+
+  aimforlongest=1;
 
 #ifdef OLDWAY	  
   if(argc>2&&strcmp(argv[1],"-P")==0){
@@ -210,7 +223,7 @@ int main(int argc, char *argv[])
 	  { /* Parse the argument list using "man 3 getopt". */ 
 		  int ch,errflg=0;
 		  optarg = NULL;
-		  while (!errflg && ((ch = getopt(argc, argv, "a:b:e:hm:P:")) != EOF))
+		  while (!errflg && ((ch = getopt(argc, argv, "a:b:e:hm:P:fnI")) != EOF))
 		  {
 #if 0
 			  fprintf(GlobalData->stderrc,"* ch = %c optopt= %c optarg = %s\n", ch, optopt, (optarg?optarg:"(NULL)"));
@@ -228,12 +241,24 @@ int main(int argc, char *argv[])
 				  case 'e':
 					  err = atof(optarg);
 					  break;
+           			  case 'f':
+				    doRevToo=0;
+				    break;
 				  case 'h':
 					  usage();
 					  break;
+			          case 'I':  //tunings for near-id searches
+				          kmerlen=12;
+					  minmatch=100;
+					  maxerror=2;
+					  kthresh=65;
+				          break;
 				  case 'm':
 					  minlen = atoi(optarg);
 					  break;
+			          case 'n':
+				    noAlign=1;
+				    break;
 				  case 'P':
 					  // outputPath = strdup(optarg);
 					  fprintf(stderr,"Printing OVLs to %s\n", optarg);
@@ -299,7 +324,7 @@ int main(int argc, char *argv[])
 	  }
 	  
 
-	  for(ori=0;ori<2;ori++){
+	  for(ori=0;ori<1+doRevToo;ori++){
 
 #ifdef DEBUG_BUBBLE_SMOOTHING
             fprintf(stderr,"BoxFill_AS: err=%f ori=%d minlen=%d\n",
@@ -324,7 +349,7 @@ int main(int argc, char *argv[])
             
 	    if (O != NULL){
 	      olaps += 1;
-              Print_Overlap_AS(stdout,&A,&B,O);
+              if(!noAlign)Print_Overlap_AS(stdout,&A,&B,O);
 	      { 
 		int alen,blen,del,sub,ins,affdel,affins,blockdel,blockins;
 		double errRate,errRateAffine;
