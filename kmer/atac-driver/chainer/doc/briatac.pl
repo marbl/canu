@@ -533,7 +533,7 @@ sub countMers {
     #  sequences that are genome size.
 
     if (! -e "$MERYLdir/$id.mcdat") {
-        if (runCommand("$meryl -B -C -m $mersize -t 27 -H 32 -s $MERYLdir/$id.fasta -o $MERYLdir/$id -stats $MERYLdir/$id.stats")) {
+        if (runCommand("$meryl -B -C -threads 6 -m $mersize -s $MERYLdir/$id.fasta -o $MERYLdir/$id -stats $MERYLdir/$id.stats")) {
             unlink "$MERYLdir/$id.mcidx";
             unlink "$MERYLdir/$id.mcdat";
             die "Failed to count mers in $id\n";
