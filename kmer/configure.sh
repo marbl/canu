@@ -87,14 +87,14 @@ EOF
 # -*- makefile -*-
 #  AIX5, optimized
 #  Tested, verified on 30jan03
-THRINC  := -qthreaded -D_THREAD_SAFE
-THRLIB  := -lpthread
+THRINC  := 
+THRLIB  := 
 IBMLF	:= -D_LARGE_FILES
 CC      := xlc_r
-CFLAGS_ARCH  :=-q64 -O3 -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict \$(IBMLF) -qcpluscmt
+CFLAGS_ARCH  := -qthreaded -D_THREAD_SAFE -q64 -O3 -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict \$(IBMLF) -qcpluscmt
 CWARNS := 
 CXX      := xlC_r
-CXXFLAGS_ARCH  := -q64 -O3 -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict \$(IBMLF)
+CXXFLAGS_ARCH  := -qthreaded -D_THREAD_SAFE -q64 -O3 -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict \$(IBMLF)
 CXXWARNS :=
 ARFLAGS  := -X 64 ruv
 EOF
@@ -105,14 +105,14 @@ EOF
 # -*- makefile -*-
 #  AIX5, optimized, profiled
 #  Untested; might not work with optimization
-THRINC  := -qthreaded -D_THREAD_SAFE
-THRLIB  := -lpthread
+THRINC  := 
+THRLIB  := 
 IBMLF	:= -D_LARGE_FILES
 CC      := xlc_r
-CFLAGS_ARCH  :=  -q64 -O3 -pg -qfullpath -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict \$(IBMLF) -qcpluscmt
+CFLAGS_ARCH  := -qthreaded -D_THREAD_SAFE -q64 -O3 -pg -qfullpath -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict \$(IBMLF) -qcpluscmt
 CWARNS := 
 CXX      := xlC_r
-CXXFLAGS_ARCH  := -q64 -O3 -pg -qfullpath -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict \$(IBMLF)
+CXXFLAGS_ARCH  := -qthreaded -D_THREAD_SAFE -q64 -O3 -pg -qfullpath -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict \$(IBMLF)
 CXXWARNS :=
 ARFLAGS  := -X 64 ruv
 EOF
@@ -122,14 +122,14 @@ EOF
     cat <<EOF > Make.compilers
 # -*- makefile -*-
 #  AIX5, debug
-THRINC  := -qthreaded -D_THREAD_SAFE
-THRLIB  := -lpthread
+THRINC  := 
+THRLIB  := 
 IBMLF	:= -D_LARGE_FILES
 CC      := xlc_r
-CFLAGS_ARCH  := -q64 -g -qfullpath \$(IBMLF) -qcpluscmt
+CFLAGS_ARCH  := -qthreaded -D_THREAD_SAFE -q64 -g -qfullpath \$(IBMLF) -qcpluscmt
 CWARNS := 
 CXX      := xlC_r
-CXXFLAGS_ARCH  := -q64 -g -qfullpath \$(IBMLF)
+CXXFLAGS_ARCH  := -qthreaded -D_THREAD_SAFE -q64 -g -qfullpath \$(IBMLF)
 CXXWARNS :=
 ARFLAGS  := -X 64 ruv
 EOF
