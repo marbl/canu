@@ -1,9 +1,77 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
+#include <string.h>
+
 #include "meryl.H"
 #include "libbri.H"
 #include "buildinfo-meryl.h"
 #include "buildinfo-libbri.h"
+
+
+
+
+//  Some string handling utilities.
+//
+bool
+writeString(const char *str, FILE *F) {
+  errno = 0;
+
+  u32bit len = 0;
+  if (str) {
+    u32bit len = strlen(str) + 1;
+    fwrite(&len, sizeof(u32bit), 1, F);
+    fwrite( str, sizeof(char), len, F);
+  } else {
+    fwrite(&len, sizeof(u32bit), 1, F);
+  }
+
+  if (errno) {
+    fprintf(stderr, "writeString()-- Failed to write string of length "u32bitFMT": %s\n", len, strerror(errno));
+    fprintf(stderr, "writeString()-- First 80 bytes of string is:\n");
+    fprintf(stderr, "%80.80s\n", str);
+    return(false);
+  }
+
+  return(true);
+}
+
+char*
+readString(FILE *F) {
+  errno = 0;
+
+  u32bit len = 0;
+  fread(&len, sizeof(u32bit), 1, F);
+  if (errno) {
+    fprintf(stderr, "readString()-- Failed to read string: %s\n", strerror(errno));
+    exit(1);
+  }
+
+  char *str = 0L;
+
+  if (len > 0) {
+    str = new char [len];
+    fread(str, sizeof(char), len, F);
+    if (errno) {
+      fprintf(stderr, "readString()-- Failed to read string: %s\n", strerror(errno));
+      exit(1);
+    }
+  }
+
+  return(str);
+}
+
+char*
+duplString(char *str) {
+  char   *dup = 0L;
+  if (str) {
+    u32bit  len = strlen(str);
+    dup = new char [len+1];
+    strcpy(dup, str);
+  }
+  return(dup);
+}
+
 
 
 
@@ -39,8 +107,10 @@ const char *usagestring =
 "        -L #          (DON'T save mers that occur less than # times)\n"
 "        -U #          (DON'T save mers that occur more than # times)\n"
 "        -m #          (size of a mer; required)\n"
+#if 0
 "        -t #          (size of the table, in bits)\n"
 "        -H #          (force the hash width, in bits -- use with caution!)\n"
+#endif
 "        -s seq.fasta  (sequence to build the table for)\n"
 "        -o tblprefix  (output table prefix)\n"
 "        -v            (entertain the user)\n"
@@ -49,25 +119,39 @@ const char *usagestring =
 "     Multi-threaded operation is possible, at additional memory expense, as\n"
 "     is segmented operation, at additional I/O expense.\n"
 "\n"
+#ifdef ENABLE_THREADS
 "     Threaded operation: Split the counting in to n almost-equally sized\n"
 "     pieces.  This uses an extra h MB (from -P) per thread.\n"
 "        -threads n    (use n threads to build)\n"
+#else
+"     Threaded operation is not supported in this build.  Compile with\n"
+"     WITH_THREADS if using the IR build system, or with ENABLE_THREADS\n"
+"     if building by hand.\n"
+#endif
 "\n"
 "     Segmented, sequential operation: Split the counting into pieces that\n"
 "     will fit into no more than m MB of memory, or into n equal sized pieces.\n"
 "     Each piece is computed sequentially, and the results are merged at the end.\n"
 "        -memory mMB   (use at most m MB of memory per segment)\n"
 "        -segments n   (use n segments)\n"
-"        -tempdir d    (write temporary files to directory d)\n"
 "\n"
 "     Segmented, batched operation: Same as sequential, except this allows\n"
 "     each segment to be manually executed in parallel.\n"
 "        -memory mMB     (use at most m MB of memory per segment)\n"
 "        -segments n     (use n segments)\n"
-"        -createsegments /path/prefix\n"
-"        -countsegments  /path/prefix segment-number\n"
-"        -mergesegments  /path/prefix\n"
+"        -configbatch    (create the batches)\n"
+"        -countbatch n   (run batch number n)\n"
+"        -mergebatch     (merge the batches)\n"
 "\n"
+"     For batches, only -configbatch needs all the build options.  -countbatch and\n"
+"     -mergebatch both are keyes by the output file name, and read the build options\n"
+"     from there.\n"
+"       meryl -configbatch -B [options] -o file\n"
+"       meryl -countbatch 0 -o file\n"
+"       meryl -countbatch 1 -o file\n"
+"       ...\n"
+"       meryl -countbatch N -o file\n"
+"       meryl -mergebatch N -o file\n"
 "\n"
 "-M:  Given a list of tables, perform a math, logical or threshold operation.\n"
 "     Unless specified, all operations take any number of databases.\n"
@@ -128,8 +212,14 @@ merylArgs::usage(void) {
   fprintf(stderr, usagestring, execName, execName, execName);
 }
 
+
+
+
+
+
+
 merylArgs::merylArgs(int argc, char **argv) {
-  execName           = argv[0];
+  execName           = duplString(argv[0]);
 
   beVerbose          = false;
 
@@ -157,9 +247,12 @@ merylArgs::merylArgs(int argc, char **argv) {
 
   memoryLimit        = 0;
   segmentLimit       = 0;
+#ifdef ENABLE_THREADS
   numThreads         = 0;
-  tempDir            = 0L;
-  batchPrefix        = 0L;
+#endif
+  configBatch        = false;
+  countBatch         = false;
+  mergeBatch         = false;
   batchNumber        = 0;
 
   lowCount           = 0;
@@ -195,6 +288,8 @@ merylArgs::merylArgs(int argc, char **argv) {
   }
   mergeFiles = new char* [mergeFilesMax];
 
+  bool fail = false;
+
   //  Parse the options
   //
   for (int arg=1; arg < argc; arg++) {
@@ -207,13 +302,17 @@ merylArgs::merylArgs(int argc, char **argv) {
       merSize = strtou64bit(argv[arg], 0L);
     } else if (strcmp(argv[arg], "-mask") == 0) {
       arg++;
-      maskFile = argv[arg];
+      delete [] maskFile;
+      maskFile = duplString(argv[arg]);
     } else if (strcmp(argv[arg], "-s") == 0) {
       arg++;
-      mergeFiles[mergeFilesLen++] = inputFile = argv[arg];
+      delete [] inputFile;
+      inputFile                   = duplString(argv[arg]);
+      mergeFiles[mergeFilesLen++] = duplString(argv[arg]);
     } else if (strcmp(argv[arg], "-stats") == 0) {
       arg++;
-      statsFile = argv[arg];
+      delete [] statsFile;
+      statsFile = duplString(argv[arg]);
     } else if (strcmp(argv[arg], "-n") == 0) {
       arg++;
       numMersEstimated = strtou64bit(argv[arg], 0L);
@@ -237,12 +336,14 @@ merylArgs::merylArgs(int argc, char **argv) {
       highCount = strtou32bit(argv[arg], 0L);
     } else if (strcmp(argv[arg], "-o") == 0) {
       arg++;
-      outputFile = argv[arg];
+      delete [] outputFile;
+      outputFile = duplString(argv[arg]);
     } else if (strcmp(argv[arg], "-v") == 0) {
       beVerbose = true;
     } else if (strcmp(argv[arg], "-q") == 0) {
       arg++;
-      queryFile = argv[arg];
+      delete [] queryFile;
+      queryFile = duplString(argv[arg]);
     } else if (strcmp(argv[arg], "-d") == 0) {
       includeDefLine = true;
     } else if (strcmp(argv[arg], "-e") == 0) {
@@ -331,46 +432,139 @@ merylArgs::merylArgs(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-segments") == 0) {
       arg++;
       segmentLimit = strtou64bit(argv[arg], 0L);
+#ifdef ENABLE_THREADS
     } else if (strcmp(argv[arg], "-threads") == 0) {
       arg++;
       numThreads   = strtou32bit(argv[arg], 0L);
-    } else if (strcmp(argv[arg], "-tempdir") == 0) {
+#endif
+    } else if (strcmp(argv[arg], "-configbatch") == 0) {
+      personality = 'B';
+      configBatch = true;
+      countBatch  = false;
+      mergeBatch  = false;
+      batchNumber = u32bitZERO;
+    } else if (strcmp(argv[arg], "-countbatch") == 0) {
       arg++;
-      tempDir = argv[arg];
-    } else if (strcmp(argv[arg], "-createsegments") == 0) {
-      arg++;
-      batchPrefix = argv[arg];
-    } else if (strcmp(argv[arg], "-countsegments") == 0) {
-      arg++;
-      batchPrefix = argv[arg];
-      arg++;
+      personality = 'B';
+      configBatch = false;
+      countBatch  = true;
+      mergeBatch  = false;
       batchNumber = strtou32bit(argv[arg], 0L);
-    } else if (strcmp(argv[arg], "-mergesegments") == 0) {
-      arg++;
-      batchPrefix = argv[arg];
+    } else if (strcmp(argv[arg], "-mergebatch") == 0) {
+      personality = 'B';
+      configBatch = false;
+      countBatch  = false;
+      mergeBatch  = true;
+      batchNumber = u32bitZERO;
     } else {
       fprintf(stderr, "Unknown option '%s'.\n", argv[arg]);
+      fail = true;
     }
   }
-
-  //  Check some stuff
-
-  bool fail = false;
-
-  if ((numThreads && segmentLimit) || (numThreads && memoryLimit))
-    fprintf(stderr, "ERROR: -threads incompatible with -memory and -segments.\n"), fail=true;
-
-  if (segmentLimit && memoryLimit)
-    fprintf(stderr, "ERROR: Only one of -memory and -segments can be specified.\n"), fail=true;
-
-
-  //  If there are n threads, then there are n segments.  We'll set
-  //  that now.  In the future, we might want to allow n threads and m
-  //  segments, m >= n.  That would be cool!
-  //
-  if (numThreads)
-    segmentLimit = numThreads;
 
   if (fail)
     exit(1);
 }
+
+
+
+
+
+
+merylArgs::merylArgs(const char *prefix) {
+  char *filename;
+  char  magic[17];
+
+  filename = new char [strlen(prefix) + 17];
+  sprintf(filename, "%s.merylArgs", prefix);
+
+  FILE *F = fopen(filename, "rb");
+  if (errno) {
+    fprintf(stderr, "merylArgs::readConfig()-- Failed to open '%s': %s\n", filename, strerror(errno));
+    exit(1);
+  }
+
+  fread(magic, sizeof(char), 16, F);
+  if (strncmp(magic, "merylBatcherv01", 16) != 0) {
+    fprintf(stderr, "merylArgs::readConfig()-- '%s' doesn't appear to be a merylArgs file.\n", filename);
+    exit(1);
+  }
+
+  fread(this, sizeof(merylArgs), 1, F);
+
+  execName = readString(F);
+
+  inputFile  = readString(F);
+  outputFile = readString(F);
+  queryFile  = readString(F);
+  maskFile   = readString(F);
+
+  mergeFiles = new char* [mergeFilesLen];
+  for (u32bit i=0; i<mergeFilesLen; i++)
+    mergeFiles[i] = readString(F);
+
+  statsFile = readString(F);
+
+  fclose(F);
+
+  delete [] filename;
+}
+
+
+
+
+merylArgs::~merylArgs() {
+  delete [] execName;
+  delete [] inputFile;
+  delete [] outputFile;
+  delete [] queryFile;
+  delete [] maskFile;
+
+  for (u32bit i=0; i<mergeFilesLen; i++)
+    delete [] mergeFiles[i];
+
+  delete [] mergeFiles;
+  delete [] statsFile;
+}
+
+
+
+
+
+bool
+merylArgs::writeConfig(void) {
+  char *filename;
+
+  filename = new char [strlen(outputFile) + 17];
+  sprintf(filename, "%s.merylArgs", outputFile);
+
+  FILE *F = fopen(filename, "wb");
+  if (errno) {
+    fprintf(stderr, "merylArgs::writeConfig()-- Failed to open '%s': %s\n", filename, strerror(errno));
+    exit(1);
+  }
+
+  fwrite("merylBatcherv01", sizeof(char), 16, F);
+
+  fwrite(this, sizeof(merylArgs), 1, F);
+
+  writeString(execName, F);
+
+  writeString(inputFile, F);
+  writeString(outputFile, F);
+  writeString(queryFile, F);
+  writeString(maskFile, F);
+
+  for (u32bit i=0; i<mergeFilesLen; i++)
+    writeString(mergeFiles[i], F);
+
+  writeString(statsFile, F);
+
+  fclose(F);
+
+  return(true);
+}
+
+
+
+

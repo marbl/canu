@@ -61,7 +61,7 @@ main(int argc, char **argv) {
 
     default:
       args->usage();
-      fprintf(stderr, "\nERROR:  Unknown personality.  Specify -P, -B, -S or -M!\n");
+      fprintf(stderr, "%s: unknown personality.  Specify -P, -B, -S or -M!\n", args->execName);
       exit(1);
       break;
   }

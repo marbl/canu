@@ -22,6 +22,8 @@
 class merylArgs {
 public:
   merylArgs(int argc, char **argv);
+  merylArgs(const char *prefix);
+  ~merylArgs();
 
   void              usage(void);
 
@@ -29,6 +31,8 @@ public:
     return((mer >> merDataWidth) & bucketPointerMask);
   };
 
+  bool              writeConfig(void);
+  bool              readConfig(const char *prefix);
 public:
   char             *execName;
 
@@ -59,8 +63,9 @@ public:
   u64bit            memoryLimit;
   u64bit            segmentLimit;
   u32bit            numThreads;
-  char             *tempDir;
-  char             *batchPrefix;
+  bool              configBatch;
+  bool              countBatch;
+  bool              mergeBatch;
   u32bit            batchNumber;
 
   u32bit            lowCount;

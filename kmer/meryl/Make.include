@@ -6,12 +6,19 @@ LIBBRI/     :=$(call MakePath,$/../libbri/)
 src     := $/args.C \
            $/binaryOp.C \
            $/build.C \
+           $/build-threads.C \
            $/dump.C \
            $/estimate.C \
            $/merge.C \
            $/meryl.C $/meryl.H \
            $/unaryOp.C
 src_C   := $(filter %.C,${src})
+
+ifdef WITH_THREADS
+ CXXFLAGS+=-DENABLE_THREADS
+else
+ $(warning Use WITH_THREADS to build $/meryl with multithreading support.)
+endif
 
 $/.CXX_SRCS   := ${src_C} $/merle.C
 $/.CXX_EXES   := $/meryl $/merle

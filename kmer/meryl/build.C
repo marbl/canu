@@ -8,6 +8,10 @@
 #include "libmeryl.H"
 #include "britime.H"
 
+#ifdef ENABLE_THREADS
+void runThreaded(merylArgs *args);
+#endif
+
 //  Build times on G5/2GHz, including merStreamFile building, of 167256385 mers.
 //
 //  1 314.100u  5.900s 5:21.84 99.4%  0+0k 0+ 31io 0pf+0w (2.45, 1.06, 2.67)
@@ -62,6 +66,118 @@ adjustHeap(u64bit *M, s64bit i, s64bit n) {
 
 
 
+
+void
+prepareBatch(merylArgs *args) {
+  bool  fatalError = false;
+
+  if (args->inputFile == 0L)
+    fprintf(stderr, "ERROR - no input file specified.\n"), fatalError = true;
+
+  if (args->outputFile == 0L)
+    fprintf(stderr, "ERROR - no output file specified.\n"), fatalError = true;
+
+  if ((args->doForward == false) &&
+      (args->doReverse == false) &&
+      (args->doCanonical == false))
+    fprintf(stderr, "ERROR - need to specify at least one of -f, -r, -C\n"), fatalError = true;
+
+  if ((args->doForward && args->doReverse) ||
+      (args->doForward && args->doCanonical) ||
+      (args->doReverse && args->doCanonical))
+    fprintf(stderr, "ERROR - only one of -f, -r and -C may be specified!\n"), fatalError = true;
+
+  if (args->lowCount > args->highCount)
+    fprintf(stderr, "ERROR - lowCount > highCount??\n"), fatalError = true;
+
+  if (args->segmentLimit && args->memoryLimit)
+    fprintf(stderr, "ERROR: Only one of -memory and -segments can be specified.\n"), fatalError=true;
+
+  if (fatalError)
+    exit(1);
+
+  //  If we were given no segment or memory limit, but threads, we
+  //  really want to create n segments.
+  //
+#ifdef ENABLE_THREADS
+  if ((args->segmentLimit == 0) && (args->memoryLimit == 0) && (args->numThreads > 0))
+    args->segmentLimit = args->numThreads;
+#endif
+
+  //  Everybody needs to dump the mers to a merStreamFile.  The only
+  //  one that doesn't is "sequential, no memory limit", but
+  //  optimizing for just that case makes the code too complex.
+  //
+  //  If the stream already exists, skip this step.
+  //
+  if (merStreamFileExists(args->outputFile)) {
+    fprintf(stderr, "Using existing merStreamFile!\n");
+    merStreamFileReader *R = new merStreamFileReader(args->outputFile);
+    args->numMersActual = R->numberOfMers();
+    delete R;
+  } else {
+    fprintf(stderr, "Building new merStreamFile!\n");
+    merStreamFileBuilder   *B = new merStreamFileBuilder(args->merSize,
+                                                         args->inputFile,
+                                                         args->outputFile);
+
+    args->numMersActual = B->build(args->beVerbose);
+
+    delete B;
+  }
+
+
+  //  If there is a memory limit, ignore the total number of mers and
+  //  pick a value that fits in memory.
+  //
+  //  Otherwise, if there is a segment limit, split the total number
+  //  of mers into n pieces.  Remember, there cannot be both a
+  //  memoryLimit and a segmentLimit.
+  //
+  //  Otherwise, we must be doing it all in one fell swoop.
+  //
+  if (args->memoryLimit) {
+    args->mersPerBatch = estimateNumMersInMemorySize(args->merSize, args->memoryLimit, args->beVerbose);
+    args->segmentLimit = (u64bit)ceil((double)args->numMersActual / (double)args->mersPerBatch);
+  } else if (args->segmentLimit) {
+    args->mersPerBatch = (u64bit)ceil((double)args->numMersActual / (double)args->segmentLimit);
+  } else {
+    args->mersPerBatch = args->numMersActual;
+    args->segmentLimit = 1;
+  }
+
+
+  //  Choose the optimal number of buckets to reduce memory usage.
+  //  Yes, this is already done in estimateNumMersInMemorySize() (but
+  //  not saved) and we need to do it for the other cases anyway.
+  //
+  //  We use the number of mers per batch + 1 because we need to store
+  //  the first position after the last mer.  That is, if there are
+  //  two mers, we will store that the first mer is at position 0, the
+  //  second mer is at position 1, and the end of the second mer is at
+  //  position 2.
+  //
+  args->bucketPointerWidth = logBaseTwo_64(args->mersPerBatch + 1);
+  args->numBuckets_log2    = optimalNumberOfBuckets(args->merSize, args->mersPerBatch);
+  args->numBuckets         = (u64bitONE << args->numBuckets_log2);
+  args->merDataWidth       = args->merSize * 2 - args->numBuckets_log2;
+  args->bucketPointerMask  = u64bitMASK(args->numBuckets_log2);
+
+
+  if (args->beVerbose) {
+    fprintf(stderr, "Computing "u64bitFMT" segments using "u64bitFMT"MB memory each.\n",
+            args->segmentLimit, args->memoryLimit);
+    fprintf(stderr, "  numMersActual      = "u64bitFMT"\n", args->numMersActual);
+    fprintf(stderr, "  mersPerBatch       = "u64bitFMT"\n", args->mersPerBatch);
+    fprintf(stderr, "  numBuckets         = "u64bitFMT"\n", args->numBuckets);
+    fprintf(stderr, "  bucketPointerWidth = "u32bitFMT"\n", args->bucketPointerWidth);
+    fprintf(stderr, "  merDataWidth       = "u32bitFMT"\n", args->merDataWidth);
+  }
+}
+
+
+
+
 void
 runSegment(merylArgs *args, u64bit segment) {
   merStreamFileReader *R = 0L;
@@ -70,6 +186,28 @@ runSegment(merylArgs *args, u64bit segment) {
   u32bit              *bucketSizes = 0L;
   u64bit              *bucketPointers = 0L;
   u64bit              *merData = 0L;
+
+
+  //  If this segment exists already, skip it.
+  //
+  //  XXX:  This should be a command line option.
+  //  XXX:  This should check that the files are complete meryl files.
+  //
+  char *filename = new char [strlen(args->outputFile) + 17];
+  sprintf(filename, "%s.batch"u64bitFMT".mcdat", args->outputFile, segment);
+
+  if (fileExists(filename)) {
+    fprintf(stderr, "Found result for batch "u64bitFMT" in %s.\n", segment, filename);
+    delete [] filename;
+    return;
+  }
+
+  if ((args->beVerbose) && (args->segmentLimit > 1))
+    fprintf(stderr, "Computing segment "u64bitFMT" of "u64bitFMT".\n", segment+1, args->segmentLimit);
+
+  delete [] filename;
+
+
 
   //
   //  We can do all allocations up front:
@@ -293,7 +431,7 @@ runSegment(merylArgs *args, u64bit segment) {
   delete [] bucketPointers;
 
   if (args->beVerbose)
-    fprintf(stderr, "\n");
+    fprintf(stderr, "\nSegment "u64bitFMT" finished.\n", segment);
 }
 
 
@@ -315,102 +453,9 @@ runSegment(merylArgs *args, u64bit segment) {
 
 void
 build(merylArgs *args) {
-  bool  fatalError = false;
 
-  if (args->inputFile == 0L)
-    fprintf(stderr, "ERROR - no input file specified.\n"), fatalError = true;
-
-  if (args->outputFile == 0L)
-    fprintf(stderr, "ERROR - no output file specified.\n"), fatalError = true;
-
-  if ((args->doForward == false) &&
-      (args->doReverse == false) &&
-      (args->doCanonical == false))
-    fprintf(stderr, "ERROR - need to specify at least one of -f, -r, -C\n"), fatalError = true;
-
-  if ((args->doForward && args->doReverse) ||
-      (args->doForward && args->doCanonical) ||
-      (args->doReverse && args->doCanonical))
-    fprintf(stderr, "ERROR - only one of -f, -r and -C may be specified!\n"), fatalError = true;
-
-  if (args->lowCount > args->highCount)
-    fprintf(stderr, "ERROR - lowCount > highCount??\n"), fatalError = true;
-
-  if (fatalError)
-    exit(1);
-
-
-  //  Everybody needs to dump the mers to a merStreamFile.  The only
-  //  one that doesn't is "sequential, no memory limit", but
-  //  optimizing for just that case makes the code too complex.
-  //
-  //  If the stream already exists, skip this step.
-  //
-  if (merStreamFileExists(args->outputFile)) {
-    fprintf(stderr, "Using existing merStreamFile!\n");
-    merStreamFileReader *R = new merStreamFileReader(args->outputFile);
-    args->numMersActual = R->numberOfMers();
-    delete R;
-  } else {
-    fprintf(stderr, "Building new merStreamFile!\n");
-    merStreamFileBuilder   *B = new merStreamFileBuilder(args->merSize,
-                                                         args->inputFile,
-                                                         args->outputFile);
-
-    args->numMersActual = B->build(args->beVerbose);
-
-    delete B;
-  }
-
-
-  //  If there is a memory limit, ignore the total number of mers and
-  //  pick a value that fits in memory.
-  //
-  //  Otherwise, if there is a segment limit, split the total number
-  //  of mers into n pieces.  Remember, there cannot be both a
-  //  memoryLimit and a segmentLimit.
-  //
-  //  Otherwise, we must be doing it all in one fell swoop.
-  //
-  if (args->memoryLimit) {
-    args->mersPerBatch = estimateNumMersInMemorySize(args->merSize, args->memoryLimit, args->beVerbose);
-    args->segmentLimit = (u64bit)ceil((double)args->numMersActual / (double)args->mersPerBatch);
-  } else if (args->segmentLimit) {
-    args->mersPerBatch = (u64bit)ceil((double)args->numMersActual / (double)args->segmentLimit);
-  } else {
-    args->mersPerBatch = args->numMersActual;
-    args->segmentLimit = 1;
-  }
-
-
-  //  Choose the optimal number of buckets to reduce memory usage.
-  //  Yes, this is already done in estimateNumMersInMemorySize() (but
-  //  not saved) and we need to do it for the other cases anyway.
-  //
-  //  We use the number of mers per batch + 1 because we need to store
-  //  the first position after the last mer.  That is, if there are
-  //  two mers, we will store that the first mer is at position 0, the
-  //  second mer is at position 1, and the end of the second mer is at
-  //  position 2.
-  //
-  args->bucketPointerWidth = logBaseTwo_64(args->mersPerBatch + 1);
-  args->numBuckets_log2    = optimalNumberOfBuckets(args->merSize, args->mersPerBatch);
-  args->numBuckets         = (u64bitONE << args->numBuckets_log2);
-  args->merDataWidth       = args->merSize * 2 - args->numBuckets_log2;
-  args->bucketPointerMask  = u64bitMASK(args->numBuckets_log2);
-
-
-  if (args->beVerbose) {
-    fprintf(stderr, "Computing "u64bitFMT" segments using "u64bitFMT" memory each.\n",
-            args->segmentLimit, args->memoryLimit);
-    fprintf(stderr, "  numMersActual      = "u64bitFMT"\n", args->numMersActual);
-    fprintf(stderr, "  mersPerBatch       = "u64bitFMT"\n", args->mersPerBatch);
-    fprintf(stderr, "  numBuckets         = "u64bitFMT"\n", args->numBuckets);
-    fprintf(stderr, "  bucketPointerWidth = "u32bitFMT"\n", args->bucketPointerWidth);
-    fprintf(stderr, "  merDataWidth       = "u32bitFMT"\n", args->merDataWidth);
-
-    //fprintf(stderr, "numThreads         = "u32bitFMT"\n", args->numThreads);
-  }
+  if (!args->countBatch && !args->mergeBatch)
+    prepareBatch(args);
 
 
   //  Three choices:
@@ -426,22 +471,50 @@ build(merylArgs *args) {
   //
   //    
 
-  for (u64bit s=0; s<args->segmentLimit; s++) {
+#ifdef ENABLE_THREADS
+  if (args->numThreads > 1) {
 
-    //  Don't do it if the segment exists already
+    //  Run, using threads.  There is a lot of baloney needed, so it's
+    //  all in a separate function.
     //
-    char *filename = new char [strlen(args->outputFile) + 17];
-    sprintf(filename, "%s.batch"u64bitFMT".mcdat", args->outputFile, s);
+    runThreaded(args);
+  } else
+#endif
+  if (args->configBatch) {
 
-    if (fileExists(filename)) {
-      fprintf(stderr, "Found result for batch "u64bitFMT" in %s.\n", s, filename);
-    } else {
-      if ((args->beVerbose) && (args->segmentLimit > 1))
-        fprintf(stderr, "Computing segment "u64bitFMT" of "u64bitFMT".\n", s+1, args->segmentLimit);
+    //  Write out our configuration and exit if we are -configbatch
+    //
+    args->writeConfig();
+
+    fprintf(stdout, "Batch prepared.  Please run:\n");
+    for (u64bit s=0; s<args->segmentLimit; s++)
+      fprintf(stdout, "%s -countbatch "u64bitFMT" -o %s\n", args->execName, s, args->outputFile);
+    fprintf(stdout, "%s -mergebatch -o %s\n", args->execName, args->outputFile);
+    exit(0);
+  } else   if (args->countBatch) {
+
+    //  Read back the configuration, run the segment and exit if we
+    //  are -countbatch
+    //
+    merylArgs *savedArgs = new merylArgs(args->outputFile);
+    savedArgs->beVerbose = args->beVerbose;
+    runSegment(savedArgs, args->batchNumber);
+    exit(0);
+  } else if (args->mergeBatch) {
+
+    //  Check that all the files exist if we are -mergebatch and
+    //  continue with execution
+    //
+    merylArgs *savedArgs = new merylArgs(args->outputFile);
+    savedArgs->beVerbose = args->beVerbose;
+    delete args;
+    args = savedArgs;
+  } else {
+
+    //  No special options given, do all the work here and now
+    //
+    for (u64bit s=0; s<args->segmentLimit; s++)
       runSegment(args, s);
-    }
-
-    delete [] filename;
   }
   
 
