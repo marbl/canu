@@ -13,6 +13,30 @@
 //  The positionDB constructor is smart enough to read either a pre-built
 //  image or a regular multi-fasta file.
 
+
+char const *usage =
+"usage: %s [-mersize s] [-merskip k] [-tablesize t]\n"
+"         default: s=20, k=0, t=auto\n"
+"\n"
+"       The default operation is to create an image:\n"
+"         [build opts] <sequence.fasta> <datafile>\n"
+"\n"
+"       To dump information about an image:\n"
+"         -dump datafile\n"
+"\n"
+"       To run sanity tests:\n"
+"         -buildonly [build opts] sequence.fasta\n"
+"           --  just builds a table and exits\n"
+"\n"
+"         -existence [build opts] sequence.fasta\n"
+"           --  builds (or reads) a table reports if any mers\n"
+"               in sequence.fasta cannot be found\n"
+"\n"
+"         -extra [build opts] sequence.fasta\n"
+"           --  builds (or reads) a table reports if any mers\n"
+"               NOT in sequence.fasta are be found\n"
+"\n";
+
 int
 main(int argc, char **argv) {
   u32bit    mersize = 20;
@@ -20,12 +44,7 @@ main(int argc, char **argv) {
   u32bit    tblsize = 0;
 
   if (argc < 3) {
-    fprintf(stderr, "usage: %s [stuff]\n", argv[0]);
-    fprintf(stderr, "       To create an image:\n");
-    fprintf(stderr, "         [-mersize n] [-merskip n] [-tablesize n] <sequence.fasta> <datafile>\n", argv[0]);
-    fprintf(stderr, "         default: mersize=20, merskip=0, tablesize=auto\n");
-    fprintf(stderr, "       To dump information about an image:\n");
-    fprintf(stderr, "         -dump datafile\n");
+fprintf(stderr, usage, argv[0]);
     exit(1);
   }
 
