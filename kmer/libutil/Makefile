@@ -2,7 +2,7 @@ PROG    =
 INCLUDE = 
 LIBS    = 
 
-SRCS    = alphabet.c bit-operations.H bit-packing.H \
+SRCS    = alphabet.c alphabet.h bit-operations.H bit-packing.H \
           bitPackedFile.C bitPackedFile.H fastastream.H file.h file.c libbri.H \
           libbritypes.h merstream.C merstream.H \
           palloc.c palloc.h readBuffer.H reversecomplement.c \
