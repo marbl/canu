@@ -1,4 +1,4 @@
-#include "libbritypes.h"
+#include "bri.h"
 
 //
 //  Argh, 64-bit guys use LU as their modifier, but 32-bit guys use LLU.

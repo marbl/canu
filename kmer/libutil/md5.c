@@ -1,12 +1,13 @@
-#include "md5.h"
-
-#include "../external/md5lib/global.h"
-#include "../external/md5lib/md5.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
+
+#include "bri.h"
+
+#include "../external/md5lib/global.h"
+#include "../external/md5lib/md5.h"
+
 
 int
 md5_compare(void const *a, void const *b) {

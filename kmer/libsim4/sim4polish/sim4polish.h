@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "libbritypes.h"
+#include "bri.h"
 
 
 #define SIM4_INTRON_ERROR        '?'  //  '??'

@@ -4,9 +4,8 @@
 #include <math.h>
 
 #include "meryl.H"
-#include "merstreamfile.H"
 #include "libmeryl.H"
-#include "britime.H"
+#include "bri++.H"
 
 #ifdef ENABLE_THREADS
 void runThreaded(merylArgs *args);
@@ -168,7 +167,7 @@ prepareBatch(merylArgs *args) {
   //  second mer is at position 1, and the end of the second mer is at
   //  position 2.
   //
-  args->bucketPointerWidth = logBaseTwo_64(args->mersPerBatch + 1);
+  args->bucketPointerWidth = logBaseTwo64(args->mersPerBatch + 1);
   args->numBuckets_log2    = optimalNumberOfBuckets(args->merSize, args->mersPerBatch);
   args->numBuckets         = (u64bitONE << args->numBuckets_log2);
   args->merDataWidth       = args->merSize * 2 - args->numBuckets_log2;

@@ -1,6 +1,5 @@
 #include "posix.H"
 #include "searchGENOME.H"
-#include "britime.H"
 
 //  If you really, really, really want to know the exact number
 //  of bases left in the query, use the interval list.  Otherwise,
@@ -76,14 +75,14 @@ doSearch(searcherState *state,
         query->setSkip(qi);
 
 #ifdef USEEXACTSIZE
-  intervalList   *IL = new intervalList(config._merSize);
+  merCovering   *IL = new merCovering(config._merSize);
 
   for (u32bit qi=0; qi<query->numberOfMers(); qi++) {
     if (query->getSkip(qi) == false)
-      IL->addInterval(qi);
+      IL->addMer(qi);
   }
 
-  qMers = IL->sumIntervalLengths();
+  qMers = IL->sumLengths();
   delete IL;
 #else
   qMers = query->numberOfValidMers();

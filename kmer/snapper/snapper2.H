@@ -17,9 +17,11 @@ typedef unsigned short ushort;
 #include <pthread.h>
 #include <semaphore.h>
 
-#include "libbri.H"
+#include "bri++.H"
+
 #include "fasta.H"
 #include "fasta-cache.H"
+
 #include "positionDB.H"
 #include "existDB.H"
 #include "sim4.H"

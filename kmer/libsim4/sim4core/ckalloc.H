@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <signal.h>
 
-#include "libbritypes.h"
+#include "bri.h"
 
 //#define CHECK_MEMORY
 

@@ -1,10 +1,4 @@
-#include "merstreamfile.H"
-#include "fastastream.H"
-#include "bitPackedFile.H"
-#include "merstream.H"
-#include "britime.H"
-#include "stat.h"
-#include "bit-operations.H"
+#include "bri++.H"
 
 static
 char     magic[16] = { 'm', 'e', 'r', 'S', 't', 'r', 'e', 'a', 'm', '1', ' ', ' ', ' ', ' ', ' ', ' '  };

@@ -3,9 +3,7 @@
 #include <stdlib.h>
 #include <new>
 #include "snapper2.H"
-#include "libbri.H"
-#include "britime.H"
-#include "existDB.H"
+#include "bri++.H"
 
 #ifdef TRUE64BIT
 char const *buildMessage       = "Building chunk with %u sequences.\n";

@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "meryl.H"
-#include "libbri.H"
+#include "bri++.H"
 
 
 u64bit
@@ -54,7 +54,7 @@ estimateNumMersInMemorySize(u32bit merSize,
     fprintf(stdout, "Can fit "u64bitFMT" mers into table with t="u64bitFMT" using "u64bitFMT"MB\n",
             maxN,
             bestT,
-            ((u64bitONE << bestT) * logBaseTwo(maxN) + maxN * (merSize - bestT)) >> 23);
+            ((u64bitONE << bestT) * logBaseTwo32(maxN) + maxN * (merSize - bestT)) >> 23);
 
   return(maxN);
 }
@@ -68,7 +68,7 @@ optimalNumberOfBuckets(u32bit merSize,
   u64bit opts   = ~u64bitZERO;
   u64bit h      = 0;
   u64bit s      = 0;
-  u64bit hwidth = logBaseTwo_64(numMers);
+  u64bit hwidth = logBaseTwo64(numMers);
 
   //  Find the table size (in bits, h) that minimizes memory usage
   //  for the given merSize and numMers
@@ -115,7 +115,7 @@ estimate(merylArgs *args) {
   }
 
   u32bit opth = optimalNumberOfBuckets(args->merSize, args->numMersEstimated);
-  u64bit memu = ((u64bitONE << opth)    * logBaseTwo(args->numMersEstimated+1) +
+  u64bit memu = ((u64bitONE << opth)    * logBaseTwo64(args->numMersEstimated+1) +
                  args->numMersEstimated * (2 * args->merSize - opth));
 
   fprintf(stderr, u64bitFMT" "u32bitFMT"-mers can be computed using "u64bitFMT"MB memory.\n",

@@ -1,7 +1,7 @@
 #ifndef SIM4COMMAND_H
 #define SIM4COMMAND_H
 
-#include "libbri.H"
+#include "bri++.H"
 #include "fasta.H"
 
 //

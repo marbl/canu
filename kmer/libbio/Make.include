@@ -3,35 +3,43 @@
 UTIL/          :=$(call MakePath,$/../util/)
 EXTERNAL/      :=$(call MakePath,$/../external/)
 
-src    := $/alphabet.c $/bit-operations.H $/bit-packing.H $/bit-packing.C \
-          $/bitPackedFile.C $/bitPackedFile.H $/fastastream.H \
-          $/file.h $/file.c $/libbri.H \
-          $/libbritypes.h $/md5.c \
-          $/merstream.C $/merstream.H \
-          $/merstreamfile.C $/merstreamfile.H \
-          $/palloc.c $/palloc.h $/readBuffer.H $/reversecomplement.c \
-          $/splittowords.H $/britime.C $/britime.H \
-          $/memory.c $/memory.h $/stat.c $/stat.h \
-          $/intervalList.C $/intervalList.H
+src    := $/alphabet.c \
+          $/alphabet.h \
+          $/bit-packing.C \
+          $/bitPackedFile.C \
+          $/bri++.H \
+          $/bri-bitPacking.h \
+          $/bri-bits.h \
+          $/bri-mers.h \
+          $/bri.h \
+          $/britime.C \
+          $/file.c \
+          $/intervalList.C \
+          $/md5.c \
+          $/memory.c \
+          $/merstream.C \
+          $/merstreamfile.C \
+          $/palloc.c \
+          $/reversecomplement.c \
+          $/stat.c
 
 $/.C_SRCS    :=$(filter %.c,${src})
 $/.CXX_SRCS  :=$(filter %.C,${src})
 $/.CXX_LIBS  :=$/libbri.a
 
 $/.CLEAN := $/*.o
-
 $/.REAL-CLEAN :=$/buildinfo-*
 
 $/reversecomplement.c.d: $/alphabet.h
 $/merstream.C.d: $/alphabet.h
 
-$/libbri.a: ${$/.C_SRCS:.c=.o} ${$/.CXX_SRCS:.C=.o} $/alphabet.o $/buildinfo-libbri.o ${EXTERNAL/}md5lib/md5c.o  
+$/libbri.a: ${$/.C_SRCS:.c=.o} ${$/.CXX_SRCS:.C=.o} $/alphabet.o $/buildinfo-libbri.o \
+        ${EXTERNAL/}md5lib/md5c.o \
+        ${EXTERNAL/}mt19937ar/mt19937ar.o
 
-# note: explicit serialization is required here
-$/buildinfo-libbri.c: $/buildinfo-libbri.h
-$/buildinfo-libbri.h: ${src}
-	${UTIL/}buildinfo.pl libbri "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
-	[ `dirname $@` = "." ] || mv buildinfo-libbri.[ch] `dirname $@`
+#        ${EXTERNAL/}md5lib/libmd5.a \
+#        ${EXTERNAL/}mt19937ar/libmt19937ar.a
+
 
 $/alphabet.c: $/alphabet.h
 $/alphabet.h:  $/alphabet-generate.c
@@ -49,4 +57,10 @@ $/test-merstreamfile: libbri.a
 	$/./merStreamFileTester some.fasta
 	rm -f $/merStreamFileTester
 	@echo Tests passed\!
+
+# note: explicit serialization is required here
+$/buildinfo-libbri.c: $/buildinfo-libbri.h
+$/buildinfo-libbri.h: ${src}
+	@${UTIL/}buildinfo.pl libbri "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
+	@[ `dirname $@` = "." ] || mv buildinfo-libbri.[ch] `dirname $@`
 

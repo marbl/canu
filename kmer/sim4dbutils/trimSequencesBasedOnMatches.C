@@ -4,7 +4,7 @@
 #include <string.h>
 #include <errno.h>
 
-#include "libbri.H"
+#include "bri++.H"
 #include "sim4reader.h"
 
 int

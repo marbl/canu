@@ -6,7 +6,8 @@
 #include <sys/utsname.h>  //  uname()
 #include <sys/resource.h> //  getrusage()
 
-#include "britime.H"
+#include "bri.h"
+#include "bri++.H"
 
 double
 getTime(void) {

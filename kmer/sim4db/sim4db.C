@@ -11,7 +11,7 @@
 #include <math.h>
 
 #include "sim4.H"
-#include "libbri.H"
+#include "bri++.H"
 #include "fasta.H"
 #include "buildinfo-sim4db.h"
 #include "buildinfo-libbri.h"

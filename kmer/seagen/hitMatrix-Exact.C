@@ -1,7 +1,10 @@
 #include "posix.H"
 #include "searchGENOME.H"
-#include "intervalList.H"
 #include "aHit.H"
+
+#if 0
+
+
 
 #ifdef TRUE64BIT
 #define HITOUTPUTLINE  "-%c -e %u %u %u -D %u %u %u -F %lu\n"
@@ -388,3 +391,6 @@ hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit
 }
 
   
+
+
+#endif

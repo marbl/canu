@@ -4,20 +4,13 @@
 
 #include "positionDB.H"
 #include "existDB.H"
-#include "bit-packing.H"
-#include "merstream.H"
+#include "bri++.H"
 
 #define REUSE_BUCKETS
 
 //#define ERROR_CHECK_COUNTING
 //#define ERROR_CHECK_COUNTING_ENCODING
 //#define ERROR_CHECK_EMPTY_BUCKETS
-
-
-#ifndef SILENTPOSITIONDB
-#include "britime.H"
-#endif
-
 
 
 //  Progress messages disabled if we're silent.

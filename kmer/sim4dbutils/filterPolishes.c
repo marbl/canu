@@ -4,9 +4,8 @@
 #include <string.h>
 #include <errno.h>
 
-#include "libbritypes.h"
+#include "bri.h"
 #include "sim4polish.h"
-#include "file.h"
 
 
 char const *usage =

@@ -34,17 +34,18 @@ $/chainedSequence-test : $/chainedSequence-test.o $/libfasta.a
 
 ${$/.CXX_EXES}:   ${LIBBRI/}libbri.a
 
-$/buildinfo-leaff.c: $/buildinfo-leaff.h
-$/buildinfo-leaff.h: $/leaff.C
-	${UTIL/}buildinfo.pl leaff "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
-	[ `dirname $@` = "." ] || mv buildinfo-leaff.[ch] `dirname $@`
-
-$/buildinfo-libfasta.c: $/buildinfo-libfasta.h
-$/buildinfo-libfasta.h: ${src}
-	${UTIL/}buildinfo.pl libfasta "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
-	[ `dirname $@` = "." ] || mv buildinfo-libfasta.[ch] `dirname $@`
-
 # bug in += target vars
 #$/%.d $/%.o:  CXXFLAGS+=-I${LIBBRI/}
 $(eval $/%.d $/%.o:  CXXFLAGS+=-I${LIBBRI/})
+
+$/buildinfo-leaff.c: $/buildinfo-leaff.h
+$/buildinfo-leaff.h: $/leaff.C
+	@${UTIL/}buildinfo.pl leaff "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
+	@[ `dirname $@` = "." ] || mv buildinfo-leaff.[ch] `dirname $@`
+
+$/buildinfo-libfasta.c: $/buildinfo-libfasta.h
+$/buildinfo-libfasta.h: ${src}
+	@${UTIL/}buildinfo.pl libfasta "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
+	@[ `dirname $@` = "." ] || mv buildinfo-libfasta.[ch] `dirname $@`
+
 

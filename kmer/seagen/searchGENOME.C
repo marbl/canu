@@ -3,8 +3,7 @@
 #include <stdlib.h>
 #include <new>
 #include "searchGENOME.H"
-#include "libbri.H"
-#include "britime.H"
+#include "bri++.H"
 #include "existDB.H"
 
 #ifdef TRUE64BIT

@@ -24,6 +24,6 @@ ${$/.CXX_EXES}: ${MERTABLES/}libmerTables.a ${FASTA/}libfasta.a ${MERYL/}libmery
 
 $/buildinfo-positionDB.c: $/buildinfo-positionDB.h
 $/buildinfo-positionDB.h: ${src}
-	${UTIL/}buildinfo.pl positionDB "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
-	[ `dirname $@` = "." ] || mv buildinfo-positionDB.[ch] `dirname $@`
+	@${UTIL/}buildinfo.pl positionDB "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
+	@[ `dirname $@` = "." ] || mv buildinfo-positionDB.[ch] `dirname $@`
 

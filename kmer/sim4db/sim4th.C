@@ -3,9 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include "sim4.H"
-#include "libbri.H"
+#include "bri++.H"
 #include "fasta-cache.H"
-#include "britime.H"
 
 #include <umalloc.h>
 

@@ -1,4 +1,4 @@
-#include "merstream.H"
+#include "bri++.H"
 
 merStream::merStream(u32bit merSize, const char *filename) {
   _theFile         = new FastAstream(filename);

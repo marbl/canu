@@ -1,6 +1,5 @@
 #include "posix.H"
 #include "seatac.H"
-#include "intervalList.H"
 
 
 hitMatrix::hitMatrix(u32bit qsLen, u32bit qsIdx, bool reversed) {
@@ -93,7 +92,7 @@ hitMatrix::processMatrix(char direction, filterObj *FO) {
   sort_dsPos();
 
 
-  intervalList   IL(config._merSize);
+  merCovering    IL(config._merSize);
   u32bit         ILlength = 0;
 
   //  Now, while there are hits left....
@@ -195,14 +194,14 @@ hitMatrix::processMatrix(char direction, filterObj *FO) {
         if (qsHigh < _hits[i]._qsPos)   qsHigh = _hits[i]._qsPos;
         if (dsLow  > _hits[i]._dsPos)   dsLow  = _hits[i]._dsPos;
         if (dsHigh < _hits[i]._dsPos)   dsHigh = _hits[i]._dsPos;
-        IL.addInterval(_hits[i]._qsPos);
+        IL.addMer(_hits[i]._qsPos);
       } else {
 
         //
         //  Save the match.  cut-n-paste with below.
         //
 
-        ILlength = IL.sumIntervalLengths();
+        ILlength = IL.sumLengths();
         IL.clear();
 
         if (ILlength >= config._minLength) {
@@ -232,13 +231,13 @@ hitMatrix::processMatrix(char direction, filterObj *FO) {
         qsHigh       = _hits[i]._qsPos;
         dsLow        = _hits[i]._dsPos;
         dsHigh       = _hits[i]._dsPos;
-        IL.addInterval(_hits[i]._qsPos);
+        IL.addMer(_hits[i]._qsPos);
       }
     }
 
     //  Save the final cluster?  (cut-n-paste from above)
     //
-    ILlength = IL.sumIntervalLengths();
+    ILlength = IL.sumLengths();
     IL.clear();
 
     if (ILlength >= config._minLength) {

@@ -1,8 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
-#include "libbri.H"
-#include "britime.H"
+#include "bri++.H"
 #include "buildinfo-merle.h"
 
 //

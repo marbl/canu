@@ -1,6 +1,5 @@
 #include "posix.H"
 #include "snapper2.H"
-#include "intervalList.H"
 
 #ifdef TRUE64BIT
 #define HITOUTPUTLINE "-%c -e %u -D %u %u %u -M %u %u %u\n"
@@ -30,7 +29,7 @@ hitMatrix::addMatch(u32bit         qsLo,
                     u32bit         qsHi,
                     u32bit         dsLo,
                     u32bit         dsHi,
-                    intervalList  *IL) {
+                    merCovering   *IL) {
   u32bit offset = 0;
 
   offset = (u32bit)(config._extendWeight * qsLo);
@@ -238,9 +237,9 @@ hitMatrix::filter(char      direction,
     u32bit  dsLow        = _hits[firstHit]._dsPos;
     u32bit  dsHigh       = _hits[firstHit]._dsPos;
 
-    //  Create a new interval list, and space to count the number of mers in a match
+    //  Create a new merCovering, and space to count the number of mers in a match
     //
-    intervalList   *IL = new intervalList(config._merSize);
+    merCovering   *IL = new merCovering(config._merSize);
 
     for (u32bit i=firstHit; i<lastHit; i++) {
 
@@ -252,20 +251,20 @@ hitMatrix::filter(char      direction,
         if (qsHigh < _hits[i]._qsPos)   qsHigh = _hits[i]._qsPos;
         if (dsLow  > _hits[i]._dsPos)   dsLow  = _hits[i]._dsPos;
         if (dsHigh < _hits[i]._dsPos)   dsHigh = _hits[i]._dsPos;
-        IL->addInterval(_hits[i]._qsPos);
+        IL->addMer(_hits[i]._qsPos);
         continue;
       }
 
       //  Save the current cluster and start a new one?
       //
-      u32bit qCov = IL->sumIntervalLengths();
+      u32bit qCov = IL->sumLengths();
       if (qCov >= minLength) {
         addMatch(qsLow,
                  qsHigh + config._merSize,
                  dsLow,
                  dsHigh + config._merSize,
                  IL);
-        IL = new intervalList(config._merSize);
+        IL = new merCovering(config._merSize);
       }
 
       if (IL)
@@ -278,12 +277,12 @@ hitMatrix::filter(char      direction,
       dsLow        = _hits[i]._dsPos;
       dsHigh       = _hits[i]._dsPos;
 
-      IL->addInterval(_hits[i]._qsPos);
+      IL->addMer(_hits[i]._qsPos);
     }
 
     //  Save the final cluster?
     //
-    u32bit qCov = IL->sumIntervalLengths();
+    u32bit qCov = IL->sumLengths();
     if (qCov >= minLength) {
       addMatch(qsLow,
                qsHigh + config._merSize,
@@ -310,7 +309,7 @@ hitMatrix::filter(char      direction,
       dsLow      = _matches->_dsLo;
       dsHigh     = _matches->_dsHi;
       IL         = _matches->_IL;
-      ML         = IL->sumIntervalLengths();
+      ML         = IL->sumLengths();
 
       n = _matches;
       _matches = _matches->_next;
@@ -327,10 +326,10 @@ hitMatrix::filter(char      direction,
       //
       while (_matches && (dsLow < _matches->_dsHi + 5000)) {
 
-        //  Combine the two interval lists
+        //  Combine the two merCoverings
         //
         IL->merge(_matches->_IL);
-        ML += _matches->_IL->sumIntervalLengths();
+        ML += _matches->_IL->sumLengths();
 
         //  The start of the new match might be after the start of the
         //  merged region.  (Only rarely is it before)
@@ -369,7 +368,7 @@ hitMatrix::filter(char      direction,
       a->_dsIdx     = config._useList[currentSeq].seq;
       a->_dsLo      = dsLow;
       a->_dsHi      = dsHigh;
-      a->_covered   = IL->sumIntervalLengths();
+      a->_covered   = IL->sumLengths();
       a->_matched   = ML;
       a->_numMers   = _qsMers;
 

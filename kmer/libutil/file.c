@@ -8,8 +8,7 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 
-#include "file.h"
-#include "stat.h"
+#include "bri.h"
 
 
 int
@@ -47,20 +46,6 @@ unsigned long __sbrk_override = 1;  //  See malloc(3) for details.
 #ifdef __APPLE__
 #define MMAPFLAGS    (MAP_FILE | MAP_SHARED)
 #endif
-
-
-
-//  Not everyone has O_LARGEFILE
-#ifndef O_LARGEFILE
-#define O_LARGEFILE 0
-#endif
-
-
-
-
-
-
-
 
 
 

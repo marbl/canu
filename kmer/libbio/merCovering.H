@@ -1,8 +1,10 @@
-#ifndef INTERVAL_LIST_H
-#define INTERVAL_LIST_H
+#ifndef MER_COVERING_H
+#define MER_COVERING_H
 
-//  $Id$
-
+//  This is an interval list, where the intervals are built using
+//  fixed size pieces.
+//
+//  It's designed to accept pieces in roughly sorted order.
 //
 //  Intervals are stored c-style.
 //
@@ -10,9 +12,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "libbri.H"
+//#include "bri++.H"
 
-class intervalList {
+class merCovering {
 private:
   class interval {
   public:
@@ -30,23 +32,23 @@ private:
   interval    *_intervals;
   u32bit       _width;
   u32bit       _pieces;
-#ifdef TEST_INTERVAL_LIST
+#ifdef TEST_MERCOVERING
   u32bit       _test[TEST_SIZE];
 #endif
 
 public:
-  intervalList(u32bit w) {
+  merCovering(u32bit w) {
     _intervals = 0L;
     _width     = w;
     _pieces    = 0;
 
-#ifdef TEST_INTERVAL_LIST
+#ifdef TEST_MERCOVERING
     for (u32bit i=0; i<TEST_SIZE; i++)
       _test[i] = 0;
 #endif
   };
 
-  ~intervalList() {
+  ~merCovering() {
     clear();
   };
 
@@ -63,7 +65,7 @@ public:
     _pieces    = 0;
   };
 
-  u32bit        sumIntervalLengths(void) {
+  u32bit        sumLengths(void) {
     u32bit s=0;
 
     for (interval *i=_intervals; i; i = i->_next)
@@ -76,14 +78,14 @@ public:
     return(_pieces);
   };
 
-  void          addInterval(u32bit lo) {
+  void          addMer(u32bit lo) {
     _pieces++;
 
     u32bit hi = lo + _width;
 
     interval  *c;
 
-#ifdef TEST_INTERVAL_LIST
+#ifdef TEST_MERCOVERING
     for (u32bit i=lo; i<hi; i++)
       _test[i] = 1;
 #endif
@@ -164,12 +166,12 @@ public:
       c = c->_next;
     }
 
-#ifdef TEST_INTERVAL_LIST
+#ifdef TEST_MERCOVERING
     fprintf(stderr, "ERROR IN addInterval!\n");
 #endif
   };
 
-#ifdef TEST_INTERVAL_LIST
+#ifdef TEST_MERCOVERING
   void         test(void) {
     for (u32bit i=0; i<TEST_SIZE; i++) {
       if (_test[i])
@@ -201,7 +203,7 @@ public:
 
   //  Incorporates the intervals in B into our list.
   //
-  void         merge(intervalList *I) {
+  void         merge(merCovering *I) {
     interval *A, *B, *N, *L;
 
     A = _intervals;
@@ -304,14 +306,14 @@ public:
 
 
 
-#ifdef TEST_INTERVAL_LIST
+#ifdef TEST_MERCOVERING
   void         dump(void) {
     for (interval *i=_intervals; i; i = i->_next)
       fprintf(stderr, "%5d-%5d ", i->_lo, i->_hi);
     fprintf(stderr, "\n");
   };
 
-  void         compare(intervalList *B) {
+  void         compare(merCovering *B) {
     interval *i = _intervals;
     interval *j = B->_intervals;
 
@@ -344,7 +346,7 @@ public:
 
 };
 
-#endif  //  INTERVAL_LIST_H
+#endif  //  MERCOVERING_H
 
 
 

@@ -4,7 +4,7 @@
 #include <string.h>
 
 #include "meryl.H"
-#include "libbri.H"
+#include "bri++.H"
 #include "buildinfo-meryl.h"
 #include "buildinfo-libbri.h"
 

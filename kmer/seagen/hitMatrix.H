@@ -5,9 +5,8 @@
 #include <stdlib.h>
 #include <new>
 
-#include "libbri.H"
+#include "bri++.H"
 #include "positionDB.H"
-#include "intervalList.H"
 
 struct diagonalLine {
   u32bit   _qsPos;
@@ -19,14 +18,14 @@ class trapMatch {
 public:
   u32bit         _qsLo, _qsHi;
   u32bit         _dsLo, _dsHi;
-  intervalList  *_IL;
+  merCovering   *_IL;
   trapMatch     *_next;
 
   trapMatch(u32bit         qsLo,
             u32bit         qsHi,
             u32bit         dsLo,
             u32bit         dsHi,
-            intervalList  *IL) {
+            merCovering   *IL) {
     _qsLo       = qsLo;
     _qsHi       = qsHi;
     _dsLo       = dsLo;
@@ -71,7 +70,7 @@ private:
                 u32bit         qsHi,
                 u32bit         dsLo,
                 u32bit         dsHi,
-                intervalList  *IL);
+                merCovering   *IL);
 
 public:
   hitMatrix(u32bit qsLen, u32bit q, u32bit qsIdx, bool reversed=false);

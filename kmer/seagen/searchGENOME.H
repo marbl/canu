@@ -17,7 +17,7 @@ typedef unsigned short ushort;
 #include <pthread.h>
 #include <semaphore.h>
 
-#include "libbri.H"
+#include "bri++.H"
 #include "fasta.H"
 
 #include "positionDB.H"
@@ -156,10 +156,8 @@ public:
   void  completeUseList(FastAWrapper *db);
 
   void  setTime(struct timespec *ts, double t) {
-    ts->tv_sec = (time_t)floor(t);
-    t -= ts->tv_sec;
-    t *= 1e9;
-    ts->tv_nsec = (int)t;
+    ts->tv_sec  = (time_t)floor(t);
+    ts->tv_nsec = (long)((t - ts->tv_sec) * 1e9);
   };
 private:
   void  addToUse(u32bit v);

@@ -1,8 +1,9 @@
-#include "intervalList.H"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "bri++.H"
+
 
 //  Define this to print some debugging information
 //

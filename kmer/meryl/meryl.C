@@ -3,7 +3,7 @@
 #include <errno.h>
 #include <string.h>
 
-#include "libbri.H"
+#include "bri++.H"
 #include "meryl.H"
 
 int

@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "libbri.H"
+#include "bri++.H"
 #include "fasta.H"
 #include "sim4polish.h"
 

@@ -1,5 +1,5 @@
 #include "positionDB.H"
-#include "bit-packing.H"
+#include "bri++.H"
 
 bool
 positionDB::get(u64bit   mer,

@@ -41,13 +41,13 @@ $/merle.C.d: $/buildinfo-merle.h ${LIBBRI/}buildinfo-libbri.h
 
 $/buildinfo-meryl.c: $/buildinfo-meryl.h
 $/buildinfo-meryl.h: ${src}
-	${UTIL/}buildinfo.pl meryl "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
-	[ `dirname $@` = "." ] || mv buildinfo-meryl.[ch] `dirname $@`
+	@${UTIL/}buildinfo.pl meryl "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
+	@[ `dirname $@` = "." ] || mv buildinfo-meryl.[ch] `dirname $@`
 
 $/buildinfo-merle.c: $/buildinfo-merle.h
 $/buildinfo-merle.h: $/merle.C
-	${UTIL/}buildinfo.pl merle "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
-	[ `dirname $@` = "." ] || mv buildinfo-merle.[ch] `dirname $@`
+	@${UTIL/}buildinfo.pl merle "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
+	@[ `dirname $@` = "." ] || mv buildinfo-merle.[ch] `dirname $@`
 
 
 

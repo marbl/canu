@@ -1,7 +1,7 @@
 #ifndef MERYL_H
 #define MERYL_H
 
-#include "libbritypes.h"
+#include "bri.h"
 
 #define PERSONALITY_MIN           0x01
 #define PERSONALITY_MINEXIST      0x02

@@ -9,8 +9,7 @@
 //
 #include <time.h>
 
-#include "libbri.H"
-#include "md5.h"
+#include "bri++.H"
 #include "fasta.H"
 
 #include "buildinfo-leaff.h"

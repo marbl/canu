@@ -1,6 +1,6 @@
 #include "posix.H"
 #include "snapper2.H"
-#include "britime.H"
+#include "bri++.H"
 #include "sim4.H"
 
 //  If you really, really, really want to know the exact number
@@ -108,14 +108,14 @@ doSearch(searcherState       *state,
         query->setSkip(qi);
 
 #ifdef USEEXACTSIZE
-  intervalList   *IL = new intervalList(config._merSize);
+  merCovering   *IL = new merCovering(config._merSize);
 
   for (u32bit qi=0; qi<query->numberOfMers(); qi++) {
     if (query->getSkip(qi) == false)
-      IL->addInterval(qi);
+      IL->addMer(qi);
   }
 
-  qMers = IL->sumIntervalLengths();
+  qMers = IL->sumLengths();
   delete IL;
 #else
   qMers = query->numberOfValidMers();

@@ -12,7 +12,7 @@ SIM4POLISH/ :=$(call MakePath,$/../sim4polish/)
 src      := $/snapper2.C $/configuration.C $/encodedQuery.C \
             $/thr-search.C $/thr-loader.C $/thr-deadlock.C \
             $/hitMatrix.C $/hitMatrix-sort.C \
-            $/hitMatrix.H $/intervalList.H $/posix.H $/snapper2.H
+            $/hitMatrix.H $/posix.H $/snapper2.H
 
 $/.CXX_SRCS := $(filter %.C,${src})
 ifdef WITH_THREADS
@@ -47,8 +47,8 @@ $/snapper2: \
 
 $/buildinfo-snapper2.c: $/buildinfo-snapper2.h
 $/buildinfo-snapper2.h: ${src}
-	${UTIL/}buildinfo.pl snapper2 "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
-	[ `dirname $@` = "." ] || mv buildinfo-snapper2.[ch] `dirname $@`
+	@${UTIL/}buildinfo.pl snapper2 "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
+	@[ `dirname $@` = "." ] || mv buildinfo-snapper2.[ch] `dirname $@`
 
 
 

@@ -1,9 +1,10 @@
-#include "stat.h"
-#include <sys/stat.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
+#include <sys/stat.h>
+
+#include "bri.h"
 
 stat_s*
 stat_onPath(const char *path, stat_s *sb) {

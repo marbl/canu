@@ -1,8 +1,7 @@
-#include "memory.h"
-#include "libbritypes.h"
-
 #include <errno.h>
 #include <string.h>
+
+#include "bri.h"
 
 void *
 memdup(const void *orig, size_t size) {
@@ -12,10 +11,10 @@ memdup(const void *orig, size_t size) {
     errno = 0;
     rslt = malloc(size);
     if (errno) {
-      //  Some ugliness to print out a size_t, which seems to bounce
-      //  around from four bytes to eight bytes
+      //  Some ugliness to print out a size_t.  This might be useless,
+      //  as it might be determined by TRUE64BIT.
       //
-      if (sizeof(size_t) == 4)
+      if (sizeof(size_t) == 8)
         fprintf(stderr, "memdup()-- can't allocate "s64bitFMT" bytes.\n%s\n", size, strerror(errno));
       else
         fprintf(stderr, "memdup()-- can't allocate "s32bitFMT" bytes.\n%s\n", size, strerror(errno));

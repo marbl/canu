@@ -1,7 +1,7 @@
 #ifndef EXISTDB_H
 #define EXISTDB_H
 
-#include "libbri.H"
+#include "bri++.H"
 
 //
 //  Takes as input a list of mers (in a file) and builds a searchable

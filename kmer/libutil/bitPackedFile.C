@@ -4,8 +4,7 @@
 #include <errno.h>
 #include <string.h>
 
-#include "bitPackedFile.H"
-#include "bit-packing.H"
+#include "bri++.H"
 
 //  This is the size (in 64-bit words) of the buffer the bit packed
 //  file uses.  Too small and we spend lots of time doing I/O

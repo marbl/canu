@@ -1,5 +1,4 @@
-#include "libbritypes.h"
-#include "alphabet.h"
+#include "bri.h"
 
 //  Inplace reverse-complement the sequence.  A pointer
 //  the the character string is returned.

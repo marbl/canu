@@ -10,7 +10,7 @@ EXISTDB/    :=$(call MakePath,$/../existDB/)
 src      := $/seatac.C $/configuration.C $/encodedQuery.C \
             $/hitMatrix.C $/thr-search.C $/thr-loader.C $/thr-deadlock.C \
             $/hitMatrix-sort.C \
-            $/hitMatrix.H $/intervalList.H $/posix.H $/seatac.H
+            $/hitMatrix.H $/posix.H $/seatac.H
 
 $/.CXX_SRCS  := $(filter %.C,${src})
 ifdef WITH_THREADS
@@ -40,5 +40,5 @@ $/seatac:  ${$/.CXX_SRCS:.C=.o} $/buildinfo-seatac.o \
 
 $/buildinfo-seatac.c: $/buildinfo-seatac.h
 $/buildinfo-seatac.h: ${src}
-	${UTIL/}buildinfo.pl seatac "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
-	[ `dirname $@` = "." ] || mv buildinfo-seatac.[ch] `dirname $@`
+	@${UTIL/}buildinfo.pl seatac "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
+	@[ `dirname $@` = "." ] || mv buildinfo-seatac.[ch] `dirname $@`

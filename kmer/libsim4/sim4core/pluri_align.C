@@ -174,7 +174,7 @@ Sim4::pluri_align(int *dist_ptr,
 
     diff = align_get_dist(nextExon->frGEN-1, nextExon->frEST-1,
                           nextExon->toGEN, nextExon->toEST,
-                          max(1000, .2*(nextExon->toEST - nextExon->frEST + 1)));
+                          max(1000, (int)(.2*(nextExon->toEST - nextExon->frEST + 1))));
 
 
     //  Return if the alignment fails.

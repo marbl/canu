@@ -1,7 +1,7 @@
 #ifndef MSP_MANAGER_H
 #define MSP_MANAGER_H
 
-#include "libbri.H"
+#include "bri++.H"
 #include "exon.H"
 
 struct msp {

@@ -10,17 +10,17 @@ EXISTDB/    :=$(call MakePath,$/../existDB/)
 src      := $/searchGENOME.C $/configuration.C $/encodedQuery.C \
             $/thr-search.C $/thr-loader.C $/thr-deadlock.C \
             $/hitMatrix-sort.C \
-            $/aHit.H $/aHit.C $/hitMatrix.H $/intervalList.H $/posix.H $/searchGENOME.H
+            $/aHit.H $/aHit.C $/hitMatrix.H $/posix.H $/searchGENOME.H
 src_C    := $(filter %.C,${src})
 other_C  := $/hitConverter.C $/filterEST.C $/filterMRNA.C \
             $/sortHits.C $/filtertest.C $/hitReader.C
 
-$/.CXX_SRCS  :=${src_C} ${other_C} $/hitMatrix.C $/hitMatrix-Exact.C
+$/.CXX_SRCS  :=${src_C} ${other_C} $/hitMatrix.C
 ifdef WITH_THREADS
- $/.CXX_EXES := $/searchGENOME $/searchGENOMEexactly $/hitConverter $/filterEST $/filterMRNA $/filtertest $/sortHits
+ $/.CXX_EXES := $/searchGENOME $/hitConverter $/filterEST $/filterMRNA $/filtertest $/sortHits
 else
  $/.CXX_EXES := $/hitConverter $/filterEST $/filterMRNA $/filtertest $/sortHits
- $(warning $/searchGENOME and $/searchGENOMEexactly require threads: enable WITH_THREADS to build them.)
+ $(warning $/searchGENOME require threads: enable WITH_THREADS to build them.)
 endif
 
 $/.CLEAN     :=$/*.o
@@ -38,9 +38,8 @@ $/configuration.C.d: $/buildinfo-searchGENOME.h \
                      ${FASTA/}buildinfo-libfasta.h
 
 $/searchGENOME:        $/hitMatrix.o
-$/searchGENOMEexactly: $/hitMatrix-Exact.o
 
-$/searchGENOME $/searchGENOMEexactly: \
+$/searchGENOME: \
                ${src_C:.C=.o} \
                $/buildinfo-searchGENOME.o \
                ${EXISTDB/}libexistDB.a \
@@ -57,5 +56,5 @@ $/filtertest:   $/filtertest.o
 
 $/buildinfo-searchGENOME.c: $/buildinfo-searchGENOME.h
 $/buildinfo-searchGENOME.h: ${src}
-	${UTIL/}buildinfo.pl searchGENOME "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
-	[ `dirname $@` = "." ] || mv buildinfo-searchGENOME.[ch] `dirname $@`
+	@${UTIL/}buildinfo.pl searchGENOME "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
+	@[ `dirname $@` = "." ] || mv buildinfo-searchGENOME.[ch] `dirname $@`

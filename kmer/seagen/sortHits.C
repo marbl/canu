@@ -5,8 +5,7 @@
 #include <string.h>
 #include <errno.h>
 #include "aHit.H"
-#include "libbri.H"
-#include "file.h"
+#include "bri++.H"
 
 
 

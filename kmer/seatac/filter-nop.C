@@ -5,7 +5,7 @@
 //
 //  Also shows how to use a C++ object as a filter.  C is pretty much the same thing.
 
-#include "libbritypes.h"
+#include "bri.h"
 
 extern "C" {
   void    *construct(char *options);

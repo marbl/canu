@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "snapper2.H"
-#include "libbri.H"
+#include "bri++.H"
 
 encodedQuery::encodedQuery(char const           *seq,
                            u32bit                seqLen,

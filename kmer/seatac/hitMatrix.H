@@ -5,9 +5,8 @@
 #include <stdlib.h>
 #include <new>
 
-#include "libbri.H"
+#include "bri++.H"
 #include "positionDB.H"
-#include "intervalList.H"
 
 #include "filterObj.H"
 

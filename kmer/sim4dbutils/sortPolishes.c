@@ -8,11 +8,8 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 
-#include "libbritypes.h"
+#include "bri.h"
 #include "sim4polish.h"
-#include "palloc.h"
-#include "file.h"
-#include "memory.h"
 
 //  Sorts a file of polishes by cDNA or genomic idx.
 

@@ -23,5 +23,5 @@ ${$/.CXX_EXES}:$/libexistDB.a ${MERYL/}libmeryl.a ${POSITIONDB/}libpositionDB.a 
 
 $/buildinfo-existDB.c: $/buildinfo-existDB.h
 $/buildinfo-existDB.h: $/existDB.C $/existDB.H
-	${UTIL/}buildinfo.pl existDB "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
-	[ `dirname $@` = "." ] || mv buildinfo-existDB.[ch] `dirname $@`
+	@${UTIL/}buildinfo.pl existDB "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
+	@[ `dirname $@` = "." ] || mv buildinfo-existDB.[ch] `dirname $@`

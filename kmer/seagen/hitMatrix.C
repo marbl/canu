@@ -1,6 +1,5 @@
 #include "posix.H"
 #include "searchGENOME.H"
-#include "intervalList.H"
 #include "aHit.H"
 
 #ifdef TRUE64BIT
@@ -35,7 +34,7 @@ hitMatrix::addMatch(u32bit         qsLo,
                     u32bit         qsHi,
                     u32bit         dsLo,
                     u32bit         dsHi,
-                    intervalList  *IL) {
+                    merCovering   *IL) {
   u32bit offset = 0;
 
   //  Extend the match
@@ -339,9 +338,9 @@ hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit
     u32bit  dsLow        = _hits[firstHit]._dsPos;
     u32bit  dsHigh       = _hits[firstHit]._dsPos;
 
-    //  Create a new interval list, and space to count the number of mers in a match
+    //  Create a new merCovering, and space to count the number of mers in a match
     //
-    intervalList   *IL = new intervalList(config._merSize);
+    merCovering *IL = new merCovering(config._merSize);
 
     for (u32bit i=firstHit; i<lastHit; i++) {
 
@@ -361,7 +360,7 @@ hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit
         if (qsHigh < _hits[i]._qsPos)   qsHigh = _hits[i]._qsPos;
         if (dsLow  > _hits[i]._dsPos)   dsLow  = _hits[i]._dsPos;
         if (dsHigh < _hits[i]._dsPos)   dsHigh = _hits[i]._dsPos;
-        IL->addInterval(_hits[i]._qsPos);
+        IL->addMer(_hits[i]._qsPos);
 #if TRACE
         fprintf(stdout, "extend qs=%9u-%9u ds=%9u-%9u  diag=%9u-%9u (diagonal)\n",
                 qsLow, qsHigh, dsLow, dsHigh, frstDiagonal, lastDiagonal);
@@ -389,7 +388,7 @@ hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit
           if (qsHigh < _hits[i]._qsPos)   qsHigh = _hits[i]._qsPos;
           if (dsLow  > _hits[i]._dsPos)   dsLow  = _hits[i]._dsPos;
           if (dsHigh < _hits[i]._dsPos)   dsHigh = _hits[i]._dsPos;
-          IL->addInterval(_hits[i]._qsPos);
+          IL->addMer(_hits[i]._qsPos);
 #if TRACE
           fprintf(stdout, "extend qs=%9u-%9u ds=%9u-%9u  diag=%9u-%9u (qsOverlap)\n",
                   qsLow, qsHigh, dsLow, dsHigh, frstDiagonal, lastDiagonal);
@@ -405,7 +404,7 @@ hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit
           if (qsHigh < _hits[i]._qsPos)   qsHigh = _hits[i]._qsPos;
           if (dsLow  > _hits[i]._dsPos)   dsLow  = _hits[i]._dsPos;
           if (dsHigh < _hits[i]._dsPos)   dsHigh = _hits[i]._dsPos;
-          IL->addInterval(_hits[i]._qsPos);
+          IL->addMer(_hits[i]._qsPos);
 #if TRACE
           fprintf(stdout, "extend qs=%9u-%9u ds=%9u-%9u  diag=%9u-%9u (dsOverlap)\n",
                   qsLow, qsHigh, dsLow, dsHigh, frstDiagonal, lastDiagonal);
@@ -428,7 +427,7 @@ hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit
 
       //  Save the current cluster and start a new one?
       //
-      u32bit qCov = IL->sumIntervalLengths();
+      u32bit qCov = IL->sumLengths();
       if ((qCov >= minLengthMultiple) ||
           ((lastDiagonal - frstDiagonal < 25) && (qCov >= minLengthSingle))) {
 #if TRACE
@@ -439,7 +438,7 @@ hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit
                  dsLow,
                  dsHigh + config._merSize,
                  IL);
-        IL = new intervalList(config._merSize);
+        IL = new merCovering(config._merSize);
       }
 
       if (IL)
@@ -464,12 +463,12 @@ hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit
               qsLow, qsHigh, dsLow, dsHigh, frstDiagonal, lastDiagonal);
 #endif
 
-      IL->addInterval(_hits[i]._qsPos);
+      IL->addMer(_hits[i]._qsPos);
     }
 
     //  Save the final cluster?
     //
-    u32bit qCov = IL->sumIntervalLengths();
+    u32bit qCov = IL->sumLengths();
     if ((qCov >= minLengthMultiple) ||
         ((lastDiagonal - frstDiagonal < 21) && (qCov >= minLengthSingle))) {
       addMatch(qsLow,
@@ -498,7 +497,7 @@ hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit
       dsLow      = _matches->_dsLo;
       dsHigh     = _matches->_dsHi;
       IL         = _matches->_IL;
-      ML         = IL->sumIntervalLengths();
+      ML         = IL->sumLengths();
 
       n = _matches;
       _matches = _matches->_next;
@@ -519,10 +518,10 @@ hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit
       //
       while (_matches && (dsLow < _matches->_dsHi + 5000)) {
 
-        //  Combine the two interval lists
+        //  Combine the two merCoverings
         //
         IL->merge(_matches->_IL);
-        ML += _matches->_IL->sumIntervalLengths();
+        ML += _matches->_IL->sumLengths();
 
         //  The start of the new match might be after the start of the
         //  merged region.  (Only rarely is it before)
@@ -579,7 +578,7 @@ hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit
         a._dsIdx     = config._useList[currentSeq].seq;
         a._dsLo      = dsLow;
         a._dsHi      = dsHigh;
-        a._covered   = IL->sumIntervalLengths();
+        a._covered   = IL->sumLengths();
         a._matched   = ML;
         a._numMers   = _qsMers;
 
@@ -590,7 +589,7 @@ hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit
         sprintf(theOutput + theOutputPos, HITOUTPUTLINE,
                 direction, _qsIdx,
                 config._useList[currentSeq].seq,
-                dsLow, dsHigh, IL->sumIntervalLengths(), ML, _qsMers);
+                dsLow, dsHigh, IL->sumLengths(), ML, _qsMers);
 
         while (theOutput[theOutputPos])
           theOutputPos++;

@@ -1,7 +1,5 @@
-#ifndef BIT_PACKING_H
-#define BIT_PACKING_H
-
-#include "libbritypes.h"
+#ifndef BRI_BITPACKING_H
+#define BRI_BITPACKING_H
 
 
 extern u32bit fibonacciValuesLen;
@@ -52,6 +50,8 @@ getDecodedValue(u64bit *ptr,
   return(ret);
 }
 
+
+
 inline
 void
 setDecodedValue(u64bit *ptr,
@@ -77,30 +77,7 @@ setDecodedValue(u64bit *ptr,
   }
 }
 
-//  Special case for storing 32-bit values
-//
-#if 0
-#error Hey!  getDecodedValue32() and setDecodedValue32() are untested!
-inline
-u64bit
-getDecodedValue32(u64bit *ptr,
-                  u64bit  pos) {
-  u32bit s = (pos % u64bitONE) << 5;
 
-  return((ptr[pos >> 1] >> s) & 0x00000000ffffffffllu);
-}
-
-inline
-void
-setDecodedValue32(u64bit *ptr,
-                  u64bit  pos,
-                  u64bit  val) {
-  u32bit s = (pos % u64bitONE) << 5;
-
-  ptr[pos >> 1] &= 0x00000000ffffffffllu << s;
-  ptr[pos >> 1] |= val << s;
-}
-#endif
 
 inline
 u64bit
@@ -138,6 +115,8 @@ preIncrementDecodedValue(u64bit *ptr,
   return(ret);
 }
 
+
+
 inline
 u64bit
 preDecrementDecodedValue(u64bit *ptr,
@@ -173,7 +152,6 @@ preDecrementDecodedValue(u64bit *ptr,
 
   return(ret);
 }
-
 
 
 
@@ -216,6 +194,8 @@ postIncrementDecodedValue(u64bit *ptr,
   return(ret);
 }
 
+
+
 inline
 u64bit
 postDecrementDecodedValue(u64bit *ptr,
@@ -254,6 +234,8 @@ postDecrementDecodedValue(u64bit *ptr,
 
   return(ret);
 }
+
+
 
 inline
 u64bit
@@ -434,7 +416,4 @@ setFibonacciEncodedNumber(u64bit *ptr,
 
 
 
-
-
-#endif  //  BIT_PACKING_H
-
+#endif  //  BRI_BITPACKING_H

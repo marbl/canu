@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <errno.h>
 
-#include "libbri.H"
+#include "bri++.H"
 #include "fasta.H"
 #include "sim4polish.h"
 
