@@ -2,12 +2,6 @@
 #include "searchGENOME.H"
 #include "aHit.H"
 
-#ifdef TRUE64BIT
-#define HITOUTPUTLINE "-%c -e %u -D %u %u %u -M %u %u %u\n"
-#else
-#define HITOUTPUTLINE "-%c -e %lu -D %lu %lu %lu -M %lu %lu %lu\n"
-#endif
-
 #define TRACE    0
 
 hitMatrix::hitMatrix(u32bit qsLen, u32bit qsMers, u32bit qsIdx, bool reversed) {
@@ -218,8 +212,8 @@ hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit
 
     //  Move the currentSeq until the firstHit is below it.
     //
-    while ((currentSeq < config._useListLen) &&
-           (config._useList[currentSeq].start <= _hits[firstHit]._dsPos))
+    while ((currentSeq < config._useList.numberOfSequences()) &&
+           (config._useList.startOf(currentSeq) <= _hits[firstHit]._dsPos))
       currentSeq++;
 
     //
@@ -229,10 +223,10 @@ hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit
     //  Find the first hit that is in currentSeq.  If this is the last sequence,
     //  then, of course, all remaining hits are in it.
     //
-    if (currentSeq < config._useListLen) {
+    if (currentSeq < config._useList.numberOfSequences()) {
       lastHit = firstHit + 1;
       while ((lastHit < _hitsLen) &&
-             (_hits[lastHit]._dsPos < config._useList[currentSeq].start))
+             (_hits[lastHit]._dsPos < config._useList.startOf(currentSeq)))
         lastHit++;
     } else {
       lastHit = _hitsLen;
@@ -243,7 +237,7 @@ hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit
     currentSeq--;
 
 #if TRACE
-    fprintf(stdout, "Hits are in sequence %d\n", config._useList[currentSeq].seq);
+    fprintf(stdout, "Hits are in sequence %d\n", config._useList.IIDOf(currentSeq));
     fprintf(stdout, "filtering %u hits -- first = %u last = %u.\n", _hitsLen, firstHit, lastHit);
 
 #if 0
@@ -259,7 +253,7 @@ hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit
     //  Adjust the hits to be relative to the start of this sequence
     //
     for (u32bit i=firstHit; i<lastHit; i++)
-      _hits[i]._dsPos -= config._useList[currentSeq].start;
+      _hits[i]._dsPos -= config._useList.startOf(currentSeq);
 
     //  Sort them, if needed.
     //
@@ -575,7 +569,7 @@ hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit
       
         a._direction = (direction == 'f');
         a._qsIdx     = _qsIdx;
-        a._dsIdx     = config._useList[currentSeq].seq;
+        a._dsIdx     = config._useList.IIDOf(currentSeq);
         a._dsLo      = dsLow;
         a._dsHi      = dsHigh;
         a._covered   = IL->sumLengths();
@@ -586,9 +580,18 @@ hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit
 
         theOutputPos += (u32bit)sizeof(aHit);
       } else {
-        sprintf(theOutput + theOutputPos, HITOUTPUTLINE,
+
+#ifdef TRUE64BIT
+#define HITOUTPUTLINE "-%c -e %u -D %u %u %u -M %u %u %u\n"
+#else
+#define HITOUTPUTLINE 
+#endif
+
+
+
+        sprintf(theOutput + theOutputPos, "-%c -e "u32bitFMT" -D "u32bitFMT" "u32bitFMT" "u32bitFMT" -M "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
                 direction, _qsIdx,
-                config._useList[currentSeq].seq,
+                config._useList.IIDOf(currentSeq),
                 dsLow, dsHigh, IL->sumLengths(), ML, _qsMers);
 
         while (theOutput[theOutputPos])

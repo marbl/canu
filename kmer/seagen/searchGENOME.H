@@ -61,13 +61,6 @@ public:
 //
 #define MAX_THREADS  64
 
-//  Stuff for -use
-//
-struct use_s {
-  u32bit   seq;
-  u32bit   size;
-  u32bit   start;
-};
 
 class configuration {
 public:
@@ -113,15 +106,9 @@ public:
   char            *_tableFileName;
   bool             _tableBuildOnly;
 
-  u32bit           _useListLen;
-  u32bit           _useListMax;
-  use_s           *_useList;
-
   bool             _binaryOutput;
 
-#ifdef __APPLE__
-  u32bit           _pad1;
-#endif
+  chainedSequence  _useList;
 
   //  Wall clock times
   //

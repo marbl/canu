@@ -41,27 +41,6 @@ volatile u32bit        outputPos;
 char                  *threadStats[MAX_THREADS];
 
 
-void
-buildPositionDB(void) {
-
-  merStream *MS = new merStream(config._merSize, &config._useList);
-
-  //  Figure out a nice size of the hash.
-  //
-  //  XXX:  This probably should be tuned.
-  //
-  u32bit tblSize = 25;
-  if (config._useList.lengthOfSequences() < 64 * 1024 * 1024) tblSize = 24;
-  if (config._useList.lengthOfSequences() < 16 * 1024 * 1024) tblSize = 23;
-  if (config._useList.lengthOfSequences() <  4 * 1024 * 1024) tblSize = 22;
-  if (config._useList.lengthOfSequences() <  2 * 1024 * 1024) tblSize = 21;
-  if (config._useList.lengthOfSequences() <  1 * 1024 * 1024) tblSize = 20;
-
-  positions = new positionDB(MS, config._merSize, config._merSkip, tblSize, 0L, 0L, config._beVerbose);
-
-  delete    MS;
-}
-
 
 void
 writeValidationFile(char *name, filterStats *theFilters, u32bit numFilters) {
@@ -100,7 +79,6 @@ writeValidationFile(char *name, filterStats *theFilters, u32bit numFilters) {
 
   fclose(F);
 }
-
 
 
 
@@ -145,20 +123,6 @@ dumpStats(void) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifdef _AIX
 //  If we're AIX, define a new handler.  Other OS's reliably throw exceptions.
 //
@@ -194,7 +158,7 @@ main(int argc, char **argv) {
     exit(1);
   }
   config.read(argc, argv);
-  config.display();
+  //config.display();
 
 
   //  Allocate some structures for doing a validation run.  This is
@@ -235,6 +199,7 @@ main(int argc, char **argv) {
   //  Complete the configuration
   //
   config._useList.setSource(config._dbFileName);
+  config._useList.setSeparatorLength(1);
   config._useList.finish();
 
 
@@ -255,7 +220,22 @@ main(int argc, char **argv) {
       positions = new positionDB(config._psFileName, true);
     }
   } else {
-    buildPositionDB();
+    merStream *MS = new merStream(config._merSize, &config._useList);
+
+    //  Figure out a nice size of the hash.
+    //
+    //  XXX:  This probably should be tuned.
+    //
+    u32bit tblSize = 25;
+    if (config._useList.lengthOfSequences() < 64 * 1024 * 1024) tblSize = 24;
+    if (config._useList.lengthOfSequences() < 16 * 1024 * 1024) tblSize = 23;
+    if (config._useList.lengthOfSequences() <  4 * 1024 * 1024) tblSize = 22;
+    if (config._useList.lengthOfSequences() <  2 * 1024 * 1024) tblSize = 21;
+    if (config._useList.lengthOfSequences() <  1 * 1024 * 1024) tblSize = 20;
+
+    positions = new positionDB(MS, config._merSize, config._merSkip, tblSize, 0L, 0L, config._beVerbose);
+
+    delete    MS;
 
     if (config._psFileName) {
       if (config._beVerbose)

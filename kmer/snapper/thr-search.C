@@ -24,11 +24,7 @@
 //#define SHOW_POLISHING_EXPENSIVE  0.5
 
 
-#ifdef TRUE64BIT
-char const *srchGbye = "[%lu] processed: %8lu@%8lu/%8lu blocked: %4lu/%4lu Time: encode:%8.2f search:%8.2f chain:%8.2f polish:%8.2f\n";
-#else
-char const *srchGbye = "[%llu] processed: %8llu@%8llu/%8lu blocked: %4lu/%4lu Time: encode:%8.2f search:%8.2f chain:%8.2f polish:%8.2f\n";
-#endif
+char const *srchGbye = "["u64bitFMT"] processed: "u64bitFMTW(8)"@"u64bitFMTW(8)"/"u64bitFMTW(8)" blocked: "u64bitFMTW(4)"/"u64bitFMTW(4)" Time: encode:%8.2f search:%8.2f chain:%8.2f polish:%8.2f\n";
 
 
 class searcherState {
@@ -242,7 +238,7 @@ doPolish(searcherState       *state,
          u32bit              &theHitsLen) {
   double   startTime = getTime();
   u32bit   outputLen = 0;
-  u32bit   outputMax = 1024 * 1024;
+  u32bit   outputMax = 2 * 1024 * theHitsLen;
   char    *output    = 0L;
 
   try {

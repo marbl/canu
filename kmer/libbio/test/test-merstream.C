@@ -11,6 +11,10 @@
 //  because the chained sequence uses 10 characters as a separator.
 //  This allows us to use the same test harness for everything.
 //
+//  BUT, total space between sequences is 11 characters -- the newline
+//  at the end of the sequence + defline + newline at the end of the
+//  defline.
+//
 //  sequenceU is unsqueezed -- use it with the MSFR and the chainedSeq
 //  sequenceS is squeezed   -- use it with the FastAstream and char*
 //
@@ -96,7 +100,6 @@ answers correct[22] = {
 //  The positionInStream() that a correct FastAstream should return.
 //  Initialized in main()
 //
-u32bit fastastreamcorrect[200];
 
 
 
@@ -174,18 +177,6 @@ main(int argc, char **argv) {
   u32bit       e = 0;
 
 
-  //  Initialize correct answers -- FastAstream only returns ACGT.
-  //
-  for (u32bit i=0, j=0; i<strlen(sequenceS); i++) {
-    if ((sequenceS[i] == 'A') ||
-        (sequenceS[i] == 'C') ||
-        (sequenceS[i] == 'G') ||
-        (sequenceS[i] == 'T')) {
-      fastastreamcorrect[j++] = i;
-    }
-  }
-
-
 
   //  This code does two tests.
   //
@@ -217,10 +208,25 @@ main(int argc, char **argv) {
     //  Test that the FastAstream works
     //
     {
+      //  Initialize correct answers -- FastAstream only returns ACGT.
+      //
+      u32bit fastastreamcorrect[200];
+
+      for (u32bit i=0, j=0; i<strlen(sequenceS); i++) {
+        if ((sequenceS[i] == 'A') ||
+            (sequenceS[i] == 'C') ||
+            (sequenceS[i] == 'G') ||
+            (sequenceS[i] == 'T')) {
+          fastastreamcorrect[j++] = i;
+        }
+      }
+
       FastAstream *F = new FastAstream("junkS");
       unsigned char  r;
 
-      for (u32bit j=0; r = F->nextSymbol(); ) {
+      e = 0;
+
+      for (u32bit j=0; (r = F->nextSymbol()) != 0; ) {
 
         //  We need to skip the FastAstream new sequence and gap
         //  status codes (253 and 254).
@@ -230,12 +236,81 @@ main(int argc, char **argv) {
             fprintf(stderr, "FastAstream positions wrong: got "u64bitFMT" expected "u32bitFMT"\n",
                     F->thePositionInStream(),
                     fastastreamcorrect[j]);
+            e++;
           }
           j++;
         }
       }
       delete F;
+
+      if (e)
+        return(e);
     }
+
+
+    ////////////////////////////////////////
+    //
+    //  Test that the chained sequence
+    //
+    {
+      //  Initialize correct answers -- chainedSequence returns all letters, but we only test NACGT.
+      //
+      u32bit fastastreamcorrect[200];
+
+      for (u32bit i=0, j=0; i<strlen(sequenceS); i++) {
+        if ((sequenceS[i] == 'N') ||
+            (sequenceS[i] == 'A') ||
+            (sequenceS[i] == 'C') ||
+            (sequenceS[i] == 'G') ||
+            (sequenceS[i] == 'T')) {
+          fastastreamcorrect[j++] = i;
+        }
+      }
+
+      chainedSequence *S = new chainedSequence();
+      S->setSource("junkU");
+      S->setSeparator('.');
+      S->setSeparatorLength(11);
+      S->finish();
+      unsigned char  r;
+
+      e = 0;
+
+      for (u32bit j=0; (r = S->get()) != 0; ) {
+
+        //  We need to skip the separator
+
+        //fprintf(stderr, u64bitFMTW(3)" - "u64bitFMTW(3)" - %c\n", S->thePositionInStream(), S->thePositionInSequence(), r);
+
+        if (r != '.') {
+          if (fastastreamcorrect[j] - 10 != S->thePositionInStream()) {
+            fprintf(stderr, "chainedSequence positions wrong:   got "u64bitFMT" expected "u32bitFMT"\n",
+                    S->thePositionInStream(),
+                    fastastreamcorrect[j] - 10);
+            e++;
+#if 0
+          } else {
+            fprintf(stderr, "chainedSequence positions correct: got "u64bitFMT" expected "u32bitFMT"\n",
+                    S->thePositionInStream(),
+                    fastastreamcorrect[j] - 10);
+#endif
+          }
+          j++;
+        }
+      }
+      delete S;
+
+      if (e)
+        return(e);
+    }
+
+
+
+
+
+
+
+
 
 
     ////////////////////////////////////////
@@ -278,6 +353,8 @@ main(int argc, char **argv) {
     {
       chainedSequence *C = new chainedSequence;
       C->setSource("junkS");
+      C->setSeparator('.');
+      C->setSeparatorLength(11);
       C->finish();
       merStream       *S = new merStream(10, C);
       e += test1(S, "chain1s", 10);
@@ -292,6 +369,8 @@ main(int argc, char **argv) {
     {
       chainedSequence *C = new chainedSequence;
       C->setSource("junkU");
+      C->setSeparator('.');
+      C->setSeparatorLength(11);
       C->finish();
       merStream       *S = new merStream(10, C);
       e += test1(S, "chain1u", 10);

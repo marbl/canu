@@ -419,6 +419,10 @@ chainedSequence::get(void) {
     //  the separator.  It finishes, and we're back here, with
     //  _separatorDone set to true.
     //
+    //  On _separatorDone, we initialize the next sequence, load the
+    //  first letter and fall through to the normal "got a good read"
+    //  exit.
+    //
     if (_separatorDone) {
       delete _sequence;
       _currentSeq++;
@@ -426,13 +430,13 @@ chainedSequence::get(void) {
       _sequence           = _file->getSequenceOnDisk();
       _separatorDone      = false;
       _positionInSequence = u64bitZERO;
+      ret = _sequence->get();
     } else {
       _separatorPosition  = _separatorLength;
       _separatorDone      = true;
       _positionInSequence = ~u64bitZERO;
+      return(_separator);
     }
-
-    return(_separator);
   }
 
   //  Got a good read, bump to the next character and return

@@ -9,9 +9,9 @@ passed: tester ../../fasta/leaff
 	touch passed
 
 
-INCLUDE = -I../../libbri -I../../positionDB               -I../../existDB -I../../fasta
-LIBS    = -L../../libbri -L../../positionDB -L../../meryl -L../../existDB -L../../fasta \
-          -lpositionDB -lexistDB -lmeryl -lfasta -lbri
+INCLUDE = -I../../libbri -I../../positionDB               -I../../existDB 
+LIBS    = -L../../libbri -L../../positionDB -L../../meryl -L../../existDB \
+          -lpositionDB -lexistDB -lmeryl -lbri
 DBGOPT  = -DERROR_CHECK_COUNTING -DERROR_CHECK_COUNTING_ENCODING -DERROR_CHECK_EMPTY_BUCKETS
 
 

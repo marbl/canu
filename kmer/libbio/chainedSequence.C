@@ -269,7 +269,7 @@ chainedSequence::finish(void) {
       _useList[_useListLen].length = _file->sequenceLength(i);
       _useList[_useListLen].start  = startPos;
 
-      startPos += _useList[_useListLen].length + _separatorLength;
+      startPos += _useList[_useListLen].length + _separatorLength + 1;
 
       _useListLen++;
     }

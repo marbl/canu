@@ -115,8 +115,6 @@ public:
   char            *_outputFileName;
   char            *_statsFileName;
 
-  char            *_tmpFileName;
-
   chainedSequence  _useList;
 
   //  Wall clock times
