@@ -35,6 +35,11 @@ INSTALL/  :=${MAKEFILE/}unknown-arch/
 
 ### ARCH specific compiler options ###################################
 
+# for multi-threaded stuff
+
+THREAD_LIBS  :=-lpthread -lrt
+THREAD_FLAGS :=-pthread
+
 # have WITH_GNU override any spec
 ifdef WITH_GNU
   CC               :=gcc

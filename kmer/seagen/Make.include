@@ -33,6 +33,7 @@ $/.REAL-CLEAN:=$/buildinfo-*
 
 
 
+$/%.o: CXXFLAGS_ARCH+=${THREAD_FLAGS}
 $/%.d $/%.o: CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} -I${EXISTDB/}
 $/configuration.C.d:  $/buildinfo-searchGENOME.h \
                      ${EXISTDB/}buildinfo-existDB.h \
@@ -43,6 +44,7 @@ $/configuration.C.d:  $/buildinfo-searchGENOME.h \
 $/searchGENOME:        $/hitMatrix.o
 $/searchGENOMEexactly: $/hitMatrix-Exact.o
 
+$/searchGENOME $/searchGENOMEexactly: CXXLIBS_ARCH+=${THREAD_LIBS}
 $/searchGENOME $/searchGENOMEexactly: \
               ${src_C:.C=.o} $/buildinfo-searchGENOME.o \
               ${EXISTDB/}libexistDB.a ${POSITIONDB/}libpositionDB.a \

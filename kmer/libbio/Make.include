@@ -25,7 +25,7 @@ $/.CXX_LIBS  :=$/libbri.a
 
 $/.CLEAN := $/*.o
 
-$/.REAL-CLEAN :=$/buildinfo-*
+$/.REAL-CLEAN :=$/buildinfo-* $/alphabet.[ch]
 
 # extra rules
 

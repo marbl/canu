@@ -36,8 +36,10 @@ $/.CLEAN     :=$/*.o
 $/.REAL-CLEAN:=$/buildinfo-*
 
 
+$/%.o: CXXFLAGS_ARCH +=${THREAD_FLAGS}
+
 $/%.d $/%.o: \
-  CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} \
+  CXXFLAGS+= -I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} \
             -I${SIM4/} -I${SIM4POLISH/} -I${EXISTDB/}
 $/configuration.C.d: $/buildinfo-snapper2.h \
                      ${EXISTDB/}buildinfo-existDB.h \
@@ -47,6 +49,7 @@ $/configuration.C.d: $/buildinfo-snapper2.h \
                      ${SIM4/}buildinfo-libsim4.h \
                      ${SIM4POLISH/}buildinfo-libsim4polish.h
 
+$/snapper2: CXXLIBS_ARCH +=${THREAD_LIBS}
 $/snapper2: \
               ${$/.CXX_SRCS:.C=.o} $/buildinfo-snapper2.o \
               ${EXISTDB/}libexistDB.a ${POSITIONDB/}libpositionDB.a \

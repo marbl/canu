@@ -1,6 +1,5 @@
 # -*- makefile -*-
 
-
 ifndef LIBBRI/
 LIBBRI/     := $/../libbri/
 endif
