@@ -1504,6 +1504,136 @@ sub search {
 
 
 
+
+sub configure_packMemory {
+    my $path      = shift @_;
+    my $memory    = shift @_;
+    my @scaffolds = @_;
+
+    #  Determine the length of each piece
+    #
+    #  400000000 bases -> 3500M -->  8.75 (old)
+    #  125828998 bases -> size=2400M res=1500M --> 11.92 (from 03dec02)
+    #  104857600 bases -> 
+    #
+    my $scaleFactor = 12;
+    my $seqlen = $memory * 1024.0 * 1024.0 / $scaleFactor;
+
+    open(L, "> $path/0-input/scaffolds-list");
+
+    my $outputFile = "000";
+
+    #  Special case; for any scaffolds more than the limit, write
+    #  them now.
+    #
+    my $l;
+    my $i;
+
+    ($l, $i) = split '\.', $scaffolds[0];
+
+    while ((scalar @scaffolds > 0) &&
+           ($l >= $seqlen)) {
+
+        print L "$outputFile\n";
+
+        open(F, "> $path/0-input/scaffolds-$outputFile");
+        print F "$i\n";
+        close(F);
+
+        printf STDERR "ESTmapper/configure-- WARNING:  Scaffold $i ($l bases) requires %8.3fMB of memory!\n", $l * $scaleFactor / 1024.0 / 1024.0;
+
+        shift @scaffolds;
+
+        ($l, $i) = split '\.', $scaffolds[0];
+
+        $outputFile++;
+    }
+
+
+    #  Now, pack the "small" scaffolds together.
+    #
+    while (scalar @scaffolds > 0) {
+        my $totalLength = 0;
+        my @leftover;
+        
+        undef @leftover;
+
+        print L "$outputFile\n";
+
+        open(F, "> $path/0-input/scaffolds-$outputFile");
+        foreach my $v (@scaffolds) {
+            my ($l, $i) = split '\.', $v;
+
+            if ($totalLength + $l < $seqlen) {
+                print F "$i\n";
+                $totalLength += $l;
+            } else {
+                push @leftover, $v;
+            }
+        }
+        close(F);
+
+        printf STDERR "ESTmapper/configure-- Created group with $totalLength bases (%8.3fMB of memory).\n", $totalLength * $scaleFactor / 1024.0 / 1024.0;
+
+        $outputFile++;
+        
+        @scaffolds = @leftover;
+    }
+
+    close(L);
+}
+
+
+
+sub configure_packSegment {
+    my $path      = shift @_;
+    my $segments  = shift @_;
+    my @scaffolds = @_;
+
+    my $scaleFactor = 12;
+
+    my @size;  #  size of the partition, an integer
+    my @part;  #  sequences in the partition, a string
+
+    my $maxmemory = 0;
+
+    while (scalar @scaffolds > 0) {
+        my $min = 0;
+
+        for (my $seg=0; $seg<$segments; $seg++) {
+            $min = $seg if ($size[$seg] < $size[$min]);
+        }
+
+        my ($l, $i) = split '\.', shift @scaffolds;
+
+        $size[$min] += $l;
+        $part[$min] .= "$i\n";
+
+        $maxmemory = $size[$min] if ($size[$min] < $maxmemory);
+    }
+
+    my $outputFile = "000";
+
+    open(L, "> $path/0-input/scaffolds-list");
+
+    for (my $i=0; $i<$segments; $i++) {
+        printf STDERR "ESTmapper/configure-- Created group with $size[$i] bases (%8.3fMB of memory).\n", $size[$i] * $scaleFactor / 1024.0 / 1024.0;
+
+        print L "$outputFile\n";
+
+        open(F, "> $path/0-input/scaffolds-$outputFile");
+        print F $part[$i];
+        close(F);
+
+        $outputFile++;
+    }
+
+    close(L);
+
+    return $maxmemory;
+}
+
+
 sub configure {
     my $startTime = time();
     my $errHdr    = "ERROR: ESTmapper/configure--";
@@ -1511,7 +1641,7 @@ sub configure {
     my $path      = "";
     my $genomic   = "";
     my $memory    = 800;
-    my $seqlen    = 0;
+    my $segments  = 0;
 
     print STDERR "ESTmapper: Performing a configure.\n";
 
@@ -1530,19 +1660,14 @@ sub configure {
             $genomic = shift @ARGS;
         }
         if ($arg eq "-memory") {
-            $memory = shift @ARGS;
+            $memory   = shift @ARGS;
+            $segments = 0;
+        }
+        if ($arg eq "-segments") {
+            $memory   = 0;
+            $segments = shift @ARGS;
         }
     }
-
-    #  400000000 bases -> 3500M -->  8.75 (old)
-    #  125828998 bases -> size=2400M res=1500M --> 11.92 (from 03dec02)
-    #  104857600 bases -> 
-    #
-    my $scaleFactor = 12;
-
-    #  Determine the length of each piece
-    #
-    $seqlen = $memory * 1024.0 * 1024.0 / $scaleFactor;
 
     ($path eq "") and die "$errHdr no directory given.\n";
     ($genomic eq "") and die "$errHdr no genomic sequence given.\n";
@@ -1556,45 +1681,39 @@ sub configure {
     system("mkdir $path/2-filter") if (! -d "$path/2-filter");
     system("mkdir $path/3-polish") if (! -d "$path/3-polish");
 
-    #  For the farm, we need to save the amount of memory we can use.
+
+    #  Remember the genomic file for later
     #
-    open(F, "> $path/0-input/memoryLimit") or die "Can't write $path/0-input/memoryLimit\n";
-    print F "$memory\n";
-    close(F);
+    system("ln -s ${genomic}    $path/0-input/genomic.fasta")    if ((-e "${genomic}")    && (! -e "$path/0-input/genomic.fasta"));
+    system("ln -s ${genomic}idx $path/0-input/genomic.fastaidx") if ((-e "${genomic}idx") && (! -e "$path/0-input/genomic.fastaidx"));
+    system("ln -s ${genomic}inf $path/0-input/genomic.fastainf") if ((-e "${genomic}inf") && (! -e "$path/0-input/genomic.fastainf"));
 
+    if (! -f "$path/0-input/genomic.fasta") {
+        die "$errHdr can't find the genomic sequence '$path/0-input/genomic.fasta'\n";
+    }
+
+    if ((! -f "$path/0-input/genomic.fastaidx") && (! -f "$path/0-input/genomic.fastainf")) {
+        print STDERR "ESTmapper/configure-- Generating the index and info for '$path/0-input/genomic.fasta'\n";
+        print STDERR "ESTmapper/configure-- WARNING:  This is done in the work directory!\n";
+        system("$leaff -F $path/0-input/genomic.fasta -i > $path/0-input/genomic.fastainf");
+    }
+
+    if (! -f "$path/0-input/genomic.fastaidx") {
+        print STDERR "ESTmapper/configure-- Generating the index for '$path/0-input/genomic.fasta'\n";
+        print STDERR "ESTmapper/configure-- WARNING:  This is done in the work directory!\n";
+        system("$leaff -F $path/0-input/genomic.fasta");
+    }
+    if (! -f "$path/0-input/genomic.fastainf") {
+        print STDERR "ESTmapper/configure-- Generating the info for '$path/0-input/genomic.fasta'\n";
+        print STDERR "ESTmapper/configure-- WARNING:  This is done in the work directory!\n";
+        system("$leaff -F $path/0-input/genomic.fasta -i > $path/0-input/genomic.fastainf");
+    }
+
+
+    #
+    #  Partition the genome into itty-bitty pieces
+    #
     if (! -e "$path/0-input/scaffolds-list") {
-        print STDERR "ESTmapper/configure-- Use about ${memory}MB -> $seqlen bases per chunk.\n";
-
-        #  Remember the genomic file for later
-        #
-        system("ln -s ${genomic}    $path/0-input/genomic.fasta")    if ((-e "${genomic}")    && (! -e "$path/0-input/genomic.fasta"));
-        system("ln -s ${genomic}idx $path/0-input/genomic.fastaidx") if ((-e "${genomic}idx") && (! -e "$path/0-input/genomic.fastaidx"));
-        system("ln -s ${genomic}inf $path/0-input/genomic.fastainf") if ((-e "${genomic}inf") && (! -e "$path/0-input/genomic.fastainf"));
-
-        if (! -f "$path/0-input/genomic.fasta") {
-            die "$errHdr can't find the genomic sequence '$path/0-input/genomic.fasta'\n";
-        }
-
-        if ((! -f "$path/0-input/genomic.fastaidx") && (! -f "$path/0-input/genomic.fastainf")) {
-            print STDERR "ESTmapper/configure-- Generating the index and info for '$path/0-input/genomic.fasta'\n";
-            print STDERR "ESTmapper/configure-- WARNING:  This is done in the work directory!\n";
-            system("$leaff -F $path/0-input/genomic.fasta -i > $path/0-input/genomic.fastainf");
-        }
-
-        if (! -f "$path/0-input/genomic.fastaidx") {
-            print STDERR "ESTmapper/configure-- Generating the index for '$path/0-input/genomic.fasta'\n";
-            print STDERR "ESTmapper/configure-- WARNING:  This is done in the work directory!\n";
-            system("$leaff -F $path/0-input/genomic.fasta");
-        }
-        if (! -f "$path/0-input/genomic.fastainf") {
-            print STDERR "ESTmapper/configure-- Generating the info for '$path/0-input/genomic.fasta'\n";
-            print STDERR "ESTmapper/configure-- WARNING:  This is done in the work directory!\n";
-            system("$leaff -F $path/0-input/genomic.fasta -i > $path/0-input/genomic.fastainf");
-        }
-
-        #
-        #  Partition the genome into itty-bitty pieces
-        #
 
         my @scaffolds;
 
@@ -1615,7 +1734,9 @@ sub configure {
         while (<F>) {
             if (m/^#/) {
                 #  Comment line, do nothing
-            } elsif (m/^\d+\s+\d+\s+(\d+)\s+\d+\D/) {
+            } elsif (m/^\//) {
+                #  Comment line, do nothing
+            } elsif (m/^I*\s*\d+\s+\d+\s+(\d+)\s+\d+\D/) {
                 push @scaffolds, "$1.$idx";
                 $idx++;
             } else {
@@ -1626,68 +1747,21 @@ sub configure {
 
         @scaffolds = reverse sort { $a <=> $b } @scaffolds;
 
-        open(L, "> $path/0-input/scaffolds-list");
-
-        my $outputFile = "000";
-
-        #  Special case; for any scaffolds more than the limit, write
-        #  them now.
-        #
-        my $l;
-        my $i;
-
-        ($l, $i) = split '\.', $scaffolds[0];
-
-        while ((scalar @scaffolds > 0) &&
-               ($l >= $seqlen)) {
-
-            print L "$outputFile\n";
-
-            open(F, "> $path/0-input/scaffolds-$outputFile");
-            print F "$i\n";
-            close(F);
-
-            printf STDERR "ESTmapper/configure-- WARNING:  Scaffold $i ($l bases) requires %8.3fMB of memory!\n", $l * $scaleFactor / 1024.0 / 1024.0;
-
-            shift @scaffolds;
-
-            ($l, $i) = split '\.', $scaffolds[0];
-
-            $outputFile++;
+        if ($memory > 0) {
+            print STDERR "ESTmapper/configure-- packing to preserve ${memory}MB memory limit\n";
+            configure_packMemory($path, $memory, @scaffolds);
         }
 
-
-        #  Now, pack the "small" scaffolds together.
-        #
-        while (scalar @scaffolds > 0) {
-            my $totalLength = 0;
-            my @leftover;
-            
-            undef @leftover;
-
-            print L "$outputFile\n";
-
-            open(F, "> $path/0-input/scaffolds-$outputFile");
-            foreach my $v (@scaffolds) {
-                my ($l, $i) = split '\.', $v;
-
-                if ($totalLength + $l < $seqlen) {
-                    print F "$i\n";
-                    $totalLength += $l;
-                } else {
-                    push @leftover, $v;
-                }
-            }
-            close(F);
-
-            printf STDERR "ESTmapper/configure-- Created group with $totalLength bases (%8.3fMB of memory).\n", $totalLength * $scaleFactor / 1024.0 / 1024.0;
-
-            $outputFile++;
-            
-            @scaffolds = @leftover;
+        if ($segments > 0) {
+            print STDERR "ESTmapper/configure-- packing to preserve $segments processor limit\n";
+            $memory = configure_packSegment($path, $segments, @scaffolds);
         }
 
-        close(L);
+        #  For the farm, we need to save the amount of memory we can use.
+        #
+        open(F, "> $path/0-input/memoryLimit") or die "Can't write $path/0-input/memoryLimit\n";
+        print F "$memory\n";
+        close(F);
     }
 
     print STDERR "ESTmapper: Configure script finished in ", time() - $startTime, " wall-clock seconds.\n" if (time() > $startTime + 5);
