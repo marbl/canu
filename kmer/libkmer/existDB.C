@@ -63,7 +63,7 @@ existDB::existDB(char const  *filename,
     createFromFastA(filename, merSize, tblBits, posDB);
   } else {
     //fprintf(stderr, "Loading mers from meryl '%s'\n", filename);
-    createFromMeryl(filename, lo, hi);
+    createFromMeryl(filename, lo, hi, posDB);
   }
 }
 

@@ -53,7 +53,8 @@ private:
                               positionDB  *posDB);
   bool        createFromMeryl(char const  *filename,
                               u32bit       merSize,
-                              u32bit       tblBits);
+                              u32bit       tblBits,
+                              positionDB  *posDB);
 
   u64bit       HASH(u64bit k) {
     return(((k >> _shift1) ^ (k >> _shift2) ^ k) & _mask1);

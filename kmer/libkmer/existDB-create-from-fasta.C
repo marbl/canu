@@ -175,8 +175,6 @@ existDB::createFromFastA(char const  *filename,
   //
   //  So, I bloated the code (a little bit).
   //
-
-
   if (posDB) {
     u64bit  fmer;
     u64bit  rmer;

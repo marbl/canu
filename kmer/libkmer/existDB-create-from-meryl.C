@@ -3,13 +3,15 @@
 #include <string.h>
 #include <errno.h>
 #include "existDB.H"
+#include "positionDB.H"
 #include "libmeryl.H"
 
 
 bool
 existDB::createFromMeryl(char const  *prefix,
                          u32bit       lo,
-                         u32bit       hi) {
+                         u32bit       hi,
+                         positionDB  *posDB) {
 
   fprintf(stderr, "existDB: Reading mers from meryl stream %s\n", prefix);
 
@@ -52,10 +54,24 @@ existDB::createFromMeryl(char const  *prefix,
   //     need to HASH() each of the mers, so that we can use the existing
   //     exists() method.
   //
-  while (M->nextMer()) {
-    if ((lo <= M->theCount()) && (M->theCount() <= hi)) {
-      countingTable[ HASH(M->theMer()) ]++;
-      numberOfMers++;
+
+  if (posDB) {
+    while (M->nextMer()) {
+      if ((lo <= M->theCount()) && (M->theCount() <= hi) && (posDB->exists(M->theFMer()))) {
+        countingTable[ HASH(M->theFMer()) ]++;
+        numberOfMers++;
+      }
+      if ((lo <= M->theCount()) && (M->theCount() <= hi) && (posDB->exists(M->theRMer()))) {
+        countingTable[ HASH(M->theRMer()) ]++;
+        numberOfMers++;
+      }
+    }
+  } else {
+    while (M->nextMer()) {
+      if ((lo <= M->theCount()) && (M->theCount() <= hi)) {
+        countingTable[ HASH(M->theFMer()) ]++;
+        numberOfMers++;
+      }
     }
   }
 
@@ -129,22 +145,71 @@ existDB::createFromMeryl(char const  *prefix,
   //
   M = new merStreamFromMeryl(prefix);
 
-  u64bit  h;
-    
-  while (M->nextMer()) {
-    if ((lo <= M->theCount()) && (M->theCount() <= hi)) {
-      h = HASH(M->theMer());
+  //  XXX:  Pretty big code bloat here
+  //
+  //  I don't want to bury a test in the posDB on every mer,
+  //  especially if we are never using the capability, as ESTmapper
+  //  searchGENOME does.
+  //
+  //  So, I bloated the code (a little bit).
+  //
+  if (posDB) {
+    u64bit  fmer;
+    u64bit  rmer;
+    u64bit  h;
+
+    while (M->nextMer()) {
+      fmer = M->theFMer();
+      rmer = M->theRMer();
+
+      if ((lo <= M->theCount()) && (M->theCount() <= hi) && (posDB->exists(fmer))) {
+        h = HASH(fmer);
 
 #ifdef COMPRESSED_BUCKET
-      setDecodedValue(_buckets,
-                      countingTable[h] * _chckWidth,
-                      _chckWidth,
-                      CHECK(M->theMer()));
+        setDecodedValue(_buckets,
+                        countingTable[h] * _chckWidth,
+                        _chckWidth,
+                        CHECK(fmer));
 #else
-      _buckets[countingTable[h]] = CHECK(M->theMer());
+        _buckets[countingTable[h]] = CHECK(fmer);
 #endif
 
-      countingTable[h]++;
+        countingTable[h]++;
+      }
+
+      if ((lo <= M->theCount()) && (M->theCount() <= hi) && (posDB->exists(rmer))) {
+        h = HASH(rmer);
+
+#ifdef COMPRESSED_BUCKET
+        setDecodedValue(_buckets,
+                        countingTable[h] * _chckWidth,
+                        _chckWidth,
+                        CHECK(rmer));
+#else
+        _buckets[countingTable[h]] = CHECK(rmer);
+#endif
+
+        countingTable[h]++;
+      }
+    }
+  } else {
+    u64bit  h;
+
+    while (M->nextMer()) {
+      if ((lo <= M->theCount()) && (M->theCount() <= hi)) {
+        h = HASH(M->theFMer());
+
+#ifdef COMPRESSED_BUCKET
+        setDecodedValue(_buckets,
+                        countingTable[h] * _chckWidth,
+                        _chckWidth,
+                        CHECK(M->theFMer()));
+#else
+        _buckets[countingTable[h]] = CHECK(M->theFMer());
+#endif
+
+        countingTable[h]++;
+      }
     }
   }
 

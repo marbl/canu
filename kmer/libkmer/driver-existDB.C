@@ -21,8 +21,9 @@ main(int argc, char **argv) {
   if (argc < 3) {
     fprintf(stderr, "usage: %s [stuff]\n", argv[0]);
     fprintf(stderr, "       To create an image:\n");
-    fprintf(stderr, "         [-m mersize] [-t tablesize] <sequence.fasta> <datafile>\n", argv[0]);
-    fprintf(stderr, "           defaults: -m 20 -t 19 (suitable for searchGENOME*)\n");
+    fprintf(stderr, "         [-m mersize] [-t tablesize] [-C] <sequence.fasta> <datafile>\n", argv[0]);
+    fprintf(stderr, "           -C   Insert both the forward and reverse mer into the table.\n");
+    fprintf(stderr, "           defaults: -m 20 -t 19 -C (suitable for searchGENOME*)\n");
     fprintf(stderr, "       To dump information about an image:\n");
     fprintf(stderr, "         -d datafile\n");
     exit(1);
