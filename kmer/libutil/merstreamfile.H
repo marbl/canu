@@ -45,6 +45,9 @@ public:
   u64bit                 theFMer(void) { return(_theFMer); };
   u64bit                 theRMer(void) { return(_theRMer); };
 
+  char const            *theFMerString(void);
+  char const            *theRMerString(void);
+
   u64bit                 thePosition(void)       { return(_thePosition); };
   u64bit                 theSequenceNumber(void) { return(_theSequence); };
   char const            *theDefLine(void)        { return(_theDefline);  };
@@ -91,6 +94,8 @@ private:
   u64bit                _thePosition;
   u64bit                _theSequence;
   char                 *_theDefline;
+
+  char                  _theMerString[33];
 };
 
 #endif  //  MERSTREAMFILE_H

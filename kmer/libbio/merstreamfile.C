@@ -258,6 +258,7 @@ merStreamFileReader::merStreamFileReader(const char *i) {
     exit(1);
   }
 
+#if 0
   fprintf(stderr, "merStreamFileReader()-- merSize:         "u32bitFMT" bases\n", _merSize);
   fprintf(stderr, "merStreamFileReader()-- numMers:         "u64bitFMT" mers\n", _numMers);
   fprintf(stderr, "merStreamFileReader()-- numBlocks:       "u64bitFMT" blocks\n", _numBlocks);
@@ -269,6 +270,7 @@ merStreamFileReader::merStreamFileReader(const char *i) {
   fprintf(stderr, "merStreamFileReader()-- blkStart:        "u64bitFMT" bits\n", _blkStart);
   fprintf(stderr, "merStreamFileReader()-- defStart:        "u64bitFMT" bits\n", _defStart);
   fprintf(stderr, "merStreamFileReader()-- strStart:        "u64bitFMT" bits\n", _strStart);
+#endif
 
   //  Read the blocks
   //
@@ -470,6 +472,29 @@ again:
 
   return(true);
 }
+
+
+
+
+
+char const *
+merStreamFileReader::theFMerString(void) {
+  for (u32bit i=0; i<_merSize; i++)
+    _theMerString[_merSize-i-1] = decompressSymbol[(_theFMer >> (2*i)) & 0x03];
+  _theMerString[_merSize] = 0;
+  return(_theMerString);
+}
+
+char const *
+merStreamFileReader::theRMerString(void) {
+  for (u32bit i=0; i<_merSize; i++)
+    _theMerString[_merSize-i-1] = decompressSymbol[(_theRMer >> (2*i)) & 0x03];
+  _theMerString[_merSize] = 0;
+  return(_theMerString);
+}
+
+
+
 
 
 
