@@ -9,11 +9,6 @@
 #include "file.h"
 
 
-//  We limit scaffolds to be below the number of open files per
-//  process.
-//
-#define MAX_SCAFFOLD   OPEN_MAX
-
 char const *usage =
 "usage: %s [-c c] [-i i] [-o o]\n"
 "  -verbose       Report progress\n"
@@ -74,6 +69,15 @@ main(int argc, char ** argv) {
   FILE       **SEGREGATE = 0L;
   u32bit       printOpts = S4P_PRINTPOLISH_NOTVALUABLE;
 
+  //  We limit scaffolds to be below the number of open files per
+  //  process.
+  //
+  //#ifdef OPEN_MAX
+  //u32bit       maxScaffold = OPEN_MAX;
+  //#else
+  u32bit       maxScaffold = sysconf(_SC_OPEN_MAX);
+  //#endif
+
   arg = 1;
   while (arg < argc) {
     if        (strncmp(argv[arg], "-verbose", 2) == 0) {
@@ -127,7 +131,7 @@ main(int argc, char ** argv) {
       geno = atoi(argv[++arg]);
     } else if (strncmp(argv[arg], "-segregate", 2) == 0) {
       doSegregation = 1;
-      SEGREGATE = (FILE **)calloc(MAX_SCAFFOLD, sizeof(FILE *));
+      SEGREGATE = (FILE **)calloc(maxScaffold, sizeof(FILE *));
     } else if (strncmp(argv[arg], "-nodeflines", 4) == 0) {
       printOpts |= S4P_PRINTPOLISH_NODEFS;
     } else if (strncmp(argv[arg], "-noalignments", 4) == 0) {
@@ -184,8 +188,8 @@ main(int argc, char ** argv) {
           (p->numExons <= maxExons)) {
         good++;
         if (doSegregation) {
-          if (p->genID >= MAX_SCAFFOLD) {
-            fprintf(stderr, "Genomic index %d larger than MAX_SCAFFOLD = %d!\n", p->genID, MAX_SCAFFOLD);
+          if (p->genID >= maxScaffold) {
+            fprintf(stderr, "Genomic index %d larger than maxScaffold = %d!\n", p->genID, maxScaffold);
           } else {
             if (SEGREGATE[p->genID] == 0L) {
               char filename[1024];

@@ -177,7 +177,7 @@ statusReport(int pLen, int mergeFilesLen, double arrayAlloc, double matchAlloc) 
 //  The OS limit is usually hit before this, but this is
 //  the maximum number of files we can have open at once.
 //
-#define MERGE_FILES_MAX  OPEN_MAX
+//#define MERGE_FILES_MAX  OPEN_MAX
 
 
 int
@@ -201,8 +201,14 @@ main(int argc, char **argv) {
 
   int          moreInput = 1;
 
-  FILE        *mergeFiles[MERGE_FILES_MAX];
   int          mergeFilesLen = 0;
+  int          mergeFilesMax = sysconf(_SC_OPEN_MAX);
+  FILE       **mergeFiles    = (FILE **)malloc(sizeof(FILE*) * mergeFilesMax);
+
+  if (mergeFiles == 0L) {
+    fprintf(stderr, "sortPolishes: Failed to initialize.\n");
+    exit(1);
+  }
 
   int          arg = 1;
   while (arg < argc) {
@@ -293,7 +299,7 @@ main(int argc, char **argv) {
             fprintf(stderr, "\n");
           }
 
-          if (mergeFilesLen >= MERGE_FILES_MAX) {
+          if (mergeFilesLen >= mergeFilesMax) {
             fprintf(stderr, "Too many open files.  Try increasing memory size.\n");
             exit(1);
           }
@@ -337,7 +343,7 @@ main(int argc, char **argv) {
     //  Crud.  Temporary files.  Sort the last batch, dump it, then do
     //  a merge.
     //
-    if (mergeFilesLen >= MERGE_FILES_MAX) {
+    if (mergeFilesLen >= mergeFilesMax) {
       fprintf(stderr, "Too many open files.  Try increasing memory size.\n");
       exit(1);
     }
