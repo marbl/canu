@@ -1,12 +1,20 @@
 # -*- makefile -*-
 
-// += $/.
+ifndef LIBBRI/
+LIBBRI/     := $/../libbri/
+endif
 
-BIN/        ?= $/../bin/
-LIBBRI/     ?= $/../libbri/
-FASTA/      ?= $/../fasta/
-SIM4POLISH/ ?= $/../sim4polish/
-SIM4DB/     ?= $/../sim4db/
+ifndef FASTA/
+FASTA/      := $/../fasta/
+endif
+
+ifndef SIM4POLISH/
+SIM4POLISH/ := $/../sim4polish/
+endif
+
+ifndef SIM4/
+SIM4/       := $/../sim4/
+endif
 
 # declarations
 
@@ -25,9 +33,6 @@ obj_C := ${$/.CXX_SRCS:.C=.o}
 $/.CXX_EXES:= ${obj_C:.o=} ${obj_c:.o=}
 
 $/.CLEAN := $/*.o
-
-$/.install: ${$/.C_EXES} ${$/.CXX_EXES}
-	cp -p $^ ${BIN/}
 
 $/Make.depends ${obj_c}:  CFLAGS+=-I${FASTA/} -I${SIM4POLISH/} -I${LIBBRI/}
 $/Make.depends ${obj_C}:  CXXFLAGS+=-I${FASTA/} -I${SIM4POLISH/} -I${LIBBRI/}

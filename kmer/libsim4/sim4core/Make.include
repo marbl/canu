@@ -1,11 +1,20 @@
 # -*- makefile -*-
+ifndef LIBBRI/
+LIBBRI/     := $/../libbri/
+endif
 
-// += $/.
+ifndef FASTA/
+FASTA/      := $/../fasta/
+endif
 
-UTIL/       ?= $/../util/
-FASTA/      ?= $/../fasta/
-SIM4POLISH/ ?= $/../sim4polish/
-LIBBRI/     ?= $/../libbri/
+ifndef SIM4POLISH/
+SIM4POLISH/ := $/../sim4polish/
+endif
+
+ifndef UTIL/
+UTIL/ := $/../util/
+endif
+
 
 src    := $/sim4command.C $/sim4parameters.C $/sim4string.C \
           $/Xtend1.C $/align.C $/exon.H $/exonManager.H $/exon_cores.C \

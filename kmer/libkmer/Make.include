@@ -1,9 +1,11 @@
 # -*- makefile -*-
+ifndef LIBBRI/
+LIBBRI/     := $/../libbri/
+endif
 
-// += $/.
-
-LIBBRI/     ?= $/../libbri/
-FASTA/      ?= $/../fasta/
+ifndef FASTA/
+FASTA/      := $/../fasta/
+endif
 
 src           :=$/positionDB.C $/positionDB.H $/positionDB-access.C $/positionDB-dump.C $/positionDB-sort.C $/positionDB-file.C $/positionDC-file.H
 $/.CXX_SRCS   := $/driver.C $(filter %.C,${src})
@@ -17,9 +19,6 @@ $/positionDB:        $/driver.o
 
 $/Make.depends ${$/.CXX_SRCS:.C=.o}:    CXXFLAGS+= -I${FASTA/} -I${LIBBRI/}
 ${$/.CXX_EXES}:$/libpositionDB.a ${FASTA/}libfasta.a ${LIBBRI/}libbri.a
-
-$/.install: ${$/.CXX_EXES}
-	cp -p $^ ${BIN/}
 
 $/Make.depends: | $/buildinfo-positionDB.h
 $/buildinfo-positionDB.c $/buildinfo-positionDB.h: ${src}

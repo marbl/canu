@@ -1,11 +1,15 @@
 # -*- makefile -*-
+ifndef LIBBRI/
+LIBBRI/     := $/../libbri/
+endif
 
-// += $/.
+ifndef UTIL/
+UTIL/ := $/../util/
+endif
 
-EXTERNAL/   ?= $/../external/
-BIN/        ?= $/../bin/
-LIBBRI/     ?= $/../libbri/
-UTIL/       ?= $/../util/
+ifndef EXTERNAL/
+EXTERNAL/    := $/../existDB/
+endif
 
 # declarations
 src     :=$/sim4polish-comparisons.c \

@@ -1,11 +1,19 @@
 # -*- makefile -*-
+ifndef LIBBRI/
+LIBBRI/     := $/../libbri/
+endif
 
-// += $/.
+ifndef FASTA/
+FASTA/      := $/../fasta/
+endif
 
-LIBBRI/     ?= $/../libbri/
-FASTA/      ?= $/../fasta/
-SIM4POLISH/ ?= $/../sim4polish/
-SIM4/       ?= $/../sim4/
+ifndef SIM4POLISH/
+SIM4POLISH/ := $/../sim4polish/
+endif
+
+ifndef SIM4/
+SIM4/       := $/../sim4/
+endif
 
 $/.CXX_SRCS  := $/sim4db.C
 $/.CXX_EXES  := $/sim4db
@@ -15,9 +23,6 @@ $/.REAL-CLEAN := $/buildinfo-*
 
 EFENCE-L  := #-L/dev3/adelcher/EFence
 EFENCE-l  := #-lefence
-
-$/.install: ${$/.CXX_EXES}
-	cp -p $^ ${BIN/}
 
 $/sim4db: $/buildinfo-sim4db.o ${$/.CXX_SRCS:.C=.o}
 

@@ -1,8 +1,10 @@
 # -*- makefile -*-
 
-// += $/.
 
-LIBBRI/     ?= $/../libbri/
+ifndef LIBBRI/
+LIBBRI/     := $/../libbri/
+endif
+
 
 src     := $/binaryOp.C $/build.C $/checkDescr.C $/dump.C $/estimate.C \
            $/mcBucket.C $/mcBucket.H $/mcDescription.H $/merge.C $/meryl.C $/meryl.H \
@@ -17,9 +19,6 @@ $/.REAL-CLEAN:=$/buildinfo-*
 
 $/Make.depends ${$/.CXX_SRCS:.C=.o}: CXXFLAGS+=-I${LIBBRI/}
 $/Make.depends: | $/buildinfo-meryl.h $/buildinfo-merle.h
-
-$/.install: ${$/.CXX_EXES}
-	cp -p $^ ${BIN/}
 
 EFENCE-L :=# -L/dev2/adelcher/EFence
 EFENCE-l :=# -lefence

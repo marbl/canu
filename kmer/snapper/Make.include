@@ -1,14 +1,28 @@
 # -*- makefile -*-
 
-// += $/.
+ifndef LIBBRI/
+LIBBRI/     := $/../libbri/
+endif
 
+ifndef FASTA/
+FASTA/      := $/../fasta/
+endif
 
-LIBBRI/     ?= $/../libbri/
-FASTA/      ?= $/../fasta/
-SIM4/       ?= $/../sim4/
-SIM4POLISH/     ?= $/../sim4polish/
-POSITIONDB/ ?= $/../positionDB/
-EXISTDB/    ?= $/../existDB/
+ifndef POSITIONDB/
+POSITIONDB/ := $/../positionDB/
+endif
+
+ifndef EXISTDB/
+EXISTDB/    := $/../existDB/
+endif
+
+ifndef SIM4POLISH/
+SIM4POLISH/ := $/../sim4polish/
+endif
+
+ifndef SIM4/
+SIM4/       := $/../sim4/
+endif
 
 src      := $/snapper2.C $/configuration.C $/encodedQuery.C \
             $/thr-search.C $/thr-loader.C $/thr-deadlock.C \
@@ -29,9 +43,6 @@ $/Make.depends: \
   CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} \
             -I${SIM4/} -I${SIM4POLISH/} -I${EXISTDB/}
 $/Make.depends: | $/buildinfo-snapper2.h
-
-$/.install: ${$/.CXX_EXES}
-	cp -p $^ ${BIN/}
 
 EFENCE-L :=# -L/dev2/adelcher/EFence
 EFENCE-l :=# -lefence

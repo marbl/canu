@@ -1,11 +1,19 @@
 # -*- makefile -*-
+ifndef LIBBRI/
+LIBBRI/     := $/../libbri/
+endif
 
-// += $/.
+ifndef FASTA/
+FASTA/      := $/../fasta/
+endif
 
-LIBBRI/     ?= $/../libbri/
-FASTA/      ?= $/../fasta/
-POSITIONDB/ ?= $/../positionDB/
-EXISTDB/    ?= $/../existDB/
+ifndef POSITIONDB/
+POSITIONDB/ := $/../positionDB/
+endif
+
+ifndef EXISTDB/
+EXISTDB/    := $/../existDB/
+endif
 
 src      := $/searchGENOME.C $/configuration.C $/encodedQuery.C \
             $/thr-search.C $/thr-loader.C $/thr-deadlock.C \
@@ -30,9 +38,6 @@ ${$/.CXX_SRCS:.C=.o}: \
 $/Make.depends: \
   CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} -I${EXISTDB/}
 $/Make.depends: | $/buildinfo-searchGENOME.h
-
-$/.install: ${$/.CXX_EXES}
-	cp -p $^ ${BIN/}
 
 EFENCE-L :=# -L/dev2/adelcher/EFence
 EFENCE-l :=# -lefence

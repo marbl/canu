@@ -1,11 +1,14 @@
 # -*- makefile -*-
 
-// += $/.
+ifndef LIBBRI/
+LIBBRI/     := $/../libbri/
+endif
 
-LIBBRI/     ?= $/../libbri/
-POSITIONDB/ ?= $/../positionDB/
+ifndef POSITIONDB/
+POSITIONDB/ := $/../positionDB/
+endif
 
-$/.CXX_SRCS   := $/buildandtest.C $/driver.C $/existDB.C $/existDB.H
+$/.CXX_SRCS   := $/buildandtest.C $/driver.C $/existDB.C
 $/.CXX_EXES   := $/buildandtest $/existDB
 $/.CXX_LIBS   := $/libexistDB.a
 $/.CLEAN      := $/*.o
@@ -17,9 +20,6 @@ $/existDB      : $/driver.o
 
 $/Make.depends ${$/.CXX_SRCS:.C=.o}: CXXFLAGS+=-I${LIBBRI/} -I${POSITIONDB/}
 ${$/.CXX_EXES}:$/libexistDB.a ${POSITIONDB/}libpositionDB.a ${LIBBRI/}libbri.a
-
-$/.install: ${$/.CXX_EXES}
-	cp -p $^ ${BIN/}
 
 $/Make.depends : | $/buildinfo-existDB.h
 $/buildinfo-existDB.c $/buildinfo-existDB.h: $/existDB.C $/existDB.H

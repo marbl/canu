@@ -1,11 +1,16 @@
 # -*- makefile -*-
 
-// += $/.
+ifndef LIBBRI/
+LIBBRI/     := $/../libbri/
+endif
 
-EXTERNAL/   ?= $/../external/
-BIN/        ?= $/../bin/
-LIBBRI/     ?= $/../libbri/
-UTIL/       ?= $/../util/
+ifndef UTIL/
+UTIL/ := $/../util/
+endif
+
+ifndef EXTERNAL/
+EXTERNAL/    := $/../existDB/
+endif
 
 src    := $/fasta-buildindex.C $/fasta-find-id.C \
           $/fasta-find-iid.C $/fasta-openindex.C \
@@ -27,9 +32,6 @@ $/.REAL-CLEAN :=$/buildinfo-*
 
 EFENCE-L  := #-L/dev2/adelcher/EFence
 EFENCE-l  := #-lefence
-
-$/.install:  ${$/.C_EXES} ${$/.CXX_EXES}
-	cp -p $^ ${BIN/}
 
 $/Make.depends ${$/.CXX_SRCS:.C=.o}:  CXXFLAGS+=-I${LIBBRI/}
 $/Make.depends: | $/buildinfo-leaff.h $/buildinfo-libfasta.h
