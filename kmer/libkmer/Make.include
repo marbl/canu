@@ -1,0 +1,24 @@
+# -*- makefile -*-
+############################################################
+
+// += $/.
+
+LIBBRI/     ?= $/../libbri/
+
+src   := $/positionDB.C $/positionDB-access.C $/positionDB-dump.C $/positionDB-sort.C $/positionDB.H
+
+$/.CXX_SRCS  :=$(filter %.C,${src})
+$/.CXX_LIBS  := $/libpositionDB.a
+
+$/.CLEAN  := $/*.o
+$/.REAL-CLEAN := $/buildinfo-*
+
+$/libpositionDB.a:   $/buildinfo-positionDB.o ${$/.CXX_SRCS:.C=.o}
+
+$/Make.depends ${$/.CXX_SRCS:.C=.o}:    CXXFLAGS+= -I${LIBBRI/}
+$/Make.depends: $/buildinfo-positionDB.h
+
+$/buildinfo-positionDB.c $/buildinfo-positionDB.h: ${src}
+	${UTIL/}buildinfo.pl positionDB "${CXXFLAGS} ${CXXFLAGS_ARCH}" $^
+	mv buildinfo-positionDB.[ch] `dirname $@`
+

@@ -1,0 +1,36 @@
+# -*- makefile -*-
+
+// += $/.
+
+LIBBRI/     ?= $/../libbri/
+FASTA/      ?= $/../fasta/
+SIM4POLISH/ ?= $/../sim4polish/
+SIM4/       ?= $/../sim4/
+
+$/.CXX_SRCS  := $/sim4db.C
+$/.CXX_EXES  := $/sim4db
+
+$/.CLEAN  := $/*.o
+$/.REAL-CLEAN := $/buildinfo-*
+
+EFENCE-L  := #-L/dev3/adelcher/EFence
+EFENCE-l  := #-lefence
+
+$/.install: ${$/.CXX_EXES}
+	cp -p $^ ${BIN/}
+
+$/sim4db: $/buildinfo-sim4db.o ${$/.CXX_SRCS:.C=.o}
+
+${$/.CXX_EXES}:   CXXLDFLAGS+=${EFENCE-L}
+${$/.CXX_EXES}:   CXXLIBS   +=${EFENCE-l}
+${$/.CXX_EXES}:   ${FASTA/}libfasta.a ${SIM4/}libsim4.a \
+         ${SIM4POLISH/}libsim4polish.a ${LIBBRI/}libbri.a
+
+$/Make.depends ${$/.CXX_SRCS:.C=.o}:  \
+  CXXFLAGS+=      -I${FASTA/} -I${SIM4/} -I${SIM4POLISH/} -I${LIBBRI/}
+$/Make.depends: $/buildinfo-sim4db.h ${SIM4/}buildinfo-libsim4.h
+
+$/buildinfo-sim4db.c $/buildinfo-sim4db.h: $/sim4db.C
+	${UTIL/}buildinfo.pl sim4db "${CXXFLAGS} ${CXXFLAGS_ARCH}" $^
+	mv buildinfo-sim4db.[ch] `dirname $@`
+

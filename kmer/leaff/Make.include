@@ -1,0 +1,57 @@
+# -*- makefile -*-
+
+// += $/.
+
+EXTERNAL/   ?= $/../external/
+BIN/        ?= $/../bin/
+LIBBRI/     ?= $/../libbri/
+UTIL/       ?= $/../util/
+
+src    := $/fasta-accessors.C $/fasta-buildindex.C $/fasta-find-id.C \
+          $/fasta-find-iid.C $/fasta-openindex.C $/fasta-sequence.C \
+	  $/fasta-types.H $/fasta.C $/fasta.H $/filewrapperbase.H \
+          $/fasta-c.C $/fasta-cache.C
+
+src_C  := $(filter %.C,${src})
+
+$/.CXX_SRCS  :=${src_C} $/leaff.C $/fragmenter.C $/dumpBlocks.C
+$/.CXX_LIBS  :=$/libfasta.a
+
+$/.CXX_EXES  :=$/leaff $/fragmenter $/dumpBlocks
+
+$/.CLEAN  :=$/*.o
+
+$/.REAL-CLEAN :=$/buildinfo-*
+
+EFENCE-L  := #-L/dev2/adelcher/EFence
+EFENCE-l  := #-lefence
+
+$/.install:  ${$/.C_EXES} ${$/.CXX_EXES}
+	cp -p $^ ${BIN/}
+
+$/Make.depends ${$/.CXX_SRCS:.C=.o}:  CXXFLAGS+=-I${LIBBRI/}
+$/Make.depends:   $/buildinfo-leaff.h $/buildinfo-libfasta.h
+
+${$/.CXX_EXES}:   CXXLDFLAGS+=${EFENCE-L}
+${$/.CXX_EXES}:   CXXLIBS+=${EFENCE-l}
+
+$/libfasta.a    : \
+    ${src_C:.C=.o} ${EXTERNAL/}md5lib/md5c.o $/buildinfo-libfasta.o
+
+$/leaff         : $/leaff.o  $/buildinfo-leaff.o  $/libfasta.a
+$/fragmenter    : $/fragmenter.o $/libfasta.a
+$/dumpBlocks    : $/dumpBlocks.o $/libfasta.a
+
+${$/.CXX_EXES}:   ${LIBBRI/}libbri.a
+
+$/buildinfo-leaff.c $/buildinfo-leaff.h: $/leaff.C
+	${UTIL/}buildinfo.pl leaff "${CXXFLAGS} ${CXXFLAGS_ARCH}" $^
+	mv buildinfo-leaff.[ch] `dirname $@`
+
+$/buildinfo-libfasta.c $/buildinfo-libfasta.h: ${src}
+	${UTIL/}buildinfo.pl libfasta "${CXXFLAGS} ${CXXFLAGS_ARCH}" $^
+	mv buildinfo-libfasta.[ch] `dirname $@`
+
+
+
+

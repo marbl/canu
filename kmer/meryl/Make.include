@@ -1,0 +1,43 @@
+# -*- makefile -*-
+
+// += $/.
+
+LIBBRI/     ?= $/../libbri/
+
+src     := $/binaryOp.C $/build.C $/checkDescr.C $/dump.C $/estimate.C \
+           $/mcBucket.C $/mcBucket.H $/mcDescription.H $/merge.C $/meryl.C $/meryl.H \
+           $/outputMer.C $/outputMer.H $/scan.C $/unaryOp.C $/usage.C
+src_C   := $(filter %.C,${src})
+
+$/.CXX_SRCS := ${src_C} $/merle.C
+$/.CXX_EXES := $/meryl $/merle
+
+$/.CLEAN     :=$/*.o
+$/.REAL-CLEAN:=$/buildinfo-*
+
+$/Make.depends ${$/.CXX_SRCS:.C=.o}: CXXFLAGS+=-I${LIBBRI/}
+$/Make.depends : $/buildinfo-meryl.h $/buildinfo-merle.h
+
+$/.install: ${$/.CXX_EXES}
+	cp -p $^ ${BIN/}
+
+EFENCE-L :=# -L/dev2/adelcher/EFence
+EFENCE-l :=# -lefence
+
+$/merle: $/buildinfo-merle.o $/merle.o
+$/meryl: ${src_C:.C=.o} $/buildinfo-meryl.o
+$/meryl $/merle: ${LIBBRI/}libbri.a
+$/meryl $/merle: CXXLDFLAGS+=${EFENCE-L}
+$/meryl $/merle: CXXLIBS+=${EFENCE-l}
+
+$/buildinfo-meryl.c $/buildinfo-meryl.h: ${src}
+	${UTIL/}buildinfo.pl meryl "${CXXFLAGS} ${CXXFLAGS_ARCH}" $^
+	mv buildinfo-meryl.[ch] `dirname $@`
+
+$/buildinfo-merle.c $/buildinfo-merle.h: $/merle.C
+	${UTIL/}buildinfo.pl merle "${CXXFLAGS} ${CXXFLAGS_ARCH}" $^
+	mv buildinfo-merle.[ch] `dirname $@`
+
+
+
+

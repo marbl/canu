@@ -1,0 +1,46 @@
+# -*- makefile -*-
+
+// += $/.
+
+UTIL/       ?= $/../util/
+EXTERNAL/   ?= $/../external/
+
+# declarations
+
+src    := $/alphabet.c $/bit-operations.H $/bit-packing.H \
+          $/bitPackedFile.C $/bitPackedFile.H $/fastastream.H \
+          $/file.h $/file.c $/libbri.H \
+          $/libbritypes.h $/md5.c $/merstream.C $/merstream.H \
+          $/palloc.c $/palloc.h $/readBuffer.H $/reversecomplement.c \
+          $/splittowords.H $/time.C $/time.H \
+          $/memory.c $/memory.h $/stat.c $/stat.h
+
+$/.C_SRCS    :=$(filter %.c,${src})
+$/.CXX_SRCS  :=$(filter %.C,${src})
+$/.CXX_LIBS  :=$/libbri.a
+
+
+$/.CLEAN := $/*.o
+
+$/.REAL-CLEAN :=$/buildinfo-* $/alphabet.[ch]
+
+# extra rules
+
+# if we have gmake 3.80 we could use order prereqs instead of normal
+# prereqs here, and in the other Make.depends lines in the other files.
+$/Make.depends: $/buildinfo-libbri.h $/alphabet.h
+
+$/libbri.a   : ${$/.C_SRCS:.c=.o} ${$/.CXX_SRCS:.C=.o} $/alphabet.o $/buildinfo-libbri.o ${EXTERNAL/}md5lib/md5c.o  
+
+$/buildinfo-libbri.c $/buildinfo-libbri.h: ${src}
+	${UTIL/}buildinfo.pl libbri "${CXXFLAGS} ${CXXFLAGS_ARCH}" $^
+	mv buildinfo-libbri.[ch] `dirname $@`
+
+$/alphabet.h $/alphabet.c:  $/alphabet-generate.c
+	$(CC) $(CFLAGS) $(CFLAGS_ARCH) -DMAIN $<
+	a.out
+	mv alphabet.[ch] `dirname $@`
+	rm a.out
+
+
+

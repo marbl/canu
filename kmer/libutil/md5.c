@@ -53,7 +53,7 @@ md5_string(md5_s *m, char *s, u32bit l) {
   }
 
   MD5Init(&ctx);
-  MD5Update(&ctx, s, l);
+  MD5Update(&ctx, (unsigned char*)s, l);
   MD5Final(dig, &ctx);
 
   m->a = dig[0];

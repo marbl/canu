@@ -1,0 +1,73 @@
+# -*- makefile -*-
+
+// += $/.
+
+BIN/        ?= $/../bin/
+LIBBRI/     ?= $/../libbri/
+FASTA/      ?= $/../fasta/
+SIM4POLISH/ ?= $/../sim4polish/
+SIM4DB/     ?= $/../sim4db/
+
+# declarations
+
+src  := $/cleanPolishes.C $/comparePolishes.C $/filterPolishes.c \
+        $/mergePolishes.C $/parseSNP.c $/pickBestPolish.c \
+        $/plotCoverageVsIdentity.c $/removeDuplicate.c $/sortPolishes.c \
+        $/stripPolishes.c $/summarizePolishes.C $/uniqPolishes.c
+
+$/.C_SRCS   :=${filter %.c,${src}}
+$/.CXX_SRCS :=${filter %.C,${src}}
+
+obj_c := ${$/.C_SRCS:.c=.o} $/pickBestPolish-debug.o
+obj_C := ${$/.CXX_SRCS:.C=.o}
+
+  # always using c++ to link
+$/.CXX_EXES:= ${obj_C:.o=} ${obj_c:.o=}
+
+$/.CLEAN := $/*.o
+
+$/.install: ${$/.C_EXES} ${$/.CXX_EXES}
+	cp -p $^ ${BIN/}
+
+$/Make.depends ${obj_c}:  CFLAGS+=-I${FASTA/} -I${SIM4POLISH/} -I${LIBBRI/}
+$/Make.depends ${obj_C}:  CXXFLAGS+=-I${FASTA/} -I${SIM4POLISH/} -I${LIBBRI/}
+
+$/pickBestPolish-debug.o: $/pickBestPolish.c
+	${CC} ${WARNS} -DVALIDATE ${CFLAGS} ${CFLAGS_ARCH} -o $@ -c $<
+
+$/filterPolishes              : $/filterPolishes.o
+$/mergePolishes               : $/mergePolishes.o
+$/stripPolishes               : $/stripPolishes.o
+$/sortPolishes                : $/sortPolishes.o
+$/pickBestPolish              : $/pickBestPolish.o
+$/pickBestPolish-debug        : $/pickBestPolish-debug.o
+$/cleanPolishes               : $/cleanPolishes.o
+$/plotIntronSize              : $/plotIntronSize.o
+$/plotCoverageVsIdentity      : $/plotCoverageVsIdentity.o
+$/parseSNP                    : $/parseSNP.o
+$/comparePolishes             : $/comparePolishes.o
+$/trimSequencesBasedOnMatches : $/trimSequencesBasedOnMatches.o
+$/uniqPolishes                : $/uniqPolishes.o
+$/summarizePolishes           : $/summarizePolishes.o
+$/removeDuplicate             : $/removeDuplicate.o
+
+${$/.C_EXES} ${$/.CXX_EXES}:   \
+   ${FASTA/}libfasta.a ${SIM4POLISH/}libsim4polish.a ${LIBBRI/}libbri.a
+
+
+#  Run the test cases for parseSNP
+parseSNP-test: $/parseSNP ${SIM4DB/}sim4db
+	@ echo See page 85 in Big Bad Bri IR#2 for notes on parseSNP-test.
+	@ t=`dirname $<`/test  ${SIM4DB/}sim4db -align -cdna $t/parsesnp-snp.fasta -genomic $t/parsesnp-gen.fasta -o $t/parsesnp-sim4.out
+	@ t=`dirname $<`/test  $< -O $t/parsesnp-good -F $t/parsesnp-fail < $t/parsesnp-sim4.out
+	@-t=`dirname $<`/test diff $t/parsesnp-good $t/parsesnp-correct-parsed > $t/parsesnp-diffs
+	@ t=`dirname $<`/test; \
+          if test -s $t/parsesnp-diffs ; then \
+           echo "parseSNP tests FAILED" ; \
+           cat $t/parsesnp-diffs ; \
+           exit 13 ; \
+          else \
+           echo "parseSNP tests passed" ; \
+           t=`dirname $<` rm -f $t/parsesnp-good $t/parsesnp-fail $t/parsesnp-sim4.out $t/parsesnp-diffs $t/parsesnp-gen.fastaidx $t/parsesnp-snp.fastaidx; \
+          fi
+

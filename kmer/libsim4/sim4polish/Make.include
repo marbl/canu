@@ -1,0 +1,46 @@
+# -*- makefile -*-
+
+// += $/.
+
+EXTERNAL/   ?= $/../external/
+BIN/        ?= $/../bin/
+LIBBRI/     ?= $/../libbri/
+UTIL/       ?= $/../util/
+
+# declarations
+src     :=$/sim4polish-comparisons.c \
+          $/sim4polish-copy.c \
+          $/sim4polish-deleteexon.c \
+          $/sim4polish-destroypolish.c \
+          $/sim4polish-exons.c \
+          $/sim4polish-polishtostring.c \
+          $/sim4polish-printpolish.c \
+          $/sim4polish-printpolishnormalized.c \
+          $/sim4polish-read.c \
+          $/sim4polish-stringtopolish.c \
+          $/sim4polish.h \
+          $/sim4polishBuilder.H \
+          $/sim4polishBuilder.C
+
+$/.C_SRCS    :=$(filter %.c,${src})
+$/.CXX_SRCS  :=$(filter %.C,${src})
+$/.CXX_LIBS  :=$/libsim4polish.a
+
+$/.CLEAN  :=$/*.o
+$/.REAL-CLEAN :=$/buildinfo-*
+
+# rules
+
+$/Make.depends ${$/.C_SRCS:.c=.o}:  CFLAGS+=-I${LIBBRI/}
+$/Make.depends ${$/.CXX_SRCS:.C=.o}:  CXXFLAGS+=-I${LIBBRI/}
+$/Make.depends: $/buildinfo-libsim4polish.h
+
+$/libsim4polish.a    :  ${$/.C_SRCS:.c=.o} ${$/.CXX_SRCS:.C=.o} \
+                        $/buildinfo-libsim4polish.o
+
+$/buildinfo-libsim4polish.c $/buildinfo-libsim4polish.h: ${src}
+	${UTIL/}buildinfo.pl libsim4polish "${CXXFLAGS} ${CXXFLAGS_ARCH}" ${src}
+	mv buildinfo-libsim4polish.[ch] `dirname $@`
+
+
+

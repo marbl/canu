@@ -1,0 +1,27 @@
+# -*- makefile -*-
+
+// += $/.
+
+LIBBRI/     ?= $/../libbri/
+POSITIONDB/ ?= $/../positionDB/
+
+$/.CXX_SRCS  :=$/buildandtest.C $/driver.C $/existDB.C $/existDB.H
+$/.CXX_EXES  :=$/buildandtest $/existDB
+$/.CXX_LIBS  :=$/libexistDB.a
+$/.CLEAN     :=$/*.o
+$/.REAL-CLEAN:=$/buildinfo-*
+
+$/libexistDB.a : $/buildinfo-existDB.o $/existDB.o
+$/buildandtest : $/buildandtest.o
+$/existDB      : $/driver.o
+
+$/Make.depends ${$/.CXX_SRCS:.C=.o}: CXXFLAGS+=-I${LIBBRI/} -I${POSITIONDB/}
+${$/.CXX_EXES}:$/libexistDB.a ${POSITIONDB/}libpositionDB.a ${LIBBRI/}libbri.a
+
+$/.install: ${$/.CXX_EXES}
+	cp -p $^ ${BIN/}
+
+$/Make.depends : $/buildinfo-existDB.h
+$/buildinfo-existDB.c $/buildinfo-existDB.h: $/existDB.C $/existDB.H
+	${UTIL/}buildinfo.pl existDB "${CXXFLAGS} ${CXXFLAGS_ARCH}" $^
+	mv buildinfo-existDB.[ch] `dirname $@`

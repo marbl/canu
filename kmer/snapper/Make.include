@@ -1,0 +1,53 @@
+# -*- makefile -*-
+
+// += $/.
+
+
+LIBBRI/     ?= $/../libbri/
+FASTA/      ?= $/../fasta/
+SIM4/       ?= $/../sim4/
+SIM4POLISH/     ?= $/../sim4polish/
+POSITIONDB/ ?= $/../positionDB/
+EXISTDB/    ?= $/../existDB/
+
+src      := $/snapper2.C $/configuration.C $/encodedQuery.C \
+            $/thr-search.C $/thr-loader.C $/thr-deadlock.C \
+            $/hitMatrix.C $/hitMatrix-sort.C \
+            $/hitMatrix.H $/intervalList.H $/posix.H $/snapper2.H
+
+$/.CXX_SRCS := $(filter %.C,${src})
+$/.CXX_EXES := $/snapper2
+
+$/.CLEAN     :=$/*.o
+$/.REAL-CLEAN:=$/buildinfo-*
+
+
+${$/.CXX_SRCS:.C=.o}: \
+  CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} \
+            -I${SIM4/} -I${SIM4POLISH/} -I${EXISTDB/} ${THRINC}
+$/Make.depends: \
+  CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} \
+            -I${SIM4/} -I${SIM4POLISH/} -I${EXISTDB/}
+$/Make.depends : $/buildinfo-snapper2.h
+
+$/.install: ${$/.CXX_EXES}
+	cp -p $^ ${BIN/}
+
+EFENCE-L :=# -L/dev2/adelcher/EFence
+EFENCE-l :=# -lefence
+
+$/snapper2: \
+              ${$/.CXX_SRCS:.C=.o} $/buildinfo-snapper2.o \
+              ${EXISTDB/}libexistDB.a ${POSITIONDB/}libpositionDB.a \
+              ${SIM4POLISH/}libsim4polish.a ${SIM4/}libsim4.a \
+              ${FASTA/}libfasta.a ${LIBBRI/}libbri.a
+$/snapper2: CXXLDFLAGS+=${EFENCE-L}
+$/snapper2: CXXLIBS+=${EFENCE-l} ${THRLIB}
+
+$/buildinfo-snapper2.c $/buildinfo-snapper2.h: ${src}
+	${UTIL/}buildinfo.pl snapper2 "${CXXFLAGS} ${CXXFLAGS_ARCH}" $^
+	mv buildinfo-snapper2.[ch] `dirname $@`
+
+
+
+

@@ -1,0 +1,73 @@
+# -*- makefile -*-
+############################################################
+
+// += $/.
+
+UTIL/       :=$/util/
+EXTERNAL/   :=$/external/
+BIN/        :=$/bin/
+LIBBRI/     :=$/libbri/
+FASTA/      :=$/fasta/
+SIM4POLISH/ :=$/sim4polish/
+SIM4READER/ :=$/sim4reader/
+SIM4DB/     :=$/sim4db/
+SIM4/       :=$/sim4/
+CDNAGAPS/   :=$/cdnagaps/
+POSITIONDB/ :=$/positionDB/
+ESTMAPUTIL/ :=$/estmapper-util/
+EXISTDB/    :=$/existDB/
+SEARCHGEN/  :=$/searchGENOME/
+EMMA/       :=$/emma/
+MERYL/      :=$/meryl/
+SNAPPER2/   :=$/snapper2/
+
+########################## recursive includes #############
+
+/        := ${SNAPPER2/}
+include $/Make.include
+
+/        := ${MERYL/}
+include $/Make.include
+
+/        := ${EMMA/}
+include $/Make.include
+
+/        := ${SEARCHGEN/}
+include $/Make.include
+
+/        := ${EXISTDB/}
+include $/Make.include
+
+/        := ${ESTMAPUTIL/}
+include $/Make.include
+
+/        := ${POSITIONDB/}
+include $/Make.include
+
+/        := ${CDNAGAPS/}
+include $/Make.include
+
+/        := ${SIM4DB/}
+include $/Make.include
+
+/        := ${SIM4/}
+include $/Make.include
+
+/        := ${SIM4READER/}
+include $/Make.include
+
+/        := ${SIM4POLISH/}
+include $/Make.include
+
+/        := ${FASTA/}
+include $/Make.include
+
+/        := ${LIBBRI/}
+include $/Make.include
+
+/        := ${EXTERNAL/}
+include $/Make.include
+
+
+
+
