@@ -132,7 +132,6 @@ sub assembleOutput {
 
             unlink "$path/polishes-good";
             unlink "$path/polishes-best";
-            unlink "$path/polishes-goodshort";
             unlink "$path/polishes-lowquality";
             unlink "$path/summary";
         }
@@ -162,6 +161,7 @@ sub assembleOutput {
             die "Failed.\n";
         }
 
+        unlink "$path/polishes-best";
         unlink "$path/cDNA-good.fasta";
         unlink "$path/cDNA-missing.fasta";
         unlink "$path/cDNA-repeat.fasta";
@@ -196,7 +196,7 @@ sub assembleOutput {
         unlink "$path/summary";
 
         #  For each polished file, figure out the ESTs that belong with those polishes.
-        #  cDNA-good.fasta, cDNA-goodshort.fasta, cDNA-lowquality.fasta, cDNA-zero.fasta, cDNA-missing.fasta
+        #  cDNA-good.fasta, cDNA-lowquality.fasta, cDNA-zero.fasta, cDNA-missing.fasta
         #
         print STDERR "ESTmapper/assembleOutput-- finding 'good' cDNA.\n";
         &libBri::splitFastABasedOnPolishes("$path/0-input/cDNA.fasta",
