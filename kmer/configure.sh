@@ -12,6 +12,9 @@ target=$1
 #
 if [ "x$target" = "x" ] ; then
   case `uname` in
+    Darwin)
+      target="osx"
+      ;;
     FreeBSD)
       target="freebsd"
       ;;
@@ -28,23 +31,38 @@ if [ "x$target" = "x" ] ; then
   esac
 fi
 
-
 case $target in
+  osx)
+    rm -f Make.compilers
+    cat <<EOF > Make.compilers
+# -*- makefile -*-
+#  OS-X, optimized
+CC                := gcc
+CFLAGS_COMPILE    := -O3 -D_THREAD_SAFE -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CLDFLAGS          := 
+CLIBS             := 
+CXX               := g++
+CXXFLAGS_COMPILE  := -O3 -D_THREAD_SAFE -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CXXLDFLAGS        := 
+CXXLIBS           := 
+ARFLAGS           := ruvs
+EOF
+    ;;
   freebsd)
     rm -f Make.compilers
     echo "Using linuxthreads by default!"
     cat <<EOF > Make.compilers
 # -*- makefile -*-
 #  FreeBSD, optimized
-CC              := cc
-CFLAGS_COMPILE     := -O3 -D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
-CLDFLAGS   := -L/usr/local/lib
-CLIBS      := -llthread -llgcc_r
-CXX             := g++
-CXXFLAGS_COMPILE   := -O3 -D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
-CXXLDFLAGS := -L/usr/local/lib
-CXXLIBS    := -llthread -llgcc_r
-ARFLAGS         := ruvs
+CC                := cc
+CFLAGS_COMPILE    := -O3 -D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CLDFLAGS          := -L/usr/local/lib
+CLIBS             := -llthread -llgcc_r
+CXX               := g++
+CXXFLAGS_COMPILE  := -O3 -D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CXXLDFLAGS        := -L/usr/local/lib
+CXXLIBS           := -llthread -llgcc_r
+ARFLAGS           := ruvs
 EOF
     ;;
   freebsd-profile)
@@ -52,15 +70,15 @@ EOF
     cat <<EOF > Make.compilers
 # -*- makefile -*-
 #  FreeBSD, optimized, profiled (same as FreeBSD, optimized, but includes -pg)
-CC              := cc
-CFLAGS_COMPILE     := -pg -O3 -D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
-CLDFLAGS   := -L/usr/local/lib
-CLIBS      := -llthread -llgcc_r
-CXX             := g++
-CXXFLAGS_COMPILE   := -pg -O3 -D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
-CXXLDFLAGS := -L/usr/local/lib
-CXXLIBS    := -llthread -llgcc_r
-ARFLAGS         := ruvs
+CC                := cc
+CFLAGS_COMPILE    := -pg -O3 -D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CLDFLAGS          := -L/usr/local/lib
+CLIBS             := -llthread -llgcc_r
+CXX               := g++
+CXXFLAGS_COMPILE  := -pg -O3 -D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CXXLDFLAGS        := -L/usr/local/lib
+CXXLIBS           := -llthread -llgcc_r
+ARFLAGS           := ruvs
 EOF
     ;;
   freebsd-debug)
@@ -68,15 +86,15 @@ EOF
     cat <<EOF > Make.compilers
 # -*- makefile -*-
 #  FreeBSD, debug, warnings
-CC              := cc
-CFLAGS_COMPILE     := -g -D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads -Wall -Wshadow -Wtraditional -Wid-clash-16 -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Wconversion -Waggregate-return -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls -Wnested-externs  
-CLDFLAGS   := -L/usr/local/lib
-CLIBS      := -llthread -llgcc_r
-CXX             := g++
-CXXFLAGS_COMPILE   := -g -D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads -Wall -Wshadow -Wtraditional -Wid-clash-16 -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Wconversion -Waggregate-return -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls -Wnested-externs  
-CXXLDFLAGS := -L/usr/local/lib
-CXXLIBS    := -llthread -llgcc_r
-ARFLAGS         := ruvs
+CC                := cc
+CFLAGS_COMPILE    := -g -D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads -Wall -Wshadow -Wtraditional -Wid-clash-16 -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Wconversion -Waggregate-return -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls -Wnested-externs  
+CLDFLAGS          := -L/usr/local/lib
+CLIBS             := -llthread -llgcc_r
+CXX               := g++
+CXXFLAGS_COMPILE  := -g -D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads -Wall -Wshadow -Wtraditional -Wid-clash-16 -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Wconversion -Waggregate-return -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls -Wnested-externs  
+CXXLDFLAGS        := -L/usr/local/lib
+CXXLIBS           := -llthread -llgcc_r
+ARFLAGS           := ruvs
 EOF
     ;;
   aix)
@@ -85,15 +103,15 @@ EOF
 # -*- makefile -*-
 #  AIX5, optimized
 #  Tested, verified on 30jan03
-CC              := xlc_r
-CFLAGS_COMPILE     := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES -q64 -O3 -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict -qcpluscmt
-CLDFLAGS   := 
-CLIBS      := 
-CXX             := xlC_r
-CXXFLAGS_COMPILE   := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES -q64 -O3 -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict
-CXXLDFLAGS := 
-CXXLIBS    := 
-ARFLAGS         := -X 64 ruv
+CC                := xlc_r
+CFLAGS_COMPILE    := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES -q64 -O3 -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict -qcpluscmt
+CLDFLAGS          := 
+CLIBS             := 
+CXX               := xlC_r
+CXXFLAGS_COMPILE  := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES -q64 -O3 -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict
+CXXLDFLAGS        := 
+CXXLIBS           := 
+ARFLAGS           := -X 64 ruv
 EOF
     ;;
   aix-profile)
@@ -102,15 +120,15 @@ EOF
 # -*- makefile -*-
 #  AIX5, optimized, profiled
 #  Untested; might not work with optimization
-CC              := xlc_r
-CFLAGS_COMPILE     := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES -q64 -O3 -pg -qfullpath -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict -qcpluscmt
-CLDFLAGS   := 
-CLIBS      := 
-CXX             := xlC_r
-CXXFLAGS_COMPILE   := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES -q64 -O3 -pg -qfullpath -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict
-CXXLDFLAGS := 
-CXXLIBS    := 
-ARFLAGS         := -X 64 ruv
+CC                := xlc_r
+CFLAGS_COMPILE    := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES -q64 -O3 -pg -qfullpath -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict -qcpluscmt
+CLDFLAGS          := 
+CLIBS             := 
+CXX               := xlC_r
+CXXFLAGS_COMPILE  := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES -q64 -O3 -pg -qfullpath -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict
+CXXLDFLAGS        := 
+CXXLIBS           := 
+ARFLAGS           := -X 64 ruv
 EOF
     ;;
   aix-debug)
@@ -118,17 +136,33 @@ EOF
     cat <<EOF > Make.compilers
 # -*- makefile -*-
 #  AIX5, debug
-ccDBUG          := -qheapdebug -qcheck=all -DMEMORY_DEBUG
-ccDBUG          := 
-CC              := xlc_r
-CFLAGS_COMPILE     := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES \$(ccDBUG) -q64 -g -qfullpath -qcpluscmt
-CLDFLAGS   := 
-CLIBS      := 
-CXX             := xlC_r
-CXXFLAGS_COMPILE   := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES \$(ccDBUG) -q64 -g -qfullpath
-CXXLDFLAGS := 
-CXXLIBS    := 
-ARFLAGS         := -X 64 ruv
+ccDBUG            := 
+CC                := xlc_r
+CFLAGS_COMPILE    := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES \$(ccDBUG) -q64 -g -qfullpath -qcpluscmt
+CLDFLAGS          := 
+CLIBS             := 
+CXX               := xlC_r
+CXXFLAGS_COMPILE  := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES \$(ccDBUG) -q64 -g -qfullpath
+CXXLDFLAGS        := 
+CXXLIBS           := 
+ARFLAGS           := -X 64 ruv
+EOF
+    ;;
+  aix-debug-full|aix-full-debug)
+    rm -f Make.compilers
+    cat <<EOF > Make.compilers
+# -*- makefile -*-
+#  AIX5, full debug, including memory checks
+ccDBUG            := -qheapdebug -qinfo=uni:use -qcheck=all -qinitauto=FF -qflttrap=inv:ov:zero:en -qfloat=nans -DMEMORY_DEBUG
+CC                := xlc_r
+CFLAGS_COMPILE    := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES \$(ccDBUG) -q64 -g -qfullpath -qcpluscmt
+CLDFLAGS          := \$(ccDBUG)
+CLIBS             := 
+CXX               := xlC_r
+CXXFLAGS_COMPILE  := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES \$(ccDBUG) -q64 -g -qfullpath
+CXXLDFLAGS        := \$(ccDBUG)
+CXXLIBS           := 
+ARFLAGS           := -X 64 ruv
 EOF
     ;;
   compaq|tru64)
@@ -136,16 +170,16 @@ EOF
     cat <<EOF > Make.compilers
 # -*- makefile -*-
 #  Tru64, native compilers, optimized
-CC              := cc
-CFLAGS_COMPILE     := -D_REENTRANT -pthread -w0 -fast
-CLDFLAGS   := 
-CLIBS      := -lpthread -lrt
-CXX             := cxx
-CXXFLAGS_COMPILE   := -D_REENTRANT -pthread -w0 -fast
-CXXLDFLAGS := 
-CXXLIBS    := -lpthread -lrt
-ARFLAGS         := ruv
-CXX_TMP_ARCH    := cxx_repository
+CC                := cc
+CFLAGS_COMPILE    := -D_REENTRANT -pthread -w0 -fast
+CLDFLAGS          := 
+CLIBS             := -lpthread -lrt
+CXX               := cxx
+CXXFLAGS_COMPILE  := -D_REENTRANT -pthread -w0 -fast
+CXXLDFLAGS        := 
+CXXLIBS           := -lpthread -lrt
+ARFLAGS           := ruv
+CXX_TMP_ARCH      := cxx_repository
 EOF
     ;;
   compaq-debug|tru64-debug)
@@ -153,16 +187,16 @@ EOF
     cat <<EOF > Make.compilers
 # -*- makefile -*-
 #  Tru64, native compilers, debug
-CC              := cc
-CFLAGS_COMPILE     := -D_REENTRANT -pthread -g -w0 -trapuv
-CLDFLAGS   := 
-CLIBS      := -lpthread -lrt
-CXX             := cxx
-CXXFLAGS_COMPILE   := -D_REENTRANT -pthread -gall -w0 -trapuv
-CXXLDFLAGS := 
-CXXLIBS    := -lpthread -lrt
-ARFLAGS         := ruv
-CXX_TMP_ARCH    := cxx_repository
+CC                := cc
+CFLAGS_COMPILE    := -D_REENTRANT -pthread -g -w0 -trapuv
+CLDFLAGS          := 
+CLIBS             := -lpthread -lrt
+CXX               := cxx
+CXXFLAGS_COMPILE  := -D_REENTRANT -pthread -gall -w0 -trapuv
+CXXLDFLAGS        := 
+CXXLIBS           := -lpthread -lrt
+ARFLAGS           := ruv
+CXX_TMP_ARCH      := cxx_repository
 EOF
     ;;
   linux)
@@ -171,11 +205,11 @@ EOF
     cat <<EOF > Make.compilers
 # -*- makefile -*-
 #  Linux, optimized
-CC              := cc
-CFLAGS_COMPILE     := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -pthread -O3 -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
-CXX             := g++
-CXXFLAGS_COMPILE   := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -pthread -O3 -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
-ARFLAGS         := ruv
+CC                := cc
+CFLAGS_COMPILE    := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -pthread -O3 -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CXX               := g++
+CXXFLAGS_COMPILE  := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -pthread -O3 -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+ARFLAGS           := ruv
 EOF
     ;;
 
@@ -194,15 +228,15 @@ EOF
 # -*- makefile -*-
 #  Solaris, gcc optimized
 #
-CC              := gcc
-CFLAGS_COMPILE     := -D_REENTRANT -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -O3 -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
-CLDFLAGS   := 
-CLIBS      := -lpthread -lrt
-CXX             := g++
-CXXFLAGS_COMPILE   := -D_REENTRANT -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -O3 -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer 
-CXXLDFLAGS := 
-CXXLIBS    := -lpthread -lrt
-ARFLAGS         := ruv
+CC                := gcc
+CFLAGS_COMPILE    := -D_REENTRANT -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -O3 -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CLDFLAGS          := 
+CLIBS             := -lpthread -lrt
+CXX               := g++
+CXXFLAGS_COMPILE  := -D_REENTRANT -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -O3 -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer 
+CXXLDFLAGS        := 
+CXXLIBS           := -lpthread -lrt
+ARFLAGS           := ruv
 EOF
     ;;
   *)
@@ -226,11 +260,10 @@ EOF
 esac
 
 cat <<EOF >> Make.compilers
-
-CCDEP		:= gcc -MM -MG
-CXXDEP		:= g++ -MM -MG
-
-CLIBS		+= -lm
-CXXLIBS         += -lm
-
+CCDEP		  := gcc -MM -MG
+CXXDEP	          := g++ -MM -MG
+CLIBS             += -lm
+CXXLIBS           += -lm
 EOF
+
+cat Make.compilers
