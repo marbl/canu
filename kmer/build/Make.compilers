@@ -154,9 +154,11 @@ ifeq (${_OPT_},-debug)
   OPTFLAGS                 :=-g
 endif
 ifeq (${_OS_}${_CC_}${_OPT_},TRU64-debug)
+  OPTFLAGS_COMPILE         :=
   OPTFLAGS                 :=-g
 endif
 ifeq (${_OS_}${_CC_}${_OPT_},AIX-debug)
+  OPTFLAGS_COMPILE         :=
   OPTFLAGS := -g -qfullpath -qlinedebug
 endif
 ifeq (${_CC_}${_OPT_},-gcc-prof)
@@ -166,6 +168,7 @@ endif
 
 # to profile or not
 ifeq (${_OPT_},-prof)
+  OPTFLAGS_COMPILE         :=
   OPTFLAGS                 :=-pg
 endif
 ifeq (${_OS_}${_CC_}${_OPT_},TRU64-prof)
@@ -181,9 +184,11 @@ ifeq (${_OPT_},)
   OPTFLAGS                 :=-g -O4
 endif
 ifeq (${_OS_}${_CC_}${_OPT_},TRU64)
+  OPTFLAGS_COMPILE         :=
   OPTFLAGS                 :=-g3 -fast
 endif
 ifeq (${_OS_}${_CC_}${_OPT_},AIX)
+  OPTFLAGS_COMPILE         :=
   OPTFLAGS :=-qstrict -O3
 endif
 
