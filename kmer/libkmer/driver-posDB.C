@@ -14,6 +14,9 @@
 //  image or a regular multi-fasta file.
 
 
+#define MERSIZE 20
+#define TBLSIZE 19
+
 char const *usage =
 "usage: %s [-mersize s] [-merskip k] [-tablesize t]\n"
 "         default: s=20, k=0, t=auto\n"
@@ -35,7 +38,91 @@ char const *usage =
 "         -extra [build opts] sequence.fasta\n"
 "           --  builds (or reads) a table reports if any mers\n"
 "               NOT in sequence.fasta are be found\n"
-"\n";
+"\n"
+"         -test1 sequence.fasta\n"
+"           --  Tests if each and every mer is found in the\n"
+"               positionDB.  Reports if it doesn't find a mer\n"
+"               at the correct position.  Doesn't report if table\n"
+"               has too much stuff.\n"
+"\n"
+"         -test2 db.fasta sequence.fasta\n"
+"           --  Builds a positionDB from db.fasta, then searches\n"
+"               the table for each mer in sequence.fasta.  Reports\n"
+"               all mers it finds.\n"
+"            -- This is a silly test and you shouldn't do it.\n";
+
+
+
+int
+test1(char *filename) {
+  positionDB *M       = new positionDB(0L, filename, MERSIZE, 0, TBLSIZE, true);
+  merStream  *T       = new merStream(MERSIZE, filename);
+  u64bit     *posn    = new u64bit [1024];
+  u64bit      posnMax = 1024;
+  u64bit      posnLen = u64bitZERO;
+  u32bit      missing = u32bitZERO;
+  u32bit      failed  = u32bitZERO;
+
+  for (u32bit j=0; T->nextMer(); j++) {
+    if (M->get(T->theFMer(),
+                posn,
+                posnMax,
+                posnLen)) {
+
+      missing = u32bitZERO;
+      for (u32bit i=0; i<posnLen; i++)
+        if (posn[i] == T->thePosition())
+          missing++;
+
+      if (missing != 1) {
+        failed++;
+
+        fprintf(stdout, "Found "u64bitFMT" table entries, and "u32bitFMT" matching positions for mer=%s at pos="u64bitFMT"\n",
+                posnLen, missing, T->theFMerString(), T->thePosition());
+      }
+    } else {
+      failed++;
+
+      fprintf(stdout, "Found no matches for mer=%s at pos="u64bitFMT"\n",
+              T->theFMerString(), T->thePosition());
+    }
+  }
+
+  return(failed != 0);
+}
+
+
+
+int
+test2(char *filename, char *query) {
+  positionDB *M       = new positionDB(0L, filename, MERSIZE, 0, TBLSIZE, true);
+  merStream  *T       = new merStream(MERSIZE, filename);
+  u64bit     *posn    = new u64bit [1024];
+  u64bit      posnMax = 1024;
+  u64bit      posnLen = u64bitZERO;
+
+  for (u32bit j=0; T->nextMer(); j++) {
+    if (M->get(T->theFMer(),
+                posn,
+                posnMax,
+                posnLen)) {
+      fprintf(stdout, "Got a F match for mer=%s at onePos=%d (in mers), numMatches=%ld\n",
+              T->theFMerString(), j, posnLen);
+    }
+
+    if (M->get(T->theRMer(),
+                posn,
+                posnMax,
+                posnLen)) {
+      fprintf(stdout, "Got a R match for mer=%s at onePos=%d (in mers), numMatches=%ld\n",
+              T->theRMerString(), j, posnLen);
+    }
+  }
+
+  return(0);
+}
+
+
 
 int
 main(int argc, char **argv) {
@@ -44,7 +131,7 @@ main(int argc, char **argv) {
   u32bit    tblsize = 0;
 
   if (argc < 3) {
-fprintf(stderr, usage, argv[0]);
+    fprintf(stderr, usage, argv[0]);
     exit(1);
   }
 
@@ -56,7 +143,7 @@ fprintf(stderr, usage, argv[0]);
     } else if (strncmp(argv[arg], "-merskip", 6) == 0) {
       arg++;
       merskip = atoi(argv[arg]);
-    } else if (strncmp(argv[arg], "-tablesize", 2) == 0) {
+    } else if (strncmp(argv[arg], "-tablesize", 3) == 0) {
       arg++;
       tblsize = atoi(argv[arg]);
     } else if (strncmp(argv[arg], "-dump", 2) == 0) {
@@ -64,6 +151,10 @@ fprintf(stderr, usage, argv[0]);
       e->printState(stdout);
       delete e;
       exit(0);
+    } else if (strncmp(argv[arg], "-test1", 6) == 0) {
+      exit(test1(argv[arg+1]));
+    } else if (strncmp(argv[arg], "-test2", 6) == 0) {
+      exit(test2(argv[arg+1], argv[arg+2]));
     }
     arg++;
   }
