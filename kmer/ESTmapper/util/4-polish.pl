@@ -14,12 +14,15 @@ sub polish {
     my $relink       = "";
     my $batchsize    = 0;
     my $numbatches   = 256;
-    my $farm         = 0;
-    my $farmqueue    = "";
-    my $farmcode     = "";
-    my $local        = 1;
-    my $numcpus      = 4;
+
+    my $farmname;
+    my $farmcode;
+    my $farmqueue;
+    my $finiqueue;
+
+    my $numproc      = 4;
     my $runnow       = 1;
+
     my $aligns       = "-align";
     my $stats        = 1;
     my $abort        = "";
@@ -41,26 +44,23 @@ sub polish {
         $relink = "-H " . shift @ARGS            if ($arg eq "-relink");
         $batchsize = int(shift @ARGS)            if ($arg eq "-batchsize");
         $numbatches = int(shift @ARGS)           if ($arg eq "-numbatches");
-        $runnow = 0                              if ($arg eq "-runlater");
         $aligns = "-align"                       if ($arg eq "-aligns");
         $aligns = ""                             if ($arg eq "-noaligns");
-        $stats = 1                               if ($arg eq "-stats");
-        $stats = 0                               if ($arg eq "-nostats");
+
         $abort = "-Mp 0.25 -Ma 10000"            if ($arg eq "-abort");
         $interspecies = "-interspecies"          if ($arg eq "-interspecies");
 
-        if ($arg eq "-farmpolishes") {
-            $farm     = 1;
-            $local    = 0;
-            $farmqueue = shift @ARGS;
-            $farmcode  = shift @ARGS
-        }
+        $stats = 1                               if ($arg eq "-stats");
+        $stats = 0                               if ($arg eq "-nostats");
 
-        if ($arg eq "-localpolishes") {
-            $farm  = 0;
-            $local = 1;
-            $numcpus = shift @ARGS;
-        }
+        $farmname  = shift @ARGS if ($arg eq "-lsfjobname");
+        $farmcode  = shift @ARGS if ($arg eq "-lsfproject");
+        $farmqueue = shift @ARGS if ($arg eq "-lsfpolishqueue");
+        $finiqueue = shift @ARGS if ($arg eq "-lsffinishqueue");
+
+        $runnow = 0              if ($arg eq "-runlater");
+
+        $numproc   = shift @ARGS if ($arg eq "-localpolishes");
     }
 
     ($path eq "")   and die "ERROR: ESTmapper/polish-- no directory given.\n";
@@ -136,25 +136,14 @@ sub polish {
     }
 
 
-    #  Display what parameters we are using
-    #
-    print STDERR "ESTmapper/polish--   minidentity   = $mini ($minsim4i)\n";
-    print STDERR "ESTmapper/polish--   mincoverage   = $minc ($minsim4c)\n";
-    print STDERR "ESTmapper/polish--   minlength     = $minl ($minsim4l)\n";
-    print STDERR "ESTmapper/polish--   relink        = $relink\n";
-    print STDERR "ESTmapper/polish--   always        = $always\n";
-    print STDERR "ESTmapper/polish--   aligns        = $aligns\n";
-    print STDERR "ESTmapper/polish--   abort         = $abort\n";
-    print STDERR "ESTmapper/polish--   interspecies  = $interspecies\n";
-
-
     #  Splits the filteredHits into several pieces, and outputs a script
     #  that runs sim4db on those pieces.
     #
-    if (! -e "$path/3-polish/run-script") {
+    if (! -e "$path/3-polish/splitDone") {
         print STDERR "ESTmapper/polish-- Creating scripts with $batchsize lines in each.\n";
 
-        my $idx = "0000";
+        my @idxs;
+        my $idx  = "0000";
 
         open(H, "< $path/2-filter/filteredHits");
         open(S, "> $path/3-polish/run-script");
@@ -169,57 +158,53 @@ sub polish {
             }
             close(F);
 
-            #  The run-script is composed of three lines per command:
-            #    the first line is the index of the run
-            #    the second is the command
-            #
-            print S "$idx\n";
-            if (`uname` =~ m/aix/i) {
-                print S "bsub -q $farmqueue -o $path/3-polish/$idx.stdout -R \"select[mem>600]rusage[mem=500]\" -P $farmcode " if ($farm);
-            } else {
-                print S "bsub -q $farmqueue -o $path/3-polish/$idx.stdout -R \"select[physmem>600]rusage[physmem=500]\" -P $farmcode " if ($farm);
-            }
-            print S "$sim4db -cdna $path/0-input/cDNA.fasta -genomic $path/0-input/genomic.fasta ";
-            print S "$aligns $always $relink $abort $interspecies -cut 0.6 ";
-            print S "-mincoverage $minsim4c ";
-            print S "-minidentity $minsim4i ";
-            print S "-minlength $minsim4l ";
-            print S "-script $path/3-polish/$idx.scr ";
-            print S "-output $path/3-polish/$idx.polished ";
-            print S "-stats  $path/3-polish/$idx.stats " if ($stats == 1);
-            print S "-touch  $path/3-polish/$idx.touch\n";
-
+            push @idxs, "$idx\n";
             $idx++;
         }
         close(S);
         close(H);
 
         print STDERR "ESTmapper/polish-- Created $idx scripts.\n";
+
+        open(S, "> $path/3-polish/splitDone");
+        print S @idxs;
+        close(S);
     }
 
-    #  Builds a list of things to run by looking at the run-script, and
-    #  seeing if the output for a given command exists.
+    #  Build a list of things to run.
     #
-    my $polishesToPerform = 0;
-
-    open(F, "< $path/3-polish/run-script");
+    my @jobsToRun;
+    
+    open(F, "< $path/3-polish/splitDone");
     open(S, "> $path/3-polish/run.sh");
-    while (!eof(F)) {
-        my $idx = <F>;  chomp $idx;
-        my $cmd = <F>;
+    while (<F>) {
+        my $idx = $_;
+        chomp $idx;
 
         if (! -e "$path/3-polish/$idx.touch") {
-            $polishesToPerform = 1;
-            print S $cmd;
+            my $cmd;
+            $cmd  = "$sim4db -cdna $path/0-input/cDNA.fasta -genomic $path/0-input/genomic.fasta ";
+            $cmd .= "$aligns $always $relink $abort $interspecies -cut 0.6 ";
+            $cmd .= "-mincoverage $minsim4c ";
+            $cmd .= "-minidentity $minsim4i ";
+            $cmd .= "-minlength $minsim4l ";
+            $cmd .= "-script $path/3-polish/$idx.scr ";
+            $cmd .= "-output $path/3-polish/$idx.polished ";
+            $cmd .= "-stats  $path/3-polish/$idx.stats " if ($stats == 1);
+            $cmd .= "-touch  $path/3-polish/$idx.touch";
+
+            print S "$cmd\n";
+
+            push @jobsToRun, $cmd;
         }
     }
     close(S);
     close(F);
 
+
     #  Wipe any summaries, cDNA-* and polished files if we need to polish more stuff.
     #
-    if ($polishesToPerform == 1) {
-        print STDERR "ESTmapper/polish-- more polishes to compute - removing old output.\n";
+    if (scalar(@jobsToRun) > 0) {
         unlink "$path/cDNA-good.fasta";
         unlink "$path/cDNA-goodshort.fasta";
         unlink "$path/cDNA-lowquality.fasta";
@@ -231,47 +216,65 @@ sub polish {
         unlink "$path/polishes-goodshort";
         unlink "$path/polishes-lowquality";
         unlink "$path/summary";
+
+        #  Display what parameters we are using
+        #
+        print STDERR "ESTmapper/polish-- more polishes to compute.\n";
+        print STDERR "ESTmapper/polish--   minidentity   = $mini ($minsim4i)\n";
+        print STDERR "ESTmapper/polish--   mincoverage   = $minc ($minsim4c)\n";
+        print STDERR "ESTmapper/polish--   minlength     = $minl ($minsim4l)\n";
+        print STDERR "ESTmapper/polish--   relink        = $relink\n";
+        print STDERR "ESTmapper/polish--   always        = $always\n";
+        print STDERR "ESTmapper/polish--   aligns        = $aligns\n";
+        print STDERR "ESTmapper/polish--   abort         = $abort\n";
+        print STDERR "ESTmapper/polish--   interspecies  = $interspecies\n";
+
+
+        #  Run things, or tell the user to do it for us.
+        #
+        if ($runnow) {
+            if (!defined($farmqueue)) {
+                print STDERR "ESTmapper/polish-- Running locally, $numproc at a time.\n";
+
+                &libBri::schedulerSetNumberOfProcesses($numproc);
+                &libBri::schedulerSetShowCommands(0);
+                &libBri::schedulerSetShowStatus(1);
+
+                foreach my $cmd (@jobsToRun) {
+                    &libBri::schedulerSubmit($cmd);
+                }
+
+                &libBri::schedulerFinish();
+
+                unlink "$path/3-polish/run.sh";
+            } else {
+                print STDERR "ESTmapper/polish-- Submitting to the farm.\n";
+
+                my $cmd;
+                $cmd  = "bsub -q $farmqueue -P $farmcode -R \"select[mem>300]rusage[mem=600]\" -o $path/3-polish/%J-%I.lsfout ";
+                $cmd .= " -J \"p$farmname\[1-" . scalar(@jobsToRun) . "\]\" ";
+                $cmd .= "$exechome/util/jobarray.pl $path polish";
+
+                my $jobid = runLSF($cmd);
+
+                $cmd  = "bsub -q $finiqueue -P $farmcode -R \"select[mem>200]rusage[mem=200]\" -o $path/stage3.lsfout ";
+                $cmd .= " -w \"ended($jobid)\"";
+                $cmd .= " -J \"o$farmname\" ";
+                $cmd .= " $ESTmapper -restart $path";
+
+                system($cmd);
+
+                print STDERR "ESTmapper/polish-- Finish submitted.   See ya later!\n";
+
+                exit(0);
+            }
+        } else {
+            print STDERR "ESTmapper/polish-- Please run the jobs in\n";
+            print STDERR "ESTmapper/polish--   $path/3-polish/run.sh\n";
+            exit(0);
+        }
     }
 
-
-    #  Run things, or tell the user to do it for us.
-    #
-    if ($runnow) {
-        if ($local && $polishesToPerform) {
-            print STDERR "ESTmapper/polish-- Running locally, $numcpus at a time.\n";
-
-            &libBri::schedulerSetNumberOfProcesses($numcpus);
-            &libBri::schedulerSetShowCommands(0);
-            &libBri::schedulerSetShowStatus(1);
-            open(F, "< $path/3-polish/run.sh");
-            while (<F>) {
-                chomp;
-                &libBri::schedulerSubmit($_);
-            }
-            close(F);
-            &libBri::schedulerFinish();
-        }
-
-        if ($farm && $polishesToPerform) {
-            print STDERR "ESTmapper/polish-- Submitting to the farm.\n";
-
-            open(F, "< $path/3-polish/run.sh");
-            while (<F>) {
-                chomp;
-                system($_);
-            }
-            close(F);
-            
-            #  Hang around waiting for them to finish.
-            die "ESTmapper/polish-- I don't know how to monitor LSF jobs!\nESTmapper/polish-- Please restart when they're all done.\n";
-        }
-
-        unlink "$path/3-polish/run.sh";
-    } else {
-        print STDERR "ESTmapper/polish-- Please run the jobs in\n";
-        print STDERR "ESTmapper/polish--   $path/3-polish/run.sh\n";
-        exit(0);
-    }
 
     #
     #  Summarize run-time performance of the jobs

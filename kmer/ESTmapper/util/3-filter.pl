@@ -2,12 +2,17 @@ use strict;
 
 sub filter {
     my $startTime = time();
-    my $errHdr    = "";
+    my $verbose   = "";
     my @ARGS      = @_;
     my $path      = "";
     my $type      = "";
+    my $farmname;
+    my $farmcode;
+    my $filtqueue;
+
+    #  Don't change the value without 2-search
     my $hitMemory = "600";
-    my $verbose   = "";
+
 
     print STDERR "ESTmapper: Performing a filter.\n";
 
@@ -26,7 +31,7 @@ sub filter {
             $path = shift @ARGS;
             $type  = "mrna";
         }
-        if ($arg eq "-skiphitfilter") {
+        if ($arg eq "-filternone") {
             $type  = "none";
         }
         if ($arg eq "-hitsortmemory") {
@@ -35,6 +40,10 @@ sub filter {
         if ($arg eq "-verbose") {
             $verbose = "-verbose";
         }
+
+        $farmname  = shift @ARGS if ($arg eq "-lsfjobname");
+        $farmcode  = shift @ARGS if ($arg eq "-lsfproject");
+        $filtqueue = shift @ARGS if ($arg eq "-lsffilterqueue");
     }
 
     ($path eq "")                         and die "FATAL ERROR: ESTmapper/filter-- No directory given.\n";
@@ -45,25 +54,46 @@ sub filter {
     system("mkdir $path/2-filter") if (! -d "$path/2-filter");
 
 
-    #  Read the list of segments the searches used
+
+    #  If we're supposed to be running on LSF, but we aren't, restart.
+    #  This can occur if the searches have finished, but the filter
+    #  didn't, and we restart.  (also in 5-assemble.pl)
     #
-    open(F, "< $path/0-input/scaffolds-list");
-    my @scafList = <F>;
-    close(F);
-    chomp @scafList;
+    if (! -e "$path/2-filter/filteredHits" &&
+        defined($filtqueue) &&
+        !defined($ENV{'LSB_JOBID'})) {
+        my $cmd;
+        $cmd  = "bsub -q $filtqueue -P $farmcode -R \"select[mem>$hitMemory]rusage[mem=$hitMemory]\" -o $path/stage2.lsfout ";
+        $cmd .= " -J f$farmname ";
+        $cmd .= " $ESTmapper -restart $path";
+
+        print STDERR "ESTmapper/filter-- Restarted LSF execution.\n";
+
+        system($cmd);
+
+        exit;
+    }
 
 
     #  Merge all the hit counts into one list
     #
     if (! -e "$path/2-filter/hitCounts") {
-        print STDERR "ESTmapper/search-- Merging counts.\n";
+        print STDERR "ESTmapper/filter-- Merging counts.\n";
+
         my $cmd = "$mergeCounts";
-        foreach my $s (@scafList) {
-            $cmd .= " $path/1-search/$s.count";
+
+        open(F, "< $path/0-input/scaffolds-list");
+        while (<F>) {
+            chomp;
+            $cmd .= " $path/1-search/$_.count";
         }
+        close(F);
+
         $cmd .= "> $path/2-filter/hitCounts";
+
         system($cmd);
     }
+
 
     #  Setup the filtering and sorting
     #
@@ -71,23 +101,17 @@ sub filter {
         my $fcmd;
         my $scmd;
 
-        if ($type eq "est") {
-            $fcmd  = "$filterEST -u 200 -r 200 -q 0.2 -log $path/2-filter/filterLog $path/1-search/*hits > $path/2-filter/filtHits";
+        if      ($type eq "est") {
+            $fcmd = "$filterEST -u 200 -r 200 -q 0.2 -log $path/2-filter/filterLog $path/1-search/*hits > $path/2-filter/filtHits";
             $scmd = "$sortHits $verbose -m $hitMemory -t $path/2-filter $path/2-filter/filtHits > $path/2-filter/filteredHits";
-        }
-
-        if ($type eq "snp") {
-            $fcmd  = "$filterMRNA $verbose -c $path/2-filter/hitCounts $path/1-search/*hits > $path/2-filter/filtHits";
+        } elsif ($type eq "snp") {
+            $fcmd = "$filterMRNA $verbose -c $path/2-filter/hitCounts $path/1-search/*hits > $path/2-filter/filtHits";
             $scmd = "$sortHits $verbose -m $hitMemory -t $path/2-filter $path/2-filter/filtHits > $path/2-filter/filteredHits";
-        }
-
-        if ($type eq "mrna") {
-            $fcmd  = "$filterMRNA $verbose -c $path/2-filter/hitCounts $path/1-search/*hits > $path/2-filter/filtHits";
+        } elsif ($type eq "mrna") {
+            $fcmd = "$filterMRNA $verbose -c $path/2-filter/hitCounts $path/1-search/*hits > $path/2-filter/filtHits";
             $scmd = "$sortHits $verbose -m $hitMemory -t $path/2-filter $path/2-filter/filtHits > $path/2-filter/filteredHits";
-        }
-
-        if ($type eq "none") {
-            $fcmd  = "echo";
+        } elsif ($type eq "none") {
+            $fcmd = "echo ESTmapper/filter-- No filter requested.";
             $scmd = "$sortHits $verbose -m $hitMemory -t $path/2-filter $path/1-search/*hits > $path/2-filter/filteredHits";
         }
 
@@ -98,7 +122,7 @@ sub filter {
         system($scmd) == 0 or die "FATAL ERROR: ESTmapper/filter-- Failed to sort!\n! = $!\n? = $?\n";
     }
 
-    die "FATAL ERROR: ESTmapper/filter-- filter and sort produced no hits?\n" if (-z "$path/2-filter/filteredHits");
+    die "ESTmapper/filter-- FATAL: filter and sort produced no hits?\n" if (-z "$path/2-filter/filteredHits");
 
     print STDERR "ESTmapper: Filter script finished in ", time() - $startTime, " wall-clock seconds.\n" if (time() > $startTime + 5);
 }

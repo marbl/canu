@@ -12,12 +12,13 @@ use libBri;
 
 use strict;
 
-use vars qw($personality $exechome $searchGENOME $mergeCounts $filterMRNA $filterEST $sim4db $leaff $cleanPolishes $toFILTER $sortHits $sortPolishes $parseSNPs $pickBest);
+use vars qw($personality $exechome $ESTmapper $searchGENOME $mergeCounts $filterMRNA $filterEST $sim4db $leaff $cleanPolishes $toFILTER $sortHits $sortPolishes $parseSNPs $pickBest);
 
 my $scriptVersion = "8";
 my $startTime   = time();
 
 $exechome      = "$FindBin::Bin";
+$ESTmapper     = "$exechome/ESTmapper.pl";
 $searchGENOME  = "$exechome/searchGENOME";
 $mergeCounts   = "$exechome/mergeCounts";
 $filterMRNA    = "$exechome/filterMRNA";
@@ -47,24 +48,12 @@ die "Can't find/execute $pickBest\n"      if (! -x $pickBest);
 
 
 require "util/checkArgs.pl";
+require "util/lsf.pl";
 require "util/1-configure.pl";
 require "util/2-search.pl";
 require "util/3-filter.pl";
 require "util/4-polish.pl";
 require "util/5-assemble.pl";
-
-
-sub showHelp {
-    print STDERR "Basic help:\n";
-    print STDERR "\n";
-    print STDERR "  ESTmapper.pl -mapest  work-directory ests.fasta genomic.fasta\n";
-    print STDERR "\n";
-    print STDERR "or\n";
-    print STDERR "\n";
-    print STDERR "  ESTmapper.pl -mapmrna work-directory mrna.fasta genomic.fasta\n";
-    print STDERR "\n";
-    print STDERR "Read the manual for details.\n";
-}
 
 
 
@@ -113,22 +102,61 @@ sub createRunInformation {
 
 
 
+sub sTOhms {
+    my ($s, $m, $h) = @_;
+    $h = $s / 3600;
+    $m = int(($h - int($h)) * 60);
+    $h = int($h);
+    $s = int($s);
+    return($h,$m,$s);
+}
 
-foreach my $opt (@ARGV) {
-    if (($opt eq "-restart")         ||
-        ($opt eq "-configure")       ||
-        ($opt eq "-searchest")       ||
-        ($opt eq "-searchmrna")      ||
-        ($opt eq "-filterest")       ||
-        ($opt eq "-filtermrna")      ||
-        ($opt eq "-filternone")      ||
-        ($opt eq "-polish")          ||
-        ($opt eq "-assembleoutput")  ||
-        ($opt eq "-mapest")          ||
-        ($opt eq "-mapest-nofilter") ||
-        ($opt eq "-mapsnp")          ||
-        ($opt eq "-mapmrna")) {
+
+
+
+
+#  Figure out the $dir, $est and $gen.
+#
+my $dir;
+my $est;
+my $gen;
+my @junkargs = @ARGV;
+while (scalar(@junkargs) > 0) {
+    my $opt = shift @junkargs;
+
+    if ($opt eq "-help") {
         $personality = $opt;
+    }
+
+    if ($opt eq "-time") {
+        $personality = $opt;
+        $dir = shift @junkargs;
+    }
+
+    if ($opt eq "-restart") {
+        $personality = $opt;
+        $dir = shift @junkargs;
+    }
+
+    if ($opt eq "-mapest") {
+        $personality = $opt;
+        $dir = shift @junkargs;
+        $est = shift @junkargs;
+        $gen = shift @junkargs;
+    }
+
+    if ($opt eq "-mapsnp") {
+        $personality = $opt;
+        $dir = shift @junkargs;
+        $est = shift @junkargs;
+        $gen = shift @junkargs;
+    }
+
+    if ($opt eq "-mapmrna") {
+        $personality = $opt;
+        $dir = shift @junkargs;
+        $est = shift @junkargs;
+        $gen = shift @junkargs;
     }
 }
 
@@ -139,8 +167,6 @@ foreach my $opt (@ARGV) {
 #  the quality levels.
 #
 if ($personality eq "-restart") {
-    shift @ARGV;
-    my $dir = shift @ARGV;
 
     if (! -e "$dir/.runOptions") {
         print STDERR "ESTmapper/restart-- Nothing to restart!\n";
@@ -178,54 +204,26 @@ checkArgs(@ARGV);
 my $runInformationFile;
 
 if ($personality eq "-mapest") {
-    shift @ARGV;
-    my $dir = shift @ARGV;
-    my $est = shift @ARGV;
-    my $gen = shift @ARGV;
+    $runInformationFile = createRunInformation($dir, @ARGV);
 
-    $runInformationFile = createRunInformation($dir, "-mapest", "$dir", "$est", "$gen", @ARGV);
-
-    configure      ("-configure", "$dir", "-genomic", "$gen", @ARGV);
-    search         ("-searchest", "$dir", "-cdna", "$est", "-mersize", "20", "-species", "human", @ARGV);
+    configure      ("-configure", "$dir", "-genomic", "$gen", "-cdna", "$est", @ARGV);
+    search         ("-searchest", "$dir", "-mersize", "20", "-species", "human", @ARGV);
     filter         ("-filterest", "$dir", @ARGV);
     polish         ("-polish", "$dir", "-mincoverage", "50", "-minidentity", "95", @ARGV);
     assembleOutput ("-assembleoutput", "$dir", "-mincoverage", "50", "-minidentity", "95", @ARGV);
-} elsif ($personality eq "-mapest-nofilter") {
-    shift @ARGV;
-    my $dir = shift @ARGV;
-    my $est = shift @ARGV;
-    my $gen = shift @ARGV;
-
-    $runInformationFile = createRunInformation($dir, "-mapest-nofilter", "$dir", "$est", "$gen", @ARGV);
-
-    configure      ("-configure", "$dir", "-genomic", "$gen", @ARGV);
-    search         ("-searchest", "$dir", "-cdna", "$est", "-mersize", "20", "-species", "human", @ARGV);
-    filter         ("-filternone", "$dir", @ARGV);
-    polish         ("-polish", "$dir", "-mincoverage", "50", "-minidentity", "95", @ARGV);
-    assembleOutput ("-assembleoutput", "$dir", "-mincoverage", "50", "-minidentity", "95", @ARGV);
 } elsif ($personality eq "-mapmrna") {
-    shift @ARGV;
-    my $dir = shift @ARGV;
-    my $est = shift @ARGV;
-    my $gen = shift @ARGV;
+    $runInformationFile = createRunInformation($dir, @ARGV);
 
-    $runInformationFile = createRunInformation($dir, "-mapmrna", "$dir", "$est", "$gen", @ARGV);
-
-    configure      ("-configure", "$dir", "-genomic", "$gen", @ARGV);
-    search         ("-searchmrna", "$dir", "-cdna", "$est", "-mersize", "20", "-species", "human", @ARGV);
+    configure      ("-configure", "$dir", "-genomic", "$gen", "-cdna", "$est", @ARGV);
+    search         ("-searchmrna", "$dir", "-mersize", "20", "-species", "human", @ARGV);
     filter         ("-filtermrna", "$dir", @ARGV);
     polish         ("-polish", "$dir", "-mincoverage", "50", "-minidentity", "95", "-relink", "1000", "-abort", @ARGV);
     assembleOutput ("-assembleoutput", "$dir", "-mincoverage", "50", "-minidentity", "95", @ARGV);
 } elsif ($personality eq "-mapsnp") {
-    shift @ARGV;
-    my $dir = shift @ARGV;
-    my $est = shift @ARGV;
-    my $gen = shift @ARGV;
+    $runInformationFile = createRunInformation($dir, @ARGV);
 
-    $runInformationFile = createRunInformation($dir, "-mapsnp", "$dir", "$est", "$gen", @ARGV);
-
-    configure      ("-configure", "$dir", "-genomic", "$gen", @ARGV);
-    search         ("-searchsnp", "$dir", "-cdna", "$est", "-mersize", "20", "-species", "human", @ARGV);
+    configure      ("-configure", "$dir", "-genomic", "$gen", "-cdna", "$est", @ARGV);
+    search         ("-searchsnp", "$dir", "-mersize", "20", "-species", "human", @ARGV);
     filter         ("-filtersnp", "$dir", @ARGV);
     polish         ("-polish", "$dir", "-mincoverage", "80", "-minidentity", "95", @ARGV);
     assembleOutput ("-assembleoutput", "$dir", "-mincoverage", "80", "-minidentity", "95", @ARGV);
@@ -272,16 +270,64 @@ if ($personality eq "-mapest") {
         #
         system("$parseSNPs $snpdelimiter $snpsizetag $snppostag $snpoffset -F $dir/snps-failed -O $dir/snps-parsed < $dir/polishes-good.sorted-by-cDNA > $dir/summary-snps");
     }
+} elsif ($personality eq "-time") {
+    my ($sysTimeS, $usrTimeS, $clkTimeS);
+    my ($sysTimeH, $usrTimeH, $clkTimeH);
+    my ($sysTimeM, $usrTimeM, $clkTimeM);
+
+    $sysTimeS = $usrTimeS = $clkTimeS = 0;
+    open(F, "find $dir/1-search -name *.stats -print |");
+    while (<F>) {
+        chomp;
+        open(G, "< $_");
+        while (<G>) {
+            $sysTimeS += $1 if (m/^systemTime:\s+(\d+\.\d+)$/);
+            $usrTimeS += $1 if (m/^userTime:\s+(\d+\.\d+)$/);
+            $clkTimeS += $1 if (m/^total:\s+(\d+.\d+)$/);
+        }
+        close(G);
+    }
+    close(F);
+
+    ($clkTimeH,$clkTimeM,$clkTimeS) = sTOhms($clkTimeS);
+    ($sysTimeH,$sysTimeM,$sysTimeS) = sTOhms($sysTimeS);
+    ($usrTimeH,$usrTimeM,$usrTimeS) = sTOhms($usrTimeS);
+    printf STDOUT "ESTmapper: search required %7d seconds wall   (%3d:%02d).\n", $clkTimeS, $clkTimeH, $clkTimeM;
+    printf STDOUT "ESTmapper: search required %7d seconds system (%3d:%02d).\n", $sysTimeS, $sysTimeH, $sysTimeM;
+    printf STDOUT "ESTmapper: search required %7d seconds user   (%3d:%02d).\n", $usrTimeS, $usrTimeH, $usrTimeM;
+
+    $sysTimeS = $usrTimeS = $clkTimeS = 0;
+    open(F, "find $dir/3-polish -name *.stats -print |");
+    while (<F>) {
+        chomp;
+        open(G, "< $_");
+        while (<G>) {
+            $clkTimeS += $1 if (m/^clockTime:\s+(\d+\.\d+)$/);
+            $sysTimeS += $1 if (m/^systemTime:\s+(\d+\.\d+)$/);
+            $usrTimeS += $1 if (m/^userTime:\s+(\d+\.\d+)$/);
+        }
+        close(G);
+    }
+    close(F);
+
+    ($clkTimeH,$clkTimeM,$clkTimeS) = sTOhms($clkTimeS);
+    ($sysTimeH,$sysTimeM,$sysTimeS) = sTOhms($sysTimeS);
+    ($usrTimeH,$usrTimeM,$usrTimeS) = sTOhms($usrTimeS);
+    printf STDOUT "ESTmapper: polish required %7d seconds wall   (%3d:%02d).\n", $clkTimeS, $clkTimeH, $clkTimeM;
+    printf STDOUT "ESTmapper: polish required %7d seconds system (%3d:%02d).\n", $sysTimeS, $sysTimeH, $sysTimeM;
+    printf STDOUT "ESTmapper: polish required %7d seconds user   (%3d:%02d).\n", $usrTimeS, $usrTimeH, $usrTimeM;
+
+    exit(0);
 } else {
-    showHelp()               if ($personality eq "-help");
-    configure(@ARGV)         if ($personality eq "-configure");
-    search(@ARGV)            if ($personality eq "-searchest");
-    search(@ARGV)            if ($personality eq "-searchmrna");
-    search(@ARGV)            if ($personality eq "-searchsnp");
-    filter(@ARGV)            if ($personality eq "-filtermrna");
-    filter(@ARGV)            if ($personality eq "-filterest");
-    polish(@ARGV)            if ($personality eq "-polish");
-    assembleOutput(@ARGV)    if ($personality eq "-assembleoutput");
+    print STDERR "Basic help:\n";
+    print STDERR "\n";
+    print STDERR "  ESTmapper.pl -mapest  work-directory ests.fasta genomic.fasta\n";
+    print STDERR "\n";
+    print STDERR "or\n";
+    print STDERR "\n";
+    print STDERR "  ESTmapper.pl -mapmrna work-directory mrna.fasta genomic.fasta\n";
+    print STDERR "\n";
+    print STDERR "Read the manual for details.\n";
 }
 
 print STDERR "ESTmapper: script finished everything in ", time() - $startTime, " wall-clock seconds.\n" if (time() != $startTime);

@@ -55,29 +55,22 @@ sub configure_pack {
 
 sub configure {
     my $startTime = time();
-    my $errHdr    = "ERROR: ESTmapper/configure--";
     my @ARGS      = @_;
     my $path      = "";
     my $genomic   = "";
+    my $cdna      = "";
     my $memory    = 800;
     my $segments  = 0;
 
     print STDERR "ESTmapper: Performing a configure.\n";
 
-    #
-    #  Parse the args to find the path, then read any saved
-    #  configuration, then reparse the args.
-    #
-
     while (scalar @ARGS > 0) {
         my $arg = shift @ARGS;
 
-        if ($arg eq "-configure") {
-            $path = shift @ARGS;
-        }
-        if ($arg eq "-genomic") {
-            $genomic = shift @ARGS;
-        }
+        $path    = shift @ARGS  if ($arg eq "-configure");
+        $genomic = shift @ARGS  if ($arg eq "-genomic");
+        $cdna    = shift @ARGS  if ($arg eq "-cdna");
+
         if ($arg eq "-memory") {
             $memory   = shift @ARGS;
             $segments = 0;
@@ -88,11 +81,11 @@ sub configure {
         }
     }
 
-    ($path eq "") and die "$errHdr no directory given.\n";
-    ($genomic eq "") and die "$errHdr no genomic sequence given.\n";
-    (! -f $genomic) and die "$errHdr can't find the genomic sequence '$genomic'\n";
+    ($path eq "")    and die "ERROR: ESTmapper/configure-- no directory given.\n";
+    ($genomic eq "") and die "ERROR: ESTmapper/configure-- no genomic sequences given.\n";
+    ($cdna eq "")    and die "ERROR: ESTmapper/configure-- no cDNA sequences given.\n";
 
-    #  Make a place for us to work
+    #  Make some organization
     #
     system("mkdir $path")          if (! -d "$path");
     system("mkdir $path/0-input")  if (! -d "$path/0-input");
@@ -100,15 +93,15 @@ sub configure {
     system("mkdir $path/2-filter") if (! -d "$path/2-filter");
     system("mkdir $path/3-polish") if (! -d "$path/3-polish");
 
-
-    #  Remember the genomic file for later
+    #  Check the input files exist, create symlinks to them, and find/build index files
     #
-    system("ln -s ${genomic}    $path/0-input/genomic.fasta")    if ((-e "${genomic}")    && (! -e "$path/0-input/genomic.fasta"));
-    system("ln -s ${genomic}idx $path/0-input/genomic.fastaidx") if ((-e "${genomic}idx") && (! -e "$path/0-input/genomic.fastaidx"));
+    die "ERROR: ESTmapper/configure-- can't find the genomic sequence '$genomic'\n" if (! -f "$genomic");
+    die "ERROR: ESTmapper/configure-- can't find the cdna sequence '$cdna'\n"       if (! -f "$cdna");
 
-    if (! -f "$path/0-input/genomic.fasta") {
-        die "$errHdr can't find the genomic sequence '$path/0-input/genomic.fasta'\n";
-    }
+    system("ln -s ${genomic}    $path/0-input/genomic.fasta")    if ((! -f "$path/0-input/genomic.fasta"));
+    system("ln -s ${genomic}idx $path/0-input/genomic.fastaidx") if ((! -f "$path/0-input/genomic.fastaidx") && (-f "${genomic}idx"));
+    system("ln -s ${cdna}       $path/0-input/cDNA.fasta")       if ((! -f "$path/0-input/cDNA.fasta"));
+    system("ln -s ${cdna}idx    $path/0-input/cDNA.fastaidx")    if ((! -f "$path/0-input/cDNA.fastaidx") && (-f "${cdna}idx"));
 
     if (! -f "$path/0-input/genomic.fastaidx") {
         print STDERR "ESTmapper/configure-- Generating the index for '$path/0-input/genomic.fasta'\n";
@@ -116,11 +109,15 @@ sub configure {
         system("$leaff -F $path/0-input/genomic.fasta");
     }
 
+    if (! -f "$path/0-input/cDNA.fastaidx") {
+        print STDERR "ESTmapper/configure-- Generating the index for '$path/0-input/cDNA.fasta'\n";
+        print STDERR "ESTmapper/configure-- WARNING:  This is done in the work directory!\n";
+        system("$leaff -F $path/0-input/cDNA.fasta");
+    }
 
-    #
     #  Partition the genome into itty-bitty pieces
     #
-    if (! -e "$path/0-input/scaffolds-list") {
+    if (! -f "$path/0-input/scaffolds-list") {
         if ($memory > 0) {
             print STDERR "ESTmapper/configure-- packing to preserve ${memory}MB memory limit\n";
             $memory /= $scaleFactor;
@@ -142,11 +139,6 @@ sub configure {
 
         print STDERR "ESTmapper/configure-- Created groups with maximum memory requirement of ${memory}MB.\n";
     }
-
-
-    print STDERR "ESTmapper: Configure script finished in ", time() - $startTime, " wall-clock seconds.\n" if (time() > $startTime + 5);
-
-    exit;
 }
 
 

@@ -34,6 +34,10 @@ sub assembleOutput {
     my $minl        = 0;
     my $intronLimit = 100000;
 
+    my $farmname;
+    my $farmcode;
+    my $finiqueue;
+
     print STDERR "ESTmapper: Performing an assembleOutput.\n";
 
     while (scalar @ARGS > 0) {
@@ -45,6 +49,10 @@ sub assembleOutput {
         $minl        = shift @ARGS            if ($arg eq "-minlength");
         $intronLimit = int(shift @ARGS)       if ($arg eq "-cleanup");
         $intronLimit = 0                      if ($arg eq "-nocleanup");
+
+        $farmname  = shift @ARGS if ($arg eq "-lsfjobname");
+        $farmcode  = shift @ARGS if ($arg eq "-lsfproject");
+        $finiqueue = shift @ARGS if ($arg eq "-lsffinishqueue");
     }
 
     ($path eq "")                   and die "ERROR: ESTmapper/assemble-- no directory given.\n";
@@ -54,6 +62,28 @@ sub assembleOutput {
     ($minl < 0)                     and die "ERROR: ESTmapper/assemble-- supply a value x >= 0 for minlength!\n";
 
     (polishesNotDone($path) > 0) and die "There are unfinished polishing jobs.\n";
+
+
+    #  If we're supposed to be running on LSF, but we aren't, restart.
+    #  This can occur if the searches have finished, but the filter
+    #  didn't, and we restart.  (also in 3-filter.pl)
+    #
+    if (((! -e "$path/summary") || (-z "$path/summary")) &&
+        defined($finiqueue) &&
+        !defined($ENV{'LSB_JOBID'})) {
+        my $cmd;
+        $cmd  = "bsub -q $finiqueue -P $farmcode -R \"select[mem>200]rusage[mem=200]\" -o $path/stage3.lsfout ";
+        $cmd .= " -J \"o$farmname\" ";
+        $cmd .= " $ESTmapper -restart $path";
+
+        print STDERR "ESTmapper/assemble-- Restarted LSF execution.\n";
+
+        system($cmd);
+
+        exit;
+    }
+
+
 
     #  Check that the filtering is compatable with the polishing.
     #
@@ -129,8 +159,6 @@ sub assembleOutput {
         unlink "$path/cDNA-repeat.fasta";
         unlink "$path/cDNA-zero.fasta";
         unlink "$path/summary";
-    } else {
-        print STDERR "ESTmapper/assembleOutput-- polishes already filtered.\n";
     }
 
 
@@ -220,6 +248,8 @@ sub assembleOutput {
         printf F "cDNA-repeat:     %8d (%8.4f%%)\n", $cntrept, 100 * $cntrept / $cnttotl  if (-e "$path/cDNA-repeat.fasta");
         printf F "cDNA-zero:       %8d (%8.4f%%)\n", $cntzero, 100 * $cntzero / $cnttotl;
     }
+
+
 
     print STDERR "ESTmapper: assembleOutput script finished in ", time() - $startTime, " wall-clock seconds.\n" if (time() > $startTime + 5);
 }
