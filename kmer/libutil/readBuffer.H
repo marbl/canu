@@ -31,9 +31,9 @@ public:
   bool      next(void);
   char      get(void);
   char      getnext(void);
-  void      seek(size_t pos);
+  void      seek(off_t pos);
   size_t    read(char *buf, size_t len);   //  read the next len bytes into the user buffer buf
-  size_t    tell(void);
+  off_t     tell(void);
 
 private:
   void      fillBuffer(void);
@@ -43,7 +43,7 @@ private:
 
   int      _file;
   int      _fileType;  //  0=stdin, 1=normal, 2=mmap
-  size_t   _filePos;
+  off_t    _filePos;
 
   bool     _eof;
 
@@ -215,7 +215,7 @@ readBuffer::getnext(void) {
 
 inline
 void
-readBuffer::seek(size_t pos) {
+readBuffer::seek(off_t pos) {
 
   switch(_fileType) {
     case 0:
@@ -324,11 +324,11 @@ readBuffer::read(char *buf, size_t len) {
 
 
 inline
-size_t
+off_t
 readBuffer::tell(void) {
 
   if (_fileType == 2)
-    return(_bufferPos);
+    return((size_t)_bufferPos);
 
   return(_filePos);
 }
