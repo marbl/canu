@@ -193,7 +193,7 @@ positionDB::positionDB(char const  *seq,
     bktAlloc = new u64bit [_tableSizeInEntries / 2 + 2];
   } catch (std::bad_alloc) {
     fprintf(stderr, "hitMatrix::filter()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
-    fprintf(stderr, "hitMatrix::filter()-- tableSizeInEntries of %llu\n", _tableSizeInEntries);
+    fprintf(stderr, "hitMatrix::filter()-- bktAlloc = new u64bit ["u64bitFMT"]\n", _tableSizeInEntries / 2 + 2);
     exit(1);
   }
   bool     bktAllocIsJunk = false;
@@ -375,7 +375,7 @@ positionDB::positionDB(char const  *seq,
     _countingBuckets = new u64bit [bucketsSpace];
   } catch (std::bad_alloc) {
     fprintf(stderr, "hitMatrix::filter()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
-    fprintf(stderr, "hitMatrix::filter()-- _countingBuckets of %llu\n", bucketsSpace);
+    fprintf(stderr, "hitMatrix::filter()-- _countingBuckets = new u64bit ["u64bitFMT"]\n", bucketsSpace);
     exit(1);
   }
 
@@ -577,7 +577,7 @@ positionDB::positionDB(char const  *seq,
       _hashTable     = new u64bit [hs];
     } catch (std::bad_alloc) {
       fprintf(stderr, "hitMatrix::filter()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
-      fprintf(stderr, "hitMatrix::filter()-- _hashTable of %llu\n", hs);
+      fprintf(stderr, "hitMatrix::filter()-- _hashTable = new u64bit ["u64bitFMT"]\n", hs);
       exit(1);
     }
     bktAllocIsJunk = true;
@@ -605,7 +605,7 @@ positionDB::positionDB(char const  *seq,
     _buckets   = new u64bit [bs];
   } catch (std::bad_alloc) {
     fprintf(stderr, "hitMatrix::filter()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
-    fprintf(stderr, "hitMatrix::filter()-- _buckets of %lu\n", bs);
+    fprintf(stderr, "hitMatrix::filter()-- _buckets = new u64bit ["u64bitFMT"]\n", bs);
     exit(1);
   }
 #endif
@@ -618,7 +618,7 @@ positionDB::positionDB(char const  *seq,
     _positions = new u64bit [ps];
   } catch (std::bad_alloc) {
     fprintf(stderr, "hitMatrix::filter()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
-    fprintf(stderr, "hitMatrix::filter()-- _positions of %llu\n", ps);
+    fprintf(stderr, "hitMatrix::filter()-- _positions = new u64bit ["u64bitFMT"\n", ps);
     exit(1);
   }
 
