@@ -4,7 +4,7 @@
 #include <string.h>
 #include <errno.h>
 
-#include "sim4reader.h"
+#include "sim4polish.h"
 
 int
 main(int argc, char ** argv) {
@@ -30,13 +30,13 @@ main(int argc, char ** argv) {
   I = fopen("identity.histogram", "w");
   S = fopen("c-vs-i.scatter", "w");
 
-  while ((p = readPolish(stdin)) != 0L) {
+  while ((p = s4p_readPolish(stdin)) != 0L) {
     fprintf(S, "%d %d\n", p->percentIdentity, p->querySeqIdentity);
 
     i[p->percentIdentity]++;
     c[p->querySeqIdentity]++;
 
-    destroyPolish(p);
+    s4p_destroyPolish(p);
   }
 
   for (x=0; x<101; x++) {

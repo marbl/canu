@@ -1,13 +1,13 @@
 PROG    = sim4db
-INCLUDE = -I../fasta         -I../sim4        -I../libbri
-LIBS    = -L../fasta -lfasta -L../sim4 -lsim4 -L../libbri -lbri -lm
+INCLUDE = -I../fasta         -I../sim4        -I../sim4polish              -I../libbri
+LIBS    = -L../fasta -lfasta -L../sim4 -lsim4 -L../sim4polish -lsim4polish -L../libbri -lbri -lm
 
 SRCS    = sim4db.C
 OBJS    = sim4db.o
 
-EFENCE  = -L/dev2/adelcher/EFence -lefence
 EFENCE  = -L/home/walenzbp/projects/EF -lefence
 EFENCE  = -L/usr/local/lib -lefence
+EFENCE  = -L/dev2/adelcher/EFence -lefence
 EFENCE  =
 
 all:  $(PROG)

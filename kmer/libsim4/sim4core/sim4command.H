@@ -12,7 +12,6 @@
 //    est iid (maybe more than one)
 //    forward only
 //    reverse only
-//    an optional strand indicator
 //
 
 class sim4command {
@@ -83,14 +82,6 @@ public:
   char           *getGENheader(void);
   char           *getGENsequence(void);
   u32bit          getGENlength(void);
-
-  void            setStrandIndicator(char *si) {
-    _strandIndicator = new char [strlen(si) + 1];
-    strcpy(_strandIndicator, si);
-  }
-  char           *getStrandIndicator(void) {
-    return(_strandIndicator);
-  };
 private:
   void            loadEST(void);
   void            loadGEN(void);
@@ -113,8 +104,6 @@ private:
 
   bool                  _doForward;
   bool                  _doReverse;
-
-  char                 *_strandIndicator;
 };
 
 

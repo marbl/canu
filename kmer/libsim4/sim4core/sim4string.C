@@ -1,72 +1,29 @@
 #include "sim4.H"
-#include "libbri.H"
+#include "sim4polishBuilder.H"
 
-//#define MASKTEST
-//#define BUGS
 //#define SHOW_OVERLAPPING_EXONS
-
-//#define DEBUG
 
 static void
 add_offset_exons(Exon *exons, int offset) {
-  Exon *t;
+  if (!offset || !exons)
+    return;
 
-  if (!offset || !(exons)) return;
-
-  t = exons;
-  while (t) {
-    if (t->toGEN) { t->frEST += offset; t->toEST += offset; }
-    t = t->next_exon;
+  for (; exons; exons = exons->next_exon) {
+    if (exons->toGEN) {
+      exons->frEST += offset;
+      exons->toEST += offset;
+    }
   }
 }
 
 static void
 add_offset_aligns(edit_script_list *aligns, int offset) {
-  edit_script_list *head;
-  
-  if (!offset || !aligns) return;
+  if (!offset || !aligns)
+    return;
 
-  head = aligns;
-  while (head) { head->offset2 += offset; head = head->next_script; }
+  for (; aligns; aligns = aligns->next_script)
+    aligns->offset2 += offset;
 }
-
-
-char *
-appendOutput(char *outstring, char const *appendstring) {
-  int   ol=0, al=0;
-  char *newstring;
-  char *t, *o;
-
-  if (outstring) {
-    ol = 0;
-    while (outstring[ol])
-      ol++;
-  }
-
-  if (appendstring) {
-    al = 0;
-    while (appendstring[al])
-      al++;
-  }
-
-  t = newstring = new char [ol + al + 1];
-  o = outstring;
-
-  if (outstring) {
-    while (*o)
-      *(t++) = *(o++);
-    delete [] outstring;
-  }
-
-  if (appendstring)
-    while (*appendstring)
-      *(t++) = *(appendstring++);
-
-  *t = 0;
-
-  return(newstring);
-}
-
 
 void
 Sim4::maskExonsFromGenomic(Exon *theExons,
@@ -74,12 +31,6 @@ Sim4::maskExonsFromGenomic(Exon *theExons,
                            char *r,
                            int l) {
   Exon          *theExon = theExons;
-
-#ifdef MASKTEST
-  fprintf(stderr, "BEFORE masking:\n");
-  fprintf(stderr, "f='%s'\n", f);
-  fprintf(stderr, "r='%s'\n", r);
-#endif
 
   while (theExon) {
     if (theExon->toGEN) {
@@ -91,31 +42,26 @@ Sim4::maskExonsFromGenomic(Exon *theExons,
 
     theExon = theExon->next_exon;
   }
-
-#ifdef MASKTEST
-  fprintf(stderr, "AFTER masking:\n");
-  fprintf(stderr, "f='%s'\n", f);
-  fprintf(stderr, "r='%s'\n", r);
-#endif
 }
 
 
 
 
-
-char *
+sim4polishList*
 Sim4::run(sim4command *cmd) {
-  u32bit        lineBufferSize = 4096;
-  char         *lineBuffer     = new char [lineBufferSize];
+  sim4polishBuilder   B;
+  sim4polishList     *L = new sim4polishList;
+
 
   int    dist, match_ori;
-  int    pA=0, g_pA=0, f_pA=0, r_pA=0, pT=0, g_pT=0, f_pT=0, r_pT=0;
+  int    g_pA=0, f_pA=0, r_pA=0;
+  int    g_pT=0, f_pT=0, r_pT=0;
 
-  Exon   *Exons     = NULL;
-  Exon   *rev_Exons = NULL; 
+  Exon   *fExons = NULL;
+  Exon   *rExons = NULL; 
 
-  edit_script_list *Aligns     = NULL;
-  edit_script_list *rev_Aligns = NULL;
+  edit_script_list *fAligns = NULL;
+  edit_script_list *rAligns = NULL;
 
   int     matchesPrinted = 0;
 
@@ -136,11 +82,6 @@ Sim4::run(sim4command *cmd) {
   char   *estseq     = 0L;
   char   *estrev     = 0L;
   char   *estseqorig = 0L;
-
-  bool    pleaseContinueComputing = false;
-
-  char        *outputString    = 0L;
-  char const  *strandIndicator = 0L;
 
 
   //  Allocate space for temporary sequence storage.  We need
@@ -188,11 +129,16 @@ Sim4::run(sim4command *cmd) {
 
   if (globalParams->_ignorePolyTails) {
     get_polyAT(estseq, estlen, &g_pT, &g_pA);
-    //fprintf(stderr, "Masked: %d %d\n", g_pT, g_pA);
   }
+
+
+  //  GRRR!  XXXXX  This needs to be defined outside the loop, and before the goto's
+  bool  pleaseContinueComputing = false;
+
 
   if (estlen - g_pA - g_pT <= 0)
     goto abort;
+
 
 
   //  If the database was masked, restore it to the original state.
@@ -210,16 +156,30 @@ Sim4::run(sim4command *cmd) {
   matchesPrinted = 0;
 
   do {
+    int     nmatches  = 0;
+    double  coverage  = 0;
+    int     percentid = 0;
+
+    pleaseContinueComputing = false;
+
+    B.create(cmd->getESTidx(), estlen,
+             cmd->getGENidx(), cmd->getGENlo(), cmd->getGENhi());
+
+    if (globalParams->_includeDefLine) {
+      B.setESTdefline(cmd->getESTheader());
+      B.setGENdefline(cmd->getGENheader());
+    }
+
     memset(&st,     0, sizeof(sim4_stats_t));
     memset(&rev_st, 0, sizeof(sim4_stats_t));
 
     bld_table(estseq - 1 + g_pT, estlen - g_pA - g_pT, DEFAULT_W, INIT);
 
     if (cmd->doForward()) {
-      Aligns = SIM4(dbseq, estseq + g_pT,
+      fAligns = SIM4(dbseq, estseq + g_pT,
                     dblen, estlen - g_pT - g_pA,
                     &dist,
-                    &Exons,
+                    &fExons,
                     &f_pA,
                     &f_pT,
                     &st);
@@ -233,49 +193,26 @@ Sim4::run(sim4command *cmd) {
       if ((globalParams->_forceStrandPrediction) && (st.orientation == BOTH))
         st.orientation = FWD;
 
-#if ABORT_EXPENSIVE
-      if (st.tooManyMSPs) { 
-        u32bit    lbs = (u32bit)(strlen((char *)cmd->getESTheader()) +
-                                 strlen((char *)cmd->getGENheader()) +
-                                 2048);
-
-        if (lineBufferSize < lbs) {
-          delete [] lineBuffer;
-          lineBufferSize  = lbs;
-          lineBuffer      = new char [lineBufferSize];
-        }
-
-        sprintf(lineBuffer, "sim4begin\n%d[%d-0-0] %d[%d-%d] <0-0-0-forward-intractable>\n",
-                cmd->getESTidx(),
-                estlen,
-                cmd->getGENidx(),
-                cmd->getGENlo(),
-                cmd->getGENhi());
-        outputString = appendOutput(outputString, lineBuffer); 
-
-        if (globalParams->_includeDefLine) {
-          sprintf(lineBuffer, "edef=%s\nddef=%s\n",
-                  cmd->getESTheader(),
-                  cmd->getGENheader());
-          outputString = appendOutput(outputString, lineBuffer); 
-        }
-
-        sprintf(lineBuffer, "1-%d (1-%d) <%d-0-0>\nsim4end\n",
-                estlen,
-                cmd->getGENhi() - cmd->getGENlo(),
-                st.numberOfMatches);
-        outputString = appendOutput(outputString, lineBuffer); 
-
-        goto abort;
+      //  If the match was deemed expensive, report
+      //
+      if (st.tooManyMSPs) {
+        B.setNumberOfMatches(0, 0);
+        B.setPercentIdentity(0);
+        B.setMatchOrientation(SIM4_MATCH_FORWARD);
+        B.setStrandOrientation(SIM4_STRAND_INTRACTABLE);
+        B.addExon(1, estlen,
+                  1, cmd->getGENhi() - cmd->getGENlo(),
+                  st.numberOfMatches, 0, 0,
+                  SIM4_INTRON_NONE);
+        goto fail;
       }
-#endif
     }
 
     if (cmd->doReverse()) {
-      rev_Aligns = SIM4(dbrev, estseq + g_pT,
+      rAligns = SIM4(dbrev, estseq + g_pT,
                         dblen, estlen - g_pT - g_pA,
                         &dist,
-                        &rev_Exons,
+                        &rExons,
                         &r_pA,
                         &r_pT,
                         &rev_st);
@@ -288,219 +225,89 @@ Sim4::run(sim4command *cmd) {
       if ((globalParams->_forceStrandPrediction) && (rev_st.orientation == BOTH))
         rev_st.orientation = FWD;
 
-#if ABORT_EXPENSIVE
+      //  If the match was deemed expensive, report
       if (rev_st.tooManyMSPs) { 
-        u32bit    lbs = (u32bit)(strlen((char *)cmd->getESTheader()) +
-                                 strlen((char *)cmd->getGENheader()) +
-                                 2048);
-
-        if (lineBufferSize < lbs) {
-          delete [] lineBuffer;
-          lineBufferSize  = lbs;
-          lineBuffer      = new char [lineBufferSize];
-        }
-
-        sprintf(lineBuffer, "sim4begin\n%d[%d-0-0] %d[%d-%d] <0-0-0-complement-intractable>\n",
-                cmd->getESTidx(),
-                estlen,
-                cmd->getGENidx(),
-                cmd->getGENlo(),
-                cmd->getGENhi());
-        outputString = appendOutput(outputString, lineBuffer); 
-
-        if (globalParams->_includeDefLine) {
-          sprintf(lineBuffer, "edef=%s\nddef=%s\n",
-                  cmd->getESTheader(),
-                  cmd->getGENheader());
-          outputString = appendOutput(outputString, lineBuffer); 
-        }
-
-        sprintf(lineBuffer, "1-%d (1-%d) <%d-0-0>\nsim4end\n",
-                estlen,
-                cmd->getGENhi() - cmd->getGENlo(),
-                rev_st.numberOfMatches);
-        outputString = appendOutput(outputString, lineBuffer); 
-
-        goto abort;
+        B.setNumberOfMatches(0, 0);
+        B.setPercentIdentity(0);
+        B.setMatchOrientation(SIM4_MATCH_COMPLEMENT);
+        B.setStrandOrientation(SIM4_STRAND_INTRACTABLE);
+        B.addExon(1, estlen,
+                  1, cmd->getGENhi() - cmd->getGENlo(),
+                  rev_st.numberOfMatches, 0, 0,
+                  SIM4_INTRON_NONE);
+        goto fail;
       }
-#endif
     }
 
 
     if (st.numberOfMatches >= rev_st.numberOfMatches) {
       match_ori = FWD;
 
-      if (cmd->getStrandIndicator() == 0L) {
-        switch (st.orientation) {
-          case FWD:
-            strandIndicator = "forward";
-            break;
-          case BWD:
-            strandIndicator = "reverse";
-            break;
-          default:
-            strandIndicator = "unknown";
-            break;
-        }
-      } else {
-        strandIndicator = cmd->getStrandIndicator();
-      }
-
       if (globalParams->_ignorePolyTails) {
-        add_offset_exons(Exons, g_pT);  
-        add_offset_aligns(Aligns, g_pT);
+        add_offset_exons(fExons, g_pT);  
+        add_offset_aligns(fAligns, g_pT);
       }
 
-      if (rev_Exons) {
-        free_list(rev_Exons);
-        rev_Exons = NULL;
-      }
-      if (rev_Aligns) {
-        free_align(rev_Aligns);
-        rev_Aligns = NULL;
-      }
+      B.setPolyTails(g_pA + f_pA, g_pT + f_pT);
 
-      pT = g_pT + f_pT;
-      pA = g_pA + f_pA;
-
-      if (Exons) {
-        char *result = checkExonsForOverlaps(Exons);
-        if (result) {
+      if (fExons) {
+        if (checkExonsForOverlaps(fExons)) {
 #ifdef SHOW_OVERLAPPING_EXONS
-          u32bit    lbs = (strlen((char *)cmd->getESTheader()) +
-                           strlen((char *)cmd->getGENheader()) +
-                           2048);
+          B.setNumberOfMatches(0, 0);
+          B.setPercentIdentity(0);
+          B.setMatchOrientation(SIM4_MATCH_FORWARD);
+          B.setStrandOrientation(SIM4_STRAND_FAILED);
 
-          if (lineBufferSize < lbs) {
-            delete [] lineBuffer;
-            lineBufferSize  = lbs;
-            lineBuffer      = new char [lineBufferSize];
-          }
-
-          if (globalParams->_includeDefLine) {
-            sprintf(lineBuffer, "sim4begin\n%d[%d-0-0] %d[%d-%d] <0-0-0-forward-failed>\nedef=%s\nddef=%s\n%ssim4end\n",
-                    cmd->getESTidx(),
-                    estlen,
-                    cmd->getGENidx(),
-                    cmd->getGENlo(),
-                    cmd->getGENhi(),
-                    cmd->getESTheader(),
-                    cmd->getGENheader(),
-                    result);
-          } else {
-            sprintf(lineBuffer, "sim4begin\n%d[%d-0-0] %d[%d-%d] <0-0-0-forward-failed>\n%ssim4end\n",
-                    cmd->getESTidx(),
-                    estlen,
-                    cmd->getGENidx(),
-                    cmd->getGENlo(),
-                    cmd->getGENhi(),
-                    result);
-          }
-
-          outputString = appendOutput(outputString, lineBuffer);
+          //  XXX:  result contains the exons and alignments
+          //B.addExon(1, estlen, 1, cmd->getGENhi() - cmd->getGENlo(), rev_st.numberOfMatches, 0, SIM4_INTRON_NONE);
 #endif
-          delete [] result;
-          goto abort;
+          goto fail;
         }
       }
     } else {
       match_ori = BWD;
 
-      if (cmd->getStrandIndicator() == 0L) {
-        switch (rev_st.orientation) {
-          case FWD:
-            strandIndicator = "reverse";
-            break;
-          case BWD:
-            strandIndicator = "forward";
-            break;
-          default:
-            strandIndicator = "unknown";
-            break;
-        }
-      } else {
-        strandIndicator = cmd->getStrandIndicator();
-      }
-
       if (globalParams->_ignorePolyTails) {
-        add_offset_exons(rev_Exons, g_pT); 
-        add_offset_aligns(rev_Aligns, g_pT);
+        add_offset_exons(rExons, g_pT); 
+        add_offset_aligns(rAligns, g_pT);
       }
 
-      if (rev_Aligns && rev_Aligns->next_script)
-        script_flip_list(&rev_Aligns);
+      B.setPolyTails(g_pA + r_pA, g_pT + r_pT);
+
+      if (rAligns && rAligns->next_script)
+        script_flip_list(&rAligns);
 
       //  This used to be right before appendExons() in
       //  the reverse match section, but we need it
       //  before we test for overlapping exons
       //
-      complement_exons(&rev_Exons, dblen, estlen);
+      complement_exons(&rExons, dblen, estlen);
 
-      if (Exons) {
-        free_list(Exons);
-        Exons = NULL;
-      }
-      if (Aligns) {
-        free_align(Aligns);
-        Aligns = NULL;
-      }
-
-      pT = g_pT + r_pT;
-      pA = g_pA + r_pA;
-
-      if (rev_Exons) {
-        char *result = checkExonsForOverlaps(rev_Exons);
-        if (result) {
+      if (rExons) {
+        if (checkExonsForOverlaps(rExons)) {
 #ifdef SHOW_OVERLAPPING_EXONS
-          u32bit    lbs = (strlen((char *)cmd->getESTheader()) +
-                           strlen((char *)cmd->getGENheader()) +
-                           2048);
+          B.setNumberOfMatches(0, 0);
+          B.setPercentIdentity(0);
+          B.setMatchOrientation(SIM4_MATCH_COMPLEMENT);
+          B.setStrandOrientation(SIM4_STRAND_FAILED);
 
-          if (lineBufferSize < lbs) {
-            delete [] lineBuffer;
-            lineBufferSize  = lbs;
-            lineBuffer      = new char [lineBufferSize];
-          }
-
-
-          if (globalParams->_includeDefLine) {
-            sprintf(lineBuffer, "sim4begin\n%d[%d-0-0] %d[%d-%d] <0-0-0-reverse-failed>\nedef=%s\nddef=%s\n%ssim4end\n",
-                    cmd->getESTidx(),
-                    estlen,
-                    cmd->getGENidx(),
-                    cmd->getGENlo(),
-                    cmd->getGENhi(),
-                    cmd->getESTheader(),
-                    cmd->getGENheader(),
-                    result);
-          } else {
-            sprintf(lineBuffer, "sim4begin\n%d[%d-0-0] %d[%d-%d] <0-0-0-reverse-failed>\n%ssim4end\n",
-                    cmd->getESTidx(),
-                    estlen,
-                    cmd->getGENidx(),
-                    cmd->getGENlo(),
-                    cmd->getGENhi(),
-                    result);
-          }
-
-          outputString = appendOutput(outputString, lineBuffer);
+          //  XXX:  result contains the exons and alignments
+          //B.addExon(1, estlen, 1, cmd->getGENhi() - cmd->getGENlo(), rev_st.numberOfMatches, 0, SIM4_INTRON_NONE);
 #endif
-          delete [] result;
-          goto abort;
+          goto fail;
         }
       }
-
     }
 
+    if (match_ori == FWD) {
+      nmatches  = st.numberOfMatches;
+      percentid = st.percentID;
+    } else {
+      nmatches  = rev_st.numberOfMatches;
+      percentid = rev_st.percentID;
+    }
 
-
-
-
-
-
-    int     nmatches  = (match_ori==FWD) ? st.numberOfMatches  : rev_st.numberOfMatches;
-    double  coverage  = (double)nmatches / (double)estlen;
-    int     percentid = (match_ori==FWD) ? st.percentID        : rev_st.percentID;
+    coverage  = (double)nmatches / (double)estlen;
 
 
     //  Is this match decent?
@@ -528,113 +335,108 @@ Sim4::run(sim4command *cmd) {
     if (pleaseContinueComputing) {
       matchesPrinted++;
 
-      outputString = appendOutput(outputString, "sim4begin\n");
-      if (globalParams->_includeDefLine) {
-        u32bit    lbs = (u32bit)(strlen((char *)cmd->getESTheader()) +
-                                 strlen((char *)cmd->getGENheader()) +
-                                 2048);
+      if (match_ori == FWD) {
+        B.setNumberOfMatches(st.numberOfMatches, st.numberOfNs);
+        B.setPercentIdentity(st.percentID);
+        B.setMatchOrientation(SIM4_MATCH_FORWARD);
 
-        if (lineBufferSize < lbs) {
-          delete [] lineBuffer;
-          lineBufferSize  = lbs;
-          lineBuffer      = new char [lineBufferSize];
+        switch (st.orientation) {
+          case FWD:
+            B.setStrandOrientation(SIM4_STRAND_POSITIVE);
+            break;
+          case BWD:
+            B.setStrandOrientation(SIM4_STRAND_NEGATIVE);
+            break;
+          default:
+            B.setStrandOrientation(SIM4_STRAND_UNKNOWN);
+            break;
         }
-          
-        sprintf(lineBuffer, "%d[%d-%d-%d] %d[%d-%d] <%d-%d-%d-%s-%s>\nedef=%s\nddef=%s\n",
-                cmd->getESTidx(),
-                estlen,
-                pA,
-                pT,
-
-                cmd->getGENidx(),
-                cmd->getGENlo(),
-                cmd->getGENhi(),
-
-                (match_ori==FWD) ? st.numberOfMatches  : rev_st.numberOfMatches,
-                (match_ori==FWD) ? st.numberOfNs       : rev_st.numberOfNs,
-                (match_ori==FWD) ? st.percentID        : rev_st.percentID,
-                (match_ori==FWD) ? "forward"           : "complement",
-                strandIndicator,
-
-                cmd->getESTheader(),
-                cmd->getGENheader());
       } else {
-        sprintf(lineBuffer, "%d[%d-%d-%d] %d[%d-%d] <%d-%d-%d-%s-%s>\n",
-                cmd->getESTidx(),
-                estlen,
-                pA,
-                pT,
+        B.setNumberOfMatches(rev_st.numberOfMatches, rev_st.numberOfNs);
+        B.setPercentIdentity(rev_st.percentID);
+        B.setMatchOrientation(SIM4_MATCH_COMPLEMENT);
+        B.setStrandOrientation(SIM4_STRAND_FAILED);
 
-                cmd->getGENidx(),
-                cmd->getGENlo(),
-                cmd->getGENhi(),
-
-                (match_ori==FWD) ? st.numberOfMatches  : rev_st.numberOfMatches,
-                (match_ori==FWD) ? st.numberOfNs       : rev_st.numberOfNs,
-                (match_ori==FWD) ? st.percentID        : rev_st.percentID,
-                (match_ori==FWD) ? "forward"           : "complement",
-                strandIndicator);
+        switch (rev_st.orientation) {
+          case FWD:
+            B.setStrandOrientation(SIM4_STRAND_NEGATIVE);
+            break;
+          case BWD:
+            B.setStrandOrientation(SIM4_STRAND_POSITIVE);
+            break;
+          default:
+            B.setStrandOrientation(SIM4_STRAND_UNKNOWN);
+            break;
+        }
       }
-      outputString = appendOutput(outputString, lineBuffer);
         
       if (match_ori == FWD) {
-        outputString = appendExons(outputString, Exons);
+        appendExons(B, fExons);
         if (globalParams->_printAlignments) {
-          outputString = appendAlignments(outputString,
-                                          estseq, dbseq, estlen, dblen,
-                                          &Aligns, Exons,
-                                          FWD);
+          appendAlignments(B,
+                           estseq, dbseq, estlen, dblen,
+                           fAligns, fExons,
+                           FWD);
         }
 
         if (globalParams->_findAllExons) {
-          maskExonsFromGenomic(Exons, dbseq, dbrev, dblen);
+          maskExonsFromGenomic(fExons, dbseq, dbrev, dblen);
           dbWasMasked = true;
         }
       } else {
-        outputString = appendExons(outputString, rev_Exons);
+        appendExons(B, rExons);
 
         if (globalParams->_printAlignments) {
           for (int i=0, k=estlen-1; i<estlen; i++, k--)
             estrev[k] = complementSymbol[estseq[i]];
           estrev[estlen] = 0;
 
-          outputString = appendAlignments(outputString,
-                                          estrev, dbseq, estlen, dblen,
-                                          &rev_Aligns, rev_Exons,
-                                          BWD);
+          appendAlignments(B,
+                           estrev, dbseq, estlen, dblen,
+                           rAligns, rExons,
+                           BWD);
         }
 
         if (globalParams->_findAllExons) {
-          maskExonsFromGenomic(rev_Exons, dbseq, dbrev, dblen);
+          maskExonsFromGenomic(rExons, dbseq, dbrev, dblen);
           dbWasMasked = true;
         }
       }
-
-      outputString = appendOutput(outputString, "sim4end\n");
     }
 
-    if (Aligns)     { free_align(Aligns);     Aligns = NULL; }
-    if (rev_Aligns) { free_align(rev_Aligns); rev_Aligns = NULL; }
-    if (Exons)      { free_list(Exons);       Exons = NULL; }
-    if (rev_Exons)  { free_list(rev_Exons);   rev_Exons = NULL; }
+  fail:
+
+    if (fAligns)  free_align(fAligns);
+    if (rAligns)  free_align(rAligns);
+    if (fExons)   free_list(fExons);
+    if (rExons)   free_list(rExons);
+
+    fAligns = rAligns = 0L;
+    fExons  = rExons  = 0L;
+
+    L->push(B.release());
   } while (globalParams->_findAllExons && pleaseContinueComputing);
 
  abort:
 
   delete [] seqStorage;
-  delete [] lineBuffer;
 
-  if (outputString == 0L) {
-    outputString = new char [1];
-    outputString[0] = 0;
-  }
-
-  return(outputString);
+  return(L);
 }
 
 
 
-char *
+
+
+
+////////////////////////////////////////////////////////////
+//
+//  Exons
+//
+////////////////////////////////////////////////////////////
+
+
+bool
 Sim4::checkExonsForOverlaps(Exon *theExons) {
   Exon          *a = theExons;
   Exon          *b = theExons->next_exon;
@@ -642,115 +444,77 @@ Sim4::checkExonsForOverlaps(Exon *theExons) {
   while (b && b->toGEN) {
     if ((b->frGEN <= a->toGEN) ||
         (b->frEST <= a->toEST)) {
-      return(appendExons(0L, theExons));
+      return(true);
     }
 
     a = b;
     b = b->next_exon;
   }
 
-  return(0L);
+  return(false);
 }
 
 
-char *
-Sim4::appendExons(char *outstring, Exon *theExons) {
-  Exon          *theExon = theExons;
-  char          *exonString = new char [1024 * 1024];
-  char          *exonPrint  = exonString;
 
-  *exonPrint = 0;
+void
+Sim4::appendExons(sim4polishBuilder &B, Exon *theExons) {
+  Exon          *theExon = theExons;
 
   while (theExon) {
     if (theExon->toGEN) {
+
 #ifdef SPLSCORE
-      if ((theExon->next_exon) && (theExon->next_exon->toGEN)) {
-        sprintf(exonPrint, "%d-%d (%d-%d) <%d-%d-%d> %1.2f",
-                theExon->frEST, theExon->toEST,
-                theExon->frGEN, theExon->toGEN,
-                theExon->numMatches,
-                theExon->numNs,
-                theExon->percentID,
-                theExon->splScore);
-      } else {
-        sprintf(exonPrint, "%d-%d (%d-%d) <%d-%d-%d>",
-                theExon->frEST, theExon->toEST,
-                theExon->frGEN, theExon->toGEN,
-                theExon->numMatches,
-                theExon->numNs,
-                theExon->percentID);
-      }
-#else
-      sprintf(exonPrint, "%d-%d (%d-%d) <%d-%d-%d>",
-              theExon->frEST, theExon->toEST,
-              theExon->frGEN, theExon->toGEN,
-              theExon->numMatches,
-              theExon->numNs,
-              theExon->percentID);
+      //  Save the splice score (theExon->splScore);
+      //    "%d-%d (%d-%d) <%d-%d-%d> %1.2f %s"
+#error I do not know how to save the splice score!
 #endif
 
-      while (*exonPrint)
-        exonPrint++;
+      char ori = SIM4_INTRON_NONE;
 
       if ((theExon->next_exon) && (theExon->next_exon->toGEN)) {
         switch (theExon->ori) {
           case 'C':  //  <-
-            *(exonPrint++) = ' ';
-            *(exonPrint++) = '<';
-            *(exonPrint++) = '-';
+            ori = SIM4_INTRON_NEGATIVE;
             break;
           case 'E':  //  ==
-            *(exonPrint++) = ' ';
-            *(exonPrint++) = '=';
-            *(exonPrint++) = '=';
+            ori = SIM4_INTRON_GAP;
             break;
           case 'G':  //  ->
-            *(exonPrint++) = ' ';
-            *(exonPrint++) = '-';
-            *(exonPrint++) = '>';
+            ori = SIM4_INTRON_POSITIVE;
             break;
           case 'N':  //  --
-            *(exonPrint++) = ' ';
-            *(exonPrint++) = '-';
-            *(exonPrint++) = '-';
+            ori = SIM4_INTRON_AMBIGUOUS;
             break;
           default:
-            sprintf(exonPrint, " appendExon: Inconsistent exon orientation '%c'.", theExon->ori);
-            while (*exonPrint)
-              exonPrint++;
-        }  
+            ori = SIM4_INTRON_ERROR;
+            break;
+        }
       }
 
-      *(exonPrint++) = '\n';
-      *(exonPrint) = 0;
+      B.addExon(theExon->frEST, theExon->toEST,
+                theExon->frGEN, theExon->toGEN,
+                theExon->numMatches,
+                theExon->numNs,
+                theExon->percentID,
+                ori);
     }
 
     theExon = theExon->next_exon;
   }
-
-  outstring = appendOutput(outstring, exonString);
-
-#ifdef BUGS
-  fprintf(stderr, "----------------------------------------\n");
-  fprintf(stderr, exonString);
-  fprintf(stderr, "----------");
-  fprintf(stderr, outstring);
-#endif
-
-  delete [] exonString;
-
-  return(outstring);
 }
 
 
+////////////////////////////////////////////////////////////
+//
+//  Alignments
+//
+////////////////////////////////////////////////////////////
 
 
 
 
-
-
-char*
-Sim4::IDISPLAY(char *outputstring,
+void
+Sim4::IDISPLAY(sim4polishBuilder &builder,
                char *aString,
                char *bString,
                char *A,
@@ -766,36 +530,24 @@ Sim4::IDISPLAY(char *outputstring,
   register int    i,  j, op;
   int   starti, is_intron=0;
 
-#ifdef BUGS
-  fprintf(stderr, "Helo I'm IDISPLAY\n");
-#endif
-
   if ((exons==NULL) || (!exons->toGEN && (exons->next_exon==NULL))) {
-    outputstring = appendOutput(outputstring, "Empty exon list?\n");
-    return(outputstring);
+    builder.addExonAlignment("Empty exon list; no alignment possible!",
+                             "Empty exon list; no alignment possible!");
+    return;
   }
 
   /* find the starting exon for this alignment */
   t0 = exons;
-#ifdef BUGS
-  fprintf(stderr, "t0=0x%016lx %d-%d (%d-%d)\n", t0, t0->frEST, t0->toEST, t0->frGEN, t0->toGEN);
-#endif
   while (t0 && (((est_strand==2) && ((t0->frGEN!=AP) || (t0->frEST!=BP))) ||
                 ((est_strand==1) && ((t0->frGEN!=BP) || (t0->frEST!=AP))))) {
     t0 = t0->next_exon;
-#ifdef BUGS
-    fprintf(stderr, "t0=0x%016lx %d-%d (%d-%d)\n", t0, t0->frEST, t0->toEST, t0->frGEN, t0->toGEN);
-#endif
   }
 
   if (!t0) {
-    outputstring = appendOutput(outputstring, "Alignment fragment not found?\n");
-    return(outputstring);
+    builder.addExonAlignment("Alignment fragment not found; no alignment possible!",
+                             "Alignment fragment not found; no alignment possible!");
+    return;
   }
-
-#ifdef BUGS
-  fprintf(stderr, "t0=0x%016lx AP=%d - BP=%d\n", t0, AP, BP);
-#endif
 
   i = j = op = 0;
 
@@ -804,15 +556,7 @@ Sim4::IDISPLAY(char *outputstring,
   char *a = aString;
   char *b = bString;
 
-#if 0
-  fprintf(stdout, "A=%s\n", A);
-  fprintf(stdout, "B=%s\n", B);
-#endif
-
   while (i < M || j < N) {
-#ifdef BUGS
-    fprintf(stderr, "%8d < %8d || %8d < %8d  :  ", i, M, j, N);
-#endif
 
     if (op == 0 && *S == 0) {
       op = *S++;
@@ -869,27 +613,11 @@ Sim4::IDISPLAY(char *outputstring,
       }
     }
 
-#ifdef BUGS
-    fprintf(stderr, "%c - %c\n", *(a-1), *(b-1));
-#endif
-
     if (is_intron || ((i >= M) && (j >= N))) {
-      *a++ = '\n';
       *a   = 0;
-
-#ifdef BUGS
-      fprintf(stdout, "aString=(%5d)%s", strlen(aString), aString);
-#endif
-
-      *b++ = '\n';
       *b   = 0;
 
-#ifdef BUGS
-      fprintf(stdout, "bString=(%5d)%s", strlen(bString), bString);
-#endif
-
-      outputstring = appendOutput(outputstring, aString);
-      outputstring = appendOutput(outputstring, bString);
+      builder.addExonAlignment(aString, bString);
 
       a = aString;
       b = bString;
@@ -897,16 +625,13 @@ Sim4::IDISPLAY(char *outputstring,
       is_intron = 0;
     }
   }
-
-  return(outputstring);
 }
 
 
 
 
 void
-Sim4::S2A(edit_script *head, int *S)
-{
+Sim4::S2A(edit_script *head, int *S) {
   edit_script *tp;
   int *lastS, i;
 
@@ -929,20 +654,18 @@ Sim4::S2A(edit_script *head, int *S)
 
 
 
-char*
-Sim4::appendAlignments(char *outputstring,
+void
+Sim4::appendAlignments(sim4polishBuilder &builder,
                        char *s1,
                        char *s2,
                        int l1,
                        int l2, 
-                       edit_script_list **Aligns,
+                       edit_script_list *Aligns,
                        Exon *Exons, 
                        int match_ori) {
-  int *S;
-  edit_script_list *head, *aligns;
 
-  if (*Aligns==NULL)
-    return(outputstring);
+  if (Aligns==NULL)
+    return;
 
   //  Detemine the maximum length of an alignment by finding the
   //  longest exon.
@@ -962,55 +685,43 @@ Sim4::appendAlignments(char *outputstring,
   char *aString = new char [maxAlignmentLength + 4];
   char *bString = new char [maxAlignmentLength + 4];
 
-
-  aligns = *Aligns;
-  while (aligns!=NULL) {
-    head = aligns;
-    aligns = aligns->next_script; 
-
-    S = (int *)ckalloc((2*head->len2+1+1)*sizeof(int));
-    S++;            
-    S2A(head->script, S);
-    Free_script(head->script);
+  for(edit_script_list *aligns = Aligns; aligns; aligns = aligns->next_script) {
+    int *S = (int *)ckalloc((2 * aligns->len2 + 1 + 1) * sizeof(int));
+    S++;
+    S2A(aligns->script, S);
     
     if (match_ori==FWD) {
-      outputstring = IDISPLAY(outputstring,
+      IDISPLAY(builder,
                               aString,
                               bString,
-                              s1 + head->offset2 - 1 - 1,
-                              s2 + head->offset1 - 1 - 1,
-                              head->len2,
-                              head->len1,
+                              s1 + aligns->offset2 - 1 - 1,
+                              s2 + aligns->offset1 - 1 - 1,
+                              aligns->len2,
+                              aligns->len1,
                               S,
-                              head->offset2,
-                              head->offset1,
+                              aligns->offset2,
+                              aligns->offset1,
                               1,
                               Exons);
     } else {
       align_reverse(S);
-      outputstring = IDISPLAY(outputstring,
+      IDISPLAY(builder,
                               aString,
                               bString,
-                              s1 + l1 + 1 - (head->offset2 + head->len2 - 1) - 1 - 1,
-                              s2 + l2 + 1 - (head->offset1 + head->len1 - 1) - 1 - 1,
-                              head->len2,
-                              head->len1,
+                              s1 + l1 + 1 - (aligns->offset2 + aligns->len2 - 1) - 1 - 1,
+                              s2 + l2 + 1 - (aligns->offset1 + aligns->len1 - 1) - 1 - 1,
+                              aligns->len2,
+                              aligns->len1,
                               S,
-                              l1 + 1 - (head->offset2+head->len2 - 1),
-                              l2 + 1 - (head->offset1+head->len1 - 1),
+                              l1 + 1 - (aligns->offset2+aligns->len2 - 1),
+                              l2 + 1 - (aligns->offset1+aligns->len1 - 1),
                               1,
                               Exons);
     }
     ckfree(S-1);
-    ckfree(head);
   }
-  *Aligns = NULL;
-
-  //fprintf(stderr, "All done print aligns\n");
 
   delete [] aString;
   delete [] bString;
-
-  return(outputstring);
 }
 

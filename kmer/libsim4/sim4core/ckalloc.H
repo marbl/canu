@@ -20,7 +20,7 @@ ckalloc(size_t amount) {
 #ifdef TRUE64BIT
     fprintf(stderr, "Can't allocate %lu bytes.\n", amount);
 #else
-    fprintf(stderr, "Can't allocate %ld bytes.\n", amount);
+    fprintf(stderr, "Can't allocate %d bytes.\n", amount);
 #endif
     kill(getpid(), SIGKILL);
   }

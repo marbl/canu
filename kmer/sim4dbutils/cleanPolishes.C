@@ -4,7 +4,7 @@
 #include <string.h>
 #include <errno.h>
 
-#include "sim4reader.h"
+#include "sim4polish.h"
 
 char const *usage =
 "usage: %s [-threshold t] [-savejunk] [-quiet] [-debug]\n"
@@ -199,17 +199,17 @@ main(int argc, char ** argv) {
     fprintf(stderr, "A big intron is one that is at least %dbp long.\n", intronLimit);
 
   sim4polish *p;
-  while ((p = readPolish(stdin)) != 0L) {
+  while ((p = s4p_readPolish(stdin)) != 0L) {
     int exA;
     int exB;
 
     if (p->numExons == 1) {
       oneExon++;
       if (filter)
-        printPolish(stdout, p);
+        s4p_printPolish(stdout, p);
 #if 0
       if (segregate)
-        printPolish(filtOneExon, p);
+        s4p_printPolish(filtOneExon, p);
 #endif
     } else {
 
@@ -233,7 +233,7 @@ main(int argc, char ** argv) {
         exit(1);
       }
 
-      if (intronOri == INTRON_NONE) {
+      if (intronOri == SIM4_INTRON_NONE) {
         fprintf(stderr, "biggest intron isn't an intron? (got none)?\n");
         exit(1);
       }
@@ -241,10 +241,10 @@ main(int argc, char ** argv) {
       if (biggestIntron < intronLimit) {
         smaIntron++;
         if (filter)
-          printPolish(stdout, p);
+          s4p_printPolish(stdout, p);
 #if 0
         if (segregate)
-          printPolish(filtAllSmall, p);
+          s4p_printPolish(filtAllSmall, p);
 #endif
       } else {
 
@@ -279,30 +279,30 @@ main(int argc, char ** argv) {
             fprintf(stderr, "cleanPolishes: Need alignments to recompute scores correctly!\n");
           }
 
-          sim4polish *a = copyPolish(p);
-          sim4polish *b = copyPolish(p);
+          sim4polish *a = s4p_copyPolish(p);
+          sim4polish *b = s4p_copyPolish(p);
           trimExonsAfter(intronSplit, a);
           trimExonsBefore(intronSplit, b);
 
           if (filter && saveJunk) {
-            printPolish(stdout, a);
-            printPolish(stdout, b);
+            s4p_printPolish(stdout, a);
+            s4p_printPolish(stdout, b);
           }
 
           if (beforeafter) {
             fprintf(splJunkBoth, "====================\n");
-            printPolish(splJunkBoth, p);
-            printPolish(splJunkBoth, a);
-            printPolish(splJunkBoth, b);
+            s4p_printPolish(splJunkBoth, p);
+            s4p_printPolish(splJunkBoth, a);
+            s4p_printPolish(splJunkBoth, b);
           }
 
           if (segregate) {
-            printPolish(filtJunkBoth, a);
-            printPolish(filtJunkBoth, b);
+            s4p_printPolish(filtJunkBoth, a);
+            s4p_printPolish(filtJunkBoth, b);
           }
 
-          destroyPolish(a);
-          destroyPolish(b);
+          s4p_destroyPolish(a);
+          s4p_destroyPolish(b);
         }
 
         //  If the first half (before the big intron) is crappy, delete
@@ -311,65 +311,65 @@ main(int argc, char ** argv) {
         if ((killFirst == true) && (killLast == false)) {
           junkFirst++;
 
-          sim4polish *a = copyPolish(p);
-          sim4polish *b = copyPolish(p);
+          sim4polish *a = s4p_copyPolish(p);
+          sim4polish *b = s4p_copyPolish(p);
           trimExonsAfter(intronSplit, a);
           trimExonsBefore(intronSplit, b);
 
           if (filter) {
             if (saveJunk)
-              printPolish(stdout, a);
-            printPolish(stdout, b);
+              s4p_printPolish(stdout, a);
+            s4p_printPolish(stdout, b);
           }
 
           if (beforeafter) {
             fprintf(splJunkLeft, "====================\n");
-            printPolish(splJunkLeft, p);
-            printPolish(splJunkLeft, a);
-            printPolish(splJunkLeft, b);
+            s4p_printPolish(splJunkLeft, p);
+            s4p_printPolish(splJunkLeft, a);
+            s4p_printPolish(splJunkLeft, b);
           }
 
           if (segregate) {
-            printPolish(filtJunkLeft, a);
-            printPolish(filtJunkLeft, b);
+            s4p_printPolish(filtJunkLeft, a);
+            s4p_printPolish(filtJunkLeft, b);
           }
 
-          destroyPolish(a);
-          destroyPolish(b);
+          s4p_destroyPolish(a);
+          s4p_destroyPolish(b);
         }
 
         if ((killFirst == false) && (killLast == true)) {
           junkLast++;
 
-          sim4polish *a = copyPolish(p);
-          sim4polish *b = copyPolish(p);
+          sim4polish *a = s4p_copyPolish(p);
+          sim4polish *b = s4p_copyPolish(p);
           trimExonsAfter(intronSplit, a);
           trimExonsBefore(intronSplit, b);
 
           if (filter) {
-            printPolish(stdout, a);
+            s4p_printPolish(stdout, a);
             if (saveJunk)
-              printPolish(stdout, b);
+              s4p_printPolish(stdout, b);
           }
 
           if (beforeafter) {
             fprintf(splJunkRight, "====================\n");
-            printPolish(splJunkRight, p);
-            printPolish(splJunkRight, a);
-            printPolish(splJunkRight, b);
+            s4p_printPolish(splJunkRight, p);
+            s4p_printPolish(splJunkRight, a);
+            s4p_printPolish(splJunkRight, b);
           }
 
           if (segregate) {
-            printPolish(filtJunkRight, a);
-            printPolish(filtJunkRight, b);
+            s4p_printPolish(filtJunkRight, a);
+            s4p_printPolish(filtJunkRight, b);
           }
 
-          destroyPolish(a);
-          destroyPolish(b);
+          s4p_destroyPolish(a);
+          s4p_destroyPolish(b);
         }
 
         if ((killFirst == false) && (killLast == false)) {
-          if (intronOri == INTRON_GAP) {
+          if (intronOri == SIM4_INTRON_GAP) {
             splitOnGap++;
 
             //  Break the polish into two pieces, one before and one
@@ -384,30 +384,30 @@ main(int argc, char ** argv) {
             //
             //  For now, we don't.
 
-            sim4polish *a = copyPolish(p);
-            sim4polish *b = copyPolish(p);
+            sim4polish *a = s4p_copyPolish(p);
+            sim4polish *b = s4p_copyPolish(p);
             trimExonsBefore(intronSplit, a);
             trimExonsAfter(intronSplit, b);
 
             if (filter) {
-              printPolish(stdout, a);
-              printPolish(stdout, b);
+              s4p_printPolish(stdout, a);
+              s4p_printPolish(stdout, b);
             }
 
             if (beforeafter) {
               fprintf(splIntronGap, "====================\n");
-              printPolish(splIntronGap, p);
-              printPolish(splIntronGap, a);
-              printPolish(splIntronGap, b);
+              s4p_printPolish(splIntronGap, p);
+              s4p_printPolish(splIntronGap, a);
+              s4p_printPolish(splIntronGap, b);
             }
 
             if (segregate) {
-              printPolish(filtIntronGap, a);
-              printPolish(filtIntronGap, b);
+              s4p_printPolish(filtIntronGap, a);
+              s4p_printPolish(filtIntronGap, b);
             }
 
-            destroyPolish(a);
-            destroyPolish(b);
+            s4p_destroyPolish(a);
+            s4p_destroyPolish(b);
           } else {
 
             //  If there is a valid strand prediction and
@@ -427,19 +427,19 @@ main(int argc, char ** argv) {
             //  If the match looks good, but just has a large intron, keep it.
             //
             if (qualIsC &&
-                ((p->strandOrientation == STRAND_POSITIVE) ||
-                 (p->strandOrientation == STRAND_NEGATIVE))) {
+                ((p->strandOrientation == SIM4_STRAND_POSITIVE) ||
+                 (p->strandOrientation == SIM4_STRAND_NEGATIVE))) {
               goodQual++;
               if (filter)
-                printPolish(stdout, p);
+                s4p_printPolish(stdout, p);
               if (segregate)
-                printPolish(filtGood, p);
+                s4p_printPolish(filtGood, p);
             } else {
               probGood++;
               if (filter)
-                printPolish(stdout, p);
+                s4p_printPolish(stdout, p);
               if (segregate)
-                printPolish(filtProbGood, p);
+                s4p_printPolish(filtProbGood, p);
             }
           }
         }
@@ -449,7 +449,7 @@ main(int argc, char ** argv) {
 
     totMatches++;
 
-    destroyPolish(p);
+    s4p_destroyPolish(p);
   }
 
   if (beforeafter) {

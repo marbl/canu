@@ -5,7 +5,7 @@
 #include <errno.h>
 
 #include "libbritypes.h"
-#include "sim4reader.h"
+#include "sim4polish.h"
 
 #define MAX_SCAFFOLD   10000
 
@@ -161,12 +161,12 @@ main(int argc, char ** argv) {
     fprintf(stderr, msg4, cdna, geno);
   }
 
-  while ((p = readPolish(stdin)) != 0L) {
+  while ((p = s4p_readPolish(stdin)) != 0L) {
 
-    if (JUNK && ((p->strandOrientation == STRAND_INTRACTABLE) ||
-                 (p->strandOrientation == STRAND_FAILED))) {
+    if (JUNK && ((p->strandOrientation == SIM4_STRAND_INTRACTABLE) ||
+                 (p->strandOrientation == SIM4_STRAND_FAILED))) {
       junk++;
-      printPolish(JUNK, p);
+      s4p_printPolish(JUNK, p);
     } else {
       if ((p->percentIdentity  >= minI) &&
           (p->querySeqIdentity >= minC) &&
@@ -190,16 +190,16 @@ main(int argc, char ** argv) {
                 exit(1);
               }
             }
-            printPolish(SEGREGATE[p->genID], p);
+            s4p_printPolish(SEGREGATE[p->genID], p);
           }
         } else {
           if (!GOODsilent)
-            printPolish(GOOD, p);
+            s4p_printPolish(GOOD, p);
         }
       } else {
         crap++;
         if (!CRAPsilent)
-          printPolish(CRAP, p);
+          s4p_printPolish(CRAP, p);
       }
     }
 
@@ -212,7 +212,7 @@ main(int argc, char ** argv) {
       fflush(stderr);
     }
 
-    destroyPolish(p);
+    s4p_destroyPolish(p);
   }
 
   if (beVerbose) {

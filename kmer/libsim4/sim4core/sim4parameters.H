@@ -45,14 +45,12 @@ public:
     _mspThresh2 = t;
   };
 
-#if ABORT_EXPENSIVE
   void  setMSPLimitAbsolute(u32bit t) {
     _mspLimitAbsolute = t;
   };
   void  setMSPLimitPercent(double p) {
     _mspLimitPercent = p;
   };
-#endif
 
   void  setRelinkWeight(int x) {
     _relinkWeight = x;
@@ -97,10 +95,12 @@ private:
 
   int           _mspThresh1;
   int           _mspThresh2;
-#if ABORT_EXPENSIVE
+
+  //  For aborting expensive polishes
+  //
   u32bit        _mspLimitAbsolute;  //  Number of MSPs allowed per hit
   double        _mspLimitPercent;   //  Same, as percentage of length of cDNA
-#endif
+
   int           _relinkWeight;
 
   bool          _dontForceCanonicalSplicing;

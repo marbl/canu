@@ -4,8 +4,6 @@
 #include "libbri.H"
 #include "exon.H"
 
-#define ABORT_EXPENSIVE 1
-
 struct msp {
   int         len;
   int         pos1;
@@ -29,12 +27,16 @@ public:
     _allocMSPs        = 16384;
     _numMSPs          = 0;
     _allMSPs          = new msp [_allocMSPs];
-#if ABORT_EXPENSIVE
+
+    //  The following four variables are for aborting expensive
+    //  polishes -- ones that have proven to be large chunks of
+    //  genomic labeled as cDNA, and that have (ESTmapper) signals
+    //  across entire scafflds.
+    //
     _tooManyMSPs      = false;
     _cDNALength       = 0;
     _mspLimitAbsolute = 0;
     _mspLimitPercent  = 0;
-#endif
 
     //  These need to be reset with setParameters.  The code will die
     //  during link() if they are not set.
@@ -54,12 +56,10 @@ public:
     _percentError     = percenterror;
   }
 
-#if ABORT_EXPENSIVE
   void   setLimits(u32bit a, double p) {
     _mspLimitAbsolute = a;
     _mspLimitPercent  = p;
   };
-#endif
 
   void   addMSP(int l, int p1, int p2, int sc) {
 
@@ -100,7 +100,6 @@ public:
     _numMSPs = 0;
   };
 
-#if ABORT_EXPENSIVE
   bool          tooManyMSPs(void) {
     return(_tooManyMSPs);
   };
@@ -110,7 +109,6 @@ public:
   void          setLength(int l) {
     _cDNALength = l;
   };
-#endif
 
   //
   //  What access methods for linking?
@@ -134,15 +132,17 @@ public:
     }
   };
 private:
+
+  //  See the constructor for descriptions
+
   u32bit         _allocMSPs;
   u32bit         _numMSPs;
   msp           *_allMSPs;
-#if ABORT_EXPENSIVE
+
   bool           _tooManyMSPs;
   int            _cDNALength;
   u32bit         _mspLimitAbsolute;
   double         _mspLimitPercent;
-#endif
 
   int            _match;
   int            _matchdiff;

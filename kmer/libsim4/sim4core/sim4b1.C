@@ -61,14 +61,13 @@ Sim4::SIM4(char *in_seq1, char *in_seq2,
   len1 = in_len1;
   len2 = in_len2;
 
-#if ABORT_EXPENSIVE
+  *dist_ptr = 0;
+
+  //  Initialize the mspManager to fail if the match looks expensive.
+  //
   st->tooManyMSPs = false;
   _mspManager.setLength(len2);
-#endif
 
-  /* Compute the distance between two sequences A and B */
-
-  *dist_ptr = 0;
 
 #ifdef SHOW_PROGRESS
   fprintf(stderr, "before exon_cores\n");
@@ -82,13 +81,11 @@ Sim4::SIM4(char *in_seq1, char *in_seq2,
 
   //  See if there are too many MSPs found.  If so, fail.
   //
-#if ABORT_EXPENSIVE
   if (_mspManager.tooManyMSPs()) {
     st->tooManyMSPs     = true;
     st->numberOfMatches = _mspManager.numberOfMSPs();
     return(0L);
   }
-#endif
 
   PRINTEXONS("0\n", exon_list);
 

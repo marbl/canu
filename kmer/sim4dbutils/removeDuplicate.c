@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include <string.h>
 
-#include "sim4reader.h"
+#include "sim4polish.h"
 
 char const *usage =
 "usage: %s < file > file\n"
@@ -45,13 +45,13 @@ pickBest(sim4polish **p, int pNum) {
 
         if ((sd == 0) && (ed == 0)) {
           //fprintf(stderr, "%d and %d are exact; %d removed.\n", i, j, j);
-          destroyPolish(p[j]);
+          s4p_destroyPolish(p[j]);
           p[j] = 0L;
         } else if ((sd < 10) && (ed < 10)) {
           fprintf(stderr, "----------------------------------------\n");
           fprintf(stderr, "Warning: %d and %d are similar.\n", i, j);
-          printPolish(stderr, p[i]);
-          printPolish(stderr, p[j]);
+          s4p_printPolish(stderr, p[i]);
+          s4p_printPolish(stderr, p[j]);
           fprintf(stderr, "----------------------------------------\n");
         }
       }
@@ -60,8 +60,8 @@ pickBest(sim4polish **p, int pNum) {
 
   for (i=0; i<pNum; i++) {
     if (p[i]) {
-      printPolish(stdout, p[i]);
-      destroyPolish(p[i]);
+      s4p_printPolish(stdout, p[i]);
+      s4p_destroyPolish(p[i]);
     }
   }
 }
@@ -88,7 +88,7 @@ main(int argc, char **argv) {
 
   p = (sim4polish **)malloc(sizeof(sim4polish *) * pAlloc);
 
-  while ((q = readPolish(stdin)) != 0L) {
+  while ((q = s4p_readPolish(stdin)) != 0L) {
     if ((q->estID != estID) && (pNum > 0)) {
       pickBest(p, pNum);
       pNum  = 0;

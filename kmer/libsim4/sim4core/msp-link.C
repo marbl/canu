@@ -55,14 +55,14 @@ mspManager::link(int weight, int drange,
     exit(1);
   }
 
-#if ABORT_EXPENSIVE
+  //  Check if this match looks suspiciously expensive
+  //
   if ((_cDNALength > 0) &&
       (_mspLimitAbsolute > 0) && (_mspLimitAbsolute < _numMSPs) &&
       (_mspLimitPercent > 0.0) && (_mspLimitPercent * _cDNALength < _numMSPs)) {
     _tooManyMSPs = true;
     return(0L);
   }
-#endif
 
   ////////////////////////////////////////
   //

@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include <string.h>
 
-#include "sim4reader.h"
+#include "sim4polish.h"
 
 
 char const *usage =
@@ -17,15 +17,15 @@ pickBest(sim4polish **p, int pNum, int uniq) {
 
   if (pNum == 1) {
     if (uniq)
-      printPolish(stdout, p[0]);
+      s4p_printPolish(stdout, p[0]);
   } else {
     if (!uniq)
       for (i=0; i<pNum; i++)
-        printPolish(stdout, p[i]);
+        s4p_printPolish(stdout, p[i]);
   }
 
   for (i=0; i<pNum; i++)
-    destroyPolish(p[i]);
+    s4p_destroyPolish(p[i]);
 }
 
 
@@ -67,7 +67,7 @@ main(int argc, char **argv) {
 
   p = (sim4polish **)malloc(sizeof(sim4polish *) * pAlloc);
 
-  while ((q = readPolish(stdin)) != 0L) {
+  while ((q = s4p_readPolish(stdin)) != 0L) {
     if ((q->estID != estID) && (pNum > 0)) {
       pickBest(p, pNum, uniq);
       pNum  = 0;

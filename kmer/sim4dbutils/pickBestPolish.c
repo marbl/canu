@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include <string.h>
 
-#include "sim4reader.h"
+#include "sim4polish.h"
 
 //  Picks the best polish (or set of polishes that are all of the same
 //  best quality) for each cDNA.
@@ -61,7 +61,7 @@ pickBestSlave(sim4polish **p, int pNum) {
   //
   if (pNum == 1) {
 #ifndef VALIDATE
-    printPolish(stdout, p[0]);
+    s4p_printPolish(stdout, p[0]);
 #endif
     return;
   }
@@ -130,7 +130,7 @@ pickBestSlave(sim4polish **p, int pNum) {
       if ((p[i]->percentIdentity == identityi) &&
           (p[i]->numMatches == tmp_nmatches) &&
           (p[i]->numExons == numExons))
-        printPolish(stdout, p[i]);
+        s4p_printPolish(stdout, p[i]);
 #else
     if (tmp_nmatches == nmatchesi) 
     fprintf(stdout, "--------------------1 (Clear Winner)\n");
@@ -219,7 +219,7 @@ pickBestSlave(sim4polish **p, int pNum) {
       if ((p[i]->percentIdentity == identityi) &&
           (p[i]->numMatches      == tmp_nmatches) &&
           (p[i]->numExons	 == numExons))
-        printPolish(stdout, p[i]);
+        s4p_printPolish(stdout, p[i]);
 #else
     if (tmp_nmatches == nmatchesi)
     fprintf(stdout, "--------------------3 (?)\n");
@@ -257,7 +257,7 @@ pickBestSlave(sim4polish **p, int pNum) {
       if ((p[i]->percentIdentity == identityi) &&
           (p[i]->numMatches      == nmatchesi) &&
           (p[i]->numExons 	 == numExons))
-        printPolish(stdout, p[i]);
+        s4p_printPolish(stdout, p[i]);
 #else
     fprintf(stdout, "--------------------5 (alpha < 0.8)\n");
     for (i=0; i<pNum; i++)
@@ -306,7 +306,7 @@ pickBestSlave(sim4polish **p, int pNum) {
     if ((p[i]->percentIdentity == identityi) &&
         (p[i]->numMatches      == nmatchesi) &&
         (p[i]->numExons	       == numExonsi))
-      printPolish(stdout, p[i]);
+      s4p_printPolish(stdout, p[i]);
 #else
   if (numExonsi > numExonsm + EPS_X)
   fprintf(stdout, "--------------------6 (Exon Plus alpha > 0.8)\n");
@@ -334,7 +334,7 @@ pickBestSlave(sim4polish **p, int pNum) {
     if ((p[i]->percentIdentity == identitym) &&
         (p[i]->numMatches      == tmp_nmatches) &&
         (p[i]->numExons        == numExons))
-      printPolish(stdout, p[i]);
+      s4p_printPolish(stdout, p[i]);
 #else
   if (numExons == numExonsm)
   fprintf(stdout, "--------------------8 (alpha > 0.8)\n");
@@ -359,7 +359,7 @@ pickBest(sim4polish **p, int pNum) {
   pickBestSlave(p, pNum);
 
   for (i=0; i<pNum; i++)
-    destroyPolish(p[i]);
+    s4p_destroyPolish(p[i]);
 }
 
 
@@ -418,7 +418,7 @@ main(int argc, char **argv) {
 
   p = (sim4polish **)malloc(sizeof(sim4polish *) * pAlloc);
 
-  while ((q = readPolish(stdin)) != 0L) {
+  while ((q = s4p_readPolish(stdin)) != 0L) {
     if ((q->estID != estID) && (pNum > 0)) {
       pickBest(p, pNum);
       pNum  = 0;

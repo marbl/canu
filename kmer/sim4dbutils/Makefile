@@ -2,8 +2,8 @@ PROG    = filterPolishes mergePolishes stripPolishes sortPolishes comparePolishe
           pickBestPolish pickBestPolish-debug parseSNP \
           plotCoverageVsIdentity cleanPolishes uniqPolishes \
           summarizePolishes removeDuplicate
-INCLUDE = -I../fasta         -I../libbri
-LIBS    = -L../fasta -lfasta -L../libbri -lbri -lm
+INCLUDE = -I../fasta         -I../sim4polish              -I../libbri
+LIBS    = -L../fasta -lfasta -L../sim4polish -lsim4polish -L../libbri -lbri -lm
 
 OBJS    =
 

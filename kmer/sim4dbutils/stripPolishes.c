@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include <string.h>
 
-#include "sim4reader.h"
+#include "sim4polish.h"
 
 //  Reads a file of matches, strips out the defline and alignments,
 //  and writes a new file.
@@ -19,7 +19,6 @@ main(int argc, char **argv) {
   sim4polish  *p = 0L;
   int          dumpDefs   = 0;
   int          dumpAligns = 0;
-  _line       *l  = 0L;
   int          i  = 0;
 
   int  arg = 1;
@@ -49,50 +48,32 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  //  Use a fast method if we are just stripping deflines, otherwise
-  //  use the sim4reader to read a polish, dump the stuff we don't
-  //  want, and then write it out.
-  //
-  if (dumpAligns == 0) {
-    l = newLine();
+  while (!feof(stdin)) {
+    p = s4p_readPolish(stdin);
 
-    while (!feof(stdin)) {
-      readLine(stdin, l);
+    if (p) {
+      if (dumpAligns) {
+        for (i=0; i<p->numExons; i++) {
+          free(p->exons[i].estAlignment);
+          free(p->exons[i].genAlignment);
 
-      if (!feof(stdin))
-        if (strncmp(l->s+1, "def=", 4) != 0)
-          fprintf(stdout, "%s\n", l->s);
-    }
-
-    deleteLine(l);
-  } else {
-    while (!feof(stdin)) {
-      p = readPolish(stdin);
-
-      if (p) {
-        if (dumpAligns) {
-          for (i=0; i<p->numExons; i++) {
-            free(p->exons[i].estAlignment);
-            free(p->exons[i].genAlignment);
-
-            p->exons[i].estAlignment = 0L;
-            p->exons[i].genAlignment = 0L;
-          }
+          p->exons[i].estAlignment = 0L;
+          p->exons[i].genAlignment = 0L;
         }
-
-        if (dumpDefs) {
-          free(p->estDefLine);
-          free(p->genDefLine);
-
-          p->estDefLine = 0L;
-          p->genDefLine = 0L;
-        }
-
-        printPolish(stdout, p);
       }
 
-      destroyPolish(p);
+      if (dumpDefs) {
+        free(p->estDefLine);
+        free(p->genDefLine);
+
+        p->estDefLine = 0L;
+        p->genDefLine = 0L;
+      }
+
+      s4p_printPolish(stdout, p);
     }
+
+    s4p_destroyPolish(p);
   }
 
   return(0);

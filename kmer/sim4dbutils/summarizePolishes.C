@@ -3,7 +3,7 @@
 
 #include "libbri.H"
 #include "fasta.H"
-#include "sim4reader.h"
+#include "sim4polish.h"
 
 using namespace std;
 #include <vector>
@@ -89,7 +89,7 @@ readMatches(char           *filename,
 
   sim4polish *p;
 
-  while ((p = readPolish(F)) != 0L) {
+  while ((p = s4p_readPolish(F)) != 0L) {
     match  m;
 
     m._estid    = p->estID;
@@ -99,7 +99,7 @@ readMatches(char           *filename,
 
     matches.push_back(m);
 
-    destroyPolish(p);
+    s4p_destroyPolish(p);
   }
 
   if ((filename != 0L) && (strcmp(filename, "-") == 0)) {

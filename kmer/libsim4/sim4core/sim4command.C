@@ -38,8 +38,6 @@ sim4command::sim4command(u32bit        ESTid,
 
   _doForward = doForward;
   _doReverse = doReverse;
-
-  _strandIndicator = 0L;
 }
 
 
@@ -68,8 +66,6 @@ sim4command::sim4command(FastASequenceInCore  *EST,
 
   _doForward = doForward;
   _doReverse = doReverse;
-
-  _strandIndicator = 0L;
 }
 
 
@@ -101,8 +97,6 @@ sim4command::sim4command(char             *EST,
 
   _doForward = doForward;
   _doReverse = doReverse;
-
-  _strandIndicator = 0L;
 }
 
 
@@ -111,7 +105,6 @@ sim4command::~sim4command() {
     delete _ESTloaded;
   if (_GENs)
     delete _GENloaded;
-  delete [] _strandIndicator;
 }
 
 

@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include "libbri.H"
-#include "sim4reader.h"
+#include "sim4polish.h"
 
 #define MAX_POLISHES   10000000
 #define MAX_ESTS        5000000  //  Should be set to exactly the number of ESTs
@@ -76,7 +76,7 @@ readPolishes(char *path, char *name) {
   p->num      = 0;
 
   while (!feof(F)) {
-    p->polishes[p->num] = readPolish(F);
+    p->polishes[p->num] = s4p_readPolish(F);
     p->num++;
 
     if (p->num > MAX_POLISHES) {
@@ -90,7 +90,7 @@ readPolishes(char *path, char *name) {
 
   fprintf(stderr, "Read %d polishes -- sorting.\n", p->num);
 
-  qsort(p->polishes, p->num, sizeof(sim4polish *), estIDcompare);
+  qsort(p->polishes, p->num, sizeof(sim4polish *), s4p_estIDcompare);
 
   return(p);
 }
@@ -362,7 +362,7 @@ main(int argc, char **argv) {
 
       if (found > 2) {
         fprintf(stderr, "Found %d matches for A=%d?\n", found, i);
-        printPolish(stderr, A->polishes[i]);
+        s4p_printPolish(stderr, A->polishes[i]);
       }
     } else {
 
@@ -373,15 +373,15 @@ main(int argc, char **argv) {
 
 #if 0
         fprintf(stdout, "----------Found ZERO matches because it's a repeat.\n", i);
-        printPolish(stdout, A->polishes[i]);
+        s4p_printPolish(stdout, A->polishes[i]);
 #endif
       } else if (numFound > 0) {
         numProbable++;
 
         fprintf(stdout, "----------Found PROBABLE match with %d -- numExonsFound=%d numExonsMissing=%d numExonsExtra=%d\n",
                 bestMatch, numFound, numMissing, numExtra);
-        printPolishNormalized(stdout, A->polishes[i]);
-        printPolishNormalized(stdout, B->polishes[bestMatch]);
+        s4p_printPolishNormalized(stdout, A->polishes[i]);
+        s4p_printPolishNormalized(stdout, B->polishes[bestMatch]);
       } else {
         numExtra++;
 
@@ -389,11 +389,11 @@ main(int argc, char **argv) {
             (A->polishes[i]->querySeqIdentity >= 80)) {
           fprintf(stdout, "----------Found ZERO matches HIGH-ID -- numExonsFound=%d numExonsMissing=%d numExonsExtra=%d\n",
                   numFound, numMissing, numExtra);
-          printPolish(stdout, A->polishes[i]);
+          s4p_printPolish(stdout, A->polishes[i]);
         } else {
           fprintf(stdout, "----------Found ZERO matches LOW-ID -- numExonsFound=%d numExonsMissing=%d numExonsExtra=%d\n",
                   numFound, numMissing, numExtra);
-          printPolish(stdout, A->polishes[i]);
+          s4p_printPolish(stdout, A->polishes[i]);
         }
       }
     }

@@ -1,6 +1,6 @@
 PROG    = 
-INCLUDE = -I../fasta         -I../libbri
-LIBS    = -L../fasta -lfasta -L../libbri -lbri -lm
+INCLUDE = -I../fasta         -I../sim4polish              -I../libbri
+LIBS    = -L../fasta -lfasta -L../sim4polish -lsim4polish -L../libbri -lbri -lm
 
 SRCS    = sim4command.C \
           sim4parameters.C \

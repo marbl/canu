@@ -6,7 +6,7 @@
 #include <ctype.h>
 #include <errno.h>
 
-#include "sim4reader.h"
+#include "sim4polish.h"
 
 //
 //  Writes things with mappings that don't contain the snp itself to a
@@ -209,7 +209,7 @@ printSNP(FILE *F, sim4polish *p) {
   //  just a "1" thing.
   //
   seqOffset = pos;
-  if (p->matchOrientation == MATCH_COMPLEMENT)
+  if (p->matchOrientation == SIM4_MATCH_COMPLEMENT)
     seqOffset = p->estLen - pos - 1;
 
   //  Find the exon with the SNP
@@ -256,7 +256,7 @@ printSNP(FILE *F, sim4polish *p) {
           genPosition,
           p->exons[exonWithSNP].estAlignment[examinePos-1],
           p->exons[exonWithSNP].genAlignment[examinePos-1],
-          (p->matchOrientation == MATCH_FORWARD) ? "forward" : "complement",
+          (p->matchOrientation == SIM4_MATCH_FORWARD) ? "forward" : "complement",
           p->percentIdentity,
           p->querySeqIdentity,
           p->numExons,
@@ -292,25 +292,25 @@ pickBestSlave(sim4polish **p, int pNum) {
       ss++;
 
       if (singleSingleFile)
-        printPolish(singleSingleFile, p[0]);
+        s4p_printPolish(singleSingleFile, p[0]);
 
       if (validSNPMap)
         if (printSNP(validSNPMap, p[0]))
           if (failedSNPMap) {
             numFailed++;
-            printPolish(failedSNPMap, p[0]);
+            s4p_printPolish(failedSNPMap, p[0]);
           }
     } else {
       sm++;
 
       if (singleMultiFile)
-        printPolish(singleMultiFile, p[0]);
+        s4p_printPolish(singleMultiFile, p[0]);
 
       if (validSNPMap)
         if (printSNP(validSNPMap, p[0]))
           if (failedSNPMap) {
             numFailed++;
-            printPolish(failedSNPMap, p[0]);
+            s4p_printPolish(failedSNPMap, p[0]);
           }
     }
   } else {
@@ -319,28 +319,28 @@ pickBestSlave(sim4polish **p, int pNum) {
 
       if (multiSingleFile)
         for (i=0; i<pNum; i++)
-          printPolish(multiSingleFile, p[i]);
+          s4p_printPolish(multiSingleFile, p[i]);
 
       if (validSNPMap)
         for (i=0; i<pNum; i++)
           if (printSNP(validSNPMap, p[i]))
             if (failedSNPMap) {
               numFailed++;
-              printPolish(failedSNPMap, p[i]);
+              s4p_printPolish(failedSNPMap, p[i]);
             }
     } else {
       mm++;
 
       if (multiMultiFile)
         for (i=0; i<pNum; i++)
-          printPolish(multiMultiFile, p[i]);
+          s4p_printPolish(multiMultiFile, p[i]);
 
       if (validSNPMap)
         for (i=0; i<pNum; i++)
           if (printSNP(validSNPMap, p[i]))
             if (failedSNPMap) {
               numFailed++;
-              printPolish(failedSNPMap, p[i]);
+              s4p_printPolish(failedSNPMap, p[i]);
             }
     }
   }
@@ -365,7 +365,7 @@ pickBest(sim4polish **p, int pNum) {
   pickBestSlave(p, pNum);
 
   for (i=0; i<pNum; i++)
-    destroyPolish(p[i]);
+    s4p_destroyPolish(p[i]);
 }
 
 
@@ -470,7 +470,7 @@ main(int argc, char **argv) {
 
   p = (sim4polish **)malloc(sizeof(sim4polish *) * pAlloc);
 
-  while ((q = readPolish(stdin)) != 0L) {
+  while ((q = s4p_readPolish(stdin)) != 0L) {
 
     //printSNP(stdout, q);
 
@@ -500,7 +500,7 @@ main(int argc, char **argv) {
         (q->querySeqIdentity >= percentCO)) {
       p[pNum++] = q;
     } else {
-      destroyPolish(q);
+      s4p_destroyPolish(q);
     }
   }
 

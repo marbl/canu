@@ -42,7 +42,7 @@ findMemorySize(void) {
 
 
 
-#include "sim4reader.h"
+#include "sim4polish.h"
 #include "libbritypes.h"
 #include "palloc.h"
 
@@ -87,7 +87,7 @@ writeTemporary(sim4polish **p, int pNum, int numTemporary) {
   }
 
   for (i=0; i<pNum; i++)
-    printPolish(file, p[i]);
+    s4p_printPolish(file, p[i]);
 
   fclose(file);
 
@@ -117,9 +117,9 @@ main(int argc, char **argv) {
   int arg = 1;
   while (arg < argc) {
     if        (strncmp(argv[arg], "-c", 2) == 0) {
-      fcn = estIDcompare;
+      fcn = s4p_estIDcompare;
     } else if (strncmp(argv[arg], "-g", 2) == 0) {
-      fcn = genIDcompare;
+      fcn = s4p_genIDcompare;
     } else if (strncmp(argv[arg], "-m", 2) == 0) {
       arg++;
       allocM = atof(argv[arg]) * 1024.0 * 1024.0;
@@ -181,7 +181,7 @@ main(int argc, char **argv) {
 
 
   while (!feof(stdin)) {
-    q = readPolish(stdin);
+    q = s4p_readPolish(stdin);
 
     if (q) {
 
@@ -271,7 +271,7 @@ main(int argc, char **argv) {
 
       //  Saved the polish.  Kill it.
       //
-      destroyPolish(q);
+      s4p_destroyPolish(q);
 
       //  If we're out of space, save everything (sorted) to a temporary file.
       //
@@ -299,7 +299,7 @@ main(int argc, char **argv) {
     qsort(p, pNum, sizeof(sim4polish *), fcn);
 
     for (i=0; i<pNum; i++)
-      printPolish(stdout, p[i]);
+      s4p_printPolish(stdout, p[i]);
   } else {
     FILE        **InF;
     sim4polish  **q;
@@ -337,7 +337,7 @@ main(int argc, char **argv) {
         exit(1);
       }
 
-      q[i] = readPolish(InF[i]);
+      q[i] = s4p_readPolish(InF[i]);
     }
 
     //
@@ -358,9 +358,9 @@ main(int argc, char **argv) {
       if (q[smallestPolish] == 0L) {
         moreInput = 0;
       } else {
-        printPolish(stdout, q[smallestPolish]);
-        destroyPolish(q[smallestPolish]);
-        q[smallestPolish] = readPolish(InF[smallestPolish]);
+        s4p_printPolish(stdout, q[smallestPolish]);
+        s4p_destroyPolish(q[smallestPolish]);
+        q[smallestPolish] = s4p_readPolish(InF[smallestPolish]);
       }
     }
   }

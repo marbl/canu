@@ -179,14 +179,12 @@ parseCommandLine(int argc, char **argv) {
     } else if (strncmp(argv[arg], "-C", 2) == 0) {
       arg++;
       sim4params.setMSPThreshold2(atoi(argv[arg]));
-#if ABORT_EXPENSIVE
     } else if (strncmp(argv[arg], "-Ma", 3) == 0) {
       arg++;
       sim4params.setMSPLimitAbsolute(atoi(argv[arg]));
     } else if (strncmp(argv[arg], "-Mp", 3) == 0) {
       arg++;
       sim4params.setMSPLimitPercent(atof(argv[arg]));
-#endif
     } else if (strncmp(argv[arg], "-interspecies", 2) == 0) {
       sim4params.setInterspecies(true);
     } else {
@@ -245,7 +243,7 @@ sim4db(char          **scriptLines,
 
     //  Parse the command line to create a sim4command object
     //
-    //  [-f|-r] -e <one-or-more-ESTid> -D GENid GENlo GENhi [-S strandIndicator]
+    //  [-f|-r] -e <one-or-more-ESTid> -D GENid GENlo GENhi
     //
     //    -f  Forward only
     //    -r  Reverse only
@@ -262,7 +260,6 @@ sim4db(char          **scriptLines,
 
     bool           doForward = true;
     bool           doReverse = true;
-    char          *strandIndicator = 0L;
 
     while (words.getWord(argWords)) {
       switch (words.getWord(argWords)[1]) {
@@ -273,9 +270,6 @@ sim4db(char          **scriptLines,
         case 'r':
           doForward = false;
           doReverse = true;
-          break;
-        case 'S':
-          strandIndicator = words.getWord(++argWords);
           break;
         case 'D':
           GENiid = atoi(words.getWord(argWords + 1));
@@ -318,38 +312,38 @@ sim4db(char          **scriptLines,
                                           doForward,
                                           doReverse);
     Sim4            *S4 = new Sim4(&sim4params);
-    char            *O4 = S4->run(P4);
+    sim4polishList  *l4 = S4->run(P4);
+    sim4polishList  &L4 = *l4;
 
     delete S4;
     delete P4;
 
-    errno = 0;
-    write(fOutput, O4, strlen(O4) * sizeof(char));
-    if (errno) {
-      fprintf(stderr, "Couldn't write the output file '%s'.\n%s\n",
-              outputFileName, strerror(errno));
-      exit(1);
+    for (u32bit i=0; L4[i]; i++) {
+      char *o = s4p_polishToString(L4[i]);
+
+      errno = 0;
+      write(fOutput, o, strlen(o) * sizeof(char));
+      if (errno) {
+        fprintf(stderr, "Couldn't write the output file '%s'.\n%s\n",
+                outputFileName, strerror(errno));
+        exit(1);
+      }
+
+      free(o);
     }
 
     if (beYesNo) {
-      sim4polish *p = 0L;
-      int         i = 0;
-      int         c = 0;
-
-      if (O4[0]) {
-        p = s4p_stringToPolish(O4);
-        i = p->percentIdentity;
-        c = p->querySeqIdentity;
-        destroyPolish(p);
-      }
-
-      fprintf(stdout, "%s %s %d %d\n",
-              scriptLines[workDone],
-              O4[0] ? "-Y" : "-N",
-              i, c);
+      if (L4[0])
+        fprintf(stdout, "%s -Y %d %d\n",
+                scriptLines[workDone],
+                L4[0]->percentIdentity,
+                L4[0]->querySeqIdentity);
+      else
+        fprintf(stdout, "%s -N 0 0\n",
+                scriptLines[workDone]);
     }
 
-    delete [] O4;
+    delete l4;
   }
 }
 
@@ -395,21 +389,27 @@ sim4dball(FastAWrapper  *GENs,
                                             true);
 
       Sim4            *S4 = new Sim4(&sim4params);
-      char            *O4 = S4->run(P4);
+      sim4polishList  *l4 = S4->run(P4);
+      sim4polishList  &L4 = *l4;
 
       delete S4;
       delete P4;
 
-      errno = 0;
-      write(fOutput, O4, strlen(O4) * sizeof(char));
-      if (errno) {
-        fprintf(stderr, "Couldn't write the output file '%s'.\n%s\n",
-                outputFileName, strerror(errno));
-        exit(1);
+      for (u32bit i=0; L4[i]; i++) {
+        char *o = s4p_polishToString(L4[i]);
+
+        errno = 0;
+        write(fOutput, o, strlen(o) * sizeof(char));
+        if (errno) {
+          fprintf(stderr, "Couldn't write the output file '%s'.\n%s\n",
+                  outputFileName, strerror(errno));
+          exit(1);
+        }
+
+        free(o);
       }
 
-      delete [] O4;
-
+      delete l4;
       delete EST;
     }
     delete GEN;

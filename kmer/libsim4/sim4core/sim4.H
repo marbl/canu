@@ -8,7 +8,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-//#include <math.h>
 #include <unistd.h>
 #include <signal.h>
 #include <assert.h>
@@ -21,8 +20,9 @@
 #include "sim4command.H"
 #include "exon.H"
 #include "mspManager.H"
-
 #include "sim4defines.H"
+#include "sim4polish.h"
+#include "sim4polishBuilder.H"
 
 //
 //  A wrapper for the sim4 subroutines
@@ -74,17 +74,13 @@ typedef struct sim4_stats {
   int    numberOfNs;
   int    orientation;
   int    percentID;
-#if ABORT_EXPENSIVE
   bool   tooManyMSPs;
-#endif
 } sim4_stats_t;
 
 
 
 #define GEN_LOG4_ENTRIES 45
 #define CDNA_LOG4_ENTRIES 25
-
-#ifndef FOR_BRI_TABLE
 
 #define HASH_SIZE 32767        /* 2**15 - 1 */
 
@@ -100,10 +96,6 @@ struct hash_table {
   struct hash_node   *nodes;
   int                 nodesused;
 };
-
-#endif
-
-
 
 
 
@@ -140,12 +132,9 @@ private:
 
   int mask;
 
-#ifndef FOR_BRI_TABLE
   struct hash_table  *hashtable;
   struct hash_table   phashtable;
   struct hash_table   thashtable;
-#endif
-
 
   //  For high-accuracy switch
   //
@@ -241,11 +230,11 @@ private:
       };
 
 
-  char *checkExonsForOverlaps(Exon *theExons);
-  char *appendExons(char *outputstring, Exon *theExon);
+  bool  checkExonsForOverlaps(Exon *theExons);
+  void  appendExons(sim4polishBuilder &B, Exon *theExon);
   void  maskExonsFromGenomic(Exon *theExons, char *f, char *r, int l);
 
-  char   *IDISPLAY(char *outputstring,
+  void    IDISPLAY(sim4polishBuilder &builder,
                    char *aString,
                    char *bString,
                    char A[],
@@ -257,12 +246,12 @@ private:
                    int BP,
                    int est_strand,
                    Exon *exons);
-  char   *appendAlignments(char *outputstring,
+  void    appendAlignments(sim4polishBuilder &builder,
                            char *seq1,
                            char *seq2,
                            int len1,
                            int len2, 
-                           edit_script_list **Aligns,
+                           edit_script_list *Aligns,
                            Exon *Exons, 
                            int match_ori);
 
@@ -289,11 +278,7 @@ private:
 #endif
 
 
-#ifndef FOR_BRI_TABLE
   void bld_table(char *,int,int,int);
-#else
-  void bld_table(char *,int,int,int) {}
-#endif
 
   int SIM4_block1(Exon*  &Lblock,
                   Exon*  &tmp_block,
@@ -433,11 +418,8 @@ public:
   Sim4(sim4parameters *p) {
     globalParams = p;
 
-#if ABORT_EXPENSIVE
     _mspManager.setLimits(p->_mspLimitAbsolute, p->_mspLimitPercent);
-#endif
     _mspManager.setParameters(p->_match, p->_mismatch, p->_percentError);
-
 
     seq1 = 0L;
     seq2 = 0L;
@@ -453,18 +435,8 @@ public:
 
     mask = 0;
 
-#ifndef FOR_BRI_TABLE
     hashtable = 0L;
-#endif
 
-#if 0
-    for (u32bit i=0; i<HASH_SIZE+1; i++) {
-      phashtable.table[i] = 0L;
-      thashtable.table[i] = 0L;
-    }
-#endif
-
-#ifndef FOR_BRI_TABLE
     phashtable.nextPos   = 0L;
     phashtable.nodes     = 0L;
     phashtable.nodesused = 0;
@@ -472,7 +444,6 @@ public:
     thashtable.nextPos   = 0L;
     thashtable.nodes     = 0L;
     thashtable.nodesused = 0;
-#endif
 
     //  Initialize the encoding
     //
@@ -493,16 +464,14 @@ public:
   };
 
   ~Sim4() {
-#ifndef FOR_BRI_TABLE
     delete [] phashtable.nextPos;
     delete [] phashtable.nodes;
 
     delete [] thashtable.nextPos;
     delete [] thashtable.nodes;
-#endif
   };
 
-  char  *run(sim4command *cmd);
+  sim4polishList *run(sim4command *cmd);
 };
 
 

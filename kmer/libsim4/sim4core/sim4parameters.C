@@ -17,10 +17,9 @@ sim4parameters::sim4parameters() {
 
     _mspThresh1                 = 0;
     _mspThresh2                 = 0;
-#if ABORT_EXPENSIVE
+
     _mspLimitAbsolute           = 0;
     _mspLimitPercent            = 0.0;
-#endif
 
     _relinkWeight               = DEFAULT_RELINK_WEIGHT;
 

@@ -4,7 +4,7 @@
 
 #include "libbri.H"
 #include "fasta.H"
-#include "sim4reader.h"
+#include "sim4polish.h"
 
 //
 //  usage: mergeInput -m match1 cdna1 -m match2 cdna2 -m ... -o match cdna
@@ -103,7 +103,7 @@ main(int argc, char **argv) {
   fprintf(stderr, "Loading initial.\n");
 
   for (int i=0; i<numIn; i++) {
-    polishes[i]           = readPolish(inMatch[i]);
+    polishes[i]           = s4p_readPolish(inMatch[i]);
     if (polishes[i])
       polishes[i]->estID += numSeqs[i];
 
@@ -130,17 +130,17 @@ main(int argc, char **argv) {
     if (polishes[first]) {
       for (int i=first+1; i<numIn; i++)
         if ((polishes[i]) &&
-            (genIDcompare(polishes + first, polishes + i) > 0))
+            (s4p_genIDcompare(polishes + first, polishes + i) > 0))
           first = i;
 
 
       //  Dump the 'first', read in a new polish
       //
-      printPolish(otMatch, polishes[first]);
+      s4p_printPolish(otMatch, polishes[first]);
 
-      destroyPolish(polishes[first]);
+      s4p_destroyPolish(polishes[first]);
 
-      polishes[first]           = readPolish(inMatch[first]);
+      polishes[first]           = s4p_readPolish(inMatch[first]);
       if (polishes[first])
         polishes[first]->estID += numSeqs[first];
     } else {
