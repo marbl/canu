@@ -47,16 +47,11 @@ $/configuration.C.d: $/buildinfo-snapper2.h \
                      ${SIM4/}buildinfo-libsim4.h \
                      ${SIM4POLISH/}buildinfo-libsim4polish.h
 
-EFENCE-L :=# -L/dev2/adelcher/EFence
-EFENCE-l :=# -lefence
-
 $/snapper2: \
               ${$/.CXX_SRCS:.C=.o} $/buildinfo-snapper2.o \
               ${EXISTDB/}libexistDB.a ${POSITIONDB/}libpositionDB.a \
               ${SIM4POLISH/}libsim4polish.a ${SIM4/}libsim4.a \
               ${FASTA/}libfasta.a ${LIBBRI/}libbri.a
-$/snapper2: CXXLDFLAGS+=${EFENCE-L}
-$/snapper2: CXXLIBS+=${EFENCE-l}
 
 $/buildinfo-snapper2.c: $/buildinfo-snapper2.h
 $/buildinfo-snapper2.h: ${src}

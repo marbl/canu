@@ -23,14 +23,9 @@ $/%.d:  ${LIBBRI/}buildinfo-libbri.h ${LIBBRI/}alphabet.h
 $/meryl.C.d: $/buildinfo-meryl.h ${LIBBRI/}buildinfo-libbri.h
 $/merle.C.d: $/buildinfo-merle.h ${LIBBRI/}buildinfo-libbri.h
 
-EFENCE-L :=# -L/dev2/adelcher/EFence
-EFENCE-l :=# -lefence
-
 $/merle: $/buildinfo-merle.o $/merle.o
 $/meryl: ${src_C:.C=.o} $/buildinfo-meryl.o
 $/meryl $/merle: ${LIBBRI/}libbri.a
-$/meryl $/merle: CXXLDFLAGS+=${EFENCE-L}
-$/meryl $/merle: CXXLIBS+=${EFENCE-l}
 
 $/buildinfo-meryl.c: $/buildinfo-meryl.h
 $/buildinfo-meryl.h: ${src}

@@ -31,13 +31,7 @@ $/.CLEAN  :=$/*.o
 
 $/.REAL-CLEAN :=$/buildinfo-*
 
-EFENCE-L  := #-L/dev2/adelcher/EFence
-EFENCE-l  := #-lefence
-
 $/leaff.C.d: $/buildinfo-leaff.h $/buildinfo-libfasta.h ${LIBBRI/}buildinfo-libbri.h
-
-${$/.CXX_EXES}:   CXXLDFLAGS+=${EFENCE-L}
-${$/.CXX_EXES}:   CXXLIBS+=${EFENCE-l}
 
 $/libfasta.a    : \
     ${src_C:.C=.o} ${EXTERNAL/}md5lib/md5c.o $/buildinfo-libfasta.o

@@ -40,9 +40,6 @@ $/configuration.C.d:  $/buildinfo-searchGENOME.h \
                      ${LIBBRI/}buildinfo-libbri.h \
                      ${FASTA/}buildinfo-libfasta.h
 
-EFENCE-L :=# -L/dev2/adelcher/EFence
-EFENCE-l :=# -lefence
-
 $/searchGENOME:        $/hitMatrix.o
 $/searchGENOMEexactly: $/hitMatrix-Exact.o
 
@@ -50,8 +47,6 @@ $/searchGENOME $/searchGENOMEexactly: \
               ${src_C:.C=.o} $/buildinfo-searchGENOME.o \
               ${EXISTDB/}libexistDB.a ${POSITIONDB/}libpositionDB.a \
               ${FASTA/}libfasta.a ${LIBBRI/}libbri.a
-$/searchGENOME $/searchGENOMEexactly: CXXLDFLAGS+=${EFENCE-L}
-$/searchGENOME $/searchGENOMEexactly: CXXLIBS+=${EFENCE-l}
 
 $/hitConverter: $/hitConverter.o
 $/filterEST: $/filterEST.o

@@ -21,13 +21,8 @@ $/.CXX_EXES  := $/sim4db
 $/.CLEAN  := $/*.o
 $/.REAL-CLEAN := $/buildinfo-*
 
-EFENCE-L  := #-L/dev3/adelcher/EFence
-EFENCE-l  := #-lefence
-
 $/sim4db: $/buildinfo-sim4db.o ${$/.CXX_SRCS:.C=.o}
 
-${$/.CXX_EXES}:   CXXLDFLAGS+=${EFENCE-L}
-${$/.CXX_EXES}:   CXXLIBS   +=${EFENCE-l}
 ${$/.CXX_EXES}:   ${FASTA/}libfasta.a ${SIM4/}libsim4.a \
          ${SIM4POLISH/}libsim4polish.a ${LIBBRI/}libbri.a
 
