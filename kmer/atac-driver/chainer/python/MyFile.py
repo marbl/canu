@@ -7,14 +7,14 @@ class myfile(file):
     "A temporary anonymous file"
     def __init__(self):
         filename = tempfile.mktemp()
-        print >>sys.stderr, "myfile: creating " + filename
+        #print >>sys.stderr, "myfile: creating " + filename
         file.__init__(self,filename,"w+")
     def __del__(self):                 
-        print >>sys.stderr, "myfile: deleting " + self.name
+        #print >>sys.stderr, "myfile: deleting " + self.name
         self.close()
         os.system("rm -f " + self.name)
     def link(self,othername):
-        print >>sys.stderr, "myfile: linking %s to %s" % ( self.name, othername)
+        #print >>sys.stderr, "myfile: linking %s to %s" % ( self.name, othername)
         self.flush()
         os.system("ln -f %s %s" % (self.name, othername))
 
