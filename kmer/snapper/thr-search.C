@@ -13,11 +13,21 @@
 //
 //#define VERBOSE_SEARCH
 
+//  Define this to print a message whenever a polish starts.
+//
+//#define SHOW_POLISHING
+
+//  Define these to show polishes that take a long time -- individual
+//  polishes, not all polishes for a single sequence.  The time is in
+//  seconds.
+//
+//#define SHOW_POLISHING_EXPENSIVE  0.5
+
 
 #ifdef TRUE64BIT
-char const *srchGbye = "[%lu] processed: %8lu@%8lu/%8lu blocked: %4lu/%4lu Time: encode:%8.2f search:%8.2f chain:%8.2f filter:%8.2f polish:%8.2f\n";
+char const *srchGbye = "[%lu] processed: %8lu@%8lu/%8lu blocked: %4lu/%4lu Time: encode:%8.2f search:%8.2f chain:%8.2f polish:%8.2f\n";
 #else
-char const *srchGbye = "[%llu] processed: %8llu@%8llu/%8lu blocked: %4lu/%4lu Time: encode:%8.2f search:%8.2f chain:%8.2f filter:%8.2f polish:%8.2f\n";
+char const *srchGbye = "[%llu] processed: %8llu@%8llu/%8lu blocked: %4lu/%4lu Time: encode:%8.2f search:%8.2f chain:%8.2f polish:%8.2f\n";
 #endif
 
 
@@ -32,7 +42,6 @@ public:
   double         maskTime;
   double         searchTime;
   double         chainTime;
-  double         filterTime;
   double         polishTime;
 
   u64bit         searched;
@@ -50,7 +59,6 @@ public:
     maskTime   = 0.0;
     searchTime = 0.0;
     chainTime  = 0.0;
-    filterTime = 0.0;
     polishTime = 0.0;
 
     searched   = 0;
@@ -193,26 +201,33 @@ configureFilter(double L,
 }
 
 
-void
+u32bit
 doFilter(searcherState       *state,
          aHit               *&theHits,
          u32bit              &theHitsLen) {
-  double   startTime = getTime();
 
   if (theHitsLen == 0)
-    return;
+    return(0);
 
+  u32bit numF = 0;
   u32bit cutL = configureFilter(config._L,
                                 config._H,
                                 config._V, theHits, theHitsLen);
 
   for (u32bit i=0; i < theHitsLen; i++) {
-    theHits[i]._status &= 0x00000001;  //  XXX:  This should be useless, but we also should guarantee that the flag is clear
-    if (theHits[i]._covered >= cutL)
+    //  XXX:  This should be useless, but we also should guarantee that the flag is clear
+    theHits[i]._status &= 0x00000001;
+
+    //  If the coverage of the hit is more than the minimum, mark the
+    //  hit as polishable.
+    //
+    if (theHits[i]._covered >= cutL) {
+      numF++;
       theHits[i]._status |= 0x00000002;
+    }
   }
 
-  state->filterTime += getTime() - startTime;
+  return(numF);
 }
 
 
@@ -250,6 +265,24 @@ doPolish(searcherState       *state,
       bool    doForward =  theHits[h]._status & 0x00000001;
       bool    doReverse = !doForward;
 
+#ifdef SHOW_POLISHING
+      fprintf(stdout, "Hit %u out of %u (%u -> %u[%u-%u]) cov=%u matched=%u numMers=%u\n",
+              h, theHitsLen,
+              ESTseq->getIID(),
+              theHits[h]._dsIdx,
+              theHits[h]._dsLo,
+              theHits[h]._dsHi,
+              theHits[h]._covered,
+              theHits[h]._matched,
+              theHits[h]._numMers);
+      fflush(stdout);
+#endif
+
+
+#ifdef SHOW_POLISHING_EXPENSIVE
+      double startTime = getTime();
+#endif
+
       sim4command     *P4 = new sim4command(ESTseq,
                                             GENseq,
                                             GENlo,
@@ -283,7 +316,10 @@ doPolish(searcherState       *state,
           pc = L4[i]->querySeqIdentity;
         }
 
-        //fprintf(stderr, "found est=%u : %u %u\n", seq->getIID(), L4[i]->percentIdentity, L4[i]->querySeqIdentity);
+#ifdef SHOW_POLISHING
+        fprintf(stdout, "  id=%u cov=%u\n", seq->getIID(), L4[i]->percentIdentity, L4[i]->querySeqIdentity);
+        fflush(stdout);
+#endif
 
         //  If we have a real hit, set the flag and save the output
         //
@@ -323,6 +359,17 @@ doPolish(searcherState       *state,
       delete l4;
       delete S4;
       delete P4;
+
+#ifdef SHOW_POLISHING_EXPENSIVE
+      double elapsedTime = getTime() - startTime;
+      if (elapsedTime >= SHOW_POLISHING_EXPENSIVE) {
+        fprintf(stdout, "Hit %u out of %u (%u -> %u[%u-%u]) took %f seconds ().\n",
+                h, theHitsLen,
+                ESTseq->getIID(), GENseq->getIID(), theHits[h]._dsLo, theHits[h]._dsHi,
+                elapsedTime);
+        fflush(stdout);
+      }
+#endif
 
       state->polished++;
     } else {
@@ -410,9 +457,6 @@ searchThread(void *U) {
         blockedI++;
         nanosleep(&config._searchSleep, 0L);
       } else {
-#ifdef VERBOSE_SEARCH
-        fprintf(stderr, "%lu starting (idx = %d, outputPos = %d).\n", (u64bit)U, idx, outputPos);
-#endif
 
         //  If our idx is too far away from the output thread, sleep
         //  a little bit.  We keep the idx and seq that we have obtained,
@@ -429,6 +473,10 @@ searchThread(void *U) {
         u32bit               theHitsMax = 4;
         aHit                *theHits    = new aHit [theHitsMax];
 
+#ifdef VERBOSE_SEARCH
+        double startTime = getTime();
+#endif
+
         ///////////////////////////////////////
         //
         //  Do searches.
@@ -438,11 +486,23 @@ searchThread(void *U) {
         if (config._doReverse)
           doSearch(state, seq, idx, true,  theHits, theHitsLen, theHitsMax);
 
+#ifdef VERBOSE_SEARCH
+        double searchTime = getTime();
+#endif
+
         ///////////////////////////////////////
         //
         //  Filter the hits
         //
-        doFilter(state, theHits, theHitsLen);
+        u32bit numF = doFilter(state, theHits, theHitsLen);
+
+#ifdef VERBOSE_SEARCH
+        if (numF > 10) {
+          fprintf(stdout, "seq %u has %u decent hits out of %u total\n", idx, numF, theHitsLen);
+          fflush(stdout);
+        }
+        double filterTime = getTime();
+#endif
 
         ///////////////////////////////////////
         //
@@ -465,6 +525,25 @@ searchThread(void *U) {
         //
         delete    seq;
 
+#ifdef VERBOSE_SEARCH
+        double endTime = getTime();
+        if ((endTime - startTime) > 5.0) {
+          fprintf(stdout, "%lu done with idx = %d (%u bp, %u hits) search %f filter %f polish %f  encode %f search %f chain %f polish %f\n",
+                  (u64bit)U, idx, seq->sequenceLength(), theHitsLen,
+                  searchTime - startTime,
+                  filterTime - searchTime,
+                  endTime - filterTime,
+                  state->encodeTime,
+                  state->searchTime,
+                  state->chainTime,
+                  state->polishTime);
+          fflush(stdout);
+        }
+#endif
+
+
+
+
 #ifdef MEMORY_DEBUG
         fprintf(stderr, "Memory dump in searchThread\n");
         _dump_allocated_delta(fileno(stderr));
@@ -482,7 +561,6 @@ searchThread(void *U) {
           state->encodeTime,
           state->searchTime,
           state->chainTime,
-          state->filterTime,
           state->polishTime);
 
   delete state;
