@@ -26,6 +26,7 @@ VALID_OPERATING_SYSTEM:=$(strip \
     TRU64  \
     AIX    \
     cygwin \
+    cygwin|mingw \
     SunOS|foster-city   \
     SunOS|francisco's \
     FreeBSD \
@@ -134,6 +135,16 @@ CXX_TMP_COMPILE:=
 ifeq (${_OS|FULL_},Linux|RH7)
    CC:=gcc3
    CXX:=g++3
+endif
+
+# Special cygwin|mingw compile flag to compile against the mingw library
+# instead of the cygwin.dll (which has additional licensing restrictions)
+ifeq (${_OS|FULL_},cygwin|mingw)
+   MINGW_FLAG := -mno-cygwin
+   CFLAGS_COMPILE += $(MINGW_FLAG)
+   CXXFLAGS_COMPILE += $(MINGW_FLAG)
+   CLDFLAGS += $(MINGW_FLAG)
+   CXXLDFLAGS += $(MINGW_FLAG)
 endif
 
 # Linux compile-time flags (mainly large file support)
