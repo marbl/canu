@@ -67,10 +67,12 @@ ifeq (${_OS_}${_CC_},AIX)
   AIX_LARGE_FILE_SUPPORT               :=-q64 -qlonglong -D_LARGE_FILES
   AIX_SUPPRESS_DUPLICATE_SYMBOL_WARNING:=-qstaticinline
   AIX_FLAG_TO_SUPPRESS_MANY_WARNINGS   :=-bhalt:8
+  AIX_OPTIMIZATIONS                    :=-qarch=auto -qtune=auto -qcache=auto
 
   AIX_FLAGS  :=$(AIX_LARGE_FILE_SUPPORT) $(AIX_OPTIMIZATIONS)
   AIX_FLAGS  +=$(AIX_FLAG_TO_SUPPRESS_MANY_WARNINGS)
   AIX_FLAGS  +=$(AIX_SUPPRESS_DUPLICATE_SYMBOL_WARNING)
+  AIX_FLAGS  +=$(AIX_OPTIMIZATIONS)
 
   CFLAGS_COMPILE     +=-qcpluscmt ${AIX_FLAGS}
   CXXFLAGS_COMPILE   +=${AIX_RTTI_SUPPORT} ${AIX_FLAGS}
@@ -100,10 +102,8 @@ ifeq (${_OS_}${_CC_}${_OPT_},TRU64)
   CXXFLAGS_COMPILE         +=-g3 -fast
 endif
 ifeq (${_OS_}${_CC_}${_OPT_},AIX)
-  CFLAGS_COMPILE           +=-O3 -qstrict
-  CXXFLAGS_COMPILE         +=-O3 -qstrict
-#  CLDFLAGS                 +=-O3 -qstrict
-#  CXXLDFLAGS               +=-O3 -qstrict
+  CFLAGS_COMPILE           +=-qstrict -O3
+  CXXFLAGS_COMPILE         +=-qstrict -O3
 endif
 
 # goofy AIX-ness for GCC
