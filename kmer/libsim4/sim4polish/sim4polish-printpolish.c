@@ -5,11 +5,10 @@ s4p_printPolish(FILE *O, sim4polish *o, u32bit flags) {
   int          i;
   char const  *mOri;
   char const  *sOri;
+  sim4polish  *p = o;
 
   if (o == 0L)
     return;
-
-  sim4polish *p = o;
 
   //  If there are flags, modify the polish before printing.
   //
