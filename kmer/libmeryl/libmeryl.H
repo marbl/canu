@@ -17,12 +17,14 @@ public:
   merStreamFromMeryl(const char *prefix, u32bit merSize=0);
   ~merStreamFromMeryl();
 
-  u64bit       theMer(void)         { return(_mer); };
-  u64bit       theCount(void)       { return(_cnt); };
+  u64bit          theMer(void)         { return(_mer); };
+  u64bit          theCount(void)       { return(_cnt); };
 
-  u32bit       merSize(void)        { return(_mcd._merSizeInBases); };
+  u32bit          merSize(void)        { return(_mcd._merSizeInBases); };
 
-  bool         nextMer(void);
+  mcDescription  &mcd(void)            { return(_mcd); };
+
+  bool            nextMer(void);
 private:
   mcDescription         _mcd;
   bitPackedFileReader  *_IDX;
