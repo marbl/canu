@@ -1,4 +1,5 @@
 PROG    = test-chainedSequence \
+          test-fasta-accessor \
           test-merstream \
           test-merstreamfile \
           test-merstream-speed
@@ -16,6 +17,11 @@ test-chainedSequence: test-chainedSequence.C
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-chainedSequence.o test-chainedSequence.C $(INCLUDE)
 	$(CXX) $(CXXLDFLAGS) -o test-chainedSequence test-chainedSequence.o $(LIBS)
 	./test-chainedSequence
+
+test-fasta-accessor: test-fasta-accessor.C
+	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-fasta-accessor.o test-fasta-accessor.C $(INCLUDE)
+	$(CXX) $(CXXLDFLAGS) -o test-fasta-accessor test-fasta-accessor.o $(LIBS)
+	./test-fasta-accessor
 
 test-merstream: test-merstream.C
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-merstream.o test-merstream.C $(INCLUDE)
