@@ -121,7 +121,7 @@ Sim4::run(sim4command *cmd) {
   estseqorig = cmd->getESTsequence();
   estlen     = cmd->getESTlength();
 
-  for (u32bit i=0; i<estlen; i++)
+  for (int i=0; i<estlen; i++)
     estseq[i] = touppercache[estseqorig[i]];
   estseq[estlen] = 0;
 
