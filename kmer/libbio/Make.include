@@ -4,7 +4,7 @@ UTIL/ := $/../util/
 endif
 
 ifndef EXTERNAL/
-EXTERNAL/    := $/../existDB/
+EXTERNAL/    := $/../external/
 endif
 
 # declarations

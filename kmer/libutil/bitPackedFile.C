@@ -5,8 +5,9 @@
 #include <string.h>
 
 #include "bitPackedFile.H"
+#include "bit-packing.H"
 
-#define BUFFER_SIZE   131072
+#define BUFFER_SIZE   (16)   //(131072)
 
 bitPackedFileWriter::bitPackedFileWriter(char *name) {
   _out = fopen(name, "wb");
@@ -28,50 +29,54 @@ bitPackedFileWriter::~bitPackedFileWriter() {
   fclose(_out);
 }
 
-//  Essentially setDecodedValue, but it will update _WORD and _bit
-//  after the operation, and call flushBuffer if needed.
+
+
+//  If the buffer doesn't have 128 bits free (2 words currently) flush
+//  it.
+//
+//  128 was chosen because the fibonacci encoded numbers use up to
+//  90-some bits.
 //
 void
-bitPackedFileWriter::putBits(u64bit bits, u32bit size) {
-  u64bit wd = (_bit >> 6) & 0x0000cfffffffffffllu;
-  u64bit bt = (_bit     ) & 0x000000000000003fllu;
-  u64bit b1 = 64 - bt;
-  u64bit b2 = size - b1;  //  Only used if siz > b1
+bitPackedFileWriter::flush(void) {
 
-  assert(size < 65);
-  assert(size > 0);
-
-  _bit += size;
-
-  //  Make sure that the bits to write are the correct size!  This
-  //  costs little, and saves lots.  (Stupid ^$%*&#@$%& users!)
-  //
-  bits &= u64bitMASK(size);
-
-  if (b1 >= size) {
-    _bfr[wd] &= ~( u64bitMASK(size) << (b1-size) );
-    _bfr[wd] |= bits << (b1-size);
-  } else {
-    _bfr[wd] &= ~u64bitMASK(b1);
-    _bfr[wd] |= (bits & (u64bitMASK(b1) << (b2))) >> (b2);
-
-    wd++;
-
-    _bfr[wd] &= ~(u64bitMASK(b2) << (64-b2));
-    _bfr[wd] |= (bits & (u64bitMASK(b2))) << (64-b2);
-  }
-
-  if (wd == BUFFER_SIZE-1) {
+  if ((_bit >> 6) >= (BUFFER_SIZE - 2)) {
     errno = 0;
-    fwrite(_bfr, sizeof(u64bit), BUFFER_SIZE-1, _out);
+    fwrite(_bfr, sizeof(u64bit), BUFFER_SIZE-2, _out);
     if (errno) {
       fprintf(stderr, "bitPackedFileWriter::putBits got %s\n", strerror(errno));
       exit(1);
     }
-    _bfr[0] = _bfr[BUFFER_SIZE-1];
-    _bit -= ((BUFFER_SIZE-1) * 64);
+
+    //  copy the last two words -- _bit could be referring to
+    //  something in either of the last two words -- and subtract out
+    //  the bits that we just wrote.
+    //
+    _bfr[0] = _bfr[BUFFER_SIZE-2];
+    _bfr[1] = _bfr[BUFFER_SIZE-1];
+    _bit   -= ((BUFFER_SIZE-2) * 64);
   }
 }
+
+void
+bitPackedFileWriter::putBits(u64bit bits, u32bit siz) {
+  flush();
+  setDecodedValue(_bfr, _bit, siz, bits);
+  _bit += siz;
+}
+
+void
+bitPackedFileWriter::putNumber(u64bit val) {
+  flush();
+  u64bit siz = 0;
+  setFibonacciEncodedNumber(_bfr, _bit, &siz, val);
+  _bit += siz;
+}
+
+
+
+
+
 
 
 
@@ -163,51 +168,50 @@ bitPackedFileReader::~bitPackedFileReader() {
     fclose(_in);
 }
 
-//  Essentially getDecodedValue, but will update _WORD and _bit.
-//
-u64bit
-bitPackedFileReader::getBits(u32bit size) {
-  u64bit wd  = (_bit >> 6) & 0x0000cfffffffffffllu;
-  u64bit bt  = (_bit     ) & 0x000000000000003fllu;
-  u64bit b1  = 64 - bt;
-  u64bit b2  = size - b1;  //  Only used if siz > b1
-  u64bit ret = 0;
 
-  assert(size < 65);
-  assert(size > 0);
 
-  _bit += size;
+void
+bitPackedFileReader::fill(void) {
 
-  //  If we are in the last word of the buffer, we should refill.
-  //  This is done by copying the last word to the first word,
-  //  then reading BUFFER_SIZE-1 new words.
-  //
-  if (wd == BUFFER_SIZE-1) {
-    _bfr[0] = _bfr[BUFFER_SIZE-1];
-    _bit -= ((BUFFER_SIZE-1) * 64);
-    wd = 0;
+  if ((_bit >> 6) >= (BUFFER_SIZE-2)) {
+    _bfr[0] = _bfr[BUFFER_SIZE-2];
+    _bfr[1] = _bfr[BUFFER_SIZE-1];
+    _bit   -= ((BUFFER_SIZE-2) * 64);
+
     errno = 0;
-    size_t bytesread = fread(_bfr+1, sizeof(u64bit), BUFFER_SIZE-1, _in);
+    size_t bytesread = fread(_bfr+2, sizeof(u64bit), BUFFER_SIZE-2, _in);
     if (errno) {
       fprintf(stderr, "bitPackedFileReader::getBits got %s\n", strerror(errno));
       exit(1);
     }
 
-    //  Clear any bytes that we didn't read (EOF)
-    bytesread++;
-
-    while (bytesread < BUFFER_SIZE)
-      _bfr[bytesread++] = 0;
+    //  Clear any bytes that we didn't read (supposedly, because we
+    //  hit EOF).  The +2 is because we started with a buffer with 2
+    //  words in it.
+    //
+    for (bytesread += 2; bytesread < BUFFER_SIZE; bytesread++)
+      _bfr[bytesread] = u64bitZERO;
   }
+}
 
-  if (b1 >= size) {
-    ret = _bfr[wd] >> (b1 - size);
-  } else {
-    ret  = (_bfr[wd] & u64bitMASK(b1)) << b2;
-    ret |= (_bfr[wd+1] >> (64 - b2)) & u64bitMASK(b2);
-  }
 
-  ret &= u64bitMASK(size);
-
+//  Essentially getDecodedValue, but will update _WORD and _bit.
+//
+u64bit
+bitPackedFileReader::getBits(u32bit siz) {
+  fill();
+  u64bit ret = getDecodedValue(_bfr, _bit, siz);
+  _bit += siz;
   return(ret);
 }
+
+
+u64bit
+bitPackedFileReader::getNumber(void) {
+  fill();
+  u64bit siz = 0;
+  u64bit ret = getFibonacciEncodedNumber(_bfr, _bit, &siz);
+  _bit += siz;
+  return(ret);
+}
+

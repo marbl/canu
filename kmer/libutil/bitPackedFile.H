@@ -11,7 +11,10 @@ public:
   ~bitPackedFileWriter();
 
   void       putBits(u64bit bits, u32bit size);
+  void       putNumber(u64bit val);
 private:
+  void       flush(void);
+
   FILE     *_out;
   bool      _pipe;
   u64bit   *_bfr;
@@ -25,7 +28,10 @@ public:
   ~bitPackedFileReader();
 
   u64bit     getBits(u32bit size);
+  u64bit     getNumber(void);
 private:
+  void       fill(void);
+
   FILE     *_in;
   bool      _pipe;
   u64bit   *_bfr;
