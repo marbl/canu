@@ -145,7 +145,7 @@ mapFile(const char *filename, size_t *length, char mode) {
 
   *length = sb.st_size;
 
-  ptr = mmap(0L, *length, mapMode, MMAPFLAGS, f, 0);
+  ptr = mmap(0L, *length, mapMode, MMAPFLAGS, f, (off_t)0);
   if (errno) {
     fprintf(stderr, "Couldn't mmap() '%s'\n%s\n", filename, strerror(errno));
     exit(1);
@@ -205,9 +205,9 @@ copyFile(char *srcName, FILE *dstFile) {
     errno = 0;
 
     if (bytesRemain > bufferSize)
-      bytesRead = fread(buffer, sizeof(char), bufferSize, srcFile);
+      bytesRead = fread(buffer, sizeof(char), (size_t)bufferSize, srcFile);
     else
-      bytesRead = fread(buffer, sizeof(char), bytesRemain, srcFile);
+      bytesRead = fread(buffer, sizeof(char), (size_t)bytesRemain, srcFile);
 
     if (errno) {
       fprintf(stderr, "copyFile()-- Error reading source: %s\n", strerror(errno));
@@ -220,7 +220,7 @@ copyFile(char *srcName, FILE *dstFile) {
     }
 
     if (bytesRead > 0) {
-      fwrite(buffer, sizeof(char), bytesRead, dstFile);
+      fwrite(buffer, sizeof(char), (size_t)bytesRead, dstFile);
 
       if (errno) {
         fprintf(stderr, "copyFile()-- Error writing %d bytes to destination: %s\n", (int)bytesRead, strerror(errno));
