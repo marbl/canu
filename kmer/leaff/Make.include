@@ -46,12 +46,12 @@ ${$/.CXX_EXES}:   ${LIBBRI/}libbri.a
 $/buildinfo-leaff.c: $/buildinfo-leaff.h
 $/buildinfo-leaff.h: $/leaff.C
 	${UTIL/}buildinfo.pl leaff "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
-	mv buildinfo-leaff.[ch] `dirname $@`
+	[ `dirname $@` = "." ] || mv buildinfo-leaff.[ch] `dirname $@`
 
 $/buildinfo-libfasta.c: $/buildinfo-libfasta.h
 $/buildinfo-libfasta.h: ${src}
 	${UTIL/}buildinfo.pl libfasta "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
-	mv buildinfo-libfasta.[ch] `dirname $@`
+	[ `dirname $@` = "." ] || mv buildinfo-libfasta.[ch] `dirname $@`
 
 $/%.d $/%.o:  CXXFLAGS+=-I${LIBBRI/}
 
