@@ -1387,7 +1387,7 @@ sub search {
     #
     foreach my $s (@scafList) {
         open(F, "> $path/1-search/$s.cmd");
-        print F "$searchGENOME $verbose -binary -mersize $mersize $opts $maxintron -numthreads $numthread";
+        print F "$searchGENOME $verbose -binary -mersize $mersize $maxintron $opts -numthreads $numthread";
         print F " -cdna $path/0-input/cDNA.fasta";
         print F " -genomic $path/0-input/genomic.fasta";
         print F " -use $path/0-input/scaffolds-$s";
