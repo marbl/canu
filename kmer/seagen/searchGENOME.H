@@ -140,8 +140,6 @@ public:
   void  read(int argc, char **argv);
   void  display(FILE *out=stdout);
 
-  void  completeUseList(FastAWrapper *db);
-
   void  setTime(struct timespec *ts, double t) {
     ts->tv_sec  = (time_t)floor(t);
     ts->tv_nsec = (long)((t - ts->tv_sec) * 1e9);
