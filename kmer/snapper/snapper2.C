@@ -6,15 +6,11 @@
 #include "bri++.H"
 
 #ifdef TRUE64BIT
-char const *buildMessage       = "Building chunk with %u sequences.\n";
 char const *outputDisplay      = "O:%7u S:%7u I:%7u T:%7u (%5.1f%%; %8.3f/sec) Finish in %5.2f seconds.\r";
 char const *outputDisplayFinal = "\n%7u sequences (%5.1f%%; %8.3f/sec) %5.2f seconds.\n";
-char const *countMessage       = "%u\n";
 #else
-char const *buildMessage       = "Building chunk with %lu sequences.\n";
 char const *outputDisplay      = "O:%7lu S:%7lu I:%7lu T:%7lu (%5.1f%%; %8.3f/sec) Finish in %5.2f seconds.\r";
 char const *outputDisplayFinal = "\n%7lu sequences (%5.1f%%; %8.3f/sec) %5.2f seconds.\n";
-char const *countMessage       = "%lu\n";
 #endif
 
 
@@ -61,7 +57,7 @@ buildPositionDB(void) {
   config.completeUseList(cache->fasta()->getNumberOfSequences());
 
   if (config._beVerbose)
-    fprintf(stderr, buildMessage, config._useListLen);
+    fprintf(stderr, "Building chunk with "u32bitFMT" sequences.\n", config._useListLen);
 
   //  sum the length of the sequences, including the padding.
   //
@@ -104,6 +100,29 @@ buildPositionDB(void) {
     
     *t = 0;
 
+
+    //  Build a merStream from the sequence.  In the future, we should put this
+    //  thing on disk, since the search doesn't require sequence, and thus
+    //  we could make a bigger table in the same footprint if we didn't have
+    //  the sequence in core too.
+    //
+    merStream            *MS = 0L;
+    merStreamFileBuilder *MB = 0L;
+    merStreamFileReader  *MR = 0L;
+
+    if (config._beVerbose)
+      fprintf(stderr, "Storing the sequence in a compressed merStreamFile.\n");
+    MS = new merStream(config._merSize, s, sLen);
+    MB = new merStreamFileBuilder(MS, config._tmpFileName);
+    MB->build();
+
+    delete    MB;
+    delete    MS;
+    delete [] s;
+
+    MR = new merStreamFileReader(config._tmpFileName);
+    MS = new merStream(MR);
+
     //  Figure out a nice size of the hash.
     //
     //  XXX:  This probably should be tuned.
@@ -115,14 +134,9 @@ buildPositionDB(void) {
     if (sLen <  2 * 1024 * 1024) tblSize = 21;
     if (sLen <  1 * 1024 * 1024) tblSize = 20;
 
-    //  Build a merStream from the sequence.  Write this to disk in the future.
-    //
-    merStream *MS = new merStream(config._merSize, s, 0);
-
     positions = new positionDB(MS, config._merSize, config._merSkip, tblSize, 0L, 0L, config._beVerbose);
 
     delete    MS;
-    delete [] s;
 
     if (config._psFileName) {
       if (config._beVerbose)
@@ -312,6 +326,17 @@ main(int argc, char **argv) {
 
   config._buildTime = getTime();
 
+
+#ifdef MEMORY_DEBUG
+  fprintf(stdout, "----------------------------------------\n");
+  fprintf(stdout, "--\n");
+  fprintf(stdout, "--\n");
+  fprintf(stdout, "--  Dump at start\n");
+  fprintf(stdout, "--\n");
+  fprintf(stdout, "--\n");
+  _dump_allocated_delta(fileno(stdout));
+#endif
+
   //
   //  Configure sim4
   //
@@ -348,10 +373,6 @@ main(int argc, char **argv) {
   //  Start the loader thread
   //
   pthread_create(threadID + threadIDX++, &threadAttr, loaderThread, 0L);
-
-#ifdef MEMORY_DEBUG
-  _dump_allocated_delta(fileno(stdout));
-#endif
 
   //
   //  Start the search threads
@@ -465,7 +486,8 @@ main(int argc, char **argv) {
       double thisTimeD = getTime() - zeroTime + 0.0000001;
       double perSec    = outputPos / thisTimeD;
       double remTime   = (numberOfQueries - outputPos) * thisTimeD / outputPos;
-      fprintf(stderr, outputDisplay,
+
+      fprintf(stderr, "O:"u32bitFMTW(7)" S:"u32bitFMTW(7)" I:%7u T:"u32bitFMTW(7)" (%5.1f%%; %8.3f/sec) Finish in %5.2f seconds.\r",
               outputPos,
               inputTail,
               inputHead,
@@ -486,12 +508,11 @@ main(int argc, char **argv) {
     }
   }
 
-  if (config._beVerbose) {
-    fprintf(stderr, outputDisplayFinal,
+  if (config._beVerbose)
+    fprintf(stderr, "\n"u32bitFMTW(7)" sequences in %5.2f seconds, %8.3f per second.\n",
             numberOfQueries,
-            100.0 * outputPos / numberOfQueries,
-            getTime() - zeroTime);
-  }
+            getTime() - zeroTime,
+            numberOfQueries / (getTime() - zeroTime));
 
   errno = 0;
   close(resultFILE);
@@ -542,6 +563,16 @@ main(int argc, char **argv) {
     if (config._statsFileName)
       fclose(F);
   }
+
+#ifdef MEMORY_DEBUG
+  fprintf(stdout, "----------------------------------------\n");
+  fprintf(stdout, "--\n");
+  fprintf(stdout, "--\n");
+  fprintf(stdout, "--  Dump at end\n");
+  fprintf(stdout, "--\n");
+  fprintf(stdout, "--\n");
+  _dump_allocated_delta(fileno(stdout));
+#endif
 
   return(0);
 }

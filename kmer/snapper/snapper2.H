@@ -127,6 +127,8 @@ public:
   char            *_outputFileName;
   char            *_statsFileName;
 
+  char            *_tmpFileName;
+
   u32bit           _useListLen;
   u32bit           _useListMax;
   use_s           *_useList;

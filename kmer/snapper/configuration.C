@@ -48,6 +48,7 @@ configuration::configuration(void) {
   _onlyFileName         = 0L;
   _outputFileName       = 0L;
   _statsFileName        = 0L;
+  _tmpFileName          = 0L;
 
   _useList              = 0L;
   _useListLen           = 0;
@@ -390,6 +391,9 @@ configuration::read(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-stats") == 0) {
       arg++;
       _statsFileName = argv[arg];
+    } else if (strcmp(argv[arg], "-tmp") == 0) {
+      arg++;
+      _tmpFileName = argv[arg];
     } else if (strcmp(argv[arg], "-maxdiagonal") == 0) {
       arg++;
       _maxDiagonal = atoi(argv[arg]);
@@ -566,6 +570,11 @@ configuration::display(FILE *out) {
       fprintf(out, "statsFile           = '%s'\n", _statsFileName);
     else
       fprintf(out, "statsFile           = None Specified.\n");
+
+    if (_tmpFileName)
+      fprintf(out, "tmpFile             = '%s'\n", _statsFileName);
+    else
+      fprintf(out, "tmpFile             = None Specified.\n");
 
     fprintf(out, "\n");
   }
