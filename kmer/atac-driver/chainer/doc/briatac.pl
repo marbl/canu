@@ -67,8 +67,6 @@ my $segmentIDtorun = undef;
 my $buildOnly      = undef;
 
 my $execHome;
-#$execHome = "/work/assembly/walenzbp/releases";
-#$execHome = "/test/IR/walenz/cds/IR/BRI/bin";
 
 while (scalar(@ARGV) > 0) {
     my $arg = shift @ARGV;
