@@ -263,11 +263,12 @@ comparePolishFiles(int argc, char **argv) {
   u32bit  thisB = 0;
   u32bit  lastB = 0;
 
-  u32bit  Bmissed = 0;
-  u32bit  Abetter = 0;
-  u32bit  Bbetter = 0;
-  u32bit  Nbetter = 0;
-  u32bit  Equal   = 0;
+  u32bit  Bmissed  = 0;
+  u32bit  Boverlap = 0;
+  u32bit  Abetter  = 0;
+  u32bit  Bbetter  = 0;
+  u32bit  Nbetter  = 0;
+  u32bit  Equal    = 0;
 
   while (thisA < A.length()) {
     u32bit  largestF = 0;
@@ -284,6 +285,8 @@ comparePolishFiles(int argc, char **argv) {
 
     thisB = lastB;
 
+    bool    overlapped = false;
+
     //  Scan forward in B comparing matches with the same IID.
     //
     while ((A[thisA]->estID == B[thisB]->estID) && (thisB < B.length())) {
@@ -291,13 +294,20 @@ comparePolishFiles(int argc, char **argv) {
       if ((A[thisA]->estID            == B[thisB]->estID) &&
           (A[thisA]->genID            == B[thisB]->genID) &&
           (A[thisA]->matchOrientation == B[thisB]->matchOrientation)) {
+
+        overlapped = s4p_IsRegionOverlap(A[thisA], B[thisB]);
+
         u32bit  f, a, b;
 
         //s4p_compareExons_Ends(A[thisA], B[thisB], 15, &f, &a, &b);
         s4p_compareExons_Overlap(A[thisA], B[thisB], 0.75, &f, &a, &b);
 
-
-        //fprintf(stderr, "A=%d B=%d  f=%d a=%d b=%d\n", thisA, thisB, f, a, b);
+        //  If we haven't found a good match yet, and we
+        //  are overlapping, save thisB
+        //
+        if ((largestF == 0) && (bestB == 0) && (overlapped)) {
+          bestB = thisB;
+        }
 
         //  We want to maximize F while minimizing A+B
         //
@@ -323,14 +333,21 @@ comparePolishFiles(int argc, char **argv) {
     }
 
     if (largestF == 0) {
-      //  Thing in A was not found in B
-      fprintf(stdout, "Amissed\n");
-      s4p_printPolish(stdout, A[thisA], S4P_PRINTPOLISH_FULL | S4P_PRINTPOLISH_NORMALIZED);
-      Bmissed++;
+      if (overlapped) {
+        //  Thing in A overlapped something in B
+        fprintf(stdout, "A not found in B, but overlapped\n");
+        s4p_printPolish(stdout, A[thisA], S4P_PRINTPOLISH_FULL | S4P_PRINTPOLISH_NORMALIZED);
+        s4p_printPolish(stdout, B[bestB], S4P_PRINTPOLISH_FULL | S4P_PRINTPOLISH_NORMALIZED);
+        Boverlap++;
+      } else {
+        //  Thing in A was not found in B
+        fprintf(stdout, "A not found in B\n");
+        s4p_printPolish(stdout, A[thisA], S4P_PRINTPOLISH_FULL | S4P_PRINTPOLISH_NORMALIZED);
+        Bmissed++;
+      }
     } else if ((largestF == A[thisA]->numExons) && (largestF == B[bestB]->numExons)) {
       //  We matched all exons
       Equal++;
-      //fprintf(stderr, "Equal for A=%d B=%d\n", thisA, bestB);
     } else if ((largestA == 0) && (largestB == 0)) {
       //  Shouldn't happen; didn't match all exons, and didn't miss any.
       fprintf(stderr, "\nBoth A and B are zero and f != num exons  f=%d  a=%d  b=%d??\n", largestF, A[thisA]->numExons, B[bestB]->numExons);
@@ -361,14 +378,14 @@ comparePolishFiles(int argc, char **argv) {
     thisA++;
 
 #if 1
-    fprintf(stderr, "A=%6d  B=%6d  Equal %6d  Bmissed %6d  Abetter %6d  Bbetter %6d  Nbetter %6d\r",
-            thisA, lastB, Equal, Bmissed, Abetter, Bbetter, Nbetter);
+    fprintf(stderr, "A=%6d  B=%6d  Equal %6d  Bmissed %6d  Boverlap %6d  Abetter %6d  Bbetter %6d  Nbetter %6d\r",
+            thisA, lastB, Equal, Bmissed, Boverlap, Abetter, Bbetter, Nbetter);
     fflush(stderr);
 #endif
   }
 
-  fprintf(stderr, "A=%6d  B=%6d  Equal %6d  Bmissed %6d  Abetter %6d  Bbetter %6d  Nbetter %6d\n",
-          thisA, lastB, Equal, Bmissed, Abetter, Bbetter, Nbetter);
+  fprintf(stderr, "A=%6d  B=%6d  Equal %6d  Bmissed %6d  Boverlap %6d  Abetter %6d  Bbetter %6d  Nbetter %6d\n",
+          thisA, lastB, Equal, Bmissed, Boverlap, Abetter, Bbetter, Nbetter);
 }
 
 
