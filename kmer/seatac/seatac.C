@@ -111,6 +111,13 @@ buildChunk(void) {
   if (sLen <  1 * 1024 * 1024)
     tblSize = 20;
 
+  if ((config._maskFileName || config._onlyFileName) && !config._tmpFileName) {
+    fprintf(stderr, "ERROR:  No temporary file supplied, but mask/only is enabled!\n");
+    fprintf(stderr, "        The positionDB needs a temporary file to do masking!\n");
+    fprintf(stderr, "        (use the -tmpfile option)\n");
+    exit(1);
+  }
+
   existDB *maskDB = 0L;
   if (config._maskFileName) {
     if (config._beVerbose)
