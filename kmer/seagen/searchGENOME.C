@@ -147,8 +147,12 @@ openResultFile(void) {
 int
 main(int argc, char **argv) {
 
-  fprintf(stderr, "Requesting exceptions from new.\n");
+#ifdef _AIX
+  //  By default, AIX Visual Age C++ new() returns 0L; this turns on
+  //  exceptions.
+  //
   std::__set_new_throws_exception(true);
+#endif
 
   //  Read the configuration from the command line
   //
