@@ -21,9 +21,11 @@ src    := $/alphabet.c \
           $/bitOperations.h \
           $/bitPackedFile.C \
           $/bitPacking.h \
-          $/fibonacciEncoding.H \
+          $/fibonacciEncoding.h \
           $/fibonacciNumbers.C \
-          $/unaryEncoding.H
+          $/eliasGammaEncoding.h \
+          $/eliasDeltaEncoding.h \
+          $/unaryEncoding.h
 
 
 $/.C_SRCS    :=$(filter %.c,${src})
