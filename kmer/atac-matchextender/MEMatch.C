@@ -154,9 +154,14 @@ MEMatch::consume(const MEMatch& m2) {
 void 
 MEMatch::textDump(ostream& dest, bool show_seq, unsigned int margin) {
   u64bit p1 = pos1();
-  u64bit p2;
+  u64bit p2 = pos2();
   SeqOff_t num_print = len() + 2 * margin;
   SeqOff_t i;
+
+  FastAAccessor   A(s1(), false);
+  FastAAccessor   B(s2(), isReversed());
+
+  B.setReverseComplementRange(pos2(), len());
 
   dest << "ID : " << id() << "  Pos1: " << pos1() << "  Pos2: " << pos2()
        << "  Len: " << len() << '\n'
@@ -170,33 +175,77 @@ MEMatch::textDump(ostream& dest, bool show_seq, unsigned int margin) {
   if (show_seq) {
     dest << ">>> ";
 
+    //  Print the margin, or move the sequence back
+    //
     if (p1 < margin) {
       for (i = 0; i < (margin - p1); ++i)
 	dest << ' ';
       p1 = 0;
-    }
-    else {
+    } else {
       p1 = p1 - margin;
       i = 0;
     }
+    A.setPosition(p1);
 
-    for (; i < num_print; ++i, p1++) {
+    for (; i < num_print; ++i, p1++, ++A) {
       if ((i == margin) || (i == (num_print - margin)))
 	dest << '|';
-      if (p1 >= (u64bit) _s1->sequenceLength())
+      if (A.isValid() == false)
 	dest << ' ';
       else
-	dest << _s1->sequence()[p1];
+	dest << *A;
     }
     dest << '\n';
 
+
+
+    //  Print the margin, or move the sequence back
+    //
     if (isReversed()) {
+      dest << "<<< ";
+
+      if (p2 + len() + margin > _s2->sequenceLength()) {
+        for (i = 0; i < (p2 + len() + margin - _s2->sequenceLength()); ++i)
+          dest << ' ';
+        //p2 = 0;
+      } else {
+        p2 = p2 - margin;
+        i = 0;
+      }
+    } else {
+      dest << ">>> ";
+
+      if (p2 < margin) {
+        for (i = 0; i < (margin - p2); ++i)
+          dest << ' ';
+        p2 = 0;
+      } else {
+        p2 = p2 - margin;
+        i = 0;
+      }
+    }
+    B.setPosition(p2);
+
+    for (; i < num_print; ++i, p2++, ++B) {
+      if ((i == margin) || (i == (num_print - margin)))
+	dest << '|';
+      if (B.isValid() == false)
+	dest << ' ';
+      else
+	dest << *B;
+    }
+    dest << '\n';
+
+
+#if 0
+
+    if (isReversed()) {
+
       //SeqArrayAccessor s2a(_s2);
       //ReverseComplement s2rc(s2a);
 
       p2 = pos2();
 
-      dest << "<<< ";
 
       if (p2 < margin) {
 	for (i = 0; i < (margin - p2); ++i)
@@ -245,6 +294,7 @@ MEMatch::textDump(ostream& dest, bool show_seq, unsigned int margin) {
       }
     }
     dest << '\n';
+#endif
   }
 }
 

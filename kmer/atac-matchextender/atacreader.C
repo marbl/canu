@@ -30,26 +30,34 @@ using namespace std;
 ATACreader::ATACreader(MatchExtenderParameters *p,
                        string infile,
                        string outfile) {
+  _params = p;
+
+  _isExtender = (outfile != "");
+  //  _nextMatch is uninitialized
+  _eof        = false;
+
   _atacData = new AtacDataset();
   _atacData->setInputFile(infile);
 
-  if (outfile != "") {
+  if (outfile != "")
     _atacData->setOutputFile(outfile);
-    _isExtender = true;
-  } else {
-    _isExtender = false;
-  }
 
-  _eof = false;
+  _s1Reader    = 0L;
+  _prefix1     = "";
+  _asmID1      = "";
+  _curAxis1    = "";
+  _curAxis1Seq = 0L;
+  _asmID1Len   = 0;
 
-  _s1Reader = NULL;
-  _s2Reader = NULL;
+  _s2Reader    = 0L;
+  _prefix2     = "";
+  _asmID2      = "";
+  _curAxis2    = "";
+  _curAxis2Seq = 0L;
+  _asmID2Len   = 0;
 
   _numRead    = 0;
   _numWritten = 0;
-  _asmID1Len  = 0;
-  _asmID2Len  = 0;
-  _params     = p;
 }
 
 
@@ -72,10 +80,12 @@ ATACreader::processPreamble(void) {
 
   _atacData->readGlobalData();
 
+
   if (_atacData->hasAttribute("assemblyFilePrefix1"))
     _prefix1 = _atacData->getAttributeString("assemblyFilePrefix1");
   if (_atacData->hasAttribute("assemblyFilePrefix2"))
     _prefix2 = _atacData->getAttributeString("assemblyFilePrefix2");
+
 
   if (_atacData->hasAttribute("assemblyId1")) {
     _asmID1 = _atacData->getAttributeString("assemblyId1");
@@ -84,13 +94,13 @@ ATACreader::processPreamble(void) {
     return false;
   }
 
-
   if (_atacData->hasAttribute("assemblyId2")) {
     _asmID2 = _atacData->getAttributeString("assemblyId2");
     _asmID2Len = _asmID2.size();
   } else {
     return false;
   }
+
 
   if (_isExtender) {
     // Append parameters to global info if necessary
@@ -108,8 +118,10 @@ ATACreader::processPreamble(void) {
     _atacData->writeGlobalData();
   }
 
+
   //  Read the first match
   //
+  fprintf(stderr, "Reading the next match!\n");
   _eof = !(_atacData->readNextMatch(_nextMatch));
 
   return true;
@@ -134,7 +146,7 @@ ATACreader::getNextMatchBatches(vector<MEMatch *>& fwd_matches,
   axis2 = _nextMatch.getGenomicAxisId(1);
 
   if (axis1 != _curAxis1) {
-    delete _curAxis1Seq;
+    //delete _curAxis1Seq;
     if (_params->beVerbose) 
       cerr << " * Fetching sequence for axis1 = " << axis1 << endl;
     axis_iid = axis1.substr(_asmID1Len + 1);
@@ -149,7 +161,7 @@ ATACreader::getNextMatchBatches(vector<MEMatch *>& fwd_matches,
   s1 = _curAxis1Seq;
   
   if (axis2 != _curAxis2) { 
-    delete _curAxis2Seq;
+    //delete _curAxis2Seq;
     if (_params->beVerbose) 
       cerr << " * Fetching sequence for axis2 = " << axis2 << endl;
     axis_iid = axis2.substr(_asmID2Len + 1);
@@ -176,11 +188,21 @@ ATACreader::getNextMatchBatches(vector<MEMatch *>& fwd_matches,
     if ((!_isExtender) && (_nextMatch.getTypeId() == "r"))
       continue;
 
-    assert(_nextMatch.getLength(0) == _nextMatch.getLength(1));
-    assert(_nextMatch.getOrientation(0) == 1);
-    assert((_nextMatch.getOrientation(1) == 1) || 
-	   (_nextMatch.getOrientation(1) == -1));
-    
+    if (_nextMatch.getLength(0) != _nextMatch.getLength(1)) {
+      fprintf(stderr, "_nextMatch.getLength(0)=%d != _nextMatch.getLength(1)=%d\n",
+              _nextMatch.getLength(0),
+              _nextMatch.getLength(1));
+    }
+
+    if (_nextMatch.getOrientation(0) != 1) {
+      fprintf(stderr, "WARNING:  getOrientation(0) is not 1!\n");
+    }
+
+    if ((_nextMatch.getOrientation(1) != 1) &&
+        (_nextMatch.getOrientation(1) != -1)) {
+      fprintf(stderr, "WARNING:  getOrientation(1) is not 1 or -1!\n");
+    }
+
     _numRead++;
 
     m = MEMatch::getNewMatch(_nextMatch.getId(),

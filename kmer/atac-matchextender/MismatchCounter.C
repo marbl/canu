@@ -163,8 +163,6 @@ main(int argc, char *argv[]) {
   string                  prefix1;
   string                  prefix2;
   string                  infile;
-  bool                    override_pre1 = false;
-  bool                    override_pre2 = false;
   time_t                  start_t;
   time_t                  end_t;
   u32bit                  dp;
@@ -185,18 +183,6 @@ main(int argc, char *argv[]) {
 
     case 'v':
       DEF_VERBOSE++;
-      break;
-
-    case 'x':
-      prefix1 = optarg;
-      override_pre1 = true;
-      cerr << " * Prefix 1 = " << prefix1 << endl;
-      break;
-
-    case 'y':
-      prefix2 = optarg;
-      override_pre2 = true;
-      cerr << " * Prefix 2 = " << prefix2 << endl;
       break;
 
     case 'h':
@@ -240,16 +226,6 @@ main(int argc, char *argv[]) {
 
   cerr << " * First parsing pass to extract global variables ..." << endl;
   atac_me.processPreamble();
-
-  if (!override_pre1) {
-    prefix1 = atac_me.filePrefix1();
-    cerr << " * Prefix 1 = " << prefix1 << endl;
- }
-
-  if (!override_pre2) {
-    prefix2 = atac_me.filePrefix2();
-    cerr << " * Prefix 2 = " << prefix2 << endl;
-  }
 
   atac_me.setFastaFiles(prefix1 + ".fasta", prefix2 + ".fasta");
 
