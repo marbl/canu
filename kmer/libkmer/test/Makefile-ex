@@ -1,0 +1,30 @@
+
+#  Bigger tblsize makes this much faster, but uses more memory (not
+#  much, really).  23 is nice.
+
+all:
+	@echo These are expensive tests.  They take:
+	@echo   70 minutes on 2GHz G5
+	@echo If you really want to run them, do \'make passed\'.
+
+passed: passed1 passed2 passed3
+	touch passed
+
+x.fasta: ../../fasta/leaff
+	../../fasta/leaff -G 1000 5000 10000 > x.fasta
+
+passed1: ../existDB x.fasta
+	../existDB -mersize 17 -tblsize 23 -testfiles x.fasta junk
+	touch passed1
+
+passed2: ../existDB x.fasta
+	../existDB -mersize 17 -tblsize 23 -testexistence x.fasta
+	touch passed2
+
+passed3: ../existDB x.fasta ../../meryl/meryl
+	../../meryl/meryl -B -f -m 17 -s x.fasta -o x
+	../existDB -mersize 17 -tblsize 23 -testexhaustive x.fasta x
+	touch passed3
+
+clean:
+	rm -f passed* junk.1 x.fasta x.mcidx x.mcdat x.merStream
