@@ -16,7 +16,7 @@ int main(void) {
     printf("1000 outputs of genrand_int32()\n");
 
     for (i=0; i<1000; i++) {
-      printf("%10lu ", mtRandom32(ctx));
+      printf(u32bitFMTW(10)" ", mtRandom32(ctx));
       if (i%5==4) printf("\n");
     }
 
