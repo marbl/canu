@@ -36,5 +36,9 @@ $/alphabet.h:  $/alphabet-generate.c
 	$(CC) $(CFLAGS) $(CFLAGS_COMPILE) -o `dirname $@`/a.out -DMAIN $<
 	cd `dirname $@` ; ./a.out && rm -f a.out
 
-
+$/test-bitpackedfile:
+	$(CXX) $(CXXFLAGS) $(CXXFLAGS_COMPILE) -o $/bitPackedFileTester -DTEST $/bitPackedFile.C $/bit-packing.C
+	$/./bitPackedFileTester 5000000 200
+	echo Tests passed\!
+	rm -f $/bitPackedFileTester
 
