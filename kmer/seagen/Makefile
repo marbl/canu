@@ -34,6 +34,9 @@ filterMRNA: filterMRNA.o
 sortHits: sortHits.o
 	$(CC) $(CCOPTS) -o sortHits sortHits.o
 
+filtertest: filtertest.o
+	$(CC) $(CCOPTS) -o filtertest filtertest.o
+
 buildinfo-searchGENOME.c: $(SRCS)
 	../util/buildinfo.pl searchGENOME "$(CCOPTS)" $(SRCS)
 
