@@ -302,11 +302,6 @@ void
 configuration::read(int argc, char **argv) {
   int arg = 1;
 
-#ifdef _AIX
-  fprintf(stderr, "\n\nCONFIGURATION BEING READ!\n\n");
-  fflush(stderr);
-#endif
-
   while (arg < argc) {
     if        (strcmp(argv[arg], "-mersize") == 0) {
       arg++;

@@ -8,11 +8,9 @@ SRCS    = alphabet-generate.C alphabet.C bit-packing.H bitPackedFile.C bitPacked
           sequencemanager.H speedCounter.H util.C
 OBJS    = alphabet.o bitPackedFile.o merstream.o fasta.o util.o fasta-c.o palloc.o sim4reader.o
 
-# AIX needs ar -X 64
-
 libbri.a: buildinfo-libbri.o $(OBJS)
 	rm -f libbri.a
-	ar ruv libbri.a buildinfo-libbri.o $(OBJS)
+	ar $(AROPTS) ruv libbri.a buildinfo-libbri.o $(OBJS)
 
 #alphabet.o: alphabet.C
 #	$(CC) $(CCOPTS) -c -o $*.o $*.C
