@@ -376,60 +376,108 @@ positionDB::positionDB(merStream   *MS,
     exit(1);
   }
 
-  while (MS->nextMer(_merSkipInBases)) {
-    u64bit h = HASH(MS->theFMer());
+  //
+  //  Grrr.  We used to have the mers filtered already, but no more.
+  //  So, we need to do the ugly masking again.  Debugging checks are
+  //  only enabled for _unmasked_ builds (seatac is currently the only
+  //  client that uses masking)
+  //
+
+  if (mask) {
+
+    while (MS->nextMer(_merSkipInBases)) {
+      u64bit  canonicalmer = MS->theFMer();
+      if (canonicalmer > MS->theRMer())
+        canonicalmer = MS->theRMer();
+
+      if (!mask->exists(canonicalmer)) {
+        u64bit h = HASH(MS->theFMer());
+        _bucketSizes[h]--;
+        setDecodedValue(_countingBuckets, (u64bit)_bucketSizes[h] * (u64bit)_wCnt, _wCnt,
+                        (CHECK(MS->theFMer()) << _posnWidth) | (MS->thePositionInStream() & _posnMask));
+      }
+
+#ifndef SILENTPOSITIONDB
+      C->tick();
+#endif
+    }
+
+
+  } else if (only) {
+
+    while (MS->nextMer(_merSkipInBases)) {
+      u64bit  canonicalmer = MS->theFMer();
+      if (canonicalmer > MS->theRMer())
+        canonicalmer = MS->theRMer();
+
+      if (only->exists(canonicalmer)) {
+        u64bit h = HASH(MS->theFMer());
+        _bucketSizes[h]--;
+        setDecodedValue(_countingBuckets, (u64bit)_bucketSizes[h] * (u64bit)_wCnt, _wCnt,
+                        (CHECK(MS->theFMer()) << _posnWidth) | (MS->thePositionInStream() & _posnMask));
+      }
+
+#ifndef SILENTPOSITIONDB
+      C->tick();
+#endif
+    }
+
+  } else {
+    while (MS->nextMer(_merSkipInBases)) {
+      u64bit h = HASH(MS->theFMer());
 
 #ifdef ERROR_CHECK_COUNTING
-    if (_bucketSizes[h] == 0) {
-      fprintf(stderr, "ERROR_CHECK_COUNTING: Bucket "u64bitFMT" ran out of things!  '%s'\n", h, MS->theFMerString());
-      fprintf(stderr, "ERROR_CHECK_COUNTING: Stream is at "u64bitFMT"\n", MS->thePositionInStream());
-    }
+      if (_bucketSizes[h] == 0) {
+        fprintf(stderr, "ERROR_CHECK_COUNTING: Bucket "u64bitFMT" ran out of things!  '%s'\n", h, MS->theFMerString());
+        fprintf(stderr, "ERROR_CHECK_COUNTING: Stream is at "u64bitFMT"\n", MS->thePositionInStream());
+      }
 #endif
 
-    _bucketSizes[h]--;
+      _bucketSizes[h]--;
 
 #ifdef ERROR_CHECK_COUNTING
-    _errbucketSizes[h]--;
+      _errbucketSizes[h]--;
 #endif
 
 
 #ifdef ERROR_CHECK_EMPTY_BUCKETS
-    if ((~getDecodedValue(_countingBuckets, (u64bit)_bucketSizes[h] * (u64bit)_wCnt, _wCnt)) & u64bitMASK(_wCnt))
-      fprintf(stdout, "ERROR_CHECK_EMPTY_BUCKETS: countingBucket not empty!  pos=%lu\n", _bucketSizes[h] * _wCnt);
+      if ((~getDecodedValue(_countingBuckets, (u64bit)_bucketSizes[h] * (u64bit)_wCnt, _wCnt)) & u64bitMASK(_wCnt))
+        fprintf(stdout, "ERROR_CHECK_EMPTY_BUCKETS: countingBucket not empty!  pos=%lu\n", _bucketSizes[h] * _wCnt);
 #endif
 
-    setDecodedValue(_countingBuckets, (u64bit)_bucketSizes[h] * (u64bit)_wCnt, _wCnt,
-                    (CHECK(MS->theFMer()) << _posnWidth) | (MS->thePositionInStream() & _posnMask));
+      setDecodedValue(_countingBuckets, (u64bit)_bucketSizes[h] * (u64bit)_wCnt, _wCnt,
+                      (CHECK(MS->theFMer()) << _posnWidth) | (MS->thePositionInStream() & _posnMask));
 
 
 #ifdef ERROR_CHECK_COUNTING_ENCODING
-    if ((MS->thePositionInStream() & _posnMask) != MS->thePositionInStream())
-      fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  POSNMASK "u64bitHEX" invalid!  Wanted "u64bitHEX" got "u64bitHEX"\n",
-              _posnMask,
-              MS->thePositionInStream(),
-              MS->thePositionInStream() & _posnMask);
+      if ((MS->thePositionInStream() & _posnMask) != MS->thePositionInStream())
+        fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  POSNMASK "u64bitHEX" invalid!  Wanted "u64bitHEX" got "u64bitHEX"\n",
+                _posnMask,
+                MS->thePositionInStream(),
+                MS->thePositionInStream() & _posnMask);
 #endif
 
 #ifdef ERROR_CHECK_COUNTING_ENCODING
-    u64bit v = getDecodedValue(_countingBuckets, (u64bit)_bucketSizes[h] * (u64bit)_wCnt, _wCnt);
+      u64bit v = getDecodedValue(_countingBuckets, (u64bit)_bucketSizes[h] * (u64bit)_wCnt, _wCnt);
 
-    //  This test is only valid if we have an extra bit at the start --
-    //  if we are planning on reusing the counting space for buckets.
-    //
-    if ((_wCnt == _wFin) && (0 != (v >> (_wCnt - 1))))
-      fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error: HBIT is set!      Wanted "u64bitHEX" got "u64bitHEX"\n",
-              (CHECK(MS->theFMer()) << _posnWidth) | (MS->thePositionInStream() & _posnMask), v);
-    if (CHECK(MS->theFMer()) != ((v >> _posnWidth) & _chckMask))
-      fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  CHCK corrupted!  Wanted "u64bitHEX" got "u64bitHEX"\n",
-              (CHECK(MS->theFMer()) << _posnWidth) | (MS->thePositionInStream() & _posnMask), v);
-    if (MS->thePositionInStream() != (v & _posnMask))
-      fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  POSN corrupted!  Wanted "u64bitHEX" got "u64bitHEX"\n",
-              (CHECK(MS->theFMer()) << _posnWidth) | (MS->thePositionInStream() & _posnMask), v);
+      //  This test is only valid if we have an extra bit at the start --
+      //  if we are planning on reusing the counting space for buckets.
+      //
+      if ((_wCnt == _wFin) && (0 != (v >> (_wCnt - 1))))
+        fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error: HBIT is set!      Wanted "u64bitHEX" got "u64bitHEX"\n",
+                (CHECK(MS->theFMer()) << _posnWidth) | (MS->thePositionInStream() & _posnMask), v);
+      if (CHECK(MS->theFMer()) != ((v >> _posnWidth) & _chckMask))
+        fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  CHCK corrupted!  Wanted "u64bitHEX" got "u64bitHEX"\n",
+                (CHECK(MS->theFMer()) << _posnWidth) | (MS->thePositionInStream() & _posnMask), v);
+      if (MS->thePositionInStream() != (v & _posnMask))
+        fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  POSN corrupted!  Wanted "u64bitHEX" got "u64bitHEX"\n",
+                (CHECK(MS->theFMer()) << _posnWidth) | (MS->thePositionInStream() & _posnMask), v);
 #endif
 
 #ifndef SILENTPOSITIONDB
-    C->tick();
+      C->tick();
 #endif
+    }
   }
 
 #ifndef SILENTPOSITIONDB
