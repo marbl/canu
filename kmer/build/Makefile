@@ -23,7 +23,11 @@ debug:
 # Compiler information and options.  Always get it from the same directory
 # as this makefile.
 MAKEFILE/ :=$(dir $(firstword $(MAKEFILE_LIST)))
+ifdef MAKECOMPILERS
+-include ${MAKECOMPILERS}
+else
 -include ${MAKEFILE/}Make.compilers
+endif
 
 ##### non-recursive make magic
 //           :=
