@@ -11,6 +11,7 @@ createFastA(char *file) {
   _fasta_c_private  *c = new _fasta_c_private;
   c->F = new FastAWrapper(file);
   c->F->openIndex();
+  c->B = 0L;
   return(c);
 }
 
