@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_UTL_version.c,v 1.4 2005-03-22 19:49:30 jason_miller Exp $";
+static char CM_ID[] = "$Id: AS_UTL_version.c,v 1.5 2005-03-30 21:04:28 eliv Exp $";
 
 #include "AS_UTL_version.h"
 #include "PrimitiveVA.h"
@@ -78,10 +78,11 @@ int VersionStampADTWithCommentAndVersion(AuditMesg *adt_mesg, int argc, char *ar
   int i;
   int rc;
   char *command_name = NULL;
-  char *adt_tmp_name = NULL;
+  char adt_tmp_name[] = "tmp_XXXXXX";
+  int fd;
   FILE *adt_tmp_file = NULL;
 
-  adt_tmp_name = tempnam(".","tmp_");
+  fd = mkstemp(adt_tmp_name);
   unlink(adt_tmp_name);
 
   SAFE_MALLOC(command_name, char, strlen(argv[0])+20+FILENAME_MAX);
@@ -89,7 +90,9 @@ int VersionStampADTWithCommentAndVersion(AuditMesg *adt_mesg, int argc, char *ar
   //  fprintf(stderr,"* Calling: %s\n", command_name);
   rc=system(command_name);
 
-  SAFE_FOPEN( adt_tmp_file, adt_tmp_name, "a");
+  adt_tmp_file = fdopen( fd, "a");
+  assert(NULL != adt_tmp_file);
+
   fprintf(adt_tmp_file,"\nComplete call: %s ",argv[0]);
   for (i=1;i<argc;i++) {
     fprintf(adt_tmp_file,"%s ",argv[i]);
@@ -143,6 +146,5 @@ int VersionStampADTWithCommentAndVersion(AuditMesg *adt_mesg, int argc, char *ar
     // free(auditLine);
     SAFE_FCLOSE(adt_tmp_file);
   }
-  SAFE_FREE(adt_tmp_name);
   return rc;
 } 
