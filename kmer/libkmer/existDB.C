@@ -338,6 +338,11 @@ existDB::saveState(char *filename) {
   fwrite(_hashTable, sizeof(u64bit), _hashTableWords, F);
   fwrite(_buckets,   sizeof(u64bit), _bucketsWords,   F);
 
+  if (errno) {
+    fprintf(stderr, "existDB::saveState()-- Write failure.\n%s\n", strerror(errno));
+    exit(1);
+  }
+
   fclose(F);
 }
 
@@ -414,6 +419,11 @@ existDB::readState(char *filename, bool beNoisy) {
   fread(_buckets,   sizeof(u64bit), _bucketsWords,   F);
 
   fclose(F);
+
+  if (errno) {
+    fprintf(stderr, "existDB::readState()-- Read failure.\n%s\n", strerror(errno));
+    exit(1);
+  }
 
   return(true);
 }
