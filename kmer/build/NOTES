@@ -7,12 +7,21 @@ use is gmake-3.80 with the GNU accepted patch for this problem
   http://savannah.gnu.org/bugs/?func=detailbug&bug_id=1517&group_id=71
 Patched source can be found around here somewhere.  Find Ross.
 
-On the AIX and Tru64 machines, this patched version of gmake-3.80 called
-'gmake-3.80a' exists and source should be at
+On the AIX machines, gmake-3.80 has this patch and will work just fine.
+On Tru64, the patched version of gmake-3.80 called 'gmake-3.80a' exists,
+and source should be at
   /usr/local/ir/ports/make-3.80-patched.tgz
 
+A symlink to the binary is at 
+  /usr/local/ir/bin/gmake
+on Tru64.  For convenience there is a symlink from
+  /usr/local/ir/bin/gmake
+to
+  /usr/local/bin/gmake
+on AIX.
+
 So to get started (using bash for command line examples)
-% alias make=/usr/local/ir/bin/gmake-3.80a
+% alias make=/usr/local/ir/bin/gmake
 
 To make all targets
 % make all
@@ -59,6 +68,18 @@ trigger a build).
   make clean all
 will work, if that is any consolation.
 
+Q) I am just too lazy to use a "-f $make" commandline  argument, and
+I feel uncomfortable building in the IR/build directory.  What else can
+I do?
+A) In the build directory is a special makefile called
+  Makefile.goto-build
+which will search up your CVS tree of the build directory and do
+the equivalent of 'make -f $make' with $make appropriately set to
+the right thing.  In the directory you want
+  cp ../../../IR/build/Makefile.goto-build Makefile
+  make
+and you should be set, you lazy bastard.
+
 Q) I use includes in other directories.  How do I add to the compiler
 include path for the objects in one directory without making a global
 change to Make.compilers?
@@ -94,7 +115,7 @@ be read at all for these directories.
 
 Q) The Make.compilers file sucks.  I've hacked up my own.  How do I
 use this instead?
-A) It is bad to do this.  But sometimes you just habe to.  You can
+A) It is bad to do this.  But sometimes you just have to.  You can
 override it by setting the variable MAKE_COMPILERS to the path (full
 or relative) of you Make.compilers file.  e.g.
   make MAKE_COMPILERS=/home/ripper/Make.compilers
@@ -102,7 +123,8 @@ or
   export MAKE_COMPILERS=/home/ripper/Make.compilers
   make
 If the Make.compilers file continues to be dissatisfying, then talk
-to me about it and we should work something out.
+to me about it and we should work something out.  Currently, this is
+a hack and may not last long.
 
 Q) I have this package that I want to build in the system, but I
 don't want to add all those Make.include files just to add it to the

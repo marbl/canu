@@ -26,7 +26,10 @@ debug:
 # Always get it from the same directory as this makefile.
 # Note: I should really change the name of Make.compilers to
 #       Makeconf or Make.config or something like that.
-MAKEFILE/ :=$(dir $(firstword $(MAKEFILE_LIST)))
+ifndef MAKEFILE/
+  MAKEFILE/ :=$(dir $(firstword $(MAKEFILE_LIST)))
+endif
+
 ifdef MAKE_COMPILERS
  include ${MAKE_COMPILERS}
 else
@@ -101,13 +104,6 @@ $(eval $(call Include_File,$/))
 
 %.o: %.C
 	${CXX} ${CXXFLAGS} ${CXXFLAGS_COMPILE} -o $@ -c $<
-
-# rules for LATEX
-%.dvi: %.tex
-	${LATEX} $< && ${LATEX} $<
-
-%.ps: %.dvi
-	${DVIPS} -o $@ $<
 
 ### Building depends goals
 # using '=' instead of ':=' for that dynamic scoping
@@ -184,6 +180,8 @@ ${ALL_CXX_SHLIBS}:
 	${CXX} ${CXXFLAGS} ${SHLIB_FLAGS} -o $@ $^ ${CXXLIBS}
 __SUBGOALS__+=$${${1:.=.CXX_SHLIBS}}
 
+# any other targets and target rules we dump in here
+-include ${MAKEFILE/}Make.rules
 
 ####### recursive rules, applied to all subdirectory targets
 # We define the basic form of the all, clean, ... rules on a
@@ -270,7 +268,8 @@ ${1:.=.install}: $${${1:.=.SUBS}:.=.install} ${__SUBGOALS__} \
 endef
 $(eval $(foreach x,${//},$(call .RULE-install,$x)))
 
-
+# another sort of debugging thing.  Let's me check on which targets
+# actually didn't get made, or got partially made
 LSOPTS:=-l
 ls:                                       $/.ls
 ${RECURSIVE:.=.ls}:
@@ -283,3 +282,5 @@ ${1:.=.ls}: $${${1:.=.SUBS}:.=.ls}
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-ls,$x)))
+
+

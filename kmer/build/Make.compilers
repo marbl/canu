@@ -195,8 +195,14 @@ DVIPS:=dvips
 ifeq (${_OS_},TRU64)
   LATEX  :=latex
   DVIPS  :=dvips
+  BIBTEX :=bibtex
+  VIEWPS :=ghostview
+  PRINTPS:=lpr -Pcelprt05
 endif
 ifeq (${_OS_},AIX)
   LATEX  :=latex
   DVIPS  :=dvips
+  BIBTEX :=bibtex
+  VIEWPS :=ghostview
+  PRINTPS:=lpr -Pcelprt05
 endif

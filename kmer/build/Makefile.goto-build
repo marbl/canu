@@ -1,0 +1,17 @@
+# -*- makefile -*-
+
+build:=$(shell while [ $$(pwd) != "/" -a ! -d build ] ; do \
+                 cd .. ; \
+               done ; \
+               echo $$(pwd) )
+
+ifeq (${build},/)
+  $(error Unable to find the build directory cds/IR/build)
+endif
+  
+
+MAKEFILE/ :=${build}/build/
+
+$(warning ***Relocating the build to ${MAKEFILE/}***)
+
+include ${MAKEFILE/}Makefile
