@@ -205,11 +205,6 @@ main(int argc, char **argv) {
   int          mergeFilesMax = sysconf(_SC_OPEN_MAX);
   FILE       **mergeFiles    = (FILE **)malloc(sizeof(FILE*) * mergeFilesMax);
 
-  if (mergeFiles == 0L) {
-    fprintf(stderr, "sortPolishes: Failed to initialize.\n");
-    exit(1);
-  }
-
   int          arg = 1;
   while (arg < argc) {
     if        (strncmp(argv[arg], "-v", 2) == 0) {
@@ -228,6 +223,11 @@ main(int argc, char **argv) {
       fprintf(stderr, "unknown option: %s\n", argv[arg]);
     }
     arg++;
+  }
+
+  if (mergeFiles == 0L) {
+    fprintf(stderr, "sortPolishes: Failed to initialize.\n");
+    exit(1);
   }
 
   if (isatty(fileno(stdin))) {
