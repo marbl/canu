@@ -163,10 +163,8 @@ public:
   void  completeUseList(u32bit numSeqs);
 
   void  setTime(struct timespec *ts, double t) {
-    ts->tv_sec = floor(t);
-    t -= ts->tv_sec;
-    t *= 1e9;
-    ts->tv_nsec = t;
+    ts->tv_sec  = (time_t)floor(t);
+    ts->tv_nsec = (long)((t - ts->tv_sec) * 1e9);
   };
 private:
   void  addToUse(u32bit v);
