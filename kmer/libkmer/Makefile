@@ -7,12 +7,12 @@ OBJS     = positionDB.o positionDB-access.o positionDB-dump.o positionDB-sort.o
 
 all: buildinfo-positionDB.o $(OBJS)
 	rm -f libpositionDB.a
-	ar $(AROPTS) ruv libpositionDB.a buildinfo-positionDB.o $(OBJS)
+	ar $(AROPTS) libpositionDB.a buildinfo-positionDB.o $(OBJS)
 
 buildinfo-positionDB.c: $(SRCS)
 	../util/buildinfo.pl positionDB "$(CCOPTS)" $(SRCS)
 
 clean:
-	rm -f *.o $(PROG) buildinfo-positionDB.*
+	rm -f *.o $(PROG) buildinfo-positionDB.* libpositionDB.a
 
 include ../Makefile-configuration
