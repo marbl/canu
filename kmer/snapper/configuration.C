@@ -323,35 +323,18 @@ configuration::display(FILE *out) {
     fprintf(out, "XXXX:  Need this!\n");
     fprintf(out, "\n");
     fprintf(out, "--Using these Files--\n");
-    fprintf(out, "Genomic File          = '%s'\n", _dbFileName);
-    fprintf(out, "Positions File        = '%s'\n", _psFileName);
-    fprintf(out, "Query File            = '%s'\n", _qsFileName);
-
-    if (_maskFileName)
-      fprintf(out, "maskFile            = '%s'\n", _maskFileName);
-    else
-      fprintf(out, "maskFile            = None Specified.\n");
-
-    if (_onlyFileName)
-      fprintf(out, "onlyFile            = '%s'\n", _onlyFileName);
-    else
-      fprintf(out, "onlyFile            = None Specified.\n");
-
-    if (_outputFileName)
-      fprintf(out, "outputFile          = '%s'\n", _outputFileName);
-    else
-      fprintf(out, "outputFile          = None Specified.\n");
-
-    if (_logmsgFileName)
-      fprintf(out, "logmsgFile          = '%s'\n", _logmsgFileName);
-    else
-      fprintf(out, "logmsgFile          = None Specified.\n");
-
-    if (_statsFileName)
-      fprintf(out, "statsFile           = '%s'\n", _statsFileName);
-    else
-      fprintf(out, "statsFile           = None Specified.\n");
-
+    fprintf(out, "Genomic File        = '%s'\n", _dbFileName);
+    fprintf(out, "Positions File      = '%s'\n", _psFileName);
+    fprintf(out, "Query File          = '%s'\n", _qsFileName);
+    fprintf(out, "maskFile            = '%s'\n", (_maskFileName) ? _maskFileName : "None Specified.");
+    fprintf(out, "onlyFile            = '%s'\n", (_onlyFileName) ? _onlyFileName : "None Specified.");
+    fprintf(out, "maskPrefix          = '%s'\n", (_maskPrefix) ? _maskPrefix : "None Speficied.");
+    fprintf(out, "maskThreshold       = "u32bitFMT"\n", _maskThreshold);
+    fprintf(out, "onlyPrefix          = '%s'\n", (_onlyPrefix) ? _onlyPrefix : "None Specified.");
+    fprintf(out, "onlyThreshold       = "u32bitFMT"\n", _onlyThreshold);
+    fprintf(out, "outputFile          = '%s'\n", (_outputFileName) ? _outputFileName : "None Specified.");
+    fprintf(out, "logmsgFile          = '%s'\n", (_logmsgFileName) ? _logmsgFileName : "None Speficied.");
+    fprintf(out, "statsFile           = '%s'\n", (_statsFileName) ? _statsFileName : "NoneSpecified.");
     fprintf(out, "\n");
   }
 }
