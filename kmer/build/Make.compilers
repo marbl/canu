@@ -40,6 +40,13 @@ else
   _THR_:=
 endif
 
+# allow additional tag for install directories
+ifdef INSTALL_TAG
+  INSTALL/:=${MAKEFILE/}${_OS_}${_CC_}${_OPT_}${_THR_}-${INSTALL_TAG}/
+else
+  INSTALL/:=${MAKEFILE/}${_OS_}${_CC_}${_OPT_}${_THR_}/
+endif
+
 CCDEP		 :=gcc
 CXXDEP		 :=g++
 CDEPFLAGS        :=-MM -MG
@@ -47,13 +54,6 @@ CXXDEPFLAGS      :=-MM -MG
 
 AR:=ar
 ARFLAGS:=-crvs
-
-# allow additional tag for install directories
-ifdef INSTALL_TAG
-  INSTALL/:=${MAKEFILE/}${_OS_}${_CC_}${_OPT_}${_THR_}-${INSTALL_TAG}/
-else
-  INSTALL/:=${MAKEFILE/}${_OS_}${_CC_}${_OPT_}${_THR_}/
-endif
 
 ## CC and CXX compilers and flags
 
@@ -67,6 +67,7 @@ CLDFLAGS:=
 CXXLDFLAGS:=
 CLIBS:=-lm
 CXXLIBS:=-lm
+SHLIB_FLAGS:=
 
 ifeq (${_CC_},-gcc)
   CC               :=gcc

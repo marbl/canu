@@ -30,10 +30,12 @@ define .FUN-install-copy-script
 	    if [ -f $$$${F} ] ; then \
 	      for D in $$$${dirs} ; do \
 	        Fout=$${INSTALL/}$$$${D}`basename $$$${F}` ; \
-	        echo ":Mangling script $$$${F} to $$$${Fout}:" ; \
+	        echo ":Mangling $$$${F} to $$$${Fout}:" ; \
 	        mkdir -p `dirname $$$${Fout}` && \
-	        sed -e"s|#!.*|#! $$$${sheb}|" $$$${F} > $$$${Fout} && \
-	        chmod ugo+x $$$${Fout} ; \
+	        cp -fp $$$${F} $$$${Fout} && \
+	        chmod ugo+x $$$${Fout} && \
+	        ${PERL} -npi \
+	           -e"if(0==\$$$$i++){s|^#!.*|#! $$$${sheb}|}" $$$${Fout}; \
 	      done ; \
 	    fi ; \
 	  done ; \
@@ -52,16 +54,16 @@ endef
 # WISHLIST: does not propagate failure to the parent make
 # for some reason.  It really should.  I think the pipe to
 # sed masks the exit code.
-ALL_C_DEPS       :=$(foreach x,${//},$(patsubst %,%.d,${${x:.=.C_SRCS}}))
 __DEPGOALS__     +=                 $$(patsubst %,%.d,$${${1:.=.C_SRCS}})
+ALL_C_DEPS       :=$(foreach x,${//},$(patsubst %,%.d,${${x:.=.C_SRCS}}))
 ${ALL_C_DEPS}:%.d:%
 	@ echo "making $@"
 	 dir=`echo $< | sed -e's~[^/]*$$~~'`; \
 	  ${CCDEP} ${CDEPFLAGS} ${CFLAGS} $< | \
 	  sed -e"/:/s!^!$${dir}!" > $@
 
-ALL_CXX_DEPS     :=$(foreach x,${//},$(patsubst %,%.d,${${x:.=.CXX_SRCS}}))
 __DEPGOALS__     +=                 $$(patsubst %,%.d,$${${1:.=.CXX_SRCS}})
+ALL_CXX_DEPS     :=$(foreach x,${//},$(patsubst %,%.d,${${x:.=.CXX_SRCS}}))
 ${ALL_CXX_DEPS}:%.d:%
 	@ echo "making $@"
 	 dir=`echo $< | sed -e's~[^/]*$$~~'`; \
@@ -172,10 +174,10 @@ $(eval $(foreach x,${//},$(call .RULE-install-copy-C-CXX-INCS,$x)))
 ALL_TEX_PS    :=$(strip $(foreach x,${//},${${x:.=.TEX_PS}}))
 ALL_TEX_PDF   :=$(strip $(foreach x,${//},${${x:.=.TEX_PDF}}))
 
-%.ps: %.dvi
+${ALL_TEX_PS}: %.ps: %.dvi
 	cd `dirname $<` && ${DVIPS} -o `basename $@` `basename $<`
 
-%.pdf: %.ps
+${ALL_TEX_PDF}: %.pdf: %.ps
 	${PS2PDF} $< $@
 
 # some extra tex goodies
