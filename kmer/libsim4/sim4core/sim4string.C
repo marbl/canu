@@ -677,7 +677,18 @@ Sim4::IDISPLAY(sim4polishBuilder &builder,
   char *a = aString;
   char *b = bString;
 
+#if 0
+  fprintf(stderr, "M=%d N=%d\n", M, N);
+  fprintf(stderr, "aString=0x%p\nbString=0x%p\n", aString, bString);
+#endif
+
   while (i < M || j < N) {
+    *a = *b = 0;
+#if 0
+    fprintf(stderr, "i=%d < M=%d and j=%d < N=%d\n", i, M, j, N);
+    fprintf(stderr, "a=%s\n", aString);
+    fprintf(stderr, "b=%s\n", bString);
+#endif
 
     if (op == 0 && *S == 0) {
       op = *S++;
@@ -691,7 +702,9 @@ Sim4::IDISPLAY(sim4polishBuilder &builder,
         *b++ = B[j];
       }
     } else {
-      if (op == 0) op = *S++; 
+      if (op == 0)
+        op = *S++; 
+
       if (op > 0) {
         if (est_strand==2) {
           *a++ = '-';
@@ -813,31 +826,31 @@ Sim4::appendAlignments(sim4polishBuilder &builder,
     
     if (match_ori==FWD) {
       IDISPLAY(builder,
-                              aString,
-                              bString,
-                              s1 + aligns->offset2 - 1 - 1,
-                              s2 + aligns->offset1 - 1 - 1,
-                              aligns->len2,
-                              aligns->len1,
-                              S,
-                              aligns->offset2,
-                              aligns->offset1,
-                              1,
-                              Exons);
+               aString,
+               bString,
+               s1 + aligns->offset2 - 1 - 1,
+               s2 + aligns->offset1 - 1 - 1,
+               aligns->len2,
+               aligns->len1,
+               S,
+               aligns->offset2,
+               aligns->offset1,
+               1,
+               Exons);
     } else {
       align_reverse(S);
       IDISPLAY(builder,
-                              aString,
-                              bString,
-                              s1 + l1 + 1 - (aligns->offset2 + aligns->len2 - 1) - 1 - 1,
-                              s2 + l2 + 1 - (aligns->offset1 + aligns->len1 - 1) - 1 - 1,
-                              aligns->len2,
-                              aligns->len1,
-                              S,
-                              l1 + 1 - (aligns->offset2+aligns->len2 - 1),
-                              l2 + 1 - (aligns->offset1+aligns->len1 - 1),
-                              1,
-                              Exons);
+               aString,
+               bString,
+               s1 + l1 + 1 - (aligns->offset2 + aligns->len2 - 1) - 1 - 1,
+               s2 + l2 + 1 - (aligns->offset1 + aligns->len1 - 1) - 1 - 1,
+               aligns->len2,
+               aligns->len1,
+               S,
+               l1 + 1 - (aligns->offset2+aligns->len2 - 1),
+               l2 + 1 - (aligns->offset1+aligns->len1 - 1),
+               1,
+               Exons);
     }
     ckfree(S-1);
   }
