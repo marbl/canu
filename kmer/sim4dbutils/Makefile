@@ -1,4 +1,4 @@
-PROG    = filterPolishes mergePolishes stripPolishes sortPolishes \
+PROG    = filterPolishes mergePolishes stripPolishes sortPolishes comparePolishes \
           pickBestPolish pickBestPolish-debug parseSNP \
           plotCoverageVsIdentity cleanPolishes uniqPolishes
 INCLUDE = -I../libbri
