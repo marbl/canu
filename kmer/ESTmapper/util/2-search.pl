@@ -177,7 +177,7 @@ sub search {
     #  If we're $buildonly, we have $buildprefix and $builddir defined.
     #
     if ($buildonly) {
-        mkdir $buildprefix if (! -d $buildprefix);
+        mkdir "$builddir/$buildprefix" if (! -d "$builddir/$buildprefix");
 
         my $genomepath = readlink "$path/0-input/genomic.fasta";
 
