@@ -1,16 +1,17 @@
 #include "fasta-cache.H"
 
 
-FastACache::FastACache(char *filename, u32bit cachesize, bool loadall) {
+FastACache::FastACache(char *filename, u32bit cachesize, bool loadall, bool report) {
   _fastawrapper = new FastAWrapper(filename);
   _fastawrapper->openIndex();
 
   if (loadall == false) {
     _allSequencesLoaded = false;
+    _reportLoading      = report;
   
     _cacheMap  = new u32bit [_fastawrapper->getNumberOfSequences()];
 
-    for (u32bit i=_fastawrapper->getNumberOfSequences(); i-- > 0; )
+    for (u32bit i=_fastawrapper->getNumberOfSequences(); i--; )
       _cacheMap[i] = ~u32bitZERO;
 
     _cacheSize = cachesize;
@@ -21,6 +22,7 @@ FastACache::FastACache(char *filename, u32bit cachesize, bool loadall) {
       _cache[i] = 0L;
   } else {
     _allSequencesLoaded = true;
+    _reportLoading      = false;
 
     _cacheMap  = 0L;
     _cacheSize = _fastawrapper->getNumberOfSequences();
@@ -68,7 +70,9 @@ FastACache::getSequence(u32bit iid)  {
   //  The sequence we are looking for isn't loaded.  If there
   //  isn't space in the cache, make space.
 
-  //fprintf(stderr, "FastACache::getSequence()-- "u32bitFMT" isn't loaded -- loading.\n", iid);
+  if (_reportLoading)
+    fprintf(stderr, "FastACache::getSequence()-- %s:"u32bitFMT" isn't loaded -- loading.\n",
+            _fastawrapper->getSourceName(), iid);
 
   if (_cache[_cacheNext]) {
     _cacheMap[ _cache[_cacheNext]->getIID() ] = ~u32bitZERO;
@@ -78,15 +82,19 @@ FastACache::getSequence(u32bit iid)  {
   //  Load the sequence into the cache
 
   _fastawrapper->find(iid);
-  _cache[_cacheNext] = _fastawrapper->getSequence();
+  FastASequenceInCore *ret = _fastawrapper->getSequence();
+
+  _cache[_cacheNext] = ret;
   _cacheMap[iid] = _cacheNext;
   _cacheNext++;
 
   if (_cacheNext >= _cacheSize)
     _cacheNext = 0;
 
+  //fprintf(stderr, "FastACache::getSequence()-- "u32bitFMT" loaded.\n", iid);
+
   //  Finally, return the sequence.
 
-  return(_cache[_cacheNext-1]);
+  return(ret);
 }
 

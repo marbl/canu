@@ -8,7 +8,7 @@
 
 class FastACache {
 public:
-  FastACache(char *filename, u32bit cachesize=32, bool loadall=false);
+  FastACache(char *filename, u32bit cachesize=32, bool loadall=false, bool report=false);
   ~FastACache();
 
   //  Returns sequence iid.  If the sequence is not in the cache,
@@ -26,6 +26,7 @@ private:
   FastAWrapper          *_fastawrapper;
 
   bool                   _allSequencesLoaded;
+  bool                   _reportLoading;
 
   //  cacheSize:  The size of the cache.  If non-zero, this is the size
   //  of _cacheMap and _seqs.
