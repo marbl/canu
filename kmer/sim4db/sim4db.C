@@ -17,6 +17,12 @@
 #include "buildinfo-libbri.h"
 #include "buildinfo-libsim4.h"
 
+#ifdef USE_CACHE
+//  Using the FastACache for EST sequences has no effect on the enormous
+//  system time we see in this code
+#include "fasta-cache.H"
+#endif
+
 
 //  Run options set from the command line.
 //
@@ -212,7 +218,11 @@ void
 sim4db(char          **scriptLines,
        u32bit          scriptLinesNum,
        FastAWrapper   *GENs,
+#ifdef USE_CACHE
+       FastACache     *ESTs,
+#else
        FastAWrapper   *ESTs,
+#endif
        int             fOutput) {
   double   startTime = getTime() - 1e-5;
 
@@ -294,9 +304,13 @@ sim4db(char          **scriptLines,
             argWords++;
 
             if ((ESTseq == 0L) || (ESTseq->getIID() != ESTiid)) {
+#ifdef USE_CACHE
+              ESTseq = ESTs->getSequence(ESTiid);
+#else
               delete ESTseq;
               ESTs->find(ESTiid);
               ESTseq = ESTs->getSequence();
+#endif
             }
             break;
           default:
@@ -462,11 +476,19 @@ main(int argc, char **argv) {
 
   //  Read (actually, just open) the sequences.
   //
+#ifdef USE_CACHE
   FastAWrapper  *GENs = new FastAWrapper(databaseFileName);
-  FastAWrapper  *ESTs = new FastAWrapper(cdnaFileName);
+  FastACache    *ESTs = new FastACache(cdnaFileName, 0, true);
+
+  GENs->openIndex();
+#else
+  FastAWrapper  *GENs = new FastAWrapper(databaseFileName);
+  FastAWrapper  *ESTs = new FastAWrapper(cdnaFileName, 2048);
 
   GENs->openIndex();
   ESTs->openIndex();
+#endif
+
 
   //
   //  Read the script lines.
@@ -573,7 +595,9 @@ main(int argc, char **argv) {
   if (scriptFileName) {
     sim4db(scriptLines, scriptLinesNum, GENs, ESTs, fOutput);
   } else {
+#ifndef USE_CACHE
     sim4dball(GENs, ESTs, fOutput);
+#endif
   }
 
   //  Only close the file if it isn't stdout
