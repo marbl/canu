@@ -60,6 +60,6 @@ foreach my $k (sort {$a <=> $b} keys %IDXs) {
 }
 close(O);
 
-system("/work/assembly/walenzbp/projects/releases/leaff -F $ARGV[1] -q junk.$$.reducePolishes > $ARGV[3]");
+system("/work/assembly/walenzbp/releases/leaff -F $ARGV[1] -q junk.$$.reducePolishes > $ARGV[3]");
 
 unlink "junk.$$.reducePolishes";
