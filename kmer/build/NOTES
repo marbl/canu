@@ -9,7 +9,8 @@ is gmake-3.80 with the GNU accepted patch for this problem
 Patched source can be found around here somewhere.  Find Ross.
 
 On the AIX and Tru64 machines, a patched version of gmake-3.80 called
-'gmake-3.80a' exists and should be in /usr/local/ir/bin.
+'gmake-3.80a' exists and should be at
+  /usr/local/ir/ports/make-3.80-patched.tgz
 
 So to get started
 % alias make=/usr/local/ir/bin/gmake-3.80a
@@ -32,6 +33,16 @@ If you either change platforms then you must do
 For convenience:
 % make ls
 just does ls of all targets in the directories where they are built.
+
+One can also work within directories so long as one is careful, since
+  -subdirectories don't know about the dependencies upon siblings
+  -automatically computed dependencies computed relative to one subdir
+   do not make sense when used in another sibdir.  So if you have been
+   previously building from somewhere else, you need to clean the
+   depends information before you try to build.
+% make ../COMPASS/src/Framework/.depends-clean
+% cd ../COMPARSS/src/Framework/
+% make -f ../../../build/Makefile all
 
 
 

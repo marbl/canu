@@ -90,20 +90,17 @@ endef
 define .RULE-all
 ${1:.=.all}: $${${1:.=.SUBS}:.=.all} \
    $${${1:.=.C_EXES}} $${${1:.=.CXX_EXES}} \
-   $${${1:.=.C_LIBS}} $${${1:.=.CXX_LIBS}} $${${1:.=.CXX_SHLIBS}}
+   $${${1:.=.C_LIBS}} $${${1:.=.CXX_LIBS}} \
+   $${${1:.=.CXX_SHLIBS}}
 
 endef
 define .RULE-install
 ${1:.=.install}: $${${1:.=.SUBS}:.=.install} \
-   $${${1:.=.C_INCS}} $${${1:.=.CXX_INCS}} \
    $${${1:.=.C_EXES}} $${${1:.=.CXX_EXES}} \
-   $${${1:.=.C_LIBS}} $${${1:.=.CXX_LIBS}} $${${1:.=.CXX_SHLIBS}}
+   $${${1:.=.C_LIBS}} $${${1:.=.CXX_LIBS}} \
+   $${${1:.=.CXX_SHLIBS}} \
+   $${${1:.=.C_INCS}} $${${1:.=.CXX_INCS}}
 	@echo "***for $$@"
-	List='$$(strip $${${1:.=.C_INCS}} $${${1:.=.CXX_INCS}})'; \
-	if [ -n "$$$${List}" ] ; then \
-	  mkdir -p ${INSTALL/}include ; \
-	  cp -p $$$${List} ${INSTALL/}include ; \
-        fi
 	List='$$(strip $${${1:.=.C_EXES}} $${${1:.=.CXX_EXES}})'; \
 	if [ -n "$$$${List}" ] ; then \
 	  mkdir -p ${INSTALL/}bin ; \
@@ -111,8 +108,13 @@ ${1:.=.install}: $${${1:.=.SUBS}:.=.install} \
         fi
 	List='$$(strip $${${1:.=.C_LIBS}} $${${1:.=.CXX_LIBS}} $${${1:.=.CXX_SHLIBS}})'; \
 	if [ -n "$$$${List}" ] ; then \
-	  mkdir -p ${INSTALL/}lib ; \
-	  cp -p $$$${List} ${INSTALL/}lib ; \
+	  mkdir -p ${INSTALL/}lib/$${${1:.=.LIB_SUB/}} ; \
+	  cp -p $$$${List} ${INSTALL/}lib/$${${1:.=.LIB_SUB/}} ; \
+        fi
+	List='$$(strip $${${1:.=.C_INCS}} $${${1:.=.CXX_INCS}})'; \
+	if [ -n "$$$${List}" ] ; then \
+	  mkdir -p ${INSTALL/}include/$${${1:.=.INC_SUB/}} ; \
+	  cp -p $$$${List} ${INSTALL/}include/$${${1:.=.INC_SUB/}} ; \
         fi
 
 endef

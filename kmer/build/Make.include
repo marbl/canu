@@ -2,7 +2,6 @@ COMPASS/  :=$/../COMPASS/
 RASCAL/   :=$/../RASCAL/
 BRI/      :=$/../BRI/
 
-
 $(eval $(call Include,${COMPASS/}))
 
 $(eval $(call Include,${RASCAL/}))
