@@ -28,6 +28,15 @@ int main(int argc,char **argv) {
 
     for(; *p && *sp && *p==*sp; ++p, ++sp);
 
+    /* Back up until we are at the start of a directory name.  Since
+       realpath was used above, both strings must start with '/' and
+       be equal at their first characters; hence, this should never
+       run off the beginning of either string. */
+    while (*(p - 1) != '/') {
+      --p;
+      --sp;
+    }
+
     if (*sp==0 && *p=='/') ++p;
     if (*sp=='/' && *p==0) ++sp;
 
