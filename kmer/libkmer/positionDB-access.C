@@ -15,7 +15,7 @@ positionDB::get(u64bit   mer,
   if (le == 0) return(false);
 
   u64bit  v;
-  u64bit  uniqMask = u64bitONE << (_wFin - 1);  //(_chckWidth + _posnWidth);
+  u64bit  uniqMask = u64bitONE << (_wFin - 1);
   u64bit  pos;
   u64bit  len, ptr;
 

@@ -72,6 +72,15 @@ const char *buckReuseErr = "ERROR:  I didn't allocate enough space to reuse buck
 
 
 
+positionDB::positionDB(char const    *filename,
+                       bool           loadData) {
+  if (loadState(filename, true, loadData) == false) {
+    fprintf(stderr, "positionDB::positionDB()-- Tried to read state from '%s', but failed.\n", filename);
+    exit(1);
+  }
+}
+
+
 positionDB::positionDB(char const  *seq,
                        char const  *filename,
                        u32bit       merSize,
@@ -116,16 +125,34 @@ positionDB::positionDB(char const  *seq,
   _sortedList            = 0L;
 
 
-  if ((sizeof(u32bit) != 4) || (sizeof(u64bit) != 8)) {
-    fprintf(stderr, "positionDB()-- ERROR: data size definitions are incorrect.\n");
-    fprintf(stderr, "positionDB()--        u32bit has %d bytes!\n", sizeof(u32bit));
-    fprintf(stderr, "positionDB()--        u64bit has %d bytes!\n", sizeof(u64bit));
-    exit(1);
+  if (filename && loadState(filename)) {
+    bool fail = false;
+
+    if (_merSizeInBases != merSize) {
+      fprintf(stderr, "positionDB::positionDB()-- Read state from '%s', but got different mer sizes\n", filename);
+      fprintf(stderr, "positionDB::positionDB()-- Got %d, expected %d\n", _merSizeInBases, merSize);
+      fail = true;
+    }
+    if (_merSkipInBases != merSkip) {
+      fprintf(stderr, "positionDB::positionDB()-- Read state from '%s', but got different mer skips\n", filename);
+      fprintf(stderr, "positionDB::positionDB()-- Got %d, expected %d\n", _merSkipInBases, merSkip);
+      fail = true;
+    }
+    if (_tableSizeInBits != tblBits) {
+      fprintf(stderr, "positionDB::positionDB()-- Read state from '%s', but got different table sizes\n", filename);
+      fprintf(stderr, "positionDB::positionDB()-- Got %d, expected %d\n", _tableSizeInBits, tblBits);
+      fail = true;
+    }
+
+    if (fail)
+      exit(1);
+
+    return;
   }
 
-  if (filename && seq) {
-    fprintf(stderr, "positionDB()-- ERROR: given both a sequence and a filename.\n");
-    fprintf(stderr, "positionDB()--        the code is probably broken.\n");
+  if (!filename && !seq) {
+    fprintf(stderr, "positionDB()-- ERROR: No sequence and no filename?  Nothing to build a table with!\n");
+    fprintf(stderr, "positionDB()--        The code is probably broken.\n");
     exit(1);
   }
 
@@ -151,7 +178,7 @@ positionDB::positionDB(char const  *seq,
     bktAlloc = new u64bit [_tableSizeInEntries / 2 + 2];
   } catch (std::bad_alloc) {
     fprintf(stderr, "hitMatrix::filter()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
-    fprintf(stderr, "hitMatrix::filter()-- tableSizeInEntries of %lu\n", _tableSizeInEntries);
+    fprintf(stderr, "hitMatrix::filter()-- tableSizeInEntries of %llu\n", _tableSizeInEntries);
     exit(1);
   }
   bool     bktAllocIsJunk = false;
@@ -173,7 +200,7 @@ positionDB::positionDB(char const  *seq,
     fprintf(MSG_OUTPUT, buckCountMsg, _tableSizeInEntries >> 8);
 #endif
 
-  merStream     *M;
+  merStream     *M = 0L;
 
   if (seq)
     M = new merStream(_merSizeInBases, seq, 0);
@@ -181,13 +208,18 @@ positionDB::positionDB(char const  *seq,
   if (filename)
     M = new merStream(_merSizeInBases, filename);
 
+  //  Yes, yes, logically this shouldn't happen.  Computers aren't always logical.
+  //
+  if (M == 0L) {
+    fprintf(stderr, "ERROR:  Nothing to initialize with!\n");
+    exit(1);
+  }
+
 #ifndef SILENTPOSITIONDB
   speedCounter  *C = new speedCounter("    %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, beVerbose);
 #endif
 
   while (M->nextMer(_merSkipInBases)) {
-    //fprintf(stderr, "%016llx -> %016llx\n", M->theFMer(), HASH(M->theFMer()));
-
     _bucketSizes[ HASH(M->theFMer()) ]++;
 
 #ifdef ERROR_CHECK_COUNTING
@@ -261,7 +293,7 @@ positionDB::positionDB(char const  *seq,
     _countingBuckets = new u64bit [bucketsSpace];
   } catch (std::bad_alloc) {
     fprintf(stderr, "hitMatrix::filter()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
-    fprintf(stderr, "hitMatrix::filter()-- _countingBuckets of %lu\n", bucketsSpace);
+    fprintf(stderr, "hitMatrix::filter()-- _countingBuckets of %llu\n", bucketsSpace);
     exit(1);
   }
 
@@ -430,7 +462,7 @@ positionDB::positionDB(char const  *seq,
       _hashTable     = new u64bit [hs];
     } catch (std::bad_alloc) {
       fprintf(stderr, "hitMatrix::filter()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
-      fprintf(stderr, "hitMatrix::filter()-- _hashTable of %lu\n", hs);
+      fprintf(stderr, "hitMatrix::filter()-- _hashTable of %llu\n", hs);
       exit(1);
     }
     bktAllocIsJunk = true;
@@ -471,7 +503,7 @@ positionDB::positionDB(char const  *seq,
     _positions = new u64bit [ps];
   } catch (std::bad_alloc) {
     fprintf(stderr, "hitMatrix::filter()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
-    fprintf(stderr, "hitMatrix::filter()-- _positions of %lu\n", ps);
+    fprintf(stderr, "hitMatrix::filter()-- _positions of %llu\n", ps);
     exit(1);
   }
 
@@ -624,6 +656,12 @@ positionDB::positionDB(char const  *seq,
 #endif
   delete [] _countingBuckets;
 #endif
+
+  //  These aren't immediately after the data is useless, but we know
+  //  the data is useless here.
+  //
+  _bucketSizes     = 0L;
+  _countingBuckets = 0L;
 
   if (bktAllocIsJunk)
     delete [] bktAlloc;

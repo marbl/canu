@@ -7,7 +7,7 @@ ifndef FASTA/
 FASTA/      := $/../fasta/
 endif
 
-src           :=$/positionDB.C $/positionDB.H $/positionDB-access.C $/positionDB-dump.C $/positionDB-sort.C $/positionDB-file.C $/positionDC-file.H
+src           :=$/positionDB.C $/positionDB.H $/positionDB-access.C $/positionDB-dump.C $/positionDB-sort.C $/positionDB-file.C 
 $/.CXX_SRCS   := $/driver.C $(filter %.C,${src})
 $/.CXX_EXES   := $/positionDB
 $/.CXX_LIBS   := $/libpositionDB.a

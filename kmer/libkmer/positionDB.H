@@ -1,17 +1,24 @@
 #ifndef POSITIONDB_H
 #define POSITIONDB_H
 
+#include <stdio.h>
 #include "libbritypes.h"
 
 typedef u64bit heapbit;
 
 //  Define this to leave out references to getTime(), speedCounter()
-//  and make the positionDB build very quiet.
+//  and make the positionDB build very quietly.
 //
 //#define SILENTPOSITIONDB
 
+//  Define this to enable some debugging methods
+//
+//#define DEBUGPOSDB
+
 class positionDB {
 public:
+  positionDB(char const    *filename,
+             bool           loadData=true);
   positionDB(char const    *seq,
              char const    *filename,
              u32bit         merSize,
@@ -19,9 +26,6 @@ public:
              u32bit         tblBits,
              bool           beVerbose);
   ~positionDB();
-
-  void        dump(u64bit mer);
-  void        dumpTable(void);
 
   //  Returns position in posn, resizing it if needed.  Space is
   //  allocated if none supplied.  The following is valid:
@@ -41,6 +45,20 @@ public:
   //  True/False on existence of mer.
   //
   bool        exists(u64bit   mer);
+
+  //  Save or load a built table
+  //
+  void        saveState(char const *filename);
+  bool        loadState(char const *filename, bool beNoisy=false, bool loadData=true);
+
+  void        printState(FILE *stream);
+
+  //  Only really useful for debugging.  Don't use.
+  //
+#ifdef DEBUGPOSDB
+  void        dump(u64bit mer);
+  void        dumpTable(void);
+#endif
 private:
 
   u64bit       HASH(u64bit k) {

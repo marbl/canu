@@ -4,6 +4,8 @@
 #include "positionDB.H"
 #include "bit-packing.H"
 
+#ifdef POSDB
+
 #ifdef TRUE64BIT
 const char *dumpUniq    = "U mer=0x%016lx -- uniq pos=%12lu chck=0x%016lx (0x%016lx)\n";
 const char *dumpDupl    = "N mer=0x%016lx -- dupl pos=%12lu chck=0x%016lx (0x%016lx)\n";
@@ -114,3 +116,6 @@ positionDB::dumpTable(void) {
     }
   }
 }
+
+
+#endif
