@@ -241,6 +241,9 @@ failIfNotRandomAccess(void) {
 FastAWrapper*
 openNewFile(char *name, char *arg) {
 
+  if (f)
+    delete f;
+
   f = new FastAWrapper(name);
 
   if (arg[1] == 'F') {
@@ -494,8 +497,6 @@ processArray(int argc, char **argv) {
         break;
       case 'f':
       case 'F':
-        if (f)
-          delete f;
         sourceFile = argv[++arg];
         f = openNewFile(sourceFile, argv[arg-1]);
         break;
@@ -608,8 +609,11 @@ processArray(int argc, char **argv) {
     arg++;
   }
 
-  if (f)
+
+  if (f) {
     delete f;
+    f = 0L;
+  }
 }
 
 
@@ -731,4 +735,7 @@ main(int argc, char **argv) {
   srandom(getpid() * time(NULL));
 
   processArray(argc, argv);
+
+  if (f)
+    delete f;
 }
