@@ -114,6 +114,7 @@ public:
   char            *_statsFileName;
 
   char            *_tableFileName;
+  bool             _tableBuildOnly;
 
   u32bit           _useListLen;
   u32bit           _useListMax;

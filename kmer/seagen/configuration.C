@@ -48,6 +48,7 @@ configuration::configuration(void) {
   _statsFileName       = 0L;
 
   _tableFileName       = 0L;
+  _tableBuildOnly      = false;
 
   _useList             = 0L;
   _useListLen          = 0;
@@ -109,11 +110,11 @@ static char const *usageString =
 "    -writersleep t          Time the writer will sleep when it has nothing to write\n"
 "    -writerwarnings         Enable warning messages for the writer\n"
 "\n"
-"    -buildonly datfile      If 'datfile' doesn't exist, build the tables, write\n"
-"                            them to 'datfile' and exit.  If 'datfile' exists\n"
-"                            AND is a complete and valid file, load the tables\n"
-"                            from the file and do the compute.\n"
-"\n"
+"    -buildtables datfile    If 'datfile' doesn't exist, build the tables, write\n"
+"                            them to 'datfile' and exit.\n"
+"    -usetables datfile      Load the tables from 'datfile' file and do the compute.\n"
+"                            If 'datfile' doesn't exist, an implicit -buildtables is\n"
+"                            performed.\n"
 "Input Options:\n"
 "    -mask f                 Ignore all mers listed in file f\n"
 "    -only f                 Use only the mers listed in file f\n"
@@ -366,9 +367,14 @@ configuration::read(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-table") == 0) {
       arg++;
       _dbFileName = argv[arg];
-    } else if (strcmp(argv[arg], "-buildonly") == 0) {
+    } else if (strcmp(argv[arg], "-buildtables") == 0) {
       arg++;
-      _tableFileName = argv[arg];
+      _tableFileName  = argv[arg];
+      _tableBuildOnly = true;
+    } else if (strcmp(argv[arg], "-usetables") == 0) {
+      arg++;
+      _tableFileName  = argv[arg];
+      _tableBuildOnly = false;
     } else if (strcmp(argv[arg], "-use") == 0) {
       arg++;
       parseUseLine(argv[arg]);

@@ -68,8 +68,8 @@ buildChunk(void) {
   }
 
   //  If we are given a pointer to a prebuilt table, just load it.
-  //  Otherwise, chain the sequence together and build a fresh table
-  //  (and then save it if so told).
+  //  Otherwise, chain the sequence together and build a fresh table,
+  //  saving and exiting if we were told so.
 
   if ((config._tableFileName) && (fileExists(config._tableFileName))) {
     fprintf(stderr, "Loading positions table from '%s'\n", config._tableFileName);
@@ -144,8 +144,11 @@ buildChunk(void) {
     if (config._tableFileName) {
       if (config._beVerbose)
         fprintf(stderr, "Dumping positions table to '%s'\n", config._tableFileName);
+
       positions->saveState(config._tableFileName);
-      exit(0);
+
+      if (config._tableBuildOnly)
+        exit(0);
     }
   }
 
