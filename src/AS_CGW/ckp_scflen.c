@@ -1,8 +1,5 @@
 static char CM_ID[] = "$Id:";
 
-static char CM_ID[] = "$Id:";
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
