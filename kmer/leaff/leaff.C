@@ -57,8 +57,8 @@ const char *usage =
 "\n"
 "ACTIONS (index needed)\n"
 "       -d:             print the number of sequences in the fasta\n"
-"       -i:             print the index in an almost-human readable format\n"
-"       -ie:            print the index in an almost-human readable format, including external ids\n"
+"       -i name:        print an ATA compliant index, labelling the source 'name'\n"
+"       -ii:            print the index in an almost-human readable format\n"
 "       -s seqid:       print the single sequence 'seqid'\n"
 "       -S first last:  print all the sequences from 'first' to 'last' (inclusive)\n"
 "       -r num:         print 'num' randomly picked sequences\n"
@@ -522,9 +522,9 @@ processArray(int argc, char **argv) {
           case 0:
             failIfNoSource();
             failIfNotRandomAccess();
-            f->printTextDescription(stdout, true);
+            f->printATADescription(stdout, argv[++arg]);
             break;
-          case 'e':
+          case 'i':
             failIfNoSource();
             failIfNotRandomAccess();
             f->printTextDescription(stdout);
