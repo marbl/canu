@@ -3,6 +3,10 @@
 
 #include <sys/types.h>
 
+#if defined(__APPLE__) || defined(__FreeBSD__)
+#include <sys/syslimits.h>
+#endif
+
 //  Create the O_LARGEFILE type for open(), if it doesn't already
 //  exist (FreeBSD, Tru64).  We assume that by including the stuff
 //  needed for open(2) we'll get any definition of O_LARGEFILE.

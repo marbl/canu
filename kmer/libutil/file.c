@@ -8,9 +8,6 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 
-#if defined(__APPLE__) || defined(__FreeBSD__)
-#include <sys/syslimits.h>
-#endif
 
 #include "file.h"
 
