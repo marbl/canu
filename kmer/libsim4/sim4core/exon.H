@@ -1,13 +1,35 @@
 #ifndef EXON_H
 #define EXON_H
 
-#include "ckalloc.H"
+#include <stdio.h>
 
 //  Define this only if Liliana is watching you.
 //#define SPLSCORE
 
-typedef struct exon {
-  struct exon *next_exon;
+class Exon {
+public:
+  Exon(int f1, int f2, int t1, int t2, int len, int edist, int flag, Exon *next);
+  ~Exon();
+
+  void  printList(char *label) {
+    Exon *l = this;
+
+    fprintf(stdout, label);
+    while (l) {
+      fprintf(stdout, "GEN f=%8d t=%8d  EST f=%8d t=%8d   flag=%d\n",
+              l->frGEN,
+              l->toGEN,
+              l->frEST,
+              l->toEST,
+              l->flag);
+    
+      l = l->next_exon;
+    }
+    fprintf(stdout, "----------------------------------------\n");
+    fflush(stdout);
+  };
+
+  Exon   *next_exon;
 
   int     frGEN, toGEN;  //  Genomic coords
   int     frEST, toEST;  //  cDNA coords
@@ -31,41 +53,39 @@ typedef struct exon {
 #ifdef SPLSCORE
   double  splScore;
 #endif
-} *Exon_ptr;
+};
 
-typedef struct exon   Exon;
 
 
 inline
-Exon_ptr
-new_exon(int f1, int f2, int t1, int t2, int len, int edist, int flag, Exon_ptr next) {
-  Exon_ptr newthing = (Exon_ptr )ckalloc(sizeof(Exon));
+Exon::Exon(int f1, int f2, int t1, int t2, int len, int edist, int flag, Exon *next) {
+  next_exon = next;
 
-  newthing->next_exon = next;
+  frGEN = f1;
+  frEST = f2;
+  toGEN = t1;
+  toEST = t2;
 
-  newthing->frGEN = f1;
-  newthing->frEST = f2;
-  newthing->toGEN = t1;
-  newthing->toEST = t2;
+  ori = 'U';
+  length = (len < 0) ? (t2-f2+1) : len;
 
-  newthing->ori = 'U';
-  newthing->length = (len < 0) ? (t2-f2+1) : len;
+  edist = edist;
+  flag = flag;
 
-  newthing->edist = edist;
-  newthing->flag = flag;
-
-  newthing->percentID = 0;
-  newthing->alignmentLength = 0;
-  newthing->numMatches = 0;
-  newthing->numNs = 0;
-  newthing->numInDel = 0;
-  newthing->numEdits = 0;
+  percentID       = 0;
+  alignmentLength = 0;
+  numMatches      = 0;
+  numNs           = 0;
+  numInDel        = 0;
+  numEdits        = 0;
 
 #ifdef SPLSCORE
-  newthing->splScore = -999999;
+  splScore = -999999;
 #endif
+}
 
-  return newthing;
+inline
+Exon::~Exon() {
 }
 
 

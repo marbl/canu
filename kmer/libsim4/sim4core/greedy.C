@@ -25,7 +25,7 @@ Sim4::greedy(char *s1, char *s2, int m, int n0, int OFFSET1, int OFFSET2, Exon *
 
   if (n0 < m) {
     if (m < (int)min(wordSize, (1 + globalParams->_percentError) * n0)) {
-      *lblock = *rblock = new_exon(OFFSET2+1,OFFSET1+1,OFFSET2+n0,OFFSET1+m,
+      *lblock = *rblock = new Exon(OFFSET2+1,OFFSET1+1,OFFSET2+n0,OFFSET1+m,
                                    m,n0-m+(int)(globalParams->_percentError * m + 1),0,NULL);
       ANNOUNCEEXIT("greedy-1\n");
       return(m-n0+(int)(globalParams->_percentError * n0 + 1));
@@ -59,7 +59,7 @@ Sim4::greedy(char *s1, char *s2, int m, int n0, int OFFSET1, int OFFSET2, Exon *
   
   if (row == 0) {
     /* hit last row; stop search */
-    *lblock = *rblock = new_exon(r_offset2-m+n2+1,r_offset1+1,r_offset2+n2,
+    *lblock = *rblock = new Exon(r_offset2-m+n2+1,r_offset1+1,r_offset2+n2,
                                  r_offset1+m,m,0,0,NULL);
     ANNOUNCEEXIT("greedy-3\n");
     return 0;
@@ -98,7 +98,7 @@ Sim4::greedy(char *s1, char *s2, int m, int n0, int OFFSET1, int OFFSET2, Exon *
 
   if (row == m) {
     /* hit last row; stop search */
-    *lblock = *rblock = new_exon(l_offset2+1,l_offset1+1,l_offset2+m,
+    *lblock = *rblock = new Exon(l_offset2+1,l_offset1+1,l_offset2+m,
                                  l_offset1+m,m,0,0,NULL);
     ckfree(allocdSpace);
 
@@ -291,15 +291,15 @@ Sim4::greedy(char *s1, char *s2, int m, int n0, int OFFSET1, int OFFSET2, Exon *
 
       if ((r_offset2+1+min_diag[back]-R_ORIGIN) < 
           (l_offset2+max_diag[forth]-L_ORIGIN)) {
-        *rblock = *lblock = new_exon(l_offset2+1,l_offset1+1,
+        *rblock = *lblock = new Exon(l_offset2+1,l_offset1+1,
                                      l_offset2+n0,l_offset1+m,
                                      m,back+forth,0,NULL);
       } else {
-        *rblock = new_exon(r_offset2+1+min_row[back]+min_diag[back]-R_ORIGIN,
+        *rblock = new Exon(r_offset2+1+min_row[back]+min_diag[back]-R_ORIGIN,
                            r_offset1+1+min_row[back],
                            r_offset2+n2,r_offset1+m,
                            m-min_row[back],back,0,NULL);
-        *lblock = new_exon(l_offset2+1,l_offset1+1,
+        *lblock = new Exon(l_offset2+1,l_offset1+1,
                            l_offset2+min_row[back]+max_diag[forth]-L_ORIGIN,
                            l_offset1+min_row[back],
                            min_row[back],forth,0,*rblock);
@@ -307,14 +307,14 @@ Sim4::greedy(char *s1, char *s2, int m, int n0, int OFFSET1, int OFFSET2, Exon *
   } else {
       if ((r_offset2+1+min_diag[back]-R_ORIGIN) < 
           (l_offset2+max_diag[forth]-L_ORIGIN)) {
-        *rblock = *lblock = new_exon(l_offset2+1,l_offset1+1,
+        *rblock = *lblock = new Exon(l_offset2+1,l_offset1+1,
                                        l_offset2+n0,l_offset1+m,
                                        m,back+forth,0,NULL);
       } else {
-        *rblock = new_exon(r_offset2+1+max_row[forth]+min_diag[back]-R_ORIGIN,
+        *rblock = new Exon(r_offset2+1+max_row[forth]+min_diag[back]-R_ORIGIN,
                            r_offset1+1+max_row[forth],
                            r_offset2+n2,r_offset1+m,m-max_row[forth],back,0,NULL);
-        *lblock = new_exon(l_offset2+1,l_offset1+1,
+        *lblock = new Exon(l_offset2+1,l_offset1+1,
                            l_offset2+max_row[forth]+max_diag[forth]-L_ORIGIN,
                            l_offset1+max_row[forth],max_row[forth],forth,0,*rblock);
       }

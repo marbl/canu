@@ -93,7 +93,7 @@ mspManager_msp_compare(const void *A, const void *B) {
 
 
 
-Exon_ptr
+Exon*
 mspManager::doLinking(int    weight,
                       int    drange,
                       int    offset1,
@@ -200,16 +200,14 @@ mspManager::doLinking(int    weight,
   int     diag_dist;
   int     diff;
 
-  Exon_ptr  elist = 0L;
+  Exon *elist = 0L;
 
   if (last_msp < 0)
     return(elist);
 
-  /* Note: in new_exon, the 'flag' and 'length' fields need not be computed */
-
   msp *mp = _allMSPs + last_msp;
 
-  elist = new_exon(mp->pos1,
+  elist = new Exon(mp->pos1,
                    mp->pos2,
                    mp->pos1+mp->len-1, 
                    mp->pos2+mp->len-1,
@@ -251,8 +249,7 @@ mspManager::doLinking(int    weight,
       elist->frGEN = min(elist->frGEN,mp->pos1);
       elist->frEST = min(elist->frEST,mp->pos2);
     } else {
-      /* new exon */
-      elist = new_exon(mp->pos1,
+      elist = new Exon(mp->pos1,
                        mp->pos2,
                        mp->pos1+mp->len-1,
                        mp->pos2+mp->len-1,
@@ -270,7 +267,7 @@ mspManager::doLinking(int    weight,
 
   //  Fix them?  What does this do??
   //
-  Exon_ptr tmp_block = elist;
+  Exon *tmp_block = elist;
   while (tmp_block != 0L) {
     tmp_block->length  = tmp_block->toEST-tmp_block->frEST+1;
     tmp_block->toGEN  += offset1;
@@ -548,8 +545,10 @@ mspManager::addHit_(char *genSeq, char *estSeq,
     }
   }
 
-  score = W + left_sum + right_sum;
+  score = _match * W + left_sum + right_sum;
 
+  //  If this hit is significant, save it
+  //
   if (score >= _minMSPScore)
     addMSP((int)(genEnd - genBeg),
            (int)(genBeg - (genSeq + 1)),

@@ -1,6 +1,8 @@
 #include "sim4.H"
 
 
+//  resolve overlap using the GT-AG criterion
+//
 int
 Sim4::resolve_overlap(Exon *tmp_block, Exon *tmp_block1, char *seq) {          
   int   diff, best_u, l0, l1, u, cost;
@@ -8,9 +10,9 @@ Sim4::resolve_overlap(Exon *tmp_block, Exon *tmp_block1, char *seq) {
   char *s1, *s2, *e1;
   
   diff = tmp_block1->frEST-tmp_block->toEST-1;
-  if (diff>=0) return (tmp_block1->frEST-1);
+  if (diff>=0)
+    return (tmp_block1->frEST-1);
 
-  /* resolve overlap using the GT-AG criterion */
   /* u-1 = actual position in the sequence */
   
   l0 = tmp_block->length-diff;
@@ -59,6 +61,9 @@ Sim4::SIM4_block1(Exon*  &Lblock,
                   Exon*  &tmp_block,
                   Exon*  &tmp_block1) {
   int rollbflag = 0;
+
+  //  Try to resolve the overlap
+
   int best_u = resolve_overlap(tmp_block,tmp_block1,_genSeq);
 
   tmp_block1->frGEN += best_u + 1 - tmp_block1->frEST;
@@ -66,15 +71,14 @@ Sim4::SIM4_block1(Exon*  &Lblock,
 
   //fprintf(stderr, "sim4_block1()-- Lblock=%p tmp_block=%p tmp_block1=%p\n", Lblock, tmp_block, tmp_block1);
 
+  //  If the block is really short, remove it.
+
   if (((tmp_block1->toEST - tmp_block1->frEST + 1) < 8) ||
       ((tmp_block1->toGEN - tmp_block1->frGEN + 1) < 8)) { 
-
-    // remove exon associated with tmp_block1
-
     tmp_block->next_exon = tmp_block1->next_exon;
     tmp_block->flag = tmp_block1->flag; 
     rollbflag = 1;
-    ckfree(tmp_block1);
+    delete tmp_block1;
     tmp_block1 = NULL;
   }
 
@@ -83,9 +87,6 @@ Sim4::SIM4_block1(Exon*  &Lblock,
 
   if (((tmp_block->toEST - tmp_block->frEST + 1) < 8) || 
       ((tmp_block->toGEN - tmp_block->frGEN + 1) < 8)) {
-
-    // remove exon defined by tmp_block
-
     Exon *prev = find_previous(Lblock, tmp_block);
 
     if (prev == 0L) {
@@ -104,7 +105,7 @@ Sim4::SIM4_block1(Exon*  &Lblock,
     prev->flag = tmp_block->flag; 
     if ((tmp_block->toEST - tmp_block->frEST + 1) > 0)
       rollbflag = 1;
-    ckfree(tmp_block);
+    delete tmp_block;
     tmp_block = prev;
   } 
 

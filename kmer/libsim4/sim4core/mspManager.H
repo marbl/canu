@@ -106,7 +106,7 @@ public:
   };
 
 
-  Exon_ptr  doLinking(int    weight,
+  Exon     *doLinking(int    weight,
                       int    drange,
                       int    offset1,
                       int    offset2,

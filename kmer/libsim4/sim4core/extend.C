@@ -324,22 +324,4 @@ Sim4::extend_fw(char *s1, char *s2, int m, int n, int offset1, int offset2, int 
   ckfree(allocdSpace);
 
   return d;
-
-  /*
-    if ((d>2) && (max_row[d-1]-max_row[d-2]<3)) {
-    *line1 = max_row[d-2]+offset1;
-    *line2 = max_row[d-2]+max_diag[d-2]-ORIGIN+offset2;
-
-    ckfree(allocdSpace);
-     
-    return d-2;
-    }
-     
-    *line1 = max_row[d-1]+offset1;
-    *line2 = max_row[d-1]+max_diag[d-1]-ORIGIN+offset2;
-
-    ckfree(allocdSpace);
-
-    return d-1;
-  */
 }

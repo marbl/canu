@@ -1,6 +1,7 @@
 #include "sim4.H"
 #include <math.h>
 
+//  exon_cores() must have seq-1 passed in.  search() offsets this.
 
 void
 Sim4::exon_cores(char *s1,
@@ -54,6 +55,8 @@ Sim4::search(char *s1, char *s2, int l1, int l2, int W) {
 
   //  5% win (tested on on small examples) if we use t[] instead of *t below.
 
+  //  Scan from low to high position in the genomic sequence
+  //
   for (i=0; i < l1; i++) {
     pos1 = (int)(t-s1) + i;
 
@@ -67,6 +70,9 @@ Sim4::search(char *s1, char *s2, int l1, int l2, int W) {
       if (validEncoding > 0) {
         for (h = hashtable->table[ecode & HASH_SIZE]; h; h = h->link) {
           if (h->ecode == ecode) {
+
+            //  These positions are from high to low (see table.C)
+            //
             for (p = h->pos; p >= 0; p = hashtable->nextPos[p])
               _mspManager.addHit(s1, s2,
                                  l1, l2,

@@ -1,8 +1,16 @@
 #include "sim4.H"
 
+//  The position of a mer (word) is the position of the last base
+//  (base-based).  Note that the sequence starts at position 1.
 //
-// add_word - add a word to the table of critical words
+//           11111111112
+//  12345678901234567890
+//  acgggctactcgaggcta
 //
+//  First mer is at position 12.
+//
+
+
 void
 Sim4::add_word(int ecode, int pos) {
   struct hash_node *h;
@@ -27,12 +35,11 @@ Sim4::add_word(int ecode, int pos) {
     h->pos   = -1;
   }
 
-  //  Set the position
+  //  Set the position -- this keeps a list of words from high
+  //  position to low position.
   //
   hashtable->nextPos[pos] = h->pos;
   h->pos = pos;
-
-  //fprintf(stderr, "add_word() - ecode=0x%08x pos=%d\n", ecode, pos);
 }
 
 
@@ -41,8 +48,6 @@ Sim4::bld_table(char *s, int len, int in_W, int type) {
   int ecode;
   int i, j;
   char *t;
-
-  //fprintf(stdout, "Building table: len=%d type=%d\n", len, type);
 
   if (type == PERM) {
     mask = (1 << (in_W+in_W-2)) - 1;
@@ -61,8 +66,8 @@ Sim4::bld_table(char *s, int len, int in_W, int type) {
       delete [] phashtable.nodes;
     }
 
-    phashtable.nextPos   = new int [len+1];               //(int *)ckalloc((len+1)*sizeof(int));
-    phashtable.nodes     = new struct hash_node [len+1];  //(struct hash_node *)ckalloc((len+1) * sizeof(struct hash_node));
+    phashtable.nextPos   = new int [len+1];
+    phashtable.nodes     = new struct hash_node [len+1];
     phashtable.nodesused = 0;
 
     for (i=0; i<HASH_SIZE+1; ++i)
@@ -77,8 +82,8 @@ Sim4::bld_table(char *s, int len, int in_W, int type) {
       delete [] thashtable.nodes;
     }
 
-    thashtable.nextPos   = new int [len+1];               //(int *)ckalloc((len+1)*sizeof(int));
-    thashtable.nodes     = new struct hash_node [len+1];  //(struct hash_node *)ckalloc((len+1) * sizeof(struct hash_node));
+    thashtable.nextPos   = new int [len+1];
+    thashtable.nodes     = new struct hash_node [len+1];
     thashtable.nodesused = 0;
 
     for (i=0; i<HASH_SIZE+1; ++i)
@@ -87,10 +92,12 @@ Sim4::bld_table(char *s, int len, int in_W, int type) {
     fprintf(stderr, "unknown type in bld_table: %d\n", type);
   }
 
-  /* skip any word containing an N/X  */
+  // skip any word containing an N/X
 
   int emer;
 
+  //  This is because seq-1 is passed in
+  //
   t = s+1;
 
   for (i=1; (i<=len) && *t; ) {

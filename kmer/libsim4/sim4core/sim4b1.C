@@ -1,32 +1,11 @@
 #include "sim4.H"
 
-
 #ifdef DEBUG_EXONS
-void
-printExons(char *label, Exon *l) {
-  fprintf(stdout, label);
-  while (l) {
-    fprintf(stdout, "GEN f=%8d t=%8d  EST f=%8d t=%8d   flag=%d\n",
-            l->frGEN,
-            l->toGEN,
-            l->frEST,
-            l->toEST,
-            l->flag);
-    
-    l = l->next_exon;
-  }
-  fprintf(stdout, "----------------------------------------\n");
-  fflush(stdout);
-}
-
-#define PRINTEXONS(S, L)   printExons(S, L)
+#define PRINTEXONS(S, L)   (L)->printList(S)
 #else
 #define PRINTEXONS(S, L)
 #endif
 
-
-
-/* seq1 = genomic  DNA (text); seq2 = cDNA */
 struct edit_script_list *
 Sim4::SIM4(int            *dist_ptr,
            Exon          **Exons,
@@ -47,14 +26,13 @@ Sim4::SIM4(int            *dist_ptr,
   *pA = 0;
   *pT = 0;
 
-  //  Initialize the mspManager to fail if the match looks expensive.
   //
-  st->tooManyMSPs = false;
-
-  //exon_cores(_genSeq-1, _estSeq-1, _genLen, _estLen, 1, 1, 0, wordSize, mspThreshold1, PERM);
+  //  The call to exon_cores() that used to be here is now done in sim4string.
+  //
 
   //  See if there are too many MSPs found.  If so, fail.
   //
+  st->tooManyMSPs = false;
   if (_mspManager.tooManyMSPs()) {
     st->tooManyMSPs     = true;
     st->numberOfMatches = _mspManager.numberOfMSPs();
@@ -108,13 +86,13 @@ Sim4::SIM4(int            *dist_ptr,
 #ifdef SHOW_PROGRESS
   fprintf(stderr, "exon bracket at start\n");
 #endif
-  Lblock = new_exon(0,0,0,0,0,0,0,Lblock);
+  Lblock = new Exon(0,0,0,0,0,0,0,Lblock);
   if (Rblock == NULL)
     Rblock = Lblock;
 #ifdef SHOW_PROGRESS
   fprintf(stderr, "exon bracket at end; Lblock = 0x%08lx, Rblock = 0x%08lx\n", Lblock, Rblock);
 #endif
-  Rblock->next_exon = new_exon(_genLen+1,_estLen+1,0,0,0,0,0,NULL); 
+  Rblock->next_exon = new Exon(_genLen+1,_estLen+1,0,0,0,0,0,NULL); 
 
   PRINTEXONS("initial exon set after inserting brackets\n", Lblock);
 
@@ -137,6 +115,9 @@ Sim4::SIM4(int            *dist_ptr,
 
     rollbflag = 0;
 
+    //  This is the distance from this exon to the next exon
+    //  in the EST
+    //
     int diff = (int)(tmp_block1->frEST - tmp_block->toEST - 1);
 
 #ifdef SHOW_PROGRESS
@@ -150,17 +131,28 @@ Sim4::SIM4(int            *dist_ptr,
 #endif
 
     if (diff) {
+
       if (diff < 0) {
+        //  If the diff is less than zero, then there is an overlap in
+        //  the EST.  Wobble the boundary using GTAG signals (so
+        //  obviously, this won't work correctly if we are not cDNA).
+        //
 #ifdef SHOW_PROGRESS
         fprintf(stderr, "Called SIM4_block1() with diff=%d\n", diff);
 #endif
         rollbflag = SIM4_block1(Lblock, tmp_block, tmp_block1);
       } else {
-        /* bridge the gap */
 
+        //  Otherwise, there is a gap in the EST, and we need to fill
+        //  it in.  This is done only if there is no overlap in the
+        //  genomic.
+        //
         if (tmp_block1->frGEN - tmp_block->toGEN - 1 > 0) {
           if (tmp_block1->toEST &&
               tmp_block->toEST) {
+            //  We are not the first or last gap -- an interior gap
+            //  between two exons.
+            //
 #ifdef SHOW_PROGRESS
             fprintf(stderr, "Called SIM4_block2()\n");
 #endif
@@ -169,6 +161,8 @@ Sim4::SIM4(int            *dist_ptr,
                                     tmp_block,
                                     tmp_block1);
           } else if (tmp_block1->toGEN) {
+            //  Not the last gap, so must be the first gap.
+            //
 #ifdef SHOW_PROGRESS
             fprintf(stderr, "Called SIM4_block3()\n");
 #endif
@@ -178,6 +172,8 @@ Sim4::SIM4(int            *dist_ptr,
                                     tmp_block,
                                     tmp_block1);
           } else {
+            //  By default, the last gap.
+            //
 #ifdef SHOW_PROGRESS
             fprintf(stderr, "Called SIM4_block4()\n");
 #endif
@@ -188,13 +184,15 @@ Sim4::SIM4(int            *dist_ptr,
                                     tmp_block1);
           } 
         } else {
+          //  Overlapping genomic.  What these do when set to
+          //  NULL is unknown.
+          //
           tmp_Rblock = tmp_Lblock = NULL;
         }
 
-        /* merge block in the exon list; make connections 
-           to the previous list of blocks; maintain 
-           increasing order */
-
+        //  Merge block in the exon list; make connections to the
+        //  previous list of blocks; maintain increasing order
+        //
         if (tmp_Lblock) {       
           tmp_block->next_exon = tmp_Lblock;
           tmp_Rblock->next_exon = tmp_block1;
@@ -208,6 +206,10 @@ Sim4::SIM4(int            *dist_ptr,
         }
       }
     }
+
+    //  If this exon block was not removed, move to the next.  If it was removed,
+    //  we're already there.
+    //
     if (rollbflag == 0)
       tmp_block = tmp_block1;
   }
@@ -236,7 +238,7 @@ Sim4::SIM4(int            *dist_ptr,
   while ((tmp_block!=NULL) && (tmp_block->length<wordSize) && tmp_block->toGEN) {
     tmp_block1 = tmp_block;
     tmp_block = tmp_block->next_exon;
-    ckfree(tmp_block1);
+    delete tmp_block1;
   }
   Lblock->next_exon = tmp_block;
 
@@ -295,7 +297,7 @@ Sim4::SIM4(int            *dist_ptr,
     get_stats(Lblock, st);
 
     *Exons = Lblock->next_exon;
-    ckfree(Lblock);
+    delete Lblock;
   } else {
     *Exons = 0L;
 

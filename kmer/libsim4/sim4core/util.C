@@ -106,36 +106,6 @@ ABORT(int X, char *Y) {
 }
 
 
-#if 0
-Exon *
-Sim4::new_exon(int f1, int f2, int t1, int t2, int len, int edist, int flag, Exon *next)
-{
-  Exon *newthing = (Exon *)ckalloc(sizeof(Exon));
-
-  ABORT((f1 < 0), "new_exon: f1 < 0");
-  ABORT((f2 < 0), "new_exon: f2 < 0");
-  ABORT((t1 < 0), "new_exon: t1 < 0");
-  ABORT((t2 < 0), "new_exon: t2 < 0");
-
-  newthing->frGEN = f1;
-  newthing->frEST = f2;
-  newthing->toGEN = t1;
-  newthing->toEST = t2;
-  newthing->length = (len < 0) ? (t2-f2+1) : len;
-  newthing->edist = edist;
-  newthing->flag = flag;
-  newthing->next_exon = next;
-
-  newthing->ori = 'U';
-
-#ifdef SPLSCORE
-  newthing->splScore = -999999;
-#endif
-
-  return newthing;
-}
-#endif
-
 void
 Sim4::get_stats(Exon *lblock, sim4_stats_t *st) {
   Exon *t, *t1;
@@ -214,7 +184,7 @@ Sim4::compact_list(Exon **Lblock, Exon **Rblock)
       tmp_block->edist -= (int)(globalParams->_percentError * diff);
       tmp_block->next_exon = tmp_block1->next_exon;
       
-      ckfree(tmp_block1);
+      delete tmp_block1;
     } else
       tmp_block = tmp_block1;
   }
@@ -298,7 +268,7 @@ Sim4::merge(Exon **t0, Exon **t1)
       }
       tmp0->next_exon = tmp1->next_exon;  
 
-      ckfree(tmp1);
+      delete tmp1;
     } else {
       tmp0 = tmp0->next_exon;
     }
@@ -306,8 +276,7 @@ Sim4::merge(Exon **t0, Exon **t1)
 }
 
 void
-Sim4::free_align(edit_script_list *aligns)
-{
+Sim4::free_align(edit_script_list *aligns) {
   edit_script_list *head;
 
   head = aligns;
@@ -321,13 +290,12 @@ Sim4::free_align(edit_script_list *aligns)
 
 
 void 
-Sim4::free_list(Exon *left)
-{
+Sim4::free_list(Exon *left) {
   Exon *tmp_block;
   
   while ((tmp_block=left)!=NULL) {
     left = left->next_exon;
-    ckfree(tmp_block);
+    delete tmp_block;
   }
 }    
 
@@ -351,7 +319,7 @@ Sim4::bmatch (char *s1, char *s2, int l1, int l2, int offset1, int offset2)
       if (*(s1+i1+l2-1)==*(s2+j+l2-1)) score++;
       if (*(s1+i1+l2)==*(s2+j+l2)) score++;
       if (score>=3) {
-        newthing = new_exon(i1+3+offset1, offset2, i1+3+offset1+l2-5,
+        newthing = new Exon(i1+3+offset1, offset2, i1+3+offset1+l2-5,
                             offset2+l2-5, l2-4, 0, 0, NULL);
         newthing->ori = (G_score >= abs(C_score)) ? 'G' : 'C';
         
@@ -381,7 +349,7 @@ Sim4::fmatch (char *s1, char *s2, int l1, int l2, int offset1, int offset2)
       if (*(s1+i1-l2)==*s2) score++;
       if (*(s1+i1-l2+1)==*(s2+1)) score++;
       if (score>=3) {
-        newthing = new_exon(i+offset1,offset2,i1+offset1-2,offset2+l2-5,
+        newthing = new Exon(i+offset1,offset2,i1+offset1-2,offset2+l2-5,
                             l2-4,0,0,NULL);
         newthing->ori = (G_score >= abs(C_score)) ? 'G' : 'C';
 
@@ -694,7 +662,8 @@ Sim4::slide_intron(int in_w, Exon **lblock, sim4_stats_t *st)
         
         wobble(&t0,&t1,(type=='G')? "GT":"CT",(type=='G')? "AG":"AC",_genSeq);
 
-        ckfree(g); ckfree(c);
+        ckfree(g);
+        ckfree(c);
 
         /* determine the type, based on the # matches w/ GT-AG (CT-AC) */
         s = _genSeq+t0->toGEN;
