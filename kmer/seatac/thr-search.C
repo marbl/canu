@@ -160,6 +160,8 @@ searchThread(void *U) {
         if (config._doReverse)
           doSearch(state, seq, idx, true, FO);
 
+        // CMM
+        FO->filter();
         //  Signal that we are done.
         //
         output[idx] = FO;
