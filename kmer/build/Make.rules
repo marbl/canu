@@ -1,0 +1,26 @@
+# -*- makefile -*-
+
+# rules for LATEX
+%.dvi: %.tex
+	${LATEX} $< && ${LATEX} $<
+	if [ -e ${<:.tex=.blg} ] ; then \
+	  ${BIBTEX} ${<:.tex=} && \
+	  ${LATEX} $< && ${LATEX} $< ; \
+	fi
+
+## Shared targets
+ALL_DVIPS   :=$(strip $(foreach x,${//},${${x:.=.DVIPS}}))
+
+${ALL_DVIPS}: %.ps :%.dvi
+	${DVIPS} -o $@ $<
+
+# some extra goodies
+${ALL_DVIPS:.ps=.gv}: %.gv: %.ps
+	${VIEWPS} $<
+
+${ALL_DVIPS:.ps=.print}: %.print: %.ps
+	${PRINTPS} $<
+
+
+__SUBGOALS__+=$${${1:.=.DVIPS}}
+
