@@ -23,5 +23,5 @@ ${$/.CXX_EXES}:$/libexistDB.a ${POSITIONDB/}libpositionDB.a ${LIBBRI/}libbri.a
 
 $/buildinfo-existDB.c: $/buildinfo-existDB.h
 $/buildinfo-existDB.h: $/existDB.C $/existDB.H
-	${UTIL/}buildinfo.pl existDB "${CXXFLAGS} ${CXXFLAGS_ARCH}" $^
+	${UTIL/}buildinfo.pl existDB "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
 	mv buildinfo-existDB.[ch] `dirname $@`

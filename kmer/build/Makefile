@@ -39,18 +39,21 @@ define Include
 endef
 
 define Include_File
-  ifeq ($(wildcard ${1}Make.include),${1}Make.include)
-    $/.SUBS +=${1}.
-    // +=${1}.
-    ${1}.SUBS :=
-    /  :=${1}
-    include ${1}Make.include
-    /  :=$/
+  ifeq ($(filter ${1}.,${WITHOUT_}),)
+    ifeq ($(wildcard ${1}Make.include),${1}Make.include)
+      $/.SUBS +=${1}.
+      // +=${1}.
+      ${1}.SUBS :=
+      /  :=${1}
+      include ${1}Make.include
+      /  :=$/
+    endif
   endif
 
 endef
 
 ##### System specific includes
+WITHOUT_:=$(patsubst %,%.,$(strip ${WITHOUT}))
 
 # invoke the toplevel include file
 $(eval $(call Include_File,$/))
@@ -84,16 +87,16 @@ ${RECURSIVE:.=.ls}:
 
 ##  generic pattern rules for subgoals
 %.o: %.c
-	${CC} ${CFLAGS} ${CFLAGS_ARCH} -o $@ -c $<
+	${CC} ${CFLAGS} ${CFLAGS_COMPILE} -o $@ -c $<
 
 %.o: %.cc
-	${CXX} ${CXXFLAGS} ${CXXFLAGS_ARCH} -o $@ -c $<
+	${CXX} ${CXXFLAGS} ${CXXFLAGS_COMPILE} -o $@ -c $<
 
 %.o: %.cpp
-	${CXX} ${CXXFLAGS} ${CXXFLAGS_ARCH} -o $@ -c $<
+	${CXX} ${CXXFLAGS} ${CXXFLAGS_COMPILE} -o $@ -c $<
 
 %.o: %.C
-	${CXX} ${CXXFLAGS} ${CXXFLAGS_ARCH} -o $@ -c $<
+	${CXX} ${CXXFLAGS} ${CXXFLAGS_COMPILE} -o $@ -c $<
 
 ### Building depends goals
 __DEPGOALS__=
@@ -104,7 +107,7 @@ ALL_C_SRCS       :=$(strip $(foreach x,${//},${${x:.=.C_SRCS}}))
 ALL_C_DEPS       :=${ALL_C_SRCS:=.d}
 ${ALL_C_DEPS}:%.d:%
 	@ echo "making $@"
-	@ dir=`echo $< | sed -e's~[^/]*$$~~'`; \
+	 dir=`echo $< | sed -e's~[^/]*$$~~'`; \
 	  ${CCDEP} ${CDEPFLAGS} ${CFLAGS} $< | \
 	  sed -e"/:/s!^!$${dir}!" > $@
 
@@ -112,7 +115,7 @@ ALL_CXX_SRCS     :=$(strip $(foreach x,${//},${${x:.=.CXX_SRCS}}))
 ALL_CXX_DEPS     :=${ALL_CXX_SRCS:=.d}
 ${ALL_CXX_DEPS}:%.d:%
 	@ echo "making $@"
-	@ dir=`echo $< | sed -e's~[^/]*$$~~'`; \
+	 dir=`echo $< | sed -e's~[^/]*$$~~'`; \
 	  ${CXXDEP} ${CXXDEPFLAGS} ${CXXFLAGS} $< | \
 	  sed -e"/:/s!^!$${dir}!" > $@
 
@@ -132,12 +135,12 @@ __SUBGOALS__=
 ## EXE targets
 ALL_C_EXES   :=$(strip $(foreach x,${//},${${x:.=.C_EXES}}))
 ${ALL_C_EXES}:
-	${CC} ${CLDFLAGS} ${CLDFLAGS_ARCH} -o $@ $^ ${CLIBS} ${CLIBS_ARCH}
+	${CC} ${CLDFLAGS} -o $@ $^ ${CLIBS}
 __SUBGOALS__+=$${${1:.=.C_EXES}}
 
 ALL_CXX_EXES :=$(strip $(foreach x,${//},${${x:.=.CXX_EXES}}))
 ${ALL_CXX_EXES}:
-	${CXX} ${CXXLDFLAGS} ${CXXLDFLAGS_ARCH} -o $@ $^ ${CXXLIBS} ${CXXLIBS_ARCH}
+	${CXX} ${CXXLDFLAGS} -o $@ $^ ${CXXLIBS}
 __SUBGOALS__+=$${${1:.=.CXX_EXES}}
 
 ## LIB targets
@@ -156,7 +159,7 @@ __SUBGOALS__+=$${${1:.=.CXX_LIBS}}
 ## Shared targets
 ALL_CXX_SHLIBS   :=$(strip $(foreach x,${//},${${x:.=.CXX_SHLIBS}}))
 ${ALL_CXX_SHLIBS}:
-	${CXX} ${CXXFLAGS} ${CXXFLAGS_ARCH} ${SHLIB_FLAGS} -o $@ $^ ${CXXLIBS} ${CXXLIBS_ARCH}
+	${CXX} ${CXXFLAGS} ${SHLIB_FLAGS} -o $@ $^ ${CXXLIBS}
 __SUBGOALS__+=$${${1:.=.CXX_SHLIBS}}
 
 
@@ -167,7 +170,7 @@ __SUBGOALS__+=$${${1:.=.CXX_SHLIBS}}
 define .RULE-clean
 ${1:.=.clean}: $${${1:.=.SUBS}:.=.clean}
 	rm -f $${${1:.=.CLEAN}} ${__SUBGOALS__}
-	(cd $1 && rm -rf ${C_TMP} ${C_TMP_ARCH} ${CXX_TMP} ${CXX_TMP_ARCH})
+	(cd $1 && rm -rf ${C_TMP} ${CXX_TMP})
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-clean,$x)))
@@ -182,7 +185,7 @@ $(eval $(foreach x,${//},$(call .RULE-depends-clean,$x)))
 define .RULE-real-clean
 ${1:.=.real-clean}: $${${1:.=.SUBS}:.=.real-clean}
 	rm -f $${${1:.=.CLEAN}} ${__SUBGOALS__}
-	(cd $1 && rm -rf ${C_TMP} ${C_TMP_ARCH} ${CXX_TMP} ${CXX_TMP_ARCH})
+	(cd $1 && rm -rf ${C_TMP} ${CXX_TMP})
 	rm -f ${1:.=Make.depends} ${__DEPGOALS__}
 	rm -f $${${1:.=.REAL-CLEAN}}
 

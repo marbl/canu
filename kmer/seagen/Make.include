@@ -1,4 +1,5 @@
 # -*- makefile -*-
+
 ifndef LIBBRI/
 LIBBRI/     := $/../libbri/
 endif
@@ -24,16 +25,20 @@ other_C  := $/hitConverter.C $/filterEST.C $/filterMRNA.C \
             $/sortHits.C $/filtertest.C
 
 $/.CXX_SRCS  :=${src_C} ${other_C} $/hitMatrix.C $/hitMatrix-Exact.C
-$/.CXX_EXES  := \
-   $/searchGENOME $/searchGENOMEexactly $/hitConverter \
-   $/filterEST $/filterMRNA $/filtertest $/sortHits
+ifdef WITH_THREADS
+ $/.CXX_EXES  := $/searchGENOME $/searchGENOMEexactly \
+   $/hitConverter $/filterEST $/filterMRNA $/filtertest $/sortHits
+else
+ $/.CXX_EXES  := \
+   $/hitConverter $/filterEST $/filterMRNA $/filtertest $/sortHits
+ $(warning $/searchGENOME and $/searchGENOMEexactly require threads: enable WITH_THREADS to build them.)
+endif
 
 $/.CLEAN     :=$/*.o
 $/.REAL-CLEAN:=$/buildinfo-*
 
 
 
-$/%.o: CXXFLAGS_ARCH+=${THREAD_FLAGS}
 $/%.d $/%.o: CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} -I${EXISTDB/}
 $/configuration.C.d:  $/buildinfo-searchGENOME.h \
                      ${EXISTDB/}buildinfo-existDB.h \
@@ -44,8 +49,6 @@ $/configuration.C.d:  $/buildinfo-searchGENOME.h \
 $/searchGENOME:        $/hitMatrix.o
 $/searchGENOMEexactly: $/hitMatrix-Exact.o
 
-$/searchGENOME $/searchGENOMEexactly: CXXLIBS_ARCH+=${THREAD_LIBS}
-$/searchGENOME $/searchGENOMEexactly: CXXLDFLAGS_ARCH+=${THREAD_FLAGS}
 $/searchGENOME $/searchGENOMEexactly: \
               ${src_C:.C=.o} $/buildinfo-searchGENOME.o \
               ${EXISTDB/}libexistDB.a ${POSITIONDB/}libpositionDB.a \
@@ -59,7 +62,7 @@ $/filtertest: $/filtertest.o
 
 $/buildinfo-searchGENOME.c: $/buildinfo-searchGENOME.h
 $/buildinfo-searchGENOME.h: ${src}
-	${UTIL/}buildinfo.pl searchGENOME "${CXXFLAGS} ${CXXFLAGS_ARCH}" $^
+	${UTIL/}buildinfo.pl searchGENOME "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
 	mv buildinfo-searchGENOME.[ch] `dirname $@`
 
 

@@ -37,12 +37,12 @@ $/libbri.a: ${$/.C_SRCS:.c=.o} ${$/.CXX_SRCS:.C=.o} $/alphabet.o $/buildinfo-lib
 # note: explicit serialization is required here
 $/buildinfo-libbri.c: $/buildinfo-libbri.h
 $/buildinfo-libbri.h: ${src}
-	${UTIL/}buildinfo.pl libbri "${CXXFLAGS} ${CXXFLAGS_ARCH}" $^
+	${UTIL/}buildinfo.pl libbri "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
 	mv buildinfo-libbri.[ch] `dirname $@`
 
 $/alphabet.c: $/alphabet.h
 $/alphabet.h:  $/alphabet-generate.c
-	$(CC) $(CFLAGS) $(CFLAGS_ARCH) -o `dirname $@`/a.out -DMAIN $<
+	$(CC) $(CFLAGS) $(CFLAGS_COMPILE) -o `dirname $@`/a.out -DMAIN $<
 	cd `dirname $@` ; ./a.out && rm -f a.out
 
 

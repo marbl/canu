@@ -28,12 +28,12 @@ $/meryl $/merle: ${LIBBRI/}libbri.a
 
 $/buildinfo-meryl.c: $/buildinfo-meryl.h
 $/buildinfo-meryl.h: ${src}
-	${UTIL/}buildinfo.pl meryl "${CXXFLAGS} ${CXXFLAGS_ARCH}" $^
+	${UTIL/}buildinfo.pl meryl "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
 	mv buildinfo-meryl.[ch] `dirname $@`
 
 $/buildinfo-merle.c: $/buildinfo-merle.h
 $/buildinfo-merle.h: $/merle.C
-	${UTIL/}buildinfo.pl merle "${CXXFLAGS} ${CXXFLAGS_ARCH}" $^
+	${UTIL/}buildinfo.pl merle "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
 	mv buildinfo-merle.[ch] `dirname $@`
 
 

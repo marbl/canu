@@ -30,13 +30,16 @@ src      := $/snapper2.C $/configuration.C $/encodedQuery.C \
             $/hitMatrix.H $/intervalList.H $/posix.H $/snapper2.H
 
 $/.CXX_SRCS := $(filter %.C,${src})
-$/.CXX_EXES := $/snapper2
+ifdef WITH_THREADS
+ $/.CXX_EXES := $/snapper2
+else
+ $/.CXX_EXES :=
+ $(warning $/snapper2 requires threads: enable WITH_THREADS to build it.)
+endif
 
 $/.CLEAN     :=$/*.o
 $/.REAL-CLEAN:=$/buildinfo-*
 
-
-$/%.o: CXXFLAGS_ARCH +=${THREAD_FLAGS}
 
 $/%.d $/%.o: \
   CXXFLAGS+= -I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} \
@@ -49,8 +52,6 @@ $/configuration.C.d: $/buildinfo-snapper2.h \
                      ${SIM4/}buildinfo-libsim4.h \
                      ${SIM4POLISH/}buildinfo-libsim4polish.h
 
-$/snapper2: CXXLIBS_ARCH +=${THREAD_LIBS}
-$/snapper2: CXXLDFLAGS_ARCH +=${THREAD_FLAGS}
 $/snapper2: \
               ${$/.CXX_SRCS:.C=.o} $/buildinfo-snapper2.o \
               ${EXISTDB/}libexistDB.a ${POSITIONDB/}libpositionDB.a \
@@ -59,7 +60,7 @@ $/snapper2: \
 
 $/buildinfo-snapper2.c: $/buildinfo-snapper2.h
 $/buildinfo-snapper2.h: ${src}
-	${UTIL/}buildinfo.pl snapper2 "${CXXFLAGS} ${CXXFLAGS_ARCH}" $^
+	${UTIL/}buildinfo.pl snapper2 "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
 	mv buildinfo-snapper2.[ch] `dirname $@`
 
 

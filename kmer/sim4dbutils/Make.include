@@ -38,7 +38,7 @@ $/%.d $/%.o:  CFLAGS+=-I${FASTA/} -I${SIM4POLISH/} -I${LIBBRI/}
 $/%.d $/%.o:  CXXFLAGS+=-I${FASTA/} -I${SIM4POLISH/} -I${LIBBRI/}
 
 $/pickBestPolish-debug.o: $/pickBestPolish.c
-	${CC} ${WARNS} -DVALIDATE ${CFLAGS} ${CFLAGS_ARCH} -o $@ -c $<
+	${CC} ${WARNS} -DVALIDATE ${CFLAGS} ${CFLAGS_COMPILE} -o $@ -c $<
 
 $/filterPolishes              : $/filterPolishes.o
 $/mergePolishes               : $/mergePolishes.o

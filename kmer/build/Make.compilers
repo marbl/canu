@@ -1,136 +1,193 @@
 # -*- makefile -*-
 
+ifdef OPERATING_SYSTEM
+  _OS_:=$(OPERATING_SYSTEM)
+else
+  _OS_:=unknown
+  WITH_GNU:=1
+endif
+ifdef WITH_GNU
+  _CC_:=-gcc
+else
+  _CC_:=
+endif
+ifdef WITH_DEBUG
+  _OPT_ :=-debug
+else
+  _OPT_ :=
+endif
+ifdef WITH_THREADS
+  _THR_:=-threaded
+else
+  _THR_:=
+endif
 
-# The arch-independent section
-# compiling
-CC              :=
-CXX             :=
-CFLAGS          :=
-CXXFLAGS        :=
-
-C_TMP           :=
-CXX_TMP         :=
-C_TMP_ARCH      :=
-CXX_TMP_ARCH    :=
-
-# linking
-CLDFLAGS        :=
-CXXLDFLAGS      :=
-CLIBS		:=-lm
-CXXLIBS         :=-lm
-# archiving
-ARFLAGS         :=-rvs
-AR              :=ar
-
-
-# The dependency generator
-# although it can cause some troubles, it really is
-# probably best to keep these as GNU compilers
 CCDEP		 :=gcc
 CXXDEP		 :=g++
-CDEPFLAGS       :=-MM -MG
+CDEPFLAGS        :=-MM -MG
 CXXDEPFLAGS      :=-MM -MG
 
-INSTALL/  :=${MAKEFILE/}unknown-arch/
+AR:=ar
+ARFLAGS:=-crvs
 
-### ARCH specific compiler options ###################################
+INSTALL/:=${MAKEFILE/}${_OS_}${_CC_}${_OPT_}${_THR_}/
 
-### default to using GNU on i386
-ifeq ($(OPERATING_SYSTEM),)
-  WITH_GNU:=1
-  PYINC            :=-I/usr/include/python2.2/
-  INSTALL/         :=${MAKEFILE/}gnu-i386/
-  PERL             :=/usr/bin/perl
-endif
+## CC and CXX compilers and flags
 
-# have WITH_GNU override any spec
-ifdef WITH_GNU
+CC:=
+CXX:=
+CFLAGS:=
+CXXFLAGS:=
+CFLAGS_COMPILE:=
+CXXFLAGS_COMPILE:=
+CLDFLAGS:=
+CXXLDFLAGS:=
+CLIBS:=-lm
+CXXLIBS:=-lm
+
+ifeq (${_CC_},gcc)
   CC               :=gcc
   CXX              :=g++
-  ifdef WITH_DEBUG
-    CFLAGS_ARCH      :=-g -Wall
-    CXXFLAGS_ARCH    :=-g -Wall
-  else
-    CFLAGS_ARCH      :=-g -O4 -Wall
-    CXXFLAGS_ARCH    :=-g -O4 -Wall
-  endif
-  SHLIB_FLAGS      :=-shared
-  THREAD_FLAGS :=-pthread -D_THREAD_SAFE
+  SHLIB_FLAGS      +=-shared
+endif
+ifeq (${_OS_}${_CC_},TRU64)
+  CC               :=cc
+  CXX              :=cxx
+  CFLAGS_COMPILE      +=
+  CXXFLAGS_COMPILE    +=-std gnu
+  SHLIB_FLAGS      +=-shared
+  CXX_TMP_COMPILE     :=so_locations cxx_repository
+endif
+ifeq (${_OS_}${_CC_},AIX)
+  CC               :=xlc
+  CXX              :=xlC
+  SHLIB_FLAGS      :=-G
+
+  AIX_RTTI_SUPPORT:=-qrtti
+  AIX_LARGE_FILE_SUPPORT               :=-q64 -qlonglong -D_LARGE_FILES
+  AIX_SUPPRESS_DUPLICATE_SYMBOL_WARNING:=-qstaticinline
+  AIX_FLAG_TO_SUPPRESS_MANY_WARNINGS   :=-bhalt:8
+
+  AIX_FLAGS  :=$(AIX_LARGE_FILE_SUPPORT) $(AIX_OPTIMIZATIONS)
+  AIX_FLAGS  +=$(AIX_FLAG_TO_SUPPRESS_MANY_WARNINGS)
+  AIX_FLAGS  +=$(AIX_SUPPRESS_DUPLICATE_SYMBOL_WARNING)
+
+  CFLAGS_COMPILE     +=-qcpluscmt ${AIX_FLAGS}
+  CXXFLAGS_COMPILE   +=${AIX_RTTI_SUPPORT} ${AIX_FLAGS}
+  CLDFLAGS           +=${AIX_FLAGS}
+  CXXLDFLAGS         +=${AIX_RTTI_SUPPORT} ${AIX_FLAGS}
+endif
+
+# optimize or not
+ifeq (${_CC_}${_OPT_},-gcc-debug)
+  CFLAGS_COMPILE           +=-g -Wall
+  CXXFLAGS_COMPILE         +=-g -wall
+endif
+ifeq (${_OS_}${_CC_}${_OPT_},TRU64-debug)
+  CFLAGS_COMPILE           +=-g
+  CXXFLAGS_COMPILE         +=-g
+endif
+ifeq (${_OS_}${_CC_}${_OPT_},AIX-debug)
+  CFLAGS_COMPILE           +=-g
+  CXXFLAGS_COMPILE         +=-g
+  CFLAGS_COMPILE           +=-g -qfullpath -qlinedebug
+  CXXFLAGS_COMPILE         +=-g -qfullpath -qlinedebug
+endif
+ifeq (${_CC_}${_OPT_},gcc)
+  CFLAGS_COMPILE           +=-O4
+  CXXFLAGS_COMPILE         +=-O4
+endif
+ifeq (${_OS_}${_CC_}${_OPT_},TRU64)
+  CFLAGS_COMPILE           +=-g3 -fast
+  CXXFLAGS_COMPILE         +=-g3 -fast
+endif
+ifeq (${_OS_}${_CC_}${_OPT_},AIX)
+  CFLAGS_COMPILE           +=-g
+  CXXFLAGS_COMPILE         +=-g
+  CFLAGS_COMPILE           +=-O3 -qstrict
+  CXXFLAGS_COMPILE         +=-O3 -qstrict
+endif
+
+# goofy AIX-ness for GCC
+ifeq (${_OS_}${_CC_},AIX)
+  CDEPFLAGS   +=-maix64
+  CXXDEPFLAGS +=-maix64
+endif
+ifeq (${_OS_}${_CC_},AIX-gcc)
+  CFLAGS      +=-maix64
+  CXXFLAGS    +=-maix64
 endif
 
 
-### tru64
-ifeq ($(OPERATING_SYSTEM),TRU64)
-  ifndef WITH_GNU
-    CC               :=cc
-    CXX              :=cxx
-    ifdef WITH_DEBUG
-      CFLAGS_ARCH      :=-g
-      CXXFLAGS_ARCH    :=-timplicit_local -g
-    else
-      CFLAGS_ARCH      :=-g3 -O4
-      CXXFLAGS_ARCH    :=-timplicit_local -g3 -O4
-      CXX_TMP_ARCH     :=cxx_repository so_locations
-    endif
-    SHLIB_FLAGS      :=-shared
-    LEDA/     :=/usr/local/ir/LEDA-4.3.cxx/
-  else
-    LEDA/     :=/usr/local/ir/LEDA-4.3/
-  endif
-  THREAD_FLAGS :=-pthread -D_REENTRANT
-  THREAD_LIBS  :=-lpthread -lrt
-  PYINC     :=-I/usr/local/ir/Python-2.2.2 -I/usr/local/ir/Python-2.2.2/Include
-  INSTALL/  :=${MAKEFILE/}tru64/
-  PERL      :=/usr/local/bin/perl
+## ammendments to the above because we are threaded
+ifeq (${_CC_}${_THR_},-gcc-threaded)
+  CFLAGS           +=-D_THREAD_SAFE
+  CXXFLAGS         +=-D_THREAD_SAFE
+  CFLAGS_COMPILE   +=-pthread
+  CXXFLAGS_COMPILE +=-pthread
+  CLIBS            +=-lpthread -lrt
+  CXXLIBS          +=-lpthread -lrt
+endif
+ifeq (${_OS_}${_CC_}${_THR_},TRU64-threaded)
+  CFLAGS           +=-D_REENTRANT
+  CXXFLAGS         +=-D_REENTRANT
+  CFLAGS_COMPILE   +=-pthread
+  CXXFLAGS_COMPILE +=-pthread
+  CLIBS            +=-lpthread -lrt
+  CXXLIBS          +=-lpthread -lrt
+endif
+ifeq (${_OS_}${_CC_}${_THR_},AIX-threaded)
+  CC               :=xlc_r
+  CXX              :=xlC_r
+  CDEPFLAGS        +=-D_THREAD_SAFE
+  CXXDEPFLAGS      +=-D_THREAD_SAFE
 endif
 
-### aches
-ifeq ($(OPERATING_SYSTEM),AIX)
-  ifdef WITH_GNU
-    CCFLAGS  +=-maix64
-    CXXFLAGS +=-maix64
-    LEDA/     :=/scratch/edwardnj/LEDA-AIX-GPP/
+
+## where is leda?
+ifeq (${_OS_},TRU64)
+  LEDA/   :=/usr/local/ir/LEDA-4.3/
+  ifeq (${_CC_},-gcc)
+    LEDALIB/ :=${LEDA/}lib/eg++
   else
-    CC            :=xlc
-    CXX           :=xlC
-    SHLIB_FLAGS   :=-G
-    AIX_RTTI_SUPPORT:=-qrtti
-    AIX_LARGE_FILE_SUPPORT               :=-q64 -qlonglong -D_LARGE_FILES
-    AIX_SUPPRESS_DUPLICATE_SYMBOL_WARNING:=-qstaticinline
-    AIX_FLAG_TO_SUPPRESS_MANY_WARNINGS   :=-bhalt:8
-    AGGRESSIVE_OPTIMIZATION              :=-O3 -qstrict
-    ifdef WITH_DEBUG
-      AIX_OPTIMIZATIONS                  :=-g -qfullpath -qlinedebug
-    else
-      AIX_OPTIMIZATIONS                  :=-qarch=auto -qtune=auto -qcache=auto
-      AIX_OPTIMIZATIONS                  +=$(AGGRESSIVE_OPTIMIZATION)
-    endif
-
-    CandCXXFLAGS_ARCH  := \
-      $(AIX_LARGE_FILE_SUPPORT) \
-      $(AIX_OPTIMIZATIONS) \
-      $(AIX_FLAG_TO_SUPPRESS_MANY_WARNINGS) \
-      $(AIX_SUPPRESS_DUPLICATE_SYMBOL_WARNING)
-    CFLAGS_ARCH	:= -qcpluscmt $(CandCXXFLAGS_ARCH)
-    CXXFLAGS_ARCH := $(AIX_RTTI_SUPPORT) $(CandCXXFLAGS_ARCH)
-    CLDFLAGS_ARCH	:= 
-    CXXLDFLAGS_ARCH := $(CLDFLAGS_ARCH) \
-      $(AIX_RTTI_SUPPORT) \
-      $(AIX_LARGE_FILE_SUPPORT) \
-      $(AIX_OPTIMIZATIONS) \
-      $(AIX_FLAG_TO_SUPPRESS_MANY_WARNINGS) \
-      $(AIX_SUPPRESS_DUPLICATE_SYMBOL_WARNING)
-    CXX_TMP_ARCH     :=so_locations
-
-    LEDA/     :=/scratch/edwardnj/LEDA-AIX-XLC/
-    THREAD_FLAGS :=-qthreaded -D_THREAD_SAFE
-    THREAD_LIBS  :=-lpthread
-
-    CCDEPFLAGS  +=-maix64
-    CXXDEPFLAGS +=-maix64
+    LEDALIB/ :=${LEDA/}lib/cxx
   endif
-
-  PYINC     :=-I/usr/local/include/python2.2
-  INSTALL/  :=${MAKEFILE/}aix/
-  PERL      :=/usr/local/bin/perl5.6.1
+  ifeq (${_OPT_},-debug)
+    LEDALIB/ :=${LEDALIB/}-g/
+  else
+    LEDALIB/ :=${LEDALIB/}-O/
+  endif
 endif
+ifeq (${_OS_},AIX)
+  LEDA/   :=/scratch/edwardnj/LEDA-AIX
+  ifeq (${_CC_},-gcc)
+    LEDA/ :=${LEDA/}-GPP
+  else
+    LEDA/ :=${LEDA/}-XLC
+  endif
+  ifeq (${_OPT_},-debug)
+    LEDA/ :=${LEDA/}/
+  else
+    LEDA/ :=${LEDA/}-OPT/
+  endif
+  LEDALIB/ :=${LEDA/}
+endif
+
+## where is python?
+PYINC     :=
+ifeq (${_OS_}${_CC_},TRU64)
+  PYINC   :=-I/usr/local/ir/Python-2.2.2 -I/usr/local/ir/Python-2.2.2/Include
+endif
+ifeq (${_OS_}${_CC_},AIX)
+  PYINC   :=-I/usr/local/include/python2.2
+endif
+
+## where is perl?
+PERL:=/usr/bin/perl
+ifeq (${_OS_},TRU64)
+  PERL  :=/usr/local/bin/perl
+endif
+ifeq (${_OS_},AIX)
+  PERL  :=/usr/local/bin/perl5.6.1
+endif
+

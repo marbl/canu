@@ -81,6 +81,17 @@ or in the environment, e.g.
   export WITH_DEBUG=1
   make
 
+Q) One of the subprojects has a buggy build or a buggy Make.include.
+How do I get the build system to ignore it?
+A) One option is deleting the directory, since Make.include files
+which do not exist and silently skipped.  However, the current, highly
+experimental, way to do this without deleting is by using the WITHOUT
+variable.  Specifying paths in this variable will cause the
+Make.include file in the directory to not be read.  For example,
+  make WITHOUT="../RCM/ ../TCBB/"
+(terminating /'s are mandatory) will cause no build information to
+be read at all for these directories.
+
 Q) The Make.compilers file sucks.  I've hacked up my own.  How do I
 use this instead?
 A) It is bad to do this.  But sometimes you just habe to.  You can
