@@ -93,9 +93,7 @@ private:
   bool               isEOF(void) {
     if (_rb)
       return(_rb->eof());
-    else
-      return(_cs->eof());
-    return(true);
+    return(_cs->eof());
   };
 
   u64bit            _positionInSequence;

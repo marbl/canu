@@ -128,7 +128,7 @@ private:
   //  If _separatorPosition is positive, we are sending
   //  _separatorLength _separator's out.
   //
-  u32bit                _separator;
+  char                  _separator;
   bool                  _separatorDone;
   u32bit                _separatorLength;
   u32bit                _separatorPosition;

@@ -22,14 +22,18 @@ public:
       _pos = _len-1;
   };
 
+#if 0
   FastAAccessor(FastASequenceOnDisk *S, bool revcomp=false) {
     fprintf(stderr, "SORRY!  FastAAccessor() isn't implemented for FastASequenceOnDisk.\n");
     exit(1);
   };
+#endif
 
   FastAAccessor(char *S, u32bit length=0, bool revcomp=false) {
     _seq = S;
-    _len = strlen(S);
+    _len = length;
+    if (length == 0)
+      _len = (u32bit)strlen(S);
     _pos = 0;
 
     _doRevComp = revcomp;
