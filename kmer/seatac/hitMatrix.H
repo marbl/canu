@@ -20,7 +20,7 @@
 //      dsPos - qsPos
 //  but that's not unsigned.
 //
-//#define WITHOUT_DIAGONALID
+#define WITHOUT_DIAGONALID
 
 
 struct diagonalLine {
