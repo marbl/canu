@@ -11,8 +11,8 @@ palloc-test: palloc.c
 reader-delete: reader-delete.o ../sim4reader.o
 	$(CC) -gall -o reader-delete reader-delete.o ../sim4reader.o -lm
 
-readBuffer-test: readBuffer-test.C readBuffer.H
-	$(CC) $(CCOPTS) -o readBuffer-test readBuffer-test.C
+readBuffer-test: readBuffer-test.C ../readBuffer.H ../file.o
+	$(CC) $(CCOPTS) -o readBuffer-test readBuffer-test.C ../file.o
 
 clean:
 	rm -f $(PROG) *.o
