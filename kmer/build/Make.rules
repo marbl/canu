@@ -1,5 +1,17 @@
 # -*- makefile -*-
 
+define .Make-rule
+$1:
+	$2
+
+endef
+
+SHLIB.rule:=$${CXX} $${CXXFLAGS} $${SHLIB_FLAGS} -o $$@ $$^ $${CXXLIBS}
+
+# AIX forces us to make this an OS dependent rule.
+ifeq (${_OS_},AIX)
+  SHLIB.rule:=$${CXX} $${CXXFLAGS} $${SHLIB_FLAGS} $${AIX_SHLIB_FLAGS} -o $$@ $$^ $${CXXLIBS}
+endif
 
 ############################################################
 # useful functions for the install methods mentioned below
@@ -124,8 +136,18 @@ __SUBGOALS__+=$${${1:.=.CXX_LIBS}}
 
 ## Shared targets
 ALL_CXX_SHLIBS   :=$(strip $(foreach x,${//},${${x:.=.CXX_SHLIBS}}))
+
+# AIX has really weird shared lib building.  Unfortunately, I could
+# not think of a way out of this hack.
+ifeq (${_OS_},AIX)
+${ALL_CXX_SHLIBS}:
+	${CXX} ${CXXFLAGS} ${SHLIB_FLAGS} ${AIX_SHLIB_FLAGS} -o $@ $^ ${CXXLIBS}
+
+else
 ${ALL_CXX_SHLIBS}:
 	${CXX} ${CXXFLAGS} ${SHLIB_FLAGS} -o $@ $^ ${CXXLIBS}
+
+endif
 __SUBGOALS__+=$${${1:.=.CXX_SHLIBS}}
 
 define .RULE-install-copy-C-CXX-LIBS
@@ -230,6 +252,29 @@ ${1:.=.install-copy-PYTHON}:
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-install-copy-PYTHON,$x)))
+
+
+############################################################
+# Perl
+############################################################
+# Same sort of spiel as python
+#__SUBGOALS__+=$${${1:.=.PERL_EXES}} $${${1:.=.PERL_LIBS}}
+
+   # install rules for python scripts
+
+define .RULE-install-copy-PERL
+${1:.=.install-copy}: ${1:.=.install-copy-PERL}
+${1:.=.install-copy-PERL}:
+# python exes goto scripts with shebang added
+	$(call .FUN-install-copy-script,$${${1:.=.PERL_EXES}},\
+                                         scripts/,\
+                                         ${PERLSHEBANG})
+# python libs goto scripts
+	$(call .FUN-install-copy,$${${1:.=.PERL_LIBS}}, \
+                                 scripts/$${${1:.=.PERL_LIB/}})
+
+endef
+$(eval $(foreach x,${//},$(call .RULE-install-copy-PERL,$x)))
 
 
 
