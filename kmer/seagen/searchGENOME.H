@@ -82,6 +82,7 @@ public:
   bool             _doForward;
 
   u32bit           _maxDiagonal;
+  u32bit           _maxGap;
   u32bit           _qsOverlap;
   u32bit           _dsOverlap;
 
@@ -115,8 +116,6 @@ public:
   u32bit           _useListLen;
   u32bit           _useListMax;
   use_s           *_useList;
-
-  u32bit           _maxSize;
 
   bool             _binaryOutput;
 
@@ -188,7 +187,7 @@ extern char                 **output;
 extern u32bit                *outputLen;
 
 extern u32bit                *queryMatchCounts;
-extern pthread_mutex_t        queryMatchMutex;
+//extern pthread_mutex_t        queryMatchMutex;
 
 extern pthread_mutex_t        inputTailMutex;
 extern FastASequenceInCore  **input;

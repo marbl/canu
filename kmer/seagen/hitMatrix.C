@@ -598,10 +598,9 @@ hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit
 
       delete IL;
 
-      pthread_mutex_lock(&queryMatchMutex);
+      //pthread_mutex_lock(&queryMatchMutex);
       queryMatchCounts[_qsIdx]++;
-      pthread_mutex_unlock(&queryMatchMutex);
-
+      //pthread_mutex_unlock(&queryMatchMutex);
     }
 
     //  All done with these hits.  Move to the next set.

@@ -21,6 +21,7 @@ configuration::configuration(void) {
   _doForward           = true;
 
   _maxDiagonal         = 25;
+  _maxGap              = 0;
   _qsOverlap           = 15;
   _dsOverlap           = 15;
 
@@ -38,12 +39,6 @@ configuration::configuration(void) {
   _minLengthMultiple   = 0;
   _minCoverageMultiple = 0.0;
 
-  _reversed            = false;
-
-#if 0
-  _regionMergeDistance = 50000;
-#endif
-
   _dbFileName          = 0L;
   _qsFileName          = 0L;
   _maskFileName        = 0L;
@@ -55,8 +50,6 @@ configuration::configuration(void) {
   _useList             = 0L;
   _useListLen          = 0;
   _useListMax          = 0;
-
-  _maxSize             = 0;
 
   _binaryOutput        = false;
 
@@ -88,27 +81,41 @@ static char const *usageString =
 "\n"
 "Algorithm Options:\n"
 "    -mersize k              Use k-mers\n"
+"    -merskip j              Skip j mers between each mer inserted into table\n"
+"    -forward                Search only the normal query sequences\n"
+"    -reverse                Search only the reverse-complemented query sequences\n"
+"    -maxdiagonal d\n"
+"    -maxgap g\n"
+"    -qoverlap q\n"
+"    -doverlap d\n"
+"    -maxintron m\n"
+"    -smallsequence\n"
+"    -singlelength l\n"
+"    -singlecoverage c\n"
+"    -multiplelength l\n"
+"    -multiplecoverage c\n"
+"    -extendweight w\n"
+"    -extendminimum m\n"
+"\n"
+"Process Options\n"
 "    -numthreads n           Use n search threads\n"
+"    -loaderhighwatermark h  Size of the loader queue\n"
+"    -loadersleep t          Time the loader will sleep when its output queue is full\n"
+"    -loaderwarnings         Enable warning messages for the loader\n"
+"    -searchsleep t          Time the searcher will sleep when it has no input\n"
+"    -writerhighwatermark h  Size of the output queue\n"
+"    -writersleep t          Time the writer will sleep when it has nothing to write\n"
+"    -writerwarnings         Enable warning messages for the writer\n"
 "\n"
 "Input Options:\n"
 "    -mask f                 Ignore all mers listed in file f\n"
-"    -only f                 Ignore all mers EXCEPT those listed in file f\n"
-"                              (use only the mers listed in file f)\n"
+"    -only f                 Use only the mers listed in file f\n"
 "    -cdna c.fasta           Query sequences (the cDNA, the stream)\n"
+"    -stream                 An alias for -cdna\n"
 "    -genomic g.fasta        Database sequences (the genome, the table)\n"
-"\n"
-"k-Mer Table Creation (\"The k-mer table is built ....\")\n"
-"    -buildtablefromcdna     from the cdna sequences\n"
-"    -buildtablefromgenomic  from the genomic sequences\n"
-"\n"
+"    -table                  An alias for -genomic)\n"
 "    -use #,#,#,#            using only those sequences specified\n"
 "    -use file               using only those sequences listed in the file\n"
-"\n"
-"Search Options\n"
-"    -forward                Search only the normal cDNA\n"
-"    -reverse                Search only the reverse-complement cDNA\n"
-"\n"
-"\n"
 "\n"
 "Output Options\n"
 "    -verbose                Entertain the user\n"
@@ -355,9 +362,6 @@ configuration::read(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-use") == 0) {
       arg++;
       parseUseLine(argv[arg]);
-    } else if (strcmp(argv[arg], "-maxsize") == 0) {
-      arg++;
-      _maxSize = atoi(argv[arg]);
     } else if (strcmp(argv[arg], "-forward") == 0) {
       _doForward = true;
       _doReverse = false;
@@ -380,6 +384,9 @@ configuration::read(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-maxdiagonal") == 0) {
       arg++;
       _maxDiagonal = atoi(argv[arg]);
+    } else if (strcmp(argv[arg], "-maxgap") == 0) {
+      arg++;
+      _maxGap = atoi(argv[arg]);
     } else if (strcmp(argv[arg], "-qoverlap") == 0) {
       arg++;
       _qsOverlap = atoi(argv[arg]);
@@ -404,15 +411,6 @@ configuration::read(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-multiplecoverage") == 0) {
       arg++;
       _minCoverageMultiple = atof(argv[arg]);
-    } else if (strcmp(argv[arg], "-buildtablefromcdna") == 0) {
-      _reversed = true;
-    } else if (strcmp(argv[arg], "-buildtablefromgenomic") == 0) {
-      _reversed = false;
-#if 0
-    } else if (strcmp(argv[arg], "-mergedistance") == 0) {
-      arg++;
-      _regionMergeDistance = atoi(argv[arg]);
-#endif
     } else if (strncmp(argv[arg], "-extendweight", 7) == 0) {
       arg++;
       _extendWeight = atoi(argv[arg]);
@@ -474,12 +472,8 @@ configuration::read(int argc, char **argv) {
   //  Fail if we don't get reasonable signal criteria
   //
   if (((_minLengthSingle   == 0) && (_minCoverageSingle   == 0.0)) ||
-      ((_minLengthMultiple == 0) && (_minCoverageMultiple == 0.0))) {
-    fprintf(stderr, "ERROR:  Minimum match lengths not specified.  Both single and multiple must be specified.\n");
-    fprintf(stderr, "        Use one of -singlelength or -singlecoverage\n");
-    fprintf(stderr, "        Use one of -multiplelength or -multiplecoverage\n");
-    exit(-1);
-  }
+      ((_minLengthMultiple == 0) && (_minCoverageMultiple == 0.0)))
+    fprintf(stderr, "WARNING:  Minimum match lengths not specified.  All matches will be reported.\n");
 }
 
 void
@@ -525,11 +519,10 @@ configuration::display(FILE *out) {
     fprintf(out, "\n");
 
 
-
-
     fprintf(out, "--Using these Parameters--\n");
 #ifdef TRUE64BIT
     fprintf(out, "maxDiagonal         = %u\n",   _maxDiagonal);
+    fprintf(out, "maxGap              = %u\n",   _maxGap);
     fprintf(out, "qsOverlap           = %u\n",   _qsOverlap);
     fprintf(out, "dsOverlap           = %u\n",   _dsOverlap);
     fprintf(out, "maxIntron           = %u\n",   _maxIntronLength);
@@ -540,6 +533,7 @@ configuration::display(FILE *out) {
     fprintf(out, "minCoverageMultiple = %lf\n",   _minCoverageMultiple);
 #else
     fprintf(out, "maxDiagonal         = %lu\n",   _maxDiagonal);
+    fprintf(out, "maxGap              = %lu\n",   _maxGap);
     fprintf(out, "qsOverlap           = %lu\n",   _qsOverlap);
     fprintf(out, "dsOverlap           = %lu\n",   _dsOverlap);
     fprintf(out, "maxIntron           = %lu\n",   _maxIntronLength);

@@ -3,12 +3,10 @@
 #include "intervalList.H"
 #include "aHit.H"
 
-//  $Id$
-
 #ifdef TRUE64BIT
-#define HITOUTPUTLINE  "-%c -e %u %u %u -D %u %u %u\n"
+#define HITOUTPUTLINE  "-%c -e %u %u %u -D %u %u %u -F %lu\n"
 #else
-#define HITOUTPUTLINE  "-%c -e %lu %lu %lu -D %lu %lu %lu\n"
+#define HITOUTPUTLINE  "-%c -e %lu %lu %lu -D %lu %lu %lu -F %lu\n"
 #endif
 
 #define TRACE    0
@@ -21,8 +19,6 @@ hitMatrix::hitMatrix(u32bit qsLen, u32bit qsMers, u32bit qsIdx, bool reversed) {
   _hitsLen  = 0;
   _hitsMax  = 128;
   _hits     = new diagonalLine [_hitsMax];
-
-  //_reversed = reversed;
 
   _matches  = 0L;
 }
@@ -109,6 +105,9 @@ hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit
   sort_dsPos();
 
 
+  intervalList   IL(config._merSize);
+  u32bit         ILlength = 0;
+
   //  Now, while there are hits left....
   //
   u32bit  firstHit   = 0;
@@ -194,122 +193,193 @@ hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit
     u32bit  dsLow        = _hits[firstHit]._dsPos;
     u32bit  dsHigh       = _hits[firstHit]._dsPos;
 
+    IL.clear();
+
     for (u32bit i=firstHit; i<lastHit; i++) {
 
-
-      //  Error check
-      //
-#if 0
-      if (lastDiagonal == _hits[i]._diagonalID) {
-        if (_hits[i]._dsPos < dsLow) {
-          fprintf(stderr, "ERROR:  UNSORTED HIT!\n");
-          exit(1);
-        }
-      }
+#if TRACE
+      fprintf(stdout, "hit[%6d] of %6d: diag=%6d (%6d) qs=%6d ds=%6d\n",
+              i,
+              lastHit,
+              _hits[i]._diagonalID,
+              lastDiagonal,
+              _hits[i]._qsPos, _hits[i]._dsPos);
 #endif
-
 
       //
       //  Extend if on the same diagonal, and consecutive sequence.
       //
       if ((lastDiagonal == _hits[i]._diagonalID) &&
           (qsLow <= _hits[i]._qsPos) &&
-          (_hits[i]._qsPos <= qsHigh + config._merSize)) {
+          (_hits[i]._qsPos <= qsHigh + config._merSize + config._maxGap)) {
         if (qsLow  > _hits[i]._qsPos)   qsLow  = _hits[i]._qsPos;
         if (qsHigh < _hits[i]._qsPos)   qsHigh = _hits[i]._qsPos;
         if (dsLow  > _hits[i]._dsPos)   dsLow  = _hits[i]._dsPos;
         if (dsHigh < _hits[i]._dsPos)   dsHigh = _hits[i]._dsPos;
+        IL.addInterval(_hits[i]._qsPos);
       } else {
 
         //
         //  Save the match.  cut-n-paste with below.
         //
 
-        if (theOutputPos + 128 >= theOutputMax) {
-          theOutputMax <<= 1;
-          char *o = 0L;
-          try {
-            o = new char [theOutputMax];
-          } catch (std::bad_alloc) {
-            fprintf(stderr, "hitMatrix::filter()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
-            fprintf(stderr, "hitMatrix::filter()-- tried to extend output string from %lu to %lu bytes.\n", theOutputPos, theOutputMax);
-            exit(1);
+        ILlength = IL.sumIntervalLengths();
+        IL.clear();
+
+        if (ILlength >= config._minLengthSingle) {
+          if (theOutputPos + 128 >= theOutputMax) {
+            theOutputMax <<= 1;
+            char *o = 0L;
+            try {
+              o = new char [theOutputMax];
+            } catch (std::bad_alloc) {
+              fprintf(stderr, "hitMatrix::filter()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
+              fprintf(stderr, "hitMatrix::filter()-- tried to extend output string from %lu to %lu bytes.\n", theOutputPos, theOutputMax);
+              exit(1);
+            }
+            memcpy(o, theOutput, theOutputPos);
+            delete [] theOutput;
+            theOutput = o;
           }
-          memcpy(o, theOutput, theOutputPos);
-          delete [] theOutput;
-          theOutput = o;
+
+          if (direction == 'r') {
+            sprintf(theOutput + theOutputPos, HITOUTPUTLINE,
+                    direction,
+                    _qsIdx,
+                    _qsLen - qsHigh - config._merSize,
+                    qsHigh - qsLow + config._merSize,
+                    config._useList[currentSeq].seq,
+                    dsLow,
+                    dsHigh - dsLow + config._merSize,
+                    ILlength);
+#if TRACE
+            fprintf(stdout, HITOUTPUTLINE,
+                    direction,
+                    _qsIdx,
+                    _qsLen - qsHigh - config._merSize,
+                    qsHigh - qsLow + config._merSize,
+                    config._useList[currentSeq].seq,
+                    dsLow,
+                    dsHigh - dsLow + config._merSize,
+                    ILlength);
+#endif
+          } else {
+            sprintf(theOutput + theOutputPos, HITOUTPUTLINE,
+                    direction,
+                    _qsIdx,
+                    qsLow,
+                    qsHigh - qsLow + config._merSize,
+                    config._useList[currentSeq].seq,
+                    dsLow,
+                    dsHigh - dsLow + config._merSize,
+                    ILlength);
+
+#if TRACE
+            fprintf(stdout, HITOUTPUTLINE,
+                    direction,
+                    _qsIdx,
+                    qsLow,
+                    qsHigh - qsLow + config._merSize,
+                    config._useList[currentSeq].seq,
+                    dsLow,
+                    dsHigh - dsLow + config._merSize,
+                    ILlength);
+#endif
+          }
+
+          while (theOutput[theOutputPos])
+            theOutputPos++;
+
+          //pthread_mutex_lock(&queryMatchMutex);
+          queryMatchCounts[_qsIdx]++;
+          //pthread_mutex_unlock(&queryMatchMutex);
         }
-
-        if (direction == 'r') {
-          sprintf(theOutput + theOutputPos, HITOUTPUTLINE,
-                  direction,
-                  _qsIdx,
-                  _qsLen - qsHigh - config._merSize,
-                  qsHigh - qsLow + config._merSize,
-                  config._useList[currentSeq].seq,
-                  dsLow,
-                  dsHigh - dsLow + config._merSize);
-        } else {
-          sprintf(theOutput + theOutputPos, HITOUTPUTLINE,
-                  direction,
-                  _qsIdx,
-                  qsLow,
-                  qsHigh - qsLow + config._merSize,
-                  config._useList[currentSeq].seq,
-                  dsLow,
-                  dsHigh - dsLow + config._merSize);
-        }
-        while (theOutput[theOutputPos])
-          theOutputPos++;
-
-        pthread_mutex_lock(&queryMatchMutex);
-        queryMatchCounts[_qsIdx]++;
-        pthread_mutex_unlock(&queryMatchMutex);
-
 
         lastDiagonal = _hits[i]._diagonalID;
         qsLow        = _hits[i]._qsPos;
         qsHigh       = _hits[i]._qsPos;
         dsLow        = _hits[i]._dsPos;
         dsHigh       = _hits[i]._dsPos;
+        IL.addInterval(_hits[i]._qsPos);
       }
     }
 
     //  Save the final cluster?  (cut-n-paste from above)
     //
-    if (theOutputPos + 128 >= theOutputMax) {
-      theOutputMax <<= 1;
-      char *o = new char [theOutputMax];
-      memcpy(o, theOutput, theOutputPos);
-      delete [] theOutput;
-      theOutput = o;
+    ILlength = IL.sumIntervalLengths();
+    IL.clear();
+
+    if (ILlength >= config._minLengthSingle) {
+      if (theOutputPos + 128 >= theOutputMax) {
+        theOutputMax <<= 1;
+        char *o = 0L;
+        try {
+          o = new char [theOutputMax];
+        } catch (std::bad_alloc) {
+          fprintf(stderr, "hitMatrix::filter()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
+          fprintf(stderr, "hitMatrix::filter()-- tried to extend output string from %lu to %lu bytes.\n", theOutputPos, theOutputMax);
+          exit(1);
+        }
+        memcpy(o, theOutput, theOutputPos);
+        delete [] theOutput;
+        theOutput = o;
+      }
+
+      if (direction == 'r') {
+        sprintf(theOutput + theOutputPos, HITOUTPUTLINE,
+                direction,
+                _qsIdx,
+                _qsLen - qsHigh - config._merSize,
+                qsHigh - qsLow + config._merSize,
+                config._useList[currentSeq].seq,
+                dsLow,
+                dsHigh - dsLow + config._merSize,
+                ILlength);
+#if TRACE
+        fprintf(stdout, HITOUTPUTLINE,
+                direction,
+                _qsIdx,
+                _qsLen - qsHigh - config._merSize,
+                qsHigh - qsLow + config._merSize,
+                config._useList[currentSeq].seq,
+                dsLow,
+                dsHigh - dsLow + config._merSize,
+                ILlength);
+#endif
+      } else {
+        sprintf(theOutput + theOutputPos, HITOUTPUTLINE,
+                direction,
+                _qsIdx,
+                qsLow,
+                qsHigh - qsLow + config._merSize,
+                config._useList[currentSeq].seq,
+                dsLow,
+                dsHigh - dsLow + config._merSize,
+                ILlength);
+#if TRACE
+        fprintf(stdout, HITOUTPUTLINE,
+                direction,
+                _qsIdx,
+                qsLow,
+                qsHigh - qsLow + config._merSize,
+                config._useList[currentSeq].seq,
+                dsLow,
+                dsHigh - dsLow + config._merSize,
+                ILlength);
+#endif
+      }
+      while (theOutput[theOutputPos])
+        theOutputPos++;
+
+#if TRACE
+      fprintf(stdout, "Finished\n");
+#endif
+
+      //pthread_mutex_unlock(&queryMatchMutex);
+      queryMatchCounts[_qsIdx]++;
+      //pthread_mutex_unlock(&queryMatchMutex);
     }
 
-    if (direction == 'r') {
-      sprintf(theOutput + theOutputPos, HITOUTPUTLINE,
-              direction,
-              _qsIdx,
-              _qsLen - qsHigh - config._merSize,
-              qsHigh - qsLow + config._merSize,
-              config._useList[currentSeq].seq,
-              dsLow,
-              dsHigh - dsLow + config._merSize);
-    } else {
-      sprintf(theOutput + theOutputPos, HITOUTPUTLINE,
-              direction,
-              _qsIdx,
-              qsLow,
-              qsHigh - qsLow + config._merSize,
-              config._useList[currentSeq].seq,
-              dsLow,
-              dsHigh - dsLow + config._merSize);
-    }
-    while (theOutput[theOutputPos])
-      theOutputPos++;
-
-    pthread_mutex_lock(&queryMatchMutex);
-    queryMatchCounts[_qsIdx]++;
-    pthread_mutex_unlock(&queryMatchMutex);
 
     //  All done with these hits.  Move to the next set.
     //
@@ -317,3 +387,4 @@ hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit
   }
 }
 
+  

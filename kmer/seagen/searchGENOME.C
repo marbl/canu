@@ -29,7 +29,7 @@ existDB               *onlyDB;
 positionDB            *positions;
 volatile u32bit        numberOfQueries;
 u32bit                *queryMatchCounts;
-pthread_mutex_t        queryMatchMutex;
+//pthread_mutex_t        queryMatchMutex;
 char                 **output;
 u32bit                *outputLen;
 pthread_mutex_t        inputTailMutex;
@@ -122,28 +122,6 @@ buildChunk(void) {
 }
 
 
-int
-openResultFile(void) {
-  int F = 0;
-
-  if (config._outputFileName) {
-    errno = 0;
-    F = open(config._outputFileName,
-             O_WRONLY | O_LARGEFILE | O_CREAT | O_TRUNC,
-             S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-    if (errno) {
-      fprintf(stderr, "Couldn't open the output file '%s'?\n", config._outputFileName);
-      exit(1);
-    }
-  }
-  if (F == 0)
-    F = fileno(stdout);
-
-  return(F);
-}
-
-
-
 
 int
 main(int argc, char **argv) {
@@ -228,7 +206,7 @@ main(int argc, char **argv) {
   pthread_t        threadID;
 
   pthread_mutex_init(&inputTailMutex, NULL);
-  pthread_mutex_init(&queryMatchMutex, NULL);
+  //pthread_mutex_init(&queryMatchMutex, NULL);
 
   pthread_attr_init(&threadAttr);
   pthread_attr_setscope(&threadAttr, PTHREAD_SCOPE_SYSTEM);
@@ -255,9 +233,20 @@ main(int argc, char **argv) {
   }
 
 
-  //  Open output files
+  //  Open output file
   //
-  int resultFILE = openResultFile();
+  int resultFILE = fileno(stdout);
+
+  if (config._outputFileName) {
+    errno = 0;
+    resultFILE = open(config._outputFileName,
+                      O_WRONLY | O_LARGEFILE | O_CREAT | O_TRUNC,
+                      S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+    if (errno) {
+      fprintf(stderr, "Couldn't open the output file '%s'?\n%s\n", config._outputFileName, strerror(errno));
+      exit(1);
+    }
+  }
 
 
   //  Wait for threads to produce output
@@ -312,15 +301,8 @@ main(int argc, char **argv) {
 
   errno = 0;
   close(resultFILE);
-  if (errno) {
-    fprintf(stderr, "Couldn't close to the output file '%s'.\n%s\n",
-            config._outputFileName, strerror(errno));
-    exit(1);
-  }
-
-  //
-  //  Threads should have all exited.
-  //
+  if (errno)
+    fprintf(stderr, "Couldn't close to the output file '%s'.\n%s\n", config._outputFileName, strerror(errno));
 
   config._searchTime = getTime();
 
@@ -330,7 +312,7 @@ main(int argc, char **argv) {
 
   pthread_attr_destroy(&threadAttr);
   pthread_mutex_destroy(&inputTailMutex);
-  pthread_mutex_destroy(&queryMatchMutex);
+  //pthread_mutex_destroy(&queryMatchMutex);
 
   //  Write the query match counts
   //
@@ -397,8 +379,6 @@ main(int argc, char **argv) {
       fclose(F);
   }
 
-  //  Bye!
-  //
-  //cleanup();
+  return(0);
 }
 
