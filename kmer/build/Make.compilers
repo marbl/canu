@@ -3,14 +3,22 @@
 
 # The arch-independent section
 # compiling
+CC              :=
+CXX             :=
 CFLAGS          :=
-CXXFLAGS        :=${CFLAGS}
-# linkins
-CLDFLAGS        :=
-CXXLDFLAGS      :=${CLDFLAGS}
-CLIBS		:=-lm
-CXXLIBS         :=${CLIBS}
+CXXFLAGS        :=
 
+C_TMP           :=
+CXX_TMP         :=
+C_TMP_ARCH      :=
+CXX_TMP_ARCH    :=
+
+# linking
+CLDFLAGS        :=
+CXXLDFLAGS      :=
+CLIBS		:=-lm
+CXXLIBS         :=-lm
+# archiving
 ARFLAGS         :=-rvs
 AR              :=ar
 
@@ -18,76 +26,103 @@ AR              :=ar
 # The dependency generator
 # although it can cause some troubles, it really is
 # probably best to keep these as GNU compilers
-CCDEP		 :=gcc -MM -MG
-CXXDEP		 :=g++ -MM -MG
-
+CCDEP		 :=gcc
+CXXDEP		 :=g++
+CDEPFLAGS       :=-MM -MG
+CXXDEPFLAGS      :=-MM -MG
 
 INSTALL/  :=${MAKEFILE/}unknown-arch/
 
 ### ARCH specific compiler options ###################################
 
-### default to using GNU
+# have WITH_GNU override any spec
+ifdef WITH_GNU
+  CC               :=gcc
+  CXX              :=g++
+  ifdef WITH_DEBUG
+    CFLAGS_ARCH      :=-g -Wall
+    CXXFLAGS_ARCH    :=-g -Wall
+  else
+    CFLAGS_ARCH      :=-g -O4 -Wall
+    CXXFLAGS_ARCH    :=-g -O4 -Wall
+  endif
+endif
+
+### default to using GNU on i386
 ifeq ($(OPERATING_SYSTEM),)
   CC               :=gcc
   CXX              :=g++
-  CFLAGS_ARCH      :=-g -O4 -Wall
-  CXXFLAGS_ARCH    :=$(CFLAGS_ARCH)
+  ifdef WITH_DEBUG
+    CFLAGS_ARCH      :=-g -Wall
+    CXXFLAGS_ARCH    :=-g -Wall
+  else
+    CFLAGS_ARCH      :=-g -O4 -Wall
+    CXXFLAGS_ARCH    :=-g -O4 -Wall
+  endif
   SHLIB_FLAGS      :=-shared
   PYINC            :=-I/usr/include/python2.2/
-  INSTALL/  :=${MAKEFILE/}gnu-i386/
-  PERL            :=/usr/bin/perl
+  INSTALL/         :=${MAKEFILE/}gnu-i386/
+  PERL             :=/usr/bin/perl
 endif
 
 ### tru64
 ifeq ($(OPERATING_SYSTEM),TRU64)
-  CC               :=cc
-  CXX              :=cxx
-  CFLAGS_ARCH      :=-g3 -O4
-  CXXFLAGS_ARCH    :=-timplicit_local $(CFLAGS_ARCH)
-  CXX_TMP_ARCH     :=cxx_repository so_locations
-  SHLIB_FLAGS      :=-shared
-  PYINC       :=-I/usr/local/ir/Python-2.2.2 -I/usr/local/ir/Python-2.2.2/Include
+  ifndef WITH_GNU
+    CC               :=cc
+    CXX              :=cxx
+    ifdef WITH_DEBUG
+      CFLAGS_ARCH      :=-g
+      CXXFLAGS_ARCH    :=-timplicit_local -g
+    else
+      CFLAGS_ARCH      :=-g3 -O4
+      CXXFLAGS_ARCH    :=-timplicit_local -g3 -O4
+      CXX_TMP_ARCH     :=cxx_repository so_locations
+    endif
+    SHLIB_FLAGS      :=-shared
+  endif
+  PYINC     :=-I/usr/local/ir/Python-2.2.2 -I/usr/local/ir/Python-2.2.2/Include
   INSTALL/  :=${MAKEFILE/}tru64/
-  PERL            :=/usr/local/bin/perl
+  PERL      :=/usr/local/bin/perl
 endif
 
 ### aches
 ifeq ($(OPERATING_SYSTEM),AIX)
-  CC            :=xlc
-  CXX           :=xlC
-  SHLIB_FLAGS   :=-G
+  ifdef WITH_GNU
+    CCFLAGS  +=-maix64
+    CXXFLAGS +=-maix64
+  else
+    CC            :=xlc
+    CXX           :=xlC
+    SHLIB_FLAGS   :=-G
+    AIX_LARGE_FILE_SUPPORT               :=-q64 -qlonglong -D_LARGE_FILES
+    AIX_SUPPRESS_DUPLICATE_SYMBOL_WARNING:=-qstaticinline
+    AIX_FLAG_TO_SUPPRESS_MANY_WARNINGS   :=-bhalt:8
+    AGRESSIVE_OPTIMIZATION               :=-O3 -qstrict
+    ifdef WITH_DEBUG
+      AIX_OPTIMIZATIONS                  :=-g -qfullpath -qlinedebug
+    else
+      AIX_OPTIMIZATIONS                  :=-qarch=auto -qtune=auto -qcache=auto
+    endif
+
+    CandCXXFLAGS_ARCH  := \
+      $(AIX_LARGE_FILE_SUPPORT) \
+      $(AIX_OPTIMIZATIONS) \
+      $(AIX_FLAG_TO_SUPPRESS_MANY_WARNINGS) \
+      $(AIX_SUPPRESS_DUPLICATE_SYMBOL_WARNING)
+    CFLAGS_ARCH	:= -qcpluscmt $(CandCXXFLAGS_ARCH)
+    CXXFLAGS_ARCH := $(CandCXXFLAGS_ARCH)
+    CLDFLAGS_ARCH	:= 
+    CXXLDFLAGS_ARCH := $(CLDFLAGS_ARCH) \
+      $(AIX_LARGE_FILE_SUPPORT) \
+      $(AIX_OPTIMIZATIONS) \
+      $(AIX_FLAG_TO_SUPPRESS_MANY_WARNINGS) \
+      $(AIX_SUPPRESS_DUPLICATE_SYMBOL_WARNING)
+    CXX_TMP_ARCH     :=so_locations
+    CCDEPFLAGS  +=-maix64
+    CXXDEPFLAGS +=-maix64
+  endif
+
   PYINC         :=-I/usr/local/include/python2.2
-
-  AIX_LARGE_FILE_SUPPORT               :=-q64 -qlonglong -D_LARGE_FILES
-ifdef DEBUG
-  AIX_OPTIMIZATIONS                    :=-g -qfullpath -qlinedebug
-else
-  AIX_OPTIMIZATIONS                    :=-qarch=auto -qtune=auto -qcache=auto
-endif
-  AIX_SUPPRESS_DUPLICATE_SYMBOL_WARNING:=-qstaticinline
-  AIX_FLAG_TO_SUPPRESS_MANY_WARNINGS   :=-bhalt:8
-  AGRESSIVE_OPTIMIZATION               :=-O3 -qstrict
-
-  CandCXXFLAGS_ARCH  := \
-	$(AIX_LARGE_FILE_SUPPORT) \
-	$(AIX_OPTIMIZATIONS) \
-        $(AIX_FLAG_TO_SUPPRESS_MANY_WARNINGS) \
-	$(AIX_SUPPRESS_DUPLICATE_SYMBOL_WARNING)
-  CFLAGS_ARCH	:= -qcpluscmt $(CandCXXFLAGS_ARCH)
-  CXXFLAGS_ARCH := $(CandCXXFLAGS_ARCH)
-  CLDFLAGS_ARCH	:= 
-  CXXLDFLAGS_ARCH := $(CLDFLAGS_ARCH) \
-	$(AIX_LARGE_FILE_SUPPORT) \
-	$(AIX_OPTIMIZATIONS) \
-        $(AIX_FLAG_TO_SUPPRESS_MANY_WARNINGS) \
-	$(AIX_SUPPRESS_DUPLICATE_SYMBOL_WARNING)
-  DEP_FLAGS	:=-E
-  DEP_FILE_EXT	:=u
-  CXX_TMP_ARCH     :=so_locations
-
   INSTALL/  :=${MAKEFILE/}aix/
   PERL            :=/usr/local/bin/perl5.6.1
-
-  CCDEP  +=-D__64BIT__
-  CXXDEP +=-D__64BIT__
 endif

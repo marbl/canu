@@ -24,9 +24,9 @@ debug:
 # as this makefile.
 MAKEFILE/ :=$(dir $(firstword $(MAKEFILE_LIST)))
 ifdef MAKECOMPILERS
--include ${MAKECOMPILERS}
+ include ${MAKECOMPILERS}
 else
--include ${MAKEFILE/}Make.compilers
+ include ${MAKEFILE/}Make.compilers
 endif
 
 ##### non-recursive make magic
@@ -54,7 +54,7 @@ $(eval $(call Include,$/))
 //            :=$(filter-out ${RECURSIVE},${//})
 
 ### this gives us a way out if something goes horribly wrong...
-ifeq ($(filter %real-clean,${MAKECMDGOALS}),)
+ifeq ($(filter %-clean,${MAKECMDGOALS}),)
   include     ${//:.=Make.depends}
 endif
 
@@ -144,7 +144,7 @@ ${//:.=Make.depends}:
 	if [ -n "$${files}" ] ; then \
 	  for f in $${files} ; do \
 	    dir=`echo $${f} | sed -e's~[^/]*$$~~'`; \
-	    ${CCDEP} ${CFLAGS} $${f} | \
+	    ${CCDEP} ${CDEPFLAGS} ${CFLAGS} $${f} | \
 	    sed -e"/:/s!^!$${dir}!" \
 	    >> $@ ; \
 	  done \
@@ -154,13 +154,11 @@ ${//:.=Make.depends}:
 	if [ -n "$${files}" ] ; then \
 	  for f in $${files} ; do \
 	    dir=`echo $${f} | sed -e's~[^/]*$$~~'`; \
-	    ${CXXDEP} ${CXXFLAGS} $${f} | \
+	    ${CXXDEP} ${CXXDEPFLAGS} ${CXXFLAGS} $${f} | \
 	    sed -e"/:/s~^~$${dir}~" \
 	    >> $@ ; \
 	  done \
 	fi
-#	    dir=`dirname $${f}`/ ; \
-#	    dir=`echo $${dir} | sed -e's!^\./!!'`; \
 
 
 #####################################################################

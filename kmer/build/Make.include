@@ -1,4 +1,5 @@
 COMPASS/  :=$/../COMPASS/
+LILIANA/  :=$/../LF/
 RASCAL/   :=$/../RASCAL/
 BRI/      :=$/../BRI/
 RCM/      :=$/../RCM/
@@ -6,6 +7,8 @@ TCBB/     :=$/../TCBB/
 SUFFER/   :=$/../SUFFER/
 
 $(eval $(call Include,${COMPASS/}))
+
+$(eval $(call Include,${LILIANA/}))
 
 $(eval $(call Include,${RASCAL/}))
 

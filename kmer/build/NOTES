@@ -1,18 +1,17 @@
 
 This is a prottypical build system for non-recursive whole-directory
-makes.  This readme file is going to start you with the basics.
+'make's.  This readme file is going to start you with the basics.
 
-gmake-3.80+
-The correct make to use if gmake.  The correct version of gmake to use
-is gmake-3.80 with the GNU accepted patch for this problem
+The correct 'make' to use is 'gmake'.  The correct version of gmake to
+use is gmake-3.80 with the GNU accepted patch for this problem
   http://savannah.gnu.org/bugs/?func=detailbug&bug_id=1517&group_id=71
 Patched source can be found around here somewhere.  Find Ross.
 
-On the AIX and Tru64 machines, a patched version of gmake-3.80 called
-'gmake-3.80a' exists and should be at
+On the AIX and Tru64 machines, this patched version of gmake-3.80 called
+'gmake-3.80a' exists and source should be at
   /usr/local/ir/ports/make-3.80-patched.tgz
 
-So to get started
+So to get started (using bash for command line examples)
 % alias make=/usr/local/ir/bin/gmake-3.80a
 
 To make all targets
@@ -25,7 +24,7 @@ To make all of RASCAL
 To make and install the binaries and libs of Framework
 % make ../COMPASS/src/Framework/.install
 
-Other targets supported are clean, depends-clean, real-clean.
+Other targets supported are clean, depends-clean, real-clean and ls.
 
 If you either change platforms then you must do
 % make real-clean
@@ -35,14 +34,133 @@ For convenience:
 just does ls of all targets in the directories where they are built.
 
 One can also work within directories so long as one is careful, since
-  -subdirectories don't know about the dependencies upon siblings
-  -automatically computed dependencies computed relative to one subdir
-   do not make sense when used in another sibdir.  So if you have been
-   previously building from somewhere else, you need to clean the
-   depends information before you try to build.
+* subdirectories don't know about the dependencies upon siblings
+* automatically computed dependencies computed relative to one subdir
+  do not make sense when used in another sibdir.  So if you have been
+  previously building from somewhere else, you need to clean the
+  depends information before you try to build.
 % make ../COMPASS/src/Framework/.depends-clean
 % cd ../COMPARSS/src/Framework/
 % make -f ../../../build/Makefile all
 
 
+
+
+### Longwinded discussion
+
+The current build system is essentially a series of either explicit or
+implicit recursive 'make's.
+
+Explicit recursive 'make's are those which one invocation of 'make'
+results in a series of separate invocations of 'make' in individual
+subprojects, often with shell-scripting glue in between to address
+platform/installation dependent issues.
+
+Implicit recursive 'make's come about when no invocation of 'make'
+exists to do the build, but developers all are aware that projectA
+relies on projectB and thus projectA should get built before projectB
+and any updates to projectA will require some rebuilding of projectB
+("safety" typically dictates that all of projectB be rebuilt).
+
+Both cases have equivalent liabilities:
+* Inter-project dependence is only partially encoded.
+  - Cross interdependence between projects is never encoded, leading to
+    the annoying 'make ; make' command.
+  - The only guarrantee of a consistent build is one which starts
+    completely clean.
+* Compiler and compiler flag choices are project specific.
+  - One might be unable to link libraries across projects due to
+    inconsistent compiler/flag use.
+  - Many per-file changes are required to port to another platform.
+
+Additionally, implicit recursive 'make's have the liability that
+technology transfer to other agencies or individuals requires an
+incredible amount of hand-holding.
+
+A lot of this was discussed in
+   http://www.tip.net.au/~millerp/rmch/recu-make-cons-harm.html
+in which the author points out many of th flaws with the conventional
+recursive use of 'make' and shows how it is possible to construct a
+viable non-recursive 'make', though recursive use of "include".
+
+### Technical discussion
+
+My IR/build system is based on recursive inclusion.  When 'make' is
+invoked with IR/build/Makefile (either by invoking 'make' in the
+IR/build/ directory or by using 'make -f') the file, Make.compilers,
+which resides in the same directory as IR/build/Makefile is openned
+and read for various platform specific defines.  Then the file
+Make.include in _the current directory_ is read.  The Make.include
+file contains various definitions relating to the build in the current
+directory as well as recursive inclusions.  Once all recursive
+inclusions have finished, a Make.depends file in each Make.include
+directory is read to include automatically generated rules (for C and
+C++ compiles).
+
+NOTE{
+It is currently possible for cyclic inclusions to occur.  So long as
+the inclusions more or less match the filesystem hierarchy, this will
+not happen.  We assume that the heirachy of includes is a tree.
+}
+
+An included file is expected to make all file references transparently
+relocatable.  To do this, the build system maintains a variable $/
+which always refers to the relative path from the directory where
+'make' was invoked to the directory of the Make.include up to and
+including a slash.  Thus, file.c in the same directory as the
+Make.include file is referred to within that Make.include file as
+$/file.c, the parent directory of the Make.include file as $/.., and
+the current directory as $/. (but not $/, which may be an empty
+string).  The purpose of $/ is to make the contents of Make.include
+relocatable to any place in the filesystem.
+
+Since we can assume that the contents of $/ are unique for
+every Make.include, we can use it as a local namespace for variable
+definition.  The current convention for local variables are
+ $/.C_SRCS    C source files which get compiled (excluding headers)
+ $/.CXX_SRCS  C++ source files which get compiled (excluding headers)
+ $/.C_EXES    program generated with the C linker
+ $/.CXX_EXES  program generated with the C++ linker
+ $/.C_LIBS    .a archive files of C functions
+ $/.CXX_LIBS  .a archive files of C++ functions
+NOTE{
+I don't know of any reason why C_LIBS and CXX_LIBS are diffierent
+variables.  Does anyone know when you use anything but the same 'ar'
+command to build them?
+}
+ $/.CXX_SHLIBS  .so shared libraries
+ $/.CLEAN      intermediate files or wildcard patterns
+ $/.REAL-CLEAN less intermediate files or wildcard patterns
+There are additional variables used by the .install targets to control
+where installed things are placed, but we might change install so it
+is not stable enough to mention yet.  Additional dependencies which
+the build system cannot infer are also declared in Make.include.
+
+Example of a Make.include file:
+ $/.C_SRCS := $/hello.c
+ $/.C_EXES := $/hello
+ $/.CLEAN:=$/*.o
+ ${$/.C_EXES}: $/hello.o
+
+The inclusion of subdirectories is done, not with 'make''s 'include'
+function, but with a slightly more complicated wrapper (which pushes
+and pops the $/ value appropriately) which is invoked by
+ $(eval $(call Include,DIR))
+where DIR is the /-terminated path to the included directory, like
+'$/foo/'.
+
+Once all the inclusions have finished, subtargets are generated for
+each directory visited.  These subtargets are all of the form $/.all,
+$/.clean, $/.real-clean, ... .  The top-level targets, all, clean,
+..., are equivalent to .all, .clean, ... .
+ $/.all: builds all targets at $/. and below
+ $/.clean: removes targets and files specified by $/.CLEAN at $/. and
+   below
+ $/.depends-clean: removes the auto-generated $/Make.depends files at $/.
+   and below
+ $/.real-clean: does $/.clean and $/.depends-clean and removes files
+   specified by $/.REAL-CLEAN
+ $/.ls: does 'ls -l' of all targets in $/. and below.
+ $/.install: does $/.all and the tries to copy stuff to ${INSTALL/} under
+   an architecture appropriate subdirectory.
 
