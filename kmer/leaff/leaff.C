@@ -8,6 +8,8 @@
 #include <time.h>
 #include "libbri.H"
 
+#include "buildinfo-leaff.h"
+#include "buildinfo-libbri.h"
 
 #ifdef TRUE64BIT
 const char *idxMsg   = "%8u] %5u %10u\n";
@@ -29,7 +31,7 @@ const char *descMsg  = "%lu\n";
 
 
 const char *usage =
-"usage: %s [-f|-F|-I <fasta-file>] [options]\n"
+"usage: %s [--buildinfo] [-f|-F|-I <fasta-file>] [options]\n"
 "\n"
 "SOURCE FILE\n"
 "       -f:  use 'fasta-file' as the source file\n"
@@ -186,6 +188,11 @@ main(int argc, char **argv) {
     unsigned int   large            = ~(unsigned int)0;
 
     switch(argv[arg][1]) {
+      case '-':  //  Ick!  Must be --buildinfo
+        buildinfo_leaff(stderr);
+        buildinfo_libbri(stderr);
+        exit(1);
+        break;
       case 'v':
         beVerbose = true;
         break;
