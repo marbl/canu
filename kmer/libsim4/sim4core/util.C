@@ -260,7 +260,7 @@ Sim4::compact_list(Exon **Lblock, Exon **Rblock)
       tmp_block->toEST = tmp_block1->toEST;
       tmp_block->length = tmp_block->toEST-tmp_block->frEST+1;
       tmp_block->edist += tmp_block1->edist;
-      tmp_block->edist -= (int)(P*diff);
+      tmp_block->edist -= (int)(globalParams->_percentError * diff);
       tmp_block->next_exon = tmp_block1->next_exon;
       
       ckfree(tmp_block1);
@@ -307,7 +307,7 @@ Sim4::good_ratio(int length)
 {
   if (length<=wordSize/2) return 2;
   else if (length<2*wordSize) return DIST_CUTOFF;
-  else return (int)(.75*P*length+1);
+  else return (int)(.75 * globalParams->_percentError * length + 1);
 }
 
 
@@ -340,7 +340,7 @@ Sim4::merge(Exon **t0, Exon **t1)
       tmp0->length = tmp0->toEST-tmp0->frEST+1;
       tmp0->flag = tmp1->flag; 
       tmp0->edist += tmp1->edist; 
-      tmp0->edist -= (int)(P*diff);
+      tmp0->edist -= (int)(globalParams->_percentError * diff);
       if (tmp1==*t1) {
         /*  tmp0->flag = (*t1)->flag; */
         *t1 = tmp0;
@@ -450,16 +450,18 @@ Sim4::get_sync_flag(Exon *lblock, Exon *rblock, int w)
   int numx=0, e2;
   Exon *t;
 
-  if (((t=lblock->next_exon)==NULL) || !t->toGEN) return FALSE; 
+  if (((t=lblock->next_exon)==NULL) || !t->toGEN)
+    return 0; 
   numx++; e2 = t->toEST; 
 
   while (((t=t->next_exon)!=NULL) && t->toGEN) {
     ++numx;
     if ((t->frEST-e2>1) || 
-        (t!=rblock && ((t->toEST-t->frEST+1<2*w+2) || (t->toGEN-t->frGEN+1<2*w+2))))  return FALSE;
+        (t!=rblock && ((t->toEST-t->frEST+1<2*w+2) || (t->toGEN-t->frGEN+1<2*w+2))))
+      return 0;
     e2 = t->toEST;
   }
-  return ((numx<3) ? FALSE:TRUE);
+  return ((numx<3) ? 0:1);
 }
 
 
@@ -813,12 +815,13 @@ Sim4::get_match_quality(Exon *lblock, Exon *rblock, sim4_stats_t *st, int N)
   bool good_match;
   Exon *t;
   
-  good_match = TRUE; st->icoverage = 0;
+  good_match = 1; st->icoverage = 0;
   t = lblock->next_exon;
   while (t->toGEN) {
     st->icoverage += t->toEST-t->frEST+1;
     if (100*t->edist>=5*(t->toEST-t->frEST+1)) {
-      good_match = FALSE; break;
+      good_match = 0;
+      break;
     }
     t = t->next_exon; 
   }
@@ -832,7 +835,7 @@ Sim4::get_match_quality(Exon *lblock, Exon *rblock, sim4_stats_t *st, int N)
     ;
   else if ((tcov<.7*N) ||
            (st->icoverage<.9*tcov))
-    good_match = FALSE;
+    good_match = 0;
   
   return good_match; 
 }

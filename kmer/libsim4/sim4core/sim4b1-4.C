@@ -27,7 +27,7 @@ Sim4::SIM4_block4(bool     good_match,
                    tmp_block->toEST,tmp_block->toGEN,
                    &I, &J);
   //PRINTEXONS("tmp_block after extend\n", tmp_block);
-  if ((good_match==FALSE) || tmp_block1->flag || (I==len1) || (J==len2)) {
+  if ((good_match==0) || tmp_block1->flag || (I==len1) || (J==len2)) {
     if (tmp_block->toGEN) {
       tmp_block->toEST = I;
       tmp_block->toGEN = J;

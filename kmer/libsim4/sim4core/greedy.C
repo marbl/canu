@@ -21,15 +21,15 @@ Sim4::greedy(char *s1, char *s2, int m, int n0, int OFFSET1, int OFFSET2, Exon *
   int     *min_row, *min_diag;    /* min (b)/ max (f) row (and diagonal) */
   int     *max_row, *max_diag;    /* reached for cost d=0, ... m.  */
   
-  const int MAX_D = max_d = max(wordSize,(int)(P*m+1));
+  const int MAX_D = max_d = max(wordSize,(int)(globalParams->_percentError * m + 1));
 
   if (n0 < m) {
-    if (m < (int)min(wordSize, (1+P)*n0)) {
+    if (m < (int)min(wordSize, (1 + globalParams->_percentError) * n0)) {
       *lblock = *rblock = new_exon(OFFSET2+1,OFFSET1+1,OFFSET2+n0,OFFSET1+m,
-                                   m,n0-m+(int)(P*m+1),0,NULL);
+                                   m,n0-m+(int)(globalParams->_percentError * m + 1),0,NULL);
       ANNOUNCEEXIT("greedy-1\n");
-      return(m-n0+(int)(P*n0+1));
-    } else if (m > (int)min(wordSize, (1+P)*n0)) {
+      return(m-n0+(int)(globalParams->_percentError * n0 + 1));
+    } else if (m > (int)min(wordSize, (1 + globalParams->_percentError) * n0)) {
       *lblock = *rblock = 0L;
       ANNOUNCEEXIT("greedy-2\n");
       return(MAX_D+1);

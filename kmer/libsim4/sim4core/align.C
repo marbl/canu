@@ -200,7 +200,7 @@ Sim4::align_path(int i1, int j1, int i2, int j2, int dist, edit_script **head, e
      midc and the distance from (mi, mj) to (i2, j2) is rmidc.
      */
 
-  flag = FALSE;
+  flag = 0;
   mi = i1; mj = j1;
   ll = max(lower,rlower); uu = min(upper,rupper);
   for (k=ll; k<=uu; ++k) {
@@ -210,7 +210,7 @@ Sim4::align_path(int i1, int j1, int i2, int j2, int dist, edit_script **head, e
       } else {
         mi = rlast_d[k]; mj = k+mi; 
       } 
-      flag = TRUE;
+      flag = 1;
 
       break;
     }         

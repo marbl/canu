@@ -25,7 +25,6 @@
 //  A wrapper for the sim4 subroutines
 //
 
-enum { FALSE = 0, TRUE = 1};
 enum { INIT = 0, PERM = 1, TEMP = 2};
 enum { FWD = 0, BWD = 1, BOTH = 2 };
 enum { OK = 0, FREE_START = 1, FREE_END = 2, FREE_BOTH_ENDS = 3};
@@ -108,7 +107,7 @@ struct hash_table {
 
 class Sim4 {
 private:
-  mspManager   _mspManager;
+  mspManager        _mspManager;
 
   sim4parameters   *globalParams;
 
@@ -429,29 +428,22 @@ script_flip_list(edit_script_list **left) {
 
 public:
   Sim4(sim4parameters *p) {
-    //  used to take "int K, int C"
-
     globalParams = p;
 
 #if ABORT_EXPENSIVE
     _mspManager.setLimits(p->_mspLimitAbsolute, p->_mspLimitPercent);
 #endif
+    _mspManager.setParameters(p->_match, p->_mismatch, p->_percentError);
+
 
     seq1 = 0L;
     seq2 = 0L;
-
-    //M = 0;
-    //N = 0;
 
     wordSize      = DEFAULT_W;
     mspThreshold1 = p->_mspThresh1;  //K;
     mspThreshold2 = p->_mspThresh2;  //C;
 
     X        = DEFAULT_X;
-
-    //K = 0;
-    //W = 0;
-    //X = 0;
 
     G_score = 0;
     C_score = 0;

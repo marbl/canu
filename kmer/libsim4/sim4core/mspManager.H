@@ -35,11 +35,24 @@ public:
     _mspLimitAbsolute = 0;
     _mspLimitPercent  = 0;
 #endif
+
+    //  These need to be reset with setParameters.  The code will die
+    //  during link() if they are not set.
+    //
+    _match            = 0;
+    _matchdiff        = 0;
+    _percentError     = 0.0;
   };
 
   ~mspManager() {
     delete [] _allMSPs;
   };
+
+  void   setParameters(int match, int mismatch, double percenterror) {
+    _match            = match;
+    _matchdiff        = match - mismatch;
+    _percentError     = percenterror;
+  }
 
 #if ABORT_EXPENSIVE
   void   setLimits(u32bit a, double p) {
@@ -130,6 +143,10 @@ private:
   u32bit         _mspLimitAbsolute;
   double         _mspLimitPercent;
 #endif
+
+  int            _match;
+  int            _matchdiff;
+  double         _percentError;
 };
 
 

@@ -20,12 +20,12 @@ Sim4::SIM4_block2(Exon*   &tmp_Lblock,
                   tmp_block->toEST,tmp_block->toGEN,
                   &tmp_Lblock, &tmp_Rblock);
   } else {
-    cost = max(wordSize,(int)(P*diff+1))+1;
+    cost = max(wordSize,(int)(globalParams->_percentError * diff + 1))+1;
   }
 
   //PRINTEXONS("greedy\n", tmp_Lblock);
 
-  if (cost>max(wordSize,(int)(P*diff+1))) {
+  if (cost>max(wordSize,(int)(globalParams->_percentError * diff + 1))) {
     if (!tmp_block->flag && !tmp_block1->flag) {
       exon_cores(seq1+tmp_block->toGEN-1,
                  seq2+tmp_block->toEST-1,

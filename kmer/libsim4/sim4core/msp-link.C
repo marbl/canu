@@ -6,57 +6,7 @@
 #include "sim4defines.H"
 #include "exon.H"
 
-
-//
-//  Returns an exon_list
-//
-//  This can be used for both linking and relinking
-//
-
-
-
-
-//  This is a hack to make it compile.
-//
-//  It really should go into the exonManager.
-//
-#if 0
-Exon_ptr
-new_exon(int f1, int f2, int t1, int t2, int len, int edist, int flag, Exon_ptr next)
-{
-  Exon_ptr newthing = (Exon_ptr )ckalloc(sizeof(struct exon));
-
-  newthing->next_exon = next;
-
-  newthing->frGEN = f1;
-  newthing->frEST = f2;
-  newthing->toGEN = t1;
-  newthing->toEST = t2;
-
-  newthing->ori = 'U';
-  newthing->length = (len < 0) ? (t2-f2+1) : len;
-
-  newthing->edist = edist;
-  newthing->flag = flag;
-
-  newthing->percentID = 0;
-  newthing->alignmentLength = 0;
-  newthing->numMatches = 0;
-  newthing->numNs = 0;
-  newthing->numInDel = 0;
-  newthing->numEdits = 0;
-
-  return newthing;
-}
-#endif
-
-
-
-
-#define  min(x,y)        ((x>y) ? (y):(x))
-#define  max(x,y)        ((x<y) ? (y):(x))
-
-
+#define  DEFAULT_L       8
 
 static
 int
@@ -93,8 +43,17 @@ mspManager::link(int weight, int drange,
   //  Assumes the exon list is cleared
   //
 
-  //fprintf(stderr, "relink weight  = %d\n", weight);
-  //fprintf(stderr, "number of MSPs = %d\n", _numMSPs);
+  //  If this ever occurs, you (the programmer) forgot to call
+  //  mspManager::setParameters() with the correct values.  Unless the
+  //  code was really hacked, this should never occur.  See
+  //  Sim4::Sim4().
+  //
+  if ((_match == 0) &&
+      (_matchdiff == 0) &&
+      (_percentError == 0.0)) {
+    fprintf(stderr, "sim4::link()-- ERROR; mspManager parameters not set!  This is an algorithm error.\n");
+    exit(1);
+  }
 
 #if ABORT_EXPENSIVE
   if ((_cDNALength > 0) &&
@@ -124,7 +83,7 @@ mspManager::link(int weight, int drange,
     _allMSPs[i].linkingScore = 0;
     for (u32bit j = 0; j < i; ++j) {
       //  12 == default word size.  A Magic Value.
-      int vL = L; 
+      int vL = DEFAULT_L; 
       if ((_allMSPs[i].pos2 + _allMSPs[i].len - _allMSPs[j].pos2 - _allMSPs[j].len > 2 * 12) &&
           (_allMSPs[i].pos2 - _allMSPs[j].pos2 > 2 * 12))
         vL *= 2;
@@ -192,7 +151,7 @@ mspManager::link(int weight, int drange,
                    mp->pos1+mp->len-1, 
                    mp->pos2+mp->len-1,
                    -1, 
-                   (mp->len*MATCH-mp->score) / (MATCH-MISMATCH),
+                   (mp->len * _match - mp->score) / _matchdiff,
                    0,
                    elist);
 
@@ -209,11 +168,11 @@ mspManager::link(int weight, int drange,
     else
       diag_dist = l2 - l1;
 
-    if ((diag_dist <= L) &&
+    if ((diag_dist <= DEFAULT_L) &&
         (elist->frEST - (mp->pos2 + mp->len - 1)) < MAX_INTERNAL_GAP) {
       /* merge with previous exon */
       elist->edist += diag_dist;
-      elist->edist += (mp->len*MATCH-mp->score)/(MATCH-MISMATCH);
+      elist->edist += (mp->len * _match - mp->score) / _matchdiff;
       if ((diff=mp->pos2+mp->len-elist->frEST)>0) {   /* overlap */
         int dist1, dist2;
         dist1 = get_edist(elist->frGEN,mp->pos2+mp->len-diff,
@@ -222,7 +181,7 @@ mspManager::link(int weight, int drange,
                           mp->pos1+mp->len-1,mp->pos2+mp->len-1,s1,s2);
         elist->edist -= max(dist1,dist2);
       } else if (diff<0) {  /* gap */
-        elist->edist += (int)(0.5 * P * (-1) * diff);
+        elist->edist += (int)(0.5 * _percentError * (-1) * diff);
       }
       elist->toGEN = max(elist->toGEN,mp->pos1+mp->len-1);
       elist->toEST = max(elist->toEST,mp->pos2+mp->len-1);
@@ -235,7 +194,7 @@ mspManager::link(int weight, int drange,
                        mp->pos1+mp->len-1,
                        mp->pos2+mp->len-1,
                        -1,
-                       (mp->len*MATCH-mp->score) / (MATCH-MISMATCH),
+                       (mp->len * _match - mp->score) / _matchdiff,
                        0,
                        elist);
     }

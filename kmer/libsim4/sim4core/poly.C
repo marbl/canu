@@ -277,7 +277,7 @@ Sim4::remove_polyA_back(struct edit_script_list **Sptr, Exon *Exons,
   while (exons_tail->next_exon && exons_tail->next_exon->toGEN)
     exons_tail=exons_tail->next_exon;
 
-  trim_p = TRUE;
+  trim_p = 1;
 
   if (exons_tail) {
     startPos = exons_tail->toEST;
@@ -311,7 +311,7 @@ Sim4::remove_polyA_back(struct edit_script_list **Sptr, Exon *Exons,
           trim_polyA_align(Sptr,Exons,&exons_tail,ct_pA,lastA,s1,s2);
           cutAmount = startPos - *lastA + 1;
         }
-        if (t==exons_tail) trim_p = FALSE;
+        if (t==exons_tail) trim_p = 0;
       }
     }
   }
@@ -506,7 +506,7 @@ Sim4::remove_polyT_front(struct edit_script_list **Sptr, Exon *Exons, char *s1, 
     reverse_script = 1;
   }
 
-  exons_head = Exons->next_exon; trim_p = TRUE;
+  exons_head = Exons->next_exon; trim_p = 1;
 
   if (exons_head) {
     startPos = exons_head->frEST;
@@ -538,7 +538,7 @@ Sim4::remove_polyT_front(struct edit_script_list **Sptr, Exon *Exons, char *s1, 
           trim_polyT_align(Sptr,&exons_head,ct_pT,lastT,s1,s2);
           cutAmount = *lastT - startPos + 1;
         }
-        if (t==exons_head) trim_p = FALSE;
+        if (t==exons_head) trim_p = 0;
       }
     }
   }

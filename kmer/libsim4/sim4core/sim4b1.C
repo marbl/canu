@@ -278,7 +278,7 @@ Sim4::SIM4(char *in_seq1, char *in_seq2,
     adjustBoundariesOfMarginalExons(Lblock);
 
   /* Slide exon boundaries for optimal intron signals */
-  if (get_sync_flag(Lblock, Rblock, 6) == TRUE)
+  if (get_sync_flag(Lblock, Rblock, 6) == 1)
     sync_slide_intron(6,&Lblock,st);
   else
     slide_intron(6,&Lblock,st);

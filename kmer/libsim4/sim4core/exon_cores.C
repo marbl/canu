@@ -1,4 +1,5 @@
 #include "sim4.H"
+#include <math.h>
 
 //  diag_lev is used only in these functions.
 //
@@ -20,11 +21,11 @@ Sim4::exon_cores(char *s1, char *s2,
           l1, l2, offset1, offset2, flag, in_W, in_K);
 #endif
 
-#ifdef INTERSPECIES
-  int K =  (int)(((int)(log(.75*(double)len1)+log((double)len2))/log(4.0)) * 1.0);
-#else
-  int K = getMSPthreshold(in_K, l1, l2);
-#endif
+  int K;
+  if (globalParams->_interspecies)
+    K = (int)(((int)(log(.75*(double)len1)+log((double)len2))/log(4.0)) * 1.0);
+  else
+    K = getMSPthreshold(in_K, l1, l2);
 
   _mspManager.clear();
 
@@ -131,6 +132,9 @@ Sim4::extend_hit(int pos1, int pos2,
 {
   const char *beg2, *beg1, *end1, *q, *s;
   int right_sum, left_sum, sum, score;
+
+  int MATCH    = globalParams->_match;
+  int MISMATCH = globalParams->_mismatch;
 
   /* extend to the right */
   left_sum = sum = 0;

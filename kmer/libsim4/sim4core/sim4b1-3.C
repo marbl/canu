@@ -30,7 +30,7 @@ Sim4::SIM4_block3(bool     good_match,
                    tmp_block->toGEN+
                    (tmp_block1->frGEN-tmp_block->toGEN-1)-u,
                    &I, &J);
-  if ((good_match==FALSE) || tmp_block->flag || (J==0) || (I==0)) {
+  if ((good_match==0) || tmp_block->flag || (J==0) || (I==0)) {
     tmp_block1->frEST = I+1;
     tmp_block1->frGEN = J+1;
     tmp_block1->edist += cost;
