@@ -31,7 +31,6 @@ pallocroot  _palloc_stuff = { 128 * 1024 * 1024, NULL, NULL, 0 };
 static
 void *
 really_allocate(size_t size) {
-  errno = 0;
   void *ret = malloc(size);
   if (ret == 0L) {
     fprintf(stderr, "palloc()-- can't allocate %lu bytes: %s.\n", size, strerror(errno));
