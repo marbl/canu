@@ -81,16 +81,25 @@ ATACreader::processPreamble(void) {
   _atacData->readGlobalData();
 
 
-  if (_atacData->hasAttribute("assemblyFilePrefix1"))
-    _prefix1 = _atacData->getAttributeString("assemblyFilePrefix1");
-  if (_atacData->hasAttribute("assemblyFilePrefix2"))
-    _prefix2 = _atacData->getAttributeString("assemblyFilePrefix2");
+  if (_atacData->hasAttribute("assemblyFile1")) {
+    _prefix1 = _atacData->getAttributeString("assemblyFile1");
+  } else {
+    fprintf(stderr, "Didn't find 'assemblyFile2'\n");
+    return false;
+  }
 
+  if (_atacData->hasAttribute("assemblyFile2")) {
+    _prefix2 = _atacData->getAttributeString("assemblyFile2");
+  } else {
+    fprintf(stderr, "Didn't find 'assemblyFile2'\n");
+    return false;
+  }
 
   if (_atacData->hasAttribute("assemblyId1")) {
     _asmID1 = _atacData->getAttributeString("assemblyId1");
     _asmID1Len = _asmID1.size();
   } else {
+    fprintf(stderr, "Didn't find 'assemblyId1'\n");
     return false;
   }
 
@@ -98,6 +107,7 @@ ATACreader::processPreamble(void) {
     _asmID2 = _atacData->getAttributeString("assemblyId2");
     _asmID2Len = _asmID2.size();
   } else {
+    fprintf(stderr, "Didn't find 'assemblyId2'\n");
     return false;
   }
 
@@ -146,33 +156,30 @@ ATACreader::getNextMatchBatches(vector<MEMatch *>& fwd_matches,
   axis2 = _nextMatch.getGenomicAxisId(1);
 
   if (axis1 != _curAxis1) {
-    //delete _curAxis1Seq;
     if (_params->beVerbose) 
       cerr << " * Fetching sequence for axis1 = " << axis1 << endl;
-    axis_iid = axis1.substr(_asmID1Len + 1);
-    _curAxis1 = axis1;
+
+    axis_iid     = axis1.substr(_asmID1Len + 1);
+    _curAxis1    = axis1;
     _curAxis1Seq = _s1Reader->getSequence(atoi(axis_iid.c_str()));
-    if (_curAxis1Seq == 0L) {
-      cerr << " *   ERROR!" << endl;
-    }
-    if (_params->beVerbose)
-      cerr << " * Done" << endl;
+
+    if (_curAxis1Seq == 0L)
+      cerr << " *   ERROR!  Didn't read " << _curAxis1 << " " << axis_iid << endl;
   }
-  s1 = _curAxis1Seq;
   
   if (axis2 != _curAxis2) { 
-    //delete _curAxis2Seq;
     if (_params->beVerbose) 
       cerr << " * Fetching sequence for axis2 = " << axis2 << endl;
-    axis_iid = axis2.substr(_asmID2Len + 1);
-    _curAxis2 = axis2;
+
+    axis_iid     = axis2.substr(_asmID2Len + 1);
+    _curAxis2    = axis2;
     _curAxis2Seq = _s2Reader->getSequence(atoi(axis_iid.c_str()));
-    if (_curAxis2Seq == 0L) {
-      cerr << " *   ERROR!" << endl;
-    }
-    if (_params->beVerbose)
-      cerr << " * Done" << endl;
+
+    if (_curAxis2Seq == 0L)
+      cerr << " *   ERROR!  Didn't read " << _curAxis2 << " " << axis_iid << endl;
   }
+
+  s1 = _curAxis1Seq;
   s2 = _curAxis2Seq;
 
   fwd_matches.clear();
