@@ -83,26 +83,38 @@ endif
 ifeq (${_CC_}${_OPT_},-gcc-debug)
   CFLAGS_COMPILE           +=-g -Wall
   CXXFLAGS_COMPILE         +=-g -Wall
+  CLDFLAGS                 +=-g
+  CXXLDFLAGS               +=-g
 endif
 ifeq (${_OS_}${_CC_}${_OPT_},TRU64-debug)
   CFLAGS_COMPILE           +=-g
   CXXFLAGS_COMPILE         +=-g
+  CLDFLAGS                 +=-g
+  CXXLDFLAGS               +=-g
 endif
 ifeq (${_OS_}${_CC_}${_OPT_},AIX-debug)
   CFLAGS_COMPILE           +=-g -qfullpath -qlinedebug
   CXXFLAGS_COMPILE         +=-g -qfullpath -qlinedebug
+  CLDFLAGS                 +=-g -qfullpath -qlinedebug
+  CXXLDFLAGS               +=-g -qfullpath -qlinedebug
 endif
 ifeq (${_CC_}${_OPT_},-gcc)
   CFLAGS_COMPILE           +=-g -O4 -Wall
   CXXFLAGS_COMPILE         +=-g -O4 -Wall
+  CLDFLAGS                 +=-g -O4
+  CXXLDFLAGS               +=-g -O4
 endif
 ifeq (${_OS_}${_CC_}${_OPT_},TRU64)
   CFLAGS_COMPILE           +=-g3 -fast
   CXXFLAGS_COMPILE         +=-g3 -fast
+  CLDFLAGS                 +=-g3 -fast
+  CXXLDFLAGS               +=-g3 -fast
 endif
 ifeq (${_OS_}${_CC_}${_OPT_},AIX)
   CFLAGS_COMPILE           +=-qstrict -O3
   CXXFLAGS_COMPILE         +=-qstrict -O3
+  CLDFLAGS                 +=-qstrict -O3
+  CXXLDFLAGS               +=-qstrict -O3
 endif
 
 # goofy AIX-ness for GCC
@@ -111,8 +123,8 @@ ifeq (${_OS_}${_CC_},AIX)
   CXXDEPFLAGS +=-maix64
 endif
 ifeq (${_OS_}${_CC_},AIX-gcc)
-  CFLAGS      +=-maix64
-  CXXFLAGS    +=-maix64
+  CFLAGS           +=-maix64
+  CXXFLAGS         +=-maix64
   CLDFLAGS         +=-Wl,-bbigtoc
   CXXLDFLAGS       +=-Wl,-bbigtoc
 endif
