@@ -5,7 +5,8 @@
 LIBBRI/     ?= $/../libbri/
 FASTA/      ?= $/../fasta/
 
-$/.CXX_SRCS   := $/driver.C $/positionDB.C $/positionDB-access.C $/positionDB-dump.C $/positionDB-sort.C $/positionDB-file.C $/positionDB.H
+src           :=$/positionDB.C $/positionDB.H $/positionDB-access.C $/positionDB-dump.C $/positionDB-sort.C $/positionDB-file.C $/positionDC-file.H
+$/.CXX_SRCS   := $/driver.C $(filter %.C,${src})
 $/.CXX_EXES   := $/positionDB
 $/.CXX_LIBS   := $/libpositionDB.a
 $/.CLEAN      := $/*.o
@@ -21,7 +22,7 @@ $/.install: ${$/.CXX_EXES}
 	cp -p $^ ${BIN/}
 
 $/Make.depends: | $/buildinfo-positionDB.h
-$/buildinfo-positionDB.c $/buildinfo-positionDB.h: $/positionDB.C $/positionDB-access.C $/positionDB-dump.C $/positionDB-sort.C $/positionDB-file.C $/positionDB.H
+$/buildinfo-positionDB.c $/buildinfo-positionDB.h: ${src}
 	${UTIL/}buildinfo.pl positionDB "${CXXFLAGS} ${CXXFLAGS_ARCH}" $^
 	mv buildinfo-positionDB.[ch] `dirname $@`
 
