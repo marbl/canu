@@ -38,6 +38,7 @@ case $target in
 # -*- makefile -*-
 #  OS-X, optimized
 CC                := gcc
+SHLIB_FLAGS       := -dynamiclib
 CFLAGS_COMPILE    := -O3 -D_THREAD_SAFE -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CLDFLAGS          := 
 CLIBS             := 
@@ -55,6 +56,7 @@ EOF
 # -*- makefile -*-
 #  FreeBSD, optimized
 CC                := cc
+SHLIB_FLAGS       := -shared
 CFLAGS_COMPILE    := -O3 -D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CLDFLAGS          := -L/usr/local/lib
 CLIBS             := -llthread -llgcc_r
@@ -71,6 +73,7 @@ EOF
 # -*- makefile -*-
 #  FreeBSD, optimized, profiled (same as FreeBSD, optimized, but includes -pg)
 CC                := cc
+SHLIB_FLAGS       := -shared
 CFLAGS_COMPILE    := -pg -O3 -D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CLDFLAGS          := -L/usr/local/lib
 CLIBS             := -llthread -llgcc_r
@@ -87,6 +90,7 @@ EOF
 # -*- makefile -*-
 #  FreeBSD, debug, warnings
 CC                := cc
+SHLIB_FLAGS       := -shared
 CFLAGS_COMPILE    := -g -D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads -Wall -Wshadow -Wtraditional -Wid-clash-16 -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Wconversion -Waggregate-return -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls -Wnested-externs  
 CLDFLAGS          := -L/usr/local/lib
 CLIBS             := -llthread -llgcc_r
@@ -104,6 +108,7 @@ EOF
 #  AIX5, optimized
 #  Tested, verified on 30jan03
 CC                := xlc_r
+SHLIB_FLAGS       := -G
 CFLAGS_COMPILE    := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES -q64 -O3 -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict -qcpluscmt
 CLDFLAGS          := 
 CLIBS             := 
@@ -121,6 +126,7 @@ EOF
 #  AIX5, optimized, profiled
 #  Untested; might not work with optimization
 CC                := xlc_r
+SHLIB_FLAGS       := -G
 CFLAGS_COMPILE    := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES -q64 -O3 -pg -qfullpath -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict -qcpluscmt
 CLDFLAGS          := 
 CLIBS             := 
@@ -138,6 +144,7 @@ EOF
 #  AIX5, debug
 ccDBUG            := 
 CC                := xlc_r
+SHLIB_FLAGS       := -G
 CFLAGS_COMPILE    := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES \$(ccDBUG) -q64 -g -qfullpath -qcpluscmt
 CLDFLAGS          := 
 CLIBS             := 
@@ -155,6 +162,7 @@ EOF
 #  AIX5, full debug, including memory checks
 ccDBUG            := -qheapdebug -qinfo=uni:use -qcheck=all -qinitauto=FF -qflttrap=inv:ov:zero:en -qfloat=nans -DMEMORY_DEBUG
 CC                := xlc_r
+SHLIB_FLAGS       := -G
 CFLAGS_COMPILE    := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES \$(ccDBUG) -q64 -g -qfullpath -qcpluscmt
 CLDFLAGS          := \$(ccDBUG)
 CLIBS             := 
@@ -171,6 +179,7 @@ EOF
 # -*- makefile -*-
 #  Tru64, native compilers, optimized
 CC                := cc
+SHLIB_FLAGS       := -G #untested
 CFLAGS_COMPILE    := -D_REENTRANT -pthread -w0 -fast
 CLDFLAGS          := 
 CLIBS             := -lpthread -lrt
@@ -188,6 +197,7 @@ EOF
 # -*- makefile -*-
 #  Tru64, native compilers, debug
 CC                := cc
+SHLIB_FLAGS       := -G #untested
 CFLAGS_COMPILE    := -D_REENTRANT -pthread -g -w0 -trapuv
 CLDFLAGS          := 
 CLIBS             := -lpthread -lrt
@@ -206,6 +216,7 @@ EOF
 # -*- makefile -*-
 #  Linux, optimized
 CC                := cc
+SHLIB_FLAGS       := -shared #untested
 CFLAGS_COMPILE    := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -pthread -O3 -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CXX               := g++
 CXXFLAGS_COMPILE  := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -pthread -O3 -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
@@ -229,6 +240,7 @@ EOF
 #  Solaris, gcc optimized
 #
 CC                := gcc
+SHLIB_FLAGS       := -G #untested
 CFLAGS_COMPILE    := -D_REENTRANT -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -O3 -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CLDFLAGS          := 
 CLIBS             := -lpthread -lrt
