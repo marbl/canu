@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl -w
+#!/usr/bin/env perl 
 
 use strict;
 use Config;  #  for @signame
@@ -138,9 +138,8 @@ print STDOUT "maxgap = $maxgap\n";
 print STDOUT "filtername = $filtername\n" if defined($filtername);
 print STDOUT "filteropts = $filteropts\n" if defined($filteropts);
 
-$execHome = "/IR/devel/IR10/assembly/walenzbp/releases"   if ($execHome eq "compaq");
+$execHome = "/IR/work/walenzbp/releases"   if ($execHome eq "compaq");
 $execHome = "/IR/devel/mapping/cds/IR/BRI/bin"   if ($execHome eq "aix");
-
 
 #  Decide on a path to the executables.  This is probably
 #  a hack.
@@ -172,7 +171,7 @@ findSources();
 my $mercount1 = countMers($id1, $mersize, $merlimit);
 my $mercount2 = countMers($id2, $mersize, $merlimit);
 
-my $matches   = "$id1-vs-$id2.k$mersize.u$merlimit.f$minfill.g$maxgap";
+my $matches   = "${id1}vs${id2}.k$mersize.u$merlimit.f$minfill.g$maxgap";
 
 #
 #  Find the include or exclude mask
@@ -350,7 +349,7 @@ if (! -e "$ATACdir/$matches.matches.sorted") {
         unlink "$ATACdir/$matches-segment-$segmentID.table";
     }
 
-    if (runCommand("cat $mfiles | sort -y -T $ATACdir/tmp -k 3n -k 7n > $ATACdir/$matches.matches.sorted")) {
+    if (runCommand("cat $mfiles | sort -y -T $ATACdir/tmp -k 3n -k 7n -k 4n -k 8n > $ATACdir/$matches.matches.sorted")) {
         die "Failed to sort $ATACdir!\n";
     }
 
@@ -425,8 +424,8 @@ if (! -e "$ATACdir/${id1}vs${id2}-template.atac") {
 }
 
 
-system("echo \"$ATACdir/$matches is finished.\" | mail -s \"$ATACdir/$matches\" brian.walenz\@celera.com");
-system("echo \"$ATACdir/$matches is finished.\" | mail -s \"$ATACdir/$matches\" clark.mobarry\@celera.com");
+# system("echo \"$ATACdir/$matches is finished.\" | mail -s \"$ATACdir/$matches\" brian.walenz\@celera.com");
+# system("echo \"$ATACdir/$matches is finished.\" | mail -s \"$ATACdir/$matches\" clark.mobarry\@celera.com");
 
 
 
