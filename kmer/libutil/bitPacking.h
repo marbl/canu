@@ -5,7 +5,9 @@
 
 //  Define this to enable testing that the width of the data element
 //  is greater than zero.  The u64bitMASK() macro (bri.h) does not
-//  generate a mask for 0.
+//  generate a mask for 0.  Compiler warnings are issued, because you
+//  shouldn't use this in production code.
+//
 #define CHECK_WIDTH
 
 
@@ -102,6 +104,7 @@ getDecodedValue(u64bit *ptr,
   u64bit ret = 0;
 
 #ifdef CHECK_WIDTH
+#warning libbri/bitPacking.h::getDecodedValue() has defined CHECK_WIDTH!
   if (siz == 0) {
     fprintf(stderr, "ERROR: getDecodedValue() called with zero size!\n");
     abort();
@@ -134,6 +137,7 @@ setDecodedValue(u64bit *ptr,
   u64bit b2  = siz - b1;  //  Only used if siz > b1
 
 #ifdef CHECK_WIDTH
+#warning libbri/bitPacking.h::setDecodedValue() has defined CHECK_WIDTH!
   if (siz == 0) {
     fprintf(stderr, "ERROR: setDecodedValue() called with zero size!\n");
     abort();
@@ -168,6 +172,7 @@ preIncrementDecodedValue(u64bit *ptr,
   u64bit ret  = 0;
 
 #ifdef CHECK_WIDTH
+#warning libbri/bitPacking.h::preIncrementDecodedValue() has defined CHECK_WIDTH!
   if (siz == 0) {
     fprintf(stderr, "ERROR: preIncrementDecodedValue() called with zero size!\n");
     abort();
@@ -213,6 +218,7 @@ preDecrementDecodedValue(u64bit *ptr,
   u64bit ret = 0;
 
 #ifdef CHECK_WIDTH
+#warning libbri/bitPacking.h::preDecrementDecodedValue() has defined CHECK_WIDTH!
   if (siz == 0) {
     fprintf(stderr, "ERROR: preDecrementDecodedValue() called with zero size!\n");
     abort();
@@ -258,6 +264,7 @@ postIncrementDecodedValue(u64bit *ptr,
   u64bit ret = 0;
 
 #ifdef CHECK_WIDTH
+#warning libbri/bitPacking.h::postIncrementDecodedValue() has defined CHECK_WIDTH!
   if (siz == 0) {
     fprintf(stderr, "ERROR: postIncrementDecodedValue() called with zero size!\n");
     abort();
@@ -308,6 +315,7 @@ postDecrementDecodedValue(u64bit *ptr,
   u64bit ret = 0;
 
 #ifdef CHECK_WIDTH
+#warning libbri/bitPacking.h::postDecrementDecodedValue() has defined CHECK_WIDTH!
   if (siz == 0) {
     fprintf(stderr, "ERROR: postDecrementDecodedValue() called with zero size!\n");
     abort();
