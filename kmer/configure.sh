@@ -6,6 +6,16 @@
 
 target=$1
 
+#  Set up the build system -- need some symlinks to the build
+#  directory.
+#
+if [ ! -s Makefile ] ; then
+  ln -s ../build/Make.path .
+  ln -s ../build/Make.rules .
+  ln -s ../build/Make_utils .
+  ln -s ../build/Makefile .
+fi
+
 #  If no target, try to figure out one based on uname.  This defaults to
 #  the optimized target below.  If it works well, we can always use this
 #  mechanism, and extend with "debug" or "profile" (e.g., "./configure.sh debug")
