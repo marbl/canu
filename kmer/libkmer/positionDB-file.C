@@ -1,6 +1,7 @@
 #include "positionDB.H"
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
 #include <errno.h>
 
@@ -14,7 +15,8 @@ void
 positionDB::saveState(char const *filename) {
 
   errno = 0;
-  FILE *F = fopen(filename, "wb");
+  int F = open(filename, O_RDWR | O_CREAT | O_LARGEFILE,
+               S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
   if (errno) {
     fprintf(stderr, "Can't open '%s' for writing positionDB.\n%s\n", filename, strerror(errno));
     exit(1);
@@ -26,19 +28,19 @@ positionDB::saveState(char const *filename) {
   //  otherwise we write the magic last.
   //
   errno      = 0;
-  lseek(fileno(F), 0, SEEK_SET);
+  lseek(F, 0, SEEK_SET);
   if (errno == ESPIPE)
     magicFirst = true;
 
   if (magicFirst)
-    fwrite(magic,    sizeof(char),       16, F);
+    write(F, magic, sizeof(char) * 16);
   else
-    fwrite(faild,    sizeof(char),       16, F);
+    write(F, faild, sizeof(char) * 16);
 
-  fwrite(this,       sizeof(positionDB), 1,  F);
-  fwrite(_hashTable, sizeof(u64bit),     _tableSizeInEntries * _hashWidth / 64 + 1, F);
-  fwrite(_buckets,   sizeof(u64bit),     _numberOfDistinct   * _wFin      / 64 + 1, F);
-  fwrite(_positions, sizeof(u64bit),     _numberOfEntries    * _posnWidth / 64 + 1, F);
+  write(F, this,       sizeof(positionDB) * 1);
+  write(F, _hashTable, sizeof(u64bit) * (_tableSizeInEntries * _hashWidth / 64 + 1));
+  write(F, _buckets,   sizeof(u64bit) * (_numberOfDistinct   * _wFin      / 64 + 1));
+  write(F, _positions, sizeof(u64bit) * (_numberOfEntries    * _posnWidth / 64 + 1));
 
   if (errno) {
     fprintf(stderr, "positionDB::saveState()-- Write failure.\n%s\n", strerror(errno));
@@ -46,15 +48,15 @@ positionDB::saveState(char const *filename) {
   }
 
   if (magicFirst == false) {
-    lseek(fileno(F), 0, SEEK_SET);
+    lseek(F, 0, SEEK_SET);
     if (errno) {
       fprintf(stderr, "positionDB::saveState()-- Failed to seek to start of file -- write failed.\n%s\n", strerror(errno));
       exit(1);
     }
-    fwrite(magic, sizeof(char), 16, F);
+    write(F, magic, sizeof(char) * 16);
   }
 
-  fclose(F);
+  close(F);
 
   if (errno) {
     fprintf(stderr, "positionDB::saveState()-- Write failure.\n%s\n", strerror(errno));
@@ -68,18 +70,18 @@ positionDB::loadState(char const *filename, bool beNoisy, bool loadData) {
   char   cigam[16] = { 0 };
 
   errno = 0;
-  FILE *F = fopen(filename, "rb");
+  int F = open(filename, O_RDONLY | O_LARGEFILE, 0);
   if (errno) {
     fprintf(stderr, "Can't open '%s' for reading pre-built positionDB.\n%s\n", filename, strerror(errno));
     return(false);
   }
 
-  fread(cigam, sizeof(char), 16, F);
+  read(F, cigam, sizeof(char) * 16);
 
   if        (strncmp(faild, cigam, 16) == 0) {
     if (beNoisy)
       fprintf(stderr, "positionDB::loadState()-- Incomplete positionDB binary file.\n");
-    fclose(F);
+    close(F);
     return(false);
   } else if (strncmp(magic, cigam, 16) != 0) {
     if (beNoisy) {
@@ -96,11 +98,11 @@ positionDB::loadState(char const *filename, bool beNoisy, bool loadData) {
               magic[12], magic[13], magic[14], magic[15]);
     }
 
-    fclose(F);
+    close(F);
     return(false);
   }
 
-  fread(this, sizeof(positionDB), 1, F);
+  read(F, this, sizeof(positionDB) * 1);
 
   _hashTable = 0L;
   _buckets   = 0L;
@@ -115,12 +117,12 @@ positionDB::loadState(char const *filename, bool beNoisy, bool loadData) {
     _buckets   = new u64bit [bs];
     _positions = new u64bit [ps];
 
-    fread(_hashTable, sizeof(u64bit), hs, F);
-    fread(_buckets,   sizeof(u64bit), bs, F);
-    fread(_positions, sizeof(u64bit), ps, F);
+    read(F, _hashTable, sizeof(u64bit) * hs);
+    read(F, _buckets,   sizeof(u64bit) * bs);
+    read(F, _positions, sizeof(u64bit) * ps);
   }
 
-  fclose(F);
+  close(F);
 
   if (errno) {
     fprintf(stderr, "positionDB::loadState()-- Read failure.\n%s\n", strerror(errno));
