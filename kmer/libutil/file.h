@@ -1,6 +1,7 @@
 #ifndef FILE_H
 #define FILE_H
 
+#include <stdio.h>
 #include <sys/types.h>
 
 #if defined(__APPLE__) || defined(__FreeBSD__) || defined(__CYGWIN__)
@@ -47,6 +48,12 @@ unmapFile(void     *addr,
 //  after it is created, so once you close the file, it's gone.
 //
 FILE *makeTempFile(char *path);
+
+
+//  Copies all of srcFile to dstFile, returns the number of bytes written
+//
+off_t copyFile(char *srcName, FILE *dstFile);
+
 
 
 

@@ -8,8 +8,8 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 
-
 #include "file.h"
+#include "stat.h"
 
 
 int
@@ -172,6 +172,71 @@ unmapFile(void *addr, size_t length) {
   (void)munmap(addr, length);
 #endif
 }
+
+
+
+
+
+//  Copies all of srcFile to dstFile, returns the number of bytes written
+//
+off_t
+copyFile(char *srcName, FILE *dstFile) {
+  off_t srcSize     = 0;
+  off_t bytesRemain = 0;
+  off_t bytesRead   = 0;
+
+  int   bufferSize = 1024 * 1024;
+  char *buffer     = (char *)malloc(sizeof(char) * bufferSize);
+  if (buffer == 0L) {
+    fprintf(stderr, "copyFile()-- Can't allocate buffer.\n");
+    exit(1);
+  }
+
+  srcSize     = sizeOfFile(srcName);
+  bytesRemain = srcSize;
+
+  errno = 0;
+  FILE  *srcFile = fopen(srcName, "r");
+  if (errno) {
+    fprintf(stderr, "merStreamFileBuilder::build()-- failed to open the '%s' during merge: %s\n", srcName, strerror(errno));
+    exit(1);
+  }
+
+  while (bytesRemain > 0) {
+
+    errno = 0;
+
+    if (bytesRemain > bufferSize)
+      bytesRead = fread(buffer, sizeof(char), bufferSize, srcFile);
+    else
+      bytesRead = fread(buffer, sizeof(char), bytesRemain, srcFile);
+
+    if (errno) {
+      fprintf(stderr, "copyFile()-- Error reading source: %s\n", strerror(errno));
+      exit(1);
+    }
+
+    if (bytesRead == 0) {
+      fprintf(stderr, "copyFile()-- Short read (%d bytes) on source: %s\n", (int)bytesRead, strerror(errno));
+      exit(1);
+    }
+
+    if (bytesRead > 0) {
+      fwrite(buffer, sizeof(char), bytesRead, dstFile);
+
+      if (errno) {
+        fprintf(stderr, "copyFile()-- Error writing %d bytes to destination: %s\n", (int)bytesRead, strerror(errno));
+        exit(1);
+      }
+    }
+
+    bytesRemain -= bytesRead;
+  }
+  
+  return(srcSize);
+}
+
+
 
 
 
