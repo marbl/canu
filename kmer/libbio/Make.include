@@ -43,7 +43,7 @@ $/buildinfo-libbri.h: ${src}
 $/alphabet.c: $/alphabet.h
 $/alphabet.h:  $/alphabet-generate.c
 	$(CC) $(CFLAGS) $(CFLAGS_ARCH) -o `dirname $@`/a.out -DMAIN $<
-	cd `dirname $@` ; a.out && rm -f a.out
+	cd `dirname $@` ; ./a.out && rm -f a.out
 
 
 
