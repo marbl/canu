@@ -16,7 +16,12 @@ bitPackedFileWriter::bitPackedFileWriter(char *name) {
 bitPackedFileWriter::~bitPackedFileWriter() {
   u64bit wd = (_bit >> 6) & 0x0000cfffffffffffllu;
 
+  errno = 0;
   fwrite(_bfr, sizeof(u64bit), wd+1, _out);
+  if (errno) {
+    fprintf(stderr, "bitPackedFileWriter::~bitPackedFileWriter got %s\n", strerror(errno));
+    exit(1);
+  }
 
   delete [] _bfr;
   fclose(_out);
@@ -63,7 +68,12 @@ bitPackedFileWriter::putBits(u64bit bits, u32bit size) {
   }
 
   if (wd == BUFFER_SIZE-1) {
+    errno = 0;
     fwrite(_bfr, sizeof(u64bit), BUFFER_SIZE-1, _out);
+    if (errno) {
+      fprintf(stderr, "bitPackedFileWriter::putBits got %s\n", strerror(errno));
+      exit(1);
+    }
     _bfr[0] = _bfr[BUFFER_SIZE-1];
     _bit -= ((BUFFER_SIZE-1) * 64);
   }
@@ -85,7 +95,16 @@ bitPackedFileWriter::putBits(u64bit bits, u32bit size) {
 
   //  Read the initial buffer
   //
-  fread(_bfr, sizeof(u64bit), BUFFER_SIZE, _in);
+  errno = 0;
+  size_t bytesread = fread(_bfr, sizeof(u64bit), BUFFER_SIZE, _in);
+  if (errno) {
+    fprintf(stderr, "bitPackedFileReader::bitPackedFileReader got %s\n", strerror(errno));
+    exit(1);
+  }
+
+  //  Clear any bytes that we didn't read (EOF)
+  while (bytesread < BUFFER_SIZE)
+    _bfr[bytesread++] = 0;
 }
 
 bitPackedFileReader::~bitPackedFileReader() {
@@ -116,7 +135,22 @@ bitPackedFileReader::getBits(u32bit size) {
     _bfr[0] = _bfr[BUFFER_SIZE-1];
     _bit -= ((BUFFER_SIZE-1) * 64);
     wd = 0;
-    fread(_bfr+1, sizeof(u64bit), BUFFER_SIZE-1, _in);
+    errno = 0;
+    size_t bytesread = fread(_bfr+1, sizeof(u64bit), BUFFER_SIZE-1, _in);
+    if (errno) {
+      fprintf(stderr, "bitPackedFileReader::getBits got %s\n", strerror(errno));
+      exit(1);
+    }
+
+    //  Clear any bytes that we didn't read (EOF)
+    bytesread++;
+
+    if (bytesread < BUFFER_SIZE) {
+      //  A useless warning.
+      //fprintf(stderr, "bitPackedFileReader::getBits -- short read -- %lu of %u bytes.\n", bytesread, BUFFER_SIZE);
+      while (bytesread < BUFFER_SIZE)
+        _bfr[bytesread++] = 0;
+    }
   }
 
   if (b1 >= size) {
