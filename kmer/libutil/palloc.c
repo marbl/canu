@@ -3,17 +3,11 @@
 
 #include "bri.h"
 
-
-
 //  Define PALLOC_DEBUG   to get message whenever the state of palloc's memory map changes
 //  Define PALLOC_VERBOSE to get messages about space returned and remaining (one for each palloc call)
-//  Define PALLOC_TEST    to include a short main() in palloc.c
 //
 //#define PALLOC_DEBUG
 //#define PALLOC_VERBOSE
-//#define PALLOC_TEST
-
-
 
 
 typedef struct pallocroot pallocroot;
@@ -146,66 +140,3 @@ palloc(size_t size) {
 
   return(_palloc_stuff._cn->_dt + _palloc_stuff._cn->_cp - size);
 }
-
-
-#ifdef PALLOC_TEST
-static
-void
-dumppalloc(void) {
-  pallocnode *n = _palloc_stuff._nl;
-
-  fprintf(stderr, "0x%016lx bs=%d\n", _palloc_stuff._cn, _palloc_stuff._bs);
-  while (n != 0L) {
-    fprintf(stderr, "0x%016x: %d\n", n, n->_cp);
-    n = n->_nx;
-  }
-}
-
-int
-main(int argc, char **argv) {
-
-  psetblocksize(1024);
-
-  (void)palloc(2048);
-  (void)palloc(128);
-  (void)palloc(999);
-  (void)palloc(8);
-  (void)palloc(8);
-  (void)palloc(8);
-  (void)palloc(8);
-  (void)palloc(2056);
-  (void)palloc(8);
-  (void)palloc(2064);
-  (void)palloc(8);
-  (void)palloc(2072);
-  (void)palloc(8);
-
-  (void)dumppalloc();
-
-  pfree();
-
-  fprintf(stderr, "----------------------------------------\n");
-
-  psetblocksize(10240);
-
-  (void)palloc(2048);
-  (void)palloc(128);
-  (void)palloc(999);
-  (void)palloc(8);
-  (void)palloc(8);
-  (void)palloc(8);
-  (void)palloc(8);
-  (void)palloc(2056);
-  (void)palloc(8);
-  (void)palloc(2064);
-  (void)palloc(8);
-  (void)palloc(2072);
-  (void)palloc(8);
-
-  (void)dumppalloc();
-
-  pfree();
-
-  return(0);
-}
-#endif

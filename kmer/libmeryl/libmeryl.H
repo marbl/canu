@@ -37,8 +37,8 @@ public:
   bool            nextMer(void);
   bool            validMer(void) { return(_validMer); };
 private:
-  bitPackedFileReader   *_IDX;
-  bitPackedFileReader   *_DAT;
+  bitPackedFile         *_IDX;
+  bitPackedFile         *_DAT;
 
   u32bit                 _merSizeInBits;
   u32bit                 _prefixSize;
@@ -105,8 +105,8 @@ public:
 
   void                    addMer(u64bit mer, u32bit count=1);
 private:
-  bitPackedFileWriter   *_IDX;
-  bitPackedFileWriter   *_DAT;
+  bitPackedFile         *_IDX;
+  bitPackedFile         *_DAT;
 
   u32bit                 _merSizeInBits;
   u32bit                 _prefixSize;

@@ -254,7 +254,7 @@ positionDB::positionDB(char const  *seq,
 
     //  XXXX:  HACK THIS!
 
-    bitPackedFileWriter *ms = new bitPackedFileWriter(streamFileName);
+    bitPackedFile *ms = new bitPackedFile(streamFileName);
 
     while (M->nextMer(_merSkipInBases)) {
 
@@ -482,7 +482,7 @@ positionDB::positionDB(char const  *seq,
     delete M;
     M = 0L;
   } else {
-    bitPackedFileReader *ms = new bitPackedFileReader(streamFileName);
+    bitPackedFile *ms = new bitPackedFile(streamFileName);
 
     for (u64bit i=0; i<_numberOfMers; i++) {
       u64bit  mer = ms->getBits(_merSizeInBits);

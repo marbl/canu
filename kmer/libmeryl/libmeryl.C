@@ -13,10 +13,10 @@ merylStreamReader::merylStreamReader(const char *fn, u32bit ms) {
   char *inpath = new char [strlen(fn) + 8];
 
   sprintf(inpath, "%s.mcidx", fn);
-  _IDX = new bitPackedFileReader(inpath);
+  _IDX = new bitPackedFile(inpath);
 
   sprintf(inpath, "%s.mcdat", fn);
-  _DAT = new bitPackedFileReader(inpath);
+  _DAT = new bitPackedFile(inpath);
 
   delete [] inpath;
 
@@ -103,10 +103,10 @@ merylStreamWriter::merylStreamWriter(const char *fn,
   char *outpath = new char [strlen(fn) + 17];
 
   sprintf(outpath, "%s.mcidx", fn);
-  _IDX = new bitPackedFileWriter(outpath);
+  _IDX = new bitPackedFile(outpath);
 
   sprintf(outpath, "%s.mcdat", fn);
-  _DAT = new bitPackedFileWriter(outpath);
+  _DAT = new bitPackedFile(outpath);
 
   delete [] outpath;
 

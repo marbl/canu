@@ -519,54 +519,56 @@ private:
 //
 //  bitPackedFile
 //
-
-//
-//  XXX: WARNING: The bitpacked file only works if the start is
-//  aligned to 64-bit words.  If you, say, have a text file with a
-//  bitPackedFile tacked on the end, it usually won't work.
-//
-//  [ 63 bytes of text][bitPackedFile]
-//
-//  The symptom will be a short read on the last block of the
-//  bitPackedFile.
-//
-//  This is only caused by _externally_ joining the files.
-//
-
-class bitPackedFileWriter {
+class bitPackedFile {
 public:
-  bitPackedFileWriter(char const *name);
-  ~bitPackedFileWriter();
-
-  void       putBits(u64bit bits, u32bit size);
-  void       putNumber(u64bit val);
-private:
-  void       flush(void);
-
-  FILE     *_out;
-  bool      _pipe;
-  u64bit   *_bfr;
-  u64bit    _bit;
-};
-
-class bitPackedFileReader {
-public:
-  bitPackedFileReader(char const *name);
-  ~bitPackedFileReader();
+  bitPackedFile(char const *name);
+  ~bitPackedFile();
 
   u64bit     getBits(u32bit size);
   u64bit     getNumber(void);
 
-  //  Seek to the bit position 'pos'
-  void       seek(u64bit pos);
-private:
-  void       fillBufferFromDisk(u32bit bufferpos);
-  void       fill(void);
+  void       putBits(u64bit bits, u32bit size);
+  void       putNumber(u64bit val);
 
-  FILE     *_in;
-  bool      _pipe;
-  u64bit   *_bfr;
-  u64bit    _bit;
+  void       seek(u64bit pos, bool forceLoad=false);
+
+  void       showStats(FILE *f) {
+    fprintf(f, "inside: "u64bitFMT"  outside: "u64bitFMT"\n", stat_seekInside, stat_seekOutside);
+    fflush(f);
+  };
+private:
+
+  //  Ensure that the buffer has enough space for any future
+  //  operation.  If the buffer doesn't have 128 bits free (2 words
+  //  currently) flush it (if dirty) and read in a new page.  128 was
+  //  chosen because the fibonacci encoded numbers use up to 90-some
+  //  bits.
+  //
+  void       sync(void) {
+
+    //  This constant must be strictly less than the constant used in deciding
+    //  if seek() is moving forward or backwards.
+    //
+    if (((_bit >> 6) + 31) >= _bfrmax)
+      seek((_pos << 6) + _bit, true);
+  };
+
+  void       flushDirty(void);
+
+  int       _file;
+
+  u64bit   *_bfr;     //  A chunk of the bitPackedFile in core
+  u64bit    _bfrmax;  //  Number of words in the buffer
+  u64bit    _pos;     //  The location this chunk is from (in words)
+  u64bit    _bit;     //  The bit position we are modifying relative to _pos
+
+  bool      _bfrDirty;
+
+  //  For collecting statistics on our usage
+  //
+  u64bit  stat_seekInside;
+  u64bit  stat_seekOutside;
+  u64bit  stat_dirtyFlushes;
 };
 
 
@@ -982,7 +984,7 @@ private:
   char                 *_deflineStorage;
   char                **_deflines;
 
-  bitPackedFileReader  *_streamFile;
+  bitPackedFile        *_streamFile;
 
   //  Things used to decode the stream
   //
