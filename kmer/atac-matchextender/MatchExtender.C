@@ -480,11 +480,6 @@ extend_matches_on_diagonal(vector<MEMatch *>& matches, u32bit diag_start) {
 }
 
 
-static void
-sort_matches(vector<MEMatch *>& matches)
-{
-  sort(matches.begin(), matches.end(), MEMatchPtrCmp());
-}
 
 
 int
@@ -633,9 +628,9 @@ main(int argc, char *argv[]) {
       cerr << " * Sorting matches" << endl;
 
     if (fwd_matches.size() > 0)
-      sort_matches(fwd_matches);
+      sort(fwd_matches.begin(), fwd_matches.end(), MEMatchPtrCmp());
     if (rev_matches.size() > 0)
-      sort_matches(rev_matches);
+      sort(rev_matches.begin(), rev_matches.end(), MEMatchPtrCmp());
 
     if (DEF_VERBOSE > 0)
       cerr << " * Extending matches" << endl;
