@@ -32,13 +32,8 @@ createHashTable(char *inputFile,
                 bool  beVerbose) {
 
   if (beVerbose)
-#ifdef TRUE64BIT
-    fprintf(stderr, " 0) Allocating %4luMB for counting table.\n",
+    fprintf(stderr, " 0) Allocating "u64bitFMT"MB for counting table.\n",
             (mcd._tableSizeInEntries) >> 18);
-#else
-    fprintf(stderr, " 0) Allocating %4lluMB for counting table.\n",
-            (mcd._tableSizeInEntries) >> 18);
-#endif
 
   u32bit *_ctbl = new u32bit [ mcd._tableSizeInEntries ];
   for (u64bit i=mcd._tableSizeInEntries; i--; )
@@ -78,13 +73,8 @@ createHashTable(char *inputFile,
     //fprintf(stderr, "F=0x%016lx R=0x%016lx\n", M.theFMer(), M.theRMer());
   }
 
-  if (beVerbose) {
-#ifdef TRUE64BIT
-    fprintf(stderr, "\n    Found %lu mers.\n", mcd._actualNumberOfMers);
-#else
-    fprintf(stderr, "\n    Found %llu mers.\n", mcd._actualNumberOfMers);
-#endif
-  }
+  if (beVerbose)
+    fprintf(stderr, "\n    Found "u64bitFMT" mers.\n", mcd._actualNumberOfMers);
 
   //
   //  Allocate a PACKED array for the hash table.  This needs to be
@@ -118,13 +108,8 @@ createHashTable(char *inputFile,
   //  ....allocate a hash table that is that many bits wide.
   //
   if (beVerbose)
-#ifdef TRUE64BIT
-    fprintf(stderr, " 2) Allocating %4luMB for hash table (%u bits wide).\n",
+    fprintf(stderr, " 2) Allocating "u64bitFMT"MB for hash table ("u32bitFMT" bits wide).\n",
             ((mcd._tableSizeInEntries+1) * mcd._hashWidth / 64 + 2) >> 17, mcd._hashWidth);
-#else
-    fprintf(stderr, " 2) Allocating %4lluMB for hash table (%lu bits wide).\n",
-            ((mcd._tableSizeInEntries+1) * mcd._hashWidth / 64 + 2) >> 17, mcd._hashWidth);
-#endif
   _hash = new u64bit [(mcd._tableSizeInEntries+1) * mcd._hashWidth / 64 + 2];
 
   //
@@ -169,11 +154,7 @@ verifyHashTable(void) {
     c = getDecodedValue(_hash, j, mcd._hashWidth);
 
     if (c < d)
-#ifdef TRUE64BIT
-      fprintf(stderr, "ERROR:  Table[%lu] out of order.\n", i);
-#else
-      fprintf(stderr, "ERROR:  Table[%llu] out of order.\n", i);
-#endif
+      fprintf(stderr, "ERROR:  Table["u32bitFMT"] out of order.\n", i);
 
     d = c;
 
@@ -196,13 +177,9 @@ fillCheckTable(char *inputFile,
   //  This doesn't need to be cleared.
   //
   if (beVerbose)
-#ifdef TRUE64BIT
-    fprintf(stderr, " 4) Allocating %4luMB for check table (%u bits wide).\n",
+    fprintf(stderr, " 4) Allocating "u64bitFMT"MB for check table ("u32bitFMT" bits wide).\n",
             (mcd._actualNumberOfMers * mcd._chckBits / 64 + 1) >> 17, mcd._chckBits);
-#else
-    fprintf(stderr, " 4) Allocating %4lluMB for check table (%lu bits wide).\n",
-            (mcd._actualNumberOfMers * mcd._chckBits / 64 + 1) >> 17, mcd._chckBits);
-#endif
+
   _chck = new u64bit [mcd._actualNumberOfMers * mcd._chckBits / 64 + 1];
 
   if (beVerbose)
@@ -341,11 +318,7 @@ sortAndOutput(char   *outfilename,
     u64bit ed = getDecodedValue(_hash, B, mcd._hashWidth);
 
     if (ed < st)
-#ifdef TRUE64BIT
-      fprintf(stderr, "ERROR: Bucket %10lu starts at %10lu ends at %10lu\n", b, st, ed);
-#else
-      fprintf(stderr, "ERROR: Bucket %10llu starts at %10llu ends at %10llu\n", b, st, ed);
-#endif
+      fprintf(stderr, "ERROR: Bucket "u64bitFMT" ends before it starts!  start="u64bitFMT" end="u64bitFMT"\n", b, st, ed);
 
     _sortedListLen = (u32bit)(ed - st);
 
