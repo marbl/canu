@@ -134,6 +134,8 @@ __SUBGOALS__+=$${${1:.=.CXX_SHLIBS}}
 # for some reason.  It really should.
 ${//:.=Make.depends}:
 	@ echo "(creating $@)"
+	@ echo "# -*- makefile -*-" > $@
+	@ echo "# Make.depends file: $@" >> $@
 	\
 	files='$(strip ${${@:Make.depends=.C_SRCS}})'; \
 	if [ -n "$${files}" ] ; then \
