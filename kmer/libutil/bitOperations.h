@@ -21,7 +21,7 @@
 //      }
 //      return(r);
 //
-//  http://remus.rutgers.edu/~rhoads/Code/bitcount3.c has an obtuse
+//  http://remus.rutgers.edu/~rhoads/Code/bitcount3.c has an optimized
 //  method:
 //
 //      x -= (0xaaaaaaaa & x) >> 1;
@@ -35,8 +35,7 @@
 //
 //  No loops!
 //
-//  Freed's methods are easier to understand, and probably just as
-//  fast.
+//  Freed's methods are easier to understand, and just as fast.
 //
 //  Using our bit counting routines, Ross Lippert suggested a nice
 //  way of computing log2 -- use log2 shifts to fill up the lower

@@ -5,6 +5,9 @@
 #include <string.h>
 
 #include "bri++.H"
+#include "bitOperations.h"
+#include "bitPacking.h"
+#include "fibonacciEncoding.h"
 
 //  This is the size (in 64-bit words) of the buffer the bit packed
 //  file uses.  Too small and we spend lots of time doing I/O

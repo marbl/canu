@@ -33,11 +33,25 @@
 
 //  These are all inlined, and C doesn't want to listen to that.
 //
-#include "bri-bits.h"
-#include "bri-bitPacking.h"
-#include "bri-mers.h"
+#include "bitOperations.h"
+#include "bitPacking.h"
 
+//  Various methods for encoding numbers into a bitstream.
+//
+//  Still missing:
+//    minimal binary
+//    golomb (actually rice, since power of two)
+//    teuhola exponential golomb
+//
+//  And a nice way of getting parameters to those (and generalizedUnary)
+//
+#include "unaryEncoding.h"
+#include "generalizedUnaryEncoding.h"
+#include "eliasGammaEncoding.h"
+#include "eliasDeltaEncoding.h"
+#include "fibonacciEncoding.h"
 
+#include "mers.h"
 
 ////////////////////////////////////////
 //

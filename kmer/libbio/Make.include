@@ -5,23 +5,27 @@ EXTERNAL/      :=$(call MakePath,$/../external/)
 
 src    := $/alphabet.c \
           $/alphabet.h \
-          $/bit-packing.C \
-          $/bitPackedFile.C \
           $/bri++.H \
-          $/bri-bitPacking.h \
-          $/bri-bits.h \
-          $/bri-mers.h \
           $/bri.h \
           $/britime.C \
           $/file.c \
           $/intervalList.C \
           $/md5.c \
           $/memory.c \
+          $/mers.h \
           $/merstream.C \
           $/merstreamfile.C \
           $/palloc.c \
           $/reversecomplement.c \
-          $/stat.c
+          $/stat.c \
+          $/bitOperations.h \
+          $/bitPackedFile.H \
+          $/bitPackedFile.C \
+          $/bitPacking.h \
+          $/fibonacciEncoding.H \
+          $/fibonacciNumbers.C \
+          $/unaryEncoding.H
+
 
 $/.C_SRCS    :=$(filter %.c,${src})
 $/.CXX_SRCS  :=$(filter %.C,${src})
@@ -56,6 +60,12 @@ $/test-merstreamfile: libbri.a
 	$(CXX) $(CXXFLAGS) $(CXXFLAGS_COMPILE) -o $/merStreamFileTester -DTEST_MERSTREAMFILE $/merstreamfile.C $/libbri.a
 	$/./merStreamFileTester some.fasta
 	rm -f $/merStreamFileTester
+	@echo Tests passed\!
+
+$/test-unaryencoding: libbri.a
+	$(CXX) $(CXXFLAGS) $(CXXFLAGS_COMPILE) -o $/unaryEncodingTester $/unaryEncodingTester.C $/libbri.a
+	$/./unaryEncodingTester 4 400000
+	rm -f $/unaryEncodingTester
 	@echo Tests passed\!
 
 # note: explicit serialization is required here
