@@ -126,8 +126,13 @@ hitMatrix::addHits(u32bit  qi,
     try {
       h = new diagonalLine [_hitsMax];
     } catch (std::bad_alloc) {
+#ifdef TRUE64BIT
       fprintf(stderr, "hitMatrix::addHits()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
       fprintf(stderr, "hitMatrix::addHits()-- have %u hits, tried to add %u more\n", _hitsLen, cn);
+#else
+      fprintf(stderr, "hitMatrix::addHits()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
+      fprintf(stderr, "hitMatrix::addHits()-- have %lu hits, tried to add %lu more\n", _hitsLen, cn);
+#endif
       exit(1);
     }
 
