@@ -120,15 +120,17 @@ EOF
     cat <<EOF > Make.compilers
 # -*- makefile -*-
 #  FreeBSD, optimized
+THREADS           := -D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads 
+THREADL           := -llthread -llgcc_r
 CC                := cc
 SHLIB_FLAGS       := -shared
-CFLAGS_COMPILE    := -O3 -D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CFLAGS_COMPILE    := -O3 \$(THREADS) -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CLDFLAGS          := -L/usr/local/lib
-CLIBS             := -llthread -llgcc_r
+CLIBS             := \$(THREADL)
 CXX               := g++
-CXXFLAGS_COMPILE  := -O3 -D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CXXFLAGS_COMPILE  := -O3 \$(THREADS) -I/usr/local/include/pthread/linuxthreads -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CXXLDFLAGS        := -L/usr/local/lib
-CXXLIBS           := -llthread -llgcc_r
+CXXLIBS           := \$(THREADL)
 ARFLAGS           := ruvs
 EOF
     ;;
@@ -137,15 +139,17 @@ EOF
     cat <<EOF > Make.compilers
 # -*- makefile -*-
 #  FreeBSD, optimized, profiled (same as FreeBSD, optimized, but includes -pg)
+THREADS           := -D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads 
+THREADL           := -llthread -llgcc_r
 CC                := cc
 SHLIB_FLAGS       := -shared
-CFLAGS_COMPILE    := -pg -O3 -D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CFLAGS_COMPILE    := -pg -O3 \$(THREADS) -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CLDFLAGS          := -L/usr/local/lib
-CLIBS             := -llthread -llgcc_r
+CLIBS             := \$(THREADL)
 CXX               := g++
-CXXFLAGS_COMPILE  := -pg -O3 -D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CXXFLAGS_COMPILE  := -pg -O3 \$(THREADS) -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CXXLDFLAGS        := -L/usr/local/lib
-CXXLIBS           := -llthread -llgcc_r
+CXXLIBS           := \$(THREADL)
 ARFLAGS           := ruvs
 EOF
     ;;
@@ -154,15 +158,17 @@ EOF
     cat <<EOF > Make.compilers
 # -*- makefile -*-
 #  FreeBSD, debug, warnings
+THREADS           := -D_THREAD_SAFE -pthread
+THREADL           := -pthread
 CC                := cc
 SHLIB_FLAGS       := -shared
-CFLAGS_COMPILE    := -g -D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads -Wall -Wshadow -Wtraditional -Wid-clash-16 -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Wconversion -Waggregate-return -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls -Wnested-externs  
+CFLAGS_COMPILE    := -g \$(THREADS) -Wall -Wshadow -Wtraditional -Wid-clash-16 -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Wconversion -Waggregate-return -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls -Wnested-externs  
 CLDFLAGS          := -L/usr/local/lib
-CLIBS             := -llthread -llgcc_r
+CLIBS             := \$(THREADL)
 CXX               := g++
-CXXFLAGS_COMPILE  := -g -D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads -Wall -Wshadow -Wtraditional -Wid-clash-16 -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Wconversion -Waggregate-return -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls -Wnested-externs  
+CXXFLAGS_COMPILE  := -g \$(THREADS) -Wall -Wshadow -Wtraditional -Wid-clash-16 -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Wconversion -Waggregate-return -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls -Wnested-externs  
 CXXLDFLAGS        := -L/usr/local/lib
-CXXLIBS           := -llthread -llgcc_r
+CXXLIBS           := \$(THREADL)
 ARFLAGS           := ruvs
 EOF
     ;;
