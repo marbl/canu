@@ -90,13 +90,14 @@ Exon::~Exon() {
 
 inline
 void
-freeExon(Exon *l) {
+freeExon(Exon *&l) {
   delete l;
+  l = 0L;
 }
 
 inline
 void 
-freeExonList(Exon *l) {
+freeExonList(Exon *&l) {
   Exon *t;
 
   while (l) {
@@ -104,6 +105,8 @@ freeExonList(Exon *l) {
     freeExon(l);
     l = t;
   }
+
+  l = 0L;
 }    
 
 
