@@ -10,7 +10,7 @@ SIM4/       :=$(call MakePath,$/../sim4/)
 src  := $/cleanPolishes.C $/comparePolishes.C $/filterPolishes.c \
         $/mergePolishes.C $/parseSNP.c $/pickBestPolish.c \
         $/plotCoverageVsIdentity.c $/removeDuplicate.c $/sortPolishes.c \
-        $/stripPolishes.c $/summarizePolishes.C $/uniqPolishes.c
+        $/summarizePolishes.C $/uniqPolishes.c
 
 $/.C_SRCS   :=${filter %.c,${src}}
 $/.CXX_SRCS :=${filter %.C,${src}}
@@ -34,7 +34,6 @@ $/pickBestPolish-debug.o: $/pickBestPolish.c
 
 $/filterPolishes              : $/filterPolishes.o
 $/mergePolishes               : $/mergePolishes.o
-$/stripPolishes               : $/stripPolishes.o
 $/sortPolishes                : $/sortPolishes.o
 $/pickBestPolish              : $/pickBestPolish.o
 $/pickBestPolish-debug        : $/pickBestPolish-debug.o
