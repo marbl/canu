@@ -69,9 +69,8 @@ typedef signed char         s8bit;
 #define  u8bitMAX        (0xff)
 #define  u8bitMASK(X)    ((~u8bitZERO) >> (8 - (X)))
 
-//  UNTESTED!
-#define  strtou32bit(N,O) strtoul(N, O, 0)
-#define  strtou64bit(N,O) strtoul(N, O, 0)
+#define  strtou32bit(N,O) (u32bit)strtoul(N, O, 0)
+#define  strtou64bit(N,O) (u64bit)strtoul(N, O, 0)
 
 #else
 
@@ -118,8 +117,8 @@ typedef signed char         s8bit;
 #define  u8bitMAX        (0xff)
 #define  u8bitMASK(X)    ((~u8bitZERO) >> (8 - (X)))
 
-#define  strtou32bit(N,O) strtoul(N, O, 0)
-#define  strtou64bit(N,O) strtoull(N, O, 0)
+#define  strtou32bit(N,O) (u32bit)strtoul(N, O, 0)
+#define  strtou64bit(N,O) (u64bit)strtoull(N, O, 0)
 
 #endif  //  TRUE64BIT
 
