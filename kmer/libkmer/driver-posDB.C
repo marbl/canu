@@ -68,7 +68,7 @@ fprintf(stderr, usage, argv[0]);
     arg++;
   }
 
-  fprintf(stderr, "Building table with merSize %u, merSkip %u and table size %u\n", mersize, merskip, tblsize);
+  fprintf(stderr, "Building table with merSize "u32bitFMT", merSkip "u32bitFMT" and table size "u32bitFMT"\n", mersize, merskip, tblsize);
 
   u64bit    seqlen  = 0;
   u32bit    ts      = 25;
@@ -89,7 +89,7 @@ fprintf(stderr, usage, argv[0]);
     tblsize = ts;
 
   if (ts != tblsize)
-    fprintf(stderr, "For sequence length %lu, suggested tableSize is %u, you want %u\n", seqlen, ts, tblsize);
+    fprintf(stderr, "For sequence length "u64bitFMT", suggested tableSize is "u32bitFMT", you want "u32bitFMT"\n", seqlen, ts, tblsize);
 
   positionDB  *e = new positionDB(0L, argv[argc-2], mersize, merskip, tblsize, true);
 
