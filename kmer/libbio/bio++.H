@@ -533,7 +533,9 @@ merStream::nextSymbol(void) {
   
   //  Skip any whitespace
   //
-  while (whitespaceSymbol[_st_string[_st_stringPos]] && (_st_string[_st_stringPos]) && (_st_stringPos < _st_stringLen))
+  while (whitespaceSymbol[(int)_st_string[_st_stringPos]] &&
+         (_st_string[_st_stringPos]) &&
+         (_st_stringPos < _st_stringLen))
     _st_stringPos++;
 
   //  Are we at a defline?  If so, zip along until we hit a
@@ -541,7 +543,9 @@ merStream::nextSymbol(void) {
   //  sequence break.
   //
   if (_st_string[_st_stringPos] == '>') {
-    while ((_st_string[_st_stringPos] != '\n') && (_st_string[_st_stringPos]) && (_st_stringPos < _st_stringLen))
+    while ((_st_string[_st_stringPos] != '\n') &&
+           (_st_string[_st_stringPos]) &&
+           (_st_stringPos < _st_stringLen))
       _st_stringPos++;
 
     _st_posInSeq = 0;
