@@ -29,6 +29,7 @@ VALID_OPERATING_SYSTEM:=$(strip \
     SunOS|foster-city   \
     SunOS|francisco's \
     FreeBSD \
+    FreeBSD|Randy \
     Linux|RH7 \
     Linux|RH9 \
     default|I-will-take-my-chances \
@@ -366,6 +367,10 @@ endif
 # francisco's machines don't have any latex so we will ignore the
 # errors from latex type stuff by setting the -LATEX to -
 ifeq (${_OS|FULL_},SunOS|francisco's)
+  -LATEX :=-
+endif
+# neither does randy's mac
+ifeq (${_OS|FULL_},FreeBSD|Randy)
   -LATEX :=-
 endif
 
