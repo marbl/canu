@@ -10,14 +10,14 @@
 #include <fcntl.h>
 #include <assert.h>
 
-//  $Id$
-
+//  At one time, this was needed for pthread.h or semaphore.h
 typedef unsigned short ushort;
 
 #include <pthread.h>
 #include <semaphore.h>
 
 #include "libbri.H"
+#include "fasta.H"
 
 #include "positionDB.H"
 #include "existDB.H"
@@ -33,7 +33,7 @@ private:
   u64bit   *_mers;       //  List of mers
   u32bit   *_skip;
 public:
-  encodedQuery(unsigned char const  *seq,
+  encodedQuery(char const           *seq,
                u32bit                seqLen,
                u32bit                k,
                bool                  rc);
@@ -134,7 +134,7 @@ public:
   void  read(int argc, char **argv);
   void  display(FILE *out=stdout);
 
-  void  completeUseList(FastA *db);
+  void  completeUseList(FastAWrapper *db);
 
 private:
   void  addToUse(u32bit v);
@@ -149,33 +149,32 @@ private:
 
 //  Shared data
 //
-extern configuration    config;
+extern configuration          config;
 
-extern FastA           *qsFASTA;  //  Used exclusively by thr-loader.C
+extern FastAWrapper          *qsFASTA;  //  Used exclusively by thr-loader.C
 
-extern existDB         *maskDB;  //  thr-search.C
-extern existDB         *onlyDB;  //  thr-search.C
+extern existDB               *maskDB;  //  thr-search.C
+extern existDB               *onlyDB;  //  thr-search.C
 
-extern positionDB      *positions;
+extern positionDB            *positions;
 
 
-extern volatile u32bit  numberOfQueries;
+extern volatile u32bit        numberOfQueries;
 
-extern char           **output;
-extern u32bit          *outputLen;
+extern char                 **output;
+extern u32bit                *outputLen;
 
-extern u32bit          *queryMatchCounts;
-extern pthread_mutex_t  queryMatchMutex;
+extern u32bit                *queryMatchCounts;
+extern pthread_mutex_t        queryMatchMutex;
 
-extern pthread_mutex_t  inputTailMutex;
-extern unsigned char  **input;
-extern u32bit          *inputLen;
-extern volatile u32bit  inputHead;
-extern volatile u32bit  inputTail;
+extern pthread_mutex_t        inputTailMutex;
+extern FastASequenceInCore  **input;
+extern volatile u32bit        inputHead;
+extern volatile u32bit        inputTail;
 
-extern volatile u32bit  outputPos;
+extern volatile u32bit        outputPos;
 
-extern char            *threadStats[MAX_THREADS];
+extern char                  *threadStats[MAX_THREADS];
 
 void     *deadlockDetector(void *U);
 void     *deadlockChecker(void *U);

@@ -4,7 +4,7 @@
 #include "searchGENOME.H"
 #include "libbri.H"
 
-encodedQuery::encodedQuery(unsigned char const  *seq,
+encodedQuery::encodedQuery(char const           *seq,
                            u32bit                seqLen,
                            u32bit                k,
                            bool                  rc) {

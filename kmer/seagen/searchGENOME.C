@@ -20,23 +20,22 @@ char const *countMessage       = "%lu\n";
 
 //  Shared data
 //
-configuration    config;
-FastA           *qsFASTA;
-existDB         *maskDB;
-existDB         *onlyDB;
-positionDB      *positions;
-volatile u32bit  numberOfQueries;
-u32bit          *queryMatchCounts;
-pthread_mutex_t  queryMatchMutex;
-char           **output;
-u32bit          *outputLen;
-pthread_mutex_t  inputTailMutex;
-unsigned char  **input;
-u32bit          *inputLen;
-volatile u32bit  inputHead;
-volatile u32bit  inputTail;
-volatile u32bit  outputPos;
-char            *threadStats[MAX_THREADS];
+configuration          config;
+FastAWrapper          *qsFASTA;
+existDB               *maskDB;
+existDB               *onlyDB;
+positionDB            *positions;
+volatile u32bit        numberOfQueries;
+u32bit                *queryMatchCounts;
+pthread_mutex_t        queryMatchMutex;
+char                 **output;
+u32bit                *outputLen;
+pthread_mutex_t        inputTailMutex;
+FastASequenceInCore  **input;
+volatile u32bit        inputHead;
+volatile u32bit        inputTail;
+volatile u32bit        outputPos;
+char                  *threadStats[MAX_THREADS];
 
 
 
@@ -46,12 +45,8 @@ buildChunk(void) {
   if (config._beVerbose)
     fprintf(stderr, "Opening the genomic database.\n");
 
-  FastA *dbFASTA = new FastA(config._dbFileName, true);
-
-  if (dbFASTA->numberOfSequences() == 0) {
-    fprintf(stderr, "Failed to open the database index.\n");
-    exit(1);
-  }
+  FastAWrapper *dbFASTA = new FastAWrapper(config._dbFileName);
+  dbFASTA->openIndex();
 
   //  Complete the configuration
   //
@@ -72,32 +67,31 @@ buildChunk(void) {
 
   //  Allocate space for the chained sequence
   //
-  unsigned char *s = new unsigned char [sLen + 1];
-  unsigned char *t = s;
+  char *s = new char [sLen + 1];
+  char *t = s;
 
   //  Chain
   //
   u32bit i;
   for (i=0; i<config._useListLen; i++) {
-    FastABuffer  B;
+    dbFASTA->find(config._useList[i].seq);
 
-    if (dbFASTA->seek(B, config._useList[i].seq)) {
-      unsigned char const *g  = B.sequence();
+    //
+    //  XXX: This should be a FastASequenceOnDisk, but that isn't
+    //  existing yet.
+    //
 
-#if 0
-      //  Print the sequence header as we build it.
-      //
-      fprintf(stderr, "%4d] %s\n", i, B.header());
-#endif
+    FastASequenceInCore  *B = dbFASTA->getSequence();
 
-      while (*g)
-        *(t++) = *(g++);
+    char const *g  = B->sequence();
 
-      for (u32bit gn = 100; gn--; )
-        *(t++) = '.';
-    } else {
-      fprintf(stderr, "searchGENOME()-- seek returned false?\n");
-    }
+    while (*g)
+      *(t++) = *(g++);
+
+    for (u32bit gn = 100; gn--; )
+      *(t++) = '.';
+
+    delete B;
   }
 
   *t = 0;
@@ -167,19 +161,15 @@ main(int argc, char **argv) {
   if (config._beVerbose)
     fprintf(stderr, "Opening the cDNA sequences.\n");
 
-  qsFASTA = new FastA(config._qsFileName, true);
-  if (qsFASTA->numberOfSequences() == 0) {
-    fprintf(stderr, "Failed to open the query index.\n");
-    exit(1);
-  }
+  qsFASTA = new FastAWrapper(config._qsFileName);
+  qsFASTA->openIndex();
 
-  numberOfQueries  = qsFASTA->numberOfSequences();
+  numberOfQueries  = qsFASTA->getNumberOfSequences();
   output           = new char * [numberOfQueries];
   outputLen        = new u32bit [numberOfQueries];
   queryMatchCounts = new u32bit [numberOfQueries];
 
-  input     = new unsigned char * [numberOfQueries];
-  inputLen  = new u32bit [numberOfQueries];
+  input     = new FastASequenceInCore * [numberOfQueries];
   inputHead = 0;
   inputTail = 0;
 
@@ -190,7 +180,6 @@ main(int argc, char **argv) {
     queryMatchCounts[i] = 0;
 
     input[i]    = 0L;
-    inputLen[i] = 0;
   }
 
   config._initTime = getTime();

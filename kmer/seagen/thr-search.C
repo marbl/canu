@@ -46,7 +46,8 @@ public:
 
 void
 doSearch(searcherState *state,
-         unsigned char *seq, u32bit seqLen, u32bit idx,
+         FastASequenceInCore *seq,
+         u32bit idx,
          bool rc,
          char *&theOutput, u32bit &theOutputPos, u32bit &theOutputMax) {
   encodedQuery  *query  = 0L;
@@ -57,7 +58,7 @@ doSearch(searcherState *state,
   //  Build and mask the query
   //
   startTime = getTime();
-  query = new encodedQuery(seq, seqLen, config._merSize, rc);
+  query = new encodedQuery(seq->sequence(), seq->sequenceLength(), config._merSize, rc);
   state->encodeTime += getTime() - startTime;
 
 
@@ -94,7 +95,7 @@ doSearch(searcherState *state,
   //  Get the hits
   //
   startTime = getTime();
-  matrix = new hitMatrix(seqLen, qMers, idx);
+  matrix = new hitMatrix(seq->sequenceLength(), qMers, idx);
   for (u32bit qi=0; qi<query->numberOfMers(); qi++)
     if ((query->getSkip(qi) == false) &&
         (positions->get(query->getMer(qi), state->posn, state->posnMax, state->posnLen)))
@@ -115,21 +116,20 @@ doSearch(searcherState *state,
 
 void*
 searchThread(void *U) {
-  u32bit         idx      = 0;
-  unsigned char *seq      = 0L;
-  u32bit         seqLen   = 0;
-  u32bit         blockedI = 0;
-  u32bit         blockedO = 0;
-  u32bit         computed = 0;
+  u32bit               idx      = 0;
+  FastASequenceInCore *seq      = 0L;
+  u32bit               blockedI = 0;
+  u32bit               blockedO = 0;
+  u32bit               computed = 0;
 
-  searcherState *state    = new searcherState;
+  searcherState       *state    = new searcherState;
 
-  u32bit          theOutputPos = 0;
-  u32bit          theOutputMax = 0;
-  char           *theOutput    = 0L;
+  u32bit               theOutputPos = 0;
+  u32bit               theOutputMax = 0;
+  char                *theOutput    = 0L;
 
-  struct timespec searchSleepLong  = { 0, 500000000 };
-  struct timespec searchSleepShort = { 0,  10000000 };
+  struct timespec      searchSleepLong  = { 0, 500000000 };
+  struct timespec      searchSleepShort = { 0,  10000000 };
 
   //  Allocate and fill out the thread stats -- this ensures that we
   //  always have stats (even if they're bogus).
@@ -147,8 +147,8 @@ searchThread(void *U) {
     pthread_mutex_lock(&inputTailMutex);
     idx = inputTail;
     if (idx < numberOfQueries) {
-      seq    = input[idx];
-      seqLen = inputLen[idx];
+      seq = input[idx];
+      input[idx] = 0L;
       if (seq)
         inputTail++;
     }
@@ -189,15 +189,17 @@ searchThread(void *U) {
         //  Do searches.
         //
         if (config._doForward)
-          doSearch(state, seq, seqLen, idx, false, theOutput, theOutputPos, theOutputMax);
+          doSearch(state, seq, idx, false, theOutput, theOutputPos, theOutputMax);
         if (config._doReverse)
-          doSearch(state, seq, seqLen, idx, true,  theOutput, theOutputPos, theOutputMax);
+          doSearch(state, seq, idx, true,  theOutput, theOutputPos, theOutputMax);
 
         //  Signal that we are done.
         //
         outputLen[idx] = theOutputPos;
         output[idx]    = theOutput;
         computed++;
+
+        delete seq;
       } // end of seq != 0L
     } // end of idx < numberOfQueries
   } // end of inputTail < numberOfQueries

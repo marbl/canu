@@ -239,7 +239,7 @@ char const *notInMessage         = "WARNING: Sequence %lu in -use list is not in
 //  Removes duplicate entries, sorts
 //
 void
-configuration::completeUseList(FastA *db) {
+configuration::completeUseList(FastAWrapper *db) {
 
   if (_beVerbose)
     fprintf(stderr, useListMessage, _useListLen);
@@ -249,25 +249,25 @@ configuration::completeUseList(FastA *db) {
   //
   if (_useListLen == 0) {
     if (_beVerbose)
-      fprintf(stderr, useAllGenomicMessage, db->numberOfSequences());
+      fprintf(stderr, useAllGenomicMessage, db->getNumberOfSequences());
     _useListLen = 0;
-    _useListMax = db->numberOfSequences();
+    _useListMax = db->getNumberOfSequences();
     _useList    = new use_s [_useListMax];
 
-    for (u32bit i=db->numberOfSequences(); i--; ) {
+    for (u32bit i=db->getNumberOfSequences(); i--; ) {
       _useList[_useListLen].seq   = i;
       _useList[_useListLen].size  = 0;
       _useList[_useListLen].start = 0;
       _useListLen++;
     }
   } else {
-    char    *seen    = new char [db->numberOfSequences()];
+    char    *seen    = new char [db->getNumberOfSequences()];
     u32bit   seenLen = 0;
-    for (u32bit i=db->numberOfSequences(); i--; )
+    for (u32bit i=db->getNumberOfSequences(); i--; )
       seen[i] = 0;
 
     for (u32bit i=0; i<_useListLen; i++) {
-      if (_useList[i].seq >= db->numberOfSequences()) {
+      if (_useList[i].seq >= db->getNumberOfSequences()) {
         fprintf(stderr, notInMessage, i, _dbFileName);
       } else {
         if (seen[_useList[i].seq] == 0) {
@@ -283,7 +283,7 @@ configuration::completeUseList(FastA *db) {
     _useListMax = seenLen;
     _useList    = new use_s [_useListMax];
 
-    for (u32bit i=db->numberOfSequences(); i--; ) {
+    for (u32bit i=db->getNumberOfSequences(); i--; ) {
       if (seen[i]) {
         _useList[_useListLen].seq   = i;
         _useList[_useListLen].size  = 0;

@@ -25,13 +25,11 @@ void*
 loaderThread(void *) {
 
   try {
-    u32bit       LOADER_HIGH_WATER_MARK = 16384;
-    u32bit       waterLevel             = 0;
-    FastABuffer  B;
+    u32bit               LOADER_HIGH_WATER_MARK = 16384;
+    u32bit               waterLevel             = 0;
+    FastASequenceInCore *B;
 
     struct timespec loaderSleep = { 0, 25000000 };
-
-    qsFASTA->first(B);
 
     while (inputHead < numberOfQueries) {
 
@@ -60,21 +58,12 @@ loaderThread(void *) {
         //  Get the next cDNA and push it onto the input list at
         //  inputHead.  This alloc is deleted by the output thread.
         //
-        unsigned char       *s = new unsigned char [B.sequenceLength() + 1];
-        unsigned char       *c = s;
-        unsigned char const *t = B.sequence();
-
-        while (*t)
-          *(c++) = *(t++);
-        *c = 0;
+        B = qsFASTA->getSequence();
 
         pthread_mutex_lock(&inputTailMutex);
-        inputLen[inputHead] = B.sequenceLength();
-        input[inputHead]    = s;
+        input[inputHead] = B;
         inputHead++;
         pthread_mutex_unlock(&inputTailMutex);
-
-        qsFASTA->next(B);
       }
     }
   } catch (bad_alloc) {
