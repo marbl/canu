@@ -176,8 +176,9 @@ public:
     delete [] _arg;
   };
 
-  u32bit  numWords(void)    { return(_argWords); };
-  char   *getWord(u32bit i) { return(_arg[i]); };
+  u32bit  numWords(void)        { return(_argWords); };
+  char   *getWord(u32bit i)     { return(_arg[i]); };
+  char   *operator[](u32bit i)  { return(_arg[i]); };
 private:
   char     *_cmd;
   char    **_arg;
