@@ -31,6 +31,10 @@ if (scalar(@ARGV) < 6) {
     print STDERR "    -merylonly             -- only run the meryl components\n";
     print STDERR "\n";
     print STDERR "\n";
+    print STDERR "    -samespecies           -- use magic values for same species\n";
+    print STDERR "    -crossspecies          -- use guesses for different species\n";
+    print STDERR "\n";
+    print STDERR "\n";
     print STDERR "ADVANCED OPTIONS:\n";
     print STDERR "\n";
     print STDERR "    -segmentid x           -- only run segment with id x\n";
@@ -95,8 +99,23 @@ while (scalar(@ARGV) > 0) {
         $segmentIDtorun = shift @ARGV;
     } elsif ($arg eq "-buildonly") {
         $buildOnly = 1;
+    } elsif ($arg eq "-samespecies") {
+        $mersize   = 20; # the mer size
+        $merlimit  = 1;  # unique mers only
+        $minfill   = 20; # the mimimum fill for a reported match.
+        $maxgap    = 0;  # the maximum substitution gap
+    } elsif ($arg eq "-crossspecies") {
+        $mersize   = 18; # the mer size
+        $merlimit  = 9;  # unique mers only
+        $minfill   = 20; # the mimimum fill for a reported match.
+        $maxgap    = 0;  # the maximum substitution gap
     }
 }
+
+print STDOUT "mersize = $mersize\n";
+print STDOUT "merlimit = $merlimit\n";
+print STDOUT "minfill = $minfill\n";
+print STDOUT "maxgap = $maxgap\n";
 
 $execHome = "/work/assembly/walenzbp/releases" if ($execHome eq "compaq");
 $execHome = "/test/IR/walenz/cds/IR/BRI/bin"   if ($execHome eq "aix");
@@ -318,7 +337,7 @@ if (! -e "$ATACdir/$matches.matches.sorted") {
 }
 
 
-if (! -e "$ATACdir/${id1}vs${id2}-C13.atac") {
+if (! -e "$ATACdir/${id1}vs${id2}-template.atac") {
     open(ATACFILE, "> $ATACdir/${id1}vs${id2}-C13.atac");
     print ATACFILE  "!format atac 1.0\n";
     print ATACFILE  "# Legend:\n";
@@ -334,8 +353,14 @@ if (! -e "$ATACdir/${id1}vs${id2}-C13.atac") {
     print ATACFILE  "# Field 9: the offset from the start of the sequence for the match\n";
     print ATACFILE  "# Field 10: the length of the match in the second assembly\n";
     print ATACFILE  "# Field 11: the orientation of the match sequence in the second assembly.\n";
-    print ATACFILE "/assemblyFilePrefix1=$seq1\n";
-    print ATACFILE "/assemblyFilePrefix2=$seq2\n";
+
+    my $seq1trimmed = $seq1;
+    my $seq2trimmed = $seq2;
+    $seq1trimmed = $1 if ($seq1trimmed =~ m/(.*).fasta$/);
+    $seq2trimmed = $1 if ($seq2trimmed =~ m/(.*).fasta$/);
+
+    print ATACFILE "/assemblyFilePrefix1=$seq1trimmed\n";
+    print ATACFILE "/assemblyFilePrefix2=$seq2trimmed\n";
     print ATACFILE "/assemblyId1=$id1\n";
     print ATACFILE "/assemblyId2=$id2\n";
     print ATACFILE "/rawMatchMerSize=$mersize\n";
@@ -372,6 +397,9 @@ if (! -e "$ATACdir/${id1}vs${id2}-C13.atac") {
     close(ATACFILE);
 }
 
+
+system("echo \"$ATACdir/$matches is finished.\" | mail -s \"$ATACdir/$matches\" brian.walenz\@celera.com");
+system("echo \"$ATACdir/$matches is finished.\" | mail -s \"$ATACdir/$matches\" clark.mobarry\@celera.com");
 
 
 
