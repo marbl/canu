@@ -1,7 +1,10 @@
 #ifndef BRITIME_H
 #define BRITIME_H
 
-#include <time.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/time.h>
+
 #include "libbritypes.h"
 
 double  getTime(void);
