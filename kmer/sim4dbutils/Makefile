@@ -1,7 +1,7 @@
 PROG    = filterPolishes mergePolishes stripPolishes sortPolishes comparePolishes \
           pickBestPolish pickBestPolish-debug parseSNP \
           plotCoverageVsIdentity cleanPolishes uniqPolishes \
-          summarizePolishes
+          summarizePolishes removeDuplicate
 INCLUDE = -I../fasta         -I../libbri
 LIBS    = -L../fasta -lfasta -L../libbri -lbri -lm
 
@@ -58,6 +58,9 @@ uniqPolishes: uniqPolishes.o $(OBJS)
 
 summarizePolishes: summarizePolishes.o $(OBJS)
 	$(CC) $(CCOPTS) -o summarizePolishes summarizePolishes.o $(OBJS) $(LIBS) $(EFENCE)
+
+removeDuplicate: removeDuplicate.o $(OBJS)
+	$(CC) $(CCOPTS) -o removeDuplicate removeDuplicate.o $(OBJS) $(LIBS) $(EFENCE)
 
 
 #  Run the test cases for parseSNP
