@@ -14,6 +14,7 @@ CXXLIBS         :=${CLIBS}
 ARFLAGS         :=-rvs
 AR              :=ar
 
+
 # The dependency generator
 # although it can cause some troubles, it really is
 # probably best to keep these as GNU compilers
@@ -34,6 +35,7 @@ ifeq ($(OPERATING_SYSTEM),)
   SHLIB_FLAGS       := -shared
   PYINC            :=-I/usr/include/python2.2/
   INSTALL/  :=${MAKEFILE/}gnu-i386/
+  PERL            :=/usr/bin/perl
 endif
 
 ### tru64
@@ -46,6 +48,7 @@ ifeq ($(OPERATING_SYSTEM),TRU64)
   SHLIB_FLAGS      := -shared
   PYINC       :=-I/usr/local/ir/Python-2.2.2 -I/usr/local/ir/Python-2.2.2/Include
   INSTALL/  :=${MAKEFILE/}tru64/
+  PERL            :=/usr/local/bin/perl
 endif
 
 ### aches
@@ -79,4 +82,5 @@ ifeq ($(OPERATING_SYSTEM),AIX)
   CXX_TMP_ARCH     :=so_locations
 
   INSTALL/  :=${MAKEFILE/}aix/
+  PERL            :=/usr/local/bin/perl5.6.1
 endif
