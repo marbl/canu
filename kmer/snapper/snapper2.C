@@ -371,6 +371,7 @@ main(int argc, char **argv) {
   outputPos = 0;
 
   double  zeroTime = getTime();
+  u32bit  outputMask = 0xf;
 
   while (outputPos < numberOfQueries) {
     bool  justSlept = false;
@@ -448,17 +449,28 @@ main(int argc, char **argv) {
       justSlept = true;
     }
 
-    if (config._beVerbose && ((justSlept) || (outputPos & 0xf) == 0xf)) {
+    if (config._beVerbose && ((justSlept) || (outputPos & outputMask) == outputMask)) {
       double thisTimeD = getTime() - zeroTime + 0.0000001;
+      double perSec    = outputPos / thisTimeD;
+      double remTime   = (numberOfQueries - outputPos) * thisTimeD / outputPos;
       fprintf(stderr, outputDisplay,
               outputPos,
               inputTail,
               inputHead,
               numberOfQueries,
               100.0 * outputPos / numberOfQueries,
-              outputPos / thisTimeD,
-              (numberOfQueries - outputPos) * thisTimeD / outputPos);
+              perSec,
+              remTime);
       fflush(stderr);
+
+      if      (perSec < 32.0)
+        outputMask = 0xf;
+      else if (perSec < 256.0)
+        outputMask = 0x7f;
+      else if (perSec < 1024.0)
+        outputMask = 0x1ff;
+      else
+        outputMask = 0x3ff;
     }
   }
 
