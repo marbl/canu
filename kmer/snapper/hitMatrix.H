@@ -12,23 +12,38 @@
 //  aHit -- storing the internal hits
 //
 //  _status
-//  & 0x00000001 -- direction
+//  & 0x00000001 -- direction, forward if set, otherwise reverse
 //    0x00000002 -- not filtered, if set, polish the hit
 //    0x00000004 -- match verified via polishng
+//    0x00000008 -- match discarded via hit refinement
 //    0x0000fff8 -- unused
 //    0x00ff0000 -- percent idendity of match
 //    0xff000000 -- percent coverage of match
 //
-struct aHit {
-  u32bit  _status;
-  u32bit  _qsIdx;
-  u32bit  _dsIdx;
-  u32bit  _dsLo;
-  u32bit  _dsHi;
-  u32bit  _covered;
-  u32bit  _matched;
-  u32bit  _numMers;
+#define AHIT_DIRECTION_MASK  0x00000001
+#define AHIT_POLISHABLE      0x00000002
+#define AHIT_VERIFIED        0x00000004
+#define AHIT_DISCARDED       0x00000008
+
+
+struct aHitSeed {
+  u32bit  _qPos;  //  position in the query
+  u32bit  _gPos;  //  position in the genome
 };
+
+
+struct aHit {
+  u32bit      _status;
+  u32bit      _qsIdx;
+  u32bit      _dsIdx;
+  u32bit      _dsLo;
+  u32bit      _dsHi;
+  u32bit      _covered;
+  u32bit      _matched;
+  u32bit      _numMers;
+  merList    *_ML;
+};
+
 
 struct diagonalLine {
   u32bit   _qsPos;
@@ -36,26 +51,39 @@ struct diagonalLine {
   u32bit   _diagonalID;
 };
 
+
+
+
 class trapMatch {
 public:
-  u32bit         _qsLo, _qsHi;
-  u32bit         _dsLo, _dsHi;
+  u32bit         _qsLo;
+  u32bit         _qsHi;
+  u32bit         _dsLo;
+  u32bit         _dsHi;
+
   merCovering   *_IL;
+  merList       *_ML;
+
   trapMatch     *_next;
 
   trapMatch(u32bit         qsLo,
             u32bit         qsHi,
             u32bit         dsLo,
             u32bit         dsHi,
-            merCovering   *IL) {
+            merCovering   *IL,
+            merList       *ML) {
     _qsLo       = qsLo;
     _qsHi       = qsHi;
     _dsLo       = dsLo;
     _dsHi       = dsHi;
     _IL         = IL;
+    _ML         = ML;
     _next       = 0L;
   };
 };
+
+
+
 
 class hitMatrix {
 private:
@@ -92,7 +120,8 @@ private:
                 u32bit         qsHi,
                 u32bit         dsLo,
                 u32bit         dsHi,
-                merCovering   *IL);
+                merCovering   *IL,
+                merList       *ML);
 
 public:
   hitMatrix(u32bit qsLen, u32bit q, u32bit qsIdx);
@@ -106,6 +135,8 @@ public:
   void    sort_dsPos(void);
 
   void    filter(char      direction,
+                 double    minHitCoverage,
+                 u32bit    minHitLength,
                  aHit    *&theOutput,
                  u32bit   &theOutputPos,
                  u32bit   &theOutputMax);

@@ -1,11 +1,15 @@
 #include "posix.H"
 #include "snapper2.H"
 
-#ifdef TRUE64BIT
-#define HITOUTPUTLINE "-%c -e %u -D %u %u %u -M %u %u %u\n"
-#else
-#define HITOUTPUTLINE "-%c -e %lu -D %lu %lu %lu -M %lu %lu %lu\n"
-#endif
+
+//  Reports debugging information on decoding the hits
+//
+//#define DEUBG_HIT_DECODE
+
+//  Reports when any chained hit is saved
+//
+//#define REPORT_CHAINED_HITS
+
 
 hitMatrix::hitMatrix(u32bit qsLen, u32bit qsMers, u32bit qsIdx) {
   _qsLen    = qsLen;
@@ -24,12 +28,14 @@ hitMatrix::~hitMatrix() {
   delete [] _hits;
 }
 
+
 void
 hitMatrix::addMatch(u32bit         qsLo,
                     u32bit         qsHi,
                     u32bit         dsLo,
                     u32bit         dsHi,
-                    merCovering   *IL) {
+                    merCovering   *IL,
+                    merList       *ML) {
   u32bit offset = 0;
 
   offset = (u32bit)(config._extendWeight * qsLo);
@@ -45,14 +51,20 @@ hitMatrix::addMatch(u32bit         qsLo,
     offset = config._extendMinimum;
   dsHi += offset;
 
+
   //  Create a new match
   //
   //  n = new match
   //  m = current match
   //  l = last match
   //
-  trapMatch *n = new trapMatch(qsLo, qsHi, dsLo, dsHi, IL);
+  trapMatch *n = new trapMatch(qsLo, qsHi, dsLo, dsHi, IL, ML);
 
+#ifdef REPORT_CHAINED_HITS
+  fprintf(stderr, "chained:  Q::"u32bitFMT"-"u32bitFMT"("u32bitFMT") G::"u32bitFMT"-"u32bitFMT"("u32bitFMT")\n",
+          qsLo, qsHi, qsHi - qsLo,
+          dsLo, dsHi, dsHi - dsLo);
+#endif
 
   //  And find a home for it in the list.  No merging of matches is done here.  It's
   //  too hard.
@@ -133,6 +145,8 @@ adjustHeap(diagonalLine *L, s32bit p, s32bit n) {
 
 void
 hitMatrix::filter(char      direction,
+                  double    minHitCoverage,
+                  u32bit    minHitLength,
                   aHit    *&theOutput,
                   u32bit   &theOutputPos,
                   u32bit   &theOutputMax) {
@@ -143,9 +157,9 @@ hitMatrix::filter(char      direction,
   //  Decide on the minimum quality values; we pick the larger of
   //  the fixed lengths, and the sequence length * coverage.
   //
-  u32bit   minLength = (u32bit)(config._minHitCoverage * _qsLen);
-  if (minLength < config._minHitLength)
-    minLength = config._minHitLength;
+  u32bit   minLength = (u32bit)(minHitCoverage * _qsLen);
+  if (minLength < minHitLength)
+    minLength = minHitLength;
 
   //  First, sort by the dsPos.  This is done so that we can find all the hits for
   //  a specific scaffold.
@@ -158,7 +172,7 @@ hitMatrix::filter(char      direction,
   u32bit  lastHit    = 0;
   u32bit  currentSeq = 0;
 
-#ifdef MAJORDEBUG
+#ifdef DEBUG_HIT_DECODE
   fprintf(stderr, "filter: got "u32bitFMT" hits\n", _hitsLen);
 #endif
 
@@ -168,7 +182,7 @@ hitMatrix::filter(char      direction,
     //
     while ((currentSeq < config._useList.numberOfSequences()) &&
            (config._useList.startOf(currentSeq) <= _hits[firstHit]._dsPos)) {
-#ifdef MAJORDEBUG
+#ifdef DEBUG_HIT_DECODE
       fprintf(stderr, "currentSeq: "u32bitFMT" length "u64bitFMT" hit "u64bitFMT"\n",
               currentSeq,
               config._useList.startOf(currentSeq),
@@ -197,7 +211,7 @@ hitMatrix::filter(char      direction,
     //
     currentSeq--;
 
-#ifdef MAJORDEBUG
+#ifdef DEBUG_HIT_DECODE
     fprintf(stderr, "Found sequence "u32bitFMT" for hits "u32bitFMT" to "u32bitFMT"\n", currentSeq, firstHit, lastHit);
 #endif
 
@@ -251,9 +265,8 @@ hitMatrix::filter(char      direction,
     u32bit  dsLow        = _hits[firstHit]._dsPos;
     u32bit  dsHigh       = _hits[firstHit]._dsPos;
 
-    //  Create a new merCovering, and space to count the number of mers in a match
-    //
     merCovering   *IL = new merCovering(config._merSize);
+    merList       *ML = new merList();
 
     for (u32bit i=firstHit; i<lastHit; i++) {
 
@@ -266,6 +279,7 @@ hitMatrix::filter(char      direction,
         if (dsLow  > _hits[i]._dsPos)   dsLow  = _hits[i]._dsPos;
         if (dsHigh < _hits[i]._dsPos)   dsHigh = _hits[i]._dsPos;
         IL->addMer(_hits[i]._qsPos);
+        ML->addMer(_hits[i]._qsPos, _hits[i]._dsPos);
         continue;
       }
 
@@ -277,12 +291,16 @@ hitMatrix::filter(char      direction,
                  qsHigh + config._merSize,
                  dsLow,
                  dsHigh + config._merSize,
-                 IL);
+                 IL,
+                 ML);
         IL = new merCovering(config._merSize);
+        ML = new merList();
       }
 
       if (IL)
         IL->clear();
+      if (ML)
+        ML->clear();
 
       frstDiagonal = _hits[i]._diagonalID;
       lastDiagonal = _hits[i]._diagonalID;
@@ -292,6 +310,7 @@ hitMatrix::filter(char      direction,
       dsHigh       = _hits[i]._dsPos;
 
       IL->addMer(_hits[i]._qsPos);
+      ML->addMer(_hits[i]._qsPos, _hits[i]._dsPos);
     }
 
     //  Save the final cluster?
@@ -302,19 +321,21 @@ hitMatrix::filter(char      direction,
                qsHigh + config._merSize,
                dsLow,
                dsHigh + config._merSize,
-               IL);
-        IL = 0;
+               IL,
+               ML);
+        IL = 0L;
+        ML = 0L;
     }
 
     //  Delete any remaining IL
     //
     delete IL;
+    delete ML;
 
 
     //  Merge and print the matches
     //
-    trapMatch     *n  = 0L;
-    u32bit         ML = 0;
+    trapMatch     *n        = 0L;
 
     while (_matches) {
 
@@ -323,7 +344,7 @@ hitMatrix::filter(char      direction,
       dsLow      = _matches->_dsLo;
       dsHigh     = _matches->_dsHi;
       IL         = _matches->_IL;
-      ML         = IL->sumLengths();
+      ML         = _matches->_ML;
 
       n = _matches;
       _matches = _matches->_next;
@@ -343,7 +364,7 @@ hitMatrix::filter(char      direction,
         //  Combine the two merCoverings
         //
         IL->merge(_matches->_IL);
-        ML += _matches->_IL->sumLengths();
+        ML->merge(_matches->_ML);
 
         //  The start of the new match might be after the start of the
         //  merged region.  (Only rarely is it before)
@@ -357,6 +378,7 @@ hitMatrix::filter(char      direction,
         n = _matches;
         _matches = _matches->_next;
         delete n->_IL;
+        delete n->_ML;
         delete n;
       }
 
@@ -383,8 +405,17 @@ hitMatrix::filter(char      direction,
       a->_dsLo      = dsLow;
       a->_dsHi      = dsHigh;
       a->_covered   = IL->sumLengths();
-      a->_matched   = ML;
+      a->_matched   = IL->numberOfPieces();
       a->_numMers   = _qsMers;
+      a->_ML        = ML;
+
+#ifdef REPORT_CHAINED_HITS
+      fprintf(stderr, "merged:   G::"u32bitFMT"-"u32bitFMT"("u32bitFMT")  q:"u32bitFMT" g:"u32bitFMT" cov:"u32bitFMT" mat:"u32bitFMT" mer:"u32bitFMT"\n",
+              a->_dsLo, a->_dsHi, a->_dsHi - a->_dsLo,
+              a->_qsIdx,
+              a->_dsIdx,
+              a->_covered, a->_matched, a->_numMers);
+#endif
 
       delete IL;
     }

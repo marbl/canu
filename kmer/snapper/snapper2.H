@@ -27,6 +27,7 @@ typedef unsigned short ushort;
 #include "sim4.H"
 #include "hitMatrix.H"
 
+#include "logMsg.H"
 
 
 class encodedQuery {
@@ -87,12 +88,12 @@ public:
 
   u32bit           _maxDiagonal;
 
-  double           _extendWeight;
   u32bit           _extendMinimum;
+  double           _extendWeight;
 
   //  Minimums for hits
-  u32bit           _minHitLength;
   double           _minHitCoverage;
+  u32bit           _minHitLength;
 
   //  Minimums for matches
   u32bit           _minMatchIdentity;
@@ -113,6 +114,7 @@ public:
   u32bit           _onlyThreshold;
 
   char            *_outputFileName;
+  char            *_logmsgFileName;
   char            *_statsFileName;
 
   chainedSequence  _useList;
@@ -181,6 +183,7 @@ extern aHit                 **answer;
 extern u32bit                *answerLen;
 extern char                 **output;
 extern u32bit                *outputLen;
+extern logMsg               **logmsg;
 
 extern pthread_mutex_t        inputTailMutex;
 extern FastASequenceInCore  **input;

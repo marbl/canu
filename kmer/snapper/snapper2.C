@@ -29,15 +29,22 @@ existDB               *maskDB;
 existDB               *onlyDB;
 positionDB            *positions;
 volatile u32bit        numberOfQueries;
+
 aHit                 **answer;
 u32bit                *answerLen;
+
 char                 **output;
 u32bit                *outputLen;
+
+logMsg               **logmsg;
+
 pthread_mutex_t        inputTailMutex;
 FastASequenceInCore  **input;
+
 volatile u32bit        inputHead;
 volatile u32bit        inputTail;
 volatile u32bit        outputPos;
+
 char                  *threadStats[MAX_THREADS];
 
 
@@ -124,6 +131,7 @@ dumpStats(void) {
 
 
 #ifdef _AIX
+
 //  If we're AIX, define a new handler.  Other OS's reliably throw exceptions.
 //
 static
@@ -142,10 +150,9 @@ main(int argc, char **argv) {
 
 #ifdef _AIX
   //  By default, AIX Visual Age C++ new() returns 0L; this turns on
-  //  exceptions.
+  //  exceptions (sorta -- it sets a handler that throws an
+  //  exception).
   //
-  fprintf(stderr, "Enabling excetions from new\n");
-  //std::__set_new_throws_exception(true);
   std::set_new_handler(aix_new_handler);
 #endif
 
@@ -167,6 +174,8 @@ main(int argc, char **argv) {
   u32bit        numFilters = 0;
   u32bit        maxFilters = 21 * 22 / 2 * 20;
   filterStats  *theFilters = 0L;
+
+  fprintf(stderr, "theFilters = %p\n", theFilters);
 
   if (config._doValidation) {
     theFilters = new filterStats [maxFilters];
@@ -259,7 +268,8 @@ main(int argc, char **argv) {
   if (config._beVerbose)
     fprintf(stderr, "Opening the genomic database.\n");
 
-  cache = new FastACache(config._dbFileName, 0, true);
+  //cache = new FastACache(config._dbFileName, 0, true);
+  cache = new FastACache(config._dbFileName, 256, false);
 
 
 
@@ -302,10 +312,11 @@ main(int argc, char **argv) {
   input            = new FastASequenceInCore * [numberOfQueries];
   inputHead        = 0;
   inputTail        = 0;
-  answerLen        = new u32bit [numberOfQueries];
-  answer           = new aHit * [numberOfQueries];
-  outputLen        = new u32bit [numberOfQueries];
-  output           = new char * [numberOfQueries];
+  answerLen        = new u32bit   [numberOfQueries];
+  answer           = new aHit *   [numberOfQueries];
+  outputLen        = new u32bit   [numberOfQueries];
+  output           = new char *   [numberOfQueries];
+  logmsg           = new logMsg * [numberOfQueries];
 
   for (u32bit i=0; i<numberOfQueries; i++) {
     input[i]            = 0L;
@@ -313,6 +324,7 @@ main(int argc, char **argv) {
     answer[i]           = 0L;
     outputLen[i]        = 0;
     output[i]           = 0L;
+    logmsg[i]           = 0L;
   }
 
 
@@ -341,6 +353,9 @@ main(int argc, char **argv) {
   sim4params.setMinCoverage(0.75);
   sim4params.setMinPercentExonIdentity(95);
   sim4params.setIgnorePolyTails(false);
+  //sim4params.setWordSize(14);
+  //sim4params.setWordSizeInt(14);
+  //sim4params.setWordSizeExt(14);
 
   //
   //  Initialize threads
@@ -365,10 +380,18 @@ main(int argc, char **argv) {
   pthread_create(threadID + threadIDX++, &threadAttr, deadlockChecker, 0L);
 #endif
 
+
+  fprintf(stderr, "XXX Launching loader\n");
+
+
   //
   //  Start the loader thread
   //
   pthread_create(threadID + threadIDX++, &threadAttr, loaderThread, 0L);
+
+
+  fprintf(stderr, "XXX Launching search\n");
+
 
   //
   //  Start the search threads
@@ -382,10 +405,15 @@ main(int argc, char **argv) {
   fprintf(stderr, "Arise!\n");
 #endif
 
+
+  fprintf(stderr, "XXX GO!\n");
+
+
   //
   //  Open output files
   // 
   int resultFILE = fileno(stdout);
+  int logmsgFILE = 0;
 
   if (config._outputFileName) {
     errno = 0;
@@ -397,6 +425,20 @@ main(int argc, char **argv) {
       exit(1);
     }
   }
+
+  if (config._logmsgFileName) {
+    errno = 0;
+    logmsgFILE = open(config._logmsgFileName,
+                      O_WRONLY | O_LARGEFILE | O_CREAT | O_TRUNC,
+                      S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+    if (errno) {
+      fprintf(stderr, "Couldn't open the log message file '%s'.\n%s\n", config._logmsgFileName, strerror(errno));
+      exit(1);
+    }
+  }
+
+
+
 
   //
   //  Wait for threads to produce output
@@ -410,12 +452,28 @@ main(int argc, char **argv) {
     bool  justSlept = false;
 
     if (output[outputPos]) {
+
+      //  Write the output, if there is any (zero length just means that
+      //  there was no match found).
+      //
       if (outputLen[outputPos] > 0) {
         errno = 0;
         write(resultFILE, output[outputPos], sizeof(char) * outputLen[outputPos]);
         if (errno) {
           fprintf(stderr, "Couldn't write to the output file '%s'.\n%s\n",
                   config._outputFileName, strerror(errno));
+          exit(1);
+        }
+      }
+
+      //  Write the log messages, if any, and if there is a log file
+      //
+      if (logmsgFILE && logmsg[outputPos]) {
+        errno = 0;
+        write(logmsgFILE, logmsg[outputPos]->theLog, sizeof(char) * logmsg[outputPos]->theLogLen);
+        if (errno) {
+          fprintf(stderr, "Couldn't write to the log message file '%s'.\n%s\n",
+                  config._logmsgFileName, strerror(errno));
           exit(1);
         }
       }
@@ -437,7 +495,7 @@ main(int argc, char **argv) {
             if (answer[outputPos][a]._covered < cutL) {
               //  These hits would have been discarded by the filter.
               //
-              if (answer[outputPos][a]._status & 0x00000004) {
+              if (answer[outputPos][a]._status & AHIT_VERIFIED) {
                 //  Oops.  We found a high-quality match.
                 theFilters[f].fn++;
               } else {
@@ -447,7 +505,7 @@ main(int argc, char **argv) {
             } else {
               //  These hits would have been kept by the filter.
               //
-              if (answer[outputPos][a]._status & 0x00000004) {
+              if (answer[outputPos][a]._status & AHIT_VERIFIED) {
                 //  Allright!  Got a high-quality match!
                 theFilters[f].tp++;
               } else {
@@ -469,12 +527,14 @@ main(int argc, char **argv) {
       delete [] input[outputPos];
       delete [] answer[outputPos];
       delete [] output[outputPos];
+      delete    logmsg[outputPos];
 
       input[outputPos]     = 0L;
       answerLen[outputPos] = 0;
       answer[outputPos]    = 0L;
       outputLen[outputPos] = 0;
       output[outputPos]    = 0L;
+      logmsg[outputPos]    = 0L;
 
       outputPos++;
     } else {
@@ -517,11 +577,29 @@ main(int argc, char **argv) {
             numberOfQueries / (getTime() - zeroTime));
 
   errno = 0;
-  close(resultFILE);
+  if (resultFILE != fileno(stdout))
+    close(resultFILE);
   if (errno)
     fprintf(stderr, "WARNING: Couldn't close to the output file '%s'.\n%s\n", config._outputFileName, strerror(errno));
 
+  if (logmsgFILE != 0)
+    close(logmsgFILE);
+  if (errno)
+    fprintf(stderr, "WARNING: Couldn't close to the log message file '%s'.\n%s\n", config._logmsgFileName, strerror(errno));
+
   config._searchTime = getTime() - config._initTime - config._buildTime;
+
+
+  //  Summarize the filter test results
+  //
+  if (config._doValidation)
+    writeValidationFile(config._doValidationFileName, theFilters, numFilters);
+
+
+  //  Summarize the execution
+  //
+  dumpStats();
+
 
   //  Clean up
   //
@@ -537,6 +615,7 @@ main(int argc, char **argv) {
   delete [] answer;
   delete [] outputLen;
   delete [] output;
+  delete [] logmsg;
 
   delete maskDB;
   delete onlyDB;
@@ -545,16 +624,6 @@ main(int argc, char **argv) {
 
   pthread_attr_destroy(&threadAttr);
   pthread_mutex_destroy(&inputTailMutex);
-
-
-  //  Summarize the filter test results
-  //
-  if (config._doValidation)
-    writeValidationFile(config._doValidationFileName, theFilters, numFilters);
-
-
-  dumpStats();
-
 
 #ifdef MEMORY_DEBUG
   fprintf(stdout, "----------------------------------------\n");

@@ -9,10 +9,20 @@ FASTA/      :=$(call MakePath,$/../fasta/)
 SIM4/       :=$(call MakePath,$/../sim4/)
 SIM4POLISH/ :=$(call MakePath,$/../sim4polish/)
 
-src      := $/snapper2.C $/configuration.C $/encodedQuery.C \
-            $/thr-search.C $/thr-loader.C $/thr-deadlock.C \
-            $/hitMatrix.C $/hitMatrix-sort.C \
-            $/hitMatrix.H $/posix.H $/snapper2.H
+src      := $/snapper2.C \
+            $/configuration.C \
+            $/encodedQuery.C \
+            $/thr.C \
+            $/thr-search.C \
+            $/thr-filter.C \
+            $/thr-polish.C \
+            $/thr-loader.C \
+            $/thr-deadlock.C \
+            $/hitMatrix.C \
+            $/hitMatrix-sort.C \
+            $/hitMatrix.H \
+            $/posix.H \
+            $/snapper2.H
 
 $/.CXX_SRCS := $(filter %.C,${src})
 ifdef WITH_THREADS

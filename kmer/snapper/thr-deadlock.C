@@ -1,6 +1,8 @@
 #include "posix.H"
 #include "snapper2.H"
 
+#ifdef __alpha
+
 //  Define this to kill the process with a vengance instead of
 //  gracefully exiting.  exit() tries to free memory, and is thus gets
 //  caught in the deadlock -- but is useful for debugging.
@@ -72,3 +74,5 @@ deadlockChecker(void *) {
 
   return(0L);  //  Ignore the warning!
 }
+
+#endif

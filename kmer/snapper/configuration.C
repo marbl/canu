@@ -46,6 +46,7 @@ configuration::configuration(void) {
   _maskFileName         = 0L;
   _onlyFileName         = 0L;
   _outputFileName       = 0L;
+  _logmsgFileName       = 0L;
   _statsFileName        = 0L;
 
   _buildOnly            = false;
@@ -76,49 +77,52 @@ static char const *usageString =
 "usage: %s [--buildinfo] [options]\n"
 "\n"
 "Algorithm Options:\n"
-"    -forward                Search only the normal cDNA\n"
-"    -reverse                Search only the reverse-complement cDNA\n"
+"    -forward                Search only the normal cDNA.\n"
+"    -reverse                Search only the reverse-complement cDNA.\n"
 "\n"
-"    -mersize k              Use k-mers\n"
-"    -merskip l              Skip l mers between\n"
-"    -maxdiagonal d          Maximum diagonal gap within a hit (25)\n"
-"    -minhitlength l         Minimum length for a hit to be polished (0)\n"
-"    -minhitcoverage c       Minimum coverage for a hit to be polished (0.2, 0.0 to 1.0)\n"
-"    -minmatchidentity i     Minimum percent identity for matches (98, integer)\n"
-"    -minmatchcoverage c     Minimum coverage for matches (96, integer)\n"
-"    -extendweight w         For each unhit base, extend by this much (2)\n"
-"    -extendminimum e        Always extend hits by at least this much (100)\n"
+"    -mersize k              Use k-mers.\n"
+"    -merskip l              Skip l mers between.\n"
+"    -maxdiagonal d          Maximum diagonal gap within a hit (25).\n"
+"    -minhitlength l         Minimum length for a hit to be polished (0).\n"
+"    -minhitcoverage c       Minimum coverage for a hit to be polished (0.2, 0.0 to 1.0).\n"
+"    -minmatchidentity i     Minimum percent identity for matches (98, integer).\n"
+"    -minmatchcoverage c     Minimum coverage for matches (96, integer).\n"
+"    -extendweight w         For each unhit base, extend by this much (2).\n"
+"    -extendminimum e        Always extend hits by at least this much (100).\n"
 "\n"
-"  Filter and Filter Validation\n"
-"    -validate               Enable tuning of the filter (expensive!)\n"
-"    -setfilter L H V        Use { L,H,V } as the filter parameters\n"
+"  Filter and Filter Validation:\n"
+"    -validate               Enable tuning of the filter (expensive!).\n"
+"    -setfilter L H V        Use { L,H,V } as the filter parameters.\n"
 "\n"
 "Input Options:\n"
-"    -mask f                 Ignore (only use) all mers listed in file f\n"
+"    -mask f                 Ignore (only use) all mers listed in file f.\n"
 "    -only f\n"
-"    -maskn f n              Ignore (only use) the mers listed in meryl prefix f\n"
+"    -maskn f n              Ignore (only use) the mers listed in meryl prefix f.\n"
 "    -onlyn f n              For mask, mers with count >= n are masked.\n"
 "                            For only, mers with count <= n are used.\n"
-"    -queries c.fasta        Query sequences\n"
-"    -genomic g.fasta        Database sequences\n"
-"    -positions p.positionDB Build and save / use positionDB.  Assumes you aren't using -use\n"
+"    -queries c.fasta        Query sequences.\n"
+"    -genomic g.fasta        Database sequences.\n"
+"    -positions p.positionDB Build and save / use positionDB.  Assumes you aren't using -use.\n"
 "    -buildonly              Only do the build and save.\n"
 "    -use [...]\n"
 "\n"
-"Process Options\n"
-"    -numthreads n           Use n search threads\n"
-"    -loaderhighwatermark h  Size of the loader queue\n"
-"    -loadersleep t          Time the loader will sleep when its output queue is full\n"
-"    -loaderwarnings         Enable warning messages for the loader\n"
-"    -searchsleep t          Time the searcher will sleep when it has no input\n"
-"    -writerhighwatermark h  Size of the output queue\n"
-"    -writersleep t          Time the writer will sleep when it has nothing to write\n"
-"    -writerwarnings         Enable warning messages for the writer\n"
+"Process Options:\n"
+"    -numthreads n           Use n search threads.\n"
+"    -loaderhighwatermark h  Size of the loader queue.\n"
+"    -loadersleep t          Time the loader will sleep when its output queue is full.\n"
+"    -loaderwarnings         Enable warning messages for the loader.\n"
+"    -searchsleep t          Time the searcher will sleep when it has no input.\n"
+"    -writerhighwatermark h  Size of the output queue.\n"
+"    -writersleep t          Time the writer will sleep when it has nothing to write.\n"
+"    -writerwarnings         Enable warning messages for the writer.\n"
 "\n"
-"Output Options\n"
-"    -verbose                Entertain the user\n"
-"    -output f               Write output to file f\n"
-"    -stats f                Write resource statistics to f\n";
+"Output Options:\n"
+"    -verbose                Entertain the user with useless statistics.\n"
+"    -output f               Write output to file f.\n"
+"    -log f                  Write some debugging/logging information to file f.  This\n"
+"                            is mostly for developers, and does NOT provide useful\n"
+"                            information unless you know the guts of snapper.\n"
+"    -stats f                Write resource usage statistics to f.\n";
 
 void
 configuration::usage(char *name) {
@@ -192,6 +196,9 @@ configuration::read(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-output") == 0) {
       arg++;
       _outputFileName = argv[arg];
+    } else if (strcmp(argv[arg], "-log") == 0) {
+      arg++;
+      _logmsgFileName = argv[arg];
     } else if (strcmp(argv[arg], "-stats") == 0) {
       arg++;
       _statsFileName = argv[arg];
@@ -333,6 +340,11 @@ configuration::display(FILE *out) {
       fprintf(out, "outputFile          = '%s'\n", _outputFileName);
     else
       fprintf(out, "outputFile          = None Specified.\n");
+
+    if (_logmsgFileName)
+      fprintf(out, "logmsgFile          = '%s'\n", _logmsgFileName);
+    else
+      fprintf(out, "logmsgFile          = None Specified.\n");
 
     if (_statsFileName)
       fprintf(out, "statsFile           = '%s'\n", _statsFileName);
