@@ -52,7 +52,7 @@ public:
     int ret = vsprintf(theLog + theLogLen, fmt, ap);
     theLogLen += ret;
     if (theLogLen > theLogMax) {
-      fprintf(stderr, "WARNING:  logMsg::add() wrote %d bytes beyond the end of the buffer!\n",
+      fprintf(stderr, "WARNING:  logMsg::add() wrote "u32bitFMT" bytes beyond the end of the buffer!\n",
               theLogLen - theLogMax);
       fprintf(stderr, "WARNING:  This program will probably crash soon.\n");
     }
