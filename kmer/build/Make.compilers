@@ -265,6 +265,13 @@ ifeq (${_OS_}${_CC_}${_THR_},AIX-threaded)
   T_CLIBS            :=
   T_CXXLIBS          :=
 endif
+ifeq (${_OS_},FreeBSD)
+  T_CLDFLAGS   :=-pthread
+  T_CXXLDFLAGS :=-pthread
+  T_CLIBS            :=
+  T_CXXLIBS          :=
+endif
+
 ## ammendments to the above because we are threaded
 ifeq (${_THR_},-threaded)
   CFLAGS           +=${T_CFLAGS}
@@ -399,3 +406,9 @@ ifeq (${_OS|FULL_},SunOS|francisco's)
   CXXLDFLAGS_LAPACK :=-L/usr/local/lib
   CXXLIBS_LAPACK    :=-llapack -lblas -lF77
 endif
+
+
+
+# X11 stuff
+CLDFLAGS_X11 :=-L/usr/X11R6/lib
+CFLAGS_X11   :=-I/usr/X11R6/include
