@@ -1,4 +1,4 @@
-PROG    = searchGENOME searchGENOMEexactly hitConverter filterEST filterMRNA sortHits
+PROG    = searchGENOME searchGENOMEexactly hitConverter filterEST filterMRNA filtertest sortHits
 INCLUDE = -I../existDB -I../positionDB -I../fasta -I../libbri $(THRINC)
 LIBS    = -L../existDB -L../positionDB -L../fasta -L../libbri \
           -lexistDB -lpositionDB -lfasta -lbri
