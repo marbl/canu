@@ -33,11 +33,8 @@ $/.REAL-CLEAN:=$/buildinfo-*
 
 
 
-${$/.CXX_SRCS:.C=.o}: \
-  CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} -I${EXISTDB/}
-$/Make.depends: \
-  CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} -I${EXISTDB/}
-$/Make.depends: | $/buildinfo-searchGENOME.h
+$/%.d $/%.o: CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} -I${EXISTDB/}
+$/configuration.C.d:  $/buildinfo-searchGENOME.h
 
 EFENCE-L :=# -L/dev2/adelcher/EFence
 EFENCE-l :=# -lefence

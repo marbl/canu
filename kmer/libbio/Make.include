@@ -28,9 +28,10 @@ $/.REAL-CLEAN :=$/buildinfo-* $/alphabet.[ch]
 
 # extra rules
 
-$/Make.depends: | $/buildinfo-libbri.h $/alphabet.h
+$/reversecomplement.c.d: $/alphabet.h
+$/merstream.C.d: $/alphabet.h
 
-$/libbri.a   : ${$/.C_SRCS:.c=.o} ${$/.CXX_SRCS:.C=.o} $/alphabet.o $/buildinfo-libbri.o ${EXTERNAL/}md5lib/md5c.o  
+$/libbri.a: ${$/.C_SRCS:.c=.o} ${$/.CXX_SRCS:.C=.o} $/alphabet.o $/buildinfo-libbri.o ${EXTERNAL/}md5lib/md5c.o  
 
 $/buildinfo-libbri.c $/buildinfo-libbri.h: ${src}
 	${UTIL/}buildinfo.pl libbri "${CXXFLAGS} ${CXXFLAGS_ARCH}" $^

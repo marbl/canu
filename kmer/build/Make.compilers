@@ -79,6 +79,9 @@ ifeq ($(OPERATING_SYSTEM),TRU64)
       CXX_TMP_ARCH     :=cxx_repository so_locations
     endif
     SHLIB_FLAGS      :=-shared
+    LEDA/     :=/usr/local/ir/LEDA-4.3.cxx/
+  else
+    LEDA/     :=/usr/local/ir/LEDA-4.3/
   endif
   PYINC     :=-I/usr/local/ir/Python-2.2.2 -I/usr/local/ir/Python-2.2.2/Include
   INSTALL/  :=${MAKEFILE/}tru64/
@@ -90,10 +93,13 @@ ifeq ($(OPERATING_SYSTEM),AIX)
   ifdef WITH_GNU
     CCFLAGS  +=-maix64
     CXXFLAGS +=-maix64
+    LEDA/     :=/scratch/edwardnj/LEDA-AIX-GPP/
   else
     CC            :=xlc
     CXX           :=xlC
     SHLIB_FLAGS   :=-G
+    LEDA/     :=/scratch/edwardnj/LEDA-AIX-XLC/
+    AIX_RTTI_SUPPORT:=-qrtti
     AIX_LARGE_FILE_SUPPORT               :=-q64 -qlonglong -D_LARGE_FILES
     AIX_SUPPRESS_DUPLICATE_SYMBOL_WARNING:=-qstaticinline
     AIX_FLAG_TO_SUPPRESS_MANY_WARNINGS   :=-bhalt:8
@@ -110,9 +116,10 @@ ifeq ($(OPERATING_SYSTEM),AIX)
       $(AIX_FLAG_TO_SUPPRESS_MANY_WARNINGS) \
       $(AIX_SUPPRESS_DUPLICATE_SYMBOL_WARNING)
     CFLAGS_ARCH	:= -qcpluscmt $(CandCXXFLAGS_ARCH)
-    CXXFLAGS_ARCH := $(CandCXXFLAGS_ARCH)
+    CXXFLAGS_ARCH := $(AIX_RTTI_SUPPORT) $(CandCXXFLAGS_ARCH)
     CLDFLAGS_ARCH	:= 
     CXXLDFLAGS_ARCH := $(CLDFLAGS_ARCH) \
+      $(AIX_RTTI_SUPPORT) \
       $(AIX_LARGE_FILE_SUPPORT) \
       $(AIX_OPTIMIZATIONS) \
       $(AIX_FLAG_TO_SUPPRESS_MANY_WARNINGS) \
@@ -122,7 +129,7 @@ ifeq ($(OPERATING_SYSTEM),AIX)
     CXXDEPFLAGS +=-maix64
   endif
 
-  PYINC         :=-I/usr/local/include/python2.2
+  PYINC     :=-I/usr/local/include/python2.2
   INSTALL/  :=${MAKEFILE/}aix/
-  PERL            :=/usr/local/bin/perl5.6.1
+  PERL      :=/usr/local/bin/perl5.6.1
 endif

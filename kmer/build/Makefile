@@ -13,11 +13,11 @@ default:   all
 debug:
 	@echo DIRS ${//}
 	@echo RECS ${RECURSIVE}
-	@echo C_EXES ${C_EXES}
-	@echo C_LIBS ${C_LIBS}
-	@echo CXX_EXES ${CXX_EXES}
-	@echo CXX_LIBS ${CXX_LIBS}
-	@echo CXX_SHLIBS ${CXX_SHLIBS}
+	@echo ALL_C_EXES ${C_EXES}
+	@echo ALL_C_LIBS ${C_LIBS}
+	@echo ALL_CXX_EXES ${CXX_EXES}
+	@echo ALL_CXX_LIBS ${CXX_LIBS}
+	@echo ALL_CXX_SHLIBS ${CXX_SHLIBS}
 	@echo INSTALL ${INSTALL/}
 
 # Compiler information and options.  Always get it from the same directory
@@ -53,11 +53,6 @@ $(eval $(call Include,$/))
 #### Targets which have been declared RECURSIVE are not pulled up
 //            :=$(filter-out ${RECURSIVE},${//})
 
-### this gives us a way out if something goes horribly wrong...
-ifeq ($(filter %-clean,${MAKECMDGOALS}),)
-  include     ${//:.=Make.depends}
-endif
-
 ## rules for each subtarget
 #  current subtargets are :
 #        all, ls, clean, real-clean, depends-clean, install
@@ -82,7 +77,6 @@ recursive-install:       ${RECURSIVE:.=.install}
 ${RECURSIVE:.=.depends-clean}:
 ${RECURSIVE:.=.ls}:
 
-
 ##  generic pattern rules for subgoals
 %.o: %.c
 	${CC} ${CFLAGS} ${CFLAGS_ARCH} -o $@ -c $<
@@ -96,69 +90,66 @@ ${RECURSIVE:.=.ls}:
 %.o: %.C
 	${CXX} ${CXXFLAGS} ${CXXFLAGS_ARCH} -o $@ -c $<
 
+### Building depends goals
+__DEPGOALS__=
+
+# WISHLIST: does not propagate failure to the parent make
+# for some reason.  It really should.
+ALL_C_SRCS       :=$(strip $(foreach x,${//},${${x:.=.C_SRCS}}))
+ALL_C_DEPS       :=${ALL_C_SRCS:=.d}
+${ALL_C_DEPS}:%.d:%
+	dir=`echo $< | sed -e's~[^/]*$$~~'`; \
+	${CCDEP} ${CDEPFLAGS} ${CFLAGS} $< | \
+	sed -e"/:/s!^!$${dir}!" > $@
+
+ALL_CXX_SRCS     :=$(strip $(foreach x,${//},${${x:.=.CXX_SRCS}}))
+ALL_CXX_DEPS     :=${ALL_CXX_SRCS:=.d}
+${ALL_CXX_DEPS}:%.d:%
+	dir=`echo $< | sed -e's~[^/]*$$~~'`; \
+	${CXXDEP} ${CXXDEPFLAGS} ${CXXFLAGS} $< | \
+	sed -e"/:/s!^!$${dir}!" > $@
+__DEPGOALS__+=$${${1:.=.C_SRCS}:=.d}
+__DEPGOALS__+=$${${1:.=.CXX_SRCS}:=.d}
+
+## include the .d files
+# this gives us a way out if something goes horribly wrong...
+ifeq ($(filter %-clean,${MAKECMDGOALS}),)
+  include ${ALL_C_DEPS} ${ALL_CXX_DEPS}
+endif
 
 ### Building subgoals
 # subgoals are done with the deferred '=' not the ':='
 __SUBGOALS__=
 
 ## EXE targets
-C_EXES       :=${foreach x,${//},${${x:.=.C_EXES}}}
-${C_EXES}:
+ALL_C_EXES   :=$(strip $(foreach x,${//},${${x:.=.C_EXES}}))
+${ALL_C_EXES}:
 	${CC} ${CLDFLAGS} ${CLDFLAGS_ARCH} -o $@ $^ ${CLIBS} ${CLIBS_ARCH}
 __SUBGOALS__+=$${${1:.=.C_EXES}}
 
-CXX_EXES     :=${foreach x,${//},${${x:.=.CXX_EXES}}}
-${CXX_EXES}:
+ALL_CXX_EXES :=$(strip $(foreach x,${//},${${x:.=.CXX_EXES}}))
+${ALL_CXX_EXES}:
 	${CXX} ${CXXLDFLAGS} ${CXXLDFLAGS_ARCH} -o $@ $^ ${CXXLIBS} ${CXXLIBS_ARCH}
 __SUBGOALS__+=$${${1:.=.CXX_EXES}}
 
 ## LIB targets
-C_LIBS       :=${foreach x,${//},${${x:.=.C_LIBS}}}
-${C_LIBS}:
+ALL_C_LIBS   :=$(strip $(foreach x,${//},${${x:.=.C_LIBS}}))
+${ALL_C_LIBS}:
 	rm -f $@
 	${AR} ${ARFLAGS} $@ $^
 __SUBGOALS__+=$${${1:.=.C_LIBS}}
 
-CXX_LIBS     :=${foreach x,${//},${${x:.=.CXX_LIBS}}}
-${CXX_LIBS}:
+ALL_CXX_LIBS     :=$(strip $(foreach x,${//},${${x:.=.CXX_LIBS}}))
+${ALL_CXX_LIBS}:
 	rm -f $@
 	${AR} ${ARFLAGS} $@ $^
 __SUBGOALS__+=$${${1:.=.CXX_LIBS}}
 
 ## Shared targets
-CXX_SHLIBS   :=${foreach x,${//},${${x:.=.CXX_SHLIBS}}}
-${CXX_SHLIBS}:
+ALL_CXX_SHLIBS   :=$(strip $(foreach x,${//},${${x:.=.CXX_SHLIBS}}))
+${ALL_CXX_SHLIBS}:
 	${CXX} ${CXXFLAGS} ${CXXFLAGS_ARCH} ${SHLIB_FLAGS} -o $@ $^ ${CXXLIBS} ${CXXLIBS_ARCH}
 __SUBGOALS__+=$${${1:.=.CXX_SHLIBS}}
-
-### the depends file for C/C++ files
-## Make.depends dependency calculation
-# WISHLIST: this script does not propagate failure to the parent make
-# for some reason.  It really should.
-${//:.=Make.depends}:
-	@ echo "(creating $@)"
-	@ echo "# -*- makefile -*-" > $@
-	@ echo "# Make.depends file: $@" >> $@
-	\
-	files='$(strip ${${@:Make.depends=.C_SRCS}})'; \
-	if [ -n "$${files}" ] ; then \
-	  for f in $${files} ; do \
-	    dir=`echo $${f} | sed -e's~[^/]*$$~~'`; \
-	    ${CCDEP} ${CDEPFLAGS} ${CFLAGS} $${f} | \
-	    sed -e"/:/s!^!$${dir}!" \
-	    >> $@ ; \
-	  done \
-	fi
-	\
-	files='$(strip ${${@:Make.depends=.CXX_SRCS}})'; \
-	if [ -n "$${files}" ] ; then \
-	  for f in $${files} ; do \
-	    dir=`echo $${f} | sed -e's~[^/]*$$~~'`; \
-	    ${CXXDEP} ${CXXDEPFLAGS} ${CXXFLAGS} $${f} | \
-	    sed -e"/:/s~^~$${dir}~" \
-	    >> $@ ; \
-	  done \
-	fi
 
 
 #####################################################################
@@ -167,23 +158,24 @@ ${//:.=Make.depends}:
 
 define .RULE-clean
 ${1:.=.clean}: $${${1:.=.SUBS}:.=.clean}
-	rm -f \
-	  $${${1:.=.CLEAN}} ${__SUBGOALS__} ; \
-	(cd $1 && \
-         rm -rf ${C_TMP} ${C_TMP_ARCH} ${CXX_TMP} ${CXX_TMP_ARCH})
+	rm -f $${${1:.=.CLEAN}} ${__SUBGOALS__}
+	(cd $1 && rm -rf ${C_TMP} ${C_TMP_ARCH} ${CXX_TMP} ${CXX_TMP_ARCH})
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-clean,$x)))
 
 define .RULE-depends-clean
 ${1:.=.depends-clean}: $${${1:.=.SUBS}:.=.depends-clean}
-	rm -f ${1:.=Make.depends}
+	rm -f ${1:.=Make.depends} ${__DEPGOALS__}
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-depends-clean,$x)))
 
 define .RULE-real-clean
-${1:.=.real-clean}: ${1:.=.clean} ${1:.=.depends-clean}
+${1:.=.real-clean}: $${${1:.=.SUBS}:.=.real-clean}
+	rm -f $${${1:.=.CLEAN}} ${__SUBGOALS__}
+	(cd $1 && rm -rf ${C_TMP} ${C_TMP_ARCH} ${CXX_TMP} ${CXX_TMP_ARCH})
+	rm -f ${1:.=Make.depends} ${__DEPGOALS__}
 	rm -f $${${1:.=.REAL-CLEAN}}
 
 endef

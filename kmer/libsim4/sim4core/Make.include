@@ -23,8 +23,7 @@ src    := $/sim4command.C $/sim4parameters.C $/sim4string.C \
           $/pluri_align.C $/poly.C \
           $/sim4.H \
           $/sim4b1.C $/sim4b1a.C $/sim4b1-1.C $/sim4b1-2.C $/sim4b1-3.C $/sim4b1-4.C \
-          $/sim4defines.H $/sim4parameters.C \
-          $/sim4parameters.H $/sim4string.C \
+          $/sim4defines.H $/sim4parameters.H \
           $/splice.C $/table.C $/util.C
 
 $/.CXX_SRCS := $(filter %.C,${src})
@@ -36,8 +35,7 @@ $/.REAL-CLEAN  := $/buildinfo-*
 
 $/libsim4.a: ${$/.CXX_SRCS:.C=.o} $/buildinfo-libsim4.o
 
-$/Make.depends ${$/.CXX_SRCS:.C=.o} : \
-   CXXFLAGS += -I${FASTA/} -I${SIM4POLISH/} -I${LIBBRI/}
+$/%.d $/%.o: CXXFLAGS += -I${FASTA/} -I${SIM4POLISH/} -I${LIBBRI/}
 
 $/buildinfo-libsim4.c $/buildinfo-libsim4.h: ${src}
 	${UTIL/}buildinfo.pl libsim4 "${CXXFLAGS} ${CXXFLAGS_ARCH}" $^

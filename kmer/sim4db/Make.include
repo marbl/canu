@@ -31,9 +31,9 @@ ${$/.CXX_EXES}:   CXXLIBS   +=${EFENCE-l}
 ${$/.CXX_EXES}:   ${FASTA/}libfasta.a ${SIM4/}libsim4.a \
          ${SIM4POLISH/}libsim4polish.a ${LIBBRI/}libbri.a
 
-$/Make.depends ${$/.CXX_SRCS:.C=.o}:  \
-  CXXFLAGS+=      -I${FASTA/} -I${SIM4/} -I${SIM4POLISH/} -I${LIBBRI/}
-$/Make.depends: | $/buildinfo-sim4db.h ${SIM4/}buildinfo-libsim4.h
+$/sim4db.C.d:  $/buildinfo-sim4db.h ${FASTA/}buildinfo-libfasta.h ${SIM4/}buildinfo-libsim4.h ${LIBBRI/}buildinfo-libbri.h
+
+$/%.d $/%.o: CXXFLAGS+=  -I${FASTA/} -I${SIM4/} -I${SIM4POLISH/} -I${LIBBRI/}
 
 $/buildinfo-sim4db.c $/buildinfo-sim4db.h: $/sim4db.C
 	${UTIL/}buildinfo.pl sim4db "${CXXFLAGS} ${CXXFLAGS_ARCH}" $^

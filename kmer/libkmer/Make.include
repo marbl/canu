@@ -17,10 +17,9 @@ $/.REAL-CLEAN := $/buildinfo-*
 $/libpositionDB.a:   $/buildinfo-positionDB.o $/positionDB.o $/positionDB-access.o $/positionDB-dump.o $/positionDB-sort.o $/positionDB-file.o
 $/positionDB:        $/driver.o
 
-$/Make.depends ${$/.CXX_SRCS:.C=.o}:    CXXFLAGS+= -I${FASTA/} -I${LIBBRI/}
+$/%.d $/%.o:    CXXFLAGS+= -I${FASTA/} -I${LIBBRI/}
 ${$/.CXX_EXES}:$/libpositionDB.a ${FASTA/}libfasta.a ${LIBBRI/}libbri.a
 
-$/Make.depends: | $/buildinfo-positionDB.h
 $/buildinfo-positionDB.c $/buildinfo-positionDB.h: ${src}
 	${UTIL/}buildinfo.pl positionDB "${CXXFLAGS} ${CXXFLAGS_ARCH}" $^
 	mv buildinfo-positionDB.[ch] `dirname $@`

@@ -36,13 +36,10 @@ $/.CLEAN     :=$/*.o
 $/.REAL-CLEAN:=$/buildinfo-*
 
 
-${$/.CXX_SRCS:.C=.o}: \
+$/%.d $/%.o: \
   CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} \
             -I${SIM4/} -I${SIM4POLISH/} -I${EXISTDB/}
-$/Make.depends: \
-  CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} \
-            -I${SIM4/} -I${SIM4POLISH/} -I${EXISTDB/}
-$/Make.depends: | $/buildinfo-snapper2.h
+$/snapper2.C.d: $/buildinfo-snapper2.h
 
 EFENCE-L :=# -L/dev2/adelcher/EFence
 EFENCE-l :=# -lefence

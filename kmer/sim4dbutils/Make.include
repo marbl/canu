@@ -34,8 +34,8 @@ $/.CXX_EXES:= ${obj_C:.o=} ${obj_c:.o=}
 
 $/.CLEAN := $/*.o
 
-$/Make.depends ${obj_c}:  CFLAGS+=-I${FASTA/} -I${SIM4POLISH/} -I${LIBBRI/}
-$/Make.depends ${obj_C}:  CXXFLAGS+=-I${FASTA/} -I${SIM4POLISH/} -I${LIBBRI/}
+$/%.d $/%.o:  CFLAGS+=-I${FASTA/} -I${SIM4POLISH/} -I${LIBBRI/}
+$/%.d $/%.o:  CXXFLAGS+=-I${FASTA/} -I${SIM4POLISH/} -I${LIBBRI/}
 
 $/pickBestPolish-debug.o: $/pickBestPolish.c
 	${CC} ${WARNS} -DVALIDATE ${CFLAGS} ${CFLAGS_ARCH} -o $@ -c $<
@@ -61,7 +61,7 @@ ${$/.C_EXES} ${$/.CXX_EXES}:   \
 
 
 #  Run the test cases for parseSNP
-parseSNP-test: $/parseSNP ${SIM4DB/}sim4db
+$/.parseSNP-test: $/parseSNP ${SIM4DB/}sim4db
 	@ echo See page 85 in Big Bad Bri IR#2 for notes on parseSNP-test.
 	@ t=`dirname $<`/test  ${SIM4DB/}sim4db -align -cdna $t/parsesnp-snp.fasta -genomic $t/parsesnp-gen.fasta -o $t/parsesnp-sim4.out
 	@ t=`dirname $<`/test  $< -O $t/parsesnp-good -F $t/parsesnp-fail < $t/parsesnp-sim4.out

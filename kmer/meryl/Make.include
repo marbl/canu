@@ -17,8 +17,11 @@ $/.CXX_EXES := $/meryl $/merle
 $/.CLEAN     :=$/*.o
 $/.REAL-CLEAN:=$/buildinfo-*
 
-$/Make.depends ${$/.CXX_SRCS:.C=.o}: CXXFLAGS+=-I${LIBBRI/}
-$/Make.depends: | $/buildinfo-meryl.h $/buildinfo-merle.h
+$/%.d $/%.o:  CXXFLAGS+=-I${LIBBRI/}
+
+$/%.d:  ${LIBBRI/}buildinfo-libbri.h ${LIBBRI/}alphabet.h
+$/meryl.C.d: $/buildinfo-meryl.h ${LIBBRI/}buildinfo-libbri.h
+$/merle.C.d: $/buildinfo-merle.h ${LIBBRI/}buildinfo-libbri.h
 
 EFENCE-L :=# -L/dev2/adelcher/EFence
 EFENCE-l :=# -lefence
