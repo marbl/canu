@@ -15,6 +15,9 @@
 //
 
 
+//
+//  If these are rs SNPs, subtract one from the position returned!
+//
 //  Define this if the input SNPs are directly from dbSNP -- the
 //  defline is different, and the SNP position is base-based.
 //
@@ -52,6 +55,11 @@ FILE *validSNPMap   = 0L;
 FILE *failedSNPMap  = 0L;
 FILE *lowQualityMap = 0L;
 
+char  fieldDelimiter = 255;
+char *sizeTag        = "/size=";
+char *posTag         = "/pos=";
+int   positionOffset = 0;
+
 char *
 findSNPid(char *defline) {
   char *ret = 0L;
@@ -59,15 +67,24 @@ findSNPid(char *defline) {
   int   len = 0;
   int   i = 0;
 
-#if 0
-  for (len=1; defline[len] && !isspace(defline[len]); len++)
-    ;
-#endif
+  if (fieldDelimiter == 255) {
+    for (len=1; defline[len] && !isspace(defline[len]); len++)
+      ;
+  } else {
+    for (len=1; defline[len] && defline[len] != fieldDelimiter; len++)
+      ;
+  }
 
+#if 0
+  //  This was used for a set of SNPs with a non-standard defline
+  //  structure.  It returns the field between the first '|' and the
+  //  next '_'.
+  //
   for (len=1; defline[len] && defline[len] != '_'; len++)
     ;
   for (sta=len-1; sta > 0 && defline[sta] != '|'; sta--)
     ;
+#endif
 
   errno = 0;
   ret = (char *)malloc(sizeof(char) * (len+1));
@@ -112,16 +129,12 @@ findGENid(char *defline) {
 
 int
 findPosition(char *defline) {
-  int   i=0;
+  int   i = 0;
+  char *p = 0L;
 
-#ifdef SNPS_ARE_RS
-  while ((defline[i+4] != 0) && ((defline[i]   != 'E') ||
-                                 (defline[i+1] != 'P') ||
-                                 (defline[i+2] != 'O') ||
-                                 (defline[i+3] != 'S') ||
-                                 (defline[i+4] != '=')))
-    i++;
-#else
+  p = strstr(defline, posTag);
+
+#if 0
   while ((defline[i+4] != 0) && ((defline[i]   != '/') ||
                                  (defline[i+1] != 'p') ||
                                  (defline[i+2] != 'o') ||
@@ -130,16 +143,20 @@ findPosition(char *defline) {
     i++;
 #endif
 
-  if (defline[i] == 0) {
-    fprintf(stderr, "pos not found in defline '%s'!\n", defline);
+  if (p == 0L) {
+    fprintf(stderr, "posTag '%s' not found in defline '%s'!\n", posTag, defline);
     exit(1);
   }
 
-#ifdef SNPS_ARE_RS
-  return(atoi(defline+i+5) - 1);
-#else
-  return(atoi(defline+i+5));
-#endif
+  while (*p && !isdigit(*p))
+    p++;
+
+  if (*p == 0) {
+    fprintf(stderr, "Found posTag '%s' in defline '%s', but didn't find any numbers!\n", posTag, defline);
+    exit(1);
+  }
+
+  return(atoi(p) + positionOffset);
 }
 
 
@@ -147,24 +164,10 @@ int
 findSize(char *defline) {
   int   i=0;
 
-#ifdef SNPS_ARE_RS
+  //  XXX: We only handle size 1 SNPs.  Probably should be extended
+  //  like findPosition.
+
   return(1);
-#else
-  while ((defline[i+5] != 0) && ((defline[i]   != '/') ||
-                                 (defline[i+1] != 's') ||
-                                 (defline[i+2] != 'i') ||
-                                 (defline[i+3] != 'z') ||
-                                 (defline[i+4] != 'e') ||
-                                 (defline[i+5] != '=')))
-    i++;
-
-  if (defline[i] == 0) {
-    fprintf(stderr, "size not found in defline '%s'!\n", defline);
-    exit(1);
-  }
-
-  return(atoi(defline+i+6));
-#endif
 }
 
 
@@ -411,6 +414,18 @@ main(int argc, char **argv) {
         fprintf(stderr, "Couldn't open '%s' for writing.\n%s\n", name, strerror(errno));
         exit(1);
       }
+    } else if (strncmp(argv[arg], "-d", 2) == 0) {
+      arg++;
+      fieldDelimiter = argv[arg][0];
+    } else if (strncmp(argv[arg], "-p", 2) == 0) {
+      arg++;
+      posTag = argv[arg];
+    } else if (strncmp(argv[arg], "-s", 2) == 0) {
+      arg++;
+      sizeTag = argv[arg];
+    } else if (strncmp(argv[arg], "-o", 2) == 0) {
+      arg++;
+      positionOffset = atoi(argv[arg]);
     } else {
       fprintf(stderr, "unknown option: %s\n", argv[arg]);
     }
@@ -430,9 +445,24 @@ main(int argc, char **argv) {
     fprintf(stderr, "                                 'output'\n");
     fprintf(stderr, "             -D prefix           report debugging stuff into files\n");
     fprintf(stderr, "                                 prefixed with 'prefix'\n");
+    fprintf(stderr, "             -d delimiter        Use the single character delimiter as\n");
+    fprintf(stderr, "                                 the end of the defline ID field.  The\n");
+    fprintf(stderr, "                                 default is to split on any whitespace.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "             -s sizeTag          Use this tag as the size of the snp.\n");
+    fprintf(stderr, "             -p posTag           Use this tag as the position of the snp.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "                                 TAGS: The number immediately after the first\n");
+    fprintf(stderr, "                                 occurance of the tag will be used.\n");
+    fprintf(stderr, "                                 The defaults are \"-s /size= -p /pos=\"\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "             -o offset           An additive offset to the SNP position.\n");
+    fprintf(stderr, "                                 The default is 0.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "             only -O is required.  Input is read from stdin.\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "             NOTE!  Sizes and sizeTag is NOT IMPLEMENTED!\n");
+    fprintf(stderr, "                    All SNPs are of size == 1\n");
     exit(1);
   }
 
