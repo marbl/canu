@@ -232,7 +232,9 @@ copyFile(char *srcName, FILE *dstFile) {
 
     bytesRemain -= bytesRead;
   }
-  
+
+  free(buffer);
+
   return(srcSize);
 }
 
