@@ -31,14 +31,20 @@
 //    ESTiid ESTlen  overlap  A%id A%cov #cdnagaps #exons  B%id B%cov #cdnagaps #exons
 //
 
-//  e,b good:113408 Anovel:1547 Amulti: 216 Bnovel:83220 Bmulti:  13 hairy: 270
-//  b,e good:113408 Bnovel:1547 Bmulti:  76 Anovel:83220 Amulti:  69 hairy: 129
 
-//  b,e good:113408 Anovel:1547 Amulti: 216 Bnovel:83220 Bmulti:  13 hairy:  54
-//  e,b good:113408 Bnovel:1547 Bmulti:  76 Anovel:83220 Amulti:  69 hairy:  60
+
+//  For cDNA gaps larger than GAP_MINIMUM, count it as a gap only if
+//  the genomic gap is within GAP_DIFFERENCE of the cDNA gap.
+//
+//  XXX This needs some tweaking!
+//
+#define GAP_MINIMUM     10
+#define GAP_DIFFERENCE   4
+
 
 
 u32bit  findOverlap(sim4polish *A, sim4polish *B);
+
 
 int
 main(int argc, char **argv) {
@@ -211,15 +217,89 @@ main(int argc, char **argv) {
         //  Count the number of overlaps the guy in B has with A.  If
         //  1, it's a goodOverlap, else it's a multipleInA.
 
+        u32bit b = theBovl;
+
         u32bit Aoverlaps = 0;
         for (u32bit x=0; x<A->length(); x++)
-          if (overlap[x][theBovl])
+          if (overlap[x][b])
             Aoverlaps++;
 
         if (Aoverlaps == 1) {
-          removeA[a]       = true;
-          removeB[theBovl] = true;
+          removeA[a] = true;
+          removeB[b] = true;
           goodOverlap++;
+
+          //    ESTiid ESTlen  overlap  A%id A%cov AgenLen #exons #cdnagaps  B%id B%cov BgenLen #exons #cdnagaps
+
+          u32bit AgenLen = 0, BgenLen = 0;
+          u32bit Agaps   = 0, Bgaps   = 0;
+
+          for (u32bit x=0; x < (*A)[a]->numExons; x++)
+            AgenLen += (*A)[a]->exons[x].genTo - (*A)[a]->exons[x].genFrom + 1;
+
+          for (u32bit x=0; x < (*B)[b]->numExons; x++)
+            BgenLen += (*B)[b]->exons[x].genTo - (*B)[b]->exons[x].genFrom + 1;
+
+#ifdef GAP_MINIMUM
+          for (u32bit x=1; x < (*A)[a]->numExons; x++) {
+            int egap = (*A)[a]->exons[x].estFrom - (*A)[a]->exons[x-1].estTo;
+            int ggap = (*A)[a]->exons[x].genFrom - (*A)[a]->exons[x-1].genTo;
+            int dgap = 0;
+
+            if (egap > ggap)
+              dgap = egap - ggap;
+            else
+              dgap = ggap - egap;
+
+            if ((egap > GAP_MINIMUM) &&
+                (dgap < GAP_DIFFERENCE))
+              Agaps++;
+          }
+
+          for (u32bit x=1; x < (*B)[b]->numExons; x++) {
+            int egap = (*B)[b]->exons[x].estFrom - (*B)[b]->exons[x-1].estTo;
+            int ggap = (*B)[b]->exons[x].genFrom - (*B)[b]->exons[x-1].genTo;
+            int dgap = 0;
+
+            if (egap > ggap)
+              dgap = egap - ggap;
+            else
+              dgap = ggap - egap;
+
+            if ((egap > GAP_MINIMUM) &&
+                (dgap < GAP_DIFFERENCE))
+              Bgaps++;
+          }
+#else
+          for (u32bit x=1; x < (*A)[a]->numExons; x++)
+            if ( (*A)[a]->exons[x].estFrom - (*A)[a]->exons[x-1].estTo != 1 )
+              Agaps++;
+
+          for (u32bit x=1; x < (*B)[b]->numExons; x++)
+            if ( (*B)[b]->exons[x].estFrom - (*B)[b]->exons[x-1].estTo != 1 )
+              Bgaps++;
+#endif
+
+          double score = 0;
+          if (AgenLen > BgenLen)
+            score = (double)overlap[a][b] / (double)BgenLen;
+          else
+            score = (double)overlap[a][b] / (double)AgenLen;
+
+          fprintf(outfile, u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%f\t%8.3f\t%8.3f\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%8.3f\t%8.3f\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\n",
+                  iid,
+                  (*A)[a]->estLen,
+                  overlap[a][b],
+                  score,
+                  s4p_percentIdentity( (*A)[a] ),  //->percentIdentity,
+                  100.0 * (double)((*A)[a]->numCovered) / (double)((*A)[a]->estLen - (*A)[a]->estPolyA - (*A)[a]->estPolyT),
+                  //(*A)[a]->querySeqIdentity,
+                  AgenLen, (*A)[a]->numExons, Agaps,
+                  s4p_percentIdentity( (*B)[b] ),  //->percentIdentity,
+                  100.0 * (double)((*B)[b]->numCovered) / (double)((*B)[b]->estLen - (*B)[b]->estPolyA - (*B)[b]->estPolyT),
+                  //(*B)[b]->querySeqIdentity,
+                  BgenLen, (*B)[b]->numExons, Bgaps);
+                  
           //  XXX OUTPUT
         }
       }
@@ -356,104 +436,12 @@ main(int argc, char **argv) {
           overlap[a][b] = findOverlap((*A)[a], (*B)[b]);
     }
 
-
-#if 0
-    //  For each match in A, find the one in B that overlaps it.
-
-    for (u32bit a=0; a<A->length(); a++) {
-
-      u32bit Boverlaps = 0;
-      u32bit theBovl   = 0;
-
-      //  Count the number of things we overlap in B.
-
-      //  No overlaps --> novelInA
-      //
-      if (Boverlaps == 0) {
-        novelInA++;
-          //  XXX OUTPUT
-      }
-
-      //  One overlap?  Possibly a goodOverlap, possibly multipleInA.
-      //
-      else if (Boverlaps == 1) {
-
-        //  Count the number of overlaps the guy in B has with A.  If
-        //  1, it's a goodOverlap, else it's a multipleInA.
-
-        u32bit Aoverlaps = 0;
-        for (u32bit x=0; x<A->length(); x++)
-          if (overlap[x][theBovl])
-            Aoverlaps++;
-
-        if (Aoverlaps == 1) {
-          goodOverlap++;
-          //  XXX OUTPUT
-        } else {
-          multipleInA++;
-          //  XXX OUTPUT
-        }
-      }
-
-      //  More than one overlap?  Possibly multipleInB, possilby hairyOverlap.
-      //
-      else if (Boverlaps > 1) {
-
-        //  Examine the overlaps the guys in B have with A.  If any
-        //  are to something other than a, it's hairy, otherwise it's
-        //  multipleInB.
-
-        bool hairy = false;
-
-        for (u32bit b=0; b<B->length(); b++)
-          if (overlap[a][b]) {
-
-            //  Found an overlap, check all of A and see if this b overlaps
-            //  anything other than this a
-
-            for (u32bit x=0; x<A->length(); x++)
-              if ((overlap[x][b]) && (a != x))
-                hairy = true;
-          }
-
-        if (hairy == false) {
-          multipleInB++;
-          //  XXX OUTPUT
-        } else {
-          hairyOverlap++;
-          //  XXX OUTPUT
-        }
-      }
-    }
-
-    //  Look for novelInB separately.
-    //
-    for (u32bit b=0; b<B->length(); b++) {
-      u32bit Boverlaps = 0;
-
-      for (u32bit a=0; a<A->length(); a++)
-        if (overlap[a][b])
-          Boverlaps++;
-
-      if (Boverlaps == 0)
-        novelInB++;
-    }
-#endif
-
     if ((iid % 1234) == 0) {
-      fprintf(stderr, "IID:"u32bitFMTW(8)" A:"u32bitFMTW(4)" B:"u32bitFMTW(4)"  good:"u32bitFMTW(4)" Anovel:"u32bitFMTW(4)" Amulti:"u32bitFMTW(4)" Bnovel:"u32bitFMTW(4)" Bmulti:"u32bitFMTW(4)" hairy:"u32bitFMTW(4)"\r",
+      fprintf(stderr, "IID:"u32bitFMTW(8)"  good:"u32bitFMTW(4)" Anovel:"u32bitFMTW(4)" Amulti:"u32bitFMTW(4)" Bnovel:"u32bitFMTW(4)" Bmulti:"u32bitFMTW(4)" hairy:"u32bitFMTW(4)"\r",
               iid,
-              A->length(), B->length(),
               goodOverlap, novelInA, multipleInA, novelInB, multipleInB, hairyOverlap);
       fflush(stderr);
     }
-
-    //  Do it again for B -> A, iterate until it's stable.
-
-    //  Have now a match in A and a match in B.  Decide if they are
-    //  close enough to be counted as the same.  They need to overlap
-    //  by at least XX% of the longer guy.
-
 
     delete [] overlap[0];
     delete [] overlap;
