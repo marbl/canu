@@ -14,10 +14,12 @@ POSITIONDB/ :=$/positionDB/
 ESTMAPUTIL/ :=$/estmapper-util/
 EXISTDB/    :=$/existDB/
 SEARCHGEN/  :=$/searchGENOME/
+SEATAC/     :=$/seatac/
 EMMA/       :=$/emma/
 MERYL/      :=$/meryl/
 SNAPPER2/   :=$/snapper2/
 REFSEQANAL/ :=$/refseq-analysis/
+MERTABLES/  :=$/merTables/
 
 ########################## includes #############
 
@@ -28,6 +30,8 @@ $(eval $(call Include,${MERYL/}))
 $(eval $(call Include,${EMMA/}))
 
 $(eval $(call Include,${SEARCHGEN/}))
+
+$(eval $(call Include,${SEATAC/}))
 
 $(eval $(call Include,${EXISTDB/}))
 
@@ -52,6 +56,8 @@ $(eval $(call Include,${LIBBRI/}))
 $(eval $(call Include,${EXTERNAL/}))
 
 $(eval $(call Include,${REFSEQANAL/}))
+
+$(eval $(call Include,${MERTABLES/}))
 
 
 #
