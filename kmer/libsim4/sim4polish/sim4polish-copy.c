@@ -7,7 +7,10 @@
 sim4polish *
 s4p_copyPolish(sim4polish *orig) {
   int         i;
-  sim4polish *copy;
+  sim4polish *copy = 0L;
+
+  if (orig == 0L)
+    return(copy);;
 
   copy = (sim4polish *)memdup(orig, sizeof(sim4polish));
 
