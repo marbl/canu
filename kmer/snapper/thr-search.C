@@ -377,8 +377,8 @@ doPolish(searcherState       *state,
     }
 
 #ifdef MEMORY_DEBUG
-    fprintf(stderr, "Memory dump in polish\n");
-    _dump_allocated_delta(fileno(stderr));
+    //fprintf(stderr, "Memory dump in polish\n");
+    //_dump_allocated_delta(fileno(stderr));
 #endif
   }
 
@@ -545,8 +545,8 @@ searchThread(void *U) {
 
 
 #ifdef MEMORY_DEBUG
-        fprintf(stderr, "Memory dump in searchThread\n");
-        _dump_allocated_delta(fileno(stderr));
+        //fprintf(stderr, "Memory dump in searchThread\n");
+        //_dump_allocated_delta(fileno(stderr));
 #endif
       } // end of seq != 0L
     } // end of idx < numberOfQueries

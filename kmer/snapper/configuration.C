@@ -75,6 +75,7 @@ configuration::configuration(void) {
 }
 
 configuration::~configuration() {
+  delete [] _useList;
 }
 
 static char const *usageString =
@@ -475,6 +476,11 @@ configuration::read(int argc, char **argv) {
 
   if (_dbFileName == 0L) {
     fprintf(stderr, "ERROR: No genome file supplied.\n");
+    exit(1);
+  }
+
+  if (_tmpFileName == 0L) {
+    fprintf(stderr, "ERROR: No temporary file supplied.\n");
     exit(1);
   }
 }

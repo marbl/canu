@@ -5,14 +5,6 @@
 #include "snapper2.H"
 #include "bri++.H"
 
-#ifdef TRUE64BIT
-char const *outputDisplay      = "O:%7u S:%7u I:%7u T:%7u (%5.1f%%; %8.3f/sec) Finish in %5.2f seconds.\r";
-char const *outputDisplayFinal = "\n%7u sequences (%5.1f%%; %8.3f/sec) %5.2f seconds.\n";
-#else
-char const *outputDisplay      = "O:%7lu S:%7lu I:%7lu T:%7lu (%5.1f%%; %8.3f/sec) Finish in %5.2f seconds.\r";
-char const *outputDisplayFinal = "\n%7lu sequences (%5.1f%%; %8.3f/sec) %5.2f seconds.\n";
-#endif
-
 
 //  The (private) structure for testing various filters.
 //
@@ -327,6 +319,7 @@ main(int argc, char **argv) {
   config._buildTime = getTime();
 
 
+#if 0
 #ifdef MEMORY_DEBUG
   fprintf(stdout, "----------------------------------------\n");
   fprintf(stdout, "--\n");
@@ -335,6 +328,7 @@ main(int argc, char **argv) {
   fprintf(stdout, "--\n");
   fprintf(stdout, "--\n");
   _dump_allocated_delta(fileno(stdout));
+#endif
 #endif
 
   //
@@ -523,6 +517,22 @@ main(int argc, char **argv) {
 
   //  Clean up
   //
+  delete cache;
+
+  if (config._doValidation)
+    delete [] theFilters;
+
+  delete qsFASTA;
+
+  delete [] input;
+  delete [] answerLen;
+  delete [] answer;
+  delete [] outputLen;
+  delete [] output;
+
+  delete maskDB;
+  delete onlyDB;
+
   delete positions;
 
   pthread_attr_destroy(&threadAttr);
@@ -557,8 +567,10 @@ main(int argc, char **argv) {
     fprintf(F, "total:    %9.5f\n", config._totalTime  - config._startTime);
 
     fprintf(F, "searchThreadInfo------------------------\n");
-    for (u64bit i=0; i<config._numSearchThreads; i++)
+    for (u64bit i=0; i<config._numSearchThreads; i++) {
       fprintf(F, threadStats[i]);
+      delete [] threadStats[i];
+    }
 
     if (config._statsFileName)
       fclose(F);
