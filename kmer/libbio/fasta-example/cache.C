@@ -12,15 +12,20 @@
 int
 main(int argc, char **argv) {
 
+  if (argc != 3) {
+    fprintf(stderr, "usage: %s idx-to-get fasta-file\n", argv[0]);
+    exit(1);
+  }
+
   //  Build a fasta-cache of whatever file is on the command line
   //    The 32 is a useless parameter here...
   //    'true' says to really load all the sequences at the start
   //
-  FastACache  cache(argv[1], 32, true);
+  FastACache  cache(argv[2], 32, true);
 
   //  Grab the second sequence from the cache
   //
-  FastASequenceInCore  *seq = cache.getSequence(1);
+  FastASequenceInCore  *seq = cache.getSequence(atoi(argv[1]));
 
   //  And do something with the sequence
   //
