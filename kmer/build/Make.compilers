@@ -81,7 +81,7 @@ endif
 # optimize or not
 ifeq (${_CC_}${_OPT_},-gcc-debug)
   CFLAGS_COMPILE           +=-g -Wall
-  CXXFLAGS_COMPILE         +=-g -wall
+  CXXFLAGS_COMPILE         +=-g -Wall
 endif
 ifeq (${_OS_}${_CC_}${_OPT_},TRU64-debug)
   CFLAGS_COMPILE           +=-g
@@ -93,9 +93,9 @@ ifeq (${_OS_}${_CC_}${_OPT_},AIX-debug)
   CFLAGS_COMPILE           +=-g -qfullpath -qlinedebug
   CXXFLAGS_COMPILE         +=-g -qfullpath -qlinedebug
 endif
-ifeq (${_CC_}${_OPT_},gcc)
-  CFLAGS_COMPILE           +=-O4
-  CXXFLAGS_COMPILE         +=-O4
+ifeq (${_CC_}${_OPT_},-gcc)
+  CFLAGS_COMPILE           +=-g -O4 -Wall
+  CXXFLAGS_COMPILE         +=-g -O4 -Wall
 endif
 ifeq (${_OS_}${_CC_}${_OPT_},TRU64)
   CFLAGS_COMPILE           +=-g3 -fast
