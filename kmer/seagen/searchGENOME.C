@@ -9,13 +9,13 @@
 
 #ifdef TRUE64BIT
 char const *buildMessage       = "Building chunk with %u sequences.\n";
-char const *outputDisplay      = "cDNA %7u/%7u (%5.1f%%; %8.3f/sec) Finish in %5.2f seconds.\r";
-char const *outputDisplayFinal = "\ncDNA %7u/%7u (%5.1f%%; %8.3f/sec) %5.2f seconds.\n";
+char const *outputDisplay      = "O:%7u S:%7u I:%7u T:%7u (%5.1f%%; %8.3f/sec) Finish in %5.2f seconds.\r";
+char const *outputDisplayFinal = "\n%7u sequences (%5.1f%%; %8.3f/sec) %5.2f seconds.\n";
 char const *countMessage       = "%u\n";
 #else
 char const *buildMessage       = "Building chunk with %lu sequences.\n";
-char const *outputDisplay      = "cDNA %7lu/%7lu (%5.1f%%; %8.3f/sec) Finish in %5.2f seconds.\r";
-char const *outputDisplayFinal = "\ncDNA %7lu/%7lu (%5.1f%%; %8.3f/sec) %5.2f seconds.\n";
+char const *outputDisplay      = "O:%7lu S:%7lu I:%7lu T:%7lu (%5.1f%%; %8.3f/sec) Finish in %5.2f seconds.\r";
+char const *outputDisplayFinal = "\n%7lu sequences (%5.1f%%; %8.3f/sec) %5.2f seconds.\n";
 char const *countMessage       = "%lu\n";
 #endif
 
@@ -271,6 +271,8 @@ main(int argc, char **argv) {
       if (config._beVerbose && ((outputPos & 0x1ff) == 0x1ff)) {
         fprintf(stderr, outputDisplay,
                 outputPos,
+                inputTail,
+                inputHead,
                 numberOfQueries,
                 100.0 * outputPos / numberOfQueries,
                 outputPos / (getTime() - zeroTime),
@@ -297,14 +299,12 @@ main(int argc, char **argv) {
 
       outputPos++;
     } else {
-      struct timespec outputSleep = { 1, 0 };
-      nanosleep(&outputSleep, 0L);
+      nanosleep(&config._writerSleep, 0L);
     }
   }
 
   if (config._beVerbose) {
     fprintf(stderr, outputDisplayFinal,
-            outputPos,
             numberOfQueries,
             100.0 * outputPos / numberOfQueries,
             getTime() - zeroTime);

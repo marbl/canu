@@ -128,9 +128,6 @@ searchThread(void *U) {
   u32bit               theOutputMax = 0;
   char                *theOutput    = 0L;
 
-  struct timespec      searchSleepLong  = { 0, 500000000 };
-  struct timespec      searchSleepShort = { 0,  10000000 };
-
   //  Allocate and fill out the thread stats -- this ensures that we
   //  always have stats (even if they're bogus).
   //
@@ -164,19 +161,21 @@ searchThread(void *U) {
       //  little bit to let the loader catch up, then try again.
       //
       if (seq == 0L) {
-        //fprintf(stderr, "%lu Blocked by input.\n", (u64bit)U);
+        //if (config._loaderWarnings)
+        //  fprintf(stderr, "%lu Blocked by input.\n", (u64bit)U);
         blockedI++;
-        nanosleep(&searchSleepLong, 0L);
+        nanosleep(&config._searchSleep, 0L);
       } else {
 
         //  If our idx is too far away from the output thread, sleep
         //  a little bit.  We keep the idx and seq that we have obtained,
         //  though.
         //
-        while (idx > (outputPos + 32 * 1024)) {
-          //fprintf(stderr, "%lu Blocked by output (idx = %d, outputPos = %d).\n", (u64bit)U, idx, outputPos);
+        while (idx > (outputPos + config._writerHighWaterMark)) {
+          if (config._writerWarnings)
+            fprintf(stderr, "%lu Blocked by output (idx = %d, outputPos = %d).\n", (u64bit)U, idx, outputPos);
           blockedO++;
-          nanosleep(&searchSleepShort, 0L);
+          nanosleep(&config._searchSleep, 0L);
         }
 
         //  Allocate space for the output -- 1MB should be enough for

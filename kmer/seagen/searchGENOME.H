@@ -9,6 +9,7 @@
 #include <sys/utsname.h>
 #include <fcntl.h>
 #include <assert.h>
+#include <math.h>
 
 //  At one time, this was needed for pthread.h or semaphore.h
 typedef unsigned short ushort;
@@ -127,6 +128,22 @@ public:
   double           _searchTime;
   double           _totalTime;
 
+  //  Loader parameters
+  //
+  u32bit           _loaderHighWaterMark;
+  struct timespec  _loaderSleep;
+  bool             _loaderWarnings;
+
+  //  Search parameters
+  //
+  struct timespec  _searchSleep;
+
+  //  Output parameters
+  //
+  u32bit           _writerHighWaterMark;
+  struct timespec  _writerSleep;
+  bool             _writerWarnings;
+
   configuration();
   ~configuration();
 
@@ -136,6 +153,12 @@ public:
 
   void  completeUseList(FastAWrapper *db);
 
+  void  setTime(struct timespec *ts, double t) {
+    ts->tv_sec = floor(t);
+    t -= ts->tv_sec;
+    t *= 1e9;
+    ts->tv_nsec = t;
+  };
 private:
   void  addToUse(u32bit v);
   void  parseUseLine(char *line);

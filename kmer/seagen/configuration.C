@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 configuration::configuration(void) {
 
@@ -64,6 +65,19 @@ configuration::configuration(void) {
   _buildTime           = 0.0;
   _searchTime          = 0.0;
   _totalTime           = 0.0;
+
+  _loaderHighWaterMark = 16 * 1024;
+  _loaderSleep.tv_sec  = 1;
+  _loaderSleep.tv_nsec = 0;
+  _loaderWarnings      = false;
+
+  _searchSleep.tv_sec  = 0;
+  _searchSleep.tv_nsec = 10000000;
+
+  _writerHighWaterMark = 32 * 1024;
+  _writerSleep.tv_sec  = 1;
+  _writerSleep.tv_nsec = 0;
+  _writerWarnings      = false;
 }
 
 configuration::~configuration() {
@@ -407,6 +421,22 @@ configuration::read(int argc, char **argv) {
       arg++;
       _extendMinimum = atoi(argv[arg]);
       _extendAlternate = true;
+
+    } else if (strncmp(argv[arg], "-loaderhighwatermark", 8) == 0) {
+      _loaderHighWaterMark = atoi(argv[++arg]);
+    } else if (strncmp(argv[arg], "-loadersleep",         8) == 0) {
+      setTime(&_loaderSleep, atof(argv[++arg]));
+    } else if (strncmp(argv[arg], "-loaderwarnings",      8) == 0) {
+      _loaderWarnings = true;
+    } else if (strncmp(argv[arg], "-searchsleep",         8) == 0) {
+      setTime(&_searchSleep, atof(argv[++arg]));
+    } else if (strncmp(argv[arg], "-writerhighwatermark", 8) == 0) {
+      _writerHighWaterMark = atoi(argv[++arg]);
+    } else if (strncmp(argv[arg], "-writersleep",         8) == 0) {
+      setTime(&_writerSleep, atof(argv[++arg]));
+    } else if (strncmp(argv[arg], "-writerwarnings",      8) == 0) {
+      _writerWarnings = true;
+
     } else if (strncmp(argv[arg], "--buildinfo", 3) == 0) {
       buildinfo_searchGENOME(stderr);
       buildinfo_libbri(stderr);
@@ -457,17 +487,46 @@ configuration::display(FILE *out) {
   if ((out == stdout) && (_beVerbose)) {
     fprintf(out, "--Using these Options--\n");
 #ifdef TRUE64BIT
+    fprintf(out, "numSearchThreads    = %u\n",   _numSearchThreads);
+#else
+    fprintf(out, "numSearchThreads    = %lu\n",   _numSearchThreads);
+#endif
+
+    fprintf(out, "\n");
+
+#ifdef TRUE64BIT
+    fprintf(out, "loaderHighWaterMark = %u\n", _loaderHighWaterMark);
+#else
+    fprintf(out, "loaderHighWaterMark = %lu\n", _loaderHighWaterMark);
+#endif
+    fprintf(out, "loaderSleep         = %f\n", (double)_loaderSleep.tv_sec + (double)_loaderSleep.tv_nsec * 1e-9);
+    fprintf(out, "loaderWarnings      = %s\n", _loaderWarnings ? "true" : "false");
+    fprintf(out, "searchSleep         = %f\n", (double)_searchSleep.tv_sec + (double)_searchSleep.tv_nsec * 1e-9);
+#ifdef TRUE64BIT
+    fprintf(out, "writerHighWaterMark = %u\n", _writerHighWaterMark);
+#else
+    fprintf(out, "writerHighWaterMark = %lu\n", _writerHighWaterMark);
+#endif
+    fprintf(out, "writerSleep         = %f\n", (double)_writerSleep.tv_sec + (double)_writerSleep.tv_nsec * 1e-9);
+    fprintf(out, "writerWarnings      = %s\n", _writerWarnings ? "true" : "false");
+
+    fprintf(out, "\n");
+
+
+#ifdef TRUE64BIT
     fprintf(out, "merSize             = %u\n",   _merSize);
     fprintf(out, "merSkip             = %u\n",   _merSkip);
-    fprintf(out, "numSearchThreads    = %u\n",   _numSearchThreads);
 #else
     fprintf(out, "merSize             = %lu\n",   _merSize);
     fprintf(out, "merSkip             = %lu\n",   _merSkip);
-    fprintf(out, "numSearchThreads    = %lu\n",   _numSearchThreads);
 #endif
     fprintf(out, "doReverse           = %s\n",   _doReverse ? "true" : "false");
     fprintf(out, "doForward           = %s\n",   _doForward ? "true" : "false");
     fprintf(out, "\n");
+
+
+
+
     fprintf(out, "--Using these Parameters--\n");
 #ifdef TRUE64BIT
     fprintf(out, "maxDiagonal         = %u\n",   _maxDiagonal);

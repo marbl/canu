@@ -5,29 +5,23 @@
 #include "posix.H"
 #include "searchGENOME.H"
 
-//  Define this to get low water level warnings
+//  Define this to print a message whenever a sequence is loaded.
+//  Useful for testing the loader with large sequences (scaffolds,
+//  chromosomes).
 //
-#define WATERLEVELWARNINGS
+//#define VERBOSE_LOADER
 
-#ifdef WATERLEVELWARNINGS
 #ifdef TRUE64BIT
-char const *loadDesc = "WARNING: Loader is at %3.0f%% capacity. (cDNA %7u out of %7u).  Load/Search might be unbalanced.\n";
+char const *loadDesc = "WARNING: Loader ran dry.  Increasing limit to %u sequences, decreasing sleep to %f.\n";
 #else
-char const *loadDesc = "WARNING: Loader is at %3.0f%% capacity. (cDNA %7lu out of %7lu).  Load/Search might be unbalanced.\n";
+char const *loadDesc = "WARNING: Loader ran dry.  Increasing limit to %lu sequences, decreasing sleep to %f.\n";
 #endif
-#endif
-
-//  XXX:  We probably should make this produce FastABuffer references,
-//  instead of copying the sequence.  Would want to do it so that the
-//  buffers are reused, which makes it a little hard.
 
 void*
 loaderThread(void *) {
-  u32bit               LOADER_HIGH_WATER_MARK = 16384;
-  u32bit               waterLevel             = 0;
-  FastASequenceInCore *B;
-
-  struct timespec loaderSleep = { 0, 25000000 };
+  u32bit               waterLevel = 0;
+  FastASequenceInCore *B          = 0L;
+  bool                 slept      = false;
 
   while (inputHead < numberOfQueries) {
 
@@ -38,24 +32,38 @@ loaderThread(void *) {
     waterLevel = inputHead - inputTail;
     pthread_mutex_unlock(&inputTailMutex);
 
-    //  Now, sleep, if we need to.
+    //  Warn if we're too small.
     //
-    if (waterLevel >= LOADER_HIGH_WATER_MARK) {
-      nanosleep(&loaderSleep, 0L);
+    if ((slept) && (waterLevel <= 1)) {
 
-#ifdef WATERLEVELWARNINGS
-      //  Warn if we're too small.
-      //
-      if (waterLevel < (LOADER_HIGH_WATER_MARK >> 1))
+      u32bit i = 0.1 * config._loaderHighWaterMark;
+      if (i == 0)
+        i = 1;
+      config._loaderHighWaterMark += i;
+
+      config.setTime(&config._loaderSleep,
+                     0.9 * ((double)config._loaderSleep.tv_sec + (double)config._loaderSleep.tv_nsec * 1e-9));
+
+      if (config._loaderWarnings)
         fprintf(stderr, loadDesc,
-                100.0 * waterLevel / LOADER_HIGH_WATER_MARK,
-                inputHead, numberOfQueries);
-#endif
-    } else {
+                config._loaderHighWaterMark,
+                ((double)config._loaderSleep.tv_sec + (double)config._loaderSleep.tv_nsec * 1e-9));
+    }
 
-      //  Get the next cDNA and push it onto the input list at
-      //  inputHead.  This alloc is deleted by the output thread.
-      //
+    //  Sleep, if we need to, otherwise, get the next sequence and
+    //  push it onto the input list at inputHead.  This alloc is
+    //  deleted by the output thread.
+    //
+    if (waterLevel >= config._loaderHighWaterMark) {
+      slept = true;
+      nanosleep(&config._loaderSleep, 0L);
+    } else {
+      slept = false;
+
+#ifdef VERBOSE_LOADER
+      fprintf(stderr, "Loading sequence %u (tail = %u)\n", inputHead, inputTail);
+#endif
+
       try {
         B = qsFASTA->getSequence();
       } catch (std::bad_alloc) {
