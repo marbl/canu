@@ -4,12 +4,15 @@ import os, sys, DNA
 # Begin class methods
 #######################################################
 
-def createIndexedFasta( prefix, nickname, makeseqstore):
-  __doc__ = "Usage prefix, nickname, makeseqstore"
+#  bpw, 20050312 - .seqStore is exactly a compressed fasta file.  Stop
+#  building it and assume the input is compressed.
+
+def createIndexedFasta( prefix, nickname):
+
   # This is a class method (as opposed to an object method).
   # This method creates an indexed FASTA file on disk.
 
-  print >>sys.stderr, "Opening %s to write %s.seqStore and %s.idxStore" % (prefix, prefix, prefix, )
+  print >>sys.stderr, "Creating %s.idxStore" % (prefix)
 
   the_uid = None
   defline = None
@@ -19,8 +22,6 @@ def createIndexedFasta( prefix, nickname, makeseqstore):
 
   FASTA    = file( prefix, "r")
   IDXSTORE = file( prefix + ".idxStore", "w")
-  if(makeseqstore):
-    SEQSTORE = file(prefix + ".seqStore", "w")
   for line in FASTA:
     linenumber += 1
     line = line.strip()
@@ -37,14 +38,10 @@ def createIndexedFasta( prefix, nickname, makeseqstore):
 
         def_offset = cur_offset
         def_length = len(defline)
-        if(makeseqstore): print >>SEQSTORE, defline
-        # Store the FASTA defline.
         cur_offset += def_length + 1
         # remember the UNIX newline inserted by print.
         seq_offset = cur_offset
         seq_length = len(seqline)
-        if(makeseqstore): print >>SEQSTORE, seqline
-        # Store the FASTA sequence.
         cur_offset += seq_length + 1;
         # remember the UNIX newline inserted by print.
 
@@ -69,14 +66,10 @@ def createIndexedFasta( prefix, nickname, makeseqstore):
 
     def_offset = cur_offset
     def_length = len(defline)
-    if(makeseqstore): print >>SEQSTORE, defline
-    # Store the FASTA defline.
     cur_offset += def_length + 1;
     # remember the UNIX newline inserted by print.
     seq_offset = cur_offset
     seq_length = len(seqline)
-    if(makeseqstore): print >>SEQSTORE, seqline
-    # Store the FASTA sequence.
     cur_offset += seq_length + 1;
     # remember the UNIX newline inserted by print.
 
@@ -85,8 +78,6 @@ def createIndexedFasta( prefix, nickname, makeseqstore):
 
   FASTA.close()
   IDXSTORE.close()
-  if(makeseqstore):
-    SEQSTORE.close()
   # end if
 # end def
 
@@ -144,7 +135,7 @@ class IdxStore:
     sys.stderr.write("Read index idxStore\n");
     # print self.uid2iid
 
-    filename = prefix + ".seqStore"
+    filename = prefix
     message = "Openning sequence file %s for reading.\n" % filename
     sys.stderr.write(message)
     self.seqstore = file(filename, "r");
