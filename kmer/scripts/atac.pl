@@ -5,35 +5,39 @@ use Config;  #  for @signame
 
 #  Usage:  atac.pl run-directory id1 id2
 #
-if (scalar(@ARGV) != 3) {
-    print STDERR "usage: $0 run-directory id1 id2\n";
+if (scalar(@ARGV) < 6) {
+    print STDERR "usage: $0 [opts]\n";
+    print STDERR "\n";
+    print STDERR "    -dir run-directory\n";
+    print STDERR "\n";
+    print STDERR "Sequence specification:  If -seq is supplied, then that\n";
+    print STDERR "sequence file is used with the id given by -id.  If there is\n";
+    print STDERR "a conflict with an established id, the program exits.\n";
+    print STDERR "\n";
+    print STDERR "    -id1  id1\n";
+    print STDERR "    -seq1 seq1.fasta\n";
+    print STDERR "    -id2  id2\n";
+    print STDERR "    -seq2 seq2.fasta\n";
+    print STDERR "\n";
+    print STDERR "Paths should be FULL PATHS, not relative paths.\n";
+    print STDERR "\n";
+    print STDERR "    -genomedir path        -- path to the GENOMES directory\n"; 
+    print STDERR "    -meryldir  path        -- path to the MERYL directory\n";
+    print STDERR "\n";
+    print STDERR "    -numsegments s         -- number of segments to do the search in\n";
+    print STDERR "    -numthreads t          -- number of threads to use per search\n";
+    print STDERR "\n";
     exit(1);
 }
 
-my $ATACdir = shift @ARGV;
-my $id1     = shift @ARGV;
-my $id2     = shift @ARGV;
+my $ATACdir;
+my $id1;
+my $seq1;
+my $id2;
+my $seq2;
 
 my $GENOMEdir     = "/prod/IR05/GENOMES";          #  Location of genome assemblies
 my $MERYLdir      = "/prod/IR08/walenz/hg5/data";  #  Location of genome mercount databases
-my %GENOMEaliases;
-
-my $leaff   = "/work/assembly/walenzbp/releases/leaff";
-my $meryl   = "/work/assembly/walenzbp/releases/meryl";
-my $existDB = "/work/assembly/walenzbp/releases/existDB";
-my $sge     = "/work/assembly/walenzbp/releases/searchGENOMEexactly";
-
-die "Can't run $leaff\n"   if (! -x $leaff);
-die "Can't run $meryl\n"   if (! -x $meryl);
-die "Can't run $existDB\n" if (! -x $existDB);
-die "Can't run $sge\n"     if (! -x $sge);
-
-die "Can't find the GENOMEdir '$GENOMEdir'\n" if (! -d $GENOMEdir);
-die "Can't find the assembly descriptions '$GENOMEdir/assemblies.atai'\n" if (! -e "$GENOMEdir/assemblies.atai");
-die "Can't find the MERYLdir '$MERYLdir'\n" if (! -d $MERYLdir);
-
-system("mkdir $ATACdir") if (! -d $ATACdir);
-
 
 my $mersize   = 20; # the mer size
 my $merlimit  = 1;  # unique mers only
@@ -43,7 +47,49 @@ my $maxgap    = 0;  # the maximum substitution gap
 my $numSegments = 2;
 my $numThreads  = 4;
 
-findSources($id1, $id2);
+my $leaff   = "/work/assembly/walenzbp/releases/leaff";
+my $meryl   = "/work/assembly/walenzbp/releases/meryl";
+my $existDB = "/work/assembly/walenzbp/releases/existDB";
+my $seatac  = "/work/assembly/walenzbp/releases/seatac";
+
+while (scalar(@ARGV) > 0) {
+    my $arg = shift @ARGV;
+
+    if      ($arg eq "-dir") {
+        $ATACdir = shift @ARGV;
+    } elsif ($arg eq "-id1") {
+        $id1 = shift @ARGV;
+    } elsif ($arg eq "-seq1") {
+        $seq1 = shift @ARGV;
+    } elsif ($arg eq "-id2") {
+        $id2 = shift @ARGV;
+    } elsif ($arg eq "-seq2") {
+        $seq2 = shift @ARGV;
+    } elsif ($arg eq "-genomedir") {
+        $GENOMEdir = shift @ARGV;
+    } elsif ($arg eq "-meryldir") {
+        $MERYLdir = shift @ARGV;
+    } elsif ($arg eq "-numsegments") {
+        $numSegments = shift @ARGV;
+    } elsif ($arg eq "-numthreads") {
+        $numThreads = shift @ARGV;
+    }
+}
+
+die "Can't run $leaff\n"   if (! -x $leaff);
+die "Can't run $meryl\n"   if (! -x $meryl);
+die "Can't run $existDB\n" if (! -x $existDB);
+die "Can't run $seatac\n"  if (! -x $seatac);
+
+die "Can't find the GENOMEdir '$GENOMEdir'\n" if (! -d $GENOMEdir);
+die "Can't find the assembly descriptions '$GENOMEdir/assemblies.atai'\n" if (! -e "$GENOMEdir/assemblies.atai");
+die "Can't find the MERYLdir '$MERYLdir'\n" if (! -d $MERYLdir);
+
+system("mkdir $ATACdir") if (! -d $ATACdir);
+
+
+
+findSources();
 
 my $mercount1 = countMers($id1, $mersize, $merlimit);
 my $mercount2 = countMers($id2, $mersize, $merlimit);
@@ -58,8 +104,10 @@ if (! -e "$ATACdir/.mask.done") {
     if (! -e "$ATACdir/min.$mercount1.$mercount2.mcdat") {
         print STDERR "Finding the min count between $mercount1 and $mercount2.\n";
         if (runCommand("$meryl -v -M min -s $MERYLdir/$mercount1 -s $MERYLdir/$mercount2 -o $ATACdir/min.$mercount1.$mercount2")) {
-            unlink "$ATACdir/min.$mercount1.$mercount2.mcidx";
-            unlink "$ATACdir/min.$mercount1.$mercount2.mcdat";
+            #unlink "$ATACdir/min.$mercount1.$mercount2.mcidx";
+            #unlink "$ATACdir/min.$mercount1.$mercount2.mcdat";
+            rename "$ATACdir/min.$mercount1.$mercount2.mcidx", "$ATACdir/min.$mercount1.$mercount2.mcidx.crash";
+            rename "$ATACdir/min.$mercount1.$mercount2.mcdat", "$ATACdir/min.$mercount1.$mercount2.mcdat.crash";
             die "Failed to find the min count between $mercount1 and $mercount2\n";
         }
     }
@@ -100,9 +148,11 @@ if (! -e "$ATACdir/.mask.done") {
 
         if (! -e "$ATACdir/$matches.exclude.mcdat") {
             print STDERR "Finding 'exclude' mers!\n";
-            if (runCommand("./meryl -v -M xor -s $MERYLdir/$id1 -s $ATACdir/min.$mercount1.$mercount2 -o $ATACdir/$matches.exclude")) {
-                unlink "$ATACdir/$matches.exclude.mcidx";
-                unlink "$ATACdir/$matches.exclude.mcdat";
+            if (runCommand("$meryl -v -M xor -s $MERYLdir/$id1 -s $ATACdir/min.$mercount1.$mercount2 -o $ATACdir/$matches.exclude")) {
+                #unlink "$ATACdir/$matches.exclude.mcidx";
+                #unlink "$ATACdir/$matches.exclude.mcdat";
+                rename "$ATACdir/$matches.exclude.mcidx", "$ATACdir/$matches.exclude.mcidx.crash";
+                rename "$ATACdir/$matches.exclude.mcdat", "$ATACdir/$matches.exclude.mcdat.crash";
                 die "Failed to make exclude mers!\n";
             }
         }
@@ -168,30 +218,33 @@ close(F);
 #  Now, for each segment that hasn't run, run it.
 #
 foreach my $segmentID (@segmentIDs) {
-    if (! -e "$ATACdir/$matches-$segmentID.stats") {
+    if (! -e "$ATACdir/$matches-segment-$segmentID.stats") {
         my $cmd = "";
 
-        $cmd  = "$sge -verbose ";
-        $cmd .= "-loaderhighwatermark 2 ";
-        $cmd .= "-mersize $mersize ";
-        $cmd .= "-singlelength $minfill ";
-        $cmd .= "-maxgap $maxgap ";
-        $cmd .= "-numthreads $numThreads ";
-        $cmd .= "-genomic $MERYLdir/$id2.fasta ";
-        $cmd .= "-cdna $MERYLdir/$id1.fasta ";
-        $cmd .= "-only $ATACdir/$matches.include " if (-e "$ATACdir/$matches.include.mcdat");
-        $cmd .= "-mask $ATACdir/$matches.exclude " if (-e "$ATACdir/$matches.exclude.mcdat");
-        $cmd .= "-use $ATACdir/$matches-segment-$segmentID ";
-        $cmd .= "-output $ATACdir/$matches-segment-$segmentID.matches ";
-        $cmd .= "-stats $ATACdir/$matches-segment-$segmentID.stats ";
+        $cmd  = "$seatac \\\n";
+        $cmd .= "-verbose \\\n";
+        $cmd .= "-mersize $mersize \\\n";
+        $cmd .= "-minlength $minfill \\\n";
+        $cmd .= "-maxgap $maxgap \\\n";
+        $cmd .= "-numthreads $numThreads \\\n";
+        $cmd .= "-genomic $MERYLdir/$id2.fasta \\\n";
+        $cmd .= "-cdna    $MERYLdir/$id1.fasta \\\n";
+        $cmd .= "-only    $ATACdir/$matches.include \\\n" if (-e "$ATACdir/$matches.include.mcdat");
+        $cmd .= "-mask    $ATACdir/$matches.exclude \\\n" if (-e "$ATACdir/$matches.exclude.mcdat");
+        $cmd .= "-use     $ATACdir/$matches-segment-$segmentID \\\n";
+        $cmd .= "-output  $ATACdir/$matches-segment-$segmentID.matches \\\n";
+        $cmd .= "-stats   $ATACdir/$matches-segment-$segmentID.stats \\\n";
+        $cmd .= "-tmpfile $ATACdir/$matches-segment-$segmentID.tmp";
 
         open(F, "> $ATACdir/$matches-$segmentID.cmd");
         print F "$cmd\n";
         close(F);
 
         if (runCommand($cmd)) {
-            unlink "$ATACdir/$matches-segment-$segmentID.matches";
-            unlink "$ATACdir/$matches-segment-$segmentID.stats";
+            #unlink "$ATACdir/$matches-segment-$segmentID.matches";
+            #unlink "$ATACdir/$matches-segment-$segmentID.stats";
+            rename "$ATACdir/$matches-segment-$segmentID.matches", "$ATACdir/$matches-segment-$segmentID.matches.crash";
+            rename "$ATACdir/$matches-segment-$segmentID.stats", "$ATACdir/$matches-segment-$segmentID.stats.crash";
             die "Failed to run $matches-$segmentID\n";
         }
     }
@@ -237,8 +290,8 @@ if (! -e "$ATACdir/${id1}vs${id2}-C13.atac") {
     print ATACFILE  "# Field 9: the offset from the start of the sequence for the match\n";
     print ATACFILE  "# Field 10: the length of the match in the second assembly\n";
     print ATACFILE  "# Field 11: the orientation of the match sequence in the second assembly.\n";
-    print ATACFILE "/assemblyFilePrefix1=$GENOMEaliases{$id1}\n";
-    print ATACFILE "/assemblyFilePrefix2=$GENOMEaliases{$id2}\n";
+    print ATACFILE "/assemblyFilePrefix1=$seq1\n";
+    print ATACFILE "/assemblyFilePrefix2=$seq2\n";
     print ATACFILE "/assemblyId1=$id1\n";
     print ATACFILE "/assemblyId2=$id2\n";
     print ATACFILE "/rawMatchMerSize=$mersize\n";
@@ -327,8 +380,7 @@ sub runCommand {
 #  Read the nickname file, set up symlinks to the data sources
 #
 sub findSources {
-    my $id1 = shift @_;
-    my $id2 = shift @_;
+    my %GENOMEaliases;
 
     #  Read the assemblies.atai file to generate a mapping of datasource and nickname.
     #
@@ -344,20 +396,29 @@ sub findSources {
     }
     close(F);
 
-    my $g1 = $GENOMEaliases{$id1};
-    my $g2 = $GENOMEaliases{$id2};
+    #  If the user gave both an id and a sequence, make sure that
+    #  the id is distinct.
+    #
+    die "No id1 supplied!\n" if (!defined($id1));
+    die "No id2 supplied!\n" if (!defined($id2));
 
-    die "Unknown alias $id1.\n" if (!defined($g1));
-    die "Unknown alias $id2.\n" if (!defined($g2));
+    die "id1 = '$id1' is already used by sequence '$GENOMEaliases{$id1}'\n" if (defined($GENOMEaliases{$id1}) && defined($seq1));
+    die "id2 = '$id2' is already used by sequence '$GENOMEaliases{$id2}'\n" if (defined($GENOMEaliases{$id2}) && defined($seq2));
 
-    die "File '$g1' doesn't exist for alias $id1.\n" if (! -e $g1);
-    die "File '$g2' doesn't exist for alias $id2.\n" if (! -e $g2);
+    $seq1 = $GENOMEaliases{$id1} if (!defined($seq1));
+    $seq2 = $GENOMEaliases{$id2} if (!defined($seq2));
+
+    die "Unknown alias $id1.\n" if (!defined($seq1));
+    die "Unknown alias $id2.\n" if (!defined($seq2));
+
+    die "File '$seq1' doesn't exist for alias $id1.\n" if (! -e $seq1);
+    die "File '$seq2' doesn't exist for alias $id2.\n" if (! -e $seq2);
     
-    system("ln -s $g1 $MERYLdir/$id1.fasta") if (! -e "$MERYLdir/$id1.fasta");
-    system("ln -s $g2 $MERYLdir/$id2.fasta") if (! -e "$MERYLdir/$id2.fasta");
+    system("ln -s $seq1 $MERYLdir/$id1.fasta") if (! -e "$MERYLdir/$id1.fasta");
+    system("ln -s $seq2 $MERYLdir/$id2.fasta") if (! -e "$MERYLdir/$id2.fasta");
 
-    system("ln -s ${g1}idx $MERYLdir/$id1.fastaidx") if (! -e "$MERYLdir/$id1.fastaidx") && (-e "${g1}idx");
-    system("ln -s ${g2}idx $MERYLdir/$id2.fastaidx") if (! -e "$MERYLdir/$id2.fastaidx") && (-e "${g2}idx");
+    system("ln -s ${seq1}idx $MERYLdir/$id1.fastaidx") if (! -e "$MERYLdir/$id1.fastaidx") && (-e "${seq1}idx");
+    system("ln -s ${seq2}idx $MERYLdir/$id2.fastaidx") if (! -e "$MERYLdir/$id2.fastaidx") && (-e "${seq2}idx");
 }
 
 
@@ -366,18 +427,26 @@ sub findSources {
 sub countMers {
     my ($id, $mersize, $merlimit) = @_;
 
+    #  Using "-H 32" is needed if the two sequences aren't about the
+    #  same order of magnitude in size.  This value is appropriate for
+    #  sequences that are genome size.
+
     if (! -e "$MERYLdir/$id.mcdat") {
-        if (runCommand("$meryl -v -B -C -m $mersize -t 27 -s $MERYLdir/$id.fasta -o $MERYLdir/$id")) {
-            unlink "$MERYLdir/$id.mcidx";
-            unlink "$MERYLdir/$id.mcdat";
+        if (runCommand("$meryl -v -B -C -m $mersize -t 27 -H 32 -s $MERYLdir/$id.fasta -o $MERYLdir/$id")) {
+            #unlink "$MERYLdir/$id.mcidx";
+            #unlink "$MERYLdir/$id.mcdat";
+            rename "$MERYLdir/$id.mcidx", "$MERYLdir/$id.mcidx.crash";
+            rename "$MERYLdir/$id.mcdat", "$MERYLdir/$id.mcdat.crash";
             die "Failed to count mers in $id\n";
         }
     }
 
     if (! -e "$MERYLdir/$id.le$merlimit.mcdat") {
         if (runCommand("$meryl -v -M lessthanorequal $merlimit -s $MERYLdir/$id -o $MERYLdir/$id.le$merlimit")) {
-            unlink "$MERYLdir/$id.le$merlimit.mcidx";
-            unlink "$MERYLdir/$id.le$merlimit.mcdat";
+            #unlink "$MERYLdir/$id.le$merlimit.mcidx";
+            #unlink "$MERYLdir/$id.le$merlimit.mcdat";
+            rename "$MERYLdir/$id.le$merlimit.mcidx", "$MERYLdir/$id.le$merlimit.mcidx.crash";
+            rename "$MERYLdir/$id.le$merlimit.mcdat", "$MERYLdir/$id.le$merlimit.mcdat.crash";
             die "Failed to count mers lessthanorequal $merlimit in $id\n";
         }
     }
