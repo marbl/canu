@@ -103,7 +103,7 @@ print STDERR "Using exechome of '$exechome'\n";
 my $searchGENOME  = "$exechome/searchGENOME";
 my $filterMRNA    = "$exechome/filterMRNA";
 my $filterEST     = "$exechome/filterEST";
-my $sim4db        = "$exechome/sim4dbseq";
+my $sim4db        = "$exechome/sim4db";
 my $leaff         = "$exechome/leaff";
 my $cleanPolishes = "$exechome/cleanPolishes";
 my $toFILTER      = "$exechome/filterPolishes";
@@ -1578,10 +1578,27 @@ sub configure {
 
         my @scaffolds;
 
+        #  The original method (for original leaff)
+        #
+        #open(F, "< $path/0-input/genomic.fastainf");
+        #while (<F>) {
+        #    if (m/^\s*(\d+)\]\s+\d+\s+(\d+)$/) {
+        #        push @scaffolds, "$2.$1";
+        #    } else {
+        #        die "$errHdr Invalid line in information file: $_.\n";
+        #    }
+        #}
+        #close(F);
+
+        my $idx = 0;
         open(F, "< $path/0-input/genomic.fastainf");
         while (<F>) {
-            if (m/^\s*(\d+)\]\s+\d+\s+(\d+)$/) {
-                push @scaffolds, "$2.$1";
+            #  Skip all the fasta file information
+            last if (m/^\d+\s+\d+\s+(\d+)\s+\d+\D/);
+        }
+        while (<F>) {
+            if (m/^\d+\s+\d+\s+(\d+)\s+\d+\D/) {
+                push @scaffolds, "$1.$idx";
             } else {
                 die "$errHdr Invalid line in information file: $_.\n";
             }
