@@ -362,7 +362,17 @@ endif
 ifeq (${_OS_},AIX)
   PRINTPS:=lpr -Pcelprt05
 endif
+# the SunOS machines in FC don't have good latex/ps/pdf support
+ifeq (${_OS|FULL_},SunOS|foster-city)
+  PS2PDF            :=/remote/depot/bin/ps2pdf -I/remote/depot/share/ghostscript/5.50/
+endif
+# francisco's machines don't have any latex so we will ignore the
+# errors from latex type stuff by setting the -LATEX to -
+ifeq (${_OS|FULL_},SunOS|francisco's)
+  -LATEX :=-
+endif
 
+## LAPACK
 ifeq (${_OS_},TRU64)
 # this seems to work for both gcc and non-gcc
   CXXFLAGS_LAPACK   :=-DFTN_UNDERSCORE -DFTN_LOWERCASE
@@ -380,12 +390,10 @@ ifeq (${_OS|FULL_},SunOS|foster-city)
   CXXFLAGS_LAPACK   :=-DFTN_UNDERSCORE -DFTN_LOWERCASE
   CXXLDFLAGS_LAPACK :=-L/home/ross/local/lib
   CXXLIBS_LAPACK    :=-llapack -lblas -lF77
-  PS2PDF            :=/remote/depot/bin/ps2pdf -I/remote/depot/share/ghostscript/5.50/
 endif
-
-# francisco's machines don't have latex so we will ignore the
-# errors from latex type stuff by setting the -LATEX to -
+# sometimes we deploy on Solaris on Fancisco's machines
 ifeq (${_OS|FULL_},SunOS|francisco's)
-  -LATEX :=-
+  CXXFLAGS_LAPACK   :=-DFTN_UNDERSCORE -DFTN_LOWERCASE
+  CXXLDFLAGS_LAPACK :=-L/home/lipperra/local/lib
+  CXXLIBS_LAPACK    :=-llapack -lblas -lF77
 endif
-
