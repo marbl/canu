@@ -16,6 +16,7 @@ $/leaff                : $/leaff.o $/buildinfo-leaff.o ${LIBBRI/}libbri.a
 $/fragmenter           : $/fragmenter.o ${LIBBRI/}libbri.a
 
 $(eval $/%.d $/%.o:  CXXFLAGS+=-I${LIBBRI/})
+$(eval $/%.d      :  ${LIBBRI/}buildinfo-libbri.h )
 
 $/buildinfo-leaff.c: $/buildinfo-leaff.h
 $/buildinfo-leaff.h: $/leaff.C

@@ -25,8 +25,13 @@ endif
 $/.CLEAN     :=$/*.o
 $/.REAL-CLEAN:=$/buildinfo-*
 
-$(eval $/%.d $/%.o:  CXXFLAGS+= -I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} \
-             -I${SIM4/} -I${SIM4POLISH/} -I${EXISTDB/})
+$(eval $/%.d $/%.o:  CXXFLAGS+= -I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} -I${SIM4/} -I${SIM4POLISH/} -I${EXISTDB/})
+$(eval $/%.d      :  ${EXISTDB/}buildinfo-libbri.h )
+$(eval $/%.d      :  ${POSITIONDB/}buildinfo-positionDB.h )
+$(eval $/%.d      :  ${LIBBRI/}buildinfo-libbri.h )
+$(eval $/%.d      :  ${SIM4/}buildinfo-libsim4.h )
+$(eval $/%.d      :  ${SIM4POLISH/}buildinfo-libsim4polish.h )
+
 $/configuration.C.d: $/buildinfo-snapper2.h \
                      ${EXISTDB/}buildinfo-existDB.h \
                      ${POSITIONDB/}buildinfo-positionDB.h \
@@ -34,11 +39,13 @@ $/configuration.C.d: $/buildinfo-snapper2.h \
                      ${SIM4/}buildinfo-libsim4.h \
                      ${SIM4POLISH/}buildinfo-libsim4polish.h
 
-$/snapper2: \
-              ${$/.CXX_SRCS:.C=.o} $/buildinfo-snapper2.o \
-              ${EXISTDB/}libexistDB.a ${POSITIONDB/}libpositionDB.a \
+$/snapper2:   ${$/.CXX_SRCS:.C=.o} \
+              $/buildinfo-snapper2.o \
+              ${EXISTDB/}libexistDB.a \
+              ${POSITIONDB/}libpositionDB.a \
               ${MERYL/}libmeryl.a \
-              ${SIM4POLISH/}libsim4polish.a ${SIM4/}libsim4.a \
+              ${SIM4POLISH/}libsim4polish.a \
+              ${SIM4/}libsim4.a \
               ${LIBBRI/}libbri.a
 
 $/buildinfo-snapper2.c: $/buildinfo-snapper2.h
