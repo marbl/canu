@@ -38,7 +38,7 @@ char                  *threadStats[MAX_THREADS];
 
 
 void
-buildChunk(void) {
+buildTable(void) {
 
   if (config._beVerbose)
     fprintf(stderr, "Opening the genomic database.\n");
@@ -134,12 +134,69 @@ buildChunk(void) {
 
   positions = new positionDB(s, 0L, config._merSize, config._merSkip, tblSize, config._beVerbose, maskDB, onlyDB, config._tmpFileName);
 
+  if (config._tableFileName) {
+    if (config._beVerbose) {
+      fprintf(stderr, "Dumping positions table to '%s'\n", config._tableFileName);
+      positions->saveState(config._tableFileName);
+
+      fprintf(stderr, "Dumping finished.  Exiting.\n");
+      exit(0);
+    }
+  }
+
   delete maskDB;
   delete onlyDB;
 
   delete [] s;
   delete    dbFASTA;
 }
+
+
+
+
+void
+loadTable(void) {
+
+  if (config._beVerbose)
+    fprintf(stderr, "Opening the genomic database.\n");
+
+  FastAWrapper *dbFASTA = new FastAWrapper(config._dbFileName);
+  dbFASTA->openIndex();
+
+  //  Complete the configuration
+  //
+  config.completeUseList(dbFASTA);
+
+  //  sum the length of the sequences, including the padding.
+  //
+  u32bit sLen = 0;
+  for (u32bit i=0; i<config._useListLen; i++) {
+    config._useList[i].size  = dbFASTA->sequenceLength(config._useList[i].seq);
+    config._useList[i].start = sLen;
+
+    sLen += config._useList[i].size + 100;
+  }
+
+  delete dbFASTA;
+
+  fprintf(stderr, "Loading positions table from '%s'\n", config._tableFileName);
+  positions = new positionDB(config._tableFileName);
+
+  fprintf(stderr, "Loading finished.\n");
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -204,7 +261,11 @@ main(int argc, char **argv) {
   //  Create the chunk, returning a positionDB.  Threads will use both
   //  chain and postions to build hitMatrices.
   //
-  buildChunk();
+  if ((config._tableFileName == 0L) || (!fileExists(config._tableFileName))) {
+    buildTable();
+  } else {
+    loadTable();
+  }
 
   config._buildTime = getTime();
 

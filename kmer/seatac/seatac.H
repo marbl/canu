@@ -92,6 +92,8 @@ public:
   char            *_outputFileName;
   char            *_statsFileName;
 
+  char            *_tableFileName;
+
   u32bit           _useListLen;
   u32bit           _useListMax;
   use_s           *_useList;
