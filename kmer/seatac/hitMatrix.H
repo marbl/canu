@@ -10,10 +10,25 @@
 
 #include "filterObj.H"
 
+//  Define this to cut the space required for storing hits by 1/3 --
+//  from 12 byyes to 8 bytes -- at a slight computational expense --
+//  negligible on real hardware, I hope.
+//
+//  The original definition of diagonalID was
+//      qsLen - qsPos - 1 + dsPos
+//  but qsLen is fixed for everyone, so we could reduce it to
+//      dsPos - qsPos
+//  but that's not unsigned.
+//
+//#define WITHOUT_DIAGONALID
+
+
 struct diagonalLine {
   u32bit   _qsPos;
   u32bit   _dsPos;
+#ifndef WITHOUT_DIAGONALID
   u32bit   _diagonalID;
+#endif
 };
 
 
@@ -69,7 +84,9 @@ hitMatrix::addHits(u32bit  qi,
     for (u32bit z=_hitsLen; z--; ) {
       h[z]._qsPos      = _hits[z]._qsPos;
       h[z]._dsPos      = _hits[z]._dsPos;
+#ifndef WITHOUT_DIAGONALID
       h[z]._diagonalID = _hits[z]._diagonalID;
+#endif
     }
           
     delete [] _hits;
@@ -80,7 +97,9 @@ hitMatrix::addHits(u32bit  qi,
   for (u64bit i=0; i<cn; i++) {
     _hits[_hitsLen]._qsPos      = (u32bit)(qi);
     _hits[_hitsLen]._dsPos      = (u32bit)(ps[i]);
+#ifndef WITHOUT_DIAGONALID
     _hits[_hitsLen]._diagonalID = (u32bit)(_qsLen - qi - 1 + ps[i]);
+#endif
     _hitsLen++;
   }
 }
