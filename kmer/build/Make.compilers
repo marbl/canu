@@ -271,7 +271,7 @@ PRINTPS:=lpr
 ifeq (${_OS_},TRU64)
   REINERT_TETEX/ :=/work/assembly/reinert_home/teTeX/bin/
   LATEX  :=${REINERT_TETEX/}latex
-  DVIPS  :=${REINERT_TETEX/}dvips
+  DVIPS  :=${REINERT_TETEX/}dvips -tletter
   BIBTEX :=${REINERT_TETEX/}bibtex
   PS2PDF :=/usr/local/ir/bin/ps2pdf
   VIEWPS :=/usr/local/ir/bin/ghostview
