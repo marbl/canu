@@ -15,7 +15,8 @@ src    := $/alphabet.c $/bit-operations.H $/bit-packing.H \
           $/libbritypes.h $/md5.c $/merstream.C $/merstream.H \
           $/palloc.c $/palloc.h $/readBuffer.H $/reversecomplement.c \
           $/splittowords.H $/time.C $/time.H \
-          $/memory.c $/memory.h $/stat.c $/stat.h
+          $/memory.c $/memory.h $/stat.c $/stat.h \
+          $/intervalList.C $/intervalList.H
 
 $/.C_SRCS    :=$(filter %.c,${src})
 $/.CXX_SRCS  :=$(filter %.C,${src})
