@@ -5,8 +5,10 @@
 #define  DEFAULT_K         16
 #define  DEFAULT_C         12
 
-#define DEBUG_AIX
+//#define DEBUG_AIX
 
+
+#ifdef DEBUG_AIX
 void
 printExons(char *label, Exon *l) {
   fprintf(stdout, label);
@@ -24,7 +26,6 @@ printExons(char *label, Exon *l) {
   fflush(stdout);
 }
 
-#ifdef DEBUG_AIX
 #define PRINTEXONS(S, L)   printExons(S, L)
 #else
 #define PRINTEXONS(S, L)

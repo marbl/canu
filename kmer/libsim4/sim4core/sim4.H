@@ -410,10 +410,12 @@ private:
 
     p = malloc(amount);
 
+#if 0
 #ifdef TRUE64BIT
     fprintf(stderr, "Allocate %lu bytes -- %p.\n", amount, p);
 #else
     fprintf(stderr, "Allocate %u bytes -- %p.\n", amount, p);
+#endif
 #endif
 
     if (p == NULL) {

@@ -10,7 +10,7 @@ Sim4::SIM4_block4(bool     good_match,
   int rollbflag = 0;
   int  cost;
 
-  fprintf(stderr, "Called SIM4_block4()\n");
+  //fprintf(stderr, "Called SIM4_block4()\n");
 
   if (_accurateSequences)
     findLastGTandCT(tmp_block);

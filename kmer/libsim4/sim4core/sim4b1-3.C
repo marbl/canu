@@ -10,7 +10,7 @@ Sim4::SIM4_block3(bool     good_match,
   int rollbflag = 0;
   int  cost;
 
-  fprintf(stderr, "Called SIM4_block3()\n");
+  //fprintf(stderr, "Called SIM4_block3()\n");
 
   /* start of seq; find last_AG, last_AC */
   if (_accurateSequences)

@@ -10,7 +10,7 @@ Sim4::SIM4_block2(Exon*   &tmp_Lblock,
 
   int diff = (int)(tmp_block1->frEST - tmp_block->toEST - 1);
 
-  fprintf(stderr, "Called SIM4_block2()\n");
+  //fprintf(stderr, "Called SIM4_block2()\n");
 
   if (diff <= MAX_GRINIT) {
     cost = greedy(seq2+tmp_block->toEST,
