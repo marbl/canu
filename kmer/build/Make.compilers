@@ -14,13 +14,43 @@
 # we really have only a few platforms to port to, so this is not yet
 # necessary.
 
-_OS_:=$(shell uname)
+# Dan Nathan and Ross had some discussion about this and we resolved that
+# the OPERATING_SYSTEM variable would continue to be regarded as the
+# platform determining variable.  If unset, the build should error out
+# and give something informative to the user.  We recognize that
+# OPERATING_SYSTEM is really a misnomer, as it indicates the platform
+# (machine with its paths and other extras).  We might just as well use
+# an ip address (or address family) for the platform.
+
+VALID_OPERATING_SYSTEM:=$(strip \
+    TRU64  \
+    AIX    \
+    cygwin \
+    SunOS|foster-city   \
+    FreeBSD \
+    default|I-will-take-my-chances \
+)
+
 ifdef OPERATING_SYSTEM
-  _OS_:=$(OPERATING_SYSTEM)
+  ifneq ($(filter ${OPERATING_SYSTEM},${VALID_OPERATING_SYSTEM}),)
+    _OS|FULL_:=${OPERATING_SYSTEM}
+    _OS_:=${OPERATING_SYSTEM:|=}
+  else
+  $(error You are trying to use the build system on a platform where the \
+environment variable OPERATING_SYSTEM is set to an unrecognized value.  \
+You should either set \
+OPERATING_SYSTEM to a recognized value, possibly after editing the \
+Make.compilers file of the build system.  Currently, the recognized values \
+for OPERATING_SYSTEM are: ${VALID_OPERATING_SYSTEM}  )
+  endif
 else
-# unknown OS's automatically use GNU
-  WITH_GNU:=1
+  $(error You are trying to use the build system on a platform where the \
+environment variable OPERATING_SYSTEM is not set.  You should either set \
+OPERATING_SYSTEM to a recognized value, possibly after editing the \
+Make.compilers file of the build system.  Currently, the recognized values \
+for OPERATING_SYSTEM are: ${VALID_OPERATING_SYSTEM}  )
 endif
+
 
 _CC_:=
 ifdef WITH_GNU
@@ -65,8 +95,8 @@ ARFLAGS:=-crvs
 
 ## CC and CXX compilers and flags
 
-CC:=
-CXX:=
+CC:=gcc
+CXX:=g++
 CFLAGS:=
 CXXFLAGS:=
 CFLAGS_COMPILE:=
@@ -75,30 +105,25 @@ CLDFLAGS:=
 CXXLDFLAGS:=
 CLIBS:=-lm
 CXXLIBS:=-lm
-SHLIB_FLAGS:=
+SHLIB_FLAGS:=-shared
+C_TMP_COMPILE:=
+CXX_TMP_COMPILE:=
 
-ifeq (${_CC_},-gcc)
-  CC               :=gcc
-  CXX              :=g++
-  SHLIB_FLAGS      +=-shared
-endif
 ifeq (${_OS_}${_CC_},TRU64)
   CC               :=cc
   CXX              :=cxx
-  CXXFLAGS_COMPILE    +=-std gnu
-  SHLIB_FLAGS      +=-shared
-  CXX_TMP_COMPILE     +=so_locations cxx_repository
+  CXXFLAGS_COMPILE    :=-std gnu
+  CXX_TMP_COMPILE     :=so_locations cxx_repository
 endif
 
 ifeq (${_OS_},AIX)
 # These might be needed, but so far, not, -G suffices
 #  AIX_SHLIB_FLAGS      :=-Wl,-bhalt:4 -Wl,-T512 -Wl,-H512 -Wl,-bM:SRE
-  AIX_SHLIB_FLAGS      :=
 endif
 ifeq (${_OS_}${_CC_},AIX)
   CC               :=xlc
   CXX              :=xlC
-  SHLIB_FLAGS      +=-G
+  SHLIB_FLAGS      :=-G
   AIX_RTTI_SUPPORT:=-qrtti
 ifdef WITH_AIX32
   $(warning Large files support has been disabled)
@@ -115,16 +140,16 @@ endif
   AIX_FLAGS  +=$(AIX_SUPPRESS_DUPLICATE_SYMBOL_WARNING)
   AIX_FLAGS  +=$(AIX_OPTIMIZATIONS)
 
-  CFLAGS_COMPILE     +=-qcpluscmt ${AIX_FLAGS}
-  CXXFLAGS_COMPILE   +=${AIX_RTTI_SUPPORT} ${AIX_FLAGS}
-  CLDFLAGS           +=${AIX_FLAGS}
-  CXXLDFLAGS         +=${AIX_RTTI_SUPPORT} ${AIX_FLAGS}
+  CFLAGS_COMPILE     :=-qcpluscmt ${AIX_FLAGS}
+  CXXFLAGS_COMPILE   :=${AIX_RTTI_SUPPORT} ${AIX_FLAGS}
+  CLDFLAGS           :=${AIX_FLAGS}
+  CXXLDFLAGS         :=${AIX_RTTI_SUPPORT} ${AIX_FLAGS}
 endif
 
 OPTFLAGS:=
 OPTFLAGS_COMPILE:=
 # optimize or not
-ifeq (${_CC_}${_OPT_},-gcc-debug)
+ifeq (${_OPT_},-debug)
   OPTFLAGS_COMPILE         :=-Wall
   OPTFLAGS                 :=-g
 endif
@@ -140,6 +165,9 @@ ifeq (${_CC_}${_OPT_},-gcc-prof)
 endif
 
 # to profile or not
+ifeq (${_OPT_},-prof)
+  OPTFLAGS                 :=-pg
+endif
 ifeq (${_OS_}${_CC_}${_OPT_},TRU64-prof)
   OPTFLAGS                 :=-pg -fast
 endif
@@ -148,7 +176,7 @@ ifeq (${_OS_}${_CC_}${_OPT_},AIX-prof)
 endif
 
 # regular flags
-ifeq (${_CC_}${_OPT_},-gcc)
+ifeq (${_OPT_},)
   OPTFLAGS_COMPILE         :=-Wall
   OPTFLAGS                 :=-g -O4
 endif
@@ -158,7 +186,6 @@ endif
 ifeq (${_OS_}${_CC_}${_OPT_},AIX)
   OPTFLAGS :=-qstrict -O3
 endif
-
 
 CFLAGS_COMPILE           +=$(OPTFLAGS_COMPILE) $(OPTFLAGS)
 CXXFLAGS_COMPILE         +=$(OPTFLAGS_COMPILE) $(OPTFLAGS)
@@ -177,33 +204,46 @@ ifeq (${_OS_}${_CC_},AIX-gcc)
   CXXLDFLAGS       +=-Wl,-bbigtoc
 endif
 
-
-## ammendments to the above because we are threaded
-ifeq (${_CC_}${_THR_},-gcc-threaded)
-  CFLAGS           +=-D_THREAD_SAFE
-  CXXFLAGS         +=-D_THREAD_SAFE
-  CFLAGS_COMPILE   +=-pthread
-  CXXFLAGS_COMPILE +=-pthread
-  CLIBS            +=-lpthread -lrt
-  CXXLIBS          +=-lpthread -lrt
-endif
-ifeq (${_OS_}${_CC_}${_THR_},TRU64-threaded)
-  CFLAGS           +=-D_REENTRANT
-  CXXFLAGS         +=-D_REENTRANT
-  CFLAGS_COMPILE   +=-pthread
-  CXXFLAGS_COMPILE +=-pthread
-  CLIBS            +=-lpthread -lrt
-  CXXLIBS          +=-lpthread -lrt
-endif
+# THREADS!!!
+T_CFLAGS           :=-D_THREAD_SAFE
+T_CXXFLAGS         :=-D_THREAD_SAFE
+T_CFLAGS_COMPILE   :=-pthread
+T_CXXFLAGS_COMPILE :=-pthread
+T_CLDFLAGS         :=
+T_CXXLDFLAGS       :=
+T_CLIBS            :=-lpthread -lrt
+T_CXXLIBS          :=-lpthread -lrt
 ifeq (${_OS_}${_CC_}${_THR_},AIX-threaded)
+# we do this by redefining our compilers
   CC               :=xlc_r
   CXX              :=xlC_r
   CDEPFLAGS        +=-D_THREAD_SAFE
   CXXDEPFLAGS      +=-D_THREAD_SAFE
+  T_CFLAGS           :=
+  T_CXXFLAGS         :=
+  T_CFLAGS_COMPILE   :=
+  T_CXXFLAGS_COMPILE :=
+  T_CLDFLAGS         :=
+  T_CXXLDFLAGS       :=
+  T_CLIBS            :=
+  T_CXXLIBS          :=
+endif
+## ammendments to the above because we are threaded
+ifeq (${_THR_},-threaded)
+  CFLAGS           +=T_CFLAGS
+  CXXFLAGS         +=T_CXXFLAGS
+  CFLAGS_COMPILE   +=T_CFLAGS_COMPILE
+  CXXFLAGS_COMPILE +=T_CXXFLAGS_COMPILE
+  CLDFLAGS         +=T_CLDFLAGS
+  CXXLDFLAGS       +=T_CXXLDFLAGS
+  CLIBS            +=T_CLIBS
+  CXXLIBS          +=T_CXXLIBS
 endif
 
 
 ## where is leda?
+LEDA/ :=
+LEDALIB/:=
 ifeq (${_OS_},TRU64)
   LEDA/   :=/usr/local/ir/LEDA-4.3/
   ifeq (${_CC_},-gcc)
@@ -294,7 +334,7 @@ ifeq (${_OS_},AIX)
 endif
 
 # sometimes we deploy on Solaris with CDX
-ifeq (${_OS_},SunOS)
+ifeq (${_OS|FULL_},SunOS|foster-city)
   CXXFLAGS_LAPACK   :=-DFTN_UNDERSCORE -DFTN_LOWERCASE
   CXXLDFLAGS_LAPACK :=-L/home/ross/local/lib
   CXXLIBS_LAPACK    :=-llapack -lblas -lF77
