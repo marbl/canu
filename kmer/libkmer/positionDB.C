@@ -663,6 +663,12 @@ positionDB::positionDB(char const  *seq,
   _bucketSizes     = 0L;
   _countingBuckets = 0L;
 
+  delete [] _sortedList;
+
+  _sortedListMax = 0;
+  _sortedListLen = 0;
+  _sortedList    = 0L;
+
   if (bktAllocIsJunk)
     delete [] bktAlloc;
 }
