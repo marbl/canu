@@ -1,7 +1,7 @@
 #include "fasta-cache.H"
 
 
-FastACache::FastACache(char *filename, u32bit cachesize, bool loadall, bool report) {
+FastACache::FastACache(const char *filename, u32bit cachesize, bool loadall, bool report) {
   _fastawrapper = new FastAWrapper(filename);
   _fastawrapper->openIndex();
 
