@@ -27,6 +27,9 @@ const char *descMsg  = "%lu\n";
 const char *usage =
 "usage: %s [--buildinfo] [-f|-F|-I <fasta-file>] [options]\n"
 "\n"
+"ENTERTAINMENT OPTIONS\n"
+"       -V:         whenever a sequence is read, print the defline to stderr\n"
+"\n"
 "SOURCE FILE\n"
 "       -f file:    use 'file' as an UN-INDEXED source file\n"
 "       -Ft file:   use 'file' as an INDEXED source file (the index is built if\n"
@@ -215,6 +218,7 @@ comp(const void *a, const void *b) {
 //  that the user can select between "new state" and
 //  "old state"
 //
+bool                   printOnLoad       = false;
 bool                   reverse           = false;
 bool                   complement        = false;
 bool                   withDefLine       = true;
@@ -245,6 +249,22 @@ failIfNotRandomAccess(void) {
     exit(1);
   }
 }
+
+
+
+//  Just so we can support the printOnLoad flag, this
+//  routine will call loadSequence on a FastAWrapper.
+//
+FastASequenceInCore *loadSequence(FastAWrapper *F) {
+  FastASequenceInCore *s = F->getSequence();
+
+  if (printOnLoad)
+    fprintf(stderr, "%s\n", s->header());
+
+  return(s);
+}
+
+
 
 
 FastAWrapper*
@@ -286,7 +306,7 @@ printIID(u32bit iid, FastASequenceInCore *s=0L) {
   if (s == 0L) {
     mySeq = true;
     f->find(iid);
-    s = f->getSequence();
+    s = loadSequence(f);
   }
 
   if (printMD5) {
@@ -320,7 +340,7 @@ printSequenceBetweenSize(u32bit small, u32bit large) {
   //  XXX: could be faster (maybe) with an index
 
   while (!f->eof()) {
-    FastASequenceInCore *s = f->getSequence();
+    FastASequenceInCore *s = loadSequence(f);
 
     if ((small <= s->sequenceLength()) &&
         (s->sequenceLength() < large))
@@ -377,7 +397,7 @@ findSequenceAndPrint(char *id) {
     if ((lastSeq == 0L) ||
         (lastSeq->getIID() != f->currentIID())) {
       delete lastSeq;
-      lastSeq = f->getSequence();
+      lastSeq = loadSequence(f);
     }
 
     printIID(f->currentIID(), lastSeq);
@@ -522,7 +542,7 @@ computeMD5ForEachSequence(FastAWrapper *F) {
   F->find((u32bit)0);
 
   for (u32bit idx=0; idx < numSeqs; idx++) {
-    FastASequenceInCore *s1 = F->getSequence();
+    FastASequenceInCore *s1 = loadSequence(F);
     md5_string(result+idx, s1->sequence(), s1->sequenceLength());
     result[idx].i = s1->getIID();
     delete s1;
@@ -560,10 +580,10 @@ findDuplicates(char *filename) {
       }
 
       A->find(result[idx-1].i);
-      s1 = A->getSequence();
+      s1 = loadSequence(A);
 
       A->find(result[idx].i);
-      s2 = A->getSequence();
+      s2 = loadSequence(A);
 
       if (strcmp(s1->sequence(), s2->sequence()) == 0) {
         fprintf(stdout, "%s\n%s\n\n", s1->header(), s2->header());
@@ -637,10 +657,10 @@ mapDuplicates(char *filea, char *fileb) {
 
     if (res == 0) {
       A->find(resultA[idxA].i);
-      FastASequenceInCore *sa = A->getSequence();
+      FastASequenceInCore *sa = loadSequence(A);
 
       B->find(resultB[idxB].i);
-      FastASequenceInCore *sb = B->getSequence();
+      FastASequenceInCore *sb = loadSequence(B);
 
       mapDuplicates_Print(filea, sa, fileb, sb);
 
@@ -650,7 +670,7 @@ mapDuplicates(char *filea, char *fileb) {
       int resb = md5_compare(resultA+idxA, resultB+idxBb);
       while (resb == 0) {
         B->find(resultB[idxBb].i);
-        FastASequenceInCore *sbb = B->getSequence();
+        FastASequenceInCore *sbb = loadSequence(B);
 
         mapDuplicates_Print(filea, sa, fileb, sbb);
 
@@ -666,7 +686,7 @@ mapDuplicates(char *filea, char *fileb) {
       int resa = md5_compare(resultA+idxAa, resultB+idxB);
       while (resa == 0) {
         A->find(resultA[idxAa].i);
-        FastASequenceInCore *saa = A->getSequence();
+        FastASequenceInCore *saa = loadSequence(A);
 
         mapDuplicates_Print(filea, saa, fileb, sb);
 
@@ -715,6 +735,9 @@ processArray(int argc, char **argv) {
       mapDuplicates(argv[arg-1], argv[arg]);
     } else {
     switch(argv[arg][1]) {
+      case 'V':
+        printOnLoad = !printOnLoad;
+        break;
       case 'f':
       case 'F':
         sourceFile = argv[++arg];
