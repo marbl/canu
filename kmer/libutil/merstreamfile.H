@@ -67,7 +67,9 @@ private:
   off_t                 _defStart;
   off_t                 _strStart;
 
-  u32bit               *_blockSizes;
+  u32bit               *_blockSize;
+  u32bit               *_blockSequence;
+  u64bit               *_blockPosition;
   char                 *_deflineStorage;
   char                **_deflines;
 
