@@ -102,6 +102,7 @@ ABORT(int X, char *Y) {
 }
 
 
+#if 0
 Exon *
 Sim4::new_exon(int f1, int f2, int t1, int t2, int len, int edist, int flag, Exon *next)
 {
@@ -129,7 +130,7 @@ Sim4::new_exon(int f1, int f2, int t1, int t2, int len, int edist, int flag, Exo
 
   return newthing;
 }
-
+#endif
 
 void
 Sim4::get_stats(Exon *lblock, sim4_stats_t *st) {
@@ -262,7 +263,7 @@ Sim4::compact_list(Exon **Lblock, Exon **Rblock)
       tmp_block->edist -= (int)(P*diff);
       tmp_block->next_exon = tmp_block1->next_exon;
       
-      free(tmp_block1);
+      ckfree(tmp_block1);
     } else
       tmp_block = tmp_block1;
   }
@@ -294,9 +295,9 @@ Sim4::ValNodeFreeData(ValNodePtr data_list)
   ValNodePtr   tmp_node;
 
   while ((tmp_node=data_list)!=NULL) {
-    free(tmp_node->data);
+    ckfree(tmp_node->data);
     data_list = data_list->next;
-    free(tmp_node); 
+    ckfree(tmp_node); 
   }
 }
 
@@ -346,7 +347,7 @@ Sim4::merge(Exon **t0, Exon **t1)
       }
       tmp0->next_exon = tmp1->next_exon;  
 
-      free(tmp1);
+      ckfree(tmp1);
     } else {
       tmp0 = tmp0->next_exon;
     }
@@ -363,7 +364,7 @@ Sim4::free_align(edit_script_list *aligns)
   while ((head=aligns)!=NULL) {
     aligns = aligns->next_script;
     Free_script(head->script);
-    free(head);
+    ckfree(head);
   }
 }
 
@@ -375,7 +376,7 @@ Sim4::free_list(Exon *left)
   
   while ((tmp_block=left)!=NULL) {
     left = left->next_exon;
-    free(tmp_block);
+    ckfree(tmp_block);
   }
 }    
 
@@ -624,13 +625,13 @@ Sim4::sync_slide_intron(int in_w, Exon **lblock, sim4_stats_t *st)
   /* now free all memory allocated */
  free_all:
   for (i=0; i<ni; i++) {
-    if (Glist[i]) free(Glist[i]);
-    if (Clist[i]) free(Clist[i]);
+    ckfree(Glist[i]);
+    ckfree(Clist[i]);
   }
 
-  free(Glist);
-  free(Clist);
-  free(oris);
+  ckfree(Glist);
+  ckfree(Clist);
+  ckfree(oris);
 
   return;
 }
@@ -740,7 +741,7 @@ Sim4::slide_intron(int in_w, Exon **lblock, sim4_stats_t *st)
         
         wobble(&t0,&t1,(type=='G')? "GT":"CT",(type=='G')? "AG":"AC",seq1);
 
-        free(g); free(c);
+        ckfree(g); ckfree(c);
 
         /* determine the type, based on the # matches w/ GT-AG (CT-AC) */
         s = seq1+t0->toGEN;

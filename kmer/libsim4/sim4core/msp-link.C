@@ -20,10 +20,11 @@
 //
 //  It really should go into the exonManager.
 //
+#if 0
 Exon_ptr
 new_exon(int f1, int f2, int t1, int t2, int len, int edist, int flag, Exon_ptr next)
 {
-  Exon_ptr newthing = (Exon_ptr )malloc(sizeof(struct exon));
+  Exon_ptr newthing = (Exon_ptr )ckalloc(sizeof(struct exon));
 
   newthing->next_exon = next;
 
@@ -47,6 +48,7 @@ new_exon(int f1, int f2, int t1, int t2, int len, int edist, int flag, Exon_ptr 
 
   return newthing;
 }
+#endif
 
 
 

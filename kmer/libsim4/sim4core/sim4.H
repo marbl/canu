@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
+//#include <math.h>
 #include <unistd.h>
 #include <signal.h>
 #include <assert.h>
@@ -13,6 +13,7 @@
 #include <ctype.h>
 #include <errno.h>
 
+#include "ckalloc.H"
 #include "sim4parameters.H"
 #include "sim4command.H"
 #include "exon.H"
@@ -30,11 +31,6 @@ enum { FWD = 0, BWD = 1, BOTH = 2 };
 enum { OK = 0, FREE_START = 1, FREE_END = 2, FREE_BOTH_ENDS = 3};
 
 /* data structures */
-
-
-
-
-typedef struct exon   Exon;
 
 typedef struct coordinates {
   int pos1;
@@ -108,6 +104,8 @@ struct hash_table {
 
 
 
+
+
 class Sim4 {
 private:
   mspManager   _mspManager;
@@ -136,7 +134,7 @@ private:
 
   int         G_score;
   int         C_score;
-  Exon_ptr    exon_list;
+  Exon       *exon_list;
 
   int mask;
 
@@ -162,8 +160,8 @@ private:
   //
   void free_coords(coords ***val, int size) { 
     for(int i=0; i<size; ++i) 
-      free(val[i]);
-    free(val);
+      ckfree(val[i]);
+    ckfree(val);
   };
 
   int    EXTEND_BW(char *a, char *b, int c, int d, int e, int f, int *g, int *h) {
@@ -272,7 +270,7 @@ private:
 
 
   //  log.C
-  int    getMSPthreshold(bool useDefaultCforK, int defaultK, int len1, int len2);
+  int    getMSPthreshold(int defaultK, int len1, int len2);
 
 
   //  Functions from sim4b1.h
@@ -341,7 +339,7 @@ private:
   void   get_stats(Exon *,sim4_stats_t *); 
   int    get_edist(int,int,int,int,char *,char *);
   //int    find_log_entry(long const *log4s, int n, int len, int offset);
-  Exon  *new_exon(int,int,int,int,int,int,int,Exon *);
+  //Exon  *new_exon(int,int,int,int,int,int,int,Exon *);
   void   add_word(int,int);
   int     extend_hit(int,int,const char *const,const char * const,int,int,int,int);
   void   search(char *,char *,int,int,int,int); 
@@ -387,47 +385,6 @@ private:
     fprintf(stderr, "%s\n", msg);
     fflush(stderr);
     kill(getpid(), SIGKILL);
-  };
-
-  void *ckalloc(size_t amount) {
-    void *p;
-
-#if 0
-    if (amount > u64bitONE << 31) {
-#ifdef TRUE64BIT
-      fprintf(stderr, "Allocation invalid: %llu bytes.\n", amount);
-#else
-      fprintf(stderr, "Allocation invalid: %lu bytes.\n", amount);
-#endif
-      kill(getpid(), SIGSEGV);
-      amount = 8;
-    }
-#endif
-
-    if (amount == 0) {
-      amount = 8;
-    }
-
-    p = malloc(amount);
-
-#if 0
-#ifdef TRUE64BIT
-    fprintf(stderr, "Allocate %lu bytes -- %p.\n", amount, p);
-#else
-    fprintf(stderr, "Allocate %u bytes -- %p.\n", amount, p);
-#endif
-#endif
-
-    if (p == NULL) {
-#ifdef TRUE64BIT
-      fprintf(stderr, "Can't allocate %lu bytes.\n", amount);
-#else
-      fprintf(stderr, "Can't allocate %u bytes.\n", amount);
-#endif
-      kill(getpid(), SIGKILL);
-    }
-
-    return(p);
   };
 
 

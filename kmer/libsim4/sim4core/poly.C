@@ -1,3 +1,4 @@
+#include <math.h>
 #include "sim4.H"
 
 #define MIN_EXON 12
@@ -29,7 +30,7 @@ Sim4::get_polyAT(char *seq, int len, int *pT, int *pA, int flag)
     sum20 = sum10;
     for ( ; s>=seq && (sum10<=MAX10 || sum20<=MAX20); ) {
       if (!encodingA[*s] && sum10<=MAX10 && (seq+len>=s+20 || sum20<MAX10))
-        last10 = s-seq+1;
+        last10 = (int)(s-seq+1);
       if (--s>seq) {
         sum10 += encodingA[*s] - encodingA[*(--t)];
         sum20 += encodingA[*s] -(((seq+len)-s>20) ? encodingA[*(--v)] : 0);
@@ -41,7 +42,7 @@ Sim4::get_polyAT(char *seq, int len, int *pT, int *pA, int flag)
       s = seq+last10+8;
       while (s >= seq && !encodingA[*s]) s--;
       if ((s-seq+1)-last10+1<=5)
-        *pA = s-seq+2;
+        *pA = (int)(s-seq+2);
       else
         *pA = last10;
     }
@@ -62,7 +63,7 @@ Sim4::get_polyAT(char *seq, int len, int *pT, int *pA, int flag)
     sum20 = sum10;
     for ( ; s<seq+len && (sum10<=MAX10 || sum20<=MAX20); ) {
       if (!encodingT[*s] && sum10<=MAX10 && (s-seq>=19 || sum20<MAX10))
-        last10 = s-seq+1;
+        last10 = (int)(s-seq+1);
       if (++s<seq+len) {
         sum10 += encodingT[*s] - encodingT[*(++t)];
         sum20 += encodingT[*s] - ((s-seq>=20) ? encodingT[*(++v)] : 0);
@@ -74,7 +75,7 @@ Sim4::get_polyAT(char *seq, int len, int *pT, int *pA, int flag)
       s = seq+last10-10;
       while (s < seq+len && !encodingT[*s]) s++;
       if (last10-(s-seq)+1<=5)
-        *pT = s-seq;
+        *pT = (int)(s-seq);
       else
         *pT = last10;
     }
@@ -101,11 +102,12 @@ Sim4::trim_polyA_align(struct edit_script_list **Sptr, Exon *lblock, Exon **exon
     /* cDNA gap: remove the entire script; is this properly sorted? LLL */
     *Sptr = head->next_script;
     Free_script(head->script);
-    free(head);
+    ckfree(head);
     while ((*exons)->frEST>=bc) {
       prev = find_previous(lblock,*exons);
       prev->next_exon = (*exons)->next_exon;
-      free(*exons); *exons = prev;
+      ckfree(*exons);
+      *exons = prev;
     }
     *pA = bc;
     return;
@@ -132,7 +134,7 @@ Sim4::trim_polyA_align(struct edit_script_list **Sptr, Exon *lblock, Exon **exon
           tmpi += num;
           i    -= num;
           head->script = tp->next;
-          free(tp);
+          ckfree(tp);
           tp = head->script;
         }
         break;
@@ -142,7 +144,7 @@ Sim4::trim_polyA_align(struct edit_script_list **Sptr, Exon *lblock, Exon **exon
         j    -= num;
         tmpi += num;
         head->script = tp->next;
-        free(tp);
+        ckfree(tp);
         tp = head->script;
         break;
       case SUBSTITUTE:
@@ -187,7 +189,8 @@ Sim4::trim_polyA_align(struct edit_script_list **Sptr, Exon *lblock, Exon **exon
 
           i -= num; j -= num;
           head->script = tp->next;
-          free(tp); tp = head->script;
+          ckfree(tp);
+          tp = head->script;
         }
         break;
 #if 0
@@ -214,12 +217,13 @@ Sim4::trim_polyA_align(struct edit_script_list **Sptr, Exon *lblock, Exon **exon
       (*exons)->numEdits -= tp->num;
     }
     head->script = tp->next;
-    free(tp); tp = head->script;
+    ckfree(tp);
+    tp = head->script;
   }
 
   if (head->script==NULL) {
     *Sptr = head->next_script;
-    free(head);
+    ckfree(head);
   } else {
     head->len1 = j-head->offset1+1;
     head->len2 = i-head->offset2+1;
@@ -230,7 +234,8 @@ Sim4::trim_polyA_align(struct edit_script_list **Sptr, Exon *lblock, Exon **exon
   if ((*exons)->frEST>i) {
     prev = find_previous(lblock,*exons);
     prev->next_exon = (*exons)->next_exon;
-    free(*exons); *exons = prev;
+    ckfree(*exons);
+    *exons = prev;
   } else {
     (*exons)->toEST = i;
     (*exons)->toGEN = j;
@@ -253,7 +258,8 @@ void
 Sim4::remove_polyA_back(struct edit_script_list **Sptr, Exon *Exons,
                         char *s1, char *s2,
                         int l2, int *lastA) {
-  Exon *t, *exons_tail, *prev; /* start from Lblock */
+  Exon *t;
+  Exon *exons_tail;
   char *b, *end;
   int numA, pA, dummy, trim_p, reverse_script=0;
   int startPos=0, cutAmount=0;
@@ -267,10 +273,9 @@ Sim4::remove_polyA_back(struct edit_script_list **Sptr, Exon *Exons,
     script_flip_list(Sptr);
   }
 
-     
-  exons_tail = Exons->next_exon; prev = Exons;
-  for ( ; exons_tail->next_exon && exons_tail->next_exon->toGEN; 
-        prev=exons_tail, exons_tail=exons_tail->next_exon);
+  exons_tail = Exons->next_exon;
+  while (exons_tail->next_exon && exons_tail->next_exon->toGEN)
+    exons_tail=exons_tail->next_exon;
 
   trim_p = TRUE;
 
@@ -339,9 +344,11 @@ Sim4::trim_polyT_align(struct edit_script_list **Sptr, Exon **exons, const int e
     /* cDNA gap: remove the entire script */
     *Sptr = head->next_script;
     Free_script(head->script);
-    free(head);
+    ckfree(head);
     while ((*exons)->frEST<ec) {
-      t = *exons; *exons = t->next_exon; free(t);
+      t = *exons;
+      *exons = t->next_exon;
+      ckfree(t);
     }
     *pT = ec;
     return;
@@ -367,7 +374,7 @@ Sim4::trim_polyT_align(struct edit_script_list **Sptr, Exon **exons, const int e
           tmpi += num;
           i    += num;
           head->script = tp->next; 
-          free(tp);
+          ckfree(tp);
           tp = head->script; 
         }
         break;
@@ -377,7 +384,7 @@ Sim4::trim_polyT_align(struct edit_script_list **Sptr, Exon **exons, const int e
         j    += num;
         tmpi += num;
         head->script = tp->next;
-        free(tp);
+        ckfree(tp);
         tp = head->script; 
         break;
       case SUBSTITUTE:
@@ -422,7 +429,8 @@ Sim4::trim_polyT_align(struct edit_script_list **Sptr, Exon **exons, const int e
 
           i +=num; j += num;
           head->script = tp->next;
-          free(tp); tp = head->script; 
+          ckfree(tp);
+          tp = head->script; 
         }
         break;
     }
@@ -445,12 +453,13 @@ Sim4::trim_polyT_align(struct edit_script_list **Sptr, Exon **exons, const int e
       (*exons)->numEdits -= tp->num;
     }
     head->script = tp->next;
-    free(tp); tp = head->script;
+    ckfree(tp);
+    tp = head->script;
   }
     
   if (head->script==NULL) {
     *Sptr = head->next_script;
-    free(head);
+    ckfree(head);
   } else {
     head->len1 -= j-head->offset1;
     head->len2 -= i-head->offset2;
@@ -460,7 +469,9 @@ Sim4::trim_polyT_align(struct edit_script_list **Sptr, Exon **exons, const int e
   }
 
   if ((*exons)->toEST<i) {
-    t = *exons; *exons = t->next_exon; free(t);
+    t = *exons;
+    *exons = t->next_exon;
+    ckfree(t);
   } else {
     (*exons)->frEST = i; 
     (*exons)->frGEN = j;

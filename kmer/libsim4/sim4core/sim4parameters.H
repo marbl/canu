@@ -8,12 +8,6 @@ public:
   sim4parameters();
   ~sim4parameters();
 
-#if 0
-  void  setUseDefaultCforK(bool x) {
-    _useDefaultCforK = x;
-  };
-#endif
-
   void  setFindAllExons(bool x) {
     _findAllExons = x;
   };
@@ -73,10 +67,6 @@ public:
 
 
 private:
-#if 0
-  bool          _useDefaultCforK;
-#endif
-
   bool          _findAllExons;
   double        _minCoverage;
   int           _minCoverageLength;

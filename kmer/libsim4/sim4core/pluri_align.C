@@ -1,4 +1,4 @@
-//#include <limits.h>
+#include <math.h>
 #include "sim4.H"
 
 
@@ -31,8 +31,8 @@ Sim4::align_get_dist(int i1, int j1, int i2, int j2, int limit)
   
   if (last_d[goal_diag] >= i2) {
     /* Free working vectors */
-    free(last_d+lower);
-    free(temp_d+lower);
+    ckfree(last_d+lower);
+    ckfree(temp_d+lower);
     return 0;
   }
 
@@ -59,14 +59,14 @@ Sim4::align_get_dist(int i1, int j1, int i2, int j2, int limit)
 
     if (last_d[goal_diag] >= i2) {
       /* Free working vectors */
-      free(last_d+lower);
-      free(temp_d+lower);
+      ckfree(last_d+lower);
+      ckfree(temp_d+lower);
       return c;
     }
   }
 
-  free(last_d+lower);
-  free(temp_d+lower);
+  ckfree(last_d+lower);
+  ckfree(temp_d+lower);
 
   /* Ran out of distance limit */
   return -1;
@@ -92,7 +92,7 @@ Sim4::Condense_both_Ends(edit_script **head,
     while (((tp1 = tp->next) != NULL) && (tp->op_type == tp1->op_type)) {
       tp->num = tp->num + tp1->num;
       tp->next = tp1->next;
-      free(tp1);
+      ckfree(tp1);
     }
     if (tp->next) *prev = tp;
     else *tail = tp;
@@ -127,8 +127,8 @@ Sim4::pluri_align(int *dist_ptr,
   st->numberOfMatches = 0;
   st->numberOfNs      = 0;
 
-  head = NULL;
-  *Aligns = NULL;
+  head      = 0L;
+  *Aligns   = 0L;
   *dist_ptr = ali_dist = 0;
 
   end1 = len1; 
@@ -137,36 +137,6 @@ Sim4::pluri_align(int *dist_ptr,
   nextExon = thisExon->next_exon;
 
   while (nextExon && nextExon->toGEN) {
-#if 0
-    if ((diff=thisExon->frEST-nextExon->toEST-1)!=0) {
-      if (thisExon->toGEN) {
-        enew = (edit_script_list *)ckalloc(sizeof(edit_script_list));
-        enew->next_script = *Aligns;
-        *Aligns = enew;
-        (*Aligns)->script = head;
-        (*Aligns)->offset1 = thisExon->frGEN;
-        (*Aligns)->offset2 = thisExon->frEST;
-        (*Aligns)->len1 = end1-(*Aligns)->offset1+1;
-        (*Aligns)->len2 = end2-(*Aligns)->offset2+1;
-        (*Aligns)->score = ali_dist;
-        ali_dist = 0;
-        head = NULL;
-      }
-      end1 = nextExon->toGEN;
-      end2 = nextExon->toEST;  
-
-    } else if (((diff=thisExon->frGEN-nextExon->toGEN-1)!=0) &&
-               thisExon->toGEN) {
-          struct edit_script  *newthing;
-
-      newthing = (edit_script *) ckalloc(sizeof(edit_script));
-      newthing->op_type = DELETE;
-      newthing->num = diff;
-      newthing->next = head;
-      head = newthing;
-    } else if (diff) 
-      end1 = nextExon->toGEN;
-#else
     diff = thisExon->frEST - nextExon->toEST - 1;
       
     if (diff != 0) {
@@ -201,7 +171,6 @@ Sim4::pluri_align(int *dist_ptr,
         }
       }
     }
-#endif
 
     diff = align_get_dist(nextExon->frGEN-1, nextExon->frEST-1,
                           nextExon->toGEN, nextExon->toEST,
@@ -215,10 +184,6 @@ Sim4::pluri_align(int *dist_ptr,
       st->numberOfNs      = 0;
       st->percentID       = -1;
 
-      //fprintf(stderr, "The two sequences are not really similar.\nPlease try an exact method.\n");
-      
-      //  XXX:  MEMORY LEAK!  Should free the Aligns!
-      //
       *Aligns             = 0L;
 
       return;
@@ -241,7 +206,8 @@ Sim4::pluri_align(int *dist_ptr,
       end1 -= right->num; 
       if (head && (head->op_type == DELETE)) 
         head->num += right->num;
-      free(right); prev->next = NULL; 
+      ckfree(right);
+      prev->next = NULL; 
       right = prev;
     } 
 
@@ -253,7 +219,7 @@ Sim4::pluri_align(int *dist_ptr,
       tmp_script = left->next; 
       if (right == left)
         right = tmp_script;
-      free(left);
+      ckfree(left);
       left = tmp_script; 
     }
     

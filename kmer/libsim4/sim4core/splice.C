@@ -101,7 +101,8 @@ Sim4::splice_donor(char *xseq, char *yseq, int M, int N, int *gt_score,
       }
     } 
   } 
-  free(CCf); free(Xt); 
+  ckfree(CCf);
+  ckfree(Xt); 
 }  
 
 void
@@ -146,7 +147,8 @@ Sim4::splice_donor_uni(char *xseq, char *yseq, int M, int N,
       }
     }
   }
-  free(CCf); free(Xt);
+  ckfree(CCf);
+  ckfree(Xt);
 }
 
 
@@ -200,7 +202,8 @@ Sim4::splice_acceptor(char *xseq, char *yseq, int M, int N,
       }
     } 
   } 
-  free(CCb); free(Xt); 
+  ckfree(CCb);
+  ckfree(Xt); 
 }
 
 
@@ -247,7 +250,8 @@ Sim4::splice_acceptor_uni(char *xseq, char *yseq, int M, int N,
       }
     }
   }
-  free(CCb); free(Xt);
+  ckfree(CCb);
+  ckfree(Xt);
 }
 
 
@@ -259,7 +263,8 @@ Sim4::splice(char *in_seqx, int ls, int us, int le, int ue,
 {
   int p, q, *gtscore=NULL, *ctscore=NULL, *agscore=NULL, *acscore=NULL;
   int i, tmp;
-  int maxCscore, maxGscore, Gxs, Gxe, Gy, Cxs, Cxe, Cy, keep_Ci, keep_Gi;
+  int maxCscore, maxGscore, Gxs, Gxe, Gy, Cxs, Cxe, Cy;
+  //int keep_Ci, keep_Gi;
   int *max_Cf=NULL, *max_Gf=NULL, *max_Cb=NULL, *max_Gb=NULL;
   int *start_Gi=NULL, *start_Ci=NULL, *end_Gi=NULL, *end_Ci=NULL;
   char *s;
@@ -329,14 +334,16 @@ Sim4::splice(char *in_seqx, int ls, int us, int le, int ue,
                      gtscore, &max_Gf, &start_Gi);
     splice_acceptor_uni(in_seqx+le-1, in_seqy+ys-1, ue-le+1, ye-ys+1,
                         agscore, &max_Gb, &end_Gi);
-    free(gtscore);              /* free(agscore); */
+    ckfree(gtscore);
+    /* free(agscore); */
 
   } else if (ori==BWD) {
     splice_donor_uni(in_seqx+ls-1, in_seqy+ys-1, us-ls+1, ye-ys+1,
                      ctscore, &max_Cf, &start_Ci);              
     splice_acceptor_uni(in_seqx+le-1, in_seqy+ys-1, ue-le+1, ye-ys+1,
                         acscore, &max_Cb, &end_Ci);
-    free(ctscore);              /* free(acscore); */
+    ckfree(ctscore);
+    /* free(acscore); */
 
   } else {
     splice_donor(in_seqx+ls-1, in_seqy+ys-1, us-ls+1, ye-ys+1, 
@@ -345,8 +352,10 @@ Sim4::splice(char *in_seqx, int ls, int us, int le, int ue,
     splice_acceptor(in_seqx+le-1, in_seqy+ys-1, ue-le+1, ye-ys+1, 
                     agscore, acscore, &max_Gb, &max_Cb, &end_Gi, &end_Ci);
 
-    free(gtscore);              /* free(agscore);     */
-    free(ctscore);              /* free(acscore); */
+    ckfree(gtscore);
+    /* free(agscore);     */
+    ckfree(ctscore);
+    /* free(acscore); */
   }
 
 #if 0
@@ -365,10 +374,13 @@ Sim4::splice(char *in_seqx, int ls, int us, int le, int ue,
         maxGscore = tmp;
         /* save (i, start_Gi[i], end_Gi[i]); */
         Gxs = ls+start_Gi[i]-1; Gxe = le+end_Gi[i]-1; Gy = ys+i-1;
-        keep_Gi = i;
+        //keep_Gi = i;
       }  
     }
-    free(max_Gf); free(max_Gb); /* free(start_Gi); free(end_Gi); */
+    ckfree(max_Gf);
+    ckfree(max_Gb);
+    /* free(start_Gi); */
+    /* free(end_Gi); */
   }
   if (ori==BWD || ori==BOTH) {
     for (i=0; i<=ye-ys+1; i++) {
@@ -376,10 +388,13 @@ Sim4::splice(char *in_seqx, int ls, int us, int le, int ue,
         maxCscore = tmp;
         /* save (i, start_Ci[i], end_Ci[i]); */
         Cxs = ls+start_Ci[i]-1; Cxe = le+end_Ci[i]-1; Cy = ys+i-1;
-        keep_Ci = i;
+        //keep_Ci = i;
       }
     }
-    free(max_Cf); free(max_Cb); /* free(start_Ci); free(end_Ci); */
+    ckfree(max_Cf);
+    ckfree(max_Cb);
+    /* free(start_Ci); */
+    /* free(end_Ci); */
   }
 
 #if 0

@@ -121,7 +121,7 @@ get_msp_threshold(int len1, int len2)
 
 
 int
-Sim4::getMSPthreshold(bool useDefaultCforK, int defaultK, int l1, int l2) {
+Sim4::getMSPthreshold(int defaultK, int l1, int l2) {
   int K;
 
   if (defaultK <= 0) {
@@ -130,17 +130,6 @@ Sim4::getMSPthreshold(bool useDefaultCforK, int defaultK, int l1, int l2) {
     /* compensate for the rounding in the log formula */
     if (K >= 0)
       K--;
-
-    //
-    //  We used to reset K to be DEFAULT_C here (on various conditions), but Liliana
-    //  decided it was useless.
-    //
-#if 0
-    if ((useDefaultCforK) && (DEFAULT_C < K)) {
-      K = DEFAULT_C;
-    }
-#endif
-
   } else {
     K = defaultK;
   }

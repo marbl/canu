@@ -100,7 +100,7 @@ Sim4::greedy(char *s1, char *s2, int m, int n0, int OFFSET1, int OFFSET2, Exon *
     /* hit last row; stop search */
     *lblock = *rblock = new_exon(l_offset2+1,l_offset1+1,l_offset2+m,
                                  l_offset1+m,m,0,0,NULL);
-    free(allocdSpace);
+    ckfree(allocdSpace);
 
     ANNOUNCEEXIT("greedy-4\n");
     return 0;
@@ -272,7 +272,7 @@ Sim4::greedy(char *s1, char *s2, int m, int n0, int OFFSET1, int OFFSET2, Exon *
   
   if (d>MAX_D) {
     *lblock = *rblock = NULL;
-    free(allocdSpace);
+    ckfree(allocdSpace);
     ANNOUNCEEXIT("greedy-5\n");
     return d;  
   }
@@ -320,7 +320,7 @@ Sim4::greedy(char *s1, char *s2, int m, int n0, int OFFSET1, int OFFSET2, Exon *
       }
   }
   
-  free(allocdSpace);
+  ckfree(allocdSpace);
 
   ANNOUNCEEXIT("greedy-6\n");
   return back+forth;

@@ -107,7 +107,7 @@ Sim4::extend_bw(char *s1, char *s2, int m, int n, int offset1, int offset2, int 
         *line1 = row+offset1;
         *line2 = col+offset2;
 
-        free(allocdSpace);
+        ckfree(allocdSpace);
 
         return d;
       }
@@ -117,7 +117,7 @@ Sim4::extend_bw(char *s1, char *s2, int m, int n, int offset1, int offset2, int 
         *line1 = row+offset1;
         *line2 = col+offset2;
 
-        free(allocdSpace);
+        ckfree(allocdSpace);
 
         return d;
       }
@@ -128,7 +128,7 @@ Sim4::extend_bw(char *s1, char *s2, int m, int n, int offset1, int offset2, int 
         *line1 = row+offset1;
         *line2 = col+offset2;
 
-        free(allocdSpace);
+        ckfree(allocdSpace);
 
         return d;
       }
@@ -157,7 +157,7 @@ Sim4::extend_bw(char *s1, char *s2, int m, int n, int offset1, int offset2, int 
   *line1 = min_row[d]+offset1;
   *line2 = min_row[d]+min_diag[d]-ORIGIN+offset2;
 
-        free(allocdSpace);
+  ckfree(allocdSpace);
 
   return d;
 }
@@ -271,7 +271,7 @@ Sim4::extend_fw(char *s1, char *s2, int m, int n, int offset1, int offset2, int 
         *line1 = row+offset1;
         *line2 = col+offset2;
 
-        free(allocdSpace);
+        ckfree(allocdSpace);
 
         return d;
       }
@@ -281,7 +281,7 @@ Sim4::extend_fw(char *s1, char *s2, int m, int n, int offset1, int offset2, int 
         *line1 = row+offset1;
         *line2 = col+offset2;
 
-        free(allocdSpace);
+        ckfree(allocdSpace);
 
         return d;
       }
@@ -292,7 +292,7 @@ Sim4::extend_fw(char *s1, char *s2, int m, int n, int offset1, int offset2, int 
         *line1 = row+offset1;
         *line2 = col+offset2;
 
-        free(allocdSpace);
+        ckfree(allocdSpace);
 
         return d;
       }
@@ -321,25 +321,25 @@ Sim4::extend_fw(char *s1, char *s2, int m, int n, int offset1, int offset2, int 
   *line1 = max_row[d]+offset1;
   *line2 = max_row[d]+max_diag[d]-ORIGIN+offset2;
 
-  free(allocdSpace);
+  ckfree(allocdSpace);
 
   return d;
 
   /*
-     if ((d>2) && (max_row[d-1]-max_row[d-2]<3)) {
-     *line1 = max_row[d-2]+offset1;
-     *line2 = max_row[d-2]+max_diag[d-2]-ORIGIN+offset2;
+    if ((d>2) && (max_row[d-1]-max_row[d-2]<3)) {
+    *line1 = max_row[d-2]+offset1;
+    *line2 = max_row[d-2]+max_diag[d-2]-ORIGIN+offset2;
 
-        free(allocdSpace);
+    ckfree(allocdSpace);
      
-     return d-2;
-     }
+    return d-2;
+    }
      
-     *line1 = max_row[d-1]+offset1;
-     *line2 = max_row[d-1]+max_diag[d-1]-ORIGIN+offset2;
+    *line1 = max_row[d-1]+offset1;
+    *line2 = max_row[d-1]+max_diag[d-1]-ORIGIN+offset2;
 
-        free(allocdSpace);
+    ckfree(allocdSpace);
 
-     return d-1;
-     */
+    return d-1;
+  */
 }

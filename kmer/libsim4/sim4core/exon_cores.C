@@ -14,34 +14,26 @@ Sim4::exon_cores(char *s1, char *s2,
                  int flag,
                  int in_W, int in_K,
                  int type) {
-  int       W;
-  int       K;
 
 #if 0
   fprintf(stdout, "exonCores: l1=%d l2=%d offset1=%d offset2=%d flag=%d W=%d K=%d\n",
           l1, l2, offset1, offset2, flag, in_W, in_K);
 #endif
 
-#ifdef INSTRUMENT
-  double bgnTime = getTime();
-  double tmpTime;
-#endif
-
-  //K = getMSPthreshold(globalParams->_useDefaultCforK && flag, in_K, l1, l2);
-  K = getMSPthreshold(flag, in_K, l1, l2);
-
 #ifdef INTERSPECIES
-#warm INTERSPECIES MODE ENABLED in exon_cores.C
-  K =  (int)(((int)(log(.75*(double)len1)+log((double)len2))/log(4.0)) * 1.0);
+  int K =  (int)(((int)(log(.75*(double)len1)+log((double)len2))/log(4.0)) * 1.0);
+#else
+  int K = getMSPthreshold(in_K, l1, l2);
 #endif
 
   _mspManager.clear();
 
   exon_list = NULL;
 
-  W = min(in_W, l2);
-
-  /* use longer sequence for permanent tables */
+  //  XXX: We used to limit W to be 12 maximum.  BPW noticed on
+  //  28apr03 that we're still using in_W (unlimited W).
+  //  
+  //int W = min(in_W, l2);
 
   bld_table(s2,l2,in_W,type);
   search(s1,s2,l1,l2,in_W,K);
@@ -59,16 +51,14 @@ Sim4::exon_cores(char *s1, char *s2,
 
 
 void
-Sim4::search(char *s1, char *s2, int l1, int l2, int in_W, int in_K)
-{
-  register struct hash_node *h;
-  register char *t;
-  register int ecode;
-  register int i, p;
-
-  int       lower, upper;
-  int      *allocated;
-  int      *diag_lev;
+Sim4::search(char *s1, char *s2, int l1, int l2, int in_W, int in_K) {
+  struct hash_node *h;
+  char             *t;
+  int               ecode;
+  int               i, p;
+  int               lower;
+  int              *allocated;
+  int              *diag_lev;
 
   //  Too short?  Abort!
   //
@@ -78,7 +68,6 @@ Sim4::search(char *s1, char *s2, int l1, int l2, int in_W, int in_K)
   //double startTime = getTime();
 
   lower = -l1;
-  upper =  l2;
 
   allocated = new int [l1 + l2 + 1];
   for (i = l1 + l2 + 1; i; )
@@ -174,11 +163,11 @@ Sim4::extend_hit(int pos1, int pos2,
   score = in_W + left_sum + right_sum;
 
   if (score >= in_K)
-    _mspManager.addMSP(end1 - beg1,
-                       beg1 - (s1 + 1),
-                       beg2 - (s2 + 1),
+    _mspManager.addMSP((int)(end1 - beg1),
+                       (int)(beg1 - (s1 + 1)),
+                       (int)(beg2 - (s2 + 1)),
                        score);
 
-  return(end1 - s1 - 1 + in_W);
+  return((int)(end1 - s1 - 1 + in_W));
 }
 

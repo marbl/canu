@@ -215,8 +215,10 @@ Sim4::align_path(int i1, int j1, int i2, int j2, int dist, edit_script **head, e
       break;
     }         
   }              
-  free(last_d+lower); free(rlast_d+rlower);
-  free(temp_d+lower); free(rtemp_d+rlower);
+  ckfree(last_d+lower);
+  ckfree(rlast_d+rlower);
+  ckfree(temp_d+lower);
+  ckfree(rtemp_d+rlower);
   
   if (flag) {    
     /* Find a path from (i1,j1) to (mi,mj) */
@@ -251,7 +253,7 @@ Sim4::Condense_script(edit_script *head)
     while (((tp1 = tp->next) != NULL) && (tp->op_type == tp1->op_type)) {
       tp->num = tp->num + tp1->num;
       tp->next = tp1->next;
-      free(tp1);
+      ckfree(tp1);
     }
     tp = tp->next;
   }
@@ -303,7 +305,7 @@ Sim4::Free_script(edit_script *head)
   tp = head;
   while (tp != NULL) {
     tp1 = tp->next;
-    free(tp);
+    ckfree(tp);
     tp = tp1;
   }
 }

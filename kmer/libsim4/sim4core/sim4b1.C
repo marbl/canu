@@ -5,10 +5,14 @@
 #define  DEFAULT_K         16
 #define  DEFAULT_C         12
 
-//#define DEBUG_AIX
+//  SHOW_PROGRESS -- write the progress of Sim4::SIM4 to stderr
+//  DEBUG_EXONS   -- dump the exons at various places
+//
+//#define SHOW_PROGRESS
+//#define DEBUG_EXONS
 
 
-#ifdef DEBUG_AIX
+#ifdef DEBUG_EXONS
 void
 printExons(char *label, Exon *l) {
   fprintf(stdout, label);
@@ -46,6 +50,10 @@ Sim4::SIM4(char *in_seq1, char *in_seq2,
   Exon   *tmp_block=0L;
   Exon   *tmp_block1=0L;
 
+#ifdef SHOW_PROGRESS
+  fprintf(stderr, "STARTING SIM4 RUN\n");
+#endif
+
   struct edit_script_list *Script_head;
 
   seq1 = in_seq1;
@@ -62,7 +70,15 @@ Sim4::SIM4(char *in_seq1, char *in_seq2,
 
   *dist_ptr = 0;
 
+#ifdef SHOW_PROGRESS
+  fprintf(stderr, "before exon_cores\n");
+#endif
+
   exon_cores(seq1-1, seq2-1, len1, len2, 1, 1, 0, wordSize, mspThreshold1, PERM);
+
+#ifdef SHOW_PROGRESS
+  fprintf(stderr, "after exon_cores\n");
+#endif
 
   //  See if there are too many MSPs found.  If so, fail.
   //
@@ -118,10 +134,16 @@ Sim4::SIM4(char *in_seq1, char *in_seq2,
 
   /* enclose the current path in the (0,0,0,0) and (M+1,N+1,0,0) brackets */
 
-  Lblock = new_exon (0,0,0,0,0,0,0,Lblock);
+#ifdef SHOW_PROGRESS
+  fprintf(stderr, "exon bracket at start\n");
+#endif
+  Lblock = new_exon(0,0,0,0,0,0,0,Lblock);
   if (Rblock == NULL)
     Rblock = Lblock;
-  Rblock->next_exon = new_exon (len1+1,len2+1,0,0,0,0,0,NULL); 
+#ifdef SHOW_PROGRESS
+  fprintf(stderr, "exon bracket at end; Lblock = 0x%08lx, Rblock = 0x%08lx\n", Lblock, Rblock);
+#endif
+  Rblock->next_exon = new_exon(len1+1,len2+1,0,0,0,0,0,NULL); 
 
   PRINTEXONS("0c\n", Lblock);
 
@@ -130,6 +152,11 @@ Sim4::SIM4(char *in_seq1, char *in_seq2,
 
 
   PRINTEXONS("INIT\n", Lblock);
+
+
+#ifdef SHOW_PROGRESS
+  fprintf(stderr, "before big nasty while loop\n");
+#endif
 
 
   tmp_block = Lblock;
@@ -195,9 +222,8 @@ Sim4::SIM4(char *in_seq1, char *in_seq2,
 
   PRINTEXONS("FINAL\n", Lblock);
 
-
-#ifdef DEBUG_AIX
-  fprintf(stderr, "1\n");
+#ifdef SHOW_PROGRESS
+  fprintf(stderr, "sim4b1 -- before compact_list\n");
 #endif
 
   /* compaction step; note: it resets the right end of the list to   */ 
@@ -205,8 +231,8 @@ Sim4::SIM4(char *in_seq1, char *in_seq2,
 
   compact_list(&(Lblock->next_exon), &Rblock);
 
-#ifdef DEBUG_AIX
-  fprintf(stderr, "2\n");
+#ifdef SHOW_PROGRESS
+  fprintf(stderr, "sim4b1 -- before small block at start removal\n");
 #endif
 
   /* eliminate marginal small blocks at the start of the sequence;   */
@@ -215,17 +241,22 @@ Sim4::SIM4(char *in_seq1, char *in_seq2,
   tmp_block = Lblock->next_exon;
 
   while ((tmp_block!=NULL) && (tmp_block->length<wordSize) && tmp_block->toGEN) {
-    tmp_block1 = tmp_block; /* free */
+    tmp_block1 = tmp_block;
     tmp_block = tmp_block->next_exon;
-    free(tmp_block1); /* free */
+    ckfree(tmp_block1);
   }
   Lblock->next_exon = tmp_block;
 
-#ifdef DEBUG_AIX
-  fprintf(stderr, "3\n");
-#endif
 
   /* eliminate marginal small blocks at the end of the sequence      */
+
+  //
+  //  XXX:  Memory leak here??!?!
+  //
+
+#ifdef SHOW_PROGRESS
+  fprintf(stderr, "Rblock before end of list removal 0x%08lx\n", Rblock);
+#endif
 
   Exon *last = Lblock->next_exon;
   tmp_block = last;
@@ -238,8 +269,8 @@ Sim4::SIM4(char *in_seq1, char *in_seq2,
     last->next_exon = Rblock->next_exon;
   Rblock = last;
 
-#ifdef DEBUG_AIX
-  fprintf(stderr, "4\n");
+#ifdef SHOW_PROGRESS
+  fprintf(stderr, "Rblock after end of list removal 0x%08lx\n", Rblock);
 #endif
 
   /* if high accuracy requirement, adjust boundaries of marginal exons */
@@ -252,20 +283,10 @@ Sim4::SIM4(char *in_seq1, char *in_seq2,
   else
     slide_intron(6,&Lblock,st);
 
-#ifdef DEBUG_AIX
-  fprintf(stderr, "5\n");
-#endif
-
-  //fprintf(stdout, "init strand orientation = %d\n", st->orientation);
-
   /* decreasingly; script will be in reverse order */
   flip_list(&Lblock, &Rblock); 
   pluri_align(dist_ptr, Lblock, &Script_head, st); 
   flip_list(&Lblock, &Rblock);      /* increasingly */
-
-#ifdef DEBUG_AIX
-  fprintf(stderr, "6\n");
-#endif
 
   *pT = 0;
   *pA = 0;
@@ -278,19 +299,15 @@ Sim4::SIM4(char *in_seq1, char *in_seq2,
         updateStatistics(Lblock, st);
     }
 
-    //fprintf(stdout, "pA = %d\npT = %d\n", *pA, *pT);
-
     get_stats(Lblock, st);
 
-    //fprintf(stdout, "final strand orientation = %d\n", st->orientation);
-
     *Exons = Lblock->next_exon;
-  }
-  free(Lblock);
+    ckfree(Lblock);
+  } else {
+    *Exons = 0L;
 
-#ifdef DEBUG_AIX
-  fprintf(stderr, "7\n");
-#endif
+    free_list(Lblock);
+  }
 
   //  Memory leak when Script_head == 0L -- see pluri_align, too!
 

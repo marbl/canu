@@ -235,9 +235,9 @@ Sim4::run(sim4command *cmd) {
 
 #if ABORT_EXPENSIVE
       if (st.tooManyMSPs) { 
-        u32bit    lbs = (strlen((char *)cmd->getESTheader()) +
-                         strlen((char *)cmd->getGENheader()) +
-                         2048);
+        u32bit    lbs = (u32bit)(strlen((char *)cmd->getESTheader()) +
+                                 strlen((char *)cmd->getGENheader()) +
+                                 2048);
 
         if (lineBufferSize < lbs) {
           delete [] lineBuffer;
@@ -290,9 +290,9 @@ Sim4::run(sim4command *cmd) {
 
 #if ABORT_EXPENSIVE
       if (rev_st.tooManyMSPs) { 
-        u32bit    lbs = (strlen((char *)cmd->getESTheader()) +
-                         strlen((char *)cmd->getGENheader()) +
-                         2048);
+        u32bit    lbs = (u32bit)(strlen((char *)cmd->getESTheader()) +
+                                 strlen((char *)cmd->getGENheader()) +
+                                 2048);
 
         if (lineBufferSize < lbs) {
           delete [] lineBuffer;
@@ -351,8 +351,14 @@ Sim4::run(sim4command *cmd) {
         add_offset_aligns(Aligns, g_pT);
       }
 
-      if (rev_Exons) { free_list(rev_Exons); rev_Exons = NULL; }
-      if (rev_Aligns) { free_align(rev_Aligns); rev_Aligns = NULL; }
+      if (rev_Exons) {
+        free_list(rev_Exons);
+        rev_Exons = NULL;
+      }
+      if (rev_Aligns) {
+        free_align(rev_Aligns);
+        rev_Aligns = NULL;
+      }
 
       pT = g_pT + f_pT;
       pA = g_pA + f_pA;
@@ -430,8 +436,14 @@ Sim4::run(sim4command *cmd) {
       //
       complement_exons(&rev_Exons, dblen, estlen);
 
-      if (Exons) { free_list(Exons);  Exons = NULL; }
-      if (Aligns) { free_align(Aligns); Aligns = NULL; }
+      if (Exons) {
+        free_list(Exons);
+        Exons = NULL;
+      }
+      if (Aligns) {
+        free_align(Aligns);
+        Aligns = NULL;
+      }
 
       pT = g_pT + r_pT;
       pA = g_pA + r_pA;
@@ -518,9 +530,9 @@ Sim4::run(sim4command *cmd) {
 
       outputString = appendOutput(outputString, "sim4begin\n");
       if (globalParams->_includeDefLine) {
-        u32bit    lbs = (strlen((char *)cmd->getESTheader()) +
-                         strlen((char *)cmd->getGENheader()) +
-                         2048);
+        u32bit    lbs = (u32bit)(strlen((char *)cmd->getESTheader()) +
+                                 strlen((char *)cmd->getGENheader()) +
+                                 2048);
 
         if (lineBufferSize < lbs) {
           delete [] lineBuffer;
@@ -741,12 +753,14 @@ char*
 Sim4::IDISPLAY(char *outputstring,
                char *aString,
                char *bString,
-               char A[],
-               char B[],
-               int M, int N,
-               int S[],
-               int AP, int BP,
-               int est_strand,
+               char *A,
+               char *B,
+               int   M,
+               int   N,
+               int  *S,
+               int   AP,
+               int   BP,
+               int   est_strand,
                Exon *exons) {
   Exon *t0;
   register int    i,  j, op;
@@ -805,8 +819,8 @@ Sim4::IDISPLAY(char *outputstring,
       i++;
       j++;
       if (A[i] == B[j]) {
-        *a++ = A[i] + 'a' - 'A';
-        *b++ = B[j] + 'a' - 'A';
+        *a++ = (char)(A[i] + 'a' - 'A');
+        *b++ = (char)(B[j] + 'a' - 'A');
       } else {
         *a++ = A[i];
         *b++ = B[j];
@@ -900,7 +914,8 @@ Sim4::S2A(edit_script *head, int *S)
   lastS = S;
   while (tp != NULL) {
     if (tp->op_type == SUBSTITUTE) {
-      for (i=0; i<tp->num; ++i) *lastS++ = 0;
+      for (i=0; i<tp->num; ++i)
+        *lastS++ = 0;
     } else if (tp->op_type == INSERT) {
       *lastS++ = -tp->num;
     } else {     /* DELETE */
@@ -908,7 +923,7 @@ Sim4::S2A(edit_script *head, int *S)
     }
     tp = tp->next;
   }
-  *(S-1) = lastS - S;
+  *(S-1) = (int)(lastS - S);
 }
 
 
@@ -986,8 +1001,8 @@ Sim4::appendAlignments(char *outputstring,
                               1,
                               Exons);
     }
-    free(S-1);
-    free(head);
+    ckfree(S-1);
+    ckfree(head);
   }
   *Aligns = NULL;
 

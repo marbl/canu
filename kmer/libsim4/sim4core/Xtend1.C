@@ -179,8 +179,10 @@ Sim4::Xextend_bw(char *s1, char *s2, int m, int n, int offset1, int offset2, int
                    (void)memcpy(&last_AG,trace_AG[d][k],sizeof(coords));
                    (void)memcpy(&last_AC,trace_AC[d][k],sizeof(coords));
 
-                   free(last_d); free(temp_d);
-                   free(min_row); free(min_diag);
+                   ckfree(last_d);
+                   ckfree(temp_d);
+                   ckfree(min_row);
+                   ckfree(min_diag);
                    ValNodeFreeData(data_list);
                    free_coords(trace_AG,max_d+1);
                    free_coords(trace_AC,max_d+1);
@@ -196,8 +198,10 @@ Sim4::Xextend_bw(char *s1, char *s2, int m, int n, int offset1, int offset2, int
                    (void)memcpy(&last_AG,trace_AG[d][k],sizeof(coords));
                    (void)memcpy(&last_AC,trace_AC[d][k],sizeof(coords));
 
-                   free(last_d); free(temp_d);
-                   free(min_row); free(min_diag);
+                   ckfree(last_d);
+                   ckfree(temp_d);
+                   ckfree(min_row);
+                   ckfree(min_diag);
                    ValNodeFreeData(data_list);
                    free_coords(trace_AG,max_d+1);
                    free_coords(trace_AC,max_d+1);
@@ -213,8 +217,10 @@ Sim4::Xextend_bw(char *s1, char *s2, int m, int n, int offset1, int offset2, int
                    (void)memcpy(&last_AG,trace_AG[d][k],sizeof(coords));
                    (void)memcpy(&last_AC,trace_AC[d][k],sizeof(coords));
 
-                   free(last_d); free(temp_d);
-                   free(min_row); free(min_diag);
+                   ckfree(last_d);
+                   ckfree(temp_d);
+                   ckfree(min_row);
+                   ckfree(min_diag);
                    ValNodeFreeData(data_list);
                    free_coords(trace_AG,max_d+1);
                    free_coords(trace_AC,max_d+1);
@@ -252,10 +258,10 @@ Sim4::Xextend_bw(char *s1, char *s2, int m, int n, int offset1, int offset2, int
      (void)memcpy(&last_AG,trace_AG[d][min_diag[d]],sizeof(coords));
      (void)memcpy(&last_AC,trace_AC[d][min_diag[d]],sizeof(coords));
                    
-     free(min_row);       
-     free(min_diag);
-     free(last_d);
-     free(temp_d); 
+     ckfree(min_row);       
+     ckfree(min_diag);
+     ckfree(last_d);
+     ckfree(temp_d); 
      ValNodeFreeData(data_list);
      free_coords(trace_AG,max_d+1);
      free_coords(trace_AC,max_d+1);
@@ -442,8 +448,10 @@ Sim4::Xextend_fw(char *s1, char *s2, int m, int n, int offset1, int offset2, int
                    ValNodeFreeData(data_list);
                    free_coords(trace_GT,max_d+1);
                    free_coords(trace_CT,max_d+1);
-                   free(last_d); free(temp_d);
-                   free(max_row); free(max_diag);
+                   ckfree(last_d);
+                   ckfree(temp_d);
+                   ckfree(max_row);
+                   ckfree(max_diag);
                    *line1 = row+offset1;
                    *line2 = col+offset2;
                         
@@ -457,8 +465,10 @@ Sim4::Xextend_fw(char *s1, char *s2, int m, int n, int offset1, int offset2, int
                    ValNodeFreeData(data_list);
                    free_coords(trace_GT,max_d+1);
                    free_coords(trace_CT,max_d+1);
-                   free(temp_d); free(last_d);
-                   free(max_row); free(max_diag);
+                   ckfree(temp_d);
+                   ckfree(last_d);
+                   ckfree(max_row);
+                   ckfree(max_diag);
                
                    *line1 = row+offset1;
                    *line2 = col+offset2;
@@ -475,8 +485,10 @@ Sim4::Xextend_fw(char *s1, char *s2, int m, int n, int offset1, int offset2, int
                    free_coords(trace_GT,max_d+1);
                    free_coords(trace_CT,max_d+1);
 
-                   free(temp_d); free(last_d);
-                   free(max_row); free(max_diag);
+                   ckfree(temp_d);
+                   ckfree(last_d);
+                   ckfree(max_row);
+                   ckfree(max_diag);
                         
                    *line1 = row+offset1;
                    *line2 = col+offset2;
@@ -511,10 +523,10 @@ Sim4::Xextend_fw(char *s1, char *s2, int m, int n, int offset1, int offset2, int
      (void)memcpy(&last_GT,trace_GT[d][max_diag[d]],sizeof(coords));
      (void)memcpy(&last_CT,trace_CT[d][max_diag[d]],sizeof(coords));
 
-     free(max_row);     
-     free(max_diag);
-     free(last_d);
-     free(temp_d); 
+     ckfree(max_row);     
+     ckfree(max_diag);
+     ckfree(last_d);
+     ckfree(temp_d); 
      ValNodeFreeData(data_list);
      free_coords(trace_GT,max_d+1);
      free_coords(trace_CT,max_d+1);

@@ -17,7 +17,7 @@ Sim4::SIM4_block1(Exon*  &Lblock,
     tmp_block->next_exon = tmp_block1->next_exon;
     tmp_block->flag = tmp_block1->flag; 
     rollbflag = 1;
-    free(tmp_block1);
+    ckfree(tmp_block1);
     //tmp_block1 = tmp_block; /* not necessary, just to keep it 'clean'*/
     tmp_block1 = NULL;
   }
@@ -34,7 +34,7 @@ Sim4::SIM4_block1(Exon*  &Lblock,
     prev->flag = tmp_block->flag; 
     if ((tmp_block->toEST - tmp_block->frEST + 1) > 0)
       rollbflag = 1;
-    free(tmp_block);
+    ckfree(tmp_block);
     tmp_block = prev;
   } 
 
