@@ -1,0 +1,18 @@
+# -*- makefile -*-
+
+LIBUTL/     :=$(call MakePath,$/../libutil/)
+LIBBIO/     :=$(call MakePath,$/../libbio/)
+
+$/.CXX_EXES := $/uniqueFilter   $/mismatchCounter
+$/.CXX_SRCS := $/uniqueFilter.C $/mismatchCounter.C $/atac-common.C
+
+$/.CLEAN :=$/*.o $/*~ $/core
+
+$/uniqueFilter:        $/uniqueFilter.o    $/atac-common.o
+$/mismatchCounter:     $/mismatchCounter.o $/atac-common.o
+
+${$/.CXX_EXES}: ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+
+$(eval $/%.d $/%.o:   CXXFLAGS+=-I${LIBBIO/} -I${LIBUTL/})
+
+

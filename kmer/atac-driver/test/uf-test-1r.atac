@@ -1,0 +1,10 @@
+! format atac 1.0
+
+#
+#  contained and kill, reverse
+#
+M u 001f . A:0  30 90 1 B:0  10 90 -1
+M u 666a . A:0  40 10 1 B:0 900 10 1
+M u 666b . A:0 900 20 1 B:0  10 20 1
+M u 666c . A:0  80 10 1 B:0 920 10 1
+M u 666d . A:0 920 10 1 B:0  70 10 1

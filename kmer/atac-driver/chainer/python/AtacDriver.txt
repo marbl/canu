@@ -1,0 +1,217 @@
+    SET GLOBALS, if not already set, and if using samespecies, parameter set 1
+        obj.globals["heavyChainsOn"]      = "1"
+        obj.globals["matchExtenderOn"]    = "1"
+        obj.globals["uniqueFilterOn"]     = "1"
+        obj.globals["fillIntraRunGapsOn"] = "1"
+        obj.globals["numsegments"]        = "1"
+
+    RUN BRIATAC HERE
+
+    MAKE SURE MATCHES ARE IN ATAC FORMAT
+
+    RUN HEAVYCHAINS, if enabled
+        -g /assemblyId1=XXXX
+        -g /assemblyId2=XXXX
+        -g /heavyMaxJump=XXXX  (100000)
+        -g /heavyMinFill=XXXX  (100)
+
+    RUN GLOBAL CHAINING, if enabled
+        # /work/assembly/floreald/ASM/src/Ross/chain-global
+        # /work/assembly/floreald/ASM/src/break-chains
+
+        All %s's are the prefix
+
+        chain-global %s -M 30 -p DP > %s.M30.dp 2> %s.M30.dp.errs"
+        break-chains %s.M30.dp -D 0 -M 10 -p DPR | grep -v 'M r ' > %s.M30.dp.runs 2> %s.M30.dp.runs.errs"
+
+    RUN CHAIN CONSERVATION(?), if enabled
+        # /work/assembly/floreald/ASM/src/Ross/chain-consv
+        # /work/assembly/floreald/ASM/src/break-chains
+
+        chain-consv %s -p CS > %s.cons 2> %s.cons.errs" % (inpname,inpname,inpname)
+        break-chains %s.cons -diffrun -D 0 -M 10 -p TMP > %s.cons.runs.tmp 2> %s.cons.runs.tmp.errs" % (inpname,inpname,inpname)
+        break-chains %s.cons.runs.tmp -D 0 -M 10 -p CSR | grep -v 'M r ' > %s.cons.runs 2> %s.cons.runs.errs" % (inpname,inpname,inpname)
+
+    RUN CHAIN GREEDY, if enabled
+        # /work/assembly/floreald/ASM/src/Ross/chain-greedy
+        # /work/assembly/floreald/ASM/src/break_chains
+
+        chain-greedy %s -p GR -M 10 -W 500 > %s.greedy 2> %s.greedy.errs" % (inpname, inpname, inpname)
+        break-chains %s.greedy -D 0 -M 10 -p GRR | grep -v 'M r ' > %s.greedy.runs 2> %s.greedy.runs.errs" % (inpname, inpname, inpname)
+
+    RUN MATCH EXTENDER, if enabled
+        matchextender inpname outname
+
+    SET SOME DEFAULTS (unless already set)
+        obj.globals['rawMatchMerSize'] = 20
+        obj.globals['rawMatchMerMaxDegeneracy'] = 1
+        obj.globals['rawMatchMinSize'] = obj.globals['rawMatchMerSize']
+
+        # Many 2*rawMatchMerSize-1 matches are due to isolated single
+        # nucleotide mutations in otherwise perfect repeats.
+        #
+        obj.globals['globalMatchMinSize'] = 2*int(obj.globals['rawMatchMerSize'])
+
+        obj.globals['globalPerfectRunMinLen'] = 100
+        obj.globals['globalPerfectRunMaxGapLen'] = 100000
+        obj.globals['intraRunGapIsolatedMismatchLen'] = 20
+
+    RUN OLD
+        self.globals['atacAlgorithmVersion'] = str(17)
+        print >>STDERR, "runName = %s\n" % self.runName
+
+        # The ATAC globals used by this script:
+        opt_t = int(self.globals['globalMatchMinSize'])
+        opt_l = int(self.globals['globalPerfectRunMinLen'])
+        maxdiff = int(self.globals['globalPerfectRunMaxGapLen'])
+
+        assemblyId1 = self.globals['assemblyId1']
+        assemblyId2 = self.globals["assemblyId2"]
+
+        assemblyFilePrefix1 = self.globals['assemblyFilePrefix1']
+        assemblyFilePrefix2 = self.globals['assemblyFilePrefix2']
+
+        # Deprecated for same species comparisons 2003/09/09.
+        boxRecoveryOn = 0  
+        if(self.globals.has_key("boxRecoveryOn")):
+            boxRecoveryOn = int(self.globals["boxRecoveryOn"])
+            
+        BUILD IDXSTORE (assemblyIdx1) for the files
+
+        GENERALLY, after each step, the outfile replaces self.matches
+        
+        STEP
+        RUN UNIQUE FILTER
+                UniqueFilter.main( self.matches, outfile)
+
+        STEP
+        RUN FILTER BY MATCH LENGTH
+            only keep those M records with both pieces at least as long as opt_t
+
+        STEP
+        RUN TRIMMING for bp one-to-one-ness (rewrite-trimMatches)
+            inpfile = self.matches
+            trim_subtype = 'u'
+
+            gp = MyFile.myfile()
+            MatchRecord.sortInXorderAP(inpfile,gp)
+
+            # The following coalescing assumes perfect runs.
+            #  this is the same as rewrite-coalesceMatches
+
+            hp = MyFile.myfile()
+            coalesceMatches( gp, hp, ((trim_subtype == 'x') or (trim_subtype == 'u')) )
+
+            gp = MyFile.myfile()
+            trimMatchOverlapsInX(hp,gp,trim_subtype)
+
+            hp = MyFile.myfile()
+            MatchRecord.sortInYorderAP(gp,hp)
+
+            trimMatchOverlapsInY(hp,outfile,trim_subtype)
+
+
+        if boxRecoveryOn, save these self.matches (outfile from last step) for later
+
+
+        STEP
+        FORM PERFECT RUNS (rewrite-perfectRuns)
+            tempdata = PerfectRuns.formPerfectRuns(self.matches,
+                                                   MatchRecord.sortInXorderAP,
+                                                   MatchRecord.sortInYorderAP,
+                                                   maxdiff,
+                                                   'r')
+
+        STEP
+        ONLY KEEP LONG RUNS
+            tempdata = onlyKeepLongRuns( self.matches, outprefix, opt_l)
+
+            description: find all runs (matches with the same run id)
+            that have a sum of lengths larger than opt_l
+
+            details:
+            if there is a last match, and it is a different runid
+            than this match, dump all the saved matches, reset
+            the length to zero
+
+            add in the length of this match to the length
+
+            if the length we've seen so far is
+            less than lengthThreshold, save this match
+
+            otherwise (the length is bigger) print all
+            saved matches, and this match.  clear the list
+            of saved matches, but do not clear the length
+
+            remember the runid of this match (call it lastId)
+
+
+        STEP
+        'HEAL' THE PERFECT RUNS (rewrite-perfectRuns)
+            tempdata = PerfectRuns.formPerfectRuns(self.matches,
+                                       MatchRecord.sortInYorderAP,
+                                       MatchRecord.sortInXorderAP, maxdiff, 'r')
+
+        STEP
+        DO BOX RECOVERY, if enabled (rewrite-boxRecovery)
+                print >>STDERR, "Make sorted raw matches"
+                outfile = MyFile.myfile()
+                MatchRecord.sortInXorderAP( rawfile, outfile)
+                rawfile = outfile
+
+                print >>STDERR, "perform box recovery"
+                tempdata = boxRecovery( self.matches, rawfile, outprefix)
+
+                form perfect runs again
+                tempdata = PerfectRuns.formPerfectRuns(self.matches,
+                                       MatchRecord.sortInXorderAP,
+                                       MatchRecord.sortInYorderAP, maxdiff, 'r')
+
+        STEP
+        SQUEEZE INTRA RUN GAPS
+            squeezeIntraRunGaps.squeezeIntraRunGaps(
+                self.matches,
+                tempdata,
+                assemblyIdx1, assemblyIdx2)
+
+            tempy = MyFile.myfile()
+
+            # Beware the current match subtypes are 'x', 'L', and 'R'!
+
+            coalesceMatches( tempdata, tempy, 1)
+
+            self.matches = tempy
+
+        STEP
+        TRIMMING FOR bp one-to-one-ness
+            #  THIS IS ALSO DONE ABOVE!  trimMatchOverlapsInBoth was a metafunction
+            TrimMatchOverlaps.trimMatchOverlapsInBoth(self.matches,tempdata,'u')
+
+        STEP
+        PERFECT RUNS AS MATCHES (rewrite-runsAsMatches)
+            self.runs = PerfectRuns.runsAsMatches( self.matches)
+
+        STEP
+        FILL INTRA RUN GAPS, if enabled
+
+                set defaults if not set
+                self.globals['fillIntraRunGapsErate'] = 0.10
+                self.globals['fillIntraRunGapsMaxGap'] = 100000
+
+                fillIntraRunGapsErate = float(self.globals['fillIntraRunGapsErate'])
+                fillIntraRunGapsMaxGap = int(self.globals['fillIntraRunGapsMaxGap'])
+
+                fillIntraRunGaps.mainLoop( self.matches, tempdata,
+                                           assemblyIdx1, assemblyIdx2,
+                                           fillIntraRunGapsMaxGap, fillIntraRunGapsErate)
+
+                print >>STDERR, "trim the overlaps"
+                TrimMatchOverlaps.trimMatchOverlapsInBoth(self.matches,tempdata,'u')
+
+                self.matches = tempdata
+
+        STEP
+        COUNT NUMBER OF SUBSTITUTIONS
+            countMisMatches.countMisMatches(self.matches, tempdata, assemblyIdx1, assemblyIdx2)
+
+ALL DONE

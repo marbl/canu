@@ -1,0 +1,27 @@
+! format atac 1.0
+
+#
+#  edge effects
+#
+#  anchored on the A sequence, second match on the inside, third match on the outside.
+#
+#  anchored on A, i, o
+#  anchored on A, o, i
+#  anchored on B, i, o
+#  anchored on B, o, i
+
+M u 011 . A:0 400   200 1 B:0 400   200 1
+M u 012 . A:0 400   100 1 B:0 200   100 1
+M u 013 . A:0 600   100 1 B:0 800   100 1
+#
+M u 014 . A:1 400   200 1 B:1 400   200 1
+M u 015 . A:1 300   100 1 B:1 200   100 1
+M u 016 . A:1 500   100 1 B:1 800   100 1
+#
+M u 017 . A:2 400   200 1 B:2 400   200 1
+M u 018 . A:2 200   100 1 B:2 400   100 1
+M u 019 . A:2 800   100 1 B:2 600   100 1
+#
+M u 020 . A:3 400   200 1 B:3 400   200 1
+M u 021 . A:3 200   100 1 B:3 300   100 1
+M u 022 . A:3 800   100 1 B:3 500   100 1
