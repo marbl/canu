@@ -107,13 +107,6 @@ buildTable(void) {
   if (sLen <  1 * 1024 * 1024)
     tblSize = 20;
 
-  if ((config._maskFileName || config._onlyFileName) && !config._tmpFileName) {
-    fprintf(stderr, "ERROR:  No temporary file supplied, but mask/only is enabled!\n");
-    fprintf(stderr, "        The positionDB needs a temporary file to do masking!\n");
-    fprintf(stderr, "        (use the -tmpfile option)\n");
-    exit(1);
-  }
-
   existDB *maskDB = 0L;
   if (config._maskFileName) {
     if (config._beVerbose)
@@ -213,13 +206,14 @@ loadTable(void) {
 
 //  If we're AIX, define a new handler.  Other OS's reliably throw exceptions.
 //
+#ifdef _AIX
 static
 void
 aix_new_handler() {
   fprintf(stderr, "aix_new_handler()-- Memory allocation failed.\n");
   throw std::bad_alloc();
 }
-
+#endif
 
 
 int
@@ -228,10 +222,9 @@ main(int argc, char **argv) {
   //  By default, AIX Visual Age C++ new() returns 0L; this turns on
   //  exceptions.
   //
-  fprintf(stderr, "Enabling exceptions from new\n");
-  //std::__set_new_throws_exception(true);
+#ifdef _AIX
   std::set_new_handler(aix_new_handler);
-
+#endif
 
   //  Read the configuration from the command line
   //

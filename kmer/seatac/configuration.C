@@ -34,7 +34,6 @@ configuration::configuration(void) {
   _qsFileName          = 0L;
   _maskFileName        = 0L;
   _onlyFileName        = 0L;
-  _tmpFileName         = 0L;
   _outputFileName      = 0L;
   _statsFileName       = 0L;
 
@@ -107,7 +106,6 @@ static char const *usageString =
 "Input Options:\n"
 "    -mask f                 Ignore all mers listed in file f\n"
 "    -only f                 Use only the mers listed in file f\n"
-"    -tmpfile f              A path to a temporary file\n"
 "    -cdna c.fasta           Query sequences (the cDNA, the stream)\n"
 "    -stream                 An alias for -cdna\n"
 "    -genomic g.fasta        Database sequences (the genome, the table)\n"
@@ -343,9 +341,6 @@ configuration::read(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-only") == 0) {
       arg++;
       _onlyFileName = argv[arg];
-    } else if (strcmp(argv[arg], "-tmpfile") == 0) {
-      arg++;
-      _tmpFileName = argv[arg];
     } else if (strcmp(argv[arg], "-buildonly") == 0) {
       arg++;
       _tableFileName = argv[arg];
@@ -494,7 +489,6 @@ configuration::display(FILE *out) {
     fprintf(out, "qsFile              = %s\n", (_qsFileName) ? _qsFileName : "None Specified.");
     fprintf(out, "maskFile            = %s\n", (_maskFileName) ? _maskFileName : "None Specified.");
     fprintf(out, "onlyFile            = %s\n", (_onlyFileName) ? _onlyFileName : "None Specified.");
-    fprintf(out, "tmpFile             = %s\n", (_tmpFileName) ? _tmpFileName : "None Specified.");
     fprintf(out, "tableFile           = %s\n", (_tableFileName) ? _tableFileName : "None Specified.");
     fprintf(out, "\n");
   }

@@ -89,7 +89,6 @@ public:
   char            *_qsFileName;
   char            *_maskFileName;
   char            *_onlyFileName;
-  char            *_tmpFileName;
   char            *_outputFileName;
   char            *_statsFileName;
 
