@@ -99,6 +99,7 @@ sim4polishList*
 sim4polishFile::getGEN(u32bit iid, u32bit lo, u32bit hi) {
   fprintf(stderr, "sim4polishFile::getGEN() not implemented.  Sorry.\n");
   exit(1);
+  return(0L);
 }
 
 
