@@ -81,8 +81,8 @@ palloc(size_t size) {
     n->_dt = (char *)really_allocate(size);
     n->_nx = _palloc_stuff._nl;
 
-#ifdef PALLOC_TEST
-    fprintf(stderr, "Custom block for %d bytes at %p.\n", size, n);
+#ifdef PALLOC_DEBUG
+    fprintf(stderr, "palloc()-- Custom block for %d bytes at %p.\n", size, n);
 #endif
 
     _palloc_stuff._nl = n;
@@ -98,8 +98,8 @@ palloc(size_t size) {
     _palloc_stuff._nl = (pallocnode *)really_allocate(sizeof(pallocnode));
     _palloc_stuff._cn = _palloc_stuff._nl;
 
-#ifdef PALLOC_TEST
-    fprintf(stderr, "Inital block at %p.\n", _palloc_stuff._cn);
+#ifdef PALLOC_DEBUG
+    fprintf(stderr, "palloc()-- Inital block of %d bytes at %p.\n", _palloc_stuff._bs, _palloc_stuff._cn);
 #endif
 
     _palloc_stuff._cn->_cp = 0;
@@ -113,8 +113,8 @@ palloc(size_t size) {
     _palloc_stuff._cn->_nx = (pallocnode *)really_allocate(sizeof(pallocnode));
     _palloc_stuff._cn      = _palloc_stuff._cn->_nx;
 
-#ifdef PALLOC_TEST
-    fprintf(stderr, "New block at %p.\n", _palloc_stuff._cn);
+#ifdef PALLOC_DEBUG
+    fprintf(stderr, "palloc()-- New block or %d bytes at %p.\n", _palloc_stuff._bs, _palloc_stuff._cn);
 #endif
 
     _palloc_stuff._cn->_cp = 0;
@@ -126,8 +126,8 @@ palloc(size_t size) {
   //
   _palloc_stuff._cn->_cp += size;
 
-#ifdef PALLOC_TEST
-  fprintf(stderr, "  returning %d bytes; %d left.\n",
+#ifdef PALLOC_VERBOSE
+  fprintf(stderr, "palloc()--   returning %d bytes; %d left.\n",
           size, 
           _palloc_stuff._bs - _palloc_stuff._cn->_cp);
 #endif

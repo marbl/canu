@@ -23,6 +23,17 @@ void    pfree(void);
 void    psetblocksize(size_t size);
 size_t  pgetblocksize(void);
 
+
+//  Define PALLOC_DEBUG   to get message whenever the state of palloc's memory map changes
+//  Define PALLOC_VERBOSE to get messages about space returned and remaining (one for each palloc call)
+//  Define PALLOC_TEST    to include a short main() in palloc.c
+//
+//#define PALLOC_DEBUG
+//#define PALLOC_VERBOSE
+//#define PALLOC_TEST
+
+
+
 #ifdef __cplusplus
 }
 #endif
