@@ -20,8 +20,8 @@ nanosleep(struct timespec ts, struct timespec tr) {
 }
 #endif
 
-
 #include "file.h"
+#include "memory.h"
 #include "palloc.h"
 #include "time.H"
 
@@ -31,10 +31,7 @@ nanosleep(struct timespec ts, struct timespec tr) {
 #include "bit-packing.H"
 #include "bitPackedFile.H"
 
-#include "sim4reader.h"
 #include "fastastream.H"
 #include "merstream.H"
-
-
 
 #endif  //  LIBBRI_H

@@ -6,9 +6,11 @@ SRCS    = alphabet.c alphabet.h bit-operations.H bit-packing.H \
           bitPackedFile.C bitPackedFile.H fastastream.H file.h file.c libbri.H \
           libbritypes.h merstream.C merstream.H \
           palloc.c palloc.h readBuffer.H reversecomplement.c \
-          sim4reader.c sim4reader.h splittowords.H time.C time.H
+          splittowords.H time.C time.H \
+          memory.c memory.h
 OBJS    = alphabet.o bitPackedFile.o file.o merstream.o palloc.o \
-          reversecomplement.o sim4reader.o time.o
+          reversecomplement.o time.o \
+          memory.o
 
 all: libbri.a $(PROG)
 
