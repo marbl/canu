@@ -75,12 +75,12 @@ FastAstream::nextSymbol(void) {
 
   //  Grab the next character
   //
-  nc = (unsigned char)_buffer->getc();
+  nc = (unsigned char)_buffer->getnext();
 
   //  Skip any whitespace
   //
   while (isspace(nc) && !_buffer->eof())
-    nc = (unsigned char)_buffer->getc();
+    nc = (unsigned char)_buffer->getnext();
 
   //  Are we at the EOF?
   //
@@ -109,7 +109,7 @@ FastAstream::nextSymbol(void) {
 
     _theDefLinePos = 0;
 
-    nc = (unsigned char)_buffer->getc();
+    nc = (unsigned char)_buffer->getnext();
     while ((nc != '\n') && (nc != '\r') && !_buffer->eof()) {
 
       //  More space?  Must be a monster defline!
@@ -129,7 +129,7 @@ FastAstream::nextSymbol(void) {
       //
       _theDefLine[_theDefLinePos++] = nc;
 
-      nc = (unsigned char)_buffer->getc();
+      nc = (unsigned char)_buffer->getnext();
     }
 
     _theDefLine[_theDefLinePos] = 0;

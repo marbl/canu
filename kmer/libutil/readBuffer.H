@@ -30,7 +30,7 @@ public:
   bool      eof(void);
   bool      next(void);
   char      get(void);
-  char      getc(void);
+  char      getnext(void);
   void      seek(size_t pos);
   size_t    read(char *buf, size_t len);   //  read the next len bytes into the user buffer buf
   size_t    tell(void);
@@ -211,7 +211,7 @@ readBuffer::get(void) {
 
 inline
 char
-readBuffer::getc(void) {
+readBuffer::getnext(void) {
   char  x = _buffer[_bufferPos];
   next();
   return(x);
