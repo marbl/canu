@@ -216,12 +216,12 @@ mspManager::link(int weight, int drange,
   //
   Exon_ptr tmp_block = elist;
   while (tmp_block != 0L) {
-    tmp_block->length = tmp_block->toEST-tmp_block->frEST+1;
-    tmp_block->toGEN   += offset1;
-    tmp_block->frGEN += offset1;
-    tmp_block->toEST   += offset2;
-    tmp_block->frEST += offset2;
-    tmp_block->flag   = flag;
+    tmp_block->length  = tmp_block->toEST-tmp_block->frEST+1;
+    tmp_block->toGEN  += offset1;
+    tmp_block->frGEN  += offset1;
+    tmp_block->toEST  += offset2;
+    tmp_block->frEST  += offset2;
+    tmp_block->flag    = flag;
 
     tmp_block = tmp_block->next_exon;
   }
