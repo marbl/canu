@@ -24,7 +24,7 @@ my %validArgs = ("-help"            => "0",  #
                  "-aligns"          => "0",  # 4
                  "-alwaysprint"     => "1",  # 4
                  "-batchsize"       => "1",  # 4
-                 "-cleanup"         => "0",  # 5
+                 "-cleanup"         => "1",  # 5
                  "-filternone"      => "0",  # 3
                  "-hitsortmemory"   => "1",  # 23
                  "-interspecies"    => "0",  # 4
