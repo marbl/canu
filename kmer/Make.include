@@ -17,6 +17,7 @@ SEARCHGEN/  :=$/searchGENOME/
 EMMA/       :=$/emma/
 MERYL/      :=$/meryl/
 SNAPPER2/   :=$/snapper2/
+REFSEQANAL/ :=$/refseq-analysis/
 
 ########################## includes #############
 
@@ -49,6 +50,8 @@ $(eval $(call Include,${CDNAGAPS/}))
 $(eval $(call Include,${LIBBRI/}))
 
 $(eval $(call Include,${EXTERNAL/}))
+
+$(eval $(call Include,${REFSEQANAL/}))
 
 
 #
