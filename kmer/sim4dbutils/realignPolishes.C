@@ -10,6 +10,10 @@
 //  alignments and scores.  Required in the input polishes are the EST
 //  id, genomic id, exon coordinates and an orientation.
 
+//  N.B. align() (aka halign) was switched over to palloc() -- this fixed
+//  any memory leaks, and gives a 30%-ish speed increase.  This is not
+//  thread safe as of 20050226.
+
 void
 align(const char *string1,
       const char *string2,
@@ -52,9 +56,10 @@ main(int argc, char **argv) {
       mergeLog = fopen(argv[++arg], "w");
     } else if (strncmp(argv[arg], "-e", 2) == 0) {
       if (statsOnly)
-        EST = new FastACache(argv[++arg], 1000, false, true);  //  debugging only!
+        EST = new FastACache(argv[++arg], 1000, false, false);  //  debugging only!
       else 
-        EST = new FastACache(argv[++arg],    0, true);
+        //EST = new FastACache(argv[++arg],    0, true);
+        EST = new FastACache(argv[++arg], 1000, false, false);  //  debugging only!
     } else if (strncmp(argv[arg], "-g", 2) == 0) {
       GEN = new FastACache(argv[++arg],    1, false, true);
     } else if (strncmp(argv[arg], "-q", 2) == 0) {
@@ -71,7 +76,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "       percent-tolerance -- merge exons separated by gap if\n");
     fprintf(stderr, "       the cDNA and genomic gaps differ by less than p percent.\n");
-    fprintf(stderr, "       A value of 5 means 5%\n");
+    fprintf(stderr, "       A value of 5 means 5%%\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "      -q: Don't actually do the work, just count the statistics\n");
     fprintf(stderr, "\n");
@@ -96,7 +101,6 @@ main(int argc, char **argv) {
     //
     //  Possible a better way to do this is to check if the identity
     //  of the missing region is decent, too.
-
 
     //  Remember the id/cv of this guy for the log
     //
@@ -152,7 +156,9 @@ main(int argc, char **argv) {
           //  longer, so they're about the same size.
 
           if (mergeLog)
-            fprintf(mergeLog, "MERGE: %4d-%4d (%6.2f,%6.2f) %4d-%4d and %8d-%8d (%6.2f,%6.2f) %8d-%8d\n",
+            fprintf(mergeLog,
+                    "MERGE: "u32bitFMTW(4)"-"u32bitFMTW(4)" (%6.2f,%6.2f) "u32bitFMTW(4)"-"u32bitFMTW(4)
+                    " and "u32bitFMTW(8)"-"u32bitFMTW(8)" (%6.2f,%6.2f) "u32bitFMTW(8)"-"u32bitFMTW(8)"\n",
                     p->exons[i-1].estFrom, p->exons[i-1].estTo,
                     cgap / 100.0, ctol / 100.0,
                     p->exons[i].estFrom, p->exons[i].estTo,
@@ -202,6 +208,9 @@ main(int argc, char **argv) {
           reverseComplementSequence(s1, l1);
         }
 
+        free(p->exons[i].estAlignment);
+        free(p->exons[i].genAlignment);
+
         p->exons[i].estAlignment = (char *)malloc(sizeof(char) * (l1+l2+1));
         p->exons[i].genAlignment = (char *)malloc(sizeof(char) * (l1+l2+1));
 
@@ -220,7 +229,7 @@ main(int argc, char **argv) {
     }
 
     if (merged) {
-      fprintf(mergeLog, "MERGED\tEST\t%d\tfrom\t%8.3f\t%8.3f\tto\t%8.3f\t%8.3f\n",
+      fprintf(mergeLog, "MERGED\tEST\t"u32bitFMT"\tfrom\t%8.3f\t%8.3f\tto\t%8.3f\t%8.3f\n",
               p->estID, id, cv, s4p_percentIdentity(p), s4p_percentCoverage(p));
     }
 
@@ -236,6 +245,8 @@ main(int argc, char **argv) {
 
   delete GEN;
   delete EST;
+
+  return(0);
 }
 
 
@@ -251,8 +262,16 @@ main(int argc, char **argv) {
 #define INS 1
 #define SUB 2
 
+#ifdef min
+#undef min
+#endif
 #define min(x,y)      ((x)<=(y) ? (x):(y))
+
+#ifdef max
+#undef max
+#endif
 #define max(x,y)      ((x)>=(y) ? (x):(y))
+
 
 typedef struct edit_script {
   int  op_type;   /* SUB, INS or DEL */
@@ -336,6 +355,8 @@ align(const char *seq1,
   *bt = '\0';
 
   Free_script(head);
+
+  pfree();
 }
 
 
@@ -359,17 +380,17 @@ sim4_align_get_dist(const char *seq1, const char *seq2, int i1, int j1, int i2, 
   }
 
   /* Allocate space for forward vectors */
-  last_d = (int *)malloc((upper-lower+1)*sizeof(int)) - lower;
-  temp_d = (int *)malloc((upper-lower+1)*sizeof(int)) - lower;
+  last_d = (int *)palloc((upper-lower+1)*sizeof(int)) - lower;
+  temp_d = (int *)palloc((upper-lower+1)*sizeof(int)) - lower;
 
   /* Initialization */
   for (k=lower; k<=upper; ++k) last_d[k] = MININT;
   last_d[start] = snake(seq1, seq2, start, i1, i2, j2);
 
   if (last_d[goal_diag] >= i2) {
-    /* Free working vectors */
-    free(last_d+lower);
-    free(temp_d+lower);
+    //  palloc!
+    //free(last_d+lower);
+    //free(temp_d+lower);
     return 0;
   }
 
@@ -395,16 +416,16 @@ sim4_align_get_dist(const char *seq1, const char *seq2, int i1, int j1, int i2, 
     for (k=ll; k<=uu; ++k) last_d[k] = temp_d[k];
 
     if (last_d[goal_diag] >= i2) {
-#ifdef STATS
-      (void)fprintf(stderr, "get_dist = %d\n",c);
-#endif
-
-      /* Free working vectors */
-      free(last_d+lower);
-      free(temp_d+lower);
+      //  palloc!
+      //free(last_d+lower);
+      //free(temp_d+lower);
       return c;
     }
   }
+
+  //  palloc!
+  //free(last_d+lower);
+  //free(temp_d+lower);
 
   /* Ran out of distance limit */
   return -1;
@@ -430,7 +451,7 @@ sim4_align_path(const char *seq1, const char *seq2, int i1, int j1, int i2, int 
   if (i1 == i2) {
     if (j1 == j2) *head = NULL;
     else {
-      head1 = (edit_script *) malloc(sizeof(edit_script));
+      head1 = (edit_script *)palloc(sizeof(edit_script));
       head1->op_type = INS;
       head1->num = j2-j1;
       head1->next = NULL;
@@ -440,7 +461,7 @@ sim4_align_path(const char *seq1, const char *seq2, int i1, int j1, int i2, int 
   }
 
   if (j1 == j2) {
-    head1 = (edit_script *) malloc(sizeof(edit_script));
+    head1 = (edit_script *)palloc(sizeof(edit_script));
     head1->op_type = DEL;
     head1->num = i2-i1;
     head1->next = NULL;
@@ -451,7 +472,7 @@ sim4_align_path(const char *seq1, const char *seq2, int i1, int j1, int i2, int 
   if (dist <= 1) {
     start = j1-i1;
     if (j2-i2 == j1-i1) {
-      head1 = (edit_script *) malloc(sizeof(edit_script));
+      head1 = (edit_script *)palloc(sizeof(edit_script));
       head1->op_type = SUB;
       head1->num = i2-i1;
       head1->next = NULL;
@@ -460,12 +481,12 @@ sim4_align_path(const char *seq1, const char *seq2, int i1, int j1, int i2, int 
 
       tmp = snake(seq1,seq2,start,i1,i2,j2);
       if (tmp>i1) {
-        head1 = (edit_script *) malloc(sizeof(edit_script));
+        head1 = (edit_script *)palloc(sizeof(edit_script));
         head1->op_type = SUB;
         head1->num = tmp-i1;
         *head = head1;
       }
-      head2 = (edit_script *) malloc(sizeof(edit_script));
+      head2 = (edit_script *)palloc(sizeof(edit_script));
       head2->op_type = INS;
       head2->num = 1;
 
@@ -476,7 +497,7 @@ sim4_align_path(const char *seq1, const char *seq2, int i1, int j1, int i2, int 
 
       if (i2-tmp) {
         head1 = head2;
-        *tail = head2 = (edit_script *)malloc(sizeof(edit_script));
+        *tail = head2 = (edit_script *)palloc(sizeof(edit_script));
         head2->op_type = SUB;
         head2->num = i2-tmp;
         head2->next = NULL;
@@ -486,12 +507,12 @@ sim4_align_path(const char *seq1, const char *seq2, int i1, int j1, int i2, int 
 
       tmp = snake(seq1,seq2,start,i1,i2,j2);
       if (tmp>i1) {
-        head1 = (edit_script *) malloc(sizeof(edit_script));
+        head1 = (edit_script *)palloc(sizeof(edit_script));
         head1->op_type = SUB;
         head1->num = tmp-i1;
         *head = head1;
       }
-      head2 = (edit_script *) malloc(sizeof(edit_script));
+      head2 = (edit_script *)palloc(sizeof(edit_script));
       head2->op_type = DEL;
       head2->num = 1;
 
@@ -502,7 +523,7 @@ sim4_align_path(const char *seq1, const char *seq2, int i1, int j1, int i2, int 
 
       if (i2>tmp+1) {
         head1 = head2;
-        *tail = head2 = (edit_script *)malloc(sizeof(edit_script));
+        *tail = head2 = (edit_script *)palloc(sizeof(edit_script));
         head2->op_type = SUB;
         head2->num = i2-tmp-1;
         head2->next = NULL;
@@ -528,8 +549,8 @@ sim4_align_path(const char *seq1, const char *seq2, int i1, int j1, int i2, int 
   rupper = min(j2-i1, rstart+rmidc);
 
   /* Allocate space for forward vectors */
-  last_d = (int *)malloc((upper-lower+1)*sizeof(int)) - lower;
-  temp_d = (int *)malloc((upper-lower+1)*sizeof(int)) - lower;
+  last_d = (int *)palloc((upper-lower+1)*sizeof(int)) - lower;
+  temp_d = (int *)palloc((upper-lower+1)*sizeof(int)) - lower;
 
   for (k=lower; k<=upper; k++) last_d[k] = -1;
   last_d[start] = snake(seq1,seq2,start,i1,i2,j2);
@@ -565,8 +586,8 @@ sim4_align_path(const char *seq1, const char *seq2, int i1, int j1, int i2, int 
   }
 
   /* Allocate space for backward vectors */
-  rlast_d = (int *)malloc((rupper-rlower+1)*sizeof(int)) - rlower;
-  rtemp_d = (int *)malloc((rupper-rlower+1)*sizeof(int)) - rlower;
+  rlast_d = (int *)palloc((rupper-rlower+1)*sizeof(int)) - rlower;
+  rtemp_d = (int *)palloc((rupper-rlower+1)*sizeof(int)) - rlower;
 
   for (k=rlower; k<=rupper; k++) rlast_d[k] = i2+1;
   rlast_d[rstart] = rsnake(seq1,seq2,rstart,i2,i1,j1,M,N);
@@ -620,8 +641,9 @@ sim4_align_path(const char *seq1, const char *seq2, int i1, int j1, int i2, int 
       break;
     }
   }
-  free(last_d+lower); free(rlast_d+rlower);
-  free(temp_d+lower); free(rtemp_d+rlower);
+  //  palloc!
+  //free(last_d+lower); free(rlast_d+rlower);
+  //free(temp_d+lower); free(rtemp_d+rlower);
 
   if (flag) {
     /* Find a path from (i1,j1) to (mi,mj) */
@@ -678,6 +700,9 @@ rsnake(const char *seq1, const char *seq2, int k, int x, int startx, int starty,
 
 void
 Free_script(edit_script *head) {
+  //  palloc!
+  return;
+
   edit_script *tp, *tp1;
 
   tp = head;
