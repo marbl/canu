@@ -1,6 +1,7 @@
 PROG    = test-bitPackedFile \
           test-bitPacking \
           test-chainedSequence \
+          test-freeDiskSpace \
           test-intervalList \
           test-md5 \
           test-merstream \
