@@ -24,7 +24,7 @@ $/.REAL-CLEAN:=$/buildinfo-*
 
 ${$/.CXX_SRCS:.C=.o}: \
   CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} \
-            -I${SIM4/} -I${SIM4POLISH/} -I${EXISTDB/} ${THRINC}
+            -I${SIM4/} -I${SIM4POLISH/} -I${EXISTDB/}
 $/Make.depends: \
   CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} \
             -I${SIM4/} -I${SIM4POLISH/} -I${EXISTDB/}
@@ -42,7 +42,7 @@ $/snapper2: \
               ${SIM4POLISH/}libsim4polish.a ${SIM4/}libsim4.a \
               ${FASTA/}libfasta.a ${LIBBRI/}libbri.a
 $/snapper2: CXXLDFLAGS+=${EFENCE-L}
-$/snapper2: CXXLIBS+=${EFENCE-l} ${THRLIB}
+$/snapper2: CXXLIBS+=${EFENCE-l}
 
 $/buildinfo-snapper2.c $/buildinfo-snapper2.h: ${src}
 	${UTIL/}buildinfo.pl snapper2 "${CXXFLAGS} ${CXXFLAGS_ARCH}" $^

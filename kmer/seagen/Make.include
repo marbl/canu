@@ -26,7 +26,7 @@ $/.REAL-CLEAN:=$/buildinfo-*
 
 
 ${$/.CXX_SRCS:.C=.o}: \
-  CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} -I${EXISTDB/} ${THRINC}
+  CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} -I${EXISTDB/}
 $/Make.depends: \
   CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} -I${EXISTDB/}
 $/Make.depends: | $/buildinfo-searchGENOME.h
@@ -45,7 +45,7 @@ $/searchGENOME $/searchGENOMEexactly: \
               ${EXISTDB/}libexistDB.a ${POSITIONDB/}libpositionDB.a \
               ${FASTA/}libfasta.a ${LIBBRI/}libbri.a
 $/searchGENOME $/searchGENOMEexactly: CXXLDFLAGS+=${EFENCE-L}
-$/searchGENOME $/searchGENOMEexactly: CXXLIBS+=${EFENCE-l} ${THRLIB}
+$/searchGENOME $/searchGENOMEexactly: CXXLIBS+=${EFENCE-l}
 
 $/buildinfo-searchGENOME.c $/buildinfo-searchGENOME.h: ${src}
 	${UTIL/}buildinfo.pl searchGENOME "${CXXFLAGS} ${CXXFLAGS_ARCH}" $^

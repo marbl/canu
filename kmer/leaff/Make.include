@@ -7,8 +7,10 @@ BIN/        ?= $/../bin/
 LIBBRI/     ?= $/../libbri/
 UTIL/       ?= $/../util/
 
-src    := $/fasta-accessors.C $/fasta-buildindex.C $/fasta-find-id.C \
-          $/fasta-find-iid.C $/fasta-openindex.C $/fasta-sequence.C \
+src    := $/fasta-buildindex.C $/fasta-find-id.C \
+          $/fasta-find-iid.C $/fasta-openindex.C \
+          $/fasta-sequenceincore.H $/fasta-sequenceincore.C \
+          $/fasta-sequenceondisk.H $/fasta-sequenceondisk.C \
 	  $/fasta-types.H $/fasta.C $/fasta.H $/filewrapperbase.H \
           $/fasta-c.C $/fasta-cache.C
 

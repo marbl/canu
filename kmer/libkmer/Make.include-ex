@@ -5,11 +5,11 @@
 LIBBRI/     ?= $/../libbri/
 POSITIONDB/ ?= $/../positionDB/
 
-$/.CXX_SRCS  :=$/buildandtest.C $/driver.C $/existDB.C $/existDB.H
-$/.CXX_EXES  :=$/buildandtest $/existDB
-$/.CXX_LIBS  :=$/libexistDB.a
-$/.CLEAN     :=$/*.o
-$/.REAL-CLEAN:=$/buildinfo-*
+$/.CXX_SRCS   := $/buildandtest.C $/driver.C $/existDB.C $/existDB.H
+$/.CXX_EXES   := $/buildandtest $/existDB
+$/.CXX_LIBS   := $/libexistDB.a
+$/.CLEAN      := $/*.o
+$/.REAL-CLEAN := $/buildinfo-*
 
 $/libexistDB.a : $/buildinfo-existDB.o $/existDB.o
 $/buildandtest : $/buildandtest.o

@@ -1,24 +1,27 @@
 # -*- makefile -*-
-############################################################
 
 // += $/.
 
 LIBBRI/     ?= $/../libbri/
+FASTA/      ?= $/../fasta/
 
-src   := $/positionDB.C $/positionDB-access.C $/positionDB-dump.C $/positionDB-sort.C $/positionDB.H
-
-$/.CXX_SRCS  :=$(filter %.C,${src})
-$/.CXX_LIBS  := $/libpositionDB.a
-
-$/.CLEAN  := $/*.o
+$/.CXX_SRCS   := $/driver.C $/positionDB.C $/positionDB-access.C $/positionDB-dump.C $/positionDB-sort.C $/positionDB-file.C $/positionDB.H
+$/.CXX_EXES   := $/positionDB
+$/.CXX_LIBS   := $/libpositionDB.a
+$/.CLEAN      := $/*.o
 $/.REAL-CLEAN := $/buildinfo-*
 
-$/libpositionDB.a:   $/buildinfo-positionDB.o ${$/.CXX_SRCS:.C=.o}
+$/libpositionDB.a:   $/buildinfo-positionDB.o $/positionDB.o $/positionDB-access.o $/positionDB-dump.o $/positionDB-sort.o $/positionDB-file.o
+$/positionDB:        $/driver.o
 
-$/Make.depends ${$/.CXX_SRCS:.C=.o}:    CXXFLAGS+= -I${LIBBRI/}
+$/Make.depends ${$/.CXX_SRCS:.C=.o}:    CXXFLAGS+= -I${FASTA/} -I${LIBBRI/}
+${$/.CXX_EXES}:$/libpositionDB.a ${FASTA/}libfasta.a ${LIBBRI/}libbri.a
+
+$/.install: ${$/.CXX_EXES}
+	cp -p $^ ${BIN/}
+
 $/Make.depends: | $/buildinfo-positionDB.h
-
-$/buildinfo-positionDB.c $/buildinfo-positionDB.h: ${src}
+$/buildinfo-positionDB.c $/buildinfo-positionDB.h: $/positionDB.C $/positionDB-access.C $/positionDB-dump.C $/positionDB-sort.C $/positionDB-file.C $/positionDB.H
 	${UTIL/}buildinfo.pl positionDB "${CXXFLAGS} ${CXXFLAGS_ARCH}" $^
 	mv buildinfo-positionDB.[ch] `dirname $@`
 
