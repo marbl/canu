@@ -171,10 +171,6 @@ const char *usagestring =
 "        nand      outputs mer iff it exists in at least one, but not all, databases\n"
 "        or        outputs mer iff it exists in at least one database\n"
 "        xor       outputs mer iff it exists in an odd number of databases\n"
-#if 0
-"        nor       outputs mer iff it doesn't exist in any database (synonym for -not)\n"
-"        not       outputs mer iff it doesn't exist in any database (synonym for -nor)\n"
-#endif
 "\n"
 "     Threshold operations are:\n"
 "        lessthan x            outputs mer iff it has count <  x\n"
@@ -184,8 +180,6 @@ const char *usagestring =
 "        equal x               outputs mer iff it has count == x\n"
 "     Threshold operations work on exactly one database.\n"
 "\n"
-"        -mask mf      (outputs mer iff it exists in mf, with count from the operation)\n"
-"                      (MASKING IS NOT FULLY DEBUGGED!  USE AT YOUR OWN RISK!\n"
 "        -s tblprefix  (use tblprefix as a database)\n"
 "        -o tblprefix  (create this output)\n"
 "        -v            (entertain the user)\n"
@@ -228,7 +222,6 @@ merylArgs::merylArgs(int argc, char **argv) {
   inputFile          = 0L;
   outputFile         = 0L;
   queryFile          = 0L;
-  maskFile           = 0L;
 
   merSize            = 20;
 
@@ -302,10 +295,6 @@ merylArgs::merylArgs(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-m") == 0) {
       arg++;
       merSize = strtou64bit(argv[arg], 0L);
-    } else if (strcmp(argv[arg], "-mask") == 0) {
-      arg++;
-      delete [] maskFile;
-      maskFile = duplString(argv[arg]);
     } else if (strcmp(argv[arg], "-s") == 0) {
       arg++;
       delete [] inputFile;
@@ -388,12 +377,6 @@ merylArgs::merylArgs(int argc, char **argv) {
         personality = PERSONALITY_NAND;
       } else if (strcmp(argv[arg], "or") == 0) {
         personality = PERSONALITY_OR;
-#if 0
-      } else if (strcmp(argv[arg], "nor") == 0) {
-        personality = PERSONALITY_NOR;
-      } else if (strcmp(argv[arg], "not") == 0) {
-        personality = PERSONALITY_NOT;
-#endif
       } else if (strcmp(argv[arg], "xor") == 0) {
         personality = PERSONALITY_XOR;
       } else if (strcmp(argv[arg], "lessthan") == 0) {
@@ -501,7 +484,6 @@ merylArgs::merylArgs(const char *prefix) {
   inputFile  = readString(F);
   outputFile = readString(F);
   queryFile  = readString(F);
-  maskFile   = readString(F);
 
   mergeFiles = new char* [mergeFilesLen];
   for (u32bit i=0; i<mergeFilesLen; i++)
@@ -522,7 +504,6 @@ merylArgs::~merylArgs() {
   delete [] inputFile;
   delete [] outputFile;
   delete [] queryFile;
-  delete [] maskFile;
 
   for (u32bit i=0; i<mergeFilesLen; i++)
     delete [] mergeFiles[i];
@@ -557,7 +538,6 @@ merylArgs::writeConfig(void) {
   writeString(inputFile, F);
   writeString(outputFile, F);
   writeString(queryFile, F);
-  writeString(maskFile, F);
 
   for (u32bit i=0; i<mergeFilesLen; i++)
     writeString(mergeFiles[i], F);

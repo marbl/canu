@@ -54,13 +54,6 @@ main(int argc, char **argv) {
       unaryOperations(args);
       break;
 
-#if 0
-    case PERSONALITY_NOR:
-    case PERSONALITY_NOT:
-      //negate(args);
-      break;
-#endif
-
     default:
       args->usage();
       fprintf(stderr, "%s: unknown personality.  Specify -P, -B, -S or -M!\n", args->execName);

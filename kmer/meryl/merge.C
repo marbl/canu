@@ -5,31 +5,6 @@
 #include "libmeryl.H"
 
 
-//  Tests if the newCheck is in the mask file.  Returns true/false,
-//  and modified the bucket position.
-//
-#if 0
-bool
-decideIfMasked(mcBucket  *mmB,
-               u32bit&    mmbucketPosition,
-               u64bit     newCheck) {
-  bool isMasked = false;
-
-  if (mmB) {
-    while ((mmbucketPosition < mmB->_items) &&
-           (mmB->_checks[mmbucketPosition] < newCheck))
-      mmbucketPosition++;
-
-    if ((mmbucketPosition >= mmB->_items) ||
-        (mmB->_checks[mmbucketPosition] != newCheck))
-      isMasked = true;
-  }
-
-  return(isMasked);
-}
-#endif
-
-
 
 void
 multipleOperations(merylArgs *args) {
@@ -59,7 +34,6 @@ multipleOperations(merylArgs *args) {
 
 
   merylStreamReader  **R = new merylStreamReader* [args->mergeFilesLen];
-  merylStreamReader   *M = 0L;
   merylStreamWriter   *W = 0L;
 
   //  Open the input files, read in the first mer
@@ -69,20 +43,11 @@ multipleOperations(merylArgs *args) {
     R[i]->nextMer();
   }
 
-  if (args->maskFile)
-    M = new merylStreamReader(args->maskFile);
-
   //  Verify that the mersizes are all the same
   //
-  bool    fail       = false;
   u32bit  merSize    = R[0]->merSize();
 
-  for (u32bit i=0; i<args->mergeFilesLen; i++)
-    fail |= (merSize != R[i]->merSize());
-  if (M)
-    fail |= (merSize != M->merSize());
-
-  if (fail) {
+  for (u32bit i=0; i<args->mergeFilesLen; i++) {
     fprintf(stderr, "ERROR:  mer sizes are different.\n");
     exit(1);
   }
@@ -92,8 +57,6 @@ multipleOperations(merylArgs *args) {
   //  input/mask files.
   //
   u32bit  prefixSize = 0;
-  if (M)
-    prefixSize = M->prefixSize();
   for (u32bit i=0; i<args->mergeFilesLen; i++)
     if (prefixSize < R[i]->prefixSize())
       prefixSize = R[i]->prefixSize();
@@ -135,12 +98,6 @@ multipleOperations(merylArgs *args) {
         thisCount     = R[i]->theCount();
         thisFile      = i;
       }
-
-#if 0
-    fprintf(stderr, "Found mer "u64bitHEX" from input "u32bitFMT"\n",
-            R[thisFile]->theFMer(),
-            thisFile);
-#endif
 
     //  If we've hit a different mer, write out the last one
     //
@@ -236,7 +193,6 @@ multipleOperations(merylArgs *args) {
   for (u32bit i=0; i<args->mergeFilesLen; i++)
     delete R[i];
   delete R;
-  delete M;
   delete W;
   delete C;
 }
