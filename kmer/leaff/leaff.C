@@ -53,7 +53,9 @@ const char *usage =
 "       -q file:        print sequences from the seqid list in 'file'\n"
 "\n"
 "SEQUENCE OPTIONS\n"
-"       -6:          insert a newline every 60 bases\n"
+"       -6:          insert a newline every 60 letters\n"
+"                      (if the next arg is a number, newlines are inserted every\n"
+"                       n letters -- e.g., -6 80 -- disable line breaks with -6 0)\n"
 "       -u:          uppercase all bases\n"
 "       -R:          print the sequence reversed\n"
 "       -C:          print the sequence complemented\n"
@@ -107,7 +109,7 @@ void
 printSequence(FastASequenceInCore *b,
               u32bit               beg,
               u32bit               end,
-              bool                 withLineBreaks=false,
+              u32bit               withLineBreaks=0,
               bool                 reverse=false,
               bool                 complement=false) {
   u32bit           style  = 0;
@@ -175,18 +177,20 @@ printSequence(FastASequenceInCore *b,
 
   if (withLineBreaks) {
     char      *t = n;
-    char       b[62];
-    int        i = 0;
+    char      *b = new char [withLineBreaks+1];
 
     while (*t) {
-      for (i=0; (*t) && (i < 60); )
+      u32bit i=0;
+      while ((*t) && (i < withLineBreaks))
         b[i++] = *(t++);
       b[i++] = '\n';
       b[i]   = 0;
       fprintf(stdout, "%s", b);
     }
+
+    delete [] b;
   } else {
-    fprintf(stdout, "%s", n);
+    fprintf(stdout, "%s\n", n);
   }
 
   delete [] n;
@@ -215,7 +219,7 @@ bool                   reverse           = false;
 bool                   complement        = false;
 bool                   withDefLine       = true;
 char                  *specialDefLine    = 0L;
-bool                   withLineBreaks    = false;
+u32bit                 withLineBreaks    = 0;
 bool                   toUppercase       = false;
 char                  *sourceFile        = 0L;
 FastAWrapper          *f                 = 0L;
@@ -302,7 +306,6 @@ printIID(u32bit iid, FastASequenceInCore *s=0L) {
         fprintf(stdout, ">%s\n", s->header()+1);
 
     printSequence(s, begPos, endPos, withLineBreaks, reverse, complement);
-    fprintf(stdout, "\n");
   }
 
   if (mySeq)
@@ -788,7 +791,15 @@ processArray(int argc, char **argv) {
         printIDsFromFile(argv[++arg]);
         break;
       case '6':
-        withLineBreaks = !withLineBreaks;
+        //  If there is a next argument, and it doesn't begin with a
+        //  '-', assume it's the value for line breaking, otherwise,
+        //  use the default 60.
+        //
+        withLineBreaks = 60;
+        if ((argv[arg+1] != 0L) && (argv[arg+1][0] != '-')) {
+          arg++;
+          withLineBreaks = atoi(argv[arg]);
+        }
         break;
       case 'u':
         toUppercase = !toUppercase;
