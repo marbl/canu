@@ -17,15 +17,19 @@
 
 #include "bit-packing.H"
 
-existDB::existDB(char        *filename,
-                 bool         noData) {
-  if (readState(filename, true, noData) == false) {
+char     magic[16] = { 'e', 'x', 'i', 's', 't', 'D', 'B', '1', 
+                       ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '  };
+
+
+existDB::existDB(char const  *filename,
+                 bool         loadData) {
+  if (loadState(filename, true, loadData) == false) {
     fprintf(stderr, "existDB::existDB()-- Tried to read state from '%s', but failed.\n", filename);
     exit(1);
   }
 }
 
-existDB::existDB(char        *filename,
+existDB::existDB(char const  *filename,
                  u32bit       merSize,
                  u32bit       tblBits,
                  positionDB  *posDB) {
@@ -33,7 +37,7 @@ existDB::existDB(char        *filename,
   //  Try to read state from the filename.  If successful, make sure that
   //  the merSize and tblBits are correct.
   //
-  if (readState(filename)) {
+  if (loadState(filename)) {
     bool fail = false;
 
     if (_merSizeInBases != merSize) {
@@ -295,9 +299,7 @@ existDB::~existDB() {
 
 
 void
-existDB::saveState(char *filename) {
-  char     magic[16] = { 'e', 'x', 'i', 's', 't', 'D', 'B', '1', 
-                         ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '  };
+existDB::saveState(char const *filename) {
 
   errno = 0;
   FILE *F = fopen(filename, "wb");
@@ -339,28 +341,26 @@ existDB::saveState(char *filename) {
   fwrite(_hashTable, sizeof(u64bit), _hashTableWords, F);
   fwrite(_buckets,   sizeof(u64bit), _bucketsWords,   F);
 
+  fclose(F);
+
   if (errno) {
     fprintf(stderr, "existDB::saveState()-- Write failure.\n%s\n", strerror(errno));
     exit(1);
   }
-
-  fclose(F);
 }
 
 
 
 bool
-existDB::readState(char  *filename,
-                   bool   beNoisy,
-                   bool   noData) {
-  char     magic[16] = { 'e', 'x', 'i', 's', 't', 'D', 'B', '1', 
-                         ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '  };
+existDB::loadState(char const *filename,
+                   bool        beNoisy,
+                   bool        loadData) {
   char     cigam[16];
 
   errno = 0;
   FILE *F = fopen(filename, "rb");
   if (errno) {
-    fprintf(stderr, "Can't open '%s' for reading\n%s\n", strerror(errno));
+    fprintf(stderr, "Can't open '%s' for reading pre-built existDB\n%s\n", strerror(errno));
     return(false);
   }
 
@@ -375,16 +375,14 @@ existDB::readState(char  *filename,
   fread(cigam, sizeof(char), 16, F);
 
   if (strncmp(magic, cigam, 16) != 0) {
-
-    //  XXX:  Could use a better message
     if (beNoisy) {
-      fprintf(stderr, "existDB::readState()-- Not an existDB binary file, must be a sequence file.\n");
-      fprintf(stderr, "existDB::readState()-- Read     '%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c'\n",
+      fprintf(stderr, "existDB::loadState()-- Not an existDB binary file, maybe a sequence file?\n");
+      fprintf(stderr, "existDB::loadState()-- Read     '%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c'\n",
               cigam[0],  cigam[1],  cigam[2],  cigam[3],
               cigam[4],  cigam[5],  cigam[6],  cigam[7],
               cigam[8],  cigam[9],  cigam[10], cigam[11],
               cigam[12], cigam[13], cigam[14], cigam[15]);
-      fprintf(stderr, "existDB::readState()-- Expected '%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c'\n",
+      fprintf(stderr, "existDB::loadState()-- Expected '%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c'\n",
               magic[0],  magic[1],  magic[2],  magic[3],
               magic[4],  magic[5],  magic[6],  magic[7],
               magic[8],  magic[9],  magic[10], magic[11],
@@ -415,21 +413,21 @@ existDB::readState(char  *filename,
   fread(&_hashTableWords, sizeof(u64bit), 1, F);
   fread(&_bucketsWords,   sizeof(u64bit), 1, F);
 
-  if (noData == false) {
+  _hashTable = 0L;
+  _buckets   = 0L;
+
+  if (loadData) {
     _hashTable = new u64bit [_hashTableWords];
     _buckets   = new u64bit [_bucketsWords];
 
     fread(_hashTable, sizeof(u64bit), _hashTableWords, F);
     fread(_buckets,   sizeof(u64bit), _bucketsWords,   F);
-  } else {
-    _hashTable = 0L;
-    _buckets   = 0L;
   }
 
   fclose(F);
 
   if (errno) {
-    fprintf(stderr, "existDB::readState()-- Read failure.\n%s\n", strerror(errno));
+    fprintf(stderr, "existDB::loadState()-- Read failure.\n%s\n", strerror(errno));
     exit(1);
   }
 

@@ -37,7 +37,7 @@ main(int argc, char **argv) {
       arg++;
       tblsize = atoi(argv[arg]);
     } else if (strncmp(argv[arg], "-d", 2) == 0) {
-      existDB *e = new existDB(argv[argc-1], true);
+      existDB *e = new existDB(argv[argc-1], false);
       e->printState(stdout);
       delete e;
       exit(0);

@@ -4,13 +4,11 @@
 #include "libbri.H"
 
 //
-//  Takes as input a list of mers (in a file) and builds
-//  a searchable structure listing those mers.  Doesn't
-//  remove duplicate mers.
+//  Takes as input a list of mers (in a file) and builds a searchable
+//  structure listing those mers.  Doesn't remove duplicate mers.
 //
-//  Modified from existDB (04nov2002) to insert either
-//  the forward of the reverse mer only if it exists
-//  in the positionDB
+//  Insert either the forward of the reverse mer only if it exists in
+//  the positionDB.
 //
 
 //#define COMPRESSED_HASH
@@ -20,16 +18,16 @@ class positionDB;
 
 class existDB {
 public:
-  existDB(char        *filename,
-          bool         noData=false);
-  existDB(char        *filename,
+  existDB(char const  *filename,
+          bool         loadData=true);
+  existDB(char const  *filename,
           u32bit       merSize,
           u32bit       tblBits,
           positionDB  *posDB = 0L);
   ~existDB();
 
-  void        saveState(char *filename);
-  bool        readState(char *filename, bool beNoisy=false, bool noData=false);
+  void        saveState(char const *filename);
+  bool        loadState(char const *filename, bool beNoisy=false, bool loadData=true);
 
   void        printState(FILE *stream);
 
