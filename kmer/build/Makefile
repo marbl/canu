@@ -129,6 +129,8 @@ __SUBGOALS__+=$${${1:.=.CXX_SHLIBS}}
 
 ### the depends file for C/C++ files
 ## Make.depends dependency calculation
+# WISHLIST: this script does not propagate failure to the parent make
+# for some reason.  It really should.
 ${//:.=Make.depends}:
 	@ echo "(creating $@)"
 	@ echo "# -*- makefile -*-" > $@

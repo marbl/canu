@@ -32,7 +32,7 @@ ifeq ($(OPERATING_SYSTEM),)
   CXX              :=g++
   CFLAGS_ARCH      :=-g -O4 -Wall
   CXXFLAGS_ARCH    :=$(CFLAGS_ARCH)
-  SHLIB_FLAGS       := -shared
+  SHLIB_FLAGS      :=-shared
   PYINC            :=-I/usr/include/python2.2/
   INSTALL/  :=${MAKEFILE/}gnu-i386/
   PERL            :=/usr/bin/perl
@@ -45,7 +45,7 @@ ifeq ($(OPERATING_SYSTEM),TRU64)
   CFLAGS_ARCH      :=-g3 -O4
   CXXFLAGS_ARCH    :=-timplicit_local $(CFLAGS_ARCH)
   CXX_TMP_ARCH     :=cxx_repository so_locations
-  SHLIB_FLAGS      := -shared
+  SHLIB_FLAGS      :=-shared
   PYINC       :=-I/usr/local/ir/Python-2.2.2 -I/usr/local/ir/Python-2.2.2/Include
   INSTALL/  :=${MAKEFILE/}tru64/
   PERL            :=/usr/local/bin/perl
@@ -83,4 +83,7 @@ ifeq ($(OPERATING_SYSTEM),AIX)
 
   INSTALL/  :=${MAKEFILE/}aix/
   PERL            :=/usr/local/bin/perl5.6.1
+
+  CCDEP  +=-D__64BIT__
+  CXXDEP +=-D__64BIT__
 endif
