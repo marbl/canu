@@ -242,8 +242,8 @@ if ($personality eq "-mapest") {
         #  Sort, if needed.
         #
         if (! -e "$dir/polishes-good.sorted-by-cDNA") {
-            print STDERR "ESTmapper--  Sorting polishes by sequence ID; using 4GB memory maximum.\n";
-            system("$sortPolishes -m 4000 -c -v < $dir/polishes-good > $dir/polishes-good.sorted-by-cDNA");
+            print STDERR "ESTmapper--  Sorting polishes by sequence ID; using 2GB memory maximum.\n";
+            system("$sortPolishes -m 2000 -c < $dir/polishes-good > $dir/polishes-good.sorted-by-cDNA");
         }
 
         #  Parse the options, looking for SNP specific ones
