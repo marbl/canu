@@ -8,76 +8,6 @@ $| = 1;
 
 use strict;
 
-#  Change Log:
-#
-#  Tue Apr 30 17:35:29 EDT 2002
-#  1) Alignments are reported by default.  Use -noalign to turn them supress them.
-#  2) Each search will be attempted four times.  If it fails to complete
-#     after four tries, the next search is started.  The entire ESTmapper
-#     run will fail after all searches are attempted.
-#
-#  Wed May  8 14:23:46 EDT 2002
-#  1) Added checks to the end of the search phase to ensure that the output
-#     is 100% complete.
-#  2) Added "-stats" and "-nostats" options to turn on/off run-time statistics.
-#     The default is no run-time statistics.
-#
-#  Thu May  9 10:51:58 EDT 2002
-#  Added '-p' flag to all mkdir calls
-#
-#  Wed May 22 19:45:31 EDT 2002
-#  scriptVersion = 2
-#  1) Added "-searchthreads" to tell the search to use N threads.  Meaning of
-#     "-local" is now the number of concurrent processes to run
-#  2) Searches now run concurrently, as specified by "-local".  The search output
-#     is checked after all searches have been attempted once.  If any searches
-#     have failed, they are restarted, up to three times.
-#  3) The default for searches is to run one process with four threads.  For
-#     polishing, the default is to run four concurrently.
-#  4) -local -> -localpolishes and -localsearches
-#     -farm  -> -farmpolishes and -farmsearches
-#  5) Times are now reported for polishing
-#  6) Added -hitsortmemory to set the memory use when sorting hits.
-#     The default is 300MB.
-#
-#  Mon Jul  1 15:07:18 EDT 2002
-#  scriptVersion = 3
-#  Added the long intron fix.  It is enabled by default.
-#  Added "-nocleanup" and "-cleanup" to disable/enable it.
-#
-#  Wed Jul 24 15:36:17 EDT 2002
-#  scriptVersion = 4
-#  1) Added "-longintron" to set the size of a long intron
-#  2) Replaced perl match filter with C version.
-#
-#  Mon Aug 12 13:42:48 EDT 2002
-#  Small changes to farm search submission -- it now correctly detects that
-#  farm jobs have finished.
-#
-#  Tue Oct 22 15:54:27 EDT 2002
-#  scriptVersion = 5
-#  Fixed a low-level problem where non-IUPAC base names would terminate
-#  sequences abnormally early when reverse complemented (e.g., the complement
-#  of 'X' was \0, which terminated the string at that point).  This
-#  affected at least sim4db (rarely).
-#
-#  Also added DEVELOPMENT support for mapping of SNP's.  Use at your own risk,
-#  until it's finalized.
-#
-#  Tue Dec  3 13:38:25 EST 2002
-#  scriptVersion = 6
-#
-#  1) Added -mapest-nofilter to do no filtering when mapping ests.
-#  2) Added -minlength (also to sim4dbseq)
-#  3) Added -species to set species specific options (e.g., the mask file)
-#  4) Added -maxintron to enable the region splitting on large intron.  Default
-#     is 2Mbp.
-#  5) Removed polishes-short and polishes-lowquality from the output
-#  6) Removed -good and -short, replaced with -minlength, -mincoverage and -minidentity
-#
-
-
-
 
 #  Global arg list.  New command line options MUST be added here, but
 #  there is no mechanism to enforce this rule.
@@ -114,6 +44,7 @@ my %validArgs = ("-help"            => "0",
                  "-farmsearches"    => "2",
                  "-genomic"         => "1",
                  "-hitsortmemory"   => "1",
+                 "-interspecies"    => "0",
                  "-localpolishes"   => "1",
                  "-localsearches"   => "1",
                  "-longintron"      => "1",
@@ -792,30 +723,31 @@ sub assembleOutput {
 
 sub polish {
     my $startTime = time();
-    my $errHdr     = "ERROR: ESTmapper/polish--";
-    my @ARGS       = @_;
-    my $path       = "";
-    my $mini       = "95";
-    my $minc       = "50";
-    my $minl       = "0";
+    my $errHdr       = "ERROR: ESTmapper/polish--";
+    my @ARGS         = @_;
+    my $path         = "";
+    my $mini         = "95";
+    my $minc         = "50";
+    my $minl         = "0";
 
-    my $minsim4i   = "90";
-    my $minsim4c   = "45";
-    my $minsim4l   = "0";
+    my $minsim4i     = "90";
+    my $minsim4c     = "45";
+    my $minsim4l     = "0";
 
-    my $always     = "";
-    my $relink     = "";
-    my $batchsize  = 0;
-    my $numbatches = 256;
-    my $farm       = 0;
-    my $farmqueue  = "";
-    my $farmcode   = "";
-    my $local      = 1;
-    my $numcpus    = 4;
-    my $runnow     = 1;
-    my $aligns     = "-align";
-    my $stats      = 0;
-    my $abort      = "";
+    my $always       = "";
+    my $relink       = "";
+    my $batchsize    = 0;
+    my $numbatches   = 256;
+    my $farm         = 0;
+    my $farmqueue    = "";
+    my $farmcode     = "";
+    my $local        = 1;
+    my $numcpus      = 4;
+    my $runnow       = 1;
+    my $aligns       = "-align";
+    my $stats        = 0;
+    my $abort        = "";
+    my $interspecies = "";
 
     print STDERR "ESTmapper: Performing a polish.\n";
 
@@ -887,6 +819,10 @@ sub polish {
         if ($arg eq "-abort") {
             $abort = "-Mp 0.25 -Ma 10000";
         }
+
+        if ($arg eq "-interspecies") {
+            $interspecies = "-interspecies";
+        }
     }
 
     ($path eq "") and die "$errHdr no directory given.\n";
@@ -902,18 +838,19 @@ sub polish {
         print STDERR "ESTmapper/polish-- Using original parameters.\n";
 
         open(F, "< $path/3-polish/parameters");
-        $numbatches = int(<F>);
-        $batchsize  = int(<F>);
-        $mini       = <F>;      chomp $mini;
-        $minc       = <F>;      chomp $minc;
-        $minl       = <F>;      chomp $minl;
-        $minsim4i   = <F>;      chomp $minsim4i;
-        $minsim4c   = <F>;      chomp $minsim4c;
-        $minsim4l   = <F>;      chomp $minsim4l;
-        $relink     = <F>;      chomp $relink;
-        $always     = <F>;      chomp $always;
-        $aligns     = <F>;      chomp $aligns;
-        $abort      = <F>;      chomp $abort;
+        $numbatches   = int(<F>);
+        $batchsize    = int(<F>);
+        $mini         = <F>;      chomp $mini;
+        $minc         = <F>;      chomp $minc;
+        $minl         = <F>;      chomp $minl;
+        $minsim4i     = <F>;      chomp $minsim4i;
+        $minsim4c     = <F>;      chomp $minsim4c;
+        $minsim4l     = <F>;      chomp $minsim4l;
+        $relink       = <F>;      chomp $relink;
+        $always       = <F>;      chomp $always;
+        $aligns       = <F>;      chomp $aligns;
+        $abort        = <F>;      chomp $abort;
+        $interspecies = <F>;      chomp $interspecies;
         close(F);
 
         print STDERR "ESTmapper/polish-- Polish quality suitable for $minsim4i percent identity and\n";
@@ -956,20 +893,21 @@ sub polish {
         print F "$numbatches\n$batchsize\n";
         print F "$mini\n$minc\n$minl\n";
         print F "$minsim4i\n$minsim4c\n$minsim4l\n";
-        print F "$relink\n$always\n$aligns\n$abort\n";
+        print F "$relink\n$always\n$aligns\n$abort\n$interspecies\n";
         close(F);
     }
 
 
     #  Display what parameters we are using
     #
-    print STDERR "ESTmapper/polish--   minidentity = $mini ($minsim4i)\n";
-    print STDERR "ESTmapper/polish--   mincoverage = $minc ($minsim4c)\n";
-    print STDERR "ESTmapper/polish--   minlength   = $minl ($minsim4l)\n";
-    print STDERR "ESTmapper/polish--   relink      = $relink\n";
-    print STDERR "ESTmapper/polish--   always      = $always\n";
-    print STDERR "ESTmapper/polish--   aligns      = $aligns\n";
-    print STDERR "ESTmapper/polish--   abort       = $abort\n";
+    print STDERR "ESTmapper/polish--   minidentity   = $mini ($minsim4i)\n";
+    print STDERR "ESTmapper/polish--   mincoverage   = $minc ($minsim4c)\n";
+    print STDERR "ESTmapper/polish--   minlength     = $minl ($minsim4l)\n";
+    print STDERR "ESTmapper/polish--   relink        = $relink\n";
+    print STDERR "ESTmapper/polish--   always        = $always\n";
+    print STDERR "ESTmapper/polish--   aligns        = $aligns\n";
+    print STDERR "ESTmapper/polish--   abort         = $abort\n";
+    print STDERR "ESTmapper/polish--   interspecies  = $interspecies\n";
 
 
     #  Splits the filteredHits into several pieces, and outputs a script
@@ -1004,7 +942,7 @@ sub polish {
                 print S "bsub -q $farmqueue -o $path/3-polish/$idx.stdout -R \"select[physmem>600]rusage[physmem=500]\" -P $farmcode " if ($farm);
             }
             print S "$sim4db -cdna $path/0-input/cDNA.fasta -genomic $path/0-input/genomic.fasta ";
-            print S "$aligns $always $relink $abort -cut 0.6 ";
+            print S "$aligns $always $relink $abort $interspecies -cut 0.6 ";
             print S "-mincoverage $minsim4c ";
             print S "-minidentity $minsim4i ";
             print S "-minlength $minsim4l ";
