@@ -35,6 +35,11 @@ test-chainedSequence: test-chainedSequence.C ../libbri.a ../bri.h ../bri++.H
 	$(CXX) $(CXXLDFLAGS) -o test-chainedSequence test-chainedSequence.o $(LIBS)
 	./test-chainedSequence
 
+test-freeDiskSpace: test-freeDiskSpace.c ../libbri.a
+	$(CC) $(CFLAGS_COMPILE) -c -o test-freeDiskSpace.o test-freeDiskSpace.c $(INCLUDE)
+	$(CC) $(CLDFLAGS) -o test-freeDiskSpace test-freeDiskSpace.o $(LIBS)
+	./test-freeDiskSpace test-freeDiskSpace.c
+
 test-intervalList: test-intervalList.C ../libbri.a ../bri.h ../bri++.H
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-intervalList.o test-intervalList.C $(INCLUDE)
 	$(CXX) $(CXXLDFLAGS) -o test-intervalList test-intervalList.o $(LIBS)

@@ -7,6 +7,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
+#include <sys/param.h>
+#include <sys/mount.h>
 
 #include "bri.h"
 
@@ -223,4 +225,60 @@ copyFile(char *srcName, FILE *dstFile) {
   free(buffer);
 
   return(srcSize);
+}
+
+
+
+
+
+//  Takes a path to a file (that possibly doesn't exist) and returns
+//  the number of MB (1048576 bytes) free in the directory of that
+//  file.
+//
+u32bit
+freeDiskSpace(char *path) {
+  char          *p, *t;
+  struct statfs  dst;
+  struct stat    fst;
+  u64bit         ret = 0;
+
+  //  Stat the path; if it exists, we're golden.
+  //
+  if (stat(path, &fst) == 0) {
+    if (statfs(path, &dst) == -1) {
+      perror("statfs");
+      exit(-1);
+    }
+  } else {
+    //  Doesn't exist.  Try to find the directory that the file goes into.
+    //
+    //  Copy the input path to a temporary string.  Strip off
+    //  the last component (probably a file prefix, but it could also
+    //  be a directory -- see below) and return the free space on
+    //  that device.
+    //
+    p = (char *)malloc(sizeof(char) * (strlen(path) + 1));
+    strcpy(p, path);
+    t = strrchr(p, '/');
+
+    if (t) {
+      *t = 0;
+    } else {
+      p[0] = '.';
+      p[1] = 0;
+    }
+
+    if (statfs(p, &dst) == -1) {
+      perror("statfs");
+      exit(-1);
+    }
+
+    free(p);
+  }
+
+  ret   = dst.f_bsize;
+  ret  *= dst.f_bavail;
+  ret >>= 20;
+
+  return((u32bit)ret);
 }

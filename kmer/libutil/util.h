@@ -208,7 +208,11 @@ FILE *makeTempFile(char *path);
 off_t copyFile(char *srcName, FILE *dstFile);
 
 
-
+//  Takes a path to a file (that possibly doesn't exist) and returns
+//  the number of MB (1048576 bytes) free in the directory of that
+//  file.
+//
+u32bit freeDiskSpace(char *path);
 
 
 ////////////////////////////////////////

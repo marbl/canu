@@ -60,6 +60,32 @@ write_rusage(FILE *F) {
   fprintf(F, "\n");
 }
 
+
+char*
+speedCounter::_spinr[4] = { "[|]", "[/]", "[-]", "[\\]" };
+
+char*
+speedCounter::_liner[19] = { "[-         ]",
+                             "[--        ]",
+                             "[ --       ]",
+                             "[  --      ]",
+                             "[   --     ]",
+                             "[    --    ]",
+                             "[     --   ]",
+                             "[      --  ]",
+                             "[       -- ]",
+                             "[        --]",
+                             "[         -]",
+                             "[        --]",
+                             "[       -- ]",
+                             "[      --  ]",
+                             "[     --   ]",
+                             "[    --    ]",
+                             "[   --     ]",
+                             "[  --      ]",
+                             "[ --       ]" };
+
+
 speedCounter::speedCounter(char const   *fmt,
                            double        unit,
                            u64bit        freq,
