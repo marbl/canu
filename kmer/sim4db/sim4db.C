@@ -42,14 +42,16 @@ char           *touchFileName    = 0L;
 
 bool            beVerbose        = false;       //  Print progress
 bool            beExplicit       = false;       //  Print each script line as we process
+bool            beYesNo          = false;       //  Print each script line as we process, with answer
 
 sim4parameters  sim4params;
 
 const char *usage = 
 "usage: %s [options]\n"
 "\n"
-"       -v            print status while running\n"
-"       -V            print script lines as they are processed\n"
+"       -v            print status to stderr while running\n"
+"       -V            print script lines (stderr) as they are processed\n"
+"       -YN           print script lines (stdout) as they are processed, annotated with yes/no\n"
 "\n"
 "       -cdna         use these cDNA sequences\n"
 "       -genomic      use these genomic sequences\n"
@@ -182,6 +184,8 @@ parseCommandLine(int argc, char **argv) {
       beVerbose = true;
     } else if (strncmp(argv[arg], "-V", 2) == 0) {
       beExplicit = true;
+    } else if (strncmp(argv[arg], "-YN", 3) == 0) {
+      beYesNo = true;
     } else if (strncmp(argv[arg], "-H", 2) == 0) {
       arg++;
       sim4params.setRelinkWeight(atoi(argv[arg]));
@@ -339,6 +343,24 @@ sim4db(char          **scriptLines,
       fprintf(stderr, "Couldn't write the output file '%s'.\n%s\n",
               outputFileName, strerror(errno));
       exit(1);
+    }
+
+    if (beYesNo) {
+      sim4polish *p = 0L;
+      int         i = 0;
+      int         c = 0;
+
+      if (O4[0]) {
+        p = s4p_stringToPolish(O4);
+        i = p->percentIdentity;
+        c = p->querySeqIdentity;
+        destroyPolish(p);
+      }
+
+      fprintf(stdout, "%s %s %d %d\n",
+              scriptLines[workDone],
+              O4[0] ? "-Y" : "-N",
+              i, c);
     }
 
     delete [] O4;
