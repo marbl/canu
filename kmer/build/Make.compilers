@@ -106,6 +106,8 @@ ifeq (${_OS_}${_CC_}${_OPT_},AIX)
   CXXFLAGS_COMPILE         +=-g
   CFLAGS_COMPILE           +=-O3 -qstrict
   CXXFLAGS_COMPILE         +=-O3 -qstrict
+  CLDFLAGS                 +=-O3 -qstrict
+  CXXLDFLAGS               +=-O3 -qstrict
 endif
 
 # goofy AIX-ness for GCC
