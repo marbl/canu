@@ -110,6 +110,7 @@ my $toFILTER      = "$exechome/filterPolishes";
 my $sortHits      = "$exechome/sortHits";
 my $sortPolishes  = "$exechome/sortPolishes";
 my $parseSNPs     = "$exechome/parseSNP";
+my $pickBest      = "$exechome/pickBestPolish";
 
 die "Can't find/execute $searchGENOME\n"  if (! -x $searchGENOME);
 die "Can't find/execute $mergeCounts\n"   if (! -x $mergeCounts);
@@ -121,6 +122,7 @@ die "Can't find/execute $cleanPolishes\n" if (! -x $cleanPolishes);
 die "Can't find/execute $sortHits\n"      if (! -x $sortHits);
 die "Can't find/execute $sortPolishes\n"  if (! -x $sortPolishes);
 die "Can't find/execute $parseSNPs\n"     if (! -x $parseSNPs);
+die "Can't find/execute $pickBest\n"      if (! -x $pickBest);
 
 sub checkArgs {
     my $fail = 0;
@@ -536,6 +538,7 @@ sub assembleOutput {
             printf STDERR "ESTmapper/assembleOutput-- length:    length in bp of match:           old=%3d new=%3d\n", $minlL, $minl;
 
             unlink "$path/polishes-good";
+            unlink "$path/polishes-best";
             unlink "$path/polishes-goodshort";
             unlink "$path/polishes-lowquality";
             unlink "$path/summary";
@@ -576,6 +579,18 @@ sub assembleOutput {
         unlink "$path/summary";
     } else {
         print STDERR "ESTmapper/assembleOutput-- polishes already filtered.\n";
+    }
+
+
+    if (! -e "$path/polishes-best") {
+        print STDERR "ESTmapper/assembleOutput--  Picking the best polish.\n";
+        if      ($personality eq "-mapmrna") {
+            system("$sortPolishes -m 2000 -c -v < $path/polishes-good | $pickBest -mrna > $path/polishes-best");
+        } elsif ($personality eq "-mapest") {
+            system("$sortPolishes -m 2000 -c -v < $path/polishes-good | $pickBest -est > $path/polishes-best");
+        } else {
+            print STDERR "ESTmapper/assembleOutput--  Not mRNA and not EST, so not picking the best polish.\n";
+        }
     }
 
     #
