@@ -1,6 +1,7 @@
 #include "posix.H"
 #include <stdio.h>
 #include <stdlib.h>
+#include <new>
 #include "searchGENOME.H"
 #include "libbri.H"
 #include "existDB.H"
@@ -145,7 +146,9 @@ openResultFile(void) {
 
 int
 main(int argc, char **argv) {
-  struct timespec outputSleep = { 0, 50000000 };
+
+  fprintf(stderr, "Requesting exceptions from new.\n");
+  std::__set_new_throws_exception(true);
 
   //  Read the configuration from the command line
   //
@@ -292,6 +295,7 @@ main(int argc, char **argv) {
 
       outputPos++;
     } else {
+      struct timespec outputSleep = { 0, 50000000 };
       nanosleep(&outputSleep, 0L);
     }
   }

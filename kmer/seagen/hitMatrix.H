@@ -108,6 +108,7 @@ hitMatrix::addHits(u32bit  qi,
     } catch (std::bad_alloc) {
       fprintf(stderr, "hitMatrix::addHits()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
       fprintf(stderr, "hitMatrix::addHits()-- have %u hits, tried to add %u more\n", _hitsLen, cn);
+      exit(1);
     }
 
     for (u32bit z=_hitsLen; z--; ) {

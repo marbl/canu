@@ -68,6 +68,7 @@ loaderThread(void *) {
     }
   } catch (std::bad_alloc) {
     fprintf(stderr, "loaderThread()-- caught bad_alloc in %s at line %d\n", __FILE__, __LINE__);
+    exit(1);
   }
 
   return(0L);

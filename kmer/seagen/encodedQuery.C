@@ -8,14 +8,16 @@ encodedQuery::encodedQuery(char const           *seq,
                            u32bit                seqLen,
                            u32bit                k,
                            bool                  rc) {
-  _mersTotal = seqLen - k + 1;
+
+  _mersTotal = 0;
   _mersAvail = 0;
-  _mers = 0L;
-  _skip = 0L;
+  _mers      = 0L;
+  _skip      = 0L;
 
   if (k > seqLen)
     return;
 
+  _mersTotal = seqLen - k + 1;
   _mersAvail = 0;
   _mers      = new u64bit [_mersTotal];
   _skip      = new u32bit [_mersTotal];
