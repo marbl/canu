@@ -87,13 +87,13 @@ Sim4::SIM4_block3(bool     good_match,
       /* possible large intron; increase the score weight */
       free_list(tmp_Lblock);
 
-      exon_list = _mspManager.link(globalParams->_relinkWeight,
-                                   DEFAULT_DRANGE,
-                                   tmp_block->toGEN + 1,
-                                   tmp_block->toEST + 1,
-                                   1,
-                                   true,
-                                   _genSeq, _estSeq);
+      exon_list = _mspManager.doLinking(globalParams->_relinkWeight,
+                                        DEFAULT_DRANGE,
+                                        tmp_block->toGEN + 1,
+                                        tmp_block->toEST + 1,
+                                        1,
+                                        true,
+                                        _genSeq, _estSeq);
 
       //PRINTEXONS("2a\n", exon_list);
 

@@ -5,15 +5,33 @@ LIBBRI/     :=$(call MakePath,$/../libbri/)
 FASTA/      :=$(call MakePath,$/../fasta/)
 SIM4POLISH/ :=$(call MakePath,$/../sim4polish/)
 
-src    := $/sim4command.C $/sim4parameters.C $/sim4string.C \
-          $/Xtend1.C $/align.C $/exon.H $/exonManager.H $/exon_cores.C \
-          $/extend.C $/greedy.C $/log.C \
-          $/msp-link.C $/msp-sort.C $/mspManager.H \
-          $/pluri_align.C $/poly.C \
+src    := $/sim4command.C \
+          $/sim4parameters.C \
+          $/sim4string.C \
+          $/Xtend1.C \
+          $/align.C \
+          $/exon.H \
+          $/exonManager.H \
+          $/exon_cores.C \
+          $/extend.C \
+          $/greedy.C \
+          $/log.C \
+          $/mspManager.C \
+          $/mspManager.H \
+          $/pluri_align.C \
+          $/poly.C \
           $/sim4.H \
-          $/sim4b1.C $/sim4b1a.C $/sim4b1-1.C $/sim4b1-2.C $/sim4b1-3.C $/sim4b1-4.C \
-          $/sim4defines.H $/sim4parameters.H \
-          $/splice.C $/table.C $/util.C
+          $/sim4b1.C \
+          $/sim4b1a.C \
+          $/sim4b1-1.C \
+          $/sim4b1-2.C \
+          $/sim4b1-3.C \
+          $/sim4b1-4.C \
+          $/sim4defines.H \
+          $/sim4parameters.H \
+          $/splice.C \
+          $/table.C \
+          $/util.C
 
 $/.CXX_SRCS := $(filter %.C,${src})
 $/.CXX_LIBS := $/libsim4.a

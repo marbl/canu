@@ -46,13 +46,12 @@ Sim4::SIM4(int            *dist_ptr,
   Exon   *tmp_block=0L;
   Exon   *tmp_block1=0L;
 
-#ifdef SHOW_PROGRESS
-  fprintf(stderr, "STARTING SIM4 RUN\n");
-#endif
-
   struct edit_script_list *Script_head;
 
   *dist_ptr = 0;
+  *Exons    = 0L;
+  *pA = 0;
+  *pT = 0;
 
   //  Initialize the mspManager to fail if the match looks expensive.
   //
@@ -93,13 +92,13 @@ Sim4::SIM4(int            *dist_ptr,
        ((_genLen - Rblock->toGEN > 50000) && (_estLen - Rblock->toEST > 100)))) {
     free_list(exon_list);
 
-    exon_list = _mspManager.link(globalParams->_relinkWeight,
-                                 DEFAULT_DRANGE,
-                                 1,
-                                 1,
-                                 0,
-                                 true,
-                                 _genSeq, _estSeq);
+    exon_list = _mspManager.doLinking(globalParams->_relinkWeight,
+                                      DEFAULT_DRANGE,
+                                      1,
+                                      1,
+                                      0,
+                                      true,
+                                      _genSeq, _estSeq);
 
     PRINTEXONS("0a\n", exon_list);
 

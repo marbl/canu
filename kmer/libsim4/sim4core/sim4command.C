@@ -275,7 +275,9 @@ void
 sim4command::addSeed(u32bit ESTpos, u32bit GENpos, u32bit length) {
 
   if (_externalSeedsLen >= _externalSeedsMax) {
-    _externalSeedsMax += PAGE_SIZE / sizeof(externalSeed);
+    if (_externalSeedsMax == 0)
+      _externalSeedsMax = 8192;
+    _externalSeedsMax *= 2;
     externalSeed *n = new externalSeed [_externalSeedsMax];
     memcpy(n, _externalSeeds, sizeof(externalSeed) * _externalSeedsLen);
     delete [] _externalSeeds;

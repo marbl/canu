@@ -76,9 +76,8 @@ Sim4::run(sim4command *cmd) {
   char   *dbseq       = 0L;
   char   *dbrev       = 0L;
   char   *dbseqorig   = cmd->getGENsequence();
-  bool    dbWasMasked = false;
 
-  int              estlen     = 0;
+  int     estlen     = 0;
   char   *estseq     = 0L;
   char   *estrev     = 0L;
   char   *estseqorig = 0L;
@@ -139,19 +138,6 @@ Sim4::run(sim4command *cmd) {
   if (estlen - g_pA - g_pT <= 0)
     goto abort;
 
-
-
-  //  If the database was masked, restore it to the original state.
-  //
-  if (dbWasMasked) {
-    dbWasMasked = false;
-    for (u32bit i=0, j=cmd->getGENlo(), k=dblen-1; j<cmd->getGENhi(); i++, j++, k--) {
-      dbseq[i] = touppercache[(int)dbseqorig[j]];
-      dbrev[k] = complementSymbol[(int)dbseq[i]];
-    }
-    dbseq[dblen] = 0;
-    dbrev[dblen] = 0;
-  }
 
   matchesPrinted = 0;
 
@@ -412,7 +398,6 @@ Sim4::run(sim4command *cmd) {
 
         if (globalParams->_findAllExons) {
           maskExonsFromGenomic(fExons, dbseq, dbrev, dblen);
-          dbWasMasked = true;
         }
       } else {
         appendExons(B, rExons);
@@ -430,7 +415,6 @@ Sim4::run(sim4command *cmd) {
 
         if (globalParams->_findAllExons) {
           maskExonsFromGenomic(rExons, dbseq, dbrev, dblen);
-          dbWasMasked = true;
         }
       }
     }

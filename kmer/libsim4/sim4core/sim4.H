@@ -427,9 +427,6 @@ public:
   Sim4(sim4parameters *p) {
     globalParams = p;
 
-    _mspManager.setLimits(p->_mspLimitAbsolute, p->_mspLimitPercent);
-    _mspManager.setParameters(p->_match, p->_mismatch, p->_percentError);
-
     _genSeq = 0L;
     _estSeq = 0L;
     _genLen = 0;
@@ -449,6 +446,12 @@ public:
 
     wordExtensionAllowance   = 12;
 
+    _mspManager.setLimits(globalParams->_mspLimitAbsolute, globalParams->_mspLimitPercent);
+    _mspManager.setParameters(globalParams->_match,
+                              globalParams->_mismatch,
+                              globalParams->_percentError,
+                              wordExtensionAllowance);
+
     //  wordSize      -- for finding initial seeds
     //  wordSizeInt -- for extending seeds between seeds
     //  wordSizeExt -- for extending seeds on the ends
@@ -456,15 +459,15 @@ public:
     //  If sim4parameters defined wordSizeInt or Ext use that,
     //  otherwise, use the original method.
     //
-    wordSize      = p->_wordSize;
-    wordSizeInt   = min(8,  p->_wordSize);
-    wordSizeExt   = min(10, p->_wordSize);
+    wordSize      = globalParams->_wordSize;
+    wordSizeInt   = min(8,  globalParams->_wordSize);
+    wordSizeExt   = min(10, globalParams->_wordSize);
 
-    if (p->_wordSizeInt)  wordSizeInt = p->_wordSizeInt;
-    if (p->_wordSizeExt)  wordSizeExt = p->_wordSizeExt;
+    if (globalParams->_wordSizeInt)  wordSizeInt = globalParams->_wordSizeInt;
+    if (globalParams->_wordSizeExt)  wordSizeExt = globalParams->_wordSizeExt;
 
-    mspThreshold1 = p->_mspThresh1;  //K;
-    mspThreshold2 = p->_mspThresh2;  //C;
+    mspThreshold1 = globalParams->_mspThresh1;  //K;
+    mspThreshold2 = globalParams->_mspThresh2;  //C;
 
     G_score = 0;
     C_score = 0;

@@ -24,11 +24,6 @@ Sim4::exon_cores(char *s1,
                  int   in_K,
                  int   type) {
 
-#if 0
-  fprintf(stdout, "exonCores: l1=%d l2=%d offset1=%d offset2=%d flag=%d W=%d K=%d\n",
-          l1, l2, offset1, offset2, flag, in_W, in_K);
-#endif
-
   int K;
   if (globalParams->_interspecies)
     K = (int)(((int)(log(.75*(double)_genLen)+log((double)_estLen))/log(4.0)) * 1.0);
@@ -38,11 +33,6 @@ Sim4::exon_cores(char *s1,
   _mspManager.clear();
 
   exon_list = NULL;
-
-  //  XXX: We used to limit W to be 12 maximum.  BPW noticed on
-  //  28apr03 that we're still using in_W (unlimited W).
-  //  
-  //int W = min(in_W, l2);
 
 #ifdef PROFILE_EXON_CORE
   double startTime = getTime();
@@ -62,22 +52,10 @@ Sim4::exon_cores(char *s1,
 
 #ifdef PROFILE_EXON_CORE
   startTime = getTime();
-  fprintf(stderr, "Sorting "u32bitFMT" MSPs\n", _mspManager.numberOfMSPs());
-#endif
-
-  _mspManager.sort();
-
-#ifdef PROFILE_EXON_CORE
-  fprintf(stderr, "sorting took %f seconds.\n", getTime() - startTime);
-#endif
-
-
-#ifdef PROFILE_EXON_CORE
-  startTime = getTime();
   fprintf(stderr, "Linking "u32bitFMT" MSPs\n", _mspManager.numberOfMSPs());
 #endif
 
-  exon_list = _mspManager.link(DEFAULT_WEIGHT, DEFAULT_DRANGE, offset1, offset2, flag, false, s1, s2);
+  exon_list = _mspManager.doLinking(DEFAULT_WEIGHT, DEFAULT_DRANGE, offset1, offset2, flag, false, s1, s2);
 
 #ifdef PROFILE_EXON_CORE
   fprintf(stderr, "linking took %f seconds.\n", getTime() - startTime);
@@ -86,30 +64,32 @@ Sim4::exon_cores(char *s1,
 
 
 
+#define OLD_EXONCORE
+
+
 void
 Sim4::search(char *s1, char *s2, int l1, int l2, int in_W, int in_K) {
   struct hash_node *h;
   char             *t;
   int               ecode;
   int               i, p;
-  int               lower;
-  int              *allocated;
-  int              *diag_lev;
 
   //  Too short?  Abort!
   //
   if (l1 < in_W)
     return;
 
-  //double startTime = getTime();
-
-  lower = -l1;
+#ifdef OLD_EXONCORE
+  int               lower = -l1;
+  int              *allocated;
+  int              *diag_lev;
 
   allocated = new int [l1 + l2 + 1];
   for (i = l1 + l2 + 1; i; )
     allocated[--i] = 0;
 
   diag_lev = allocated - lower;
+#endif
 
   t = s1+1;
   i = 0;
@@ -138,11 +118,19 @@ Sim4::search(char *s1, char *s2, int l1, int l2, int in_W, int in_K) {
               //fprintf(stdout, "p = %8d  pos1 = %8d\n", p, pos1);
               //fprintf(stdout, "p1=%8d o1=%8d p2=%8d o2=%8d\n", pos1, 0, p, 0);
 
+#ifdef OLD_EXONCORE
               if (diag_lev[p-pos1] <= pos1) {
                 diag_lev[p-pos1] = extend_hit(pos1, p,
                                               s1,s2,l1,l2,
                                               in_W, in_K);
               }
+#else
+              _mspManager.addHit(s1, s2,
+                                 l1, l2,
+                                 pos1, p,
+                                 in_W, in_K);
+#endif
+
             }
             break;
           }
@@ -153,18 +141,26 @@ Sim4::search(char *s1, char *s2, int l1, int l2, int in_W, int in_K) {
     }
   }
 
+#ifdef OLD_EXONCORE
   delete [] allocated;
+#endif
 }
 
 
 
+#ifdef OLD_EXONCORE
 
 /* extend_hit - extend a word-sized hit to a longer match */
 int
-Sim4::extend_hit(int pos1, int pos2, 
-                 const char * const s1, const char * const s2,
-                 int l1, int l2, int in_W, int in_K)
-{
+Sim4::extend_hit(int pos1,
+                 int pos2, 
+                 const char * const s1,
+                 const char * const s2,
+                 int l1,
+                 int l2,
+                 int in_W,
+                 int in_K) {
+
   const char *beg2, *beg1, *end1, *q, *s;
   int right_sum, left_sum, sum, score;
 
@@ -210,3 +206,4 @@ Sim4::extend_hit(int pos1, int pos2,
   return((int)(end1 - s1 - 1 + in_W));
 }
 
+#endif
