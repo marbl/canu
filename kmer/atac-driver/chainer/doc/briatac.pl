@@ -28,6 +28,8 @@ if (scalar(@ARGV) < 6) {
     print STDERR "    -numsegments s         -- number of segments to do the search in\n";
     print STDERR "    -numthreads t          -- number of threads to use per search\n";
     print STDERR "\n";
+    print STDERR "    -merylonly             -- only run the meryl components\n";
+    print STDERR "\n";
     exit(1);
 }
 
@@ -47,6 +49,8 @@ my $maxgap    = 0;  # the maximum substitution gap
 
 my $numSegments = 2;
 my $numThreads  = 4;
+
+my $merylOnly = 0;
 
 my $execHome;
 $execHome = "/work/assembly/walenzbp/releases";
@@ -75,6 +79,8 @@ while (scalar(@ARGV) > 0) {
         $numThreads = shift @ARGV;
     } elsif ($arg eq "-bindir") {
         $execHome = shift @ARGV;
+    } elsif ($arg eq "-merylonly") {
+        $merylOnly = 1;
     }
 }
 
@@ -194,7 +200,7 @@ if (! -e "$ATACdir/.mask.done") {
 }
 
 
-#exit(0);
+exit(0) if ($merylOnly == 1);
 
 
 #  This is the segmented search routine.  By default, it will segment into two pieces.
@@ -261,10 +267,13 @@ foreach my $segmentID (@segmentIDs) {
         if (runCommand($cmd)) {
             #unlink "$ATACdir/$matches-segment-$segmentID.matches";
             #unlink "$ATACdir/$matches-segment-$segmentID.stats";
+            unlink "$ATACdir/$matches-segment-$segmentID.tmp";
             rename "$ATACdir/$matches-segment-$segmentID.matches", "$ATACdir/$matches-segment-$segmentID.matches.crash";
             rename "$ATACdir/$matches-segment-$segmentID.stats", "$ATACdir/$matches-segment-$segmentID.stats.crash";
             die "Failed to run $matches-$segmentID\n";
         }
+
+        unlink "$ATACdir/$matches-segment-$segmentID.tmp";
     }
 }
 
