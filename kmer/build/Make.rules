@@ -187,7 +187,7 @@ $(eval $(foreach x,${//},$(call .RULE-install-copy-TEX_PSPDF,$x)))
 ALL_PY_EXES :=$(strip $(foreach x,${//},${${x:.=.PY_EXES}}))
 
 ${ALL_PY_EXES}: %: %.in
-	sed -e's|PYTHONPATH|${PYPATH}|g' $< > $@
+	(echo "#!${PYSHEBANG}" && cat $<) > $@
 	chmod ugo+x $@
 
 __SUBGOALS__+=$${${1:.=.PY_EXES}}
@@ -206,6 +206,11 @@ ${1:.=.install-copy-PYTHON}:
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-install-copy-PYTHON,$x)))
+
+
+
+
+
 
 
 
