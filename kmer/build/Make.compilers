@@ -28,10 +28,10 @@ ifdef WITH_GNU
 endif
 
 _OPT_:=
-ifeq (WITH_OPT,debug)
+ifeq (${WITH_OPT},debug)
   _OPT_ :=-debug
 endif
-ifeq (WITH_OPT,profile)
+ifeq (${WITH_OPT},profile)
   _OPT_ :=-prof
 endif
 
