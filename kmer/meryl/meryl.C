@@ -9,36 +9,38 @@ extern const char *usage;
 
 int
 main(int argc, char **argv) {
-  bool              doForward     = true;
-  bool              doReverse     = false;
-  bool              doCanonical   = false;
-  u32bit            merSize       = 20;
-  u32bit            tblSize       = 24;
-  u32bit            hashSize      = 0;
-  char             *inputFile     = 0L;
-  char             *outputFile    = 0L;
-  char             *queryFile     = 0L;
-  char             *maskFile      = 0L;
-  bool              beVerbose     = false;
+  bool              doForward        = true;
+  bool              doReverse        = false;
+  bool              doCanonical      = false;
+  u32bit            merSize          = 20;
+  u32bit            tblSize          = 24;
+  u32bit            hashSize         = 0;
+  char             *inputFile        = 0L;
+  char             *outputFile       = 0L;
+  char             *queryFile        = 0L;
+  char             *maskFile         = 0L;
+  bool              beVerbose        = false;
 
-  u32bit            lowCount       = 0;
-  u32bit            highCount      = ~lowCount;
-  u32bit            desiredCount   = 0;
+  u32bit            lowCount         = 0;
+  u32bit            highCount        = ~lowCount;
+  u32bit            desiredCount     = 0;
 
-  bool              outputCount    = false;
-  bool              outputAll      = false;
-  bool              outputPosition = false;
+  bool              outputCount      = false;
+  bool              outputAll        = false;
+  bool              outputPosition   = false;
 
-  bool              includeDefLine = false;
-  bool              includeMer     = false;
+  bool              includeDefLine   = false;
+  bool              includeMer       = false;
 
-  u32bit            mergeFilesMax = 0;
-  u32bit            mergeFilesLen = 0;
-  char            **mergeFiles    = 0L;
+  u32bit            mergeFilesMax    = 0;
+  u32bit            mergeFilesLen    = 0;
+  char            **mergeFiles       = 0L;
 
   u64bit            estimatedNumMers = 0;
 
   char              personality      = 0;
+
+  char             *statsFile        = 0L;
 
   if (argc == 1) {
     fprintf(stderr, usage, argv[0], argv[0], argv[0]);
@@ -49,13 +51,15 @@ main(int argc, char **argv) {
   //  for them in mergeFiles.
   //
   for (int arg=1; arg < argc; arg++) {
-    if ((argv[arg][0] == '-') && (argv[arg][1] == 's') && (argv[arg][2] == 0))
+    if (strcmp(argv[arg], "-s") == 0)
       mergeFilesMax++;
   }
   mergeFiles = new char* [mergeFilesMax];
 
 
   //  Parse the options
+  //
+  //  XXX:  This is just nasty, and really should be strncmp based.
   //
   for (int arg=1; arg < argc; arg++) {
     if (argv[arg][0] != '-') {
@@ -80,8 +84,13 @@ main(int argc, char **argv) {
 	  }
           break;
         case 's':
-          arg++;
-          mergeFiles[mergeFilesLen++] = inputFile = argv[arg];
+          if        (strcmp(argv[arg], "-s") == 0) {
+            arg++;
+            mergeFiles[mergeFilesLen++] = inputFile = argv[arg];
+          } else if (strcmp(argv[arg], "-stats") == 0) {
+            arg++;
+            statsFile = argv[arg];
+          }
           break;
         case 'n':
           arg++;
@@ -283,5 +292,16 @@ main(int argc, char **argv) {
       fprintf(stderr, "\nERROR:  Unknown personality.  Specify -P, -B, -S or -M!\n");
       exit(1);
       break;
+  }
+
+  if (statsFile) {
+    errno = 0;
+    FILE *F = fopen(statsFile, "w");
+    if (errno) {
+      fprintf(stderr, "WARNING: Failed to open stats file '%s'\n%s\n", statsFile, strerror(errno));
+    } else {
+      write_rusage(F);
+      fclose(F);
+    }
   }
 }

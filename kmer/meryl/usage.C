@@ -1,6 +1,6 @@
 
 const char *usage =
-"usage: %s [personality] [options]\n"
+"usage: %s [personality] [global options] [options]\n"
 "\n"
 "where personality is:\n"
 "        -P -- compute parameters\n"
@@ -8,6 +8,9 @@ const char *usage =
 "        -S -- scan table\n"
 "        -M -- \"math\" operations\n"
 "        -D -- dump table\n"
+"\n"
+"global options\n"
+"        -stats file   (write run time statistics to file)\n"
 "\n"
 "-P:  Given a sequence file (-s) or an upper limit on the\n"
 "     number of mers in the file (-n), compute the table size\n"
