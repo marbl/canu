@@ -71,3 +71,134 @@ include $/Make.include
 
 
 
+
+
+
+
+#
+#  Ugly targets to install an ESTmapper
+#
+
+ESTmapper: ESTmapperDIR ESTmapperEXEC
+
+ESTmapperDIR:
+	if test ! -d ESTmapper ; then mkdir ESTmapper ; fi
+
+ESTmapperEXEC:  ESTmapper/leaff \
+                ESTmapper/sim4db \
+                ESTmapper/searchGENOME \
+                ESTmapper/filterEST \
+                ESTmapper/filterMRNA \
+                ESTmapper/sortHits \
+                ESTmapper/cleanPolishes \
+		ESTmapper/sortPolishes \
+                ESTmapper/stripPolishes \
+                ESTmapper/filterPolishes \
+                ESTmapper/mergeCounts \
+                ESTmapper/ESTmapper.pl \
+                ESTmapper/libBri.pm \
+                ESTmapper/toXML.pl \
+                ESTmapper/mergeXML.pl \
+                ESTmapper/flattenXML.pl \
+                ESTmapper/parseSNP \
+                ESTmapper/data
+
+CP=cp -p
+CP=cp
+
+ESTmapper/leaff: fasta/leaff
+	rm -f ESTmapper/leaff
+	$(CP) fasta/leaff ESTmapper/leaff
+	chmod 555 ESTmapper/leaff
+
+ESTmapper/sim4db: sim4db/sim4db
+	rm -f ESTmapper/sim4db
+	$(CP) sim4db/sim4db ESTmapper/sim4db
+	chmod 555 ESTmapper/sim4db
+
+ESTmapper/searchGENOME: searchGENOME/searchGENOME
+	rm -f ESTmapper/searchGENOME
+	$(CP) searchGENOME/searchGENOME ESTmapper/searchGENOME
+	chmod 555 ESTmapper/searchGENOME
+
+ESTmapper/filterEST: searchGENOME/filterEST
+	rm -f ESTmapper/filterEST
+	$(CP) searchGENOME/filterEST ESTmapper/filterEST
+	chmod 555 ESTmapper/filterEST
+
+ESTmapper/filterMRNA: searchGENOME/filterMRNA
+	rm -f ESTmapper/filterMRNA
+	$(CP) searchGENOME/filterMRNA ESTmapper/filterMRNA
+	chmod 555 ESTmapper/filterMRNA
+
+ESTmapper/sortHits: searchGENOME/sortHits
+	rm -f ESTmapper/sortHits
+	$(CP) searchGENOME/sortHits ESTmapper/sortHits
+	chmod 555 ESTmapper/sortHits
+
+ESTmapper/cleanPolishes: sim4reader/cleanPolishes
+	rm -f ESTmapper/cleanPolishes
+	$(CP) sim4reader/cleanPolishes ESTmapper/cleanPolishes
+	chmod 555 ESTmapper/cleanPolishes
+
+ESTmapper/sortPolishes: sim4reader/sortPolishes
+	rm -f ESTmapper/sortPolishes
+	$(CP) sim4reader/sortPolishes ESTmapper/sortPolishes
+	chmod 555 ESTmapper/sortPolishes
+
+ESTmapper/parseSNP: sim4reader/parseSNP
+	rm -f ESTmapper/parseSNP
+	$(CP) sim4reader/parseSNP ESTmapper/parseSNP
+	chmod 555 ESTmapper/parseSNP
+
+ESTmapper/stripPolishes: sim4reader/stripPolishes
+	rm -f ESTmapper/stripPolishes
+	$(CP) sim4reader/stripPolishes ESTmapper/stripPolishes
+	chmod 555 ESTmapper/stripPolishes
+
+ESTmapper/filterPolishes: sim4reader/filterPolishes
+	rm -f ESTmapper/filterPolishes
+	$(CP) sim4reader/filterPolishes ESTmapper/filterPolishes
+	chmod 555 ESTmapper/filterPolishes
+
+ESTmapper/mergeCounts: estmapper-util/mergeCounts
+	rm -f ESTmapper/mergeCounts
+	$(CP) estmapper-util/mergeCounts ESTmapper/mergeCounts
+	chmod 555 ESTmapper/mergeCounts
+
+ESTmapper/ESTmapper.pl: scripts/ESTmapper.pl
+	rm -f ESTmapper/ESTmapper.pl
+	$(CP) scripts/ESTmapper.pl ESTmapper/ESTmapper.pl
+	chmod 555 ESTmapper/ESTmapper.pl
+
+ESTmapper/libBri.pm: scripts/libBri.pm
+	rm -f ESTmapper/libBri.pm
+	$(CP) scripts/libBri.pm ESTmapper/libBri.pm
+	chmod 444 ESTmapper/libBri.pm
+
+ESTmapper/toXML.pl: scripts/toXML.pl
+	rm -f ESTmapper/toXML.pl
+	$(CP) scripts/toXML.pl ESTmapper/toXML.pl
+	chmod 444 ESTmapper/toXML.pl
+
+ESTmapper/mergeXML.pl: scripts/mergeXML.pl
+	rm -f ESTmapper/mergeXML.pl
+	$(CP) scripts/mergeXML.pl ESTmapper/mergeXML.pl
+	chmod 444 ESTmapper/mergeXML.pl
+
+ESTmapper/flattenXML.pl: scripts/flattenXML.pl
+	rm -f ESTmapper/flattenXML.pl
+	$(CP) scripts/flattenXML.pl ESTmapper/flattenXML.pl
+	chmod 444 ESTmapper/flattenXML.pl
+
+ESTmapper/data:
+	mkdir ESTmapper/data
+	#bzip2 -dc data/frequentMers-C4-20.fasta.bz2 > ESTmapper/data/frequentMers-hum-20.fasta
+	#bzip2 -dc data/frequentMers-R27-20.fasta.bz2 > ESTmapper/data/frequentMers-hum-20.fasta
+	#bzip2 -dc data/frequentMers-mus-20.fasta.bz2 > ESTmapper/data/frequentMers-mus-20.fasta
+	$(CP) data/frequentMers-R27-20.fasta ESTmapper/data/frequentMers-hum-20.fasta
+	$(CP) data/frequentMers-mus-20.fasta ESTmapper/data/frequentMers-mus-20.fasta
+	$(CP) data/frequentMers-rat-20.fasta ESTmapper/data/frequentMers-rat-20.fasta
+	chmod 755 ESTmapper/data
+	chmod 444 ESTmapper/data/*
+
