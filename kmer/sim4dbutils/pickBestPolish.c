@@ -61,7 +61,7 @@ pickBestSlave(sim4polish **p, int pNum) {
   //
   if (pNum == 1) {
 #ifndef VALIDATE
-    s4p_printPolish(stdout, p[0]);
+    s4p_printPolish(stdout, p[0], S4P_PRINTPOLISH_FULL);
 #endif
     return;
   }
@@ -130,7 +130,7 @@ pickBestSlave(sim4polish **p, int pNum) {
       if ((p[i]->percentIdentity == identityi) &&
           (p[i]->numMatches == tmp_nmatches) &&
           (p[i]->numExons == numExons))
-        s4p_printPolish(stdout, p[i]);
+        s4p_printPolish(stdout, p[i], S4P_PRINTPOLISH_FULL);
 #else
     if (tmp_nmatches == nmatchesi) 
     fprintf(stdout, "--------------------1 (Clear Winner)\n");
@@ -219,7 +219,7 @@ pickBestSlave(sim4polish **p, int pNum) {
       if ((p[i]->percentIdentity == identityi) &&
           (p[i]->numMatches      == tmp_nmatches) &&
           (p[i]->numExons	 == numExons))
-        s4p_printPolish(stdout, p[i]);
+        s4p_printPolish(stdout, p[i], S4P_PRINTPOLISH_FULL);
 #else
     if (tmp_nmatches == nmatchesi)
     fprintf(stdout, "--------------------3 (?)\n");
@@ -257,7 +257,7 @@ pickBestSlave(sim4polish **p, int pNum) {
       if ((p[i]->percentIdentity == identityi) &&
           (p[i]->numMatches      == nmatchesi) &&
           (p[i]->numExons 	 == numExons))
-        s4p_printPolish(stdout, p[i]);
+        s4p_printPolish(stdout, p[i], S4P_PRINTPOLISH_FULL);
 #else
     fprintf(stdout, "--------------------5 (alpha < 0.8)\n");
     for (i=0; i<pNum; i++)
@@ -306,7 +306,7 @@ pickBestSlave(sim4polish **p, int pNum) {
     if ((p[i]->percentIdentity == identityi) &&
         (p[i]->numMatches      == nmatchesi) &&
         (p[i]->numExons	       == numExonsi))
-      s4p_printPolish(stdout, p[i]);
+      s4p_printPolish(stdout, p[i], S4P_PRINTPOLISH_FULL);
 #else
   if (numExonsi > numExonsm + EPS_X)
   fprintf(stdout, "--------------------6 (Exon Plus alpha > 0.8)\n");
@@ -334,7 +334,7 @@ pickBestSlave(sim4polish **p, int pNum) {
     if ((p[i]->percentIdentity == identitym) &&
         (p[i]->numMatches      == tmp_nmatches) &&
         (p[i]->numExons        == numExons))
-      s4p_printPolish(stdout, p[i]);
+      s4p_printPolish(stdout, p[i], S4P_PRINTPOLISH_FULL);
 #else
   if (numExons == numExonsm)
   fprintf(stdout, "--------------------8 (alpha > 0.8)\n");

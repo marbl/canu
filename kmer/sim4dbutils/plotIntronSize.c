@@ -82,7 +82,7 @@ main(int argc, char ** argv) {
       //fprintf(stdout, "%d\n", biggestIntron);
 
       if ((dumpSize > 0) && (biggestIntron > dumpSize))
-        printPolish(stdout, p);
+        printPolish(stdout, p, S4P_PRINTPOLISH_FULL);
     }
 
     destroyPolish(p);

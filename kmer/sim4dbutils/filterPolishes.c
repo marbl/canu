@@ -166,7 +166,7 @@ main(int argc, char ** argv) {
     if (JUNK && ((p->strandOrientation == SIM4_STRAND_INTRACTABLE) ||
                  (p->strandOrientation == SIM4_STRAND_FAILED))) {
       junk++;
-      s4p_printPolish(JUNK, p);
+      s4p_printPolish(JUNK, p, S4P_PRINTPOLISH_FULL);
     } else {
       if ((p->percentIdentity  >= minI) &&
           (p->querySeqIdentity >= minC) &&
@@ -190,16 +190,16 @@ main(int argc, char ** argv) {
                 exit(1);
               }
             }
-            s4p_printPolish(SEGREGATE[p->genID], p);
+            s4p_printPolish(SEGREGATE[p->genID], p, S4P_PRINTPOLISH_FULL);
           }
         } else {
           if (!GOODsilent)
-            s4p_printPolish(GOOD, p);
+            s4p_printPolish(GOOD, p, S4P_PRINTPOLISH_FULL);
         }
       } else {
         crap++;
         if (!CRAPsilent)
-          s4p_printPolish(CRAP, p);
+          s4p_printPolish(CRAP, p, S4P_PRINTPOLISH_FULL);
       }
     }
 

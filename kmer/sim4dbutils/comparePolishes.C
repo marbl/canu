@@ -182,7 +182,7 @@ main(int argc, char **argv) {
 
       if (found > 2) {
         fprintf(stderr, "Found %d matches for A=%d?\n", found, i);
-        s4p_printPolish(stderr, A[i]);
+        s4p_printPolish(stderr, A[i], S4P_PRINTPOLISH_FULL);
       }
     } else {
 
@@ -193,15 +193,15 @@ main(int argc, char **argv) {
 
 #if 0
         fprintf(stdout, "----------Found ZERO matches because it's a repeat.\n", i);
-        s4p_printPolish(stdout, A[i]);
+        s4p_printPolish(stdout, A[i], S4P_PRINTPOLISH_FULL);
 #endif
       } else if (numFound > 0) {
         numProbable++;
 
         fprintf(stdout, "----------Found PROBABLE match with %d -- numExonsFound=%d numExonsMissing=%d numExonsExtra=%d\n",
                 bestMatch, numFound, numMissing, numExtra);
-        s4p_printPolishNormalized(stdout, A[i]);
-        s4p_printPolishNormalized(stdout, B[bestMatch]);
+        s4p_printPolish(stdout, A[i], S4P_PRINTPOLISH_NORMALIZED);
+        s4p_printPolish(stdout, B[bestMatch], S4P_PRINTPOLISH_NORMALIZED);
       } else {
         numExtra++;
 
@@ -209,11 +209,11 @@ main(int argc, char **argv) {
             (A[i]->querySeqIdentity >= 80)) {
           fprintf(stdout, "----------Found ZERO matches HIGH-ID -- numExonsFound=%d numExonsMissing=%d numExonsExtra=%d\n",
                   numFound, numMissing, numExtra);
-          s4p_printPolish(stdout, A[i]);
+          s4p_printPolish(stdout, A[i], S4P_PRINTPOLISH_FULL);
         } else {
           fprintf(stdout, "----------Found ZERO matches LOW-ID -- numExonsFound=%d numExonsMissing=%d numExonsExtra=%d\n",
                   numFound, numMissing, numExtra);
-          s4p_printPolish(stdout, A[i]);
+          s4p_printPolish(stdout, A[i], S4P_PRINTPOLISH_FULL);
         }
       }
     }

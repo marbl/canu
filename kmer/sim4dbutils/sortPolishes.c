@@ -93,7 +93,7 @@ writeTemporary(sim4polish **p, int pNum, int numTemporary) {
   }
 
   for (i=0; i<pNum; i++)
-    s4p_printPolish(file, p[i]);
+    s4p_printPolish(file, p[i], S4P_PRINTPOLISH_FULL);
 
   fclose(file);
 
@@ -298,7 +298,7 @@ main(int argc, char **argv) {
     qsort(p, pNum, sizeof(sim4polish *), fcn);
 
     for (i=0; i<pNum; i++)
-      s4p_printPolish(stdout, p[i]);
+      s4p_printPolish(stdout, p[i], S4P_PRINTPOLISH_FULL);
   } else {
     FILE        **InF;
     sim4polish  **q;
@@ -363,7 +363,7 @@ main(int argc, char **argv) {
       if (q[smallestPolish] == 0L) {
         moreInput = 0;
       } else {
-        s4p_printPolish(stdout, q[smallestPolish]);
+        s4p_printPolish(stdout, q[smallestPolish], S4P_PRINTPOLISH_FULL);
         s4p_destroyPolish(q[smallestPolish]);
         q[smallestPolish] = s4p_readPolish(InF[smallestPolish]);
       }

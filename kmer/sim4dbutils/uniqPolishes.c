@@ -17,11 +17,11 @@ pickBest(sim4polish **p, int pNum, int uniq) {
 
   if (pNum == 1) {
     if (uniq)
-      s4p_printPolish(stdout, p[0]);
+      s4p_printPolish(stdout, p[0], S4P_PRINTPOLISH_FULL);
   } else {
     if (!uniq)
       for (i=0; i<pNum; i++)
-        s4p_printPolish(stdout, p[i]);
+        s4p_printPolish(stdout, p[i], S4P_PRINTPOLISH_FULL);
   }
 
   for (i=0; i<pNum; i++)

@@ -136,7 +136,7 @@ main(int argc, char **argv) {
 
       //  Dump the 'first', read in a new polish
       //
-      s4p_printPolish(otMatch, polishes[first]);
+      s4p_printPolish(otMatch, polishes[first], S4P_PRINTPOLISH_FULL);
 
       s4p_destroyPolish(polishes[first]);
 

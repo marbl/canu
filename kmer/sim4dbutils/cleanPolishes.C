@@ -206,10 +206,10 @@ main(int argc, char ** argv) {
     if (p->numExons == 1) {
       oneExon++;
       if (filter)
-        s4p_printPolish(stdout, p);
+        s4p_printPolish(stdout, p, S4P_PRINTPOLISH_FULL);
 #if 0
       if (segregate)
-        s4p_printPolish(filtOneExon, p);
+        s4p_printPolish(filtOneExon, p, S4P_PRINTPOLISH_FULL);
 #endif
     } else {
 
@@ -241,10 +241,10 @@ main(int argc, char ** argv) {
       if (biggestIntron < intronLimit) {
         smaIntron++;
         if (filter)
-          s4p_printPolish(stdout, p);
+          s4p_printPolish(stdout, p, S4P_PRINTPOLISH_FULL);
 #if 0
         if (segregate)
-          s4p_printPolish(filtAllSmall, p);
+          s4p_printPolish(filtAllSmall, p, S4P_PRINTPOLISH_FULL);
 #endif
       } else {
 
@@ -285,20 +285,20 @@ main(int argc, char ** argv) {
           trimExonsBefore(intronSplit, b);
 
           if (filter && saveJunk) {
-            s4p_printPolish(stdout, a);
-            s4p_printPolish(stdout, b);
+            s4p_printPolish(stdout, a, S4P_PRINTPOLISH_FULL);
+            s4p_printPolish(stdout, b, S4P_PRINTPOLISH_FULL);
           }
 
           if (beforeafter) {
             fprintf(splJunkBoth, "====================\n");
-            s4p_printPolish(splJunkBoth, p);
-            s4p_printPolish(splJunkBoth, a);
-            s4p_printPolish(splJunkBoth, b);
+            s4p_printPolish(splJunkBoth, p, S4P_PRINTPOLISH_FULL);
+            s4p_printPolish(splJunkBoth, a, S4P_PRINTPOLISH_FULL);
+            s4p_printPolish(splJunkBoth, b, S4P_PRINTPOLISH_FULL);
           }
 
           if (segregate) {
-            s4p_printPolish(filtJunkBoth, a);
-            s4p_printPolish(filtJunkBoth, b);
+            s4p_printPolish(filtJunkBoth, a, S4P_PRINTPOLISH_FULL);
+            s4p_printPolish(filtJunkBoth, b, S4P_PRINTPOLISH_FULL);
           }
 
           s4p_destroyPolish(a);
@@ -318,20 +318,20 @@ main(int argc, char ** argv) {
 
           if (filter) {
             if (saveJunk)
-              s4p_printPolish(stdout, a);
-            s4p_printPolish(stdout, b);
+              s4p_printPolish(stdout, a, S4P_PRINTPOLISH_FULL);
+            s4p_printPolish(stdout, b, S4P_PRINTPOLISH_FULL);
           }
 
           if (beforeafter) {
             fprintf(splJunkLeft, "====================\n");
-            s4p_printPolish(splJunkLeft, p);
-            s4p_printPolish(splJunkLeft, a);
-            s4p_printPolish(splJunkLeft, b);
+            s4p_printPolish(splJunkLeft, p, S4P_PRINTPOLISH_FULL);
+            s4p_printPolish(splJunkLeft, a, S4P_PRINTPOLISH_FULL);
+            s4p_printPolish(splJunkLeft, b, S4P_PRINTPOLISH_FULL);
           }
 
           if (segregate) {
-            s4p_printPolish(filtJunkLeft, a);
-            s4p_printPolish(filtJunkLeft, b);
+            s4p_printPolish(filtJunkLeft, a, S4P_PRINTPOLISH_FULL);
+            s4p_printPolish(filtJunkLeft, b, S4P_PRINTPOLISH_FULL);
           }
 
           s4p_destroyPolish(a);
@@ -347,21 +347,21 @@ main(int argc, char ** argv) {
           trimExonsBefore(intronSplit, b);
 
           if (filter) {
-            s4p_printPolish(stdout, a);
+            s4p_printPolish(stdout, a, S4P_PRINTPOLISH_FULL);
             if (saveJunk)
-              s4p_printPolish(stdout, b);
+              s4p_printPolish(stdout, b, S4P_PRINTPOLISH_FULL);
           }
 
           if (beforeafter) {
             fprintf(splJunkRight, "====================\n");
-            s4p_printPolish(splJunkRight, p);
-            s4p_printPolish(splJunkRight, a);
-            s4p_printPolish(splJunkRight, b);
+            s4p_printPolish(splJunkRight, p, S4P_PRINTPOLISH_FULL);
+            s4p_printPolish(splJunkRight, a, S4P_PRINTPOLISH_FULL);
+            s4p_printPolish(splJunkRight, b, S4P_PRINTPOLISH_FULL);
           }
 
           if (segregate) {
-            s4p_printPolish(filtJunkRight, a);
-            s4p_printPolish(filtJunkRight, b);
+            s4p_printPolish(filtJunkRight, a, S4P_PRINTPOLISH_FULL);
+            s4p_printPolish(filtJunkRight, b, S4P_PRINTPOLISH_FULL);
           }
 
           s4p_destroyPolish(a);
@@ -390,20 +390,20 @@ main(int argc, char ** argv) {
             trimExonsAfter(intronSplit, b);
 
             if (filter) {
-              s4p_printPolish(stdout, a);
-              s4p_printPolish(stdout, b);
+              s4p_printPolish(stdout, a, S4P_PRINTPOLISH_FULL);
+              s4p_printPolish(stdout, b, S4P_PRINTPOLISH_FULL);
             }
 
             if (beforeafter) {
               fprintf(splIntronGap, "====================\n");
-              s4p_printPolish(splIntronGap, p);
-              s4p_printPolish(splIntronGap, a);
-              s4p_printPolish(splIntronGap, b);
+              s4p_printPolish(splIntronGap, p, S4P_PRINTPOLISH_FULL);
+              s4p_printPolish(splIntronGap, a, S4P_PRINTPOLISH_FULL);
+              s4p_printPolish(splIntronGap, b, S4P_PRINTPOLISH_FULL);
             }
 
             if (segregate) {
-              s4p_printPolish(filtIntronGap, a);
-              s4p_printPolish(filtIntronGap, b);
+              s4p_printPolish(filtIntronGap, a, S4P_PRINTPOLISH_FULL);
+              s4p_printPolish(filtIntronGap, b, S4P_PRINTPOLISH_FULL);
             }
 
             s4p_destroyPolish(a);
@@ -431,15 +431,15 @@ main(int argc, char ** argv) {
                  (p->strandOrientation == SIM4_STRAND_NEGATIVE))) {
               goodQual++;
               if (filter)
-                s4p_printPolish(stdout, p);
+                s4p_printPolish(stdout, p, S4P_PRINTPOLISH_FULL);
               if (segregate)
-                s4p_printPolish(filtGood, p);
+                s4p_printPolish(filtGood, p, S4P_PRINTPOLISH_FULL);
             } else {
               probGood++;
               if (filter)
-                s4p_printPolish(stdout, p);
+                s4p_printPolish(stdout, p, S4P_PRINTPOLISH_FULL);
               if (segregate)
-                s4p_printPolish(filtProbGood, p);
+                s4p_printPolish(filtProbGood, p, S4P_PRINTPOLISH_FULL);
             }
           }
         }
