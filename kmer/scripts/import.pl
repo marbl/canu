@@ -1,9 +1,12 @@
 #!/bin/perl
 
-#  Script that will import a genome into the GENOMES directory.
+#  Import a genome into the IR GENOMES directory.
 #
 #  usage:
 #    import.pl NICKNAME /path/to/genome.fasta
+#
+#  Revisions:
+#    20040419 - bpw - check the results of system() calls.
 #
 
 use strict;
@@ -14,21 +17,25 @@ if (scalar(@ARGV) != 2) {
     print STDERR "usage: $0 NICKNAME genome.fasta\n";
     exit(1);
 }
-
 my $nickname = shift @ARGV;
 my $genome   = shift @ARGV;
+my $d        = `date`;    chomp $d;
+my $u        = `whoami`;  chomp $u;
 
 if (-e "/IR/devel/genomics/GENOMES/$nickname") {
     print STDERR "error: /IR/devel/genomics/GENOMES/$nickname exists.\n";
     exit(1);
 }
 
-system("mkdir /IR/devel/genomics/GENOMES/$nickname");
+if (! -x $leaff) {
+    print STDERR "Can't find or execute $leaff\n";
+    exit(1);
+}
 
-my $d = `date`;    chomp $d;
-my $u = `whoami`;  chomp $u;
+system("mkdir /IR/devel/genomics/GENOMES/$nickname") and die "Failed to create /IR/devel/genomics/GENOMES/$nickname";
+system("chmod 775 /IR/devel/genomics/GENOMES/$nickname") and die "Failed to chmod\n";
 
-open(F, "> /IR/devel/genomics/GENOMES/$nickname/$nickname.readme");
+open(F, "> /IR/devel/genomics/GENOMES/$nickname/$nickname.readme") or die "Failed to open readme\n";
 print F "species     = \n";
 print F "type        = \n";
 print F "source      = \n";
@@ -43,18 +50,10 @@ close(F);
 
 #  Squeeze the file, make some extra files
 #
-#print "$leaff -f $genome -W > /IR/devel/genomics/GENOMES/$nickname/$nickname.fasta\n";
-system("$leaff -f $genome -W > /IR/devel/genomics/GENOMES/$nickname/$nickname.fasta");
-
-#print "$leaff -Fdc /IR/devel/genomics/GENOMES/$nickname/$nickname.fasta\n";
-system("$leaff -Fdc /IR/devel/genomics/GENOMES/$nickname/$nickname.fasta");
-
-#print "grep '>' /IR/devel/genomics/GENOMES/$nickname/$nickname.fasta > /IR/devel/genomics/GENOMES/$nickname/$nickname.fasta.deflines\n";
-system("grep '>' /IR/devel/genomics/GENOMES/$nickname/$nickname.fasta > /IR/devel/genomics/GENOMES/$nickname/$nickname.fasta.deflines");
-
-#print "/work/assembly/walenzbp/releases/dumpBlocks /IR/devel/genomics/GENOMES/$nickname/$nickname.fasta > /IR/devel/genomics/GENOMES/$nickname/$nickname.breakpoints\n";
-system("/work/assembly/walenzbp/releases/dumpBlocks /IR/devel/genomics/GENOMES/$nickname/$nickname.fasta > /IR/devel/genomics/GENOMES/$nickname/$nickname.breakpoints");
-
+system("$leaff -f $genome -W > /IR/devel/genomics/GENOMES/$nickname/$nickname.fasta") and die "Failed to squeeze the genome.\n";
+system("$leaff -Fd /IR/devel/genomics/GENOMES/$nickname/$nickname.fasta") and die "Failed to index the genome.\n";
+system("grep '>' /IR/devel/genomics/GENOMES/$nickname/$nickname.fasta > /IR/devel/genomics/GENOMES/$nickname/$nickname.fasta.deflines") and die "Failed to find deflines.\n";
+system("/usr/local/ir/bin//dumpBlocks /IR/devel/genomics/GENOMES/$nickname/$nickname.fasta > /IR/devel/genomics/GENOMES/$nickname/$nickname.breakpoints") and die "Failed to get sequence blocks.\n";
 
 
 #  Write out the atai index
@@ -62,8 +61,8 @@ system("/work/assembly/walenzbp/releases/dumpBlocks /IR/devel/genomics/GENOMES/$
 #print "$leaff -Fd /IR/devel/genomics/GENOMES/$nickname/$nickname.fasta -i $nickname\n";
 
 if (! -e "/IR/devel/genomics/GENOMES/$nickname/$nickname.atai") {
-    open(O, "> /IR/devel/genomics/GENOMES/$nickname/$nickname.atai");
-    open(F, "$leaff -Fd /IR/devel/genomics/GENOMES/$nickname/$nickname.fasta -i $nickname |");
+    open(O, "> /IR/devel/genomics/GENOMES/$nickname/$nickname.atai") or die "Failed to open atai file for output.\n";
+    open(F, "$leaff -Fd /IR/devel/genomics/GENOMES/$nickname/$nickname.fasta -i $nickname |") or die "Failed to dump the genome index.\n";
 
     #  Format line and S record
     #
@@ -123,5 +122,8 @@ if (! -e "/IR/devel/genomics/GENOMES/$nickname/$nickname.atai") {
     close(O);
 }
 
+open(F, ">> assemblies.atai") and die "Failed to append the info line to assemblies.atai\n";
+print F "S $nickname /IR/devel/genomics/GENOMES/$nickname/$nickname.fasta\n";
+close(F);
 
-print STDERR "Edit /IR/devel/genomics/GENOMES/$nickname/$nickname.readme\n";
+print STDERR "Please fill out the information in /IR/devel/genomics/GENOMES/$nickname/$nickname.readme\n";
