@@ -21,7 +21,7 @@ main(int argc, char **argv) {
     } else if (strncmp(argv[arg], "-", 1) == 0) {
       numToPrint = atoi(argv[arg] + 1);
     } else {
-      F = fopen(argv[++arg], "r");
+      F = fopen(argv[arg], "r");
       if (F == 0L) {
         fprintf(stderr, "Failed to open '%s'.\n%s\n", argv[arg], strerror(errno));
         exit(1);
