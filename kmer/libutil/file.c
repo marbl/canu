@@ -10,6 +10,10 @@
 #include <sys/param.h>
 #include <sys/mount.h>
 
+#ifdef linux
+#include <sys/vfs.h>
+#endif
+
 #include "bri.h"
 
 
