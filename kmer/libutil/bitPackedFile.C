@@ -16,7 +16,7 @@
 //  Define this to build a short test executable.  A nice test size is
 //  50000000 5000.
 //
-//#define TEST
+//#define TEST_BITPACKEDFILE
 
 
 bitPackedFileWriter::bitPackedFileWriter(char const *name) {
@@ -29,7 +29,7 @@ bitPackedFileWriter::~bitPackedFileWriter() {
   u64bit wd = (_bit >> 6) & 0x0000cfffffffffffllu;
 
   errno = 0;
-  fwrite(_bfr, sizeof(u64bit), wd+1, _out);
+  size_t wrote = fwrite(_bfr, sizeof(u64bit), wd+1, _out);
   if (errno) {
     fprintf(stderr, "bitPackedFileWriter::~bitPackedFileWriter got %s\n", strerror(errno));
     exit(1);
@@ -42,19 +42,17 @@ bitPackedFileWriter::~bitPackedFileWriter() {
 
 
 //  If the buffer doesn't have 128 bits free (2 words currently) flush
-//  it.
-//
-//  128 was chosen because the fibonacci encoded numbers use up to
-//  90-some bits.
+//  it.  128 was chosen because the fibonacci encoded numbers use up
+//  to 90-some bits.
 //
 void
 bitPackedFileWriter::flush(void) {
 
   if ((_bit >> 6) >= (BUFFER_SIZE - 2)) {
     errno = 0;
-    fwrite(_bfr, sizeof(u64bit), BUFFER_SIZE-2, _out);
+    size_t wrote = fwrite(_bfr, sizeof(u64bit), BUFFER_SIZE-2, _out);
     if (errno) {
-      fprintf(stderr, "bitPackedFileWriter::putBits got %s\n", strerror(errno));
+      fprintf(stderr, "bitPackedFileWriter::flush() got %s\n", strerror(errno));
       exit(1);
     }
 
@@ -173,21 +171,24 @@ bitPackedFileReader::~bitPackedFileReader() {
 //  complete fill, while '10' would save the first 10 64-bit words.
 //
 void
-bitPackedFileReader::fillBufferFromDisk(u32bit bufferpos) {
+bitPackedFileReader::fillBufferFromDisk(u32bit bufStart) {
+
+#if 0
+  memset(_bfr + bufStart, 0, sizeof(u64bit) * (BUFFER_SIZE-bufStart));
+#endif
 
   errno = 0;
-  size_t bytesread = fread(_bfr + bufferpos, sizeof(u64bit), BUFFER_SIZE - bufferpos, _in);
+  size_t wordsread = fread(_bfr + bufStart, sizeof(u64bit), BUFFER_SIZE - bufStart, _in);
   if (errno) {
     fprintf(stderr, "bitPackedFileReader::bitPackedFileReader got %s\n", strerror(errno));
     exit(1);
   }
 
-  //  Clear any bytes that we didn't read (supposedly, because we
-  //  hit EOF).  The +2 is because we started with a buffer with 2
-  //  words in it.
+  //  Clear any words that we didn't read (supposedly, because we
+  //  hit EOF).
   //
-  for (bytesread += bufferpos; bytesread < BUFFER_SIZE; bytesread++)
-    _bfr[bytesread] = u64bitZERO;
+  for (wordsread += bufStart; wordsread < BUFFER_SIZE; wordsread++)
+    _bfr[wordsread] = u64bitZERO;
 }
 
 
@@ -245,22 +246,32 @@ bitPackedFileReader::getNumber(void) {
 
 
 
-#ifdef TEST
+#ifdef TEST_BITPACKEDFILE
+#include <unistd.h>
 #include <time.h>
 #include <math.h>
 
 int
 main(int argc, char **argv) {
 
+  u32bit   testSize = 5000000;
+  u32bit   testIter = 200;
+
   if (argc == 1) {
-    fprintf(stderr, "usage: %s testsize testiters\n", argv[0]);
+    fprintf(stderr, "usage: %s testSize testIter\n", argv[0]);
     fprintf(stderr, "  This will perform various tests on the bitPackedFile* classes,\n");
     fprintf(stderr, "  returning 0 if OK and 1 if error.\n");
-    exit(1);
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  testSize -- the number of words to use in a write then read test\n");
+    fprintf(stderr, "  testIter -- the number of random access tests to do\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "I'll assume reasonable values and continue\n");
+    fprintf(stderr, "  testSize = "u32bitFMT"\n", testSize);
+    fprintf(stderr, "  testIter = "u32bitFMT"\n", testIter);
+  } else {
+    testSize = strtou32bit(argv[1], 0L);
+    testIter = strtou32bit(argv[2], 0L);
   }
-
-  u32bit    testSize = strtou32bit(argv[1], 0L);
-  u32bit    testIter = strtou32bit(argv[2], 0L);
 
   u32bit    i;
   u32bit   *siz = new u32bit [testSize];
@@ -377,4 +388,4 @@ main(int argc, char **argv) {
 }
 
 
-#endif  //  TEST
+#endif  //  TEST_BITPACKEDFILE

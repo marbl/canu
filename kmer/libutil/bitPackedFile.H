@@ -5,6 +5,19 @@
 
 #include "libbritypes.h"
 
+//
+//  XXX: WARNING: The bitpacked file only works if the start is
+//  aligned to 64-bit words.  If you, say, have a text file with a
+//  bitPackedFile tacked on the end, it usually won't work.
+//
+//  [ 63 bytes of text][bitPackedFile]
+//
+//  The symptom will be a short read on the last block of the
+//  bitPackedFile.
+//
+//  This is only caused by _externally_ joining the files.
+//
+
 class bitPackedFileWriter {
 public:
   bitPackedFileWriter(char const *name);
@@ -19,7 +32,6 @@ private:
   bool      _pipe;
   u64bit   *_bfr;
   u64bit    _bit;
-  //u32bit    _sta;
 };
 
 class bitPackedFileReader {
@@ -30,6 +42,7 @@ public:
   u64bit     getBits(u32bit size);
   u64bit     getNumber(void);
 
+  //  Seek to the bit position 'pos'
   void       seek(u64bit pos);
 private:
   void       fillBufferFromDisk(u32bit bufferpos);
@@ -39,7 +52,6 @@ private:
   bool      _pipe;
   u64bit   *_bfr;
   u64bit    _bit;
-  //u32bit    _sta;
 };
 
 #endif  //  BITPACKEDFILE_H
