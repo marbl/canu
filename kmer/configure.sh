@@ -93,6 +93,8 @@ CC      = xlC
 CCOPTS  = -q64 -O3 -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict \$(IBMLF)
 CCWARNS =
 AROPTS  = -X 64 ruv
+EOF
+    ;;
   aix-profile)
     rm -f Makefile-configuration
     cat <<EOF > Makefile-configuration
@@ -108,6 +110,7 @@ CC      = xlC
 CCOPTS  = -q64 -O3 -pg -qfullpath -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict \$(IBMLF)
 CCWARNS =
 AROPTS  = -X 64 ruv
+EOF
     ;;
   aix-debug)
     rm -f Makefile-configuration
