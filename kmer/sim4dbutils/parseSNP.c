@@ -198,32 +198,38 @@ printSNP(FILE *F, sim4polish *p) {
   int   examinePos    = 0;
   int   genPosition   = 0;
 
+  //  If the match is complement, then the alignment is printed using
+  //  the reverse complemented SNP sequence, and so we need to find
+  //  the offset at the end of the sequence (not always the same as
+  //  the offset at the start of the sequence).
+  //
+  //  XXX: Previous version had this as "p->estLen - pos + siz", which
+  //  seems wrong.  This version does what appears to be reverse
+  //  complement - size.  I don't understand if this is a "size" or
+  //  just a "1" thing.
+  //
+  seqOffset = pos;
+  if (p->matchOrientation == MATCH_COMPLEMENT)
+    seqOffset = p->estLen - pos - 1;
+
   //  Find the exon with the SNP
   //
   for (i=0; i<p->numExons; i++) {
-    if (((p->exons[i].estFrom-1) <= pos) && (pos <= (p->exons[i].estTo-1)))
+    if (((p->exons[i].estFrom-1) <= seqOffset) && (seqOffset <= (p->exons[i].estTo-1)))
       exonWithSNP = i;
   }
 
   if (exonWithSNP == -1)
     return(1);
 
-  //  If the match is complement, then the alignment is printed using
-  //  the reverse complemented SNP sequence, and so we need to find
-  //  the offset at the end of the sequence (not always the same as
-  //  the offset at the start of the sequence).
-  //
-  //  XXX:  Previous version had this as "- siz"  I don't understand
-  //  if this is a "size" or just a "+1" thing.
-  //
-  seqOffset  = pos;
-  if (p->matchOrientation == MATCH_COMPLEMENT)
-    seqOffset = p->estLen - pos + siz;
-
   //  Now, we examine the alignment strings to decide exactly
   //  where the SNP is located in the genomic.
   //
-  bpToExamine = seqOffset - p->exons[exonWithSNP].estFrom + 1;
+  //  bpToExaine - the number of bases we need to skip in the
+  //  alignment (counted in the snp), +1 because we are currently at
+  //  the bp before the alignment (so we need to skip one more space).
+  //
+  bpToExamine = seqOffset - (p->exons[exonWithSNP].estFrom - 1) + 1;
   examinePos  = 0;
   genPosition = p->genLo + p->exons[exonWithSNP].genFrom - 1;
 
