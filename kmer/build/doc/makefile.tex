@@ -6,12 +6,84 @@
 
 \section{Overview of the proposed new IR build system}
 
-The following points are necessary to balance in any
-build system.
-\begin{itemize}
-\item providing a uniform set of compile flags while allowing some deviation from these flags when necessary.
-\item directing execution of rebulding of files which respects dependency so that changes can propagate to their consumers without unnecessary rebuilding.
-\end{itemize}
+The proposed buld system for IR projects is defined by the set of
+file under \verb+cds/IR/build+.  These files consist of a \verb+Makefile+
+and several ancillary files which provide platform specific and file
+type specific definitions and rules.
+
+The build itself is always directed through the one \verb+Makefile+ in
+the build directory.  What I describe hereafter as {\em the build} is
+really \verb+gmake+ is invoked with this \verb+Makefile+, either from
+withing the \verb+cds/IR/build+ directory or referrenced explicitly
+with a \verb+-f+ option to \verb+gmake+.
+
+When the build is started, the ancillary files are examined to
+establish definitions (and to provide a naming utility).  The build
+then looks for a file named \verb+Make.include+ in the directory of
+invocation.  This \verb+Make.include+ files should contain build
+information for files pertinent to its directory and possible
+inclusions of other \verb+Make.include+ files in lower directories.
+Only after the tree of \verb+Make.include+'s is read that any building
+starts, so that full dependency information is available before any
+execution.
+
+Additional include files which were defined in the \verb+Make.include+
+files, such as the \verb+*.d+ files which typically hold C and C++
+dependencies are included, possible after being rebuilt if a build
+rule exists for them and they do not exist or are out of date.  Thus,
+the first phase of the build is typically the creation of automatically
+generated dependency information, with subsequent modifications of
+sources minimally rebuilding these files.
+
+The build properly proceeds with the creation of all targets which
+have been defined.  Targets declared by placing them on the lists of
+variables which are defined to be targets by the build rules.  It
+is possible to subgoal the building at a file or directory level of
+granularity.
+
+\section{Anatomy of a Make.include}
+
+\verb+Make.include+ files defined variables, and they are not
+necessarily sitting in the same place where the build is invoked.  For
+these two considerations, there is defined, for each
+\verb+Make.include+ file a variable named by the single character
+'\verb+/+' which holds the relative path of the current directory.
+Any file in the current directory can be referenced by prepending
+\verb+$/+ to it.  The contents of \verb+/+ ought to be unique in the
+namespace of the build, so any variable defined as \verb+$/.MYVAR+
+cannot conflict with any other variables in the build namespace (using
+the syntax of hidden files for variables may be a bad thing, but it
+has not caused problems yet).
+
+So, a simple \verb+Make.include+ might look like:
+\begin{verbatim}
+$/.C_SRCS := $/hello.c
+$/.C_EXES := $/hello
+$/hello: $/hello.o
+\end{verbatim}
+
+Note the use of the 'verb+:=+' assignment instead of the '\verb+=+'
+assignment.  The reason for this, is that \verb+gmake+ has two {\em flavors}
+of variable, one which traditionally is lazily evaluated, defined by
+'\verb+=+', and one which is imediately evaluated, defined by '\verb+:=+'.
+If the RHS of the \verb+$/.C_SRCS+ assignment were to be lazily
+evaluated, then the \verb+$/+ component of the name would expand to
+whatever value \verb+/+ holds at the end of the whole traversal
+(which is an empty string if everything goes right).  This would
+produce errors.  I recommend the use of '\verb+:=+' in just about
+every possible case, unless you are trying to be tricky on purpose.
+
+There are a number of special variables, used on a per-\verb+/+
+basis by the \verb+Make.rules+ ancillary file.  These variables can
+be defined by the \verb+Make.include+ files to specify the various
+types of files and the actions required to build them.  The current
+list of variables is as follows:
+
+\begin{tabular}{lc}
+\verb+$/.C_SRCS+ & C-sources
+\end{tabular}
+
+
 
 \section{Anatomy of the Makefile}
 % cvs version 1.26
