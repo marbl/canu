@@ -260,7 +260,7 @@ u32bit                 begPos            = ~(u32bit)0;
 u32bit                 endPos            = ~(u32bit)0;
 bool                   printMD5          = false;
 FastASequenceInCore   *lastSeq           = 0L;
-
+mt_s                  *mtctx             = 0L;
 
 void
 failIfNoSource(void) {
@@ -400,11 +400,11 @@ printRandomlyGeneratedSequence(u32bit n, u32bit s, u32bit l) {
     s = 1;
 
   for (u32bit i=0; i<n; i++) {
-    u32bit j = s + (random() % (l-s));
+    u32bit j = s + (mtRandom32(mtctx) % (l-s));
     seq[j] = 0;
 
     while (j)
-      seq[--j] = bases[random() & 0x3];            
+      seq[--j] = bases[mtRandom32(mtctx) & 0x3];            
 
     if (withDefLine)
       if (specialDefLine)
@@ -511,7 +511,7 @@ findAndPrintRandomSequences(u32bit num) {
     seqs[i] = i;
 
   for (u32bit i=0; i<f->getNumberOfSequences(); i++) {
-    u32bit j = (unsigned int)(random() % f->getNumberOfSequences());
+    u32bit j = (unsigned int)(mtRandom32(mtctx) % f->getNumberOfSequences());
     u32bit t = seqs[j];
     seqs[j] = seqs[i];
     seqs[i] = t;
@@ -1270,7 +1270,7 @@ main(int argc, char **argv) {
   for (int z=0; z<256; z++)
     translate[z] = (char)z;
 
-  srandom(getpid() * time(NULL));
+  mtctx = mtInit(getpid() * time(NULL));
 
   processArray(argc, argv);
 
