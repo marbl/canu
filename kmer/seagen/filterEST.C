@@ -134,17 +134,10 @@ main(int argc, char **argv) {
 
 
       if (logFile) {
-#ifdef TRUE64BIT
         if (!conservativeFilter)
-          fprintf(logFile, "%u] all %u hits saved (aggressively filtered to %u hits).\n", HR.iid(), HR.numHits(), hitsToSave);
+          fprintf(logFile, u32bitFMT"] all "u32bitFMT" hits saved (aggressively filtered to "u32bitFMT" hits).\n", HR.iid(), HR.numHits(), hitsToSave);
         else
-          fprintf(logFile, "%u] all %u hits saved.\n", HR.iid(), HR.numHits());
-#else
-        if (!conservativeFilter)
-          fprintf(logFile, "%lu] all %lu hits saved (aggressively filtered to %u hits).\n", HR.iid(), HR.numHits(), hitsToSave);
-        else
-          fprintf(logFile, "%lu] all %lu hits saved.\n", HR.iid(), HR.numHits());
-#endif
+          fprintf(logFile, u32bitFMT"] all "u32bitFMT" hits saved.\n", HR.iid(), HR.numHits());
         fflush(logFile);
       }
     } else {
@@ -177,11 +170,7 @@ main(int argc, char **argv) {
           decided    = true;
 
           if (logFile) {
-#ifdef TRUE64BIT
-            fprintf(logFile, "%u] aggressively filtered %u hits down to %u hits using threshold %f\n", HR.iid(), HR.numHits(), hitsToSave, qualityThreshUse);
-#else
-            fprintf(logFile, "%lu] aggressively filtered %lu hits down to %lu hits using threshold %f\n", HR.iid(), HR.numHits(), hitsToSave, qualityThreshUse);
-#endif
+            fprintf(logFile, ""u32bitFMT"] aggressively filtered "u32bitFMT" hits down to "u32bitFMT" hits using threshold %f\n", HR.iid(), HR.numHits(), hitsToSave, qualityThreshUse);
             fflush(logFile);
           }
         } else {
@@ -198,11 +187,7 @@ main(int argc, char **argv) {
           hitsToSave = HR.numHits();
 
           if (logFile) {
-#ifdef TRUE64BIT
-            fprintf(logFile, "%u] filtered %u hits down to %u hits using threshold %f\n", HR.iid(), HR.numHits(), count, qualityThreshUse);
-#else
-            fprintf(logFile, "%lu] filtered %lu hits down to %lu hits using threshold %f\n", HR.iid(), HR.numHits(), count, qualityThreshUse);
-#endif
+            fprintf(logFile, ""u32bitFMT"] filtered "u32bitFMT" hits down to "u32bitFMT" hits using threshold %f\n", HR.iid(), HR.numHits(), count, qualityThreshUse);
             fflush(logFile);
           }
         }
@@ -238,13 +223,8 @@ main(int argc, char **argv) {
         hitsToSave = 0;
 
         if (logFile) {
-#ifdef TRUE64BIT
-          fprintf(logFile, "%u] has uniform signal strength, no hits saved: %u hits, best=%f, worst=%f, largestdiff=%f\n",
+          fprintf(logFile, ""u32bitFMT"] has uniform signal strength, no hits saved: "u32bitFMT" hits, best=%f, worst=%f, largestdiff=%f\n",
                   HR.iid(), HR.numHits(), HR.bestScore(), HR.worstScore(), largestDifference);
-#else
-          fprintf(logFile, "%lu] has uniform signal strength, no hits saved: %lu hits, best=%f, worst=%f, largestdiff=%f\n",
-                  HR.iid(), HR.numHits(), HR.bestScore(), HR.worstScore(), largestDifference);
-#endif
         }
       } else if (largestDifference < 0.1) {
 
@@ -257,13 +237,8 @@ main(int argc, char **argv) {
         hitsToSave = 0;
 
         if (logFile) {
-#ifdef TRUE64BIT
-          fprintf(logFile, "%u] has no clear signal knee, no hits saved: %u hits, best=%f, worst=%f, largestdiff=%f\n",
+          fprintf(logFile, ""u32bitFMT"] has no clear signal knee, no hits saved: "u32bitFMT" hits, best=%f, worst=%f, largestdiff=%f\n",
                   HR.iid(), HR.numHits(), HR.bestScore(), HR.worstScore(), largestDifference);
-#else
-          fprintf(logFile, "%lu] has no clear signal knee, no hits saved: %lu hits, best=%f, worst=%f, largestdiff=%f\n",
-                  HR.iid(), HR.numHits(), HR.bestScore(), HR.worstScore(), largestDifference);
-#endif
         }
       } else {
 
@@ -305,23 +280,13 @@ main(int argc, char **argv) {
           qualityThreshUse = HR[hitsToSave].coverage;
 
           if (logFile) {
-#ifdef TRUE64BIT
-            fprintf(logFile, "%u] spike at %u, %u hits saved:  thresh=%f, %u hits, best=%f, worst=%f, largestdiff=%f\n",
+            fprintf(logFile, ""u32bitFMT"] spike at "u32bitFMT", "u32bitFMT" hits saved:  thresh=%f, "u32bitFMT" hits, best=%f, worst=%f, largestdiff=%f\n",
                     HR.iid(), spikeFound, hitsToSave, qualityThreshUse, HR.numHits(), HR.bestScore(), HR.worstScore(), largestDifference);
-#else
-            fprintf(logFile, "%lu] spike at %lu, %lu hits saved: thresh=%f, %lu hits, best=%f, worst=%f, largestdiff=%f\n",
-                    HR.iid(), spikeFound, hitsToSave, qualityThreshUse, HR.numHits(), HR.bestScore(), HR.worstScore(), largestDifference);
-#endif
           }
         } else {
           if (logFile) {
-#ifdef TRUE64BIT
-            fprintf(logFile, "%u] is an unclassified signal, no hits saved, %u hits, best=%f, worst=%f, largestdiff=%f\n",
+            fprintf(logFile, ""u32bitFMT"] is an unclassified signal, no hits saved, "u32bitFMT" hits, best=%f, worst=%f, largestdiff=%f\n",
                     HR.iid(), HR.numHits(), HR.bestScore(), HR.worstScore(), largestDifference);
-#else
-            fprintf(logFile, "%lu] is an unclassified signal, no hits saved, %lu hits, best=%f, worst=%f, largestdiff=%f\n",
-                    HR.iid(), HR.numHits(), HR.bestScore(), HR.worstScore(), largestDifference);
-#endif
           }
         }
       }
@@ -434,8 +399,7 @@ main(int argc, char **argv) {
 
 #ifdef WITH_ANSWERS
     if (fn > 0) {
-#ifdef TRUE64BIT
-      fprintf(logFile, "%u] FALSENEGATIVE  tp=%7d fp=%7d fn=%7d tn=%7d   hits saved:%6lu filtered:%6lu unknown:%lu discarded:%6lu total:%6lu\n",
+      fprintf(logFile, ""u32bitFMT"] FALSENEGATIVE  tp=%7d fp=%7d fn=%7d tn=%7d   hits saved:"u32bitFMTW(6) filtered:"u32bitFMTW(6) unknown:"u64bitFMTW(6)" discarded:"u64bitFMTW(6)" total:"u64bitFMTW(6)"\n",
               HR.iid(),
               tp, fp, fn, tn,
               hitsSaved,
@@ -443,24 +407,13 @@ main(int argc, char **argv) {
               hitsUnknown,
               hitsDiscarded,
               hitsTotal);
-#else
-      fprintf(logFile, "%lu] FALSENEGATIVE  tp=%7d fp=%7d fn=%7d tn=%7d   hits saved:%6llu filtered:%6llu unknown:%llu discarded:%6llu total:%6llu\n",
-              HR.iid(),
-              tp, fp, fn, tn,
-              hitsSaved,
-              hitsFiltered,
-              hitsUnknown,
-              hitsDiscarded,
-              hitsTotal);
-#endif
     }
 #endif
 
 
 #ifdef WITH_ANSWERS
     if ((HR.iid() % 500) == 0) {
-#ifdef TRUE64BIT
-      fprintf(stderr, "%9u] tp=%7d fp=%7d fnfilt=%7d fnunkn=%7d fndisc=%7d tn=%7d  seqs saved:%6u unknown:%u discarded:%6u total:%6u  hits saved %8llu/%8llu = %8.3f%%\r",
+      fprintf(stderr, "%9u] tp=%7d fp=%7d fnfilt=%7d fnunkn=%7d fndisc=%7d tn=%7d  seqs saved:%6u unknown:"u32bitFMT" discarded:"u32bitFMTW(6) total:"u32bitFMT@(6)  hits saved "u64bitFMTW(8)"/"u64bitFMTW(8)" = %8.3f%%\r",
               HR.iid(),
               filterTP, filterFP, filterFNfilt, filterFNunk, filterFNdisc, filterTN,
               seqsSaved,
@@ -469,23 +422,11 @@ main(int argc, char **argv) {
               seqsTotal,
               hitsSaved, hitsTotal,
               100.0 * hitsSaved / hitsTotal);
-#else
-      fprintf(stderr, "%9lu] tp=%7d fp=%7d fnfilt=%7d fnunkn=%7d fndisc=%7d tn=%7d  seqs saved:%6llu unknown:%llu discarded:%6llu total:%6llu  hits saved %8llu/%8llu = %8.3f%%\r",
-              HR.iid(),
-              filterTP, filterFP, filterFNfilt, filterFNunk, filterFNdisc, filterTN,
-              seqsSaved,
-              seqsUnknown,
-              seqsDiscarded,
-              seqsTotal,
-              hitsSaved, hitsTotal,
-              100.0 * hitsSaved / hitsTotal);
-#endif
       fflush(stderr);
     }
 #else
     if ((HR.iid() % 500) == 0) {
-#ifdef TRUE64BIT
-      fprintf(stderr, "%9u] seqs saved:%6u unknown:%u discarded:%6u total:%6u  hits saved %8llu/%8llu = %8.3f%%\r",
+      fprintf(stderr, "%9u] seqs saved:%6u unknown:"u32bitFMT" discarded:%6u total:%6u  hits saved "u64bitFMTW(8)"/"u64bitFMTW(8)" = %8.3f%%\r",
               HR.iid(),
               seqsSaved,
               seqsUnknown,
@@ -493,16 +434,6 @@ main(int argc, char **argv) {
               seqsTotal,
               hitsSaved, hitsTotal,
               100.0 * hitsSaved / hitsTotal);
-#else
-      fprintf(stderr, "%9lu] seqs saved:%6llu unknown:%llu discarded:%6llu total:%6llu  hits saved %8llu/%8llu = %8.3f%%\r",
-              HR.iid(),
-              seqsSaved,
-              seqsUnknown,
-              seqsDiscarded,
-              seqsTotal,
-              hitsSaved, hitsTotal,
-              100.0 * hitsSaved / hitsTotal);
-#endif
       fflush(stderr);
     }
 #endif
