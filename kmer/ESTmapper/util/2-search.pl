@@ -180,7 +180,7 @@ sub search {
 
         my $genomepath = readlink "$path/0-input/genomic.fasta";
 
-        open(F, "> $builddir/$buildprefix.info");
+        open(F, "> $builddir/$buildprefix.$mersize.info");
         print F "$genomepath\n";
 
         foreach my $s (@scafList) {
@@ -203,12 +203,12 @@ sub search {
     #  This is sensitive to moving the genome file around.
     #
     if (defined($buildprefix) && !$buildonly) {
-        if (! -e "$builddir/$buildprefix.info") {
+        if (! -e "$builddir/$buildprefix.$mersize.info") {
             print STDERR "ESTmapper/search-- Table incompatible: No info file found!\n";
             exit(1);
         }
 
-        open(F, "< $builddir/$buildprefix.info");
+        open(F, "< $builddir/$buildprefix.$mersize.info");
 
         my $genomepath = readlink "$path/0-input/genomic.fasta";
         my $genomesave = <F>;
@@ -222,11 +222,6 @@ sub search {
 
         foreach my $s (@scafList) {
             my $segment;
-
-            if (! -e "$builddir/$buildprefix.$mersize.$s") {
-                print STDERR "ESTmapper/search-- Table incompatible: missing segment $s\n";
-                exit(1);
-            }
 
             open(G, "< $path/0-input/scaffolds-$s");
             while (<G>) {
