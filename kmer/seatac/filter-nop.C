@@ -8,7 +8,7 @@
 #include "libbritypes.h"
 
 extern "C" {
-  void    *construct(char *);
+  void    *construct(char *options);
   void     destruct(void *handle);
   void     addHit(void *handle,
                   char    orientation,
@@ -21,6 +21,11 @@ extern "C" {
                   u32bit  filled);
   void     filter(void *handle);
   void     output(void *handle, FILE *file);
+
+  void    *constructStats(char *options);
+  void     destructStats(void *handle);
+  void     addStats(void *handle, void *filterhandle);
+  void     showStats(void *handle, FILE *file);
 }
 
 
@@ -72,6 +77,27 @@ private:
 
 
 
+class statLongest {
+public:
+  statLongest() {
+    num = 0;
+  }
+  ~statLongest() {
+  }
+
+  void add(filterLongest *F) {
+    num++;
+  }
+
+  void show(FILE *file) {
+    fprintf(file, "statObj: num = %d\n", num);
+  }
+  
+private:
+  int    num;
+};
+
+
 
 
 
@@ -107,4 +133,27 @@ filter(void *handle) {
 void
 output(void *handle, FILE *file) {
   ((filterLongest *)handle)->output(file);
+}
+
+
+
+
+void*
+constructStats(char *options) {
+  return(new statLongest);
+}
+
+void
+destructStats(void *handle) {
+  delete (statLongest *)handle;
+}
+
+void
+addStats(void *handle, void *filterhandle) {
+  ((statLongest *)handle)->add((filterLongest *)filterhandle);
+}
+
+void
+showStats(void *handle, FILE *file) {
+  ((statLongest *)handle)->show(file);
 }

@@ -33,6 +33,19 @@ public:
     delete [] path;
   };
 
+  bool    exists(char *name) {
+    void *ptr = 0L;
+
+    errno = 0;
+    ptr = dlsym(handle, name);
+    if (errno) {
+      fprintf(stderr, "ERROR: Failed to find symbol '%s' in shared object '%s'\n%s\n", name, path, dlerror());
+      exit(1);
+    }
+
+    return(ptr != 0L);
+  }
+
   void   *get(char *name) {
     void *ptr = 0L;
 

@@ -26,7 +26,7 @@ typedef unsigned short ushort;
 #include "hitMatrix.H"
 
 #include "filterObj.H"
-
+#include "statObj.H"
 
 class encodedQuery {
 private:

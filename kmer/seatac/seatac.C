@@ -328,6 +328,11 @@ main(int argc, char **argv) {
   }
 
 
+  //  Initialize the statistics collection object
+  //
+  statObj *stats = new statObj(config._filtername, config._filteropts);
+
+
   //  Wait for threads to produce output
   //
   outputPos = 0;
@@ -360,6 +365,12 @@ main(int argc, char **argv) {
         }
       }
 
+      //  Add this set of results to the statistics collector
+      //
+      stats->add(output[outputPos]);
+
+      stats->show(stderr);
+
       delete [] input[outputPos];
       delete [] output[outputPos];
 
@@ -378,6 +389,11 @@ main(int argc, char **argv) {
             100.0 * outputPos / numberOfQueries,
             getTime() - zeroTime);
   }
+
+  //  Print statistics
+  //
+  stats->show(resultFILE);
+
 
   errno = 0;
   fclose(resultFILE);

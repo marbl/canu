@@ -449,11 +449,14 @@ configuration::read(int argc, char **argv) {
   }
 
   //
-  //  Test that we can build a filter object
+  //  Test that we can build filter and stat objects
   //
   if (_filtername) {
-    filterObj *test = new filterObj(_filtername, _filteropts);
-    delete test;
+    filterObj *testf = new filterObj(_filtername, _filteropts);
+    delete testf;
+
+    statObj *tests = new statObj(config._filtername, config._filteropts);
+    delete tests;
   }
 }
 
