@@ -14,18 +14,26 @@ fi
 
 
 
-#  This is quickly getting out of hand.  Look for python stuff.
+#  This build system is quickly getting out of hand.  Look for python
+#  stuff.  And perl.
 #
 if [ -f /usr/local/include/python2.3/Python.h ] ; then
-  python="/usr/local/include/python2.3"
+  python="-I/usr/local/include/python2.3"
 fi
 if [ -f /usr/local/include/python2.4/Python.h ] ; then
-  python="/usr/local/include/python2.4"
+  python="-I/usr/local/include/python2.4"
 fi
 if [ -f /home/bwalenz/linux/include/python2.4/Python.h ] ; then
-  python="/home/bwalenz/linux/include/python2.4"
+  python="-I/home/bwalenz/linux/include/python2.4"
 fi
-
+if [ -f /home/bwalenz/linux/include/python2.4/Python.h ] ; then
+  python="-I/home/bwalenz/linux/include/python2.4"
+fi
+if [ "x$python" = "x" ] ; then
+  echo "Sorry, I can't find python (Python.h)"
+  exit
+fi
+echo Found python: $python
 
 
 #  If no target, try to figure out one based on uname.  This defaults to
@@ -141,11 +149,11 @@ THREADS           := -D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads
 THREADL           := -llthread -llgcc_r
 CC                := cc
 SHLIB_FLAGS       := -shared
-CFLAGS_COMPILE    := -O3 \$(THREADS) -I$python -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CFLAGS_COMPILE    := -O3 \$(THREADS) $python -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CLDFLAGS          := -L/usr/local/lib
 CLIBS             := \$(THREADL)
 CXX               := g++
-CXXFLAGS_COMPILE  := -O3 \$(THREADS) -I$python -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CXXFLAGS_COMPILE  := -O3 \$(THREADS) $python -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := \$(THREADL)
 ARFLAGS           := ruvs
@@ -160,11 +168,11 @@ THREADS           := -D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads
 THREADL           := -llthread -llgcc_r
 CC                := cc
 SHLIB_FLAGS       := -shared
-CFLAGS_COMPILE    := -pg -O3 \$(THREADS) -I$python -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CFLAGS_COMPILE    := -pg -O3 \$(THREADS) $python -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CLDFLAGS          := -L/usr/local/lib
 CLIBS             := \$(THREADL)
 CXX               := g++
-CXXFLAGS_COMPILE  := -pg -O3 \$(THREADS) -I$python -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CXXFLAGS_COMPILE  := -pg -O3 \$(THREADS) $python -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := \$(THREADL)
 ARFLAGS           := ruvs
@@ -179,11 +187,11 @@ THREADS           := -D_THREAD_SAFE -pthread
 THREADL           := -pthread
 CC                := cc
 SHLIB_FLAGS       := -shared
-CFLAGS_COMPILE    := -g \$(THREADS) -I$python -Wall -Wshadow -Wtraditional -Wid-clash-16 -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Wconversion -Waggregate-return -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls -Wnested-externs  
+CFLAGS_COMPILE    := -g \$(THREADS) $python -Wall -Wshadow -Wtraditional -Wid-clash-16 -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Wconversion -Waggregate-return -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls -Wnested-externs  
 CLDFLAGS          := -L/usr/local/lib
 CLIBS             := \$(THREADL)
 CXX               := g++
-CXXFLAGS_COMPILE  := -g \$(THREADS) -I$python -Wall -Wshadow -Wtraditional -Wid-clash-16 -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Wconversion -Waggregate-return -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls -Wnested-externs  
+CXXFLAGS_COMPILE  := -g \$(THREADS) $python -Wall -Wshadow -Wtraditional -Wid-clash-16 -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Wconversion -Waggregate-return -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls -Wnested-externs  
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := \$(THREADL)
 ARFLAGS           := ruvs
@@ -306,11 +314,11 @@ THREADS           := -D_THREAD_SAFE -pthread
 THREADL           := -pthread
 CC                := cc
 SHLIB_FLAGS       := -shared
-CFLAGS_COMPILE    := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -O3 \$(THREADS) -I$python -fmessage-length=0 -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CFLAGS_COMPILE    := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -O3 \$(THREADS) $python -fmessage-length=0 -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CLDFLAGS          := -L/usr/local/lib
 CLIBS             := \$(THREADL) -ldl
 CXX               := g++
-CXXFLAGS_COMPILE  := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -O3 \$(THREADS) -I$python -fmessage-length=0 -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CXXFLAGS_COMPILE  := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -O3 \$(THREADS) $python -fmessage-length=0 -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := \$(THREADL) -ldl
 ARFLAGS           := ruvs
@@ -325,11 +333,11 @@ THREADS           := -D_THREAD_SAFE -pthread
 THREADL           := -pthread
 CC                := cc
 SHLIB_FLAGS       := -shared
-CFLAGS_COMPILE    := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -g \$(THREADS) -fmessage-length=0 -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CFLAGS_COMPILE    := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -g \$(THREADS) $python -fmessage-length=0 -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CLDFLAGS          := -L/usr/local/lib
 CLIBS             := \$(THREADL) -ldl
 CXX               := g++
-CXXFLAGS_COMPILE  := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -g \$(THREADS) -fmessage-length=0 -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CXXFLAGS_COMPILE  := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -g \$(THREADS) $python -fmessage-length=0 -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := \$(THREADL) -ldl
 ARFLAGS           := ruvs
@@ -388,6 +396,8 @@ EOF
 esac
 
 cat <<EOF >> Make.compilers
+PERL              := /usr/bin/perl
+PYTHON            := /usr/local/bin/python
 .EXE              := 
 .SO               := .so
 .A                := .a
