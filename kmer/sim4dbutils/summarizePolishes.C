@@ -191,10 +191,13 @@ main(int argc, char **argv) {
       genmax = matches[i]._genid;
   }
 
+  estmax++;
+  genmax++;
+
   //  Allocate space for statistics
   //
-  u32bit  *estcounts = new u32bit [estmax + 1];
-  u32bit  *gencounts = new u32bit [genmax + 1];
+  u32bit  *estcounts = new u32bit [estmax];
+  u32bit  *gencounts = new u32bit [genmax];
   u32bit   mapped;
   u32bit   notmapped;
   u32bit   uniqest;
