@@ -102,6 +102,11 @@ while (scalar(@ARGV) > 0) {
         $merlimit  = 1;  # unique mers only
         $minfill   = 20; # the mimimum fill for a reported match.
         $maxgap    = 0;  # the maximum substitution gap
+    } elsif ($arg eq "-samespecies9") {
+        $mersize   = 20; # the mer size
+        $merlimit  = 9;  # unique mers only
+        $minfill   = 20; # the mimimum fill for a reported match.
+        $maxgap    = 0;  # the maximum substitution gap
     } elsif ($arg eq "-crossspecies") {
         $mersize   = 18; # the mer size
         $merlimit  = 9;  # unique mers only
@@ -156,17 +161,17 @@ my $matches   = "$id1-vs-$id2.k$mersize.u$merlimit.f$minfill.g$maxgap";
 #  Find the include or exclude mask
 #
 if (! -e "$ATACdir/$matches.mask.done") {
-
-    if (! -e "$ATACdir/min.$mercount1.$mercount2.mcdat") {
+    my $minFile="min.$mercount1.$mercount2";
+    if (! -e "$ATACdir/$minFile.mcdat") {
         print STDERR "Finding the min count between $mercount1 and $mercount2.\n";
-        if (runCommand("$meryl -M min -s $MERYLdir/$mercount1 -s $MERYLdir/$mercount2 -o $ATACdir/min.$mercount1.$mercount2 -stats $ATACdir/min.$mercount1.$mercount2.stats")) {
-            unlink "$ATACdir/min.$mercount1.$mercount2.mcidx";
-            unlink "$ATACdir/min.$mercount1.$mercount2.mcdat";
+        if (runCommand("$meryl -M min -s $MERYLdir/$mercount1 -s $MERYLdir/$mercount2 -o $ATACdir/$minFile -stats $ATACdir/$minFile.stats")) {
+            unlink "$ATACdir/$minFile.mcidx";
+            unlink "$ATACdir/$minFile.mcdat";
             die "Failed to find the min count between $mercount1 and $mercount2\n";
         }
     }
 
-    die "Failed to make the mask?\n" if (! -e "$ATACdir/min.$mercount1.$mercount2.mcdat");
+    die "Failed to make the mask?\n" if (! -e "$ATACdir/$minFile.mcdat");
 
     #  Decide if we want to use an include mask, or an exclude mask, based
     #  on the estimated size of each.
@@ -174,19 +179,19 @@ if (! -e "$ATACdir/$matches.mask.done") {
     #  An include mask is just the 'min' mers found above, while an exclude
     #  mask is 'id1-min' mers.
     #
-    my $includeSize = (-s "$ATACdir/min.$mercount1.$mercount2.mcdat");
-    my $excludeSize = (-s "$MERYLdir/$mercount1.mcdat") - (-s "$ATACdir/min.$mercount1.$mercount2.mcdat");
+    my $includeSize = (-s "$ATACdir/$minFile.mcdat");
+    my $excludeSize = (-s "$MERYLdir/$mercount1.mcdat") - (-s "$ATACdir/$minFile.mcdat");
 
     print STDERR "includeSize is about $includeSize\n";
     print STDERR "excludeSize is about $excludeSize\n";
 
     if ($includeSize < $excludeSize) {
-        rename "$ATACdir/min.$mercount1.$mercount2.mcidx", "$ATACdir/$matches.include.mcidx";
-        rename "$ATACdir/min.$mercount1.$mercount2.mcdat", "$ATACdir/$matches.include.mcdat";
+        rename "$ATACdir/$minFile.mcidx", "$ATACdir/$matches.include.mcidx";
+        rename "$ATACdir/$minFile.mcdat", "$ATACdir/$matches.include.mcdat";
     } else {
         if (! -e "$ATACdir/$matches.exclude.mcdat") {
             print STDERR "Finding 'exclude' mers!\n";
-            if (runCommand("$meryl -M xor -s $MERYLdir/$id1 -s $ATACdir/min.$mercount1.$mercount2 -o $ATACdir/$matches.exclude -stats $ATACdir/$matches.exclude.stats")) {
+            if (runCommand("$meryl -M xor -s $MERYLdir/$id1 -s $ATACdir/$minFile -o $ATACdir/$matches.exclude -stats $ATACdir/$matches.exclude.stats")) {
                 unlink "$ATACdir/$matches.exclude.mcidx";
                 unlink "$ATACdir/$matches.exclude.mcdat";
                 die "Failed to make exclude mers!\n";
@@ -194,8 +199,8 @@ if (! -e "$ATACdir/$matches.mask.done") {
         }
 
         if (-e "$ATACdir/$matches.exclude.mcdat") {
-            unlink "$ATACdir/min.$mercount1.$mercount2.mcdat";
-            unlink "$ATACdir/min.$mercount1.$mercount2.mcidx";
+            unlink "$ATACdir/$minFile.mcdat";
+            unlink "$ATACdir/$minFile.mcidx";
         } else {
             die "Failed to find exclude mers?\n";
         }
@@ -269,7 +274,7 @@ foreach my $segmentID (@segmentIDs) {
         $cmd .= "-use       $ATACdir/$matches-segment-$segmentID \\\n";
         $cmd .= "-output    $ATACdir/$matches-segment-$segmentID.matches \\\n";
         $cmd .= "-stats     $ATACdir/$matches-segment-$segmentID.stats \\\n";
-        $cmd .= "-buildonly $ATACdir/$matches-segment-$segmentID.table \\\n";
+        $cmd .= "-buildonly $ATACdir/$matches-segment-$segmentID.table \\\n" if (defined($buildOnly));
         $cmd .= "-tmpfile   $ATACdir/$matches-segment-$segmentID.tmp";
 
 
@@ -329,6 +334,10 @@ if (! -e "$ATACdir/$matches.matches.sorted") {
 
     if (runCommand("cat $mfiles | sort -y -T $ATACdir/tmp -k 3n -k 7n > $ATACdir/$matches.matches.sorted")) {
         die "Failed to sort $ATACdir!\n";
+    }
+
+    if (runCommand("bzip2 $ATACdir/$matches.matches.sorted")) {
+        die "Failed to bzip2 $ATACdir!\n";
     }
 
     #foreach my $segmentID (@segmentIDs) {
@@ -394,7 +403,7 @@ if (! -e "$ATACdir/${id1}vs${id2}-template.atac") {
 
     print ATACFILE "/uniqueFilterOn=1\n";
     print ATACFILE "/fillIntraRunGapsOn=1\n";
-    print ATACFILE "/matchesFile=$ATACdir/$matches.matches.sorted\n";
+    print ATACFILE "/matchesFile=$ATACdir/$matches.matches.sorted.bz2\n";
     close(ATACFILE);
 }
 
