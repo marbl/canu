@@ -290,7 +290,6 @@ EOF
     ;;
   compaq|tru64)
     rm -f Make.compilers
-    echo "We need -D_XOPEN_SOURCE=500 to get fseeko()...but that breaks other stuff."
     cat <<EOF > Make.compilers
 # -*- makefile -*-
 #  Tru64, native compilers, optimized
@@ -314,13 +313,13 @@ EOF
     cat <<EOF > Make.compilers
 # -*- makefile -*-
 #  Tru64, native compilers, debug
-CC                := cc
+CC                := cxx
 SHLIB_FLAGS       := -shared
-CFLAGS_COMPILE    := -D_REENTRANT -pthread -g -w0 -trapuv
+CFLAGS_COMPILE    := -D_REENTRANT -std -D_XOPEN_SOURCE=500 -D_OSF_SOURCE -pthread -g -w0 -trapuv
 CLDFLAGS          := 
 CLIBS             := -lpthread -lrt
 CXX               := cxx
-CXXFLAGS_COMPILE  := -D_REENTRANT -pthread -gall -w0 -trapuv
+CXXFLAGS_COMPILE  := -D_REENTRANT -std -D_XOPEN_SOURCE=500 -D_OSF_SOURCE -pthread -gall -w0 -trapuv
 CXXLDFLAGS        := 
 CXXLIBS           := -lpthread -lrt
 ARFLAGS           := ruv
