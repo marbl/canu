@@ -45,6 +45,7 @@ const char *usage =
 "       -L:  print all sequences such that:  smallest <= length < largest\n"
 "       -G:  print n random sequences of length between l and h\n"
 "       -6:  reformat the input fasta with newlines every 60 bases\n"
+"       -u:  uppercase all bases\n"
 "       -W:  print all sequences (do the whole file)\n"
 "\n"
 "ACTIONS (index needed)\n"
@@ -57,15 +58,30 @@ const char *usage =
 "       -R:  print the sequence reversed\n"
 "       -C:  print the sequence complemented\n"
 "       -H:  DON'T print the defline\n"
-"       -n:  Modifies the def line to include the seqid number (only with -s)\n"
-"            Before:  >something\n"
-"            After:   >5743|something\n"
+"       -h:  Use the next word as the defline\n"
+"            (use \"-H -H\" to resume using the original defline)\n"
 "       -e:  Print only the bases from position 'begin' to position 'end'\n"
-"          counting starts at zero!\n";
+"          counting starts at zero!\n"
+"\n"
+"EXPERT OPTIONS\n"
+"       -A:  Read actions from 'file'\n"
+"\n";
+
+
+//  This will do our character translation (e.g., to upper)
+//
+char translate[256];
+
+
+
+void  processFile(char  *filename);
+void  processArray(int argc, char **argv);
+
+
 
 
 void
-printSequence(unsigned char const *s,
+printSequence(FastABuffer &b,
               unsigned int beg, unsigned int end,
               bool withLineBreaks=false,
               bool reverse=false, bool complement=false) {
@@ -74,9 +90,7 @@ printSequence(unsigned char const *s,
   if (reverse)     style += 1;
   if (complement)  style += 2;
 
-  unsigned int    l = 0;  // strlen((char *)s);
-  while (s[l])
-    l++;
+  u32bit l = b.sequenceLength();
 
   if (beg > l)  beg = 0;
   if (end > l)  end = l;
@@ -89,6 +103,7 @@ printSequence(unsigned char const *s,
   unsigned int    limit = end - beg;
   unsigned char  *n = new unsigned char [end - beg + 1];
   unsigned char  *m;
+  unsigned char  *s = b.sequence();
 
   switch (style) {
     case 0:
@@ -97,7 +112,7 @@ printSequence(unsigned char const *s,
       s += beg;
 
       while (limit--)
-        *(m++) = *(s++);
+        *(m++) = translate[*(s++)];
       break;
     case 1:
       //  reverse
@@ -105,7 +120,7 @@ printSequence(unsigned char const *s,
       s += beg;
 
       while (limit--)
-        *(m--) = *(s++);
+        *(m--) = translate[*(s++)];
       break;
     case 2:
       //  complement
@@ -113,7 +128,7 @@ printSequence(unsigned char const *s,
       s += beg;
 
       while (limit--)
-        *(m++) = complementSymbol[*(s++)];
+        *(m++) = complementSymbol[translate[*(s++)]];
       break;
     case 3:
       //  reverse complement
@@ -121,7 +136,7 @@ printSequence(unsigned char const *s,
       s += beg;
 
       while (limit--)
-        *(m--) = complementSymbol[*(s++)];
+        *(m--) = complementSymbol[translate[*(s++)]];
       break;
   }
 
@@ -159,34 +174,33 @@ comp(const void *a, const void *b) {
 }
 
 
-int
-main(int argc, char **argv) {
+//  Global stuff for processArray
+//
+//  XXX:  ideally, this should be a structure, so
+//  that the user can select between "new state" and
+//  "old state"
+//
+bool           beVerbose         = false;
+bool           reverse           = false;
+bool           complement        = false;
+bool           withDefLine       = true;
+char          *specialDefLine    = 0L;
+bool           withLineBreaks    = false;
+bool           toUppercase       = false;
+char          *sourceFile        = 0L;
+FastA         *f                 = 0L;
+FastABuffer    b;
+u32bit         bid;
+unsigned int   begPos           = ~(unsigned int)0;
+unsigned int   endPos           = ~(unsigned int)0;
 
-  if (argc < 2) {
-    fprintf(stderr, usage, argv[0]);
-    exit(1);
-  }
 
-  bool           beVerbose         = false;
-  bool           modifyDefLine     = false;
-  bool           reverse           = false;
-  bool           complement        = false;
-  bool           withDefLine       = true;
-  bool           withLineBreaks    = false;
-  char          *sourceFile        = 0L;
-  FastA         *f                 = 0L;
-  FastABuffer    b;
-  unsigned int   begPos           = ~(unsigned int)0;
-  unsigned int   endPos           = ~(unsigned int)0;
+
+void
+processArray(int argc, char **argv) {
 
   int arg = 1;
   while (arg < argc) {
-    unsigned int   seqID            = ~(unsigned int)0;
-    unsigned int   lowID            = ~(unsigned int)0;
-    unsigned int   highID           = ~(unsigned int)0;
-    unsigned int   small            = ~(unsigned int)0;
-    unsigned int   large            = ~(unsigned int)0;
-
     switch(argv[arg][1]) {
       case '-':  //  Ick!  Must be --buildinfo
         buildinfo_leaff(stderr);
@@ -199,25 +213,20 @@ main(int argc, char **argv) {
       case 'f':
         if (f)
           delete f;
-        arg++;
-        sourceFile = argv[arg];
+        sourceFile = argv[++arg];
         f = new FastA(sourceFile, false, beVerbose);
         break;
       case 'F':
+      case 'I':
         if (f)
           delete f;
-        arg++;
-        sourceFile = argv[arg];
-        f = new FastA(sourceFile, true, beVerbose);
-        break;
-      case 'I':
-        arg++;
-        sourceFile = argv[arg];
+        sourceFile = argv[++arg];
         f = new FastA(sourceFile, true, beVerbose);
         break;
       case 'i':
         if (f == 0L) {
-          fprintf(stderr, "No source file specified -- try '%s -f something.fasta -i'\n", argv[0]);
+          fprintf(stderr, "No source file specified.\n");
+          exit(1);
         } else {
           //  See if the index exists; if so, use a fast method
           //
@@ -233,37 +242,44 @@ main(int argc, char **argv) {
         break;
       case 'd':
         if (f == 0L) {
-          fprintf(stderr, "No source file specified -- try '%s -f something.fasta -d'\n", argv[0]);
+          fprintf(stderr, "No source file specified.\n");
+          exit(1);
         } else {
           printf(descMsg, f->numberOfSequences());
         }
         break;
       case 'L':
-        arg++;
-        small = atoi(argv[arg]);
-        arg++;
-        large = atoi(argv[arg]);
-
         if (f == 0L) {
-          fprintf(stderr, "No source file specified -- try '%s -f something.fasta -z %d %d'\n", argv[0], small, large);
+          fprintf(stderr, "No source file specified.\n");
+          exit(1);
         } else {
+          u32bit small = atoi(argv[++arg]);
+          u32bit large = atoi(argv[++arg]);
+
           for (f->first(b); f->eof() == false; f->next(b))
             if ((small <= b.sequenceLength()) && (b.sequenceLength() < large)) {
-              if (withDefLine)
-                fprintf(stdout, ">%s\n", b.header()+1);
-              printSequence(b.sequence(), begPos, endPos, withLineBreaks, reverse, complement);
+              if (specialDefLine)
+                fprintf(stdout, ">%s\n", specialDefLine);
+              else
+                if (withDefLine)
+                  fprintf(stdout, ">%s\n", b.header()+1);
+              printSequence(b, begPos, endPos, withLineBreaks, reverse, complement);
               fprintf(stdout, "\n");
             }
         }
         break;
       case 'W':
         if (f == 0L) {
-          fprintf(stderr, "No source file specified -- try '%s -f something.fasta -z %d %d'\n", argv[0], small, large);
+          fprintf(stderr, "No source file specified.\n");
+          exit(1);
         } else {
           for (f->first(b); f->eof() == false; f->next(b)) {
-            if (withDefLine)
-              fprintf(stdout, ">%s\n", b.header()+1);
-            printSequence(b.sequence(), 0, b.sequenceLength(), withLineBreaks, reverse, complement);
+              if (specialDefLine)
+                fprintf(stdout, ">%s\n", specialDefLine);
+              else
+                if (withDefLine)
+                  fprintf(stdout, ">%s\n", b.header()+1);
+            printSequence(b, 0, b.sequenceLength(), withLineBreaks, reverse, complement);
             fprintf(stdout, "\n");
           }
         }
@@ -274,12 +290,9 @@ main(int argc, char **argv) {
           unsigned int    n, s, l;
           char            bases[4] = {'A', 'C', 'G', 'T'};
 
-          arg++;
-          n = atoi(argv[arg]);
-          arg++;
-          s = atoi(argv[arg]);
-          arg++;
-          l = atoi(argv[arg]) + 1;
+          n = atoi(argv[++arg]);
+          s = atoi(argv[++arg]);
+          l = atoi(argv[++arg]) + 1;
 
           char           *seq      = new char [l + 1];
 
@@ -290,47 +303,44 @@ main(int argc, char **argv) {
             seq[j] = 0;
             while (j)
               seq[--j] = bases[random() & 0x3];            
-            if (withDefLine)
-              fprintf(stdout, ">%08d\n", i);
+            if (specialDefLine)
+              fprintf(stdout, ">%s\n", specialDefLine);
+            else
+              if (withDefLine)
+                fprintf(stdout, ">%s\n", b.header()+1);
             fprintf(stdout, "%s\n", seq);
           }
         }
         break;
       case 's':
-        arg++;
-        seqID = atoi(argv[arg]);
-
         if (f == 0L) {
-          fprintf(stderr, "No source file specified -- try '%s -f something.fasta -s %d'\n", argv[0], seqID);
+          fprintf(stderr, "No source file specified.\n");
+          exit(1);
         } else {
+          u32bit seqID = atoi(argv[++arg]);
+
           if (seqID < f->numberOfSequences()) {
             f->seek(b, seqID);
-            if (modifyDefLine) {
-              if (withDefLine)
-                fprintf(stdout, ">%d|%s\n", seqID, b.header()+1);
-              printSequence(b.sequence(), begPos, endPos, withLineBreaks, reverse, complement);
-              fprintf(stdout, "\n");
-            } else {
+            if (specialDefLine)
+              fprintf(stdout, ">%s\n", specialDefLine);
+            else
               if (withDefLine)
                 fprintf(stdout, ">%s\n", b.header()+1);
-              printSequence(b.sequence(), begPos, endPos, withLineBreaks, reverse, complement);
-              fprintf(stdout, "\n");
-            }
+            printSequence(b, begPos, endPos, withLineBreaks, reverse, complement);
+            fprintf(stdout, "\n");
           }
         }
         break;
       case 'S':
-        arg++;
-        lowID  = atoi(argv[arg]);
-        arg++;
-        highID = atoi(argv[arg]);
-
         if (f == 0L) {
-          fprintf(stderr, "No source file specified -- try '%s -f something.fasta -S %d %d'\n", argv[0], lowID, highID);
+          fprintf(stderr, "No source file specified.\n");
+          exit(1);
         } else {
-          if (highID > f->numberOfSequences()) {
+          u32bit lowID  = atoi(argv[++arg]);
+          u32bit highID = atoi(argv[++arg]);
+
+          if (highID > f->numberOfSequences())
             highID = f->numberOfSequences();
-          }
 
           if (lowID >= highID) {
             fprintf(stderr, "Make sure that lowID < highID!  You gave lowID = %d and highID = %d\n", lowID, highID);
@@ -338,9 +348,12 @@ main(int argc, char **argv) {
             if ((lowID < f->numberOfSequences()) && (highID <= f->numberOfSequences())) {
               unsigned int i;
               for (i=lowID, f->seek(b, lowID); (f->eof() == false) && (i<highID); f->next(b), i++) {
-                if (withDefLine)
-                  fprintf(stdout, ">%s\n", b.header()+1);
-                printSequence(b.sequence(), begPos, endPos, withLineBreaks, reverse, complement);
+                if (specialDefLine)
+                  fprintf(stdout, ">%s\n", specialDefLine);
+                else
+                  if (withDefLine)
+                    fprintf(stdout, ">%s\n", b.header()+1);
+                printSequence(b, begPos, endPos, withLineBreaks, reverse, complement);
                 fprintf(stdout, "\n");
               }
             }
@@ -348,11 +361,11 @@ main(int argc, char **argv) {
         }
         break;
       case 'r':
-        arg++;
         if (f == 0L) {
-          fprintf(stderr, "No source file specified!\n");
+          fprintf(stderr, "No source file specified.\n");
+          exit(1);
         } else {
-          unsigned int numberSeqs = atoi(argv[arg]);
+          unsigned int numberSeqs = atoi(argv[++arg]);
 
           if (numberSeqs < f->numberOfSequences()) {
             unsigned int  *useThisSequence = new unsigned int [f->numberOfSequences()];
@@ -374,9 +387,12 @@ main(int argc, char **argv) {
 
             for (i=0; i<numberSeqs; i++) {
               f->seek(b, useThisSequence[i]);
-              if (withDefLine)
-                fprintf(stdout, ">%s\n", b.header()+1);
-              printSequence(b.sequence(), begPos, endPos, withLineBreaks, reverse, complement);
+              if (specialDefLine)
+                fprintf(stdout, ">%s\n", specialDefLine);
+              else
+                if (withDefLine)
+                  fprintf(stdout, ">%s\n", b.header()+1);
+              printSequence(b, begPos, endPos, withLineBreaks, reverse, complement);
               fprintf(stdout, "\n");
             }
 
@@ -385,20 +401,23 @@ main(int argc, char **argv) {
         }
         break;
       case 'q':
-        arg++;
         if (f == 0L) {
           fprintf(stderr, "No source file specified!\n");
+          exit(1);
         } else {
-          FILE *In = fopen(argv[arg], "r");
+          FILE *In = fopen(argv[++arg], "r");
           if (In) {
             while (!feof(In)) {
               int i;
 
               if (fscanf(In, " %d ", &i) == 1) {
                 f->seek(b, i);
-                if (withDefLine)
-                  fprintf(stdout, ">%s\n", b.header()+1);
-                printSequence(b.sequence(), begPos, endPos, withLineBreaks, reverse, complement);
+                if (specialDefLine)
+                  fprintf(stdout, ">%s\n", specialDefLine);
+                else
+                  if (withDefLine)
+                    fprintf(stdout, ">%s\n", b.header()+1);
+                printSequence(b, begPos, endPos, withLineBreaks, reverse, complement);
                 fprintf(stdout, "\n");
               }
             }
@@ -412,6 +431,16 @@ main(int argc, char **argv) {
       case '6':
         withLineBreaks = !withLineBreaks;
         break;
+      case 'u':
+        toUppercase = !toUppercase;
+
+        if (toUppercase)
+          for (int z=0; z<256; z++)
+            translate[z] = (char)toupper(z);
+        else
+          for (int z=0; z<256; z++)
+            translate[z] = (char)z;
+        break;
       case 'R':
         reverse = !reverse;
         break;
@@ -420,15 +449,19 @@ main(int argc, char **argv) {
         break;
       case 'H':
         withDefLine = !withDefLine;
+        if (withDefLine)
+          specialDefLine = 0L;
         break;
-      case 'n':
-        modifyDefLine = !modifyDefLine;
+      case 'h':
+        specialDefLine = argv[++arg];
         break;
       case 'e':
-        arg++;
-        begPos = atoi(argv[arg]);
-        arg++;
-        endPos = atoi(argv[arg]);
+        begPos = atoi(argv[arg+1]);
+        endPos = atoi(argv[arg+2]);
+        arg += 2;
+        break;
+      case 'A':
+        processFile(argv[++arg]);
         break;
     }
     arg++;
@@ -436,4 +469,123 @@ main(int argc, char **argv) {
 
   if (f)
     delete f;
+}
+
+
+
+//  Reads commands from a file, calls processArray()
+//
+void
+processFile(char  *filename) {
+  int     argc = 0;
+  char   *data = 0L;
+  char  **argv = 0L;
+  size_t  len  = 0;
+
+
+  //  If we read from a file, preallocate, otherwise, make it grow
+  //
+  if (strcmp(filename, "-") == 0) {
+    size_t  pos = 0;
+    size_t  max = 1024 * 1024;
+
+    data = new char [max];
+
+    while (!feof(stdin)) {
+      errno = 0;
+      len = fread(data+pos, 1, max - pos, stdin);
+      if (errno) {
+        fprintf(stderr, "error: Couldn't read %lu bytes from '%s'\n%s\n",
+                max-pos, filename, strerror(errno));
+        exit(1);
+      }
+      pos += len;
+      
+      if (pos >= max) {
+        max += 0.2 * max;
+        char *tmpd = new char [max];
+        memcpy(tmpd, data, pos);
+        delete [] data;
+        data = tmpd;
+      }
+    }
+
+    //  save the length of the thing we read in
+    len = pos;
+  } else {
+    len = sizeOfFile(filename);
+
+    data = new char [len+1];
+
+    errno = 0;
+    FILE *F = fopen(filename, "r");
+    if (errno) {
+      fprintf(stderr, "error: Couldn't open '%s'\n%s\n", filename, strerror(errno));
+      exit(1);
+    }
+    fread(data, 1, len, F);
+    if (errno) {
+      fprintf(stderr, "error: Couldn't read %lu bytes from '%s'\n%s\n", len, filename, strerror(errno));
+      exit(1);
+    }
+    fclose(F);
+  }
+
+
+  //  (over)count the number of words
+  //
+  for (int i=0; i<len; i++) {
+    if (isspace(data[i])) {
+      argc++;
+      data[i] = 0;
+    }
+  }
+
+
+  //  Allocate space for word pointers
+  //
+  argv = new char * [argc+1];
+
+
+  //  Set word pointers -- first arg is the name of the "program"
+  //
+  argv[0] = filename;
+  argc = 1;
+
+  for (int pos=0; pos<len; pos++) {
+
+    //  Skip leading whitespace
+    while (data[pos] == 0 && pos < len)
+      pos++;
+
+    //  save the arg if it's a real arg
+    if (pos < len)
+      argv[argc++] = data+pos;
+
+    //  skip the word
+    while (data[pos] != 0 && pos < len)
+      pos++;
+  }
+ 
+  processArray(argc, argv);
+
+  delete [] argv;
+  delete [] data;
+}
+
+
+
+
+int
+main(int argc, char **argv) {
+
+  if (argc < 2) {
+    fprintf(stderr, usage, argv[0]);
+    exit(1);
+  }
+
+  for (int z=0; z<256; z++)
+    translate[z] = (char)z;
+
+  processArray(argc, argv);
 }
