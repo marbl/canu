@@ -4,6 +4,7 @@
 #include <errno.h>
 
 #include "bri++.H"
+#include "libmeryl.H"
 #include "existDB.H"
 
 //  Driver for the existDB creation.  Reads a sequence.fasta, builds
@@ -46,6 +47,9 @@ testFiles(char *filename, char *prefix, u32bit merSize, u32bit tblSize) {
     C->tick();
   }
 
+  delete e;
+  delete C;
+
   return(0);
 }
 
@@ -74,17 +78,18 @@ testExistence(char *filename, u32bit merSize, u32bit tblSize) {
 
 
 int
-testExhaustive(char *filename, u32bit merSize, u32bit tblSize) {
-  existDB      *E        = new existDB(filename, merSize, tblSize);
-  merStream    *M        = new merStream(merSize, filename);
-  speedCounter *C        = new speedCounter("    %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, true);
-  u64bit        found    = u64bitZERO;
-  u64bit        expected = u64bitZERO;
+testExhaustive(char *filename, char *merylname, u32bit merSize, u32bit tblSize) {
+  existDB           *E        = new existDB(filename, merSize, tblSize);
+  merylStreamReader *M        = new merylStreamReader(merylname);
+  speedCounter      *C        = new speedCounter("    %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, true);
+  u64bit             found    = u64bitZERO;
+  u64bit             expected = u64bitZERO;
 
   while (M->nextMer())
     if (E->exists(M->theFMer()))
-      found++;
+      expected++;
 
+  fprintf(stderr, "Found "u64bitFMT" mers in the meryl database.\n", expected);
   fprintf(stderr, "Need to iterate over %7.2f Mmers.\n", (u64bitMASK(2 * merSize) + 1) / 1000000.0);
 
   for (u64bit m = u64bitMASK(2 * merSize); m--; ) {
@@ -98,7 +103,8 @@ testExhaustive(char *filename, u32bit merSize, u32bit tblSize) {
   delete M;
 
   if (expected != found) {
-    fprintf(stderr, "Expected to find "u64bitFMT" mers, but found "u64bitFMT" instead.\n", expected, found);
+    fprintf(stderr, "Expected to find "u64bitFMT" mers, but found "u64bitFMT" instead.\n",
+            expected, found);
     return(1);
   } else {
     return(0);
@@ -130,10 +136,11 @@ const char *usage =
 "            mer in some.fasta can be found in the table.  Does not\n"
 "            guarantee that every mer in the table is found in the file.\n"
 "\n"
-"       -testexhaustive some.fasta\n"
+"       -testexhaustive some.fasta some.meryl\n"
 "         -- Build an existDB table from some.fasta, check _EVERY_ mer\n"
 "            for existance.  Complain if a mer exists in the table but\n"
-"            not in the file.\n"
+"            not in the meryl database.  Assumes 'some.meryl' is the\n"
+"            mercount of some.fasta.\n"
 "\n";
 
 int
@@ -167,7 +174,7 @@ main(int argc, char **argv) {
     } else if (strncmp(argv[arg], "-testexistence", 8) == 0) {
       exit(testExistence(argv[arg+1], mersize, tblsize));
     } else if (strncmp(argv[arg], "-testexhaustive", 8) == 0) {
-      exit(testExhaustive(argv[arg+1], mersize, tblsize));
+      exit(testExhaustive(argv[arg+1], argv[arg+2], mersize, tblsize));
     } else if (strncmp(argv[arg], "-build", 2) == 0) {
       existDB  *e = new existDB(argv[argc-2], mersize, tblsize);
       e->saveState(argv[argc-1]);
