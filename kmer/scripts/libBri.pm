@@ -262,10 +262,7 @@ sub readPolish (*) {
     if (($p{'pA'} + $p{'pT'}) >= $p{'estLen'}) {
         $p{'coverage'} = 0;
     } else {
-        #  Previous versions computed coverage incorrectly.
-        #    $p{'coverage'} = 100.0 * $exonCoverage / ($p{'estLen'} - $p{'pA'} - $p{'pT'});
-        #
-        $p{'coverage'} = 100.0 * $p{'numMatches'} / ($p{'estLen'} - $p{'pA'} - $p{'pT'});
+        $p{'coverage'} = 100.0 * $exonCoverage / ($p{'estLen'} - $p{'pA'} - $p{'pT'});
     }
 
     $p{'raw'} = $save;
