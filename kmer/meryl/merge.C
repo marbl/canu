@@ -109,13 +109,15 @@ multipleOperations(merylArgs *args) {
 
   bool     moreInput        = true;
 
-  u64bit   currentMer       = ~u64bitZERO;  //  The current mer we're operating on
+  u64bit   currentMer       =  u64bitZERO;  //  The current mer we're operating on
   u32bit   currentCount     =  u32bitZERO;  //  The count (operation dependent) of this mer
   u32bit   currentTimes     =  u32bitZERO;  //  Number of files it's in
 
   u64bit   thisMer          = ~u64bitZERO;  //  The mer we just read
   u32bit   thisFile         = ~u32bitZERO;  //  The file we read it from
   u32bit   thisCount        =  u32bitZERO;  //  The count of the mer we just read
+
+  speedCounter *C = new speedCounter("    %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, args->beVerbose);
 
   while (moreInput) {
 
@@ -127,12 +129,18 @@ multipleOperations(merylArgs *args) {
     thisCount     =  u32bitZERO;
 
     for (u32bit i=0; i<args->mergeFilesLen; i++)
-      if ((R[i]->validMer()) && (currentMer > R[i]->theFMer())) {
+      if ((R[i]->validMer()) && (R[i]->theFMer()) < thisMer) {
         moreInput     = true;
         thisMer       = R[i]->theFMer();
         thisCount     = R[i]->theCount();
         thisFile      = i;
       }
+
+#if 0
+    fprintf(stderr, "Found mer "u64bitHEX" from input "u32bitFMT"\n",
+            R[thisFile]->theFMer(),
+            thisFile);
+#endif
 
     //  If we've hit a different mer, write out the last one
     //
@@ -172,6 +180,8 @@ multipleOperations(merylArgs *args) {
       currentMer   = thisMer;
       currentCount = u32bitZERO;
       currentTimes = u32bitZERO;
+
+      C->tick();
     }
 
 
@@ -219,4 +229,11 @@ multipleOperations(merylArgs *args) {
 
     currentTimes++;
   }
+
+  for (u32bit i=0; i<args->mergeFilesLen; i++)
+    delete R[i];
+  delete R;
+  delete M;
+  delete W;
+  delete C;
 }

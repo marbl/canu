@@ -59,6 +59,8 @@ merylStreamReader::merylStreamReader(const char *fn, u32bit ms) {
 
   _validMer       = true;
 
+#if 0
+  fprintf(stderr, "%s\n", fn);
   fprintf(stderr, "_merSizeInBits  = "u32bitFMT"\n", _merSizeInBits);
   fprintf(stderr, "_prefixSize     = "u32bitFMT"\n", _prefixSize);
   fprintf(stderr, "_prefixMask     = "u64bitHEX"\n", _prefixMask);
@@ -71,6 +73,7 @@ merylStreamReader::merylStreamReader(const char *fn, u32bit ms) {
   fprintf(stderr, "_thisBucketSize = "u64bitFMT"\n", _thisBucketSize);
   fprintf(stderr, "_thisMer        = "u64bitFMT"\n", _thisMer);
   fprintf(stderr, "_thisMerCount   = "u64bitFMT"\n", _thisMerCount);
+#endif
 
   if ((ms > 0) && (_merSizeInBits >> 1 != ms)) {
     fprintf(stderr, "merylStreamReader()-- ERROR: User requested mersize "u32bitFMT" but '%s' is mersize "u32bitFMT"\n",
@@ -84,47 +87,6 @@ merylStreamReader::~merylStreamReader() {
   delete _IDX;
   delete _DAT;
 }
-
-
-bool
-merylStreamReader::nextMer(void) {
-  u64bit val;
-
-  //fprintf(stderr, "nextMer: thisBucket = "u64bitFMT" size = "u64bitFMT"\n", _thisBucket, _thisBucketSize);
-
-  //  Use a while here, so that we skip buckets that are empty
-  //
-  while ((_thisBucketSize == 0) && (_thisBucket <= _prefixMask)) {
-    //fprintf(stderr, "reading "u64bitFMT" out of "u64bitFMT"\n", _thisBucket, _prefixMask);
-    _thisBucketSize = _IDX->getNumber();
-    _thisBucket++;
-  }
-
-  if (_thisBucket > _prefixMask)
-    return(_validMer = false);
-
-  val = _DAT->getBits(_merDataSize + 1);
-
-  _thisMer = (_thisBucket << _merDataSize) | (val & _merDataMask);
-
-  if (val & (u64bitONE << _merDataSize)) {
-    _thisMerCount = 1;
-  } else {
-    _thisMerCount = _DAT->getNumber() + 2;
-  }
-
-  _thisBucketSize--;
-
-  return(true);
-}
-
-
-
-
-
-
-
-
 
 
 
@@ -260,12 +222,13 @@ void
 merylStreamWriter::addMer(u64bit mer, u32bit count) {
   u64bit  val;
 
+#if 0
   char merstring[33] = { 0 };
   for (u32bit i=0; i<(_merSizeInBits>>1); i++)
     merstring[(_merSizeInBits>>1)-i-1] = decompressSymbol[(mer >> (2*i)) & 0x03];
   merstring[(_merSizeInBits>>1)] = 0;
-
-  //fprintf(stderr, "write mer "u64bitHEX" -- %s with count "u32bitFMT"\n", mer, merstring, count);
+  fprintf(stderr, "write mer "u64bitHEX" -- %s with count "u32bitFMT"\n", mer, merstring, count);
+#endif
 
   //  Fail if we see a smaller mer than last time.
   //
@@ -287,20 +250,16 @@ merylStreamWriter::addMer(u64bit mer, u32bit count) {
   //  count.
   //
   if (_thisMerCount == 1) {
-    val  = _thisMer;
-    val &= _merDataMask;
+    val  = _thisMer & _merDataMask;
     val |= u64bitONE << _merDataSize;
     _DAT->putBits(val, _merDataSize + 1);
     _thisBucketSize++;
   } else if (_thisMerCount > 1) {
-    val  = _thisMer;
-    val &= _merDataMask;
+    val  = _thisMer & _merDataMask;
     _DAT->putBits(val, _merDataSize + 1);
     _DAT->putNumber(_thisMerCount - 2);
     _thisBucketSize++;
   }
-
-
 
   //  If the new mer is in a different bucket from the last mer, write
   //  out some bucket counts.  We need a while loop (opposed to just
@@ -310,14 +269,10 @@ merylStreamWriter::addMer(u64bit mer, u32bit count) {
   val = (mer >> _merDataSize) & _prefixMask;
 
   while (_thisBucket < val) {
-    //fprintf(stderr, "addMer()-- writing buckets from this="u64bitFMT" to current="u64bitFMT" for mer="u64bitHEX"\n", _thisBucket, val, mer);
-
     _IDX->putNumber(_thisBucketSize);
     _thisBucketSize = 0;
     _thisBucket++;
   }
-
-
 
   //  Remember the new mer for the next time
   //

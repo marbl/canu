@@ -59,6 +59,38 @@ private:
   bool                   _validMer;
 };
 
+inline
+bool
+merylStreamReader::nextMer(void) {
+  u64bit val;
+
+  //  Use a while here, so that we skip buckets that are empty
+  //
+  while ((_thisBucketSize == 0) && (_thisBucket <= _prefixMask)) {
+    _thisBucketSize = _IDX->getNumber();
+    _thisBucket++;
+  }
+
+  if (_thisBucket > _prefixMask)
+    return(_validMer = false);
+
+  val = _DAT->getBits(_merDataSize + 1);
+
+  _thisMer      = (_thisBucket << _merDataSize) | (val & _merDataMask);
+  _thisMerCount = 1;
+
+  if (!(val & (u64bitONE << _merDataSize)))
+    _thisMerCount = _DAT->getNumber() + 2;
+
+  _thisBucketSize--;
+
+  return(true);
+}
+
+
+
+
+
 
 
 class merylStreamWriter {
