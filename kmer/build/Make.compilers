@@ -28,6 +28,7 @@ VALID_OPERATING_SYSTEM:=$(strip \
     cygwin \
     SunOS|foster-city   \
     FreeBSD \
+    Linux|RH9 \
     default|I-will-take-my-chances \
 )
 
