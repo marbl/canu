@@ -20,7 +20,7 @@ writeString(const char *str, FILE *F) {
 
   u32bit len = 0;
   if (str) {
-    u32bit len = strlen(str) + 1;
+    u32bit len = (u32bit)strlen(str) + 1;
     fwrite(&len, sizeof(u32bit), 1, F);
     fwrite( str, sizeof(char), len, F);
   } else {
@@ -66,7 +66,7 @@ char*
 duplString(char *str) {
   char   *dup = 0L;
   if (str) {
-    u32bit  len = strlen(str);
+    u32bit  len = (u32bit)strlen(str);
     dup = new char [len+1];
     strcpy(dup, str);
   }
@@ -296,7 +296,7 @@ merylArgs::merylArgs(int argc, char **argv) {
       exit(1);
     } else if (strcmp(argv[arg], "-m") == 0) {
       arg++;
-      merSize = strtou64bit(argv[arg], 0L);
+      merSize = strtou32bit(argv[arg], 0L);
     } else if (strcmp(argv[arg], "-s") == 0) {
       arg++;
       delete [] inputFile;
