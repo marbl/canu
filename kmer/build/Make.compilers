@@ -86,7 +86,12 @@ ifeq (${_OS_}${_CC_},AIX)
   SHLIB_FLAGS      +=-G
 
   AIX_RTTI_SUPPORT:=-qrtti
+ifdef WITH_AIX32
+  $(warning Large files support has been disabled)
+  AIX_LARGE_FILE_SUPPORT               :=
+else
   AIX_LARGE_FILE_SUPPORT               :=-q64 -qlonglong -D_LARGE_FILES
+endif
   AIX_SUPPRESS_DUPLICATE_SYMBOL_WARNING:=-qstaticinline
   AIX_FLAG_TO_SUPPRESS_MANY_WARNINGS   :=-bhalt:8
   AIX_OPTIMIZATIONS                    :=-qarch=auto -qtune=auto -qcache=auto
