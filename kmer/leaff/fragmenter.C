@@ -19,6 +19,8 @@
 //
 
 
+//#define DEBUG
+
 
 int
 main(int argc, char **argv) {
@@ -42,12 +44,14 @@ main(int argc, char **argv) {
   while (F->eof() == false) {
     B = F->getSequence();
 
+#ifdef DEBUG
     fprintf(stderr, "working on %s\n", B->header());
+#endif
 
     char     *seq = (char *)B->sequence();
 
     u32bit    pos = 0;
-    u32bit    max = 2 * (B->sequenceLength() / desiredLength + 1);
+    u32bit    max = 4 * (B->sequenceLength() / desiredLength + 1);
     u32bit   *sta = new u32bit [max];
     u32bit   *end = new u32bit [max];
 
@@ -59,6 +63,10 @@ main(int argc, char **argv) {
     for (u32bit s = 0; s < B->sequenceLength() ;) {
       sta[pos]  = s;
       s        += desiredLength;
+
+      if (s > B->sequenceLength())
+        s = B->sequenceLength();
+
       end[pos]  = s;
       pos++;
 
@@ -68,7 +76,11 @@ main(int argc, char **argv) {
       }
     }
 
+#ifdef DEBUG
     fprintf(stderr, "step1: created %d regions\n", pos);
+#endif
+
+    if (pos > 0) {
 
     //  step 2: examine each region, trimming N's on the ends
 
@@ -96,7 +108,11 @@ main(int argc, char **argv) {
     }
     pos = q;
 
+#ifdef DEBUG
     fprintf(stderr, "step3: removed empty regions, left with %d regions\n", pos);
+#endif
+
+    if (pos > 0) {
 
     //  step 4: split things with "significant" amount N these should
     //  be things with contained blocks, or low-quality things
@@ -163,7 +179,9 @@ main(int argc, char **argv) {
 
     }
 
+#ifdef DEBUG
     fprintf(stderr, "step4: split/removed significant N regions, left with %d regions\n", pos2);
+#endif
 
     //  step 5: Merge any adjacent regions that are less than 2*L
 
@@ -200,7 +218,9 @@ main(int argc, char **argv) {
     pos = p + 1;
 
 
+#ifdef DEBUG
     fprintf(stderr, "step5: merged %d pairs of regions, left with %d regions\n", merged, pos);
+#endif
 
     //  step 6: write regions
 
@@ -219,8 +239,14 @@ main(int argc, char **argv) {
     }
 
     delete [] buf;
+
+    }
+    }
+
     delete [] sta;
     delete [] end;
+
+    delete B;
   }
 
   fclose(L);
