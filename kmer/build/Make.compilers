@@ -1,9 +1,23 @@
+# -*- makefile -*-
 
+# pathname conventions
+#   We use absolute paths to commands when both of the following:
+#-The command would not be found on a reasonable path like
+# /usr/bin, /bin, or /usr/local/bin.
+# e.g. paths to Knut's homedirectory, or even to /usr/local/ir/bin
+# are being made explicit.
+#-There is a reasonable amount of OS information available to make
+# a good guess as to where things are.
+
+# Perhaps there should be a config script which just checks for things
+# and creates Make.compilers files custom for the platform.  However,
+# we really have only a few platforms to port to, so this is not yet
+# necessary.
 
 ifdef OPERATING_SYSTEM
   _OS_:=$(OPERATING_SYSTEM)
 else
-  _OS_:=unknown
+  _OS_:=$(shell uname)
   WITH_GNU:=1
 endif
 ifdef WITH_GNU
@@ -229,22 +243,22 @@ ifeq (${_OS_},AIX)
 endif
 
 ## tex stuff
-LATEX:=latex
-DVIPS:=dvips
+LATEX  :=latex
+DVIPS  :=dvips
+BIBTEX :=bibtex
+PS2PDF :=ps2pdf
+VIEWPS :=ghostview
+PRINTPS:=lpr
 ifeq (${_OS_},TRU64)
-  LATEX  :=latex
-  DVIPS  :=dvips
-  BIBTEX :=bibtex
-  PS2PDF :=ps2pdf
-  VIEWPS :=ghostview
+  REINERT_TETEX/ :=/work/assembly/reinert_home/teTeX/bin/
+  LATEX  :=${REINERT_TETEX/}latex
+  DVIPS  :=${REINERT_TETEX/}dvips
+  BIBTEX :=${REINERT_TETEX/}bibtex
+  PS2PDF :=/usr/local/ir/bin/ps2pdf
+  VIEWPS :=/usr/local/ir/bin/ghostview
   PRINTPS:=lpr -Pcelprt05
 endif
 ifeq (${_OS_},AIX)
-  LATEX  :=latex
-  DVIPS  :=dvips
-  BIBTEX :=bibtex
-  PS2PDF :=ps2pdf
-  VIEWPS :=ghostview
   PRINTPS:=lpr -Pcelprt05
 endif
 
@@ -253,6 +267,14 @@ ifeq (${_OS_},TRU64)
   CXXFLAGS_LAPACK   :=-DFTN_UNDERSCORE -DFTN_LOWERCASE
   CXXLDFLAGS_LAPACK :=
   CXXLIBS_LAPACK    :=-ldxml
+endif
+
+# sometimes we deploy on Solaris with CDX
+ifeq (${_OS_},SunOS)
+  CXXFLAGS_LAPACK   :=-DFTN_UNDERSCORE -DFTN_LOWERCASE
+  CXXLDFLAGS_LAPACK :=-L/home/ross/local/lib
+  CXXLIBS_LAPACK    :=-llapack -lblas -lF77
+  PS2PDF            :=/remote/depot/bin/ps2pdf -I/remote/depot/share/ghostscript/5.50/
 endif
 
 

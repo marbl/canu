@@ -161,6 +161,7 @@ endef
 $(eval $(foreach x,${//},$(call .RULE-pre-install,$x)))
 
 # this does the copy part of the install
+${RECURSIVE:.=.install-copy}:
 define .RULE-install-copy
 ${1:.=.install-copy}: $${${1:.=.SUBS}:.=.install-copy}
 
