@@ -1,7 +1,7 @@
 #include "posix.H"
 #include <stdio.h>
 #include <stdlib.h>
-#include <new.h>
+#include <new>
 #include "snapper2.H"
 
 //  Define this to print a message whenever a sequence is loaded.
