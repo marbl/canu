@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <new.h>
+#include <new>
 
 #include "posix.H"
 #include "searchGENOME.H"
