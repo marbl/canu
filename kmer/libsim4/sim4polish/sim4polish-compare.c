@@ -150,9 +150,9 @@ s4p_compareExons_Overlap(sim4polish *A,
   int      *foundA = 0L;
   int      *foundB = 0L;
 
-  *numSame    = 0;
-  *numMissing = 0;
-  *numExtra   = 0;
+  if (numSame)     *numSame    = 0;
+  if (numMissing)  *numMissing = 0;
+  if (numExtra)    *numExtra   = 0;
 
   foundA = (int *)malloc(sizeof(int) * (A->numExons + B->numExons));
   foundB = foundA + A->numExons;
@@ -183,20 +183,22 @@ s4p_compareExons_Overlap(sim4polish *A,
           ((bl <= al) && (ah <= bh))) {
         foundA[i]++;
         foundB[j]++;
-        numSame++;
+
+        if (numSame)
+          numSame++;
       }
     }
   }
 
   for (i=0; i<A->numExons; i++) {
-    if (foundA[i] == 0)
+    if (numExtra && (foundA[i] == 0))
       numExtra++;
     if (foundA[i] > 1)
       fprintf(stderr, "WARNING: Found exon %d %d times in A!\n", i, foundA[i]);
   }
 
   for (i=0; i<B->numExons; i++) {
-    if (foundB[i] == 0)
+    if (numMissing && (foundB[i] == 0))
       numMissing++;
     if (foundB[i] > 1)
       fprintf(stderr, "WARNING: Found exon %d %d times in B!\n", i, foundB[i]);
@@ -222,9 +224,9 @@ s4p_compareExons_Ends(sim4polish *A,
   int      *foundA = 0L;
   int      *foundB = 0L;
 
-  *numSame    = 0;
-  *numMissing = 0;
-  *numExtra   = 0;
+  if (numSame)     *numSame    = 0;
+  if (numMissing)  *numMissing = 0;
+  if (numExtra)    *numExtra   = 0;
 
   foundA = (int *)malloc(sizeof(int) * (A->numExons + B->numExons));
   foundB = foundA + A->numExons;
@@ -251,20 +253,22 @@ s4p_compareExons_Ends(sim4polish *A,
           (Dhi > -tolerance) && (Dhi < tolerance)) {
         foundA[i]++;
         foundB[j]++;
-        numSame++;
+
+        if (numSame)
+          numSame++;
       }
     }
   }
 
   for (i=0; i<A->numExons; i++) {
-    if (foundA[i] == 0)
+    if (numExtra && (foundA[i] == 0))
       numExtra++;
     if (foundA[i] > 1)
       fprintf(stderr, "WARNING: Found exon %d %d times in A!\n", i, foundA[i]);
   }
 
   for (i=0; i<B->numExons; i++) {
-    if (foundB[i] == 0)
+    if (numMissing && (foundB[i] == 0))
       numMissing++;
     if (foundB[i] > 1)
       fprintf(stderr, "WARNING: Found exon %d %d times in B!\n", i, foundB[i]);
