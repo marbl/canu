@@ -145,17 +145,11 @@ buildChunk(void) {
     //  XXX:  This probably should be tuned.
     //
     u32bit tblSize = 25;
-
-    if (sLen < 64 * 1024 * 1024)
-      tblSize = 24;
-    if (sLen < 16 * 1024 * 1024)
-      tblSize = 23;
-    if (sLen <  4 * 1024 * 1024)
-      tblSize = 22;
-    if (sLen <  2 * 1024 * 1024)
-      tblSize = 21;
-    if (sLen <  1 * 1024 * 1024)
-      tblSize = 20;
+    if (sLen < 64 * 1024 * 1024) tblSize = 24;
+    if (sLen < 16 * 1024 * 1024) tblSize = 23;
+    if (sLen <  4 * 1024 * 1024) tblSize = 22;
+    if (sLen <  2 * 1024 * 1024) tblSize = 21;
+    if (sLen <  1 * 1024 * 1024) tblSize = 20;
 
 
 
@@ -341,11 +335,20 @@ main(int argc, char **argv) {
   //
   outputPos = 0;
 
-  double  zeroTime = getTime() - 0.00000001;
+  double  zeroTime    = getTime() - 0.00000001;
+  u32bit  outputMask  = 0xf;
 
   while (outputPos < numberOfQueries) {
+    bool  justSlept = false;
+
     if (output[outputPos]) {
-      if (config._beVerbose && ((outputPos & 0x1ff) == 0x1ff)) {
+      if (config._beVerbose &&
+          (outputPos > 0) &&
+          ((justSlept) || (outputPos & outputMask) == outputMask)) {
+        double thisTimeD = getTime() - zeroTime + 0.0000001;
+        double perSec    = outputPos / thisTimeD;
+        double remTime   = (numberOfQueries - outputPos) * thisTimeD / outputPos;
+        
         fprintf(stderr, "O:"u32bitFMTW(7)" S:"u32bitFMTW(7)" I:%7u T:"u32bitFMTW(7)" (%5.1f%%; %8.3f/sec) Finish in %5.2f seconds.\r",
                 outputPos,
                 inputTail,
@@ -355,6 +358,15 @@ main(int argc, char **argv) {
                 outputPos / (getTime() - zeroTime),
                 (numberOfQueries - outputPos) / (outputPos / (getTime() - zeroTime)));
         fflush(stderr);
+
+        if      (perSec < 32.0)
+          outputMask = 0xf;
+        else if (perSec < 256.0)
+          outputMask = 0x7f;
+        else if (perSec < 1024.0)
+          outputMask = 0x1ff;
+        else
+          outputMask = 0x3ff;
       }
 
       if (outputLen[outputPos] > 0) {
