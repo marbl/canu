@@ -8,8 +8,11 @@
 
 bool
 existDB::createFromMeryl(char const  *prefix,
-                 u32bit       lo,
-                 u32bit       hi) {
+                         u32bit       lo,
+                         u32bit       hi) {
+
+  fprintf(stderr, "Reading mers from meryl stream %s\n", prefix);
+
   merStreamFromMeryl *M = new merStreamFromMeryl(prefix);
 
   _hashTable = 0L;
@@ -17,9 +20,9 @@ existDB::createFromMeryl(char const  *prefix,
 
   _merSizeInBases        = M->mcd()._merSizeInBases;
 
-  //  XXX:  Not sure if this should be _tableSizeInBits or _hashWidth
+  //  XXX:  Should probably be a parameter.
 
-  u32bit tblBits = M->mcd()._tableSizeInBits;
+  u32bit tblBits = 19;
 
   _shift1                = 2 * _merSizeInBases - tblBits;
   _shift2                = _shift1 / 2;
@@ -37,8 +40,10 @@ existDB::createFromMeryl(char const  *prefix,
 
   u64bit  tableSizeInEntries = u64bitONE << tblBits;
   u64bit  numberOfMers       = u64bitZERO;
-  u64bit *countingTable      = 0L;
+  u64bit *countingTable      = new u64bit [tableSizeInEntries + 1];
 
+  for (u64bit i=tableSizeInEntries+1; i--; )
+    countingTable[i] = 0;
 
 
   //  1) Count bucket sizes
@@ -53,6 +58,8 @@ existDB::createFromMeryl(char const  *prefix,
       numberOfMers++;
     }
   }
+
+  delete M;
   
 #ifdef COMPRESSED_HASH
   _hashWidth = 1;
@@ -60,7 +67,7 @@ existDB::createFromMeryl(char const  *prefix,
     _hashWidth++;
 #endif
 
-
+  fprintf(stderr, "Found %u mers between count of %u and %u\n", numberOfMers, lo, hi);
 
 
   //  2) Allocate hash table, mer storage buckets
@@ -120,7 +127,6 @@ existDB::createFromMeryl(char const  *prefix,
   //
   //  3)  Build list of mers, placed into buckets
   //
-  delete M;
   M = new merStreamFromMeryl(prefix);
 
   u64bit  h;
@@ -144,6 +150,8 @@ existDB::createFromMeryl(char const  *prefix,
 
   delete M;
   delete [] countingTable;
+
+  fprintf(stderr, "All done.\n");
 
   return(true);
 }

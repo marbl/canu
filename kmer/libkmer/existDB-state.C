@@ -73,7 +73,7 @@ existDB::loadState(char const *filename,
   errno = 0;
   FILE *F = fopen(filename, "rb");
   if (errno) {
-    fprintf(stderr, "Can't open '%s' for reading pre-built existDB\n%s\n", strerror(errno));
+    //fprintf(stderr, "Can't open '%s' for reading pre-built existDB\n%s\n", strerror(errno));
     return(false);
   }
 

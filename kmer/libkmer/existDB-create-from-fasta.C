@@ -34,17 +34,17 @@ existDB::createFromFastA(char const  *filename,
 
   u64bit  tableSizeInEntries = u64bitONE << tblBits;
   u64bit  numberOfMers       = u64bitZERO;
-  u64bit *countingTable      = 0L;
+  u64bit *countingTable      = new u64bit [tableSizeInEntries + 1];
+
+  for (u64bit i=tableSizeInEntries+1; i--; )
+    countingTable[i] = 0;
+
 
 
   ////////////////////////////////////////////////////////////////////////////////
   //
   //  1)  Count bucket sizes
   //
-  countingTable = new u64bit [tableSizeInEntries + 1];
-  for (u64bit i=tableSizeInEntries+1; i--; )
-    countingTable[i] = 0;
-
   merStream     *M = new merStream(_merSizeInBases, filename);
 
   if (posDB) {
