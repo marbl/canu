@@ -115,8 +115,8 @@ const char *usagestring =
 "\n"
 "     -Dt        Dump mers >= a threshold.  Use -n to specify the threshold.\n"
 "     -Dc        Count the number of mers, distinct mers and unique mers.\n"
-"     -Dp        Plot the distance between mers.\n"
 "     -Dh        Dump (to stdout) a histogram of mer counts.\n"
+"     -Dp        Dump (to stdout) a histogram of the distance between mers.\n"
 "     -s         Read the count table from here (leave off the .mcdat or .mcidx).\n"
 "\n"
 "\n";
