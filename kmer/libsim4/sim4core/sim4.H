@@ -24,6 +24,7 @@
 #include "mspManager.H"
 #include "sim4defines.H"
 #include "sim4polish.h"
+#include "sim4polishList.H"
 #include "sim4polishBuilder.H"
 
 //

@@ -54,8 +54,8 @@ $/snapper2:   ${$/.CXX_SRCS:.C=.o} \
               ${EXISTDB/}libexistDB.a \
               ${POSITIONDB/}libpositionDB.a \
               ${MERYL/}libmeryl.a \
-              ${SIM4POLISH/}libsim4polish.a \
               ${SIM4/}libsim4.a \
+              ${SIM4POLISH/}libsim4polish.a \
               ${LIBBRI/}libbri.a
 
 $/buildinfo-snapper2.c: $/buildinfo-snapper2.h

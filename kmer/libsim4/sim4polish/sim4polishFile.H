@@ -2,7 +2,7 @@
 #define SIM4POLISHFILE
 
 #include "sim4polish.h"
-#include "sim4polishBuilder.H"
+#include "sim4polishList.H"
 
 //
 //  (original motivation)
