@@ -151,14 +151,14 @@ endef
 $(eval $(foreach x,${//},$(call .RULE-install-copy-CXX-LIBS,$x)))
 
 define .RULE-install-copy-C-CXX-SHLIBS
-${1:.=.install-copy}: ${1:.=.install-copy-CXX-SHLIBS}
-${1:.=.install-copy-CXX-SHLIBS}:
+${1:.=.install-copy}: ${1:.=.install-copy-C-CXX-SHLIBS}
+${1:.=.install-copy-C-CXX-SHLIBS}:
 # all shlibs go to lib/${.LIB/}
 	$(call .FUN-install-copy,$${${1:.=.C_SHLIBS}} $${${1:.=.CXX_SHLIBS}}, \
                                  lib/$${${1.=.LIB/}})
 
 endef
-$(eval $(foreach x,${//},$(call .RULE-install-copy-CXX-SHLIBS,$x)))
+$(eval $(foreach x,${//},$(call .RULE-install-copy-C-CXX-SHLIBS,$x)))
 
 
 
