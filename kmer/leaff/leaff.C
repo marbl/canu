@@ -218,19 +218,19 @@ comp(const void *a, const void *b) {
 //  that the user can select between "new state" and
 //  "old state"
 //
-bool             reverse           = false;
-bool             complement        = false;
-bool             withDefLine       = true;
-char            *specialDefLine    = 0L;
-bool             withLineBreaks    = false;
-bool             toUppercase       = false;
-char            *sourceFile        = 0L;
-FastAWrapper    *f                 = 0L;
-char             seqIDtype         = 'i';
-u32bit           begPos            = ~(u32bit)0;
-u32bit           endPos            = ~(u32bit)0;
-bool             printMD5          = false;
-
+bool                   reverse           = false;
+bool                   complement        = false;
+bool                   withDefLine       = true;
+char                  *specialDefLine    = 0L;
+bool                   withLineBreaks    = false;
+bool                   toUppercase       = false;
+char                  *sourceFile        = 0L;
+FastAWrapper          *f                 = 0L;
+char                   seqIDtype         = 'i';
+u32bit                 begPos            = ~(u32bit)0;
+u32bit                 endPos            = ~(u32bit)0;
+bool                   printMD5          = false;
+FastASequenceInCore   *lastSeq           = 0L;
 
 
 void
@@ -274,6 +274,9 @@ openNewFile(char *name, char *arg) {
         break;
     }
   }
+
+  delete lastSeq;
+  lastSeq = 0L;
 
   return(f);
 }
@@ -387,7 +390,13 @@ findSequenceAndPrint(char *id) {
     found = f->find(id);
 
   if (found) {
-    printIID(f->currentIID());
+    if ((lastSeq == 0L) ||
+        (lastSeq->getIID() != f->currentIID())) {
+      delete lastSeq;
+      lastSeq = f->getSequence();
+    }
+
+    printIID(f->currentIID(), lastSeq);
   } else {
     fprintf(stderr, "WARNING: Didn't find %s id '%s'\n",
             seqIDtype == 'i' ? "internal" : "external",
