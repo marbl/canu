@@ -1,0 +1,37 @@
+
+This is a prottypical build system for non-recursive whole-directory
+makes.  This readme file is going to start you with the basics.
+
+gmake-3.80+
+The correct make to use if gmake.  The correct version of gmake to use
+is gmake-3.80 with the GNU accepted patch for this problem
+  http://savannah.gnu.org/bugs/?func=detailbug&bug_id=1517&group_id=71
+Patched source can be found around here somewhere.  Find Ross.
+
+On the AIX and Tru64 machines, a patched version of gmake-3.80 called
+'gmake-3.80a' exists and should be in /usr/local/ir/bin.
+
+So to get started
+% alias make=/usr/local/ir/bin/gmake-3.80a
+
+To make all targets
+% make all
+
+Local targets are supported:
+To make all of RASCAL
+% make ../RASCAL/.all
+
+To make and install the binaries and libs of Framework
+% make ../COMPASS/src/Framework/.install
+
+Other targets supported are clean, depends-clean, real-clean.
+
+If you either change platforms then you must do
+% make real-clean
+
+For convenience:
+% make ls
+just does ls of all targets in the directories where they are built.
+
+
+
