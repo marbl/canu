@@ -22,13 +22,11 @@
 
 #include <vector>
 #include <algorithm>
+using namespace std;
 
 #include "bio++.H"
 #include "atac-common.H"
 #include "match.H"
-
-using namespace std;
-
 
 
 bool
@@ -89,6 +87,7 @@ readMatches(char *inLine,
   while (!feof(stdin) &&
          (iid1 == thisiid1) &&
          (iid2 == thisiid2)) {
+    //chomp(inLine); fprintf(stderr, "%s\n", inLine);
 
     if (ori1 == ori2)
       fwdMatches.push_back(new match_s((*C)[2],
@@ -135,8 +134,10 @@ main(int argc, char *argv[]) {
 
   readHeader(inLine, stdin, file1, file2, stdout);
 
-  FastACache  *C1 = new FastACache(file1, 1, false, false);
-  FastACache  *C2 = new FastACache(file2, 1, false, false);
+  //  cachesize, loadall, report
+  //
+  FastACache  *C1 = new FastACache(file1, 1, true, false);
+  FastACache  *C2 = new FastACache(file2, 1, true, false);
 
   vector<match_s *>  fwdMatches;
   vector<match_s *>  revMatches;
@@ -147,8 +148,10 @@ main(int argc, char *argv[]) {
   while (!feof(stdin)) {
     readMatches(inLine, C1, C2, fwdMatches, revMatches);
 
+#if 0
     fprintf(stderr, "read %d fwd and %d rev matches.\n",
             fwdMatches.size(), revMatches.size());
+#endif
 
     if (fwdMatches.size() > 0)
       sort(fwdMatches.begin(), fwdMatches.end(), MatchCompare());
@@ -156,34 +159,52 @@ main(int argc, char *argv[]) {
       sort(revMatches.begin(), revMatches.end(), MatchCompare());
 
     u32bit diag_start = 0;
-    while (diag_start < fwdMatches.size())
+    while (diag_start < fwdMatches.size()) {
+#if 0
+      fprintf(stderr, "fwd: M u %s . %s %d %d 1 %s %d %d 1\n",
+              fwdMatches[diag_start]->_matchId,
+              fwdMatches[diag_start]->_id1, fwdMatches[diag_start]->_acc1->getRangeBegin(), fwdMatches[diag_start]->_acc1->getRangeLength(),
+              fwdMatches[diag_start]->_id2, fwdMatches[diag_start]->_acc2->getRangeBegin(), fwdMatches[diag_start]->_acc2->getRangeLength());
+#endif
       diag_start = extend_matches_on_diagonal(fwdMatches, diag_start);
+    }
 
     diag_start = 0;
-    while (diag_start < revMatches.size())
+    while (diag_start < revMatches.size()) {
+#if 0
+      fprintf(stderr, "rev: M u %s . %s %d %d 1 %s %d %d 1\n",
+              revMatches[diag_start]->_matchId,
+              revMatches[diag_start]->_id1, revMatches[diag_start]->_acc1->getRangeBegin(), revMatches[diag_start]->_acc1->getRangeLength(),
+              revMatches[diag_start]->_id2, revMatches[diag_start]->_acc2->getRangeBegin(), revMatches[diag_start]->_acc2->getRangeLength());
+#endif
       diag_start = extend_matches_on_diagonal(revMatches, diag_start);
+    }
+
+    fflush(stdout);
+    fflush(stderr);
 
     //  Dump and destroy all the matches
     //
     for (u32bit i=0; i<fwdMatches.size(); i++) {
-      fwdMatches[i]->dump(stdout, "dump", true);
-
       fprintf(stdout, "M u %s . %s %d %d 1 %s %d %d 1\n",
               fwdMatches[i]->_matchId,
-              fwdMatches[i]->_id1, fwdMatches[i]->_pos1, fwdMatches[i]->_len1,
-              fwdMatches[i]->_id2, fwdMatches[i]->_pos2, fwdMatches[i]->_len2);
-
+              fwdMatches[i]->_id1, fwdMatches[i]->_acc1->getRangeBegin(), fwdMatches[i]->_acc1->getRangeLength(),
+              fwdMatches[i]->_id2, fwdMatches[i]->_acc2->getRangeBegin(), fwdMatches[i]->_acc2->getRangeLength());
       delete fwdMatches[i];
     }
-    for (u32bit i=0; i<revMatches.size(); i++) {
-      revMatches[i]->dump(stdout, "dump", true);
 
+    for (u32bit i=0; i<revMatches.size(); i++) {
       fprintf(stdout, "M u %s . %s %d %d 1 %s %d %d -1\n",
               revMatches[i]->_matchId,
-              revMatches[i]->_id1, revMatches[i]->_pos1, revMatches[i]->_len1,
-              revMatches[i]->_id2, revMatches[i]->_pos2, revMatches[i]->_len2);
-
+              revMatches[i]->_id1, revMatches[i]->_acc1->getRangeBegin(), revMatches[i]->_acc1->getRangeLength(),
+              revMatches[i]->_id2, revMatches[i]->_acc2->getRangeBegin(), revMatches[i]->_acc2->getRangeLength());
       delete revMatches[i];
     }
+
+    fflush(stdout);
+    fflush(stderr);
+
+    fwdMatches.clear();
+    revMatches.clear();
   }
 }

@@ -30,12 +30,10 @@ void
 match_s::dump(FILE *out, const char *descr, bool showSeq) {
   fprintf(stderr, "%s\n", descr);
 
-  showSeq = true;
-
-  fprintf(out, "ID: %s  pos1:"u32bitFMT","u32bitFMT" _pos="u32bitFMT" (seqlen="u32bitFMT") pos2:"u32bitFMT","u32bitFMT" _pos="u32bitFMT" (seqlen="u32bitFMT")  diag:"u32bitFMT" %s\n",
+  fprintf(out, "ID: %s  range1:"u32bitFMT","u32bitFMT" _pos="u32bitFMT" (seqlen="u32bitFMT") range2:"u32bitFMT","u32bitFMT" _pos="u32bitFMT" (seqlen="u32bitFMT")  diag:"u32bitFMT" %s\n",
           _matchId,
-          _acc1->getRangeBegin(), _acc1->getRangeEnd() - _acc1->getRangeBegin(), _acc1->_pos, _seq1->sequenceLength(),
-          _acc2->getRangeBegin(), _acc2->getRangeEnd() - _acc2->getRangeBegin(), _acc2->_pos, _seq2->sequenceLength(),
+          _acc1->getRangeBegin(), _acc1->getRangeLength(), _acc1->_pos, _seq1->sequenceLength(),
+          _acc2->getRangeBegin(), _acc2->getRangeLength(), _acc2->_pos, _seq2->sequenceLength(),
           _diagonal,
           (_ori1 != _ori2) ? "reversed" : "");
 
@@ -45,13 +43,13 @@ match_s::dump(FILE *out, const char *descr, bool showSeq) {
 
     //  Save the position of the accessors
     //
-    u32bit  acc1pos = _acc1->getPosition();
-    u32bit  acc2pos = _acc2->getPosition();
+    u32bit  acc1pos = A._pos;
+    u32bit  acc2pos = B._pos;
 
-    A.setPosition(_acc1->getRangeBegin());
-    B.setPosition(_acc2->getRangeBegin());
+    A.setPosition(A.getRangeBegin());
+    B.setPosition(B.getRangeBegin());
 
-    u32bit    margin = 15;
+    u32bit    margin = 5;
     u32bit    i = 0;
     char     *seq = new char [_acc1->getRangeEnd() - _acc1->getRangeBegin() + margin + margin + 32];
     char     *las = seq;
@@ -66,13 +64,13 @@ match_s::dump(FILE *out, const char *descr, bool showSeq) {
         *las++ = *A;
       else
         *las++ = ' ';
-    *las++ = '|';
+    *las++ = ':';
     for (i=0; i<_acc1->getRangeEnd() - _acc1->getRangeBegin(); i++, ++A)
       if (A.isValid())
         *las++ = *A;
       else
         *las++ = ' ';
-    *las++ = '|';
+    *las++ = ':';
     for (i=0; i<margin; i++, ++A)
       if (A.isValid())
         *las++ = *A;
@@ -94,13 +92,13 @@ match_s::dump(FILE *out, const char *descr, bool showSeq) {
         *las++ = *B;
       else
         *las++ = ' ';
-    *las++ = '|';
+    *las++ = ':';
     for (i=0; i<_acc1->getRangeEnd() - _acc1->getRangeBegin(); i++, ++B)
       if (B.isValid())
         *las++ = *B;
       else
         *las++ = ' ';
-    *las++ = '|';
+    *las++ = ':';
     for (i=0; i<margin; i++, ++B)
       if (B.isValid())
         *las++ = *B;
@@ -113,95 +111,16 @@ match_s::dump(FILE *out, const char *descr, bool showSeq) {
     delete [] seq;
 
     //  Restore positions
-    _acc1->setPosition(acc1pos);
-    _acc2->setPosition(acc2pos);
+    _acc1->_pos = acc1pos;
+    _acc2->_pos = acc2pos;
   }
-
-#if 0
-  return;
-
-
-
-  if (showSeq) {
-    u32bit    p1 = _acc1->getRangeBegin();
-    u32bit    p2 = _acc2->getRangeBegin();
-    u32bit    margin = 25;
-    u32bit    num_print = _acc1->getRangeEnd() - _acc1->getRangeBegin() + 2 * margin;
-    u32bit    i;
- 
-    char  *seq = new char [_acc1->getRangeEnd() - _acc1->getRangeBegin() + 32];
-    char  *las = seq;
-
-    strcpy(seq, ">>> ");
-    while (*las) las++;
-
-    //  Print the margin, or move the sequence back
-    //
-    if (p1 < margin) {
-      for (i = 0; i < (margin - p1); ++i)
-	*las++ = ' ';
-      p1 = 0;
-    } else {
-      p1 = p1 - margin;
-      i = 0;
-    }
-    A.setPosition(p1);
-
-    for (; i < num_print; ++i, p1++, ++A) {
-      if ((i == margin) || (i == (num_print - margin)))
-	*las++ = '|';
-      if (A.isValid() == false)
-	*las++ = ' ';
-      else
-	*las++ = *A;
-    }
-    *las++ = 0;
-    fprintf(out, "%s\n", seq);
-
-
-    //  Print the margin, or move the sequence back
-    //
-    las = seq;
-
-    if (_ori1 != _ori2) {
-      strcpy(seq, "<<< ");
-      while (*las) las++;
-
-      if (p2 + _acc1->getRangeEnd() - _acc1->getRangeBegin() + margin > _seq2->sequenceLength()) {
-        for (i = 0; i < (p2 + _acc1->getRangeEnd() - _acc1->getRangeBegin() + margin - _seq2->sequenceLength()); ++i)
-          *las++ = ' ';
-        //p2 = 0;
-      } else {
-        p2 = p2 - margin;
-        i = 0;
-      }
-    } else {
-      strcpy(seq, ">>> ");
-      while (*las) las++;
-
-      if (p2 < margin) {
-        for (i = 0; i < (margin - p2); ++i)
-          *las++ = ' ';
-        p2 = 0;
-      } else {
-        p2 = p2 - margin;
-        i = 0;
-      }
-    }
-    B.setPosition(p2);
-
-    for (; i < num_print; ++i, p2++, ++B) {
-      if ((i == margin) || (i == (num_print - margin)))
-	*las++ = '|';
-      if (B.isValid() == false)
-	*las++ = ' ';
-      else
-	*las++ = *B;
-    }
-    *las++ = 0;
-    fprintf(out, "%s\n", seq);
-
-    delete [] seq;
-  }
-#endif
 }
+
+
+
+
+
+
+
+
+

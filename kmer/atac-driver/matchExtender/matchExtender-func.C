@@ -37,19 +37,21 @@ double   DEF_MIN_IDENTITY      = 0.95;
 u32bit   DEF_MAX_NBR_SEP       = 100;
 u32bit   DEF_MAX_NBR_PATH_MM   = 5;
 
-
-
+//#define DEBUG_TRACE
+//#define DEBUG_EXTEND
+//#define DEBUG_TRIMTOPERCENT
+//#define DEBUG_EXTEND_BACK
+//#define DEBUG_EXTEND_FORWARD
 
 bool
 trim_to_pct(vector<match_s *>& matches, u32bit midx, double pct) {
+#ifdef DEBUG_TRACE
   fprintf(stderr, "trim_to_pct()\n");
+#endif
 
-  u32bit start        = 0;
-  u32bit len          = 0;
-  u32bit best_start   = 0;
-  u32bit best_len     = 0;
-
-  match_s *m = matches[midx];
+  u32bit     best_start   = 0;
+  u32bit     best_len     = 0;
+  match_s   *m = matches[midx];
 
   FastAAccessor  &A = *m->_acc1;
   FastAAccessor  &B = *m->_acc2;
@@ -57,14 +59,18 @@ trim_to_pct(vector<match_s *>& matches, u32bit midx, double pct) {
   A.setPosition(m->pos1());
   B.setPosition(m->pos2());
 
-  for (start = 0; start < m->len(); ++start) {
+#ifdef DEBUG_TRIMTOPERCENT
+  m->dump(stderr, "TrimToPercent", true);
+#endif
+
+  for (u32bit start = 0; start < m->len(); ++start) {
     u32bit best_run_len = 0;
     u32bit sum          = 0;
 
     A.setPosition(m->pos1() + start);
     B.setPosition(m->pos2() + start);
 
-    for (len = 1; len <= (m->len() - start); ++len) {
+    for (u32bit len = 1; start + len <= m->len(); ++len) {
       char c1 = *A;
       char c2 = *B;
 
@@ -93,8 +99,10 @@ trim_to_pct(vector<match_s *>& matches, u32bit midx, double pct) {
   }
 
   if (best_len < m->len()) {
+#ifdef DEBUG_TRIMTOPERCENT
     fprintf(stderr, "Trimming to substring with start="u32bitFMT" and len="u32bitFMT" for percent identity\n",
             best_start, best_len);
+#endif
 
     m->extendLeft(-(s32bit)best_start);
     m->extendRight(-(s32bit)(m->len() - best_len));
@@ -110,7 +118,9 @@ void
 extend_match_backward(vector<match_s *>& matches,
                       u32bit midx,
 		      u32bit min_start_pos) {
+#ifdef DEBUG_TRACE
   fprintf(stderr, "extend_match_backward()-- min_start_pos="u32bitFMT"\n", min_start_pos);
+#endif
 
   // Assumes when traveling backwards that we will never run into
   // another match (otherwise, that match would have been forward
@@ -121,8 +131,6 @@ extend_match_backward(vector<match_s *>& matches,
   u32bit     good_run_len = (int) m->len();
   u32bit     num_pending = 0;
 
-  m->dump(stderr, "extend_back()-1- ");
-
   FastAAccessor  &A = *m->_acc1;
   FastAAccessor  &B = *m->_acc2;
 
@@ -130,74 +138,76 @@ extend_match_backward(vector<match_s *>& matches,
   B.setPosition(m->_acc2->getRangeBegin());
 
   //  Decrement, instead of subtract one from the position above, to
-  //  avoid any issues with overflow (0 - 1).
+  //  avoid any issues with overflow (e.g., 0 - 1).
   //
-  fprintf(stderr, "extend_back(outside)-- %9d/%c  --  %9d/%c\n", A.getPosition(), *A, B.getPosition(), *B);
   --A;
   --B;
-  fprintf(stderr, "extend_back(outside)-- %9d/%c  --  %9d/%c\n", A.getPosition(), *A, B.getPosition(), *B);
 
   while ((A.getPosition() > min_start_pos) && A.isValid() && B.isValid()) {
     char c1 = *A;
     char c2 = *B;
-
-    fprintf(stderr, "extend_back(before)-- %9d/%c  --  %9d/%c\n", A.getPosition(), c1, B.getPosition(), c2);
-    m->dump(stderr, "extend_back(before)-- ");
 
     if (validSymbol[c1] &&
         validSymbol[c2] &&
         IUPACidentity[c1][c2]) {
       good_run_len++; 
 
-      //  If we've gone long enough, erase our mismatch record (BLOCK_SEP=20)
-      if (good_run_len == DEF_MIN_BLOCK_SEP)
+      //  If we've gone long enough, erase our mismatch record
+      //
+      if (good_run_len == DEF_MIN_BLOCK_SEP)  //  20 by default
 	num_recent_mismatches = 0;
 
-      //  If we're in the middle of a long good run, add the character to
-      //  the match (END_RUN_LEN=10)
+      //  If we're in the middle of a long good run, add the character
+      //  to the match (END_RUN_LEN=10)
+      //
+      //  Otherwise, if we just made the minimum extension length, add
+      //  all of the pending characters.
+      //
+      //  Otherwise, this character is pending.  However, still do
+      //  output if we're run out of sequence.
       //
       if (good_run_len > DEF_MIN_END_RUN_LEN) {
 	m->extendLeft(1);
       } else if (good_run_len == DEF_MIN_END_RUN_LEN) {
-        //  else if we just made the minimum extension length, add
-        //  all of the pending characters.
-        //
 	m->extendLeft(num_pending + 1);
 	num_pending = 0;
       } else {
-        //  Otherwise, this character is pending.  However, still do output
-        //  if we're run out of sequence.
-        //
 	num_pending++;
-	if ((A.getPosition() == min_start_pos) || (B.getPosition() == 0))
-	  m->extendLeft(num_pending);
       }
     } else {
-      //  Else this character is a mismatch.
-      //
-      num_pending++;
       good_run_len = 0;
+      num_pending++;
       num_recent_mismatches++;
-      //  MM_BLOCK=3
-      if (num_recent_mismatches > DEF_MAX_MM_BLOCK)
+      if (num_recent_mismatches > DEF_MAX_MM_BLOCK)  //  3 by default
 	break;
     }
-
-    m->dump(stderr, "extend_back(after)-- ");
 
     --A;
     --B;
   }
 
-  fprintf(stderr, "extend_match_backward()-- pos1="u32bitFMT",valid=%d pos2="u32bitFMT",valid=%d\n",
-          A.getPosition(), A.isValid(), B.getPosition(), B.isValid());
-  m->dump(stderr, "extend_match_backward()--");
+  //  If we hit the end of the sequence, and are good, do extension
+  //
+  //  if ((A.getPosition() == min_start_pos) || (B.getPosition() == 0))
+  //
+  if (!A.isValid() || !B.isValid() || (A.getPosition() <= min_start_pos))
+    m->extendLeft(num_pending);
+
+
+#ifdef DEBUG_EXTEND_BACK
+  fprintf(stderr, "extend_back()-- M u %s . %s %d %d 1 %s %d %d 1\n",
+          m->_matchId,
+          m->_id1, m->_acc1->getRangeBegin(), m->_acc1->getRangeLength(),
+          m->_id2, m->_acc2->getRangeBegin(), m->_acc2->getRangeLength());
+#endif
 }
 
 
 bool
 can_reach_nearby_match(match_s *src, match_s *dest) {
+#ifdef DEBUG_TRACE
   fprintf(stderr, "can_reach_nearby_match()\n");
+#endif
 
   u32bit   num_mismatch = 0;
 
@@ -226,15 +236,18 @@ can_reach_nearby_match(match_s *src, match_s *dest) {
     ++B;
   }
 
-  return (num_mismatch <= DEF_MAX_NBR_PATH_MM);
+  return(num_mismatch <= DEF_MAX_NBR_PATH_MM);
 }
 
 
 
-  //  Stops and returns true if we hit the next match
+//  Stops and returns true if we hit the next match
+//
 bool
 extend_match_forward(vector<match_s *>& matches, u32bit midx, match_s *target) {
+#ifdef DEBUG_TRACE
   fprintf(stderr, "extend_match_forward()\n");
+#endif
 
   match_s     *m = matches[midx];
   u32bit       num_recent_mismatches = 0;
@@ -245,15 +258,25 @@ extend_match_forward(vector<match_s *>& matches, u32bit midx, match_s *target) {
   FastAAccessor  &A = *m->_acc1;
   FastAAccessor  &B = *m->_acc2;
 
-  A.setPosition(m->_acc1->getRangeBegin());
-  B.setPosition(m->_acc2->getRangeBegin());
+#ifdef DEBUG_EXTEND_FORWARD
+  fprintf(stderr, "extend_match_forward()-- A:%4d-%4d B:%4d-%4d\n",
+          A.getRangeBegin(), A.getRangeLength(),
+          B.getRangeBegin(), B.getRangeLength());
+#endif
+
+  //  Set our position to the last valid base in the range, then move
+  //  to the next one.
+  //
+  A.setPosition(A.getRangeEnd() - 1);
+  B.setPosition(B.getRangeEnd() - 1);
+
+  ++A;
+  ++B;
 
   while (A.isValid() && B.isValid()) {
     char c1 = *A;
     char c2 = *B;
 
-    // If there's a match ...
-    //
     if (validSymbol[c1] &&
         validSymbol[c2] &&
         IUPACidentity[c1][c2]) {
@@ -264,53 +287,56 @@ extend_match_forward(vector<match_s *>& matches, u32bit midx, match_s *target) {
       if (good_run_len == DEF_MIN_BLOCK_SEP)
 	num_recent_mismatches = 0;
 
-      //  Not enough good characters yet, so output is pending ...
+      //  If not enough good characters yet, increase the length
+      //  pending.  We used to check for the hitting the end of the
+      //  sequence here.
+      //
+      //  Otherwise, if we have just made the minumum good run length,
+      //  do the extension.
+      //
+      //  Otherwise, if we're above the minimum good length, extend by
+      //  another character.
       //
       if (good_run_len < DEF_MIN_END_RUN_LEN) {
-	num_pending++;	
-
-	//  If we've got a short good run but have hit the end of
-	//  a sequence, do extension.
-        //
-
-	//if (!A.isValid(1) || !B.isValid(1))
-
-        if (((A.getPosition() + 1) == A.getLength()) || ((B.getPosition() + 1) == B.getLength()))
-	  m->extendRight(num_pending);
-
+	num_pending++;
       } else if (good_run_len == DEF_MIN_END_RUN_LEN) {
-        //  Else if we've just made the minimum good end run length,
-        //  commit to extending.
-        //
 	m->extendRight(num_pending + 1);
 	num_pending = 0;
       } else if (good_run_len > DEF_MIN_END_RUN_LEN) {
-        //  Otherwise, if we're above the minimum good run length,
-	//  extend by one character.
 	m->extendRight(1);
       }
 
       //  If we've run into (and possibly over) another seed match,
-      //  consume it and return so the main loop can restart
+      //  return so the main loop can consume and restart.
       //
-      if (target && (m->canMergeWith(target))) {
-	m->consume(target);
-	return true;
-      }
+      if (m->canMergeWith(target))
+	return(true);
     } else {
-      // Otherwise, process mismatch ...
-      num_pending++;
       good_run_len = 0;
+      num_pending++;
       num_recent_mismatches++;
+
       if (num_recent_mismatches > DEF_MAX_MM_BLOCK)
-	break;
+	return(false);
     }
 
     ++A;
     ++B;
   }
+
+  //  If we've got a short good run but have hit the end of
+  //  a sequence, do extension.
+  //
+  if ((!A.isValid() || !B.isValid()) && (good_run_len < DEF_MIN_END_RUN_LEN))
+    m->extendRight(num_pending);
+
+#ifdef DEBUG_EXTEND_FORWARD
+  fprintf(stderr, "extend_match_forward(finish)-- A:%4d-%4d B:%4d-%4d\n",
+          A.getRangeBegin(), A.getRangeLength(),
+          B.getRangeBegin(), B.getRangeLength());
+#endif
   
-  return false;
+  return(false);
 }
 
 
@@ -321,7 +347,9 @@ extend_match_forward(vector<match_s *>& matches, u32bit midx, match_s *target) {
 
 u32bit
 extend_matches_on_diagonal(vector<match_s *>& matches, u32bit diag_start) {
+#ifdef DEBUG_TRACE
   fprintf(stderr, "extend_matches_on_diagonal()\n");
+#endif
 
   u32bit     diag_id = matches[diag_start]->_diagonal;
   u32bit     idx;
@@ -338,14 +366,26 @@ extend_matches_on_diagonal(vector<match_s *>& matches, u32bit diag_start) {
 
     m = matches[idx];
 
-    m->dump(stderr, "Before back extension:");
+#ifdef DEBUG_EXTEND
+    m->dump(stderr, "Before back extension:", true);
+#endif
     extend_match_backward(matches, idx, prev_end);
-    m->dump(stderr, "After back extension:");
+#ifdef DEBUG_EXTEND
+    m->dump(stderr, "After back extension:", true);
+#endif
+
+
+#ifdef DEBUG_EXTEND
+    fprintf(stderr, "1M u %s . %s %d %d 1 %s %d %d 1\n",
+            matches[idx]->_matchId,
+            matches[idx]->_id1, matches[idx]->_acc1->getRangeBegin(), matches[idx]->_acc1->getRangeLength(),
+            matches[idx]->_id2, matches[idx]->_acc2->getRangeBegin(), matches[idx]->_acc2->getRangeLength());
+#endif
 
     prev_end = m->pos1() + m->len();
 
     if ((m->pos1() > m->s1()->sequenceLength()) || (m->pos2() > m->s2()->sequenceLength()))
-      m->dump(stderr, "NEGATIVE after back extend!\n"), abort();
+      m->dump(stderr, "NEGATIVE after back extend!\n", true), abort();
   }
 
 
@@ -361,6 +401,13 @@ extend_matches_on_diagonal(vector<match_s *>& matches, u32bit diag_start) {
       continue;
     }
     
+#ifdef DEBUG_EXTEND
+    fprintf(stderr, "2M u %s . %s %d %d 1 %s %d %d 1\n",
+            matches[idx]->_matchId,
+            matches[idx]->_id1, matches[idx]->_acc1->getRangeBegin(), matches[idx]->_acc1->getRangeLength(),
+            matches[idx]->_id2, matches[idx]->_acc2->getRangeBegin(), matches[idx]->_acc2->getRangeLength());
+#endif
+
     m        = matches[idx];
     next_m   = 0L;
 
@@ -375,9 +422,15 @@ extend_matches_on_diagonal(vector<match_s *>& matches, u32bit diag_start) {
     //  start the loop again with the same match (now extended)
     //
     if (next_m && can_reach_nearby_match(m, next_m)) {
+#ifdef DEBUG_EXTEND
+      m->dump(stderr, "I extend this:", false);
+      next_m->dump(stderr, "with this:", false);
+#endif
       m->consume(next_m);
       next_m->setDeleted();
-      m->dump(stderr, "Extended through next match via neighbor search:");
+#ifdef DEBUG_EXTEND
+      m->dump(stderr, "Extended through next match via neighbor search:", true);
+#endif
       continue;
     }
 
@@ -388,25 +441,54 @@ extend_matches_on_diagonal(vector<match_s *>& matches, u32bit diag_start) {
     //  match.
     //
     if (extend_match_forward(matches, idx, next_m)) {
+#ifdef DEBUG_EXTEND
+        m->dump(stderr, "I extend this:", false);
+        next_m->dump(stderr, "with this:", false);
+#endif
+      m->consume(next_m);
       next_m->setDeleted();
-      m->dump(stderr, "Extended through next match via forward extension:");
+#ifdef DEBUG_EXTEND
+      m->dump(stderr, "Extended through next match via forward extension:", true);
+#endif
       continue;
     } else {
-      m->dump(stderr, "Failed to make next match.  Final extended version:");
+#ifdef DEBUG_EXTEND
+      m->dump(stderr, "Failed to make next match.  Final extended version:", true);
+#endif
     }
-    
+
+#ifdef DEBUG_EXTEND
+    fprintf(stderr, "3M u %s . %s %d %d 1 %s %d %d 1\n",
+            matches[idx]->_matchId,
+            matches[idx]->_id1, matches[idx]->_acc1->getRangeBegin(), matches[idx]->_acc1->getRangeLength(),
+            matches[idx]->_id2, matches[idx]->_acc2->getRangeBegin(), matches[idx]->_acc2->getRangeLength());
+#endif
+
     //  Didn't make it, so trim and move on
     //
     if (trim_to_pct(matches, idx, DEF_MIN_IDENTITY)) {
-      m->dump(stderr, "After trimming:");
+#ifdef DEBUG_EXTEND
+      m->dump(stderr, "After trimming:", true);
+#endif
     } else {
+#ifdef DEBUG_EXTEND
       fprintf(stderr, "No trimming done.\n");
+#endif
     }
 
+#ifdef DEBUG_EXTEND
+    fprintf(stderr, "4M u %s . %s %d %d 1 %s %d %d 1\n",
+            matches[idx]->_matchId,
+            matches[idx]->_id1, matches[idx]->_acc1->getRangeBegin(), matches[idx]->_acc1->getRangeLength(),
+            matches[idx]->_id2, matches[idx]->_acc2->getRangeBegin(), matches[idx]->_acc2->getRangeLength());
+#endif
+
+#ifdef DEBUG_EXTEND
     if ((m->pos1() > m->s1()->sequenceLength()) || (m->pos2() > m->s2()->sequenceLength()))
-      m->dump(stderr, "NEGATIVE after forward extend!"), abort();
+      m->dump(stderr, "NEGATIVE after forward extend!", true), abort();
 
     fprintf(stderr, "\n==============\n\n");
+#endif
 
     ++idx;
   }

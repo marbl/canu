@@ -63,12 +63,12 @@ public:
     _acc1->setPosition(_pos1);
     _acc2->setPosition(_pos2);
 
+    //  the diagonal is....
     if (ori1 == ori2)
       _diagonal = seq1->sequenceLength() - _pos1 + _pos2;
     else
-      _diagonal = seq1->sequenceLength() - _pos1 + seq2->sequenceLength() - _pos2 + _len2;
-
-    fprintf(stderr, "_diagonal = "u32bitFMT"\n", _diagonal);
+      _diagonal = seq1->sequenceLength() - _pos1 + seq2->sequenceLength() - (_pos2 + _len2);
+    //_diagonal = seq2->sequenceLength() - (_pos2 + _len2) + _pos1;
   };
 
   //  Compare by diagonal, then by position in the first sequence.
@@ -84,7 +84,6 @@ public:
 
   //  For compatibility
 
-
   void extendLeft(s32bit num) {
     _acc1->extendLeft(num);
     _acc2->extendLeft(num);
@@ -95,45 +94,25 @@ public:
     _acc2->extendRight(num);
   };
 
-#if 0
-  void trimFront(s32bit num) {
-    _acc1->adjustRangeBegin(num);
-    _acc2->adjustRangeBegin(num);
-    _acc1->adjustRangeEnd(-num);
-    _acc2->adjustRangeEnd(-num);
-  };
-
-  void trimEnd(s32bit num) {
-    _acc1->adjustRangeEnd(-num);
-    _acc2->adjustRangeEnd(-num);
-  };
-#endif
-
   bool isDeleted(void)           { return(_isDeleted); };
   void setDeleted(void)          { _isDeleted = true;  };
 
 
+  //  Since we're on the same diagonal, and ungapped, the choice of
+  //  testing sequence 1 or 2 is arbirary.
+  //
   bool canMergeWith(match_s *m) {
-    return((_diagonal == m->_diagonal) && (_acc1->getRangeBegin() + _acc1->getRangeEnd() >= m->_acc2->getRangeBegin()));
+    return((m != 0L) &&
+           (_diagonal == m->_diagonal) &&
+           (_acc1->getRangeBegin() + _acc1->getRangeEnd() >= m->_acc1->getRangeBegin()));
   };
 
   //  Extend us to end where m ends
   //
   void consume(match_s *m) {
-#if 0
-    len = m2._start1 + m2._len - _start1;
-    if (len > _len) {
-      _len = len;
-      if (_rc) 
-        _start2 = m2._start2;
-    }
-#endif
-
     if (m->_acc1->getRangeEnd() > _acc1->getRangeEnd())
       extendRight(m->_acc1->getRangeEnd() - _acc1->getRangeEnd());
   };
-
-
 
   u32bit  len(void) { return(_acc1->getRangeEnd() - _acc1->getRangeBegin()); };
   u32bit  pos1(void) { return(_acc1->getRangeBegin()); };
