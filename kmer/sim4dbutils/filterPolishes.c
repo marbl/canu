@@ -6,6 +6,8 @@
 
 #include "libbritypes.h"
 #include "sim4polish.h"
+#include "file.h"
+
 
 //  We limit scaffolds to be below the number of open files per
 //  process.
