@@ -7,7 +7,11 @@
 static
 char     magic[16] = { 'p', 'o', 's', 'i', 't', 'i', 'o', 'n', 'D', 'B', '1', ' ', ' ', ' ', ' ', ' '  };
 
-
+//  XXX: Includes ifdef'd support for writing the magic AFTER the data
+//  has been written, ensuring that the whole write is complete.  Not
+//  tested much, so not enabled.
+//
+//#define MAGIC_AFTER_DATA
 
 void
 positionDB::saveState(char const *filename) {
@@ -23,11 +27,39 @@ positionDB::saveState(char const *filename) {
   u64bit  bs = _numberOfDistinct   * _wFin      / 64 + 1;
   u64bit  ps = _numberOfEntries    * _posnWidth / 64 + 1;
 
+#ifndef MAGIC_AFTER_DATA
   fwrite(magic,      sizeof(char),       16, F);
+#else
+  //  Test if this is a pipe.  If so, we write the magic first,
+  //  otherwise we write the magic last.
+  //
+  char  cigam[16] = { 0 };
+  bool  magicFirst = false;
+
+  lseek(fileno(F), 0, SEEK_SET);
+  if (errno == ESPIPE)
+    magicFirst = true;
+
+  if (magicFirst)
+    fwrite(magic,    sizeof(char),       16, F);
+  else
+    fwrite(cigam,    sizeof(char),       16, F);
+#endif
   fwrite(this,       sizeof(positionDB), 1,  F);
   fwrite(_hashTable, sizeof(u64bit),     hs, F);
   fwrite(_buckets,   sizeof(u64bit),     bs, F);
   fwrite(_positions, sizeof(u64bit),     ps, F);
+
+#ifdef MAGIC_AFTER_DATA
+  if (!magicFirst) {
+    lseek(fileno(F), 0, SEEK_SET);
+    if (errno) {
+      fprintf(stderr, "positionDB::saveState()-- Failed to seek to start of file -- write failed.\n%s\n", strerror(errno));
+      exit(1);
+    }
+    fwrite(magic, sizeof(char), 16, F);
+  }
+#endif
 
   fclose(F);
 
@@ -40,7 +72,7 @@ positionDB::saveState(char const *filename) {
 
 bool
 positionDB::loadState(char const *filename, bool beNoisy, bool loadData) {
-  char   cigam[16];
+  char   cigam[16] = { 0 };
 
   errno = 0;
   FILE *F = fopen(filename, "rb");
