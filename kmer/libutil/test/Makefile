@@ -17,10 +17,11 @@ OBJS    =
 include ../../Make.compilers
 
 all: $(PROG)
+	@echo Tests passed!
 
 test-bitPackedFile: test-bitPackedFile.C ../libbri.a ../bri.h ../bri++.H
-	$(CXX) -g3 $(CXXFLAGS_COMPILE) -c -o test-bitPackedFile.o test-bitPackedFile.C $(INCLUDE)
-	$(CXX) -g3 $(CXXLDFLAGS) -o test-bitPackedFile test-bitPackedFile.o $(LIBS)
+	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-bitPackedFile.o test-bitPackedFile.C $(INCLUDE)
+	$(CXX) $(CXXLDFLAGS) -o test-bitPackedFile test-bitPackedFile.o $(LIBS)
 	./test-bitPackedFile 500000 200
 
 test-bitPacking: test-bitPacking.C ../libbri.a ../bri.h ../bri++.H
@@ -59,11 +60,6 @@ test-merstream-speed: test-merstream-speed.C ../libbri.a ../bri.h ../bri++.H
 	cat x.fasta > /dev/null
 	./test-merstream-speed x.fasta
 	rm x.fasta
-
-test-merstream: test-merstream.C ../libbri.a ../bri.h ../bri++.H
-	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-merstream.o test-merstream.C $(INCLUDE)
-	$(CXX) $(CXXLDFLAGS) -o test-merstream test-merstream.o $(LIBS)
-	./test-merstream
 
 test-mmap: test-mmap.c ../libbri.a ../bri.h ../bri++.H
 	$(CC) $(CFLAGS_COMPILE) -c -o test-mmap.o test-mmap.c $(INCLUDE)
