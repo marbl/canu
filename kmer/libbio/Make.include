@@ -45,7 +45,7 @@ $/test-bitpackedfile:
 	@echo Tests passed\!
 
 $/test-merstreamfile: libbri.a
-	$(CXX) $(CXXFLAGS) $(CXXFLAGS_COMPILE) -o $/merStreamFileTester -DTEST_MERSTREAMFILE $/merStreamFile.C $/libbri.a
+	$(CXX) $(CXXFLAGS) $(CXXFLAGS_COMPILE) -o $/merStreamFileTester -DTEST_MERSTREAMFILE $/merstreamfile.C $/libbri.a
 	$/./merStreamFileTester some.fasta
 	rm -f $/merStreamFileTester
 	@echo Tests passed\!
