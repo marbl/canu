@@ -504,13 +504,27 @@ if (! -e "$ATACdir/$matches.matches.sorted") {
     #  does an internal sort given all matches for a pair of
     #  sequences.
 
-    system("mkdir ${ATACdir}/tmp")  if (! -d "${ATACdir}/tmp");
+    my $tmpdir;
+    $tmpdir = "$ATACdir";
+    $tmpdir = "/scratch" if (-d "/scratch");
 
-    if (runCommand("cat $mfiles | grep ^M | sort -y -T $ATACdir/tmp -k 5,5 -k 9,9 >> $ATACdir/$matches.matches.sorted")) {
+    #  Kill LANG, linux grep sucks if this is set.
+
+    delete $ENV{'LANG'};
+
+    #  Sort the first index
+    #
+    #print STDERR "Sorting by the FIRST axis.\n";
+    #if (runCommand("cat $mfiles | grep -- \^M\  | sort -y -T $tmpdir -k 5,5 -k 9,9 >> $ATACdir/$matches.matches.sorted")) {
+    #    die "Failed to sort $ATACdir!\n";
+    #}
+
+    #  Sort the second index, useful if that one is chromosome.
+    #
+    print STDERR "Sorting by the SECOND axis.\n";
+    if (runCommand("cat $mfiles | grep -- \^M\  | sort -y -T $tmpdir -k 9,9 -k 5,5 >> $ATACdir/$matches.matches.sorted")) {
         die "Failed to sort $ATACdir!\n";
     }
-
-    system("rm -rf ${ATACdir}/tmp");
 }
 
 
