@@ -36,12 +36,6 @@ public:
 #endif  //  FILE_WRAPPER_H
 
 
-
-#include "fasta-types.H"
-#include "fasta-sequenceondisk.H"
-#include "fasta-sequenceincore.H"
-
-
 //  Version Numbers:
 //
 //  versionNumber 1 contains the simple index, name or defline.
@@ -54,6 +48,13 @@ public:
 //
 #define FASTA_MAGICNUMBER   0x4abeadeddadababeULL
 #define FASTA_VERSIONNUMBER 3
+
+
+
+#include "fasta-types.H"
+#include "fasta-sequenceondisk.H"
+#include "fasta-sequenceincore.H"
+
 
 
 class FastAWrapper : public FileWrapper {
