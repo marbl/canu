@@ -39,7 +39,7 @@ $/.REAL-CLEAN:=$/buildinfo-*
 $/%.d $/%.o: \
   CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} \
             -I${SIM4/} -I${SIM4POLISH/} -I${EXISTDB/}
-$/snapper2.C.d: $/buildinfo-snapper2.h
+$/configuration.C.d: $/buildinfo-snapper2.h
 
 EFENCE-L :=# -L/dev2/adelcher/EFence
 EFENCE-l :=# -lefence
