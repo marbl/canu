@@ -113,6 +113,8 @@ public:
   char            *_queryMatchFileName;
   char            *_statsFileName;
 
+  char            *_tableFileName;
+
   u32bit           _useListLen;
   u32bit           _useListMax;
   use_s           *_useList;
@@ -153,10 +155,10 @@ public:
   void  completeUseList(FastAWrapper *db);
 
   void  setTime(struct timespec *ts, double t) {
-    ts->tv_sec = floor(t);
+    ts->tv_sec = (time_t)floor(t);
     t -= ts->tv_sec;
     t *= 1e9;
-    ts->tv_nsec = t;
+    ts->tv_nsec = (int32_t)t;
   };
 private:
   void  addToUse(u32bit v);

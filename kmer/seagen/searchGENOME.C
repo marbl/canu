@@ -67,60 +67,89 @@ buildChunk(void) {
     sLen += config._useList[i].size + 100;
   }
 
-  //  Allocate space for the chained sequence
-  //
-  char *s = new char [sLen + 1];
-  char *t = s;
+  //  If we are given a pointer to a prebuilt table, just load it.
+  //  Otherwise, chain the sequence together and build a fresh table
+  //  (and then save it if so told).
 
-  //  Chain
-  //
-  u32bit i;
-  for (i=0; i<config._useListLen; i++) {
-    dbFASTA->find(config._useList[i].seq);
+  if ((config._tableFileName) && (fileExists(config._tableFileName))) {
+    fprintf(stderr, "Loading positions table from '%s'\n", config._tableFileName);
+    positions = new positionDB(config._tableFileName);
+    fprintf(stderr, "Loading finished.\n");
+  } else {
 
+    //  Allocate space for the chained sequence
     //
-    //  XXX: This should be a FastASequenceOnDisk, but that isn't
-    //  existing yet.
+    char *s = new char [sLen + 1];
+    char *t = s;
+
+    //  Chain
     //
+    u32bit i;
+    for (i=0; i<config._useListLen; i++) {
+      dbFASTA->find(config._useList[i].seq);
 
-    FastASequenceInCore  *B = dbFASTA->getSequence();
+#if 0
+      //  XXX: This should be a FastASequenceOnDisk, but that isn't
+      //  existing yet.
+      FastASequenceInCore  *B = dbFASTA->getSequence();
 
-    char const *g  = B->sequence();
+      char const *g  = B->sequence();
 
-    while (*g)
-      *(t++) = *(g++);
+      while (*g)
+        *(t++) = *(g++);
 
-    for (u32bit gn = 100; gn--; )
-      *(t++) = '.';
+      for (u32bit gn = 100; gn--; )
+        *(t++) = '.';
 
-    delete B;
+      delete B;
+#else
+      FastASequenceOnDisk  *B = dbFASTA->getSequenceOnDisk();
+
+      B->getChars(t, 0, B->sequenceLength());
+
+      t += B->sequenceLength();
+
+      for (u32bit gn = 100; gn--; )
+        *(t++) = '.';
+
+      delete B;
+#endif
+
+    }
+
+    *t = 0;
+
+    //  Figure out a nice size of the hash.
+    //
+    //  XXX:  This probably should be tuned.
+    //
+    u32bit tblSize = 25;
+
+    if (sLen < 64 * 1024 * 1024)
+      tblSize = 24;
+    if (sLen < 16 * 1024 * 1024)
+      tblSize = 23;
+    if (sLen <  4 * 1024 * 1024)
+      tblSize = 22;
+    if (sLen <  2 * 1024 * 1024)
+      tblSize = 21;
+    if (sLen <  1 * 1024 * 1024)
+      tblSize = 20;
+
+    positions = new positionDB(s, 0L, config._merSize, config._merSkip, tblSize, config._beVerbose);
+
+    delete [] s;
+
+    if (config._tableFileName) {
+      if (config._beVerbose)
+        fprintf(stderr, "Dumping positions table to '%s'\n", config._tableFileName);
+      positions->saveState(config._tableFileName);
+      exit(0);
+    }
   }
 
-  *t = 0;
-
-  //  Figure out a nice size of the hash.
-  //
-  //  XXX:  This probably should be tuned.
-  //
-  u32bit tblSize = 25;
-
-  if (sLen < 64 * 1024 * 1024)
-    tblSize = 24;
-  if (sLen < 16 * 1024 * 1024)
-    tblSize = 23;
-  if (sLen <  4 * 1024 * 1024)
-    tblSize = 22;
-  if (sLen <  2 * 1024 * 1024)
-    tblSize = 21;
-  if (sLen <  1 * 1024 * 1024)
-    tblSize = 20;
-
-  positions = new positionDB(s, 0L, config._merSize, config._merSkip, tblSize, config._beVerbose);
-
-  delete [] s;
   delete    dbFASTA;
 }
-
 
 
 int

@@ -47,6 +47,8 @@ configuration::configuration(void) {
   _queryMatchFileName  = 0L;
   _statsFileName       = 0L;
 
+  _tableFileName       = 0L;
+
   _useList             = 0L;
   _useListLen          = 0;
   _useListMax          = 0;
@@ -106,6 +108,11 @@ static char const *usageString =
 "    -writerhighwatermark h  Size of the output queue\n"
 "    -writersleep t          Time the writer will sleep when it has nothing to write\n"
 "    -writerwarnings         Enable warning messages for the writer\n"
+"\n"
+"    -buildonly datfile      If 'datfile' doesn't exist, build the tables, write\n"
+"                            them to 'datfile' and exit.  If 'datfile' exists\n"
+"                            AND is a complete and valid file, load the tables\n"
+"                            from the file and do the compute.\n"
 "\n"
 "Input Options:\n"
 "    -mask f                 Ignore all mers listed in file f\n"
@@ -359,6 +366,9 @@ configuration::read(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-table") == 0) {
       arg++;
       _dbFileName = argv[arg];
+    } else if (strcmp(argv[arg], "-buildonly") == 0) {
+      arg++;
+      _tableFileName = argv[arg];
     } else if (strcmp(argv[arg], "-use") == 0) {
       arg++;
       parseUseLine(argv[arg]);
