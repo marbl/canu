@@ -56,16 +56,21 @@ FILE *multiSingleFile  = 0L;  //  multiple hits, all are single exon
 FILE *singleMultiFile  = 0L;  //  single hit, and it has more than one exon
 FILE *singleSingleFile = 0L;  //  single hit, single exon
 
-int   sm = 0;
-int   ss = 0;
-int   mm = 0;
-int   ms = 0;
+int   smpass = 0;
+int   sspass = 0;
+int   mmpass = 0;
+int   mspass = 0;
+
+int   smfail = 0;
+int   ssfail = 0;
+int   mmfail = 0;
+int   msfail = 0;
 
 int   failedsnps    = 0;
 int   failedmatches = 0;
 
-FILE *validSNPMap   = 0L;
-FILE *failedSNPMap  = 0L;
+FILE *validSNPMapFile   = 0L;
+FILE *failedSNPMapFile  = 0L;
 
 char  fieldDelimiter = 255;
 char *sizeTag        = "/size=";
@@ -184,19 +189,16 @@ findSize(char *defline) {
 
 
 
+//  Returns 1 if SNP was valid and printed,
+//  0 otherwise.
+//
 int
 printSNP(FILE *F, sim4polish *p) {
-
-  char *SNPid = findSNPid(p->estDefLine);
-  char *GENid = findGENid(p->genDefLine);
-  int   pos   = findPosition(p->estDefLine);
-  int   siz   = findSize(p->estDefLine);
+  int   pos           = findPosition(p->estDefLine);
+  int   siz           = findSize(p->estDefLine);
   int   exonWithSNP   = -1;
   int   i             = 0;
   int   seqOffset     = 0;
-  int   bpToExamine   = 0;
-  int   examinePos    = 0;
-  int   genPosition   = 0;
 
   //  If the match is complement, then the alignment is printed using
   //  the reverse complemented SNP sequence, and so we need to find
@@ -214,68 +216,76 @@ printSNP(FILE *F, sim4polish *p) {
 
   //  Find the exon with the SNP
   //
-  for (i=0; i<p->numExons; i++) {
+  for (i=0; i<p->numExons; i++)
     if (((p->exons[i].estFrom-1) <= seqOffset) && (seqOffset <= (p->exons[i].estTo-1)))
       exonWithSNP = i;
-  }
 
   if (exonWithSNP == -1)
-    return(1);
+    return(0);
 
-  //  Now, we examine the alignment strings to decide exactly
-  //  where the SNP is located in the genomic.
+  //  If we are printing to a file, continue to find the location, otherwise,
+  //  just return.
   //
-  //  bpToExaine - the number of bases we need to skip in the
-  //  alignment (counted in the snp), +1 because we are currently at
-  //  the bp before the alignment (so we need to skip one more space).
-  //
-  bpToExamine = seqOffset - (p->exons[exonWithSNP].estFrom - 1) + 1;
-  examinePos  = 0;
-  genPosition = p->genLo + p->exons[exonWithSNP].genFrom - 1;
+  if (F) {
+    char *SNPid = findSNPid(p->estDefLine);
+    char *GENid = findGENid(p->genDefLine);
 
-  while (bpToExamine > 0) {
-
-    //  If the SNP alignment eats up a base pair, decrement
-    //  the number of bp left to examine.
+    //  Now, we examine the alignment strings to decide exactly
+    //  where the SNP is located in the genomic.
     //
-    if (p->exons[exonWithSNP].estAlignment[examinePos] != '-')
-      bpToExamine--;
-
-    //  If the the genomic alignment is not a gap, increment the
-    //  position.
+    //  bpToExaine - the number of bases we need to skip in the
+    //  alignment (counted in the snp), +1 because we are currently at
+    //  the bp before the alignment (so we need to skip one more space).
     //
-    if (p->exons[exonWithSNP].genAlignment[examinePos] != '-')
-      genPosition++;
+    int  bpToExamine = seqOffset - (p->exons[exonWithSNP].estFrom - 1) + 1;
+    int  examinePos  = 0;
+    int  genPosition = p->genLo + p->exons[exonWithSNP].genFrom - 1;
 
-    examinePos++;
+    while (bpToExamine > 0) {
+
+      //  If the SNP alignment eats up a base pair, decrement
+      //  the number of bp left to examine.
+      //
+      if (p->exons[exonWithSNP].estAlignment[examinePos] != '-')
+        bpToExamine--;
+
+      //  If the the genomic alignment is not a gap, increment the
+      //  position.
+      //
+      if (p->exons[exonWithSNP].genAlignment[examinePos] != '-')
+        genPosition++;
+
+      examinePos++;
+    }
+
+    fprintf(F, "%s %s %d %c/%c %s global[%d %d] exon[%d %d %d %d]\n",
+            SNPid,
+            GENid,
+            genPosition,
+            p->exons[exonWithSNP].estAlignment[examinePos-1],
+            p->exons[exonWithSNP].genAlignment[examinePos-1],
+            (p->matchOrientation == SIM4_MATCH_FORWARD) ? "forward" : "complement",
+            p->percentIdentity,
+            p->querySeqIdentity,
+            p->numExons,
+            exonWithSNP,
+            p->exons[exonWithSNP].percentIdentity,
+            (int)floor(100.0 * (double)p->exons[exonWithSNP].numMatches / (double)p->estLen));
+
+    free(SNPid);
+    free(GENid);
   }
 
-  fprintf(F, "%s %s %d %c/%c %s global[%d %d] exon[%d %d %d %d]\n",
-          SNPid,
-          GENid,
-          genPosition,
-          p->exons[exonWithSNP].estAlignment[examinePos-1],
-          p->exons[exonWithSNP].genAlignment[examinePos-1],
-          (p->matchOrientation == SIM4_MATCH_FORWARD) ? "forward" : "complement",
-          p->percentIdentity,
-          p->querySeqIdentity,
-          p->numExons,
-          exonWithSNP,
-          p->exons[exonWithSNP].percentIdentity,
-          (int)floor(100.0 * (double)p->exons[exonWithSNP].numMatches / (double)p->estLen));
-
-  free(SNPid);
-  free(GENid);
-
-  return(0);
+  return(1);
 }
 
 
 
-
-
+//  Just a wrapper around the real best picker, so that we can easily
+//  destroy polishes when we're done.
+//
 void
-pickBestSlave(sim4polish **p, int pNum) {
+parseSNP(sim4polish **p, int pNum) {
   int   numMulti  = 0;
   int   numFailed = 0;
   int   i;
@@ -286,83 +296,92 @@ pickBestSlave(sim4polish **p, int pNum) {
     if (p[i]->numExons > 1)
       numMulti++;
 
-
   if (pNum == 1) {
+
+    //
+    //  Exactly one match for this SNP
+    //
+
     if (numMulti == 0) {
-      ss++;
+
+      //  Match has one exon
 
       if (singleSingleFile)
         s4p_printPolish(singleSingleFile, p[0]);
 
-      if (validSNPMap)
-        if (printSNP(validSNPMap, p[0]))
-          if (failedSNPMap) {
-            numFailed++;
-            s4p_printPolish(failedSNPMap, p[0]);
-          }
+      if (printSNP(validSNPMapFile, p[0])) {
+        sspass++;
+      } else {
+        ssfail++;
+        if (failedSNPMapFile)
+          s4p_printPolish(failedSNPMapFile, p[0]);
+      }
     } else {
-      sm++;
+
+      //  Match has more than one exon
 
       if (singleMultiFile)
         s4p_printPolish(singleMultiFile, p[0]);
 
-      if (validSNPMap)
-        if (printSNP(validSNPMap, p[0]))
-          if (failedSNPMap) {
-            numFailed++;
-            s4p_printPolish(failedSNPMap, p[0]);
-          }
+      if (printSNP(validSNPMapFile, p[0])) {
+        smpass++;
+      } else {
+        smfail++;
+        if (failedSNPMapFile)
+          s4p_printPolish(failedSNPMapFile, p[0]);
+      }
     }
   } else {
+
+    //
+    //  More than one match for this SNP
+    //
+
     if (numMulti == 0) {
-      ms++;
+      int pass=0, fail=0;
+
+      //  All the matches are single exon
 
       if (multiSingleFile)
         for (i=0; i<pNum; i++)
           s4p_printPolish(multiSingleFile, p[i]);
 
-      if (validSNPMap)
-        for (i=0; i<pNum; i++)
-          if (printSNP(validSNPMap, p[i]))
-            if (failedSNPMap) {
-              numFailed++;
-              s4p_printPolish(failedSNPMap, p[i]);
-            }
+      for (i=0; i<pNum; i++)
+        if (printSNP(validSNPMapFile, p[i])) {
+          pass++;
+        } else {
+          fail++;
+          if (failedSNPMapFile)
+            s4p_printPolish(failedSNPMapFile, p[i]);
+        }
+
+      if (pass==1)       sspass++;
+      if (pass > 1)      mspass++;
+      if (!pass && fail) msfail++;
     } else {
-      mm++;
+      int pass=0, fail=0;
+
+      //  At least one match has more than one exon -- the correct one
+      //  might be a single exon, but we don't know which is which.
 
       if (multiMultiFile)
         for (i=0; i<pNum; i++)
           s4p_printPolish(multiMultiFile, p[i]);
 
-      if (validSNPMap)
-        for (i=0; i<pNum; i++)
-          if (printSNP(validSNPMap, p[i]))
-            if (failedSNPMap) {
-              numFailed++;
-              s4p_printPolish(failedSNPMap, p[i]);
-            }
+      for (i=0; i<pNum; i++)
+        if (printSNP(validSNPMapFile, p[i])) {
+          pass++;
+        } else {
+          fail++;
+          if (failedSNPMapFile)
+            s4p_printPolish(failedSNPMapFile, p[i]);
+        }
+
+      if (pass==1)       smpass++;
+      if (pass > 1)      mmpass++;
+      if (!pass && fail) mmfail++;
     }
   }
-
-
-  if (numFailed == pNum)
-    failedsnps++;
-
-  failedmatches += numFailed;
-}
-
-
-
-
-//  Just a wrapper around the real best picker, so that we can easily
-//  destroy polishes when we're done.
-//
-void
-pickBest(sim4polish **p, int pNum) {
-  int i;
-
-  pickBestSlave(p, pNum);
 
   for (i=0; i<pNum; i++)
     s4p_destroyPolish(p[i]);
@@ -376,13 +395,13 @@ main(int argc, char **argv) {
   int          pAlloc = 8388608;
   sim4polish **p      = 0L;
   sim4polish  *q      = 0L;
-  int          estID  = ~0;
+  int          estID  = 0;
 
   int          percentID = 0;
   int          percentCO = 0;
 
-  validSNPMap   = 0L;
-  failedSNPMap  = 0L;
+  validSNPMapFile   = 0L;
+  failedSNPMapFile  = 0L;
 
   while (arg < argc) {
     if        (strncmp(argv[arg], "-i", 2) == 0) {
@@ -391,14 +410,14 @@ main(int argc, char **argv) {
       percentCO = atoi(argv[++arg]);
     } else if (strncmp(argv[arg], "-F", 2) == 0) {
       errno = 0;
-      failedSNPMap = fopen(argv[++arg], "w");
+      failedSNPMapFile = fopen(argv[++arg], "w");
       if (errno) {
         fprintf(stderr, "Couldn't open '%s' for writing.\n%s\n", argv[arg], strerror(errno));
         exit(1);
       }
     } else if (strncmp(argv[arg], "-O", 2) == 0) {
       errno = 0;
-      validSNPMap = fopen(argv[++arg], "w");
+      validSNPMapFile = fopen(argv[++arg], "w");
       if (errno) {
         fprintf(stderr, "Couldn't open '%s' for writing.\n%s\n", argv[arg], strerror(errno));
         exit(1);
@@ -455,32 +474,24 @@ main(int argc, char **argv) {
     arg++;
   }
 
-
-  //  Show help if we don't get an output file
+  //  Read polishes, parsing when we see a change in the estID.
+  //  Really, we could parse one by one, but it's nice to know if the
+  //  thing mapped more than once.
   //
-  if (validSNPMap == 0L) {
-    fprintf(stderr, usage, argv[0]);
-    exit(1);
-  }
-
-
-
-  //  Read polishes, picking the best when we see a change in
-  //  the estID.
+  //  We could also extend this to discard matches that look
+  //  suspicious -- or maybe pick the single best match for each.
 
   p = (sim4polish **)malloc(sizeof(sim4polish *) * pAlloc);
 
   while ((q = s4p_readPolish(stdin)) != 0L) {
-
-    //printSNP(stdout, q);
-
     if (q->estID < estID) {
-      fprintf(stderr, "ERROR:  Polishes not sorted by SNP idx!\n");
+      fprintf(stderr, "ERROR:  Polishes not sorted by SNP idx!  this=%u, looking for %u\n",
+              q->estID, estID);
       exit(1);
     }
 
     if ((q->estID != estID) && (pNum > 0)) {
-      pickBest(p, pNum);
+      parseSNP(p, pNum);
       pNum  = 0;
     }
 
@@ -505,18 +516,21 @@ main(int argc, char **argv) {
   }
 
   if (pNum > 0)
-    pickBest(p, pNum);
+    parseSNP(p, pNum);
 
   fprintf(stdout, "SNPs with:\n");
-  fprintf(stdout, "  single hit, single exon:        %6d\n", ss);
-  fprintf(stdout, "  single hit, multiple exons:     %6d\n", sm);
-  fprintf(stdout, "  multiple hits, single exon:     %6d\n", ms);
-  fprintf(stdout, "  multiple hits, multiple exons:  %6d\n", mm);
-  fprintf(stdout, "SNPs that failed:                 %6d\n", failedsnps);
-  fprintf(stdout, "matches that failed:              %6d\n", failedmatches);
+  fprintf(stdout, "  single hit, single exon:        %6d\n", sspass);
+  fprintf(stdout, "  single hit, multiple exons:     %6d\n", smpass);
+  fprintf(stdout, "  multiple hits, single exon:     %6d\n", mspass);
+  fprintf(stdout, "  multiple hits, multiple exons:  %6d\n", mmpass);
+  fprintf(stdout, "SNPs that failed:\n");
+  fprintf(stdout, "  single hit, single exon:        %6d\n", ssfail);
+  fprintf(stdout, "  single hit, multiple exons:     %6d\n", smfail);
+  fprintf(stdout, "  multiple hits, single exon:     %6d\n", msfail);
+  fprintf(stdout, "  multiple hits, multiple exons:  %6d\n", mmfail);
 
-  fclose(validSNPMap);
-  fclose(failedSNPMap);
+  fclose(validSNPMapFile);
+  fclose(failedSNPMapFile);
 
   fclose(multiMultiFile);
   fclose(multiSingleFile);
