@@ -14,30 +14,38 @@
 # we really have only a few platforms to port to, so this is not yet
 # necessary.
 
+_OS_:=$(shell uname)
 ifdef OPERATING_SYSTEM
   _OS_:=$(OPERATING_SYSTEM)
 else
-  _OS_:=$(shell uname)
+# unknown OS's automatically use GNU
   WITH_GNU:=1
 endif
+
+_CC_:=
 ifdef WITH_GNU
   _CC_:=-gcc
-else
-  _CC_:=
 endif
-ifdef WITH_DEBUG
+
+_OPT_:=
+ifeq (WITH_OPT,debug)
   _OPT_ :=-debug
-else
-  ifdef WITH_PROFILE
-    _OPT_ :=-prof
-  else
-    _OPT_ :=
-  endif
 endif
+ifeq (WITH_OPT,profile)
+  _OPT_ :=-prof
+endif
+
+# old debug and profile options
+ifdef WITH_DEBUG
+  $(error WITH_DEBUG is obsolete.  Use WITH_OPT=debug instead.)
+endif
+ifdef WITH_PROFILE
+  $(error WITH_PROFILE is obsolete.  Use WITH_OPT=debug instead.)
+endif
+
+_THR_:=
 ifdef WITH_THREADS
   _THR_:=-threaded
-else
-  _THR_:=
 endif
 
 # allow additional tag for install directories
