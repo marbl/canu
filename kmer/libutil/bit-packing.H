@@ -299,6 +299,14 @@ sumDecodedValue(u64bit *ptr,
 //  below 2^45, so at most a 44-bit number) in a 64-bit quantity.
 //
 //  93 bits (92 + 1) are needed to store up to 64-bit values.
+//
+//  1000 0's is 256 bytes = 2048 bits -> 2 bits each
+//  1000 1's is 376 bytes = 3008 bits -> 3 bits each
+//  1000 2's is 504 bytes = 4032 bits -> 4 bits each
+//  1000 3's is 504 bytes = 4032 bits -> 4 bits each
+//  1000 4's is 632 bytes = 5056 bits -> 5 bits each
+//
+
 
 inline
 u64bit
