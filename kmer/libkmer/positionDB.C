@@ -1,3 +1,5 @@
+#include <new.h>
+
 #include "positionDB.H"
 #include "speedCounter.H"
 
@@ -120,7 +122,13 @@ positionDB::positionDB(char const  *seq,
   //  we don't overwrite _bucketSizes when we are constructing
   //  _hashTable.
   //
-  u64bit  *bktAlloc       = new u64bit [_tableSizeInEntries / 2 + 2];
+  u64bit *bktAlloc;
+  try {
+    bktAlloc = new u64bit [_tableSizeInEntries / 2 + 2];
+  } catch (std::bad_alloc) {
+    fprintf(stderr, "hitMatrix::filter()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
+    fprintf(stderr, "hitMatrix::filter()-- tableSizeInEntries of %lu\n", _tableSizeInEntries);
+  }
   bool     bktAllocIsJunk = false;
 
   for (u64bit i=_tableSizeInEntries / 2 + 2; i--; )
@@ -213,7 +221,20 @@ positionDB::positionDB(char const  *seq,
 
   if (beVerbose)
     fprintf(MSG_OUTPUT, cbktAllocMsg, bucketsSpace >> 7, bucketsSpace);
-  _countingBuckets = new u64bit [bucketsSpace];
+  try {
+    _countingBuckets = new u64bit [bucketsSpace];
+  } catch (std::bad_alloc) {
+    fprintf(stderr, "hitMatrix::filter()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
+    fprintf(stderr, "hitMatrix::filter()-- _countingBuckets of %lu\n", bucketsSpace);
+  } catch (...) {
+    fprintf(stderr, "hitMatrix::filter()-- caught default in %s at line %d\n", __FILE__, __LINE__);
+    fprintf(stderr, "hitMatrix::filter()-- _countingBuckets of %lu\n", bucketsSpace);
+  }
+
+  if (_countingBuckets == 0L) {
+    fprintf(stderr, "ERROR:  Null _countingBuckets?\n");
+  }
+
   for (u64bit i=bucketsSpace; i--; )
     _countingBuckets[i] = ~u64bitZERO;
 
@@ -359,7 +380,12 @@ positionDB::positionDB(char const  *seq,
     if (beVerbose)
       fprintf(MSG_OUTPUT, hashAllocMsg, hs >> 7, hs);
 
-    _hashTable     = new u64bit [hs];
+    try {
+      _hashTable     = new u64bit [hs];
+    } catch (std::bad_alloc) {
+      fprintf(stderr, "hitMatrix::filter()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
+      fprintf(stderr, "hitMatrix::filter()-- _hashTable of %lu\n", hs);
+    }
     bktAllocIsJunk = true;
   }
 
@@ -377,12 +403,22 @@ positionDB::positionDB(char const  *seq,
 #else
   if (beVerbose)
     fprintf(MSG_OUTPUT, buckAllocMsg, bs >> 7, bs);
-  _buckets   = new u64bit [bs];
+  try {
+    _buckets   = new u64bit [bs];
+  } catch (std::bad_alloc) {
+    fprintf(stderr, "hitMatrix::filter()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
+    fprintf(stderr, "hitMatrix::filter()-- _buckets of %lu\n", bs);
+  }
 #endif
 
   if (beVerbose)
     fprintf(MSG_OUTPUT, posnAllocMsg, ps >> 7, ps);
-  _positions = new u64bit [ps];
+  try {
+    _positions = new u64bit [ps];
+  } catch (std::bad_alloc) {
+    fprintf(stderr, "hitMatrix::filter()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
+    fprintf(stderr, "hitMatrix::filter()-- _positions of %lu\n", ps);
+  }
 
   ////////////////////////////////////////////////////////////////////////////////
   //
