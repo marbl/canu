@@ -173,16 +173,33 @@ Sim4::run(sim4command *cmd) {
     memset(&st,     0, sizeof(sim4_stats_t));
     memset(&rev_st, 0, sizeof(sim4_stats_t));
 
-    bld_table(estseq - 1 + g_pT, estlen - g_pA - g_pT, wordSize, INIT);
+    if (cmd->externalSeedsExist() == false)
+      bld_table(estseq - 1 + g_pT, estlen - g_pA - g_pT, wordSize, INIT);
+
 
     if (cmd->doForward()) {
-      fAligns = SIM4(dbseq, estseq + g_pT,
-                    dblen, estlen - g_pT - g_pA,
-                    &dist,
-                    &fExons,
-                    &f_pA,
-                    &f_pT,
-                    &st);
+
+      //  Initialize the sequences and lengths
+      //
+      //  genSeq was seq1
+      //  estSeq was seq2
+      //
+      _genSeq = dbseq;
+      _estSeq = estseq + g_pT;
+      _genLen = dblen;
+      _estLen = estlen - g_pT - g_pA;
+
+      //  Find the seeds.
+      //
+      if (cmd->externalSeedsExist() == false) {
+      } else {
+      }
+
+      fAligns = SIM4(&dist,
+                     &fExons,
+                     &f_pA,
+                     &f_pT,
+                     &st);
 
       //  Continued from util.C :: slide_intron()
       //
@@ -209,13 +226,27 @@ Sim4::run(sim4command *cmd) {
     }
 
     if (cmd->doReverse()) {
-      rAligns = SIM4(dbrev, estseq + g_pT,
-                        dblen, estlen - g_pT - g_pA,
-                        &dist,
-                        &rExons,
-                        &r_pA,
-                        &r_pT,
-                        &rev_st);
+      //  Initialize the sequences and lengths
+      //
+      //  genSeq was seq1
+      //  estSeq was seq2
+      //
+      _genSeq = dbrev;
+      _estSeq = estseq + g_pT;
+      _genLen = dblen;
+      _estLen = estlen - g_pT - g_pA;
+
+      //  Find the seeds.
+      //
+      if (cmd->externalSeedsExist() == false) {
+      } else {
+      }
+
+      rAligns = SIM4(&dist,
+                     &rExons,
+                     &r_pA,
+                     &r_pT,
+                     &rev_st);
 
       //  Continued from util.C :: slide_intron()
       //

@@ -225,7 +225,7 @@ Sim4::compact_list(Exon **Lblock, Exon **Rblock)
 /* ------------------  memory management routines --------------- */
 
 void
-Sim4::link_to_data_list(Pointer data, ValNodePtr *head, ValNodePtr *prev)
+Sim4::link_to_data_list(void *data, ValNodePtr *head, ValNodePtr *prev)
 {
   ValNodePtr curr;
 
@@ -454,8 +454,8 @@ Sim4::sync_slide_intron(int in_w, Exon **lblock, sim4_stats_t *st)
   while (t0 && (t1=t0->next_exon) && t1->toGEN) {
     g = c = NULL;
     if (t1->frEST-t0->toEST-1==0) {
-      if (!strncmp((char *)(seq1+t0->toGEN),"GT",2) &&
-          !strncmp((char *)(seq1+t1->frGEN-3),"AG",2)) {
+      if (!strncmp((char *)(_genSeq+t0->toGEN),"GT",2) &&
+          !strncmp((char *)(_genSeq+t1->frGEN-3),"AG",2)) {
         g = new_splice('G',t0->toGEN,t1->frGEN,t0->toEST,t1->frEST,-1,NULL);
         t0->ori = 'G';
         oris[ni] = 'G'; 
@@ -463,8 +463,8 @@ Sim4::sync_slide_intron(int in_w, Exon **lblock, sim4_stats_t *st)
 #ifdef SPLSCORE
         t0->splScore = 999999;
 #endif
-      } else if (!strncmp((char *)(seq1+t0->toGEN),"CT",2) &&
-                 !strncmp((char *)(seq1+t1->frGEN-3),"AC",2)) {
+      } else if (!strncmp((char *)(_genSeq+t0->toGEN),"CT",2) &&
+                 !strncmp((char *)(_genSeq+t1->frGEN-3),"AC",2)) {
         c = new_splice('C',t0->toGEN,t1->frGEN,t0->toEST,t1->frEST,-1,NULL);
         t0->ori = 'C';  
         oris[ni] = 'C';
@@ -475,8 +475,8 @@ Sim4::sync_slide_intron(int in_w, Exon **lblock, sim4_stats_t *st)
       } else {
         w1 = min(in_w, min(t0->length-1, t0->toGEN-t0->frGEN));
         w2 = min(in_w, min(t1->length-1, t1->toGEN-t1->frGEN));
-        splice(seq1, t0->toGEN-w1, t0->toGEN+w1, t1->frGEN-w2, t1->frGEN+w2,
-               seq2, t0->toEST-w1, t1->frEST+w2, &g, &c, BOTH);
+        splice(_genSeq, t0->toGEN-w1, t0->toGEN+w1, t1->frGEN-w2, t1->frGEN+w2,
+               _estSeq, t0->toEST-w1, t1->frEST+w2, &g, &c, BOTH);
 
         Gscore += g->score; Cscore += c->score;
         cell = NULL; oris[ni] = '*';
@@ -519,8 +519,8 @@ Sim4::sync_slide_intron(int in_w, Exon **lblock, sim4_stats_t *st)
                 /* compute the values for C */ 
                 w1 = min(in_w, min(t0->length-1, t0->toGEN-t0->frGEN));
                 w2 = min(in_w, min(t1->length-1, t1->toGEN-t1->frGEN));
-                splice(seq1, t0->toGEN-w1, t0->toGEN+w1,
-                       t1->frGEN-w2, t1->frGEN+w2, seq2,
+                splice(_genSeq, t0->toGEN-w1, t0->toGEN+w1,
+                       t1->frGEN-w2, t1->frGEN+w2, _estSeq,
                        t0->toEST-w1, t1->frEST+w2, &g, &c, FWD);
               } else g = Glist[i];
                 
@@ -538,7 +538,7 @@ Sim4::sync_slide_intron(int in_w, Exon **lblock, sim4_stats_t *st)
               case 'E': break;
                 default : fatal("sim4b1.c: intron orientation not initialized.");
               }
-      if (oris[i]!='E') wobble(&t0,&t1,"GT","AG",seq1);
+      if (oris[i]!='E') wobble(&t0,&t1,"GT","AG",_genSeq);
     }
 
     st->orientation = FWD;
@@ -552,9 +552,9 @@ Sim4::sync_slide_intron(int in_w, Exon **lblock, sim4_stats_t *st)
                 /* compute the values for C */
                 w1 = min(in_w, min(t0->length-1, t0->toGEN-t0->frGEN));
                 w2 = min(in_w, min(t1->length-1, t1->toGEN-t1->frGEN));
-                splice(seq1, t0->toGEN-w1, t0->toGEN+w1,
+                splice(_genSeq, t0->toGEN-w1, t0->toGEN+w1,
                        t1->frGEN-w2, t1->frGEN+w2,
-                       seq2, t0->toEST-w1, t1->frEST+w2, &g, &c, BWD);
+                       _estSeq, t0->toEST-w1, t1->frEST+w2, &g, &c, BWD);
               } else c = Clist[i];
                 
 #ifdef SPLSCORE
@@ -569,7 +569,7 @@ Sim4::sync_slide_intron(int in_w, Exon **lblock, sim4_stats_t *st)
               case 'E': break;
                 default : fatal("sim4b1.c: intron orientation not initialized.");
               }
-      if (oris[i]!='E') wobble(&t0,&t1,"CT","AC",seq1);
+      if (oris[i]!='E') wobble(&t0,&t1,"CT","AC",_genSeq);
     }
 
     st->orientation = BWD;
@@ -655,16 +655,16 @@ Sim4::slide_intron(int in_w, Exon **lblock, sim4_stats_t *st)
   while (t0 && (t1=t0->next_exon) && t1->toGEN) {
     g = c = NULL;
     if (t1->frEST-t0->toEST-1==0) {
-      if (!strncmp((char *)(seq1+t0->toGEN),"GT",2) && 
-          !strncmp((char *)(seq1+t1->frGEN-3),"AG",2)) {
+      if (!strncmp((char *)(_genSeq+t0->toGEN),"GT",2) && 
+          !strncmp((char *)(_genSeq+t1->frGEN-3),"AG",2)) {
         t0->ori = 'G';
         numG++;
 #ifdef SPLSCORE
         t0->splScore = 999999;
 #endif
       }
-      else if (!strncmp((char *)(seq1+t0->toGEN),"CT",2) && 
-               !strncmp((char *)(seq1+t1->frGEN-3),"AC",2)) {
+      else if (!strncmp((char *)(_genSeq+t0->toGEN),"CT",2) && 
+               !strncmp((char *)(_genSeq+t1->frGEN-3),"AC",2)) {
         t0->ori = 'C';
         numC++;
 #ifdef SPLSCORE
@@ -677,8 +677,8 @@ Sim4::slide_intron(int in_w, Exon **lblock, sim4_stats_t *st)
         
         w1 = min(in_w, min(t0->length-2, t0->toGEN-t0->frGEN-1));
         w2 = min(in_w, min(t1->length-2, t1->toGEN-t1->frGEN-1));
-        splice(seq1, t0->toGEN-w1, t0->toGEN+w1, t1->frGEN-w2, t1->frGEN+w2,
-               seq2, t0->toEST-w1, t1->frEST+w2, &g, &c, BOTH);
+        splice(_genSeq, t0->toGEN-w1, t0->toGEN+w1, t1->frGEN-w2, t1->frGEN+w2,
+               _estSeq, t0->toEST-w1, t1->frEST+w2, &g, &c, BOTH);
         if (g->score>c->score) { cell = g; type = 'G'; }
         else if (c->score>g->score) { cell = c; type = 'C'; }
         else { cell = g; type = 'G'; }
@@ -692,16 +692,16 @@ Sim4::slide_intron(int in_w, Exon **lblock, sim4_stats_t *st)
         t0->length = t0->toEST-t0->frEST+1;   
         t1->length = t1->toEST-t1->frEST+1;   
         
-        wobble(&t0,&t1,(type=='G')? "GT":"CT",(type=='G')? "AG":"AC",seq1);
+        wobble(&t0,&t1,(type=='G')? "GT":"CT",(type=='G')? "AG":"AC",_genSeq);
 
         ckfree(g); ckfree(c);
 
         /* determine the type, based on the # matches w/ GT-AG (CT-AC) */
-        s = seq1+t0->toGEN;
+        s = _genSeq+t0->toGEN;
         if (*s=='G') gtag++; else if (*s=='C') ctac++; 
         ++s;
         if (*s=='T') { gtag++; ctac++;} 
-        s = seq1+t1->frGEN-3; 
+        s = _genSeq+t1->frGEN-3; 
         if (*s=='A') { gtag++; ctac++; }
         ++s;
         if (*s=='G') gtag++; else if (*s=='C') ctac++;

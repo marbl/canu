@@ -1,12 +1,5 @@
 #include "sim4.H"
 
-#if 0
-#define  DEFAULT_W         12
-#define  DEFAULT_X         12    
-#define  DEFAULT_K         16
-#define  DEFAULT_C         12
-#endif
-
 //  SHOW_PROGRESS -- write the progress of Sim4::SIM4 to stderr
 //  DEBUG_EXONS   -- dump the exons at various places
 //
@@ -41,11 +34,12 @@ printExons(char *label, Exon *l) {
 
 /* seq1 = genomic  DNA (text); seq2 = cDNA */
 struct edit_script_list *
-Sim4::SIM4(char *in_seq1, char *in_seq2, 
-           int in_len1, int in_len2,
-           int *dist_ptr, Exon **Exons,
-           int *pA, int *pT,
-           sim4_stats_t *st) {
+Sim4::SIM4(int            *dist_ptr,
+           Exon          **Exons,
+           int            *pA,
+           int            *pT,
+           sim4_stats_t   *st) {
+
   int    rollbflag;
   Exon   *Lblock=0L, *tmp_Lblock=0L;
   Exon   *Rblock=0L, *tmp_Rblock=0L;
@@ -58,17 +52,12 @@ Sim4::SIM4(char *in_seq1, char *in_seq2,
 
   struct edit_script_list *Script_head;
 
-  seq1 = in_seq1;
-  seq2 = in_seq2;
-  len1 = in_len1;
-  len2 = in_len2;
-
   *dist_ptr = 0;
 
   //  Initialize the mspManager to fail if the match looks expensive.
   //
   st->tooManyMSPs = false;
-  _mspManager.setLength(len2);
+  _mspManager.setLength(_estLen);
 
 
 #ifdef SHOW_PROGRESS
@@ -76,7 +65,7 @@ Sim4::SIM4(char *in_seq1, char *in_seq2,
   double beforeExonCoresStartTime = getTime();
 #endif
 
-  exon_cores(seq1-1, seq2-1, len1, len2, 1, 1, 0, wordSize, mspThreshold1, PERM);
+  exon_cores(_genSeq-1, _estSeq-1, _genLen, _estLen, 1, 1, 0, wordSize, mspThreshold1, PERM);
 
 #ifdef SHOW_PROGRESS
   fprintf(stderr, "after exon_cores -- took %f seconds.\n", getTime() - beforeExonCoresStartTime);
@@ -101,7 +90,7 @@ Sim4::SIM4(char *in_seq1, char *in_seq2,
 
   if (Lblock && 
       ((Lblock->frGEN>50000 && Lblock->frEST>100) || 
-       ((len1-Rblock->toGEN>50000) && (len2-Rblock->toEST>100)))) {
+       ((_genLen - Rblock->toGEN > 50000) && (_estLen - Rblock->toEST > 100)))) {
     free_list(exon_list);
 
     exon_list = _mspManager.link(globalParams->_relinkWeight,
@@ -110,7 +99,7 @@ Sim4::SIM4(char *in_seq1, char *in_seq2,
                                  1,
                                  0,
                                  true,
-                                 seq1, seq2);
+                                 _genSeq, _estSeq);
 
     PRINTEXONS("0a\n", exon_list);
 
@@ -143,12 +132,12 @@ Sim4::SIM4(char *in_seq1, char *in_seq2,
 #ifdef SHOW_PROGRESS
   fprintf(stderr, "exon bracket at end; Lblock = 0x%08lx, Rblock = 0x%08lx\n", Lblock, Rblock);
 #endif
-  Rblock->next_exon = new_exon(len1+1,len2+1,0,0,0,0,0,NULL); 
+  Rblock->next_exon = new_exon(_genLen+1,_estLen+1,0,0,0,0,0,NULL); 
 
   PRINTEXONS("0c\n", Lblock);
 
   /* compute current statistics */
-  bool good_match = get_match_quality(Lblock, Rblock, st, len2);
+  bool good_match = get_match_quality(Lblock, Rblock, st, _estLen);
 
 
   PRINTEXONS("INIT\n", Lblock);
@@ -314,8 +303,8 @@ Sim4::SIM4(char *in_seq1, char *in_seq2,
   *pA = 0;
   if (Script_head) {
     if (globalParams->_ignorePolyTails) {
-      remove_polyT_front(&Script_head, Lblock, seq1, seq2, pT); 
-      remove_polyA_back(&Script_head, Lblock, seq1, seq2, len2, pA);
+      remove_polyT_front(&Script_head, Lblock, _genSeq, _estSeq, pT); 
+      remove_polyA_back(&Script_head, Lblock, _genSeq, _estSeq, _estLen, pA);
 
       if (*pA || *pT)
         updateStatistics(Lblock, st);

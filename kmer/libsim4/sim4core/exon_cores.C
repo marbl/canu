@@ -13,12 +13,16 @@
 
 
 void
-Sim4::exon_cores(char *s1, char *s2,
-                 int l1, int l2,
-                 int offset1, int offset2,
-                 int flag,
-                 int in_W, int in_K,
-                 int type) {
+Sim4::exon_cores(char *s1,
+                 char *s2,
+                 int   l1,
+                 int   l2,
+                 int   offset1,
+                 int   offset2,
+                 int   flag,
+                 int   in_W,
+                 int   in_K,
+                 int   type) {
 
 #if 0
   fprintf(stdout, "exonCores: l1=%d l2=%d offset1=%d offset2=%d flag=%d W=%d K=%d\n",
@@ -27,7 +31,7 @@ Sim4::exon_cores(char *s1, char *s2,
 
   int K;
   if (globalParams->_interspecies)
-    K = (int)(((int)(log(.75*(double)len1)+log((double)len2))/log(4.0)) * 1.0);
+    K = (int)(((int)(log(.75*(double)_genLen)+log((double)_estLen))/log(4.0)) * 1.0);
   else
     K = getMSPthreshold(in_K, l1, l2);
 

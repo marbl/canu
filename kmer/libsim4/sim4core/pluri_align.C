@@ -131,8 +131,8 @@ Sim4::pluri_align(int *dist_ptr,
   *Aligns   = 0L;
   *dist_ptr = ali_dist = 0;
 
-  end1 = len1; 
-  end2 = len2;
+  end1 = _genLen; 
+  end2 = _estLen;
 
   nextExon = thisExon->next_exon;
 
@@ -226,8 +226,8 @@ Sim4::pluri_align(int *dist_ptr,
     *dist_ptr += diff;
     ali_dist += diff;
 
-    a = seq1 + nextExon->frGEN - 1;
-    b = seq2 + nextExon->frEST - 1;
+    a = _genSeq + nextExon->frGEN - 1;
+    b = _estSeq + nextExon->frEST - 1;
 
     nextExon->numMatches = 0;
     nextExon->numNs      = 0;
@@ -316,7 +316,7 @@ Sim4::pluri_align(int *dist_ptr,
   /* at the beginning of the sequences */
   if (nextExon!=NULL) {
 
-    if ((diff=thisExon->frEST-nextExon->toEST-1)!=0 && (diff!=len2)) {
+    if ((diff=thisExon->frEST-nextExon->toEST-1)!=0 && (diff != _estLen)) {
       enew = (edit_script_list *)ckalloc(sizeof(edit_script_list));
       enew->next_script = *Aligns;
       *Aligns = enew;
@@ -327,7 +327,7 @@ Sim4::pluri_align(int *dist_ptr,
       (*Aligns)->script = head;
       (*Aligns)->score = ali_dist;
       
-    } else if (diff!=len2) {
+    } else if (diff != _estLen) {
 
       /* modified to cut introns at the beginning of the sequence */
       enew = (edit_script_list *)ckalloc(sizeof(edit_script_list));

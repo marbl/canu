@@ -56,10 +56,8 @@ typedef struct edit_script_list {
   struct edit_script_list *next_script;
 } edit_script_list;
 
-typedef  void  *Pointer;
-
 typedef  struct ValNode {
-  Pointer      data;
+  void           *data;
   struct ValNode *next;
 } *ValNodePtr;
 
@@ -112,11 +110,11 @@ private:
 
   sim4parameters   *globalParams;
 
-  char       *seq1;
-  char       *seq2;
+  char       *_genSeq;
+  char       *_estSeq;
 
-  int         len1;
-  int         len2;
+  int         _genLen;
+  int         _estLen;
 
   int         encoding[256];
 
@@ -211,40 +209,32 @@ private:
   void align_reverse(int *);
   void Free_script(edit_script *);
 
-  int snake(int k, int x, int endx, int endy)
-      {
-        int y;
+  int snake(int k, int x, int endx, int endy) {
+    int y;
 
-        if (x<0)
-          return x;
-        y = x+k;
-        while (x<endx && y<endy && seq1[x]==seq2[y]) {
-          ++x;
-          ++y;
-        }
-        return x;
-      };
+    if (x<0)
+      return x;
+    y = x+k;
+    while (x<endx && y<endy && _genSeq[x] == _estSeq[y]) {
+      ++x;
+      ++y;
+    }
+    return x;
+  };
 
 
   int rsnake(int k, int x, int startx, int starty, int m) {
-        int y;
+    int y;
 
-        if (x>m) return x;
-
-#ifdef DEBUG
-        if ((startx<0) || (starty<0))
-          (void)printf("TROUBLE!!! startx:  %5d,  starty:  %5d\n",startx, starty);
-        if ((x>M) || (x+k>N))
-          (void)printf("TROUBLE!!! x:  %5d,  y:  %5d\n",x,x+k);
-#endif
-        
-        y = x+k;
-        while (x>startx && y>starty && seq1[x-1]==seq2[y-1]) {
-          --x;
-          --y;
-        }
-        return x;
-      };
+    if (x>m)
+      return x;
+    y = x+k;
+    while (x>startx && y>starty && _genSeq[x-1] == _estSeq[y-1]) {
+      --x;
+      --y;
+    }
+    return x;
+  };
 
 
   bool  checkExonsForOverlaps(Exon *theExons);
@@ -283,7 +273,7 @@ private:
 
   //  Functions from sim4b1.h
   //
-  void link_to_data_list(Pointer,ValNodePtr *,ValNodePtr *);
+  void link_to_data_list(void *,ValNodePtr *,ValNodePtr *);
   void ValNodeFreeData(ValNodePtr);
   int good_ratio(int);
   void flip_list(Exon **,Exon **);
@@ -315,9 +305,10 @@ private:
                   Exon*   &tmp_block,
                   Exon*   &tmp_block1);
 
-  struct edit_script_list *SIM4(char*,char*,int,int,int*,Exon**,
-                                int *pA,
-                                int *pT,
+  struct edit_script_list *SIM4(int          *,
+                                Exon*        *,
+                                int          *pA,
+                                int          *pT,
                                 sim4_stats_t *);
 
   void   merge(Exon **,Exon **); 
@@ -439,11 +430,10 @@ public:
     _mspManager.setLimits(p->_mspLimitAbsolute, p->_mspLimitPercent);
     _mspManager.setParameters(p->_match, p->_mismatch, p->_percentError);
 
-    seq1 = 0L;
-    seq2 = 0L;
-
-    len1 = 0;
-    len2 = 0;
+    _genSeq = 0L;
+    _estSeq = 0L;
+    _genLen = 0;
+    _estLen = 0;
 
     for (u32bit i=256; i;)
       encoding[--i] = -1;

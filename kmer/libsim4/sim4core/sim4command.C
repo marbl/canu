@@ -38,6 +38,11 @@ sim4command::sim4command(u32bit        ESTid,
 
   _doForward = doForward;
   _doReverse = doReverse;
+
+  _externalSeedsExist = false;
+  _externalSeedsLen   = 0;
+  _externalSeedsMax   = 0;
+  _externalSeeds      = 0;
 }
 
 
@@ -66,6 +71,11 @@ sim4command::sim4command(FastASequenceInCore  *EST,
 
   _doForward = doForward;
   _doReverse = doReverse;
+
+  _externalSeedsExist = false;
+  _externalSeedsLen   = 0;
+  _externalSeedsMax   = 0;
+  _externalSeeds      = 0;
 }
 
 
@@ -97,6 +107,11 @@ sim4command::sim4command(char             *EST,
 
   _doForward = doForward;
   _doReverse = doReverse;
+
+  _externalSeedsExist = false;
+  _externalSeedsLen   = 0;
+  _externalSeedsMax   = 0;
+  _externalSeeds      = 0;
 }
 
 
@@ -105,6 +120,8 @@ sim4command::~sim4command() {
     delete _ESTloaded;
   if (_GENs)
     delete _GENloaded;
+
+  delete [] _externalSeeds;
 }
 
 
@@ -231,3 +248,43 @@ sim4command::getGENlength(void) {
   return(_GENloaded->sequenceLength());
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+////////////////////////////////////////
+
+
+
+
+void
+sim4command::addSeed(u32bit ESTpos, u32bit GENpos, u32bit length) {
+
+  if (_externalSeedsLen >= _externalSeedsMax) {
+    _externalSeedsMax += PAGE_SIZE / sizeof(externalSeed);
+    externalSeed *n = new externalSeed [_externalSeedsMax];
+    memcpy(n, _externalSeeds, sizeof(externalSeed) * _externalSeedsLen);
+    delete [] _externalSeeds;
+    _externalSeeds = n;
+  }
+
+  _externalSeeds[_externalSeedsLen]._ESTposition = ESTpos;
+  _externalSeeds[_externalSeedsLen]._GENposition = GENpos;
+  _externalSeeds[_externalSeedsLen]._length      = length;
+
+  _externalSeedsLen++;
+}

@@ -59,7 +59,7 @@ Sim4::SIM4_block1(Exon*  &Lblock,
                   Exon*  &tmp_block,
                   Exon*  &tmp_block1) {
   int rollbflag = 0;
-  int best_u = resolve_overlap(tmp_block,tmp_block1,seq1);
+  int best_u = resolve_overlap(tmp_block,tmp_block1,_genSeq);
 
   tmp_block1->frGEN += best_u + 1 - tmp_block1->frEST;
   tmp_block1->frEST  = best_u + 1;

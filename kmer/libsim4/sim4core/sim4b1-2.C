@@ -13,8 +13,8 @@ Sim4::SIM4_block2(Exon*   &tmp_Lblock,
   //fprintf(stderr, "Called SIM4_block2()\n");
 
   if (diff <= MAX_GRINIT) {
-    cost = greedy(seq2+tmp_block->toEST,
-                  seq1+tmp_block->toGEN, 
+    cost = greedy(_estSeq + tmp_block->toEST,
+                  _genSeq + tmp_block->toGEN, 
                   diff,
                   tmp_block1->frGEN-tmp_block->toGEN-1,
                   tmp_block->toEST,tmp_block->toGEN,
@@ -27,8 +27,8 @@ Sim4::SIM4_block2(Exon*   &tmp_Lblock,
 
   if (cost>max(wordSize,(int)(globalParams->_percentError * diff + 1))) {
     if (!tmp_block->flag && !tmp_block1->flag) {
-      exon_cores(seq1+tmp_block->toGEN-1,
-                 seq2+tmp_block->toEST-1,
+      exon_cores(_genSeq+tmp_block->toGEN-1,
+                 _estSeq+tmp_block->toEST-1,
                  tmp_block1->frGEN-tmp_block->toGEN-1,
                  diff,
                  tmp_block->toGEN+1,
@@ -58,7 +58,7 @@ Sim4::SIM4_block2(Exon*   &tmp_Lblock,
                                      tmp_block->toEST + 1,
                                      1,
                                      true,
-                                     seq1, seq2); 
+                                     _genSeq, _estSeq); 
                   
         //PRINTEXONS("1a\n", exon_list);
 

@@ -21,8 +21,8 @@ Sim4::SIM4_block4(bool     good_match,
   int diff = (int)(tmp_block1->frEST - tmp_block->toEST - 1);
   diff = (int)(min(diff,(int)(MAX_GRINIT/2)));
 
-  cost = EXTEND_FW(seq2+tmp_block->toEST,
-                   seq1+tmp_block->toGEN,
+  cost = EXTEND_FW(_estSeq+tmp_block->toEST,
+                   _genSeq+tmp_block->toGEN,
                    diff,
                    min(4*diff,tmp_block1->frGEN-tmp_block->toGEN-1),
                    tmp_block->toEST,tmp_block->toGEN,
@@ -31,8 +31,8 @@ Sim4::SIM4_block4(bool     good_match,
   int diff = min(tmp_block1->frEST - tmp_block->toEST - 1, MAX_GRINIT/2);
   int u    = min(4*diff, tmp_block1->frGEN - tmp_block->toGEN - 1);
 
-  cost = EXTEND_FW(seq2 + tmp_block->toEST,
-                   seq1 + tmp_block->toGEN,
+  cost = EXTEND_FW(_estSeq + tmp_block->toEST,
+                   _genSeq + tmp_block->toGEN,
                    diff,
                    u,
                    tmp_block->toEST,
@@ -41,7 +41,7 @@ Sim4::SIM4_block4(bool     good_match,
                    &J);
 #endif
 
-  if ((good_match==0) || tmp_block1->flag || (I==len1) || (J==len2)) {
+  if ((good_match==0) || tmp_block1->flag || (I==_genLen) || (J==_estLen)) {
     if (tmp_block->toGEN) {
       tmp_block->toEST = I;
       tmp_block->toGEN = J;
@@ -61,8 +61,8 @@ Sim4::SIM4_block4(bool     good_match,
   } else {
     //PRINTEXONS("tmp_block\n", tmp_block);
     //PRINTEXONS("tmp_block1\n", tmp_block);
-    exon_cores(seq1+tmp_block->toGEN-1,
-               seq2+tmp_block->toEST-1,
+    exon_cores(_genSeq+tmp_block->toGEN-1,
+               _estSeq+tmp_block->toEST-1,
                tmp_block1->frGEN-tmp_block->toGEN-1,
                diff,
                tmp_block->toGEN+1,
@@ -92,7 +92,7 @@ Sim4::SIM4_block4(bool     good_match,
                                    tmp_block->toEST + 1,
                                    1,
                                    true,
-                                   seq1, seq2);
+                                   _genSeq, _estSeq);
 
       //PRINTEXONS("3a\n", exon_list);
 

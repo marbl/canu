@@ -23,9 +23,9 @@ Sim4::SIM4_block3(bool     good_match,
   diff = (int)(min(diff,(int)(MAX_GRINIT/2)));
 
   int u = min(4*diff,tmp_block1->frGEN-tmp_block->toGEN-1); 
-  cost = EXTEND_BW(seq2+tmp_block->toEST+
+  cost = EXTEND_BW(_estSeq+tmp_block->toEST+
                    (tmp_block1->frEST-tmp_block->toEST-1)-diff,
-                   seq1+tmp_block->toGEN+
+                   _genSeq+tmp_block->toGEN+
                    (tmp_block1->frGEN-tmp_block->toGEN-1)-u,
                    (int)diff, u,
                    tmp_block->toEST+
@@ -37,8 +37,8 @@ Sim4::SIM4_block3(bool     good_match,
   int diff = min(tmp_block1->frEST - tmp_block->toEST - 1, MAX_GRINIT/2);
   int u    = min(4*diff, tmp_block1->frGEN - tmp_block->toGEN - 1); 
 
-  cost = EXTEND_BW(seq2 + tmp_block1->frEST - 1 - diff,
-                   seq1 + tmp_block1->frGEN - 1 - u,
+  cost = EXTEND_BW(_estSeq + tmp_block1->frEST - 1 - diff,
+                   _genSeq + tmp_block1->frGEN - 1 - u,
                    diff,
                    u,
                    tmp_block1->frEST - 1 - diff,
@@ -61,8 +61,8 @@ Sim4::SIM4_block3(bool     good_match,
     /* blast-treated region or no gap */
     tmp_Rblock = tmp_Lblock = NULL;
   } else {
-    exon_cores(seq1+tmp_block->toGEN-1,
-               seq2+tmp_block->toEST-1,
+    exon_cores(_genSeq+tmp_block->toGEN-1,
+               _estSeq+tmp_block->toEST-1,
                tmp_block1->frGEN-tmp_block->toGEN-1,
                diff,
                tmp_block->toGEN+1,
@@ -93,7 +93,7 @@ Sim4::SIM4_block3(bool     good_match,
                                    tmp_block->toEST + 1,
                                    1,
                                    true,
-                                   seq1, seq2);
+                                   _genSeq, _estSeq);
 
       //PRINTEXONS("2a\n", exon_list);
 

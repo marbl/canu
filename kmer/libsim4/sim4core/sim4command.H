@@ -52,6 +52,24 @@ public:
 
   ~sim4command();
 
+  //  These methods allow the initial seed detection to be
+  //  done outside Sim4::run().  If used:
+  //    each seed is extended as before.
+  //    for interative alignments, seeds are masked out
+  //
+
+  //  addSeed() takes coordinates relative to the start of the GEN
+  //  sequence supplied to the constructor.
+  //
+  void   addSeed(u32bit ESTposition, u32bit GENposition, u32bit length);
+
+  u32bit externalSeedsExist(void)          { return(_externalSeedsExist); };
+  u32bit numberOfExternalSeeds(void)       { return(_externalSeedsLen); };
+  u32bit externalSeedESTposition(u32bit i) { return(_externalSeeds[i]._ESTposition); };
+  u32bit externalSeedGENpostiion(u32bit i) { return(_externalSeeds[i]._GENposition); };
+  u32bit externalSeedLength(u32bit i)      { return(_externalSeeds[i]._length);      };
+
+
   //  Load the sequences, make some checks.  This isn't done in the
   //  constructor so that it is possible to make a big list of
   //  commands, then give them to a processor.  If we loaded all the
@@ -104,6 +122,19 @@ private:
 
   bool                  _doForward;
   bool                  _doReverse;
+
+  //  For external seeding
+  //
+  struct externalSeed {
+    u32bit    _ESTposition;
+    u32bit    _GENposition;
+    u32bit    _length;
+  };
+
+  bool                  _externalSeedsExist;
+  u32bit                _externalSeedsLen;
+  u32bit                _externalSeedsMax;
+  externalSeed         *_externalSeeds;
 };
 
 

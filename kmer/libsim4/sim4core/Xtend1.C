@@ -41,14 +41,14 @@ Sim4::Xextend_bw(char *s1, char *s2, int m, int n, int offset1, int offset2, int
   for (k=n; (k>=2) && (k>=col); k--)
        if (!strncmp((char *)(s2+k-2),"AG",2)) {
            newcoords = (coords *)ckalloc(sizeof(coords)); 
-           link_to_data_list((Pointer)newcoords, &data_list, &prev);
+           link_to_data_list((void *)newcoords, &data_list, &prev);
 
            newcoords->pos2 = k-DELTA+offset1 +1;    /* to compensate for -1 */
            newcoords->pos1 = k+offset2 +1;          /* refer to sim4b1.c */
            trace_AG[0][ORIGIN+DELTA] = newcoords;
        } else if (!strncmp((char *)(s2+k-2),"AC",2)) {
            newcoords = (coords *)ckalloc(sizeof(coords));
-           link_to_data_list((Pointer)newcoords, &data_list, &prev);
+           link_to_data_list((void *)newcoords, &data_list, &prev);
            
            newcoords->pos2 = k-DELTA+offset1 +1;
            newcoords->pos1 = k+offset2 +1;
@@ -139,14 +139,14 @@ Sim4::Xextend_bw(char *s1, char *s2, int m, int n, int offset1, int offset2, int
                while ((row > 0) && (col > 0) && (s1[row-1]==s2[col-1])) {
                  if ((col>1) && !strncmp((char *)(s2+col-2),"AG",2)) {
                     newcoords = (coords *)ckalloc(sizeof(coords));
-                    link_to_data_list((Pointer)newcoords, &data_list, &prev);
+                    link_to_data_list((void *)newcoords, &data_list, &prev);
 
                     newcoords->pos1 = row + k - ORIGIN + offset2 +1;
                     newcoords->pos2 = row + offset1 +1; 
                     trace_AG[d][k] = newcoords;
                  } else if ((col>1) && !strncmp((char *)(s2+col-2),"AC",2)) {
                     newcoords = (coords *)ckalloc(sizeof(coords));
-                    link_to_data_list((Pointer)newcoords, &data_list, &prev);
+                    link_to_data_list((void *)newcoords, &data_list, &prev);
                     
                     newcoords->pos1 = row + k - ORIGIN + offset2 +1;
                     newcoords->pos2 = row + offset1 +1;
@@ -157,14 +157,14 @@ Sim4::Xextend_bw(char *s1, char *s2, int m, int n, int offset1, int offset2, int
 
                if ((col>1) && !strncmp((char *)(s2+col-2),"AG",2)) {
                     newcoords = (coords *)ckalloc(sizeof(coords));
-                    link_to_data_list((Pointer)newcoords, &data_list, &prev);
+                    link_to_data_list((void *)newcoords, &data_list, &prev);
                     
                     newcoords->pos1 = row + k - ORIGIN + offset2 +1;
                     newcoords->pos2 = row + offset1 +1;
                     trace_AG[d][k] = newcoords;
                } else if ((col>1) && !strncmp((char *)(s2+col-2),"AC",2)) {
                     newcoords = (coords *)ckalloc(sizeof(coords));
-                    link_to_data_list((Pointer)newcoords, &data_list, &prev);
+                    link_to_data_list((void *)newcoords, &data_list, &prev);
                     
                     newcoords->pos1 = row + k - ORIGIN + offset2 +1;
                     newcoords->pos2 = row + offset1 +1;
@@ -306,13 +306,13 @@ Sim4::Xextend_fw(char *s1, char *s2, int m, int n, int offset1, int offset2, int
   for (k=0; (k<=n-2) && (k<=row); k++)
        if (!strncmp((char *)(s2+k),"GT",2)) {
               newcoords = (coords *)ckalloc(sizeof(coords));
-              link_to_data_list((Pointer)newcoords, &data_list, &prev);
+              link_to_data_list((void *)newcoords, &data_list, &prev);
               newcoords->pos2 = k+offset1;
               newcoords->pos1 = k+offset2;
               trace_GT[0][ORIGIN] = newcoords;
        } else if (!strncmp((char *)(s2+k),"CT",2)) {
               newcoords = (coords *)ckalloc(sizeof(coords));
-              link_to_data_list((Pointer)newcoords, &data_list, &prev);
+              link_to_data_list((void *)newcoords, &data_list, &prev);
               newcoords->pos2 = k+offset1;
               newcoords->pos1 = k+offset2;
               trace_CT[0][ORIGIN] = newcoords;
@@ -405,14 +405,14 @@ Sim4::Xextend_fw(char *s1, char *s2, int m, int n, int offset1, int offset2, int
                while ((row < m) && (col < n) && (s1[row]==s2[col])) {
                   if ((col<n-1) && !strncmp((char *)(s2+col),"GT",2)) {
                      newcoords = (coords *)ckalloc(sizeof(coords));
-                     link_to_data_list((Pointer)newcoords, &data_list, &prev);
+                     link_to_data_list((void *)newcoords, &data_list, &prev);
 
                      newcoords->pos1 = row + k - ORIGIN + offset2;
                      newcoords->pos2 = row + offset1;
                      trace_GT[d][k] = newcoords;
                   } else if ((col<n-1) && !strncmp((char *)(s2+col),"CT",2)) { 
                      newcoords = (coords *)ckalloc(sizeof(coords));
-                     link_to_data_list((Pointer)newcoords, &data_list, &prev);
+                     link_to_data_list((void *)newcoords, &data_list, &prev);
               
                      newcoords->pos1 = row + k - ORIGIN + offset2;
                      newcoords->pos2 = row + offset1;
@@ -424,14 +424,14 @@ Sim4::Xextend_fw(char *s1, char *s2, int m, int n, int offset1, int offset2, int
 
                if ((col<n-1) && !strncmp((char *)(s2+col),"GT",2)) {
                      newcoords = (coords *)ckalloc(sizeof(coords));
-                     link_to_data_list((Pointer)newcoords, &data_list, &prev);
+                     link_to_data_list((void *)newcoords, &data_list, &prev);
                      
                      newcoords->pos1 = row + k - ORIGIN + offset2;
                      newcoords->pos2 = row + offset1;
                      trace_GT[d][k] = newcoords;
                } else if ((col<n-1) && !strncmp((char *)(s2+col),"CT",2)) {
                      newcoords = (coords *)ckalloc(sizeof(coords));
-                     link_to_data_list((Pointer)newcoords, &data_list, &prev);
+                     link_to_data_list((void *)newcoords, &data_list, &prev);
                      
                      newcoords->pos1 = row + k - ORIGIN + offset2;
                      newcoords->pos2 = row + offset1;

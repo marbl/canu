@@ -164,7 +164,7 @@ Sim4::align_path(int i1, int j1, int i2, int j2, int dist, edit_script **head, e
   for (k=rlower; k<=rupper; k++)
     rlast_d[k] = i2+1;
 
-  rlast_d[rstart] = rsnake(rstart,i2,i1,j1,len1);
+  rlast_d[rstart] = rsnake(rstart,i2,i1,j1,_genLen);
 
   /* Backward computation */
   for (c=1; c<=rmidc; ++c) {
@@ -190,7 +190,7 @@ Sim4::align_path(int i1, int j1, int i2, int j2, int dist, edit_script **head, e
         row = rlast_d[k+1];
       }
       
-      rtemp_d[k] = rsnake(k,row,i1,j1,len1);
+      rtemp_d[k] = rsnake(k,row,i1,j1,_genLen);
     }    
     for (k=ll; k<=uu; ++k)
       rlast_d[k] = rtemp_d[k];
