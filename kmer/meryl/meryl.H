@@ -12,8 +12,10 @@
 #define PERSONALITY_AND           0x07
 #define PERSONALITY_NAND          0x08
 #define PERSONALITY_OR            0x09
+#if 0
 #define PERSONALITY_NOR           0x0a
 #define PERSONALITY_NOT           0x0b
+#endif
 #define PERSONALITY_XOR           0x0c
 #define PERSONALITY_LEQ           0x0d
 #define PERSONALITY_GEQ           0x0e

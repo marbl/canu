@@ -170,9 +170,11 @@ const char *usagestring =
 "        and       outputs mer iff it exists in all databases\n"
 "        nand      outputs mer iff it exists in at least one, but not all, databases\n"
 "        or        outputs mer iff it exists in at least one database\n"
+"        xor       outputs mer iff it exists in an odd number of databases\n"
+#if 0
 "        nor       outputs mer iff it doesn't exist in any database (synonym for -not)\n"
 "        not       outputs mer iff it doesn't exist in any database (synonym for -nor)\n"
-"        xor       outputs mer iff it exists in an odd number of databases\n"
+#endif
 "\n"
 "     Threshold operations are:\n"
 "        lessthan x            outputs mer iff it has count <  x\n"
@@ -386,10 +388,12 @@ merylArgs::merylArgs(int argc, char **argv) {
         personality = PERSONALITY_NAND;
       } else if (strcmp(argv[arg], "or") == 0) {
         personality = PERSONALITY_OR;
+#if 0
       } else if (strcmp(argv[arg], "nor") == 0) {
         personality = PERSONALITY_NOR;
       } else if (strcmp(argv[arg], "not") == 0) {
         personality = PERSONALITY_NOT;
+#endif
       } else if (strcmp(argv[arg], "xor") == 0) {
         personality = PERSONALITY_XOR;
       } else if (strcmp(argv[arg], "lessthan") == 0) {
