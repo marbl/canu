@@ -30,23 +30,24 @@ char *usage =
 "                                 default is to split on any whitespace.\n"
 "\n"
 "             -s sizeTag          Use this tag as the size of the snp.\n"
+"                                 '/size=' is tried by default.\n"
+"\n"
 "             -p posTag           Use this tag as the position of the snp.\n"
+"                                 'allelePos=' and '/pos=' are tried by\n"
+"                                 default, and if posTag is not found.\n"
 "\n"
 "                                 TAGS: The number immediately after the first\n"
 "                                 occurance of the tag will be used.\n"
-"                                 The defaults are \"-s /size= -p /pos=\"\n"
 "\n"
 "             -o offset           An additive offset to the SNP position.\n"
 "                                 The default is 0.\n"
 "\n"
-"             -iupac              When computing percent identity, use the\n"
-"                                 IUPAC ambiguity codes.\n"
+"             -format n           1 - use the original (default) format\n"
+"                                 2 - use an extended format, includes the\n"
+"                                     position in the alignment string\n"
 "\n"
-"             -ignoresnp          When computing percent identity, treat the\n"
-"                                 SNP as always matching -- that is, compute\n"
-"                                 percent identity of only the flanking\n"
-"                                 sequence.\n" 
-"\n" 
+"             -h                  Show this help.\n"
+"\n"
 "\n" 
 "             only -O is required.  Input is read from stdin.\n"
 "\n"
@@ -85,6 +86,8 @@ char  fieldDelimiter = 0;
 char *sizeTag        = "/size=";
 char *posTag         = "/pos=";
 int   positionOffset = 0;
+
+int   outputFormat   = 1;
 
 char *
 findSNPid(char *defline) {
@@ -159,7 +162,13 @@ findPosition(char *defline) {
 
   p = strstr(defline, posTag);
 
-  if (p == 0L) {
+  //  Look for standard posTags if we didn't find the one the user wanted.
+
+  if        (p == 0L) {
+    p = strstr(defline, "allelePos=");
+  } else if (p == 0L) {
+    p = strstr(defline, "/pos=");
+  } else {
     fprintf(stderr, "posTag '%s' not found in defline '%s'!\n", posTag, defline);
     exit(1);
   }
@@ -218,6 +227,9 @@ printSNP(FILE *F, sim4polish *p) {
     char *SNPid = findSNPid(p->estDefLine);
     char *GENid = findGENid(p->genDefLine);
 
+    char  SNPbase = 0;
+    char  GENbase = 0;
+
     //  Now, we examine the alignment strings to decide exactly
     //  where the SNP is located in the genomic.
     //
@@ -253,19 +265,77 @@ printSNP(FILE *F, sim4polish *p) {
       examinePos++;
     }
 
-    fprintf(F, "%s %s %d %c/%c %s global["u32bitFMT" "u32bitFMT"] exon["u32bitFMT" %d "u32bitFMT" %d]\n",
-            SNPid,
-            GENid,
-            genPosition,
-            p->exons[exonWithSNP].estAlignment[examinePos-1],
-            p->exons[exonWithSNP].genAlignment[examinePos-1],
-            (p->matchOrientation == SIM4_MATCH_FORWARD) ? "forward" : "complement",
-            p->percentIdentity,
-            p->querySeqIdentity,
-            p->numExons,
-            exonWithSNP,
-            p->exons[exonWithSNP].percentIdentity,
-            (int)floor(100.0 * (double)p->exons[exonWithSNP].numMatches / (double)p->estLen));
+    //  Adjust the quality values, treating the SNP as a match always.
+    //
+    SNPbase = p->exons[exonWithSNP].estAlignment[examinePos-1];
+    GENbase = p->exons[exonWithSNP].genAlignment[examinePos-1];
+
+    p->exons[exonWithSNP].estAlignment[examinePos-1] = 'A';
+    p->exons[exonWithSNP].genAlignment[examinePos-1] = 'A';
+
+    s4p_updateAlignmentScores(p);
+
+    p->exons[exonWithSNP].estAlignment[examinePos-1] = SNPbase;
+    p->exons[exonWithSNP].genAlignment[examinePos-1] = GENbase;
+
+
+    if (outputFormat == 1) {
+      fprintf(F, "%s %s %d %c/%c %s global["u32bitFMT" "u32bitFMT"] exon["u32bitFMT" %d "u32bitFMT" %d]\n",
+              SNPid,
+              GENid,
+              genPosition,
+              SNPbase,
+              GENbase,
+              (p->matchOrientation == SIM4_MATCH_FORWARD) ? "forward" : "complement",
+              p->percentIdentity,
+              p->querySeqIdentity,
+              p->numExons,
+              exonWithSNP,
+              p->exons[exonWithSNP].percentIdentity,
+              (int)floor(100.0 * (double)p->exons[exonWithSNP].numMatches / (double)p->estLen));
+    } else if (outputFormat == 2) {
+
+      //  The format is all on one line, data fields separated by tab.
+      //  No spaces -- "sa=C" instead of "sa = C"
+      //
+      //    SNPid
+      //    GENid
+      //    genomic position of SNP
+      //    sa=c        -- snp allele
+      //    ga=c        -- genome allele
+      //    mo={f|r}    -- mapping orientation
+      //    pi=n        -- percent identity
+      //    pc=n        -- percent coverage
+      //    nb=n        -- number of alignment blocks
+      //    bl=n        -- alignment block with the snp
+      //    bp=n        -- position of the snp in the alignment block
+      //    bi=n        -- percent identity of the block
+      //    bc=n        -- percent coverage of the block
+      //
+      //  The first three items are mandatory, are always in that
+      //  order, and are always the first three.  The others are
+      //  optional, and can occur in any order.  There might be more
+      //  present than listed here.
+      //
+      //  The order and content should be consistent for any given
+      //  version of the software.
+      //
+      fprintf(F, "%s %s %d sa=%c ga=%c mo=%c pi="u32bitFMT" pc="u32bitFMT" nb="u32bitFMT" bl=%d bp="u32bitFMT" bi="u32bitFMT" bc=%d\n",
+              "a", //SNPid,
+              "b", //GENid,
+              genPosition,
+              p->exons[exonWithSNP].estAlignment[examinePos-1],                                    // sa
+              p->exons[exonWithSNP].genAlignment[examinePos-1],                                    // ga
+              (p->matchOrientation == SIM4_MATCH_FORWARD) ? 'f' : 'r',                             // mo
+              p->percentIdentity,                                                                  // pi
+              p->querySeqIdentity,                                                                 // pc
+              p->numExons,                                                                         // nb
+              exonWithSNP,                                                                         // bl
+              examinePos,                                                                          // bp
+              p->exons[exonWithSNP].percentIdentity,                                               // bi
+              (int)floor(100.0 * (double)p->exons[exonWithSNP].numMatches / (double)p->estLen));   // bc
+    } else {
+    }
 
     free(SNPid);
     free(GENid);
@@ -462,11 +532,24 @@ main(int argc, char **argv) {
     } else if (strncmp(argv[arg], "-o", 2) == 0) {
       arg++;
       positionOffset = atoi(argv[arg]);
+    } else if (strncmp(argv[arg], "-format", 2) == 0) {
+      arg++;
+      outputFormat = atoi(argv[arg]);
+    } else if (strncmp(argv[arg], "-h", 2) == 0) {
+      fputs(usage, stderr);
+      exit(1);
     } else {
       fprintf(stderr, "unknown option: %s\n", argv[arg]);
     }
     arg++;
   }
+
+
+  if ((outputFormat != 1) && (outputFormat != 2)) {
+    fprintf(stderr, "Invalid output format.  Must be 1 or 2.\n");
+    exit(1);
+  }
+
 
   //  Read polishes, parsing when we see a change in the estID.
   //  Really, we could parse one by one, but it's nice to know if the
