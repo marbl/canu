@@ -17,7 +17,7 @@ memdup(const void *orig, size_t size) {
       if (sizeof(size_t) == 8)
         fprintf(stderr, "memdup()-- can't allocate "s64bitFMT" bytes.\n%s\n", size, strerror(errno));
       else
-        fprintf(stderr, "memdup()-- can't allocate "s32bitFMT" bytes.\n%s\n", size, strerror(errno));
+        fprintf(stderr, "memdup()-- can't allocate "u32bitFMT" bytes.\n%s\n", size, strerror(errno));
       exit(1);
     }
     memcpy(rslt, orig, size);

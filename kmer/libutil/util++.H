@@ -16,18 +16,6 @@
 #include "bri.h"
 
 //  C++ objects for libbri
-//
-//  Things included here used to be in
-//
-//    #include "britime.H"
-//    #include "readBuffer.H"
-//    #include "splittowords.H"
-//    #include "bit-operations.H"
-//    #include "bit-packing.H"
-//    #include "bitPackedFile.H"
-//    #include "fastastream.H"
-//    #include "merstream.H"
-//
 
 
 
@@ -67,6 +55,7 @@ public:
                double        unit,
                u64bit        freq,
                bool          enabled=true);
+  ~speedCounter();
 
   void   tick(void) {
     if (_enabled && ((++_count & _freq) == u64bitZERO)) {
@@ -74,6 +63,16 @@ public:
       fprintf(stderr, _fmt, v, v / (getTime() - _startTime));
       fflush(stderr);
     }
+  };
+
+  void   finish(void) {
+    if (_enabled && (_count >= _freq)) {
+      double  v = _count / _unit;
+      fprintf(stderr, _fmt, v, v / (getTime() - _startTime));
+      fprintf(stderr, "\n");
+      fflush(stderr);
+    }
+    _count = 0;
   };
 
 private:
@@ -108,7 +107,7 @@ public:
   bool      next(void);
   char      get(void);
   char      getnext(void);
-  void      seek(off_t pos);
+  bool      seek(off_t pos);
   size_t    read(char *buf, size_t len);   //  read the next len bytes into the user buffer buf
   off_t     tell(void);
 
@@ -120,6 +119,9 @@ private:
 
   int      _file;
   int      _fileType;  //  0=stdin, 1=normal, 2=mmap
+#ifdef __APPLE__
+  int      _pad1;
+#endif
   off_t    _filePos;
 
   bool     _eof;
@@ -131,6 +133,9 @@ private:
   size_t   _bufferLen;
   size_t   _bufferMax;
   char    *_buffer;
+#ifdef __APPLE__
+  int      _pad2;
+#endif
 };
 
 
@@ -343,6 +348,9 @@ private:
   u64bit    _bit;     //  The bit position we are modifying relative to _pos
 
   bool      _bfrDirty;
+#ifdef __APPLE__
+  u32bit    _pad;
+#endif
 
   //  For collecting statistics on our usage
   //
@@ -393,6 +401,12 @@ public:
     delete [] _theDefLine;
   };
 
+  bool              rewind(void) {
+    _thePosition        = 0;
+    _theSequenceNumber  = 0;
+    return(_rb->seek(0));
+  };
+
   unsigned char     nextSymbol(void);
 
   u64bit            thePosition(void) {
@@ -405,10 +419,10 @@ public:
     return(_theDefLine);
   };
 private:
-  readBuffer  *_rb;
-
   u64bit       _thePosition;
   u64bit       _theSequenceNumber;
+
+  readBuffer  *_rb;
 
   u32bit       _theDefLineMax;
   u32bit       _theDefLinePos;
@@ -495,227 +509,13 @@ FastAstream::nextSymbol(void) {
 
 ////////////////////////////////////////
 //
-//  This is the merStream.  Given a file of sequence and deflines, or
-//  a string of sequence, it returns mers.
-//
-//  The file based merstream uses a fastastream to get sequence, and
-//  that doesn't care if there is whitespace or deflines in the
-//  stream.  It returns only valid sequence.
-//
-//  If the sequence/length method is used, we assume that 'seq'
-//  contains no whitespace, and no extra characters (e.g., deflines),
-//  just pure sequence.  It will work if you give it deflines and
-//  whitespcae, but positions will be wrong.
-//
-class merStream {
-public:
-  merStream(u32bit merSize, const char *filename);
-  merStream(u32bit merSize, char const *seq, u32bit len);
-  ~merStream();
-
-  u64bit       theFMer(void)        { return(_theFMer); };
-  u64bit       theRMer(void)        { return(_theRMer); };
-
-  char const  *theFMerString(void);
-  char const  *theRMerString(void);
-
-  u64bit       thePosition(void) {
-    if (_theFile)
-      return(_theFile->thePosition() - _merSize);
-    else
-      return(_thePos - _merSize);
-  };
-  u64bit       theSequenceNumber(void) {
-    if (_theFile)
-      return(_theFile->theSequenceNumber());
-    else
-      return(u64bitZERO);
-  };
-  char const  *theDefLine(void) {
-    if (_theFile)
-      return(_theFile->theDefLine());
-    else
-      return(">");
-  };
-
-  bool               nextMer(u32bit skip=0);
-private:
-  void               loadMer(u32bit s);
-  char               nextSymbol(void) {
-    if (_theFile) {
-      return(_theFile->nextSymbol());
-    } else {
-
-      //  Skip any whitespace
-      //
-      while (isspace(_theSeq[_theSeqPos]) && (_theSeqPos < _theLen))
-        _theSeqPos++;
-
-      //  Are we at a defline?  If so, zip along until we hit a
-      //  newline.  Then we return the code (fastastream) for a
-      //  sequence break.
-      //
-      if (_theSeq[_theSeqPos] == '>') {
-        while ((_theSeq[_theSeqPos] != '\n') && (_theSeqPos < _theLen))
-          _theSeqPos++;
-        _thePos = 0;
-        return(254);
-      }
-
-      //  Are we at the EOF?
-      //
-      if (_theSeqPos >= _theLen)
-        return(0);
-
-      //  Update the position of the character in this sequence.
-      //
-      _thePos++;
-
-      return(_theSeq[_theSeqPos++]);
-    }
-  };
-
-  FastAstream          *_theFile;
-  char const           *_theSeq;
-  u32bit                _theSeqPos;
-  u32bit                _theLen;
-  u32bit                _thePos;
-
-  u32bit                _merSize;
-  s32bit                _timeUntilValid;
-  u64bit                _theMerMask;
-
-  u64bit                _theFMer;
-  u64bit                _theRMer;
-
-  u32bit                _theRMerShift;
-
-  char                  _theMerString[33];
-};
-
-
-
-
-//  We have a problem; at the start of a stream, we want to
-//  initialize the mer with merSize-1 bases.  In the middle of the
-//  stream, we need to load the mer with merSize bases.
-//
-//  loadMer will push s bases onto the mer, restarting if it hits a
-//  mer break.
-//
-//  No masking of the mer is performed.
-//
-inline
-void
-merStream::loadMer(u32bit s) {
-  u64bit   ch = 255;
-  u64bit   cf = 0;
-  u64bit   cr = 0;
-
-  _timeUntilValid = s;
-
-  //  While we are invalid, and still in the sequence
-  //  push characters onto the mer.  The valid
-  //  count is updated if we hit an invalid base.
-  //
-  while ((_timeUntilValid > 0) && (ch != 0)) {
-    ch = nextSymbol();
-    cf = validCompressedSymbol[ch];
-
-    //  Rather than take the chance of generating a cache miss accessing
-    //  another array, we just mask out the upper bits of validCompressedSymbol[];
-    //  this is exactly the same as using compressSymbol[].
-    //
-    //  We need to mask the upper bits for reverse (but not for forward)
-    //  because, in reverse, we shift to the right.  If we don't mask these
-    //  out, we will have extra bits set in the mer.
-    //
-    //  Example: Consider placing 255 (== 11111111, the invalid symbol returned
-    //  from validCompressedSymbol) at the fourth base in a four mer:
-    //    000000**xxxxxx -- the ** are is the fourth base.
-    //
-    //  Without masking, we'd set all the 0's and all the *'s to one, in effect,
-    //  preloading the next three bases of the mer.
-    //
-    cr = validCompressedSymbol[complementSymbol[ch]] & 0x03;
-
-    _timeUntilValid--;
-
-    if (cf & 0xfc)
-      _timeUntilValid = s;
-
-    //  If the ch is valid, we can obviously add it to the mer.
-    //  If it is invalid, we don't care; by the time the mer is valid
-    //  all bits of any invalid mers are removed.  Sure, we could
-    //  put this into the else, but I suspect that it will be faster outside.
-    //
-    _theFMer <<= 2;
-    _theRMer >>= 2;
-
-    _theFMer |= cf;
-    _theRMer |= cr << _theRMerShift;
-  }
-}
-
-inline
-bool
-merStream::nextMer(u32bit skip) {
-
- again:
-  u64bit  ch = nextSymbol();
-  u64bit  cf = validCompressedSymbol[ch];
-  u64bit  cr = validCompressedSymbol[complementSymbol[ch]] & 0x03;
-
-  //  EOF?
-  if (ch == 0)
-    return(false);
-
-  //  Push the ch onto the mer.
-  //
-  _theFMer <<= 2;
-  _theRMer >>= 2;
-
-  _theFMer |= cf;
-  _theRMer |= cr << _theRMerShift;
-
-  //  If the ch is invalid, we need to make a whole new mer.
-  //  This also implies that we're done skipping.
-  //
-  if (cf & (unsigned char)0xfc) {
-    loadMer(_merSize);
-    skip = 0;
-  }
-
-  if (skip--)
-    goto again;
-
-  _theFMer &= _theMerMask;
-  _theRMer &= _theMerMask;
-
-  //  Still need to check if we are valid -- we could
-  //  have run off the end of the sequence before a valid
-  //  mer was created.
-  //
-  return(_timeUntilValid <= 0);
-}
-
-
-
-
-
-////////////////////////////////////////
-//
 //  merstreamfile
-//
-
-
 //
 //  Uses the merStream to build a compressed merStreamFile.  The
 //  merStreamFile contains all the forward mers that the stream
 //  returns.  It does not contain position information or deflines.
 //  Just the mers, ma'am.
 //
-
 //  To get position, sequence number and defline:
 //
 //  Each mer block can store the position start, and the sequence
@@ -818,8 +618,34 @@ private:
   u64bit                _theSequence;
   char                 *_theDefline;
 
-  char                  _theMerString[33];
+  char                  _theMerString[36];
 };
+
+
+
+
+////////////////////////////////////////
+//
+//  This is the merStream.  Given a file of sequence and deflines, or
+//  a string of sequence, it returns mers.
+//
+//  The file based merstream uses a fastastream to get sequence, and
+//  that doesn't care if there is whitespace or deflines in the
+//  stream.  It returns only valid sequence.
+//
+//  If the sequence/length method is used, we assume that 'seq'
+//  contains no whitespace, and no extra characters (e.g., deflines),
+//  just pure sequence.  It will work if you give it deflines and
+//  whitespcae, but positions will be wrong.
+//
+#include "merStream.H"
+
+
+
+
+
+
+
 
 
 ////////////////////////////////////////

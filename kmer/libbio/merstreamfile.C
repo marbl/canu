@@ -447,60 +447,58 @@ merStreamFileReader::nextMer(u32bit skip) {
   if (_iteration >= _iterationLimit)
     return(false);
 
-again:
-  if (_thisBlock >= _numBlocks)
-    return(false);
-
-  if (_thisBlockSize == 0) {
-    //  Finished a block, move to the next one.
-    //
-    _thisBlock++;
-
-    //  To avoid another if here we do a multiply to reset _thisBlock
-    //  to the first block if we are the first mer (_firstMer is
-    //  initially set to zero).
-    //
-    _thisBlock &= _firstMer;
-    _firstMer   = ~u64bitZERO;
-
-    //  Outta blocks?
+  do {
     if (_thisBlock >= _numBlocks)
       return(false);
 
-    _thisBlockSize = _blockSize[_thisBlock] - 1;
+    if (_thisBlockSize == 0) {
+      //  Finished a block, move to the next one.
+      //
+      _thisBlock++;
 
-    _thePosition  = _blockPosition[_thisBlock];
-    _theSequence  = _blockSequence[_thisBlock];
+      //  To avoid another if here we do a multiply to reset _thisBlock
+      //  to the first block if we are the first mer (_firstMer is
+      //  initially set to zero).
+      //
+      _thisBlock &= _firstMer;
+      _firstMer   = ~u64bitZERO;
 
-    _theFMer = _streamFile->getBits(_merSize * 2);
-    _theRMer = reverseComplementMer(_merSize, _theFMer);
+      //  Outta blocks?
+      if (_thisBlock >= _numBlocks)
+        return(false);
+
+      _thisBlockSize = _blockSize[_thisBlock] - 1;
+
+      _thePosition  = _blockPosition[_thisBlock];
+      _theSequence  = _blockSequence[_thisBlock];
+
+      _theFMer = _streamFile->getBits(_merSize * 2);
+      _theRMer = reverseComplementMer(_merSize, _theFMer);
 
 #ifdef REPORT_BLOCK_CHANGES
-    fprintf(stderr, "New block="u64bitFMT" size="u64bitFMT" pos="u64bitFMT" seq="u64bitFMT"\n",
-            _thisBlock, _thisBlockSize, _thePosition, _theSequence);
+      fprintf(stderr, "New block="u64bitFMT" size="u64bitFMT" pos="u64bitFMT" seq="u64bitFMT"\n",
+              _thisBlock, _thisBlockSize, _thePosition, _theSequence);
 #endif
-  } else {
-    //  Still in the same block, just move to the next mer.
-    //
-    u64bit  theBase = _streamFile->getBits(2);
+    } else {
+      //  Still in the same block, just move to the next mer.
+      //
+      u64bit  theBase = _streamFile->getBits(2);
 
-    _theFMer <<= 2;
-    _theFMer  |= theBase;
-    _theFMer  &= _merMask;
+      _theFMer <<= 2;
+      _theFMer  |= theBase;
+      _theFMer  &= _merMask;
 
-    theBase  ^= 0x3;
-    theBase <<= (_merSize << 1) - 2;
+      theBase  ^= 0x3;
+      theBase <<= (_merSize << 1) - 2;
 
-    _theRMer >>= 2;
-    _theRMer  |= theBase;
+      _theRMer >>= 2;
+      _theRMer  |= theBase;
 
-    _thisBlockSize--;
+      _thisBlockSize--;
 
-    _thePosition++;
-  }
-
-  if (skip--)
-    goto again;
+      _thePosition++;
+    }
+  } while (skip--);
 
   _iteration++;
 

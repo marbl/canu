@@ -98,12 +98,13 @@ readBuffer::fillBuffer(void) {
 }
 
 
-void
+bool
 readBuffer::seek(off_t pos) {
 
   switch(_fileType) {
     case 0:
       fprintf(stderr, "readBuffer()-- seek() not available for file '%s'.\n", _filename);
+      return(false);
       break;
     case 1:
       errno = 0;
@@ -112,6 +113,7 @@ readBuffer::seek(off_t pos) {
         fprintf(stderr, "readBuffer()-- '%s' couldn't seek to position "s64bitFMT": %s\n",
                 _filename, pos, strerror(errno));
         exit(1);
+        return(false);
       }
 
       _filePos = pos;
@@ -134,6 +136,8 @@ readBuffer::seek(off_t pos) {
       }
       break;
   }
+
+  return(true);
 }
 
 

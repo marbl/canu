@@ -83,3 +83,6 @@ speedCounter::speedCounter(char const   *fmt,
   _freq |= _freq >> 32;
 }
 
+speedCounter::~speedCounter() {
+  finish();
+}

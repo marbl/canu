@@ -60,16 +60,20 @@ typedef signed char         s8bit;
 #define  u64bitONE       (0x0000000000000001LU)
 #define  u64bitMAX       (0xffffffffffffffffLU)
 #define  u64bitMASK(X)   ((~u64bitZERO) >> (64 - (X)))
+#define  u64bitFMTW(X)   "%" #X "lu"
 #define  u64bitFMT       "%lu"
 #define  u64bitHEX       "0x%016lx"
+#define  s64bitFMTW(X)   "%" #X "ld"
 #define  s64bitFMT       "%ld"
 
 #define  u32bitZERO      (0x00000000U)
 #define  u32bitONE       (0x00000001U)
 #define  u32bitMAX       (0xffffffffU)
 #define  u32bitMASK(X)   ((~u32bitZERO) >> (32 - (X)))
+#define  u32bitFMTW(X)   "%" #X "u"
 #define  u32bitFMT       "%u"
 #define  u32bitHEX       "0x%08x"
+#define  s32bitFMTW(X)   "%" #X "d"
 #define  s32bitFMT       "%d"
 
 #define  u16bitZERO      (0x0000)
@@ -103,16 +107,20 @@ typedef signed char         s8bit;
 #define  u64bitONE       (0x0000000000000001LLU)
 #define  u64bitMAX       (0xffffffffffffffffLLU)
 #define  u64bitMASK(X)   ((~u64bitZERO) >> (64 - (X)))
+#define  u64bitFMTW(X)   "%" #X "llu"
 #define  u64bitFMT       "%llu"
 #define  u64bitHEX       "0x%016llx"
+#define  s64bitFMTW(X)   "%" #X "lld"
 #define  s64bitFMT       "%lld"
 
 #define  u32bitZERO      (0x00000000LU)
 #define  u32bitONE       (0x00000001LU)
 #define  u32bitMAX       (0xffffffffLU)
 #define  u32bitMASK(X)   ((~u32bitZERO) >> (32 - (X)))
+#define  u32bitFMTW(X)   "%" #X "lu"
 #define  u32bitFMT       "%lu"
 #define  u32bitHEX       "0x%08lx"
+#define  s32bitFMTW(X)   "%" #X "ld"
 #define  s32bitFMT       "%ld"
 
 #define  u16bitZERO      (0x0000)
@@ -300,6 +308,9 @@ typedef struct {
   u64bit  a;
   u64bit  b;
   u32bit  i;  //  the iid, used in leaff
+#ifdef __APPLE__
+  u32bit  pad;
+#endif
 } md5_s;
 
 #define MD5_BUFFER_SIZE   32*1024
