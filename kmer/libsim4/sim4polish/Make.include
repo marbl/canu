@@ -41,7 +41,8 @@ $/libsim4polish.a    :  ${$/.C_SRCS:.c=.o} ${$/.CXX_SRCS:.C=.o} \
 $/%.d $/%.o:  CFLAGS+=-I${LIBBRI/}
 $/%.d $/%.o:  CXXFLAGS+=-I${LIBBRI/}
 
-$/buildinfo-libsim4polish.c $/buildinfo-libsim4polish.h: ${src}
+$/buildinfo-libsim4polish.c: $/buildinfo-libsim4polish.h
+$/buildinfo-libsim4polish.h: ${src}
 	${UTIL/}buildinfo.pl libsim4polish "${CXXFLAGS} ${CXXFLAGS_ARCH}" ${src}
 	mv buildinfo-libsim4polish.[ch] `dirname $@`
 

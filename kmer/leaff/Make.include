@@ -47,11 +47,13 @@ $/dumpBlocks    : $/dumpBlocks.o $/libfasta.a
 
 ${$/.CXX_EXES}:   ${LIBBRI/}libbri.a
 
-$/buildinfo-leaff.c $/buildinfo-leaff.h: $/leaff.C
+$/buildinfo-leaff.c: $/buildinfo-leaff.h
+$/buildinfo-leaff.h: $/leaff.C
 	${UTIL/}buildinfo.pl leaff "${CXXFLAGS} ${CXXFLAGS_ARCH}" $^
 	mv buildinfo-leaff.[ch] `dirname $@`
 
-$/buildinfo-libfasta.c $/buildinfo-libfasta.h: ${src}
+$/buildinfo-libfasta.c: $/buildinfo-libfasta.h
+$/buildinfo-libfasta.h: ${src}
 	${UTIL/}buildinfo.pl libfasta "${CXXFLAGS} ${CXXFLAGS_ARCH}" $^
 	mv buildinfo-libfasta.[ch] `dirname $@`
 

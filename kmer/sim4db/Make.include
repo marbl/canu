@@ -35,7 +35,8 @@ $/sim4db.C.d:  $/buildinfo-sim4db.h ${FASTA/}buildinfo-libfasta.h ${SIM4/}buildi
 
 $/%.d $/%.o: CXXFLAGS+=  -I${FASTA/} -I${SIM4/} -I${SIM4POLISH/} -I${LIBBRI/}
 
-$/buildinfo-sim4db.c $/buildinfo-sim4db.h: $/sim4db.C
+$/buildinfo-sim4db.c: $/buildinfo-sim4db.h
+$/buildinfo-sim4db.h: $/sim4db.C
 	${UTIL/}buildinfo.pl sim4db "${CXXFLAGS} ${CXXFLAGS_ARCH}" $^
 	mv buildinfo-sim4db.[ch] `dirname $@`
 

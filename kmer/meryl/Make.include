@@ -32,11 +32,13 @@ $/meryl $/merle: ${LIBBRI/}libbri.a
 $/meryl $/merle: CXXLDFLAGS+=${EFENCE-L}
 $/meryl $/merle: CXXLIBS+=${EFENCE-l}
 
-$/buildinfo-meryl.c $/buildinfo-meryl.h: ${src}
+$/buildinfo-meryl.c: $/buildinfo-meryl.h
+$/buildinfo-meryl.h: ${src}
 	${UTIL/}buildinfo.pl meryl "${CXXFLAGS} ${CXXFLAGS_ARCH}" $^
 	mv buildinfo-meryl.[ch] `dirname $@`
 
-$/buildinfo-merle.c $/buildinfo-merle.h: $/merle.C
+$/buildinfo-merle.c: $/buildinfo-merle.h
+$/buildinfo-merle.h: $/merle.C
 	${UTIL/}buildinfo.pl merle "${CXXFLAGS} ${CXXFLAGS_ARCH}" $^
 	mv buildinfo-merle.[ch] `dirname $@`
 

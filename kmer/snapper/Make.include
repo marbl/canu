@@ -52,7 +52,8 @@ $/snapper2: \
 $/snapper2: CXXLDFLAGS+=${EFENCE-L}
 $/snapper2: CXXLIBS+=${EFENCE-l}
 
-$/buildinfo-snapper2.c $/buildinfo-snapper2.h: ${src}
+$/buildinfo-snapper2.c: $/buildinfo-snapper2.h
+$/buildinfo-snapper2.h: ${src}
 	${UTIL/}buildinfo.pl snapper2 "${CXXFLAGS} ${CXXFLAGS_ARCH}" $^
 	mv buildinfo-snapper2.[ch] `dirname $@`
 

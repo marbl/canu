@@ -20,7 +20,8 @@ $/positionDB:        $/driver.o
 $/%.d $/%.o:    CXXFLAGS+= -I${FASTA/} -I${LIBBRI/}
 ${$/.CXX_EXES}:$/libpositionDB.a ${FASTA/}libfasta.a ${LIBBRI/}libbri.a
 
-$/buildinfo-positionDB.c $/buildinfo-positionDB.h: ${src}
+$/buildinfo-positionDB.c: $/buildinfo-positionDB.h
+$/buildinfo-positionDB.h: ${src}
 	${UTIL/}buildinfo.pl positionDB "${CXXFLAGS} ${CXXFLAGS_ARCH}" $^
 	mv buildinfo-positionDB.[ch] `dirname $@`
 

@@ -49,14 +49,15 @@ $/searchGENOME $/searchGENOMEexactly: \
 $/searchGENOME $/searchGENOMEexactly: CXXLDFLAGS+=${EFENCE-L}
 $/searchGENOME $/searchGENOMEexactly: CXXLIBS+=${EFENCE-l}
 
-$/buildinfo-searchGENOME.c $/buildinfo-searchGENOME.h: ${src}
-	${UTIL/}buildinfo.pl searchGENOME "${CXXFLAGS} ${CXXFLAGS_ARCH}" $^
-	mv buildinfo-searchGENOME.[ch] `dirname $@`
-
 $/hitConverter: $/hitConverter.o
 $/filterEST: $/filterEST.o
 $/filterMRNA: $/filterMRNA.o
 $/sortHits: $/sortHits.o
 $/filtertest: $/filtertest.o
+
+$/buildinfo-searchGENOME.c: $/buildinfo-searchGENOME.h
+$/buildinfo-searchGENOME.h: ${src}
+	${UTIL/}buildinfo.pl searchGENOME "${CXXFLAGS} ${CXXFLAGS_ARCH}" $^
+	mv buildinfo-searchGENOME.[ch] `dirname $@`
 
 
