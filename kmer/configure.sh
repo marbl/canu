@@ -47,13 +47,40 @@ case $target in
     cat <<EOF > Make.compilers
 # -*- makefile -*-
 #  OS-X, optimized
+#
+#  Using this usually generates internal compiler errors: -mpowerpc64
+#  Using this breaks dynamic library building:  -mdynamic-no-pic
+#    We could have instead included -fPIC on the compile line.
+#
+FAST :=  -O3 -funroll-loops -fstrict-aliasing -fsched-interblock -falign-loops=16 -falign-jumps=16 -falign-functions=16 \
+-falign-jumps-max-skip=15 -falign-loops-max-skip=15 -malign-natural -ffast-math -mpowerpc-gpopt -force_cpusubtype_ALL \
+-fstrict-aliasing -mtune=G5 -mcpu=G5
 CC                := gcc
 SHLIB_FLAGS       := -dynamiclib
 CFLAGS_COMPILE    := -O3 -D_THREAD_SAFE -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CFLAGS_COMPILE    := \$(FAST) -D_THREAD_SAFE -Wall
 CLDFLAGS          := 
 CLIBS             := 
 CXX               := g++
-CXXFLAGS_COMPILE  := -O3 -D_THREAD_SAFE -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CXXFLAGS_COMPILE  := \$(FAST) -D_THREAD_SAFE -Wall
+CXXLDFLAGS        := 
+CXXLIBS           := 
+ARFLAGS           := ruvs
+EOF
+    ;;
+  osx-debug)
+    rm -f Make.compilers
+    cat <<EOF > Make.compilers
+# -*- makefile -*-
+#  OS-X, optimized
+#
+CC                := gcc
+SHLIB_FLAGS       := -dynamiclib
+CFLAGS_COMPILE    := -O3 -g3 -D_THREAD_SAFE -Wall
+CLDFLAGS          := 
+CLIBS             := 
+CXX               := g++
+CXXFLAGS_COMPILE  := -O3 -g3 -D_THREAD_SAFE -Wall
 CXXLDFLAGS        := 
 CXXLIBS           := 
 ARFLAGS           := ruvs
