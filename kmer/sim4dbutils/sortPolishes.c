@@ -273,7 +273,7 @@ main(int argc, char **argv) {
 
       //  Allocate more pointer space, if we need to
       //
-      if ((pLen >= pMax) ||\
+      if ((pLen >= pMax) ||
           (arrayAlloc + matchAlloc >= upperAlloc)) {
 
         //  If reallocating more pointer space doesn't blow our memory
@@ -283,10 +283,8 @@ main(int argc, char **argv) {
         //
         sim4polish **N = 0L;
 
-        if (arrayAlloc + matchAlloc + sizeof(sim4polish*) * pMax * 2 < upperAlloc) {
-          fprintf(stderr, "realloc to %d\n", pMax * 2);
+        if (arrayAlloc + matchAlloc + sizeof(sim4polish*) * pMax * 2 < upperAlloc)
           N = (sim4polish **)realloc(p, sizeof(sim4polish *) * pMax * 2);
-        }
 
         //  If N is NULL, then we were unable to get more space,
         //  either by a soft limit or failure of realloc.  Save the
