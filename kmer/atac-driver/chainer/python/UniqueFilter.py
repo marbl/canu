@@ -69,7 +69,7 @@ def findCoverageIntervals( inpfile, outfile, processFirstAxis):
                 print >>tmpfile3, "E", axis,end,-1
     tmpfile3.close()
     tmpname = tempfile.mktemp()
-    cmd = "sort -T ./tmp -k 1,1 -k 2,2 -k 3n -k 4nr  %s > %s" % (tmpfile3.name, tmpname)
+    cmd = "sort -T . -k 1,1 -k 2,2 -k 3n -k 4nr  %s > %s" % (tmpfile3.name, tmpname)
     print >>sys.stderr, cmd
     iret = os.system(cmd); assert(iret==0)
     print >>sys.stderr,"time elapsed is ", (time.time() - t0)
@@ -299,10 +299,6 @@ def main( inpfile, outfile):
 if __name__ == '__main__':
     inpname = sys.argv[1]
     outname = sys.argv[2]
-    cmd = "mkdir ./tmp"
-    print >>sys.stderr, cmd
-    iret = os.system(cmd)
-    # assert(iret==0)
     inpfile = open(inpname)
     outfile = open(outname,"w")
     main(inpfile, outfile)

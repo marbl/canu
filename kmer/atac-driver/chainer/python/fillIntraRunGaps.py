@@ -38,7 +38,7 @@ def analyzeGap(x,y,left,right,outfile,maxgap,erate,margin):
            print >>sys.stderr, right
         assert(sorted_by_x or sorted_by_y)
         # This concept of sorted allows neggaps but not containmant in both axes.
-        
+
         if(not((not left_forward) or (sorted_by_x and sorted_by_y))):
            print >>sys.stderr, "bad sorting in runs"
            print >>sys.stderr, left
@@ -51,7 +51,6 @@ def analyzeGap(x,y,left,right,outfile,maxgap,erate,margin):
         assert((left_forward) or (not(sorted_by_x and sorted_by_y)))
 
         if(sorted_by_x): # Sorted by x positions.
-            #print "Sorted by X"
             x_pos = left.x_start + left.x_length # Start of the intra-run gap.
             x_len = right.x_start - x_pos        # Length of the intra-run gap.
             if(left_forward):
@@ -62,7 +61,6 @@ def analyzeGap(x,y,left,right,outfile,maxgap,erate,margin):
                 y_len = left.y_start - y_pos
             # end if
         else: # Assume sorted by y positions
-            #print "Sorted by Y"
             y_pos = left.y_start + left.y_length
             y_len = right.y_start - y_pos
             if(left_forward):
@@ -89,13 +87,12 @@ def analyzeGap(x,y,left,right,outfile,maxgap,erate,margin):
             and 0 < x_len and 0 < y_len
             and x_len < maxgap and y_len < maxgap
             ):
-            #sys.stderr.write("About to call local aligner with %d margins\n" % margin);
-            #sys.stderr.write("# left = %s\n" % str(left))
-            #sys.stderr.write("# right= %s\n" % str(right))
-            #sys.stderr.write("x_len=%d y_len=%d\n" % (x_len, y_len) );
 
-            # sys.stderr.write("x_substring=%s\n" % x_substring );
-            # sys.stderr.write("y_substring=%s\n" % y_substring );
+            if 0:
+                sys.stderr.write("About to call local aligner with %d margins\n" % margin);
+                sys.stderr.write("# left = %s\n" % str(left))
+                sys.stderr.write("# right= %s\n" % str(right))
+                sys.stderr.write("x_len=%d y_len=%d\n" % (x_len, y_len) );
 
             # Why two orientation flags?  We want the output matches
             # to be in the same sorted order as the left and right
@@ -105,10 +102,12 @@ def analyzeGap(x,y,left,right,outfile,maxgap,erate,margin):
             parent_y_start = y_pos - margin
             parent_x_length = x_len + 2*margin
             parent_y_length = y_len + 2*margin
-            #print >>sys.stderr, "parent_x_start=%d" % parent_x_start
-            #print >>sys.stderr, "parent_y_start=%d" % parent_y_start
-            #print >>sys.stderr, "parent_x_length=%d" % parent_x_length
-            #print >>sys.stderr, "parent_y_length=%d" % parent_y_length
+
+            if 0:
+                print >>sys.stderr, "parent_x_start=%d" % parent_x_start
+                print >>sys.stderr, "parent_y_start=%d" % parent_y_start
+                print >>sys.stderr, "parent_x_length=%d" % parent_x_length
+                print >>sys.stderr, "parent_y_length=%d" % parent_y_length
 
             x_seq = ""
             if(x_len > 0):
@@ -134,12 +133,10 @@ def analyzeGap(x,y,left,right,outfile,maxgap,erate,margin):
                 outfile.flush()
 
             try:
-                localAlignerInterface.syntenicSegments(
-                    outfile,
-                    x_seq, 0, parent_x_length,
-                    y_seq, 0, parent_y_length,
-                    erate,
-                    )
+                localAlignerInterface.syntenicSegments(outfile,
+                                                       x_seq, 0, parent_x_length,
+                                                       y_seq, 0, parent_y_length,
+                                                       erate)
 
                 FM = left
                 parent_id = FM.matchid
@@ -220,12 +217,12 @@ def analyzeGap(x,y,left,right,outfile,maxgap,erate,margin):
                     #assert(bgn1+len1 <= parent_x_length)
                     #assert(bgn2+len2 <= parent_y_length)
 
-
-                    #print >>sys.stderr, "# x_seq=%s" % x_seq
-                    #print >>sys.stderr, "# y_seq=%s" % y_seq
-                    #print >>sys.stderr, "# bgn1,bgn2,len1,len2=", bgn1,bgn2,len1,len2
-                    #print >>sys.stderr, "# xseq=%s" % x_seq[bgn1:bgn1+len1]
-                    #print >>sys.stderr, "# yseq=%s" % y_seq[bgn2:bgn2+len2]
+                    if 0:
+                        print >>sys.stderr, "# x_seq=%s" % x_seq
+                        print >>sys.stderr, "# y_seq=%s" % y_seq
+                        print >>sys.stderr, "# bgn1,bgn2,len1,len2=", bgn1,bgn2,len1,len2
+                        print >>sys.stderr, "# xseq=%s" % x_seq[bgn1:bgn1+len1]
+                        print >>sys.stderr, "# yseq=%s" % y_seq[bgn2:bgn2+len2]
 
                     halign.halignStart(x_seq[bgn1:bgn1+len1],y_seq[bgn2:bgn2+len2])
                     outfile.flush()
@@ -256,9 +253,9 @@ def analyzeGap(x,y,left,right,outfile,maxgap,erate,margin):
                 # print >>outfile,"# FINISHED localAlignerInterface.syntenicSegments"
             except RuntimeError:
                 print >>outfile, "# NOTE syntenicSegments failed between these records"
-                #print >>outfile, "# STARTED localAlignerInterface.syntenicSegments"
-                #print >>outfile, "# left = %s" % str(left)
-                #print >>outfile, "# right= %s" % str(right)
+                print >>outfile, "# STARTED localAlignerInterface.syntenicSegments"
+                print >>outfile, "# left = %s" % str(left)
+                print >>outfile, "# right= %s" % str(right)
                 print >>sys.stderr, "NOTE syntenicSegments failed in fillIntraRunGaps for:"
                 print >>sys.stderr, "x_seq="+x_seq
                 print >>sys.stderr, "len(x_seq)=",len(x_seq)
@@ -289,6 +286,8 @@ def mainLoop( inpfile, outfile, xIdx, yIdx, maxgap, erate):
     inpfile.seek(0)
     inpfileIter = iter(inpfile)
 
+    sys.stderr.write("begin\n")
+
     left = None
     for line in inpfileIter:
         if(line[0] == 'M'):
@@ -296,6 +295,8 @@ def mainLoop( inpfile, outfile, xIdx, yIdx, maxgap, erate):
             print >>outfile, left
             countLines += 1
             break;
+
+    sys.stderr.write("countLines=%d\n" % countLines)
 
     for line in inpfileIter:
         if(line[0] == 'M'):
@@ -305,7 +306,8 @@ def mainLoop( inpfile, outfile, xIdx, yIdx, maxgap, erate):
                 if( countLines % 10000 == 0):
                     sys.stderr.write("countLines=%d\n" % countLines)
 
-                (inter_run_gap_count,) =  analyzeGap( xIdx, yIdx, left,right, outfile, maxgap, erate, margin)
+                (inter_run_gap_count,)     =  analyzeGap( xIdx, yIdx, left,right, outfile, maxgap, erate, margin)
+
                 inter_run_gap_count_total += inter_run_gap_count
 
                 # Output the record which was possibly trimmed.

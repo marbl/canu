@@ -183,10 +183,6 @@ def sortInXorderAP( inpfile, outfile):
     # Use -u to remove the palindromes.
     # Use -k 7nr -k 11nr to remove abutting contained matches.
 
-    if (not os.path.exists('./tmp')):
-        os.system('mkdir ./tmp')
-    # end if
-
     inpfile.seek(0)
     outfile.seek(0)
     inpfile.flush()
@@ -194,8 +190,7 @@ def sortInXorderAP( inpfile, outfile):
 
     ierr = os.system("sync;sync;sync")
     assert(ierr == 0)
-    ierr = os.system("sort -T ./tmp %s %s > %s" %
-                     (InXOrderAP, inpfile.name, outfile.name));
+    ierr = os.system("sort -T . %s %s > %s" % (InXOrderAP, inpfile.name, outfile.name));
     assert(ierr == 0)
     ierr = os.system("sync;sync;sync")
     assert(ierr == 0)
@@ -211,10 +206,6 @@ def sortInYorderAP( inpfile, outfile):
     # Use -u to remove the palindromes.
     # Use -k 7nr -k 11nr to remove abutting contained matches.
 
-    if (not os.path.exists('./tmp')):
-        os.system('mkdir ./tmp')
-    # end if
-
     inpfile.seek(0)
     outfile.seek(0)
     inpfile.flush()
@@ -222,8 +213,7 @@ def sortInYorderAP( inpfile, outfile):
 
     ierr = os.system("sync;sync;sync")
     assert(ierr == 0)
-    ierr = os.system("sort -T ./tmp %s %s > %s" %
-                     (InYOrderAP, inpfile.name, outfile.name));
+    ierr = os.system("sort -T . %s %s > %s" % (InYOrderAP, inpfile.name, outfile.name));
     assert(ierr == 0)
     ierr = os.system("sync;sync;sync")
     assert(ierr == 0)
