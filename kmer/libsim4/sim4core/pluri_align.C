@@ -236,24 +236,14 @@ Sim4::pluri_align(int *dist_ptr,
 
     tmp_script = left;  
 
-#ifdef DEBUG
-    fprintf(stderr, "a=%s\nb=%s\n", a, b);
-#endif
-
     while (tmp_script) {
       switch (tmp_script->op_type) {
       case  DELETE:
-#ifdef DEBUG
-        fprintf(stderr, "delete %d\n", tmp_script->num);
-#endif
         nextExon->numInDel += tmp_script->num;
         nextExon->numEdits += tmp_script->num;
         a                  += tmp_script->num;
         break;
       case  INSERT:
-#ifdef DEBUG
-        fprintf(stderr, "insert %d\n", tmp_script->num);
-#endif
         nextExon->numInDel += tmp_script->num;
         nextExon->numEdits += tmp_script->num;
         b                  += tmp_script->num;
@@ -266,11 +256,6 @@ Sim4::pluri_align(int *dist_ptr,
         //  not a base for an 'n'.
         //
         for (i=0; i<tmp_script->num; ++i, ++a, ++b) {
-
-#ifdef DEBUG
-          fprintf(stderr, "pair=%c%c\n", *a, *b);
-#endif
-
           if (((*a == 'N') || (*a == 'n')) && ((*b == 'N') || (*b == 'n'))) {
             //  Got an 'n'.  It isn't a match and it isn't an edit.
             //
@@ -287,15 +272,8 @@ Sim4::pluri_align(int *dist_ptr,
         }
         break;
       }         
-#ifdef DEBUG
-      fprintf(stderr, "next script.\n");
-#endif
       tmp_script = tmp_script->next;
     }
-
-#ifdef DEBUG
-    fprintf(stderr, "next exon.\n");
-#endif
 
     nextExon->alignmentLength = (nextExon->toGEN - nextExon->frGEN + 1 +
                                  nextExon->toEST - nextExon->frEST + 1 +
