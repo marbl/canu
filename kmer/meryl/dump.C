@@ -217,7 +217,6 @@ plotDistanceBetweenMers(char *inputFile) {
 
 void
 plotHistogram(char *inputFile, char *outputFile) {
-  u32bit   *H = new u32bit [64 * 1024 * 1024];
 
   if (inputFile == 0L) {
     fprintf(stderr, "ERROR - no counted database file specified.\n");
@@ -236,15 +235,18 @@ plotHistogram(char *inputFile, char *outputFile) {
 
   mcd.read(DAT);
 
-  u64bit numMers     = 0;
-  u64bit numUnique   = 0;
-  u64bit numDistinct = 0;
-  u64bit numHuge     = 0;
+  u64bit   numMers     = 0;
+  u64bit   numUnique   = 0;
+  u64bit   numDistinct = 0;
+  u64bit   numHuge     = 0;
+  u64bit   maxCount    = 0;
+  u64bit   hugeCount   = 64 * 1024 * 1024;
+  u32bit  *H           = new u32bit [hugeCount];
+
+  for (u32bit i=0; i<hugeCount; i++)
+    H[i] = 0;
 
   mcBucket *B = new mcBucket(IDX, DAT, &mcd);
-
-  for (u32bit i=0; i<16*1024*1024; i++)
-    H[i] = 0;
 
   for (u32bit i=0; i<mcd._tableSizeInEntries; i++) {
     numDistinct += B->_items;
@@ -254,10 +256,13 @@ plotHistogram(char *inputFile, char *outputFile) {
         fprintf(stderr, "Got something with zero count?\n");
       if (B->_counts[j] == 1)
         numUnique++;
-      if (B->_counts[j] < 16 * 1024 * 1024)
+      if (B->_counts[j] < hugeCount) {
         H[B->_counts[j]]++;
-      else
+        if (maxCount < B->_counts[j])
+          maxCount = B->_counts[j];
+      } else {
         numHuge++;
+      }
     }
     B->readBucket();
   }
@@ -269,22 +274,22 @@ plotHistogram(char *inputFile, char *outputFile) {
   fprintf(stderr, "Found %lu mers.\n", numMers);
   fprintf(stderr, "Found %lu distinct mers.\n", numDistinct);
   fprintf(stderr, "Found %lu unique mers.\n", numUnique);
-  fprintf(stderr, "Found %lu huge mers.\n", numHuge);
+  fprintf(stderr, "Found %lu huge mers (count >= %lu).\n", numHuge, hugeCount);
+  fprintf(stderr, "Largest mercount is %lu.\n", maxCount);
 #else
   fprintf(stderr, "Found %llu mers.\n", numMers);
   fprintf(stderr, "Found %llu distinct mers.\n", numDistinct);
   fprintf(stderr, "Found %llu unique mers.\n", numUnique);
-  fprintf(stderr, "Found %llu huge mers.\n", numHuge);
+  fprintf(stderr, "Found %llu huge mers (count >= %llu).\n", numHuge, hugeCount);
+  fprintf(stderr, "Largest mercount is %llu.\n", maxCount);
 #endif
 
-  FILE *F = fopen(outputFile, "w");
-  for (u32bit i=0; i<16 * 1024 * 1024; i++)
+  for (u32bit i=0; i<=maxCount; i++)
 #ifdef TRUE64BIT
-    fprintf(F, "%u\n", H[i]);
+    fprintf(stdout, "%u\n", H[i]);
 #else
-    fprintf(F, "%lu\n", H[i]);
+    fprintf(stdout, "%lu\n", H[i]);
 #endif
-  fclose(F);
 }
 
 

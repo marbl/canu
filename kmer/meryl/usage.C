@@ -91,4 +91,16 @@ const char *usage =
 "              %s -M -add -s 1 -s 2 -s 3 -s 4 -o all\n"
 "     NOTE:  It is NOT possible to specify more than one operation:\n"
 "              %s -M -add -s 1 -s 2 -sub -s 3\n"
-"            will NOT work.\n";
+"            will NOT work.\n"
+"\n"
+"\n"
+"-D:  Dump the table (not all of these work).\n"
+"\n"
+"     -Dd        Raw dump.\n"
+"     -Dt        Dump mers >= a threshold.  Use -n to specify the threshold.\n"
+"     -Dc        Count the number of mers, distinct mers and unique mers.\n"
+"     -Dp        Plot the distance between mers.\n"
+"     -Dh        Dump (to stdout) a histogram of mer counts.\n"
+"     -s         Read the count table from here (leave off the .mcdat or .mcidx).\n"
+"\n"
+"\n";
