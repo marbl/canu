@@ -12,8 +12,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-//#include "bri++.H"
-
 class merCovering {
 private:
   class interval {
