@@ -2,7 +2,6 @@
 
 UTIL/       :=$(call MakePath,$/../util/)
 LIBBRI/     :=$(call MakePath,$/../libbri/)
-EXTERNAL/   :=$(call MakePath,$/../existDB/)
 
 # declarations
 src     :=$/sim4polish.c \
