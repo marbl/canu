@@ -59,177 +59,142 @@ main(int argc, char **argv) {
 
   //  Parse the options
   //
-  //  XXX:  This is just nasty, and really should be strncmp based.
-  //
   for (int arg=1; arg < argc; arg++) {
-    if (argv[arg][0] != '-') {
-      fprintf(stderr, "Not an option: '%s'.\n", argv[arg]);
+    if        (strncmp(argv[arg], "--buildinfo", 3) == 0) {
+      buildinfo_meryl(stderr);
+      buildinfo_libbri(stderr);
       exit(1);
-    } else {
-      switch (argv[arg][1]) {
-        case '-':  //  Ugh!  --buildinfo?
-          buildinfo_meryl(stderr);
-          buildinfo_libbri(stderr);
-          exit(1);
-          break;
-        case 'm':
-          if        (strcmp(argv[arg], "-m") == 0) {
-	    arg++;
-	    merSize = atoi(argv[arg]);
-	  } else if (strcmp(argv[arg], "-mask") == 0) {
-	    arg++;
-	    maskFile = argv[arg];
-	  } else {
-	    fprintf(stderr, "Unknown option '%s'.\n", argv[arg]);
-	  }
-          break;
-        case 's':
-          if        (strcmp(argv[arg], "-s") == 0) {
-            arg++;
-            mergeFiles[mergeFilesLen++] = inputFile = argv[arg];
-          } else if (strcmp(argv[arg], "-stats") == 0) {
-            arg++;
-            statsFile = argv[arg];
-          }
-          break;
-        case 'n':
-          arg++;
-          estimatedNumMers = atol(argv[arg]);
-          break;
-        case 'f':
-          doForward   = true;
-          doReverse   = false;
-          doCanonical = false;
-          break;
-        case 'r':
-          doForward   = false;
-          doReverse   = true;
-          doCanonical = false;
-          break;
-        case 'C':
-          doForward   = false;
-          doReverse   = false;
-          doCanonical = true;
-          break;
-        case 'L':
-          arg++;
-          lowCount = atoi(argv[arg]);
-          break;
-        case 'U':
-          arg++;
-          highCount = atoi(argv[arg]);
-          break;
-        case 't':
-          arg++;
-          tblSize = atoi(argv[arg]);
-          break;
-        case 'H':
-          arg++;
-          hashSize = atoi(argv[arg]);
-          break;
-        case 'o':
-          arg++;
-          outputFile = argv[arg];
-          break;
-        case 'v':
-          beVerbose = true;
-          break;
-        case 'q':
-          arg++;
-          queryFile = argv[arg];
-          break;
-        case 'd':
-          includeDefLine = true;
-          break;
-        case 'e':
-          includeMer = true;
-          break;
-        case 'c':
-          outputCount    = true;
-          outputAll      = false;
-          outputPosition = false;
-          break;
-        case 'a':
-          outputCount    = false;
-          outputAll      = true;
-          outputPosition = false;
-          break;
-        case 'p':
-          outputCount    = false;
-          outputAll      = false;
-          outputPosition = true;
-          break;
-        case 'P':
-        case 'B':
-        case 'S':
-          personality = argv[arg][1];
-          break;
-        case 'M':
-          arg++;
-          if        (strcmp(argv[arg], "min") == 0) {
-            personality = PERSONALITY_MIN;
-          } else if (strcmp(argv[arg], "minexist") == 0) {
-            personality = PERSONALITY_MINEXIST;
-          } else if (strcmp(argv[arg], "max") == 0) {
-            personality = PERSONALITY_MAX;
-          } else if (strcmp(argv[arg], "add") == 0) {
-            personality = PERSONALITY_ADD;
-          } else if (strcmp(argv[arg], "sub") == 0) {
-            personality = PERSONALITY_SUB;
-          } else if (strcmp(argv[arg], "abs") == 0) {
-            personality = PERSONALITY_ABS;
-          } else if (strcmp(argv[arg], "and") == 0) {
-            personality = PERSONALITY_AND;
-          } else if (strcmp(argv[arg], "nand") == 0) {
-            personality = PERSONALITY_NAND;
-          } else if (strcmp(argv[arg], "or") == 0) {
-            personality = PERSONALITY_OR;
-          } else if (strcmp(argv[arg], "nor") == 0) {
-            personality = PERSONALITY_NOR;
-          } else if (strcmp(argv[arg], "not") == 0) {
-            personality = PERSONALITY_NOT;
-          } else if (strcmp(argv[arg], "xor") == 0) {
-            personality = PERSONALITY_XOR;
-          } else if (strcmp(argv[arg], "lessthan") == 0) {
-            personality = PERSONALITY_LEQ;
-            arg++;
-            desiredCount = atoi(argv[arg]) - 1;
-          } else if (strcmp(argv[arg], "lessthanorequal") == 0) {
-            personality = PERSONALITY_LEQ;
-            arg++;
-            desiredCount = atoi(argv[arg]);
-          } else if (strcmp(argv[arg], "greaterthan") == 0) {
-            personality = PERSONALITY_GEQ;
-            arg++;
-            desiredCount = atoi(argv[arg]) + 1;
-          } else if (strcmp(argv[arg], "greaterthanorequal") == 0) {
-            personality = PERSONALITY_GEQ;
-            arg++;
-            desiredCount = atoi(argv[arg]);
-          } else if (strcmp(argv[arg], "equal") == 0) {
-            personality = PERSONALITY_EQ;
-            arg++;
-            desiredCount = atoi(argv[arg]);
-          } else {
-            fprintf(stderr, "ERROR: unknown math personality %s\n", argv[arg]);
-            exit(1);
-          }
-          break;
-        case 'D':
-          switch (argv[arg][2]) {
-            case 'c':
-            case 'p':
-            case 't':
-            case 'h':
-            case '2':
-              personality = argv[arg][2];
-              break;
-          }
-          break;
-        default:
-          fprintf(stderr, "Unknown option '%s'.\n", argv[arg]);
-          break;
+    } else if (strcmp(argv[arg], "-m") == 0) {
+      arg++;
+      merSize = atoi(argv[arg]);
+    } else if (strcmp(argv[arg], "-mask") == 0) {
+      arg++;
+      maskFile = argv[arg];
+    } else if (strcmp(argv[arg], "-s") == 0) {
+      arg++;
+      mergeFiles[mergeFilesLen++] = inputFile = argv[arg];
+    } else if (strcmp(argv[arg], "-stats") == 0) {
+      arg++;
+      statsFile = argv[arg];
+    } else if (strcmp(argv[arg], "-n") == 0) {
+      arg++;
+      estimatedNumMers = atol(argv[arg]);
+    } else if (strcmp(argv[arg], "-f") == 0) {
+      doForward   = true;
+      doReverse   = false;
+      doCanonical = false;
+    } else if (strcmp(argv[arg], "-4") == 0) {
+      doForward   = false;
+      doReverse   = true;
+      doCanonical = false;
+    } else if (strcmp(argv[arg], "-C") == 0) {
+      doForward   = false;
+      doReverse   = false;
+      doCanonical = true;
+    } else if (strcmp(argv[arg], "-L") == 0) {
+      arg++;
+      lowCount = atoi(argv[arg]);
+    } else if (strcmp(argv[arg], "-U") == 0) {
+      arg++;
+      highCount = atoi(argv[arg]);
+    } else if (strcmp(argv[arg], "-t") == 0) {
+      arg++;
+      tblSize = atoi(argv[arg]);
+    } else if (strcmp(argv[arg], "-H") == 0) {
+      arg++;
+      hashSize = atoi(argv[arg]);
+    } else if (strcmp(argv[arg], "-o") == 0) {
+      arg++;
+      outputFile = argv[arg];
+    } else if (strcmp(argv[arg], "-v") == 0) {
+      beVerbose = true;
+    } else if (strcmp(argv[arg], "-q") == 0) {
+      arg++;
+      queryFile = argv[arg];
+    } else if (strcmp(argv[arg], "-d") == 0) {
+      includeDefLine = true;
+    } else if (strcmp(argv[arg], "-e") == 0) {
+      includeMer = true;
+    } else if (strcmp(argv[arg], "-c") == 0) {
+      outputCount    = true;
+      outputAll      = false;
+      outputPosition = false;
+    } else if (strcmp(argv[arg], "-a") == 0) {
+      outputCount    = false;
+      outputAll      = true;
+      outputPosition = false;
+    } else if (strcmp(argv[arg], "-p") == 0) {
+      outputCount    = false;
+      outputAll      = false;
+      outputPosition = true;
+    } else if (strcmp(argv[arg], "-P") == 0) {
+      personality = 'P';
+    } else if (strcmp(argv[arg], "-B") == 0) {
+      personality = 'B';
+    } else if (strcmp(argv[arg], "-S") == 0) {
+      personality = 'S';
+    } else if (strcmp(argv[arg], "-M") == 0) {
+      arg++;
+      if        (strcmp(argv[arg], "min") == 0) {
+        personality = PERSONALITY_MIN;
+      } else if (strcmp(argv[arg], "minexist") == 0) {
+        personality = PERSONALITY_MINEXIST;
+      } else if (strcmp(argv[arg], "max") == 0) {
+        personality = PERSONALITY_MAX;
+      } else if (strcmp(argv[arg], "add") == 0) {
+        personality = PERSONALITY_ADD;
+      } else if (strcmp(argv[arg], "sub") == 0) {
+        personality = PERSONALITY_SUB;
+      } else if (strcmp(argv[arg], "abs") == 0) {
+        personality = PERSONALITY_ABS;
+      } else if (strcmp(argv[arg], "and") == 0) {
+        personality = PERSONALITY_AND;
+      } else if (strcmp(argv[arg], "nand") == 0) {
+        personality = PERSONALITY_NAND;
+      } else if (strcmp(argv[arg], "or") == 0) {
+        personality = PERSONALITY_OR;
+      } else if (strcmp(argv[arg], "nor") == 0) {
+        personality = PERSONALITY_NOR;
+      } else if (strcmp(argv[arg], "not") == 0) {
+        personality = PERSONALITY_NOT;
+      } else if (strcmp(argv[arg], "xor") == 0) {
+        personality = PERSONALITY_XOR;
+      } else if (strcmp(argv[arg], "lessthan") == 0) {
+        personality = PERSONALITY_LEQ;
+        arg++;
+        desiredCount = atoi(argv[arg]) - 1;
+      } else if (strcmp(argv[arg], "lessthanorequal") == 0) {
+        personality = PERSONALITY_LEQ;
+        arg++;
+        desiredCount = atoi(argv[arg]);
+      } else if (strcmp(argv[arg], "greaterthan") == 0) {
+        personality = PERSONALITY_GEQ;
+        arg++;
+        desiredCount = atoi(argv[arg]) + 1;
+      } else if (strcmp(argv[arg], "greaterthanorequal") == 0) {
+        personality = PERSONALITY_GEQ;
+        arg++;
+        desiredCount = atoi(argv[arg]);
+      } else if (strcmp(argv[arg], "equal") == 0) {
+        personality = PERSONALITY_EQ;
+        arg++;
+        desiredCount = atoi(argv[arg]);
+      } else {
+        fprintf(stderr, "ERROR: unknown math personality %s\n", argv[arg]);
+        exit(1);
       }
+    } else if (strcmp(argv[arg], "-Dc") == 0) {
+      personality = 'c';
+    } else if (strcmp(argv[arg], "-Dp") == 0) {
+      personality = 'p';
+    } else if (strcmp(argv[arg], "-Dt") == 0) {
+      personality = 't';
+    } else if (strcmp(argv[arg], "-Dh") == 0) {
+      personality = 'h';
+    } else if (strcmp(argv[arg], "-D2") == 0) {
+      personality = '2';
+    } else {
+      fprintf(stderr, "Unknown option '%s'.\n", argv[arg]);
     }
   }
 
@@ -266,13 +231,11 @@ main(int argc, char **argv) {
     case PERSONALITY_NAND:
     case PERSONALITY_OR:
     case PERSONALITY_XOR:
-      //  Multiple personalities
       multipleOperations(personality, mergeFiles, mergeFilesLen, maskFile, outputFile, beVerbose);
       break;
 
     case PERSONALITY_SUB:
     case PERSONALITY_ABS:
-      //  Binary personalities
       binaryOperations(personality, mergeFiles, mergeFilesLen, maskFile, outputFile, beVerbose);
       break;
 
