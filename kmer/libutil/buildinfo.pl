@@ -2,12 +2,17 @@
 
 use strict;
 
+if (scalar(@ARGV) < 3) {
+    print STDERR "usage: $0 functionName compilerOptions sourceFile sourceFile ...\n";
+    exit(1);
+}
+
 my $functionName = shift @ARGV;
 my $compileOpts  = shift @ARGV;
 
-print STDERR "Creating build information with name '$functionName'.\n";
+#print STDERR "Creating build information with name '$functionName'.\n";
 
-open(Z, "> buildinfo-$functionName.h");
+open(Z, "> buildinfo-$functionName.h") or die "Failed to open buildinfo-$functionName.h\n";
 print Z "#include <stdio.h>\n";
 print Z "#ifdef __cplusplus\n";
 print Z "extern \"C\" {\n";
@@ -19,8 +24,7 @@ print Z "}\n";
 print Z "#endif\n";
 close(Z);
 
-open(Z, "> buildinfo-$functionName.c");
-
+open(Z, "> buildinfo-$functionName.c") or die "Failed to open buildinfo-$functionName.c\n";;
 print Z "#include <stdio.h>\n";
 print Z "\n";
 print Z "void\n";
