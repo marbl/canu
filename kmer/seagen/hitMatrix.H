@@ -1,11 +1,13 @@
 #ifndef HITMATRIX_H
 #define HITMATRIX_H
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <new.h>
+
 #include "libbri.H"
 #include "positionDB.H"
 #include "intervalList.H"
-
-//  $Id$
 
 struct diagonalLine {
   u32bit   _qsPos;
@@ -77,11 +79,9 @@ private:
                 char           direction);
 
 public:
-  hitMatrix(u32bit qsLen, u32bit q, u32bit qsIdx);
+  hitMatrix(u32bit qsLen, u32bit q, u32bit qsIdx, bool reversed=false);
   ~hitMatrix();
 
-  void    addHit(u32bit qi,
-                 u32bit ps);
   void    addHits(u32bit  qi,
                   u64bit *ps,
                   u64bit  cn);
@@ -102,7 +102,13 @@ hitMatrix::addHits(u32bit  qi,
   if ((_hitsLen + cn) >= _hitsMax) {
     _hitsMax = _hitsMax + _hitsMax + (u32bit)cn;
 
-    diagonalLine  *h = new diagonalLine [_hitsMax];
+    diagonalLine *h;
+    try {
+      h = new diagonalLine [_hitsMax];
+    } catch (bad_alloc) {
+      fprintf(stderr, "hitMatrix::addHits()-- caught bad_alloc in %s at line %d\n", __FILE__, __LINE__);
+      fprintf(stderr, "hitMatrix::addHits()-- have %u hits, tried to add %u more\n", _hitsLen, cn);
+    }
 
     for (u32bit z=_hitsLen; z--; ) {
       h[z]._qsPos      = _hits[z]._qsPos;
@@ -116,44 +122,12 @@ hitMatrix::addHits(u32bit  qi,
   }
 
   for (u64bit i=0; i<cn; i++) {
-    //fprintf(stderr, "Hit: %u %lu\n", qi, ps[i]);
-
     _hits[_hitsLen]._qsPos      = (u32bit)(qi);
     _hits[_hitsLen]._dsPos      = (u32bit)(ps[i]);
     _hits[_hitsLen]._diagonalID = (u32bit)(_qsLen - qi - 1 + ps[i]);
     _hitsLen++;
   }
 }
-
-
-inline
-void
-hitMatrix::addHit(u32bit qi,
-                  u32bit ps) {
-
-  if (_hitsLen >= _hitsMax) {
-    _hitsMax <<= 1;
-
-    diagonalLine  *h = new diagonalLine [_hitsMax];
-
-    for (u32bit z=_hitsLen; z--; ) {
-      h[z]._qsPos      = _hits[z]._qsPos;
-      h[z]._dsPos      = _hits[z]._dsPos;
-      h[z]._diagonalID = _hits[z]._diagonalID;
-    }
-          
-    delete [] _hits;
-
-    _hits = h;
-  }
-
-  _hits[_hitsLen]._qsPos      = qi;
-  _hits[_hitsLen]._dsPos      = ps;
-  _hits[_hitsLen]._diagonalID = _qsLen - qi - 1 + ps;
-        
-  _hitsLen++;
-}
-
 
 
 #endif  //  HITMATRIX_H
