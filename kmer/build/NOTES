@@ -93,7 +93,7 @@ and read for various platform specific defines.  Then the file
 Make.include in _the current directory_ is read.  The Make.include
 file contains various definitions relating to the build in the current
 directory as well as recursive inclusions.  Once all recursive
-inclusions have finished, a Make.depends file in each Make.include
+inclusions have finished, a set of *.d files in each Make.include
 directory is read to include automatically generated rules (for C and
 C++ compiles).
 
@@ -156,7 +156,7 @@ $/.clean, $/.real-clean, ... .  The top-level targets, all, clean,
  $/.all: builds all targets at $/. and below
  $/.clean: removes targets and files specified by $/.CLEAN at $/. and
    below
- $/.depends-clean: removes the auto-generated $/Make.depends files at $/.
+ $/.depends-clean: removes the auto-generated $/*.d depends files at $/.
    and below
  $/.real-clean: does $/.clean and $/.depends-clean and removes files
    specified by $/.REAL-CLEAN
