@@ -1,0 +1,125 @@
+#include "mcBucket.H"
+
+void
+mcBucket::readBucket(void) {
+
+  _bucketID++;
+
+  //if ((_bucketID & 0xffffff) == 0) {
+  //  fprintf(stderr, "reading              0x%016lx\r", _bucketID);
+  //  fflush(stderr);
+  //}
+
+  //  Read the number of items in this bucket
+  //
+  _items     = _IDX->getBits(32);
+  _bitsRead += 32;
+
+  //fprintf(stderr, "getting %u items.\n", _items);
+
+  if (_items > 0) {
+
+    //  Allocate enough space
+    //
+    if (_items > _itemsMax) {
+      delete _checks;
+      delete _counts;
+
+      _itemsMax = _items;
+
+      _checks   = new u64bit [_itemsMax];
+      _counts   = new u64bit [_itemsMax];
+    }
+
+    //  Read the checks and counts.
+    //
+    for (u32bit i=0; i<_items; i++) {
+      u64bit v = _DAT->getBits(_chckBits + 1);
+
+      _bitsRead += _chckBits + 1;
+
+      if (v & _firstBit) {
+        _checks[i] = v & _chckMask;
+        _counts[i] = 1;
+      } else {
+        _checks[i] = v;
+
+        //  Maximum number of shifts we can see is four.
+        //
+        v = _DAT->getBits(_chckBits + 1);
+        _bitsRead   += _chckBits + 1;
+        _counts[i]   =  v & _chckMask;
+
+        if ((v & _firstBit) == u64bitZERO) {
+          v = _DAT->getBits(_chckBits + 1);
+          _bitsRead   += _chckBits + 1;
+          _counts[i]  |=  (v & _chckMask) << _chckBits;
+
+          if ((v & _firstBit) == u64bitZERO) {
+            v = _DAT->getBits(_chckBits + 1);
+            _bitsRead   += _chckBits + 1;
+            _counts[i]  |=  (v & _chckMask) << (_chckBits + _chckBits);
+
+            if ((v & _firstBit) == u64bitZERO) {
+              v = _DAT->getBits(_chckBits + 1);
+              _bitsRead   += _chckBits + 1;
+              _counts[i]  |=  (v & _chckMask) << (_chckBits + _chckBits + _chckBits);
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+
+void
+mcBucket::read(mcMer *mer) {
+  u64bit   bucketIDdesired = mer->mer >> _chckBits;
+
+  //fprintf(stderr, "Looking for bucketID 0x%016lx (mer = 0x%016lx)\n", bucketIDdesired, mer->mer);
+
+  //  Do we have the bucket already?
+  //
+  if (_bucketID == bucketIDdesired)
+    return;
+
+  //  Nope, read it in.  We, sadly, have to read everything in between.
+  //
+  while (_bucketID < bucketIDdesired)
+    readBucket();
+}
+
+
+void
+mcBucket::scan(mcMer *mer) {
+  u64bit   checkDesired = mer->mer & _chckMask;
+
+  mer->count = 0;
+
+  for (u64bit i=0; i<_items; i++) {
+    if (checkDesired == _checks[i]) {
+      mer->count = (u32bit)_counts[i];
+      i = _items;
+    }
+  }
+}
+
+
+void
+mcBucket::dump(FILE *F) {
+  u64bit  mer;
+
+  //  The first bucket is read already
+
+  for (u32bit i=0; i<_items; i++) {
+    mer = _bucketID << _chckBits | _checks[i];
+#ifdef TRUE64BIT
+    fprintf(F, "0x%016lx %lu\n", mer, _counts[i]);
+#else
+    fprintf(F, "0x%016llx %llu\n", mer, _counts[i]);
+#endif
+  }
+
+  readBucket();
+}

@@ -1,0 +1,25 @@
+Four sim4 related utilities:
+
+------------------------------------------------------------
+filterPolishes.c
+  Filters polishes by percent identity and composite.  Writes output to
+  stdout or a file, takes input from stdin.
+
+------------------------------------------------------------
+mergePolishes.C
+  Merges multiple sim4db outputs.  The output must be from the
+  same genomic file, with different cDNA files.
+
+------------------------------------------------------------
+pickBestPolish.c
+  Picks the best polish.  Input is stdin, output is stdout.  No options.
+
+------------------------------------------------------------
+sortPolishes.c
+  Sorts polishes by ESTid or GENid.  Input is stdin, output is stdout.
+  Takes "-n N" to set the maximum number of polishes in the input.
+
+------------------------------------------------------------
+stripPolishes.c
+  Removes deflines and alignments from a polish file.
+

@@ -1,0 +1,186 @@
+
+After trimming:
+
+dsc154p:/home/walenzbp/projects/sim4reader> perl ../../dbEST-20020331/intronstats.pl < trimmed.out
+
+int: 206
+sma: 195(First:16,Last:23,oneF:92,oneL:64,oneB:0)
+big 1319(First:330,Last:346,One:643)
+tot 4297418
+ff=4,fc=12 lf=12,lc=11
+
+
+sim4begin
+3529019[872-0-0] 1363[2586779-3425929] <538-0-96-forward-forward>
+edef=>CRA|162000089143028 /altid=gi|11947691 /dataset=dbest /taxon=9606 /org=Homo sapiens /date=12/21/2000 /altid=gb_acc|BF673796.1 /organ=prosta
+te /tissue_type= /length=872 /clone_end=5' /def=602135941F1 NIH_MGC_83 Homo sapiens cDNA clone IMAGE:4272299 5', mRNA sequence.
+ddef=>CRA|GA_x54KRE8RWM2:1..4526107 /organism=Homo sapiens /order=1 /ga_uid=181000064531106 /len=4526107
+1-53 (2001-2053) <53-0-100> ->
+54-136 (2322-2404) <83-0-100> ->
+137-281 (2499-2643) <144-0-99> ->
+282-337 (3107-3162) <54-0-96> ->
+338-507 (3337-3509) <167-0-95> ->
+508-553 (822566-822611) <37-0-77>
+gcttcttcctctttctcgactccatcttcgcggtagctgggaccgccgttcag
+gcttcttcctctttctcgactccatcttcgcggtagctgggaccgccgttcag
+tcgccaatatgcagctctttgtccgcgcccaggagctacacaccttcgaggtgaccggccaggaaacggtcgcccagatcaag
+tcgccaatatgcagctctttgtccgcgcccaggagctacacaccttcgaggtgaccggccaggaaacggtcgcccagatcaag
+gctcatgtagcctcactggagggcattgccccggaagatcaagtcgtgctcctggcaggcgcgcccctggaggatgaggccactctgggccagtgcggggtggaggccctgaTtaccctggaagtagcaggccgcatgcttggag
+gctcatgtagcctcactggagggcattgccccggaagatcaagtcgtgctcctggcaggcgcgcccctggaggatgaggccactctgggccagtgcggggtggaggccctgaCtaccctggaagtagcaggccgcatgcttggag
+gtaaagtccatggttccctggcccgtgcCTgaaaagtgagaggtcagactcctaag
+gtaaagtccatggttccctggcccgtgcTGgaaaagtgagaggtcagactcctaag
+gtggccaaacaggagaagaagaCgaagaagacaggtcgggctaagcgg-ggatgcagtacaaccggcgcttGtgtcaacgtGgtgcccacctttggcaagaagaagggccccaatgccaactcttaagtcttt-gtaattctggc
+tt-ctctaataaaaaagc-acttagttca
+gtggccaaacaggagaagaagaAgaagaagacaggtcgggctaagcggCggatgcagtacaaccggcgctt-tgtcaacgtTgtgcccacctttggcaagaagaagggccccaatgccaactcttaagtctttTgtaattctggc
+ttTctctaataaaaaagcCacttagttca
+Gcc-AAAAaaaaaaaaaaaaaaaaaaaaaagtggg-ggGgggCCgCga
+TccGTCTCaaaaaaaaaaaaaaaaaaaaaagtgggAggCgggA-g-ga
+sim4end
+
+
+
+On the latest run (with 85%, 10k filtering):
+
+int: 206
+sma: 147(First:10,Last:20,oneF:66,oneL:51,oneB:0)
+big 1184(First:316,Last:325,One:543)
+tot 4297418
+ff=3,fc=7 lf=10,lc=10
+
+
+
+
+There are still ~1300 matches with big introns.  See:
+
+-rw-rw-r--   1 walenz   assembly     982915 Jun 24 18:22 big-exon-after-big-intron
+-rw-rw-r--   1 walenz   assembly     738089 Jun 24 18:22 big-exon-after-big-oneintron
+-rw-rw-r--   1 walenz   assembly      45228 Jun 24 18:22 sma-exon-after-big-intron
+-rw-rw-r--   1 walenz   assembly     161196 Jun 24 18:22 sma-exon-after-big-oneintron
+
+
+
+
+
+sim4begin
+3252894[607-0-0] 90[582719-1347738] <605-0-99-forward-forward>
+edef=>CRA|107000020413693 /altid=gi|9345515 /dataset=dbest /taxon=9606 /org=Homo sapiens /date=07/21
+/2000 /altid=gb_acc|BE409065.1 /organ=placenta /tissue_type=choriocarcinoma /length=607 /clone_end=5
+' /def=601301223F1 NIH_MGC_21 Homo sapiens cDNA clone IMAGE:3635909 5', mRNA sequence.
+ddef=>CRA|GA_x9V1BB6:1..4925599 /organism=Homo sapiens /order=1 /ga_uid=332442982 /len=4925599
+1-172 (2001-2172) <172-0-100> ->
+173-340 (756341-756508) <167-0-99> ->
+341-401 (758205-758265) <61-0-100> ->
+402-424 (758575-758597) <23-0-100> ->
+425-500 (759007-759082) <76-0-100> ->
+501-607 (762918-763025) <106-0-97>
+tgctgcctgtgtagttgcagccgcggccgcctcccgccagctcgcctcggggaacaggacgcgcgtgagctcaggcgtccccgccccagcttttctcgga
+accatgaaccccaactgcgcccggtgcggcaagatcgtgtatcccacggagaaggtgaactgtctggataag
+tgctgcctgtgtagttgcagccgcggccgcctcccgccagctcgcctcggggaacaggacgcgcgtgagctcaggcgtccccgccccagcttttctcgga
+accatgaaccccaactgcgcccggtgcggcaagatcgtgtatcccacggagaaggtgaactgtctggataag
+cccgccgcctgcgcgggggagcccagcacagaccgccgccgggaccccgagtcgcgcaccccagccccaccgGccaccccgcgcgccatggaccccaagg
+accgcaagaagatccagttctcggtgcccgcgccccctagccagctcgacccccgccaggtggagatg
+cccgccgcctgcgcgggggagcccagcacagaccgccgccgggaccccgagtcgcgcaccccagccccaccgCccaccccgcgcgccatggaccccaagg
+accgcaagaagatccagttctcggtgcccgcgccccctagccagctcgacccccgccaggtggagatg
+atccggcgcaggagaccaacgcctgccatgctgttccggctctcagagcactcctcaccag
+atccggcgcaggagaccaacgcctgccatgctgttccggctctcagagcactcctcaccag
+aggaggaagcctccccccaccag
+aggaggaagcctccccccaccag
+agagcctcaggagaggggcaccatctcaagtcgaagagacccaacccctgtgcctacacaccaccttcgctgaaag
+agagcctcaggagaggggcaccatctcaagtcgaagagacccaacccctgtgcctacacaccaccttcgctgaaag
+ctgtgcagcgcattgctgagtctcacctgcagtctatcagcaatttgaatgagaaccaggc-tcagaggaggaggatgagctgggggagcttcgggagct
+gg-ttatcA
+ctgtgcagcgcattgctgagtctcacctgcagtctatcagcaatttgaatgagaaccaggcCtcagaggaggaggatgagctgggggagcttcgggagct
+ggGttatc-
+sim4end
+
+
+sim4begin
+1618397[849-0-0] 1420[13169688-14270773] <765-0-98-complement-unknown>
+edef=>CRA|225000001589124 /altid=gi|15746938 /dataset=dbest /taxon=9606 /org=Homo sapiens /date=09/2
+5/2001 /altid=gb_acc|BI755360.1 /organ=brain /tissue_type= /length=849 /clone_end=5' /def=603024964F
+1 NIH_MGC_114 Homo sapiens cDNA clone IMAGE:5195750 5', mRNA sequence.
+ddef=>CRA|GA_x54KRE8WCJ9:1..15664065 /organism=Homo sapiens /order=1 /ga_uid=181000064676425 /len=15
+664065
+1-120 (1988-2108) <117-0-96> <-
+121-259 (2551-2688) <135-0-97> <-
+260-385 (94537-94662) <125-0-99> <-
+386-629 (222351-222595) <242-0-98> ==
+703-849 (1098940-1099085) <146-0-99>
+ctggtttcttcG-tgaaccactggaattcagccatggggactgcagaggcttcacagctcaggatgcccttctgCcGgactgaaacaccagtgttcttgg
+cttttgagatatagggaggat
+ctggtttcttcCTtgaaccactggaattcagccatggggactgcagaggcttcacagctcaggatgcccttctgAcCgactgaaacaccagtgttcttgg
+cttttgagatatagggaggat
+agttGacagtgatttGtGactttccgcacatcgggcgcagcgacatcgttcaaGgcgctgcattcgtactccccggactggtctcgcttgatgtcagaga
+tctccaggtactcatcctcacttacaaagccctggcctt
+agttTacagtgattt-tTactttccgcacatcgggcgcagcgacatcgttcaaCgcgctgcattcgtactccccggactggtctcgcttgatgtcagaga
+tctccaggtactcatcctcacttacaaagccctggcctt
+cGttgactgacaggtgtctccatgtcacagttggctctggtctgccaatagcaagacacagcagggtcacactgcttccctcattcacagtgatgtctga
+ggagatattcatgatctgaggaggaa
+cCttgactgacaggtgtctccatgtcacagttggctctggtctgccaatagcaagacacagcagggtcacactgcttccctcattcacagtgatgtctga
+ggagatattcatgatctgaggaggaa
+cttgcactattaggtgaacccgggacgttttgggatgattgtctgtctgcacagagcaggtgtacggaccttcgtcatacacatccacattttggatcat
+gatgctgtactgggttggtgtattgaccaggatgatcacacgagggtctatggaccacttgtcattcccagcgtagaggatggtgctgcggtttagccag
+gccacccgggttacccggtcatctatggtacacctg-agGgTggc
+cttgcactattaggtgaacccgggacgttttgggatgattgtctgtctgcacagagcaggtgtacggaccttcgtcatacacatccacattttggatcat
+gatgctgtactgggttggtgtattgaccaggatgatcacacgagggtctatggaccacttgtcattcccagcgtagaggatggtgctgcggtttagccag
+gccacccgggttacccggtcatctatggtacacctgCagTgAggc
+cctgggatgaagagcagggcagttgtcgccgagaagacgacccagtaggcaggatggtacatctcgacgctgcggtgctctcagCctgccgggcttgcta
+ctgcttctgctgctgctaccgctgctgccttcctctgtgctgaattc
+cctgggatgaagagcagggcagttgtcgccgagaagacgacccagtaggcaggatggtacatctcgacgctgcggtgctctcag-ctgccgggcttgcta
+ctgcttctgctgctgctaccgctgctgccttcctctgtgctgaattc
+sim4end
+
+
+sim4begin
+2694118[754-0-0] 1420[13169772-14270767] <550-0-97-complement-unknown>
+edef=>CRA|222000001431581 /altid=gi|15437350 /dataset=dbest /taxon=9606 /org=Homo sapiens /date=09/0
+5/2001 /altid=gb_acc|BI550038.1 /organ=brain /tissue_type=hippocampus /length=754 /clone_end=5' /def
+=603192502F1 NIH_MGC_95 Homo sapiens cDNA clone IMAGE:5263800 5', mRNA sequence.
+ddef=>CRA|GA_x54KRE8WCJ9:1..15664065 /organism=Homo sapiens /order=1 /ga_uid=181000064676425 /len=15
+664065
+1-30 (1994-2024) <30-0-96> <-
+31-166 (2467-2602) <133-0-97> ==
+286-536 (222259-222511) <246-0-97> ==
+610-754 (1098856-1099000) <141-0-97>
+gtgttc-tggcttttgagatatagggaggat
+gtgttcTtggcttttgagatatagggaggat
+aGgtttacagtgattttAacttCccgcacatcgggcgcagcgacatcgttcaacgcgctgcattcgtactccccggact-gtctcgcttgatgtcagaga
+tctccaggtactcatcctcacttacaaagccctggcc
+a-gtttacagtgattttTacttTccgcacatcgggcgcagcgacatcgttcaacgcgctgcattcgtactccccggactGgtctcgcttgatgtcagaga
+tctccaggtactcatcctcacttacaaagccctggcc
+ggaGGAa-cttgcactattaggtgaacccgggacgttttgggatgattgtctgtctgcacagagcaggtgtacggaccttcgtcatacacatccacattt
+tggatcatgatgctgtactgggttggtgtattgaccaggatgatcacacgagggtctatggaccacttgtcattcccagcgtagaggatggtgctgcggt
+ttagccaggccacccgggttacccggtcatctatggtacacctg-agGgTggc
+ggaCTTaCcttgcactattaggtgaacccgggacgttttgggatgattgtctgtctgcacagagcaggtgtacggaccttcgtcatacacatccacattt
+tggatcatgatgctgtactgggttggtgtattgaccaggatgatcacacgagggtctatggaccacttgtcattcccagcgtagaggatggtgctgcggt
+ttagccaggccacccgggttacccggtcatctatggtacacctgCagTgAggc
+cctgggatgaagagcagggcagttgtcgccgagaagacgacccagtaggcaggatggtacatctcgacgctgcggtgctctcagctgccgggcttgctac
+tgcttctgctgctgctaccgctgctgccttcctctgtgctCCGCt
+cctgggatgaagagcagggcagttgtcgccgagaagacgacccagtaggcaggatggtacatctcgacgctgcggtgctctcagctgccgggcttgctac
+tgcttctgctgctgctaccgctgctgccttcctctgtgctGAATt
+sim4end
+
+
+
+sim4begin
+134996[500-0-0] 1442[3243352-11655873] <385-0-96-complement-unknown>
+edef=>CRA|1000482720785 /altid=gi|4189471 /dataset=dbest /taxon=9606 /org=Homo sapiens /date=03/18/1
+999 /altid=gb_acc|AI379618.1 /organ=mixed (see below) /tissue_type=Pooled human melanocyte, fetal he
+art, and pregnant uterus /length=500 /clone_end=3' /def=tc58d12.x1 Soares_NhHMPu_S1 Homo sapiens cDN
+A clone IMAGE:2068823 3' similar to TR:Q13538 Q13538 ORF2: FUNCTION UNKNOWN. ;, mRNA sequence.
+ddef=>CRA|GA_x54KRE902N0:1..24267006 /organism=Homo sapiens /order=1 /ga_uid=181000064731840 /len=24
+267006
+27-82 (6826861-6826916) <50-0-89> ==
+162-205 (6826997-6827040) <40-0-88> <-
+206-500 (8410225-8410521) <295-0-99>
+tactcCtggtgaagatgctGCGaacattgttgaCatgaTaacaaaggatttagaat
+tactcTtggtgaagatgctATTaacattgttgaGatgaCaacaaaggatttagaat
+taaaatgctatcaaacagcaTcA-catActacagaAaaatctttc
+taaaatgctatcaaacagca-cTGcatGctacagaGaaatctttc
+atgaaaaagagtcaatcgattcaagctt-cattgttgcctttattttaagaaattaccacaaccaccccaaccttcagcaaccaccatcctgatcagtcc
+acaggcatcaacatggaccgaacaccctccaccagcaaaaagattagaacttgctgaaggcttagtttattgttagcattt-cttagcaacaaagtattt
+ttaataaaagtttttaatttaatgatttgtttgacataatgctattacacatttagtagactacagtatggtataagcagaacttttacatacatta
+atgaaaaagagtcaatcgattcaagcttCcattgttgcctttattttaagaaattaccacaaccaccccaaccttcagcaaccaccatcctgatcagtcc
+acaggcatcaacatggaccgaacaccctccaccagcaaaaagattagaacttgctgaaggcttagtttattgttagcatttCcttagcaacaaagtattt
+ttaataaaagtttttaatttaatgatttgtttgacataatgctattacacatttagtagactacagtatggtataagcagaacttttacatacatta
+sim4end

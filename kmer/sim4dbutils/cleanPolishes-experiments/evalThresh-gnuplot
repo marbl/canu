@@ -1,0 +1,23 @@
+
+set terminal postscript color
+set output "evalThresh.ps"
+plot \
+ "evalThresh.dat" using 3  title "allSmallIntron/100" with lines, \
+ "evalThresh.dat" using 4  title "good" with lines, \
+ "evalThresh.dat" using 5  title "probably good" with lines, \
+ "evalThresh.dat" using 6  title "junkExonsLeft" with lines, \
+ "evalThresh.dat" using 7  title "junkExonsRight" with lines, \
+ "evalThresh.dat" using 8  title "junkExonsBoth" with lines, \
+ "evalThresh.dat" using 9  title "intronOnGap" with lines
+plot [][0:10000] \
+ "evalThresh.dat" using 3  title "allSmallIntrons/100" with lines, \
+ "evalThresh.dat" using 4  title "good" with lines, \
+ "evalThresh.dat" using 5  title "probably good" with lines, \
+ "evalThresh.dat" using 6  title "junkExonsLeft" with lines, \
+ "evalThresh.dat" using 7  title "junkExonsRight" with lines, \
+ "evalThresh.dat" using 8  title "junkExonsBoth" with lines, \
+ "evalThresh.dat" using 9  title "intronOnGap" with lines
+
+ "evalThresh.dat" using 2  title "oneExon/100" with lines, \
+ "evalThresh.dat" using 10 title "total/100" with lines
+
