@@ -11,7 +11,7 @@ memdup(const void *orig, size_t size) {
     errno = 0;
     rslt = malloc(size);
     if (errno) {
-      fprintf(stderr, "Out of memory in memdup.\n%s\n", strerror(errno));
+      fprintf(stderr, "memdup()-- can't allocate %d bytes.\n%s\n", size, strerror(errno));
       exit(1);
     }
     memcpy(rslt, orig, size);
