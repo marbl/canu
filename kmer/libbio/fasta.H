@@ -49,8 +49,11 @@ public:
 //  versionNumber 2 extends that to contain md5 checksums.  A version 1
 //  index is binary compatible with version 2.
 //
+//  versionNumber 3 changes the order of _idxfa_desc, so that data
+//  is natuarlly aligned.
+//
 #define FASTA_MAGICNUMBER   0x4abeadeddadababeULL
-#define FASTA_VERSIONNUMBER 2
+#define FASTA_VERSIONNUMBER 3
 
 
 class FastAWrapper : public FileWrapper {

@@ -43,35 +43,24 @@ struct _idxfa_global {
   char         _alphabet[256];          //  true/false for each character seen
 };
 
-//  20040508 - On the next major change, this structure needs to be
-//  rearranged so that 8-byte values are 8-byte aligned (moving
-//  _seqStart before _headerLen will do that).  This will fix an
-//  optimization on OS-X that tries to align data to their natural
+
+
+//  Version three rearranges so that 8-byte values are 8-byte aligned
+//  (moving _seqStart before _headerLen will do that).  This will fix
+//  an optimization on OS-X that tries to align data to their natural
 //  boundaries.
 //
-#ifdef __APPLE__
-
-//  This is the "correct" version that we should use everywhere.
-//
 struct _idxfa_desc {
   _idxfa_pos   _headerStart;       //  Position of the header in the file
-  _idxfa_pos   _seqStart;          //  Position of the sequence in the file
+#if FASTA_VERSIONNUMBER < 3
   _idxfa_len   _headerLen;         //  Length of the header, not counting the '\n'
-  _idxfa_len   _seqLen;            //  Length of the sequence
-};
-
+  _idxfa_pos   _seqStart;          //  Position of the sequence in the file
 #else
-
-//  Ick!
-//
-struct _idxfa_desc {
-  _idxfa_pos   _headerStart;       //  Position of the header in the file
-  _idxfa_len   _headerLen;         //  Length of the header, not counting the '\n'
   _idxfa_pos   _seqStart;          //  Position of the sequence in the file
+  _idxfa_len   _headerLen;         //  Length of the header, not counting the '\n'
+#endif
   _idxfa_len   _seqLen;            //  Length of the sequence
 };
-
-#endif
 
 
 #endif  //  FASTA_TYPES_H
