@@ -7,10 +7,6 @@
 #include "aHit.H"
 
 //  $Id$
-//  $Log$
-//  Revision 1.2  2003/01/03 15:57:14  walenz
-//  added cvs stuff
-//
 
 //  Define this to get some extra console output about things that might
 //  be of concern.

@@ -4,10 +4,6 @@
 #include "aHit.H"
 
 //  $Id$
-//  $Log$
-//  Revision 1.2  2003/01/03 15:57:14  walenz
-//  added cvs stuff
-//
 
 #ifdef TRUE64BIT
 #define HITOUTPUTLINE "-%c -e %u -D %u %u %u -M %u %u %u\n"
@@ -192,6 +188,21 @@ hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit
 
   if (_hitsLen == 0)
     return;
+
+
+  //  Decide on the minimum quality values; we pick the larger of
+  //  the fixed lengths, and the sequence length * coverage.
+  //
+  u32bit   minLengthSingle   = (u32bit)(config._minCoverageSingle   * _qsLen);
+  u32bit   minLengthMultiple = (u32bit)(config._minCoverageMultiple * _qsLen);
+
+  if (minLengthSingle < config._minLengthSingle)
+    minLengthSingle = config._minLengthSingle;
+
+  if (minLengthMultiple < config._minLengthMultiple)
+    minLengthMultiple = config._minLengthMultiple;
+
+
 
   //  First, sort by the dsPos.  This is done so that we can find all the hits for
   //  a specific scaffold.
@@ -410,8 +421,8 @@ hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit
 #if TRACE
       fprintf(stdout, "close current cluster.\nGOOD?  qsCov=%u; >= %u or %u?  diag: %u < 25?\n",
               qsHigh - qsLow,
-              config._minLengthSingle,
-              config._minLengthMultiple,
+              minLengthSingle,
+              minLengthMultiple,
               lastDiagonal - frstDiagonal);
 #endif
 
@@ -419,8 +430,8 @@ hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit
       //  Save the current cluster and start a new one?
       //
       u32bit qCov = IL->sumIntervalLengths();
-      if ((qCov >= config._minLengthMultiple) ||
-          ((lastDiagonal - frstDiagonal < 25) && (qCov >= config._minLengthSingle))) {
+      if ((qCov >= minLengthMultiple) ||
+          ((lastDiagonal - frstDiagonal < 25) && (qCov >= minLengthSingle))) {
 #if TRACE
         fprintf(stdout, "add match!\n");
 #endif
@@ -461,8 +472,8 @@ hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit
     //  Save the final cluster?
     //
     u32bit qCov = IL->sumIntervalLengths();
-    if ((qCov >= config._minLengthMultiple) ||
-        ((lastDiagonal - frstDiagonal < 21) && (qCov >= config._minLengthSingle))) {
+    if ((qCov >= minLengthMultiple) ||
+        ((lastDiagonal - frstDiagonal < 21) && (qCov >= minLengthSingle))) {
       addMatch(qsLow,
                qsHigh + config._merSize,
                dsLow,

@@ -2,10 +2,6 @@
 #include "searchGENOME.H"
 
 //  $Id$
-//  $Log$
-//  Revision 1.2  2003/01/03 15:57:14  walenz
-//  added cvs stuff
-//
 
 //  Define this to kill the process with a vengance instead of
 //  gracefully exiting.  exit() tries to free memory, and is thus gets

@@ -6,10 +6,6 @@
 #include "existDB.H"
 
 //  $Id$
-//  $Log$
-//  Revision 1.2  2003/01/03 15:57:14  walenz
-//  added cvs stuff
-//
 
 #ifdef TRUE64BIT
 char const *buildMessage       = "Building chunk with %u sequences.\n";
@@ -26,7 +22,7 @@ char const *countMessage       = "%lu\n";
 
 //  Shared data
 //
-configuration    config(3);
+configuration    config;
 FastA           *qsFASTA;
 existDB         *maskDB;
 existDB         *onlyDB;

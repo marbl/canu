@@ -4,10 +4,6 @@
 #include "aHit.H"
 
 //  $Id$
-//  $Log$
-//  Revision 1.2  2003/01/03 15:57:14  walenz
-//  added cvs stuff
-//
 
 #ifdef TRUE64BIT
 #define HITOUTPUTLINE  "-%c -e %u %u %u -D %u %u %u\n"

@@ -5,10 +5,6 @@
 #include "libbri.H"
 
 //  $Id$
-//  $Log$
-//  Revision 1.2  2003/01/03 15:57:13  walenz
-//  added cvs stuff
-//
 
 encodedQuery::encodedQuery(unsigned char const  *seq,
                            u32bit                seqLen,

@@ -11,10 +11,6 @@
 #include <assert.h>
 
 //  $Id$
-//  $Log$
-//  Revision 1.2  2003/01/03 15:57:14  walenz
-//  added cvs stuff
-//
 
 typedef unsigned short ushort;
 
@@ -88,7 +84,9 @@ public:
   u32bit           _smallSequenceCutoff;
 
   u32bit           _minLengthSingle;
+  double           _minCoverageSingle;
   u32bit           _minLengthMultiple;
+  double           _minCoverageMultiple;
 
 #if 0
   u32bit           _regionMergeDistance;
@@ -106,7 +104,6 @@ public:
   u32bit           _useListMax;
   use_s           *_useList;
 
-  bool             _doChain;
   u32bit           _maxSize;
 
   bool             _binaryOutput;
@@ -119,7 +116,7 @@ public:
   double           _searchTime;
   double           _totalTime;
 
-  configuration(int x);
+  configuration();
   ~configuration();
 
   void  usage(char *name);

@@ -1,22 +1,16 @@
 #include "posix.H"
 #include "searchGENOME.H"
-#include "buildnumber.H"
+#include "buildinfo-searchGENOME.h"
+#include "buildinfo-libbri.h"
+#include "buildinfo-existDB.h"
+#include "buildinfo-positionDB.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 //  $Id$
-//  $Log$
-//  Revision 1.2  2003/01/03 15:57:13  walenz
-//  added cvs stuff
-//
 
-configuration::configuration(int x) {
-
-#ifdef _AIX
-  fprintf(stderr, "\n\nCONFIGURATION BEING SET (%d)!\n\n", x);
-  fflush(stderr);
-#endif
+configuration::configuration(void) {
 
   _beVerbose           = false;
 
@@ -39,8 +33,8 @@ configuration::configuration(int x) {
 
   _smallSequenceCutoff = 0;
 
-  _minLengthSingle     = 50;
-  _minLengthMultiple   = 70;
+  _minLengthSingle     = 0;
+  _minLengthMultiple   = 0;
 
 #if 0
   _regionMergeDistance = 50000;
@@ -58,7 +52,6 @@ configuration::configuration(int x) {
   _useListLen          = 0;
   _useListMax          = 0;
 
-  _doChain             = false;
   _maxSize             = 0;
 
   _binaryOutput        = false;
@@ -74,11 +67,13 @@ configuration::~configuration() {
 }
 
 static char const *usageString =
-"usage: %s [options]\n"
-"\nAlgorithm Options:\n"
+"usage: %s [--buildinfo] [options]\n"
+"\n"
+"Algorithm Options:\n"
 "    -mersize k         Use k-mers\n"
 "    -numthreads n      Use n search threads\n"
-"\nInput Options:\n"
+"\n"
+"Input Options:\n"
 "    -mask f            Ignore all mers listed in file f\n"
 "    -only f            Ignore all mers EXCEPT those listed in file f\n"
 "                       (use only the mers listed in file f)\n"
@@ -88,10 +83,12 @@ static char const *usageString =
 "    -use #,#,#,#       Use only those sequences with # specified\n"
 "    -use file          Use only those sequences listed in the file\n"
 "                       Default is to use ALL sequences in g.fasta\n"
-"\nSearch Options\n"
+"\n"
+"Search Options\n"
 "    -forward           Search only the normal cDNA\n"
 "    -reverse           Search only the reverse-complement cDNA\n"
-"\nOutput Options\n"
+"\n"
+"Output Options\n"
 "    -verbose           Entertain the user\n"
 "    -binary            Write the hits in a binary format\n"
 "    -output f          Write output to file f\n"
@@ -101,9 +98,6 @@ static char const *usageString =
 void
 configuration::usage(char *name) {
   fprintf(stderr, usageString, name);
-  fprintf(stderr, "\n");
-  fprintf(stderr, "This is GENOMEnest, built on %s %s (build number %d)\n", __DATE__, __TIME__, buildNumber());
-  fprintf(stderr, "\n");
 }
 
 
@@ -335,8 +329,6 @@ configuration::read(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-use") == 0) {
       arg++;
       parseUseLine(argv[arg]);
-    } else if (strcmp(argv[arg], "-chain") == 0) {
-      _doChain = true;
     } else if (strcmp(argv[arg], "-maxsize") == 0) {
       arg++;
       _maxSize = atoi(argv[arg]);
@@ -380,6 +372,12 @@ configuration::read(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-multiplelength") == 0) {
       arg++;
       _minLengthMultiple = atoi(argv[arg]);
+    } else if (strcmp(argv[arg], "-singlecoverage") == 0) {
+      arg++;
+      _minCoverageSingle = atof(argv[arg]);
+    } else if (strcmp(argv[arg], "-multiplecoverage") == 0) {
+      arg++;
+      _minCoverageMultiple = atof(argv[arg]);
 #if 0
     } else if (strcmp(argv[arg], "-mergedistance") == 0) {
       arg++;
@@ -393,6 +391,12 @@ configuration::read(int argc, char **argv) {
       arg++;
       _extendMinimum = atoi(argv[arg]);
       _extendAlternate = true;
+    } else if (strncmp(argv[arg], "--buildinfo", 3) == 0) {
+      buildinfo_searchGENOME(stderr);
+      buildinfo_libbri(stderr);
+      buildinfo_existDB(stderr);
+      buildinfo_positionDB(stderr);
+      exit(1);
     } else {
       fprintf(stderr, "Unknown option '%s'\n", argv[arg]);
     }
@@ -402,11 +406,6 @@ configuration::read(int argc, char **argv) {
   //
   //  Make sure some constraints are met
   //
-
-  if (_doChain && (_maxSize == 0)) {
-    fprintf(stderr, "ERROR:  You must specify a maximum size to chain!\n");
-    exit(1);
-  }
 
   if (_numSearchThreads > MAX_THREADS) {
     fprintf(stderr, "ERROR:  Threads are limited to %d.\n", MAX_THREADS);
@@ -418,6 +417,15 @@ configuration::read(int argc, char **argv) {
     exit(-1);
   }
 
+  //  Fail if we don't get reasonable signal criteria
+  //
+  if (((_minLengthSingle   == 0) && (_minCoverageSingle   == 0)) ||
+      ((_minLengthMultiple == 0) && (_minCoverageMultiple == 0))) {
+    fprintf(stderr, "ERROR:  Minimum match lengths not specified.  Both single and multiple must be specified.\n");
+    fprintf(stderr, "        Use one of -singlelength or -singlecoverage\n");
+    fprintf(stderr, "        Use one of -multiplelength or -multiplecoverage\n");
+    exit(-1);
+  }
 }
 
 void
@@ -442,7 +450,9 @@ configuration::display(FILE *out) {
     fprintf(out, "maxIntron           = %u\n",   _maxIntronLength);
     fprintf(out, "smallSeqCutoff      = %u\n",   _smallSequenceCutoff);
     fprintf(out, "minLengthSingle     = %u\n",   _minLengthSingle   + _merSize);
+    fprintf(out, "minCoverageSingle   = %lf\n",   _minCoverageSingle);
     fprintf(out, "minLengthMultiple   = %u\n",   _minLengthMultiple + _merSize);
+    fprintf(out, "minCoverageMultiple = %lf\n",   _minCoverageMultiple);
 #else
     fprintf(out, "maxDiagonal         = %lu\n",   _maxDiagonal);
     fprintf(out, "qsOverlap           = %lu\n",   _qsOverlap);
@@ -450,7 +460,9 @@ configuration::display(FILE *out) {
     fprintf(out, "maxIntron           = %lu\n",   _maxIntronLength);
     fprintf(out, "smallSeqCutoff      = %lu\n",   _smallSequenceCutoff);
     fprintf(out, "minLengthSingle     = %lu\n",   _minLengthSingle   + _merSize);
+    fprintf(out, "minCoverageSingle   = %lf\n",   _minCoverageSingle);
     fprintf(out, "minLengthMultiple   = %lu\n",   _minLengthMultiple + _merSize);
+    fprintf(out, "minCoverageMultiple = %lf\n",   _minCoverageMultiple);
 #endif
     fprintf(out, "\n");
     fprintf(out, "--Using these Files--\n");

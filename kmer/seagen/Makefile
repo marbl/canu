@@ -1,49 +1,43 @@
 PROG    = searchGENOME searchGENOMEexactly hitConverter filterEST filterMRNA sortHits
 INCLUDE = -I../libbri -I../existDB -I../positionDB $(THRINC)
-LIBS    = -L../libbri buildnumber.o ../existDB/existDB.o \
-          ../positionDB/positionDB.o ../positionDB/positionDB-sort.o \
-          ../positionDB/positionDB-access.o \
-          -lbri
+LIBS    = -L../libbri -L../existDB -L../positionDB \
+          -lexistDB -lpositionDB -lbri
 
 EFENCE  = -L/dev2/adelcher/EFence -lefence
 EFENCE  = -L/home/walenzbp/projects/EF -lefence
 EFENCE  = 
 
+SRCS      = searchGENOME.C configuration.C encodedQuery.C \
+            thr-search.C thr-loader.C thr-deadlock.C \
+            hitMatrix.C hitMatrix-Exact.C hitMatrix-sort.C \
+            aHit.H hitMatrix.H intervalList.H posix.H searchGENOME.H
 OBJS      = searchGENOME.o configuration.o encodedQuery.o \
-            thr-search.o thr-loader.o thr-deadlock.o hitMatrix.o hitMatrix-sort.o 
-OBJSEXACT = searchGENOME.o configuration.o encodedQuery.o \
-            thr-search.o thr-loader.o thr-deadlock.o hitMatrix-Exact.o hitMatrix-sort.o 
+            thr-search.o thr-loader.o thr-deadlock.o hitMatrix-sort.o
 
-all: $(PROG);
+all: buildinfo-searchGENOME.c $(PROG)
 
 #  -static needed for debug on sun with gcc
 #  -pthread removed from lines below -- didn't work on solaris
 
-searchGENOME: buildnumber $(OBJS)
-	$(CC) $(CCOPTS) $(INCLUDE) -o searchGENOME $(OBJS) $(LIBS) $(THRLIB) $(EFENCE)
+searchGENOME: buildinfo-searchGENOME.o $(OBJS) hitMatrix.o
+	$(CC) $(CCOPTS) $(INCLUDE) -o searchGENOME $(OBJS) hitMatrix.o buildinfo-searchGENOME.o $(LIBS) $(THRLIB) $(EFENCE)
 
-searchGENOMEexactly: buildnumber $(OBJSEXACT)
-	$(CC) $(CCOPTS) $(INCLUDE) -o searchGENOMEexactly $(OBJSEXACT) $(LIBS) $(THRLIB) $(EFENCE)
+searchGENOMEexactly: buildinfo-searchGENOME.o $(OBJS) hitMatrix-Exact.o
+	$(CC) $(CCOPTS) $(INCLUDE) -o searchGENOMEexactly $(OBJS) hitMatrix-Exact.o buildinfo-searchGENOME.o $(LIBS) $(THRLIB) $(EFENCE)
 
 hitConverter: hitConverter.o
 	$(CC) $(CCOPTS) -o hitConverter hitConverter.o
-filterByCount: filterByCount.o
-	$(CC) $(CCOPTS) -o filterByCount filterByCount.o
 filterEST: filterEST.o
 	$(CC) $(CCOPTS) -o filterEST filterEST.o
 filterMRNA: filterMRNA.o
 	$(CC) $(CCOPTS) -o filterMRNA filterMRNA.o
-filterByThresh: filterByThresh.o
-	$(CC) $(CCOPTS) -o filterByThresh filterByThresh.o
-dumpCrapSeqs: dumpCrapSeqs.o encodedQuery.o
-	$(CC) $(CCOPTS) -o dumpCrapSeqs dumpCrapSeqs.o encodedQuery.o $(LIBS)
 sortHits: sortHits.o
 	$(CC) $(CCOPTS) -o sortHits sortHits.o
 
-f: f.o
-	$(CC) $(CCOPTS) -o f f.o
+buildinfo-searchGENOME.c: $(SRCS)
+	../util/buildinfo.pl searchGENOME "$(CCOPTS)" $(SRCS)
 
 clean:
-	rm -f *.o $(PROG)
+	rm -f *.o $(PROG) buildinfo-searchGENOME.*
 
 include ../Makefile-configuration
