@@ -46,10 +46,6 @@ public:
 
 private:
   u32bit  rc(u32bit p) const {
-#ifdef SANITY
-    if (p > _len)
-      fprintf(stderr, "FastAAccessor::rc()-- position "u32bitFMT" larger than length "u32bitFMT"\n", p, _len);
-#endif
     return(_rcBase + _rcBase + _rcLen - p - 1);
   };
 
@@ -102,29 +98,26 @@ public:
   char get(void) const {
 #ifdef SANITY
     if (_pos > _len)
-      fprintf(stderr, "FastAAccessor::get()-- position "u32bitFMT" larger than length "u32bitFMT"\n", _pos, _len);
+      fprintf(stderr, "FastAAccessor::get()-- position "u32bitFMT" larger than length "u32bitFMT" rc=%d\n", _pos, _len, (int)_doRevComp);
 #endif
     if (_doRevComp) return(complementSymbol[(int)_seq[_pos]]);
     else            return(_seq[_pos]);
   };
 
-  //  Prefix operators
+  //  Prefix operators -- similar to setPosition, we let these be
+  //  invalid without sanity checking, because often we want to do
+  //  "for (i=0; i<len; i++) { .... ++ACCESSOR; } which would
+  //  increment one past the actual end, but we never access the base
+  //  there.
+  //
   FastAAccessor &operator--(void) {
     if (_doRevComp) _pos++;
     else            _pos--;
-#ifdef SANITY
-    if (_pos > _len)
-      fprintf(stderr, "FastAAccessor::operator--()-- position "u32bitFMT" larger than length "u32bitFMT"\n", _pos, _len);
-#endif
     return(*this);
   };
   FastAAccessor &operator++(void) {
     if (_doRevComp) _pos--;
     else            _pos++;
-#ifdef SANITY
-    if (_pos > _len)
-      fprintf(stderr, "FastAAccessor::operator++()-- position "u32bitFMT" larger than length "u32bitFMT"\n", _pos, _len);
-#endif
     return(*this);
   };
 
@@ -133,10 +126,9 @@ public:
   };
 
   bool setPosition(u32bit p) {
-#ifdef SANITY
-    if (p > _len)
-      fprintf(stderr, "FastAAccessor::setPosition()-- position "u32bitFMT" larger than length "u32bitFMT"\n", p, _len);
-#endif
+    //  We don't check sanity here, because this is also useful as a
+    //  test, e.g., set the position somewhere, if valid it returns
+    //  true.
     if (_doRevComp) _pos = rc(p);
     else            _pos = p;
     return(_pos < _len);
