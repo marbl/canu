@@ -3,6 +3,43 @@
 #include "libbri.H"
 #include "britime.H"
 
+
+u32bit
+partition(u32bit merSize,
+          u32bit mem,
+          bool   beVerbose) {
+  u64bit memLimt = ((u64bit)mem) << 23;
+
+  u32bit maxN  = 0;
+  u32bit bestT = 0;
+
+  for (u64bit t=2; t < merSize - 2; t++) {
+    for (u64bit N=1; N<33; N++) {
+      u64bit bucketsize = (u64bitONE << t) * N;
+      u64bit Nmin = u64bitONE << (N - 1);
+      u64bit Nmax = u64bitONE << (N);
+
+      if (memLimt > bucketsize) {
+        u64bit n = (memLimt - bucketsize) / (merSize - t);
+
+        if ((n > 0) && (Nmin <= n) && (n <= Nmax) && (maxN < n)) {
+          maxN  = n;
+          bestT = t;
+        }
+      }
+    }
+  }
+
+  if (beVerbose)
+    fprintf(stdout, "Can fit %10lu mers into table with t=%8lu using %10luKB\n",
+            maxN,
+            bestT,
+            ((u64bitONE << bestT) * logBaseTwo(maxN) + maxN * (merSize - bestT)) >> 3);
+
+  return(bestT);
+}
+
+
 void
 estimate(char   *inputFile,
          u32bit  merSize,
