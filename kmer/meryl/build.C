@@ -96,12 +96,23 @@ prepareBatch(merylArgs *args) {
   if (fatalError)
     exit(1);
 
-  //  If we were given no segment or memory limit, but threads, we
-  //  really want to create n segments.
-  //
 #ifdef ENABLE_THREADS
-  if ((args->segmentLimit == 0) && (args->memoryLimit == 0) && (args->numThreads > 0))
-    args->segmentLimit = args->numThreads;
+  if (args->numThreads > 0) {
+    //  If we were given no segment or memory limit, but threads, we
+    //  really want to create n segments.
+    //
+    if ((args->segmentLimit == 0) && (args->memoryLimit == 0)) {
+      args->segmentLimit = args->numThreads;
+    }
+
+    //  If we are given a memory limit and threads, we want to use that much memory
+    //  total, not per thread.
+    //
+    if ((args->memoryLimit > 0) && (args->numThreads > 0)) {
+      args->segmentLimit = 0;
+      args->memoryLimit /= args->numThreads;
+    }
+  }
 #endif
 
   //  Everybody needs to dump the mers to a merStreamFile.  The only
@@ -482,6 +493,7 @@ build(merylArgs *args) {
     //  all in a separate function.
     //
     runThreaded(args);
+    doMerge = true;
   } else
 #endif
   if (args->configBatch) {
