@@ -36,6 +36,10 @@ VALID_OPERATING_SYSTEM:=$(strip \
 ifdef OPERATING_SYSTEM
   ifneq ($(filter ${OPERATING_SYSTEM},${VALID_OPERATING_SYSTEM}),)
     _OS|FULL_:=${OPERATING_SYSTEM}
+
+    # Separate out the word before the "|" as the main OS identifier.
+    # This is done by inserting a space before the "|", making 
+    # A multiple-word string that GMake's filtering can work on.
     _OS_:=$(filter-out |%, $(subst |, |,${_OS|FULL_}))
   else
   $(error You are trying to use the build system on a platform where the \
