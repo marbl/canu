@@ -53,15 +53,14 @@ endif
 ifeq (${_OS_}${_CC_},TRU64)
   CC               :=cc
   CXX              :=cxx
-  CFLAGS_COMPILE      +=
   CXXFLAGS_COMPILE    +=-std gnu
   SHLIB_FLAGS      +=-shared
-  CXX_TMP_COMPILE     :=so_locations cxx_repository
+  CXX_TMP_COMPILE     +=so_locations cxx_repository
 endif
 ifeq (${_OS_}${_CC_},AIX)
   CC               :=xlc
   CXX              :=xlC
-  SHLIB_FLAGS      :=-G
+  SHLIB_FLAGS      +=-G
 
   AIX_RTTI_SUPPORT:=-qrtti
   AIX_LARGE_FILE_SUPPORT               :=-q64 -qlonglong -D_LARGE_FILES
@@ -114,6 +113,8 @@ endif
 ifeq (${_OS_}${_CC_},AIX-gcc)
   CFLAGS      +=-maix64
   CXXFLAGS    +=-maix64
+  CLDFLAGS         +=-Wl,-bbigtoc
+  CXXLDFLAGS       +=-Wl,-bbigtoc
 endif
 
 

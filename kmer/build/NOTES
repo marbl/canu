@@ -51,6 +51,11 @@ One can also work within directories so long as one is careful, since
 % make ../COMPASS/src/Framework/.depends-clean
 % cd ../COMPARSS/src/Framework/
 % make -f ../../../build/Makefile all
+Better yet, use an environment variable
+% setenv makefile /home/ripper/assem/cds/IR/build/Makefile
+% make -f $makefile
+Or even
+% alias make '/usr/local/ir/bin/gmake -f $makefile'
 
 ### Questions you might have
 Q) How come I can't do 
@@ -67,18 +72,6 @@ files will be built or even included (since an include also can
 trigger a build).
   make clean all
 will work, if that is any consolation.
-
-Q) I am just too lazy to use a "-f $make" commandline  argument, and
-I feel uncomfortable building in the IR/build directory.  What else can
-I do?
-A) In the build directory is a special makefile called
-  Makefile.goto-build
-which will search up your CVS tree of the build directory and do
-the equivalent of 'make -f $make' with $make appropriately set to
-the right thing.  In the directory you want
-  cp ../../../IR/build/Makefile.goto-build Makefile
-  make
-and you should be set, you lazy bastard.
 
 Q) I use includes in other directories.  How do I add to the compiler
 include path for the objects in one directory without making a global

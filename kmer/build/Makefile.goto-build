@@ -1,9 +1,13 @@
 # -*- makefile -*-
 
-build:=$(shell while [ $$(pwd) != "/" -a ! -d build ] ; do \
+# this is king of a hack makefile which looks for the build
+# directory and then executes the  makefile there with a
+# warning.
+
+build:=$(shell while [ `pwd` != "/" -a ! -d build ] ; do \
                  cd .. ; \
                done ; \
-               echo $$(pwd) )
+               echo `pwd` )
 
 ifeq (${build},/)
   $(error Unable to find the build directory cds/IR/build)
