@@ -249,12 +249,12 @@ main(int argc, char **argv) {
       //
       double cutL = list[0].coverage - p * h;
 
-      if (cutL > 0.3)
-        cutL = 0.3;
+      if (cutL > M)
+        cutL = M;
 
       for (u32bit i=0; i < listLen; i++) {
         if ((cutL <= list[i].coverage) &&
-            ((0.2 <= list[i].coverage) || (150 <= list[i].a._covered))) {
+            ((MC <= list[i].coverage) || (ML <= list[i].a._covered))) {
           ahit_printASCII(&list[i].a, stdout);
         }
       }
