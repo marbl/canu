@@ -146,6 +146,7 @@ sub search {
         if (($maskFile ne "") && (! -e "$maskFile")) {
             print STDERR "ESTmapper/search-- Can't find mer mask file '$maskFile'.\n";
             print STDERR "ESTmapper/search-- Try a different mersize.\n";
+            exit(1);
         }
     }
 
