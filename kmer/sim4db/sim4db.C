@@ -228,11 +228,17 @@ sim4db(char          **scriptLines,
   u32bit                GENlo  = 0;
   u32bit                GENhi  = 0;
 
+
   for (u32bit workDone=0; workDone<scriptLinesNum; workDone++) {
     if (beExplicit) {
       fprintf(stderr, "At %u (%6.3f per second) -- '%s'\n",
               workDone, workDone / (getTime() - startTime), scriptLines[workDone]);
       fflush(stderr);
+
+#ifdef MEMORY_DEBUG
+    _dump_allocated_delta(0);
+#endif
+
     } else {
       if ((beVerbose) && ((workDone & 0xff) == 0xff)) {
         fprintf(stderr, " At %u (%6.3f per second)\r",
@@ -240,6 +246,7 @@ sim4db(char          **scriptLines,
         fflush(stderr);
       }
     }
+
 
     //  Parse the command line to create a sim4command object
     //
@@ -255,55 +262,56 @@ sim4db(char          **scriptLines,
     //  XXX:  est-list currently must be exactly one EST; giving
     //  multiple ESTs offers no speedup and is broken.
     //
-    u32bit         argWords = 0;
-    splitToWords   words(scriptLines[workDone]);
-
     bool           doForward = true;
     bool           doReverse = true;
 
-    while (words.getWord(argWords)) {
-      switch (words.getWord(argWords)[1]) {
-        case 'f':
-          doForward = true;
-          doReverse = false;
-          break;
-        case 'r':
-          doForward = false;
-          doReverse = true;
-          break;
-        case 'D':
-          GENiid = atoi(words.getWord(argWords + 1));
-          GENlo  = atoi(words.getWord(argWords + 2));
-          GENhi  = atoi(words.getWord(argWords + 3));
-          argWords += 3;
+    {
+      u32bit         argWords = 0;
+      splitToWords   words(scriptLines[workDone]);
 
-          if ((GENseq == 0L) || (GENseq->getIID() != GENiid)) {
-            delete GENseq;
-            GENs->find(GENiid);
-            GENseq = GENs->getSequence();
-          }
+      while (words.getWord(argWords)) {
+        switch (words.getWord(argWords)[1]) {
+          case 'f':
+            doForward = true;
+            doReverse = false;
+            break;
+          case 'r':
+            doForward = false;
+            doReverse = true;
+            break;
+          case 'D':
+            GENiid = atoi(words.getWord(argWords + 1));
+            GENlo  = atoi(words.getWord(argWords + 2));
+            GENhi  = atoi(words.getWord(argWords + 3));
+            argWords += 3;
 
-          if ((GENlo == 0) && (GENhi == 0))
-            GENhi = GENseq->sequenceLength();
-          break;
-        case 'e':
-          ESTiid = atoi(words.getWord(argWords + 1));
-          argWords++;
+            if ((GENseq == 0L) || (GENseq->getIID() != GENiid)) {
+              delete GENseq;
+              GENs->find(GENiid);
+              GENseq = GENs->getSequence();
+            }
 
-          if ((ESTseq == 0L) || (ESTseq->getIID() != ESTiid)) {
-            delete ESTseq;
-            ESTs->find(ESTiid);
-            ESTseq = ESTs->getSequence();
-          }
-          break;
-        default:
-          //fprintf(stderr, "Unknown option '%s'\n", words.getWord(argWords));
-          break;
+            if ((GENlo == 0) && (GENhi == 0))
+              GENhi = GENseq->sequenceLength();
+            break;
+          case 'e':
+            ESTiid = atoi(words.getWord(argWords + 1));
+            argWords++;
+
+            if ((ESTseq == 0L) || (ESTseq->getIID() != ESTiid)) {
+              delete ESTseq;
+              ESTs->find(ESTiid);
+              ESTseq = ESTs->getSequence();
+            }
+            break;
+          default:
+            //fprintf(stderr, "Unknown option '%s'\n", words.getWord(argWords));
+            break;
+        }
+
+        argWords++;
       }
-
-      argWords++;
     }
-
 
     sim4command     *P4 = new sim4command(ESTseq,
                                           GENseq,
@@ -344,6 +352,12 @@ sim4db(char          **scriptLines,
     }
 
     delete l4;
+
+#ifdef MEMORY_DEBUG
+    if (beExplicit)
+      _dump_allocated_delta(0);
+#endif
+
   }
 }
 
@@ -553,6 +567,13 @@ main(int argc, char **argv) {
       exit(1);
     }
   }
+
+
+#ifdef MEMORY_DEBUG
+  if (beExplicit)
+    _dump_allocated_delta(0);
+#endif
+
 
   if (scriptFileName) {
     sim4db(scriptLines, scriptLinesNum, GENs, ESTs, fOutput);
