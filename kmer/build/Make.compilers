@@ -487,7 +487,10 @@ endif
 #CXXLDFLAGS_LAPACK :=${CLDFLAGS_LAPACK}
 #CXXLIBS_LAPACK    :=${CLIBS_LAPACK}
 
-
+## TNT and JAMA replacement for LAPACK
+TNT/ := TNT/-needs-to-be-set
+JAMA/ := JAMA/-needs-to-be-set
+CXXFLAGS_TNT =-I${TNT/} -I${JAMA/}
 
 # X11 stuff
 CLDFLAGS_X11 :=-L/usr/X11R6/lib
