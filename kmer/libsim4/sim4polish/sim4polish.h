@@ -83,6 +83,7 @@ sim4polish    *s4p_readPolish(FILE *F);
 sim4polish    *s4p_copyPolish(sim4polish *orig);
 
 void           s4p_removeAlignments(sim4polish *p);
+void           s4p_removeDeflines(sim4polish *p);
 void           s4p_destroyPolish(sim4polish *p);
 
 

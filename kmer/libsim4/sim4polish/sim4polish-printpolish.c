@@ -126,6 +126,6 @@ s4p_printPolish(FILE *O, sim4polish *o, u32bit flags) {
   }
   fprintf(O, "sim4end\n");
 
-  if (!(flags & S4P_PRINTPOLISH_NOTVALUABLE))
+  if (p != o)
     s4p_destroyPolish(p);
 }
