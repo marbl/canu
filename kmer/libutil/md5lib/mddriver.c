@@ -190,7 +190,7 @@ char *filename;
 
   else {
  MDInit (&context);
- while (len = fread (buffer, 1, 1024, file))
+ while ((len = fread (buffer, 1, 1024, file)))
    MDUpdate (&context, buffer, len);
  MDFinal (digest, &context);
 
@@ -211,8 +211,8 @@ static void MDFilter ()
   unsigned char buffer[16], digest[16];
 
   MDInit (&context);
-  while (len = fread (buffer, 1, 16, stdin))
- MDUpdate (&context, buffer, len);
+  while ((len = fread (buffer, 1, 16, stdin)))
+    MDUpdate (&context, buffer, len);
   MDFinal (digest, &context);
 
   MDPrint (digest);
