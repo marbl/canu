@@ -216,10 +216,8 @@ reverseBits(u32bit x) {
 //  All the rest
 //
 #include "bitPackedFile.H"
-#include "fasta.H"
 #include "fastastream.H"
 #include "merstream.H"
-#include "sequencemanager.H"
 #include "speedCounter.H"
 
 #endif  //  LIBBRI_H
