@@ -88,33 +88,34 @@ buildChunk(void) {
     for (i=0; i<config._useListLen; i++) {
       dbFASTA->find(config._useList[i].seq);
 
-#if 0
-      //  XXX: This should be a FastASequenceOnDisk, but that isn't
-      //  existing yet.
-      FastASequenceInCore  *B = dbFASTA->getSequence();
+      //  If our sequences are squeezed (we know it's randomly
+      //  accessable) use the OnDisk mechanism, otherwise, use the
+      //  InCore.  InCore uses more memory, and is slower.
+      //
+      if (dbFASTA->isSqueezed()) {
+        FastASequenceOnDisk  *B = dbFASTA->getSequenceOnDisk();
 
-      char const *g  = B->sequence();
+        B->getChars(t, 0, B->sequenceLength());
 
-      while (*g)
-        *(t++) = *(g++);
+        t += B->sequenceLength();
 
-      for (u32bit gn = 100; gn--; )
-        *(t++) = '.';
+        for (u32bit gn = 100; gn--; )
+          *(t++) = '.';
 
-      delete B;
-#else
-      FastASequenceOnDisk  *B = dbFASTA->getSequenceOnDisk();
+        delete B;
+      } else {
+        FastASequenceInCore  *B = dbFASTA->getSequence();
 
-      B->getChars(t, 0, B->sequenceLength());
+        char const *g  = B->sequence();
 
-      t += B->sequenceLength();
+        while (*g)
+          *(t++) = *(g++);
 
-      for (u32bit gn = 100; gn--; )
-        *(t++) = '.';
+        for (u32bit gn = 100; gn--; )
+          *(t++) = '.';
 
-      delete B;
-#endif
-
+        delete B;
+      }
     }
 
     *t = 0;
