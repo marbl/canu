@@ -127,17 +127,17 @@ positionDB::positionDB(char const  *seq,
 
     if (_merSizeInBases != merSize) {
       fprintf(stderr, "positionDB::positionDB()-- Read state from '%s', but got different mer sizes\n", filename);
-      fprintf(stderr, "positionDB::positionDB()-- Got %d, expected %d\n", _merSizeInBases, merSize);
+      fprintf(stderr, "positionDB::positionDB()-- Got "u32bitFMT", expected "u32bitFMT"\n", _merSizeInBases, merSize);
       fail = true;
     }
     if (_merSkipInBases != merSkip) {
       fprintf(stderr, "positionDB::positionDB()-- Read state from '%s', but got different mer skips\n", filename);
-      fprintf(stderr, "positionDB::positionDB()-- Got %d, expected %d\n", _merSkipInBases, merSkip);
+      fprintf(stderr, "positionDB::positionDB()-- Got "u32bitFMT", expected "u32bitFMT"\n", _merSkipInBases, merSkip);
       fail = true;
     }
     if (_tableSizeInBits != tblBits) {
       fprintf(stderr, "positionDB::positionDB()-- Read state from '%s', but got different table sizes\n", filename);
-      fprintf(stderr, "positionDB::positionDB()-- Got %d, expected %d\n", _tableSizeInBits, tblBits);
+      fprintf(stderr, "positionDB::positionDB()-- Got "u32bitFMT", expected "u32bitFMT"\n", _tableSizeInBits, tblBits);
       fail = true;
     }
 
@@ -267,12 +267,6 @@ positionDB::positionDB(char const  *seq,
       //
       bool  save = false;
 
-#if 0
-      if (mask && (!mask->exists(M->theFMer()) && !mask->exists(M->theRMer())))
-        save = true;
-      if (only && (only->exists(M->theFMer()) || only->exists(M->theRMer())))
-        save = true;
-#else
       u64bit  canonicalmer = M->theFMer();
       if (canonicalmer > M->theRMer())
         canonicalmer = M->theRMer();
@@ -281,8 +275,6 @@ positionDB::positionDB(char const  *seq,
         save = true;
       if (only &&  only->exists(canonicalmer))
         save = true;
-#endif
-
 
       if (save) {
         _bucketSizes[ HASH(M->theFMer()) ]++;
@@ -382,13 +374,8 @@ positionDB::positionDB(char const  *seq,
   _bucketSizes[_tableSizeInEntries] = endPosition;
 
 #ifdef ERROR_CHECK_COUNTING
-#ifdef TRUE64BIT
-  fprintf(stdout, "ERROR_CHECK_COUNTING:  endposition = %u\n", endPosition);
-  fprintf(stdout, "ERROR_CHECK_COUNTING:  nummers     = %lu\n", _numberOfMers);
-#else
-  fprintf(stdout, "ERROR_CHECK_COUNTING:  endposition = %lu\n", endPosition);
-  fprintf(stdout, "ERROR_CHECK_COUNTING:  nummers     = %llu\n", _numberOfMers);
-#endif
+  fprintf(stdout, "ERROR_CHECK_COUNTING:  endposition = "u32bitFMT"\n", endPosition);
+  fprintf(stdout, "ERROR_CHECK_COUNTING:  nummers     = "u64bitFMT"\n", _numberOfMers);
   if (endPosition != _numberOfMers)
     fprintf(stdout, "ERROR_CHECK_COUNTING: BUCKETSIZE COUNTING PROBLEM -- endPos != numMers\n");
 #endif
@@ -451,27 +438,15 @@ positionDB::positionDB(char const  *seq,
       //  This test is only valid if we have an extra bit at the start --
       //  if we are planning on reusing the counting space for buckets.
       //
-#ifdef TRUE64BIT
       if ((_wCnt == _wFin) && (0 != (v >> (_wCnt - 1))))
-        fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error: HBIT is set!      Wanted 0x%016lx got 0x%016lx\n",
+        fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error: HBIT is set!      Wanted "u64bitHEX" got "u64bitHEX"\n",
                 (CHECK(M->theFMer()) << _posnWidth) | (M->thePosition() & _posnMask), v);
       if (CHECK(M->theFMer()) != ((v >> _posnWidth) & _chckMask))
-        fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  CHCK corrupted!  Wanted 0x%016lx got 0x%016lx\n",
+        fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  CHCK corrupted!  Wanted "u64bitHEX" got "u64bitHEX"\n",
                 (CHECK(M->theFMer()) << _posnWidth) | (M->thePosition() & _posnMask), v);
       if (M->thePosition() != (v & _posnMask))
-        fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  POSN corrupted!  Wanted 0x%016lx got 0x%016lx\n",
+        fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  POSN corrupted!  Wanted "u64bitHEX" got "u64bitHEX"\n",
                 (CHECK(M->theFMer()) << _posnWidth) | (M->thePosition() & _posnMask), v);
-#else
-      if ((_wCnt == _wFin) && (0 != (v >> (_wCnt - 1))))
-        fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error: HBIT is set!      Wanted 0x%016llx got 0x%016llx\n",
-                (CHECK(M->theFMer()) << _posnWidth) | (M->thePosition() & _posnMask), v);
-      if (CHECK(M->theFMer()) != ((v >> _posnWidth) & _chckMask))
-        fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  CHCK corrupted!  Wanted 0x%016llx got 0x%016llx\n",
-                (CHECK(M->theFMer()) << _posnWidth) | (M->thePosition() & _posnMask), v);
-      if (M->thePosition() != (v & _posnMask))
-        fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  POSN corrupted!  Wanted 0x%016llx got 0x%016llx\n",
-                (CHECK(M->theFMer()) << _posnWidth) | (M->thePosition() & _posnMask), v);
-#endif
 #endif
 
 #ifndef SILENTPOSITIONDB
@@ -513,11 +488,7 @@ positionDB::positionDB(char const  *seq,
   fprintf(stdout, "Checking for unfilled buckets\n");
   for (u32bit i=0; i<_tableSizeInEntries; i++)
     if (_errbucketSizes[i] != 0)
-#ifdef TRUE64BIT
-      fprintf(stdout, "ERROR_CHECK_COUNTING: Bucket %8lu wasn't filled fully?  %lu left over.\n", i, _errbucketSizes[i]);
-#else
-      fprintf(stdout, "ERROR_CHECK_COUNTING: Bucket %8lu wasn't filled fully?  %llu left over.\n", i, _errbucketSizes[i]);
-#endif
+      fprintf(stdout, "ERROR_CHECK_COUNTING: Bucket "u32bitFMT" wasn't filled fully?  "u64bitFMT" left over.\n", i, _errbucketSizes[i]);
   fprintf(stdout, "ERROR_CHECK_COUNTING\n");
 #endif
 
