@@ -91,8 +91,12 @@ void           s4p_destroyPolish(sim4polish *p);
 //
 void           s4p_reverseComplement(sim4polish *p);
 int            s4p_makeForward(sim4polish *p);
-int           s4p_makeReverse(sim4polish *p);
+int            s4p_makeReverse(sim4polish *p);
 
+//  Update the alignment scores based on the alignments that are
+//  present.
+//
+void           s4p_updateAlignmentScores(sim4polish *p);
 
 //  We allow the polish to be printed in different ways:
 //

@@ -15,6 +15,7 @@ src     :=$/sim4polish.c \
           $/sim4polish-printpolish.c \
           $/sim4polish-read.c \
           $/sim4polish-stringtopolish.c \
+          $/sim4polish-updatescores.c \
           $/sim4polish.h \
           $/sim4polishBuilder.H \
           $/sim4polishBuilder.C
