@@ -6,9 +6,7 @@
 #include <errno.h>
 #include "aHit.H"
 
-//  $Id$
-
-#define MAX_ESTS    (16 * 1024 * 1024)
+#define MAX_ESTS    (32 * 1024 * 1024)
 
 typedef struct {
   bool     stillMore;
@@ -96,6 +94,7 @@ main(int argc, char **argv) {
   int arg = 1;
   while (arg < argc) {
     if        (strncmp(argv[arg], "-counts", 2) == 0) {
+      fprintf(stderr, "Reading hit counts from '%s'\n", argv[arg+1]);
       errno = 0;
       FILE *F = fopen(argv[++arg], "r");
       if (F == 0L) {
@@ -110,8 +109,14 @@ main(int argc, char **argv) {
 #endif
         if (!feof(F))
           numESTs++;
+
+        if ((numESTs & 0xffff) == 0) {
+          fprintf(stderr, "Read %lu hit counts\r", numESTs);
+          fflush(stderr);
+        }
       }
       fclose(F);
+      fprintf(stderr, "Read %lu hit counts\n", numESTs);
     } else if (strcmp(argv[arg], "-l") == 0) {
       L = atof(argv[++arg]);
     } else if (strcmp(argv[arg], "-h") == 0) {
