@@ -219,5 +219,6 @@ reverseBits(u32bit x) {
 #include "fastastream.H"
 #include "merstream.H"
 #include "speedCounter.H"
+#include "splitToWords.H"
 
 #endif  //  LIBBRI_H
