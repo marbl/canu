@@ -93,10 +93,13 @@ ifdef INSTALL_TAG
 else
   INSTALL/:=${MAKEFILE/}${_OS_}${_CC_}${_OPT_}${_THR_}/
 endif
-# some platforms put an extension on the executables (like cygwin)
+
+# some platforms put an extension on the executables/libs (like cygwin)
 .EXE:=
+.SO :=.so
 ifeq (${_OS_},cygwin)
   .EXE:=.exe
+  .SO :=.dll
 endif
 
 
@@ -320,6 +323,8 @@ endif
 PYTHON    :=$(shell which python)
 PYTHON_FLAGS :=
 CFLAGS_PY    :=-I/usr/local/include/python
+CLDFLAGS_PY  :=
+CLDLIBS_PY   :=
 ifeq (${_OS_}${_CC_},TRU64)
   CFLAGS_PY :=-I/usr/local/ir/Python-2.2.2 -I/usr/local/ir/Python-2.2.2/Include
   PYTHON    :=/usr/local/ir/bin/python
@@ -330,8 +335,13 @@ ifeq (${_OS_}${_CC_},AIX)
 endif
 ifeq (${_OS_},cygwin)
   CFLAGS_PY :=-I/usr/include/python2.3
+  CFLAGS_PY +=-DUSE_DL_IMPORT
+  CLDFLAGS_PY  :=-Wl--enable-auto-image-base -L/usr/lib/python2.3/config
+  CLIBS_PY     :=-lpython2.3
 endif
-CXXFLAGS_PY :=${CFLAGS_PY}
+CXXFLAGS_PY   :=${CFLAGS_PY}
+CXXLDFLAGS_PY :=${CLDFLAGS_PY}
+CXXLIBS_PY    :=${CLIBS_PY}
 
 ## where is perl?
 PERL:=$(shell which perl)

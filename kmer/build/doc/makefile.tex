@@ -917,11 +917,11 @@ __SUBGOALS__+=$${${1:.=.CXX_LIBS}}
 ${_OS_}_SHLIB_FLAGS:=
 ALL_C_SHLIBS     :=$(strip $(foreach x,${//},${${x:.=.C_SHLIBS}}))
 ${ALL_C_SHLIBS}:
-	${-CC} ${RM} $@ && ${C} ${CFLAGS} ${SHLIB_FLAGS} ${${_OS_}_SHLIB_FLAGS} -o $@ $^ ${CLIBS}
+	${-CC} ${RM} $@ && ${CC} ${CLDFLAGS} ${SHLIB_FLAGS} ${${_OS_}_SHLIB_FLAGS} -o $@ $^ ${CLIBS}
 
 ALL_CXX_SHLIBS   :=$(strip $(foreach x,${//},${${x:.=.CXX_SHLIBS}}))
 ${ALL_CXX_SHLIBS}:
-	${-CXX} ${RM} $@ && ${CXX} ${CXXFLAGS} ${SHLIB_FLAGS} ${${_OS_}_SHLIB_FLAGS} -o $@ $^ ${CXXLIBS}
+	${-CXX} ${RM} $@ && ${CXX} ${CXXLDFLAGS} ${SHLIB_FLAGS} ${${_OS_}_SHLIB_FLAGS} -o $@ $^ ${CXXLIBS}
 __SUBGOALS__+=$${${1:.=.C_SHLIBS}} $${${1:.=.CXX_SHLIBS}}
 \end{verbatim}
 Additional C,C++ subgoals include libraries and shared libraries.  It is

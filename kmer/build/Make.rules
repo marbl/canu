@@ -47,6 +47,23 @@ define .FUN-install-copy-exe
 	  done ; \
         fi
 endef
+# we do another cygwin inspired hack to deal with that fact that
+# .so shlibs need to be turned into .dll files.
+define .FUN-install-copy-shlib
+	@ files='$$(strip $1)'; dirs='$$(strip $2)'; \
+	if [ -n "$$$${files}" -a -n "$$$${dirs}" ] ; then \
+	  for F in $$$${files} ; do \
+	    if [ -f $$$${F} ] ; then \
+	      for D in $$$${dirs} ; do \
+	        Fout=$${INSTALL/}$$$${D}`basename $$$${F} .so`${.SO} ; \
+	        echo ":Copying $$$${F} to $$$${Fout}:" ; \
+	        mkdir -p `dirname $$$${Fout}` && \
+	        rm -f $$$${Fout} && cp -fp $$$${F} $$$${Fout} ; \
+	      done ; \
+	    fi ; \
+	  done ; \
+        fi
+endef
 # use this one for executable scripts with sheband  substitution
 define .FUN-install-copy-script
 	@ files='$$(strip $1)'; dirs='$$(strip $2)'; sheb='$$(strip $3)'; \
@@ -152,11 +169,11 @@ __SUBGOALS__+=$${${1:.=.CXX_LIBS}}
 ${_OS_}_SHLIB_FLAGS:=
 ALL_C_SHLIBS     :=$(strip $(foreach x,${//},${${x:.=.C_SHLIBS}}))
 ${ALL_C_SHLIBS}:
-	${-CC} ${RM} $@ && ${C} ${CFLAGS} ${SHLIB_FLAGS} ${${_OS_}_SHLIB_FLAGS} -o $@ $^ ${CLIBS}
+	${-CC} ${RM} $@ && ${CC} ${CLDFLAGS} ${SHLIB_FLAGS} ${${_OS_}_SHLIB_FLAGS} -o $@ $^ ${CLIBS}
 
 ALL_CXX_SHLIBS   :=$(strip $(foreach x,${//},${${x:.=.CXX_SHLIBS}}))
 ${ALL_CXX_SHLIBS}:
-	${-CXX} ${RM} $@ && ${CXX} ${CXXFLAGS} ${SHLIB_FLAGS} ${${_OS_}_SHLIB_FLAGS} -o $@ $^ ${CXXLIBS}
+	${-CXX} ${RM} $@ && ${CXX} ${CXXLDFLAGS} ${SHLIB_FLAGS} ${${_OS_}_SHLIB_FLAGS} -o $@ $^ ${CXXLIBS}
 __SUBGOALS__+=$${${1:.=.C_SHLIBS}} $${${1:.=.CXX_SHLIBS}}
 
 define .RULE-install-copy-C-CXX-LIBS
@@ -173,7 +190,8 @@ define .RULE-install-copy-C-CXX-SHLIBS
 ${1:.=.install-copy}: ${1:.=.install-copy-C-CXX-SHLIBS}
 ${1:.=.install-copy-C-CXX-SHLIBS}:
 # all shlibs go to lib/${.LIB/}
-	$(call .FUN-install-copy,$${${1:.=.C_SHLIBS}} $${${1:.=.CXX_SHLIBS}}, \
+	$(call .FUN-install-copy-shlib,\
+                                 $${${1:.=.C_SHLIBS}} $${${1:.=.CXX_SHLIBS}}, \
                                  lib/$${${1.=.LIB/}})
 
 endef
