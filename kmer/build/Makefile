@@ -74,8 +74,6 @@ define Include_File
       /  :=${1}
       include ${1}Make.include
       /  :=$/
-    else
-      echo "Did not find ${1}Make.include"
     endif
   endif
 
@@ -117,7 +115,7 @@ $(eval DEPENDS:=$(foreach x,${//},$(call __DEPGOALS__,$x)))
 ifneq ($(strip ${DEPENDS}),)
   # this conditional gets us a way out if things go way wrong
   ifeq ($(filter %-clean,${MAKECMDGOALS}),)
-    include ${DEPENDS} 
+    -include ${DEPENDS} 
   endif
 endif
 
@@ -156,7 +154,7 @@ real-clean:    ${//-RECURSIVE:.=.real-clean} $/.real-clean
 define .RULE-real-clean
 ${1:.=.real-clean}: $${${1:.=.SUBS}:.=.real-clean}
 	${RM} $${${1:.=.CLEAN}} ${__SUBGOALS__} ${1:.=Make.depends} ${__DEPGOALS__} $${${1:.=.REAL-CLEAN}}
-	echo ${RM} -r ${INSTALL/}
+	${RM} -r ${INSTALL/}
 ifneq ($(strip ${C_TMP_COMPILE} ${CXX_TMP_COMPILE}),)
 	(cd $1 && ${RM} -r ${C_TMP_COMPILE} ${CXX_TMP_COMPILE})
 endif
