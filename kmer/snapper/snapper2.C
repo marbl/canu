@@ -256,25 +256,13 @@ main(int argc, char **argv) {
   }
 
   //
-  //  Open and init the genomic sequences.
-  //
-  if (config._beVerbose)
-    fprintf(stderr, "Opening the genomic database.\n");
-
-  cache = new FastACache(config._dbFileName, 0, true);
-
-  config._initTime = getTime();
-
-  //
   //  Build the position database and any masking databases
   //
-  buildPositionDB();
-
   maskDB = 0L;
   if (config._maskFileName) {
     if (config._beVerbose)
       fprintf(stderr, "Building maskDB from fasta file '%s'\n", config._maskFileName);
-    maskDB = new existDB(config._maskFileName, config._merSize, 19, 0, 0, positions);
+    maskDB = new existDB(config._maskFileName, config._merSize, 19);
   }
   if (config._maskPrefix) {
     if (config._beVerbose)
@@ -286,13 +274,25 @@ main(int argc, char **argv) {
   if (config._onlyFileName) {
     if (config._beVerbose)
       fprintf(stderr, "Building onlyDB from fasta file '%s'\n", config._onlyFileName);
-    onlyDB = new existDB(config._onlyFileName, config._merSize, 19, 0, 0, positions);
+    onlyDB = new existDB(config._onlyFileName, config._merSize, 19);
   }
   if (config._onlyPrefix) {
     if (config._beVerbose)
       fprintf(stderr, "Building onlyDB from meryl prefix '%s'\n", config._onlyPrefix);
     onlyDB = new existDB(config._onlyPrefix, config._merSize, 19, 0, config._onlyThreshold);
   }
+
+  buildPositionDB();
+
+  //
+  //  Open and init the genomic sequences.
+  //
+  if (config._beVerbose)
+    fprintf(stderr, "Opening the genomic database.\n");
+
+  cache = new FastACache(config._dbFileName, 0, true);
+
+  config._initTime = getTime();
 
   config._buildTime = getTime();
 
