@@ -12,6 +12,7 @@ $(eval $(call Include,\
      $/../RCM/ \
      $/../TCBB/ \
      $/../../AS/ \
+     $/../ABIMS/ \
      ))
 
 $/.CLEAN:=$/*~ $/*.o
