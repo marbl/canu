@@ -1,0 +1,35 @@
+$Source$
+$Revision$
+$Date$
+$Name$
+$Author$
+$Log$
+Revision 1.1  2003/01/03 14:59:19  walenz
+*** empty log message ***
+
+
+BRI = ?
+
+This is a collection of codes written/supported by Brian Walenz
+(Informatics Research).  All codes are intertwined, hence the grouping
+under BRI/ instead of ESTmapper/ and emma/ and meryl/ and etc.
+
+
+Applications included here are:
+
+
+ESTmapper / snapper
+-------------------
+massive cDNA and SNP tag mapping.  Includes sim4dbseq.
+
+
+emma
+----
+Exact Mer MAtches, an exact search mechanism for mapping k-mer tags to
+sequence
+
+
+meryl
+-----
+The (magic) mer counter
+
