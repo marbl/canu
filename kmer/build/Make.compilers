@@ -29,7 +29,7 @@ VALID_OPERATING_SYSTEM:=$(strip \
     SunOS|foster-city   \
     SunOS|francisco's \
     FreeBSD \
-    FreeBSD|Randy \
+    Panther \
     Linux|RH7 \
     Linux|RH9 \
     default|I-will-take-my-chances \
@@ -382,7 +382,7 @@ ifeq (${_OS|FULL_},SunOS|francisco's)
   -LATEX :=-
 endif
 # neither does randy's mac
-ifeq (${_OS|FULL_},FreeBSD|Randy)
+ifeq (${_OS|FULL_},Panther)
   -LATEX :=-
   FINK_BIN/ :=/sw/bin/
   LATEX :=${FINK_BIN/}latex
