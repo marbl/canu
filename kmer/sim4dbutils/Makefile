@@ -1,5 +1,5 @@
 PROG    = filterPolishes mergePolishes stripPolishes sortPolishes \
-          pickBestPolish pickBestPolish-debug pickBestSNP \
+          pickBestPolish pickBestPolish-debug parseSNP \
           plotCoverageVsIdentity cleanPolishes
 INCLUDE = -I../libbri
 LIBS    = -L../libbri -lbri -lm
@@ -41,8 +41,8 @@ plotIntronSize: plotIntronSize.o $(OBJS)
 plotCoverageVsIdentity: plotCoverageVsIdentity.o $(OBJS)
 	$(CC) $(CCOPTS) -o plotCoverageVsIdentity plotCoverageVsIdentity.o $(OBJS) $(LIBS) $(EFENCE)
 
-pickBestSNP: pickBestSNP.o $(OBJS)
-	$(CC) $(CCOPTS) -o pickBestSNP pickBestSNP.o $(OBJS) $(LIBS) $(EFENCE)
+parseSNP: parseSNP.o $(OBJS)
+	$(CC) $(CCOPTS) -o parseSNP parseSNP.o $(OBJS) $(LIBS) $(EFENCE)
 
 #  Compare two polished sets
 comparePolishes: comparePolishes.o $(OBJS)
