@@ -241,6 +241,13 @@ printSNP(FILE *F, sim4polish *p) {
     int  examinePos  = 0;
     int  genPosition = p->genLo + p->exons[exonWithSNP].genFrom - 1;
 
+    //  Recent runs of dbSNP showed that we are off by one (too many if forward, too few if complement).  This is a hack to fix it.
+    //
+    if (p->matchOrientation == SIM4_MATCH_COMPLEMENT)
+      bpToExamine++;
+    else
+      bpToExamine--;
+
     while (bpToExamine > 0) {
 
       //  If the SNP alignment eats up a base pair, decrement
