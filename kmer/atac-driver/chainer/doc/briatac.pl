@@ -41,6 +41,7 @@ my $minfill   = 20; # the mimimum fill for a reported match.
 my $maxgap    = 0;  # the maximum substitution gap
 
 my $numSegments = 2;
+my $numThreads  = 4;
 
 findSources($id1, $id2);
 
@@ -84,15 +85,17 @@ if (! -e "$ATACdir/.mask.done") {
 
     if ($includeSize < $excludeSize) {
 
-        if (! -e "$ATACdir/$matches.include.existDB") {
-            print STDERR "Building 'include' existDB structure.\n";
-            if (runCommand("$existDB -m 20 -t 19 $ATACdir/min.$mercount1.$mercount2 $ATACdir/$matches.include.existDB")) {
-                unlink "$ATACdir/$matches.include.existDB";
-                die "Failed to make include existDB?\n";
-            }
-        }
+        #if (! -e "$ATACdir/$matches.include.existDB") {
+        #    print STDERR "Building 'include' existDB structure.\n";
+        #    if (runCommand("$existDB -m 20 -t 19 $ATACdir/min.$mercount1.$mercount2 $ATACdir/$matches.include.existDB")) {
+        #        unlink "$ATACdir/$matches.include.existDB";
+        #        die "Failed to make include existDB?\n";
+        #    }
+        #}
+        #die "Failed to make include existDB?\n" if (! -e "$ATACdir/$matches.include.existDB");
 
-        die "Failed to make include existDB?\n" if (! -e "$ATACdir/$matches.include.existDB");
+        system("ln -s $ATACdir/min.$mercount1.$mercount2.mcidx $ATACdir/$matches.include.mcidx");
+        system("ln -s $ATACdir/min.$mercount1.$mercount2.mcdat $ATACdir/$matches.include.mcdat");
     } else {
 
         if (! -e "$ATACdir/$matches.exclude.mcdat") {
@@ -106,32 +109,24 @@ if (! -e "$ATACdir/.mask.done") {
 
         die "Failed to find exclude mers?\n" if (! -e "$ATACdir/$matches.exclude.mcdat");
 
-        if (! -e "$ATACdir/$matches.exclude.existDB") {
-            print STDERR "Building 'exclude' existDB structure.\n";
-            if (runCommand("$existDB -m 20 -t 19 $ATACdir/$matches.exclude $ATACdir/$matches.exclude.existDB")) {
-                unlink "$ATACdir/$matches.exclude.existDB";
-                die "Failed to make exclude existDB?\n";
-            }
-        }
-
-        die "Failed to make exclude existDB?\n" if (! -e "$ATACdir/$matches.exclude.existDB");
+        #if (! -e "$ATACdir/$matches.exclude.existDB") {
+        #    print STDERR "Building 'exclude' existDB structure.\n";
+        #    if (runCommand("$existDB -m 20 -t 19 $ATACdir/$matches.exclude $ATACdir/$matches.exclude.existDB")) {
+        #        unlink "$ATACdir/$matches.exclude.existDB";
+        #        die "Failed to make exclude existDB?\n";
+        #    }
+        #}
+        #die "Failed to make exclude existDB?\n" if (! -e "$ATACdir/$matches.exclude.existDB");
     }
 
     #  Success!
     #
     open(F, "> $ATACdir/.mask.done");
     close(F);
-
-    #  Clean up the temporary files
-    #
-    #unlink "$ATACdir/min.$mercount1.$mercount2.mcdat";
-    #unlink "$ATACdir/min.$mercount1.$mercount2.mcidx";
-    #unlink "$ATACdir/$matches.exclude.mcdat";
-    #unlink "$ATACdir/$matches.exclude.mcidx";
 }
 
 
-exit(0);
+#exit(0);
 
 
 #  This is the segmented search routine.  By default, it will segment into two pieces.
@@ -181,11 +176,11 @@ foreach my $segmentID (@segmentIDs) {
         $cmd .= "-mersize $mersize ";
         $cmd .= "-singlelength $minfill ";
         $cmd .= "-maxgap $maxgap ";
-        $cmd .= "-numthreads 4 ";
+        $cmd .= "-numthreads $numThreads ";
         $cmd .= "-genomic $MERYLdir/$id2.fasta ";
         $cmd .= "-cdna $MERYLdir/$id1.fasta ";
-        $cmd .= "-only $ATACdir/$matches.include.existDB " if (-e "$ATACdir/$matches.include.existDB");
-        $cmd .= "-mask $ATACdir/$matches.exclude.existDB " if (-e "$ATACdir/$matches.exclude.existDB");
+        $cmd .= "-only $ATACdir/$matches.include " if (-e "$ATACdir/$matches.include.mcdat");
+        $cmd .= "-mask $ATACdir/$matches.exclude " if (-e "$ATACdir/$matches.exclude.mcdat");
         $cmd .= "-use $ATACdir/$matches-segment-$segmentID ";
         $cmd .= "-output $ATACdir/$matches-segment-$segmentID.matches ";
         $cmd .= "-stats $ATACdir/$matches-segment-$segmentID.stats ";
