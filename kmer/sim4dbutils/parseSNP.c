@@ -164,14 +164,12 @@ findPosition(char *defline) {
 
   //  Look for standard posTags if we didn't find the one the user wanted.
 
-  if        (p == 0L) {
+  if (p == 0L)
     p = strstr(defline, "allelePos=");
-  } else if (p == 0L) {
+  if (p == 0L)
     p = strstr(defline, "/pos=");
-  } else {
-    fprintf(stderr, "posTag '%s' not found in defline '%s'!\n", posTag, defline);
-    exit(1);
-  }
+  if (p == 0L)
+    fprintf(stderr, "posTag '%s' (also looked for 'allelePos=' and '/pos=') not found in defline '%s'!\n", posTag, defline), exit(1);
 
   while (*p && !isdigit(*p))
     p++;
