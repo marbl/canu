@@ -5,8 +5,6 @@
 #include "libbri.H"
 #include "existDB.H"
 
-//  $Id$
-
 #ifdef TRUE64BIT
 char const *buildMessage       = "Building chunk with %u sequences.\n";
 char const *outputDisplay      = "cDNA %7u/%7u (%5.1f%%; %8.3f/sec) Finish in %5.2f seconds.\r";
@@ -121,7 +119,7 @@ buildChunk(void) {
   if (sLen <  1 * 1024 * 1024)
     tblSize = 20;
 
-  positions = new positionDB(s, 0L, config._merSize, tblSize, config._beVerbose);
+  positions = new positionDB(s, 0L, config._merSize, config._merSkip, tblSize, config._beVerbose);
 
   delete [] s;
   delete    dbFASTA;

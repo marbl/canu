@@ -75,6 +75,8 @@ public:
   u32bit           _merSize;
   u32bit           _numSearchThreads;
 
+  u32bit           _merSkip;
+
   bool             _doReverse;
   bool             _doForward;
 

@@ -8,13 +8,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-//  $Id$
-
 configuration::configuration(void) {
 
   _beVerbose           = false;
 
   _merSize             = 20;
+  _merSkip             = 0;
   _numSearchThreads    = 4;
 
   _doReverse           = true;
@@ -315,6 +314,9 @@ configuration::read(int argc, char **argv) {
     if        (strcmp(argv[arg], "-mersize") == 0) {
       arg++;
       _merSize = atoi(argv[arg]);
+    } else if (strcmp(argv[arg], "-merskip") == 0) {
+      arg++;
+      _merSkip = atoi(argv[arg]);
     } else if (strcmp(argv[arg], "-numthreads") == 0) {
       arg++;
       _numSearchThreads = atoi(argv[arg]);
@@ -431,6 +433,14 @@ configuration::read(int argc, char **argv) {
     exit(-1);
   }
 
+  //
+  //  Check that the mers are at least adjacent
+  //
+  if (_merSkip >= _merSize) {
+    fprintf(stderr, "ERROR:  Mers are not adjacent; make sure merskip <= mersize.\n");
+    exit(-1);
+  }
+
   //  Fail if we don't get reasonable signal criteria
   //
   if (((_minLengthSingle   == 0) && (_minCoverageSingle   == 0.0)) ||
@@ -448,9 +458,11 @@ configuration::display(FILE *out) {
     fprintf(out, "--Using these Options--\n");
 #ifdef TRUE64BIT
     fprintf(out, "merSize             = %u\n",   _merSize);
+    fprintf(out, "merSkip             = %u\n",   _merSkip);
     fprintf(out, "numSearchThreads    = %u\n",   _numSearchThreads);
 #else
     fprintf(out, "merSize             = %lu\n",   _merSize);
+    fprintf(out, "merSkip             = %lu\n",   _merSkip);
     fprintf(out, "numSearchThreads    = %lu\n",   _numSearchThreads);
 #endif
     fprintf(out, "doReverse           = %s\n",   _doReverse ? "true" : "false");
