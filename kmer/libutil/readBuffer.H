@@ -68,8 +68,13 @@ readBuffer::fillBuffer(void) {
   errno = 0;
   _bufferLen = (u32bit)::read(_file, _buffer, _bufferMax * sizeof(char));
   if (errno) {
+#ifdef TRUE64BIT
     fprintf(stderr, "readBuffer()-- couldn't read %ld bytes from '%s'\n%s\n",
             _bufferMax * sizeof(char), _filename, strerror(errno));
+#else
+    fprintf(stderr, "readBuffer()-- couldn't read %d bytes from '%s'\n%s\n",
+            (int)_bufferMax * sizeof(char), _filename, strerror(errno));
+#endif
     exit(1);
   }
   if (_bufferLen == 0)
