@@ -3,8 +3,17 @@
 
 #include "bio++.H"
 
+
 //  Define this to do bounds checking
-#define SANITY
+//
+#if 1
+#define SANITY(NAM, POS) \
+  if (((_doRevComp) ? rc((POS)) : (POS)) > _len) \
+    fprintf(stderr, "%s-- position "u32bitFMT" larger than length "u32bitFMT"\n", NAM, ((_doRevComp) ? rc((POS)) : (POS)), _len)
+#else
+#define SANITY(NAM, POS)
+#endif
+
 
 class FastAAccessor {
 public:
@@ -21,13 +30,6 @@ public:
     if (_doRevComp)
       _pos = _len-1;
   };
-
-#if 0
-  FastAAccessor(FastASequenceOnDisk *S, bool revcomp=false) {
-    fprintf(stderr, "SORRY!  FastAAccessor() isn't implemented for FastASequenceOnDisk.\n");
-    exit(1);
-  };
-#endif
 
   FastAAccessor(char *S, u32bit length=0, bool revcomp=false) {
     _seq = S;
@@ -50,12 +52,12 @@ public:
 
 private:
   u32bit  rc(u32bit p) const {
-    return(_rcBase + _rcBase + _rcLen - p - 1);
+    return(_rcBase + _rcLen - (p - _rcBase) - 1);
   };
 
 public:
 
-  //  For interating over reverse complement regions of a sequence.
+  //  For iterating over reverse complement regions of a sequence.
   //  The base is the start of the range, and the length is, the
   //  length.  In the forward coordinate system.
   //
@@ -66,11 +68,10 @@ public:
   //
   //  Set both to zero (also the default) to unset the range
   //
-  void  setReverseComplementRange(u32bit base=0, u32bit length=0) {
-#ifdef SANITY
-    if (base > _len)
-      fprintf(stderr, "FastAAccessor::setReverseComplementRange()-- position "u32bitFMT" larger than length "u32bitFMT"\n", base, _len);
-#endif
+  void  setRange(u32bit base=0, u32bit length=0) {
+    SANITY("FastAAccessor::setReverseComplementRange()", base);
+    SANITY("FastAAccessor::setReverseComplementRange()", base+length);
+    u32bit p = rc(_pos);
     if ((base == 0) && (length == 0)) {
       _rcBase = 0;
       _rcLen  = _len;
@@ -78,32 +79,52 @@ public:
       _rcBase = base;
       _rcLen  = length;
     }
+    if (_doRevComp)
+      _pos = rc(p);
+  };
+
+  u32bit getRangeBegin(void)  { return(_rcBase); };
+  u32bit getRangeEnd(void)    { return(_rcBase + _rcLen); };
+
+  void   extendLeft(s32bit x) {
+    fprintf(stderr, "extendLeft()-- by %d\n", (int)x);
+    if (_doRevComp) {
+      u32bit p = rc(_pos);
+      _rcLen  += x;
+      _pos = rc(p);
+    } else {
+      _rcBase -= x;
+      _rcLen  += x;
+    }
+  };
+  void   extendRight(s32bit x)   {
+    fprintf(stderr, "extendRight()-- by %d\n", (int)x);
+    if (_doRevComp) {
+      u32bit p = rc(_pos);
+      _rcBase -= x;
+      _rcLen  += x;
+      _pos = rc(p);
+    } else {
+      _rcLen  += x;
+    }
   };
 
   char operator[](u32bit p) const {
-#ifdef SANITY
-    if (p > _len)
-      fprintf(stderr, "FastAAccessor::operator[]-- position "u32bitFMT" larger than length "u32bitFMT"\n", p, _len);
-#endif
+    SANITY("FastAAccessor::operator[]", p);
+  
     if (_doRevComp) return(complementSymbol[(int)_seq[rc(p)]]);
     else            return(_seq[p]);
   };
 
 
   char operator*(void) const {
-#ifdef SANITY
-    if (_pos > _len)
-      fprintf(stderr, "FastAAccessor::operator*()-- position "u32bitFMT" larger than length "u32bitFMT"\n", _pos, _len);
-#endif
+    SANITY("FastAAccessor::operator()", _pos);
     if (_doRevComp) return(complementSymbol[(int)_seq[_pos]]);
     else            return(_seq[_pos]);
   };
 
   char get(void) const {
-#ifdef SANITY
-    if (_pos > _len)
-      fprintf(stderr, "FastAAccessor::get()-- position "u32bitFMT" larger than length "u32bitFMT" rc=%d\n", _pos, _len, (int)_doRevComp);
-#endif
+    SANITY("FastAAccessor::get()", _pos);
     if (_doRevComp) return(complementSymbol[(int)_seq[_pos]]);
     else            return(_seq[_pos]);
   };
@@ -125,8 +146,15 @@ public:
     return(*this);
   };
 
+  //bool isValid(s32bit offset=0, bool report=false) {
   bool isValid(void) {
+#if 0
+    if (_doRevComp) return( (-offset <= rc(_pos)) && ((rc(_pos) + offset) < _len) );
+    else            return( (-offset <=    _pos)  && ((   _pos  + offset) < _len) );
+#else
+    //  True if this physical location is valid.
     return(_pos < _len);
+#endif
   };
 
   bool setPosition(u32bit p) {
@@ -147,17 +175,8 @@ public:
     return(_len);
   };
 
-
-#if 0
-  //  Postfix operators -- a little expensive, we would need to
-  //  copy construct the return value.
-  FastAAccessor const operator--(int x) {
-  };
-  FastAAccessor const operator++(int x) {
-  };
-#endif
-
 private:
+public:
   char    *_seq;
   u32bit   _pos;
   u32bit   _len;
