@@ -235,66 +235,6 @@ MEMatch::textDump(ostream& dest, bool show_seq, unsigned int margin) {
 	dest << *B;
     }
     dest << '\n';
-
-
-#if 0
-
-    if (isReversed()) {
-
-      //SeqArrayAccessor s2a(_s2);
-      //ReverseComplement s2rc(s2a);
-
-      p2 = pos2();
-
-
-      if (p2 < margin) {
-	for (i = 0; i < (margin - p2); ++i)
-	  dest << ' ';
-	p2 = 0;
-      }
-      else {
-	p2 = p2 - margin;
-	i = 0;
-      }
-      
-      for (; i < num_print; ++i, p2--) {
-	if ((i == margin) || (i == (num_print - margin)))
-	  dest << '|';
-
-        //  Need case for less than zero here, but p2 is unsigned!
-
-	if (p2 >= _s2->sequenceLength())
-	  dest << ' ';
-
-	else
-	  dest << complementSymbol[_s2->sequence()[p2]];
-      }
-    } else {
-      p2 = pos2();
-
-      dest << ">>> ";
-
-      if (p2 < margin) {
-	for (i = 0; i < (margin - p2); ++i)
-	  dest << ' ';
-	p2 = 0;
-      }
-      else {
-	p2 = p2 - margin;
-	i = 0;
-      }
-      
-      for (; i < num_print; ++i, p2++) {
-	if ((i == margin) || (i == (num_print - margin)))
-	  dest << '|';
-	if (p2 >= (u64bit) _s2->sequenceLength())
-	  dest << ' ';
-	else
-	  dest << _s2->sequence()[p2];
-      }
-    }
-    dest << '\n';
-#endif
   }
 }
 
