@@ -16,7 +16,8 @@ LIBSIM4/      :=$/libsim4/
 
 #$(eval $(call Include,$/ESTmapper/))
 
-$(eval $(call Include,$/atac/))
+#$(eval $(call Include,$/atac/))
+
 $(eval $(call Include,$/atac-framework/))
 $(eval $(call Include,$/atac-matchextender/))
 
