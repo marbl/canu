@@ -121,11 +121,11 @@ EOF
 ccDBUG          := -qheapdebug -qcheck=all -DMEMORY_DEBUG
 ccDBUG          := 
 CC              := xlc_r
-CFLAGS_ARCH     := -qthreaded -D_THREAD_SAFE -D_LARGE_FILES $(ccDBUG) -q64 -g -qfullpath -qcpluscmt
+CFLAGS_ARCH     := -qthreaded -D_THREAD_SAFE -D_LARGE_FILES \$(ccDBUG) -q64 -g -qfullpath -qcpluscmt
 CLDFLAGS_ARCH   := 
 CLIBS_ARCH      := 
 CXX             := xlC_r
-CXXFLAGS_ARCH   := -qthreaded -D_THREAD_SAFE -D_LARGE_FILES $(ccDBUG) -q64 -g -qfullpath
+CXXFLAGS_ARCH   := -qthreaded -D_THREAD_SAFE -D_LARGE_FILES \$(ccDBUG) -q64 -g -qfullpath
 CXXLDFLAGS_ARCH := 
 CXXLIBS_ARCH    := 
 ARFLAGS         := -X 64 ruv
