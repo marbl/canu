@@ -3,9 +3,7 @@
 #include <string.h>
 #include <errno.h>
 #include <math.h>
-
-//#include "sim4reader.h"
-
+#include "libbri.H"
 #include "sim4polish.h"
 #include "sim4polishBuilder.H"
 
@@ -17,16 +15,8 @@ sim4polishList::sim4polishList() {
 }
 
 sim4polishList::~sim4polishList() {
-
-  //
-  //  Destroy any polishes that the stupid user didn't claim.
-  //  It would be rather convenient to use sim4reader stuff for
-  //  this, but that is available in sim4db, and I don't want
-  //  to depend on that here.
-  //
-  for (u32bit i=0; i<len; i++) {
+  for (u32bit i=0; i<len; i++)
     s4p_destroyPolish(list[i]);
-  }
   delete [] list;
 }
 
@@ -94,6 +84,7 @@ sim4polishBuilder::create(u32bit estid, u32bit estlen,
   it = (sim4polish *)malloc(sizeof(sim4polish));
   if (errno) {
     fprintf(stderr, "malloc() error in sim4polishBuilder::create -- can't allocate sim4polish\n%s\n", strerror(errno));
+    abort();
     exit(1);
   }
 
@@ -133,10 +124,8 @@ sim4polishBuilder::setESTdefline(char *defline) {
     fprintf(stderr, "sim4polishBuilder::setESTdefline()-- no polish to build; create() not called\n");
     return;
   }
-  u32bit l = (u32bit)strlen(defline) + 1;
   free(it->estDefLine);
-  it->estDefLine = (char *)malloc(l * sizeof(char));
-  memcpy(it->estDefLine, defline, l * sizeof(char));
+  it->estDefLine = (char *)memdup(defline, (strlen(defline) + 1) * sizeof(char));
 }
 
 
@@ -146,10 +135,8 @@ sim4polishBuilder::setGENdefline(char *defline) {
     fprintf(stderr, "sim4polishBuilder::setGENdefline()-- no polish to build; create() not called\n");
     return;
   }
-  u32bit l = (u32bit)strlen(defline) + 1;
   free(it->genDefLine);
-  it->genDefLine = (char *)malloc(l * sizeof(char));
-  memcpy(it->genDefLine, defline, l * sizeof(char));
+  it->genDefLine = (char *)memdup(defline, (strlen(defline) + 1) * sizeof(char));
 }
 
 
@@ -240,8 +227,8 @@ sim4polishBuilder::addExon(u32bit estlo, u32bit esthi,
     ex[exPos] = new sim4polishExon;
   } else {
     //  Just in case someone didn't clean up after themselves.
-    free(ex[exAli]->estAlignment);
-    free(ex[exAli]->genAlignment);
+    free(ex[exPos]->estAlignment);
+    free(ex[exPos]->genAlignment);
   }
 
   ex[exPos]->estAlignment      = 0L;
@@ -276,14 +263,8 @@ sim4polishBuilder::addExonAlignment(char *estalign,
     exit(1);
   }
 
-  u32bit elen = (u32bit)strlen(estalign) + 1;
-  u32bit glen = (u32bit)strlen(genalign) + 1;
-
-  ex[exAli]->estAlignment = (char *)malloc(elen * sizeof(char));
-  ex[exAli]->genAlignment = (char *)malloc(glen * sizeof(char));
-
-  memcpy(ex[exAli]->estAlignment, estalign, elen * sizeof(char));
-  memcpy(ex[exAli]->genAlignment, genalign, glen * sizeof(char));
+  ex[exAli]->estAlignment = (char *)memdup(estalign, (strlen(estalign) + 1) * sizeof(char));
+  ex[exAli]->genAlignment = (char *)memdup(genalign, (strlen(genalign) + 1) * sizeof(char));
 
   exAli++;
 }
@@ -297,16 +278,15 @@ sim4polishBuilder::release(void) {
     return(0L);
   }
 
-  if (exPos == 0) {
+  if (exPos == 0)
     return(0L);
-  }
 
   it->numExons = exPos;
   it->exons    = (sim4polishExon *)malloc(exPos * sizeof(sim4polishExon));
 
   for (u32bit i=0; i<exPos; i++) {
     memcpy(it->exons + i, ex[i], sizeof(sim4polishExon));
-    ex[i]->estAlignment = 0L;
+    ex[i]->estAlignment = 0L;  //  Owned by 'it' now
     ex[i]->genAlignment = 0L;
   }
 
