@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <new.h>
+#include <new>
 
 #include "posix.H"
 #include "seatac.H"
@@ -36,7 +36,7 @@ loaderThread(void *) {
     //
     if ((slept) && (waterLevel <= 1)) {
 
-      u32bit i = 0.1 * config._loaderHighWaterMark;
+      u32bit i = (u32bit) (0.1 * config._loaderHighWaterMark);
       if (i == 0)
         i = 1;
       config._loaderHighWaterMark += i;
