@@ -25,15 +25,15 @@ $(eval $(call Include,${SNAPPER2/}))
 
 $(eval $(call Include,${MERYL/}))
 
-#$(eval $(call Include,${EMMA/}))
+$(eval $(call Include,${EMMA/}))
 
-#$(eval $(call Include,${SEARCHGEN/}))
+$(eval $(call Include,${SEARCHGEN/}))
 
-#$(eval $(call Include,${EXISTDB/}))
+$(eval $(call Include,${EXISTDB/}))
 
 $(eval $(call Include,${ESTMAPUTIL/}))
 
-#$(eval $(call Include,${POSITIONDB/}))
+$(eval $(call Include,${POSITIONDB/}))
 
 $(eval $(call Include,${SIM4/}))
 
