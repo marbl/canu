@@ -4,6 +4,7 @@
 #include "merstream.H"
 #include "britime.H"
 #include "stat.h"
+#include "bit-operations.H"
 
 static
 char     magic[16] = { 'm', 'e', 'r', 'S', 't', 'r', 'e', 'a', 'm', '1', ' ', ' ', ' ', ' ', ' ', ' '  };
@@ -18,7 +19,7 @@ merStreamFileBuilder::merStreamFileBuilder(u32bit m, const char *i, const char *
 merStreamFileBuilder::~merStreamFileBuilder() {
 }
 
-void
+u64bit
 merStreamFileBuilder::build(bool beVerbose) {
   u64bit             lastMer     = u64bitZERO;
   u64bit             lastMerPos  = u64bitZERO;
@@ -203,6 +204,8 @@ merStreamFileBuilder::build(bool beVerbose) {
   delete [] deflinName;
   delete [] streamName;
   delete [] outputName;
+
+  return(numMers);
 }
 
 
@@ -277,8 +280,6 @@ merStreamFileReader::merStreamFileReader(const char *i) {
   _blockSequence = new u32bit [_numBlocks];
   _blockPosition = new u64bit [_numBlocks];
 
-  fprintf(stderr, "WARNING:  Not using sequenceNumber and position information!\n");
-
   for (u64bit b=0; b<_numBlocks; b++) {
     _blockSize[b]     = (u32bit)_streamFile->getNumber();
     _blockSequence[b] = (u64bit)_streamFile->getNumber();
@@ -337,6 +338,7 @@ merStreamFileReader::merStreamFileReader(const char *i) {
   _thisBlockSize = 0;
   _merMask       = u64bitMASK(_merSize * 2);
   _theFMer       = u64bitZERO;
+  _theRMer       = u64bitZERO;
   _firstMer      = u64bitZERO;
 }
 
@@ -352,10 +354,19 @@ merStreamFileReader::~merStreamFileReader() {
 
 bool
 merStreamFileReader::seekToMer(u64bit merNumber) {
-  u64bit  totalMers = 0;
 
-  fprintf(stderr, "WARNING:  seekToMer() is untested and most likely very broken!\n");
-  return(false);
+  //  Special case for merNumber == 0.  We treat it just like a normal
+  //  creation.
+  //
+  if (merNumber == 0) {
+    _thisBlock     = 0;
+    _thisBlockSize = 0;
+    _merMask       = u64bitMASK(_merSize * 2);
+    _theFMer       = u64bitZERO;
+    _theRMer       = u64bitZERO;
+    _firstMer      = u64bitZERO;
+    return(true);
+  }
 
   //  Did someone request a mer number too high?
   //
@@ -364,22 +375,34 @@ merStreamFileReader::seekToMer(u64bit merNumber) {
   
   //  Search for the first block that is larger than merNumber
   //
-  u32bit b = 0;
+  u32bit block     = 0;
+  u64bit totalMers = 0;
 
-  while ((b < _numBlocks) &&
-         (totalMers <= merNumber) &&
-         (merNumber <= totalMers + _blockSize[b])) {
-    totalMers += _blockSize[b];
-    b++;
+  while ((block < _numBlocks) &&
+         (totalMers + _blockSize[block] <= merNumber)) {
+    //fprintf(stderr, "mer=%llu block=%lu total=%llu len=%lu\n", merNumber, block, totalMers, _blockSize[block]);
+    totalMers += _blockSize[block];
+    block++;
   }
+
+  //fprintf(stderr, "mer=%llu block=%lu total=%llu len=%lu\n", merNumber, block, totalMers, _blockSize[block]);
 
   //  We're in the right block, we just need to load the mer and quit.
   //
-  _streamFile->seek(_strStart + b * _merSize * 2 + (merNumber - b) * 2);
+  _streamFile->seek(_strStart + block * _merSize * 2 + (merNumber - block) * 2);
 
-  _thisBlock     = b;
+  _thisBlock     = block;
   _thisBlockSize = _blockSize[_thisBlock] - (merNumber - totalMers);
-  _theFMer       = _streamFile->getBits(_merSize * 2);
+
+  _thePosition  = _blockPosition[_thisBlock] + (merNumber - totalMers) - 1;
+  _theSequence  = _blockSequence[_thisBlock];
+
+  //  We read in mersize-1 bases into the FMer, but reverse complement
+  //  the whole mer.  On the nextMer(), we shift out the extra junk
+  //  base from both.
+  //
+  _theFMer       = _streamFile->getBits(_merSize * 2 - 2);
+  _theRMer       = reverseComplementMer(_merSize, _theFMer);
 
   return(true);
 }
@@ -420,14 +443,22 @@ again:
     _theSequence  = _blockSequence[_thisBlock];
 
     _theFMer = _streamFile->getBits(_merSize * 2);
-
-    //fprintf(stderr, "New block of size "u64bitFMT", pos="u64bitFMT" seq="u64bitFMT"\n", _thisBlockSize, _thePosition, _theSequence);
+    _theRMer = reverseComplementMer(_merSize, _theFMer);
+    
   } else {
     //  Still in the same block, just move to the next mer.
     //
+    u64bit  theBase = _streamFile->getBits(2);
+
     _theFMer <<= 2;
-    _theFMer  |= _streamFile->getBits(2);
+    _theFMer  |= theBase;
     _theFMer  &= _merMask;
+
+    theBase  ^= 0x3;
+    theBase <<= (_merSize << 1) - 2;
+
+    _theRMer >>= 2;
+    _theRMer  |= theBase;
 
     _thisBlockSize--;
 
@@ -457,38 +488,104 @@ main(int argc, char **argv) {
   }
 
   merStreamFileBuilder   *B = new merStreamFileBuilder(20, argv[1], "merStreamFileTest");
-  B->build(true);
+  u64bit numMers = B->build(true);
   delete B;
 
-  merStreamFileReader    *R = new merStreamFileReader("merStreamFileTest");
-  merStream              *M = new merStream(20, argv[1]);
+  merStreamFileReader    *R = 0L;
+  merStream              *M = 0L;
 
   u64bit compared = 0;
   u64bit errors   = 0;
 
-  while (M->nextMer() && R->nextMer()) {
+  u64bit merNum   = 0;
+  u32bit loop     = 0;
+
+
+  fprintf(stderr, "Found "u64bitFMT" mers in %s\n", numMers, argv[1]);
+
+
+  ////////////////////////////////////////
+  //
+  //  Random access test
+  //
+  R = new merStreamFileReader("merStreamFileTest");
+  M = new merStream(20, argv[1]);
+
+  //  Load the first mer from the stream.
+  M->nextMer();
+
+  u64bit numSeeks = 100000;
+  while (numMers / numSeeks < 10)
+    numSeeks = numSeeks * 0.8;
+
+  fprintf(stderr, "Testing random access on "u64bitFMT" seeks of size "u64bitFMT".\n", numSeeks, numMers / numSeeks);
+  for (u64bit s=numSeeks; --s; ) {
+
+    //  Skip 'skipSize' mers in M
+    //
+    for (loop=0; loop < numMers / numSeeks; loop++, merNum++)
+      M->nextMer();
+
+    //  Seek to the proper spot in R
+    //
+    R->seekToMer(merNum);
+    R->nextMer();
+
     compared++;
     if ((M->theFMer()           != R->theFMer()) ||
+        (M->theRMer()           != R->theRMer()) ||
         (M->thePosition()       != R->thePosition()) ||
         (M->theSequenceNumber() != R->theSequenceNumber())) {
-      fprintf(stderr, u64bitFMT": !!! M got "u64bitHEX" "u64bitFMT" "u64bitFMT" but R got "u64bitHEX" "u64bitFMT" "u64bitFMT"\n",
-              compared,
-              M->theFMer(), M->thePosition(), M->theSequenceNumber(),
-              R->theFMer(), R->thePosition(), R->theSequenceNumber());
+      fprintf(stderr, u64bitFMT": !!! M got F="u64bitHEX" R="u64bitHEX" "u64bitFMT" "u64bitFMT" but R got F="u64bitHEX" R="u64bitHEX" "u64bitFMT" "u64bitFMT"\n",
+              merNum,
+              M->theFMer(), M->theRMer(), M->thePosition(), M->theSequenceNumber(),
+              R->theFMer(), R->theRMer(), R->thePosition(), R->theSequenceNumber());
       errors++;
 #if DEBUG
     } else {
-      if (compared > 20262800) {
-        fprintf(stderr, u64bitFMT":     M got "u64bitHEX" "u64bitFMT" "u64bitFMT" and R got "u64bitHEX" "u64bitFMT" "u64bitFMT"\n",
-                compared,
-                M->theFMer(), M->thePosition(), M->theSequenceNumber(),
-                R->theFMer(), R->thePosition(), R->theSequenceNumber());
-      }
+      fprintf(stderr, u64bitFMT":     M got F="u64bitHEX" R="u64bitHEX" "u64bitFMT" "u64bitFMT" but R got F="u64bitHEX" R="u64bitHEX" "u64bitFMT" "u64bitFMT"\n",
+              merNum,
+              M->theFMer(), M->theRMer(), M->thePosition(), M->theSequenceNumber(),
+              R->theFMer(), R->theRMer(), R->thePosition(), R->theSequenceNumber());
 #endif
     }
-           
-
   }
+  delete R;
+  delete M;
+
+
+
+  ////////////////////////////////////////
+  //
+  //  Streaming test
+  //
+  R = new merStreamFileReader("merStreamFileTest");
+  M = new merStream(20, argv[1]);
+
+  fprintf(stderr, "Testing streaming access.\n");
+  while (M->nextMer() && R->nextMer()) {
+    compared++;
+    if ((M->theFMer()           != R->theFMer()) ||
+        (M->theRMer()           != R->theRMer()) ||
+        (M->thePosition()       != R->thePosition()) ||
+        (M->theSequenceNumber() != R->theSequenceNumber())) {
+      fprintf(stderr, u64bitFMT": !!! M got F="u64bitHEX" R="u64bitHEX" "u64bitFMT" "u64bitFMT" but R got F="u64bitHEX" R="u64bitHEX" "u64bitFMT" "u64bitFMT"\n",
+              compared,
+              M->theFMer(), M->theRMer(), M->thePosition(), M->theSequenceNumber(),
+              R->theFMer(), R->theRMer(), R->thePosition(), R->theSequenceNumber());
+      errors++;
+#if DEBUG
+    } else {
+      fprintf(stderr, u64bitFMT":     M got F="u64bitHEX" R="u64bitHEX" "u64bitFMT" "u64bitFMT" but R got F="u64bitHEX" R="u64bitHEX" "u64bitFMT" "u64bitFMT"\n",
+              compared,
+              M->theFMer(), M->theRMer(), M->thePosition(), M->theSequenceNumber(),
+              R->theFMer(), R->theRMer(), R->thePosition(), R->theSequenceNumber());
+#endif
+    }
+  }
+
+
+
 
   fprintf(stderr, "Compared "u64bitFMT" mers.\n", compared);
 

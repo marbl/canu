@@ -24,8 +24,9 @@ public:
   merStreamFileBuilder(u32bit merSize, const char *inputFile, const char *outputFile);
   ~merStreamFileBuilder();
 
-  void                   build(bool beVerbose=false);
-  bool                   test(bool beVerbose=false);
+  //  Returns the number of mers written
+  u64bit                 build(bool beVerbose=false);
+
 private:
   u32bit                _merSize;
   const char           *_inputFile;
