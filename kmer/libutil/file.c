@@ -181,12 +181,14 @@ unmapFile(void *addr, size_t length) {
 //
 off_t
 copyFile(char *srcName, FILE *dstFile) {
-  off_t srcSize     = 0;
-  off_t bytesRemain = 0;
-  off_t bytesRead   = 0;
+  off_t  srcSize     = 0;
+  off_t  bytesRemain = 0;
+  off_t  bytesRead   = 0;
+  int    bufferSize  = 1024 * 1024;
+  char  *buffer      = 0L;
+  FILE  *srcFile     = 0L;
 
-  int   bufferSize = 1024 * 1024;
-  char *buffer     = (char *)malloc(sizeof(char) * bufferSize);
+  buffer     = (char *)malloc(sizeof(char) * bufferSize);
   if (buffer == 0L) {
     fprintf(stderr, "copyFile()-- Can't allocate buffer.\n");
     exit(1);
@@ -196,7 +198,7 @@ copyFile(char *srcName, FILE *dstFile) {
   bytesRemain = srcSize;
 
   errno = 0;
-  FILE  *srcFile = fopen(srcName, "r");
+  srcFile = fopen(srcName, "r");
   if (errno) {
     fprintf(stderr, "merStreamFileBuilder::build()-- failed to open the '%s' during merge: %s\n", srcName, strerror(errno));
     exit(1);
