@@ -9,8 +9,6 @@
 #define TRUE64BIT
 #endif
 
-//  CC on Solaris is TRUE64BIT, but gnu is not?
-//#define TRUE64BIT
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -35,11 +33,17 @@ typedef signed char         s8bit;
 #define  u64bitONE       (0x0000000000000001LU)
 #define  u64bitMAX       (0xffffffffffffffffLU)
 #define  u64bitMASK(X)   ((~u64bitZERO) >> (64 - (X)))
+#define  u64bitFMT       "%lu"
+#define  u64bitHEX       "0x%016lx"
+#define  s64bitFMT       "%ld"
 
 #define  u32bitZERO      (0x00000000U)
 #define  u32bitONE       (0x00000001U)
 #define  u32bitMAX       (0xffffffffU)
 #define  u32bitMASK(X)   ((~u32bitZERO) >> (32 - (X)))
+#define  u32bitFMT       "%u"
+#define  u32bitHEX       "0x%08x"
+#define  s32bitFMT       "%d"
 
 #define  u16bitZERO      (0x0000)
 #define  u16bitONE       (0x0001)
@@ -68,11 +72,17 @@ typedef signed char         s8bit;
 #define  u64bitONE       (0x0000000000000001LLU)
 #define  u64bitMAX       (0xffffffffffffffffLLU)
 #define  u64bitMASK(X)   ((~u64bitZERO) >> (64 - (X)))
+#define  u64bitFMT       "%llu"
+#define  u64bitHEX       "0x%016llx"
+#define  s64bitFMT       "%lld"
 
 #define  u32bitZERO      (0x00000000LU)
 #define  u32bitONE       (0x00000001LU)
 #define  u32bitMAX       (0xffffffffLU)
 #define  u32bitMASK(X)   ((~u32bitZERO) >> (32 - (X)))
+#define  u32bitFMT       "%lu"
+#define  u32bitHEX       "0x%08lx"
+#define  s32bitFMT       "%ld"
 
 #define  u16bitZERO      (0x0000)
 #define  u16bitONE       (0x0001)

@@ -8,6 +8,10 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 
+#ifdef __APPLE__
+#include <sys/syslimits.h>
+#endif
+
 #include "file.h"
 
 
@@ -39,11 +43,71 @@ unsigned long __sbrk_override = 1;  //  See malloc(3) for details.
 #define MMAPFLAGS    (MAP_SHARED)
 #endif
 
+#ifdef __APPLE__
+#define MMAPFLAGS    (MAP_FILE | MAP_SHARED)
+#endif
+
+
 
 //  Not everyone has O_LARGEFILE
 #ifndef O_LARGEFILE
 #define O_LARGEFILE 0
 #endif
+
+
+
+
+
+
+
+
+
+
+
+FILE*
+makeTempFile(char *path) {
+  char   template[PATH_MAX + 1];
+  int    fildes;
+  FILE  *F;
+
+  if (path) {
+    strcpy(template, path);
+    strcat(template, "/XXXXXX");
+  } else {
+    strcpy(template, "XXXXXX");
+  }
+
+  errno = 0;
+  fildes = mkstemp(template);
+  if (errno) {
+    fprintf(stderr, "Failed to create temporary file '%s': %s\n", template, strerror(errno));
+    exit(1);
+  }
+
+  errno = 0;
+  F = fdopen(fildes, "w+");
+  if (errno) {
+    fprintf(stderr, "Failed to open temporary file '%s': %s\n", template, strerror(errno));
+    exit(1);
+  }
+
+  errno = 0;
+  unlink(template);
+  if (errno) {
+    fprintf(stderr, "Failed to hide temporary file '%s': %s\n", template, strerror(errno));
+    exit(1);
+  }
+
+  return(F);
+}
+
+
+
+
+
+
+
+
 
 
 void*

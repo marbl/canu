@@ -36,6 +36,16 @@ void
 unmapFile(void     *addr,
           size_t    length);
 
+
+
+//  Creates a hidden temporary file.  If path is given, the temporary
+//  file is created in that directory.  The temoprary file is unlinked
+//  after it is created, so once you close the file, it's gone.
+//
+FILE *makeTempFile(char *path);
+
+
+
 #ifdef __cplusplus
 }
 #endif
