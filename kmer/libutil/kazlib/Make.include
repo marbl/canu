@@ -1,0 +1,27 @@
+# -*- makefile -*-
+
+src    := $/dict.c \
+          $/dict.h \
+          $/except.c \
+          $/except.h \
+          $/hash.c \
+          $/hash.h \
+          $/list.c \
+          $/list.h \
+          $/sfx.c \
+          $/sfx.h
+
+tst    := $/dict-main.c \
+          $/except-main.c \
+          $/hash-main.c \
+          $/list-main.c \
+          $/sfx-main.c
+
+$/.C_SRCS    :=$(filter %.c,${src})
+$/.CXX_SRCS  :=$(filter %.C,${src})
+$/.CXX_LIBS  :=$/libkaz.a
+
+$/.CLEAN := $/*.o
+
+$/libkaz.a: ${$/.C_SRCS:.c=.o} ${$/.CXX_SRCS:.C=.o}
+
