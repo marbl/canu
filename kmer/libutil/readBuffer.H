@@ -12,9 +12,6 @@
 
 #include "../libbri/libbritypes.H"
 
-//  XXX:  TEMPORARY!
-//
-#define O_LARGEFILE 0
 
 class readBuffer {
 public:
