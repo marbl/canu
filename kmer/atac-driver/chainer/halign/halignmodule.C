@@ -54,7 +54,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <assert.h>
-#include <malloc.h>
+#include <stdlib.h>
 
 #undef DEBUGGING
 #include "halign.h"

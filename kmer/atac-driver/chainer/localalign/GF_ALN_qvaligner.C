@@ -34,9 +34,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#ifndef __POWERPC__
-#include <malloc.h>
-#endif
+#include <stdlib.h>
 
 #include "GF_ALN_global.h"
 #include "GF_ALN_aligners.h"

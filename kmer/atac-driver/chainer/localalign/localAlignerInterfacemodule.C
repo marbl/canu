@@ -21,110 +21,91 @@
 // For Linux:
 // 
 // [cmobarry@localhost GF_SYN]$ gmake localAlignerInterfacemodule.so
-// g++ -shared -fpic -I /usr/include/python2.2 -I /home/cmobarry/work/trunk/cds/SYS/inc -o localAlignerInterfacemodule.so localAlignerInterfacemodule.cc localAlignerInterface.cc  GF_ALN_overlap.cc GF_ALN_local.cc GF_ALN_dpaligner.cc GF_ALN_qvaligner.cc
+// g++ -shared -fpic -I /usr/include/python2.2 -o localAlignerInterfacemodule.so localAlignerInterfacemodule.cc localAlignerInterface.cc  GF_ALN_overlap.cc GF_ALN_local.cc GF_ALN_dpaligner.cc GF_ALN_qvaligner.cc
 
 //
 // python
-//>>> import localAlignerInterface
-//>>> Aseq = "aaaaaaaaaaaaaaaaaaaaaaaacccctttttttttttttttttttttttt"
-//>>> Bseq = "aaaaaaaaaaaaaaaaaaaaaaccaagggtttttttttttttttttttttttt"
-//>>> Astart = 0
-//>>> Astop = len(Aseq)
-//>>> Bstart = 0
-//>>> Bstop = len(Bseq)
-//>>> dir(Aseq)
-//>>> dir(Astop)
-//>>> 
-//>>> localAlignerInterface.syntenicSegments(
-//>>>     sys.stdout,
-//>>>     Aseq, Astart, Astop,
-//>>>     Bseq, Bstart, Bstop,
-//>>>     0, "match1", "run1", "seq1", "seq2", 0, 0, 0, 0.3, 10, 10, 10, 10,
-//>>> )
-//>>>     
 //
-////////////////////////////////////////////////////////////////////////////////
+#if 0
+
+import sys,localAlignerInterface
+Aseq = "aaaaaaaaaaaaaaaaaaaaaaaacccctttttttttttttttttttttttt"
+Bseq = "aaaaaaaaaaaaaaaaaaaaaaccaagggtttttttttttttttttttttttt"
+Astart = 0
+Astop = len(Aseq)
+Bstart = 0
+Bstop = len(Bseq)
+dir(Aseq)
+dir(Astop)
+localAlignerInterface.syntenicSegments(sys.stdout, Aseq, Astart, Astop, Bseq, Bstart, Bstop, 0)
+
+#endif
 
 #include <Python.h>
 #include "localAlignerInterface.h"
 
-#undef DEBUGGING
+//#define DEBUGGING
 
 static PyObject *
-spam_syntenicSegments( PyObject *self, PyObject *args) {
-  char * Aseq = "undefined"; int Astart = -1; int Astop = -1; // substring of Aseq
-  char * Bseq = "undefined"; int Bstart = -1; int Bstop = -1; // substring of Bseq
-  float erate = 1./3.;
+spam_syntenicSegments(PyObject *self, PyObject *args) {
 
 #ifdef DEBUGGING
-  fprintf( stderr, "Before PyArg_ParseTuple in spam_sytenicSegments\n");
+  fprintf(stderr, "Before everything in spam_sytenicSegments\n");
+#endif
+
+  char *Aseq   = "undefined";
+  int   Astart = -1;
+  int   Astop  = -1; // substring of Aseq
+  char *Bseq   = "undefined";
+  int   Bstart = -1;
+  int   Bstop  = -1; // substring of Bseq
+  float erate  = 1./3.;
+
+#ifdef DEBUGGING
+  fprintf(stderr, "Before PyArg_ParseTuple in spam_sytenicSegments\n");
 #endif
   
   PyObject *py_outfile = NULL;
-  if (!PyArg_ParseTuple(args,
-			"Osiisiif"
-                        ,&py_outfile
-			,&Aseq
-			,&Astart, &Astop // substring of Aseq
-			,&Bseq
-			,&Bstart, &Bstop // substring of Bseq
-                        ,&erate
-			)) {
+  if (!PyArg_ParseTuple(args, "Osiisiif", &py_outfile, &Aseq, &Astart, &Astop, &Bseq, &Bstart, &Bstop, &erate)) {
     return NULL;
   }
+
 #ifdef DEBUGGING
-  fprintf( stderr, "After PyArg_ParseTuple\n");
+  fprintf(stderr, "After PyArg_ParseTuple\n");
 #endif
   
   FILE * outfile = PyFile_AsFile(py_outfile);
   
 #ifdef DEBUGGING
-  fprintf( stderr, "After PyArg_ParseTuple\n");
-  fprintf( stderr,
-           "outfile=%p\n"
-	   "Aseq=%s\n"
-	   "Bseq=%s\n"
-	   "Astart=%d Astop=%d\n"
-	   "Bstart=%d Bstop=%d\n"
-           "erate=%f\n"
-           ,outfile
-	   ,Aseq
-	   ,Bseq
-	   ,Astart, Astop // substring of Aseq
-	   ,Bstart, Bstop // substring of Bseq
-           ,erate
-	   );
+  fprintf(stderr, "outfile=%p\n" "Aseq=%s\n" "Bseq=%s\n" "Astart=%d Astop=%d\n" "Bstart=%d Bstop=%d\n" "erate=%f\n",
+          outfile, Aseq, Bseq, Astart, Astop, Bstart, Bstop, erate);
 #endif
 
   try {
-    syntenicSegments
-      (
-       outfile,
-       Aseq, Astart, Astop, // substring of Aseq
-       Bseq, Bstart, Bstop, // substring of Bseq
-       erate
-       );
-#if 0
-  } catch(somethingReallyBad){
-    Py_Exit(1);
-#endif
+    syntenicSegments(outfile,
+                     Aseq, Astart, Astop, // substring of Aseq
+                     Bseq, Bstart, Bstop, // substring of Bseq
+                     erate);
   } catch(...) {
     PyErr_SetString(PyExc_RuntimeError,"sytenicSegments failed");
     return Py_None;
-    //return NULL;
   }
 
 #ifdef DEBUGGING
-  fprintf( stderr, "After syntenicSegments\n");
+  fprintf(stderr, "After syntenicSegments\n");
 #endif
 
   Py_INCREF(Py_None);  // This is a module function returning void.
   return Py_None;
 }
 
+
+
+
+
 #if 0
 static PyObject *
-spam_iterateSegments( PyObject *self, PyObject *args) {
+spam_iterateSegments(PyObject *self, PyObject *args) {
   char * selfid = ".";
   char * parentid = ".";
   char * a_uid = "undefined";
@@ -140,35 +121,33 @@ spam_iterateSegments( PyObject *self, PyObject *args) {
   int b_rht_seed_len=-1;
 
 #ifdef DEBUGGING
-  fprintf( stderr, "Before PyArg_ParseTuple in spam_iterateSegments\n");
+  fprintf(stderr, "Before PyArg_ParseTuple in spam_iterateSegments\n");
 #endif
-  
+
   PyObject *py_outfile = NULL;
-  if (!PyArg_ParseTuple(args,
-			"Ossssiiiiiiiii"
-                        ,&py_outfile
-                        ,&selfid
-                        ,&parentid
-			,&a_uid
-			,&b_uid
-			,&a_scaf_pos // Lowest position in string "A" for the alignment.
-			,&b_scaf_pos // Lowest position in string "B" for the alignment.
-			,&alen       // Length of the alignment for string "A".
-			,&blen       // Length of the alignment for string "B".
-			,&sequence_reversed_match /* bool */
-			,&a_lft_seed_len
-			,&b_lft_seed_len
-			,&a_rht_seed_len
-			,&b_rht_seed_len
-			)) {
+  if (!PyArg_ParseTuple(args, "Ossssiiiiiiiii",
+                        &py_outfile,
+                        &selfid,
+                        &parentid,
+			&a_uid,
+			&b_uid,
+			&a_scaf_pos,
+			&b_scaf_pos,
+			&alen,
+			&blen,
+			&sequence_reversed_match,
+			&a_lft_seed_len,
+			&b_lft_seed_len,
+			&a_rht_seed_len,
+			&b_rht_seed_len)) {
     return NULL;
   }
 
   FILE * outfile = PyFile_AsFile(py_outfile);
   
 #ifdef DEBUGGING
-  fprintf( stderr, "After PyArg_ParseTuple\n");
-  fprintf( stderr,
+  fprintf(stderr, "After PyArg_ParseTuple\n");
+  fprintf(stderr,
            "outfile=%p\n"
            "selfid=%s\n"
            "parentid=%s\n"
@@ -217,28 +196,24 @@ spam_iterateSegments( PyObject *self, PyObject *args) {
 }
 #endif
 
-#if 1
+
+
+
+
+
 static PyObject *
-spam_iterateSegments( PyObject *self, PyObject *args) {
-#ifdef DEBUGGING
-  fprintf( stderr, "Before PyArg_ParseTuple\n");
-#endif
+spam_iterateSegments(PyObject *self, PyObject *args) {
+
 #if 0
-  if (!PyArg_ParseTuple(args,
-			"i"
-			,&first
-			)) {
+  if (!PyArg_ParseTuple(args, "i" ,&first)) {
     return NULL;
   }
 #endif
-#ifdef DEBUGGING
-  fprintf( stderr, "After PyArg_ParseTuple\n");
-#endif
 
-  {
     int seg_bgn1, seg_bgn2, seg_len1, seg_len2;
     float seg_error;
-    int valid = iterate_Local_Overlap( seg_bgn1, seg_bgn2, seg_len1, seg_len2, seg_error);
+    int valid = iterate_Local_Overlap(seg_bgn1, seg_bgn2, seg_len1, seg_len2, seg_error);
+
     if(valid){ 
       // build a tuple here
       return Py_BuildValue("(iiiif)", seg_bgn1, seg_bgn2, seg_len1, seg_len2, seg_error);
@@ -246,13 +221,13 @@ spam_iterateSegments( PyObject *self, PyObject *args) {
       Py_INCREF(Py_None);  // This is a module function returning void.
       return Py_None;
     }
-  }
 }
-#endif
 
 
+
+#if 0
 static PyObject *
-spam_system( PyObject *self, PyObject *args) {
+spam_system(PyObject *self, PyObject *args) {
   char *command;
   int sts;
   
@@ -264,13 +239,10 @@ spam_system( PyObject *self, PyObject *args) {
 
 
 static PyObject*
-spam_hello( PyObject *self, PyObject *args) {
-  fprintf( stderr, "Before PyArg_ParseTuple\n");
+spam_hello(PyObject *self, PyObject *args) {
+  fprintf(stderr, "Before PyArg_ParseTuple\n");
   PyObject *py_outfile;
-  if (!PyArg_ParseTuple(args,
-			"O"
-                        ,&py_outfile
-                        )) {
+  if (!PyArg_ParseTuple(args, "O", &py_outfile)) {
         return NULL;
   }
   FILE * outfile = PyFile_AsFile(py_outfile);
@@ -279,11 +251,14 @@ spam_hello( PyObject *self, PyObject *args) {
   Py_INCREF(Py_None);  // This is a module function returning void.
   return Py_None;
 }
+#endif
 
 
 static PyMethodDef registration_table[] = {
+#if 0
   {"hello", spam_hello, METH_VARARGS, "Hello Man"},
   {"system", spam_system, METH_VARARGS, "Execute a shell command"},
+#endif
   {"syntenicSegments", spam_syntenicSegments, METH_VARARGS, "Compute syntenic segments"},
   {"iterateSegments", spam_iterateSegments, METH_VARARGS, "Iterator returning syntenic segments"},
   {NULL, NULL, 0, NULL} /* Sentinel... the end of the table */
