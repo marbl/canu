@@ -12,6 +12,8 @@
 #include "bri++.H"
 #include "fasta.H"
 
+void          simseq(char *,char *,int,int,int,int,double);
+
 #include "buildinfo-leaff.h"
 #include "buildinfo-libbri.h"
 
@@ -40,25 +42,7 @@ const char *usage =
 "                    The optional character c will build an index with checksums,\n"
 "                    and --checksum will verify the checksums.\n"
 "\n"
-"ACTIONS (no index needed)\n"
-"       -L s l:      print all sequences such that:  s <= length < l\n"
-"       -G n s l:    print n random sequences of length 0 < s <= length <= l)\n"
-"       -W:          print all sequences (do the whole file)\n"
-"\n"
-"ACTIONS (index needed)\n"
-"       -s seqid:    print the single sequence 'seqid'\n"
-"       -Ii:         'seqid' is an internal id (an integer), this is the default\n"
-"                      for -Fi\n"
-"       -Ie:         'seqid' is an external id (a word), this is the default for\n"
-"                      -Fn or -Fd, and is an error for -Fi\n"
-"       -d:          print the number of sequences in the fasta\n"
-"       -i name:     print an ATA compliant index, labelling the source 'name'\n"
-"       -ii:         print the index in an almost-human readable format\n"
-"       -S f l:      print all the sequences from IID 'f' to 'l' (inclusive)\n"
-"       -r num:      print 'num' randomly picked sequences\n"
-"       -q file:     print sequences from the seqid list in 'file'\n"
-"\n"
-"SEQUENCE OPTIONS\n"
+"OUTPUT OPTIONS\n"
 "       -6:          insert a newline every 60 letters\n"
 "                      (if the next arg is a number, newlines are inserted every\n"
 "                       n letters -- e.g., -6 80 -- disable line breaks with -6 0)\n"
@@ -72,10 +56,27 @@ const char *usage =
 "                    (space based, relative to the FORWARD sequence!)  If\n"
 "                    beg == end, then the entire sequence is printed.  It is an\n"
 "                    error to specify beg > end, or beg > len, or end > len.\n"
-"                    NOTE: The coordinates are always relative to the unreversed\n"
-"                          sequence, even if -R is specified\n"
 "       -md5:        Don't print the sequence, but print the md5 checksum\n"
 "                    (of the entire sequence) followed by the entire defline.\n"
+"                    (this should really be an ANALYSIS OPTION)\n"
+"\n"
+"SEQUENCE SELECTION (no index needed)\n"
+"       -L s l:      print all sequences such that s <= length < l\n"
+"       -G n s l:    print n random sequences of length 0 < s <= length <= l)\n"
+"       -W:          print all sequences (do the whole file)\n"
+"\n"
+"SEQUENCE SELECTION (index needed)\n"
+"       -s seqid:    print the single sequence 'seqid'\n"
+"       -Ii:         'seqid' is an internal id (an integer), this is the default\n"
+"                      for -Fi\n"
+"       -Ie:         'seqid' is an external id (a word), this is the default for\n"
+"                      -Fn or -Fd, and is an error for -Fi\n"
+"       -d:          print the number of sequences in the fasta\n"
+"       -i name:     print an ATA compliant index, labelling the source 'name'\n"
+"       -ii:         print the index in an almost-human readable format\n"
+"       -S f l:      print all the sequences from IID 'f' to 'l' (inclusive)\n"
+"       -r num:      print 'num' randomly picked sequences\n"
+"       -q file:     print sequences from the seqid list in 'file'\n"
 "\n"
 "ANALYSIS OPTIONS\n"
 "\n"
@@ -118,6 +119,22 @@ const char *usage =
 "                    sequence ordinal 84.  The length of the block is found\n"
 "                    using the start of the next block.  A '.' is the end of\n"
 "                    sequence marker.\n"
+"\n"
+"       --errors L N C P\n"
+"                    For every sequence in the input file, generate new\n"
+"                    sequences including simulated sequencing errors.\n"
+"                    L -- length of the new sequence.  If zero, the length\n"
+"                         of the original sequence will be used.\n"
+"                    N -- number of subsequences to generate.  If L=0, all\n"
+"                         subsequences will be the same, and you should use\n"
+"                         C instead.\n"
+"                    C -- number of copies to generate.  Each of the N\n"
+"                         subsequences will have C copies, each with different\n"
+"                         errors.\n"
+"                    P -- probability of an error.\n"
+"\n"
+"                    HINT: to simulate ESTs from genes, use L=500, N=10, C=10, P=?\n"
+"                          to simulate mRNA from genes, use L=0, N=10, C=10, P=?\n"
 "\n"
 "EXPERT OPTIONS\n"
 "       -A:  Read actions from 'file'\n"
@@ -1034,6 +1051,31 @@ processArray(int argc, char **argv) {
       exit(1);
     } else if (strncmp(argv[arg], "--dumpblocks", 3) == 0) {
       dumpBlocks();
+    } else if (strncmp(argv[arg], "--errors", 3) == 0) {
+      int    L = atoi(argv[++arg]);  //  Desired length
+      int    l = 0;                  //  min of desired length, length of sequence
+      int    N = atoi(argv[++arg]);  //  number of copies per sequence
+      int    C = atoi(argv[++arg]);  //  number of mutations per copy
+      double P = atof(argv[++arg]);  //  probability of mutation
+      
+      //  hacking to get rid of 'mode' in simseq (and driver and here)
+      //  hacking to load seq
+
+      FastASequenceInCore *S = f->getSequence();
+      while (S) {
+        char   *seq = S->sequence();
+        char   *hdr = S->header();
+        int     len = S->sequenceLength();
+
+        l = len;
+        if ((L > 0) && (L < len))
+          l = L;
+
+        simseq(seq, hdr, len, N, l, C, P);
+
+        delete S;
+        S = f->getSequence();
+      }
     } else {
       switch(argv[arg][1]) {
         case 'V':

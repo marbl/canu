@@ -3,7 +3,7 @@
 UTIL/       :=$(call MakePath,$/../util/)
 LIBBRI/     :=$(call MakePath,$/../libbri/)
 
-$/.CXX_SRCS  :=$/leaff.C $/fragmenter.C
+$/.CXX_SRCS  :=$/leaff.C $/fragmenter.C $/simseq.C
 $/.CXX_EXES  :=$/leaff $/fragmenter
 
 $/.CLEAN  :=$/*.o
@@ -12,10 +12,14 @@ $/.REAL-CLEAN :=$/buildinfo-*
 
 $/leaff.C.d: $/buildinfo-leaff.h ${LIBBRI/}buildinfo-libbri.h
 
-$/leaff                : $/leaff.o $/buildinfo-leaff.o ${LIBBRI/}libbri.a
+$/leaff                : $/leaff.o $/buildinfo-leaff.o $/simseq.o ${LIBBRI/}libbri.a
 $/fragmenter           : $/fragmenter.o ${LIBBRI/}libbri.a
 
+#  The driver is out of date wrt the code
+#$/simseq               : $/simseq.o $/simseqdriver.o ${LIBBRI/}libbri.a
+
 $(eval $/%.d $/%.o:  CXXFLAGS+=-I${LIBBRI/})
+$(eval $/%.d $/%.o:  CFLAGS+=-I${LIBBRI/})
 $(eval $/%.d      :  ${LIBBRI/}buildinfo-libbri.h )
 
 $/buildinfo-leaff.c: $/buildinfo-leaff.h
