@@ -355,9 +355,7 @@ main(int argc, char **argv) {
 
       if (output[outputPos] > 0) {
         errno = 0;
-        fprintf(stderr, "WRITING OUTPUT!\n");
         output[outputPos]->output(resultFILE);
-        fprintf(stderr, "WROTE OUTPUT!\n");
         if (errno) {
           fprintf(stderr, "Couldn't write to the output file '%s'.\n%s\n",
                   config._outputFileName, strerror(errno));
@@ -369,7 +367,7 @@ main(int argc, char **argv) {
       //
       stats->add(output[outputPos]);
 
-      stats->show(stderr);
+      //stats->show(stderr);
 
       delete [] input[outputPos];
       delete [] output[outputPos];
