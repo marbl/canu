@@ -70,11 +70,12 @@ const char *usage =
 "       -H:          DON'T print the defline\n"
 "       -h:          Use the next word as the defline\n"
 "                      (use \"-H -H\" to resume using the original defline)\n"
-"       -e beg end:  Print only the bases from position 'beg' to position 'end'\n"
-"                      (space based!)\n"
+"       -e beg end:  Print only the bases from position 'beg' to position 'end' (space\n"
+"                    based!)  If beg == end, then the entire sequence is printed.  It\n"
+"                    is an error to specify beg > end, or beg > len, or end > len.\n"
 #ifdef WITH_MD5
 "       -md5:        Don't print the sequence, but print the md5 checksum\n"
-"                    followed by the entire defline.\n"
+"                    (of the entire sequence) followed by the entire defline.\n"
 #endif
 "\n"
 "           XXXXXXXXXXX: how does -e handle reverse complement??\n"
@@ -120,6 +121,11 @@ printSequence(FastASequenceInCore *b,
   if (complement)  style += 2;
 
   u32bit l = b->sequenceLength();
+
+  if (beg == end) {
+    beg = 0;
+    end = l;
+  }
 
 #if 0
   if (beg > l)  beg = 0;
