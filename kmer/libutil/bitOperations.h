@@ -46,23 +46,23 @@
 inline
 u32bit
 reverseBits32(u32bit x) {
-  x = ((x >>  1) & 0x55555555LU) | ((x <<  1) & 0xaaaaaaaaLU);
-  x = ((x >>  2) & 0x33333333LU) | ((x <<  2) & 0xccccccccLU);
-  x = ((x >>  4) & 0x0f0f0f0fLU) | ((x <<  4) & 0xf0f0f0f0LU);
-  x = ((x >>  8) & 0x00ff00ffLU) | ((x <<  8) & 0xff00ff00LU);
-  x = ((x >> 16) & 0x0000ffffLU) | ((x << 16) & 0xffff0000LU);
+  x = ((x >>  1) & u32bitNUMBER(0x55555555)) | ((x <<  1) & u32bitNUMBER(0xaaaaaaaa));
+  x = ((x >>  2) & u32bitNUMBER(0x33333333)) | ((x <<  2) & u32bitNUMBER(0xcccccccc));
+  x = ((x >>  4) & u32bitNUMBER(0x0f0f0f0f)) | ((x <<  4) & u32bitNUMBER(0xf0f0f0f0));
+  x = ((x >>  8) & u32bitNUMBER(0x00ff00ff)) | ((x <<  8) & u32bitNUMBER(0xff00ff00));
+  x = ((x >> 16) & u32bitNUMBER(0x0000ffff)) | ((x << 16) & u32bitNUMBER(0xffff0000));
   return(x);
 }
 
 inline
 u64bit
 reverseBits64(u64bit x) {
-  x = ((x >>  1) & 0x5555555555555555LLU) | ((x <<  1) & 0xaaaaaaaaaaaaaaaaLLU);
-  x = ((x >>  2) & 0x3333333333333333LLU) | ((x <<  2) & 0xccccccccccccccccLLU);
-  x = ((x >>  4) & 0x0f0f0f0f0f0f0f0fLLU) | ((x <<  4) & 0xf0f0f0f0f0f0f0f0LLU);
-  x = ((x >>  8) & 0x00ff00ff00ff00ffLLU) | ((x <<  8) & 0xff00ff00ff00ff00LLU);
-  x = ((x >> 16) & 0x0000ffff0000ffffLLU) | ((x << 16) & 0xffff0000ffff0000LLU);
-  x = ((x >> 32) & 0x00000000ffffffffLLU) | ((x << 32) & 0xffffffff00000000LLU);
+  x = ((x >>  1) & u64bitNUMBER(0x5555555555555555)) | ((x <<  1) & u64bitNUMBER(0xaaaaaaaaaaaaaaaa));
+  x = ((x >>  2) & u64bitNUMBER(0x3333333333333333)) | ((x <<  2) & u64bitNUMBER(0xcccccccccccccccc));
+  x = ((x >>  4) & u64bitNUMBER(0x0f0f0f0f0f0f0f0f)) | ((x <<  4) & u64bitNUMBER(0xf0f0f0f0f0f0f0f0));
+  x = ((x >>  8) & u64bitNUMBER(0x00ff00ff00ff00ff)) | ((x <<  8) & u64bitNUMBER(0xff00ff00ff00ff00));
+  x = ((x >> 16) & u64bitNUMBER(0x0000ffff0000ffff)) | ((x << 16) & u64bitNUMBER(0xffff0000ffff0000));
+  x = ((x >> 32) & u64bitNUMBER(0x00000000ffffffff)) | ((x << 32) & u64bitNUMBER(0xffffffff00000000));
   return(x);
 }
 
@@ -71,23 +71,23 @@ reverseBits64(u64bit x) {
 inline
 u32bit
 countNumberOfSetBits32(u32bit x) {
-  x = ((x >>  1) & 0x55555555LU) + (x & 0x55555555LU);
-  x = ((x >>  2) & 0x33333333LU) + (x & 0x33333333LU);          
-  x = ((x >>  4) & 0x0f0f0f0fLU) + (x & 0x0f0f0f0fLU);
-  x = ((x >>  8) & 0x00ff00ffLU) + (x & 0x00ff00ffLU);              
-  x = ((x >> 16) & 0x0000ffffLU) + (x & 0x0000ffffLU);
+  x = ((x >>  1) & u32bitNUMBER(0x55555555)) + (x & u32bitNUMBER(0x55555555));
+  x = ((x >>  2) & u32bitNUMBER(0x33333333)) + (x & u32bitNUMBER(0x33333333));
+  x = ((x >>  4) & u32bitNUMBER(0x0f0f0f0f)) + (x & u32bitNUMBER(0x0f0f0f0f));
+  x = ((x >>  8) & u32bitNUMBER(0x00ff00ff)) + (x & u32bitNUMBER(0x00ff00ff));
+  x = ((x >> 16) & u32bitNUMBER(0x0000ffff)) + (x & u32bitNUMBER(0x0000ffff));
   return(x);
 }
 
 inline
 u64bit
 countNumberOfSetBits64(u64bit x) {
-  x = ((x >>  1) & 0x5555555555555555LLU) + (x & 0x5555555555555555LLU);
-  x = ((x >>  2) & 0x3333333333333333LLU) + (x & 0x3333333333333333LLU);          
-  x = ((x >>  4) & 0x0f0f0f0f0f0f0f0fLLU) + (x & 0x0f0f0f0f0f0f0f0fLLU);
-  x = ((x >>  8) & 0x00ff00ff00ff00ffLLU) + (x & 0x00ff00ff00ff00ffLLU);              
-  x = ((x >> 16) & 0x0000ffff0000ffffLLU) + (x & 0x0000ffff0000ffffLLU);
-  x = ((x >> 32) & 0x00000000ffffffffLLU) + (x & 0x00000000ffffffffLLU);
+  x = ((x >>  1) & u64bitNUMBER(0x5555555555555555)) + (x & u64bitNUMBER(0x5555555555555555));
+  x = ((x >>  2) & u64bitNUMBER(0x3333333333333333)) + (x & u64bitNUMBER(0x3333333333333333));          
+  x = ((x >>  4) & u64bitNUMBER(0x0f0f0f0f0f0f0f0f)) + (x & u64bitNUMBER(0x0f0f0f0f0f0f0f0f));
+  x = ((x >>  8) & u64bitNUMBER(0x00ff00ff00ff00ff)) + (x & u64bitNUMBER(0x00ff00ff00ff00ff));              
+  x = ((x >> 16) & u64bitNUMBER(0x0000ffff0000ffff)) + (x & u64bitNUMBER(0x0000ffff0000ffff));
+  x = ((x >> 32) & u64bitNUMBER(0x00000000ffffffff)) + (x & u64bitNUMBER(0x00000000ffffffff));
   return(x);
 }
 

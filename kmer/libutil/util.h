@@ -37,6 +37,7 @@ typedef signed short        s16bit;
 typedef unsigned char       u8bit;
 typedef signed char         s8bit;
 
+#define  u64bitNUMBER(X) X ## LU
 #define  u64bitZERO      (0x0000000000000000LU)
 #define  u64bitONE       (0x0000000000000001LU)
 #define  u64bitMAX       (0xffffffffffffffffLU)
@@ -47,6 +48,7 @@ typedef signed char         s8bit;
 #define  s64bitFMTW(X)   "%" #X "ld"
 #define  s64bitFMT       "%ld"
 
+#define  u32bitNUMBER(X) X ## U
 #define  u32bitZERO      (0x00000000U)
 #define  u32bitONE       (0x00000001U)
 #define  u32bitMAX       (0xffffffffU)
@@ -84,6 +86,7 @@ typedef signed short        s16bit;
 typedef unsigned char       u8bit;
 typedef signed char         s8bit;
 
+#define  u64bitNUMBER(X) X ## LLU
 #define  u64bitZERO      (0x0000000000000000LLU)
 #define  u64bitONE       (0x0000000000000001LLU)
 #define  u64bitMAX       (0xffffffffffffffffLLU)
@@ -94,6 +97,7 @@ typedef signed char         s8bit;
 #define  s64bitFMTW(X)   "%" #X "lld"
 #define  s64bitFMT       "%lld"
 
+#define  u32bitNUMBER(X) X ## LU
 #define  u32bitZERO      (0x00000000LU)
 #define  u32bitONE       (0x00000001LU)
 #define  u32bitMAX       (0xffffffffLU)
