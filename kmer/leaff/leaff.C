@@ -631,11 +631,7 @@ findDuplicates(char *filename) {
   for (u32bit idx=1; idx<numSeqs; idx++) {
     if (md5_compare(result+idx-1, result+idx) == 0) {
       if (result[idx-1].i == result[idx].i) {
-#ifdef TRUE64BIT
-        fprintf(stderr, "Internal error: found two copies of the same sequence iid (%u)!\n", result[idx].i);
-#else
-        fprintf(stderr, "Internal error: found two copies of the same sequence iid (%lu)!\n", result[idx].i);
-#endif
+        fprintf(stderr, "Internal error: found two copies of the same sequence iid ("u32bitFMT")!\n", result[idx].i);
         exit(1);
       }
 
@@ -646,15 +642,12 @@ findDuplicates(char *filename) {
       s2 = loadSequence(A);
 
       if (strcmp(s1->sequence(), s2->sequence()) == 0) {
-        fprintf(stdout, "%s\n%s\n\n", s1->header(), s2->header());
+        fprintf(stdout, u32bitFMT":%s\n"u32bitFMT":%s\n\n",
+                result[idx-1].i, s1->header(),
+                result[idx  ].i, s2->header());
       } else {
-#ifdef TRUE64BIT
-        fprintf(stderr, "COLLISION DETECTED BETWEEN IID %u AND %u!\nPLEASE REPORT THIS TO brian.walenz@celera.com!\n",
+        fprintf(stderr, "COLLISION DETECTED BETWEEN IID "u32bitFMT" AND "u32bitFMT"!\nPLEASE REPORT THIS TO bri@walenz.org!\n",
                 result[idx-1].i, result[idx].i);
-#else
-        fprintf(stderr, "COLLISION DETECTED BETWEEN IID %lu AND %lu!\nPLEASE REPORT THIS TO brian.walenz@celera.com!\n",
-                result[idx-1].i, result[idx].i);
-#endif
       }
 
       delete s1;
@@ -672,19 +665,10 @@ void
 mapDuplicates_Print(char *filea, FastASequenceInCore *sa,
                     char *fileb, FastASequenceInCore *sb) {
   if (strcmp(sa->sequence(), sb->sequence()) == 0) {
-#ifdef TRUE64BIT
-    fprintf(stdout, "%u <-> %u\n", sa->getIID(), sb->getIID());
-#else
-    fprintf(stdout, "%lu <-> %lu\n", sa->getIID(), sb->getIID());
-#endif
+    fprintf(stdout, u32bitFMT" <-> "u32bitFMT"\n", sa->getIID(), sb->getIID());
   } else {
-#ifdef TRUE64BIT
-    fprintf(stderr, "COLLISION DETECTED BETWEEN %s:%u AND %s:%u!\nPLEASE REPORT THIS TO brian.walenz@celera.com!\n",
+    fprintf(stderr, "COLLISION DETECTED BETWEEN %s:"u32bitFMT" AND %s:"u32bitFMT"!\nPLEASE REPORT THIS TO bri@walenz.org!\n",
             filea, sa->getIID(), fileb, sb->getIID());
-#else
-    fprintf(stderr, "COLLISION DETECTED BETWEEN %s:%lu AND %s:%lu!\nPLEASE REPORT THIS TO brian.walenz@celera.com!\n",
-            filea, sa->getIID(), fileb, sb->getIID());
-#endif
   }
 }
 
