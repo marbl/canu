@@ -1,3 +1,6 @@
+#ifndef SIM4_H
+#define SIM4_H
+
 #ifndef _POSIX_C_SOURCE
 #define _POSIX_C_SOURCE 199506L
 #endif
@@ -501,3 +504,6 @@ public:
 
   char  *run(sim4command *cmd);
 };
+
+
+#endif  //  SIM4_H
