@@ -10,21 +10,20 @@
 //  Shared data
 //
 configuration          config;
-FastAWrapper          *qsFASTA;
-existDB               *maskDB;
-existDB               *onlyDB;
-positionDB            *positions;
-volatile u32bit        numberOfQueries;
-u32bit                *queryMatchCounts;
-//pthread_mutex_t        queryMatchMutex;
-char                 **output;
-u32bit                *outputLen;
+FastAWrapper          *qsFASTA          = 0L;
+existDB               *maskDB           = 0L;
+existDB               *onlyDB           = 0L;
+positionDB            *positions        = 0L;
+volatile u32bit        numberOfQueries  = 0;
+u32bit                *queryMatchCounts = 0L;
+char                 **output           = 0L;
+u32bit                *outputLen        = 0L;
 pthread_mutex_t        inputTailMutex;
-FastASequenceInCore  **input;
-volatile u32bit        inputHead;
-volatile u32bit        inputTail;
-volatile u32bit        outputPos;
-char                  *threadStats[MAX_THREADS];
+FastASequenceInCore  **input            = 0L;
+volatile u32bit        inputHead        = 0;
+volatile u32bit        inputTail        = 0;
+volatile u32bit        outputPos        = 0;
+char                  *threadStats[MAX_THREADS] = { 0L };
 
 
 
@@ -55,7 +54,8 @@ dumpStats(void) {
 
     fprintf(F, "searchThreadInfo------------------------\n");
     for (u64bit i=0; i<config._numSearchThreads; i++)
-      fprintf(F, threadStats[i]);
+      if (threadStats[i])
+        fprintf(F, threadStats[i]);
 
     if (config._statsFileName)
       fclose(F);
