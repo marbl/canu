@@ -13,6 +13,8 @@ EFENCE  =
 
 all: $(PROG)
 
+install: $(PROG)
+	cp -p $(PROG) ../bin
 
 filterPolishes: filterPolishes.o $(OBJS)
 	$(CC) $(CCOPTS) -o filterPolishes filterPolishes.o $(OBJS) $(LIBS) $(EFENCE)

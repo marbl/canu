@@ -14,6 +14,9 @@ OBJS     = meryl.o mcBucket.o outputMer.o estimate.o build.o scan.o merge.o dump
 
 all: $(PROG)
 
+install: $(PROG)
+	cp -p $(PROG) ../bin
+
 meryl: buildinfo-meryl.o $(OBJS)
 	$(CC) $(CCOPTS) $(INCLUDE) -o meryl buildinfo-meryl.o $(OBJS) $(LIBS) $(EFENCE)
 

@@ -16,6 +16,9 @@ OBJS      = searchGENOME.o configuration.o encodedQuery.o \
 
 all: $(PROG)
 
+install: $(PROG)
+	cp -p $(PROG) ../bin
+
 #  -static needed for debug on sun with gcc
 #  -pthread removed from lines below -- didn't work on solaris
 

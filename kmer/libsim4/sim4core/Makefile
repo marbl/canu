@@ -36,6 +36,8 @@ EFENCE  =
 
 all: libsim4.a
 
+install:
+
 libsim4.a: $(OBJS) buildinfo-libsim4.o
 	rm -f libsim4.a
 	ar $(AROPTS) libsim4.a buildinfo-libsim4.o $(OBJS)

@@ -12,6 +12,8 @@ OBJS    = alphabet.o bitPackedFile.o file.o merstream.o palloc.o \
 
 all: libbri.a $(PROG)
 
+install:
+
 libbri.a: buildinfo-libbri.o $(OBJS)
 	rm -f libbri.a
 	ar $(AROPTS) libbri.a buildinfo-libbri.o $(OBJS)

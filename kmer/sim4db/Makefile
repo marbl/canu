@@ -12,6 +12,9 @@ EFENCE  =
 
 all:  $(PROG)
 
+install: $(PROG)
+	cp -p $(PROG) ../bin
+
 #sim4dbg: buildinfo-sim4db.o $(OBJS)
 #	$(CC) $(CCOPTS) -o sim4dbg buildinfo-sim4db.o $(OBJS) $(LIBS) $(EFENCE)
 
