@@ -175,8 +175,12 @@ prepareBatch(merylArgs *args) {
 
 
   if (args->beVerbose) {
-    fprintf(stderr, "Computing "u64bitFMT" segments using "u64bitFMT"MB memory each.\n",
-            args->segmentLimit, args->memoryLimit);
+    if (args->memoryLimit)
+      fprintf(stderr, "Computing "u64bitFMT" segments using "u64bitFMT"MB memory each.\n",
+              args->segmentLimit, args->memoryLimit);
+    else
+      fprintf(stderr, "Computing "u64bitFMT" segments using AS MUCH MEMORY AS NEEDED.\n",
+              args->segmentLimit);
     fprintf(stderr, "  numMersActual      = "u64bitFMT"\n", args->numMersActual);
     fprintf(stderr, "  mersPerBatch       = "u64bitFMT"\n", args->mersPerBatch);
     fprintf(stderr, "  numBuckets         = "u64bitFMT"\n", args->numBuckets);
