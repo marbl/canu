@@ -3,6 +3,13 @@
 #include <unistd.h>
 #include <math.h>
 
+#define WITH_MD5
+
+#ifdef WITH_MD5
+#include "../external/md5lib/global.h"
+#include "../external/md5lib/md5.h"
+#endif
+
 //  Linux needs to include time.h; others can use sys/time.h.
 //  Tru64 is ok with time.h
 //
@@ -74,8 +81,12 @@ const char *usage =
 "                      (use \"-H -H\" to resume using the original defline)\n"
 "       -e beg end:  Print only the bases from position 'beg' to position 'end'\n"
 "                      (space based!)\n"
+#ifdef WITH_MD5
+"       -md5:        Don't print the sequence, but print the md5 checksum\n"
+"                    followed by the entire defline.\n"
+#endif
 "\n"
-"           XXXXXXXXXXX: how does it handle reverse complement??\n"
+"           XXXXXXXXXXX: how does -e handle reverse complement??\n"
 "\n"
 "EXPERT OPTIONS\n"
 "       -A:  Read actions from 'file'\n"
@@ -218,6 +229,7 @@ FastAWrapper    *f                 = 0L;
 char             seqIDtype         = 'i';
 u32bit           begPos            = ~(u32bit)0;
 u32bit           endPos            = ~(u32bit)0;
+bool             printMD5          = false;
 
 
 
@@ -277,14 +289,37 @@ printIID(u32bit iid, FastASequenceInCore *s=0L) {
     s = f->getSequence();
   }
 
-  if (withDefLine)
-    if (specialDefLine)
-      fprintf(stdout, ">%s\n", specialDefLine);
-    else
-      fprintf(stdout, ">%s\n", s->header()+1);
+#ifdef WITH_MD5
+  if (printMD5) {
+    MD5_CTX         ctx;
+    unsigned char   dig[16];
+    char           *prt     = "0123456789abcdef";
+    char            sum[33];
 
-  printSequence(s, begPos, endPos, withLineBreaks, reverse, complement);
-  fprintf(stdout, "\n");
+    MD5Init(&ctx);
+    MD5Update(&ctx, (unsigned char *)s->sequence(), s->sequenceLength());
+    MD5Final(dig, &ctx);
+
+    for (int i=0; i<16; i++) {
+      sum[2*i  ] = prt[(dig[i] >> 4) & 0x0f];
+      sum[2*i+1] = prt[(dig[i])      & 0x0f];
+    }
+    sum[32] = 0;
+
+    fprintf(stdout, "%s %s\n", sum, s->header());
+  } else {
+#endif
+    if (withDefLine)
+      if (specialDefLine)
+        fprintf(stdout, ">%s\n", specialDefLine);
+      else
+        fprintf(stdout, ">%s\n", s->header()+1);
+
+    printSequence(s, begPos, endPos, withLineBreaks, reverse, complement);
+    fprintf(stdout, "\n");
+#ifdef WITH_MD5
+  }
+#endif
 
   if (mySeq)
     delete s;
@@ -606,6 +641,11 @@ processArray(int argc, char **argv) {
         endPos = atoi(argv[arg+2]);
         arg += 2;
         break;
+#ifdef WITH_MD5
+      case 'm':
+        printMD5 = !printMD5;
+        break;
+#endif
       case 'A':
         processFile(argv[++arg]);
         break;
