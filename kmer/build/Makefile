@@ -36,6 +36,13 @@ else
  include ${MAKEFILE/}Make.compilers
 endif
 
+### a VERY experimental hack for pathnames
+#ifdef WITH_MAKEPATH
+
+include ${MAKEFILE/}Make.path
+
+#endif
+
 ##### non-recursive make magic
 # all directories which have been included
 //           :=
@@ -94,16 +101,16 @@ $(eval $(call Include_File,$/))
 # RECURSIVE now holds the paths which are being done legacy style
 # and // holds the paths which are going to be part of the system.
 
-
-### Building subgoals
+### Building subgoals in Make.rules
 # subgoals and depends are done with the deferred '=' not the ':='.
 # This is because we want dynamic scoping.
 __SUBGOALS__=
 __DEPGOALS__=
 
-### include all rules for all targets to be made
 -include ${MAKEFILE/}Make.rules
 
+# now we bring in the depends files as defined by the Includes
+# and the patterns in Make.rules
 $(eval DEPENDS:=$(foreach x,${//},$(call __DEPGOALS__,$x)))
 ifneq ($(strip ${DEPENDS}),)
   # this conditional gets us a way out if things go way wrong

@@ -1,0 +1,39 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+/** assumes both inputs, if they exist, are directories
+    and returns a relative path to the first from the second **/
+
+int main(int argc,char **argv) {
+  char path[PATH_MAX+1],subpath[PATH_MAX+1];
+  char *p=path,*sp=subpath;
+  *path = *subpath = 0;
+
+  if(argc<2) {
+    fprintf(stderr,"usage: %s path [subpath]\n",argv[0]);
+    exit(1);
+  }
+  if ( !realpath(argv[1],path) ) exit(2);
+  /**fprintf(stderr,"   path:%s\n",   path);**/
+
+  /** if subpath is found then it is non-empty otherwise empty **/
+  if ( argc==3 && realpath(argv[2],subpath) ) {
+    /**fprintf(stderr,"subpath:%s\n",subpath);**/
+
+    for(; *p && *sp && *p==*sp; ++p, ++sp);
+
+    if(*sp) {
+      printf("../") ; for( ; *sp ; ++sp)  if(*sp=='/') printf("../") ;
+    }
+    else if(*p=='/') 
+      ++p;
+  }
+
+  if (*p)
+    printf("%s/\n",p);
+  else
+    printf("\n");
+
+  exit(0);
+}

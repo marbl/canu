@@ -19,7 +19,8 @@ $(eval $(call Include,\
      ${TCBB/}\
      ))
 
-$/.CLEAN:=$/*~
+$/.CLEAN:=$/*~ $/*.o
+
 
 
 
