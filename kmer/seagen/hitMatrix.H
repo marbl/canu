@@ -19,8 +19,6 @@ class trapMatch {
 public:
   u32bit         _qsLo, _qsHi;
   u32bit         _dsLo, _dsHi;
-  u32bit         _numMatches;
-  char           _direction;
   intervalList  *_IL;
   trapMatch     *_next;
 
@@ -28,14 +26,12 @@ public:
             u32bit         qsHi,
             u32bit         dsLo,
             u32bit         dsHi,
-            intervalList  *IL,
-            char           direction) {
+            intervalList  *IL) {
     _qsLo       = qsLo;
     _qsHi       = qsHi;
     _dsLo       = dsLo;
     _dsHi       = dsHi;
     _IL         = IL;
-    _direction  = direction;
     _next       = 0L;
   };
 };
@@ -75,8 +71,7 @@ private:
                 u32bit         qsHi,
                 u32bit         dsLo,
                 u32bit         dsHi,
-                intervalList  *IL,
-                char           direction);
+                intervalList  *IL);
 
 public:
   hitMatrix(u32bit qsLen, u32bit q, u32bit qsIdx, bool reversed=false);

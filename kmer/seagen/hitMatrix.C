@@ -35,8 +35,7 @@ hitMatrix::addMatch(u32bit         qsLo,
                     u32bit         qsHi,
                     u32bit         dsLo,
                     u32bit         dsHi,
-                    intervalList  *IL,
-                    char           direction) {
+                    intervalList  *IL) {
   u32bit offset = 0;
 
   //  Extend the match
@@ -103,7 +102,7 @@ hitMatrix::addMatch(u32bit         qsLo,
   //  m = current match
   //  l = last match
   //
-  trapMatch *n = new trapMatch(qsLo, qsHi, dsLo, dsHi, IL, direction);
+  trapMatch *n = new trapMatch(qsLo, qsHi, dsLo, dsHi, IL);
 
 
   //  And find a home for it in the list.  No merging of matches is done here.  It's
@@ -439,8 +438,7 @@ hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit
                  qsHigh + config._merSize,
                  dsLow,
                  dsHigh + config._merSize,
-                 IL,
-                 direction);
+                 IL);
         IL = new intervalList(config._merSize);
       }
 
@@ -478,8 +476,7 @@ hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit
                qsHigh + config._merSize,
                dsLow,
                dsHigh + config._merSize,
-               IL,
-               direction);
+               IL);
         IL = 0;
     }
 
@@ -500,7 +497,6 @@ hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit
       //
       dsLow      = _matches->_dsLo;
       dsHigh     = _matches->_dsHi;
-      direction  = _matches->_direction;
       IL         = _matches->_IL;
       ML         = IL->sumIntervalLengths();
 
@@ -525,7 +521,6 @@ hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit
 
         //  Combine the two interval lists
         //
-        //numMatches += _matches->_numMatches;
         IL->merge(_matches->_IL);
         ML += _matches->_IL->sumIntervalLengths();
 

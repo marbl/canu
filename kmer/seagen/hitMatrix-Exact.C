@@ -37,8 +37,7 @@ hitMatrix::addMatch(u32bit         qsLo,
                     u32bit         qsHi,
                     u32bit         dsLo,
                     u32bit         dsHi,
-                    intervalList  *IL,
-                    char           direction) {
+                    intervalList  *IL) {
 }
 
 
