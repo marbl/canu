@@ -180,30 +180,6 @@ main(int argc, char **argv) {
 
 
 
-
-
-
-  //  Create the chunk, returning a positionDB.  Threads will use both
-  //  chain and postions to build hitMatrices.
-  //
-  //buildChunk();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   //  Build the masking database
   //
   maskDB = 0L;
@@ -286,8 +262,12 @@ main(int argc, char **argv) {
 
     if (output[outputPos]) {
       if (config._beVerbose &&
-          (outputPos > 0) &&
           ((justSlept) || (outputPos & outputMask) == outputMask)) {
+
+        double finish = 0.0;
+        if (outputPos > 0)
+          finish = (numberOfQueries - outputPos) / (outputPos / (getTime() - zeroTime));
+
         fprintf(stderr, "O:"u32bitFMTW(7)" S:"u32bitFMTW(7)" I:%7u T:"u32bitFMTW(7)" (%5.1f%%; %8.3f/sec) Finish in %5.2f seconds.\r",
                 outputPos,
                 inputTail,
@@ -295,7 +275,7 @@ main(int argc, char **argv) {
                 numberOfQueries,
                 100.0 * outputPos / numberOfQueries,
                 outputPos / (getTime() - zeroTime),
-                (numberOfQueries - outputPos) / (outputPos / (getTime() - zeroTime)));
+                finish);
         fflush(stderr);
 
         double perSec    = outputPos / (getTime() - zeroTime + 0.0000001);
