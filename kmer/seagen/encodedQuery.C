@@ -31,8 +31,8 @@ encodedQuery::encodedQuery(char const           *seq,
       substring <<= 2;
       substring  &= mermask;
 
-      if (validSymbol[seq[seqLen - 1 - i]]) {
-        substring |= compressSymbol[ complementSymbol[ seq[seqLen - 1 - i] ]];
+      if (validSymbol[(int)seq[seqLen - 1 - i]]) {
+        substring |= compressSymbol[ complementSymbol[ (int)seq[seqLen - 1 - i] ]];
         timeUntilValid--;
       } else {
         timeUntilValid = k;
@@ -51,8 +51,8 @@ encodedQuery::encodedQuery(char const           *seq,
       substring <<= 2;
       substring  &= mermask;
 
-      if (validSymbol[seq[i]]) {
-        substring |= compressSymbol[ seq[i] ];
+      if (validSymbol[(int)seq[i]]) {
+        substring |= compressSymbol[ (int)seq[i] ];
         timeUntilValid--;
       } else {
         timeUntilValid = k;

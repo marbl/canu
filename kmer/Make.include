@@ -24,6 +24,8 @@ $(eval $(call Include,$/sim4dbutils/))
 $(eval $(call Include,$/sim4db/))
 $(eval $(call Include,$/snapper/))
 
+$(eval $(call Include,$/mst/))
+
 $(eval $(call Include,${LIBSIM4/}))
 $(eval $(call Include,${LIBKMER/}))
 $(eval $(call Include,${LIBMERYL/}))

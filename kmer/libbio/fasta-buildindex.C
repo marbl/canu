@@ -247,7 +247,7 @@ FastAWrapper::createIndex(u32bit indextype) {
       if (!isspace(B.get())) {
         seqLen++;
         thisLineLen++;
-        theGlobalDesc._alphabet[B.get()] = 1;
+        theGlobalDesc._alphabet[(int)B.get()] = 1;
 
         //  Add this character to the MD5 hash
         //
