@@ -1,5 +1,9 @@
 # -*- makefile -*-
 
+ifndef UTIL/
+UTIL/ := $/../util/
+endif
+
 ifndef MERYL/
 MERYL/      := $/../meryl/
 endif
@@ -68,6 +72,4 @@ $/filtertest: $/filtertest.o
 $/buildinfo-searchGENOME.c: $/buildinfo-searchGENOME.h
 $/buildinfo-searchGENOME.h: ${src}
 	${UTIL/}buildinfo.pl searchGENOME "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
-	mv buildinfo-searchGENOME.[ch] `dirname $@`
-
-
+	[ `dirname $@` = "." ] || mv buildinfo-searchGENOME.[ch] `dirname $@`

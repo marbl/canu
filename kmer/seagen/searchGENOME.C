@@ -185,14 +185,14 @@ main(int argc, char **argv) {
   if (config._maskFileName) {
     if (config._beVerbose)
       fprintf(stderr, "Building maskDB from '%s'\n", config._maskFileName);
-    maskDB = new existDB(config._maskFileName, config._merSize, 19, 0, 0, positions);
+    maskDB = new existDB(config._maskFileName, config._merSize, 19, u32bitZERO, ~u32bitZERO, positions);
   }
 
   onlyDB = 0L;
   if (config._onlyFileName) {
     if (config._beVerbose)
       fprintf(stderr, "Building onlyDB from '%s'\n", config._onlyFileName);
-    onlyDB = new existDB(config._onlyFileName, config._merSize, 19, 0, 0, positions);
+    onlyDB = new existDB(config._onlyFileName, config._merSize, 19, u32bitZERO, ~u32bitZERO, positions);
   }
 
   config._buildTime = getTime();

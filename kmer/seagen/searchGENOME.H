@@ -32,7 +32,7 @@ private:
   u32bit    _mersTotal;  //  Number of mers possible in the query
   u32bit    _mersAvail;  //  Number of mers not masked out
   u64bit   *_mers;       //  List of mers
-  u32bit   *_skip;
+  u8bit    *_skip;
 public:
   encodedQuery(char const           *seq,
                u32bit                seqLen,
@@ -44,7 +44,7 @@ public:
   u32bit           numberOfValidMers(void)   { return(_mersAvail); };
   u64bit           getMer(u32bit i)          { return(_mers[i]); };
 
-  u32bit           getSkip(u32bit i)         { return(_skip[i]); };
+  bool             getSkip(u32bit i)         { return(_skip[i]); };
   void             setSkip(u32bit i)         {
     //  If skip[i] is already set, don't adjust; otherwise, subtract
     //  one from the available.

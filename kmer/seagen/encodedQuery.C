@@ -20,7 +20,7 @@ encodedQuery::encodedQuery(char const           *seq,
   _mersTotal = seqLen - k + 1;
   _mersAvail = 0;
   _mers      = new u64bit [_mersTotal];
-  _skip      = new u32bit [_mersTotal];
+  _skip      = new u8bit  [_mersTotal];
 
   u64bit   substring      = u64bitZERO;
   u64bit   mermask        = u64bitMASK(2 * k);
