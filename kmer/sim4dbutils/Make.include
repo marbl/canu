@@ -21,7 +21,7 @@ obj_C := ${$/.CXX_SRCS:.C=.o}
 
 # always using c++ to link
 $/.CXX_EXES := $/cleanPolishes $/comparePolishes $/filterPolishes \
-               $/mergePolishes $/parseSNP $/pickBestPolish \
+               $/mergePolishes $/parseSNP $/pickBestPolish $/pickBestPolish-debug \
                $/plotCoverageVsIdentity $/removeDuplicate $/sortPolishes \
                $/summarizePolishes $/uniqPolishes $/vennPolishes \
                $/realignPolishes $/removeRedundant
