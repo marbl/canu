@@ -242,6 +242,7 @@ main(int argc, char **argv) {
   if (tmpFlen == 0) {
     for (u32bit i=0; i<hitsPos; i++)
       ahit_printASCII(hits+i, stdout);
+    exit(0);
   }
 
 
