@@ -128,13 +128,14 @@ private:
   //  If _separatorPosition is positive, we are sending
   //  _separatorLength _separator's out.
   //
-  char                  _separator;
   bool                  _separatorDone;
   u32bit                _separatorLength;
   u32bit                _separatorPosition;
 
+  char                  _separator;
+
 #ifdef __APPLE__
-  u32bit                _pad;
+  char                  _pad[7];
 #endif
 };
 
@@ -503,6 +504,10 @@ private:
   u32bit                _merSize;
   s64bit                _timeUntilValid;
   u32bit                _rMerShift;
+
+#ifdef __APPLE__
+  u32bit                _pad;
+#endif
 
   u64bit                _merMask;
 
