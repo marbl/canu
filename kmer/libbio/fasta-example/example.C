@@ -25,10 +25,10 @@ main(int argc, char **argv) {
   fprintf(stderr, "\n");
 
   seqs.openIndex();
-  for (int id=seqs.getNumberOfSequences()-1; id>=0; id--) {
+  for (int id=seqs.getNumberOfSequences() - 1; id>=0; id--) {
     seqs.find(id);
 
-    FastASequenceInCore *aSeq = seqs.getSequence();
+    FastASequenceOnDisk *aSeq = seqs.getSequenceOnDisk();
 
     fprintf(stderr, "%8d  '%s'\n", aSeq->getIID(), aSeq->header());
 
