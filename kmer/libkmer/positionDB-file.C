@@ -11,6 +11,39 @@ static
 char     faild[16] = { 'p', 'o', 's', 'i', 't', 'i', 'o', 'n', 'D', 'B', 'f', 'a', 'i', 'l', 'e', 'd'  };
 
 
+
+//  Split writes into smaller pieces, check the result of each piece.
+//
+void
+safeWrite(int filedes, const void *buffer, char *desc, size_t nbytes) {
+  size_t  position = 0;
+  size_t  length   = 256 * 1024 * 1024;
+  size_t  towrite  = 0;
+  size_t  written  = 0;
+
+  while (position < nbytes) {
+    fprintf(stderr, "write %ld to %ld\n", position, position+length);
+
+    towrite = length;
+    if (position + towrite > nbytes)
+      towrite = nbytes - position;
+
+    errno = 0;
+    written = write(filedes, ((char *)buffer) + position, towrite);
+
+    if ((errno) || (towrite != written)) {
+      fprintf(stderr, "positionDB::saveState()-- Write failure on %s.\n", desc);
+      fprintf(stderr, "positionDB::saveState()-- Wanted to write %ld bytes, wrote %ld.\n", towrite, written);
+      fprintf(stderr, "positionDB::saveState()-- Error is %d '%s'\n", errno, strerror(errno));
+      exit(1);
+    }
+
+    position += written;
+  }
+}
+
+
+
 void
 positionDB::saveState(char const *filename) {
 
@@ -37,15 +70,15 @@ positionDB::saveState(char const *filename) {
   else
     write(F, faild, sizeof(char) * 16);
 
-  write(F, this,       sizeof(positionDB) * 1);
-  write(F, _hashTable, sizeof(u64bit) * (_tableSizeInEntries * _hashWidth / 64 + 1));
-  write(F, _buckets,   sizeof(u64bit) * (_numberOfDistinct   * _wFin      / 64 + 1));
-  write(F, _positions, sizeof(u64bit) * (_numberOfEntries    * _posnWidth / 64 + 1));
-
   if (errno) {
-    fprintf(stderr, "positionDB::saveState()-- Write failure.\n%s\n", strerror(errno));
+    fprintf(stderr, "positionDB::saveState()-- Write failure on magic first.\n%s\n", strerror(errno));
     exit(1);
   }
+
+  safeWrite(F, this,       "this",       sizeof(positionDB) * 1);
+  safeWrite(F, _hashTable, "_hashTable", sizeof(u64bit) * (_tableSizeInEntries * _hashWidth / 64 + 1));
+  safeWrite(F, _buckets,   "_buckets",   sizeof(u64bit) * (_numberOfDistinct   * _wFin      / 64 + 1));
+  safeWrite(F, _positions, "_positions", sizeof(u64bit) * (_numberOfEntries    * _posnWidth / 64 + 1));
 
   if (magicFirst == false) {
     lseek(F, 0, SEEK_SET);
@@ -53,15 +86,15 @@ positionDB::saveState(char const *filename) {
       fprintf(stderr, "positionDB::saveState()-- Failed to seek to start of file -- write failed.\n%s\n", strerror(errno));
       exit(1);
     }
+
     write(F, magic, sizeof(char) * 16);
+    if (errno) {
+      fprintf(stderr, "positionDB::saveState()-- Write failure on magic last.\n%s\n", strerror(errno));
+      exit(1);
+    }
   }
 
   close(F);
-
-  if (errno) {
-    fprintf(stderr, "positionDB::saveState()-- Write failure.\n%s\n", strerror(errno));
-    exit(1);
-  }
 }
 
 
@@ -79,8 +112,19 @@ positionDB::loadState(char const *filename, bool beNoisy, bool loadData) {
   read(F, cigam, sizeof(char) * 16);
 
   if        (strncmp(faild, cigam, 16) == 0) {
-    if (beNoisy)
+    if (beNoisy) {
       fprintf(stderr, "positionDB::loadState()-- Incomplete positionDB binary file.\n");
+      fprintf(stderr, "positionDB::loadState()-- Read     '%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c'\n",
+              cigam[0],  cigam[1],  cigam[2],  cigam[3],
+              cigam[4],  cigam[5],  cigam[6],  cigam[7],
+              cigam[8],  cigam[9],  cigam[10], cigam[11],
+              cigam[12], cigam[13], cigam[14], cigam[15]);
+      fprintf(stderr, "positionDB::loadState()-- Expected '%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c'\n",
+              magic[0],  magic[1],  magic[2],  magic[3],
+              magic[4],  magic[5],  magic[6],  magic[7],
+              magic[8],  magic[9],  magic[10], magic[11],
+              magic[12], magic[13], magic[14], magic[15]);
+    }
     close(F);
     return(false);
   } else if (strncmp(magic, cigam, 16) != 0) {
