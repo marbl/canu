@@ -65,6 +65,7 @@ my %validArgs = ("-help"            => "0",
                  "-numbatches"      => "1",
                  "-relink"          => "1",
                  "-runlater"        => "0",
+                 "-searchopts"      => "1",
                  "-searchthreads"   => "1",
                  "-segments"        => "1",
                  "-species"         => "1",
@@ -1186,7 +1187,7 @@ sub filter {
         }
 
         if ($type eq "none") {
-            $fcmd  = "";
+            $fcmd  = "echo";
 
             $scmd = "$sortHits $verbose -m $hitMemory -t $path/2-filter/sorttmp $path/1-search/*hits > $path/2-filter/filteredHits";
 
