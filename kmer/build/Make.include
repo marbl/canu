@@ -5,6 +5,7 @@ $(eval $(call Include,\
      $/../RD2/ \
      $/../COMPASS/ \
      $/../LF/ \
+     $/../SVI/ \
      $/../RASCAL/ \
      $/../BRI/ \
      $/../SUFFER/ \
