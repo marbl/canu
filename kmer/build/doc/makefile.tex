@@ -762,10 +762,9 @@ does not depend on \verb+all+, a multithreaded invocation of
 \verb+install-copy+ after \verb+all+.
 
 \section{Anatomy of the Make.rules}
-% cvs revision 1.25
 
-The execution of commands other than cleaning commands is
-determined by the file \verb+Make.rules+.  This file defines
+The execution of commands other than cleaning commands is determined
+by the file \verb+Make.rules+ (cvs revision 1.25).  This file defines
 file types and actions to be taken to rebuild files.
 
 \begin{verbatim}
@@ -779,6 +778,21 @@ define .FUN-install-copy
 	        echo ":Copying $$$${F} to $$$${Fout}:" ; \
 	        mkdir -p `dirname $$$${Fout}` && \
 	        rm -f $$$${Fout} && cp -fp $$$${F} $$$${Fout} ; \
+	      done ; \
+	    fi ; \
+	  done ; \
+        fi
+endef
+define .FUN-install-copy-exe
+	@ files='$$(strip $1)'; dirs='$$(strip $2)'; \
+	if [ -n "$$$${files}" -a -n "$$$${dirs}" ] ; then \
+	  for F in $$$${files} ; do \
+	    if [ -f $$$${F}${.EXE} ] ; then \
+	      for D in $$$${dirs} ; do \
+	        Fout=$${INSTALL/}$$$${D}`basename $$$${F}` ; \
+	        echo ":Copying $$$${F}${.EXE} to $$$${Fout}${.EXE}:" ; \
+	        mkdir -p `dirname $$$${Fout}` && \
+	        rm -f $$$${Fout}${.EXE} && cp -fp $$$${F}${.EXE} $$$${Fout}${.EXE} ; \
 	      done ; \
 	    fi ; \
 	  done ; \
@@ -803,19 +817,22 @@ define .FUN-install-copy-script
         fi
 endef
 \end{verbatim}
-These are two helper functions.  The first of these installs is first
+These are three similar helper functions.
+The first of these copies its first
 argument, \verb+files+, into all of the directories specified in the
 second argument, \verb+dirs+ (which are assumed to be subdirs of
-\verb+INSTALL/+).  It checks for existence and tries to make
-direectories which need making.  The second function is similar to the
+\verb+INSTALL/+).  It checks for existence and tries to create
+directories as it needs.  The second function is similar to the first
+but it is for executable binaries, which require a special suffix
+(e.g. \verb+.exe+) on some platforms.  The third function is similar to the
 first, but it also takes a third argument \verb+sheb+ which is the
 {\em shebang} line for a script.  It replaces the shebang line of the
 contents of the \verb+sheb+ variable.
 
-The rest of the file is the set of blocks, each block dealing with
-a certain file type and its rules.
+The rest of the file is the set of rule blocks, each block dealing with
+a certain file type.
 
-The first section, which is the largest is the one for C and C++.
+The first section, which is the largest, is the one for C and C++.
 \begin{verbatim}
 __DEPGOALS__     +=                 $$(patsubst %,%.d,$${${1:.=.C_SRCS}})
 ALL_C_DEPS       :=$(foreach x,${//},$(patsubst %,%.d,${${x:.=.C_SRCS}}))
@@ -845,16 +862,17 @@ dependency files from source files.
 .PRECIOUS: %.o
 
 %.o: %.c
-	${CC} ${CFLAGS} ${CFLAGS_COMPILE} -o $@ -c $<
+	${-CC} ${CC} ${CFLAGS} ${CFLAGS_COMPILE} -o $@ -c $<
 
 %.o: %.cc
-	${CXX} ${CXXFLAGS} ${CXXFLAGS_COMPILE} -o $@ -c $<
+	${-CXX} ${CXX} ${CXXFLAGS} ${CXXFLAGS_COMPILE} -o $@ -c $<
 
 %.o: %.cpp
-	${CXX} ${CXXFLAGS} ${CXXFLAGS_COMPILE} -o $@ -c $<
+	${-CXX} ${CXX} ${CXXFLAGS} ${CXXFLAGS_COMPILE} -o $@ -c $<
 
 %.o: %.C
-	${CXX} ${CXXFLAGS} ${CXXFLAGS_COMPILE} -o $@ -c $<
+	${-CXX} ${CXX} ${CXXFLAGS} ${CXXFLAGS_COMPILE} -o $@ -c $<
+
 \end{verbatim}
 Pattern-driven rules are specified for several kinds of
 object code builds.
@@ -862,12 +880,12 @@ object code builds.
 \begin{verbatim}
 ALL_C_EXES   :=$(strip $(foreach x,${//},${${x:.=.C_EXES}}))
 ${ALL_C_EXES}:
-	${CC} ${CLDFLAGS} -o $@ $^ ${CLIBS}
+	${-CC} ${CC} ${CLDFLAGS} -o $@ $+ ${CLIBS}
 __SUBGOALS__+=$${${1:.=.C_EXES}}
 
 ALL_CXX_EXES :=$(strip $(foreach x,${//},${${x:.=.CXX_EXES}}))
 ${ALL_CXX_EXES}:
-	${CXX} ${CXXLDFLAGS} -o $@ $^ ${CXXLIBS}
+	${-CXX} ${CXX} ${CXXLDFLAGS} -o $@ $+ ${CXXLIBS}
 __SUBGOALS__+=$${${1:.=.CXX_EXES}}
 \end{verbatim}
 We add to the subgoals the executable programs \verb+$/.C_EXES+ and
@@ -877,40 +895,40 @@ We add to the subgoals the executable programs \verb+$/.C_EXES+ and
 define .RULE-install-copy-C-CXX-EXES
 ${1:.=.install-copy}: ${1:.=.install-copy-C-CXX-EXES}
 ${1:.=.install-copy-C-CXX-EXES}:
-# all exes go to bin
-	$(call .FUN-install-copy,$${${1:.=.C_EXES}} $${${1:.=.CXX_EXES}},bin/)
+	$(call .FUN-install-copy-exe,$${${1:.=.C_EXES}} $${${1:.=.CXX_EXES}},bin/)
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-install-copy-C-CXX-EXES,$x)))
 \end{verbatim}
 We add to each \verb+.install-copy+ rule the action that executable
-programs be copied to the subdirectory \verb+bin/+.
+binaries be copied to the subdirectory \verb+bin/+.
 
 \begin{verbatim}
 ALL_C_LIBS   :=$(strip $(foreach x,${//},${${x:.=.C_LIBS}}))
 ${ALL_C_LIBS}:
-	${RM} $@ && ${AR} ${ARFLAGS} $@ $^
+	${-CC} ${RM} $@ && ${AR} ${ARFLAGS} $@ $^
 __SUBGOALS__+=$${${1:.=.C_LIBS}}
 
 ALL_CXX_LIBS     :=$(strip $(foreach x,${//},${${x:.=.CXX_LIBS}}))
 ${ALL_CXX_LIBS}:
-	${RM} $@ && ${AR} ${ARFLAGS} $@ $^
+	${-CXX} ${RM} $@ && ${AR} ${ARFLAGS} $@ $^
 __SUBGOALS__+=$${${1:.=.CXX_LIBS}}
 
 ${_OS_}_SHLIB_FLAGS:=
 ALL_C_SHLIBS     :=$(strip $(foreach x,${//},${${x:.=.C_SHLIBS}}))
 ${ALL_C_SHLIBS}:
-	${RM} $@ && ${C} ${CFLAGS} ${SHLIB_FLAGS} ${${_OS_}_SHLIB_FLAGS} -o $@ $^ ${CLIBS}
+	${-CC} ${RM} $@ && ${C} ${CFLAGS} ${SHLIB_FLAGS} ${${_OS_}_SHLIB_FLAGS} -o $@ $^ ${CLIBS}
 
 ALL_CXX_SHLIBS   :=$(strip $(foreach x,${//},${${x:.=.CXX_SHLIBS}}))
 ${ALL_CXX_SHLIBS}:
-	${RM} $@ && ${CXX} ${CXXFLAGS} ${SHLIB_FLAGS} ${${_OS_}_SHLIB_FLAGS} -o $@ $^ ${CXXLIBS}
+	${-CXX} ${RM} $@ && ${CXX} ${CXXFLAGS} ${SHLIB_FLAGS} ${${_OS_}_SHLIB_FLAGS} -o $@ $^ ${CXXLIBS}
 __SUBGOALS__+=$${${1:.=.C_SHLIBS}} $${${1:.=.CXX_SHLIBS}}
 \end{verbatim}
 Additional C,C++ subgoals include libraries and shared libraries.  It is
 unfortunate that AIX has a fairly different means of producing shared
-libraries than other operatin systems.  This is the only place in the
-rules where the OS is a factor in determining the rule.  If more situations
+libraries than other operating systems.  This is the only place in the
+rules where the \verb+_OS_+ variable (defined in \verb+Make.compilers+)
+is a factor in determining the rule.  If more situations
 like this arise, it may be necessary to redesign the interactions
 between \verb+Make.rules+ and \verb+Make.compilers+.
 
@@ -918,7 +936,6 @@ between \verb+Make.rules+ and \verb+Make.compilers+.
 define .RULE-install-copy-C-CXX-LIBS
 ${1:.=.install-copy}: ${1:.=.install-copy-C-CXX-LIBS}
 ${1:.=.install-copy-C-CXX-LIBS}:
-# all libs go to lib/${.LIB/}
 	$(call .FUN-install-copy,$${${1:.=.C_LIBS}} $${${1:.=.CXX_LIBS}}, \
                                  lib/$${${1.=.LIB/}})
 
@@ -928,7 +945,6 @@ $(eval $(foreach x,${//},$(call .RULE-install-copy-CXX-LIBS,$x)))
 define .RULE-install-copy-C-CXX-SHLIBS
 ${1:.=.install-copy}: ${1:.=.install-copy-CXX-SHLIBS}
 ${1:.=.install-copy-CXX-SHLIBS}:
-# all shlibs go to lib/${.LIB/}
 	$(call .FUN-install-copy,$${${1:.=.C_SHLIBS}} $${${1:.=.CXX_SHLIBS}}, \
                                  lib/$${${1.=.LIB/}})
 
@@ -944,30 +960,27 @@ presumably set in the \verb+$/Make.include+.
 define .RULE-install-copy-C-CXX-INCS
 ${1:.=.install-copy}: ${1:.=.install-copy-C-CXX-INCS}
 ${1:.=.install-copy-C-CXX-INCS}:
-# all includes go to include/${.INCLUDE/}
 	$(call .FUN-install-copy,$${${1:.=.C_INCS}} $${${1:.=.CXX_INCS}}, \
                                  include/$${${1:.=.INCLUDE/}})
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-install-copy-C-CXX-INCS,$x)))
 \end{verbatim}
-If include files are defined in \verb+$/.C_INCS+ or \verb+$/.CXX_INC+
+If include files are defined in \verb+$/.C_INCS+ or \verb+$/.CXX_INCS+
 then these are copied directly to \verb+include/+ or one of its
 subdirectories, specified by \verb+$/.INCLUDE/+.
 
-We now start on the section which builds ps and pdf documents from
+There is a section which builds ps and pdf documents from
 \LaTeX files.
 \begin{verbatim}
-.PRECIOUS: %.pdf %.ps %.dvi %.aux %.bbl
-
 %.dvi: %.tex
-	cd `dirname $<` && ${LATEX} `basename $<` && ${LATEX} `basename $<`
+	${-LATEX} cd `dirname $<` && ${LATEX} `basename $<` && ${LATEX} `basename $<`
 
 %.aux: %.tex
-	cd `dirname $<` && ${LATEX} `basename $<` && ${LATEX} `basename $<`
+	${-LATEX} cd `dirname $<` && ${LATEX} `basename $<` && ${LATEX} `basename $<`
 
 %.bbl: %.aux
-	cd `dirname $<` && ${BIBTEX} `basename ${<:.aux=}`
+	${-LATEX} cd `dirname $<` && ${BIBTEX} `basename ${<:.aux=}`
 \end{verbatim}
 These are the commands to invoke \LaTeX, based on file pattern.
 
@@ -975,12 +988,11 @@ These are the commands to invoke \LaTeX, based on file pattern.
 ALL_TEX_PS    :=$(strip $(foreach x,${//},${${x:.=.TEX_PS}}))
 ALL_TEX_PDF   :=$(strip $(foreach x,${//},${${x:.=.TEX_PDF}}))
 
-${ALL_TEX_PS}: %.ps: %.dvi
-	cd `dirname $<` && ${DVIPS} -o `basename $@` `basename $<`
+${ALL_TEX_PS} ${ALL_TEX_PDF:.pdf=.ps}: %.ps: %.dvi
+	${-LATEX} cd `dirname $<` && ${DVIPS} -o `basename $@` `basename $<`
 
 ${ALL_TEX_PDF}: %.pdf: %.ps
-	${PS2PDF} $< $@
-
+	${-LATEX} ${PS2PDF} $< $@
 __SUBGOALS__+=$${${1:.=.TEX_PS}} $${${1:.=.TEX_PDF}}
 \end{verbatim}
 The \verb+$/.TEX_PS+ and \verb+$/.TEX_PDF+ files are added to the
@@ -1006,7 +1018,7 @@ ${1:.=.install-copy}: ${1:.=.install-copy-PYTHON}
 ${1:.=.install-copy-PYTHON}:
 	$(call .FUN-install-copy-script,$${${1:.=.PY_EXES}},\
                                          scripts/,\
-                                         ${PYSHEBANG})
+                                         ${PYTHON} ${PYTHON_FLAGS})
 	$(call .FUN-install-copy,$${${1:.=.PY_LIBS}}, \
                                  scripts/$${${1:.=.PY_LIB/}})
 
@@ -1018,26 +1030,78 @@ on the \verb+$/.PY_EXES+ files.  The \verb+$/.PY_EXES+ files get
 copied (and shebang-ed) to \verb+scripts/+, and the
 \verb+$/.PY_LIBS+ get copied to \verb+lib/$/.PY_LIB/+.
 
+Similar versions of this rule block exist for \verb+perl+ and \verb+sh+
+libraries and executables.
+
 \section{Anatomy of Make.compilers}
 
-The \verb+Make.compilers+ file sets many architecture dependent
-variables as well as compiling modes such as debugging or profiling.
-Additionally, the paths for various libraries and utilities are set.
-The first part of the file ascertains the architecture and build mode,
-and the rest of the file sets variables based on them.  This is done
-in sections broken down by application rather than architecture or
-mode.  This will not be a line by line walkthrough.  Instead we will
-list important variables being set and what they mean for the other
-parts of the build system.
+The \verb+Make.compilers+ file (cvs revision 1.50) sets many platform
+dependent variables as well as compiling modes such as debugging or
+profiling.  Additionally, the paths for various libraries and
+utilities are set.  The first part of the file ascertains the platform
+and build mode, and the rest of the file sets variables based on them.
+This is done in blocks broken down by application rather than platform
+or mode.  This will not be a line by line walkthrough.  Instead we
+will list important variables being set and what they mean for the
+other parts of the build system.
 
 \begin{verbatim}
-_OS_:=$(shell uname)
-ifdef OPERATING_SYSTEM
-  _OS_:=$(OPERATING_SYSTEM)
-else
-  WITH_GNU:=1
-endif
+VALID_OPERATING_SYSTEM:=$(strip \
+    TRU64  \
+    AIX    \
+    cygwin \
+    SunOS|foster-city   \
+    SunOS|francisco's \
+    FreeBSD \
+    FreeBSD|Randy \
+    Linux|RH7 \
+    Linux|RH9 \
+    default|I-will-take-my-chances \
+)
+\end{verbatim}
+Our current thinking is that a platform consists of both an operating
+system and possible additional specifications.  In our current work
+situation, the admins have defined an environment variable called
+\verb+OPERATING_SYSTEM+ for us which we now use as a platform
+identifier, despite the obvious misuse of the word.  This variable defines
+those values of that variable which the build system will respect.
 
+\begin{verbatim}
+ifdef OPERATING_SYSTEM
+  ifneq ($(filter ${OPERATING_SYSTEM},${VALID_OPERATING_SYSTEM}),)
+    _OS|FULL_:=${OPERATING_SYSTEM}
+    _OS_:=$(filter-out |%, $(subst |, |,${_OS|FULL_}))
+  else
+  $(error You are trying to use the build system on a platform where the \
+environment variable OPERATING_SYSTEM is set to an unrecognized value.  \
+You should either set \
+OPERATING_SYSTEM to a recognized value, possibly after editing the \
+Make.compilers file of the build system.  Currently, the recognized values \
+for OPERATING_SYSTEM are: ${VALID_OPERATING_SYSTEM}  )
+  endif
+else
+  $(error You are trying to use the build system on a platform where the \
+environment variable OPERATING_SYSTEM is not set.  You should either set \
+OPERATING_SYSTEM to a recognized value, possibly after editing the \
+Make.compilers file of the build system.  Currently, the recognized values \
+for OPERATING_SYSTEM are: ${VALID_OPERATING_SYSTEM}  )
+endif
+\end{verbatim}
+The \verb+OPERATING_SYSTEM+ variable is parsed into its major identifier,
+in \verb+_OS_+ and its full identifier \verb+_OS|FULL_+.  This allows us
+to create conditions for the machine architecture based on \verb+_OS_+
+as well as for the specific installation and auxilliary packages on the
+platform based on \verb+_OS|FULL_+.
+
+If the \verb+OPERATING_SYSTEM+ variable is not set correctly, then the
+build will abort.  We chose this as opposed to some default behavior because
+we figured that if \verb+OPERATING_SYSTEM+ was left unset or there was
+some error in its value, that building with the default definitions, instead
+of being alerted to the problem harshly, would waste a lot of time.
+If the user really wants all default behavior, a value of
+\verb+OPERATING_SYSTEM+ exists for that.
+
+\begin{verbatim}
 _CC_:=
 ifdef WITH_GNU
   _CC_:=-gcc
@@ -1056,19 +1120,21 @@ ifdef WITH_THREADS
   _THR_:=-threaded
 endif
 \end{verbatim}
-\verb+_OS_+ holds the architecture.  If \verb+_CC_+ is set to '-gcc'
+If \verb+_CC_+ is set to '-gcc'
 then GNU compilers will be used, and if it is empty and native
-compilers will be used if the \verb+_OS_+ is known (otherwise GNU
-will be used).  There are three \verb+_OPT_+ modes: 'debug', 'profile',
+compilers will be used.
+There are three \verb+_OPT_+ modes: 'debug', 'profile',
 and '' (normal).  There is also a \verb+_THR_+ variable which determines
 if the applications are to be compiled with threading.  A user wishing
 to build with profiling and threading enabled would do something like
 \begin{verbatim}
 $ gmake WITH_OPT=profile WITH_THREADS=1
 \end{verbatim}
-to turn these options on.
+to turn these options on.  One could also set these variable in the
+environment.
 
 \begin{verbatim}
+# allow additional tag for install directories
 ifdef INSTALL_TAG
   INSTALL/:=${MAKEFILE/}${_OS_}${_CC_}${_OPT_}${_THR_}-${INSTALL_TAG}/
 else
@@ -1089,22 +1155,28 @@ CXXDEPFLAGS      :=-MM -MG
 The GNU compilers have much more sophisticated dependency producers than
 the native compilers, so we will use them for all architectures.  In
 theory this could cause bugs due to the mismatch between depends and
-build compilers.  In practise, it does not.
+build compilers.  In practice, it does not.
 
 \begin{verbatim}
-CC:=
-CXX:=
-CFLAGS:=
-CXXFLAGS:=
+-CC:=
+-CXX:=
+CC:=gcc
+CXX:=g++
+CFLAGS:=-O2 -g
+CXXFLAGS:=-O2 -g
 CFLAGS_COMPILE:=
 CXXFLAGS_COMPILE:=
 CLDFLAGS:=
 CXXLDFLAGS:=
 CLIBS:=-lm
 CXXLIBS:=-lm
-SHLIB_FLAGS:=
+SHLIB_FLAGS:=-shared
+C_TMP_COMPILE:=
+CXX_TMP_COMPILE:=
 \end{verbatim}
-The \verb+CC,CXX+ variables are obvious.  The \verb+CFLAGS,CXX_FLAGS+
+Each block begins with the declaration of the variables to be defined
+in that block, set to their default values.
+The \verb+CFLAGS,CXX_FLAGS+
 variables are those compile flags which are needed by bith the
 dependency check and by the actual compile such as
 include paths.  The \verb+CFLAGS_COMPILE+
@@ -1114,47 +1186,83 @@ and profiling flags.  The \verb+CLDFLAGS,CXXLDFLAGS+ are the flags
 for the compiler when functioning as a loader and are placed on
 the loader command line ahead of the object files.  The
 \verb+CLIBS,CXXLIBS+ are placed on the loader command line after the
-object files.
+object files.  The role of each of these flags is made clear from the
+\verb+Make.rules+ file, where they are used.
+
+The \verb+-VAR+ variables prefix all action lines of a given category.
+They are designed to allow the build to ignore errors in those actions.
+This was motivated primarily by the fact that some systems did not have
+some key packages installed like \LaTeX.
+\begin{verbatim}
+ifeq (${_OS|FULL_},SunOS|francisco's)
+  -LATEX :=-
+endif
+\end{verbatim}
+This causes a \verb+-+ to appear before any one of the actions in the
+\LaTeX section of the \verb+Make.rules+ file.  That \verb+-+ will cause
+the build to ignore any errors in the execution of those actions.
 
 The \verb+Make.compilers+ file is not just about defining the compilers
 and interpreters on the system.  It is also used to make available certain
 architecture dependent package locations.
 \begin{verbatim}
+CFLAGS_LAPACK   :=-DFTN_UNDERSCORE -DFTN_LOWERCASE
+CLDFLAGS_LAPACK :=-L/usr/local/lib
+CLIBS_LAPACK    :=-llapack -lblas -lm
 ifeq (${_OS_},TRU64)
-  CXXFLAGS_LAPACK   :=-DFTN_UNDERSCORE -DFTN_LOWERCASE
-  CXXLDFLAGS_LAPACK :=
-  CXXLIBS_LAPACK    :=-ldxml
+# this seems to work for both gcc and non-gcc
+  CLDFLAGS_LAPACK :=
+  CLIBS_LAPACK    :=-ldxml
 endif
 ifeq (${_OS_},AIX)
-  CXXFLAGS_LAPACK   :=-DFTN_LOWERCASE
-  CXXLDFLAGS_LAPACK :=-L/usr/local/ir/lib
-  CXXLIBS_LAPACK    :=-llapack -lessl -lxlf90
+  CFLAGS_LAPACK   :=-DFTN_LOWERCASE
+  CLDFLAGS_LAPACK :=-L/usr/local/ir/lib
+  CLIBS_LAPACK    :=-llapack -lessl -lxlf90
 endif
+# sometimes we deploy on Solaris with CDX
+ifeq (${_OS|FULL_},SunOS|foster-city)
+  CLDFLAGS_LAPACK :=-L/home/ross/local/lib
+  CLIBS_LAPACK    :=-llapack -lblas -lF77
+endif
+# sometimes we deploy on Solaris on Fancisco's machines
+ifeq (${_OS|FULL_},SunOS|francisco's)
+  CLIBS_LAPACK    :=-llapack -lblas -lF77
+endif
+CXXFLAGS_LAPACK   :=${CFLAGS_LAPACK}
+CXXLDFLAGS_LAPACK :=${CLDFLAGS_LAPACK}
+CXXLIBS_LAPACK    :=${CLIBS_LAPACK}
 \end{verbatim}
 Some modules use LAPACK.  Although these variables do not get used
 in any of the rules of the build system, we define them in 
 \verb+Make.compilers+ so that they can be used in the various
-\verb+Make.include+ files which need LAPACK.
+\verb+Make.include+ files which need LAPACK.  This is one case
+there the \verb+_OS|FULL_+ is useful, since different platforms
+install LAPACK in all sorts of ways.
 
 \begin{verbatim}
 PYTHON    :=$(shell which python)
 PYTHON_FLAGS :=
-PYINC     :=
-PYSHEBANG :=${PYTHON}
+CFLAGS_PY    :=-I/usr/local/include/python
 ifeq (${_OS_}${_CC_},TRU64)
-  PYINC     :=-I/usr/local/ir/Python-2.2.2 -I/usr/local/ir/Python-2.2.2/Include
+  CFLAGS_PY :=-I/usr/local/ir/Python-2.2.2 -I/usr/local/ir/Python-2.2.2/Include
   PYTHON    :=/usr/local/ir/bin/python
-  PYSHEBANG :=${PYTHON} ${PYTHON_FLAGS}
 endif
 ifeq (${_OS_}${_CC_},AIX)
-  PYINC   :=-I/usr/local/include/python2.2
-  PYTHON  :=/usr/local/bin/python
-  PYSHEBANG :=${PYTHON} ${PYTHON_FLAGS}
+  CFLAGS_PY :=-I/usr/local/include/python2.2
+  PYTHON    :=/usr/local/bin/python
 endif
+ifeq (${_OS_},cygwin)
+  CFLAGS_PY :=-I/usr/include/python2.3
+endif
+CXXFLAGS_PY :=${CFLAGS_PY}
 \end{verbatim}
 Python and its paths for the known architectures are determined here.  On
-unknown architectures we guess where python is based on the users path.
+unknown architectures we guess where python is based on the user's path.
 
+\section{Acknowledgements}
+
+The guilty parties who gave me advice are Nathan Edwards, Dan Fasulo,
+Bjarni Halldorsson, and Clark Mobarry.
 
 \end{document}
 

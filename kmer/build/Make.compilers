@@ -41,7 +41,7 @@ ifdef OPERATING_SYSTEM
 
     # Separate out the word before the "|" as the main OS identifier.
     # This is done by inserting a space before the "|", making 
-    # A multiple-word string that GMake's filtering can work on.
+    # A multiple-word string that gmake's filtering can work on.
     _OS_:=$(filter-out |%, $(subst |, |,${_OS|FULL_}))
   else
   $(error You are trying to use the build system on a platform where the \
@@ -87,18 +87,18 @@ ifdef WITH_THREADS
 endif
 
 # installing stuff
-# some platforms put an extension on the executables (like cygwin)
-.EXE:=
-ifeq (${_OS_},cygwin)
-  .EXE:=.exe
-endif
-
 # allow additional tag for install directories
 ifdef INSTALL_TAG
   INSTALL/:=${MAKEFILE/}${_OS_}${_CC_}${_OPT_}${_THR_}-${INSTALL_TAG}/
 else
   INSTALL/:=${MAKEFILE/}${_OS_}${_CC_}${_OPT_}${_THR_}/
 endif
+# some platforms put an extension on the executables (like cygwin)
+.EXE:=
+ifeq (${_OS_},cygwin)
+  .EXE:=.exe
+endif
+
 
 # C and CXX dependency programs/flags (don't change!  GNU is great!)
 CCDEP		 :=gcc
@@ -114,8 +114,8 @@ ARFLAGS:=-crvs
 -CXX:=
 CC:=gcc
 CXX:=g++
-CFLAGS:=
-CXXFLAGS:=
+CFLAGS:=-O2 -g
+CXXFLAGS:=-O2 -g
 CFLAGS_COMPILE:=
 CXXFLAGS_COMPILE:=
 CLDFLAGS:=
@@ -319,19 +319,19 @@ endif
 ## where is python?
 PYTHON    :=$(shell which python)
 PYTHON_FLAGS :=
-PYINC     :=
+CFLAGS_PY    :=-I/usr/local/include/python
 ifeq (${_OS_}${_CC_},TRU64)
-  PYINC     :=-I/usr/local/ir/Python-2.2.2 -I/usr/local/ir/Python-2.2.2/Include
+  CFLAGS_PY :=-I/usr/local/ir/Python-2.2.2 -I/usr/local/ir/Python-2.2.2/Include
   PYTHON    :=/usr/local/ir/bin/python
 endif
 ifeq (${_OS_}${_CC_},AIX)
-  PYINC   :=-I/usr/local/include/python2.2
-  PYTHON  :=/usr/local/bin/python
+  CFLAGS_PY :=-I/usr/local/include/python2.2
+  PYTHON    :=/usr/local/bin/python
 endif
 ifeq (${_OS_},cygwin)
-  PYINC   :=-I/usr/include/python2.3
-  # PYTHON  :=/usr/bin/python
+  CFLAGS_PY :=-I/usr/include/python2.3
 endif
+CXXFLAGS_PY :=${CFLAGS_PY}
 
 ## where is perl?
 PERL:=$(shell which perl)
@@ -382,9 +382,11 @@ ifeq (${_OS|FULL_},FreeBSD|Randy)
 endif
 
 ## LAPACK
+CXXFLAGS_LAPACK   :=-DFTN_UNDERSCORE -DFTN_LOWERCASE
+CXXLDFLAGS_LAPACK :=-L/usr/local/lib
+CXXLIBS_LAPACK    :=-llapack -lblas -lm
 ifeq (${_OS_},TRU64)
 # this seems to work for both gcc and non-gcc
-  CXXFLAGS_LAPACK   :=-DFTN_UNDERSCORE -DFTN_LOWERCASE
   CXXLDFLAGS_LAPACK :=
   CXXLIBS_LAPACK    :=-ldxml
 endif
@@ -393,19 +395,18 @@ ifeq (${_OS_},AIX)
   CXXLDFLAGS_LAPACK :=-L/usr/local/ir/lib
   CXXLIBS_LAPACK    :=-llapack -lessl -lxlf90
 endif
-
 # sometimes we deploy on Solaris with CDX
 ifeq (${_OS|FULL_},SunOS|foster-city)
-  CXXFLAGS_LAPACK   :=-DFTN_UNDERSCORE -DFTN_LOWERCASE
   CXXLDFLAGS_LAPACK :=-L/home/ross/local/lib
   CXXLIBS_LAPACK    :=-llapack -lblas -lF77
 endif
 # sometimes we deploy on Solaris on Fancisco's machines
 ifeq (${_OS|FULL_},SunOS|francisco's)
-  CXXFLAGS_LAPACK   :=-DFTN_UNDERSCORE -DFTN_LOWERCASE
-  CXXLDFLAGS_LAPACK :=-L/usr/local/lib
   CXXLIBS_LAPACK    :=-llapack -lblas -lF77
 endif
+CXXFLAGS_LAPACK   :=${CFLAGS_LAPACK}
+CXXLDFLAGS_LAPACK :=${CLDFLAGS_LAPACK}
+CXXLIBS_LAPACK    :=${CLIBS_LAPACK}
 
 
 
