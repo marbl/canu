@@ -280,6 +280,13 @@ void    pfree(void);
 void    psetblocksize(size_t size);
 size_t  pgetblocksize(void);
 
+//  Not generally useful - just dumps the allocated blocks to stdout.
+//  Uses internal structures, and used in the test routine.
+//
+//  psetdebug() enables reporting of allocations.
+//
+void    pdumppalloc(void);
+void    psetdebug(int on);
 
 
 ////////////////////////////////////////
