@@ -114,48 +114,10 @@ estimate(merylArgs *args) {
       fprintf(stderr, "\n");
   }
 
-
-  //  How many bits do we need in the hash table to store all the mers?
-  //
-  u32bit hBits = 1;
-  while ((args->numMersEstimated+1) > (u64bitONE << hBits))
-    hBits++;
-
-  u64bit h, hSize, c, cSize;
-
-
-  //  Find the optimial memory settings, so we can mark it in the output
-  //
   u32bit opth = optimalNumberOfBuckets(args->merSize, args->numMersEstimated);
+  u64bit memu = ((u64bitONE << opth)    * logBaseTwo(args->numMersEstimated+1) +
+                 args->numMersEstimated * (2 * args->merSize - opth));
 
-
-  fprintf(stderr, "For "u64bitFMT" mers ("u32bitFMT" bits/hash), the optimal memory usage is achieved\n", args->numMersEstimated, hBits);
-  fprintf(stderr, "by picking the 'h' with the smallest 't'.\n");
-  fprintf(stderr, "\n");
-  fprintf(stderr, " h |  h MB |  c |  c MB |  t MB\n");
-  fprintf(stderr, "---+-------+----+-------+------\n");
-
-  for (h=16; h<=32 && h<2*args->merSize; h++) {
-    c     = 2 * args->merSize - h;
-
-    hSize = (u64bitONE << h) * hBits;
-    cSize = args->numMersEstimated * c;
-
-    hSize >>= 23;
-    cSize >>= 23;
-
-#ifdef TRUE64BIT
-    fprintf(stderr, "%2lu | %5lu | %2lu | %5lu | %5lu%s\n",
-            h, hSize,
-            c, cSize,
-            hSize + cSize,
-            (h==opth) ? " <- smallest memory" : "");
-#else
-    fprintf(stderr, "%2llu | %5llu | %2llu | %5llu | %5llu%s\n",
-            h, hSize,
-            c, cSize,
-            hSize + cSize,
-            (h==opth) ? " <- smallest memory" : "");
-#endif
-  }
+  fprintf(stderr, u64bitFMT" "u32bitFMT"-mers can be computed using "u64bitFMT"MB memory.\n",
+          args->numMersEstimated, args->merSize, memu >> 23);
 }
