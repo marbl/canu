@@ -1,6 +1,5 @@
 #include "posix.H"
 #include "seatac.H"
-#include "time.H"
 
 
 #ifdef TRUE64BIT

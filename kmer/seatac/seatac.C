@@ -3,9 +3,6 @@
 #include <stdlib.h>
 #include <new>
 #include "seatac.H"
-#include "libbri.H"
-#include "time.H"
-#include "existDB.H"
 
 #ifdef TRUE64BIT
 char const *buildMessage       = "Building chunk with %u sequences.\n";
@@ -304,7 +301,7 @@ main(int argc, char **argv) {
 
   //  Start the search threads
   //
-  for (u64bit i=0; i<config._numSearchThreads; i++) {
+  for (u32bit i=0; i<config._numSearchThreads; i++) {
     threadStats[i] = 0L;
     pthread_create(&threadID, &threadAttr, searchThread, (void *)i);
   }
