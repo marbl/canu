@@ -238,7 +238,7 @@ merStreamFileReader::merStreamFileReader(const char *i) {
   _inputFile = i;
 
   char                 *streamName = new char [strlen(_inputFile) + 17];
-  char                  cigam[16];
+  char                  cigam[16] = {0};
 
   sprintf(streamName, "%s.merStream", _inputFile);
 
@@ -366,10 +366,11 @@ merStreamFileReader::merStreamFileReader(const char *i) {
 
 merStreamFileReader::~merStreamFileReader() {
   delete [] _blockSize;
+  delete [] _blockSequence;
+  delete [] _blockPosition;
   delete [] _deflineStorage;
   delete [] _deflines;
-
-  delete _streamFile;
+  delete    _streamFile;
 }
 
 
