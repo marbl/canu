@@ -6,7 +6,9 @@ EXTERNAL/      :=$(call MakePath,$/../external/)
 src    := $/alphabet.c $/bit-operations.H $/bit-packing.H $/bit-packing.C \
           $/bitPackedFile.C $/bitPackedFile.H $/fastastream.H \
           $/file.h $/file.c $/libbri.H \
-          $/libbritypes.h $/md5.c $/merstream.C $/merstream.H \
+          $/libbritypes.h $/md5.c \
+          $/merstream.C $/merstream.H \
+          $/merstreamfile.C $/merstreamfile.H \
           $/palloc.c $/palloc.h $/readBuffer.H $/reversecomplement.c \
           $/splittowords.H $/britime.C $/britime.H \
           $/memory.c $/memory.h $/stat.c $/stat.h \
@@ -37,8 +39,14 @@ $/alphabet.h:  $/alphabet-generate.c
 	cd `dirname $@` ; ./a.out && rm -f a.out
 
 $/test-bitpackedfile:
-	$(CXX) $(CXXFLAGS) $(CXXFLAGS_COMPILE) -o $/bitPackedFileTester -DTEST $/bitPackedFile.C $/bit-packing.C
-	$/./bitPackedFileTester 5000000 200
-	echo Tests passed\!
+	$(CXX) $(CXXFLAGS) $(CXXFLAGS_COMPILE) -o $/bitPackedFileTester -DTEST_BITPACKEDFILE $/bitPackedFile.C $/bit-packing.C
+	$/./bitPackedFileTester 500000 200
 	rm -f $/bitPackedFileTester
+	@echo Tests passed\!
+
+$/test-merstreamfile: libbri.a
+	$(CXX) $(CXXFLAGS) $(CXXFLAGS_COMPILE) -o $/merStreamFileTester -DTEST_MERSTREAMFILE $/merStreamFile.C $/libbri.a
+	$/./merStreamFileTester some.fasta
+	rm -f $/merStreamFileTester
+	@echo Tests passed\!
 
