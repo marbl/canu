@@ -1,9 +1,7 @@
 #ifndef AHIT_H
 #define AHIT_H
 
-#include "libbri.H"
-
-//  $Id$
+#include "libbritypes.h"
 
 struct aHit {
   u32bit  _direction;
