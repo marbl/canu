@@ -28,11 +28,13 @@ int main(int argc,char **argv) {
 
     for(; *p && *sp && *p==*sp; ++p, ++sp);
 
+    if (*sp==0 && *p=='/') ++p;
+    if (*sp=='/' && *p==0) ++sp;
+
     if(*sp) {
-      printf("../") ; for( ; *sp ; ++sp)  if(*sp=='/') printf("../") ;
+      printf("../") ;
+      for( ; *sp ; ++sp)  if(*sp=='/') printf("../") ;
     }
-    else if(*p=='/') 
-      ++p;
   }
 
   if (*p)

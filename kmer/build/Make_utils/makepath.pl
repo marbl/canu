@@ -25,5 +25,6 @@ while(@subpath && @path && $path[0] eq $subpath[0]) {
     shift(@path); 
     shift(@subpath);
 }
+for (@subpath) {$_ = '..'};
 
-print "../" x @subpath, join("/", @path), "/\n";
+print join("/", @subpath, @path), "/\n";
