@@ -12,6 +12,8 @@ sub runLSF {
     } else {
         die "ERROR:  LSF possibly failed to start; job number in result unknown: '$res'\n";
     }
+
+    return($res);
 }
 
 
