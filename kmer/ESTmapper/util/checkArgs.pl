@@ -26,6 +26,7 @@ my %validArgs = ("-help"            => "0",  #
                  "-alwaysprint"     => "1",  # 4
                  "-batchsize"       => "1",  # 4
                  "-cleanup"         => "1",  # 5
+                 "-extrahitfilter"  => "1",  # 3, undocumented
                  "-filternone"      => "0",  # 3
                  "-hitsortmemory"   => "1",  # 23
                  "-interspecies"    => "0",  # 4

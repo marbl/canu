@@ -9,6 +9,7 @@ sub filter {
     my $farmname;
     my $farmcode;
     my $filtqueue;
+    my $extrafilter = "cat";
 
     #  Don't change the value without 2-search
     my $hitMemory = "600";
@@ -39,6 +40,14 @@ sub filter {
         }
         if ($arg eq "-verbose") {
             $verbose = "-verbose";
+        }
+
+        #  If present, this will be called after the real filtering
+        #  gets done.  If -filternone, then this is the only filtering
+        #  done.  Thanks to Alex Levitsky for suggesting this.
+        #
+        if ($arg eq "-extrahitfilter") {
+            $extrafilter = shift @ARGS;
         }
 
         $farmname  = shift @ARGS if ($arg eq "-lsfjobname");
@@ -104,18 +113,18 @@ sub filter {
         my $fcmd;
         my $scmd;
 
+        #  The sort command used to depend on the type, but no more.
+        #
+        $scmd = "$sortHits $verbose -m $hitMemory -t $path/2-filter $path/2-filter/filtHits > $path/2-filter/filteredHits";
+
         if      ($type eq "est") {
-            $fcmd = "$filterEST -u 200 -r 200 -q 0.2 -log $path/2-filter/filterLog $path/1-search/*hits > $path/2-filter/filtHits";
-            $scmd = "$sortHits $verbose -m $hitMemory -t $path/2-filter $path/2-filter/filtHits > $path/2-filter/filteredHits";
+            $fcmd = "$filterEST -u 200 -r 200 -q 0.2 -log $path/2-filter/filterLog $path/1-search/*hits | $extrafilter > $path/2-filter/filtHits";
         } elsif ($type eq "snp") {
-            $fcmd = "$filterMRNA $verbose -c $path/2-filter/hitCounts $path/1-search/*hits > $path/2-filter/filtHits";
-            $scmd = "$sortHits $verbose -m $hitMemory -t $path/2-filter $path/2-filter/filtHits > $path/2-filter/filteredHits";
+            $fcmd = "$filterMRNA $verbose -c $path/2-filter/hitCounts $path/1-search/*hits | $extrafilter > $path/2-filter/filtHits";
         } elsif ($type eq "mrna") {
-            $fcmd = "$filterMRNA $verbose -c $path/2-filter/hitCounts $path/1-search/*hits > $path/2-filter/filtHits";
-            $scmd = "$sortHits $verbose -m $hitMemory -t $path/2-filter $path/2-filter/filtHits > $path/2-filter/filteredHits";
+            $fcmd = "$filterMRNA $verbose -c $path/2-filter/hitCounts $path/1-search/*hits | $extrafilter > $path/2-filter/filtHits";
         } elsif ($type eq "none") {
-            $fcmd = "echo ESTmapper/filter-- No filter requested.";
-            $scmd = "$sortHits $verbose -m $hitMemory -t $path/2-filter $path/1-search/*hits > $path/2-filter/filteredHits";
+            $fcmd = "cat $path/1-search/*hits | $extrafilter > $path/2-filter/filtHits";
         }
 
         print STDERR "ESTmapper/filter-- Filtering.\n";
