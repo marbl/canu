@@ -1,4 +1,5 @@
-PROG    = test-bitPackedFile \
+PROG    = test-bitPackedArray \
+          test-bitPackedFile \
           test-bitPacking \
           test-freeDiskSpace \
           test-intervalList \
@@ -17,15 +18,15 @@ include ../../Make.compilers
 all: $(PROG)
 	@echo Tests passed!
 
-test-bitPackedFile: test-bitPackedFile.C ../libutil.a ../util.h ../util++.H
-	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-bitPackedFile.o test-bitPackedFile.C $(INCLUDE)
-	$(CXX) $(CXXLDFLAGS) -o test-bitPackedFile test-bitPackedFile.o $(LIBS)
-	./test-bitPackedFile 500000 200
-
 test-bitPackedArray: test-bitPackedArray.C ../libutil.a ../util.h ../util++.H
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-bitPackedArray.o test-bitPackedArray.C $(INCLUDE)
 	$(CXX) $(CXXLDFLAGS) -o test-bitPackedArray test-bitPackedArray.o $(LIBS)
 	./test-bitPackedArray
+
+test-bitPackedFile: test-bitPackedFile.C ../libutil.a ../util.h ../util++.H
+	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-bitPackedFile.o test-bitPackedFile.C $(INCLUDE)
+	$(CXX) $(CXXLDFLAGS) -o test-bitPackedFile test-bitPackedFile.o $(LIBS)
+	./test-bitPackedFile 500000 200
 
 test-bitPacking: test-bitPacking.C ../libutil.a ../util.h ../util++.H
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-bitPacking.o test-bitPacking.C $(INCLUDE)
