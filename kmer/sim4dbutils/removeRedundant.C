@@ -20,11 +20,21 @@ u32bit  findOverlap(sim4polish *A, sim4polish *B);
 int
 main(int argc, char **argv) {
 
-  if (argc != 2) {
-    fprintf(stderr, "usage: %s <polishes-file>\n", argv[0]);
+  if (argc < 2) {
+    fprintf(stderr, "usage: %s [] <polishes-file>\n", argv[0]);
     fprintf(stderr, "(yes, you _must_ give it a file.  stdin is not possible.)\n");
     exit(1);
   }
+
+  int arg = 1;
+  while (arg < argc) {
+    if        (strncmp(argv[arg], "", 2) == 0) {
+    } else if (strncmp(argv[arg], "", 2) == 0) {
+    }
+
+    arg++;
+  }
+
 
   u32bit  matchesWithNoOverlap       = 0;
   u32bit  matchesWithOverlap         = 0;
@@ -32,7 +42,7 @@ main(int argc, char **argv) {
 
   //  Open a polishFile and force the index to build
   //
-  sim4polishFile *Afile = new sim4polishFile(argv[1]);
+  sim4polishFile *Afile = new sim4polishFile(argv[argc-1]);
   Afile->setPosition(0);
 
   //  Ask both for the largest EST iid seen, then iterate over those.

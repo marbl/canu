@@ -15,24 +15,18 @@
 //
 //    -i min percent id (default 95)
 //    -c min percent coverage (default 50)
-//    -a polishes file 1
-//    -b polishes file 2
+//    -a polishes input file 1
+//    -b polishes input file 2
 //
-//    -O output file
-//    -A polishes from file a
-//    -B polishes from file b
-//    -L log output file
+//    Output is on standard out, and is tab-delimited.  It reports
+//    stuff about the 'same' matches:
 //
-//  The default is to output on stdout.  -A, -B write the overlapped
-//  matches in the same order as the output-file.  -L reports a log of
-//  weird stuff.
-//
-//  Output is tab-delimited:
 //    ESTiid ESTlen  overlap  A%id A%cov #cdnagaps #exons  B%id B%cov #cdnagaps #exons
 //
 
 
-
+//  Try to analyze cDNA gaps.
+//
 //  For cDNA gaps larger than GAP_MINIMUM, count it as a gap only if
 //  the genomic gap is within GAP_DIFFERENCE of the cDNA gap.
 //
@@ -46,15 +40,28 @@
 u32bit  findOverlap(sim4polish *A, sim4polish *B);
 
 
+FILE*
+openOutput(char *prefix, char *suffix) {
+  char name[1025];
+  sprintf(name, "%s.%s", prefix, suffix);
+  errno = 0;
+  FILE *r = fopen(name, "w");
+  if (errno) {
+    fprintf(stderr, "Failed to open '%s' for output: %s\n", name, strerror(errno));
+    exit(1);
+  }
+  return(r);
+}
+
+
+
 int
 main(int argc, char **argv) {
-  u32bit           minI = 95;
-  u32bit           minC = 50;
-  sim4polishFile  *Afile = 0L;
-  sim4polishFile  *Bfile = 0L;
-  FILE            *outfile = stdout;
-  FILE            *Aout = 0L;
-  FILE            *Bout = 0L;
+  u32bit           minI   = 95;
+  u32bit           minC   = 50;
+  char            *prefix = "comparePolishes";
+  sim4polishFile  *Afile  = 0L;
+  sim4polishFile  *Bfile  = 0L;
 
   //  goodOverlap   -- match in A maps uniquely to B and likewise.
   //
@@ -86,30 +93,27 @@ main(int argc, char **argv) {
       Afile = new sim4polishFile(argv[++arg]);
     } else if (strcmp(argv[arg], "-b") == 0) {
       Bfile = new sim4polishFile(argv[++arg]);
-    } else if (strcmp(argv[arg], "-O") == 0) {
-      errno = 0L;
-      outfile = fopen(argv[++arg], "w");
-      if (errno)
-        fprintf(stderr, "Failed to open '%s' for output: %s\n", argv[arg], strerror(errno)), exit(1);
-    } else if (strcmp(argv[arg], "-A") == 0) {
-      errno = 0L;
-      Aout = fopen(argv[++arg], "w");
-      if (errno)
-        fprintf(stderr, "Failed to open '%s' for output: %s\n", argv[arg], strerror(errno)), exit(1);
-    } else if (strcmp(argv[arg], "-B") == 0) {
-      errno = 0L;
-      Bout = fopen(argv[++arg], "w");
-      if (errno)
-        fprintf(stderr, "Failed to open '%s' for output: %s\n", argv[arg], strerror(errno)), exit(1);
+    } else if (strcmp(argv[arg], "-p") == 0) {
+      prefix = argv[++arg];
     }
     arg++;
   }
 
   if ((Afile == 0L) || (Bfile == 0L)) {
-    fprintf(stderr, "usage: %s [read-the-code]\n");
+    fprintf(stderr, "usage: %s [-i percent-identity] [-c percent-coverage] -a input-set-a -b input-set-b [-p output-prefix]\n");
+    fprintf(stderr, "only -a and -b are mandatory, but you should give all anyway\n");
     exit(1);
   }
 
+  //  Open the output files
+  //
+  FILE *fasame  = openOutput(prefix, "a-same");
+  FILE *fbsame  = openOutput(prefix, "b-same");
+  FILE *fanovel = openOutput(prefix, "a-novel");
+  FILE *fbnovel = openOutput(prefix, "b-novel");
+  FILE *famulti = openOutput(prefix, "a-multi");
+  FILE *fbmulti = openOutput(prefix, "b-multi");
+  FILE *fhairy  = openOutput(prefix, "hairy");
 
   //  Force index builds
   //
@@ -174,7 +178,9 @@ main(int argc, char **argv) {
       if (ovl == 0) {
         removeA[a] = true;
         novelInA++;
-        //  XXX OUTPUT
+
+        if (fanovel)
+          s4p_printPolish(fanovel, (*A)[a], S4P_PRINTPOLISH_NORMALIZED);
       }
     }
 
@@ -188,7 +194,9 @@ main(int argc, char **argv) {
       if (ovl == 0) {
         removeB[b] = true;
         novelInB++;
-        //  XXX OUTPUT
+
+        if (fbnovel)
+          s4p_printPolish(fbnovel, (*B)[b], S4P_PRINTPOLISH_NORMALIZED);
       }
     }    
 
@@ -286,7 +294,7 @@ main(int argc, char **argv) {
           else
             score = (double)overlap[a][b] / (double)AgenLen;
 
-          fprintf(outfile, u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%f\t%8.3f\t%8.3f\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%8.3f\t%8.3f\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\n",
+          fprintf(stdout, u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%f\t%8.3f\t%8.3f\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%8.3f\t%8.3f\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\n",
                   iid,
                   (*A)[a]->estLen,
                   overlap[a][b],
@@ -300,7 +308,10 @@ main(int argc, char **argv) {
                   //(*B)[b]->querySeqIdentity,
                   BgenLen, (*B)[b]->numExons, Bgaps);
                   
-          //  XXX OUTPUT
+          if (fasame)
+            s4p_printPolish(fasame, (*A)[a], S4P_PRINTPOLISH_NORMALIZED);
+          if (fbsame)
+            s4p_printPolish(fbsame, (*B)[b], S4P_PRINTPOLISH_NORMALIZED);
         }
       }
     }
@@ -400,10 +411,34 @@ main(int argc, char **argv) {
 
       if        ((inA  > 1) && (inB  > 1)) {
         hairyOverlap++;
+
+        fprintf(fhairy, "EST=%d %d %d\n", (*A)[0]->estID, inA, inB);
+        for (u32bit a=0; a<A->length(); a++)
+          if (removeA[a])
+            s4p_printPolish(fhairy, (*A)[a], S4P_PRINTPOLISH_NORMALIZED);
+        for (u32bit b=0; b<B->length(); b++)
+          if (removeB[b])
+            s4p_printPolish(fhairy, (*B)[b], S4P_PRINTPOLISH_NORMALIZED);
       } else if ((inA == 1) && (inB  > 1)) {
         multipleInB++;
+
+        fprintf(fbmulti, "EST=%d %d %d\n", (*A)[0]->estID, inA, inB);
+        for (u32bit a=0; a<A->length(); a++)
+          if (removeA[a])
+            s4p_printPolish(fbmulti, (*A)[a], S4P_PRINTPOLISH_NORMALIZED);
+        for (u32bit b=0; b<B->length(); b++)
+          if (removeB[b])
+            s4p_printPolish(fbmulti, (*B)[b], S4P_PRINTPOLISH_NORMALIZED);
       } else if ((inA  > 1) && (inB == 1)) {
         multipleInA++;
+
+        fprintf(famulti, "EST=%d %d %d\n", (*A)[0]->estID, inA, inB);
+        for (u32bit a=0; a<A->length(); a++)
+          if (removeA[a])
+            s4p_printPolish(famulti, (*A)[a], S4P_PRINTPOLISH_NORMALIZED);
+        for (u32bit b=0; b<B->length(); b++)
+          if (removeB[b])
+            s4p_printPolish(famulti, (*B)[b], S4P_PRINTPOLISH_NORMALIZED);
       } else {
         fprintf(stderr, "ERROR!  inA="u32bitFMT" inB="u32bitFMT"\n", inA, inB);
       }
@@ -436,12 +471,21 @@ main(int argc, char **argv) {
           overlap[a][b] = findOverlap((*A)[a], (*B)[b]);
     }
 
+    if ((iid % 100) == 0) {
+      fprintf(stderr, "IID:"u32bitFMTW(8)"  good:"u32bitFMTW(4)" Anovel:"u32bitFMTW(4)" Amulti:"u32bitFMTW(4)" Bnovel:"u32bitFMTW(4)" Bmulti:"u32bitFMTW(4)" hairy:"u32bitFMTW(4)"\r",
+              iid,
+              goodOverlap, novelInA, multipleInA, novelInB, multipleInB, hairyOverlap);
+      fflush(stderr);
+    }
+
+#if 0
     if ((iid % 1234) == 0) {
       fprintf(stderr, "IID:"u32bitFMTW(8)"  good:"u32bitFMTW(4)" Anovel:"u32bitFMTW(4)" Amulti:"u32bitFMTW(4)" Bnovel:"u32bitFMTW(4)" Bmulti:"u32bitFMTW(4)" hairy:"u32bitFMTW(4)"\r",
               iid,
               goodOverlap, novelInA, multipleInA, novelInB, multipleInB, hairyOverlap);
       fflush(stderr);
     }
+#endif
 
     delete [] overlap[0];
     delete [] overlap;
@@ -456,6 +500,13 @@ main(int argc, char **argv) {
   fprintf(stderr, "\ngood:"u32bitFMTW(4)" Anovel:"u32bitFMTW(4)" Amulti:"u32bitFMTW(4)" Bnovel:"u32bitFMTW(4)" Bmulti:"u32bitFMTW(4)" hairy:"u32bitFMTW(4)"\n",
           goodOverlap, novelInA, multipleInA, novelInB, multipleInB, hairyOverlap);
 
+  fclose(fasame);
+  fclose(fbsame);
+  fclose(fanovel);
+  fclose(fbnovel);
+  fclose(famulti);
+  fclose(fbmulti);
+  fclose(fhairy);
 
   delete Afile;
   delete Bfile;
