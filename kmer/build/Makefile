@@ -74,6 +74,8 @@ define Include_File
       /  :=${1}
       include ${1}Make.include
       /  :=$/
+    else
+      echo "Did not find ${1}Make.include"
     endif
   endif
 
@@ -133,10 +135,13 @@ clean:         ${//-RECURSIVE:.=.clean}      $/.clean
 define .RULE-clean
 ${1:.=.clean}: $${${1:.=.SUBS}:.=.clean}
 	${RM} $${${1:.=.CLEAN}} ${__SUBGOALS__}
+ifneq ($(strip ${C_TMP_COMPILE} ${CXX_TMP_COMPILE}),)
 	(cd $1 && ${RM} -r ${C_TMP_COMPILE} ${CXX_TMP_COMPILE})
+endif
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-clean,$x)))
+
 
 depends-clean:                            $/.depends-clean
 ${//-RECURSIVE:.=.depends-clean}:
@@ -150,10 +155,10 @@ $(eval $(foreach x,${//},$(call .RULE-depends-clean,$x)))
 real-clean:    ${//-RECURSIVE:.=.real-clean} $/.real-clean
 define .RULE-real-clean
 ${1:.=.real-clean}: $${${1:.=.SUBS}:.=.real-clean}
-	${RM} $${${1:.=.CLEAN}} ${__SUBGOALS__}
+	${RM} $${${1:.=.CLEAN}} ${__SUBGOALS__} ${1:.=Make.depends} ${__DEPGOALS__} $${${1:.=.REAL-CLEAN}}
+ifneq ($(strip ${C_TMP_COMPILE} ${CXX_TMP_COMPILE}),)
 	(cd $1 && ${RM} -r ${C_TMP_COMPILE} ${CXX_TMP_COMPILE})
-	${RM} ${1:.=Make.depends} ${__DEPGOALS__}
-	${RM} $${${1:.=.REAL-CLEAN}}
+endif
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-real-clean,$x)))
