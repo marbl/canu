@@ -1,9 +1,47 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <errno.h>
 #include <string.h>
 
+#include <sys/resource.h>
+
+double
+findMemorySize(void) {
+  struct rlimit rlp;
+
+  errno = 0;
+
+#if 0
+  getrlimit(RLIMIT_AS,   &rlp);
+  if (errno) {
+    fprintf(stderr, "Can't getrlimit(RLIMIT_AS, ...)\n%s\n", strerror(errno));
+    exit(1);
+  }
+  //fprintf(stderr, "AS:   %lu %lu\n", rlp.rlim_cur, rlp.rlim_max);
+
+  getrlimit(RLIMIT_RSS,  &rlp);
+  if (errno) {
+    fprintf(stderr, "Can't getrlimit(RLIMIT_RSS, ...)\n%s\n", strerror(errno));
+    exit(1);
+  }
+  //fprintf(stderr, "RSS:  %lu %lu\n", rlp.rlim_cur, rlp.rlim_max);
+#endif
+
+  getrlimit(RLIMIT_DATA, &rlp);
+  if (errno) {
+    fprintf(stderr, "Can't getrlimit(RLIMIT_DATA, ...)\n%s\n", strerror(errno));
+    exit(1);
+  }
+  //fprintf(stderr, "DATA: %lu %lu\n", rlp.rlim_cur, rlp.rlim_max);
+
+  return(rlp.rlim_cur);
+}
+
+
+
 #include "sim4reader.h"
+#include "libbritypes.h"
 #include "palloc.h"
 
 
@@ -112,8 +150,33 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  p      = (sim4polish **)malloc(sizeof(sim4polish *) * pAlloc);
+
+  //  XXX:  Experimental method to automagically determine the amount of
+  //  memory available (or, to at least, determine if this process can
+  //  get to be as big as the silly user said it can.
+  //
+  {
+    double   maxmemory = findMemorySize();
+
+    if (maxmemory < allocM) {
+      allocM = (int)(maxmemory / (1024 * 1024) - 128 - 64);
+      fprintf(stderr, "WARNING:  You have a memory limit of %8.3fMB.  -m reset to %.0f\n",
+              maxmemory / (1024 * 1024),
+              allocM);
+      allocM *= 1024 * 1024;
+    }
+  }
+
+
   allocI = sizeof(sim4polish *) * pAlloc;
+  errno = 0;
+  p      = (sim4polish **)malloc(sizeof(sim4polish *) * pAlloc);
+  if (errno) {
+    fprintf(stderr, "ERROR: Can't allocate initial polish storage!\n%s\n", strerror(errno));
+    exit(1);
+  }
+
+
 
   while (!feof(stdin)) {
     q = readPolish(stdin);
@@ -144,7 +207,7 @@ main(int argc, char **argv) {
       //  Save the polish using palloc
       //
 
-      p[pNum] = palloc(sizeof(sim4polish));
+      p[pNum] = (sim4polish *)palloc(sizeof(sim4polish));
       memcpy(p[pNum], q, sizeof(sim4polish));
 
       //  Copy the deflines
@@ -188,6 +251,13 @@ main(int argc, char **argv) {
       }
 
       pNum++;
+
+#if 0
+      fprintf(stderr, "Read: %8d polishes -- %8.3fMB -- %8.3f bytes/polish\n",
+              pNum,
+              (allocI + alloc) / (1024.0 * 1024.0),
+              alloc / pNum);
+#endif
 
       if (beVerbose && ((pNum % 25000) == 0)) {
         fprintf(stderr, "Read: %8d polishes -- %8.3fMB -- %8.3f bytes/polish\n",
