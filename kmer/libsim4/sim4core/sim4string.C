@@ -528,8 +528,9 @@ Sim4::run(sim4command *cmd) {
 
     if (fAligns)  free_align(fAligns);
     if (rAligns)  free_align(rAligns);
-    if (fExons)   free_list(fExons);
-    if (rExons)   free_list(rExons);
+
+    freeExonList(fExons);
+    freeExonList(rExons);
 
     fAligns = rAligns = 0L;
     fExons  = rExons  = 0L;

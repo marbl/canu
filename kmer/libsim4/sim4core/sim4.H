@@ -90,11 +90,6 @@ typedef struct edit_script_list {
   struct edit_script_list *next_script;
 } edit_script_list;
 
-typedef  struct ValNode {
-  void           *data;
-  struct ValNode *next;
-} *ValNodePtr;
-
 typedef struct spliced {
   int              xs;
   int              xe;
@@ -306,16 +301,10 @@ private:
 
   //  Functions from sim4b1.h
   //
-  void link_to_data_list(void *,ValNodePtr *,ValNodePtr *);
-  void ValNodeFreeData(ValNodePtr);
   int good_ratio(int);
   void flip_list(Exon **,Exon **);
-  void free_list(Exon *);
   void free_align(edit_script_list *);
   void complement_exons(Exon **,int,int);
-#if 0
-  void print_exons(FILE *, Exon *);
-#endif
 
 
   void bld_table(char *,int,int,int);

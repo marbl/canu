@@ -51,7 +51,7 @@ Sim4::SIM4(int            *dist_ptr,
   if (Lblock && 
       ((Lblock->frGEN>50000 && Lblock->frEST>100) || 
        ((_genLen - Rblock->toGEN > 50000) && (_estLen - Rblock->toEST > 100)))) {
-    free_list(exon_list);
+    freeExonList(exon_list);
 
     exon_list = _mspManager.doLinking(globalParams->_relinkWeight,
                                       DEFAULT_DRANGE,
@@ -238,7 +238,7 @@ Sim4::SIM4(int            *dist_ptr,
   while ((tmp_block!=NULL) && (tmp_block->length<wordSize) && tmp_block->toGEN) {
     tmp_block1 = tmp_block;
     tmp_block = tmp_block->next_exon;
-    delete tmp_block1;
+    freeExon(tmp_block1);
   }
   Lblock->next_exon = tmp_block;
 
@@ -297,11 +297,11 @@ Sim4::SIM4(int            *dist_ptr,
     get_stats(Lblock, st);
 
     *Exons = Lblock->next_exon;
-    delete Lblock;
+    freeExon(Lblock);
   } else {
     *Exons = 0L;
 
-    free_list(Lblock);
+    freeExonList(Lblock);
   }
 
   //  Memory leak when Script_head == 0L -- see pluri_align, too!

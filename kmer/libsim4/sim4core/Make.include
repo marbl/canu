@@ -11,11 +11,9 @@ src    := $/sim4command.C \
           $/Xtend1.C \
           $/align.C \
           $/exon.H \
-          $/exonManager.H \
           $/exon_cores.C \
           $/extend.C \
           $/greedy.C \
-          $/log.C \
           $/mspManager.C \
           $/mspManager.H \
           $/pluri_align.C \

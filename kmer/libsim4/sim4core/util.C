@@ -184,7 +184,7 @@ Sim4::compact_list(Exon **Lblock, Exon **Rblock)
       tmp_block->edist -= (int)(globalParams->_percentError * diff);
       tmp_block->next_exon = tmp_block1->next_exon;
       
-      delete tmp_block1;
+      freeExon(tmp_block1);
     } else
       tmp_block = tmp_block1;
   }
@@ -193,34 +193,6 @@ Sim4::compact_list(Exon **Lblock, Exon **Rblock)
 }
 
 /* ------------------  memory management routines --------------- */
-
-void
-Sim4::link_to_data_list(void *data, ValNodePtr *head, ValNodePtr *prev)
-{
-  ValNodePtr curr;
-
-  curr = (ValNodePtr)ckalloc(sizeof(struct ValNode));
-  curr->data = data;
-  curr->next = NULL;
-
-  if(*prev == NULL)  
-    *head = curr;
-  else
-    (*prev)->next = curr;
-  *prev = curr;
-}
-
-void
-Sim4::ValNodeFreeData(ValNodePtr data_list)
-{
-  ValNodePtr   tmp_node;
-
-  while ((tmp_node=data_list)!=NULL) {
-    ckfree(tmp_node->data);
-    data_list = data_list->next;
-    ckfree(tmp_node); 
-  }
-}
 
 
 int
@@ -268,7 +240,7 @@ Sim4::merge(Exon **t0, Exon **t1)
       }
       tmp0->next_exon = tmp1->next_exon;  
 
-      delete tmp1;
+      freeExon(tmp1);
     } else {
       tmp0 = tmp0->next_exon;
     }
@@ -288,16 +260,6 @@ Sim4::free_align(edit_script_list *aligns) {
   }
 }
 
-
-void 
-Sim4::free_list(Exon *left) {
-  Exon *tmp_block;
-  
-  while ((tmp_block=left)!=NULL) {
-    left = left->next_exon;
-    delete tmp_block;
-  }
-}    
 
 
 Exon *
@@ -405,7 +367,7 @@ Sim4::sync_slide_intron(int in_w, Exon **lblock, sim4_stats_t *st)
     ni++;
     t0 = t1;
   }        
- 
+
   Glist = (splice_t **)calloc(ni + 1, sizeof(splice_t *));
   Clist = (splice_t **)calloc(ni + 1, sizeof(splice_t *));
   oris  = (char *)calloc(ni + 1, sizeof(char));

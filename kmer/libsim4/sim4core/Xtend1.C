@@ -1,6 +1,43 @@
 #include "sim4.H"
 
 
+typedef  struct ValNode {
+  void           *data;
+  struct ValNode *next;
+} *ValNodePtr;
+
+
+void
+link_to_data_list(void *data, ValNodePtr *head, ValNodePtr *prev) {
+  ValNodePtr curr;
+
+  curr = (ValNodePtr)ckalloc(sizeof(struct ValNode));
+  curr->data = data;
+  curr->next = NULL;
+
+  if(*prev == NULL)  
+    *head = curr;
+  else
+    (*prev)->next = curr;
+  *prev = curr;
+}
+
+
+void
+ValNodeFreeData(ValNodePtr data_list) {
+  ValNodePtr   tmp_node;
+
+  while ((tmp_node=data_list)!=NULL) {
+    ckfree(tmp_node->data);
+    data_list = data_list->next;
+    ckfree(tmp_node); 
+  }
+}
+
+
+
+
+
 int
 Sim4::Xextend_bw(char *s1, char *s2, int m, int n, int offset1, int offset2, int *line1, int *line2)  
 { 

@@ -6,6 +6,7 @@
 //  Define this only if Liliana is watching you.
 //#define SPLSCORE
 
+
 class Exon {
 public:
   Exon(int f1, int f2, int t1, int t2, int len, int edist, int flag, Exon *next);
@@ -55,10 +56,8 @@ public:
 #endif
 };
 
-
-
 inline
-Exon::Exon(int f1, int f2, int t1, int t2, int len, int edist, int flag, Exon *next) {
+Exon::Exon(int f1, int f2, int t1, int t2, int len, int edost, int flog, Exon *next) {
   next_exon = next;
 
   frGEN = f1;
@@ -69,8 +68,8 @@ Exon::Exon(int f1, int f2, int t1, int t2, int len, int edist, int flag, Exon *n
   ori = 'U';
   length = (len < 0) ? (t2-f2+1) : len;
 
-  edist = edist;
-  flag = flag;
+  edist = edost;
+  flag = flog;
 
   percentID       = 0;
   alignmentLength = 0;
@@ -87,6 +86,26 @@ Exon::Exon(int f1, int f2, int t1, int t2, int len, int edist, int flag, Exon *n
 inline
 Exon::~Exon() {
 }
+
+
+inline
+void
+freeExon(Exon *l) {
+  delete l;
+}
+
+inline
+void 
+freeExonList(Exon *l) {
+  Exon *t;
+
+  while (l) {
+    t = l->next_exon;
+    freeExon(l);
+    l = t;
+  }
+}    
+
 
 
 #endif  //  EXON_H

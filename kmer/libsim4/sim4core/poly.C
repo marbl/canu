@@ -115,7 +115,7 @@ Sim4::trim_polyA_align(struct edit_script_list **Sptr, Exon *lblock, Exon **exon
       }
 
       prev->next_exon = (*exons)->next_exon;
-      delete exons;
+      freeExon(*exons);
       *exons = prev;
     }
     *pA = bc;
@@ -253,7 +253,7 @@ Sim4::trim_polyA_align(struct edit_script_list **Sptr, Exon *lblock, Exon **exon
     }
 
     prev->next_exon = (*exons)->next_exon;
-    delete exons;
+    freeExon(*exons);
     *exons = prev;
   } else {
     (*exons)->toEST = i;
@@ -367,7 +367,7 @@ Sim4::trim_polyT_align(struct edit_script_list **Sptr, Exon **exons, const int e
     while ((*exons)->frEST<ec) {
       t = *exons;
       *exons = t->next_exon;
-      delete t;
+      freeExon(t);
     }
     *pT = ec;
     return;
@@ -491,7 +491,7 @@ Sim4::trim_polyT_align(struct edit_script_list **Sptr, Exon **exons, const int e
   if ((*exons)->toEST<i) {
     t = *exons;
     *exons = t->next_exon;
-    delete t;
+    freeExon(t);
   } else {
     (*exons)->frEST = i; 
     (*exons)->frGEN = j;
