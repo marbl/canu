@@ -375,6 +375,9 @@ endif
 ifeq (${_OS_},AIX)
   PERL  :=/usr/local/bin/perl5.6.1
 endif
+ifeq (${PERL},)
+  $(error Unable to find perl on this system.  I think your PATH sucks)
+endif
 
 ## where is sh?
 SH:=${SHELL}   # gmake should define where sh is
