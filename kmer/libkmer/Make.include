@@ -5,6 +5,7 @@ FASTA/      :=$(call MakePath,$/../fasta/)
 MERYL/      :=$(call MakePath,$/../meryl/)
 EXISTDB/    :=$(call MakePath,$/../existDB/)
 MERTABLES/  :=$(call MakePath,$/../merTables/)
+UTIL/       :=$(call MakePath,$/../util/)
 
 src           :=$/positionDB.C $/positionDB.H $/positionDB-access.C $/positionDB-dump.C $/positionDB-sort.C $/positionDB-file.C 
 $/.CXX_SRCS   := $/driver.C $(filter %.C,${src})
