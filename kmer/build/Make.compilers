@@ -16,6 +16,11 @@ ifdef WITH_DEBUG
 else
   _OPT_ :=
 endif
+ifdef WITH_PROFILE
+  _OPT_ :=-prof
+else
+  _OPT_ :=
+endif
 ifdef WITH_THREADS
   _THR_:=-threaded
 else
@@ -81,41 +86,45 @@ endif
 
 # optimize or not
 ifeq (${_CC_}${_OPT_},-gcc-debug)
-  CFLAGS_COMPILE           +=-g -Wall
-  CXXFLAGS_COMPILE         +=-g -Wall
-  CLDFLAGS                 +=-g
-  CXXLDFLAGS               +=-g
+  OPTFLAGS_COMPILE         :=-Wall
+  OPTFLAGS                 :=-g
 endif
 ifeq (${_OS_}${_CC_}${_OPT_},TRU64-debug)
-  CFLAGS_COMPILE           +=-g
-  CXXFLAGS_COMPILE         +=-g
-  CLDFLAGS                 +=-g
-  CXXLDFLAGS               +=-g
+  OPTFLAGS                 :=-g
 endif
 ifeq (${_OS_}${_CC_}${_OPT_},AIX-debug)
-  CFLAGS_COMPILE           +=-g -qfullpath -qlinedebug
-  CXXFLAGS_COMPILE         +=-g -qfullpath -qlinedebug
-  CLDFLAGS                 +=-g -qfullpath -qlinedebug
-  CXXLDFLAGS               +=-g -qfullpath -qlinedebug
+  OPTFLAGS := -g -qfullpath -qlinedebug
 endif
+ifeq (${_CC_}${_OPT_},-gcc-prof)
+  OPTFLAGS_COMPILE         :=-Wall
+  OPTFLAGS                 :=-pg -O4
+endif
+
+# to profile or not
+ifeq (${_OS_}${_CC_}${_OPT_},TRU64-prof)
+  OPTFLAGS                 :=-pg -fast
+endif
+ifeq (${_OS_}${_CC_}${_OPT_},AIX-prof)
+  OPTFLAGS := -pg -qstrict -O3
+endif
+
+# regular flags
 ifeq (${_CC_}${_OPT_},-gcc)
-  CFLAGS_COMPILE           +=-g -O4 -Wall
-  CXXFLAGS_COMPILE         +=-g -O4 -Wall
-  CLDFLAGS                 +=-g -O4
-  CXXLDFLAGS               +=-g -O4
+  OPTFLAGS_COMPILE         :=-Wall
+  OPTFLAGS                 :=-g -O4
 endif
 ifeq (${_OS_}${_CC_}${_OPT_},TRU64)
-  CFLAGS_COMPILE           +=-g3 -fast
-  CXXFLAGS_COMPILE         +=-g3 -fast
-  CLDFLAGS                 +=-g3 -fast
-  CXXLDFLAGS               +=-g3 -fast
+  OPTFLAGS                 :=-g3 -fast
 endif
 ifeq (${_OS_}${_CC_}${_OPT_},AIX)
-  CFLAGS_COMPILE           +=-qstrict -O3
-  CXXFLAGS_COMPILE         +=-qstrict -O3
-  CLDFLAGS                 +=-qstrict -O3
-  CXXLDFLAGS               +=-qstrict -O3
+  OPTFLAGS :=-qstrict -O3
 endif
+
+
+CFLAGS_COMPILE           +=$(OPTFLAGS_COMPILE) $(OPTFLAGS)
+CXXFLAGS_COMPILE         +=$(OPTFLAGS_COMPILE) $(OPTFLAGS)
+CLDFLAGS                 +=$(OPTFLAGS)
+CXXLDFLAGS               +=$(OPTFLAGS)
 
 # goofy AIX-ness for GCC
 ifeq (${_OS_}${_CC_},AIX)
@@ -219,3 +228,5 @@ ifeq (${_OS_},AIX)
   VIEWPS :=ghostview
   PRINTPS:=lpr -Pcelprt05
 endif
+
+

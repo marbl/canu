@@ -20,7 +20,9 @@ to
   /usr/local/bin/gmake
 on AIX.
 
-So to get started (using bash for command line examples)
+******** QUICK START
+
+To get started (using bash for command line examples)
 % alias make=/usr/local/ir/bin/gmake
 
 To make all targets
@@ -44,6 +46,7 @@ just does ls of all targets in the directories where they are built.
 
 One can also work within directories so long as one is careful, since
 * subdirectories don't know about the dependencies upon siblings
+  (that is, they don't check the time-stamps on siblings)
 * automatically computed dependencies computed relative to one subdir
   do not make sense when used in another sibdir.  So if you have been
   previously building from somewhere else, you need to clean the
@@ -56,6 +59,12 @@ Better yet, use an environment variable
 % make -f $makefile
 Or even
 % alias make '/usr/local/ir/bin/gmake -f $makefile'
+
+DO NOT MAKE A SYMLINK OR COPY OF build/Makefile from where you are
+compiling.  Firstly, that just won't work, because the build directory
+contains auxilliary files which will then not be found by your hack.
+Secondly, you are asking for cvs trouble either because the copy
+you make could diverge or because cvs doesn't deal with symlinks well.
 
 ### Questions you might have
 Q) How come I can't do 
@@ -88,12 +97,15 @@ Q) How do I build everything with GCC?
 A) Set the WITH_GNU variable to something, either on the command line or
 in the environment, e.g.
   make WITH_GNU=1
+Programs will install into an appropriate '-gcc' directory.
 
 Q) How do I build with the debug flags on?
 A) Set the WITH_DEBUG variable to something, either on the command line
 or in the environment, e.g.
   export WITH_DEBUG=1
   make
+There is also a WITH_PROFILE flag which can be set.  Programs will install
+into an appropriate '-debug' or '-prof' directory.
 
 Q) One of the subprojects has a buggy build or a buggy Make.include.
 How do I get the build system to ignore it?

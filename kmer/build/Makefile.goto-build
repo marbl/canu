@@ -1,6 +1,6 @@
 # -*- makefile -*-
 
-# this is king of a hack makefile which looks for the build
+# this is kind of a hack makefile which looks for the build
 # directory and then executes the  makefile there with a
 # warning.
 
