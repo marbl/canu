@@ -87,32 +87,36 @@ sub configure {
 
     #  Make some organization
     #
-    system("mkdir $path")          if (! -d "$path");
-    system("mkdir $path/0-input")  if (! -d "$path/0-input");
-    system("mkdir $path/1-search") if (! -d "$path/1-search");
-    system("mkdir $path/2-filter") if (! -d "$path/2-filter");
-    system("mkdir $path/3-polish") if (! -d "$path/3-polish");
+    mkdir "$path"          if (! -d "$path");
+    mkdir "$path/0-input"  if (! -d "$path/0-input");
+    mkdir "$path/1-search" if (! -d "$path/1-search");
+    mkdir "$path/2-filter" if (! -d "$path/2-filter");
+    mkdir "$path/3-polish" if (! -d "$path/3-polish");
 
     #  Check the input files exist, create symlinks to them, and find/build index files
     #
     die "ERROR: ESTmapper/configure-- can't find the genomic sequence '$genomic'\n" if (! -f "$genomic");
     die "ERROR: ESTmapper/configure-- can't find the cdna sequence '$cdna'\n"       if (! -f "$cdna");
 
-    system("ln -s ${genomic}    $path/0-input/genomic.fasta")    if ((! -f "$path/0-input/genomic.fasta"));
-    system("ln -s ${genomic}idx $path/0-input/genomic.fastaidx") if ((! -f "$path/0-input/genomic.fastaidx") && (-f "${genomic}idx"));
-    system("ln -s ${cdna}       $path/0-input/cDNA.fasta")       if ((! -f "$path/0-input/cDNA.fasta"));
-    system("ln -s ${cdna}idx    $path/0-input/cDNA.fastaidx")    if ((! -f "$path/0-input/cDNA.fastaidx") && (-f "${cdna}idx"));
+    symlink "${genomic}",    "$path/0-input/genomic.fasta"    if ((! -f "$path/0-input/genomic.fasta"));
+    symlink "${genomic}idx", "$path/0-input/genomic.fastaidx" if ((! -f "$path/0-input/genomic.fastaidx") && (-f "${genomic}idx"));
+    symlink "${cdna}",       "$path/0-input/cDNA.fasta"       if ((! -f "$path/0-input/cDNA.fasta"));
+    symlink "${cdna}idx",    "$path/0-input/cDNA.fastaidx"    if ((! -f "$path/0-input/cDNA.fastaidx") && (-f "${cdna}idx"));
 
     if (! -f "$path/0-input/genomic.fastaidx") {
         print STDERR "ESTmapper/configure-- Generating the index for '$path/0-input/genomic.fasta'\n";
         print STDERR "ESTmapper/configure-- WARNING:  This is done in the work directory!\n";
-        system("$leaff -F $path/0-input/genomic.fasta");
+        if (runCommand("$leaff -F $path/0-input/genomic.fasta")) {
+            die "Failed.\n";
+        }
     }
 
     if (! -f "$path/0-input/cDNA.fastaidx") {
         print STDERR "ESTmapper/configure-- Generating the index for '$path/0-input/cDNA.fasta'\n";
         print STDERR "ESTmapper/configure-- WARNING:  This is done in the work directory!\n";
-        system("$leaff -F $path/0-input/cDNA.fasta");
+        if (runCommand("$leaff -F $path/0-input/cDNA.fasta")) {
+            die "Failed.\n";
+        }
     }
 
     #  Partition the genome into itty-bitty pieces

@@ -51,8 +51,7 @@ sub filter {
     (! -f "$path/0-input/scaffolds-list") and die "FATAL ERROR: ESTmapper/filter-- No scaffolds-list?\n";
     (! -f "$path/1-search/allDone")       and die "FATAL ERROR: ESTmapper/filter-- The searches failed to complete successfully.\n";
 
-    system("mkdir $path/2-filter") if (! -d "$path/2-filter");
-
+    mkdir "$path/2-filter" if (! -d "$path/2-filter");
 
 
     #  If we're supposed to be running on LSF, but we aren't, restart.
@@ -67,9 +66,11 @@ sub filter {
         $cmd .= " -J f$farmname ";
         $cmd .= " $ESTmapper -restart $path";
 
-        print STDERR "ESTmapper/filter-- Restarted LSF execution.\n";
+        if (runCommand($cmd)) {
+            die "ESTmapper/filter-- Failed to restart LSF execution.\n";
+        }
 
-        system($cmd);
+        print STDERR "ESTmapper/filter-- Restarted LSF execution.\n";
 
         exit;
     }
@@ -91,7 +92,9 @@ sub filter {
 
         $cmd .= "> $path/2-filter/hitCounts";
 
-        system($cmd);
+        if (runCommand($cmd)) {
+            die "Failed.\n";
+        }
     }
 
 
@@ -116,10 +119,16 @@ sub filter {
         }
 
         print STDERR "ESTmapper/filter-- Filtering.\n";
-        system($fcmd) == 0 or die "FATAL ERROR: ESTmapper/filter-- Failed to filter!\n! = $!\n? = $?\n";
+        if (runCommand($fcmd)) {
+            unlink "$path/2-filter/filtHits";
+            die "Failed.\n";
+        }
 
         print STDERR "ESTmapper/filter-- Sorting.\n";
-        system($scmd) == 0 or die "FATAL ERROR: ESTmapper/filter-- Failed to sort!\n! = $!\n? = $?\n";
+        if (runCommand($scmd)) {
+            unlink "$path/2-filter/filteredHits";
+            die "Failed.\n";
+        }
     }
 
     die "ESTmapper/filter-- FATAL: filter and sort produced no hits?\n" if (-z "$path/2-filter/filteredHits");

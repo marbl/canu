@@ -48,6 +48,7 @@ die "Can't find/execute $pickBest\n"      if (! -x $pickBest);
 
 
 require "util/checkArgs.pl";
+require "util/run.pl";
 require "util/lsf.pl";
 require "util/1-configure.pl";
 require "util/2-search.pl";
@@ -64,7 +65,7 @@ sub createRunInformation {
     my ($dir, @ARGS) = @_;
     my $time = time();
 
-    system("mkdir -p $dir") if (! -d "$dir");
+    mkdir "$dir" if (! -d "$dir");
 
     my $runInformationFile = "$dir/.runInformation.$time";
 
@@ -89,7 +90,7 @@ sub createRunInformation {
     close(F);
 
     unlink "$dir/.runInformation";
-    system("ln -s $dir/.runInformation.$time $dir/.runInformation");
+    symlink "$dir/.runInformation.$time", "$dir/.runInformation";
 
     #  Write the current set of args to the runOptions file
     #
@@ -241,9 +242,12 @@ if ($personality eq "-mapest") {
 
         #  Sort, if needed.
         #
-        if (! -e "$dir/polishes-good.sorted-by-cDNA") {
+        if (! -e "$dir/polishes-good.sorted") {
             print STDERR "ESTmapper--  Sorting polishes by sequence ID; using 2GB memory maximum.\n";
-            system("$sortPolishes -m 2000 -c < $dir/polishes-good > $dir/polishes-good.sorted-by-cDNA");
+            if (runCommand("$sortPolishes -m 2000 -c < $dir/polishes-good > $dir/polishes-good.sorted")) {
+                unlink "$dir/polishes-good.sorted";
+                die "Failed to sort the polishes.\n";
+            }
         }
 
         #  Parse the options, looking for SNP specific ones
@@ -274,7 +278,12 @@ if ($personality eq "-mapest") {
 
         #  PARSE!
         #
-        system("$parseSNPs $snpdelimiter $snpsizetag $snppostag $snpoffset -F $dir/snps-failed -O $dir/snps-parsed < $dir/polishes-good.sorted-by-cDNA > $dir/summary-snps");
+        if (runCommand("$parseSNPs $snpdelimiter $snpsizetag $snppostag $snpoffset -F $dir/snps-failed -O $dir/snps-parsed < $dir/polishes-good.sorted > $dir/summary-snps")) {
+            unlink "$dir/snps-failed";
+            unlink "$dir/snps-parsed";
+            unlink "$dir/summary-snps";
+            die "Failed to parse SNP locations from polishes.\n";
+        }
     }
 } elsif ($personality eq "-time") {
     my ($sysTimeS, $usrTimeS, $clkTimeS);

@@ -33,6 +33,7 @@ sub assembleOutput {
     my $mini        = 95;
     my $minl        = 0;
     my $intronLimit = 100000;
+    my $deletetemp  = 1;
 
     my $farmname;
     my $farmcode;
@@ -49,17 +50,18 @@ sub assembleOutput {
         $minl        = shift @ARGS            if ($arg eq "-minlength");
         $intronLimit = int(shift @ARGS)       if ($arg eq "-cleanup");
         $intronLimit = 0                      if ($arg eq "-nocleanup");
+        $deletetemp  = 0                      if ($arg eq "-savetemporary");
 
         $farmname  = shift @ARGS if ($arg eq "-lsfjobname");
         $farmcode  = shift @ARGS if ($arg eq "-lsfproject");
         $finiqueue = shift @ARGS if ($arg eq "-lsffinishqueue");
     }
 
-    ($path eq "")                   and die "ERROR: ESTmapper/assemble-- no directory given.\n";
-    (! -d "$path")                  and die "ERROR: ESTmapper/assemble-- no directory '$path' found!\n";
-    (($mini < 0) || ($mini > 100))  and die "ERROR: ESTmapper/assemble-- supply a value 0 <= x <= 100 for minidentity!\n";
-    (($minc < 0) || ($minc > 100))  and die "ERROR: ESTmapper/assemble-- supply a value 0 <= x <= 100 for mincoverage!\n";
-    ($minl < 0)                     and die "ERROR: ESTmapper/assemble-- supply a value x >= 0 for minlength!\n";
+    ($path eq "")                   and die "ERROR: ESTmapper/assembleOutput-- no directory given.\n";
+    (! -d "$path")                  and die "ERROR: ESTmapper/assembleOutput-- no directory '$path' found!\n";
+    (($mini < 0) || ($mini > 100))  and die "ERROR: ESTmapper/assembleOutput-- supply a value 0 <= x <= 100 for minidentity!\n";
+    (($minc < 0) || ($minc > 100))  and die "ERROR: ESTmapper/assembleOutput-- supply a value 0 <= x <= 100 for mincoverage!\n";
+    ($minl < 0)                     and die "ERROR: ESTmapper/assembleOutput-- supply a value x >= 0 for minlength!\n";
 
     (polishesNotDone($path) > 0) and die "There are unfinished polishing jobs.\n";
 
@@ -76,9 +78,11 @@ sub assembleOutput {
         $cmd .= " -J \"o$farmname\" ";
         $cmd .= " $ESTmapper -restart $path";
 
-        print STDERR "ESTmapper/assemble-- Restarted LSF execution.\n";
+        if (runCommand($cmd)) {
+            die "ESTmapper/assembleOutput-- Failed to restart LSF execution.";
+        }
 
-        system($cmd);
+        print STDERR "ESTmapper/assembleOutput-- Restarted LSF execution.\n";
 
         exit;
     }
@@ -152,7 +156,11 @@ sub assembleOutput {
         $cmd .= "$cleanPolishes -threshold $intronLimit -savejunk | " if ($intronLimit);
         $cmd .= "$toFILTER -c $minc -i $mini -l $minl -o $path/polishes-good -j $path/polishes-aborted > /dev/null";
 
-        system($cmd);
+        if (runCommand($cmd)) {
+            unlink "$path/polishes-good";
+            unlink "$path/polishes-aborted";
+            die "Failed.\n";
+        }
 
         unlink "$path/cDNA-good.fasta";
         unlink "$path/cDNA-missing.fasta";
@@ -163,11 +171,18 @@ sub assembleOutput {
 
 
     if (! -e "$path/polishes-best") {
-        print STDERR "ESTmapper/assembleOutput--  Picking the best polish.\n";
         if      ($personality eq "-mapmrna") {
-            system("$sortPolishes -m 2000 -c < $path/polishes-good | $pickBest -mrna > $path/polishes-best");
+            print STDERR "ESTmapper/assembleOutput--  Picking the best mRNA polish.\n";
+            if (runCommand("$sortPolishes -m 2000 -c < $path/polishes-good | $pickBest -mrna > $path/polishes-best")) {
+                unlink "$path/polishes-best";
+                die "Failed.";
+            }
         } elsif ($personality eq "-mapest") {
-            system("$sortPolishes -m 2000 -c < $path/polishes-good | $pickBest -est > $path/polishes-best");
+            print STDERR "ESTmapper/assembleOutput--  Picking the best EST polish.\n";
+            if (runCommand("$sortPolishes -m 2000 -c < $path/polishes-good | $pickBest -est > $path/polishes-best")) {
+                unlink "$path/polishes-best";
+                die "Failed.";
+            }
         } else {
             print STDERR "ESTmapper/assembleOutput--  Not mRNA and not EST, so not picking the best polish.\n";
         }
@@ -191,7 +206,10 @@ sub assembleOutput {
 
         if (-e "$path/2-filter/repeats") {
             print STDERR "ESTmapper/assembleOutput-- finding 'repeat' cDNA.\n";
-            system("$leaff -F $path/0-input/cDNA.fasta -q $path/2-filter/repeats > $path/cDNA-repeat.fasta");
+            if (runCommand("$leaff -F $path/0-input/cDNA.fasta -q $path/2-filter/repeats > $path/cDNA-repeat.fasta")) {
+                unlink "$path/cDNA-repeat.fasta";
+                die "Failed.";
+            }
         }
 
         print STDERR "ESTmapper/assembleOutput-- finding 'zero hit' cDNA.\n";
@@ -249,6 +267,15 @@ sub assembleOutput {
         printf F "cDNA-zero:       %8d (%8.4f%%)\n", $cntzero, 100 * $cntzero / $cnttotl;
     }
 
+
+    #
+    #  All done!
+    #
+    if ($deletetemp) {
+        if (runCommand("rm -rf $path/1-search $path/2-filter $path/3-polish")) {
+            print STDERR "ESTmapper/assembleOutput-- WARNING: Failed to remove temporary directories.\n";
+        }
+    }
 
 
     print STDERR "ESTmapper: assembleOutput script finished in ", time() - $startTime, " wall-clock seconds.\n" if (time() > $startTime + 5);

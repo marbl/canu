@@ -12,6 +12,9 @@ my %validArgs = ("-help"            => "0",  #
                  "-mapmrna"         => "3",  # 
                  "-mapsnp"          => "3",  # 
 
+                 "-buildtables"     => "2",  # 2, build search tables and exit
+                 "-usetables"       => "2",  # 2, use prebuilt tables
+
                  "-snpdelimiter"    => "1",  # 
                  "-snpoffset"       => "1",  # 
                  "-snppostag"       => "1",  # 
@@ -46,9 +49,9 @@ my %validArgs = ("-help"            => "0",  #
                  "-nocleanup"       => "0",  # 5
                  "-nostats"         => "0",  # 24
                  "-numbatches"      => "1",  # 4
-                 "-prebuild"        => "2",  # 2
                  "-relink"          => "1",  # 4
                  "-runlater"        => "0",  # 24
+                 "-savetemporary"   => "0",  # 5
                  "-searchopts"      => "1",  # 2
                  "-searchthreads"   => "1",  # 2
                  "-segments"        => "1",  # 1

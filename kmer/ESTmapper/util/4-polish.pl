@@ -66,7 +66,7 @@ sub polish {
     ($path eq "")   and die "ERROR: ESTmapper/polish-- no directory given.\n";
     (! -d "$path")  and die "ERROR: ESTmapper/polish-- no directory '$path' found!\n";
 
-    system("mkdir $path/3-polish") if (! -d "$path/3-polish");
+    mkdir "$path/3-polish" if (! -d "$path/3-polish");
 
 
     #  Save the parameters, these are used on later invocations of
@@ -262,7 +262,9 @@ sub polish {
                 $cmd .= " -J \"o$farmname\" ";
                 $cmd .= " $ESTmapper -restart $path";
 
-                system($cmd);
+                if (runCommand($cmd)) {
+                    die "Failed.\n";
+                }
 
                 print STDERR "ESTmapper/polish-- Finish submitted.   See ya later!\n";
 
