@@ -66,5 +66,5 @@ if ($type eq "search") {
 #  verifies the job completed successfully.
 #
 if (defined($jobsToRun[$jobi])) {
-    system("$jobsToRun[$jobi]");
+    system("$jobsToRun[$jobi]") and die "Job failed.\n\n$jobsToRun[$jobi]\n\n";
 }
