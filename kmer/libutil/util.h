@@ -217,6 +217,15 @@ u32bit freeDiskSpace(char *path);
 
 ////////////////////////////////////////
 //
+//  reversecomplement.c
+//
+char *reverseComplementSequence(char *seq, u32bit seqlen);
+
+
+
+
+////////////////////////////////////////
+//
 //  stat
 //
 
