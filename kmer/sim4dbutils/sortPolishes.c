@@ -8,6 +8,12 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 
+//
+//  XXX: Still need to clean up if ctrl-c or crash while reading
+//  polishes before the merge
+//
+
+
 double
 findMemorySize(void) {
   struct rlimit rlp;
@@ -254,13 +260,6 @@ main(int argc, char **argv) {
 
       pNum++;
 
-#if 0
-      fprintf(stderr, "Read: %8d polishes -- %8.3fMB -- %8.3f bytes/polish\n",
-              pNum,
-              (allocI + alloc) / (1024.0 * 1024.0),
-              alloc / pNum);
-#endif
-
       if (beVerbose && ((pNum % 25000) == 0)) {
         fprintf(stderr, "Read: %8d polishes -- %8.3fMB -- %8.3f bytes/polish\n",
                 pNum,
@@ -337,6 +336,12 @@ main(int argc, char **argv) {
         exit(1);
       }
 
+      //  Now that we have an active handle, we can unlink the file.
+      //  If the user aborts us early, the OS will remove the file for
+      //  us.
+      //
+      unlink(name);
+
       q[i] = s4p_readPolish(InF[i]);
     }
 
@@ -363,6 +368,12 @@ main(int argc, char **argv) {
         q[smallestPolish] = s4p_readPolish(InF[smallestPolish]);
       }
     }
+
+    //
+    //  Close everybody
+    //
+    for (i=0; i<numTemporary; i++)
+      fclose(InF[i]);
   }
 
 
