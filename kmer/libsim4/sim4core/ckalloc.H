@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <signal.h>
 
+#include "libbritypes.h"
+
 //#define CHECK_MEMORY
 
 inline
@@ -17,34 +19,23 @@ ckalloc(size_t amount) {
   void *p = malloc(amount);
 
   if (p == NULL) {
-#ifdef TRUE64BIT
-    fprintf(stderr, "Can't allocate %lu bytes.\n", amount);
-#else
-    fprintf(stderr, "Can't allocate %d bytes.\n", amount);
-#endif
+    fprintf(stderr, "Can't allocate "u64bitFMT" bytes.\n", amount);
     kill(getpid(), SIGKILL);
   }
 
 #ifdef CHECK_MEMORY
-#ifdef TRUE64BIT
-  fprintf(stderr, "ckalloc 0x%016lx %lu\n", p, amount);
-#else
-  fprintf(stderr, "ckalloc 0x%08lx %ld\n", p, amount);
-#endif
+  fprintf(stderr, "ckalloc "u64bitHEX" "u64bitFMT"\n", p, amount);
 #endif
 
   return(p);
 }
 
 
+
 #ifdef CHECK_MEMORY
-
-#define ckfree(P) { fprintf(stderr, "ckfree 0x%08lx at %s,%d\n", (P), __FILE__, __LINE__); free(P); }
-
+#define ckfree(P) { fprintf(stderr, "ckfree "u64bitHEX" at %s,%d\n", (P), __FILE__, __LINE__); free(P); }
 #else
-
 #define ckfree(P) free(P)
-
 #endif
 
 
