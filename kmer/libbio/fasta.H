@@ -123,6 +123,7 @@ public:
   u32bit             sequenceLength(void) { return(_seqLen); };
 
   u32bit             index(void)          { return(_idx); };
+  void               setIndex(u32bit i)   { _idx = i; };
 };
 
 

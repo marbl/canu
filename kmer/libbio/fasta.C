@@ -421,6 +421,8 @@ FastA::first(FastABuffer &b) {
   _bufferLen = 0;
 
   next(b);
+
+  b.setIndex(0);
 }
 
 
@@ -428,7 +430,9 @@ FastA::first(FastABuffer &b) {
 bool
 FastA::next(FastABuffer &b) {
 
+  u32bit  idx = b.index() + 1;
   b.clear();
+  b.setIndex(idx);
 
   //  Fill the buffer
   //
@@ -518,6 +522,8 @@ FastA::seek(FastABuffer &b, u32bit id) {
   _bufferLen = 0;
 
   next(b);
+
+  b.setIndex(id);
 
   return(true);
 }
