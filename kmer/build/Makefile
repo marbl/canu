@@ -96,14 +96,23 @@ $(eval $(call Include_File,$/))
 
 
 ### Building subgoals
-# subgoals are done with the deferred '=' not the ':='.
+# subgoals and depends are done with the deferred '=' not the ':='.
 # This is because we want dynamic scoping.
 __SUBGOALS__=
-
+__DEPGOALS__=
 
 ### include all rules for all targets to be made
 -include ${MAKEFILE/}Make.rules
 
+__DEPENDS__:=$(strip $(foreach x,${//},$(call __DEPGOALS__,$x)))
+$(eval _DEPENDS_:=${__DEPENDS__})
+DEPENDS :=$(strip ${_DEPENDS_})
+ifneq (${DEPENDS},)
+  # this conditional gets us a way out if things go way wrong
+  ifeq ($(filter %-clean,${MAKECMDGOALS}),)
+    include ${DEPENDS}
+  endif
+endif
 
 ### the standard make targets, applied to all subdirectory targets
 # We define the basic form of the all, clean, ... rules on a

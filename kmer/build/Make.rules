@@ -45,41 +45,29 @@ endef
 # C and C++ stuff
 ############################################################
 # Building depends goals for C/CXX things
-# using '=' instead of ':=' for that dynamic scoping
-__DEPGOALS__=
 
-# really, only C/C++ depends goals are built here right now.
 # C_SRCS and CXX_SRCS are collected together and turned into
 # associated *.d dependency files.
 
 # WISHLIST: does not propagate failure to the parent make
 # for some reason.  It really should.  I think the pipe to
 # sed masks the exit code.
-ALL_C_SRCS       :=$(strip $(foreach x,${//},${${x:.=.C_SRCS}}))
-ALL_C_DEPS       :=${ALL_C_SRCS:=.d}
+ALL_C_DEPS       :=$(foreach x,${//},$(patsubst %,%.d,${${x:.=.C_SRCS}}))
+__DEPGOALS__     +=                 $$(patsubst %,%.d,$${${1:.=.C_SRCS}})
 ${ALL_C_DEPS}:%.d:%
 	@ echo "making $@"
 	 dir=`echo $< | sed -e's~[^/]*$$~~'`; \
 	  ${CCDEP} ${CDEPFLAGS} ${CFLAGS} $< | \
 	  sed -e"/:/s!^!$${dir}!" > $@
-__DEPGOALS__+=$${${1:.=.C_SRCS}:=.d}
 
-ALL_CXX_SRCS     :=$(strip $(foreach x,${//},${${x:.=.CXX_SRCS}}))
-ALL_CXX_DEPS     :=${ALL_CXX_SRCS:=.d}
+ALL_CXX_DEPS     :=$(foreach x,${//},$(patsubst %,%.d,${${x:.=.CXX_SRCS}}))
+__DEPGOALS__     +=                 $$(patsubst %,%.d,$${${1:.=.CXX_SRCS}})
 ${ALL_CXX_DEPS}:%.d:%
 	@ echo "making $@"
 	 dir=`echo $< | sed -e's~[^/]*$$~~'`; \
 	  ${CXXDEP} ${CXXDEPFLAGS} ${CXXFLAGS} $< | \
 	  sed -e"/:/s!^!$${dir}!" > $@
-__DEPGOALS__+=$${${1:.=.CXX_SRCS}:=.d}
 
-
-## include the .d files
-# This contional gives us a way out if something goes horribly
-# wrong...
-ifeq ($(filter %-clean,${MAKECMDGOALS}),)
-  include ${ALL_C_DEPS} ${ALL_CXX_DEPS}
-endif
 
 ######  generic pattern rules for subgoals
 # don't want .o's getting deleted as intermediates
