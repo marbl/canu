@@ -131,7 +131,7 @@ Sim4::search(uchar *s1, uchar *s2, int l1, int l2, int in_W, int in_K)
     i++;
   }     
 
-  free(allocated);
+  delete [] allocated;
 }
 
 
