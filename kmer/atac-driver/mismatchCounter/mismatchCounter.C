@@ -23,14 +23,12 @@
 #include "bio++.H"
 #include "atac-common.H"
 
-//#define ANNOTATE
+#define ANNOTATE
 
 //  Generates a histogram of the exact match block sizes
 //  Counts to global number of mismatches
 //  Annotates each match with the number of mismatches
 //  Checks for identities outside matches
-
-
 
 
 void
@@ -122,33 +120,52 @@ main(int argc, char *argv[]) {
       A1.setRange(pos1, len1);
       A2.setRange(pos2, len2);
 
-      u32bit extraMatches = 0;
+      u32bit extraMatchesL = 0;
+      u32bit extraMatchesR = 0;
       u32bit localMismatches = 0;
 
       //  Check for matches on either side of the region.
-      //  (but only if there is stuff on the other side)
 
-      if (A1.setPosition(pos1 - 1) && A2.setPosition(pos2 - 1))
-        if (validSymbol[*A1] &&
-            validSymbol[*A2] &&
-            IUPACidentity[*A1][*A2])
-          extraMatches++;
+      A1.setPosition(pos1);
+      A2.setPosition(pos2);
+      --A1;
+      --A2;
+      while (A1.isValid() &&
+             A2.isValid() &&
+             validSymbol[*A1] &&
+             validSymbol[*A2] &&
+             IUPACidentity[*A1][*A2]) {
+        extraMatchesL++;
+        --A1;
+        --A2;
+      }
 
-      if (A1.setPosition(pos1+len1) && A2.setPosition(pos2+len2))
-        if (validSymbol[*A1] &&
-            validSymbol[*A2] &&
-            IUPACidentity[*A1][*A2])
-          extraMatches++;
-
+      A1.setPosition(pos1+len1-1);
+      A2.setPosition(pos2+len2-1);
+      ++A1;
+      ++A2;
+      while (A1.isValid() &&
+             A2.isValid() &&
+             validSymbol[*A1] &&
+             validSymbol[*A2] &&
+             IUPACidentity[*A1][*A2]) {
+        extraMatchesR++;
+        ++A1;
+        ++A2;
+      }
 
       //  WARN if we found extra identities
-      //
-      if (extraMatches > 0) {
+
+#if 0
+      if (extraMatchesL + extraMatchesR > 0) {
         A1.setPosition(pos1);
         A2.setPosition(pos2);
 
-        fprintf(stderr, "WARNING: found extra matches in %s\n", inLine);
+        chomp(inLine);
+        fprintf(stderr, "WARNING: found "u32bitFMT" extra matches to the left and "u32bitFMT" extra matches to the right in %s\n",
+                extraMatchesL, extraMatchesR, inLine);
 
+#if 0
         for (u32bit ii=0; ii<len1; ii++, ++A1)
           fprintf(stdout, "%c", *A1);
         fprintf(stdout, "\n");
@@ -156,12 +173,13 @@ main(int argc, char *argv[]) {
         for (u32bit ii=0; ii<len1; ii++, ++A2)
           fprintf(stdout, "%c", *A2);
         fprintf(stdout, "\n");
+#endif
       }
+#endif
 
 
       A1.setPosition(pos1);
       A2.setPosition(pos2);
-
       for (u32bit ii=0; ii<len1; ii++, ++A1, ++A2) {
 
         //
@@ -173,9 +191,9 @@ main(int argc, char *argv[]) {
         //  Count global matches / mismatches
         //
         globalSequence++;
-        if (validSymbol[*A1] &&
-            validSymbol[*A2] &&
-            !IUPACidentity[*A1][*A2]) {
+        if (!(validSymbol[*A1] &&
+              validSymbol[*A2] &&
+              IUPACidentity[*A1][*A2])) {
           globalMismatches++;
           localMismatches++;
         }
@@ -204,8 +222,8 @@ main(int argc, char *argv[]) {
 #ifdef ANNOTATE
       chomp(inLine);
       fputs(inLine, stdout);
-      fprintf(stdout, " > /extramatches="u32bitFMT" /mismatches="u32bitFMT"\n",
-              extraMatches, localMismatches);
+      fprintf(stdout, " > /extramatches="u32bitFMT","u32bitFMT" /mismatches="u32bitFMT"\n",
+              extraMatchesL, extraMatchesR, localMismatches);
     } else {
       fputs(inLine, stdout);
 #endif
