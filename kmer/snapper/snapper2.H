@@ -93,9 +93,9 @@ public:
   bool             _doValidation;
   char            *_doValidationFileName;
 
-  double           _L;
-  double           _H;
-  double           _V;
+  double           _Lo;
+  double           _Hi;
+  double           _Va;
 
   u32bit           _maxDiagonal;
 

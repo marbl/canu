@@ -25,9 +25,9 @@ configuration::configuration(void) {
   _doValidation         = false;
   _doValidationFileName = 0L;
 
-  _L                    = 0.5;
-  _H                    = 1.0;
-  _V                    = 0.6;
+  _Lo                   = 0.5;
+  _Hi                   = 1.0;
+  _Va                   = 0.6;
 
   _maxDiagonal          = 25;
 
@@ -379,9 +379,9 @@ configuration::read(int argc, char **argv) {
     } else if ((strcmp(argv[arg], "-setfilter") == 0) ||
                (strcmp(argv[arg], "-lhv") == 0) ||
                (strcmp(argv[arg], "-LHV") == 0)) {
-      arg++;  _L = atof(argv[arg]);
-      arg++;  _H = atof(argv[arg]);
-      arg++;  _V = atof(argv[arg]);
+      arg++;  _Lo = atof(argv[arg]);
+      arg++;  _Hi = atof(argv[arg]);
+      arg++;  _Va = atof(argv[arg]);
     } else if (strcmp(argv[arg], "-verbose") == 0) {
       _beVerbose = true;
     } else if (strcmp(argv[arg], "-output") == 0) {

@@ -210,9 +210,9 @@ doFilter(searcherState       *state,
     return(0);
 
   u32bit numF = 0;
-  u32bit cutL = configureFilter(config._L,
-                                config._H,
-                                config._V, theHits, theHitsLen);
+  u32bit cutL = configureFilter(config._Lo,
+                                config._Hi,
+                                config._Va, theHits, theHitsLen);
 
   for (u32bit i=0; i < theHitsLen; i++) {
     //  XXX:  This should be useless, but we also should guarantee that the flag is clear
