@@ -113,15 +113,16 @@ ${ALL_CXX_DEPS}:%.d:%
 	${-CXX} ${CXX} ${CXXFLAGS} ${CXXFLAGS_COMPILE} -o $@ -c $<
 
 
+# linking commands use the $+ to get duplicated prereqs for linking
 ## EXE targets
 ALL_C_EXES   :=$(strip $(foreach x,${//},${${x:.=.C_EXES}}))
 ${ALL_C_EXES}:
-	${-CC} ${CC} ${CLDFLAGS} -o $@ $^ ${CLIBS}
+	${-CC} ${CC} ${CLDFLAGS} -o $@ $+ ${CLIBS}
 __SUBGOALS__+=$${${1:.=.C_EXES}}
 
 ALL_CXX_EXES :=$(strip $(foreach x,${//},${${x:.=.CXX_EXES}}))
 ${ALL_CXX_EXES}:
-	${-CXX} ${CXX} ${CXXLDFLAGS} -o $@ $^ ${CXXLIBS}
+	${-CXX} ${CXX} ${CXXLDFLAGS} -o $@ $+ ${CXXLIBS}
 __SUBGOALS__+=$${${1:.=.CXX_EXES}}
 
 define .RULE-install-copy-C-CXX-EXES
