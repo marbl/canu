@@ -33,14 +33,26 @@ print Z "  fprintf(F, \"\\n\");\n";
 
 my @status;
 
-foreach my $f (@ARGV) {
-    if ($f !~ m/buildinfo_/) {
-        open(F, "cvs status -v $f |");
-        while (<F>) {
-            chomp;
-            print Z "  fprintf(F, \"$_\\n\");\n" if (! m/^$/) && (! m/^=+$/);
+#  Check that there is a CVS root; if not found, assume we are
+#  building a copied tree.
+#
+open(F, "< CVS/Root");
+my $root = <F>;
+chomp $root;
+close(F);
+
+if (-d $root) {
+    foreach my $f (@ARGV) {
+        if ($f !~ m/buildinfo_/) {
+            open(F, "cvs status -v $f |");
+            while (<F>) {
+                chomp;
+                print Z "  fprintf(F, \"$_\\n\");\n" if (! m/^$/) && (! m/^=+$/);
+            }
         }
     }
+} else {
+    print Z "  fprintf(F, \"  No source repository found during build; status not available\\n\");\n";
 }
 
 print Z "}\n";
