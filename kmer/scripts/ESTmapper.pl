@@ -1793,7 +1793,7 @@ sub configure {
     if ((! -f "$path/0-input/genomic.fastaidx") && (! -f "$path/0-input/genomic.fastainf")) {
         print STDERR "ESTmapper/configure-- Generating the index and info for '$path/0-input/genomic.fasta'\n";
         print STDERR "ESTmapper/configure-- WARNING:  This is done in the work directory!\n";
-        system("$leaff -F $path/0-input/genomic.fasta -i > $path/0-input/genomic.fastainf");
+        system("$leaff -F $path/0-input/genomic.fasta -ii > $path/0-input/genomic.fastainf");
     }
 
     if (! -f "$path/0-input/genomic.fastaidx") {
