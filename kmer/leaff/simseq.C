@@ -27,7 +27,7 @@ extern mt_s *mtctx;
 
 //  RAND returns x numbers, starting at number y.
 //
-#define RAND(x,y) (int)((y) + mtRandom32(mtctx) % x)
+#define RAND(x,y) (int)((y) + (mtRandom32(mtctx) % (x)))
 
 #define max(x,y) ((x)>=(y) ? (x):(y))
 #define min(x,y) ((x)<=(y) ? (x):(y))
@@ -61,8 +61,9 @@ insert(Align_t *aln, int in_pos, int in_optype) {
   //fprintf(stderr, "Modify script op=%d pos=%d\n", in_optype, in_pos);
 
   for (t=aln->script, i=0, tp=NULL; t; tp=t, t=t->next) {
-    num = t->num;
+    num    = t->num;
     optype = t->optype;
+
     switch (optype) {
       case INS:
         if (in_pos==i+1) {
@@ -110,7 +111,8 @@ insert(Align_t *aln, int in_pos, int in_optype) {
         break;
     }
   }
-  fprintf(stderr, "Failed to modify sequence (%d,%d).\n", in_optype, in_pos);
+
+  //fprintf(stderr, "Failed to modify sequence (%d,%d).\n", in_optype, in_pos);
 }
 
 
