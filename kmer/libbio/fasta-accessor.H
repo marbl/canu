@@ -6,14 +6,6 @@
 
 //  Define this to do bounds checking
 //
-
-#if 0
-//  The old sanity check
-  if (((_doRevComp) ? rc((POS)) : (POS)) > _len) \
-    fprintf(stderr, "%s-- position "u32bitFMT" larger than length "u32bitFMT"\n", NAM, ((_doRevComp) ? rc((POS)) : (POS)), _len)
-#endif
-
-
 #if 1
 #define SANITY(NAM, POS) \
   if ((POS) > _len) { \
@@ -24,6 +16,15 @@
 #else
 #define SANITY(NAM, POS)
 #endif
+
+
+//  Externally, we show the coordinate in the forward strand.
+//  Internally, we represent the coordinate on the physical string.
+//  The user is required to maintain the range that the
+//  reverse-complement string is valid over.  It is not possible to
+//  randomly access sequence outside the range, but it is possible to
+//  iterate over it (but then you cannot get the coordinate of where
+//  you are at!)
 
 
 class FastAAccessor {
@@ -38,50 +39,48 @@ public:
 
   bool     _doRevComp;
 
-public:
-  FastAAccessor(FastASequenceInCore *S, bool revcomp=false) {
-    _seq = S->sequence();
-    _len = S->sequenceLength();
-    _pos = 0;
-
-    _doRevComp = revcomp;
-
-    _rcBase = 0;
-    _rcLen  = _len;
-
-    if (_doRevComp)
-      _pos = _len-1;
-  };
-
-  FastAAccessor(char *S, u32bit length=0, bool revcomp=false) {
+private:
+  void FastAAccessorInit(char *S, u32bit length, bool revcomp) {
     _seq = S;
+    _pos = 0;
     _len = length;
     if (length == 0)
       _len = (u32bit)strlen(S);
-    _pos = 0;
-
-    _doRevComp = revcomp;
 
     _rcBase = 0;
     _rcLen  = _len;
+
+    _doRevComp = revcomp;
 
     if (_doRevComp)
       _pos = _len-1;
   };
 
-  ~FastAAccessor() {
+public:
+  FastAAccessor(FastASequenceInCore *S, bool revcomp=false) {
+    FastAAccessorInit(S->sequence(), S->sequenceLength(), revcomp);
+  };
+
+  FastAAccessor(char *S, u32bit length=0, bool revcomp=false) {
+    FastAAccessorInit(S, length, revcomp);
   };
 
 private:
+
+  //  Given a range in the forward string, we can reverse-complement
+  //  just that range.  This amounts to translating the forward string
+  //  to make the beginning of the range be the origin, then
+  //  reverseing the range, then translating the sequence back to the
+  //  original origin.
+  //
   u32bit  rc(u32bit p) const {
     return(_rcBase + _rcLen - (p - _rcBase) - 1);
   };
 
 public:
 
-  //  For iterating over reverse complement regions of a sequence.
-  //  The base is the start of the range, and the length is, the
-  //  length.  In the forward coordinate system.
+  //  For iterating over reverse complement regions of a forward
+  //  sequence.
   //
   //  e.g.,  (500, 250) would be:
   //
@@ -90,38 +89,52 @@ public:
   //
   //  Set both to zero (also the default) to unset the range
   //
-  //  The physical location (_pos) doesn't change, but this
-  //  will change the mapping back to a forward coordinate.
+  //  The physical location (_pos) doesn't change, but this will
+  //  change the value of the corresponding forward coordinate, but
+  //  not the meaning.
   //
-  void  setRange(u32bit base=0, u32bit length=0) {
-    SANITY("FastAAccessor::setReverseComplementRange()", base);
-    SANITY("FastAAccessor::setReverseComplementRange()", base+length);
-
-    if ((base == 0) && (length == 0)) {
-      _rcBase = 0;
-      _rcLen  = _len;
+  bool  setRange(u32bit base=0, u32bit length=0) {
+    if ((base < _len) && (base + length < _len)) {
+      if ((base == 0) && (length == 0)) {
+        _rcBase = 0;
+        _rcLen  = _len;
+      } else {
+        _rcBase = base;
+        _rcLen  = length;
+      }
+      return(true);
     } else {
-      _rcBase = base;
-      _rcLen  = length;
+      fprintf(stderr, "FastAAccessor::setReverseComplementRange()-- base="u32bitFMT" and length="u32bitFMT" exceed sequence length of "u32bitFMT"\n",
+              base, length, _len);
+      abort();
+      return(false);
     }
   };
 
 
-#if 0
-  char operator[](u32bit p) const {
-    SANITY("FastAAccessor::operator[]", p);
-  
-    if (_doRevComp) return(complementSymbol[(int)_seq[rc(p)]]);
-    else            return(_seq[p]);
-  };
-#endif
-
-
   //  True if this physical location is valid.
+  //
   bool isValid(void) {
     return(_pos < _len);
   };
 
+
+  char operator[](u32bit p) const {
+    if ((_rcBase <= p) && (p < _rcBase + _rcLen)) {
+      if (_doRevComp) return(complementSymbol[(int)_seq[rc(p)]]);
+      else            return(_seq[p]);
+    } else {
+      fprintf(stderr, "operator[]-- Tried to access to "u32bitFMT", but range is "u32bitFMT"-"u32bitFMT"\n",
+              p, _rcBase, _rcBase + _rcLen);
+      abort();
+      return(0);
+    }
+  };
+
+
+
+  //  Set the accessor to some position.
+  //
   bool setPosition(u32bit p) {
     if ((_rcBase <= p) && (p < _rcBase + _rcLen)) {
       if (_doRevComp) _pos = rc(p);
@@ -136,40 +149,40 @@ public:
   };
 
   u32bit getPosition(void) {
-    if (_doRevComp) return(rc(_pos));  //  oddly symmetric
+    if (_doRevComp) return(rc(_pos));
     else            return(_pos);
   };
-
-
-
-
-  ////////////////////////////////////////
-  //
-  //  Stuff below here is probably correct.
-  //
 
   u32bit getRangeBegin(void)  { return(_rcBase); };
   u32bit getRangeEnd(void)    { return(_rcBase + _rcLen); };
   u32bit getRangeLength(void) { return(_rcLen); };
 
-  void   extendLeft(s32bit x) {
-    //fprintf(stderr, "extendLeft()-- by %d\n", (int)x);
-    if (_doRevComp) {
-      _rcLen  += x;
-    } else {
+  bool   extendLeft(s32bit x) {
+    _rcLen  += x;
+    if (_doRevComp == false)
       _rcBase -= x;
-      _rcLen  += x;
+
+    if ((_rcBase < _len) && (_rcBase + _rcLen <= _len)) {
+      fprintf(stderr, "FastAAccessor::extendLeft()-- extend by "s32bitFMT" makes invalid: length is "u32bitFMT", new range is "u32bitFMT"-"u32bitFMT"\n",
+              x, _len, _rcBase, _rcBase + _rcLen);
+      abort();
+      return(false);
     }
+    return(true);
   };
 
-  void   extendRight(s32bit x)   {
-    //fprintf(stderr, "extendRight()-- by %d\n", (int)x);
-    if (_doRevComp) {
+  bool   extendRight(s32bit x)   {
+    _rcLen  += x;
+    if (_doRevComp == true)
       _rcBase -= x;
-      _rcLen  += x;
-    } else {
-      _rcLen  += x;
+
+    if ((_rcBase < _len) && (_rcBase + _rcLen <= _len)) {
+      fprintf(stderr, "FastAAccessor::extendRight()-- extend by "s32bitFMT" makes invalid: length is "u32bitFMT", new range is "u32bitFMT"-"u32bitFMT"\n",
+              x, _len, _rcBase, _rcBase + _rcLen);
+      abort();
+      return(false);
     }
+    return(true);
   };
 
   char operator*(void) const {
@@ -194,10 +207,6 @@ public:
     if (_doRevComp) _pos--;
     else            _pos++;
     return(*this);
-  };
-
-  u32bit getLength(void) {
-    return(_len);
   };
 };
 
