@@ -39,13 +39,13 @@ findOverlap(sim4polish *A, sim4polish *B) {
   for (u32bit i=0; i<A->numExons; i++) {
     length = A->exons[i].genTo - A->exons[i].genFrom + 1;
     total  += length;
-    IL.add(A->genLo + A->exons[i].genTo, length);
+    IL.add(A->genLo + A->exons[i].genFrom, length);
   }
 
   for (u32bit i=0; i<B->numExons; i++) {
     length = B->exons[i].genTo - B->exons[i].genFrom + 1;
     total  += length;
-    IL.add(B->genLo + B->exons[i].genTo, length);
+    IL.add(B->genLo + B->exons[i].genFrom, length);
   }
 
   IL.merge();
@@ -77,7 +77,9 @@ comparePolishFiles(int argc, char **argv) {
 
   //  Ask both for the largest EST iid seen, then iterate over those.
   //
-  u32bit  largestIID = 100000;
+  u32bit  largestIID = Afile->maxIID();
+  if (largestIID < Bfile->maxIID())
+    largestIID = Bfile->maxIID();
 
   for (u32bit iid=0; iid<largestIID; iid++) {
     sim4polishList *A = Afile->getEST(iid);
@@ -97,9 +99,15 @@ comparePolishFiles(int argc, char **argv) {
     for (u32bit a=0; a<A->length(); a++)
       for (u32bit b=0; b<B->length(); b++) {
         overlap[a][b] = findOverlap((*A)[a], (*B)[b]);
-        //fprintf(stderr, "overlap[%2d][%2d] = "u32bitFMT"\n", a, b, overlap[a][b]);
-      }
 
+#if 0
+        if (overlap[a][b] > 0) {
+          fprintf(stderr, "overlap[%2d][%2d] = "u32bitFMT"\n", a, b, overlap[a][b]);
+          //s4p_printPolish(stderr, (*A)[a], S4P_PRINTPOLISH_NORMALIZED | S4P_PRINTPOLISH_MINIMAL);
+          //s4p_printPolish(stderr, (*B)[b], S4P_PRINTPOLISH_NORMALIZED | S4P_PRINTPOLISH_MINIMAL);
+        }
+#endif
+      }
 
     //  For each match in A, find the one in B that overlaps it.  If
     //  there is more than one, record an error, and merge the B's
