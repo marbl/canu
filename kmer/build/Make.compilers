@@ -27,6 +27,7 @@ VALID_OPERATING_SYSTEM:=$(strip \
     AIX    \
     cygwin \
     cygwin|mingw \
+    cygwin|msvc \
     SunOS|foster-city   \
     SunOS|francisco's \
     FreeBSD \
@@ -98,13 +99,21 @@ endif
 # some platforms put an extension on the executables/libs (like cygwin)
 .EXE:=
 .SO :=.so
+.A  :=.a
 ifeq (${_OS_},cygwin)
   .EXE:=.exe
   .SO :=.dll
+  .A  :=.a
 endif
 ifeq (${_OS_},cygwin|mingw)
   .EXE:=.exe
   .SO :=.dll
+  .A  :=.a
+endif
+ifeq (${_OS_},cygwin|msvc)
+  .EXE:=.exe
+  .SO :=.dll
+  .A  :=.lib
 endif
 
 
@@ -139,6 +148,16 @@ CXX_TMP_COMPILE:=
 ifeq (${_OS|FULL_},Linux|RH7)
    CC:=gcc3
    CXX:=g++3
+endif
+
+# Change the CC and CXX to point to Microsoft's binaries. 
+ifeq (${_OS|FULL_},cygwin|msvc)
+   CC:=./Make_utils/msvc.pl -nologo -O -Ob2 -Zm300 -TP -I\'c:/Program Files/Microsoft Visual Studio .NET 2003/Vc7/include\' -EHsc
+   CXX:=./Make_utils/msvc.pl -nologo -O -Ob2 -Zm300 -TP -I\'c:/Program Files/Microsoft Visual Studio .NET 2003/Vc7/include\' -EHsc
+   AR=./Make_utils/msar.pl 
+   # AR=cl -LD -Fe$@
+   # AR=lib /nologo /out:$@
+   ARFLAGS=
 endif
 
 # Special cygwin|mingw compile flag to compile against the mingw library
@@ -237,6 +256,10 @@ ifeq (${_OS_}${_CC_}${_OPT_},AIX)
   OPTFLAGS_COMPILE         :=
   OPTFLAGS :=-qstrict -O3
 endif
+ifeq (${_OS|FULL_},cygwin|msvc)
+  OPTFLAGS_COMPILE := 
+  OPTFLAGS         := 
+endif
 
 CFLAGS_COMPILE           +=$(OPTFLAGS_COMPILE) $(OPTFLAGS)
 CXXFLAGS_COMPILE         +=$(OPTFLAGS_COMPILE) $(OPTFLAGS)
@@ -253,6 +276,13 @@ ifeq (${_OS_}${_CC_},AIX-gcc)
   CXXFLAGS         +=-maix64
   CLDFLAGS         +=-Wl,-bbigtoc
   CXXLDFLAGS       +=-Wl,-bbigtoc
+endif
+
+ifeq (${_OS|FULL_},cygwin|msvc)
+  CFLAGS           += 
+  CXXFLAGS         += 
+  CLDFLAGS         +=
+  CXXLDFLAGS       +=
 endif
 
 # THREADS!!!
