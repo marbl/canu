@@ -107,7 +107,7 @@ while (scalar(@ARGV) > 0) {
     } elsif ($arg eq "-crossspecies") {
         $mersize   = 18; # the mer size
         $merlimit  = 9;  # unique mers only
-        $minfill   = 20; # the mimimum fill for a reported match.
+        $minfill   = 18; # the mimimum fill for a reported match.
         $maxgap    = 0;  # the maximum substitution gap
     }
 }
@@ -143,6 +143,7 @@ die "Can't find the assembly descriptions '$GENOMEdir/assemblies.atai'\n" if (! 
 die "Can't find the MERYLdir '$MERYLdir'\n" if (! -d $MERYLdir);
 
 system("mkdir $ATACdir") if (! -d $ATACdir);
+system("mkdir ${ATACdir}/tmp")  if (! -d "${ATACdir}/tmp");
 
 
 
@@ -156,7 +157,7 @@ my $matches   = "$id1-vs-$id2.k$mersize.u$merlimit.f$minfill.g$maxgap";
 #
 #  Find the include or exclude mask
 #
-if (! -e "$ATACdir/.mask.done") {
+if (! -e "$ATACdir/$matches.mask.done") {
 
     if (! -e "$ATACdir/min.$mercount1.$mercount2.mcdat") {
         print STDERR "Finding the min count between $mercount1 and $mercount2.\n";
@@ -204,7 +205,7 @@ if (! -e "$ATACdir/.mask.done") {
 
     #  Success!
     #
-    open(F, "> $ATACdir/.mask.done");
+    open(F, "> $ATACdir/$matches.mask.done");
     close(F);
 }
 
@@ -286,7 +287,9 @@ foreach my $segmentID (@segmentIDs) {
 
         if (runCommand($cmd)) {
             unlink "$ATACdir/$matches-segment-$segmentID.tmp";
+            unlink "$ATACdir/$matches-segment-$segmentID.matches.crash";
             rename "$ATACdir/$matches-segment-$segmentID.matches", "$ATACdir/$matches-segment-$segmentID.matches.crash";
+            unlink "$ATACdir/$matches-segment-$segmentID.stats.crash";
             rename "$ATACdir/$matches-segment-$segmentID.stats", "$ATACdir/$matches-segment-$segmentID.stats.crash";
             die "Failed to run $matches-$segmentID\n";
         }
@@ -326,7 +329,7 @@ if (! -e "$ATACdir/$matches.matches.sorted") {
         unlink "$ATACdir/$matches-segment-$segmentID.table";
     }
 
-    if (runCommand("cat $mfiles | sort -y -T $ATACdir -k 3n -k 7n > $ATACdir/$matches.matches.sorted")) {
+    if (runCommand("cat $mfiles | sort -y -T $ATACdir/tmp -k 3n -k 7n > $ATACdir/$matches.matches.sorted")) {
         die "Failed to sort $ATACdir!\n";
     }
 
