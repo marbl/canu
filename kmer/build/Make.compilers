@@ -326,8 +326,9 @@ endif
 ifeq (${_OS_},cygwin)
   T_CFLAGS_COMPILE   :=
   T_CXXFLAGS_COMPILE :=
-  T_CLIBS            :=-lpthread
-  T_CXXLIBS          :=-lpthread
+  T_CLIBS            :=-lpthread -lrpc
+  T_CXXLIBS          :=-lpthread -lrpc
+  # I added the Sun RPC library so that XDR will be available for UID terminator programs.
 endif
 
 
@@ -490,3 +491,4 @@ endif
 # X11 stuff
 CLDFLAGS_X11 :=-L/usr/X11R6/lib
 CFLAGS_X11   :=-I/usr/X11R6/include
+
