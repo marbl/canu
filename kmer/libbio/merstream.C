@@ -3,6 +3,7 @@
 merStream::merStream(u32bit merSize, const char *filename) {
   _theFile         = new FastAstream(filename);
   _theSeq          = 0L;
+  _theSeqPos       = 0;
   _theLen          = 0;
   _thePos          = 0;
 
@@ -21,6 +22,7 @@ merStream::merStream(u32bit merSize, const char *filename) {
 merStream::merStream(u32bit merSize, char const *seq, u32bit len) {
   _theFile         = 0L;
   _theSeq          = seq;
+  _theSeqPos       = 0;
   _theLen          = len;
   _thePos          = 0;
 
