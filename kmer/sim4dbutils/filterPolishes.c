@@ -27,6 +27,8 @@ char const *usage =
 "  -q (or -D) Don't write discarded polishes.\n"
 "  -j o       Write junk polishes to the 'o' file (junk == intractable and aborted).\n"
 "\n"
+"  -v         Report progress\n"
+"\n"
 "  -s         Segregate polishes by genomic idx.  Must be used with -o, will\n"
 "             create numerous files 'o.%05d'.\n"
 "\n"
