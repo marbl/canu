@@ -5,23 +5,15 @@
 //
 //#define INTERSPECIES
 
-
-//#define  DEFAULT_NUM_I     3       
 #define  DIST_CUTOFF       3
-//#define  DEFAULT_MIN_COV   (.8)
 
 #define  MIN_INTRON        30
-//#define  MAX_INTRON        20000
 #define  MAX_GRINIT        500
 #define  MAX_INTERNAL_GAP  50
-//#define  LL                60
 
 #define  DEFAULT_DRANGE    10
 #define  DEFAULT_WEIGHT    100
 #define  DEFAULT_RELINK_WEIGHT    500
-#define  DEFAULT_W         12
-
-#define  DEFAULT_X         12
 
 #define  DEFAULT_K         16
 #define  DEFAULT_C         12

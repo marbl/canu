@@ -9,25 +9,33 @@ Sim4::add_word(int ecode, int pos) {
   int hval;
 
   hval = ecode & HASH_SIZE;
+
+  //  Find the word in the hash table
+  //
   for (h = hashtable->table[hval]; h; h = h->link)
     if (h->ecode == ecode)
       break;
+
+  //  Didn't find the word?  Add a new one!
+  //
   if (h == NULL) {
-    h = hashtable->nodes + hashtable->nodesused++;
-    //(struct hash_node *) ckalloc (sizeof(struct hash_node));
+    h       = hashtable->nodes + hashtable->nodesused++;
     h->link = hashtable->table[hval];
     hashtable->table[hval] = h;
+
     h->ecode = ecode;
     h->pos   = -1;
   }
+
+  //  Set the position
+  //
   hashtable->nextPos[pos] = h->pos;
   h->pos = pos;
 }
 
 
 void
-Sim4::bld_table(char *s, int len, int in_W, int type)
-{
+Sim4::bld_table(char *s, int len, int in_W, int type) {
   int ecode;
   int i, j;
   char *t;
@@ -78,22 +86,37 @@ Sim4::bld_table(char *s, int len, int in_W, int type)
   }
 
   /* skip any word containing an N/X  */
+
+  int emer;
+
   t = s+1;
+
   for (i=1; (i<=len) && *t; ) {
   restart: 
     ecode = 0L;
+
     for (j=1; (j<in_W) && (i<=len) && *t; ++j) {
-      int tmp = encoding[*t++];
-      ++i;
-      if (tmp<0)
+      emer = encoding[(int)(*t++)];
+      i++;
+
+      if (emer < 0)
         goto restart;
-      ecode = (ecode << 2) + tmp;
+
+      ecode <<= 2;
+      ecode  |= emer;
     }
     
     for (; (i<=len) && *t; ) {
-      int tmp = encoding[*t++]; i++;
-      if (tmp<0) goto restart;   
-      ecode = ((ecode & mask) << 2) + tmp;
+      emer = encoding[(int)(*t++)];
+      i++;
+
+      if (emer < 0)
+        goto restart;
+
+      ecode  &= mask;
+      ecode <<= 2;
+      ecode  |= emer;
+
       add_word(ecode, (int)(t-s-1)); 
     }
   }

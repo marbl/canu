@@ -236,6 +236,12 @@ Sim4::pluri_align(int *dist_ptr,
 
     tmp_script = left;  
 
+    //  These are used during SUBSTITUTE below to tell if the base at
+    //  a (b) is N (upper or lower case).
+    //
+    bool  an = false;
+    bool  bn = false;
+
     while (tmp_script) {
       switch (tmp_script->op_type) {
       case  DELETE:
@@ -257,42 +263,30 @@ Sim4::pluri_align(int *dist_ptr,
         //
         for (i=0; i<tmp_script->num; ++i, ++a, ++b) {
 
-#if 0
-          if (((*a == 'N') || (*a == 'n')) && ((*b == 'N') || (*b == 'n'))) {
-            //  Got an 'n'.  It isn't a match and it isn't an edit.
+          an = (*a == 'N') || (*a == 'n');
+          bn = (*b == 'N') || (*b == 'n');
+            
+
+          if (an && bn) {
+            //  Both are N.  It isn't a match and it isn't an edit.
             //
             nextExon->numNs++;
-          } else {
-            if (*a == *b) {
-              //  Got a match.
-              nextExon->numMatches++;
-            } else {
-              //  Got a substitution
-              nextExon->numEdits++;
-            }
-          }
-#else
-
-          if (((*a == 'N') || (*a == 'n')) && ((*b == 'N') || (*b == 'n'))) {
-            //  We don't count matches with N on both sides as anything.
+          } else if (an || bn) {
+            //  One is an N.  Someone has low quality sequence, and we
+            //  should penalize.  We need to special case this because
+            //  IUPACidentity[][] claims N matches all.
             //
-            nextExon->numNs++;
+            nextExon->numEdits++;
+          } else if (IUPACidentity[(int)*a][(int)*b]) {
+            //  Got a match.
+            nextExon->numMatches++;
           } else {
-            //  Otherwise, both letters are non-N and we count a match if the
-            //  IUPAC ambiguity matches
-            //
-            if (IUPACidentity[*a][*b]) {
-              nextExon->numMatches++;
-            } else {
-              nextExon->numEdits++;
-            }
+            //  Got a substitution
+            nextExon->numEdits++;
           }
-#endif
-
-
         }
         break;
-      }         
+      }
       tmp_script = tmp_script->next;
     }
 

@@ -16,6 +16,9 @@ Sim4::SIM4_block3(bool     good_match,
   if (_accurateSequences)
     findLastAGandAC(tmp_block1);
 
+  //  These two blocks should do the same thing.  The first one isn't readable.
+
+#if 0
   int diff = (int)(tmp_block1->frEST - tmp_block->toEST - 1);
   diff = (int)(min(diff,(int)(MAX_GRINIT/2)));
 
@@ -30,6 +33,21 @@ Sim4::SIM4_block3(bool     good_match,
                    tmp_block->toGEN+
                    (tmp_block1->frGEN-tmp_block->toGEN-1)-u,
                    &I, &J);
+#else
+  int diff = min(tmp_block1->frEST - tmp_block->toEST - 1, MAX_GRINIT/2);
+  int u    = min(4*diff, tmp_block1->frGEN - tmp_block->toGEN - 1); 
+
+  cost = EXTEND_BW(seq2 + tmp_block1->frEST - 1 - diff,
+                   seq1 + tmp_block1->frGEN - 1 - u,
+                   diff,
+                   u,
+                   tmp_block1->frEST - 1 - diff,
+                   tmp_block1->frGEN - 1 - u,
+                   &I,
+                   &J);
+#endif
+
+
   if ((good_match==0) || tmp_block->flag || (J==0) || (I==0)) {
     tmp_block1->frEST = I+1;
     tmp_block1->frGEN = J+1;
@@ -50,7 +68,7 @@ Sim4::SIM4_block3(bool     good_match,
                tmp_block->toGEN+1,
                tmp_block->toEST+1,
                1,
-               min(10,wordSize),
+               wordSizeExt,
                mspThreshold2,
                TEMP);
 

@@ -15,8 +15,9 @@ Sim4::SIM4_block4(bool     good_match,
   if (_accurateSequences)
     findLastGTandCT(tmp_block);
 
-  //PRINTEXONS("tmp_block before extend\n", tmp_block);
+  //  These two blocks should do the same thing.  The first one isn't readable.
 
+#if 0
   int diff = (int)(tmp_block1->frEST - tmp_block->toEST - 1);
   diff = (int)(min(diff,(int)(MAX_GRINIT/2)));
 
@@ -26,7 +27,20 @@ Sim4::SIM4_block4(bool     good_match,
                    min(4*diff,tmp_block1->frGEN-tmp_block->toGEN-1),
                    tmp_block->toEST,tmp_block->toGEN,
                    &I, &J);
-  //PRINTEXONS("tmp_block after extend\n", tmp_block);
+#else
+  int diff = min(tmp_block1->frEST - tmp_block->toEST - 1, MAX_GRINIT/2);
+  int u    = min(4*diff, tmp_block1->frGEN - tmp_block->toGEN - 1);
+
+  cost = EXTEND_FW(seq2 + tmp_block->toEST,
+                   seq1 + tmp_block->toGEN,
+                   diff,
+                   u,
+                   tmp_block->toEST,
+                   tmp_block->toGEN,
+                   &I,
+                   &J);
+#endif
+
   if ((good_match==0) || tmp_block1->flag || (I==len1) || (J==len2)) {
     if (tmp_block->toGEN) {
       tmp_block->toEST = I;
@@ -54,7 +68,7 @@ Sim4::SIM4_block4(bool     good_match,
                tmp_block->toGEN+1,
                tmp_block->toEST+1,
                1,
-               min(10,wordSize),
+               wordSizeExt,
                mspThreshold2,
                TEMP);
 

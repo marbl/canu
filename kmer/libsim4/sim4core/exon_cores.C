@@ -7,6 +7,10 @@
 //
 
 
+//  Define this to get some profiling of building, searching, sorting and linking
+//
+//#define PROFILE_EXON_CORE
+
 
 void
 Sim4::exon_cores(char *s1, char *s2,
@@ -36,17 +40,44 @@ Sim4::exon_cores(char *s1, char *s2,
   //  
   //int W = min(in_W, l2);
 
+#ifdef PROFILE_EXON_CORE
+  double startTime = getTime();
+#endif
+
   bld_table(s2,l2,in_W,type);
   search(s1,s2,l1,l2,in_W,K);
+
+#ifdef PROFILE_EXON_CORE
+  fprintf(stderr, "build+search took %f seconds.\n", getTime() - startTime);
+#endif
 
   //  Cleaning up after the bld_table() is done at the next call, or
   //  in the destructor.
   //
   hashtable = 0L;
 
+#ifdef PROFILE_EXON_CORE
+  startTime = getTime();
+  fprintf(stderr, "Sorting "u32bitFMT" MSPs\n", _mspManager.numberOfMSPs());
+#endif
+
   _mspManager.sort();
 
+#ifdef PROFILE_EXON_CORE
+  fprintf(stderr, "sorting took %f seconds.\n", getTime() - startTime);
+#endif
+
+
+#ifdef PROFILE_EXON_CORE
+  startTime = getTime();
+  fprintf(stderr, "Linking "u32bitFMT" MSPs\n", _mspManager.numberOfMSPs());
+#endif
+
   exon_list = _mspManager.link(DEFAULT_WEIGHT, DEFAULT_DRANGE, offset1, offset2, flag, false, s1, s2);
+
+#ifdef PROFILE_EXON_CORE
+  fprintf(stderr, "linking took %f seconds.\n", getTime() - startTime);
+#endif
 }
 
 
@@ -87,12 +118,12 @@ Sim4::search(char *s1, char *s2, int l1, int l2, int in_W, int in_K) {
   //  5% win (tested on on small examples) if we use t[] instead of *t below.
 
   for (i=0; i < l1; i++) {
-    if (encoding[t[i]] >= 0) {
+    if (encoding[(int)t[i]] >= 0) {
       validEncoding++;
 
       ecode  &= mask;
       ecode <<= 2;
-      ecode  |= encoding[t[i]];
+      ecode  |= encoding[(int)t[i]];
 
       if (validEncoding > 0) {
         for (h = hashtable->table[ecode & HASH_SIZE]; h; h = h->link) {
@@ -142,7 +173,7 @@ Sim4::extend_hit(int pos1, int pos2,
   s = s2+1+pos2;
   end1 = q;
   while ((*s != '\0') && (*q != '\0') &&
-         (s<=s2+l2) && (q<=s1+l1) && sum >= left_sum - X) {
+         (s<=s2+l2) && (q<=s1+l1) && sum >= left_sum - wordExtensionAllowance) {
     sum += ((*s++ == *q++) ? MATCH : MISMATCH);
     if (sum > left_sum) {
       left_sum = sum;
@@ -154,7 +185,7 @@ Sim4::extend_hit(int pos1, int pos2,
   right_sum = sum = 0;
   beg1 = q = (s1+1+pos1) - in_W;
   beg2 = s = (s2+1+pos2) - in_W;
-  while ((s>s2+1) && (q>s1+1) && sum >= right_sum - X) {
+  while ((s>s2+1) && (q>s1+1) && sum >= right_sum - wordExtensionAllowance) {
     sum += ((*(--s) == *(--q)) ? MATCH : MISMATCH);
     if (sum > right_sum) {
       right_sum = sum;

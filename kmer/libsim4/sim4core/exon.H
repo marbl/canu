@@ -12,7 +12,7 @@ typedef struct exon {
   int     frGEN, toGEN;  //  Genomic coords
   int     frEST, toEST;  //  cDNA coords
 
-  char    ori;
+  int     ori;
   int     length;
 
   // - 'flag' controls whether the second blast pass should be run 

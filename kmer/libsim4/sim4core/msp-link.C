@@ -81,18 +81,29 @@ mspManager::link(int weight, int drange,
     diag = f1 - f2;
     _allMSPs[i].prev = -1;
     _allMSPs[i].linkingScore = 0;
+
+#ifdef SHOW_LINKING
+    fprintf(stderr, "link %d\r", i);
+    fflush(stderr);
+#endif
+
     for (u32bit j = 0; j < i; ++j) {
+
       //  12 == default word size.  A Magic Value.
+
       int vL = DEFAULT_L; 
       if ((_allMSPs[i].pos2 + _allMSPs[i].len - _allMSPs[j].pos2 - _allMSPs[j].len > 2 * 12) &&
           (_allMSPs[i].pos2 - _allMSPs[j].pos2 > 2 * 12))
         vL *= 2;
                         
       diff_diag = diag - _allMSPs[j].pos1 + _allMSPs[j].pos2;
-      if (diff_diag < - drange ||
-          (diff_diag >  drange && diff_diag < MIN_INTRON) ||
-          (_allMSPs[j].pos2+_allMSPs[j].len-1-f2>vL) ||
-          (_allMSPs[j].pos1+_allMSPs[j].len-1-f1>vL))
+
+      //  Abort if the difference is too big
+      //
+      if ((diff_diag < -drange) ||
+          ((diff_diag >  drange) && (diff_diag < MIN_INTRON)) ||
+          (_allMSPs[j].pos2 + _allMSPs[j].len - 1 - f2 > vL) ||
+          (_allMSPs[j].pos1 + _allMSPs[j].len - 1 - f1 > vL))
         continue;
 
       int n = abs(diff_diag);
@@ -100,7 +111,7 @@ mspManager::link(int weight, int drange,
       if (relinkFlag)
         tryval = _allMSPs[j].linkingScore - ((n <= 100000) ? n : (100000+(int)(10*log((double)(n-100000)))));
  
-     if (tryval > _allMSPs[i].linkingScore) {
+      if (tryval > _allMSPs[i].linkingScore) {
         _allMSPs[i].linkingScore = tryval;
         _allMSPs[i].prev = j;
       }

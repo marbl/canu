@@ -55,6 +55,17 @@ public:
   void  setRelinkWeight(int x) {
     _relinkWeight = x;
   };
+
+  void  setWordSize(int w) {
+    _wordSize = w;
+  };
+  void  setWordSizeInt(int w) {
+    _wordSizeInt = w;
+  };
+  void  setWordSizeExt(int w) {
+    _wordSizeExt = w;
+  };
+
   void  setDontForceCanonicalSplicing(bool x=true) {
     _dontForceCanonicalSplicing = x;
   };
@@ -80,15 +91,24 @@ public:
 
 
 private:
-  bool          _findAllExons;
   double        _minCoverage;
   int           _minCoverageLength;
   int           _minPercentExonIdentity;
 
+  int           _alwaysReport;
+
+  bool          _findAllExons;
   bool          _includeDefLine;
   bool          _printAlignments;
 
-  int           _alwaysReport;
+  bool          _dontForceCanonicalSplicing;
+  bool          _forceStrandPrediction;
+
+#ifdef __APPLE__
+  int           _pad1;
+  bool          _pad2;
+  bool          _pad3;
+#endif
 
   bool          _ignorePolyTails;
   double        _polyTailPercent;
@@ -98,13 +118,14 @@ private:
 
   //  For aborting expensive polishes
   //
+  double        _mspLimitPercent;   //  Same as below, as percentage of length of cDNA
   u32bit        _mspLimitAbsolute;  //  Number of MSPs allowed per hit
-  double        _mspLimitPercent;   //  Same, as percentage of length of cDNA
 
   int           _relinkWeight;
 
-  bool          _dontForceCanonicalSplicing;
-  bool          _forceStrandPrediction;
+  int           _wordSize;
+  int           _wordSizeInt;
+  int           _wordSizeExt;
 
   // Interspecies comparison options.
   //    _percentError is the former #defined P
@@ -112,6 +133,10 @@ private:
   //    _misMatch is the former MISMATCH
   //
   bool          _interspecies;
+#ifdef __APPLE__
+  bool          _pad4[7];
+#endif
+
   double        _percentError;
   int           _match;
   int           _mismatch;

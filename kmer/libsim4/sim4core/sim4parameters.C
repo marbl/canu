@@ -23,6 +23,10 @@ sim4parameters::sim4parameters() {
 
     _relinkWeight               = DEFAULT_RELINK_WEIGHT;
 
+    _wordSize                   = 12;
+    _wordSizeInt                = 0;
+    _wordSizeExt                = 0;
+
     _dontForceCanonicalSplicing = false;
     _forceStrandPrediction      = false;
 

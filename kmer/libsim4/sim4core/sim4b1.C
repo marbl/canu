@@ -1,9 +1,11 @@
 #include "sim4.H"
 
+#if 0
 #define  DEFAULT_W         12
 #define  DEFAULT_X         12    
 #define  DEFAULT_K         16
 #define  DEFAULT_C         12
+#endif
 
 //  SHOW_PROGRESS -- write the progress of Sim4::SIM4 to stderr
 //  DEBUG_EXONS   -- dump the exons at various places
@@ -71,12 +73,13 @@ Sim4::SIM4(char *in_seq1, char *in_seq2,
 
 #ifdef SHOW_PROGRESS
   fprintf(stderr, "before exon_cores\n");
+  double beforeExonCoresStartTime = getTime();
 #endif
 
   exon_cores(seq1-1, seq2-1, len1, len2, 1, 1, 0, wordSize, mspThreshold1, PERM);
 
 #ifdef SHOW_PROGRESS
-  fprintf(stderr, "after exon_cores\n");
+  fprintf(stderr, "after exon_cores -- took %f seconds.\n", getTime() - beforeExonCoresStartTime);
 #endif
 
   //  See if there are too many MSPs found.  If so, fail.
@@ -165,8 +168,21 @@ Sim4::SIM4(char *in_seq1, char *in_seq2,
 
     int diff = (int)(tmp_block1->frEST - tmp_block->toEST - 1);
 
+#ifdef SHOW_PROGRESS
+    fprintf(stdout, "tmp_block: %8d %8d %8d %8d %d diff=%d\n",
+            tmp_block->frGEN,
+            tmp_block->toGEN,
+            tmp_block->frEST,
+            tmp_block->toEST,
+            tmp_block->flag,
+            diff);
+#endif
+
     if (diff) {
       if (diff < 0) {
+#ifdef SHOW_PROGRESS
+        fprintf(stderr, "Called SIM4_block1()\n");
+#endif
         rollbflag = SIM4_block1(Lblock, tmp_block, tmp_block1);
       } else {
         /* bridge the gap */
@@ -174,17 +190,26 @@ Sim4::SIM4(char *in_seq1, char *in_seq2,
         if (tmp_block1->frGEN - tmp_block->toGEN - 1 > 0) {
           if (tmp_block1->toEST &&
               tmp_block->toEST) {
+#ifdef SHOW_PROGRESS
+            fprintf(stderr, "Called SIM4_block2()\n");
+#endif
             rollbflag = SIM4_block2(tmp_Lblock,
                                     tmp_Rblock,
                                     tmp_block,
                                     tmp_block1);
           } else if (tmp_block1->toGEN) {
+#ifdef SHOW_PROGRESS
+            fprintf(stderr, "Called SIM4_block3()\n");
+#endif
             rollbflag = SIM4_block3(good_match,
                                     tmp_Lblock,
                                     tmp_Rblock,
                                     tmp_block,
                                     tmp_block1);
           } else {
+#ifdef SHOW_PROGRESS
+            fprintf(stderr, "Called SIM4_block4()\n");
+#endif
             rollbflag = SIM4_block4(good_match,
                                     tmp_Lblock,
                                     tmp_Rblock,

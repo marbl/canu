@@ -43,8 +43,8 @@ typedef struct coordinates {
 
 /* used only in the alignment stage */
 typedef struct edit_script {
-  char op_type;   /* SUB, INS, or DEL */
-  int num;        /* Number of operations */
+  int                 op_type;    /* SUB, INS, or DEL */
+  int                 num;        /* Number of operations */
   struct edit_script *next;
 } edit_script;
 
@@ -64,9 +64,13 @@ typedef  struct ValNode {
 } *ValNodePtr;
 
 typedef struct spliced {
-  int xs, xe, ys, ye, score;
-  char type;
-  struct spliced *next;
+  int              xs;
+  int              xe;
+  int              ys;
+  int              ye;
+  int              score;
+  int              type;
+  struct spliced  *next;
 } splice_t;
 
 typedef struct sim4_stats {
@@ -123,8 +127,12 @@ private:
 
   //sim4_args_t rs;
 
-  int         X;
+  int         wordExtensionAllowance;
+
   int         wordSize;
+  int         wordSizeInt;
+  int         wordSizeExt;
+
   int         mspThreshold1;
   int         mspThreshold2;
 
@@ -141,6 +149,13 @@ private:
   //  For high-accuracy switch
   //
   bool _accurateSequences;
+
+
+#ifdef __APPLE__
+  bool   _pad[7];
+#endif
+
+
 
   void adjustBoundariesOfMarginalExons(Exon    *Lblock);
   void findLastAGandAC(Exon *tmp_block1);
@@ -442,8 +457,22 @@ public:
     last_AG.pos1 = last_AG.pos2 = 0;
     last_AC.pos1 = last_AC.pos2 = 0;
 
-    X             = DEFAULT_X;
-    wordSize      = DEFAULT_W;
+    wordExtensionAllowance   = 12;
+
+    //  wordSize      -- for finding initial seeds
+    //  wordSizeInt -- for extending seeds between seeds
+    //  wordSizeExt -- for extending seeds on the ends
+    //
+    //  If sim4parameters defined wordSizeInt or Ext use that,
+    //  otherwise, use the original method.
+    //
+    wordSize      = p->_wordSize;
+    wordSizeInt   = min(8,  p->_wordSize);
+    wordSizeExt   = min(10, p->_wordSize);
+
+    if (p->_wordSizeInt)  wordSizeInt = p->_wordSizeInt;
+    if (p->_wordSizeExt)  wordSizeExt = p->_wordSizeExt;
+
     mspThreshold1 = p->_mspThresh1;  //K;
     mspThreshold2 = p->_mspThresh2;  //C;
 

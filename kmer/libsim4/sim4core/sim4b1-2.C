@@ -34,7 +34,7 @@ Sim4::SIM4_block2(Exon*   &tmp_Lblock,
                  tmp_block->toGEN+1,
                  tmp_block->toEST+1,
                  1,
-                 min(8,wordSize),
+                 wordSizeInt,
                  mspThreshold2,
                  TEMP);
 

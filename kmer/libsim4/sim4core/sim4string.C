@@ -122,7 +122,7 @@ Sim4::run(sim4command *cmd) {
   estlen     = cmd->getESTlength();
 
   for (int i=0; i<estlen; i++)
-    estseq[i] = touppercache[estseqorig[i]];
+    estseq[i] = touppercache[(int)estseqorig[i]];
   estseq[estlen] = 0;
 
   g_pT = g_pA = 0;
@@ -146,8 +146,8 @@ Sim4::run(sim4command *cmd) {
   if (dbWasMasked) {
     dbWasMasked = false;
     for (u32bit i=0, j=cmd->getGENlo(), k=dblen-1; j<cmd->getGENhi(); i++, j++, k--) {
-      dbseq[i] = touppercache[dbseqorig[j]];
-      dbrev[k] = complementSymbol[dbseq[i]];
+      dbseq[i] = touppercache[(int)dbseqorig[j]];
+      dbrev[k] = complementSymbol[(int)dbseq[i]];
     }
     dbseq[dblen] = 0;
     dbrev[dblen] = 0;
@@ -173,7 +173,7 @@ Sim4::run(sim4command *cmd) {
     memset(&st,     0, sizeof(sim4_stats_t));
     memset(&rev_st, 0, sizeof(sim4_stats_t));
 
-    bld_table(estseq - 1 + g_pT, estlen - g_pA - g_pT, DEFAULT_W, INIT);
+    bld_table(estseq - 1 + g_pT, estlen - g_pA - g_pT, wordSize, INIT);
 
     if (cmd->doForward()) {
       fAligns = SIM4(dbseq, estseq + g_pT,
@@ -388,7 +388,7 @@ Sim4::run(sim4command *cmd) {
 
         if (globalParams->_printAlignments) {
           for (int i=0, k=estlen-1; i<estlen; i++, k--)
-            estrev[k] = complementSymbol[estseq[i]];
+            estrev[k] = complementSymbol[(int)estseq[i]];
           estrev[estlen] = 0;
 
           appendAlignments(B,
