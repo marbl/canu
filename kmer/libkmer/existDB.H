@@ -15,6 +15,8 @@
 //  Extend to allow runtime enable of VERBOSE (currently always not verbose)
 //  Extend to allow optimal memory sizing ala meryl (only if we are given meryl as input)
 
+//  Using a compressed hash is extreme -- really slow and doesn't save that much.
+
 //  Print some statistics
 //
 //#define STATS
