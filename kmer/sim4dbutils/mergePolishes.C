@@ -3,6 +3,7 @@
 #include <errno.h>
 
 #include "libbri.H"
+#include "fasta.H"
 #include "sim4reader.h"
 
 //
@@ -64,15 +65,18 @@ main(int argc, char **argv) {
   fprintf(stderr, "Merging sequences.\n");
 
   FILE         *O = fopen(otSeqName, "w");
-  FastABuffer   B;
   for (int i=0; i<numIn; i++) {
-    FastA        *I = new FastA(inSeqName[i], false, false);
+    FastAWrapper  *I = new FastAWrapper(inSeqName[i]);
 
     numSeqs[i] = 0;
 
-    for (I->first(B); !I->eof(); I->next(B)) {
-      fprintf(O, "%s\n%s\n", B.header(), B.sequence());
+    while (!I->eof()) {
+      FastASequenceInCore *B = I->getSequence();
+
+      fprintf(O, "%s\n%s\n", B->header(), B->sequence());
       numSeqs[i]++;
+
+      delete B;
     }
 
     delete I;
