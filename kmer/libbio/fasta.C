@@ -5,7 +5,7 @@
 
 #include "bri++.H"
 
-FastAWrapper::FastAWrapper(const char *filename) {
+FastAWrapper::FastAWrapper(const char *filename, u32bit bufferSize) {
   _theSeqs               = 0L;
   _theNamesLen           = 0;
   _theNames              = 0L;
@@ -20,16 +20,25 @@ FastAWrapper::FastAWrapper(const char *filename) {
     _filename = new char [6];
     strcpy(_filename, "stdin");
 
-    _filebuffer    = new readBuffer(fileno(stdin), _filename);
+    if (bufferSize != ~u32bitZERO)
+      _filebuffer    = new readBuffer(fileno(stdin), _filename, bufferSize);
+    else
+      _filebuffer    = new readBuffer(fileno(stdin), _filename);
     _isStreamInput = true;
   } else {
     _filename = new char [strlen(filename)+1];
     strcpy(_filename, filename);
 
 #ifdef _AIX
-    _filebuffer    = new readBuffer(_filename, 0);
+    if (bufferSize != ~u32bitZERO)
+      _filebuffer    = new readBuffer(_filename, bufferSize);
+    else
+      _filebuffer    = new readBuffer(_filename, 0);
 #else
-    _filebuffer    = new readBuffer(_filename);
+    if (bufferSize != ~u32bitZERO)
+      _filebuffer    = new readBuffer(_filename, bufferSize);
+    else
+      _filebuffer    = new readBuffer(_filename);
 #endif
     _isStreamInput = false;
   }
