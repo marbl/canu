@@ -230,6 +230,9 @@ multipleOperations(merylArgs *args) {
     currentTimes++;
   }
 
+  if (args->beVerbose)
+    fprintf(stderr, "\n");
+
   for (u32bit i=0; i<args->mergeFilesLen; i++)
     delete R[i];
   delete R;
