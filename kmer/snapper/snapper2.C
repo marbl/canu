@@ -433,20 +433,9 @@ main(int argc, char **argv) {
   double  zeroTime = getTime();
 
   while (outputPos < numberOfQueries) {
-    if (output[outputPos]) {
-      if (config._beVerbose && ((outputPos & 0xf) == 0xf)) {
-        double thisTimeD = getTime() - zeroTime + 0.0000001;
-        fprintf(stderr, outputDisplay,
-                outputPos,
-                inputTail,
-                inputHead,
-                numberOfQueries,
-                100.0 * outputPos / numberOfQueries,
-                outputPos / thisTimeD,
-                (numberOfQueries - outputPos) * thisTimeD / outputPos);
-        fflush(stderr);
-      }
+    bool  justSlept = false;
 
+    if (output[outputPos]) {
       if (outputLen[outputPos] > 0) {
         errno = 0;
         write(resultFILE, output[outputPos], sizeof(char) * outputLen[outputPos]);
@@ -516,6 +505,20 @@ main(int argc, char **argv) {
       outputPos++;
     } else {
       nanosleep(&config._writerSleep, 0L);
+      justSlept = true;
+    }
+
+    if (config._beVerbose && ((justSlept) || (outputPos & 0xf) == 0xf)) {
+      double thisTimeD = getTime() - zeroTime + 0.0000001;
+      fprintf(stderr, outputDisplay,
+              outputPos,
+              inputTail,
+              inputHead,
+              numberOfQueries,
+              100.0 * outputPos / numberOfQueries,
+              outputPos / thisTimeD,
+              (numberOfQueries - outputPos) * thisTimeD / outputPos);
+      fflush(stderr);
     }
   }
 
