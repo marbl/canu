@@ -289,8 +289,7 @@ comparePolishFiles(int argc, char **argv) {
 
     //  Scan forward in B comparing matches with the same IID.
     //
-    while ((A[thisA]->estID == B[thisB]->estID) && (thisB < B.length())) {
-      //while (thisB < B.length()) {
+    while ((thisB < B.length()) && (A[thisA]->estID == B[thisB]->estID)) {
       if ((A[thisA]->estID            == B[thisB]->estID) &&
           (A[thisA]->genID            == B[thisB]->genID) &&
           (A[thisA]->matchOrientation == B[thisB]->matchOrientation)) {
@@ -377,13 +376,14 @@ comparePolishFiles(int argc, char **argv) {
 
     thisA++;
 
-#if 1
+#if 0
     fprintf(stderr, "A=%6d  B=%6d  Equal %6d  Bmissed %6d  Boverlap %6d  Abetter %6d  Bbetter %6d  Nbetter %6d\r",
             thisA, lastB, Equal, Bmissed, Boverlap, Abetter, Bbetter, Nbetter);
     fflush(stderr);
 #endif
   }
 
+  fprintf(stderr, "Final summary:\n");
   fprintf(stderr, "A=%6d  B=%6d  Equal %6d  Bmissed %6d  Boverlap %6d  Abetter %6d  Bbetter %6d  Nbetter %6d\n",
           thisA, lastB, Equal, Bmissed, Boverlap, Abetter, Bbetter, Nbetter);
 }
