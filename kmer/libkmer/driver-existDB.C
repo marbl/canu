@@ -42,6 +42,7 @@ main(int argc, char **argv) {
       delete e;
       exit(0);
     }
+    arg++;
   }
 
   existDB  *e = new existDB(argv[argc-2], mersize, tblsize);
