@@ -11,7 +11,7 @@ existDB::createFromMeryl(char const  *prefix,
                          u32bit       lo,
                          u32bit       hi) {
 
-  fprintf(stderr, "Reading mers from meryl stream %s\n", prefix);
+  fprintf(stderr, "existDB: Reading mers from meryl stream %s\n", prefix);
 
   merStreamFromMeryl *M = new merStreamFromMeryl(prefix);
 
@@ -67,7 +67,7 @@ existDB::createFromMeryl(char const  *prefix,
     _hashWidth++;
 #endif
 
-  fprintf(stderr, "Found %u mers between count of %u and %u\n", numberOfMers, lo, hi);
+  fprintf(stderr, "existDB: Found %u mers between count of %u and %u\n", numberOfMers, lo, hi);
 
 
   //  2) Allocate hash table, mer storage buckets
@@ -150,8 +150,6 @@ existDB::createFromMeryl(char const  *prefix,
 
   delete M;
   delete [] countingTable;
-
-  fprintf(stderr, "All done.\n");
 
   return(true);
 }
