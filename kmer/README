@@ -1,13 +1,3 @@
-$Id$
-$Log$
-Revision 1.2  2003/01/03 15:06:10  walenz
-*** empty log message ***
-
-Revision 1.1  2003/01/03 14:59:19  walenz
-*** empty log message ***
-
-
-BRI = ?
 
 This is a collection of codes written/supported by Brian Walenz
 (Informatics Research).  All codes are intertwined, hence the grouping
@@ -32,3 +22,30 @@ meryl
 -----
 The (magic) mer counter
 
+
+----------------------------------------
+
+How to build:
+
+Unfortunately, I don't really use the IR standard build system.  There
+is a better way to do this, but I know this way works.
+
+ln -s ../build/Make.path
+ln -s ../build/Make.rules
+ln -s ../build/Make_utils
+ln -s ../build/Makefile
+
+You might have to
+  cd ../build/Make_utils && cc -o makepath makepath.c
+
+setenv WITH_THREADS yes
+alias mbri gmake -f /IR/devel/mapping/cds/IR/BRI/Makefile
+alias mbri gmake -f /work/cds/IR//BRI/Makefile
+
+sh ./configure.sh
+
+Then, in cds/IR/BRI, mbri to build the stuff and
+cd ESTmapper && mbri to make ESTmapper.
+
+In theory, you can build out of ../build, but I don't do that.
+Clark Mobarry does, so check with him.
