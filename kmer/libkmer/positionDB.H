@@ -2,7 +2,7 @@
 #define POSITIONDB_H
 
 #include <stdio.h>
-#include "bri++.h"
+#include "bri++.H"
 
 typedef u64bit heapbit;
 
