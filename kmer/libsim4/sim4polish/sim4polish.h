@@ -87,6 +87,13 @@ void           s4p_removeDeflines(sim4polish *p);
 void           s4p_destroyPolish(sim4polish *p);
 
 
+//  Reverse complement an input polish
+//
+void           s4p_reverseComplement(sim4polish *p);
+int            s4p_makeForward(sim4polish *p);
+int           s4p_makeReverse(sim4polish *p);
+
+
 //  We allow the polish to be printed in different ways:
 //
 //  Normalized to the start of the genomic sequence (gets rid of the
@@ -108,9 +115,15 @@ void           s4p_printPolish(FILE *O, sim4polish *p, u32bit flags);
 
 void           s4p_swapExons(sim4polish *p, int a, int b);
 void           s4p_deleteExon(sim4polish *p, int a);
-void           s4p_copyExon(sim4polish *p, int a, sim4polishExon *e);
-void           s4p_overwriteExon(sim4polish *p, sim4polishExon *e, int a);
-void           s4p_insertExon(sim4polish *p, int a, sim4polishExon *e);
+void           s4p_copyExon(sim4polishExon *copy, sim4polishExon *orig);
+void           s4p_insertExon(sim4polish      *p,
+                              int              a,
+                              u32bit           intronori,
+                              sim4polishExon  *e);
+void           s4p_insertExons(sim4polish     *p,
+                               int             a, 
+                               u32bit          intronori,
+                               sim4polish     *e);
 
 sim4polish    *s4p_stringToPolish(char *s);
 char          *s4p_polishToString(sim4polish *p);
