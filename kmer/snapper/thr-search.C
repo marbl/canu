@@ -250,6 +250,10 @@ doPolish(searcherState       *state,
 
   output[0] = 0;
 
+#ifdef SHOW_POLISHING
+  fprintf(stderr, "Need to polish "u32bitFMT" things.\n", theHitsLen);
+#endif
+
   for (u32bit h=0; h<theHitsLen; h++) {
     if ((config._doValidation) ||
         (theHits[h]._status & 0x00000002)) {
@@ -313,7 +317,7 @@ doPolish(searcherState       *state,
         }
 
 #ifdef SHOW_POLISHING
-        fprintf(stdout, "  id=%u cov=%u\n", seq->getIID(), L4[i]->percentIdentity, L4[i]->querySeqIdentity);
+        fprintf(stdout, "  match["u32bitFMT"] : id=%u cov=%u\n", i, L4[i]->percentIdentity, L4[i]->querySeqIdentity);
         fflush(stdout);
 #endif
 
@@ -321,31 +325,57 @@ doPolish(searcherState       *state,
         //
         if ((L4[i]->percentIdentity  >= config._minMatchIdentity) &&
             (L4[i]->querySeqIdentity >= config._minMatchCoverage)) {
+
+#ifdef SHOW_POLISHING
+          fprintf(stderr, "    saving hit 1\n");
+#endif
+
           theHits[h]._status |= 0x00000004;
 
           char *pstr = s4p_polishToString(L4[i]);
 
+#ifdef SHOW_POLISHING
+          fprintf(stderr, "    saving hit 2\n");
+#endif
+
           u32bit l = (u32bit)strlen(pstr);
-          if (outputLen + l + 1 > outputMax) {
-            outputMax <<= 1;
+          if (outputLen + l + 1 >= outputMax) {
+            outputMax = outputMax + outputMax + l;
             char *o = 0L;
             try {
               o = new char [outputMax];
             } catch (...) {
-              fprintf(stderr, "doPolish()-- Can't reallocate space for the output string (%u bytes) in thread %lu\n", outputMax, state->threadID);
+              fprintf(stderr, "doPolish()-- Can't reallocate space for the output string ("u32bitFMT" bytes) in thread "u64bitFMT"\n", outputMax, state->threadID);
               abort();
             }
             memcpy(o, output, sizeof(char) * outputLen);
             delete [] output;
             output = o;
           }
+
+#ifdef SHOW_POLISHING
+          fprintf(stderr, "    saving hit 3 len="u32bitFMT", max="u32bitFMT", l="u32bitFMT"\n", outputLen, outputMax, l);
+#endif
+
           memcpy(output + outputLen, pstr, sizeof(char) * l);
           outputLen += l;
           output[outputLen] = 0;
 
+#ifdef SHOW_POLISHING
+          fprintf(stderr, "    saving hit 4\n");
+#endif
+
           free(pstr);
+
+#ifdef SHOW_POLISHING
+          fprintf(stderr, "    saving hit 5\n");
+#endif
         }
       }
+
+#ifdef SHOW_POLISHING
+      fprintf(stderr, "    saving hit 6\n");
+#endif
 
       //  Save the best scores
       //
@@ -371,12 +401,11 @@ doPolish(searcherState       *state,
     } else {
       state->discarded++;
     }
-
-#ifdef MEMORY_DEBUG
-    //fprintf(stderr, "Memory dump in polish\n");
-    //_dump_allocated_delta(fileno(stderr));
-#endif
   }
+
+#ifdef SHOW_POLISHING
+  fprintf(stderr, "Done polishing.\n");
+#endif
 
   state->polishTime += getTime() - startTime;
 
@@ -386,18 +415,6 @@ doPolish(searcherState       *state,
 
 
 
-#ifdef _AIX
-//  If we're AIX, define a new handler.  Other OS's reliably throw exceptions.
-//
-static
-void
-aix_new_handler() {
-  fprintf(stderr, "aix_new_handler()-- Memory allocation failed for search.\n");
-  throw std::bad_alloc();
-}
-
-#endif
-
 
 
 void*
@@ -406,10 +423,6 @@ searchThread(void *U) {
   FastASequenceInCore *seq      = 0L;
   u32bit               blockedI = 0;
   u32bit               blockedO = 0;
-
-#ifdef _AIX
-  std::set_new_handler(aix_new_handler);
-#endif
 
   searcherState       *state    = new searcherState((u64bit)U);
 
@@ -493,10 +506,9 @@ searchThread(void *U) {
         u32bit numF = doFilter(state, theHits, theHitsLen);
 
 #ifdef VERBOSE_SEARCH
-        if (numF > 10) {
-          fprintf(stdout, "seq %u has %u decent hits out of %u total\n", idx, numF, theHitsLen);
-          fflush(stdout);
-        }
+        fprintf(stdout, "seq %u has %u decent hits out of %u total\n", idx, numF, theHitsLen);
+        fflush(stdout);
+
         double filterTime = getTime();
 #endif
 

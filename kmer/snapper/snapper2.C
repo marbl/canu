@@ -376,6 +376,12 @@ main(int argc, char **argv) {
   for (u64bit i=0; i<config._numSearchThreads; i++)
     pthread_create(threadID + threadIDX++, &threadAttr, searchThread, (void *)i);
 
+#if 0
+  fprintf(stderr, "Sleeping 100 seconds for searches to stabilize\n");
+  sleep(100);
+  fprintf(stderr, "Arise!\n");
+#endif
+
   //
   //  Open output files
   // 
