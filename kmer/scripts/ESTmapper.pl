@@ -1247,6 +1247,9 @@ sub search {
             } elsif (($species eq "mouse") ||
                      ($species eq "mus")) {
                 $maskFile = "$exechome/data/frequentMers-mus-20.fasta";
+            } elsif (($species eq "rattus") ||
+                     ($species eq "rat")) {
+                $maskFile = "$exechome/data/frequentMers-rat-20.fasta";
             } else {
                 print STDERR "ESTmapper/search-- Unknown species '$species'.\n";
                 $maskFile = "";
