@@ -39,7 +39,7 @@ public:
       return(">");
   };
 
-  bool               nextMer(void);
+  bool               nextMer(u32bit skip=0);
 private:
   void               loadMer(u32bit s);
   unsigned char      nextSymbol(void) {
@@ -132,7 +132,9 @@ merStream::loadMer(u32bit s) {
 
 inline
 bool
-merStream::nextMer(void) {
+merStream::nextMer(u32bit skip) {
+
+ again:
   u64bit  ch = nextSymbol();
   u64bit  cf = validCompressedSymbol[ch];
   u64bit  cr = validCompressedSymbol[complementSymbol[ch]] & 0x03;
@@ -150,9 +152,15 @@ merStream::nextMer(void) {
   _theRMer |= cr << _theRMerShift;
 
   //  If the ch is invalid, we need to make a whole new mer.
+  //  This also implies that we're done skipping.
   //
-  if (cf & (unsigned char)0xfc)
+  if (cf & (unsigned char)0xfc) {
     loadMer(_merSize);
+    skip = 0;
+  }
+
+  if (skip--)
+    goto again;
 
   _theFMer &= _theMerMask;
   _theRMer &= _theMerMask;
