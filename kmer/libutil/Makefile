@@ -1,11 +1,11 @@
-PROG    = readBuffer-test
+PROG    = 
 INCLUDE = 
 LIBS    = 
 
 SRCS    = alphabet-generate.C alphabet.C bit-packing.H bitPackedFile.C bitPackedFile.H \
           fastastream.H libbri.H libbritypes.H \
           merstream.C merstream.H outputString.H \
-          speedCounter.H util.C readBuffer.H readBuffer-test.C
+          speedCounter.H util.C readBuffer.H
 OBJS    = alphabet.o bitPackedFile.o merstream.o util.o palloc.o sim4reader.o
 
 all: libbri.a $(PROG)
@@ -21,9 +21,6 @@ alphabet.C: alphabet-generate.C
 	$(CC) $(CCOPTS) -DMAIN -o alphabet-generate alphabet-generate.C
 	./alphabet-generate > alphabet.C
 	rm alphabet-generate
-
-readBuffer-test: readBuffer-test.C readBuffer.H
-	$(CC) $(CCOPTS) -o readBuffer-test readBuffer-test.C
 
 buildinfo-libbri.c: $(SRCS)
 	../util/buildinfo.pl libbri "$(CCOPTS)" $(SRCS)
