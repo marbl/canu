@@ -20,7 +20,7 @@ $/.CXX_LIBS   := $/libmeryl.a
 $/.CLEAN      := $/*.o
 $/.REAL-CLEAN := $/buildinfo-*
 
-$/libmeryl.a    : $/libmeryl.o
+$/libmeryl.a    : $/libmeryl.o $/mcBucket.o
 $/merle         : $/buildinfo-merle.o $/merle.o
 $/meryl         : ${src_C:.C=.o} $/buildinfo-meryl.o $/libmeryl.a
 $/meryl $/merle : ${LIBBRI/}libbri.a
