@@ -30,16 +30,25 @@ merylStreamReader::merylStreamReader(const char *fn, u32bit ms) {
     Dmagic[i] = _DAT->getBits(8);
   }
   if (strncmp(Imagic, "merylStreamIv01\n", 16) != 0) {
-    fprintf(stderr, "merylStreamReader()-- ERROR: %s.mcidx isn't a merylStream index file!\n", fn);
-    fail = true;
+    if (strncmp(Imagic, "merylStreamIvXX\n", 16) == 0) {
+      fprintf(stderr, "merylStreamReader()-- ERROR: %s.mcidx is an INCOMPLETE merylStream index file!\n", fn);
+      fail = true;
+    } else {
+      fprintf(stderr, "merylStreamReader()-- ERROR: %s.mcidx isn't a merylStream index file!\n", fn);
+      fail = true;
+    }
   }
   if (strncmp(Dmagic, "merylStreamDv01\n", 16) != 0) {
-    fprintf(stderr, "merylStreamReader()-- ERROR: %s.mcdat isn't a merylStream data file!\n", fn);
-    fail = true;
+    if (strncmp(Dmagic, "merylStreamDvXX\n", 16) == 0) {
+      fprintf(stderr, "merylStreamReader()-- ERROR: %s.mcidx is an INCOMPLETE merylStream data file!\n", fn);
+      fail = true;
+    } else {
+      fprintf(stderr, "merylStreamReader()-- ERROR: %s.mcdat isn't a merylStream data file!\n", fn);
+      fail = true;
+    }
   }
   if (fail)
     exit(1);
-
 
   _merSizeInBits  = _IDX->getBits(32) << 1;
   _prefixSize     = _IDX->getBits(32);
@@ -97,7 +106,6 @@ merylStreamWriter::merylStreamWriter(const char *fn,
                                      u64bit numDistinct,
                                      u64bit numTotal) {
 
-
   //  Open the files
   //
   char *outpath = new char [strlen(fn) + 17];
@@ -109,7 +117,6 @@ merylStreamWriter::merylStreamWriter(const char *fn,
   _DAT = new bitPackedFile(outpath);
 
   delete [] outpath;
-
 
   //  Save really important stuff
   //
@@ -125,8 +132,6 @@ merylStreamWriter::merylStreamWriter(const char *fn,
   _thisMer        = u64bitZERO;
   _thisMerCount   = u64bitZERO;
 
-
-
   //  Write the headers
   //    16 bytes for a magic cookie
   //        The IDX gets "merylStreamIv01\n"
@@ -136,7 +141,6 @@ merylStreamWriter::merylStreamWriter(const char *fn,
   //     8 bytes for numUnique
   //     8 bytes for numDistinct
   //     8 bytes for numTotal
-  //
 
   _IDX->putBits('m',  8);
   _IDX->putBits('e',  8);
@@ -151,8 +155,8 @@ merylStreamWriter::merylStreamWriter(const char *fn,
   _IDX->putBits('m',  8);
   _IDX->putBits('I',  8);
   _IDX->putBits('v',  8);
-  _IDX->putBits('0',  8);
-  _IDX->putBits('1',  8);
+  _IDX->putBits('X',  8);
+  _IDX->putBits('X',  8);
   _IDX->putBits('\n', 8);
 
   _IDX->putBits(merSize,     32);
@@ -174,8 +178,8 @@ merylStreamWriter::merylStreamWriter(const char *fn,
   _DAT->putBits('m',  8);
   _DAT->putBits('D',  8);
   _DAT->putBits('v',  8);
-  _DAT->putBits('0',  8);
-  _DAT->putBits('1',  8);
+  _DAT->putBits('X',  8);
+  _DAT->putBits('X',  8);
   _DAT->putBits('\n', 8);
 }
 
@@ -199,9 +203,6 @@ merylStreamWriter::~merylStreamWriter() {
     _thisBucketSize++;
   }
 
-
-  //fprintf(stderr, "writing buckets from "u64bitFMT" to "u64bitFMT"\n", _thisBucket, _prefixMask);
-
   //  Finish writing the buckets.
   //
   while (_thisBucket < _prefixMask) {
@@ -213,7 +214,44 @@ merylStreamWriter::~merylStreamWriter() {
   _IDX->putNumber(_thisBucketSize);
   _IDX->putNumber(_thisBucketSize);
 
+  //  Seek back to the start and rewrite the magic numbers
+  //
+  _IDX->seek(0);
+  _IDX->putBits('m',  8);
+  _IDX->putBits('e',  8);
+  _IDX->putBits('r',  8);
+  _IDX->putBits('y',  8);
+  _IDX->putBits('l',  8);
+  _IDX->putBits('S',  8);
+  _IDX->putBits('t',  8);
+  _IDX->putBits('r',  8);
+  _IDX->putBits('e',  8);
+  _IDX->putBits('a',  8);
+  _IDX->putBits('m',  8);
+  _IDX->putBits('I',  8);
+  _IDX->putBits('v',  8);
+  _IDX->putBits('0',  8);
+  _IDX->putBits('1',  8);
+  _IDX->putBits('\n', 8);
   delete _IDX;
+
+  _DAT->seek(0);
+  _DAT->putBits('m',  8);
+  _DAT->putBits('e',  8);
+  _DAT->putBits('r',  8);
+  _DAT->putBits('y',  8);
+  _DAT->putBits('l',  8);
+  _DAT->putBits('S',  8);
+  _DAT->putBits('t',  8);
+  _DAT->putBits('r',  8);
+  _DAT->putBits('e',  8);
+  _DAT->putBits('a',  8);
+  _DAT->putBits('m',  8);
+  _DAT->putBits('D',  8);
+  _DAT->putBits('v',  8);
+  _DAT->putBits('0',  8);
+  _DAT->putBits('1',  8);
+  _DAT->putBits('\n', 8);
   delete _DAT;
 }
 
