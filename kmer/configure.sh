@@ -62,7 +62,9 @@ case $target in
 #  Using this breaks dynamic library building:  -mdynamic-no-pic
 #    We could have instead included -fPIC on the compile line.
 #
-FAST              := -O3 -funroll-loops -fstrict-aliasing -fsched-interblock -falign-loops=16 -falign-jumps=16 -falign-functions=16 -falign-jumps-max-skip=15 -falign-loops-max-skip=15 -malign-natural -ffast-math -mpowerpc-gpopt -force_cpusubtype_ALL -fstrict-aliasing -mtune=G5 -mcpu=G5
+# -malign-natural changes the size of structures compared to -g.  -Wpadded supposedly warns when this happens
+#
+FAST              := -Wpadded -O3 -funroll-loops -fstrict-aliasing -fsched-interblock -falign-loops=16 -falign-jumps=16 -falign-functions=16 -falign-jumps-max-skip=15 -falign-loops-max-skip=15 -malign-natural -ffast-math -mpowerpc-gpopt -force_cpusubtype_ALL -fstrict-aliasing -mtune=G5 -mcpu=G5
 CC                := gcc
 SHLIB_FLAGS       := -dynamiclib
 CFLAGS_COMPILE    := \$(FAST) -D_THREAD_SAFE -Wall
@@ -83,11 +85,11 @@ EOF
 #
 CC                := gcc
 SHLIB_FLAGS       := -dynamiclib
-CFLAGS_COMPILE    := -O3 -g3 -D_THREAD_SAFE -Wall
+CFLAGS_COMPILE    := -g3 -D_THREAD_SAFE -Wall
 CLDFLAGS          := 
 CLIBS             := 
 CXX               := g++
-CXXFLAGS_COMPILE  := -O3 -g3 -D_THREAD_SAFE -Wall
+CXXFLAGS_COMPILE  := -g3 -D_THREAD_SAFE -Wall
 CXXLDFLAGS        := 
 CXXLIBS           := 
 ARFLAGS           := ruvs
