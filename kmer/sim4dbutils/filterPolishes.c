@@ -43,11 +43,13 @@ char const *msg1 = " Filter: %6.2f%% (%9lu matches processed) (%lu failed/intrac
 char const *msg2 = " Filter: %6.2f%% (%9lu matches processed)\n";
 char const *msg3 = "Filtering at %d%% coverage and %d%% identity and %dbp.\n";
 char const *msg4 = "Filtering for cDNA == %d, genomic == %d\n";
+char const *msg5 = "Genomic index %d larger than MAX_SCAFFOLD = %d!\n";
 #else
 char const *msg1 = " Filter: %6.2f%% (%9llu matches processed) (%llu failed/intractable)\r";
 char const *msg2 = " Filter: %6.2f%% (%9llu matches processed)\r";
 char const *msg3 = "Filtering at %ld%% coverage and %ld%% identity and %ldbp.\n";
 char const *msg4 = "Filtering for cDNA == %ld, genomic == %ld\n";
+char const *msg5 = "Genomic index %ld larger than MAX_SCAFFOLD = %d!\n";
 #endif
 
 
@@ -74,7 +76,6 @@ main(int argc, char ** argv) {
   int          doSegregation = 0;
   char        *filePrefix = 0L;
   FILE       **SEGREGATE = 0L;
-
 
   arg = 1;
   while (arg < argc) {
@@ -160,7 +161,7 @@ main(int argc, char ** argv) {
         good++;
         if (doSegregation) {
           if (p->genID >= MAX_SCAFFOLD) {
-            fprintf(stderr, msg3, p->genID);
+            fprintf(stderr, msg5, p->genID, MAX_SCAFFOLD);
           } else {
             if (SEGREGATE[p->genID] == 0L) {
               char filename[1024];
