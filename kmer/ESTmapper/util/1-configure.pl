@@ -53,6 +53,59 @@ sub configure_pack {
 }
 
 
+
+
+sub testSourceFile {
+    my $oldpath = shift @_;
+    my $newfile = shift @_;
+
+    #  If the $oldpath exists, make sure it is the same as the $newpath.
+    #  We use both identical path, as well as identical index files.
+    #
+    #  This will fail if the user points to a different file with the
+    #  same name that also has a valid index with it.
+    #
+    if (-f $oldpath) {
+        my $oldfile = readlink $oldpath;
+
+        #  If we get a different name here, fail if the index files
+        #  are different (or don't exist).
+        #
+        if ($oldfile ne $newfile) {
+            my $indexOK = 1;
+
+            #  If the oldpath has an index file (and it's not a symlink), see if it's compatible with the
+            #  new file.
+            #
+            if (-e "${oldpath}idx" && ! -l "${oldpath}idx") {
+                $indexOK = system("$leaff --testindex $newfile ${oldpath}idx");
+            }
+
+            #  If not compatible, or no index present, fail.
+            #
+            if ($indexOK == 0) {
+                print STDERR "ESTmapper/configure-- WARNING: Previous run of ESTmapper used a genomic file\n";
+                print STDERR "                      with a different name.  As far as I can tell, the old\n";
+                print STDERR "                      file name and the new file name are the same file.\n";
+                print STDERR "                      This run will continue using the NEW file.\n";
+
+                unlink "${oldpath}";
+                unlink "${oldpath}idx";
+            } else {
+                print STDERR "ESTmapper/configure-- ERROR: Previous run of ESTmapper used genomic file\n";
+                print STDERR "                        $oldfile\n";
+                print STDERR "                      But this run wants to use\n";
+                print STDERR "                        $newfile\n";
+                print STDERR "                      And these files seem to be different.\n";
+                print STDERR "                      This run is aborted.\n";
+                exit(1);
+            }
+
+        }
+    }
+}
+
+
 sub configure {
     my $startTime = time();
     my @ARGS      = @_;
@@ -97,6 +150,9 @@ sub configure {
     #
     die "ERROR: ESTmapper/configure-- can't find the genomic sequence '$genomic'\n" if (! -f "$genomic");
     die "ERROR: ESTmapper/configure-- can't find the cdna sequence '$cdna'\n"       if (! -f "$cdna");
+
+    testSourceFile("$path/0-input/genomic.fasta", $genomic);
+    testSourceFile("$path/0-input/cDNA.fasta",    $cdna);
 
     symlink "${genomic}",    "$path/0-input/genomic.fasta"    if ((! -f "$path/0-input/genomic.fasta"));
     symlink "${genomic}idx", "$path/0-input/genomic.fastaidx" if ((! -f "$path/0-input/genomic.fastaidx") && (-f "${genomic}idx"));
