@@ -83,7 +83,9 @@ ifeq (${_OS_}${_CC_},TRU64)
 endif
 
 ifeq (${_OS_},AIX)
-  AIX_SHLIB_FLAGS      :=-Wl,-bhalt:4 -Wl,-T512 -Wl,-H512 -Wl,-bM:SRE
+# These might be needed, but so far, not, -G suffices
+#  AIX_SHLIB_FLAGS      :=-Wl,-bhalt:4 -Wl,-T512 -Wl,-H512 -Wl,-bM:SRE
+  AIX_SHLIB_FLAGS      :=
 endif
 ifeq (${_OS_}${_CC_},AIX)
   CC               :=xlc
@@ -278,12 +280,9 @@ ifeq (${_OS_},TRU64)
   CXXLIBS_LAPACK    :=-ldxml
 endif
 ifeq (${_OS_},AIX)
-# this seems to work for both gcc and non-gcc
-#  CXXFLAGS_LAPACK   :=-DFTN_UNDERSCORE -DFTN_LOWERCASE
   CXXFLAGS_LAPACK   :=-DFTN_LOWERCASE
   CXXLDFLAGS_LAPACK :=-L/usr/local/ir/lib
-#  CXXLIBS_LAPACK    :=-llapack -lessl
-  CXXLIBS_LAPACK    :=-lessl
+  CXXLIBS_LAPACK    :=-llapack -lessl -lxlf90
 endif
 
 # sometimes we deploy on Solaris with CDX
