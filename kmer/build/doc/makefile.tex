@@ -7,33 +7,33 @@
 \section{Overview of the proposed new IR build system}
 
 The proposed buld system for IR projects is defined by the set of
-file under \verb+cds/IR/build+.  These files consist of a \verb+Makefile+
+files under \verb+cds/IR/build+.  These files consist of a \verb+Makefile+
 and several ancillary files which provide platform specific and file
 type specific definitions and rules.
 
 The build itself is always directed through the one \verb+Makefile+ in
 the build directory.  What I describe hereafter as {\em the build} is
 really \verb+gmake+ is invoked with this \verb+Makefile+, either from
-withing the \verb+cds/IR/build+ directory or referrenced explicitly
+within the \verb+cds/IR/build+ directory or referrenced explicitly
 with a \verb+-f+ option to \verb+gmake+.
 
 When the build is started, the ancillary files are examined to
-establish definitions (and to provide a naming utility).  The build
-then looks for a file named \verb+Make.include+ in the directory of
-invocation.  This \verb+Make.include+ files should contain build
-information for files pertinent to its directory and possible
+establish definitions, rules, and to provide a naming utility.  The
+build then looks for a file named \verb+Make.include+ in the directory
+of invocation.  This \verb+Make.include+ files should contain build
+information for files pertinent to its directory and possibly the
 inclusions of other \verb+Make.include+ files in lower directories.
-Only after the tree of \verb+Make.include+'s is read that any building
+It is only after the tree (and it better be a tree or something very
+bad will happen) of \verb+Make.include+'s is read that any building
 starts, so that full dependency information is available before any
-execution.
+action is taken.
 
-Additional include files which were defined in the \verb+Make.include+
-files, such as the \verb+*.d+ files which typically hold C and C++
-dependencies are included, possible after being rebuilt if a build
-rule exists for them and they do not exist or are out of date.  Thus,
-the first phase of the build is typically the creation of automatically
-generated dependency information, with subsequent modifications of
-sources minimally rebuilding these files.
+Automatic include files such as the \verb+*.d+ files which typically
+hold C and C++ dependencies are included, possibly after being rebuilt
+(if a build rule exists for them and if they do not exist or are out of
+date).  Thus, the first actions of the build is typically the creation of
+automatically generated dependency information, with subsequent
+modifications of sources to minimally rebuild these files.
 
 The build properly proceeds with the creation of all targets which
 have been defined.  Targets declared by placing them on the lists of
@@ -44,13 +44,14 @@ granularity.
 \section{Invoking the build system}
 
 There are two different directories which are of importance in the
-build system.  The first is the fixed build directory, \verb+cds/IR/build/+,
-which holds the \verb+Makefile+, ancillary files, and the installed files.
-The second directory of important is the directory of invocation, the
-place where \verb+gmake+ is executed.  These two directories coincide when
-one executes \verb+gmake+ from the build directory.  It is important to
-keep these things distinct because all actions take place in the directory
-of invocation, but the build directory.
+build system.  The first is the fixed build directory,
+\verb+cds/IR/build/+, which holds the \verb+Makefile+, ancillary
+files, and the installed files.  The second directory of importance is
+the directory of invocation, the place where \verb+gmake+ is executed.
+These two directories coincide when one executes \verb+gmake+ from the
+build directory.  Keep these things distinct because all inclusions
+start from and all actions take place in the directory of invocation,
+not the build directory.
 
 The first \verb+Make.include+ is read in the directory of invocation.
 If the convention has been followed of having \verb+Make.include+
@@ -66,17 +67,18 @@ should make the subdirectory the directory of invocation.
 $ cd that/subdir/
 $ gmake -f ${cvs}/cds/IR/build/Makefile all
 \end{verbatim}
-This will result in much less work the build will have to do in
-figuring out what actions to take, because it will examine fewer
+This will result in much less work that the build will have to do in
+order to figure out what actions to take, because it will examine fewer
 constraints.
 
 On the other hand, if one invokes from a higher directory, then
-any sibling dependencies of the target will be properly updated.
+any sibling dependencies of the target will be properly examined and
+necessary actions at that level will be taken.
 \begin{verbatim}
 $ cd ${cvs}/cds/IR/build
 $ gmake that/subdir/.all
 \end{verbatim}
-This will result in all the the subgoals in a subdirectory (and lower)
+This will result in all the subgoals in a subdirectory (and lower)
 being built, with any necessary updates of other directories being
 handled automatically.  All rules which can be found are examined
 although only those actions necessary for the given subtarget(s) are
@@ -108,6 +110,7 @@ compile with GNU compilers, or modifying the installation directory.\\
 \verb+WITH_OPT=debug+ & compile with no optimization and maximum debugging\\
 \verb+WITH_OPT=profile+ & compile for profiling with optimization and minimal debugging\\
 \verb+WITH_GNU=1+ & compile with gnu compilers\\
+\verb+WITH_THREADS=1+ & compile with threading enabled\\
 \verb+INSTALL_TAG=<foo>+ & append \verb+-<foo>+ to the name of the install directory\\
 \verb+MAKE_COMPILERS=<foo>+ & use the file \verb+<foo>+ in place of \verb+Make.compilers+ (this option is of dubious value).
 \verb+WITHOUT='dir1/ dir2/' & cancel the inclusion of any \verb+Make.include+ files in the given directories (another dubious option).
@@ -119,15 +122,16 @@ $ gmake WITH_OPT=debug WITH_GNU=1 INSTALL_TAG=release all
 
 \section{Anatomy of a Make.include}
 
-\verb+Make.include+ files defined variables, and they are not
-necessarily sitting in the same place where the build is invoked.  For
+\verb+Make.include+ files define variables which hold names of files,
+and they are not
+necessarily sitting in the same place where the build is invoked.  With
 these two considerations, there is defined, for each
 \verb+Make.include+ file a variable named by the single character
 '\verb+/+' which holds the relative path of the current directory.
 Any file in the current directory can be referenced by prepending
 \verb+$/+ to it.  The contents of \verb+/+ ought to be unique in the
 namespace of the build, so any variable defined as \verb+$/.MYVAR+
-cannot conflict with any other variables in the build namespace (using
+cannot conflict with any other variable in the build namespace (re-using
 the syntax of hidden files for variables may be a bad thing, but it
 has not caused problems yet).
 
@@ -136,11 +140,12 @@ So, a simple \verb+Make.include+ might look like:
 $/.C_SRCS := $/hello.c
 $/.C_EXES := $/hello
 $/hello: $/hello.o
+$/.CLEAN  := $/*.o
 \end{verbatim}
 
-Note the use of the 'verb+:=+' assignment instead of the '\verb+=+'
+Note, the use of the 'verb+:=+' assignment instead of the '\verb+=+'
 assignment.  The reason for this, is that \verb+gmake+ has two {\em flavors}
-of variable, one which traditionally is lazily evaluated, defined by
+of variable, the traditional one, which is lazily evaluated, defined by
 '\verb+=+', and one which is imediately evaluated, defined by '\verb+:=+'.
 If the RHS of the \verb+$/.C_SRCS+ assignment were to be lazily
 evaluated, then the \verb+$/+ component of the name would expand to
@@ -151,7 +156,7 @@ every possible case, unless you are trying to be tricky on purpose.
 
 There are a number of special variables, used on a per-\verb+/+
 basis by the \verb+Make.rules+ ancillary file.  These variables can
-be defined by the \verb+Make.include+ files to specify the various
+be assigned to in the \verb+Make.include+ files to specify the various
 types of files and the actions required to build them.  The current
 list of variables is as follows:\\
 \begin{tabular}{ll}
@@ -163,6 +168,9 @@ list of variables is as follows:\\
 \verb+$/.CXX_<x>+ & same as \verb+$/.C_<x>+ but for C++\\
 \verb+$/.TEX_PS+ & Postscript subgoals to be built from \LaTeX files\\
 \verb+$/.TEX_PDF+ & PDF subgoals to be built from \LaTeX files\\
+\verb+$/.SHARES+  & a catchall category for things which are just to be copied\\
+\verb+$/.SH_LIBS+ & sh script libraries\\
+\verb+$/.SH_EXES+ & sh script executables\\
 \verb+$/.PERL_LIBS+ & Perl script libraries\\
 \verb+$/.PERL_EXES+ & Perl script executables\\
 \verb+$/.PY_LIBS+ & Python script libraries\\
@@ -170,8 +178,10 @@ list of variables is as follows:\\
 \verb+$/.LIB/+  & subdirectory of \verb+lib/+ where \verb+$/.C_LIBS+ and \verb+$/.CXX_LIBS+ are installed\\
 \verb+$/.INCLUDE/+  & subdirectory of \verb+include/+ where \verb+$/.C_INCS+ and \verb+$/.CXX_INCS+ are installed\\
 \verb+$/.DOC/+  & subdirectory of \verb+doc/+ where \verb+$/.TEX_PS+ and \verb+$/.TEX_PDF+ are installed\\
-\verb+$/.PY_LIB/+  & subdirectory of \verb+scripts/+ where \verb+$/.PY_LIBS+ are installed\\
+\verb+$/.SHARE/+  & subdirectory of \verb+share/+ where \verb+$/.SHARES+ are installed\\
+\verb+$/.SH_LIB/+  & subdirectory of \verb+scripts/+ where \verb+$/.SH_LIBS+ are installed\\
 \verb+$/.PERL_LIB/+  & subdirectory of \verb+scripts/+ where \verb+$/.PERL_LIBS+ are installed\\
+\verb+$/.PY_LIB/+  & subdirectory of \verb+scripts/+ where \verb+$/.PY_LIBS+ are installed\\
 \verb+$/.CLEAN+ & files and patterns to be removed during a \verb+clean+\\
 \verb+$/.REAL-CLEAN+ & files and patterns to be removed during a \verb+real-clean+\\
 \end{tabular}\\
@@ -181,8 +191,9 @@ then patterns like \verb+$/*.o+ should be put in the \verb+$/.CLEAN+ variable
 or they will not get removed.  It is debatable whether this should be left
 up to each \verb+Make.include+ file to take care of on its own.
 
-There are a couple of routine tasks which are done a little
-differently.  One of these tasks is the specification of additional
+There are a couple of routine tasks which are done in a fashion a
+little unusual to those accustomed to more traditional uses of make.
+One of these tasks is the specification of additional
 flags used when building the C/C++ programs.  For C programs, this is
 done by adding to the \verb+CFLAGS+ variable in a target specific
 manner.
@@ -194,13 +205,13 @@ current \verb+Make.include+ you can use a pattern rule.
 \begin{verbatim}
 $/%.o $/%.d: CFLAGS +=-DTEST -I/usr/local/lib
 \end{verbatim}
-One {\em gotcha} comes in the use of locally defined variables
+One {\em gotcha} is in the use of locally defined variables
 (like anything involving \verb+$/+).  It seems
 that any variable expansion on the target specific '+=' is
 delayed until after all rules have been traversed, at which point
 \verb+$/+ is very likely to have the wrong value.  This does not
 happen with a target specific '\verb+:=+' so it may be a bug in what is
-a fairly new \verb+gmake+ feature.  The work around invokes another
+a fairly new \verb+gmake+ feature.  The work-around invokes another
 fairly new \verb+gmake+ feature.
 \begin{verbatim}
 $(eval $/%.o $/%.d: CFLAGS +=-I$/include)
@@ -214,19 +225,20 @@ flags in a target specific variable modification.
 $/myprogram: CLDFLAGS+=-L/usr/local/foodir
 $/myprogram: CLIBS +=-lfoo
 \end{verbatim}
-One must again wrap any variable expressions which are likely to change
-values with \verb+$(eval )+ to force variable expansion.  If the
-library is within the build system, using the \verb+-L-l+ flags would
-create a {\em dependency leak} as the build system would have no
-way of knowing that the library must be updated before the link.
+One must again wrap any variable expressions which are likely to
+be overwritten by other includes
+with \verb+$(eval )+ to force imediate variable expansion.  If the
+library is being built by the build system, using the \verb+-L-l+ flags would
+create a {\em dependency leak}, as the build system would not know
+that the library must be updated before the link.
 To avoid creating this leak, one should do the more explicit dependency.
 \begin{verbatim}
 $/myprogram: ${THELIBDIR/}libfoo.a
 \end{verbatim}
 Here no variable expansion needs to be forced, since dependency lines
-do expand variables imediately.  By making it a dependent, \verb+libfoo.a+
+expand variables imediately.  By making it a dependent, \verb+libfoo.a+
 will appear in the series of arguments to the linker for \verb+$/myprogram+
-in addition to avoiding the leak.
+and the leak avoided.
 
 \subsection{Two examples}
 
@@ -360,18 +372,18 @@ invoked from within a \verb+Make.include+ file.
 $(eval $(call Include,$/subdir1/ $/subdir2/))
 \end{verbatim}
 Its effect is to check if there exists a \verb+Make.include+ file
-in any of its directory arguments, and if so, to add that file to
-the set of \verb+Make.include+ files which will be traversed.
+in each of its directory arguments, and if so, to traverse that file.
 The contents of those \verb+Make.include+ files are evaluated
-and added to the current build definitions.  \verb+/+ is pushed
+and added to the current build definitions.  The variable \verb+/+ is pushed
 and popped appropriately.
 
 \subsection{The MakePath function}
 
 The build system supplies a function \verb+MakePath+ which is
 meant to be called in \verb+Make.include+ files to canonicalize pathnames.
-The problem is addresses is one of \verb+gmake+'s inability to recognize
+The problem it addresses is the one of \verb+gmake+'s inability to recognize
 the sameness of expressions like \verb+src/../src/foo+ and \verb+src/foo+.
+
 Suppose we had a set of files and directories as follows:
 \begin{verbatim}
 X/
@@ -400,8 +412,8 @@ $/.C_SRCS :=$/z.c
 $/.C_EXES :=$/z
 $/z: $/z.o ${Y/}liby.a
 \end{verbatim}
-If \verb+liby.a+ is already built by the time \verb+z+ is being
-built, then there is no problem.  If not then, if the build
+If \verb+liby.a+ is already built by the time \verb+z+ is
+built, then there is no problem.  If not then, and if the build
 is invoked in \verb+Z/+, one will get some error about not
 knowing how to build \verb+../Y/liby.a+, which is to be expected.
 However, if the build is invoked in \verb+X/+ then one gets
@@ -413,12 +425,11 @@ The function
 \begin{verbatim}
 $(call MakePath,P)
 \end{verbatim}
-takes a path \verb+P+ to an existing directory
-and returns the shortest (redundant dots and
-double dots collapsed) path to \verb+P+, in a fashion
-consistent with the pathname conventions used elsewhere
-in the build system
-(trailing '/' and '.' referred to by an empty string).
+takes a path \verb+P+ to an existing directory and returns the
+shortest (redundant dots and double dots collapsed) path to \verb+P+
+relative to the directory of invocation, in a fashion consistent with
+the pathname conventions used elsewhere in the build system (trailing
+'/' and '.' referred to by an empty string).
 
 Thus, the right version of the \verb+Z/Make.include+ file is,
 \begin{verbatim}
@@ -460,8 +471,8 @@ $/.install:
 The first line calls a special build system function,
 \verb+MakeRecursive+ which declares that this \verb+Make.include+ file
 is opting out of the usual build system and will define its own
-subtargets.  The next line announces a target being supplied by this
-build, the \verb+$/md5lib/md5c.o+ object file.  This is optional, but
+subtargets.  The next line announces a target being supplied,
+the \verb+$/md5lib/md5c.o+ object file.  This is optional, but
 gives the build system some idea of how to order multiple recursive
 makes based on possible mutual dependencies.  The next lines specify
 rules for subdirectory specific subtargets (\verb+all+, \verb+clean+,
@@ -473,8 +484,8 @@ directory, or an empty rule, signifying no action.
 
 \section{Anatomy of the Makefile}
 
-Here we go line by line through the \verb+Makefile+ and discuss the function
-of every part.
+Here we go line by line through the \verb+Makefile+ (CVS revision
+1.29) and discuss the function of every part.
 
 \begin{verbatim}
 default:   all
@@ -489,11 +500,10 @@ ifndef MAKEFILE/
   MAKEFILE/ :=$(dir $(firstword $(MAKEFILE_LIST)))
 endif
 \end{verbatim}
-Some files are looked for in the directory where the
-\verb+Makefile+ was found, by extracting this information from the
+The auxiliiary files are looked for in the directory where the
+\verb+Makefile+ was found.  We extract this information from the
 built-in variable \verb+MAKEFILE_LIST+.  The \verb+MAKEFILE/+ variable
-thus created should then point to the place where \verb+Make.compilers+
-and \verb+Make.rules+ can be found.
+points to the build directory.
 
 \begin{verbatim}
 ifdef MAKE_COMPILERS
@@ -504,9 +514,10 @@ endif
 \end{verbatim}
 We load the \verb+Make.compilers+ file, which is more of a
 configuration file, since it contains definitions not just of the
-compilers but also of basic utilities.  One design goal was to have
-all architectural dependencies captured by a single file so
-that porting to a new architecture would require only the adjustment
+compilers but also of basic utilities and of locations of important
+libraries such as X11 and LAPACK.  One design goal was to have
+all platform specifics captured by a single file so
+that porting to a new platform would require only the adjustment
 of this file.  This file can be overridden by a user supplied
 \verb+MAKE_COMPILERS+ argument, though it is probably a mistake
 to use this feature as anything but a temporary device.
@@ -530,10 +541,10 @@ endef
 \end{verbatim}
 Three important variables are being initialized here.  The variable
 \verb+//+ holds the list of all directories which have been traversed
-and also have not opted out of the build system.  The directories are
+which have not opted out of the build system.  The directories are
 kept in {\em dotted} form (i.e. \verb+.+, \verb+subdir/.+).  The
 \verb+//-RECURSIVE+ variable holds those directories (in dotted form)
-which have been traverse and have opted out of the build system.  The
+which have been traversed and have opted out of the build system.  The
 variable \verb+/+ is the current relative path variable, which is
 meant to be used by traversed \verb+Make.include+ files.
 
@@ -565,8 +576,8 @@ The normal \verb+include+ syntax is wrapped in a function which will
 maintain \verb+/+ properly while adding newly traversed directories to
 \verb+//+ and keeping track of who is who's children (kept in
 \verb+$/.SUBS+).  Each directory
-is traverse if its \verb+Make.include+ file exists and is not on
-a set of special suppressed directories.  Traversed directories
+is traversed if its \verb+Make.include+ file exists and is not on
+a set of special suppressed directories (contained in the \verb+${WITHOUT}+).  Traversed directories
 have their \verb+Make.include+ files included.  Within those
 \verb+Make.include+ files, \verb+/+ will hold the relative path
 to the directory.  The \verb+Include+ function is meant for external
@@ -576,11 +587,11 @@ be employed except within this file.
 \begin{verbatim}
 $(eval $(call Include_File,$/))
 \end{verbatim}
-We include the \verb+Make.include+ file which sits in the {\em current}
-directory (as opposed to the build directory).  Since traversal
-starts in the current directory, the only build information which
-will be considered is that from this directory and its children.
-This allows a user to build within their source directory, if they
+We include the \verb+Make.include+ file which sits in the directory
+of invocation (as opposed to the one in the build directory).  Since traversal
+starts in this directory, the only build information which
+will be considered is that from this directory and its descendants,
+allowing a user to build within a limited source directory, if they
 do not which to check lateral dependencies for some reason (e.g.
 efficiency).
 
@@ -588,8 +599,8 @@ efficiency).
 //            :=$(filter-out ${//-RECURSIVE},${//})
 \end{verbatim}
 After traversal, \verb+//+ holds all directories which have been
-traverse.  We now remove from it all those paths which have opted
-out.  At this point, \verb+//+ holds those directories which are
+traversed.  We now remove from it all those paths which have opted
+out.  At this point, \verb+//+ holds those traversed directories which are
 considered to be properly participating in the build and
 \verb+//-RECURSIVE+ holds those which will be built in a more or less
 {\em legacy} fashion.  At this point, \verb+/+ should be an
@@ -598,7 +609,7 @@ empty string (even though it does appear below).
 A second design goal was the separation of the specification of
 build rules from the primary \verb+Makefile+ so that new file types
 and build commands could be added to the build system by appending
-them to \verb+Make.rules+.
+them to \verb+Make.rules+.  Actions are dictated by file types.
 
 \begin{verbatim}
 __SUBGOALS__=
@@ -606,13 +617,12 @@ __DEPGOALS__=
 \end{verbatim}
 The \verb+__SUBGOALS__+ variable is intended to hold all those targets
 which must be made for the \verb+all+ target.  The \verb+__DEPGOALS__+
-holds patterns for dependency files which are to be included.
+holds patterns for automatic dependency files which are to be included.
 These variables will be
 dynamically scoped (the one exception we make to the usual static scoping).
 This allows for a variable capture which we exploit later.  The
 \verb+__SUBGOALS__+ and \verb+__DEPGOALS__+ variables are
-determined in the \verb+Make.rules+
-file.
+appended to in the \verb+Make.rules+ file.
 
 \begin{verbatim}
 -include ${MAKEFILE/}Make.rules
@@ -620,7 +630,7 @@ file.
 If the \verb+Make.rules+ file exists in the directory of the 
 \verb+Makefile+ then it is included.  If it does not exist, the system will
 use the default rules built-in to \verb+make+, which have a
-chance of working right.
+chance of working right (a snowball's chance in hell).
 
 \begin{verbatim}
 $(eval DEPENDS:=$(foreach x,${//},$(call __DEPGOALS__,$x)))
@@ -632,7 +642,8 @@ endif
 \end{verbatim}
 The \verb+__DEPGOALS__+ pattern is evaluated on every directory and
 expanded into a set of files in the variable \verb+DEPENDS+.  Unless
-one of the command goals of the build contains the suffix \verb+-clean+,
+one of the command goals of the build contains the suffix \verb+-clean+
+(\verb+real-clean+ or \verb+depends-clean+, but not \verb+clean+),
 these files will be included.  The {\em clean} conditional exists to
 prevent certain kind of wedged conditions the build system could get
 in as well as allowing the clean targets to be processed without a
@@ -705,10 +716,9 @@ $(eval $(foreach x,${//},$(call .RULE-all,$x)))
 The \verb+all+ target depends on all subdirectory \verb+all+'s
 and all subgoals for this directory.
 
-
 The last major section of the \verb+Makefile+ is the installer.
 Installation currently proceeds by depending on the subgoals
-and doing a copy of those built subgoals to a special directory,
+and upon a copy of those built subgoals to a special directory,
 \verb+INSTALL/+ which is determined in the \verb+Make.compilers+
 file.  Because different directories may wish to do different
 kinds of pre and post installation actions, the \verb+.install+
@@ -717,6 +727,7 @@ up to the \verb+Make.rules+ file to make use of those hooks.
 
 \begin{verbatim}
 ${//-RECURSIVE:.=.install-copy}:
+install-copy:       ${//-RECURSIVE:.=.install-copy}    $/.install-copy
 define .RULE-install-copy
 ${1:.=.install-copy}: $${${1:.=.SUBS}:.=.install-copy}
 
@@ -740,6 +751,15 @@ An install in a directory is equivalent to doing an install in
 the legacy directories, a build in the current directory (and
 its children) and an install copy in the current directory
 (and its children).
+
+The benefit of this separation of tasks for install is that
+the \verb+install-copy+ phase of the build can be invoked as a
+separate target to selectively copy targets into the install
+directory, whcih might be needed in some special cases.  One
+major disadvantage of this separation is that because \verb+install-copy+
+does not depend on \verb+all+, a multithreaded invocation of
+\verb+gmake+ (i.e. \verb+gmake -j4+) is not guarranteed to perform
+\verb+install-copy+ after \verb+all+.
 
 \section{Anatomy of the Make.rules}
 % cvs revision 1.25

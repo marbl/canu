@@ -171,6 +171,7 @@ $(eval $(foreach x,${//},$(call .RULE-all,$x)))
 
 # this does the copy part of the install
 ${//-RECURSIVE:.=.install-copy}:
+install-copy:       ${//-RECURSIVE:.=.install-copy}    $/.install-copy
 define .RULE-install-copy
 ${1:.=.install-copy}: $${${1:.=.SUBS}:.=.install-copy}
 
