@@ -126,6 +126,16 @@ buildChunk(void) {
 
     *t = 0;
 
+
+    //  Build a merStream from the sequence.  In the future, we should put this
+    //  thing on disk, since the search doesn't require sequence, and thus
+    //  we could make a bigger table in the same footprint if we didn't have
+    //  the sequence in core too.
+    //
+    merStream *MS = new merStream(config._merSize, s, 0);
+
+
+
     //  Figure out a nice size of the hash.
     //
     //  XXX:  This probably should be tuned.
@@ -143,8 +153,9 @@ buildChunk(void) {
     if (sLen <  1 * 1024 * 1024)
       tblSize = 20;
 
-    positions = new positionDB(s, 0L, config._merSize, config._merSkip, tblSize, config._beVerbose);
+    positions = new positionDB(MS, config._merSize, config._merSkip, tblSize, 0L, 0L, config._beVerbose);
 
+    delete    MS;
     delete [] s;
 
     if (config._tableFileName) {

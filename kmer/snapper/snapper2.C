@@ -115,8 +115,13 @@ buildPositionDB(void) {
     if (sLen <  2 * 1024 * 1024) tblSize = 21;
     if (sLen <  1 * 1024 * 1024) tblSize = 20;
 
-    positions = new positionDB(s, 0L, config._merSize, config._merSkip, tblSize, config._beVerbose);
+    //  Build a merStream from the sequence.  Write this to disk in the future.
+    //
+    merStream *MS = new merStream(config._merSize, s, 0);
 
+    positions = new positionDB(MS, config._merSize, config._merSkip, tblSize, 0L, 0L, config._beVerbose);
+
+    delete    MS;
     delete [] s;
 
     if (config._psFileName) {

@@ -128,7 +128,18 @@ buildTable(void) {
     onlyDB = new existDB(config._onlyFileName, config._merSize, 19);
   }
 
-  positions = new positionDB(s, 0L, config._merSize, config._merSkip, tblSize, config._beVerbose, maskDB, onlyDB, config._tmpFileName);
+  //  Create a merStream.  Write this to disk in the future.
+  //
+  merStream *MS = new merStream(config._merSize, s, 0);
+
+  positions = new positionDB(MS, config._merSize, config._merSkip, tblSize, maskDB, onlyDB, config._beVerbose);
+
+  delete maskDB;
+  delete onlyDB;
+
+  delete    MS;
+  delete [] s;
+  delete    dbFASTA;
 
   if (config._tableFileName) {
     if (config._beVerbose)
@@ -149,12 +160,6 @@ buildTable(void) {
 
     exit(0);
   }
-
-  delete maskDB;
-  delete onlyDB;
-
-  delete [] s;
-  delete    dbFASTA;
 }
 
 

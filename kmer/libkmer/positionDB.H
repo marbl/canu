@@ -2,7 +2,7 @@
 #define POSITIONDB_H
 
 #include <stdio.h>
-#include "bri.h"
+#include "bri++.h"
 
 typedef u64bit heapbit;
 
@@ -21,15 +21,15 @@ class positionDB {
 public:
   positionDB(char const    *filename,
              bool           loadData=true);
-  positionDB(char const    *seq,
-             char const    *filename,
+
+  positionDB(merStream     *MS,
              u32bit         merSize,
-             u32bit         merSkip,    //  mers to skip between mers
+             u32bit         merSkip,
              u32bit         tblBits,
-             bool           beVerbose,
-             existDB       *mask = 0L,
-             existDB       *only = 0L,
-             char const    *streamFileName = 0L);
+             existDB       *mask,
+             existDB       *only,
+             bool           beVerbose);
+
   ~positionDB();
 
   //  Returns position in posn, resizing it if needed.  Space is
@@ -87,16 +87,15 @@ private:
 
   u32bit      _merSkipInBases;
 
-  u32bit      _tableSizeInBits;
   u64bit      _tableSizeInEntries;
+  u32bit      _tableSizeInBits;
 
   u32bit      _hashWidth;
-  u64bit      _hashMask;
-
   u32bit      _chckWidth;
-  u64bit      _chckMask;
-
   u32bit      _posnWidth;
+
+  u64bit      _hashMask;
+  u64bit      _chckMask;
   u64bit      _posnMask;
 
   u32bit      _wCnt;
@@ -119,6 +118,10 @@ private:
   u32bit   _sortedListMax;
   u32bit   _sortedListLen;
   heapbit *_sortedList;
+
+#ifdef __APPLE__
+  u32bit      _pad;
+#endif
 };
 
 #endif  //  POSITIONDB_H

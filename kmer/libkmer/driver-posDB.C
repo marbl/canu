@@ -55,13 +55,18 @@ char const *usage =
 
 int
 test1(char *filename) {
-  positionDB *M       = new positionDB(0L, filename, MERSIZE, 0, TBLSIZE, true);
   merStream  *T       = new merStream(MERSIZE, filename);
+  positionDB *M       = new positionDB(T, MERSIZE, 0, TBLSIZE, 0L, 0L, true);
   u64bit     *posn    = new u64bit [1024];
   u64bit      posnMax = 1024;
   u64bit      posnLen = u64bitZERO;
   u32bit      missing = u32bitZERO;
   u32bit      failed  = u32bitZERO;
+
+  if (T->rewind() == false) {
+    fprintf(stderr, "test 1 failed to rewind the merStream.\n");
+    return(true);
+  }
 
   for (u32bit j=0; T->nextMer(); j++) {
     if (M->get(T->theFMer(),
@@ -88,6 +93,9 @@ test1(char *filename) {
     }
   }
 
+  delete M;
+  delete T;
+
   return(failed != 0);
 }
 
@@ -95,11 +103,14 @@ test1(char *filename) {
 
 int
 test2(char *filename, char *query) {
-  positionDB *M       = new positionDB(0L, filename, MERSIZE, 0, TBLSIZE, true);
   merStream  *T       = new merStream(MERSIZE, filename);
+  positionDB *M       = new positionDB(T, MERSIZE, 0, TBLSIZE, 0L, 0L, true);
   u64bit     *posn    = new u64bit [1024];
   u64bit      posnMax = 1024;
   u64bit      posnLen = u64bitZERO;
+
+  delete T;
+  T = new merStream(MERSIZE, query);
 
   for (u32bit j=0; T->nextMer(); j++) {
     if (M->get(T->theFMer(),
@@ -118,6 +129,9 @@ test2(char *filename, char *query) {
               T->theRMerString(), j, posnLen);
     }
   }
+
+  delete M;
+  delete T;
 
   return(0);
 }
@@ -182,11 +196,14 @@ main(int argc, char **argv) {
   if (ts != tblsize)
     fprintf(stderr, "For sequence length "u64bitFMT", suggested tableSize is "u32bitFMT", you want "u32bitFMT"\n", seqlen, ts, tblsize);
 
+#if 0
   positionDB  *e = new positionDB(0L, argv[argc-2], mersize, merskip, tblsize, true);
 
   fprintf(stderr, "Writing positionDB state to '%s'\n", argv[argc-1]);
   e->saveState(argv[argc-1]);
 
   delete e;
+#endif
+
   exit(0);
 }
