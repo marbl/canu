@@ -7,7 +7,7 @@
 package scheduler;
 
 use strict;
-#use POSIX "sys_wait_h";
+use POSIX "sys_wait_h";
 
 $| = 1;
 
