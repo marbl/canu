@@ -79,7 +79,7 @@ s4p_compatable(sim4polish *A, sim4polish *B) {
 //  region
 //
 int
-s4p_IsSameRegion(sim4polish *A, sim4polish *B, u32bit tolerance) {
+s4p_IsSameRegion(sim4polish *A, sim4polish *B, int tolerance) {
   int Alo=0, Ahi=0;
   int Blo=0, Bhi=0;
   int Dlo=0, Dhi=0;
@@ -100,7 +100,6 @@ s4p_IsSameRegion(sim4polish *A, sim4polish *B, u32bit tolerance) {
   if ((Dlo < -tolerance) || (Dlo > tolerance) ||
       (Dhi < -tolerance) || (Dhi > tolerance))
     return(0);
-
   return(1);
 }
 
@@ -110,7 +109,7 @@ s4p_IsSameRegion(sim4polish *A, sim4polish *B, u32bit tolerance) {
 //  and each exon is mapped to about the same genomic region.
 //
 int
-s4p_IsSameExonModel(sim4polish *A, sim4polish *B, u32bit tolerance) {
+s4p_IsSameExonModel(sim4polish *A, sim4polish *B, int tolerance) {
   int i;
   int Alo=0, Ahi=0;
   int Blo=0, Bhi=0;
@@ -130,13 +129,11 @@ s4p_IsSameExonModel(sim4polish *A, sim4polish *B, u32bit tolerance) {
     Dhi = Bhi - Ahi;
 
     if ((Dlo < -tolerance) || (Dlo > tolerance) ||
-        (Dhi < -tolerance) || (Dhi > tolerance)) {
+        (Dhi < -tolerance) || (Dhi > tolerance))
       return(0);
-    }
   }
   return(1);
 }
-
 
 
 
@@ -144,17 +141,16 @@ void
 s4p_compareExons_Overlap(sim4polish *A,
                          sim4polish *B,
                          int        *numSame,
-                         int        *numMissing,
-                         int        *numExtra) {
+                         int        *numAMissed,
+                         int        *numBMissed) {
   int       i, j;
-  //int       Dlo=0, Dhi=0;
   int       al=0, ah=0, bl=0, bh=0;
   int      *foundA = 0L;
   int      *foundB = 0L;
 
   if (numSame)     *numSame    = 0;
-  if (numMissing)  *numMissing = 0;
-  if (numExtra)    *numExtra   = 0;
+  if (numAMissed)  *numAMissed = 0;
+  if (numBMissed)  *numBMissed = 0;
 
   errno = 0;
 
@@ -181,10 +177,8 @@ s4p_compareExons_Overlap(sim4polish *A,
       bl = B->genLo + B->exons[j].genFrom;
       bh = B->genLo + B->exons[j].genTo;
 
-      if (((al <= bl) && (bl <= ah) && (ah <= bh)) ||
-          ((bl <= al) && (al <= bh) && (bh <= ah)) ||
-          ((al <= bl) && (bh <= ah)) ||
-          ((bl <= al) && (ah <= bh))) {
+      if (((al <= bl) && (bl <= ah)) ||
+          ((bl <= al) && (al <= bh))) {
         foundA[i]++;
         foundB[j]++;
 
@@ -195,21 +189,15 @@ s4p_compareExons_Overlap(sim4polish *A,
   }
 
   for (i=0; i<A->numExons; i++) {
-    if (numExtra && (foundA[i] == 0))
-      (*numExtra)++;
-#if 0
-    if (foundA[i] > 1)
-      fprintf(stderr, "WARNING: Found exon %d %d times in A!\n", i, foundA[i]);
-#endif
+    //if (foundA[i] > 1)  fprintf(stderr, "WARNING: Found exon %d %d times in A!\n", i, foundA[i]);
+    if (numAMissed && (foundA[i] == 0))
+      (*numAMissed)++;
   }
 
   for (i=0; i<B->numExons; i++) {
-    if (numMissing && (foundB[i] == 0))
-      (*numMissing)++;
-#if 0
-    if (foundB[i] > 1)
-      fprintf(stderr, "WARNING: Found exon %d %d times in B!\n", i, foundB[i]);
-#endif
+    //if (foundB[i] > 1)  fprintf(stderr, "WARNING: Found exon %d %d times in B!\n", i, foundB[i]);
+    if (numBMissed && (foundB[i] == 0))
+      (*numBMissed)++;
   }
 
   free(foundA);
@@ -224,17 +212,16 @@ s4p_compareExons_Ends(sim4polish *A,
                       sim4polish *B,
                       int         tolerance,
                       int        *numSame,
-                      int        *numMissing,
-                      int        *numExtra) {
+                      int        *numAMissed,
+                      int        *numBMissed) {
   int       i, j;
   int       Dlo=0, Dhi=0;
-  //int       al=0, ah=0, bl=0, bh=0;
   int      *foundA = 0L;
   int      *foundB = 0L;
 
   if (numSame)     *numSame    = 0;
-  if (numMissing)  *numMissing = 0;
-  if (numExtra)    *numExtra   = 0;
+  if (numAMissed)  *numAMissed = 0;
+  if (numBMissed)  *numBMissed = 0;
 
   foundA = (int *)malloc(sizeof(int) * (A->numExons + B->numExons));
   foundB = foundA + A->numExons;
@@ -269,26 +256,16 @@ s4p_compareExons_Ends(sim4polish *A,
   }
 
   for (i=0; i<A->numExons; i++) {
-    if (numExtra && (foundA[i] == 0))
-      (*numExtra)++;
-#if 0
-    if (foundA[i] > 1)
-      fprintf(stderr, "WARNING: Found exon %d %d times in A!\n", i, foundA[i]);
-#endif
+    //if (foundA[i] > 1)  fprintf(stderr, "WARNING: Found exon %d %d times in A!\n", i, foundA[i]);
+    if (numAMissed && (foundA[i] == 0))
+      (*numAMissed)++;
   }
 
   for (i=0; i<B->numExons; i++) {
-    if (numMissing && (foundB[i] == 0))
-      (*numMissing)++;
-#if 0
-    if (foundB[i] > 1)
-      fprintf(stderr, "WARNING: Found exon %d %d times in B!\n", i, foundB[i]);
-#endif
+    //if (foundB[i] > 1)  fprintf(stderr, "WARNING: Found exon %d %d times in B!\n", i, foundB[i]);
+    if (numBMissed && (foundB[i] == 0))
+      (*numBMissed)++;
   }
 
   free(foundA);
 }
-
-
-
-
