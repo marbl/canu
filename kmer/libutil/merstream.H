@@ -11,7 +11,7 @@
 class merStream {
 public:
   merStream(u32bit merSize, const char *filename);
-  merStream(u32bit merSize, unsigned char const *seq, u32bit len);
+  merStream(u32bit merSize, char const *seq, u32bit len);
   ~merStream();
 
   u64bit       theFMer(void)        { return(_theFMer); };
@@ -42,7 +42,7 @@ public:
   bool               nextMer(u32bit skip=0);
 private:
   void               loadMer(u32bit s);
-  unsigned char      nextSymbol(void) {
+  char               nextSymbol(void) {
     if (_theFile)
       return(_theFile->nextSymbol());
     else
@@ -50,7 +50,7 @@ private:
   };
 
   FastAstream          *_theFile;
-  unsigned char const  *_theSeq;
+  char const           *_theSeq;
   u32bit                _theLen;
   u32bit                _thePos;
 

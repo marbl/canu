@@ -18,7 +18,7 @@ merStream::merStream(u32bit merSize, const char *filename) {
   loadMer(_merSize - 1);
 }
 
-merStream::merStream(u32bit merSize, unsigned char const *seq, u32bit len) {
+merStream::merStream(u32bit merSize, char const *seq, u32bit len) {
   _theFile         = 0L;
   _theSeq          = seq;
   _theLen          = len;
