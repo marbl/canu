@@ -72,9 +72,16 @@ buildChunk(void) {
   //  saving and exiting if we were told so.
 
   if ((config._tableFileName) && (fileExists(config._tableFileName))) {
-    fprintf(stderr, "Loading positions table from '%s'\n", config._tableFileName);
-    positions = new positionDB(config._tableFileName);
-    fprintf(stderr, "Loading finished.\n");
+    if (config._tableBuildOnly) {
+      if (config._beVerbose)
+        fprintf(stderr, "All done.  Table '%s' already exists.\n", config._tableFileName);
+    } else {
+      if (config._beVerbose)
+        fprintf(stderr, "Loading positions table from '%s'\n", config._tableFileName);
+      positions = new positionDB(config._tableFileName);
+      if (config._beVerbose)
+        fprintf(stderr, "Loading finished.\n");
+    }
   } else {
 
     //  Allocate space for the chained sequence
@@ -146,10 +153,40 @@ buildChunk(void) {
         fprintf(stderr, "Dumping positions table to '%s'\n", config._tableFileName);
 
       positions->saveState(config._tableFileName);
-
-      if (config._tableBuildOnly)
-        exit(0);
     }
+  }
+
+  if (config._tableBuildOnly) {
+    if (config._beVerbose)
+      fprintf(stderr, "Exiting from -buildonly.\n");
+
+    config._totalTime = getTime();
+
+    //  Write the stats
+    //
+    if (config._statsFileName) {
+      FILE *F = fopen(config._statsFileName, "wb");
+      if (F == 0L) {
+        fprintf(stderr, "Couldn't open the stats file '%s'?\n", config._statsFileName);
+        fprintf(stderr, "Stats going to stderr.\n");
+        config._statsFileName = 0L;
+        F = stderr;
+      }
+
+      config.display(F);
+
+      write_rusage(F);
+
+      fprintf(F, "wallClockTimes--------------------------\n");
+      fprintf(F, "init:     %9.5f\n", config._initTime   - config._startTime);
+      fprintf(F, "build:    %9.5f\n", config._totalTime  - config._initTime);
+      fprintf(F, "total:    %9.5f\n", config._totalTime  - config._startTime);
+
+      if (config._statsFileName)
+        fclose(F);
+    }
+
+    exit(0);
   }
 
   delete    dbFASTA;
@@ -380,6 +417,7 @@ main(int argc, char **argv) {
       exit(1);
     }
   }
+
 
   config._totalTime = getTime();
 
