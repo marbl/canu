@@ -25,6 +25,7 @@ typedef unsigned short ushort;
 
 #include "hitMatrix.H"
 
+#include "filterObj.H"
 
 
 class encodedQuery {
@@ -112,6 +113,12 @@ public:
   struct timespec  _loaderSleep;
   bool             _loaderWarnings;
 
+  //  Filter parameters
+  //
+  char            *_filterpath;
+  sharedObj       *_filtername;
+  char            *_filteropts;
+
   //  Search parameters
   //
   struct timespec  _searchSleep;
@@ -158,8 +165,7 @@ extern positionDB            *positions;
 
 extern volatile u32bit        numberOfQueries;
 
-extern char                 **output;
-extern u32bit                *outputLen;
+extern filterObj            **output;
 
 extern pthread_mutex_t        inputTailMutex;
 extern FastASequenceInCore  **input;

@@ -61,6 +61,7 @@ public:
 
   void output(FILE *file) {
     fprintf(stderr, "filterNOP-- output\n");
+    fprintf(stderr, "OUTPUT %s", outstring);
     fprintf(file, "%s", outstring);
   };
 private:

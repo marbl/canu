@@ -9,6 +9,8 @@
 #include "positionDB.H"
 #include "intervalList.H"
 
+#include "filterObj.H"
+
 struct diagonalLine {
   u32bit   _qsPos;
   u32bit   _dsPos;
@@ -41,7 +43,7 @@ public:
   void    sort_diagonal(void);
   void    sort_dsPos(void);
 
-  void    filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit &theOutputMax);
+  void    processMatrix(char direction, filterObj *FO);
 };
 
 

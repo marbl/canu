@@ -4,10 +4,13 @@
 #include "buildinfo-libbri.h"
 #include "buildinfo-existDB.h"
 #include "buildinfo-positionDB.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+
+#include "sharedObj.H"
 
 configuration::configuration(void) {
 
@@ -59,6 +62,10 @@ configuration::configuration(void) {
   _writerSleep.tv_sec  = 1;
   _writerSleep.tv_nsec = 0;
   _writerWarnings      = false;
+
+  _filterpath          = 0L;
+  _filtername          = 0L;
+  _filteropts          = 0L;
 }
 
 configuration::~configuration() {
@@ -92,6 +99,10 @@ static char const *usageString =
 "                            them to 'datfile' and exit.  If 'datfile' exists\n"
 "                            AND is a complete and valid file, load the tables\n"
 "                            from the file and do the compute.\n"
+"\n"
+"Filtering Options\n"
+"    -filtername x.so        Use the shared object x.so as a filter method.\n"
+"    -filteropts opts        The string 'opts' is passed to the filter on creation.\n"
 "\n"
 "Input Options:\n"
 "    -mask f                 Ignore all mers listed in file f\n"
@@ -382,7 +393,6 @@ configuration::read(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-minlength") == 0) {
       arg++;
       _minLength = atoi(argv[arg]);
-
     } else if (strncmp(argv[arg], "-loaderhighwatermark", 8) == 0) {
       _loaderHighWaterMark = atoi(argv[++arg]);
     } else if (strncmp(argv[arg], "-loadersleep",         8) == 0) {
@@ -397,7 +407,13 @@ configuration::read(int argc, char **argv) {
       setTime(&_writerSleep, atof(argv[++arg]));
     } else if (strncmp(argv[arg], "-writerwarnings",      8) == 0) {
       _writerWarnings = true;
-
+    } else if (strcmp(argv[arg], "-filtername") == 0) {
+      arg++;
+      _filterpath = argv[arg];
+      _filtername = new sharedObj(argv[arg]);
+    } else if (strcmp(argv[arg], "-filteropts") == 0) {
+      arg++;
+      _filteropts = argv[arg];
     } else if (strncmp(argv[arg], "--buildinfo", 3) == 0) {
       buildinfo_seatac(stderr);
       buildinfo_libbri(stderr);
@@ -431,107 +447,52 @@ configuration::read(int argc, char **argv) {
     fprintf(stderr, "ERROR:  Mers are not adjacent; make sure merskip <= mersize.\n");
     exit(1);
   }
+
+  //
+  //  Test that we can build a filter object
+  //
+  if (_filtername) {
+    filterObj *test = new filterObj(_filtername, _filteropts);
+    delete test;
+  }
 }
+
 
 void
 configuration::display(FILE *out) {
   if ((out == stdout) && (_beVerbose)) {
     fprintf(out, "--Using these Options--\n");
-#ifdef TRUE64BIT
-    fprintf(out, "numSearchThreads    = %u\n",   _numSearchThreads);
-#else
-    fprintf(out, "numSearchThreads    = %lu\n",   _numSearchThreads);
-#endif
-
+    fprintf(out, "numSearchThreads    = "u32bitFMT"\n",   _numSearchThreads);
     fprintf(out, "\n");
-
-#ifdef TRUE64BIT
-    fprintf(out, "loaderHighWaterMark = %u\n", _loaderHighWaterMark);
-#else
-    fprintf(out, "loaderHighWaterMark = %lu\n", _loaderHighWaterMark);
-#endif
+    fprintf(out, "loaderHighWaterMark = "u32bitFMT"\n", _loaderHighWaterMark);
     fprintf(out, "loaderSleep         = %f\n", (double)_loaderSleep.tv_sec + (double)_loaderSleep.tv_nsec * 1e-9);
     fprintf(out, "loaderWarnings      = %s\n", _loaderWarnings ? "true" : "false");
     fprintf(out, "searchSleep         = %f\n", (double)_searchSleep.tv_sec + (double)_searchSleep.tv_nsec * 1e-9);
-#ifdef TRUE64BIT
-    fprintf(out, "writerHighWaterMark = %u\n", _writerHighWaterMark);
-#else
-    fprintf(out, "writerHighWaterMark = %lu\n", _writerHighWaterMark);
-#endif
+    fprintf(out, "writerHighWaterMark = "u32bitFMT"\n", _writerHighWaterMark);
     fprintf(out, "writerSleep         = %f\n", (double)_writerSleep.tv_sec + (double)_writerSleep.tv_nsec * 1e-9);
     fprintf(out, "writerWarnings      = %s\n", _writerWarnings ? "true" : "false");
-
     fprintf(out, "\n");
-
-
-#ifdef TRUE64BIT
-    fprintf(out, "merSize             = %u\n",   _merSize);
-    fprintf(out, "merSkip             = %u\n",   _merSkip);
-#else
-    fprintf(out, "merSize             = %lu\n",   _merSize);
-    fprintf(out, "merSkip             = %lu\n",   _merSkip);
-#endif
+    fprintf(out, "merSize             = "u32bitFMT"\n",   _merSize);
+    fprintf(out, "merSkip             = "u32bitFMT"\n",   _merSkip);
     fprintf(out, "doReverse           = %s\n",   _doReverse ? "true" : "false");
     fprintf(out, "doForward           = %s\n",   _doForward ? "true" : "false");
     fprintf(out, "\n");
-
-
     fprintf(out, "--Using these Parameters--\n");
-#ifdef TRUE64BIT
-    fprintf(out, "maxDiagonal         = %u\n",   _maxDiagonal);
-    fprintf(out, "maxGap              = %u\n",   _maxGap);
-    fprintf(out, "qsOverlap           = %u\n",   _qsOverlap);
-    fprintf(out, "dsOverlap           = %u\n",   _dsOverlap);
-    fprintf(out, "minLength           = %u\n",   _minLength + _merSize);
-#else
-    fprintf(out, "maxDiagonal         = %lu\n",   _maxDiagonal);
-    fprintf(out, "maxGap              = %lu\n",   _maxGap);
-    fprintf(out, "qsOverlap           = %lu\n",   _qsOverlap);
-    fprintf(out, "dsOverlap           = %lu\n",   _dsOverlap);
-    fprintf(out, "minLength           = %lu\n",   _minLength + _merSize);
-#endif
+    fprintf(out, "maxDiagonal         = "u32bitFMT"\n",   _maxDiagonal);
+    fprintf(out, "maxGap              = "u32bitFMT"\n",   _maxGap);
+    fprintf(out, "qsOverlap           = "u32bitFMT"\n",   _qsOverlap);
+    fprintf(out, "dsOverlap           = "u32bitFMT"\n",   _dsOverlap);
+    fprintf(out, "minLength           = "u32bitFMT"\n",   _minLength + _merSize);
     fprintf(out, "\n");
     fprintf(out, "--Using these Files--\n");
-    if (_dbFileName)
-      fprintf(out, "dbFile              = '%s'\n", _dbFileName);
-    else
-      fprintf(out, "dbFile              = None Specified.\n");
-      
-    if (_outputFileName)
-      fprintf(out, "outputFile          = '%s'\n", _outputFileName);
-    else
-      fprintf(out, "outputFile          = None Specified.\n");
-
-    if (_statsFileName)
-      fprintf(out, "statsFile           = '%s'\n", _statsFileName);
-    else
-      fprintf(out, "statsFile           = None Specified.\n");
-
-    if (_qsFileName)
-      fprintf(out, "qsFile              = '%s'\n", _qsFileName);
-    else
-      fprintf(out, "qsFile              = None Specified.\n");
-
-    if (_maskFileName)
-      fprintf(out, "maskFile            = '%s'\n", _maskFileName);
-    else
-      fprintf(out, "maskFile            = None Specified.\n");
-
-    if (_onlyFileName)
-      fprintf(out, "onlyFile            = '%s'\n", _onlyFileName);
-    else
-      fprintf(out, "onlyFile            = None Specified.\n");
-
-    if (_tmpFileName)
-      fprintf(out, "tmpFile             = '%s'\n", _tmpFileName);
-    else
-      fprintf(out, "tmpFile             = None Specified.\n");
-
-    if (_tableFileName)
-      fprintf(out, "tableFile           = '%s'\n", _tableFileName);
-    else
-      fprintf(out, "tableFile           = None Specified.\n");
-
+    fprintf(out, "dbFile              = %s\n", (_dbFileName) ? _dbFileName : "None Specified.");
+    fprintf(out, "outputFile          = %s\n", (_outputFileName) ? _outputFileName : "None Specified.");
+    fprintf(out, "statsFile           = %s\n", (_statsFileName) ? _statsFileName : "None Specified.");
+    fprintf(out, "qsFile              = %s\n", (_qsFileName) ? _qsFileName : "None Specified.");
+    fprintf(out, "maskFile            = %s\n", (_maskFileName) ? _maskFileName : "None Specified.");
+    fprintf(out, "onlyFile            = %s\n", (_onlyFileName) ? _onlyFileName : "None Specified.");
+    fprintf(out, "tmpFile             = %s\n", (_tmpFileName) ? _tmpFileName : "None Specified.");
+    fprintf(out, "tableFile           = %s\n", (_tableFileName) ? _tableFileName : "None Specified.");
     fprintf(out, "\n");
   }
 }

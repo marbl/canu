@@ -2,11 +2,6 @@
 #include "seatac.H"
 #include "intervalList.H"
 
-#ifdef TRUE64BIT
-#define HITOUTPUTLINE  "-%c -e %u %u %u -D %u %u %u -F %lu\n"
-#else
-#define HITOUTPUTLINE  "-%c -e %lu %lu %lu -D %lu %lu %lu -F %lu\n"
-#endif
 
 hitMatrix::hitMatrix(u32bit qsLen, u32bit qsIdx, bool reversed) {
   _qsLen    = qsLen;
@@ -87,7 +82,7 @@ adjustHeap(diagonalLine *L, s32bit p, s32bit n) {
 
 
 void
-hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit &theOutputMax) {
+hitMatrix::processMatrix(char direction, filterObj *FO) {
 
   if (_hitsLen == 0)
     return;
@@ -211,45 +206,25 @@ hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit
         IL.clear();
 
         if (ILlength >= config._minLength) {
-          if (theOutputPos + 128 >= theOutputMax) {
-            theOutputMax <<= 1;
-            char *o = 0L;
-            try {
-              o = new char [theOutputMax];
-            } catch (std::bad_alloc) {
-              fprintf(stderr, "hitMatrix::filter()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
-              fprintf(stderr, "hitMatrix::filter()-- tried to extend output string from %lu to %lu bytes.\n", theOutputPos, theOutputMax);
-              exit(1);
-            }
-            memcpy(o, theOutput, theOutputPos);
-            delete [] theOutput;
-            theOutput = o;
-          }
-
           if (direction == 'r') {
-            sprintf(theOutput + theOutputPos, HITOUTPUTLINE,
-                    direction,
-                    _qsIdx,
-                    _qsLen - qsHigh - config._merSize,
-                    qsHigh - qsLow + config._merSize,
-                    config._useList[currentSeq].seq,
-                    dsLow,
-                    dsHigh - dsLow + config._merSize,
-                    ILlength);
+            FO->addHit(direction,
+                       _qsIdx,
+                       _qsLen - qsHigh - config._merSize,
+                       qsHigh - qsLow + config._merSize,
+                       config._useList[currentSeq].seq,
+                       dsLow,
+                       dsHigh - dsLow + config._merSize,
+                       ILlength);
           } else {
-            sprintf(theOutput + theOutputPos, HITOUTPUTLINE,
-                    direction,
-                    _qsIdx,
-                    qsLow,
-                    qsHigh - qsLow + config._merSize,
-                    config._useList[currentSeq].seq,
-                    dsLow,
-                    dsHigh - dsLow + config._merSize,
-                    ILlength);
+            FO->addHit(direction,
+                       _qsIdx,
+                       qsLow,
+                       qsHigh - qsLow + config._merSize,
+                       config._useList[currentSeq].seq,
+                       dsLow,
+                       dsHigh - dsLow + config._merSize,
+                       ILlength);
           }
-
-          while (theOutput[theOutputPos])
-            theOutputPos++;
         }
 
         lastDiagonal = _hits[i]._diagonalID;
@@ -267,46 +242,26 @@ hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit
     IL.clear();
 
     if (ILlength >= config._minLength) {
-      if (theOutputPos + 128 >= theOutputMax) {
-        theOutputMax <<= 1;
-        char *o = 0L;
-        try {
-          o = new char [theOutputMax];
-        } catch (std::bad_alloc) {
-          fprintf(stderr, "hitMatrix::filter()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
-          fprintf(stderr, "hitMatrix::filter()-- tried to extend output string from %lu to %lu bytes.\n", theOutputPos, theOutputMax);
-          exit(1);
-        }
-        memcpy(o, theOutput, theOutputPos);
-        delete [] theOutput;
-        theOutput = o;
-      }
-
       if (direction == 'r') {
-        sprintf(theOutput + theOutputPos, HITOUTPUTLINE,
-                direction,
-                _qsIdx,
-                _qsLen - qsHigh - config._merSize,
-                qsHigh - qsLow + config._merSize,
-                config._useList[currentSeq].seq,
-                dsLow,
-                dsHigh - dsLow + config._merSize,
-                ILlength);
+        FO->addHit(direction,
+                   _qsIdx,
+                   _qsLen - qsHigh - config._merSize,
+                   qsHigh - qsLow + config._merSize,
+                   config._useList[currentSeq].seq,
+                   dsLow,
+                   dsHigh - dsLow + config._merSize,
+                   ILlength);
       } else {
-        sprintf(theOutput + theOutputPos, HITOUTPUTLINE,
-                direction,
-                _qsIdx,
-                qsLow,
-                qsHigh - qsLow + config._merSize,
-                config._useList[currentSeq].seq,
-                dsLow,
-                dsHigh - dsLow + config._merSize,
-                ILlength);
+        FO->addHit(direction,
+                   _qsIdx,
+                   qsLow,
+                   qsHigh - qsLow + config._merSize,
+                   config._useList[currentSeq].seq,
+                   dsLow,
+                   dsHigh - dsLow + config._merSize,
+                   ILlength);
       }
-      while (theOutput[theOutputPos])
-        theOutputPos++;
     }
-
 
     //  All done with these hits.  Move to the next set.
     //

@@ -19,6 +19,10 @@ else
  $(warning $/seatac requires threads: enable WITH_THREADS to build.)
 endif
 
+$/.CXX_SHLIBS  := $/filter-nop.so
+
+$/filter-nop.so: $/filter-nop.o
+
 $/.CLEAN     :=$/*.o
 $/.REAL-CLEAN:=$/buildinfo-*
 

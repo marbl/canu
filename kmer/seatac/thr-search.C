@@ -4,9 +4,9 @@
 
 
 #ifdef TRUE64BIT
-char const *srchGbye = "[%lu] computed: %8lu  blocked: %4lu/%4lu  encodeTime: %7.2f   searchTime: %7.2f   filterTime: %7.2f\n";
+char const *srchGbye = "[%lu] computed: %8lu  blocked: %4lu/%4lu  encodeTime: %7.2f   searchTime: %7.2f   processTime: %7.2f\n";
 #else
-char const *srchGbye = "[%llu] computed: %8lu  blocked: %4lu/%4lu  encodeTime: %7.2f   searchTime: %7.2f   filterTime: %7.2f\n";
+char const *srchGbye = "[%llu] computed: %8lu  blocked: %4lu/%4lu  encodeTime: %7.2f   searchTime: %7.2f   processTime: %7.2f\n";
 #endif
 
 
@@ -19,7 +19,7 @@ public:
   double         encodeTime;
   double         maskTime;
   double         searchTime;
-  double         filterTime;
+  double         processTime;
 
   searcherState() {
     posnMax = 16384;
@@ -29,7 +29,7 @@ public:
     encodeTime = 0.0;
     maskTime   = 0.0;
     searchTime = 0.0;
-    filterTime = 0.0;
+    processTime = 0.0;
   };
 
   ~searcherState() {
@@ -43,7 +43,7 @@ doSearch(searcherState *state,
          FastASequenceInCore *seq,
          u32bit idx,
          bool rc,
-         char *&theOutput, u32bit &theOutputPos, u32bit &theOutputMax) {
+         filterObj *FO) {
   encodedQuery  *query  = 0L;
   hitMatrix     *matrix = 0L;
   double         startTime  = 0.0;
@@ -76,11 +76,9 @@ doSearch(searcherState *state,
 
   fprintf(stderr, "Filtering hits for  rc=%d %s\n", rc, seq->header());
 
-  //  Filter, storing the resutls into theOutput
-  //
   startTime = getTime();
-  matrix->filter(rc ? 'r' : 'f', theOutput, theOutputPos, theOutputMax);
-  state->filterTime += getTime() - startTime;
+  matrix->processMatrix(rc ? 'r' : 'f', FO);
+  state->processTime += getTime() - startTime;
 
   fprintf(stderr, "Finished with       rc=%d %s\n", rc, seq->header());
 
@@ -99,10 +97,6 @@ searchThread(void *U) {
   u32bit               computed = 0;
 
   searcherState       *state    = new searcherState;
-
-  u32bit               theOutputPos = 0;
-  u32bit               theOutputMax = 0;
-  char                *theOutput    = 0L;
 
   //  Allocate and fill out the thread stats -- this ensures that we
   //  always have stats (even if they're bogus).
@@ -154,27 +148,33 @@ searchThread(void *U) {
           nanosleep(&config._searchSleep, 0L);
         }
 
-        //  Allocate space for the output -- 1MB should be enough for
-        //  about 29000 signals.  Make it 32K -> 900 signals.
+        //  Construct a filter object
         //
-        theOutputPos = 0;
-        theOutputMax = 32 * 1024;
-        theOutput    = new char [theOutputMax];
+        filterObj *FO = new filterObj(config._filtername, config._filteropts);
+        fprintf(stderr, "Created filterObj 0x%016lx\n", FO);
 
         //  Do searches.
         //
         if (config._doForward)
-          doSearch(state, seq, idx, false, theOutput, theOutputPos, theOutputMax);
+          doSearch(state, seq, idx, false, FO);
         if (config._doReverse)
-          doSearch(state, seq, idx, true,  theOutput, theOutputPos, theOutputMax);
+          doSearch(state, seq, idx, true, FO);
 
         //  Signal that we are done.
         //
-        outputLen[idx] = theOutputPos;
-        output[idx]    = theOutput;
+        output[idx] = FO;
         computed++;
 
         delete seq;
+
+#if 0
+        fprintf(stderr, "I sleep\n");
+        for (int i=0; i<1000; i++) {
+          nanosleep(&config._searchSleep, 0L);
+        }
+        fprintf(stderr, "I awake\n");
+#endif
+
       } // end of seq != 0L
     } // end of idx < numberOfQueries
   } // end of inputTail < numberOfQueries
@@ -186,7 +186,7 @@ searchThread(void *U) {
           computed, blockedI, blockedO,
           state->encodeTime,
           state->searchTime,
-          state->filterTime);
+          state->processTime);
 
   delete state;
 

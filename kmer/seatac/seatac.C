@@ -26,8 +26,7 @@ configuration          config;
 FastAWrapper          *qsFASTA;
 positionDB            *positions;
 volatile u32bit        numberOfQueries;
-char                 **output;
-u32bit                *outputLen;
+filterObj            **output;
 pthread_mutex_t        inputTailMutex;
 FastASequenceInCore  **input;
 volatile u32bit        inputHead;
@@ -252,8 +251,7 @@ main(int argc, char **argv) {
   qsFASTA->openIndex();
 
   numberOfQueries  = qsFASTA->getNumberOfSequences();
-  output           = new char * [numberOfQueries];
-  outputLen        = new u32bit [numberOfQueries];
+  output           = new filterObj * [numberOfQueries];
 
   input     = new FastASequenceInCore * [numberOfQueries];
   inputHead = 0;
@@ -261,7 +259,6 @@ main(int argc, char **argv) {
 
   for (u32bit i=numberOfQueries; i--; ) {
     output[i]    = 0L;
-    outputLen[i] = 0;
     input[i]     = 0L;
   }
 
@@ -315,17 +312,19 @@ main(int argc, char **argv) {
 
   //  Open output file
   //
-  int resultFILE = fileno(stdout);
+  FILE *resultFILE = stdout;
 
   if (config._outputFileName) {
     errno = 0;
-    resultFILE = open(config._outputFileName,
-                      O_WRONLY | O_LARGEFILE | O_CREAT | O_TRUNC,
-                      S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+    int rf = open(config._outputFileName,
+                  O_WRONLY | O_LARGEFILE | O_CREAT | O_TRUNC,
+                  S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
     if (errno) {
       fprintf(stderr, "Couldn't open the output file '%s'?\n%s\n", config._outputFileName, strerror(errno));
       exit(1);
     }
+
+    resultFILE = fdopen(rf, "w");
   }
 
 
@@ -349,9 +348,11 @@ main(int argc, char **argv) {
         fflush(stderr);
       }
 
-      if (outputLen[outputPos] > 0) {
+      if (output[outputPos] > 0) {
         errno = 0;
-        write(resultFILE, output[outputPos], sizeof(char) * outputLen[outputPos]);
+        fprintf(stderr, "WRITING OUTPUT!\n");
+        output[outputPos]->output(resultFILE);
+        fprintf(stderr, "WROTE OUTPUT!\n");
         if (errno) {
           fprintf(stderr, "Couldn't write to the output file '%s'.\n%s\n",
                   config._outputFileName, strerror(errno));
@@ -364,7 +365,6 @@ main(int argc, char **argv) {
 
       input[outputPos]     = 0L;
       output[outputPos]    = 0L;
-      outputLen[outputPos] = 0;
 
       outputPos++;
     } else {
@@ -380,7 +380,7 @@ main(int argc, char **argv) {
   }
 
   errno = 0;
-  close(resultFILE);
+  fclose(resultFILE);
   if (errno)
     fprintf(stderr, "Couldn't close to the output file '%s'.\n%s\n", config._outputFileName, strerror(errno));
 
