@@ -19,6 +19,7 @@ my %validArgs = ("-help"            => "0",  #
                  "-snpoffset"       => "1",  # 
                  "-snppostag"       => "1",  # 
                  "-snpsizetag"      => "1",  # 
+                 "-snpoutformat"    => "1",  #
 
                  "-abort"           => "1",  # 4
                  "-aligns"          => "0",  # 4

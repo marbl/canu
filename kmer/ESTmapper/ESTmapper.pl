@@ -257,6 +257,7 @@ if ($personality eq "-mapest") {
         my $snpsizetag   = "";
         my $snppostag    = "";
         my $snpoffset    = "";
+        my $snpoutformat = "";
 
         while (scalar @ARGS > 0) {
             my $arg = shift @ARGS;
@@ -273,12 +274,15 @@ if ($personality eq "-mapest") {
             } elsif ($arg eq "-snpoffset") {
                 $arg = shift @ARGS;
                 $snpoffset = "-o $arg";
+            } elsif ($arg eq "-snpoutformat") {
+                $arg = shift @ARGS;
+                $snpoutformat = "-format $arg";
             }
         }
 
         #  PARSE!
         #
-        if (runCommand("$parseSNPs $snpdelimiter $snpsizetag $snppostag $snpoffset -F $dir/snps-failed -O $dir/snps-parsed < $dir/polishes-good.sorted > $dir/summary-snps")) {
+        if (runCommand("$parseSNPs $snpdelimiter $snpsizetag $snppostag $snpoffset $snpoutformat -F $dir/snps-failed -O $dir/snps-parsed < $dir/polishes-good.sorted > $dir/summary-snps")) {
             unlink "$dir/snps-failed";
             unlink "$dir/snps-parsed";
             unlink "$dir/summary-snps";
