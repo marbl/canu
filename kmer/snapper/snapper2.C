@@ -449,7 +449,9 @@ main(int argc, char **argv) {
       justSlept = true;
     }
 
-    if (config._beVerbose && ((justSlept) || (outputPos & outputMask) == outputMask)) {
+    if (config._beVerbose &&
+        (outputPos > 0) &&
+        ((justSlept) || (outputPos & outputMask) == outputMask)) {
       double thisTimeD = getTime() - zeroTime + 0.0000001;
       double perSec    = outputPos / thisTimeD;
       double remTime   = (numberOfQueries - outputPos) * thisTimeD / outputPos;
