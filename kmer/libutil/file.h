@@ -3,7 +3,7 @@
 
 #include <sys/types.h>
 
-#if defined(__APPLE__) || defined(__FreeBSD__)
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__CYGWIN__)
 #include <sys/syslimits.h>
 #endif
 
