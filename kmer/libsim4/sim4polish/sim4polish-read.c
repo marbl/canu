@@ -99,9 +99,6 @@ s4p_readPolish(FILE *F) {
   sim4polishExon  *ex = 0L;
   char             mOri[65];
   char             sOri[65];
-#ifndef OLD_COVERAGE
-  int              exonCoverage = 0;
-#endif
 
   readLine(F, l);
   while(!feof(F) && strcmp(l->s, "sim4begin")) {
@@ -247,6 +244,8 @@ s4p_readPolish(FILE *F) {
     exit(1);
   }
 
+  p->numCovered = 0;
+
   while (sscanf(l->s, "%d-%d (%d-%d) <%d-%d-%d>",
                 &ef, &et, &gf, &gt, &nm, &nn, &id) == 7) {
     if (el >= em) {
@@ -280,7 +279,7 @@ s4p_readPolish(FILE *F) {
       ex[el].intronOrientation = '=';
 
 #ifndef OLD_COVERAGE
-    exonCoverage += ex[el].estTo - ex[el].estFrom + 1;
+    p->numCovered += ex[el].estTo - ex[el].estFrom + 1;
 #endif
 
     el++;
@@ -294,7 +293,7 @@ s4p_readPolish(FILE *F) {
 
 
 #ifndef OLD_COVERAGE
-  p->querySeqIdentity = (int)floor(100 * (double)(exonCoverage) / (double)(p->estLen - p->estPolyA - p->estPolyT));
+  p->querySeqIdentity = (int)floor(100 * (double)(p->numCovered) / (double)(p->estLen - p->estPolyA - p->estPolyT));
 #endif
 
 

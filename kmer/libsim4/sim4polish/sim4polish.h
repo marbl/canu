@@ -56,6 +56,7 @@ typedef struct {
 
   u32bit           numMatches;
   u32bit           numMatchesN;
+  u32bit           numCovered;          //  Number of bp covered in alignments
   u32bit           percentIdentity;
   u32bit           querySeqIdentity;    //  numMatches / (estLen - pA -pT)
   u32bit           matchOrientation;
