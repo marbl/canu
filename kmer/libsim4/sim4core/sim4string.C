@@ -117,6 +117,11 @@ Sim4::run(sim4parameters *s4Params) {
 
   int     matchesPrinted = 0;
 
+  char    touppercache[256];
+
+  for (int i=0; i<256; i++)
+    touppercache[i] = (char)toupper(i);
+
   //  Make absolutely sure that the database sequence start and end
   //  positions are within the valid range.  Ideally, this should be
   //  checked by whatever generates the input, but it probably isn't.
@@ -137,15 +142,16 @@ Sim4::run(sim4parameters *s4Params) {
       s4Params->_dbLo = 0;
 
 
-  int              dblen     = s4Params->_dbHi - s4Params->_dbLo;
-  unsigned char   *dbseq;
-  unsigned char   *dbrev;
+  int              dblen       = s4Params->_dbHi - s4Params->_dbLo;
+  unsigned char   *dbseq       = 0L;
+  unsigned char   *dbrev       = 0L;
   unsigned char   *dbseqorig   = s4Params->getDBsequence(s4Params->_dbIdx);
   bool             dbWasMasked = false;
 
-  int              estlen;
-  unsigned char   *estseq;
-  unsigned char   *estrev;
+  int              estlen     = 0;
+  unsigned char   *estseq     = 0L;
+  unsigned char   *estrev     = 0L;
+  unsigned char   *estseqorig = 0L;
 
   unsigned int     pleaseContinueComputing = false;
 
@@ -162,10 +168,10 @@ Sim4::run(sim4parameters *s4Params) {
   unsigned int     seqStorageSize = 0;
 
   for (unsigned int e=0; e<s4Params->_numESTs; e++)
-    if (seqStorageSize < s4Params->getESTlength(s4Params->_ESTlist[e]))
-      seqStorageSize = s4Params->getESTlength(s4Params->_ESTlist[e]);
+    if (estlen < s4Params->getESTlength(s4Params->_ESTlist[e]))
+      estlen = s4Params->getESTlength(s4Params->_ESTlist[e]);
 
-  seqStorageSize += dblen + dblen + 6;
+  seqStorageSize  = dblen + dblen + estlen + estlen + 8;
   seqStorage      = new unsigned char [seqStorageSize];
 
   //  Original, forward, reverse, cdna
@@ -174,7 +180,8 @@ Sim4::run(sim4parameters *s4Params) {
 
   dbseq  = seqStorage;
   dbrev  = seqStorage + dblen + 2;
-  estrev = seqStorage + dblen + 2 + dblen + 2;
+  estseq = seqStorage + dblen + 2 + dblen + 2;
+  estrev = seqStorage + dblen + 2 + dblen + 2 + estlen + 2;
 
 
   //  Prepare the database sequence
@@ -184,7 +191,7 @@ Sim4::run(sim4parameters *s4Params) {
   //  Reverse complement
   //
   for (unsigned int i=0, j=s4Params->_dbLo, k=dblen-1; j<s4Params->_dbHi; i++, j++, k--) {
-    dbseq[i] = dbseqorig[j];
+    dbseq[i] = touppercache[dbseqorig[j]];
     dbrev[k] = complementSymbol[dbseq[i]];
   }
   dbseq[dblen] = 0;
@@ -193,8 +200,12 @@ Sim4::run(sim4parameters *s4Params) {
   for (unsigned int e=0; e<s4Params->_numESTs; e++) {
     sim4_stats_t   st, rev_st;
 
-    estseq = s4Params->getESTsequence(s4Params->_ESTlist[e]);
-    estlen = s4Params->getESTlength(s4Params->_ESTlist[e]);
+    estseqorig = s4Params->getESTsequence(s4Params->_ESTlist[e]);
+    estlen     = s4Params->getESTlength(s4Params->_ESTlist[e]);
+
+    for (unsigned int i=0; i<estlen; i++)
+      estseq[i] = touppercache[estseqorig[i]];
+    estseq[estlen] = 0;
 
     g_pT = g_pA = 0;
 
@@ -211,7 +222,7 @@ Sim4::run(sim4parameters *s4Params) {
     if (dbWasMasked) {
       dbWasMasked = false;
       for (unsigned int i=0, j=s4Params->_dbLo, k=dblen-1; j<s4Params->_dbHi; i++, j++, k--) {
-        dbseq[i] = dbseqorig[j];
+        dbseq[i] = touppercache[dbseqorig[j]];
         dbrev[k] = complementSymbol[dbseq[i]];
       }
       dbseq[dblen] = 0;
