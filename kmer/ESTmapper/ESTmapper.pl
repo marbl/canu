@@ -167,7 +167,6 @@ while (scalar(@junkargs) > 0) {
 #  the quality levels.
 #
 if ($personality eq "-restart") {
-
     if (! -e "$dir/.runOptions") {
         print STDERR "ESTmapper/restart-- Nothing to restart!\n";
         exit;
@@ -181,11 +180,18 @@ if ($personality eq "-restart") {
     @ARGV = (@origARGS, @ARGV);
 
     $personality = "-help";
-    foreach my $opt (@ARGV) {
+
+    @junkargs = @ARGV;
+    while (scalar(@junkargs) > 0) {
+        my $opt = shift @junkargs;
+
         if (($opt eq "-mapest")  ||
             ($opt eq "-mapmrna") ||
             ($opt eq "-mapsnp")) {
             $personality = $opt;
+            $dir = shift @junkargs;
+            $est = shift @junkargs;
+            $gen = shift @junkargs;
         }
     }
 
