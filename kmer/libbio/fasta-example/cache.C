@@ -24,7 +24,7 @@ main(int argc, char **argv) {
 
   //  And do something with the sequence
   //
-  fprintf(stdout, "%s starts with %c\n", seq->header(), seq->sequence()[0]);
+  fprintf(stdout, "%s\n%s\n", seq->header(), seq->sequence());
 
   //  Don't delete seq, it's owned by the cache!
 }
