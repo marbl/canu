@@ -93,10 +93,12 @@ private:
   u32bit      _hashWidth;
   u32bit      _chckWidth;
   u32bit      _posnWidth;
+  u32bit      _posnPtrWidth;
 
   u64bit      _hashMask;
   u64bit      _chckMask;
   u64bit      _posnMask;
+  u64bit      _posnPtrMask;
 
   u32bit      _wCnt;
   u32bit      _wFin;

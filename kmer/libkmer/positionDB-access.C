@@ -23,7 +23,7 @@ positionDB::get(u64bit   mer,
     v = getDecodedValue(_buckets, J, _wFin);
 
     if ((v & _chckMask) == c) {
-      pos = (v >> _chckWidth) & _posnMask;
+      pos = (v >> _chckWidth) & _posnPtrMask;
 
       if (posnMax == 0) {
         posnMax = 16384;
