@@ -21,11 +21,14 @@
 
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_UID/Attic/SYS_UIDclient_cpp.C,v $
-$Revision: 1.3 $
-$Date: 2005-03-22 19:49:28 $
+$Revision: 1.4 $
+$Date: 2005-03-30 21:20:02 $
 $Name: not supported by cvs2svn $
-$Author: jason_miller $
+$Author: eliv $
 $Log: not supported by cvs2svn $
+Revision 1.3  2005/03/22 19:49:28  jason_miller
+The TIGR tip as of March 22 2005. Commit by Jason Miller at TIGR.
+
 Revision 1.2  2004/09/10 12:31:43  mschatz
 Add standard copyright notice
 
@@ -81,7 +84,7 @@ Assumptions:
 
 #include "SYS_UIDcommon.h"
 #include "SYS_UIDerror.h"
-#include <iostream.h>
+#include <iostream>
 #include "SYS_UIDclient_cpp.h"
 
 /*******************************************************************************

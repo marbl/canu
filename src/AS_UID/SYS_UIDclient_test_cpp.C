@@ -21,11 +21,14 @@
 
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_UID/Attic/SYS_UIDclient_test_cpp.C,v $
-$Revision: 1.3 $
-$Date: 2005-03-22 19:49:28 $
+$Revision: 1.4 $
+$Date: 2005-03-30 21:20:02 $
 $Name: not supported by cvs2svn $
-$Author: jason_miller $
+$Author: eliv $
 $Log: not supported by cvs2svn $
+Revision 1.3  2005/03/22 19:49:28  jason_miller
+The TIGR tip as of March 22 2005. Commit by Jason Miller at TIGR.
+
 Revision 1.3  2004/09/10 12:31:43  mschatz
 Add standard copyright notice
 
@@ -78,7 +81,7 @@ Assumptions:
 
 **********************************************************************/
 
-#include <iostream.h>
+#include <iostream>
 #include "cds.h"
 #include "SYS_UIDcommon.h"
 #include "SYS_UIDclient_cpp.h"
@@ -97,9 +100,9 @@ cds_int32 main(cds_int32 argc, char** argv)
    // check
    if (argc < 3)
       {
-      cout << endl << "usage: " << argv[0] << 
+      std::cout << std::endl << "usage: " << argv[0] << 
 	" <block_size> <count> <ms delay> [-p to print] " << 
-         endl << endl;
+         std::endl << std::endl;
       return 0;
       }
    
@@ -113,8 +116,8 @@ cds_int32 main(cds_int32 argc, char** argv)
          print_flag = 1;
 
    uid_status = uid_client.GetMaxUIDSize(&max_block_size);
-   cout << "Get max size status : size     " << uid_status << 
-     "  :  " << max_block_size << endl;
+   std::cout << "Get max size status : size     " << uid_status << 
+     "  :  " << max_block_size << std::endl;
 
    // begin loop
    uid_client.SetUIDSize(block_size);
@@ -122,20 +125,20 @@ cds_int32 main(cds_int32 argc, char** argv)
    {
       uid_status = uid_client.GetNewUIDInterval(uid_interval);
       if (print_flag)
-         cout << uid_status << ":" 
+         std::cout << uid_status << ":" 
               << "   " << uid_interval[0]
               << "   " << uid_interval[1]
               << "   " << uid_interval[2]
-              << "   " << uid_interval[3] << endl;
+              << "   " << uid_interval[3] << std::endl;
       cds_uint64 incr_uid;
       for (cds_int32 j=0;j<block_size;j++)
       {
          uid_status = uid_client.GetNextUID(&incr_uid);
          if (print_flag)
-            cout << uid_status << "_" << incr_uid << " ";
+            std::cout << uid_status << "_" << incr_uid << " ";
       }
       if (print_flag)
-         cout << endl;
+         std::cout << std::endl;
       cds_uint32 us = msec_delay * 1000;
       usleep(us);
    }
