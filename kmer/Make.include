@@ -22,21 +22,42 @@ MERTABLES/  :=$/merTables/
 
 ########################## includes #############
 
+#  Bah!  Order is important here.  It would be nice to get things to
+# build in order of dependency (e.g., libbri, then fasta, then
+# existdb, then posdb, then searchgen), but the .d dependency
+# generation goes BACKWARDS and it also makes the buildinfo files that
+# other things include.
+
+
 $(eval $(call Include,${EXTERNAL/}))
 $(eval $(call Include,${LIBBRI/}))
-$(eval $(call Include,${SNAPPER2/}))
-$(eval $(call Include,${EMMA/}))
+
+#$(eval $(call Include,${FASTA/}))
+
+#$(eval $(call Include,${EXISTDB/}))
+#$(eval $(call Include,${POSITIONDB/}))
+#$(eval $(call Include,${MERTABLES/}))
+
 $(eval $(call Include,${SEARCHGEN/}))
+
+$(eval $(call Include,${SNAPPER2/}))
 $(eval $(call Include,${SEATAC/}))
-$(eval $(call Include,${EXISTDB/}))
-$(eval $(call Include,${POSITIONDB/}))
+
+$(eval $(call Include,${EMMA/}))
+
 $(eval $(call Include,${SIM4/}))
-$(eval $(call Include,${SIM4DB/}))
-$(eval $(call Include,${SIM4READER/}))
 $(eval $(call Include,${SIM4POLISH/}))
-$(eval $(call Include,${FASTA/}))
+$(eval $(call Include,${SIM4READER/}))
+$(eval $(call Include,${SIM4DB/}))
+
 $(eval $(call Include,${CDNAGAPS/}))
 $(eval $(call Include,${REFSEQANAL/}))
-$(eval $(call Include,${MERTABLES/}))
 $(eval $(call Include,${MERYL/}))
 
+#  Things that are in the wrong order
+
+$(eval $(call Include,${FASTA/}))
+
+$(eval $(call Include,${EXISTDB/}))
+$(eval $(call Include,${POSITIONDB/}))
+$(eval $(call Include,${MERTABLES/}))
