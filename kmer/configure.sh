@@ -103,10 +103,10 @@ EOF
 THRINC  = -qthreaded -D_THREAD_SAFE
 THRLIB  = -lpthread
 IBMLF	= -D_LARGE_FILES
-cc      = xlc
+cc      = xlc_r
 ccOPTS  = -q64 -O3 -pg -qfullpath -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict \$(IBMLF) -qcpluscmt
 ccWARNS = 
-CC      = xlC
+CC      = xlC_r
 CCOPTS  = -q64 -O3 -pg -qfullpath -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict \$(IBMLF)
 CCWARNS =
 AROPTS  = -X 64 ruv
@@ -119,10 +119,10 @@ EOF
 THRINC  = -qthreaded -D_THREAD_SAFE
 THRLIB  = -lpthread
 IBMLF	= -D_LARGE_FILES
-cc      = xlc
+cc      = xlc_r
 ccOPTS  = -q64 -g -qfullpath \$(IBMLF) -qcpluscmt
 ccWARNS = 
-CC      = xlC
+CC      = xlC_r
 CCOPTS  = -q64 -g -qfullpath \$(IBMLF)
 CCWARNS =
 AROPTS  = -X 64 ruv
@@ -132,13 +132,13 @@ EOF
     rm -f Makefile-configuration
     cat <<EOF > Makefile-configuration
 #  Tru64, native compilers, optimized
-THRINC  = -D_REENTRANT
-THRLIB  = -pthread -lpthread -lrt
+THRINC  = 
+THRLIB  = -lpthread -lrt
 cc      = cc
-ccOPTS  = -w0 -fast
+ccOPTS  = -D_REENTRANT -pthread -w0 -fast
 ccWARNS = 
 CC      = cxx
-CCOPTS  = -w0 -fast
+CCOPTS  = -D_REENTRANT -pthread -w0 -fast
 CCWARNS =
 AROPTS  = ruv
 EOF
@@ -150,10 +150,10 @@ EOF
 THRINC  = -D_REENTRANT
 THRLIB  = -pthread -lpthread -lrt
 cc      = cc
-ccOPTS  = -g -w0 -trapuv
+ccOPTS  = -D_REENTRANT -pthread -g -w0 -trapuv
 ccWARNS = 
 CC      = cxx
-CCOPTS  = -gall -w0 -trapuv
+CCOPTS  = -D_REENTRANT -pthread -gall -w0 -trapuv
 CCWARNS =
 AROPTS  = ruv
 EOF
