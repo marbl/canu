@@ -7,9 +7,55 @@
 //
 //  Routines for comparing sim4polish structures.
 //
-//  These routines assume that the iid's are consistent for the pair
-//  of polishes.  In particular, that they are mapped to the same set
-//  of genomic sequences.
+//  Many of these routines assume that the iid's are consistent for
+//  the pair of polishes.  In particular, that they are mapped to the
+//  same set of genomic sequences.
+//
+
+
+int
+s4p_estIDcompare(const void *a, const void *b) {
+  sim4polish *A = (*(sim4polish **)a);
+  sim4polish *B = (*(sim4polish **)b);
+
+  if (A == 0L)  return(1);
+  if (B == 0L)  return(-1);
+
+  if (A->estID < B->estID) return(-1);
+  if (A->estID > B->estID) return(1);
+  if (A->genID < B->genID) return(-1);
+  if (A->genID > B->genID) return(1);
+  if (A->genLo < B->genLo) return(-1);
+  if (A->genLo > B->genLo) return(1);
+  if (A->exons[0].genFrom < B->exons[0].genFrom) return(-1);
+  if (A->exons[0].genFrom > B->exons[0].genFrom) return(1);
+
+  return(0);
+}
+
+
+
+int
+s4p_genIDcompare(const void *a, const void *b) {
+  sim4polish *A = (*(sim4polish **)a);
+  sim4polish *B = (*(sim4polish **)b);
+
+  if (A == 0L)  return(1);
+  if (B == 0L)  return(-1);
+
+  if (A->genID < B->genID) return(-1);
+  if (A->genID > B->genID) return(1);
+  if (A->estID < B->estID) return(-1);
+  if (A->estID > B->estID) return(1);
+  if (A->genLo < B->genLo) return(-1);
+  if (A->genLo > B->genLo) return(1);
+  if (A->exons[0].genFrom < B->exons[0].genFrom) return(-1);
+  if (A->exons[0].genFrom > B->exons[0].genFrom) return(1);
+
+  return(0);
+}
+
+
 
 
 
