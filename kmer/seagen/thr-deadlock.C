@@ -1,7 +1,7 @@
 #include "posix.H"
 #include "searchGENOME.H"
 
-//  $Id$
+#ifdef __alpha
 
 //  Define this to kill the process with a vengance instead of
 //  gracefully exiting.  exit() tries to free memory, and is thus gets
@@ -74,3 +74,5 @@ deadlockChecker(void *) {
 
   return(0L);  //  Ignore the warning!
 }
+
+#endif
