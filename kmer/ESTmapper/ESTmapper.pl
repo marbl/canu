@@ -6,16 +6,26 @@
 
 $| = 1;
 
+use strict;
+
+use vars qw($personality $exechome $ESTmapper $searchGENOME $mergeCounts $filterMRNA $filterEST $sim4db $leaff $cleanPolishes $toFILTER $sortHits $sortPolishes $parseSNPs $pickBest);
+
 use FindBin;
 use lib "$FindBin::Bin/util";
 use scheduler;
 use fasta;
 
-use strict;
+require "checkArgs.pl";
+require "run.pl";
+require "lsf.pl";
+require "util.pl";
+require "1-configure.pl";
+require "2-search.pl";
+require "3-filter.pl";
+require "4-polish.pl";
+require "5-assemble.pl";
 
-use vars qw($personality $exechome $ESTmapper $searchGENOME $mergeCounts $filterMRNA $filterEST $sim4db $leaff $cleanPolishes $toFILTER $sortHits $sortPolishes $parseSNPs $pickBest);
-
-my $scriptVersion = "8";
+my $scriptVersion = "9";
 my $startTime   = time();
 
 $exechome      = "$FindBin::Bin";
@@ -46,18 +56,6 @@ die "Can't find/execute $sortHits\n"      if (! -x $sortHits);
 die "Can't find/execute $sortPolishes\n"  if (! -x $sortPolishes);
 die "Can't find/execute $parseSNPs\n"     if (! -x $parseSNPs);
 die "Can't find/execute $pickBest\n"      if (! -x $pickBest);
-
-
-require "util/checkArgs.pl";
-require "util/run.pl";
-require "util/lsf.pl";
-require "util/util.pl";
-require "util/1-configure.pl";
-require "util/2-search.pl";
-require "util/3-filter.pl";
-require "util/4-polish.pl";
-require "util/5-assemble.pl";
-
 
 
 #  Create a .runInformaiton file, containing supposedly useful information
