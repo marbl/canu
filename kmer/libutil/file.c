@@ -28,6 +28,10 @@ unsigned long __sbrk_override = 1;  //  See malloc(3) for details.
 #define MMAPFLAGS    (MAP_FILE | MAP_VARIABLE | MAP_SHARED)
 #endif
 
+#ifdef __CYGWIN__
+#define MMAPFLAGS    (MAP_FILE | MAP_SHARED)
+#endif
+
 #ifdef __linux
 #define MMAPFLAGS    (MAP_FILE | MAP_SHARED)
 #endif
