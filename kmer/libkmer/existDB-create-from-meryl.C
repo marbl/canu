@@ -13,14 +13,12 @@ existDB::createFromMeryl(char const  *prefix,
                          u32bit       hi,
                          positionDB  *posDB) {
 
-  fprintf(stderr, "existDB: Reading mers from meryl stream %s\n", prefix);
-
-  merStreamFromMeryl *M = new merStreamFromMeryl(prefix);
+  merylStreamReader *M = new merylStreamReader(prefix);
 
   _hashTable = 0L;
   _buckets   = 0L;
 
-  _merSizeInBases        = M->mcd()._merSizeInBases;
+  _merSizeInBases        = M->merSize();
 
   //  XXX:  Should probably be a parameter.
 
@@ -83,7 +81,8 @@ existDB::createFromMeryl(char const  *prefix,
     _hashWidth++;
 #endif
 
-  fprintf(stderr, "existDB: Found %u mers between count of %u and %u\n", numberOfMers, lo, hi);
+  fprintf(stderr, "existDB: Found "u64bitFMT" mers between count of "u32bitFMT" and "u32bitFMT"\n",
+          numberOfMers, lo, hi);
 
 
   //  2) Allocate hash table, mer storage buckets
@@ -143,7 +142,7 @@ existDB::createFromMeryl(char const  *prefix,
   //
   //  3)  Build list of mers, placed into buckets
   //
-  M = new merStreamFromMeryl(prefix);
+  M = new merylStreamReader(prefix);
 
   //  XXX:  Pretty big code bloat here
   //

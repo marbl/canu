@@ -17,7 +17,7 @@ existDB::saveState(char const *filename) {
   errno = 0;
   FILE *F = fopen(filename, "wb");
   if (errno) {
-    fprintf(stderr, "Can't open '%s' for writing\n%s\n", strerror(errno));
+    fprintf(stderr, "Can't open '%s' for writing\n%s\n", filename, strerror(errno));
     exit(1);
   }
 
@@ -151,28 +151,28 @@ existDB::loadState(char const *filename,
 void
 existDB::printState(FILE *stream) {
 
-  fprintf(stream, "merSizeInBases:   %u\n", _merSizeInBases);
-  fprintf(stream, "tableBits         %u\n", 2 * _merSizeInBases - _shift1);
+  fprintf(stream, "merSizeInBases:   "u32bitFMT"\n", _merSizeInBases);
+  fprintf(stream, "tableBits         "u32bitFMT"\n", 2 * _merSizeInBases - _shift1);
   fprintf(stream, "-----------------\n");
-  fprintf(stream, "_hashTableWords   %lu (%lu KB)\n", _hashTableWords, _hashTableWords >> 7);
-  fprintf(stream, "_bucketsWords     %lu (%lu KB)\n", _bucketsWords, _bucketsWords >> 7);
+  fprintf(stream, "_hashTableWords   "u64bitFMT" ("u64bitFMT" KB)\n", _hashTableWords, _hashTableWords >> 7);
+  fprintf(stream, "_bucketsWords     "u64bitFMT" ("u64bitFMT" KB)\n", _bucketsWords, _bucketsWords >> 7);
   fprintf(stream, "-----------------\n");
-  fprintf(stream, "_shift1:          %u\n", _shift1);
-  fprintf(stream, "_shift2           %u\n", _shift2);
-  fprintf(stream, "_mask1            0x%016lx\n", _mask1);
-  fprintf(stream, "_mask2            0x%016lx\n", _mask2);
+  fprintf(stream, "_shift1:          "u32bitFMT"\n", _shift1);
+  fprintf(stream, "_shift2           "u32bitFMT"\n", _shift2);
+  fprintf(stream, "_mask1            "u64bitHEX"\n", _mask1);
+  fprintf(stream, "_mask2            "u64bitHEX"\n", _mask2);
 
 #ifdef COMPRESSED_HASH
   fprintf(stream, "COMPRESSED_HASH   enabled\n");
-  fprintf(stream, "_hashWidth        %u\n", _hashWidth);
+  fprintf(stream, "_hashWidth        "u32bitFMT"\n", _hashWidth);
 #endif
 
 #ifdef COMPRESSED_BUCKET
   fprintf(stream, "COMPRESSED_BUCKET enabled\n");
-  fprintf(stream, "_chckWidth        %u\n", _chckWidth);
+  fprintf(stream, "_chckWidth        "u32bitFMT"\n", _chckWidth);
 #endif
 
-  fprintf(stream, "_hashMask         0x%016lx\n", _hashMask);
-  fprintf(stream, "_chckMask         0x%016lx\n", _chckMask);
+  fprintf(stream, "_hashMask         "u64bitHEX"\n", _hashMask);
+  fprintf(stream, "_chckMask         "u64bitHEX"\n", _chckMask);
 }
 

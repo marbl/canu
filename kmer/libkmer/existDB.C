@@ -36,12 +36,12 @@ existDB::existDB(char const  *filename,
 
     if (_merSizeInBases != merSize) {
       fprintf(stderr, "existDB::existDB()-- Read state from '%s', but got different mer sizes\n", filename);
-      fprintf(stderr, "existDB::existDB()-- Got %d, expected %d\n", _merSizeInBases, merSize);
+      fprintf(stderr, "existDB::existDB()-- Got "u32bitFMT", expected "u32bitFMT"\n", _merSizeInBases, merSize);
       fail = true;
     }
     if (_mask1 != u64bitMASK(tblBits)) {
       fprintf(stderr, "existDB::existDB()-- Read state from '%s', but got different table sizes\n", filename);
-      fprintf(stderr, "existDB::existDB()-- Got %d, expected %d\n", 2 * _merSizeInBases - _shift1, tblBits);
+      fprintf(stderr, "existDB::existDB()-- Got "u32bitFMT", expected "u32bitFMT"\n", 2 * _merSizeInBases - _shift1, tblBits);
       fail = true;
     }
 
