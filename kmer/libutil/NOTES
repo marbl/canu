@@ -1,0 +1,10 @@
+Various notes that should be turned into real documentation
+
+merStream
+        (need to check this)
+        posInSeq() is relative to the start of the current sequence.
+        posInStream() is relative to the start of the source file.
+
+Whitespace in the sequence / source files mess up position calculations.
+
+The FastAstream positions are NOT sequence positions.
