@@ -12,8 +12,7 @@ EXTERNAL/    := $/../existDB/
 endif
 
 # declarations
-src     :=$/sim4polish-comparisons.c \
-          $/sim4polish-copy.c \
+src     :=$/sim4polish-copy.c \
           $/sim4polish-compare.c \
           $/sim4polish-deleteexon.c \
           $/sim4polish-destroypolish.c \
