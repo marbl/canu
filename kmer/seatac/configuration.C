@@ -55,7 +55,7 @@ configuration::configuration(void) {
   _searchSleep.tv_sec  = 0;
   _searchSleep.tv_nsec = 10000000;
 
-  _writerHighWaterMark = 128;
+  _writerHighWaterMark = 256;
   _writerSleep.tv_sec  = 1;
   _writerSleep.tv_nsec = 0;
   _writerWarnings      = false;
