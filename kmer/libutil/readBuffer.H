@@ -10,7 +10,7 @@
 #include <string.h>
 #include <errno.h>
 
-#include "../libbri/libbritypes.H"
+#include "libbritypes.h"
 
 //  Create the O_LARGEFILE type for open(), if it doesn't already
 //  exist (FreeBSD, alpha)

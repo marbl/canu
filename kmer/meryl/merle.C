@@ -3,6 +3,7 @@
 #include <strings.h>
 #include "meryl.H"
 #include "libbri.H"
+#include "time.H"
 #include "buildinfo-merle.h"
 
 //

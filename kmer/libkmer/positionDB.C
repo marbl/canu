@@ -1,7 +1,7 @@
 #include <new.h>
 
 #include "positionDB.H"
-#include "speedCounter.H"
+#include "time.H"
 
 #define REUSE_BUCKETS
 

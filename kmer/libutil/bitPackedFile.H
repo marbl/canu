@@ -2,8 +2,8 @@
 #define BITPACKEDFILE_H
 
 #include <stdio.h>
-#include "libbri.H"
 
+#include "libbritypes.h"
 
 class bitPackedFileWriter {
 public:
@@ -19,7 +19,6 @@ private:
   u32bit    _sta;
 };
 
-
 class bitPackedFileReader {
 public:
   bitPackedFileReader(char *name);
@@ -33,6 +32,5 @@ private:
   u64bit    _bit;
   u32bit    _sta;
 };
-
 
 #endif  //  BITPACKEDFILE_H

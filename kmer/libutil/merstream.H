@@ -1,7 +1,8 @@
 #ifndef MERSTREAM_H
 #define MERSTREAM_H
 
-#include "libbri.H"
+#include "libbritypes.h"
+#include "fastastream.H"
 
 //
 //  This is the string-based merStreamer.  It gets sequence from

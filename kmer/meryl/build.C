@@ -4,6 +4,7 @@
 #include "libbri.H"
 #include "mcDescription.H"
 #include "outputMer.H"
+#include "time.H"
 
 static mcDescription   mcd;
 

@@ -4,6 +4,7 @@
 #include <new>
 #include "searchGENOME.H"
 #include "libbri.H"
+#include "time.H"
 #include "existDB.H"
 
 #ifdef TRUE64BIT
@@ -163,6 +164,8 @@ main(int argc, char **argv) {
   config.read(argc, argv);
   config.display();
 
+  config._startTime = getTime();
+
   //  Open and init the query sequence
   //
   if (config._beVerbose)
@@ -261,7 +264,7 @@ main(int argc, char **argv) {
   //
   outputPos = 0;
 
-  double  startTime = getTime() - 0.00000001;
+  double  zeroTime = getTime() - 0.00000001;
 
   while (outputPos < numberOfQueries) {
     if (output[outputPos]) {
@@ -270,17 +273,12 @@ main(int argc, char **argv) {
                 outputPos,
                 numberOfQueries,
                 100.0 * outputPos / numberOfQueries,
-                outputPos / (getTime() - startTime),
-                (numberOfQueries - outputPos) / (outputPos / (getTime() - startTime)));
+                outputPos / (getTime() - zeroTime),
+                (numberOfQueries - outputPos) / (outputPos / (getTime() - zeroTime)));
         fflush(stderr);
       }
 
       if (outputLen[outputPos] > 0) {
-#if 0
-        if (config._beVerbose)
-          fprintf(stderr, "%6d] len=%u\n", outputPos, outputLen[outputPos]);
-#endif
-
         errno = 0;
         write(resultFILE, output[outputPos], sizeof(char) * outputLen[outputPos]);
         if (errno) {
@@ -304,20 +302,20 @@ main(int argc, char **argv) {
     }
   }
 
+  if (config._beVerbose) {
+    fprintf(stderr, outputDisplayFinal,
+            outputPos,
+            numberOfQueries,
+            100.0 * outputPos / numberOfQueries,
+            getTime() - zeroTime);
+  }
+
   errno = 0;
   close(resultFILE);
   if (errno) {
     fprintf(stderr, "Couldn't close to the output file '%s'.\n%s\n",
             config._outputFileName, strerror(errno));
     exit(1);
-  }
-
-  if (config._beVerbose) {
-    fprintf(stderr, outputDisplayFinal,
-            outputPos,
-            numberOfQueries,
-            100.0 * outputPos / numberOfQueries,
-            getTime() - startTime);
   }
 
   //

@@ -1,7 +1,7 @@
 #ifndef BIT_PACKING_H
 #define BIT_PACKING_H
 
-#include "libbri.H"
+#include "libbritypes.h"
 
 inline
 u64bit

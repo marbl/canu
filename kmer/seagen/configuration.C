@@ -59,7 +59,7 @@ configuration::configuration(void) {
 
   _binaryOutput        = false;
 
-  _startTime           = getTime();
+  _startTime           = 0.0;
   _initTime            = 0.0;
   _buildTime           = 0.0;
   _searchTime          = 0.0;

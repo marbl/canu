@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "libbri.H"
+#include "time.H"
 
 void
 estimate(char   *inputFile,

@@ -3,10 +3,27 @@
 
 #include "palloc.h"
 
-//  Mon May  6 01:52:55 EDT 2002
-//  Was not correctly creating the list of blcoks.  Fixed.
+
+typedef struct pallocroot pallocroot;
+typedef struct pallocnode pallocnode;
+
+struct pallocroot {
+  size_t       _bs;  //  number of blocks per data element
+  pallocnode  *_nl;  //  nodeList
+  pallocnode  *_cn;  //  currentNode
+};
+
+struct pallocnode {
+  size_t        _cp;  //  cuurentPosition
+  char         *_dt;  //  data
+  pallocnode   *_nx;  //  next pallocnode
+};
+
+extern pallocroot _palloc_stuff;
+
 
 pallocroot  _palloc_stuff = { 128 * 1024 * 1024, NULL, NULL };
+
 
 static
 void *

@@ -6,11 +6,6 @@
 #include "sim4reader.h"
 #include "palloc.h"
 
-//  Define this to get some extra console output about things that might
-//  be of concern.
-//
-//#define DEVELOPMENT_CODE
-
 
 //  Sorts, by estID, a file of polishes.
 //
@@ -50,10 +45,6 @@ writeTemporary(sim4polish **p, int pNum, int numTemporary) {
     fprintf(stderr, "Can't open '%s' for writing\n", name);
     exit(1);
   }
-
-#ifdef DEVELOPMENT_CODE
-  fprintf(stderr, "Writing temporary: '%s'\n", name);
-#endif
 
   for (i=0; i<pNum; i++)
     printPolish(file, p[i]);
@@ -121,17 +112,8 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-#if 0
-  if (allocM < 64 * 1024 * 1024) {
-    fprintf(stderr, usage, argv[0]);
-    fprintf(stderr, "\nMinimum memory usage is 64MB.\n");
-    exit(1);
-  }
-#endif
-
   p      = (sim4polish **)malloc(sizeof(sim4polish *) * pAlloc);
   allocI = sizeof(sim4polish *) * pAlloc;
-
 
   while (!feof(stdin)) {
     q = readPolish(stdin);
@@ -241,18 +223,14 @@ main(int argc, char **argv) {
 
 
   if (numTemporary == 0) {
-
     //  No temporary files.  Sort the polishes, and dump.
-
     qsort(p, pNum, sizeof(sim4polish *), fcn);
 
     for (i=0; i<pNum; i++)
       printPolish(stdout, p[i]);
-
   } else {
     FILE        **InF;
     sim4polish  **q;
-
 
     //  Crud.  Temporary files.  Sort the last batch, dump it, then do
     //  a merge.
@@ -263,23 +241,17 @@ main(int argc, char **argv) {
     alloc = 0;
     pNum = 0;
 
-
-    //  See sortHits for merge hints.
-
-
     InF = (FILE **)malloc(sizeof(FILE *) * numTemporary);
     if (InF == 0L) {
       fprintf(stderr, "Couldn't allocate file pointers in merge!\n");
       exit(1);
     }
 
-
     q = (sim4polish **)malloc(sizeof(sim4polish) * numTemporary);
     if (q == 0L) {
       fprintf(stderr, "Couldn't allocate polish pointers in merge!\n");
       exit(1);
     }
-
 
     //  Open all the files, reading the first polish from each.
     //
@@ -296,7 +268,7 @@ main(int argc, char **argv) {
       q[i] = readPolish(InF[i]);
     }
 
-
+    //
     //  While there are open files, print the lowest polish, reading the next
     //
 

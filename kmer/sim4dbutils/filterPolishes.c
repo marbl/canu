@@ -4,8 +4,8 @@
 #include <string.h>
 #include <errno.h>
 
+#include "libbritypes.h"
 #include "sim4reader.h"
-#include "libbritypes.H"
 
 #define MAX_SCAFFOLD   10000
 
@@ -38,9 +38,6 @@ char const *usage =
 
 
 #ifdef TRUE64BIT
-
-//  first two were \r instead of \n
-
 char const *msg1 = " Filter: %6.2f%% (%9lu matches processed) (%lu failed/intractable)\n";
 char const *msg2 = " Filter: %6.2f%% (%9lu matches processed)\n";
 char const *msg3 = "Filtering at %d%% coverage and %d%% identity and %dbp.\n";

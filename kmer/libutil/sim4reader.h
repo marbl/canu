@@ -105,7 +105,6 @@ char       *s4p_polishToString(sim4polish *p);
 
 sim4polish *s4p_stringToPolish(char *s);
 
-
 #ifdef __cplusplus
 }
 #endif
