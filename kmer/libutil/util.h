@@ -151,11 +151,8 @@ extern "C" {
 //
 //  alphabet
 //
-extern const unsigned char   compressSymbol[256];
-extern const unsigned char   validSymbol[256];
-extern const unsigned char   decompressSymbol[256];
-extern const unsigned char   complementSymbol[256];
-extern const unsigned char   validCompressedSymbol[256];
+#include "alphabet.h"
+
 
 ////////////////////////////////////////
 //

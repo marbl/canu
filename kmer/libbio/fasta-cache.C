@@ -62,11 +62,13 @@ FastACache::getSequence(u32bit iid)  {
 
   //  Not all sequences loaded.
 
-  if (_cacheMap[iid] == ~u32bitZERO)
+  if (_cacheMap[iid] != ~u32bitZERO)
     return(_cache[_cacheMap[iid]]);
 
   //  The sequence we are looking for isn't loaded.  If there
   //  isn't space in the cache, make space.
+
+  fprintf(stderr, "FastACache::getSequence()-- "u32bitFMT" isn't loaded -- loading.\n", iid);
 
   if (_cache[_cacheNext]) {
     _cacheMap[ _cache[_cacheNext]->getIID() ] = ~u32bitZERO;
@@ -79,6 +81,9 @@ FastACache::getSequence(u32bit iid)  {
   _cache[_cacheNext] = _fastawrapper->getSequence();
   _cacheMap[iid] = _cacheNext;
   _cacheNext++;
+
+  if (_cacheNext >= _cacheSize)
+    _cacheNext = 0;
 
   //  Finally, return the sequence.
 

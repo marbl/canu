@@ -19,9 +19,11 @@ unsigned char  validSymbol[256];
 unsigned char  decompressSymbol[256];
 unsigned char  complementSymbol[256];
 unsigned char  validCompressedSymbol[256];
+unsigned char  IUPACidentity[128][128];
 
 void
 initCompressionTables(void) {
+  int i, j;
 
   //
   //  Non-bug fix: complementSymbol['x'] would return 0, which would
@@ -31,15 +33,17 @@ initCompressionTables(void) {
   //  bpw, Tue Oct 22 15:31:03 EDT 2002
   //
 
-  unsigned int i=256;
-  while (i) {
-    i--;
+  for (i=0; i<256; i++) {
     compressSymbol[i]        = (unsigned char)0x00;
     validSymbol[i]           = (unsigned char)0x00;
     decompressSymbol[i]      = (unsigned char)0x00;
     complementSymbol[i]      = (unsigned char)i;
     validCompressedSymbol[i] = (unsigned char)0xff;
   }
+
+  for (i=0; i<128; i++)
+    for (j=0; j<128; j++)
+      IUPACidentity[i][j] = 0;
 
   compressSymbol['a'] = compressSymbol['A'] = (unsigned char)0x00;
   compressSymbol['c'] = compressSymbol['C'] = (unsigned char)0x01;
@@ -94,12 +98,77 @@ initCompressionTables(void) {
   complementSymbol['H'] = 'D';  //  a c t
   complementSymbol['V'] = 'B';  //  a c g
   complementSymbol['N'] = 'N';  //  a c g t
+
+  IUPACidentity['A']['A'] = 1;
+  IUPACidentity['C']['C'] = 1;
+  IUPACidentity['G']['G'] = 1;
+  IUPACidentity['T']['T'] = 1;
+  IUPACidentity['M']['A'] = 1;
+  IUPACidentity['M']['C'] = 1;
+  IUPACidentity['R']['A'] = 1;
+  IUPACidentity['R']['G'] = 1;
+  IUPACidentity['W']['A'] = 1;
+  IUPACidentity['W']['T'] = 1;
+  IUPACidentity['S']['C'] = 1;
+  IUPACidentity['S']['G'] = 1;
+  IUPACidentity['Y']['C'] = 1;
+  IUPACidentity['Y']['T'] = 1;
+  IUPACidentity['K']['G'] = 1;
+  IUPACidentity['K']['T'] = 1;
+  IUPACidentity['V']['A'] = 1;
+  IUPACidentity['V']['C'] = 1;
+  IUPACidentity['V']['G'] = 1;
+  IUPACidentity['H']['A'] = 1;
+  IUPACidentity['H']['C'] = 1;
+  IUPACidentity['H']['T'] = 1;
+  IUPACidentity['D']['A'] = 1;
+  IUPACidentity['D']['G'] = 1;
+  IUPACidentity['D']['T'] = 1;
+  IUPACidentity['B']['C'] = 1;
+  IUPACidentity['B']['G'] = 1;
+  IUPACidentity['B']['T'] = 1;
+
+  IUPACidentity['N']['A'] = 1;
+  IUPACidentity['N']['C'] = 1;
+  IUPACidentity['N']['G'] = 1;
+  IUPACidentity['N']['T'] = 1;
+  
+  IUPACidentity['M']['M'] = 1;
+  IUPACidentity['R']['R'] = 1;
+  IUPACidentity['W']['W'] = 1;
+  IUPACidentity['S']['S'] = 1;
+  IUPACidentity['Y']['Y'] = 1;
+  IUPACidentity['K']['K'] = 1;
+  IUPACidentity['V']['V'] = 1;
+  IUPACidentity['H']['W'] = 1;
+  IUPACidentity['D']['D'] = 1;
+  IUPACidentity['B']['B'] = 1;
+  IUPACidentity['N']['N'] = 1;
+
+  //  Order isn't important
+  //
+  for (i='A'; i<'Z'; i++)
+    for (j='A'; j<'Z'; j++) {
+      if (IUPACidentity[j][i])
+        IUPACidentity[i][j] = 1;
+    }
+
+  //  Case isn't important
+  //
+  for (i='A'; i<'Z'; i++)
+    for (j='A'; j<'Z'; j++) {
+      if (IUPACidentity[j][i]) {
+        IUPACidentity[tolower(i)][tolower(j)] = 1;
+        IUPACidentity[tolower(i)][j         ] = 1;
+        IUPACidentity[i         ][tolower(j)] = 1;
+      }
+    }
 }
 
 #ifdef MAIN
 int
 main(int argc, char **argv) {
-  unsigned int i;
+  int i, j;
 
   FILE *C = fopen("alphabet.c", "w");
   FILE *H = fopen("alphabet.h", "w");
@@ -151,6 +220,25 @@ main(int argc, char **argv) {
     fprintf(C, ", %d", validCompressedSymbol[i]);
   fprintf(C, " };\n");
 
+  fprintf(H, "extern const unsigned char   IUPACidentity[128][128];\n");
+  fprintf(C, "const unsigned char   IUPACidentity[128][128] = {\n");
+  for (i=0; i<128; i++) {
+    fprintf(C, " {");
+    if (IUPACidentity[i][0])
+      fprintf(C, "1");
+    else
+      fprintf(C, "0");
+    for (j=1;j<128; j++) {
+      if (IUPACidentity[i][j])
+        fprintf(C, ",1");
+      else
+        fprintf(C, ",0");
+    }
+    fprintf(C, "},\n");
+  }
+  fprintf(C, "};\n");
+
+  fprintf(H, "\n");
   fprintf(H, "#ifdef __cplusplus\n");
   fprintf(H, "}\n");
   fprintf(H, "#endif\n");
