@@ -354,11 +354,6 @@ ifeq (${_OS_},TRU64)
   DVIPS  :=${REINERT_TETEX/}dvips -tletter
   BIBTEX :=${REINERT_TETEX/}bibtex
   PS2PDF :=/usr/local/ir/bin/ps2pdf
-  VIEWPS :=/usr/local/ir/bin/ghostview
-  PRINTPS:=lpr -Pcelprt05
-endif
-ifeq (${_OS_},AIX)
-  PRINTPS:=lpr -Pcelprt05
 endif
 # the SunOS machines in FC don't have good latex/ps/pdf support
 ifeq (${_OS|FULL_},SunOS|foster-city)
@@ -372,6 +367,11 @@ endif
 # neither does randy's mac
 ifeq (${_OS|FULL_},FreeBSD|Randy)
   -LATEX :=-
+  FINK_BIN/ :=/sw/bin/
+  LATEX :=${FINK_BIN/}latex
+  DVIPS :=${FINK_BIN/}dvips
+  BIBTEX:=${FINK_BIN/}latex
+  PS2PDF:=${FINK_BIN/}ps2pdf
 endif
 
 ## LAPACK
