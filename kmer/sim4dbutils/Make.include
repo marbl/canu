@@ -1,20 +1,9 @@
 # -*- makefile -*-
 
-ifndef LIBBRI/
-LIBBRI/     := $/../libbri/
-endif
-
-ifndef FASTA/
-FASTA/      := $/../fasta/
-endif
-
-ifndef SIM4POLISH/
-SIM4POLISH/ := $/../sim4polish/
-endif
-
-ifndef SIM4/
-SIM4/       := $/../sim4/
-endif
+LIBBRI/     :=$(call MakePath,$/../libbri/)
+FASTA/      :=$(call MakePath,$/../fasta/)
+SIM4POLISH/ :=$(call MakePath,$/../sim4polish/)
+SIM4/       :=$(call MakePath,$/../sim4/)
 
 # declarations
 
@@ -34,8 +23,11 @@ $/.CXX_EXES:= ${obj_C:.o=} ${obj_c:.o=}
 
 $/.CLEAN := $/*.o
 
-$/%.d $/%.o:  CFLAGS+=-I${FASTA/} -I${SIM4POLISH/} -I${LIBBRI/}
-$/%.d $/%.o:  CXXFLAGS+=-I${FASTA/} -I${SIM4POLISH/} -I${LIBBRI/}
+# bug in += target variables, fixed with wrapper
+#$/%:  CFLAGS+=-I${FASTA/} -I${SIM4POLISH/} -I${LIBBRI/}
+#$/%:  CXXFLAGS+=-I${FASTA/} -I${SIM4POLISH/} -I${LIBBRI/}
+$(eval $/%:  CFLAGS+=-I${FASTA/} -I${SIM4POLISH/} -I${LIBBRI/})
+$(eval $/%:  CXXFLAGS+=-I${FASTA/} -I${SIM4POLISH/} -I${LIBBRI/})
 
 $/pickBestPolish-debug.o: $/pickBestPolish.c
 	${CC} ${WARNS} -DVALIDATE ${CFLAGS} ${CFLAGS_COMPILE} -o $@ -c $<

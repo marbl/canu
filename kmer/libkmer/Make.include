@@ -1,28 +1,10 @@
 # -*- makefile -*-
 
-ifndef UTIL/
-UTIL/ := $/../util/
-endif
-
-ifndef LIBBRI/
-LIBBRI/     := $/../libbri/
-endif
-
-ifndef MERYL/
-MERYL/     := $/../meryl/
-endif
-
-ifndef FASTA/
-FASTA/      := $/../fasta/
-endif
-
-ifndef EXISTDB/
-EXISTDB/     := $/../existDB/
-endif
-
-ifndef MERTABLES/
-EXISTDB/     := $/../merTables/
-endif
+LIBBRI/     :=$(call MakePath,$/../libbri/)
+FASTA/      :=$(call MakePath,$/../fasta/)
+MERYL/      :=$(call MakePath,$/../meryl/)
+EXISTDB/        :=$(call MakePath,$/../existDB/)
+MERTABLES/        :=$(call MakePath,$/../merTables/)
 
 src           :=$/positionDB.C $/positionDB.H $/positionDB-access.C $/positionDB-dump.C $/positionDB-sort.C $/positionDB-file.C 
 $/.CXX_SRCS   := $/driver.C $(filter %.C,${src})
@@ -34,7 +16,13 @@ $/.REAL-CLEAN := $/buildinfo-*
 $/libpositionDB.a:   $/buildinfo-positionDB.o $/positionDB.o $/positionDB-access.o $/positionDB-dump.o $/positionDB-sort.o $/positionDB-file.o
 $/positionDB:        $/driver.o
 
-$/%.d $/%.o:    CXXFLAGS+= -I${EXISTDB/} -I${FASTA/} -I${MERYL/} -I${LIBBRI/}
+# bug in += target vars
+#$/%:    CXXFLAGS+= -I${FASTA/} -I${LIBBRI/}
+$(eval $/%:    CXXFLAGS+= -I${FASTA/} -I${LIBBRI/})
+
+# dealing with the += target vars bug
+# $/%:    CXXFLAGS+= -I${EXISTDB/} -I${FASTA/} -I${MERYL/} -I${LIBBRI/})
+$(eval $/%:    CXXFLAGS+= -I${EXISTDB/} -I${FASTA/} -I${MERYL/} -I${LIBBRI/})
 ${$/.CXX_EXES}: ${MERTABLES/}libmerTables.a ${FASTA/}libfasta.a ${MERYL/}libmeryl.a ${LIBBRI/}libbri.a
 
 $/buildinfo-positionDB.c: $/buildinfo-positionDB.h

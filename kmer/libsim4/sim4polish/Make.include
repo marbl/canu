@@ -1,16 +1,8 @@
 # -*- makefile -*-
 
-ifndef UTIL/
-UTIL/ := $/../util/
-endif
-
-ifndef LIBBRI/
-LIBBRI/     := $/../libbri/
-endif
-
-ifndef EXTERNAL/
-EXTERNAL/    := $/../existDB/
-endif
+UTIL/ :=$(call MakePath,$/../util/)
+LIBBRI/     :=$(call MakePath,$/../libbri/)
+EXTERNAL/    :=$(call MakePath,$/../existDB/)
 
 # declarations
 src     :=$/sim4polish.c \
@@ -39,8 +31,11 @@ $/.REAL-CLEAN :=$/buildinfo-*
 $/libsim4polish.a    :  ${$/.C_SRCS:.c=.o} ${$/.CXX_SRCS:.C=.o} \
                         $/buildinfo-libsim4polish.o
 
-$/%.d $/%.o:  CFLAGS+=-I${LIBBRI/}
-$/%.d $/%.o:  CXXFLAGS+=-I${LIBBRI/}
+# bug in += target vars
+#$/%:  CFLAGS+=-I${LIBBRI/}
+#$/%:  CXXFLAGS+=-I${LIBBRI/}
+$(eval $/%:  CFLAGS+=-I${LIBBRI/})
+$(eval $/%:  CXXFLAGS+=-I${LIBBRI/})
 
 $/buildinfo-libsim4polish.c: $/buildinfo-libsim4polish.h
 $/buildinfo-libsim4polish.h: ${src}

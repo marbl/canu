@@ -1,16 +1,7 @@
 # -*- makefile -*-
 
-ifndef UTIL/
-UTIL/ := $/../util/
-endif
-
-ifndef LIBBRI/
-LIBBRI/     := $/../libbri/
-endif
-ifndef UTIL/
-UTIL/     := $/../util/
-endif
-
+UTIL/ :=$(call MakePath,$/../util/)
+LIBBRI/     :=$(call MakePath,$/../libbri/)
 
 src     := $/binaryOp.C $/build.C $/checkDescr.C $/dump.C $/estimate.C \
            $/mcBucket.C $/mcBucket.H $/mcDescription.H $/merge.C $/meryl.C $/meryl.H \
@@ -28,7 +19,9 @@ $/merle         : $/buildinfo-merle.o $/merle.o
 $/meryl         : ${src_C:.C=.o} $/buildinfo-meryl.o $/libmeryl.a
 $/meryl $/merle : ${LIBBRI/}libbri.a
 
-$/%.d $/%.o:  CXXFLAGS+=-I${LIBBRI/}
+# bug in += target vars
+#$/%:  CXXFLAGS+=-I${LIBBRI/}
+$(eval $/%:  CXXFLAGS+=-I${LIBBRI/})
 
 $/%.d:  ${LIBBRI/}buildinfo-libbri.h ${LIBBRI/}alphabet.h
 $/meryl.C.d: $/buildinfo-meryl.h ${LIBBRI/}buildinfo-libbri.h

@@ -1,36 +1,13 @@
 # -*- makefile -*-
 
-ifndef UTIL/
-UTIL/     := $/../util/
-endif
-
-ifndef EXISTDB/
-EXISTDB/    := $/../existDB/
-endif
-
-ifndef POSITIONDB/
-POSITIONDB/ := $/../positionDB/
-endif
-
-ifndef MERYL/
-MERYL/    := $/../meryl/
-endif
-
-ifndef LIBBRI/
-LIBBRI/     := $/../libbri/
-endif
-
-ifndef FASTA/
-FASTA/      := $/../fasta/
-endif
-
-ifndef SIM4/
-SIM4/       := $/../sim4/
-endif
-
-ifndef SIM4POLISH/
-SIM4POLISH/ := $/../sim4polish/
-endif
+UTIL/     :=$(call MakePath,$/../util/)
+EXISTDB/    :=$(call MakePath,$/../existDB/)
+POSITIONDB/ :=$(call MakePath,$/../positionDB/)
+MERYL/    :=$(call MakePath,$/../meryl/)
+LIBBRI/     :=$(call MakePath,$/../libbri/)
+FASTA/      :=$(call MakePath,$/../fasta/)
+SIM4/       :=$(call MakePath,$/../sim4/)
+SIM4POLISH/ :=$(call MakePath,$/../sim4polish/)
 
 src      := $/snapper2.C $/configuration.C $/encodedQuery.C \
             $/thr-search.C $/thr-loader.C $/thr-deadlock.C \
@@ -48,10 +25,11 @@ endif
 $/.CLEAN     :=$/*.o
 $/.REAL-CLEAN:=$/buildinfo-*
 
-
-$/%.d $/%.o: \
-  CXXFLAGS+= -I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} \
-            -I${SIM4/} -I${SIM4POLISH/} -I${EXISTDB/}
+# bug in target variables worked around with an eval
+#$/%:  CXXFLAGS+= -I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} \
+#            -I${SIM4/} -I${SIM4POLISH/} -I${EXISTDB/}
+$(eval $/%:  CXXFLAGS+= -I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} \
+             -I${SIM4/} -I${SIM4POLISH/} -I${EXISTDB/})
 $/configuration.C.d: $/buildinfo-snapper2.h \
                      ${EXISTDB/}buildinfo-existDB.h \
                      ${POSITIONDB/}buildinfo-positionDB.h \

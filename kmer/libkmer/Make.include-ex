@@ -1,20 +1,9 @@
 # -*- makefile -*-
 
-ifndef UTIL/
-UTIL/ := $/../util/
-endif
-
-ifndef LIBBRI/
-LIBBRI/     := $/../libbri/
-endif
-
-ifndef MERYL/
-MERYL/ := $/../meryl/
-endif
-
-ifndef POSITIONDB/
-POSITIONDB/ := $/../positionDB/
-endif
+UTIL/ :=$(call MakePath,$/../util/)
+LIBBRI/     :=$(call MakePath,$/../libbri/)
+MERYL/      :=$(call MakePath,$/../meryl/)
+POSITIONDB/ :=$(call MakePath,$/../positionDB/)
 
 $/.CXX_SRCS   := $/buildandtest.C $/driver.C $/existDB.C $/create-from-fasta.C $/create-from-meryl.C $/state.C
 $/.CXX_EXES   := $/buildandtest $/existDB
@@ -26,7 +15,10 @@ $/libexistDB.a : $/buildinfo-existDB.o $/existDB.o $/create-from-fasta.o $/creat
 $/buildandtest : $/buildandtest.o
 $/existDB      : $/driver.o
 
-$/%.d $/%.o: CXXFLAGS+=-I${LIBBRI/} -I${MERYL/} -I${POSITIONDB/}
+# bug in += target vars
+# $/%: CXXFLAGS+=-I${LIBBRI/} -I${MERYL/} -I${POSITIONDB/}
+$(eval $/%: CXXFLAGS+=-I${LIBBRI/} -I${MERYL/} -I${POSITIONDB/})
+
 ${$/.CXX_EXES}:$/libexistDB.a ${MERYL/}libmeryl.a ${POSITIONDB/}libpositionDB.a ${LIBBRI/}libbri.a
 
 $/buildinfo-existDB.c: $/buildinfo-existDB.h

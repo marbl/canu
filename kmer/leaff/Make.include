@@ -1,16 +1,8 @@
 # -*- makefile -*-
 
-ifndef LIBBRI/
-LIBBRI/     := $/../libbri/
-endif
-
-ifndef UTIL/
-UTIL/ := $/../util/
-endif
-
-ifndef EXTERNAL/
-EXTERNAL/    := $/../existDB/
-endif
+UTIL/ :=$(call MakePath,$/../util/)
+LIBBRI/     :=$(call MakePath,$/../libbri/)
+EXTERNAL/   :=$(call MakePath,$/../external/)
 
 src    := $/fasta-buildindex.C $/fasta-find-id.C \
           $/fasta-find-iid.C $/fasta-openindex.C \
@@ -53,7 +45,9 @@ $/buildinfo-libfasta.h: ${src}
 	${UTIL/}buildinfo.pl libfasta "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
 	[ `dirname $@` = "." ] || mv buildinfo-libfasta.[ch] `dirname $@`
 
-$/%.d $/%.o:  CXXFLAGS+=-I${LIBBRI/}
+# bug in += target vars
+#$/%:  CXXFLAGS+=-I${LIBBRI/}
+$(eval $/%:  CXXFLAGS+=-I${LIBBRI/})
 
 
 

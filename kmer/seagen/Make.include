@@ -1,28 +1,10 @@
 # -*- makefile -*-
 
-ifndef UTIL/
-UTIL/ := $/../util/
-endif
-
-ifndef MERYL/
-MERYL/      := $/../meryl/
-endif
-
-ifndef LIBBRI/
-LIBBRI/     := $/../libbri/
-endif
-
-ifndef FASTA/
-FASTA/      := $/../fasta/
-endif
-
-ifndef POSITIONDB/
-POSITIONDB/ := $/../positionDB/
-endif
-
-ifndef EXISTDB/
-EXISTDB/    := $/../existDB/
-endif
+MERYL/      :=$(call MakePath,$/../meryl/)
+LIBBRI/     :=$(call MakePath,$/../libbri/)
+FASTA/      :=$(call MakePath,$/../fasta/)
+POSITIONDB/     :=$(call MakePath,$/../positionDB/)
+EXISTDB/        :=$(call MakePath,$/../existDB/)
 
 src      := $/searchGENOME.C $/configuration.C $/encodedQuery.C \
             $/thr-search.C $/thr-loader.C $/thr-deadlock.C \
@@ -46,8 +28,10 @@ $/.CLEAN     :=$/*.o
 $/.REAL-CLEAN:=$/buildinfo-*
 
 
+# bug in += target vars
+# $/%: CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} -I${EXISTDB/}
+$(eval $/%: CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} -I${EXISTDB/})
 
-$/%.d $/%.o: CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} -I${EXISTDB/}
 $/configuration.C.d:  $/buildinfo-searchGENOME.h \
                      ${EXISTDB/}buildinfo-existDB.h \
                      ${POSITIONDB/}buildinfo-positionDB.h \
