@@ -1,6 +1,6 @@
 #include "posix.H"
 #include "snapper2.H"
-#include "time.H"
+#include "britime.H"
 #include "sim4.H"
 
 //  If you really, really, really want to know the exact number
