@@ -109,6 +109,7 @@ my $cleanPolishes = "$exechome/cleanPolishes";
 my $toFILTER      = "$exechome/filterPolishes";
 my $sortHits      = "$exechome/sortHits";
 my $sortPolishes  = "$exechome/sortPolishes";
+my $parseSNPs     = "$exechome/parseSNP";
 
 die "Can't find/execute $searchGENOME\n"  if (! -x $searchGENOME);
 die "Can't find/execute $filterMRNA\n"    if (! -x $filterMRNA);
@@ -118,6 +119,7 @@ die "Can't find/execute $leaff\n"         if (! -x $leaff);
 die "Can't find/execute $cleanPolishes\n" if (! -x $cleanPolishes);
 die "Can't find/execute $sortHits\n"      if (! -x $sortHits);
 die "Can't find/execute $sortPolishes\n"  if (! -x $sortPolishes);
+die "Can't find/execute $parseSNPs\n"     if (! -x $parseSNPs);
 
 sub showHelp {
     print STDERR "Basic help:\n";
@@ -277,6 +279,20 @@ if ($personality eq "-mapest") {
     filter         ("-filtersnp", "$dir", @ARGV);
     polish         ("-polish", "$dir", "-mincoverage", "80", "-minidentity", "95", @ARGV);
     assembleOutput ("-assembleoutput", "$dir", "-mincoverage", "80", "-minidentity", "95", @ARGV);
+
+    #  Parse the SNPs out
+    #
+    if (! -e "$dir/snps-parsed") {
+        print STDERR "ESTmapper--  Parsing the SNPs\n";
+
+        if (! -e "$dir/polishes-good.sorted-by-cDNA") {
+            print STDERR "ESTmapper--  Sorting polishes by sequence ID; using 4GB memory maximum.\n";
+            system("$sortPolishes -m 4000 -c -v < polishes-good > polishes-good.sorted-by-cDNA");
+        }
+
+        system("$parseSNPs -F $dir/snps-failed -O $dir/snps-parsed < $dir/polishes-good.sorted-by-cDNA");
+    }
+
 } elsif ($personality eq "-mapmrna") {
     shift @ARGV;
     my $dir = shift @ARGV;
