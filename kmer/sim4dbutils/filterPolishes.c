@@ -7,10 +7,12 @@
 #include "sim4reader.h"
 #include "libbritypes.H"
 
+#define MAX_SCAFFOLD   10000
+
 char const *usage =
 "usage: %s [-c c] [-i i] [-o o]\n"
-"  -c c       Discard polishes below c\% composite.\n"
-"  -i i       Discard polishes below i\% identity.\n"
+"  -c c       Discard polishes below c%% composite.\n"
+"  -i i       Discard polishes below i%% identity.\n"
 "  -l l       Discard polishes below l identities.\n"
 "\n"
 "  -e e       Discard polishes below e exons.\n"
@@ -22,6 +24,9 @@ char const *usage =
 "  -o o       Write saved polishes to the 'o' file.\n"
 "  -j o       Write junk polishes to the 'o' file (junk == intractable and aborted).\n"
 "  -q         Don't write discarded polishes to stdout.\n"
+"\n"
+"  -s         Segregate polishes by genomic idx.  Must be used with -o, will\n"
+"             create numerous files 'o.%05d'.\n"
 "\n"
 "         Discarded polishes are printed to stdout (unless -q is supplied).\n"
 "         All conditions must be met.\n"
@@ -66,7 +71,9 @@ main(int argc, char ** argv) {
   u64bit       good = 0;
   u64bit       crap = 0;
   u64bit       junk = 0;
-
+  int          doSegregation = 0;
+  char        *filePrefix = 0L;
+  FILE       **SEGREGATE = 0L;
 
 
   arg = 1;
@@ -84,6 +91,7 @@ main(int argc, char ** argv) {
     } else if (strncmp(argv[arg], "-o", 2) == 0) {
       arg++;
       errno = 0;
+      filePrefix = argv[arg];
       GOOD = fopen(argv[arg], "w");
       if (errno) {
         fprintf(stderr, "error: I couldn't open '%s' for saving good polishes.\n%s\n", argv[arg], strerror(errno));
@@ -105,6 +113,9 @@ main(int argc, char ** argv) {
       geno = atoi(argv[++arg]);
     } else if (strncmp(argv[arg], "-verbose", 2) == 0) {
       beVerbose = 1;
+    } else if (strncmp(argv[arg], "-segregate", 2) == 0) {
+      doSegregation = 1;
+      SEGREGATE = (FILE **)calloc(MAX_SCAFFOLD, sizeof(FILE *));
     }
 
     arg++;
@@ -118,6 +129,11 @@ main(int argc, char ** argv) {
   if (reportDiscarded && (fileno(GOOD) == fileno(CRAP))) {
     fprintf(stderr, "error: filter has no effect; saved and discarded polishes\n");
     fprintf(stderr, "       both printed to stdout!  (try using -q)\n");
+    exit(1);
+  }
+
+  if (doSegregation && (filePrefix == 0L)) {
+    fprintf(stderr, "error: you must specify a file prefix when segregating (-s requires -o)\n");
     exit(1);
   }
 
@@ -142,7 +158,25 @@ main(int argc, char ** argv) {
           (minExons <= p->numExons) &&
           (p->numExons <= maxExons)) {
         good++;
-        printPolish(GOOD, p);
+        if (doSegregation) {
+          if (p->genID >= MAX_SCAFFOLD) {
+            fprintf(stderr, msg3, p->genID);
+          } else {
+            if (SEGREGATE[p->genID] == 0L) {
+              char filename[1024];
+              sprintf(filename, "%s.%04d", filePrefix, p->genID);
+              errno = 0;
+              SEGREGATE[p->genID] = fopen(filename, "w");
+              if (errno) {
+                fprintf(stderr, "Error: Couldn't open '%s'\n%s\n", filename, strerror(errno));
+                exit(1);
+              }
+            }
+            printPolish(SEGREGATE[p->genID], p);
+          }
+        } else {
+          printPolish(GOOD, p);
+        }
       } else {
         crap++;
         if (reportDiscarded)
