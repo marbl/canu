@@ -1,20 +1,89 @@
-PROG    = palloc-test reader-delete readBuffer-test
+PROG    = test-bitPackedFile \
+          test-bitPacking \
+          test-intervalList \
+          test-md5 \
+          test-merstream \
+          test-merstreamfile \
+          test-merstream-speed \
+          test-mmap \
+          test-palloc \
+          test-readBuffer \
+          test-types
+
 INCLUDE = -I..
 LIBS    = -L.. -lbri -lm
 OBJS    = 
 
+include ../../Make.compilers
+
 all: $(PROG)
 
-palloc-test: palloc.c
-	$(cc) -DPALLOC_TEST -g -o palloc-test palloc.c
+test-bitPackedFile: test-bitPackedFile.C ../libbri.a ../bri.h ../bri++.H
+	$(CXX) -g3 $(CXXFLAGS_COMPILE) -c -o test-bitPackedFile.o test-bitPackedFile.C $(INCLUDE)
+	$(CXX) -g3 $(CXXLDFLAGS) -o test-bitPackedFile test-bitPackedFile.o $(LIBS)
+	./test-bitPackedFile 500000 200
 
-reader-delete: reader-delete.o ../sim4reader.o
-	$(CC) -gall -o reader-delete reader-delete.o ../sim4reader.o -lm
+test-bitPacking: test-bitPacking.C ../libbri.a ../bri.h ../bri++.H
+	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-bitPacking.o test-bitPacking.C $(INCLUDE)
+	$(CXX) $(CXXLDFLAGS) -o test-bitPacking test-bitPacking.o $(LIBS)
+	./test-bitPacking
 
-readBuffer-test: readBuffer-test.C ../readBuffer.H ../file.o
-	$(CC) $(CCOPTS) -o readBuffer-test readBuffer-test.C ../file.o
+test-intervalList: test-intervalList.C ../libbri.a ../bri.h ../bri++.H
+	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-intervalList.o test-intervalList.C $(INCLUDE)
+	$(CXX) $(CXXLDFLAGS) -o test-intervalList test-intervalList.o $(LIBS)
+	./test-intervalList
+
+test-md5: test-md5.c ../libbri.a ../bri.h ../bri++.H
+	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-md5.o test-md5.C $(INCLUDE)
+	$(CXX) $(CXXLDFLAGS) -o test-md5 test-md5.o $(LIBS)
+	./test-md5
+
+test-merstream: test-merstream.C ../libbri.a ../bri.h ../bri++.H
+	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-merstream.o test-merstream.C $(INCLUDE)
+	$(CXX) $(CXXLDFLAGS) -o test-merstream test-merstream.o $(LIBS)
+	../../fasta/leaff -G 100 1000 10000 > x.fasta
+	./test-merstream x.fasta
+	rm x.fasta
+
+test-merstreamfile: test-merstreamfile.C ../libbri.a ../bri.h ../bri++.H
+	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-merstreamfile.o test-merstreamfile.C $(INCLUDE)
+	$(CXX) $(CXXLDFLAGS) -o test-merstreamfile test-merstreamfile.o $(LIBS)
+	../../fasta/leaff -G 1000 5000 10000 > x.fasta
+	./test-merstreamfile x.fasta
+	rm x.fasta
+
+test-merstream-speed: test-merstream-speed.C ../libbri.a ../bri.h ../bri++.H
+	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-merstream-speed.o test-merstream-speed.C $(INCLUDE)
+	$(CXX) $(CXXLDFLAGS) -o test-merstream-speed test-merstream-speed.o $(LIBS)
+	../../fasta/leaff -G 10000 1000 10000 > x.fasta
+	cat x.fasta > /dev/null
+	./test-merstream-speed x.fasta
+	rm x.fasta
+
+test-merstream: test-merstream.C ../libbri.a ../bri.h ../bri++.H
+	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-merstream.o test-merstream.C $(INCLUDE)
+	$(CXX) $(CXXLDFLAGS) -o test-merstream test-merstream.o $(LIBS)
+	./test-merstream
+
+test-mmap: test-mmap.c ../libbri.a ../bri.h ../bri++.H
+	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-mmap.o test-mmap.C $(INCLUDE)
+	$(CXX) $(CXXLDFLAGS) -o test-mmap test-mmap.o $(LIBS)
+	./test-mmap 16
+
+test-palloc: test-palloc.c ../libbri.a ../bri.h ../bri++.H
+	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-palloc.o test-palloc.C $(INCLUDE)
+	$(CXX) $(CXXLDFLAGS) -o test-palloc test-palloc.o $(LIBS)
+	./test-palloc
+
+test-readBuffer: test-readBuffer.c ../libbri.a ../bri.h ../bri++.H
+	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-readBuffer.o test-readBuffer.C $(INCLUDE)
+	$(CXX) $(CXXLDFLAGS) -o test-readBuffer test-readBuffer.o $(LIBS)
+	./test-readBuffer
+
+test-types: test-types.c ../libbri.a ../bri.h ../bri++.H
+	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-types.o test-types.C $(INCLUDE)
+	$(CXX) $(CXXLDFLAGS) -o test-types test-types.o $(LIBS)
+	./test-types
 
 clean:
-	rm -f $(PROG) *.o
-
-include ../../Makefile-configuration
+	rm -f $(PROG) *.o x.fasta bittest.junk merStreamFileTest* mmap.test.junk
