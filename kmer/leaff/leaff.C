@@ -402,7 +402,7 @@ printRangeOfSequences(char *argl, char *argh) {
     highID = atoi(argh);
     if (highID >= f->getNumberOfSequences()) {
       fprintf(stderr, "ERROR: Internal id of %lu for ending sequence is too large; only %lu sequences.\n",
-              lowID, f->getNumberOfSequences());
+              highID, f->getNumberOfSequences());
       fail = true;
     }
   } else {
