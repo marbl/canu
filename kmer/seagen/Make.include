@@ -34,7 +34,11 @@ $/.REAL-CLEAN:=$/buildinfo-*
 
 
 $/%.d $/%.o: CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} -I${EXISTDB/}
-$/configuration.C.d:  $/buildinfo-searchGENOME.h
+$/configuration.C.d:  $/buildinfo-searchGENOME.h \
+                     ${EXISTDB/}buildinfo-existDB.h \
+                     ${POSITIONDB/}buildinfo-positionDB.h \
+                     ${LIBBRI/}buildinfo-libbri.h \
+                     ${FASTA/}buildinfo-libfasta.h
 
 EFENCE-L :=# -L/dev2/adelcher/EFence
 EFENCE-l :=# -lefence
