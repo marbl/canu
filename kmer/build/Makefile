@@ -77,6 +77,7 @@ recursive-real-clean:    ${RECURSIVE:.=.real-clean}
 recursive-install:       ${RECURSIVE:.=.install}
 # depends clean is an optional recursive target
 ${RECURSIVE:.=.depends-clean}:
+${RECURSIVE:.=.ls}:
 
 
 ##  generic pattern rules for subgoals
@@ -133,8 +134,6 @@ __SUBGOALS__+=$${${1:.=.CXX_SHLIBS}}
 # for some reason.  It really should.
 ${//:.=Make.depends}:
 	@ echo "(creating $@)"
-	@ echo "# -*- makefile -*-" > $@
-	@ echo "# Make.depends file: $@" >> $@
 	\
 	files='$(strip ${${@:Make.depends=.C_SRCS}})'; \
 	if [ -n "$${files}" ] ; then \
@@ -200,7 +199,7 @@ ${1:.=.install}: $${${1:.=.SUBS}:.=.install} ${__SUBGOALS__} \
     $${1:.=.C_INCS} \
     $${1:.=.CXX_INCS} \
     $${1:.=.SHARES}
-	@echo "Install:***for $$@"
+	@echo "========| $$@ |========"
 # all exes go to bin
 	files='$$(strip $${${1:.=.C_EXES}} $${${1:.=.CXX_EXES}})'; \
 	if [ -n "$$$${files}" ] ; then \

@@ -7,7 +7,7 @@ $(eval $(call Include,${COMPASS/}))
 
 $(eval $(call Include,${RASCAL/}))
 
-#$(eval $(call Include,${BRI/}))
+$(eval $(call Include,${BRI/}))
 
 $(eval $(call Include,${SUFFER/}))
 
