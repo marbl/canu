@@ -320,8 +320,8 @@ if ($personality eq "-mapest") {
 
         #  PARSE!
         #
-        print ("$parseSNPs $snpdelimiter $snpsizetag $snppostag $snpoffset -F $dir/snps-failed -O $dir/snps-parsed < $dir/polishes-good.sorted-by-cDNA\n");
-        system("$parseSNPs $snpdelimiter $snpsizetag $snppostag $snpoffset -F $dir/snps-failed -O $dir/snps-parsed < $dir/polishes-good.sorted-by-cDNA");
+        #print ("$parseSNPs $snpdelimiter $snpsizetag $snppostag $snpoffset -F $dir/snps-failed -O $dir/snps-parsed < $dir/polishes-good.sorted-by-cDNA\n");
+        system("$parseSNPs $snpdelimiter $snpsizetag $snppostag $snpoffset -F $dir/snps-failed -O $dir/snps-parsed < $dir/polishes-good.sorted-by-cDNA > summary-snps");
     }
 
 } elsif ($personality eq "-mapmrna") {
@@ -588,7 +588,7 @@ sub assembleOutput {
 
         if (-e "$path/2-filter/repeats") {
             print STDERR "ESTmapper/assembleOutput-- finding 'repeat' cDNA.\n";
-            system("$leaff -I $path/0-input/cDNA.fasta -q $path/2-filter/repeats > $path/cDNA-repeat.fasta");
+            system("$leaff -F $path/0-input/cDNA.fasta -q $path/2-filter/repeats > $path/cDNA-repeat.fasta");
         }
 
         print STDERR "ESTmapper/assembleOutput-- finding 'zero hit' cDNA.\n";
@@ -1320,7 +1320,7 @@ sub search {
             system("ln -s ${cdna}idx $path/0-input/cDNA.fastaidx");
         } else {
             print STDERR "Building index for cDNA sequences.\n";
-            system("$leaff -I $path/0-input/cDNA.fasta");
+            system("$leaff -F $path/0-input/cDNA.fasta");
         }
     }
 
@@ -1564,7 +1564,7 @@ sub configure {
         if (! -f "$path/0-input/genomic.fastaidx") {
             print STDERR "ESTmapper/configure-- Generating the index for '$path/0-input/genomic.fasta'\n";
             print STDERR "ESTmapper/configure-- WARNING:  This is done in the work directory!\n";
-            system("$leaff -I $path/0-input/genomic.fasta");
+            system("$leaff -F $path/0-input/genomic.fasta");
         }
         if (! -f "$path/0-input/genomic.fastainf") {
             print STDERR "ESTmapper/configure-- Generating the info for '$path/0-input/genomic.fasta'\n";
