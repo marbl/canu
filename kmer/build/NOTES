@@ -1,5 +1,5 @@
 
-This is a prottypical build system for non-recursive whole-directory
+This is a prototypical build system for non-recursive whole-directory
 'make's.  This readme file is going to start you with the basics.
 
 The correct 'make' to use is 'gmake'.  The correct version of gmake to
@@ -43,8 +43,81 @@ One can also work within directories so long as one is careful, since
 % cd ../COMPARSS/src/Framework/
 % make -f ../../../build/Makefile all
 
+### Questions you might have
+Q) How come I can't do 
+  make real-clean all
+and get something that I think I should?
+A) The real-clean and depends-clean targets remove the depends
+files.  Since that is their purpose, there is no sense rebuilding
+any unbuilt dependencies just to remove them.  In fact, it can be
+pretty annoying.  'make' provides a very limited way to prevent
+this unnecessary rebuilding from occurring (though perhaps I am just
+not thinking about it carefully enough).  At present, if any of the
+targets of 'make' in this system match *-clean, then no dependency
+files will be built or even included (since an include also can
+trigger a build).
+  make clean all
+will work, if that is any consolation.
 
+Q) I use includes in other directories.  How do I add to the compiler
+include path for the objects in one directory without making a global
+change to Make.compilers?
+A) gmake-3.80 supports dependency-style assignments which are in
+effect only when that rule is being evaluated.  Suppose I want to
+include directories foo and bar when my .o's are being built.  Then,
+  $/%.o $/%.d: CXXFLAGS += -Ifoo -Ibar
+  $/%.o $/%.d: CFLAGS += -Ifoo -Ibar
+will do it.  Note: the $/%.d pattern is included so that these flags
+are present when the depends files are built (which you usually need).
 
+Q) How do I build everything with GCC?
+A) Set the WITH_GNU variable to something, either on the command line or
+in the environment, e.g.
+  make WITH_GNU=1
+
+Q) How do I build with the debug flags on?
+A) Set the WITH_DEBUG variable to something, either on the command line
+or in the environment, e.g.
+  export WITH_DEBUG=1
+  make
+
+Q) The Make.compilers file sucks.  I've hacked up my own.  How do I
+use this instead?
+A) It is bad to do this.  But sometimes you just habe to.  You can
+override it by setting the variable MAKE_COMPILERS to the path (full
+or relative) of you Make.compilers file.  e.g.
+  make MAKE_COMPILERS=/home/ripper/Make.compilers
+or
+  export MAKE_COMPILERS=/home/ripper/Make.compilers
+  make
+If the Make.compilers file continues to be dissatisfying, then talk
+to me about it and we should work something out.
+
+Q) I have this package that I want to build in the system, but I
+don't want to add all those Make.include files just to add it to the
+build.  How do I fall back to recursive make?
+A) It is bad to do this, but if you have to, there is a way.  If
+you add an include file to the root directory of the recursively made
+unit of the form (copy that first line exactly):
+ RECURSIVE +=$/.
+
+ $/src/libfoo.a: $/.all
+
+ $/.all:
+	cd `dirname $@` && ${MAKE} CC=${CC} CXX=${CXX} all
+ $/.clean:
+	cd `dirname $@` && ${MAKE} clean
+ $/.real-clean:
+	cd `dirname $@` && ${MAKE} clean
+ $/.install:
+	cd `dirname $@` && ${MAKE} PREFIX=${INSTALL/} install
+All recursive makes, incorporated into the build system this way
+must provide relative all, clean, real-clean, and install targets
+(though you are free to make any of them empty).  The commands
+for each target in this example are a guess.  It is generally
+a good idea to specify targets (e.g. libfoo.a, program) which this
+package may be supplying so that rebuilds of this package are
+triggered properly.
 
 ### Longwinded discussion
 

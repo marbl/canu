@@ -13,11 +13,11 @@ default:   all
 debug:
 	@echo DIRS ${//}
 	@echo RECS ${RECURSIVE}
-	@echo ALL_C_EXES ${C_EXES}
-	@echo ALL_C_LIBS ${C_LIBS}
-	@echo ALL_CXX_EXES ${CXX_EXES}
-	@echo ALL_CXX_LIBS ${CXX_LIBS}
-	@echo ALL_CXX_SHLIBS ${CXX_SHLIBS}
+	@echo ALL_C_EXES ${ALL_C_EXES}
+	@echo ALL_C_LIBS ${ALL_C_LIBS}
+	@echo ALL_CXX_EXES ${ALL_CXX_EXES}
+	@echo ALL_CXX_LIBS ${ALL_CXX_LIBS}
+	@echo ALL_CXX_SHLIBS ${ALL_CXX_SHLIBS}
 	@echo INSTALL ${INSTALL/}
 
 # Compiler information and options.  Always get it from the same directory
@@ -35,6 +35,10 @@ RECURSIVE    :=
 /            :=
 
 define Include
+ $(foreach x,$(strip ${1}),$(call Include_File,$x))
+endef
+
+define Include_File
   ifeq ($(wildcard ${1}Make.include),${1}Make.include)
     $/.SUBS +=${1}.
     // +=${1}.
@@ -43,12 +47,13 @@ define Include
     include ${1}Make.include
     /  :=$/
   endif
+
 endef
 
 ##### System specific includes
 
 # invoke the toplevel include file
-$(eval $(call Include,$/))
+$(eval $(call Include_File,$/))
 
 #### Targets which have been declared RECURSIVE are not pulled up
 //            :=$(filter-out ${RECURSIVE},${//})

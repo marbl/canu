@@ -103,11 +103,12 @@ ifeq ($(OPERATING_SYSTEM),AIX)
     AIX_LARGE_FILE_SUPPORT               :=-q64 -qlonglong -D_LARGE_FILES
     AIX_SUPPRESS_DUPLICATE_SYMBOL_WARNING:=-qstaticinline
     AIX_FLAG_TO_SUPPRESS_MANY_WARNINGS   :=-bhalt:8
-    AGRESSIVE_OPTIMIZATION               :=-O3 -qstrict
+    AGGRESSIVE_OPTIMIZATION              :=-O3 -qstrict
     ifdef WITH_DEBUG
       AIX_OPTIMIZATIONS                  :=-g -qfullpath -qlinedebug
     else
       AIX_OPTIMIZATIONS                  :=-qarch=auto -qtune=auto -qcache=auto
+      AIX_OPTIMIZATIONS                  +=$(AGGRESSIVE_OPTIMIZATION)
     endif
 
     CandCXXFLAGS_ARCH  := \

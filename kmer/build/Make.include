@@ -6,17 +6,18 @@ RCM/      :=$/../RCM/
 TCBB/     :=$/../TCBB/
 SUFFER/   :=$/../SUFFER/
 
-$(eval $(call Include,${COMPASS/}))
+$(eval $(call Include,\
+     ${COMPASS/} \
+     ${LILIANA/} \
+     ${RASCAL/} \
+     ${BRI/} \
+     ${SUFFER/} \
+     ${RCM/} \
+     ${TCBB/}\
+     ))
 
-$(eval $(call Include,${LILIANA/}))
 
-$(eval $(call Include,${RASCAL/}))
 
-$(eval $(call Include,${BRI/}))
 
-$(eval $(call Include,${SUFFER/}))
 
-$(eval $(call Include,${RCM/}))
-
-$(eval $(call Include,${TCBB/}))
 
