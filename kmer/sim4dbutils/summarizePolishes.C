@@ -73,7 +73,7 @@ readMatches(char           *filename,
             vector<match>  &matches) {
   FILE     *F = stdin;
 
-  if ((filename != 0L) || (strcmp(filename, "-") == 0)) {
+  if ((filename != 0L) && (strcmp(filename, "-") != 0)) {
     errno = 0;
     F = fopen(filename, "r");
     if (errno) {
