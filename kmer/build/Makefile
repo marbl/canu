@@ -154,7 +154,9 @@ real-clean:    ${//-RECURSIVE:.=.real-clean} $/.real-clean
 define .RULE-real-clean
 ${1:.=.real-clean}: $${${1:.=.SUBS}:.=.real-clean}
 	${RM} $${${1:.=.CLEAN}} ${__SUBGOALS__} ${1:.=Make.depends} ${__DEPGOALS__} $${${1:.=.REAL-CLEAN}}
+ifneq ($(strip ${INSTALL/}),)
 	${RM} -r ${INSTALL/}
+endif
 ifneq ($(strip ${C_TMP_COMPILE} ${CXX_TMP_COMPILE}),)
 	(cd $1 && ${RM} -r ${C_TMP_COMPILE} ${CXX_TMP_COMPILE})
 endif
