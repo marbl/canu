@@ -8,6 +8,11 @@
 //  still use the initCompressionTables() method (though I can't think
 //  of a reason to do that).
 //
+//  Unless you *REALLY* *REALLY* know what you're doing, DO NOT
+//  EVER change these constants.  Various bits depend on:
+//    ACGT being two bits
+//    A=00, C=01, G=10 and T=11
+//
 
 unsigned char  compressSymbol[256];
 unsigned char  validSymbol[256];
