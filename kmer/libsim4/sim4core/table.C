@@ -31,6 +31,8 @@ Sim4::add_word(int ecode, int pos) {
   //
   hashtable->nextPos[pos] = h->pos;
   h->pos = pos;
+
+  //fprintf(stderr, "add_word() - ecode=0x%08x pos=%d\n", ecode, pos);
 }
 
 

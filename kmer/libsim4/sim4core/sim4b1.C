@@ -12,7 +12,7 @@ void
 printExons(char *label, Exon *l) {
   fprintf(stdout, label);
   while (l) {
-    fprintf(stdout, "%8d %8d %8d %8d %d\n",
+    fprintf(stdout, "GEN f=%8d t=%8d  EST f=%8d t=%8d   flag=%d\n",
             l->frGEN,
             l->toGEN,
             l->frEST,
@@ -67,7 +67,7 @@ Sim4::SIM4(int            *dist_ptr,
     return(0L);
   }
 
-  PRINTEXONS("0\n", exon_list);
+  PRINTEXONS("initial exon set\n", exon_list);
 
   tmp_block = Lblock = exon_list;
   while (tmp_block) {
@@ -89,7 +89,7 @@ Sim4::SIM4(int            *dist_ptr,
                                       true,
                                       _genSeq, _estSeq);
 
-    PRINTEXONS("0a\n", exon_list);
+    PRINTEXONS("relink the initial stuff\n", exon_list);
 
     tmp_block = Lblock = exon_list;
     while (tmp_block) {
@@ -107,7 +107,7 @@ Sim4::SIM4(int            *dist_ptr,
     tmp_block = tmp_block->next_exon; 
   }
 
-  PRINTEXONS("0b\n", exon_list);
+  PRINTEXONS("initial exon set after possibly relinking\n", exon_list);
 
   /* enclose the current path in the (0,0,0,0) and (M+1,N+1,0,0) brackets */
 
@@ -122,13 +122,13 @@ Sim4::SIM4(int            *dist_ptr,
 #endif
   Rblock->next_exon = new_exon(_genLen+1,_estLen+1,0,0,0,0,0,NULL); 
 
-  PRINTEXONS("0c\n", Lblock);
+  PRINTEXONS("initial exon set after inserting brackets\n", Lblock);
 
   /* compute current statistics */
   bool good_match = get_match_quality(Lblock, Rblock, st, _estLen);
 
 
-  PRINTEXONS("INIT\n", Lblock);
+  PRINTEXONS("after get_match_quality\n", Lblock);
 
 
 #ifdef SHOW_PROGRESS
@@ -139,7 +139,7 @@ Sim4::SIM4(int            *dist_ptr,
   tmp_block = Lblock;
   while ((tmp_block1 = tmp_block->next_exon)!=NULL) {
 
-    PRINTEXONS("LOOP\n", Lblock);
+    PRINTEXONS("start of loop to fill in missing pieces\n", Lblock);
 
     rollbflag = 0;
 
@@ -158,7 +158,7 @@ Sim4::SIM4(int            *dist_ptr,
     if (diff) {
       if (diff < 0) {
 #ifdef SHOW_PROGRESS
-        fprintf(stderr, "Called SIM4_block1()\n");
+        fprintf(stderr, "Called SIM4_block1() with diff=%d\n", diff);
 #endif
         rollbflag = SIM4_block1(Lblock, tmp_block, tmp_block1);
       } else {
@@ -205,10 +205,10 @@ Sim4::SIM4(int            *dist_ptr,
           tmp_block->next_exon = tmp_Lblock;
           tmp_Rblock->next_exon = tmp_block1;
 
-          PRINTEXONS("BEFORE MERGE tmp_block\n",  tmp_block);
-          PRINTEXONS("BEFORE MERGE tmp_block1\n", tmp_block1);
-          PRINTEXONS("BEFORE MERGE tmp_Lblock\n", tmp_Lblock);
-          PRINTEXONS("BEFORE MERGE tmp_Rblock\n", tmp_Rblock);
+          PRINTEXONS("before merge tmp_block\n",  tmp_block);
+          PRINTEXONS("before merge tmp_block1\n", tmp_block1);
+          PRINTEXONS("before merge tmp_Lblock\n", tmp_Lblock);
+          PRINTEXONS("before merge tmp_Rblock\n", tmp_Rblock);
 
           merge(&tmp_block,&tmp_block1);
         }
@@ -219,7 +219,7 @@ Sim4::SIM4(int            *dist_ptr,
   }
 
 
-  PRINTEXONS("FINAL\n", Lblock);
+  PRINTEXONS("all done -- final Lblock\n", Lblock);
 
 #ifdef SHOW_PROGRESS
   fprintf(stderr, "sim4b1 -- before compact_list\n");

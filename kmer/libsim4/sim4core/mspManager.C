@@ -9,6 +9,9 @@
 
 #define  DEFAULT_L       8
 
+//  Define this to get a detailed report on hit extension
+//
+//#define DEBUG_EXTENSION
 
 mspManager::mspManager() {
   _sorted           = true;
@@ -404,19 +407,61 @@ mspManager::setScoreThreshold(int K, int interspecies) {
 
 
 void
-mspManager::addHit_(char *s1, char *s2,
-                    int   l1, int   l2,
-                    int   p1, int   p2,
+mspManager::addHit_(char *genSeq, char *estSeq,
+                    int   genLen, int   estLen,
+                    int   genPos, int   estPos,
                     int   W) {
-  char *beg2 = 0L;
-  char *beg1 = 0L;
-  char *end1 = 0L;
-  char *q = 0L;
-  char *s = 0L;
-  int   right_sum = 0;
-  int   left_sum  = 0;
-  int   sum       = 0;
-  int   score     = 0;
+  char *genBeg = 0L;
+  char *estBeg = 0L;
+  char *genEnd = 0L;
+  char *genTmp = 0L;
+  char *estTmp = 0L;
+  int   right_sum  = 0;
+  int   middle_sum = 0;
+  int   left_sum   = 0;
+  int   sum        = 0;
+  int   score      = 0;
+
+#ifdef DEBUG_EXTENSION
+  {
+    char L[41], M[41], R[41];
+    int  x;
+
+    if (genPos > 20) genTmp = genSeq + genPos - 20;
+    else             genTmp = genSeq;
+
+    x=0;
+    while (genTmp < genSeq + genPos)
+      L[x++] = *genTmp++;
+    L[x] = 0;
+    x=0;
+    while (genTmp < genSeq + genPos + W)
+      M[x++] = *genTmp++;
+    M[x] = 0;
+    x=0;
+    while (genTmp < genSeq + genPos + W + 20)
+      R[x++] = *genTmp++;
+    R[x] = 0;
+    fprintf(stderr, "GEN=%8d %s:%s:%s\n", genPos, L, M, R);
+
+    if (estPos > 20) estTmp = estSeq + estPos - 20;
+    else             estTmp = estSeq;
+
+    x=0;
+    while (estTmp < estSeq + estPos)
+      L[x++] = *estTmp++;
+    L[x] = 0;
+    x=0;
+    while (estTmp < estSeq + estPos + W)
+      M[x++] = *estTmp++;
+    M[x] = 0;
+    x=0;
+    while (estTmp < estSeq + estPos + W + 20)
+      R[x++] = *estTmp++;
+    R[x] = 0;
+    fprintf(stderr, "EST=%8d %s:%s:%s\n", estPos, L, M, R);
+  }
+#endif
 
   //  We use diagonals directly -- original version offset the array of
   //  diagonal positions by the constant value included below.
@@ -425,69 +470,92 @@ mspManager::addHit_(char *s1, char *s2,
   //
   left_sum = 0;
   sum      = 0;
-  q        = s1 + 1 + p1;
-  s        = s2 + 1 + p2;
-  end1     = q;
+  genTmp   = genSeq + 1 + genPos;
+  estTmp   = estSeq + 1 + estPos;
+  genEnd   = genTmp;
 
-  while ((*s) &&
-         (*q) &&
-         (s <= s2 + l2) &&
-         (q <= s1 + l1) &&
+  while ((*genTmp) &&
+         (*estTmp) &&
+         (estTmp <= estSeq + estLen) &&
+         (genTmp <= genSeq + genLen) &&
          (sum >= left_sum - _wordExtAllow)) {
 
     sum += _match;
-    if (*s != *q)
+    if (*estTmp != *genTmp)
       sum -= _matchdiff;
 
-    s++;
-    q++;
+    estTmp++;
+    genTmp++;
     if (sum > left_sum) {
       left_sum = sum;
-      end1 = q;
+      genEnd = genTmp;
     }
   }
 
-  //  Extend to the right
+#ifdef DEBUG_EXTENSION
+  //  Check the bases that the seed supposedly matched
+  //
+  middle_sum = 0;
+  sum        = 0;
+  genTmp     = genSeq + 1 + genPos - W;
+  estTmp     = estSeq + 1 + estPos - W;
+
+  for (int x=0; x<W; x++) {
+    middle_sum += _match;
+    if (*genTmp != *estTmp)
+      middle_sum -= _matchdiff;
+
+    estTmp++;
+    genTmp++;
+  }
+#endif
+
+
+  //  Extend to the left
   //
   right_sum = 0;
   sum       = 0;
-  q         = s1 + 1 + p1 - W;
-  s         = s2 + 1 + p2 - W;
-  beg1      = q;
-  beg2      = s;
+  genTmp    = genSeq + 1 + genPos - W;
+  estTmp    = estSeq + 1 + estPos - W;
+  genBeg    = genTmp;
+  estBeg    = estTmp;
 
-  while ((s > s2 + 1) &&
-         (q > s1 + 1) &&
+  while ((estTmp > estSeq + 1) &&
+         (genTmp > genSeq + 1) &&
          (sum >= right_sum - _wordExtAllow)) {
 
-    s--;
-    q--;
+    estTmp--;
+    genTmp--;
     sum += _match;
-    if (*s != *q)
+    if (*estTmp != *genTmp)
       sum -= _matchdiff;
 
     if (sum > right_sum) {
       right_sum = sum;
-      beg2 = s;
-      beg1 = q;
+      estBeg = estTmp;
+      genBeg = genTmp;
     }
   }
 
   score = W + left_sum + right_sum;
 
   if (score >= _minMSPScore)
-    addMSP((int)(end1 - beg1),
-           (int)(beg1 - (s1 + 1)),
-           (int)(beg2 - (s2 + 1)),
+    addMSP((int)(genEnd - genBeg),
+           (int)(genBeg - (genSeq + 1)),
+           (int)(estBeg - (estSeq + 1)),
            score);
 
-#if 0
-  fprintf(stderr, "mspManager::addHit()-- added from EST %d to %d and GEN %d to %d (length = %d) with score %d (needed %d)\n", 
-          (int)(beg2 - (s2 + 1)), (int)(beg2 - (s2 + 1)) + W,
-          (int)(beg1 - (s1 + 1)), (int)(beg1 - (s1 + 1)) + W,
+#ifdef DEBUG_EXTENSION
+  fprintf(stderr, "mspManager::addHit()-- added from EST %d to %d and GEN %d to %d (length = %d) with score %d (needed %d) l,m,r sums %d %d %d\n", 
+          (int)(estBeg - (estSeq + 1)), (int)(estBeg - (estSeq + 1)) + W,
+          (int)(genBeg - (genSeq + 1)), (int)(genBeg - (genSeq + 1)) + W,
           W,
-          score, _minMSPScore);
+          score, _minMSPScore, left_sum, middle_sum, right_sum);
 #endif
 
-  _diagExt[l2 + p1 - p2 - 1] = (int)(end1 - s1 - 1 + W);
+  //  Remember the highest point that this diagonal has been extended
+  //  to.  We use this to short circuit useless mer extensions (if
+  //  we've already extended through it).
+  //
+  _diagExt[estLen + genPos - estPos - 1] = (int)(genEnd - genSeq - 1 + W);
 }

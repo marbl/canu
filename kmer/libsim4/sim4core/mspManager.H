@@ -88,12 +88,12 @@ public:
   //  add a single unextended hit to the list.
   //  this will do extensions if we haven't already extended through it.
   //
-  void  addHit(char *s1, char *s2,
-               int   l1, int   l2,
-               int   p1, int   p2,
+  void  addHit(char *genSeq, char *estSeq,
+               int   genLen, int   estLen,
+               int   genPos, int   estPos,
                int   W) {
-    if (_diagExt[l2 + p1 - p2 - 1] <= p1)
-      addHit_(s1, s2, l1, l2, p1, p2, W);
+    if (_diagExt[estLen + genPos - estPos - 1] <= genPos)
+      addHit_(genSeq, estSeq, genLen, estLen, genPos, estPos, W);
   };
 
 
@@ -107,9 +107,9 @@ public:
                       char  *s2);
 
 private:
-  void  addHit_(char *s1, char *s2,
-                int   l1, int   l2,
-                int   p1, int   p2,
+  void  addHit_(char *genSeq, char *estSeq,
+                int   genLen, int   estLen,
+                int   genPos, int   estPos,
                 int   W);
 
   bool           _sorted;

@@ -264,12 +264,15 @@ sim4command::getGENlength(void) {
 
 
 ////////////////////////////////////////
-
-
-
-
+//
+//  This expects base-based seeds.
+//  This expects that the position of the seed is the base in the seed.
+//  This expects that GENpos is relative to the genomic subsequence.
+//
+//  If reverse-complement match, the EST is reversed, the GEN is forward.
+//
 void
-sim4command::addSeed(u32bit ESTpos, u32bit GENpos, u32bit length) {
+sim4command::addSeed(u32bit GENpos, u32bit ESTpos, u32bit length) {
 
   if (_externalSeedsLen >= _externalSeedsMax) {
     if (_externalSeedsMax == 0)
@@ -281,9 +284,33 @@ sim4command::addSeed(u32bit ESTpos, u32bit GENpos, u32bit length) {
     _externalSeeds = n;
   }
 
-  _externalSeeds[_externalSeedsLen]._ESTposition = ESTpos;
+  //  Sim4 seeds are all from the last position in the seed, but we
+  //  are given seeds at the start!  So we add the length-1 to get
+  //  to the last position.
+
   _externalSeeds[_externalSeedsLen]._GENposition = GENpos;
+  _externalSeeds[_externalSeedsLen]._ESTposition = ESTpos;
   _externalSeeds[_externalSeedsLen]._length      = length;
 
+  fprintf(stderr, "sim4command::addSeed()-- GEN="u32bitFMT" EST="u32bitFMT" to sim4command\n", GENpos, ESTpos);
+
   _externalSeedsLen++;
+}
+
+
+int
+sortExternalSeedsCompare(const void *a, const void *b) {
+  sim4command::externalSeed *A = ((sim4command::externalSeed *)a);
+  sim4command::externalSeed *B = ((sim4command::externalSeed *)b);
+
+  if (A->_GENposition < B->_GENposition)
+    return(-1);
+  if (A->_GENposition > B->_GENposition)
+    return(1);
+  return(0);
+}
+
+void
+sim4command::sortExternalSeeds(void) {
+  qsort(_externalSeeds, _externalSeedsLen, sizeof(externalSeed), sortExternalSeedsCompare);
 }

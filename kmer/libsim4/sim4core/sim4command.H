@@ -61,8 +61,9 @@ public:
   //  addSeed() takes coordinates relative to the start of the GEN
   //  sequence supplied to the constructor.
   //
-  void   addSeed(u32bit ESTposition, u32bit GENposition, u32bit length);
+  void   addSeed(u32bit GENpos, u32bit ESTpos, u32bit length);
 
+  void   sortExternalSeeds(void);
   bool   externalSeedsExist(void)          { return(_externalSeedsLen > 0); };
   u32bit numberOfExternalSeeds(void)       { return(_externalSeedsLen); };
   u32bit externalSeedESTPosition(u32bit i) { return(_externalSeeds[i]._ESTposition); };
@@ -126,14 +127,27 @@ private:
   //  For external seeding
   //
   struct externalSeed {
-    u32bit    _ESTposition;
     u32bit    _GENposition;
+    u32bit    _ESTposition;
     u32bit    _length;
+  };
+
+  int                   _externalSeedsCompare(const void *a, const void *b) {
+    externalSeed *A = *((externalSeed **)a);
+    externalSeed *B = *((externalSeed **)b);
+
+    if (A->_GENposition < B->_GENposition)
+      return(-1);
+    if (A->_GENposition > B->_GENposition)
+      return(1);
+    return(0);
   };
 
   u32bit                _externalSeedsLen;
   u32bit                _externalSeedsMax;
   externalSeed         *_externalSeeds;
+
+  friend int sortExternalSeedsCompare(const void *, const void *);
 };
 
 
