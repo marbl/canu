@@ -27,7 +27,10 @@ endif
 $/.CLEAN     :=$/*.o
 $/.REAL-CLEAN:=$/buildinfo-*
 
-$(eval $/%: CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} -I${EXISTDB/})
+
+# bug in += target vars
+# $/%.d $/%.o: CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} -I${EXISTDB/}
+$(eval $/%.d $/%.o: CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} -I${EXISTDB/})
 
 $/configuration.C.d:  $/buildinfo-searchGENOME.h \
                      ${EXISTDB/}buildinfo-existDB.h \

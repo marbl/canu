@@ -16,7 +16,9 @@ $/.REAL-CLEAN := $/buildinfo-*
 $/libpositionDB.a:   $/buildinfo-positionDB.o $/positionDB.o $/positionDB-access.o $/positionDB-dump.o $/positionDB-sort.o $/positionDB-file.o
 $/positionDB:        $/driver.o
 
-$(eval $/%:    CXXFLAGS+= -I${EXISTDB/} -I${FASTA/} -I${MERYL/} -I${LIBBRI/})
+# bug in += target vars
+#$/%.d $/%.o:    CXXFLAGS+= -I${FASTA/} -I${LIBBRI/}
+$(eval $/%.d $/%.o:    CXXFLAGS+= -I${EXISTDB/} -I${FASTA/} -I${MERYL/} -I${LIBBRI/})
 
 ${$/.CXX_EXES}: ${MERTABLES/}libmerTables.a ${FASTA/}libfasta.a ${MERYL/}libmeryl.a ${LIBBRI/}libbri.a
 

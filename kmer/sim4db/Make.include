@@ -19,7 +19,9 @@ ${$/.CXX_EXES}:   ${FASTA/}libfasta.a ${SIM4/}libsim4.a \
 
 $/sim4db.C.d:  $/buildinfo-sim4db.h ${FASTA/}buildinfo-libfasta.h ${SIM4/}buildinfo-libsim4.h ${LIBBRI/}buildinfo-libbri.h
 
-$(eval $/%: CXXFLAGS+=  -I${FASTA/} -I${SIM4/} -I${SIM4POLISH/} -I${LIBBRI/})
+# bug in += target vars
+#$/%.d $/%.o: CXXFLAGS+=  -I${FASTA/} -I${SIM4/} -I${SIM4POLISH/} -I${LIBBRI/}
+$(eval $/%.d $/%.o: CXXFLAGS+=  -I${FASTA/} -I${SIM4/} -I${SIM4POLISH/} -I${LIBBRI/})
 
 $/buildinfo-sim4db.c: $/buildinfo-sim4db.h
 $/buildinfo-sim4db.h: $/sim4db.C

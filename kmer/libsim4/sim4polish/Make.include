@@ -29,8 +29,11 @@ $/.REAL-CLEAN :=$/buildinfo-*
 $/libsim4polish.a    :  ${$/.C_SRCS:.c=.o} ${$/.CXX_SRCS:.C=.o} \
                         $/buildinfo-libsim4polish.o
 
-$(eval $/%:  CFLAGS+=-I${LIBBRI/})
-$(eval $/%:  CXXFLAGS+=-I${LIBBRI/})
+# bug in += target vars
+#$/%.d $/%.o:  CFLAGS+=-I${LIBBRI/}
+#$/%.d $/%.o:  CXXFLAGS+=-I${LIBBRI/}
+$(eval $/%.d $/%.o:  CFLAGS+=-I${LIBBRI/})
+$(eval $/%.d $/%.o:  CXXFLAGS+=-I${LIBBRI/})
 
 $/buildinfo-libsim4polish.c: $/buildinfo-libsim4polish.h
 $/buildinfo-libsim4polish.h: ${src}

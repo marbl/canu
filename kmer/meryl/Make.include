@@ -19,7 +19,9 @@ $/merle         : $/buildinfo-merle.o $/merle.o
 $/meryl         : ${src_C:.C=.o} $/buildinfo-meryl.o $/libmeryl.a
 $/meryl $/merle : ${LIBBRI/}libbri.a
 
-$(eval $/%:  CXXFLAGS+=-I${LIBBRI/})
+# bug in += target vars
+#$/%.d $/%.o:  CXXFLAGS+=-I${LIBBRI/}
+$(eval $/%.d $/%.o:  CXXFLAGS+=-I${LIBBRI/})
 
 $/%.d:  ${LIBBRI/}buildinfo-libbri.h ${LIBBRI/}alphabet.h
 $/meryl.C.d: $/buildinfo-meryl.h ${LIBBRI/}buildinfo-libbri.h

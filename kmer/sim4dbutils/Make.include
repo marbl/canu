@@ -23,8 +23,11 @@ $/.CXX_EXES:= ${obj_C:.o=} ${obj_c:.o=}
 
 $/.CLEAN := $/*.o
 
-$(eval $/%:  CFLAGS+=-I${FASTA/} -I${SIM4POLISH/} -I${LIBBRI/})
-$(eval $/%:  CXXFLAGS+=-I${FASTA/} -I${SIM4POLISH/} -I${LIBBRI/})
+# bug in += target variables, fixed with wrapper
+#$/%.d $/%.o:  CFLAGS+=-I${FASTA/} -I${SIM4POLISH/} -I${LIBBRI/}
+#$/% $/%.o:  CXXFLAGS+=-I${FASTA/} -I${SIM4POLISH/} -I${LIBBRI/}
+$(eval $/%.d $/%.o:  CFLAGS+=-I${FASTA/} -I${SIM4POLISH/} -I${LIBBRI/})
+$(eval $/%.d $/%.o:  CXXFLAGS+=-I${FASTA/} -I${SIM4POLISH/} -I${LIBBRI/})
 
 $/pickBestPolish-debug.o: $/pickBestPolish.c
 	${CC} ${WARNS} -DVALIDATE ${CFLAGS} ${CFLAGS_COMPILE} -o $@ -c $<

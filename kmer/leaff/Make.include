@@ -45,4 +45,7 @@ $/buildinfo-libfasta.h: ${src}
 	${UTIL/}buildinfo.pl libfasta "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
 	[ `dirname $@` = "." ] || mv buildinfo-libfasta.[ch] `dirname $@`
 
-$(eval $/%:  CXXFLAGS+=-I${LIBBRI/})
+# bug in += target vars
+#$/%.d $/%.o:  CXXFLAGS+=-I${LIBBRI/}
+$(eval $/%.d $/%.o:  CXXFLAGS+=-I${LIBBRI/})
+

@@ -15,7 +15,9 @@ $/libexistDB.a : $/buildinfo-existDB.o $/existDB.o $/create-from-fasta.o $/creat
 $/buildandtest : $/buildandtest.o
 $/existDB      : $/driver.o
 
-$(eval $/%: CXXFLAGS+=-I${LIBBRI/} -I${MERYL/} -I${POSITIONDB/})
+# bug in += target vars
+# $/%.d $/%.o: CXXFLAGS+=-I${LIBBRI/} -I${MERYL/} -I${POSITIONDB/}
+$(eval $/%.d $/%.o: CXXFLAGS+=-I${LIBBRI/} -I${MERYL/} -I${POSITIONDB/})
 
 ${$/.CXX_EXES}:$/libexistDB.a ${MERYL/}libmeryl.a ${POSITIONDB/}libpositionDB.a ${LIBBRI/}libbri.a
 
