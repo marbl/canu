@@ -236,11 +236,7 @@ scan(char   *queryFile,
 
 
   if (beVerbose) {
-#ifdef TRUE64BIT
-    fprintf(stderr, "    Found %u mers.\n", _mersLen);
-#else
-    fprintf(stderr, "    Found %lu mers.\n", _mersLen);
-#endif
+    fprintf(stderr, "    Found "u32bitFMT" mers.\n", _mersLen);
     fprintf(stderr, " 2) Sorting by mer.\n");
   }
 
@@ -259,12 +255,10 @@ scan(char   *queryFile,
   mcBucket *B = new mcBucket(IDX, DAT, &mcd);
 
   for (u32bit i=0; i<_mersLen; i++) {
-    if ((beVerbose) && ((i & 0xffff) == 0)) {
-#ifdef TRUE64BIT
-      fprintf(stderr, "%7u/%7u  %lu bits read\r", i, _mersLen, B->bitsRead());
-#else
-      fprintf(stderr, "%7lu/%7lu  %llu bits read\r", i, _mersLen, B->bitsRead());
-#endif
+    if ((beVerbose) && ((i & 0xfff) == 0)) {
+      fprintf(stderr, "%8.5lf%% done, "u64bitFMT" bytes read.\r",
+              100.0 * (double)i / (double)_mersLen,
+              B->bitsRead() >> 3);
       fflush(stderr);
     }
     B->read(_mers[i]);
@@ -297,11 +291,7 @@ scan(char   *queryFile,
     switch (style) {
     case 0:
       for (u32bit i=0; i<_mersLen; i++) {
-#ifdef TRUE64BIT
-        fprintf(O, "%u\n", _mers[i]->count);
-#else
-        fprintf(O, "%lu\n", _mers[i]->count);
-#endif
+        fprintf(O, u32bitFMT"\n", _mers[i]->count);
       }
       break;
     case 1:
@@ -310,20 +300,12 @@ scan(char   *queryFile,
           lastS++;
           fprintf(O, ">%s\n", _defLines[lastS]);
         }
-#ifdef TRUE64BIT
-        fprintf(O, "%u\n", _mers[i]->count);
-#else
-        fprintf(O, "%lu\n", _mers[i]->count);
-#endif
+        fprintf(O, u32bitFMT"\n", _mers[i]->count);
       }
       break;
     case 2:
       for (u32bit i=0; i<_mersLen; i++) {
-#ifdef TRUE64BIT
-        fprintf(O, "0x%016lx\t%u\n", _mers[i]->mer, _mers[i]->count);
-#else
-        fprintf(O, "0x%016llx\t%lu\n", _mers[i]->mer, _mers[i]->count);
-#endif
+        fprintf(O, u64bitHEX"\t"u32bitFMT"\n", _mers[i]->mer, _mers[i]->count);
       }
       break;
     case 3:
@@ -332,11 +314,7 @@ scan(char   *queryFile,
           lastS++;
           fprintf(O, ">%s\n", _defLines[lastS]);
         }
-#ifdef TRUE64BIT
-        fprintf(O, "0x%016lx\t%u\n", _mers[i]->mer, _mers[i]->count);
-#else
-        fprintf(O, "0x%016llx\t%lu\n", _mers[i]->mer, _mers[i]->count);
-#endif
+        fprintf(O, u64bitHEX"\t"u32bitFMT"\n", _mers[i]->mer, _mers[i]->count);
       }
       break;
     }
@@ -384,11 +362,7 @@ scan(char   *queryFile,
 
           //  Print the mer
           //
-#ifdef TRUE64BIT
-          fprintf(O, "%u\n", _mers[thisMer]->count);
-#else
-          fprintf(O, "%lu\n", _mers[thisMer]->count);
-#endif
+          fprintf(O, u32bitFMT"\n", _mers[thisMer]->count);
 
           //  Next mer, next position
           //
@@ -414,13 +388,8 @@ scan(char   *queryFile,
     switch (style) {
     case 0:
       for (u32bit i=0; i<_mersLen; i++) {
-#ifdef TRUE64BIT
-        fprintf(O, "%u\t%u\t%u\n",
+        fprintf(O, u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\n",
                 _mers[i]->sequence, _mers[i]->position, _mers[i]->count);
-#else
-        fprintf(O, "%lu\t%lu\t%lu\n",
-                _mers[i]->sequence, _mers[i]->position, _mers[i]->count);
-#endif
       }
       break;
     case 1:
@@ -429,24 +398,14 @@ scan(char   *queryFile,
           lastS++;
           fprintf(O, ">%s\n", _defLines[lastS]);
         }
-#ifdef TRUE64BIT
-        fprintf(O, "%u\t%u\t%u\n",
+        fprintf(O, u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\n",
                 _mers[i]->sequence, _mers[i]->position, _mers[i]->count);
-#else
-        fprintf(O, "%lu\t%lu\t%lu\n",
-                _mers[i]->sequence, _mers[i]->position, _mers[i]->count);
-#endif
       }
       break;
     case 2:
       for (u32bit i=0; i<_mersLen; i++) {
-#ifdef TRUE64BIT
-        fprintf(O, "0x%016lx\t%u\t%u\t%u\n",
+        fprintf(O, u64bitHEX"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\n",
                 _mers[i]->mer, _mers[i]->sequence, _mers[i]->position, _mers[i]->count);
-#else
-        fprintf(O, "0x%016llx\t%lu\t%lu\t%lu\n",
-                _mers[i]->mer, _mers[i]->sequence, _mers[i]->position, _mers[i]->count);
-#endif
       }
       break;
     case 3:
@@ -455,13 +414,8 @@ scan(char   *queryFile,
           lastS++;
           fprintf(O, ">%s\n", _defLines[lastS]);
         }
-#ifdef TRUE64BIT
-        fprintf(O, "0x%016lx\t%u\t%u\t%u\n",
+        fprintf(O, u64bitHEX"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\n",
                 _mers[i]->mer, _mers[i]->sequence, _mers[i]->position, _mers[i]->count);
-#else
-        fprintf(O, "0x%016llx\t%lu\t%lu\t%lu\n",
-                _mers[i]->mer, _mers[i]->sequence, _mers[i]->position, _mers[i]->count);
-#endif
       }
       break;
     }
