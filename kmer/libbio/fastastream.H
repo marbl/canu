@@ -6,7 +6,8 @@
 #include <errno.h>
 #include <ctype.h>
 
-#include "libbri.H"
+#include "libbritypes.h"
+#include "alphabet.h"
 
 //
 //  Reads sequence from a multiFastA file, letter by letter, saving
