@@ -1,0 +1,59 @@
+# -*- makefile -*-
+
+ifndef UTIL/
+UTIL/ := $/../util/
+endif
+
+ifndef MERYL/
+MERYL/      := $/../meryl/
+endif
+
+ifndef LIBBRI/
+LIBBRI/     := $/../libbri/
+endif
+
+ifndef FASTA/
+FASTA/      := $/../fasta/
+endif
+
+ifndef POSITIONDB/
+POSITIONDB/ := $/../positionDB/
+endif
+
+ifndef EXISTDB/
+EXISTDB/    := $/../existDB/
+endif
+
+src      := $/seatac.C $/configuration.C $/encodedQuery.C \
+            $/hitMatrix.C $/thr-search.C $/thr-loader.C $/thr-deadlock.C \
+            $/hitMatrix-sort.C \
+            $/hitMatrix.H $/intervalList.H $/posix.H $/seatac.H
+
+$/.CXX_SRCS  := $(filter %.C,${src})
+ifdef WITH_THREADS
+ $/.CXX_EXES  := $/seatac
+else
+ $(warning $/seatac requires threads: enable WITH_THREADS to build.)
+endif
+
+$/.CLEAN     :=$/*.o
+$/.REAL-CLEAN:=$/buildinfo-*
+
+
+
+$/%.d $/%.o: CXXFLAGS+=-I${LIBBRI/} -I${FASTA/} -I${POSITIONDB/} -I${EXISTDB/}
+$/configuration.C.d:  $/buildinfo-seatac.h \
+                     ${EXISTDB/}buildinfo-existDB.h \
+                     ${POSITIONDB/}buildinfo-positionDB.h \
+                     ${LIBBRI/}buildinfo-libbri.h \
+                     ${FASTA/}buildinfo-libfasta.h
+
+$/seatac:  ${$/.CXX_SRCS:.C=.o} $/buildinfo-seatac.o \
+           ${EXISTDB/}libexistDB.a ${POSITIONDB/}libpositionDB.a \
+           ${MERYL/}libmeryl.a \
+           ${FASTA/}libfasta.a ${LIBBRI/}libbri.a
+
+$/buildinfo-seatac.c: $/buildinfo-seatac.h
+$/buildinfo-seatac.h: ${src}
+	${UTIL/}buildinfo.pl seatac "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
+	[ `dirname $@` = "." ] || mv buildinfo-seatac.[ch] `dirname $@`
