@@ -101,6 +101,7 @@ while ($exechome =~ m!^/member\w+(/.*)$!) {
 print STDERR "Using exechome of '$exechome'\n";
 
 my $searchGENOME  = "$exechome/searchGENOME";
+my $mergeCounts   = "$exechome/mergeCounts";
 my $filterMRNA    = "$exechome/filterMRNA";
 my $filterEST     = "$exechome/filterEST";
 my $sim4db        = "$exechome/sim4db";
@@ -112,6 +113,7 @@ my $sortPolishes  = "$exechome/sortPolishes";
 my $parseSNPs     = "$exechome/parseSNP";
 
 die "Can't find/execute $searchGENOME\n"  if (! -x $searchGENOME);
+die "Can't find/execute $mergeCounts\n"   if (! -x $mergeCounts);
 die "Can't find/execute $filterMRNA\n"    if (! -x $filterMRNA);
 die "Can't find/execute $filterEST\n"     if (! -x $filterEST);
 die "Can't find/execute $sim4db\n"        if (! -x $sim4db);
@@ -1088,26 +1090,38 @@ sub filter {
     #
     #  Merge all the hit counts into one list
     #
-    if (! -e "$path/2-filter/hitCounts") {
-        my @counts;
+    if (1) {
+        if (! -e "$path/2-filter/hitCounts") {
+            print STDERR "ESTmapper/search-- Merging counts.\n";
+            my $cmd = "$mergeCounts";
+            foreach my $s (@scafList) {
+                $cmd .= " $path/1-search/$s.count";
+            }
+            $cmd .= "> $path/2-filter/hitCounts";
+            system($cmd);
+        }
+    } else {
+        if (! -e "$path/2-filter/hitCounts") {
+            my @counts;
 
-        print STDERR "ESTmapper/search-- Merging counts.\n";
-        foreach my $s (@scafList) {
-            my $idx = 0;
+            print STDERR "ESTmapper/search-- Merging counts.\n";
+            foreach my $s (@scafList) {
+                my $idx = 0;
 
-            open(F, "< $path/1-search/$s.count");
-            while (<F>) {
-                $counts[$idx++] += int($_);
+                open(F, "< $path/1-search/$s.count");
+                while (<F>) {
+                    $counts[$idx++] += int($_);
+                }
+                close(F);
+            }
+
+            print STDERR "ESTmapper/search-- Writing counts.\n";
+            open(F, "> $path/2-filter/hitCounts");
+            foreach my $c (@counts) {
+                print F "$c\n";
             }
             close(F);
         }
-
-        print STDERR "ESTmapper/search-- Writing counts.\n";
-        open(F, "> $path/2-filter/hitCounts");
-        foreach my $c (@counts) {
-            print F "$c\n";
-        }
-        close(F);
     }
 
     if (! -e "$path/2-filter/filteredHits") {
@@ -1146,11 +1160,17 @@ sub filter {
         }
 
         print STDERR "ESTmapper/filter-- Filtering.\n";
-        system($fcmd);
+        system($fcmd) == 0 or
+            die "Failed to filter!\n! = $!\n? = $?\n";
 
         print STDERR "ESTmapper/filter-- Sorting.\n";
-        system($scmd);
+        system($scmd) == 0 or
+            die "Failed to sort!\n! = $!\n? = $?\n";
    }
+
+    if (-z "$path/2-filter/filteredHits") {
+        die "filter and sort produced no hits?\n";
+    }
 
     print STDERR "ESTmapper: Filter script finished in ", time() - $startTime, " wall-clock seconds.\n" if (time() > $startTime + 5);
 }
