@@ -256,6 +256,8 @@ Sim4::pluri_align(int *dist_ptr,
         //  not a base for an 'n'.
         //
         for (i=0; i<tmp_script->num; ++i, ++a, ++b) {
+
+#if 0
           if (((*a == 'N') || (*a == 'n')) && ((*b == 'N') || (*b == 'n'))) {
             //  Got an 'n'.  It isn't a match and it isn't an edit.
             //
@@ -269,6 +271,25 @@ Sim4::pluri_align(int *dist_ptr,
               nextExon->numEdits++;
             }
           }
+#else
+
+          if (((*a == 'N') || (*a == 'n')) && ((*b == 'N') || (*b == 'n'))) {
+            //  We don't count matches with N on both sides as anything.
+            //
+            nextExon->numNs++;
+          } else {
+            //  Otherwise, both letters are non-N and we count a match if the
+            //  IUPAC ambiguity matches
+            //
+            if (IUPACidentity[*a][*b]) {
+              nextExon->numMatches++;
+            } else {
+              nextExon->numEdits++;
+            }
+          }
+#endif
+
+
         }
         break;
       }         
