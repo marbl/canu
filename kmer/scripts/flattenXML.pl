@@ -11,6 +11,8 @@ use strict;
 #  Flattens a heirarchy of XML into one single XML file.
 #  It will find all the files in the directories.  Output is on stdout.
 #
+#  Also builds a seq tag for each sequence in the input.
+#
 
 if (scalar @ARGV < 1) {
     print STDOUT "usage: $0 outprefix indir indir indir ...\n";
@@ -34,7 +36,39 @@ foreach my $i (@ARGV) {
 }
 
 #
+#  Find the sequences mapped
+#
+print STDERR "Finding sequences.\n";
+my %sequences;
+foreach my $f (@inp) {
+    open(F, "< $f");
+    while (<F>) {
+        chomp $_;
+
+        if (m/<description>(.*)<\/description>/) {
+            my $defline = $1;
+
+            if ($defline =~ m/CRA\|(\d+)\s+.*length=(\d+)/) {
+                my $id     = $1;
+                my $length = $2;
+
+                $sequences{$id} = "<seq id=\"CELERA:$id\" type=\"DNA\" length=\"$length\"><description>$defline</description></seq>";
+
+                print STDERR "$id\r";
+            } else {
+                print STDERR "got defline '$defline' can't find ID or length.\n";
+                exit(1);
+            }
+        }
+    }
+}
+
+
+
+#
 #  Check that all the inputs are the same assembly
+#
+#  Also dumps the <game> tag and any sequence <seq> tags.
 #
 print STDERR "Finding assembly version / taxon\n";
 my %check;
@@ -63,6 +97,10 @@ foreach my $f (@inp) {
 
         $fh = $outF{$t};
         print $fh "$t\n";
+
+        foreach my $s (sort { $a <=> $b } keys %sequences) {
+            print $fh "$sequences{$s}\n";
+        }
 
         $check{$t} = 1;
     }
