@@ -15,7 +15,7 @@ $(eval $(call Include,\
      $/../ABIMS/ \
      ))
 
-$/.CLEAN:=$/*~ $/*.o
+$/.CLEAN:=$/*~ $/*${.O}
 
 
 

@@ -115,18 +115,19 @@ ${ALL_CXX_DEPS}:%.d:%
 
 ######  generic pattern rules for subgoals
 # don't want .o's getting deleted as intermediates
-.PRECIOUS: %.o
+.PRECIOUS: %${.O}
+.SUFFIXES: ${.O}
 
-%.o: %.c
+%${.O}: %.c
 	${-CC} ${CC} ${CFLAGS} ${CFLAGS_COMPILE} -o $@ -c $<
 
-%.o: %.cc
+%${.O}: %.cc
 	${-CXX} ${CXX} ${CXXFLAGS} ${CXXFLAGS_COMPILE} -o $@ -c $<
 
-%.o: %.cpp
+%${.O}: %.cpp
 	${-CXX} ${CXX} ${CXXFLAGS} ${CXXFLAGS_COMPILE} -o $@ -c $<
 
-%.o: %.C
+%${.O}: %.C
 	${-CXX} ${CXX} ${CXXFLAGS} ${CXXFLAGS_COMPILE} -o $@ -c $<
 
 
@@ -134,12 +135,12 @@ ${ALL_CXX_DEPS}:%.d:%
 ## EXE targets
 ALL_C_EXES   :=$(strip $(foreach x,${//},${${x:.=.C_EXES}}))
 ${ALL_C_EXES}:
-	${-CC} ${CC} ${CLDFLAGS} -o $@ $+ ${CLIBS}
+	${-CC} ${CCLD} ${CLDFLAGS} -o $@ $+ ${CLIBS}
 __SUBGOALS__+=$${${1:.=.C_EXES}}
 
 ALL_CXX_EXES :=$(strip $(foreach x,${//},${${x:.=.CXX_EXES}}))
 ${ALL_CXX_EXES}:
-	${-CXX} ${CXX} ${CXXLDFLAGS} -o $@ $+ ${CXXLIBS}
+	${-CXX} ${CXXLD} ${CXXLDFLAGS} -o $@ $+ ${CXXLIBS}
 __SUBGOALS__+=$${${1:.=.CXX_EXES}}
 
 define .RULE-install-copy-C-CXX-EXES

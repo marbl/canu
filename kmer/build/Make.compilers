@@ -100,22 +100,21 @@ endif
 .EXE:=
 .SO :=.so
 .A  :=.a
+.O  :=.o
 ifeq (${_OS_},cygwin)
   .EXE:=.exe
   .SO :=.dll
-  .A  :=.a
 endif
-ifeq (${_OS_},cygwin|mingw)
+ifeq (${_OS|FULL_},cygwin|mingw)
   .EXE:=.exe
   .SO :=.dll
-  .A  :=.a
 endif
-ifeq (${_OS_},cygwin|msvc)
+ifeq (${_OS|FULL_},cygwin|msvc)
   .EXE:=.exe
   .SO :=.dll
   .A  :=.lib
+  .O  :=.obj
 endif
-
 
 # C and CXX dependency programs/flags (don't change!  GNU is great!)
 CCDEP		 :=gcc
@@ -135,6 +134,8 @@ CFLAGS:=
 CXXFLAGS:=
 CFLAGS_COMPILE:=
 CXXFLAGS_COMPILE:=
+CLD=${CC}
+CXXLD=${CXX}
 CLDFLAGS:=
 CXXLDFLAGS:=
 CLIBS:=-lm
@@ -152,12 +153,19 @@ endif
 
 # Change the CC and CXX to point to Microsoft's binaries. 
 ifeq (${_OS|FULL_},cygwin|msvc)
-   CC:=./Make_utils/msvc.pl -nologo -O -Ob2 -Zm300 -TP -I\'c:/Program Files/Microsoft Visual Studio .NET 2003/Vc7/include\' -EHsc
-   CXX:=./Make_utils/msvc.pl -nologo -O -Ob2 -Zm300 -TP -I\'c:/Program Files/Microsoft Visual Studio .NET 2003/Vc7/include\' -EHsc
-   AR=./Make_utils/msar.pl 
-   # AR=cl -LD -Fe$@
-   # AR=lib /nologo /out:$@
-   ARFLAGS=
+   VCBASE:=c:/Program Files/Microsoft Visual Studio .NET 2003/Vc7
+   CC:=${MAKEFILE/}Make_utils/msvc.pl -nologo -I\'${VCBASE}/include\' -EHsc -Ox
+   CFLAGS:=
+   CXX:=${MAKEFILE/}Make_utils/msvc.pl -nologo -I\'${VCBASE}/include\' -EHsc -Ox
+   CXXFLAGS:=
+   AR:=${MAKEFILE}Make_utils/msar.pl
+   ARFLAGS:=-nologo
+   CLD:=${MAKEFILE}Make_utils/msld.pl
+   CLDFLAGS:=-nologo -LIBPATH:\'${VCBASE}/lib\'
+   CLIBS:=
+   CXXLD:=${MAKEFILE}Make_utils/msld.pl
+   CXXLDFLAGS:=-nologo -LIBPATH:\'${VCBASE}/lib\'
+   CXXLIBS:=
 endif
 
 # Special cygwin|mingw compile flag to compile against the mingw library
