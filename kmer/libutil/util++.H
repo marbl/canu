@@ -62,8 +62,9 @@ public:
   void   tick(void) {
     if (_enabled && ((++_count & _freq) == u64bitZERO)) {
       double  v = _count / _unit;
-      if (_spin) fputs(_spinr[_count %  4], stderr);
-      if (_line) fputs(_liner[_count % 19], stderr);
+      if (_spin) fputs(_spinr[_draws %  4], stderr);
+      if (_line) fputs(_liner[_draws % 19], stderr);
+      _draws++;
       fprintf(stderr, _fmt, v, v / (getTime() - _startTime));
       fflush(stderr);
     }
@@ -72,8 +73,8 @@ public:
   void   finish(void) {
     if (_enabled && (_count >= _freq)) {
       double  v = _count / _unit;
-      if (_spin) fputs(_spinr[_count %  4], stderr);
-      if (_line) fputs(_liner[_count % 19], stderr);
+      if (_spin) fputs(_spinr[_draws %  4], stderr);
+      if (_line) fputs(_liner[_draws % 19], stderr);
       fprintf(stderr, _fmt, v, v / (getTime() - _startTime));
       fprintf(stderr, "\n");
       fflush(stderr);
@@ -85,6 +86,7 @@ private:
   static char    *_spinr[4];
   static char    *_liner[19];
   u64bit          _count;
+  u64bit          _draws;
   double          _unit;
   u64bit          _freq;
   double          _startTime;

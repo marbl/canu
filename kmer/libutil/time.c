@@ -91,11 +91,17 @@ speedCounter::speedCounter(char const   *fmt,
                            u64bit        freq,
                            bool          enabled) {
   _count     = 0;
+  _draws     = 0;
   _unit      = unit;
   _freq      = freq;
   _startTime = getTime();
   _fmt       = fmt;
+  _spin      = false;
+  _line      = false;
   _enabled   = enabled;
+
+  //  We use _draws instead of shifting _count just because it's
+  //  simpler, and both methods need another variable anyway.
 
   //  Set all the bits below the hightest set in _freq --
   //  this allows us to do a super-fast test in tick().
