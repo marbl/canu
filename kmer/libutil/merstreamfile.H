@@ -44,7 +44,7 @@ public:
   ~merStreamFileReader();
 
   u32bit                 merSize(void)      { return(_merSize); };
-  u32bit                 numberOfMers(void) { return(_numMers); };
+  u64bit                 numberOfMers(void) { return(_numMers); };
 
   u64bit                 theFMer(void) { return(_theFMer); };
   u64bit                 theRMer(void) { return(_theRMer); };
