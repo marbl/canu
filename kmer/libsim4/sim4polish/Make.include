@@ -20,7 +20,6 @@ src     :=$/sim4polish-copy.c \
           $/sim4polish-exons.c \
           $/sim4polish-polishtostring.c \
           $/sim4polish-printpolish.c \
-          $/sim4polish-printpolishnormalized.c \
           $/sim4polish-read.c \
           $/sim4polish-stringtopolish.c \
           $/sim4polish.h \
