@@ -12,7 +12,13 @@ memdup(const void *orig, size_t size) {
     errno = 0;
     rslt = malloc(size);
     if (errno) {
-      fprintf(stderr, "memdup()-- can't allocate "s64bitFMT" bytes.\n%s\n", size, strerror(errno));
+      //  Some ugliness to print out a size_t, which seems to bounce
+      //  around from four bytes to eight bytes
+      //
+      if (sizeof(size_t) == 4)
+        fprintf(stderr, "memdup()-- can't allocate "s64bitFMT" bytes.\n%s\n", size, strerror(errno));
+      else
+        fprintf(stderr, "memdup()-- can't allocate "s32bitFMT" bytes.\n%s\n", size, strerror(errno));
       exit(1);
     }
     memcpy(rslt, orig, size);

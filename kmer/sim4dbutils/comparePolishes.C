@@ -79,8 +79,8 @@ isApproximatelySamePolish(sim4polish *A,
 
 void
 compareESTmapperDirectories(int argc, char **argv) {
-  int         minI  = atoi(argv[1]);
-  int         minC  = atoi(argv[2]);
+  u32bit      minI  = atoi(argv[1]);
+  u32bit      minC  = atoi(argv[2]);
   char       *Fname = argv[3];
   char       *Apath = argv[4];
   char       *Bpath = argv[5];
@@ -98,32 +98,32 @@ compareESTmapperDirectories(int argc, char **argv) {
 
   //  Construct lists of the ESTs found in either A or B.
   //
-  int               *Afound = new int [MAX_ESTS];
-  int               *Bfound = new int [MAX_ESTS];
+  u32bit            *Afound = new u32bit [MAX_ESTS];
+  u32bit            *Bfound = new u32bit [MAX_ESTS];
 
   for (int i=0; i<MAX_ESTS; i++)
     Afound[i] = Bfound[i] = 0;
 
-  for (int i=0; i<A.length(); i++)
+  for (u32bit i=0; i<A.length(); i++)
     if ((A[i]->percentIdentity  >= minI) ||
         (A[i]->querySeqIdentity >= minC))
       Afound[A[i]->estID]++;
 
-  for (int i=0; i<B.length(); i++)
+  for (u32bit i=0; i<B.length(); i++)
     if ((B[i]->percentIdentity  >= minI) ||
         (B[i]->querySeqIdentity >= minC))
       Bfound[B[i]->estID]++;
 
 
-  int  numMatched  = 0;
-  int  numRepeat   = 0;
-  int  numProbable = 0;
-  int  numExtra    = 0;
-  int  numBelow    = 0;
+  u32bit  numMatched  = 0;
+  u32bit  numRepeat   = 0;
+  u32bit  numProbable = 0;
+  u32bit  numExtra    = 0;
+  u32bit  numBelow    = 0;
 
-  int  minB = 0;
+  u32bit  minB = 0;
 
-  for (int i=0; i<A.length(); i++) {
+  for (u32bit i=0; i<A.length(); i++) {
     int  found = 0;
 
     //  If this polish is below our quality level, we don't care about it.
@@ -134,12 +134,12 @@ compareESTmapperDirectories(int argc, char **argv) {
       continue;
     }
 
-    int numFound   = 0;
-    int numMissing = 0;
-    int numExtra   = 0;
-    int bestMatch  = 0;
+    u32bit numFound   = 0;
+    u32bit numMissing = 0;
+    u32bit numExtra   = 0;
+    u32bit bestMatch  = 0;
 
-    int j = minB;
+    u32bit j = minB;
     while ((j < B.length()) &&
            (A[i]->estID >= B[j]->estID)) {
       if (A[i]->estID > B[j]->estID)
@@ -150,7 +150,7 @@ compareESTmapperDirectories(int argc, char **argv) {
 
       //  Save the polish in B with the highest number of found exons.
       //
-      int  f, m, e;
+      u32bit  f, m, e;
 
       s4p_compareExons_Overlap(A[i], B[j], &f, &m, &e);
 
@@ -246,8 +246,8 @@ compareESTmapperDirectories(int argc, char **argv) {
 
 void
 comparePolishFiles(int argc, char **argv) {
-  int         minI  = atoi(argv[1]);
-  int         minC  = atoi(argv[2]);
+  u32bit      minI  = atoi(argv[1]);
+  u32bit      minC  = atoi(argv[2]);
   char       *Apath = argv[3];
   char       *Bpath = argv[4];
 
@@ -259,21 +259,21 @@ comparePolishFiles(int argc, char **argv) {
   sim4polishList     B(Bpath);
   B.sortBycDNAIID();
 
-  int  thisA = 0;
-  int  thisB = 0;
-  int  lastB = 0;
+  u32bit  thisA = 0;
+  u32bit  thisB = 0;
+  u32bit  lastB = 0;
 
-  int  Bmissed = 0;
-  int  Abetter = 0;
-  int  Bbetter = 0;
-  int  Nbetter = 0;
-  int  Equal   = 0;
+  u32bit  Bmissed = 0;
+  u32bit  Abetter = 0;
+  u32bit  Bbetter = 0;
+  u32bit  Nbetter = 0;
+  u32bit  Equal   = 0;
 
   while (thisA < A.length()) {
-    int  largestF = 0;
-    int  largestA = 0;
-    int  largestB = 0;
-    int  bestB    = 0;
+    u32bit  largestF = 0;
+    u32bit  largestA = 0;
+    u32bit  largestB = 0;
+    u32bit  bestB    = 0;
 
 #if 1
     //  Remember the first B that has the correct estID
@@ -291,7 +291,7 @@ comparePolishFiles(int argc, char **argv) {
       if ((A[thisA]->estID            == B[thisB]->estID) &&
           (A[thisA]->genID            == B[thisB]->genID) &&
           (A[thisA]->matchOrientation == B[thisB]->matchOrientation)) {
-        int  f, a, b;
+        u32bit  f, a, b;
 
         s4p_compareExons_Ends(A[thisA], B[thisB], 15, &f, &a, &b);
 
@@ -322,6 +322,8 @@ comparePolishFiles(int argc, char **argv) {
 
     if (largestF == 0) {
       //  Thing in A was not found in B
+      fprintf(stdout, "Amissed\n");
+      s4p_printPolish(stdout, A[thisA], S4P_PRINTPOLISH_FULL | S4P_PRINTPOLISH_NORMALIZED);
       Bmissed++;
     } else if ((largestF == A[thisA]->numExons) && (largestF == B[bestB]->numExons)) {
       //  We matched all exons
@@ -336,15 +338,15 @@ comparePolishFiles(int argc, char **argv) {
     } else if (largestA > 0) {
       //  A has extra exons, so A is better.
       Abetter++;
-      fprintf(stdout, "Abetter f=%f a=%d b=%d\n", largestF, largestA, largestB);
-      s4p_printPolish(stdout, A[thisA], S4P_PRINTPOLISH_FULL | S4P_PRINTPOLISH_NORMALIZED);
-      s4p_printPolish(stdout, A[bestB], S4P_PRINTPOLISH_FULL | S4P_PRINTPOLISH_NORMALIZED);
+      //fprintf(stdout, "Abetter f=%f a=%d b=%d\n", largestF, largestA, largestB);
+      //s4p_printPolish(stdout, A[thisA], S4P_PRINTPOLISH_FULL | S4P_PRINTPOLISH_NORMALIZED);
+      //s4p_printPolish(stdout, B[bestB], S4P_PRINTPOLISH_FULL | S4P_PRINTPOLISH_NORMALIZED);
     } else if (largestB > 0) {
       //  B has extra exons, so B is better.
       Bbetter++;
-      fprintf(stdout, "Bbetter f=%f a=%d b=%d\n", largestF, largestA, largestB);
-      s4p_printPolish(stdout, A[thisA], S4P_PRINTPOLISH_FULL | S4P_PRINTPOLISH_NORMALIZED);
-      s4p_printPolish(stdout, A[bestB], S4P_PRINTPOLISH_FULL | S4P_PRINTPOLISH_NORMALIZED);
+      //fprintf(stdout, "Bbetter f=%f a=%d b=%d\n", largestF, largestA, largestB);
+      //s4p_printPolish(stdout, A[thisA], S4P_PRINTPOLISH_FULL | S4P_PRINTPOLISH_NORMALIZED);
+      //s4p_printPolish(stdout, B[bestB], S4P_PRINTPOLISH_FULL | S4P_PRINTPOLISH_NORMALIZED);
     } else {
       fprintf(stderr, "\nUnmatched case at a=%d b=%d!\n", thisA, bestB);
     }

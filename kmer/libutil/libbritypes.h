@@ -1,21 +1,16 @@
 #ifndef LIBBRITYPES_H
 #define LIBBRITYPES_H
 
-#ifdef __alpha
+#if defined(__alpha) || defined(_AIX)
 #define TRUE64BIT
 #endif
 
-#ifdef _AIX
-#define TRUE64BIT
-#endif
+//
+//  Useful types.
+//
+//  *MASK() is defined for only unsigned types
+//
 
-
-////////////////////////////////////////////////////////////////////////////////
-//
-//  Some nifty types
-//
-//  NOTE:  MASKing is only valid for non-zero masks!!
-//
 #ifdef TRUE64BIT
 
 //  Generic 64-bit platform

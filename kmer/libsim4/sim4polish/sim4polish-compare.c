@@ -140,13 +140,13 @@ s4p_IsSameExonModel(sim4polish *A, sim4polish *B, int tolerance) {
 void
 s4p_compareExons_Overlap(sim4polish *A,
                          sim4polish *B,
-                         int        *numSame,
-                         int        *numAMissed,
-                         int        *numBMissed) {
-  int       i, j;
-  int       al=0, ah=0, bl=0, bh=0;
-  int      *foundA = 0L;
-  int      *foundB = 0L;
+                         u32bit     *numSame,
+                         u32bit     *numAMissed,
+                         u32bit     *numBMissed) {
+  u32bit    i, j;
+  u32bit    al=0, ah=0, bl=0, bh=0;
+  u32bit   *foundA = 0L;
+  u32bit   *foundB = 0L;
 
   if (numSame)     *numSame    = 0;
   if (numAMissed)  *numAMissed = 0;
@@ -154,7 +154,7 @@ s4p_compareExons_Overlap(sim4polish *A,
 
   errno = 0;
 
-  foundA = (int *)malloc(sizeof(int) * (A->numExons + B->numExons));
+  foundA = (u32bit *)malloc(sizeof(u32bit) * (A->numExons + B->numExons));
   foundB = foundA + A->numExons;
 
   if (errno) {
@@ -210,20 +210,20 @@ s4p_compareExons_Overlap(sim4polish *A,
 void
 s4p_compareExons_Ends(sim4polish *A,
                       sim4polish *B,
-                      int         tolerance,
-                      int        *numSame,
-                      int        *numAMissed,
-                      int        *numBMissed) {
-  int       i, j;
-  int       Dlo=0, Dhi=0;
-  int      *foundA = 0L;
-  int      *foundB = 0L;
+                      s32bit     tolerance,
+                      u32bit     *numSame,
+                      u32bit     *numAMissed,
+                      u32bit     *numBMissed) {
+  u32bit    i, j;
+  u32bit    Dlo=0, Dhi=0;
+  u32bit   *foundA = 0L;
+  u32bit   *foundB = 0L;
 
   if (numSame)     *numSame    = 0;
   if (numAMissed)  *numAMissed = 0;
   if (numBMissed)  *numBMissed = 0;
 
-  foundA = (int *)malloc(sizeof(int) * (A->numExons + B->numExons));
+  foundA = (u32bit *)malloc(sizeof(u32bit) * (A->numExons + B->numExons));
   foundB = foundA + A->numExons;
 
   if (errno) {

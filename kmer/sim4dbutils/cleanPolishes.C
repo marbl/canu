@@ -49,13 +49,13 @@ lowComplexityExon(char *s) {
   if (s == 0L)
     return(false);
 
-  map['A'] = map['a'] = 1;
-  map['C'] = map['c'] = 2;
-  map['G'] = map['g'] = 3;
-  map['T'] = map['t'] = 4;
+  map[(int)'A'] = map[(int)'a'] = 1;
+  map[(int)'C'] = map[(int)'c'] = 2;
+  map[(int)'G'] = map[(int)'g'] = 3;
+  map[(int)'T'] = map[(int)'t'] = 4;
 
   for (i=0, j=1, l=0; s[j]; i++, j++, l++)
-    cnt[map[s[i]]][map[s[j]]]++;
+    cnt[map[(int)s[i]]][map[(int)s[j]]]++;
 
   if (l > MIN_EXON_LENGTH)
     return(false);
@@ -109,9 +109,9 @@ main(int argc, char ** argv) {
   int  goodQual   = 0;
   int  probGood   = 0;
 
-  bool  filter        = true;
-  bool  saveJunk      = false;
-  int   intronLimit   = 100000;
+  bool    filter        = true;
+  bool    saveJunk      = false;
+  u32bit  intronLimit   = 100000;
 
   //  Before / after files
   //
@@ -196,12 +196,12 @@ main(int argc, char ** argv) {
   }
 
   if (beVerbose)
-    fprintf(stderr, "A big intron is one that is at least %dbp long.\n", intronLimit);
+    fprintf(stderr, "A big intron is one that is at least "u32bitFMT"bp long.\n", intronLimit);
 
   sim4polish *p;
   while ((p = s4p_readPolish(stdin)) != 0L) {
-    int exA;
-    int exB;
+    u32bit exA;
+    u32bit exB;
 
     if (p->numExons == 1) {
       oneExon++;
@@ -215,12 +215,12 @@ main(int argc, char ** argv) {
 
       //  Find the big intron.  We assume there is only one big intron.
       //
-      int biggestIntron = 0;
-      int intronSplit   = 0;
-      int intronOri     = 0;
+      u32bit biggestIntron = 0;
+      u32bit intronSplit   = 0;
+      u32bit intronOri     = 0;
 
       for (exA=0, exB=1; exB < p->numExons; exA++, exB++) {
-        int dist = p->exons[exB].genFrom - p->exons[exA].genTo + 1;
+        u32bit dist = p->exons[exB].genFrom - p->exons[exA].genTo + 1;
         if (dist > biggestIntron) {
           biggestIntron = dist;
           intronSplit   = exB;
@@ -254,13 +254,13 @@ main(int argc, char ** argv) {
         bool  killFirst = true;
         bool  killLast  = true;
 
-        for (int i=0; i<intronSplit; i++)
+        for (u32bit i=0; i<intronSplit; i++)
           if ((p->exons[i].estTo - p->exons[i].estFrom + 1 >= MIN_EXON_LENGTH) &&
               (p->exons[i].percentIdentity >= MIN_PERCENT_IDENTITY) &&
               (lowComplexityExon(p->exons[i].estAlignment) == false))
             killFirst = false;
 
-        for (int i=intronSplit; i<p->numExons; i++)
+        for (u32bit i=intronSplit; i<p->numExons; i++)
           if ((p->exons[i].estTo - p->exons[i].estFrom + 1 >= MIN_EXON_LENGTH) &&
               (p->exons[i].percentIdentity >= MIN_PERCENT_IDENTITY) &&
               (lowComplexityExon(p->exons[i].estAlignment) == false))

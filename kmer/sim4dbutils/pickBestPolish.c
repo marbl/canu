@@ -37,9 +37,18 @@ void
 printPolishValidate(FILE *O, sim4polish *p, int isBest) {
   int i;
 
-  fprintf(O, "%8d %8d %4d %4d", p->estID, p->genID, p->percentIdentity, p->numMatches);
+#ifdef TRUE64BIT
+  fprintf(O, "%8u %8u %4u %4u", p->estID, p->genID, p->percentIdentity, p->numMatches);
+#else
+  fprintf(O, "%8lu %8lu %4lu %4lu", p->estID, p->genID, p->percentIdentity, p->numMatches);
+#endif
+
   for (i=0; i<p->numExons; i++)
-    fprintf(O, " (%6d/%6d %6d/%6d %3d)", p->exons[i].estFrom, p->genLo + p->exons[i].genFrom, p->exons[i].estTo, p->genLo + p->exons[i].genTo, p->exons[i].percentIdentity);
+#ifdef TRUE64BIT
+    fprintf(O, " (%6u/%6u %6u/%6u %3u)", p->exons[i].estFrom, p->genLo + p->exons[i].genFrom, p->exons[i].estTo, p->genLo + p->exons[i].genTo, p->exons[i].percentIdentity);
+#else
+    fprintf(O, " (%6lu/%6lu %6lu/%6lu %3lu)", p->exons[i].estFrom, p->genLo + p->exons[i].genFrom, p->exons[i].estTo, p->genLo + p->exons[i].genTo, p->exons[i].percentIdentity);
+#endif
 
   if (isBest)
     fprintf(O, " *");
@@ -67,7 +76,7 @@ pickBestSlave(sim4polish **p, int pNum) {
   }
 
   if ((p[0]->estID % 1287) == 0) {
-    fprintf(stderr, "Picking Best for estID=%8d with %5d choices.\r", p[0]->estID, pNum);
+    fprintf(stderr, "Picking Best for estID="u32bitFMT" with %5d choices.\r", p[0]->estID, pNum);
     fflush(stderr);
   }
 

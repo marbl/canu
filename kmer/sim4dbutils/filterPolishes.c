@@ -189,11 +189,11 @@ main(int argc, char ** argv) {
         good++;
         if (doSegregation) {
           if (p->genID >= maxScaffold) {
-            fprintf(stderr, "Genomic index %d larger than maxScaffold = %d!\n", p->genID, maxScaffold);
+            fprintf(stderr, "Genomic index "u32bitFMT" larger than maxScaffold = "u32bitFMT"!\n", p->genID, maxScaffold);
           } else {
             if (SEGREGATE[p->genID] == 0L) {
               char filename[1024];
-              sprintf(filename, "%s.%04d", filePrefix, p->genID);
+              sprintf(filename, "%s.%04d", filePrefix, (int)p->genID);
               errno = 0;
               SEGREGATE[p->genID] = fopen(filename, "w");
               if (errno) {

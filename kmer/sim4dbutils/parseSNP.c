@@ -72,7 +72,7 @@ int   failedmatches = 0;
 FILE *validSNPMapFile   = 0L;
 FILE *failedSNPMapFile  = 0L;
 
-char  fieldDelimiter = 255;
+char  fieldDelimiter = 0;
 char *sizeTag        = "/size=";
 char *posTag         = "/pos=";
 int   positionOffset = 0;
@@ -84,7 +84,7 @@ findSNPid(char *defline) {
   int   len = 0;
   int   i = 0;
 
-  if (fieldDelimiter == 255) {
+  if (fieldDelimiter == 0) {
     for (len=1; defline[len] && !isspace(defline[len]); len++)
       ;
   } else {
@@ -146,19 +146,9 @@ findGENid(char *defline) {
 
 int
 findPosition(char *defline) {
-  int   i = 0;
   char *p = 0L;
 
   p = strstr(defline, posTag);
-
-#if 0
-  while ((defline[i+4] != 0) && ((defline[i]   != '/') ||
-                                 (defline[i+1] != 'p') ||
-                                 (defline[i+2] != 'o') ||
-                                 (defline[i+3] != 's') ||
-                                 (defline[i+4] != '=')))
-    i++;
-#endif
 
   if (p == 0L) {
     fprintf(stderr, "posTag '%s' not found in defline '%s'!\n", posTag, defline);
@@ -177,16 +167,6 @@ findPosition(char *defline) {
 }
 
 
-int
-findSize(char *defline) {
-  int   i=0;
-
-  //  XXX: We only handle size 1 SNPs.  Probably should be extended
-  //  like findPosition.
-
-  return(1);
-}
-
 
 
 //  Returns 1 if SNP was valid and printed,
@@ -195,7 +175,6 @@ findSize(char *defline) {
 int
 printSNP(FILE *F, sim4polish *p) {
   int   pos           = findPosition(p->estDefLine);
-  int   siz           = findSize(p->estDefLine);
   int   exonWithSNP   = -1;
   int   i             = 0;
   int   seqOffset     = 0;
@@ -265,7 +244,7 @@ printSNP(FILE *F, sim4polish *p) {
       examinePos++;
     }
 
-    fprintf(F, "%s %s %d %c/%c %s global[%d %d] exon[%d %d %d %d]\n",
+    fprintf(F, "%s %s %d %c/%c %s global["u32bitFMT" "u32bitFMT"] exon["u32bitFMT" %d "u32bitFMT" %d]\n",
             SNPid,
             GENid,
             genPosition,
@@ -294,7 +273,6 @@ printSNP(FILE *F, sim4polish *p) {
 void
 parseSNP(sim4polish **p, int pNum) {
   int   numMulti  = 0;
-  int   numFailed = 0;
   int   i;
 
   //  Count the number of matches that have more than one exon
@@ -402,7 +380,7 @@ main(int argc, char **argv) {
   int          pAlloc = 8388608;
   sim4polish **p      = 0L;
   sim4polish  *q      = 0L;
-  int          estID  = 0;
+  u32bit       estID  = 0;
 
   int          percentID = 0;
   int          percentCO = 0;
@@ -492,7 +470,7 @@ main(int argc, char **argv) {
 
   while ((q = s4p_readPolish(stdin)) != 0L) {
     if (q->estID < estID) {
-      fprintf(stderr, "ERROR:  Polishes not sorted by SNP idx!  this=%u, looking for %u\n",
+      fprintf(stderr, "ERROR:  Polishes not sorted by SNP idx!  this="u32bitFMT", looking for "u32bitFMT"\n",
               q->estID, estID);
       exit(1);
     }
