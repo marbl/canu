@@ -1,6 +1,7 @@
 COMPASS/  :=$/../COMPASS/
 RASCAL/   :=$/../RASCAL/
 BRI/      :=$/../BRI/
+RCM/      :=$/../RCM/
 SUFFER/   :=$/../SUFFER/
 
 $(eval $(call Include,${COMPASS/}))
@@ -10,4 +11,6 @@ $(eval $(call Include,${RASCAL/}))
 $(eval $(call Include,${BRI/}))
 
 $(eval $(call Include,${SUFFER/}))
+
+$(eval $(call Include,${RCM/}))
 

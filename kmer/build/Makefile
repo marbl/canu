@@ -19,7 +19,6 @@ debug:
 	@echo CXX_LIBS ${CXX_LIBS}
 	@echo CXX_SHLIBS ${CXX_SHLIBS}
 	@echo INSTALL ${INSTALL/}
-	@echo TARGETS ${LOCAL_TARGETS}
 
 # Compiler information and options.  Always get it from the same directory
 # as this makefile.
@@ -140,10 +139,9 @@ ${//:.=Make.depends}:
 	files='$(strip ${${@:Make.depends=.C_SRCS}})'; \
 	if [ -n "$${files}" ] ; then \
 	  for f in $${files} ; do \
-	    dir=`dirname $${f}`/ ; \
-	    dir=`echo $${dir} | sed -e's!^\./!!'`; \
-	    ${CCDEP} ${CFLAGS} $${f} \
-	    | sed -e"/:/s!^!$${dir}!" \
+	    dir=`echo $${f} | sed -e's~[^/]*$$~~'`; \
+	    ${CCDEP} ${CFLAGS} $${f} | \
+	    sed -e"/:/s!^!$${dir}!" \
 	    >> $@ ; \
 	  done \
 	fi
@@ -151,13 +149,14 @@ ${//:.=Make.depends}:
 	files='$(strip ${${@:Make.depends=.CXX_SRCS}})'; \
 	if [ -n "$${files}" ] ; then \
 	  for f in $${files} ; do \
-	    dir=`dirname $${f}`/ ; \
-	    dir=`echo $${dir} | sed -e's!^\./!!'`; \
-	    ${CXXDEP} ${CXXFLAGS} $${f} \
-	    | sed -e"/:/s!^!$${dir}!" \
+	    dir=`echo $${f} | sed -e's~[^/]*$$~~'`; \
+	    ${CXXDEP} ${CXXFLAGS} $${f} | \
+	    sed -e"/:/s~^~$${dir}~" \
 	    >> $@ ; \
 	  done \
 	fi
+#	    dir=`dirname $${f}`/ ; \
+#	    dir=`echo $${dir} | sed -e's!^\./!!'`; \
 
 
 #####################################################################
