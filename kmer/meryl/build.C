@@ -585,13 +585,24 @@ build(merylArgs *args) {
 
     //  Remove temporary files
     //
-#if 0
     char *filename = new char [strlen(args->outputFile) + 17];
+
     for (u32bit i=0; i<args->segmentLimit; i++) {
       sprintf(filename, "%s.batch"u32bitFMT, args->outputFile, i);
       unlink(filename);
     }
+
     delete [] filename;
-#endif
+  }
+
+  //  If we just merged, delete the merstream file
+  //
+  if (doMerge) {
+    char *filename = new char [strlen(args->outputFile) + 17];
+
+    sprintf(filename, "%s.merStream", args->outputFile);
+    unlink(filename);
+
+    delete [] filename;
   }
 }
