@@ -41,6 +41,82 @@ variables which are defined to be targets by the build rules.  It
 is possible to subgoal the building at a file or directory level of
 granularity.
 
+\section{Invoking the build system}
+
+There are two different directories which are of importance in the
+build system.  The first is the fixed build directory, \verb+cds/IR/build/+,
+which holds the \verb+Makefile+, ancillary files, and the installed files.
+The second directory of important is the directory of invocation, the
+place where \verb+gmake+ is executed.  These two directories coincide when
+one executes \verb+gmake+ from the build directory.  It is important to
+keep these things distinct because all actions take place in the directory
+of invocation, but the build directory.
+
+The first \verb+Make.include+ is read in the directory of invocation.
+If the convention has been followed of having \verb+Make.include+
+files in every node of the source tree which refer only to
+subdirectories, then only those \verb+Make.include+ files at the
+directory of invocation and lower will be read into the build system.
+This means that automatic rebuilding of dependencies external to the
+directory of invocation will not be handled fully (files will not be
+updated, but they will be found if they exist).  Thus, if one wishes
+to focus one's attention to a single subdirectory to build in, one
+should make the subdirectory the directory of invocation.
+\begin{verbatim}
+$ cd that/subdir/
+$ gmake -f ${cvs}/cds/IR/build/Makefile all
+\end{verbatim}
+This will result in much less work the build will have to do in
+figuring out what actions to take, because it will examine fewer
+constraints.
+
+On the other hand, if one invokes from a higher directory, then
+any sibling dependencies of the target will be properly updated.
+\begin{verbatim}
+$ cd ${cvs}/cds/IR/build
+$ gmake that/subdir/.all
+\end{verbatim}
+This will result in all the the subgoals in a subdirectory (and lower)
+being built, with any necessary updates of other directories being
+handled automatically.  All rules which can be found are examined
+although only those actions necessary for the given subtarget(s) are
+taken.
+
+By default, the build system builds all things under the
+\verb+${cvs}/cds/IR+ tree which are currently checked out and which
+support the build system by providing \verb+Make.include+ files.
+\begin{verbatim}
+$ cd ${cvs}/cds/IR/build
+$ gmake
+\end{verbatim}
+
+The targets currently supported by the build system are\\
+\begin{tabular}{ll}
+\verb+all+ & build all subgoals\\
+\verb+clean+ & remove subgoals\\
+\verb+depends-clean+ & remove any automatically generated dependency (\verb+*.d+)files\\
+\verb+real-clean+ & do both \verb+depends-clean+ and \verb+clean+\\
+\verb+install+ & do all and copy subgoals and other files to the install subdirectory of the build directory\\
+\verb+ls+ & do '\verb+ls -l+' of subgoals\\
+\end{tabular}\\
+These targets are also supported in a subtarget specific form, such as
+\verb+that/subdir/.install+.
+
+The compile options can be modified for debugging, profiling, or
+compile with GNU compilers, or modifying the installation directory.\\
+\begin{tabular}{ll}
+\verb+WITH_OPT=debug+ & compile with no optimization and maximum debugging\\
+\verb+WITH_OPT=profile+ & compile for profiling with optimization and minimal debugging\\
+\verb+WITH_GNU=1+ & compile with gnu compilers\\
+\verb+INSTALL_TAG=<foo>+ & append \verb+-<foo>+ to the name of the install directory\\
+\verb+MAKE_COMPILERS=<foo>+ & use the file \verb+<foo>+ in place of \verb+Make.compilers+ (this option is of dubious value).
+\verb+WITHOUT='dir1/ dir2/' & cancel the inclusion of any \verb+Make.include+ files in the given directories (another dubious option).
+\end{tabular}\\
+These options go on the \verb+gmake+ command line.
+\begin{verbatim}
+$ gmake WITH_OPT=debug WITH_GNU=1 INSTALL_TAG=release all
+\end{verbatim}
+
 \section{Anatomy of a Make.include}
 
 \verb+Make.include+ files defined variables, and they are not
@@ -77,9 +153,8 @@ There are a number of special variables, used on a per-\verb+/+
 basis by the \verb+Make.rules+ ancillary file.  These variables can
 be defined by the \verb+Make.include+ files to specify the various
 types of files and the actions required to build them.  The current
-list of variables is as follows:
-
-\begin{tabular}{lc}
+list of variables is as follows:\\
+\begin{tabular}{ll}
 \verb+$/.C_SRCS+ & C sources which need to have their dependencies analyzed\\
 \verb+$/.C_INCS+ & C header files\\
 \verb+$/.C_LIBS+ & C library subgoals\\
@@ -99,7 +174,7 @@ list of variables is as follows:
 \verb+$/.PERL_LIB/+  & subdirectory of \verb+scripts/+ where \verb+$/.PERL_LIBS+ are installed\\
 \verb+$/.CLEAN+ & files and patterns to be removed during a \verb+clean+\\
 \verb+$/.REAL-CLEAN+ & files and patterns to be removed during a \verb+real-clean+\\
-\end{tabular}
+\end{tabular}\\
 Note: while the current build system removes all subgoals, intermediate
 files are not removed automatically.  If C/C++ programs are being build
 then patterns like \verb+$/*.o+ should be put in the \verb+$/.CLEAN+ variable
@@ -121,7 +196,7 @@ $/%.o $/%.d: CFLAGS +=-DTEST -I/usr/local/lib
 \end{verbatim}
 One {\em gotcha} comes in the use of locally defined variables
 (like anything involving \verb+$/+).  It seems
-that any variable expansion on the target specific '\verbx+=x' is
+that any variable expansion on the target specific '+=' is
 delayed until after all rules have been traversed, at which point
 \verb+$/+ is very likely to have the wrong value.  This does not
 happen with a target specific '\verb+:=+' so it may be a bug in what is
@@ -130,6 +205,7 @@ fairly new \verb+gmake+ feature.
 \begin{verbatim}
 $(eval $/%.o $/%.d: CFLAGS +=-I$/include)
 \end{verbatim}
+
 The second routine task is that of specifying external libraries to
 link to when building C/C++ executables.  If the libraries are
 external to the whole build, then one would use the usual \verb+-L-l+
@@ -152,7 +228,7 @@ do expand variables imediately.  By making it a dependent, \verb+libfoo.a+
 will appear in the series of arguments to the linker for \verb+$/myprogram+
 in addition to avoiding the leak.
 
-\subsection{Two simple examples}
+\subsection{Two examples}
 
 Here is a walkthrough of the \verb+Make.include+ for
 \verb+AtacPipeline+, which builds a variety of executables and
@@ -161,8 +237,7 @@ libraries.
 \begin{verbatim}
 $/.CXX_EXES :=$/heavyChains
 
-$/.CXX_SHLIBS :=$/localAlignerInterfacemodule.so $/halignmodule.so $/hellomodule
-.so
+$/.CXX_SHLIBS :=$/localAlignerInterfacemodule.so $/halignmodule.so $/hellomodule.so
 \end{verbatim}
 One program and three shared libraries are subgoals to be created.
 
@@ -187,12 +262,12 @@ intermediates for both must be \verb+clean+-ed.
 $/.PY_EXES :=$/AtacDriver.py
 $/.PY_LIBS :=$(filter-out ${$/.PY_EXES},$(wildcard $/*.py))
 \end{verbatim}
-Python executables declared and Python libraries are any file in
+A python executable is declared and the python libraries are any file in
 this directory ending in '.py' which is not on the list of executables.
 \begin{verbatim}
 $/.PY_LIB/ :=AtacPipeline/
 \end{verbatim}
-The Python libraries are to be installed under \verb+scripts/AtacPipeline+.
+The python libraries are to be installed under \verb+scripts/AtacPipeline+.
 
 \begin{verbatim}
 $/heavyChains   :  $/heavyChains.o
@@ -213,7 +288,7 @@ The linking dependencies for each of the targets is specified.
 $(eval $/%.d $/%.o: CXXFLAGS+=${PYINC})
 \end{verbatim}
 The shared libraries being built are actually python extensions, so they
-will be including Python header files.  The \verb+${PYINC}+ path is
+will be including python header files.  The \verb+${PYINC}+ path is
 specified in the \verb+Make.compilers+ directory and is not expected to
 change (so the \verb+$(eval )+ wrapper is a bit paranoid, but harmless).
 
@@ -276,9 +351,24 @@ $(eval $/%.d $/%.o:   CXXFLAGS+=-I${RASCAL/}. -I${FRAMEWORK/}.)
 All programs must link to several external libraries and use their
 header files.
 
-\subsection{The \verb+MakePath+ function}
+\subsection{The Include function}
 
-The \verb+Make.path+ file supplies a function \verb+MakePath+ which is
+The build system has wrapped the usual \verb+include+ syntax of
+\verb+gmake+ with a function called \verb+Include+ which can be
+invoked from within a \verb+Make.include+ file.
+\begin{verbatim}
+$(eval $(call Include,$/subdir1/ $/subdir2/))
+\end{verbatim}
+Its effect is to check if there exists a \verb+Make.include+ file
+in any of its directory arguments, and if so, to add that file to
+the set of \verb+Make.include+ files which will be traversed.
+The contents of those \verb+Make.include+ files are evaluated
+and added to the current build definitions.  \verb+/+ is pushed
+and popped appropriately.
+
+\subsection{The MakePath function}
+
+The build system supplies a function \verb+MakePath+ which is
 meant to be called in \verb+Make.include+ files to canonicalize pathnames.
 The problem is addresses is one of \verb+gmake+'s inability to recognize
 the sameness of expressions like \verb+src/../src/foo+ and \verb+src/foo+.
@@ -345,9 +435,40 @@ kludgey, involving a shell-call to either a C program or a PERL
 program.  I have not found a better implementation yet for this
 functionality.
 
-\section{Invoking the build system}
+\subsection{Legacy builds}
 
-(in progress)
+It is inevitable, because some parts of the code tree
+came from external sources or are complicated legacy codes, that one
+wants to still be able to integrate the usual {\em recursive make}
+procedure for some directory which circumvents the build system
+and its dependency checking.
+
+Here is an example of a simple \verb+Make.include+ which does this.
+\begin{verbatim}
+$(eval $(call MakeRecursive))
+
+$/md5lib/md5c.o: $/.all
+
+$/.all:
+        cd `dirname $@` && ${MAKE} all
+
+$/.real-clean $/.clean:
+        cd `dirname $@` && ${MAKE} clean
+
+$/.install:
+\end{verbatim}
+The first line calls a special build system function,
+\verb+MakeRecursive+ which declares that this \verb+Make.include+ file
+is opting out of the usual build system and will define its own
+subtargets.  The next line announces a target being supplied by this
+build, the \verb+$/md5lib/md5c.o+ object file.  This is optional, but
+gives the build system some idea of how to order multiple recursive
+makes based on possible mutual dependencies.  The next lines specify
+rules for subdirectory specific subtargets (\verb+all+, \verb+clean+,
+\verb+real-clean+, \verb+install+) all of which are mandatory for
+recursive \verb+Make.include+'s.  Each of these rules is just a
+recursive build invocation after changing into the appropriate
+directory, or an empty rule, signifying no action.
 
 \section{Anatomy of the Makefile}
 
@@ -400,18 +521,20 @@ explored and build information is collected.
 
 \begin{verbatim}
 //           :=
-RECURSIVE    :=
 /            :=
+//-RECURSIVE    :=
+define MakeRecursive
+//-RECURSIVE :=$$/.
+endef
 \end{verbatim}
 Three important variables are being initialized here.  The variable
 \verb+//+ holds the list of all directories which have been traversed
 and also have not opted out of the build system.  The directories are
 kept in {\em dotted} form (i.e. \verb+.+, \verb+subdir/.+).  The
-\verb+RECURSIVE+ variable holds those directories (in dotted form)
+\verb+//-RECURSIVE+ variable holds those directories (in dotted form)
 which have been traverse and have opted out of the build system.  The
 variable \verb+/+ is the current relative path variable, which is
 meant to be used by traversed \verb+Make.include+ files.
-
 
 \begin{verbatim}
 define Include
@@ -461,13 +584,13 @@ do not which to check lateral dependencies for some reason (e.g.
 efficiency).
 
 \begin{verbatim}
-//            :=$(filter-out ${RECURSIVE},${//})
+//            :=$(filter-out ${//-RECURSIVE},${//})
 \end{verbatim}
 After traversal, \verb+//+ holds all directories which have been
 traverse.  We now remove from it all those paths which have opted
 out.  At this point, \verb+//+ holds those directories which are
 considered to be properly participating in the build and
-\verb+RECURSIVE+ holds those which will be built in a more or less
+\verb+//-RECURSIVE+ holds those which will be built in a more or less
 {\em legacy} fashion.  At this point, \verb+/+ should be an
 empty string (even though it does appear below).
 
@@ -518,14 +641,14 @@ We now define the standard make targets, which are applied to all
 subdirectory targets.  The basic target, \verb+TARG+ is also defined
 on a per-subdirectory basis with targets of the form \verb+$/.TARG+
 with \verb+TARG+ being nearly an alias for \verb+.TARG+ (aside from
-\verb+RECURSIVE+ directories).  This allows
+\verb+//-RECURSIVE+ directories).  This allows
 the user to selectively build only those subgoals which are in a
-single directory.  Target \verb+TARG+ for \verb+RECURSIVE+ builds are
+single directory.  Target \verb+TARG+ for \verb+//-RECURSIVE+ builds are
 done before the \verb+$/.TARG+ target.  Building all legacy targets
 first seems like a good idea.
 
 \begin{verbatim}
-clean:         ${RECURSIVE:.=.clean}      $/.clean
+clean:         ${//-RECURSIVE:.=.clean}      $/.clean
 define .RULE-clean
 ${1:.=.clean}: $${${1:.=.SUBS}:.=.clean}
 	${RM} $${${1:.=.CLEAN}} ${__SUBGOALS__}
@@ -544,7 +667,7 @@ created in that directory (e.g. \verb+so_locations/+).
 
 \begin{verbatim}
 depends-clean:                            $/.depends-clean
-${RECURSIVE:.=.depends-clean}:
+${//-RECURSIVE:.=.depends-clean}:
 define .RULE-depends-clean
 ${1:.=.depends-clean}: $${${1:.=.SUBS}:.=.depends-clean}
 	${RM} ${1:.=Make.depends} ${__DEPGOALS__}
@@ -557,7 +680,7 @@ may have been built to satisfy the \verb+include ${DEPENDS}+ line
 previous.
 
 \begin{verbatim}
-real-clean:    ${RECURSIVE:.=.real-clean} $/.real-clean
+real-clean:    ${//-RECURSIVE:.=.real-clean} $/.real-clean
 define .RULE-real-clean
 ${1:.=.real-clean}: $${${1:.=.SUBS}:.=.real-clean}
 	${RM} $${${1:.=.CLEAN}} ${__SUBGOALS__}
@@ -571,7 +694,7 @@ $(eval $(foreach x,${//},$(call .RULE-real-clean,$x)))
 A combination of the previous two \verb+clean+ targets.
 
 \begin{verbatim}
-all:           ${RECURSIVE:.=.all}        $/.all
+all:           ${//-RECURSIVE:.=.all}        $/.all
 define .RULE-all
 ${1:.=.all}: $${${1:.=.SUBS}:.=.all} ${__SUBGOALS__}
 
@@ -592,7 +715,7 @@ targets have been written to provide a number of hooks.  It is
 up to the \verb+Make.rules+ file to make use of those hooks.
 
 \begin{verbatim}
-${RECURSIVE:.=.install-copy}:
+${//-RECURSIVE:.=.install-copy}:
 define .RULE-install-copy
 ${1:.=.install-copy}: $${${1:.=.SUBS}:.=.install-copy}
 
@@ -605,7 +728,7 @@ target is defined for legacy builds to prevent certain kinds of
 build problems, but it is never normally invoked.
 
 \begin{verbatim}
-install:       ${RECURSIVE:.=.install}    $/.install
+install:       ${//-RECURSIVE:.=.install}    $/.install
 define .RULE-install
 ${1:.=.install}: ${1:.=.all} ${1:.=.install-copy}
 
@@ -753,22 +876,14 @@ ${ALL_CXX_LIBS}:
 	${RM} $@ && ${AR} ${ARFLAGS} $@ $^
 __SUBGOALS__+=$${${1:.=.CXX_LIBS}}
 
+${_OS_}_SHLIB_FLAGS:=
 ALL_C_SHLIBS     :=$(strip $(foreach x,${//},${${x:.=.C_SHLIBS}}))
+${ALL_C_SHLIBS}:
+	${RM} $@ && ${C} ${CFLAGS} ${SHLIB_FLAGS} ${${_OS_}_SHLIB_FLAGS} -o $@ $^ ${CLIBS}
+
 ALL_CXX_SHLIBS   :=$(strip $(foreach x,${//},${${x:.=.CXX_SHLIBS}}))
-
-ifeq (${_OS_},AIX)
-${ALL_C_SHLIBS}:
-	${RM} $@ && ${C} ${CFLAGS} ${SHLIB_FLAGS} ${AIX_SHLIB_FLAGS} -o $@ $^ ${CLIBS}
 ${ALL_CXX_SHLIBS}:
-	${RM} $@ && ${CXX} ${CXXFLAGS} ${SHLIB_FLAGS} ${AIX_SHLIB_FLAGS} -o $@ $^ ${CXXLIBS}
-
-else
-${ALL_C_SHLIBS}:
-	${C} ${CFLAGS} ${SHLIB_FLAGS} -o $@ $^ ${CLIBS}
-${ALL_CXX_SHLIBS}:
-	${CXX} ${CXXFLAGS} ${SHLIB_FLAGS} -o $@ $^ ${CXXLIBS}
-
-endif
+	${RM} $@ && ${CXX} ${CXXFLAGS} ${SHLIB_FLAGS} ${${_OS_}_SHLIB_FLAGS} -o $@ $^ ${CXXLIBS}
 __SUBGOALS__+=$${${1:.=.C_SHLIBS}} $${${1:.=.CXX_SHLIBS}}
 \end{verbatim}
 Additional C,C++ subgoals include libraries and shared libraries.  It is
