@@ -21,9 +21,11 @@ char const *usage =
 "  -C c       Discard polishes that are not from cDNA idx = c\n"
 "  -G g       Discard polishes that are not from genomic idx = g\n"
 "\n"
-"  -o o       Write saved polishes to the 'o' file.\n"
+"  -o o       Write saved polishes to the 'o' file (default == stdout).\n"
+"  -O         Don't write saved polishes.\n"
+"  -d o       Write discarded polishes to the 'o' file (default == stdout).\n"
+"  -q (or -D) Don't write discarded polishes.\n"
 "  -j o       Write junk polishes to the 'o' file (junk == intractable and aborted).\n"
-"  -q         Don't write discarded polishes to stdout.\n"
 "\n"
 "  -s         Segregate polishes by genomic idx.  Must be used with -o, will\n"
 "             create numerous files 'o.%05d'.\n"
@@ -64,10 +66,11 @@ main(int argc, char ** argv) {
   u32bit       minExons = 0;
   u32bit       maxExons = ~u32bitZERO;
   u32bit       beVerbose = 0;
-  FILE        *GOOD = stdout;
-  FILE        *CRAP = stdout;
+  int          GOODsilent = 0;
+  FILE        *GOOD       = stdout;
+  int          CRAPsilent = 0;
+  FILE        *CRAP       = stdout;
   FILE        *JUNK = 0L;
-  int          reportDiscarded = 1;
   sim4polish  *p;
   u64bit       pmod = 1;
   u64bit       good = 0;
@@ -98,6 +101,22 @@ main(int argc, char ** argv) {
         fprintf(stderr, "error: I couldn't open '%s' for saving good polishes.\n%s\n", argv[arg], strerror(errno));
         exit(1);
       }
+      GOODsilent = 0;
+    } else if (strncmp(argv[arg], "-O", 2) == 0) {
+      GOODsilent = 1;
+    } else if (strncmp(argv[arg], "-d", 2) == 0) {
+      arg++;
+      errno = 0;
+      CRAP = fopen(argv[arg], "w");
+      if (errno) {
+        fprintf(stderr, "error: I couldn't open '%s' for saving discarded polishes.\n%s\n", argv[arg], strerror(errno));
+        exit(1);
+      }
+      CRAPsilent = 0;
+    } else if (strncmp(argv[arg], "-q", 2) == 0) {
+      CRAPsilent = 1;
+    } else if (strncmp(argv[arg], "-D", 2) == 0) {
+      CRAPsilent = 1;
     } else if (strncmp(argv[arg], "-j", 2) == 0) {
       arg++;
       errno = 0;
@@ -106,8 +125,6 @@ main(int argc, char ** argv) {
         fprintf(stderr, "error: I couldn't open '%s' for saving junk polishes.\n%s\n", argv[arg], strerror(errno));
         exit(1);
       }
-    } else if (strncmp(argv[arg], "-q", 2) == 0) {
-      reportDiscarded = 0;
     } else if (strncmp(argv[arg], "-C", 2) == 0) {
       cdna = atoi(argv[++arg]);
     } else if (strncmp(argv[arg], "-G", 2) == 0) {
@@ -127,9 +144,10 @@ main(int argc, char ** argv) {
     exit(1);
   }
 
-  if (reportDiscarded && (fileno(GOOD) == fileno(CRAP))) {
+  if (!CRAPsilent && !GOODsilent && (fileno(GOOD) == fileno(CRAP))) {
     fprintf(stderr, "error: filter has no effect; saved and discarded polishes\n");
-    fprintf(stderr, "       both printed to stdout!  (try using -q)\n");
+    fprintf(stderr, "       both printed to the same place!\n");
+    fprintf(stderr, "       (try using one of -o, -O, -d, -D)\n");
     exit(1);
   }
 
@@ -176,11 +194,12 @@ main(int argc, char ** argv) {
             printPolish(SEGREGATE[p->genID], p);
           }
         } else {
-          printPolish(GOOD, p);
+          if (!GOODsilent)
+            printPolish(GOOD, p);
         }
       } else {
         crap++;
-        if (reportDiscarded)
+        if (!CRAPsilent)
           printPolish(CRAP, p);
       }
     }
