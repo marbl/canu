@@ -194,20 +194,6 @@ parseCommandLine(int argc, char **argv) {
 
     arg++;
   }
-
-#if 0
-  //
-  //  XXX:  I don't think this is ever needed, but not sure.
-  //
-  if ((_findAllExons) &&
-      (_minCoverage == 0.0) &&
-      (_minPercentExonIdentity == 0) &&
-      (_minCoverageLength == 0)) {
-    _minCoverage            = 0.90;
-    _minCoverageLength      = 0;
-    _minPercentExonIdentity = 90;
-  }
-#endif
 }
 
 
@@ -236,7 +222,7 @@ sim4db(char          **scriptLines,
 
   for (u32bit workDone=0; workDone<scriptLinesNum; workDone++) {
     if (beExplicit) {
-      fprintf(stderr, "At %u (%6.3f per second) -- '%s'\n",
+      fprintf(stderr, "At "u32bitFMT" (%6.3f per second) -- '%s'\n",
               workDone, workDone / (getTime() - startTime), scriptLines[workDone]);
       fflush(stderr);
 
@@ -246,7 +232,7 @@ sim4db(char          **scriptLines,
 
     } else {
       if ((beVerbose) && ((workDone & 0xff) == 0xff)) {
-        fprintf(stderr, " At %u (%6.3f per second)\r",
+        fprintf(stderr, " At "u32bitFMT" (%6.3f per second)\r",
                 workDone, workDone / (getTime() - startTime));
         fflush(stderr);
       }
@@ -322,12 +308,7 @@ sim4db(char          **scriptLines,
       }
     }
 
-    sim4command     *P4 = new sim4command(ESTseq,
-                                          GENseq,
-                                          GENlo,
-                                          GENhi,
-                                          doForward,
-                                          doReverse);
+    sim4command     *P4 = new sim4command(ESTseq, GENseq, GENlo, GENhi, doForward, doReverse);
     Sim4            *S4 = new Sim4(&sim4params);
     sim4polishList  *l4 = S4->run(P4);
     sim4polishList  &L4 = *l4;
@@ -351,7 +332,7 @@ sim4db(char          **scriptLines,
 
     if (beYesNo) {
       if (L4[0])
-        fprintf(stdout, "%s -Y %d %d\n",
+        fprintf(stdout, "%s -Y "u32bitFMT" "u32bitFMT"\n",
                 scriptLines[workDone],
                 L4[0]->percentIdentity,
                 L4[0]->querySeqIdentity);
@@ -392,12 +373,12 @@ sim4dball(FastAWrapper  *GENs,
       EST = ESTs->getSequence();
 
       if (beExplicit) {
-        fprintf(stderr, "At %u (%6.3f per second) -- '-e %u -D %u'\n",
+        fprintf(stderr, "At "u32bitFMT" (%6.3f per second) -- '-e "u32bitFMT" -D "u32bitFMT"'\n",
                 workDone, workDone / (getTime() - startTime), estIdx, genIdx);
         fflush(stderr);
       } else {
         if ((beVerbose) && ((workDone & 0x1f) == 0x1f)) {
-          fprintf(stderr, " At %u (%6.3f per second)\r",
+          fprintf(stderr, " At "u32bitFMT" (%6.3f per second)\r",
                   workDone, workDone / (getTime() - startTime));
           fflush(stderr);
         }

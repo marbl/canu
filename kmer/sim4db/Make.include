@@ -6,19 +6,24 @@ LIBMERYL/   :=$(call MakePath,$/../libmeryl/)
 LIBKMER/    :=$(call MakePath,$/../libkmer/)
 LIBSIM4/    :=$(call MakePath,$/../libsim4/)
 
-$/.CXX_SRCS  := $/sim4db.C
-$/.CXX_EXES  := $/sim4db
+$/.CXX_SRCS  := $/sim4db.C $/sim4th.C $/options.C $/script.C
+$/.CXX_EXES  := $/sim4db $/sim4th
 
 $/.CLEAN  := $/*.o
 $/.REAL-CLEAN := $/buildinfo-*
 
-$/sim4db: $/buildinfo-sim4db.o ${$/.CXX_SRCS:.C=.o}
+$/sim4db: $/buildinfo-sim4db.o $/sim4db.o
+$/sim4th: $/buildinfo-sim4db.o $/sim4th.o $/options.o $/script.o
 
 ${$/.CXX_EXES}:  ${LIBSIM4/}libsim4.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 
 $/sim4db.C.d:  $/buildinfo-sim4db.h \
                ${LIBBIO/}buildinfo-libbio.h \
                ${LIBUTL/}buildinfo-libutil.h \
+
+$/options.C.d:  $/buildinfo-sim4db.h \
+                ${LIBBIO/}buildinfo-libbio.h \
+                ${LIBUTL/}buildinfo-libutil.h \
 
 $(eval $/%.d $/%.o: CXXFLAGS+=  -I${LIBSIM4/} -I${LIBBIO/} -I${LIBUTL/})
 
