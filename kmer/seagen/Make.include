@@ -50,13 +50,12 @@ $/seagen:        $/hitMatrix.o
 $/seagen: ${src_C:.C=.o} $/buildinfo-seagen.o \
                 ${LIBKMER/}libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 
-$/hitConverter: $/hitConverter.o $/aHit.o
-$/filterEST:    $/filterEST.o $/filterEST-complicated.o $/hitReader.o $/aHit.o
-$/filterMRNA:   $/filterMRNA.o $/hitReader.o $/aHit.o
-$/sortHits:     $/sortHits.o $/aHit.o ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
-$/filtertest:   $/filtertest.o
-
-$/filterESTsimple:    $/filterESTsimple.o $/hitReader.o $/aHit.o
+$/hitConverter:       $/hitConverter.o $/aHit.o ${LIBUTL/}libutil.a
+$/filterEST:          $/filterEST.o $/filterEST-complicated.o $/hitReader.o $/aHit.o ${LIBUTL/}libutil.a
+$/filterESTsimple:    $/filterESTsimple.o $/hitReader.o $/aHit.o ${LIBUTL/}libutil.a
+$/filterMRNA:         $/filterMRNA.o $/hitReader.o $/aHit.o ${LIBUTL/}libutil.a
+$/sortHits:           $/sortHits.o $/aHit.o ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+$/filtertest:         $/filtertest.o
 
 $/buildinfo-seagen.c: $/buildinfo-seagen.h
 $/buildinfo-seagen.h: ${src}
