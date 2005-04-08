@@ -16,7 +16,7 @@ public:
   };
 
   u32bit size(void) {
-    return(dict_count(_tree));
+    return((u32bit)dict_count(_tree));
   };
 
   void addMatch(match_t *match, u32bit side, u32bit color) {
