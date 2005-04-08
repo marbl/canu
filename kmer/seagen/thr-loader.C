@@ -5,18 +5,6 @@
 #include "posix.H"
 #include "searchGENOME.H"
 
-//  Define this to print a message whenever a sequence is loaded.
-//  Useful for testing the loader with large sequences (scaffolds,
-//  chromosomes).
-//
-//#define VERBOSE_LOADER
-
-#ifdef TRUE64BIT
-char const *loadDesc = "WARNING: Loader ran dry.  Increasing limit to %u sequences, decreasing sleep to %f.\n";
-#else
-char const *loadDesc = "WARNING: Loader ran dry.  Increasing limit to %lu sequences, decreasing sleep to %f.\n";
-#endif
-
 void*
 loaderThread(void *) {
   u32bit               waterLevel = 0;
@@ -45,7 +33,7 @@ loaderThread(void *) {
                      0.9 * ((double)config._loaderSleep.tv_sec + (double)config._loaderSleep.tv_nsec * 1e-9));
 
       if (config._loaderWarnings)
-        fprintf(stderr, loadDesc,
+        fprintf(stderr, "WARNING: Loader ran dry.  Increasing limit to "u32bitFMT" sequences, decreasing sleep to %f.\n",
                 config._loaderHighWaterMark,
                 ((double)config._loaderSleep.tv_sec + (double)config._loaderSleep.tv_nsec * 1e-9));
     }
@@ -59,10 +47,6 @@ loaderThread(void *) {
       nanosleep(&config._loaderSleep, 0L);
     } else {
       slept = false;
-
-#ifdef VERBOSE_LOADER
-      fprintf(stderr, "Loading sequence %u (tail = %u)\n", inputHead, inputTail);
-#endif
 
       try {
         B = qsFASTA->getSequence();
