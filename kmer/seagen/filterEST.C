@@ -36,7 +36,7 @@ u32bit  goodCoverage  = 50;
 u32bit       uniqThresh         = 200;  //  Used to be 100
 u32bit       reptThresh         = 200;  //  Used to be 100
 
-FILE        *logFile            = stderr;
+FILE        *logFile            = 0L;
 
 //  Filter results -- thread unsafe!
 //
@@ -172,8 +172,10 @@ main(int argc, char **argv) {
       //
       for (u32bit i=0; i < HR.numHits(); i++)
         if ((HR[i].mappedCoverage >= goodCoverage) && (HR[i].mappedIdentity >= goodPercentID)) {
-          fprintf(logFile, "FAILUNKN hit="u32bitFMTW(3)" id=%2d cv=%2d COV=%5.3f MUL=%5.3f: ", i, HR[i].mappedIdentity, HR[i].mappedCoverage, HR[i].coverage, HR[i].multiplicity);
-          ahit_printASCII(&HR[i].a, logFile);
+          if (logFile) {
+            fprintf(logFile, "FAILUNKN hit="u32bitFMTW(3)" id=%2d cv=%2d COV=%5.3f MUL=%5.3f: ", i, HR[i].mappedIdentity, HR[i].mappedCoverage, HR[i].coverage, HR[i].multiplicity);
+            ahit_printASCII(&HR[i].a, logFile);
+          }
           filterFNunk++;
           fn++;
         } else {
@@ -200,8 +202,10 @@ main(int argc, char **argv) {
           //  Report hits that are false negatives
           //
           if ((HR[i].mappedCoverage >= goodCoverage) && (HR[i].mappedIdentity >= goodPercentID)) {
-            fprintf(logFile, "FAILFILT hit="u32bitFMTW(3)" id=%2d cv=%2d COV=%5.3f MUL=%5.3f: ", i, HR[i].mappedIdentity, HR[i].mappedCoverage, HR[i].coverage, HR[i].multiplicity);
-            ahit_printASCII(&HR[i].a, logFile);
+            if (logFile) {
+              fprintf(logFile, "FAILFILT hit="u32bitFMTW(3)" id=%2d cv=%2d COV=%5.3f MUL=%5.3f: ", i, HR[i].mappedIdentity, HR[i].mappedCoverage, HR[i].coverage, HR[i].multiplicity);
+              ahit_printASCII(&HR[i].a, logFile);
+            }
             filterFNfilt++;
             fn++;
           } else {
@@ -233,11 +237,12 @@ main(int argc, char **argv) {
     //  Report if we saw falsenegatives (we should have printed FAIL into the log, too)
     //
     if (fn > 0)
-      fprintf(logFile, u32bitFMT"] %sFALSENEGATIVE %10.10s  tp="u32bitFMTW(7)" fp="u32bitFMTW(7)" fn="u32bitFMTW(7)" tn="u32bitFMTW(7)"\n",
-              HR.iid(),
-              (tp > 0) ? "partial" : "fatal",
-              label,
-              tp, fp, fn, tn);
+      if (logFile)
+        fprintf(logFile, u32bitFMT"] %sFALSENEGATIVE %10.10s  tp="u32bitFMTW(7)" fp="u32bitFMTW(7)" fn="u32bitFMTW(7)" tn="u32bitFMTW(7)"\n",
+                HR.iid(),
+                (tp > 0) ? "partial" : "fatal",
+                label,
+                tp, fp, fn, tn);
 #endif
 
 
@@ -253,7 +258,8 @@ main(int argc, char **argv) {
     }
   }
 
-  fclose(logFile);
+  if (logFile)
+    fclose(logFile);
 
 
   report(HR.iid(),
