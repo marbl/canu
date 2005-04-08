@@ -162,7 +162,7 @@ public:
     if (_doRevComp == false)
       _rcBase -= x;
 
-    if ((_rcBase < _len) && (_rcBase + _rcLen <= _len)) {
+    if ((_rcBase > _len) || (_rcBase + _rcLen > _len)) {
       fprintf(stderr, "FastAAccessor::extendLeft()-- extend by "s32bitFMT" makes invalid: length is "u32bitFMT", new range is "u32bitFMT"-"u32bitFMT"\n",
               x, _len, _rcBase, _rcBase + _rcLen);
       abort();
@@ -176,7 +176,7 @@ public:
     if (_doRevComp == true)
       _rcBase -= x;
 
-    if ((_rcBase < _len) && (_rcBase + _rcLen <= _len)) {
+    if ((_rcBase > _len) || (_rcBase + _rcLen > _len)) {
       fprintf(stderr, "FastAAccessor::extendRight()-- extend by "s32bitFMT" makes invalid: length is "u32bitFMT", new range is "u32bitFMT"-"u32bitFMT"\n",
               x, _len, _rcBase, _rcBase + _rcLen);
       abort();
