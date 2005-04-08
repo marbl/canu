@@ -36,6 +36,31 @@ public:
 
 
 
+//  Loads a set of matches from a file
+
+class matchList {
+public:
+  matchList(char *filename);
+  ~matchList() {
+    delete _seq1;
+    delete _seq2;
+    delete [] _matches;
+  };
+
+  char          _file1[1024];
+  char          _file2[1024];
+
+  FastAWrapper *_seq1;
+  FastAWrapper *_seq2;
+
+  u32bit        _matchesLen;
+  u32bit        _matchesMax;
+  match_t      *_matches;
+};
+
+
+
+
 int
 sortMatches1(const void *a, const void *b) {
   const match_t *A = *((const match_t * const *)a);
@@ -97,7 +122,7 @@ public:
   u32bit  _matchesMax;
   u32bit *_matches;
 
-  span_t::span_t(u32bit iid, u32bit beg, u32bit end) {
+  span_t(u32bit iid, u32bit beg, u32bit end) {
     _iid = iid;
     _beg = beg;
     _end = end;
@@ -159,29 +184,6 @@ spanCompare(const void *a, const void *b) {
   return(0);
 }
 
-
-
-
-//  Loads a set of matches from a file
-class matchList {
-public:
-  matchList(char *filename);
-  ~matchList() {
-    delete _seq1;
-    delete _seq2;
-    delete [] _matches;
-  };
-
-  char          _file1[1024];
-  char          _file2[1024];
-
-  FastAWrapper *_seq1;
-  FastAWrapper *_seq2;
-
-  u32bit        _matchesLen;
-  u32bit        _matchesMax;
-  match_t      *_matches;
-};
 
 
 
@@ -259,6 +261,7 @@ matchTree::matchTree(matchList *L, u32bit side) {
   //  Clean up
   delete [] matchPointers;
 }
+
 
 
 
@@ -397,6 +400,58 @@ matchList::matchList(char *filename) {
 
 
 
+//  List of the annotation.  Used for classifying each piece of the
+//  annotation, e.g., U followed by 1 followed by U means that
+//  somebody really did map something uniquely, where Y followed by 1
+//  is probably just an extension.
+//
+//  This only works if assemblyA is the reference!
+//
+class annoList {
+public:
+  char    type;
+  u32bit  iid1,  pos1,  len1;   //  The position on the reference axis
+  u32bit  iid2a, pos2a, len2a;  //  The position on mapping 1
+  u32bit  iid2b, pos2b, len2b;  //  The position on mapping 2
+
+  void add(char type_,
+           u32bit  iid1_,  u32bit pos1_,  u32bit len1_,
+           u32bit  match1, match_t *m1,
+           u32bit  match2, match_t *m2) {
+    type  = type_;
+    iid1  = iid1_;
+    pos1  = pos1_;
+    len1  = len1_;
+
+    iid2a = match1;
+    pos2a = 0;
+    len2a = 0;
+    if (m1) {
+      pos2a = m1->pos2;
+      len2a = m1->len2;
+    }
+
+    iid2b = match2;
+    pos2a = 0;
+    len2a = 0;
+    if (m2) {
+      pos2b = m2->pos2;
+      len2b = m2->len2;
+    }
+  }
+};
+
+u32bit      ALmax = 0;
+u32bit      ALlen = 0;
+annoList   *AL    = 0L;
+
+
+
+
+
+
+
+
 void
 printAnno(FILE *F,
           char label,
@@ -405,12 +460,28 @@ printAnno(FILE *F,
           u32bit match1=u32bitZERO, u32bit off1=u32bitZERO, match_t *m1=0L,
           u32bit match2=u32bitZERO, u32bit off2=u32bitZERO, match_t *m2=0L) {
 
-  fprintf(F, "%c "u32bitFMT" "u32bitFMT"-"u32bitFMT"  ",
+  //  If we're just given match1, make it match2 if it is the second assembly
+  //
+  if ((match1) && (match2 == 0L) && (match1 >> COLORSHIFT)) {
+    match2 = match1;
+    off2   = off1;
+    m2     = m1;
+    match1 = 0;
+    off1   = 0;
+    m1     = 0;
+  }
+
+  //  axis is 1 or 2
+
+  if (axis == 1)
+    AL[ALlen++].add(label, span->_iid, span->_beg, span->_end, match1, m1, match2, m2);
+
+  fprintf(F, "%c "u32bitFMTW(4)":"u32bitFMTW(08)"-"u32bitFMTW(08)"["u32bitFMTW(6)"] ",
           label,
-          span->_iid, span->_beg, span->_end);
+          span->_iid, span->_beg, span->_end, span->_end - span->_beg);
 
   if (match1) {
-    fprintf(F, u32bitFMT","u32bitFMT" ", match1 >> COLORSHIFT, match1 & COLORMASK);
+    fprintf(F, u32bitFMTW(1)","u32bitFMTW(6)" ", match1 >> COLORSHIFT, match1 & COLORMASK);
 
     if (m1) {
       if (axis == 1) {
@@ -422,17 +493,21 @@ printAnno(FILE *F,
           end = m1->pos2 + m1->len2 - off2;
         }
 
-        fprintf(F, "("u32bitFMT"-"u32bitFMT") ", sta, end);
+        fprintf(F, "("u32bitFMTW(8)":"u32bitFMTW(8)"-"u32bitFMTW(8)") ", m1->iid2, sta, end);
       } else {
-        fprintf(F, "("u32bitFMT"-"u32bitFMT") ", m1->pos1 + off1, m1->pos1 + off1 + span->_end - span->_beg);
+        fprintf(F, "("u32bitFMTW(8)":"u32bitFMTW(8)"-"u32bitFMTW(8)") ", m1->iid1, m1->pos1 + off1, m1->pos1 + off1 + span->_end - span->_beg);
       }
+    } else {
+      fprintf(F, "                            ");
     }
+  } else {
+    fprintf(F, "                                      ");
   }
 
   if (match2) {
-    fprintf(F, u32bitFMT","u32bitFMT" ", match2 >> COLORSHIFT, match2 & COLORMASK);
+    fprintf(F, u32bitFMTW(1)","u32bitFMTW(6)" ", match2 >> COLORSHIFT, match2 & COLORMASK);
 
-    if (m2)
+    if (m2) {
       if (axis == 1) {
         u32bit  sta = m2->pos2 + off2;
         u32bit  end = m2->pos2 + off2 + (span->_end - span->_beg);
@@ -442,34 +517,19 @@ printAnno(FILE *F,
           end = m2->pos2 + m2->len2 - off2;
         }
 
-        fprintf(F, "("u32bitFMT"-"u32bitFMT") ", sta, end);
+        fprintf(F, "("u32bitFMTW(8)":"u32bitFMTW(8)"-"u32bitFMTW(8)") ", m2->iid2, sta, end);
       } else {
-        fprintf(F, "("u32bitFMT"-"u32bitFMT") ", m2->pos1 + off1, m2->pos1 + off1 + span->_end - span->_beg);
+        fprintf(F, "("u32bitFMTW(8)":"u32bitFMTW(8)"-"u32bitFMTW(8)") ", m2->iid1, m2->pos1 + off1, m2->pos1 + off1 + span->_end - span->_beg);
       }
+    } else {
+      fprintf(F, "                            ");
+    }
+  } else {
+    fprintf(F, "                                      ");
   }
 
   fprintf(F, "\n");
 }
-
-
-#if 0
-          fprintf(stderr, "span: "u32bitFMT"-"u32bitFMT" ("u32bitFMT")  off1="u32bitFMT" off2="u32bitFMT"\n",
-                  span->_beg, span->_end, spanLen, off1, off2);
-          fprintf(stderr, "DIFF "u32bitFMT" "u32bitFMT" "u32bitFMT" ("u32bitFMT") -(%d)- " u32bitFMT" "u32bitFMT" "u32bitFMT" ("u32bitFMT"-"u32bitFMT")\n",
-                  m1->iid1, m1->pos1, m1->len1,
-                  m1->pos1+off1,
-                  m1->ori2,
-                  m1->iid2, m1->pos2, m1->len2,
-                  pos1l, pos1r);
-          fprintf(stderr, "     "u32bitFMT" "u32bitFMT" "u32bitFMT" ("u32bitFMT") -(%d)- "u32bitFMT" "u32bitFMT" "u32bitFMT" ("u32bitFMT"-"u32bitFMT")\n",
-                  m2->iid1, m2->pos1, m2->len1,
-                  m2->pos1+off2,
-                  M1->_matches[match2].ori2,
-                  m2->iid2, m2->pos2, m2->len2,
-                  pos2l, pos2r);
-#endif
-
-
 
 
 
@@ -537,14 +597,11 @@ main(int argc, char **argv) {
     S2->addMatch(M2->_matches+i, 1, 1);
   }
 
-  //fprintf(stderr, "S1:"u32bitFMT" S2:"u32bitFMT"\n", S1->size(), S2->size());
-
   //  Dump each spanTree: For each span, we need to check that
   //    it has matches?
   //    only one match, or only matches from one mapping?
   //    matches from both mappings?  need to check that
   //     the span in the other tree also has the same matches
-
 
   //  Statistics and Histograms
   //
@@ -554,6 +611,7 @@ main(int argc, char **argv) {
   u32bit   unmapped[2]     = {0,0};
   u32bit   unique[2][2]    = {{0,0},{0,0}};
   u32bit   different[2]    = {0,0};
+  u32bit   wilddiff[2]     = {0,0};
   u32bit   same[2]         = {0,0};
   u32bit   inconsistent[2] = {0,0};
 
@@ -563,6 +621,7 @@ main(int argc, char **argv) {
   u32bit  *unmappedH[2];
   u32bit  *uniqueH[2][2];
   u32bit  *differentH[2];
+  u32bit  *wilddiffH[2];
   u32bit  *sameH[2];
   u32bit  *inconsistentH[2];
 
@@ -571,14 +630,16 @@ main(int argc, char **argv) {
     uniqueH[i][0]    = new u32bit [histogramMax];
     uniqueH[i][1]    = new u32bit [histogramMax];
     differentH[i]    = new u32bit [histogramMax];
+    wilddiffH[i]     = new u32bit [histogramMax];
     sameH[i]         = new u32bit [histogramMax];
     inconsistentH[i] = new u32bit [histogramMax];
 
-    bzero(unmappedH[i], sizeof(u32bit) * histogramMax);
-    bzero(uniqueH[i][0], sizeof(u32bit) * histogramMax);
-    bzero(uniqueH[i][1], sizeof(u32bit) * histogramMax);
-    bzero(differentH[i], sizeof(u32bit) * histogramMax);
-    bzero(sameH[i], sizeof(u32bit) * histogramMax);
+    bzero(unmappedH[i],     sizeof(u32bit) * histogramMax);
+    bzero(uniqueH[i][0],    sizeof(u32bit) * histogramMax);
+    bzero(uniqueH[i][1],    sizeof(u32bit) * histogramMax);
+    bzero(differentH[i],    sizeof(u32bit) * histogramMax);
+    bzero(wilddiffH[i],     sizeof(u32bit) * histogramMax);
+    bzero(sameH[i],         sizeof(u32bit) * histogramMax);
     bzero(inconsistentH[i], sizeof(u32bit) * histogramMax);
   }
 
@@ -593,6 +654,11 @@ main(int argc, char **argv) {
   //  We write the annotation to here
   FILE *Aanno = fopen("overlap.Aannotation", "w");
   FILE *Banno = fopen("overlap.Bannotation", "w");
+
+  //  We also build a list of the annotation for classification later
+  ALmax = (u32bit)dict_count(S1->_tree);
+  ALlen = 0;
+  AL    = new annoList [ ALmax ];
 
 
   //  Doesn't handle weird stuff like this span (on sequence 1)
@@ -610,7 +676,6 @@ main(int argc, char **argv) {
   //  compute the exact location this span should occur on the other
   //  sequence.  then, do a lookup() to get that span, or just
   //  verify that everybody is the same location.
-  //
 
   node1 = dict_first(S1->_tree);
   while (node1) {
@@ -627,7 +692,16 @@ main(int argc, char **argv) {
       unique[0][idx] += spanLen;
       updateHistogram(uniqueH[0][idx], spanLen);
 
-      printAnno(Aanno, '1', 1, span, span->_matches[0]);
+      u32bit    match = span->_matches[0];
+      match_t  *m;
+
+      if (match >> COLORSHIFT) {
+        m = &M2->_matches[match & COLORMASK];
+      } else {
+        m = &M1->_matches[match & COLORMASK];
+      }
+
+      printAnno(Aanno, '1', 1, span, match, span->_beg - m->pos1, m);
     } else if ((span->_matchesLen == 2) &&
                ((span->_matches[0] >> COLORSHIFT) == (span->_matches[1] >> COLORSHIFT))) {
       inconsistent[0] += spanLen;
@@ -687,6 +761,12 @@ main(int argc, char **argv) {
 
           printAnno(Aanno, 'N', 1, span, match1, off1, m1, match2, off2, m2);
         }
+      } else {
+        //  Wildly different matches!  Mapped to different scaffolds!
+        wilddiff[0] += spanLen;
+        updateHistogram(wilddiffH[0], spanLen);
+
+        printAnno(Aanno, '!', 1, span, match1, span->_beg - m1->pos1, m1, match2, 0, m2);
       }
     } else {
       inconsistent[0] += spanLen;
@@ -713,7 +793,16 @@ main(int argc, char **argv) {
       unique[1][idx] += spanLen;
       updateHistogram(uniqueH[1][idx], spanLen);
 
-      printAnno(Banno, '1', 2, span, span->_matches[0]);
+      u32bit    match = span->_matches[0];
+      match_t  *m;
+
+      if (match >> COLORSHIFT) {
+        m = &M2->_matches[match & COLORMASK];
+      } else {
+        m = &M1->_matches[match & COLORMASK];
+      }
+
+      printAnno(Banno, '1', 2, span, match, span->_beg - m->pos1, m);
     } else if ((span->_matchesLen == 2) &&
                ((span->_matches[0] >> COLORSHIFT) == (span->_matches[1] >> COLORSHIFT))) {
       inconsistent[1] += spanLen;
@@ -777,6 +866,12 @@ main(int argc, char **argv) {
 
           printAnno(Banno, 'N', 2, span, match1, off1, m1, match2, off2, m2);
         }
+      } else {
+        //  Wildly different matches!  Mapped to different scaffolds!
+        wilddiff[1] += spanLen;
+        updateHistogram(wilddiffH[1], spanLen);
+
+        printAnno(Aanno, '!', 2, span, match1, span->_beg - m1->pos2, m1, match2, 0, m2);
       }
     } else {
       inconsistent[1] += spanLen;
@@ -795,6 +890,7 @@ main(int argc, char **argv) {
   fprintf(stderr, "unique mapping 1:   A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", unique[0][0], unique[1][0]);
   fprintf(stderr, "unique mapping 2:   A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", unique[0][1], unique[1][1]);
   fprintf(stderr, "different:          A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", different[0], different[1]);
+  fprintf(stderr, "wild diff:          A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", wilddiff[0], wilddiff[1]);
   fprintf(stderr, "same:               A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", same[0], same[1]);
   fprintf(stderr, "inconsistent:       A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", inconsistent[0], inconsistent[1]);
 
@@ -808,36 +904,72 @@ main(int argc, char **argv) {
   fprintf(stderr, "same2 end:          normal:"u32bitFMTW(10)" flipped:"u32bitFMTW(10)"\n", same2en, same2ef);
 
 
+
+  //
+  //  run through the annoList, count interesting bits
+  //
+  fprintf(stderr, "ALlen: "u32bitFMT"\n", ALlen);
+
+  //  Look for 1's surrounded by U's
+  //
+  bool   only1 = true;
+  u32bit sumA = 0, tA=0;
+  u32bit sumB = 0, tB=0;
+  for (u32bit i=1; i<ALlen; i++) {
+
+    if (AL[i].type == 'U') {
+      if (only1) {
+        sumA += tA;
+        sumB += tB;
+      }
+      tA = 0;
+      tB = 0;
+      only1 = true;
+    } else if (AL[i].type != '1') {
+      only1 = false;
+    } else {
+      tA += AL[i].len2a;
+      tB += AL[i].len2b;
+    }
+  }
+  fprintf(stderr, "isolated Unique: map1: "u32bitFMT" map2: "u32bitFMT"\n", sumA, sumB);
+
+
+
+
+
+#if 0
   FILE *hout = fopen("overlap.histogram", "w");
   for (u32bit i=0; i<histogramMax; i++) {
-    fprintf(hout, u32bitFMTW(5)" "u32bitFMTW(5)" "u32bitFMTW(5)" "u32bitFMTW(5)" "u32bitFMTW(5)" "u32bitFMTW(5)" "u32bitFMTW(5)" "u32bitFMTW(5)" "u32bitFMTW(5)" "u32bitFMTW(5)" "u32bitFMTW(5)" "u32bitFMTW(5)" "u32bitFMTW(5)"\n",
+    fprintf(hout, u32bitFMTW(5)" "u32bitFMTW(5)" "u32bitFMTW(5)" "u32bitFMTW(5)" "u32bitFMTW(5)" "u32bitFMTW(5)" "u32bitFMTW(5)" "u32bitFMTW(5)" "u32bitFMTW(5)" "u32bitFMTW(5)" "u32bitFMTW(5)" "u32bitFMTW(5)" "u32bitFMTW(5)" "u32bitFMTW(5)" "u32bitFMTW(5)"\n",
             i,
-            unmappedH[0][i], uniqueH[0][0][i], uniqueH[0][1][i], differentH[0][i], sameH[0][i], inconsistentH[0][i],
-            unmappedH[1][i], uniqueH[1][0][i], uniqueH[1][1][i], differentH[1][i], sameH[1][i], inconsistentH[1][i]);
+            unmappedH[0][i], uniqueH[0][0][i], uniqueH[0][1][i], differentH[0][i], wilddiffH[0][i], sameH[0][i], inconsistentH[0][i],
+            unmappedH[1][i], uniqueH[1][0][i], uniqueH[1][1][i], differentH[1][i], wilddiffH[1][i], sameH[1][i], inconsistentH[1][i]);
   }
   fclose(hout);
+#endif
 
 #if 0
 
 plot [0:500] [0:1500] \
 "overlap.histogram" using  2 title "unmapped A" with lines, \
-"overlap.histogram" using  3 title "unique A, mapping 1" with lines, \
-"overlap.histogram" using  4 title "unique A, mapping 2" with lines, \
+"overlap.histogram" using  9 title "unmapped B" with lines, \
 "overlap.histogram" using  5 title "different A" with lines, \
-"overlap.histogram" using  6 title "same A" with lines, \
-"overlap.histogram" using  7 title "inconsistent A" with lines, \
-"overlap.histogram" using  8 title "unmapped B" with lines, \
-"overlap.histogram" using  9 title "unique B, mapping 1" with lines, \
-"overlap.histogram" using 10 title "unique B, mapping 2" with lines, \
-"overlap.histogram" using 11 title "different B" with lines, \
-"overlap.histogram" using 12 title "same B" with lines, \
-"overlap.histogram" using 13 title "inconsistent B" with lines
+"overlap.histogram" using 12 title "different B" with lines, \
+"overlap.histogram" using  6 title "wild diff A" with lines, \
+"overlap.histogram" using 13 title "wild diff B" with lines, \
+"overlap.histogram" using  8 title "inconsistent A" with lines, \
+"overlap.histogram" using 15 title "inconsistent B" with lines
+
+plot [0:500] [0:1500] \
+"overlap.histogram" using  7 title "same A" with lines, \
+"overlap.histogram" using 14 title "same B" with lines, \
 
 plot [0:500] [0:1500] \
 "overlap.histogram" using  3 title "unique A, mapping 1" with lines, \
 "overlap.histogram" using  4 title "unique A, mapping 2" with lines, \
-"overlap.histogram" using  9 title "unique B, mapping 1" with lines, \
-"overlap.histogram" using 10 title "unique B, mapping 2" with lines
+"overlap.histogram" using 10 title "unique B, mapping 1" with lines, \
+"overlap.histogram" using 11 title "unique B, mapping 2" with lines
 
 #endif
 
