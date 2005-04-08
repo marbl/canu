@@ -8,7 +8,8 @@ $/.CXX_EXES := $/uniqueFilter \
                $/mismatchCounter \
                $/lengthFilter \
                $/statsGenerator \
-               $/overlap
+               $/overlap \
+               $/gapShifter
 
 $/.CXX_SRCS := $/uniqueFilter.C \
                $/matchExtender.C $/matchExtender-dump.C $/matchExtender-func.C \
@@ -16,6 +17,7 @@ $/.CXX_SRCS := $/uniqueFilter.C \
                $/lengthFilter.C \
                $/statsGenerator.C \
                $/overlap.C \
+               $/gapShifter.C \
                $/atac-common.C
 
 $/.CLEAN :=$/*.o $/*~ $/core
@@ -26,6 +28,7 @@ $/matchExtender:       $/matchExtender.o   $/matchExtender-dump.o $/matchExtende
 $/lengthFilter:        $/lengthFilter.o
 $/statsGenerator:      $/statsGenerator.o  $/atac-common.o
 $/overlap:             $/overlap.o         $/atac-common.o
+$/gapShifter:          $/gapShifter.o         $/atac-common.o
 
 ${$/.CXX_EXES}: ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 
