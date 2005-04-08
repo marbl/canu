@@ -54,16 +54,21 @@ sub search {
     my $verbose      = "";
     my $stats        = 1;
 
-    my $farmname;
-    my $farmcode;
-    my $farmqueue;
-    my $filtqueue;
+    my $farmname     = undef;
+    my $farmcode     = undef;
+    my $farmqueue    = undef;
+    my $filtqueue    = undef;
+
+    my $sgename      = undef;
+    my $sgeaccount   = undef;
+    my $sgepriority  = undef;
+
+    my $runtype      = "local";
 
     my $hitMemory    = 600;    #  Don't change the value without 3-filter
 
     my $numthread    = 2;
     my $numproc      = 4;
-    my $runnow       = 1;
     my $species      = "";
 
     print STDERR "ESTmapper: Performing a search.\n";
@@ -106,17 +111,23 @@ sub search {
         $stats = 1 if ($arg eq "-stats");
         $stats = 0 if ($arg eq "-nostats");
 
-        $farmname  = shift @ARGS if ($arg eq "-lsfjobname");
-        $farmcode  = shift @ARGS if ($arg eq "-lsfproject");
-        $farmqueue = shift @ARGS if ($arg eq "-lsfsearchqueue");
-        $filtqueue = shift @ARGS if ($arg eq "-lsffilterqueue");
+        $farmname   = shift @ARGS if ($arg eq "-lsfjobname");
+        $farmcode   = shift @ARGS if ($arg eq "-lsfproject");
+        $farmqueue  = shift @ARGS if ($arg eq "-lsfsearchqueue");
+        $filtqueue  = shift @ARGS if ($arg eq "-lsffilterqueue");
+
+        $sgename     = shift @ARGS         if ($arg eq "-sge");
+        $sgeaccount  = "-A " . shift @ARGS if ($arg eq "-sgeaccount");
+        $sgepriority = "-p " . shift @ARGS if ($arg eq "-sgepriority");
+
+        $runtype    = "later"     if ($arg eq "-runlater");
+        $runtype    = "lsf"       if (defined($farmname));
+        $runtype    = "sge"       if (defined($sgename));
 
         $numproc   = shift @ARGS if ($arg eq "-localsearches");
         $numthread = shift @ARGS if ($arg eq "-searchthreads");
 
         $hitMemory = shift @ARGS if ($arg eq "-hitsortmemory");
-
-        $runnow    = 0           if ($arg eq "-runlater");
 
         if ($arg eq "-species") {
             $species  = shift @ARGS;
@@ -176,6 +187,11 @@ sub search {
     #  Make the directory for building tables, and create an info file in there.
     #  If we're $buildonly, we have $buildprefix and $builddir defined.
     #
+    #  Else, if we're reading tables back, make sure that the info file is
+    #  in agreement with our configuration.
+    #
+    #  This is sensitive to moving the genome file around.
+    #
     if ($buildonly) {
         mkdir "$builddir" if (! -d "$builddir");
 
@@ -196,14 +212,7 @@ sub search {
             print F "$segment\n";
         }
         close(F);
-    }
-
-    #  If we're reading tables back, make sure that the info file is
-    #  in agreement with our configuration.
-    #
-    #  This is sensitive to moving the genome file around.
-    #
-    if (defined($buildprefix) && !$buildonly) {
+    } elsif (defined($buildprefix)) {
         if (! -e "$builddir/$buildprefix.$mersize.info") {
             print STDERR "ESTmapper/search-- Table incompatible: No info file found!\n";
             exit(1);
@@ -276,92 +285,137 @@ sub search {
     #  hit-counts file should exist.  Run (maybe re-run) the search if
     #  it isn't there.
     #
-    if ($runnow) {
-        if (!defined($farmqueue)) {
-            print STDERR "ESTmapper/search-- Local mode requested; ", scalar @scafList, " processes to compute,\n";
-            print STDERR "ESTmapper/search-- Local mode requested; $numproc concurrent processes,\n";
-            print STDERR "ESTmapper/search-- Local mode requested; each with $numthread threads.\n";
-
-            my $numTries = 0;
-          again:
-            $numTries++;
-
-            #  Run the searches.  We use the scheduler, then check
-            #  everything at the end.  This is a little less friendly
-            #  to the user, but much easier for the implementor.
-            #
-            if (scalar(@searchesToRun) > 0) {
-                &scheduler::schedulerSetNumberOfProcesses($numproc);
-                &scheduler::schedulerSetShowCommands(0);
-                &scheduler::schedulerSetShowStatus(1);
-                foreach my $s (@searchesToRun) {
-                    &scheduler::schedulerSubmit("sh $s");
-                }
-                &scheduler::schedulerFinish();
-
-                #  See if anything failed.
-                #
-                print STDERR "ESTmapper/search-- checking search output.  All should have $cdnaInInput cDNA.\n";
-                @searchesToRun = checkFinished($path, $cdnaInInput, $buildonly, "$builddir/$buildprefix.$mersize", @scafList);
-            }
-
-            if (($numTries < 3) && (scalar(@searchesToRun) > 0)) {
-                print STDERR "ESTmapper/search-- ", scalar(@searchesToRun), " searches failed.  Retrying.\n";
-                goto again;
-            }
-
-            if (scalar(@searchesToRun) > 0) {
-                print STDERR "ESTmapper/search-- Searches failed.\n";
-                foreach my $s (@searchesToRun) {
-                    if ($s =~ m/(\d+).cmd/) {
-                        print STDERR "ESTmapper/search-- Search $1 failed.  Output saved as *.CRASH\n";
-                        rename "$path/1-search/$1.count", "$path/1-search/$1.count.CRASH";
-                        rename "$path/1-search/$1.hits", "$path/1-search/$1.hits.CRASH";
-                    } else {
-                        print STDERR "ESTmapper/search-- Search $s failed.\n";
-                    }
-                }
-            }
-        } else {
-            open(F, "< $path/0-input/memoryLimit");
-            my $farmMemory = <F>;
-            close(F);
-            chomp $farmMemory;
-
-            my $cmd;
-            my $jobid;
-
-            if (scalar(@searchesToRun) > 0) {
-                print STDERR "ESTmapper/search-- LSF mode requested; ", scalar @searchesToRun, " processes to compute,\n";
-                print STDERR "ESTmapper/search-- LSF mode requested; each with $numthread threads,\n";
-                print STDERR "ESTmapper/search-- LSF mode requested; $farmMemory MB per process.\n";
-
-                $cmd  = "bsub -q $farmqueue -P $farmcode -n $numthread -R \"span[hosts=1]select[mem>$farmMemory]rusage[mem=$farmMemory]\" -o $path/1-search/%J-%I.lsfout ";
-                $cmd .= " -J \"s$farmname\[1-" . scalar(@searchesToRun) . "\]\" ";
-                $cmd .= "$exechome/util/jobarray.pl $path search";
-
-                $jobid = runLSF($cmd);
-
-                #  Submit the filter, and make it wait for the searches, if they were submitted.
-                #
-                $cmd  = "bsub -q $filtqueue -P $farmcode -R \"select[mem>$hitMemory]rusage[mem=$hitMemory]\" -o $path/stage2.lsfout ";
-                $cmd .= " -w \"ended($jobid)\"" if (defined($jobid));
-                $cmd .= " -J f$farmname ";
-                $cmd .= " $ESTmapper -restart $path";
-
-                if (runCommand($cmd)) {
-                    die "Failed to submit job to LSF.\n";
-                }
-
-                print STDERR "ESTmapper/search-- Searches submitted.   Rest of run is on the farm.\n";
-
-                exit(0);
-            }
-        }
-    } else {
+    if ($runtype eq "later") {
         print STDERR "ESTmapper/search-- Please run the jobs in\n";
         print STDERR "ESTmapper/search--   $path/1-search/run.sh\n";
         exit(0);
+    } elsif ($runtype eq "local") {
+        print STDERR "ESTmapper/search-- Local mode requested; ", scalar @scafList, " processes to compute,\n";
+        print STDERR "ESTmapper/search-- Local mode requested; $numproc concurrent processes,\n";
+        print STDERR "ESTmapper/search-- Local mode requested; each with $numthread threads.\n";
+
+        my $numTries = 0;
+      again:
+        $numTries++;
+
+        #  Run the searches.  We use the scheduler, then check
+        #  everything at the end.  This is a little less friendly
+        #  to the user, but much easier for the implementor.
+        #
+        if (scalar(@searchesToRun) > 0) {
+            &scheduler::schedulerSetNumberOfProcesses($numproc);
+            &scheduler::schedulerSetShowCommands(0);
+            &scheduler::schedulerSetShowStatus(1);
+            foreach my $s (@searchesToRun) {
+                &scheduler::schedulerSubmit("sh $s");
+            }
+            &scheduler::schedulerFinish();
+
+            #  See if anything failed.
+            #
+            print STDERR "ESTmapper/search-- checking search output.  All should have $cdnaInInput cDNA.\n";
+            @searchesToRun = checkFinished($path, $cdnaInInput, $buildonly, "$builddir/$buildprefix.$mersize", @scafList);
+        }
+
+        if (($numTries < 3) && (scalar(@searchesToRun) > 0)) {
+            print STDERR "ESTmapper/search-- ", scalar(@searchesToRun), " searches failed.  Retrying.\n";
+            goto again;
+        }
+
+        if (scalar(@searchesToRun) > 0) {
+            print STDERR "ESTmapper/search-- Searches failed.\n";
+            foreach my $s (@searchesToRun) {
+                if ($s =~ m/(\d+).cmd/) {
+                    print STDERR "ESTmapper/search-- Search $1 failed.  Output saved as *.CRASH\n";
+                    rename "$path/1-search/$1.count", "$path/1-search/$1.count.CRASH";
+                    rename "$path/1-search/$1.hits", "$path/1-search/$1.hits.CRASH";
+                } else {
+                    print STDERR "ESTmapper/search-- Search $s failed.\n";
+                }
+            }
+        }
+    } elsif ($runtype eq "lsf") {
+        open(F, "< $path/0-input/memoryLimit");
+        my $farmMemory = <F>;
+        close(F);
+        chomp $farmMemory;
+
+        my $cmd;
+        my $jobid;
+
+        if (scalar(@searchesToRun) > 0) {
+            print STDERR "ESTmapper/search-- LSF mode requested; ", scalar @searchesToRun, " processes to compute,\n";
+            print STDERR "ESTmapper/search-- LSF mode requested; each with $numthread threads,\n";
+            print STDERR "ESTmapper/search-- LSF mode requested; $farmMemory MB per process.\n";
+
+            $cmd  = "bsub -q $farmqueue -P $farmcode -n $numthread -R \"span[hosts=1]select[mem>$farmMemory]rusage[mem=$farmMemory]\" -o $path/1-search/%J-%I.lsfout ";
+            $cmd .= " -J \"s$farmname\[1-" . scalar(@searchesToRun) . "\]\" ";
+            $cmd .= "$exechome/util/jobarray.pl $path search";
+
+            $jobid = runLSF($cmd);
+
+            #  Submit the filter, and make it wait for the searches, if they were submitted.
+            #
+            $cmd  = "bsub -q $filtqueue -P $farmcode -R \"select[mem>$hitMemory]rusage[mem=$hitMemory]\" -o $path/stage2.lsfout ";
+            $cmd .= " -w \"ended($jobid)\"" if (defined($jobid));
+            $cmd .= " -J f$farmname ";
+            $cmd .= " $ESTmapper -restart $path";
+
+            if (runCommand($cmd)) {
+                die "Failed to submit job to SGE.\n";
+            }
+
+            print STDERR "ESTmapper/search-- Searches submitted.   Rest of run is on the farm.\n";
+
+            exit(0);
+        }
+    } elsif ($runtype eq "sge") {
+        open(F, "< $path/0-input/memoryLimit");
+        my $farmMemory = <F>;
+        close(F);
+        chomp $farmMemory;
+
+        my $cmd;
+        my $jobid;
+
+        if (scalar(@searchesToRun) > 0) {
+            print STDERR "ESTmapper/search-- SGE mode requested; ", scalar @searchesToRun, " processes to compute,\n";
+            print STDERR "ESTmapper/search-- SGE mode requested; each with $numthread threads,\n";
+            print STDERR "ESTmapper/search-- SGE mode requested; $farmMemory MB per process.\n";
+
+            #  Still need to set number of threads, use parallel execution environment
+            #  -p priority
+
+            $cmd  = "qsub -cwd $sgeaccount $sgepriority ";
+            $cmd .= " -pe thread $numthread ";
+            $cmd .= " -j y -o $path/1-search/seagen-\\\$TASK_ID.sgeout ";
+            $cmd .= " -N \"s$sgename\" ";
+            $cmd .= " -t 1-" . scalar(@searchesToRun) . " ";
+            $cmd .= "$exechome/util/jobarray.sh $exechome/util/jobarray.pl $path search";
+
+            if (runCommand($cmd)) {
+                die "Failed to submit job to SGE.\n";
+            }
+
+            #  Submit the filter, and make it wait for the searches, if they were submitted.
+            #
+            $cmd  = "qsub -cwd $sgeaccount $sgepriority ";
+            $cmd .= " -j y -o $path/stage2.sgeout ";
+            $cmd .= " -hold_jid \"s$sgename\" ";
+            $cmd .= " -N \"f$sgename\" ";
+            $cmd .= " $ESTmappersh $ESTmapper -restart $path";
+
+            if (runCommand($cmd)) {
+                die "Failed to submit job to SGE.\n";
+            }
+
+            print STDERR "ESTmapper/search-- Searches submitted.   Rest of run is on the farm.\n";
+
+            exit(0);
+        }
+    } else {
+        print STDERR "ESTmapper/search-- Unknown execution method $runtype.\n";
+        exit(1);
     }
 
 
@@ -390,8 +444,8 @@ sub search {
         }
     }
 
-    #  If we were supposed to be doing just table builds, we either crashed or are finished.
-    #  Either way, we exit.
+    #  If we were supposed to be doing just table builds, we either
+    #  crashed or are finished.  Either way, we exit.
     #
     if ($buildonly) {
         print STDERR "ESTmapper/search-- Used $sysTimeBuild seconds system time to build tables.\n";

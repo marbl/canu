@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl
+#!/usr/bin/perl
 
 #                    Confidential -- Do Not Distribute
 #   Copyright (c) 2002 PE Corporation (NY) through the Celera Genomics Group
@@ -6,9 +6,11 @@
 
 $| = 1;
 
+# Perl version 5.005_03 is too old, it requires two args to mkdir.
+
 use strict;
 
-use vars qw($personality $exechome $ESTmapper $searchGENOME $mergeCounts $filterMRNA $filterEST $sim4db $leaff $cleanPolishes $toFILTER $sortHits $sortPolishes $parseSNPs $pickBest);
+use vars qw($personality $exechome $ESTmapper $ESTmappersh $searchGENOME $mergeCounts $filterMRNA $filterEST $sim4db $leaff $cleanPolishes $toFILTER $sortHits $sortPolishes $parseSNPs $pickBest);
 
 use FindBin;
 use lib "$FindBin::Bin/util";
@@ -30,7 +32,8 @@ my $startTime   = time();
 
 $exechome      = "$FindBin::Bin";
 $ESTmapper     = "$exechome/ESTmapper.pl";
-$searchGENOME  = "$exechome/searchGENOME";
+$ESTmappersh   = "$exechome/ESTmapper.sh";
+$searchGENOME  = "$exechome/seagen";
 $mergeCounts   = "$exechome/mergeCounts";
 $filterMRNA    = "$exechome/filterMRNA";
 $filterEST     = "$exechome/filterEST";

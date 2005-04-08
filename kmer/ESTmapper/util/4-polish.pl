@@ -15,13 +15,18 @@ sub polish {
     my $batchsize    = 0;
     my $numbatches   = 256;
 
-    my $farmname;
-    my $farmcode;
-    my $farmqueue;
-    my $finiqueue;
+    my $farmname     = undef;
+    my $farmcode     = undef;
+    my $farmqueue    = undef;
+    my $finiqueue    = undef;
+
+    my $sgename      = undef;
+    my $sgeaccount   = undef;
+    my $sgepriority  = undef;
+
+    my $runtype      = "local";
 
     my $numproc      = 4;
-    my $runnow       = 1;
 
     my $aligns       = "-align";
     my $stats        = 1;
@@ -58,7 +63,13 @@ sub polish {
         $farmqueue = shift @ARGS if ($arg eq "-lsfpolishqueue");
         $finiqueue = shift @ARGS if ($arg eq "-lsffinishqueue");
 
-        $runnow = 0              if ($arg eq "-runlater");
+        $sgename     = shift @ARGS         if ($arg eq "-sge");
+        $sgeaccount  = "-A " . shift @ARGS if ($arg eq "-sgeaccount");
+        $sgepriority = "-p " . shift @ARGS if ($arg eq "-sgepriority");
+
+        $runtype    = "later"     if ($arg eq "-runlater");
+        $runtype    = "lsf"       if (defined($farmname));
+        $runtype    = "sge"       if (defined($sgename));
 
         $numproc   = shift @ARGS if ($arg eq "-localpolishes");
     }
@@ -108,7 +119,7 @@ sub polish {
         #
         if ($batchsize == 0) {
             $batchsize = int(`wc -l < $path/2-filter/filteredHits` / $numbatches) + 1;
-            $batchsize = 500 if ($batchsize < 500);
+            $batchsize = 10000 if ($batchsize < 10000);
         }
 
         #  Adjust the sim4 qualities based on the final quality desired
@@ -232,8 +243,11 @@ sub polish {
 
         #  Run things, or tell the user to do it for us.
         #
-        if ($runnow) {
-            if (!defined($farmqueue)) {
+        if      ($runtype eq "later") {
+            print STDERR "ESTmapper/polish-- Please run the jobs in\n";
+            print STDERR "ESTmapper/polish--   $path/3-polish/run.sh\n";
+            exit(0);
+        } elsif ($runtype eq "local") {
                 print STDERR "ESTmapper/polish-- Running locally, $numproc at a time.\n";
 
                 &scheduler::schedulerSetNumberOfProcesses($numproc);
@@ -247,8 +261,8 @@ sub polish {
                 &scheduler::schedulerFinish();
 
                 unlink "$path/3-polish/run.sh";
-            } else {
-                print STDERR "ESTmapper/polish-- Submitting to the farm.\n";
+        } elsif ($runtype eq "lsf") {
+                print STDERR "ESTmapper/polish-- Submitting to LSF.\n";
 
                 my $cmd;
                 $cmd  = "bsub -q $farmqueue -P $farmcode -R \"select[mem>300]rusage[mem=600]\" -o $path/3-polish/%J-%I.lsfout ";
@@ -269,11 +283,35 @@ sub polish {
                 print STDERR "ESTmapper/polish-- Finish submitted.   See ya later!\n";
 
                 exit(0);
-            }
+        } elsif ($runtype eq "sge") {
+                print STDERR "ESTmapper/polish-- Submitting to SGE.\n";
+
+                my $cmd;
+                $cmd  = "qsub -cwd $sgeaccount $sgepriority ";
+                $cmd .= " -pe thread 2 ";
+                $cmd .= " -j y -o $path/3-polish/sim4db-\\\$TASK_ID.sgeout ";
+                $cmd .= " -N \"p$sgename\" ";
+                $cmd .= " -t 1-" . scalar(@jobsToRun) . " ";
+                $cmd .= "$exechome/util/jobarray.sh $exechome/util/jobarray.pl $path polish";
+
+                if (runCommand($cmd)) {
+                    die "Failed.\n";
+                }
+
+                $cmd  = "qsub -cwd $sgeaccount $sgepriority ";
+                $cmd .= " -j y -o $path/stage3.sgeout ";
+                $cmd .= " -hold_jid \"p$sgename\" ";
+                $cmd .= " -N \"o$sgename\" ";
+                $cmd .= " $ESTmappersh $ESTmapper -restart $path";
+
+                if (runCommand($cmd)) {
+                    die "Failed.\n";
+                }
+
+                print STDERR "ESTmapper/polish-- Finish submitted.   See ya later!\n";
+
+                exit(0);
         } else {
-            print STDERR "ESTmapper/polish-- Please run the jobs in\n";
-            print STDERR "ESTmapper/polish--   $path/3-polish/run.sh\n";
-            exit(0);
         }
     }
 

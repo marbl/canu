@@ -2,13 +2,16 @@ use strict;
 
 sub filter {
     my $startTime = time();
-    my $verbose   = "";
-    my @ARGS      = @_;
-    my $path      = "";
-    my $type      = "";
-    my $farmname;
-    my $farmcode;
-    my $filtqueue;
+    my $verbose     = "";
+    my @ARGS        = @_;
+    my $path        = "";
+    my $type        = "";
+    my $farmname    = undef;
+    my $farmcode    = undef;
+    my $filtqueue   = undef;
+    my $sgename     = undef;
+    my $sgeaccount  = undef;
+    my $sgepriority = undef;
     my $extrafilter = "cat";
 
     #  Don't change the value without 2-search
@@ -50,9 +53,13 @@ sub filter {
             $extrafilter = shift @ARGS;
         }
 
-        $farmname  = shift @ARGS if ($arg eq "-lsfjobname");
-        $farmcode  = shift @ARGS if ($arg eq "-lsfproject");
-        $filtqueue = shift @ARGS if ($arg eq "-lsffilterqueue");
+        $farmname    = shift @ARGS if ($arg eq "-lsfjobname");
+        $farmcode    = shift @ARGS if ($arg eq "-lsfproject");
+        $filtqueue   = shift @ARGS if ($arg eq "-lsffilterqueue");
+
+        $sgename     = shift @ARGS         if ($arg eq "-sge");
+        $sgeaccount  = "-A " . shift @ARGS if ($arg eq "-sgeaccount");
+        $sgepriority = "-p " . shift @ARGS if ($arg eq "-sgepriority");
     }
 
     ($path eq "")                         and die "FATAL ERROR: ESTmapper/filter-- No directory given.\n";
@@ -67,9 +74,7 @@ sub filter {
     #  This can occur if the searches have finished, but the filter
     #  didn't, and we restart.  (also in 5-assemble.pl)
     #
-    if (! -e "$path/2-filter/filteredHits" &&
-        defined($filtqueue) &&
-        !defined($ENV{'LSB_JOBID'})) {
+    if (! -e "$path/2-filter/filteredHits" && defined($farmname) && !defined($ENV{'LSB_JOBID'})) {
         my $cmd;
         $cmd  = "bsub -q $filtqueue -P $farmcode -R \"select[mem>$hitMemory]rusage[mem=$hitMemory]\" -o $path/stage2.lsfout ";
         $cmd .= " -J f$farmname ";
@@ -80,7 +85,25 @@ sub filter {
         }
 
         print STDERR "ESTmapper/filter-- Restarted LSF execution.\n";
+        exit;
+    }
 
+    #  Do the same for SGE
+    #
+    if (! -e "$path/2-filter/filteredHits" && defined($sgename) && !defined($ENV{'SGE_TASK_ID'})) {
+        my $cmd;
+        $cmd  = "qsub -cwd $sgeaccount $sgepriority ";
+        $cmd .= " -j y -o $path/stage2.sgeout ";
+        $cmd .= " -N \"f$sgename\" ";
+        $cmd .= " $ESTmappersh $ESTmapper -restart $path";
+
+        print STDERR "$cmd\n";
+
+        if (runCommand($cmd)) {
+            die "ESTmapper/filter-- Failed to restart SGE execution.\n";
+        }
+
+        print STDERR "ESTmapper/filter-- Restarted LSF execution.\n";
         exit;
     }
 

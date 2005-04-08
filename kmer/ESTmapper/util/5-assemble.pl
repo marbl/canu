@@ -173,13 +173,13 @@ sub assembleOutput {
     if (! -e "$path/polishes-best") {
         if      ($personality eq "-mapmrna") {
             print STDERR "ESTmapper/assembleOutput--  Picking the best mRNA polish.\n";
-            if (runCommand("$sortPolishes -m 2000 -c < $path/polishes-good | $pickBest -mrna > $path/polishes-best")) {
+            if (runCommand("$sortPolishes -m 400 -c < $path/polishes-good | $pickBest -mrna > $path/polishes-best")) {
                 unlink "$path/polishes-best";
                 die "Failed.";
             }
         } elsif ($personality eq "-mapest") {
             print STDERR "ESTmapper/assembleOutput--  Picking the best EST polish.\n";
-            if (runCommand("$sortPolishes -m 2000 -c < $path/polishes-good | $pickBest -est > $path/polishes-best")) {
+            if (runCommand("$sortPolishes -m 400 -c < $path/polishes-good | $pickBest -est > $path/polishes-best")) {
                 unlink "$path/polishes-best";
                 die "Failed.";
             }

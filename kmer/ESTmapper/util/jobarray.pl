@@ -10,15 +10,20 @@ use strict;
 
 my $path = shift @ARGV;
 my $type = shift @ARGV;
-my $jobi = $ENV{'LSB_JOBINDEX'} - 1;
+my $jobi = undef;
 
-if (!defined($ENV{'LSB_JOBINDEX'})) {
-    print STDERR "ERROR: LSB_JOBINDEX not defined.\n";
+#  Decide if we are SGE or LSF
+#
+if      (defined($ENV{'LSB_JOBINDEX'})) {
+    $jobi = $ENV{'LSB_JOBINDEX'} - 1;
+} elsif (defined($ENV{'SGE_TASK_ID'})) {
+    $jobi = $ENV{'SGE_TASK_ID'} - 1;
+} else {
+    print STDERR "ERROR: both LSB_JOBINDEX and SGE_TASK_ID not defined.\n";
     print STDERR "       path = '$path'\n";
     print STDERR "       type = '$type'\n";
     die;
 }
-
 
 if (! -d "$path") {
     print STDERR "ERROR: path does not exist.\n";
@@ -30,29 +35,25 @@ if (! -d "$path") {
 #  The big if block below will figure out which jobs need to run, and
 #  put the command to run in @jobsToRun.
 #
+#  ESTmapper.pl has already figured out what jobs need to be run.  We just
+#  need to read the correct list.
+#
 my @jobsToRun;
 
 if ($type eq "search") {
-
-    #  Read the list of segments, and see if the search for that segment is done.
-    #
-    open(F, "< $path/0-input/scaffolds-list");
+    open(F, "< $path/1-search/run.sh");
     while (<F>) {
         chomp;
-        push @jobsToRun, "$path/1-search/$_.cmd" if (! -e "$path/1-search/$_.count");
+        push @jobsToRun, $_;
     }
 
 } elsif ($type eq "polish") {
-
-    #  ESTmapper.pl has already figured out what jobs need to be run.
-    #
     open(F, "$path/3-polish/run.sh");
     while (<F>) {
         chomp;
         push @jobsToRun, $_;
     }
     close(F);
-
 } else {
     print STDERR "ERROR: type is not 'search' or 'polish'.\n";
     print STDERR "       path = '$path'\n";
@@ -67,4 +68,6 @@ if ($type eq "search") {
 #
 if (defined($jobsToRun[$jobi])) {
     system("$jobsToRun[$jobi]") and die "Job failed.\n\n$jobsToRun[$jobi]\n\n";
+} else {
+    print STDERR "Didn't find anything to run!!\n";
 }
