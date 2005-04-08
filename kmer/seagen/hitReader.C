@@ -40,7 +40,8 @@ hitReader::hitReader(int m) {
 
 hitReader::~hitReader() {
   for (u32bit i=0; i<_filesLen; i++)
-    fclose(_files[i].file);
+    //fclose(_files[i].file);
+    delete _files[i].buff;
 
   delete [] _files;
   delete [] _list;
@@ -53,21 +54,29 @@ hitReader::addInputFile(char *filename) {
   _files[_filesLen].stillMore = true;
 
   if (strcmp(filename, "-") == 0) {
-    _files[_filesLen].file = stdin;
+    fprintf(stderr, "hitReader::addInputFile()-- stdin not supported!\n"), exit(1);
+    //_files[_filesLen].file = stdin;
   } else {
-    _files[_filesLen].file = fopen(filename, "r");
+    //_files[_filesLen].file = fopen(filename, "r");
+    _files[_filesLen].buff = new readBuffer(filename, 16 * 1048576);
   }
 
-  if (_files[_filesLen].file == 0L) {
+#if 0
+  if (_files[_filesLen].buff == 0L) {
     fprintf(stderr, "hitReader::addInputFile()-- ERROR: couldn't open '%s' for reading.\n", filename);
     fprintf(stderr, "hitReader::addInputFile()-- %s\n", strerror(errno));
     exit(1);
   }
+#endif
 
   //  Binary or ASCII input?
   //
+#if 0
   char x = (char)fgetc(_files[_filesLen].file);
   ungetc(x, _files[_filesLen].file);
+#else
+  char x = _files[_filesLen].buff->get();
+#endif
 
   _files[_filesLen].isBINARY = (x != '-');
 
@@ -80,15 +89,18 @@ hitReader::addInputFile(char *filename) {
 
 void
 hitReader::loadHit(hitFile_s *HF) {
+
   if (HF->isBINARY) {
-    ahit_readBinary(&HF->a, HF->file);
+    ahit_readBinary(&HF->a, HF->buff);
   } else {
-    fgets(HF->b, 1024, HF->file);
-    ahit_parseString(&HF->a, HF->b);
+    fprintf(stderr, "ERROR:  hitReader::loadHit() ascii not supported right now.\n");
+    exit(1);
+    //fgets(HF->b, 1024, HF->file);
+    //ahit_parseString(&HF->a, HF->b);
   }
 
-
-  if (feof(HF->file))
+  //if (feof(HF->file))
+  if (HF->buff->eof())
     HF->stillMore = false;
 };
 
@@ -123,7 +135,13 @@ hitReader::loadHits(void) {
   //
   for (u32bit i=0; i<_filesLen; i++) {
     while ((_files[i].stillMore) && (_files[i].a._qsIdx == _iid)) {
-      grow_List();
+      if (_listLen >= _listMax) {
+        _listMax *= 2;
+        hit_s *new_list = new hit_s [_listMax];
+        memcpy(new_list, _list, _listLen * sizeof(hit_s));
+        delete [] _list;
+        _list = new_list;
+      }
 
       memcpy(&_list[_listLen].a, &_files[i].a, sizeof(aHit));
 

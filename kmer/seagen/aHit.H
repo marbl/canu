@@ -2,6 +2,7 @@
 #define AHIT_H
 
 #include "bio.h"
+#include "util++.H"
 #include <stdio.h>
 
 //  The field called _flgas used to be _direction and held just the
@@ -26,6 +27,8 @@ struct aHit {
 
 void   ahit_writeBinary(aHit *a, FILE *F);
 void   ahit_readBinary(aHit *a, FILE *F);
+
+void   ahit_readBinary(aHit *a, readBuffer *F);
 
 void   ahit_printASCII(aHit *a, FILE *F);
 void   ahit_parseString(aHit *a, char *b);

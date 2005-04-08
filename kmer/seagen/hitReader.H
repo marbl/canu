@@ -12,17 +12,18 @@
 //
 //  This is used in filterEST.C also.
 //
-#define WITH_ANSWERS
+//#define WITH_ANSWERS
 
 
 //  XXX:  Lots of this stuff can be moved into hitReader as temporary variables
 //
 typedef struct {
-  bool     stillMore;
-  FILE    *file;
-  char     b[1024];
-  aHit     a;
-  bool     isBINARY;
+  bool         stillMore;
+  //FILE        *file;
+  readBuffer  *buff;
+  char         b[1024];
+  aHit         a;
+  bool         isBINARY;
 } hitFile_s;
 
 
@@ -65,16 +66,6 @@ public:
     return(_list[x]);
   };
 private:
-  void   grow_List(void) {
-    if (_listLen >= _listMax) {
-      _listMax *= 2;
-      hit_s *new_list = new hit_s [_listMax];
-      memcpy(new_list, _list, _listLen * sizeof(hit_s));
-      delete [] _list;
-      _list = new_list;
-    }
-  };
-
   u32bit        _filesMax;
   u32bit        _filesLen;
   hitFile_s    *_files;

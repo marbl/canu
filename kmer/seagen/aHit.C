@@ -3,11 +3,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifdef TRUE64BIT
-const char   *searchOutput = "-%c -e %u -D %u %u %u -M %u %u %u\n";
-#else
-const char   *searchOutput = "-%c -e %lu -D %lu %lu %lu -M %lu %lu %lu\n";
-#endif
 
 void   ahit_writeBinary(aHit *a, FILE *F) {
   fwrite(a, sizeof(aHit), 1, F);
@@ -17,8 +12,12 @@ void   ahit_readBinary(aHit *a, FILE *F) {
   fread(a, sizeof(aHit), 1, F);
 }
 
+void   ahit_readBinary(aHit *a, readBuffer *F) {
+  F->read((char *)a, sizeof(aHit));
+}
+
 void   ahit_printASCII(aHit *a, FILE *F) {
-  fprintf(F, searchOutput,
+  fprintf(F, "-%c -e "u32bitFMT" -D "u32bitFMT" "u32bitFMT" "u32bitFMT" -M "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
           a->_direction ? 'f' : 'r',
           a->_qsIdx,
           a->_dsIdx,
