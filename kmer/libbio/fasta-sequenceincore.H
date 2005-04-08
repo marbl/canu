@@ -10,6 +10,8 @@ public:
   FastASequenceInCore(IID_t iid, char *hdr, u32bit hdrlen, char *seq, u32bit seqlen);
   ~FastASequenceInCore();
 
+  FastASequenceInCore *copy(void);
+
   char           *header(void) const         { return(_header); };
   u32bit          headerLength(void) const   { return(_headerLen); };
 

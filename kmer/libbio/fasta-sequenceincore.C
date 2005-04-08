@@ -18,7 +18,6 @@ FastASequenceInCore::FastASequenceInCore(IID_t iid) {
   _seq    = 0L;  //  new char [_seqMax];
 }
 
-
 FastASequenceInCore::FastASequenceInCore(IID_t iid, char *hdr, u32bit hdrlen, char *seq, u32bit seqlen) {
   _idx       = iid;
 
@@ -29,6 +28,17 @@ FastASequenceInCore::FastASequenceInCore(IID_t iid, char *hdr, u32bit hdrlen, ch
   _seqLen = seqlen;
   _seqMax = seqlen;
   _seq    = seq;
+}
+
+FastASequenceInCore*
+FastASequenceInCore::copy(void) {
+  char *h = new char [_headerLen + 1];
+  char *s = new char [_seqLen    + 1];
+
+  memcpy(h, _header, _headerLen + 1);
+  memcpy(s, _seq,    _seqLen    + 1);
+
+  return(new FastASequenceInCore(_idx, h, _headerLen, s, _seqLen));
 }
 
 
