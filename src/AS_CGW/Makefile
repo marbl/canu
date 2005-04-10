@@ -90,7 +90,8 @@ CGW_SOURCES = AS_CGW_LoadCheckpoint.c AS_CGW_main.c AS_CGW_dataTypes.c \
 	assemblyStructure.c dumpContigFromCkpt.c exploreGapStructure.c \
 	asmInfoForFrg.c exploreScaffoldEnds.c dumpCloneMiddles.c \
 	whereAreMyOverlaps.c findAnEdge.c dumpSingletons.c combineMates.c \
-	resolveSurrogates.c fragmentPlacement.c ckp_scflen.c frgs2clones.c createFrgDeletes.c
+	resolveSurrogates.c fragmentPlacement.c ckp_scflen.c frgs2clones.c createFrgDeletes.c \
+        greedyFragmentTiling.c
 #	smallLargeScaffolds.c FixContigMultiAligns.c fixZLFContigs.c
 #	ChunkOverlap_CGW.c SplitScaffolds_CGW.c CIScaffoldT_Biconnected_CGW.c UnitigSplitter.c FindFragments.c
 
@@ -139,7 +140,8 @@ PROGS = cgw CheckILK Checkpoint process_scaffolds loadcgw \
 	dumpBinaryUnitigMAs assemblyStructure dumpContigFromCkpt \
 	exploreGapStructure exploreScaffoldEnds asmInfoForFrg \
 	dumpCloneMiddles whereAreMyOverlaps findAnEdge \
-	dumpSingletons combineMates resolveSurrogates ckp_scflen frgs2clones createFrgDeletes
+	dumpSingletons combineMates resolveSurrogates ckp_scflen frgs2clones createFrgDeletes \
+	greedyFragmentTiling	
 #	smallLargeScaffolds fixContigMultiAligns
 #        ScaffoldMap splitutgs findFragments 
 
@@ -204,6 +206,8 @@ assemblyStructure: assemblyStructure.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS
 dumpContigFromCkpt: dumpContigFromCkpt.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a 
 
 exploreGapStructure: exploreGapStructure.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a 
+
+greedyFragmentTiling: greedyFragmentTiling.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a  libm.a
 
 exploreScaffoldEnds: exploreScaffoldEnds.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a 
 
