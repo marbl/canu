@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: extendClearRanges.c,v 1.4 2005-03-22 19:48:37 jason_miller Exp $";
+static char CM_ID[] = "$Id: extendClearRanges.c,v 1.5 2005-04-11 15:09:31 eliv Exp $";
 
 
 /*********************************************************************
@@ -582,7 +582,7 @@ int main( int argc, char *argv[])
 	int icnt, lFragIid, rFragIid, lextension, rextension;
 	// int leftFragFound, rightFragFound;
 	extendableFrag leftExtFragsArray[ MAX_EXTENDABLE_FRAGS ], rightExtFragsArray[ MAX_EXTENDABLE_FRAGS ];
-	int numLeftFrags, numRightFrags, rcontigID;
+	int numLeftFrags, numRightFrags, rcontigID,lcontigID;
 	IntElementPos contigPos;
 	ContigT *lcontig, *rcontig, *newContig;
 	int lunitigID, runitigID;
@@ -642,6 +642,7 @@ int main( int argc, char *argv[])
 	// while (NextCIScaffoldTIterator(&CIsTemp))
 
 	lcontig = GetGraphNode( ScaffoldGraph->ContigGraph, scaff->info.Scaffold.AEndCI);
+    lcontigID = lcontig->id;
 	rcontigID = lcontig->BEndNext;
 	while ( rcontigID != -1 )
 	{
@@ -1197,6 +1198,8 @@ int main( int argc, char *argv[])
 				  createAContigFailures++;
 				}
 				  
+	            rcontig = GetGraphNode( ScaffoldGraph->ContigGraph, rcontigID);
+	            lcontig = GetGraphNode( ScaffoldGraph->ContigGraph, lcontigID);
 				if ( keepGap )
 				{
 				  fprintf( stderr, "closed gap %8d, contigs %8d and %8d, fragIids %9d and %9d\n",
@@ -1282,6 +1285,7 @@ int main( int argc, char *argv[])
 			   100.0 * (numSmallGapsClosed + numLargeGapsClosed) / (numSmallGaps + numLargeGaps));
 	  gapNumber++;
 	  lcontig = rcontig;
+	  lcontigID = lcontig->id;
 	  rcontigID = lcontig->BEndNext;
 
 	  fprintf( stderr, "at bottom of loop: lcontig->BEndNext: %d\n", lcontig->BEndNext);
