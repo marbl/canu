@@ -23,9 +23,24 @@ extern "C" {
 char *reverseComplementSequence(char *seq, u32bit seqlen);
 
 
+//  halign
+//
+//  N.B. align() (aka halign) was switched over to palloc() -- this
+//  fixed any memory leaks, and gives a 30%-ish speed increase.  This
+//  is thread safe (unless someone breaks palloc2()).
+//
+void
+halign(const char *string1,
+       const char *string2,
+       const int len1,
+       const int len2,
+       char *alnline1,
+       char *alnline2);
+
+
 #ifdef __cplusplus
 }
 #endif
 
 
-#endif  //  BRI_H
+#endif  //  BIO_H
