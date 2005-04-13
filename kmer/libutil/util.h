@@ -247,10 +247,6 @@ void    *memdup(const void *orig, size_t size);
 
 ////////////////////////////////////////
 //
-//  palloc
-//
-
-
 //  Pac-Man's memory allocator.
 //
 //  Grabs big chunks of memory, then gives out little pieces.  You can
@@ -262,6 +258,19 @@ void    *memdup(const void *orig, size_t size);
 //
 void   *palloc(size_t size);
 void    pfree(void);
+
+//  A thread-safe(r) implementation just forces the user to use a
+//  handle.  This also lets us use palloc() for collections of things
+//  -- e.g., twice in a program.  If you don't give a handle, the
+//  default one is used.
+//
+void   *palloc2(size_t size, void *handle);
+void    pfree2(void *handle);
+
+//  Get a new handle, release a used one.
+//
+void   *pallochandle(void);
+void    pfreehandle(void *handle);
 
 //  The block size can only be changed before the first call to
 //  palloc().  Calling psetblocksize() after that has no effect.

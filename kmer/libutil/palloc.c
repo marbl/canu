@@ -62,30 +62,60 @@ psetdebug(int on) {
   _palloc_stuff._dbg = on;
 }
 
+void*
+pallochandle(void) {
+  pallocroot *root = (pallocroot *)malloc(sizeof(pallocroot));
+  if (root == NULL)
+    fprintf(stderr, "pallochandle()-- can't allocate a handle!\n"), exit(1);
+  root->_bs  = 128 * 1024 * 1024;
+  root->_nl  = NULL;
+  root->_cn  = NULL;
+  root->_dbg = 0;
+  return(root);
+}
+
 void
-pfree(void) {
+pfreehandle(void *handle) {
+  free((pallocroot *)handle);
+}
+
+void
+pfree2(void *handle) {
+  pallocroot  *root = (pallocroot *)handle;
   pallocnode *n;
   size_t      r = 0;
   size_t      b = 0;
 
-  while ((n = _palloc_stuff._nl) != 0L) {
+  if (root == NULL)
+    root = &_palloc_stuff;
+
+  while ((n = root->_nl) != 0L) {
     r += n->_cp;
     b++;
-    _palloc_stuff._nl = n->_nx;
+    root->_nl = n->_nx;
     free(n->_dt);
     free(n);
   }
 
-  if (_palloc_stuff._dbg > 0)
+  if (root->_dbg > 0)
     fprintf(stderr, "palloc()-- "SIZETFMT" bytes in "SIZETFMT" blocks returned to free store.\n", r, b);
 
-  _palloc_stuff._nl = 0L;
-  _palloc_stuff._cn = 0L;
+  root->_nl = 0L;
+  root->_cn = 0L;
+}
+
+void
+pfree(void) {
+  pfree2(&_palloc_stuff);
 }
 
 
 void *
-palloc(size_t size) {
+palloc2(size_t size, void *handle) {
+  pallocroot  *root = (pallocroot *)handle;
+
+  if (root == NULL)
+    root = &_palloc_stuff;
 
   //  Make size a multiple of 8
   //
@@ -98,16 +128,16 @@ palloc(size_t size) {
 
   //  Allocate the initial block if it doesn't exist.
   //
-  if (_palloc_stuff._nl == NULL) {
-    _palloc_stuff._nl = (pallocnode *)really_allocate(sizeof(pallocnode));
-    _palloc_stuff._cn = _palloc_stuff._nl;
+  if (root->_nl == NULL) {
+    root->_nl = (pallocnode *)really_allocate(sizeof(pallocnode));
+    root->_cn = root->_nl;
 
-    if (_palloc_stuff._dbg > 0)
-      fprintf(stderr, "palloc()-- Inital block of "SIZETFMT" bytes at %p.\n", _palloc_stuff._bs, _palloc_stuff._cn);
+    if (root->_dbg > 0)
+      fprintf(stderr, "palloc()-- Inital block of "SIZETFMT" bytes at %p.\n", root->_bs, root->_cn);
 
-    _palloc_stuff._cn->_cp = 0;
-    _palloc_stuff._cn->_dt = (char *)really_allocate(_palloc_stuff._bs);
-    _palloc_stuff._cn->_nx = NULL;
+    root->_cn->_cp = 0;
+    root->_cn->_dt = (char *)really_allocate(root->_bs);
+    root->_cn->_nx = NULL;
   }
 
 
@@ -127,24 +157,24 @@ palloc(size_t size) {
   //    new block won't fit in current block
   //    new block is larger than current block
   //
-  if ((size > _palloc_stuff._bs) ||
-      ((size > _palloc_stuff._bs - _palloc_stuff._cn->_cp) &&
-       (size > _palloc_stuff._cn->_cp))) {
+  if ((size > root->_bs) ||
+      ((size > root->_bs - root->_cn->_cp) &&
+       (size > root->_cn->_cp))) {
     pallocnode *n;
 
     n = (pallocnode *)really_allocate(sizeof(pallocnode));
     n->_cp = size;
     n->_dt = (char *)really_allocate(size);
-    n->_nx = _palloc_stuff._nl;
+    n->_nx = root->_nl;
 
-    if (_palloc_stuff._dbg > 0)
+    if (root->_dbg > 0)
       fprintf(stderr, "palloc()-- New needs "SIZETFMT" bytes: custom new block at %p.\n",
               size,
               n);
 
-    _palloc_stuff._nl = n;
-    if (_palloc_stuff._cn == 0L)
-      _palloc_stuff._cn = n;
+    root->_nl = n;
+    if (root->_cn == 0L)
+      root->_cn = n;
 
     return(n->_dt);
   }
@@ -152,35 +182,42 @@ palloc(size_t size) {
 
   //  Need more space?
   //
-  if (size + _palloc_stuff._cn->_cp > _palloc_stuff._bs) {
-    _palloc_stuff._cn->_nx = (pallocnode *)really_allocate(sizeof(pallocnode));
+  if (size + root->_cn->_cp > root->_bs) {
+    root->_cn->_nx = (pallocnode *)really_allocate(sizeof(pallocnode));
 
-    if (_palloc_stuff._dbg > 0)
+    if (root->_dbg > 0)
       fprintf(stderr, "palloc()-- Old block %.3f%% used ("SIZETFMT" bytes remaining), new needs "SIZETFMT" bytes: new block of "SIZETFMT" bytes at %p.\n",
-              100.0 * _palloc_stuff._cn->_cp / _palloc_stuff._bs,
-              _palloc_stuff._bs - _palloc_stuff._cn->_cp,
+              100.0 * root->_cn->_cp / root->_bs,
+              root->_bs - root->_cn->_cp,
               size,
-              _palloc_stuff._bs,
-              _palloc_stuff._cn->_nx);
+              root->_bs,
+              root->_cn->_nx);
 
-    _palloc_stuff._cn      = _palloc_stuff._cn->_nx;
-    _palloc_stuff._cn->_cp = 0;
-    _palloc_stuff._cn->_dt = (char *)really_allocate(_palloc_stuff._bs);
-    _palloc_stuff._cn->_nx = NULL;
+    root->_cn      = root->_cn->_nx;
+    root->_cn->_cp = 0;
+    root->_cn->_dt = (char *)really_allocate(root->_bs);
+    root->_cn->_nx = NULL;
   }
 
 
   //  OK, grab the space, and return it.
   //
-  _palloc_stuff._cn->_cp += size;
+  root->_cn->_cp += size;
 
-  if (_palloc_stuff._dbg > 1)
+  if (root->_dbg > 1)
     fprintf(stderr, "palloc()-- Old block %.3f%% used ("SIZETFMT" bytes remaining): returning "SIZETFMT" bytes.\n",
-              100.0 * _palloc_stuff._cn->_cp / _palloc_stuff._bs,
-            _palloc_stuff._bs - _palloc_stuff._cn->_cp,
+              100.0 * root->_cn->_cp / root->_bs,
+            root->_bs - root->_cn->_cp,
             size);
 
-  return(_palloc_stuff._cn->_dt + _palloc_stuff._cn->_cp - size);
+  return(root->_cn->_dt + root->_cn->_cp - size);
+}
+
+
+
+void *
+palloc(size_t size) {
+  return(palloc2(size, &_palloc_stuff));
 }
 
 
