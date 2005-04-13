@@ -256,8 +256,6 @@ main(int argc, char **argv) {
 //
 ////////////////////////////////////////
 
-#define MININT     (-99999)
-
 #define DEL 0
 #define INS 1
 #define SUB 2
@@ -287,13 +285,49 @@ typedef struct edit_script_list {
   edit_script *script;
 } edit_script_list;
 
-static void sim4_align_path(const char *,const char *,int,int,int,int,int,edit_script**,edit_script**,int,int);
-static int  sim4_align_get_dist(const char *,const char *,int, int, int, int, int);
+static
+void
+align_path(const char *seq1,
+           const char *seq2,
+           int i1, int j1,
+           int i2, int j2,
+           int dist,
+           edit_script **head,
+           edit_script **tail,
+           int M,
+           int N,
+           void *ph);
 
-static void Free_script(edit_script *);
+static
+int
+align_get_dist(const char *seq1,
+               const char *seq2,
+               int i1, int j1,
+               int i2, int j2,
+               int limit,
+               void *ph);
 
-static int snake(const char *,const char *,int, int, int, int);
-static int rsnake(const char *,const char *,int, int, int, int, int,int);
+static
+int
+snake(const char *seq1,
+      const char *seq2,
+      int k,
+      int x,
+      int endx,
+      int endy);
+
+static
+int
+rsnake(const char *seq1,
+       const char *seq2,
+       int k,
+       int x,
+       int startx,
+       int starty,
+       int M,
+       int N);
+
+
 
 void
 align(const char *seq1,
@@ -303,46 +337,59 @@ align(const char *seq1,
       char *alnline1,
       char *alnline2) {
   edit_script      *head, *tail, *tp;
-  int               diff, i;
-  char             *a, *b, *at, *bt;
+  int               i;
+  void             *ph;
 
-  diff = sim4_align_get_dist(seq1, seq2, 0, 0, len1, len2, len1+len2);
+  ph = pallochandle();
 
-  sim4_align_path(seq1, seq2, 0, 0, len1, len2, diff, &head, &tail, len1, len2);
+  align_path(seq1, seq2,
+             0, 0,
+             len1, len2,
+             align_get_dist(seq1, seq2, 0, 0, len1, len2, len1+len2, ph),
+             &head, &tail,
+             len1, len2,
+             ph);
         
   /* generate the alignment(s) */
-  alnline1[0] = '\0';
-  alnline2[0] = '\0';
 
-  a = (char *)seq1; at = alnline1;
-  b = (char *)seq2; bt = alnline2;
+  *alnline1 = 0;
+  *alnline2 = 0;
 
   for (tp=head; tp; tp=tp->next) {
     switch (tp->op_type) {
       case SUB:
         for (i=0; i<tp->num; i++) {
-          if (*a==*b) {
-            *at = tolower(*a);
-            *bt = tolower(*b);
+          if (*seq1 == *seq2) {
+            *alnline1 = tolower(*seq1);
+            *alnline2 = tolower(*seq2);
           } else {
-            *at = toupper(*a);
-            *bt = toupper(*b);
+            *alnline1 = toupper(*seq1);
+            *alnline2 = toupper(*seq2);
           }
-          a++; b++; at++; bt++;
+          seq1++;
+          seq2++;
+          alnline1++;
+          alnline2++;
         }
         break; 
 
       case INS:
         for (i=0; i<tp->num; i++) {
-          *at = '-'; *bt = toupper(*b);
-          b++; at++; bt++;
+          *alnline1 = '-';
+          *alnline2 = toupper(*seq2);
+          seq2++;
+          alnline1++;
+          alnline2++;
         }
         break;  
 
       case DEL:
         for (i=0; i<tp->num; i++) {
-          *bt = '-'; *at = toupper(*a);
-          a++; at++; bt++;
+          *alnline2 = '-';
+          *alnline1 = toupper(*seq1);
+          seq1++;
+          alnline1++;
+          alnline2++;
         }
         break;
 
@@ -351,21 +398,25 @@ align(const char *seq1,
         exit(0);
     }
   }
-  *at = '\0';
-  *bt = '\0';
-
-  Free_script(head);
+  *alnline1 = 0;
+  *alnline2 = 0;
 
   pfree();
 }
 
 
 int
-sim4_align_get_dist(const char *seq1, const char *seq2, int i1, int j1, int i2, int j2, int limit) {
+align_get_dist(const char *seq1,
+               const char *seq2,
+               int i1, int j1,
+               int i2, int j2,
+               int limit,
+               void *ph) {
   int *last_d, *temp_d;
   int goal_diag, ll, uu;
   int c, k, row;
-  int start, lower, upper;
+  int start;
+  int lower, upper;
 
   /* Compute the boundary diagonals */
   start = j1 - i1;
@@ -380,19 +431,15 @@ sim4_align_get_dist(const char *seq1, const char *seq2, int i1, int j1, int i2, 
   }
 
   /* Allocate space for forward vectors */
-  last_d = (int *)palloc((upper-lower+1)*sizeof(int)) - lower;
-  temp_d = (int *)palloc((upper-lower+1)*sizeof(int)) - lower;
+  last_d = (int *)palloc2((upper-lower+1)*sizeof(int), ph) - lower;
+  temp_d = (int *)palloc2((upper-lower+1)*sizeof(int), ph) - lower;
 
   /* Initialization */
-  for (k=lower; k<=upper; ++k) last_d[k] = MININT;
+  for (k=lower; k<=upper; ++k) last_d[k] = INT_MIN;
   last_d[start] = snake(seq1, seq2, start, i1, i2, j2);
 
-  if (last_d[goal_diag] >= i2) {
-    //  palloc!
-    //free(last_d+lower);
-    //free(temp_d+lower);
+  if (last_d[goal_diag] >= i2)
     return 0;
-  }
 
   for (c=1; c<=limit; ++c) {
     ll = max(lower,start-c); uu = min(upper, start+c);
@@ -415,31 +462,33 @@ sim4_align_get_dist(const char *seq1, const char *seq2, int i1, int j1, int i2, 
 
     for (k=ll; k<=uu; ++k) last_d[k] = temp_d[k];
 
-    if (last_d[goal_diag] >= i2) {
-      //  palloc!
-      //free(last_d+lower);
-      //free(temp_d+lower);
+    if (last_d[goal_diag] >= i2)
       return c;
-    }
   }
-
-  //  palloc!
-  //free(last_d+lower);
-  //free(temp_d+lower);
 
   /* Ran out of distance limit */
   return -1;
 }
 
 void
-sim4_align_path(const char *seq1, const char *seq2, int i1, int j1, int i2, int j2, int dist, edit_script **head, edit_script **tail, int M, int N) {
+align_path(const char *seq1,
+           const char *seq2,
+           int i1, int j1,
+           int i2, int j2,
+           int dist,
+           edit_script **head,
+           edit_script **tail,
+           int M,
+           int N,
+           void *ph) {
 
-  int     *last_d, *temp_d,       /* forward vectors */
-    *rlast_d, *rtemp_d;     /* backward vectors */
+  int     *last_d, *temp_d;       /* forward vectors */
+  int    *rlast_d, *rtemp_d;     /* backward vectors */
 
   edit_script *head1, *tail1, *head2, *tail2;
   int midc, rmidc;
-  int start, lower, upper;
+  int start;
+  int lower, upper;
   int rstart, rlower, rupper;
   int c, k, row;
   int mi, mj, tmp, ll, uu;
@@ -451,7 +500,7 @@ sim4_align_path(const char *seq1, const char *seq2, int i1, int j1, int i2, int 
   if (i1 == i2) {
     if (j1 == j2) *head = NULL;
     else {
-      head1 = (edit_script *)palloc(sizeof(edit_script));
+      head1 = (edit_script *)palloc2(sizeof(edit_script), ph);
       head1->op_type = INS;
       head1->num = j2-j1;
       head1->next = NULL;
@@ -461,7 +510,7 @@ sim4_align_path(const char *seq1, const char *seq2, int i1, int j1, int i2, int 
   }
 
   if (j1 == j2) {
-    head1 = (edit_script *)palloc(sizeof(edit_script));
+    head1 = (edit_script *)palloc2(sizeof(edit_script), ph);
     head1->op_type = DEL;
     head1->num = i2-i1;
     head1->next = NULL;
@@ -472,7 +521,7 @@ sim4_align_path(const char *seq1, const char *seq2, int i1, int j1, int i2, int 
   if (dist <= 1) {
     start = j1-i1;
     if (j2-i2 == j1-i1) {
-      head1 = (edit_script *)palloc(sizeof(edit_script));
+      head1 = (edit_script *)palloc2(sizeof(edit_script), ph);
       head1->op_type = SUB;
       head1->num = i2-i1;
       head1->next = NULL;
@@ -481,12 +530,12 @@ sim4_align_path(const char *seq1, const char *seq2, int i1, int j1, int i2, int 
 
       tmp = snake(seq1,seq2,start,i1,i2,j2);
       if (tmp>i1) {
-        head1 = (edit_script *)palloc(sizeof(edit_script));
+        head1 = (edit_script *)palloc2(sizeof(edit_script), ph);
         head1->op_type = SUB;
         head1->num = tmp-i1;
         *head = head1;
       }
-      head2 = (edit_script *)palloc(sizeof(edit_script));
+      head2 = (edit_script *)palloc2(sizeof(edit_script), ph);
       head2->op_type = INS;
       head2->num = 1;
 
@@ -497,7 +546,7 @@ sim4_align_path(const char *seq1, const char *seq2, int i1, int j1, int i2, int 
 
       if (i2-tmp) {
         head1 = head2;
-        *tail = head2 = (edit_script *)palloc(sizeof(edit_script));
+        *tail = head2 = (edit_script *)palloc2(sizeof(edit_script), ph);
         head2->op_type = SUB;
         head2->num = i2-tmp;
         head2->next = NULL;
@@ -507,12 +556,12 @@ sim4_align_path(const char *seq1, const char *seq2, int i1, int j1, int i2, int 
 
       tmp = snake(seq1,seq2,start,i1,i2,j2);
       if (tmp>i1) {
-        head1 = (edit_script *)palloc(sizeof(edit_script));
+        head1 = (edit_script *)palloc2(sizeof(edit_script), ph);
         head1->op_type = SUB;
         head1->num = tmp-i1;
         *head = head1;
       }
-      head2 = (edit_script *)palloc(sizeof(edit_script));
+      head2 = (edit_script *)palloc2(sizeof(edit_script), ph);
       head2->op_type = DEL;
       head2->num = 1;
 
@@ -523,7 +572,7 @@ sim4_align_path(const char *seq1, const char *seq2, int i1, int j1, int i2, int 
 
       if (i2>tmp+1) {
         head1 = head2;
-        *tail = head2 = (edit_script *)palloc(sizeof(edit_script));
+        *tail = head2 = (edit_script *)palloc2(sizeof(edit_script), ph);
         head2->op_type = SUB;
         head2->num = i2-tmp-1;
         head2->next = NULL;
@@ -549,8 +598,8 @@ sim4_align_path(const char *seq1, const char *seq2, int i1, int j1, int i2, int 
   rupper = min(j2-i1, rstart+rmidc);
 
   /* Allocate space for forward vectors */
-  last_d = (int *)palloc((upper-lower+1)*sizeof(int)) - lower;
-  temp_d = (int *)palloc((upper-lower+1)*sizeof(int)) - lower;
+  last_d = (int *)palloc2((upper-lower+1)*sizeof(int), ph) - lower;
+  temp_d = (int *)palloc2((upper-lower+1)*sizeof(int), ph) - lower;
 
   for (k=lower; k<=upper; k++) last_d[k] = -1;
   last_d[start] = snake(seq1,seq2,start,i1,i2,j2);
@@ -586,8 +635,8 @@ sim4_align_path(const char *seq1, const char *seq2, int i1, int j1, int i2, int 
   }
 
   /* Allocate space for backward vectors */
-  rlast_d = (int *)palloc((rupper-rlower+1)*sizeof(int)) - rlower;
-  rtemp_d = (int *)palloc((rupper-rlower+1)*sizeof(int)) - rlower;
+  rlast_d = (int *)palloc2((rupper-rlower+1)*sizeof(int), ph) - rlower;
+  rtemp_d = (int *)palloc2((rupper-rlower+1)*sizeof(int), ph) - rlower;
 
   for (k=rlower; k<=rupper; k++) rlast_d[k] = i2+1;
   rlast_d[rstart] = rsnake(seq1,seq2,rstart,i2,i1,j1,M,N);
@@ -641,16 +690,13 @@ sim4_align_path(const char *seq1, const char *seq2, int i1, int j1, int i2, int 
       break;
     }
   }
-  //  palloc!
-  //free(last_d+lower); free(rlast_d+rlower);
-  //free(temp_d+lower); free(rtemp_d+rlower);
 
   if (flag) {
     /* Find a path from (i1,j1) to (mi,mj) */
-    sim4_align_path(seq1,seq2,i1,j1,mi,mj,midc,&head1,&tail1,M,N);
+    align_path(seq1,seq2,i1,j1,mi,mj,midc,&head1,&tail1,M,N,ph);
 
     /* Find a path from (mi,mj) to (i2,j2) */
-    sim4_align_path(seq1,seq2,mi,mj,i2,j2,rmidc,&head2,&tail2,M,N);
+    align_path(seq1,seq2,mi,mj,i2,j2,rmidc,&head2,&tail2,M,N,ph);
 
     /* Join these two paths together */
     if (head1) tail1->next = head2;
@@ -695,20 +741,4 @@ rsnake(const char *seq1, const char *seq2, int k, int x, int startx, int starty,
     --x; --y;
   }
   return x;
-}
-
-
-void
-Free_script(edit_script *head) {
-  //  palloc!
-  return;
-
-  edit_script *tp, *tp1;
-
-  tp = head;
-  while (tp != NULL) {
-    tp1 = tp->next;
-    free(tp);
-    tp = tp1;
-  }
 }
