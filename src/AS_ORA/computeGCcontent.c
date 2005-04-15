@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: computeGCcontent.c,v 1.3 2005-03-22 19:49:05 jason_miller Exp $";
+static char CM_ID[] = "$Id: computeGCcontent.c,v 1.4 2005-04-15 13:38:10 ahalpern Exp $";
 
 
 #include <assert.h>
@@ -73,7 +73,7 @@ int main (int argc, char *argv[]) {
     assert(0);
 
   if(argc!=4){
-    fprintf(stderr,"Usage: %s frgStore gkpStore list_of_fragIIDs\n",argv[0]);
+    fprintf(stderr,"Usage: %s frgStore gkpStore last_frag_iid\n",argv[0]);
     exit(-1);
   }
 
