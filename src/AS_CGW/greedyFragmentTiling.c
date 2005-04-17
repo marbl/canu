@@ -58,20 +58,19 @@
 HashTable_AS *CreateHashTable_AS(int numItemsToHash, HashFn_AS hash, HashCmpFn_AS cmp); /*);*/
 int StringHashFn_AS(const void *pointerToString, int length);
 
-static HashTable_AS *subset_name2iid;
-static HashTable_AS *full_name2iid;
-static char subset_names[2000000][20];
-static char full_names[2000000][20];
-static VA_TYPE(uint64) *subset_iid2name;
-static VA_TYPE(uint64) *full_iid2name;
 static OVL_Store_t  * my_store = NULL;
+static OVL_Store_t  * my_second_store = NULL;
 
 
-void setup_ovlStore(char *OVL_Store_Path){
+void setup_ovlStores(char *OVL_Store_Path){
 
   assert(my_store==NULL);
   my_store = New_OVL_Store ();
   Open_OVL_Store (my_store, OVL_Store_Path);
+
+  assert(my_second_store==NULL);
+  my_second_store = New_OVL_Store ();
+  Open_OVL_Store (my_second_store, OVL_Store_Path);
 
 }
 
@@ -90,6 +89,55 @@ typedef enum {
   BEST_MEANS_LOWEST_ERROR=2,
   BEST_MEANS_BEST_UPPER_BOUND=3
 }BestMeasure;
+
+
+
+uint64 iid2uid(uint32 iid){
+  static uint64 *uid=NULL;
+  if(uid==NULL){
+    int i;
+    int last = getLastElemFragStore (my_frg_store);
+    uid = (uint64 *)safe_malloc(sizeof(uint64)*(last+1));
+    for(i=0;i<=last;i++){
+      uid[i]=0;
+    }
+  }
+
+  if(uid[iid]!=0){
+    return (uid[iid]);
+  } else {
+    GateKeeperFragmentRecord gkpFrag;
+    if(getGateKeeperFragmentStore(my_gkp_store.frgStore,iid,&gkpFrag)!=0)
+      assert(0);
+    uid[iid] = gkpFrag.readUID;
+  }
+  return uid[iid];
+}
+
+
+int get_clr_len(uint32 iid){
+  static int *len=NULL;
+  if(len==NULL){
+    int i;
+    int last = getLastElemFragStore (my_frg_store);
+    len = (int *)safe_malloc(sizeof(int)*(last+1));
+    for(i=0;i<=last;i++){
+      len[i]=-1;
+    }
+  }
+
+  if(len[iid]!=-1){
+    return (len[iid]);
+  } else {
+    uint clr_bgn,clr_end;
+    getFragStore(my_frg_store,iid,FRAG_S_ALL,fsread);
+    getClearRegion_ReadStruct(fsread, &clr_bgn,&clr_end, READSTRUCT_LATEST);
+    len[iid]= clr_end-clr_bgn;
+  }
+  return len[iid];
+}
+
+
 
 void olap_ref_swap(Long_Olap_Data_t *o){
 
@@ -197,11 +245,48 @@ double get_95pct_upper(int L, double obsrate){
     
 				  
 
+int isDeadEnd(int frg, int offAEnd, double erate, int useCorrected, int skipContaining, int minlen,int frglen){
+
+  OVL_Stream_t  * my_stream = New_OVL_Stream ();
+  int retval=0;
+  Long_Olap_Data_t  olap;
+
+  assert(my_second_store!=NULL);
+
+  Init_OVL_Stream (my_stream, frg, frg, my_second_store);
+
+  while  (Next_From_OVL_Stream (& olap, my_stream)){
+
+    // exclude too-sloppy overlaps
+
+    if(useCorrected&&olap.corr_erate>erate*1000)continue;
+
+    if(!useCorrected&&olap.orig_erate>erate*1000)continue;
+
+    assert(olap.a_iid == frg);
+
+    // exclude contained overlaps
+    if( olap.a_hang > 0 && olap.b_hang < 0)continue;
+
+    // exclude containing overlaps
+    if( skipContaining && olap.a_hang < 0 && olap.b_hang > 0)continue;
+
+    if(frglen-max(0,olap.a_hang)+min(0,olap.b_hang) < minlen)continue;
+
+    // if it's off the correct end ...
+    if( (offAEnd ? (olap . a_hang < 0) : (olap.b_hang > 0))){
+      Free_OVL_Stream (my_stream);
+      return 0;
+    }
+  } 
+  Free_OVL_Stream (my_stream);
+  return 1;
+}
 
 
 
-
-Long_Olap_Data_t better_olap(Long_Olap_Data_t a, Long_Olap_Data_t b, int startingFrg, int offAEnd, BestMeasure bestType, int frglen, int useCorrected){
+Long_Olap_Data_t better_olap(Long_Olap_Data_t a, Long_Olap_Data_t b, int startingFrg, int offAEnd, BestMeasure bestType, int frglen, 
+			     int useCorrected, int skipContaining, int minlen, int avoidDeadEnds, double erate ){
 
   int aThick, bThick;
   int aMis, bMis;
@@ -209,6 +294,33 @@ Long_Olap_Data_t better_olap(Long_Olap_Data_t a, Long_Olap_Data_t b, int startin
 
   Long_Olap_Data_t copy_a =a;
   Long_Olap_Data_t copy_b =b;
+
+  if(avoidDeadEnds){ // check for extension off far end of other fragment
+
+    int aIsDead=0;
+    int bIsDead=0;
+
+    int aOtherAEnd;  // whether the far end of the other fragment of overlap "a" is its A-end or not
+    int bOtherAEnd;  // whether the far end of the other fragment of overlap "b" is its A-end or not
+
+    assert(a.a_iid==startingFrg);
+    assert(b.a_iid==startingFrg);
+
+    if(offAEnd){
+      aOtherAEnd = !a.flipped;
+      bOtherAEnd = !b.flipped;
+    } else {
+      aOtherAEnd = a.flipped;
+      bOtherAEnd = b.flipped;
+    }
+
+    aIsDead = isDeadEnd(a.b_iid,aOtherAEnd,erate,useCorrected,skipContaining,minlen,frglen);
+    bIsDead = isDeadEnd(b.b_iid,bOtherAEnd,erate,useCorrected,skipContaining,minlen,frglen);
+    
+    // if status is different, then prefer the live one ...
+    if(aIsDead<bIsDead)return a;
+    if(aIsDead>bIsDead)return b;
+  }
 
   switch (bestType){
 
@@ -301,7 +413,7 @@ Long_Olap_Data_t better_olap(Long_Olap_Data_t a, Long_Olap_Data_t b, int startin
 }
 
 
-int best_overlap_off_end(int id, int offAEnd,BestMeasure bestType,Long_Olap_Data_t *bestovl,double erate,int useCorrected,int skipContaining,int minlen, int frglen){
+int best_overlap_off_end(int id, int offAEnd,BestMeasure bestType,Long_Olap_Data_t *bestovl,double erate,int useCorrected,int skipContaining,int minlen, int frglen,int avoidDeadEnds){
   Long_Olap_Data_t  olap, bestolap;
   int goodOlap=0;
   OVL_Stream_t  * my_stream = New_OVL_Stream ();
@@ -327,6 +439,8 @@ int best_overlap_off_end(int id, int offAEnd,BestMeasure bestType,Long_Olap_Data
     // exclude containing overlaps
     if( skipContaining && olap.a_hang < 0 && olap.b_hang > 0)continue;
 
+    // exclude too-short overlaps
+    if(frglen-max(0,olap.a_hang)+min(0,olap.b_hang) < minlen)continue;
 
     // if it's off the correct end ...
     if( (offAEnd ? (olap . a_hang < 0) : (olap.b_hang > 0))){
@@ -337,7 +451,7 @@ int best_overlap_off_end(int id, int offAEnd,BestMeasure bestType,Long_Olap_Data
 	goodOlap=1;
 	bestolap=olap; 
       } else {
-	bestolap=better_olap(bestolap,olap, id, offAEnd,bestType,frglen,useCorrected);
+	bestolap=better_olap(bestolap,olap, id, offAEnd,bestType,frglen,useCorrected,skipContaining,minlen,avoidDeadEnds,erate);
       }
     } else {
       // does not stick off the correct end
@@ -352,22 +466,223 @@ int best_overlap_off_end(int id, int offAEnd,BestMeasure bestType,Long_Olap_Data
 }
 
 
+struct dfs_node_tag {
+  int orderReached;
+  int finished;
+  int parent;
+  int height;
+  int bestChild;
+} dfsGreedyFrg;
+
+void init_dfsGreedyFrg(dfsGreedyFrg *f){
+  f->orderReached=-1;
+  f->finished=0;
+  f->parent=0;
+  f->height=0;
+  f->bestChild=0;
+}
+
+struct ovlfilt_tag {
+  BestMeasure type;
+  double erate;
+  int useCorrected;
+  int skipContaining;
+  int minlen;
+} overlapFilters;
+
+
+
+      
+       
+  
+
+void DFS_longest_chain(dfsGreedyFrg *frgNodes,overlapFilters filter){
+
+
+/* THE PLAN:
+
+set current = first fragment
+while (current <= last fragment )
+  if current not already marked finished
+    mark current visit time
+    init overlap iterator
+    set finished = 1
+    foreach overlap
+      if target not yet visited, 
+        set finished = 0 
+        set target's parent as current
+        set current to target
+        break
+      if target currently in stack (i.e. visit time valid but not marked finished), continue
+      else (i.e. if target is already marked finished)
+         if current's height through this one is an improvement
+           set height
+           set best child
+    end
+    if finished (i.e. we didn't go down farther)
+      mark current finished
+      if current has a parent
+        set current = current's parent
+      else 
+        advance current to next unfinished node
+end
+
+*/
+
+  dfsGreedyFrg *frgNodes=NULL;
+  OVL_Stream_t  * my_stream = New_OVL_Stream ();
+  Long_Olap_Data_t olap;
+
+  int curr=0;
+  int visited=0;
+  int last =  Last_Frag_In_OVL_Store (my_ovl_store);
+
+  frgNodes = (dfsGreedyFrg *) safe_malloc(sizeof(dfsGreedyFrg)*(last+1));
+  for(int i=1;i<=last;i++){
+    init_dfsGreedyFrg(frgNodes+i);
+  }
+
+  //set current = first fragment
+  curr=1;
+
+  // while (current <= last fragment )
+  while(curr<=last){
+
+    // set deadEnd = 1 -- signal that there were no (non-cycle) overlaps available
+    int deadEnd = 1;
+
+    // set finished = 1 -- signal that we did not hit an unvisited target and descend
+    int finished = 1
+
+    assert(!frgNodes[curr].finished);
+
+    //  mark current visit time
+    frgNodes[startfrg].orderReached = ++visited;
+
+    // init overlap iterator
+    Init_OVL_Stream (my_stream, curr, curr, my_ovl_store);
+
+    
+    // foreach overlap
+    while  (Next_From_OVL_Stream (& olap, my_stream)){
+
+      int target = olap.b_iid;
+      assert(olap.a_iid=curr);
+
+      // if target currently in stack (i.e. visit time valid but not marked finished), continue
+      if (frgNodes[target].orderReached>0&&frgNodes[target].finished==0){
+	continue;
+      }
+
+      // if we got here, there is at least one path to follow from current
+      deadEnd=0;
+
+      // else if target not yet visited, 
+      if(frgNodes[target].visited==0){
+	// set finished = 0 
+	finished=0;
+        // set target's parent as current
+	frgNodes[target].parent=curr;
+        // set current to target
+	curr=target;
+        // break out of loop over overlaps -- we are going down to a lower node!
+	break;
+      }
+
+      // else (i.e. if target is already marked finished)
+      {
+
+	int wouldBeHeight = frgNodes[target].height + ???extra_height;
+
+	// if current's height through this one is an improvement
+	if(wouldBeHeight > frgNodes[curr].height){
+	  // set height
+	  frgNodes[curr].height = wouldBeHeight;
+	  // set best child
+	  frgNodes[curr].bestChild = target;
+	}
+
+      }
+
+    }
+
+    // if finished (i.e. we didn't go down farther)
+    if(finished){
+
+      if(deadEnd){
+	frgNodes[curr].height = get_clr_len(curr);
+      }
+
+      // mark current finished
+      frgNodes[curr].finished=1;
+
+      // if current has a parent
+      if(frgNodes[curr].parent!=0){
+
+        // set current = current's parent
+	curr=frgNodes[curr].parent;
+
+      } else {
+	
+        // advance current to next unfinished node
+	while(curr<=last&&frgNodes[curr].finished){
+	  curr++;
+	}
+
+      }
+    }
+  }
+}
+
+void DFS_longest_chain(){
+  /* For each fragment, record
+     on the way down:
+     - initial order
+     - parent
+     - depth
+     on the way up:
+     - favorite child
+     - height
+     - pop order (or at least pop status)
+
+     At a node, consider all of its children;
+     for each child,
+       if the child has not been marked finished, continue  // break cycles
+       if not already visited,
+         order_visited=visisted_nodes++;
+         process (recurse)
+         mark finished
+       if height > highest
+          favorite = this child
+          highest = height
+
+     We will either be 
+       - inefficient, having to loop through the N overlaps of a node in O(N*N) steps ... plus a *lot* of time setting up iterators
+       - memory bloated (if we add all overlaps to the stack)
+       - tricky (if we let each node know how many of its overlaps we have already processed and we can jump to the i'th overlap)
+            but still we have a lot of overlap iterators to set up
+  */
+}
+
+
 void finished_with_ovlStore(void){
 
   Free_OVL_Store (my_store);
+  Free_OVL_Store (my_second_store);
 
 }
 
 
 void usage(char *pgm){
 	fprintf (stderr, 
-		 "USAGE:  %s -f <FragStoreName> -n <startingFrgNum> -o <full_ovlStore> [-C] [-e <erate cutoff>] [-E] [-m <minlen>] [-Q]\n"
+		 "USAGE:  %s -f <FragStoreName> -n <startingFrgNum> -o <full_ovlStore> [-C] [-e <erate cutoff>] [-E] [-m <minlen>] [-Q] [-D]\n"
 		 "\t-n startingFrgNum = fragment to walk out from\n"
 		 "\t-C specifies to not use containing fragments, i.e. only dovetails\n"
 		 "\t-e specifies the maximum mismatch rate (as a fraction, i.e. .01 means one percent)\n"
 		 "\t-E specifies that the corrected error rate rather than the original is to be used\n"
 		 "\t-Q specifies that the lowest error rate overlap will be used (in place of thickest)\n"
-		 "\t-B specifies that the overlap with the lowest upper bound on the mismatch rate will be used\n",
+		 "\t-B specifies that the overlap with the lowest upper bound on the mismatch rate will be used\n"
+		 "\t-D specifies that best quality should win over avoiding dead ends; by default, a fragment that is not a dead end wins over one that is\n",
 		 pgm);
 }
 
@@ -402,6 +717,7 @@ int main (int argc , char * argv[] ) {
   int useCorrectedErate=0;
   int skipContaining=1;
   int minlen=40;
+  int avoidDeadEnds=1;
 
   GlobalData  = data = CreateGlobal_CGW();
   data->stderrc = stderr;
@@ -415,13 +731,16 @@ int main (int argc , char * argv[] ) {
   { /* Parse the argument list using "man 3 getopt". */ 
     int ch,errflg=0;
     optarg = NULL;
-    while (!errflg && ((ch = getopt(argc, argv,"BCe:Ef:m:n:o:Q")) != EOF)){
+    while (!errflg && ((ch = getopt(argc, argv,"BCDe:Ef:m:n:o:Q")) != EOF)){
       switch(ch) {
       case 'B':
 	bestType=BEST_MEANS_BEST_UPPER_BOUND;
 	break;
       case 'C':
 	skipContaining = 0;
+	break;
+      case 'D':
+	avoidDeadEnds=0;
 	break;
       case 'e':
 	maxError = atof(optarg);
@@ -473,7 +792,7 @@ int main (int argc , char * argv[] ) {
    for(i=0;i<=last_stored_frag;i++)seen[i]='\0';
   }
 
-  setup_ovlStore(full_ovlPath);
+  setup_ovlStores(full_ovlPath);
 
   stillGoing=1;
   Aend=1;
@@ -487,7 +806,7 @@ int main (int argc , char * argv[] ) {
     getClearRegion_ReadStruct(fsread, &clr_bgn,&clr_end, READSTRUCT_LATEST);
     frglen=clr_end-clr_bgn;
     printf("%d  %d %d %s\n",currFrg,ahang,ahang+frglen, Aend?"<--":"-->");
-    stillGoing = best_overlap_off_end(currFrg, Aend, bestType,&o,maxError,useCorrectedErate,skipContaining,minlen,frglen);
+    stillGoing = best_overlap_off_end(currFrg, Aend, bestType,&o,maxError,useCorrectedErate,skipContaining,minlen,frglen,avoidDeadEnds);
     if(stillGoing){
       if(currFrg==startingFrgNum){
 	firstExtend= ( o.a_iid==currFrg) ? o.b_iid : o.a_iid;
@@ -553,7 +872,7 @@ int main (int argc , char * argv[] ) {
     Long_Olap_Data_t o;
     if(currFrg!=startingFrgNum&&currFrg!=firstExtend)  printf("%d %d %d %s\n",currFrg,ahang-frglen,ahang,!Aend?"<--":"-->");
 
-    stillGoing = best_overlap_off_end(currFrg, Aend, bestType,&o,maxError,useCorrectedErate,skipContaining,minlen,frglen);
+    stillGoing = best_overlap_off_end(currFrg, Aend, bestType,&o,maxError,useCorrectedErate,skipContaining,minlen,frglen,avoidDeadEnds);
     if(stillGoing){
       if(o.a_iid==currFrg){
 	currFrg=o.b_iid;
