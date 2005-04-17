@@ -26,8 +26,8 @@
 
 
 /* RCS info
- * $Id: OlapStoreOVL.c,v 1.4 2005-03-22 19:49:19 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Id: OlapStoreOVL.c,v 1.5 2005-04-17 20:11:58 ahalpern Exp $
+ * $Revision: 1.5 $
 */
 
 
@@ -167,6 +167,73 @@ void  Init_OVL_Stream
    file_position = stream -> offset_buff [i - first] * sizeof (Short_Olap_Data_t);
    CDS_FSEEK (stream -> fp, (off_t) file_position, SEEK_SET);
    stream -> curr_offset = stream -> offset_buff [i - first];
+   stream -> store = store;
+
+   return;
+  }
+
+
+void  Init_OVL_Stream_Intra_Frg
+    (OVL_Stream_t * stream, uint32 iid, int skipped_ovls, OVL_Store_t * store)
+
+//  Initialize  stream  to read overlaps for fragments  first .. last
+//  from overlap store  store .
+
+  {
+   char  filename [MAX_FILENAME_LEN];
+   size_t  file_position;
+   uint32  i, header [3];
+   int  len, new_file_index;
+
+   if  (store == NULL || store -> name == NULL || store -> offset_fp == NULL)
+       {
+        fprintf (stderr,
+                 "ERROR:  In Init_OVL_Stream overlap store has not been opened\n");
+        exit (EXIT_FAILURE);
+       }
+   if  (iid < 1 || iid > store -> max_frag)
+       {
+        fprintf (stderr,
+                 "ERROR:  Init_OVL_Stream_Intra_Frg iid = %u not in range 1 .. %u\n",
+                 iid, store -> max_frag);
+        exit (EXIT_FAILURE);
+       }
+
+   rewind (store -> offset_fp);
+   Safe_fread (header, sizeof (uint32), 3, store -> offset_fp);
+   assert (store -> max_frag = header [0]);
+   assert (header [1] == sizeof (Short_Olap_Data_t));
+   assert (store -> frags_per_file = header [2]);
+
+   stream -> start_id = iid;
+   stream -> stop_id = iid;
+   len = 2;
+
+   stream -> offset_buff = (uint32 *) Safe_realloc (stream -> offset_buff,
+                                                    len * sizeof (uint32));
+   CDS_FSEEK (store -> offset_fp,
+              (off_t) (iid * sizeof (uint32)), SEEK_CUR);
+   Safe_fread (stream -> offset_buff, sizeof (uint32), len, store -> offset_fp);
+
+
+   // make sure we are looking for no more than one past the last overlap for iid
+   assert(stream->offset_buff[1]-stream->offset_buff[0] >= skipped_ovls);
+
+   stream -> curr_id = iid;
+   new_file_index = (int) ceil ((double) iid / store -> frags_per_file);
+   if  (stream -> curr_file_index != new_file_index
+            || stream -> store != store)
+       {
+        stream -> curr_file_index = new_file_index;
+        if  (stream -> fp != NULL)
+            fclose (stream-> fp);
+        sprintf (filename, "%s/data%02d.olap",
+                 store -> name, stream -> curr_file_index);
+        stream -> fp = Local_File_Open (filename, "rb");
+       }
+   file_position = ( stream -> offset_buff [ 0 ] + skipped_ovls ) * sizeof (Short_Olap_Data_t);
+   CDS_FSEEK (stream -> fp, (off_t) file_position, SEEK_SET);
+   stream -> curr_offset = stream -> offset_buff [ 0 ] + skipped_ovls;
    stream -> store = store;
 
    return;

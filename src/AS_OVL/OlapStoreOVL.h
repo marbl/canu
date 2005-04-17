@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /* RCS info
- * $Id: OlapStoreOVL.h,v 1.4 2005-03-22 19:49:19 jason_miller Exp $
+ * $Id: OlapStoreOVL.h,v 1.5 2005-04-17 20:11:58 ahalpern Exp $
 */
 
 
@@ -134,6 +134,8 @@ int16  Get_Int_Quality
     (int q);
 void  Init_OVL_Stream
     (OVL_Stream_t * stream, uint32 first, uint32 last, OVL_Store_t * store);
+void  Init_OVL_Stream_Intra_Frg
+    (OVL_Stream_t * stream, uint32 iid, int skipped_ovls, OVL_Store_t * store);
 uint32  Last_Frag_In_OVL_Store
     (OVL_Store_t * store);
 uint32 *  Load_Frag_Offsets
