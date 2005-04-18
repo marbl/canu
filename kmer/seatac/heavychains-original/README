@@ -1,0 +1,3 @@
+This is the non-modular heavyChains.  I compared the source to the modular
+version and they appear to do the same thing (certainly, process() was exact).
+I stopped development on this.
