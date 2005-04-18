@@ -99,7 +99,7 @@ main(int argc, char *argv[]) {
   //  Need to exclude RUNS
   //
   while (!feof(stdin)) {
-    if ((inLine[0] == 'M') && (inLine[2] != 'r')) {
+    if ((inLine[0] == 'M') && (inLine[2] == 'u')) {
       splitToWords  W(inLine);
 
       //  Parse out the sequence iid from the atac iid
@@ -107,123 +107,139 @@ main(int argc, char *argv[]) {
       u32bit  iid1=0, pos1=0, len1=0, ori1=0;
       u32bit  iid2=0, pos2=0, len2=0, ori2=0;
 
-      decodeMatch(W, iid1, pos1, len1, ori1, iid2, pos2, len2, ori2);
-
-      //  Grab those sequences from the cache
-      //
-      FastASequenceInCore  *S1 = C1->getSequence(iid1);
-      FastASequenceInCore  *S2 = C2->getSequence(iid2);
-
-      FastAAccessor A1(S1, false);
-      FastAAccessor A2(S2, (ori1 != ori2));
-
-      A1.setRange(pos1, len1);
-      A2.setRange(pos2, len2);
-
-      u32bit extraMatchesL = 0;
-      u32bit extraMatchesR = 0;
-      u32bit localMismatches = 0;
-
-      //  Check for matches on either side of the region.
-
-      A1.setPosition(pos1);
-      A2.setPosition(pos2);
-      --A1;
-      --A2;
-      while (A1.isValid() &&
-             A2.isValid() &&
-             validSymbol[*A1] &&
-             validSymbol[*A2] &&
-             IUPACidentity[*A1][*A2]) {
-        extraMatchesL++;
-        --A1;
-        --A2;
-      }
-
-      A1.setPosition(pos1+len1-1);
-      A2.setPosition(pos2+len2-1);
-      ++A1;
-      ++A2;
-      while (A1.isValid() &&
-             A2.isValid() &&
-             validSymbol[*A1] &&
-             validSymbol[*A2] &&
-             IUPACidentity[*A1][*A2]) {
-        extraMatchesR++;
-        ++A1;
-        ++A2;
-      }
-
-      //  WARN if we found extra identities
-
+      if (decodeMatch(W, iid1, pos1, len1, ori1, iid2, pos2, len2, ori2)) {
 #if 0
-      if (extraMatchesL + extraMatchesR > 0) {
+        fprintf(stderr, u32bitFMT" "u32bitFMT" "u32bitFMT"--"u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
+                iid1, pos1, len1, iid2, pos2, len2);
+#endif
+
+        //  Grab those sequences from the cache
+        //
+        FastASequenceInCore  *S1 = C1->getSequence(iid1);
+        FastASequenceInCore  *S2 = C2->getSequence(iid2);
+
+        FastAAccessor A1(S1, false);
+        FastAAccessor A2(S2, (ori1 != ori2));
+
+        A1.setRange(pos1, len1);
+        A2.setRange(pos2, len2);
+
+        u32bit localMismatches = 0;
+
+#ifdef EXTRA_MATCHES
+        u32bit extraMatchesL = 0;
+        u32bit extraMatchesR = 0;
+
+        //  Check for matches on either side of the region.
+
         A1.setPosition(pos1);
         A2.setPosition(pos2);
+        --A1;
+        --A2;
+        while (A1.isValid() &&
+               A2.isValid() &&
+               validSymbol[*A1] &&
+               validSymbol[*A2] &&
+               IUPACidentity[*A1][*A2]) {
+          extraMatchesL++;
+          --A1;
+          --A2;
+        }
 
-        chomp(inLine);
-        fprintf(stderr, "WARNING: found "u32bitFMT" extra matches to the left and "u32bitFMT" extra matches to the right in %s\n",
-                extraMatchesL, extraMatchesR, inLine);
+        A1.setPosition(pos1+len1-1);
+        A2.setPosition(pos2+len2-1);
+        ++A1;
+        ++A2;
+        while (A1.isValid() &&
+               A2.isValid() &&
+               validSymbol[*A1] &&
+               validSymbol[*A2] &&
+               IUPACidentity[*A1][*A2]) {
+          extraMatchesR++;
+          ++A1;
+          ++A2;
+        }
+
+        //  WARN if we found extra identities
 
 #if 0
-        for (u32bit ii=0; ii<len1; ii++, ++A1)
-          fprintf(stdout, "%c", *A1);
-        fprintf(stdout, "\n");
+        if (extraMatchesL + extraMatchesR > 0) {
+          A1.setPosition(pos1);
+          A2.setPosition(pos2);
 
-        for (u32bit ii=0; ii<len1; ii++, ++A2)
-          fprintf(stdout, "%c", *A2);
-        fprintf(stdout, "\n");
+          chomp(inLine);
+          fprintf(stderr, "WARNING: found "u32bitFMT" extra matches to the left and "u32bitFMT" extra matches to the right in %s\n",
+                  extraMatchesL, extraMatchesR, inLine);
+
+#if 0
+          for (u32bit ii=0; ii<len1; ii++, ++A1)
+            fprintf(stdout, "%c", *A1);
+          fprintf(stdout, "\n");
+
+          for (u32bit ii=0; ii<len1; ii++, ++A2)
+            fprintf(stdout, "%c", *A2);
+          fprintf(stdout, "\n");
 #endif
-      }
+        }
 #endif
 
+#endif  //  EXTRA_MATCHES
 
-      A1.setPosition(pos1);
-      A2.setPosition(pos2);
-      for (u32bit ii=0; ii<len1; ii++, ++A1, ++A2) {
 
-        //
-        //  do stuff here
-        //
+        A1.setPosition(pos1);
+        A2.setPosition(pos2);
+        for (u32bit ii=0; ii<len1; ii++, ++A1, ++A2) {
 
-        ////////////////////////////////////////
-        //
-        //  Count global matches / mismatches
-        //
-        globalSequence++;
-        if (!(validSymbol[*A1] &&
+          //
+          //  do stuff here
+          //
+
+          ////////////////////////////////////////
+          //
+          //  Count global matches / mismatches
+          //
+          globalSequence++;
+          if (!(validSymbol[*A1] &&
+                validSymbol[*A2] &&
+                IUPACidentity[*A1][*A2])) {
+            globalMismatches++;
+            localMismatches++;
+          }
+
+          ////////////////////////////////////////
+          //
+          //  Histogram of exact match block lengths
+          //
+          if (validSymbol[*A1] &&
               validSymbol[*A2] &&
-              IUPACidentity[*A1][*A2])) {
-          globalMismatches++;
-          localMismatches++;
+              IUPACidentity[*A1][*A2]) {
+            blockMatches++;
+          } else {
+            updateExactBlockHistogram(blockHistogram, blockMatches);
+            blockMatches = 0;
+          }
         }
 
         ////////////////////////////////////////
         //
-        //  Histogram of exact match block lengths
+        //  Finish off stuff
         //
-        if (validSymbol[*A1] &&
-            validSymbol[*A2] &&
-            IUPACidentity[*A1][*A2]) {
-          blockMatches++;
-        } else {
-          updateExactBlockHistogram(blockHistogram, blockMatches);
-          blockMatches = 0;
-        }
-      }
-
-      ////////////////////////////////////////
-      //
-      //  Finish off stuff
-      //
-      updateExactBlockHistogram(blockHistogram, blockMatches);
-      blockMatches = 0;
+        updateExactBlockHistogram(blockHistogram, blockMatches);
+        blockMatches = 0;
 
 #ifdef ANNOTATE
-      chomp(inLine);
-      fputs(inLine, stdout);
-      fprintf(stdout, " > /extramatches="u32bitFMT","u32bitFMT" /mismatches="u32bitFMT"\n",
-              extraMatchesL, extraMatchesR, localMismatches);
+        chomp(inLine);
+        fputs(inLine, stdout);
+#ifdef EXTRA_MATCHES
+        fprintf(stdout, " > /extramatches="u32bitFMT","u32bitFMT" /mismatches="u32bitFMT"\n",
+                extraMatchesL, extraMatchesR, localMismatches);
+#else
+        fprintf(stdout, " > /mismatches="u32bitFMT" /identity=%.3f\n",
+                localMismatches, 100.0 * (1.0 - (double)localMismatches / (double)len1));
+#endif
+      } else {
+        fprintf(stderr, "Failed to decode line '%s'\n", inLine);
+      }
     } else {
       fputs(inLine, stdout);
 #endif

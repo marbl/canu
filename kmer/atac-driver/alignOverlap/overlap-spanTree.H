@@ -69,7 +69,7 @@ public:
     //  Until we hit the last span, add the match to the span
 
     while (span->_end < end) {
-      span->addMatch(match->matchid, color);
+      span->addMatch(match->matchiid, color);
       node = dict_next(_tree, node);
       span = (span_t *)dnode_getkey(node);
     }
@@ -94,7 +94,7 @@ public:
 
     //  FInally, add the match to the last span
 
-    span->addMatch(match->matchid, color);
+    span->addMatch(match->matchiid, color);
   };
 
   dict_t        *_tree;

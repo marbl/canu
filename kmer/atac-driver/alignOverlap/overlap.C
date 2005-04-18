@@ -24,432 +24,22 @@
 #include "util++.H"
 #include "atac-common.H"
 
-//  Given two ATAC-format match files, compute the amount they agree / disagree.
-
-class match_t {
-public:
-  u32bit  matchid;
-  u32bit  iid1, pos1, len1, ori1;
-  u32bit  iid2, pos2, len2, ori2;
-};
-
-
-
-
-//  Loads a set of matches from a file
-
-class matchList {
-public:
-  matchList(char *filename);
-  ~matchList() {
-    delete _seq1;
-    delete _seq2;
-    delete [] _matches;
-  };
-
-  char          _file1[1024];
-  char          _file2[1024];
-
-  FastAWrapper *_seq1;
-  FastAWrapper *_seq2;
-
-  u32bit        _matchesLen;
-  u32bit        _matchesMax;
-  match_t      *_matches;
-};
-
-
-
-
-int
-sortMatches1(const void *a, const void *b) {
-  const match_t *A = *((const match_t * const *)a);
-  const match_t *B = *((const match_t * const *)b);
-
-#if 0
-  if (debugSort)
-    fprintf(stderr, "sortMatches1 "u32bitFMT" "u32bitFMT" "u32bitFMT" -- "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
-            A->iid1, A->pos1, A->len1,
-            B->iid1, B->pos1, B->len1);
-#endif
-
-  if (A->iid1 < B->iid1)  return(-1);
-  if (A->iid1 > B->iid1)  return(1);
-  if (A->pos1 < B->pos1)  return(-1);
-  if (A->pos1 > B->pos1)  return(1);
-  if (A->len1 > B->len1)  return(-1);
-  if (A->len1 < B->len1)  return(1);
-  if (A->ori1 > B->ori1)  return(-1);
-  if (A->ori1 < B->ori1)  return(1);
-  return(0);
-}
-
-int
-sortMatches2(const void *a, const void *b) {
-  const match_t *A = *((const match_t * const *)a);
-  const match_t *B = *((const match_t * const *)b);
-
-#if 0
-  if (debugSort)
-    fprintf(stderr, "sortMatches1 "u32bitFMT" "u32bitFMT" "u32bitFMT" -- "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
-            A->iid2, A->pos2, A->len2,
-            B->iid2, B->pos2, B->len2);
-#endif
-
-  if (A->iid2 < B->iid2)  return(-1);
-  if (A->iid2 > B->iid2)  return(1);
-  if (A->pos2 < B->pos2)  return(-1);
-  if (A->pos2 > B->pos2)  return(1);
-  if (A->len2 > B->len2)  return(-1);
-  if (A->len2 < B->len2)  return(1);
-  if (A->ori2 > B->ori2)  return(-1);
-  if (A->ori2 < B->ori2)  return(1);
-  return(0);
-}
-
-
-
-
-#define COLORSHIFT 24
-#define COLORMASK  0x00ffffff
-
-class span_t {
-public:
-  u32bit  _iid;
-  u32bit  _beg;
-  u32bit  _end;
-  u32bit  _matchesLen;
-  u32bit  _matchesMax;
-  u32bit *_matches;
-
-  span_t(u32bit iid, u32bit beg, u32bit end) {
-    _iid = iid;
-    _beg = beg;
-    _end = end;
-    _matchesLen = 0;
-    _matchesMax = 0;
-    _matches    = 0L;
-  };
-
-  //  The top X bits of the _matches is for storing the color.  This
-  //  does cut down the number of matches we can store.  Human-Human
-  //  is ~1 million matches.
-
-  void   addMatch(u32bit matchid, u32bit color) {
-    if (_matchesLen >= _matchesMax) {
-      if (_matchesMax == 0)
-        _matchesMax = 2;
-      _matchesMax *= 2;
-      u32bit *X = new u32bit [_matchesMax];
-      memcpy(X, _matches, sizeof(u32bit) * _matchesLen);
-      delete [] _matches;
-      _matches = X;
-    }
-
-    if (matchid >> COLORSHIFT)
-      fprintf(stderr, "ERROR!  span_t::addMatch()-- match id too big, decrease the color space.\n"), exit(1);
-
-    _matches[_matchesLen++] = (color << COLORSHIFT) | (matchid);
-  };
-
-  //  Split this span at position, return two new spans
-  //
-  void   split(u32bit position, span_t* &l, span_t* &r) {
-    l = new span_t(_iid, _beg, position);
-    r = new span_t(_iid, position, _end);
-
-    l->_matchesLen = _matchesLen;
-    l->_matchesMax = _matchesMax;
-    l->_matches    = new u32bit [_matchesMax];
-    memcpy(l->_matches, _matches, sizeof(u32bit) * _matchesLen);
-
-    r->_matchesLen = _matchesLen;
-    r->_matchesMax = _matchesMax;
-    r->_matches    = new u32bit [_matchesMax];
-    memcpy(r->_matches, _matches, sizeof(u32bit) * _matchesLen);
-  };
-};
-
-
-
-int
-spanCompare(const void *a, const void *b) {
-  const span_t *A = *((const span_t * const *)a);
-  const span_t *B = *((const span_t * const *)b);
-
-  if (A->_iid < B->_iid)  return(-1);
-  if (A->_iid > B->_iid)  return(1);
-  if (A->_beg < B->_beg)  return(-1);
-  if (A->_beg > B->_beg)  return(1);
-  return(0);
-}
-
-
-
-
-//  Contructs a search tree from a matchList
-class matchTree {
-public:
-  matchTree(matchList *L, u32bit side);
-  ~matchTree() {
-    dict_free_nodes(_tree);
-    dict_free(_tree);
-  };
-
-  dict_t        *_tree;
-  dict_load_t    _load;
-};
-
-
-
-
-#include "spanTree.H"
-
-
-matchTree::matchTree(matchList *L, u32bit side) {
-
-  //  Construct a list of pointers to the matchList data
-  //
-  //  kazlib was modified to be qsort() compatible and so it passes a
-  //  pointer to whatever it is sorting.  Since kazlib operates on
-  //  pointers anyway, this means that it passes the compare function
-  //  a pointer to a pointer to the object.
-  //
-  //  Which really fails in this case.  We have a list of pointers to
-  //  objects that we sort, then want to load.
-  //
-  //  Uhhh, no, this is correct.  We give kazlib a pointer to the
-  //  object, it gives the compare function a pointer to that pointer.
-  //
-  //  qsort() below sorts pointers to objects, and does the same.
-
-  match_t  **matchPointers = new match_t * [L->_matchesLen];
-  for (u32bit i=0; i<L->_matchesLen; i++)
-    matchPointers[i] = L->_matches + i;
-
-  //  Choose a comparison function based on the side we want
-
-  int (*sortMatches)(const void *, const void *) = sortMatches1;
-  if (side == 1)
-    sortMatches = sortMatches2;
-  
-  //  Sort
-
-  qsort(matchPointers, L->_matchesLen, sizeof(match_t *), sortMatches);
-
-  //  Load the tree (use DICTCOUNT_T_MAX for max nodes)
-
-  _tree = dict_create(L->_matchesLen, sortMatches);
-  dict_allow_dupes(_tree);
-
-  dict_load_begin(&_load, _tree);
-
-  for (u32bit i=0; i<L->_matchesLen; i++) {
-#if 0
-    fprintf(stderr, "Load "u32bitFMT" "u32bitFMT" "u32bitFMT" -- "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
-            matchPointers[i]->iid1, matchPointers[i]->pos1, matchPointers[i]->len1,
-            matchPointers[i]->iid2, matchPointers[i]->pos2, matchPointers[i]->len2);
-#endif
-
-    dnode_t   *node = (dnode_t *)malloc(sizeof(dnode_t));
-    dnode_init(node, 0L);
-    dict_load_next(&_load, node, matchPointers[i]);
-  }
-
-  dict_load_end(&_load);
-
-  //  Clean up
-  delete [] matchPointers;
-}
-
-
-
-
-matchList::matchList(char *filename) {
-
-  errno = 0;
-  FILE   *inFile = fopen(filename, "r");
-  if (errno)
-    fprintf(stderr, "matchList::matchList()-- failed to load %s: %s\n", filename, strerror(errno)), exit(1);
-
-
-  //  While loading matches, we compute the mapped length and covered
-  //  length.
-
-  fprintf(stderr, "Loading matches from %s\n", filename);
-  
-  //  Read the preamble, look for our data sources.  This leaves us with
-  //  the first match in the inLine, and fills in file1 and file2.
-  //
-  char    inLine[1024];
-  readHeader(inLine, inFile, _file1, _file2, 0L);
-
-  fprintf(stderr, "Opening '%s' for sequence one.\n", _file1);
-  fprintf(stderr, "Opening '%s' for sequence two.\n", _file2);
-
-  //  Open some FastAWrappers for each of the files -- we use these
-  //  only to get the length of the sequence.
-  //
-  _seq1 = new FastAWrapper(_file1);
-  _seq2 = new FastAWrapper(_file2);
-
-  _seq1->openIndex();
-  _seq2->openIndex();
-
-  _matchesLen = 0;
-  _matchesMax = 2 * 1048576;
-  _matches    = new match_t [_matchesMax];
-
-  //  For the coverage to work correctly, we need to either have one
-  //  intervalList per input sequence, or build a table of the chained
-  //  sequence positions.
-  //
-  u64bit  *offset1 = new u64bit [_seq1->getNumberOfSequences()];
-  u64bit  *offset2 = new u64bit [_seq2->getNumberOfSequences()];
-
-  offset1[0] = 1000000;
-  for (u32bit i=1; i<_seq1->getNumberOfSequences(); i++)
-    offset1[i] = offset1[i-1] + _seq1->sequenceLength(i-1) + 1;
-
-  offset2[0] = 1000000;
-  for (u32bit i=1; i<_seq2->getNumberOfSequences(); i++)
-    offset2[i] = offset2[i-1] + _seq2->sequenceLength(i-1) + 1;
-
-  u32bit        skippedCount = 0;
-  u64bit        skippedLengthA = 0;
-  u64bit        skippedLengthB = 0;
-
-  intervalList  intervalA;
-  intervalList  intervalB;
-
-  while (!feof(inFile)) {
-    if (inLine[0] == 'M') {
-      splitToWords  S(inLine);
-
-      if ((S[1][0] == 'u') || (S[1][0] == 'x')) {
-        //if ((S[1][0] == 'r')) {
-        u32bit  iid1=0, pos1=0, len1=0, ori1=0;
-        u32bit  iid2=0, pos2=0, len2=0, ori2=0;
-        decodeMatch(S, iid1, pos1, len1, ori1, iid2, pos2, len2, ori2);
-
-
-        if ((pos1 + len1) > _seq1->sequenceLength(iid1)) {
-          chomp(inLine);
-          fprintf(stderr, "Too Long in 1: "u32bitFMT" %s\n", _seq1->sequenceLength(iid1), inLine);
-        }
-
-        if ((pos2 + len2) > _seq2->sequenceLength(iid2)) {
-          chomp(inLine);
-          fprintf(stderr, "Too Long in 2: "u32bitFMT" %s\n", _seq2->sequenceLength(iid2), inLine);
-        }
-
-
-        if ((iid1 >= _seq1->getNumberOfSequences()) || (iid2 >= _seq2->getNumberOfSequences())) {
-          //  Hmmm.  Skip it.
-          skippedCount++;
-          skippedLengthA += len1;
-          skippedLengthB += len2;
-        } else {
-          intervalA.add(offset1[iid1] + (u64bit)pos1, (u64bit)len1);
-          intervalB.add(offset2[iid2] + (u64bit)pos2, (u64bit)len2);
-
-          //  Add it to our list of matches
-          //
-          if (_matchesLen > _matchesMax) {
-            fprintf(stderr, "SORRY!  I don't feel like reallocating matches.  Increase\n");
-            fprintf(stderr, "the preallocated size in %s\n", __FILE__);
-            exit(1);
-          }
-
-          _matches[_matchesLen].matchid = _matchesLen;
-
-          _matches[_matchesLen].iid1 = iid1;
-          _matches[_matchesLen].pos1 = pos1;
-          _matches[_matchesLen].len1 = len1;
-          _matches[_matchesLen].ori1 = ori1;
-
-          _matches[_matchesLen].iid2 = iid2;
-          _matches[_matchesLen].pos2 = pos2;
-          _matches[_matchesLen].len2 = len2;
-          _matches[_matchesLen].ori2 = ori2;
-
-          _matchesLen++;
-        }
-      }
-    }
-
-    fgets(inLine, 1024, inFile);
-  }
-
-  fprintf(stderr, "skipped "u32bitFMT" matches with length "u64bitFMT" and "u64bitFMT"\n",
-          skippedCount, skippedLengthA, skippedLengthB);
-
-  fprintf(stderr, "intervalLength A "u64bitFMT" B "u64bitFMT"\n",
-          (u64bit)intervalA.sumOfLengths(),
-          (u64bit)intervalB.sumOfLengths());
-
-  intervalA.merge();
-  intervalB.merge();
-
-  fprintf(stderr, "coveredLength  A "u64bitFMT" B "u64bitFMT"\n",
-          (u64bit)intervalA.sumOfLengths(),
-          (u64bit)intervalB.sumOfLengths());
-}
-
-
-
-
-
-//  List of the annotation.  Used for classifying each piece of the
-//  annotation, e.g., U followed by 1 followed by U means that
-//  somebody really did map something uniquely, where Y followed by 1
-//  is probably just an extension.
-//
-//  This only works if assemblyA is the reference!
-//
-class annoList {
-public:
-  char    type;
-  u32bit  iid1,  pos1,  len1;   //  The position on the reference axis
-  u32bit  iid2a, pos2a, len2a;  //  The position on mapping 1
-  u32bit  iid2b, pos2b, len2b;  //  The position on mapping 2
-
-  void add(char type_,
-           u32bit  iid1_,  u32bit pos1_,  u32bit len1_,
-           u32bit  match1, match_t *m1,
-           u32bit  match2, match_t *m2) {
-    type  = type_;
-    iid1  = iid1_;
-    pos1  = pos1_;
-    len1  = len1_;
-
-    iid2a = match1;
-    pos2a = 0;
-    len2a = 0;
-    if (m1) {
-      pos2a = m1->pos2;
-      len2a = m1->len2;
-    }
-
-    iid2b = match2;
-    pos2a = 0;
-    len2a = 0;
-    if (m2) {
-      pos2b = m2->pos2;
-      len2b = m2->len2;
-    }
-  }
-};
+int sortMatches1(const void *a, const void *b);
+int sortMatches2(const void *a, const void *b);
+int spanCompare(const void *a, const void *b);
+
+#include "overlap-match.H"
+#include "overlap-matchList.H"
+#include "overlap-span.H"
+#include "overlap-matchTree.H"
+#include "overlap-spanTree.H"
+#include "overlap-annoList.H"
+
+#include "overlap-sort.C"
 
 u32bit      ALmax = 0;
 u32bit      ALlen = 0;
 annoList   *AL    = 0L;
-
-
-
-
-
-
 
 
 void
@@ -457,82 +47,79 @@ printAnno(FILE *F,
           char label,
           u32bit axis,
           span_t *span,
-          u32bit match1=u32bitZERO, u32bit off1=u32bitZERO, match_t *m1=0L,
-          u32bit match2=u32bitZERO, u32bit off2=u32bitZERO, match_t *m2=0L) {
+          u32bit match1=u32bitZERO, match_t *m1=0L,
+          u32bit match2=u32bitZERO, match_t *m2=0L) {
 
-  //  If we're just given match1, make it match2 if it is the second assembly
+  //  If we're just given match1, make it match2 if it is the second mapping
   //
-  if ((match1) && (match2 == 0L) && (match1 >> COLORSHIFT)) {
-    match2 = match1;
-    off2   = off1;
-    m2     = m1;
-    match1 = 0;
-    off1   = 0;
-    m1     = 0;
+  if ((match1 >> COLORSHIFT) && (match2 == u32bitZERO)) {
+    match2 = match1; m2 = m1;
+    match1 = 0;      m1 = 0;
   }
 
-  //  axis is 1 or 2
+  u32bit len  = span->_end - span->_beg;
+
+  //  axis is 1 or 2; if we're the first axis (B35 centric) make a
+  //  list of the matches for later processing
 
   if (axis == 1)
-    AL[ALlen++].add(label, span->_iid, span->_beg, span->_end, match1, m1, match2, m2);
+    AL[ALlen++].add(label, span->_iid, span->_beg, len,
+                    match1 & COLORMASK, m1,
+                    match2 & COLORMASK, m2);
 
-  fprintf(F, "%c "u32bitFMTW(4)":"u32bitFMTW(08)"-"u32bitFMTW(08)"["u32bitFMTW(6)"] ",
+  fprintf(F, "%c "u32bitFMTW(4)":"u32bitFMTW(09)"-"u32bitFMTW(09)"["u32bitFMTW(6)"] ",
           label,
-          span->_iid, span->_beg, span->_end, span->_end - span->_beg);
+          span->_iid, span->_beg, span->_end, len);
 
-  if (match1) {
-    fprintf(F, u32bitFMTW(1)","u32bitFMTW(6)" ", match1 >> COLORSHIFT, match1 & COLORMASK);
+  if (m1) {
+    fprintf(F, u32bitFMTW(07)" ", m1->matchuid);
+    u32bit off1 = span->_beg - m1->pos1;
 
-    if (m1) {
-      if (axis == 1) {
-        u32bit  sta = m1->pos2 + off2;
-        u32bit  end = m1->pos2 + off2 + (span->_end - span->_beg);
+    if (axis == 1) {
+      u32bit  sta = m1->pos2 + off1;
+      u32bit  end = m1->pos2 + off1 + len;
 
-        if (m1->ori2) {
-          sta = m1->pos2 + m1->len2 - off2 - (span->_end - span->_beg);
-          end = m1->pos2 + m1->len2 - off2;
-        }
-
-        fprintf(F, "("u32bitFMTW(8)":"u32bitFMTW(8)"-"u32bitFMTW(8)") ", m1->iid2, sta, end);
-      } else {
-        fprintf(F, "("u32bitFMTW(8)":"u32bitFMTW(8)"-"u32bitFMTW(8)") ", m1->iid1, m1->pos1 + off1, m1->pos1 + off1 + span->_end - span->_beg);
+      if (m1->ori2 == 0) {
+        sta = m1->pos2 + m1->len2 - off1;
+        end = m1->pos2 + m1->len2 - off1 - len;
       }
+
+      fprintf(F, "("u32bitFMTW(8)": "u32bitFMTW(9)"-"u32bitFMTW(9)") ", m1->iid2, sta, end);
     } else {
-      fprintf(F, "                            ");
+      fprintf(F, "("u32bitFMTW(8)": "u32bitFMTW(9)"-"u32bitFMTW(9)") ", m1->iid1, m1->pos1 + off1, m1->pos1 + off1 + len);
     }
   } else {
-    fprintf(F, "                                      ");
+    fprintf(F, u32bitFMTW(07)" ", u32bitZERO);
+    fprintf(F, "("u32bitFMTW(8)": "u32bitFMTW(9)"-"u32bitFMTW(9)") ", u32bitZERO, u32bitZERO, u32bitZERO);
   }
 
-  if (match2) {
-    fprintf(F, u32bitFMTW(1)","u32bitFMTW(6)" ", match2 >> COLORSHIFT, match2 & COLORMASK);
+  if (m2) {
+    fprintf(F, u32bitFMTW(07)" ", m2->matchuid);
+    u32bit off2 = span->_beg - m2->pos1;
 
-    if (m2) {
-      if (axis == 1) {
-        u32bit  sta = m2->pos2 + off2;
-        u32bit  end = m2->pos2 + off2 + (span->_end - span->_beg);
-
-        if (m2->ori2) {
-          sta = m2->pos2 + m2->len2 - off2 - (span->_end - span->_beg);
-          end = m2->pos2 + m2->len2 - off2;
-        }
-
-        fprintf(F, "("u32bitFMTW(8)":"u32bitFMTW(8)"-"u32bitFMTW(8)") ", m2->iid2, sta, end);
-      } else {
-        fprintf(F, "("u32bitFMTW(8)":"u32bitFMTW(8)"-"u32bitFMTW(8)") ", m2->iid1, m2->pos1 + off1, m2->pos1 + off1 + span->_end - span->_beg);
+    if (axis == 1) {
+      u32bit  sta = m2->pos2 + off2;
+      u32bit  end = m2->pos2 + off2 + len;
+      
+      if (m2->ori2 == 0) {
+        sta = m2->pos2 + m2->len2 - off2;
+        end = m2->pos2 + m2->len2 - off2 - len;
       }
+
+      fprintf(F, "("u32bitFMTW(8)": "u32bitFMTW(9)"-"u32bitFMTW(9)") ", m2->iid2, sta, end);
     } else {
-      fprintf(F, "                            ");
+      fprintf(F, "("u32bitFMTW(8)": "u32bitFMTW(9)"-"u32bitFMTW(9)") ", m2->iid1, m2->pos1 + off2, m2->pos1 + off2 + len);
     }
   } else {
-    fprintf(F, "                                      ");
+    fprintf(F, u32bitFMTW(07)" ", u32bitZERO);
+    fprintf(F, "("u32bitFMTW(8)": "u32bitFMTW(9)"-"u32bitFMTW(9)") ", u32bitZERO, u32bitZERO, u32bitZERO);
   }
 
   fprintf(F, "\n");
 }
 
 
-
+#include "overlap-find.C"
 
 
 
@@ -572,19 +159,16 @@ main(int argc, char **argv) {
   //  tree contains the spans for the whole sequence, that is, that we
   //  never need to increase a span, just split.
   //
-
   spanTree    *S1 = new spanTree();
   spanTree    *S2 = new spanTree();
 
   //  Initialize the tree of spans by inserting a single span for each
   //  sequence in the file.
   //
-  for (u32bit i=0; i<M1->_seq1->getNumberOfSequences(); i++) {
+  for (u32bit i=0; i<M1->_seq1->getNumberOfSequences(); i++)
     S1->addNewSpan(i, M1->_seq1->sequenceLength(i));
-  }
-  for (u32bit i=0; i<M1->_seq2->getNumberOfSequences(); i++) {
+  for (u32bit i=0; i<M1->_seq2->getNumberOfSequences(); i++)
     S2->addNewSpan(i, M1->_seq2->sequenceLength(i));
-  }
 
   //  Add every match to the spanTrees.
 
@@ -701,7 +285,7 @@ main(int argc, char **argv) {
         m = &M1->_matches[match & COLORMASK];
       }
 
-      printAnno(Aanno, '1', 1, span, match, span->_beg - m->pos1, m);
+      printAnno(Aanno, '1', 1, span, match, m);
     } else if ((span->_matchesLen == 2) &&
                ((span->_matches[0] >> COLORSHIFT) == (span->_matches[1] >> COLORSHIFT))) {
       inconsistent[0] += spanLen;
@@ -718,6 +302,17 @@ main(int argc, char **argv) {
 
       match_t  *m1 = &M1->_matches[match1 & COLORMASK];
       match_t  *m2 = &M2->_matches[match2 & COLORMASK];
+
+#if 0
+      fprintf(Aanno, "m1: "u32bitFMT" "u32bitFMT" "u32bitFMT" "u32bitFMT" "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
+              m1->matchuid,
+              m1->iid1, m1->pos1, m1->pos1+m1->len1,
+              m1->iid2, m1->pos2, m1->pos2+m1->len2);
+      fprintf(Aanno, "m2: "u32bitFMT" "u32bitFMT" "u32bitFMT" "u32bitFMT" "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
+              m2->matchuid,
+              m2->iid1, m2->pos1, m2->pos1+m2->len1,
+              m2->iid2, m2->pos2, m2->pos2+m2->len2);
+#endif
 
       if (m1->iid2 == m2->iid2) {
         u32bit off1 = 0, pos1l = 0, pos1r = 0;
@@ -754,19 +349,18 @@ main(int argc, char **argv) {
           same[0] += spanLen;
           updateHistogram(sameH[0], spanLen);
 
-          printAnno(Aanno, 'Y', 1, span, match1, off1, m1, match2, off2, m2);
+          printAnno(Aanno, 'Y', 1, span, match1, m1, match2, m2);
         } else {
           different[0] += spanLen;
           updateHistogram(differentH[0], spanLen);
 
-          printAnno(Aanno, 'N', 1, span, match1, off1, m1, match2, off2, m2);
+          printAnno(Aanno, 'N', 1, span, match1, m1, match2, m2);
         }
       } else {
         //  Wildly different matches!  Mapped to different scaffolds!
         wilddiff[0] += spanLen;
         updateHistogram(wilddiffH[0], spanLen);
-
-        printAnno(Aanno, '!', 1, span, match1, span->_beg - m1->pos1, m1, match2, 0, m2);
+        printAnno(Aanno, '!', 1, span, match1, m1, match2, m2);
       }
     } else {
       inconsistent[0] += spanLen;
@@ -778,6 +372,7 @@ main(int argc, char **argv) {
     node1 = dict_next(S1->_tree, node1);
   }
 
+#if 0
   node2 = dict_first(S2->_tree);
   while (node2) {
     span_t  *span = (span_t *)dnode_getkey(node2);
@@ -802,7 +397,7 @@ main(int argc, char **argv) {
         m = &M1->_matches[match & COLORMASK];
       }
 
-      printAnno(Banno, '1', 2, span, match, span->_beg - m->pos1, m);
+      printAnno(Banno, '1', 2, span, match, m);
     } else if ((span->_matchesLen == 2) &&
                ((span->_matches[0] >> COLORSHIFT) == (span->_matches[1] >> COLORSHIFT))) {
       inconsistent[1] += spanLen;
@@ -859,19 +454,18 @@ main(int argc, char **argv) {
           same[1] += spanLen;
           updateHistogram(sameH[1], spanLen);
 
-          printAnno(Banno, 'Y', 2, span, match1, off1, m1, match2, off2, m2);
+          printAnno(Banno, 'Y', 2, span, match1, m1, match2, m2);
         } else {
           different[1] += spanLen;
           updateHistogram(differentH[1], spanLen);
 
-          printAnno(Banno, 'N', 2, span, match1, off1, m1, match2, off2, m2);
+          printAnno(Banno, 'N', 2, span, match1, m1, match2, m2);
         }
       } else {
         //  Wildly different matches!  Mapped to different scaffolds!
         wilddiff[1] += spanLen;
         updateHistogram(wilddiffH[1], spanLen);
-
-        printAnno(Aanno, '!', 2, span, match1, span->_beg - m1->pos2, m1, match2, 0, m2);
+        printAnno(Aanno, '!', 2, span, match1, m1, match2, m2);
       }
     } else {
       inconsistent[1] += spanLen;
@@ -882,24 +476,26 @@ main(int argc, char **argv) {
 
     node2 = dict_next(S2->_tree, node2);
   }
+#endif
+
 
   fclose(Aanno);
   fclose(Banno);
 
-  fprintf(stderr, "unmapped:           A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", unmapped[0], unmapped[1]);
-  fprintf(stderr, "unique mapping 1:   A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", unique[0][0], unique[1][0]);
-  fprintf(stderr, "unique mapping 2:   A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", unique[0][1], unique[1][1]);
-  fprintf(stderr, "different:          A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", different[0], different[1]);
-  fprintf(stderr, "wild diff:          A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", wilddiff[0], wilddiff[1]);
-  fprintf(stderr, "same:               A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", same[0], same[1]);
+  fprintf(stderr, "unmapped:           A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", unmapped[0],     unmapped[1]);
+  fprintf(stderr, "unique mapping 1:   A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", unique[0][0],    unique[1][0]);
+  fprintf(stderr, "unique mapping 2:   A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", unique[0][1],    unique[1][1]);
+  fprintf(stderr, "different:          A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", different[0],    different[1]);
+  fprintf(stderr, "wild diff:          A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", wilddiff[0],     wilddiff[1]);
+  fprintf(stderr, "same:               A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", same[0],         same[1]);
   fprintf(stderr, "inconsistent:       A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", inconsistent[0], inconsistent[1]);
 
   fprintf(stderr, "\n");
-  fprintf(stderr, "same1 both:         normal:"u32bitFMTW(10)" flipped:"u32bitFMTW(10)"\n", same1n, same1f);
+  fprintf(stderr, "same1 both:         normal:"u32bitFMTW(10)" flipped:"u32bitFMTW(10)"\n", same1n,  same1f);
   fprintf(stderr, "same1 start:        normal:"u32bitFMTW(10)" flipped:"u32bitFMTW(10)"\n", same1sn, same1sf);
   fprintf(stderr, "same1 end:          normal:"u32bitFMTW(10)" flipped:"u32bitFMTW(10)"\n", same1en, same1ef);
   fprintf(stderr, "\n");
-  fprintf(stderr, "same2 both:         normal:"u32bitFMTW(10)" flipped:"u32bitFMTW(10)"\n", same2n, same2f);
+  fprintf(stderr, "same2 both:         normal:"u32bitFMTW(10)" flipped:"u32bitFMTW(10)"\n", same2n,  same2f);
   fprintf(stderr, "same2 start:        normal:"u32bitFMTW(10)" flipped:"u32bitFMTW(10)"\n", same2sn, same2sf);
   fprintf(stderr, "same2 end:          normal:"u32bitFMTW(10)" flipped:"u32bitFMTW(10)"\n", same2en, same2ef);
 
@@ -908,32 +504,10 @@ main(int argc, char **argv) {
   //
   //  run through the annoList, count interesting bits
   //
-  fprintf(stderr, "ALlen: "u32bitFMT"\n", ALlen);
-
-  //  Look for 1's surrounded by U's
-  //
-  bool   only1 = true;
-  u32bit sumA = 0, tA=0;
-  u32bit sumB = 0, tB=0;
-  for (u32bit i=1; i<ALlen; i++) {
-
-    if (AL[i].type == 'U') {
-      if (only1) {
-        sumA += tA;
-        sumB += tB;
-      }
-      tA = 0;
-      tB = 0;
-      only1 = true;
-    } else if (AL[i].type != '1') {
-      only1 = false;
-    } else {
-      tA += AL[i].len2a;
-      tB += AL[i].len2b;
-    }
-  }
-  fprintf(stderr, "isolated Unique: map1: "u32bitFMT" map2: "u32bitFMT"\n", sumA, sumB);
-
+#if 0
+  findIsolatedUnique();
+  findExtended();
+#endif
 
 
 
@@ -948,6 +522,7 @@ main(int argc, char **argv) {
   }
   fclose(hout);
 #endif
+
 
 #if 0
 
