@@ -132,16 +132,16 @@ def formPerfectRuns ( inpfile, firstSort, secondSort, maxJump, runIdPrefix ):
 
     tmpfile = MyFile.myfile()
     firstSort( inpfile, tmpfile)
-    
+
     print >>sys.stderr, 'formPerfectRuns step=' + str(step)
     step += 1
     outfile = createSignedEnumeration(tmpfile)
-    
+
     print >>sys.stderr, 'formPerfectRuns step=' + str(step)
     step += 1
     tmpfile = MyFile.myfile()
     secondSort( outfile, tmpfile)
-    
+
     print >>sys.stderr, 'formPerfectRuns step=' + str(step)
     step += 1
     outfile = findPerfectRuns( tmpfile, maxJump, runIdPrefix)
@@ -224,6 +224,9 @@ def runsAsMatches(inpfile):
 # end def
 
 def main(inpname, outname, maxJump, runIdPrefix):
+
+    print >>sys.stderr, "Beware /tmp!\n"
+
     inpfile = open(inpname)
     tempdata1 = formPerfectRuns(inpfile,
                                MatchRecord.sortInXorderAP,
@@ -232,56 +235,20 @@ def main(inpname, outname, maxJump, runIdPrefix):
                                runIdPrefix
                                )
     tempdata2 = runsAsMatches( tempdata1)
-    tempdata1.link(outname+".matches")
-    tempdata2.link(outname+".runs")
 
-def usage():
-    print >>sys.stderr, "No usage statement yet"
-    print >>sys.stderr, "prog -i inpname -o outname [-j int] [-p string]"
-    
-def mainTry():
-    import getopt
-    try:
-        opts, args = getopt.getopt(sys.argv[1:], "hi:o:vj:p:")
-        # , ["help", "inpname", "outname=", "maxJump=", "runIdPrefix="])
-    except getopt.GetoptError:
-        # print help information and exit:
-        usage()
-        sys.exit(2)
-    verbose = False
-    inpname = None
-    outname = None
-    maxJump = 100000
-    runIdPrefix = "r"
-    for o, a in opts:
-        if o == "-v":
-            verbose = True
-        if o in ("-h", "--help"):
-            usage()
-            sys.exit()
-        if o in ("-o", "--outname"):
-            outname = a
-        if o in ("-i", "--inpname"):
-            inpname = a
-        if o in ("-j","--maxJump",):
-            try:
-                maxJump = int(a)
-            except:
-                print >>sys.stderr, "maxJump must be an integer"
-                sys.exit(3)
-        if o in ("p", "--runIdPrefix",):
-            runIdPrefix = a
-    # ...
-    if(inpname != None and outname != None):
-        usage()
-        sys.exit(2)
+    #  Argh!  All our work is done in temporary files in /tmp,
+    #  but this wants to create hard links to save the last
+    #  result -- the output.
 
-    main(inpname, outname, maxJump, runIdPrefix)
+    tempdata1.link("/tmp/"+outname+".matches")
+    tempdata2.link("/tmp/"+outname+".runs")
 
 if __name__ == '__main__':
     inpname = sys.argv[1]
     outname = sys.argv[2]
     maxJump = int(sys.argv[3])
     runIdPrefix = sys.argv[4]
+
+    #  defaults, 100000, r
 
     main(inpname, outname, maxJump, runIdPrefix)
