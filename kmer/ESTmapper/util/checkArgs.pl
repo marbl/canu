@@ -57,9 +57,9 @@ my %validArgs = ("-help"            => "0",  #
                  "-searchopts"      => "1",  # 2
                  "-searchthreads"   => "1",  # 2
                  "-segments"        => "1",  # 1
-                 "-sge"             => "1",  # 2
-                 "-sgeaccount"      => "1",  # 2
-                 "-sgepriority"     => "1",  # 2
+                 "-sge"             => "1",  # 2, takes name
+                 "-sgeaccount"      => "1",  # 2, takes account string
+                 "-sgepriority"     => "1",  # 2, takes integer
                  "-species"         => "1",  # 2
                  "-stats"           => "0",  # 24
                  "-verbose"         => "0"); # 123
