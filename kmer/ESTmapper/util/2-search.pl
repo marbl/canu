@@ -13,7 +13,7 @@ sub checkFinished {
             #  We're done if the table file exists for this piece
             #
             if (! -e "$buildprefix.$s") {
-                print S "$path/1-serach/$s.cmd";
+                print S "$path/1-search/$s.cmd\n";
                 push @searchesToRun, "$path/1-search/$s.cmd";
             }
         } else {
