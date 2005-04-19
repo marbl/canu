@@ -267,8 +267,8 @@ main(int argc, char *argv[]) {
     } else if (strcmp(argv[arg], "-g") == 0) {
       gapLimit = strtou32bit(argv[++arg], 0L);
     } else {
-      fprintf(stderr, "usage: %s [-l | -r] matches > matches\n", argv[0]);
-      fprintf(stderr, "  -l:     Shift left\n");
+      fprintf(stderr, "usage: %s [-l | -r] [-g limit] < matches > matches\n", argv[0]);
+      fprintf(stderr, "  -l:     Shift left (UNIMPLEMENTED!)\n");
       fprintf(stderr, "  -r:     Shift right\n");
       exit(1);
     }
