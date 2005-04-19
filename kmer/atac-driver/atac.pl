@@ -540,7 +540,7 @@ if (! -e "$ATACdir/$matches.matches.sorted") {
     #  Sort the second index, useful if that one is chromosome.
     #
     print STDERR "Sorting by the SECOND axis.\n";
-    if (runCommand("cat $mfiles | grep -- \^M\  | sort -y -T $tmpdir -k 9,9 -k 5,5 >> $ATACdir/$matches.matches.sorted")) {
+    if (runCommand("cat $mfiles | grep -- '^M ' | sort -y -T $tmpdir -k 9,9 -k 5,5 >> $ATACdir/$matches.matches.sorted")) {
         die "Failed to sort $ATACdir!\n";
     }
 }
@@ -551,12 +551,12 @@ if (! -e "$ATACdir/$matches.matches.sorted") {
 if ((! -e "$ATACdir/$matches.matches.sorted.extended") ||
     (0 == -s "$ATACdir/$matches.matches.sorted.extended")) {
     my $cmd;
-    $cmd  = "$execHome/MatchExtender -v ";
-    $cmd .= "$ATACdir/$matches.matches.sorted ";
-    $cmd .= "$ATACdir/$matches.matches.sorted.extended ";
+    $cmd  = "$execHome/matchExtender ";
+    $cmd .= "< $ATACdir/$matches.matches.sorted ";
+    $cmd .= "> $ATACdir/$matches.matches.sorted.extended ";
 
     if (runCommand($cmd)) {
-        print STDERR "MatchExtender failed.\n";
+        print STDERR "matchExtender failed.\n";
         exit(1);
     }
 }
