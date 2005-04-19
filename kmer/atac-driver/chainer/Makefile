@@ -1,11 +1,12 @@
 
 # Ross's build system wasn't doing well here.  We need to include
 # -fpic to make the python shared libraries work, and I wanted to put
-# the C++ gunk in subdirectories.
+# the C++ gunk in subdirectories.  As a result, you'll need to
+# tweak the CCFLAGS a bit, probably.
 
 CC      = g++
-CCFLAGS = -fpic -O -Wall -I/usr/local/include/python2.3
 CCFLAGS = -fpic -O -Wall -I/home/bwalenz/linux/include/python2.4
+CCFLAGS = -fpic -O -Wall -I/usr/local/include/python2.3
 
 SOURCE  = localalign/GF_ALN_dpaligner.cc \
           localalign/GF_ALN_local.cc \
@@ -18,12 +19,12 @@ SOURCE  = localalign/GF_ALN_dpaligner.cc \
           halign/halign.cc \
           halign/halignmodule.cc
 
-all: localAlignerInterfacemodule.so halignmodule.so
+all: localAlignerInterfacemodule.so halignmodule.so atacdriver.sh
 
 clean:
-	rm -f */*.o *.so *.pyc
+	rm -f */*.o *.so python/*.pyc atacdriver.sh
 real-clean:
-	rm -f */*.o *.so *.pyc
+	rm -f */*.o *.so python/*.pyc atacdriver.sh
 
 localAlignerInterfacemodule.so:   localalign/GF_ALN_dpaligner.o \
                                   localalign/GF_ALN_local.o \
@@ -38,8 +39,14 @@ localAlignerInterfacemodule.so:   localalign/GF_ALN_dpaligner.o \
 halignmodule.so: halign/halignmodule.o halign/halign.o
 	$(CC) -shared -o $@ $^
 
+atacdriver.sh: Makefile
+	echo \#!/bin/sh > atacdriver.sh
+	echo export PYTHONPATH=`pwd`:`pwd`/python >> atacdriver.sh
+	echo python `pwd`/python/AtacDriver.py \$\* >> atacdriver.sh
+
+
 %.o: %.cc
-	${CC} ${CCFLAGS} -o $@ -c $<
+	$(CC) $(CCFLAGS) -o $@ -c $<
 
 %.so:
 	ar 
