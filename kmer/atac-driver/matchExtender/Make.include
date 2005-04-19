@@ -1,0 +1,15 @@
+# -*- makefile -*-
+
+LIBUTL/     :=$(call MakePath,$/../../libutil/)
+LIBBIO/     :=$(call MakePath,$/../../libbio/)
+LIBATAC/    :=$(call MakePath,$/../libatac/)
+
+$/.CXX_EXES := $/matchExtender
+$/.CXX_SRCS := $/matchExtender.C $/matchExtender-dump.C $/matchExtender-func.C
+
+$/.CLEAN :=$/*.o $/*~ $/core
+
+$/matchExtender:       $/matchExtender.o $/matchExtender-dump.o $/matchExtender-func.o \
+                       ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a ${LIBATAC/}libatac.a
+
+$(eval $/%.d $/%.o:   CXXFLAGS+=-I${LIBBIO/} -I${LIBUTL/} -I${LIBATAC/})

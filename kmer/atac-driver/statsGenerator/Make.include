@@ -1,0 +1,15 @@
+# -*- makefile -*-
+
+LIBUTL/     :=$(call MakePath,$/../../libutil/)
+LIBBIO/     :=$(call MakePath,$/../../libbio/)
+LIBATAC/    :=$(call MakePath,$/../libatac/)
+
+$/.CXX_EXES := $/statsGenerator
+$/.CXX_SRCS := $/statsGenerator.C
+
+$/.CLEAN :=$/*.o $/*~ $/core
+
+$/statsGenerator:      $/statsGenerator.o \
+                       ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a ${LIBATAC/}libatac.a
+
+$(eval $/%.d $/%.o:   CXXFLAGS+=-I${LIBBIO/} -I${LIBUTL/} -I${LIBATAC/})

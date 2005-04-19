@@ -1,0 +1,15 @@
+# -*- makefile -*-
+
+LIBUTL/     :=$(call MakePath,$/../../libutil/)
+LIBBIO/     :=$(call MakePath,$/../../libbio/)
+LIBATAC/    :=$(call MakePath,$/../libatac/)
+
+$/.CXX_EXES := $/gapShifter
+$/.CXX_SRCS := $/gapShifter.C
+
+$/.CLEAN :=$/*.o $/*~ $/core
+
+$/gapShifter:          $/gapShifter.o \
+                       ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a ${LIBATAC/}libatac.a
+
+$(eval $/%.d $/%.o:   CXXFLAGS+=-I${LIBBIO/} -I${LIBUTL/} -I${LIBATAC/})
