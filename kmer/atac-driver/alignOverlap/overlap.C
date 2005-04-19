@@ -126,13 +126,14 @@ printAnno(FILE *F,
 int
 main(int argc, char **argv) {
 
-  if (argc != 3) {
-    fprintf(stderr, "usage: %s <matches-1> <matches-2>\n", argv[0]);
+  if (argc != 4) {
+    fprintf(stderr, "usage: %s <matches-1> <matches-2> <out-prefix>\n", argv[0]);
     exit(1);
   }
 
   matchList  *M1 = new matchList(argv[1]);
   matchList  *M2 = new matchList(argv[2]);
+  char       *OP = argv[3];
 
   //  Construct a pair of matchTrees for one of the maps.  We need
   //  to search by either side of the match, thus two trees.
@@ -236,8 +237,11 @@ main(int argc, char **argv) {
   u32bit   same2f=0, same2n=0;
 
   //  We write the annotation to here
-  FILE *Aanno = fopen("overlap.Aannotation", "w");
-  FILE *Banno = fopen("overlap.Bannotation", "w");
+  char  outname[1024];
+  sprintf(outname, "%s.Aannotation", OP);
+  FILE *Aanno = fopen(outname, "w");
+  sprintf(outname, "%s.Bannotation", OP);
+  FILE *Banno = fopen(outname, "w");
 
   //  We also build a list of the annotation for classification later
   ALmax = (u32bit)dict_count(S1->_tree);
