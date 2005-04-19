@@ -1,23 +1,9 @@
 #!/usr/bin/env python
 
 """
-Extensive documentation for the Python language is available at
-http://www.python.org.
-
 The environmental variable "PYTHONPATH" is a colon separated list
 of directories of imported Python modules (*.py) and C/C++ shared
-libraries (*.so for Unix or *.dll for Windows).  For example, using
-the bash shell command in my environment 
-"PYTHONPATH=${PYTHONPATH}:$WORK/cds/IR/COMPASS/src/AtacPipeline; export PYTHONPATH"
-initializes the PYTHONPATH properly.
-
-This script was tested using Python 2.3.3.  Check using "python
--V" to determine which version you are using.  There are no known
-problems with the planned future features of Python.
-
-If you have problems that look platform specific, then search for
-"sys.platform" to find computer and OS platform dependencies in the
-script.
+libraries (*.so for Unix or *.dll for Windows).
 
 Written by Clark Mobarry, Applied Biosystems, 2002-2004.
 """
@@ -37,10 +23,9 @@ import UniqueFilter
 import PerfectRuns
 import TrimMatchOverlaps
 import squeezeIntraRunGaps
-
 import localAlignerInterface
-
 import fillIntraRunGaps
+
 #import dedashMatches
 
 STDERR=sys.stderr
