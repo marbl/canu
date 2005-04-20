@@ -3,9 +3,10 @@
 LIBUTL/     :=$(call MakePath,$/../../libutil/)
 LIBBIO/     :=$(call MakePath,$/../../libbio/)
 LIBATAC/    :=$(call MakePath,$/../libatac/)
+THIS/       :=$(call MakePath,$/)
 
 $/.CXX_EXES := $/overlap
-#$/.CXX_SRCS := $/overlap.C $/overlap-sort.C $/overlap-printAnno.C $/overlap-find.C $/overlap-process1.C
+$/.CXX_SRCS := $/overlap.C $/overlap-sort.C $/overlap-printAnno.C $/overlap-find.C
 
 $/.CLEAN :=$/*.o $/*~ $/core $/overlap-process1.C $/overlap-process2.C
 
@@ -18,12 +19,16 @@ $/overlap:   $/overlap.o \
              $/overlap-process2.o \
              ${LIBATAC/}libatac.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 
+
+#  Symlinks below don't work, they either get the source or the destination wrong.
+#  Hardlinks aren't as obvious as to what's going on.
+
 $/overlap-process1.o: CXXFLAGS+=-DINDEX=1 -DNAME=process1 -DPOS1=pos1 -DPOS2=pos2 -DLEN2=len2
 $/overlap-process1.C: $/overlap-process.C
-	ln -s $/overlap-process.C $/overlap-process1.C
+	ln -f ${THIS/}overlap-process.C ${THIS/}overlap-process1.C
 
 $/overlap-process2.o: CXXFLAGS+=-DINDEX=2 -DNAME=process2 -DPOS1=pos2 -DPOS2=pos1 -DLEN2=len1
 $/overlap-process2.C: $/overlap-process.C
-	ln -s $/overlap-process.C $/overlap-process2.C
+	ln -f ${THIS/}overlap-process.C ${THIS/}overlap-process2.C
 
 $(eval $/%.d $/%.o:   CXXFLAGS+=-I${LIBATAC/} -I${LIBBIO/} -I${LIBUTL/})
