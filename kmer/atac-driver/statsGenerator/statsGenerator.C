@@ -22,105 +22,269 @@
 
 #include "bio++.H"
 #include "util++.H"
-#include "atac-common.H"
+#include "atac.H"
 
 //  Compute some simple statistics on a set of matches
 
+void mappedMultiply1(matchList &matches, char *prefix);
+void mappedMultiply2(matchList &matches, char *prefix);
+
+int
+u32bitcompare(const void *a, const void *b) {
+  const u32bit A = *((const u32bit *)a);
+  const u32bit B = *((const u32bit *)b);
+  if (A < B) return(-1);
+  if (A > B) return(1);
+  return(0);
+}
+
 int
 main(int argc, char **argv) {
-  char    inLine[1024];
 
-  char    file1[1024];
-  char    file2[1024];
-
-  intervalList  intervalA;
-  intervalList  intervalB;
-
-  u32bit        skippedCount = 0;
-  u64bit        skippedLengthA = 0;
-  u64bit        skippedLengthB = 0;
-
-  //  Read the preamble, look for our data sources.  This leaves us with
-  //  the first match in the inLine, and fills in file1 and file2.
-  //
-  readHeader(inLine, stdin, file1, file2, 0L);
-
-  fprintf(stderr, "Opening '%s' for sequence one.\n", file1);
-  fprintf(stderr, "Opening '%s' for sequence two.\n", file2);
-
-  //  Open some FastAWrappers for each of the files -- we use these
-  //  only to get the length of the sequence.
-  //
-  FastAWrapper  *C1 = new FastAWrapper(file1);
-  FastAWrapper  *C2 = new FastAWrapper(file2);
-
-  C1->openIndex();
-  C2->openIndex();
-
-  //  For the coverage to work correctly, we need to either have one
-  //  intervalList per input sequence, or build a table of the chained
-  //  sequence positions.
-  //
-  u64bit  *offset1 = new u64bit [C1->getNumberOfSequences()];
-  u64bit  *offset2 = new u64bit [C2->getNumberOfSequences()];
-
-  offset1[0] = 1000000;
-  for (u32bit i=1; i<C1->getNumberOfSequences(); i++)
-    offset1[i] = offset1[i-1] + C1->sequenceLength(i-1) + 1;
-
-  offset2[0] = 1000000;
-  for (u32bit i=1; i<C2->getNumberOfSequences(); i++)
-    offset2[i] = offset2[i-1] + C2->sequenceLength(i-1) + 1;
-
-  while (!feof(stdin)) {
-    if (inLine[0] == 'M') {
-      splitToWords  S(inLine);
-
-      if ((S[1][0] == 'u') || (S[1][0] == 'x')) {
-        //if ((S[1][0] == 'r')) {
-        u32bit  iid1=0, pos1=0, len1=0, ori1=0;
-        u32bit  iid2=0, pos2=0, len2=0, ori2=0;
-        decodeMatch(S, iid1, pos1, len1, ori1, iid2, pos2, len2, ori2);
-
-        if ((pos1 + len1) > C1->sequenceLength(iid1)) {
-          chomp(inLine);
-          fprintf(stderr, "Too Long in 1: "u32bitFMT" %s\n", C1->sequenceLength(iid1), inLine);
-        }
-
-        if ((pos2 + len2) > C2->sequenceLength(iid2)) {
-          chomp(inLine);
-          fprintf(stderr, "Too Long in 2: "u32bitFMT" %s\n", C2->sequenceLength(iid2), inLine);
-        }
-
-
-        if ((iid1 >= C1->getNumberOfSequences()) || (iid2 >= C2->getNumberOfSequences())) {
-          //  Hmmm.  Skip it.
-          skippedCount++;
-          skippedLengthA += len1;
-          skippedLengthB += len2;
-        } else {
-          intervalA.add(offset1[iid1] + (u64bit)pos1, (u64bit)len1);
-          intervalB.add(offset2[iid2] + (u64bit)pos2, (u64bit)len2);
-        }
-      }
-    }
-
-    fgets(inLine, 1024, stdin);
+  if (argc != 3) {
+    fprintf(stderr, "usage: %s <file.atac> <outprefix>\n", argv[0]);
+    exit(1);
   }
 
-  fprintf(stderr, "skipped "u32bitFMT" matches with length "u64bitFMT" and "u64bitFMT"\n",
-          skippedCount, skippedLengthA, skippedLengthB);
+  //  matchList also computes the length and coverage of the matches.
+  //
+  matchList     matches(argv[1]);
+  FILE         *out;
+  char         *prefix = argv[2];
+  char          filename[1024];
 
-  fprintf(stderr, "intervalLength A "u64bitFMT" B "u64bitFMT"\n",
-          (u64bit)intervalA.sumOfLengths(),
-          (u64bit)intervalB.sumOfLengths());
+  //  Generate an Nx plot, and a match length histogram
+  //  We block the histogram at 1kb, 0 is for things too big.
+  //
+  u32bit    histogramMax    = 1000000;
+  u32bit    histogramBlock  = 100;
+  u32bit   *lengthHistogram = new u32bit [histogramMax / histogramBlock];
+  u32bit   *n50             = new u32bit [matches.numMatches()];
 
-  intervalA.merge();
-  intervalB.merge();
+  for (u32bit i=0; i<histogramMax / histogramBlock; i++)
+    lengthHistogram[i] = 0;
 
-  fprintf(stderr, "coveredLength  A "u64bitFMT" B "u64bitFMT"\n",
-          (u64bit)intervalA.sumOfLengths(),
-          (u64bit)intervalB.sumOfLengths());
+  for (u32bit i=0; i<matches.numMatches(); i++) {
+    match_t  *m = matches.getMatch(i);
+
+    //  Update the length histogram
+    //
+    if (m->len1 > histogramMax) {
+      lengthHistogram[0]++;
+    } else {
+      lengthHistogram[m->len1 / histogramBlock]++;
+    }
+
+    //  Save the length for the n50 plot
+    n50[i] = m->len1;
+  }
+
+  //  Dump the histogram
+  sprintf(filename, "%s.matchlengthhistogram", prefix);
+  out = fopen(filename, "w");
+  for (u32bit i=0; i<histogramMax / histogramBlock; i++)
+    fprintf(out, u32bitFMT" "u32bitFMT"\n", i, lengthHistogram[i]);
+  fclose(out);
+
+  //  Compute the total length of the sequence
+  u32bit totalLength = 0;
+  for (u32bit i=0; i<matches._seq1->getNumberOfSequences(); i++)
+    totalLength += matches._seq1->sequenceLength(i);
+
+  //  Sort the n50 list of lengths
+  qsort(n50, matches.numMatches(), sizeof(u32bit), u32bitcompare);
+
+  //  It's slow and obvious and, yes, there is a better way.  Dump the
+  //  Nx plot as it's being generated.
+
+  sprintf(filename, "%s.Nx", prefix);
+  out = fopen(filename, "w");
+
+  for (u32bit n=1; n<100; n++) {
+    u32bit  limit = totalLength / 100 * n;
+    u32bit  iter  = 0;
+    u32bit  sum   = 0;
+
+    while ((sum < limit) && (iter < matches.numMatches())) {
+      sum += n50[iter++];
+    }
+
+    fprintf(out, u32bitFMT" "u32bitFMT" "u32bitFMT"\n", n, n50[iter-1], iter);
+  }
+
+  fclose(out);
+
+  //  plot [0:200][0:50000] "gunk.matchlengthhistogram" using 2 with lines, "gunk.Nx" with lines, "funk.matchlengthhistogram" using 2 with lines, "funk.Nx" with lines
+
+
+  ////////////////////////////////////////
+  //
+  //  Decide how many sequences in A are mapped to more than one thing
+  //  in B.  For each sequence in A, we compute the percent of it
+  //  mapped, the largest and smallest percent mapped to a single
+  //  sequence, and the number of sequences it mapped to.
+  //
+  //  A:4 num-mapped-to percent-mapped largest-mapped smallest-mapped
+  //
+  mappedMultiply1(matches, prefix);
+  mappedMultiply2(matches, prefix);
 
   return(0);
+}
+
+
+
+//  XXX:  Sadly, this function is needed twice, one for each direction.
+
+void
+mappedMultiply1(matchList &matches, char *prefix) {
+  u32bit   beg = 0;
+  u32bit   end = 0;
+  char     filename[1024];
+  FILE    *out;
+
+  sprintf(filename, "%s.multiple1", prefix);
+  out = fopen(filename, "w");
+
+  matches.sort1();
+
+  while (beg < matches.numMatches()) {
+
+    //  Figure out how many matches we have for this sequence
+    end = beg;
+    while ((end < matches.numMatches()) && (matches[beg]->iid1 == matches[end]->iid1))
+      end++;
+
+    //  Sort that range by the other index
+    matches.sort2(beg, end-beg);
+
+    //  Count the number of sequences this sequence maps to
+    u32bit numTargets = 1;
+
+    for (u32bit i=beg+1; i<end; i++) {
+      if (matches[i-1]->iid2 != matches[i]->iid2)
+        numTargets++;
+    }
+
+    //  Build an interval list (of the regions in us) for each sequence we map to
+    intervalList  AL;
+    intervalList  IL[numTargets];
+    u32bit target = 0;
+
+    for (u32bit i=beg; i<end; i++) {
+      AL.add(matches[i]->pos1, matches[i]->len1);
+      IL[target].add(matches[i]->pos1, matches[i]->len1);
+
+      if ((i+1 < end) &&
+          (matches[i]->iid2 != matches[i+1]->iid2))
+        target++;
+    }
+
+    //  Squash the lists, compute the min and max coverage
+
+    double minc = 100.0;
+    double maxc =   0.0;
+
+    for (u32bit i=0; i<numTargets; i++) {
+      IL[i].merge();
+
+      double c = 100.0 * IL[i].sumOfLengths() / matches._seq1->sequenceLength(matches[beg]->iid1);
+
+      if (minc > c)  minc = c;
+      if (maxc < c)  maxc = c;
+    }
+
+    //  report
+
+    AL.merge();
+
+    fprintf(out, u32bitFMT" "u32bitFMT" "u32bitFMT" %8.4f %8.4f %8.4f\n",
+            matches[beg]->iid1, numTargets,
+            end - beg,
+            minc,
+            maxc,
+            100.0 * AL.sumOfLengths() / matches._seq1->sequenceLength(matches[beg]->iid1) );
+
+    beg = end+1;
+  }
+
+  fclose(out);
+}
+
+
+
+
+void
+mappedMultiply2(matchList &matches, char *prefix) {
+  u32bit   beg = 0;
+  u32bit   end = 0;
+  char     filename[1024];
+  FILE    *out;
+
+  sprintf(filename, "%s.multiple2", prefix);
+  out = fopen(filename, "w");
+
+  matches.sort2();
+
+  while (beg < matches.numMatches()) {
+
+    //  Figure out how many matches we have for this sequence
+    end = beg;
+    while ((end < matches.numMatches()) && (matches[beg]->iid2 == matches[end]->iid2))
+      end++;
+
+    //  Sort that range by the other index
+    matches.sort1(beg, end-beg);
+
+    //  Count the number of sequences this sequence maps to
+    u32bit numTargets = 1;
+
+    for (u32bit i=beg+1; i<end; i++) {
+      if (matches[i-1]->iid1 != matches[i]->iid1)
+        numTargets++;
+    }
+
+    //  Build an interval list (of the regions in us) for each sequence we map to
+    intervalList  AL;
+    intervalList  IL[numTargets];
+    u32bit target = 0;
+
+    for (u32bit i=beg; i<end; i++) {
+      AL.add(matches[i]->pos2, matches[i]->len2);
+      IL[target].add(matches[i]->pos2, matches[i]->len2);
+
+      if ((i+1 < end) &&
+          (matches[i]->iid1 != matches[i+1]->iid1))
+        target++;
+    }
+
+    //  Squash the lists, compute the min and max coverage
+
+    double minc = 100.0;
+    double maxc =   0.0;
+
+    for (u32bit i=0; i<numTargets; i++) {
+      IL[i].merge();
+
+      double c = 100.0 * IL[i].sumOfLengths() / matches._seq2->sequenceLength(matches[beg]->iid2);
+
+      if (minc > c)  minc = c;
+      if (maxc < c)  maxc = c;
+    }
+
+    //  report
+
+    AL.merge();
+
+    fprintf(out, u32bitFMT" "u32bitFMT" "u32bitFMT" %8.4f %8.4f %8.4f\n",
+            matches[beg]->iid2, numTargets,
+            end - beg,
+            minc,
+            maxc,
+            100.0 * AL.sumOfLengths() / matches._seq2->sequenceLength(matches[beg]->iid2) );
+
+    beg = end+1;
+  }
+
+  fclose(out);
 }
