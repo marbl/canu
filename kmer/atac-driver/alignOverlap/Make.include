@@ -5,11 +5,25 @@ LIBBIO/     :=$(call MakePath,$/../../libbio/)
 LIBATAC/    :=$(call MakePath,$/../libatac/)
 
 $/.CXX_EXES := $/overlap
-$/.CXX_SRCS := $/overlap.C
+#$/.CXX_SRCS := $/overlap.C $/overlap-sort.C $/overlap-printAnno.C $/overlap-find.C $/overlap-process1.C
 
-$/.CLEAN :=$/*.o $/*~ $/core
+$/.CLEAN :=$/*.o $/*~ $/core $/overlap-process1.C $/overlap-process2.C
 
-$/overlap:             $/overlap.o \
-                       ${LIBATAC/}libatac.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+$/overlap:   $/overlap.o \
+             $/overlap-find.o \
+             $/overlap-matchTree.o \
+             $/overlap-printAnno.o \
+             $/overlap-sort.o \
+             $/overlap-process1.o \
+             $/overlap-process2.o \
+             ${LIBATAC/}libatac.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+
+$/overlap-process1.o: CXXFLAGS+=-DINDEX=1 -DNAME=process1 -DPOS1=pos1 -DPOS2=pos2 -DLEN2=len2
+$/overlap-process1.C: $/overlap-process.C
+	ln -s $/overlap-process.C $/overlap-process1.C
+
+$/overlap-process2.o: CXXFLAGS+=-DINDEX=2 -DNAME=process2 -DPOS1=pos2 -DPOS2=pos1 -DLEN2=len1
+$/overlap-process2.C: $/overlap-process.C
+	ln -s $/overlap-process.C $/overlap-process2.C
 
 $(eval $/%.d $/%.o:   CXXFLAGS+=-I${LIBATAC/} -I${LIBBIO/} -I${LIBUTL/})

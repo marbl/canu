@@ -16,23 +16,53 @@
 // License along with this program; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-#ifndef OVERLAP_MATCHTREE_H
-#define OVERLAP_MATCHTREE_H
+#ifndef OVERLAP_STATS_H
+#define OVERLAP_STATS_H
 
 #include "overlap.H"
 
-//  Contructs a search tree from a matchList
-class matchTree {
+//  Statistics and Histograms
+//
+//  Index 1 is the assembly, 2 is the mapping.  Stats count the
+//  number of bases covered, histograms are of the block sizes.
+//
+class histogram {
 public:
-  matchTree(matchList *L, u32bit side);
-  ~matchTree() {
-    dict_free_nodes(_tree);
-    dict_free(_tree);
+  histogram(u32bit max=1048576) {
+    histMax = max;
+    hist    = new u32bit [histMax];
+    sum     = 0;
+
+    for (u32bit i=0; i<histMax; i++)
+      hist[i] = 0;
+  };
+  ~histogram() {
+    delete [] hist;
   };
 
-  dict_t        *_tree;
-  dict_load_t    _load;
+  void  update(u32bit length) {
+    sum += length;
+    hist[ ((length) > histMax) ? 0 : length ]++;
+  };
+
+  void operator+=(u32bit length) {
+    update(length);
+  };
+
+  u32bit  *hist;
+  u32bit   histMax;
+  u32bit   sum;
+};
+
+class overlapStats {
+public:
+  histogram  unmapped;
+  histogram  unique[2];
+  histogram  different;
+  histogram  wilddiff;
+  histogram  same;
+  histogram  inconsistent;
 };
 
 
-#endif  //  OVERLAP_MATCHTREE_H
+#endif  //  OVERLAP_STATS_H
