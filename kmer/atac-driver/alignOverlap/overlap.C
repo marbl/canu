@@ -22,14 +22,12 @@
 
 #include "bio++.H"
 #include "util++.H"
-#include "atac-common.H"
+#include "atac.H"
 
 int sortMatches1(const void *a, const void *b);
 int sortMatches2(const void *a, const void *b);
 int spanCompare(const void *a, const void *b);
 
-#include "overlap-match.H"
-#include "overlap-matchList.H"
 #include "overlap-span.H"
 #include "overlap-matchTree.H"
 #include "overlap-spanTree.H"

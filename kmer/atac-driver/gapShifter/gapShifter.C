@@ -21,7 +21,7 @@
 #include <unistd.h>
 
 #include "bio++.H"
-#include "atac-common.H"
+#include "atac.H"
 
 
 u32bit  gapLimit = 5;

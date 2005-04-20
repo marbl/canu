@@ -21,7 +21,7 @@
 #include <time.h>
 
 #include "util++.H"
-#include "atac-common.H"
+#include "atac.H"
 
 //  DEBUG emits voluminous debugging information on what actions were taken.
 //  TEST performs some simple tests on the trimming -- do we intersect anyghing,
@@ -967,7 +967,7 @@ main(int argc, char **argv) {
               (matches[i].pos1 + matches[i].len1 > extent.pos1 + extent.len1) ||
               (matches[i].pos2 < extent.pos2) ||
               (matches[i].pos2 + matches[i].len2 > extent.pos2 + extent.len2)) {
-            fprintf(stderr, "match %d is outside the extent!\n");
+            fprintf(stderr, "match "u32bitFMT" is outside the extent!\n", i);
             abort();
           }
         }

@@ -10,6 +10,6 @@ $/.CXX_SRCS := $/lengthFilter.C
 $/.CLEAN :=$/*.o $/*~ $/core
 
 $/lengthFilter:        $/lengthFilter.o \
-                       ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a ${LIBATAC/}libatac.a
+                       ${LIBATAC/}libatac.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 
-$(eval $/%.d $/%.o:   CXXFLAGS+=-I${LIBBIO/} -I${LIBUTL/} -I${LIBATAC/})
+$(eval $/%.d $/%.o:   CXXFLAGS+=-I${LIBATAC/} -I${LIBBIO/} -I${LIBUTL/})

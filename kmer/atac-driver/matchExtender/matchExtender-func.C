@@ -24,7 +24,7 @@
 #include <algorithm>
 
 #include "bio++.H"
-#include "atac-common.H"
+#include "atac.H"
 #include "match.H"
 
 using namespace std;

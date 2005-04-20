@@ -21,7 +21,7 @@
 #include <unistd.h>
 
 #include "bio++.H"
-
+#include "atac.H"
 
 void
 readHeader(char *inLine, FILE *in, char *file1, char *file2, FILE *out) {
@@ -64,40 +64,3 @@ readHeader(char *inLine, FILE *in, char *file1, char *file2, FILE *out) {
     exit(1);
   }
 }
-
-
-
-
-
-bool
-decodeMatch(splitToWords &W,
-            u32bit &iid1, u32bit &pos1, u32bit &len1, u32bit &ori1,
-            u32bit &iid2, u32bit &pos2, u32bit &len2, u32bit &ori2) {
-
-  if ((W[0][0] == 'M') && (W[1][0] == 'u')) {
-    char *tmp = W[4];
-    while (*tmp && (*tmp != ':'))
-      tmp++;
-    if (*tmp)
-      iid1 = strtou32bit(tmp+1, 0L);
-
-    tmp = W[8];
-    while (*tmp && (*tmp != ':'))
-      tmp++;
-    if (*tmp)
-      iid2 = strtou32bit(tmp+1, 0L);
-
-    pos1 = strtou32bit(W[5], 0L);
-    len1 = strtou32bit(W[6], 0L);
-    ori1 = (W[7][0] == '-') ? 0 : 1;
-
-    pos2 = strtou32bit(W[9], 0L);
-    len2 = strtou32bit(W[10], 0L);
-    ori2 = (W[11][0] == '-') ? 0 : 1;
-
-    return(true);
-  }
-
-  return(false);
-}
-

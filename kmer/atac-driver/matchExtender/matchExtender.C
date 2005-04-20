@@ -25,7 +25,7 @@
 using namespace std;
 
 #include "bio++.H"
-#include "atac-common.H"
+#include "atac.H"
 #include "match.H"
 
 
@@ -184,7 +184,7 @@ main(int argc, char *argv[]) {
     //
     for (u32bit i=0; i<fwdMatches.size(); i++) {
       if (!fwdMatches[i]->isDeleted())
-        fprintf(stdout, "M u %s . %s %d %d 1 %s %d %d 1\n",
+        fprintf(stdout, "M u %s . %s "u32bitFMT" "u32bitFMT" 1 %s "u32bitFMT" "u32bitFMT" 1\n",
                 fwdMatches[i]->_matchId,
                 fwdMatches[i]->_id1, fwdMatches[i]->_acc1->getRangeBegin(), fwdMatches[i]->_acc1->getRangeLength(),
                 fwdMatches[i]->_id2, fwdMatches[i]->_acc2->getRangeBegin(), fwdMatches[i]->_acc2->getRangeLength());
@@ -193,7 +193,7 @@ main(int argc, char *argv[]) {
 
     for (u32bit i=0; i<revMatches.size(); i++) {
       if (!revMatches[i]->isDeleted())
-        fprintf(stdout, "M u %s . %s %d %d 1 %s %d %d -1\n",
+        fprintf(stdout, "M u %s . %s "u32bitFMT" "u32bitFMT" 1 %s "u32bitFMT" "u32bitFMT" -1\n",
                 revMatches[i]->_matchId,
                 revMatches[i]->_id1, revMatches[i]->_acc1->getRangeBegin(), revMatches[i]->_acc1->getRangeLength(),
                 revMatches[i]->_id2, revMatches[i]->_acc2->getRangeBegin(), revMatches[i]->_acc2->getRangeLength());

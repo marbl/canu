@@ -1,29 +1,31 @@
+// This file is part of A2Amapper.
+// Copyright (c) 2005 J. Craig Venter Institute
+// Author: Brian Walenz
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received (LICENSE.txt) a copy of the GNU General Public 
+// License along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-//  Loads a set of matches from a file
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
-class matchList {
-public:
-  matchList(char *filename);
-  ~matchList() {
-    delete _seq1;
-    delete _seq2;
-    delete [] _matches;
-  };
-
-  char          _file1[1024];
-  char          _file2[1024];
-
-  FastAWrapper *_seq1;
-  FastAWrapper *_seq2;
-
-  u32bit        _matchesLen;
-  u32bit        _matchesMax;
-  match_t      *_matches;
-};
+#include "bio++.H"
+#include "atac.H"
 
 
-
-
+//  While loading matches, we compute the mapped length and covered
+//  length.
 
 matchList::matchList(char *filename) {
 
@@ -32,20 +34,11 @@ matchList::matchList(char *filename) {
   if (errno)
     fprintf(stderr, "matchList::matchList()-- failed to load %s: %s\n", filename, strerror(errno)), exit(1);
 
-
-  //  While loading matches, we compute the mapped length and covered
-  //  length.
-
-  //fprintf(stderr, "Loading matches from %s\n", filename);
-  
   //  Read the preamble, look for our data sources.  This leaves us with
   //  the first match in the inLine, and fills in file1 and file2.
   //
   char    inLine[1024];
   readHeader(inLine, inFile, _file1, _file2, 0L);
-
-  //fprintf(stderr, "Opening '%s' for sequence one.\n", _file1);
-  //fprintf(stderr, "Opening '%s' for sequence two.\n", _file2);
 
   //  Open some FastAWrappers for each of the files -- we use these
   //  only to get the length of the sequence.
@@ -75,10 +68,6 @@ matchList::matchList(char *filename) {
   for (u32bit i=1; i<_seq2->getNumberOfSequences(); i++)
     offset2[i] = offset2[i-1] + _seq2->sequenceLength(i-1) + 1;
 
-  u32bit        skippedCount = 0;
-  u64bit        skippedLengthA = 0;
-  u64bit        skippedLengthB = 0;
-
   intervalList  intervalA;
   intervalList  intervalB;
 
@@ -92,21 +81,20 @@ matchList::matchList(char *filename) {
         u32bit  iid2=0, pos2=0, len2=0, ori2=0;
         decodeMatch(S, iid1, pos1, len1, ori1, iid2, pos2, len2, ori2);
 
-        if ((pos1 + len1) > _seq1->sequenceLength(iid1)) {
+
+        if ((pos1) > _seq1->sequenceLength(iid1) || (pos1 + len1) > _seq1->sequenceLength(iid1)) {
           chomp(inLine);
           fprintf(stderr, "Match longer than sequence in 1: "u32bitFMT" %s\n", _seq1->sequenceLength(iid1), inLine);
         }
 
-        if ((pos2 + len2) > _seq2->sequenceLength(iid2)) {
+        if ((pos2) > _seq2->sequenceLength(iid2) || (pos2 + len2) > _seq2->sequenceLength(iid2)) {
           chomp(inLine);
           fprintf(stderr, "Match longer than sequence in 2: "u32bitFMT" %s\n", _seq2->sequenceLength(iid2), inLine);
         }
 
         if ((iid1 >= _seq1->getNumberOfSequences()) || (iid2 >= _seq2->getNumberOfSequences())) {
-          //  Hmmm.  Skip it.
-          skippedCount++;
-          skippedLengthA += len1;
-          skippedLengthB += len2;
+          chomp(inLine);
+          fprintf(stderr, "Match references invalid sequence iid: %s\n", inLine);
         } else {
           intervalA.add(offset1[iid1] + (u64bit)pos1, (u64bit)len1);
           intervalB.add(offset2[iid2] + (u64bit)pos2, (u64bit)len2);
@@ -140,9 +128,6 @@ matchList::matchList(char *filename) {
     fgets(inLine, 1024, inFile);
   }
 
-  fprintf(stderr, "skipped "u32bitFMT" matches with length "u64bitFMT" and "u64bitFMT"\n",
-          skippedCount, skippedLengthA, skippedLengthB);
-
   fprintf(stderr, "intervalLength A "u64bitFMT" B "u64bitFMT"\n",
           (u64bit)intervalA.sumOfLengths(),
           (u64bit)intervalB.sumOfLengths());
@@ -155,3 +140,53 @@ matchList::matchList(char *filename) {
           (u64bit)intervalB.sumOfLengths());
 }
 
+
+
+
+static
+int
+sort1_(const void *a, const void *b) {
+  const match_t *A = (const match_t *)a;
+  const match_t *B = (const match_t *)b;
+
+  if (A->iid1 < B->iid1)  return(-1);
+  if (A->iid1 > B->iid1)  return(1);
+  if (A->pos1 < B->pos1)  return(-1);
+  if (A->pos1 > B->pos1)  return(1);
+  if (A->len1 > B->len1)  return(-1);
+  if (A->len1 < B->len1)  return(1);
+  if (A->ori1 > B->ori1)  return(-1);
+  if (A->ori1 < B->ori1)  return(1);
+  return(0);
+}
+
+static
+int
+sort2_(const void *a, const void *b) {
+  const match_t *A = (const match_t *)a;
+  const match_t *B = (const match_t *)b;
+
+  if (A->iid2 < B->iid2)  return(-1);
+  if (A->iid2 > B->iid2)  return(1);
+  if (A->pos2 < B->pos2)  return(-1);
+  if (A->pos2 > B->pos2)  return(1);
+  if (A->len2 > B->len2)  return(-1);
+  if (A->len2 < B->len2)  return(1);
+  if (A->ori2 > B->ori2)  return(-1);
+  if (A->ori2 < B->ori2)  return(1);
+  return(0);
+}
+
+
+void
+matchList::sort1(u32bit first, u32bit len) {
+  if (len == 0) len = _matchesLen;
+  qsort(_matches + first, len, sizeof(match_t), sort1_);
+}
+
+
+void
+matchList::sort2(u32bit first, u32bit len) {
+  if (len == 0) len = _matchesLen;
+  qsort(_matches + first, len, sizeof(match_t), sort2_);
+}

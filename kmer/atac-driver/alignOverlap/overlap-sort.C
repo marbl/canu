@@ -32,6 +32,8 @@ sortMatches2(const void *a, const void *b) {
   return(0);
 }
 
+
+
 int
 spanCompare(const void *a, const void *b) {
   const span_t *A = *((const span_t * const *)a);

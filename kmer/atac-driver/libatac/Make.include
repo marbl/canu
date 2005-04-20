@@ -3,12 +3,12 @@
 LIBUTL/     :=$(call MakePath,$/../../libutil/)
 LIBBIO/     :=$(call MakePath,$/../../libbio/)
 
-$/.CXX_SRCS := $/atac-common.C
+$/.CXX_SRCS := $/decodeMatch.C $/matchList.C $/readHeader.C
 $/.CXX_LIBS := $/libatac.a
 
 $/.CLEAN :=$/*.o $/*~ $/core
 
-$/libatac.a: $/atac-common.o
+$/libatac.a: ${$/.CXX_SRCS:.C=.o}
 
 $(eval $/%.d $/%.o:   CXXFLAGS+=-I${LIBBIO/} -I${LIBUTL/})
 

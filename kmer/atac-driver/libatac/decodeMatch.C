@@ -1,0 +1,57 @@
+// This file is part of A2Amapper.
+// Copyright (c) 2005 J. Craig Venter Institute
+// Author: Brian Walenz
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received (LICENSE.txt) a copy of the GNU General Public 
+// License along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+#include "bio++.H"
+#include "atac.H"
+
+bool
+decodeMatch(splitToWords &W,
+            u32bit &iid1, u32bit &pos1, u32bit &len1, u32bit &ori1,
+            u32bit &iid2, u32bit &pos2, u32bit &len2, u32bit &ori2) {
+
+  if ((W[0][0] == 'M') && (W[1][0] == 'u')) {
+    char *tmp = W[4];
+    while (*tmp && (*tmp != ':'))
+      tmp++;
+    if (*tmp)
+      iid1 = strtou32bit(tmp+1, 0L);
+
+    tmp = W[8];
+    while (*tmp && (*tmp != ':'))
+      tmp++;
+    if (*tmp)
+      iid2 = strtou32bit(tmp+1, 0L);
+
+    pos1 = strtou32bit(W[5], 0L);
+    len1 = strtou32bit(W[6], 0L);
+    ori1 = (W[7][0] == '-') ? 0 : 1;
+
+    pos2 = strtou32bit(W[9], 0L);
+    len2 = strtou32bit(W[10], 0L);
+    ori2 = (W[11][0] == '-') ? 0 : 1;
+
+    return(true);
+  }
+
+  return(false);
+}
+
