@@ -60,6 +60,9 @@ matchList::matchList(char *filename) {
   u64bit  *offset1 = new u64bit [_seq1->getNumberOfSequences()];
   u64bit  *offset2 = new u64bit [_seq2->getNumberOfSequences()];
 
+  u32bit   length1 = 0;
+  u32bit   length2 = 0;
+
   offset1[0] = 1000000;
   for (u32bit i=1; i<_seq1->getNumberOfSequences(); i++)
     offset1[i] = offset1[i-1] + _seq1->sequenceLength(i-1) + 1;
@@ -67,6 +70,12 @@ matchList::matchList(char *filename) {
   offset2[0] = 1000000;
   for (u32bit i=1; i<_seq2->getNumberOfSequences(); i++)
     offset2[i] = offset2[i-1] + _seq2->sequenceLength(i-1) + 1;
+
+  for (u32bit i=0; i<_seq1->getNumberOfSequences(); i++)
+    length1 += _seq1->sequenceLength(i);
+
+  for (u32bit i=0; i<_seq2->getNumberOfSequences(); i++)
+    length2 += _seq2->sequenceLength(i);
 
   intervalList  intervalA;
   intervalList  intervalB;
@@ -127,6 +136,10 @@ matchList::matchList(char *filename) {
 
     fgets(inLine, 1024, inFile);
   }
+
+  fprintf(stderr, "totalLength    A "u64bitFMT" B "u64bitFMT"\n",
+          (u64bit)length1,
+          (u64bit)length2);
 
   fprintf(stderr, "intervalLength A "u64bitFMT" B "u64bitFMT"\n",
           (u64bit)intervalA.sumOfLengths(),

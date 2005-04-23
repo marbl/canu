@@ -83,7 +83,7 @@ main(int argc, char **argv) {
   sprintf(filename, "%s.matchlengthhistogram", prefix);
   out = fopen(filename, "w");
   for (u32bit i=0; i<histogramMax / histogramBlock; i++)
-    fprintf(out, u32bitFMT" "u32bitFMT"\n", i, lengthHistogram[i]);
+    fprintf(out, u32bitFMT" "u32bitFMT"\n", i * histogramBlock, lengthHistogram[i]);
   fclose(out);
 
   //  Compute the total length of the sequence
@@ -109,12 +109,37 @@ main(int argc, char **argv) {
       sum += n50[iter++];
     }
 
-    fprintf(out, u32bitFMT" "u32bitFMT" "u32bitFMT"\n", n, n50[iter-1], iter);
+    fprintf(out, u32bitFMT" "u32bitFMT"\n", n, n50[iter-1]);
   }
 
   fclose(out);
 
-  //  plot [0:200][0:50000] "gunk.matchlengthhistogram" using 2 with lines, "gunk.Nx" with lines, "funk.matchlengthhistogram" using 2 with lines, "funk.Nx" with lines
+  sprintf(filename, "%s.matchlengthhistogram.gnuplot", prefix);
+  out = fopen(filename, "w");
+  fprintf(out, "set terminal postscript color\n");
+  fprintf(out, "set output \"%s.matchlengthhistogram1.ps\"\n", prefix);
+  fprintf(out, "set xlabel \"Length / 1000\"\n");
+  fprintf(out, "set ylabel \"Number of Matches\"\n");
+  fprintf(out, "plot [][0:100000] \"%s.matchlengthhistogram\" using 2 with lines\n", prefix);
+  fprintf(out, "set output \"%s.matchlengthhistogram2.ps\"\n", prefix);
+  fprintf(out, "plot [][0:100]    \"%s.matchlengthhistogram\" using 2 with lines\n", prefix);
+  fclose(out);
+  sprintf(filename, "gnuplot < %s.matchlengthhistogram.gnuplot", prefix);
+  if (system(filename))
+    fprintf(stderr, "Failed to execute '%s'\n", filename);
+
+  sprintf(filename, "%s.Nx.gnuplot", prefix);
+  out = fopen(filename, "w");
+  fprintf(out, "set terminal postscript color\n");
+  fprintf(out, "set output \"%s.Nx.ps\"\n", prefix);
+  fprintf(out, "set xlabel \"N\"\n");
+  fprintf(out, "set ylabel \"match length\"\n");
+  fprintf(out, "plot \"%s.Nx\" using 2 with lines\n", prefix);
+  fclose(out);
+  sprintf(filename, "gnuplot < %s.Nx.gnuplot", prefix);
+  if (system(filename))
+    fprintf(stderr, "Failed to execute '%s'\n", filename);
+
 
 
   ////////////////////////////////////////
@@ -142,6 +167,7 @@ mappedMultiply1(matchList &matches, char *prefix) {
   u32bit   end = 0;
   char     filename[1024];
   FILE    *out;
+  u32bit   mappedMultiply = 0;
 
   sprintf(filename, "%s.multiple1", prefix);
   out = fopen(filename, "w");
@@ -167,8 +193,8 @@ mappedMultiply1(matchList &matches, char *prefix) {
     }
 
     //  Build an interval list (of the regions in us) for each sequence we map to
-    intervalList  AL;
-    intervalList  IL[numTargets];
+    intervalList   AL;
+    intervalList  *IL = new intervalList [numTargets];
     u32bit target = 0;
 
     for (u32bit i=beg; i<end; i++) {
@@ -205,10 +231,15 @@ mappedMultiply1(matchList &matches, char *prefix) {
             maxc,
             100.0 * AL.sumOfLengths() / matches._seq1->sequenceLength(matches[beg]->iid1) );
 
+    if (numTargets > 1)
+      mappedMultiply++;
+
     beg = end+1;
   }
 
   fclose(out);
+
+  fprintf(stderr, "mappedMultiply A: "u32bitFMT"\n", mappedMultiply);
 }
 
 
@@ -220,6 +251,7 @@ mappedMultiply2(matchList &matches, char *prefix) {
   u32bit   end = 0;
   char     filename[1024];
   FILE    *out;
+  u32bit   mappedMultiply = 0;
 
   sprintf(filename, "%s.multiple2", prefix);
   out = fopen(filename, "w");
@@ -245,8 +277,8 @@ mappedMultiply2(matchList &matches, char *prefix) {
     }
 
     //  Build an interval list (of the regions in us) for each sequence we map to
-    intervalList  AL;
-    intervalList  IL[numTargets];
+    intervalList   AL;
+    intervalList  *IL = new intervalList [numTargets];
     u32bit target = 0;
 
     for (u32bit i=beg; i<end; i++) {
@@ -283,8 +315,13 @@ mappedMultiply2(matchList &matches, char *prefix) {
             maxc,
             100.0 * AL.sumOfLengths() / matches._seq2->sequenceLength(matches[beg]->iid2) );
 
+    if (numTargets > 1)
+      mappedMultiply++;
+
     beg = end+1;
   }
 
   fclose(out);
+
+  fprintf(stderr, "mappedMultiply B: "u32bitFMT"\n", mappedMultiply);
 }

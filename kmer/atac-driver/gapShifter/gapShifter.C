@@ -327,28 +327,14 @@ main(int argc, char *argv[]) {
   FastACache  *C2 = new FastACache(file2, 1024, true, false);  //C2->openIndex();
 
   qsort(matches, matchesLen, sizeof(match_s), compareMatches1);
+
   for (u32bit i=1; i<matchesLen; i++)
     if (shiftRight(&matches[i-1], &matches[i], C1, C2)) {
       gapsShifted++;
-      fprintf(stderr, "Sort 1: shifted "u32bitFMT" out of "u32bitFMT" (%6.2f%%)\r", gapsShifted, i, (double)gapsShifted / (double)i * 100.0);
-      fflush(stderr);
+      //fprintf(stderr, "Sort 1: shifted "u32bitFMT" out of "u32bitFMT" (%6.2f%%)\r", gapsShifted, i, (double)gapsShifted / (double)i * 100.0);
+      //fflush(stderr);
     }
   fprintf(stderr, "Sort 1: shifted "u32bitFMT" out of "u32bitFMT" (%6.2f%%)\n", gapsShifted, matchesLen, (double)gapsShifted / (double)matchesLen * 100.0);
-
-  gapsShifted = 0;
-
-#if 0
-  qsort(matches, matchesLen, sizeof(match_s), compareMatches2);
-  for (u32bit i=1; i<matchesLen; i++)
-    if (shiftRight(&matches[i-1], &matches[i], C1, C2)) {
-      gapsShifted++;
-      fprintf(stderr, "Sort 2: shifted "u32bitFMT" out of "u32bitFMT" (%6.2f%%)\r", gapsShifted, i, (double)gapsShifted / (double)i * 100.0);
-      fflush(stderr);
-    }
-  fprintf(stderr, "Sort 2: shifted "u32bitFMT" out of "u32bitFMT" (%6.2f%%)\n", gapsShifted, matchesLen, (double)gapsShifted / (double)matchesLen * 100.0);
-
-  qsort(matches, matchesLen, sizeof(match_s), compareMatches1);
-#endif
 
 
   //  Dump all the matches.

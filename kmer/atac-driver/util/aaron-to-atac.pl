@@ -25,7 +25,7 @@ print "/assemblyId2=HUREF2\n";
 my %hmap;
 my %bmap;
 my $iid = 0;
-open(F, "< MERYL/HUREF2.deflines") or die "Failed to open MERYL/HUREF2.deflines\n";
+open(F, "< GENOMES/HUREF2.deflines") or die "Failed to open GENOMES/HUREF2.deflines\n";
 while (<F>) {
     chomp;
     if (m/>(\S+)\s*/) {
@@ -40,7 +40,7 @@ close(F);
 
 
 $iid = 0;
-open(F, "< MERYL/B35LC.deflines") or die "Failed to open MERYL/B35LC.deflines\n";
+open(F, "< GENOMES/B35LC.deflines") or die "Failed to open GENOMES/B35LC.deflines\n";
 while (<F>) {
     chomp;
     if (m/>chr(\S+)\s*/) {

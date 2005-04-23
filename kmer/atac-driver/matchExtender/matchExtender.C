@@ -70,51 +70,68 @@ readMatches(char *inLine,
             vector<match_s *> &fwdMatches,
             vector<match_s *> &revMatches) {
 
-  splitToWords *C = new splitToWords(inLine);
+  FastASequenceInCore *S1 = 0L;
+  FastASequenceInCore *S2 = 0L;
+  u32bit thisiid1 = ~u32bitZERO;
+  u32bit thisiid2 = ~u32bitZERO;
+  bool   cont;
 
-  u32bit  iid1=0, thisiid1=0, pos1=0, len1=0, ori1=0;
-  u32bit  iid2=0, thisiid2=0, pos2=0, len2=0, ori2=0;
-  decodeMatch(*C,
-              thisiid1, pos1, len1, ori1,
-              thisiid2, pos2, len2, ori2);
+  do {
+    //chomp(inLine); fprintf(stderr, "inline=%s\n", inLine);
 
-  iid1 = thisiid1;
-  iid2 = thisiid2;
+    u32bit  iid1=0, pos1=0, len1=0, ori1=0;
+    u32bit  iid2=0, pos2=0, len2=0, ori2=0;
 
-  FastASequenceInCore *S1 = C1->getSequence(iid1);
-  FastASequenceInCore *S2 = C2->getSequence(iid2);
+    cont = false;
 
-  fprintf(stderr, "%30.30s vs %30.30s", (*C)[4], (*C)[8]);
+    splitToWords *C = new splitToWords(inLine);
 
-  while (!feof(stdin) &&
-         (iid1 == thisiid1) &&
-         (iid2 == thisiid2)) {
-    //chomp(inLine); fprintf(stderr, "%s\n", inLine);
-
-    if (ori1 == ori2)
-      fwdMatches.push_back(new match_s((*C)[2],
-                                       S1, (*C)[4], iid1, pos1, len1, ori1,
-                                       S2, (*C)[8], iid2, pos2, len2, ori2));
-    else
-      revMatches.push_back(new match_s((*C)[2],
-                                       S1, (*C)[4], iid1, pos1, len1, ori1,
-                                       S2, (*C)[8], iid2, pos2, len2, ori2));
-
-    fgets(inLine, 1024, stdin);
-
-    if (!feof(stdin)) {
-      delete C;
-      C = new splitToWords(inLine);
+    if (((*C)[0][0] == 'M') && ((*C)[1][0] == 'x')) {
       decodeMatch(*C,
-                  thisiid1, pos1, len1, ori1,
-                  thisiid2, pos2, len2, ori2);
+                  iid1, pos1, len1, ori1,
+                  iid2, pos2, len2, ori2);
+
+      //  If this is the first time through this loop (this call
+      //  anyway) remember the first iid's we see.
+      //
+      if ((thisiid1 == ~u32bitZERO) && (thisiid2 == ~u32bitZERO)) {
+        thisiid1 = iid1;
+        thisiid2 = iid2;
+        S1       = C1->getSequence(iid1);
+        S2       = C2->getSequence(iid2);
+      }
+
+      //  If the iid's are the same as the first time, keep going, and
+      //  add the match to the list.
+      //
+      if ((thisiid1 == iid1) && (thisiid2 == iid2)) {
+        cont = true;
+
+        if (ori1 == ori2)
+          fwdMatches.push_back(new match_s((*C)[2],
+                                           S1, (*C)[4], iid1, pos1, len1, ori1,
+                                           S2, (*C)[8], iid2, pos2, len2, ori2));
+        else
+          revMatches.push_back(new match_s((*C)[2],
+                                           S1, (*C)[4], iid1, pos1, len1, ori1,
+                                           S2, (*C)[8], iid2, pos2, len2, ori2));
+      }
     }
-  }
+
+    delete C;
+
+    //  Read the next match, if we keep going.  If we are supposed to
+    //  stop, we remember inLine for the next call -- it holds the
+    //  next match we want!
+    //
+    if (cont)
+      fgets(inLine, 1024, stdin);
+
+  } while (!feof(stdin) && cont);
+
 
   fprintf(stderr, " with %8d fwd and %8d rev matches\r", fwdMatches.size(), revMatches.size());
   fflush(stderr);
-
-  delete C;
 }
 
 
