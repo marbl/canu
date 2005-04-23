@@ -18,20 +18,12 @@
 
 #include "overlap.H"
 
-
-//  I really wanted this to be parameterized with two macros, but the preprocessor merges, then replaces
+//  I really wanted this to be parameterized with two macros, but the
+//  preprocessor merges, then replaces:
 //    #define INDEXA 1
 //    #define INDEXB 2
 //    #define NODE node ## INDEXA
 //  results in 'nodeINDEXA' not 'node1'
-//
-//
-#if 0
-#define INDEX  1
-#define POS1   pos1
-#define POS2   pos2
-#define LEN2   len2
-#endif
 
 void
 NAME(FILE         *outfile,

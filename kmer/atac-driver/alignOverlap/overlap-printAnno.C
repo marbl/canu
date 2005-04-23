@@ -23,8 +23,8 @@ printAnno(FILE *F, annoList *AL, u32bit &ALlen,
           char label,
           u32bit axis,
           span_t *span,
-          u32bit match1=u32bitZERO, match_t *m1=0L,
-          u32bit match2=u32bitZERO, match_t *m2=0L) {
+          u32bit match1, match_t *m1,
+          u32bit match2, match_t *m2) {
 
   //  If we're just given match1, make it match2 if it is the second mapping
   //

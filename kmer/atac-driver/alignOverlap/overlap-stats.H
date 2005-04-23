@@ -28,7 +28,7 @@
 //
 class histogram {
 public:
-  histogram(u32bit max=1048576) {
+  histogram(u32bit max=65536) {
     histMax = max;
     hist    = new u32bit [histMax];
     sum     = 0;
@@ -49,6 +49,23 @@ public:
     update(length);
   };
 
+  u32bit  getSum(void) {
+    return(sum);
+  };
+
+  void writeHistogram(char *prefix, char *label) {
+    char filename[1024];
+    sprintf(filename, "%s.%s", prefix, label);
+    errno = 0;
+    FILE *out = fopen(filename, "w");
+    if (errno)
+      fprintf(stderr, "Failed to open '%s': %s\n", filename, strerror(errno)), exit(1);
+    for (u32bit i=0; i<histMax; i++)
+      fprintf(out, u32bitFMT" "u32bitFMT"\n", i, hist[i]);
+    fclose(out);
+  };
+
+private:
   u32bit  *hist;
   u32bit   histMax;
   u32bit   sum;
@@ -62,6 +79,16 @@ public:
   histogram  wilddiff;
   histogram  same;
   histogram  inconsistent;
+
+  void writeHistogram(char *prefix) {
+    unmapped.writeHistogram(prefix, "unmapped");
+    unique[0].writeHistogram(prefix, "uniqueA");
+    unique[1].writeHistogram(prefix, "uniqueB");
+    different.writeHistogram(prefix, "different");
+    wilddiff.writeHistogram(prefix, "wilddiff");
+    same.writeHistogram(prefix, "same");
+    inconsistent.writeHistogram(prefix, "inconsistent");
+  };
 };
 
 

@@ -74,15 +74,11 @@ main(int argc, char **argv) {
   //    only one match, or only matches from one mapping?
   //    matches from both mappings?  need to check that
   //     the span in the other tree also has the same matches
-
-
-
-
+  //
   //  Doesn't handle weird stuff like this span (on sequence 1)
   //  mapping onto seq2 correctly, but the span in seq2 having an
   //  extra match to somewhere else in seq1.
-
-
+  //
   //  we want to find the single span in the other spanTree that
   //  corresponds to this span.  once we do that, we can verify that
   //  all the matches are the same.
@@ -92,18 +88,15 @@ main(int argc, char **argv) {
   //  sequence.  then, do a lookup() to get that span, or just
   //  verify that everybody is the same location.
 
-
-
   char  outname[1024];
   FILE *outfile;
-
 
   overlapStats  statsA;
   u32bit     ALmax = (u32bit)dict_count(S1->_tree);
   u32bit     ALlen = 0;
   annoList  *AL    = new annoList [ ALmax ];
 
-  sprintf(outname, "%s.Aannotation", OP);
+  sprintf(outname, "%s.map1annotation", OP);
   errno = 0;
   outfile = fopen(outname, "w");
   if (errno)
@@ -116,7 +109,7 @@ main(int argc, char **argv) {
   u32bit     BLlen = 0;
   annoList  *BL    = new annoList [ ALmax ];
 
-  sprintf(outname, "%s.Bannotation", OP);
+  sprintf(outname, "%s.map2annotation", OP);
   errno = 0;
   outfile = fopen(outname, "w");
   if (errno)
@@ -124,25 +117,61 @@ main(int argc, char **argv) {
   process2(outfile, S2, M1, M2, statsB, BL, BLlen, BLmax);
   fclose(outfile);
 
-  fprintf(stderr, "unmapped:           A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", statsA.unmapped.sum,     statsB.unmapped.sum);
-  fprintf(stderr, "unique mapping 1:   A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", statsA.unique[0].sum,    statsB.unique[0].sum);
-  fprintf(stderr, "unique mapping 2:   A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", statsA.unique[1].sum,    statsB.unique[1].sum);
-  fprintf(stderr, "different:          A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", statsA.different.sum,    statsB.different.sum);
-  fprintf(stderr, "wild diff:          A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", statsA.wilddiff.sum,     statsB.wilddiff.sum);
-  fprintf(stderr, "same:               A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", statsA.same.sum,         statsB.same.sum);
-  fprintf(stderr, "inconsistent:       A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", statsA.inconsistent.sum, statsB.inconsistent.sum);
+  fprintf(stderr, "unmapped:           A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", statsA.unmapped.getSum(),     statsB.unmapped.getSum());
+  fprintf(stderr, "unique mapping 1:   A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", statsA.unique[0].getSum(),    statsB.unique[0].getSum());
+  fprintf(stderr, "unique mapping 2:   A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", statsA.unique[1].getSum(),    statsB.unique[1].getSum());
+  fprintf(stderr, "different:          A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", statsA.different.getSum(),    statsB.different.getSum());
+  fprintf(stderr, "wild diff:          A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", statsA.wilddiff.getSum(),     statsB.wilddiff.getSum());
+  fprintf(stderr, "same:               A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", statsA.same.getSum(),         statsB.same.getSum());
+  fprintf(stderr, "inconsistent:       A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", statsA.inconsistent.getSum(), statsB.inconsistent.getSum());
 
-
-
+  //  Dump the histograms for each of the labelings
   //
-  //  run through the annoList, count interesting bits
+  sprintf(outname, "%s.asm1histogram", OP);
+  statsA.writeHistogram(outname);
+  sprintf(outname, "%s.asm2histogram", OP);
+  statsB.writeHistogram(outname);
+
+  //  Draw some pretty pictures
   //
+  sprintf(outname, "%s.histogram.gnuplot", OP);
+  errno = 0;
+  outfile = fopen(outname, "w");
+  if (errno)
+    fprintf(stderr, "failed to open '%s': %s\n", outname, strerror(errno)), exit(1);
+  fprintf(outfile, "set terminal postscript color\n");
+  fprintf(outfile, "set output \"%s.unmapped.histogram.ps\"\n", OP);
+  fprintf(outfile, "set ylabel \"number of regions\"\n");
+  fprintf(outfile, "set xlabel \"length of region\"\n");
+  fprintf(outfile, "plot [0:10000][0:400] \\\n");
+  fprintf(outfile, "          \"%s.asm1histogram.unmapped\" using 2 title \"assembly 1 unmapped\" with lines, \\\n", OP);
+  fprintf(outfile, "          \"%s.asm2histogram.unmapped\" using 2 title \"assembly 2 unmapped\" with lines\n", OP);
+  fprintf(outfile, "set output \"%s.same.histogram.ps\"\n", OP);
+  fprintf(outfile, "plot [0:20000][0:2000] \\\n");
+  fprintf(outfile, "          \"%s.asm1histogram.same\" using 2 title \"assembly 1 same\" with lines, \\\n", OP);
+  fprintf(outfile, "          \"%s.asm2histogram.same\" using 2 title \"assembly 2 same\" with lines\n", OP);
+  fprintf(outfile, "set output \"%s.histogram.ps\"\n", OP);
+  fprintf(outfile, "plot [0:2000][0:100] \\\n");
+  fprintf(outfile, "          \"%s.asm1histogram.different\" using 2 title \"assembly 1 different\" with lines, \\\n", OP);
+  fprintf(outfile, "          \"%s.asm2histogram.different\" using 2 title \"assembly 2 different\" with lines, \\\n", OP);
+  fprintf(outfile, "          \"%s.asm1histogram.wilddiff\" using 2 title \"assembly 1 wildly diff\" with lines, \\\n", OP);
+  fprintf(outfile, "          \"%s.asm2histogram.wilddiff\" using 2 title \"assembly 2 wildly diff\" with lines\n", OP);
+  fprintf(outfile, "set output \"%s.unique.histogram.ps\"\n", OP);
+  fprintf(outfile, "plot [0:2000][0:100] \\\n");
+  fprintf(outfile, "          \"%s.asm1histogram.uniqueA\" using 2 title \"map 1, assembly 1 unique\" with lines, \\\n", OP);
+  fprintf(outfile, "          \"%s.asm2histogram.uniqueA\" using 2 title \"map 1, assembly 2 unique\" with lines, \\\n", OP);
+  fprintf(outfile, "          \"%s.asm1histogram.uniqueB\" using 2 title \"map 2, assembly 1 unique\" with lines, \\\n", OP);
+  fprintf(outfile, "          \"%s.asm2histogram.uniqueB\" using 2 title \"map 2, assembly 2 unique\" with lines\n", OP);
+  fclose(outfile);
+
+  sprintf(outname, "gnuplot < %s.histogram.gnuplot", OP);
+  if (system(outname))
+    fprintf(stderr, "Failed to '%s'\n", outname);
+
 #if 0
-  findIsolatedUnique();
-  findExtended();
+  findIsolatedUnique(AL, ALlen);
+  findExtended(AL, ALlen);
 #endif
-
-
 
   //  Deleting the spanTrees takes a long time, so we don't bother with any cleanup.
   return(0);

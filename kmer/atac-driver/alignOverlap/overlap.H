@@ -61,6 +61,11 @@ printAnno(FILE *F, annoList *AL, u32bit &ALlen,
           u32bit match1=u32bitZERO, match_t *m1=0L,
           u32bit match2=u32bitZERO, match_t *m2=0L);
 
+void
+findIsolatedUnique(annoList *AL, u32bit ALlen);
+
+void
+findExtended(annoList *AL, u32bit ALlen);
 
 
 #endif  //  OVERLAP_H
