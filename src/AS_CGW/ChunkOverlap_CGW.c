@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.4 2005-03-22 19:48:35 jason_miller Exp $";
+static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.5 2005-04-24 13:31:29 ahalpern Exp $";
 
 #include "AS_global.h"
 #include <assert.h>
@@ -838,9 +838,15 @@ void ComputeCanonicalOverlap_new(GraphCGW_T *graph,
   if(canOlap->maxOverlap < 0) // no point doing the expensive part if there can be no overlap
     return;
 
+
   // Get the consensus sequences for both chunks from the ChunkStore
   lengthA = GetConsensus(graph, canOlap->spec.cidA, consensusA, qualityA);
+
+
   lengthB = GetConsensus(graph, canOlap->spec.cidB, consensusB, qualityB);
+
+  if(canOlap->minOverlap > (lengthA+lengthB-CGW_DP_MINLEN)) // no point doing the expensive part if there can be no overlap
+    return;
 
   // prepare_overlap(canOlap, &intended, &beg, &end, &opposite, lengthA, lengthB);
 
