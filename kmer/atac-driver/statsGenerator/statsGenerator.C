@@ -29,12 +29,13 @@
 void mappedMultiply1(matchList &matches, char *prefix);
 void mappedMultiply2(matchList &matches, char *prefix);
 
+//  Sort u32bit backwards
 int
 u32bitcompare(const void *a, const void *b) {
   const u32bit A = *((const u32bit *)a);
   const u32bit B = *((const u32bit *)b);
-  if (A < B) return(-1);
-  if (A > B) return(1);
+  if (A < B) return(1);
+  if (A > B) return(-1);
   return(0);
 }
 
