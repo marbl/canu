@@ -74,7 +74,8 @@ private:
 class overlapStats {
 public:
   histogram  unmapped;
-  histogram  unique[2];
+  histogram  map1unique;
+  histogram  map2unique;
   histogram  different;
   histogram  wilddiff;
   histogram  same;
@@ -82,8 +83,8 @@ public:
 
   void writeHistogram(char *prefix) {
     unmapped.writeHistogram(prefix, "unmapped");
-    unique[0].writeHistogram(prefix, "uniqueA");
-    unique[1].writeHistogram(prefix, "uniqueB");
+    map1unique.writeHistogram(prefix, "map1unique");
+    map2unique.writeHistogram(prefix, "map2unique");
     different.writeHistogram(prefix, "different");
     wilddiff.writeHistogram(prefix, "wilddiff");
     same.writeHistogram(prefix, "same");

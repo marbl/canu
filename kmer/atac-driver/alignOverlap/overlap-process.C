@@ -48,11 +48,12 @@ NAME(FILE         *outfile,
 
       if (match >> COLORSHIFT) {
         m = &M2->_matches[match & COLORMASK];
+        stats.map2unique += spanLen;
       } else {
         m = &M1->_matches[match & COLORMASK];
+        stats.map1unique += spanLen;
       }
 
-      stats.unique[span->_matches[0] >> COLORSHIFT] += spanLen;
       printAnno(outfile, AL, ALlen, '1', INDEX, span, match, m);
     } else if ((span->_matchesLen == 2) &&
                ((span->_matches[0] >> COLORSHIFT) == (span->_matches[1] >> COLORSHIFT))) {

@@ -118,8 +118,8 @@ main(int argc, char **argv) {
   fclose(outfile);
 
   fprintf(stderr, "unmapped:           A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", statsA.unmapped.getSum(),     statsB.unmapped.getSum());
-  fprintf(stderr, "unique mapping 1:   A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", statsA.unique[0].getSum(),    statsB.unique[0].getSum());
-  fprintf(stderr, "unique mapping 2:   A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", statsA.unique[1].getSum(),    statsB.unique[1].getSum());
+  fprintf(stderr, "unique mapping 1:   A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", statsA.map1unique.getSum(),   statsB.map1unique.getSum());
+  fprintf(stderr, "unique mapping 2:   A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", statsA.map2unique.getSum(),   statsB.map2unique.getSum());
   fprintf(stderr, "different:          A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", statsA.different.getSum(),    statsB.different.getSum());
   fprintf(stderr, "wild diff:          A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", statsA.wilddiff.getSum(),     statsB.wilddiff.getSum());
   fprintf(stderr, "same:               A:"u32bitFMTW(10)" B:"u32bitFMTW(10)"\n", statsA.same.getSum(),         statsB.same.getSum());
@@ -158,10 +158,10 @@ main(int argc, char **argv) {
   fprintf(outfile, "          \"%s.asm2histogram.wilddiff\" using 2 title \"assembly 2 wildly diff\" with lines\n", OP);
   fprintf(outfile, "set output \"%s.unique.histogram.ps\"\n", OP);
   fprintf(outfile, "plot [0:2000][0:100] \\\n");
-  fprintf(outfile, "          \"%s.asm1histogram.uniqueA\" using 2 title \"map 1, assembly 1 unique\" with lines, \\\n", OP);
-  fprintf(outfile, "          \"%s.asm2histogram.uniqueA\" using 2 title \"map 1, assembly 2 unique\" with lines, \\\n", OP);
-  fprintf(outfile, "          \"%s.asm1histogram.uniqueB\" using 2 title \"map 2, assembly 1 unique\" with lines, \\\n", OP);
-  fprintf(outfile, "          \"%s.asm2histogram.uniqueB\" using 2 title \"map 2, assembly 2 unique\" with lines\n", OP);
+  fprintf(outfile, "          \"%s.asm1histogram.map1unique\" using 2 title \"map 1, assembly 1 unique\" with lines, \\\n", OP);
+  fprintf(outfile, "          \"%s.asm1histogram.map2unique\" using 2 title \"map 2, assembly 1 unique\" with lines, \\\n", OP);
+  fprintf(outfile, "          \"%s.asm2histogram.map1unique\" using 2 title \"map 1, assembly 2 unique\" with lines, \\\n", OP);
+  fprintf(outfile, "          \"%s.asm2histogram.map2unique\" using 2 title \"map 2, assembly 2 unique\" with lines\n", OP);
   fclose(outfile);
 
   sprintf(outname, "gnuplot < %s.histogram.gnuplot", OP);
