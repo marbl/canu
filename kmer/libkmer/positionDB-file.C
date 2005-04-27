@@ -23,8 +23,6 @@ safeWrite(int filedes, const void *buffer, char *desc, size_t nbytes) {
   size_t  written  = 0;
 
   while (position < nbytes) {
-    fprintf(stderr, "write %ld to %ld\n", position, position+length);
-
     towrite = length;
     if (position + towrite > nbytes)
       towrite = nbytes - position;
@@ -55,8 +53,6 @@ safeRead(int filedes, const void *buffer, char *desc, size_t nbytes) {
   size_t  written  = 0;  //  readen?
 
   while (position < nbytes) {
-    fprintf(stderr, "read %ld to %ld\n", position, position+length);
-
     toread = length;
     if (position + toread > nbytes)
       toread = nbytes - position;
