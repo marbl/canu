@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.5 2005-03-30 21:00:37 eliv Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.6 2005-05-02 13:24:51 eliv Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -676,7 +676,7 @@ int SetUngappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) 
      }
      epos.idx.fragment.frgType = frag->type;
      epos.idx.fragment.frgContained = frag->contained;
-     epos.idx.fragment.frgInUnitig = (type == AS_CONTIG)?0:uma->id;
+     epos.idx.fragment.frgInUnitig = (type == AS_CONTIG)?-1:uma->id;
      epos.idx.fragment.frgSource = frag->source;
      epos.position.bgn = *Getint32(gapped_positions,frag->position.bgn);
      epos.position.end = *Getint32(gapped_positions,frag->position.end);
@@ -800,7 +800,7 @@ int SetGappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) {
      }
      epos.idx.fragment.frgType = frag->type;
      epos.idx.fragment.frgContained = frag->contained;
-     epos.idx.fragment.frgInUnitig = (type == AS_CONTIG)?0:uma->id;
+     epos.idx.fragment.frgInUnitig = (type == AS_CONTIG)?-1:uma->id;
      epos.idx.fragment.frgSource = frag->source;
      epos.position.bgn = *Getint32(gapped_positions,frag->position.bgn);
      epos.position.end = *Getint32(gapped_positions,frag->position.end);
