@@ -26,8 +26,8 @@
 
 
 /* RCS info
- * $Id: OlapStoreOVL.c,v 1.5 2005-04-17 20:11:58 ahalpern Exp $
- * $Revision: 1.5 $
+ * $Id: OlapStoreOVL.c,v 1.6 2005-05-05 14:20:36 ahalpern Exp $
+ * $Revision: 1.6 $
 */
 
 
@@ -219,8 +219,18 @@ void  Init_OVL_Stream_Intra_Frg
    // make sure we are looking for no more than one past the last overlap for iid
    assert(stream->offset_buff[1]-stream->offset_buff[0] >= skipped_ovls);
 
-   stream -> curr_id = iid;
-   new_file_index = (int) ceil ((double) iid / store -> frags_per_file);
+   for  (i = iid;  i <= iid;  i ++)
+     {
+      if  (i % store -> frags_per_file == 0
+             || stream -> offset_buff [i - iid]
+                   != stream -> offset_buff [1 + i - iid])
+          break;
+     }
+
+
+   stream -> curr_id = i;
+
+   new_file_index = (int) ceil ((double) i / store -> frags_per_file);
    if  (stream -> curr_file_index != new_file_index
             || stream -> store != store)
        {
