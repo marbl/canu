@@ -375,8 +375,8 @@ main(int argc, char **argv) {
   //
   sim4params.setPrintAlignments();
   sim4params.setFindAllExons();
-  sim4params.setMinCoverage(0.75);
-  sim4params.setMinPercentExonIdentity(95);
+  sim4params.setMinCoverage( (config._minMatchCoverage - 10) / 100.0);
+  sim4params.setMinPercentExonIdentity( config._minMatchIdentity - 5);
   sim4params.setIgnorePolyTails(false);
 
   //sim4params.setWordSize(14);
