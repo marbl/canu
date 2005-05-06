@@ -63,6 +63,7 @@ typedef signed char         s8bit;
 #define  u16bitONE       (0x0001)
 #define  u16bitMAX       (0xffff)
 #define  u16bitMASK(X)   ((~u16bitZERO) >> (16 - (X)))
+#define  u16bitFMT       "%hd"
 
 #define  u8bitZERO       (0x00)
 #define  u8bitONE        (0x01)
@@ -111,6 +112,7 @@ typedef signed char         s8bit;
 #define  u16bitONE       (0x0001)
 #define  u16bitMAX       (0xffff)
 #define  u16bitMASK(X)   ((~u16bitZERO) >> (16 - (X)))
+#define  u16bitFMT       "%hd"
 
 #define  u8bitZERO       (0x00)
 #define  u8bitONE        (0x01)
