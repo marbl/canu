@@ -5,6 +5,7 @@
 
 #include "bio++.H"
 #include "sim4.H"
+#include "s4p_overlap.H"
 
 //  Matches two sets of polishes to each other using a simple overlap
 //  heuristic.
@@ -30,10 +31,6 @@
 //
 #define GAP_MINIMUM     10
 #define GAP_DIFFERENCE   4
-
-
-
-u32bit  findOverlap(sim4polish *A, sim4polish *B);
 
 
 FILE*
@@ -138,8 +135,8 @@ main(int argc, char **argv) {
 
     //  fill out the overlap matrix
 
-    u32bit  **overlap = new u32bit* [A->length()];
-    overlap[0] = new u32bit [A->length() * B->length()];
+    olap_t  **overlap = new olap_t* [A->length()];
+    overlap[0] = new olap_t [A->length() * B->length()];
     for (u32bit i=1; i<A->length(); i++)
       overlap[i] = overlap[i-1] + B->length();
 
@@ -290,7 +287,7 @@ main(int argc, char **argv) {
           else
             score = (double)overlap[a][b] / (double)AgenLen;
 
-          fprintf(stdout, u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%f\t%8.3f\t%8.3f\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%8.3f\t%8.3f\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\n",
+          fprintf(stdout, u32bitFMT"\t"u32bitFMT"\t"OLAPTFMT"\t%f\t%8.3f\t%8.3f\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%8.3f\t%8.3f\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\n",
                   iid,
                   (*A)[a]->estLen,
                   overlap[a][b],

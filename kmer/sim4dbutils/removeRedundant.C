@@ -4,6 +4,7 @@
 
 #include "bio++.H"
 #include "sim4.H"
+#include "s4p_overlap.H"
 
 //  Remove redundant polishes from an input set.
 //
@@ -13,8 +14,6 @@
 //  The longest of the overlapping matches is saved.
 
 //#define DEBUGOUT
-
-u32bit  findOverlap(sim4polish *A, sim4polish *B);
 
 int
 main(int argc, char **argv) {
@@ -55,8 +54,8 @@ main(int argc, char **argv) {
 
       //  fill out the overlap matrix
 
-      u32bit  **overlap = new u32bit* [A->length()];
-      overlap[0] = new u32bit [A->length() * A->length()];
+      olap_t  **overlap = new olap_t* [A->length()];
+      overlap[0] = new olap_t [A->length() * A->length()];
       for (u32bit i=1; i<A->length(); i++)
         overlap[i] = overlap[i-1] + A->length();
 

@@ -30,5 +30,14 @@ findOverlap(sim4polish *A, sim4polish *B) {
 
   IL.merge();
 
+  u32bit  result = total - IL.sumOfLengths();
+
+#ifdef OLAP_IS_SHORT
+  if (result > 65536) {
+    fprintf(stderr, "findOverlap()-- ERROR!  The overlap is larger than the return type!\n");
+    fprintf(stderr, "findOverlap()--         Switch to 32-bit ints in s4p_overlap.H.\n");
+  }
+#endif
+
   return(total - IL.sumOfLengths());
 }
