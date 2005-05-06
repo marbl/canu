@@ -105,7 +105,21 @@ private:
 class splitToWords {
 public:
   splitToWords(char *cmd) {
+    _argWords = 0;
+    _maxWords = 0;
+    _arg      = 0L;
+    _maxChars = 0;
+    _cmd      = 0L;
 
+    split(cmd);
+  };
+  ~splitToWords() {
+    delete [] _cmd;
+    delete [] _arg;
+  };
+
+
+  void   split(char *cmd) {
 
     //  Step Zero:
     //
@@ -124,10 +138,18 @@ public:
       cmdChars++;
     }
 
-    _cmd      = new char   [cmdChars];
-    _arg      = new char * [cmdWords];
-    _argWords = 0;
+    if (cmdChars > _maxChars) {
+      delete [] _cmd;
+      _cmd      = new char   [cmdChars];
+      _maxChars = cmdChars;
+    }
+    if (cmdWords > _maxWords) {
+      delete [] _arg;
+      _arg      = new char * [cmdWords];
+      _maxWords = cmdWords;
+    }
 
+    _argWords = 0;
 
     //  Step One:
     //
@@ -171,18 +193,16 @@ public:
     _arg[_argWords] = 0L;
   };
 
-  ~splitToWords() {
-    delete [] _cmd;
-    delete [] _arg;
-  };
 
   u32bit  numWords(void)        { return(_argWords); };
   char   *getWord(u32bit i)     { return(_arg[i]); };
   char   *operator[](u32bit i)  { return(_arg[i]); };
 private:
-  char     *_cmd;
-  char    **_arg;
   u32bit    _argWords;
+  u32bit    _maxWords;
+  char    **_arg;
+  u32bit    _maxChars;
+  char     *_cmd;
 };
 
 
