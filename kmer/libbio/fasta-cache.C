@@ -4,6 +4,7 @@
 FastACache::FastACache(const char *filename, u32bit cachesize, bool loadall, bool report) {
   _fastawrapper = new FastAWrapper(filename);
   _fastawrapper->openIndex();
+  _fastawrapper->optimizeRandomAccess();
 
   if (loadall == false) {
     _allSequencesLoaded = false;

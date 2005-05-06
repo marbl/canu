@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <string.h>
 #include <ctype.h>
+#include <math.h>
 
 #include "bio++.H"
 
@@ -233,6 +234,62 @@ FastAWrapper::openIndex(u32bit indextype, const char *indexname) {
     fprintf(stderr, "FastAWrapper()-- couldn't close the index '%s'.\n%s\n", _indexname, strerror(errno));
     //exit(1);
   }
+}
+
+
+//  Analyze the index, reset the bufferSize of the readBuffer if the
+//  sequences are short (e.g., ESTs, SNPs).  This will make a huge
+//  difference in the completely random access case -- instead of
+//  always reading 32k (default buffer size) for each sequence, we
+//  read a little more than average.  But, it sucks for sequential
+//  -- we'll be doing a read on almost every sequence.
+//
+void
+FastAWrapper::optimizeRandomAccess(void) {
+
+  if (_isRandomAccessOpt)
+    return;
+
+  if (_isRandomAccess == false)
+    openIndex();
+
+  u64bit  aveLen = 0;
+  for (u32bit i=0; i<_theGlobalDesc._numberOfSequences; i++)
+    aveLen += _theSeqs[i]._seqLen + _theSeqs[i]._headerLen;
+  aveLen /= _theGlobalDesc._numberOfSequences;
+
+  u64bit stdDev = 0;
+  for (u32bit i=0; i<_theGlobalDesc._numberOfSequences; i++)
+    stdDev += ((_theSeqs[i]._seqLen + _theSeqs[i]._headerLen - aveLen) *
+               (_theSeqs[i]._seqLen + _theSeqs[i]._headerLen - aveLen));
+  stdDev /= _theGlobalDesc._numberOfSequences - 1;
+
+  stdDev = (u64bit)ceil(sqrt((double)stdDev));
+
+  fprintf(stderr, "For "u32bitFMT" seqs, ave="u64bitFMT" stddev="u64bitFMT", reset buffer to "u64bitFMT"\n",
+          _theGlobalDesc._numberOfSequences, aveLen, stdDev, aveLen + stdDev);
+
+  if (aveLen + stdDev < 32768) {
+
+    //  Make it a nice power of two
+    aveLen += stdDev;
+    aveLen |= aveLen >> 1;
+    aveLen |= aveLen >> 2;
+    aveLen |= aveLen >> 4;
+    aveLen |= aveLen >> 8;
+    aveLen |= aveLen >> 16;
+    aveLen |= aveLen >> 32;
+    aveLen++;
+
+    aveLen = 8192;
+
+    fprintf(stderr, "Make new filebuffer fo size "u64bitFMT".\n", aveLen);
+
+    delete _filebuffer;
+    _filebuffer    = new readBuffer(_filename, aveLen);
+  }
+
+  _isRandomAccessOpt = true;
 }
 
 

@@ -109,6 +109,11 @@ public:
   void         openIndex(const char *indexname=0L)  { openIndex(FASTA_INDEX_ANY, indexname); };
   void         openIndex(u32bit indextypetoload)    { openIndex(indextypetoload, 0L);        };
 
+  //  Tell the wrapper that we are going to be doing mostly random access, and
+  //  it should adjust it's buffer size appropriately.
+  //
+  void         optimizeRandomAccess(void);
+
   //  Various statistics about the file itself
   //
   u32bit       getNumberOfSequences(void);
@@ -146,9 +151,10 @@ private:
 
   u32bit          _currentSequenceNumber;
 
-  bool            _isStreamInput;    //  Forced to be not random access
-  bool            _isRandomAccess;   //  Set if an index is open
-  bool            _isChecksummed;    //  Set if the index has md5's
+  bool            _isStreamInput;      //  Forced to be not random access
+  bool            _isRandomAccess;     //  Set if an index is open
+  bool            _isRandomAccessOpt;  //  Set if we resized the readBuffer
+  bool            _isChecksummed;      //  Set if the index has md5's
 
   _idxfa_global   _theGlobalDesc;
 };

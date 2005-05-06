@@ -15,6 +15,7 @@ FastAWrapper::FastAWrapper(const char *filename, u32bit bufferSize) {
   _currentSequenceNumber = 0;
   _isStreamInput         = false;
   _isRandomAccess        = false;
+  _isRandomAccessOpt     = false;
 
   if ((filename == 0L) || (strcmp(filename, "-") == 0)) {
     _filename = new char [6];
@@ -29,15 +30,14 @@ FastAWrapper::FastAWrapper(const char *filename, u32bit bufferSize) {
     _filename = new char [strlen(filename)+1];
     strcpy(_filename, filename);
 
-#ifdef _AIX
     if (bufferSize != ~u32bitZERO)
       _filebuffer    = new readBuffer(_filename, bufferSize);
     else
+#ifdef _AIX
+      //  Open with mmap()
       _filebuffer    = new readBuffer(_filename, 0);
 #else
-    if (bufferSize != ~u32bitZERO)
-      _filebuffer    = new readBuffer(_filename, bufferSize);
-    else
+      //  Open with the default buffersize
       _filebuffer    = new readBuffer(_filename);
 #endif
     _isStreamInput = false;
