@@ -1119,6 +1119,7 @@ processArray(int argc, char **argv) {
         case 's':
           failIfNoSource();
           failIfNotRandomAccess();
+          f->optimizeRandomAccess();
           findSequenceAndPrint(argv[++arg]);
           break;
         case 'S':
@@ -1130,6 +1131,7 @@ processArray(int argc, char **argv) {
         case 'r':
           failIfNoSource();
           failIfNotRandomAccess();
+          f->optimizeRandomAccess();
           findAndPrintRandomSequences(atoi(argv[++arg]));
           break;
         case 'q':
