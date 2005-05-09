@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.6 2005-05-02 13:24:51 eliv Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.7 2005-05-09 15:33:12 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -4357,7 +4357,13 @@ int MANode2Array(MANode *ma, int *depth, char ***array, int ***id_array,
               row_assign[fid] = ir;
               break;
             }
-            assert( row_assign[fid] > -1 );
+            if (row_assign[fid] <= -1)
+            {
+               *depth += max_depth;
+                rowptr = (int *)safe_realloc(rowptr, (*depth)*sizeof(int));
+                fid--;
+                continue;
+            }
           }
           frag++;
      }
