@@ -122,7 +122,7 @@ static void Complement(char *in, int len);
 #define IR_GAP_SIZE (50)
 
 int32 compute_gap(double gapsize){
-  if(gapsize<=0)return IR_GAP_SIZE;
+  if(gapsize<=(double)IR_GAP_SIZE)return IR_GAP_SIZE;
   return (int32)gapsize;
 }
 
