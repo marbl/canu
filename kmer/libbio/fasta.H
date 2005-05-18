@@ -5,59 +5,11 @@
 #error Please use bio++.H instead of fasta.H
 #endif
 
-//#include "bio++.H"
-
-#ifndef FILE_WRAPPER_H
-#define FILE_WRAPPER_H
-
-typedef u32bit IID_t;
-typedef u64bit SeqOff_t;
-
-class FileWrapper {
-public:
-  FileWrapper() {};
-  virtual ~FileWrapper() {};
-
-  //  Sequential access to sequences.
-  //
-  virtual bool        eof(void) =0;
-
-  //  Random access to sequences.
-  //
-  virtual bool        find(IID_t  iid) =0;  //  throw(Ex)
-  virtual bool        find(char  *id) =0;  //   throw(Ex)
-
-  //  Various statistics about the file itself
-  //
-  virtual u32bit      getNumberOfSequences(void) =0;
-  virtual const char *getSourceName(void) =0;
-};
-
-#endif  //  FILE_WRAPPER_H
-
-
-//  Version Numbers:
-//
-//  versionNumber 1 contains the simple index, name or defline.
-//
-//  versionNumber 2 extends that to contain md5 checksums.  A version 1
-//  index is binary compatible with version 2.
-//
-//  versionNumber 3 changes the order of _idxfa_desc, so that data
-//  is natuarlly aligned.
-//
-#define FASTA_MAGICNUMBER   0x4abeadeddadababeULL
-#define FASTA_VERSIONNUMBER 3
-
-
-
 #include "fasta-types.H"
 #include "fasta-sequenceondisk.H"
 #include "fasta-sequenceincore.H"
 
-
-
-class FastAWrapper : public FileWrapper {
+class FastAWrapper {
 public:
   FastAWrapper(const char *filename, u32bit bufferSize=~u32bitZERO);
   ~FastAWrapper();
