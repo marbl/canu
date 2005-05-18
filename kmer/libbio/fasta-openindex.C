@@ -88,7 +88,7 @@ FastAWrapper::isIndexOnDiskCompatible(u32bit indextype, const char *indexname, b
   //  in the index.
   //
   if ((theGlobalDesc._magic                          == FASTA_MAGICNUMBER) &&
-      (theGlobalDesc._version                        <= FASTA_VERSIONNUMBER) &&
+      (theGlobalDesc._version                        == FASTA_VERSIONNUMBER) &&
       (theGlobalDesc._fastaModificationTime          == st.st_mtime) &&
       ((theGlobalDesc._indexType & FASTA_INDEX_MASK) >= (indextype & FASTA_INDEX_MASK)) &&
       ((theGlobalDesc._indexType & FASTA_INDEX_MD5)  >= (indextype & FASTA_INDEX_MD5))) {
@@ -127,9 +127,6 @@ bool
 FastAWrapper::isIndexValid(u32bit indextype, const char *indexname) {
   return (isIndexOnDiskCompatible(indextype, indexname, false));
 }
-
-
-
 
 
 void
@@ -197,7 +194,6 @@ FastAWrapper::openIndex(u32bit indextype, const char *indexname) {
     _theGlobalDesc._indexType = indextype;
 
 
-
   if (((_theGlobalDesc._indexType & FASTA_INDEX_MASK) == FASTA_INDEX_PLUS_IDS) ||
       ((_theGlobalDesc._indexType & FASTA_INDEX_MASK) == FASTA_INDEX_PLUS_DEFLINES)) {
     read(indexfile, &_theNamesLen, sizeof(u32bit));
@@ -252,6 +248,9 @@ FastAWrapper::optimizeRandomAccess(void) {
 
   if (_isRandomAccess == false)
     openIndex();
+
+  if (_theGlobalDesc._numberOfSequences < 10)
+    return;
 
   u64bit  aveLen = 0;
   for (u32bit i=0; i<_theGlobalDesc._numberOfSequences; i++)
