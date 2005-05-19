@@ -1,10 +1,36 @@
 #ifndef FASTA_TYPES_H
 #define FASTA_TYPES_H
 
+//  Externally visible types
+//
+typedef u32bit IID_t;
+
 //  Types used in the index
 //
 typedef off_t  _idxfa_pos;
 typedef u32bit _idxfa_len;
+
+//  VERSION NUMBERS
+//
+//  versionNumber 1 contains the simple index, name or defline.  You
+//  can't revert to this version.
+//
+//  versionNumber 2 extends that to contain md5 checksums.  A version
+//  1 index is binary compatible with version 2.  You can revert to
+//  this version.
+//
+//  versionNumber 3 changes the order of _idxfa_desc, so that data
+//  is natuarlly aligned.  You can revert to this version.
+//
+//  versionNumber 4 changes flags in _idxfa_global from bool to u32bit
+//  so that the size of the structure is more reliable across
+//  platforms (in particular, _idxfa_global on Linux/gcc323 was
+//  smaller than on OSF1/cxx65, even though the endianess was the
+//  same).
+//
+#define FASTA_MAGICNUMBER   0x4abeadeddadababeULL
+#define FASTA_VERSIONNUMBER 4
+
 
 //  INDEX TYPES
 //
@@ -38,8 +64,13 @@ struct _idxfa_global {
   time_t       _fastaCreationTime;      //  st_ctime - time of last file status change
   _idxfa_len   _seqlineLength;          //  Length of the sequence lines, if fixed width
   _idxfa_len   _seqendlLength;          //  Length of the sequence line terminators, if fixed width (really, "\n" or "\r\n"?)
+#if FASTA_VERSIONNUMBER < 4
   bool         _fixedWidth;             //  All (but last) lines are the same width, and there is no embedded space
   bool         _squeezedSequences;      //  No whitespace in the sequences
+#else
+  u32bit       _fixedWidth;             //  All (but last) lines are the same width, and there is no embedded space
+  u32bit       _squeezedSequences;      //  No whitespace in the sequences
+#endif
   char         _alphabet[256];          //  true/false for each character seen
 };
 
