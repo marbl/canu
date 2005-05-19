@@ -67,8 +67,7 @@ main(int argc, char **argv) {
   delete M;
   delete S;
 
-
-#if 0
+#if 1
   msfB = new merStreamFileBuilder(20, argv[1], "junk");
   msfB->build(true);
   delete msfB;
@@ -91,7 +90,6 @@ main(int argc, char **argv) {
     C->tick();
   delete C;
   delete cs;
-
 
   cs = new chainedSequence();
   cs->setSource(argv[1]);

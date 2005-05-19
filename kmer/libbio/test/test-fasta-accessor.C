@@ -59,9 +59,9 @@ main(int argc, char **argv) {
   if (C != 1000)
     exit(3);
 
-  F.setPosition(1000);
-  R.setPosition(1000);
-  for (u32bit i=0; F.isValid() && R.isValid(); ++C, --F, --R)
+  F.setPosition(999);
+  R.setPosition(999);
+  for (C=0; F.isValid() && R.isValid(); ++C, --F, --R)
     if (*F != *R)
       exit(4);
   if (C != 1000)

@@ -2,7 +2,8 @@ PROG    = test-chainedSequence \
           test-fasta-accessor \
           test-merstream \
           test-merstreamfile \
-          test-merstream-speed
+          test-merstream-speed \
+          test-bigmer-msf
 
 INCLUDE = -I.. -I../../libutil
 LIBS    = -L.. -L../../libutil -lbio -lutil -lm
@@ -34,7 +35,8 @@ test-merstream: test-merstream.C
 test-merstreamfile: test-merstreamfile.C
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-merstreamfile.o test-merstreamfile.C $(INCLUDE)
 	$(CXX) $(CXXLDFLAGS) -o test-merstreamfile test-merstreamfile.o $(LIBS)
-	../../leaff/leaff -G 1000 5000 10000 > junk.fasta
+	#../../leaff/leaff -G 1000 5000 10000 > junk.fasta
+	../../leaff/leaff -G 10000 10 10000 > junk.fasta
 	./test-merstreamfile junk.fasta
 	rm -f junk.fasta junk.fastaidx
 
@@ -45,6 +47,11 @@ test-merstream-speed: test-merstream-speed.C
 	cat junk.fasta > /dev/null
 	./test-merstream-speed junk.fasta
 	rm -f junk.fasta junk.fastaidx
+
+test-bigmer-msf: test-bigmer-msf.C
+	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-bigmer-msf.o test-bigmer-msf.C $(INCLUDE)
+	$(CXX) $(CXXLDFLAGS) -o test-bigmer-msf test-bigmer-msf.o $(LIBS)
+	./test-bigmer-msf
 
 clean:
 	rm -f $(PROG) *.o *junk*

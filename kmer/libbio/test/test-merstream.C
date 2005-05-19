@@ -111,12 +111,12 @@ test1(merStream *S, char *id, int offset) {
   while (S->nextMer()) {
     if (c > 21)
       fprintf(stderr, "merStream(char): Too many mers in stream.\n"), e++;
-    else if ((S->theFMer()               != correct[c].mer) ||
+    else if ((S->theFMer().smallmer()    != correct[c].mer) ||
              (S->thePositionInSequence() != correct[c].pos) ||
              (S->thePositionInStream()   != correct[c].str - offset))
       fprintf(stderr, "merStream(%s): "u64bitHEX"/"u64bitFMT"/"u64bitFMT" != correct: "u64bitHEX"/"u64bitFMT"/"u64bitFMT".\n",
               id,
-              S->theFMer(), S->thePositionInSequence(), S->thePositionInStream(),
+              S->theFMer().smallmer(), S->thePositionInSequence(), S->thePositionInStream(),
               correct[c].mer, correct[c].pos, correct[c].str), e++;
     c++;
   }
@@ -141,9 +141,9 @@ test2(merStream *MS1,
     //  If you're curious that things are actually non-zero...
     if (MS1->thePositionInSequence() == 666) {
       fprintf(stderr, "STAT: MS1: "u64bitHEX","u64bitHEX"@"u64bitFMT"/"u64bitFMT","u64bitFMT"  MS2: "u64bitHEX","u64bitHEX"@"u64bitFMT"/"u64bitFMT","u64bitFMT"  MS3: "u64bitHEX","u64bitHEX"@"u64bitFMT"/"u64bitFMT","u64bitFMT"\n",
-              MS1->theFMer(), MS1->theRMer(), MS1->thePositionInSequence(), MS1->thePositionInStream(), MS1->theSequenceNumber(),
-              MS2->theFMer(), MS2->theRMer(), MS2->thePositionInSequence(), MS2->thePositionInStream(), MS2->theSequenceNumber(),
-              MS3->theFMer(), MS3->theRMer(), MS3->thePositionInSequence(), MS3->thePositionInStream(), MS3->theSequenceNumber());
+              MS1->theFMer().smallmer(), MS1->theRMer(), MS1->thePositionInSequence(), MS1->thePositionInStream(), MS1->theSequenceNumber(),
+              MS2->theFMer().smallmer(), MS2->theRMer(), MS2->thePositionInSequence(), MS2->thePositionInStream(), MS2->theSequenceNumber(),
+              MS3->theFMer().smallmer(), MS3->theRMer(), MS3->thePositionInSequence(), MS3->thePositionInStream(), MS3->theSequenceNumber());
     }
 #endif
 
@@ -153,9 +153,12 @@ test2(merStream *MS1,
         (MS1->thePositionInStream()   != MS2->thePositionInStream())   || (MS2->thePositionInStream()   != MS3->thePositionInStream()) ||
         (MS1->theSequenceNumber()     != MS2->theSequenceNumber())     || (MS2->theSequenceNumber()     != MS3->theSequenceNumber())) {
       fprintf(stderr, "OOPS: MS1: "u64bitHEX","u64bitHEX"@"u64bitFMT"/"u64bitFMT","u64bitFMT"  MS2: "u64bitHEX","u64bitHEX"@"u64bitFMT"/"u64bitFMT","u64bitFMT"  MS3: "u64bitHEX","u64bitHEX"@"u64bitFMT"/"u64bitFMT","u64bitFMT"\n",
-              MS1->theFMer(), MS1->theRMer(), MS1->thePositionInSequence(), MS1->thePositionInStream(), MS1->theSequenceNumber(),
-              MS2->theFMer(), MS2->theRMer(), MS2->thePositionInSequence(), MS2->thePositionInStream(), MS2->theSequenceNumber(),
-              MS3->theFMer(), MS3->theRMer(), MS3->thePositionInSequence(), MS3->thePositionInStream(), MS3->theSequenceNumber());
+              MS1->theFMer().smallmer(), MS1->theRMer().smallmer(), MS1->thePositionInSequence(), MS1->thePositionInStream(), MS1->theSequenceNumber(),
+              MS2->theFMer().smallmer(), MS2->theRMer().smallmer(), MS2->thePositionInSequence(), MS2->thePositionInStream(), MS2->theSequenceNumber(),
+              MS3->theFMer().smallmer(), MS3->theRMer().smallmer(), MS3->thePositionInSequence(), MS3->thePositionInStream(), MS3->theSequenceNumber());
+      fprintf(stderr, "MS1:\n"); MS1->theFMer().dump(stderr);
+      fprintf(stderr, "MS2:\n"); MS2->theFMer().dump(stderr);
+      fprintf(stderr, "MS3:\n"); MS3->theFMer().dump(stderr);
     }
     C.tick();
   }

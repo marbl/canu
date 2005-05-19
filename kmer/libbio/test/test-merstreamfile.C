@@ -4,35 +4,56 @@
 
 #include "bio++.H"
 
+//  Build a merStreamFile using small mers, read it back using bigger mers.
+
+//  Also report the correct stuff.
+//#define SHOW_CORRECT
+
+#define BUILD_SIZE   14
+#define TEST_SIZE    109
+
+
+int
+test(u64bit compared, merStream *M, merStreamFileReader *R) {
+  static char  stra[256], strb[256], strc[256], strd[256];
+
+  if ((M->theFMer()                != R->theFMer()) ||
+      (M->theRMer()                != R->theRMer()) ||
+      (M->thePositionInSequence()  != R->thePositionInSequence()) ||
+      (M->thePositionInStream()    != R->thePositionInStream()) ||
+      (M->theSequenceNumber()      != R->theSequenceNumber())) {
+    fprintf(stderr, u64bitFMTW(8)": !!! M got F=%s R=%s "u64bitFMTW(7)" "u64bitFMTW(7)" "u64bitFMTW(7)" but R got F=%s R=%s "u64bitFMTW(7)" "u64bitFMTW(7)" "u64bitFMTW(7)"\n",
+            compared,
+            M->theFMer().merToString(stra), M->theRMer().merToString(strb), M->thePositionInSequence(), M->thePositionInStream(), M->theSequenceNumber(),
+            R->theFMer().merToString(strc), R->theRMer().merToString(strd), R->thePositionInSequence(), R->thePositionInStream(), R->theSequenceNumber());
+    
+    return(1);
+  }
+
+#ifdef SHOW_CORRECT
+  fprintf(stderr, u64bitFMTW(8)":     M got F=%s R=%s "u64bitFMTW(7)" "u64bitFMTW(7)" "u64bitFMTW(7)" and R got F=%s R=%s "u64bitFMTW(7)" "u64bitFMTW(7)" "u64bitFMTW(7)"\n",
+          compared,
+          M->theFMer().merToString(stra), M->theRMer().merToString(strb), M->thePositionInSequence(), M->thePositionInStream(), M->theSequenceNumber(),
+          R->theFMer().merToString(strc), R->theRMer().merToString(strd), R->thePositionInSequence(), R->thePositionInStream(), R->theSequenceNumber());
+#endif
+
+  return(0);
+}
+
+
+
 int
 streamingTest(char *msfile) {
   int                  errors = 0;
   u64bit               compared = 0;
-  merStreamFileReader *R = new merStreamFileReader("junk");
+  merStreamFileReader *R = new merStreamFileReader("junk", TEST_SIZE);
   FastAstream         *F = new FastAstream(msfile);
-  merStream           *M = new merStream(20, F);
+  merStream           *M = new merStream(TEST_SIZE, F);
 
   fprintf(stderr, "Testing streaming access.\n");
   while (M->nextMer() && R->nextMer()) {
     compared++;
-    if ((M->theFMer()                != R->theFMer()) ||
-        (M->theRMer()                != R->theRMer()) ||
-        (M->thePositionInSequence()  != R->thePositionInSequence()) ||
-        (M->thePositionInStream()    != R->thePositionInStream()) ||
-        (M->theSequenceNumber()      != R->theSequenceNumber())) {
-      fprintf(stderr, u64bitFMT": !!! M got F="u64bitHEX" R="u64bitHEX" "u64bitFMT" "u64bitFMT" "u64bitFMT" but R got F="u64bitHEX" R="u64bitHEX" "u64bitFMT" "u64bitFMT" "u64bitFMT"\n",
-              compared,
-              M->theFMer(), M->theRMer(), M->thePositionInSequence(), M->thePositionInStream(), M->theSequenceNumber(),
-              R->theFMer(), R->theRMer(), R->thePositionInSequence(), R->thePositionInStream(), R->theSequenceNumber());
-      errors++;
-#if DEBUG
-    } else {
-      fprintf(stderr, u64bitFMT":     M got F="u64bitHEX" R="u64bitHEX" "u64bitFMT" "u64bitFMT" "u64bitFMT" but R got F="u64bitHEX" R="u64bitHEX" "u64bitFMT" "u64bitFMT" "u64bitFMT"\n",
-              compared,
-              M->theFMer(), M->theRMer(), M->thePositionInSequence(), M->thePositionInStream(), M->theSequenceNumber(),
-              R->theFMer(), R->theRMer(), R->thePositionInSequence(), R->thePositionInStream(), R->theSequenceNumber());
-#endif
-    }
+    errors += test(compared, M, R);
   }
 
   fprintf(stderr, "Compared "u64bitFMT" mers.\n", compared);
@@ -56,13 +77,16 @@ streamingTest(char *msfile) {
 
 
 
+
 int
-randomAccessTest(char *msfile, u64bit numMers) {
+randomAccessTest(char *msfile) {
   int                  errors = 0;
   u64bit               merNum   = 0;
-  merStreamFileReader *R = new merStreamFileReader("junk");
+  merStreamFileReader *R = new merStreamFileReader("junk", TEST_SIZE);
   FastAstream         *F = new FastAstream(msfile);
-  merStream           *M = new merStream(20, F);
+  merStream           *M = new merStream(TEST_SIZE, F);
+
+  u64bit numMers = R->numberOfMers();
 
   //  Load the first mer from the stream.
   M->nextMer();
@@ -70,7 +94,7 @@ randomAccessTest(char *msfile, u64bit numMers) {
   //  How many seeks?  At most 100, but we'll decrease if the seeks
   //  are less than 1000 bases.
   //
-  u64bit numSeeks = 100;
+  u64bit numSeeks = 1000;
   while (numMers / numSeeks < 1000)
     numSeeks = (u64bit)floor(numSeeks * 0.8);
 
@@ -89,24 +113,7 @@ randomAccessTest(char *msfile, u64bit numMers) {
     R->seekToMer(merNum);
     R->nextMer();
 
-    if ((M->theFMer()               != R->theFMer()) ||
-        (M->theRMer()               != R->theRMer()) ||
-        (M->thePositionInSequence() != R->thePositionInSequence()) ||
-        (M->thePositionInStream()   != R->thePositionInStream()) ||
-        (M->theSequenceNumber()     != R->theSequenceNumber())) {
-      fprintf(stderr, u64bitFMT": !!! M got F="u64bitHEX" R="u64bitHEX" "u64bitFMT" "u64bitFMT" "u64bitFMT" but R got F="u64bitHEX" R="u64bitHEX" "u64bitFMT" "u64bitFMT" "u64bitFMT"\n",
-              merNum,
-              M->theFMer(), M->theRMer(), M->thePositionInSequence(), M->thePositionInStream(), M->theSequenceNumber(),
-              R->theFMer(), R->theRMer(), R->thePositionInSequence(), R->thePositionInStream(), R->theSequenceNumber());
-      errors++;
-#if DEBUG
-    } else {
-      fprintf(stderr, u64bitFMT":     M got F="u64bitHEX" R="u64bitHEX" "u64bitFMT" "u64bitFMT" "u64bitFMT" but R got F="u64bitHEX" R="u64bitHEX" "u64bitFMT" "u64bitFMT" "u64bitFMT"\n",
-              merNum,
-              M->theFMer(), M->theRMer(), M->thePositionInSequence(), M->thePositionInStream(), M->theSequenceNumber(),
-              R->theFMer(), R->theRMer(), R->thePositionInSequence(), R->thePositionInStream(), R->theSequenceNumber());
-#endif
-    }
+    errors += test(merNum, M, R);
   }
 
   delete M;
@@ -115,6 +122,9 @@ randomAccessTest(char *msfile, u64bit numMers) {
 
   return(errors);
 }
+
+
+
 
 
 
@@ -129,17 +139,15 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  //  Build a compressed merstreamfile.
-  //
-  merStreamFileBuilder   *B = new merStreamFileBuilder(20, argv[1], "junk");
+  merStreamFileBuilder   *B = new merStreamFileBuilder(BUILD_SIZE, argv[1], "junk");
   u64bit numMers = B->build(true);
   delete B;
 
-  fprintf(stderr, "Found "u64bitFMT" mers in %s\n", numMers, argv[1]);
+  fprintf(stderr, "Found "u64bitFMT" mers in %s at mersize %d\n", numMers, argv[1], BUILD_SIZE);
 
   u32bit errors = 0;
   errors += streamingTest(argv[1]);
-  errors += randomAccessTest(argv[1], numMers);
+  errors += randomAccessTest(argv[1]);
 
   if (errors > 0) {
     fprintf(stderr, "\nThere were "u32bitFMT" errors.\n", errors);
