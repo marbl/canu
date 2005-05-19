@@ -31,9 +31,8 @@ safeWrite(int filedes, const void *buffer, char *desc, size_t nbytes) {
     written = write(filedes, ((char *)buffer) + position, towrite);
 
     if ((errno) || (towrite != written)) {
-      fprintf(stderr, "positionDB::saveState()-- Write failure on %s.\n", desc);
-      fprintf(stderr, "positionDB::saveState()-- Wanted to write %ld bytes, wrote %ld.\n", towrite, written);
-      fprintf(stderr, "positionDB::saveState()-- Error is %d '%s'\n", errno, strerror(errno));
+      fprintf(stderr, "positionDB::safeWrite()-- Write failure on %s: %s\n", desc, strerror(errno));
+      fprintf(stderr, "positionDB::safeWrite()-- Wanted to write "s64bitFMT" bytes, wrote "s64bitFMT".\n", (s64bit)towrite, (s64bit)written);
       exit(1);
     }
 
@@ -61,9 +60,8 @@ safeRead(int filedes, const void *buffer, char *desc, size_t nbytes) {
     written = read(filedes, ((char *)buffer) + position, toread);
 
     if ((errno) || (toread != written)) {
-      fprintf(stderr, "positionDB::safeRead()-- Read failure on %s.\n", desc);
-      fprintf(stderr, "positionDB::safeRead()-- Wanted to read %ld bytes, read %ld.\n", toread, written);
-      fprintf(stderr, "positionDB::safeRead()-- Error is %d '%s'\n", errno, strerror(errno));
+      fprintf(stderr, "positionDB::safeRead()-- Read failure on %s: %s.\n", desc, strerror(errno));
+      fprintf(stderr, "positionDB::safeRead()-- Wanted to read "s64bitFMT" bytes, read "s64bitFMT".\n", (s64bit)toread, (s64bit)written);
       exit(1);
     }
 
