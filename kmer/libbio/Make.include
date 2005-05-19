@@ -7,6 +7,7 @@ src    := $/alphabet.c \
           $/bio++.H \
           $/bio.h \
           $/chainedSequence.C \
+          $/chainedSequence.H \
           $/fasta-buildindex.C \
           $/fasta-c.C \
           $/fasta-c.h \
@@ -22,10 +23,16 @@ src    := $/alphabet.c \
           $/fasta-types.H \
           $/fasta.C \
           $/fasta.H \
+          $/fastastream.H \
           $/halign.c \
+          $/kmer.H \
+          $/merCovering.H \
+          $/merList.H \
           $/mers.h \
           $/merstream.C \
+          $/merstream.H \
           $/merstreamfile.C \
+          $/merstreamfile.H \
           $/reversecomplement.c
 
 $/.C_SRCS    :=$(filter %.c,${src})
