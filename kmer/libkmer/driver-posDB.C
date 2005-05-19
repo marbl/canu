@@ -63,6 +63,7 @@ test1(char *filename) {
   u64bit       posnLen = u64bitZERO;
   u32bit       missing = u32bitZERO;
   u32bit       failed  = u32bitZERO;
+  char         str[33];
 
   if (T->rewind() == false) {
     fprintf(stderr, "test 1 failed to rewind the merStream.\n");
@@ -84,7 +85,7 @@ test1(char *filename) {
         failed++;
 
         fprintf(stdout, "%s @ "u64bitFMT"/"u64bitFMT": Found "u64bitFMT" table entries, and "u32bitFMT" matching positions (",
-                T->theFMerString(), T->theSequenceNumber(), T->thePositionInStream(), posnLen, missing);
+                T->theFMer().merToString(str), T->theSequenceNumber(), T->thePositionInStream(), posnLen, missing);
 
         for (u32bit i=0; i<posnLen; i++) {
           fprintf(stdout, u64bitFMT, posn[i]);
@@ -98,7 +99,7 @@ test1(char *filename) {
       failed++;
 
       fprintf(stdout, "Found no matches for mer=%s at pos="u64bitFMT"\n",
-              T->theFMerString(), T->thePositionInStream());
+              T->theFMer().merToString(str), T->thePositionInStream());
     }
   }
 
@@ -119,6 +120,7 @@ test2(char *filename, char *query) {
   u64bit      *posn    = new u64bit [1024];
   u64bit       posnMax = 1024;
   u64bit       posnLen = u64bitZERO;
+  char         str[33];
 
   delete T;
   delete F;
@@ -132,7 +134,7 @@ test2(char *filename, char *query) {
                 posnMax,
                 posnLen)) {
       fprintf(stdout, "Got a F match for mer=%s at "u64bitFMT"/"u64bitFMT" (in mers), numMatches="u64bitFMT"\n",
-              T->theFMerString(), T->theSequenceNumber(), T->thePositionInStream(), posnLen);
+              T->theFMer().merToString(str), T->theSequenceNumber(), T->thePositionInStream(), posnLen);
     }
 
     if (M->get(T->theRMer(),
@@ -140,7 +142,7 @@ test2(char *filename, char *query) {
                 posnMax,
                 posnLen)) {
       fprintf(stdout, "Got a R match for mer=%s at "u64bitFMT"/"u64bitFMT" (in mers), numMatches="u64bitFMT"\n",
-              T->theRMerString(), T->theSequenceNumber(), T->thePositionInStream(), posnLen);
+              T->theRMer().merToString(str), T->theSequenceNumber(), T->thePositionInStream(), posnLen);
     }
   }
 

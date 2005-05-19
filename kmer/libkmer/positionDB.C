@@ -352,8 +352,10 @@ positionDB::positionDB(merStream   *MS,
       u64bit h = HASH(MS->theFMer());
 
 #ifdef ERROR_CHECK_COUNTING
+      char  str[33];
+
       if (_bucketSizes[h] == 0) {
-        fprintf(stderr, "ERROR_CHECK_COUNTING: Bucket "u64bitFMT" ran out of things!  '%s'\n", h, MS->theFMerString());
+        fprintf(stderr, "ERROR_CHECK_COUNTING: Bucket "u64bitFMT" ran out of things!  '%s'\n", h, MS->theFMer().merToString(str));
         fprintf(stderr, "ERROR_CHECK_COUNTING: Stream is at "u64bitFMT"\n", MS->thePositionInStream());
       }
 #endif
