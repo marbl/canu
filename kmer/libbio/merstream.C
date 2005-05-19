@@ -16,12 +16,15 @@ merStream::merStream(merStreamFileReader *msf) {
 
   _merSize         = _ms_mers->merSize();
   _timeUntilValid  = 0;
-  _merMask         = u64bitMASK(_merSize << 1);
+
+  _fMer.setMerSize(_merSize);
+  _rMer.setMerSize(_merSize);
+
+  _fMer.clear();
+  _rMer.clear();
 
   _fMer            = _ms_mers->theFMer();
   _rMer            = _ms_mers->theRMer();
-
-  _rMerShift       = (_merSize << 1) - 2;
 }
 
 merStream::merStream(u32bit merSize, FastAstream *str) {
@@ -40,12 +43,12 @@ merStream::merStream(u32bit merSize, FastAstream *str) {
 
   _merSize         = merSize;
   _timeUntilValid  = 0;
-  _merMask         = u64bitMASK(_merSize << 1);
 
-  _fMer            = 0;
-  _rMer            = 0;
+  _fMer.setMerSize(_merSize);
+  _rMer.setMerSize(_merSize);
 
-  _rMerShift       = (_merSize << 1) - 2;
+  _fMer.clear();
+  _rMer.clear();
 
   loadMer(_merSize - 1);
 }
@@ -66,12 +69,12 @@ merStream::merStream(u32bit merSize, chainedSequence *cs) {
 
   _merSize         = merSize;
   _timeUntilValid  = 0;
-  _merMask         = u64bitMASK(_merSize << 1);
 
-  _fMer            = 0;
-  _rMer            = 0;
+  _fMer.setMerSize(_merSize);
+  _rMer.setMerSize(_merSize);
 
-  _rMerShift       = (_merSize << 1) - 2;
+  _fMer.clear();
+  _rMer.clear();
 
   loadMer(_merSize - 1);
 }
@@ -92,12 +95,12 @@ merStream::merStream(u32bit merSize, const char *seq, u32bit len) {
 
   _merSize         = merSize;
   _timeUntilValid  = 0;
-  _merMask         = u64bitMASK(_merSize << 1);
 
-  _fMer            = 0;
-  _rMer            = 0;
+  _fMer.setMerSize(_merSize);
+  _rMer.setMerSize(_merSize);
 
-  _rMerShift       = (_merSize << 1) - 2;
+  _fMer.clear();
+  _rMer.clear();
 
   //  If the bloody user gave us no length, reset _st_stringLen to
   //  be maximum.  nextSymbol() will then stop when it hits
@@ -150,21 +153,4 @@ merStream::rewind(void) {
   }
 
   return(ret);
-}
-
-
-char const *
-merStream::theFMerString(void) {
-  for (u32bit i=0; i<_merSize; i++)
-    _merString[_merSize-i-1] = decompressSymbol[(_fMer >> (2*i)) & 0x03];
-  _merString[_merSize] = 0;
-  return(_merString);
-}
-
-char const *
-merStream::theRMerString(void) {
-  for (u32bit i=0; i<_merSize; i++)
-    _merString[_merSize-i-1] = decompressSymbol[(_rMer >> (2*i)) & 0x03];
-  _merString[_merSize] = 0;
-  return(_merString);
 }
