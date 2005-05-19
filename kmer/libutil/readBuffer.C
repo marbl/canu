@@ -92,8 +92,8 @@ readBuffer::fillBuffer(void) {
   if (errno == EAGAIN)
     goto again;
   if (errno) {
-    fprintf(stderr, "readBuffer::fillBuffer()-- couldn't read %d bytes from '%s': %s\n",
-            (int)(_bufferMax * sizeof(char)), _filename, strerror(errno));
+    fprintf(stderr, "readBuffer::fillBuffer()-- only read %d bytes, couldn't read %d bytes from '%s': %s\n",
+            (int)_bufferLen, (int)(_bufferMax * sizeof(char)), _filename, strerror(errno));
     exit(1);
   }
   if (_bufferLen == 0)
