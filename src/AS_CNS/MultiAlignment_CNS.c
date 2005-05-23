@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.7 2005-05-09 15:33:12 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.8 2005-05-23 15:03:20 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -1604,330 +1604,373 @@ char QVInRange(int q) {
     }
 }
 
-int BaseCall(int32 cid, int quality, int verbose) {
-/*
-Calculate the consensus call for the given column 
-*/
-Column *column=GetColumn(columnStore,cid);
-Bead *call = GetBead(beadStore,column->call);
-Bead *bead;
-int read_base_count[CNS_NP]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-int read_depth=0;
-int other_base_count[CNS_NP]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-int other_depth=0;
-int score=0;
-int bi;
-int32 bid;
-char base;
-char cqv;
-int qv = 0;
-static  double cw[CNS_NP];
-static  double tau[CNS_NP];
-FragType type;
-UnitigType utype;
-ColumnBeadIterator ci;
-int used_surrogate=0;
+int 
+BaseCall(int32 cid, int quality, char *cbase, int verbose) 
+{
+    /* Calculate the consensus call for the given column */
 
-if(!CreateColumnBeadIterator(cid,&ci)){
-     CleanExit("BaseCall CreateColumnBeadIterator failed",__LINE__,1);
-}
+    Column *column=GetColumn(columnStore,cid);
+    Bead *call = GetBead(beadStore, column->call);
+    Bead *bead;
+    int read_base_count[CNS_NP] =
+        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    int read_depth=0;
+    int other_base_count[CNS_NP] =
+        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    int other_depth=0;
+    int score=0;
+    int bi;
+    int32 bid;
+    char cqv;
+    int qv = 0;
+    static  double cw[CNS_NP];
+    static  double tau[CNS_NP];
+    FragType type;
+    UnitigType utype;
+    ColumnBeadIterator ci;
+    int used_surrogate=0;
 
-//if ( GetDepth(column) > 50 ) {
-//  quality = 0;
-//}
-
-if (quality > 0) {
-  static int guides_alloc=0;
-  static VarArrayBead *guides;
-  static VarArrayBead *reads;
-  static VarArrayint16 *tied;
-  uint32 bmask;
-  int num_guides;
-  Bead *gb;
-  int cind;
-  char base;
-  double tmpqv;
-  int16 bi;
-  int n_count=0;
-  int frag_cov=0;
-  int16 max_ind=0;
-  double max_cw=0.0;
-  double normalize=0;
-  if (!guides_alloc) {
-    guides = CreateVA_Bead(16);
-    reads = CreateVA_Bead(16);
-    tied = CreateVA_int16(32);
-    guides_alloc = 1;
-  } else {
-    ResetBead(guides);
-    ResetBead(reads);
-    Resetint16(tied);
-  }
-  for (bi=0;bi<CNS_NP;bi++) {
-    tau[bi] = 1.0;
-  }
-  while ( (bid = NextColumnBead(&ci)) != -1 ) {
-    bead = GetBead(beadStore,bid);
-    base = *Getchar(sequenceStore,bead->soffset);
-    qv = (int) ( *Getchar(qualityStore,bead->soffset)-'0');
-    if ( base == 'N' ) { // skip 'N' base calls 
-       //fprintf(stderr,"encountered 'n' base in fragment data at column cid=%d\n",cid);
-       n_count++;
-       continue;
+    if(!CreateColumnBeadIterator(cid,&ci)){
+        CleanExit("BaseCall CreateColumnBeadIterator failed",__LINE__,1);
     }
-    bmask = AMASK[BaseToInt(base)];
-    type = GetFragment(fragmentStore,bead->frag_index)->type;
-    if (type  != AS_READ &&
-    	type  != AS_B_READ &&
-        type  != AS_EXTR &&
-        type  != AS_TRNR ) {
-      other_base_count[BaseToInt(base)]++;
-      AppendBead(guides,bead);
-    } else {
-      read_base_count[BaseToInt(base)]++;
-      AppendBead(reads,bead);
-    }
-    if ( type != AS_UNITIG ) {
-      frag_cov++;
-    }
-  }
 
-  read_depth = GetNumBeads(reads);
-  other_depth = GetNumBeads(guides);
-  //COMP_BIAS[0] = (read_depth+other_depth) * CNS_SEQUENCING_ERROR_EST;
+    if (quality > 0) 
+    {
+        static int guides_alloc=0;
+        static VarArrayBead  *guides;
+        static VarArrayBead  *reads;
+        static VarArrayint16 *tied;
+        uint32 bmask;
+        int    num_guides;
+        Bead  *gb;
+        int    cind;
+        double tmpqv;
+        int16  bi;
+        int    n_count=0;
+        int    frag_cov=0;
+        int16  max_ind=0;
+        double max_cw=0.0;
+        double normalize=0;
+        if (!guides_alloc) {
+            guides = CreateVA_Bead(16);
+            reads  = CreateVA_Bead(16);
+            tied   = CreateVA_int16(32);
+            guides_alloc = 1;
+        } 
+        else {
+            ResetBead(guides);
+            ResetBead(reads);
+            Resetint16(tied);
+        }
+        for (bi=0;bi<CNS_NP;bi++) {
+            tau[bi] = 1.0;
+        }
+        while ( (bid = NextColumnBead(&ci)) != -1 ) 
+        {
+            bead =  GetBead(beadStore,bid);
+           *cbase = *Getchar(sequenceStore,bead->soffset);
+            qv = (int) ( *Getchar(qualityStore,bead->soffset)-'0');
+            if ( *cbase == 'N' ) { 
+                // skip 'N' base calls 
+                // fprintf(stderr,
+                //    "encountered 'n' base in fragment data at column cid=%d\n",
+                //    cid);
+                n_count++;
+                continue;
+            }
+            bmask = AMASK[BaseToInt(*cbase)];
+            type = GetFragment(fragmentStore,bead->frag_index)->type;
+            if (type  != AS_READ &&
+            	type  != AS_B_READ &&
+                type  != AS_EXTR &&
+                type  != AS_TRNR ) 
+            {
+                other_base_count[BaseToInt(*cbase)]++;
+                AppendBead(guides,bead);
+            } 
+            else {
+                read_base_count[BaseToInt(*cbase)]++;
+                AppendBead(reads,bead);
+            }
+            if ( type != AS_UNITIG ) {
+                frag_cov++;
+            }
+        }
 
-  for (cind = 0; cind < read_depth; cind++) {
-      gb = GetBead(reads,cind);
-      base = *Getchar(sequenceStore,gb->soffset);
-      qv = (int) ( *Getchar(qualityStore,gb->soffset)-'0');
-      if ( qv == 0 ) qv += 5;
-      bmask = AMASK[BaseToInt(base)];
-      for (bi=0;bi<CNS_NP;bi++) {
-        if ( (bmask>>bi) & 1 ) {
-          tau[bi]*= PROB[qv];
+        read_depth = GetNumBeads(reads);
+        other_depth = GetNumBeads(guides);
+        //COMP_BIAS[0] = (read_depth+other_depth) * CNS_SEQUENCING_ERROR_EST;
+
+        for (cind = 0; cind < read_depth; cind++) \
+        {
+            gb = GetBead(reads,cind);
+           *cbase = *Getchar(sequenceStore,gb->soffset);
+            qv = (int) ( *Getchar(qualityStore,gb->soffset)-'0');
+            if ( qv == 0 ) 
+                qv += 5;
+            bmask = AMASK[BaseToInt(*cbase)];
+            for (bi=0;bi<CNS_NP;bi++) {
+                if ( (bmask>>bi) & 1 ) {
+                    tau[bi]*= PROB[qv];
+                } else {
+                    tau[bi]*= (double) TAU_MISMATCH * EPROB[qv];
+                }
+            }
+        }
+
+        if (  CNS_USE_PUBLIC == 0 || 
+              read_depth < CNS_USE_PUBLIC || 
+              read_depth == 0 ) 
+        {
+            for (cind = 0; cind < other_depth; cind++) {
+                gb = GetBead(guides,cind);
+                type  = GetFragment(fragmentStore,gb->frag_index)->type;
+                utype = GetFragment(fragmentStore,gb->frag_index)->utype;
+
+                if ( type == AS_UNITIG && 
+                         ((utype != AS_STONE_UNITIG && 
+                           utype != AS_PEBBLE_UNITIG && 
+                           utype != AS_OTHER_UNITIG) || read_depth > 0)) 
+                {
+                    continue;
+                }
+                used_surrogate=1;
+                // only for surrogates, use their basecalls/quality in contig consensus
+               *cbase = *Getchar(sequenceStore,gb->soffset);
+                qv = (int) ( *Getchar(qualityStore,gb->soffset)-'0');
+                if ( qv == 0 ) 
+                    qv += 5;
+                bmask = AMASK[BaseToInt(*cbase)];
+                for (bi=0;bi<CNS_NP;bi++) {
+                    if ( (bmask>>bi) & 1 ) {
+                        tau[bi]*= PROB[qv];
+                    } else {
+                        tau[bi]*= (double) TAU_MISMATCH * EPROB[qv];
+                    }
+                }
+            }
+        }
+
+        for (bi=0;bi<CNS_NP;bi++) {
+            cw[bi] = tau[bi] *COMP_BIAS[bi];
+            normalize += cw[bi];
+        }
+        if (normalize) 
+            normalize = 1/normalize;
+        for (bi=0;bi<CNS_NP;bi++) {
+            cw[bi] *= normalize;
+            if (cw[bi] > max_cw) {
+                max_ind = bi;
+                max_cw = cw[bi];
+                Resetint16(tied);
+            } else if (cw[bi] == max_cw) {
+                Appendint16(tied,&bi);
+            }
+        }
+        if (max_cw == 0) {
+            max_ind=0;
         } else {
-          tau[bi]*= (double) TAU_MISMATCH * EPROB[qv];
+            if (GetNumint16s(tied)> 0) 
+            {
+                // break a tie randomly
+                int i,max_tie,tie_breaker=random();
+                Appendint16(tied,&max_ind);
+                max_tie = tie_breaker;
+                max_ind = *Getint16(tied,0);
+                for (i=1;i<GetNumint16s(tied);i++) {
+                    tie_breaker = random();
+                    if (tie_breaker > max_tie) {
+                        max_tie = tie_breaker;
+                        max_ind = *Getint16(tied,i);
+                    }
+                }
+                max_cw = cw[max_ind];
+            } 
         }
-      }
-  }
-
-  if (  CNS_USE_PUBLIC == 0 || read_depth < CNS_USE_PUBLIC || read_depth == 0 ) {
-    for (cind = 0; cind < other_depth; cind++) {
-      gb = GetBead(guides,cind);
-      type = GetFragment(fragmentStore,gb->frag_index)->type;
-      utype = GetFragment(fragmentStore,gb->frag_index)->utype;
-      //if ( type == AS_UNITIG && frag_cov > 0 ) {
-      if ( type == AS_UNITIG && ((utype != AS_STONE_UNITIG && utype != AS_PEBBLE_UNITIG && utype != AS_OTHER_UNITIG) || read_depth > 0)) {
-         continue;
-      }
-      used_surrogate=1;
-      // only for surrogates, use their basecalls/quality in contig consensus
-      base = *Getchar(sequenceStore,gb->soffset);
-      qv = (int) ( *Getchar(qualityStore,gb->soffset)-'0');
-      if ( qv == 0 ) qv += 5;
-      bmask = AMASK[BaseToInt(base)];
-      for (bi=0;bi<CNS_NP;bi++) {
-        if ( (bmask>>bi) & 1 ) {
-          tau[bi]*= PROB[qv];
-        } else {
-          tau[bi]*= (double) TAU_MISMATCH * EPROB[qv];
+        if ( verbose ) {
+            fprintf(stdout,"calculated probabilities:\n");
+            for (bi=0;bi<CNS_NP;bi++) {
+                fprintf(stdout,"%c = %16.8f",RALPHABET[bi],cw[bi]);
+                if ( bi == max_ind ) 
+                    fprintf(stdout," *");
+                fprintf(stdout,"\n");
+            }
         }
-      }
-    }
-  }
-
-  for (bi=0;bi<CNS_NP;bi++) {
-    cw[bi] = tau[bi] *COMP_BIAS[bi];
-    normalize += cw[bi];
-  }
-  if (normalize) normalize = 1/normalize;
-  for (bi=0;bi<CNS_NP;bi++) {
-    cw[bi] *= normalize;
-    if (cw[bi] > max_cw) {
-      max_ind = bi;
-      max_cw = cw[bi];
-      Resetint16(tied);
-    } else if (cw[bi] == max_cw) {
-      Appendint16(tied,&bi);
-    }
-  }
-  if (max_cw == 0) {
-    max_ind=0;
-  } else {
-     if (GetNumint16s(tied)> 0) {
-       // break a tie randomly
-       int i,max_tie,tie_breaker=random();
-       Appendint16(tied,&max_ind);
-       max_tie = tie_breaker;
-       max_ind = *Getint16(tied,0);
-       for (i=1;i<GetNumint16s(tied);i++) {
-         tie_breaker = random();
-         if (tie_breaker > max_tie) {
-            max_tie = tie_breaker;
-            max_ind = *Getint16(tied,i);
-         }
-       }
-       max_cw = cw[max_ind];
-     } 
-  }
-  if ( verbose ) {
-    fprintf(stdout,"calculated probabilities:\n");
-    for (bi=0;bi<CNS_NP;bi++) {
-      fprintf(stdout,"%c = %16.8f",RALPHABET[bi],cw[bi]);
-      if ( bi == max_ind ) fprintf(stdout," *");
-      fprintf(stdout,"\n");
-    }
-  }
-  //base = toupper(RALPHABET[max_ind]);
-  base = RALPHABET[max_ind];
-  if (max_cw == 1.0) {
-    cqv = CNS_MAX_QV+'0';
-    Setchar(qualityStore,call->soffset, &cqv);
-  } else {
-    if ( frag_cov != 1 || used_surrogate) {
-      tmpqv =  -10.0 * log10(1.0-max_cw);
-      qv = (int) tmpqv;
-      if ((tmpqv - qv)>=.50) qv++;
-    }
-    cqv = QVInRange(qv);
-  }
-  // if (CNS_CALL_PUBLIC), then check whether call disagrees with guide data.
-  //    if so, call the public base
-
-  if ( CNS_CALL_PUBLIC && (num_guides=GetNumBeads(guides)) > 0 ) {
-      int i;
-      char gbase=(char) 0;
-      for (i=0;i<num_guides;i++) {
-        Bead *gbead = GetBead(guides,i);
-        type = GetFragment(fragmentStore,gbead->frag_index)->type;
-        if ( type != AS_UNITIG) {
-          gbase = toupper( *Getchar(sequenceStore,gbead->soffset));
-          break;
+        //*cbase = toupper(RALPHABET[max_ind]);
+       *cbase = RALPHABET[max_ind];
+        if (max_cw == 1.0) {
+            cqv = CNS_MAX_QV+'0';
+            Setchar(qualityStore, call->soffset, &cqv);
+        } 
+        else 
+        {
+            if ( frag_cov != 1 || used_surrogate) 
+            {
+                tmpqv =  -10.0 * log10(1.0-max_cw);
+                qv = (int) tmpqv;
+                if ((tmpqv - qv)>=.50) 
+                    qv++;
+            }
+            cqv = QVInRange(qv);
         }
-      }
-      if ( gbase != (char) 0  && gbase != base ) {
-         // override the Celera call with the guide call 
-         base = gbase;
-         cqv = 0 + '0';
-      }
-  }
-  Setchar(sequenceStore,call->soffset,&base);
-  Setchar(qualityStore,call->soffset, &cqv);
-  for (bi=0;bi<CNS_NALPHABET-1;bi++) { // NALAPHBET-1 to exclude "n" base call
-    bmask = AMASK[bi];  // mask for indicated base
-    if ( ! ((bmask>>max_ind) & 1) ) { // penalize only if base in not represented in call
-      score += read_base_count[bi] + other_base_count[bi];
-    }
-  }
-  return score;
- } else if (quality == 0 ) {
-   int max_count=0,max_index=-1,tie_count=0;
-   int tie_breaker, max_tie, i;
+      // if (CNS_CALL_PUBLIC), then check whether call disagrees with guide data.
+      //    if so, call the public base
 
-   if(!CreateColumnBeadIterator(cid,&ci)){
-     CleanExit("BaseCount CreateColumnBeadIterator failed",__LINE__,1);
-   }
-   while ( (bid = NextColumnBead(&ci)) != -1 ) {
-      bead = GetBead(beadStore,bid);
-      base = *Getchar(sequenceStore,bead->soffset);
-      type = GetFragment(fragmentStore,bead->frag_index)->type;
-      if (type  != AS_READ &&
-          type  != AS_B_READ &&
-          type  != AS_EXTR &&
-          type  != AS_TRNR ) {
-        other_base_count[BaseToInt(base)]++;
-      } else {
-        read_base_count[BaseToInt(base)]++;
-      }
-   }
-   for (i=0;i<CNS_NALPHABET;i++) {
-      if (read_base_count[i]+other_base_count[i] > max_count) {
-         max_count = read_base_count[i] + other_base_count[i];
-         max_index = i;
-      }
-   }
-   if (read_base_count[max_index]+other_base_count[max_index] > 
-                                            (read_depth+other_depth)/2 ) {
-     tie_count = 0;
-   } else {
-     for (i=0;i<CNS_NALPHABET;i++) {
-       if (read_base_count[i]+other_base_count[i] == max_count) {
-          max_index = i;
-          tie_count++;
-       }
-     }
-   }
-   max_tie=-1;
-   if ( tie_count > 1 ) {
-      for (i=1;i<CNS_NALPHABET;i++) { /* i starts at 1 to prevent ties */
-                                      /* from being broken with '-'    */
-        if ( read_base_count[i]+other_base_count[i] == max_count ) {
-           /* Break unresolved ties with random numbers: */
-           tie_breaker = random();
-           if (tie_breaker > max_tie) {
-              max_tie = tie_breaker;
-              max_index = i;
-           }
+        if ( CNS_CALL_PUBLIC && (num_guides=GetNumBeads(guides)) > 0 ) 
+        {
+            int i;
+            char gbase=(char) 0;
+            for (i=0;i<num_guides;i++) {
+                Bead *gbead = GetBead(guides,i);
+                type = GetFragment(fragmentStore,gbead->frag_index)->type;
+                if ( type != AS_UNITIG) {
+                    gbase = toupper( *Getchar(sequenceStore,gbead->soffset));
+                    break;
+                }
+            }
+            if ( gbase != (char) 0  && gbase != *cbase ) {
+                // override the Celera call with the guide call 
+               *cbase = gbase;
+                cqv = 0 + '0';
+            }
         }
-      }
-   }
-   base=toupper(RALPHABET[max_index]);
-   Setchar(sequenceStore,call->soffset,&base);
-   cqv = 0 + '0';
-   Setchar(qualityStore,call->soffset, &cqv);
-   for (bi=0;bi<CNS_NALPHABET;bi++) {
-     if (bi != BaseToInt(base)) {
-       score += read_base_count[bi]+other_base_count[bi];
-     }
-   }
-   return score;
- } else if (quality == -1 ) {
-   // here, just promote the aligned fragment's seq and quality to the basecall
-    char bqv;
-    bid = NextColumnBead(&ci);
-    bead = GetBead(beadStore,bid);
-    base = *Getchar(sequenceStore,bead->soffset);
-    bqv = *Getchar(qualityStore,bead->soffset);
-    Setchar(sequenceStore,call->soffset,&base);
-    Setchar(qualityStore,call->soffset, &bqv);
-    return score;
- }
- return score; 
+        Setchar(sequenceStore, call->soffset, cbase);
+        Setchar(qualityStore, call->soffset, &cqv);
+        for (bi=0;bi<CNS_NALPHABET-1;bi++) { // NALAPHBET-1 to exclude "n" base call
+            bmask = AMASK[bi];  // mask for indicated base
+            if ( ! ((bmask>>max_ind) & 1) ) { // penalize only if base in not represented in call
+                score += read_base_count[bi] + other_base_count[bi];
+            }
+        }
+        return score;
+    } 
+    else if (quality == 0 ) 
+    {
+        int max_count=0,max_index=-1,tie_count=0;
+        int tie_breaker, max_tie, i;
+
+        if(!CreateColumnBeadIterator(cid,&ci)) {
+            CleanExit("BaseCount CreateColumnBeadIterator failed",__LINE__,1);
+        }
+        while ( (bid = NextColumnBead(&ci)) != -1 ) {
+            bead = GetBead(beadStore,bid);
+           *cbase = *Getchar(sequenceStore,bead->soffset);
+            type = GetFragment(fragmentStore,bead->frag_index)->type;
+            if (type  != AS_READ &&
+                type  != AS_B_READ &&
+                type  != AS_EXTR &&
+                type  != AS_TRNR ) {
+                other_base_count[BaseToInt(*cbase)]++;
+            } 
+            else {
+                read_base_count[BaseToInt(*cbase)]++;
+            }
+        }
+        for (i=0;i<CNS_NALPHABET;i++) {
+            if (read_base_count[i]+other_base_count[i] > max_count) {
+                max_count = read_base_count[i] + other_base_count[i];
+                max_index = i;
+            }
+        }
+        if ( read_base_count[max_index] + other_base_count[max_index] > 
+            (read_depth                 + other_depth)/2 ) 
+        {
+            tie_count = 0;
+        } 
+        else 
+        {
+            for (i=0;i<CNS_NALPHABET;i++) 
+            {
+                if (read_base_count[i]+other_base_count[i] == max_count) 
+                {
+                    max_index = i;
+                    tie_count++;
+                }
+            }
+        }
+        max_tie=-1;
+        if ( tie_count > 1 ) {
+            for (i=1;i<CNS_NALPHABET;i++) 
+            {     /* i starts at 1 to prevent ties */
+                  /* from being broken with '-'    */
+                if ( read_base_count[i]+other_base_count[i] == max_count ) 
+                {
+                    /* Break unresolved ties with random numbers: */
+                    tie_breaker = random();
+                    if (tie_breaker > max_tie) {
+                        max_tie = tie_breaker;
+                        max_index = i;
+                    }
+                }
+            }
+        }
+       *cbase=toupper(RALPHABET[max_index]);
+        Setchar(sequenceStore, call->soffset, cbase);
+        cqv = 0 + '0';
+        Setchar(qualityStore, call->soffset, &cqv);
+        for (bi=0;bi<CNS_NALPHABET;bi++) {
+            if (bi != BaseToInt(*cbase)) 
+            {
+                score += read_base_count[bi]+other_base_count[bi];
+            }
+        }
+        return score;
+    } 
+    else if (quality == -1 ) {
+        // here, just promote the aligned fragment's seq and quality to the basecall
+        char bqv;
+        bid = NextColumnBead(&ci);
+        bead =  GetBead(beadStore,bid);
+       *cbase = *Getchar(sequenceStore, bead->soffset);
+        bqv  = *Getchar(qualityStore,bead->soffset);
+        Setchar(sequenceStore, call->soffset, cbase);
+        Setchar(qualityStore, call->soffset, &bqv);
+        return score;
+    }
+    return score; 
 }
 
 //=================================================================================
 // Basic MultiAlignmentNode (MANode) manipulation
 //=================================================================================
 
-int RefreshMANode(int32 mid, int quality) {
-  // refresh columns from cid to end
-// if quality == -1, don't recall the consensus base
-  int index=0;
-  int32 cid;
-  Column *column;
-  MANode *ma = GetMANode(manodeStore,mid);
-  if (ma == NULL ) CleanExit("RefreshMANode ma==NULL",__LINE__,1);
-  if ( ma->first == -1 ) return 1;
-  Resetint32(ma->columns);
-  cid = ma->first;
-  while ( cid  > -1 ) {
-    column = GetColumn(columnStore,cid);
-    if (column == NULL ) CleanExit("RefreshMANode column==NULL",__LINE__,1);
-    if ( quality != -2 ) BaseCall(cid,quality,0);
-    column->ma_index = index;
-    AppendVA_int32(ma->columns,&cid);
-    // sanity check
-    if (index>0) {
-      int32 prev= *Getint32(ma->columns,index-1);
-      Column *pcol= GetColumn(columnStore,prev);
-      if( prev != column->prev ||  pcol->next != column->lid){
-        CleanExit("RefreshMANode column relationships violated",__LINE__,1);
-      }
+int RefreshMANode(int32 mid, int quality) 
+{
+    // refresh columns from cid to end
+    // if quality == -1, don't recall the consensus base
+    int     index=0;
+    int32   cid;
+    char    cbase;
+    Column *column;
+    MANode *ma = GetMANode(manodeStore,mid);
+    if (ma == NULL ) 
+        CleanExit("RefreshMANode ma==NULL",__LINE__,1);
+    if ( ma->first == -1 ) 
+        return 1;
+    Resetint32(ma->columns);
+    cid = ma->first;
+    while ( cid  > -1 ) 
+    {
+        column = GetColumn(columnStore, cid);
+        if (column == NULL ) 
+            CleanExit("RefreshMANode column==NULL",__LINE__,1);
+        if ( quality != -2 ) 
+            BaseCall(cid, quality, &cbase, 0);
+        column->ma_index = index;
+        AppendVA_int32(ma->columns, &cid);
+        // sanity check
+        if (index>0) {
+            int32 prev= *Getint32(ma->columns, index-1);
+            Column *pcol= GetColumn(columnStore, prev);
+            if( prev != column->prev ||  pcol->next != column->lid)
+            {
+                CleanExit("RefreshMANode column relationships violated",__LINE__,1);
+            }
+        }
+        cid = column->next;
+        index++;
     }
-    cid = column->next;
-    index++;
-  }
-  return 1;
+    return 1;
 }
 
 int SeedMAWithFragment(int32 mid, int32 fid, int quality) {
@@ -3894,13 +3937,15 @@ char GetBase(int s) {
   return *Getchar(sequenceStore,s);
 }
 
-int ApplyAbacus(Abacus *a) {
+int ApplyAbacus(Abacus *a) 
+{
   Column *column; 
   int columns=0;
   int32 bid,eid,i;
-  char a_entry;
+  char a_entry, cbase;
   Bead *bead,*exch_bead;
-  if ( a->shift == LEFT_SHIFT) {
+  if ( a->shift == LEFT_SHIFT) 
+  {
      column = GetColumn(columnStore,a->start_column);
      if (column == NULL ) CleanExit("ApplyAbacus column==NULL",__LINE__,1);
      while (columns<a->window_width) {
@@ -3962,11 +4007,13 @@ int ApplyAbacus(Abacus *a) {
                 exch_bead->boffset);
          */
        }
-       BaseCall(column->lid,1,0);
+       BaseCall(column->lid, 1, &cbase, 0);
        column = GetColumn(columnStore,column->next);
        columns++;
      } 
-  } else {
+  } 
+  else 
+  {
      column = GetColumn(columnStore,a->end_column);
      if (column == NULL ) CleanExit("ApplyAbacus column==NULL",__LINE__,1);
      while (columns<a->window_width) {
@@ -4025,7 +4072,7 @@ int ApplyAbacus(Abacus *a) {
                 exch_bead->boffset);
          */
        }
-       BaseCall(column->lid,1,0);
+       BaseCall(column->lid, 1, &cbase, 0);
        column = GetColumn(columnStore,column->prev);
        columns++;
      } 
@@ -5351,7 +5398,7 @@ int ExamineMANode(FILE *outFile,int32 sid, int32 mid, UnitigData *tigData,int nu
   if ( ma->first == -1 ) return 1;
   cid = ma->first;
   while ( cid  > -1 ) {
-    char base;
+    char base, cbase;
     char qv;
     int tig_depth=0;
     column = GetColumn(columnStore,cid);
@@ -5361,7 +5408,7 @@ int ExamineMANode(FILE *outFile,int32 sid, int32 mid, UnitigData *tigData,int nu
     qv = *Getchar(qualityStore,cbead->soffset);
     fprintf(outFile,"%d\t%d\t%d\t%d\t%c\t%c\t" ,sid,ma->iid,index,ugindex,base,qv);
     ShowBaseCountPlain(outFile,&column->base_count);
-    BaseCall(cid,1,0); // recall with quality on (and QV parameters set by user)
+    BaseCall(cid, 1, &cbase, 0); // recall with quality on (and QV parameters set by user)
     fprintf(outFile,"%c\t%c\t", *Getchar(sequenceStore,cbead->soffset), *Getchar(qualityStore,cbead->soffset));
     // restore original consensus basecall/quality
     Setchar(sequenceStore,cbead->soffset,&base);

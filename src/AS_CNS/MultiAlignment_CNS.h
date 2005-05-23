@@ -321,7 +321,7 @@ int SetupSingleColumn(char *sequence,
                       char *quality,
                       char *frag_type,
                       char *unitig_type);
-int BaseCall(int32 cid, int quality, int verbose);
+int BaseCall(int32 cid, int quality, char *cbase, int verbose);
 void ShowColumn(int32 cid);
 int MultiAlignUnitig(IntUnitigMesg *unitig, 
                      FragStoreHandle fragStore,
