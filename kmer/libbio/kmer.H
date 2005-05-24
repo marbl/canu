@@ -20,7 +20,7 @@
 #ifndef BIO_KMER_H
 #define BIO_KMER_H
 
-#define KMER_WORDS  1
+#define KMER_WORDS  3
 
 
 //  XXX: Should probably make a separate class for KMER_WORDS == 1,
@@ -44,14 +44,32 @@ public:
   ~kMer()                     { };
 
   void   reverseComplement(void) {
-    // XXX:  UNIMPLEMENTED
+#if KMER_WORDS == 1
+    reverseComplementMer(_wd[0], _merSize);
+#else
+
+    //  Reverse all the words, reverse and complement the bases in
+    //  each word, then shift right to align the edge.
+
+    for (u32bit i=0, j=KMER_WORDS-1; i<KMER_WORDS/2; i++, j--) {
+      u64bit t = _wd[i];
+      _wd[i] = _wd[j];
+      _wd[j] = t;
+    }
+
+    for (u32bit i=0; i<KMER_WORDS; i++) {
+      _wd[i] = ((_wd[i] >>  2) & 0x3333333333333333llu) | ((_wd[i] <<  2) & 0xccccccccccccccccllu);
+      _wd[i] = ((_wd[i] >>  4) & 0x0f0f0f0f0f0f0f0fllu) | ((_wd[i] <<  4) & 0xf0f0f0f0f0f0f0f0llu);
+      _wd[i] = ((_wd[i] >>  8) & 0x00ff00ff00ff00ffllu) | ((_wd[i] <<  8) & 0xff00ff00ff00ff00llu);
+      _wd[i] = ((_wd[i] >> 16) & 0x0000ffff0000ffffllu) | ((_wd[i] << 16) & 0xffff0000ffff0000llu);
+      _wd[i] = ((_wd[i] >> 32) & 0x00000000ffffffffllu) | ((_wd[i] << 32) & 0xffffffff00000000llu);
+      _wd[i] ^= 0xffffffffffffffffllu;
+    }
+
+    *this >>= KMER_WORDS * 64 - 2 * _merSize;
+#endif
   };
 
-  //  This is a total hack to get us up and running with existing code.
-  //
-  u64bit smallmer(void) const {
-    return(_wd[0]);
-  };
 
   void    setMerSize(u32bit ms);
 
@@ -180,10 +198,106 @@ public:
   };
 
 
+#if 1
   void    dump(FILE *out) const {
     for (u32bit i=0; i<KMER_WORDS; i++)
       fprintf(out, "kMer["u32bitFMTW(2)"] = "u64bitHEX"\n", i, _wd[i]);
   };
+#endif
+
+
+  //  Returns a sub-mer from either the start (left end) or the end
+  //  (right end) of the mer.  The sub-mer must be at most 64 bits
+  //  long.
+  //
+  //  Yes, BITS.
+  //
+  //  The start is difficult, because it can span multiple words.  The
+  //  end is always in the first word.
+  //
+  u64bit   startOfMer(u32bit bits) {
+    return(getBits((_merSize << 1) - bits, bits));
+  };
+  u64bit   endOfMer(u32bit bits) {
+    return(_wd[0] & u64bitMASK(bits));
+  };
+
+  //  Set 'numbits' bits from (the end of) 'val' at bit position 'pos'
+  //  in the mer.  This is wildly low-level, but merylStreamReader
+  //  needs it.
+  //
+  //  The position is measured from the right end.
+  //    (0, 8, X) would copy the bits 7 to 0 of X to bits 7 to 0 of the mer.
+  //
+  //  Argh!  Can't use set/getDecodedValue because that is doing things in the wrong order.
+  //
+  void     setBits(u32bit pos, u32bit numbits, u64bit val) {
+    u32bit  wrd = pos >> 6;
+    u32bit  bit = pos  & 0x3f;
+
+    val &= u64bitMASK(numbits);
+
+    if (wrd >= KMER_WORDS) {
+      fprintf(stderr, "kMer::setBits()-- ERROR: tried to set pos="u32bitFMT" numbits="u32bitFMT" larger than KMER_WORDS=%d\n",
+              pos, numbits, KMER_WORDS), exit(1);
+    }
+
+    //  If we have enough space in the word for the bits, replace
+    //  those bits in the word.  Otherwise we need to split the value
+    //  into two pieces, and add to the end of the first word and the
+    //  start of the second.
+
+    if (64 - bit >= numbits) {
+      _wd[wrd] &= ~(u64bitMASK(numbits) << bit);
+      _wd[wrd] |=  val << bit;
+    } else {
+      if (wrd+1 >= KMER_WORDS) {
+        fprintf(stderr, "kMer::setBits()-- ERROR: tried to set pos="u32bitFMT" numbits="u32bitFMT" larger than KMER_WORDS=%d\n",
+                pos, numbits, KMER_WORDS), exit(1);
+      }
+
+      u32bit b1 = 64 - bit;      //  bits in the first word
+      u32bit b2 = numbits - b1;  //  bits in the second word
+
+      _wd[wrd] &= ~(u64bitMASK(b1) << bit);
+      _wd[wrd] |= (val & u64bitMASK(b1)) << bit;
+
+      _wd[wrd+1] &= ~(u64bitMASK(b2));
+      _wd[wrd+1] |= (val >> b1) & u64bitMASK(b2);
+    }
+  };
+
+  u64bit   getBits(u32bit pos, u32bit numbits) {
+    u64bit  val = u64bitZERO;
+    u32bit  wrd = pos >> 6;
+    u32bit  bit = pos  & 0x3f;
+
+    if (wrd >= KMER_WORDS) {
+      fprintf(stderr, "kMer::getBits()-- ERROR: tried to get pos="u32bitFMT" numbits="u32bitFMT" larger than KMER_WORDS=%d\n",
+              pos, numbits, KMER_WORDS), exit(1);
+    }
+
+    if (64 - bit >= numbits) {
+      val = _wd[wrd] >> bit;
+    } else {
+      if (wrd+1 >= KMER_WORDS) {
+        fprintf(stderr, "kMer::getBits()-- ERROR: tried to get pos="u32bitFMT" numbits="u32bitFMT" larger than KMER_WORDS=%d\n",
+                pos, numbits, KMER_WORDS), exit(1);
+      }
+
+      u32bit b1 = 64 - bit;      //  bits in the first word
+      u32bit b2 = numbits - b1;  //  bits in the second word
+
+      val  = _wd[wrd] >> (64-b1);
+      val |= (_wd[wrd+1] & u64bitMASK(b2)) << b1;
+    }
+
+    val &= u64bitMASK(numbits);
+    return(val);
+
+  };
+
+
 
 
 
@@ -224,27 +338,36 @@ public:
   //  On the otherhand, the implementation (of write anyway) is
   //  basically the same as merToString().
   //
-  void   writeToBitPackedFile(bitPackedFile *BPF) const {
-    u32bit  lastWord = _merSize >> 5;
+  //  Takes an optional number of BITS to write, pulled from the
+  //  END of the mer.
+  //
+  void   writeToBitPackedFile(bitPackedFile *BPF, u32bit numBits=0) const {
+    if (numBits == 0)
+      numBits = _merSize << 1;
 
-    if (_merSize & u32bitMASK(6) == 0)
+    u32bit  lastWord = numBits >> 6;
+
+    if (numBits & u32bitMASK(6) == 0)
       lastWord++;
 
-    if (_merSize & u32bitMASK(5))
-      BPF->putBits(_wd[lastWord], (_merSize & u32bitMASK(5)) << 1);
+    if (numBits & u32bitMASK(6))
+      BPF->putBits(_wd[lastWord], numBits & u32bitMASK(6));
     while (lastWord > 0) {
       lastWord--;
       BPF->putBits(_wd[lastWord], 64);
     }
   };
-  void   readFromBitPackedFile(bitPackedFile *BPF) {
-    u32bit  lastWord = _merSize >> 5;
+  void   readFromBitPackedFile(bitPackedFile *BPF, u32bit numBits=0) {
+    if (numBits == 0)
+      numBits = _merSize << 1;
 
-    if (_merSize & u32bitMASK(6) == 0)
+    u32bit  lastWord = numBits >> 6;
+
+    if (numBits & u32bitMASK(6) == 0)
       lastWord++;
 
-    if (_merSize & u32bitMASK(5))
-      _wd[lastWord] = BPF->getBits((_merSize & u32bitMASK(5) << 1));
+    if (numBits & u32bitMASK(6))
+      _wd[lastWord] = BPF->getBits(numBits & u32bitMASK(6));
     while (lastWord > 0) {
       lastWord--;
       _wd[lastWord] = BPF->getBits(64);
@@ -252,30 +375,63 @@ public:
   };
 
 
-  bool    operator!=(kMer &r) const {
+
 #if KMER_WORDS == 1
-    return(_wd[0] != r._wd[0]);
+
+  bool    operator!=(kMer &r) const { return(_wd[0] != r._wd[0]); };
+  bool    operator==(kMer &r) const { return(_wd[0] == r._wd[0]); };
+  bool    operator<(kMer &r) const  { return(_wd[0] <  r._wd[0]); };
+  bool    operator>(kMer &r) const  { return(_wd[0] >  r._wd[0]); };
+  bool    operator<=(kMer &r) const { return(_wd[0] <= r._wd[0]); };
+  bool    operator>=(kMer &r) const { return(_wd[0] >= r._wd[0]); };
+
 #else
+
+  bool    operator!=(kMer &r) const {
     u64bit res = u64bitZERO;
-    for (u32bit i=0; i<KMER_WORDS; i++) {
+    for (u32bit i=KMER_WORDS; i--; )
       res |= _wd[i] ^ r._wd[i];
-      //fprintf(stderr, "!= "u64bitHEX" -- "u64bitHEX" --- "u64bitHEX"\n", _wd[i], r._wd[i], res);
-    }
     return(res != u64bitZERO);
-#endif
   };
   bool    operator==(kMer &r) const {
-#if KMER_WORDS == 1
-    return(_wd[0] == r._wd[0]);
-#else
     u64bit res = u64bitZERO;
-    for (u32bit i=0; i<KMER_WORDS; i++) {
+    for (u32bit i=KMER_WORDS; i--; )
       res |= _wd[i] ^ r._wd[i];
-      //fprintf(stderr, "== "u64bitHEX" -- "u64bitHEX" --- "u64bitHEX"\n", _wd[i], r._wd[i], res);
-    }
     return(res == u64bitZERO);
-#endif
   };
+
+  bool    operator<(kMer &r) const {
+    for (u32bit i=KMER_WORDS; i--; ) {
+      if (_wd[i] < r._wd[i])  return(true);
+      if (_wd[i] > r._wd[i])  return(false);
+    }
+    return(false);
+  };
+  bool    operator>(kMer &r) const {
+    for (u32bit i=KMER_WORDS; i--; ) {
+      if (_wd[i] > r._wd[i])  return(true);
+      if (_wd[i] < r._wd[i])  return(false);
+    }
+    return(false);
+  };
+  bool    operator<=(kMer &r) const {
+    for (u32bit i=KMER_WORDS; i--; ) {
+      if (_wd[i] < r._wd[i])  return(true);
+      if (_wd[i] > r._wd[i])  return(false);
+    }
+    return(true);
+  };
+  bool    operator>=(kMer &r) const {
+    for (u32bit i=KMER_WORDS; i--; ) {
+      if (_wd[i] > r._wd[i])  return(true);
+      if (_wd[i] < r._wd[i])  return(false);
+    }
+    return(true);
+  };
+
+
+#endif
+
 
 
 
