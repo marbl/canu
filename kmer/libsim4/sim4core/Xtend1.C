@@ -1,5 +1,60 @@
 #include "sim4.H"
 
+//  This is used if _accurateSequences is enabled....and it's never
+//  enabled.  The memory allocations here are NOT optimized.
+
+
+
+#ifndef CKALLOC_H
+#define CKALLOC_H
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+
+#include "bio.h"
+
+//#define CHECK_MEMORY
+
+inline
+void *
+external_ckalloc(size_t amount) {
+
+#ifdef __APPLE__
+  if (amount == 0)
+    amount = 16;
+#else
+  if (amount == 0)
+    amount = 8;
+#endif
+
+  void *p = malloc(amount);
+
+  if (p == NULL) {
+    fprintf(stderr, "Can't allocate "u64bitFMT" bytes.\n", (u64bit)amount);
+    kill(getpid(), SIGKILL);
+  }
+
+#ifdef CHECK_MEMORY
+  fprintf(stderr, "ckalloc "u64bitHEX" "u64bitFMT"\n", (u64bit)p, (u64bit)amount);
+#endif
+
+  return(p);
+}
+
+
+
+#ifdef CHECK_MEMORY
+#define external_ckfree(P) { fprintf(stderr, "ckfree "u64bitHEX" at %s,%d\n", (u64bit)(P), __FILE__, __LINE__); free(P); }
+#else
+#define external_ckfree(P) free(P)
+#endif  //  CHECK_MEMORY
+
+#endif  //  CKALLOC_H
+
+
+
+
 
 typedef  struct ValNode {
   void           *data;
@@ -11,7 +66,7 @@ void
 link_to_data_list(void *data, ValNodePtr *head, ValNodePtr *prev) {
   ValNodePtr curr;
 
-  curr = (ValNodePtr)ckalloc(sizeof(struct ValNode));
+  curr = (ValNodePtr)external_ckalloc(sizeof(struct ValNode));
   curr->data = data;
   curr->next = NULL;
 
@@ -28,9 +83,9 @@ ValNodeFreeData(ValNodePtr data_list) {
   ValNodePtr   tmp_node;
 
   while ((tmp_node=data_list)!=NULL) {
-    ckfree(tmp_node->data);
+    external_ckfree(tmp_node->data);
     data_list = data_list->next;
-    ckfree(tmp_node); 
+    external_ckfree(tmp_node); 
   }
 }
 
@@ -61,11 +116,11 @@ Sim4::Xextend_bw(char *s1, char *s2, int m, int n, int offset1, int offset2, int
   DELTA = n-m;
   max_d = m+1;
           
-  trace_AG = (coords ***)ckalloc((max_d+1)*sizeof(coords **)); 
-  trace_AC = (coords ***)ckalloc((max_d+1)*sizeof(coords **)); 
+  trace_AG = (coords ***)external_ckalloc((max_d+1)*sizeof(coords **)); 
+  trace_AC = (coords ***)external_ckalloc((max_d+1)*sizeof(coords **)); 
   for (d=0; d<=max_d; d++) {
-       trace_AG[d] = (coords **)ckalloc((m+n+1)*sizeof(coords *));
-       trace_AC[d] = (coords **)ckalloc((m+n+1)*sizeof(coords *));
+       trace_AG[d] = (coords **)external_ckalloc((m+n+1)*sizeof(coords *));
+       trace_AC[d] = (coords **)external_ckalloc((m+n+1)*sizeof(coords *));
   }
 
   ORIGIN = m;
@@ -77,14 +132,14 @@ Sim4::Xextend_bw(char *s1, char *s2, int m, int n, int offset1, int offset2, int
         /*LINTED empty loop body*/; 
   for (k=n; (k>=2) && (k>=col); k--)
        if (!strncmp((char *)(s2+k-2),"AG",2)) {
-           newcoords = (coords *)ckalloc(sizeof(coords)); 
+           newcoords = (coords *)external_ckalloc(sizeof(coords)); 
            link_to_data_list((void *)newcoords, &data_list, &prev);
 
            newcoords->pos2 = k-DELTA+offset1 +1;    /* to compensate for -1 */
            newcoords->pos1 = k+offset2 +1;          /* refer to sim4b1.c */
            trace_AG[0][ORIGIN+DELTA] = newcoords;
        } else if (!strncmp((char *)(s2+k-2),"AC",2)) {
-           newcoords = (coords *)ckalloc(sizeof(coords));
+           newcoords = (coords *)external_ckalloc(sizeof(coords));
            link_to_data_list((void *)newcoords, &data_list, &prev);
            
            newcoords->pos2 = k-DELTA+offset1 +1;
@@ -104,8 +159,8 @@ Sim4::Xextend_bw(char *s1, char *s2, int m, int n, int offset1, int offset2, int
         return 0;
   }    
        
-  last_d = (int *)ckalloc((m+n+1)*sizeof(int));
-  temp_d = (int *)ckalloc((m+n+1)*sizeof(int));
+  last_d = (int *)external_ckalloc((m+n+1)*sizeof(int));
+  temp_d = (int *)external_ckalloc((m+n+1)*sizeof(int));
   
   for (k=0; k<=m+n; ++k) last_d[k]=m+1;
   last_d[ORIGIN+DELTA] = row;
@@ -113,8 +168,8 @@ Sim4::Xextend_bw(char *s1, char *s2, int m, int n, int offset1, int offset2, int
   lower = ORIGIN + DELTA - 1;
   upper = ORIGIN + DELTA + 1;
   
-  min_row = (int *)ckalloc((m+1)*sizeof(int));
-  min_diag = (int *)ckalloc((m+1)*sizeof(int));
+  min_row = (int *)external_ckalloc((m+1)*sizeof(int));
+  min_diag = (int *)external_ckalloc((m+1)*sizeof(int));
 
   for (d=1; d<=m; d++)
        min_row[d] = m+1;
@@ -175,14 +230,14 @@ Sim4::Xextend_bw(char *s1, char *s2, int m, int n, int offset1, int offset2, int
 
                while ((row > 0) && (col > 0) && (s1[row-1]==s2[col-1])) {
                  if ((col>1) && !strncmp((char *)(s2+col-2),"AG",2)) {
-                    newcoords = (coords *)ckalloc(sizeof(coords));
+                    newcoords = (coords *)external_ckalloc(sizeof(coords));
                     link_to_data_list((void *)newcoords, &data_list, &prev);
 
                     newcoords->pos1 = row + k - ORIGIN + offset2 +1;
                     newcoords->pos2 = row + offset1 +1; 
                     trace_AG[d][k] = newcoords;
                  } else if ((col>1) && !strncmp((char *)(s2+col-2),"AC",2)) {
-                    newcoords = (coords *)ckalloc(sizeof(coords));
+                    newcoords = (coords *)external_ckalloc(sizeof(coords));
                     link_to_data_list((void *)newcoords, &data_list, &prev);
                     
                     newcoords->pos1 = row + k - ORIGIN + offset2 +1;
@@ -193,14 +248,14 @@ Sim4::Xextend_bw(char *s1, char *s2, int m, int n, int offset1, int offset2, int
                }
 
                if ((col>1) && !strncmp((char *)(s2+col-2),"AG",2)) {
-                    newcoords = (coords *)ckalloc(sizeof(coords));
+                    newcoords = (coords *)external_ckalloc(sizeof(coords));
                     link_to_data_list((void *)newcoords, &data_list, &prev);
                     
                     newcoords->pos1 = row + k - ORIGIN + offset2 +1;
                     newcoords->pos2 = row + offset1 +1;
                     trace_AG[d][k] = newcoords;
                } else if ((col>1) && !strncmp((char *)(s2+col-2),"AC",2)) {
-                    newcoords = (coords *)ckalloc(sizeof(coords));
+                    newcoords = (coords *)external_ckalloc(sizeof(coords));
                     link_to_data_list((void *)newcoords, &data_list, &prev);
                     
                     newcoords->pos1 = row + k - ORIGIN + offset2 +1;
@@ -216,10 +271,10 @@ Sim4::Xextend_bw(char *s1, char *s2, int m, int n, int offset1, int offset2, int
                    (void)memcpy(&last_AG,trace_AG[d][k],sizeof(coords));
                    (void)memcpy(&last_AC,trace_AC[d][k],sizeof(coords));
 
-                   ckfree(last_d);
-                   ckfree(temp_d);
-                   ckfree(min_row);
-                   ckfree(min_diag);
+                   external_ckfree(last_d);
+                   external_ckfree(temp_d);
+                   external_ckfree(min_row);
+                   external_ckfree(min_diag);
                    ValNodeFreeData(data_list);
                    free_coords(trace_AG,max_d+1);
                    free_coords(trace_AC,max_d+1);
@@ -235,10 +290,10 @@ Sim4::Xextend_bw(char *s1, char *s2, int m, int n, int offset1, int offset2, int
                    (void)memcpy(&last_AG,trace_AG[d][k],sizeof(coords));
                    (void)memcpy(&last_AC,trace_AC[d][k],sizeof(coords));
 
-                   ckfree(last_d);
-                   ckfree(temp_d);
-                   ckfree(min_row);
-                   ckfree(min_diag);
+                   external_ckfree(last_d);
+                   external_ckfree(temp_d);
+                   external_ckfree(min_row);
+                   external_ckfree(min_diag);
                    ValNodeFreeData(data_list);
                    free_coords(trace_AG,max_d+1);
                    free_coords(trace_AC,max_d+1);
@@ -254,10 +309,10 @@ Sim4::Xextend_bw(char *s1, char *s2, int m, int n, int offset1, int offset2, int
                    (void)memcpy(&last_AG,trace_AG[d][k],sizeof(coords));
                    (void)memcpy(&last_AC,trace_AC[d][k],sizeof(coords));
 
-                   ckfree(last_d);
-                   ckfree(temp_d);
-                   ckfree(min_row);
-                   ckfree(min_diag);
+                   external_ckfree(last_d);
+                   external_ckfree(temp_d);
+                   external_ckfree(min_row);
+                   external_ckfree(min_diag);
                    ValNodeFreeData(data_list);
                    free_coords(trace_AG,max_d+1);
                    free_coords(trace_AC,max_d+1);
@@ -295,10 +350,10 @@ Sim4::Xextend_bw(char *s1, char *s2, int m, int n, int offset1, int offset2, int
      (void)memcpy(&last_AG,trace_AG[d][min_diag[d]],sizeof(coords));
      (void)memcpy(&last_AC,trace_AC[d][min_diag[d]],sizeof(coords));
                    
-     ckfree(min_row);       
-     ckfree(min_diag);
-     ckfree(last_d);
-     ckfree(temp_d); 
+     external_ckfree(min_row);       
+     external_ckfree(min_diag);
+     external_ckfree(last_d);
+     external_ckfree(temp_d); 
      ValNodeFreeData(data_list);
      free_coords(trace_AG,max_d+1);
      free_coords(trace_AC,max_d+1);
@@ -327,11 +382,11 @@ Sim4::Xextend_fw(char *s1, char *s2, int m, int n, int offset1, int offset2, int
 
   max_d = m+1;
 
-  trace_GT = (coords ***)ckalloc((max_d+1)*sizeof(coords **));
-  trace_CT = (coords ***)ckalloc((max_d+1)*sizeof(coords **));
+  trace_GT = (coords ***)external_ckalloc((max_d+1)*sizeof(coords **));
+  trace_CT = (coords ***)external_ckalloc((max_d+1)*sizeof(coords **));
   for (d=0; d<=max_d; d++) {
-       trace_GT[d] = (coords **)ckalloc((m+n+1)*sizeof(coords *));
-       trace_CT[d] = (coords **)ckalloc((m+n+1)*sizeof(coords *));
+       trace_GT[d] = (coords **)external_ckalloc((m+n+1)*sizeof(coords *));
+       trace_CT[d] = (coords **)external_ckalloc((m+n+1)*sizeof(coords *));
   }    
 
   ORIGIN = m;
@@ -342,13 +397,13 @@ Sim4::Xextend_fw(char *s1, char *s2, int m, int n, int offset1, int offset2, int
         /*LINTED empty loop body*/; 
   for (k=0; (k<=n-2) && (k<=row); k++)
        if (!strncmp((char *)(s2+k),"GT",2)) {
-              newcoords = (coords *)ckalloc(sizeof(coords));
+              newcoords = (coords *)external_ckalloc(sizeof(coords));
               link_to_data_list((void *)newcoords, &data_list, &prev);
               newcoords->pos2 = k+offset1;
               newcoords->pos1 = k+offset2;
               trace_GT[0][ORIGIN] = newcoords;
        } else if (!strncmp((char *)(s2+k),"CT",2)) {
-              newcoords = (coords *)ckalloc(sizeof(coords));
+              newcoords = (coords *)external_ckalloc(sizeof(coords));
               link_to_data_list((void *)newcoords, &data_list, &prev);
               newcoords->pos2 = k+offset1;
               newcoords->pos1 = k+offset2;
@@ -367,8 +422,8 @@ Sim4::Xextend_fw(char *s1, char *s2, int m, int n, int offset1, int offset2, int
         return 0;   
   }  
      
-  last_d = (int *)ckalloc((m+n+1)*sizeof(int));
-  temp_d = (int *)ckalloc((m+n+1)*sizeof(int));
+  last_d = (int *)external_ckalloc((m+n+1)*sizeof(int));
+  temp_d = (int *)external_ckalloc((m+n+1)*sizeof(int));
      
   for (k=0; k<=m+n; ++k) last_d[k]=-1;
   last_d[ORIGIN] = row;
@@ -376,8 +431,8 @@ Sim4::Xextend_fw(char *s1, char *s2, int m, int n, int offset1, int offset2, int
   lower = ORIGIN - 1;
   upper = ORIGIN + 1;
   
-  max_row = (int *)ckalloc((m+1)*sizeof(int));
-  max_diag = (int *)ckalloc((m+1)*sizeof(int)); 
+  max_row = (int *)external_ckalloc((m+1)*sizeof(int));
+  max_diag = (int *)external_ckalloc((m+1)*sizeof(int)); 
   
   for (d=1; d<=m; d++)
        max_row[d] = -1;           
@@ -441,14 +496,14 @@ Sim4::Xextend_fw(char *s1, char *s2, int m, int n, int offset1, int offset2, int
                if (row>=0)
                while ((row < m) && (col < n) && (s1[row]==s2[col])) {
                   if ((col<n-1) && !strncmp((char *)(s2+col),"GT",2)) {
-                     newcoords = (coords *)ckalloc(sizeof(coords));
+                     newcoords = (coords *)external_ckalloc(sizeof(coords));
                      link_to_data_list((void *)newcoords, &data_list, &prev);
 
                      newcoords->pos1 = row + k - ORIGIN + offset2;
                      newcoords->pos2 = row + offset1;
                      trace_GT[d][k] = newcoords;
                   } else if ((col<n-1) && !strncmp((char *)(s2+col),"CT",2)) { 
-                     newcoords = (coords *)ckalloc(sizeof(coords));
+                     newcoords = (coords *)external_ckalloc(sizeof(coords));
                      link_to_data_list((void *)newcoords, &data_list, &prev);
               
                      newcoords->pos1 = row + k - ORIGIN + offset2;
@@ -460,14 +515,14 @@ Sim4::Xextend_fw(char *s1, char *s2, int m, int n, int offset1, int offset2, int
                }
 
                if ((col<n-1) && !strncmp((char *)(s2+col),"GT",2)) {
-                     newcoords = (coords *)ckalloc(sizeof(coords));
+                     newcoords = (coords *)external_ckalloc(sizeof(coords));
                      link_to_data_list((void *)newcoords, &data_list, &prev);
                      
                      newcoords->pos1 = row + k - ORIGIN + offset2;
                      newcoords->pos2 = row + offset1;
                      trace_GT[d][k] = newcoords;
                } else if ((col<n-1) && !strncmp((char *)(s2+col),"CT",2)) {
-                     newcoords = (coords *)ckalloc(sizeof(coords));
+                     newcoords = (coords *)external_ckalloc(sizeof(coords));
                      link_to_data_list((void *)newcoords, &data_list, &prev);
                      
                      newcoords->pos1 = row + k - ORIGIN + offset2;
@@ -485,10 +540,10 @@ Sim4::Xextend_fw(char *s1, char *s2, int m, int n, int offset1, int offset2, int
                    ValNodeFreeData(data_list);
                    free_coords(trace_GT,max_d+1);
                    free_coords(trace_CT,max_d+1);
-                   ckfree(last_d);
-                   ckfree(temp_d);
-                   ckfree(max_row);
-                   ckfree(max_diag);
+                   external_ckfree(last_d);
+                   external_ckfree(temp_d);
+                   external_ckfree(max_row);
+                   external_ckfree(max_diag);
                    *line1 = row+offset1;
                    *line2 = col+offset2;
                         
@@ -502,10 +557,10 @@ Sim4::Xextend_fw(char *s1, char *s2, int m, int n, int offset1, int offset2, int
                    ValNodeFreeData(data_list);
                    free_coords(trace_GT,max_d+1);
                    free_coords(trace_CT,max_d+1);
-                   ckfree(temp_d);
-                   ckfree(last_d);
-                   ckfree(max_row);
-                   ckfree(max_diag);
+                   external_ckfree(temp_d);
+                   external_ckfree(last_d);
+                   external_ckfree(max_row);
+                   external_ckfree(max_diag);
                
                    *line1 = row+offset1;
                    *line2 = col+offset2;
@@ -522,10 +577,10 @@ Sim4::Xextend_fw(char *s1, char *s2, int m, int n, int offset1, int offset2, int
                    free_coords(trace_GT,max_d+1);
                    free_coords(trace_CT,max_d+1);
 
-                   ckfree(temp_d);
-                   ckfree(last_d);
-                   ckfree(max_row);
-                   ckfree(max_diag);
+                   external_ckfree(temp_d);
+                   external_ckfree(last_d);
+                   external_ckfree(max_row);
+                   external_ckfree(max_diag);
                         
                    *line1 = row+offset1;
                    *line2 = col+offset2;
@@ -560,10 +615,10 @@ Sim4::Xextend_fw(char *s1, char *s2, int m, int n, int offset1, int offset2, int
      (void)memcpy(&last_GT,trace_GT[d][max_diag[d]],sizeof(coords));
      (void)memcpy(&last_CT,trace_CT[d][max_diag[d]],sizeof(coords));
 
-     ckfree(max_row);     
-     ckfree(max_diag);
-     ckfree(last_d);
-     ckfree(temp_d); 
+     external_ckfree(max_row);     
+     external_ckfree(max_diag);
+     external_ckfree(last_d);
+     external_ckfree(temp_d); 
      ValNodeFreeData(data_list);
      free_coords(trace_GT,max_d+1);
      free_coords(trace_CT,max_d+1);

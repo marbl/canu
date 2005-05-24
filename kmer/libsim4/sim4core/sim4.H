@@ -33,8 +33,10 @@
 //
 
 
-
-
+//  Define this to use our own memory management -- one that doesn't bother to
+//  release memory during the compute (but does release it all at the end).
+//
+#define WITH_PALLOC
 
 //  Define this to get a detailed report on hit extension (in mspManager.C)
 //
@@ -43,7 +45,7 @@
 //  Define this to test the seeds when doing extension -- it tests
 //  if the seed is infact an exact match (in mspManager.C)
 //
-#define TEST_SEEDS_IN_EXTENSION
+//#define TEST_SEEDS_IN_EXTENSION
 
 
 //  Debug of sim4b1.C and related.
@@ -194,7 +196,7 @@ private:
 
   int    EXTEND_BW(char *a, char *b, int c, int d, int e, int f, int *g, int *h) {
     if (_accurateSequences) {
-      fprintf(stderr, "extend_bw -- Xextend_bw NOT OPTIMIZED\n");
+      fprintf(stderr, "Xextend_bw -- Xextend_bw NOT OPTIMIZED\n");
       return(Xextend_bw(a,b,c,d,e,f,g,h));
     } else {
       return(extend_bw(a,b,c,d,e,f,g,h));
@@ -203,7 +205,7 @@ private:
 
   int    EXTEND_FW(char *a, char *b, int c, int d, int e, int f, int *g, int *h) {
     if (_accurateSequences) {
-      fprintf(stderr, "extend_bw -- Xextend_fw NOT OPTIMIZED\n");
+      fprintf(stderr, "Xextend_bw -- Xextend_fw NOT OPTIMIZED\n");
       return(Xextend_fw(a,b,c,d,e,f,g,h));
     } else {
       return(extend_fw(a,b,c,d,e,f,g,h));
@@ -439,6 +441,46 @@ script_flip_list(edit_script_list **left) {
 }    
 
 
+private:
+  //  If we want to use palloc() in here, we need to have a private
+  //  pallochandle, which means that all memory allocation must be
+  //  done within the class.
+  //
+#ifdef WITH_PALLOC
+
+  void  *_pallochandle;
+  void  *ckalloc(size_t amount) {
+    return(palloc2(amount, _pallochandle));
+  };
+  void   ckfree(void *) {
+  };
+
+#else
+
+  void  *ckalloc(size_t amount) {
+#ifdef __APPLE__
+    if (amount == 0)
+      amount = 16;
+#else
+    if (amount == 0)
+      amount = 8;
+#endif
+
+    void *p = malloc(amount);
+    if (p == NULL) {
+      fprintf(stderr, "Can't allocate "u64bitFMT" bytes.\n", (u64bit)amount);
+      kill(getpid(), SIGKILL);
+    }
+
+    return(p);
+  };
+  void   ckfree(void *P) {
+    free(P);
+  };
+
+#endif
+
+
 
 public:
   Sim4(sim4parameters *p) {
@@ -504,6 +546,10 @@ public:
     thashtable.nodesused = 0;
 
     _accurateSequences = false;
+
+#ifdef WITH_PALLOC
+    _pallochandle = pallochandle(2 * 1024 * 1024);
+#endif
   };
 
   ~Sim4() {
@@ -514,7 +560,7 @@ public:
     delete [] thashtable.nodes;
 
 #ifdef WITH_PALLOC
-    pfree();
+    pfree2(_pallochandle);
 #endif
 
   };
