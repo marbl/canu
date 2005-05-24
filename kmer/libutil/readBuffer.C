@@ -1,5 +1,9 @@
 #include "util++.H"
 
+//  Define this to get reports of what the readBuffer does -- seek(),
+//  fillBuffer() and read() are reported.
+//#define VERBOSE_READBUFFER
+
 
 readBuffer::readBuffer(const char *filename, u32bit bufferMax) {
   init(-1, filename, bufferMax);
@@ -85,6 +89,10 @@ readBuffer::init(int fileptr, const char *filename, u32bit bufferMax) {
 void
 readBuffer::fillBuffer(void) {
 
+#ifdef VERBOSE_READBUFFER
+  fprintf(stderr, "readBuffer::fillBuffer()-- loading "u32bitFMT" bytes.\n", (u32bit)_bufferMax);
+#endif
+
   _bufferPos = 0;
   errno = 0;
  again:
@@ -103,6 +111,10 @@ readBuffer::fillBuffer(void) {
 
 bool
 readBuffer::seek(off_t pos) {
+
+#ifdef VERBOSE_READBUFFER
+  fprintf(stderr, "readBuffer::seek()-- seek to "u64bitFMT"\n", (u64bit)pos);
+#endif
 
   switch(_fileType) {
     case 0:
@@ -146,6 +158,10 @@ readBuffer::seek(off_t pos) {
 
 size_t
 readBuffer::read(char *buf, size_t len) {
+
+#ifdef VERBOSE_READBUFFER
+  fprintf(stderr, "readBuffer::read()-- returning "u32bitFMT" bytes.\n", (u32bit)len);
+#endif
 
   if (_fileType == 2) {
     size_t c = 0;
