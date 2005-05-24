@@ -48,6 +48,11 @@ test-merstream-speed: test-merstream-speed.C
 	./test-merstream-speed junk.fasta
 	rm -f junk.fasta junk.fastaidx
 
+test-setbits: test-setbits.C
+	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-setbits.o test-setbits.C $(INCLUDE)
+	$(CXX) $(CXXLDFLAGS) -o test-setbits test-setbits.o $(LIBS)
+	./test-setbits
+
 test-bigmer-msf: test-bigmer-msf.C
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-bigmer-msf.o test-bigmer-msf.C $(INCLUDE)
 	$(CXX) $(CXXLDFLAGS) -o test-bigmer-msf test-bigmer-msf.o $(LIBS)
