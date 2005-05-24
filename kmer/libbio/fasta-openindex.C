@@ -265,7 +265,7 @@ FastAWrapper::optimizeRandomAccess(void) {
 
   stdDev = (u64bit)ceil(sqrt((double)stdDev));
 
-  fprintf(stderr, "For "u32bitFMT" seqs, ave="u64bitFMT" stddev="u64bitFMT", reset buffer to "u64bitFMT"\n",
+  fprintf(stderr, "FastAWrapper::optimizeRandomAccess()-- For "u32bitFMT" seqs, ave="u64bitFMT" stddev="u64bitFMT", reset buffer to "u64bitFMT"\n",
           _theGlobalDesc._numberOfSequences, aveLen, stdDev, aveLen + stdDev);
 
   if (aveLen + stdDev < 32768) {
@@ -280,9 +280,7 @@ FastAWrapper::optimizeRandomAccess(void) {
     aveLen |= aveLen >> 32;
     aveLen++;
 
-    aveLen = 8192;
-
-    fprintf(stderr, "Make new filebuffer fo size "u64bitFMT".\n", aveLen);
+    fprintf(stderr, "FastAWrapper::optimizeRandomAccess()-- Make new filebuffer of size "u64bitFMT".\n", aveLen);
 
     delete _filebuffer;
     _filebuffer    = new readBuffer(_filename, aveLen);
