@@ -20,6 +20,11 @@
 //  The merStreamFile is tested both forwards (nextMer(), via the
 //  merstream interface) and backwards (seekToMer()).
 
+//  Minimum KMER_WORDS is 13 -- mersizes up to 416 bases
+#if KMER_WORDS < 13
+#error KMER_WORDS needs to be at least 13
+#endif
+
 #define BUILD_SIZE        88
 #define TEST_SIZE        403
 #define MERS_PER_SEQ      37
@@ -27,7 +32,6 @@
 
 #define MSF_FILENAME    "junk.bigmer"
 #define FASTA_FILENAME  "junk.bigmer.fasta"
-
 
 //  construct a multi-fasta sequence, alternating short and long
 //  sequences.  Short sequences are less than TEST_SIZE long (most,
@@ -85,24 +89,24 @@ test1(u32bit style) {
 
   switch (style) {
     case 0:
-      fprintf(stderr, "test1()-- Testing merStreamFileReader -> merStream\n");
+      fprintf(stderr, "test1(0)-- Testing merStreamFileReader -> merStream\n");
       RD = new merStreamFileReader(MSF_FILENAME, TEST_SIZE);
       MS = new merStream(RD);
       break;
     case 1:
-      fprintf(stderr, "test1()-- Testing FastAstream -> merStream\n");
+      fprintf(stderr, "test1(1)-- Testing FastAstream -> merStream\n");
       FS = new FastAstream(FASTA_FILENAME);
       MS = new merStream(TEST_SIZE, FS);
       break;
     case 2:
-      fprintf(stderr, "test1()-- Testing chainedSequence -> merStream\n");
+      fprintf(stderr, "test1(2)-- Testing chainedSequence -> merStream\n");
       CS = new chainedSequence();
       CS->setSource(FASTA_FILENAME);
       CS->finish();
       MS = new merStream(TEST_SIZE, CS);
       break;
     case 3:
-      fprintf(stderr, "test1()-- Testing merStreamFileReader (backwards)\n");
+      fprintf(stderr, "test1(3)-- Testing merStreamFileReader (backwards)\n");
       RD = new merStreamFileReader(MSF_FILENAME, TEST_SIZE);
       break;
     default:
@@ -124,8 +128,6 @@ test1(u32bit style) {
         //
         MS->nextMer();
         for (u32bit i=0; i<MERS_PER_SEQ; i++) {
-          //char   dbug[TEST_SIZE + 1];
-          //fprintf(stderr, "%s\n", MS->theFMer().merToString(dbug));
           MS->theFMer().merToString(mseq + i * TEST_SIZE);
           if (i != MERS_PER_SEQ-1)
             MS->nextMer(TEST_SIZE - 1);
@@ -142,6 +144,34 @@ test1(u32bit style) {
           RD->nextMer();
           RD->theFMer().merToString(copy);
           strncpy(mseq + i * TEST_SIZE, copy, TEST_SIZE);
+
+          //  Aww, what the hell!  Test reverse complement stuff too!
+          //
+          kMer  f = RD->theFMer();
+          kMer  r = RD->theRMer();
+          f.reverseComplement();
+
+          if (f != r) {
+            char str[1025];
+            fprintf(stderr, "Reverse Complement mismatch:\n");
+            fprintf(stderr, "  reversed fwd = '%s'\n", f.merToString(str));
+            fprintf(stderr, "           rev = '%s'\n", r.merToString(str));
+            exit(1);
+          }
+
+          f = RD->theFMer();
+          r = RD->theRMer();
+          r.reverseComplement();
+
+          if (f != r) {
+            char str[1025];
+            fprintf(stderr, "Reverse Complement mismatch:\n");
+            fprintf(stderr, "           fwd = '%s'\n", f.merToString(str));
+            fprintf(stderr, "  reversed rev = '%s'\n", r.merToString(str));
+            exit(1);
+          }
+
+
         }
         mseq[MERS_PER_SEQ * TEST_SIZE] = 0;
         break;
