@@ -63,11 +63,13 @@ psetdebug(int on) {
 }
 
 void*
-pallochandle(void) {
+pallochandle(size_t size) {
   pallocroot *root = (pallocroot *)malloc(sizeof(pallocroot));
   if (root == NULL)
     fprintf(stderr, "pallochandle()-- can't allocate a handle!\n"), exit(1);
-  root->_bs  = 128 * 1024 * 1024;
+  if (size == 0)
+    size = 128 * 1024 * 1024;
+  root->_bs  = size;
   root->_nl  = NULL;
   root->_cn  = NULL;
   root->_dbg = 0;

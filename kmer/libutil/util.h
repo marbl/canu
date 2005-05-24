@@ -269,9 +269,10 @@ void    pfree(void);
 void   *palloc2(size_t size, void *handle);
 void    pfree2(void *handle);
 
-//  Get a new handle, release a used one.
+//  Get a new handle, release a used one.  The size is the same
+//  as for psetblocksize().
 //
-void   *pallochandle(void);
+void   *pallochandle(size_t size);
 void    pfreehandle(void *handle);
 
 //  The block size can only be changed before the first call to
