@@ -428,7 +428,7 @@ halign(const char *seq1,
   int               i;
   void             *ph;
 
-  ph = pallochandle();
+  ph = pallochandle(0);
 
   align_path(seq1, seq2,
              0, 0,
