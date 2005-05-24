@@ -92,10 +92,6 @@ FastACache::getSequence(u32bit iid)  {
   if (_cacheNext >= _cacheSize)
     _cacheNext = 0;
 
-  //fprintf(stderr, "FastACache::getSequence()-- "u32bitFMT" loaded.\n", iid);
-
-  //  Finally, return the sequence.
-
   return(ret);
 }
 
