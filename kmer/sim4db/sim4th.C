@@ -33,6 +33,23 @@
 //  1232.354u 237.168s 16:22.09 149.6%      288+-13241k 509893+10116io 24pf+0w
 
 
+
+//  Define this to enable the loader to submit things to the queue in
+//  batches, hopefully, will reduce the contention on the lock.
+//
+#define LOAD_BATCHES
+
+
+//  We keep a count of the number of times the workers try to access
+//  the mutex but it is locked.
+//
+//  This is not an issue, even disabling LOAD_BATCHES (waste of time
+//  that was!)
+//
+//#define COUNT_LOCKED
+
+
+
 //  Run options set from the command line.
 //
 char             *cdnaFileName     = 0L;
@@ -80,6 +97,10 @@ u32bit                 numberLoaded   = 0;
 u32bit                 numberComputed = 0;
 u32bit                 numberOutput   = 0;
 
+#ifdef COUNT_LOCKED
+u32bit            mutexLocked = 0;
+#endif
+
 state_s*
 newState(void) {
   return(new state_s);
@@ -93,11 +114,18 @@ freeState(state_s *s) {
 FastAWrapper     *GENs             = 0L;
 FastACache       *ESTs             = 0L;
 
-//  I see 500/sec on a dual P4 Xeon 2.8 with local disk, so this
-//  gives us 16 seconds of buffer.
+//  I see 500/sec on a dual P4 Xeon 2.8 with local disk, so
+//  loaderQueueSize gives us 16 seconds of buffer.  ESTs are ~500 bp
+//  long, keeping 256,000 in the cache will eat up 128MB.  I can't
+//  characterize what types of sequences will see benefits from
+//  increasing or decreasing this.
 //
-u32bit            loaderQueueSize  =  16 * 1024;
-u32bit            loaderCacheSize  = 256 * 1024;
+//  Increased loaderQueueSize to make sure that we don't hit a bad
+//  region in the middle of a run and empty the queue.
+//
+u32bit            loaderQueueSize  =  64 * 1024;
+u32bit            loaderCacheSize  = 128 * 1024;
+
 
 //  Add a new state to the head of the queue.  This is just gross.
 //
@@ -118,10 +146,66 @@ loaderAdd(state_s *thisState, sim4command *cmd) {
   numberLoaded++;
 }
 
+#ifdef LOAD_BATCHES
+
+//  Build a list of states to add in one swoop
+//
+void
+loaderSave(state_s *&tail, state_s *&head, state_s *thisState, sim4command *cmd) {
+
+  thisState->input = cmd;
+  thisState->next  = 0L;
+
+  if (tail) {
+    tail->next = thisState;
+    head       = thisState;
+  } else {
+    tail = head = thisState;
+  }
+  numberLoaded++;
+}
+
+//  Add a bunch of new states to the queue.
+//
+void
+loaderAppend(state_s *&tail, state_s *&head) {
+  pthread_mutex_lock(&stateMutex);
+
+  if (headState == 0L) {
+    rootState      = tail;
+    currState      = tail;
+    headState      = head;
+  } else {
+    headState->next = tail;
+  }
+  headState        = head;
+
+  pthread_mutex_unlock(&stateMutex);
+
+  tail = 0L;
+  head = 0L;
+}
+
+#endif
+
+
+
+
 void*
 loader(void *) {
   u32bit                lastGENiid = ~u32bitZERO;
   FastASequenceInCore  *lastGENseq = 0L;
+
+  //  We can batch several loads together before we push them onto the
+  //  queue, this should reduce the number of times the loader needs to
+  //  lock the queue.
+  //
+#ifdef LOAD_BATCHES
+  state_s               *tail = 0L;  //  The first thing loaded
+  state_s               *head = 0L;  //  The last thing loaded
+  u32bit                 batchSize  = 0;
+  u32bit                 batchLimit = 128;
+#endif
 
   struct timespec   naptime;
   naptime.tv_sec      = 0;
@@ -176,11 +260,20 @@ loader(void *) {
       ESTseq               = ESTs->getSequence(ESTiid)->copy();
       thisState->estdelete = ESTseq;
 
+#ifdef LOAD_BATCHES
+      loaderSave(tail, head, thisState, new sim4command(ESTseq, GENseq, GENlo, GENhi, doForward, doReverse));
+      batchSize++;
+      if (batchSize >= batchLimit)
+        loaderAppend(tail, head);
+#else
       loaderAdd(thisState, new sim4command(ESTseq, GENseq, GENlo, GENhi, doForward, doReverse));
+#endif
       thisState = newState();
     } else {
       //  Didn't read, must be all done!  Push on the end-of-input marker state.
       //
+#ifdef LOAD_BATCHES
+#endif
       loaderAdd(newState(), 0L);
       moreToLoad = false;
     }
@@ -285,7 +378,16 @@ worker(void *) {
     //
     state_s  *thisState = 0L;
 
+#ifdef COUNT_LOCKED
+    if (pthread_mutex_trylock(&stateMutex)) {
+      //  mutex already locked, wait for it.
+      mutexLocked++;
+      pthread_mutex_lock(&stateMutex);
+    }
+#else
     pthread_mutex_lock(&stateMutex);
+#endif
+
     if ((currState) && ((currState->next != 0L) || (currState->input == 0L))) {
       thisState = currState;
       currState = currState->next;
@@ -338,6 +440,16 @@ stats(void *) {
   double  startTime = getTime() - 0.001;
 
   while (rootState) {
+#ifdef COUNT_LOCKED
+    fprintf(stderr, " (%6.1f/s) (out="u32bitFMTW(8)" + "u32bitFMTW(8)" = cpu = "u32bitFMTW(8)" + "u32bitFMTW(8)" ("u32bitFMTW(8)" locked) = in = "u32bitFMTW(8)"\r",
+            numberOutput / (getTime() - startTime),
+            numberOutput,
+            numberComputed - numberOutput,
+            numberComputed,
+            numberLoaded - numberComputed,
+            mutexLocked,
+            numberLoaded);
+#else
     fprintf(stderr, " (%6.1f/s) (out="u32bitFMTW(8)" + "u32bitFMTW(8)" = cpu = "u32bitFMTW(8)" + "u32bitFMTW(8)" = in = "u32bitFMTW(8)"\r",
             numberOutput / (getTime() - startTime),
             numberOutput,
@@ -345,6 +457,7 @@ stats(void *) {
             numberComputed,
             numberLoaded - numberComputed,
             numberLoaded);
+#endif
     fflush(stderr);
     nanosleep(&naptime, 0L);
   }
@@ -382,17 +495,20 @@ main(int argc, char **argv) {
   //  Fire off the loader, or the all-vs-all loader
   pthread_create(&threadID, &threadAttr, (scriptFileName) ? loader : loaderAll, 0L);
 
-  //  Wait for it to actually load something
+  //  Wait for it to actually load something (otherwise all the threads exit)
   while (!rootState && !currState && !headState)
     sleep(1);
+
+  //  And the stats
+  pthread_create(&threadID, &threadAttr, stats, 0L);
+
+  //  Give it some lead time to load stuff
+  sleep(32);
 
   //  Fire off some workers
   pthread_create(&threadID, &threadAttr, worker, 0L);
   pthread_create(&threadID, &threadAttr, worker, 0L);
   pthread_create(&threadID, &threadAttr, worker, 0L);
-
-  //  And the stats
-  pthread_create(&threadID, &threadAttr, stats, 0L);
 
   //  Open the output file
   int fOutput = openOutputFile(outputFileName);
@@ -418,7 +534,7 @@ main(int argc, char **argv) {
         char *o = s4p_polishToString(L4[i]);
 
         errno = 0;
-        write(fOutput, o, strlen(o) * sizeof(char));
+        //write(fOutput, o, strlen(o) * sizeof(char));
         if (errno)
           fprintf(stderr, "Couldn't write the output file '%s': %s\n", outputFileName, strerror(errno)), exit(1);
 
@@ -450,10 +566,6 @@ main(int argc, char **argv) {
       numberOutput++;
     }
   }
-
-
-
-
 
 
   //  Only close the file if it isn't stdout
