@@ -58,9 +58,9 @@ binaryOperations(merylArgs *args) {
   //  These two operations are very similar (SUB was derived from ABS), so
   //  any bug found in one is probably in the other.
   //
-  u64bit  Amer = u64bitZERO;
+  kMer    Amer;
   u32bit  Acnt = u32bitZERO;
-  u64bit  Bmer = u64bitZERO;
+  kMer    Bmer;
   u32bit  Bcnt = u32bitZERO;
 
   switch (args->personality) {
@@ -83,7 +83,7 @@ binaryOperations(merylArgs *args) {
           Bcnt = u32bitZERO;
         }
 
-        fprintf(stderr, "sub A="u64bitHEX" B="u64bitHEX"\n", Amer, Bmer);
+        //fprintf(stderr, "sub A="u64bitHEX" B="u64bitHEX"\n", Amer, Bmer);
 
         if (Amer == Bmer) {
           W->addMer(Amer, (Acnt > Bcnt) ? Acnt - Bcnt : 0);

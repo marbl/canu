@@ -21,9 +21,8 @@ public:
   merylStreamReader(const char *fn, u32bit ms=0);
   ~merylStreamReader();
 
-
-  u64bit          theFMer(void)  { return(_thisMer); };
-  u64bit          theRMer(void)  { return(reverseComplementMer(_merSizeInBits >> 1, _thisMer)); };
+  //  theRMer() is used in existDB-create-from-meryl.C:61, 62, 166
+  kMer           &theFMer(void)  { return(_thisMer); };
 
   u64bit          theCount(void) { return(_thisMerCount); };
 
@@ -41,21 +40,13 @@ private:
   bitPackedFile         *_DAT;
 
   u32bit                 _merSizeInBits;
-
   u32bit                 _prefixSize;
-  u64bit                 _prefixMask;
-
-#ifdef __APPLE__
-  u32bit                 _pad1;
-#endif
-
   u32bit                 _merDataSize;
-  u64bit                 _merDataMask;
-
   u64bit                 _thisBucket;
   u64bit                 _thisBucketSize;
+  u64bit                 _numBuckets;
 
-  u64bit                 _thisMer;
+  kMer                   _thisMer;
   u64bit                 _thisMerCount;
 
   u64bit                 _numUnique;
@@ -63,33 +54,35 @@ private:
   u64bit                 _numTotal;
 
   bool                   _validMer;
-
-#ifdef __APPLE__
-  u32bit                 _pad2;
-#endif
 };
+
 
 inline
 bool
 merylStreamReader::nextMer(void) {
-  u64bit val;
 
   //  Use a while here, so that we skip buckets that are empty
   //
-  while ((_thisBucketSize == 0) && (_thisBucket <= _prefixMask)) {
+  while ((_thisBucketSize == 0) && (_thisBucket < _numBuckets)) {
     _thisBucketSize = _IDX->getNumber();
     _thisBucket++;
   }
 
-  if (_thisBucket > _prefixMask)
+#if 0
+  fprintf(stderr, "thisBucket: "u64bitFMT" (max "u64bitFMT") size "u64bitFMT"\n",
+          _thisBucket, _numBuckets, _thisBucketSize);
+#endif
+
+  if (_thisBucket >= _numBuckets)
     return(_validMer = false);
 
-  val = _DAT->getBits(_merDataSize + 1);
+  _thisMer.clear();
+  _thisMer.readFromBitPackedFile(_DAT, _merDataSize);
+  _thisMer.setBits(_merDataSize, _prefixSize, _thisBucket);
 
-  _thisMer      = (_thisBucket << _merDataSize) | (val & _merDataMask);
   _thisMerCount = 1;
 
-  if (!(val & (u64bitONE << _merDataSize)))
+  if (_DAT->getBits(1))
     _thisMerCount = _DAT->getNumber() + 2;
 
   _thisBucketSize--;
@@ -113,27 +106,21 @@ public:
                     u64bit numTotal=0);
   ~merylStreamWriter();
 
-  void                    addMer(u64bit mer, u32bit count=1);
+  void                    addMer(kMer &mer, u32bit count=1);
 private:
+  void                    writeMer(void);
+
   bitPackedFile         *_IDX;
   bitPackedFile         *_DAT;
 
   u32bit                 _merSizeInBits;
-
   u32bit                 _prefixSize;
-  u64bit                 _prefixMask;
-
-#ifdef __APPLE__
-  u32bit                 _pad1;
-#endif
-
   u32bit                 _merDataSize;
-  u64bit                 _merDataMask;
-
   u64bit                 _thisBucket;
   u64bit                 _thisBucketSize;
+  u64bit                 _numBuckets;
 
-  u64bit                 _thisMer;
+  kMer                   _thisMer;
   u64bit                 _thisMerCount;
 };
 

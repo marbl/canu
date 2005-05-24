@@ -77,11 +77,11 @@ multipleOperations(merylArgs *args) {
 
   bool     moreInput        = true;
 
-  u64bit   currentMer       =  u64bitZERO;  //  The current mer we're operating on
+  kMer     currentMer;                      //  The current mer we're operating on
   u32bit   currentCount     =  u32bitZERO;  //  The count (operation dependent) of this mer
   u32bit   currentTimes     =  u32bitZERO;  //  Number of files it's in
 
-  u64bit   thisMer          = ~u64bitZERO;  //  The mer we just read
+  kMer     thisMer;                         //  The mer we just read
   u32bit   thisFile         = ~u32bitZERO;  //  The file we read it from
   u32bit   thisCount        =  u32bitZERO;  //  The count of the mer we just read
 
@@ -92,7 +92,7 @@ multipleOperations(merylArgs *args) {
     //  Find the smallest mer present in any input file.
     //
     moreInput     = false;
-    thisMer       = ~u64bitZERO;
+    thisMer.clear();
     thisFile      = ~u32bitZERO;
     thisCount     =  u32bitZERO;
 

@@ -9,16 +9,13 @@
 void
 dumpThreshold(merylArgs *args) {
   merylStreamReader   *M = new merylStreamReader(args->inputFile);
-  char                 ms[33];
+  char                 str[1025];
 
   while (M->nextMer()) {
-    if (M->theCount() >= args->numMersEstimated) {
-      for (u32bit z=0; z<M->merSize(); z++)
-        ms[M->merSize()-z-1] = decompressSymbol[(M->theFMer() >> (2*z)) & 0x03];
-      ms[M->merSize()] = 0;
-
-      fprintf(stdout, ">"u64bitFMT"\n%s\n", M->theCount(), ms);
-    }
+    if (M->theCount() >= args->numMersEstimated)
+      fprintf(stdout, ">"u64bitFMT"\n%s\n",
+              M->theCount(),
+              M->theFMer().merToString(str));
   }
 
   delete M;
@@ -98,6 +95,10 @@ plotHistogram(merylArgs *args) {
 }
 
 
+#ifdef PLOT_DISTANCE
+
+//  Can't do this with bigmers
+
 void
 plotDistanceBetweenMers(merylArgs *args) {
   u32bit               hugeD = 16 * 1024 * 1024;
@@ -134,3 +135,5 @@ plotDistanceBetweenMers(merylArgs *args) {
   delete    M;
   delete [] D;
 }
+
+#endif

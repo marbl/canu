@@ -25,9 +25,12 @@ main(int argc, char **argv) {
     case 'c':
       countUnique(args);
       break;
+#ifdef PLOT_DISTANCE
+      //  Can't do this with big mers
     case 'p':
       plotDistanceBetweenMers(args);
       break;
+#endif
     case 'h':
       plotHistogram(args);
       break;

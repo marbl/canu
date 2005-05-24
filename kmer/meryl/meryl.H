@@ -1,7 +1,7 @@
 #ifndef MERYL_H
 #define MERYL_H
 
-#include "bio.h"
+#include "bio++.H"
 
 #define PERSONALITY_MIN           0x01
 #define PERSONALITY_MINEXIST      0x02
@@ -25,8 +25,9 @@ public:
 
   void              usage(void);
 
-  u64bit            hash(u64bit mer) {
-    return((mer >> merDataWidth) & bucketPointerMask);
+  u64bit            hash(kMer &mer) {
+    return(mer.startOfMer(numBuckets_log2));
+    //return((mer >> merDataWidth) & bucketPointerMask);
   };
 
   bool              writeConfig(void);
@@ -54,7 +55,7 @@ public:
   u32bit            numBuckets_log2;
   u32bit            merDataWidth;
   u64bit            merDataMask;
-  u64bit            bucketPointerMask;
+  //u64bit            bucketPointerMask;
   u32bit            bucketPointerWidth;
 
   u32bit            numThreads;

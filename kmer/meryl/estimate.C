@@ -82,6 +82,8 @@ optimalNumberOfBuckets(u32bit merSize,
   for (h=2; h<=hmax && h<2*merSize; h++) {
     s = (u64bitONE << h) * hwidth + numMers * (2 * merSize - h);
 
+    fprintf(stderr, "optimalNumberOfBuckets()-- h="u64bitFMT" s="u64bitFMT"\n", h, s);
+
     if (s < opts) {
       opth = h;
       opts = s;

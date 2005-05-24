@@ -171,7 +171,7 @@ prepareBatch(merylArgs *args) {
   args->numBuckets_log2    = optimalNumberOfBuckets(args->merSize, args->mersPerBatch);
   args->numBuckets         = (u64bitONE << args->numBuckets_log2);
   args->merDataWidth       = args->merSize * 2 - args->numBuckets_log2;
-  args->bucketPointerMask  = u64bitMASK(args->numBuckets_log2);
+  //args->bucketPointerMask  = u64bitMASK(args->numBuckets_log2);
 
 
   if (args->beVerbose) {
@@ -183,7 +183,7 @@ prepareBatch(merylArgs *args) {
               args->segmentLimit);
     fprintf(stderr, "  numMersActual      = "u64bitFMT"\n", args->numMersActual);
     fprintf(stderr, "  mersPerBatch       = "u64bitFMT"\n", args->mersPerBatch);
-    fprintf(stderr, "  numBuckets         = "u64bitFMT"\n", args->numBuckets);
+    fprintf(stderr, "  numBuckets         = "u64bitFMT" ("u32bitFMT" bits)\n", args->numBuckets, args->numBuckets_log2);
     fprintf(stderr, "  bucketPointerWidth = "u32bitFMT"\n", args->bucketPointerWidth);
     fprintf(stderr, "  merDataWidth       = "u32bitFMT"\n", args->merDataWidth);
   }
@@ -258,14 +258,6 @@ runSegment(merylArgs *args, u64bit segment) {
 
   if (args->doForward) {
     while (R->nextMer()) {
-
-#if 0
-      if (R->thePosition() > 157571920)
-        fprintf(stderr, u64bitFMT"x"u64bitFMT" -- "u64bitHEX" -- %s\n", R->theSequenceNumber(), R->thePosition(), R->theFMer(), R->theFMerString());
-      if ((R->theSequenceNumber() == 1) && (R->thePosition() == 157550003))
-        exit(0);
-#endif
-
       bucketSizes[ args->hash(R->theFMer()) ]++;
       C->tick();
     }
@@ -295,8 +287,6 @@ runSegment(merylArgs *args, u64bit segment) {
     fprintf(stderr, "\n");
 
 
-
-  //
   //  Create the hash index using the counts.  The hash points
   //  to the end of the bucket; when we add a word, we move the
   //  hash bucket pointer down one.
@@ -340,7 +330,7 @@ runSegment(merylArgs *args, u64bit segment) {
   R->setIterationLimit(args->mersPerBatch);
 
   while (R->nextMer()) {
-    u64bit  m = R->theFMer();
+    kMer  &m = R->theFMer();
 
     if ((args->doReverse) || (args->doCanonical && (m > R->theRMer())))
       m = R->theRMer();
@@ -350,7 +340,7 @@ runSegment(merylArgs *args, u64bit segment) {
                                              args->hash(m) * args->bucketPointerWidth,
                                              args->bucketPointerWidth) * args->merDataWidth,
                     args->merDataWidth,
-                    m);
+                    m.endOfMer(args->merDataWidth));
 
     C->tick();
   }
@@ -386,6 +376,8 @@ runSegment(merylArgs *args, u64bit segment) {
     bucketPos += args->bucketPointerWidth;
     u64bit ed  = getDecodedValue(bucketPointers, bucketPos, args->bucketPointerWidth);
 
+    //fprintf(stderr, "bucket="u64bitFMT" st="u64bitFMT" ed="u64bitFMT"\n", bucket, st, ed);
+
 #ifdef SANITY_CHECKS
     if (ed < st) {
       fprintf(stderr, "ERROR: Bucket "u64bitFMT" ends before it starts!\n", bucket);
@@ -411,7 +403,8 @@ runSegment(merylArgs *args, u64bit segment) {
     //  Unpack the mers into the sorting array
     //
     for (u64bit i=st, J=st*args->merDataWidth; i<ed; i++, J += args->merDataWidth)
-      sortedList[i-st] = (bucket << args->merDataWidth) | getDecodedValue(merData, J, args->merDataWidth);
+      //sortedList[i-st] = (bucket << args->merDataWidth) | getDecodedValue(merData, J, args->merDataWidth);
+      sortedList[i-st] = getDecodedValue(merData, J, args->merDataWidth);
 
     //  Sort if there is more than one item
     //
@@ -430,9 +423,22 @@ runSegment(merylArgs *args, u64bit segment) {
 
     //  Dump the list of mers to the file.
     //
+    kMer  mer(args->merSize);
+
     for (u32bit t=0; t<sortedListLen; t++) {
       C->tick();
-      W->addMer(sortedList[t]);
+
+      //  Build the complete mer
+      mer.setBits(args->merDataWidth, args->numBuckets_log2, bucket);
+      mer.setBits(0, args->merDataWidth, sortedList[t]);
+
+#if 0
+      char  str[1025];
+      fprintf(stderr, "Sending    '%s' ("u64bitHEX","u64bitHEX"\n", mer.merToString(str), bucket, sortedList[t]);
+#endif
+
+      //  Add it
+      W->addMer(mer);
     }
   }
 
