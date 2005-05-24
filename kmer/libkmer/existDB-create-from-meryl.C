@@ -54,12 +54,15 @@ existDB::createFromMeryl(char const  *prefix,
 
   if (posDB) {
     while (M->nextMer()) {
-      if ((lo <= M->theCount()) && (M->theCount() <= hi) && (posDB->exists(M->theFMer()))) {
-        countingTable[ HASH(M->theFMer()) ]++;
+      u64bit  fmer = M->theFMer();
+      u64bit  rmer = reverseComplementMer(_merSizeInBases, fmer);
+
+      if ((lo <= M->theCount()) && (M->theCount() <= hi) && (posDB->exists(fmer))) {
+        countingTable[ HASH(fmer) ]++;
         numberOfMers++;
       }
-      if ((lo <= M->theCount()) && (M->theCount() <= hi) && (posDB->exists(M->theRMer()))) {
-        countingTable[ HASH(M->theRMer()) ]++;
+      if ((lo <= M->theCount()) && (M->theCount() <= hi) && (posDB->exists(rmer))) {
+        countingTable[ HASH(rmer) ]++;
         numberOfMers++;
       }
     }
@@ -163,7 +166,7 @@ existDB::createFromMeryl(char const  *prefix,
 
     while (M->nextMer()) {
       fmer = M->theFMer();
-      rmer = M->theRMer();
+      rmer = reverseComplementMer(_merSizeInBases, fmer);
 
       if ((lo <= M->theCount()) && (M->theCount() <= hi) && (posDB->exists(fmer))) {
         h = HASH(fmer);
