@@ -3,6 +3,7 @@ PROG    = test-chainedSequence \
           test-merstream \
           test-merstreamfile \
           test-merstream-speed \
+          test-setbits \
           test-bigmer-msf
 
 INCLUDE = -I.. -I../../libutil
