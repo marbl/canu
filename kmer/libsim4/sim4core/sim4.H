@@ -17,7 +17,6 @@
 
 #include "util++.H"
 
-#include "ckalloc.H"
 #include "sim4parameters.H"
 #include "sim4command.H"
 #include "exon.H"
