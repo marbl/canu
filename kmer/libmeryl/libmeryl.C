@@ -98,11 +98,6 @@ merylStreamReader::~merylStreamReader() {
 merylStreamWriter::merylStreamWriter(const char *fn,
                                      u32bit merSize,
                                      u32bit prefixSize) {
-#if 0
-                                     u64bit numUnique,
-                                     u64bit numDistinct,
-                                     u64bit numTotal) {
-#endif
 
   //  Open the files
   //

@@ -102,11 +102,6 @@ public:
                     u32bit merSize,          //  In bases
                     u32bit prefixSize);      //  In bits
 
-#if 0
-                    u64bit numUnique=0,
-                    u64bit numDistinct=0,
-                    u64bit numTotal=0);
-#endif
   ~merylStreamWriter();
 
   void                    addMer(kMer &mer, u32bit count=1);
