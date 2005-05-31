@@ -11,7 +11,13 @@
 void runThreaded(merylArgs *args);
 #endif
 
-//  Build times on G5/2GHz, including merStreamFile building, of 167256385 mers.
+//  Define this to remove temporary files.  You probably want it
+//  defined.
+#define REMOVE_TEMPORARY_FILES
+
+
+//  Threaded build times on G5/2GHz, including merStreamFile building,
+//  of 167256385 mers.
 //
 //  1 314.100u  5.900s 5:21.84 99.4%  0+0k 0+ 31io 0pf+0w (2.45, 1.06, 2.67)
 //  2 376.620u  9.970s 6:28.84 99.4%  0+0k 0+ 55io 0pf+0w (2.67, 1.07, 2.66, 2.38)
@@ -40,12 +46,59 @@ void runThreaded(merylArgs *args);
 //  385538600  t8.mcdat  1281176 t8.mcidx
 //  422112376  t32.mcdat  418704 t32.mcidx
 //  440399264  t64.mcdat  235592 t64.mcidx
+
+
+//  You probably want this to be the same as KMER_WORDS, but in rare
+//  cases, it can be less.
 //
+#define SORTED_LIST_WIDTH  KMER_WORDS
+
+//  to make the sorted list be wider, we also need to store wide
+//  things in the bitpackedarray buckets.  probably easy (do multiple
+//  adds of data, each at most 64 bits) but not braindead.
+
+#if SORTED_LIST_WIDTH == 1
+
+typedef u64bit  sortedList_t;
+
+#else
+
+class sortedList_t {
+public:
+  u64bit    _w[SORTED_LIST_WIDTH];
+
+  bool operator<(sortedList_t &that) {
+    for (u32bit i=SORTED_LIST_WIDTH; i--; ) {
+      if (_w[i] < that._w[i])  return(true);
+      if (_w[i] > that._w[i])  return(false);
+    }
+    return(false);
+  };
+
+  bool operator>=(sortedList_t &that) {
+    for (u32bit i=SORTED_LIST_WIDTH; i--; ) {
+      if (_w[i] > that._w[i])  return(true);
+      if (_w[i] < that._w[i])  return(false);
+    }
+    return(true);
+  };
+
+  sortedList_t &operator=(sortedList_t &that) {
+    for (u32bit i=SORTED_LIST_WIDTH; i--; )
+      _w[i] = that._w[i];
+    return(*this);
+  };
+};
+
+#endif
+
+
+
 
 void
-adjustHeap(u64bit *M, s64bit i, s64bit n) {
-  u64bit   m = M[i];
-  s64bit    j = (i << 1) + 1;  //  let j be the left child
+adjustHeap(sortedList_t *M, s64bit i, s64bit n) {
+  sortedList_t   m = M[i];
+  s64bit         j = (i << 1) + 1;  //  let j be the left child
 
   while (j < n) {
     if (j<n-1 && M[j] < M[j+1])
@@ -122,7 +175,7 @@ prepareBatch(merylArgs *args) {
   //
   if (merStreamFileExists(args->outputFile)) {
     fprintf(stderr, "Using existing merStreamFile!\n");
-    merStreamFileReader *R = new merStreamFileReader(args->outputFile);
+    merStreamFileReader *R = new merStreamFileReader(args->outputFile, args->merSize);
     args->numMersActual = R->numberOfMers();
     delete R;
   } else {
@@ -149,11 +202,14 @@ prepareBatch(merylArgs *args) {
   if (args->memoryLimit) {
     args->mersPerBatch = estimateNumMersInMemorySize(args->merSize, args->memoryLimit, args->beVerbose);
     args->segmentLimit = (u64bit)ceil((double)args->numMersActual / (double)args->mersPerBatch);
+    fprintf(stderr, "Have a memory limit: mersPerBatch="u64bitFMT" segmentLimit="u64bitFMT"\n", args->mersPerBatch, args->segmentLimit);
   } else if (args->segmentLimit) {
     args->mersPerBatch = (u64bit)ceil((double)args->numMersActual / (double)args->segmentLimit);
+    fprintf(stderr, "Have a segment limit: mersPerBatch="u64bitFMT" segmentLimit="u64bitFMT"\n", args->mersPerBatch, args->segmentLimit);
   } else {
     args->mersPerBatch = args->numMersActual;
     args->segmentLimit = 1;
+    fprintf(stderr, "Have NO LIMITS!: mersPerBatch="u64bitFMT" segmentLimit="u64bitFMT"\n", args->mersPerBatch, args->segmentLimit);
   }
 
 
@@ -173,6 +229,17 @@ prepareBatch(merylArgs *args) {
   args->merDataWidth       = args->merSize * 2 - args->numBuckets_log2;
   //args->bucketPointerMask  = u64bitMASK(args->numBuckets_log2);
 
+
+  if (args->merDataWidth > SORTED_LIST_WIDTH * 64) {
+    fprintf(stderr, "  numMersActual      = "u64bitFMT"\n", args->numMersActual);
+    fprintf(stderr, "  mersPerBatch       = "u64bitFMT"\n", args->mersPerBatch);
+    fprintf(stderr, "  numBuckets         = "u64bitFMT" ("u32bitFMT" bits)\n", args->numBuckets, args->numBuckets_log2);
+    fprintf(stderr, "  bucketPointerWidth = "u32bitFMT"\n", args->bucketPointerWidth);
+    fprintf(stderr, "  merDataWidth       = "u32bitFMT"\n", args->merDataWidth);
+    fprintf(stderr, "Sorry!  Your data width can't fit into SORTED_LIST_WIDTH=%d 64-bit words.\n",
+            SORTED_LIST_WIDTH);
+    exit(1);
+  }
 
   if (args->beVerbose) {
     if (args->memoryLimit)
@@ -199,8 +266,7 @@ runSegment(merylArgs *args, u64bit segment) {
   speedCounter        *C = 0L;
   u32bit              *bucketSizes = 0L;
   u64bit              *bucketPointers = 0L;
-  u64bit              *merData = 0L;
-
+  u64bit              *merDataArray[SORTED_LIST_WIDTH] = { 0L };
 
   //  If this segment exists already, skip it.
   //
@@ -232,8 +298,24 @@ runSegment(merylArgs *args, u64bit segment) {
   if (args->beVerbose)
     fprintf(stderr, " Allocating "u64bitFMT"MB for mer storage ("u32bitFMT" bits wide).\n",
             (args->mersPerBatch * args->merDataWidth + 64) >> 23, args->merDataWidth);
-  merData = new u64bit [ (args->mersPerBatch * args->merDataWidth + 64) >> 6 ];
+
+#if SORTED_LIST_WIDTH == 1
+  merDataArray[0] = new u64bit [ (args->mersPerBatch * args->merDataWidth + 64) >> 6 ];
+#else
+  for (u64bit mword=0, width=args->merDataWidth; width > 0; ) {
+    if (width >= 64) {
+      merDataArray[mword] = new u64bit [ args->mersPerBatch + 1 ];
+      width -= 64;
+      mword++;
+    } else {
+      merDataArray[mword] = new u64bit [ (args->mersPerBatch * width + 64) >> 6 ];
+      width  = 0;
+    }
+  }
+#endif
   //bzero(merData, sizeof(u64bit) * ((args->mersPerBatch * args->merDataWidth + 64) >> 6));
+
+
 
   if (args->beVerbose)
     fprintf(stderr, " Allocating "u64bitFMT"MB for bucket pointer table ("u32bitFMT" bits wide).\n",
@@ -252,7 +334,7 @@ runSegment(merylArgs *args, u64bit segment) {
   //  everybody else does args->mersPerBatch mers.
 
   C = new speedCounter(" Counting mers in buckets: %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, args->beVerbose);
-  R = new merStreamFileReader(args->outputFile);
+  R = new merStreamFileReader(args->outputFile, args->merSize);
   R->seekToMer(args->mersPerBatch * segment);
   R->setIterationLimit(args->mersPerBatch);
 
@@ -283,9 +365,6 @@ runSegment(merylArgs *args, u64bit segment) {
   delete C;
   delete R;
 
-  if (args->beVerbose)
-    fprintf(stderr, "\n");
-
 
   //  Create the hash index using the counts.  The hash points
   //  to the end of the bucket; when we add a word, we move the
@@ -297,21 +376,21 @@ runSegment(merylArgs *args, u64bit segment) {
     fprintf(stderr, " Creating bucket pointers.\n");
 
   {
-    u64bit i=0;
-    u64bit j=0;
-    u64bit c=0;
+    u64bit mi=0;
+    u64bit mj=0;
+    u64bit mc=0;
 
-    while (i < args->numBuckets) {
-      c += bucketSizes[i++];
-      setDecodedValue(bucketPointers, j, args->bucketPointerWidth, c);
-      j += args->bucketPointerWidth;
+    while (mi < args->numBuckets) {
+      mc += bucketSizes[mi++];
+      setDecodedValue(bucketPointers, mj, args->bucketPointerWidth, mc);
+      mj += args->bucketPointerWidth;
     }
 
     //  Add the location of the end of the table.  This is not
     //  modified when adding words, but is used to determine
     //  the size of the last bucket.
     //
-    setDecodedValue(bucketPointers, j, args->bucketPointerWidth, c);
+    setDecodedValue(bucketPointers, mj, args->bucketPointerWidth, mc);
   }
 
 
@@ -322,36 +401,51 @@ runSegment(merylArgs *args, u64bit segment) {
   delete [] bucketSizes;
 
 
-
-
   C = new speedCounter(" Filling mers into list:   %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, args->beVerbose);
-  R = new merStreamFileReader(args->outputFile);
+  R = new merStreamFileReader(args->outputFile, args->merSize);
   R->seekToMer(args->mersPerBatch * segment);
   R->setIterationLimit(args->mersPerBatch);
 
   while (R->nextMer()) {
-    kMer  &m = R->theFMer();
 
-    if ((args->doReverse) || (args->doCanonical && (m > R->theRMer())))
-      m = R->theRMer();
+    kMer const &m =  ((args->doReverse) || (args->doCanonical && (R->theFMer() > R->theRMer()))) ?
+      R->theRMer()
+      :
+      R->theFMer();
 
-    setDecodedValue(merData,
-                    preDecrementDecodedValue(bucketPointers,
-                                             args->hash(m) * args->bucketPointerWidth,
-                                             args->bucketPointerWidth) * args->merDataWidth,
+    //  additionally, we can use the real bitPackedArray here, since everything
+    //  is fixed size.
+
+    u64bit  element = preDecrementDecodedValue(bucketPointers,
+                                               args->hash(m) * args->bucketPointerWidth,
+                                               args->bucketPointerWidth);
+
+#if SORTED_LIST_WIDTH == 1
+    setDecodedValue(merDataArray[0],
+                    element * args->merDataWidth,
                     args->merDataWidth,
                     m.endOfMer(args->merDataWidth));
+#else
+    for (u64bit mword=0, width=args->merDataWidth; width>0; ) {
+      if (width >= 64) {
+        merDataArray[mword][element] = m.getWord(mword);
+        width -= 64;
+        mword++;
+      } else {
+        setDecodedValue(merDataArray[mword],
+                        element * width,
+                        width,
+                        m.getWord(mword) & u64bitMASK(width));
+        width = 0;
+      }
+    }
+#endif
 
     C->tick();
   }
 
   delete C;
   delete R;
-
-  if (args->beVerbose)
-    fprintf(stderr, "\n");
-
-
 
 
   char *batchOutputFile = new char [strlen(args->outputFile) + 33];
@@ -364,9 +458,9 @@ runSegment(merylArgs *args, u64bit segment) {
 
   //  Sort each bucked into sortedList, then output the mers
   //
-  u64bit  *sortedList    = 0L;
-  u32bit   sortedListMax = 0;
-  u32bit   sortedListLen = 0;
+  sortedList_t  *sortedList    = 0L;
+  u32bit         sortedListMax = 0;
+  u32bit         sortedListLen = 0;
 
   for (u64bit bucket=0, bucketPos=0; bucket < args->numBuckets; bucket++) {
     u64bit st  = getDecodedValue(bucketPointers, bucketPos, args->bucketPointerWidth);
@@ -393,15 +487,41 @@ runSegment(merylArgs *args, u64bit segment) {
     //
     if (sortedListLen > sortedListMax) {
       delete [] sortedList;
-      sortedList    = new u64bit [2 * sortedListLen + 1];
+      sortedList    = new sortedList_t [2 * sortedListLen + 1];
       sortedListMax = 2 * sortedListLen;
     }
 
+    //  XXX:  We shouldn't need this, but alpha does.
+    //
+    //  If we don't use all the words in SORTED_LIST_WIDTH, we
+    //  definitely leave the higher ones unset, and that will case the
+    //  sort to be random.
+    //
+    bzero(sortedList, sizeof(sortedList_t) * sortedListLen);
+
     //  Unpack the mers into the sorting array
     //
+#if SORTED_LIST_WIDTH == 1
     for (u64bit i=st, J=st*args->merDataWidth; i<ed; i++, J += args->merDataWidth)
-      //sortedList[i-st] = (bucket << args->merDataWidth) | getDecodedValue(merData, J, args->merDataWidth);
-      sortedList[i-st] = getDecodedValue(merData, J, args->merDataWidth);
+      sortedList[i-st] = getDecodedValue(merDataArray[0],
+                                         J,
+                                         args->merDataWidth);
+#else
+    for (u64bit i=st; i<ed; i++) {
+      for (u64bit mword=0, width=args->merDataWidth; width>0; ) {
+        if (width >= 64) {
+          sortedList[i-st]._w[mword] = merDataArray[mword][i];
+          width -= 64;
+          mword++;
+        } else {
+          sortedList[i-st]._w[mword] = getDecodedValue(merDataArray[mword],
+                                                       i * width,
+                                                       width);
+          width = 0;
+        }
+      }
+    }
+#endif
 
     //  Sort if there is more than one item
     //
@@ -410,7 +530,7 @@ runSegment(merylArgs *args, u64bit segment) {
         adjustHeap(sortedList, t, sortedListLen);
 
       for (s64bit t=sortedListLen-1; t>0; t--) {
-        u64bit           tv = sortedList[t];
+        sortedList_t    tv = sortedList[t];
         sortedList[t]      = sortedList[0];
         sortedList[0]      = tv;
 
@@ -425,13 +545,21 @@ runSegment(merylArgs *args, u64bit segment) {
     for (u32bit t=0; t<sortedListLen; t++) {
       C->tick();
 
-      //  Build the complete mer
-      mer.setBits(args->merDataWidth, args->numBuckets_log2, bucket);
-      mer.setBits(0, args->merDataWidth, sortedList[t]);
-
 #if 0
-      char  str[1025];
-      fprintf(stderr, "Sending    '%s' ("u64bitHEX","u64bitHEX"\n", mer.merToString(str), bucket, sortedList[t]);
+      fprintf(stderr, u32bitFMTW(2)": "u64bitHEX" "u64bitHEX" "u64bitHEX"\n",
+              t, sortedList[t]._w[0], sortedList[t]._w[1], sortedList[t]._w[2]);
+#endif
+
+      //  Build the complete mer
+      //
+#if SORTED_LIST_WIDTH == 1
+      //mer.setBits(0, args->merDataWidth, sortedList[t]);
+      mer.setWord(0, sortedList[t]);
+      mer.setBits(args->merDataWidth, args->numBuckets_log2, bucket);
+#else
+      for (u64bit mword=0; mword < SORTED_LIST_WIDTH; mword++)
+        mer.setWord(mword, sortedList[t]._w[mword]);
+      mer.setBits(args->merDataWidth, args->numBuckets_log2, bucket);
 #endif
 
       //  Add it
@@ -446,11 +574,13 @@ runSegment(merylArgs *args, u64bit segment) {
 
   delete [] batchOutputFile;
 
-  delete [] merData;
+  for (u32bit x=0; x<SORTED_LIST_WIDTH; x++)
+    delete [] merDataArray[x];
+
   delete [] bucketPointers;
 
   if (args->beVerbose)
-    fprintf(stderr, "\nSegment "u64bitFMT" finished.\n", segment);
+    fprintf(stderr, "Segment "u64bitFMT" finished.\n", segment);
 }
 
 
@@ -556,6 +686,10 @@ build(merylArgs *args) {
   //  ./meryl -M add [-v] -s batch1 -s batch2 ... -s batchN -o outputFile
   //
   if ((doMerge) && (args->segmentLimit > 1)) {
+
+    if (args->beVerbose)
+      fprintf(stderr, "Merge results.\n");
+
     int     argc = 0;
     char  **argv = new char* [7 + 2 * args->segmentLimit];
     bool   *arga = new bool  [7 + 2 * args->segmentLimit];
@@ -597,18 +731,21 @@ build(merylArgs *args) {
     //
     char *filename = new char [strlen(args->outputFile) + 17];
 
+#ifdef REMOVE_TEMPORARY_FILES
     for (u32bit i=0; i<args->segmentLimit; i++) {
       sprintf(filename, "%s.batch"u32bitFMT".mcidx", args->outputFile, i);
       unlink(filename);
       sprintf(filename, "%s.batch"u32bitFMT".mcdat", args->outputFile, i);
       unlink(filename);
     }
+#endif
 
     delete [] filename;
   }
 
   //  If we just merged, delete the merstream file
   //
+#ifdef REMOVE_TEMPORARY_FILES
   if (doMerge) {
     char *filename = new char [strlen(args->outputFile) + 17];
 
@@ -617,4 +754,7 @@ build(merylArgs *args) {
 
     delete [] filename;
   }
+#else
+    fprintf(stderr, "NOT REMOVING TEMPORARY FILES!\n");
+#endif
 }

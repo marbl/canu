@@ -87,6 +87,9 @@ multipleOperations(merylArgs *args) {
 
   speedCounter *C = new speedCounter("    %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, args->beVerbose);
 
+  currentMer.setMerSize(merSize);
+  thisMer.setMerSize(merSize);
+
   while (moreInput) {
 
     //  Find the smallest mer present in any input file.
@@ -96,13 +99,26 @@ multipleOperations(merylArgs *args) {
     thisFile      = ~u32bitZERO;
     thisCount     =  u32bitZERO;
 
-    for (u32bit i=0; i<args->mergeFilesLen; i++)
-      if ((R[i]->validMer()) && (R[i]->theFMer()) < thisMer) {
+    //  Load thisMer with the first valid mer
+    for (u32bit i=0; i<args->mergeFilesLen && !moreInput; i++)
+      if (R[i]->validMer()) {
         moreInput     = true;
-        thisMer       = R[i]->theFMer();
         thisCount     = R[i]->theCount();
         thisFile      = i;
+        thisMer.copy(R[i]->theFMer());
       }
+
+    //  Now find the smallest one
+    if (moreInput) {
+      for (u32bit i=thisFile+1; i<args->mergeFilesLen; i++)
+        if ((R[i]->validMer()) && (R[i]->theFMer()) < thisMer) {
+          moreInput     = true;
+          thisCount     = R[i]->theCount();
+          thisFile      = i;
+
+          thisMer.copy(R[i]->theFMer());
+        }
+    }
 
     //  If we've hit a different mer, write out the last one
     //
@@ -139,7 +155,8 @@ multipleOperations(merylArgs *args) {
           break;
       }
 
-      currentMer   = thisMer;
+      currentMer.copy(thisMer);
+
       currentCount = u32bitZERO;
       currentTimes = u32bitZERO;
 
@@ -190,10 +207,14 @@ multipleOperations(merylArgs *args) {
     }
 
     currentTimes++;
-  }
 
-  if (args->beVerbose)
-    fprintf(stderr, "\n");
+#if 0
+    char str[1024];
+    fprintf(stdout, "'%s'/"u32bitFMTW(2)" file="u32bitFMTW(2)"\n",
+            currentMer.merToString(str), currentCount, thisFile);
+    fflush(stdout);
+#endif
+  }
 
   for (u32bit i=0; i<args->mergeFilesLen; i++)
     delete R[i];

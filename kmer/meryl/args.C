@@ -20,7 +20,7 @@ writeString(const char *str, FILE *F) {
 
   u32bit len = 0;
   if (str) {
-    u32bit len = (u32bit)strlen(str) + 1;
+    len = (u32bit)strlen(str) + 1;
     fwrite(&len, sizeof(u32bit), 1, F);
     fwrite( str, sizeof(char), len, F);
   } else {
@@ -64,13 +64,13 @@ readString(FILE *F) {
 
 char*
 duplString(char *str) {
-  char   *dup = 0L;
+  char   *dupstr = 0L;
   if (str) {
     u32bit  len = (u32bit)strlen(str);
-    dup = new char [len+1];
-    strcpy(dup, str);
+    dupstr = new char [len+1];
+    strcpy(dupstr, str);
   }
-  return(dup);
+  return(dupstr);
 }
 
 

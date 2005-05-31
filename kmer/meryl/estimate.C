@@ -5,28 +5,49 @@
 #include "meryl.H"
 
 
+//  Takes a memory limit in MB, returns the number of mers that we can
+//  fit in that memory size, assuming optimalNumberOfBuckets() below
+//  uses the same algorithm.
+//
 u64bit
 estimateNumMersInMemorySize(u32bit merSize,
                             u32bit mem,
                             bool   beVerbose) {
-  u64bit memLimt = ((u64bit)mem) << 23;
   u64bit maxN    = 0;
   u64bit bestT   = 0;
 
-  merSize *= 2;
 
   //  For each possible number of buckets, try all poissible pointer
   //  widths.  First we compute the number of mers that fit in a
   //  bucket pointer table of size 2^t storing N bits in the mer data
   //  table, then we check that the number of mers in the mer data
   //  table agrees with the width of the pointer table.
+
+
+  //  This is the memory size we are trying to fill, in bits.
   //
-  for (u64bit t=2; t < merSize - 2; t++) {
-    for (u64bit N=1; N<33; N++) {
+  u64bit memLimt = ((u64bit)mem) << 23;
+
+  //  Limit the number of entries in the bucket pointer table to
+  //  50 bits -- thus, the prefix of each mer is at most 25.
+  //
+  u32bit  tMax = 2*merSize - 2;
+  if (tMax > 50)
+    tMax = 50;
+
+
+  for (u64bit t=2; t < tMax; t++) {
+
+    //  We need to try all possibilities of N, the width of the
+    //  bucket pointer table === log2(numMers).
+    //
+    //  Increased to 40 bits, so we're valid up to 1 trillion mers.
+    //
+    for (u64bit N=1; N<40; N++) {
       u64bit Nmin = u64bitONE << (N - 1);
       u64bit Nmax = u64bitONE << (N);
 
-      //  The size in bits of the bucket pointer table
+      //  The size in bits of the bucket pointer table.
       //
       u64bit bucketsize = (u64bitONE << t) * N;
 
@@ -35,27 +56,43 @@ estimateNumMersInMemorySize(u32bit merSize,
       //  into the list.
       //
       if (memLimt > bucketsize) {
-        u64bit n = (memLimt - bucketsize) / (merSize - t);
 
-        //  Remember the settings with the highest number of mers, if
-        //  more than zero mers but not too few or too many for the
-        //  bucket pointer width.
-        //  
-        if ((n > 0) && (Nmin <= n) && (n <= Nmax) && (maxN < n)) {
-          maxN  = n;
-          bestT = t;
+        //  The number of mers we can then fit into the mer data table
+        //  is easy to compute.
+        //
+        u64bit n = (memLimt - bucketsize) / (2*merSize - t);
+
+
+        //  We can stop now if our computed number of mers is outside the range that
+        //  the bucket pointer table can address.
+        //
+        if ((Nmin <= n) && (n <= Nmax)) {
+
+#if 0
+          fprintf(stderr, "prefixSize="u64bitFMTW(2)" numMers="u64bitFMTW(9)" memory=%.3fMB\n",
+                  t, n,
+                  (((u64bitONE << t) * logBaseTwo64(n) + n * (2*merSize - t)) >> 3) / 1048576.0);
+#endif
+
+          //  Remember the settings with the highest number of mers, if
+          //  more than zero mers.
+          //  
+          if ((n > 0) &&
+              (maxN < n)) {
+            maxN  = n;
+            bestT = t;
+          }
+
         }
-
-        //fprintf(stderr, "n="u64bitFMT" t="u64bitFMT"\n", n, t);
       }
     }
   }
 
   if (beVerbose)
-    fprintf(stdout, "Can fit "u64bitFMT" mers into table with t="u64bitFMT" using "u64bitFMT"MB\n",
+    fprintf(stdout, "Can fit "u64bitFMT" mers into table with prefix of "u64bitFMT" bits, using %8.3fMB\n",
             maxN,
             bestT,
-            ((u64bitONE << bestT) * logBaseTwo32(maxN) + maxN * (merSize - bestT)) >> 23);
+            (((u64bitONE << bestT) * logBaseTwo64(maxN) + maxN * (2*merSize - bestT)) >> 3) / 1048576.0);
 
   return(maxN);
 }
@@ -82,7 +119,7 @@ optimalNumberOfBuckets(u32bit merSize,
   for (h=2; h<=hmax && h<2*merSize; h++) {
     s = (u64bitONE << h) * hwidth + numMers * (2 * merSize - h);
 
-    fprintf(stderr, "optimalNumberOfBuckets()-- h="u64bitFMT" s="u64bitFMT"\n", h, s);
+    //fprintf(stderr, "optimalNumberOfBuckets()-- h="u64bitFMT" s="u64bitFMT"\n", h, s);
 
     if (s < opts) {
       opth = h;
@@ -90,7 +127,7 @@ optimalNumberOfBuckets(u32bit merSize,
     }
   }
 
-  return(opth);
+  return((u32bit)opth);
 }
 
 

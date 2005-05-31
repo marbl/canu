@@ -25,7 +25,7 @@ public:
 
   void              usage(void);
 
-  u64bit            hash(kMer &mer) {
+  u64bit            hash(kMer const &mer) {
     return(mer.startOfMer(numBuckets_log2));
     //return((mer >> merDataWidth) & bucketPointerMask);
   };
