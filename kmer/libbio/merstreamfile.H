@@ -18,6 +18,17 @@
 //  Returns true if the merStreamFile exists.
 bool  merStreamFileExists(const char *i);
 
+//  Defline support in the merStreamFile is very broken -- we possibly
+//  construct it correctly, but we don't access it at all.  Nobody is
+//  currently using it, so the functionality has been completely
+//  disabled (which will save some space in the file).
+//
+//  It's not been removed from the class, we just don't save the
+//  deflines to the file.
+//
+//#define ENABLE_DEFLINE_SUPPORT
+
+
 class merStream;
 
 class merStreamFileBuilder {
@@ -45,13 +56,18 @@ public:
   u32bit                 merSize(void)      { return(_merSizeDesired); };
   u64bit                 numberOfMers(void) { return(_numMers); };
 
-  kMer&                  theFMer(void) { return(_fMer); };
-  kMer&                  theRMer(void) { return(_rMer); };
+  kMer const &           theFMer(void) { return(_fMer); };
+  kMer const &           theRMer(void) { return(_rMer); };
 
   u64bit                 thePositionInSequence(void) { return(_posInSeq); };
   u64bit                 thePositionInStream(void)   { return(_posInStr); };
   u64bit                 theSequenceNumber(void)     { return(_sequence); };
+
+#ifdef ENABLE_DEFLINE_SUPPORT
   char const            *theDefLine(void)            { return(_defline);  };
+#else
+  char const            *theDefLine(void)            { return(">nodefline");  };
+#endif
 
   bool                   seekToMer(u64bit merNumber);
   bool                   seekToSequence(u64bit seqNumber);

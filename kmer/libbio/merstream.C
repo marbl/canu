@@ -23,8 +23,8 @@ merStream::merStream(merStreamFileReader *msf) {
   _fMer.clear();
   _rMer.clear();
 
-  _fMer            = _ms_mers->theFMer();
-  _rMer            = _ms_mers->theRMer();
+  _fMerP           = &_ms_mers->theFMer();
+  _rMerP           = &_ms_mers->theRMer();
 }
 
 merStream::merStream(u32bit merSize, FastAstream *str) {
@@ -49,6 +49,9 @@ merStream::merStream(u32bit merSize, FastAstream *str) {
 
   _fMer.clear();
   _rMer.clear();
+
+  _fMerP = &_fMer;
+  _rMerP = &_rMer;
 
   loadMer(_merSize - 1);
 }
@@ -76,6 +79,9 @@ merStream::merStream(u32bit merSize, chainedSequence *cs) {
   _fMer.clear();
   _rMer.clear();
 
+  _fMerP = &_fMer;
+  _rMerP = &_rMer;
+
   loadMer(_merSize - 1);
 }
 
@@ -101,6 +107,9 @@ merStream::merStream(u32bit merSize, const char *seq, u32bit len) {
 
   _fMer.clear();
   _rMer.clear();
+
+  _fMerP = &_fMer;
+  _rMerP = &_rMer;
 
   //  If the bloody user gave us no length, reset _st_stringLen to
   //  be maximum.  nextSymbol() will then stop when it hits

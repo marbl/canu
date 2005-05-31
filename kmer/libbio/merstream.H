@@ -44,8 +44,8 @@ public:
 
   u32bit                 theMerSize(void) { return(_merSize); };
 
-  kMer                  &theFMer(void)        { return(_fMer); };
-  kMer                  &theRMer(void)        { return(_rMer); };
+  kMer const &           theFMer(void)        { return(*_fMerP); };
+  kMer const &           theRMer(void)        { return(*_rMerP); };
 
   bool                   nextMer(u32bit skip=0);
   bool                   rewind(void);
@@ -80,6 +80,14 @@ private:
 
   kMer                  _fMer;
   kMer                  _rMer;
+
+  //  Pointers to which ever kMer we are using.  If our source is the
+  //  merStreamFile, then these are pointers to the kMer in the
+  //  merStreamFile, otherwise, they are pointers to the two kMers
+  //  above.
+  //
+  kMer const           *_fMerP;
+  kMer const           *_rMerP;
 };
 
 
@@ -273,8 +281,11 @@ merStream::nextMer(u32bit skip) {
   if (_ms_mers) {
     bool ret = _ms_mers->nextMer(skip);
 
-    _fMer = _ms_mers->theFMer();
-    _rMer = _ms_mers->theRMer();
+    //  Arguably a hack -- we grab a pointer to the merStreamFile mer,
+    //  and return that from here.
+    //
+    _fMerP = &_ms_mers->theFMer();
+    _rMerP = &_ms_mers->theRMer();
 
     return(ret);
   } else {

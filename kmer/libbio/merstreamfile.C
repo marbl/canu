@@ -96,6 +96,7 @@ merStreamFileBuilder::build(bool beVerbose) {
 
     //  Save the defline if the sequence number has changed.
     //
+#ifdef ENABLE_DEFLINE_SUPPORT
     if (lastDef != _merStream->theSequenceNumber()) {
       u32bit  l = strlen(_merStream->theDefLine()) + 1;
 
@@ -107,6 +108,7 @@ merStreamFileBuilder::build(bool beVerbose) {
       numDefs++;
       defLength += l;
     }
+#endif
 
     //  See if this mer is adjacent to the last one.  We used to check
     //  for overlap in the mer, which worked great for storing just
@@ -365,6 +367,7 @@ merStreamFileReader::merStreamFileReader(const char *i, u32bit desiredMerSize) {
 
   //  Read the deflines (maybe)
   //
+#ifdef ENABLE_DEFLINE_SUPPORT
   _deflineStorage = new char  [_defLength];
   _deflines       = new char* [_numDefs];
 
@@ -394,6 +397,10 @@ merStreamFileReader::merStreamFileReader(const char *i, u32bit desiredMerSize) {
 
     o += len;
   }
+#else
+  _deflineStorage = 0L;
+  _deflines       = 0L;
+#endif
 
   //  We're all done with the raw file access, close it.
   //
