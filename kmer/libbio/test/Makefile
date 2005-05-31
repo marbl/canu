@@ -4,7 +4,8 @@ PROG    = test-chainedSequence \
           test-merstreamfile \
           test-merstream-speed \
           test-setbits \
-          test-bigmer-msf
+          test-bigmer-msf \
+          dump-merstreamfile
 
 INCLUDE = -I.. -I../../libutil
 LIBS    = -L.. -L../../libutil -lbio -lutil -lm
@@ -58,6 +59,10 @@ test-bigmer-msf: test-bigmer-msf.C
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-bigmer-msf.o test-bigmer-msf.C $(INCLUDE)
 	$(CXX) $(CXXLDFLAGS) -o test-bigmer-msf test-bigmer-msf.o $(LIBS)
 	./test-bigmer-msf
+
+dump-merstreamfile: dump-merstreamfile.C
+	$(CXX) $(CXXFLAGS_COMPILE) -c -o dump-merstreamfile.o dump-merstreamfile.C $(INCLUDE)
+	$(CXX) $(CXXLDFLAGS) -o dump-merstreamfile dump-merstreamfile.o $(LIBS)
 
 clean:
 	rm -f $(PROG) *.o *junk*
