@@ -10,7 +10,7 @@ all: position-passed
 	@echo " 120 minutes on 2.0GHz G5 (with KMER=8)"
 	@echo "If you really want to run them, do 'make exist-passed'."
 
-position-passed: position-passed1 position-passed2 exist-fast
+position-passed: position-passed1 position-passed2 exist-fast-passed
 	touch position-passed
 xp.fasta: ../../leaff/leaff
 	../../leaff/leaff -G 1000 5000 10000 > xp.fasta
