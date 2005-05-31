@@ -20,7 +20,7 @@
 #ifndef BIO_KMER_H
 #define BIO_KMER_H
 
-#define KMER_WORDS  4
+#define KMER_WORDS  14
 
 
 //  XXX: Should probably make a separate class for KMER_WORDS == 1,
@@ -457,8 +457,8 @@ public:
 
 private:
   u64bit   _wd[KMER_WORDS];
-  u32bit   _merSize;
   u64bit   _mask;
+  u32bit   _merSize;
   u32bit   _maskWord;
   u32bit   _lastWord;
   u32bit   _lastShift;
