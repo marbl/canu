@@ -360,10 +360,7 @@ runSegment(merylArgs *args, u64bit segment) {
   C = new speedCounter(" Writing output:           %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, args->beVerbose);
   W = new merylStreamWriter((args->segmentLimit == 1) ? args->outputFile : batchOutputFile,
                             args->merSize,
-                            args->numBuckets_log2,
-                            0,
-                            0,
-                            0);
+                            args->numBuckets_log2);
 
   //  Sort each bucked into sortedList, then output the mers
   //

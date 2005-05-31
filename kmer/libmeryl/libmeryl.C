@@ -97,10 +97,12 @@ merylStreamReader::~merylStreamReader() {
 
 merylStreamWriter::merylStreamWriter(const char *fn,
                                      u32bit merSize,
-                                     u32bit prefixSize,
+                                     u32bit prefixSize) {
+#if 0
                                      u64bit numUnique,
                                      u64bit numDistinct,
                                      u64bit numTotal) {
+#endif
 
   //  Open the files
   //
@@ -123,6 +125,10 @@ merylStreamWriter::merylStreamWriter(const char *fn,
   _thisBucket     = u64bitZERO;
   _thisBucketSize = u64bitZERO;
   _numBuckets     = u64bitONE << _prefixSize;
+
+  _numUnique      = u64bitZERO;
+  _numDistinct    = u64bitZERO;
+  _numTotal       = u64bitZERO;
 
   _thisMer.setMerSize(_merSizeInBits >> 1);
   _thisMer.clear();
@@ -155,11 +161,11 @@ merylStreamWriter::merylStreamWriter(const char *fn,
   _IDX->putBits('X',  8);
   _IDX->putBits('\n', 8);
 
-  _IDX->putBits(merSize,     32);
-  _IDX->putBits(prefixSize,  32);
-  _IDX->putBits(numUnique,   64);
-  _IDX->putBits(numDistinct, 64);
-  _IDX->putBits(numTotal,    64);
+  _IDX->putBits(_merSizeInBits >> 1, 32);
+  _IDX->putBits(_prefixSize,  32);
+  _IDX->putBits(_numUnique,   64);
+  _IDX->putBits(_numDistinct, 64);
+  _IDX->putBits(_numTotal,    64);
 
   _DAT->putBits('m',  8);
   _DAT->putBits('e',  8);
@@ -217,6 +223,13 @@ merylStreamWriter::~merylStreamWriter() {
   _IDX->putBits('0',  8);
   _IDX->putBits('1',  8);
   _IDX->putBits('\n', 8);
+
+  _IDX->putBits(_merSizeInBits >> 1,     32);
+  _IDX->putBits(_prefixSize,  32);
+  _IDX->putBits(_numUnique,   64);
+  _IDX->putBits(_numDistinct, 64);
+  _IDX->putBits(_numTotal,    64);
+
   delete _IDX;
 
   _DAT->seek(0);
@@ -243,15 +256,22 @@ merylStreamWriter::~merylStreamWriter() {
 void
 merylStreamWriter::writeMer(void) {
 
+  if (_thisMerCount == 0)
+    return;
+
 #if 0
   char  str[1025];
   fprintf(stderr, "Saving mer '%s' with count "u32bitFMT"\n", _thisMer.merToString(str), _thisMerCount);
 #endif
 
+  _numTotal += _thisMerCount;
+  _numDistinct++;
+
   if (_thisMerCount == 1) {
     _thisMer.writeToBitPackedFile(_DAT, _merDataSize);
     _DAT->putBits(u64bitZERO, 1);
     _thisBucketSize++;
+    _numUnique++;
   } else if (_thisMerCount > 1) {
     _thisMer.writeToBitPackedFile(_DAT, _merDataSize);
     _DAT->putBits(u64bitONE, 1);
@@ -268,7 +288,10 @@ merylStreamWriter::addMer(kMer &mer, u32bit count) {
   //  Fail if we see a smaller mer than last time.
   //
   if (mer < _thisMer) {
+    char str[1024];
     fprintf(stderr, "merylStreamWriter::addMer()-- ERROR: your mer stream isn't sorted increasingly!\n");
+    fprintf(stderr, "merylStreamWriter::addMer()-- last: %s\n", _thisMer.merToString(str));
+    fprintf(stderr, "merylStreamWriter::addMer()-- this: %s\n", mer.merToString(str));
     exit(1);
   }
 

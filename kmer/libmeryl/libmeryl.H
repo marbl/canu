@@ -100,10 +100,13 @@ class merylStreamWriter {
 public:
   merylStreamWriter(const char *filePrefix,
                     u32bit merSize,          //  In bases
-                    u32bit prefixSize,       //  In bits
+                    u32bit prefixSize);      //  In bits
+
+#if 0
                     u64bit numUnique=0,
                     u64bit numDistinct=0,
                     u64bit numTotal=0);
+#endif
   ~merylStreamWriter();
 
   void                    addMer(kMer &mer, u32bit count=1);
@@ -119,6 +122,10 @@ private:
   u64bit                 _thisBucket;
   u64bit                 _thisBucketSize;
   u64bit                 _numBuckets;
+
+  u64bit                 _numUnique;
+  u64bit                 _numDistinct;
+  u64bit                 _numTotal;
 
   kMer                   _thisMer;
   u64bit                 _thisMerCount;
