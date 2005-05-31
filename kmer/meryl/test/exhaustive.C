@@ -17,24 +17,17 @@
 //  streamed, any kmers with positive count are reported.
 
 
-class kMerLiteCount {
-public:
-  kMerLite  K;
-  s32bit    C;
-};
-
-
 //  NB: My hacked kazlib returns a pointer to whatever we give it.
 //  Since we gave it a pointer to an object, it gives us back a
 //  pointer to "a pointer to an object".  Hence, this ugliness.
 //
 int
-kMerLiteCountSort(void const *a, void const *b) {
-  kMerLiteCount const *A = *((kMerLiteCount const **)a);
-  kMerLiteCount const *B = *((kMerLiteCount const **)b);
+kMerLiteSort(void const *a, void const *b) {
+  kMerLite const *A = *((kMerLite const **)a);
+  kMerLite const *B = *((kMerLite const **)b);
 
-  if (A->K < B->K) return(-1);
-  if (A->K > B->K) return(1);
+  if (*A < *B) return(-1);
+  if (*A > *B) return(1);
   return(0);
 }
 
@@ -83,8 +76,8 @@ main(int argc, char **argv) {
   u32bit  numBatches   = MSR->numberOfDistinctMers() / mersPerBatch;
   u32bit  batch        = 0;
 
-  dnode_t        *nodes      = new dnode_t       [mersPerBatch];
-  kMerLiteCount  *mers       = new kMerLiteCount [mersPerBatch];
+  dnode_t   *nodes     = new dnode_t  [mersPerBatch];
+  kMerLite  *mers      = new kMerLite [mersPerBatch];
 
   if (MSR->numberOfDistinctMers() % mersPerBatch)
     numBatches++;
@@ -92,11 +85,11 @@ main(int argc, char **argv) {
   fprintf(stderr, "perMer:  "u64bitFMT" bytes ("u64bitFMT" for kMerLite, "u64bitFMT" for dnode_t.\n",
           perMer, (u64bit)sizeof(kMerLite), (u64bit)sizeof(dnode_t));
   fprintf(stderr, "We can fit "u64bitFMT" mers into "u64bitFMT"MB.\n", mersPerBatch, memoryLimit >> 20);
-  fprintf(stderr, "So we need "u64bitFMT" batches to verify the count.\n", numBatches);
+  fprintf(stderr, "So we need "u32bitFMT" batches to verify the count.\n", numBatches);
 
   while (MSR->validMer()) {
     u64bit          mersRemain = mersPerBatch;
-    dict_t         *merDict    = dict_create(mersPerBatch, kMerLiteCountSort);
+    dict_t         *merDict    = dict_create(mersPerBatch, kMerLiteSort);
 
     batch++;
 
@@ -106,24 +99,13 @@ main(int argc, char **argv) {
     while (MSR->nextMer() && mersRemain) {
       mersRemain--;
 
-      mers[mersRemain].K = MSR->theFMer();
-      mers[mersRemain].C = MSR->theCount();
-
-#if 0
-      char str1[1024];
-      char str2[1024];
-      fprintf(stderr, "insert '%s' ->\n       '%s' (%p)\n",
-              MSR->theFMer().merToString(str1),
-              mers[mersRemain].K.merToString(merSize, str2), &mers[mersRemain]);
-#endif
+      mers[mersRemain] = MSR->theFMer();
 
       //  initialize the node with the value, then insert the node
       //  into the tree using the key
-      //
-      //  XXX: The node's value (dnode_init) is the same as the key
-      //  (dict_insert), we could use the value to store the count.
-      //
-      dnode_init(&nodes[mersRemain], &mers[mersRemain]);
+
+      s32bit val = (s32bit)MSR->theCount();
+      dnode_init(&nodes[mersRemain], (void *)val);
       dict_insert(merDict, &nodes[mersRemain], &mers[mersRemain]);
     }
 
@@ -133,26 +115,26 @@ main(int argc, char **argv) {
     FastAstream  *FS = new FastAstream(fastaName);
     merStream    *MS = new merStream(merSize, FS);
 
-    kMerLiteCount  mer;
+    kMerLite       mer;
     dnode_t       *nod;
-    kMerLiteCount *nodmer;
+    kMerLite      *nodmer;
 
     while (MS->nextMer()) {
-      mer.K = MS->theFMer();
-      mer.C = 0;
+      mer = MS->theFMer();
 
       nod = dict_lookup(merDict, &mer);
 
       if (nod != 0L) {
-        nodmer = (kMerLiteCount *)dnode_get(nod);
-        nodmer->C--;
+        s32bit val = (s32bit)dnode_get(nod);
+        val--;
+        dnode_put(nod, (void *)val);
       } else {
         //  Unless the whole meryl file fit into our merDict, we cannot warn if
         //  we don't find mers.
         //
         if (numBatches == 1) {
           char str[1024];
-          fprintf(stderr, "Didn't find node for mer '%s'\n", mer.K.merToString(merSize, str));
+          fprintf(stderr, "Didn't find node for mer '%s'\n", mer.merToString(merSize, str));
         }
       }
     }
@@ -166,11 +148,14 @@ main(int argc, char **argv) {
     fprintf(stderr, "STEP 3 BATCH "u32bitFMTW(2)":  Check\n", batch);
     nod = dict_first(merDict);
     while (nod) {
-      nodmer = (kMerLiteCount *)dnode_get(nod);
+      s32bit val = (s32bit)dnode_get(nod);
+      nodmer = (kMerLite *)dnode_getkey(nod);
 
-      if (nodmer->C != 0) {
+      if (val != 0) {
         char str[1024];
-        fprintf(stderr, "Got count "s32bitFMT" for mer '%s'\n", nodmer->C, nodmer->K.merToString(merSize, str));
+        fprintf(stderr, "Got count "s32bitFMT" for mer '%s'\n",
+                val,
+                nodmer->merToString(merSize, str));
       }
 
       nod = dict_next(merDict, nod);
