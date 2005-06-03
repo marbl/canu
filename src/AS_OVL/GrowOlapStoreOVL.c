@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: GrowOlapStoreOVL.c,v 1.4 2005-03-22 19:49:18 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Id: GrowOlapStoreOVL.c,v 1.5 2005-06-03 17:47:53 brianwalenz Exp $
+ * $Revision: 1.5 $
 */
 
-static char CM_ID[] = "$Id: GrowOlapStoreOVL.c,v 1.4 2005-03-22 19:49:18 jason_miller Exp $";
+static char CM_ID[] = "$Id: GrowOlapStoreOVL.c,v 1.5 2005-06-03 17:47:53 brianwalenz Exp $";
 
 
 //  System include files
@@ -74,6 +74,14 @@ static char CM_ID[] = "$Id: GrowOlapStoreOVL.c,v 1.4 2005-03-22 19:49:18 jason_m
     //  Number of entries in initial list of .ovl files
 #define  MAX_BACKUPS             10
     //  Most backup versions of an overlap store that are allowed
+
+//  If we're on a 'small' machine, use a small default for the number
+//  of overlaps per batch.  If we're on a 'big' machine, use a big
+//  default.
+//
+//#if 
+//#define MAX_OLAP_BATCH          900000
+
     //  Uses about 3GB of memory
     //  The most overlaps that can be stored in memory at a time
 
@@ -126,7 +134,7 @@ static uint32  * New_Offset = NULL;
     // Holds offsets to  New_Olap  array
 static int32  New_Offset_Size = 0;
     // Number of entries in  New_Offset  array
-static Long_Olap_Data_t  New_Olap [MAX_OLAP_BATCH];
+static Long_Olap_Data_t *New_Olap;
     // Holds current batch of overlaps being processed
 static int  Num_Files;
     // The number of data files holding overlaps
@@ -143,7 +151,7 @@ static char  * OVL_File_List_Path = NULL;
 static int  Save_Space = FALSE;
     // If  TRUE  will delete and rename .tmp files as they
     // are produced rather than waiting to end of entire batch
-static Short_Olap_Data_t  Sorted_Olap [MAX_OLAP_BATCH];
+static Short_Olap_Data_t *Sorted_Olap;
     // Holds sorted list of current batch of overlaps
 static Tmp_File_Info_t  * Tmp_File_Info = NULL;
     // Holds information about temporary files of overlaps
@@ -151,7 +159,8 @@ static int  Tmp_File_Info_Size = 0;
     // Number of entries allocated for  Tmp_File_Info;
 static int  Verbose = 0;
     // Determines level of extra printouts
-
+static int  Max_Olap_Batch = MAX_OLAP_BATCH;
+    // How many overlaps to store in memory, the batch size
 
 
 //  Static Functions
@@ -453,7 +462,7 @@ static void  Parse_Command_Line
    optarg = NULL;
 
    while  (! errflg
-             && ((ch = getopt (argc, argv, "aAcD:fi:L:o:hSv:")) != EOF))
+             && ((ch = getopt (argc, argv, "aAcD:fi:L:M:o:hSv:")) != EOF))
      switch  (ch)
        {
         case  'a' :
@@ -492,6 +501,10 @@ static void  Parse_Command_Line
 
         case  'S' :
           Save_Space = TRUE;
+          break;
+
+        case 'M':
+          Max_Olap_Batch = (int)(atof(optarg) * 1048576 / (sizeof(Long_Olap_Data_t) + sizeof(Short_Olap_Data_t)));
           break;
 
         case  'v' :
@@ -560,6 +573,20 @@ static void  Parse_Command_Line
                  "        input store (-i) if not create (-c)\n");
         exit (EXIT_FAILURE);
        }
+
+   fprintf(stderr,
+           "Using "F_SIZE_T"MB memory to store overlaps.\n",
+           (sizeof(Long_Olap_Data_t) + sizeof(Short_Olap_Data_t)) * Max_Olap_Batch / 1048576);
+
+   New_Olap    = (Long_Olap_Data_t *) malloc(sizeof(Long_Olap_Data_t)  * Max_Olap_Batch);
+   Sorted_Olap = (Short_Olap_Data_t *)malloc(sizeof(Short_Olap_Data_t) * Max_Olap_Batch);
+
+   if ((New_Olap == NULL) || (Sorted_Olap == NULL)) {
+     fprintf(stderr,
+             "ERROR:  Couldn't allocate overlap storage space, decrease\n"
+             "-M and try again.\n");
+     exit(EXIT_FAILURE);
+   }
 
    Delete_Old = (append ||
                    (Input_Store_Path != NULL && Output_Store_Path != NULL
@@ -997,7 +1024,7 @@ static void  Process_Tmp_File
    tfi = Tmp_File_Info + idx;
 
    rewind (tfi -> fp);
-   assert (tfi -> ct <= MAX_OLAP_BATCH);
+   assert (tfi -> ct <= Max_Olap_Batch);
 
    if  (Verbose > 0)
        fprintf (stderr, "Process_Tmp_File #%d  ct = %d\n", idx, tfi -> ct);
@@ -1061,7 +1088,7 @@ static void  Tmp_Output_Olap
    Safe_fwrite (olap, sizeof (Long_Olap_Data_t), 1, tfi -> fp);
    tfi -> ct ++;
 
-   if  (tfi -> ct >= MAX_OLAP_BATCH)
+   if  (tfi -> ct >= Max_Olap_Batch)
        Process_Tmp_File (file_index);
 
    return;
@@ -1079,8 +1106,8 @@ static void  Usage
   {
    fprintf (stderr,
        "USAGE:  %s [-aAcfhS] [-i <InputStore> [-o <OutputStore>]\n"
-       "        [-L <ListFile>] [-D <DumpFile>] [-v <VerboseLevel>]\n"
-       "        <OlapFile1> [<OlapFile2> ...]\n"
+       "        [-L <ListFile>] [-D <DumpFile>] [-M <MB of memory>]\""
+       "        [-v <VerboseLevel>] <OlapFile1> [<OlapFile2> ...]\n"
        "\n"
        "Create or add to a compact, sorted, binary-file of fragment\n"
        "overlap information\n"
@@ -1097,6 +1124,8 @@ static void  Usage
        "-L   specify a file containing names of overlap files\n"
        "     (useful if too many to fit on command line)\n"
        "-S   save space by renaming each tmp file as it is finished\n"
+       "-M   memory size, in MB\n"
+       "     (determines how many overlaps to process per batch)\n"
        "-v   set verbose level for extra printouts\n",
        command);
 
