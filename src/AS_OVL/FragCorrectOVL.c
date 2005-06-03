@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FragCorrectOVL.c,v 1.4 2005-03-22 19:49:18 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Id: FragCorrectOVL.c,v 1.5 2005-06-03 17:53:34 brianwalenz Exp $
+ * $Revision: 1.5 $
 */
 
-static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.4 2005-03-22 19:49:18 jason_miller Exp $";
+static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.5 2005-06-03 17:53:34 brianwalenz Exp $";
 
 
 //  System include files
@@ -131,6 +131,14 @@ static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.4 2005-03-22 19:49:18 jason_mil
 #define  THREAD_STACKSIZE        (16 * 512 * 512)
     //  The amount of memory to allocate for the stack of each thread
 
+#define USE_STORE_DIRECTLY_READ
+    //  Use the store directly during the initial load -- we aren't doing
+    //  random access, just streaming through and loading.  This lets us
+    //  load about 2x the frags.
+
+#define USE_STORE_DIRECTLY_STREAM
+    //  Use the store directly during the stream -- good if you don't have
+    //  lots of frags loaded.
 
 
 //  Type definitions
@@ -365,7 +373,7 @@ int  main
    Parse_Command_Line  (argc, argv);
 
    Now = time (NULL);
-   fprintf (stderr, "### Starting at  %s\n", ctime (& Now));
+   fprintf (stderr, "### Starting at  %s", ctime (& Now));
 
    Initialize_Globals ();
 
@@ -436,7 +444,7 @@ int  main
    fclose (fp);
 
    Now = time (NULL);
-   fprintf (stderr, "### Finished at  %s\n", ctime (& Now));
+   fprintf (stderr, "### Finished at  %s", ctime (& Now));
 
    return  0;
   }
@@ -2148,9 +2156,14 @@ static void  Read_Frags
 
    frag_read = new_ReadStruct ();
 
+#ifdef USE_STORE_DIRECTLY_READ
+  Internal_Frag_Store = openFragStore (Frag_Store_Path, "r");
+  assert (Internal_Frag_Store != NULLSTOREHANDLE);
+#else
    Internal_Frag_Store
        = loadFragStorePartial (Frag_Store_Path,
                                Lo_Frag_IID, Hi_Frag_IID);
+#endif
    
    Frag_Stream = openFragStream (Internal_Frag_Store, NULL, 0);
    resetFragStream (Frag_Stream, Lo_Frag_IID, Hi_Frag_IID);
@@ -2466,9 +2479,11 @@ void *  Threaded_Process_Stream
    int  olap_ct;
    int  i;
 
-pthread_mutex_lock (& Print_Mutex);
-fprintf (stderr, "Starting thread %d\n", wa -> thread_id);
-pthread_mutex_unlock (& Print_Mutex);
+#if 0
+   pthread_mutex_lock (& Print_Mutex);
+   fprintf (stderr, "Starting thread %d\n", wa -> thread_id);
+   pthread_mutex_unlock (& Print_Mutex);
+#endif
 
    olap_ct = 0;
 
@@ -2514,7 +2529,7 @@ pthread_mutex_unlock (& Print_Mutex);
 
 pthread_mutex_lock (& Print_Mutex);
 Now = time (NULL);
-fprintf (stderr, "Thread %d processed %d olaps at %s\n",
+fprintf (stderr, "Thread %d processed %d olaps at %s",
          wa -> thread_id, olap_ct, ctime (& Now));
 pthread_mutex_unlock (& Print_Mutex);
 
@@ -2681,27 +2696,46 @@ static void  Threaded_Stream_Old_Frags
        hi_frag = last_frag;
    next_olap = 0;
 
-pthread_mutex_lock (& Print_Mutex);
-Now = time (NULL);
-fprintf (stderr, "Start loadFragStorePartial at  %s\n", ctime (& Now));
-pthread_mutex_unlock (& Print_Mutex);
+#ifdef USE_STORE_DIRECTLY_STREAM
+  Internal_Frag_Store = openFragStore (Frag_Store_Path, "r");
+  assert (Internal_Frag_Store != NULLSTOREHANDLE);
+#else
+
+#if 0
+   pthread_mutex_lock (& Print_Mutex);
+   Now = time (NULL);
+   fprintf (stderr, "Start loadFragStorePartial at  %s", ctime (& Now));
+   pthread_mutex_unlock (& Print_Mutex);
+#endif
+
    Internal_Frag_Store
        = loadFragStorePartial (Frag_Store_Path, lo_frag, hi_frag);
+#endif
 
    curr_frag_list = & frag_list_1;
    next_frag_list = & frag_list_2;
    save_olap = next_olap;
-pthread_mutex_lock (& Print_Mutex);
-Now = time (NULL);
-fprintf (stderr, "Start Extract_Needed_Frags at  %s\n", ctime (& Now));
-pthread_mutex_unlock (& Print_Mutex);
+
+#if 0
+   pthread_mutex_lock (& Print_Mutex);
+   Now = time (NULL);
+   fprintf (stderr, "Start Extract_Needed_Frags at  %s", ctime (& Now));
+   pthread_mutex_unlock (& Print_Mutex);
+#endif
+
    Extract_Needed_Frags (Internal_Frag_Store, lo_frag, hi_frag,
                          curr_frag_list, & next_olap);
-pthread_mutex_lock (& Print_Mutex);
-Now = time (NULL);
-fprintf (stderr, "Done extraction at  %s\n", ctime (& Now));
-pthread_mutex_unlock (& Print_Mutex);
+
+#if 0
+   pthread_mutex_lock (& Print_Mutex);
+   Now = time (NULL);
+   fprintf (stderr, "Done extraction at  %s", ctime (& Now));
+   pthread_mutex_unlock (& Print_Mutex);
+#endif
+
+#ifndef USE_STORE_DIRECTLY_STREAM
    closeFragStore (Internal_Frag_Store);
+#endif
 
    while  (lo_frag <= last_frag)
      {
@@ -2731,14 +2765,19 @@ pthread_mutex_unlock (& Print_Mutex);
            if  (hi_frag > last_frag)
                hi_frag = last_frag;
 
+#ifndef USE_STORE_DIRECTLY_STREAM
            Internal_Frag_Store
                = loadFragStorePartial (Frag_Store_Path, lo_frag, hi_frag);
+#endif
 
            save_olap = next_olap;
 
            Extract_Needed_Frags (Internal_Frag_Store, lo_frag, hi_frag,
                                  next_frag_list, & next_olap);
+
+#ifndef USE_STORE_DIRECTLY_STREAM
            closeFragStore (Internal_Frag_Store);
+#endif
           }
 
       // Wait for background processing to finish
@@ -2760,6 +2799,10 @@ pthread_mutex_unlock (& Print_Mutex);
       next_frag_list = save_frag_list;
      }
    
+#ifdef USE_STORE_DIRECTLY_STREAM
+   closeFragStore (Internal_Frag_Store);
+#endif
+
    return;
   }
 #endif
