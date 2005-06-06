@@ -60,12 +60,14 @@ case $target in
 #  OS-X, optimized
 #
 #  Using this usually generates internal compiler errors: -mpowerpc64
+#    FIXED with the "November 2004" update!
 #  Using this breaks dynamic library building:  -mdynamic-no-pic
 #    We could have instead included -fPIC on the compile line.
 #
 # -malign-natural changes the size of structures compared to -g.  -Wpadded supposedly warns when this happens
 #
 FAST              := -Wpadded -O3 -funroll-loops -fstrict-aliasing -fsched-interblock -falign-loops=16 -falign-jumps=16 -falign-functions=16 -falign-jumps-max-skip=15 -falign-loops-max-skip=15 -malign-natural -ffast-math -mpowerpc-gpopt -force_cpusubtype_ALL -fstrict-aliasing -mtune=G5 -mcpu=G5
+FAST              := -fast
 CC                := gcc
 SHLIB_FLAGS       := -dynamiclib
 CFLAGS_COMPILE    := \$(FAST) -fmessage-length=0 -D_THREAD_SAFE -Wall
