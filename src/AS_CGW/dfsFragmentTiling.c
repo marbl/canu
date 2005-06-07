@@ -1,24 +1,4 @@
 
-/**************************************************************************
- * This file is part of Celera Assembler, a software program that 
- * assembles whole-genome shotgun reads into contigs and scaffolds.
- * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *************************************************************************/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -136,8 +116,6 @@ int get_clr_len(uint32 iid){
   return len[iid];
 }
 
-
-    
 				  
 typedef struct dfs_node_tag {
   int orderReached;
@@ -147,6 +125,10 @@ typedef struct dfs_node_tag {
   int bestChild;
   int flipped;
   int numOvlsCompleted;
+  int numOvls;
+  Long_Olap_Data_t *ovls;
+  double avgerr;
+  double errvar;
 } dfsGreedyFrg;
 
 
@@ -157,7 +139,9 @@ void init_dfsGreedyFrg(dfsGreedyFrg *f){
   f->height=0;
   f->bestChild=0;
   f->flipped=-1;
+  f->numOvls=0;
   f->numOvlsCompleted=0;
+  f->ovls=NULL;
 }
 
 typedef struct ovlfilt_tag {
@@ -206,7 +190,28 @@ int extra_height(int id, int offAEnd, Long_Olap_Data_t olap){
   // otherwise, the extra part is the A end stick out: the ahang
   return max(0,olap.a_hang);
 }
+
+
+int thickestSort(const void *A,const void *B){
+  Long_Olap_Data_t *a = (  Long_Olap_Data_t *) A;
+  Long_Olap_Data_t *b = (  Long_Olap_Data_t *) B;
+  int thickA,thickB;
   
+  assert(a->a_hang*a->b_hang >= 0);
+  if(a->a_hang<0){
+    thickA = get_clr_len(a->a_iid)+a->b_hang;
+  } else {
+    thickA = get_clr_len(a->a_iid)-a->a_hang;
+  }
+
+  assert(b->a_hang*b->b_hang >= 0);
+  if(b->a_hang<0){
+    thickB = get_clr_len(b->a_iid)+b->b_hang;
+  } else {
+    thickB = get_clr_len(b->a_iid)-b->a_hang;
+  }
+  return thickB-thickA;
+} 
 
 void DFS_longest_chain(dfsGreedyFrg *frgNodes,overlapFilters filter,int startingFrg){
 
@@ -276,37 +281,82 @@ NOTES ON EFFICIENCY:
 
     assert(!frgNodes[curr].finished);
 
-
     //  mark current visit time
     if(    frgNodes[curr].orderReached == -1 ){
       frgNodes[curr].orderReached = ++visited;
       frgNodes[curr].flipped = flipped;
+
+      { // set up overlaps
+	int ovlsAlloced=0;
+	Long_Olap_Data_t  *olaps=NULL;
+	Long_Olap_Data_t  olap;
+	int numOvls=0;
+	double mean=0,var=0;
+
+	// init overlap iterator
+	Init_OVL_Stream_Intra_Frg (my_stream, curr, 0, my_ovl_store);
+
+	// foreach overlap
+	while  (Next_From_OVL_Stream (& olap, my_stream)){
+
+	  if( !usefulOverlap(olap,curr,flipped,filter) ){
+	    continue;
+	  }
+	  numOvls++;
+	  if(numOvls>ovlsAlloced){
+	    ovlsAlloced+=50;
+	    if(frgNodes[curr].ovls==NULL){
+	      frgNodes[curr].ovls=(Long_Olap_Data_t*)ckalloc(sizeof(Long_Olap_Data_t)*ovlsAlloced);
+	    } else {
+	      frgNodes[curr].ovls=(Long_Olap_Data_t*)ckrealloc(frgNodes[curr].ovls,
+							       sizeof(Long_Olap_Data_t)*ovlsAlloced);
+	    }
+	  }
+	  frgNodes[curr].ovls[numOvls-1] = olap;
+	  mean += olap.orig_erate;
+	  var += olap.orig_erate * olap.orig_erate;
+	}
+	if(numOvls>0){
+	  frgNodes[curr].ovls=(Long_Olap_Data_t*)ckrealloc(frgNodes[curr].ovls,
+							   sizeof(Long_Olap_Data_t)*numOvls);
+	  qsort(frgNodes[curr].ovls,numOvls,sizeof(Long_Olap_Data_t),thickestSort);
+	  mean /= (double) numOvls;
+	  frgNodes[curr].avgerr = mean;
+	  frgNodes[curr].errvar = var/(double)numOvls - mean*mean;
+	}else {
+	  frgNodes[curr].avgerr = -1;
+	  frgNodes[curr].errvar = -1;
+	}
+
+	frgNodes[curr].numOvls = numOvls;
+      }
+
+
     } else {
       flipped = frgNodes[curr].flipped;
     }
 
     //#ifdef DEBUG_DFS
-    fprintf(stderr,"dfs %d visit %d   %s\n",curr,frgNodes[curr].orderReached,flipped ? "<--" : "-->");
+    fprintf(stderr,"dfs %d visit %d   %s   %f %f %d\n",curr,frgNodes[curr].orderReached,flipped ? "<--" : "-->",frgNodes[curr].avgerr,frgNodes[curr].errvar,frgNodes[curr].numOvls);
     //#endif
 
 
-    // init overlap iterator
-    Init_OVL_Stream (my_stream, curr, curr, my_ovl_store);
 
-    
-    // foreach overlap
-    while  (Next_From_OVL_Stream (& olap, my_stream)){
-
+    while( frgNodes[curr].numOvls> frgNodes[curr].numOvlsCompleted){
       int target;
       int targetWouldBeFlippedGlobally;
       int wouldBeHeight=-1;
+      
+      Long_Olap_Data_t olap=frgNodes[curr].ovls[frgNodes[curr].numOvlsCompleted] ;
 
-      assert(olap.a_iid=curr);
+      //      memcpy((void*)&olap, (void*)(frgNodes[curr].ovls+frgNodes[curr].numOvlsCompleted),sizeof(Long_Olap_Data_t));
+
+      assert(olap.a_iid==curr);
 
       target = olap.b_iid;
       targetWouldBeFlippedGlobally = (flipped != olap.flipped);
 
-#ifdef DEBUG_DFS
+      #ifdef DEBUG_DFS
 	    fprintf(stderr," overlaps %d -- visit %d finished %d height %d flipped %d\n",
 		    target,
 		    frgNodes[target].orderReached,
@@ -314,7 +364,7 @@ NOTES ON EFFICIENCY:
 		    frgNodes[target].height,
 		    frgNodes[target].flipped ? "<--" : "-->");
 	    print_olap(olap,stderr,"   "); 
-#endif
+      #endif
       
       // filter out overlaps we aren't interested in -- wrong end or not good enough
       if( (frgNodes[target].flipped !=-1 && frgNodes[target].flipped != targetWouldBeFlippedGlobally ) ){
@@ -323,13 +373,7 @@ NOTES ON EFFICIENCY:
 	fprintf(stderr," bad orientation! curr %d is %s olap.flipped=%d target %d is %s (visited %d)\n",
 		curr,flipped?"<--":"-->",olap.flipped,target,frgNodes[target].flipped?"<--":"-->",frgNodes[target].orderReached); 
 	//#endif
-	continue;
-      }
-
-      if( !usefulOverlap(olap,curr,flipped,filter) ){
-#ifdef DEBUG_DFS
-	fprintf(stderr,"  failed filters\n"); 
-#endif
+	frgNodes[curr].numOvlsCompleted++;
 	continue;
       }
 
@@ -338,6 +382,7 @@ NOTES ON EFFICIENCY:
 #ifdef DEBUG_DFS
 	fprintf(stderr,"  cycle break!\n"); 
 #endif
+	frgNodes[curr].numOvlsCompleted++;
 	continue;
       }
 
@@ -376,7 +421,7 @@ NOTES ON EFFICIENCY:
 	break;
 
       }
-
+    
       // else (i.e. if target is already marked finished)
 
 
@@ -392,7 +437,8 @@ NOTES ON EFFICIENCY:
       fprintf(stderr," height %d", wouldBeHeight);
 #endif
 	
-      if(wouldBeHeight > frgNodes[curr].height){
+#define MIN_ADVANTAGE 10
+      if(wouldBeHeight > frgNodes[curr].height + MIN_ADVANTAGE){
 	  
 #ifdef DEBUG_DFS
 	fprintf(stderr," new best!\n");
@@ -408,6 +454,7 @@ NOTES ON EFFICIENCY:
 	  fprintf(stderr," no improvement\n");
 #endif
       }
+	frgNodes[curr].numOvlsCompleted++;
     }
 
 
@@ -417,6 +464,10 @@ NOTES ON EFFICIENCY:
 #ifdef DEBUG_DFS
       fprintf(stderr," finished working on %d\n",curr);
 #endif
+      if(frgNodes[curr].numOvls>0){
+	free(frgNodes[curr].ovls);
+	frgNodes[curr].ovls=NULL;
+      }
 
       if(deadEnd){
 
@@ -483,11 +534,13 @@ NOTES ON EFFICIENCY:
   curr=longest;
   assert(curr>0);
   while(curr!=0){
-    printf("%d %d %d %s\n",
+    printf("%d %d %d %s %f %f %d\n",
 	   curr,
 	   maxlen-frgNodes[curr].height,
 	   maxlen-frgNodes[curr].height+get_clr_len(curr),
-	   frgNodes[curr].flipped ? "<--" : "-->");
+	   frgNodes[curr].flipped ? "<--" : "-->",
+	   frgNodes[curr].avgerr,frgNodes[curr].errvar,
+	   frgNodes[curr].numOvls);
     curr=frgNodes[curr].bestChild;
   }
 
