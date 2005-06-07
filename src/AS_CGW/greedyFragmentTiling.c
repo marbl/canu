@@ -1,24 +1,4 @@
 
-/**************************************************************************
- * This file is part of Celera Assembler, a software program that 
- * assembles whole-genome shotgun reads into contigs and scaffolds.
- * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *************************************************************************/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -52,7 +32,10 @@
 #include "AS_UTL_Hash.h"
 #include "OlapStoreOVL.h"
 #include "AS_PER_fragStore.h"
+#include "AS_PER_gkpStore.h"
 #include "AS_PER_ReadStruct.h"
+#include "UtilsREZ.h"
+#include "AS_GKP_include.h"
 
 
 HashTable_AS *CreateHashTable_AS(int numItemsToHash, HashFn_AS hash, HashCmpFn_AS cmp); /*);*/
@@ -60,9 +43,24 @@ int StringHashFn_AS(const void *pointerToString, int length);
 
 static OVL_Store_t  * my_store = NULL;
 static OVL_Store_t  * my_second_store = NULL;
+static FragStoreHandle  my_frg_store;
+static  GateKeeperStore my_gkp_store ; // See AS_PER_gkpStore.h
+static ReadStructp fsread;
+static int useCorrectedErate=0;
+static int maxOvlsToConsider=-1;
+static int *IIDusability;
+static int restrictIDs=0;
+static int restrictSeeds=0;
+static char iidListFile[250];
+static int *iid2sample;
 
+#define DEFAULT_SAMPLE_ADVANTAGE .05
 
-void setup_ovlStores(char *OVL_Store_Path){
+void setup_stores(char *OVL_Store_Path, char *Frg_Store_Path, char *Gkp_Store_Path){
+
+  assert(OVL_Store_Path!=NULL);
+  assert(Frg_Store_Path!=NULL);
+  assert(Gkp_Store_Path!=NULL);
 
   assert(my_store==NULL);
   my_store = New_OVL_Store ();
@@ -72,6 +70,10 @@ void setup_ovlStores(char *OVL_Store_Path){
   my_second_store = New_OVL_Store ();
   Open_OVL_Store (my_second_store, OVL_Store_Path);
 
+  InitGateKeeperStore(&my_gkp_store, Gkp_Store_Path);
+  OpenReadOnlyGateKeeperStore(&my_gkp_store);
+
+  my_frg_store = openFragStore( Frg_Store_Path, "r");
 }
 
 void print_olap(Long_Olap_Data_t olap){
@@ -412,12 +414,44 @@ Long_Olap_Data_t better_olap(Long_Olap_Data_t a, Long_Olap_Data_t b, int startin
   }
 }
 
+int lowestErrorSort(const void *A,const void *B){
+  Long_Olap_Data_t *a = (  Long_Olap_Data_t *) A;
+  Long_Olap_Data_t *b = (  Long_Olap_Data_t *) B;
+  int thickA,thickB;
 
-int best_overlap_off_end(int id, int offAEnd,BestMeasure bestType,Long_Olap_Data_t *bestovl,double erate,int useCorrected,int skipContaining,int minlen, int frglen,int avoidDeadEnds){
-  Long_Olap_Data_t  olap, bestolap;
-  int goodOlap=0;
+  // sort by error rate
+  if(useCorrectedErate){
+    if(a->corr_erate!=b->corr_erate){
+      return a->corr_erate-b->corr_erate;
+    }
+  } else {
+    if(a->orig_erate!=b->orig_erate){
+      return a->orig_erate-b->orig_erate;
+    }
+  }
+
+  { // sort by thickness
+    int laa = get_clr_len(a->a_iid);
+    int  olenA = laa - max(0,a->a_hang) + min(0,a->b_hang);
+    int lba = get_clr_len(b->a_iid);
+    int  olenB = lba - max(0,b->a_hang) + min(0,b->b_hang);
+    if(olenA!=olenB)return olenA-olenB;
+  }
+
+  return 0;
+    
+} 
+
+// setupolaps() returns a count of usable olaps and sets *retolaps to point to
+// a block of memory containing them ... but the memory is static (i.e. the 
+// calling routine does not own the memory) and should not be freed!
+int setupolaps(int id, int offAEnd,BestMeasure bestType,double erate,int useCorrected,int skipContaining,int minlen, int frglen,int avoidDeadEnds,Long_Olap_Data_t **retolaps, double favorSameSample){
+
   OVL_Stream_t  * my_stream = New_OVL_Stream ();
-  int retval=0;
+  static Long_Olap_Data_t  *olaps=NULL;
+  Long_Olap_Data_t  olap;
+  static int ovlsAlloced=0;
+  int numOvls=0;
 
   assert(my_store!=NULL);
 
@@ -425,13 +459,14 @@ int best_overlap_off_end(int id, int offAEnd,BestMeasure bestType,Long_Olap_Data
 
   while  (Next_From_OVL_Stream (& olap, my_stream)){
 
-    // exclude too-sloppy overlaps
-
-    if(useCorrected&&olap.corr_erate>erate*1000)continue;
-
-    if(!useCorrected&&olap.orig_erate>erate*1000)continue;
-
     assert(olap.a_iid == id);
+
+    // exclude overlaps to fragments not in the use list
+    if( restrictIDs && IIDusability[olap.b_iid] != 1)continue;
+
+    // exclude too-sloppy overlaps
+    if(useCorrected&&olap.corr_erate>erate*1000)continue;
+    if(!useCorrected&&olap.orig_erate>erate*1000)continue;
 
     // exclude contained overlaps
     if( olap.a_hang > 0 && olap.b_hang < 0)continue;
@@ -447,222 +482,70 @@ int best_overlap_off_end(int id, int offAEnd,BestMeasure bestType,Long_Olap_Data
 
       //    print_olap(olap);
 
-      if(goodOlap==0){
-	goodOlap=1;
-	bestolap=olap; 
-      } else {
-	bestolap=better_olap(bestolap,olap, id, offAEnd,bestType,frglen,useCorrected,skipContaining,minlen,avoidDeadEnds,erate);
+      numOvls++;
+      if(numOvls>ovlsAlloced){
+	ovlsAlloced+=50;
+	if(olaps==NULL){
+	  olaps=(Long_Olap_Data_t*)ckalloc(sizeof(Long_Olap_Data_t)*ovlsAlloced);
+	} else {
+	  olaps=(Long_Olap_Data_t*)ckrealloc(olaps,
+					     sizeof(Long_Olap_Data_t)*ovlsAlloced);
+	}
       }
+      if(bestType==BEST_MEANS_LOWEST_ERROR&&favorSameSample>0){
+	if(iid2sample[olap.a_iid]==iid2sample[olap.b_iid]){
+	  if(useCorrected){
+	    olap.corr_erate-=favorSameSample;
+	  } else {
+	    olap.orig_erate-=favorSameSample;
+	  }
+	}
+      }
+      olaps[numOvls-1] = olap;
+
     } else {
       // does not stick off the correct end
     }
+
   }
- 
   Free_OVL_Stream (my_stream);
 
+  qsort(olaps,numOvls,sizeof(Long_Olap_Data_t),lowestErrorSort);
+  *retolaps=olaps;
+  return numOvls;
+}
+
+int best_overlap_off_end(int id, int offAEnd,BestMeasure bestType,Long_Olap_Data_t *bestovl,double erate,int useCorrected,int skipContaining,int minlen, int frglen,int avoidDeadEnds,Long_Olap_Data_t *olaps, int numOvls){
+  Long_Olap_Data_t  olap, bestolap;
+  int i;
+  int goodOlap=0;
+  int retval=0;
+
+  i=0;
+  while(i<numOvls&&(maxOvlsToConsider == -1 
+		    || (i < maxOvlsToConsider)
+		    || (useCorrectedErate ? (olaps[i].corr_erate == olaps[maxOvlsToConsider].corr_erate) :  (olaps[i].orig_erate == olaps[maxOvlsToConsider].orig_erate)))){
+		    
+  /*
+  while(i<numOvls&&(maxOvlsToConsider == -1 || i<maxOvlsToConsider)){
+  */
+
+    Long_Olap_Data_t olap = olaps[i];
+    
+    if(goodOlap==0){
+      goodOlap=1;
+      bestolap=olap; 
+    } else {
+      bestolap=better_olap(bestolap,olap, id, offAEnd,bestType,frglen,useCorrected,skipContaining,minlen,avoidDeadEnds,erate);
+    }
+    i++;
+  }
   *bestovl=bestolap;
+
   if(goodOlap==0)return 0;
   return 1;
 }
 
-
-struct dfs_node_tag {
-  int orderReached;
-  int finished;
-  int parent;
-  int height;
-  int bestChild;
-} dfsGreedyFrg;
-
-void init_dfsGreedyFrg(dfsGreedyFrg *f){
-  f->orderReached=-1;
-  f->finished=0;
-  f->parent=0;
-  f->height=0;
-  f->bestChild=0;
-}
-
-struct ovlfilt_tag {
-  BestMeasure type;
-  double erate;
-  int useCorrected;
-  int skipContaining;
-  int minlen;
-} overlapFilters;
-
-
-
-      
-       
-  
-
-void DFS_longest_chain(dfsGreedyFrg *frgNodes,overlapFilters filter){
-
-
-/* THE PLAN:
-
-set current = first fragment
-while (current <= last fragment )
-  if current not already marked finished
-    mark current visit time
-    init overlap iterator
-    set finished = 1
-    foreach overlap
-      if target not yet visited, 
-        set finished = 0 
-        set target's parent as current
-        set current to target
-        break
-      if target currently in stack (i.e. visit time valid but not marked finished), continue
-      else (i.e. if target is already marked finished)
-         if current's height through this one is an improvement
-           set height
-           set best child
-    end
-    if finished (i.e. we didn't go down farther)
-      mark current finished
-      if current has a parent
-        set current = current's parent
-      else 
-        advance current to next unfinished node
-end
-
-*/
-
-  dfsGreedyFrg *frgNodes=NULL;
-  OVL_Stream_t  * my_stream = New_OVL_Stream ();
-  Long_Olap_Data_t olap;
-
-  int curr=0;
-  int visited=0;
-  int last =  Last_Frag_In_OVL_Store (my_ovl_store);
-
-  frgNodes = (dfsGreedyFrg *) safe_malloc(sizeof(dfsGreedyFrg)*(last+1));
-  for(int i=1;i<=last;i++){
-    init_dfsGreedyFrg(frgNodes+i);
-  }
-
-  //set current = first fragment
-  curr=1;
-
-  // while (current <= last fragment )
-  while(curr<=last){
-
-    // set deadEnd = 1 -- signal that there were no (non-cycle) overlaps available
-    int deadEnd = 1;
-
-    // set finished = 1 -- signal that we did not hit an unvisited target and descend
-    int finished = 1
-
-    assert(!frgNodes[curr].finished);
-
-    //  mark current visit time
-    frgNodes[startfrg].orderReached = ++visited;
-
-    // init overlap iterator
-    Init_OVL_Stream (my_stream, curr, curr, my_ovl_store);
-
-    
-    // foreach overlap
-    while  (Next_From_OVL_Stream (& olap, my_stream)){
-
-      int target = olap.b_iid;
-      assert(olap.a_iid=curr);
-
-      // if target currently in stack (i.e. visit time valid but not marked finished), continue
-      if (frgNodes[target].orderReached>0&&frgNodes[target].finished==0){
-	continue;
-      }
-
-      // if we got here, there is at least one path to follow from current
-      deadEnd=0;
-
-      // else if target not yet visited, 
-      if(frgNodes[target].visited==0){
-	// set finished = 0 
-	finished=0;
-        // set target's parent as current
-	frgNodes[target].parent=curr;
-        // set current to target
-	curr=target;
-        // break out of loop over overlaps -- we are going down to a lower node!
-	break;
-      }
-
-      // else (i.e. if target is already marked finished)
-      {
-
-	int wouldBeHeight = frgNodes[target].height + ???extra_height;
-
-	// if current's height through this one is an improvement
-	if(wouldBeHeight > frgNodes[curr].height){
-	  // set height
-	  frgNodes[curr].height = wouldBeHeight;
-	  // set best child
-	  frgNodes[curr].bestChild = target;
-	}
-
-      }
-
-    }
-
-    // if finished (i.e. we didn't go down farther)
-    if(finished){
-
-      if(deadEnd){
-	frgNodes[curr].height = get_clr_len(curr);
-      }
-
-      // mark current finished
-      frgNodes[curr].finished=1;
-
-      // if current has a parent
-      if(frgNodes[curr].parent!=0){
-
-        // set current = current's parent
-	curr=frgNodes[curr].parent;
-
-      } else {
-	
-        // advance current to next unfinished node
-	while(curr<=last&&frgNodes[curr].finished){
-	  curr++;
-	}
-
-      }
-    }
-  }
-}
-
-void DFS_longest_chain(){
-  /* For each fragment, record
-     on the way down:
-     - initial order
-     - parent
-     - depth
-     on the way up:
-     - favorite child
-     - height
-     - pop order (or at least pop status)
-
-     At a node, consider all of its children;
-     for each child,
-       if the child has not been marked finished, continue  // break cycles
-       if not already visited,
-         order_visited=visisted_nodes++;
-         process (recurse)
-         mark finished
-       if height > highest
-          favorite = this child
-          highest = height
-
-     We will either be 
-       - inefficient, having to loop through the N overlaps of a node in O(N*N) steps ... plus a *lot* of time setting up iterators
-       - memory bloated (if we add all overlaps to the stack)
-       - tricky (if we let each node know how many of its overlaps we have already processed and we can jump to the i'th overlap)
-            but still we have a lot of overlap iterators to set up
-  */
-}
 
 
 void finished_with_ovlStore(void){
@@ -673,19 +556,79 @@ void finished_with_ovlStore(void){
 }
 
 
+void setUpIIDrestrictions(int last_stored_frag){
+  FILE *frglist = fopen(iidListFile,"r");
+  char range[256];
+  int i;
+
+  for(i=0;i<=last_stored_frag;i++){
+    IIDusability[i]=0;
+  }
+
+  // this should be made much more sophisticated, with token parsing etc
+  while(fscanf(frglist,"%s",range)==1){
+    if(strlen(range)>255){
+      fprintf(stderr,"Sloppy coding: range string %s ran out of memory; exit!\n",range);
+      exit(-4);
+    }
+    if(strstr(range,",")!=NULL){
+      fprintf(stderr,"the IID restriction code doesn't really support comma-separated lists yet;exit!\n");
+      exit(-4);
+    }
+    if(strstr(range,"-")!=NULL){
+      int b,e,i;
+      assert(strstr(range,"-")!=range);
+      b = atoi(range);
+      e = atoi(strstr(range,"-")+1);
+      assert(b>0&&b<=e&&e<=last_stored_frag);
+      for(i=b;i<=e;i++){
+	IIDusability[i]=1;
+      }
+    } else {
+      int i = atoi(range);
+      assert(i>0&&i<=last_stored_frag);
+      IIDusability[i]=1;
+    }
+  }
+}
+
+
 void usage(char *pgm){
 	fprintf (stderr, 
-		 "USAGE:  %s -f <FragStoreName> -n <startingFrgNum> -o <full_ovlStore> [-C] [-e <erate cutoff>] [-E] [-m <minlen>] [-Q] [-D]\n"
+		 "USAGE:  %s -f <FragStoreName> -g <GkpStoreName> -o <full_ovlStore> -n <startingFrgNum> [-C] [-e <erate cutoff>] [-E] [-m <minlen>] [-Q] [-D] [-N <maxovls>] [-i <file specifying IIDs to use>] [-s <uid2sample file> [-S <same-sample bonus>]]\n"
 		 "\t-n startingFrgNum = fragment to walk out from\n"
-		 "\t-C specifies to not use containing fragments, i.e. only dovetails\n"
+		 "\t-C specifies to use containing fragments (default is only dovetails\n"
 		 "\t-e specifies the maximum mismatch rate (as a fraction, i.e. .01 means one percent)\n"
 		 "\t-E specifies that the corrected error rate rather than the original is to be used\n"
 		 "\t-Q specifies that the lowest error rate overlap will be used (in place of thickest)\n"
 		 "\t-B specifies that the overlap with the lowest upper bound on the mismatch rate will be used\n"
-		 "\t-D specifies that best quality should win over avoiding dead ends; by default, a fragment that is not a dead end wins over one that is\n",
+		 "\t-D specifies that best quality should win over avoiding dead ends; by default, a fragment that is not a dead end wins over one that is\n"
+		 "\t-N specifies that only the maxovls lowest-error overlaps will be evaluated\n"
+		 "\t-i specifies a file specifying a comma or \\n separated list\n"
+		 "\t\tof either single IIDs or <start>-<end> ranges; IIDs thus\n"
+		 "\t\tspecified can be used in an assembly--others not!\n"
+		 "\t-I is like -i except that the restriction only applies to seeds,\n"
+		 "\t\tnot extensions\n"
+		 "\t-s species the name of a file containing a uid to sample (integer) mapping\n"
+		 "\t-S specifies the amount (in percent error) that a same-sample overlap is preferred to a different-sample overlap\n",
 		 pgm);
 }
 
+int uid2iid(uint64 uid){
+  PHashValue_AS value;
+  static firstFailure=1;
+  if(HASH_FAILURE == LookupInPHashTable_AS(my_gkp_store.hashTable, 
+					       UID_NAMESPACE_AS,
+					       uid,
+					       &value)){
+    if(firstFailure){
+      fprintf(stderr,"Tried to look up iid of unknown uid: " F_UID "; this may reflect trying to use a deleted fragment; further instances will not be reported.\n",uid);
+      firstFailure=0;
+    }
+    return (-1);
+  }
+  return (value.IID);
+}
 
 int main (int argc , char * argv[] ) {
 
@@ -699,25 +642,31 @@ int main (int argc , char * argv[] ) {
   char setSubsetMap=0;
   char setFullMap=0;
   char full_ovlPath[1000];
+  char full_frgPath[1000];
+  char full_gkpPath[1000];
+  char sampleFileName[1000];
+  double favorSameSample=0;
+  FILE *sampleFile;
+  int setFullFrg=0;
+  int setFullGkp=0;
   int setFullOvl=0;
   int bestType = BEST_MEANS_THICKEST;
-  int startingFrgNum=-1;
+  int startingFrgNum=0;
+  int seediid;
   int stillGoing=0;
   int Aend=-1; 
   int currFrg=-1;
   int firstExtend=-1;
 
-  FragStoreHandle  frag_store;
   int last_stored_frag;
   char *seen;
   int ahang;
-  ReadStructp fsread = new_ReadStruct();
   uint frglen,clr_bgn,clr_end;
   double maxError=.3;
-  int useCorrectedErate=0;
   int skipContaining=1;
   int minlen=40;
   int avoidDeadEnds=1;
+  fsread = new_ReadStruct();
 
   GlobalData  = data = CreateGlobal_CGW();
   data->stderrc = stderr;
@@ -728,10 +677,12 @@ int main (int argc , char * argv[] ) {
 
   setbuf(stdout,NULL);
 
+  sampleFileName[0]='\0';
+
   { /* Parse the argument list using "man 3 getopt". */ 
     int ch,errflg=0;
     optarg = NULL;
-    while (!errflg && ((ch = getopt(argc, argv,"BCDe:Ef:m:n:o:Q")) != EOF)){
+    while (!errflg && ((ch = getopt(argc, argv,"BCDe:Ef:g:m:n:N:o:Qs:S:i:I:")) != EOF)){
       switch(ch) {
       case 'B':
 	bestType=BEST_MEANS_BEST_UPPER_BOUND;
@@ -749,14 +700,46 @@ int main (int argc , char * argv[] ) {
 	useCorrectedErate=1;
 	break;
       case 'f':
-	strcpy( data->Frag_Store_Name, argv[optind - 1]);
-	setFragStore = TRUE;
+	strcpy( full_frgPath, argv[optind - 1]);
+	setFullFrg = TRUE;
+	break;
+      case 'g':
+	strcpy( full_gkpPath, argv[optind - 1]);
+	setFullGkp = TRUE;
+	break;
+      case 'i':
+	restrictSeeds=1;
+	restrictIDs=1;
+	{
+	  int n ;
+	  char *c= strncpy(iidListFile,optarg,249);
+	  n = strlen(c);
+	  if(n==249&&optarg[249]!='\0'){
+	    fprintf(stderr,"Not enough memory for iid list path!\n");
+	    exit(-4);
+	  }
+	}
+	break;
+      case 'I':
+	restrictSeeds=1;
+	{
+	  char *c = strncpy(iidListFile,optarg,249);
+	  int n;
+	  n = strlen(c);
+	  if(n==249&&optarg[249]!='\0'){
+	    fprintf(stderr,"Not enough memory for iid list path!\n");
+	    exit(-4);
+	  }
+	}
 	break;
       case 'm':
 	minlen=atoi(optarg);
 	break;
       case 'n':
 	startingFrgNum = atoi(argv[optind - 1]);
+	break;
+      case 'N':
+	maxOvlsToConsider = atoi(argv[optind-1]);
 	break;
       case 'o':
 	strcpy(full_ovlPath,argv[optind-1]);
@@ -765,6 +748,17 @@ int main (int argc , char * argv[] ) {
       case 'Q':
 	bestType=BEST_MEANS_LOWEST_ERROR;
 	break;
+      case 's':
+	strcpy(sampleFileName,argv[optind-1]);
+	assert(strlen(sampleFileName)<=999);
+	if(favorSameSample==0){
+	  favorSameSample=DEFAULT_SAMPLE_ADVANTAGE;
+	}
+	break;
+      case 'S':
+	favorSameSample=atof(argv[optind-1]);
+	assert(favorSameSample>0);
+	break;
       case '?':
 	fprintf(stderr,"Unrecognized option -%c",optopt);
       default :
@@ -772,172 +766,256 @@ int main (int argc , char * argv[] ) {
       }
     }
 
-    if( (setFragStore == 0) || !setFullOvl || startingFrgNum < 0)
+    if( (setFullFrg == 0) || !setFullGkp || !setFullOvl )
       {
-	fprintf(stderr,"* argc = %d optind = %d setFragStore = %d setFullOvl = %d startingFrgNum %d\n",
-		argc, optind, setFragStore,setFullOvl,startingFrgNum);
-
 	usage(argv[0]);
 	exit (-1);
       }
   }
   
-  frag_store = openFragStore (data->Frag_Store_Name, "r"); 
+  setup_stores(full_ovlPath,full_frgPath,full_gkpPath);
+  last_stored_frag = getLastElemFragStore (my_frg_store);
 
-  last_stored_frag = getLastElemFragStore (frag_store);
-
-  seen = (char*) malloc((last_stored_frag+1)*sizeof(char));
-  assert(seen!=NULL);
-  {int i;
-   for(i=0;i<=last_stored_frag;i++)seen[i]='\0';
+  if(restrictIDs||restrictSeeds){
+    IIDusability = (int *) safe_malloc(sizeof(int)*last_stored_frag);
+    setUpIIDrestrictions(last_stored_frag);
   }
 
-  setup_ovlStores(full_ovlPath);
+  if(favorSameSample>0){
+    assert(sampleFileName[0]!='\0');
+  }
+  if(sampleFileName[0]!='\0'){
+    uint64 uid;
+    uint32 smp;
+    uint32 iid;
+    int i;
+    iid2sample = (int *) safe_malloc(sizeof(int)*(last_stored_frag+1));
+    for(i=0;i<=last_stored_frag;i++){
+      iid2sample[i]=-1;
+    }
+    sampleFile = fopen(sampleFileName,"r");
+    assert(sampleFile!=NULL);
+    while(fscanf(sampleFile,F_UID " " F_IID,&uid,&smp)==2){
+      int iid=uid2iid(uid);
+      if(iid>0) iid2sample[iid]=smp;
+    }
+  }
 
-  stillGoing=1;
-  Aend=1;
-  currFrg=startingFrgNum;
-  seen[currFrg]='\1';
-  ahang=0;
-  getFragStore(frag_store,currFrg,FRAG_S_ALL,fsread);
+  seen = (char*) safe_malloc((last_stored_frag+1)*sizeof(char));
+  {
+    for(i=0;i<=last_stored_frag;i++){
+      seen[i]='\0';
+    }
+  }
 
-  while(stillGoing){
-    Long_Olap_Data_t o;
+
+
+  if(startingFrgNum==0) {
+    startingFrgNum=1;
+  } else {
+    assert(startingFrgNum>0&&startingFrgNum<last_stored_frag);
+    last_stored_frag=startingFrgNum;
+  }
+
+  if(last_stored_frag>Last_Frag_In_OVL_Store(my_store)){
+    last_stored_frag=Last_Frag_In_OVL_Store(my_store);
+  }
+
+  for(seediid=startingFrgNum;seediid<=last_stored_frag;seediid++){
+    int numOvls=0,numFwdOvls=0;
+    Long_Olap_Data_t *olaps;
+
+
+    // skip deleted fragments
+    GateKeeperFragmentRecord gkpFrag;
+    if(getGateKeeperFragmentStore(my_gkp_store.frgStore,seediid,&gkpFrag)!=0)
+      assert(0);
+    if(gkpFrag.deleted)continue;
+
+    // if this fragment is not in the restricted list ...
+    if(restrictSeeds&& IIDusability[seediid]==0){continue;}
+
+    // if already seen, skip it
+    if(seen[seediid]!='\0')continue;
+    // otherwise, use it as a seed ...
+
+    printf("Seed %d\n",seediid);
+
+    // do forward extensions
+    stillGoing=1;
+    Aend=1;
+    currFrg=seediid;
+    seen[currFrg]='\1';
+    ahang=0;
+    getFragStore(my_frg_store,currFrg,FRAG_S_ALL,fsread);
+
     getClearRegion_ReadStruct(fsread, &clr_bgn,&clr_end, READSTRUCT_LATEST);
     frglen=clr_end-clr_bgn;
-    printf("%d  %d %d %s\n",currFrg,ahang,ahang+frglen, Aend?"<--":"-->");
-    stillGoing = best_overlap_off_end(currFrg, Aend, bestType,&o,maxError,useCorrectedErate,skipContaining,minlen,frglen,avoidDeadEnds);
-    if(stillGoing){
-      if(currFrg==startingFrgNum){
-	firstExtend= ( o.a_iid==currFrg) ? o.b_iid : o.a_iid;
-      }
-      if(o.a_iid==currFrg){
-	currFrg=o.b_iid;
-
-	if(Aend){
-	  ahang+=-o.b_hang;
-	} else {
-	  ahang+=o.a_hang;
-	}
-
-      } else {
-	currFrg=o.a_iid;
-
-	if(Aend){
-	  if(o.flipped){
-	    ahang+=-o.a_hang;
-	  } else {
-	    ahang+=o.b_hang;
-	  }
-	} else {
-	  if(o.flipped){
-	    ahang+=o.b_hang;
-	  } else {
-	    ahang+=-o.b_hang;
-	  }
-	}
-      }
-
-      if(Aend){
-	Aend=1-o.flipped;
-      } else {
-	Aend=o.flipped;
-      }
-
-    }
-    if(!seen[currFrg]){
-      getFragStore(frag_store,currFrg,FRAG_S_ALL,fsread);
-    } else {
+    numFwdOvls = numOvls = setupolaps(currFrg, Aend, bestType,maxError,useCorrectedErate,skipContaining,minlen,frglen,avoidDeadEnds,&olaps,favorSameSample);
+    if(numOvls==0){
       stillGoing=0;
     }
-    seen[currFrg]++;
-    assert(seen[currFrg]<(char)127);
-  }
-
-  if(firstExtend>=0){
-    seen[firstExtend]--;
-  }
-
-
-    fprintf(stderr,"now for the other end...\n");
-
-  stillGoing=1;
-  Aend=0;
-  currFrg=startingFrgNum;
-  getFragStore(frag_store,currFrg,FRAG_S_ALL,fsread);
-  getClearRegion_ReadStruct(fsread, &clr_bgn,&clr_end, READSTRUCT_LATEST);
-  frglen=clr_end-clr_bgn;
-  ahang=frglen;
-  while(stillGoing){
-    Long_Olap_Data_t o;
-    if(currFrg!=startingFrgNum&&currFrg!=firstExtend)  printf("%d %d %d %s\n",currFrg,ahang-frglen,ahang,!Aend?"<--":"-->");
-
-    stillGoing = best_overlap_off_end(currFrg, Aend, bestType,&o,maxError,useCorrectedErate,skipContaining,minlen,frglen,avoidDeadEnds);
-    if(stillGoing){
-      if(o.a_iid==currFrg){
-	currFrg=o.b_iid;
-
-	if(Aend){
-	  ahang-=-o.b_hang;
-	} else {
-	  ahang-=o.a_hang;
-	}
-
-      } else {
-	currFrg=o.a_iid;
-
-	if(Aend){
-	  if(o.flipped){
-
-	    /*
-                    ---> a_iid
-	         <--- b_iid
-                 |-| = ahang
-
-	    */
-	    ahang-=o.a_hang;
-	  } else {
-	    /*
-                    ---> a_iid
-	              ----> b_iid
-                        |-| = bhang
-
-	    */
-	    ahang-=o.b_hang;
+    while(stillGoing){
+      Long_Olap_Data_t o;
+      printf("%d  %d %d %s\n",currFrg,ahang,ahang+frglen, Aend?"<--":"-->");
+      if(numOvls>0){
+	stillGoing = best_overlap_off_end(currFrg, Aend, bestType,&o,maxError,useCorrectedErate,skipContaining,minlen,frglen,avoidDeadEnds,olaps,numOvls);
+	if(stillGoing){
+	  if(currFrg==seediid){
+	    firstExtend= ( o.a_iid==currFrg) ? o.b_iid : o.a_iid;
 	  }
-	} else {
-	  if(o.flipped){
-	    /*
-                    ---> a_iid
-	              <--- b_iid
-                        |-| = bhang
+	  if(o.a_iid==currFrg){
+	    currFrg=o.b_iid;
 
-	    */
-	    ahang-=o.b_hang;
+	    if(Aend){
+	      ahang+=-o.b_hang;
+	    } else {
+	      ahang+=o.a_hang;
+	    }
+
 	  } else {
-	    /*
-                    ---> a_iid
-	         ---> b_iid
-                     |-| = -bhang
+	    currFrg=o.a_iid;
 
-	    */
-	    ahang-=-o.b_hang;
+	    if(Aend){
+	      if(o.flipped){
+		ahang+=-o.a_hang;
+	      } else {
+		ahang+=o.b_hang;
+	      }
+	    } else {
+	      if(o.flipped){
+		ahang+=o.b_hang;
+	      } else {
+		ahang+=-o.b_hang;
+	      }
+	    }
 	  }
+
+	  if(Aend){
+	    Aend=1-o.flipped;
+	  } else {
+	    Aend=o.flipped;
+	  }
+
 	}
-      }
-      if(Aend){
-	Aend=1-o.flipped;
+	if(!seen[currFrg]){
+	  getFragStore(my_frg_store,currFrg,FRAG_S_ALL,fsread);
+	  getClearRegion_ReadStruct(fsread, &clr_bgn,&clr_end, READSTRUCT_LATEST);
+	  frglen=clr_end-clr_bgn;
+	  numOvls = setupolaps(currFrg, Aend, bestType,maxError,useCorrectedErate,skipContaining,minlen,frglen,avoidDeadEnds,&olaps,favorSameSample);
+	} else {
+	  printf("SEEN: %d  %d %d %s\n",currFrg,ahang,ahang+frglen, Aend?"<--":"-->");
+	  stillGoing=0;
+	}
+	seen[currFrg]++;
+	assert(seen[currFrg]<(char)127);
       } else {
-	Aend=o.flipped;
+	stillGoing=0;
       }
     }
-    if(!seen[currFrg]){
-      seen[currFrg]='\1';
-      getFragStore(frag_store,currFrg,FRAG_S_ALL,fsread);
-      getClearRegion_ReadStruct(fsread, &clr_bgn,&clr_end, READSTRUCT_LATEST);
-      frglen=clr_end-clr_bgn;
-    } else {
-      stillGoing=0;
+
+    if(numFwdOvls>0){     // if we did the forward extension
+      seen[seediid]--; // decrement the seen counter for the seed frg
+    }
+
+
+    // if we hit the seed again, don't go back off the other end
+    if(seen[seediid]!=0){
+      continue;
+    }
+ 
+    //    fprintf(stderr,"now for the other end...\n");
+    
+    stillGoing=1;
+    Aend=0;
+    currFrg=seediid;
+    getFragStore(my_frg_store,currFrg,FRAG_S_ALL,fsread);
+    getClearRegion_ReadStruct(fsread, &clr_bgn,&clr_end, READSTRUCT_LATEST);
+    frglen=clr_end-clr_bgn;
+    ahang=frglen;
+
+    numOvls = setupolaps(currFrg, Aend, bestType,maxError,useCorrectedErate,skipContaining,minlen,frglen,avoidDeadEnds,&olaps,favorSameSample);
+    if(numOvls==0){stillGoing=0;}
+
+    while(stillGoing){
+      Long_Olap_Data_t o;
+      if(currFrg!=seediid&&currFrg!=firstExtend)  printf("%d %d %d %s\n",currFrg,ahang-frglen,ahang,!Aend?"<--":"-->");
+
+      if(numOvls>0){
+	stillGoing = best_overlap_off_end(currFrg, Aend, bestType,&o,maxError,useCorrectedErate,skipContaining,minlen,frglen,avoidDeadEnds,olaps,numOvls);
+	if(stillGoing){
+	  if(o.a_iid==currFrg){
+	    currFrg=o.b_iid;
+
+	    if(Aend){
+	      ahang-=-o.b_hang;
+	    } else {
+	      ahang-=o.a_hang;
+	    }
+
+	  } else {
+	    currFrg=o.a_iid;
+
+	    if(Aend){
+	      if(o.flipped){
+
+		/*
+		  ---> a_iid
+		  <--- b_iid
+		  |-| = ahang
+
+		*/
+		ahang-=o.a_hang;
+	      } else {
+		/*
+		  ---> a_iid
+		  ----> b_iid
+		  |-| = bhang
+
+		*/
+		ahang-=o.b_hang;
+	      }
+	    } else {
+	      if(o.flipped){
+		/*
+		  ---> a_iid
+		  <--- b_iid
+		  |-| = bhang
+
+		*/
+		ahang-=o.b_hang;
+	      } else {
+		/*
+		  ---> a_iid
+		  ---> b_iid
+		  |-| = -bhang
+
+		*/
+		ahang-=-o.b_hang;
+	      }
+	    }
+	  }
+	  if(Aend){
+	    Aend=1-o.flipped;
+	  } else {
+	    Aend=o.flipped;
+	  }
+	}
+	if(!seen[currFrg]){
+	  seen[currFrg]='\1';
+	  getFragStore(my_frg_store,currFrg,FRAG_S_ALL,fsread);
+	  getClearRegion_ReadStruct(fsread, &clr_bgn,&clr_end, READSTRUCT_LATEST);
+	  frglen=clr_end-clr_bgn;
+	  numOvls = setupolaps(currFrg, Aend, bestType,maxError,useCorrectedErate,skipContaining,minlen,frglen,avoidDeadEnds,&olaps,favorSameSample);
+	} else {
+	  stillGoing=0;
+	  printf("SEEN: %d  %d %d %s\n",currFrg,ahang,ahang+frglen, Aend?"<--":"-->");
+	}
+	seen[currFrg]++;
+	assert(seen[currFrg]<(char)127);
+      } else {
+	stillGoing=0;
+      }
     }
   }
 
