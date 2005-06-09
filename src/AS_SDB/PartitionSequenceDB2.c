@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: PartitionSequenceDB2.c,v 1.4 2005-03-22 19:49:27 jason_miller Exp $";
+static char CM_ID[] = "$Id: PartitionSequenceDB2.c,v 1.5 2005-06-09 21:17:05 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -163,15 +163,23 @@ int main(int argc, char **argv){
     }
    }
 
-   for(i = 1; i < GetNumPtrTs(outputIndices); i++){
-     char buffer[2048];
-     FILE *indexfp;
-     VA_TYPE(tMARecord) *index = GetIndex(i);
-     fclose(GetOutputFile(storeName,storeVersion, i));
-     sprintf(buffer,"%s/seqDB.%d.%d",storeName, storeVersion, i);
-     indexfp = fopen(buffer,"w");
-     CopyToFileVA_tMARecord(index, indexfp);
-     fclose(indexfp);
+   //  If the input was empty, we should not crash and burn, but we still exit
+   //  ungracefully.
+   //
+   if (outputIndices == NULL) {
+     fprintf(stderr, "* Found no partitions in the input (empty input file?) -- I fail!\n");
+     exit(1);
+   } else {
+     for(i = 1; i < GetNumPtrTs(outputIndices); i++){
+       char buffer[2048];
+       FILE *indexfp;
+       VA_TYPE(tMARecord) *index = GetIndex(i);
+       fclose(GetOutputFile(storeName,storeVersion, i));
+       sprintf(buffer,"%s/seqDB.%d.%d",storeName, storeVersion, i);
+       indexfp = fopen(buffer,"w");
+       CopyToFileVA_tMARecord(index, indexfp);
+       fclose(indexfp);
+     }
    }
    return 0;
 }
