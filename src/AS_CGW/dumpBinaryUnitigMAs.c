@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: dumpBinaryUnitigMAs.c,v 1.4 2005-03-22 19:48:37 jason_miller Exp $";
+static char CM_ID[] = "$Id: dumpBinaryUnitigMAs.c,v 1.5 2005-06-09 21:15:35 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -414,7 +414,7 @@ int main(int argc, char *argv[]){
     FixZLFContigs(zlfScaffolds, TRUE, TRUE);
     
     // now dump a checkpoint, reload it & check again
-    CheckpointScaffoldGraph(ScaffoldGraph);
+    CheckpointScaffoldGraph(ScaffoldGraph, 1);
     DestroyScaffoldGraph(ScaffoldGraph);
     ScaffoldGraph = LoadScaffoldGraphFromCheckpoint(data->File_Name_Prefix,
                                                     ckptNum + 1, FALSE);
@@ -504,7 +504,7 @@ int main(int argc, char *argv[]){
     }
     fprintf(stderr,"Checkpoint %d written after distance re-estimation\n",
             ScaffoldGraph->checkPointIteration);
-    CheckpointScaffoldGraph(ScaffoldGraph);
+    CheckpointScaffoldGraph(ScaffoldGraph, 2);
     */
   return 0;
 }

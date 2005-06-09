@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.4 2005-03-22 19:48:36 jason_miller Exp $";
+static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.5 2005-06-09 21:15:35 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -99,7 +99,7 @@ void CheckpointOnDemand(int whatToDoAfter)
     CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, FALSE);
     fprintf( GlobalData->stderrc, "Checkpoint %d written during MergeScaffoldsAggressive demanded by user\n", ScaffoldGraph->checkPointIteration);
     fprintf( GlobalData->timefp,"Checkpoint %d written during MergeScaffoldsAggressive demanded by user\n", ScaffoldGraph->checkPointIteration);
-    CheckpointScaffoldGraph(ScaffoldGraph);
+    CheckpointScaffoldGraph(ScaffoldGraph, -1);
     
     sprintf(command, "rm -f %s", CHECKPOINT_DEMAND_FILE);
     if(system(command) != 0)
@@ -133,7 +133,7 @@ void CheckpointOnDemand(int whatToDoAfter)
 }
 
 
-void CheckpointScaffoldGraph(ScaffoldGraphT *graph){
+void CheckpointScaffoldGraph(ScaffoldGraphT *graph, int logicalCheckpoint){
   char buffer[1024];
   FILE *outStream;
   char *name = GlobalData->File_Name_Prefix;
@@ -154,7 +154,7 @@ void CheckpointScaffoldGraph(ScaffoldGraphT *graph){
   }
   {
     long cycles;
-    fprintf(GlobalData->timefp,"******* Dumping Checkpoint %d \n", graph->checkPointIteration - 1);
+    fprintf(GlobalData->timefp,"******* Dumping Checkpoint %d (logical %d)\n", graph->checkPointIteration - 1, logicalCheckpoint);
     fprintf(GlobalData->timefp,"* Time in Chunk Selection %g seconds (%ld calls)\n",
 	    TotalTimerT(&GlobalData->ChooseChunksTimer, &cycles), cycles);
     fprintf(GlobalData->timefp,"* Time in Consistency Check %g seconds (%ld calls)\n",
@@ -185,7 +185,7 @@ void CheckpointScaffoldGraph(ScaffoldGraphT *graph){
   {
     time_t t;
     t = time(0);
-    fprintf(GlobalData->timefp, "====> Done with checkpoint at %s\n", ctime(&t));
+    fprintf(GlobalData->timefp, "====> Done with checkpoint %d (logical %d) at %s\n", graph->checkPointIteration - 1, logicalCheckpoint, ctime(&t));
     fprintf(GlobalData->timefp,">>>>*************************************************************************<<<<\n\n\n");    
     fflush(NULL);
   }
@@ -1013,7 +1013,7 @@ void RebuildScaffolds(ScaffoldGraphT *ScaffoldGraph,
       sprintf(temp,"Rebuild%d",ScaffoldGraph->checkPointIteration);
       DumpScaffoldSnapshot(temp);
     }
-    CheckpointScaffoldGraph(ScaffoldGraph);
+    CheckpointScaffoldGraph(ScaffoldGraph, -1);
   }
 
   TidyUpScaffolds (ScaffoldGraph);
@@ -1028,7 +1028,7 @@ void RebuildScaffolds(ScaffoldGraphT *ScaffoldGraph,
       sprintf(temp,"Rebuild%d",ScaffoldGraph->checkPointIteration);
       DumpScaffoldSnapshot(temp);
     }
-    CheckpointScaffoldGraph(ScaffoldGraph);
+    CheckpointScaffoldGraph(ScaffoldGraph, -1);
   }
 
   return;
@@ -1096,7 +1096,7 @@ void BuildScaffoldsFromFirstPriniciples(ScaffoldGraphT *ScaffoldGraph,
 	sprintf(temp,"Rebuild%d",ScaffoldGraph->checkPointIteration);
 	DumpScaffoldSnapshot(temp);
       }
-      CheckpointScaffoldGraph(ScaffoldGraph);
+      CheckpointScaffoldGraph(ScaffoldGraph, -1);
     }
   }else{
     // This includes CleanupScaffolds
@@ -1155,7 +1155,7 @@ void BuildScaffoldsFromFirstPriniciples(ScaffoldGraphT *ScaffoldGraph,
     fprintf(GlobalData->timefp,
             "\n\nCheckpoint %d written after Gap Filling\n",
             ScaffoldGraph->checkPointIteration);
-    CheckpointScaffoldGraph(ScaffoldGraph);
+    CheckpointScaffoldGraph(ScaffoldGraph, -1);
     
   }
 

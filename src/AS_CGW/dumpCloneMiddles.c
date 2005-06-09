@@ -210,6 +210,8 @@ int main (int argc , char * argv[] ) {
       camdir=opendir(CMDIR);
       assert(camdir!=NULL);
     }
+    closedir(camdir);
+
     do_draw_frags_in_CelamyScaffold=1;
     do_compute_missing_overlaps=1;
 

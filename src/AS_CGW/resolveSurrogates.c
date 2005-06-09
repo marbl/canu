@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: resolveSurrogates.c,v 1.2 2005-03-22 19:48:38 jason_miller Exp $";
+static char CM_ID[] = "$Id: resolveSurrogates.c,v 1.3 2005-06-09 21:15:35 brianwalenz Exp $";
 
 
 /*********************************************************************/
@@ -304,7 +304,7 @@ int main( int argc, char *argv[])
 
   fprintf(data->timefp,"Checkpoint %d written after resolveSurrogates\n",
 	  ScaffoldGraph->checkPointIteration);
-  CheckpointScaffoldGraph(ScaffoldGraph);
+  CheckpointScaffoldGraph(ScaffoldGraph, -1);
 
   fprintf(data->logfp,"Placed  %d surrogate fragments\n",numReallyPlaced);
 

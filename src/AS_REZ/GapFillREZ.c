@@ -37,7 +37,7 @@
 
 
 
-static char fileID[] = "$Id: GapFillREZ.c,v 1.4 2005-03-22 19:49:21 jason_miller Exp $";
+static char fileID[] = "$Id: GapFillREZ.c,v 1.5 2005-06-09 21:15:34 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -12891,7 +12891,7 @@ PALLOC (Num_Scaffolds * sizeof (char));
                    "\n\nCheckpoint %d written during Stones CleanupScaffolds"
                    " after scaffold %d\n",
                    ScaffoldGraph -> checkPointIteration, scaff_id);
-          CheckpointScaffoldGraph (ScaffoldGraph);
+          CheckpointScaffoldGraph (ScaffoldGraph, 0);
 
           // Clear cache if too large
           CheckScaffoldGraphCache (ScaffoldGraph);

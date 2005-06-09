@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.4 2005-03-22 19:48:36 jason_miller Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.5 2005-06-09 21:15:34 brianwalenz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -157,7 +157,7 @@ int ProcessInput(Global_CGW *data, int optind, int argc, char *argv[]){
 	  adt_mesg = pmesg->m;
 	  pmesg->t = MESG_ADT;
 
-	  AppendAuditLine_AS(adt_mesg, &auditLine, time(0), "CGW", "$Revision: 1.4 $", "(empty)");
+	  AppendAuditLine_AS(adt_mesg, &auditLine, time(0), "CGW", "$Revision: 1.5 $", "(empty)");
 
 	  (data->writer)(data->outfp,pmesg);      // Echo to output
 
@@ -1112,19 +1112,18 @@ void  LoadLocaleData(void){ // Load locale info from fragStore
   for(i = 0; i < GetNumInfoByIIDs(ScaffoldGraph->iidToFragIndex); i++){
     InfoByIID *infobyiid = GetInfoByIID(ScaffoldGraph->iidToFragIndex, i);
     if(infobyiid->set){
-      // CDS_UID_t locale;
       cds_uint32 bgn,end;
 
       CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags, infobyiid->fragIndex);
 
       if(frag->type != AS_FBAC && frag->type != AS_UBAC)
 	continue;
+
       getFragStore(ScaffoldGraph->fragStore, i, FRAG_S_FIXED, rsp);
-      //      getLocID_ReadStruct(rsp, &locale);
-      //      frag->locale = (CDS_CID_t)locale;
       getLocalePos_ReadStruct(rsp, &bgn, &end);
       frag->localePos.bgn = bgn;
       frag->localePos.end = end;
+
 #ifdef DEBUG_DETAILED
       fprintf(stderr,"* Read locale " F_CID " [" F_COORD "," F_COORD "] for fragment id " F_CID " (iid " F_CID ")\n",
 	      frag->locale, frag->localePos.bgn, frag->localePos.end,
@@ -1133,6 +1132,8 @@ void  LoadLocaleData(void){ // Load locale info from fragStore
     }
 
   }
+
+  delete_ReadStruct(rsp);
 
   fprintf(stderr,"* Done! *\n");
   fflush(NULL);

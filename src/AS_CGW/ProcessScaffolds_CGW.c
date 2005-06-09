@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: ProcessScaffolds_CGW.c,v 1.4 2005-03-22 19:48:36 jason_miller Exp $ */
+/* $Id: ProcessScaffolds_CGW.c,v 1.5 2005-06-09 21:15:34 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -165,6 +165,8 @@ int HandleDir(char *filePathAndName, char *fileName) {
             fprintf(stderr,"Failure to create directory %s\n", DirName);
             CleanExit(1);
           }
+        } else {
+          closedir(Dir);
         }
       }
       *suffix = '/';

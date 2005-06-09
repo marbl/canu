@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.4 2005-03-22 19:48:34 jason_miller Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.5 2005-06-09 21:15:34 brianwalenz Exp $";
 
 #undef ORIG_MERGE_EDGE_INVERT
 #define MINSATISFIED_CUTOFF 0.985
@@ -3334,6 +3334,7 @@ int isQualityScaffoldMergingEdge(SEdgeT * curEdge,
 
 
 	fclose(camfile);
+        closedir(camdir);
       }
 #endif
       return FALSE;
@@ -5010,7 +5011,7 @@ int MergeScaffoldsExhaustively(ScaffoldGraphT * graph,
                ScaffoldGraph->checkPointIteration, giterations);
       fprintf( GlobalData->timefp,"Checkpoint %d written written during MergeScaffoldsAggressive at giteration %d\n",
                ScaffoldGraph->checkPointIteration, giterations);
-      CheckpointScaffoldGraph(ScaffoldGraph);
+      CheckpointScaffoldGraph(ScaffoldGraph, -1);
       ckpIterationCounter = 0;
     }
     currFirstNewScaffoldID = GetNumGraphNodes(graph->ScaffoldGraph);

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Stats_CGW.c,v 1.4 2005-03-22 19:48:36 jason_miller Exp $";
+static char CM_ID[] = "$Id: Stats_CGW.c,v 1.5 2005-06-09 21:15:35 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,14 +43,14 @@ void MakeStatDir(void){
     
     statDir = opendir("./stat");
     
-    if(statDir == NULL)
-      {
-	fprintf(GlobalData->stderrc,"Could not open stat dir\n");
-	if(mkdir("./stat",mode))
-	  {
-	    exit(1);
-	  }
+    if(statDir == NULL) {
+      fprintf(GlobalData->stderrc,"Could not open stat dir\n");
+      if(mkdir("./stat",mode)) {
+        exit(1);
       }
+    } else {
+      closedir(statDir);
+    }
 }
 
 /* Generate statistics on the U-Unitig induced subgraph of

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.4 2005-03-22 19:48:34 jason_miller Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.5 2005-06-09 21:15:34 brianwalenz Exp $";
 
 #define DEBUG 0
 #undef DEBUG_DETAILED
@@ -1336,9 +1336,10 @@ int CleanupScaffolds(ScaffoldGraphT *sgraph, int lookForSmallOverlaps,
     }
 
 #if 0
+    //  If enabled, it needs a real logical checkpoint number (not -1)
     if(GetSizeOfCurrentSequenceDB(ScaffoldGraph->sequenceDB) > GlobalData->maxSequencedbSize){
       fprintf(GlobalData->timefp,"\n\nCheckpoint %d written during CleanupScaffolds after scaffold " F_CID "\n",ScaffoldGraph->checkPointIteration, scaffold->id);
-      CheckpointScaffoldGraph(ScaffoldGraph);
+      CheckpointScaffoldGraph(ScaffoldGraph, -1);
     }
 #endif
     CheckScaffoldGraphCache(ScaffoldGraph);
@@ -1712,6 +1713,7 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
 #endif
 
 #if 0
+  //  If enabled, it needs a real logical checkpoint number (not -1)
   // initialize the timer the first time we cleanup a scaffold
   if (lastCkpTime == (time_t) -1)
   	lastCkpTime = time(NULL);
@@ -1724,7 +1726,7 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
 	  fprintf(GlobalData->timefp,"\n\nCheckpoint %d written during CleanupAScaffold after scaffold " F_CID "\n",
 			  ScaffoldGraph->checkPointIteration, scaffold->id);
 	  // fprintf( stderr, "would write a checkpoint at time: " F_TIME_T "\n", time(NULL));
-	  CheckpointScaffoldGraph(ScaffoldGraph);
+	  CheckpointScaffoldGraph(ScaffoldGraph, -1);
 	  lastCkpTime = time(NULL);
 	}
   }
@@ -1734,7 +1736,7 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
   {
 	  fprintf(GlobalData->timefp,"\n\nCheckpoint %d written during CleanupAScaffold after scaffold " F_CID "\n",
 			  ScaffoldGraph->checkPointIteration, scaffold->id);
-	  CheckpointScaffoldGraph(ScaffoldGraph);
+	  CheckpointScaffoldGraph(ScaffoldGraph, -1);
   }
   
   

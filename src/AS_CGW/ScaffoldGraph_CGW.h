@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: ScaffoldGraph_CGW.h,v 1.4 2005-03-22 19:48:36 jason_miller Exp $	 */
+/* 	$Id: ScaffoldGraph_CGW.h,v 1.5 2005-06-09 21:15:35 brianwalenz Exp $	 */
 /***************************************************************************
  *  ScaffoldGraph
  *  
@@ -481,7 +481,7 @@ void CheckCIScaffoldTLength(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold);
 int CheckAllEdges(ScaffoldGraphT *sgraph, CDS_CID_t sid, CDS_CID_t cid);
 
 void CheckpointOnDemand(int whatToDoAfter);
-void CheckpointScaffoldGraph(ScaffoldGraphT *graph);
+void CheckpointScaffoldGraph(ScaffoldGraphT *graph, int logicalCheckPoint);
 ScaffoldGraphT * LoadScaffoldGraphFromCheckpoint(char *name,
                                                  int32 checkPointNum,
                                                  int readWrite);

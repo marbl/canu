@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: extendClearRanges.c,v 1.5 2005-04-11 15:09:31 eliv Exp $";
+static char CM_ID[] = "$Id: extendClearRanges.c,v 1.6 2005-06-09 21:15:35 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -1343,7 +1343,7 @@ int main( int argc, char *argv[])
 			   ScaffoldGraph->checkPointIteration, sumScaffoldLengths);
 	  fprintf( GlobalData->timefp, "checkpoint %d written during extendClearRanges, sumScaffoldLengths: %f\n",
 			   ScaffoldGraph->checkPointIteration, sumScaffoldLengths);
-	  CheckpointScaffoldGraph(ScaffoldGraph);
+	  CheckpointScaffoldGraph(ScaffoldGraph, 1);
 	  {
 		char temp_buf[1024];
 		int sysReturn;
@@ -1409,7 +1409,7 @@ int main( int argc, char *argv[])
 
   fprintf( GlobalData->timefp, "checkpoint %d written at end of extendClearRanges, sumScaffoldLengths: %f",
 		   ScaffoldGraph->checkPointIteration, sumScaffoldLengths);
-  CheckpointScaffoldGraph(ScaffoldGraph);
+  CheckpointScaffoldGraph(ScaffoldGraph, 2);
   {
 	char temp_buf[1024];
 	int sysReturn;
