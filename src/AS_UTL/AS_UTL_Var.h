@@ -126,6 +126,13 @@ void InitializeFromArray_VA
   const char * const thetype,
   const void * const data
   );
+void ReInitializeFromArray_VA
+( VarArrayType * const va,
+  const size_t arraySize,
+  const size_t sizeofElement,
+  const char * const thetype,
+  const void * const data
+  );
 
 void InitializeFromFile_VA
 ( FILE *fp,
@@ -287,7 +294,7 @@ static VarArrayType *Clone_VA(const VarArrayType *va){
 
 // Like Clone, except the vato VA is recycled, rather than allocated
 static void ReuseClone_VA(VarArrayType *vato, const VarArrayType *vafrom){
-  InitializeFromArray_VA(vato, vafrom->numElements, vafrom->sizeofElement, vafrom->typeofElement, vafrom->Elements);
+  ReInitializeFromArray_VA(vato, vafrom->numElements, vafrom->sizeofElement, vafrom->typeofElement, vafrom->Elements);
 }
 
 static void Delete_VA(VarArrayType * va) {

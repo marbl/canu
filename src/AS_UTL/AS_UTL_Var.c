@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.4 2005-03-22 19:49:29 jason_miller Exp $";
+static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.5 2005-06-09 21:06:48 brianwalenz Exp $";
 /********************************************************************/
 /* Variable Length C Array Package 
  * 
@@ -30,8 +30,8 @@ static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.4 2005-03-22 19:49:29 jason_miller 
  * It defines a basic set of operations, and provides a set of
  * macros that expand to support typesafe manipulation of the
  * arrays.
- * Revision: $Revision: 1.4 $
- * Date:     $Date: 2005-03-22 19:49:29 $
+ * Revision: $Revision: 1.5 $
+ * Date:     $Date: 2005-06-09 21:06:48 $
  * CMM, 1999/03/29:  Ported to large arrays on the Digital systems by declaring
  * array sizes using size_t, rather than unit32.
  *
@@ -345,13 +345,13 @@ void ReInitialize_VA
   assert(va != NULL);
   if(va->sizeofElement != sizeofElement ||
      strcmp(va->typeofElement, thetype)){
-    assert(0);
+    free(va->Elements);
     va->Elements = NULL;
     va->sizeofElement = sizeofElement;
     va->numElements = 0;
     va->allocatedElements = 0;
     strncpy(va->typeofElement,thetype,VA_TYPENAMELEN);
-  /* Now make sure that the character string is zero terminated. */
+    /* Now make sure that the character string is zero terminated. */
     assert(VA_TYPENAMELEN > 0);
     va->typeofElement[VA_TYPENAMELEN-1] = (char)0;
   }else{
@@ -378,6 +378,31 @@ void InitializeFromArray_VA
   */
      
   Initialize_VA( va, arraySize, sizeofElement, thetype);
+  if(arraySize > 0){
+    EnableRange_VA(va,arraySize);
+    assert( NULL != va->Elements );
+    memcpy(va->Elements,data,sizeofElement*arraySize);
+  }
+}
+
+void ReInitializeFromArray_VA
+( VarArrayType * const va,
+  const size_t arraySize,
+  const size_t sizeofElement,
+  const char * const thetype,
+  const void * const data
+  )
+{
+  /* 
+     Take a variable length array and initialize
+     with a copy of the input array 'data'.
+     
+     arraySize: The initial number of elements. This can be zero.
+     sizeofElement: The size in bytes of the elements.
+     thetype: A character string identifying the type.
+  */
+     
+  ReInitialize_VA( va, arraySize, sizeofElement, thetype);
   if(arraySize > 0){
     EnableRange_VA(va,arraySize);
     assert( NULL != va->Elements );
