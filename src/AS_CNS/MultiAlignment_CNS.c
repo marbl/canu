@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.8 2005-05-23 15:03:20 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.9 2005-06-12 17:18:03 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -1604,8 +1604,20 @@ char QVInRange(int q) {
     }
 }
 
+static int
+UidToIndex(uint64 uid, uint64 *uids, int nr)
+{
+    int i;
+    for (i=0; i<nr; i++)
+    {
+        if (uid == uids[i])
+            return i;
+    }
+    return (-1);
+}
+
 int 
-BaseCall(int32 cid, int quality, char *cbase, int verbose) 
+BaseCall(int32 cid, int quality, float *var, AlPair ap, int verbose) 
 {
     /* Calculate the consensus call for the given column */
 
@@ -1614,6 +1626,8 @@ BaseCall(int32 cid, int quality, char *cbase, int verbose)
     Bead *bead;
     int read_base_count[CNS_NP] =
         {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    int read_qv_count[CNS_NP] =
+        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
     int read_depth=0;
     int other_base_count[CNS_NP] =
         {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
@@ -1621,19 +1635,24 @@ BaseCall(int32 cid, int quality, char *cbase, int verbose)
     int score=0;
     int bi;
     int32 bid;
-    char cqv;
+    uint64 uid;
+    char cqv, cbase;
     int qv = 0;
-    static  double cw[CNS_NP];
+    static  double cw[CNS_NP];      // "consensus weight" for a given base
     static  double tau[CNS_NP];
     FragType type;
     UnitigType utype;
     ColumnBeadIterator ci;
     int used_surrogate=0;
+    int sum_qv_cbase=0, sum_qv_all=0;
+    int k;
 
-    if(!CreateColumnBeadIterator(cid,&ci)){
+   
+    if(!CreateColumnBeadIterator(cid, &ci)){
         CleanExit("BaseCall CreateColumnBeadIterator failed",__LINE__,1);
     }
 
+   *var = 0.;
     if (quality > 0) 
     {
         static int guides_alloc=0;
@@ -1649,8 +1668,9 @@ BaseCall(int32 cid, int quality, char *cbase, int verbose)
         int    n_count=0;
         int    frag_cov=0;
         int16  max_ind=0;
-        double max_cw=0.0;
+        double max_cw=0.0;   // max of "consensus weights" of all bases
         double normalize=0;
+
         if (!guides_alloc) {
             guides = CreateVA_Bead(16);
             reads  = CreateVA_Bead(16);
@@ -1668,9 +1688,9 @@ BaseCall(int32 cid, int quality, char *cbase, int verbose)
         while ( (bid = NextColumnBead(&ci)) != -1 ) 
         {
             bead =  GetBead(beadStore,bid);
-           *cbase = *Getchar(sequenceStore,bead->soffset);
+            cbase = *Getchar(sequenceStore,bead->soffset);
             qv = (int) ( *Getchar(qualityStore,bead->soffset)-'0');
-            if ( *cbase == 'N' ) { 
+            if ( cbase == 'N' ) { 
                 // skip 'N' base calls 
                 // fprintf(stderr,
                 //    "encountered 'n' base in fragment data at column cid=%d\n",
@@ -1678,19 +1698,33 @@ BaseCall(int32 cid, int quality, char *cbase, int verbose)
                 n_count++;
                 continue;
             }
-            bmask = AMASK[BaseToInt(*cbase)];
+            bmask = AMASK[BaseToInt(cbase)];
             type = GetFragment(fragmentStore,bead->frag_index)->type;
-            if (type  != AS_READ &&
-            	type  != AS_B_READ &&
-                type  != AS_EXTR &&
-                type  != AS_TRNR ) 
+            uid  = GetFragment(fragmentStore,bead->frag_index)->uid;
+            k = UidToIndex(uid, ap.uids, ap.nr);
+            if ((type  != AS_READ &&
+             	 type  != AS_B_READ &&
+                 type  != AS_EXTR &&
+                 type  != AS_TRNR)      
+                                          ||
+                 (ap.nr > 0 && 
+                  k >= 0    &&
+                  ap.alleles[k] != ap.best_allele)  ) 
             {
-                other_base_count[BaseToInt(*cbase)]++;
+                other_base_count[BaseToInt(cbase)]++;
+//              read_qv_count[BaseToInt(cbase)] += qv;
                 AppendBead(guides,bead);
             } 
-            else {
-                read_base_count[BaseToInt(*cbase)]++;
-                AppendBead(reads,bead);
+            else 
+            {
+                if ((ap.nr <= 0) || (ap.alleles[k] == ap.best_allele))
+                {
+                    if (k >= 0 && k < ap.nr)
+                        ap.bases[k] = cbase;
+                    read_base_count[BaseToInt(cbase)]++;
+                    read_qv_count[BaseToInt(cbase)] += qv;
+                    AppendBead(reads, bead);
+                }
             }
             if ( type != AS_UNITIG ) {
                 frag_cov++;
@@ -1703,12 +1737,12 @@ BaseCall(int32 cid, int quality, char *cbase, int verbose)
 
         for (cind = 0; cind < read_depth; cind++) \
         {
-            gb = GetBead(reads,cind);
-           *cbase = *Getchar(sequenceStore,gb->soffset);
+            gb = GetBead(reads, cind);
+            cbase = *Getchar(sequenceStore,gb->soffset);
             qv = (int) ( *Getchar(qualityStore,gb->soffset)-'0');
             if ( qv == 0 ) 
                 qv += 5;
-            bmask = AMASK[BaseToInt(*cbase)];
+            bmask = AMASK[BaseToInt(cbase)];
             for (bi=0;bi<CNS_NP;bi++) {
                 if ( (bmask>>bi) & 1 ) {
                     tau[bi]*= PROB[qv];
@@ -1718,6 +1752,8 @@ BaseCall(int32 cid, int quality, char *cbase, int verbose)
             }
         }
 
+#if 0
+        /* This loop is disabled at Karin's seggestion */
         if (  CNS_USE_PUBLIC == 0 || 
               read_depth < CNS_USE_PUBLIC || 
               read_depth == 0 ) 
@@ -1736,28 +1772,29 @@ BaseCall(int32 cid, int quality, char *cbase, int verbose)
                 }
                 used_surrogate=1;
                 // only for surrogates, use their basecalls/quality in contig consensus
-               *cbase = *Getchar(sequenceStore,gb->soffset);
-                qv = (int) ( *Getchar(qualityStore,gb->soffset)-'0');
+                cbase = *Getchar(sequenceStore,gb->soffset);
+                qv = (int) ( *Getchar(qualityStore, gb->soffset)-'0');
                 if ( qv == 0 ) 
                     qv += 5;
-                bmask = AMASK[BaseToInt(*cbase)];
-                for (bi=0;bi<CNS_NP;bi++) {
+                bmask = AMASK[BaseToInt(cbase)];
+                for (bi=0; bi<CNS_NP; bi++) {
                     if ( (bmask>>bi) & 1 ) {
-                        tau[bi]*= PROB[qv];
+                        tau[bi] *= PROB[qv];
                     } else {
-                        tau[bi]*= (double) TAU_MISMATCH * EPROB[qv];
+                        tau[bi] *= (double) TAU_MISMATCH * EPROB[qv];
                     }
                 }
             }
         }
+#endif
 
-        for (bi=0;bi<CNS_NP;bi++) {
+        for (bi=0; bi<CNS_NP; bi++) {
             cw[bi] = tau[bi] *COMP_BIAS[bi];
             normalize += cw[bi];
         }
         if (normalize) 
             normalize = 1/normalize;
-        for (bi=0;bi<CNS_NP;bi++) {
+        for (bi=0; bi<CNS_NP; bi++) {
             cw[bi] *= normalize;
             if (cw[bi] > max_cw) {
                 max_ind = bi;
@@ -1768,13 +1805,13 @@ BaseCall(int32 cid, int quality, char *cbase, int verbose)
             }
         }
         if (max_cw == 0) {
-            max_ind=0;
+            max_ind = 0;      // consensus is gap
         } else {
             if (GetNumint16s(tied)> 0) 
             {
                 // break a tie randomly
                 int i,max_tie,tie_breaker=random();
-                Appendint16(tied,&max_ind);
+                Appendint16(tied, &max_ind);
                 max_tie = tie_breaker;
                 max_ind = *Getint16(tied,0);
                 for (i=1;i<GetNumint16s(tied);i++) {
@@ -1789,15 +1826,15 @@ BaseCall(int32 cid, int quality, char *cbase, int verbose)
         }
         if ( verbose ) {
             fprintf(stdout,"calculated probabilities:\n");
-            for (bi=0;bi<CNS_NP;bi++) {
-                fprintf(stdout,"%c = %16.8f",RALPHABET[bi],cw[bi]);
-                if ( bi == max_ind ) 
-                    fprintf(stdout," *");
-                fprintf(stdout,"\n");
-            }
+//          for (bi=0;bi<CNS_NP;bi++) {
+//              fprintf(stdout,"%c = %16.8f",RALPHABET[bi],cw[bi]);
+//              if ( bi == max_ind ) 
+//                  fprintf(stdout," *");
+//              fprintf(stdout,"\n");
+//          }
         }
-        //*cbase = toupper(RALPHABET[max_ind]);
-       *cbase = RALPHABET[max_ind];
+        // cbase = toupper(RALPHABET[max_ind]);
+        cbase = RALPHABET[max_ind];
         if (max_cw == 1.0) {
             cqv = CNS_MAX_QV+'0';
             Setchar(qualityStore, call->soffset, &cqv);
@@ -1822,26 +1859,32 @@ BaseCall(int32 cid, int quality, char *cbase, int verbose)
             char gbase=(char) 0;
             for (i=0;i<num_guides;i++) {
                 Bead *gbead = GetBead(guides,i);
-                type = GetFragment(fragmentStore,gbead->frag_index)->type;
+                type = GetFragment(fragmentStore, gbead->frag_index)->type;
                 if ( type != AS_UNITIG) {
                     gbase = toupper( *Getchar(sequenceStore,gbead->soffset));
                     break;
                 }
             }
-            if ( gbase != (char) 0  && gbase != *cbase ) {
+            if ( gbase != (char) 0  && gbase != cbase ) {
                 // override the Celera call with the guide call 
-               *cbase = gbase;
+                cbase = gbase;
                 cqv = 0 + '0';
             }
         }
-        Setchar(sequenceStore, call->soffset, cbase);
+        Setchar(sequenceStore, call->soffset, &cbase);
         Setchar(qualityStore, call->soffset, &cqv);
-        for (bi=0;bi<CNS_NALPHABET-1;bi++) { // NALAPHBET-1 to exclude "n" base call
+        for (bi=0; bi<CNS_NALPHABET-1; bi++) { 
+            // NALAPHBET-1 to exclude "n" base call
             bmask = AMASK[bi];  // mask for indicated base
-            if ( ! ((bmask>>max_ind) & 1) ) { // penalize only if base in not represented in call
+            if ( ! ((bmask>>max_ind) & 1) ) { 
+                // penalize only if base in not represented in call
                 score += read_base_count[bi] + other_base_count[bi];
             }
+            sum_qv_all += read_qv_count[bi];
+            if (IntToBase(bi) == cbase)
+                sum_qv_cbase = read_qv_count[bi];
         }
+       *var = 1. - (float)sum_qv_cbase / (float)sum_qv_all;
         return score;
     } 
     else if (quality == 0 ) 
@@ -1854,19 +1897,20 @@ BaseCall(int32 cid, int quality, char *cbase, int verbose)
         }
         while ( (bid = NextColumnBead(&ci)) != -1 ) {
             bead = GetBead(beadStore,bid);
-           *cbase = *Getchar(sequenceStore,bead->soffset);
+            cbase = *Getchar(sequenceStore,bead->soffset);
+            qv = (int) ( *Getchar(qualityStore, bead->soffset)-'0');
             type = GetFragment(fragmentStore,bead->frag_index)->type;
             if (type  != AS_READ &&
                 type  != AS_B_READ &&
                 type  != AS_EXTR &&
                 type  != AS_TRNR ) {
-                other_base_count[BaseToInt(*cbase)]++;
+                other_base_count[BaseToInt(cbase)]++;
             } 
             else {
-                read_base_count[BaseToInt(*cbase)]++;
+                read_base_count[BaseToInt(cbase)]++;
             }
         }
-        for (i=0;i<CNS_NALPHABET;i++) {
+        for (i=0; i<CNS_NALPHABET; i++) {
             if (read_base_count[i]+other_base_count[i] > max_count) {
                 max_count = read_base_count[i] + other_base_count[i];
                 max_index = i;
@@ -1904,12 +1948,12 @@ BaseCall(int32 cid, int quality, char *cbase, int verbose)
                 }
             }
         }
-       *cbase=toupper(RALPHABET[max_index]);
-        Setchar(sequenceStore, call->soffset, cbase);
+        cbase=toupper(RALPHABET[max_index]);
+        Setchar(sequenceStore, call->soffset, &cbase);
         cqv = 0 + '0';
         Setchar(qualityStore, call->soffset, &cqv);
         for (bi=0;bi<CNS_NALPHABET;bi++) {
-            if (bi != BaseToInt(*cbase)) 
+            if (bi != BaseToInt(cbase)) 
             {
                 score += read_base_count[bi]+other_base_count[bi];
             }
@@ -1921,13 +1965,284 @@ BaseCall(int32 cid, int quality, char *cbase, int verbose)
         char bqv;
         bid = NextColumnBead(&ci);
         bead =  GetBead(beadStore,bid);
-       *cbase = *Getchar(sequenceStore, bead->soffset);
+        cbase = *Getchar(sequenceStore, bead->soffset);
         bqv  = *Getchar(qualityStore,bead->soffset);
-        Setchar(sequenceStore, call->soffset, cbase);
+        Setchar(sequenceStore, call->soffset, &cbase);
         Setchar(qualityStore, call->soffset, &bqv);
         return score;
     }
     return score; 
+}
+
+static void
+SetDefault(AlPair *ap)
+{
+    ap->nr = 0;
+}
+
+static void
+SmoothenVariation(float *var, int dim, int window)
+{
+    int i, j, beg, end;
+    float *y = (float *)safe_malloc(dim * sizeof(float));
+    for (i=0; i<dim; i++)
+    {
+        float sum_var = 0.;
+        beg = BC_MAX(0, i - window/2);
+        end = BC_MIN(beg + window, dim);
+        for (j=beg; j<end; j++) {
+            sum_var += var[j];
+        }
+        y[i] = (window > 0) ? sum_var/(float)window : var[i];
+    }
+    for (i=0; i<dim; i++)
+    {
+        var[i] = y[i];
+    }
+    free(y);
+}
+
+static int 
+IsNewRead(uint64 uid, AlPair *ap)
+{
+    int i;
+    for (i=0; i<ap->nr; i++)
+    {
+        if (ap->uids[i] == uid)
+            return 0;
+    }
+    return 1;
+}
+
+static void
+GetReadUids(int cid, AlPair *ap)
+{
+    int      cind;
+    int16    bi;
+    Column  *column=GetColumn(columnStore,cid);
+    Bead    *call = GetBead(beadStore, column->call);
+    Bead    *bead;
+    int32    bid;
+    uint64   uid;
+    FragType type;
+    ColumnBeadIterator ci;
+
+    if(!CreateColumnBeadIterator(cid, &ci)){
+        CleanExit("GetReadUids CreateColumnBeadIterator failed",__LINE__,1);
+    }
+    while ( (bid = NextColumnBead(&ci)) != -1 )
+    {
+        char base;
+ 
+        bead =  GetBead(beadStore,bid);
+        base = *Getchar(sequenceStore,bead->soffset);
+//      if ( base == 'N' ) 
+//          continue;
+        type = GetFragment(fragmentStore,bead->frag_index)->type;
+        uid  = GetFragment(fragmentStore,bead->frag_index)->uid;
+        if ((type == AS_READ) ||
+            (type == AS_B_READ) ||
+            (type == AS_EXTR) ||
+            (type == AS_TRNR))
+        {
+            if (IsNewRead(uid, ap)) {
+
+                if (ap->nr == ap->max_nr)
+                {
+                    int l;
+                    ap->max_nr += MIN_ALLOCATED_DEPTH;
+                    ap->uids = (uint64 *)safe_realloc(ap->uids, 
+                        ap->max_nr*sizeof(uint64));
+                    ap->bases= (char *)safe_realloc(ap->bases, 
+                        ap->max_nr*sizeof(char));
+                    for (l=ap->nr; l<ap->max_nr; l++)
+                    {
+                        ap->uids[l] = -1;
+                        ap->bases[l] = 'N';
+                    }
+                }
+                ap->uids[ap->nr] = uid;
+                ap->bases[ap->nr] = base;
+                ap->nr++;  
+            }
+        }
+    }
+}
+
+static void
+AllocateDistMatrix(AlPair *ap)
+{
+    int j, k;
+
+    ap->alleles     = (char *)safe_calloc(ap->nr, sizeof(char));
+    ap->sum_qvs     = (int  *)safe_calloc(ap->nr, sizeof(int));
+    ap->dist_matrix = (int **)safe_calloc(ap->nr, sizeof(int *));
+    for (j=0; j<ap->nr; j++)
+    {
+        ap->dist_matrix[j] = (int *)safe_calloc(ap->nr, sizeof(int));
+        ap->alleles[j] = -1;
+        for (k=0; k<ap->nr; k++)
+            ap->dist_matrix[j][k] = -1;
+    }
+}
+
+static void
+OutputDistMatrix(AlPair *ap)
+{
+    int j, k;
+
+    fprintf(stderr, "Distance matrix=\n");
+    for (j=0; j<ap->nr; j++)
+    {
+        for (k=0; k<ap->nr; k++)
+           fprintf(stderr, " %d", ap->dist_matrix[j][k]);             
+        fprintf(stderr, "\n");
+    }
+}
+
+static void
+PopulateDistMatrix(int32 cid, AlPair *ap)
+{
+    Column *column=GetColumn(columnStore,cid);
+    Bead *call = GetBead(beadStore, column->call);
+    Bead *bead;
+    int32 bid;
+    uint64 uid;
+    FragType type;
+    ColumnBeadIterator ci;
+    int   cind, depth = MIN_ALLOCATED_DEPTH;
+    int16 bi;
+    char *bases, base;
+    uint64 *uids;
+    int i, j, qv;
+
+    if(!CreateColumnBeadIterator(cid, &ci)){
+        CleanExit("PopulateDistMatrix CreateColumnBeadIterator failed",__LINE__,1);
+    }
+
+//  fprintf(stderr, "ap->nr = %d\n", ap->nr);
+
+    bases = (char *)safe_calloc(ap->nr, sizeof(char));
+    uids  = (uint64 *)safe_calloc(ap->nr, sizeof(uint64));
+    for (i=0; i<ap->nr; i++)
+    {
+        bases[i] = 'X';
+        uids[i]  = -1;
+    }
+
+    // Collect bases and usids in the coluimn
+    while ( (bid = NextColumnBead(&ci)) != -1 )
+    {
+        bead = GetBead(beadStore,bid);
+        type = GetFragment(fragmentStore,bead->frag_index)->type;
+        if ((type == AS_READ) ||
+            (type == AS_B_READ) ||
+            (type == AS_EXTR) ||
+            (type == AS_TRNR))
+        {
+            base = *Getchar(sequenceStore,bead->soffset);
+            uid  = GetFragment(fragmentStore,bead->frag_index)->uid;
+            qv = (int) ( *Getchar(qualityStore,bead->soffset)-'0');
+            i = UidToIndex(uid, ap->uids, ap->nr);   
+
+            if (i < 0 || i>=ap->nr) {
+                continue;
+            }
+ 
+            bases[i] = base;
+            uids[i]  = uid;    
+            ap->sum_qvs[i] += qv;
+        }
+    }
+   
+    // Update the matrix
+    for (i=0; i<ap->nr; i++)
+    {
+        for (j=i; j<ap->nr; j++)
+        {
+            int k, m;
+
+            if (i == j) 
+                continue;
+
+            if ((bases[i] == 'X') || (bases[j] == 'X'))
+                continue;
+
+            k = UidToIndex(uids[i], ap->uids, ap->nr);
+            m = UidToIndex(uids[j], ap->uids, ap->nr);
+
+            if (bases[i] == bases[j]) 
+            {
+                
+                if (ap->dist_matrix[k][m] < 0) ap->dist_matrix[k][m] = 0;
+                if (ap->dist_matrix[m][k] < 0) ap->dist_matrix[m][k] = 0;
+                continue;
+            }
+
+            ap->dist_matrix[k][m] += 1;
+            ap->dist_matrix[m][k] += 1;
+        }
+    }
+    free(bases);
+    free(uids);
+}
+
+/*******************************************************************************
+ * Function: ClusterReads
+ * Purpose:  split reads between two alleles, determine the best allele
+ *******************************************************************************
+ */
+static void
+ClusterReads(AlPair *ap)
+{
+    int i, j;
+    int largest = -100;
+    int seed0=-1, seed1=-1;
+    int sum_qv0 = 0, sum_qv1 = 0;
+
+    // Find the largest element of a distance matrix and the "seed" reads
+    for (i=0; i<ap->nr; i++)
+    {
+        for (j=i; j<ap->nr; j++)
+        {
+//          if (j== i)
+//              continue;
+
+            if (largest < ap->dist_matrix[i][j])
+            {
+                largest = ap->dist_matrix[i][j];
+                seed0 = i;
+                seed1 = j;
+            }
+        }       
+    }
+    ap->alleles[seed0] = 0;
+    ap->alleles[seed1] = 1;
+   
+    // Split reads between two alleles based on their distance from the seed reads
+    for (i=0; i<ap->nr; i++)
+    {
+        if ((i==seed0) || (i==seed1))
+           continue;
+   
+        if (ap->dist_matrix[i][seed0] < ap->dist_matrix[i][seed1])
+            ap->alleles[i] = 0;
+        else
+            ap->alleles[i] = 1;
+    }
+
+    // Selecvt the best allele based on the sum of read QVs
+    for (i=0; i<ap->nr; i++)
+    {
+        if (ap->alleles[i] == 0)  
+            sum_qv0 += ap->sum_qvs[i];  
+        else                 
+            sum_qv1 += ap->sum_qvs[i]; 
+    }
+    if (sum_qv0 >= sum_qv1) 
+        ap->best_allele = 0;
+    else 
+        ap->best_allele = 1;    
 }
 
 //=================================================================================
@@ -1938,24 +2253,42 @@ int RefreshMANode(int32 mid, int quality)
 {
     // refresh columns from cid to end
     // if quality == -1, don't recall the consensus base
-    int     index=0;
-    int32   cid;
+    int     i, j, index=0, len_manode = MIN_SIZE_OF_MANODE;
+    int32   cid, *cids;
+    int     window = SMOOTHING_WINDOW, beg, end;
     char    cbase;
+    float  *var, *svar;
     Column *column;
+    AlPair  ap;
     MANode *ma = GetMANode(manodeStore,mid);
+
+    SetDefault(&ap);
+    var  = (float *)safe_calloc(len_manode, sizeof(float)); 
+    cids = (int32 *)safe_calloc(len_manode, sizeof(int32));
     if (ma == NULL ) 
         CleanExit("RefreshMANode ma==NULL",__LINE__,1);
     if ( ma->first == -1 ) 
         return 1;
     Resetint32(ma->columns);
     cid = ma->first;
+    ap.nr = -1;
+
     while ( cid  > -1 ) 
     {
         column = GetColumn(columnStore, cid);
         if (column == NULL ) 
             CleanExit("RefreshMANode column==NULL",__LINE__,1);
         if ( quality != -2 ) 
-            BaseCall(cid, quality, &cbase, 0);
+        {
+            if (index >= len_manode)
+            {
+                len_manode += MIN_SIZE_OF_MANODE;
+                var  = (float *)safe_realloc(var,  len_manode*sizeof(float));
+                cids = (int32 *)safe_realloc(cids, len_manode*sizeof(int32));
+            }
+            BaseCall(cid, quality, &(var[index]), ap, 0);
+            cids[index] = cid;
+        }
         column->ma_index = index;
         AppendVA_int32(ma->columns, &cid);
         // sanity check
@@ -1970,6 +2303,91 @@ int RefreshMANode(int32 mid, int quality)
         cid = column->next;
         index++;
     }
+
+    if (quality <= 0)
+    {
+        free(var);
+        return 1;
+    }
+
+    // Proceed further only if accurate base calls are needed
+    // Smoothen variation 
+    len_manode = index -1;
+    var = (float *)safe_realloc(var, len_manode * sizeof(float));
+    svar= (float *)safe_calloc(      len_manode,  sizeof(float));
+    for (i=0; i<len_manode; i++)
+    {
+        svar[i] = var[i];
+    }
+    SmoothenVariation(svar, len_manode, window);
+
+    // Recall beses using only one of two alleles
+    for (i=0; i<len_manode; i++)
+    { 
+        if (svar[i] == 0)
+        {
+            continue;
+        }
+        else 
+        {
+            // Process a ragion of variation
+            float fict_var;
+
+            beg = end = i;
+            while ((svar[end] > 0) && (end < len_manode))
+                end++;
+        
+            // Store uids of all the reads in current region
+            ap.nr = 0;
+            ap.max_nr = MIN_ALLOCATED_DEPTH;
+            ap.uids = (uint64 *)safe_calloc(MIN_ALLOCATED_DEPTH, sizeof(uint64));
+            ap.bases= (char *)safe_calloc(MIN_ALLOCATED_DEPTH, sizeof(char));
+            {
+                int l;
+                for(l=0; l<MIN_ALLOCATED_DEPTH; l++)
+                {
+                    ap.uids[l] = -1;
+                    ap.bases[l]= 'N';
+                }
+            }
+            for (j=beg; j<end; j++)
+            {
+                GetReadUids(cids[j], &ap);
+            }
+            
+            AllocateDistMatrix(&ap);
+//          OutputDistMatrix(&ap);
+            for (j=beg; j<end; j++)
+            {
+                PopulateDistMatrix(cids[j], &ap);    
+            }
+//          OutputDistMatrix(&ap);
+            ClusterReads(&ap);   
+
+            // Recall consensus base using only one allele
+            for (j=beg; j<end; j++)
+            {
+                BaseCall(cids[j], quality, &fict_var, ap, 0);
+            }   
+
+            i = end;
+            free(ap.uids); 
+            free(ap.bases);
+            free(ap.alleles);
+            free(ap.sum_qvs);
+            for (j=0; j<ap.nr; j++)
+                free(ap.dist_matrix[j]);
+            free(ap.dist_matrix); 
+            ap.nr = 0;
+        }
+    }
+ 
+    free(var);
+    var = NULL;
+    free(svar);
+    svar = NULL;
+    free(cids);
+    cids = NULL;
     return 1;
 }
 
@@ -3942,8 +4360,12 @@ int ApplyAbacus(Abacus *a)
   Column *column; 
   int columns=0;
   int32 bid,eid,i;
-  char a_entry, cbase;
+  char a_entry;
+  float var;   // variation is a column
   Bead *bead,*exch_bead;
+  AlPair ap;
+
+  SetDefault(&ap);
   if ( a->shift == LEFT_SHIFT) 
   {
      column = GetColumn(columnStore,a->start_column);
@@ -4007,7 +4429,7 @@ int ApplyAbacus(Abacus *a)
                 exch_bead->boffset);
          */
        }
-       BaseCall(column->lid, 1, &cbase, 0);
+       BaseCall(column->lid, 1, &var, ap, 0);
        column = GetColumn(columnStore,column->next);
        columns++;
      } 
@@ -4072,7 +4494,7 @@ int ApplyAbacus(Abacus *a)
                 exch_bead->boffset);
          */
        }
-       BaseCall(column->lid, 1, &cbase, 0);
+       BaseCall(column->lid, 1, &var, ap, 0);
        column = GetColumn(columnStore,column->prev);
        columns++;
      } 
@@ -5394,13 +5816,18 @@ int ExamineMANode(FILE *outFile,int32 sid, int32 mid, UnitigData *tigData,int nu
   int tindex=0;
   UnitigData *tig;
   MANode *ma = GetMANode(manodeStore,mid);
+  AlPair ap;
+
+  SetDefault(&ap);
   if (ma == NULL ) CleanExit("RefreshMANode ma==NULL",__LINE__,1);
   if ( ma->first == -1 ) return 1;
   cid = ma->first;
   while ( cid  > -1 ) {
-    char base, cbase;
+    char base;
     char qv;
     int tig_depth=0;
+    float var;
+
     column = GetColumn(columnStore,cid);
     if (column == NULL ) CleanExit("RefreshMANode column==NULL",__LINE__,1);
     cbead = GetBead(beadStore,column->call); 
@@ -5408,8 +5835,10 @@ int ExamineMANode(FILE *outFile,int32 sid, int32 mid, UnitigData *tigData,int nu
     qv = *Getchar(qualityStore,cbead->soffset);
     fprintf(outFile,"%d\t%d\t%d\t%d\t%c\t%c\t" ,sid,ma->iid,index,ugindex,base,qv);
     ShowBaseCountPlain(outFile,&column->base_count);
-    BaseCall(cid, 1, &cbase, 0); // recall with quality on (and QV parameters set by user)
-    fprintf(outFile,"%c\t%c\t", *Getchar(sequenceStore,cbead->soffset), *Getchar(qualityStore,cbead->soffset));
+    BaseCall(cid, 1, &var, ap, 0); 
+         // recall with quality on (and QV parameters set by user)
+    fprintf(outFile,"%c\t%c\t", *Getchar(sequenceStore,cbead->soffset), 
+        *Getchar(qualityStore,cbead->soffset));
     // restore original consensus basecall/quality
     Setchar(sequenceStore,cbead->soffset,&base);
     Setchar(qualityStore,cbead->soffset,&qv);
