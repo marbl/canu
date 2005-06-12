@@ -37,6 +37,28 @@
                     double erate, double thresh, int minlen, \
 				 CompareOptions what
 
+#define SMOOTHING_WINDOW 10
+#define MIN_SIZE_OF_MANODE 10000
+#define BC_MAX(a,b)  (((a)>(b))?(a):(b))
+#define BC_MIN(a,b)  (((a)<(b))?(a):(b))
+#define MIN_ALLOCATED_DEPTH 10
+#define SMOOTHING_WINDOW    10
+
+typedef struct {
+/*  This structure is used when recalling consensus bases
+ *  to use only one of two alleles
+ */
+int     nr;          // number of reads in the region of variation
+int     max_nr;
+uint64 *uids;        // uids of the reads
+char   *alleles;     // may be 0 or 1
+char   *bases;
+char   *types;
+int     best_allele;
+int    *sum_qvs;     // used to select the best allele
+int   **dist_matrix; // nr x nr matrix of cross-distances between reads
+} AlPair;
+
 // -----------------------------------
 // Jason introduced this new structure to address previous
 // ambiguous use of IntMultiPos to hold both Fragments and Unitigs.
@@ -46,7 +68,7 @@
 // Each component may be a fragment or a unitig of fragments.
 // The flag frg_or_utg distinguishes these cases.
 // This structure is local to MultiAlignment_CNS.
-		   
+
 typedef struct {
     FragType             frgType;
     IntFragment_ID       frgIdent;
@@ -164,7 +186,6 @@ VA_DEF(MANode)
 // -----------------------------------
 
 MANode * CreateMANode(int32 iid);
-
 
 static char ALPHABET[] = {'-','a','c','g','t','n'};
 
@@ -321,7 +342,7 @@ int SetupSingleColumn(char *sequence,
                       char *quality,
                       char *frag_type,
                       char *unitig_type);
-int BaseCall(int32 cid, int quality, char *cbase, int verbose);
+int BaseCall(int32 cid, int quality, float *var, AlPair ap, int verbose);
 void ShowColumn(int32 cid);
 int MultiAlignUnitig(IntUnitigMesg *unitig, 
                      FragStoreHandle fragStore,
