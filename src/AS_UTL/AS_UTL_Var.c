@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.6 2005-06-10 17:44:31 eliv Exp $";
+static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.7 2005-06-14 14:44:52 eliv Exp $";
 /********************************************************************/
 /* Variable Length C Array Package 
  * 
@@ -30,8 +30,8 @@ static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.6 2005-06-10 17:44:31 eliv Exp $";
  * It defines a basic set of operations, and provides a set of
  * macros that expand to support typesafe manipulation of the
  * arrays.
- * Revision: $Revision: 1.6 $
- * Date:     $Date: 2005-06-10 17:44:31 $
+ * Revision: $Revision: 1.7 $
+ * Date:     $Date: 2005-06-14 14:44:52 $
  * CMM, 1999/03/29:  Ported to large arrays on the Digital systems by declaring
  * array sizes using size_t, rather than unit32.
  *
@@ -128,10 +128,13 @@ int MakeRoom_VA
     
     // Only allocate a power of 2 number of bytes.
     tentativeNewSize = (((size_t)1) << ceil_log2(newSize));
+
+    int halfGig = 2 << 28; // Cap malloc size at 512MB to decrease failure rate
+    if ( tentativeNewSize - newSize > halfGig )
+        tentativeNewSize = oldSize + halfGig;
     
     // If we need to use the end of the block, do it
-    if ( ! tentativeNewSize >= INT_MAX ) // large mallocs fail, so try a smaller one
-        newSize = max(newSize, tentativeNewSize);
+    newSize = max(newSize, tentativeNewSize);
   }
   
   assert(oldSize <= newSize);

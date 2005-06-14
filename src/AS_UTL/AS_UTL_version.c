@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_UTL_version.c,v 1.5 2005-03-30 21:04:28 eliv Exp $";
+static char CM_ID[] = "$Id: AS_UTL_version.c,v 1.6 2005-06-14 14:44:52 eliv Exp $";
 
 #include "AS_UTL_version.h"
 #include "PrimitiveVA.h"
@@ -118,7 +118,7 @@ int VersionStampADTWithCommentAndVersion(AuditMesg *adt_mesg, int argc, char *ar
     char *adt_char = NULL;
     char *startOfInterestingPart = NULL;
     size_t len;
-    VA_TYPE(char) * adt_ident = CreateVA_char(2000);
+    VA_TYPE(char) * adt_ident = CreateVA_char(5000);
 
     SAFE_FOPEN(adt_tmp_file, adt_tmp_name, "r");
     while( c = fgetc(adt_tmp_file), ch = c, c != EOF) {
