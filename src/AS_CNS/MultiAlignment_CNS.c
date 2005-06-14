@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.9 2005-06-12 17:18:03 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.10 2005-06-14 22:08:42 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -1605,12 +1605,12 @@ char QVInRange(int q) {
 }
 
 static int
-UidToIndex(uint64 uid, uint64 *uids, int nr)
+IidToIndex(int32 iid, int32 *iids, int nr)
 {
     int i;
     for (i=0; i<nr; i++)
     {
-        if (uid == uids[i])
+        if (iid == iids[i])
             return i;
     }
     return (-1);
@@ -1635,7 +1635,7 @@ BaseCall(int32 cid, int quality, float *var, AlPair ap, int verbose)
     int score=0;
     int bi;
     int32 bid;
-    uint64 uid;
+    int32 iid = 0;
     char cqv, cbase;
     int qv = 0;
     static  double cw[CNS_NP];      // "consensus weight" for a given base
@@ -1685,7 +1685,7 @@ BaseCall(int32 cid, int quality, float *var, AlPair ap, int verbose)
         for (bi=0;bi<CNS_NP;bi++) {
             tau[bi] = 1.0;
         }
-        while ( (bid = NextColumnBead(&ci)) != -1 ) 
+        while ( (bid = NextColumnBead(&ci)) != -1) 
         {
             bead =  GetBead(beadStore,bid);
             cbase = *Getchar(sequenceStore,bead->soffset);
@@ -1700,8 +1700,9 @@ BaseCall(int32 cid, int quality, float *var, AlPair ap, int verbose)
             }
             bmask = AMASK[BaseToInt(cbase)];
             type = GetFragment(fragmentStore,bead->frag_index)->type;
-            uid  = GetFragment(fragmentStore,bead->frag_index)->uid;
-            k = UidToIndex(uid, ap.uids, ap.nr);
+            iid  = GetFragment(fragmentStore,bead->frag_index)->iid;
+
+            k = IidToIndex(iid, ap.iids, ap.nr);
             if ((type  != AS_READ &&
              	 type  != AS_B_READ &&
                  type  != AS_EXTR &&
@@ -1719,8 +1720,6 @@ BaseCall(int32 cid, int quality, float *var, AlPair ap, int verbose)
             {
                 if ((ap.nr <= 0) || (ap.alleles[k] == ap.best_allele))
                 {
-                    if (k >= 0 && k < ap.nr)
-                        ap.bases[k] = cbase;
                     read_base_count[BaseToInt(cbase)]++;
                     read_qv_count[BaseToInt(cbase)] += qv;
                     AppendBead(reads, bead);
@@ -1999,23 +1998,23 @@ SmoothenVariation(float *var, int dim, int window)
     {
         var[i] = y[i];
     }
-    free(y);
+    FREE(y);
 }
 
 static int 
-IsNewRead(uint64 uid, AlPair *ap)
+IsNewRead(int32 iid, AlPair *ap)
 {
     int i;
     for (i=0; i<ap->nr; i++)
     {
-        if (ap->uids[i] == uid)
+        if (ap->iids[i] == iid)
             return 0;
     }
     return 1;
 }
 
 static void
-GetReadUids(int cid, AlPair *ap)
+GetReadIids(int cid, AlPair *ap)
 {
     int      cind;
     int16    bi;
@@ -2023,12 +2022,12 @@ GetReadUids(int cid, AlPair *ap)
     Bead    *call = GetBead(beadStore, column->call);
     Bead    *bead;
     int32    bid;
-    uint64   uid;
+    int32    iid;
     FragType type;
     ColumnBeadIterator ci;
 
     if(!CreateColumnBeadIterator(cid, &ci)){
-        CleanExit("GetReadUids CreateColumnBeadIterator failed",__LINE__,1);
+        CleanExit("GetReadIids CreateColumnBeadIterator failed",__LINE__,1);
     }
     while ( (bid = NextColumnBead(&ci)) != -1 )
     {
@@ -2036,33 +2035,29 @@ GetReadUids(int cid, AlPair *ap)
  
         bead =  GetBead(beadStore,bid);
         base = *Getchar(sequenceStore,bead->soffset);
-//      if ( base == 'N' ) 
-//          continue;
+        if ( base == 'N' ) 
+            continue;
         type = GetFragment(fragmentStore,bead->frag_index)->type;
-        uid  = GetFragment(fragmentStore,bead->frag_index)->uid;
+        iid  = GetFragment(fragmentStore,bead->frag_index)->iid;
         if ((type == AS_READ) ||
             (type == AS_B_READ) ||
             (type == AS_EXTR) ||
             (type == AS_TRNR))
         {
-            if (IsNewRead(uid, ap)) {
+            if (IsNewRead(iid, ap)) {
 
                 if (ap->nr == ap->max_nr)
                 {
                     int l;
                     ap->max_nr += MIN_ALLOCATED_DEPTH;
-                    ap->uids = (uint64 *)safe_realloc(ap->uids, 
-                        ap->max_nr*sizeof(uint64));
-                    ap->bases= (char *)safe_realloc(ap->bases, 
-                        ap->max_nr*sizeof(char));
+                    ap->iids = (int32 *)safe_realloc(ap->iids, 
+                        ap->max_nr*sizeof(int32));
                     for (l=ap->nr; l<ap->max_nr; l++)
                     {
-                        ap->uids[l] = -1;
-                        ap->bases[l] = 'N';
+                        ap->iids[l] = -1;
                     }
                 }
-                ap->uids[ap->nr] = uid;
-                ap->bases[ap->nr] = base;
+                ap->iids[ap->nr] = iid;
                 ap->nr++;  
             }
         }
@@ -2074,13 +2069,10 @@ AllocateDistMatrix(AlPair *ap)
 {
     int j, k;
 
-    ap->alleles     = (char *)safe_calloc(ap->nr, sizeof(char));
-    ap->sum_qvs     = (int  *)safe_calloc(ap->nr, sizeof(int));
     ap->dist_matrix = (int **)safe_calloc(ap->nr, sizeof(int *));
     for (j=0; j<ap->nr; j++)
     {
         ap->dist_matrix[j] = (int *)safe_calloc(ap->nr, sizeof(int));
-        ap->alleles[j] = -1;
         for (k=0; k<ap->nr; k++)
             ap->dist_matrix[j][k] = -1;
     }
@@ -2107,13 +2099,13 @@ PopulateDistMatrix(int32 cid, AlPair *ap)
     Bead *call = GetBead(beadStore, column->call);
     Bead *bead;
     int32 bid;
-    uint64 uid;
+    int32 iid;
     FragType type;
     ColumnBeadIterator ci;
     int   cind, depth = MIN_ALLOCATED_DEPTH;
     int16 bi;
     char *bases, base;
-    uint64 *uids;
+    int32 *iids;
     int i, j, qv;
 
     if(!CreateColumnBeadIterator(cid, &ci)){
@@ -2123,11 +2115,11 @@ PopulateDistMatrix(int32 cid, AlPair *ap)
 //  fprintf(stderr, "ap->nr = %d\n", ap->nr);
 
     bases = (char *)safe_calloc(ap->nr, sizeof(char));
-    uids  = (uint64 *)safe_calloc(ap->nr, sizeof(uint64));
+    iids  = (int32 *)safe_calloc(ap->nr, sizeof(int32));
     for (i=0; i<ap->nr; i++)
     {
         bases[i] = 'X';
-        uids[i]  = -1;
+        iids[i]  = -1;
     }
 
     // Collect bases and usids in the coluimn
@@ -2141,17 +2133,18 @@ PopulateDistMatrix(int32 cid, AlPair *ap)
             (type == AS_TRNR))
         {
             base = *Getchar(sequenceStore,bead->soffset);
-            uid  = GetFragment(fragmentStore,bead->frag_index)->uid;
+            iid  = GetFragment(fragmentStore,bead->frag_index)->iid;
             qv = (int) ( *Getchar(qualityStore,bead->soffset)-'0');
-            i = UidToIndex(uid, ap->uids, ap->nr);   
+            i = IidToIndex(iid, ap->iids, ap->nr);   
 
             if (i < 0 || i>=ap->nr) {
                 continue;
             }
  
             bases[i] = base;
-            uids[i]  = uid;    
-            ap->sum_qvs[i] += qv;
+            iids[i]  = iid; 
+            if (base != '-') 
+                ap->sum_qvs[i] += qv;
         }
     }
    
@@ -2168,8 +2161,8 @@ PopulateDistMatrix(int32 cid, AlPair *ap)
             if ((bases[i] == 'X') || (bases[j] == 'X'))
                 continue;
 
-            k = UidToIndex(uids[i], ap->uids, ap->nr);
-            m = UidToIndex(uids[j], ap->uids, ap->nr);
+            k = IidToIndex(iids[i], ap->iids, ap->nr);
+            m = IidToIndex(iids[j], ap->iids, ap->nr);
 
             if (bases[i] == bases[j]) 
             {
@@ -2183,8 +2176,8 @@ PopulateDistMatrix(int32 cid, AlPair *ap)
             ap->dist_matrix[m][k] += 1;
         }
     }
-    free(bases);
-    free(uids);
+    FREE(bases);
+    FREE(iids);
 }
 
 /*******************************************************************************
@@ -2199,6 +2192,12 @@ ClusterReads(AlPair *ap)
     int largest = -100;
     int seed0=-1, seed1=-1;
     int sum_qv0 = 0, sum_qv1 = 0;
+
+    if (ap->nr <= 1)
+    {
+       ap->best_allele = 0;
+       return;    
+    }
 
     // Find the largest element of a distance matrix and the "seed" reads
     for (i=0; i<ap->nr; i++)
@@ -2239,6 +2238,7 @@ ClusterReads(AlPair *ap)
         else                 
             sum_qv1 += ap->sum_qvs[i]; 
     }
+
     if (sum_qv0 >= sum_qv1) 
         ap->best_allele = 0;
     else 
@@ -2257,7 +2257,7 @@ int RefreshMANode(int32 mid, int quality)
     int32   cid, *cids;
     int     window = SMOOTHING_WINDOW, beg, end;
     char    cbase;
-    float  *var, *svar;
+    float  *var=NULL, *svar=NULL;
     Column *column;
     AlPair  ap;
     MANode *ma = GetMANode(manodeStore,mid);
@@ -2306,20 +2306,21 @@ int RefreshMANode(int32 mid, int quality)
 
     if (quality <= 0)
     {
-        free(var);
+        FREE(var);
+        FREE(cids);
         return 1;
     }
 
     // Proceed further only if accurate base calls are needed
     // Smoothen variation 
     len_manode = index -1;
-    var = (float *)safe_realloc(var, len_manode * sizeof(float));
-    svar= (float *)safe_calloc(      len_manode,  sizeof(float));
+    svar= (float *)safe_calloc(len_manode, sizeof(float));
     for (i=0; i<len_manode; i++)
     {
         svar[i] = var[i];
     }
     SmoothenVariation(svar, len_manode, window);
+    FREE(var);
 
     // Recall beses using only one of two alleles
     for (i=0; i<len_manode; i++)
@@ -2337,30 +2338,36 @@ int RefreshMANode(int32 mid, int quality)
             while ((svar[end] > 0) && (end < len_manode))
                 end++;
         
-            // Store uids of all the reads in current region
+            // Store iids of all the reads in current region
             ap.nr = 0;
             ap.max_nr = MIN_ALLOCATED_DEPTH;
-            ap.uids = (uint64 *)safe_calloc(MIN_ALLOCATED_DEPTH, sizeof(uint64));
-            ap.bases= (char *)safe_calloc(MIN_ALLOCATED_DEPTH, sizeof(char));
+            ap.iids = (int32 *)safe_calloc(MIN_ALLOCATED_DEPTH, sizeof(int32));
             {
                 int l;
                 for(l=0; l<MIN_ALLOCATED_DEPTH; l++)
                 {
-                    ap.uids[l] = -1;
-                    ap.bases[l]= 'N';
+                    ap.iids[l] = -1;
                 }
             }
+
             for (j=beg; j<end; j++)
             {
-                GetReadUids(cids[j], &ap);
+                GetReadIids(cids[j], &ap);
             }
-            
+          
+            ap.alleles = (char *)safe_calloc(ap.nr, sizeof(char));
+            ap.sum_qvs = (int  *)safe_calloc(ap.nr, sizeof(int));
+            for (j=0; j<ap.nr; j++)
+                ap.alleles[j] = -1;    
+
+
             AllocateDistMatrix(&ap);
-//          OutputDistMatrix(&ap);
+
             for (j=beg; j<end; j++)
             {
                 PopulateDistMatrix(cids[j], &ap);    
             }
+
 //          OutputDistMatrix(&ap);
             ClusterReads(&ap);   
 
@@ -2371,23 +2378,20 @@ int RefreshMANode(int32 mid, int quality)
             }   
 
             i = end;
-            free(ap.uids); 
-            free(ap.bases);
-            free(ap.alleles);
-            free(ap.sum_qvs);
+            FREE(ap.iids); 
+            FREE(ap.alleles);
+            FREE(ap.sum_qvs);
+
             for (j=0; j<ap.nr; j++)
-                free(ap.dist_matrix[j]);
-            free(ap.dist_matrix); 
+                FREE(ap.dist_matrix[j]);
+            FREE(ap.dist_matrix); 
+
             ap.nr = 0;
         }
     }
- 
-    free(var);
-    var = NULL;
-    free(svar);
-    svar = NULL;
-    free(cids);
-    cids = NULL;
+
+    FREE(svar);
+    FREE(cids);
     return 1;
 }
 
