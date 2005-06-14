@@ -41,7 +41,8 @@
 #define MIN_SIZE_OF_MANODE 10000
 #define BC_MAX(a,b)  (((a)>(b))?(a):(b))
 #define BC_MIN(a,b)  (((a)<(b))?(a):(b))
-#define MIN_ALLOCATED_DEPTH 10
+#define FREE(x) if((x)!=NULL) {free((char *)(x));(x)=NULL;}
+#define MIN_ALLOCATED_DEPTH 100
 #define SMOOTHING_WINDOW    10
 
 typedef struct {
@@ -50,9 +51,9 @@ typedef struct {
  */
 int     nr;          // number of reads in the region of variation
 int     max_nr;
-uint64 *uids;        // uids of the reads
+int32  *iids;        // iids of the reads
 char   *alleles;     // may be 0 or 1
-char   *bases;
+//char   *bases;
 char   *types;
 int     best_allele;
 int    *sum_qvs;     // used to select the best allele
