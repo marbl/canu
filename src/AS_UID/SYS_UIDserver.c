@@ -21,11 +21,14 @@
 
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_UID/Attic/SYS_UIDserver.c,v $
-$Revision: 1.4 $
-$Date: 2005-03-30 21:11:56 $
+$Revision: 1.5 $
+$Date: 2005-06-16 20:28:05 $
 $Name: not supported by cvs2svn $
-$Author: eliv $
+$Author: brianwalenz $
 $Log: not supported by cvs2svn $
+Revision 1.4  2005/03/30 21:11:56  eliv
+Fix a couple of gcc warnings.
+
 Revision 1.3  2005/03/22 19:49:28  jason_miller
 The TIGR tip as of March 22 2005. Commit by Jason Miller at TIGR.
 
@@ -1174,7 +1177,7 @@ Notes:
 cds_int32  UIDIsValid(cds_uint64 block_size)
 {
    cds_uint64 end_of_block;
-   cds_uint64 max_ul = UINT64_MAX;
+   cds_uint64 max_ul = CDS_UINT64_MAX;
 
 
    // do 64-bit bounds check
