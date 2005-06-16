@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.4 2005-03-22 19:48:36 jason_miller Exp $";
+static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.5 2005-06-16 20:13:02 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -364,6 +364,8 @@ void FreeMateStatusPositions(MateStatusPositions * msp)
     
     if(msp->inter)
       DeleteVA_FragDetail(msp->inter);
+
+    free(msp);
   }
 }
 
@@ -1265,15 +1267,15 @@ int InitializeScaffoldInstrumenter(ScaffoldGraphT * graph,
   }
 
   // NOTE: If this gets resized, cpHT needs to be repopulated
-  if((si->cpArray = CreateVA_ContigPlacement(1000)) == NULL)
-  {
-    fprintf(stderr, "Failed to allocate contig placement variable array.\n");
-    return 1;
+
+  if (si->cpArray == NULL) {
+    if((si->cpArray = CreateVA_ContigPlacement(1000)) == NULL)
+      {
+        fprintf(stderr, "Failed to allocate contig placement variable array.\n");
+        return 1;
+      }
   }
-  else
-  {
-    ResetVA_ContigPlacement(si->cpArray);
-  }
+  ResetVA_ContigPlacement(si->cpArray);
 
   if(si->anchoredHT == NULL)
   {
