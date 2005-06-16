@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FragCorrectOVL.c,v 1.5 2005-06-03 17:53:34 brianwalenz Exp $
- * $Revision: 1.5 $
+ * $Id: FragCorrectOVL.c,v 1.6 2005-06-16 19:40:28 brianwalenz Exp $
+ * $Revision: 1.6 $
 */
 
-static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.5 2005-06-03 17:53:34 brianwalenz Exp $";
+static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.6 2005-06-16 19:40:28 brianwalenz Exp $";
 
 
 //  System include files
@@ -136,7 +136,7 @@ static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.5 2005-06-03 17:53:34 brianwale
     //  random access, just streaming through and loading.  This lets us
     //  load about 2x the frags.
 
-#define USE_STORE_DIRECTLY_STREAM
+//#define USE_STORE_DIRECTLY_STREAM
     //  Use the store directly during the stream -- good if you don't have
     //  lots of frags loaded.
 
