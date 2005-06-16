@@ -31,7 +31,6 @@
 #include <random.h>
 #endif
 
-//#define ON_JTC_LINUX_FARM
 
 #ifndef TRUE
   #define TRUE (1)
@@ -41,9 +40,6 @@
 #endif
 
 
-/*
-# include <macros.h>
-*/
 #ifndef min
   #define min(a,b)		( ((a) < (b)) ? (a) : (b) )
 #endif
