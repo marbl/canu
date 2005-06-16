@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.4 2005-03-22 19:49:17 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Id: AS_OVL_overlap_common.h,v 1.5 2005-06-16 20:02:37 brianwalenz Exp $
+ * $Revision: 1.5 $
 */
 
 
@@ -68,6 +68,7 @@
 #include  <sys/stat.h>
 #include  <unistd.h>
 #include  <float.h>
+#include  <getopt.h>
 
 /*************************************************************************/
 /* Local include files */
@@ -310,10 +311,11 @@ Align_Entry_t  * Align_P;
 /* External Global Definitions */
 /*************************************************************************/
 
-int  Hash_Mask_Bits;
-int  Max_Hash_Strings;
-int  Max_Hash_Data_Len;
-int  Max_Frags_In_Memory_Store;
+int  Hash_Mask_Bits            = 666;
+double  Max_Hash_Load          = 0.1;
+int  Max_Hash_Strings          = 0;
+int  Max_Hash_Data_Len         = 0;
+int  Max_Frags_In_Memory_Store = 0;
   // The number of fragments to read in a batch when streaming
   // the old reads against the hash table.
 
@@ -355,11 +357,9 @@ int  IID_List_Len = 0;
 MesgReader  Read_Msg_Fn;
 MesgWriter  Write_Msg_Fn, Error_Write;
 
-#if  USE_THREADS
 pthread_mutex_t  FragStore_Mutex;
 pthread_mutex_t  Write_Proto_Mutex;
 pthread_mutex_t  Log_Msg_Mutex;
-#endif
 
 #if  ANALYZE_HITS
 FILE  * High_Hits_File = NULL;
@@ -511,14 +511,13 @@ int  main  (int argc, char * argv [])
    int  noOverlaps;  /* If 1, run but don't compute/generate overlaps */
 
    assert (8 * sizeof (uint64) > 2 * WINDOW_SIZE);
-//   assert (sizeof (Hash_Bucket_t) <= 64);
 
-   // Set default hash-table parameters;  can be changed by -M option
-   Hash_Mask_Bits = DEF_HASH_MASK_BITS;
-   Max_Hash_Strings = DEF_MAX_HASH_STRINGS;
-   Max_Hash_Data_Len = DEF_MAX_HASH_DATA_LEN;
-   Max_Frags_In_Memory_Store
-        = OVL_Min_int (Max_Hash_Strings, MAX_OLD_BATCH_SIZE);
+   // Set default hash-table parameters: MUST be set by -M option
+   Hash_Mask_Bits            = 666;
+   Max_Hash_Load             = MAX_HASH_LOAD;
+   Max_Hash_Strings          = 0;
+   Max_Hash_Data_Len         = 0;
+   Max_Frags_In_Memory_Store = 0;
 
 #ifdef CONTIG_OVERLAPPER_VERSION
 fprintf (stderr, "Running Contig version, AS_READ_MAX_LEN = %d\n",
@@ -547,11 +546,33 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
 
    { /* Parse the argument list using "man 3 getopt". */ 
      int ch, errflg = 0;
+     int optindex = 0;
+     int opt = 0;
+
+     //  Order is important in this list.
+     static struct option ovlopts[] = { { "hashbits",    1, 0, 0 },
+                                        { "hashstrings", 1, 0, 0 },
+                                        { "hashdatalen", 1, 0, 0 },
+                                        { "hashload",    1, 0, 0 },
+                                        { 0, 0, 0, 0 } };
+
      optarg = NULL;
      while  (! errflg
-               && ((ch = getopt (argc, argv, "ab:cfGh:I:k:K:l:mM:no:Pqr:st:uwz")) != EOF))
+               && ((ch = getopt_long (argc, argv,
+                                      "ab:cfGh:I:k:K:l:mM:no:Pqr:st:uwz", ovlopts, &optindex)) != EOF))
        switch  (ch)
          {
+           case 0:
+             if        (strcmp(ovlopts[optindex].name, "hashbits") == 0) {
+               Hash_Mask_Bits = atoi(optarg);
+             } else if (strcmp(ovlopts[optindex].name, "hashstrings") == 0) {
+               Max_Hash_Strings = atoi(optarg);
+             } else if (strcmp(ovlopts[optindex].name, "hashdatalen") == 0) {
+               Max_Hash_Data_Len = atoi(optarg);
+             } else if (strcmp(ovlopts[optindex].name, "hashload") == 0) {
+               Max_Hash_Load = atof(optarg);
+             }
+             break;
           case  'a' :
             append = 1;
             create = 0;
@@ -606,7 +627,7 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
                           "  Kmer_Prob_Limit = %.4e\n",
                           Genome_Len, Kmer_Freq_Bound, Kmer_Prob_Limit);
                 }
-              else
+            else
                 {
                  Hi_Hit_Limit = (int) strtol (optarg, & p, 10);
                  if  (p == optarg || Hi_Hit_Limit <= 1)
@@ -640,60 +661,36 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
 #ifdef CONTIG_OVERLAPPER_VERSION
             fprintf (stderr, "M option not allowed for Contig Version--ignored\n");
 #else
-            if  (strcmp (optarg, "16GB") == 0)
-                { // Set parameters for 16GB memory machine
-                 Hash_Mask_Bits = 25;
-                 Max_Hash_Strings = 1000000;
-                 Max_Hash_Data_Len = 720000000;
-                 Max_Frags_In_Memory_Store
-                      = OVL_Min_int (Max_Hash_Strings, MAX_OLD_BATCH_SIZE);
-                }
-            else if  (strcmp (optarg, "8GB") == 0)
-                { // Set parameters for 8GB memory machine
-                 Hash_Mask_Bits = 24;
-                 Max_Hash_Strings = 500000;
-                 Max_Hash_Data_Len = 360000000;
-                 Max_Frags_In_Memory_Store
-                      = OVL_Min_int (Max_Hash_Strings, MAX_OLD_BATCH_SIZE);
-                }
-            else if  (strcmp (optarg, "4GB") == 0)
-                { // Set parameters for 4GB memory machine
-                 Hash_Mask_Bits = 23;
-                 Max_Hash_Strings = 250000;
-                 Max_Hash_Data_Len = 180000000;
-                 Max_Frags_In_Memory_Store
-                      = OVL_Min_int (Max_Hash_Strings, MAX_OLD_BATCH_SIZE);
-                }
-            else if  (strcmp (optarg, "2GB") == 0)
-                { // Set parameters for 2GB memory machine
-                 Hash_Mask_Bits = 22;
-                 Max_Hash_Strings = 100000;
-                 Max_Hash_Data_Len = 75000000;
-                 Max_Frags_In_Memory_Store
-                      = OVL_Min_int (Max_Hash_Strings, MAX_OLD_BATCH_SIZE);
-                }
-            else if  (strcmp (optarg, "1GB") == 0)
-                { // Set parameters for 1GB memory machine
-                 Hash_Mask_Bits = 21;
-                 Max_Hash_Strings = 40000;
-                 Max_Hash_Data_Len = 30000000;
-                 Max_Frags_In_Memory_Store
-                      = OVL_Min_int (Max_Hash_Strings, MAX_OLD_BATCH_SIZE);
-                }
-            else if  (strcmp (optarg, "256MB") == 0)
-                { // Set parameters for 256MB memory machine
-                 Hash_Mask_Bits = 19;
-                 Max_Hash_Strings = 10000;
-                 Max_Hash_Data_Len = 6000000;
-                 Max_Frags_In_Memory_Store
-                      = OVL_Min_int (Max_Hash_Strings, MAX_OLD_BATCH_SIZE);
-                }
-              else
-                {
-                 fprintf (stderr, "ERROR:  Unknown memory size \"%s\"\n",
-                      optarg);
-                 errflg ++;
-                }
+            if       (strcmp (optarg, "16GB") == 0) {
+              Hash_Mask_Bits    = 25;
+              Max_Hash_Strings  = 1000000;
+              Max_Hash_Data_Len = 720000000;
+            } else if (strcmp (optarg, "8GB") == 0) {
+              Hash_Mask_Bits    = 24;
+              Max_Hash_Strings  = 500000;
+              Max_Hash_Data_Len = 360000000;
+            } else if (strcmp (optarg, "4GB") == 0) {
+              Hash_Mask_Bits    = 23;
+              Max_Hash_Strings  = 250000;
+              Max_Hash_Data_Len = 180000000;
+            } else if (strcmp (optarg, "2GB") == 0) {
+              Hash_Mask_Bits    = 22;
+              Max_Hash_Strings  = 150000;     //  Was 100000
+              Max_Hash_Data_Len = 110000000;  //  Was 75000000
+            } else if (strcmp (optarg, "1GB") == 0) {
+              Hash_Mask_Bits    = 21;
+              Max_Hash_Strings  = 40000;
+              Max_Hash_Data_Len = 30000000;
+            } else if (strcmp (optarg, "256MB") == 0) {
+              Hash_Mask_Bits    = 19;
+              Max_Hash_Strings  = 10000;
+              Max_Hash_Data_Len = 6000000;
+            } else {
+              fprintf(stderr, "ERROR:  Unknown memory size \"%s\"\n", optarg);
+              fprintf(stderr, "Valid values are '16GB', '8GB', '4GB', '2GB', '1GB', '256MB'\n");
+              errflg ++;
+            }
+            Max_Frags_In_Memory_Store = OVL_Min_int (Max_Hash_Strings, MAX_OLD_BATCH_SIZE);
 #endif
             break;
           case  'n' :
@@ -742,10 +739,6 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
             errflg++;
          }
 
-#if  ! USE_THREADS
-     Num_PThreads = 1;
-#endif
-
      if(force == 1 && append  == 1)
        {
          fprintf (stderr,
@@ -753,6 +746,11 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
                   "-- they are mutually exclusive\n");
          illegal = 1;
        }
+
+     if (Max_Hash_Strings == 0) {
+       fprintf(stderr, "* No memory model supplied; -M needed!\n");
+       illegal = 1;
+     }
      
      if  ((illegal == 1)
           || (argc - optind != 2 && (! LSF_Mode || Contig_Mode))
@@ -764,35 +762,41 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
                   "Opens <InputFilename>.<ext> to read .inp/.urc input\n"
                   "Creates/updates FragStore in <FragStorePath>\n"
                   "Writes .ovl output to <InputFilename>.ovl\n"
-                  "Use -a to append to frag store\n"
-                  "Use -f to force a new frag store\n"
-                  "Use -G to do partial overlaps\n"
-                  "Use -h <range> to specify fragments to put in hash table\n"
-                  "    Implies LSF mode (no changes to frag store)\n"
-                  "Use -I to designate a file of frag iids to limit olaps to\n"
-                  "    (Contig mode only)\n"
-                  "Use -k to specify a filename containing a list of kmers\n"
-                  "    to ignore in the hash table\n"
-                  "Use -K to designate limit on repetitive kmer hits to\n"
-                  "    ignore in hash table\n"
-                  "    [g,c,p] is special format to set K value automatically\n"
-                  "    so that the probability of K or more hits in a genome\n"
-                  "    of length g containing c copies of the kmer is\n"
-                  "    less than p  (Put in quotes to get past the shell.)\n"
-                  "Use -l to specify the maximum number of overlaps per\n"
-                  "    fragment-end per batch of fragments.\n"
-                  "Use -m to allow multiple overlaps per oriented fragment pair\n"
-                  "Use -M to specify memory size.  Valid values are '8GB', '4GB',\n"
-                  "    '2GB', '1GB', '256MB'.  (Not for Contig mode)\n"
-                  "Use -n to skip overlaps (only update frag store)\n"
-                  "Use -o to specify output file name\n"
-                  "Use -P to force ASCII output\n"
-                  "Use -q to make single-line output (same format as -G)\n"
-                  "Use -r <range> to specify old fragments to overlap\n"
-                  "Use -s to ignore screen information with fragments\n"
-                  "Use -t to designate number of parallel threads\n"
-                  "Use -u to allow only 1 overlap per oriented fragment pair\n"
-                  "Use -w to filter out overlaps with too many errors in a window\n",
+                  "\n"
+                  "-a          append to frag store\n"
+                  "-f          force a new frag store\n"
+                  "-G          do partial overlaps\n"
+                  "-h <range>  to specify fragments to put in hash table\n"
+                  "            Implies LSF mode (no changes to frag store)\n"
+                  "-I          designate a file of frag iids to limit olaps to\n"
+                  "            (Contig mode only)\n"
+                  "-k          specify a filename containing a list of kmers\n"
+                  "            to ignore in the hash table\n"
+                  "-K          to designate limit on repetitive kmer hits to\n"
+                  "            ignore in hash table\n"
+                  "            [g,c,p] is special format to set K value automatically\n"
+                  "            so that the probability of K or more hits in a genome\n"
+                  "            of length g containing c copies of the kmer is\n"
+                  "            less than p  (Put in quotes to get past the shell.)\n"
+                  "-l          specify the maximum number of overlaps per\n"
+                  "            fragment-end per batch of fragments.\n"
+                  "-m          allow multiple overlaps per oriented fragment pair\n"
+                  "-M          specify memory size.  Valid values are '8GB', '4GB',\n"
+                  "            '2GB', '1GB', '256MB'.  (Not for Contig mode)\n"
+                  "-n          skip overlaps (only update frag store)\n"
+                  "-o          specify output file name\n"
+                  "-P          force ASCII output\n"
+                  "-q          make single-line output (same format as -G)\n"
+                  "-r <range>  specify old fragments to overlap\n"
+                  "-s          ignore screen information with fragments\n"
+                  "-t          designate number of parallel threads\n"
+                  "-u          allow only 1 overlap per oriented fragment pair\n"
+                  "-w          filter out overlaps with too many errors in a window\n"
+                  "\n"
+                  "--hashbits n     Use n bits for the hash mask.\n"
+                  "--hashstrings n  Use at most n strings per hash table.\n"
+                  "--hashdatalen n  Use at most n bytes for the hash table.\n"
+                  "--hashload f     Load to at most 0.0 < f < 1.0 capacity (default 0.7).\n",
                   argv [0]);
          exit (EXIT_FAILURE);
        }
@@ -900,6 +904,7 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
    fprintf (stderr, "    Hash_Mask_Bits = %d\n", Hash_Mask_Bits);
    fprintf (stderr, "  Max_Hash_Strings = %d\n", Max_Hash_Strings);
    fprintf (stderr, " Max_Hash_Data_Len = %d\n", Max_Hash_Data_Len);
+   fprintf (stderr, "     Max_Hash_Load = %f\n", Max_Hash_Load);
    fprintf (stderr, "       Kmer Length = %d\n", WINDOW_SIZE);
 
    Initialize_Globals ();
@@ -1539,7 +1544,7 @@ int  Build_Hash_Index
 
    Extra_Ref_Ct = 0;
    Hash_Entries = 0;
-   hash_entry_limit = MAX_HASH_LOAD * HASH_TABLE_SIZE * ENTRIES_PER_BUCKET;
+   hash_entry_limit = Max_Hash_Load * HASH_TABLE_SIZE * ENTRIES_PER_BUCKET;
 
    while  (String_Ct < Max_Hash_Strings
              && total_len < Max_Hash_Data_Len
@@ -3866,20 +3871,16 @@ if  (ovMesg.min_offset + 3 < ovMesg.ahg)
              b_percen -= ovMesg . bhg;
          b_percen *= 100.0 / S_Len;
          
-#if  USE_THREADS
-   if  (Num_PThreads > 1)
-       pthread_mutex_lock (& Write_Proto_Mutex);
-#endif
+         if  (Num_PThreads > 1)
+           pthread_mutex_lock (& Write_Proto_Mutex);
          fprintf (Out_Stream,
                   "%9d  %9d  %c  %5d  %5d  %5.1f  %5d  %5d  %5.1f  %5.3f\n",
                   T_ID, S_ID, (char) ovMesg . orientation,
                   a_start, a_end, a_percen,
                   b_start, b_end, b_percen,
                   100.0 * ovMesg . quality);
-#if  USE_THREADS
-   if  (Num_PThreads > 1)
-       pthread_mutex_unlock (& Write_Proto_Mutex);
-#endif
+         if  (Num_PThreads > 1)
+           pthread_mutex_unlock (& Write_Proto_Mutex);
          return;
         }
 #endif
@@ -3906,10 +3907,8 @@ if  (ovMesg.min_offset + 3 < ovMesg.ahg)
    *deltaCursor = AS_ENDOF_DELTA_CODE;
 
 
-#if  USE_THREADS
    if  (Num_PThreads > 1)
        pthread_mutex_lock (& Write_Proto_Mutex);
-#endif
 
    if((ovMesg.overlap_type == AS_CONTAINMENT) &&
       (ovMesg.orientation == AS_OUTTIE)) {
@@ -3934,10 +3933,8 @@ if  (ovMesg.min_offset + 3 < ovMesg.ahg)
        Dovetail_Overlap_Ct ++;
    Write_Msg_Fn (Out_Stream, & outputMesg);
 
-#if  USE_THREADS
    if  (Num_PThreads > 1)
        pthread_mutex_unlock (& Write_Proto_Mutex);
-#endif
 
    return;
   }
@@ -3977,17 +3974,13 @@ static void  Output_Partial_Overlap
         d = p -> t_lo;
         dir_ch = 'r';
        }
-#if  USE_THREADS
    if  (Num_PThreads > 1)
        pthread_mutex_lock (& Write_Proto_Mutex);
-#endif
    fprintf (Out_Stream, "%7d %7d  %c %4d %4d %4d  %4d %4d %4d  %5.2f\n",
         s_id, t_id, dir_ch, a, b, s_len, c, d, t_len,
         100.0 * p -> quality);
-#if  USE_THREADS
    if  (Num_PThreads > 1)
        pthread_mutex_unlock (& Write_Proto_Mutex);
-#endif
 
    return;
   }
@@ -4410,10 +4403,8 @@ if  (Is_Duplicate_Olap)
                {
 #if  SHOW_OVERLAPS
     {
-#if  USE_THREADS
    if  (Num_PThreads > 1)
        pthread_mutex_lock (& Write_Proto_Mutex);
-#endif
 
 #if  DO_OLAP_ALIGN_PROFILE
 Align_P = Align_Ct [T_ID - Hash_String_Num_Offset];
@@ -4424,10 +4415,8 @@ Align_P = Align_Ct [T_ID - Hash_String_Num_Offset];
 
      Show_Overlap (S, S_Len, S_quality, T, t_len, T_quality, p);
 
-#if  USE_THREADS
    if  (Num_PThreads > 1)
        pthread_mutex_unlock (& Write_Proto_Mutex);
-#endif
     }
 #endif
 
@@ -4547,10 +4536,8 @@ Align_P = Align_Ct [T_ID - Hash_String_Num_Offset];
    int  local_other_bin [20] = {0};
    int  i;
 
-#if  USE_THREADS
    if  (Num_PThreads > 1)
        pthread_mutex_lock (& Write_Proto_Mutex);
-#endif
 
    Show_SNPs (S, S_Len, S_quality, T, t_len, T_quality, p, WA,
               & mismatch_ct, & indel_ct, & olap_bases,
@@ -4575,10 +4562,8 @@ Align_P = Align_Ct [T_ID - Hash_String_Num_Offset];
      fprintf (Out_Stream, " %3d", local_other_bin [i]);
    fprintf (Out_Stream, "\n");
 
-#if  USE_THREADS
    if  (Num_PThreads > 1)
        pthread_mutex_unlock (& Write_Proto_Mutex);
-#endif
    rejected = TRUE;
   }
 #endif
@@ -4601,10 +4586,8 @@ Align_P = Align_Ct [T_ID - Hash_String_Num_Offset];
           }
        }
          
-#if  USE_THREADS
    if  (Num_PThreads > 1)
        pthread_mutex_lock (& Write_Proto_Mutex);
-#endif
 
    if  (overlaps_output == 0)
        Kmer_Hits_Without_Olap_Ct ++;
@@ -4615,10 +4598,8 @@ Align_P = Align_Ct [T_ID - Hash_String_Num_Offset];
             Multi_Overlap_Ct ++;
        }
 
-#if  USE_THREADS
    if  (Num_PThreads > 1)
        pthread_mutex_unlock (& Write_Proto_Mutex);
-#endif
 
    return;
   }
@@ -4640,18 +4621,14 @@ void  Process_Overlaps
    int  frag_status;
    int  Len;
 
-#if  USE_THREADS
    if  (Num_PThreads > 1)
        pthread_mutex_lock (& FragStore_Mutex);
-#endif
 
    Curr_String_Num = getStartIndexFragStream(stream);
    start_string_num = Curr_String_Num;
 
-#if  USE_THREADS
    if  (Num_PThreads > 1)
        pthread_mutex_unlock (& FragStore_Mutex);
-#endif
 
    while  ((frag_status
               = Read_Next_Frag (Frag, quality, stream, WA -> myRead,
@@ -4732,10 +4709,8 @@ Dump_Screen_Info (Curr_String_Num, & (WA -> screen_info), 'f');
            if  (WA -> A_Olaps_For_Frag >= Frag_Olap_Limit
                  || WA -> B_Olaps_For_Frag >= Frag_Olap_Limit)
                {
-#if  USE_THREADS
    if  (Num_PThreads > 1)
        pthread_mutex_lock (& Log_Msg_Mutex);
-#endif
                 if  (WA -> A_Olaps_For_Frag >= Frag_Olap_Limit)
                     fprintf (stderr,
                              "### Hit forward A-end olap limit for frag %d\n",
@@ -4744,10 +4719,8 @@ Dump_Screen_Info (Curr_String_Num, & (WA -> screen_info), 'f');
                     fprintf (stderr,
                              "### Hit forward B-end olap limit for frag %d\n",
                          Curr_String_Num);
-#if  USE_THREADS
    if  (Num_PThreads > 1)
        pthread_mutex_unlock (& Log_Msg_Mutex);
-#endif
                }
 #endif
 
@@ -4769,10 +4742,8 @@ Dump_Screen_Info (Curr_String_Num, & (WA -> screen_info), 'r');
            if  (WA -> A_Olaps_For_Frag >= Frag_Olap_Limit
                  || WA -> B_Olaps_For_Frag >= Frag_Olap_Limit)
                {
-#if  USE_THREADS
    if  (Num_PThreads > 1)
        pthread_mutex_lock (& Log_Msg_Mutex);
-#endif
                 if  (WA -> A_Olaps_For_Frag >= Frag_Olap_Limit)
                     fprintf (stderr,
                              "### Hit reverse A-end olap limit for frag %d\n",
@@ -4781,10 +4752,8 @@ Dump_Screen_Info (Curr_String_Num, & (WA -> screen_info), 'r');
                     fprintf (stderr,
                              "### Hit reverse B-end olap limit for frag %d\n",
                          Curr_String_Num);
-#if  USE_THREADS
    if  (Num_PThreads > 1)
        pthread_mutex_unlock (& Log_Msg_Mutex);
-#endif
                }
 #endif
 
@@ -5324,10 +5293,8 @@ static int  Read_Next_Frag
    char  frag_source [MAX_SOURCE_LENGTH + 1];
 #endif
    
-#if  USE_THREADS
    if  (Num_PThreads > 1)
        pthread_mutex_lock (& FragStore_Mutex);
-#endif
 
 #if  USE_SOURCE_FIELD
    success = nextFragStream (stream, myRead, FRAG_S_SEQUENCE | FRAG_S_SOURCE);
@@ -5431,10 +5398,8 @@ static int  Read_Next_Frag
         return_val = VALID_FRAG;
        }
 
-#if  USE_THREADS
    if  (Num_PThreads > 1)
        pthread_mutex_unlock (& FragStore_Mutex);
-#endif
 
    return  return_val;
   }

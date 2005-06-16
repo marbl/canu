@@ -24,11 +24,11 @@
       pairs of DNA strings.
    Assumptions:  Input meets specifications in the ProtoIO documents
  *********************************************************************/
-static char CM_ID[] = "$Id: AS_OVL_driver.c,v 1.4 2005-03-22 19:49:17 jason_miller Exp $";
+static char CM_ID[] = "$Id: AS_OVL_driver.c,v 1.5 2005-06-16 20:02:37 brianwalenz Exp $";
 
 /* RCS info
- * $Id: AS_OVL_driver.c,v 1.4 2005-03-22 19:49:17 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Id: AS_OVL_driver.c,v 1.5 2005-06-16 20:02:37 brianwalenz Exp $
+ * $Revision: 1.5 $
 */
 
 
@@ -41,10 +41,6 @@ static char CM_ID[] = "$Id: AS_OVL_driver.c,v 1.4 2005-03-22 19:49:17 jason_mill
 
 /* this is the frag version binary */
 #undef CONTIG_OVERLAPPER_VERSION
-
-#undef   USE_2GB_MEMORY
-#define  USE_4GB_MEMORY
-#define  BIG_MEMORY_BOX
 
 #include "AS_OVL_driver_common.h"
 

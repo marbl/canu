@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: GrowOlapStoreOVL.c,v 1.5 2005-06-03 17:47:53 brianwalenz Exp $
- * $Revision: 1.5 $
+ * $Id: GrowOlapStoreOVL.c,v 1.6 2005-06-16 20:02:37 brianwalenz Exp $
+ * $Revision: 1.6 $
 */
 
-static char CM_ID[] = "$Id: GrowOlapStoreOVL.c,v 1.5 2005-06-03 17:47:53 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GrowOlapStoreOVL.c,v 1.6 2005-06-16 20:02:37 brianwalenz Exp $";
 
 
 //  System include files
@@ -74,17 +74,6 @@ static char CM_ID[] = "$Id: GrowOlapStoreOVL.c,v 1.5 2005-06-03 17:47:53 brianwa
     //  Number of entries in initial list of .ovl files
 #define  MAX_BACKUPS             10
     //  Most backup versions of an overlap store that are allowed
-
-//  If we're on a 'small' machine, use a small default for the number
-//  of overlaps per batch.  If we're on a 'big' machine, use a big
-//  default.
-//
-//#if 
-//#define MAX_OLAP_BATCH          900000
-
-    //  Uses about 3GB of memory
-    //  The most overlaps that can be stored in memory at a time
-
 
 
 //  Type definitions
@@ -159,8 +148,8 @@ static int  Tmp_File_Info_Size = 0;
     // Number of entries allocated for  Tmp_File_Info;
 static int  Verbose = 0;
     // Determines level of extra printouts
-static int  Max_Olap_Batch = MAX_OLAP_BATCH;
-    // How many overlaps to store in memory, the batch size
+static int  Max_Olap_Batch = 0;
+    // How many overlaps to store in memory, the batch size, set later
 
 
 //  Static Functions
@@ -455,6 +444,10 @@ static void  Parse_Command_Line
    int  create = FALSE;
    int  force = FALSE;
    int  i, n;
+
+   //  Set the default number of overlaps per batch to use 512MB memory.
+   //
+   Max_Olap_Batch = (int)(512 * 1048576 / (sizeof(Long_Olap_Data_t) + sizeof(Short_Olap_Data_t)));
 
    fprintf (stderr, "* Working directory is %s\n", getcwd (NULL, 256));
    OVL_File_List = CreateVA_char_Ptr_t (INITIAL_FILE_LIST_LEN);

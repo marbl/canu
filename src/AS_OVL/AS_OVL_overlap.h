@@ -26,8 +26,8 @@
  *********************************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap.h,v 1.4 2005-03-22 19:49:17 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Id: AS_OVL_overlap.h,v 1.5 2005-06-16 20:02:37 brianwalenz Exp $
+ * $Revision: 1.5 $
 */
 
 
@@ -182,11 +182,7 @@
 #define  CHECK_MASK              0xff
     //  To set Check field in hash bucket
 
-#ifdef  CONTIG_OVERLAPPER_VERSION
 #define  DEFAULT_HI_HIT_LIMIT    INT_MAX
-#else
-#define  DEFAULT_HI_HIT_LIMIT    INT_MAX
-#endif
     //  Any kmer in hash table with at least this many hits
     //  cannot initiate an overlap.  Can be changed on the command
     //  line with  -K  option
@@ -216,23 +212,14 @@
     //  The number of errors that are ignored in setting probability
     //  bound for terminating alignment extensions in edit distance
     //  calculations
-#ifdef  CONTIG_OVERLAPPER_VERSION
 #define  FRAG_OLAP_LIMIT         INT_MAX
-#else
-//#define  FRAG_OLAP_LIMIT         5
-#define  FRAG_OLAP_LIMIT         INT_MAX
-#endif
     //  Most overlaps any single old fragment can have with a single
-    //  set of new fragments in the hash table.  Limits not used in
-    //  contig version
+    //  set of new fragments in the hash table.
 #define  HASH_CHECK_MASK         0x1f
     //  Used to set and check bit in Hash_Check_Array
     //  Change if change  Check_Vector_t
 #define  HASH_EXPANSION_FACTOR   1.4
     //  Hash table size is >= this times  MAX_HASH_STRINGS
-
-    // DEF_HASH_MASK_BITS is now defined in cds.h
-
 #define  HASH_MASK               ((1 << Hash_Mask_Bits) - 1)
     //  Extract right Hash_Mask_Bits bits of hash key
 #define  HASH_TABLE_SIZE         (1 + HASH_MASK)
@@ -292,39 +279,7 @@
 #define  OFFSET_MASK             ((1 << OFFSET_BITS) - 1)
     //  Mask used to extract bits to put in  Offset  field
 
-#ifdef  USE_4GB_MEMORY
-  #define  DEF_MAX_HASH_DATA_LEN       140000000
-#else
-  #ifdef ON_JTC_LINUX_FARM
-    #define  DEF_MAX_HASH_DATA_LEN        40000000
-  #else
-    #define  DEF_MAX_HASH_DATA_LEN        35000000
-  #endif
-#endif
-    //  Maximum total bytes of all strings in the hash table
-
-#ifdef BIG_MEMORY_BOX
-  #ifdef  CONTIG_OVERLAPPER_VERSION
-    #ifdef  USE_4GB_MEMORY
-      #define  DEF_MAX_HASH_STRINGS          2040
-    #else
-      #define  DEF_MAX_HASH_STRINGS          1500
-    #endif
-  #else
-    #ifdef  USE_4GB_MEMORY
-      #define  DEF_MAX_HASH_STRINGS        200000
-    #else
-      #define  DEF_MAX_HASH_STRINGS        100000
-    #endif
-  #endif
-#else 
-  #ifdef ON_JTC_LINUX_FARM
-    #define  DEF_MAX_HASH_STRINGS           40000
-  #else
-    #define  DEF_MAX_HASH_STRINGS            2000
-  #endif
-#endif
-    //  Most strings in hash table  Must be less than (1 << STRING_NUM_BITS).
+//  xxxx constants were here
 
 #ifdef  CONTIG_OVERLAPPER_VERSION
 #define  EXPECTED_STRING_LEN     (AS_READ_MAX_LEN / 2)
@@ -336,7 +291,7 @@
 
 #define  MAX_OLD_BATCH_SIZE      100000
     //  Most old fragments to read at a time from the fragment store
-#define  MAX_HASH_LOAD           0.70
+#define  MAX_HASH_LOAD           0.60
     //  Maximum portion of hash table allowed to be filled
 #define  MAX_LINE_LEN            1000
     //  Maximum input line when reading FASTA file
@@ -610,13 +565,10 @@ extern MesgWriter  Write_Msg_Fn, Error_Write;
 extern uint32  * IID_List;
 extern int  IID_List_Len;
 
-#if  USE_THREADS
 extern pthread_mutex_t  FragStore_Mutex;
 extern pthread_mutex_t  Write_Proto_Mutex;
 extern pthread_mutex_t  Log_Msg_Mutex;
-#endif
 
-
 //
 //  Prototypes of functions used by both  AS_OVL_driver.c  and
 //  AS_OVL_overlap.c .

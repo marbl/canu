@@ -182,20 +182,6 @@ typedef double float64;
   #define CDS_UINT64_ZERO   0x0000000000000000ULL
   #define CDS_UINT64_ONE    0x0000000000000001ULL
 
-  //========== OVERLAPPER-specific
-  // The most overlaps that can be stored in memory at a time
-  #define MAX_OLAP_BATCH          900000
-  // overlapper hashtable is 2^(HASH_MASK_BITS)
-  #ifdef ON_JTC_LINUX_FARM
-    #define DEF_HASH_MASK_BITS     21
-  #else
-    #define DEF_HASH_MASK_BITS     18
-  #endif
-  // specifies if overlapper should use threads
-  #define USE_THREADS         1
-  // used in UpdateEratesOVL.c as write buffer to reduce fseeks
-  #define  IO_BUFF_SIZE   10000
-
   //========== CGB-specific
   #define CGB_MULTIPLIER               1000
 
@@ -293,26 +279,6 @@ typedef double float64;
     //========== MERYL-specific
     #define CDS_UINT64_ZERO   0x0000000000000000UL
     #define CDS_UINT64_ONE    0x0000000000000001UL
-    
-    //========== OVERLAPPER-specific
-    #ifndef __alpha
-      #define BIG_MEMORY_BOX
-      // The most overlaps that can be stored in memory at a time
-      #define MAX_OLAP_BATCH        90000000
-      // overlapper hashtable is 2^(HASH_MASK_BITS)
-      #define DEF_HASH_MASK_BITS     23
-      // specifies if overlapper should use threads
-      #define USE_THREADS         0
-    #else
-      // The most overlaps that can be stored in memory at a time
-      #define MAX_OLAP_BATCH          900000
-      // overlapper hashtable is 2^(HASH_MASK_BITS)
-      #define DEF_HASH_MASK_BITS     22
-      // specifies if overlapper should use threads
-      #define USE_THREADS         1
-    #endif
-    // used in UpdateEratesOVL.c as write buffer to reduce fseeks
-    #define  IO_BUFF_SIZE 1000000
     
     //========== CGB-specific
     #ifndef __alpha

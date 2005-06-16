@@ -26,8 +26,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_driver_common.h,v 1.4 2005-03-22 19:49:17 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Id: AS_OVL_driver_common.h,v 1.5 2005-06-16 20:02:37 brianwalenz Exp $
+ * $Revision: 1.5 $
 */
 
 
@@ -59,9 +59,7 @@ static int  Next_Fragment_Index;
 static int  IID_Lo, IID_Hi;
 static int  Frag_Segment_Lo;
 static int  Frag_Segment_Hi;
-#if  USE_THREADS
 static pthread_mutex_t  Fragment_Range_Mutex;
-#endif
 static Batch_ID  Batch_Msg_UID = 0;
 static IntBatch_ID  Batch_Msg_IID = 0;
 static int  Batch_Num = 0;
@@ -138,10 +136,8 @@ int  OverlapDriver
    Frag_Stream  HashFragStream = 0;
    FragStore  NewFragStore;
    DistStore  NewDistStore;
-#if  USE_THREADS
    pthread_attr_t  attr;
    pthread_t  * thread_id;
-#endif
    Frag_Stream  * new_stream_segment;
    Frag_Stream  * old_stream_segment;
 //   Work_Area_t  * driver_wa;
@@ -151,18 +147,11 @@ int  OverlapDriver
 
 fprintf (stderr, "### sizeof (Work_Area_t) = " F_SIZE_T "\n",
          sizeof (Work_Area_t));
-#if  USE_THREADS
 fprintf (stderr, "### Using %d pthreads  %d hash bits  %d bucket entries\n",
          Num_PThreads, Hash_Mask_Bits, ENTRIES_PER_BUCKET);
-#else
-fprintf (stderr, "### Not using threads  %d hash bits  %d bucket entries\n",
-         Hash_Mask_Bits, ENTRIES_PER_BUCKET);
-#endif
 
-#if  USE_THREADS
    thread_id = (pthread_t *) Safe_calloc
                    (Num_PThreads, sizeof (pthread_t));
-#endif
 
    new_stream_segment = (Frag_Stream *) Safe_calloc
                    (Num_PThreads, sizeof (Frag_Stream));
@@ -194,7 +183,6 @@ fprintf (stderr, "### Not using threads  %d hash bits  %d bucket entries\n",
 
    if  (noOverlaps == 0)
        {
-#if  USE_THREADS
         if  (Num_PThreads > 1)
             {
              pthread_attr_init (& attr);
@@ -204,8 +192,6 @@ fprintf (stderr, "### Not using threads  %d hash bits  %d bucket entries\n",
              pthread_mutex_init (& Write_Proto_Mutex, NULL);
              pthread_mutex_init (& Log_Msg_Mutex, NULL);
             }
-#endif
-//        Initialize_Work_Area (driver_wa, -1);
         Initialize_Work_Area (thread_wa, 0);
         for  (i = 1;  i < Num_PThreads;  i ++)
           Initialize_Work_Area (thread_wa + i, i);
@@ -333,7 +319,6 @@ break;
                 Frag_Segment_Hi = getLastElemFragStore (NewFragStore);
                 curr_frag_store = NewFragStore;
 
-#if  USE_THREADS
                 for  (i = 1;  i < Num_PThreads;  i ++)
                   {
                    thread_wa [i] . stream_segment = new_stream_segment [i];
@@ -348,12 +333,10 @@ break;
                         exit (-3);
                        }
                   }
-#endif
 
                 thread_wa [0] . stream_segment = new_stream_segment [0];
                 Choose_And_Process_Stream_Segment (thread_wa);
 
-#if  USE_THREADS
                 for  (i = 1;  i < Num_PThreads;  i ++)
                   {
                    void  * ptr;
@@ -366,7 +349,6 @@ break;
                         exit (-3);
                        }
                   }
-#endif
                }
 
 
@@ -425,7 +407,6 @@ break;
 
               Now = time (NULL);
               fprintf (stderr, "### starting old fragments   %s\n", ctime (& Now));
-#if  USE_THREADS
               for  (i = 1;  i < Num_PThreads;  i ++)
                 {
                  thread_wa [i] . stream_segment = old_stream_segment [i];
@@ -440,12 +421,10 @@ break;
                       exit (-3);
                      }
                 }
-#endif
 
               thread_wa [0] . stream_segment = old_stream_segment [0];
               Choose_And_Process_Stream_Segment (thread_wa);
 
-#if  USE_THREADS
               for  (i = 1;  i < Num_PThreads;  i ++)
                 {
                  void  * ptr;
@@ -458,7 +437,6 @@ break;
                       exit (-3);
                      }
                 }
-#endif
 
               Now = time (NULL);
               fprintf (stderr, "### done old fragments   %s", ctime (& Now));
@@ -558,9 +536,7 @@ Profile_Hits ();
      Cleanup_Work_Area (thread_wa + i);
 //   free (driver_wa);
    free (thread_wa);
-#if  USE_THREADS
    free (thread_id);
-#endif
    free (new_stream_segment);
    free (old_stream_segment);
 
@@ -689,10 +665,8 @@ static void *  Choose_And_Process_Stream_Segment
      {
       int  lo, hi;
 
-#if  USE_THREADS
       if  (Num_PThreads > 1)
           pthread_mutex_lock (& Fragment_Range_Mutex);
-#endif
 
       if  (IID_List == NULL)
           {
@@ -708,10 +682,8 @@ static void *  Choose_And_Process_Stream_Segment
                lo = hi = IID_List [IID_Lo ++];
           }
 
-#if  USE_THREADS
       if  (Num_PThreads > 1)
           pthread_mutex_unlock (& Fragment_Range_Mutex);
-#endif
 
       if  (IID_List != NULL && hi > Frag_Segment_Hi)
           break;
@@ -720,25 +692,19 @@ static void *  Choose_And_Process_Stream_Segment
       if  (lo > hi)
           break;
       
-#if  USE_THREADS
       if  (Num_PThreads > 1)
           pthread_mutex_lock (& FragStore_Mutex);
-#endif
 
       resetFragStream (WA -> stream_segment, lo, hi);
 
-#if  USE_THREADS
       if  (Num_PThreads > 1)
           pthread_mutex_unlock (& FragStore_Mutex);
-#endif
 
       Process_Overlaps (WA -> stream_segment, WA);
      }
 
-#if  USE_THREADS
    if  (Num_PThreads > 1 && WA -> thread_id > 0)
        pthread_exit (ptr);
-#endif
 
    return  ptr;
   }

@@ -49,11 +49,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap.c,v 1.4 2005-03-22 19:49:17 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Id: AS_OVL_overlap.c,v 1.5 2005-06-16 20:02:37 brianwalenz Exp $
+ * $Revision: 1.5 $
 */
 
-static char CM_ID[] = "$Id: AS_OVL_overlap.c,v 1.4 2005-03-22 19:49:17 jason_miller Exp $";
+static char CM_ID[] = "$Id: AS_OVL_overlap.c,v 1.5 2005-06-16 20:02:37 brianwalenz Exp $";
 
 /****************************************
  * Version of the main program 
@@ -66,12 +66,6 @@ static char CM_ID[] = "$Id: AS_OVL_overlap.c,v 1.4 2005-03-22 19:49:17 jason_mil
 //#ifndef CONTIG_OVERLAPPER_VERSION
 //#define CONTIG_OVERLAPPER_VERSION
 //#endif
-
-
-#undef   USE_2GB_MEMORY
-#define  USE_4GB_MEMORY
-#define  BIG_MEMORY_BOX
-
 
 #include "AS_OVL_overlap_common.h"
 
