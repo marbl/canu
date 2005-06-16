@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: UpdateEratesOVL.c,v 1.4 2005-03-22 19:49:19 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Id: UpdateEratesOVL.c,v 1.5 2005-06-16 19:57:23 brianwalenz Exp $
+ * $Revision: 1.5 $
 */
 
-static char CM_ID[] = "$Id: UpdateEratesOVL.c,v 1.4 2005-03-22 19:49:19 jason_miller Exp $";
+static char CM_ID[] = "$Id: UpdateEratesOVL.c,v 1.5 2005-06-16 19:57:23 brianwalenz Exp $";
 
 
 //  System include files
@@ -65,6 +65,10 @@ static char CM_ID[] = "$Id: UpdateEratesOVL.c,v 1.4 2005-03-22 19:49:19 jason_mi
 #include  "AS_UTL_version.h"
 #include  "OlapStoreOVL.h"
 
+//  Constants
+
+#define  IO_BUFF_SIZE 1000000
+
 
 //  Type definitions
 
@@ -77,7 +81,6 @@ static char  * OVL_Store_Path = NULL;
 static char  * Erate_File_Path = NULL;
     // File containing corrected error rates to be stored
     // in the overlap store
-
 
 
 //  Static Functions
@@ -173,16 +176,16 @@ static void  Set_Corrected_Erate
   {
     FILE * fp = NULL;
     Short_Olap_Data_t  buff = {0};
-    // Warning: Next line can blow the stack at program startup. 
-    // Alter process stacksize ('limit') and IO_BUFF_SIZE setting.
-    // Switch to malloc() if necesary.
-    // Jason Miller, Jan 2005.
-    Short_Olap_Data_t  io_buff [IO_BUFF_SIZE] = {{0}};
+    Short_Olap_Data_t *io_buff = NULL;
     uint32  * olap_offset = NULL, max_frag = 0, frags_per_file = 0;
     char  filename [MAX_FILENAME_LEN] = "\0";
     size_t  file_position = 0, io_buff_start = 0;
     int  num_frags, io_buff_ct = 0;
     int  i, j, ct, first, file_index;
+
+    io_buff = (Short_Olap_Data_t *)calloc(IO_BUFF_SIZE, sizeof(Short_Olap_Data_t));
+    if (io_buff == NULL)
+      fprintf(stderr, "Failed to allocate %d io_buff's.\n", IO_BUFF_SIZE), exit(1);
     
     assert(NULL != path);
     {
@@ -305,6 +308,8 @@ static void  Set_Corrected_Erate
         fprintf (stderr, "ERROR:  They *must* match\n");
         exit (EXIT_FAILURE);
        }
+
+   free(io_buff);
 
    return;
   }

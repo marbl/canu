@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: ForceEratesOVL.c,v 1.4 2005-03-22 19:49:18 jason_miller Exp $";
+static char CM_ID[] = "$Id: ForceEratesOVL.c,v 1.5 2005-06-16 19:57:21 brianwalenz Exp $";
 
 
 //  System include files
@@ -50,6 +50,8 @@ static char CM_ID[] = "$Id: ForceEratesOVL.c,v 1.4 2005-03-22 19:49:18 jason_mil
 
 
 //  Constants
+
+#define  IO_BUFF_SIZE 1000000
 
 
 //  Type definitions
@@ -207,14 +209,18 @@ static void  Set_New_Erates
   {
     FILE * fp = NULL;
     Short_Olap_Data_t  buff = {0};
-    Short_Olap_Data_t  io_buff [IO_BUFF_SIZE] = {{0}};
+    Short_Olap_Data_t *io_buff = NULL;
     uint32  * olap_offset = NULL, max_frag = 0, frags_per_file = 0;
     int32  lo_id, hi_id;
     char  filename [MAX_FILENAME_LEN] = {0};
     size_t  file_position = 0, io_buff_start = 0;
     int  num_frags, io_buff_ct = 0, change_ct = 0;
     int  i, j, ct, first, file_index;
-    
+
+    io_buff = (Short_Olap_Data_t *)calloc(IO_BUFF_SIZE, sizeof(Short_Olap_Data_t));
+    if (io_buff == NULL)
+      fprintf(stderr, "Failed to allocate %d io_buff's.\n", IO_BUFF_SIZE), exit(1);
+
     assert(NULL != path);
     lo_id = 1;
 
@@ -349,6 +355,8 @@ static void  Set_New_Erates
      }
 
    fprintf (stderr, "%d changes made\n", change_ct);
+
+   free(io_buff);
 
    return;
   }
