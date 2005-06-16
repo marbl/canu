@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.10 2005-06-14 22:08:42 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.11 2005-06-16 20:15:51 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -646,6 +646,7 @@ int SetUngappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) 
    if ( Getint32(gapped_positions,num_columns) == NULL ) {
       fprintf(stderr,"Misformed Multialign... fragment positions only extend to bp %d out of %d/n",
               (int) GetNumint32s(gapped_positions),num_columns+1);
+      DeleteVA_int32(gapped_positions);
       return -1;
    }
 
@@ -739,6 +740,7 @@ int SetUngappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) 
     }
    }
    ClosePHashTable_AS(unitigFrags);
+   DeleteVA_int32(gapped_positions);
    return first_frag;
 }
 
@@ -772,6 +774,7 @@ int SetGappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) {
    if ( Getint32(gapped_positions,num_columns) == NULL ) {
       fprintf(stderr,"Misformed Multialign... fragment positions only extend to bp %d out of %d/n",
               (int) GetNumint32s(gapped_positions),num_columns+1);
+      DeleteVA_int32(gapped_positions);
       return -1;
    }
 
@@ -863,6 +866,7 @@ int SetGappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) {
     }
    }
    ClosePHashTable_AS(unitigFrags);
+   DeleteVA_int32(gapped_positions);
    return first_frag;
 }
 
