@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: extendClearRanges.c,v 1.6 2005-06-09 21:15:35 brianwalenz Exp $";
+static char CM_ID[] = "$Id: extendClearRanges.c,v 1.7 2005-06-17 19:28:24 eliv Exp $";
 
 
 /*********************************************************************
@@ -1311,7 +1311,7 @@ int main( int argc, char *argv[])
 	if(numSmallGapsClosedInScaffold[sid]+numLargeGapsClosedInScaffold[sid]>0){
 	  int status = RECOMPUTE_SINGULAR;
 	  int recomputeIteration = 0;
-	  while(recomputeIteration < 3 &&
+	  while(recomputeIteration++ < 3 &&
 		(status == RECOMPUTE_SINGULAR ||
 		 status == RECOMPUTE_CONTIGGED_CONTAINMENTS))
 	    {
