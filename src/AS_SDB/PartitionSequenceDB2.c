@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: PartitionSequenceDB2.c,v 1.5 2005-06-09 21:17:05 brianwalenz Exp $";
+static char CM_ID[] = "$Id: PartitionSequenceDB2.c,v 1.6 2005-06-20 17:43:36 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -44,15 +44,15 @@ static char CM_ID[] = "$Id: PartitionSequenceDB2.c,v 1.5 2005-06-09 21:17:05 bri
   
   Given a SequenceDB and a partition size, measured in number of fragments,
   produce the following:
-    1) A set of SequenceDBs called partition0-partitionN where:
-       - partition0 contains all live contigs containing a single unitig (can grow to arbitrary size)
-         Paritition 0 is really not very interesting and should be omitted later
-       - partition1-partitionN contain contigs with >1 unitig, together will all unitigs and
-         unitig surrogates referenced by the contig. This may cause a unitig to appear in more than
-	 one partition
-    2) A fragment partition file specifying for each fragment which partition (possibly partition 0) its
-       contig belongs.  This file is of the form
-            <partitionID>  <fragID>
+  1) A set of SequenceDBs called partition0-partitionN where:
+  - partition0 contains all live contigs containing a single unitig (can grow to arbitrary size)
+  Paritition 0 is really not very interesting and should be omitted later
+  - partition1-partitionN contain contigs with >1 unitig, together will all unitigs and
+  unitig surrogates referenced by the contig. This may cause a unitig to appear in more than
+  one partition
+  2) A fragment partition file specifying for each fragment which partition (possibly partition 0) its
+  contig belongs.  This file is of the form
+  <partitionID>  <fragID>
 
 
   This tool will operate in two phases, first partitioning the Contigs and generating a fragment partition file,
@@ -138,7 +138,7 @@ int main(int argc, char **argv){
   sequenceDB = OpenSequenceDB(storeName, FALSE, storeVersion);
 
   lastBin = lastUnitig = -1;
-   while(fgets(buffer,1999,partitionfp)){
+  while(fgets(buffer,1999,partitionfp)){
     if(2 == sscanf(buffer,F_CID " " F_CID, &unitigID, &binID)){
       FILE *fp = GetOutputFile(storeName, storeVersion, binID);
       VA_TYPE(tMARecord) *index = GetIndex(binID);
@@ -161,25 +161,25 @@ int main(int argc, char **argv){
       ReLoadMultiAlignTFromSequenceDB(sequenceDB, ma, unitigID, TRUE);    // This will load the ma from the disk file
       SaveMultiAlignTToStream(ma,fp);
     }
-   }
+  }
 
-   //  If the input was empty, we should not crash and burn, but we still exit
-   //  ungracefully.
-   //
-   if (outputIndices == NULL) {
-     fprintf(stderr, "* Found no partitions in the input (empty input file?) -- I fail!\n");
-     exit(1);
-   } else {
-     for(i = 1; i < GetNumPtrTs(outputIndices); i++){
-       char buffer[2048];
-       FILE *indexfp;
-       VA_TYPE(tMARecord) *index = GetIndex(i);
-       fclose(GetOutputFile(storeName,storeVersion, i));
-       sprintf(buffer,"%s/seqDB.%d.%d",storeName, storeVersion, i);
-       indexfp = fopen(buffer,"w");
-       CopyToFileVA_tMARecord(index, indexfp);
-       fclose(indexfp);
-     }
-   }
-   return 0;
+  //  If the input was empty, we should not crash and burn, but we still exit
+  //  ungracefully.
+  //
+  if (outputIndices == NULL) {
+    fprintf(stderr, "* Found no partitions in the input (empty input file?) -- I fail!\n");
+    exit(1);
+  } else {
+    for(i = 1; i < GetNumPtrTs(outputIndices); i++){
+      char buffer[2048];
+      FILE *indexfp;
+      VA_TYPE(tMARecord) *index = GetIndex(i);
+      fclose(GetOutputFile(storeName,storeVersion, i));
+      sprintf(buffer,"%s/seqDB.%d.%d",storeName, storeVersion, i);
+      indexfp = fopen(buffer,"w");
+      CopyToFileVA_tMARecord(index, indexfp);
+      fclose(indexfp);
+    }
+  }
+  return 0;
 }
