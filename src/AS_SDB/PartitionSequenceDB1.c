@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: PartitionSequenceDB1.c,v 1.4 2005-03-22 19:49:27 jason_miller Exp $";
+static char CM_ID[] = "$Id: PartitionSequenceDB1.c,v 1.5 2005-06-20 17:41:45 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -43,16 +43,16 @@ static char CM_ID[] = "$Id: PartitionSequenceDB1.c,v 1.4 2005-03-22 19:49:27 jas
   
   Given a SequenceDB and a partition size, measured in number of fragments,
   produce the following:
-    1) A set of SequenceDBs called partition0-partitionN where:
-       - partition0 contains all live contigs containing a single unitig (can grow to arbitrary size)
-         Paritition 0 is really not very interesting and should be omitted later
-       - partition1-partitionN contain contigs with >1 unitig, together will all unitigs and
-         unitig surrogates referenced by the contig. This may cause a unitig to appear in more than
-	 one partition
-       - The partition file, UnitigPartition.txt, is the input to PartitionSequenceDB2.c
-    2) A fragment partition file specifying for each fragment which partition (possibly partition 0) its
-       contig belongs.  This file, FragPartition.txt,  is of the form
-            <partitionID>  <fragID>
+  1) A set of SequenceDBs called partition0-partitionN where:
+  - partition0 contains all live contigs containing a single unitig (can grow to arbitrary size)
+  Paritition 0 is really not very interesting and should be omitted later
+  - partition1-partitionN contain contigs with >1 unitig, together will all unitigs and
+  unitig surrogates referenced by the contig. This may cause a unitig to appear in more than
+  one partition
+  - The partition file, UnitigPartition.txt, is the input to PartitionSequenceDB2.c
+  2) A fragment partition file specifying for each fragment which partition (possibly partition 0) its
+  contig belongs.  This file, FragPartition.txt,  is of the form
+  <partitionID>  <fragID>
 
 
   This tool will operate in two phases, first partitioning the Contigs and generating a fragment partition file,
@@ -151,7 +151,7 @@ int main(int argc, char **argv){
 
   quanta = numContigs/100;
 
- while (reader(inputFile,&pmesg) != EOF){
+  while (reader(inputFile,&pmesg) != EOF){
     int nfrags;
     int nunitigs;
     IntConConMesg *ma;
@@ -170,97 +170,97 @@ int main(int argc, char **argv){
       fflush(stderr);
     }
 #if 0
-    	failure = ReLoadMultiAlignTFromSequenceDB(sequenceDB, ma, i, FALSE);
+    failure = ReLoadMultiAlignTFromSequenceDB(sequenceDB, ma, i, FALSE);
 
-	if(failure){
-	  // ma doesn't exist
-	  deletedContigs++;
-	  continue;
-	}
+    if(failure){
+      // ma doesn't exist
+      deletedContigs++;
+      continue;
+    }
 #endif	
-	nunitigs = ma->num_unitigs;
-	nfrags = ma->num_pieces;
+    nunitigs = ma->num_unitigs;
+    nfrags = ma->num_pieces;
 
-	if(nunitigs > 1){
-	  int u,f;
-	  for(u = 0; u < nunitigs; u++){
-	    tPartitionElement partElem;
-	    IntUnitigPos *iup = ma->unitigs + u;
+    if(nunitigs > 1){
+      int u,f;
+      for(u = 0; u < nunitigs; u++){
+        tPartitionElement partElem;
+        IntUnitigPos *iup = ma->unitigs + u;
 
-	    partElem.elemID = iup->ident;
-	    partElem.partitionID = currentPartition;
-	    AppendtPartitionElement(unitigPartitionElems, &partElem);
-	  }	    
+        partElem.elemID = iup->ident;
+        partElem.partitionID = currentPartition;
+        AppendtPartitionElement(unitigPartitionElems, &partElem);
+      }	    
 
-	  for(f = 0; f < nfrags; f++){
-	    tPartitionElement partElem;
-	    IntMultiPos *imp = ma->pieces + f;
-	    partElem.elemID = imp->ident;
-	    partElem.partitionID = currentPartition;
-	    AppendtPartitionElement(fragPartitionElems, &partElem);
-	  }
+      for(f = 0; f < nfrags; f++){
+        tPartitionElement partElem;
+        IntMultiPos *imp = ma->pieces + f;
+        partElem.elemID = imp->ident;
+        partElem.partitionID = currentPartition;
+        AppendtPartitionElement(fragPartitionElems, &partElem);
+      }
 
 
-    WriteProtoMesg_AS(outputFile,pmesg);
-    fflush(outputFile);
+      WriteProtoMesg_AS(outputFile,pmesg);
+      fflush(outputFile);
 
-	  totalFragments += nfrags;
-	  partitionFragments += nfrags;
-	  totalUnitigs += nunitigs;
-	  totalContigs++;
+      totalFragments += nfrags;
+      partitionFragments += nfrags;
+      totalUnitigs += nunitigs;
+      totalContigs++;
 
-	  fprintf(stderr,"* totalFragments %d partitionFragments %d contigs:%d unitigs %d\n",
-		  totalFragments, partitionFragments,
-                  totalContigs, totalUnitigs);
+      fprintf(stderr,"* totalFragments %d partitionFragments %d contigs:%d unitigs %d\n",
+              totalFragments, partitionFragments,
+              totalContigs, totalUnitigs);
 
-	  if(partitionFragments > fragsPerPartition){
+      if(partitionFragments > fragsPerPartition){
 
-	    currentPartition++;
-	    fprintf(stderr,"Opening partition %d\n", currentPartition);
-	    partitionFragments=0;
-	    sprintf(outputFileName,"%s.%d", inputFileName,currentPartition);
-	    outputFile = fopen(outputFileName,"w");
-	    AssertPtr(outputFile);
-	  }
+        currentPartition++;
+        fprintf(stderr,"Opening partition %d\n", currentPartition);
+        partitionFragments=0;
+        sprintf(outputFileName,"%s.%d", inputFileName,currentPartition);
+        outputFile = fopen(outputFileName,"w");
+        AssertPtr(outputFile);
+      }
 
-	}else{
-	  partition0Fragments += nfrags;
-	  partition0Unitigs += nunitigs;
-	  partition0Contigs++;
-	}
+    }else{
+      partition0Fragments += nfrags;
+      partition0Unitigs += nunitigs;
+      partition0Contigs++;
+    }
 
   }
-      qsort((void *)GettPartitionElement(unitigPartitionElems, 0),
-            GetNumtPartitionElements(unitigPartitionElems),
-            sizeof(tPartitionElement),
-            ComparePartitionElements);
-      qsort((void *)GettPartitionElement(fragPartitionElems, 0),
-            GetNumtPartitionElements(fragPartitionElems),
-            sizeof(tPartitionElement),
-            ComparePartitionElements);
+  qsort((void *)GettPartitionElement(unitigPartitionElems, 0),
+        GetNumtPartitionElements(unitigPartitionElems),
+        sizeof(tPartitionElement),
+        ComparePartitionElements);
+  qsort((void *)GettPartitionElement(fragPartitionElems, 0),
+        GetNumtPartitionElements(fragPartitionElems),
+        sizeof(tPartitionElement),
+        ComparePartitionElements);
 
- {
-   FILE *output = NULL;
-   int i;
-   output = fopen("UnitigPartition.txt", "w");
-   AssertPtr(output);
-   for(i = 0; i < GetNumtPartitionElements(unitigPartitionElems); i++){
-     tPartitionElement *pElem = GettPartitionElement(unitigPartitionElems,i);
-     fprintf(output,"%d %d\n", pElem->elemID, pElem->partitionID);
-   }
- }
+  {
+    FILE *output = NULL;
+    int i;
+    output = fopen("UnitigPartition.txt", "w");
+    AssertPtr(output);
+    for(i = 0; i < GetNumtPartitionElements(unitigPartitionElems); i++){
+      tPartitionElement *pElem = GettPartitionElement(unitigPartitionElems,i);
+      fprintf(output,"%d %d\n", pElem->elemID, pElem->partitionID);
+    }
+  }
 
 
- {
-   FILE *output;
-   int i;
-   output = fopen("FragPartition.txt", "w");
-   AssertPtr(output);
-   for(i = 0; i < GetNumtPartitionElements(fragPartitionElems); i++){
-     tPartitionElement *pElem = GettPartitionElement(fragPartitionElems,i);
-     fprintf(output,"%d %d\n", pElem->partitionID, pElem->elemID);
-   }
- }
+  {
+    FILE *output;
+    int i;
+    output = fopen("FragPartition.txt", "w");
+    AssertPtr(output);
+    for(i = 0; i < GetNumtPartitionElements(fragPartitionElems); i++){
+      tPartitionElement *pElem = GettPartitionElement(fragPartitionElems,i);
+      fprintf(output,"%d %d\n", pElem->partitionID, pElem->elemID);
+    }
+  }
 
   fprintf(stderr,"* Processed %d contigs %d deleted %d to partition0 and %d to process\n",
 	  numContigs, deletedContigs, partition0Contigs, totalContigs);
