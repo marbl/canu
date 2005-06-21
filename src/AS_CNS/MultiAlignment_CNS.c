@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.11 2005-06-16 20:15:51 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.12 2005-06-21 13:38:42 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -2148,7 +2148,36 @@ PopulateDistMatrix(int32 cid, AlPair *ap)
             bases[i] = base;
             iids[i]  = iid; 
             if (base != '-') 
+            {
                 ap->sum_qvs[i] += qv;
+            }
+            /* If a single gap, assign it a minimal QV of the two adjacent bases.
+             * If multiple gap, assign it a fixed QV = 14 
+             * (at Granger Sutton's suggestion)
+             */
+            else // gap
+            {
+                Bead *prev_bead = NULL, *next_bead = NULL;
+                prev_bead = GetBead(beadStore, bead->prev);
+                next_bead = GetBead(beadStore, bead->next);
+                if ((prev_bead != NULL) && (next_bead != NULL))
+                {
+                    char  prev_base = *Getchar(sequenceStore, prev_bead->soffset);       
+                    char  next_base = *Getchar(sequenceStore, next_bead->soffset);       
+                    if ((prev_base == '-') || (next_base == '-')) 
+                    {
+                        ap->sum_qvs[i] += 14;   // Granger's suggestion - GD
+                    }
+                    else
+                    {
+                        int prev_qv = 
+                            (int)(*Getchar(qualityStore, prev_bead->soffset)-'0');           
+                        int next_qv =
+                            (int)(*Getchar(qualityStore, next_bead->soffset)-'0');
+                        ap->sum_qvs[i] += MIN(prev_qv, next_qv);
+                    }
+                }
+            }
         }
     }
    
