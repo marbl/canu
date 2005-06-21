@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_SDB_SequenceDB.c,v 1.4 2005-03-22 19:49:26 jason_miller Exp $";
+static char CM_ID[] = "$Id: AS_SDB_SequenceDB.c,v 1.5 2005-06-21 14:45:22 gdenisov Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -415,7 +415,7 @@ void DeleteMultiAlignTFromSequenceDB(tSequenceDB *db, int index, int isUnitig){
 MultiAlignT *LoadMultiAlignTFromSequenceDB(tSequenceDB *db, int index, int isUnitig){
  MultiAlignStoreT *maStore = (isUnitig?db->UnitigStore:db->ContigStore);
  MultiAlignT *ma = GetMultiAlignInStore(maStore,index);
- tMARecord *maRecord;
+ tMARecord *maRecord = NULL;
  int reference;
  FILE *file;
  if(ma){
@@ -428,6 +428,12 @@ MultiAlignT *LoadMultiAlignTFromSequenceDB(tSequenceDB *db, int index, int isUni
 
  maRecord = GettMARecord(isUnitig?db->Unitigs:db->Contigs, index);
 
+ if (maRecord == NULL)
+ {
+     fprintf(stderr, "Unable to extract MA Record with iid #%d\n", index);
+     exit(2);
+//   return NULL;
+ }
  // fprintf(stderr,"* Loading from file %d offset " F_U64 "\n", maRecord->storeID, maRecord->offset);
  // fflush(stderr);
 
