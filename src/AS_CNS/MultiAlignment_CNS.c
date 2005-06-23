@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.12 2005-06-21 13:38:42 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.13 2005-06-23 15:09:19 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -48,13 +48,34 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.12 2005-06-21 13:38:42 gden
   #undef ALTERNATE_OVERLAPPER
 #endif
 
-#undef TEST_IMP2ARRAY
-#define ALT_QV_THRESH 30
-#define IDENT_NAMESPACE 1
-#define DONT_SHOW_OLAP 0
-#define SHOW_OLAP 1
-#undef ALIGN_TO_CONSENSUS
+#undef  TEST_IMP2ARRAY
+#define ALT_QV_THRESH                      30
+#define IDENT_NAMESPACE                     1
+#define DONT_SHOW_OLAP                      0
+#define MIN_QV_FOR_VARIATION               22
+#define QV_FOR_MULTI_GAP                   14
+#define SHOW_OLAP                           1
+#undef  ALIGN_TO_CONSENSUS
 #define PRINTUIDS
+
+#define CNS_DP_RANGE                       40
+#define CNS_DP_THRESH                       1e-6
+#define CNS_DP_MINLEN                      30
+#define CNS_DP_THIN_MINLEN                 10
+#undef  GOS_ALIGNMENTS_FOR_RECRUITED_FRGS
+#ifdef  GOS_ALIGNMENTS_FOR_RECRUITED_FRGS
+  #define CNS_TIGHTSEMIBANDWIDTH          100
+  #define CNS_DP_ERATE                       .35
+#else
+  #define CNS_TIGHTSEMIBANDWIDTH            6
+  #define CNS_DP_ERATE                       .06
+#endif
+#define CNS_LOOSESEMIBANDWIDTH            100
+#define CNS_NEG_AHANG_CUTOFF               -5
+#define CNS_MAX_ALIGN_SLIP                 20
+#define STABWIDTH                           6
+#define MAX_ALLOWED_MA_DEPTH               40
+#define MAX_EXTEND_LENGTH                2048
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -1669,7 +1690,7 @@ BaseCall(int32 cid, int quality, float *var, AlPair ap, int verbose)
         int    cind;
         double tmpqv;
         int16  bi;
-        int    n_count=0;
+        int    n_count=0, read_count = 0;
         int    frag_cov=0;
         int16  max_ind=0;
         double max_cw=0.0;   // max of "consensus weights" of all bases
@@ -1717,7 +1738,6 @@ BaseCall(int32 cid, int quality, float *var, AlPair ap, int verbose)
                   ap.alleles[k] != ap.best_allele)  ) 
             {
                 other_base_count[BaseToInt(cbase)]++;
-//              read_qv_count[BaseToInt(cbase)] += qv;
                 AppendBead(guides,bead);
             } 
             else 
@@ -1876,6 +1896,10 @@ BaseCall(int32 cid, int quality, float *var, AlPair ap, int verbose)
         }
         Setchar(sequenceStore, call->soffset, &cbase);
         Setchar(qualityStore, call->soffset, &cqv);
+        
+        for (bi=0; bi<CNS_NALPHABET-1; bi++)
+            read_count += read_base_count[bi];
+
         for (bi=0; bi<CNS_NALPHABET-1; bi++) { 
             // NALAPHBET-1 to exclude "n" base call
             bmask = AMASK[bi];  // mask for indicated base
@@ -1883,11 +1907,21 @@ BaseCall(int32 cid, int quality, float *var, AlPair ap, int verbose)
                 // penalize only if base in not represented in call
                 score += read_base_count[bi] + other_base_count[bi];
             }
-            sum_qv_all += read_qv_count[bi];
-            if (IntToBase(bi) == cbase)
-                sum_qv_cbase = read_qv_count[bi];
+            /* To be considered, base should either have high enough quality
+             * or be confirmed by another base (Granger's suggestion - GD)
+             */
+            if ((read_base_count[bi] > 1) || 
+                (read_qv_count[bi] > MIN_QV_FOR_VARIATION))
+            {
+                sum_qv_all += read_qv_count[bi];
+                if (IntToBase(bi) == cbase)
+                    sum_qv_cbase = read_qv_count[bi];
+            }
         }
-       *var = 1. - (float)sum_qv_cbase / (float)sum_qv_all;
+        if ((read_count == 1 ) || (sum_qv_all == 0))
+           *var = 0.;
+        else 
+           *var = 1. - (float)sum_qv_cbase / (float)sum_qv_all;
         return score;
     } 
     else if (quality == 0 ) 
@@ -2152,7 +2186,7 @@ PopulateDistMatrix(int32 cid, AlPair *ap)
                 ap->sum_qvs[i] += qv;
             }
             /* If a single gap, assign it a minimal QV of the two adjacent bases.
-             * If multiple gap, assign it a fixed QV = 14 
+             * If multiple gap, assign it a fixed QV = QV_FOR_MULTI_GAP
              * (at Granger Sutton's suggestion)
              */
             else // gap
@@ -2166,7 +2200,7 @@ PopulateDistMatrix(int32 cid, AlPair *ap)
                     char  next_base = *Getchar(sequenceStore, next_bead->soffset);       
                     if ((prev_base == '-') || (next_base == '-')) 
                     {
-                        ap->sum_qvs[i] += 14;   // Granger's suggestion - GD
+                        ap->sum_qvs[i] += QV_FOR_MULTI_GAP;  // Granger's suggestion
                     }
                     else
                     {
@@ -2276,6 +2310,11 @@ ClusterReads(AlPair *ap)
         ap->best_allele = 0;
     else 
         ap->best_allele = 1;    
+#if 0
+    fprintf(stderr, "sum_qv0 = %d sum_qv1 = %d best_allele = %d\n", 
+        sum_qv0,  sum_qv1, ap->best_allele);
+#endif
+
 }
 
 //=================================================================================
@@ -2370,7 +2409,11 @@ int RefreshMANode(int32 mid, int quality)
             beg = end = i;
             while ((svar[end] > 0) && (end < len_manode))
                 end++;
-        
+       
+#if 0
+            fprintf(stderr, "beg= %d end= %d\n", beg, end);
+#endif
+ 
             // Store iids of all the reads in current region
             ap.nr = 0;
             ap.max_nr = MIN_ALLOCATED_DEPTH;
@@ -2541,21 +2584,6 @@ int * UnpackTrace(int ahang, signed char *rdelta) {
 }
 
 
-#define CNS_DP_RANGE 40
-#define CNS_DP_THRESH 1e-6
-#define CNS_DP_MINLEN 30
-#define CNS_DP_THIN_MINLEN 10
-#undef GOS_ALIGNMENTS_FOR_RECRUITED_FRGS
-#ifdef GOS_ALIGNMENTS_FOR_RECRUITED_FRGS
-  #define CNS_TIGHTSEMIBANDWIDTH 100
-  #define CNS_DP_ERATE .35
-#else
-  #define CNS_TIGHTSEMIBANDWIDTH 6
-  #define CNS_DP_ERATE .06
-#endif
-#define CNS_LOOSESEMIBANDWIDTH 100
-#define CNS_NEG_AHANG_CUTOFF -5
-#define CNS_MAX_ALIGN_SLIP 20
 extern int MaxBegGap;       // [ init value is 200; this could be set to the amount you extend the clear
                             // range of seq b, plus 10 for good measure]
 extern int MaxEndGap;       // [ init value is 200; this could be set to the amount you extend the
@@ -4538,7 +4566,6 @@ int ApplyAbacus(Abacus *a)
   }
   return 1;
 }
-#define STABWIDTH 6
 
 int IdentifyWindow(Column **start_column, int *stab_bgn, CNS_RefineLevel level) {
    Column *stab;
@@ -4817,7 +4844,6 @@ int AbacusRefine(MANode *ma,int32 from, int32 to, CNS_RefineLevel level) {
 }
 
 
-#define MAX_ALLOWED_MA_DEPTH 40
 int MANode2Array(MANode *ma, int *depth, char ***array, int ***id_array,
               int show_cel_status) {
      char **multia;
@@ -6026,8 +6052,6 @@ int TestFragmentPositions(MultiAlignT *ma) {
 
   return 1;  
 }
-
-#define MAX_EXTEND_LENGTH 2048
 
 MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
                                     FragStoreHandle frag_store,
