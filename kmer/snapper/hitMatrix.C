@@ -4,7 +4,7 @@
 
 //  Reports debugging information on decoding the hits
 //
-//#define DEUBG_HIT_DECODE
+//#define DEBUG_HIT_DECODE
 
 //  Reports when any chained hit is saved
 //
@@ -182,8 +182,8 @@ hitMatrix::filter(char      direction,
     //
     while ((currentSeq < config._useList.numberOfSequences()) &&
            (config._useList.startOf(currentSeq) <= _hits[firstHit]._dsPos)) {
-#ifdef DEBUG_HIT_DECODE
-      fprintf(stderr, "currentSeq: "u32bitFMT" length "u64bitFMT" hit "u64bitFMT"\n",
+#ifdef DEBUG_HIT_DECODE_DETAILED
+      fprintf(stderr, "currentSeq: "u32bitFMT" length "u64bitFMT" hit "u32bitFMT"\n",
               currentSeq,
               config._useList.startOf(currentSeq),
               _hits[firstHit]._dsPos);
