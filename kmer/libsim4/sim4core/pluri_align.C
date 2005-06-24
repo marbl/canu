@@ -2,85 +2,9 @@
 #include "sim4.H"
 
 
-int
-Sim4::align_get_dist(int i1, int j1, int i2, int j2, int limit)
-{
-  int *last_d, *temp_d;
-  int goal_diag, ll, uu;
-  int c, k, row;
-  int start, lower, upper;
-  
-  /* Compute the boundary diagonals */
-  start = j1 - i1;
-  lower = max(j1-i2, start-limit);
-  upper = min(j2-i1, start+limit);
-  goal_diag = j2-i2;
-  
-  if (goal_diag > upper || goal_diag < lower)
-    return(-1);
-  
-  /* Allocate space for forward vectors */ 
-  last_d = (int *)ckalloc((upper-lower+1)*sizeof(int)) - lower;
-  temp_d = (int *)ckalloc((upper-lower+1)*sizeof(int)) - lower;
-
-  /* Initialization */
-  for (k=lower; k<=upper; ++k)
-    last_d[k] = -2147483647;  //  INT_MIN;
-
-  last_d[start] = snake(start, i1, i2, j2);
-  
-  if (last_d[goal_diag] >= i2) {
-    /* Free working vectors */
-    ckfree(last_d+lower);
-    ckfree(temp_d+lower);
-    return 0;
-  }
-
-  for (c=1; c<=limit; ++c) {
-    ll = max(lower,start-c); uu = min(upper, start+c);
-    for (k=ll; k<=uu; ++k) {
-      if (k == ll)
-        row = last_d[k+1]+1;    /* DELETE */
-      else if (k == uu)
-        row = last_d[k-1];      /* INSERT */
-      else if ((last_d[k]>=last_d[k+1]) &&
-               (last_d[k]+1>=last_d[k-1]))
-        row = last_d[k]+1;      /*SUBSTITUTE */
-      else if ((last_d[k+1]+1>=last_d[k-1]) &&
-               (last_d[k+1]>=last_d[k]))
-        row = last_d[k+1]+1;    /* DELETE */
-      else
-        row = last_d[k-1];      /* INSERT */
-      
-      temp_d[k] = snake(k,row,i2,j2);
-    }     
-    
-    for (k=ll; k<=uu; ++k) last_d[k] = temp_d[k];
-
-    if (last_d[goal_diag] >= i2) {
-      /* Free working vectors */
-      ckfree(last_d+lower);
-      ckfree(temp_d+lower);
-      return c;
-    }
-  }
-
-  ckfree(last_d+lower);
-  ckfree(temp_d+lower);
-
-  /* Ran out of distance limit */
-  return -1;
-}
-
-
-
-
-
-
-
-
-/* Condense_both_Ends  --  merge contiguous operations of the same type    */
-/* together; return both new ends of the chain.                            */
+//  Condense_both_Ends -- merge contiguous operations of the same type
+//  together; return both new ends of the chain.
+//
 void
 Sim4::Condense_both_Ends(edit_script **head,
                          edit_script **tail,
@@ -183,19 +107,29 @@ Sim4::pluri_align(int *dist_ptr,
       st->numberOfMatches = 0;
       st->numberOfNs      = 0;
       st->percentID       = -1;
-
       *Aligns             = 0L;
-
       return;
     }
 
 #ifdef STATS
-    if (diff>P*(nextExon->toEST-nextExon->frEST+1))
+    if (diff > P * (nextExon->toEST - nextExon->frEST + 1))
       (void)printf("Warning: Distance threshold on segment exceeded.\n");
 #endif
 
     align_path(nextExon->frGEN-1, nextExon->frEST-1, 
                nextExon->toGEN, nextExon->toEST, diff, &left, &right);
+
+    //  Return if the alignment fails -- this occurred once aligning
+    //  dros frags to dros using snapper.  Snapper was giving the wrong
+    //  sequence for the seeds it also supplied.
+    //
+    if ((left == 0L) || (right == 0L)) {
+      st->numberOfMatches = 0;
+      st->numberOfNs      = 0;
+      st->percentID       = -1;
+      *Aligns             = 0L;
+      return;
+    }
 
     Condense_both_Ends(&left, &right, &prev);
     
