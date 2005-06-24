@@ -15,7 +15,6 @@ doSearch(searcherState       *state,
   u32bit         qMers  = 0;
   double         startTime  = 0.0;
 
-
   ///////////////////////////////////////
   //
   //  Build and mask the query
@@ -216,7 +215,7 @@ doSearch(searcherState       *state,
             (PS->get(query->getMer(qi), state->posn, state->posnMax, state->posnLen))) {
           if (state->posnLen < 3) {
             for (u32bit x=0; x<state->posnLen; x++)
-              state->posn[x] += GENlo;
+              state->posn[x] += GENlo + config._useList.startOf(theHits[h]._dsIdx);
 
 #ifdef SAVE_HITS_TO_FILES
             {
