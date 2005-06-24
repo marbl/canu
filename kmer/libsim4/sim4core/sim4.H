@@ -233,30 +233,24 @@ private:
   void Free_script(edit_script *);
 
   int snake(int k, int x, int endx, int endy) {
-    int y;
-
-    if (x<0)
-      return x;
-    y = x+k;
-    while (x<endx && y<endy && _genSeq[x] == _estSeq[y]) {
+    if (x<0)  return(x);
+    int y = x+k;
+    while ((x<endx) && (y<endy) && (_genSeq[x] == _estSeq[y])) {
       ++x;
       ++y;
     }
-    return x;
+    return(x);
   };
 
 
   int rsnake(int k, int x, int startx, int starty, int m) {
-    int y;
-
-    if (x>m)
-      return x;
-    y = x+k;
-    while (x>startx && y>starty && _genSeq[x-1] == _estSeq[y-1]) {
+    if (x>m)  return(x);
+    int y = x+k;
+    while ((x>startx) && (y>starty) && (_genSeq[x-1] == _estSeq[y-1])) {
       --x;
       --y;
     }
-    return x;
+    return(x);
   };
 
 
@@ -449,6 +443,9 @@ private:
 
   void  *_pallochandle;
   void  *ckalloc(size_t amount) {
+    //void *x = palloc2(amount, _pallochandle);
+    //memset(x, 0xff, amount);
+    //return(x);
     return(palloc2(amount, _pallochandle));
   };
   void   ckfree(void *) {
