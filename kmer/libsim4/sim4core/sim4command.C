@@ -41,7 +41,7 @@ sim4command::sim4command(u32bit        ESTid,
 
   _externalSeedsLen   = 0;
   _externalSeedsMax   = 0;
-  _externalSeeds      = 0;
+  _externalSeeds      = 0L;
 }
 
 
@@ -73,7 +73,7 @@ sim4command::sim4command(FastASequenceInCore  *EST,
 
   _externalSeedsLen   = 0;
   _externalSeedsMax   = 0;
-  _externalSeeds      = 0;
+  _externalSeeds      = 0L;
 }
 
 
@@ -108,7 +108,7 @@ sim4command::sim4command(char             *EST,
 
   _externalSeedsLen   = 0;
   _externalSeedsMax   = 0;
-  _externalSeeds      = 0;
+  _externalSeeds      = 0L;
 }
 
 
@@ -247,22 +247,6 @@ sim4command::getGENlength(void) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ////////////////////////////////////////
 //
 //  This expects base-based seeds.
@@ -288,7 +272,7 @@ sim4command::addSeed(u32bit GENpos, u32bit ESTpos, u32bit length) {
   _externalSeeds[_externalSeedsLen]._ESTposition = ESTpos;
   _externalSeeds[_externalSeedsLen]._length      = length;
 
-  //fprintf(stderr, "sim4command::addSeed()-- GEN="u32bitFMT" EST="u32bitFMT" of length "u32bitFMT"\n", GENpos, ESTpos, length);
+  //  fprintf(stderr, "sim4command::addSeed()-- GEN="u32bitFMT" EST="u32bitFMT" of length "u32bitFMT"\n", GENpos, ESTpos, length);
 
   _externalSeedsLen++;
 }
@@ -308,5 +292,6 @@ sortExternalSeedsCompare(const void *a, const void *b) {
 
 void
 sim4command::sortExternalSeeds(void) {
+  //fprintf(stderr, "Sorting "u32bitFMT" external seeds.\n", _externalSeedsLen);
   qsort(_externalSeeds, _externalSeedsLen, sizeof(externalSeed), sortExternalSeedsCompare);
 }
