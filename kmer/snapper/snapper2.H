@@ -19,9 +19,6 @@ typedef unsigned short ushort;
 
 #include "bio++.H"
 
-//#include "fasta.H"
-//#include "fasta-cache.H"
-
 #include "positionDB.H"
 #include "existDB.H"
 #include "sim4.H"
