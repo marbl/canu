@@ -26,13 +26,11 @@
  *
  **************************************************************/
 /*********************************************************************
- $Id: Utilities_CNS.h,v 1.4 2005-03-22 19:48:52 jason_miller Exp $
+ $Id: Utilities_CNS.h,v 1.5 2005-06-28 19:31:27 gdenisov Exp $
  *********************************************************************/
 
 #ifndef UTILITIES_CNS_INCLUDE
 #define UTILITIES_CNS_INCLUDE
-
-#include "PublicAPI_CNS.h"
 
 void CleanExit(char *mesg, int lineno, int rc) ;
 
