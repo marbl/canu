@@ -25,7 +25,7 @@
                  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: TestAlign_CNS.c,v 1.4 2005-03-22 19:48:52 jason_miller Exp $";
+static char CM_ID[] = "$Id: TestAlign_CNS.c,v 1.5 2005-06-29 15:30:15 gdenisov Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -83,6 +83,8 @@ int main (int argc, char *argv[]) {
    int sdb_version=0;
    int local_aligner=0;
    tSequenceDB *sequenceDB=NULL;
+   CNS_Options op;
+
    InitializeAlphTable();
    optarg = NULL;
    while (!errflg && ((ch = getopt(argc, argv, "ulf:s:V:h")) != EOF)) {
@@ -222,9 +224,9 @@ int main (int argc, char *argv[]) {
       }
      }
       
-     MergeMultiAligns( sequenceDB, global_fragStore, pos_va, 1, 0, DP_Compare);
+     MergeMultiAligns( sequenceDB, global_fragStore, pos_va, 1, 0, DP_Compare, op);
      if ( local_aligner ) 
-        MergeMultiAligns( sequenceDB, global_fragStore, pos_va, 1, 0, Local_Overlap_AS_forCNS);
+        MergeMultiAligns( sequenceDB, global_fragStore, pos_va, 1, 0, Local_Overlap_AS_forCNS, op);
    }
    return 0;
 }
