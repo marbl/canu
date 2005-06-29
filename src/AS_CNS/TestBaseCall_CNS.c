@@ -25,7 +25,7 @@
                  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: TestBaseCall_CNS.c,v 1.6 2005-06-12 17:22:21 gdenisov Exp $";
+static char CM_ID[] = "$Id: TestBaseCall_CNS.c,v 1.7 2005-06-29 15:25:19 gdenisov Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -77,6 +77,7 @@ int main (int argc, char *argv[])
    int display_keys=0;
    int ch,errflg=0,illegal_use=0,iflags=0;
    float var = 0.;
+   CNS_Options op;
 
    ap.nr = 0;       
    InitializeAlphTable();
@@ -153,9 +154,9 @@ int main (int argc, char *argv[])
    fscanf(stdin,"%s",frag_type);
    fscanf(stdin,"%s",unitig_type);
    ResetStores(LINE_MAX,20);
-   cid = SetupSingleColumn(seq,qlt,frag_type,unitig_type);
+   cid = SetupSingleColumn(seq,qlt,frag_type,unitig_type, op);
    
-   BaseCall(cid,CNS_USE_QVS, &var, ap, 1);
+   BaseCall(cid,CNS_USE_QVS, &var, ap, 1, op);
    ShowColumn(cid);
    fprintf(stdout,"\nparameters:\n");
    fprintf(stdout,"             CNS_USE_QVS = %d\n",CNS_USE_QVS); 
