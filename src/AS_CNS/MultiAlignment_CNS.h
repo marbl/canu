@@ -46,6 +46,12 @@
 #define SMOOTHING_WINDOW    10
 
 typedef struct {
+   int split_alleles;
+   int smooth_win;
+   int max_num_alleles;
+} CNS_Options;
+
+typedef struct {
 /*  This structure is used when recalling consensus bases
  *  to use only one of two alleles
  */
@@ -277,10 +283,11 @@ typedef struct {
    int32 bead;
 } ConsensusBeadIterator;
 
-int GetMANodeConsensus(int32 mid, VA_TYPE(char) *sequence, VA_TYPE(char) *quality);
-int GetMANodePositions(int32 mid, int num_frags, IntMultiPos *imps, int num_unitigs, IntUnitigPos *iups, VA_TYPE(int32) *deltas);
-void PrintAlignment(FILE *print, int32 mid, int32 from, int32 to, CNS_PrintKey what);
-int32 MergeRefine(int32 mid);
+int GetMANodeConsensus(int32 mid, VA_TYPE(char) *, VA_TYPE(char) *);
+int GetMANodePositions(int32 , int, IntMultiPos *, int, IntUnitigPos *, 
+    VA_TYPE(int32) *);
+void PrintAlignment(FILE *, int32, int32, int32, CNS_PrintKey );
+int32 MergeRefine(int32 mid, CNS_Options op);
 
 typedef enum {
   LEFT_SHIFT  = (int) 'L', // Left Shifted
@@ -319,59 +326,39 @@ VA_DEF(ScaffoldData)
 // MergeMultiAlignsFast_new is the original CGW/CNS interface for contigging
  // and is now a wrapper around the more modern MergeMultiAligns which allows
  // "contained" relationships among the input contigs
-MultiAlignT *MergeMultiAlignsFast_new(
-				      tSequenceDB *sequenceDB,
-				      FragStoreHandle frag_store, 
-				      VA_TYPE(IntElementPos) *positions, int quality, int verbose,
-           Overlap *(*)(COMPARE_ARGS));
+MultiAlignT *MergeMultiAlignsFast_new( tSequenceDB *, FragStoreHandle, 
+    VA_TYPE(IntElementPos) *, int, int, Overlap *(*)(COMPARE_ARGS),
+    CNS_Options);
 
 // MergeMultiAligns 
-MultiAlignT *MergeMultiAligns(
-				      tSequenceDB *sequenceDB,
-				      FragStoreHandle frag_store, 
-				      VA_TYPE(IntMultiPos) *positions, int quality, int verbose,
-           Overlap *(*)(COMPARE_ARGS));
+MultiAlignT *MergeMultiAligns( tSequenceDB *, FragStoreHandle, 
+      VA_TYPE(IntMultiPos) *, int, int, Overlap *(*)(COMPARE_ARGS), CNS_Options);
 
 
-MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
-                                    FragStoreHandle frag_store,
-                                    uint32 contig_iid, uint32 unitig_iid, int extendingLeft,
-                                     Overlap *(*)(COMPARE_ARGS));
+MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *, FragStoreHandle ,
+      uint32 , uint32 , int , Overlap *(*)(COMPARE_ARGS), CNS_Options);
 
 void ResetStores(int32 num_frags, int32 num_columns);
-int SetupSingleColumn(char *sequence,
-                      char *quality,
-                      char *frag_type,
-                      char *unitig_type);
-int BaseCall(int32 cid, int quality, float *var, AlPair ap, int verbose);
+int SetupSingleColumn(char *, char *, char *, char *, CNS_Options);
+int BaseCall(int32 , int , float *, AlPair , int, CNS_Options );
 void ShowColumn(int32 cid);
-int MultiAlignUnitig(IntUnitigMesg *unitig, 
-                     FragStoreHandle fragStore,
-                     VA_TYPE(char) *sequence,
-                     VA_TYPE(char) *quality, 
-                     VA_TYPE(int32) *deltas, 
-                     CNS_PrintKey printwhat, 
-                     int mark_contains, 
-                     Overlap *(*COMPARE_FUNC)(COMPARE_ARGS));
-int ExamineMANode(FILE *outFile,int32 sid, int32 mid,
-                  UnitigData *tigData,int num_unitigs);
+
+int MultiAlignUnitig(IntUnitigMesg *, FragStoreHandle, VA_TYPE(char) *,
+    VA_TYPE(char) *, VA_TYPE(int32) *, CNS_PrintKey , int, 
+    Overlap *(*COMPARE_FUNC)(COMPARE_ARGS), CNS_Options);
+
+int ExamineMANode(FILE *, int32 , int32 , UnitigData *, int , CNS_Options);
 void ResetBaseCount(BaseCount *b);
 int IncBaseCount(BaseCount *b,char c);
 char GetConfMM(BaseCount *b,int mask);
 int BaseToInt(char c);
-int32 AppendFragToLocalStore(FragType type, int32 iid,
-                             int complement,int32 contained,
-                             char *source,
-                             UnitigType utype,
-                             MultiAlignStoreT *multialignStore);
-int GetAlignmentTrace(int32 afid, int32 aoffset, int32 bfid,
-                      int32 *ahang, int32 ovl, 
-                      VA_TYPE(int32) *trace,
-                      OverlapType *otype,
+int32 AppendFragToLocalStore(FragType, int32, int , int32 ,
+    char *, UnitigType , MultiAlignStoreT *);
+int GetAlignmentTrace(int32 , int32 , int32 , int32 *, int32 , 
+                      VA_TYPE(int32) *, OverlapType *,
                       Overlap *(*COMPARE_FUNC)(COMPARE_ARGS),
-                      int show_olap, int allow_big_endgaps);
-int MultiAlignContig_NoCompute(FILE *outFile, int scaffoldID,MultiAlignT *cma,
-                               tSequenceDB *sequenceDBp,
-                               VA_TYPE(UnitigData) *unitigData);
+                      int , int );
+int MultiAlignContig_NoCompute(FILE *, int ,MultiAlignT *,
+    tSequenceDB *, VA_TYPE(UnitigData) *, CNS_Options);
 
 #endif
