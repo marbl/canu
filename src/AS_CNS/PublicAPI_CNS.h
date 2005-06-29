@@ -26,7 +26,7 @@
  *
  **************************************************************/
 /*********************************************************************
- $Id: PublicAPI_CNS.h,v 1.4 2005-03-22 19:48:51 jason_miller Exp $
+ $Id: PublicAPI_CNS.h,v 1.5 2005-06-29 15:21:24 gdenisov Exp $
  *********************************************************************/
 
 #ifndef PUBLICAPI_CNS_INCLUDE
@@ -34,35 +34,19 @@
 
 #include "Globals_CNS.h"
 
-void CNS_setExitStatus (int exitStatus) ;
+void CNS_setExitStatus (int) ;
 
 void CNS_setConsensusParametersToDefault() ;
 
-void CNS_setConsensusParametersIndividually(
-    int useSDB,
-    int usePartSDB,
-    float priorSequencingErrorRate,
-    float priorSNPRate,
-    int numHaplotypes,
-    int basecallingUsesPublicData,
-    int basecallingFavorsPublicData,
-    int outputDebugging,
-    int isPartitioned) ;
+void CNS_setConsensusParametersIndividually( int , int , float , float ,
+    int , int , int , int , int ) ;
 
-int MultiAlignUnitig(IntUnitigMesg *iunitig,
-                         FragStoreHandle frgStore,
-			 VA_TYPE(char) *sequence,
-			 VA_TYPE(char) *quality, 
-			 VA_TYPE(int32) *deltas, 
-			 CNS_PrintKey printwhat, 
-			 int do_rez, 
-			 Overlap *(*)(COMPARE_ARGS));
-int MultiAlignContig(IntConConMesg *contig, 
-			 VA_TYPE(char) *sequence,
-			 VA_TYPE(char) *quality, 
-			 VA_TYPE(int32) *deltas, 
-			 CNS_PrintKey printwhat, 
-			 Overlap *(*)(COMPARE_ARGS));
+int MultiAlignUnitig(IntUnitigMesg *, FragStoreHandle , VA_TYPE(char) *,
+    VA_TYPE(char) *, VA_TYPE(int32) *, CNS_PrintKey , int, 
+    Overlap *(*)(COMPARE_ARGS), CNS_Options);
+
+int MultiAlignContig(IntConConMesg *, VA_TYPE(char) *, VA_TYPE(char) *, 
+    VA_TYPE(int32) *, CNS_PrintKey , Overlap *(*)(COMPARE_ARGS), CNS_Options);
 
 #endif // PUBLICAPI_CNS_INCLUDE
 
