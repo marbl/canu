@@ -27,7 +27,7 @@
                  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: Consensus_CNS.c,v 1.4 2005-03-22 19:48:40 jason_miller Exp $";
+static char CM_ID[] = "$Id: Consensus_CNS.c,v 1.5 2005-06-29 15:06:02 gdenisov Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -122,6 +122,64 @@ int32 GetUngappedSequenceLength(char *seq) {
   return ungappedLength;
 }
 
+static void
+help_message(int argc, char *argv[])
+{
+    fprintf(stderr,"  Usage:\n\n"
+    "  %s [-P] [-v level] [-O BactigStoreDir] [-I] [-a [DLA]] [-X expert_options] FragStoreDir [CGWStream]\n"
+    "\n Standard option flags:\n"
+    "    -P           Force ASCII .cns output \n"
+    "    -v [0-4]     Verbose:  0 = verbose off \n"
+    "                           1 = horizontal multi-alignment print in .clg\n"
+    "                           2 = 'dots'     multi-alignment print in .clg\n"
+    "                           3 = like 2, but dots are replaced with whitespace\n"
+    "                           4 = like 1, but with unitigs in  multi-alignment print in .clg\n"
+    "    -O BtigStore Overlay Assembler mode: BactigStoreDir argument required\n"
+    "    -T secs      time threshold which, if exceeded, should trigger clean exit.\n"
+    "    -S partition Use fragStorePartition partition\n"
+    "    -m           Load fragStorePartition into memory (default reads from disk)\n"
+    "    -U           Unitigs ONLY\n"
+    "    -I           IUM message alignment, write to .cgi file (instead of .cns)\n"
+    "                 (will also process contigs if they exist in the input file\n"
+    "                 (if -I is not specified, ICMs will be processed with the assumption\n"
+    "                  that IUMs were processed in a prior call.\n"
+    "    -r s,e       Process only message within range [s,e)\n"
+    "                 if s==0, header messages are  passed through\n"
+    "                 if e==last, trailing messages are  passed through\n"
+    "                 (facilitates multiprocessing in batch mode\n"
+    "    -a [DLA]     Specify aligner to use should DP_Compare fail\n"
+    "                 L = Local_Aligner (default)\n"
+    "                 D = standard DP_Compare (will cause failed overlaps to terminate the run)\n"
+    "                 A = Affine_Aligner\n"
+    "    -d int       Depth of Celera coverage below which to include external data in basecalling\n"
+    "                    0 (default) indicates that external data should always be used\n"
+    "                    1 yields the traditional behavior, which uses external only in absence of Celera\n"
+    "                  > 1 will include publice data is the Celera depth falls below the given value\n"
+    "    -X           Allow 'expert' options (following)\n"
+    "\n Expert option flags:\n"
+    "    -R %%d        Restart from the given ICM/IUM by internal id, appending to output file\n"
+    "    -i           Realign IUM messages (while processing .cgw file)\n"
+    "    -q string    Override default quality call parameters\n"
+    "                    string is colon separated list of the form '%%f:%%d:%%f'\n"
+    "                    where first field is estimated sequencing error rate (default: .015)\n"
+    "                         second field is number of sequenced haplotypes (default: 1)\n"
+    "                          third field is estimated SNP rate (default: 1/1000)\n"
+    "    -e #%%d       Extract only a single ICM/IUM by internal id\n"
+    "    -e idfile    Extract list of ICM/IUMs by internal ids provided in idfile\n"
+    "\n Arguments:\n"
+    "   FragStoreDir      path to previously created Fragment Store\n"
+    "  [InputStream]      previously created .cgw/.cgb file (if not specified, stdin)\n\n"
+    "\n Output:\n"
+    "   Creates a .cns file by default (or appends to .cns if -R is specified)\n"
+    "   -I sends output to a .cgi (post-unitigging consensus) file instead.\n"
+    "   -o <filename>     Overrides default output filename\n"
+    "   -o -              Overrides default output filename, sending output to stdout\n"
+    "   -l <filename>     Overrides default log filename\n"
+    "   -l -              Overrides default log filename, sending output to stderr\n", 
+    argv[0]);
+    exit(1);
+}
+
 int main (int argc, char *argv[]) {
     MesgReader   reader;
     MesgWriter   writer;
@@ -170,6 +228,7 @@ int main (int argc, char *argv[]) {
     int in_memory=0;
     int do_rez=0;
     int noop=0;
+    CNS_Options options = {1, 10, 2};
     Overlap *(*COMPARE_FUNC)(COMPARE_ARGS)=Local_Overlap_AS_forCNS;
     SeqInterval tig_range;
     CNS_PrintKey printwhat=CNS_STATS_ONLY;
@@ -189,7 +248,10 @@ int main (int argc, char *argv[]) {
     allow_neg_hang=0;
     ALIGNMENT_CONTEXT=AS_CONSENSUS;
     
-    while (!errflg && ((ch = getopt(argc, argv, "gnfhPv:d:O:o:r:S:mIUXAD:ECR:iGp:q:e:l:t:T:zs:V:a:")) != EOF)) {
+    while ( !errflg && 
+           ( (ch = getopt(argc, argv, 
+                 "gnfhPKv:d:O:o:r:S:w:M:mIUXAD:ECR:iGp:q:e:l:t:T:zs:V:a:")) != EOF)) 
+    {
         switch(ch) {
         case 'n':
           noop = 1;
@@ -205,6 +267,10 @@ int main (int argc, char *argv[]) {
           break;
         case 'P':
           output = AS_PROTO_OUTPUT;
+          iflags++;
+          break;
+        case 'K':
+          options.split_alleles = 0;                   
           iflags++;
           break;
         case 'v':
@@ -262,6 +328,16 @@ int main (int argc, char *argv[]) {
         case 'S':
           partitioned = 1;
           partition = atoi(optarg);
+          iflags++;
+          iflags++;
+          break;
+        case 'w':
+          options.smooth_win = atoi(optarg);
+          iflags++;
+          iflags++;
+          break;
+        case 'M':
+          options.max_num_alleles = atoi(optarg);
           iflags++;
           iflags++;
           break;
@@ -375,10 +451,14 @@ int main (int argc, char *argv[]) {
                   ch); 
              illegal_use = 1;
           } else {
-            sscanf(optarg,"%f:%d:%f",&CNS_SEQUENCING_ERROR_EST,&CNS_HAPLOTYPES,&CNS_SNP_RATE);
-            if (!(CNS_SEQUENCING_ERROR_EST > 0) || CNS_SEQUENCING_ERROR_EST > .10 ) {
+            sscanf(optarg,"%f:%d:%f",&CNS_SEQUENCING_ERROR_EST,&CNS_HAPLOTYPES,
+                &CNS_SNP_RATE);
+            if (!(CNS_SEQUENCING_ERROR_EST > 0) || 
+                CNS_SEQUENCING_ERROR_EST > .10 ) 
+            {
               fprintf(stderr,"ERROR: Sequencing error estimate (-q flag) should be "
-                            "within (0,.10) (%4f was specified\n",CNS_SEQUENCING_ERROR_EST);
+                  "within (0,.10) (%4f was specified\n",
+                  CNS_SEQUENCING_ERROR_EST);
               illegal_use = 1;
             }
             if (CNS_HAPLOTYPES < 1) {
@@ -387,8 +467,9 @@ int main (int argc, char *argv[]) {
               illegal_use = 1;
             }
             if ((CNS_SNP_RATE < 0) || CNS_SNP_RATE > .10 ) {
-              fprintf(stderr,"ERROR: SNP rate estimate (-s flag) should be within [0,.10) "
-                             "(%4f was specified\n",CNS_SNP_RATE);
+              fprintf(stderr,
+                  "ERROR: SNP rate estimate (-s flag) should be within [0,.10) "
+                  "(%4f was specified\n",CNS_SNP_RATE);
               illegal_use = 1;
             }
           }
@@ -397,7 +478,8 @@ int main (int argc, char *argv[]) {
           break;
         case 'e':
           if ( ! expert ) {
-             fprintf(stderr,"Command line switch %c requires -X; try adding -X...\n",
+             fprintf(stderr,
+                 "Command line switch %c requires -X; try adding -X...\n",
                   ch); 
               illegal_use = 1;
           } else {
@@ -466,60 +548,9 @@ int main (int argc, char *argv[]) {
     }
     if ( (argc - iflags) == 2) { std_input = 1; iflags--; }
     if ( (argc - iflags) != 3 ) help_flag = 1;
-    if (help_flag) {
-        fprintf(stderr,"  Usage:\n\n");
-        fprintf(stderr,"  %s [-P] [-v level] [-O BactigStoreDir] [-I] [-a [DLA]] [-X expert_options] FragStoreDir [CGWStream]\n",argv[0]);
-        fprintf(stderr,"\n Standard option flags:\n");
-        fprintf(stderr,"    -P           Force ASCII .cns output \n");
-        fprintf(stderr,"    -v [0-4]     Verbose:  0 = verbose off \n");
-        fprintf(stderr,"                           1 = horizontal multi-alignment print in .clg\n");
-        fprintf(stderr,"                           2 = 'dots'     multi-alignment print in .clg\n");
-        fprintf(stderr,"                           3 = like 2, but dots are replaced with whitespace\n");
-        fprintf(stderr,"                           4 = like 1, but with unitigs in  multi-alignment print in .clg\n");
-        fprintf(stderr,"    -O BtigStore Overlay Assembler mode: BactigStoreDir argument required\n");
-        fprintf(stderr,"    -T secs      time threshold which, if exceeded, should trigger clean exit.\n");
-        fprintf(stderr,"    -S partition Use fragStorePartition partition\n");
-        fprintf(stderr,"    -m           Load fragStorePartition into memory (default reads from disk)\n");
-        fprintf(stderr,"    -U           Unitigs ONLY\n");
-        fprintf(stderr,"    -I           IUM message alignment, write to .cgi file (instead of .cns)\n");
-        fprintf(stderr,"                 (will also process contigs if they exist in the input file\n");
-        fprintf(stderr,"                 (if -I is not specified, ICMs will be processed with the assumption\n");
-        fprintf(stderr,"                  that IUMs were processed in a prior call.\n");
-        fprintf(stderr,"    -r s,e       Process only message within range [s,e)\n");
-        fprintf(stderr,"                 if s==0, header messages are  passed through\n");
-        fprintf(stderr,"                 if e==last, trailing messages are  passed through\n");
-        fprintf(stderr,"                 (facilitates multiprocessing in batch mode\n");
-        fprintf(stderr,"    -a [DLA]     Specify aligner to use should DP_Compare fail\n");
-        fprintf(stderr,"                 L = Local_Aligner (default)\n");
-        fprintf(stderr,"                 D = standard DP_Compare (will cause failed overlaps to terminate the run)\n");
-        fprintf(stderr,"                 A = Affine_Aligner\n");
-        fprintf(stderr,"    -d int       Depth of Celera coverage below which to include external data in basecalling\n");
-        fprintf(stderr,"                    0 (default) indicates that external data should always be used\n");
-        fprintf(stderr,"                    1 yields the traditional behavior, which uses external only in absence of Celera\n");
-        fprintf(stderr,"                  > 1 will include publice data is the Celera depth falls below the given value\n");
-        fprintf(stderr,"    -X           Allow 'expert' options (following)\n");
-        fprintf(stderr,"\n Expert option flags:\n");
-        fprintf(stderr,"    -R %%d        Restart from the given ICM/IUM by internal id, appending to output file\n");
-        fprintf(stderr,"    -i           Realign IUM messages (while processing .cgw file)\n");
-        fprintf(stderr,"    -q string    Override default quality call parameters\n");
-        fprintf(stderr,"                    string is colon separated list of the form '%%f:%%d:%%f'\n");
-        fprintf(stderr,"                    where first field is estimated sequencing error rate (default: .015)\n");
-        fprintf(stderr,"                         second field is number of sequenced haplotypes (default: 1)\n");
-        fprintf(stderr,"                          third field is estimated SNP rate (default: 1/1000)\n");
-        fprintf(stderr,"    -e #%%d       Extract only a single ICM/IUM by internal id\n");
-        fprintf(stderr,"    -e idfile    Extract list of ICM/IUMs by internal ids provided in idfile\n");
-        fprintf(stderr,"\n Arguments:\n");
-        fprintf(stderr,"   FragStoreDir      path to previously created Fragment Store\n");
-        fprintf(stderr,"  [InputStream]      previously created .cgw/.cgb file (if not specified, stdin)\n\n");
-        fprintf(stderr,"\n Output:\n");
-        fprintf(stderr,"   Creates a .cns file by default (or appends to .cns if -R is specified)\n");
-        fprintf(stderr,"   -I sends output to a .cgi (post-unitigging consensus) file instead.\n");
-        fprintf(stderr,"   -o <filename>     Overrides default output filename\n");
-        fprintf(stderr,"   -o -              Overrides default output filename, sending output to stdout\n");
-        fprintf(stderr,"   -l <filename>     Overrides default log filename\n");
-        fprintf(stderr,"   -l -              Overrides default log filename, sending output to stderr\n");
-        exit(1);
-    }
+    if (help_flag) 
+        help_message(argc, argv);
+   
     if ( illegal_use ) {
         fprintf(stderr,"\n consensus -h provides usage information.\n");
         exit(1);
@@ -527,7 +558,8 @@ int main (int argc, char *argv[]) {
 
     /****************          Open Fragment Store             ***********/
     if ( partitioned ) {
-      global_fragStorePartition = openFragStorePartition(argv[optind++],partition,in_memory);
+      global_fragStorePartition = openFragStorePartition(argv[optind++],
+          partition,in_memory);
       global_fragStore = NULLFRAGSTOREHANDLE;
     } else {
       if ( in_memory ) {
@@ -594,9 +626,11 @@ int main (int argc, char *argv[]) {
       if (output_override) {
          HandleDir(OutputNameBuffer,OutputFileName);
       } else if (cgbout == 1) {
-        sprintf(OutputFileName,"%s%s.cgi",argv[optind],(extract != -1)?extract_id:"");
+        sprintf(OutputFileName,"%s%s.cgi",argv[optind],
+              (extract != -1)?extract_id:"");
       } else {
-        sprintf(OutputFileName,"%s%s.cns",argv[optind],(extract != -1)?extract_id:"");
+        sprintf(OutputFileName,"%s%s.cns",argv[optind],
+              (extract != -1)?extract_id:"");
       }
       sprintf(OutputFileNameTmp,"%s_tmp",OutputFileName);
       fprintf(stderr,"Output temporary file name is %s \n",OutputFileNameTmp);
@@ -607,16 +641,19 @@ int main (int argc, char *argv[]) {
         cnsout = fopen(OutputFileNameTmp, "w");     // write new cns file
       }
       if (cnsout == NULL ) {
-        fprintf(stderr,"Failure to create output temporary file %s\n", OutputFileNameTmp);
+        fprintf(stderr,"Failure to create output temporary file %s\n", 
+            OutputFileNameTmp);
         CleanExit("",__LINE__,1);
       }
     } else {
       cnsout = stdout;
     }
     if ( ! std_input ) {
-       sprintf(LogFileName,"%s%s.clg",OutputFileNameTmp,(extract != -1)?extract_id:"");
+       sprintf(LogFileName,"%s%s.clg",OutputFileNameTmp,
+              (extract != -1)?extract_id:"");
     } else {
-       sprintf(LogFileName,"cns_%d_%s.clg",getpid(),(extract != -1)?extract_id:"");
+       sprintf(LogFileName,"cns_%d_%s.clg",getpid(),
+              (extract != -1)?extract_id:"");
     }
     if ( ! std_error_log ) {
       if (log_override ) {
@@ -624,9 +661,11 @@ int main (int argc, char *argv[]) {
       }
       if (extract == -1 ) {
         if ( ! std_input ) {
-          sprintf(LogFileName,"%s%s.clg",OutputFileName,(extract != -1)?extract_id:"");
+          sprintf(LogFileName,"%s%s.clg",OutputFileName,
+              (extract != -1)?extract_id:"");
         } else {
-          sprintf(LogFileName,"cns_%d_%s.clg",getpid(),(extract != -1)?extract_id:"");
+          sprintf(LogFileName,"cns_%d_%s.clg",getpid(),
+              (extract != -1)?extract_id:"");
         }
         fprintf(stderr,"Creating log file %s\n", LogFileName);
        
@@ -663,7 +702,8 @@ int main (int argc, char *argv[]) {
       sublist = fopen(sublist_file,"r");
       if( sublist == NULL )
       {
-        fprintf( stderr, "Failed to open list file %s for reading.\n", sublist_file );
+        fprintf( stderr, "Failed to open list file %s for reading.\n", 
+            sublist_file );
         CleanExit("",__LINE__,1);
       }
       num_uids = 0;
@@ -691,14 +731,16 @@ int main (int argc, char *argv[]) {
     /**************** Prepare Unitig Store ****************************/
     if ( USE_SDB ) {
       if ( USE_SDB_PART ) {
-        sequenceDB_part = openSequenceDBPartition(SeqStoreFileName, sdb_version, sdb_partition);
+        sequenceDB_part = openSequenceDBPartition(SeqStoreFileName, sdb_version, 
+            sdb_partition);
       } else {
         sequenceDB = OpenSequenceDB(SeqStoreFileName, FALSE, sdb_version);
       }
     } else {
       unitigStore = CreateMultiAlignStoreT(0);
       if (bactigs ) {
-        bactig_delta_length = CreateVA_int32(getLastElemFragStore(global_bactigStore));
+        bactig_delta_length = 
+            CreateVA_int32(getLastElemFragStore(global_bactigStore));
         bactig_deltas = CreateVA_PtrT(getLastElemFragStore(global_bactigStore));
       }
     }
@@ -727,7 +769,8 @@ int main (int argc, char *argv[]) {
     VA_TYPE(char) *quality=CreateVA_char(200000);
     time_t t;
     t = time(0);
-    fprintf(stderr,"# Consensus $Revision: 1.4 $ processing. Started %s\n",ctime(&t));
+    fprintf(stderr,"# Consensus $Revision: 1.5 $ processing. Started %s\n",
+        ctime(&t));
     InitializeAlphTable();
     if ( ! align_ium && USE_SDB && extract > -1 ) {
        IntConConMesg ctmp;
@@ -743,11 +786,12 @@ int main (int argc, char *argv[]) {
        ctmp.pieces = GetIntMultiPos(ma->f_list,0);
        ctmp.num_unitigs = GetNumIntUnitigPoss(ma->u_list);
        ctmp.unitigs= GetIntUnitigPos(ma->u_list,0);
-       MultiAlignContig(&ctmp, sequence, quality, deltas, printwhat,COMPARE_FUNC);
+       MultiAlignContig(&ctmp, sequence, quality, deltas, printwhat,
+           COMPARE_FUNC, options);
        if ( printwhat != CNS_STATS_ONLY && cnslog != NULL ){
           ma = CreateMultiAlignTFromICM(&ctmp,-1,0);
-          PrintMultiAlignT(cnslog,ma,global_fragStore,global_fragStorePartition, global_bactigStore,
-                           1,0,READSTRUCT_LATEST);
+          PrintMultiAlignT(cnslog,ma,global_fragStore,global_fragStorePartition, 
+              global_bactigStore, 1,0,READSTRUCT_LATEST);
          fflush(cnslog);
          tmesg.t = MESG_ICM; 
          tmesg.m = &ctmp; 
@@ -776,7 +820,8 @@ int main (int argc, char *argv[]) {
         } else {
           beyond=1;
         }
-        if( process_sublist && (this_id = FindID_ArrayID( tig_iids, iunitig->iaccession)) > -1 )
+        if( process_sublist && 
+           (this_id = FindID_ArrayID( tig_iids, iunitig->iaccession)) > -1 )
         {
           fprintf(stderr,"Processing IUM %d from sublist\n",iunitig->iaccession);
           AppendToID_Array( tig_iids_found, iunitig->iaccession, 1 );
@@ -791,9 +836,11 @@ int main (int argc, char *argv[]) {
           fprintf(stderr,"Extracting ");
           eid_len = fprintf(stderr,"_IUM_%d",iunitig->iaccession);
           extract_id  = (char *) safe_malloc(eid_len+1);
-          sprintf(extract_id,"_%s_%d",(align_ium)?"IUM":"ICM",iunitig->iaccession);
+          sprintf(extract_id,"_%s_%d",(align_ium)?"IUM":"ICM",
+              iunitig->iaccession);
           fprintf(stderr,"\n");
-          sprintf(LogFileName,"%s%s.clg",OutputFileName,(extract != -1)?extract_id:"");
+          sprintf(LogFileName,"%s%s.clg",OutputFileName,
+              (extract != -1)?extract_id:"");
           if (continue_at > 0) {
              if ( cnslog == NULL ) {
                 cnslog = fopen(LogFileName,"a");   // append to existing log file for cns
@@ -805,16 +852,23 @@ int main (int argc, char *argv[]) {
                 fprintf(stderr,"Opened logfile %s\n", LogFileName);
              }
           }
-          sprintf(CamFileName,"%s%s.cns.cam",argv[optind],(extract != -1)?extract_id:"");
+          sprintf(CamFileName,"%s%s.cns.cam",argv[optind],
+              (extract != -1)?extract_id:"");
           cam = fopen(CamFileName,"w");         // cam file
           free(extract_id);
         }
-        if (range && (iunitig->iaccession < tig_range.bgn || iunitig->iaccession > tig_range.end )) {
+        if (range && 
+            (iunitig->iaccession < tig_range.bgn || 
+             iunitig->iaccession > tig_range.end )) 
+        {
           if (iunitig->iaccession > tig_range.end ) exit(0); 
            break;
         }
-        if (MultiAlignUnitig(iunitig,global_fragStore,sequence,quality,deltas,printwhat,do_rez,COMPARE_FUNC)==-1 ) {
-            fprintf(stderr,"MultiAlignUnitig failed for unitig %d\n",iunitig->iaccession);
+        if (MultiAlignUnitig(iunitig,global_fragStore,sequence,quality,deltas,
+            printwhat,do_rez,COMPARE_FUNC, options)==-1 ) 
+        {
+            fprintf(stderr,"MultiAlignUnitig failed for unitig %d\n",
+                iunitig->iaccession);
             //break;  // un-comment this line to allow failures... intended for diagnosis only.
             assert(FALSE);
         }
@@ -859,11 +913,16 @@ int main (int argc, char *argv[]) {
       } else { 
         beyond=1;
       }
-      if( process_sublist && (this_id = FindID_ArrayID( tig_iids, pcontig->iaccession)) > -1 )
+      if( process_sublist && 
+         (this_id = FindID_ArrayID( tig_iids, pcontig->iaccession)) > -1 )
       {
         fprintf(stderr,"Processing ICM %d from sublist\n",pcontig->iaccession);
         AppendToID_Array( tig_iids_found, pcontig->iaccession, 1 );
-      } else if (range == 1 && ( (!align_ium) && ( (pcontig->iaccession<tig_range.bgn) || (pcontig->iaccession>tig_range.end)))){
+      } else if ( range == 1 && 
+                 ( (!align_ium) && 
+                  ( (pcontig->iaccession<tig_range.bgn) || 
+                    (pcontig->iaccession>tig_range.end))))
+      {
         if ( pcontig->iaccession > tig_range.end ) exit(0);
         break;
       } else if (process_sublist){
@@ -874,17 +933,22 @@ int main (int argc, char *argv[]) {
       //qsort(pcontig->unitigs, pcontig->num_unitigs, sizeof(IntUnitigPos),
       //      (int (*)(const void *,const void *))IntUnitigPositionCmpLeft);
       if ( ! noop > 0 ) {
-        MultiAlignContig(pcontig, sequence, quality, deltas, printwhat,COMPARE_FUNC);
+        MultiAlignContig(pcontig, sequence, quality, deltas, printwhat,
+            COMPARE_FUNC, options);
       }
       if ( printwhat == CNS_CONSENSUS && cnslog != NULL && pcontig->num_pieces > 0){
           ma = CreateMultiAlignTFromICM(pcontig,-1,0);
-          PrintMultiAlignT(cnslog,ma,global_fragStore,global_fragStorePartition, global_bactigStore,
-                           1,0,READSTRUCT_LATEST);
+          PrintMultiAlignT(cnslog,ma,global_fragStore,global_fragStorePartition, 
+              global_bactigStore, 1,0,READSTRUCT_LATEST);
       }
       output_lengths+=GetUngappedSequenceLength(pcontig->consensus);
       pmesg->t = MESG_ICM; 
       pmesg->m = pcontig; 
-      if (range == 1 && ( (!align_ium) && ( (pcontig->iaccession>=tig_range.bgn) && (pcontig->iaccession<=tig_range.end)))){
+      if ( range == 1 && 
+          ( (!align_ium) && 
+           ( (pcontig->iaccession>=tig_range.bgn) && 
+             (pcontig->iaccession<=tig_range.end))))
+      {
         writer(cnsout,pmesg); // pass through the Contig message
       } else if (extract == -1) {
         writer(cnsout,pmesg);
@@ -911,7 +975,7 @@ int main (int argc, char *argv[]) {
         {
           AuditLine auditLine;
           AppendAuditLine_AS(adt_mesg, &auditLine, t,
-                             "Consensus", "$Revision: 1.4 $","(empty)");
+                             "Consensus", "$Revision: 1.5 $","(empty)");
         }
 #endif
         VersionStampADT(adt_mesg,argc,argv);
@@ -934,19 +998,23 @@ int main (int argc, char *argv[]) {
     fflush(cnslog);
   }
   t = time(0);
-  fprintf(stderr,"# Consensus $Revision: 1.4 $ Finished %s\n",ctime(&t));
+  fprintf(stderr,"# Consensus $Revision: 1.5 $ Finished %s\n",ctime(&t));
   if (printcns) {
     int unitig_length = (unitig_count>0)? (int) input_lengths/unitig_count: 0; 
     int contig_length = (contig_count>0)? (int) output_lengths/contig_count: 0;
          
-    fprintf(stderr,"\nProcessed %d unitigs and %d contigs.\n",unitig_count,contig_count);
+    fprintf(stderr,"\nProcessed %d unitigs and %d contigs.\n",
+        unitig_count,contig_count);
     fprintf(stderr,"\nAverage unitig length: %d  Effective coverage: %.2f\n",
          unitig_length, EffectiveCoverage(unitig_length));
-    fprintf(stderr,"\nAverage contig length: %d  Effective coverage: %.2f\n",contig_length,EffectiveCoverage(contig_length));
-    fprintf(cnslog,"\nProcessed %d unitigs and %d contigs.\n",unitig_count,contig_count);
+    fprintf(stderr,"\nAverage contig length: %d  Effective coverage: %.2f\n",
+        contig_length,EffectiveCoverage(contig_length));
+    fprintf(cnslog,"\nProcessed %d unitigs and %d contigs.\n",
+        unitig_count,contig_count);
     fprintf(cnslog,"\nAverage unitig length: %d  Effective coverage: %.2f\n",
          unitig_length, EffectiveCoverage(unitig_length));
-    fprintf(cnslog,"\nAverage contig length: %d  Effective coverage: %.2f\n",contig_length,EffectiveCoverage(contig_length));
+    fprintf(cnslog,"\nAverage contig length: %d  Effective coverage: %.2f\n",
+        contig_length,EffectiveCoverage(contig_length));
 #ifdef CNS_TIME_OVERLAPS
     fprintf(stderr,"%d olaps computed in %7.1f sec\n",OverlapCount,
             (double) OlapTime/ CLOCKS_PER_SEC);
