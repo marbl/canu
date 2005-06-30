@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.14 2005-06-29 15:14:40 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.15 2005-06-30 15:37:14 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -371,7 +371,7 @@ char GetMaxBaseCount(BaseCount *b,int start_index) {  // start at 1 to disallow 
 
 MANode * CreateMANode(int32 iid){
   MANode ma;
-#if 1
+#if 0
     fprintf(stderr, "Calling  SeedMAWithFragment\n");
 #endif
   ma.lid = GetNumMANodes(manodeStore);
@@ -2332,7 +2332,7 @@ int RefreshMANode(int32 mid, int quality, CNS_Options op)
     // if quality == -1, don't recall the consensus base
     int     i, j, index=0, len_manode = MIN_SIZE_OF_MANODE;
     int32   cid, *cids;
-    int     window = SMOOTHING_WINDOW, beg, end;
+    int     window = op.smooth_win, beg, end, vbeg, vend;
     char    cbase;
     float  *var=NULL, *svar=NULL;
     Column *column;
@@ -2401,7 +2401,6 @@ int RefreshMANode(int32 mid, int quality, CNS_Options op)
         svar[i] = var[i];
     }
     SmoothenVariation(svar, len_manode, window);
-    FREE(var);
 
     // Recall beses using only one of two alleles
     for (i=0; i<len_manode; i++)
@@ -2415,11 +2414,22 @@ int RefreshMANode(int32 mid, int quality, CNS_Options op)
             // Process a ragion of variation
             float fict_var;
 
-            beg = end = i;
-            while ((svar[end] > 0) && (end < len_manode))
-                end++;
+            beg = vbeg = vend = i;
+
+            while (var[beg] == 0)
+                beg++;
+            
+            while ((svar[vend] > 0) && (vend < len_manode))
+                vend++;
+
+            end = vend;
+
+            while (var[end] <= 0)
+                end--;
+
 #if 0
-            fprintf(stderr, "beg= %d end= %d\n", beg, end);
+            fprintf(stderr, "window=%d vbeg=%d beg=%d end=%d vend=%d\n", 
+                window, vbeg, beg, end, vend);
 #endif
  
             // Store iids of all the reads in current region
@@ -2434,7 +2444,7 @@ int RefreshMANode(int32 mid, int quality, CNS_Options op)
                 }
             }
 
-            for (j=beg; j<end; j++)
+            for (j=vbeg; j<vend; j++)
             {
                 GetReadIids(cids[j], &ap);
             }
@@ -2447,7 +2457,7 @@ int RefreshMANode(int32 mid, int quality, CNS_Options op)
 
             AllocateDistMatrix(&ap);
 
-            for (j=beg; j<end; j++)
+            for (j=vbeg; j<vend; j++)
             {
                 PopulateDistMatrix(cids[j], &ap);    
             }
@@ -2456,12 +2466,12 @@ int RefreshMANode(int32 mid, int quality, CNS_Options op)
             ClusterReads(&ap);   
 
             // Recall consensus base using only one allele
-            for (j=beg; j<end; j++)
+            for (j=vbeg; j<vend; j++)
             {
                 BaseCall(cids[j], quality, &fict_var, ap, 0, op);
             }   
 
-            i = end;
+            i = vend;
             FREE(ap.iids); 
             FREE(ap.alleles);
             FREE(ap.sum_qvs);
@@ -2474,6 +2484,7 @@ int RefreshMANode(int32 mid, int quality, CNS_Options op)
         }
     }
 
+    FREE(var);
     FREE(svar);
     FREE(cids);
     return 1;
@@ -2486,7 +2497,7 @@ int SeedMAWithFragment(int32 mid, int32 fid, int quality, CNS_Options op)
   FragmentBeadIterator fi;
   int32 cid;
   int32 bid;
-#if 1
+#if 0
     fprintf(stderr, "Calling  SeedMAWithFragment\n");
 #endif
 
@@ -3952,7 +3963,7 @@ int32 MergeRefine(int32 mid, CNS_Options op) {
   int32 removed=0;
   int32 merged;
   Column *column,*next_column;
-#if 1
+#if 0
     fprintf(stderr, "Calling  MergeRefine\n");
 #endif
 
@@ -4817,7 +4828,7 @@ int AbacusRefine(MANode *ma,int32 from, int32 to, CNS_RefineLevel level,
   int32 refined_length = orig_length;
   Column *start_column;
  
-#if 1
+#if 0
     fprintf(stderr, "Calling  AbacusRefine\n");
 #endif
  
@@ -5113,7 +5124,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
     ALIGNMENT_CONTEXT=AS_CONSENSUS;
     global_fragStore=fragStore;
 
-#if 1
+#if 0
     fprintf(stderr, "Calling MultiAlignUnitig\n");
 #endif
 
@@ -5637,7 +5648,7 @@ int MultiAlignContig(IntConConMesg *contig,
    upositions = contig->unitigs;
    total_aligned_elements=num_frags+num_unitigs;
 
-#if 1
+#if 0
     fprintf(stderr, "Calling MultiAlignContig\n");
 #endif
 
