@@ -25,7 +25,7 @@
    Assumptions:  libAS_UTL.a
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.4 2005-03-22 19:48:40 jason_miller Exp $";
+static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.5 2005-07-07 18:40:42 gdenisov Exp $";
 
 
 #include <assert.h>
@@ -44,7 +44,9 @@ static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.4 2005-03-22 19:48:40 jaso
 VA_DEF(SnapMultiPos)
 VA_DEF(UnitigPos)
 
-MultiAlignT *RevcomplMultiAlignT(MultiAlignT *ma){
+MultiAlignT *
+RevcomplMultiAlignT(MultiAlignT *ma)
+{
   MultiAlignT *new_ma = CloneMultiAlignT(ma);
   int length = GetMultiAlignLength(ma);
   int num_frags=GetNumIntMultiPoss(ma->f_list);
@@ -98,7 +100,9 @@ MultiAlignT *RevcomplMultiAlignT(MultiAlignT *ma){
 }
 
 // Local checker function
-static void CheckMAValidity(MultiAlignT *ma){
+static void 
+CheckMAValidity(MultiAlignT *ma)
+{
   char *consensus = Getchar(ma->consensus,0);
   char *quality = Getchar(ma->quality,0);
   char *c,*q;
@@ -121,7 +125,9 @@ static void CheckMAValidity(MultiAlignT *ma){
 }
 
 /**********************************************************************************************/
-static int CompareUnitigPos (const void *c1, const void *c2){
+static int 
+CompareUnitigPos (const void *c1, const void *c2)
+{
   IntUnitigPos *u1 = (IntUnitigPos *)c1;
   IntUnitigPos *u2 = (IntUnitigPos *)c2;
   int diff;
@@ -145,7 +151,9 @@ static int CompareUnitigPos (const void *c1, const void *c2){
 }
 
 /**********************************************************************************************/
-void MakeCanonicalMultiAlignT(MultiAlignT *ma){
+void 
+MakeCanonicalMultiAlignT(MultiAlignT *ma)
+{
   IntUnitigPos *unitigs = GetIntUnitigPos(ma->u_list,0);
 
 #if 0
@@ -178,7 +186,9 @@ void MakeCanonicalMultiAlignT(MultiAlignT *ma){
  * Create a MultiAlign object from a protoio IntUnitigMesg, as received from CGB
  */
 
-MultiAlignT *CreateMultiAlignT(void){
+MultiAlignT *
+CreateMultiAlignT(void)
+{
   MultiAlignT *ma = (MultiAlignT *)safe_malloc(sizeof(MultiAlignT));
   ma->consensus = NULL;
   ma->quality = NULL;
@@ -190,7 +200,9 @@ MultiAlignT *CreateMultiAlignT(void){
   return ma;
 }
 
-MultiAlignT *CreateEmptyMultiAlignT(void){
+MultiAlignT *
+CreateEmptyMultiAlignT(void)
+{
   MultiAlignT *ma = (MultiAlignT *)safe_malloc(sizeof(MultiAlignT));
   ma->consensus = CreateVA_char(0);
   ma->quality = CreateVA_char(0);
@@ -203,13 +215,17 @@ MultiAlignT *CreateEmptyMultiAlignT(void){
 }
 
 /* Create a clone of a MultiAlignT object */
-MultiAlignT *CloneMultiAlignT(MultiAlignT *ma){
+MultiAlignT *
+CloneMultiAlignT(MultiAlignT *ma)
+{
   MultiAlignT *newma = CreateEmptyMultiAlignT();
   CopyMultiAlignT(newma, ma);
   return newma;
 }
 
-void CopyMultiAlignT(MultiAlignT *newma, MultiAlignT *ma){
+void 
+CopyMultiAlignT(MultiAlignT *newma, MultiAlignT *ma)
+{
 
   if(newma->consensus == NULL){
     newma->consensus = Clone_VA(ma->consensus);
@@ -267,7 +283,9 @@ void CopyMultiAlignT(MultiAlignT *newma, MultiAlignT *ma){
 }
 
 // Create Surrogate
-MultiAlignT *CloneSurrogateOfMultiAlignT(MultiAlignT *oldMA, int32 newNodeID){
+MultiAlignT *
+CloneSurrogateOfMultiAlignT(MultiAlignT *oldMA, int32 newNodeID)
+{
   MultiAlignT *newma = CreateMultiAlignT();
   IntUnitigPos *u;
   int32 oldLength = GetMultiAlignLength(oldMA);
@@ -311,13 +329,15 @@ MultiAlignT *CloneSurrogateOfMultiAlignT(MultiAlignT *oldMA, int32 newNodeID){
 
 
 
-IntUnitigPos *GetAendUnitigPos(MultiAlignT *ma)
+IntUnitigPos *
+GetAendUnitigPos(MultiAlignT *ma)
 {
   return GetIntUnitigPos(ma->u_list,0);
 }
 
 
-IntUnitigPos *GetBendUnitigPos(MultiAlignT *ma)
+IntUnitigPos *
+GetBendUnitigPos(MultiAlignT *ma)
 {
   int found = FALSE;
   int i;
@@ -339,12 +359,16 @@ IntUnitigPos *GetBendUnitigPos(MultiAlignT *ma)
 }
 
 
-int32 GetMultiAlignLength(MultiAlignT *ma){
+int32 
+GetMultiAlignLength(MultiAlignT *ma)
+{
   return (int32) GetNumchars(ma->consensus) - 1; // don't include the space for the null character
 }
 
 
-int32 GetMultiAlignUngappedLength(MultiAlignT *ma){
+int32 
+GetMultiAlignUngappedLength(MultiAlignT *ma)
+{
   int32 ungappedLength = 0;
   char *consensus = Getchar(ma->consensus,0);
   char *c;
@@ -359,7 +383,9 @@ int32 GetMultiAlignUngappedLength(MultiAlignT *ma){
   return ungappedLength;
 }
 
-MultiAlignT *CreateMultiAlignTFromIUM(IntUnitigMesg *ium, int localID, int sequenceOnly){
+MultiAlignT *
+CreateMultiAlignTFromIUM(IntUnitigMesg *ium, int localID, int sequenceOnly)
+{
 /* if localID = -1, interpret the  frag source fields as strings , and copy them */
 /* if localID = -2, preserve the special hijacked source fields in the frag messages */
 /* if localID > 0, assign the frag source chars their special hijacked values, keyed from localID */
@@ -518,7 +544,9 @@ MultiAlignT *CreateMultiAlignTFromIUM(IntUnitigMesg *ium, int localID, int seque
 
 }
 
-MultiAlignT *CreateMultiAlignTFromICM(IntConConMesg *icm, int localID, int sequenceOnly){
+MultiAlignT *
+CreateMultiAlignTFromICM(IntConConMesg *icm, int localID, int sequenceOnly)
+{
 /* if localID is negative, use NULL source field, else, use source for localID */
   int cfr,deltai;
   MultiAlignT *ma = (MultiAlignT *)safe_malloc(sizeof(MultiAlignT));
@@ -625,7 +653,9 @@ MultiAlignT *CreateMultiAlignTFromICM(IntConConMesg *icm, int localID, int seque
   return ma;
 }
 
-MultiAlignT *CreateMultiAlignTFromCCO(SnapConConMesg *icm, int localID, int sequenceOnly){
+MultiAlignT *
+CreateMultiAlignTFromCCO(SnapConConMesg *cco, int localID, int sequenceOnly)
+{
 /* if localID is negative, use NULL source field, else, use source for localID */
   int cfr,deltai;
   MultiAlignT *ma = (MultiAlignT *)malloc(sizeof(MultiAlignT));
@@ -634,38 +664,38 @@ MultiAlignT *CreateMultiAlignTFromCCO(SnapConConMesg *icm, int localID, int sequ
   int localFragID = localID;
   int delta_len=0;
 
-  assert(icm->length == strlen(icm->consensus));
-  assert(icm->length == strlen(icm->quality));
+  assert(cco->length == strlen(cco->consensus));
+  assert(cco->length == strlen(cco->quality));
   
-  ma->id = icm->iaccession;
+  ma->id = cco->iaccession;
 
-  ma->forced = icm->forced;
+  ma->forced = cco->forced;
   ma->refCnt = 0; // set on insertion into a store
   if ( localID < 0 ) {
      ma->source_alloc = 1;
   } else {
      ma->source_alloc = 0;
   }
-  ma->consensus = CreateVA_char(icm->length + 1);
-  EnableRangeVA_char(ma->consensus, icm->length + 1);
+  ma->consensus = CreateVA_char(cco->length + 1);
+  EnableRangeVA_char(ma->consensus, cco->length + 1);
 
-  ma->quality = CreateVA_char(icm->length + 1);
-  EnableRangeVA_char(ma->quality, icm->length + 1);
+  ma->quality = CreateVA_char(cco->length + 1);
+  EnableRangeVA_char(ma->quality, cco->length + 1);
 
-  for(cfr = 0; cfr < icm->num_pieces; cfr++){
-    delta_len+=icm->pieces[cfr].delta_length;
+  for(cfr = 0; cfr < cco->num_pieces; cfr++){
+    delta_len+=cco->pieces[cfr].delta_length;
   }
 
   if( ! sequenceOnly )
     {
       ma->delta = CreateVA_int32(delta_len);
-      ma->f_list = CreateVA_SnapMultiPos(icm->num_pieces);
+      ma->f_list = CreateVA_SnapMultiPos(cco->num_pieces);
       ma->udelta = CreateVA_int32(0);
       ma->u_list = CreateVA_UnitigPos(0);
       
 
-      for(cfr = 0,delta_len=0; cfr < icm->num_pieces; cfr++){
-	SnapMultiPos *cfr_mesg = icm->pieces + cfr;
+      for(cfr = 0,delta_len=0; cfr < cco->num_pieces; cfr++){
+	SnapMultiPos *cfr_mesg = cco->pieces + cfr;
 	SnapMultiPos tmp;
 	
 	int length = cfr_mesg->delta_length * sizeof(int32);
@@ -702,21 +732,21 @@ MultiAlignT *CreateMultiAlignTFromCCO(SnapConConMesg *icm, int localID, int sequ
     }
 
   ptr = Getchar(ma->consensus,0);
-  strcpy(ptr, icm->consensus);
+  strcpy(ptr, cco->consensus);
 
   ptr = Getchar(ma->quality,0);
-  strcpy(ptr, icm->quality);
+  strcpy(ptr, cco->quality);
 
 
   if( ! sequenceOnly )
     {
       { int32 ui,deltai;
-      /* Add a unitigpos for each Unitig in icm->unitigs*/
-      /* not authentic, since icm doesn't retain deltas */
-      for (ui = 0;ui<icm->num_unitigs;ui++) {
-        unitigPos.type = icm->unitigs[ui].type;
-        unitigPos.eident = icm->unitigs[ui].eident;
-        unitigPos.position = icm->unitigs[ui].position;
+      /* Add a unitigpos for each Unitig in cco->unitigs*/
+      /* not authentic, since cco doesn't retain deltas */
+      for (ui = 0;ui<cco->num_unitigs;ui++) {
+        unitigPos.type = cco->unitigs[ui].type;
+        unitigPos.eident = cco->unitigs[ui].eident;
+        unitigPos.position = cco->unitigs[ui].position;
         unitigPos.delta_length = 0;
         unitigPos.delta = NULL;
         AppendUnitigPos(ma->u_list, &unitigPos);
@@ -725,7 +755,7 @@ MultiAlignT *CreateMultiAlignTFromCCO(SnapConConMesg *icm, int localID, int sequ
     }
 
   if( ! sequenceOnly )
-    assert(icm->num_pieces == GetNumIntMultiPoss(ma->f_list));
+    assert(cco->num_pieces == GetNumIntMultiPoss(ma->f_list));
 
   
   CheckMAValidity(ma);
@@ -735,19 +765,25 @@ MultiAlignT *CreateMultiAlignTFromCCO(SnapConConMesg *icm, int localID, int sequ
 
 
 /********************************************************************************/
-int32 AddReferenceMultiAlignT(MultiAlignT *ma){
+int32 
+AddReferenceMultiAlignT(MultiAlignT *ma)
+{
   ma->refCnt++;
   return ma->refCnt;
 }
 
-int32 RemoveReferenceMultiAlignT(MultiAlignT *ma){
+int32 
+RemoveReferenceMultiAlignT(MultiAlignT *ma)
+{
   ma->refCnt--;
   return ma->refCnt;
 }
 
 
 
-void DeleteMultiAlignT(MultiAlignT *ma){
+void 
+DeleteMultiAlignT(MultiAlignT *ma)
+{
   int i;
 
   RemoveReferenceMultiAlignT(ma);
@@ -778,7 +814,9 @@ void DeleteMultiAlignT(MultiAlignT *ma){
 /********************************************************************************/
 // Persistence
 /********************************************************************************/
-static void SaveReferenceMultiAlignTToStream(MultiAlignT *ma, FILE *stream){
+static void 
+SaveReferenceMultiAlignTToStream(MultiAlignT *ma, FILE *stream)
+{
   //char reference = TRUE;
   int32 reference = ma->id;
   int status;
@@ -801,7 +839,9 @@ static void SaveReferenceMultiAlignTToStream(MultiAlignT *ma, FILE *stream){
 }
 
 
-size_t SaveMultiAlignTToStream(MultiAlignT *ma, FILE *stream){
+size_t 
+SaveMultiAlignTToStream(MultiAlignT *ma, FILE *stream)
+{
   int i;
   int status;
   size_t totalSize = 0;
@@ -889,7 +929,9 @@ size_t SaveMultiAlignTToStream(MultiAlignT *ma, FILE *stream){
 }
 
 /********************************************************************************/
-MultiAlignT *LoadMultiAlignTFromStream(FILE *stream, int32 *reference){
+MultiAlignT *
+LoadMultiAlignTFromStream(FILE *stream, int32 *reference)
+{
   int status;
   int i;
   MultiAlignT *ma;
@@ -954,7 +996,9 @@ MultiAlignT *LoadMultiAlignTFromStream(FILE *stream, int32 *reference){
   return (ma);
 }
 /******************************************************************/
-void ReLoadMultiAlignTFromStream(FILE *stream, MultiAlignT *ma, int32 *reference){
+void 
+ReLoadMultiAlignTFromStream(FILE *stream, MultiAlignT *ma, int32 *reference)
+{
   int status;
   int i;
   char isPresent; 
@@ -1024,7 +1068,9 @@ void ReLoadMultiAlignTFromStream(FILE *stream, MultiAlignT *ma, int32 *reference
   return;
 }
 
-size_t GetMemorySize(MultiAlignT *ma){
+size_t 
+GetMemorySize(MultiAlignT *ma)
+{
   size_t size;
 
 
@@ -1047,7 +1093,9 @@ size_t GetMemorySize(MultiAlignT *ma){
 }
 
 /**************************************************/
-int CompareMultiAlignT(MultiAlignT *thisMAT, MultiAlignT *otherMAT){
+int 
+CompareMultiAlignT(MultiAlignT *thisMAT, MultiAlignT *otherMAT)
+{
   int diff;
 
   diff = strcmp(
@@ -1068,7 +1116,10 @@ int CompareMultiAlignT(MultiAlignT *thisMAT, MultiAlignT *otherMAT){
 
 
 /* GetMultiAlignUngappedConsensus */
-void GetMultiAlignUngappedConsensus(MultiAlignT *ma, VA_TYPE(char) *ungappedConsensus, VA_TYPE(char) *ungappedQuality){
+void 
+GetMultiAlignUngappedConsensus(MultiAlignT *ma, VA_TYPE(char) *ungappedConsensus, 
+  VA_TYPE(char) *ungappedQuality)
+{
   char *consensus = Getchar(ma->consensus,0);
   char *quality = Getchar(ma->quality,0);
   char *c, *q;
@@ -1097,7 +1148,11 @@ void GetMultiAlignUngappedConsensus(MultiAlignT *ma, VA_TYPE(char) *ungappedCons
 
 
 
-void GetMultiAlignUngappedConsensusFromInterval(MultiAlignT *ma, SeqInterval gappedInterval,  VA_TYPE(char) *ungappedConsensus, VA_TYPE(char) *ungappedQuality){
+void 
+GetMultiAlignUngappedConsensusFromInterval(MultiAlignT *ma, 
+  SeqInterval gappedInterval,  VA_TYPE(char) *ungappedConsensus, 
+  VA_TYPE(char) *ungappedQuality)
+{
   int offset = gappedInterval.bgn;
   char *consensus = Getchar(ma->consensus,offset);
   char *quality = Getchar(ma->quality,offset);
@@ -1127,7 +1182,9 @@ void GetMultiAlignUngappedConsensusFromInterval(MultiAlignT *ma, SeqInterval gap
 
 
 /* GetMultiAlignUngappedOffsets */
-void GetMultiAlignUngappedOffsets(MultiAlignT *ma, VA_TYPE(int32) *ungappedOffsets){
+void 
+GetMultiAlignUngappedOffsets(MultiAlignT *ma, VA_TYPE(int32) *ungappedOffsets)
+{
   char *consensus = Getchar(ma->consensus,0);
   // char *quality = Getchar(ma->quality,0);
   char *c;
@@ -1154,14 +1211,18 @@ void GetMultiAlignUngappedOffsets(MultiAlignT *ma, VA_TYPE(int32) *ungappedOffse
 /****************************************************************************************************/
 
 
-MultiAlignStoreT *CreateMultiAlignStoreT(int32 size){
+MultiAlignStoreT *
+CreateMultiAlignStoreT(int32 size)
+{
   MultiAlignStoreT *mas = (MultiAlignStoreT *)safe_malloc(sizeof(MultiAlignStoreT));
   mas->multiAligns = CreateVA_PtrT(size);
   return mas;
 }
 
 // Empty the MultiAlignStore
-size_t ClearMultiAlignStoreT(MultiAlignStoreT *multiAlignStore){
+size_t 
+ClearMultiAlignStoreT(MultiAlignStoreT *multiAlignStore)
+{
   int i;
   size_t redeemed = 0;
   int32 numMultiAligns = GetNumMultiAlignTs(multiAlignStore->multiAligns);
@@ -1181,7 +1242,9 @@ size_t ClearMultiAlignStoreT(MultiAlignStoreT *multiAlignStore){
 }
 
 // Delete the multiAlignStore and all of its referenced data
-void DeleteMultiAlignStoreT(MultiAlignStoreT *multiAlignStore){
+void 
+DeleteMultiAlignStoreT(MultiAlignStoreT *multiAlignStore)
+{
   int i;
   int32 numMultiAligns = GetNumMultiAlignTs(multiAlignStore->multiAligns);
   for(i = 0; i < numMultiAligns; i++){
@@ -1196,7 +1259,10 @@ void DeleteMultiAlignStoreT(MultiAlignStoreT *multiAlignStore){
 }
 
 // Persistence
-void SaveMultiAlignStoreTToStream(MultiAlignStoreT *mas, FILE *stream, int withReferences){
+void 
+SaveMultiAlignStoreTToStream(MultiAlignStoreT *mas, FILE *stream, 
+  int withReferences)
+{
   int i;
   int status;
   int32 size = GetNumPtrTs(mas->multiAligns);
@@ -1217,7 +1283,9 @@ void SaveMultiAlignStoreTToStream(MultiAlignStoreT *mas, FILE *stream, int withR
 }
 
 
-MultiAlignStoreT *LoadMultiAlignStoreTFromStream(FILE *stream){
+MultiAlignStoreT *
+LoadMultiAlignStoreTFromStream(FILE *stream)
+{
   MultiAlignStoreT *mas = NULL;
   int i;
   int status;
@@ -1240,7 +1308,10 @@ MultiAlignStoreT *LoadMultiAlignStoreTFromStream(FILE *stream){
   return mas;
 }
 
-MultiAlignStoreT *LoadMultiAlignStoreTFromStreamWithReferences(FILE *stream, MultiAlignStoreT *original){
+MultiAlignStoreT *
+LoadMultiAlignStoreTFromStreamWithReferences(FILE *stream, 
+  MultiAlignStoreT *original)
+{
   MultiAlignStoreT *mas;
   int i;
   int status;
@@ -1270,7 +1341,9 @@ MultiAlignStoreT *LoadMultiAlignStoreTFromStreamWithReferences(FILE *stream, Mul
 
 
 // Accessors
-void SetMultiAlignInStore(MultiAlignStoreT *mas, int index, MultiAlignT *ma){
+void 
+SetMultiAlignInStore(MultiAlignStoreT *mas, int index, MultiAlignT *ma)
+{
 #ifdef DEBUG_MULTIALIGN
   fprintf(stderr,"* Inserting multiAlign with length %ld and %ld frags at index %d\n",
 	  GetNumchars(ma->consensus), GetNumIntMultiPoss(ma->f_list), index);
@@ -1280,14 +1353,18 @@ void SetMultiAlignInStore(MultiAlignStoreT *mas, int index, MultiAlignT *ma){
       AddReferenceMultiAlignT(ma);
 }
 
-MultiAlignT *GetMultiAlignInStore(MultiAlignStoreT *mas,  int index){
+MultiAlignT *
+GetMultiAlignInStore(MultiAlignStoreT *mas,  int index)
+{
   MultiAlignT **ptrRetValue = (MultiAlignT **)GetPtrT(mas->multiAligns, index);
   if(ptrRetValue)
     return *ptrRetValue;
   return (MultiAlignT *)NULL;
 }
 
-size_t RemoveMultiAlignFromStore(MultiAlignStoreT *mas, int index){
+size_t 
+RemoveMultiAlignFromStore(MultiAlignStoreT *mas, int index)
+{
   MultiAlignT *ma = GetMultiAlignInStore(mas, index);
   size_t redeemed = 0;
   if(!ma)
@@ -1302,7 +1379,9 @@ size_t RemoveMultiAlignFromStore(MultiAlignStoreT *mas, int index){
 }
 
 
-int64 StatsMultiAlignStore(MultiAlignStoreT *maStore, FILE *fout, int owner){
+int64 
+StatsMultiAlignStore(MultiAlignStoreT *maStore, FILE *fout, int owner)
+{
   size_t totalMemorySize = 0;
   size_t maSize = 0;
   int32 numMultiAligns = GetNumMultiAlignsInStore(maStore);
@@ -1321,7 +1400,9 @@ int64 StatsMultiAlignStore(MultiAlignStoreT *maStore, FILE *fout, int owner){
 
 
 // Clone
-MultiAlignStoreT *CloneMultiAlignStoreT(MultiAlignStoreT *original){
+MultiAlignStoreT *
+CloneMultiAlignStoreT(MultiAlignStoreT *original)
+{
   MultiAlignStoreT *mas;
   int i;
   int32 size = GetNumMultiAlignsInStore(original);
@@ -1334,8 +1415,10 @@ MultiAlignStoreT *CloneMultiAlignStoreT(MultiAlignStoreT *original){
   return mas;
 }
 
-int GetCoverageInMultiAlignT(MultiAlignT *ma, SeqInterval range,
-                VA_TYPE(int) *covinput, int includeExternal) {
+int 
+GetCoverageInMultiAlignT(MultiAlignT *ma, SeqInterval range,
+                VA_TYPE(int) *covinput, int includeExternal) 
+{
 
 /* Returns 1 if completely covered by fragment sequence, else returns 0 */
 /*    if ( ! includeExternal ), then only CeleraRead data is counted */
@@ -1396,8 +1479,11 @@ typedef struct{
  
 VA_DEF(ErrorStruct)
 
-void CollectStats(MultiAlignT *ma, FragStoreHandle frag_store, 
-     FragStoreHandle bactig_store, FILE *column_stats, FILE *frag_stats,uint32 clrrng_flag){
+void 
+CollectStats(MultiAlignT *ma, FragStoreHandle frag_store, 
+  FragStoreHandle bactig_store, FILE *column_stats, 
+  FILE *frag_stats,uint32 clrrng_flag)
+{
 /*  
     Need to append to column_stats and frag_stats the following:
     To column_stats:
@@ -1611,7 +1697,9 @@ int32 ungapped=0;
 
 // Format the fragment type for display.
 
-static char getFragTypeDisplay (FragType fragType) {
+static char 
+getFragTypeDisplay (FragType fragType) 
+{
     char dispType;
     switch (fragType) {
       // AS_READ is normally 'R'
@@ -1653,14 +1741,16 @@ static char getFragTypeDisplay (FragType fragType) {
 
 // Print a character representation of alignment.
 
-int PrintMultiAlignT(
-		     FILE *out,
-		     MultiAlignT *ma,
-		     FragStoreHandle frag_store, 
-		     tFragStorePartition *pfrag_store,
-                     FragStoreHandle bactig_store, 
-		     int show_qv, 
-		     int dots,uint32 clrrng_flag) {
+int 
+PrintMultiAlignT(FILE *out,
+	         MultiAlignT *ma,
+	         FragStoreHandle frag_store, 
+	         tFragStorePartition *pfrag_store,
+                 FragStoreHandle bactig_store, 
+	         int show_qv, 
+	         int dots,
+                 uint32 clrrng_flag) 
+{
   char frgTypeDisplay;
   FragType frgTypeData;
   int depth;
@@ -1806,14 +1896,16 @@ int PrintMultiAlignT(
   return 1;
 }
 
-int PrintMultiAlignTSNPs(
+int 
+PrintMultiAlignTSNPs(
 		     FILE *out,
 		     MultiAlignT *ma,
 		     FragStoreHandle frag_store, 
 		     tFragStorePartition *pfrag_store,
                      FragStoreHandle bactig_store, 
 		     int show_qv, 
-		     int dots,uint32 clrrng_flag) {
+		     int dots,uint32 clrrng_flag) 
+{
   int depth;
   int rc,i,j;
   int length;
