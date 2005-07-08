@@ -18,12 +18,13 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: null_scaffolder.c,v 1.4 2005-03-22 19:48:52 jason_miller Exp $ */
+/* $Id: null_scaffolder.c,v 1.5 2005-07-08 22:07:53 gdenisov Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include "assert.h"
 #include "AS_global.h"
+#include "AS_MSG_pmesg.h"
 
 static void Rewind( FILE * fp, MesgReader reader )
 {
