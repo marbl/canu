@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.4 2005-03-22 19:48:36 jason_miller Exp $";
+static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.5 2005-07-08 21:05:33 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -957,9 +957,8 @@ static int StoreIUMStruct(ScaffoldGraphT * graph,
                       is->deltas,
                       CNS_STATS_ONLY,
                       0,
-                      Local_Overlap_AS_forCNS))
-//                   DP_Compare);
-  {
+                      Local_Overlap_AS_forCNS,      //  DP_Compare
+                      NULL)) {
     fprintf(GlobalData->stderrc,
             "FATAL ERROR: MultiAlignUnitig call failed in unitig splitting\n");
     assert(FALSE);

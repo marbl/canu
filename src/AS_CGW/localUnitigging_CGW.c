@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: localUnitigging_CGW.c,v 1.4 2005-03-22 19:48:37 jason_miller Exp $";
+static char CM_ID[] = "$Id: localUnitigging_CGW.c,v 1.5 2005-07-08 21:05:34 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -310,7 +310,8 @@ int MergeMetaUnitigIntoContig(VA_TYPE(ChunkPlacement) *piece_list,
    newMultiAlign = MergeMultiAligns(ScaffoldGraph->sequenceDB,
                                     ScaffoldGraph->fragStore,
                                     ContigPositions, FALSE, TRUE,
-                                    GlobalData->aligner);
+                                    GlobalData->aligner,
+                                    NULL);
    fprintf(stderr," Returned from call to MergeMultiAlign\n");
    PrintMultiAlignT(stderr,newMultiAlign,ScaffoldGraph->fragStore,0,0,0,0,0);
 

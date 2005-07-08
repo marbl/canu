@@ -78,7 +78,7 @@ echo 53 | rebuildscaffolds -f oct01.fStore -s oct01.sStore -V 23 -c oct01.cStore
 
  *********************************************************************/
 
-static char CM_ID[] = "$Id: RebuildScaffolds_CNS.c,v 1.5 2005-06-29 15:34:15 gdenisov Exp $";
+static char CM_ID[] = "$Id: RebuildScaffolds_CNS.c,v 1.6 2005-07-08 21:05:34 brianwalenz Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -122,7 +122,7 @@ VA_DEF(IntContigPairs)
 void print_keys(void);
 
 int OutputScaffoldProfile(FILE *,ScaffoldData *,IntContigPairs *, 
-    tSequenceDB *, tSequenceDB *, VA_TYPE(UnitigData) *, int, int , int, CNS_Options );
+    tSequenceDB *, tSequenceDB *, VA_TYPE(UnitigData) *, int, int , int);
 
 int PrintColumnCorrelation(FILE *, MultiAlignT *, FragStoreHandle,
     tFragStorePartition *, FragStoreHandle , int , int , uint32 , int );
@@ -149,7 +149,7 @@ int main (int argc, char *argv[]) {
    tSequenceDB *contigStore = NULL;
    MesgReader   reader;
    GenericMesg *pmesg;
-   CNS_Options op = {1, 10, 2};
+
    InitializeAlphTable();
    optarg = NULL;
 
@@ -423,7 +423,7 @@ int main (int argc, char *argv[]) {
         cp = GetIntContigPairs(ctpStore,scaff->contig_pairs); 
         scaffold_basepairs = OutputScaffoldProfile(scaffOutput,scaff,cp,
             contigStore,sequenceDB,unitigData,SHOW_MULTIALIGN,
-            SHOW_COLUMNCORRELATION,SHOW_COORDINATE_MAP, op);
+            SHOW_COLUMNCORRELATION,SHOW_COORDINATE_MAP);
 	fclose(scaffOutput);
         scaffold_batch_basepairs+=scaffold_basepairs;
         scaffold_total_basepairs+=scaffold_basepairs;
@@ -466,8 +466,8 @@ int OutputScaffoldProfile(FILE *profileFile,
     VA_TYPE(UnitigData) *unitigData, 
     int show_ma, 
     int show_colcorr, 
-    int show_coordmap,
-    CNS_Options op) {
+    int show_coordmap) {
+
         // produce output for the given scaffold
         int scaffoldID=scaff->ident;
 	int mapoffset=0;
@@ -501,7 +501,7 @@ int OutputScaffoldProfile(FILE *profileFile,
                       &mapoffset,gapped_length);
 		} else {
 		  MultiAlignContig_NoCompute(profileFile,scaffoldID,contig,
-                      sequenceDB,unitigData, op);
+                      sequenceDB,unitigData, NULL);
 		}
 	    }
 	    gapped_length+=GetNumchars(contig->consensus)-1;
@@ -531,7 +531,7 @@ int OutputScaffoldProfile(FILE *profileFile,
                        &mapoffset,gapped_length);
 		 } else {
 		   MultiAlignContig_NoCompute(profileFile,scaffoldID,contig,
-                       sequenceDB,unitigData, op);
+                       sequenceDB,unitigData, NULL);
 		 }
 	       }
 	     }
@@ -605,7 +605,7 @@ int OutputScaffoldProfile(FILE *profileFile,
                        &mapoffset,gapped_length);
 		   } else {
 		     MultiAlignContig_NoCompute(profileFile,scaffoldID,contig,
-                       sequenceDB,unitigData, op);
+                       sequenceDB,unitigData, NULL);
 		   }
 		 }
 	       }

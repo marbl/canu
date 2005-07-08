@@ -45,6 +45,10 @@
 #define MIN_ALLOCATED_DEPTH 100
 #define SMOOTHING_WINDOW    10
 
+#define CNS_OPTIONS_SPLIT_ALLELES_DEFAULT  1
+#define CNS_OPTIONS_SMOOTH_WIN_DEFAULT     10
+#define CNS_OPTIONS_MAX_NUM_ALLELES        2
+
 typedef struct {
    int split_alleles;
    int smooth_win;
@@ -287,7 +291,7 @@ int GetMANodeConsensus(int32 mid, VA_TYPE(char) *, VA_TYPE(char) *);
 int GetMANodePositions(int32 , int, IntMultiPos *, int, IntUnitigPos *, 
     VA_TYPE(int32) *);
 void PrintAlignment(FILE *, int32, int32, int32, CNS_PrintKey );
-int32 MergeRefine(int32 mid, CNS_Options op);
+int32 MergeRefine(int32 mid, CNS_Options *opp);
 
 typedef enum {
   LEFT_SHIFT  = (int) 'L', // Left Shifted
@@ -328,26 +332,26 @@ VA_DEF(ScaffoldData)
  // "contained" relationships among the input contigs
 MultiAlignT *MergeMultiAlignsFast_new( tSequenceDB *, FragStoreHandle, 
     VA_TYPE(IntElementPos) *, int, int, Overlap *(*)(COMPARE_ARGS),
-    CNS_Options);
+    CNS_Options *opp);
 
 // MergeMultiAligns 
 MultiAlignT *MergeMultiAligns( tSequenceDB *, FragStoreHandle, 
-      VA_TYPE(IntMultiPos) *, int, int, Overlap *(*)(COMPARE_ARGS), CNS_Options);
+      VA_TYPE(IntMultiPos) *, int, int, Overlap *(*)(COMPARE_ARGS), CNS_Options *opp);
 
 
 MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *, FragStoreHandle ,
-      uint32 , uint32 , int , Overlap *(*)(COMPARE_ARGS), CNS_Options);
+      uint32 , uint32 , int , Overlap *(*)(COMPARE_ARGS), CNS_Options *opp);
 
 void ResetStores(int32 num_frags, int32 num_columns);
-int SetupSingleColumn(char *, char *, char *, char *, CNS_Options);
-int BaseCall(int32 , int , float *, AlPair , int, CNS_Options );
+int SetupSingleColumn(char *, char *, char *, char *, CNS_Options *opp);
+int BaseCall(int32 , int , float *, AlPair , int, CNS_Options *opp);
 void ShowColumn(int32 cid);
 
 int MultiAlignUnitig(IntUnitigMesg *, FragStoreHandle, VA_TYPE(char) *,
     VA_TYPE(char) *, VA_TYPE(int32) *, CNS_PrintKey , int, 
-    Overlap *(*COMPARE_FUNC)(COMPARE_ARGS), CNS_Options);
+    Overlap *(*COMPARE_FUNC)(COMPARE_ARGS), CNS_Options *opp);
 
-int ExamineMANode(FILE *, int32 , int32 , UnitigData *, int , CNS_Options);
+int ExamineMANode(FILE *, int32 , int32 , UnitigData *, int , CNS_Options *opp);
 void ResetBaseCount(BaseCount *b);
 int IncBaseCount(BaseCount *b,char c);
 char GetConfMM(BaseCount *b,int mask);
@@ -359,6 +363,6 @@ int GetAlignmentTrace(int32 , int32 , int32 , int32 *, int32 ,
                       Overlap *(*COMPARE_FUNC)(COMPARE_ARGS),
                       int , int );
 int MultiAlignContig_NoCompute(FILE *, int ,MultiAlignT *,
-    tSequenceDB *, VA_TYPE(UnitigData) *, CNS_Options);
+    tSequenceDB *, VA_TYPE(UnitigData) *, CNS_Options *opp);
 
 #endif

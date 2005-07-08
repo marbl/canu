@@ -1,4 +1,3 @@
-
 /**************************************************************************
  * This file is part of Celera Assembler, a software program that 
  * assembles whole-genome shotgun reads into contigs and scaffolds.
@@ -18,7 +17,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: extendClearRanges.c,v 1.7 2005-06-17 19:28:24 eliv Exp $";
+static char CM_ID[] = "$Id: extendClearRanges.c,v 1.8 2005-07-08 21:05:33 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -999,16 +998,18 @@ int main( int argc, char *argv[])
 					  extendToLeft = TRUE;
 
 					saveLocalAlignerVariables();
-					new_cma = ReplaceEndUnitigInContig( ScaffoldGraph->sequenceDB,
-														ScaffoldGraph->fragStore,
-														lcontig->id, unitig->id, extendToLeft, GlobalData->aligner);
+					new_cma = ReplaceEndUnitigInContig(ScaffoldGraph->sequenceDB,
+                                                                           ScaffoldGraph->fragStore,
+                                                                           lcontig->id, unitig->id, extendToLeft,
+                                                                           GlobalData->aligner,
+                                                                           NULL);
 					restoreLocalAlignerVariables();
 
 					if ( new_cma )
 					{
 					  UnloadMultiAlignTFromSequenceDB( ScaffoldGraph->sequenceDB, lcontig->id, FALSE);
 					  InsertMultiAlignTInSequenceDB( ScaffoldGraph->sequenceDB, lcontig->id, 
-													 FALSE, new_cma, FALSE);
+                                                                         FALSE, new_cma, FALSE);
 					}
 					else
 					  gotNewLeftMA = FALSE;
@@ -1040,7 +1041,7 @@ int main( int argc, char *argv[])
 				  // extendUnitigs( unitig, rFragIid, rightExtFragsArray[ rightFragIndex ], FALSE);
 					
 				  getAlteredFragPositions( unitig, &fragPoss, rFragIid, 
-										   rightExtFragsArray[ rightFragIndex ].extension- rightFragFlapLength );
+                                                           rightExtFragsArray[ rightFragIndex ].extension- rightFragFlapLength );
 				  saveLocalAlignerVariables();
 				  gotNewRightMA = GetNewUnitigMultiAlign( unitig, fragPoss, rFragIid );
 				  restoreLocalAlignerVariables();
@@ -1064,8 +1065,10 @@ int main( int argc, char *argv[])
 
 					saveLocalAlignerVariables();
 					new_cma = ReplaceEndUnitigInContig( ScaffoldGraph->sequenceDB,
-														ScaffoldGraph->fragStore,
-														rcontig->id, unitig->id, extendToLeft, GlobalData->aligner);
+                                                                            ScaffoldGraph->fragStore,
+                                                                            rcontig->id, unitig->id, extendToLeft,
+                                                                            GlobalData->aligner,
+                                                                            NULL);
 					restoreLocalAlignerVariables();
 
 					if ( !new_cma )
@@ -3379,13 +3382,14 @@ int GetNewUnitigMultiAlign( NodeCGW_T *unitig, fragPositions *fragPoss, int exte
 #endif
 
 	aligned = MultiAlignUnitig( &ium_mesg, 
-								ScaffoldGraph->fragStore,
-								reformed_consensus,
-								reformed_quality,
-								reformed_deltas,
-								CNS_STATS_ONLY,
-								1,
-								Local_Overlap_AS_forCNS);   // DP_Compare);
+                                    ScaffoldGraph->fragStore,
+                                    reformed_consensus,
+                                    reformed_quality,
+                                    reformed_deltas,
+                                    CNS_STATS_ONLY,
+                                    1,
+                                    Local_Overlap_AS_forCNS,     // DP_Compare
+                                    NULL);
 	if ( aligned == -1 )
 	{
 	  fprintf( stderr, "MultiAlignUnitig failure on unitig %d\n", unitig->id);
@@ -3685,9 +3689,9 @@ void updateIntUnitigPoss( NodeCGW_T *contig )
 
   // ReLoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, new_cma, contig->id, FALSE);
 
-  new_cma = MergeMultiAlignsFast_new( ScaffoldGraph->sequenceDB,
-									  ScaffoldGraph->fragStore,
-									  UnitigPositions, FALSE, TRUE, GlobalData->aligner);
+  new_cma = MergeMultiAlignsFast_new(ScaffoldGraph->sequenceDB,
+                                     ScaffoldGraph->fragStore,
+                                     UnitigPositions, FALSE, TRUE, GlobalData->aligner, NULL);
 
   // RemoveMultiAlignFromStore( ScaffoldGraph->sequenceDB, contig->id);
   // DeleteMultiAlignTFromSequenceDB( ScaffoldGraph->sequenceDB, contig->id, FALSE);

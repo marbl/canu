@@ -161,7 +161,7 @@ int main(int argc, char *argv[]){
       SetVA_IntElementPos(positions,i,&pos);
     }
     
-    newma = MergeMultiAlignsFast_new(sequenceDB, NULLFRAGSTOREHANDLE, positions, 0, 1, NULL);
+    newma = MergeMultiAlignsFast_new(sequenceDB, NULLFRAGSTOREHANDLE, positions, 0, 1, NULL, NULL);
     //MultiAlignT2Array(ma, global_fragStore, NULLFRAGSTOREHANDLE, &depth, &multia, &id_array);
     //fprintf(stderr,"Converted into a character array\n");
     PrintMultiAlignT(myerr,newma,global_fragStore,NULL, NULLFRAGSTOREHANDLE,show_qv,dots,READSTRUCT_LATEST);

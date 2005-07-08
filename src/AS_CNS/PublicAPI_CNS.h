@@ -22,11 +22,11 @@
  * AS_CNS/PublicAPI_CNS.h
  *
  * 'Public' functions that other subsystems are invited to link to.
- * CNS is the Consensus sybsystem of the Celer WGS assembler.
+ * CNS is the Consensus sybsystem of the Celera WGS assembler.
  *
  **************************************************************/
 /*********************************************************************
- $Id: PublicAPI_CNS.h,v 1.5 2005-06-29 15:21:24 gdenisov Exp $
+ $Id: PublicAPI_CNS.h,v 1.6 2005-07-08 21:05:34 brianwalenz Exp $
  *********************************************************************/
 
 #ifndef PUBLICAPI_CNS_INCLUDE
@@ -43,10 +43,10 @@ void CNS_setConsensusParametersIndividually( int , int , float , float ,
 
 int MultiAlignUnitig(IntUnitigMesg *, FragStoreHandle , VA_TYPE(char) *,
     VA_TYPE(char) *, VA_TYPE(int32) *, CNS_PrintKey , int, 
-    Overlap *(*)(COMPARE_ARGS), CNS_Options);
+    Overlap *(*)(COMPARE_ARGS), CNS_Options *opp);
 
 int MultiAlignContig(IntConConMesg *, VA_TYPE(char) *, VA_TYPE(char) *, 
-    VA_TYPE(int32) *, CNS_PrintKey , Overlap *(*)(COMPARE_ARGS), CNS_Options);
+    VA_TYPE(int32) *, CNS_PrintKey , Overlap *(*)(COMPARE_ARGS), CNS_Options *opp);
 
 #endif // PUBLICAPI_CNS_INCLUDE
 

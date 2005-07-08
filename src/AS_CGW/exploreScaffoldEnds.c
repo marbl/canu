@@ -308,7 +308,7 @@ void explore_ending_of_contig(ContigT *contig, int *frontCnt, int *tailCnt){
    }
    
    {
-     MultiAlignT *newma = MergeMultiAlignsFast_new(ScaffoldGraph->sequenceDB, NULLFRAGSTOREHANDLE, positions, 0, 1, NULL);
+     MultiAlignT *newma = MergeMultiAlignsFast_new(ScaffoldGraph->sequenceDB, NULLFRAGSTOREHANDLE, positions, 0, 1, NULL, NULL);
 
      int nfr = GetNumIntMultiPoss(newma->f_list);
      int len = GetMultiAlignLength(newma);

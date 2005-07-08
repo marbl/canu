@@ -27,7 +27,7 @@
                  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: Consensus_CNS.c,v 1.5 2005-06-29 15:06:02 gdenisov Exp $";
+static char CM_ID[] = "$Id: Consensus_CNS.c,v 1.6 2005-07-08 21:05:34 brianwalenz Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -228,7 +228,9 @@ int main (int argc, char *argv[]) {
     int in_memory=0;
     int do_rez=0;
     int noop=0;
-    CNS_Options options = {1, 10, 2};
+    CNS_Options options = { CNS_OPTIONS_SPLIT_ALLELES_DEFAULT,
+                            CNS_OPTIONS_SMOOTH_WIN_DEFAULT,
+                            CNS_OPTIONS_MAX_NUM_ALLELES };
     Overlap *(*COMPARE_FUNC)(COMPARE_ARGS)=Local_Overlap_AS_forCNS;
     SeqInterval tig_range;
     CNS_PrintKey printwhat=CNS_STATS_ONLY;
@@ -769,7 +771,7 @@ int main (int argc, char *argv[]) {
     VA_TYPE(char) *quality=CreateVA_char(200000);
     time_t t;
     t = time(0);
-    fprintf(stderr,"# Consensus $Revision: 1.5 $ processing. Started %s\n",
+    fprintf(stderr,"# Consensus $Revision: 1.6 $ processing. Started %s\n",
         ctime(&t));
     InitializeAlphTable();
     if ( ! align_ium && USE_SDB && extract > -1 ) {
@@ -787,11 +789,11 @@ int main (int argc, char *argv[]) {
        ctmp.num_unitigs = GetNumIntUnitigPoss(ma->u_list);
        ctmp.unitigs= GetIntUnitigPos(ma->u_list,0);
        MultiAlignContig(&ctmp, sequence, quality, deltas, printwhat,
-           COMPARE_FUNC, options);
+                        COMPARE_FUNC, &options);
        if ( printwhat != CNS_STATS_ONLY && cnslog != NULL ){
           ma = CreateMultiAlignTFromICM(&ctmp,-1,0);
           PrintMultiAlignT(cnslog,ma,global_fragStore,global_fragStorePartition, 
-              global_bactigStore, 1,0,READSTRUCT_LATEST);
+                           global_bactigStore, 1,0,READSTRUCT_LATEST);
          fflush(cnslog);
          tmesg.t = MESG_ICM; 
          tmesg.m = &ctmp; 
@@ -864,13 +866,18 @@ int main (int argc, char *argv[]) {
           if (iunitig->iaccession > tig_range.end ) exit(0); 
            break;
         }
-        if (MultiAlignUnitig(iunitig,global_fragStore,sequence,quality,deltas,
-            printwhat,do_rez,COMPARE_FUNC, options)==-1 ) 
-        {
-            fprintf(stderr,"MultiAlignUnitig failed for unitig %d\n",
-                iunitig->iaccession);
-            //break;  // un-comment this line to allow failures... intended for diagnosis only.
-            assert(FALSE);
+        if (-1 == MultiAlignUnitig(iunitig,
+                                   global_fragStore,
+                                   sequence,
+                                   quality,
+                                   deltas,
+                                   printwhat,
+                                   do_rez,
+                                   COMPARE_FUNC,
+                                   &options)) {
+          fprintf(stderr,"MultiAlignUnitig failed for unitig %d\n", iunitig->iaccession);
+          //break;  // un-comment this line to allow failures... intended for diagnosis only.
+          assert(FALSE);
         }
         // Create a MultiAlignT from the MANode
       }
@@ -934,7 +941,7 @@ int main (int argc, char *argv[]) {
       //      (int (*)(const void *,const void *))IntUnitigPositionCmpLeft);
       if ( ! noop > 0 ) {
         MultiAlignContig(pcontig, sequence, quality, deltas, printwhat,
-            COMPARE_FUNC, options);
+            COMPARE_FUNC, &options);
       }
       if ( printwhat == CNS_CONSENSUS && cnslog != NULL && pcontig->num_pieces > 0){
           ma = CreateMultiAlignTFromICM(pcontig,-1,0);
@@ -975,7 +982,7 @@ int main (int argc, char *argv[]) {
         {
           AuditLine auditLine;
           AppendAuditLine_AS(adt_mesg, &auditLine, t,
-                             "Consensus", "$Revision: 1.5 $","(empty)");
+                             "Consensus", "$Revision: 1.6 $","(empty)");
         }
 #endif
         VersionStampADT(adt_mesg,argc,argv);
@@ -998,7 +1005,7 @@ int main (int argc, char *argv[]) {
     fflush(cnslog);
   }
   t = time(0);
-  fprintf(stderr,"# Consensus $Revision: 1.5 $ Finished %s\n",ctime(&t));
+  fprintf(stderr,"# Consensus $Revision: 1.6 $ Finished %s\n",ctime(&t));
   if (printcns) {
     int unitig_length = (unitig_count>0)? (int) input_lengths/unitig_count: 0; 
     int contig_length = (contig_count>0)? (int) output_lengths/contig_count: 0;

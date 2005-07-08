@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.5 2005-06-09 21:15:34 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.6 2005-07-08 21:05:33 brianwalenz Exp $";
 
 #define DEBUG 0
 #undef DEBUG_DETAILED
@@ -2347,7 +2347,7 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
         
 	        newMultiAlign = MergeMultiAlignsFast_new(ScaffoldGraph->sequenceDB,
 					 ScaffoldGraph->fragStore,
-					 ContigPositions, FALSE, TRUE,GlobalData->aligner);
+					 ContigPositions, FALSE, TRUE,GlobalData->aligner, NULL);
 #else
 	newMultiAlign = NULL;
 #endif

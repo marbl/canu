@@ -66,7 +66,7 @@ int main(int argc, char *argv[]){
   
   myerr=stderr;
   fprintf(stderr,"Accomplished the loading of the multialigns\n");
-  newma = MergeMultiAlignsFast_new(sequenceDB, fragStore, pos_va, 0, 1, DP_Compare);
+  newma = MergeMultiAlignsFast_new(sequenceDB, fragStore, pos_va, 0, 1, DP_Compare, NULL);
   
   fprintf(stderr,"Returned from MergeMultiAlignsFast_new\n");
   

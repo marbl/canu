@@ -51,7 +51,7 @@ PrintMultiAlignT(stderr,ma1,fragStore,NULL,NULLFRAGSTOREHANDLE,0,0,READSTRUCT_CN
 
 myerr=stderr;
 fprintf(stderr,"Accomplished the loading of the multialigns\n");
-newma = ReplaceEndUnitigInContig(sequenceDB, fragStore, contig_id, unitig_id, 1, DP_Compare);
+newma = ReplaceEndUnitigInContig(sequenceDB, fragStore, contig_id, unitig_id, 1, DP_Compare, NULL);
 
 PrintMultiAlignT(stderr,newma,fragStore,NULL,NULLFRAGSTOREHANDLE,0,0,READSTRUCT_CNS);
 
