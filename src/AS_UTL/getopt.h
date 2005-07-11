@@ -93,11 +93,7 @@ extern int optopt;
 
 struct option
 {
-# if (defined __STDC__ && __STDC__) || defined __cplusplus
   const char *name;
-# else
-  char *name;
-# endif
   /* has_arg can't be an enum because some compilers complain about
      type mismatches in all the code that assumes it is an int.  */
   int has_arg;
@@ -137,17 +133,9 @@ struct option
    arguments to the option '\0'.  This behavior is specific to the GNU
    `getopt'.  */
 
-#if (defined __STDC__ && __STDC__) || defined __cplusplus
-# ifdef __GNU_LIBRARY__
-/* Many other libraries have conflicting prototypes for getopt, with
-   differences in the consts, in stdlib.h.  To avoid compilation
-   errors, only prototype getopt for the GNU C library.  */
 extern int getopt (int __argc, char *const *__argv, const char *__shortopts);
-# else /* not __GNU_LIBRARY__ */
-extern int getopt ();
-# endif /* __GNU_LIBRARY__ */
 
-# ifndef __need_getopt
+#ifndef __need_getopt
 extern int getopt_long (int __argc, char *const *__argv, const char *__shortopts,
 		        const struct option *__longopts, int *__longind);
 extern int getopt_long_only (int __argc, char *const *__argv,
@@ -159,16 +147,7 @@ extern int _getopt_internal (int __argc, char *const *__argv,
 			     const char *__shortopts,
 		             const struct option *__longopts, int *__longind,
 			     int __long_only);
-# endif
-#else /* not __STDC__ */
-extern int getopt ();
-# ifndef __need_getopt
-extern int getopt_long ();
-extern int getopt_long_only ();
-
-extern int _getopt_internal ();
-# endif
-#endif /* __STDC__ */
+#endif
 
 #ifdef	__cplusplus
 }

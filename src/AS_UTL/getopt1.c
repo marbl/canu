@@ -24,13 +24,6 @@
 
 #include "getopt.h"
 
-#if !defined __STDC__ || !__STDC__
-/* This is a separate conditional since some stdc systems
-   reject `defined (const)'.  */
-#ifndef const
-#define const
-#endif
-#endif
 
 #include <stdio.h>
 
