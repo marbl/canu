@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.4 2005-03-22 19:49:00 jason_miller Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.5 2005-07-12 14:38:14 gdenisov Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -750,6 +750,26 @@ typedef struct IntMultiPos {
 
 } IntMultiPos;
 
+/* IMV message */
+
+typedef struct IntMultiVar {
+  IntFragment_ID  ident;
+#ifdef i386
+  int32           ptrPad1;
+#endif
+  SeqInterval     position;
+  int32           nreads;
+  int32           nreads_best;
+  float           ratio;     
+  int32           var_length;
+  char           *var_sequence;
+  int32           window;  
+  IntFragment_ID *aindent;
+#ifdef i386
+  int32           ptrPad2;
+#endif
+} IntMultiVar;
+
 /* This is a variant of IntMultiPos to handle deltas in a longer (unitig) sequence */
 typedef struct {
   UnitigType    type;
@@ -797,7 +817,10 @@ typedef struct {
   int32		  forced;
   int32           num_frags;
   IntMultiPos    *f_list;
+  int32           num_vars; 
+  IntMultiVar    *v_list;
 } IntUnitigMesg;
+
 
 /* The following message type will eventually be Removed */
 typedef struct {
@@ -1216,11 +1239,22 @@ typedef struct EndOfFileMesgTag {
   char    *comment;
 } EndOfFileMesg;
 
+typedef enum {
+  AS_BINARY_OUTPUT  = (int) 'B',
+  AS_PROTO_OUTPUT   = (int) 'P'
+} OutputType;
+
 /* External Routines */
 
 #undef TODELETE
 #ifdef TODELETE
 #endif
+
+typedef int (*MesgReader)(FILE *, GenericMesg **);
+typedef int (*MesgWriter)(FILE *, GenericMesg *);
+
+#if 0
+
 /* Function: DuplicateProtoMesg_AS 
 
    Description: Copies the generic message structure including all of
@@ -1255,8 +1289,6 @@ extern void FreeProtoMesg_AS(GenericMesg *omesg);
    accordingly.
 */
 
-typedef int (*MesgReader)(FILE *, GenericMesg **);
-
 extern MesgReader InputFileType_AS(FILE *fin);
 
 
@@ -1265,14 +1297,6 @@ extern MesgReader InputFileType_AS(FILE *fin);
    returns a pointer to either WriteProtoMesg_AS or WriteBinaryMesg_AS
    as a function of its input.
 */
-
-typedef enum {
-  AS_BINARY_OUTPUT  = (int) 'B',
-  AS_PROTO_OUTPUT   = (int) 'P'
-} OutputType;
-
-
-typedef int (*MesgWriter)(FILE *, GenericMesg *);
 
 extern MesgWriter OutputFileType_AS(OutputType type);
 
@@ -1298,8 +1322,10 @@ extern MesgWriter OutputFileType_AS(OutputType type);
    Input/Outputs: fin - A file openned for text reading. 
 */
 
+#endif
 extern int ReadProtoMesg_AS(FILE *fin, GenericMesg **pmesg);
 extern int ReadBinaryMesg_AS(FILE *fin, GenericMesg **pmesg);
+#if 0
 
 /* Functions:  WriteProtoMesg_AS 
                WriteBinaryMesg_AS
@@ -1314,9 +1340,10 @@ extern int ReadBinaryMesg_AS(FILE *fin, GenericMesg **pmesg);
    Input/Outputs: fout - A file openned for text writing.
 */
 
+#endif
 extern int WriteProtoMesg_AS(FILE *fout, GenericMesg *mesg);
 extern int WriteBinaryMesg_AS(FILE *fout, GenericMesg *mesg);
-
+#if 0
 /* Function: Transfer_XXX_to_YYY
 
    Description: Transfers the fields of an XXX message to that of a
@@ -1379,4 +1406,5 @@ const char  *GetMessageName(int type);
 extern void ResetProto_AS(void);
 extern void ResetBinary_AS(void);
 
+#endif
 #endif /* AS_MSG_PMESG_INCLUDE */
