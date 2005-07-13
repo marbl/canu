@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.7 2005-07-13 14:47:55 brianwalenz Exp $
- * $Revision: 1.7 $
+ * $Id: AS_OVL_overlap_common.h,v 1.8 2005-07-13 14:51:35 brianwalenz Exp $
+ * $Revision: 1.8 $
 */
 
 
@@ -567,6 +567,7 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
                Hash_Mask_Bits = atoi(optarg);
              } else if (strcmp(ovlopts[optindex].name, "hashstrings") == 0) {
                Max_Hash_Strings = atoi(optarg);
+               Max_Frags_In_Memory_Store = OVL_Min_int (Max_Hash_Strings, MAX_OLD_BATCH_SIZE);
              } else if (strcmp(ovlopts[optindex].name, "hashdatalen") == 0) {
                Max_Hash_Data_Len = atoi(optarg);
              } else if (strcmp(ovlopts[optindex].name, "hashload") == 0) {
