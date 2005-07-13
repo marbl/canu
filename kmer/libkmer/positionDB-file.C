@@ -6,70 +6,9 @@
 #include <errno.h>
 
 static
-char     magic[16] = { 'p', 'o', 's', 'i', 't', 'i', 'o', 'n', 'D', 'B', '1', ' ', ' ', ' ', ' ', ' '  };
+char     magic[16] = { 'p', 'o', 's', 'i', 't', 'i', 'o', 'n', 'D', 'B', '.', 'v', '1', ' ', ' ', ' '  };
 static
 char     faild[16] = { 'p', 'o', 's', 'i', 't', 'i', 'o', 'n', 'D', 'B', 'f', 'a', 'i', 'l', 'e', 'd'  };
-
-
-
-//  Split writes into smaller pieces, check the result of each piece.
-//  Really needed by OSF1 (V5.1)
-//
-void
-safeWrite(int filedes, const void *buffer, char *desc, size_t nbytes) {
-  size_t  position = 0;
-  size_t  length   = 32 * 1024 * 1024;
-  size_t  towrite  = 0;
-  size_t  written  = 0;
-
-  while (position < nbytes) {
-    towrite = length;
-    if (position + towrite > nbytes)
-      towrite = nbytes - position;
-
-    errno = 0;
-    written = write(filedes, ((char *)buffer) + position, towrite);
-
-    if ((errno) || (towrite != written)) {
-      fprintf(stderr, "positionDB::safeWrite()-- Write failure on %s: %s\n", desc, strerror(errno));
-      fprintf(stderr, "positionDB::safeWrite()-- Wanted to write "s64bitFMT" bytes, wrote "s64bitFMT".\n", (s64bit)towrite, (s64bit)written);
-      exit(1);
-    }
-
-    position += written;
-  }
-}
-
-
-//  Split reads into smaller pieces, check the result of each piece.
-//  Really needed by OSF1 (V5.1)
-//
-void
-safeRead(int filedes, const void *buffer, char *desc, size_t nbytes) {
-  size_t  position = 0;
-  size_t  length   = 32 * 1024 * 1024;
-  size_t  toread   = 0;
-  size_t  written  = 0;  //  readen?
-
-  while (position < nbytes) {
-    toread = length;
-    if (position + toread > nbytes)
-      toread = nbytes - position;
-
-    errno = 0;
-    written = read(filedes, ((char *)buffer) + position, toread);
-
-    if ((errno) || (toread != written)) {
-      fprintf(stderr, "positionDB::safeRead()-- Read failure on %s: %s.\n", desc, strerror(errno));
-      fprintf(stderr, "positionDB::safeRead()-- Wanted to read "s64bitFMT" bytes, read "s64bitFMT".\n", (s64bit)toread, (s64bit)written);
-      exit(1);
-    }
-
-    position += written;
-  }
-}
-
-
 
 void
 positionDB::saveState(char const *filename) {
