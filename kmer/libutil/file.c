@@ -196,7 +196,7 @@ copyFile(char *srcName, FILE *dstFile) {
   errno = 0;
   srcFile = fopen(srcName, "r");
   if (errno) {
-    fprintf(stderr, "merStreamFileBuilder::build()-- failed to open the '%s' during merge: %s\n", srcName, strerror(errno));
+    fprintf(stderr, "copyFile()-- failed to open the '%s' during merge: %s\n", srcName, strerror(errno));
     exit(1);
   }
 
@@ -231,6 +231,7 @@ copyFile(char *srcName, FILE *dstFile) {
     bytesRemain -= bytesRead;
   }
 
+  fclose(srcFile);
   free(buffer);
 
   return(srcSize);
@@ -291,3 +292,62 @@ freeDiskSpace(char *path) {
 
   return((u32bit)ret);
 }
+
+
+
+
+
+
+//  Split writes/reads into smaller pieces, check the result of each
+//  piece.  Really needed by OSF1 (V5.1).
+//
+void
+safeWrite(int filedes, const void *buffer, char *desc, size_t nbytes) {
+  size_t  position = 0;
+  size_t  length   = 32 * 1024 * 1024;
+  size_t  towrite  = 0;
+  size_t  written  = 0;
+
+  while (position < nbytes) {
+    towrite = length;
+    if (position + towrite > nbytes)
+      towrite = nbytes - position;
+
+    errno = 0;
+    written = write(filedes, ((char *)buffer) + position, towrite);
+
+    if ((errno) || (towrite != written)) {
+      fprintf(stderr, "safeWrite()-- Write failure on %s: %s\n", desc, strerror(errno));
+      fprintf(stderr, "safeWrite()-- Wanted to write "s64bitFMT" bytes, wrote "s64bitFMT".\n", (s64bit)towrite, (s64bit)written);
+      exit(1);
+    }
+
+    position += written;
+  }
+}
+
+void
+safeRead(int filedes, const void *buffer, char *desc, size_t nbytes) {
+  size_t  position = 0;
+  size_t  length   = 32 * 1024 * 1024;
+  size_t  toread   = 0;
+  size_t  written  = 0;  //  readen?
+
+  while (position < nbytes) {
+    toread = length;
+    if (position + toread > nbytes)
+      toread = nbytes - position;
+
+    errno = 0;
+    written = read(filedes, ((char *)buffer) + position, toread);
+
+    if ((errno) || (toread != written)) {
+      fprintf(stderr, "safeRead()-- Read failure on %s: %s.\n", desc, strerror(errno));
+      fprintf(stderr, "safeRead()-- Wanted to read "s64bitFMT" bytes, read "s64bitFMT".\n", (s64bit)toread, (s64bit)written);
+      exit(1);
+    }
+
+    position += written;
+  }
+}
+
