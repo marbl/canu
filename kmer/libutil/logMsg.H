@@ -7,7 +7,7 @@
 
 //  Define this to also get log messages to the screen
 //
-#define LOG_TO_SCREEN
+//#define LOG_TO_SCREEN
 
 class logMsg {
 public:
