@@ -33,7 +33,7 @@ private:
   };
   ~Exon() {};
 
-  void    init(int f1, int f2, int t1, int t2, int len, int edist, int flag, Exon *next) {
+  void    init(int f1, int f2, int t1, int t2, int len, int edost, int flog, Exon *next) {
     next_exon = next;
 
     frGEN = f1;
