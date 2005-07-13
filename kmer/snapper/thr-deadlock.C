@@ -18,9 +18,6 @@ u32bit deadlockPassed = 0;
 
 void*
 deadlockDetector(void *) {
-
-  fprintf(stderr, "Hello!  I'm a deadlockDetector!\n");
-
  detectAgain:
 
   //  Wait for the deadlock checker to reset things
@@ -40,9 +37,6 @@ deadlockDetector(void *) {
 
 void*
 deadlockChecker(void *) {
-
-  fprintf(stderr, "Hello!  I'm a deadlockChecker!\n");
-
  checkAgain:
 
   //  Wait for the tester to test
@@ -50,7 +44,7 @@ deadlockChecker(void *) {
   while (deadlockTested == 0)
     sleep(5);
 
-  //  Give it another ten seconds to return
+  //  Give it another chance
   //
   sleep(5);
 
@@ -62,8 +56,6 @@ deadlockChecker(void *) {
 #endif
     exit(1);
   }
-
-  //fprintf(stderr, "Deadlock OK\n");
 
   //  Reset the testing/checking flags
   //
