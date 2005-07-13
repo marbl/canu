@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.8 2005-07-13 14:51:35 brianwalenz Exp $
- * $Revision: 1.8 $
+ * $Id: AS_OVL_overlap_common.h,v 1.9 2005-07-13 15:16:24 brianwalenz Exp $
+ * $Revision: 1.9 $
 */
 
 
@@ -1316,8 +1316,8 @@ Kmer_Hits_Ct ++;
        {
         wa -> Match_Node_Size = (int32) (wa -> Match_Node_Size *
                MEMORY_EXPANSION_FACTOR);
-        fprintf (stderr, "### reallocing  Match_Node_Space  Size = %d\n",
-                 wa -> Match_Node_Size);
+        //fprintf (stderr, "### reallocing  Match_Node_Space  Size = %d\n",
+        //         wa -> Match_Node_Size);
         wa -> Match_Node_Space = (Match_Node_t *) Safe_realloc
                (wa -> Match_Node_Space,
                 wa -> Match_Node_Size * sizeof (Match_Node_t));
@@ -1446,8 +1446,8 @@ static void  Add_Ref
                {
                 WA -> String_Olap_Size = (int32) (WA -> String_Olap_Size *
                        MEMORY_EXPANSION_FACTOR);
-                fprintf (stderr, "### reallocing  String_Olap_Space  Size = %d\n",
-                         WA -> String_Olap_Size);
+                //fprintf (stderr, "### reallocing  String_Olap_Space  Size = %d\n",
+                //         WA -> String_Olap_Size);
                 WA -> String_Olap_Space = (String_Olap_t *) Safe_realloc
                        (WA -> String_Olap_Space,
                         WA -> String_Olap_Size * sizeof (String_Olap_t));
@@ -1581,8 +1581,8 @@ int  Build_Hash_Index
                      while  (new_size >= Screen_Space_Size)
                          {
                           Screen_Space_Size *= MEMORY_EXPANSION_FACTOR;
-                          fprintf (stderr, "### reallocing  Screen_Space  Size = %d\n",
-                                   Screen_Space_Size);
+                          //fprintf (stderr, "### reallocing  Screen_Space  Size = %d\n",
+                          //         Screen_Space_Size);
                           Screen_Space
                               = (Screen_Range_t *) Safe_realloc
                                     (Screen_Space,
@@ -1638,8 +1638,8 @@ Align_Ct [String_Ct] = (Align_Entry_t *)
            Data_Len = (size_t) (Data_Len * MEMORY_EXPANSION_FACTOR);
            if  (new_len > Data_Len)
                Data_Len = new_len;
-           fprintf (stderr, "### reallocing  Data and Quality_Data  Data_Len = " F_SIZE_T "\n",
-                    Data_Len);
+           //fprintf (stderr, "### reallocing  Data and Quality_Data  Data_Len = " F_SIZE_T "\n",
+           //         Data_Len);
            if  (Data_Len > Extra_Data_Len)
                {
                 Data = (char *) Safe_realloc (Data, Data_Len);
