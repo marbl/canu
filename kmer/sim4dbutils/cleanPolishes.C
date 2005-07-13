@@ -23,7 +23,7 @@ char const *usage =
 #define  MIN_PERCENT_IDENTITY  90
 
 
-FILE *openDebugFile(char *name) {
+FILE *openDebugFile(char const *name) {
   FILE *f;
 
   errno=0;
