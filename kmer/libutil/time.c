@@ -61,10 +61,10 @@ write_rusage(FILE *F) {
 }
 
 
-char*
+const char*
 speedCounter::_spinr[4] = { "[|]", "[/]", "[-]", "[\\]" };
 
-char*
+const char*
 speedCounter::_liner[19] = { "[-         ]",
                              "[--        ]",
                              "[ --       ]",

@@ -1,5 +1,12 @@
 #include "util++.H"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+#include <string.h>
+#include <fcntl.h>
+
 //  Define this to get reports of what the readBuffer does -- seek(),
 //  fillBuffer() and read() are reported.
 //#define VERBOSE_READBUFFER

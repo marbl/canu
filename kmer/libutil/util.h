@@ -2,17 +2,8 @@
 #define UTIL_H
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <fcntl.h>
-
-#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__CYGWIN__)
-#include <sys/syslimits.h>
-#endif
-
-
 
 
 //  Useful types.

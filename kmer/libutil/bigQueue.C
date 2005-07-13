@@ -1,5 +1,8 @@
 #include "bigQueue.H"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 
 //  qsort and kazlib are incombatible.  qsort passes a pointer to the data, kaz lib passes
