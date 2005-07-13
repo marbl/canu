@@ -37,6 +37,10 @@ public:
     _wordExtAllow     = wordextallow;
   };
 
+  void   setExonSource(exonManager *em) {
+    _exonManager = em;
+  };
+
   void   setLimits(u32bit a, double p) {
     _mspLimitAbsolute = a;
     _mspLimitPercent  = p;
@@ -145,6 +149,8 @@ private:
 
   double         _percentError;
   int            _wordExtAllow;
+
+  exonManager   *_exonManager;
 
   int            _minMSPScore;
 

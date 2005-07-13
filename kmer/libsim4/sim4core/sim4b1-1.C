@@ -78,7 +78,7 @@ Sim4::SIM4_block1(Exon*  &Lblock,
     tmp_block->next_exon = tmp_block1->next_exon;
     tmp_block->flag = tmp_block1->flag; 
     rollbflag = 1;
-    freeExon(tmp_block1);
+    //freeExon(tmp_block1);  garbage collected
     tmp_block1 = NULL;
   }
 
@@ -105,7 +105,7 @@ Sim4::SIM4_block1(Exon*  &Lblock,
     prev->flag = tmp_block->flag; 
     if ((tmp_block->toEST - tmp_block->frEST + 1) > 0)
       rollbflag = 1;
-    freeExon(tmp_block);
+    //freeExon(tmp_block);  garbage collected
     tmp_block = prev;
   } 
 

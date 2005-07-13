@@ -50,7 +50,7 @@ Sim4::SIM4_block2(Exon*   &tmp_Lblock,
           (tmp_Lblock && (tmp_block1->frEST-tmp_Rblock->toEST>100) &&
            (tmp_block1->frGEN-tmp_Rblock->frGEN>50000))) {
         /* possible large intron; increase the score weight */
-        freeExonList(tmp_Lblock); 
+        //freeExonList(tmp_Lblock);  garbage collected
 
         exon_list = _mspManager.doLinking(globalParams->_relinkWeight,
                                           DEFAULT_DRANGE, 

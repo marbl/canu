@@ -68,12 +68,12 @@ Sim4::pluri_align(int *dist_ptr,
         enew = (edit_script_list *)ckalloc(sizeof(edit_script_list));
         enew->next_script = *Aligns;
         *Aligns = enew;
-        (*Aligns)->script = head;
+        (*Aligns)->script  = head;
         (*Aligns)->offset1 = thisExon->frGEN;
         (*Aligns)->offset2 = thisExon->frEST;
-        (*Aligns)->len1 = end1-(*Aligns)->offset1+1;
-        (*Aligns)->len2 = end2-(*Aligns)->offset2+1;
-        (*Aligns)->score = ali_dist;
+        (*Aligns)->len1    = end1-(*Aligns)->offset1+1;
+        (*Aligns)->len2    = end2-(*Aligns)->offset2+1;
+        (*Aligns)->score   = ali_dist;
         ali_dist = 0;
         head = NULL;
       }

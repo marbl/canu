@@ -51,7 +51,7 @@ Sim4::SIM4(int            *dist_ptr,
   if (Lblock && 
       ((Lblock->frGEN>50000 && Lblock->frEST>100) || 
        ((_genLen - Rblock->toGEN > 50000) && (_estLen - Rblock->toEST > 100)))) {
-    freeExonList(exon_list);
+    //freeExonList(exon_list);  garbage collected
 
     exon_list = _mspManager.doLinking(globalParams->_relinkWeight,
                                       DEFAULT_DRANGE,
@@ -86,13 +86,13 @@ Sim4::SIM4(int            *dist_ptr,
 #ifdef SHOW_PROGRESS
   fprintf(stderr, "exon bracket at start\n");
 #endif
-  Lblock = new Exon(0,0,0,0,0,0,0,Lblock);
+  Lblock = _exonManager.newExon(0,0,0,0,0,0,0,Lblock);
   if (Rblock == NULL)
     Rblock = Lblock;
 #ifdef SHOW_PROGRESS
   fprintf(stderr, "exon bracket at end; Lblock = 0x%08lx, Rblock = 0x%08lx\n", Lblock, Rblock);
 #endif
-  Rblock->next_exon = new Exon(_genLen+1,_estLen+1,0,0,0,0,0,NULL); 
+  Rblock->next_exon = _exonManager.newExon(_genLen+1,_estLen+1,0,0,0,0,0,NULL); 
 
   PRINTEXONS("initial exon set after inserting brackets\n", Lblock);
 
@@ -238,7 +238,7 @@ Sim4::SIM4(int            *dist_ptr,
   while ((tmp_block!=NULL) && (tmp_block->length<wordSize) && tmp_block->toGEN) {
     tmp_block1 = tmp_block;
     tmp_block = tmp_block->next_exon;
-    freeExon(tmp_block1);
+    //freeExon(tmp_block1);  garbage collected
   }
   Lblock->next_exon = tmp_block;
 
@@ -297,11 +297,11 @@ Sim4::SIM4(int            *dist_ptr,
     get_stats(Lblock, st);
 
     *Exons = Lblock->next_exon;
-    freeExon(Lblock);
+    //freeExon(Lblock);  garbage collected
   } else {
     *Exons = 0L;
 
-    freeExonList(Lblock);
+    //freeExonList(Lblock);  garbage collected
   }
 
   //  Memory leak when Script_head == 0L -- see pluri_align, too!

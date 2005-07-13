@@ -13,6 +13,9 @@
 mspManager::mspManager() {
   _sorted           = true;
 
+  _ESTlen           = 0;
+  _GENlen           = 0;
+
   _allocMSPs        = 16384;
   _numMSPs          = 0;
   _allMSPs          = new msp [_allocMSPs];
@@ -24,8 +27,8 @@ mspManager::mspManager() {
   //
   _tooManyMSPs      = false;
   _cDNALength       = 0;
+  _mspLimitPercent  = 0.0;
   _mspLimitAbsolute = 0;
-  _mspLimitPercent  = 0;
 
   //  These need to be reset with setParameters.  The code will die
   //  during link() if they are not set.
@@ -33,6 +36,11 @@ mspManager::mspManager() {
   _match            = 0;
   _matchdiff        = 0;
   _percentError     = 0.0;
+  _wordExtAllow     = 0;
+
+  _exonManager      = 0L;
+
+  _minMSPScore      = 0;
 
   _diagMax          = 0;
   _diagExt          = 0L;
@@ -190,31 +198,22 @@ mspManager::doLinking(int    weight,
     }
   }
 
+  if (best < 0)
+    return(0L);
 
-
-
-
-  //  In the code below, last_msp = best.
-  //
   int last_msp = best;
-  int     diag_dist;
-  int     diff;
+  int diag_dist;
+  int diff;
 
-  Exon *elist = 0L;
-
-  if (last_msp < 0)
-    return(elist);
-
-  msp *mp = _allMSPs + last_msp;
-
-  elist = new Exon(mp->pos1,
-                   mp->pos2,
-                   mp->pos1+mp->len-1, 
-                   mp->pos2+mp->len-1,
-                   -1, 
-                   (mp->len * _match - mp->score) / _matchdiff,
-                   0,
-                   elist);
+  msp  *mp    = _allMSPs + last_msp;
+  Exon *elist = _exonManager->newExon(mp->pos1,
+                                      mp->pos2,
+                                      mp->pos1+mp->len-1, 
+                                      mp->pos2+mp->len-1,
+                                      -1, 
+                                      (mp->len * _match - mp->score) / _matchdiff,
+                                      0,
+                                      0L);
 
   last_msp = mp->prev;
 
@@ -223,7 +222,7 @@ mspManager::doLinking(int    weight,
 
     int   l1 = elist->frEST - elist->frGEN;
     int   l2 = mp->pos2     - mp->pos1;
-
+    
     if (l1 > l2)
       diag_dist = l1 - l2;
     else
@@ -249,14 +248,14 @@ mspManager::doLinking(int    weight,
       elist->frGEN = min(elist->frGEN,mp->pos1);
       elist->frEST = min(elist->frEST,mp->pos2);
     } else {
-      elist = new Exon(mp->pos1,
-                       mp->pos2,
-                       mp->pos1+mp->len-1,
-                       mp->pos2+mp->len-1,
-                       -1,
-                       (mp->len * _match - mp->score) / _matchdiff,
-                       0,
-                       elist);
+      elist = _exonManager->newExon(mp->pos1,
+                                    mp->pos2,
+                                    mp->pos1+mp->len-1,
+                                    mp->pos2+mp->len-1,
+                                    -1,
+                                    (mp->len * _match - mp->score) / _matchdiff,
+                                    0,
+                                    elist);
     }
 
     last_msp = mp->prev;

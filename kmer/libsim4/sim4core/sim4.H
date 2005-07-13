@@ -131,6 +131,8 @@ struct hash_table {
 private:
   mspManager        _mspManager;
 
+  exonManager       _exonManager;
+
   sim4parameters   *globalParams;
 
   char       *_genSeq;
@@ -443,10 +445,12 @@ private:
 
   void  *_pallochandle;
   void  *ckalloc(size_t amount) {
-    //void *x = palloc2(amount, _pallochandle);
-    //memset(x, 0xff, amount);
-    //return(x);
     return(palloc2(amount, _pallochandle));
+  };
+  void  *ckcalloc(size_t amount) {
+    void *x = palloc2(amount, _pallochandle);
+    memset(x, 0x00, amount);
+    return(x);
   };
   void   ckfree(void *) {
   };
@@ -506,6 +510,8 @@ public:
                               globalParams->_mismatch,
                               globalParams->_percentError,
                               wordExtensionAllowance);
+    _mspManager.setExonSource(&_exonManager);
+
 
     //  wordSize      -- for finding initial seeds
     //  wordSizeInt -- for extending seeds between seeds
@@ -557,6 +563,7 @@ public:
 
 #ifdef WITH_PALLOC
     pfree2(_pallochandle);
+    pfreehandle(_pallochandle);
 #endif
 
   };

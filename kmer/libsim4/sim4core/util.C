@@ -29,12 +29,12 @@ Sim4::complement_exons(Exon **left, int M, int N)
 #endif
 
         switch (ch) {
-        case  'C': prev = 'G'; break;
-                 case  'G': prev = 'C'; break;
-                 case  'N': prev = 'N'; break;
-                 case  'E': prev = 'E'; break;
-                   default  : fatal("sim4b1.c: Inconsistency. Check exon orientation at complementation.");
-                 }
+          case  'C': prev = 'G'; break;
+          case  'G': prev = 'C'; break;
+          case  'N': prev = 'N'; break;
+          case  'E': prev = 'E'; break;
+          default  : fatal("sim4b1.c: Inconsistency. Check exon orientation at complementation.");
+        }
       } else {
         tmp_block->ori = prev;
 #ifdef SPLSCORE
@@ -72,12 +72,12 @@ Sim4::check_consistency_intron_ori(Exon *exons, int match_ori, char *gene)
   while (t && t->toGEN) {
     if (t->next_exon  && t->next_exon->toGEN) {
       switch (t->ori) {
-      case 'G': numG++; break;
-              case 'C': numC++; break;
-              case 'N': numN++; break;
-              case 'E': numE++; break;
-                default : fatal("sim4b1.c: Unrecognized intron orientation.");
-              } 
+        case 'G': numG++; break;
+        case 'C': numC++; break;
+        case 'N': numN++; break;
+        case 'E': numE++; break;
+        default : fatal("sim4b1.c: Unrecognized intron orientation.");
+      } 
     }
     t = t->next_exon;
   }
@@ -184,7 +184,7 @@ Sim4::compact_list(Exon **Lblock, Exon **Rblock)
       tmp_block->edist -= (int)(globalParams->_percentError * diff);
       tmp_block->next_exon = tmp_block1->next_exon;
       
-      freeExon(tmp_block1);
+      //freeExon(tmp_block1);  garbage collected
     } else
       tmp_block = tmp_block1;
   }
@@ -240,7 +240,7 @@ Sim4::merge(Exon **t0, Exon **t1)
       }
       tmp0->next_exon = tmp1->next_exon;  
 
-      freeExon(tmp1);
+      //freeExon(tmp1);  garbage collected
     } else {
       tmp0 = tmp0->next_exon;
     }
@@ -281,8 +281,8 @@ Sim4::bmatch (char *s1, char *s2, int l1, int l2, int offset1, int offset2)
       if (*(s1+i1+l2-1)==*(s2+j+l2-1)) score++;
       if (*(s1+i1+l2)==*(s2+j+l2)) score++;
       if (score>=3) {
-        newthing = new Exon(i1+3+offset1, offset2, i1+3+offset1+l2-5,
-                            offset2+l2-5, l2-4, 0, 0, NULL);
+        newthing = _exonManager.newExon(i1+3+offset1, offset2, i1+3+offset1+l2-5,
+                                        offset2+l2-5, l2-4, 0, 0, NULL);
         newthing->ori = (G_score >= abs(C_score)) ? 'G' : 'C';
         
         return newthing;
@@ -311,8 +311,8 @@ Sim4::fmatch (char *s1, char *s2, int l1, int l2, int offset1, int offset2)
       if (*(s1+i1-l2)==*s2) score++;
       if (*(s1+i1-l2+1)==*(s2+1)) score++;
       if (score>=3) {
-        newthing = new Exon(i+offset1,offset2,i1+offset1-2,offset2+l2-5,
-                            l2-4,0,0,NULL);
+        newthing = _exonManager.newExon(i+offset1,offset2,i1+offset1-2,offset2+l2-5,
+                                        l2-4,0,0,NULL);
         newthing->ori = (G_score >= abs(C_score)) ? 'G' : 'C';
 
         return newthing;
@@ -348,34 +348,30 @@ Sim4::get_sync_flag(Exon *lblock, Exon *rblock, int w)
 
 
 void 
-Sim4::sync_slide_intron(int in_w, Exon **lblock, sim4_stats_t *st)
-{
+Sim4::sync_slide_intron(int in_w, Exon **lblock, sim4_stats_t *st) {
   Exon *t0, *t1, *head = *lblock;
   splice_t *g, *c, *cell;
-  splice_t **Glist, **Clist;
-  int Gscore=0, Cscore=0;
-  char *oris;
-  int w1, w2, ni, i, numC, numG;
-
-  ni = 0;
-  numG = numC = 0;
+  int w1, w2, i;
 
   //  Count the exons to allocate space for Glist, Clist and oris
   //
+  int ni   = 1;
   t0 = head->next_exon;
   while (t0 && (t1=t0->next_exon) && t1->toGEN) {
     ni++;
     t0 = t1;
   }        
 
-  Glist = (splice_t **)calloc(ni + 1, sizeof(splice_t *));
-  Clist = (splice_t **)calloc(ni + 1, sizeof(splice_t *));
-  oris  = (char *)calloc(ni + 1, sizeof(char));
+  //  These leak, but I don't know where.
+  splice_t **Glist = (splice_t **)ckcalloc(ni * sizeof(splice_t *));
+  splice_t **Clist = (splice_t **)ckcalloc(ni * sizeof(splice_t *));
+  char      *oris  = (char      *)ckcalloc(ni * sizeof(char));
 
-  if ((Glist == 0L) || (Clist == 0L) || (oris == 0L)) {
-    fprintf(stderr, "Can't allocate memory for sync_slide_intron() with %d exons.\n", ni);
-    exit(1);
-  }
+  if ((Glist == 0L) || (Clist == 0L) || (oris == 0L))
+    fprintf(stderr, "Can't allocate memory for sync_slide_intron() with %d exons.\n", ni), exit(1);
+
+  int numG = 0, Gscore = 0;
+  int numC = 0, Cscore = 0;
 
   ni = 0;
 
@@ -444,30 +440,33 @@ Sim4::sync_slide_intron(int in_w, Exon **lblock, sim4_stats_t *st)
     for (i=0, t0=head->next_exon; i<ni; i++, t0=t1) {
       t1 = t0->next_exon;
       switch (oris[i]) {
-      case 'G': break;
-              case 'C': if (Glist[i]==NULL) { 
-                /* compute the values for C */ 
-                w1 = min(in_w, min(t0->length-1, t0->toGEN-t0->frGEN));
-                w2 = min(in_w, min(t1->length-1, t1->toGEN-t1->frGEN));
-                splice(_genSeq, t0->toGEN-w1, t0->toGEN+w1,
-                       t1->frGEN-w2, t1->frGEN+w2, _estSeq,
-                       t0->toEST-w1, t1->frEST+w2, &g, &c, FWD);
-              } else g = Glist[i];
-                
+        case 'G':
+          break;
+        case 'C': if (Glist[i]==NULL) { 
+          /* compute the values for C */ 
+          w1 = min(in_w, min(t0->length-1, t0->toGEN-t0->frGEN));
+          w2 = min(in_w, min(t1->length-1, t1->toGEN-t1->frGEN));
+          splice(_genSeq, t0->toGEN-w1, t0->toGEN+w1,
+                 t1->frGEN-w2, t1->frGEN+w2, _estSeq,
+                 t0->toEST-w1, t1->frEST+w2, &g, &c, FWD);
+        } else {
+          g = Glist[i];
+        }
+          
 #ifdef SPLSCORE
-              t0->splScore = g->score;
+          t0->splScore = g->score;
 #endif
 
-                t0->ori = 'G';
-                t0->toGEN = g->xs; t0->toEST = g->ys;
-                t1->frGEN = g->xe; t1->frEST = g->ye;
-                t0->length = t0->toEST-t0->frEST+1;
-                t1->length = t1->toEST-t1->frEST+1;
+          t0->ori = 'G';
+          t0->toGEN = g->xs; t0->toEST = g->ys;
+          t1->frGEN = g->xe; t1->frEST = g->ye;
+          t0->length = t0->toEST-t0->frEST+1;
+          t1->length = t1->toEST-t1->frEST+1;
 
-                break;
-              case 'E': break;
-                default : fatal("sim4b1.c: intron orientation not initialized.");
-              }
+          break;
+        case 'E': break;
+        default : fatal("sim4b1.c: intron orientation not initialized.");
+      }
       if (oris[i]!='E') wobble(&t0,&t1,"GT","AG",_genSeq);
     }
 
@@ -477,28 +476,28 @@ Sim4::sync_slide_intron(int in_w, Exon **lblock, sim4_stats_t *st)
     for (i=0, t0=head->next_exon; i<ni; i++, t0=t1) {
       t1 = t0->next_exon;
       switch (oris[i]) {
-      case 'C': break;
-              case 'G': if (Clist[i]==NULL) {
-                /* compute the values for C */
-                w1 = min(in_w, min(t0->length-1, t0->toGEN-t0->frGEN));
-                w2 = min(in_w, min(t1->length-1, t1->toGEN-t1->frGEN));
-                splice(_genSeq, t0->toGEN-w1, t0->toGEN+w1,
-                       t1->frGEN-w2, t1->frGEN+w2,
-                       _estSeq, t0->toEST-w1, t1->frEST+w2, &g, &c, BWD);
-              } else c = Clist[i];
+        case 'C': break;
+        case 'G': if (Clist[i]==NULL) {
+          /* compute the values for C */
+          w1 = min(in_w, min(t0->length-1, t0->toGEN-t0->frGEN));
+          w2 = min(in_w, min(t1->length-1, t1->toGEN-t1->frGEN));
+          splice(_genSeq, t0->toGEN-w1, t0->toGEN+w1,
+                 t1->frGEN-w2, t1->frGEN+w2,
+                 _estSeq, t0->toEST-w1, t1->frEST+w2, &g, &c, BWD);
+        } else c = Clist[i];
                 
 #ifdef SPLSCORE
-              t0->splScore = c->score;
+          t0->splScore = c->score;
 #endif
-                t0->ori = 'C';
-                t0->toGEN = c->xs; t0->toEST = c->ys;
-                t1->frGEN = c->xe; t1->frEST = c->ye;
-                t0->length = t0->toEST-t0->frEST+1; 
-                t1->length = t1->toEST-t1->frEST+1;
-                break;
-              case 'E': break;
-                default : fatal("sim4b1.c: intron orientation not initialized.");
-              }
+          t0->ori = 'C';
+          t0->toGEN = c->xs; t0->toEST = c->ys;
+          t1->frGEN = c->xe; t1->frEST = c->ye;
+          t0->length = t0->toEST-t0->frEST+1; 
+          t1->length = t1->toEST-t1->frEST+1;
+          break;
+        case 'E': break;
+        default : fatal("sim4b1.c: intron orientation not initialized.");
+      }
       if (oris[i]!='E') wobble(&t0,&t1,"CT","AC",_genSeq);
     }
 
@@ -573,8 +572,7 @@ Sim4::wobble(Exon **t0, Exon **t1, const char *donor, const char *acceptor, char
 }
 
 void
-Sim4::slide_intron(int in_w, Exon **lblock, sim4_stats_t *st)
-{ 
+Sim4::slide_intron(int in_w, Exon **lblock, sim4_stats_t *st) { 
   Exon *t0, *t1, *head = *lblock;       
   splice_t *g, *c, *cell;
   char type;
@@ -600,8 +598,7 @@ Sim4::slide_intron(int in_w, Exon **lblock, sim4_stats_t *st)
 #ifdef SPLSCORE
         t0->splScore = 888888;
 #endif
-      }
-      else {      
+      } else {      
         int gtag=0, ctac=0;
         char *s;
         
@@ -609,9 +606,17 @@ Sim4::slide_intron(int in_w, Exon **lblock, sim4_stats_t *st)
         w2 = min(in_w, min(t1->length-2, t1->toGEN-t1->frGEN-1));
         splice(_genSeq, t0->toGEN-w1, t0->toGEN+w1, t1->frGEN-w2, t1->frGEN+w2,
                _estSeq, t0->toEST-w1, t1->frEST+w2, &g, &c, BOTH);
-        if (g->score>c->score) { cell = g; type = 'G'; }
-        else if (c->score>g->score) { cell = c; type = 'C'; }
-        else { cell = g; type = 'G'; }
+
+        if (g->score>c->score) {
+          cell = g;
+          type = 'G';
+        } else if (c->score>g->score) {
+          cell = c;
+          type = 'C';
+        } else {
+          cell = g;
+          type = 'G';
+        }
         
 #ifdef SPLSCORE
         t0->splScore = cell->score;
@@ -628,23 +633,38 @@ Sim4::slide_intron(int in_w, Exon **lblock, sim4_stats_t *st)
         ckfree(c);
 
         /* determine the type, based on the # matches w/ GT-AG (CT-AC) */
+
         s = _genSeq+t0->toGEN;
-        if (*s=='G') gtag++; else if (*s=='C') ctac++; 
-        ++s;
-        if (*s=='T') { gtag++; ctac++;} 
+        if (*s=='G')
+          gtag++;
+        if (*s=='C')
+          ctac++; 
+        s++;
+
+        if (*s=='T') {
+          gtag++;
+          ctac++;
+        } 
         s = _genSeq+t1->frGEN-3; 
-        if (*s=='A') { gtag++; ctac++; }
+
+        if (*s=='A') {
+          gtag++;
+          ctac++;
+        }
         ++s;
-        if (*s=='G') gtag++; else if (*s=='C') ctac++;
+
+        if (*s=='G')
+          gtag++;
+        if (*s=='C')
+          ctac++;
+
         if (gtag>ctac) {
           type = 'G';
           numG++;
-        }
-        else if (ctac>gtag) {
+        } else if (ctac>gtag) {
           type = 'C';
           numC++;
-        }
-        else {
+        } else {
           type = 'N';
           numN++;
         }

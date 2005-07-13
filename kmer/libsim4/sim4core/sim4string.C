@@ -537,11 +537,11 @@ Sim4::run(sim4command *cmd) {
 
   fail:
 
-    if (fAligns)  free_align(fAligns);
-    if (rAligns)  free_align(rAligns);
-
-    freeExonList(fExons);
-    freeExonList(rExons);
+    //  These are now garbage collected
+    //if (fAligns)  free_align(fAligns);
+    //if (rAligns)  free_align(rAligns);
+    //freeExonList(fExons);
+    //freeExonList(rExons);
 
     fAligns = rAligns = 0L;
     fExons  = rExons  = 0L;
