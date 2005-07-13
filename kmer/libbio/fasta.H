@@ -11,7 +11,7 @@
 
 class FastAWrapper {
 public:
-  FastAWrapper(const char *filename, u32bit bufferSize=~u32bitZERO);
+  FastAWrapper(char const *filename, u32bit bufferSize=~u32bitZERO);
   ~FastAWrapper();
 
   //  Return some accessors for whatever sequence we are currently at.
