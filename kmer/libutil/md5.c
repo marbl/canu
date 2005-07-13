@@ -11,8 +11,8 @@
 
 int
 md5_compare(void const *a, void const *b) {
-  md5_s *A = (md5_s *)a;
-  md5_s *B = (md5_s *)b;
+  md5_s const *A = (md5_s const *)a;
+  md5_s const *B = (md5_s const *)b;
 
   if (A->a < B->a) return(-1);
   if (A->a > B->a) return(1);

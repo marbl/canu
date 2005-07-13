@@ -39,10 +39,10 @@ documentation and/or software.
 #define TEST_BLOCK_LEN 1000
 #define TEST_BLOCK_COUNT 1000
 
-static void MDString PROTO_LIST ((char *));
+static void MDString PROTO_LIST ((char const *));
 static void MDTimeTrial PROTO_LIST ((void));
 static void MDTestSuite PROTO_LIST ((void));
-static void MDFile PROTO_LIST ((char *));
+static void MDFile PROTO_LIST ((char const *));
 static void MDFilter PROTO_LIST ((void));
 static void MDPrint PROTO_LIST ((unsigned char [16]));
 
@@ -74,10 +74,7 @@ Arguments (may be any combination):
   filename - digests file
   (none)   - digests standard input
  */
-int main (argc, argv)
-int argc;
-char *argv[];
-{
+int main (int argc, char **argv) {
   int i;
 
   if (argc > 1)
@@ -98,9 +95,7 @@ char *argv[];
 
 /* Digests a string and prints the result.
  */
-static void MDString (string)
-char *string;
-{
+static void MDString (char const *string) {
   MD_CTX context;
   unsigned char digest[16];
   unsigned int len = strlen (string);
@@ -117,8 +112,7 @@ char *string;
 /* Measures the time to digest TEST_BLOCK_COUNT TEST_BLOCK_LEN-byte
   blocks.
  */
-static void MDTimeTrial ()
-{
+static void MDTimeTrial (void) {
   MD_CTX context;
   time_t endTime, startTime;
   unsigned char block[TEST_BLOCK_LEN], digest[16];
@@ -159,8 +153,7 @@ static void MDTimeTrial ()
 
 /* Digests a reference suite of strings and prints the results.
  */
-static void MDTestSuite ()
-{
+static void MDTestSuite (void) {
   printf ("MD%d test suite:\n", MD);
 
   MDString ("");
@@ -177,9 +170,7 @@ static void MDTestSuite ()
 
 /* Digests a file and prints the result.
  */
-static void MDFile (filename)
-char *filename;
-{
+static void MDFile (char const *filename) {
   FILE *file;
   MD_CTX context;
   int len;
@@ -204,8 +195,7 @@ char *filename;
 
 /* Digests the standard input and prints the result.
  */
-static void MDFilter ()
-{
+static void MDFilter (void) {
   MD_CTX context;
   int len;
   unsigned char buffer[16], digest[16];
@@ -221,9 +211,7 @@ static void MDFilter ()
 
 /* Prints a message digest in hexadecimal.
  */
-static void MDPrint (digest)
-unsigned char digest[16];
-{
+static void MDPrint (unsigned char digest[16]) {
   unsigned int i;
 
   for (i = 0; i < 16; i++)
