@@ -20,7 +20,7 @@
 #ifndef BIO_KMER_H
 #define BIO_KMER_H
 
-#define KMER_WORDS  14
+#define KMER_WORDS  1
 
 
 //  XXX: Should probably make a separate class for KMER_WORDS == 1,
