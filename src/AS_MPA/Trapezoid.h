@@ -18,13 +18,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: Trapezoid.h,v 1.4 2005-03-22 19:48:56 jason_miller Exp $ */
+/* $Id: Trapezoid.h,v 1.5 2005-07-13 14:47:55 brianwalenz Exp $ */
 #ifndef TILTEDTRAPEZOID_H
 #define TILTEDTRAPEZOID_H
 
 #include <cmath>
-#include <values.h>
-
 #include <algorithm>
 
 #include "Point.h"

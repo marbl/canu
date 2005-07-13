@@ -61,11 +61,11 @@ SUBDIRS = AS_MSG \
 
 # Compiler & flags
 
-CC = gcc
-CXX = g++
-CFLAGS_OPT = -g #-mcpu=powerpc
-CXXDEFS = -D__cplusplus
-ARFLAGS = rvs
+CC         = gcc
+CXX        = g++
+CFLAGS_OPT = -g
+CXXDEFS    = -D__cplusplus
+ARFLAGS    = rvs
 
 ifeq ($(OSTYPE), Linux)
   CC = gcc
@@ -78,153 +78,156 @@ ifeq ($(OSTYPE), Linux)
   # CFLAGS_WARNINGS = -Wall
 
   ifeq ($(MACHINETYPE), x86_64)
-    CC = /usr/local/bin/gcc
-    CXX = /usr/local/bin/g++
-    CFLAGS += -m64 -mcmodel=medium 
+    CC        = gcc
+    CXX       = g++
+    CFLAGS   += -m64 -mcmodel=medium 
     CXXFLAGS += -m64 -mcmodel=medium
   endif
-else
-  ifeq ($(OSTYPE), Darwin)
-    CC = gcc
-    CXX = g++
-    CFLAGS_OPT = -g #-mcpu=powerpc
-    CFLAGS+= -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
-    CXXDEFS = -D__cplusplus
- else 
-  ifeq ($(OSTYPE), SunOS)
-    ifeq ($(MACHINETYPE), i86pc)
-      CC = gcc
-      CXX = g++
-      CFLAGS += -DBYTE_ORDER=LITTLE_ENDIAN
-      LDFLAGS += -lm
-    else
-      CC = cc
-      CXX = cxx
-      CFLAGS += -DBYTE_ORDER=BIG_ENDIAN -DMAP_FILE=0 -g
-      LDFLAGS += -lsocket -lnsl
-    endif
-  else
-  ifeq ($(OSTYPE), aix)
-    CC = xlc
-    CFLAGS_OPT = -O3
-    # CFLAGS_OPT = -g
-    # CFLAGS_OPT = -q64 -g -D_LARGE_FILES -qcpluscmt
-    # THRINC  = -qthreaded -D_REENTRANT
-    # THRLIB  = -lpthread
-    # FLAGS  = -O3 -qarch=pwr3 -qtune=pwr3 -qthreaded -D_REENTRANT
-    # FLAGS  = -O3 -qarch=pwr3 -qtune=pwr3
-    # DEBUG  = -DDEBUG
-    CFLAGS_OPT += -qflag=W:W \
-               -qcpluscmt \
-               -q64 \
-               -qlonglong \
-               -D_LARGE_FILES \
-               -qarch=auto \
-               -qtune=auto \
-               -qcache=auto \
-               -bhalt:8 \
-               -qstaticinline \
-               -qlanglvl=ext \
-               -qignerrno \
-               -qupconv \
-               -qstrict
-    CXX     = xlC_r $(CFLAGS_OPT)
-    CXXDEFS =
-    CXXFLAGS  = $(CFLAGS)
-    # LDFLAGS = -g -q64 \
-    LDFLAGS = -O3 -q64 \
-            -qlonglong \
-            -D_LARGE_FILES \
-            -qarch=auto \
-            -qtune=auto \
-            -qcache=auto \
-            -bhalt:8 \
-            -qstaticinline \
-            -qlanglvl=ext \
-            -qignerrno \
-            -qupconv \
-            -qstrict \
-            -lpthread
-    # -bnoquiet -lpthread
-    #AR = ar -X32
-    #CPP = cc -E
-    #CPPFLAGS  =  -I/scratch/hannone/incl -qcpluscmt -DAIX
-    #CcOPTS  =  -O -qstrict -D_LARGE_FILES -qcpluscmt
-    #ccWARNS = 
-    #CC      = xlC
-    #CCOPTS  = -q64 -O3 -qstrict -D_LARGE_FILES
-    #CCWARNS =
-  else
-    ifeq ($(OSTYPE), OSF1)
-      CC = cc
-      CXX = c++
-      CFLAGS_OPT=  -pthread -fast -O4
-      # To get accurate variable prints in the debuggers:
-      # CFLAGS_OPT= -g 
-      # CFLAGS_OPT= -g -check_bounds
-      # Note that "-g" implies "-O0", which turns off all inlining.
-      # Note that "-fast" implies "-inline speed"
-      # CFLAGS_OPT= -g -O1 -inline manual
-      # CFLAGS_OPT= -g -O1 -inline manual -check_bounds
-      # CFLAGS_OPT= -O4 
-      # CFLAGS_OPT= -fast -O4 -tune ev56 -arch ev56
-      # CFLAGS_OPT= -fast -O4 -tune ev6 -arch ev6
-      # -omp
-      # -msg_enable c_to_cxx obsolescent
-      # -check_bounds
-      #
-      CFLAGS_WARNINGS = -w0 -warnprotos -trapuv -float_const -readonly_strings \
-        -msg_enable overflow \
-        -msg_enable check \
-        -msg_enable defunct \
-        -msg_enable alignment \
-        -msg_enable obsolescent \
-        -msg_enable performance \
-        -msg_enable preprocessor \
-        -msg_enable nestedtype \
-        -msg_disable valuepres \
-        -msg_disable cxxcomment \
-        -msg_disable c_to_cxx \
-        -msg_disable unrefsdecl \
-        -msg_disable strctpadding \
-        -msg_disable truncintcast \
-        -msg_disable unusedtop \
-        -msg_disable unusedincl \
-        -msg_disable unnecincl \
-        -msg_disable nestincl \
-        -msg_disable uncalled \
-        -msg_disable ignorecallval \
-        -msg_disable questcompare2 \
-      -msg_disable unrefadecl \
-      -msg_disable unrefsfunc \
-      -msg_disable truncintasn \
-      -msg_disable truncfltasn \
-      -msg_disable truncfltint \
-      -msg_disable extrasemi
-      # -msg_disable hexoctunsign
-      #  -omp  -check_omp 
-      # -msg_enable unused 
-      # -msg_enable returnchecks
-      # -msg_enable  strctpadding
-      #
-      # -msg_enable level6
-    endif
-  endif
 endif
-endif
-endif
-CFLAGS += $(CFLAGS_OPT) $(CFLAGS_WARNINGS) -D_FILE_OFFSET_BITS=64
 
-INC_IMPORT_DIRS += \
-                $(patsubst %, $(LOCAL_WORK)/src/%, $(strip $(SUBDIRS))) \
-                $(LOCAL_WORK)/inc 
-
-ifeq ($(OSTYPE), OSF1)
+ifeq ($(OSTYPE), FreeBSD)
+  CC               = gcc
+  CXX              = g++
+  CFLAGS_OPT       = -g 
+  CFLAGS          += -O3
+  CXXDEFS          = -D__cplusplus
   INC_IMPORT_DIRS +=  /usr/local/include
 endif
 
-LIB_IMPORT_DIRS += $(LOCAL_LIB) /usr/lib  /usr/shlib /usr/X11R6/lib /usr/X/lib /usr/shlib/X11
+ifeq ($(OSTYPE), Darwin)
+  CC         = gcc
+  CXX        = g++
+  CFLAGS_OPT = -g
+  CFLAGS    += -fast
+  CXXDEFS    = -D__cplusplus
+endif
 
+ifeq ($(OSTYPE), SunOS)
+  ifeq ($(MACHINETYPE), i86pc)
+    CC = gcc
+    CXX = g++
+    CFLAGS += -DBYTE_ORDER=LITTLE_ENDIAN
+    LDFLAGS += -lm
+  else
+    CC = cc
+    CXX = cxx
+    CFLAGS += -DBYTE_ORDER=BIG_ENDIAN -DMAP_FILE=0 -g
+    LDFLAGS += -lsocket -lnsl
+  endif
+endif
+
+ifeq ($(OSTYPE), aix)
+  CC = xlc
+  CFLAGS_OPT = -O3
+  # CFLAGS_OPT = -g
+  # CFLAGS_OPT = -q64 -g -D_LARGE_FILES -qcpluscmt
+  # THRINC  = -qthreaded -D_REENTRANT
+  # THRLIB  = -lpthread
+  # FLAGS  = -O3 -qarch=pwr3 -qtune=pwr3 -qthreaded -D_REENTRANT
+  # FLAGS  = -O3 -qarch=pwr3 -qtune=pwr3
+  # DEBUG  = -DDEBUG
+  CFLAGS_OPT += -qflag=W:W \
+             -qcpluscmt \
+             -q64 \
+             -qlonglong \
+             -D_LARGE_FILES \
+             -qarch=auto \
+             -qtune=auto \
+             -qcache=auto \
+             -bhalt:8 \
+             -qstaticinline \
+             -qlanglvl=ext \
+             -qignerrno \
+             -qupconv \
+             -qstrict
+  CXX     = xlC_r $(CFLAGS_OPT)
+  CXXDEFS =
+  CXXFLAGS  = $(CFLAGS)
+  # LDFLAGS = -g -q64 \
+  LDFLAGS = -O3 -q64 \
+          -qlonglong \
+          -D_LARGE_FILES \
+          -qarch=auto \
+          -qtune=auto \
+          -qcache=auto \
+          -bhalt:8 \
+          -qstaticinline \
+          -qlanglvl=ext \
+          -qignerrno \
+          -qupconv \
+          -qstrict \
+          -lpthread
+  # -bnoquiet -lpthread
+  #AR = ar -X32
+  #CPP = cc -E
+  #CPPFLAGS  =  -I/scratch/hannone/incl -qcpluscmt -DAIX
+  #CcOPTS  =  -O -qstrict -D_LARGE_FILES -qcpluscmt
+  #ccWARNS = 
+  #CC      = xlC
+  #CCOPTS  = -q64 -O3 -qstrict -D_LARGE_FILES
+  #CCWARNS =
+endif
+
+ifeq ($(OSTYPE), OSF1)
+  CC = cc
+  CXX = c++
+  CFLAGS_OPT=  -pthread -fast -O4
+  # To get accurate variable prints in the debuggers:
+  # CFLAGS_OPT= -g 
+  # CFLAGS_OPT= -g -check_bounds
+  # Note that "-g" implies "-O0", which turns off all inlining.
+  # Note that "-fast" implies "-inline speed"
+  # CFLAGS_OPT= -g -O1 -inline manual
+  # CFLAGS_OPT= -g -O1 -inline manual -check_bounds
+  # CFLAGS_OPT= -O4 
+  # CFLAGS_OPT= -fast -O4 -tune ev56 -arch ev56
+  # CFLAGS_OPT= -fast -O4 -tune ev6 -arch ev6
+  # -omp
+  # -msg_enable c_to_cxx obsolescent
+  # -check_bounds
+  #
+  CFLAGS_WARNINGS = -w0 -warnprotos -trapuv -float_const -readonly_strings \
+    -msg_enable overflow \
+    -msg_enable check \
+    -msg_enable defunct \
+    -msg_enable alignment \
+    -msg_enable obsolescent \
+    -msg_enable performance \
+    -msg_enable preprocessor \
+    -msg_enable nestedtype \
+    -msg_disable valuepres \
+    -msg_disable cxxcomment \
+    -msg_disable c_to_cxx \
+    -msg_disable unrefsdecl \
+    -msg_disable strctpadding \
+    -msg_disable truncintcast \
+    -msg_disable unusedtop \
+    -msg_disable unusedincl \
+    -msg_disable unnecincl \
+    -msg_disable nestincl \
+    -msg_disable uncalled \
+    -msg_disable ignorecallval \
+    -msg_disable questcompare2 \
+    -msg_disable unrefadecl \
+    -msg_disable unrefsfunc \
+    -msg_disable truncintasn \
+    -msg_disable truncfltasn \
+    -msg_disable truncfltint \
+    -msg_disable extrasemi
+  #  -msg_disable hexoctunsign
+  #  -omp  -check_omp 
+  #  -msg_enable unused 
+  #  -msg_enable returnchecks
+  #  -msg_enable  strctpadding
+  #  -msg_enable level6
+  INC_IMPORT_DIRS +=  /usr/local/include
+endif
+
+
+CFLAGS          += $(CFLAGS_OPT) $(CFLAGS_WARNINGS)
+INC_IMPORT_DIRS += $(patsubst %, $(LOCAL_WORK)/src/%, $(strip $(SUBDIRS))) \
+                   $(LOCAL_WORK)/inc 
+LIB_IMPORT_DIRS += $(LOCAL_LIB) /usr/lib  /usr/shlib /usr/X11R6/lib /usr/X/lib /usr/shlib/X11
 OBJ_SEARCH_PATH = $(LOCAL_OBJ)
 
 
@@ -233,7 +236,7 @@ OBJ_SEARCH_PATH = $(LOCAL_OBJ)
 include $(LOCAL_WORK)/src/AS_UID/uid_transport.as
 
 ifeq ($(USE_SOAP_UID), 1)
-  CFLAGS += -DUSE_SOAP_UID
+  CFLAGS   += -DUSE_SOAP_UID
   CXXFLAGS += -DUSE_SOAP_UID
 else
   CURLLIB = -lcurl

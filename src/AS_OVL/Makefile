@@ -95,24 +95,45 @@ include $(LOCAL_WORK)/src/c_make.as
 
 # (MP) this should take care of intermittent "don't know how to make 
 # libpthread.a" problems 
-LDFLAGS+= -lpthread
-CFLAGS+= -pthread
-CPPFLAGS+= -pthread
-#PTHREADS_LIBS=-lpthread
+
+ifeq ($(OSTYPE), Linux)
+  LDFLAGS  += -lpthread
+  CFLAGS   += -pthread
+  CPPFLAGS += -pthread
+endif
+
+ifeq ($(OSTYPE), OSF1)
+  LDFLAGS  += -lpthread
+  CFLAGS   += -pthread
+  CPPFLAGS += -pthread
+endif
+
+ifeq ($(OSTYPE), FreeBSD)
+  LDFLAGS  += -pthread
+  CFLAGS   += -pthread
+  CPPFLAGS += -pthread
+endif
+
+ifeq ($(OSTYPE), Darwin)
+  LDFLAGS  += -pthread
+  CFLAGS   += -pthread
+  CPPFLAGS += -pthread
+endif
+
 
 #ifeq ($(OSTYPE), aix)
 #  PTHREADS_LIBS=libc_r.so /usr/lib/libpthread.so
 #  PTHREADS_LIBS=libc_r.a /usr/lib/libpthread.a
-#else 
-#  ifeq ($(OSTYPE), Darwin)
-#    PTHREADS_LIBS=libc_r.so /usr/lib/libpthread.dylib
-#    PTHREADS_LIBS=libc_r.a /usr/lib/libpthread.dylib
-#  else
-#   ifeq ($(OSTYPE), OSF1)
-#    PTHREADS_LIBS=-lpthread
-    #PTHREADS_LIBS=/usr/lib/libpthread.so
-#   endif
-#  endif
+#endif
+
+#ifeq ($(OSTYPE), Darwin)
+#  PTHREADS_LIBS=libc_r.so /usr/lib/libpthread.dylib
+#  PTHREADS_LIBS=libc_r.a /usr/lib/libpthread.dylib
+#endif
+
+#ifeq ($(OSTYPE), OSF1)
+#  PTHREADS_LIBS=-lpthread
+#  PTHREADS_LIBS=/usr/lib/libpthread.so
 #endif
 
 all:    $(OBJECTS) $(LIBRARIES) $(PROGS) install

@@ -21,11 +21,14 @@
 
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_UID/Attic/SYS_UIDcommon.h,v $
-$Revision: 1.3 $
-$Date: 2005-03-22 19:49:28 $
+$Revision: 1.4 $
+$Date: 2005-07-13 14:47:55 $
 $Name: not supported by cvs2svn $
-$Author: jason_miller $
+$Author: brianwalenz $
 $Log: not supported by cvs2svn $
+Revision 1.3  2005/03/22 19:49:28  jason_miller
+The TIGR tip as of March 22 2005. Commit by Jason Miller at TIGR.
+
 Revision 1.4  2004/09/10 12:31:43  mschatz
 Add standard copyright notice
 
@@ -170,12 +173,13 @@ extern "C" {
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <arpa/inet.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <netdb.h>
 #include <sys/un.h>
 #include <errno.h>
 #include <unistd.h>
+#include <rpc/types.h>
 #include <rpc/xdr.h>
 #include <time.h>
 #include <sys/time.h>

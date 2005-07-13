@@ -23,7 +23,6 @@
 #include <string.h>
 #include <memory.h>
 #include <unistd.h>
-#include <getopt.h>
 
 #include "AS_global.h"
 #include "AS_PER_ReadStruct.h"
@@ -1386,7 +1385,7 @@ typedef CheckGlobals * CheckGlobalsp;
 void InitializeGlobals( CheckGlobalsp globals, char * program_name )
 {
   globals->program_name = program_name;
-  globals->version = "$Revision: 1.4 $";
+  globals->version = "$Revision: 1.5 $";
   globals->chims_file = NULL;
   globals->craps_file = NULL;
   globals->cgb_file = NULL;

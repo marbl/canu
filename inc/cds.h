@@ -21,6 +21,10 @@
 #ifndef CDSH
 #define CDSH
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+
 #include <limits.h>
 #include <float.h>
 #include <inttypes.h>
@@ -108,8 +112,14 @@ typedef double float64;
    32-bit architecture
    ***********************************************************************/
 
-  #define CDS_INT64_MAX INT64_MAX
-  #define CDS_UINT64_MAX UINT64_MAX
+  /*  Newer gcc's know INT64_MAX, older ones don't.  */
+  #ifdef UINT64_MAX
+    #define CDS_INT64_MAX  INT64_MAX
+    #define CDS_UINT64_MAX UINT64_MAX
+  #else
+    #define CDS_INT64_MAX  LLONG_MAX
+    #define CDS_UINT64_MAX ULLONG_MAX
+  #endif
 
   #define F_S16     "%d"
   #define F_U16     "%u"

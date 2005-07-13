@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_UTL_Hash.c,v 1.4 2005-03-22 19:49:28 jason_miller Exp $";
+static char CM_ID[] = "$Id: AS_UTL_Hash.c,v 1.5 2005-07-13 14:47:56 brianwalenz Exp $";
 
 #include <string.h>
 #include <math.h>
@@ -435,7 +435,7 @@ int NextHashTable_Iterator_AS(HashTable_Iterator_AS *iterator,
    table->freeList = NULL;
    assert(numItemsToHash > 0);
    {
-     int logsize = (int) ceil(log2(numItemsToHash * 2.0));
+     int logsize = (int) ceil_log2(numItemsToHash * 2.0);
      int i;
      table->numBuckets = hashsize(logsize);
      table->hashmask = hashmask(logsize);
@@ -450,7 +450,7 @@ int NextHashTable_Iterator_AS(HashTable_Iterator_AS *iterator,
      }
    }	
    {
-     int logsize = (int) ceil(log2(numItemsToHash));
+     int logsize = (int) ceil_log2(numItemsToHash);
      table->numNodesAllocated = hashsize(logsize);
  
      table->allocated = AllocateUIDHashNode_ASHeap(table->numNodesAllocated);

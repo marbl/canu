@@ -21,11 +21,14 @@
 
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_UID/Attic/SYS_UIDserver_main.c,v $
-$Revision: 1.3 $
-$Date: 2005-03-22 19:49:28 $
+$Revision: 1.4 $
+$Date: 2005-07-13 14:47:56 $
 $Name: not supported by cvs2svn $
-$Author: jason_miller $
+$Author: brianwalenz $
 $Log: not supported by cvs2svn $
+Revision 1.3  2005/03/22 19:49:28  jason_miller
+The TIGR tip as of March 22 2005. Commit by Jason Miller at TIGR.
+
 Revision 1.3  2004/09/10 12:31:43  mschatz
 Add standard copyright notice
 
@@ -278,9 +281,11 @@ SYS_UIDsignalHandlerFunction(int signal)
        case SIGTTOU:
          SYS_UIDerrorMsg("UID server: received SIGTTOU signal");
          break;
+#ifdef SIGPOLL
        case SIGPOLL:
          SYS_UIDerrorMsg("UID server: received SIGPOLL signal");
          break;
+#endif
        case SIGXCPU:
          SYS_UIDerrorMsg("UID server: received SIGXCPU signal");
          break;
