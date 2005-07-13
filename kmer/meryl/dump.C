@@ -72,13 +72,13 @@ plotHistogram(merylArgs *args) {
       numUnique++;
     numMers += c;
 
-    if (c < hugeCount) {
+    if (c < hugeCount)
       H[c]++;
-      if (maxCount < c)
-        maxCount = c;
-    } else {
+    else
       numHuge++;
-    }
+
+    if (maxCount < c)
+      maxCount = c;
   }
 
   fprintf(stderr, "Found "u64bitFMT" mers.\n", numMers);
