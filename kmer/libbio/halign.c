@@ -37,7 +37,6 @@ typedef struct edit_script_list {
 
 
 
-
 static
 int
 snake(const char *seq1, const char *seq2, int k, int x, int endx, int endy) {
@@ -59,9 +58,9 @@ rsnake(const char *seq1, const char *seq2, int k, int x, int startx, int starty,
 
   if (x>M) return x;
   if ((startx<0) || (starty<0))
-    (void)printf("TROUBLE!!! startx:  %5d,  starty:  %5d\n",startx, starty);
+    fprintf(stderr, "halign::rsnake()-- TROUBLE!!! startx:  %5d,  starty:  %5d\n",startx, starty);
   if ((x>M) || (x+k>N))
-    (void)printf("TROUBLE!!! x:  %5d,  y:  %5d\n",x,x+k);
+    fprintf(stderr, "halign::rsnake()-- TROUBLE!!! x:  %5d,  y:  %5d\n",x,x+k);
 
   y = x+k;
   while (x>startx && y>starty && seq1[x-1]==seq2[y-1]) {
@@ -92,8 +91,8 @@ align_get_dist(const char *seq1,
   goal_diag = j2-i2;
 
   if (goal_diag > upper || goal_diag < lower) {
-    (void)fprintf(stderr, "The two sequences are not really similar.\n");
-    (void)fprintf(stderr, "Please try an exact aligning method.\n");
+    fprintf(stderr, "The two sequences are not really similar.\n");
+    fprintf(stderr, "Please try an exact aligning method.\n");
     exit(1);
   }
 
@@ -248,8 +247,7 @@ align_path(const char *seq1,
         head1->next = head2;
       }
     } else {
-      (void)fprintf(stderr,
-                    "align.c: warning: something wrong when aligning.");
+      fprintf(stderr, "halign::align_path()-- warning: something wrong when aligning.");
     }
     return;
   }
@@ -373,45 +371,13 @@ align_path(const char *seq1,
     if (head1) tail1->next = head2;
     else head1 = head2;
   } else {
-    (void)fprintf(stderr,
-                  "align.c: warning: something wrong when dividing\n");
+    fprintf(stderr, "halign::align_path()-- warning: something wrong when dividing\n");
     head1 = NULL;
   }
   *head = head1;
   if (head2) *tail = tail2;
   else *tail = tail1;
 }
-
-
-
-
-static
-void
-align_path(const char *seq1,
-           const char *seq2,
-           int i1, int j1,
-           int i2, int j2,
-           int dist,
-           edit_script **head,
-           edit_script **tail,
-           int M,
-           int N,
-           void *ph);
-
-static
-int
-align_get_dist(const char *seq1,
-               const char *seq2,
-               int i1, int j1,
-               int i2, int j2,
-               int limit,
-               void *ph);
-
-
-
-
-
-
 
 
 
@@ -482,7 +448,7 @@ halign(const char *seq1,
         break;
 
       default:
-        fprintf(stderr, "Unrecognized op_type in script. %d\n", tp->op_type);
+        fprintf(stderr, "halign::halign()-- unrecognized op_type in script. %d\n", tp->op_type);
         exit(0);
     }
   }
