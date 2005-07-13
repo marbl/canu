@@ -20,7 +20,7 @@
 //  *MASK(x) is only defined for unsigned types, with x != 0 and less
 //  than the datawidth.
 
-#if defined(__alpha) || defined(_AIX)
+#if defined(__alpha) || defined(_AIX) || defined(__LP64__) || defined(_LP64)
 #define TRUE64BIT
 #endif
 
@@ -193,6 +193,10 @@ off_t copyFile(char *srcName, FILE *dstFile);
 //
 u32bit freeDiskSpace(char *path);
 
+//  Safer read(2) and write(2).
+//
+void   safeWrite(int filedes, const void *buffer, char *desc, size_t nbytes);
+void   safeRead(int filedes, const void *buffer, char *desc, size_t nbytes);
 
 
 
@@ -394,6 +398,7 @@ double  mtRandomGaussian(mt_s *mt);
 //  perl's chomp is pretty nice
 //
 #define chomp(S) { char *t=S; while (*t) t++; t--; while (isspace(*t)) *t--=0; }
+
 
 #ifdef __cplusplus
 }
