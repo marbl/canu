@@ -13,9 +13,17 @@
 //
 //#define USEEXACTSIZE
 
-//  Define this to print a message whenever a search starts.
+//  Define this to print a message for each search, showing times and
+//  stats, unless it finished quicker than some minimum time.
 //
 //#define VERBOSE_SEARCH
+//#define VERBOSE_SEARCH_MINIMUM_TIME  1.0
+
+//  Define this to print the number of hits (raw and filtered) for each
+//  sequence, unless it has fewer than some minimum number of raw hits.
+//
+//#define VERBOSE_FILTER
+//#define VERBOSE_FILTER_MINIMUM  10
 
 //  Define this to print a message whenever a polish starts.
 //

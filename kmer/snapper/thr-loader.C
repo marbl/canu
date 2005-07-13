@@ -16,8 +16,6 @@ loaderThread(void *) {
   FastASequenceInCore *B          = 0L;
   bool                 slept      = false;
 
-  fprintf(stderr, "Hello!  I'm a loaderThread!\n");
-
   while (inputHead < numberOfQueries) {
 
     //  We fill the input as fast as we can, up to the high water
@@ -41,11 +39,7 @@ loaderThread(void *) {
 
       if (config._loaderWarnings)
         fprintf(stderr,
-#ifdef TRUE64BIT
-                "WARNING: Loader ran dry.  Increasing limit to %u sequences, decreasing sleep to %f.\n",
-#else
-                "WARNING: Loader ran dry.  Increasing limit to %lu sequences, decreasing sleep to %f.\n",
-#endif
+                "WARNING: Loader ran dry.  Increasing limit to "u32bitFMT" sequences, decreasing sleep to %f.\n",
                 config._loaderHighWaterMark,
                 ((double)config._loaderSleep.tv_sec + (double)config._loaderSleep.tv_nsec * 1e-9));
     }

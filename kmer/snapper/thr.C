@@ -13,7 +13,7 @@ searchThread(void *U) {
 
   searcherState       *state    = new searcherState((u64bit)U);
 
-  fprintf(stderr, "Hello!  I'm a searchThread (number "u64bitFMT")!\n", state->threadID);
+  //fprintf(stderr, "Hello!  I'm a searchThread (number "u64bitFMT")!\n", state->threadID);
 
   //  Allocate and fill out the thread stats -- this ensures that we
   //  always have stats (even if they're bogus).
@@ -91,6 +91,12 @@ searchThread(void *U) {
         //
         u32bit numF = doFilter(state, theHits, theHitsLen, theLog);
 
+#ifdef VERBOSE_FILTER
+        if (theHitsLen >= VERBOSE_FILTER_MINIMUM)
+          theLog->add("Query "u32bitFMT" with "u32bitFMT" good hits out of "u32bitFMT" total hits.\n",
+                      idx, numF, theHitsLen);
+#endif
+
 #ifdef VERBOSE_SEARCH
         double filterTime = getTime();
 #endif
@@ -104,16 +110,15 @@ searchThread(void *U) {
 
 #ifdef VERBOSE_SEARCH
         double endTime = getTime();
-        if ((endTime - startTime) > 5.0) {
-          fprintf(stdout, u64bitFMT" done with idx = "u32bitFMT" ("u32bitFMT" bp, "u32bitFMT" hits) search %f filter %f polish %f  search %f chain %f polish %f\n",
-                  state->threadID, idx, seq->sequenceLength(), theHitsLen,
-                  searchTime - startTime,
-                  filterTime - searchTime,
-                  endTime - filterTime,
-                  state->searchTime,
-                  state->chainTime,
-                  state->polishTime);
-          fflush(stdout);
+        if ((endTime - startTime) > VERBOSE_SEARCH_MINIMUM_TIME) {
+          theLog->add(u64bitFMT" done with idx = "u32bitFMT" ("u32bitFMT" bp, "u32bitFMT" raw hits, "u32bitFMT" filtered) search %f filter %f polish %f  search %f chain %f polish %f\n",
+                      state->threadID, idx, seq->sequenceLength(), theHitsLen, numF,
+                      searchTime - startTime,
+                      filterTime - searchTime,
+                      endTime - filterTime,
+                      state->searchTime,
+                      state->chainTime,
+                      state->polishTime);
         }
 #endif
 
