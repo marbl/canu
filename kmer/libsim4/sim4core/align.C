@@ -12,7 +12,7 @@
 class boundedIntArray {
 public:
   boundedIntArray(int offset, int size) {
-    fprintf(stderr, "boundedIntArray: offset=%d  size=%d\n", offset, size);
+    //fprintf(stderr, "boundedIntArray: offset=%d  size=%d\n", offset, size);
     _o  = offset;
     _m  = size;
     _a  = new int [_m];
@@ -51,29 +51,30 @@ int
 Sim4::align_get_dist(int i1, int j1, int i2, int j2, int limit) {
   
   //  Compute the boundary diagonals
-  int start = j1 - i1;
-  int lower = max(j1-i2, start-limit);
-  int upper = min(j2-i1, start+limit);
+  int start     = j1 - i1;
+  int lower     = max(j1-i2, start-limit);
+  int upper     = min(j2-i1, start+limit);
   int goal_diag = j2-i2;
-  
+
   if (goal_diag > upper || goal_diag < lower)
     return(-1);
-  
+
   //  Allocate space for forward vectors
 #ifdef CHECK_BOUNDS
   boundedIntArray last_d(lower, upper-lower+1);
   boundedIntArray temp_d(lower, upper-lower+1);
 #else
-  int *last_d = (int *)ckalloc((upper-lower+1)*sizeof(int)) - lower;
-  int *temp_d = (int *)ckalloc((upper-lower+1)*sizeof(int)) - lower;
+  int *last_d = (int *)ckalloc((upper-lower+1) * sizeof(int)) - lower;
+  int *temp_d = (int *)ckalloc((upper-lower+1) * sizeof(int)) - lower;
 #endif
 
-  //  Initialization
+  //  Initialization -- it's set to an easy to recognize value for
+  //  debugging.
   for (int k=lower; k<=upper; ++k)
-    last_d[k] = -2147483647;  //  INT_MIN;
+    last_d[k] = -2109876543;
 
   last_d[start] = snake(start, i1, i2, j2);
-  
+
   if (last_d[goal_diag] >= i2) {
 #ifndef CHECK_BOUNDS
     ckfree(last_d+lower);
