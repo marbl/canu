@@ -357,6 +357,9 @@ loaderAll(void *) {
     }
   } 
 
+  //  All done, push on the stop
+  loaderAdd(newState(), 0L);
+
   return(0L);
 }
 
@@ -503,7 +506,7 @@ main(int argc, char **argv) {
   pthread_create(&threadID, &threadAttr, stats, 0L);
 
   //  Give it some lead time to load stuff
-  sleep(32);
+  //sleep(32);
 
   //  Fire off some workers
   pthread_create(&threadID, &threadAttr, worker, 0L);
