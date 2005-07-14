@@ -74,7 +74,9 @@ int main(int argc, char *argv[]){
   printf("IntMultiPos size is %ld\n",sizeof(IntMultiPos));
   printf("VarArrayType size is %ld\n",sizeof(VarArrayType));
   printf("FileVarArrayType size is %ld\n",sizeof(FileVarArrayType));
-  printf("size_t size is %ld\n",sizeof(size_t));
+  printf("CDS_IID_t size is %ld\n",sizeof(CDS_IID_t));
+  printf("CDS_UID_t size is %ld\n",sizeof(CDS_UID_t));
+  printf("time_t size is %ld\n",sizeof(time_t));
   return (0);
 }
 
