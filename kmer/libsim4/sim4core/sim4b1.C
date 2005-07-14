@@ -242,12 +242,10 @@ Sim4::SIM4(int            *dist_ptr,
   }
   Lblock->next_exon = tmp_block;
 
+  PRINTEXONS("all done -- after removing small blocks at the start\n", Lblock);
 
-  /* eliminate marginal small blocks at the end of the sequence      */
-
-  //
-  //  XXX:  Memory leak here??!?!
-  //
+  //  eliminate marginal small blocks at the end of the sequence
+  //  XXX:  Yes, there is a leak here.  That's why we garbage collect!
 
 #ifdef SHOW_PROGRESS
   fprintf(stderr, "Rblock before end of list removal 0x%08lx\n", Rblock);
@@ -267,6 +265,8 @@ Sim4::SIM4(int            *dist_ptr,
 #ifdef SHOW_PROGRESS
   fprintf(stderr, "Rblock after end of list removal 0x%08lx\n", Rblock);
 #endif
+
+  PRINTEXONS("all done -- after removing small blocks at the end\n", Lblock);
 
   /* if high accuracy requirement, adjust boundaries of marginal exons */
   if (_accurateSequences)
