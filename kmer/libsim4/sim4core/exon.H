@@ -2,6 +2,8 @@
 #define EXON_H
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 //  Define this only if Liliana is watching you.
 //#define SPLSCORE
@@ -153,6 +155,9 @@ public:
     Exon *e = _list[_listLen - 1] + _curLen;
     _curLen++;
     e->init(f1, f2, t1, t2, len, edist, flag, next);
+
+    //fprintf(stderr, "exonManager::newExon()--  return exon at %p\n", e);
+
     return(e);;
   };
 
