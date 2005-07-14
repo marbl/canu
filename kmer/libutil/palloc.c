@@ -126,7 +126,8 @@ palloc2(size_t size, void *handle) {
     size++;
     size <<= 3;
   }
-
+  if (size == 0)
+    return(0L);
 
   //  Allocate the initial block if it doesn't exist.
   //
@@ -207,10 +208,10 @@ palloc2(size_t size, void *handle) {
   root->_cn->_cp += size;
 
   if (root->_dbg > 1)
-    fprintf(stderr, "palloc()-- Old block %.3f%% used ("SIZETFMT" bytes remaining): returning "SIZETFMT" bytes.\n",
+    fprintf(stderr, "palloc()-- Old block %.3f%% used ("SIZETFMT" bytes remaining): returning "SIZETFMT" bytes at %p.\n",
               100.0 * root->_cn->_cp / root->_bs,
             root->_bs - root->_cn->_cp,
-            size);
+            size, root->_cn->_dt + root->_cn->_cp - size);
 
   return(root->_cn->_dt + root->_cn->_cp - size);
 }
