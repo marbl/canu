@@ -604,6 +604,8 @@ Sim4::slide_intron(int in_w, Exon **lblock, sim4_stats_t *st) {
         
         w1 = min(in_w, min(t0->length-2, t0->toGEN-t0->frGEN-1));
         w2 = min(in_w, min(t1->length-2, t1->toGEN-t1->frGEN-1));
+        if (w1 < 0) w1 = 0;
+        if (w2 < 0) w2 = 0;
         splice(_genSeq, t0->toGEN-w1, t0->toGEN+w1, t1->frGEN-w2, t1->frGEN+w2,
                _estSeq, t0->toEST-w1, t1->frEST+w2, &g, &c, BOTH);
 
