@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGW_main.c,v 1.6 2005-06-16 20:14:00 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.7 2005-07-15 18:19:53 eliv Exp $";
 
 
 /*********************************************************************
@@ -243,6 +243,7 @@ int main(int argc, char *argv[]){
   char *outputPath = NULL;
   int dumpScaffoldSnapshots = 0;
   
+  fprintf( stderr, "Version: %s",CM_ID);
 #if defined(CHECK_CONTIG_ORDERS) || defined(CHECK_CONTIG_ORDERS_INCREMENTAL)
   ContigOrientChecker * coc;
   coc = CreateContigOrientChecker();

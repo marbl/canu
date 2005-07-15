@@ -17,7 +17,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: extendClearRanges.c,v 1.8 2005-07-08 21:05:33 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: extendClearRanges.c,v 1.9 2005-07-15 18:19:53 eliv Exp $";
 
 
 /*********************************************************************
@@ -299,6 +299,7 @@ int main( int argc, char *argv[])
   data->stderrfp = fopen("extendClearRanges.stderr","w");
   data->timefp = stderr;
   data->logfp = stderr;
+  fprintf( data->stderrc, "Version: %s\n",CM_ID);
   
   { /* Parse the argument list using "man 3 getopt". */ 
     int ch,errflg=0;

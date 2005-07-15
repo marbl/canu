@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.9 2005-07-13 15:16:24 brianwalenz Exp $
- * $Revision: 1.9 $
+ * $Id: AS_OVL_overlap_common.h,v 1.10 2005-07-15 18:19:54 eliv Exp $
+ * $Revision: 1.10 $
 */
 
 
@@ -519,6 +519,7 @@ int  main  (int argc, char * argv [])
    Max_Hash_Data_Len         = 0;
    Max_Frags_In_Memory_Store = 0;
 
+   fprintf(stderr, "Version: %s\n",CM_ID);
 #ifdef CONTIG_OVERLAPPER_VERSION
 fprintf (stderr, "Running Contig version, AS_READ_MAX_LEN = %d\n",
          AS_READ_MAX_LEN);

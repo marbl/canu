@@ -49,11 +49,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap.c,v 1.5 2005-06-16 20:02:37 brianwalenz Exp $
- * $Revision: 1.5 $
+ * $Id: AS_OVL_overlap.c,v 1.6 2005-07-15 18:19:54 eliv Exp $
+ * $Revision: 1.6 $
 */
 
-static char CM_ID[] = "$Id: AS_OVL_overlap.c,v 1.5 2005-06-16 20:02:37 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_OVL_overlap.c,v 1.6 2005-07-15 18:19:54 eliv Exp $";
 
 /****************************************
  * Version of the main program 

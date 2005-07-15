@@ -27,7 +27,7 @@
                  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: Consensus_CNS.c,v 1.6 2005-07-08 21:05:34 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.7 2005-07-15 18:19:54 eliv Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -231,6 +231,7 @@ int main (int argc, char *argv[]) {
     CNS_Options options = { CNS_OPTIONS_SPLIT_ALLELES_DEFAULT,
                             CNS_OPTIONS_SMOOTH_WIN_DEFAULT,
                             CNS_OPTIONS_MAX_NUM_ALLELES };
+    fprintf(stderr,"Version: %s\n",CM_ID);
     Overlap *(*COMPARE_FUNC)(COMPARE_ARGS)=Local_Overlap_AS_forCNS;
     SeqInterval tig_range;
     CNS_PrintKey printwhat=CNS_STATS_ONLY;
@@ -771,7 +772,7 @@ int main (int argc, char *argv[]) {
     VA_TYPE(char) *quality=CreateVA_char(200000);
     time_t t;
     t = time(0);
-    fprintf(stderr,"# Consensus $Revision: 1.6 $ processing. Started %s\n",
+    fprintf(stderr,"# Consensus $Revision: 1.7 $ processing. Started %s\n",
         ctime(&t));
     InitializeAlphTable();
     if ( ! align_ium && USE_SDB && extract > -1 ) {
@@ -982,7 +983,7 @@ int main (int argc, char *argv[]) {
         {
           AuditLine auditLine;
           AppendAuditLine_AS(adt_mesg, &auditLine, t,
-                             "Consensus", "$Revision: 1.6 $","(empty)");
+                             "Consensus", "$Revision: 1.7 $","(empty)");
         }
 #endif
         VersionStampADT(adt_mesg,argc,argv);
@@ -1005,7 +1006,7 @@ int main (int argc, char *argv[]) {
     fflush(cnslog);
   }
   t = time(0);
-  fprintf(stderr,"# Consensus $Revision: 1.6 $ Finished %s\n",ctime(&t));
+  fprintf(stderr,"# Consensus $Revision: 1.7 $ Finished %s\n",ctime(&t));
   if (printcns) {
     int unitig_length = (unitig_count>0)? (int) input_lengths/unitig_count: 0; 
     int contig_length = (contig_count>0)? (int) output_lengths/contig_count: 0;

@@ -29,12 +29,12 @@ accession numbers.
 **********************************************************************/
 
 /* RCS info
- * $Id: AS_TER_terminator.c,v 1.4 2005-03-22 19:49:27 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Id: AS_TER_terminator.c,v 1.5 2005-07-15 18:19:55 eliv Exp $
+ * $Revision: 1.5 $
  */
 
 
-static char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.4 2005-03-22 19:49:27 jason_miller Exp $";
+static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.5 2005-07-15 18:19:55 eliv Exp $";
 
 
 /*************************************************************************/
@@ -68,6 +68,8 @@ int main (int argc, char *argv[]) {
   char *gkpStoreName    = NULL;
   char *euidServerNames = NULL;
   /*Variable defintions for parsing the commandline */
+
+  fprintf(stderr, "Version: %s\n",CM_ID);
 
   /* The default behaviour of the Terminator. Should
      be changed to binary */
