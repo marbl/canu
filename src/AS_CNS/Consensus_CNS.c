@@ -27,7 +27,7 @@
                  
  *********************************************************************/
 
-static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.7 2005-07-15 18:19:54 eliv Exp $";
+static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.8 2005-07-18 22:19:25 gdenisov Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -560,11 +560,14 @@ int main (int argc, char *argv[]) {
     }
 
     /****************          Open Fragment Store             ***********/
-    if ( partitioned ) {
+    if ( partitioned ) 
+    {
       global_fragStorePartition = openFragStorePartition(argv[optind++],
           partition,in_memory);
       global_fragStore = NULLFRAGSTOREHANDLE;
-    } else {
+    } 
+    else 
+    {
       if ( in_memory ) {
         global_fragStore = loadFragStore(argv[optind++]);
       } else {
@@ -584,151 +587,167 @@ int main (int argc, char *argv[]) {
     manodeStore = NULL;
 
     {
-    /**************** Determine which messages to process and  ***********/ 
-    /****************          what files to create            ***********/
-    char *suffix=NULL;
-    char *extract_id=NULL;
-    int eid_len;
+      /**************** Determine which messages to process and  ***********/ 
+      /****************          what files to create            ***********/
+      char *suffix=NULL;
+      char *extract_id=NULL;
+      int eid_len;
        
-    if ( ! std_input ) {
-      suffix = strrchr(argv[optind],(int)'.');
-      fprintf(stderr,"Input file is %s suffix is %s\n",argv[optind], suffix);
-      strcpy(InputFileName,argv[optind]);
-      cgwin = fopen(InputFileName,"r");
-      if (cgwin == NULL ) {
-        fprintf(stderr,"Could not open %s for CGW input.\n",InputFileName);
-        CleanExit("",__LINE__,1);
-      }
-      if(suffix) *suffix = '\0';
-    } else {
-      cgwin = stdin;
-    }
-    binary_io = (InputFileType_AS( cgwin ) == ReadProtoMesg_AS) ? 0 : 1;
-    reader = (binary_io == 1) ? ReadBinaryMesg_AS : ReadProtoMesg_AS;
-
-
-
-    switch(extract) {
-    case -2:
-        fprintf(stderr,"Extracting ");
-        eid_len = fprintf(stderr,"_%s_sublist",(align_ium)?"IUM":"ICM");
-        extract_id  = (char *) safe_malloc(eid_len+1);
-        sprintf(extract_id,"_%s_sublist",(align_ium)?"IUM":"ICM");
-        fprintf(stderr,"\n");
-        break;
-    case -1:
-        break;
-    default:
-        fprintf(stderr,"Extracting ");
-        eid_len = fprintf(stderr,"_%s_%d",(align_ium)?"IUM":"ICM",extract);
-        extract_id  = (char *) safe_malloc(eid_len+1);
-        sprintf(extract_id,"_%s_%d",(align_ium)?"IUM":"ICM",extract);
-        fprintf(stderr,"\n");
-    }
-    if ( !std_output) {
-      if (output_override) {
-         HandleDir(OutputNameBuffer,OutputFileName);
-      } else if (cgbout == 1) {
-        sprintf(OutputFileName,"%s%s.cgi",argv[optind],
-              (extract != -1)?extract_id:"");
-      } else {
-        sprintf(OutputFileName,"%s%s.cns",argv[optind],
-              (extract != -1)?extract_id:"");
-      }
-      sprintf(OutputFileNameTmp,"%s_tmp",OutputFileName);
-      fprintf(stderr,"Output temporary file name is %s \n",OutputFileNameTmp);
-      fprintf(stderr,"Output final file name is %s \n",OutputFileName);
-      if (continue_at > 0) {
-        cnsout = fopen(OutputFileNameTmp, "a");     // append to existing cns file
-      } else {
-        cnsout = fopen(OutputFileNameTmp, "w");     // write new cns file
-      }
-      if (cnsout == NULL ) {
-        fprintf(stderr,"Failure to create output temporary file %s\n", 
-            OutputFileNameTmp);
-        CleanExit("",__LINE__,1);
-      }
-    } else {
-      cnsout = stdout;
-    }
-    if ( ! std_input ) {
-       sprintf(LogFileName,"%s%s.clg",OutputFileNameTmp,
-              (extract != -1)?extract_id:"");
-    } else {
-       sprintf(LogFileName,"cns_%d_%s.clg",getpid(),
-              (extract != -1)?extract_id:"");
-    }
-    if ( ! std_error_log ) {
-      if (log_override ) {
-        HandleDir(LogNameBuffer,LogFileName);
-      }
-      if (extract == -1 ) {
-        if ( ! std_input ) {
-          sprintf(LogFileName,"%s%s.clg",OutputFileName,
-              (extract != -1)?extract_id:"");
-        } else {
-          sprintf(LogFileName,"cns_%d_%s.clg",getpid(),
-              (extract != -1)?extract_id:"");
-        }
-        fprintf(stderr,"Creating log file %s\n", LogFileName);
-       
-        if (continue_at > 0) {
-          cnslog = fopen(LogFileName,"a");             // append to existing log file for cns
-          fprintf(stderr,"Opened logfile %s\n", LogFileName);
-        } else {
-          cnslog = fopen(LogFileName,"w");             // start new log file for cns
-          fprintf(stderr,"Opened logfile %s\n", LogFileName);
-        }
-        if (cnslog == NULL ) {
-          fprintf(stderr,"Failure to create log file %s\n", LogFileName);
+      if ( ! std_input ) 
+      {
+        suffix = strrchr(argv[optind],(int)'.');
+        fprintf(stderr,"Input file is %s suffix is %s\n",argv[optind], suffix);
+        strcpy(InputFileName,argv[optind]);
+        cgwin = fopen(InputFileName,"r");
+        if (cgwin == NULL ) {
+          fprintf(stderr,"Could not open %s for CGW input.\n",InputFileName);
           CleanExit("",__LINE__,1);
         }
+        if(suffix) *suffix = '\0';
+      } else {
+        cgwin = stdin;
       }
-    } else {
-      cnslog = stderr;
-    }
-    if ( cnslog == NULL ) { 
-      cnslog = fopen(LogFileName,"w");             // start new log file for cns
-      fprintf(stderr,"Opened logfile %s\n", LogFileName);
-    }
-    if ( cnslog == NULL ) { 
-      cnslog = stderr;   // write log to stderr
-    }
-    if ( output == AS_PROTO_OUTPUT ) {
-      writer = WriteProtoMesg_AS;
-    } else {
-      writer = (binary_io == 1) ? WriteBinaryMesg_AS : WriteProtoMesg_AS;
-    }
-    if (process_sublist) {
-      char   string[1000];
-      int    num_uids;
-      sublist = fopen(sublist_file,"r");
-      if( sublist == NULL )
+      binary_io = (InputFileType_AS( cgwin ) == ReadProtoMesg_AS) ? 0 : 1;
+      reader = (binary_io == 1) ? ReadBinaryMesg_AS : ReadProtoMesg_AS;
+
+
+      switch(extract) 
       {
-        fprintf( stderr, "Failed to open list file %s for reading.\n", 
+        case -2:
+          fprintf(stderr,"Extracting ");
+          eid_len = fprintf(stderr,"_%s_sublist",(align_ium)?"IUM":"ICM");
+          extract_id  = (char *) safe_malloc(eid_len+1);
+          sprintf(extract_id,"_%s_sublist",(align_ium)?"IUM":"ICM");
+          fprintf(stderr,"\n");
+          break;
+        case -1:
+          break;
+          default:
+          fprintf(stderr,"Extracting ");
+          eid_len = fprintf(stderr,"_%s_%d",(align_ium)?"IUM":"ICM",extract);
+          extract_id  = (char *) safe_malloc(eid_len+1);
+          sprintf(extract_id,"_%s_%d",(align_ium)?"IUM":"ICM",extract);
+          fprintf(stderr,"\n");
+      }
+
+      if ( !std_output) 
+      {
+        if (output_override) 
+        {
+           HandleDir(OutputNameBuffer,OutputFileName);
+        } else if (cgbout == 1) {
+          sprintf(OutputFileName,"%s%s.cgi",argv[optind],
+                (extract != -1)?extract_id:"");
+        } 
+        else 
+        {
+          sprintf(OutputFileName,"%s%s.cns",argv[optind],
+                (extract != -1)?extract_id:"");
+        }
+        sprintf(OutputFileNameTmp,"%s_tmp",OutputFileName);
+        fprintf(stderr,"Output temporary file name is %s \n",OutputFileNameTmp);
+        fprintf(stderr,"Output final file name is %s \n",OutputFileName);
+        if (continue_at > 0) 
+        {
+          cnsout = fopen(OutputFileNameTmp, "a");     // append to existing cns file
+        } else {
+          cnsout = fopen(OutputFileNameTmp, "w");     // write new cns file
+        }
+        if (cnsout == NULL ) {
+          fprintf(stderr,"Failure to create output temporary file %s\n", 
+              OutputFileNameTmp);
+          CleanExit("",__LINE__,1);
+        }
+      }   
+      else 
+      {
+        cnsout = stdout;
+      }
+
+      if ( ! std_input ) {
+         sprintf(LogFileName,"%s%s.clg",OutputFileNameTmp,
+              (extract != -1)?extract_id:"");
+      } else {
+         sprintf(LogFileName,"cns_%d_%s.clg",getpid(),
+              (extract != -1)?extract_id:"");
+      }
+      if ( ! std_error_log ) 
+      {
+        if (log_override ) {
+          HandleDir(LogNameBuffer,LogFileName);
+        }
+        if (extract == -1 ) 
+        {
+          if ( ! std_input ) {
+            sprintf(LogFileName,"%s%s.clg",OutputFileName,
+              (extract != -1)?extract_id:"");
+          } else {
+            sprintf(LogFileName,"cns_%d_%s.clg",getpid(),
+              (extract != -1)?extract_id:"");
+          }
+          fprintf(stderr,"Creating log file %s\n", LogFileName);
+       
+          if (continue_at > 0) {
+            cnslog = fopen(LogFileName,"a");             // append to existing log file for cns
+            fprintf(stderr,"Opened logfile %s\n", LogFileName);
+          } else {
+            cnslog = fopen(LogFileName,"w");             // start new log file for cns
+            fprintf(stderr,"Opened logfile %s\n", LogFileName);
+          }
+          if (cnslog == NULL ) {
+            fprintf(stderr,"Failure to create log file %s\n", LogFileName);
+            CleanExit("",__LINE__,1);
+          }
+        }
+      } 
+      else 
+      {
+        cnslog = stderr;
+      }
+      if ( cnslog == NULL ) { 
+        cnslog = fopen(LogFileName,"w");             // start new log file for cns
+        fprintf(stderr,"Opened logfile %s\n", LogFileName);
+      }
+      if ( cnslog == NULL ) { 
+        cnslog = stderr;   // write log to stderr
+      }
+      if ( output == AS_PROTO_OUTPUT ) {
+        writer = WriteProtoMesg_AS;
+      } else {
+        writer = (binary_io == 1) ? WriteBinaryMesg_AS : WriteProtoMesg_AS;
+      }
+      if (process_sublist) 
+      {
+        char   string[1000];
+        int    num_uids;
+        sublist = fopen(sublist_file,"r");
+        if( sublist == NULL )
+        {
+          fprintf( stderr, "Failed to open list file %s for reading.\n", 
             sublist_file );
-        CleanExit("",__LINE__,1);
-      }
-      num_uids = 0;
-      while( fgets( string, 1000, sublist ) )
-      {
-        num_uids++;
-      }
-      rewind( sublist );
-      tig_iids = AllocateID_Array( num_uids );
-      tig_iids_found = AllocateID_Array( num_uids );
-      if( tig_iids == NULL || tig_iids_found == NULL ) return 1;
-      for( this_id = 0; this_id < num_uids - 1; this_id++ )
-      {
+          CleanExit("",__LINE__,1);
+        }
+        num_uids = 0;
+        while( fgets( string, 1000, sublist ) )
+        {
+          num_uids++;
+        }
+        rewind( sublist );
+        tig_iids = AllocateID_Array( num_uids );
+        tig_iids_found = AllocateID_Array( num_uids );
+        if( tig_iids == NULL || tig_iids_found == NULL ) return 1;
+        for( this_id = 0; this_id < num_uids - 1; this_id++ )
+        {
+          fgets( string, 1000, sublist );
+          AppendToID_Array( tig_iids, STR_TO_UID(string, NULL, 10), 0 );
+        }
         fgets( string, 1000, sublist );
-        AppendToID_Array( tig_iids, STR_TO_UID(string, NULL, 10), 0 );
-      }
-      fgets( string, 1000, sublist );
-      AppendToID_Array( tig_iids, STR_TO_UID( string, NULL, 10), 1 );
+        AppendToID_Array( tig_iids, STR_TO_UID( string, NULL, 10), 1 );
   
-      fclose( sublist );
-    }
-    if (extract_id) free(extract_id);
+        fclose( sublist );
+      }
+      if (extract_id) 
+        free(extract_id);
     }
 
     /**************** Prepare Unitig Store ****************************/
@@ -739,7 +758,9 @@ int main (int argc, char *argv[]) {
       } else {
         sequenceDB = OpenSequenceDB(SeqStoreFileName, FALSE, sdb_version);
       }
-    } else {
+    } 
+    else 
+    {
       unitigStore = CreateMultiAlignStoreT(0);
       if (bactigs ) {
         bactig_delta_length = 
@@ -761,113 +782,126 @@ int main (int argc, char *argv[]) {
     /**************** Loop on Input Messages **************************/
     tp1 = time(NULL);
     {
-    int contig_count=0,unitig_count=0;
-    GenericMesg *pmesg;  
-    GenericMesg tmesg;  
-    IntConConMesg *pcontig;
-    IntUnitigMesg *iunitig;
-    MultiAlignT *ma;
-    VA_TYPE(int32) *deltas=CreateVA_int32(1);
-    VA_TYPE(char) *sequence=CreateVA_char(200000);
-    VA_TYPE(char) *quality=CreateVA_char(200000);
-    time_t t;
-    t = time(0);
-    fprintf(stderr,"# Consensus $Revision: 1.7 $ processing. Started %s\n",
+      int contig_count=0,unitig_count=0;
+      GenericMesg *pmesg;  
+      GenericMesg tmesg;  
+      IntConConMesg *pcontig;
+      IntUnitigMesg *iunitig;
+      MultiAlignT *ma;
+      VA_TYPE(int32) *deltas=CreateVA_int32(1);
+      VA_TYPE(char) *sequence=CreateVA_char(200000);
+      VA_TYPE(char) *quality=CreateVA_char(200000);
+      time_t t;
+      t = time(0);
+      fprintf(stderr,"# Consensus $Revision: 1.8 $ processing. Started %s\n",
         ctime(&t));
-    InitializeAlphTable();
-    if ( ! align_ium && USE_SDB && extract > -1 ) {
-       IntConConMesg ctmp;
-       if ( USE_SDB_PART ) {
-         ma = loadFromSequenceDBPartition(sequenceDB_part, extract);
-       } else {
-         ma =  LoadMultiAlignTFromSequenceDB(sequenceDB, extract, FALSE);
-       }
-       ctmp.iaccession = extract;
-       ctmp.forced =0;
-       ctmp.length = GetNumchars(ma->consensus);
-       ctmp.num_pieces = GetNumIntMultiPoss(ma->f_list);
-       ctmp.pieces = GetIntMultiPos(ma->f_list,0);
-       ctmp.num_unitigs = GetNumIntUnitigPoss(ma->u_list);
-       ctmp.unitigs= GetIntUnitigPos(ma->u_list,0);
-       MultiAlignContig(&ctmp, sequence, quality, deltas, printwhat,
+      InitializeAlphTable();
+      if ( ! align_ium && USE_SDB && extract > -1 ) 
+      {
+        IntConConMesg ctmp;
+        if ( USE_SDB_PART ) {
+          ma = loadFromSequenceDBPartition(sequenceDB_part, extract);
+        } else {
+          ma =  LoadMultiAlignTFromSequenceDB(sequenceDB, extract, FALSE);
+        }
+        ctmp.iaccession = extract;
+        ctmp.forced =0;
+        ctmp.length = GetNumchars(ma->consensus);
+        ctmp.num_pieces = GetNumIntMultiPoss(ma->f_list);
+        ctmp.pieces = GetIntMultiPos(ma->f_list,0);
+        ctmp.num_unitigs = GetNumIntUnitigPoss(ma->u_list);
+        ctmp.unitigs= GetIntUnitigPos(ma->u_list,0);
+        MultiAlignContig(&ctmp, sequence, quality, deltas, printwhat,
                         COMPARE_FUNC, &options);
-       if ( printwhat != CNS_STATS_ONLY && cnslog != NULL ){
-          ma = CreateMultiAlignTFromICM(&ctmp,-1,0);
-          PrintMultiAlignT(cnslog,ma,global_fragStore,global_fragStorePartition, 
-                           global_bactigStore, 1,0,READSTRUCT_LATEST);
-         fflush(cnslog);
-         tmesg.t = MESG_ICM; 
-         tmesg.m = &ctmp; 
-         writer(cnsout,&tmesg); 
-         fflush(cnsout);
-       }
-       exit(0); 
-    }
-    while ( (reader(cgwin,&pmesg) != EOF)
+        if ( printwhat != CNS_STATS_ONLY && cnslog != NULL )
+        {
+           ma = CreateMultiAlignTFromICM(&ctmp,-1,0);
+           PrintMultiAlignT(cnslog,ma,global_fragStore,global_fragStorePartition, 
+                            global_bactigStore, 1,0,READSTRUCT_LATEST);
+          fflush(cnslog);
+          tmesg.t = MESG_ICM; 
+          tmesg.m = &ctmp; 
+          writer(cnsout,&tmesg); 
+          fflush(cnsout);
+        }
+        exit(0); 
+      }
+
+      while ( (reader(cgwin,&pmesg) != EOF)
 #if 1
             &&((time_limit == 0) || ((time(NULL)-tp1) <= time_limit))
 #endif            
-            ) { 
-    switch(pmesg->t){
-    case MESG_IUM:
-      {
-      iunitig = (IntUnitigMesg *)(pmesg->m);
-      if (align_ium) {
-        // Form alignment of IUM
-        if (extract > -1 && iunitig->iaccession != extract) break;
-        if (!beyond && continue_at > 0 && iunitig->iaccession < continue_at) {
-          if ( iunitig->iaccession == continue_at -1) beyond=1;
-          break;
-        } else if (range && iunitig->iaccession < tig_range.bgn) {
-          break;
-        } else {
-          beyond=1;
-        }
-        if( process_sublist && 
-           (this_id = FindID_ArrayID( tig_iids, iunitig->iaccession)) > -1 )
+            ) 
+      { 
+        switch(pmesg->t)
         {
-          fprintf(stderr,"Processing IUM %d from sublist\n",iunitig->iaccession);
-          AppendToID_Array( tig_iids_found, iunitig->iaccession, 1 );
-        } else if (process_sublist) {
-          // pass through the Unitig message only if extract == -1
-          if (extract == -1) writer(cnsout,pmesg); 
-          break;
-        }
-        if (extract != -1 ) {
-          int eid_len;
-          char *extract_id;
-          fprintf(stderr,"Extracting ");
-          eid_len = fprintf(stderr,"_IUM_%d",iunitig->iaccession);
-          extract_id  = (char *) safe_malloc(eid_len+1);
-          sprintf(extract_id,"_%s_%d",(align_ium)?"IUM":"ICM",
-              iunitig->iaccession);
-          fprintf(stderr,"\n");
-          sprintf(LogFileName,"%s%s.clg",OutputFileName,
-              (extract != -1)?extract_id:"");
-          if (continue_at > 0) {
-             if ( cnslog == NULL ) {
-                cnslog = fopen(LogFileName,"a");   // append to existing log file for cns
-                fprintf(stderr,"Opened logfile %s\n", LogFileName);
-             }
-          } else {
-             if ( cnslog == NULL ){
-                cnslog = fopen(LogFileName,"w");    // start new log file for cns
-                fprintf(stderr,"Opened logfile %s\n", LogFileName);
-             }
-          }
-          sprintf(CamFileName,"%s%s.cns.cam",argv[optind],
-              (extract != -1)?extract_id:"");
-          cam = fopen(CamFileName,"w");         // cam file
-          free(extract_id);
-        }
-        if (range && 
-            (iunitig->iaccession < tig_range.bgn || 
-             iunitig->iaccession > tig_range.end )) 
-        {
-          if (iunitig->iaccession > tig_range.end ) exit(0); 
-           break;
-        }
-        if (-1 == MultiAlignUnitig(iunitig,
+          case MESG_IUM:
+          {
+            iunitig = (IntUnitigMesg *)(pmesg->m);
+            if (align_ium) 
+            {
+       
+              // Form alignment of IUM
+              if (extract > -1 && iunitig->iaccession != extract) break;
+              if (!beyond && continue_at > 0 && iunitig->iaccession < continue_at) 
+              {
+                if ( iunitig->iaccession == continue_at -1) beyond=1;
+                break;
+              } 
+              else if (range && iunitig->iaccession < tig_range.bgn) 
+              {
+                break;
+              } 
+              else {
+                beyond=1;
+              }
+              if( process_sublist && 
+                 (this_id = FindID_ArrayID( tig_iids, iunitig->iaccession)) > -1 )
+              {
+                fprintf(stderr,"Processing IUM %d from sublist\n",iunitig->iaccession);
+                AppendToID_Array( tig_iids_found, iunitig->iaccession, 1 );
+              } 
+              else if (process_sublist) 
+              {
+                // pass through the Unitig message only if extract == -1
+                if (extract == -1) writer(cnsout,pmesg); 
+                break;
+              }
+              if (extract != -1 ) {
+                int eid_len;
+                char *extract_id;
+                fprintf(stderr,"Extracting ");
+                eid_len = fprintf(stderr,"_IUM_%d",iunitig->iaccession);
+                extract_id  = (char *) safe_malloc(eid_len+1);
+                sprintf(extract_id,"_%s_%d",(align_ium)?"IUM":"ICM",
+                    iunitig->iaccession);
+                fprintf(stderr,"\n");
+                sprintf(LogFileName,"%s%s.clg",OutputFileName,
+                    (extract != -1)?extract_id:"");
+                if (continue_at > 0) {
+                   if ( cnslog == NULL ) {
+                      cnslog = fopen(LogFileName,"a");   // append to existing log file for cns
+                      fprintf(stderr,"Opened logfile %s\n", LogFileName);
+                   }
+                } else {
+                   if ( cnslog == NULL ){
+                      cnslog = fopen(LogFileName,"w");    // start new log file for cns
+                      fprintf(stderr,"Opened logfile %s\n", LogFileName);
+                   }
+                }
+                sprintf(CamFileName,"%s%s.cns.cam",argv[optind],
+                  (extract != -1)?extract_id:"");
+                cam = fopen(CamFileName,"w");         // cam file
+                free(extract_id);
+              }
+              if (range && 
+                  (iunitig->iaccession < tig_range.bgn || 
+                   iunitig->iaccession > tig_range.end )) 
+              {
+                if (iunitig->iaccession > tig_range.end ) exit(0); 
+                 break;
+              }
+              if (-1 == MultiAlignUnitig(iunitig,
                                    global_fragStore,
                                    sequence,
                                    quality,
@@ -876,176 +910,196 @@ int main (int argc, char *argv[]) {
                                    do_rez,
                                    COMPARE_FUNC,
                                    &options)) {
-          fprintf(stderr,"MultiAlignUnitig failed for unitig %d\n", iunitig->iaccession);
+                fprintf(stderr,"MultiAlignUnitig failed for unitig %d\n", 
+                    iunitig->iaccession);
           //break;  // un-comment this line to allow failures... intended for diagnosis only.
-          assert(FALSE);
-        }
-        // Create a MultiAlignT from the MANode
-      }
-      if ( ! no_contigs & ! USE_SDB ) {
-          ma = CreateMultiAlignTFromIUM(iunitig,-1,0);
-          SetMultiAlignInStore(unitigStore,ma->id,ma);
-      }
-        input_lengths+=GetUngappedSequenceLength(iunitig->consensus);
-  if (range == 1 &&
-      ((align_ium &&
-        iunitig->iaccession >= tig_range.bgn &&
-        iunitig->iaccession <= tig_range.end) ||
-       (!align_ium && tig_range.bgn == 0)) ) {
-        writer(cnsout,pmesg); // pass through the Unitig message
-      } else if (extract == -1 && beyond) {
-        if (CNS_HAPLOTYPES == 1) {
-           // RemoveSNPs(iunitig);
-        }
-        writer(cnsout,pmesg); // pass through the Unitig message
-      } else if (align_ium && (process_sublist || iunitig->iaccession == extract)) {
+                assert(FALSE);
+              }
+              // Create a MultiAlignT from the MANode
+            }
+            if ( ! no_contigs & ! USE_SDB ) {
+                ma = CreateMultiAlignTFromIUM(iunitig,-1,0);
+                SetMultiAlignInStore(unitigStore,ma->id,ma);
+            }
+            input_lengths+=GetUngappedSequenceLength(iunitig->consensus);
+
+            if (range == 1 &&
+               ((align_ium &&
+                 iunitig->iaccession >= tig_range.bgn &&
+                 iunitig->iaccession <= tig_range.end) ||
+                (!align_ium && tig_range.bgn == 0)) ) 
+            {
+              writer(cnsout,pmesg); // pass through the Unitig message
+            } 
+            else if (extract == -1 && beyond) 
+            {
+              if (CNS_HAPLOTYPES == 1) {
+                 // RemoveSNPs(iunitig);
+              }
+              writer(cnsout,pmesg); // pass through the Unitig message
+            } 
+            else if (align_ium && (process_sublist || 
+                       iunitig->iaccession == extract)) 
+            {
         //camview(cam,iunitig->iaccession,iunitig->f_list,iunitig->num_frags,NULL,0,global_fragStore);
         //fclose(cam);
         //fclose(cnslog);
-        if (CNS_HAPLOTYPES == 1) {
+              if (CNS_HAPLOTYPES == 1) {
            // RemoveSNPs(iunitig);
-        }
-        writer(cnsout,pmesg); // pass through the Unitig message and continue
-        if (iunitig->iaccession == extract) exit(0);
-      }
-      unitig_count++;
-      break;
-      }
-    case MESG_ICM:
-      {
-      pcontig = (IntConConMesg *)(pmesg->m);
-      if (extract > -1 && pcontig->iaccession != extract) break;
-      if (extract != -1 && align_ium) break;
-      if (!beyond && continue_at > 0 && pcontig->iaccession < continue_at ) {
-        break;
-      } else { 
-        beyond=1;
-      }
-      if( process_sublist && 
-         (this_id = FindID_ArrayID( tig_iids, pcontig->iaccession)) > -1 )
-      {
-        fprintf(stderr,"Processing ICM %d from sublist\n",pcontig->iaccession);
-        AppendToID_Array( tig_iids_found, pcontig->iaccession, 1 );
-      } else if ( range == 1 && 
-                 ( (!align_ium) && 
-                  ( (pcontig->iaccession<tig_range.bgn) || 
-                    (pcontig->iaccession>tig_range.end))))
-      {
-        if ( pcontig->iaccession > tig_range.end ) exit(0);
-        break;
-      } else if (process_sublist){
-        // pass through the Contig message and continue
-        if (extract == -1) writer(cnsout,pmesg); 
-        break;
-      }
-      //qsort(pcontig->unitigs, pcontig->num_unitigs, sizeof(IntUnitigPos),
-      //      (int (*)(const void *,const void *))IntUnitigPositionCmpLeft);
-      if ( ! noop > 0 ) {
-        MultiAlignContig(pcontig, sequence, quality, deltas, printwhat,
-            COMPARE_FUNC, &options);
-      }
-      if ( printwhat == CNS_CONSENSUS && cnslog != NULL && pcontig->num_pieces > 0){
-          ma = CreateMultiAlignTFromICM(pcontig,-1,0);
-          PrintMultiAlignT(cnslog,ma,global_fragStore,global_fragStorePartition, 
-              global_bactigStore, 1,0,READSTRUCT_LATEST);
-      }
-      output_lengths+=GetUngappedSequenceLength(pcontig->consensus);
-      pmesg->t = MESG_ICM; 
-      pmesg->m = pcontig; 
-      if ( range == 1 && 
-          ( (!align_ium) && 
-           ( (pcontig->iaccession>=tig_range.bgn) && 
-             (pcontig->iaccession<=tig_range.end))))
-      {
-        writer(cnsout,pmesg); // pass through the Contig message
-      } else if (extract == -1) {
-        writer(cnsout,pmesg);
-      } else if ( pcontig->iaccession == extract) {
-        //camview(cam,pcontig->iaccession,pcontig->pieces,pcontig->num_pieces,pcontig->unitigs,
-        //        pcontig->num_unitigs,global_fragStore);
-        writer(cnsout,pmesg);
-        exit(0);
-      }
-      fflush(cnsout);
-      fflush(cnslog);
-      contig_count++;
-      break;
-      } 
-    case MESG_ADT:
-      {
-        if (beyond || ( range == 1 && tig_range.bgn==0) ) {
-        AuditMesg *adt_mesg;
+              }
+              writer(cnsout,pmesg); // pass through the Unitig message and continue
+              if (iunitig->iaccession == extract) exit(0);
+            }
+            unitig_count++;
+            break;
+          }
+          case MESG_ICM:
+          {
+            pcontig = (IntConConMesg *)(pmesg->m);
+            if (extract > -1 && pcontig->iaccession != extract) break;
+            if (extract != -1 && align_ium) break;
+            if (!beyond && continue_at > 0 && pcontig->iaccession < continue_at ) 
+            {
+              break;
+            } else { 
+              beyond=1;
+            }
+            if( process_sublist && 
+               (this_id = FindID_ArrayID( tig_iids, pcontig->iaccession)) > -1 )
+            {
+              fprintf(stderr,"Processing ICM %d from sublist\n",
+                  pcontig->iaccession);
+              AppendToID_Array( tig_iids_found, pcontig->iaccession, 1 );
+            } else if ( range == 1 && 
+                       ( (!align_ium) && 
+                        ( (pcontig->iaccession<tig_range.bgn) || 
+                          (pcontig->iaccession>tig_range.end))))
+            {
+              if ( pcontig->iaccession > tig_range.end ) exit(0);
+              break;
+            } 
+            else if (process_sublist)
+            {
+              // pass through the Contig message and continue
+              if (extract == -1) writer(cnsout,pmesg); 
+              break;
+            }
+        //qsort(pcontig->unitigs, pcontig->num_unitigs, sizeof(IntUnitigPos),
+        //      (int (*)(const void *,const void *))IntUnitigPositionCmpLeft);
+            if ( ! noop > 0 ) {
+              MultiAlignContig(pcontig, sequence, quality, deltas, printwhat,
+                COMPARE_FUNC, &options);
+            }
+            if ( printwhat == CNS_CONSENSUS && cnslog != NULL && 
+                 pcontig->num_pieces > 0)
+            {
+                ma = CreateMultiAlignTFromICM(pcontig,-1,0);
+                PrintMultiAlignT(cnslog,ma,global_fragStore,
+                  global_fragStorePartition, global_bactigStore, 1,0,
+                  READSTRUCT_LATEST);
+            }
+            output_lengths+=GetUngappedSequenceLength(pcontig->consensus);
+            pmesg->t = MESG_ICM; 
+            pmesg->m = pcontig; 
+            if ( range == 1 && 
+                ( (!align_ium) && 
+                 ( (pcontig->iaccession>=tig_range.bgn) && 
+                   (pcontig->iaccession<=tig_range.end))))
+            {
+              writer(cnsout,pmesg); // pass through the Contig message
+            } else if (extract == -1) {
+              writer(cnsout,pmesg);
+            } else if ( pcontig->iaccession == extract) {
+              //camview(cam,pcontig->iaccession,pcontig->pieces,pcontig->num_pieces,pcontig->unitigs,
+              //        pcontig->num_unitigs,global_fragStore);
+              writer(cnsout,pmesg);
+              exit(0);
+            }
+            fflush(cnsout);
+            fflush(cnslog);
+            contig_count++;
+            break;
+          } 
 
-        adt_mesg = (AuditMesg *)(pmesg->m);
-        pmesg->t = MESG_ADT;
+          case MESG_ADT:
+          {
+            if (beyond || ( range == 1 && tig_range.bgn==0) ) 
+            {
+              AuditMesg *adt_mesg;
+
+              adt_mesg = (AuditMesg *)(pmesg->m);
+              pmesg->t = MESG_ADT;
 
 #if 0
-        {
-          AuditLine auditLine;
-          AppendAuditLine_AS(adt_mesg, &auditLine, t,
-                             "Consensus", "$Revision: 1.7 $","(empty)");
-        }
+            {
+              AuditLine auditLine;
+              AppendAuditLine_AS(adt_mesg, &auditLine, t,
+                                 "Consensus", "$Revision: 1.8 $","(empty)");
+            }
 #endif
-        VersionStampADT(adt_mesg,argc,argv);
-        writer(cnsout,pmesg);
+              VersionStampADT(adt_mesg,argc,argv);
+              writer(cnsout,pmesg);
+            }
+          }
+          break;
+          default:
+          { }
+    /*    Passing through any other messages  */
+          if ((range &&
+               ((tig_range.bgn == 0 && unitig_count+contig_count == 0)
+                || (align_ium && tig_range.end == unitig_count)
+                || (!align_ium && tig_range.end == contig_count)))
+              || (beyond && extract == -1)) {
+            writer(cnsout,pmesg);
+          }
         }
+        fflush(cnsout);
+        fflush(cnslog);
       }
-      break;
-    default:
-    { }
-/*    Passing through any other messages  */
-      if ((range &&
-           ((tig_range.bgn == 0 && unitig_count+contig_count == 0)
-            || (align_ium && tig_range.end == unitig_count)
-            || (!align_ium && tig_range.end == contig_count)))
-          || (beyond && extract == -1)) {
-        writer(cnsout,pmesg);
-      }
-    }
-    fflush(cnsout);
-    fflush(cnslog);
-  }
-  t = time(0);
-  fprintf(stderr,"# Consensus $Revision: 1.7 $ Finished %s\n",ctime(&t));
-  if (printcns) {
-    int unitig_length = (unitig_count>0)? (int) input_lengths/unitig_count: 0; 
-    int contig_length = (contig_count>0)? (int) output_lengths/contig_count: 0;
+
+      t = time(0);
+      fprintf(stderr,"# Consensus $Revision: 1.8 $ Finished %s\n",ctime(&t));
+      if (printcns) 
+      {
+        int unitig_length = (unitig_count>0)? (int) input_lengths/unitig_count: 0; 
+        int contig_length = (contig_count>0)? (int) output_lengths/contig_count: 0;
          
-    fprintf(stderr,"\nProcessed %d unitigs and %d contigs.\n",
-        unitig_count,contig_count);
-    fprintf(stderr,"\nAverage unitig length: %d  Effective coverage: %.2f\n",
+        fprintf(stderr,"\nProcessed %d unitigs and %d contigs.\n",
+          unitig_count,contig_count);
+        fprintf(stderr,"\nAverage unitig length: %d  Effective coverage: %.2f\n",
+           unitig_length, EffectiveCoverage(unitig_length));
+        fprintf(stderr,"\nAverage contig length: %d  Effective coverage: %.2f\n",
+          contig_length,EffectiveCoverage(contig_length));
+        fprintf(cnslog,"\nProcessed %d unitigs and %d contigs.\n",
+          unitig_count,contig_count);
+          fprintf(cnslog,"\nAverage unitig length: %d  Effective coverage: %.2f\n",
          unitig_length, EffectiveCoverage(unitig_length));
-    fprintf(stderr,"\nAverage contig length: %d  Effective coverage: %.2f\n",
-        contig_length,EffectiveCoverage(contig_length));
-    fprintf(cnslog,"\nProcessed %d unitigs and %d contigs.\n",
-        unitig_count,contig_count);
-    fprintf(cnslog,"\nAverage unitig length: %d  Effective coverage: %.2f\n",
-         unitig_length, EffectiveCoverage(unitig_length));
-    fprintf(cnslog,"\nAverage contig length: %d  Effective coverage: %.2f\n",
-        contig_length,EffectiveCoverage(contig_length));
+        fprintf(cnslog,"\nAverage contig length: %d  Effective coverage: %.2f\n",
+          contig_length,EffectiveCoverage(contig_length));
 #ifdef CNS_TIME_OVERLAPS
-    fprintf(stderr,"%d olaps computed in %7.1f sec\n",OverlapCount,
+        fprintf(stderr,"%d olaps computed in %7.1f sec\n",OverlapCount,
             (double) OlapTime/ CLOCKS_PER_SEC);
 #endif
-  }
-  }
-  if (cgbout == 1) {  /* This may be used later to bypass proto i/o for MultialignTs */
+      }
+    }
+
+    if (cgbout == 1) {  /* This may be used later to bypass proto i/o for MultialignTs */
 //    umaout = fopen(MAStoreFileName,"w");
 //    SaveMultiAlignStoreTToStream(unitigStore,umaout,0);
 //    fclose(umaout);
-  }
-  if ( unitigStore ) DeleteMultiAlignStoreT(unitigStore);
-  {
-    char buffer[2*FILENAME_MAX+4];
-    int ierr;
-    fclose(cnsout);
-    if ( ! std_output ) {
-      sprintf(buffer,"mv %s %s",OutputFileNameTmp,OutputFileName);
-      ierr = system(buffer);
-      if(ierr) {
-        fprintf(stderr,
+    }
+    if ( unitigStore ) DeleteMultiAlignStoreT(unitigStore);
+    {
+      char buffer[2*FILENAME_MAX+4];
+      int ierr;
+      fclose(cnsout);
+      if ( ! std_output ) {
+        sprintf(buffer,"mv %s %s",OutputFileNameTmp,OutputFileName);
+        ierr = system(buffer);
+        if(ierr) {
+          fprintf(stderr,
                 "ERROR: failure moving the cnsout file to final file name.\n");}
       }
-   }
-   return 0;
+    }
+     return 0;
 }
