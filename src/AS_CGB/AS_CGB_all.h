@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- $Id: AS_CGB_all.h,v 1.4 2005-03-22 19:48:22 jason_miller Exp $
+ $Id: AS_CGB_all.h,v 1.5 2005-07-19 21:26:38 gdenisov Exp $
  Module: Chunk Graph Builder
  Description: A catch-all include file for the Chunk Graph Builder
  Assumptions:
@@ -74,6 +74,7 @@
 
 VA_DEF(BranchMesg)
 VA_DEF(IntMultiPos)
+VA_DEF(IntMultiVar);
 VA_DEF(IntUnitigMesg)
 VA_DEF(OFGMesg)
 VA_DEF(OverlapMesg)

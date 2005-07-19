@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: PrimitiveVA_MSG.h,v 1.4 2005-03-22 19:49:00 jason_miller Exp $	 */
+/* 	$Id: PrimitiveVA_MSG.h,v 1.5 2005-07-19 21:24:22 gdenisov Exp $	 */
 /***************************************************************************
  *  PrimitiveVA.h
  *  
@@ -33,6 +33,7 @@
 #include "AS_MSG_pmesg.h"
 #include "AS_UTL_Var.h"
 
+VA_DEF(IntMultiVar)
 VA_DEF(IntMultiPos)
 VA_DEF(IntElementPos)
 VA_DEF(IntUnitigPos)
