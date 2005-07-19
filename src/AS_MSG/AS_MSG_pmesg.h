@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.5 2005-07-12 14:38:14 gdenisov Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.6 2005-07-19 21:18:05 gdenisov Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -855,8 +855,10 @@ typedef struct {
   int32		             forced;
   int32                      num_pieces;
   int32                      num_unitigs;
+  int32                      num_vars;
   IntMultiPos                *pieces;
   IntUnitigPos               *unitigs;
+  IntMultiVar                *v_list;
 } IntConConMesg;
 
 
