@@ -114,6 +114,15 @@ sub setEchoMode {
 	$echoOnly = 0;
     }
 }
+
+# Get Echo Mode.
+# Tell module to echo commands but not execute them.
+# Parameter 1: 1=> echo only, else echo and execute
+#----------------------------------------------------------------
+sub getEchoMode {
+    return $echoOnly;
+}
+
 #----------------------------------------------------------------
 # Execute a unix command.
 # Log the activity fully.
