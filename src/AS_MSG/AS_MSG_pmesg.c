@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.4 2005-03-22 19:49:00 jason_miller Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.5 2005-07-19 21:21:19 gdenisov Exp $";
 
 #define AFG_BACKWARDS_COMPATIBLE
 //#define FIX_DANIELS_MESS
@@ -1094,6 +1094,30 @@ static void Read_IMP_Mesg(FILE *fin, long indx)
   GET_EOM;
   return;
 }
+
+static void Read_IMV_Mesg(FILE *fin, long indx)
+{
+  IntMultiVar           *imv;
+  int                   i;
+  int32                 n, *delta;
+  long                  vindx;
+  char                  *line, *u;
+  char ch;
+
+  imv = (IntMultiVar *) (MemBuffer + indx);
+  GET_FIELD(imv->ident,"vid:" F_IID,"multivar id");
+  GET_PAIR(imv->position.bgn,imv->position.end,
+           POS2_FORMAT,"position field");
+  GET_FIELD(imv->ratio,"rat:%f","ratio of allele scores");
+  GET_FIELD(imv->var_length,"len:" F_S32,"var_length");
+    MgenError("Missing len: field");
+  vindx = GetText("seq:",fin,TRUE);
+  GET_FIELD(imv->ident,"aid:" F_IID,"multivar id");
+  GET_FIELD(imv->ident,"win:%d","window size");
+  GET_EOM;
+  return;
+}
+
 static void Read_IUP_Mesg(FILE *fin, long indx)
 {
   IntUnitigPos		*iup;
@@ -2820,6 +2844,32 @@ static void Write_IMP_Mesg(FILE *fout, IntMultiPos *mlp)
   return;
 }
 
+static void Write_IMV_Mesg(FILE *fout, IntMultiVar *mlv)
+{
+  int i;
+
+  fprintf(fout,"{IMV\n");
+  fprintf(fout,"vid:" F_IID "\n",mlv->ident);
+  fprintf(fout,POS2_FORMAT "\n",
+          mlv->position.bgn,mlv->position.end);
+  fprintf(fout,"nrd:" F_S32 "\n",mlv->nreads);
+  fprintf(fout,"nrb:" F_S32 "\n",mlv->nreads_best);
+  fprintf(fout,"rat:%f\n",mlv->ratio);
+  fprintf(fout,"len:" F_S32 "\n",mlv->var_length);
+  PutText(fout,"seq:",mlv->var_sequence,TRUE);
+  fprintf(fout,"win:" F_S32 "\n",mlv->window);
+  if (mlv->nreads - mlv->nreads_best > 0 ) {
+    for(i=0; i < mlv->nreads-mlv->nreads_best; i++) {
+      fprintf(fout,F_S32,mlv->aindent[i]);
+      if (i < mlv->nreads - mlv->nreads_best - 1)
+          fprintf(fout,",");
+    }
+    fprintf(fout,"\n");
+  }
+  fprintf(fout,"}\n");
+  return;
+}
+
 static void Write_IUP_Mesg(FILE *fout, IntUnitigPos *up)
 { int i;
 
@@ -2861,7 +2911,10 @@ static void Write_IUM_Mesg(FILE *fout, void *vmesg)
   PutText(fout,"cns:",mesg->consensus,TRUE);
   PutText(fout,"qlt:",mesg->quality,TRUE);
   fprintf(fout,"for:" F_S32 "\n",mesg->forced);
+  fprintf(fout,"nvr:" F_S32 "\n",mesg->num_vars);
   fprintf(fout,"nfr:" F_S32 "\n",mesg->num_frags);
+  for (i=0; i < mesg->num_vars; ++i)
+    Write_IMV_Mesg(fout,&(mesg->v_list[i]));
   for (i=0; i < mesg->num_frags; ++i)
     Write_IMP_Mesg(fout,&(mesg->f_list[i]));
   fprintf(fout,"}\n");
@@ -3025,8 +3078,12 @@ static void Write_ICM_Mesg(FILE *fout, void *vmesg)
   PutText(fout,"cns:",mesg->consensus,TRUE);
   PutText(fout,"qlt:",mesg->quality,TRUE);
   fprintf(fout,"for:" F_S32 "\n",mesg->forced);
+  fprintf(fout,"nvr:" F_S32 "\n",mesg->num_vars);
   fprintf(fout,"npc:" F_S32 "\n",mesg->num_pieces);
   fprintf(fout,"nou:" F_S32 "\n",mesg->num_unitigs);
+  fflush(NULL);
+  for (i=0; i < mesg->num_vars; ++i)
+    Write_IMV_Mesg(fout, &mesg->v_list[i]);
   fflush(NULL);
   for (i=0; i < mesg->num_pieces; ++i)
     Write_IMP_Mesg(fout, &mesg->pieces[i]);
