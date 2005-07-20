@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_ReadStruct.c,v 1.4 2005-03-22 19:49:19 jason_miller Exp $";
+static char CM_ID[] = "$Id: AS_PER_ReadStruct.c,v 1.5 2005-07-20 19:55:38 eliv Exp $";
 /*************************************************************************
  Module:  AS_PER_ReadStruct
  Description:
@@ -80,11 +80,9 @@ void        clear_ReadStruct(ReadStructp r){
  // setHasModifiedClearRange(FR,0);  // not used
  FR->frag.deleted=0;
  FR->frag.hasQuality=0;
-#if FRAGSTORE_VERSION >= VERSION_OF_FRAGSTORE_WITH_MODIFIED_CLEARRANGES 
  FR->frag.hasOVLClearRegion=0;
  FR->frag.hasCNSClearRegion=0;
  FR->frag.hasCGWClearRegion=0;
-#endif
  // Reset ORIGINAL clear range.
  // Assume this resets the other clear ranges too.
  setClearRegion_ReadStruct(FR,0,0,READSTRUCT_ORIGINAL); 
@@ -96,7 +94,6 @@ int dumpShortFragRecord(ShortFragRecord *sfr, FILE *fout){
    fprintf(fout, "\tDeleted: %d ReadType:%c hasQuality:%d spare1:%d\n",
 	   sfr->deleted, sfr->readType, sfr->hasQuality, sfr->spare1);
 
-#if FRAGSTORE_VERSION >= VERSION_OF_FRAGSTORE_WITH_MODIFIED_CLEARRANGES 
    fprintf(fout, 
       "\taccID:" F_UID "  readIdx:" F_IID "  ClearRanges(start,stop,modified):\n", 
       sfr->accID, sfr->readIndex);
@@ -105,18 +102,13 @@ int dumpShortFragRecord(ShortFragRecord *sfr, FILE *fout){
       sfr->ovlRegionStart, sfr->ovlRegionEnd, (sfr->hasOVLClearRegion)+'0',
       sfr->cnsRegionStart, sfr->cnsRegionEnd, (sfr->hasCNSClearRegion)+'0',
       sfr->cgwRegionStart, sfr->cgwRegionEnd, (sfr->hasCGWClearRegion)+'0');
-#else
-    fprintf(fout, "\taccID:" F_UID "  readIdx:" F_IID " clear(" F_VLS "," F_VLS ")\n",
-      sfr->accID, sfr->readIndex, 
-      sfr->clearRegionStart, sfr->clearRegionEnd);
-#endif
 
-   fprintf(fout, "\tseqFile:%u seqOffset:" F_U64 " srcFile:%u srcOffset:" F_U64 " entryTime:%s\n",
+   fprintf(fout, "\tseqFile:%u seqOffset:" F_U64 " srcFile:%u srcOffset:" F_U64 "\n",
 	   GET_FILEID(sfr->sequenceOffset), 
 	   GET_FILEOFFSET(sfr->sequenceOffset), 
 	   GET_FILEID(sfr->sourceOffset), 
-	   GET_FILEOFFSET(sfr->sourceOffset), 
-	   ctime(&(sfr->entryTime)));
+	   GET_FILEOFFSET(sfr->sourceOffset)
+	   );
    return(0);
 }
 
@@ -211,9 +203,6 @@ int setReadType_ReadStruct(ReadStructp rs, FragType r){
 
 /***************************************************************************/
 int setEntryTime_ReadStruct(ReadStructp rs, time_t entryTime){
-  FragRecord *FR = (FragRecord *)rs;
-
-  FR->frag.entryTime = entryTime;
    return(0);
 }
 
@@ -230,7 +219,6 @@ int setClearRegion_ReadStruct(ReadStructp rs,
   assert (flags==READSTRUCT_ORIGINAL || flags==READSTRUCT_OVL 
   || flags==READSTRUCT_CGW || flags==READSTRUCT_CNS); 
 
-#if FRAGSTORE_VERSION >= VERSION_OF_FRAGSTORE_WITH_MODIFIED_CLEARRANGES 
   // An ordering is encoded here as
   // ORIGINAL >> OVL >> CNS >> CGW.
   // An update to any one propagates up >>
@@ -268,11 +256,6 @@ int setClearRegion_ReadStruct(ReadStructp rs,
     } else if (flags==READSTRUCT_CGW) {
       FR->frag.hasCGWClearRegion = 1;
     }
-#else
-    // In the old days, there was only one clear region.
-    FR->frag.clearRegionStart = start;
-    FR->frag.clearRegionEnd = end;
-#endif
    return(0);
 }
 
@@ -353,11 +336,8 @@ int getReadType_ReadStruct(ReadStructp rs, FragType *r){
 
 /***************************************************************************/
 int getEntryTime_ReadStruct(ReadStructp rs, time_t *entryTime){
-  FragRecord *FR = (FragRecord *)rs;
-
-  *entryTime = FR->frag.entryTime;
-  return(0);
-
+    *entryTime = 0;
+    return(0);
 }
 
 
@@ -372,7 +352,6 @@ int getClearRegion_ReadStruct(ReadStructp rs,
 	  || flags==READSTRUCT_OVL || flags==READSTRUCT_CGW 
 	  || flags==READSTRUCT_CNS);
 
-#if FRAGSTORE_VERSION >= VERSION_OF_FRAGSTORE_WITH_MODIFIED_CLEARRANGES 
   // An ordering is assumed here as
   // ORIGINAL >> OVL >> CNS >> CGW.
   // Changes to any one were propagated up >>
@@ -392,10 +371,6 @@ int getClearRegion_ReadStruct(ReadStructp rs,
     *start = FR->frag.clearRegionStart;
     *end =   FR->frag.clearRegionEnd;
   }
-#else
-  *start = FR->frag.clearRegionStart;
-  *end =   FR->frag.clearRegionEnd;
-#endif
   return(0);
 }
 

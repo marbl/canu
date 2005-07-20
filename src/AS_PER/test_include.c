@@ -36,18 +36,13 @@ typedef struct {
   uint   hasQuality:1;
   uint   numScreenMatches:16; /* number of screen matches */
   uint   hasModifiedClearRegion:1;  // never used as of Oct 2001 - Jason
-#if (FRAGSTORE_VERSION >= VERSION_OF_FRAGSTORE_WITH_MODIFIED_CLEARRANGES )
   uint   hasOVLClearRegion:1; 
   uint   hasCNSClearRegion:1; 
   uint   hasCGWClearRegion:1; 
   uint   spare1:2;
-#else
-  uint   spare1:5;
-#endif
   VLSTRING_SIZE_T clearRegionStart;
 
   VLSTRING_SIZE_T clearRegionEnd;
-#if (FRAGSTORE_VERSION >= VERSION_OF_FRAGSTORE_WITH_MODIFIED_CLEARRANGES )
   VLSTRING_SIZE_T ovlRegionStart; 
 
   VLSTRING_SIZE_T ovlRegionEnd; 
@@ -57,7 +52,6 @@ typedef struct {
   VLSTRING_SIZE_T cgwRegionStart; 
 
   VLSTRING_SIZE_T cgwRegionEnd; 
-#endif
   CDS_IID_t readIndex;         /* Internal ID of this read */
 
   CDS_UID_t accID;             /* Accession ID of this read */
@@ -65,13 +59,6 @@ typedef struct {
   uint64 sequenceOffset;    /* Offset of the sequence/quality data in the seq Store */
 
   uint64 sourceOffset;      /* Offset of the source in the source, localePos, and screen Matches  */
-
-#if (FRAGSTORE_VERSION > FRAGSTORE_VERSION_PRODUCTION)
-   localIndex;        /* Local ID of this read, assigned by appendFragStore */
-#else
-  uint32 blankPadTo8byteword;
-#endif
-  time_t entryTime;
 
 }ShortFragRecord;
 

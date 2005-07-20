@@ -46,8 +46,8 @@
  *************************************************************************/
 
 /* RCS Info
- * $Id: AS_PER_fragStore.h,v 1.4 2005-03-22 19:49:20 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Id: AS_PER_fragStore.h,v 1.5 2005-07-20 19:55:39 eliv Exp $
+ * $Revision: 1.5 $
  *
  */
 
@@ -61,33 +61,13 @@
 #include "AS_PER_genericStore.h"
 #include "AS_PER_ReadStruct.h"
 
-// Compiler -D option sets fragStore version.
-// The code supports only one version per compilation.
-// Stores older than version 4 are not supported at all.
-// All stores were version 4 until Oct 2001.
 #ifndef  FRAGSTORE_VERSION
-#define  FRAGSTORE_VERSION 5
-#endif     // Default fragStore version is 5 (as of Oct 2001).
-#if FRAGSTORE_VERSION<=4
-#define FRAGSTORE_VERSION 4
-#endif     // This is the lowest version supported by this code.
-#if FRAGSTORE_VERSION>=5
-#define FRAGSTORE_VERSION 5
-#endif     // This is the highest version supported by this code.
-#define  VERSION_OF_FRAGSTORE_WITH_MODIFIED_CLEARRANGES 5
-
-
-// In 1999, there was an effort to support re-sorting the frag store.
-// Code to support that effort was embedded in tests like
-// #if FRAGSTORE_VERSION_PRODUCTION < FRAGSTORE_VERSION.
-// All that code was never used. It should be removed completely.
-// For now, I will set the values such that the code never compiles.
-// - Jason, Oct 2001.
-#define  FRAGSTORE_VERSION_PRODUCTION   FRAGSTORE_VERSION
-
+#define  FRAGSTORE_VERSION 6
+#endif  // only version as of 2005/7/19
 
 typedef int FragStoreHandle;    /* The handle returned by open/create operations */
 typedef int FragStreamHandle;   /* The handle returned by stream operations */
+
 
 #define NULLFRAGSTOREHANDLE -1
 
@@ -167,26 +147,6 @@ FragStoreHandle createFragStore
 FragStoreHandle createPartitionedFragStore
 ( const char *FragStorePath, const char *name, int64 firstID, int32 numPartitions);
 
-
-#if FRAGSTORE_VERSION > FRAGSTORE_VERSION_PRODUCTION
-/******************************************************************************
- * Function: createIndexedFragStore:
- * Description:
- *     Allocates a new indexed FragStore and open it for random read and append
- *
- * Inputs:
- *     FragStorePath    Path to FragStore. If NULL, then this is a memory-based store
- *     name             Arbitrary name.  Currently stored, but not used
- *     firstID          ID of first element in store
- *
- * Return Value:
- *     Handle of created FragStore.
- *****************************************************************************/
-
-
-FragStoreHandle createIndexedFragStore
-(const char *FragStorePath, const char *name, int64 firstID);
-#endif
 
 /******************************************************************************
  * Function: resetFragStore:

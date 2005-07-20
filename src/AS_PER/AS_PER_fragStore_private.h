@@ -28,9 +28,9 @@
  *************************************************************************/
 
 /* RCS Info
- * $Date: 2005-03-22 19:49:20 $
- * $Id: AS_PER_fragStore_private.h,v 1.4 2005-03-22 19:49:20 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Date: 2005-07-20 19:55:39 $
+ * $Id: AS_PER_fragStore_private.h,v 1.5 2005-07-20 19:55:39 eliv Exp $
+ * $Revision: 1.5 $
  *
  */
 
@@ -91,19 +91,6 @@ typedef struct{
 
 #endif
 
-#if FRAGSTORE_VERSION > FRAGSTORE_VERSION_PRODUCTION
-  VA_TYPE(int32) *index; // index[iid] is the offset of the information for fragment iid
- #ifdef i386
-  int32 ptrPad4;
- #endif
-
-  int32  indexModified;
- #ifdef i386
-  int32  anotherPad;
- #endif
-
-#endif
-
   StoreStatus status;
   int32 stillMorePadding;
 
@@ -133,6 +120,10 @@ typedef struct{
  *    All clients load at least one of these structs into memroy,
  *    but they access its fields indirectly, through the ReadStruct API.
  *
+ *   2005/07/19
+ *     Remove old FRAGSTORE_VERSION stuff, and make frag store binary
+ *     compatible on i386, alpha and x86_64.
+ *
  *   Modified Oct 2001 by Jason
  *    Added fields to support modified clear ranges.
  *    We anticipate 3 systems will modify ranges: OVL, CNS, CGW.
@@ -151,28 +142,20 @@ typedef struct {
   uint   hasQuality:1;
   uint   numScreenMatches:16; /* number of screen matches */
   uint   hasModifiedClearRegion:1;  // never used as of Oct 2001 - Jason
-#if FRAGSTORE_VERSION >= VERSION_OF_FRAGSTORE_WITH_MODIFIED_CLEARRANGES 
   uint   hasOVLClearRegion:1; 
   uint   hasCNSClearRegion:1; 
   uint   hasCGWClearRegion:1; 
   uint   spare1:2;
-#else
-  uint   spare1:5;
-#endif
   VLSTRING_SIZE_T clearRegionStart;
-
   VLSTRING_SIZE_T clearRegionEnd;
-#if FRAGSTORE_VERSION >= VERSION_OF_FRAGSTORE_WITH_MODIFIED_CLEARRANGES 
-  VLSTRING_SIZE_T ovlRegionStart; 
 
+  VLSTRING_SIZE_T ovlRegionStart; 
   VLSTRING_SIZE_T ovlRegionEnd; 
   VLSTRING_SIZE_T cnsRegionStart; 
-
   VLSTRING_SIZE_T cnsRegionEnd; 
-  VLSTRING_SIZE_T cgwRegionStart; 
 
+  VLSTRING_SIZE_T cgwRegionStart; 
   VLSTRING_SIZE_T cgwRegionEnd; 
-#endif
   CDS_IID_t readIndex;         /* Internal ID of this read */
 
   CDS_UID_t accID;             /* Accession ID of this read */
@@ -180,13 +163,6 @@ typedef struct {
   uint64 sequenceOffset;    /* Offset of the sequence/quality data in the seq Store */
 
   uint64 sourceOffset;      /* Offset of the source in the source, localePos, and screen Matches */
-
-#if FRAGSTORE_VERSION > FRAGSTORE_VERSION_PRODUCTION
-  CDS_IID_t localIndex;        /* Local ID of this read, assigned by appendFragStore */
-#else
-  uint32 blankPadTo8byteword;
-#endif
-  time_t entryTime;
 
 }ShortFragRecord;
 

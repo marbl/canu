@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_fragDB.c,v 1.4 2005-03-22 19:49:20 jason_miller Exp $";
+static char CM_ID[] = "$Id: AS_PER_fragDB.c,v 1.5 2005-07-20 19:55:39 eliv Exp $";
 /*************************************************************************
  Module:  AS_PER_fragDB
  Description:
@@ -121,7 +121,6 @@ float deleted[MAX_READ_ROWS],
   clearRegionEnd[MAX_READ_ROWS];
 double accID[MAX_READ_ROWS];
 float readIndex[MAX_READ_ROWS],
-  entryTime[MAX_READ_ROWS];
 
 sb2 indicator[MAX_READ_ROWS];
 ub2 rlenp[MAX_READ_ROWS];
@@ -676,7 +675,6 @@ void GetFragFromDB(int32 index,                 /* The readIndex of the fragment
   fixed->clearRegionStart = (int) clearRegionStart[indexInArray];
   fixed->clearRegionEnd = (int) clearRegionEnd[indexInArray];
   fixed->readIndex = (int) readIndex[indexInArray];
-  fixed->entryTime = (time_t) entryTime[indexInArray];
   
   if (LOBBING)
   {

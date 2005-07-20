@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_PER_gkpStore.h,v 1.4 2005-03-22 19:49:20 jason_miller Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.5 2005-07-20 19:55:39 eliv Exp $	 */
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
 /*************************************************************************
@@ -53,6 +53,9 @@ typedef struct{
   CDS_UID_t UID;
   char name[256];
   time_t created;
+#ifndef __x86_64__
+  uint64 padtime_t;
+#endif
   char comment[256];
   unsigned int deleted:1;
   unsigned int spare:31;
