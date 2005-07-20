@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-
+#include <string.h>
 
 //  qsort and kazlib are incombatible.  qsort passes a pointer to the data, kaz lib passes
 //  the data (which it assumes is a pointer to begin with).

@@ -1,9 +1,6 @@
 #ifndef BIGQUEUE_H
 #define BIGQUEUE_H
 
-#include <stdio.h>
-#include <stdlib.h>
-
 #include "util++.H"
 
 //  A disk-backed list of user-defined objects.
