@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Output_CGW.c,v 1.4 2005-03-22 19:48:36 jason_miller Exp $";
+static char CM_ID[] = "$Id: Output_CGW.c,v 1.5 2005-07-20 21:32:39 brianwalenz Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -373,6 +373,8 @@ void OutputContigsFromMultiAligns(){
       icm_mesg.pieces = mp;
       icm_mesg.num_unitigs = numUnitig;
       icm_mesg.length = GetMultiAlignLength(ma);
+      icm_mesg.num_vars = 0;
+      icm_mesg.v_list   = NULL;
       if(icm_mesg.num_unitigs > 1){
         icm_mesg.consensus = ""; // Getchar(ma->consensus,0);
         icm_mesg.quality = ""; // Getchar(ma->quality,0);
