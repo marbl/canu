@@ -638,10 +638,13 @@ Sim4::slide_intron(int in_w, Exon **lblock, sim4_stats_t *st) {
     //fprintf(stderr, "Sim4::slide_intron()-- loop  t0=%p t1=%p\n", t0, t1);
 
     //  Don't do anything if the exon is short.  It bombs.
+    //  This occurs _lots_ in dros frags -> dros.
     //
+#if 0
     if (((t0->toGEN - t0->frGEN) <= 1) ||
         ((t1->toGEN - t1->frGEN) <= 1))
       fprintf(stderr, "Sim4::slide_intron()--  WARNING:  Short genomic range in exon!\n");
+#endif
 
     splice_t *g = 0L;
     splice_t *c = 0L;
