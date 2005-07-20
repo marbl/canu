@@ -20,6 +20,8 @@ test-chainedSequence: test-chainedSequence.C
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-chainedSequence.o test-chainedSequence.C $(INCLUDE)
 	$(CXX) $(CXXLDFLAGS) -o test-chainedSequence test-chainedSequence.o $(LIBS)
 	./test-chainedSequence
+	../../leaff/leaff -G 1000 1000 3000 > junk2.fasta
+	./test-chainedSequence junk2.fasta
 
 test-fasta-accessor: test-fasta-accessor.C
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-fasta-accessor.o test-fasta-accessor.C $(INCLUDE)
