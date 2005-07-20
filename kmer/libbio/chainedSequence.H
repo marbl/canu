@@ -26,7 +26,7 @@ public:
 
   //  Sets the source file
   //
-  void         setSource(char *filename);
+  void         setSource(char const *filename);
   void         setSource(FastAWrapper *file);
 
   //  Adds sequences to the useList.  For parse(), sequences are
@@ -67,10 +67,14 @@ public:
   u64bit       startOf(u32bit s);
   u64bit       IIDOf(u32bit s);
 
-
   //  Move the file pointer back to the start of the chained sequence
   //
   bool         rewind(void);
+
+  //  Save everything, even the current position in the sequence.
+  //
+  void         saveState(char const *filename);
+  bool         loadState(char const *filename, bool beNoisy=false, bool loadData=true);
 
 private:
   struct use_s {

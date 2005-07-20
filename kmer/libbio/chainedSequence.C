@@ -11,6 +11,12 @@
 #include <sys/types.h>
 
 
+static
+char     magic[16] = { 'c','h','a','i','n','e','d','S','e','q','.','v','1','.','.','.' };
+static
+char     faild[16] = { 'c','h','a','i','n','e','d','S','e','q','F','A','I','L','E','D' };
+
+
 chainedSequence::chainedSequence() {
   _filename           = 0L;
   _file               = 0L;
@@ -44,9 +50,6 @@ chainedSequence::~chainedSequence() {
 }
 
 
-
-
-
 void
 chainedSequence::setSeparator(char sep) {
   _separator = sep;
@@ -64,7 +67,7 @@ chainedSequence::setSeparatorLength(u32bit len) {
 
 
 void
-chainedSequence::setSource(char *filename) {
+chainedSequence::setSource(char const *filename) {
   setSource(_fileToDelete = new FastAWrapper(filename));
 }
 
@@ -149,16 +152,6 @@ chainedSequence::parse(char *line) {
 }
 
 
-
-
-
-
-
-
-
-
-
-
 void
 chainedSequence::add(u32bit v) {
 
@@ -175,7 +168,6 @@ chainedSequence::add(u32bit v) {
   _useList[_useListLen].start  = 0;
   _useListLen++;
 }
-
 
 
 u64bit
@@ -218,7 +210,6 @@ chainedSequence::rewind(void) {
 
   return(true);
 }
-
 
 
 void
@@ -283,4 +274,86 @@ chainedSequence::finish(void) {
   //
   _file->find(_useList[0].iid);
   _sequence = _file->getSequenceOnDisk();
+}
+
+
+void
+chainedSequence::saveState(char const *filename) {
+
+  errno = 0;
+  int F = open(filename, O_RDWR | O_CREAT | O_LARGEFILE,
+               S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+  if (errno)
+    fprintf(stderr, "Can't open '%s' for writing chainedSequence.\n%s\n", filename, strerror(errno)), exit(1);
+
+  write(F, magic, sizeof(char) * 16);
+  if (errno)
+    fprintf(stderr, "chainedSequence::saveState()-- Write failure on magic.\n%s\n", strerror(errno)), exit(1);
+
+  u32bit len = strlen(_filename) + 1;
+
+  write(F, &len,                 sizeof(u32bit));
+  write(F,  _filename,           sizeof(char) * len);
+  write(F, &_useListLen,         sizeof(u32bit));
+  write(F,  _useList,            sizeof(use_s) * _useListLen);
+  write(F, &_positionInSequence, sizeof(u64bit));
+  write(F, &_positionInStream,   sizeof(u64bit));
+  write(F, &_lengthOfSequences,  sizeof(u64bit));
+  write(F, &_eof,                sizeof(bool));
+  write(F, &_separatorDone,      sizeof(bool));
+  write(F, &_separatorLength,    sizeof(u32bit));
+  write(F, &_separatorPosition,  sizeof(u32bit));
+  write(F, &_separator,          sizeof(char));
+
+  write(F, magic, sizeof(char) * 16);
+  if (errno)
+    fprintf(stderr, "chainedSequence::saveState()-- Write failure on final magic.\n%s\n", strerror(errno)), exit(1);
+
+  close(F);
+}
+
+
+bool
+chainedSequence::loadState(char const *filename, bool beNoisy, bool loadData) {
+  char  cigam[16];
+
+  errno = 0;
+  int F = open(filename, O_RDONLY | O_LARGEFILE);
+  if (errno)
+    fprintf(stderr, "Can't open '%s' for reading chainedSequence.\n%s\n", filename, strerror(errno)), exit(1);
+
+  read(F, cigam, sizeof(char) * 16);
+  if (errno)
+    fprintf(stderr, "Can't read magic from chainedSequence '%s'.\n%s\n", filename, strerror(errno)), exit(1);
+  if (strncmp(cigam, magic, 16) != 0)
+    fprintf(stderr, "Invalid magic in chainedSequence '%s'.\n%s\n", filename, strerror(errno)), exit(1);
+
+  u32bit len = 0;
+  read(F, &len,                 sizeof(u32bit));
+  _filename = new char [len];
+  read(F,  _filename,           sizeof(char) * len);
+  read(F, &_useListLen,         sizeof(u32bit));
+  _useList = new use_s [_useListLen];
+  read(F,  _useList,            sizeof(use_s) * _useListLen);
+  read(F, &_positionInSequence, sizeof(u64bit));
+  read(F, &_positionInStream,   sizeof(u64bit));
+  read(F, &_lengthOfSequences,  sizeof(u64bit));
+  read(F, &_eof,                sizeof(bool));
+  read(F, &_separatorDone,      sizeof(bool));
+  read(F, &_separatorLength,    sizeof(u32bit));
+  read(F, &_separatorPosition,  sizeof(u32bit));
+  read(F, &_separator,          sizeof(char));
+  if (errno)
+    fprintf(stderr, "Can't read header from chainedSequence '%s'.\n%s\n", filename, strerror(errno)), exit(1);
+
+  read(F, cigam, sizeof(char) * 16);
+  if (errno)
+    fprintf(stderr, "Can't read final magic from chainedSequence '%s'.\n%s\n", filename, strerror(errno)), exit(1);
+  if (strncmp(cigam, magic, 16) != 0)
+    fprintf(stderr, "Invalid final magic in chainedSequence '%s'.\n%s\n", filename, strerror(errno)), exit(1);
+
+  setSource(_filename);
+  finish();
+
+  return(true);
 }
