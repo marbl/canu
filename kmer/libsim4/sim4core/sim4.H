@@ -44,7 +44,7 @@
 //  Define this to test the seeds when doing extension -- it tests
 //  if the seed is infact an exact match (in mspManager.C)
 //
-//#define TEST_SEEDS_IN_EXTENSION
+#define TEST_SEEDS_IN_EXTENSION
 
 
 //  Debug of sim4b1.C and related.
@@ -327,7 +327,7 @@ private:
   bool   get_sync_flag(Exon *, Exon *, int);
   void   slide_intron(int w, Exon **, sim4_stats_t *);
   void   sync_slide_intron(int w, Exon **, sim4_stats_t *);
-  void   wobble(Exon **,Exon **,const char *,const char *,char *seq1);
+  void   wobble(Exon *, Exon *, const char *, const char *, char *seq1);
   Exon  *bmatch(char *,char *,int,int,int,int);
   Exon  *fmatch(char *,char *,int,int,int,int);
   void   compact_list(Exon **Lblock, Exon **Rblock);
