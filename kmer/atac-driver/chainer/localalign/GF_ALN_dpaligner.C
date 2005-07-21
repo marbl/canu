@@ -96,7 +96,7 @@ static double BinomialProb(int n, int d, double e)
       double *newp;
 				/* Re-allocate */
       max = (int)(n*1.2 + 1024);
-      fprintf(stderr,"DP_COMPARE (BinomialProb): reallocing %ld bytes\n",(max+1)*sizeof(double));
+      //fprintf(stderr,"DP_COMPARE (BinomialProb): reallocing %ld bytes\n",(max+1)*sizeof(double));
       newp = (double *) realloc(LogTable,(max+1)*sizeof(double));
       if (newp == NULL) return (-1.);
 
@@ -170,8 +170,8 @@ static int Space_n_Tables(int max, double erate, double thresh)
       { max  = (int)(1.2*max);
         max  = ((max + 1024)/WordSize + 1)*WordSize;
 	BinomialProb(2*max,1,.1);
-        fprintf(stderr,"DP_COMPARE (Space_n_Tables): reallocing %ld bytes\n",(2*max+2)*sizeof(int)+
-                                                                              (max+1)*sizeof(float));
+        //fprintf(stderr,"DP_COMPARE (Space_n_Tables): reallocing %ld bytes\n",(2*max+2)*sizeof(int)+
+        //                                                                      (max+1)*sizeof(float));
         newd = (int *) realloc(DistThresh,
                             (2*max+2)*sizeof(int) + (max+1)*sizeof(float));
         if (newd == NULL) return (1);
@@ -247,7 +247,7 @@ int *AS_ALN_OKNAlign(const char *a, int alen, const char *b, int blen, int *spnt
 
       max = (int)(1.2*diff) + 50;
       del = (max+5)*(max+1);
-      fprintf(stderr,"DP_COMPARE (AS_ALN_OKNAlign): reallocing %ld bytes\n",del*sizeof(int)+(max+1)*sizeof(int));
+      //fprintf(stderr,"DP_COMPARE (AS_ALN_OKNAlign): reallocing %ld bytes\n",del*sizeof(int)+(max+1)*sizeof(int));
       newp = (int *) realloc(Wave,del*sizeof(int) + (max+1)*sizeof(int));
       if (newp == NULL) return (NULL);
       Wtop = max-1;
@@ -412,11 +412,11 @@ zeroscript:
 
 int *AS_ALN_OKNAffine(char *a, int alen, char *b, int blen,
                       int *bpnt, int *epnt, int diff)
-{ int diag, jcrd;
-  int infinity;
-  int bwide, atop;
-  int *C, *I, *TraceBuffer, *TraceTwo; 
-  int best, bdag;
+{ int diag=0, jcrd=0;
+  int infinity=0;
+  int bwide=0, atop=0;
+  int *C=0L, *I=0L, *TraceBuffer=0L, *TraceTwo=0L;
+  int best=0, bdag=0;
 
   static int    Amax  = -1;
   static int   *Afarr = NULL;
@@ -428,7 +428,7 @@ int *AS_ALN_OKNAffine(char *a, int alen, char *b, int blen,
       max = (blen+501)*(2*bwide+202);
       newp = (int *) realloc(Afarr,max*sizeof(int));
 #ifdef AFFINE_DEBUG
-      fprintf(stderr,"Affine align allocating %d bytes\n",max*2*sizeof(int));
+      //fprintf(stderr,"Affine align allocating %d bytes\n",max*2*sizeof(int));
 #endif
       if (newp == NULL) return (NULL);
       Afarr = newp;
@@ -479,8 +479,8 @@ int *AS_ALN_OKNAffine(char *a, int alen, char *b, int blen,
 
   best = infinity;
   for (jcrd--; jcrd >= 0; jcrd--)
-    { int i, m, k, x;
-      int deljk;
+    { int i=0, m=0, k=0, x=0;
+      int deljk=0;
 
       i = diag + jcrd;
       if (i+diff < 0) break;
@@ -589,7 +589,7 @@ int *AS_ALN_OKNAffine(char *a, int alen, char *b, int blen,
 #define I_STATE 2
 
   { int i, k, s, x;
-    int deljk, top;
+    int deljk=0, top=0;
 
     if (bdag >= 0)
       jcrd = 0;
@@ -635,26 +635,24 @@ int *AS_ALN_OKNAffine(char *a, int alen, char *b, int blen,
     //    *epnt = i-jcrd;
   }
 
-  { int i, j;
-    int score, mxlev, mnlev;
-    int mxi, mxj;
-    int mni, mnj, mnp;
-    int top = 0;
-    int c, p;       /* Reparse alignment */
+  { int i=1, j=1;
+    int score=0, mxlev=0, mnlev=0;
+    int mxi=0, mxj=0;
+    int mni=0, mnj=0, mnp=0;
+    int top=0;
+    int c=0, p=0;       /* Reparse alignment */
 
 #define UPTICK  1
 #define DWNTICK 1
 
-    i = j = 1;
     if (bdag > 0)
       i = bdag+1;
     else if (bdag < 0)
       j = (-bdag)+1;
-    mxlev = mnlev = score = 0;
+
     mxi = i-1;
     mxj = j-1;
   
-    p = 0;
 reloop:
     while ((c = TraceBuffer[p++]) != 0)
     { if (c < 0)
@@ -870,8 +868,8 @@ static int Boundary(char *a, int alen, char *b, int blen,
 			
     bmax = WordSize*((blen-1)/WordSize+1);
     for (j = 0; j < blen; j += WordSize)
-      { WORD P, M, ebit;
-        int  row, bval;
+      { WORD P=0, M=0, ebit=0;
+        int  row=0, bval=0;
 
         { WORD One; /* Compute list of chars in b[j+1..max(j+WordSize,blen)] */
           int i; /* and non-zero bvect[a] for each one.                   */
@@ -1067,9 +1065,9 @@ static int Boundary(char *a, int alen, char *b, int blen,
 #endif
 
 			fprintf(stderr,
-"WARNING: DP_Compare using overlap shorter than minlen\n"
-"WARNING: because gaps external to the overlap can be placed to\n"
-"WARNING: create an overlap that passes all tests and is long enough\n");
+                                "WARNING: DP_Compare using overlap shorter than minlen\n"
+                                "WARNING: because gaps external to the overlap can be placed to\n"
+                                "WARNING: create an overlap that passes all tests and is long enough\n");
 
 			// ... favor the short overlap
 			// (the idea is ... the longer overlap was
@@ -1085,9 +1083,9 @@ static int Boundary(char *a, int alen, char *b, int blen,
 			if (i-lastlocalminpos == p-lastlocalminscore){
 
 			  fprintf(stderr,
-"WARNING: DP_Compare using overlap shorter than minlen\n"
-"WARNING: because gaps external to the overlap can be placed to\n"
-"WARNING: create an overlap that passes all tests and is long enough\n");
+                                  "WARNING: DP_Compare using overlap shorter than minlen\n"
+                                  "WARNING: because gaps external to the overlap can be placed to\n"
+                                  "WARNING: create an overlap that passes all tests and is long enough\n");
 
 #ifdef BOUND_DEBUG
 			  printf("^");
@@ -1566,7 +1564,7 @@ static double BPSuffixScore(char *a, int alen, char *b, int blen,
 
     for (j = jmax+1; j <= blen; j++)
       { double c, e;
-        int    posval;
+        int    posval=0;
 
         /* Compute value in leftmost active column in new row */
 
