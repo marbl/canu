@@ -1,16 +1,24 @@
 #!/bin/sh
 
-
 #  Set up the build system -- need some symlinks to the build
 #  directory.
 #
-if [ ! -s Makefile ] ; then
-  ln -s ../build/Make.path .
-  ln -s ../build/Make.rules .
-  ln -s ../build/Make_utils .
-  ln -s ../build/Makefile .
+if [ ! -e Makefile ] ; then
+  if [ -e ../build/Makefile ] ; then
+    ln -s ../build/Make.path .
+    ln -s ../build/Make.rules .
+    ln -s ../build/Make_utils .
+    ln -s ../build/Makefile .
+  elif [ -e build/Makefile ] ; then
+    ln -s build/Make.path .
+    ln -s build/Make.rules .
+    ln -s build/Make_utils .
+    ln -s build/Makefile .
+  else
+    echo "Hey, couldn't find the Makefile"
+    exit
+  fi
 fi
-
 
 #  If no target, try to figure out one based on uname.  This defaults to
 #  the optimized target below.  If it works well, we can always use this
