@@ -10,7 +10,7 @@ $/.CLEAN  :=$/*.o
 
 $/.REAL-CLEAN :=$/buildinfo-*
 
-$/leaff.C.d: $/buildinfo-leaff.h ${LIBBIO/}buildinfo-libbio.h
+$/leaff.C.d: $/buildinfo-leaff.h ${LIBBIO/}buildinfo-libbio.h ${LIBUTL/}buildinfo-libutil.h
 
 $/leaff                : $/leaff.o $/buildinfo-leaff.o $/simseq.o ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 $/fragmenter           : $/fragmenter.o ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
