@@ -64,8 +64,8 @@
  *************************************************************************/
 
 /* RCS Info
- * $Id: AS_PER_genericStore.h,v 1.4 2005-03-22 19:49:20 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Id: AS_PER_genericStore.h,v 1.5 2005-07-22 17:52:17 eliv Exp $
+ * $Revision: 1.5 $
  *
  */
 
@@ -112,7 +112,13 @@ typedef struct{
   int32 version;        /* For user information only */
   int32 elementSize;  
   time_t creationTime;
+#ifndef __x86_64__
+    uint32 padtime_t1;
+#endif
   time_t lastUpdateTime;
+#ifndef __x86_64__
+    uint32 padtime_t2;
+#endif
 }StoreStat;
 
 

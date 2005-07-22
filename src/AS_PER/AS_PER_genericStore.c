@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.4 2005-03-22 19:49:20 jason_miller Exp $";
+static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.5 2005-07-22 17:52:17 eliv Exp $";
 /*************************************************************************
  Module:  AS_PER_genericStore
  Description:
@@ -52,8 +52,8 @@ static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.4 2005-03-22 19:49:20 jaso
  *************************************************************************/
 
 /* RCS Info
- * $Id: AS_PER_genericStore.c,v 1.4 2005-03-22 19:49:20 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Id: AS_PER_genericStore.c,v 1.5 2005-07-22 17:52:17 eliv Exp $
+ * $Revision: 1.5 $
  *
  */
 
@@ -70,23 +70,6 @@ static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.4 2005-03-22 19:49:20 jaso
 
 #define INITIAL_ALLOCATION (2048)
 
-/* This is the structure in the header of each store */
-
-typedef struct{
-  unsigned int isDeleted:1;
-  unsigned int type:3;
-  unsigned int :28;  // padding field
-  unsigned int :32;  // padding field
-  char storeType[8];
-  int64 firstElem;  /* Initially -1.  If >0, index of first allocated element */
-  int64 lastElem;  /* Initially -1.  If >0, index of last allocated element */
-  int32 version;        /* For user information only */
-  int32 elementSize;  /* Sizeof a ReadStruct */
-  time_t creationTime;
-  time_t lastUpdateTime;
-}StoreHeader;
-
-
 /* This is the structure maintained in memory for each open Store */
 typedef struct{
   FILE *fp;            /* For a file-based store */
@@ -94,13 +77,11 @@ typedef struct{
   char *buffer;        /* For a memory-based store */
   int64 allocatedSize;
   StoreStatus status; 
-  StoreHeader header;
+  StoreStat header;
   int64 lastCommittedElem; /* Initially -1.  If >0, index of last committed element */
   int isMemoryStore;
   int isDirty;
 }StoreStruct;
-
-
 
 
 /* Utility routines for reading, writing, and dumping a store Header */
@@ -190,10 +171,10 @@ static int64 computeOffset(StoreStruct *myStore, int64 index ){
 
   assert( index >= myStore->header.firstElem);
 
-  offset = sizeof(StoreHeader) + 
+  offset = sizeof(StoreStat) + 
 	((int64)index - (int64)myStore->header.firstElem) * (int64)myStore->header.elementSize;
 
-  assert(offset >= (int64)sizeof(StoreHeader));
+  assert(offset >= (int64)sizeof(StoreStat));
 
   return offset;
 }
@@ -720,9 +701,9 @@ StoreHandle loadStorePartial
           last + 1 - first, first, last);
 #endif
   
-  targetOffset = sizeof(StoreHeader);  
+  targetOffset = sizeof(StoreStat);  
   if(Store_isStringStore(loadStore)){
-    sourceOffset = sizeof(StoreHeader) + first;
+    sourceOffset = sizeof(StoreStat) + first;
     sourceMaxOffset = sourceOffset + last+1 - first;
   }else{
     sourceOffset = computeOffset(loadStore, first);
@@ -777,7 +758,7 @@ int storeStore
   target->status = 
   source->status = ActiveStore;
 
-  targetOffset =   sourceOffset = sizeof(StoreHeader);
+  targetOffset =   sourceOffset = sizeof(StoreStat);
   sourceMaxOffset = computeOffset(source, source->header.lastElem+1);
   /* This does a low level copy of data */
   copyStore(source, sourceOffset, sourceMaxOffset, target, targetOffset);
@@ -873,10 +854,10 @@ int getStringStore(StoreHandle s, int64 offset, char *buffer, int32 maxLength){
   }
   
   if(myStore->isMemoryStore){
-    strncpy(buffer, myStore->buffer + offset + sizeof(StoreHeader), length);
+    strncpy(buffer, myStore->buffer + offset + sizeof(StoreStat), length);
   }else{
     if(-1 == CDS_FSEEK(myStore->fp,
-                       (off_t) (offset + sizeof(StoreHeader)), SEEK_SET))
+                       (off_t) (offset + sizeof(StoreStat)), SEEK_SET))
       assert(0);
     
     if(safeRead(myStore->fp,buffer,length) != FALSE)
@@ -904,7 +885,7 @@ int getVLRecordStore(StoreHandle s, int64 offset, void *buffer, VLSTRING_SIZE_T 
   actualOffset = offset - myStore->header.firstElem;
 
   if(myStore->isMemoryStore){
-    memcpy(&length,(myStore->buffer + actualOffset + sizeof(StoreHeader)),
+    memcpy(&length,(myStore->buffer + actualOffset + sizeof(StoreStat)),
            sizeof(VLSTRING_SIZE_T));
     if(!(length + actualOffset <= myStore->header.lastElem &&
 	 length <= maxLength)){
@@ -919,12 +900,12 @@ int getVLRecordStore(StoreHandle s, int64 offset, void *buffer, VLSTRING_SIZE_T 
     }
     if(length > 0)
       memcpy(buffer, myStore->buffer + actualOffset +
-             sizeof(StoreHeader) + sizeof(VLSTRING_SIZE_T), length);
+             sizeof(StoreStat) + sizeof(VLSTRING_SIZE_T), length);
 
     
   }else{
     if(-1 == CDS_FSEEK(myStore->fp,
-                       (off_t) (actualOffset + sizeof(StoreHeader)), SEEK_SET))
+                       (off_t) (actualOffset + sizeof(StoreStat)), SEEK_SET))
       assert(0);
     if(safeRead(myStore->fp,&length,sizeof(VLSTRING_SIZE_T)) != FALSE)
       assert(0);
@@ -955,7 +936,7 @@ int appendStringStore(StoreHandle s, char *string){
   assert(myStore->status == ActiveStore);
   assert(Store_isStringStore(myStore));
 
-  offset = sizeof(StoreHeader) + myStore->header.lastElem;
+  offset = sizeof(StoreStat) + myStore->header.lastElem;
 #ifdef DEBUG
   fprintf(stderr," *** StringStore_append -- Seeking offset " F_S64 "\n",
 	  offset);
@@ -995,7 +976,7 @@ int appendVLRecordStore(StoreHandle s, void *vlr, VLSTRING_SIZE_T length){
   assert(Store_isVLRecordStore(myStore));
   
 
-  offset = sizeof(StoreHeader) + myStore->header.lastElem;
+  offset = sizeof(StoreStat) + myStore->header.lastElem;
 #ifdef DEBUG
   fprintf(stderr," *** appendVLRecordStore -- length = " F_VLS " lastElem = " F_S64 " offset = " F_S64 "\n",
 	  length, myStore->header.lastElem, offset);
@@ -1079,7 +1060,7 @@ int concatStore(StoreHandle targetH, StoreHandle sourceH){
 #endif
      assert(source->header.firstElem == target->header.lastElem + 1);
      targetOffset = computeOffset(target, target->header.lastElem+1);
-     sourceOffset = sizeof(StoreHeader);
+     sourceOffset = sizeof(StoreStat);
      sourceMaxOffset = computeOffset(source, source->header.lastElem+1);
      target->header.lastElem = source->header.lastElem;
 
@@ -1088,9 +1069,9 @@ int concatStore(StoreHandle targetH, StoreHandle sourceH){
 #ifdef DEBUG_CONCAT
     fprintf(stderr," ** String/VLRecord Store concat!\n");
 #endif
-     targetOffset = sizeof(StoreHeader) + target->header.lastElem;
-     sourceOffset = sizeof(StoreHeader);
-     sourceMaxOffset = sizeof(StoreHeader) + source->header.lastElem;
+     targetOffset = sizeof(StoreStat) + target->header.lastElem;
+     sourceOffset = sizeof(StoreStat);
+     sourceMaxOffset = sizeof(StoreStat) + source->header.lastElem;
      target->header.lastElem += source->header.lastElem;
   }else{
      assert(0);
@@ -1238,7 +1219,7 @@ int statsStore(StoreHandle s, StoreStat *stats){
   dumpHeader(myStore);
 #endif
   /*** HACK!!!! This should be done properly  */
-  *((StoreHeader *)stats) = myStore->header;
+  *((StoreStat *)stats) = myStore->header;
 
 #ifdef DEBUG
   fprintf(stderr,"header.firstElem = " F_S64 " header.lastElem = " F_S64 "\n",
@@ -1396,14 +1377,14 @@ static int writeHeader(StoreStruct *myStore){
   dumpHeader(myStore);
 #endif
   if(myStore->isMemoryStore){
-    memcpy(myStore->buffer,&myStore->header, sizeof(StoreHeader));
+    memcpy(myStore->buffer,&myStore->header, sizeof(StoreStat));
   }else{
 #ifdef DEBUG
   fprintf(stderr,"\t*** WriteHeader: fileno %d status = %d err = %d\n",
 	  fileno(myStore->fp), myStore->status, ferror(myStore->fp));
 #endif    
     rewind(myStore->fp); /* Rewind to beginning of file */
-    safeWrite(myStore->fp,(void *)&myStore->header,sizeof(StoreHeader));
+    safeWrite(myStore->fp,(void *)&myStore->header,sizeof(StoreStat));
   }
 #ifdef DEBUG
   fprintf(stderr,"*** End WriteHeader:\n");
@@ -1415,10 +1396,10 @@ static int writeHeader(StoreStruct *myStore){
 static int readHeader(StoreStruct *myStore){
 
   if(myStore->isMemoryStore){
-    memcpy(&myStore->header,&myStore->buffer, sizeof(StoreHeader));
+    memcpy(&myStore->header,&myStore->buffer, sizeof(StoreStat));
   }else{
     CDS_FSEEK(myStore->fp, (off_t) 0, SEEK_SET); /* Rewind to beginning of file */
-    safeRead(myStore->fp, (void *)&myStore->header, sizeof(StoreHeader));
+    safeRead(myStore->fp, (void *)&myStore->header, sizeof(StoreStat));
   }
 #ifdef DEBUG
   fprintf(stderr,"*** ReadHeader: last = " F_S64 "\n"
