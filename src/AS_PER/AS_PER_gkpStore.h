@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_PER_gkpStore.h,v 1.6 2005-07-21 17:36:45 eliv Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.7 2005-07-22 17:26:21 eliv Exp $	 */
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
 /*************************************************************************
@@ -56,9 +56,6 @@ typedef struct{
 #ifndef __x86_64__ // 8 byte time_t on x86_64, so pad elsewhere
   uint32 padtime_t;
 #endif
-#ifdef __i386__
-  uint32 pad386;
-#endif // Alpha and x86_64 are rounding up to 584, need extra pad on 386
   char comment[256];
   unsigned int deleted:1;
   unsigned int spare:31;
@@ -79,6 +76,9 @@ typedef struct{
   int32 numPlates;
   int32 numWells;
   int32 numLinks;
+#ifdef __i386__
+  uint32 pad386;
+#endif // Alpha and x86_64 are rounding up to 584, need extra pad on 386
 }GateKeeperBatchRecord;
 
 typedef struct{
