@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.8 2005-07-25 15:55:53 eliv Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.9 2005-07-25 19:18:06 eliv Exp $";
 
 
 /*********************************************************************
@@ -53,6 +53,7 @@ static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.8 2005-07-25 15:55:53 eliv E
  *                    [-v]           verbose
  *                    [-w <walkLevel> ]
  *                    [-x]           Dump stats on checkpoint load
+ *                    [-y]           Turn off Check for -R < -N, for restarting small assemblies
  *                    [-U]           ignore UOM containments
  *                    [-t]           don't ignore UOM transchunks     (default)
  *                    [-A]           don't align overlaps (quality values reflect bayesian)
@@ -242,6 +243,7 @@ int main(int argc, char *argv[]){
   int setFragStore = 0, setGatekeeperStore = 0;
   char *outputPath = NULL;
   int dumpScaffoldSnapshots = 0;
+  int checkpointChecker = 1;
   
   fprintf( stderr, "Version: %s",CM_ID);
 #if defined(CHECK_CONTIG_ORDERS) || defined(CHECK_CONTIG_ORDERS_INCREMENTAL)
@@ -260,7 +262,8 @@ int main(int argc, char *argv[]){
 
     optarg = NULL;
     while (!errflg && ((ch = getopt(argc, argv,
-		       "abcde:f:g:hi:j:k:l:m:n:o:p:q:r:s:tuvw:xz:ABCD:EGHIJK:L:N:O:PQR:STUV:W:X:Y:Z")) != EOF)){
+               // unused F, M
+		       "abcde:f:g:hi:j:k:l:m:n:o:p:q:r:s:tuvw:xyz:ABCD:EGHIJK:L:N:O:PQR:STUV:W:X:Y:Z")) != EOF)){
 #if 0
       fprintf(GlobalData->stderrc,"* ch = %c optopt= %c optarg = %s\n", ch, optopt, (optarg?optarg:"(NULL)"));
       fflush(stderr);
@@ -407,7 +410,9 @@ int main(int argc, char *argv[]){
 	numNodes = atoi(optarg);
 	fprintf(GlobalData->stderrc,"* numNodes set to %d\n", numNodes);
 	break;
-	
+      case 'y':
+        checkpointChecker = 0;
+        break;
       case 'Y':
 	numEdges = atoi(optarg);
 	fprintf(GlobalData->stderrc,"* numEdges set to %d\n", numEdges);
@@ -496,7 +501,7 @@ int main(int argc, char *argv[]){
       {
 	fprintf(GlobalData->stderrc,"* argc = %d optind = %d setFragStore = %d setGatekeeperStore = %d outputPath = %s\n",
 		argc, optind, setFragStore,setGatekeeperStore, outputPath);
-	fprintf (GlobalData->stderrc, "USAGE:  cgw [-deEcvPuUtTjXY] [-j <uniqueCutoff>] [-D <debugLevel>] [-r <repeatRezLevel>] [-p <preMergeRezLevel>[L]] [-s <stoneLevel>[L]] [-w <walkLevel>] [-R <checkpoint>] [-N <cgwStage>] [-K <aligner>] -f <FragStoreName> -g <GatekeeperStoreName> -o <OutputPath> [<InputFileName>.<ext>]*\n"
+	fprintf (GlobalData->stderrc, "USAGE:  cgw [-deEcvPuUtTjXyY] [-j <uniqueCutoff>] [-D <debugLevel>] [-r <repeatRezLevel>] [-p <preMergeRezLevel>[L]] [-s <stoneLevel>[L]] [-w <walkLevel>] [-R <checkpoint>] [-N <cgwStage>] [-K <aligner>] -f <FragStoreName> -g <GatekeeperStoreName> -o <OutputPath> [<InputFileName>.<ext>]*\n"
                  "Use 'L' after <repeatRezLevel> or <stoneLevel> to generate\n"
                  "  copious .log and .analysis files\n"
 		 "Opens ALL [<InputFileName>.<ext>]* to read input\n"
@@ -615,6 +620,12 @@ int main(int argc, char *argv[]){
 
   data->saveCheckPoints = checkPoint;
   data->outputCalculatedOffsets = (geneOutput == 0);
+
+  if(checkpointChecker && restartFromCheckpoint < restartFromLogicalCheckpoint &&
+          restartFromLogicalCheckpoint !=  CHECKPOINT_BEFORE_FINAL_CLEANUP){
+      fprintf(GlobalData->stderrc,"* Logical Checkpoint (%d)  MUST be no greater than restart checkpoint (%d)\n", restartFromLogicalCheckpoint, restartFromCheckpoint);
+      exit(1);
+  }
 
   if(restartFromLogicalCheckpoint == NULLINDEX){
     restartFromLogicalCheckpoint = restartFromCheckpoint;
