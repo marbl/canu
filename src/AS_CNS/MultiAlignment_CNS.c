@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.16 2005-07-08 21:05:34 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.17 2005-07-27 19:34:01 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -5014,8 +5014,10 @@ int MANode2Array(MANode *ma, int *depth, char ***array, int ***id_array,
          frag++;
        }
      }
-     *array = multia;
-     *id_array = ia;
+    *array = multia;
+    *id_array = ia;
+     free(rowptr);
+     free(row_assign);
      return 1;
 }
 
