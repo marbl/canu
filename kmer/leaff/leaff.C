@@ -1187,8 +1187,8 @@ processArray(int argc, char **argv) {
           processFile(argv[++arg]);
           break;
       }
-      arg++;
     }
+    arg++;
   }
 
   if (f) {
