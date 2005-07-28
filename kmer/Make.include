@@ -14,12 +14,10 @@ LIBSIM4/      :=$/libsim4/
 #
 # So, this list is backwards.
 
+#  For reasons unknown, this will not work from here.
 #$(eval $(call Include,$/ESTmapper/))
 
 #$(eval $(call Include,$/atac/))
-#$(eval $(call Include,$/atac-framework/))
-#$(eval $(call Include,$/atac-matchextender/))
-
 $(eval $(call Include,$/atac-driver/))
 
 $(eval $(call Include,$/leaff/))
