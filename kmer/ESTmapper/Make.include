@@ -4,13 +4,12 @@ LEAFF/      :=$(call MakePath,$/../leaff/)
 SEAGEN/     :=$(call MakePath,$/../seagen/)
 SIM4DB/     :=$(call MakePath,$/../sim4db/)
 SIM4UTIL/   :=$(call MakePath,$/../sim4dbutils/)
+SCRIPTS/    :=$(call MakePath,$/../scripts/)
 
 CP=cp -p
 RM=rm -f
 
-EXECS =   $/util/scheduler.pm \
-          $/util/fasta.pm \
-          $/leaff \
+EXECS :=  $/leaff \
           $/sim4db \
           $/sim4th \
           $/seagen \
@@ -21,7 +20,10 @@ EXECS =   $/util/scheduler.pm \
           $/sortPolishes \
           $/filterPolishes \
           $/pickBestPolish \
-          $/parseSNP
+          $/parseSNP \
+          $/util/scheduler.pm \
+          $/util/fasta.pm
+          
 
 $/.CXX_SRCS  := $/mergeCounts.C
 $/.CXX_EXES  := $/mergeCounts
@@ -29,25 +31,18 @@ $/.CXX_EXES  := $/mergeCounts
 $/mergeCounts: $/mergeCounts.o
 
 $/.CLEAN      := $/*.o
-$/.REAL-CLEAN := mergeCounts ${EXECS}
+$/.REAL-CLEAN := $/mergeCounts ${EXECS}
 
-# $/ESTmapper.pl: $/scripts/ESTmapper.pl
-# $/libBri.pm: $/scripts/libBri.pm
-# $/toXML.pl: $/scripts/toXML.pl
-# $/mergeXML.pl: $/scripts/mergeXML.pl
-# $/flattenXML.pl: $/scripts/flattenXML.pl
+all:  $/mergeCounts ${EXECS}
 
-
-all:  mergeCounts ${EXECS}
-
-$/util/scheduler.pm: ../scripts/scheduler.pm
+$/util/scheduler.pm: ${SCRIPTS/}scheduler.pm
 	$(RM) $/util/scheduler.pm
-	$(CP) ../scripts/scheduler.pm $/util/scheduler.pm
+	$(CP) ${SCRIPTS/}scheduler.pm $/util/scheduler.pm
 	chmod 444 $/util/scheduler.pm
 
-$/util/fasta.pm: ../scripts/fasta.pm
+$/util/fasta.pm: ${SCRIPTS/}fasta.pm
 	$(RM) $/util/fasta.pm
-	$(CP) ../scripts/fasta.pm $/util/fasta.pm
+	$(CP) ${SCRIPTS/}fasta.pm $/util/fasta.pm
 	chmod 444 $/util/fasta.pm
 
 $/leaff: ${LEAFF/}leaff
