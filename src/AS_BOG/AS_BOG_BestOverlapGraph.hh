@@ -34,34 +34,29 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.hh,v 1.1 2005-07-20 21:00:25 kli1000 Exp $
- * $Revision: 1.1 $
+ * $Id: AS_BOG_BestOverlapGraph.hh,v 1.2 2005-07-29 21:12:14 kli1000 Exp $
+ * $Revision: 1.2 $
 */
 
-static char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.1 2005-07-20 21:00:25 kli1000 Exp $";
+static char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.2 2005-07-29 21:12:14 kli1000 Exp $";
 
 //  System include files
 
 #ifndef INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 #define INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 
+#include "AS_BOG_Datatypes.hh"
+
 namespace AS_BOG{
-
-	typedef enum { 
-		DOVE_NORMAL,		// AB_AB
-		DOVE_ANTI_NORMAL,	// BA_BA
-		DOVE_INNIE,		// AB_BA
-		DOVE_OUTTIE,		// BA_AB
-		CONT_A_CONTAINS,
-		CONT_B_CONTAINS,
-		CONT_MUTUAL
-	} overlap_type;
-
-	typedef unsigned int iuid;
 
 	///////////////////////////////////////////////////////////////////////
 
 	class BestOverlap{
+
+		// Contains information on what a known fragment overlaps.
+		// It is assumed that an index into an array of BestOverlap
+		// will tell us what fragment has this best overlap
+
 		public:
 			iuid ovl_frag_id;
 			overlap_type type;		
@@ -73,6 +68,10 @@ namespace AS_BOG{
 	///////////////////////////////////////////////////////////////////////
 
 	class BestContainment{
+
+		// Contains what kind of containment relationship exists between
+		// fragment a and fragment b
+
 		public:
 			iuid frag_a_id;
 			iuid frag_b_id;
@@ -85,25 +84,31 @@ namespace AS_BOG{
 	class BestOverlapGraph {
 
 		public:
+
+			// Constructor, parametrizing maximum number of overlaps
 			BestOverlapGraph(int max_best_overlap_size){
 				bestOverlaps=new BestOverlap(max_best_overlap_size);
 			}
 
+			// Destructor
 			~BestOverlapGraph(void){
 				delete bestOverlaps[];
 				bestContainments.clear();
 			}
 
+			// Interface to graph visitor
 			accept(BestOverlapGraphVisitor bog_vis){
 				bog_vis.visit(this);
 			}
 
+			// Accessor Get Functions
 			BestOverlap *getBestOverlap(iuid frag_id){
 				return(&(bestOverlaps[frag_id]));
 			}
 	
 			BestContainment *getBestContainment(iuid frag_id);
 
+			// Accessor Set Functions
 			void setBestOverlap(
 				iuid frag_a_id, 
 				iuid frag_b_id,
@@ -112,9 +117,9 @@ namespace AS_BOG{
 			);
 
 		private:
-			BestOverlap bestOverlaps[];
-			int numBestOverlaps;
-			vector<BestContainment> bestContainments;
+			BestOverlap _bestOverlaps[];
+			int _numBestOverlaps;
+			vector<BestContainment> _bestContainments;
 
 	} //BestOverlapGraph
 
