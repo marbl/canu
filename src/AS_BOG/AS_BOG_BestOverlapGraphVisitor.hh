@@ -33,17 +33,18 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraphVisitor.hh,v 1.1 2005-07-20 21:00:25 kli1000 Exp $
- * $Revision: 1.1 $
+ * $Id: AS_BOG_BestOverlapGraphVisitor.hh,v 1.2 2005-07-29 21:29:07 kli1000 Exp $
+ * $Revision: 1.2 $
 */
 
-static char CM_ID[] = "$Id: AS_BOG_BestOverlapGraphVisitor.hh,v 1.1 2005-07-20 21:00:25 kli1000 Exp $";
+static char CM_ID[] = "$Id: AS_BOG_BestOverlapGraphVisitor.hh,v 1.2 2005-07-29 21:29:07 kli1000 Exp $";
 
 //  System include files
 
 #ifndef INCLUDE_AS_BOG_BESTOVERLAPGRAPHVISITOR
 #define INCLUDE_AS_BOG_BESTOVERLAPGRAPHVISITOR
 
+#include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
 
 namespace AS_BOG{
