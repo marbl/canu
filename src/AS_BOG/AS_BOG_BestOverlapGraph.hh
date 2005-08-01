@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*************************************************
-* Module:  AS_BOG_BestOverlapGraph.c
+* Module:  AS_BOG_BestOverlapGraph.hh
 * Description:
 *	Data structure to contain the best overlaps and containments
 *	based on a defined metric.
@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.hh,v 1.3 2005-08-01 15:20:43 kli1000 Exp $
- * $Revision: 1.3 $
+ * $Id: AS_BOG_BestOverlapGraph.hh,v 1.4 2005-08-01 20:39:23 kli1000 Exp $
+ * $Revision: 1.4 $
 */
 
-static char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.3 2005-08-01 15:20:43 kli1000 Exp $";
+static char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.4 2005-08-01 20:39:23 kli1000 Exp $";
 
 //  System include files
 
@@ -87,15 +87,10 @@ namespace AS_BOG{
 		public:
 
 			// Constructor, parametrizing maximum number of overlaps
-			BestOverlapGraph(int max_best_overlap_size){
-				bestOverlaps=new BestOverlap(max_best_overlap_size);
-			}
+			BestOverlapGraph(int max_best_overlap_size);
 
 			// Destructor
-			~BestOverlapGraph(void){
-				delete bestOverlaps[];
-				bestContainments.clear();
-			}
+			~BestOverlapGraph(void);
 
 			// Interface to graph visitor
 			accept(BestOverlapGraphVisitor bog_vis){
