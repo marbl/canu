@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.6 2005-07-20 21:19:49 gdenisov Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.7 2005-08-01 19:05:56 gdenisov Exp $";
 
 #define AFG_BACKWARDS_COMPATIBLE
 //#define FIX_DANIELS_MESS
@@ -416,8 +416,8 @@ static void *Read_Screen_Mesg(FILE *fin, int external)
   GET_FIELD(smesg.relevance,"rel:" F_S32,"relevance field");
   smesg.source   = (char *) GetText("src:",fin,FALSE);
   smesg.sequence = (char *) GetText("seq:",fin,TRUE);
-  GET_FIELD(smesg.variation,VAR_FORMAT,"variation field");
   GET_FIELD(smesg.min_length,MINC_FORMAT,"min length field");
+  GET_FIELD(smesg.variation,VAR_FORMAT,"variation field");
   GET_EOM; 
   // Convert from an index to a pointer.
   smesg.source   = MemBuffer + ((long) (smesg.source));
@@ -1094,6 +1094,31 @@ static void Read_IMP_Mesg(FILE *fin, long indx)
   GET_EOM;
   return;
 }
+
+static void Read_IMV_Mesg(FILE *fin, long indx)
+{
+  IntMultiVar           *imv;
+
+  imv = (IntMultiVar *) (MemBuffer + indx);
+  GET_PAIR(imv->position.bgn,imv->position.end,
+           POS2_FORMAT,"position field");
+//GET_FIELD(imv->ident,"win:%d","window size");
+  GET_EOM;
+  return;
+}
+
+static void Read_VAR_Mesg(FILE *fin, long indx)
+{
+  SnapMultiVar           *smv;
+
+  smv = (SnapMultiVar *) (MemBuffer + indx);
+  GET_PAIR(smv->position.bgn,smv->position.end,
+           POS2_FORMAT,"position field");
+//GET_FIELD(imv->ident,"win:%d","window size");
+  GET_EOM;
+  return;
+}
+
 static void Read_IUP_Mesg(FILE *fin, long indx)
 {
   IntUnitigPos		*iup;
@@ -1157,6 +1182,7 @@ static void *Read_IUM_Mesg(FILE *fin)
   qindx = GetText("qlt:",fin,TRUE);
   GET_FIELD(mesg.forced,"for:" F_S32,"forced booleon");
   GET_FIELD(mesg.num_frags,"nfr:" F_S32,"num frags field");
+  GET_FIELD(mesg.num_vars,"nvr:" F_S32,"num vars field");
   if (mesg.num_frags > 0) {
     indx = mpindx = MoreSpace(mesg.num_frags*sizeof(IntMultiPos),8);
     /* Why use 8 boundary above? Damned if I know - ela */
@@ -1170,6 +1196,18 @@ static void *Read_IUM_Mesg(FILE *fin)
   }
   else
     mesg.f_list = NULL;
+//if (mesg.num_vars > 0) {
+//  indx = mpindx = MoreSpace(mesg.num_vars*sizeof(IntMultiVar),8);
+//  for (i=0; i < mesg.num_vars; ++i) {
+//    if (strncmp(GetLine(fin,TRUE),"{IMV",4) != 0)
+//      MgenError("Expecting IMV record");
+//    Read_IMV_Mesg(fin, indx);
+//    indx += sizeof(IntMultiVar);
+//  }
+//  mesg.v_list = (IntMultiVar *) (MemBuffer + mpindx);
+//}
+//else
+//  mesg.v_list = NULL;
   GET_EOM;
   mesg.consensus = MemBuffer + cindx;
   mesg.quality  = MemBuffer + qindx;
@@ -1427,7 +1465,7 @@ static void Read_IEP_Mesg(FILE *fin, IntElementPos *iep)
 
 static void *Read_ICM_Mesg(FILE *fin)
 { static IntConConMesg		mesg;
-  long				cindx, qindx, mpindx, upindx, indx, uindx;
+  long	 cindx, qindx, mpindx, upindx, indx, uindx, vindx, vpindx;
   int				i;
   char ch;
   
@@ -1440,21 +1478,38 @@ static void *Read_ICM_Mesg(FILE *fin)
   GET_FIELD(mesg.forced,"for:" F_S32," forced flag");
   GET_FIELD(mesg.num_pieces,"npc:" F_S32," number of pieces");
   GET_FIELD(mesg.num_unitigs,"nou:" F_S32," number of unitigs");
+  GET_FIELD(mesg.num_vars,"nvr:" F_S32,"num vars field");
   /* Why use 8 boundary above & below? Damned if I know - ela */
-  indx = mpindx = MoreSpace(mesg.num_pieces*sizeof(IntMultiPos),8);
+  vindx = vpindx = MoreSpace(mesg.num_vars   *sizeof(IntMultiVar),8); 
+  indx  = mpindx = MoreSpace(mesg.num_pieces *sizeof(IntMultiPos),8);
   uindx = upindx = MoreSpace(mesg.num_unitigs*sizeof(IntUnitigPos),8);
 
-  if (mesg.num_pieces > 0){
+  if (mesg.num_vars > 0)
+  {
+    mesg.v_list = (IntMultiVar *) (MemBuffer + vpindx);
+    for (i=0; i < mesg.num_vars; ++i) {
+      if (strncmp(GetLine(fin,TRUE),"{IMV",4) != 0)
+        MgenError("Expecting IMV record");
+      Read_IMV_Mesg(fin, vindx);
+      vindx += sizeof(IntMultiVar);
+    }
+  }
+  else
+    mesg.v_list = NULL;
+// **************************************************
+  if (mesg.num_pieces > 0)
+  {
     mesg.pieces = (IntMultiPos *) (MemBuffer + mpindx);
-  for (i=0; i < mesg.num_pieces; ++i) {
-    if (strncmp(GetLine(fin,TRUE),"{IMP",4) != 0)
-      MgenError("Expecting IMP record");
-    Read_IMP_Mesg(fin, indx);
-    indx += sizeof(IntMultiPos);
-  }
-  }  else{
+    for (i=0; i < mesg.num_pieces; ++i) {
+      if (strncmp(GetLine(fin,TRUE),"{IMP",4) != 0)
+        MgenError("Expecting IMP record");
+      Read_IMP_Mesg(fin, indx);
+      indx += sizeof(IntMultiPos);
+    }
+  }  
+  else
     mesg.pieces = NULL;
-  }
+// **************************************************
   if (mesg.num_unitigs > 0) {
     mesg.unitigs = (IntUnitigPos *) (MemBuffer + upindx);
     for (i=0; i < mesg.num_unitigs; ++i) {
@@ -1467,6 +1522,7 @@ static void *Read_ICM_Mesg(FILE *fin)
   else
     mesg.unitigs = NULL;
   GET_EOM;
+// **************************************************
   mesg.consensus = MemBuffer + cindx;
   mesg.quality = MemBuffer + qindx;
   if (mesg.num_pieces > 0)
@@ -1862,9 +1918,9 @@ static void *Read_ULK_Mesg(FILE *fin)
 
 static void *Read_CCO_Mesg(FILE *fin)
 { static SnapConConMesg		mesg;
-  long				cindx, qindx, mpindx, upindx, indx, uindx;
-  int				i;
-  char ch;
+  long	 cindx, qindx, mpindx, upindx, indx, uindx, vindx, vpindx;
+  int  	 i;
+  char   ch;
   
   GET_PAIR(mesg.eaccession,mesg.iaccession,IACCS_FORMAT,"accession number");
   GET_TYPE(ch,"pla:%1[PU]"," placed flag");
@@ -1875,15 +1931,32 @@ static void *Read_CCO_Mesg(FILE *fin)
   GET_FIELD(mesg.forced,"for:" F_S32,"forced flag");
   GET_FIELD(mesg.num_pieces,"npc:" F_S32,"number of pieces");
   GET_FIELD(mesg.num_unitigs,"nou:" F_S32,"number of unitigs");
+  GET_FIELD(mesg.num_vars,"nvr:" F_S32,"number of vars");
   /* Why use 8 boundary above & below? Damned if I know - ela */
-  indx = mpindx = MoreSpace(mesg.num_pieces*sizeof(SnapMultiPos),8);
+  vindx = vpindx = MoreSpace(mesg.num_vars  *sizeof(SnapMultiVar),8);
+  indx  = mpindx = MoreSpace(mesg.num_pieces*sizeof(SnapMultiPos),8);
   uindx =upindx = MoreSpace(mesg.num_unitigs*sizeof(UnitigPos),8);
+
+  if (mesg.num_vars > 0)
+  {
+    mesg.vars = (SnapMultiVar *) (MemBuffer + vpindx);
+    for (i=0; i < mesg.num_vars; ++i) {
+      if (strncmp(GetLine(fin,TRUE),"{VAR",4) != 0)
+        MgenError("Expecting VAR record");
+      Read_VAR_Mesg(fin, vindx);
+      vindx += sizeof(SnapMultiVar);
+    }
+  }
+  else
+    mesg.vars = NULL;
+// **************************************************
   for (i=0; i < mesg.num_pieces; ++i) {
     if (strncmp(GetLine(fin,TRUE),"{MPS",4) != 0)
       MgenError("Expecting MPS record");
     Read_MPS_Mesg(fin, indx);
     indx += sizeof(SnapMultiPos);
   }
+// **************************************************
   if (mesg.num_unitigs > 0) {
     mesg.unitigs  = (UnitigPos *) (MemBuffer + upindx);
     for (i=0; i < mesg.num_unitigs; ++i) {
@@ -1919,7 +1992,6 @@ static void *Read_CCO_Mesg(FILE *fin)
       mesg.unitigs[i].delta = (int32 *) (MemBuffer +
 				 (long) mesg.unitigs[i].delta);
   }
-
 
   return ((void *) (&mesg));
 }
@@ -2395,8 +2467,8 @@ static void Write_Screen_Mesg(FILE *fout, void *vmesg, int external)
   fprintf(fout,"rel:" F_S32 "\n",mesg->relevance);
   PutText(fout,"src:",mesg->source,FALSE);
   PutText(fout,"seq:",mesg->sequence,TRUE);
-  fprintf(fout,VAR_FORMAT "\n",mesg->variation);
   fprintf(fout,MINC_FORMAT "\n",mesg->min_length);
+  fprintf(fout,VAR_FORMAT "\n",mesg->variation);
   fprintf(fout,"}\n");
 }
 
@@ -2820,6 +2892,30 @@ static void Write_IMP_Mesg(FILE *fout, IntMultiPos *mlp)
   return;
 }
 
+static void Write_IMV_Mesg(FILE *fout, IntMultiVar *mlv)
+{
+  int i;
+
+  fprintf(fout,"{IMV\n");
+  fprintf(fout, POS2_FORMAT "\n",
+          mlv->position.bgn,mlv->position.end);
+//fprintf(fout,"win:" F_S32 "\n",mlv->window);
+  fprintf(fout,"}\n");
+  return;
+}
+
+static void Write_VAR_Mesg(FILE *fout, SnapMultiVar *smv)
+{
+  int i;
+
+  fprintf(fout,"{VAR\n");
+  fprintf(fout,POS2_FORMAT "\n",
+          smv->position.bgn,smv->position.end);
+//fprintf(fout,"win:" F_S32 "\n",mlv->window);
+  fprintf(fout,"}\n");
+  return;
+}
+
 static void Write_IUP_Mesg(FILE *fout, IntUnitigPos *up)
 { int i;
 
@@ -2862,6 +2958,9 @@ static void Write_IUM_Mesg(FILE *fout, void *vmesg)
   PutText(fout,"qlt:",mesg->quality,TRUE);
   fprintf(fout,"for:" F_S32 "\n",mesg->forced);
   fprintf(fout,"nfr:" F_S32 "\n",mesg->num_frags);
+  fprintf(fout,"nvr:" F_S32 "\n",mesg->num_vars);
+//for (i=0; i < mesg->num_vars; ++i)
+//  Write_IMV_Mesg(fout,&(mesg->v_list[i]));
   for (i=0; i < mesg->num_frags; ++i)
     Write_IMP_Mesg(fout,&(mesg->f_list[i]));
   fprintf(fout,"}\n");
@@ -3027,7 +3126,11 @@ static void Write_ICM_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"for:" F_S32 "\n",mesg->forced);
   fprintf(fout,"npc:" F_S32 "\n",mesg->num_pieces);
   fprintf(fout,"nou:" F_S32 "\n",mesg->num_unitigs);
-  fflush(NULL);
+  fprintf(fout,"nvr:" F_S32 "\n",mesg->num_vars);
+  fflush(NULL); 
+  for (i=0; i < mesg->num_vars; ++i)
+    Write_IMV_Mesg(fout, &mesg->v_list[i]);
+  fflush(NULL); 
   for (i=0; i < mesg->num_pieces; ++i)
     Write_IMP_Mesg(fout, &mesg->pieces[i]);
   fflush(NULL);
@@ -3184,6 +3287,9 @@ static void Write_CCO_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"for:" F_S32 "\n",mesg->forced);
   fprintf(fout,"npc:" F_S32 "\n",mesg->num_pieces);
   fprintf(fout,"nou:" F_S32 "\n",mesg->num_unitigs);
+  fprintf(fout,"nvr:" F_S32 "\n",mesg->num_vars);
+  for (i=0; i < mesg->num_vars; ++i)
+    Write_VAR_Mesg(fout, &(mesg->vars[i]));
   for (i=0; i < mesg->num_pieces; ++i)
     Write_MPS_Mesg(fout, &mesg->pieces[i]);
   for (i=0; i < mesg->num_unitigs; ++i)
@@ -3673,6 +3779,7 @@ static void Clear_IUM_Mesg(void *vmesg, int typ)
   for (i=0; i < mesg->num_frags; i++)
     free(mesg->f_list[i].delta);
   free (mesg->f_list);
+//free (mesg->v_list);
 }
 
 static void Clear_IUL_Mesg(void *vmesg, int typ)
@@ -3721,6 +3828,8 @@ static void Clear_ICM_Mesg(void *vmesg, int typ)
     free(mesg->pieces[i].delta);
   free(mesg->pieces);
   free(mesg->unitigs);
+  free(mesg->v_list);           
+//free(mesg->v_list);
 }
 
 #if 0
