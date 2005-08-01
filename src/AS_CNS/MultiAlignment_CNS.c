@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.18 2005-08-01 13:55:03 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.19 2005-08-01 18:55:29 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -2362,6 +2362,9 @@ int RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
 
     window = opp->smooth_win;
 
+#if 0
+    fprintf(stderr, "Calling RefreshMANode, quality = %d\n", quality);
+#endif
     SetDefault(&ap);
     var  = (float *)safe_calloc(len_manode, sizeof(float)); 
     cids = (int32 *)safe_calloc(len_manode, sizeof(int32));
@@ -5908,6 +5911,8 @@ int MultiAlignContig(IntConConMesg *contig,
         PlaceFragments(bfrag->lid,COMPARE_FUNC, opp);
         //assert( GetNumFragments(fragmentStore) < total_aligned_elements);
      }
+//   contig->num_vars = 20;     // affect .cns/ICM
+//   contig->v_list = NULL;
      RefreshMANode(ma->lid, 0, opp, &nv, &vl, 0);
      // Now, must find fragments in regions of overlapping unitigs, and adjust 
      // their alignments as needed
