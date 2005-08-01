@@ -337,7 +337,7 @@ int main( int argc, char *argv[])
       // check for an overlap
       /*************************/
 
-      ovl = Local_Overlap_AS_forCNS(clear1, clear2, -len1,len2,1,.06,1e-6,40,AS_FIND_LOCAL_ALIGN_NO_TRACE);
+      ovl = Local_Overlap_AS_forCNS(clear1, clear2, -len2,len1,1,.06,1e-6,40,AS_FIND_LOCAL_ALIGN_NO_TRACE);
 
       if(ovl==NULL||ovl->begpos<0||ovl->endpos<0){
 	// if they don't overlap, output two sequences, but with a clone UID plus "a" or "b"
@@ -404,15 +404,7 @@ int main( int argc, char *argv[])
 
 	    //      fprintf(stderr,"Doing the multialignment\n");
 
-	    if (-1 == MultiAlignUnitig(&ium,
-                                       frgStore,
-                                       sequence,
-                                       quality,
-                                       deltas,
-                                       printwhat,
-                                       do_rez,
-                                       COMPARE_FUNC,
-                                       NULL)) {
+	    if (MultiAlignUnitig(&ium,frgStore,sequence,quality,deltas,printwhat,do_rez,COMPARE_FUNC)==-1 ) {
 	      fprintf(stderr,"MultiAlignUnitig failed for overlap of fragments %d and %d\n",fragIID,mateIID);
 	      assert(FALSE);
 	    }
