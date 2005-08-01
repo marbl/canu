@@ -31,135 +31,77 @@
 
 int main(int argc, char *argv[]){
 
-#if 0
- FragStreamHandle jane;
-#endif
- FragStoreHandle source;
- ReadStructp myRead;
- int load = FALSE;
- int32 begin = -1, end = -1;
- int i;
- int ch;
- if(argc  < 2 ){
-  fprintf(stderr,"Usage: %s [-b <firstElem>] [-e <lastElem>] [-l] <StorePath1> \n",
-	  argv[0]);
-  fprintf(stderr,"   -l option causes frag store to be loaded into memory, rather than opened\n");
-  exit(1);
- }
+  FragStoreHandle source;
+  ReadStructp myRead;
+  int load = FALSE;
+  int32 begin = -1, end = -1;
+  int i;
+  int ch;
+  if(argc  < 2 ){
+    fprintf(stderr,"Usage: %s [-b <firstElem>] [-e <lastElem>] [-l] <StorePath1> \n",
+	    argv[0]);
+    fprintf(stderr,"   -l option causes frag store to be loaded into memory, rather than opened\n");
+    exit(1);
+  }
 
-    while ((ch = getopt(argc, argv, "b:e:l")) != EOF){
-      switch(ch) {
-      case 'l':
-	load = TRUE;
-	break;
-      case 'e':
-	end = atoi(optarg);
-	fprintf(stderr,"* end = %d\n", end);
-	break;
-      case 'b':
-	begin = atoi(optarg);
-	fprintf(stderr,"* begin = %d\n", begin);
-	break;
-      default:
-	fprintf(stderr,"* Unknown option %s\n", optarg);
-	break;
-      }
+  while ((ch = getopt(argc, argv, "b:e:l")) != EOF){
+    switch(ch) {
+    case 'l':
+      load = TRUE;
+      break;
+    case 'e':
+      end = atoi(optarg);
+      fprintf(stderr,"* end = %d\n", end);
+      break;
+    case 'b':
+      begin = atoi(optarg);
+      fprintf(stderr,"* begin = %d\n", begin);
+      break;
+    default:
+      fprintf(stderr,"* Unknown option %s\n", optarg);
+      break;
     }
+  }
 
- if(load){
- fprintf(stdout,"* LOADing FragStore %s\n", argv[optind]);
+  if(load){
+    fprintf(stdout,"* LOADing FragStore %s\n", argv[optind]);
     source = loadFragStorePartial(argv[optind],STREAM_FROMSTART, STREAM_UNTILEND);
- }else{
- fprintf(stdout,"* Opening FragStore %s\n", argv[optind]);
+  }else{
+    fprintf(stdout,"* Opening FragStore %s\n", argv[optind]);
     source = openFragStore(argv[optind],"rw+");
- }
- if(source == NULLSTOREHANDLE){
-   exit(1);
- }
+  }
+  if(source == NULLSTOREHANDLE){
+    exit(1);
+  }
 
-#if 0
-   {
-     DistStore distStore;
-     char distStoreName[1024];
-     DistRecord distRecord;
-     StreamHandle distStream;
-     StoreStat stats;
-     int i, start;
 
-     sprintf(distStoreName,"%s/db.dst", argv[1]);
-     fprintf(stdout,"* Opening DistStore %s\n", distStoreName);
-     distStore = openDistStore(distStoreName,"r"); 
-     distStream = openStream(distStore,NULL,0);
-     if(0 != statsStore(distStore, &stats))
-       assert(0);
+  myRead =  new_ReadStruct();
+
+  fprintf(stdout,"* Dumping fragStore %s (%d,%d) of (" F_S64 "," F_S64 ")\n",
+	  argv[optind],begin,end,
+	  getFirstElemFragStore(source), getLastElemFragStore(source));
+
+  if(begin < getFirstElemFragStore(source) || begin > getLastElemFragStore(source)){
+    begin = getFirstElemFragStore(source);
+  }
+  if(end > getLastElemFragStore(source) || end < getFirstElemFragStore(source)){
+    end = getLastElemFragStore(source);
+  }
+
+  for(i = begin; i <= end; i++){
      
-     fprintf(stdout,"* Distance Records (" F_S64 "-" F_S64 ")\n\n",
-	     stats.firstElem, stats.lastElem);
-#if 0
-     i = getStartIndexStream(distStream);
-     while(nextStream(distStream,&distRecord) ){
-       fprintf(stdout,"* Dist Record %d d:%d iid:" F_IID " "
-	       "uid:" F_UID " %f +- %f\n",
-	       i, distRecord.deleted, distRecord.IID, distRecord.UID,
-	       distRecord.mean, distRecord.stddev);
-     }
-#else   // Just an example
-     {
-       for(i = stats.firstElem;i <= stats.lastElem ; i++){
-	int ret =  getDistStore(distStore,i,&distRecord);
-	
-       fprintf(stdout,"* Dist Record %d d:%d iid:" F_IID " uid:" F_UID " %f +- %f\n",
-	       i, distRecord.deleted, distRecord.IID, distRecord.UID,
-	       distRecord.mean, distRecord.stddev);
-       }
-     }	 
-#endif
-     closeDistStore(distStore);
-   }
+    unsigned int clr_bgn, clr_end;
+    int setStatus = 0;
 
- fprintf(stdout,"* Closed DistStore \n\n\n");
-#endif
+    getFragStore(source, i, FRAG_S_ALL, myRead);
+    getClearRegion_ReadStruct( myRead, &clr_bgn, &clr_end, READSTRUCT_CNS);
+    setClearRegion_ReadStruct( myRead, clr_bgn, clr_end, READSTRUCT_CGW);
+    setStatus = setFragStore( source, i, myRead);
+    assert(setStatus==0);
 
- myRead =  new_ReadStruct();
+  }
 
- fprintf(stdout,"* Dumping fragStore %s (%d,%d) of (" F_S64 "," F_S64 ")\n",
-	 argv[optind],begin,end,
-         getFirstElemFragStore(source), getLastElemFragStore(source));
+  fprintf(stdout,"* Bye Bye\n");
 
-#if 0
- jane = openFragStream(source,NULL,0);
-
-   while(nextFragStream(jane, myRead, FRAG_S_ALL)){
-     dump_ReadStruct(myRead, stdout);
-   }
-   closeFragStream(jane);
-   fprintf(stdout,"* Closing jane, source\n");
-#else
-   if(begin < getFirstElemFragStore(source) || begin > getLastElemFragStore(source)){
-     begin = getFirstElemFragStore(source);
-   }
-   if(end > getLastElemFragStore(source) || end < getFirstElemFragStore(source)){
-     end = getLastElemFragStore(source);
-   }
-   for(i = begin; i <= end; i++){
-     
-     unsigned int clr_bgn, clr_end;
-     int setStatus = 0;
-
-     getFragStore(source, i, FRAG_S_ALL, myRead);
-     getClearRegion_ReadStruct( myRead, &clr_bgn, &clr_end, READSTRUCT_CNS);
-     setClearRegion_ReadStruct( myRead, clr_bgn, clr_end, READSTRUCT_CGW);
-     setStatus = setFragStore( source, i, myRead);
-     assert(setStatus==0);
-
-   }
-
-#endif
-   fprintf(stdout,"* Bye Bye\n");
-
-     
-     
-
-
-   exit(0);
+  exit(0);
 }
