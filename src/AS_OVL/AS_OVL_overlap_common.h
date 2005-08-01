@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.10 2005-07-15 18:19:54 eliv Exp $
- * $Revision: 1.10 $
+ * $Id: AS_OVL_overlap_common.h,v 1.11 2005-08-01 21:02:13 brianwalenz Exp $
+ * $Revision: 1.11 $
 */
 
 
@@ -390,6 +390,8 @@ static void  Capped_Increment
     (unsigned char *, unsigned char, unsigned char);
 static char  char_Min
     (char a, char b);
+static void  Choose_Best_Partial
+    (Olap_Info_t * olap, int ct, int deleted []);
 static void  Combine_Into_One_Olap
     (Olap_Info_t * olap, int ct, int deleted []);
 static char  Complement
@@ -794,6 +796,7 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
                   "-t          designate number of parallel threads\n"
                   "-u          allow only 1 overlap per oriented fragment pair\n"
                   "-w          filter out overlaps with too many errors in a window\n"
+                  "-z          skip the hopeless check\n",
                   "\n"
                   "--hashbits n     Use n bits for the hash mask.\n"
                   "--hashstrings n  Use at most n strings per hash table.\n"
@@ -1358,49 +1361,56 @@ static void  Add_Overlap
   {
    int  i, new_diag;
 
-   new_diag = t_lo - s_lo;
-   for  (i = 0;  i < (* ct);  i ++)
+   if  (Doing_Partial_Overlaps)
+     olap += (* ct);
+   // Don't combine overlaps when doing partials
+   else
      {
-      int  old_diag = olap -> t_lo - olap -> s_lo;
+ 
+       new_diag = t_lo - s_lo;
+       for  (i = 0;  i < (* ct);  i ++)
+         {
+           int  old_diag = olap -> t_lo - olap -> s_lo;
 
-      if  ((new_diag > 0
-             && old_diag > 0
-             && olap -> t_right_boundary - new_diag - olap -> s_left_boundary
-                    >= MIN_INTERSECTION)
-           || (new_diag <= 0
-                 && old_diag <= 0
-                 && olap -> s_right_boundary + new_diag - olap -> t_left_boundary
-                        >= MIN_INTERSECTION))
-          {
-           if  (new_diag < olap -> min_diag)
-               olap -> min_diag = new_diag;
-           if  (new_diag > olap -> max_diag)
-               olap -> max_diag = new_diag;
-           if  (s_lo < olap -> s_left_boundary)
-               olap -> s_left_boundary = s_lo;
-           if  (s_hi > olap -> s_right_boundary)
-               olap -> s_right_boundary = s_hi;
-           if  (t_lo < olap -> t_left_boundary)
-               olap -> t_left_boundary = t_lo;
-           if  (t_hi > olap -> t_right_boundary)
-               olap -> t_right_boundary = t_hi;
-           if  (qual < olap -> quality)      // lower value is better
-               {
-                olap -> s_lo = s_lo;
-                olap -> s_hi = s_hi;
-                olap -> t_lo = t_lo;
-                olap -> t_hi = t_hi;
-                olap -> quality = qual;
-                memcpy (& (olap ->  delta), WA -> Left_Delta,
-                            WA -> Left_Delta_Len * sizeof (int));
-                olap -> delta_ct = WA -> Left_Delta_Len;
-               }
+           if  ((new_diag > 0
+                 && old_diag > 0
+                 && olap -> t_right_boundary - new_diag - olap -> s_left_boundary
+                 >= MIN_INTERSECTION)
+                || (new_diag <= 0
+                    && old_diag <= 0
+                    && olap -> s_right_boundary + new_diag - olap -> t_left_boundary
+                    >= MIN_INTERSECTION))
+             {
+               if  (new_diag < olap -> min_diag)
+                 olap -> min_diag = new_diag;
+               if  (new_diag > olap -> max_diag)
+                 olap -> max_diag = new_diag;
+               if  (s_lo < olap -> s_left_boundary)
+                 olap -> s_left_boundary = s_lo;
+               if  (s_hi > olap -> s_right_boundary)
+                 olap -> s_right_boundary = s_hi;
+               if  (t_lo < olap -> t_left_boundary)
+                 olap -> t_left_boundary = t_lo;
+               if  (t_hi > olap -> t_right_boundary)
+                 olap -> t_right_boundary = t_hi;
+               if  (qual < olap -> quality)      // lower value is better
+                 {
+                   olap -> s_lo = s_lo;
+                   olap -> s_hi = s_hi;
+                   olap -> t_lo = t_lo;
+                   olap -> t_hi = t_hi;
+                   olap -> quality = qual;
+                   memcpy (& (olap ->  delta), WA -> Left_Delta,
+                           WA -> Left_Delta_Len * sizeof (int));
+                   olap -> delta_ct = WA -> Left_Delta_Len;
+                 }
 
-           //  check for intersections before outputting
-           return;
-          }
+               //  check for intersections before outputting
+               return;
+             }
 
-      olap ++;
+           olap ++;
+         }
      }
 
    if  ((* ct) >= MAX_DISTINCT_OLAPS)
@@ -1991,6 +2001,41 @@ static char  char_Min
    return  b;
   }
 
+
+
+static void  Choose_Best_Partial
+    (Olap_Info_t * olap, int ct, int deleted [])
+
+//  Choose the best partial overlap in  olap [0 .. (ct - 1)] .
+//  Set the corresponding  deleted  entry to false for the others.
+//  Best is the greatest number of matching bases.
+
+  {
+   double  matching_bases;
+   int  i, best;
+
+   best = 0;
+   matching_bases = (1.0 - olap [0] . quality) * (2 + olap [0] . s_hi - olap [0] . s_lo
+        + olap [0] . t_hi - olap [0] . t_lo);
+     // actually twice the number of matching bases but the max will be
+     // the same overlap
+
+   for  (i = 1;  i < ct;  i ++)
+     {
+      double  mb;
+
+      mb = (1.0 - olap [i] . quality) * (2 + olap [i] . s_hi - olap [i] . s_lo
+           + olap [i] . t_hi - olap [i] . t_lo);
+      if  (matching_bases < mb || (matching_bases == mb
+             && olap [i] . quality < olap [best] . quality))
+          best = i;
+     }
+
+   for  (i = 0;  i < ct;  i ++)
+     deleted [i] = (i != best);
+
+   return;
+  }
 
 
 static void  Combine_Into_One_Olap
@@ -4369,10 +4414,10 @@ if  (Is_Duplicate_Olap)
         {
          Ptr = WA -> Match_Node_Space + (* Ref);
          if  (Ptr == Longest_Match
-                 || (Kind_Of_Olap == DOVETAIL
+                 || ((Kind_Of_Olap == DOVETAIL || Doing_Partial_Overlaps)
                      && S_Lo - SHIFT_SLACK <= Ptr -> Start
                      && Ptr -> Start + Ptr -> Len
-                                     <= S_Hi + SHIFT_SLACK - 1
+                                     <= (S_Hi + 1) + SHIFT_SLACK - 1
                      && Lies_On_Alignment
                             (Ptr -> Start, Ptr -> Offset,
                              S_Lo, T_Lo, WA)
@@ -4393,10 +4438,23 @@ if  (Is_Duplicate_Olap)
 //  Check if any previously distinct overlaps should be merged because
 //  of other merges.
 
-        if  (Unique_Olap_Per_Pair)
-            Combine_Into_One_Olap (distinct_olap, distinct_olap_ct, deleted);
+        if  (Doing_Partial_Overlaps)
+            {
+             if  (Unique_Olap_Per_Pair)
+                 Choose_Best_Partial (distinct_olap, distinct_olap_ct,
+                      deleted);
+               else
+                 ;  // Do nothing, output them all
+            }
           else
-            Merge_Intersecting_Olaps (distinct_olap, distinct_olap_ct, deleted);
+            {
+             if  (Unique_Olap_Per_Pair)
+                 Combine_Into_One_Olap (distinct_olap, distinct_olap_ct,
+                      deleted);
+               else
+                 Merge_Intersecting_Olaps (distinct_olap, distinct_olap_ct,
+                      deleted);
+            }
 
         p = distinct_olap;
         for  (i = 0;  i < distinct_olap_ct;  i ++)
