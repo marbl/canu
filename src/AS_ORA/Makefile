@@ -36,13 +36,13 @@ AS_ORA_OBJS = $(AS_ORA_SRCS:.c=.o)
 ORA_MAIN_SRCS = AS_ORA_main.c  
 ORA_MAIN_OBJS = $(ORA_MAIN_SRCS:.c=.o)
 
-SOURCES = $(AS_ORA_SRCS) $(ORA_MAIN_SRCS)  get-olaps.c get-perfect-olaps.c nodups.c fraguid2iid.c make-canonical.c compare-canonical.c fragiid2uid.c dump_fragment_as_fasta.c computeGCcontent.c
+SOURCES = $(AS_ORA_SRCS) $(ORA_MAIN_SRCS)  get-olaps.c get-perfect-olaps.c nodups.c fraguid2iid.c fraguid2iid_byhash.c make-canonical.c compare-canonical.c fragiid2uid.c dump_fragment_as_fasta.c computeGCcontent.c dumpMatePairing.c
 
 OBJECTS = $(SOURCES:.c=.o)
 
 LIBRARIES = 
 
-PROGS = overlap_regressor get-olaps get-perfect-olaps nodups fraguid2iid make-canonical compare-canonical fragiid2uid dump_fragment_as_fasta computeGCcontent
+PROGS = overlap_regressor get-olaps get-perfect-olaps nodups fraguid2iid fraguid2iid_byhash make-canonical compare-canonical fragiid2uid dump_fragment_as_fasta computeGCcontent dumpMatePairing
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
@@ -64,9 +64,13 @@ overlap_regressor: $(AS_ORA_OBJS) $(ORA_MAIN_OBJS) libAS_MSG.a libAS_PER.a libAS
 
 fraguid2iid: $(AS_ORA_OBJS) fraguid2iid.o libAS_MSG.a libAS_PER.a libAS_UTL.a libAS_CGW.a libAS_LIN.a libm.a
 
+fraguid2iid_byhash: $(AS_ORA_OBJS) fraguid2iid_byhash.o libAS_MSG.a libAS_PER.a libAS_UTL.a libAS_CGW.a libAS_LIN.a libm.a
+
 fragiid2uid : fragiid2uid.o libAS_PER.a  libAS_UTL.a libAS_CGW.a libAS_REZ.a libAS_CGW.a libAS_REZ.a libAS_LIN.a -lAS_CNS -lAS_SDB -lAS_REZ -lAS_ALN -lAS_MSG -lAS_PER -lAS_OVL -lAS_UTL
 
 dump_fragment_as_fasta : dump_fragment_as_fasta.o libAS_CGW.a libAS_REZ.a libAS_CGW.a libAS_REZ.a libAS_LIN.a -lAS_CNS -lAS_SDB -lAS_REZ -lAS_ALN -lAS_MSG -lAS_PER -lAS_OVL -lAS_UTL
+
+dumpMatePairing : dumpMatePairing.o libAS_CGW.a libAS_REZ.a libAS_CGW.a libAS_REZ.a libAS_LIN.a -lAS_CNS -lAS_SDB -lAS_REZ -lAS_ALN -lAS_MSG -lAS_PER -lAS_OVL -lAS_UTL
 
 computeGCcontent : computeGCcontent.o libAS_CGW.a libAS_REZ.a libAS_CGW.a libAS_REZ.a libAS_LIN.a -lAS_CNS -lAS_SDB -lAS_REZ -lAS_ALN -lAS_MSG -lAS_PER -lAS_OVL -lAS_UTL 
 
