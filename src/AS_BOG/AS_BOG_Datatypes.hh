@@ -33,11 +33,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_Datatypes.hh,v 1.1 2005-07-29 20:52:49 kli1000 Exp $
- * $Revision: 1.1 $
+ * $Id: AS_BOG_Datatypes.hh,v 1.2 2005-08-01 15:19:38 kli1000 Exp $
+ * $Revision: 1.2 $
 */
 
-static char CM_ID[] = "$Id: AS_BOG_Datatypes.hh,v 1.1 2005-07-29 20:52:49 kli1000 Exp $";
+static char CM_ID[] = "$Id: AS_BOG_Datatypes.hh,v 1.2 2005-08-01 15:19:38 kli1000 Exp $";
 
 //  System include files
 
@@ -58,6 +58,11 @@ namespace AS_BOG{
 		CONT_B_CONTAINS,
 		CONT_MUTUAL
 	} overlap_type;
+
+	typedef enum {
+		FIVE_PRIME, 	// 5' End of fragment
+		THREE_PRIME 	// 3' End of Fragment
+	} fragment_end_type;
 
 	typedef unsigned int iuid;
 
