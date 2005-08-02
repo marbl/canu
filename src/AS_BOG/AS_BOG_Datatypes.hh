@@ -33,11 +33,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_Datatypes.hh,v 1.2 2005-08-01 15:19:38 kli1000 Exp $
- * $Revision: 1.2 $
+ * $Id: AS_BOG_Datatypes.hh,v 1.3 2005-08-02 15:49:47 kli1000 Exp $
+ * $Revision: 1.3 $
 */
 
-static char CM_ID[] = "$Id: AS_BOG_Datatypes.hh,v 1.2 2005-08-01 15:19:38 kli1000 Exp $";
+static char CM_ID[] = "$Id: AS_BOG_Datatypes.hh,v 1.3 2005-08-02 15:49:47 kli1000 Exp $";
 
 //  System include files
 
@@ -47,16 +47,41 @@ static char CM_ID[] = "$Id: AS_BOG_Datatypes.hh,v 1.2 2005-08-01 15:19:38 kli100
 namespace AS_BOG{
 
 	typedef enum { 
+		UNDEFINED,
+
 		// Dovetailing overlaps
 		DOVE_NORMAL,		// AB_AB
-		DOVE_ANTI_NORMAL,	// BA_BA
+			// A ----->
+			// B    ----->
 		DOVE_INNIE,		// AB_BA
+			// A ----->
+			// B    <-----
 		DOVE_OUTTIE,		// BA_AB
+			// A    ----->
+			// B <-----
+		DOVE_ANTI_NORMAL,	// BA_BA (should be same as Normal if B is rc'd)
+			// A <-----
+			// B    <-----
 
 		// Containment overlaps
-		CONT_A_CONTAINS,
-		CONT_B_CONTAINS,
-		CONT_MUTUAL
+		CONT_NORMAL,
+			// A -------->
+			// B   --->
+		CONT_INNIE,
+			// A -------->
+			// B   <---
+		CONT_OUTTIE,
+			// A <--------
+			// B   --->
+		CONT_ANTI_NORMAL,
+			// A <--------
+			// B   <---
+		CONT_MUTUAL,
+			// A -------->
+			// B -------->
+		CONT_MUTUAL_INNIE,
+			// A -------->
+			// B <--------
 	} overlap_type;
 
 	typedef enum {
