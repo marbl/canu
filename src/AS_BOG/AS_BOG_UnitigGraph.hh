@@ -34,16 +34,17 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.hh,v 1.2 2005-08-02 17:13:19 kli1000 Exp $
- * $Revision: 1.2 $
+ * $Id: AS_BOG_UnitigGraph.hh,v 1.3 2005-08-02 21:55:22 kli1000 Exp $
+ * $Revision: 1.3 $
 */
 
-static char CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.2 2005-08-02 17:13:19 kli1000 Exp $";
+static char CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.3 2005-08-02 21:55:22 kli1000 Exp $";
 
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
 #include <vector>
+#include <map>
 #include "AS_BOG_Datatypes.hh"
 
 namespace AS_BOG{
@@ -58,8 +59,8 @@ namespace AS_BOG{
 
 		public:
 			// Constructor
-			Unitig(iuid unitig_id);
-			set_next_dovetailing_fragment(iuid frag_id);
+			Unitig(iuid utg_id);
+			set_next_dovetailing_fragment(iuid frag_id, orientation_type ori);
 			set_contained_fragment(iuid container, iuid containee);
 
 			// Computable statistics on this unitig
@@ -68,7 +69,7 @@ namespace AS_BOG{
 
 			iuid unitig_id;
 			vector<iuid> dovetail_path;
-			vector<iuid> contained_frags;
+			map<iuid, iuid> contained_frags;
 	}
 
 	///////////////////////////////////////////////////////////////////////
@@ -79,12 +80,7 @@ namespace AS_BOG{
 		// each other
 			
 		public:
-			UnitigOverlap(iuid utg_a, iuid utg_b, overlap_type type, int score){
-				unitig_a=utg_a;
-				unitig_b=utg_b;
-				ovl_type=type;
-				ovl_score=score;
-			}
+			UnitigOverlap(iuid utg_a, iuid utg_b, overlap_type type, int score);
 
 			iuid unitig_a;
 			iuid unitig_b;
@@ -100,11 +96,11 @@ namespace AS_BOG{
 		// in one object for a given assembly.
 
 		public:
-			iuid include_unitig(Unitig &utg);
-			include_overlap(UnitigOverlap &utg_ovl);
+			void include_unitig(Unitig &utg);
+			void include_overlap(UnitigOverlap &utg_ovl);
 
-			vector<Unitig> unitigs;
-			vector<UnitigOverlap> unitig_overlaps;
+			vector<&Unitig> unitigs;
+			vector<&UnitigOverlap> unitig_overlaps;
 
 	}
 
