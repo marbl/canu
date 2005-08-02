@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.1 2005-08-02 15:49:12 kli1000 Exp $
- * $Revision: 1.1 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.2 2005-08-02 15:54:36 kli1000 Exp $
+ * $Revision: 1.2 $
 */
 
-static char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.1 2005-08-02 15:49:12 kli1000 Exp $";
+static char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.2 2005-08-02 15:54:36 kli1000 Exp $";
 
 //  System include files
 
@@ -58,7 +58,7 @@ namespace AS_BOG{
 
 		for(iuid i=0; i<max_fragments; i++){
 			_bestOverlaps[i].ovl_frag_id=0;
-			_bestOverlaps[i].type=AS_BOG::UNDEFINED;
+			_bestOverlaps[i].type=UNDEFINED;
 			_bestOverlaps[i].three_prime_in_degree=0;
 			_bestOverlaps[i].five_prime_in_degree=0;
 			_bestOverlaps[i].score=-1;
@@ -88,17 +88,17 @@ namespace AS_BOG{
 		for(i=_bestContainments.begin; i<_bestContainments.end; i++){
 			switch(_bestContainments[i].overlap_type){
 
-				case AS_BOG::CONT_A_CONTAINS:
+				case CONT_A_CONTAINS:
 					if(containee==_bestContainments[i].frag_b_id){
 						return(&_bestContainments[i].frag_a_id);
 					}
 					break;
-				case AS_BOG::CONT_B_CONTAINS:
+				case CONT_B_CONTAINS:
 					if(containee==_bestContainments[i].frag_a_id){
 						return(&_bestContainments[i].frag_b_id);
 					}
 					break;
-				case AS_BOG::CONT_MUTUAL:
+				case CONT_MUTUAL:
 					if(containee==_bestContainments[i].frag_a_id){
 						return(&_bestContainments[i].frag_b_id);
 					}else if(containee==_bestContainments[i].frag_b_id){
@@ -118,36 +118,29 @@ namespace AS_BOG{
 	){
 		switch(ovl_type){
 			case 
-			AS_BOG::DOVE_NORMAL,
-			AS_BOG::DOVE_INNIE,
-			AS_BOG::DOVE_OUTTIE,
-			AS_BOG::DOVE_ANTI_NORMAL:
+			DOVE_NORMAL, DOVE_INNIE, DOVE_OUTTIE, DOVE_ANTI_NORMAL:
 				_best_overlaps[frag_a_id].frag_b_id=frag_b_id;
 				_best_overlaps[frag_a_id].type=ovl_type;
 				_best_overlaps[frag_a_id].score=score;
 				switch(ovl_type){
-					case AS_BOG::DOVE_NORMAL:
+					case DOVE_NORMAL:
 						_best_overlaps[frag_b_id].five_prime_in_degree++;
 						break;
-					case AS_BOG::DOVE_INNIE:
+					case DOVE_INNIE:
 						_best_overlaps[frag_b_id].three_prime_in_degree++;
 						break;
-					case AS_BOG::DOVE_OUTTIE:
+					case DOVE_OUTTIE:
 						_best_overlaps[frag_b_id].five_prime_in_degree++;
 						break;
-					case AS_BOG::DOVE_ANTI_NORMAL:
+					case DOVE_ANTI_NORMAL:
 						_best_overlaps[frag_b_id].three_prime_in_degree++;
 						break;
 					default:	
 				}
 
 			case 
-			AS_BOG::CONT_NORMAL,
-			AS_BOG::CONT_INNIE,
-			AS_BOG::CONT_OUTTIE:
-			AS_BOG::CONT_ANTI_NORMAL:
-			AS_BOG::CONT_MUTUAL:
-			AS_BOG::CONT_MUTUAL_INNIE:
+			CONT_NORMAL, CONT_INNIE, CONT_OUTTIE, 
+			CONT_ANTI_NORMAL, CONT_MUTUAL, CONT_MUTUAL_INNIE:
 				BestContainment best_containment;
 
 				best_containment.frag_a_id=frag_a_id;

@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.hh,v 1.4 2005-08-01 20:39:23 kli1000 Exp $
- * $Revision: 1.4 $
+ * $Id: AS_BOG_BestOverlapGraph.hh,v 1.5 2005-08-02 15:54:36 kli1000 Exp $
+ * $Revision: 1.5 $
 */
 
-static char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.4 2005-08-01 20:39:23 kli1000 Exp $";
+static char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.5 2005-08-02 15:54:36 kli1000 Exp $";
 
 //  System include files
 
@@ -59,7 +59,7 @@ namespace AS_BOG{
 		// will tell us what fragment has this best overlap
 
 		public:
-			iuid ovl_frag_id;
+			iuid frag_b_id;
 			overlap_type type;		
 			int three_prime_in_degree;
 			int five_prime_in_degree;
@@ -98,10 +98,7 @@ namespace AS_BOG{
 			}
 
 			// Accessor Get Functions
-			BestOverlap *getBestOverlap(iuid frag_id){
-				return(&(bestOverlaps[frag_id]));
-			}
-	
+			BestOverlap *getBestOverlap(iuid frag_id);
 			BestContainment *getBestContainment(iuid frag_id);
 
 			// Accessor Set Functions
@@ -113,9 +110,9 @@ namespace AS_BOG{
 			);
 
 		private:
-			BestOverlap _bestOverlaps[];
-			int _numBestOverlaps;
-			vector<BestContainment> _bestContainments;
+			BestOverlap _best_overlaps[];
+			int _num_best_overlaps;
+			vector<BestContainment> _best_containments;
 
 	} //BestOverlapGraph
 
