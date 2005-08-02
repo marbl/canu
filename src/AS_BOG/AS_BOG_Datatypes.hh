@@ -33,11 +33,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_Datatypes.hh,v 1.3 2005-08-02 15:49:47 kli1000 Exp $
- * $Revision: 1.3 $
+ * $Id: AS_BOG_Datatypes.hh,v 1.4 2005-08-02 21:54:11 kli1000 Exp $
+ * $Revision: 1.4 $
 */
 
-static char CM_ID[] = "$Id: AS_BOG_Datatypes.hh,v 1.3 2005-08-02 15:49:47 kli1000 Exp $";
+static char CM_ID[] = "$Id: AS_BOG_Datatypes.hh,v 1.4 2005-08-02 21:54:11 kli1000 Exp $";
 
 //  System include files
 
@@ -60,8 +60,11 @@ namespace AS_BOG{
 			// A    ----->
 			// B <-----
 		DOVE_ANTI_NORMAL,	// BA_BA (should be same as Normal if B is rc'd)
-			// A <-----
-			// B    <-----
+			// 	A <-----
+			// 	B    <-----
+			// AKA 
+			// 	A    ----->
+			// 	B  ----->
 
 		// Containment overlaps
 		CONT_NORMAL,
@@ -76,18 +79,18 @@ namespace AS_BOG{
 		CONT_ANTI_NORMAL,
 			// A <--------
 			// B   <---
-		CONT_MUTUAL,
-			// A -------->
-			// B -------->
-		CONT_MUTUAL_INNIE,
-			// A -------->
-			// B <--------
 	} overlap_type;
 
 	typedef enum {
 		FIVE_PRIME, 	// 5' End of fragment
 		THREE_PRIME 	// 3' End of Fragment
 	} fragment_end_type;
+
+	typedef enum {
+		UNKNOWN,
+		FORWARD,
+		REVERSE
+	} orientation_type;
 
 	typedef unsigned int iuid;
 
