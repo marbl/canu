@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.hh,v 1.5 2005-08-02 15:54:36 kli1000 Exp $
- * $Revision: 1.5 $
+ * $Id: AS_BOG_BestOverlapGraph.hh,v 1.6 2005-08-02 20:38:29 kli1000 Exp $
+ * $Revision: 1.6 $
 */
 
-static char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.5 2005-08-02 15:54:36 kli1000 Exp $";
+static char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.6 2005-08-02 20:38:29 kli1000 Exp $";
 
 //  System include files
 
@@ -52,32 +52,34 @@ namespace AS_BOG{
 
 	///////////////////////////////////////////////////////////////////////
 
-	class BestOverlap{
+	struct BestEdgeOverlap{
+		iuid frag_b_id;
+		overlap_type type;		
+		int in_degree;
+		int score;
+	}
+
+	struct BestFragmentOverlap{
 
 		// Contains information on what a known fragment overlaps.
 		// It is assumed that an index into an array of BestOverlap
 		// will tell us what fragment has this best overlap
 
-		public:
-			iuid frag_b_id;
-			overlap_type type;		
-			int three_prime_in_degree;
-			int five_prime_in_degree;
-			int score;
+		BestEdgeOverlap five_prime; 
+		BestEdgeOverlap three_prime;
 	}
 
 	///////////////////////////////////////////////////////////////////////
 
-	class BestContainment{
+	struct BestContainment{
 
 		// Contains what kind of containment relationship exists between
 		// fragment a and fragment b
 
-		public:
-			iuid frag_a_id;
-			iuid frag_b_id;
-			overlap_type type;
-			int score;
+		iuid frag_a_id;
+		iuid frag_b_id;
+		overlap_type type;
+		int score;
 	}
 
 	///////////////////////////////////////////////////////////////////////
