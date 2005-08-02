@@ -25,7 +25,7 @@
  Assumptions: There is no UID 0
 **********************************************************************/
 
-static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.5 2005-08-01 19:10:13 gdenisov Exp $";
+static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.6 2005-08-02 02:42:56 gdenisov Exp $";
 
 
 
@@ -556,8 +556,7 @@ static SnapUnitigMesg* convert_IUM_to_UTG(IntUnitigMesg* iumMesg, int64 blockSiz
       else
 	utgMesg->f_list[i].delta = NULL; 
     }
-  }
-
+  } 
   return utgMesg;
 }
 
@@ -711,13 +710,6 @@ static SnapConConMesg* convert_ICM_to_CCO(IntConConMesg* icmMesg, int64 blockSiz
   ccoMesg->forced     = icmMesg->forced;
   ccoMesg->num_pieces = icmMesg->num_pieces;
   ccoMesg->num_unitigs= icmMesg->num_unitigs;
-  ccoMesg->num_vars= icmMesg->num_vars;  // affects .asm/CCO
- 
-  if (ccoMesg->num_vars > 0) {
-     ccoMesg->vars = (SnapMultiVar*) safe_malloc(icmMesg->num_vars*sizeof(SnapMultiVar));
-     for(i=0; i<icmMesg->num_vars; i++) // i loop
-      ccoMesg->vars[i].position = icmMesg->v_list[i].position;
-  }
 
   if( ccoMesg->num_pieces > 0 ){ 
     ccoMesg->pieces = (SnapMultiPos*) safe_malloc(icmMesg->num_pieces*sizeof(SnapMultiPos));
@@ -1429,8 +1421,6 @@ static void free_ULK(SnapUnitigLinkMesg* ulkMesg){
 
 static void free_CCO(SnapConConMesg* ccoMesg){
   /*** DO NOT FREE DELTA ARRAYS...THESE WERE COPIED BY REFERENCE */
-  if( ccoMesg->num_vars > 0)
-    free(ccoMesg->vars);
   if( ccoMesg->num_pieces > 0)
     free(ccoMesg->pieces);
   if( ccoMesg->num_unitigs > 0)
@@ -1870,8 +1860,7 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
 /* read information from the fragment, gatekeeper and bactig store */
 
 
-void read_stores(char* fragStoreName, char* bactigStoreName, char* gkpStoreName)
-{
+void read_stores(char* fragStoreName, char* bactigStoreName, char* gkpStoreName){
   ReadStructp  input;
   //  FragStoreHandle storeHandle = 0;
   FragStoreHandle streamHandle = 0;

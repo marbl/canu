@@ -404,8 +404,10 @@ int main( int argc, char *argv[])
 
 	    //      fprintf(stderr,"Doing the multialignment\n");
 
-	    if (MultiAlignUnitig(&ium,frgStore,sequence,quality,deltas,printwhat,do_rez,COMPARE_FUNC)==-1 ) {
-	      fprintf(stderr,"MultiAlignUnitig failed for overlap of fragments %d and %d\n",fragIID,mateIID);
+	    if (MultiAlignUnitig(&ium,frgStore,sequence,quality,deltas,printwhat,do_rez,
+                COMPARE_FUNC, NULL)==-1 ) {
+	      fprintf(stderr,"MultiAlignUnitig failed for overlap of fragments %d and %d\n",
+                  fragIID,mateIID);
 	      assert(FALSE);
 	    }
 
