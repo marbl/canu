@@ -34,15 +34,16 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.hh,v 1.1 2005-07-29 20:51:37 kli1000 Exp $
- * $Revision: 1.1 $
+ * $Id: AS_BOG_UnitigGraph.hh,v 1.2 2005-08-02 17:13:19 kli1000 Exp $
+ * $Revision: 1.2 $
 */
 
-static char CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.1 2005-07-29 20:51:37 kli1000 Exp $";
+static char CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.2 2005-08-02 17:13:19 kli1000 Exp $";
 
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
+#include <vector>
 #include "AS_BOG_Datatypes.hh"
 
 namespace AS_BOG{
@@ -99,7 +100,7 @@ namespace AS_BOG{
 		// in one object for a given assembly.
 
 		public:
-			include_unitig(Unitig &utg);
+			iuid include_unitig(Unitig &utg);
 			include_overlap(UnitigOverlap &utg_ovl);
 
 			vector<Unitig> unitigs;
