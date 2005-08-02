@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.hh,v 1.6 2005-08-02 20:38:29 kli1000 Exp $
- * $Revision: 1.6 $
+ * $Id: AS_BOG_BestOverlapGraph.hh,v 1.7 2005-08-02 21:29:26 kli1000 Exp $
+ * $Revision: 1.7 $
 */
 
-static char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.6 2005-08-02 20:38:29 kli1000 Exp $";
+static char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.7 2005-08-02 21:29:26 kli1000 Exp $";
 
 //  System include files
 
@@ -46,6 +46,7 @@ static char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.6 2005-08-02 20:38:29
 #define INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 
 #include <vector>
+#include <map>
 #include "AS_BOG_Datatypes.hh"
 
 namespace AS_BOG{
@@ -76,8 +77,7 @@ namespace AS_BOG{
 		// Contains what kind of containment relationship exists between
 		// fragment a and fragment b
 
-		iuid frag_a_id;
-		iuid frag_b_id;
+		iuid container;
 		overlap_type type;
 		int score;
 	}
@@ -114,7 +114,7 @@ namespace AS_BOG{
 		private:
 			BestOverlap _best_overlaps[];
 			int _num_best_overlaps;
-			vector<BestContainment> _best_containments;
+			map<iuid, BestContainment> _best_containments;
 
 	} //BestOverlapGraph
 

@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.2 2005-08-02 15:54:36 kli1000 Exp $
- * $Revision: 1.2 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.3 2005-08-02 21:29:25 kli1000 Exp $
+ * $Revision: 1.3 $
 */
 
-static char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.2 2005-08-02 15:54:36 kli1000 Exp $";
+static char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.3 2005-08-02 21:29:25 kli1000 Exp $";
 
 //  System include files
 
@@ -47,21 +47,21 @@ static char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.2 2005-08-02 15:54:36
 
 namespace AS_BOG{
 
-
-	// BestOverlap::BestOverlap
-
-	// BestContainment::BestContainment
-
 	// BestOverlapGraph
+	// Constructor
 	BestOverlapGraph::BestOverlapGraph(int max_fragments){
-		_bestOverlaps = new BestOverlap[max_fragments];
+		_best_overlaps = new BestFragmentOverlap[max_fragments];
 
 		for(iuid i=0; i<max_fragments; i++){
-			_bestOverlaps[i].ovl_frag_id=0;
-			_bestOverlaps[i].type=UNDEFINED;
-			_bestOverlaps[i].three_prime_in_degree=0;
-			_bestOverlaps[i].five_prime_in_degree=0;
-			_bestOverlaps[i].score=-1;
+			_best_overlaps[i].five_prime.ovl_frag_id=0;
+			_best_overlaps[i].five_prime.type=UNDEFINED;
+			_best_overlaps[i].five_prime.in_degree=0;
+			_best_overlaps[i].five_prime.score=-1;
+
+			_best_overlaps[i].three_prime.ovl_frag_id=0;
+			_best_overlaps[i].three_prime.type=UNDEFINED;
+			_best_overlaps[i].three_prime.in_degree=0;
+			_best_overlaps[i].three_prime.score=-1;
 		}
 
 		_numBestOverlaps = 0;
@@ -69,7 +69,7 @@ namespace AS_BOG{
 
 	// Destructor
 	BestOverlapGraph::~BestOverlapGraph(void){
-		delete[] BestOverlap;
+		delete[] _best_overlaps;
 	}
 
 	// Interface to graph visitor
@@ -79,34 +79,11 @@ namespace AS_BOG{
 
 	// Accessor Get Functions
 	BestOverlap *BestOverlapGraph::getBestOverlap(iuid frag_id){
-		return(&(_bestOverlaps[frag_id]));
+		return(&_best_overlaps[frag_id]);
 	}
 
 	BestContainment *BestOverlapGraph::getBestContainer(iuid containee){
-		iuid i;
-		iuid container;
-		for(i=_bestContainments.begin; i<_bestContainments.end; i++){
-			switch(_bestContainments[i].overlap_type){
-
-				case CONT_A_CONTAINS:
-					if(containee==_bestContainments[i].frag_b_id){
-						return(&_bestContainments[i].frag_a_id);
-					}
-					break;
-				case CONT_B_CONTAINS:
-					if(containee==_bestContainments[i].frag_a_id){
-						return(&_bestContainments[i].frag_b_id);
-					}
-					break;
-				case CONT_MUTUAL:
-					if(containee==_bestContainments[i].frag_a_id){
-						return(&_bestContainments[i].frag_b_id);
-					}else if(containee==_bestContainments[i].frag_b_id){
-						return(&_bestContainments[i].frag_a_id);
-					}
-			}
-		}
-		return(NULL);
+		return(&_best_containments[containee]);
 	}
 
 	// Accessor Set Functions
@@ -117,41 +94,44 @@ namespace AS_BOG{
 		overlap_type ovl_type
 	){
 		switch(ovl_type){
-			case 
-			DOVE_NORMAL, DOVE_INNIE, DOVE_OUTTIE, DOVE_ANTI_NORMAL:
-				_best_overlaps[frag_a_id].frag_b_id=frag_b_id;
-				_best_overlaps[frag_a_id].type=ovl_type;
-				_best_overlaps[frag_a_id].score=score;
-				switch(ovl_type){
-					case DOVE_NORMAL:
-						_best_overlaps[frag_b_id].five_prime_in_degree++;
-						break;
-					case DOVE_INNIE:
-						_best_overlaps[frag_b_id].three_prime_in_degree++;
-						break;
-					case DOVE_OUTTIE:
-						_best_overlaps[frag_b_id].five_prime_in_degree++;
-						break;
-					case DOVE_ANTI_NORMAL:
-						_best_overlaps[frag_b_id].three_prime_in_degree++;
-						break;
-					default:	
-				}
+		case DOVE_NORMAL: 
+		case DOVE_INNIE: 
+		case DOVE_OUTTIE: 
+		case DOVE_ANTI_NORMAL: 
+		case DOVE_NORMAL_BACK:
 
-			case 
-			CONT_NORMAL, CONT_INNIE, CONT_OUTTIE, 
-			CONT_ANTI_NORMAL, CONT_MUTUAL, CONT_MUTUAL_INNIE:
-				BestContainment best_containment;
+			_best_overlaps[frag_a_id].frag_b_id=frag_b_id;
+			_best_overlaps[frag_a_id].type=ovl_type;
+			_best_overlaps[frag_a_id].score=score;
 
-				best_containment.frag_a_id=frag_a_id;
-				best_containment.frag_b_id=frag_b_id;
-				best_containment.type=ovl_type;
-				best_containment.score=score;
+			switch(ovl_type){
 
-				_best_containments.push_back(best_containment);
-			break;
+			case DOVE_NORMAL:
+			case DOVE_OUTTIE:
+				_best_overlaps[frag_b_id].five_prime_in_degree++;
+				break;
+			case DOVE_INNIE:
+			case DOVE_ANTI_NORMAL:
+				_best_overlaps[frag_b_id].three_prime_in_degree++;
+				break;
+			default:	
+			}
+		break;
 
-			default:
+		case CONT_NORMAL: 
+		case CONT_INNIE:
+		case CONT_OUTTIE: 
+		case CONT_ANTI_NORMAL: 
+
+			BestContainment best_containment;
+			best_containment.container=frag_a_id;
+			best_containment.type=ovl_type;
+			best_containment.score=score;
+
+			_best_containments[frag_b_id];
+		break;
+
+		default:
 		}
 		
 	}
