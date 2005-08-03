@@ -22,7 +22,7 @@
 # # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 #############################################################################
-# $Id: assembler_multi_frg.pl,v 1.1 2005-07-18 20:58:58 eliv Exp $
+# $Id: assembler_multi_frg.pl,v 1.2 2005-08-03 21:09:54 eliv Exp $
 print "The Celera Whole Genome Shotgun Assembler.\n";
 #######################################################################
 #
@@ -648,14 +648,7 @@ sub run_scaffolder {
     my $descriptionLine;
     my $prefix = &Assembler::getGlobal("prefix");
 
-    my $D_UNITIG_ASTAT = "-j " . 
-	&Assembler::getGlobal("D-unitig A-statistic");
-    my $U_UNITIG_ASTAT = "-k " . 
-	&Assembler::getGlobal("U-unitig A-statistic");
-
-    my $CGW_CMD;
-    $CGW_CMD="cgw -c $D_UNITIG_ASTAT $U_UNITIG_ASTAT " .
-	"-r 5 -s 0 -w 0 -T -P $OUTPUT_MODE";
+    my $CGW_CMD = Assembler::getGlobal("scaffolder") . " $OUTPUT_MODE";
 
     if (&Assembler::shouldExecute()) {
 	$descriptionLine = "CGW, the Scaffolder.";
@@ -800,7 +793,7 @@ sub readProperties($) {
     my $propFile = shift;
 
     my %requiredProps = ( gatekeeper => 0, meryl => 0, overlap=>0, growOlapStore => 0,
-            unitigger => 0);
+            unitigger => 0, scaffolder => 0);
 
     open(PROPS,"<$propFile") || die "Can't read property file $propFile";
     while(<PROPS>) {
@@ -860,7 +853,6 @@ sub main {
     &Assembler::setGlobal("frgFileString",$frgFileString);
     &Assembler::setGlobal("local bin", "./bin");
     &Assembler::setGlobal("repeat library","$as_root_dir/lib/$prefix.lib");
-    &Assembler::setGlobal("D-unitig A-statistic", 1);
     &Assembler::setGlobal("U-unitig A-statistic", 5);
     &Assembler::setGlobal("use LSF for consensus", 0);
     &Assembler::setGlobal("use screener", 0);
