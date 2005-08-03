@@ -66,6 +66,7 @@ CXX        = g++
 CFLAGS_OPT = -g
 CXXDEFS    = -D__cplusplus
 ARFLAGS    = rvs
+USRLIB     = /usr/lib
 
 ifeq ($(OSTYPE), Linux)
   CC = gcc
@@ -82,6 +83,7 @@ ifeq ($(OSTYPE), Linux)
     CXX       = g++
     CFLAGS   += -m64 -mcmodel=medium 
     CXXFLAGS += -m64 -mcmodel=medium
+    USRLIB    = /usr/lib64
   endif
 endif
 
@@ -227,7 +229,7 @@ endif
 CFLAGS          += $(CFLAGS_OPT) $(CFLAGS_WARNINGS)
 INC_IMPORT_DIRS += $(patsubst %, $(LOCAL_WORK)/src/%, $(strip $(SUBDIRS))) \
                    $(LOCAL_WORK)/inc 
-LIB_IMPORT_DIRS += $(LOCAL_LIB) /usr/lib  /usr/shlib /usr/X11R6/lib /usr/X/lib /usr/shlib/X11
+LIB_IMPORT_DIRS += $(LOCAL_LIB) $(USRLIB) /usr/shlib /usr/X11R6/lib /usr/X/lib /usr/shlib/X11
 OBJ_SEARCH_PATH = $(LOCAL_OBJ)
 
 
