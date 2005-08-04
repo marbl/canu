@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.11 2005-08-01 21:02:13 brianwalenz Exp $
- * $Revision: 1.11 $
+ * $Id: AS_OVL_overlap_common.h,v 1.12 2005-08-04 17:31:11 brianwalenz Exp $
+ * $Revision: 1.12 $
 */
 
 
@@ -4023,9 +4023,16 @@ static void  Output_Partial_Overlap
        }
    if  (Num_PThreads > 1)
        pthread_mutex_lock (& Write_Proto_Mutex);
+   errno = 0;
    fprintf (Out_Stream, "%7d %7d  %c %4d %4d %4d  %4d %4d %4d  %5.2f\n",
         s_id, t_id, dir_ch, a, b, s_len, c, d, t_len,
         100.0 * p -> quality);
+   if (errno) {
+     fprintf(stderr, "Write failed: %s\n", strerror(errno));
+     fprintf(stderr, "Unlinking output file.\n");
+     unlink(Outfile_Name);
+     exit(1);
+   }
    if  (Num_PThreads > 1)
        pthread_mutex_unlock (& Write_Proto_Mutex);
 
