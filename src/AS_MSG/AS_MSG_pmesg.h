@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.8 2005-08-02 02:37:39 gdenisov Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.9 2005-08-04 21:21:14 gdenisov Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -753,20 +753,20 @@ typedef struct IntMultiPos {
 /* IMV message */
 
 typedef struct IntMultiVar {
-  IntFragment_ID  ident;
+//IntFragment_ID  ident;
 #ifdef i386
-  int32           ptrPad1;
+//int32           ptrPad1;
 #endif
   SeqInterval     position;
-  int32           nreads;
-  int32           nreads_best;
-  float           ratio;     
-  int32           var_length;
-  char           *var_sequence;
-  int32           window;  
-  IntFragment_ID *aindent;
+//int32           nreads;
+//int32           nreads_best;
+//float           ratio;     
+//int32           var_length;
+//char           *var_sequence;
+//int32           window;  
+//IntFragment_ID *aindent;
 #ifdef i386
-  int32           ptrPad2;
+//int32           ptrPad2;
 #endif
 } IntMultiVar;
 
@@ -856,9 +856,9 @@ typedef struct {
   int32                      num_pieces;
   int32                      num_unitigs;
   int32                      num_vars;
-  IntMultiPos                *pieces;
-  IntUnitigPos               *unitigs;
-  IntMultiVar                *v_list;
+  IntMultiPos               *pieces;
+  IntUnitigPos              *unitigs;
+  IntMultiVar               *v_list;
 } IntConConMesg;
 
 
@@ -1027,7 +1027,9 @@ typedef struct {
   char            *quality;
   int32		  forced;
   int32           num_frags;
+  int32           num_vars;
   SnapMultiPos    *f_list;// changed in comparison to internal message
+  IntMultiVar     *v_list;
 } SnapUnitigMesg;
 
 
@@ -1048,7 +1050,7 @@ typedef struct {
   float32		std_deviation;
   int32			num_contributing;
   PlacementStatusType	status;
-  SnapMate_Pairs	*jump_list; // changed in comparison to internal message
+  SnapMate_Pairs       *jump_list; // changed in comparison to internal message
 } SnapUnitigLinkMesg;
 
 
@@ -1063,8 +1065,10 @@ typedef struct {
   int32                       forced;
   int32                       num_pieces;
   int32                       num_unitigs;
-  SnapMultiPos                *pieces; // changed in comparison to internal message
-  UnitigPos                   *unitigs;// changed in comparison to internal message
+  int32                       num_vars;
+  SnapMultiPos               *pieces; // changed in comparison to internal message
+  IntMultiVar                *vars;   
+  UnitigPos                  *unitigs;// changed in comparison to internal message
 } SnapConConMesg;
 
 

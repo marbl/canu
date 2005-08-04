@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_MSG_bmesg.c,v 1.4 2005-03-22 19:49:00 jason_miller Exp $";
+static char CM_ID[] = "$Id: AS_MSG_bmesg.c,v 1.5 2005-08-04 21:21:13 gdenisov Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -539,13 +539,16 @@ static void Read_CCO_Mesg(FILE *fin, void *vmesg)
   SnapConConMesg *mesg = (SnapConConMesg *) vmesg;
   SnapMultiPos	*mlp;
   UnitigPos *up;
+  IntMultiVar *imv;
+
   int		i;
   int32		*delta;
-  long		cindx, qindx, pindx, uindx, indx;
+  long		cindx, qindx, pindx, uindx, indx, vindx;
 
   cindx = GetString(fin);
   qindx = GetString(fin);
   pindx = MoreSpace(sizeof(SnapMultiPos)*mesg->num_pieces,8);
+  vindx = MoreSpace(sizeof(IntMultiVar)*mesg->num_vars,8);
   uindx = MoreSpace(sizeof(UnitigPos)*mesg->num_unitigs,8);
   if (mesg->num_pieces > 0) {
     for (i=0; i < mesg->num_pieces; ++i) {
@@ -570,6 +573,16 @@ static void Read_CCO_Mesg(FILE *fin, void *vmesg)
   }
   else
     mesg->pieces = NULL;
+
+  if (mesg->num_vars > 0) {
+    for (i=0; i < mesg->num_vars; ++i) {
+      imv = ((IntMultiVar *) (MemBuffer + vindx)) + i;
+      FREAD(imv,sizeof(IntMultiVar),1,fin);
+    }
+    mesg->vars   = (IntMultiVar *) (MemBuffer + vindx);
+  }
+  else
+    mesg->vars   = NULL;
 
 
   if (mesg->num_unitigs > 0) {
@@ -1022,13 +1035,15 @@ static void Read_ICM_Mesg(FILE *fin, void *vmesg)
   IntConConMesg *mesg = (IntConConMesg *) vmesg;
   IntMultiPos	*mlp;
   IntUnitigPos	*iup;
-  int		i;
+  IntMultiVar   *imv;
+  int		 i;
   int32		*delta;
-  long		cindx, qindx, pindx, uindx, indx;
+  long		 cindx, qindx, pindx, uindx, indx, vindx;
 
   cindx = GetString(fin);
   qindx = GetString(fin);
   pindx = MoreSpace(sizeof(IntMultiPos)*mesg->num_pieces,8);
+  vindx = MoreSpace(sizeof(IntMultiVar)*mesg->num_vars,8);
   uindx = MoreSpace(sizeof(IntUnitigPos)*mesg->num_unitigs,8);
 
   if (mesg->num_pieces > 0) {
@@ -1054,6 +1069,16 @@ static void Read_ICM_Mesg(FILE *fin, void *vmesg)
   }
   else
     mesg->pieces = NULL;
+
+  if (mesg->num_vars > 0) {
+    for (i=0; i < mesg->num_vars; ++i) {
+      imv = ((IntMultiVar *) (MemBuffer + vindx)) + i;
+      FREAD(imv,sizeof(IntMultiVar),1,fin);
+    }
+    mesg->v_list = (IntMultiVar *) (MemBuffer + vindx);
+  }
+  else
+    mesg->v_list = NULL;
 
   if (mesg->num_unitigs > 0) {
     for (i=0; i < mesg->num_unitigs; ++i) {
@@ -1122,6 +1147,9 @@ static void Write_ICM_Mesg(FILE *fout, void *vmesg)
       FWRITE(mesg->pieces[i].delta,sizeof(int32),
 	     mesg->pieces[i].delta_length,fout);
   }
+  for (i=0; i < mesg->num_vars; ++i) {
+    FWRITE(&mesg->v_list[i],sizeof(IntMultiVar),1,fout);
+  }
   for (i=0; i < mesg->num_unitigs; ++i) {
     FWRITE(&mesg->unitigs[i],sizeof(IntUnitigPos),1,fout);
     if (mesg->unitigs[i].delta_length > 0)
@@ -1145,6 +1173,9 @@ static void Write_CCO_Mesg(FILE *fout, void *vmesg)
     if (mesg->pieces[i].delta_length > 0)
       FWRITE(mesg->pieces[i].delta,sizeof(int32),
 	     mesg->pieces[i].delta_length,fout);
+  }
+  for (i=0; i < mesg->num_vars; ++i) {
+    FWRITE(&mesg->vars[i],sizeof(IntMultiVar),1,fout);
   }
   for (i=0; i < mesg->num_unitigs; ++i) {
     FWRITE(&mesg->unitigs[i],sizeof(UnitigPos),1,fout);
