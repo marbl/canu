@@ -1,8 +1,6 @@
 
 /**************************************************************************
- * This file is part of Celera Assembler, a software program that 
- * assembles whole-genome shotgun reads into contigs and scaffolds.
- * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
+ * Copyright (C) 2005, J Craig Venter Institute. All rights reserved.
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,11 +31,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FindContainedFrags.cc,v 1.1 2005-07-20 15:04:03 eliv Exp $
- * $Revision: 1.1 $
+ * $Id: FindContainedFrags.cc,v 1.2 2005-08-05 14:52:05 eliv Exp $
+ * $Revision: 1.2 $
 */
 
-static char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.1 2005-07-20 15:04:03 eliv Exp $";
+static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.2 2005-08-05 14:52:05 eliv Exp $";
 
 //  System include files
 
