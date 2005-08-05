@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.12 2005-08-04 17:31:11 brianwalenz Exp $
- * $Revision: 1.12 $
+ * $Id: AS_OVL_overlap_common.h,v 1.13 2005-08-05 19:58:53 brianwalenz Exp $
+ * $Revision: 1.13 $
 */
 
 
@@ -796,7 +796,7 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
                   "-t          designate number of parallel threads\n"
                   "-u          allow only 1 overlap per oriented fragment pair\n"
                   "-w          filter out overlaps with too many errors in a window\n"
-                  "-z          skip the hopeless check\n",
+                  "-z          skip the hopeless check\n"
                   "\n"
                   "--hashbits n     Use n bits for the hash mask.\n"
                   "--hashstrings n  Use at most n strings per hash table.\n"
@@ -4029,8 +4029,8 @@ static void  Output_Partial_Overlap
         100.0 * p -> quality);
    if (errno) {
      fprintf(stderr, "Write failed: %s\n", strerror(errno));
-     fprintf(stderr, "Unlinking output file.\n");
-     unlink(Outfile_Name);
+     //fprintf(stderr, "Unlinking output file.\n");
+     //unlink(Outfile_Name);
      exit(1);
    }
    if  (Num_PThreads > 1)
