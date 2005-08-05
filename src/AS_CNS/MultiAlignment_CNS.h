@@ -183,8 +183,8 @@ typedef struct {
 //  This is the basic multialignment atom: 
 //  A collection (possibly empty) of columns
 //  Given by their offsets in the global columnStore
-int32 lid;
-int32 iid;
+int32 lid;      // MANode id in the manodeStore
+int32 iid;      // MANode's iid
 int32 first;
 int32 last;
 VA_TYPE(int32) *columns;
@@ -291,7 +291,7 @@ int GetMANodeConsensus(int32 mid, VA_TYPE(char) *, VA_TYPE(char) *);
 int GetMANodePositions(int32 , int, IntMultiPos *, int, IntUnitigPos *, 
     VA_TYPE(int32) *);
 void PrintAlignment(FILE *, int32, int32, int32, CNS_PrintKey );
-int32 MergeRefine(int32 mid, CNS_Options *opp);
+int32 MergeRefine(int32 , IntMultiVar **, int32 *, CNS_Options *);
 
 typedef enum {
   LEFT_SHIFT  = (int) 'L', // Left Shifted

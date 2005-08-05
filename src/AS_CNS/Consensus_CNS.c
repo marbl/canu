@@ -27,7 +27,7 @@
                  
  *********************************************************************/
 
-static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.10 2005-08-02 02:34:21 gdenisov Exp $";
+static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.11 2005-08-05 13:29:37 gdenisov Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -793,7 +793,7 @@ int main (int argc, char *argv[]) {
       VA_TYPE(char) *quality=CreateVA_char(200000);
       time_t t;
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.10 $ processing. Started %s\n",
+      fprintf(stderr,"# Consensus $Revision: 1.11 $ processing. Started %s\n",
         ctime(&t));
       InitializeAlphTable();
       if ( ! align_ium && USE_SDB && extract > -1 ) 
@@ -805,14 +805,26 @@ int main (int argc, char *argv[]) {
           ma =  LoadMultiAlignTFromSequenceDB(sequenceDB, extract, FALSE);
         }
         ctmp.iaccession = extract;
-        ctmp.forced =0;
-        ctmp.length = GetNumchars(ma->consensus);
-        ctmp.num_pieces = GetNumIntMultiPoss(ma->f_list);
-        ctmp.pieces = GetIntMultiPos(ma->f_list,0);
+        ctmp.forced      = 0;
+        ctmp.length      = GetNumchars(ma->consensus);
+        ctmp.num_pieces  = GetNumIntMultiPoss(ma->f_list);
+        ctmp.pieces      = GetIntMultiPos(ma->f_list,0);
+        ctmp.num_vars    = GetNumIntMultiVars(ma->v_list);
         ctmp.num_unitigs = GetNumIntUnitigPoss(ma->u_list);
-        ctmp.unitigs= GetIntUnitigPos(ma->u_list,0);
+        ctmp.unitigs     = GetIntUnitigPos(ma->u_list,0);
+#if 1
+        fprintf(stderr, "Before MultiAlignContig #%d: ctmp.num_vars = %d\n", ctmp.iaccession, ctmp.num_vars);
+#endif
+        if (ctmp.num_vars == 0)
+        {
+            ctmp.num_vars = 1;
+            ctmp.v_list = safe_malloc(sizeof(IntMultiVar));
+        }
         MultiAlignContig(&ctmp, sequence, quality, deltas, printwhat,
                         COMPARE_FUNC, &options);
+#if 1
+        fprintf(stderr, "After  MultiAlignContig #%d: ctmp.num_vars = %d\n", ctmp.iaccession, ctmp.num_vars);
+#endif
         if ( printwhat != CNS_STATS_ONLY && cnslog != NULL )
         {
            ma = CreateMultiAlignTFromICM(&ctmp,-1,0);
@@ -823,6 +835,9 @@ int main (int argc, char *argv[]) {
           tmesg.m = &ctmp; 
           writer(cnsout,&tmesg); 
           fflush(cnsout);
+          if (ctmp.v_list != NULL)
+              free(ctmp.v_list);
+          ctmp.num_vars = 0;
         }
         exit(0); 
       }
@@ -987,7 +1002,15 @@ int main (int argc, char *argv[]) {
         //qsort(pcontig->unitigs, pcontig->num_unitigs, sizeof(IntUnitigPos),
         //      (int (*)(const void *,const void *))IntUnitigPositionCmpLeft);
             if ( ! noop > 0 ) {
-              MultiAlignContig(pcontig, sequence, quality, deltas, printwhat,
+             
+//             if (pcontig->num_vars == 0)
+//              {
+//                  pcontig->num_vars = 1;
+//                  pcontig->v_list = safe_malloc(sizeof(IntMultiVar));
+//              }
+                pcontig->num_vars == 0;
+                pcontig->v_list == NULL;
+                MultiAlignContig(pcontig, sequence, quality, deltas, printwhat,
                 COMPARE_FUNC, &options);
             }
             if ( printwhat == CNS_CONSENSUS && cnslog != NULL && 
@@ -1015,6 +1038,9 @@ int main (int argc, char *argv[]) {
               writer(cnsout,pmesg);
               exit(0);
             }
+            if (pcontig->v_list != NULL) 
+                free(pcontig->v_list);
+            pcontig->num_vars = 0;
             fflush(cnsout);
             fflush(cnslog);
             contig_count++;
@@ -1034,7 +1060,7 @@ int main (int argc, char *argv[]) {
             {
               AuditLine auditLine;
               AppendAuditLine_AS(adt_mesg, &auditLine, t,
-                                 "Consensus", "$Revision: 1.10 $","(empty)");
+                                 "Consensus", "$Revision: 1.11 $","(empty)");
             }
 #endif
               VersionStampADT(adt_mesg,argc,argv);
@@ -1058,7 +1084,7 @@ int main (int argc, char *argv[]) {
       }
 
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.10 $ Finished %s\n",ctime(&t));
+      fprintf(stderr,"# Consensus $Revision: 1.11 $ Finished %s\n",ctime(&t));
       if (printcns) 
       {
         int unitig_length = (unitig_count>0)? (int) input_lengths/unitig_count: 0; 
