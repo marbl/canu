@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Output_CGW.c,v 1.7 2005-08-02 02:40:51 gdenisov Exp $";
+static char CM_ID[] = "$Id: Output_CGW.c,v 1.8 2005-08-05 13:36:08 gdenisov Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -370,11 +370,11 @@ void OutputContigsFromMultiAligns(){
       icm_mesg.iaccession = ctg->outputID;
       icm_mesg.forced = 0;
       icm_mesg.num_pieces = numFrag;
+      icm_mesg.num_vars = GetNumIntMultiVars(ma->v_list); // affects .cgw/ICM
+//    icm_mesg.num_vars = 60;   // affects .cgw/ICM
       icm_mesg.pieces = mp;
       icm_mesg.num_unitigs = numUnitig;
       icm_mesg.length = GetMultiAlignLength(ma);
-      icm_mesg.num_vars = 0;
-      icm_mesg.v_list   = NULL;
       if(icm_mesg.num_unitigs > 1){
         icm_mesg.consensus = ""; // Getchar(ma->consensus,0);
         icm_mesg.quality = ""; // Getchar(ma->quality,0);
@@ -850,6 +850,8 @@ void OutputUnitigsFromMultiAligns(void){
     ium_mesg.forced = 0;
     ium_mesg.num_frags = GetNumIntMultiPoss(ma->f_list);
     ium_mesg.f_list = GetIntMultiPos(ma->f_list,0);
+    ium_mesg.num_vars = GetNumIntMultiVars(ma->v_list); // affects .cns
+    ium_mesg.v_list = GetIntMultiVar(ma->v_list,0);
 
     (GlobalData->writer)(GlobalData->outfp,&pmesg);
     {
