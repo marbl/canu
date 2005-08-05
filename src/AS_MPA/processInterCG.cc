@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: processInterCG.cc,v 1.4 2005-03-22 19:48:58 jason_miller Exp $ */
+/* $Id: processInterCG.cc,v 1.5 2005-08-05 00:56:41 catmandew Exp $ */
 #include <cstdio>  // for sscanf
 #include <iostream>
 #include <iomanip>
@@ -103,11 +103,16 @@ void Usage(char * progname, char * message)
 {
   if(message != NULL)
     cerr << endl << message << endl;
-  cerr << "Usage: " << progname << " [-l lib] [-e filename] [-a assembly] [-c chrom] [-n #] [-f #] -g\n";
+  cerr << "Usage: " << progname << " [-l lib] [-e filename] [-n #] [-f #] -g\n";
   cerr << "\t-l lib        name of clone library file\n";
   cerr << "\t-e filename   name of inter-chromosome matepairs file\n";
+  cerr << "\t                filename must have form:\n";
+  cerr << "\t                assemblyName_#_inter.txt\n";
+  cerr << "\t                where # is the scaffold or chromosome number\n";
+  /*
   cerr << "\t-a assembly   assembly name (e.g., B33A, VAN)\n";
   cerr << "\t-c chrom      chromosome number (index into fasta file)\n";
+  */
   cerr << "\t-n #          number of stddevs from mean that is excessive\n\n";
   cerr << "\t                default is " << STDDEVS_THRESHOLD << endl;
   cerr << "\t-f #          filter out mate pair sets with fewer members\n";
@@ -143,8 +148,10 @@ int main(int argc, char ** argv)
 {
   char * libFilename = NULL;
   char * ewFilename = NULL;
-  char * assembly = NULL;
-  int chromosome = -1;
+  // char * assembly = NULL;
+  // int chromosome = -1;
+  char assembly[4096];
+  char chromosome[4096];
   double numStddevs = STDDEVS_THRESHOLD;
   int filterThresh = CONFIRMATION_THRESHOLD;
   bool printForGnuplot = false;
@@ -161,12 +168,14 @@ int main(int argc, char ** argv)
         case 'e':
           ewFilename = optarg;
           break;
+        /*
         case 'a':
           assembly = optarg;
           break;
         case 'c':
           chromosome = atoi(optarg);
           break;
+        */
         case 'n':
           numStddevs = atof(optarg);
           break;
@@ -187,10 +196,23 @@ int main(int argc, char ** argv)
       Usage(argv[0], "Please specify an inter-chromosome mate pair filename");
     if(numStddevs <= 0)
       Usage(argv[0], "Please specify a positive number of std deviations");
+    /*
     if(assembly == NULL)
       Usage(argv[0], "Please specify an assembly name");
     if(chromosome < 0)
       Usage(argv[0], "Please specify a chromosome number");
+    */
+    {
+      char * ptr;
+      strcpy(assembly, ewFilename);
+      ptr = index(assembly, (int) '_');
+      assert(ptr != NULL);
+      ptr[0] = '\0';
+      strcpy(chromosome, ++ptr);
+      ptr = index(chromosome, (int) '_');
+      assert(ptr != NULL);
+      ptr[0] = '\0';
+    }
   }
 
   // read the clone library files
@@ -225,10 +247,10 @@ int main(int argc, char ** argv)
   // open output file
   char fname[1024];
   ofstream fo;
-  int atacCount = chromosome * 10000;
+  int atacCount = atoi(chromosome) * 10000;
   if(printForGnuplot)
   {
-    sprintf(fname, "%s.%03d.interChromosome.gp", assembly, chromosome);
+    sprintf(fname, "%s.%s.interChromosome.gp", assembly, chromosome);
     fo.open(fname, ios::out);
     if(!fo.good())
     {
@@ -238,7 +260,7 @@ int main(int argc, char ** argv)
   }
   else
   {
-    sprintf(fname, "%s.%03d.interChromosome.ata", assembly, chromosome);
+    sprintf(fname, "%s.%s.interChromosome.ata", assembly, chromosome);
     fo.open(fname, ios::out);
     if(!fo.good())
     {
@@ -257,7 +279,7 @@ int main(int argc, char ** argv)
       siter++)
   {
     int otherChrom = *siter;
-    if(otherChrom >= chromosome)
+    if(otherChrom >= atoi(chromosome))
       break;
 
     if(printForGnuplot)

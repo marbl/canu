@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: CompositeMPPolygon.h,v 1.4 2005-03-22 19:48:56 jason_miller Exp $ */
+/* $Id: CompositeMPPolygon.h,v 1.5 2005-08-05 00:56:41 catmandew Exp $ */
 #ifndef COMPOSITEMPPOLYGON_H
 #define COMPOSITEMPPOLYGON_H
 
@@ -43,7 +43,7 @@ public:
 
   void printLeftBP(ostream & os,
                    char * assembly,
-                   int chromosome,
+                   char * chromosome,
                    int id,
                    char * parentKey,
                    char * bpKey) const
@@ -58,7 +58,7 @@ public:
   
   void printRightBP(ostream & os,
                     char * assembly,
-                    int chromosome,
+                    char * chromosome,
                     int id,
                     char * parentKey,
                     char * bpKey) const
@@ -73,7 +73,7 @@ public:
   
   void printATA(ostream & os,
                 char * assembly,
-                int chromosome,
+                char * chromosome,
                 int id,
                 bool printMatePairs) const
     {

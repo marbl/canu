@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: processIntra.cc,v 1.4 2005-03-22 19:48:58 jason_miller Exp $ */
+/* $Id: processIntra.cc,v 1.5 2005-08-05 00:56:41 catmandew Exp $ */
 #include <cstdio>  // for sscanf
 #include <iostream>
 #include <iomanip>
@@ -62,10 +62,10 @@ char * MatePairLabel[MPI_NUM_INDICES] =
 
 void PrintRawMatePairs(vector<CompositeMPPolygon<UNIT_TYPE> > & cmpps,
                        MatePairIndex_e mpii,
-                       char * assembly, int chromosome)
+                       char * assembly, char * chromosome)
 {
   char outFilename[1024];
-  sprintf(outFilename, "%s.%03d.%s.raw",
+  sprintf(outFilename, "%s.%s.%s.raw",
           assembly, chromosome, MatePairLabel[mpii]);
   ofstream myOS(outFilename, ios::out);
   
@@ -102,10 +102,10 @@ void PrintRawMatePairs(vector<CompositeMPPolygon<UNIT_TYPE> > & cmpps,
 
 
 void PrintRawSatisfiedMatePairs(vector<MatePair> & smpsv,
-                                char * assembly, int chromosome)
+                                char * assembly, char * chromosome)
 {
   char outFilename[1024];
-  sprintf(outFilename, "%s.%03d.%s.raw",
+  sprintf(outFilename, "%s.%s.%s.raw",
           assembly, chromosome, MatePairLabel[MPI_SATISFIED]);
   ofstream myOS(outFilename, ios::out);
 
@@ -128,13 +128,13 @@ void PrintBasicOutput(vector<CompositeMPPolygon<UNIT_TYPE> > & printmpps,
                       vector<CompositeMPPolygon<UNIT_TYPE> > & mpps,
                       map<uint64, int> & mppsMap,
                       char * assembly,
-                      int chromosome,
+                      char * chromosome,
                       double numStddevs,
                       int * localUID,
                       bool printGnuplot)
 {
   char outFilename[1024];
-  sprintf(outFilename, "%s.%03d.%s.ata",
+  sprintf(outFilename, "%s.%s.%s.ata",
           assembly, chromosome, MatePairLabel[mpii]);
   ofstream myOS(outFilename, ios::out);
   myOS << "! format ata 1.0\n";
@@ -149,7 +149,7 @@ void PrintBasicOutput(vector<CompositeMPPolygon<UNIT_TYPE> > & printmpps,
   
   if(printGnuplot)
   {
-    sprintf(outFilename, "%s.%03d.%s.gp",
+    sprintf(outFilename, "%s.%s.%s.gp",
             assembly, chromosome, MatePairLabel[mpii]);
     myOS.open(outFilename, ios::out);
     for(mppIter = printmpps.begin(); mppIter != printmpps.end(); mppIter++)
@@ -173,10 +173,15 @@ void Usage(char * progname, char * message)
   cerr << "Usage: " << progname << " [-l lib] [-m mps] [-n #stddevs]\n";
   cerr << "\t-l lib        name of clone library file\n";
   cerr << "\t-m mps        name of mate pair file\n";
-  cerr << "\t-n #stddevs   number of stddevs from mean that is excessive\n\n";
+  cerr << "\t                filename must have form:\n";
+  cerr << "\t                assemblyName_#_intra.txt\n";
+  cerr << "\t                where # is the scaffold or chromosome number\n";
+  cerr << "\t-n #stddevs   number of stddevs from mean that is excessive\n";
   cerr << "\t                default is " << STDDEVS_THRESHOLD << endl;
+  /*
   cerr << "\t-a assembly   ata assembly name\n";
   cerr << "\t-c chrom      chromosome number (index into fasta file)\n";
+  */
   cerr << "\t-g            do not print gnuplot output\n";
   cerr << "\t-f #          filter out mate pair sets with fewer members\n";
   cerr << "\t                default is " << CONFIRMATION_THRESHOLD << endl;
@@ -190,8 +195,10 @@ int main(int argc, char ** argv)
 {
   char * libFilename = NULL;
   char * mpFilename = NULL;
-  char * assembly = NULL;
-  int chromosome = -1;
+  // char * assembly = NULL;
+  // int chromosome = -1;
+  char assembly[4096];
+  char chromosome[4096];
   double numStddevs = STDDEVS_THRESHOLD;
   unsigned int filterThresh = CONFIRMATION_THRESHOLD;
   bool printGnuplot = true;
@@ -201,7 +208,8 @@ int main(int argc, char ** argv)
   
   {
     int ch, errflg = 0;
-    while(!errflg && ((ch = getopt(argc, argv, "l:m:n:a:c:gf:e")) != EOF))
+    // while(!errflg && ((ch = getopt(argc, argv, "l:m:n:a:c:gf:e")) != EOF))
+    while(!errflg && ((ch = getopt(argc, argv, "l:m:n:gf:e")) != EOF))
     {
       switch(ch)
       {
@@ -214,12 +222,14 @@ int main(int argc, char ** argv)
         case 'n':
           numStddevs = atof(optarg);
           break;
+        /*
         case 'a':
           assembly = optarg;
           break;
         case 'c':
           chromosome = atoi(optarg);
           break;
+        */
         case 'g':
           printGnuplot = false;
           break;
@@ -240,10 +250,23 @@ int main(int argc, char ** argv)
       Usage(argv[0], "Please specify a mate pair filename");
     if(numStddevs <= 0)
       Usage(argv[0], "Please specify a positive number of std deviations");
+    /*
     if(assembly == NULL)
       Usage(argv[0], "Please specify an assembly name");
     if(chromosome < 0)
       Usage(argv[0], "Please specify a chromosome number");
+    */
+    {
+      char * ptr;
+      strcpy(assembly, mpFilename);
+      ptr = index(assembly, (int) '_');
+      assert(ptr != NULL);
+      ptr[0] = '\0';
+      strcpy(chromosome, ++ptr);
+      ptr = index(chromosome, (int) '_');
+      assert(ptr != NULL);
+      ptr[0] = '\0';
+    }
   }
 
   // read the clone library files
@@ -506,10 +529,14 @@ int main(int argc, char ** argv)
       {
         FilterMislabelledLibs(cmpps[mpii], mmpps, 10);
         if(mmpps.size() > 0)
+        {
+          char myChrom[4096];
+          sprintf(myChrom, "%s_misLabelledOrPolymorphic", chromosome);
           PrintBasicOutput(mmpps, (MatePairIndex_e) mpii,
                            mpps[mpii], mppsMap[mpii],
-                           assembly, 100*(chromosome+1), numStddevs,
+                           assembly, myChrom, numStddevs,
                            &localUID, printGnuplot);
+        }
       }
       
       // not all overlapping normal/antinormals are consistent with a inversion
@@ -540,10 +567,14 @@ int main(int argc, char ** argv)
           cerr << "# MBR intersection: " << *mppIter << endl << endl;
         }
 #endif
-        PrintBasicOutput(pmpps, (MatePairIndex_e) mpii,
-                         mpps[mpii], mppsMap[mpii],
-                         assembly, -(chromosome+1), numStddevs,
-                         &localUID, printGnuplot);
+        {
+          char myChrom[4096];
+          sprintf(myChrom, "%s_problematic", chromosome);
+          PrintBasicOutput(pmpps, (MatePairIndex_e) mpii,
+                           mpps[mpii], mppsMap[mpii],
+                           assembly, myChrom, numStddevs,
+                           &localUID, printGnuplot);
+        }
       }
       cerr << cmpps[mpii].size() << " " << MatePairLabel[mpii]
            << " matepair sets 'confirmed'.\n";

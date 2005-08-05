@@ -25,7 +25,10 @@
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
-C_PROG_SOURCES = getUniqueMatchesFromCGM.c 
+C_PROG_SOURCES = getUniqueMatchesFromCGM.c \
+	reestimateLibs.c \
+	identifyMistrackedClones.c \
+	calcStats.c
 C_PROG_OBJECTS = $(C_PROG_SOURCES:.c=.o)
 
 C_SOURCES = $(C_PROG_SOURCES)
@@ -51,7 +54,10 @@ CXX_OBJECTS = $(CXX_SOURCES:.cc=.o)
 SOURCES = $(C_SOURCES) $(CXX_SOURCES)
 OBJECTS = $(C_OBJECTS) $(CXX_OBJECTS)
 
-PROGS = getUniqueMatchesFromCGM \
+PROGS = calcStats \
+	reestimateLibs \
+	identifyMistrackedClones \
+	getUniqueMatchesFromCGM \
 	mapContigsScaffolds \
 	getIntervalIntersections \
 	pullFragmentLocations \
@@ -67,7 +73,12 @@ PROGS = getUniqueMatchesFromCGM \
 	rotatePoints
 #	compareAssemblyMPs
 
-SCRIPTS = atai2Lengths.sh \
+SCRIPTS = sim4db2tampa.pl \
+	relabelCloneLibs.pl \
+	reestimateAllLibs.sh \
+	combineCloneLengthFiles.sh \
+	getCloneLengths.sh \
+	atai2Lengths.sh \
 	breakpoints2StartLenNs.sh \
 	getDoubleCountedInTranpositions.sh \
 	analyzeGaps.sh \
@@ -183,6 +194,16 @@ all: $(OBJECTS) $(LIBRARIES) $(PROGS) $(SCRIPTS)
 	chmod 775 $(LOCAL_BIN)/filterIntersWithSatisfieds.sh
 	cp -f processHiLoInterChromIntervalFiles.sh $(LOCAL_BIN)
 	chmod 775 $(LOCAL_BIN)/processHiLoInterChromIntervalFiles.sh
+	cp -f sim4db2tampa.pl $(LOCAL_BIN)
+	chmod 775 $(LOCAL_BIN)/sim4db2tampa.pl
+	cp -f relabelCloneLibs.pl $(LOCAL_BIN)
+	chmod 775 $(LOCAL_BIN)/relabelCloneLibs.pl
+	cp -f reestimateAllLibs.sh $(LOCAL_BIN)
+	chmod 775 $(LOCAL_BIN)/reestimateAllLibs.sh
+	cp -f combineCloneLengthFiles.sh $(LOCAL_BIN)
+	chmod 775 $(LOCAL_BIN)/combineCloneLengthFiles.sh
+	cp -f getCloneLengths.sh $(LOCAL_BIN)
+	chmod 775 $(LOCAL_BIN)/getCloneLengths.sh
 
 install: all
 
@@ -216,3 +237,8 @@ quads2mbrs: quads2mbrs.o
 
 rotatePoints: rotatePoints.o
 
+reestimateLibs: reestimateLibs.o
+
+identifyMistrackedClones: identifyMistrackedClones.o
+
+calcStats: calcStats.o

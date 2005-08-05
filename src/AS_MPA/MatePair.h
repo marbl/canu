@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: MatePair.h,v 1.4 2005-03-22 19:48:56 jason_miller Exp $ */
+/* $Id: MatePair.h,v 1.5 2005-08-05 00:56:41 catmandew Exp $ */
 #ifndef MATEPAIR_H
 #define MATEPAIR_H
 
@@ -193,7 +193,7 @@ public:
                              leftI, rightI);
     }
 
-  void printATA(ostream & os, char * assembly, int chromosome,
+  void printATA(ostream & os, char * assembly, char * chromosome,
                 char * pKey, int pID, int id) const
     {
       switch(pOrient)
