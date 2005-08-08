@@ -176,7 +176,14 @@ chainedSequence::get(void) {
     if (_separatorDone) {
       delete _sequence;
       _currentSeq++;
+
+      //  Test this -- it was an attempt to increase performance when
+      //  lots of small sequences were used.
+      //
+      //if (_file->currentIID() != _useList[_currentSeq].iid)
+
       _file->find(_useList[_currentSeq].iid);
+
       _sequence           = _file->getSequenceOnDisk();
       _separatorDone      = false;
       _positionInSequence = u64bitZERO;
