@@ -11,8 +11,8 @@
 
 void
 bigQueue::_initialize(int    (*sortfcn)(const void *a, const void *b),
-                      bool   (*writfcn)(FILE *f, void *a),
                       bool   (*readfcn)(FILE *f, void *a),
+                      bool   (*writfcn)(FILE *f, void *a),
                       void   (*killfcn)(void *a),
                       u32bit   objectSize,
                       u32bit   memoryToUse,
@@ -60,8 +60,12 @@ bigQueue::_initialize(int    (*sortfcn)(const void *a, const void *b),
 
   _thingBuffer = new u64bit [_objectSize / 8 + 1];
 
+  _bufferMax = 0;
+  _bufferLen = 0;
+  _buffer    = 0L;
+
   if (_sortFunction) {
-    _bufferMax = (u64bit)memoryToUse * 1024 * 1024 / (u64bit)sizeof(void *);
+    _bufferMax = (u64bit)memoryToUse * 1024 * 1024 / ((u64bit)sizeof(void *) + objectSize);
     _bufferLen = 0;
     _buffer    = new void* [_bufferMax];
   }

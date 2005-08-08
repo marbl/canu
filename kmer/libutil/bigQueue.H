@@ -77,8 +77,8 @@ public:
 
 private:
   void      _initialize(int    (*sortfcn)(const void *a, const void *b),
-                        bool   (*writfcn)(FILE *f, void *a),
                         bool   (*readfcn)(FILE *f, void *a),
+                        bool   (*writfcn)(FILE *f, void *a),
                         void   (*killfcn)(void *),
                         u32bit   objectSize,
                         u32bit   memoryToUse,
