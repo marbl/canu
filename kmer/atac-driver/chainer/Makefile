@@ -5,8 +5,8 @@
 # tweak the CCFLAGS a bit, probably.
 
 CC      = g++
-CCFLAGS = -fpic -O -Wall -I/home/bwalenz/linux/include/python2.4
 CCFLAGS = -fpic -O -Wall -I/usr/local/include/python2.3
+CCFLAGS = -fpic -O -Wall -I/home/bwalenz/linux/include/python2.4
 
 SOURCE  = localalign/GF_ALN_dpaligner.cc \
           localalign/GF_ALN_local.cc \
@@ -42,7 +42,7 @@ halignmodule.so: halign/halignmodule.o halign/halign.o
 atacdriver.sh: Makefile
 	echo \#!/bin/sh > atacdriver.sh
 	echo export PYTHONPATH=`pwd`:`pwd`/python >> atacdriver.sh
-	echo python `pwd`/python/AtacDriver.py \$\* >> atacdriver.sh
+	echo python `pwd`/python/AtacDriver.py $$\* >> atacdriver.sh
 
 
 %.o: %.cc
