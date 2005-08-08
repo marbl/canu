@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.hh,v 1.7 2005-08-02 21:29:26 kli1000 Exp $
- * $Revision: 1.7 $
+ * $Id: AS_BOG_BestOverlapGraph.hh,v 1.8 2005-08-08 21:49:02 kli1000 Exp $
+ * $Revision: 1.8 $
 */
 
-static char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.7 2005-08-02 21:29:26 kli1000 Exp $";
+static char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.8 2005-08-08 21:49:02 kli1000 Exp $";
 
 //  System include files
 
@@ -89,7 +89,7 @@ namespace AS_BOG{
 		public:
 
 			// Constructor, parametrizing maximum number of overlaps
-			BestOverlapGraph(int max_best_overlap_size);
+			BestOverlapGraph(int max_fragment_count);
 
 			// Destructor
 			~BestOverlapGraph(void);
@@ -100,8 +100,12 @@ namespace AS_BOG{
 			}
 
 			// Accessor Get Functions
-			BestOverlap *getBestOverlap(iuid frag_id);
+			BestEdgeOverlap *getBestEdgeOverlap(
+				iuid frag_id, fragment_end_type which_end);
+
 			BestContainment *getBestContainment(iuid frag_id);
+
+			iuid getNumFragments(void);
 
 			// Accessor Set Functions
 			void setBestOverlap(
@@ -111,9 +115,15 @@ namespace AS_BOG{
 				overlap_type ovl_type
 			);
 
+			void removeBestOverlap(
+				iuid frag_a_id,
+				fragment_end_type which_end	
+			);
+
 		private:
 			BestOverlap _best_overlaps[];
-			int _num_best_overlaps;
+			int _num_fragments;
+			int _max_fragments;
 			map<iuid, BestContainment> _best_containments;
 
 	} //BestOverlapGraph

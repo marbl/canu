@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.3 2005-08-02 21:29:25 kli1000 Exp $
- * $Revision: 1.3 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.4 2005-08-08 21:49:02 kli1000 Exp $
+ * $Revision: 1.4 $
 */
 
-static char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.3 2005-08-02 21:29:25 kli1000 Exp $";
+static char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.4 2005-08-08 21:49:02 kli1000 Exp $";
 
 //  System include files
 
@@ -78,12 +78,22 @@ namespace AS_BOG{
 	}
 
 	// Accessor Get Functions
-	BestOverlap *BestOverlapGraph::getBestOverlap(iuid frag_id){
-		return(&_best_overlaps[frag_id]);
+	BestEdgeOverlap *BestOverlapGraph::getBestEdgeOverlap(
+		iuid frag_id, fragment_end_type which_end){
+
+		if(which_end == FIVE_PRIME){
+			return(&_best_overlaps[frag_id].five_prime);
+		else if(which_end == THREE_PRIME){
+			return(&_best_overlaps[frag_id].three_prime);
+		}
 	}
 
 	BestContainment *BestOverlapGraph::getBestContainer(iuid containee){
 		return(&_best_containments[containee]);
+	}
+
+	iuid BestOverlapGraph::getNumOverlaps(void){
+		return(_num_fragments);
 	}
 
 	// Accessor Set Functions
@@ -100,19 +110,20 @@ namespace AS_BOG{
 		case DOVE_ANTI_NORMAL: 
 		case DOVE_NORMAL_BACK:
 
-			_best_overlaps[frag_a_id].frag_b_id=frag_b_id;
-			_best_overlaps[frag_a_id].type=ovl_type;
-			_best_overlaps[frag_a_id].score=score;
-
 			switch(ovl_type){
-
 			case DOVE_NORMAL:
 			case DOVE_OUTTIE:
-				_best_overlaps[frag_b_id].five_prime_in_degree++;
+				_best_overlaps[frag_a_id].three_prime.frag_b_id=frag_b_id;
+				_best_overlaps[frag_a_id].three_prime.type=ovl_type;
+				_best_overlaps[frag_a_id].three_prime.score=score;
+				_best_overlaps[frag_b_id].five_prime.in_degree++;
 				break;
 			case DOVE_INNIE:
 			case DOVE_ANTI_NORMAL:
-				_best_overlaps[frag_b_id].three_prime_in_degree++;
+				_best_overlaps[frag_a_id].five_prime.frag_b_id=frag_b_id;
+				_best_overlaps[frag_a_id].five_prime.type=ovl_type;
+				_best_overlaps[frag_a_id].five_prime.score=score;
+				_best_overlaps[frag_b_id].three_prime.in_degree++;
 				break;
 			default:	
 			}
@@ -135,6 +146,27 @@ namespace AS_BOG{
 		}
 		
 	}
+
+	 void BestOverlapGraph::removeBestOverlap(
+		iuid frag_a_id,
+		fragment_end_type which_end){
+
+		if(which_end == THREE_PRIME){
+			_best_overlaps[i].three_prime.ovl_frag_id=0;
+			_best_overlaps[i].three_prime.type=UNDEFINED;
+			_best_overlaps[i].three_prime.in_degree=0;
+			_best_overlaps[i].three_prime.score=-1;
+		}else if(which_end == FIVE_PRIME){
+			_best_overlaps[i].five_prime.ovl_frag_id=0;
+			_best_overlaps[i].five_prime.type=UNDEFINED;
+			_best_overlaps[i].five_prime.in_degree=0;
+			_best_overlaps[i].five_prime.score=-1;
+
+		}else{
+			fprintf(stderr, "Error in BestOverlapGraph::removeBestOverlap\n");
+		}
+	}
+	
 
 } //AS_BOG namespace
 

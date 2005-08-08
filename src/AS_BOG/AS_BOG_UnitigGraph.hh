@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.hh,v 1.3 2005-08-02 21:55:22 kli1000 Exp $
- * $Revision: 1.3 $
+ * $Id: AS_BOG_UnitigGraph.hh,v 1.4 2005-08-08 21:49:02 kli1000 Exp $
+ * $Revision: 1.4 $
 */
 
-static char CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.3 2005-08-02 21:55:22 kli1000 Exp $";
+static char CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.4 2005-08-08 21:49:02 kli1000 Exp $";
 
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
@@ -48,6 +48,22 @@ static char CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.3 2005-08-02 21:55:22 kli1
 #include "AS_BOG_Datatypes.hh"
 
 namespace AS_BOG{
+
+	class DoveTailPath{
+
+		SetNextFragment(iuid frag_id, orientation_type ori);
+	
+		GetNextFragment(iuid& frag_id, orientation_type& ori);
+		
+		ostream& operator<<(ostream& s, DoveTailPath &dtp);
+		
+		struct _dt_path_node{
+			iuid frag_id;
+			orientation_type ori;
+		}
+
+		vector<_dt_path_node> _dt_path;
+	}
 
 	///////////////////////////////////////////////////////////////////////
 
@@ -60,15 +76,15 @@ namespace AS_BOG{
 		public:
 			// Constructor
 			Unitig(iuid utg_id);
-			set_next_dovetailing_fragment(iuid frag_id, orientation_type ori);
-			set_contained_fragment(iuid container, iuid containee);
+			setDoveTailPath(DoveTailPath *dt_ptr);
+			setContainments(iuid container, iuid containee);
 
 			// Computable statistics on this unitig
 			float Compute_Astat(void);
 			float Compute_Rho(void);
 
 			iuid unitig_id;
-			vector<iuid> dovetail_path;
+			DoveTailPath *dovetail_path;
 			map<iuid, iuid> contained_frags;
 	}
 
@@ -96,11 +112,11 @@ namespace AS_BOG{
 		// in one object for a given assembly.
 
 		public:
-			void include_unitig(Unitig &utg);
-			void include_overlap(UnitigOverlap &utg_ovl);
+			void AddUnitig(Unitig *utg);
+			void AddOverlap(UnitigOverlap *ovl);
 
 			vector<&Unitig> unitigs;
-			vector<&UnitigOverlap> unitig_overlaps;
+			vector<&UnitigOverlap> overlaps;
 
 	}
 

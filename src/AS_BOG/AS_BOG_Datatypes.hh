@@ -33,11 +33,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_Datatypes.hh,v 1.4 2005-08-02 21:54:11 kli1000 Exp $
- * $Revision: 1.4 $
+ * $Id: AS_BOG_Datatypes.hh,v 1.5 2005-08-08 21:49:02 kli1000 Exp $
+ * $Revision: 1.5 $
 */
 
-static char CM_ID[] = "$Id: AS_BOG_Datatypes.hh,v 1.4 2005-08-02 21:54:11 kli1000 Exp $";
+static char CM_ID[] = "$Id: AS_BOG_Datatypes.hh,v 1.5 2005-08-08 21:49:02 kli1000 Exp $";
 
 //  System include files
 
@@ -86,13 +86,62 @@ namespace AS_BOG{
 		THREE_PRIME 	// 3' End of Fragment
 	} fragment_end_type;
 
+	///////////////////////////////////////////////////////////////////////
+
+	fragment_end_type opposite_end(fragment_end_type fet){
+		if(fet == FIVE_PRIME){
+			return(THREE_PRIME);
+		}else if(fet == THREE_PRIME){
+			return(FIVE_PRIME);
+		}else{
+			//Assert
+		}
+	}
+
+	fragment_end_type overlap_end(overlap_type ot, char a_or_b){
+
+		switch(a_or_b){
+			case 'a':
+			case 'A':
+				switch(ot){
+					case DOVE_NORMAL:
+					case DOVE_INNIE:
+						which_end=THREE_PRIME;
+						break;
+					case DOVE_ANTI_NORMAL:
+					case DOVE_OUTTIE:
+						which_end=FIVE_PRIME;
+						break;
+				}
+				return(which_end);
+			case 'b':
+			case 'B':
+				switch(ot){
+					case DOVE_NORMAL:
+					case DOVE_OUTTIE:
+						which_end=FIVE_PRIME;
+						break;
+					case DOVE_INNIE:
+					case DOVE_ANTI_NORMAL:
+						which_end=THREE_PRIME;
+						break;
+				}
+				return(which_end);
+		}
+	}
+
+	///////////////////////////////////////////////////////////////////////
+	
+
 	typedef enum {
 		UNKNOWN,
 		FORWARD,
 		REVERSE
 	} orientation_type;
 
-	typedef unsigned int iuid;
+	typedef unint32 iuid;
+
+	const iuid NULL_FRAG_ID=-1;
 
 } //AS_BOG namespace
 

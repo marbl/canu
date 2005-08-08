@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*************************************************
-* Module:  AS_BOG_BuildUnitigs.c
+* Module:  AS_BOG_BuildUnitigs.hh
 * Description:
 *	Class definition for build unitigs algorithm
 * 
@@ -33,32 +33,43 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BuildUnitigs.hh,v 1.1 2005-07-29 21:47:46 kli1000 Exp $
- * $Revision: 1.1 $
+ * $Id: AS_BOG_BuildUnitigs.hh,v 1.2 2005-08-08 21:49:02 kli1000 Exp $
+ * $Revision: 1.2 $
 */
 
-static char CM_ID[] = "$Id: AS_BOG_BuildUnitigs.hh,v 1.1 2005-07-29 21:47:46 kli1000 Exp $";
+static char CM_ID[] = "$Id: AS_BOG_BuildUnitigs.hh,v 1.2 2005-08-08 21:49:02 kli1000 Exp $";
 
 //  System include files
 
 #ifndef INCLUDE_AS_BOG_BUILDUNITIGS
 #define INCLUDE_AS_BOG_BUILDUNITIGS
 
+#include <stack>
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
-#include "AS_BOG_BestOverlapGraphVisitor.hh"
+#include "AS_BOG_ChunkGraph.hh"
 #include "AS_BOG_UnitigGraph.hh"
 
 namespace AS_BOG{
-	
-	class BuildUnitigs : public BestOverlapGraphVisitor{
-		public:
-			void visit(BestOverlapGraph &bovlg);
-			UnitigGraph *getUnitigGraph(void);
-			
-		private:
-			UnitigGraph _unitig_graph;
-			bool _valid=0;
+
+	class BuildUnitigs : public ChunkGraphVisitor{
+
+	    public:
+
+		void visit(ChunkGraph &bovlg);
+
+	    private:
+
+		DoveTailPath *_extract_unitig(iuid src_frag_id, ChunkGraph& cg);
+
+
+		void _find_next_fragment(
+			iuid src_frag_id, orientation_type src_end,
+			iuid& dst_frag_id, orientation_type& dst_end,
+			ChunkGraph& cg)
+
+		bool _reported_array[]=NULL;
+		UnitigGraph _unitig_graph;
 	}
 
 } //AS_BOG namespace

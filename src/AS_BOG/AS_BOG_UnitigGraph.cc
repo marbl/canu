@@ -34,16 +34,42 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.1 2005-08-02 22:04:35 kli1000 Exp $
- * $Revision: 1.1 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.2 2005-08-08 21:49:02 kli1000 Exp $
+ * $Revision: 1.2 $
 */
 
-static char CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.1 2005-08-02 22:04:35 kli1000 Exp $";
+static char CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.2 2005-08-08 21:49:02 kli1000 Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
 
 namespace AS_BOG{
+
+	///////////////////////////////////////////////////////////////////////
+	// DoveTailPath
+
+	DoveTailPath::SetNextFragment(iuid frag_id, orientation_type ori){
+		_dt_path_node dtp_node;
+		dtp_node.frag_id=frag_id;
+		dtp_node.ori=ori;
+
+		_dt_path.push_back(dtp_node);
+	}
+
+	ostream& operator<<(ostream& os, DoveTailPath &dtp){
+		vector<_dt_path_node>::iterator i=_dt_path.begin();	
+		vector<_dt_path_node>::iterator last=_dt_path.end();	
+		
+		while(i!=last){
+			os << i->frag_id << " [" << i->ori << "]\n";
+			i++;
+		}
+
+		return(os);
+	}
+
+	
+
 
 	///////////////////////////////////////////////////////////////////////
 
