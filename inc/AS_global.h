@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_global.h,v 1.2 2004-09-23 20:33:59 mcschatz Exp $	 */
+/* 	$Id: AS_global.h,v 1.3 2005-08-08 19:32:08 gdenisov Exp $	 */
 
 /* This is the global include file that all C files in the AS subsystem should
    include.
@@ -59,6 +59,23 @@
 #define AS_CGB_BPT_MIN_SUFFIX   25
 #define AS_CGB_BPT_ERROR_RATE    0.08
 #define AS_CGB_BPT_PROB_THOLD    1e-6
+
+// These macros are use to eliminate inter-platform differnces between 
+// calculated results
+#define DBL_TO_INT(X) ((int)((1.0+16.0*DBL_EPSILON)*(X)))
+#define ROUNDPOS(X)  ( INT_DBL((X)+0.5) )
+#define ROUND(X)     ( ((X)>0.0) ? ROUNDPOS(X) : -ROUNDPOS(-(X)) )
+#define ONE_PLUS     (1.0+16.0*DBL_EPSILON)
+#define ONE_MINUS    (1.0-16.0*DBL_EPSILON)
+#define ZERO_PLUS     (16.0*DBL_EPSILON)
+#define ZERO_MINUS    (16.0*DBL_EPSILON)
+#define F_UP(INT)   ( (INT)>0 ? (+16.0*DBL_EPSILON) : (-16.0*DBL_EPSILON) )
+#define F_DN(INT)   ( (INT)>0 ? (-16.0*DBL_EPSILON) : (+16.0*DBL_EPSILON) )
+#define INT_EQ_DBL(I,D)       ( fabs((double)(I)-(D)) < 16.0*DBL_EPSILON  )
+#define G_UP(DBL) ( (DBL)>0.0 ? (+16.0*DBL_EPSILON) : (-16.0*DBL_EPSILON) )
+#define G_DN(DBL) ( (DBL)>0.0 ? (-16.0*DBL_EPSILON) : (+16.0*DBL_EPSILON) )
+#define DBL_EQ_DBL(A,B)   (fabs((A)-(B))<16.0*DBL_EPSILON)
+
 // common parameters for calling BPnt_Seq_Comp_AS in AS_CGB & AS_URT
 
 #ifndef max
