@@ -31,11 +31,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FindContainedFrags.cc,v 1.2 2005-08-05 14:52:05 eliv Exp $
- * $Revision: 1.2 $
+ * $Id: FindContainedFrags.cc,v 1.3 2005-08-09 13:56:40 eliv Exp $
+ * $Revision: 1.3 $
 */
 
-static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.2 2005-08-05 14:52:05 eliv Exp $";
+static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.3 2005-08-09 13:56:40 eliv Exp $";
 
 //  System include files
 
@@ -50,7 +50,6 @@ using std::endl;
 using std::map;
 using std::set;
 using std::vector;
-using std::ostream; 
 
 //  Local include files
 extern "C" {
@@ -66,9 +65,9 @@ struct MultiContain {
 
 static FragStoreHandle fragStoreHandle;
 static uint16 *fragLength;
+static ReadStructp fsread = new_ReadStruct();
 uint16 fragLen(int iid)
 {
-    static ReadStructp fsread = new_ReadStruct();
     if (fragLength[ iid ] == 0) {
         uint32 clrBgn, clrEnd;
         getFragStore( fragStoreHandle, iid, FRAG_S_SEQUENCE, fsread);
@@ -85,7 +84,7 @@ struct ScoreOverlap {
     ScoreOverlap(int num =0) : curFrag(0) {
         bestOverlap = new int[num+1];
     }
-    ~ScoreOverlap() { delete bestOverlap; }
+    ~ScoreOverlap() { delete[] bestOverlap; }
     inline short olapLength(const Long_Olap_Data_t& olap) {
         uint16 alen = fragLen(olap.a_iid);
         if (olap.a_hang < 0) 
@@ -208,7 +207,7 @@ int  main
    metrics.push_back(&lenIdent);
 
    int j;
-   while  (Next_From_OVL_Stream (& olap, my_stream))
+   while  (Next_From_OVL_Stream (&olap, my_stream))
      {
         float erate = Expand_Quality(olap.corr_erate) * 100;
          if ( olap.a_hang >= 0 && olap.b_hang < 0 )
@@ -229,38 +228,43 @@ int  main
 
          }
      }
-   Free_OVL_Stream (my_stream);
-   Free_OVL_Store (my_store);
+   Free_OVL_Stream( my_stream );
+   Free_OVL_Store( my_store );
+   closeFragStore( fragStoreHandle ); 
 
    for( i = 1; i <= last; i++) {
        int pick[metrics.size()];
        for( j = 0; j < metrics.size(); j++)  {
            //cout << i << " "<< typeid(*metrics[j]).name()+2 << " " << metrics[j]->bestOverlap[i] << endl;
            pick[j] = metrics[j]->bestOverlap[i];
-           if ( j == metrics.size()-1 ) 
+           if ( j == metrics.size()-1 ) {
                if (pick[0] == pick[1] && pick[0] == pick[2]) {
                    //cout << i << pick[0];
                } else { 
                    cout << i << " disagree " << pick[0]<<" "<<pick[1]<<" "<<pick[2]<<endl;
                }
+           }
        }
        if ( -1 != multiContain[i].iid && multiContain[i].in.size() > 0 ) {
            set<int> iids = multiContain[i].in;
-           cout << i << " in ";
+//           cout << i << " in ";
            for(set<int>::const_iterator it = iids.begin(); it != iids.end(); it++) {
-               cout << *it << " ";
+//               cout << *it << " ";
                if (multiContain[*it].in.size() > 0) {} // multi contain
            }
-           cout << endl;
+ //          cout << endl;
        }
        if ( -1 != multiContain[i].iid && multiContain[i].equal.size() > 0 ) {
-           cout << i << " ident ";
+//           cout << i << " ident ";
            map<int,float> iids = multiContain[i].equal;
            for(map<int,float>::const_iterator it = iids.begin(); it != iids.end(); it++){
-               cout << it->first << "," << it->second << " ";
+//               cout << it->first << "," << it->second << " ";
            }
-           cout << endl;
+//           cout << endl;
        }
    }
+   delete[] multiContain;
+   delete[] fragLength;
+   delete_ReadStruct(fsread);
    return  0;
 }
