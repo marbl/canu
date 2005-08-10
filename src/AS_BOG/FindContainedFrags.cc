@@ -31,11 +31,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FindContainedFrags.cc,v 1.3 2005-08-09 13:56:40 eliv Exp $
- * $Revision: 1.3 $
+ * $Id: FindContainedFrags.cc,v 1.4 2005-08-10 14:46:19 eliv Exp $
+ * $Revision: 1.4 $
 */
 
-static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.3 2005-08-09 13:56:40 eliv Exp $";
+static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.4 2005-08-10 14:46:19 eliv Exp $";
 
 //  System include files
 
@@ -45,11 +45,14 @@ static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.3 2005-08-09 13:56:4
 #include<cstdlib> // for abs(int)
 #include<iostream>
 
+#include"AS_BOG_BestOverlapGraph.hh"
+
 using std::cout;
 using std::endl;
 using std::map;
 using std::set;
 using std::vector;
+using AS_BOG::BestOverlapGraph;
 
 //  Local include files
 extern "C" {
@@ -62,105 +65,6 @@ struct MultiContain {
    std::set<int> in;
    std::map<int,float> equal;
 };
-
-static FragStoreHandle fragStoreHandle;
-static uint16 *fragLength;
-static ReadStructp fsread = new_ReadStruct();
-uint16 fragLen(int iid)
-{
-    if (fragLength[ iid ] == 0) {
-        uint32 clrBgn, clrEnd;
-        getFragStore( fragStoreHandle, iid, FRAG_S_SEQUENCE, fsread);
-        getClearRegion_ReadStruct( fsread, &clrBgn, &clrEnd, READSTRUCT_LATEST);
-        fragLength[ iid ] = clrEnd - clrBgn;
-    }
-    return fragLength[ iid ];
-}
-
-struct ScoreOverlap {
-    int curFrag;
-    float  bestScore;
-    int *bestOverlap;
-    ScoreOverlap(int num =0) : curFrag(0) {
-        bestOverlap = new int[num+1];
-    }
-    ~ScoreOverlap() { delete[] bestOverlap; }
-    inline short olapLength(const Long_Olap_Data_t& olap) {
-        uint16 alen = fragLen(olap.a_iid);
-        if (olap.a_hang < 0) 
-            return alen - abs(olap.b_hang); 
-        else
-            return alen - olap.a_hang; 
-    }
-    inline virtual bool checkForNext(const Long_Olap_Data_t& olap, double scoreReset) {
-        if (curFrag != olap.a_iid) {
-            curFrag  = olap.a_iid;
-            bestScore = scoreReset;
-            bestOverlap[ curFrag ] = 0;
-            return true;
-        }
-        return false;
-    }
-    virtual float score(const Long_Olap_Data_t& olap) =0;
-};
-
-struct ErateScore : public ScoreOverlap {
-    short bestLength;
-    ErateScore(int num) : ScoreOverlap(num), bestLength(0) {}
-
-    inline bool checkForNext(const Long_Olap_Data_t& olap, double scoreReset)  {
-        if (ScoreOverlap::checkForNext(olap, scoreReset))
-            bestLength = 0;
-    }
-    float score(const Long_Olap_Data_t& olap) {
-
-        float erate = Expand_Quality(olap.corr_erate) * 100;
-        checkForNext(olap,100);
-        short olapLen = olapLength(olap);
-        //cout << olap.a_iid<<" "<<olap.b_iid<<" "<<erate<<" "<<alen<<" "<<fragLen(olap.b_iid);
-        //const char *f = olap.flipped ? "I" : "N";
-        //cout <<" "<< olap.a_hang<<" "<< olap.b_hang<<" "<< f<<" "<<olapLen << endl;
-        if (erate < bestScore || erate == bestScore && olapLen > bestLength ) {
-            bestOverlap[ curFrag ] = olap.b_iid;
-            bestScore = erate;
-            bestLength = olapLen;
-        }
-    }
-};
-
-struct LongestEdge : public ScoreOverlap {
-    LongestEdge(int num) : ScoreOverlap(num) {}
-    float score(const Long_Olap_Data_t& olap) {
-
-        uint16 alen = fragLen(olap.a_iid);
-        short olapLen = olapLength(olap);
-        checkForNext(olap,0);
-        if (bestScore < olapLen) {
-            bestOverlap[ olap.a_iid ] = olap.b_iid;
-            bestScore = olapLen;
-        }
-    }
-};
-struct LongestHighIdent : public ScoreOverlap {
-    float mismatchCutoff;
-    LongestHighIdent(int num, float maxMismatch) : ScoreOverlap(num),
-                                                   mismatchCutoff(maxMismatch) {}
-    float score(const Long_Olap_Data_t& olap) {
-
-        uint16 alen = fragLen(olap.a_iid);
-        short olapLen = olapLength(olap);
-        float erate = Expand_Quality(olap.corr_erate) * 100;
-        checkForNext(olap,0);
-
-        if (erate > mismatchCutoff)
-            return 0;
-        if (bestScore < olapLen) {
-            bestOverlap[ olap.a_iid ] = olap.b_iid;
-            bestScore = olapLen;
-        }
-    }
-};
-
 
 int  main
     (int argc, char * argv [])
@@ -178,14 +82,15 @@ int  main
    my_store = New_OVL_Store ();
    my_stream = New_OVL_Stream ();
 
-   fragStoreHandle = openFragStore( FRG_Store_Path, "r");
+   BestOverlapGraph::fragStoreHandle = openFragStore( FRG_Store_Path, "r");
+   BestOverlapGraph::fsread = new_ReadStruct();
 
    Open_OVL_Store (my_store, OVL_Store_Path);
    last = Last_Frag_In_OVL_Store (my_store);
    Init_OVL_Stream (my_stream, first, last, my_store);
 
-   fragLength = new uint16[last+1];
-   memset( fragLength, 0, sizeof(uint16)*(last+1));
+   BestOverlapGraph::fragLength = new uint16[last+1];
+   memset( BestOverlapGraph::fragLength, 0, sizeof(uint16)*(last+1));
 
    MultiContain *multiContain;
    multiContain = new MultiContain[last+1];
@@ -197,10 +102,10 @@ int  main
        multiContain[i] = m;
    }
 
-   ErateScore erScore(last);
-   LongestEdge lenScore(last);
-   LongestHighIdent lenIdent(last,2.0);
-   vector<ScoreOverlap *> metrics;
+   AS_BOG::ErateScore erScore(last);
+   AS_BOG::LongestEdge lenScore(last);
+   AS_BOG::LongestHighIdent lenIdent(last,2.0);
+   vector<BestOverlapGraph *> metrics;
 
    metrics.push_back(&erScore);
    metrics.push_back(&lenScore);
@@ -210,17 +115,17 @@ int  main
    while  (Next_From_OVL_Stream (&olap, my_stream))
      {
         float erate = Expand_Quality(olap.corr_erate) * 100;
-         if ( olap.a_hang >= 0 && olap.b_hang < 0 )
+         if ( olap.a_hang == 0 && olap.b_hang == 0 )
+         {
+             multiContain[ olap.a_iid ].equal[ olap.b_iid ] = erate;
+         }
+         else if ( olap.a_hang >= 0 && olap.b_hang <= 0 )
          {
              multiContain[ olap.b_iid ].in.insert( olap.a_iid );
          }
-         else if ( olap.a_hang < 0 && olap.b_hang >= 0 )
+         else if ( olap.a_hang <= 0 && olap.b_hang >= 0 )
          {
              multiContain[ olap.a_iid ].in.insert( olap.b_iid );
-         }
-         else if ( olap.a_hang == 0 && olap.b_hang == 0 )
-         {
-             multiContain[ olap.a_iid ].equal[ olap.b_iid ] = erate;
          } else {
              // no containment, so score
             for( j = 0; j < metrics.size(); j++) 
@@ -230,18 +135,17 @@ int  main
      }
    Free_OVL_Stream( my_stream );
    Free_OVL_Store( my_store );
-   closeFragStore( fragStoreHandle ); 
+   closeFragStore( BestOverlapGraph::fragStoreHandle ); 
 
    for( i = 1; i <= last; i++) {
-       int pick[metrics.size()];
+       AS_BOG::BestEdgeOverlap* pick[metrics.size()];
        for( j = 0; j < metrics.size(); j++)  {
-           //cout << i << " "<< typeid(*metrics[j]).name()+2 << " " << metrics[j]->bestOverlap[i] << endl;
-           pick[j] = metrics[j]->bestOverlap[i];
+           pick[j] = metrics[j]->getBestEdge( i, AS_BOG::FIVE_PRIME );
            if ( j == metrics.size()-1 ) {
-               if (pick[0] == pick[1] && pick[0] == pick[2]) {
-                   //cout << i << pick[0];
+               if (pick[0]->frag_b_id == pick[1]->frag_b_id && pick[0]->frag_b_id == pick[2]->frag_b_id) {
+                   cout << i << " " << pick[0]->frag_b_id << endl;
                } else { 
-                   cout << i << " disagree " << pick[0]<<" "<<pick[1]<<" "<<pick[2]<<endl;
+                   cout << i << " disagree " << pick[0]->frag_b_id<<" "<<pick[1]->frag_b_id<<" "<<pick[2]->frag_b_id<<endl;
                }
            }
        }
@@ -264,7 +168,6 @@ int  main
        }
    }
    delete[] multiContain;
-   delete[] fragLength;
-   delete_ReadStruct(fsread);
+   delete[] BestOverlapGraph::fragLength;
    return  0;
 }

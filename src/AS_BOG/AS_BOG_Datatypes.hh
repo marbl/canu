@@ -33,13 +33,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_Datatypes.hh,v 1.5 2005-08-08 21:49:02 kli1000 Exp $
- * $Revision: 1.5 $
+ * $Id: AS_BOG_Datatypes.hh,v 1.6 2005-08-10 14:46:19 eliv Exp $
+ * $Revision: 1.6 $
 */
 
-static char CM_ID[] = "$Id: AS_BOG_Datatypes.hh,v 1.5 2005-08-08 21:49:02 kli1000 Exp $";
-
 //  System include files
+
+extern "C" {
+#include "cds.h"
+}
 
 #ifndef INCLUDE_AS_BOG_DATATYPES
 #define INCLUDE_AS_BOG_DATATYPES
@@ -81,57 +83,10 @@ namespace AS_BOG{
 			// B   <---
 	} overlap_type;
 
-	typedef enum {
+	enum fragment_end_type {
 		FIVE_PRIME, 	// 5' End of fragment
 		THREE_PRIME 	// 3' End of Fragment
-	} fragment_end_type;
-
-	///////////////////////////////////////////////////////////////////////
-
-	fragment_end_type opposite_end(fragment_end_type fet){
-		if(fet == FIVE_PRIME){
-			return(THREE_PRIME);
-		}else if(fet == THREE_PRIME){
-			return(FIVE_PRIME);
-		}else{
-			//Assert
-		}
-	}
-
-	fragment_end_type overlap_end(overlap_type ot, char a_or_b){
-
-		switch(a_or_b){
-			case 'a':
-			case 'A':
-				switch(ot){
-					case DOVE_NORMAL:
-					case DOVE_INNIE:
-						which_end=THREE_PRIME;
-						break;
-					case DOVE_ANTI_NORMAL:
-					case DOVE_OUTTIE:
-						which_end=FIVE_PRIME;
-						break;
-				}
-				return(which_end);
-			case 'b':
-			case 'B':
-				switch(ot){
-					case DOVE_NORMAL:
-					case DOVE_OUTTIE:
-						which_end=FIVE_PRIME;
-						break;
-					case DOVE_INNIE:
-					case DOVE_ANTI_NORMAL:
-						which_end=THREE_PRIME;
-						break;
-				}
-				return(which_end);
-		}
-	}
-
-	///////////////////////////////////////////////////////////////////////
-	
+	};
 
 	typedef enum {
 		UNKNOWN,
@@ -139,9 +94,7 @@ namespace AS_BOG{
 		REVERSE
 	} orientation_type;
 
-	typedef unint32 iuid;
-
-	const iuid NULL_FRAG_ID=-1;
+	typedef CDS_IID_t iuid;
 
 } //AS_BOG namespace
 

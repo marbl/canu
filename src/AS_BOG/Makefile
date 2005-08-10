@@ -27,10 +27,10 @@
 LOCAL_WORK = $(shell cd ../..; pwd)
 
 TOOL_SRCS = FindContainedFrags.cc 
-TOOL_OBJS = $(OLAPSTORE_SRCS:.c=.o)
 
-SOURCES = $(TOOL_SRCS)
-OBJECTS = $(TOOL_OBJS)
+SOURCES = AS_BOG_BestOverlapGraph.cc $(TOOL_SRCS)
+OBJECTS = $(SOURCES:.cc=.o) 
+
 
 #LIBRARIES = libAS_OVL.a
 
@@ -48,6 +48,6 @@ PROGS = $(TOOL_PROGS)
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
 
-all:    $(OBJECTS) $(LIBRARIES) $(PROGS) install
+all:    $(OBJECTS) $(LIBRARIES) $(PROGS) 
 
-findContainedFrags:  FindContainedFrags.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
+findContainedFrags:  $(OBJECTS) $(AS_LIBRARIES) $(SYS_LIBRARIES)

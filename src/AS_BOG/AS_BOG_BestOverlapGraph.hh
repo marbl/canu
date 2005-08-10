@@ -34,20 +34,20 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.hh,v 1.8 2005-08-08 21:49:02 kli1000 Exp $
- * $Revision: 1.8 $
+ * $Id: AS_BOG_BestOverlapGraph.hh,v 1.9 2005-08-10 14:46:19 eliv Exp $
+ * $Revision: 1.9 $
 */
-
-static char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.8 2005-08-08 21:49:02 kli1000 Exp $";
 
 //  System include files
 
 #ifndef INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 #define INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 
-#include <vector>
-#include <map>
 #include "AS_BOG_Datatypes.hh"
+
+extern "C" {
+#include "OlapStoreOVL.h"
+}
 
 namespace AS_BOG{
 
@@ -57,8 +57,8 @@ namespace AS_BOG{
 		iuid frag_b_id;
 		overlap_type type;		
 		int in_degree;
-		int score;
-	}
+		float score;
+	};
 
 	struct BestFragmentOverlap{
 
@@ -68,7 +68,7 @@ namespace AS_BOG{
 
 		BestEdgeOverlap five_prime; 
 		BestEdgeOverlap three_prime;
-	}
+	};
 
 	///////////////////////////////////////////////////////////////////////
 
@@ -79,54 +79,79 @@ namespace AS_BOG{
 
 		iuid container;
 		overlap_type type;
-		int score;
-	}
+		float score;
+	};
 
 	///////////////////////////////////////////////////////////////////////
 
-	class BestOverlapGraph {
 
-		public:
+	struct BestOverlapGraph {
 
-			// Constructor, parametrizing maximum number of overlaps
-			BestOverlapGraph(int max_fragment_count);
+            // Class methods
+        static uint16 *fragLength;
+        static uint16 fragLen( iuid );
+        static ReadStructp fsread;
+        static FragStoreHandle fragStoreHandle;
+        static overlap_type getType(const Long_Olap_Data_t & olap);
+        fragment_end_type AEnd(const Long_Olap_Data_t & olap);
+        fragment_end_type BEnd(const Long_Olap_Data_t& olap);
+        short        olapLength(const Long_Olap_Data_t& olap) {
+            uint16 alen = fragLen(olap.a_iid);
+            if (olap.a_hang < 0)
+                return alen - abs(olap.b_hang);
+            else
+                return alen - olap.a_hang;
+        }
 
-			// Destructor
-			~BestOverlapGraph(void);
+        // Constructor, parametrizing maximum number of overlaps
+        BestOverlapGraph(int max_fragment_count);
 
-			// Interface to graph visitor
-			accept(BestOverlapGraphVisitor bog_vis){
-				bog_vis.visit(this);
-			}
+        // Destructor
+        ~BestOverlapGraph();
+
+        // Interface to graph visitor
+        //			accept(BestOverlapGraphVisitor bog_vis){
+        //				bog_vis.visit(this);
+//			}
 
 			// Accessor Get Functions
-			BestEdgeOverlap *getBestEdgeOverlap(
+			BestEdgeOverlap *getBestEdge(
 				iuid frag_id, fragment_end_type which_end);
 
-			BestContainment *getBestContainment(iuid frag_id);
+			void setBestEdge(const Long_Olap_Data_t& olap, float newScore);
+			iuid getNumFragments() { return _num_fragments; }
 
-			iuid getNumFragments(void);
+//			BestContainment *getBestContainment(iuid frag_id);
 
-			// Accessor Set Functions
-			void setBestOverlap(
-				iuid frag_a_id, 
-				iuid frag_b_id,
-				int score,
-				overlap_type ovl_type
-			);
+            virtual bool checkForNextFrag(const Long_Olap_Data_t& olap, float scoreReset);
+            virtual float score( const Long_Olap_Data_t& olap) =0;
 
-			void removeBestOverlap(
-				iuid frag_a_id,
-				fragment_end_type which_end	
-			);
+		protected:
+			BestFragmentOverlap* _best_overlaps;
+			iuid _num_fragments;
+            iuid curFrag;
+//			map<iuid, BestContainment> _best_containments;
 
-		private:
-			BestOverlap _best_overlaps[];
-			int _num_fragments;
-			int _max_fragments;
-			map<iuid, BestContainment> _best_containments;
+	}; //BestOverlapGraph
 
-	} //BestOverlapGraph
+    struct ErateScore : public BestOverlapGraph {
+        short bestLength;
+        ErateScore(int num) : BestOverlapGraph(num), bestLength(0) {}
+        bool checkForNextFrag(const Long_Olap_Data_t& olap, float scoreReset);
+        float score( const Long_Olap_Data_t& olap);
+    };
+
+    struct LongestEdge : public BestOverlapGraph {
+        LongestEdge(int num) : BestOverlapGraph(num) {}
+        float score( const Long_Olap_Data_t& olap);
+    };
+
+    struct LongestHighIdent : public BestOverlapGraph {
+        float mismatchCutoff;
+        LongestHighIdent(int num, float maxMismatch) : BestOverlapGraph(num),
+                                                       mismatchCutoff(maxMismatch) {}
+        float score( const Long_Olap_Data_t& olap);
+    };
 
 } //AS_BOG namespace
 
