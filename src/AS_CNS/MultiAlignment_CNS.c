@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.23 2005-08-08 19:41:35 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.24 2005-08-10 13:29:48 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -188,11 +188,11 @@ int InitializeAlphTable(void) {
    }
 
    { int qv=CNS_MIN_QV;
-     for (i=0;i<CNS_MAX_QV-CNS_MIN_QV+1;i++) {
-       EPROB[i]= pow(10,-qv/10.);
-       PROB[i] = (1.0 - EPROB[i]);
-       qv++;
-     }
+   for (i=0;i<CNS_MAX_QV-CNS_MIN_QV+1;i++) {
+     EPROB[i]= pow(10,-qv/10.);
+     PROB[i] = (1.0 - EPROB[i]);
+     qv++;
+   }
    }
 // show bits of mask for testing
 //   for (i=0;i<5;i++) {
@@ -1688,7 +1688,7 @@ BaseCall(int32 cid, int quality, float *var, AlPair ap, int verbose,
         CleanExit("BaseCall CreateColumnBeadIterator failed",__LINE__,1);
     }
 
-   *var = ZERO_MINUS;
+   *var = 0.;
     if (quality > 0) 
     {
         static int guides_alloc=0;
@@ -1831,7 +1831,7 @@ BaseCall(int32 cid, int quality, float *var, AlPair ap, int verbose,
             normalize = 1/normalize;
         for (bi=0; bi<CNS_NP; bi++) {
             cw[bi] *= normalize;
-            if (cw[bi] > max_cw + ZERO_PLUS) {
+            if (cw[bi] > max_cw) {
                 max_ind = bi;
                 max_cw = cw[bi];
                 Resetint16(tied);
@@ -1880,7 +1880,7 @@ BaseCall(int32 cid, int quality, float *var, AlPair ap, int verbose,
             {
                 tmpqv =  -10.0 * log10(1.0-max_cw);
                 qv = DBL_TO_INT(tmpqv);
-                if ((tmpqv - qv)>=.50 + ZERO_PLUS) 
+                if ((tmpqv - qv)>=.50) 
                     qv++;
             }
             cqv = QVInRange(qv);
@@ -1931,7 +1931,7 @@ BaseCall(int32 cid, int quality, float *var, AlPair ap, int verbose,
             }
         }
         if ((read_count == 1 ) || (sum_qv_all == 0))
-           *var = ZERO_MINUS;
+           *var = 0.;
         else 
            *var = 1. - (float)sum_qv_cbase / (float)sum_qv_all;
         return score;
@@ -2502,8 +2502,6 @@ int RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
                    *v_list = (IntMultiVar *)safe_malloc(min_len_vlist*
                         sizeof(IntMultiVar));
                 }
-                (*v_list)[*nvars].position.bgn = beg;
-                (*v_list)[*nvars].position.end = end;
                 (*nvars)++;
                 if ((*nvars == min_len_vlist) && quality > 0 && make_v_list)
                 {
@@ -2511,6 +2509,8 @@ int RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
                    *v_list = (IntMultiVar *)safe_realloc(*v_list, min_len_vlist*
                         sizeof(IntMultiVar));
                 }
+                (*v_list)[*nvars].position.bgn = beg;
+                (*v_list)[*nvars].position.end = end;
 //              (*v_list)[*nvars].nreads = (int32)ap.nr;
 //              (*v_list)[*nvars].window = opp->smooth_win;
             }
@@ -2529,11 +2529,6 @@ int RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
         }
     }
 
-    if (*nvars == 0)
-    {
-        free(*v_list);
-       *v_list = NULL;
-    }
     FREE(var);
     FREE(svar);
     FREE(cids);
@@ -4043,8 +4038,7 @@ int32 MergeRefine(int32 mid, IntMultiVar **v_list, int32 *num_vars, CNS_Options 
     }
     cid = column->next;
   }
-  if (v_list && num_vars)
-      make_v_list = 1;
+  make_v_list = 1;
   RefreshMANode(mid, 1, opp, &nv, &vl, make_v_list);
   if (make_v_list && num_vars)
   {
@@ -4062,8 +4056,8 @@ int32 MergeRefine(int32 mid, IntMultiVar **v_list, int32 *num_vars, CNS_Options 
           free(*v_list);
          *num_vars = 0;
       }
-      if (vl) free(vl);
   }
+  if (vl) free(vl);
   return removed;
 }
 
@@ -4168,8 +4162,7 @@ Abacus *CreateAbacus(int32 mid, int32 from, int32 end) {
    if (ma == NULL ) CleanExit("CreateAbacus ma==NULL",__LINE__,1);
    column = GetColumn(columnStore, from);
    if (column == NULL ) CleanExit("CreateAbacus column==NULL",__LINE__,1);
-   if (abacus_indices == NULL ) CleanExit("CreateAbacus abacus_indices==NULL",
-       __LINE__,1);
+   if (abacus_indices == NULL ) CleanExit("CreateAbacus abacus_indices==NULL",__LINE__,1);
    ResetIndex(abacus_indices,GetNumFragments(fragmentStore));
    // first, just determine requires number of rows and columns for Abacus
    while( column->next != end  && column->next != -1) {
@@ -4245,8 +4238,7 @@ Abacus *CreateAbacus(int32 mid, int32 from, int32 end) {
    abacus->columns = 3*orig_columns;
    abacus->shift = UNSHIFTED;
    abacus->beads = (char *) safe_calloc(rows*(abacus->columns+2),sizeof(char)); // 
-   abacus->calls = (char *) safe_calloc((abacus->columns),sizeof(char)); 
-       // two extra gap columns, plus "null" borders
+   abacus->calls = (char *) safe_calloc((abacus->columns),sizeof(char)); // two extra gap columns, plus "null" borders
 
    // now, fill the center third of abacus with chars from the columns
 
@@ -4351,9 +4343,7 @@ int32 ScoreAbacus(Abacus *abacus, int *columns)  { // columns is the number of n
    }
    // now, for each column, generate the majority call
    for (j=0;j<abacus->columns;j++) {
-     if ( GetBaseCount(&counts[j],'-') + GetBaseCount(&counts[j],'n') 
-            == counts[j].depth ) 
-     {
+     if ( GetBaseCount(&counts[j],'-') + GetBaseCount(&counts[j],'n') == counts[j].depth ) {
         // null (all-gap) column. Flag with an 'n' basecall
         abacus->calls[j] = 'n';
      } else {
@@ -5443,7 +5433,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
         int rc;
         char srcadd[32];
         int addlen;
-        double prob_value=0.;
+        double prob_value=0;
         //rc = IMP2Array(unitig->f_list, unitig->num_frags, unitig->length, global_fragStore, global_fragStorePartition,
         //                 global_bactigStore,
         //                 &depth, &multia, &id_array,0);
@@ -5456,7 +5446,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
           prob_value = AS_REZ_MP_MicroHet_prob(multia,id_array,global_fragStore,
               global_fragStorePartition, unitig->length,depth);
         } else {
-          prob_value = 0.;
+          prob_value = 0;
         }
 #endif
         addlen = sprintf(srcadd,"\nmhp:%e",prob_value); 
@@ -5766,7 +5756,6 @@ int MultiAlignContig(IntConConMesg *contig,
    IntMultiVar *imv;
 
    if (contig == NULL ) CleanExit("MultiAlignContig contig==NULL",__LINE__,1);
-
    num_unitigs = contig->num_unitigs;
    num_frags = contig->num_pieces;
    upositions = contig->unitigs;
@@ -5791,8 +5780,7 @@ int MultiAlignContig(IntConConMesg *contig,
     // }
      fragmentMap = CreatePHashTable_AS(2*(num_frags+num_unitigs),NULL);
      bactigMap = CreatePHashTable_AS(2*(num_frags+num_unitigs),NULL);
-     for (i=0;i<num_frags;i++) 
-     {
+     for (i=0;i<num_frags;i++) {
        PHashTable_AS *thash=(contig->pieces[i].type == AS_BACTIG )?bactigMap:fragmentMap;
        PHashValue_AS value;
        PHashValue_AS ovalue;
@@ -5833,8 +5821,7 @@ int MultiAlignContig(IntConConMesg *contig,
      // Now, loop on remaining fragments, aligning to:
      //    a)  containing frag (if contained)
      // or b)  previously aligned frag
-     for (i=1;i<num_unitigs;i++) 
-     {
+     for (i=1;i<num_unitigs;i++) {
         int ahang,ovl;
         int32 alid,blid;
         int32 last_b_aligned;
@@ -5937,7 +5924,6 @@ int MultiAlignContig(IntConConMesg *contig,
      RefreshMANode(ma->lid, 0, opp, &nv, &vl, 0);
      AbacusRefine(ma,0,-1,CNS_INDEL, opp);
      MergeRefine(ma->lid, &(contig->v_list), &(contig->num_vars), opp);
-
      //     PrintAlignment(cnslog,ma->lid,0,-1,'C');
      if ( cnslog != NULL  && (printwhat == CNS_VERBOSE || printwhat == CNS_VIEW_UNITIG)) { 
        fprintf(cnslog,"\nFinal refined alignment\n");
@@ -6284,20 +6270,19 @@ MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
                                     FragStoreHandle frag_store,
                                     uint32 contig_iid, uint32 unitig_iid, int extendingLeft,
                                     Overlap *(*COMPARE_FUNC)(COMPARE_ARGS),
-                                    CNS_Options *opp)
-{
+                                    CNS_Options *opp){
    int32 cid,tid; // local id of contig (cid), and unitig(tid)
    int32 aid,bid;  
    int i,num_unitigs;
    MultiAlignT *oma;
    MultiAlignT *cma;
    IntUnitigPos *u_list;
-   IntMultiPos  *f_list;
+   IntMultiPos *f_list;
    IntMultiVar  *v_list;
-   int append_left= 0;
-   int num_frags  = 0;
-   int complement = 0;
+   int append_left=0;
+   int num_frags=0;
    int num_vars   = 0;
+   int complement=0;
    MANode *ma;
    Fragment *cfrag; 
    Fragment *tfrag = NULL;
@@ -6317,8 +6302,8 @@ MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
    ResetStores(2,GetNumchars(oma->consensus)+MAX_EXTEND_LENGTH);
    num_unitigs=GetNumIntUnitigPoss(oma->u_list);
    num_frags=GetNumIntMultiPoss(oma->f_list);
-   u_list = GetIntUnitigPos(oma->u_list,0);
-   f_list = GetIntMultiPos(oma->f_list,0);
+   u_list=GetIntUnitigPos(oma->u_list,0);
+   f_list=GetIntMultiPos(oma->f_list,0);
    v_list = GetIntMultiVar(oma->v_list,0);
    // capture the consensus sequence of the original contig and put into local "fragment" format
    //PrintIMPInfo(stderr,num_frags,f_list);
@@ -6417,10 +6402,10 @@ MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
   // no deltas required at this stage 
   // merge the f_lists and u_lists by cloning and concating
   cma->f_list = Clone_VA(oma->f_list);
-  cma->v_list = Clone_VA(oma->v_list);
-  cma->delta  = CreateVA_int32(0);
+  cma->delta = CreateVA_int32(0);
   cma->u_list = Clone_VA(oma->u_list);
   cma->udelta = CreateVA_int32(0);
+  cma->v_list = Clone_VA(oma->v_list);
 
   {
   CNS_AlignedContigElement *components;
