@@ -31,11 +31,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FindContainedFrags.cc,v 1.5 2005-08-10 15:17:45 eliv Exp $
- * $Revision: 1.5 $
+ * $Id: FindContainedFrags.cc,v 1.6 2005-08-10 17:34:47 eliv Exp $
+ * $Revision: 1.6 $
 */
 
-static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.5 2005-08-10 15:17:45 eliv Exp $";
+static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.6 2005-08-10 17:34:47 eliv Exp $";
 
 //  System include files
 
@@ -83,7 +83,6 @@ int  main
    my_stream = New_OVL_Stream ();
 
    BestOverlapGraph::fragStoreHandle = openFragStore( FRG_Store_Path, "r");
-   BestOverlapGraph::fsread = new_ReadStruct();
 
    Open_OVL_Store (my_store, OVL_Store_Path);
    last = Last_Frag_In_OVL_Store (my_store);
@@ -180,5 +179,6 @@ int  main
    }
    delete[] multiContain;
    delete[] BestOverlapGraph::fragLength;
+   delete_ReadStruct(BestOverlapGraph::fsread);
    return  0;
 }

@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.5 2005-08-10 14:46:19 eliv Exp $
- * $Revision: 1.5 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.6 2005-08-10 17:34:47 eliv Exp $
+ * $Revision: 1.6 $
 */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.5 2005-08-10 14:46:19 eliv Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.6 2005-08-10 17:34:47 eliv Exp $";
 
 //  System include files
 
@@ -76,7 +76,8 @@ namespace AS_BOG{
 
 	// BestOverlapGraph
 	// Constructor
-	BestOverlapGraph::BestOverlapGraph(int max_fragments) : _num_fragments(max_fragments){
+	BestOverlapGraph::BestOverlapGraph(int max_fragments) : _num_fragments(max_fragments),
+                                                            curFrag(0){
 		_best_overlaps = new BestFragmentOverlap[max_fragments+1];
 
         memset(_best_overlaps, 0, sizeof(BestFragmentOverlap)*(max_fragments+1));
@@ -126,7 +127,7 @@ namespace AS_BOG{
     }
 
     uint16 *BestOverlapGraph::fragLength;
-    ReadStructp BestOverlapGraph::fsread;
+    ReadStructp BestOverlapGraph::fsread = new_ReadStruct();
     FragStoreHandle BestOverlapGraph::fragStoreHandle;
     uint16 BestOverlapGraph::fragLen( iuid iid ) {
         if (BestOverlapGraph::fragLength[ iid ] == 0) {
