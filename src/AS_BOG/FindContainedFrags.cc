@@ -31,11 +31,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FindContainedFrags.cc,v 1.4 2005-08-10 14:46:19 eliv Exp $
- * $Revision: 1.4 $
+ * $Id: FindContainedFrags.cc,v 1.5 2005-08-10 15:17:45 eliv Exp $
+ * $Revision: 1.5 $
 */
 
-static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.4 2005-08-10 14:46:19 eliv Exp $";
+static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.5 2005-08-10 15:17:45 eliv Exp $";
 
 //  System include files
 
@@ -138,14 +138,25 @@ int  main
    closeFragStore( BestOverlapGraph::fragStoreHandle ); 
 
    for( i = 1; i <= last; i++) {
-       AS_BOG::BestEdgeOverlap* pick[metrics.size()];
+       AS_BOG::BestEdgeOverlap* five[metrics.size()];
+       AS_BOG::BestEdgeOverlap* three[metrics.size()];
+
        for( j = 0; j < metrics.size(); j++)  {
-           pick[j] = metrics[j]->getBestEdge( i, AS_BOG::FIVE_PRIME );
+           five[j] = metrics[j]->getBestEdge( i, AS_BOG::FIVE_PRIME );
+           three[j] = metrics[j]->getBestEdge( i, AS_BOG::THREE_PRIME );
+
            if ( j == metrics.size()-1 ) {
-               if (pick[0]->frag_b_id == pick[1]->frag_b_id && pick[0]->frag_b_id == pick[2]->frag_b_id) {
-                   cout << i << " " << pick[0]->frag_b_id << endl;
+               CDS_IID_t b0 = five[0]->frag_b_id;
+               if (b0 == five[1]->frag_b_id && b0 == five[2]->frag_b_id) {
+                   cout << i << " 5' " << b0;
                } else { 
-                   cout << i << " disagree " << pick[0]->frag_b_id<<" "<<pick[1]->frag_b_id<<" "<<pick[2]->frag_b_id<<endl;
+                   cout << i<<" 5' disagree "<< b0<<" "<<five[1]->frag_b_id<<" "<<five[2]->frag_b_id;
+               }
+               b0 = three[0]->frag_b_id;
+               if (b0 == three[1]->frag_b_id && b0 == three[2]->frag_b_id) {
+                   cout << " 3' " << b0 << endl;
+               } else { 
+                   cout <<" 3' disagree "<< b0<<" "<<three[1]->frag_b_id<<" "<<three[2]->frag_b_id<<endl;
                }
            }
        }
