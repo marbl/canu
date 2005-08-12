@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.24 2005-08-10 13:29:48 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.25 2005-08-12 15:19:10 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -2502,7 +2502,6 @@ int RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
                    *v_list = (IntMultiVar *)safe_malloc(min_len_vlist*
                         sizeof(IntMultiVar));
                 }
-                (*nvars)++;
                 if ((*nvars == min_len_vlist) && quality > 0 && make_v_list)
                 {
                     min_len_vlist += 10;
@@ -2511,6 +2510,7 @@ int RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
                 }
                 (*v_list)[*nvars].position.bgn = beg;
                 (*v_list)[*nvars].position.end = end;
+                (*nvars)++;
 //              (*v_list)[*nvars].nreads = (int32)ap.nr;
 //              (*v_list)[*nvars].window = opp->smooth_win;
             }
