@@ -20,7 +20,7 @@
  *************************************************************************/
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_ORA/Attic/fraguid2iid_byhash.c,v $
-$Revision: 1.1 $
+$Revision: 1.2 $
 **********************************************************************/
 
 //  Convert a list of fragment uids to iids using a gkp store
@@ -130,6 +130,7 @@ int main( int argc, char ** argv )
 
   assert(gkpstore_name!=NULL);
   InitGateKeeperStore(&my_gkp_store, gkpstore_name);
+  TestOpenReadOnlyGateKeeperStore(&my_gkp_store);
   OpenReadOnlyGateKeeperStore(&my_gkp_store);
 
   if(!printSTATUS)

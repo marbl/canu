@@ -20,7 +20,7 @@
  *************************************************************************/
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_ORA/Attic/fraguid2iid.c,v $
-$Revision: 1.4 $
+$Revision: 1.5 $
 **********************************************************************/
 
 //  Convert a list of fragment uids to iids using a fragment store
@@ -243,8 +243,8 @@ void  Read_Fragments
 
   if(printSTATUS){
     InitGateKeeperStore(&gkpStore,gkpstore_name);
+    assert(TestOpenReadOnlyGateKeeperStore(&gkpStore) == TRUE);
     OpenReadOnlyGateKeeperStore(&gkpStore);
-    assert(TestOpenGateKeeperStore(&gkpStore) == TRUE);
   }
 
   // get a reusable read structure
