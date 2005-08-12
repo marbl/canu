@@ -34,8 +34,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.hh,v 1.9 2005-08-10 14:46:19 eliv Exp $
- * $Revision: 1.9 $
+ * $Id: AS_BOG_BestOverlapGraph.hh,v 1.10 2005-08-12 20:53:38 eliv Exp $
+ * $Revision: 1.10 $
 */
 
 //  System include files
@@ -43,6 +43,7 @@
 #ifndef INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 #define INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 
+#include <map>
 #include "AS_BOG_Datatypes.hh"
 
 extern "C" {
@@ -55,7 +56,7 @@ namespace AS_BOG{
 
 	struct BestEdgeOverlap{
 		iuid frag_b_id;
-		overlap_type type;		
+		fragment_end_type bend;		
 		int in_degree;
 		float score;
 	};
@@ -121,7 +122,7 @@ namespace AS_BOG{
 			void setBestEdge(const Long_Olap_Data_t& olap, float newScore);
 			iuid getNumFragments() { return _num_fragments; }
 
-//			BestContainment *getBestContainment(iuid frag_id);
+			BestContainment *getBestContainer(iuid frag_id);
 
             virtual bool checkForNextFrag(const Long_Olap_Data_t& olap, float scoreReset);
             virtual float score( const Long_Olap_Data_t& olap) =0;
@@ -130,7 +131,7 @@ namespace AS_BOG{
 			BestFragmentOverlap* _best_overlaps;
 			iuid _num_fragments;
             iuid curFrag;
-//			map<iuid, BestContainment> _best_containments;
+            std::map<iuid, BestContainment> _best_containments;
 
 	}; //BestOverlapGraph
 

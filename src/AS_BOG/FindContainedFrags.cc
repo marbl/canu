@@ -31,11 +31,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FindContainedFrags.cc,v 1.6 2005-08-10 17:34:47 eliv Exp $
- * $Revision: 1.6 $
+ * $Id: FindContainedFrags.cc,v 1.7 2005-08-12 20:53:38 eliv Exp $
+ * $Revision: 1.7 $
 */
 
-static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.6 2005-08-10 17:34:47 eliv Exp $";
+static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.7 2005-08-12 20:53:38 eliv Exp $";
 
 //  System include files
 
@@ -146,16 +146,35 @@ int  main
 
            if ( j == metrics.size()-1 ) {
                CDS_IID_t b0 = five[0]->frag_b_id;
+               AS_BOG::BestEdgeOverlap* f1 = five[1];
+               AS_BOG::BestEdgeOverlap* f2 = five[2];
+               cout.width(6);
+               cout << i <<" 5' in "<< five[0]->in_degree << " "
+                    << f1->in_degree <<" "<< f2->in_degree;
+
                if (b0 == five[1]->frag_b_id && b0 == five[2]->frag_b_id) {
-                   cout << i << " 5' " << b0;
+                   cout <<" best "; cout.width(17);
+                   cout << b0 ;
                } else { 
-                   cout << i<<" 5' disagree "<< b0<<" "<<five[1]->frag_b_id<<" "<<five[2]->frag_b_id;
+                   cout<< " diff "          ; cout.width(5);
+                   cout<< b0 <<" "          ; cout.width(5);
+                   cout<< f1->frag_b_id<<" "; cout.width(5);
+                   cout<< f2->frag_b_id ;
                }
                b0 = three[0]->frag_b_id;
+               f1 = three[1];
+               f2 = three[2];
+               cout << " ;3' in "<< three[0]->in_degree << " "
+                    << f1->in_degree <<" "<< f2->in_degree;
+
                if (b0 == three[1]->frag_b_id && b0 == three[2]->frag_b_id) {
-                   cout << " 3' " << b0 << endl;
+                   cout <<" best "; cout.width(5);
+                   cout << b0 << endl;
                } else { 
-                   cout <<" 3' disagree "<< b0<<" "<<three[1]->frag_b_id<<" "<<three[2]->frag_b_id<<endl;
+                   cout<<" diff ";            cout.width(5);
+                   cout<< b0 <<" ";           cout.width(5);
+                   cout<< f1->frag_b_id<<" "; cout.width(5);
+                   cout<< f2->frag_b_id << endl;
                }
            }
        }

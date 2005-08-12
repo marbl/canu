@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.6 2005-08-10 17:34:47 eliv Exp $
- * $Revision: 1.6 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.7 2005-08-12 20:53:38 eliv Exp $
+ * $Revision: 1.7 $
 */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.6 2005-08-10 17:34:47 eliv Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.7 2005-08-12 20:53:38 eliv Exp $";
 
 //  System include files
 
@@ -104,32 +104,30 @@ namespace AS_BOG{
         }
 	}
 
-//	BestContainment *BestOverlapGraph::getBestContainer(iuid containee){
-//		return(&_best_containments[containee]);
-//	}
+	BestContainment *BestOverlapGraph::getBestContainer(iuid containee){
+		return(&_best_containments[containee]);
+	}
 
     void BestOverlapGraph::setBestEdge(const Long_Olap_Data_t& olap, float newScore) {
 
         if (AEnd(olap) == THREE_PRIME) {
             _best_overlaps[ olap.a_iid ].three_prime.frag_b_id = olap.b_iid;
-            _best_overlaps[ olap.a_iid ].three_prime.score       = newScore;
+            _best_overlaps[ olap.a_iid ].three_prime.score     = newScore;
+            _best_overlaps[ olap.a_iid ].three_prime.bend      = BEnd(olap);
 
         }
         if (AEnd(olap) == FIVE_PRIME) {
             _best_overlaps[ olap.a_iid ].five_prime.frag_b_id = olap.b_iid;
-            _best_overlaps[ olap.a_iid ].five_prime.score       = newScore;
+            _best_overlaps[ olap.a_iid ].five_prime.score     = newScore;
+            _best_overlaps[ olap.a_iid ].five_prime.bend      = BEnd(olap);
         }
-        if (BEnd(olap) == THREE_PRIME)
-            _best_overlaps[ olap.b_iid ].three_prime.in_degree++;
-
-        if (BEnd(olap) == FIVE_PRIME)
-            _best_overlaps[ olap.b_iid ].five_prime.in_degree++;
     }
 
-    uint16 *BestOverlapGraph::fragLength;
-    ReadStructp BestOverlapGraph::fsread = new_ReadStruct();
+    uint16         *BestOverlapGraph::fragLength;
+    ReadStructp     BestOverlapGraph::fsread = new_ReadStruct();
     FragStoreHandle BestOverlapGraph::fragStoreHandle;
-    uint16 BestOverlapGraph::fragLen( iuid iid ) {
+    uint16          BestOverlapGraph::fragLen( iuid iid )
+    {
         if (BestOverlapGraph::fragLength[ iid ] == 0) {
             uint32 clrBgn, clrEnd;
             getFragStore( fragStoreHandle, iid, FRAG_S_SEQUENCE, fsread);
@@ -139,8 +137,27 @@ namespace AS_BOG{
         return BestOverlapGraph::fragLength[ iid ];
     }
 
-    bool BestOverlapGraph::checkForNextFrag(const Long_Olap_Data_t& olap, float scoreReset) {
+    bool BestOverlapGraph::checkForNextFrag(const Long_Olap_Data_t& olap, float scoreReset)
+    {
         if (curFrag != olap.a_iid) {
+            iuid bid = _best_overlaps[ curFrag ].three_prime.frag_b_id;
+            switch(_best_overlaps[ curFrag ].three_prime.bend){
+                case THREE_PRIME:
+                    _best_overlaps[ bid ].three_prime.in_degree++; break;
+                case FIVE_PRIME:
+                    _best_overlaps[ bid ].five_prime.in_degree++; break;
+                default: assert(0);
+            }
+            bid = _best_overlaps[ curFrag ].five_prime.frag_b_id;
+            switch(_best_overlaps[ curFrag ].five_prime.bend){
+                case THREE_PRIME:
+                    _best_overlaps[ bid ].three_prime.in_degree++; break;
+                case FIVE_PRIME:
+                    _best_overlaps[ bid ].five_prime.in_degree++; break;
+                default: assert(0);
+            }
+            _best_overlaps[ olap.a_iid ].five_prime.score = scoreReset;
+
             curFrag  = olap.a_iid;
             _best_overlaps[ olap.a_iid ].three_prime.score = scoreReset;
             _best_overlaps[ olap.a_iid ].five_prime.score = scoreReset;
