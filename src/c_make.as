@@ -57,6 +57,7 @@ SUBDIRS = AS_MSG \
           AS_CVT \
           AS_MER \
           AS_MPA \
+          AS_OBT \
           AS_UID
 
 # Compiler & flags
