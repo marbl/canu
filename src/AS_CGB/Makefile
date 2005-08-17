@@ -163,7 +163,7 @@ AS_CGB_fom2uom: $(FOM2UOM_OBJS) AS_CGB_histo.o libAS_PER.a libAS_OVL.a libAS_MSG
 
 AS_CGB_iid2cid: $(IID2CID_OBJS) AS_CGB_histo.o libAS_PER.a libAS_OVL.a libAS_MSG.a libAS_UTL.a 
 
-check_breakers: $(CHKBRK_OBJS) libAS_ALN.a libAS_MSG.a libAS_PER.a libAS_UTL.a libAS_UID.a ${CURLLIB}
+check_breakers: $(CHKBRK_OBJS) libAS_ALN.a libAS_MSG.a libAS_PER.a libAS_UTL.a libAS_UID.a
 
 #repair_breakers: $(RPRBRKS_OBJS) $(AS_BRK_OBJS) $(UTILITY4_OBJS) AS_FGB_io.o $(AS_OGB_OBJS) libAS_OVL.a libAS_ALN.a libAS_PER.a libAS_MSG.a libAS_UTL.a 
 

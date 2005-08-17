@@ -22,5 +22,7 @@
 ###########################################################################
 #
 
-## Comment this line to use CURL as UID transport mechanism
-USE_SOAP_UID = 1
+## Set this to JCVI to use CURL to access JCVI's UID server.
+## Set this to TIGR to use SOAP to access TIGR's UID server.
+## Add your own favorite server....
+UID_SERVER = JCVI

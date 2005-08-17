@@ -134,7 +134,7 @@ LIB_OBJS = $(LIB_SRCS:.c=.o)
 SOURCES = $(TERM_SRCS) $(SMA_SRCS) $(PRCSCF_SRCS) $(CTGOUT_SRCS)
 OBJECTS = $(TERM_OBJS)
 
-AS_LIBRARIES = libAS_CNS.a libAS_CGW.a libAS_SDB.a libAS_REZ.a libAS_CGW.a  libAS_PER.a libAS_UTL.a libAS_MSG.a libAS_ALN.a libAS_LIN.a libAS_OVL.a libAS_UID.a ${CURLLIB}
+AS_LIBRARIES = libAS_CNS.a libAS_CGW.a libAS_SDB.a libAS_REZ.a libAS_CGW.a  libAS_PER.a libAS_UTL.a libAS_MSG.a libAS_ALN.a libAS_LIN.a libAS_OVL.a libAS_UID.a
 LIBRARIES = libAS_TER.a
 
 PROGS = terminator count-sma asmProcessScaffolds_TER asmOutputContigsFasta
@@ -149,7 +149,7 @@ all: $(OBJECTS) $(LIBRARIES) $(PROGS)
 
 count-sma : $(SMA_OBJS)  libAS_MSG.a libAS_UTL.a
 #CFLAGS+=-DGENERIC_STORE_USE_LONG_STRINGS -DCONTIG_OVERLAPPER_VERSION
-terminator  : $(TERM_OBJS) $(AS_LIBRARIES) 
+terminator  : $(TERM_OBJS) $(AS_LIBRARIES)
 asmProcessScaffolds_TER: $(PRCSCF_OBJS) $(AS_LIBRARIES) 
 asmOutputContigsFasta: $(CTGOUT_OBJS) $(AS_LIBRARIES) 
 libAS_TER.a : $(LIB_OBJS)

@@ -85,7 +85,7 @@ extractmessages: ExtractMessages.o AS_MSG_bmesg.o AS_MSG_pmesg.o \
 
 extractxchunkmessages: ExtractXChunkMessages.o AS_MSG_bmesg.o AS_MSG_pmesg.o
 
-asm2bac: asm2bac.o libAS_CNS.a libAS_REZ.a libAS_SDB.a libAS_MSG.a libAS_TER.a libAS_CGW.a libAS_REZ.a libAS_CGW.a libAS_REZ.a libAS_ALN.a libAS_LIN.a libAS_OVL.a libAS_PER.a libAS_MSG.a libAS_UTL.a libAS_UID.a ${CURLLIB} libm.a
+asm2bac: asm2bac.o libAS_CNS.a libAS_REZ.a libAS_SDB.a libAS_MSG.a libAS_TER.a libAS_CGW.a libAS_REZ.a libAS_CGW.a libAS_REZ.a libAS_ALN.a libAS_LIN.a libAS_OVL.a libAS_PER.a libAS_MSG.a libAS_UTL.a libAS_UID.a
 
 # asm_tables: asm_tables.o  AS_MSG_bmesg.o AS_MSG_pmesg.o
 

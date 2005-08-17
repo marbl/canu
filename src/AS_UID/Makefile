@@ -24,11 +24,14 @@
 
 ######################################################################
 # $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_UID/Makefile,v $
-# $Revision: 1.3 $
-# $Date: 2005-03-22 19:49:28 $
+# $Revision: 1.4 $
+# $Date: 2005-08-17 16:57:11 $
 # $Name: not supported by cvs2svn $
-# $Author: jason_miller $
+# $Author: brianwalenz $
 # $Log: not supported by cvs2svn $
+# Revision 1.3  2005/03/22 19:49:28  jason_miller
+# The TIGR tip as of March 22 2005. Commit by Jason Miller at TIGR.
+#
 # Revision 1.3  2004/09/10 12:31:43  mschatz
 # Add standard copyright notice
 #
@@ -118,16 +121,16 @@ DISABLED_LIBRARIES = \
   libAS_UIDcpp.a
 
 
-## Include to test if USE_SOAP_UID is true
+## Include to test if TIGR_UID_SERVER is true
 include uid_transport.as
 
 SOAPOBJS = 
-ifeq ($(USE_SOAP_UID), 1)
-  SOURCES += checkEuidService.c
-  PROGS += checkEuidService
-  SOAPSOURCES = stdsoap2.c euidC.c euidClientLib.c 
-  SOURCES += $(SOAPSOURCES)
-  SOAPOBJS = $(SOAPSOURCES:.c=.o)
+ifeq ($(UID_SERVER), "TIGR")
+  SOURCES     += checkEuidService.c
+  PROGS       += checkEuidService
+  SOAPSOURCES  = stdsoap2.c euidC.c euidClientLib.c 
+  SOURCES     += $(SOAPSOURCES)
+  SOAPOBJS     = $(SOAPSOURCES:.c=.o)
 endif
 
 OBJECTS = \

@@ -73,7 +73,7 @@ ifeq ($(OSTYPE), Linux)
   CC = gcc
   CXX = g++
   CFLAGS_OPT= -g 
-  CFLAGS+= -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -O3
+  CFLAGS+= -O3 -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
   CXXDEFS= -D__cplusplus
   # CFLAGS_OPT= -g
   # CFLAGS_OPT += -DGENERIC_STORE_USE_LONG_STRINGS
@@ -236,12 +236,15 @@ OBJ_SEARCH_PATH = $(LOCAL_OBJ)
 
 ## Load if we are using SOAP or CURL as our UID transport
 ## This has to be external to this file so that AS_UID/Makefile will work
+
 include $(LOCAL_WORK)/src/AS_UID/uid_transport.as
 
-ifeq ($(USE_SOAP_UID), 1)
+ifeq ($(UID_SERVER), TIGR)
   CFLAGS   += -DUSE_SOAP_UID
   CXXFLAGS += -DUSE_SOAP_UID
-else
-  CURLLIB = -lcurl
+endif
+
+ifeq ($(UID_SERVER), JCVI)
+  LDFLAGS += -lcurl
 endif
 
