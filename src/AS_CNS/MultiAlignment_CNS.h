@@ -59,15 +59,16 @@ typedef struct {
 /*  This structure is used when recalling consensus bases
  *  to use only one of two alleles
  */
-int     nr;          // number of reads in the region of variation
-int     max_nr;
-int32  *iids;        // iids of the reads
-char   *alleles;     // may be 0 or 1
-//char   *bases;
-char   *types;
-int     best_allele;
-int    *sum_qvs;     // used to select the best allele
-int   **dist_matrix; // nr x nr matrix of cross-distances between reads
+int32    nr;          // number of reads in the region of variation
+int32    max_nr;
+int32   *iids;        // iids of the reads
+char    *alleles;     // may be 0 or 1
+int32    nr_best_allele;
+char    *types;
+int32    best_allele;
+int32   *sum_qvs;     // used to select the best allele
+double   ratio;
+int32  **dist_matrix; // nr x nr matrix of cross-distances between reads
 } AlPair;
 
 // -----------------------------------
@@ -344,7 +345,7 @@ MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *, FragStoreHandle ,
 
 void ResetStores(int32 num_frags, int32 num_columns);
 int SetupSingleColumn(char *, char *, char *, char *, CNS_Options *opp);
-int BaseCall(int32 , int , float *, AlPair , int, CNS_Options *opp);
+int BaseCall(int32 , int , double *, AlPair , int, char *, int, CNS_Options *opp);
 void ShowColumn(int32 cid);
 
 int MultiAlignUnitig(IntUnitigMesg *, FragStoreHandle, VA_TYPE(char) *,

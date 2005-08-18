@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.25 2005-08-12 15:19:10 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.26 2005-08-18 19:07:18 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -1642,8 +1642,8 @@ IidToIndex(int32 iid, int32 *iids, int nr)
 }
 
 int 
-BaseCall(int32 cid, int quality, float *var, AlPair ap, int verbose,
-    CNS_Options *opp) 
+BaseCall(int32 cid, int quality, double *var, AlPair ap, 
+    int target_allele, char *cons_base, int verbose, CNS_Options *opp) 
 {
     /* Calculate the consensus call for the given column */
 
@@ -1747,15 +1747,17 @@ BaseCall(int32 cid, int quality, float *var, AlPair ap, int verbose,
                  (opp->split_alleles &&
                   ap.nr >  0 && 
                   k     >= 0 &&
-                  ap.alleles[k] != ap.best_allele)  ) 
+                  target_allele >= 0 &&
+                  ap.alleles[k] != target_allele)  ) 
             {
                 other_base_count[BaseToInt(cbase)]++;
                 AppendBead(guides,bead);
             } 
             else 
             {
-                if ((ap.nr <= 0)                      || 
-                    (ap.alleles[k] == ap.best_allele))
+                if ((ap.nr <= 0)                || 
+                    (target_allele < 0)         ||
+                    (ap.alleles[k] == target_allele))
                 {
                     read_base_count[BaseToInt(cbase)]++;
                     read_qv_count[BaseToInt(cbase)] += qv;
@@ -1831,7 +1833,7 @@ BaseCall(int32 cid, int quality, float *var, AlPair ap, int verbose,
             normalize = 1/normalize;
         for (bi=0; bi<CNS_NP; bi++) {
             cw[bi] *= normalize;
-            if (cw[bi] > max_cw) {
+            if (cw[bi] > max_cw + ZERO_PLUS) {
                 max_ind = bi;
                 max_cw = cw[bi];
                 Resetint16(tied);
@@ -1906,8 +1908,12 @@ BaseCall(int32 cid, int quality, float *var, AlPair ap, int verbose,
                 cqv = 0 + '0';
             }
         }
-        Setchar(sequenceStore, call->soffset, &cbase);
-        Setchar(qualityStore, call->soffset, &cqv);
+       *cons_base = cbase;
+        if (target_allele <  0 || target_allele == ap.best_allele)
+        {
+            Setchar(sequenceStore, call->soffset, &cbase);
+            Setchar(qualityStore, call->soffset, &cqv);
+        }
         
         for (bi=0; bi<CNS_NALPHABET-1; bi++)
             read_count += read_base_count[bi];
@@ -1933,7 +1939,7 @@ BaseCall(int32 cid, int quality, float *var, AlPair ap, int verbose,
         if ((read_count == 1 ) || (sum_qv_all == 0))
            *var = 0.;
         else 
-           *var = 1. - (float)sum_qv_cbase / (float)sum_qv_all;
+           *var = 1. - (double)sum_qv_cbase / (double)sum_qv_all;
         return score;
     } 
     else if (quality == 0 ) 
@@ -2030,19 +2036,19 @@ SetDefault(AlPair *ap)
 }
 
 static void
-SmoothenVariation(float *var, int dim, int window)
+SmoothenVariation(double *var, int dim, int window)
 {
     int i, j, beg, end;
-    float *y = (float *)safe_malloc(dim * sizeof(float));
+    double *y = (double *)safe_malloc(dim * sizeof(double));
     for (i=0; i<dim; i++)
     {
-        float sum_var = 0.;
+        double sum_var = 0.;
         beg = BC_MAX(0, i - window/2);
         end = BC_MIN(beg + window, dim);
         for (j=beg; j<end; j++) {
             sum_var += var[j];
         }
-        y[i] = (window > 0) ? sum_var/(float)window : var[i];
+        y[i] = (window > 0) ? sum_var/(double)window : var[i];
     }
     for (i=0; i<dim; i++)
     {
@@ -2271,6 +2277,7 @@ ClusterReads(AlPair *ap)
     int largest = -100;
     int seed0=-1, seed1=-1;
     int sum_qv0 = 0, sum_qv1 = 0;
+    int nr0 = 0, nr1 = 0;
 
     if (ap->nr <= 1)
     {
@@ -2313,18 +2320,32 @@ ClusterReads(AlPair *ap)
     for (i=0; i<ap->nr; i++)
     {
         if (ap->alleles[i] == 0)  
+        {
             sum_qv0 += ap->sum_qvs[i];  
-        else                 
+            nr0++;
+        }
+        else       
+        {          
             sum_qv1 += ap->sum_qvs[i]; 
+            nr1++;
+        }
     }
 
-    if (sum_qv0 >= sum_qv1) 
+    if (sum_qv0 > sum_qv1 + ZERO_PLUS) 
+    {
         ap->best_allele = 0;
+        ap->ratio = (double)sum_qv1/(double)sum_qv0;
+        ap->nr_best_allele = nr0;
+    }
     else 
-        ap->best_allele = 1;    
+    {
+        ap->best_allele = 1; 
+        ap->ratio = (double)sum_qv0/(double)sum_qv1;   
+        ap->nr_best_allele = nr1;
+    }
 #if 0
-    fprintf(stderr, "sum_qv0 = %d sum_qv1 = %d best_allele = %d\n", 
-        sum_qv0,  sum_qv1, ap->best_allele);
+    fprintf(stderr, "sum_qv0 = %d sum_qv1 = %d best_allele = %d ratio = %f nrb = %d\n", 
+        sum_qv0,  sum_qv1, ap->best_allele, ap->ratio, ap->nr_best_allele);
 #endif
 
 }
@@ -2332,7 +2353,6 @@ ClusterReads(AlPair *ap)
 //=================================================================================
 // Basic MultiAlignmentNode (MANode) manipulation
 //=================================================================================
-
 int RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars, 
    IntMultiVar **v_list, int make_v_list) 
 {
@@ -2342,7 +2362,8 @@ int RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
     int32   cid, *cids;
     int     window, beg, end, vbeg, vend;
     char    cbase;
-    float  *var=NULL, *svar=NULL;
+    char   *var_seq=NULL;
+    double *varf=NULL, *svarf=NULL;
     Column *column;
     AlPair  ap;
     MANode *ma = GetMANode(manodeStore,mid);
@@ -2367,7 +2388,7 @@ int RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
     fprintf(stderr, "Calling RefreshMANode, quality = %d\n", quality);
 #endif
     SetDefault(&ap);
-    var  = (float *)safe_calloc(len_manode, sizeof(float)); 
+    varf  = (double *)safe_calloc(len_manode, sizeof(double)); 
     cids = (int32 *)safe_calloc(len_manode, sizeof(int32));
     if (ma == NULL ) 
         CleanExit("RefreshMANode ma==NULL",__LINE__,1);
@@ -2377,6 +2398,7 @@ int RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
     cid = ma->first;
     ap.nr = -1;
 
+    // Calculate variation as a function of position in MANode. 
     while ( cid  > -1 ) 
     {
         column = GetColumn(columnStore, cid);
@@ -2387,10 +2409,10 @@ int RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
             if (index >= len_manode)
             {
                 len_manode += MIN_SIZE_OF_MANODE;
-                var  = (float *)safe_realloc(var,  len_manode*sizeof(float));
+                varf  = (double *)safe_realloc(varf,  len_manode*sizeof(double));
                 cids = (int32 *)safe_realloc(cids, len_manode*sizeof(int32));
             }
-            BaseCall(cid, quality, &(var[index]), ap, 0, opp);
+            BaseCall(cid, quality, &(varf[index]), ap, -1, &cbase, 0, opp);
             cids[index] = cid;
         }
         column->ma_index = index;
@@ -2411,7 +2433,7 @@ int RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
     if ((opp->split_alleles == 0) ||
         (quality <= 0))
     {
-        FREE(var);
+        FREE(varf);
         FREE(cids);
         return 1;
     }
@@ -2419,35 +2441,35 @@ int RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
     // Proceed further only if accurate base calls are needed
     // Smoothen variation 
     len_manode = index -1;
-    svar= (float *)safe_calloc(len_manode, sizeof(float));
+    svarf= (double *)safe_calloc(len_manode, sizeof(double));
     for (i=0; i<len_manode; i++)
     {
-        svar[i] = var[i];
+        svarf[i] = varf[i];
     }
-    SmoothenVariation(svar, len_manode, window);
+    SmoothenVariation(svarf, len_manode, window);
 
     // Recall beses using only one of two alleles
     for (i=0; i<len_manode; i++)
     { 
-        if (svar[i] == 0)
+        if (svarf[i] == 0)
         {
             continue;
         }
         else 
         {
             // Process a ragion of variation
-            float fict_var;
+            double fict_var;
             beg = vbeg = vend = i;
 
-            while (var[beg] == 0)
+            while (DBL_EQ_DBL(varf[beg], (double)0.0))
                 beg++;
             
-            while ((svar[vend] > 0) && (vend < len_manode))
+            while ((svarf[vend] > ZERO_PLUS) && (vend < len_manode))
                 vend++;
 
             end = vend;
 
-            while (var[end] <= 0)
+            while (varf[end] < ZERO_PLUS)
                 end--;
 
 #if 0
@@ -2491,7 +2513,8 @@ int RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
             // Recall consensus base using only one allele
             for (j=vbeg; j<vend; j++)
             {
-                BaseCall(cids[j], quality, &fict_var, ap, 0, opp);
+                BaseCall(cids[j], quality, &fict_var, ap, ap.best_allele,
+                   &cbase, 0, opp);
             }   
 
             /* Store variations in a v_list */
@@ -2510,11 +2533,35 @@ int RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
                 }
                 (*v_list)[*nvars].position.bgn = beg;
                 (*v_list)[*nvars].position.end = end;
+                (*v_list)[*nvars].num_reads = (int32)ap.nr;
+                (*v_list)[*nvars].nr_best_allele = (int32)ap.nr_best_allele;
+                (*v_list)[*nvars].num_alleles = 2;
+                (*v_list)[*nvars].ratio = ap.ratio;
+                (*v_list)[*nvars].window_size = opp->smooth_win;
+                (*v_list)[*nvars].var_length = 2*(end-beg+1)+2;
+                (*v_list)[*nvars].var_seq
+                      = (char*)safe_calloc(2*(end-beg)+4, sizeof(char));
+                {
+                    int m;
+                    for (m=0; m<end-beg+1; m++)
+                    {
+                       // Get the consensus base for the best allele
+                       BaseCall(cids[beg+m], quality, &fict_var, ap,
+                           ap.best_allele, &cbase, 0, opp);
+                       (*v_list)[*nvars].var_seq[m] = cbase;
+                    }
+                    (*v_list)[*nvars].var_seq[end-beg+1] = ';';
+                    for (m=0; m<end-beg+1; m++)
+                    {
+                       // Get the consensus base for an alternative allele
+                       BaseCall(cids[beg+m], quality, &fict_var, ap, 
+                           ap.best_allele == 0 ? 1 : 0, &cbase, 0, opp);
+                       (*v_list)[*nvars].var_seq[end-beg+2+m] = cbase;
+                    } 
+                    (*v_list)[*nvars].var_seq[2*(end-beg)+3] = '\0';
+                }
                 (*nvars)++;
-//              (*v_list)[*nvars].nreads = (int32)ap.nr;
-//              (*v_list)[*nvars].window = opp->smooth_win;
             }
-
             
             i = vend;
             FREE(ap.iids); 
@@ -2529,8 +2576,8 @@ int RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
         }
     }
 
-    FREE(var);
-    FREE(svar);
+    FREE(varf);
+    FREE(svarf);
     FREE(cids);
     return 1;
 }
@@ -2857,7 +2904,7 @@ int GetAlignmentTrace(int32 afid, int32 aoffset, int32 bfid, int32 *ahang, int32
   int *tmp;
   Overlap *O;
   Bead *call;
-  float CNS_ERATE=CNS_DP_ERATE;
+  double CNS_ERATE=CNS_DP_ERATE;
   CNS_AlignTrick trick=CNS_ALN_NONE;
   int align_to_consensus=0;
   CNS_AlignParams params;
@@ -4038,7 +4085,8 @@ int32 MergeRefine(int32 mid, IntMultiVar **v_list, int32 *num_vars, CNS_Options 
     }
     cid = column->next;
   }
-  make_v_list = 1;
+  if (v_list && num_vars)
+      make_v_list = 1;
   RefreshMANode(mid, 1, opp, &nv, &vl, make_v_list);
   if (make_v_list && num_vars)
   {
@@ -4527,7 +4575,7 @@ int ApplyAbacus(Abacus *a, CNS_Options *opp)
   int columns=0;
   int32 bid,eid,i;
   char a_entry;
-  float var;   // variation is a column
+  double var;   // variation is a column
   Bead *bead,*exch_bead;
   AlPair ap;
 
@@ -4537,6 +4585,7 @@ int ApplyAbacus(Abacus *a, CNS_Options *opp)
      column = GetColumn(columnStore,a->start_column);
      if (column == NULL ) CleanExit("ApplyAbacus column==NULL",__LINE__,1);
      while (columns<a->window_width) {
+       char base;
        bid = GetBead(beadStore,column->call)->down;
        while ( bid != -1 ) {
          bead = GetBead(beadStore,bid);
@@ -4595,7 +4644,7 @@ int ApplyAbacus(Abacus *a, CNS_Options *opp)
                 exch_bead->boffset);
          */
        }
-       BaseCall(column->lid, 1, &var, ap, 0, opp);
+       BaseCall(column->lid, 1, &var, ap, -1, &base, 0, opp);
        column = GetColumn(columnStore,column->next);
        columns++;
      } 
@@ -4605,6 +4654,7 @@ int ApplyAbacus(Abacus *a, CNS_Options *opp)
      column = GetColumn(columnStore,a->end_column);
      if (column == NULL ) CleanExit("ApplyAbacus column==NULL",__LINE__,1);
      while (columns<a->window_width) {
+       char base;
        bid = GetBead(beadStore,column->call)->down;
        while ( bid != -1 ) {
          bead = GetBead(beadStore,bid);
@@ -4660,7 +4710,7 @@ int ApplyAbacus(Abacus *a, CNS_Options *opp)
                 exch_bead->boffset);
          */
        }
-       BaseCall(column->lid, 1, &var, ap, 0, opp);
+       BaseCall(column->lid, 1, &var, ap, ap.best_allele, &base, 0, opp);
        column = GetColumn(columnStore,column->prev);
        columns++;
      } 
@@ -4783,8 +4833,8 @@ int IdentifyWindow(Column **start_column, int *stab_bgn, CNS_RefineLevel level) 
           stab_width++;
        }
        if ( stab_bases == 0 ) break;
-       while( (float)stab_mm/(float)stab_bases >  CNS_SEQUENCING_ERROR_EST  || 
-              (float)stab_gaps/(float)stab_bases > .25  ){
+       while( (double)stab_mm/(double)stab_bases >  CNS_SEQUENCING_ERROR_EST  || 
+              (double)stab_gaps/(double)stab_bases > .25  ){
          int mm=ColumnMismatch(stab);
          int gp=GetColumnBaseCount(stab,'-');
          int bps=GetDepth(stab);
@@ -6093,6 +6143,7 @@ int ExamineMANode(FILE *outFile,int32 sid, int32 mid, UnitigData *tigData,int nu
   UnitigData *tig;
   MANode *ma = GetMANode(manodeStore,mid);
   AlPair ap;
+  char base;
 
   SetDefault(&ap);
   if (ma == NULL ) CleanExit("RefreshMANode ma==NULL",__LINE__,1);
@@ -6102,7 +6153,7 @@ int ExamineMANode(FILE *outFile,int32 sid, int32 mid, UnitigData *tigData,int nu
     char base;
     char qv;
     int tig_depth=0;
-    float var;
+    double var;
 
     column = GetColumn(columnStore,cid);
     if (column == NULL ) CleanExit("RefreshMANode column==NULL",__LINE__,1);
@@ -6111,7 +6162,7 @@ int ExamineMANode(FILE *outFile,int32 sid, int32 mid, UnitigData *tigData,int nu
     qv = *Getchar(qualityStore,cbead->soffset);
     fprintf(outFile,"%d\t%d\t%d\t%d\t%c\t%c\t" ,sid,ma->iid,index,ugindex,base,qv);
     ShowBaseCountPlain(outFile,&column->base_count);
-    BaseCall(cid, 1, &var, ap, 0, opp); 
+    BaseCall(cid, 1, &var, ap, ap.best_allele, &base, 0, opp); 
          // recall with quality on (and QV parameters set by user)
     fprintf(outFile,"%c\t%c\t", *Getchar(sequenceStore,cbead->soffset), 
         *Getchar(qualityStore,cbead->soffset));
