@@ -31,10 +31,11 @@ SOURCES = chimera.C consolidate.C dumpFragStoreAsFasta.C dumpFragStoreAsOFG.c \
 OBJECTS = $(SOURCES:.C=.o)
 PROGS   = qualityTrim intersectTrim merge-trimming sort-overlaps chimera consolidate \
           dumpFragStoreAsFasta dumpFragStoreAsOFG
+SCRIPTS = doOBT.pl
 
-SCRIPTS = 
-
-all: $(PROGS)
+all: $(PROGS) $(SCRIPTS)
+	cp -f doOBT.pl $(LOCAL_BIN)
+	chmod 775 $(LOCAL_BIN)/doOBT.pl
 
 qualityTrim: qualityTrim.o trim.o -lAS_PER -lAS_UTL
 

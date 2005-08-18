@@ -2,46 +2,38 @@
 
 use strict;
 use Config;  #  for @signame
+use FindBin;
 
-#  Does an assembly.  Optionally does overlap-based trimming.
+#  Sample script for doing overlap based trimming, and an full assembly.
+#
+#  This script is only appropriate for small assemblies.
+#
+#  Author: Brian Walenz, bwalenz@venterinstitute.org
 
-my $merThresholdT = 100;  #  For trimming
-my $merThresholdA =  50;  #  For assembly
 
+
+#  $meryl is the location of the latest meryl, if you have it.  If you don't have it,
+#  the assembler meryl will be used.
+#
+my $meryl     = "/bioinfo/assembly/walenz/src/genomics/meryl/meryl";
+
+#  $tbin is the location of the binaries for trimming.
+#  $abin is the location of the binaries for assembly.
+#  Currently, both binaries are in the same place
+#
+my $tbin      = "$FindBin::Bin";
+my $abin      = "$FindBin::Bin";
+
+#  Set some reasonable default values.
+#
+my $merThresholdT        = 100;  #  For trimming
+my $merThresholdA        = 50;   #  For assembly
 my $doTrimming           = 1;
 my $doVectorIntersection = undef;
 my $doFixChimera         = 1;
+my $prefix               = undef;
 
-my $meryl     = "/bioinfo/assembly/walenz/src/genomics/meryl/meryl";
-my $tbin      = "/bioinfo/assembly/walenz/trim/trimming";
-my $abin      = "/bioinfo/assembly/walenz/WGA/wgs-assembler/OSF1/bin";
-my $prefix    = undef;
 
-my $uname = `uname -m`;
-if ($uname =~ m/x86_64/) {
-    $meryl     = "/bioinfo/work/projects/walenz/src/genomics/meryl/meryl";
-    $tbin      = "/bioinfo/work/projects/walenz/trim/trimming";
-    $meryl     = "/project/dros/dros-clear-trim/src/genomics/meryl/meryl";
-    $tbin      = "/project/dros/dros-clear-trim/trimming";
-    $abin      = "/bioinfo/assembly/walenz/WGA/wgs-assembler/Linux64/bin";
-    #$abin      = "/project/dros/dros-clear-trim/wga/Linux64/bin";
-    #print STDERR "USING HACKED WGA SOURCE!\n";
-}
-if ($uname =~ m/i686/) {
-    #  Not really supported -- you have to rebuild src/genomics/meryl and copy it
-    #  into the asm bin directory.
-    #
-    $meryl     = "/bioinfo/assembly/walenz/src/genomics/meryl/meryl";
-    $meryl     = "/bioinfo/assembly/walenz/WGA/wgs-assembler/Linux/bin/meryl2";
-    $tbin      = "/bioinfo/assembly/walenz/trim/trimming";
-    $abin      = "/bioinfo/assembly/walenz/WGA/wgs-assembler/Linux/bin";
-}
-
-#$meryl = "/home/work/src/genomics/meryl/meryl";
-#$tbin  = "/home/work/trim/trimming";
-#$abin  = "/home/work/WGA/wgs-assembler/Linux/bin";
-
-print STDERR "WARNING: USING -f TO CONSENSUS!\n";
 
 if (-e "doasm.opts") {
     print STDERR "Options file found, ignoring command line options!\n";
@@ -107,13 +99,25 @@ if (! -e "$prefix.frgStore") {
 #  assembly overlap phase, and one at twice the merThreshold for use
 #  in clear range determination.
 #
-if (! -e "$prefix.nmers$merThresholdA.fasta") {
-    if ((! -e "$prefix.mcidx") || (! -e "$prefix.mcdat")) {
-        runCommand("cat $prefix.frg | $meryl -v -B -C -m 22 -s - -o $prefix") and die;
-    }
-    runCommand("$meryl -v -Dt -n $merThresholdT -s $prefix > $prefix.nmers$merThresholdT.fasta") and die;
-    runCommand("$meryl -v -Dt -n $merThresholdA -s $prefix > $prefix.nmers$merThresholdA.fasta") and die;
+#if (! -e "$prefix.nmers$merThresholdA.fasta") {
+#    if ((! -e "$prefix.mcidx") || (! -e "$prefix.mcdat")) {
+#        runCommand("cat $prefix.frg | $meryl -v -B -C -m 22 -s - -o $prefix") and die;
+#    }
+#    runCommand("$meryl -v -Dt -n $merThresholdT -s $prefix > $prefix.nmers$merThresholdT.fasta") and die;
+#    runCommand("$meryl -v -Dt -n $merThresholdA -s $prefix > $prefix.nmers$merThresholdA.fasta") and die;
+#}
+
+#  Use the assembler meryl, since the latest meryl isn't in the
+#  assembler tree.
+#
+if (! -e "$prefix.nmers$merThresholdT.fasta") {
+    runCommand("$abin/meryl -m 22 -s $prefix.frgStore -n $merThresholdT -o $prefix.nmers$merThresholdT.fasta") and die;
 }
+if (! -e "$prefix.nmers$merThresholdA.fasta") {
+    runCommand("$abin/meryl -m 22 -s $prefix.frgStore -n $merThresholdA -o $prefix.nmers$merThresholdA.fasta") and die;
+}
+
+
 
 if ($doTrimming) {
 
