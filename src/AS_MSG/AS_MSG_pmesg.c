@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.9 2005-08-04 21:21:13 gdenisov Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.10 2005-08-18 19:12:38 gdenisov Exp $";
 
 #define AFG_BACKWARDS_COMPATIBLE
 //#define FIX_DANIELS_MESS
@@ -58,6 +58,8 @@ static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.9 2005-08-04 21:21:13 gdenisov Exp
 #define STD_OUT_FORMAT  "std:%.3f"
 #define VAR_FORMAT      "var:%f"
 #define QUA_FORMAT      "qua:%f"
+#define RAT_IN_FORMAT   "rat:%f"
+#define RAT_OUT_FORMAT  "rat:%.3f"
 
 //position formats
 #define POS1_FORMAT  "pos:" F_COORD
@@ -1051,11 +1053,11 @@ static void *Read_FOM_Mesg(FILE *fin)
 
 static void Read_IMP_Mesg(FILE *fin, long indx)
 {
-  IntMultiPos		*imp;
-  int			i;
-  int32			n, *delta;
-  long			tindx;
-  char			*line, *u;
+  IntMultiPos	*imp;
+  int		 i;
+  int32		 n, *delta;
+  long		 tindx;
+  char		*line, *u;
   char ch;
   
   imp = (IntMultiPos *) (MemBuffer + indx);
@@ -1098,11 +1100,18 @@ static void Read_IMP_Mesg(FILE *fin, long indx)
 static void Read_IMV_Mesg(FILE *fin, long indx)
 {
   IntMultiVar           *imv;
+  long                   vindx;
 
   imv = (IntMultiVar *) (MemBuffer + indx);
-  GET_PAIR(imv->position.bgn,imv->position.end,
-           POS2_FORMAT,"position field");
-//GET_FIELD(imv->ident,"win:%d","window size");
+  GET_PAIR(imv->position.bgn,imv->position.end, POS2_FORMAT,"position field");
+  GET_FIELD(imv->num_reads,"nrd:" F_S32,"number of reads"); 
+  GET_FIELD(imv->nr_best_allele,"nba:" F_S32,"number of reads in the best allele");
+  GET_FIELD(imv->num_alleles,"nal:" F_S32,"number of alleles");
+  GET_FIELD(imv->ratio,RAT_IN_FORMAT,"alleles ratio");
+  GET_FIELD(imv->window_size,"win:" F_S32,"window size");
+  GET_FIELD(imv->var_length,"len:" F_S32,"length field");
+  vindx = GetText("seq:",fin,FALSE);
+  imv->var_seq = (char *) vindx;
   GET_EOM;
   return;
 }
@@ -1110,11 +1119,18 @@ static void Read_IMV_Mesg(FILE *fin, long indx)
 static void Read_VAR_Mesg(FILE *fin, long indx)
 {
   IntMultiVar           *smv;
+  long                   vindx;
 
   smv = (IntMultiVar *) (MemBuffer + indx);
-  GET_PAIR(smv->position.bgn,smv->position.end,
-           POS2_FORMAT,"position field");
-//GET_FIELD(imv->ident,"win:%d","window size");
+  GET_PAIR(smv->position.bgn,smv->position.end, POS2_FORMAT,"position field");
+  GET_FIELD(smv->num_reads,"nrd:" F_S32,"number of reads");
+  GET_FIELD(smv->nr_best_allele,"nba:" F_S32,"number of reads in the best allele");
+  GET_FIELD(smv->num_alleles,"nal:" F_S32,"number of alleles");
+  GET_FIELD(smv->ratio,RAT_IN_FORMAT,"alleles ratio");
+  GET_FIELD(smv->window_size,"win:" F_S32,"window size");
+  GET_FIELD(smv->var_length,"len:" F_S32,"length field");
+  vindx = GetText("seq:",fin,FALSE);
+  smv->var_seq = (char *) vindx;
   GET_EOM;
   return;
 }
@@ -1182,7 +1198,6 @@ static void *Read_IUM_Mesg(FILE *fin)
   qindx = GetText("qlt:",fin,TRUE);
   GET_FIELD(mesg.forced,"for:" F_S32,"forced booleon");
   GET_FIELD(mesg.num_frags,"nfr:" F_S32,"num frags field");
-  GET_FIELD(mesg.num_vars,"nvr:" F_S32,"num vars field");
   if (mesg.num_frags > 0) {
     indx = mpindx = MoreSpace(mesg.num_frags*sizeof(IntMultiPos),8);
     /* Why use 8 boundary above? Damned if I know - ela */
@@ -1196,18 +1211,6 @@ static void *Read_IUM_Mesg(FILE *fin)
   }
   else
     mesg.f_list = NULL;
-//if (mesg.num_vars > 0) {
-//  indx = mpindx = MoreSpace(mesg.num_vars*sizeof(IntMultiVar),8);
-//  for (i=0; i < mesg.num_vars; ++i) {
-//    if (strncmp(GetLine(fin,TRUE),"{IMV",4) != 0)
-//      MgenError("Expecting IMV record");
-//    Read_IMV_Mesg(fin, indx);
-//    indx += sizeof(IntMultiVar);
-//  }
-//  mesg.v_list = (IntMultiVar *) (MemBuffer + mpindx);
-//}
-//else
-//  mesg.v_list = NULL;
   GET_EOM;
   mesg.consensus = MemBuffer + cindx;
   mesg.quality  = MemBuffer + qindx;
@@ -1525,6 +1528,14 @@ static void *Read_ICM_Mesg(FILE *fin)
 // **************************************************
   mesg.consensus = MemBuffer + cindx;
   mesg.quality = MemBuffer + qindx;
+  if (mesg.num_vars > 0)
+    mesg.v_list = (IntMultiVar *) (MemBuffer + vpindx);
+  else
+    mesg.v_list = NULL;
+  for (i=0; i < mesg.num_vars; ++i) {
+    mesg.v_list[i].var_seq = MemBuffer + (long) mesg.v_list[i].var_seq;
+  }
+// **************************************************
   if (mesg.num_pieces > 0)
     mesg.pieces = (IntMultiPos *) (MemBuffer + mpindx);
   else
@@ -1971,6 +1982,13 @@ static void *Read_CCO_Mesg(FILE *fin)
   GET_EOM;
   mesg.consensus = MemBuffer + cindx;
   mesg.quality = MemBuffer + qindx;
+  if (mesg.num_vars > 0)
+    mesg.vars = (IntMultiVar *) (MemBuffer + vpindx);
+  else
+    mesg.vars = NULL;
+  for (i=0; i < mesg.num_vars; ++i) {
+    mesg.vars[i].var_seq = MemBuffer + (long) mesg.vars[i].var_seq;
+  } 
   if (mesg.num_pieces > 0)
     mesg.pieces = (SnapMultiPos *) (MemBuffer + mpindx);
   else
@@ -2892,14 +2910,20 @@ static void Write_IMP_Mesg(FILE *fout, IntMultiPos *mlp)
   return;
 }
 
-static void Write_IMV_Mesg(FILE *fout, IntMultiVar *mlv)
+static void Write_IMV_Mesg(FILE *fout, IntMultiVar *imv)
 {
   int i;
 
   fprintf(fout,"{IMV\n");
-  fprintf(fout, POS2_FORMAT "\n",
-          mlv->position.bgn,mlv->position.end);
-//fprintf(fout,"win:" F_S32 "\n",mlv->window);
+  fprintf(fout, POS2_FORMAT "\n", imv->position.bgn,imv->position.end);
+  fprintf(fout,"nrd:" F_S32 "\n",imv->num_reads);
+  fprintf(fout,"nba:" F_S32 "\n",imv->nr_best_allele);
+  fprintf(fout,"nal:" F_S32 "\n",imv->num_alleles);
+  fprintf(fout,RAT_OUT_FORMAT "\n",imv->ratio);
+  fprintf(fout,"win:" F_S32 "\n",imv->window_size);
+  fprintf(fout,"len:" F_S32 "\n",imv->var_length);
+  if (imv->var_length > 0)
+     PutText(fout,"seq:",imv->var_seq,FALSE);
   fprintf(fout,"}\n");
   return;
 }
@@ -2909,9 +2933,14 @@ static void Write_VAR_Mesg(FILE *fout, IntMultiVar *smv)
   int i;
 
   fprintf(fout,"{VAR\n");
-  fprintf(fout,POS2_FORMAT "\n",
-          smv->position.bgn,smv->position.end);
-//fprintf(fout,"win:" F_S32 "\n",mlv->window);
+  fprintf(fout,POS2_FORMAT "\n", smv->position.bgn,smv->position.end);
+  fprintf(fout,"nrd:" F_S32 "\n",smv->num_reads);
+  fprintf(fout,"nba:" F_S32 "\n",smv->nr_best_allele);
+  fprintf(fout,"nal:" F_S32 "\n",smv->num_alleles);
+  fprintf(fout,RAT_OUT_FORMAT "\n",smv->ratio);
+  fprintf(fout,"win:" F_S32 "\n",smv->window_size);
+  fprintf(fout,"len:" F_S32 "\n",smv->var_length);
+  PutText(fout,"seq:",smv->var_seq,FALSE);
   fprintf(fout,"}\n");
   return;
 }
@@ -2958,9 +2987,6 @@ static void Write_IUM_Mesg(FILE *fout, void *vmesg)
   PutText(fout,"qlt:",mesg->quality,TRUE);
   fprintf(fout,"for:" F_S32 "\n",mesg->forced);
   fprintf(fout,"nfr:" F_S32 "\n",mesg->num_frags);
-  fprintf(fout,"nvr:" F_S32 "\n",mesg->num_vars);
-//for (i=0; i < mesg->num_vars; ++i)
-//  Write_IMV_Mesg(fout,&(mesg->v_list[i]));
   for (i=0; i < mesg->num_frags; ++i)
     Write_IMP_Mesg(fout,&(mesg->f_list[i]));
   fprintf(fout,"}\n");
@@ -3767,7 +3793,19 @@ static void Clear_OVL_Mesg(void *mesg, int typ)
 { free(((OverlapMesg *) mesg)->delta); }
 
 
+//static void Clear_IMV_Mesg(void *vmesg, int typ)
+//{
+//  IntMultiVar *imv = (IntMultiVar *) vmesg;
+//  if (imv->var_seq)
+//    free (imv->var_seq);
+//}
 
+//static void Clear_VAR_Mesg(void *vmesg, int typ)
+//{
+//  IntMultiVar *smv = (IntMultiVar *) vmesg;
+//  if (smv->var_seq)
+//    free (smv->var_seq);
+//}
 
 static void Clear_IUM_Mesg(void *vmesg, int typ)
 { 
@@ -3828,8 +3866,9 @@ static void Clear_ICM_Mesg(void *vmesg, int typ)
     free(mesg->pieces[i].delta);
   free(mesg->pieces);
   free(mesg->unitigs);
+  for (i=0; i < mesg->num_vars; ++i)
+    free(mesg->v_list[i].var_seq);
   free(mesg->v_list);           
-//free(mesg->v_list);
 }
 
 #if 0

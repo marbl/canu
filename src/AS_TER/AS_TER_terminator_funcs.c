@@ -25,7 +25,7 @@
  Assumptions: There is no UID 0
 **********************************************************************/
 
-static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.7 2005-08-04 21:46:19 gdenisov Exp $";
+static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.8 2005-08-18 19:14:44 gdenisov Exp $";
 
 
 
@@ -711,12 +711,22 @@ static SnapConConMesg* convert_ICM_to_CCO(IntConConMesg* icmMesg, int64 blockSiz
   ccoMesg->forced     = icmMesg->forced;
   ccoMesg->num_pieces = icmMesg->num_pieces;
   ccoMesg->num_unitigs= icmMesg->num_unitigs;
-  ccoMesg->num_vars= icmMesg->num_vars;  // affects .asm/CCO
+  ccoMesg->num_vars   = icmMesg->num_vars;  // affects .asm/CCO
  
   if (ccoMesg->num_vars > 0) {
      ccoMesg->vars = (IntMultiVar*) safe_malloc(icmMesg->num_vars*sizeof(IntMultiVar));
      for(i=0; i<icmMesg->num_vars; i++) // i loop
-      ccoMesg->vars[i].position = icmMesg->v_list[i].position;
+     {
+        ccoMesg->vars[i].position       = icmMesg->v_list[i].position;
+        ccoMesg->vars[i].num_reads      = icmMesg->v_list[i].num_reads; 
+        ccoMesg->vars[i].nr_best_allele = icmMesg->v_list[i].nr_best_allele;
+        ccoMesg->vars[i].num_alleles    = icmMesg->v_list[i].num_alleles;
+        ccoMesg->vars[i].ratio          = icmMesg->v_list[i].ratio;       
+        ccoMesg->vars[i].window_size    = icmMesg->v_list[i].window_size;
+        ccoMesg->vars[i].var_length     = icmMesg->v_list[i].var_length ;
+        ccoMesg->vars[i].var_seq        = strdup(icmMesg->v_list[i].var_seq);  
+     }
+      
   }
 
   if( ccoMesg->num_pieces > 0 ){ 
@@ -1926,7 +1936,6 @@ void read_stores(char* fragStoreName, char* bactigStoreName, char* gkpStoreName)
     }
     /* test whether the iid is not already present */
     //di = GetCDS_UID_t(FRGmap,iid);
-    //    if( di != NULL ){
     if( test_frg_present(iid) ){
       char dummy[40];
       sprintf(dummy,"Internal fragment ID %d occurred twice (FRGmap)",iid);

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.9 2005-08-04 21:21:14 gdenisov Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.10 2005-08-18 19:12:38 gdenisov Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -753,21 +753,14 @@ typedef struct IntMultiPos {
 /* IMV message */
 
 typedef struct IntMultiVar {
-//IntFragment_ID  ident;
-#ifdef i386
-//int32           ptrPad1;
-#endif
   SeqInterval     position;
-//int32           nreads;
-//int32           nreads_best;
-//float           ratio;     
-//int32           var_length;
-//char           *var_sequence;
-//int32           window;  
-//IntFragment_ID *aindent;
-#ifdef i386
-//int32           ptrPad2;
-#endif
+  int32           var_length;
+  char           *var_seq;
+  int32           num_reads;
+  int32           nr_best_allele;
+  float           ratio;     
+  int32           num_alleles;
+  int32           window_size;  
 } IntMultiVar;
 
 /* This is a variant of IntMultiPos to handle deltas in a longer (unitig) sequence */
