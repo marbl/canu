@@ -6,6 +6,8 @@
 #include <fcntl.h>
 
 #include "util++.H"
+#include "overlap.H"
+#include "constants.H"
 
 //  Reads the output of overlap used to find trim points.  Bucket
 //  sorts.
@@ -14,7 +16,6 @@
 //  things into core.  This will probably be a completely different
 //  path than the bucket sort here.
 
-#include "overlap.H"
 
 int
 overlap_t_sort(const void *a, const void *b) {
@@ -166,42 +167,7 @@ main(int argc, char **argv) {
         fprintf(stderr, "ERROR:  Biid overflowed the batch!  Input is:\n        %s\n", line), exit(1);
 
 
-
-      //  Remember if the 5' ends are far apart -- but we only care if
-      //  it's a forward match.
-      //
-      bool far5prime = true;
-      if (overlap.ori) {
-        if (overlap.Abeg > overlap.Bbeg)
-          far5prime = ((overlap.Abeg - overlap.Bbeg) > 29);
-        else
-          far5prime = ((overlap.Bbeg - overlap.Abeg) > 29);
-      }
-
-      //  Bbeg can greater than Bend, so we find the difference.  A is
-      //  always properly ordered.
-      //
-      u32bit Adiff = overlap.Aend - overlap.Abeg;
-      u32bit Bdiff = overlap.Bend - overlap.Bbeg;
-      if (overlap.Bend < overlap.Bbeg)
-        Bdiff = overlap.Bbeg - overlap.Bend;
-
-
-      //  It's an acceptable overlap if the error is within tolerance, if
-      //  it's long, and if the 5' ends are far apart.
-      //
-      bool  acceptable1 = ((overlap.erate < 1.5 * 100) &&
-                           (Adiff > 100) &&
-                           (Bdiff > 100) &&
-                           (far5prime));
-
-      bool  acceptable2 = (((overlap.erate < 2.0 * 100) ||
-                            ((Adiff > 75) &&
-                             (Bdiff > 75))) &&
-                           (far5prime));
-      
-
-      if (acceptable2) {
+      if (overlap.acceptable()) {
         overlap.dump(dumpFiles[overlap.Aiid / overlapIIDPerBatch]);
         dumpFilesLen[overlap.Aiid / overlapIIDPerBatch]++;
 

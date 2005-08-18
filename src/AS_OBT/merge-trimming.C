@@ -1,4 +1,5 @@
 #include "trim.H"
+#include "constants.H"
 
 //  Reads the output of sort-overlap-trim, does the actual trim-point
 //  decision, updates the frgStore.
@@ -182,11 +183,12 @@ main(int argc, char **argv) {
     u32bit mode3  = strtou32bit(W[9], 0L) + qltLQ1;
     u32bit mode3c = strtou32bit(W[10], 0L);
 
-    // Adjust the mode and max/min(m) counts and values
-    // if the min/max or min/max(m) values are within
-    // 5 bp of the mode
+    // Adjust the mode and max/min(m) counts and values if the min/max
+    // or min/max(m) values are within OBT_MODE_WIGGLE (currently, 5
+    // bp) of the mode
+    //
 
-    if ((min5 != mode5) && ((min5 + 5) >= mode5)){
+    if ((min5 != mode5) && ((min5 + OBT_MODE_WIGGLE) >= mode5)){
       if (minm5 < mode5) {
 	if (min5 < minm5) {
 	  mode5c++;
@@ -202,13 +204,13 @@ main(int argc, char **argv) {
       }
       min5 = mode5;
       minm5 = mode5;
-    } else if ((minm5 != mode5) && ((minm5 + 5) >= mode5)){
+    } else if ((minm5 != mode5) && ((minm5 + OBT_MODE_WIGGLE) >= mode5)){
       mode5c += minm5c;
       minm5c = mode5c;
       minm5 = mode5;
     }
 
-    if ((max3 != mode3) && ((max3 - 5) <= mode3)){
+    if ((max3 != mode3) && ((max3 - OBT_MODE_WIGGLE) <= mode3)){
       if (maxm3 > mode3) {
 	if (max3 > maxm3) {
 	  mode3c++;
@@ -224,7 +226,7 @@ main(int argc, char **argv) {
       }
       max3 = mode3;
       maxm3 = mode3;
-    } else if ((maxm3 != mode3) && ((maxm3 - 5) <= mode3)){
+    } else if ((maxm3 != mode3) && ((maxm3 - OBT_MODE_WIGGLE) <= mode3)){
       mode3c += maxm3c;
       maxm3c = mode3c;
       maxm3 = mode3;
@@ -262,15 +264,17 @@ main(int argc, char **argv) {
 
     //  1) if the quality-range is < 100, or 
     //  2) if the quality-range is < 200 and the intersection with the
-    //     overlap-range is < 100, be more conservative
-    if ((qltL + 100 > qltR) ||
-        ((qltL + 200 > qltR) &&
-         ((min5 + 100 > qltR) ||
-          (qltL + 100 > max3)))) {
+    //     overlap-range is < 100
+    //  be more conservative
+    //
+    if ((qltL + OBT_CQ_LENGTH > qltR) ||
+        ((qltL + OBT_CQO_LENGTH > qltR) &&
+         ((min5 + OBT_CQO_OVERLAP > qltR) ||
+          (qltL + OBT_CQO_OVERLAP > max3)))) {
       stats[1]++;
-      if ((qltL + 5 > qltR) ||
-	  (mode5 + 5 > qltR) ||
-	  (qltL + 5 > mode3)) {
+      if ((qltL  + OBT_CQ_SHORT > qltR) ||
+	  (mode5 + OBT_CQ_SHORT > qltR) ||
+	  (qltL  + OBT_CQ_SHORT > mode3)) {
 	stats[2]++;
 	left  = 0;
 	right = 0;
@@ -286,13 +290,13 @@ main(int argc, char **argv) {
 #endif
     } else {
       stats[4]++;
-      if ((minm5 < qltL + 10) && (minm5c > 1)) {
+      if ((minm5 < qltL + OBT_QLT_CLOSE_5) && (minm5c > 1)) {
 	stats[6]++;
         left = minm5;
-      } else if ((mode5 < qltL + 10) && (mode5c > 0)) {
+      } else if ((mode5 < qltL + OBT_QLT_CLOSE_5) && (mode5c > 0)) {
 	stats[5]++;
 	left = mode5;
-      } else if ((mode5c > 0) && ((min5 <= qltL) || (min5 - qltL < 50))) {
+      } else if ((mode5c > 0) && ((min5 <= qltL) || (min5 < qltL + OBT_QLT_FAR_5))) {
 	stats[11]++;
 	left = min5;
       } else {
@@ -304,13 +308,13 @@ main(int argc, char **argv) {
 	stats[8]++;
         right = maxm3;
       } else if ((mode3 == max3) && (mode3 == maxm3) && (mode3c > 1) &&
-		 ((mode3 >= qltR) || (qltR - mode3 < 150))) {
+		 ((mode3 >= qltR) || (qltR < mode3 + OBT_QLT_MODE3))) {
 	stats[9]++;
         right = mode3;
-      } else if ((maxm3c > 1) && (maxm3 < qltR) && (max3 > qltR) && (max3 - maxm3 < 30)) {
+      } else if ((maxm3c > 1) && (maxm3 < qltR) && (max3 > qltR) && (max3 < maxm3 + OBT_QLT_CLOSE_MAXM3)) {
 	stats[14]++;
 	right = maxm3;
-      } else if ((mode3c > 0) && ((max3 >= qltR) || (qltR - max3 < 100))) {
+      } else if ((mode3c > 0) && ((max3 >= qltR) || (qltR < max3 + OBT_QLT_CLOSE_MAX3))) {
 	stats[12]++;
 	right = max3;
       } else {
@@ -338,7 +342,7 @@ main(int argc, char **argv) {
     //  XXX: We should check if the quality of the OVL region is
     //  decent, and then use that if it is also large.
     //
-    if ((left + right > 0) && ((left + 40) > right)) {
+    if ((left + right > 0) && ((left + OBT_MIN_LENGTH) > right)) {
       stats[13]++;
       fprintf(stderr, "INVALID CLEAR: "u64bitFMT" "u32bitFMT"-"u32bitFMT" -> "u32bitFMT"-"u32bitFMT"\n               %s\n",
               iid, qltL, qltR, left, right,
@@ -384,7 +388,7 @@ main(int argc, char **argv) {
   fprintf(stderr, u32bitFMTW(8)": reset qltR to vector right\n", stats[16]);
   fprintf(stderr, u32bitFMTW(8)": reset qltR to qltL due to inconsistency\n", stats[17]);
   fprintf(stderr, u32bitFMTW(8)": short quality\n", stats[1]);
-  fprintf(stderr, u32bitFMTW(8)": very short quality < 5 or very short in common < 5, discard frag\n", stats[2]);
+  fprintf(stderr, u32bitFMTW(8)": very short quality < %d or very short in common < %d, discard frag\n", stats[2], OBT_CQ_SHORT, OBT_CQ_SHORT);
   fprintf(stderr, u32bitFMTW(8)": short quality use overlap modes\n", stats[3]);
   fprintf(stderr, u32bitFMTW(8)": use the min/max/mode\n", stats[4]);
   fprintf(stderr, u32bitFMTW(8)":   use mode (5')\n", stats[5]);

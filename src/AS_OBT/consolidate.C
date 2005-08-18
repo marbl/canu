@@ -181,6 +181,7 @@ readOverlap(FILE *file, overlap_t &ovl) {
 }
 
 
+
 int
 main(int argc, char **argv) {
 
@@ -224,27 +225,10 @@ main(int argc, char **argv) {
 
     idAlast     = idA;
 
-    //  Remember if the 5' ends are far apart -- but we only care if
-    //  it's a forward match.
-    //
-    bool  far5prime = (leftA - leftB > 29) || (leftB - leftA > 29);
-    if (ori == false)
-      far5prime = true;
-
-    bool  acceptable1 = ((error          < 1.5) &&
-                         (rightA - leftA > 100) &&
-                         (rightB - leftB > 100) &&
-                         (far5prime));
-
-    bool  acceptable2 = (((error          < 2.0) ||
-                          ((rightA - leftA > 75) &&
-                           (rightB - leftB > 75))) &&
-                         (far5prime));
-
     //  Save the location of the overlap in the A fragment if it's
-    //  an acceptable overlap.
+    //  an acceptable 
     //
-    if (acceptable2) {
+    if (ovl.acceptable()) {
       left[numOverlaps]  = leftA;
       right[numOverlaps] = rightA;
       numOverlaps++;
