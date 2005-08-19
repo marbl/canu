@@ -51,6 +51,21 @@ int aimforlongest=0; /* prefer max align over min unaligned i.e. global over ove
 #undef DEBUG_DP
 #undef DEBUG_CLIST
 
+//  Unitigger for Macaca mulatta with overlap trimmed fragments (can
+//  be short) on Linux64 was failing in this module.  It appeared that
+//  the global 'freept' free memory list was being corrupted.  BPW was
+//  not able to track it down to any specific cause.  Instead, the
+//  free memory list was replaced with malloc()/free() pairs,
+//  efficiency be damned!  Define this to get that behavior.
+//
+//  It's likely that there was something else wrong that needed to be
+//  patched real-time in the debugger, in addition to this memory
+//  hack.
+//
+//  Unitigger on alpha did not suffer the same fate.
+//
+//#define AVL_USE_HEAP
+
 typedef struct {
   int  start;
   int  base;
@@ -86,8 +101,8 @@ typedef struct _AVLnode {
 
 #define CP(v) ((v)->L->LN)
 
-static AVLnode *freept;
-static AVLnode *NIL;
+static AVLnode *freept = NULL;
+static AVLnode *NIL    = NULL;
 
 #define INC  AVLinc
 #define DEC  AVLdec
@@ -106,6 +121,8 @@ static void AVLinit(void)
     OutOfMemory("Candidate list");
   NIL->LN = NIL->RC = 1;
   NIL->H  = 0;
+  NIL->L  = NULL;  //  XXX BPW
+  NIL->R  = NULL;
   NIL->V.base = BIG_INT;
   NIL->V.best = BIG_INT;
 }
@@ -120,8 +137,12 @@ static void AVLdec(AVLnode *v)
   if (v->RC == 0)
     { DEC(v->L);
       DEC(v->R);
+#ifdef AVL_USE_HEAP
+      free(freept);
+#else
       v->L = freept;
       freept = v;
+#endif
     }
 }
 
@@ -132,15 +153,22 @@ static AVLnode *NEW(AVLnode *l, Candidate *x, AVLnode *r)
 { AVLnode *v;
   int b;
 
+#ifdef AVL_USE_HEAP
+  v = (AVLnode *) malloc(sizeof(AVLnode));
+  if (v == NULL)
+    OutOfMemory("Candidate list");
+#else
   if (freept == NULL)
     { v = (AVLnode *) malloc(sizeof(AVLnode));
       if (v == NULL)
         OutOfMemory("Candidate list");
     }
   else
-    { v = freept;
+    {
+      v = freept;
       freept = v->L;
     }
+#endif
 
   v->RC = 1;
   v->V  = *x;
@@ -278,11 +306,11 @@ static AVLnode *AVLminrng(AVLnode *v, int low, int hgh)
 static AVLnode *AVLinsert(AVLnode *v, int k, Candidate *x)
 { AVLnode *t;
   if (v == NIL)
-    t = BAL(INC(NIL),x,INC(NIL));
+    t = BAL(INC(NIL), x, INC(NIL));
   else if (k < CP(v))
-    t = BAL(ADD(INC(v->L),k,x),&(v->V),INC(v->R));
+    t = BAL(ADD(INC(v->L),k,x), &(v->V), INC(v->R));
   else
-    t = BAL(INC(v->L),&(v->V),ADD(INC(v->R),k-CP(v),x));
+    t = BAL(INC(v->L), &(v->V), ADD(INC(v->R), k-CP(v), x));
   DEC(v);
   return (t);
 }
