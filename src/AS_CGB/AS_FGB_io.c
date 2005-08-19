@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_FGB_io.c,v 1.4 2005-03-22 19:48:32 jason_miller Exp $";
+= "$Id: AS_FGB_io.c,v 1.5 2005-08-19 19:51:31 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_FGB_io.c
@@ -66,6 +66,11 @@ int REAPER_VALIDATION = FALSE;
 #undef DEBUG280
 #undef DEBUG_MOSQ_01
 #undef USE_FRAGMENT_SUBSET
+
+//  Define to print a message whenever we read an overlap
+//  that refers to a non-existent frag.
+#define REPORT_DEGENERATE_OVERLAPS
+
 
 static void add_OFGMesg_to_graph
 ( OFGMesg      * ofg_mesg,
@@ -638,6 +643,7 @@ static void add_overlap_to_graph
   // fragments.  Contained and spur fragments still have potential
   // mate link information if they are singly placeable.
 
+#ifdef REPORT_DEGENERATE_OVERLAPS
   if( (iahg == 0) && (ibhg == 0) ) {
     fprintf(stdout,
             "Degenerate Overlap " F_IID " %d %d " F_IID " %d %d " CGB_ERATE_FORMAT " %d\n",
@@ -647,6 +653,7 @@ static void add_overlap_to_graph
             ines
             );
   }
+#endif
   
   {
     Aedge  the_raw_new_edge = {0};
@@ -934,6 +941,7 @@ static void add_OverlapMesg_to_graph
  const CGB_ERATE_TYPE overlap_error_threshold,
  IntEdge_ID * novl_dovetail,
  IntEdge_ID * novl_containment,
+ IntEdge_ID * novl_degenerate,
  IntEdge_ID * nedges_delta
 )
 {
@@ -1194,6 +1202,7 @@ void InsertOverlapsIntoGraph
     const IntEdge_ID number_of_new_overlaps = GetNumVA_OverlapMesg(the_ovl_messages);
     IntEdge_ID novl_dovetail = 0;
     IntEdge_ID novl_containment = 0;
+    IntEdge_ID novl_degenerate = 0;
     IntEdge_ID nedges_delta = 0;
     IntEdge_ID ii;
     
@@ -1213,11 +1222,13 @@ void InsertOverlapsIntoGraph
           overlap_error_threshold,
           &novl_dovetail,
           &novl_containment,
+          &novl_degenerate,
           &nedges_delta );
     }
     fprintf(stderr,"Added %10" F_IIDP " OVL records.\n",novl_dovetail+novl_containment);
     fprintf(stderr,"      %10" F_IIDP " OVL dovetail records.\n",novl_dovetail);
     fprintf(stderr,"      %10" F_IIDP " OVL containment records.\n",novl_containment);
+    fprintf(stderr,"Found %10" F_IIDP " OVL records with no valid frag (degenerate).\n",novl_degenerate);
   }
   //return 0;
 }
@@ -1305,6 +1316,7 @@ static void input_mesgs_internal
  IntEdge_ID     *Pnedges_delta,
  IntEdge_ID     *Pnovl_dovetail, 
  IntEdge_ID     *Pnovl_containment,
+ IntEdge_ID     *Pnovl_degenerate,
  BPTYPE         *nbase_in_genome,
  IntFragment_ID  nfrag_base,
  Tfragment       frags[],
@@ -1325,7 +1337,7 @@ static void input_mesgs_internal
     point to old fragments.  */
 
   int nadt=0,nidt=0,nrpt=0,nilk=0;
-  IntEdge_ID nedges_delta=0,novl_dovetail=0,novl_containment=0;
+  IntEdge_ID nedges_delta=0,novl_dovetail=0,novl_containment=0,novl_degenerate=0;
   GenericMesg *pmesg;
   MesgReader ReadMesg_AS = InputFileType_AS(fovl);
   VA_TYPE(char) * the_ofg_source = NULL;
@@ -1429,6 +1441,7 @@ static void input_mesgs_internal
             overlap_error_threshold,
             &novl_dovetail,
             &novl_containment,
+            &novl_degenerate,
             &nedges_delta
             );
       }
@@ -1473,6 +1486,7 @@ static void input_mesgs_internal
   *Pnedges_delta = nedges_delta;
   *Pnovl_dovetail = novl_dovetail;
   *Pnovl_containment = novl_containment;
+  *Pnovl_degenerate = novl_degenerate;
   *Pnrpt = nrpt;
 }
 
@@ -1513,7 +1527,7 @@ void input_messages_from_a_file
   int nrpt=0;   /* The number of ubiquitous repeat messages. */
   int nilk=0;   /* The number of internal link messages. */
   IntFragment_ID nofg=0;   /* The number of fragment records read. */
-  IntEdge_ID novl_dovetail=0,novl_containment=0; /* The number of overlap records read. */
+  IntEdge_ID novl_dovetail=0,novl_containment=0,novl_degenerate=0; /* The number of overlap records read. */
   IntEdge_ID nedge_delta=0;   
   
   time_t tp1,tp2; // int32 seconds from the beginning of 1970.
@@ -1570,7 +1584,7 @@ void input_messages_from_a_file
      WriteMesg_AS,
      fovl,filk,
      &nadt,&nidt,&nrpt,&nilk,&nofg,&nedge_delta,
-     &novl_dovetail,&novl_containment,
+     &novl_dovetail,&novl_containment,&novl_degenerate,
      nbase_in_genome,
      nfrag_old, frags,
      nedge_old, edges,
@@ -1588,14 +1602,14 @@ void input_messages_from_a_file
   fprintf(stderr,"Input %10d IDT records.\n",nidt);
   fprintf(stderr,"Input %10d ILK records.\n",nilk);
   fprintf(stderr,"Input %10d OFG records.\n",nofg);
-  fprintf(stderr,"Input %10" F_IIDP " OVL records.\n",novl_dovetail+novl_containment);
+  fprintf(stderr,"Input %10" F_IIDP " OVL records (skipped %10"F_IIDP" degenerate).\n",novl_dovetail+novl_containment, novl_degenerate);
   fprintf(stderr,"Input %10d RPT records.\n",nrpt);
   fprintf(stderr,"min_frag_iid=" F_IID " max_frag_iid=" F_IID "\n",
 	  (*min_frag_iid),(*max_frag_iid));
 
   fprintf(stderr,"      %10" F_IIDP " OVL dovetail records.\n",novl_dovetail);
   fprintf(stderr,"      %10" F_IIDP " OVL containment records.\n",novl_containment);
-    
+
   if(TIMINGS) {
     time(&tp2); 
     fprintf(stderr,"%10" F_TIME_TP " sec: Finished reading input file\n",
