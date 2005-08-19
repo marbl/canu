@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.27 2005-08-19 09:45:10 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.28 2005-08-19 19:57:09 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -4171,9 +4171,11 @@ char *GetAbacus(Abacus *a, int32 i, int32 j) {
 void SetAbacus(Abacus *a, int32 i, int32 j, char c) {
    int32 offset = i*(a->columns+2)+j+1;
    if(i<0 || i>a->rows-1){
+     fprintf(stderr, "i=%d a->rows=%d\n", i, a->rows);
      CleanExit("SetAbacus attempt to write beyond row range",__LINE__,1);
    }
    if(j<0 || j>a->columns-1){
+     fprintf(stderr, "i=%d a->columns=%d\n", i, a->columns);
      CleanExit("SetAbacus attempt to write beyond column range",__LINE__,1);
    }
    a->beads[offset] = c; 
@@ -4197,31 +4199,52 @@ int ResetIndex(VA_TYPE(int32) * indices, int n) {
 }
 
 Abacus *CreateAbacus(int32 mid, int32 from, int32 end) {
-   Abacus *abacus;
-   int32 columns=1, rows=0,i,j,bid,orig_columns,set_column;
-   Column *column,*last,*early_mid_column=NULL,*late_mid_column=NULL;
-   ColumnBeadIterator bi;
-   Bead *bead;
-   MANode *ma = GetMANode(manodeStore, mid);
+   Abacus             *abacus;
+   int32               columns=1, rows=0, i, j, bid, orig_columns, set_column;
+   Column             *column,*last;
+   ColumnBeadIterator  bi;
+   Bead               *bead;
+   MANode             *ma;
+   int                 mid_column_num = 6;
+   Column             *mid_column[6] = { 0 };
+   int                 mid_column_points[6] = { 75, 150, -1, -1, -1, -1 };
+
+   //  Macaque, using overlap based trimming, needed mid_column points
+   //  at rather small intervals to pass.  Even without OBT, macaque
+   //  needed another point at 63 to pass.
+   //
+   //  This change was tested on macaque, and did not change the
+   //  results (except for allowing one partition to finish....).  You
+   //  can revert to the original behavior by disabling this loop.
+   //
+   for (i=0; i<6; i++)
+     mid_column_points[i] = i * 30 + 30;
+
+   ma = GetMANode(manodeStore, mid);
    if (ma == NULL ) CleanExit("CreateAbacus ma==NULL",__LINE__,1);
+
    column = GetColumn(columnStore, from);
    if (column == NULL ) CleanExit("CreateAbacus column==NULL",__LINE__,1);
+
    if (abacus_indices == NULL ) CleanExit("CreateAbacus abacus_indices==NULL",__LINE__,1);
+
    ResetIndex(abacus_indices,GetNumFragments(fragmentStore));
+
    // first, just determine requires number of rows and columns for Abacus
    while( column->next != end  && column->next != -1) {
      columns++;
-     if (columns == 75 ) {
-        early_mid_column = GetColumn(columnStore,column->lid);
-     }
-     if (columns == 150 ) {
-        late_mid_column = GetColumn(columnStore,column->lid);
-     }
+
+     for (i=0; i<6; i++)
+       if (columns == mid_column_points[i])
+         mid_column[i] = GetColumn(columnStore,column->lid);
+
      column = GetColumn(columnStore,column->next);
    }
+
    orig_columns = columns;
    last = column;
    column = GetColumn(columnStore, from);
+
    if(!CreateColumnBeadIterator(column->lid,&bi)){
      CleanExit("CreateAbacus CreateColumnBeadIterator failed",__LINE__,1);
    }
@@ -4230,6 +4253,7 @@ Abacus *CreateAbacus(int32 mid, int32 from, int32 end) {
      rows++;
      SetVA_int32(abacus_indices,bead->frag_index,&rows);
    }
+
    if(!CreateColumnBeadIterator(last->lid,&bi)){
      CleanExit("CreateAbacus CreateColumnBeadIterator failed",__LINE__,1);
    }
@@ -4240,40 +4264,32 @@ Abacus *CreateAbacus(int32 mid, int32 from, int32 end) {
        SetVA_int32(abacus_indices,bead->frag_index,&rows);
      }
    }
-   if ( early_mid_column != NULL ) { // a little fragment may sneak in
-                             // have to ensure the abacus has a row for it
-     if(!CreateColumnBeadIterator(early_mid_column->lid,&bi)){
-      CleanExit("CreateAbacus CreateColumnBeadIterator failed",__LINE__,1);
-     }
-     while ( (bid = NextColumnBead(&bi)) != -1 ) {
-       bead = GetBead(beadStore,bid);
-       if ( *Getint32(abacus_indices,bead->frag_index) == 0 ) {
-         rows++;
-         SetVA_int32(abacus_indices,bead->frag_index,&rows);
+
+   // a little fragment may sneak in, have to ensure the abacus has a
+   // row for it.  The introduction of late- and mid column was done
+   // to eliminate a problem with a degenerate alignment consistenting
+   // of essentially one long poly run.  (encountered in unitig
+   // 1618966 of the NOV'01 human vanilla assembly) it happened that a
+   // little fragment was caught even between the mid_column and end
+   // column, so it's index wasn't in the index set...  which causes a
+   // "SetAbacus" beyond row range error.  putting in two mid-columns
+   // will hopefully catch all fragments in the abacus range.
+   //
+   for (i=0; i<6; i++) {
+     if (mid_column[i] != NULL) {
+       if(!CreateColumnBeadIterator(mid_column[i]->lid,&bi))
+         CleanExit("CreateAbacus CreateColumnBeadIterator failed",__LINE__,1);
+
+       while ((bid = NextColumnBead(&bi)) != -1) {
+         bead = GetBead(beadStore,bid);
+         if ( *Getint32(abacus_indices,bead->frag_index) == 0 ) {
+           rows++;
+           SetVA_int32(abacus_indices,bead->frag_index,&rows);
+         }
        }
      }
    }
-   if ( late_mid_column != NULL ) { // a little fragment may sneak in
-                             // have to ensure the abacus has a row for it
-         // the introduction of late- and mid column was done to eliminate a problem 
-         // with a degenerate alignment consistenting of essentially one long poly run.
-         //  (encountered in unitig 1618966 of the NOV'01 human vanilla assembly)
-         // it happened that a little fragment was caught even between the
-         //  mid_column and end column, so it's index wasn't in the index set... 
-        //   which causes a "SetAbacus" beyond row range error.
-        //  putting in two mid-columns will hopefully catch all fragments in the 
-        //  abacus range.
-     if(!CreateColumnBeadIterator(late_mid_column->lid,&bi)){
-      CleanExit("CreateAbacus CreateColumnBeadIterator failed",__LINE__,1);
-     }
-     while ( (bid = NextColumnBead(&bi)) != -1 ) {
-       bead = GetBead(beadStore,bid);
-       if ( *Getint32(abacus_indices,bead->frag_index) == 0 ) {
-         rows++;
-         SetVA_int32(abacus_indices,bead->frag_index,&rows);
-       }
-     }
-   }
+
    abacus = (Abacus *) safe_malloc(sizeof(Abacus));
    abacus->start_column = from;
    abacus->end_column = last->lid;
@@ -4297,12 +4313,15 @@ Abacus *CreateAbacus(int32 mid, int32 from, int32 end) {
      set_column = columns+orig_columns;
      while ( (bid = NextColumnBead(&bi)) != -1 ) {
        bead = GetBead(beadStore,bid);
-       SetAbacus(abacus,*Getint32(abacus_indices,bead->frag_index)-1,set_column, 
-           *Getchar(sequenceStore,bead->soffset));
+       SetAbacus(abacus,
+                 *Getint32(abacus_indices,bead->frag_index)-1,
+                 set_column,
+                 *Getchar(sequenceStore,bead->soffset));
      }
      columns++;
      column = GetColumn(columnStore,column->next);
    }
+
    for (i=0;i<rows;i++) {
      set_column = orig_columns;
      for (j=0;j<set_column;j++) {
