@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.26 2005-08-18 19:07:18 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.27 2005-08-19 09:45:10 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -1641,11 +1641,12 @@ IidToIndex(int32 iid, int32 *iids, int nr)
     return (-1);
 }
 
+/* Calculate the consensus base for the given column */
 int 
 BaseCall(int32 cid, int quality, double *var, AlPair ap, 
     int target_allele, char *cons_base, int verbose, CNS_Options *opp) 
 {
-    /* Calculate the consensus call for the given column */
+    /* NOTE: negative target_allele means the the alleles will be used */ 
 
     Column *column=GetColumn(columnStore,cid);
     Bead *call = GetBead(beadStore, column->call);
@@ -1755,14 +1756,9 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
             } 
             else 
             {
-                if ((ap.nr <= 0)                || 
-                    (target_allele < 0)         ||
-                    (ap.alleles[k] == target_allele))
-                {
-                    read_base_count[BaseToInt(cbase)]++;
-                    read_qv_count[BaseToInt(cbase)] += qv;
-                    AppendBead(reads, bead);
-                }
+                read_base_count[BaseToInt(cbase)]++;
+                read_qv_count[BaseToInt(cbase)] += qv;
+                AppendBead(reads, bead);
             }
             if ( type != AS_UNITIG ) {
                 frag_cov++;
@@ -2457,14 +2453,14 @@ int RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
         }
         else 
         {
-            // Process a ragion of variation
+            // Process a region of variation
             double fict_var;
             beg = vbeg = vend = i;
 
             while (DBL_EQ_DBL(varf[beg], (double)0.0))
                 beg++;
             
-            while ((svarf[vend] > ZERO_PLUS) && (vend < len_manode))
+            while ((vend < len_manode) && (svarf[vend] > ZERO_PLUS))
                 vend++;
 
             end = vend;
@@ -4710,7 +4706,7 @@ int ApplyAbacus(Abacus *a, CNS_Options *opp)
                 exch_bead->boffset);
          */
        }
-       BaseCall(column->lid, 1, &var, ap, ap.best_allele, &base, 0, opp);
+       BaseCall(column->lid, 1, &var, ap, -1, &base, 0, opp);
        column = GetColumn(columnStore,column->prev);
        columns++;
      } 
