@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.9 2005-07-25 19:18:06 eliv Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.10 2005-08-20 16:55:42 gdenisov Exp $";
 
 
 /*********************************************************************
@@ -102,6 +102,13 @@ static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.9 2005-07-25 19:18:06 eliv E
 #include <dirent.h>
 #include <sys/stat.h>
 #include <unistd.h>
+
+#include <math.h>
+#include <time.h>
+
+#ifdef X86_GCC_LINUX
+#include <fpu_control.h>
+#endif
 
 #undef INSTRUMENT_CGW
 //#define INSTRUMENT_CGW
@@ -244,7 +251,24 @@ int main(int argc, char *argv[]){
   char *outputPath = NULL;
   int dumpScaffoldSnapshots = 0;
   int checkpointChecker = 1;
-  
+ 
+#ifdef X86_GCC_LINUX
+  /*
+  ** Set the x86 FPU control word to force double
+  ** precision rounding rather than `extended'
+  ** precision rounding. This causes base
+  ** calls and quality values on x86 GCC-Linux
+  ** (tested on RedHat Linux) machines to be
+  ** identical to those on IEEE conforming UNIX
+  ** machines.
+  */
+  fpu_control_t fpu_cw;
+
+  fpu_cw = ( _FPU_DEFAULT & ~_FPU_EXTENDED ) | _FPU_DOUBLE;
+
+  _FPU_SETCW( fpu_cw );
+#endif
+ 
   fprintf( stderr, "Version: %s",CM_ID);
 #if defined(CHECK_CONTIG_ORDERS) || defined(CHECK_CONTIG_ORDERS_INCREMENTAL)
   ContigOrientChecker * coc;

@@ -27,7 +27,7 @@
                  
  *********************************************************************/
 
-static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.12 2005-08-18 19:07:18 gdenisov Exp $";
+static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.13 2005-08-20 16:51:02 gdenisov Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -39,6 +39,13 @@ static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.12 2005-08-18 19:07:18 gde
 #include <sys/types.h>
 #include <dirent.h>
 #include <unistd.h>
+
+#include <math.h>
+#include <time.h>
+
+#ifdef X86_GCC_LINUX
+#include <fpu_control.h>
+#endif
 
 // Celera Assembler includes:
 #include "AS_global.h"
@@ -231,6 +238,24 @@ int main (int argc, char *argv[]) {
     CNS_Options options = { CNS_OPTIONS_SPLIT_ALLELES_DEFAULT,
                             CNS_OPTIONS_SMOOTH_WIN_DEFAULT,
                             CNS_OPTIONS_MAX_NUM_ALLELES };
+
+#ifdef X86_GCC_LINUX
+   /*
+  ** Set the x86 FPU control word to force double
+  ** precision rounding rather than `extended'
+  ** precision rounding. This causes base
+  ** calls and quality values on x86 GCC-Linux
+  ** (tested on RedHat Linux) machines to be
+  ** identical to those on IEEE conforming UNIX
+  ** machines.
+  */
+  fpu_control_t fpu_cw;
+
+  fpu_cw = ( _FPU_DEFAULT & ~_FPU_EXTENDED ) | _FPU_DOUBLE;
+
+  _FPU_SETCW( fpu_cw );
+#endif
+
     fprintf(stderr,"Version: %s\n",CM_ID);
     Overlap *(*COMPARE_FUNC)(COMPARE_ARGS)=Local_Overlap_AS_forCNS;
     SeqInterval tig_range;
@@ -793,7 +818,7 @@ int main (int argc, char *argv[]) {
       VA_TYPE(char) *quality=CreateVA_char(200000);
       time_t t;
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.12 $ processing. Started %s\n",
+      fprintf(stderr,"# Consensus $Revision: 1.13 $ processing. Started %s\n",
         ctime(&t));
       InitializeAlphTable();
       if ( ! align_ium && USE_SDB && extract > -1 ) 
@@ -1072,7 +1097,7 @@ int main (int argc, char *argv[]) {
             {
               AuditLine auditLine;
               AppendAuditLine_AS(adt_mesg, &auditLine, t,
-                                 "Consensus", "$Revision: 1.12 $","(empty)");
+                                 "Consensus", "$Revision: 1.13 $","(empty)");
             }
 #endif
               VersionStampADT(adt_mesg,argc,argv);
@@ -1096,7 +1121,7 @@ int main (int argc, char *argv[]) {
       }
 
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.12 $ Finished %s\n",ctime(&t));
+      fprintf(stderr,"# Consensus $Revision: 1.13 $ Finished %s\n",ctime(&t));
       if (printcns) 
       {
         int unitig_length = (unitig_count>0)? (int) input_lengths/unitig_count: 0; 
