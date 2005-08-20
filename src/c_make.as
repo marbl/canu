@@ -73,7 +73,7 @@ ifeq ($(OSTYPE), Linux)
   CC = gcc
   CXX = g++
   CFLAGS_OPT= -g 
-  CFLAGS+= -O3 -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+  CFLAGS+= -O3 -DANSI_C -DX86_GCC_LINUX -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 
   CXXDEFS= -D__cplusplus
   # CFLAGS_OPT= -g
   # CFLAGS_OPT += -DGENERIC_STORE_USE_LONG_STRINGS
@@ -94,7 +94,7 @@ ifeq ($(OSTYPE), FreeBSD)
   CFLAGS_OPT       = -g 
   CFLAGS          += -O3
   CXXDEFS          = -D__cplusplus
-  INC_IMPORT_DIRS +=  /usr/local/include
+  INC_IMPORT_DIRS +=  /usr/local/include /usr/include
 endif
 
 ifeq ($(OSTYPE), Darwin)
@@ -223,7 +223,7 @@ ifeq ($(OSTYPE), OSF1)
   #  -msg_enable returnchecks
   #  -msg_enable  strctpadding
   #  -msg_enable level6
-  INC_IMPORT_DIRS +=  /usr/local/include
+  INC_IMPORT_DIRS +=  /usr/local/include /usr/include
 endif
 
 
