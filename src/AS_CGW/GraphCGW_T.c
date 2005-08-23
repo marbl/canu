@@ -23,7 +23,7 @@ cc -g -pg -qfullpath   -qstrict -qbitfields=signed -qchars=signed -qlanglvl=ext 
 -o /work/assembly/rbolanos/IBM_PORT_CDS/ibm_migration_work_dir/cds/AS/obj/GraphCGW_T.o GraphCGW_T.c
 */
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.4 2005-03-22 19:48:35 jason_miller Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.5 2005-08-23 14:07:03 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -4485,6 +4485,11 @@ void ComputeMatePairStatistics( int operateOnNodes,
   
 }
 
+int compareInt (const void * a, const void * b)
+{
+      return ( *(int*)a - *(int*)b );
+}
+
 void ComputeMatePairStatisticsRestricted( int operateOnNodes,
                                           int32 minSamplesForOverride,
                                           char *instance_label)
@@ -4711,9 +4716,6 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
         CDS_COORD_t mateLeftEnd, mateRightEnd;
         int mateScaffoldOrientation, fragScaffoldOrientation;
         
-        if (dptr->mean < 5000)
-          continue;
-        
         fragContig = GetGraphNode( ScaffoldGraph->ContigGraph, frag->contigID);
         AssertPtr(fragContig);
         
@@ -4929,6 +4931,8 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
     upperSigma = - median + matePairs[ (int) ((0.5 + 0.34) * GetNumCDS_COORD_ts( dptr->samples ))].samples;	
     
     newLower = median - 5 * max (lowerSigma, upperSigma);
+    if ( newLower < 0 )
+        newLower = 0;
     newUpper = median + 5 * max (lowerSigma, upperSigma);
     
     fprintf( stderr, "\nlib " F_CID ", numSamples: %d, orig mean, sig: ( %.2f, %.2f), calc mean, sig: (%.2f, %.2f) median: " F_COORD "\n",
@@ -5173,7 +5177,7 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
       if(dist->samples && dist->bsize > 0.0 && dist->numSamples > 0)
       {
         fprintf(GlobalData->stderrc,"* Distance Record %d min:" F_COORD " max:" F_COORD "  mu:%g sigma:%g samples:%d bad:%d references:%d\n",
-                i, dist->min, dist->max, dist->mu, dist->sigma, dist->numSamples, dist->numBad, dist->numReferences);
+                ii, dist->min, dist->max, dist->mu, dist->sigma, dist->numSamples, dist->numBad, dist->numReferences);
         fflush(NULL);
         for(j = 0; j < dist->bnum; j++)
         {
@@ -5199,14 +5203,17 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
       fprintf( stderr, "writing file %s\n", filename);
       fout = fopen( filename,"w");
       AssertPtr( fout );
-      
-      for( j = 0; j < dist->bnum; j++)
-      {
-        int32 binVal = dist->histogram[j];
-        int k;
-        
-        for ( k = 0; k < binVal; k++)
-          fprintf( fout, "%d\n", (int32)(dist->min + j * dist->bsize));
+
+      fprintf( fout, "lib %d mu %g sigma %g\n", ii, dist->mu, dist->sigma );
+      int numSamples = GetNumCDS_COORD_ts(dist->samples);
+      CDS_COORD_t samps[numSamples];
+      CDS_COORD_t *samplep = GetCDS_COORD_t(dist->samples,0);
+      for( j = 0; j < numSamples; j++, samplep++) {
+          samps[ j ] = *samplep;
+      }
+      qsort( samps, numSamples, sizeof(CDS_COORD_t), &compareInt);
+      for( j = 0; j < numSamples; j++) {
+          fprintf( fout, "%d\n", samps[j]);
       }
       fclose( fout );
     }
