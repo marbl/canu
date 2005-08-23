@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: LeastSquaresGaps_CGW.c,v 1.5 2005-06-17 18:40:38 eliv Exp $";
+static char CM_ID[] = "$Id: LeastSquaresGaps_CGW.c,v 1.6 2005-08-23 15:45:20 catmandew Exp $";
 
 #define FIXED_RECOMPUTE_SINGULAR /* long standing bug: is it fixed yet? */
 #undef LIVE_ON_THE_EDGE   /* abort on singularities -- this would be a good idea, unless you
@@ -1861,11 +1861,10 @@ void LeastSquaresGapEstimates(ScaffoldGraphT *graph, int markEdges,
             int checkConnectivity, int verbose){
 
     RecomputeOffsetsStatus status;
-    GraphNodeIterator scaffolds;
-    CIScaffoldT *scaffold = NULL;
     int numScaffolds;
     int redo = FALSE;
     int cnt = 0;
+    int sID;
 
     fprintf(stderr,"* Start of LSGapEstimates markEdges:%d useGuides:%d*\n",
             markEdges, useGuides);
@@ -1874,9 +1873,19 @@ void LeastSquaresGapEstimates(ScaffoldGraphT *graph, int markEdges,
         fprintf(stderr,"****\n");
     }
 
-    numScaffolds = GetNumGraphNodes(graph->ScaffoldGraph);
-    InitGraphNodeIterator(&scaffolds, graph->ScaffoldGraph, GRAPH_NODE_DEFAULT);
-    while((scaffold = (redo?scaffold:NextGraphNodeIterator(&scaffolds))) != NULL){
+    /*
+      20050819 IMD
+      Replaced iterator with incrementing index
+      CheckScaffoldConnectivityAndSplit is called in the loop and
+      can end up reallocating the scaffold graph, which can relocate
+      the scaffold graph in memory, which will screw up the iterator
+    */
+    for(sID = 0;
+        sID < (numScaffolds = GetNumCIScaffoldTs(graph->CIScaffolds));
+        sID += (redo?0:1))
+    {
+        CIScaffoldT * scaffold = GetCIScaffoldT(graph->CIScaffolds, sID);
+
         if(isDeadCIScaffoldT(scaffold) || scaffold->type != REAL_SCAFFOLD){
             assert(!redo);
             continue;
