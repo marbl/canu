@@ -21,14 +21,11 @@ static char CM_ID[] = "$Id:";
 
 #include "SYS_UIDcommon.h"
 #include "SYS_UIDclient.h"
-#include "AS_TER_utils.h"
-#include "AS_TER_alloc.h"
 
 #include "MultiAlignment_CNS.h"
 
 #define MAXSEQLEN 20000
 
-extern CDS_UID_t AS_TER_uidStart;
 
 
 void RevCompl(char *seq, char *qul)
@@ -204,7 +201,7 @@ int main( int argc, char *argv[])
       CDS_UID_t interval_UID[4];
       if(firstUID){
 	firstUID=0;
-	AS_TER_uidStart = UIDstart; /* used if readUID == FALSE */
+	set_start_uid(UIDstart); /* used if readUID == FALSE */
 	get_uids(blockSize,interval_UID,realUID);
       }
 
@@ -216,9 +213,8 @@ int main( int argc, char *argv[])
 	}	  
       if( UID_CODE_OK != uidStatus )
 	{ 
-	  char dummy[40];
-	  sprintf(dummy,"Could not get UID \n");
-	  error(AS_TER_UIDSERVER_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+          fprintf(stderr, "Could not get UID \n");
+          assert(0);
 	}
     }
   }
@@ -314,7 +310,7 @@ int main( int argc, char *argv[])
 	CDS_UID_t interval_UID[4];
 	if(firstUID){
 	  firstUID=0;
-	  AS_TER_uidStart = UIDstart; /* used if readUID == FALSE */
+	  set_start_uid(UIDstart); /* used if readUID == FALSE */
 	  get_uids(blockSize,interval_UID,realUID);
 	}
 
@@ -326,9 +322,8 @@ int main( int argc, char *argv[])
 	  }	  
 	if( UID_CODE_OK != uidStatus )
 	  { 
-	    char dummy[40];
-	    sprintf(dummy,"Could not get UID \n");
-	    error(AS_TER_UIDSERVER_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+            fprintf(stderr, "Could not get UID \n");
+            assert(0);
 	  }
       }
 

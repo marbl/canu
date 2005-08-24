@@ -87,23 +87,23 @@ all: $(OBJECTS) $(LIBRARIES) $(PROGS) install
 install: $(SCRIPTS)
 	cp -f $(SCRIPTS) $(LOCAL_BIN)
 
-testBuckets: $(BUCKET_OBJECTS) $(LIB_OBJECTS) libm.a $(REQ_LIB)
+testBuckets: $(BUCKET_OBJECTS) $(LIB_OBJECTS) $(REQ_LIB)
 
-#testfname: $(FNAME_OBJECTS) $(LIB_OBJECTS) libm.a $(REQ_LIB)
+#testfname: $(FNAME_OBJECTS) $(LIB_OBJECTS) $(REQ_LIB)
 
-testSkiplist: $(SL_OBJECTS) $(LIB_OBJECTS) libm.a $(REQ_LIB)
+testSkiplist: $(SL_OBJECTS) $(LIB_OBJECTS) $(REQ_LIB)
 
-testHashTable: $(HASH_OBJECTS) $(LIB_OBJECTS) libm.a  $(REQ_LIB)
+testHashTable: $(HASH_OBJECTS) $(LIB_OBJECTS)  $(REQ_LIB)
 
-# testPHashTable: $(PHASH_OBJECTS) $(LIB_OBJECTS) libm.a  $(REQ_LIB)
+# testPHashTable: $(PHASH_OBJECTS) $(LIB_OBJECTS)  $(REQ_LIB)
 
-queryPHashTable: $(PHASH_OBJECTS) $(LIB_OBJECTS) libm.a  $(REQ_LIB)
+queryPHashTable: $(PHASH_OBJECTS) $(LIB_OBJECTS)  $(REQ_LIB)
 
-testRand: $(RAND_OBJECTS) $(LIB_OBJECTS) libm.a  $(REQ_LIB)
+testRand: $(RAND_OBJECTS) $(LIB_OBJECTS)  $(REQ_LIB)
 
-testVar: $(VAR_OBJECTS) $(LIB_OBJECTS) libm.a  $(REQ_LIB)
+testVar: $(VAR_OBJECTS) $(LIB_OBJECTS)  $(REQ_LIB)
 
-##testhisto: $(HISTO_OBJECTS) $(LIB_OBJECTS) libm.a $(REQ_LIB)
+##testhisto: $(HISTO_OBJECTS) $(LIB_OBJECTS) $(REQ_LIB)
 
 libAS_UTL.a: $(LIB_OBJECTS)
 

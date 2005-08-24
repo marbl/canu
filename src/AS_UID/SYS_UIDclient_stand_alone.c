@@ -19,51 +19,6 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/**********************************************************************
-$Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_UID/Attic/SYS_UIDclient_stand_alone.c,v $
-$Revision: 1.3 $
-$Date: 2005-03-22 19:49:28 $
-$Name: not supported by cvs2svn $
-$Author: jason_miller $
-$Log: not supported by cvs2svn $
-Revision 1.3  2004/09/10 12:31:43  mschatz
-Add standard copyright notice
-
-Revision 1.2  2004/09/09 22:38:28  mschatz
-Type safety
-
-Revision 1.1  2004/06/24 12:51:06  mpop
-Added AS_UID
-
-Revision 1.2  2003/05/09 21:04:03  mpop
-Dos2unixed all files.
-Modified c_make.as to set SEP_PATH relative to LOCAL_WORK
-
-Revision 1.1.1.1  2003/05/08 18:40:12  aaronhalpern
-versions from TIGR
-
-Revision 1.2  2001/09/25 23:03:20  mpop
-Dos2Unixed
-
-Revision 1.1.1.1  2001/09/25 20:21:05  mpop
-Celera Assembler
-
-Revision 1.1  1999/10/13 17:19:10  sdmurphy
-baseline
-
-
-**********************************************************************/
-
-/**********************************************************************
-Module:
-
-Description:
-
-Assumptions:
-
-**********************************************************************/
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include "cds.h"

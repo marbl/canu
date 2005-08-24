@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /* RCS info
- * $Id: asm2bac.c,v 1.4 2005-03-22 19:49:00 jason_miller Exp $
+ * $Id: asm2bac.c,v 1.1 2005-08-24 10:57:43 brianwalenz Exp $
  */
 
 #include <stdio.h>
@@ -34,12 +34,12 @@
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
-#include "AS_TER_alloc.h"
 #include "AS_UTL_Var.h"
 #include "PrimitiveVA.h"
 #include "PrimitiveVA_MSG.h"
 #include "MultiAlignStore_CNS.h"
 #include "SYS_UIDcommon.h"
+#include "SYS_UIDclient.h"
 
 static FILE *gbatFile;
 static char *gbatName;

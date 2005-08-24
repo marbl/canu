@@ -21,11 +21,14 @@
 
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_UID/Attic/SYS_UIDcommon.c,v $
-$Revision: 1.3 $
-$Date: 2005-03-22 19:49:28 $
+$Revision: 1.4 $
+$Date: 2005-08-24 10:57:43 $
 $Name: not supported by cvs2svn $
-$Author: jason_miller $
+$Author: brianwalenz $
 $Log: not supported by cvs2svn $
+Revision 1.3  2005/03/22 19:49:28  jason_miller
+The TIGR tip as of March 22 2005. Commit by Jason Miller at TIGR.
+
 Revision 1.2  2004/09/10 12:31:43  mschatz
 Add standard copyright notice
 
@@ -85,25 +88,41 @@ char   SYS_UIDmessage_array[UID_MESSAGE_SIZE];
 char   SYS_UIDtype = UID_NO_TYPE;
 char   SYS_UIDdebug_flag = 0;
 
+
+
+//  Drop in replacement for missing xdr_u_hyper on BSD4 and OS-X.  
+//
+#ifdef NEEDXDRUHYPER
+
+int
+xdr_u_hyper(XDR *xdrs, cds_uint64 *hp) {
+  int res = 0;
+
+  //  By definition of XDR, a 'long' is always 4 bytes, regardless of
+  //  what the real long type is (according to OSF1's man page).
+
+  unsigned long a, b;
+  a = (*hp      ) & 0xffffffff;
+  b = (*hp >> 32) & 0xffffffff;
+  res += xdr_u_long(xdrs, &a);
+  res += xdr_u_long(xdrs, &b);
+  *hp   = b;
+  *hp <<= 32;
+  *hp  |= a;
+
+  return(res);
+}
+
+#endif
+
+
+
+
+
+
 /*******************************************************************************
 
 Description: utility for flushing error string to stderr
-
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
 
 *******************************************************************************/
 void SYS_UIDperr(const char* message)
@@ -115,22 +134,6 @@ void SYS_UIDperr(const char* message)
 /*******************************************************************************
 
 Description: reads a specified number of bytes from a buffered input stream
-
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
 
 *******************************************************************************/
 cds_int32  SYS_UIDreadn(cds_int32 fd, char* ptr, cds_int32 nbytes)
@@ -156,22 +159,6 @@ cds_int32  SYS_UIDreadn(cds_int32 fd, char* ptr, cds_int32 nbytes)
 
 Description: writes a specified number of bytes to a buffered output stream
 
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
-
 *******************************************************************************/
 cds_int32  SYS_UIDwriten(cds_int32 fd, char* ptr, cds_int32 nbytes)
 {
@@ -190,25 +177,11 @@ cds_int32  SYS_UIDwriten(cds_int32 fd, char* ptr, cds_int32 nbytes)
    return UID_OK;    
 }
 
+
+
 /*******************************************************************************
 
 Description: unpacks the 8-byte cds_uint64 blocksize request
-
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
 
 *******************************************************************************/
 cds_int32 SYS_UIDunpackUIDRequestXdr(char* readbuffer, cds_int32* status, cds_uint64* request_size)
@@ -236,22 +209,6 @@ cds_int32 SYS_UIDunpackUIDRequestXdr(char* readbuffer, cds_int32* status, cds_ui
 /*******************************************************************************
 
 Description: packs the 8-byte cds_uint64 blocksize request
-
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
 
 *******************************************************************************/
 cds_int32 SYS_UIDpackUIDRequestXdr(char* writebuffer, cds_int32 status, cds_uint64 request_size)
@@ -281,21 +238,6 @@ cds_int32 SYS_UIDpackUIDRequestXdr(char* writebuffer, cds_int32 status, cds_uint
 
 Description: unpacks the uid_interval array of 8-byte uint64s and also
              unpacks the cds_int32 status code
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
 
 *******************************************************************************/
 cds_int32 SYS_UIDunpackUIDMessageXdr(cds_uint64* uid_interval, cds_int32* status)
@@ -339,21 +281,6 @@ cds_int32 SYS_UIDunpackUIDMessageXdr(cds_uint64* uid_interval, cds_int32* status
 
 Description:   packs the uid_interval array of 8-byte uint64s and also
                packs the cds_int32 status code
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
 
 *******************************************************************************/
 cds_int32 SYS_UIDpackUIDMessageXdr(cds_uint64* uid_interval, cds_int32 status)
@@ -400,22 +327,6 @@ cds_int32 SYS_UIDpackUIDMessageXdr(cds_uint64* uid_interval, cds_int32 status)
 Description:   a log message facility for debugging certain timeout problems.
                writes to file /tmp/uidlog
 
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
-
 *******************************************************************************/
 
 void   SYS_UIDlogMessage(const char* message)
@@ -433,7 +344,3 @@ void   SYS_UIDlogMessage(const char* message)
   fclose(lfp);
   return;
 }
-
-
-
-

@@ -32,12 +32,12 @@ SOURCES = AS_MSG_pmesg.c AS_MSG_bmesg.c  \
           proto2binary.c binary2proto.c  proto2proto.c \
           proto_append.c binary_append.c remove_fragment.c \
           AS_MSG_pmesg_test.c CountMessages.c ExtractMessages.c \
-	  track_fragment.c AS_MSG_Utility.c asm2bac.c
+	  track_fragment.c AS_MSG_Utility.c
 OBJECTS = $(SOURCES:.c=.o)
 
 PROGS = AS_MSG_pmesg_test proto2binary binary2proto proto2proto \
 	proto_append binary_append remove_fragment countmessages \
-	extractmessages track_fragment asm2bac 
+	extractmessages track_fragment
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
@@ -85,7 +85,6 @@ extractmessages: ExtractMessages.o AS_MSG_bmesg.o AS_MSG_pmesg.o \
 
 extractxchunkmessages: ExtractXChunkMessages.o AS_MSG_bmesg.o AS_MSG_pmesg.o
 
-asm2bac: asm2bac.o libAS_CNS.a libAS_REZ.a libAS_SDB.a libAS_MSG.a libAS_TER.a libAS_CGW.a libAS_REZ.a libAS_CGW.a libAS_REZ.a libAS_ALN.a libAS_LIN.a libAS_OVL.a libAS_PER.a libAS_MSG.a libAS_UTL.a libAS_UID.a
 
 # asm_tables: asm_tables.o  AS_MSG_bmesg.o AS_MSG_pmesg.o
 

@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <values.h>
+//#include <values.h>
 #include <math.h>
 
 #define DEFAULT_NUM_ITERATIONS   3

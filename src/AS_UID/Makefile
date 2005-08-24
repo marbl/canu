@@ -24,11 +24,20 @@
 
 ######################################################################
 # $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_UID/Makefile,v $
-# $Revision: 1.4 $
-# $Date: 2005-08-17 16:57:11 $
+# $Revision: 1.5 $
+# $Date: 2005-08-24 10:57:43 $
 # $Name: not supported by cvs2svn $
 # $Author: brianwalenz $
 # $Log: not supported by cvs2svn $
+# Revision 1.4  2005/08/17 16:57:11  brianwalenz
+# Rework the way the UID server is selected; now define either
+# UID_SERVER=TIGR or UID_SERVER=JCVI in AS_UID/uid_transport.as.
+# c_make.as then sets CFLAGS,CXXFLAGS,LDFLAGS appropriately.  Makefiles
+# that need to access the UID server via curl needed to be modified
+# to remove the explicit link to libcurl.a; everyone now links
+# against it.  Hopefully, cleaner, and easier to extent to other
+# sites.
+#
 # Revision 1.3  2005/03/22 19:49:28  jason_miller
 # The TIGR tip as of March 22 2005. Commit by Jason Miller at TIGR.
 #
@@ -95,30 +104,41 @@
 ######################################################################
 
 
-SOURCES = \
+CLIENT_SOURCES = \
   SYS_UIDcommon.c \
-  SYS_UIDserver.c \
   SYS_UIDerror.c \
-  SYS_UIDserver_main.c \
+  SYS_UIDclient_stand_alone.c \
   SYS_UIDclient.c \
-  SYS_UIDclient_test.c \
-  SYS_UIDclient_cpp.C \
-  SYS_UIDclient_test_cpp.C \
-  SYS_UIDclient_stand_alone.c 
+  SYS_UIDclient_simple.c \
+  SYS_UIDclient_test.c
 
-PROGS = \
+SERVER_SOURCES = \
+  SYS_UIDserver.c \
+  SYS_UIDserver_main.c
+
+SOURCES = $(CLIENT_SOURCES) $(SERVER_SOURCES)
+
+#  The C++ client looks outdated.
+#
+#  SYS_UIDclient_cpp.C \
+#  SYS_UIDclient_test_cpp.C \
+#
+#  uid_client_test_cpp 
+#  libAS_UIDcpp.a
+
+
+CLIENT_PROGS = \
   uidclient \
-  uid_client_test \
+  uid_client_test
+
+SERVER_PROGS = \
   uidsvrd
 
-DISABLED_PROGS = \
-  uid_client_test_cpp 
+PROGS = $(CLIENT_PROGS) $(SERVER_PROGS)
+
 
 LIBRARIES = \
   libAS_UID.a 
-
-DISABLED_LIBRARIES = \
-  libAS_UIDcpp.a
 
 
 ## Include to test if TIGR_UID_SERVER is true
@@ -140,9 +160,9 @@ OBJECTS = \
 LOCAL_WORK = $(shell cd ../../; pwd)
 include $(LOCAL_WORK)/src/c_make.as
 
-all: libAS_UID.a libAS_UIDcpp.a $(PROGS)
+all: $(LIBRARIES) $(PROGS)
 
-libAS_UID.a: SYS_UIDcommon.o SYS_UIDclient.o SYS_UIDerror.o $(SOAPOBJS)
+libAS_UID.a: SYS_UIDcommon.o SYS_UIDclient.o SYS_UIDclient_simple.o SYS_UIDerror.o $(SOAPOBJS)
 
 libAS_UIDcpp.a: SYS_UIDclient_cpp.o
 

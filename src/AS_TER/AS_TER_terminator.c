@@ -29,12 +29,12 @@ accession numbers.
 **********************************************************************/
 
 /* RCS info
- * $Id: AS_TER_terminator.c,v 1.5 2005-07-15 18:19:55 eliv Exp $
- * $Revision: 1.5 $
+ * $Id: AS_TER_terminator.c,v 1.6 2005-08-24 10:57:43 brianwalenz Exp $
+ * $Revision: 1.6 $
  */
 
 
-static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.5 2005-07-15 18:19:55 eliv Exp $";
+static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.6 2005-08-24 10:57:43 brianwalenz Exp $";
 
 
 /*************************************************************************/
@@ -56,7 +56,9 @@ static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.5 2005-07-15 18:19:55 
 #include "AS_TER_terminator.h"
 #include "AS_TER_utils.h" 
 #include "AS_TER_terminator_funcs.h"
-#include "AS_TER_alloc.h"
+
+#include <SYS_UIDcommon.h>
+#include <SYS_UIDclient.h>
 
 
 int main (int argc, char *argv[]) {
@@ -69,8 +71,6 @@ int main (int argc, char *argv[]) {
   char *euidServerNames = NULL;
   /*Variable defintions for parsing the commandline */
 
-  fprintf(stderr, "Version: %s\n",CM_ID);
-
   /* The default behaviour of the Terminator. Should
      be changed to binary */
   OutputType  output = AS_BINARY_OUTPUT;
@@ -80,6 +80,8 @@ int main (int argc, char *argv[]) {
   uint32 random  = FALSE;
   uint32 quiet   = FALSE;
   uint64 uidStart = 0;
+
+  fprintf(stderr, "Version: %s\n",CM_ID);
 
   { /* Parse the argument list using "man 3 getopt". */
     int ch,errflg=FALSE;

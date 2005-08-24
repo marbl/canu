@@ -54,17 +54,17 @@ INST_SET= $(PROGS)
 
 all: $(PROGS) $(LIBRARIES) $(OBJECTS)
 
-get-olaps: $(AS_ORA_OBJS) get-olaps.o libAS_MSG.a libAS_PER.a libAS_UTL.a libm.a
+get-olaps: $(AS_ORA_OBJS) get-olaps.o libAS_MSG.a libAS_PER.a libAS_UTL.a
 
 get-perfect-olaps: $(AS_ORA_OBJS) get-perfect-olaps.o libAS_MSG.a libAS_PER.a libAS_UTL.a -lAS_SDB -lAS_CNS -lAS_REZ -lAS_ALN -lAS_MSG
 
-nodups: $(AS_ORA_OBJS) nodups.o libAS_MSG.a libAS_PER.a libAS_UTL.a libm.a
+nodups: $(AS_ORA_OBJS) nodups.o libAS_MSG.a libAS_PER.a libAS_UTL.a
 
-overlap_regressor: $(AS_ORA_OBJS) $(ORA_MAIN_OBJS) libAS_MSG.a libAS_PER.a libAS_UTL.a libm.a 
+overlap_regressor: $(AS_ORA_OBJS) $(ORA_MAIN_OBJS) libAS_MSG.a libAS_PER.a libAS_UTL.a 
 
-fraguid2iid: $(AS_ORA_OBJS) fraguid2iid.o libAS_MSG.a libAS_PER.a libAS_UTL.a libAS_CGW.a libAS_LIN.a libm.a
+fraguid2iid: $(AS_ORA_OBJS) fraguid2iid.o libAS_MSG.a libAS_PER.a libAS_UTL.a libAS_CGW.a libAS_LIN.a
 
-fraguid2iid_byhash: $(AS_ORA_OBJS) fraguid2iid_byhash.o libAS_MSG.a libAS_PER.a libAS_UTL.a libAS_CGW.a libAS_LIN.a libm.a
+fraguid2iid_byhash: $(AS_ORA_OBJS) fraguid2iid_byhash.o libAS_MSG.a libAS_PER.a libAS_UTL.a libAS_CGW.a libAS_LIN.a
 
 fragiid2uid : fragiid2uid.o libAS_PER.a  libAS_UTL.a libAS_CGW.a libAS_REZ.a libAS_CGW.a libAS_REZ.a libAS_LIN.a -lAS_CNS -lAS_SDB -lAS_REZ -lAS_ALN -lAS_MSG -lAS_PER -lAS_OVL -lAS_UTL
 
@@ -74,9 +74,9 @@ dumpMatePairing : dumpMatePairing.o libAS_CGW.a libAS_REZ.a libAS_CGW.a libAS_RE
 
 computeGCcontent : computeGCcontent.o libAS_CGW.a libAS_REZ.a libAS_CGW.a libAS_REZ.a libAS_LIN.a -lAS_CNS -lAS_SDB -lAS_REZ -lAS_ALN -lAS_MSG -lAS_PER -lAS_OVL -lAS_UTL 
 
-make-canonical: $(AS_ORA_OBJS) make-canonical.o libAS_MSG.a libAS_PER.a libAS_UTL.a libm.a
+make-canonical: $(AS_ORA_OBJS) make-canonical.o libAS_MSG.a libAS_PER.a libAS_UTL.a
 
-compare-canonical: $(AS_ORA_OBJS) compare-canonical.o libAS_MSG.a libAS_PER.a libAS_UTL.a libm.a
+compare-canonical: $(AS_ORA_OBJS) compare-canonical.o libAS_MSG.a libAS_PER.a libAS_UTL.a
 
 install: $(PROGS) $(LIBRARIES) $(OBJECTS)
 	@echo "NO INSTALL"

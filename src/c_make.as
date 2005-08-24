@@ -70,21 +70,19 @@ ARFLAGS    = rvs
 USRLIB     = /usr/lib
 
 ifeq ($(OSTYPE), Linux)
-  CC = gcc
-  CXX = g++
-  CFLAGS_OPT= -g 
-  CFLAGS+= -O3 -DANSI_C -DX86_GCC_LINUX -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 
-  CXXDEFS= -D__cplusplus
-  # CFLAGS_OPT= -g
-  # CFLAGS_OPT += -DGENERIC_STORE_USE_LONG_STRINGS
-  # CFLAGS_WARNINGS = -Wall
+  CC         = gcc
+  CXX        = g++
+  CFLAGS_OPT = -g 
+  CFLAGS    += -O3 -DANSI_C -DX86_GCC_LINUX -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 
+  USRLIB     = /usr/X11R6/lib
+  CXXDEFS    = -D__cplusplus
 
   ifeq ($(MACHINETYPE), x86_64)
     CC        = gcc
     CXX       = g++
     CFLAGS   += -m64 -mcmodel=medium 
     CXXFLAGS += -m64 -mcmodel=medium
-    USRLIB    = /usr/lib64
+    USRLIB    = /usr/lib64 /usr/X11R6/lib64
   endif
 endif
 
@@ -92,17 +90,18 @@ ifeq ($(OSTYPE), FreeBSD)
   CC               = gcc
   CXX              = g++
   CFLAGS_OPT       = -g 
-  CFLAGS          += -O3
+  CFLAGS          += -O3 -DNEEDXDRUHYPER
   CXXDEFS          = -D__cplusplus
-  INC_IMPORT_DIRS +=  /usr/local/include /usr/include
+  INC_IMPORT_DIRS += /usr/local/include /usr/X11R6/include
+  USRLIB          += /usr/local/lib /usr/X11R6/lib
 endif
 
 ifeq ($(OSTYPE), Darwin)
   CC         = gcc
   CXX        = g++
   CFLAGS_OPT = -g
-  CFLAGS    += -fast
-  CXXDEFS    = -D__cplusplus
+  CFLAGS    += -fast -DNEEDXDRUHYPER
+  USRLIB    += /usr/local/lib /usr/X11R6/lib
 endif
 
 ifeq ($(OSTYPE), SunOS)
@@ -230,8 +229,11 @@ endif
 CFLAGS          += $(CFLAGS_OPT) $(CFLAGS_WARNINGS)
 INC_IMPORT_DIRS += $(patsubst %, $(LOCAL_WORK)/src/%, $(strip $(SUBDIRS))) \
                    $(LOCAL_WORK)/inc 
-LIB_IMPORT_DIRS += $(LOCAL_LIB) $(USRLIB) /usr/shlib /usr/X11R6/lib /usr/X/lib /usr/shlib/X11
+LIB_IMPORT_DIRS += $(LOCAL_LIB) $(USRLIB) 
 OBJ_SEARCH_PATH = $(LOCAL_OBJ)
+
+#/usr/shlib /usr/X11R6/lib /usr/X/lib /usr/shlib/X11
+
 
 
 ## Load if we are using SOAP or CURL as our UID transport

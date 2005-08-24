@@ -23,7 +23,7 @@ cc -g -pg -qfullpath   -qstrict -qbitfields=signed -qchars=signed -qlanglvl=ext 
 -o /work/assembly/rbolanos/IBM_PORT_CDS/ibm_migration_work_dir/cds/AS/obj/GraphCGW_T.o GraphCGW_T.c
 */
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.6 2005-08-24 07:47:15 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.7 2005-08-24 10:57:42 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -5179,25 +5179,27 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
     if(dist->samples && dist->bsize > 0.0 && dist->numSamples > 0)
     {
       FILE *fout;
-      char filename[1024];
-      
+      char  filename[1024];
+
       sprintf( filename, "stat/%s.distlib_%d.cgm", instance_label, ii);
       fprintf( stderr, "writing file %s\n", filename);
       fout = fopen( filename,"w");
       AssertPtr( fout );
 
       fprintf( fout, "lib %d mu %g sigma %g\n", ii, dist->mu, dist->sigma );
-      int numSamples = GetNumCDS_COORD_ts(dist->samples);
-      CDS_COORD_t samps[numSamples];
-      CDS_COORD_t *samplep = GetCDS_COORD_t(dist->samples,0);
-      for( j = 0; j < numSamples; j++, samplep++) {
+      {
+        int numSamples = GetNumCDS_COORD_ts(dist->samples);
+        CDS_COORD_t samps[numSamples];
+        CDS_COORD_t *samplep = GetCDS_COORD_t(dist->samples,0);
+        for( j = 0; j < numSamples; j++, samplep++) {
           samps[ j ] = *samplep;
-      }
-      qsort( samps, numSamples, sizeof(CDS_COORD_t), &compareInt);
-      for( j = 0; j < numSamples; j++) {
+        }
+        qsort( samps, numSamples, sizeof(CDS_COORD_t), &compareInt);
+        for( j = 0; j < numSamples; j++) {
           fprintf( fout, "%d\n", samps[j]);
+        }
+        fclose( fout );
       }
-      fclose( fout );
     }
   }
   

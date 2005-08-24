@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpSingletons.c,v 1.3 2005-03-22 19:48:37 jason_miller Exp $";
+static char CM_ID[] = "$Id: dumpSingletons.c,v 1.4 2005-08-24 10:57:42 brianwalenz Exp $";
 
 
 /*********************************************************************/
@@ -44,7 +44,6 @@ static char CM_ID[] = "$Id: dumpSingletons.c,v 1.3 2005-03-22 19:48:37 jason_mil
 
 #include "SYS_UIDcommon.h"
 #include "SYS_UIDclient.h"
-#include "AS_TER_utils.h"
 
 int USE_SDB;
 int USE_SDB_PART;
@@ -57,7 +56,6 @@ int USE_SDB_PART;
 #endif
 #endif
 
-extern CDS_UID_t AS_TER_uidStart;
 
 static void Complement(char *seq, int len)
 { static char WCinvert[256];
@@ -278,7 +276,7 @@ int main( int argc, char *argv[])
 	  CDS_UID_t interval_UID[4];
 	  if(firstUID){
 	    firstUID=0;
-	    AS_TER_uidStart = UIDstart; /* used if readUID == FALSE */
+	    set_start_uid(UIDstart); /* used if readUID == FALSE */
 	    get_uids(blockSize,interval_UID,realUID);
 	  }
 
@@ -290,9 +288,8 @@ int main( int argc, char *argv[])
 	    }	  
 	  if( UID_CODE_OK != uidStatus )
 	    { 
-	      char dummy[40];
-	      sprintf(dummy,"Could not get UID \n");
-	      error(AS_TER_UIDSERVER_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+	      fprintf(stderr, "Could not get UID \n");
+              assert(0);
 	    }
 
 	  // make sure the following chain of Ns is divisible by three; the exact

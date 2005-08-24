@@ -42,7 +42,7 @@ objects: $(OBJECTS)
 
 all: $(OBJECTS) $(LIBRARIES) $(PROGS) install
 
-massage: AS_SIM_massage.o libAS_MSG.a libAS_UTL.a libm.a
+massage: AS_SIM_massage.o libAS_MSG.a libAS_UTL.a
 
 outputADT: AS_SIM_outputADT.o libAS_MSG.a libAS_UTL.a
 
@@ -50,9 +50,9 @@ outputDST: AS_SIM_outputDST.o libAS_MSG.a libAS_UTL.a
 
 outputBAC: AS_SIM_outputBAC.o libAS_MSG.a libAS_UTL.a
 
-frag: AS_SIM_frag.o libAS_UTL.a libm.a
+frag: AS_SIM_frag.o libAS_UTL.a
 
-poly: AS_SIM_poly.o libm.a
+poly: AS_SIM_poly.o
 
 tobatches: AS_SIM_tobatches.o libAS_MSG.a libAS_UTL.a
 

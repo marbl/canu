@@ -120,90 +120,90 @@ SCRIPTS = sim4db2tampa.pl \
 include $(LOCAL_WORK)/src/c_make.as
 
 all: $(OBJECTS) $(LIBRARIES) $(PROGS) $(SCRIPTS)
-	cp -f atai2Lengths.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/atai2Lengths.sh
-	cp -f breakpoints2StartLenNs.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/breakpoints2StartLenNs.sh
-	cp -f getDoubleCountedInTranpositions.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/getDoubleCountedInTranpositions.sh
-	cp -f analyzeGaps.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/analyzeGaps.sh
-	cp -f getInterFromResults.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/getInterFromResults.sh
-	cp -f getInterFromResultsATA.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/getInterFromResultsATA.sh
-	cp -f getInterToResults.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/getInterToResults.sh
-	cp -f getIntraResults.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/getIntraResults.sh
-	cp -f morphInter.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/morphInter.sh
-	cp -f processMPs.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/processMPs.sh
-	cp -f processAssemblyMPs.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/processAssemblyMPs.sh
-	cp -f buildMapStoreFromMatches.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/buildMapStoreFromMatches.sh
-	cp -f getAllAssemblyMPs.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/getAllAssemblyMPs.sh
-	cp -f findBacDeletions.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/findBacDeletions.sh
-	cp -f getLibSpecifics.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/getLibSpecifics.sh
-	cp -f processIntraMPs.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/processIntraMPs.sh
-	cp -f processInterMPs.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/processInterMPs.sh
-	cp -f processInterMPsATA.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/processInterMPsATA.sh
-	cp -f processClumps.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/processClumps.sh
-	cp -f generateMatchRunFiles.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/generateMatchRunFiles.sh
-	cp -f processInterMatches.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/processInterMatches.sh
-	cp -f processInterRuns.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/processInterRuns.sh
-	cp -f explainIntervals.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/explainIntervals.sh
-	cp -f explainBreakpoints.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/explainBreakpoints.sh
-	cp -f explainIntervalsInterChrom.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/explainIntervalsInterChrom.sh
-	cp -f explainIntervalsInterChrom2.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/explainIntervalsInterChrom2.sh
-	cp -f fixOffsets.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/fixOffsets.sh
-	cp -f ivals2Intervals.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/ivals2Intervals.sh
-	cp -f dumpChromFiles.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/dumpChromFiles.sh
-	cp -f filterExplain.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/filterExplain.sh
-	cp -f isolateIntraScaffoldUnmapped.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/isolateIntraScaffoldUnmapped.sh
-	cp -f convertICRuns.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/convertICRuns.sh
-	cp -f processInterClumpRunsFile.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/processInterClumpRunsFile.sh
-	cp -f consolidateInterClumpRunsResults.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/consolidateInterClumpRunsResults.sh
-	cp -f combineCSVs.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/combineCSVs.sh
-	cp -f filterIntersWithSatisfieds.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/filterIntersWithSatisfieds.sh
-	cp -f processHiLoInterChromIntervalFiles.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/processHiLoInterChromIntervalFiles.sh
-	cp -f sim4db2tampa.pl $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/sim4db2tampa.pl
-	cp -f relabelCloneLibs.pl $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/relabelCloneLibs.pl
-	cp -f reestimateAllLibs.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/reestimateAllLibs.sh
-	cp -f combineCloneLengthFiles.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/combineCloneLengthFiles.sh
-	cp -f getCloneLengths.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/getCloneLengths.sh
+	@cp -f atai2Lengths.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/atai2Lengths.sh
+	@cp -f breakpoints2StartLenNs.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/breakpoints2StartLenNs.sh
+	@cp -f getDoubleCountedInTranpositions.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/getDoubleCountedInTranpositions.sh
+	@cp -f analyzeGaps.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/analyzeGaps.sh
+	@cp -f getInterFromResults.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/getInterFromResults.sh
+	@cp -f getInterFromResultsATA.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/getInterFromResultsATA.sh
+	@cp -f getInterToResults.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/getInterToResults.sh
+	@cp -f getIntraResults.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/getIntraResults.sh
+	@cp -f morphInter.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/morphInter.sh
+	@cp -f processMPs.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/processMPs.sh
+	@cp -f processAssemblyMPs.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/processAssemblyMPs.sh
+	@cp -f buildMapStoreFromMatches.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/buildMapStoreFromMatches.sh
+	@cp -f getAllAssemblyMPs.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/getAllAssemblyMPs.sh
+	@cp -f findBacDeletions.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/findBacDeletions.sh
+	@cp -f getLibSpecifics.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/getLibSpecifics.sh
+	@cp -f processIntraMPs.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/processIntraMPs.sh
+	@cp -f processInterMPs.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/processInterMPs.sh
+	@cp -f processInterMPsATA.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/processInterMPsATA.sh
+	@cp -f processClumps.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/processClumps.sh
+	@cp -f generateMatchRunFiles.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/generateMatchRunFiles.sh
+	@cp -f processInterMatches.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/processInterMatches.sh
+	@cp -f processInterRuns.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/processInterRuns.sh
+	@cp -f explainIntervals.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/explainIntervals.sh
+	@cp -f explainBreakpoints.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/explainBreakpoints.sh
+	@cp -f explainIntervalsInterChrom.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/explainIntervalsInterChrom.sh
+	@cp -f explainIntervalsInterChrom2.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/explainIntervalsInterChrom2.sh
+	@cp -f fixOffsets.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/fixOffsets.sh
+	@cp -f ivals2Intervals.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/ivals2Intervals.sh
+	@cp -f dumpChromFiles.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/dumpChromFiles.sh
+	@cp -f filterExplain.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/filterExplain.sh
+	@cp -f isolateIntraScaffoldUnmapped.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/isolateIntraScaffoldUnmapped.sh
+	@cp -f convertICRuns.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/convertICRuns.sh
+	@cp -f processInterClumpRunsFile.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/processInterClumpRunsFile.sh
+	@cp -f consolidateInterClumpRunsResults.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/consolidateInterClumpRunsResults.sh
+	@cp -f combineCSVs.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/combineCSVs.sh
+	@cp -f filterIntersWithSatisfieds.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/filterIntersWithSatisfieds.sh
+	@cp -f processHiLoInterChromIntervalFiles.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/processHiLoInterChromIntervalFiles.sh
+	@cp -f sim4db2tampa.pl $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/sim4db2tampa.pl
+	@cp -f relabelCloneLibs.pl $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/relabelCloneLibs.pl
+	@cp -f reestimateAllLibs.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/reestimateAllLibs.sh
+	@cp -f combineCloneLengthFiles.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/combineCloneLengthFiles.sh
+	@cp -f getCloneLengths.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/getCloneLengths.sh
 
 install: all
 

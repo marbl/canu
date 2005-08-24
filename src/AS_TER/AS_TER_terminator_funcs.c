@@ -25,14 +25,13 @@
  Assumptions: There is no UID 0
 **********************************************************************/
 
-static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.8 2005-08-18 19:14:44 gdenisov Exp $";
+static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.9 2005-08-24 10:57:43 brianwalenz Exp $";
 
 
 
 #include "AS_TER_terminator.h"
 #include "AS_TER_terminator_funcs.h"
 #include "AS_TER_utils.h"
-#include "AS_TER_alloc.h"
 
 #include "AS_global.h"
 #include "AS_PER_ReadStruct.h"
@@ -1585,7 +1584,7 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
   SMASizeMap   = CreateVA_uint32(ARRAYSIZE);
 
   /* set the UID start to the number given by uidStart */
-  AS_TER_uidStart = uidStart;
+  set_start_uid(uidStart);
 
   /* set the simulator bool to the value of quiet (-Q flag) */
   simulator = quiet;
@@ -1945,12 +1944,12 @@ void read_stores(char* fragStoreName, char* bactigStoreName, char* gkpStoreName)
     Setshort(FRGpresent,iid,&truedummy);
 
     if( first ){
-      AS_TER_uidStart = uid+1;
+      set_start_uid(uid+1);
       first = FALSE;
     }
     else
-      if(AS_TER_uidStart <= uid)
-	AS_TER_uidStart = uid+1;
+      if(get_start_uid() <= uid)
+	set_start_uid(uid+1);
     
 #if DEBUG > 1
     fprintf(stderr,"AS_TER_uidStart after reading frags = %lu\n",AS_TER_uidStart);
@@ -2017,8 +2016,8 @@ void read_stores(char* fragStoreName, char* bactigStoreName, char* gkpStoreName)
 	 error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
        }
        SetCDS_UID_t(DSTmap,i,&gkpd.UID);
-       if( AS_TER_uidStart <= gkpd.UID )
-	 AS_TER_uidStart = gkpd.UID+1;
+       if( get_start_uid() <= gkpd.UID )
+         set_start_uid(gkpd.UID+1);
 
 #if DEBUG > 1
        fprintf(stderr,"AS_TER_uidStart after reading distribs %lu\n",AS_TER_uidStart);
@@ -2049,8 +2048,8 @@ void read_stores(char* fragStoreName, char* bactigStoreName, char* gkpStoreName)
 	 error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
        }
        SetCDS_UID_t(RPTmap,i,&gkpr.UID);
-       if(AS_TER_uidStart <= gkpr.UID)
-	 AS_TER_uidStart = gkpr.UID+1;
+       if(get_start_uid() <= gkpr.UID)
+	 set_start_uid(gkpr.UID+1);
      }
     }
     /* reading SCN IID to UID mapping */
@@ -2077,8 +2076,8 @@ void read_stores(char* fragStoreName, char* bactigStoreName, char* gkpStoreName)
 	 error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
        }
        SetCDS_UID_t(SCNmap,i,&gkps.UID);
-       if(AS_TER_uidStart <= gkps.UID)
-	 AS_TER_uidStart = gkps.UID+1;
+       if(get_start_uid() <= gkps.UID)
+	 set_start_uid(gkps.UID+1);
      }
     } 
 #if DEBUG > 1
@@ -2132,8 +2131,8 @@ void read_stores(char* fragStoreName, char* bactigStoreName, char* gkpStoreName)
       SetCDS_UID_t(BTGmap,iid,&uid);
       Setshort(BTGpresent,iid,&truedummy);
       
-      if(AS_TER_uidStart <= uid)
-	AS_TER_uidStart = uid+1;
+      if(get_start_uid() <= uid)
+	set_start_uid(uid+1);
 
       /* get the clear region from the bactig store */
       getClearRegion_ReadStruct(input,&cStart,&cEnd,READSTRUCT_LATEST);

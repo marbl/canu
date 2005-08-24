@@ -597,11 +597,7 @@ main(int argc, char **argv) {
 	  break;
         case 'N':
 	  arg++;
-#ifdef i386
-          mersToCount = atoll(argv[arg]);
-#else
-          mersToCount = atol(argv[arg]);
-#endif
+          mersToCount = STR_TO_UINT64(argv[arg], NULL, 10);
  	  if(mersToCount<=0){
  	    fprintf(stderr,"Trouble getting number of mers to count from %s (option -N)\n",
  		    argv[arg]);

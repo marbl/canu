@@ -19,21 +19,24 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /**********************************************************************
- Module:      AS_TER
+ Module:      SYS_UID
  Description: This file contains functions to allocate
-              UIDs from the UID server
+              UIDs from the UID server.
  Assumptions:
 **********************************************************************/
 
-static char CM_ID[] = "$Id: AS_TER_alloc.c,v 1.4 2005-03-22 19:49:27 jason_miller Exp $";
+static char CM_ID[] = "$Id: SYS_UIDclient_simple.c,v 1.1 2005-08-24 10:57:43 brianwalenz Exp $";
 
-#include "AS_TER_alloc.h"
-#include "AS_MSG_pmesg.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
+
+#include "SYS_UIDcommon.h"
+#include "SYS_UIDclient.h"
 
 
 
-
-uint64 AS_TER_uidStart = 99000000000;
+static uint64 SYS_UID_uidStart = 99000000000;
 
 
 int32 get_uids(uint64 blockSize, uint64 *interval, int32 real)
@@ -58,26 +61,20 @@ int32 get_uids(uint64 blockSize, uint64 *interval, int32 real)
       /* First check whether the UID server can accomodate for our buffer */
       uidStatus = SYS_UIDgetMaxUIDSize(&maxBlockSize);
       
-      if( uidStatus != UID_CODE_OK || maxBlockSize < blockSize )
-	{
-	  char dummy[40];
-	  sprintf(dummy,"UID blocksize query failed\n");
-	  error(AS_TER_UIDSERVER_ERROR,dummy,
-		AS_TER_EXIT_FAILURE,__FILE__,__LINE__);
-	} 
+      if( uidStatus != UID_CODE_OK || maxBlockSize < blockSize ) {
+        fprintf(stderr, "UID blocksize query failed\n");
+        assert(0);
+      }
 
       /* Now set the blocksize of th UID server appropriately */
       SYS_UIDsetUIDSize(blockSize);
 
       /* Finally, get the actual interval */
       uidStatus = SYS_UIDgetNewUIDInterval(interval);
-      if( uidStatus != UID_CODE_OK )
-	{
-	  char dummy[40];
-	  sprintf(dummy,"UID query failed failed\n");
-	  error(AS_TER_UIDSERVER_ERROR,dummy,
-		AS_TER_EXIT_FAILURE,__FILE__,__LINE__);
-	}
+      if( uidStatus != UID_CODE_OK ) {
+        fprintf(stderr, "UID query failed failed\n");
+        assert(1);
+      }
     }  
   return UID_CODE_OK;
 }
@@ -85,7 +82,7 @@ int32 get_uids(uint64 blockSize, uint64 *interval, int32 real)
 
 int32 get_next_uid(uint64 *uid, int32 real){
   if( real == FALSE ){
-    *uid = AS_TER_uidStart++;
+    *uid = SYS_UID_uidStart++;
     return UID_CODE_OK;
   }
   else
@@ -135,14 +132,15 @@ void check_environment(){
       putenv(UidPort);
       putenv(UidFailServer);
       putenv(UidFailPort);
-      /*      error(AS_TER_UIDSERVER_ERROR,dummy,
-	      AS_TER_EXIT_FAILURE,__FILE__,__LINE__);*/
     }
 #endif
 }
 
 void set_start_uid(uint64 s) {
-    AS_TER_uidStart = s;
+  SYS_UID_uidStart = s;
+}
+uint64 get_start_uid(void) {
+  return(SYS_UID_uidStart);
 }
 
 

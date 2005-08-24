@@ -28,9 +28,6 @@ static char CM_ID[] = "$Id";
 #include "AS_PER_gkpStore.h"
 #include "AS_PER_fragStore.h"
 
-#include "AS_TER_utils.h"
-#include "AS_TER_alloc.h"
-
 
 
 int main( int argc, char *argv[])

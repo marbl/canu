@@ -134,13 +134,13 @@ screen-degrees:  screen-degrees.o libAS_MSG.a libAS_UTL.a
 
 screen-olaps:  screen-olaps.o libAS_MSG.a libAS_UTL.a
 
-microhet : MicroHetIUMREZ.o MicroHetREZ.o MicroHetPartitionsREZ.o MicroHetScoreREZ.o MicroHetInterfaceREZ.o  libAS_CNS.a libAS_REZ.a libAS_SDB.a libAS_PER.a libAS_UTL.a libAS_MSG.a libAS_ALN.a  libm.a
+microhet : MicroHetIUMREZ.o MicroHetREZ.o MicroHetPartitionsREZ.o MicroHetScoreREZ.o MicroHetInterfaceREZ.o  libAS_CNS.a libAS_REZ.a libAS_SDB.a libAS_PER.a libAS_UTL.a libAS_MSG.a libAS_ALN.a
 
-microhet-simulator : MicroHetInterfaceREZ.o MicroHetSimulatorREZ.o MicroHetREZ.o MicroHetPartitionsREZ.o MicroHetScoreREZ.o  libAS_CNS.a libAS_SDB.a libAS_ALN.a libAS_REZ.a libAS_MSG.a libAS_PER.a  libAS_UTL.a libm.a
+microhet-simulator : MicroHetInterfaceREZ.o MicroHetSimulatorREZ.o MicroHetREZ.o MicroHetPartitionsREZ.o MicroHetScoreREZ.o  libAS_CNS.a libAS_SDB.a libAS_ALN.a libAS_REZ.a libAS_MSG.a libAS_PER.a  libAS_UTL.a
 
-microhet-pairsim : MicroHetInterfaceREZ.o MicroHetPairSimREZ.o MicroHetREZ.o MicroHetPartitionsREZ.o MicroHetScoreREZ.o  libAS_CNS.a libAS_SDB.a libAS_ALN.a libAS_REZ.a libAS_MSG.a libAS_PER.a  libAS_UTL.a libm.a
+microhet-pairsim : MicroHetInterfaceREZ.o MicroHetPairSimREZ.o MicroHetREZ.o MicroHetPartitionsREZ.o MicroHetScoreREZ.o  libAS_CNS.a libAS_SDB.a libAS_ALN.a libAS_REZ.a libAS_MSG.a libAS_PER.a  libAS_UTL.a
 
-check-distributions: CheckDistributionREZ.o PartitionsREZ.o ScoreREZ.o UtilsREZ.o libAS_MSG.a libAS_SDB.a libAS_UTL.a libm.a
+check-distributions: CheckDistributionREZ.o PartitionsREZ.o ScoreREZ.o UtilsREZ.o libAS_MSG.a libAS_SDB.a libAS_UTL.a
 
 libAS_REZ.a: $(LIBOBJECTS) 
 
@@ -148,6 +148,6 @@ microhet-clean :
 	rm  MicroHet*.o ${LOCAL_OBJ}/MicroHet*.o
 
 
-microhet-test3 :  MicroHetIUMREZ_test3.o libAS_REZ.a libAS_CGW.a libAS_REZ.a  libAS_CGW.a libAS_CNS.a libAS_SDB.a libAS_PER.a libAS_UTL.a libAS_MSG.a libAS_ALN.a libAS_OVL.a $(LIN_ALG_LIB) libm.a
+microhet-test3 :  MicroHetIUMREZ_test3.o libAS_REZ.a libAS_CGW.a libAS_REZ.a  libAS_CGW.a libAS_CNS.a libAS_SDB.a libAS_PER.a libAS_UTL.a libAS_MSG.a libAS_ALN.a libAS_OVL.a $(LIN_ALG_LIB)
 
-MicroHetIUMdiffsPrint : MicroHetIUMdiffsPrint.o libAS_REZ.a libAS_CGW.a libAS_REZ.a  libAS_CGW.a libAS_CNS.a libAS_SDB.a libAS_PER.a libAS_UTL.a libAS_MSG.a libAS_ALN.a libAS_OVL.a $(LIN_ALG_LIB) libm.a
+MicroHetIUMdiffsPrint : MicroHetIUMdiffsPrint.o libAS_REZ.a libAS_CGW.a libAS_REZ.a  libAS_CGW.a libAS_CNS.a libAS_SDB.a libAS_PER.a libAS_UTL.a libAS_MSG.a libAS_ALN.a libAS_OVL.a $(LIN_ALG_LIB)

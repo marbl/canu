@@ -45,23 +45,23 @@ PROGS = celamy celagram query_celamy
 LOCAL_WORK = $(shell cd ../../; pwd)
 include $(LOCAL_WORK)/src/c_make.as
 
-LOCAL_LIBS = libXt.a libX11.a libm.a libSM.a libICE.a libdnet_stub.a
-ifeq ($(OSTYPE),Linux)
-LOCAL_LIBS = libXt.a libX11.a libm.a libSM.a libICE.a libdl.a
-endif
-ifeq ($(OSTYPE),aix)
-LOCAL_LIBS = libXt.a libX11.a libm.a libSM.a libICE.a
-endif
+
+#  This _should_ be localized to this module, and not propagate to
+#  other modules.
+#
+#  The previous default (OSF1) also included -ldnet_stub, and Linux
+#  included -ldl
+#
+LDFLAGS += -lXt -lX11 -lSM -lICE
 
 
-default: all
-all: $(OBJECTS) $(PROGS)
+default: $(OBJECTS) $(PROGS)
 
-celamy: $(CELAMY_OBJECTS) $(COMMON_OBJECTS) libAS_UTL.a $(LOCAL_LIBS)
+celamy: $(CELAMY_OBJECTS) $(COMMON_OBJECTS) libAS_UTL.a
 
-query_celamy: layout_uint.o query_celamy.o hash.o agrep.o $(COMMON_OBJECTS) libAS_UTL.a $(LOCAL_LIBS)
+query_celamy: layout_uint.o query_celamy.o hash.o agrep.o $(COMMON_OBJECTS) libAS_UTL.a
 
-celagram: $(CELAGRAM_OBJECTS) $(COMMON_OBJECTS) libAS_UTL.a $(LOCAL_LIBS)
+celagram: $(CELAGRAM_OBJECTS) $(COMMON_OBJECTS) libAS_UTL.a
 
 package:
 	shar *.c *.h >package

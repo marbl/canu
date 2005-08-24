@@ -199,7 +199,7 @@ traceNodes: TraceNodes.o  libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_
 
 asmInfoForFrg: asmInfoForFrg.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a 
 
-dumpSingletons: dumpSingletons.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a libAS_TER.a libAS_UID.a
+dumpSingletons: dumpSingletons.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a libAS_UID.a
 
 assemblyStructure: assemblyStructure.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a 
 
@@ -207,9 +207,9 @@ dumpContigFromCkpt: dumpContigFromCkpt.o libAS_CGW.a libAS_CNS.a libAS_PER.a lib
 
 exploreGapStructure: exploreGapStructure.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a 
 
-greedyFragmentTiling: greedyFragmentTiling.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a  libm.a
+greedyFragmentTiling: greedyFragmentTiling.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a
 
-dfsFragmentTiling: dfsFragmentTiling.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a  libm.a
+dfsFragmentTiling: dfsFragmentTiling.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a
 
 exploreScaffoldEnds: exploreScaffoldEnds.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a 
 
@@ -221,12 +221,11 @@ findAnEdge: findAnEdge.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_R
 
 whereAreMyOverlaps: whereAreMyOverlaps.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a 
 
-combineMates: combineMates.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a  libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a libAS_TER.a libAS_REZ.a libAS_UID.a
+combineMates: combineMates.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a  libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a libAS_REZ.a libAS_UID.a
 
-createFrgDeletes: createFrgDeletes.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a  libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a libAS_TER.a libAS_REZ.a libAS_UID.a
+createFrgDeletes: createFrgDeletes.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a  libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a libAS_REZ.a libAS_UID.a
 
-frgs2clones: frgs2clones.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a  libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a libAS_TER.a libAS_REZ.a libAS_UID.a
-libAS_CGW.a: $(CGW_LIB_OBJECTS)
+frgs2clones: frgs2clones.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_OVL.a libAS_UTL.a libAS_UID.a
 
 libAS_CGW.a: $(CGW_LIB_OBJECTS)
 

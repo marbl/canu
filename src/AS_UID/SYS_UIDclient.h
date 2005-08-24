@@ -21,11 +21,14 @@
 
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_UID/SYS_UIDclient.h,v $
-$Revision: 1.3 $
-$Date: 2005-03-22 19:49:28 $
+$Revision: 1.4 $
+$Date: 2005-08-24 10:57:43 $
 $Name: not supported by cvs2svn $
-$Author: jason_miller $
+$Author: brianwalenz $
 $Log: not supported by cvs2svn $
+Revision 1.3  2005/03/22 19:49:28  jason_miller
+The TIGR tip as of March 22 2005. Commit by Jason Miller at TIGR.
+
 Revision 1.3  2004/09/10 12:31:43  mschatz
 Add standard copyright notice
 
@@ -94,6 +97,32 @@ void         SYS_UIDsetUIDSize(cds_uint64 block_size);
 cds_int32    SYS_UIDgetNextUID(cds_uint64* uid);
 cds_int32    SYS_UIDgetLastUID(cds_uint64* uid);
 void         SYS_UIDset_euid_server(const char * servers);
+
+//  The simple UID client interface, from AS_TER
+//
+
+
+// Allocates blockSize many UIDs from the UID server if real is
+// TRUE. Otherwise it allocates some dummy numbers.
+//
+int32 get_uids(uint64 blockSize, uint64 *interval, int32 real);
+
+// Returns the next available uid. (A real if real==TRUE, o.w. a fake
+// UID
+//
+int32 get_next_uid(uint64 *uid, int32 real);
+
+// Checks whether the SYS_UID* variables are set.  If not it exits
+// proposing a standard value
+//
+void check_environment(void);
+
+//  Sets the initial UID to return, if get_uids() is returning dummy
+//  numbers.
+//
+void    set_start_uid(uint64 s);
+uint64  get_start_uid(void);
+
 
 #endif
 

@@ -75,90 +75,90 @@ install: $(PROGS) $(LIBRARIES) $(OBJECTS) $(SCRIPTS)
 
 scf2chrSimple: scf2chrSimple.o libAS_UTL.a
 
-concatRegions: concatRegions.o libm.a
+concatRegions: concatRegions.o
 
 dumpMappedBACFragIntervals: dumpMappedBACFragIntervals.o ASMData.o \
-	libAS_MSG.a libAS_PER.a libAS_UTL.a libm.a
+	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
 dumpMappedMatePairsBinary: dumpMappedMatePairsBinary.o ASMData.o \
-	libAS_MSG.a libAS_PER.a libAS_UTL.a libm.a
+	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
 dumpMappedMatePairs: dumpMappedMatePairs.o ASMData.o \
-	libAS_MSG.a libAS_PER.a libAS_UTL.a libm.a
+	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
 dumpElsewheres: dumpElsewheres.o ASMData.o \
-	libAS_MSG.a libAS_PER.a libAS_UTL.a libm.a
+	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
 dumpMappedElsewheres: dumpMappedElsewheres.o ASMData.o \
-	libAS_MSG.a libAS_PER.a libAS_UTL.a libm.a
+	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
 dumpBadMPs: dumpBadMPs.o ASMData.o \
-	libAS_MSG.a libAS_PER.a libAS_UTL.a libm.a
+	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
 dumpLibs: dumpLibs.o ASMData.o \
-	libAS_MSG.a libAS_PER.a libAS_UTL.a libm.a
+	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
 dumpMapStore: dumpMapStore.o ASMData.o \
-	libAS_MSG.a libAS_PER.a libAS_UTL.a libm.a
+	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
 buildMapStore: buildMapStore.o ASMData.o \
-	libAS_MSG.a libAS_PER.a libAS_UTL.a libm.a
+	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
 dumpDeletedFrags: dumpDeletedFrags.o ASMData.o \
-	libAS_MSG.a libAS_PER.a libAS_UTL.a libm.a
+	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
 dumpMissingFrags: dumpMissingFrags.o ASMData.o \
-	libAS_MSG.a libAS_PER.a libAS_UTL.a libm.a
+	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
 dumpUnreferencedFrags: dumpUnreferencedFrags.o ASMData.o \
-	libAS_MSG.a libAS_PER.a libAS_UTL.a libm.a
+	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
 dumpSurrogateCoords: dumpSurrogateCoords.o ASMData.o \
-	libAS_MSG.a libAS_PER.a libAS_UTL.a libm.a
+	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
 dumpSurrogateSeqCoords: dumpSurrogateSeqCoords.o ASMData.o \
-	libAS_MSG.a libAS_PER.a libAS_UTL.a libm.a
+	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
 loadAsmStore: loadAsmStore.o ASMData.o \
-	libAS_MSG.a libAS_PER.a libAS_UTL.a libm.a
+	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
 asm2asmStore: asm2asmStore.o ASMData.o \
-	libAS_MSG.a libAS_PER.a libAS_UTL.a libm.a
+	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
 dumpClones: dumpClones.o ASMData.o \
-	libAS_MSG.a libAS_PER.a libAS_UTL.a libm.a
+	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
 dumpFragScaffCoords: dumpFragScaffoldCoordinates.o ASMData.o \
-	libAS_MSG.a libAS_PER.a libAS_UTL.a libm.a
+	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
 getMDIDataFromASM: getMDIDataFromASM.o libAS_MSG.a libAS_UTL.a
 
 dumpContigLengths: dumpContigLengths.o ASMData.o \
-	libAS_MSG.a libAS_PER.a libAS_UTL.a libm.a
+	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
 dumpScaffoldLengths: dumpScaffoldLengths.o ASMData.o \
-	libAS_MSG.a libAS_PER.a libAS_UTL.a libm.a
+	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
 dumpSurrogateFrags: dumpSurrogateFrags.o ASMData.o \
-	libAS_MSG.a libAS_PER.a libAS_UTL.a libm.a
+	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
 dumpMultiInstanceFrags: dumpMultiInstanceFrags.o ASMData.o \
-	libAS_MSG.a libAS_PER.a libAS_UTL.a libm.a
+	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
 extract_fraction: extract_fraction.o \
-	libAS_MSG.a libAS_PER.a libAS_UTL.a libm.a
+	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
 extract_multiple: extract_multiple.o \
 	AS_CVT_hashtable.o AS_CVT_uid_interface.o \
-	libAS_MSG.a libAS_PER.a libAS_UTL.a libm.a
+	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
 extract_component: extract_component.o \
 	AS_CVT_hashtable.o AS_CVT_uid_interface.o \
-	libAS_MSG.a libAS_PER.a libAS_UTL.a libm.a
+	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
 extract_from_uids: extract_from_uids.o \
 	AS_CVT_hashtable.o AS_CVT_uid_interface.o \
-	libAS_MSG.a libAS_PER.a libAS_UTL.a libm.a
+	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
 make_cns_list: make_cns_list.o libAS_MSG.a
 

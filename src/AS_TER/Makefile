@@ -114,9 +114,8 @@
 
 ######################## Variable Definitions #########################
 LOCAL_WORK = $(shell cd ../../; pwd)
-CFLAGS="-g2"
 
-TERM_SRCS=AS_TER_terminator.c AS_TER_utils.c AS_TER_terminator_funcs.c AS_TER_alloc.c 
+TERM_SRCS=AS_TER_terminator.c AS_TER_utils.c AS_TER_terminator_funcs.c
 TERM_OBJS=$(TERM_SRCS:.c=.o)
 
 SMA_SRCS = SMAcount.c
@@ -128,16 +127,12 @@ PRCSCF_OBJS=$(PRCSCF_SRCS:.c=.o)
 CTGOUT_SRCS=asmOutputContigsFasta.c
 CTGOUT_OBJS=$(CTGOUT_SRCS:.c=.o)
 
-LIB_SRCS = AS_TER_utils.c AS_TER_terminator_funcs.c AS_TER_alloc.c
-LIB_OBJS = $(LIB_SRCS:.c=.o)
+ASM2BAC_SRCS=asm2bac.c
+ASM2BAC_OBJS=$(ASM2BAC_SRCS:.c=.o)
 
-SOURCES = $(TERM_SRCS) $(SMA_SRCS) $(PRCSCF_SRCS) $(CTGOUT_SRCS)
+SOURCES = $(TERM_SRCS) $(SMA_SRCS) $(PRCSCF_SRCS) $(CTGOUT_SRCS) $(ASM2BAC_SRCS)
 OBJECTS = $(TERM_OBJS)
-
-AS_LIBRARIES = libAS_CNS.a libAS_CGW.a libAS_SDB.a libAS_REZ.a libAS_CGW.a  libAS_PER.a libAS_UTL.a libAS_MSG.a libAS_ALN.a libAS_LIN.a libAS_OVL.a libAS_UID.a
-LIBRARIES = libAS_TER.a
-
-PROGS = terminator count-sma asmProcessScaffolds_TER asmOutputContigsFasta
+PROGS   = terminator count-sma asmProcessScaffolds_TER asmOutputContigsFasta asm2bac
 
 
 ################### Project Rule Makefile Inclusion ###################
@@ -147,10 +142,9 @@ include $(LOCAL_WORK)/src/c_make.as
 ######################### Target Definitions ##########################
 all: $(OBJECTS) $(LIBRARIES) $(PROGS)
 
-count-sma : $(SMA_OBJS)  libAS_MSG.a libAS_UTL.a
-#CFLAGS+=-DGENERIC_STORE_USE_LONG_STRINGS -DCONTIG_OVERLAPPER_VERSION
-terminator  : $(TERM_OBJS) $(AS_LIBRARIES)
-asmProcessScaffolds_TER: $(PRCSCF_OBJS) $(AS_LIBRARIES) 
-asmOutputContigsFasta: $(CTGOUT_OBJS) $(AS_LIBRARIES) 
-libAS_TER.a : $(LIB_OBJS)
+count-sma:               $(SMA_OBJS)     libAS_MSG.a libAS_UTL.a
+terminator:              $(TERM_OBJS)    libAS_CNS.a libAS_CGW.a libAS_SDB.a             libAS_CGW.a libAS_PER.a libAS_UTL.a libAS_MSG.a libAS_ALN.a libAS_LIN.a libAS_OVL.a libAS_UID.a
+asmProcessScaffolds_TER: $(PRCSCF_OBJS)  libAS_CNS.a libAS_CGW.a libAS_SDB.a libAS_REZ.a libAS_CGW.a libAS_PER.a libAS_UTL.a libAS_MSG.a libAS_ALN.a libAS_LIN.a libAS_OVL.a libAS_UID.a
+asmOutputContigsFasta:   $(CTGOUT_OBJS)  libAS_MSG.a libAS_PER.a libAS_UTL.a
+asm2bac:                 $(ASM2BAC_OBJS) libAS_CNS.a libAS_REZ.a libAS_SDB.a libAS_MSG.a             libAS_CGW.a libAS_REZ.a libAS_CGW.a libAS_REZ.a libAS_ALN.a libAS_LIN.a libAS_OVL.a libAS_PER.a libAS_MSG.a libAS_UTL.a libAS_UID.a
 

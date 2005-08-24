@@ -19,74 +19,6 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-
-/**********************************************************************
-$Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_UID/Attic/SYS_UIDclient.c,v $
-$Revision: 1.3 $
-$Date: 2005-03-22 19:49:28 $
-$Name: not supported by cvs2svn $
-$Author: jason_miller $
-$Log: not supported by cvs2svn $
-Revision 1.4  2004/09/10 12:31:43  mschatz
-Add standard copyright notice
-
-Revision 1.3  2004/09/09 22:39:03  mschatz
-USE_SOAP_UID support
-
-Revision 1.2  2004/06/25 04:05:04  ahalpern
-Fixes to allow access to JTC uid server from linux
-
-Revision 1.1  2004/06/24 12:51:06  mpop
-Added AS_UID
-
-Revision 1.2  2003/05/09 21:04:03  mpop
-Dos2unixed all files.
-Modified c_make.as to set SEP_PATH relative to LOCAL_WORK
-
-Revision 1.1.1.1  2003/05/08 18:40:11  aaronhalpern
-versions from TIGR
-
-Revision 1.2  2001/09/25 23:03:20  mpop
-Dos2Unixed
-
-Revision 1.1.1.1  2001/09/25 20:21:05  mpop
-Celera Assembler
-
-Revision 1.5  1999/10/13 19:02:56  sdmurphy
-misc small changes for debugging
-
-Revision 1.4  1999/07/14 17:24:33  stine
-update_cds script was executed against these files.
-
-Revision 1.3  1999/01/28 14:57:45  sdmurphy
-added GetMaxUIDSize and QueryServer
-
-Revision 1.2  1999/01/13 14:28:05  sdmurphy
-version 0 prelim
-
-Revision 1.1  1998/12/30 19:46:13  sdmurphy
-Renamed uid_client.c to SYS_UIDclient.c
-
-Revision 1.3  1998/12/21 19:04:04  sdmurphy
-added support for uid incrementer
-
-Revision 1.2  1998/12/18 18:02:50  sdmurphy
-made set_UID_size return void type
-
-Revision 1.1  1998/12/17 21:21:20  sdmurphy
-Implements uid client API
-
-**********************************************************************/
-
-/**********************************************************************
-Module:
-
-Description:
-
-Assumptions:
-
-**********************************************************************/
-
 #include "cds.h"
 #include "SYS_UIDcommon.h"
 #include "SYS_UIDerror.h"
@@ -112,22 +44,6 @@ char * EuidServerNames = NULL;
 
 Description: Utility func for setting interval message array.
 
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
-
 *******************************************************************************/
 void SetUIDInterval(cds_uint64 a, cds_uint64 a_size, cds_uint64 b, cds_uint64 b_size)
 {
@@ -144,21 +60,6 @@ void SetUIDInterval(cds_uint64 a, cds_uint64 a_size, cds_uint64 b, cds_uint64 b_
 Description: External function for setting current blocksize.
 
 
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
-
 *******************************************************************************/
 void SYS_UIDsetUIDSize(cds_uint64 block_size)
 {
@@ -169,21 +70,6 @@ void SYS_UIDsetUIDSize(cds_uint64 block_size)
 /*******************************************************************************
 
 Description: Gets maximum UID size
-
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
 
 
 *******************************************************************************/
@@ -210,21 +96,6 @@ Description:
    current value of the incrementer, and increments the value for next time.
    Note that even though it increments the value, it returns the
    pre-incremented value.
-
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
 
 
 *******************************************************************************/
@@ -254,22 +125,6 @@ cds_int32   SYS_UIDgetNextUID(cds_uint64* uid)
 
 Description: External function for getting the last incremented UID
 
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
-
 *******************************************************************************/
 cds_int32   SYS_UIDgetLastUID(cds_uint64* uid)
 {
@@ -294,22 +149,6 @@ cds_int32   SYS_UIDgetLastUID(cds_uint64* uid)
 
 Description: External function for getting the current UID interval
 
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
-
 *******************************************************************************/
 cds_int32 SYS_UIDgetLastUIDInterval(cds_uint64* interval)
 {
@@ -331,21 +170,6 @@ cds_int32 SYS_UIDgetLastUIDInterval(cds_uint64* interval)
 /*******************************************************************************
 
 Description: Initializes state of client on first NEW call
-
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
 
 
 *******************************************************************************/
@@ -397,8 +221,7 @@ void Initialize(void)
       }
       else
       {
-         SYS_UIDerrorMsg("UID Client: failsafe host name too long, using default \
-failsafe server host name\n");
+         SYS_UIDerrorMsg("UID Client: failsafe host name too long, using default failsafe server host name\n");
          strcpy(failsafe_server_host_name, UID_DEFAULT_FAILSAFE_SERVER_HOST_NAME);
       }   
    }
@@ -408,22 +231,6 @@ failsafe server host name\n");
 /*******************************************************************************
 
 Description: External function for getting a new UID interval
-
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
 
 *******************************************************************************/
 cds_int32 SYS_UIDgetNewUIDInterval(cds_uint64* interval)
@@ -451,22 +258,6 @@ cds_int32 SYS_UIDgetNewUIDInterval(cds_uint64* interval)
 /*******************************************************************************
 
 Description: Internal function for handling server communication
-
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
 
 *******************************************************************************/
 static cds_int32 QueryServer(cds_int32 code, cds_uint64* interval)
@@ -746,22 +537,6 @@ int findGuidEndFromHttpString(char* httpString) {
 
 Description: Utility func for creating a socket connection to server
 
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
-
 *******************************************************************************/
 static cds_int32  CreateConnection(void)
 {
@@ -808,22 +583,6 @@ static cds_int32  CreateConnection(void)
 
 Description: Utility func for creating a socket connection to failsafe server
 
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
-
 *******************************************************************************/
 static cds_int32  CreateFailsafeConnection(void)
 {
@@ -839,21 +598,6 @@ static cds_int32  CreateFailsafeConnection(void)
 /*******************************************************************************
 
 Description: Utility func for setting up server host info
-
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
 
 
 *******************************************************************************/
@@ -874,22 +618,6 @@ static cds_int32  GetServerHostInfo(void)
 
 Description: Utility func for setting up failsafe server host info
 
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
-
 *******************************************************************************/
 static cds_int32  GetFailsafeServerHostInfo(void)
 {
@@ -908,21 +636,6 @@ static cds_int32  GetFailsafeServerHostInfo(void)
 /*******************************************************************************
 
 Description: Utility func for configuring socket to server
-
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
 
 
 *******************************************************************************/
@@ -947,22 +660,6 @@ static cds_int32  ConfigureConnection(void)
 /*******************************************************************************
 
 Description: Utility func for configuring socket to failsafe server
-
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
 
 *******************************************************************************/
 static cds_int32  ConfigureFailsafeConnection(void)
@@ -989,21 +686,6 @@ static cds_int32  ConfigureFailsafeConnection(void)
 /*******************************************************************************
 
 Description: Function for retrieving UID message from server
-
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
 
 
 *******************************************************************************/
@@ -1071,21 +753,6 @@ static void  ReceiveServerMessage(cds_int32 code, cds_uint64* interval)
 /*******************************************************************************
 
 Description: Function for retrieving UID message from failsafe server
-
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
 
 
 *******************************************************************************/
@@ -1158,21 +825,6 @@ static void  ReceiveFailsafeServerMessage(cds_int32 code, cds_uint64* interval)
 Description: Utility func for closing connection
 
 
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
-
 *******************************************************************************/
 static void  CloseConnection(void)
 {
@@ -1182,22 +834,6 @@ static void  CloseConnection(void)
 /*******************************************************************************
 
 Description: Utility func for closing connection to failsafe server
-
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
 
 *******************************************************************************/
 static void  CloseFailsafeConnection(void)

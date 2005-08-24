@@ -82,7 +82,7 @@ scaffoldunitigs: ScaffoldUnitigProfile_CNS.o  MultiAlignment_CNS.o MultiAlignSto
 #	libAS_MSG.a libAS_PER.a libAS_ALN.a libAS_SDB.a libAS_UTL.a libAS_REZ.a 
 
 #post_analysis: post_analysis.o \
-#         libAS_CNS.a libAS_MSG.a libAS_PER.a libAS_ALN.a libAS_SDB.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libm.a
+#         libAS_CNS.a libAS_MSG.a libAS_PER.a libAS_ALN.a libAS_SDB.a libAS_UTL.a libAS_REZ.a libAS_CNS.a
 
 placed_contigs: placed_contigs.o $(LIBS)
 

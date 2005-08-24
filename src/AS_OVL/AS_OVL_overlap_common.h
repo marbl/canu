@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.13 2005-08-05 19:58:53 brianwalenz Exp $
- * $Revision: 1.13 $
+ * $Id: AS_OVL_overlap_common.h,v 1.14 2005-08-24 10:57:43 brianwalenz Exp $
+ * $Revision: 1.14 $
 */
 
 
@@ -68,7 +68,7 @@
 #include  <sys/stat.h>
 #include  <unistd.h>
 #include  <float.h>
-#include  "getopt.h" /*  Use AS_UTL getopt, not the system one  */
+#include  "../AS_UTL/getopt.h" /*  Use AS_UTL getopt, not the system one  */
 
 /*************************************************************************/
 /* Local include files */
