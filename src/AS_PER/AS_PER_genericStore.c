@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.5 2005-07-22 17:52:17 eliv Exp $";
+static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.6 2005-08-24 17:44:03 brianwalenz Exp $";
 /*************************************************************************
  Module:  AS_PER_genericStore
  Description:
@@ -52,8 +52,8 @@ static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.5 2005-07-22 17:52:17 eliv
  *************************************************************************/
 
 /* RCS Info
- * $Id: AS_PER_genericStore.c,v 1.5 2005-07-22 17:52:17 eliv Exp $
- * $Revision: 1.5 $
+ * $Id: AS_PER_genericStore.c,v 1.6 2005-08-24 17:44:03 brianwalenz Exp $
+ * $Revision: 1.6 $
  *
  */
 
@@ -621,7 +621,7 @@ int setIndexStore(StoreHandle s, int64 index, void *element){
 /****************************************************************************/
 StoreHandle openStore
 ( const char *path, /* Path to file */
-  const char *rw    /* "r" or "rw" */)
+  const char *rw    /* "r" or "r+" */)
 {
   StoreStruct *myStore;
 
@@ -1463,7 +1463,7 @@ main(int argc, char **argv){
   closeStore(mine);
 
   sleep(1);
-  mine = openStore("junk.db","rw");
+  mine = openStore("junk.db","r+");
   fprintf(stderr," \n\n***Opened store junk.db %d\n", mine);
 
 #if 0
@@ -1498,7 +1498,7 @@ main(int argc, char **argv){
   closeStore(mine);
 
   sleep(1);
-  mine = openStore("sjunk.db","rw");
+  mine = openStore("sjunk.db","r+");
   fprintf(stderr,"*** Opened String store %d\n", mine);
 #if 0
   for(i = 0; i < 100; i++){

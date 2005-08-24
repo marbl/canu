@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: ModifyClearRangeOVL.c,v 1.2 2005-03-22 19:49:19 jason_miller Exp $
- * $Revision: 1.2 $
+ * $Id: ModifyClearRangeOVL.c,v 1.3 2005-08-24 17:44:03 brianwalenz Exp $
+ * $Revision: 1.3 $
 */
 
-static char CM_ID[] = "$Id: ModifyClearRangeOVL.c,v 1.2 2005-03-22 19:49:19 jason_miller Exp $";
+static char CM_ID[] = "$Id: ModifyClearRangeOVL.c,v 1.3 2005-08-24 17:44:03 brianwalenz Exp $";
 
 
 //  System include files
@@ -105,7 +105,7 @@ int  main
 
    Parse_Command_Line  (argc, argv);
 
-   frag_store = openFragStore (Frag_Store_Path, "rw+");
+   frag_store = openFragStore (Frag_Store_Path, "r+");
    fp = File_Open (Clear_Mod_Path, "r");
    fsread = new_ReadStruct ();
 

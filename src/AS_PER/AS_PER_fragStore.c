@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_fragStore.c,v 1.5 2005-07-20 19:55:39 eliv Exp $";
+static char CM_ID[] = "$Id: AS_PER_fragStore.c,v 1.6 2005-08-24 17:44:03 brianwalenz Exp $";
 
 /*************************************************************************
  Module:  AS_PER_fragStore
@@ -620,7 +620,7 @@ int testOpenFragStore(const char *FragStorePath, const char *rw){
 */
 FragStoreHandle openFragStoreCommon
 ( const char *FragStorePath, /* Path to directory */
-  const char *rw,             /* "r" or "rw" */
+  const char *rw,             /* "r" or "r+" */
   const int needIndex){
 
   // mode_t mode;
@@ -714,7 +714,7 @@ FragStoreHandle openFragStoreCommon
 
 FragStoreHandle openFragStore
 ( const char *FragStorePath, /* Path to directory */
-  const char *rw){             /* "r" or "rw" */
+  const char *rw){             /* "r" or "r+" */
   return openFragStoreCommon(FragStorePath, rw, FALSE);
 }
 

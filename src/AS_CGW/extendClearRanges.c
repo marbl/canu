@@ -17,7 +17,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: extendClearRanges.c,v 1.10 2005-08-24 07:47:15 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: extendClearRanges.c,v 1.11 2005-08-24 17:44:03 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -3337,7 +3337,7 @@ int extendCgwClearRange( int fragIid, int frag3pDelta)
 	closeFragStore( ScaffoldGraph->fragStore );
 	
 	// open it read/write and set the fragment
-	ScaffoldGraph->fragStore = openFragStore( GlobalData->Frag_Store_Name, "rw+");
+	ScaffoldGraph->fragStore = openFragStore( GlobalData->Frag_Store_Name, "r+");
 	getFragStore( ScaffoldGraph->fragStore, fragIid, FRAG_S_ALL, fsread);	
 	getClearRegion_ReadStruct( fsread, &clr_bgn, &clr_end, READSTRUCT_CNS);
 	setClearRegion_ReadStruct( fsread, clr_bgn, clr_end + frag3pDelta, READSTRUCT_CGW);
@@ -3345,7 +3345,7 @@ int extendCgwClearRange( int fragIid, int frag3pDelta)
 	closeFragStore( ScaffoldGraph->fragStore );
 	
 	// open it as before
-	ScaffoldGraph->fragStore = openFragStore( GlobalData->Frag_Store_Name, "rw");
+	ScaffoldGraph->fragStore = openFragStore( GlobalData->Frag_Store_Name, "r+");
 	getFragStore( ScaffoldGraph->fragStore, fragIid, FRAG_S_ALL, fsread);	
 
 	fprintf( stderr, "extendCgwClearRange, changed frag %d clr_end from %d to %d\n",
@@ -3364,7 +3364,7 @@ int extendCgwClearRange( int fragIid, int frag3pDelta)
 	// closeFragStore( ScaffoldGraph->fragStore );
 	
 	// open it read/write and set the fragment
-	// ScaffoldGraph->fragStore = openFragStore( GlobalData->Frag_Store_Name, "rw+");
+	// ScaffoldGraph->fragStore = openFragStore( GlobalData->Frag_Store_Name, "r+");
 	getFragStore( ScaffoldGraph->fragStore, fragIid, FRAG_S_ALL, fsread);	
 	getClearRegion_ReadStruct( fsread, &clr_bgn, &clr_end, READSTRUCT_CNS);
 	setClearRegion_ReadStruct( fsread, clr_bgn, clr_end + frag3pDelta, READSTRUCT_CGW);
@@ -3372,7 +3372,7 @@ int extendCgwClearRange( int fragIid, int frag3pDelta)
 	// closeFragStore( ScaffoldGraph->fragStore );
 	
 	// open it as before
-	// ScaffoldGraph->fragStore = openFragStore( GlobalData->Frag_Store_Name, "rw");
+	// ScaffoldGraph->fragStore = openFragStore( GlobalData->Frag_Store_Name, "r+");
 	// getFragStore( ScaffoldGraph->fragStore, fragIid, FRAG_S_ALL, fsread);	
 
 	fprintf( stderr, "extendCgwClearRange, changed frag %d clr_end from %d to %d\n",
@@ -3399,7 +3399,7 @@ int revertToCnsClearRange_old( int fragIid )
 	closeFragStore( ScaffoldGraph->fragStore );
 	
 	// open it read/write and set the fragment
-	ScaffoldGraph->fragStore = openFragStore( GlobalData->Frag_Store_Name, "rw+");
+	ScaffoldGraph->fragStore = openFragStore( GlobalData->Frag_Store_Name, "r+");
 	getFragStore( ScaffoldGraph->fragStore, fragIid, FRAG_S_ALL, fsread);	
 	getClearRegion_ReadStruct( fsread, &clr_bgn, &clr_end, READSTRUCT_CNS);
 	setClearRegion_ReadStruct( fsread, clr_bgn, clr_end, READSTRUCT_CGW);
@@ -3407,7 +3407,7 @@ int revertToCnsClearRange_old( int fragIid )
 	closeFragStore( ScaffoldGraph->fragStore );
 	
 	// open it as before
-	ScaffoldGraph->fragStore = openFragStore( GlobalData->Frag_Store_Name, "rw");
+	ScaffoldGraph->fragStore = openFragStore( GlobalData->Frag_Store_Name, "r+");
 	getFragStore( ScaffoldGraph->fragStore, fragIid, FRAG_S_ALL, fsread);
   }
   return ( setStatus ); 
@@ -3430,7 +3430,7 @@ int revertToCnsClearRange( int fragIid )
 	// closeFragStore( ScaffoldGraph->fragStore );
 	
 	// open it read/write and set the fragment
-	// ScaffoldGraph->fragStore = openFragStore( GlobalData->Frag_Store_Name, "rw+");
+	// ScaffoldGraph->fragStore = openFragStore( GlobalData->Frag_Store_Name, "r+");
 	getFragStore( ScaffoldGraph->fragStore, fragIid, FRAG_S_ALL, fsread);	
 	getClearRegion_ReadStruct( fsread, &clr_bgn, &clr_end, READSTRUCT_CNS);
 	setClearRegion_ReadStruct( fsread, clr_bgn, clr_end, READSTRUCT_CGW);
@@ -3438,7 +3438,7 @@ int revertToCnsClearRange( int fragIid )
 	// closeFragStore( ScaffoldGraph->fragStore );
 	
 	// open it as before
-	// ScaffoldGraph->fragStore = openFragStore( GlobalData->Frag_Store_Name, "rw");
+	// ScaffoldGraph->fragStore = openFragStore( GlobalData->Frag_Store_Name, "r+");
 	// getFragStore( ScaffoldGraph->fragStore, fragIid, FRAG_S_ALL, fsread);
   }
   return ( setStatus ); 
@@ -3455,7 +3455,7 @@ int printClearRanges( int fragIid )
   {
 	FragStoreHandle fragStore;
 
-	fragStore = openFragStore( GlobalData->Frag_Store_Name, "rw");
+	fragStore = openFragStore( GlobalData->Frag_Store_Name, "r+");
 	getFragStore( fragStore, fragIid, FRAG_S_ALL, fsread);	
 
 	getClearRegion_ReadStruct( fsread, &clr_bgn, &clr_end, READSTRUCT_ORIGINAL);

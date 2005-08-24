@@ -68,7 +68,7 @@ int main(int argc, char *argv[]){
     source = loadFragStorePartial(argv[optind],STREAM_FROMSTART, STREAM_UNTILEND);
   }else{
     fprintf(stdout,"* Opening FragStore %s\n", argv[optind]);
-    source = openFragStore(argv[optind],"rw+");
+    source = openFragStore(argv[optind],"r+");
   }
   if(source == NULLSTOREHANDLE){
     exit(1);

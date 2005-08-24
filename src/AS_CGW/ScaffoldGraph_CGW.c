@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.5 2005-06-09 21:15:35 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.6 2005-08-24 17:44:03 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -251,7 +251,7 @@ ScaffoldGraphT * LoadScaffoldGraphFromStream(FILE *stream){
 #if 0
     sgraph->fragStore = loadFragStore( buffer);
 #else
-    sgraph->fragStore = openFragStore( buffer, "rw+");
+    sgraph->fragStore = openFragStore( buffer, "r+");
 #endif
 
     if(sgraph->fragStore == NULLSTOREHANDLE){
@@ -318,7 +318,7 @@ ScaffoldGraphT * LoadScaffoldGraphFromStream(FILE *stream){
 #if 0
     sgraph->fragStore = loadFragStore( buffer);
 #else
-    sgraph->fragStore = openFragStore( buffer, "rw+");
+    sgraph->fragStore = openFragStore( buffer, "r+");
 #endif
 
     if(sgraph->fragStore == NULLSTOREHANDLE){
@@ -459,7 +459,7 @@ ScaffoldGraphT *CreateScaffoldGraph(int rezOnContigs, char *name,
 #if  0
     sgraph->fragStore = loadFragStore( buffer);
 #else
-    sgraph->fragStore = openFragStore( buffer, "rw+");
+    sgraph->fragStore = openFragStore( buffer, "r+");
 #endif
     if(sgraph->fragStore == NULLSTOREHANDLE){
       fprintf(stderr,"**** Failure to open frag store %s ...exiting\n",buffer);

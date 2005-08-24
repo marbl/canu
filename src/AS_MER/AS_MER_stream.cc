@@ -40,7 +40,7 @@ merStream::merStream(cds_uint32 merSize, char *fragstore) {
 
   //  Open the fragstore
   //
-  _fs = openFragStore(fragstore, "rw");
+  _fs = openFragStore(fragstore, "r+");
   if (_fs == NULLSTOREHANDLE) {
     fprintf(stderr, "ERROR:  couldn't open the fragStore '%s'\n", fragstore);
     exit(1);
@@ -76,7 +76,7 @@ merStream::merStream(cds_uint32 merSize, char *fragstore, int skipNum) {
 
   //  Open the fragstore
   //
-  _fs = openFragStore(fragstore, "rw");
+  _fs = openFragStore(fragstore, "r+");
   if (_fs == NULLSTOREHANDLE) {
     fprintf(stderr, "ERROR:  couldn't open the fragStore '%s'\n", fragstore);
     exit(1);
