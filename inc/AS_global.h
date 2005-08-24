@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_global.h,v 1.4 2005-08-10 13:34:28 gdenisov Exp $	 */
+/* 	$Id: AS_global.h,v 1.5 2005-08-24 07:49:23 brianwalenz Exp $	 */
 
 /* This is the global include file that all C files in the AS subsystem should
    include.
@@ -28,6 +28,7 @@
 
 #include "cds.h"
 #include "AS_MSG_pmesg.h"
+#include "AS_UTL_alloc.h"
 #include "PrimitiveVA.h"
 
 // Constants that SHOULD be included

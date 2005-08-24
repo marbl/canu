@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.5 2005-06-16 20:13:02 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.6 2005-08-24 07:47:15 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -5403,9 +5403,7 @@ void FinishIntScaffoldMesg(IntScaffoldMesg * isf,
     isf->contig_pairs = NULL;
   else
   {
-    isf->contig_pairs = safe_malloc(isf->num_contig_pairs *
-                               sizeof(IntContigPairs));
-    assert(isf->contig_pairs != NULL);
+    isf->contig_pairs = safe_malloc(isf->num_contig_pairs * sizeof(IntContigPairs));
     memcpy(isf->contig_pairs, GetVA_IntContigPairs(icps, 0),
            isf->num_contig_pairs * sizeof(IntContigPairs));
   }
@@ -6712,7 +6710,6 @@ int InstrumentScaffoldPair(ScaffoldGraphT * graph,
   ism.contig_pairs =
     (IntContigPairs *) safe_malloc((ism.num_contig_pairs + 1) *
                               sizeof(IntContigPairs));
-  assert(ism.contig_pairs != NULL);
 
   // populate contig_pairs with contigs, not contig pairs:
   {

@@ -17,7 +17,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: extendClearRanges.c,v 1.9 2005-07-15 18:19:53 eliv Exp $";
+static const char CM_ID[] = "$Id: extendClearRanges.c,v 1.10 2005-08-24 07:47:15 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -407,57 +407,15 @@ int main( int argc, char *argv[])
   // localeCam();
 
   closedGap = (int *) safe_malloc( GetNumGraphNodes(ScaffoldGraph->ContigGraph) * sizeof(int));
-  if (closedGap == NULL)
-  {
-	fprintf( stderr, "Could not safe_malloc space for closedGap\n");
-        fprintf( stderr, "Tried to get " F_SIZE_T " bytes\n",
-                 GetNumGraphNodes(ScaffoldGraph->ContigGraph) * sizeof(int));
-	assert(0);
-  }
   closedGapDelta = (int *) safe_malloc( GetNumGraphNodes(ScaffoldGraph->ContigGraph) * sizeof(int));
-  if (closedGapDelta == NULL)
-  {
-	fprintf( stderr, "Could not safe_malloc space for closedGapDelta\n");
-	assert(0);
-  }  
 
   // following arrays are used in checkpointing
   numGapsInScaffold = (int *) safe_malloc( GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph) * sizeof(int));
-  if (numGapsInScaffold == NULL)
-  {
-	fprintf( stderr, "Could not safe_malloc space for numGapsInScaffold\n");
-	assert(0);
-  }  
   numGapsClosedInScaffold = (int *) safe_malloc( GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph) * sizeof(int));
-  if (numGapsClosedInScaffold == NULL)
-  {
-	fprintf( stderr, "Could not safe_malloc space for numGapsClosedInScaffold\n");
-	assert(0);
-  }  
   numSmallGapsInScaffold = (int *) safe_malloc( GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph) * sizeof(int));
-  if (numSmallGapsInScaffold == NULL)
-  {
-	fprintf( stderr, "Could not safe_malloc space for numSmallGapsInScaffold\n");
-	assert(0);
-  }  
   numSmallGapsClosedInScaffold = (int *) safe_malloc( GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph) * sizeof(int));
-  if (numSmallGapsClosedInScaffold == NULL)
-  {
-	fprintf( stderr, "Could not safe_malloc space for numSmallGapsClosedInScaffold\n");
-	assert(0);
-  }  
   numLargeGapsInScaffold = (int *) safe_malloc( GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph) * sizeof(int));
-  if (numLargeGapsInScaffold == NULL)
-  {
-	fprintf( stderr, "Could not safe_malloc space for numLargeGapsInScaffold\n");
-	assert(0);
-  }  
   numLargeGapsClosedInScaffold = (int *) safe_malloc( GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph) * sizeof(int));
-  if (numLargeGapsClosedInScaffold == NULL)
-  {
-	fprintf( stderr, "Could not safe_malloc space for numLargeGapsClosedInScaffold\n");
-	assert(0);
-  }  
   loadEcrCheckpoint( ckptNum, numGapsInScaffold, numGapsClosedInScaffold,
 					 numSmallGapsInScaffold, numSmallGapsClosedInScaffold,
 					 numLargeGapsInScaffold, numLargeGapsClosedInScaffold);
@@ -478,83 +436,18 @@ int main( int argc, char *argv[])
   if (1)
   {
 	originalGaps = (int *) safe_malloc( GetNumGraphNodes(ScaffoldGraph->ContigGraph) * sizeof(int));
-	if (originalGaps == NULL)
-	{
-	  fprintf( stderr, "Could not safe_malloc space for originalGaps\n");
-	  assert(0);
-	}
 	alteredScaffoldLengths = (int *) safe_malloc( GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph) * sizeof(int));
-	if (alteredScaffoldLengths == NULL)
-	{
-	  fprintf( stderr, "Could not safe_malloc space for alteredScaffoldLengths\n");
-	  assert(0);
-	}
 	lcontigIdGap = (int *) safe_malloc( GetNumGraphNodes(ScaffoldGraph->ContigGraph) * sizeof(int));
-	if (lcontigIdGap == NULL)
-	{
-	  fprintf( stderr, "Could not safe_malloc space for lcontigIdGap\n");
-	  assert(0);
-	}
 	rcontigIdGap = (int *) safe_malloc( GetNumGraphNodes(ScaffoldGraph->ContigGraph) * sizeof(int));
-	if (rcontigIdGap == NULL)
-	{
-	  fprintf( stderr, "Could not safe_malloc space for rcontigIdGap\n");
-	  assert(0);
-	}
 	lcontigLength = (int *) safe_malloc( GetNumGraphNodes(ScaffoldGraph->ContigGraph) * sizeof(int));
-	if (lcontigLength == NULL)
-	{
-	  fprintf( stderr, "Could not safe_malloc space for lcontigLength\n");
-	  assert(0);
-	}
 	rcontigLength = (int *) safe_malloc( GetNumGraphNodes(ScaffoldGraph->ContigGraph) * sizeof(int));
-	if (rcontigLength == NULL)
-	{
-	  fprintf( stderr, "Could not safe_malloc space for rcontigLength\n");
-	  assert(0);
-	}
 	contigValid = (int *) safe_malloc( GetNumGraphNodes(ScaffoldGraph->ContigGraph) * sizeof(int));
-	if (contigValid == NULL)
-	{
-	  fprintf( stderr, "Could not safe_malloc space for contigValid\n");
-	  assert(0);
-	}
 	allContigLengths = (int *) safe_malloc( GetNumGraphNodes(ScaffoldGraph->ContigGraph) * sizeof(int));
-	if (allContigLengths == NULL)
-	{
-	  fprintf( stderr, "Could not safe_malloc space for allContigLengths\n");
-	  assert(0);
-	}
 	closedGapAhang = (int *) safe_malloc( GetNumGraphNodes(ScaffoldGraph->ContigGraph) * sizeof(int));
-	if (closedGapAhang == NULL)
-	{
-	  fprintf( stderr, "Could not safe_malloc space for closedGapAhang\n");
-	  assert(0);
-	}
 	closedGapOlapLength = (int *) safe_malloc( GetNumGraphNodes(ScaffoldGraph->ContigGraph) * sizeof(int));
-	if (closedGapOlapLength == NULL)
-	{
-	  fprintf( stderr, "Could not safe_malloc space for closedGapOlapLength\n");
-	  assert(0);
-	}
 	closedGapBhang = (int *) safe_malloc( GetNumGraphNodes(ScaffoldGraph->ContigGraph) * sizeof(int));
-	if (closedGapBhang == NULL)
-	{
-	  fprintf( stderr, "Could not safe_malloc space for closedGapBhang\n");
-	  assert(0);
-	}
 	closedGapLcontigBasesIntact = (int *) safe_malloc( GetNumGraphNodes(ScaffoldGraph->ContigGraph) * sizeof(int));
-	if (closedGapLcontigBasesIntact == NULL)
-	{
-	  fprintf( stderr, "Could not safe_malloc space for closedGapLcontigBasesIntact\n");
-	  assert(0);
-	}
 	closedGapRcontigBasesIntact = (int *) safe_malloc( GetNumGraphNodes(ScaffoldGraph->ContigGraph) * sizeof(int));
-	if (closedGapRcontigBasesIntact == NULL)
-	{
-	  fprintf( stderr, "Could not safe_malloc space for closedGapRcontigBasesIntact\n");
-	  assert(0);
-	}
   }
 #endif
   
@@ -3941,11 +3834,6 @@ void getAlteredFragPositions( NodeCGW_T *unitig, fragPositions **fragPoss, int a
   uma = LoadMultiAlignTFromSequenceDB( ScaffoldGraph->sequenceDB, unitig->id, TRUE);
 
   localFragPoss = (fragPositions *) safe_malloc(  GetNumIntMultiPoss( uma->f_list ) * sizeof( fragPositions ));
-  if ( localFragPoss == NULL)
-  {
-	fprintf( stderr, "failed to safe_malloc space for localFragPoss!\n");
-	assert(0);
-  }
 
   // get the current positions
   for ( i = 0; i < GetNumIntMultiPoss( uma->f_list ); i++)

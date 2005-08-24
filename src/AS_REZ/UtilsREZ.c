@@ -31,7 +31,7 @@
 
 **********************************************************************/
 
-static char CM_ID[] = "$Id: UtilsREZ.c,v 1.4 2005-03-22 19:49:25 jason_miller Exp $";
+static char CM_ID[] = "$Id: UtilsREZ.c,v 1.5 2005-08-24 07:47:15 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <assert.h>
@@ -414,76 +414,6 @@ FileStatusREZ file_exists (const char * fileName)
 }
 
 
-/*--------------------------------------------------------------------*/
-/*  Memory Managment routines */
-/*--------------------------------------------------------------------*/
-
-
-void *safe_calloc(size_t num, size_t len)
-{
-  /*****************************************************************/
-  /* Allocate and return a pointer to an array of  num  elements of*/
-  /* len  bytes each.  All are set to 0.  Exit if fai.             */
-  /*****************************************************************/
-  void  *p;
-
-   p = calloc (num, len);
-   if  (p == NULL)
-     {
-       char dummy[100];
-       sprintf(dummy,"Could not calloc memory (%d number * %d bytes) \n",
-               (int) num,(int) len);
-       assert(0);
-       error(MEMORY_ERROR_REZ,dummy,EXIT_FAILURE_REZ,__FILE__,__LINE__);
-     }
-   return  p;
-}
-
-
-
-void *safe_malloc(size_t len)
-{
-  /*****************************************************************/
-  /* Allocate and return a pointer to len bytes of memory.         */
-  /* Len  bytes each.  Exit if fail.                               */
-  /*****************************************************************/
-  void  *p;
-
-  p = malloc (len);
-  if(p == NULL)
-    {
-      char dummy[40];
-      sprintf(dummy,"Could not malloc memory (%d bytes) \n",(int) len);
-      error(MEMORY_ERROR_REZ,dummy,EXIT_FAILURE_REZ,__FILE__,__LINE__);
-    }
-  
-  return  p;
-}
-
-
-
-void *safe_realloc(void *q, size_t len)
-{
-  /*****************************************************************/
-  /* Reallocate memory for q to len  bytes and return a pointer    */
-  /* to the new memory.  Exit if fail.                             */     
-  /*****************************************************************/
-  void  *p;
-
-  if  (q == NULL)
-      p = malloc (len);        // to prevent some compilers' warnings
-    else
-      p = realloc (q, len);
-
-  if  (p == NULL)
-    {
-      char dummy[100];
-      sprintf(dummy,"Could not realloc memory (%d bytes) \n",(int) len);
-      error(MEMORY_ERROR_REZ,dummy,EXIT_FAILURE_REZ,__FILE__,__LINE__);
-    }
-  
-  return  p;
-}
 
 
 

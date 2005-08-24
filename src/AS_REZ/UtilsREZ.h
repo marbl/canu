@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
-   CVS_ID:  $Id: UtilsREZ.h,v 1.4 2005-03-22 19:49:26 jason_miller Exp $
+   CVS_ID:  $Id: UtilsREZ.h,v 1.5 2005-08-24 07:47:15 brianwalenz Exp $
  *********************************************************************/
 #ifndef UTILSREZ_H
 #define UTILSREZ_H
@@ -154,26 +154,6 @@ FILE* file_open(const char* filename, const char* mode);
 /* block.  If it fails it issues an error message and exits.     */
 /*****************************************************************/
 
-
-void *safe_calloc(size_t num, size_t len);
-/*****************************************************************/
-/* Allocate and return a pointer to an array of  num  elements of*/
-/* len  bytes each.  All are set to 0.  Exit if fai.             */
-/*****************************************************************/
-
-
-void *safe_malloc(size_t len);
-/*****************************************************************/
-/* Allocate and return a pointer to len bytes of memory.         */
-/* Len  bytes each.  Exit if fail.                               */
-/*****************************************************************/
-
-
-void *safe_realloc(void *q, size_t len);
-/*****************************************************************/
-/* Reallocate memory for q to len  bytes and return a pointer    */
-/* to the new memory.  Exit if fail.                             */     
-/*****************************************************************/
 
 #endif
 

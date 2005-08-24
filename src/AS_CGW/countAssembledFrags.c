@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: countAssembledFrags.c,v 1.4 2005-03-22 19:48:37 jason_miller Exp $";
+static char CM_ID[] = "$Id: countAssembledFrags.c,v 1.5 2005-08-24 07:47:15 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -645,29 +645,14 @@ int main(int argc, char *argv[])
   
   
   localeFragsInUnitig = (int *) safe_malloc ( GetNumGraphNodes( ScaffoldGraph->CIGraph ) * sizeof( int ));
-  if (localeFragsInUnitig == NULL)
-  {
-    fprintf( stderr, "could not safe_malloc space for localeFragsInUnitig!\n");
-    assert(0);
-  }
   for (i = 0; i < GetNumGraphNodes( ScaffoldGraph->CIGraph ); i++)
     localeFragsInUnitig[ i ] = 0;
   
   localeFragsInContig = (int *) safe_malloc ( GetNumGraphNodes( ScaffoldGraph->ContigGraph ) * sizeof( int ));
-  if (localeFragsInContig == NULL)
-  {
-    fprintf( stderr, "could not safe_malloc space for localeFragsInContig!\n");
-    assert(0);
-  }
   for (i = 0; i < GetNumGraphNodes( ScaffoldGraph->ContigGraph ); i++)
     localeFragsInContig[ i ] = 0;
   
   localeFragsInScaffold = (int *) safe_malloc ( GetNumGraphNodes( ScaffoldGraph->ScaffoldGraph ) * sizeof( int ));
-  if (localeFragsInScaffold == NULL)
-  {
-    fprintf( stderr, "could not safe_malloc space for localeFragsInScaffold!\n");
-    assert(0);
-  }
   for (i = 0; i < GetNumGraphNodes( ScaffoldGraph->ScaffoldGraph ); i++)
     localeFragsInScaffold[ i ] = 0;
   
@@ -865,11 +850,6 @@ void prepareBACFragInfo( int numBACFrags, CDS_CID_t maxLocale)
   int numContigConsistentRanges;
   
   allBACFragsData = ( fragDataT *) safe_malloc( (GetNumVA_CIFragT( ScaffoldGraph->CIFrags ) + 1) * sizeof( fragDataT ));
-  if (allBACFragsData == NULL)
-  {
-    fprintf( stderr, "failed to safe_malloc space for allBACFragsData!\n");
-    assert(0);
-  }
   
   for ( ilocale = 1; ilocale <= maxLocale; ilocale++)
     fragsPerLocale[ ilocale ] = 0;
@@ -906,12 +886,6 @@ void prepareBACFragInfo( int numBACFrags, CDS_CID_t maxLocale)
   computeGoodnessMeasure( allBACFragsData, numBACFrags, fragsPerLocale, maxLocale);
   
   contigConsistentRanges = (rangeDataT *) safe_malloc( numBACFrags * sizeof( rangeDataT ));
-  if ( contigConsistentRanges == NULL)
-  {
-    fprintf( stderr, "could not safe_malloc space (" F_SIZE_T " bytes) for contigConsistentRanges!\n",
-             numBACFrags * sizeof( rangeDataT ));
-    assert(0);
-  }
   
   numContigConsistentRanges = computeConsistentRanges( allBACFragsData, numBACFrags, 
                                                        fragsPerLocale, maxLocale, 
@@ -1032,8 +1006,6 @@ int computeConsistentRanges( fragDataT *allBACFragsData,
   
   // make space for them
   allBACFragsDataWithSurrogates = (fragDataT *) safe_malloc( totalFrags * sizeof( fragDataT ));
-  if ( allBACFragsDataWithSurrogates == NULL)
-    assert(0);
   
   // transfer them
   icnt = 0;
@@ -1560,8 +1532,6 @@ int gatherBACFragInfo( CIFragT *frag, fragDataT *allFragsData)
     // put the surrogate info in an array
     allFragsData->surrogates = 
       (fragDataT *) safe_malloc ( allFragsData->surrogateCount * sizeof( fragDataT ));
-    if (allFragsData->surrogates == NULL)
-      assert(0);
     
     if (allFragsData->surrogateCount > 10)  // need to make instances[] bigger
       assert(0);

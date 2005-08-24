@@ -25,7 +25,7 @@ with the Terminator. Could be used by anyone.
  Assumptions: none
 **********************************************************************/
 
-static char CM_ID[] = "$Id: AS_TER_utils.c,v 1.4 2005-03-22 19:49:28 jason_miller Exp $";
+static char CM_ID[] = "$Id: AS_TER_utils.c,v 1.5 2005-08-24 07:47:15 brianwalenz Exp $";
 
 #include "AS_TER_utils.h"
 
@@ -105,71 +105,3 @@ FileStatus file_exists (const char * fileName)
   
   return AS_TER_FILE_EXISTS_NOT;
 }
-
-
-/*--------------------------------------------------------------------*/
-/*  Memory Managment routines */
-/*--------------------------------------------------------------------*/
-
-
-void *safe_calloc(size_t num, size_t len)
-{
-  /*****************************************************************/
-  /* Allocate and return a pointer to an array of  num  elements of*/
-  /* len  bytes each.  All are set to 0.  Exit if fai.             */
-  /*****************************************************************/
-  void  *p;
-
-   p = calloc (num, len);
-   if  (p == NULL)
-     {
-       char dummy[40];
-       sprintf(dummy,"Could not calloc memory (%d number * %d bytes) \n",(int) num,(int) len);
-       error(AS_TER_MEMORY_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__);
-     }
-   return  p;
-}
-
-
-
-void *safe_malloc(size_t len)
-{
-  /*****************************************************************/
-  /* Allocate and return a pointer to len bytes of memory.         */
-  /* Len  bytes each.  Exit if fail.                               */
-  /*****************************************************************/
-  void  *p;
-
-  p = malloc (len);
-  if(p == NULL)
-    {
-      char dummy[40];
-      sprintf(dummy,"Could not malloc memory (%d bytes) \n",(int) len);
-      error(AS_TER_MEMORY_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__);
-    }
-  
-  return  p;
-}
-
-
-
-void *safe_realloc(void *q, size_t len)
-{
-  /*****************************************************************/
-  /* Reallocate memory for q to len  bytes and return a pointer    */
-  /* to the new memory.  Exit if fail.                             */     
-  /*****************************************************************/
-  void  *p;
-
-  p = realloc (q, len);
-  if(p == NULL)
-    {
-      char dummy[40];
-      sprintf(dummy,"Could not malloc memory (%d bytes) \n",(int) len);
-      error(AS_TER_MEMORY_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__);
-    }
-  
-  return  p;
-}
-
-

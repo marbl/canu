@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.6 2005-07-08 21:05:33 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.7 2005-08-24 07:47:14 brianwalenz Exp $";
 
 #define DEBUG 0
 #undef DEBUG_DETAILED
@@ -2781,7 +2781,6 @@ void   notContigContainment(CIScaffoldT *scaffold, NodeCGW_T *prevCI, NodeCGW_T 
 	  CDS_CID_t newScaffoldID;
 	  // create & init a new scaffold
 	  CIScaffoldT * newScaffold = (CIScaffoldT *) safe_malloc( sizeof (CIScaffoldT));
-	  assert (newScaffold != NULL);  
 	  InitializeScaffold( newScaffold, REAL_SCAFFOLD);
 	  newScaffold->info.Scaffold.AEndCI = NULLINDEX;
 	  newScaffold->info.Scaffold.BEndCI = NULLINDEX;
@@ -3263,11 +3262,6 @@ void   ContigContainment_new(CIScaffoldT *scaffold,
 	if (leftContig->id == 3152359 && rightContig->id == 3152361)
 	{
 	  contigOverlap = (Overlap *) safe_malloc( sizeof (Overlap));
-	  if (contigOverlap == NULL)
-	  {
-		fprintf( stderr, "failed to safe_malloc Overlap struct\n");
-		assert(0);
-	  }
 	  contigOverlap->begpos = 1590;
 	}
 	else

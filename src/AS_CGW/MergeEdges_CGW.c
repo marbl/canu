@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: MergeEdges_CGW.c,v 1.4 2005-03-22 19:48:36 jason_miller Exp $";
+static char CM_ID[] = "$Id: MergeEdges_CGW.c,v 1.5 2005-08-24 07:47:15 brianwalenz Exp $";
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -453,7 +453,6 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
 
   Chi2ComputeT *edgeChi2Compute = (Chi2ComputeT *)safe_malloc(numEdges *
 					   sizeof(*edgeChi2Compute));
-  AssertPtr(edgeChi2Compute);
 
 #else
   Chi2ComputeT edgeChi2Compute[numEdges + FUDGE];
@@ -545,7 +544,6 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
 #else
     Chi2ResultT edgeChi2Result[numEdges + FUDGE];
 #endif
-    AssertPtr(edgeChi2Result);
     for (skipEdgeIndex = -1, minScore = FLT_MAX,
 	   edgeChi2ResultPtr = edgeChi2Result, edgeIndex = 0;
 	 edgeIndex < numEdges; edgeIndex++, edgeChi2ResultPtr++){
@@ -641,11 +639,6 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
     ClusterChi2T edgeClusterChi2[numEdges + FUDGE];
     Chi2ComputeT clusterChi2Compute[numEdges + FUDGE];
 #endif
-
-    AssertPtr(pairClusterScoreChi2);
-    AssertPtr(sortClusterScoreChi2);
-    AssertPtr(edgeClusterChi2);
-    AssertPtr(clusterChi2Compute);
 
     /* Initialize the arrays. */
     for(edgeChi2ComputePtr = edgeChi2Compute,

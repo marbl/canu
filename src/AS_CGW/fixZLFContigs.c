@@ -795,7 +795,6 @@ int FixZLFContigs(VA_TYPE(ZLFScaffold) * zlfScaffolds,
     cUOs =
       (VA_TYPE(IEPish) **) safe_malloc(GetNumVA_ZLFContig(zlfScaffold->zlfContigs) *
                                   sizeof(void *));
-    assert(cUOs != NULL);
 
     fprintf(stderr, "\tFixing scaffold " F_CID "\n", scaffold->id);
 

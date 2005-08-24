@@ -23,7 +23,7 @@ cc -g -pg -qfullpath   -qstrict -qbitfields=signed -qchars=signed -qlanglvl=ext 
 -o /work/assembly/rbolanos/IBM_PORT_CDS/ibm_migration_work_dir/cds/AS/obj/GraphCGW_T.o GraphCGW_T.c
 */
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.5 2005-08-23 14:07:03 eliv Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.6 2005-08-24 07:47:15 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -4169,14 +4169,6 @@ void ComputeMatePairStatistics( int operateOnNodes,
     if (dptr->numSamples == 0 || dptr->numSamples == 1)
       continue;
     
-    /* matePairs = (MateInfoT *) safe_malloc( dptr->numSamples * sizeof( MateInfoT ));	  
-       if (!matePairs)
-       {
-       fprintf( stderr, "Failed to safe_malloc space for %d mates in ComputeMatePairStatistics\n",
-       dptr->numSamples);
-       assert(0);
-       } */
-    
     for ( icnt = 0; icnt < GetNumCDS_COORD_ts( dptr->samples ); icnt++)
     {
       matePairs[icnt].samples = *GetCDS_COORD_t( dptr->samples, icnt);
@@ -4398,7 +4390,6 @@ void ComputeMatePairStatistics( int operateOnNodes,
 #endif
     free(dptr->histogram);
     dptr->histogram = (int32 *) safe_malloc(sizeof(int32)*dptr->bnum);
-    assert(dptr->histogram != NULL);
     {
       int	j;
       for (j=0; j < dptr->bnum; ++j)
@@ -4899,14 +4890,6 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
     if (dptr->numSamples == 0 || dptr->numSamples == 1)
       continue;
     
-    /* matePairs = (MateInfoT *) safe_malloc( dptr->numSamples * sizeof( MateInfoT ));	  
-       if (!matePairs)
-       {
-       fprintf( stderr, "Failed to safe_malloc space for %d mates in ComputeMatePairStatistics\n",
-       dptr->numSamples);
-       assert(0);
-       } */
-    
     for ( icnt = 0; icnt < GetNumCDS_COORD_ts( dptr->samples ); icnt++)
     {
       matePairs[icnt].samples = *GetCDS_COORD_t( dptr->samples, icnt);
@@ -5136,7 +5119,6 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
 #endif
     free(dptr->histogram);
     dptr->histogram = (int32 *) safe_malloc(sizeof(int32)*dptr->bnum);
-    assert(dptr->histogram != NULL);
     {
       int	j;
       for (j=0; j < dptr->bnum; ++j)

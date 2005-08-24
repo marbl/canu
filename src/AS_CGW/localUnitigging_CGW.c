@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: localUnitigging_CGW.c,v 1.6 2005-07-20 21:32:41 brianwalenz Exp $";
+static char CM_ID[] = "$Id: localUnitigging_CGW.c,v 1.7 2005-08-24 07:47:15 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -483,89 +483,19 @@ int main( int argc, char *argv[])
   // localeCam();
 
   originalGaps = (int *) safe_malloc( GetNumGraphNodes(ScaffoldGraph->ContigGraph) * sizeof(int));
-  if (originalGaps == NULL)
-  {
-	fprintf( stderr, "Could not safe_malloc space for originalGaps\n");
-	assert(0);
-  }
   closedGap = (int *) safe_malloc( GetNumGraphNodes(ScaffoldGraph->ContigGraph) * sizeof(int));
-  if (closedGap == NULL)
-  {
-	fprintf( stderr, "Could not safe_malloc space for closedGap\n");
-	assert(0);
-  }
   closedGapDelta = (int *) safe_malloc( GetNumGraphNodes(ScaffoldGraph->ContigGraph) * sizeof(int));
-  if (closedGapDelta == NULL)
-  {
-	fprintf( stderr, "Could not safe_malloc space for closedGapDelta\n");
-	assert(0);
-  }  
   lcontigIdGap = (int *) safe_malloc( GetNumGraphNodes(ScaffoldGraph->ContigGraph) * sizeof(int));
-  if (lcontigIdGap == NULL)
-  {
-	fprintf( stderr, "Could not safe_malloc space for lcontigIdGap\n");
-	assert(0);
-  }
   rcontigIdGap = (int *) safe_malloc( GetNumGraphNodes(ScaffoldGraph->ContigGraph) * sizeof(int));
-  if (rcontigIdGap == NULL)
-  {
-	fprintf( stderr, "Could not safe_malloc space for rcontigIdGap\n");
-	assert(0);
-  }
   lcontigLength = (int *) safe_malloc( GetNumGraphNodes(ScaffoldGraph->ContigGraph) * sizeof(int));
-  if (lcontigLength == NULL)
-  {
-	fprintf( stderr, "Could not safe_malloc space for lcontigLength\n");
-	assert(0);
-  }
   rcontigLength = (int *) safe_malloc( GetNumGraphNodes(ScaffoldGraph->ContigGraph) * sizeof(int));
-  if (rcontigLength == NULL)
-  {
-	fprintf( stderr, "Could not safe_malloc space for rcontigLength\n");
-	assert(0);
-  }
   contigValid = (int *) safe_malloc( GetNumGraphNodes(ScaffoldGraph->ContigGraph) * sizeof(int));
-  if (contigValid == NULL)
-  {
-	fprintf( stderr, "Could not safe_malloc space for contigValid\n");
-	assert(0);
-  }
   allContigLengths = (int *) safe_malloc( GetNumGraphNodes(ScaffoldGraph->ContigGraph) * sizeof(int));
-  if (allContigLengths == NULL)
-  {
-	fprintf( stderr, "Could not safe_malloc space for allContigLengths\n");
-	assert(0);
-  }
   closedGapAhang = (int *) safe_malloc( GetNumGraphNodes(ScaffoldGraph->ContigGraph) * sizeof(int));
-  if (closedGapAhang == NULL)
-  {
-	fprintf( stderr, "Could not safe_malloc space for closedGapAhang\n");
-	assert(0);
-  }
   closedGapOlapLength = (int *) safe_malloc( GetNumGraphNodes(ScaffoldGraph->ContigGraph) * sizeof(int));
-  if (closedGapOlapLength == NULL)
-  {
-	fprintf( stderr, "Could not safe_malloc space for closedGapOlapLength\n");
-	assert(0);
-  }
   closedGapBhang = (int *) safe_malloc( GetNumGraphNodes(ScaffoldGraph->ContigGraph) * sizeof(int));
-  if (closedGapBhang == NULL)
-  {
-	fprintf( stderr, "Could not safe_malloc space for closedGapBhang\n");
-	assert(0);
-  }
   closedGapLcontigBasesIntact = (int *) safe_malloc( GetNumGraphNodes(ScaffoldGraph->ContigGraph) * sizeof(int));
-  if (closedGapLcontigBasesIntact == NULL)
-  {
-	fprintf( stderr, "Could not safe_malloc space for closedGapLcontigBasesIntact\n");
-	assert(0);
-  }
   closedGapRcontigBasesIntact = (int *) safe_malloc( GetNumGraphNodes(ScaffoldGraph->ContigGraph) * sizeof(int));
-  if (closedGapRcontigBasesIntact == NULL)
-  {
-	fprintf( stderr, "Could not safe_malloc space for closedGapRcontigBasesIntact\n");
-	assert(0);
-  }
 
 
   //
@@ -1398,7 +1328,7 @@ void OutputMergedMetaUnitig(CDS_CID_t sid,MultiAlignT *ma){
   up = GetIntUnitigPos(ma->u_list,0);
       
   tmpSource = safe_malloc((GetNumIntMultiPoss(ma->f_list) + 1) * sizeof(CDS_IID_t));
-      
+
   if(numUnitig >= ubufSize){
     ubufSize = numUnitig * 2;
     icm_mesg.unitigs = (IntUnitigPos *) safe_realloc(icm_mesg.unitigs, ubufSize*sizeof(IntUnitigPos));
