@@ -321,28 +321,28 @@ static size_t ReportMemorySize_VA
   const char * const name,
   FILE * stream )
 {
-  const off_t memorySize = (NULL == va ? 0 : GetMemorySize_VA(va));
-  const size_t numElements = (NULL == va ? 0 : va->numElements);
-  const size_t allocatedElements = (NULL == va ? 0 : va->allocatedElements);
-  const size_t sizeofElement = (NULL == va ? 0 : va->sizeofElement);
-  // const char * typeofElement = (NULL == va ? "" : va->typeofElement);
+  size_t numElements       = (NULL == va ? 0 : va->numElements);
+  size_t allocatedElements = (NULL == va ? 0 : va->allocatedElements);
+  size_t sizeofElement     = (NULL == va ? 0 : va->sizeofElement);
+  size_t memorySize        = allocatedElements * sizeofElement;
+
   assert(NULL != name);
   assert(NULL != stream);
-  { 
-    fprintf(stream,
-            "VA"
-	    " % 10" F_OFF_TP " bytes "
-            " % 10" F_SIZE_TP " elements active"
-            " % 10" F_SIZE_TP " elements allocated"
-            " % 5" F_SIZE_TP " bytes per element"
-            " for %s\n"
-            ,memorySize
-            ,numElements
-            ,allocatedElements
-            ,sizeofElement
-            ,name
-            );
-  }
+
+  fprintf(stream,
+          "VA"
+          " %10" F_SIZE_TP " bytes "
+          " %10" F_SIZE_TP " elements active"
+          " %10" F_SIZE_TP " elements allocated"
+          " %5" F_SIZE_TP " bytes per element"
+          " for %s\n"
+          ,memorySize
+          ,numElements
+          ,allocatedElements
+          ,sizeofElement
+          ,name
+          );
+
   return memorySize;
 }
 
