@@ -25,7 +25,7 @@
    Assumptions:  libAS_UTL.a
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.9 2005-08-18 19:10:05 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.10 2005-08-25 06:49:30 brianwalenz Exp $";
 
 
 #include <assert.h>
@@ -255,7 +255,7 @@ CopyMultiAlignT(MultiAlignT *newma, MultiAlignT *ma)
   {/* Adjust the delta pointers in the clone */
     int i;
     char *old_source, *old_var_seq;
-    int src_len, var_len;
+    int src_len;
     int32 *oldbase = Getint32(ma->delta, 0);
     int32 *newbase = Getint32(newma->delta, 0);
     int numf = GetNumIntMultiPoss(ma->f_list);
@@ -277,8 +277,7 @@ CopyMultiAlignT(MultiAlignT *newma, MultiAlignT *ma)
     {
       IntMultiVar *nvar = GetIntMultiVar(newma->v_list,i);
       old_var_seq = nvar->var_seq;
-      var_len     = strlen(old_var_seq);
-      nvar->var_seq = (char *) safe_malloc((+1)*sizeof(char));
+      nvar->var_seq = (char *) safe_malloc((strlen(old_var_seq)+1)*sizeof(char));
       strcpy(nvar->var_seq, old_var_seq);
     }
   }
@@ -650,7 +649,6 @@ CreateMultiAlignTFromICM(IntConConMesg *icm, int localID, int sequenceOnly)
       {
          IntMultiVar *cvr_mesg = icm->v_list + cvr;
          IntMultiVar tmp;
-         int32 var_len;
 
          tmp = *cvr_mesg;
          tmp.position = cvr_mesg->position;
@@ -658,7 +656,7 @@ CreateMultiAlignTFromICM(IntConConMesg *icm, int localID, int sequenceOnly)
          tmp.num_alleles = cvr_mesg->num_alleles;
          tmp.window_size = cvr_mesg->window_size;
          tmp.var_length = cvr_mesg->var_length;
-         tmp.var_seq = (char *) safe_malloc((var_len+1)*sizeof(char));
+         tmp.var_seq = (char *) safe_malloc((tmp.var_length+1)*sizeof(char));
          strcpy(tmp.var_seq, cvr_mesg->var_seq);
          SetIntMultiVar(ma->v_list, cvr, &tmp);
       }
@@ -776,7 +774,6 @@ CreateMultiAlignTFromCCO(SnapConConMesg *cco, int localID, int sequenceOnly)
       {
          IntMultiVar *cvr_mesg = cco->vars + cvr;
          IntMultiVar tmp;
-         int32 var_len;
 
          tmp = *cvr_mesg;
          tmp.position = cvr_mesg->position;
@@ -784,7 +781,7 @@ CreateMultiAlignTFromCCO(SnapConConMesg *cco, int localID, int sequenceOnly)
          tmp.num_alleles = cvr_mesg->num_alleles;
          tmp.window_size = cvr_mesg->window_size;
          tmp.var_length = cvr_mesg->var_length;
-         tmp.var_seq = (char *) safe_malloc((var_len+1)*sizeof(char));
+         tmp.var_seq = (char *) safe_malloc((tmp.var_length+1)*sizeof(char));
          strcpy(tmp.var_seq, cvr_mesg->var_seq);
          SetIntMultiVar(ma->v_list, cvr, &tmp);
       }
