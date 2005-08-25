@@ -17,7 +17,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: extendClearRanges.c,v 1.11 2005-08-24 17:44:03 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: extendClearRanges.c,v 1.12 2005-08-25 19:03:54 eliv Exp $";
 
 
 /*********************************************************************
@@ -1081,6 +1081,7 @@ int main( int argc, char *argv[])
 				// DumpContigUngappedOffsets( rcontig->id );
 				  
 				  
+				saveLocalAlignerVariables();
 				// have to call this routine with normalized positions
 				success = CreateAContigInScaffold( scaff, ContigPositions, newOffsetAEnd, newOffsetBEnd);
 				  
@@ -2049,12 +2050,12 @@ int findFirstExtendableFrags( ContigT *contig, extendableFrag *extFragsArray )
 
 	// secondFragStart is where the next to end frag starts, and thus where we start 2x coverage
 	// we don't care if it's the 3p or 5p end
-	if ( frag->contigOffset3p.mean > 0 && (int) frag->contigOffset3p.mean < secondFragStart)
+	if ( frag->contigOffset3p.mean > 0 && frag->contigOffset3p.mean < secondFragStart)
 	{
 	  secondFragStart = frag->contigOffset3p.mean;
 	  // fprintf( stderr, "secondFragStart %d set by frag %d (3p)\n", secondFragStart, frag->iid);
 	}
-	if ( (int) frag->contigOffset5p.mean < secondFragStart)
+	if ( frag->contigOffset5p.mean < secondFragStart)
 	{
 	  secondFragStart = frag->contigOffset5p.mean;
 	  // fprintf( stderr, "secondFragStart %d set by frag %d (5p)\n", secondFragStart, frag->iid);
@@ -2288,7 +2289,7 @@ int findLastExtendableFrags( ContigT *contig, extendableFrag *extFragsArray )
   for ( i = 0; i < extendableFragCount; i++)
   {
 	if (extFragsArray[i].fragOnEnd == TRUE)
-	  extFragsArray[i].basesToNextFrag = secondFragEnd;
+	  extFragsArray[i].basesToNextFrag = maxContigPos - secondFragEnd;
 	else
 	  extFragsArray[i].basesToNextFrag = 0;	  
 	
@@ -2673,6 +2674,7 @@ int examineGap( ContigT *lcontig, int lFragIid, ContigT *rcontig, int rFragIid,
 	fprintf( stderr, "MaxBegGap: %d\n", MaxBegGap);
 	fprintf( stderr, "MaxEndGap: %d\n", MaxEndGap);
 	
+    assert(strlen(rcompBuffer)>0);
 	overlap = Local_Overlap_AS_forCNS( lcompBuffer, rcompBuffer,
 									   -strlen( rcompBuffer) , strlen( lcompBuffer), opposite,
 									   erate, thresh, minlen,
