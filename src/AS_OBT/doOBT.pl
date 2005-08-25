@@ -145,7 +145,7 @@ if ($doTrimming) {
 
 
     if (! -e "$prefix.trim.ovl") {
-        if (runCommand("$abin/overlap -M 4GB -G -t 4 -P -h 1- -r 1- -k $prefix.nmers$merThresholdT.fasta -o $prefix.trim.ovl $prefix.frgStore")) {
+        if (runCommand("$abin/overlap -M 1GB -G -t 4 -P -h 1- -r 1- -k $prefix.nmers$merThresholdT.fasta -o $prefix.trim.ovl $prefix.frgStore")) {
             rename "$prefix.trim.ovl", "$prefix.trim.ovl.failed";
             die "Failed.\n";
         }
@@ -273,7 +273,7 @@ if ($doTrimming) {
 
 
 if (! -e "$prefix.ovl") {
-    if (runCommand("$abin/overlap -M 4GB -t 4 -P -h 1- -r 1- -k $prefix.nmers$merThresholdA.fasta -o $prefix.ovl $prefix.frgStore")) {
+    if (runCommand("$abin/overlap -M 1GB -t 4 -P -h 1- -r 1- -k $prefix.nmers$merThresholdA.fasta -o $prefix.ovl $prefix.frgStore")) {
         rename "$prefix.ovl", "$prefix.ovl.FAILED";
         die "Failed.\n";
     }
@@ -284,7 +284,7 @@ if (! -e "$prefix.ovlStore") {
     open(F, "> $prefix.ovllist");
     print F "$prefix.ovl\n";
     close(F);
-    if (runCommand("$abin/grow-olap-store -M 4096 -cfS -o $prefix.ovlStore -L $prefix.ovllist")) {
+    if (runCommand("$abin/grow-olap-store -M 1024 -cfS -o $prefix.ovlStore -L $prefix.ovllist")) {
         rename "$prefix.ovlStore", "$prefix.ovlStore.FAILED";
         die "Failed.\n";
     }
