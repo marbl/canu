@@ -43,6 +43,13 @@
 
 #undef PRINT_OVERLAPS
 
+//  Define this to enable checking of the stretching / compression
+//  of interleaved scaffold merges.  See the detailed comment at the
+//  code.
+#undef CHECK_INTERLEAVE_DISTANCE
+
+
+
 /*
   What this code is supposed to do:
   Take two scaffolds & a negative edge between them & determine if the
@@ -2287,7 +2294,28 @@ SEdgeT * MakeScaffoldAlignmentAdjustments(CIScaffoldT * scaffoldA,
   // check if edge distance is acceptable
   newEdgeMean = contigsB[0].lft_end -
     (contigsA[numContigsA-1].lft_end + contigsA[numContigsA-1].length);
-  
+
+
+  //  What this does is test whether the proposed layout is consistent
+  //  with the original edge.  The problem with the test as written is
+  //  as follows: assume two scaffolds with several contigs each,
+  //  interleaved in a fashion that leaves each individual gap ok but
+  //  slightly stretches both scaffolds in the region of their overlap.
+  //  In this case, the thickness of the overlap will increase by the
+  //  amount that the A scaffold is stretched; when this stretched
+  //  value is compared back to the original estimate of the edge
+  //  depth, they may turn out to be incompatible (leading to a failure
+  //  of the above test) without there really being anything wrong.
+  //
+  //  Now it may be that we simply want to be VERY cautious about any
+  //  interleaving, especially pure interleaving with no contig
+  //  overlaps to support it, but this particular piece of logic doesnt
+  //  seem well-suited to distinguishing the good from the bad.  If we
+  //  dont really want to do aggressive interleaving, lets turn it off
+  //  rather than wasting a lot of time doing computations we are going
+  //  to discard.  --Aaron
+  //
+#ifdef CHECK_INTERLEAVE_DISTANCE
   if(sEdge->distance.mean + INTERLEAVE_CUTOFF * sqrt(sEdge->distance.variance) < newEdgeMean ||
      sEdge->distance.mean - INTERLEAVE_CUTOFF * sqrt(sEdge->distance.variance) > newEdgeMean)
   {
@@ -2319,7 +2347,9 @@ SEdgeT * MakeScaffoldAlignmentAdjustments(CIScaffoldT * scaffoldA,
     */
     return NULL;
   }
-     
+#endif
+
+    
   // now map the adjustments over to the cgw scaffold/contig data structures
   // adjust scaffoldA
 
