@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.10 2005-08-18 19:12:38 gdenisov Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.11 2005-08-25 07:46:53 brianwalenz Exp $";
 
 #define AFG_BACKWARDS_COMPATIBLE
 //#define FIX_DANIELS_MESS
@@ -28,6 +28,7 @@ static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.10 2005-08-18 19:12:38 gdenisov Ex
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include <time.h>
 #include <ctype.h>
 #include <assert.h>
@@ -3971,6 +3972,8 @@ int ReadProtoMesg_AS(FILE *fin, GenericMesg **pmesg)
 
   *pmesg = &ReadMesg;
 
+  errno = 0;
+
   *Sentinal = '\n';
   MemTop    = 0;
   LineNum  += 1;
@@ -3979,7 +3982,11 @@ int ReadProtoMesg_AS(FILE *fin, GenericMesg **pmesg)
         return (EOF);
     }
   while (CurLine[0] == '#');
-  
+
+  if (errno)
+    fprintf(stderr, "ERROR: Read Failure looking for message type: %s\n",
+            strerror(errno)), exit(1);
+
   for(t = 1; t <= NUM_OF_REC_TYPES; t++)
     if (strncmp(CurLine,CallTable[t].header,4) == 0)
       break;
@@ -3999,11 +4006,23 @@ int ReadProtoMesg_AS(FILE *fin, GenericMesg **pmesg)
   ReadMesg.t = (MessageType) t;
   ReadMesg.m = CallTable[t].reader(fin);
   ReadMesg.s = MemTop;
+
+  if (errno) {
+    fprintf(stderr, "ERROR: Read Failure reading message %s: %s\n",
+            CallTable[t].header+1, strerror(errno));
+    exit(1);
+  }
+
   return (0);
 }
 
 int WriteProtoMesg_AS(FILE *fout, GenericMesg *pmesg)
-{ CallTable[pmesg->t].writer(fout,pmesg->m);
+{ errno = 0;
+  CallTable[pmesg->t].writer(fout,pmesg->m);
+  if (errno) {
+    fprintf(stderr, "ERROR: Write Failure: %s\n", strerror(errno));
+    exit(1);
+  }
   return (0);
 }
 
