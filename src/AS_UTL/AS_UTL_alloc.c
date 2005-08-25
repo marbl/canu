@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include "cds.h"
 #include "AS_UTL_alloc.h"
-
 
 // Allocate and return a pointer to an array of  num  elements of
 // len  bytes each.  All are set to 0.  Exit if fai.
