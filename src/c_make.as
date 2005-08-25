@@ -86,11 +86,16 @@ ifeq ($(OSTYPE), Linux)
   endif
 endif
 
+
+#  Maddeningly, you absolutely must specify both LARGEFILE_SOURCE and
+#  FILE_OFFSET_BITS=64 if your off_t is 8 bytes natively and your
+#  off_t is 4 bytes.
+#
 ifeq ($(OSTYPE), FreeBSD)
   CC               = gcc
   CXX              = g++
   CFLAGS_OPT       = -g 
-  CFLAGS          += -O3 -DNEEDXDRUHYPER
+  CFLAGS          += -O3 -DNEEDXDRUHYPER -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 
   CXXDEFS          = -D__cplusplus
   INC_IMPORT_DIRS += /usr/local/include /usr/X11R6/include
   USRLIB          += /usr/local/lib /usr/X11R6/lib
@@ -100,7 +105,7 @@ ifeq ($(OSTYPE), Darwin)
   CC         = gcc
   CXX        = g++
   CFLAGS_OPT = -g
-  CFLAGS    += -fast -DNEEDXDRUHYPER
+  CFLAGS    += -fast -DNEEDXDRUHYPER -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 
   USRLIB    += /usr/local/lib /usr/X11R6/lib
 endif
 
