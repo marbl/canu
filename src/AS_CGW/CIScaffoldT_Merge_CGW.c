@@ -18,13 +18,18 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.5 2005-06-09 21:15:34 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.6 2005-08-25 20:36:41 brianwalenz Exp $";
 
 #undef ORIG_MERGE_EDGE_INVERT
 #define MINSATISFIED_CUTOFF 0.985
 #undef DEBUG_MERGE_EDGE_INVERT	  
 #undef  DEBUG_BAD_MATE_RATIO
-#undef DRAW_BAD_MATE_CAMS    // was leading to assert on fopen. Jason 12/9/04
+
+//  Draw .cam files for bad mates, if they have more than N
+//  contributing edges.  '8' should reduce the number of cam files to
+//  a manageable number.
+//
+//#define DRAW_BAD_MATE_CAMS 8
 
 #ifdef DRAW_BAD_MATE_CAMS
   #include <sys/types.h>
@@ -3284,57 +3289,62 @@ int isQualityScaffoldMergingEdge(SEdgeT * curEdge,
       DumpACIScaffoldNew(stderr,ScaffoldGraph,scaffoldB,FALSE);
 #endif
 #ifdef DRAW_BAD_MATE_CAMS
+      if(curEdge->edgesContributing>=DRAW_BAD_MATE_CAMS)
       {
 	int64 scaffoldAEndCoord = 0, scaffoldBEndCoord = 0, endcoord=0;
 	char camname[1000];
 	static DIR *camdir=NULL;
+	static int lowmate_count=0;
 	FILE *camfile=NULL;
 
-	camdir=opendir("MergeCams");
-	if(camdir==NULL){
-	  system("mkdir MergeCams");
+	
+	if(++lowmate_count < 500){
 	  camdir=opendir("MergeCams");
-	  assert(camdir!=NULL);
-	}
-	sprintf(camname,"MergeCams/lowmate_failure_%d_%d.cam",scaffoldA->id,scaffoldB->id);
-	camfile = fopen(camname,"w");
-	assert(camfile!=NULL);
-	DumpCelamyColors(camfile);
-	DumpCelamyMateColors(camfile);
+	  if(camdir==NULL){
+	    system("mkdir MergeCams");
+	    camdir=opendir("MergeCams");
+	    assert(camdir!=NULL);
+	  }
+	  sprintf(camname,"MergeCams/lowmate_failure_%d_%d.cam",scaffoldA->id,scaffoldB->id);
+	  camfile = fopen(camname,"w");
+	  assert(camfile!=NULL);
+	  DumpCelamyColors(camfile);
+	  DumpCelamyMateColors(camfile);
 
-	do_draw_frags_in_CelamyScaffold=1;
-	DumpCelamyFragColors(camfile);
-	//	if(endcoord!=0)endcoord+=1000000;
-	if(scaffoldA->bpLength.mean < -curEdge->distance.mean){
-	  endcoord+=-curEdge->distance.mean-scaffoldA->bpLength.mean;
-	}
-	if(curEdge->orient == AB_AB || curEdge->orient == AB_BA){
-	  scaffoldAEndCoord = endcoord;
-	  scaffoldBEndCoord = endcoord + scaffoldA->bpLength.mean;
-	} else {
-	  scaffoldBEndCoord = endcoord;
-	  scaffoldAEndCoord = endcoord + scaffoldA->bpLength.mean;
-	}
-	CelamyScaffold(camfile,scaffoldA,scaffoldAEndCoord,scaffoldBEndCoord);
-	endcoord += scaffoldA->bpLength.mean;
-	endcoord += curEdge->distance.mean;
-	if(curEdge->orient == AB_AB || curEdge->orient == BA_AB){
-	  scaffoldAEndCoord = endcoord;
-	  scaffoldBEndCoord = endcoord + scaffoldB->bpLength.mean;
-	} else {
-	  scaffoldBEndCoord = endcoord;
-	  scaffoldAEndCoord = endcoord + scaffoldB->bpLength.mean;
-	}
-	CelamyScaffold(camfile,scaffoldB,scaffoldAEndCoord,scaffoldBEndCoord);
-	do_draw_frags_in_CelamyScaffold=0;
-	//	endcoord += scaffoldB->bpLength.mean;
-	PrintScaffoldInstrumenterMateDetails(si,camfile,PRINTCELAMY);
-	PrintExternalMateDetailsAndDists(ScaffoldGraph,si->bookkeeping.wExtMates,"\t",camfile,PRINTCELAMY);
-	PrintUnmatedDetails(si,camfile,PRINTCELAMY);
+	  do_draw_frags_in_CelamyScaffold=1;
+	  DumpCelamyFragColors(camfile);
+	  //	if(endcoord!=0)endcoord+=1000000;
+	  if(scaffoldA->bpLength.mean < -curEdge->distance.mean){
+	    endcoord+=-curEdge->distance.mean-scaffoldA->bpLength.mean;
+	  }
+	  if(curEdge->orient == AB_AB || curEdge->orient == AB_BA){
+	    scaffoldAEndCoord = endcoord;
+	    scaffoldBEndCoord = endcoord + scaffoldA->bpLength.mean;
+	  } else {
+	    scaffoldBEndCoord = endcoord;
+	    scaffoldAEndCoord = endcoord + scaffoldA->bpLength.mean;
+	  }
+	  CelamyScaffold(camfile,scaffoldA,scaffoldAEndCoord,scaffoldBEndCoord);
+	  endcoord += scaffoldA->bpLength.mean;
+	  endcoord += curEdge->distance.mean;
+	  if(curEdge->orient == AB_AB || curEdge->orient == BA_AB){
+	    scaffoldAEndCoord = endcoord;
+	    scaffoldBEndCoord = endcoord + scaffoldB->bpLength.mean;
+	  } else {
+	    scaffoldBEndCoord = endcoord;
+	    scaffoldAEndCoord = endcoord + scaffoldB->bpLength.mean;
+	  }
+	  CelamyScaffold(camfile,scaffoldB,scaffoldAEndCoord,scaffoldBEndCoord);
+	  do_draw_frags_in_CelamyScaffold=0;
+	  //	endcoord += scaffoldB->bpLength.mean;
+	  PrintScaffoldInstrumenterMateDetails(si,camfile,PRINTCELAMY);
+	  PrintExternalMateDetailsAndDists(ScaffoldGraph,si->bookkeeping.wExtMates,"\t",camfile,PRINTCELAMY);
+	  PrintUnmatedDetails(si,camfile,PRINTCELAMY);
 
 
-	fclose(camfile);
-        closedir(camdir);
+	  fclose(camfile);
+	  closedir(camdir);
+	}
       }
 #endif
       return FALSE;
@@ -3394,10 +3404,19 @@ void SaveBadScaffoldMergeEdge(SEdgeT * edge,
         two scaffolds involved.
   The specific numbers are based on an examination of edges with
   weight >= 25 in the rat assembly 12/16/2002.
+
+  After noticing that this was still not aggressive enough during the
+  Macaque assembly we added another condition. We also hope that this
+  will allow ECR to merge the abbutted contigs.
+     3. If the overlap is < 2kbp and the overlap is less than 1/2 of
+        the shorter scaffold then abut.
+  Granger 8/22/05.
  */
 
 #define STDDEVS_PER_WEIGHT_THRESHOLD                 0.5
 #define EDGE_PER_MIN_SCAFFOLD_LENGTH_THRESHOLD       0.002
+#define MAX_OVERLAP_TO_ABUT                          2000
+#define MAX_PERC_SCAFFOLD_LEN                        0.5
 
 int LooseAbuttingCheck(SEdgeT * curEdge,
                        CIScaffoldT * scaffoldA,
@@ -3423,8 +3442,10 @@ int LooseAbuttingCheck(SEdgeT * curEdge,
           scaffoldB->id, scaffoldB->bpLength.mean);
 #endif
 
-  if(stddevsPerWeight < STDDEVS_PER_WEIGHT_THRESHOLD &&
-     edgeMinScaffoldLengthRatio < EDGE_PER_MIN_SCAFFOLD_LENGTH_THRESHOLD)
+  if ((stddevsPerWeight < STDDEVS_PER_WEIGHT_THRESHOLD &&
+       edgeMinScaffoldLengthRatio < EDGE_PER_MIN_SCAFFOLD_LENGTH_THRESHOLD) ||
+      (edgeMinScaffoldLengthRatio < MAX_PERC_SCAFFOLD_LEN &&
+       -curEdge->distance.mean < MAX_OVERLAP_TO_ABUT))
   {
     
 #ifdef DEBUG1
@@ -3437,6 +3458,86 @@ int LooseAbuttingCheck(SEdgeT * curEdge,
 #ifdef DEBUG1
   fprintf(GlobalData->stderrc, "Loose abutting check failed.\n");
 #endif
+
+
+#ifdef DRAW_BAD_MATE_CAMS
+      if(curEdge->edgesContributing>=DRAW_BAD_MATE_CAMS
+	 &&curEdge->distance.mean > -5000
+	 &&scaffoldA->bpLength.mean > curEdge->distance.mean + 10000
+	 &&scaffoldB->bpLength.mean > curEdge->distance.mean + 10000
+	 )
+	{
+
+	  int64 scaffoldAEndCoord = 0, scaffoldBEndCoord = 0, endcoord=0;
+	  char camname[1000];
+	  static DIR *camdir=NULL;
+	  static int looseabut_count=0;
+	  FILE *camfile=NULL;
+
+	  if(++looseabut_count < 500){
+	    camdir=opendir("MergeCams");
+	    if(camdir==NULL){
+	      system("mkdir MergeCams");
+	      camdir=opendir("MergeCams");
+	      assert(camdir!=NULL);
+	    }
+	    sprintf(camname,"MergeCams/looseabut_failure_%d_%d.cam",scaffoldA->id,scaffoldB->id);
+	    camfile = fopen(camname,"w");
+	    assert(camfile!=NULL);
+	    DumpCelamyColors(camfile);
+	    DumpCelamyMateColors(camfile);
+
+	    do_draw_frags_in_CelamyScaffold=1;
+	    DumpCelamyFragColors(camfile);
+	    //	if(endcoord!=0)endcoord+=1000000;
+	    if(scaffoldA->bpLength.mean < -curEdge->distance.mean){
+	      endcoord+=-curEdge->distance.mean-scaffoldA->bpLength.mean;
+	    }
+	    if(curEdge->orient == AB_AB || curEdge->orient == AB_BA){
+	      scaffoldAEndCoord = endcoord;
+	      scaffoldBEndCoord = endcoord + scaffoldA->bpLength.mean;
+	    } else {
+	      scaffoldBEndCoord = endcoord;
+	      scaffoldAEndCoord = endcoord + scaffoldA->bpLength.mean;
+	    }
+	    CelamyScaffold(camfile,scaffoldA,scaffoldAEndCoord,scaffoldBEndCoord);
+	    endcoord += scaffoldA->bpLength.mean;
+	    endcoord += curEdge->distance.mean;
+	    if(curEdge->orient == AB_AB || curEdge->orient == BA_AB){
+	      scaffoldAEndCoord = endcoord;
+	      scaffoldBEndCoord = endcoord + scaffoldB->bpLength.mean;
+	    } else {
+	      scaffoldBEndCoord = endcoord;
+	      scaffoldAEndCoord = endcoord + scaffoldB->bpLength.mean;
+	    }
+	    CelamyScaffold(camfile,scaffoldB,scaffoldAEndCoord,scaffoldBEndCoord);
+	    do_draw_frags_in_CelamyScaffold=0;
+	    //	endcoord += scaffoldB->bpLength.mean;
+
+	    {
+	      static ScaffoldInstrumenter *si=NULL;
+	      if(si==NULL){
+		si = CreateScaffoldInstrumenter(ScaffoldGraph,INST_OPT_ALL);
+		assert(si!=NULL);
+	      }
+	      InstrumentScaffoldPair(ScaffoldGraph,
+				     curEdge,
+				     si,
+				     InstrumenterVerbose2,
+				     GlobalData->stderrc);
+
+	      PrintScaffoldInstrumenterMateDetails(si,camfile,PRINTCELAMY);
+	      PrintExternalMateDetailsAndDists(ScaffoldGraph,si->bookkeeping.wExtMates,"\t",camfile,PRINTCELAMY);
+	      PrintUnmatedDetails(si,camfile,PRINTCELAMY);
+
+	    }
+
+	    fclose(camfile);
+	    closedir(camdir);
+	  }
+	}
+#endif
+
   
   return FALSE; 
 }
