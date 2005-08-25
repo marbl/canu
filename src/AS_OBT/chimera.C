@@ -192,7 +192,7 @@ u32bit   fullCoverage    = 0;
 u64bit*
 readClearRanges(char *frgStore) {
 
-  FragStoreHandle fs = openFragStore(frgStore, "rw+");
+  FragStoreHandle fs = openFragStore(frgStore, "r+");
   if (fs == NULLSTOREHANDLE)
     fprintf(stderr, "Failed to open fragStore %s!\n", frgStore), exit(1);
 
@@ -734,7 +734,7 @@ main(int argc, char **argv) {
   u64bit           maxIID      = 65536;
   overlapList     *overlap = new overlapList;
 
-  FragStoreHandle fs = openFragStore(frgStore, "rw+");
+  FragStoreHandle fs = openFragStore(frgStore, "r+");
   if (fs == NULLSTOREHANDLE) {
     fprintf(stderr, "Failed to open fragStore %s!\n", frgStore);
     exit(1);

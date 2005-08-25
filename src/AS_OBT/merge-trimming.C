@@ -101,7 +101,7 @@ main(int argc, char **argv) {
 
   //  Open the frgStore, prepare for reading fragments
   //
-  FragStoreHandle fs = openFragStore(frgStore, "rw+");
+  FragStoreHandle fs = openFragStore(frgStore, "r+");
   if (fs == NULLSTOREHANDLE) {
     fprintf(stderr, "Failed to open fragStore %s!\n", frgStore);
     exit(1);
