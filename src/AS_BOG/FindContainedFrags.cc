@@ -31,11 +31,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FindContainedFrags.cc,v 1.7 2005-08-12 20:53:38 eliv Exp $
- * $Revision: 1.7 $
+ * $Id: FindContainedFrags.cc,v 1.8 2005-08-26 20:38:02 eliv Exp $
+ * $Revision: 1.8 $
 */
 
-static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.7 2005-08-12 20:53:38 eliv Exp $";
+static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.8 2005-08-26 20:38:02 eliv Exp $";
 
 //  System include files
 
@@ -113,24 +113,8 @@ int  main
    int j;
    while  (Next_From_OVL_Stream (&olap, my_stream))
      {
-        float erate = Expand_Quality(olap.corr_erate) * 100;
-         if ( olap.a_hang == 0 && olap.b_hang == 0 )
-         {
-             multiContain[ olap.a_iid ].equal[ olap.b_iid ] = erate;
-         }
-         else if ( olap.a_hang >= 0 && olap.b_hang <= 0 )
-         {
-             multiContain[ olap.b_iid ].in.insert( olap.a_iid );
-         }
-         else if ( olap.a_hang <= 0 && olap.b_hang >= 0 )
-         {
-             multiContain[ olap.a_iid ].in.insert( olap.b_iid );
-         } else {
-             // no containment, so score
-            for( j = 0; j < metrics.size(); j++) 
-                metrics[j]->score( olap );
-
-         }
+         for( j = 0; j < metrics.size(); j++) 
+                metrics[j]->scoreOverlap( olap );
      }
    Free_OVL_Stream( my_stream );
    Free_OVL_Store( my_store );

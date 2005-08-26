@@ -34,8 +34,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.hh,v 1.10 2005-08-12 20:53:38 eliv Exp $
- * $Revision: 1.10 $
+ * $Id: AS_BOG_BestOverlapGraph.hh,v 1.11 2005-08-26 20:38:02 eliv Exp $
+ * $Revision: 1.11 $
 */
 
 //  System include files
@@ -79,8 +79,8 @@ namespace AS_BOG{
 		// fragment a and fragment b
 
 		iuid container;
-		overlap_type type;
 		float score;
+		bool sameOrientation;
 	};
 
 	///////////////////////////////////////////////////////////////////////
@@ -124,21 +124,22 @@ namespace AS_BOG{
 
 			BestContainment *getBestContainer(iuid frag_id);
 
-            virtual bool checkForNextFrag(const Long_Olap_Data_t& olap, float scoreReset);
+            void scoreOverlap(const Long_Olap_Data_t& olap);
+            bool checkForNextFrag(const Long_Olap_Data_t& olap);
             virtual float score( const Long_Olap_Data_t& olap) =0;
 
 		protected:
-			BestFragmentOverlap* _best_overlaps;
 			iuid _num_fragments;
             iuid curFrag;
+            int bestLength;
+
+			BestFragmentOverlap* _best_overlaps;
             std::map<iuid, BestContainment> _best_containments;
 
 	}; //BestOverlapGraph
 
     struct ErateScore : public BestOverlapGraph {
-        short bestLength;
-        ErateScore(int num) : BestOverlapGraph(num), bestLength(0) {}
-        bool checkForNextFrag(const Long_Olap_Data_t& olap, float scoreReset);
+        ErateScore(int num) : BestOverlapGraph(num) {}
         float score( const Long_Olap_Data_t& olap);
     };
 
@@ -149,8 +150,8 @@ namespace AS_BOG{
 
     struct LongestHighIdent : public BestOverlapGraph {
         float mismatchCutoff;
-        LongestHighIdent(int num, float maxMismatch) : BestOverlapGraph(num),
-                                                       mismatchCutoff(maxMismatch) {}
+        LongestHighIdent(int num, float maxMismatch)
+            : BestOverlapGraph(num), mismatchCutoff(maxMismatch) {}
         float score( const Long_Olap_Data_t& olap);
     };
 
