@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.28 2005-08-19 19:57:09 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.29 2005-08-27 13:37:19 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -106,9 +106,9 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.28 2005-08-19 19:57:09 bria
 #include "UtilsREZ.h"
 //#include "CA_ALN_local.h"
 
-//=================================================================================
+//*********************************************************************************
 //  Tables to facilitate SNP Basecalling
-//=================================================================================
+//*********************************************************************************
 
 static double EPROB[CNS_MAX_QV-CNS_MIN_QV+1]; // prob of error for each quality value
 static double PROB[CNS_MAX_QV-CNS_MIN_QV+1];  // prob of correct call for each quality value (1-eprob)
@@ -206,9 +206,9 @@ int InitializeAlphTable(void) {
    return 1;
 }
 
-//=================================================================================
+//*********************************************************************************
 // Basic conversions, etc. for sequence manipulation
-//=================================================================================
+//*********************************************************************************
 
 int RBaseToInt(char c) {  
 // Translate characters representing base reads to array index
@@ -261,9 +261,9 @@ void SequenceComplement(char *sequence, char *quality) {
     }
 }
 
-//=================================================================================
+//*********************************************************************************
 // Manipulation of the BaseCount struct which reflects a char profile
-//=================================================================================
+//*********************************************************************************
 
 int IncBaseCount(BaseCount *b,char c) {
    int i= BaseToInt(c);
@@ -365,9 +365,9 @@ char GetMaxBaseCount(BaseCount *b,int start_index) {  // start at 1 to disallow 
 }
 
   
-//=================================================================================
+//*********************************************************************************
 // MANode (MultiAlignmentNode) creation
-//=================================================================================
+//*********************************************************************************
 
 MANode * CreateMANode(int32 iid){
   MANode ma;
@@ -392,9 +392,9 @@ int32 GetMANodeLength(int32 mid) {
   return GetNumint32s(ma->columns);
 }
 
-//=================================================================================
+//*********************************************************************************
 //  Reset all the local stores
-//=================================================================================
+//*********************************************************************************
 
 void ResetStores(int32 num_frags, int32 num_columns) {
 
@@ -460,9 +460,9 @@ void ResetStores(int32 num_frags, int32 num_columns) {
    gaps_in_alignment=0;
 }
 
-//=================================================================================
+//*********************************************************************************
 // Iterator for Column bases (called "beads")
-//=================================================================================
+//*********************************************************************************
 int CreateColumnBeadIterator(int32 cid,ColumnBeadIterator *bi) {
    Column *column = GetColumn(columnStore,cid);
    if ( column == NULL ) { return 0;}
@@ -483,9 +483,9 @@ int32 NextColumnBead(ColumnBeadIterator *bi) {
    return nid;
 }
 
-//=================================================================================
+//*********************************************************************************
 // Iterator for Fragment bases (called "beads")
-//=================================================================================
+//*********************************************************************************
 int NullifyFragmentBeadIterator(FragmentBeadIterator *bi) {
    bi->fragment = *GetFragment(fragmentStore,0);
    bi->bead = -2;
@@ -516,9 +516,9 @@ int32 NextFragmentBead(FragmentBeadIterator *bi) {
    return nid;
 }
 
-//=================================================================================
+//*********************************************************************************
 // Iterator for Consensus bases (called "beads")
-//=================================================================================
+//*********************************************************************************
 int CreateConsensusBeadIterator(int32 mid,ConsensusBeadIterator *bi) {
    Column *first = GetColumn(columnStore,(GetMANode(manodeStore,mid))->first);
    bi->manode_id = mid;
@@ -538,9 +538,9 @@ int32 NextConsensusBead(ConsensusBeadIterator *bi) {
    return nid;
 }
 
-//=================================================================================
+//*********************************************************************************
 // Iterator for columns 
-//=================================================================================
+//*********************************************************************************
 int CreateColumnIterator(int32 cid,ColumnIterator *ci) {
    GetColumn(columnStore,cid);
    ci->cid = cid;
@@ -559,11 +559,11 @@ int32 NextColumn(ColumnIterator *ci) {
    return nid;
 }
 
-//=================================================================================
+//*********************************************************************************
 // Insert a "gap bead" in a bead sequence (return the new bead's id)
 //    int32 AppendGapBead(int32 bid);
 //    int32 PrependGapBead(int32 bid);
-//=================================================================================
+//*********************************************************************************
 
 int32 AppendGapBead(int32 bid) {
   // The gap will appear immediately following bid
@@ -891,9 +891,9 @@ int SetGappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) {
    return first_frag;
 }
 
-//=================================================================================
+//*********************************************************************************
 // Add a fragment to the basic local store for fragment data
-//=================================================================================
+//*********************************************************************************
 
 int32 AppendFragToLocalStore(FragType type, int32 iid, int complement,int32 contained, char *source,
       UnitigType utype, MultiAlignStoreT *multialignStore) {
@@ -1090,9 +1090,9 @@ int32 AppendFragToLocalStore(FragType type, int32 iid, int complement,int32 cont
 int32 AppendArtificialFragToLocalStore(FragType type, int32 iid, int complement,int32 contained,
       UnitigType utype, char *seq, char *qlt, int len);
 
-//=================================================================================
+//*********************************************************************************
 // Basic manipulation of Bead data 
-//=================================================================================
+//*********************************************************************************
 
 int32 AlignBead(int32 cid, int32 bid) {
 Column *column=GetColumn(columnStore,cid);
@@ -1348,9 +1348,9 @@ int32 RightEndShiftBead(int32 bid, int32 eid) {
   }
 }
    
-//=================================================================================
+//*********************************************************************************
 // Basic manipulation of Column data 
-//=================================================================================
+//*********************************************************************************
 
 Column * CreateColumn(int32 bid){
 // create a new column, seeded with the bead bid
@@ -1612,10 +1612,6 @@ void ShowColumn(int32 cid) {
   fprintf(stderr,"call:        %c /%c\n",toupper(*Getchar(sequenceStore,call->soffset)),*Getchar(qualityStore,call->soffset));
 }
 
-//=================================================================================
-// BaseCalling
-//=================================================================================
-
 char QVInRange(int q) {
     // Ensure that QV returned is within allowable range
     // outliers are rounded down or up to endpoints of range
@@ -1641,7 +1637,10 @@ IidToIndex(int32 iid, int32 *iids, int nr)
     return (-1);
 }
 
-/* Calculate the consensus base for the given column */
+//*********************************************************************************
+// Function: BaseCalling
+// Purpose: Calculate the consensus base for the given column
+//*********************************************************************************
 int 
 BaseCall(int32 cid, int quality, double *var, AlPair ap, 
     int target_allele, char *cons_base, int verbose, CNS_Options *opp) 
@@ -1651,11 +1650,14 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
     Column *column=GetColumn(columnStore,cid);
     Bead *call = GetBead(beadStore, column->call);
     Bead *bead;
-    int read_base_count[CNS_NP] = {0};
-    int read_qv_count[CNS_NP] = {0};
-    int read_depth=0;
-    int other_base_count[CNS_NP] = {0};
-    int other_depth=0;
+    int best_read_base_count[CNS_NP]  = {0};
+    int other_read_base_count[CNS_NP] = {0};
+    int guide_base_count[CNS_NP]      = {0};
+    
+    int best_read_qv_count[CNS_NP] = {0};
+    int other_read_qv_count[CNS_NP] = {0};
+
+    int b_read_depth=0, o_read_depth=0, guide_depth=0;
     int score=0;
     int bi;
     int32 bid;
@@ -1694,34 +1696,43 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
     {
         static int guides_alloc=0;
         static VarArrayBead  *guides;
-        static VarArrayBead  *reads;
+        static VarArrayBead  *b_reads;
+        static VarArrayBead  *o_reads;
         static VarArrayint16 *tied;
         uint32 bmask;
-        int    num_guides;
+        int    num_b_reads, num_o_reads, num_guides;
         Bead  *gb;
         int    cind;
         double tmpqv;
         int16  bi;
-        int    n_count=0, read_count = 0;
+        int    b_read_count = 0;
         int    frag_cov=0;
         int16  max_ind=0;
         double max_cw=0.0;   // max of "consensus weights" of all bases
-        double normalize=0;
+        double normalize=0.;
 
         if (!guides_alloc) {
             guides = CreateVA_Bead(16);
-            reads  = CreateVA_Bead(16);
+            b_reads  = CreateVA_Bead(16);
+            o_reads  = CreateVA_Bead(16);
             tied   = CreateVA_int16(32);
             guides_alloc = 1;
         } 
         else {
             ResetBead(guides);
-            ResetBead(reads);
+            ResetBead(b_reads);
+            ResetBead(o_reads);
             Resetint16(tied);
         }
         for (bi=0;bi<CNS_NP;bi++) {
             tau[bi] = 1.0;
         }
+
+        // Scan a column of aligned bases (=beads).
+        // Sort the beads into three groups:   
+        //      - those corresponding to the reads of the best allele,  
+        //      - those corresponding to the reads of the other allele and
+        //      - those corresponding to non-read fragments (aka guides)
         while ( (bid = NextColumnBead(&ci)) != -1) 
         {
             bead =  GetBead(beadStore,bid);
@@ -1732,7 +1743,6 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
                 // fprintf(stderr,
                 //    "encountered 'n' base in fragment data at column cid=%d\n",
                 //    cid);
-                n_count++;
                 continue;
             }
             bmask = AMASK[BaseToInt(cbase)];
@@ -1740,48 +1750,84 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
             iid  = GetFragment(fragmentStore,bead->frag_index)->iid;
 
             k = IidToIndex(iid, ap.iids, ap.nr);
-            if ((type  != AS_READ &&
-             	 type  != AS_B_READ &&
-                 type  != AS_EXTR &&
-                 type  != AS_TRNR)      
-                                          ||
-                 (opp->split_alleles &&
-                  ap.nr >  0 && 
-                  k     >= 0 &&
-                  target_allele >= 0 &&
-                  ap.alleles[k] != target_allele)  ) 
+            if (((type  == AS_READ)   ||
+                 (type  == AS_B_READ) ||
+                 (type  == AS_EXTR)   ||
+                 (type  == AS_TRNR))
+                                          &&
+                ((target_allele < 0)  ||   // use any allele
+                 !opp->split_alleles  ||   // use any allele
+                 (ap.nr >  0  &&
+                  ap.alleles[k] == target_allele))) // use the best allele
             {
-                other_base_count[BaseToInt(cbase)]++;
-                AppendBead(guides,bead);
-            } 
-            else 
+                best_read_base_count[BaseToInt(cbase)]++;
+                best_read_qv_count[BaseToInt(cbase)] += qv;
+                AppendBead(b_reads, bead);
+            }
+            else
             {
-                read_base_count[BaseToInt(cbase)]++;
-                read_qv_count[BaseToInt(cbase)] += qv;
-                AppendBead(reads, bead);
+                if (((type  == AS_READ)   ||
+                     (type  == AS_B_READ) ||
+                     (type  == AS_EXTR)   ||
+                     (type  == AS_TRNR)))
+                {
+                    other_read_base_count[BaseToInt(cbase)]++;
+                    other_read_qv_count[BaseToInt(cbase)] += qv;
+                    AppendBead(o_reads, bead);        
+                }
+                else
+                {
+                    guide_base_count[BaseToInt(cbase)]++;
+                    AppendBead(guides, bead);
+                }
             }
             if ( type != AS_UNITIG ) {
                 frag_cov++;
             }
         }
 
-        read_depth = GetNumBeads(reads);
-        other_depth = GetNumBeads(guides);
+        b_read_depth = GetNumBeads(b_reads);
+        o_read_depth = GetNumBeads(o_reads);
+        guide_depth  = GetNumBeads(guides);
         //COMP_BIAS[0] = (read_depth+other_depth) * CNS_SEQUENCING_ERROR_EST;
 
-        for (cind = 0; cind < read_depth; cind++) \
+        // For each base, calculate tau
+        // It will be used to calculate cw
+        if (b_read_depth > 0)
         {
-            gb = GetBead(reads, cind);
-            cbase = *Getchar(sequenceStore,gb->soffset);
-            qv = (int) ( *Getchar(qualityStore,gb->soffset)-'0');
-            if ( qv == 0 ) 
-                qv += 5;
-            bmask = AMASK[BaseToInt(cbase)];
-            for (bi=0;bi<CNS_NP;bi++) {
-                if ( (bmask>>bi) & 1 ) {
-                    tau[bi]*= PROB[qv];
-                } else {
-                    tau[bi]*= (double) TAU_MISMATCH * EPROB[qv];
+            for (cind = 0; cind < b_read_depth; cind++) 
+            {
+                gb = GetBead(b_reads, cind);
+                cbase = *Getchar(sequenceStore,gb->soffset);
+                qv = (int) ( *Getchar(qualityStore,gb->soffset)-'0');
+                if ( qv == 0 ) 
+                    qv += 5;
+                bmask = AMASK[BaseToInt(cbase)];
+                for (bi=0;bi<CNS_NP;bi++) {
+                    if ( (bmask>>bi) & 1 ) {
+                        tau[bi]*= PROB[qv];
+                    } else {
+                        tau[bi]*= (double) TAU_MISMATCH * EPROB[qv];
+                    }
+                }
+            }
+        }
+        else
+        {
+            for (cind = 0; cind < o_read_depth; cind++)
+            {
+                gb = GetBead(o_reads, cind);
+                cbase = *Getchar(sequenceStore,gb->soffset);
+                qv = (int) ( *Getchar(qualityStore,gb->soffset)-'0');
+                if ( qv == 0 )
+                    qv += 5;
+                bmask = AMASK[BaseToInt(cbase)];
+                for (bi=0;bi<CNS_NP;bi++) {
+                    if ( (bmask>>bi) & 1 ) {
+                        tau[bi]*= PROB[qv];
+                    } else {
+                        tau[bi]*= (double) TAU_MISMATCH * EPROB[qv];
+                    }
                 }
             }
         }
@@ -1789,10 +1835,10 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
         /* This loop is disabled at Karin's seggestion */
         if (!opp->split_alleles &&
              (CNS_USE_PUBLIC == 0 || 
-              read_depth < CNS_USE_PUBLIC || 
-              read_depth == 0 )) 
+              b_read_depth < CNS_USE_PUBLIC || 
+              (b_read_depth == 0 && o_read_depth == 0))) 
         {
-            for (cind = 0; cind < other_depth; cind++) {
+            for (cind = 0; cind < guide_depth; cind++) {
                 gb = GetBead(guides,cind);
                 type  = GetFragment(fragmentStore,gb->frag_index)->type;
                 utype = GetFragment(fragmentStore,gb->frag_index)->utype;
@@ -1800,7 +1846,7 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
                 if ( type == AS_UNITIG && 
                          ((utype != AS_STONE_UNITIG && 
                            utype != AS_PEBBLE_UNITIG && 
-                           utype != AS_OTHER_UNITIG) || read_depth > 0)) 
+                           utype != AS_OTHER_UNITIG) || b_read_depth > 0)) 
                 {
                     continue;
                 }
@@ -1826,8 +1872,12 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
             normalize += cw[bi];
         }
         if (normalize) 
-            normalize = 1/normalize;
-        for (bi=0; bi<CNS_NP; bi++) {
+            normalize = 1./normalize;
+
+        // Calculate max_ind as {i | cw[i] -> max_cw}
+        // Store all other indexes { i | cw[i] == max_cw } in VA Array tied
+        for (bi=0; bi<CNS_NP; bi++) 
+        {
             cw[bi] *= normalize;
             if (cw[bi] > max_cw + ZERO_PLUS) {
                 max_ind = bi;
@@ -1837,23 +1887,20 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
                 Appendint16(tied,&bi);
             }
         }
+
+        // If max_cw == 0, then consensus base call will be a gap (max_ind==0)
+        // Otherwise, it will be selected RANDOMLY (!!!) from all {i|cw[i]==max_cw}
         if (DBL_EQ_DBL(max_cw, (double)0.0)) {
             max_ind = 0;      // consensus is gap
-        } else {
+        } 
+        else 
+        {
             if (GetNumint16s(tied)> 0) 
             {
                 // break a tie randomly
-                int i,max_tie,tie_breaker=random();
+                // THIS COULD BE THE REASON FOR AN INTER-PLATFORM DIFFERENCE !!!!
                 Appendint16(tied, &max_ind);
-                max_tie = tie_breaker;
-                max_ind = *Getint16(tied,0);
-                for (i=1;i<GetNumint16s(tied);i++) {
-                    tie_breaker = random();
-                    if (tie_breaker > max_tie) {
-                        max_tie = tie_breaker;
-                        max_ind = *Getint16(tied,i);
-                    }
-                }
+                max_ind = *Getint16(tied,1);
                 max_cw = cw[max_ind];
             } 
         }
@@ -1866,6 +1913,8 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
 //              fprintf(stdout,"\n");
 //          }
         }
+
+        // Set the consensus base quality value
         // cbase = toupper(RALPHABET[max_ind]);
         cbase = RALPHABET[max_ind];
         if (DBL_EQ_DBL(max_cw, (double)1.0)) {
@@ -1904,6 +1953,8 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
                 cqv = 0 + '0';
             }
         }
+
+         
        *cons_base = cbase;
         if (target_allele <  0 || target_allele == ap.best_allele)
         {
@@ -1912,27 +1963,28 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
         }
         
         for (bi=0; bi<CNS_NALPHABET-1; bi++)
-            read_count += read_base_count[bi];
+            b_read_count += best_read_base_count[bi];
 
         for (bi=0; bi<CNS_NALPHABET-1; bi++) { 
             // NALAPHBET-1 to exclude "n" base call
             bmask = AMASK[bi];  // mask for indicated base
             if ( ! ((bmask>>max_ind) & 1) ) { 
                 // penalize only if base in not represented in call
-                score += read_base_count[bi] + other_base_count[bi];
+                score += best_read_base_count[bi] + other_read_base_count[bi]
+                      + guide_base_count[bi];
             }
             /* To be considered, base should either have high enough quality
              * or be confirmed by another base (Granger's suggestion - GD)
              */
-            if ((read_base_count[bi] > 1) || 
-                (read_qv_count[bi] > MIN_QV_FOR_VARIATION))
+            if ((best_read_base_count[bi] > 1) || 
+                (best_read_qv_count[bi] > MIN_QV_FOR_VARIATION))
             {
-                sum_qv_all += read_qv_count[bi];
+                sum_qv_all += best_read_qv_count[bi];
                 if (IntToBase(bi) == cbase)
-                    sum_qv_cbase = read_qv_count[bi];
+                    sum_qv_cbase = best_read_qv_count[bi];
             }
         }
-        if ((read_count == 1 ) || (sum_qv_all == 0))
+        if ((b_read_count == 1 ) || (sum_qv_all == 0))
            *var = 0.;
         else 
            *var = 1. - (double)sum_qv_cbase / (double)sum_qv_all;
@@ -1955,20 +2007,20 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
                 type  != AS_B_READ &&
                 type  != AS_EXTR &&
                 type  != AS_TRNR ) {
-                other_base_count[BaseToInt(cbase)]++;
+                guide_base_count[BaseToInt(cbase)]++;
             } 
             else {
-                read_base_count[BaseToInt(cbase)]++;
+                best_read_base_count[BaseToInt(cbase)]++;
             }
         }
         for (i=0; i<CNS_NALPHABET; i++) {
-            if (read_base_count[i]+other_base_count[i] > max_count) {
-                max_count = read_base_count[i] + other_base_count[i];
+            if (best_read_base_count[i]+guide_base_count[i] > max_count) {
+                max_count = best_read_base_count[i] + guide_base_count[i];
                 max_index = i;
             }
         }
-        if ( read_base_count[max_index] + other_base_count[max_index] > 
-            (read_depth                 + other_depth)/2 ) 
+        if ( best_read_base_count[max_index] + guide_base_count[max_index] > 
+            (b_read_depth                 + guide_depth)/2 ) 
         {
             tie_count = 0;
         } 
@@ -1976,7 +2028,7 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
         {
             for (i=0;i<CNS_NALPHABET;i++) 
             {
-                if (read_base_count[i]+other_base_count[i] == max_count) 
+                if (best_read_base_count[i]+guide_base_count[i] == max_count) 
                 {
                     max_index = i;
                     tie_count++;
@@ -1988,7 +2040,7 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
             for (i=1;i<CNS_NALPHABET;i++) 
             {     /* i starts at 1 to prevent ties */
                   /* from being broken with '-'    */
-                if ( read_base_count[i]+other_base_count[i] == max_count ) 
+                if ( best_read_base_count[i]+guide_base_count[i] == max_count ) 
                 {
                     /* Break unresolved ties with random numbers: */
                     tie_breaker = random();
@@ -2006,7 +2058,7 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
         for (bi=0;bi<CNS_NALPHABET;bi++) {
             if (bi != BaseToInt(cbase)) 
             {
-                score += read_base_count[bi]+other_base_count[bi];
+                score += best_read_base_count[bi]+guide_base_count[bi];
             }
         }
         return score;
@@ -2077,6 +2129,7 @@ GetReadIids(int cid, AlPair *ap)
     int32    iid;
     FragType type;
     ColumnBeadIterator ci;
+    int num_reads = 0, num_giudes = 0;
 
     if(!CreateColumnBeadIterator(cid, &ci)){
         CleanExit("GetReadIids CreateColumnBeadIterator failed",__LINE__,1);
@@ -2096,6 +2149,7 @@ GetReadIids(int cid, AlPair *ap)
             (type == AS_EXTR) ||
             (type == AS_TRNR))
         {
+            num_reads++;
             if (IsNewRead(iid, ap)) {
 
                 if (ap->nr == ap->max_nr)
@@ -2113,7 +2167,12 @@ GetReadIids(int cid, AlPair *ap)
                 ap->nr++;  
             }
         }
+        else
+            num_giudes++;
     }
+#if 0
+    fprintf(stderr, "In GetReadIids: num_reads= %d num_giudes= %d\n", num_reads, num_giudes);
+#endif
 }
 
 static void
@@ -2158,7 +2217,7 @@ PopulateDistMatrix(int32 cid, AlPair *ap)
     int16 bi;
     char *bases, base;
     int32 *iids;
-    int i, j, qv;
+    int i, j, qv, *qvs;
 
     if(!CreateColumnBeadIterator(cid, &ci)){
         CleanExit("PopulateDistMatrix CreateColumnBeadIterator failed",__LINE__,1);
@@ -2168,10 +2227,12 @@ PopulateDistMatrix(int32 cid, AlPair *ap)
 
     bases = (char *)safe_calloc(ap->nr, sizeof(char));
     iids  = (int32 *)safe_calloc(ap->nr, sizeof(int32));
+    qvs   = (int *)  safe_calloc(ap->nr, sizeof(int));
     for (i=0; i<ap->nr; i++)
     {
         bases[i] = 'X';
         iids[i]  = -1;
+        qvs[i] = 0;
     }
 
     // Collect bases and usids in the coluimn
@@ -2195,6 +2256,7 @@ PopulateDistMatrix(int32 cid, AlPair *ap)
  
             bases[i] = base;
             iids[i]  = iid; 
+            qvs[i]   = qv;
             if (base != '-') 
             {
                 ap->sum_qvs[i] += qv;
@@ -2236,29 +2298,38 @@ PopulateDistMatrix(int32 cid, AlPair *ap)
         {
             int k, m;
 
-            if (i == j) 
+            if (i == j)
                 continue;
 
             if ((bases[i] == 'X') || (bases[j] == 'X'))
                 continue;
 
+            if ((iids[i] < 0)  || (iids[j] < 0))
+                continue;
+
             k = IidToIndex(iids[i], ap->iids, ap->nr);
             m = IidToIndex(iids[j], ap->iids, ap->nr);
 
-            if (bases[i] == bases[j]) 
+            if (bases[i] == bases[j])
             {
-                
+
                 if (ap->dist_matrix[k][m] < 0) ap->dist_matrix[k][m] = 0;
                 if (ap->dist_matrix[m][k] < 0) ap->dist_matrix[m][k] = 0;
                 continue;
             }
-
-            ap->dist_matrix[k][m] += 1;
-            ap->dist_matrix[m][k] += 1;
+            else
+            {
+                if (ap->dist_matrix[k][m] < 0) ap->dist_matrix[k][m] = 0;
+                if (ap->dist_matrix[m][k] < 0) ap->dist_matrix[m][k] = 0;
+                ap->dist_matrix[m][k] +=     qvs[k] + qvs[m] ;
+                ap->dist_matrix[k][m] +=     qvs[k] + qvs[m] ;
+                continue;
+            }
         }
     }
     FREE(bases);
     FREE(iids);
+    FREE(qvs);
 }
 
 /*******************************************************************************
@@ -2278,6 +2349,7 @@ ClusterReads(AlPair *ap)
     if (ap->nr <= 1)
     {
        ap->best_allele = 0;
+       ap->alleles[0] = 0;
        return;    
     }
 
@@ -2327,6 +2399,9 @@ ClusterReads(AlPair *ap)
         }
     }
 
+#if 0
+    fprintf(stderr, "sum_qv0= %d sum_qv1= %d\n", sum_qv0, sum_qv1);
+#endif
     if (sum_qv0 > sum_qv1 + ZERO_PLUS) 
     {
         ap->best_allele = 0;
@@ -2346,9 +2421,9 @@ ClusterReads(AlPair *ap)
 
 }
 
-//=================================================================================
+//*********************************************************************************
 // Basic MultiAlignmentNode (MANode) manipulation
-//=================================================================================
+//*********************************************************************************
 int RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars, 
    IntMultiVar **v_list, int make_v_list) 
 {
@@ -2485,11 +2560,17 @@ int RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
                 }
             }
 
-            for (j=vbeg; j<vend; j++)
+            // Get all the read iids 
+            // Calculate the total number of reads, ap.nr (corresponding to any allele)
+            for (j=beg; j<=end; j++)
             {
                 GetReadIids(cids[j], &ap);
             }
-          
+#if 0
+            fprintf(stderr, "beg= %d end= %d\n", beg, end);
+            fprintf(stderr, "total number of reads after GetReadIids= %d\n", ap.nr);
+#endif       
+   
             ap.alleles = (char *)safe_calloc(ap.nr, sizeof(char));
             ap.sum_qvs = (int  *)safe_calloc(ap.nr, sizeof(int));
             for (j=0; j<ap.nr; j++)
@@ -2498,23 +2579,26 @@ int RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
 
             AllocateDistMatrix(&ap);
 
-            for (j=vbeg; j<vend; j++)
+            // Calculate a sum of qvs for each read within a variation region
+            // Populate the distance matrix
+            for (j=beg; j<=end; j++)
             {
                 PopulateDistMatrix(cids[j], &ap);    
             }
 
 //          OutputDistMatrix(&ap);
+
+            // Populate ap.alleles array
+            // Determine the best allele and the number of reads in this allele
             ClusterReads(&ap);   
 
-            // Recall consensus base using only one allele
-            for (j=vbeg; j<vend; j++)
-            {
-                BaseCall(cids[j], quality, &fict_var, ap, ap.best_allele,
-                   &cbase, 0, opp);
-            }   
-
+#if 0
+            fprintf(stderr, "total number of reads after ClusterReads %d\n", ap.nr);
+#endif
             /* Store variations in a v_list */
-            if (quality > 0 && make_v_list)
+            if ((quality > 0) && make_v_list 
+                                             // && (ap.nr > 0)
+                                                              )
             {
                 if (!(*v_list))
                 {
@@ -2541,18 +2625,18 @@ int RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
                     int m;
                     for (m=0; m<end-beg+1; m++)
                     {
+                       // Get the consensus base for an alternative allele
+                       BaseCall(cids[beg+m], quality, &fict_var, ap,
+                           ap.best_allele == 0 ? 1 : 0, &cbase, 0, opp);
+                       (*v_list)[*nvars].var_seq[end-beg+2+m] = cbase;
+                    }
+                    (*v_list)[*nvars].var_seq[end-beg+1] = '/';
+                    for (m=0; m<end-beg+1; m++)
+                    {
                        // Get the consensus base for the best allele
                        BaseCall(cids[beg+m], quality, &fict_var, ap,
                            ap.best_allele, &cbase, 0, opp);
                        (*v_list)[*nvars].var_seq[m] = cbase;
-                    }
-                    (*v_list)[*nvars].var_seq[end-beg+1] = ';';
-                    for (m=0; m<end-beg+1; m++)
-                    {
-                       // Get the consensus base for an alternative allele
-                       BaseCall(cids[beg+m], quality, &fict_var, ap, 
-                           ap.best_allele == 0 ? 1 : 0, &cbase, 0, opp);
-                       (*v_list)[*nvars].var_seq[end-beg+2+m] = cbase;
                     } 
                     (*v_list)[*nvars].var_seq[2*(end-beg)+3] = '\0';
                 }
@@ -2877,9 +2961,9 @@ void ReportTrick(FILE *fp, CNS_AlignTrick trick) {
    return;
 }
 
-//=================================================================================
+//*********************************************************************************
 // Look for the required overlap between two fragments, and return trace
-//=================================================================================
+//*********************************************************************************
 
 int GetAlignmentTrace(int32 afid, int32 aoffset, int32 bfid, int32 *ahang, int32 ovl, 
      VA_TYPE(int32) *trace, OverlapType *otype, Overlap *(*COMPARE_FUNC)(COMPARE_ARGS),int show_olap, int allow_big_endgaps) {
@@ -3314,10 +3398,10 @@ int32 ApplyIMPAlignment(int32 afid, int32 bfid, int32 ahang, int32 *trace) {
    return bpos;
 }
 
-//=================================================================================
+//*********************************************************************************
 // Align the b fragment to the previously aligned a fragment, applying the given
 // ahang and trace
-//=================================================================================
+//*********************************************************************************
 
 int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *trace) {
   // aoffset is going to be used to indicate position in consensus sequence from which to start alignment
@@ -3565,9 +3649,9 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
    return last_b_aligned;
 }
 
-//=================================================================================
+//*********************************************************************************
 // Utility functions for MultiAlignmentNodes (MANode) and Fragments
-//=================================================================================
+//*********************************************************************************
 
 int GetMANodeConsensus(int32 mid, VA_TYPE(char) *sequence, VA_TYPE(char) *quality) {
    ConsensusBeadIterator bi;
@@ -4043,10 +4127,10 @@ int RemoveNullColumn(int32 nid) {
   return 1;
 }
 
-//=================================================================================
+//*********************************************************************************
 // Simple sweep through the MultiAlignment columns, looking for columns
 // to merge and removing null columns
-//=================================================================================
+//*********************************************************************************
 
 int32 MergeRefine(int32 mid, IntMultiVar **v_list, int32 *num_vars, CNS_Options *opp) 
 {
@@ -4105,9 +4189,9 @@ int32 MergeRefine(int32 mid, IntMultiVar **v_list, int32 *num_vars, CNS_Options 
   return removed;
 }
 
-//=================================================================================
+//*********************************************************************************
 // Simple sweep through the MultiAlignment columns, tabulating discrepencies by QV
-//=================================================================================
+//*********************************************************************************
 
 int32 AlternateDiscriminator(int32 mid, int32 *allmismatches,int32 *hqmismatches, 
     int32 *hqsum, int32 *basecount) 
@@ -4160,9 +4244,9 @@ int32 AlternateDiscriminator(int32 mid, int32 *allmismatches,int32 *hqmismatches
   return hqtab;
 }
 
-//=================================================================================
+//*********************************************************************************
 // Utility functions for Abacus
-//=================================================================================
+//*********************************************************************************
 
 char *GetAbacus(Abacus *a, int32 i, int32 j) {
    return (a->beads+i*(a->columns+2)+j+1);
@@ -4946,14 +5030,14 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
     return score_reduction;
 }
 
-//=================================================================================
+//*********************************************************************************
 // Abacus Refinement:
 //   AbacusRefine contains the logic for sweeping through the multialignment,
 //   and identifying candidate windows for refinement.
 //   Each window is cast into an abacus, which is left and right shifted.
 //   The best resulting base arrangement (if different from input) is then
 //   applied to window of the MultiAlignment
-//=================================================================================
+//*********************************************************************************
 
 int AbacusRefine(MANode *ma,int32 from, int32 to, CNS_RefineLevel level,
     CNS_Options *opp) 
