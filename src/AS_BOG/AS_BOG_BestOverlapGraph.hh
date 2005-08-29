@@ -34,8 +34,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.hh,v 1.11 2005-08-26 20:38:02 eliv Exp $
- * $Revision: 1.11 $
+ * $Id: AS_BOG_BestOverlapGraph.hh,v 1.12 2005-08-29 21:05:05 eliv Exp $
+ * $Revision: 1.12 $
 */
 
 //  System include files
@@ -128,13 +128,13 @@ namespace AS_BOG{
             bool checkForNextFrag(const Long_Olap_Data_t& olap);
             virtual float score( const Long_Olap_Data_t& olap) =0;
 
+            std::map<iuid, BestContainment> _best_containments;
 		protected:
 			iuid _num_fragments;
             iuid curFrag;
             int bestLength;
 
 			BestFragmentOverlap* _best_overlaps;
-            std::map<iuid, BestContainment> _best_containments;
 
 	}; //BestOverlapGraph
 

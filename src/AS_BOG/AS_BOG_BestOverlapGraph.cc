@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.8 2005-08-26 20:38:02 eliv Exp $
- * $Revision: 1.8 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.9 2005-08-29 21:05:04 eliv Exp $
+ * $Revision: 1.9 $
 */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.8 2005-08-26 20:38:02 eliv Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.9 2005-08-29 21:05:04 eliv Exp $";
 
 //  System include files
 
@@ -105,8 +105,13 @@ namespace AS_BOG{
         }
 	}
 
-	BestContainment *BestOverlapGraph::getBestContainer(iuid containee){
-		return(&_best_containments[containee]);
+	BestContainment* BestOverlapGraph::getBestContainer(iuid containee)
+    {
+        std::map<iuid,BestContainment>::iterator i = _best_containments.find( containee ); 
+        if ( i != _best_containments.end() ) 
+		    return &_best_containments[containee];
+        else
+            return NULL;
 	}
 
     void BestOverlapGraph::setBestEdge(const Long_Olap_Data_t& olap, float newScore) {
@@ -170,25 +175,39 @@ namespace AS_BOG{
 
     void BestOverlapGraph::scoreOverlap(const Long_Olap_Data_t& olap)
     {
-         if ( olap.a_hang == 0 && olap.b_hang == 0 )
+        float newScr = score(olap);
+        if ( olap.a_hang == 0 && olap.b_hang == 0 )
          {
              //multiContain[ olap.a_iid ].equal[ olap.b_iid ] = erate;
              //handle identical containment
          }
          else if ( olap.a_hang >= 0 && olap.b_hang <= 0 )
          {
-             //multiContain[ olap.b_iid ].in.insert( olap.a_iid );
              //handle a contains b
+             BestContainment *best = getBestContainer( olap.b_iid );
+             if (NULL == best || newScr > best->score) {
+                 BestContainment newBest;
+                 newBest.container = olap.a_iid;
+                 newBest.score     = newScr;
+                 newBest.sameOrientation = olap.flipped ? false : true;
+                 _best_containments[ olap.b_iid ] = newBest;
+             }
          }
          else if ( olap.a_hang <= 0 && olap.b_hang >= 0 )
          {
-             //multiContain[ olap.a_iid ].in.insert( olap.b_iid );
              //handle b contains a
+             BestContainment *best = getBestContainer( olap.a_iid );
+             if (NULL == best || newScr > best->score) {
+                 BestContainment newBest;
+                 newBest.container = olap.b_iid;
+                 newBest.score     = newScr;
+                 newBest.sameOrientation = olap.flipped ? false : true;
+                 _best_containments[ olap.a_iid ] = newBest;
+             }
          } else {
              // no containment, so score
              checkForNextFrag(olap);
              BestEdgeOverlap *best = getBestEdge( olap.a_iid, AEnd(olap));
-             float newScr = score(olap);
              short olapLen = olapLength(olap);
              if (newScr > best->score || newScr == best->score && olapLen > bestLength ) {
                  setBestEdge( olap, newScr );
