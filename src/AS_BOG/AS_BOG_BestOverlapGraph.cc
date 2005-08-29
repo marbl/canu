@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.9 2005-08-29 21:05:04 eliv Exp $
- * $Revision: 1.9 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.10 2005-08-29 21:22:25 eliv Exp $
+ * $Revision: 1.10 $
 */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.9 2005-08-29 21:05:04 eliv Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.10 2005-08-29 21:22:25 eliv Exp $";
 
 //  System include files
 
@@ -143,6 +143,14 @@ namespace AS_BOG{
         return BestOverlapGraph::fragLength[ iid ];
     }
 
+    short BestOverlapGraph::olapLength(const Long_Olap_Data_t& olap) {
+        uint16 alen = fragLen(olap.a_iid);
+        if (olap.a_hang < 0)
+            return alen - abs(olap.b_hang);
+        else
+            return alen - olap.a_hang;
+    }
+
     bool BestOverlapGraph::checkForNextFrag(const Long_Olap_Data_t& olap)
     {
         if (curFrag != olap.a_iid) {
@@ -196,7 +204,7 @@ namespace AS_BOG{
          else if ( olap.a_hang <= 0 && olap.b_hang >= 0 )
          {
              //handle b contains a
-             BestContainment *best = getBestContainer( olap.a_iid );
+/*             BestContainment *best = getBestContainer( olap.a_iid );
              if (NULL == best || newScr > best->score) {
                  BestContainment newBest;
                  newBest.container = olap.b_iid;
@@ -204,6 +212,7 @@ namespace AS_BOG{
                  newBest.sameOrientation = olap.flipped ? false : true;
                  _best_containments[ olap.a_iid ] = newBest;
              }
+*/
          } else {
              // no containment, so score
              checkForNextFrag(olap);

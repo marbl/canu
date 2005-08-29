@@ -34,8 +34,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.hh,v 1.12 2005-08-29 21:05:05 eliv Exp $
- * $Revision: 1.12 $
+ * $Id: AS_BOG_BestOverlapGraph.hh,v 1.13 2005-08-29 21:22:25 eliv Exp $
+ * $Revision: 1.13 $
 */
 
 //  System include files
@@ -94,15 +94,9 @@ namespace AS_BOG{
         static ReadStructp fsread;
         static FragStoreHandle fragStoreHandle;
         static overlap_type getType(const Long_Olap_Data_t & olap);
-        fragment_end_type AEnd(const Long_Olap_Data_t & olap);
+        fragment_end_type AEnd(const Long_Olap_Data_t& olap);
         fragment_end_type BEnd(const Long_Olap_Data_t& olap);
-        short        olapLength(const Long_Olap_Data_t& olap) {
-            uint16 alen = fragLen(olap.a_iid);
-            if (olap.a_hang < 0)
-                return alen - abs(olap.b_hang);
-            else
-                return alen - olap.a_hang;
-        }
+        short       olapLength(const Long_Olap_Data_t& olap);
 
         // Constructor, parametrizing maximum number of overlaps
         BestOverlapGraph(int max_fragment_count);
