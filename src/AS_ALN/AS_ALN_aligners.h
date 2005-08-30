@@ -713,5 +713,10 @@ void fix_overlapping_pieces(char *aseq, char *bseq,
 
 void Compute_Olap_Version(InternalFragMesg* a,InternalFragMesg *b,OverlapMesg *O,int *ahang,int *bhang, char *ori);
 
+/*  AS_ALN_clean_up_trace removes leading and trailing gaps */
+
+void AS_ALN_clean_up_trace(int *trace,int alen, int blen,int *spos,int *epos);
+
 #endif
+
 

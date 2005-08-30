@@ -1546,6 +1546,10 @@ Overlap *DP_Compare(char *aseq, char *bseq,
 
   if (what == AS_FIND_ALIGN || what == AS_FIND_ALIGN_NO_TRACE)
     { OVL.trace  = AS_ALN_OKNAlign(aseq,alen,bseq,blen,&pos1,dif1);  
+#define ELIM_TRAILING_SPACES
+#ifdef ELIM_TRAILING_SPACES
+      AS_ALN_clean_up_trace(OVL.trace,alen,blen,&pos1,&(OVL.endpos));
+#endif
       OVL.begpos = pos1;
     }
   else if (what == AS_FIND_AFFINE_ALIGN)

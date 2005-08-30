@@ -1938,3 +1938,39 @@ void Compute_Olap_Version(InternalFragMesg* a,InternalFragMesg *b,OverlapMesg *O
   
   return;
 }
+
+
+
+/*  AS_ALN_clean_up_trace removes leading and trailing gaps */
+
+void AS_ALN_clean_up_trace(int *trace,int alen, int blen,int *spos,int *epos){
+  { int i=0;
+    int j=0;
+    int changeahang=0;
+    int changebhang=0;
+    char c;
+    //printf("Trace (lens %d %d):",alen,blen);
+    while(trace[i]!=0){
+      c='*';
+      if(trace[i]<-alen){
+	changebhang++;
+      } else if (trace[i]>blen){
+	changebhang--;
+      } else if (trace[i]==-1){
+	changeahang--;
+      } else if (trace[i]==1){
+	changeahang++;
+      } else {
+	c=' ';
+	trace[j++]=trace[i];
+      }
+      //printf(" %c%d",c,trace[i]);
+      i++;
+    }
+    //printf("\n");
+    trace[j]=0;
+    *spos+=changeahang;
+    *epos+=changebhang;
+  }
+}
+
