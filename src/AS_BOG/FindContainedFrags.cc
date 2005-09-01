@@ -31,11 +31,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FindContainedFrags.cc,v 1.9 2005-08-29 21:05:05 eliv Exp $
- * $Revision: 1.9 $
+ * $Id: FindContainedFrags.cc,v 1.10 2005-09-01 20:41:10 eliv Exp $
+ * $Revision: 1.10 $
 */
 
-static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.9 2005-08-29 21:05:05 eliv Exp $";
+static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.10 2005-09-01 20:41:10 eliv Exp $";
 
 //  System include files
 
@@ -116,37 +116,41 @@ int  main
                CDS_IID_t b0 = five[0]->frag_b_id;
                AS_BOG::BestEdgeOverlap* f1 = five[1];
                AS_BOG::BestEdgeOverlap* f2 = five[2];
-               cout.width(6);
-               cout << i <<" 5' in "<< five[0]->in_degree << " "
+               cout.flags(std::ios_base::left);
+               cout.width(7);
+               cout << i <<" 5' "<< five[0]->in_degree << " "
                     << f1->in_degree <<" "<< f2->in_degree;
 
                if (b0 == five[1]->frag_b_id && b0 == five[2]->frag_b_id) {
-                   cout <<" best "; cout.width(17);
+                   cout <<" best "; cout.width(23);
                    cout << b0 ;
                } else { 
-                   cout<< " diff "          ; cout.width(5);
-                   cout<< b0 <<" "          ; cout.width(5);
-                   cout<< f1->frag_b_id<<" "; cout.width(5);
+                   cout<< " diff "          ; cout.width(7);
+                   cout<< b0 <<" "          ; cout.width(7);
+                   cout<< f1->frag_b_id<<" "; cout.width(7);
                    cout<< f2->frag_b_id ;
                }
                b0 = three[0]->frag_b_id;
                f1 = three[1];
                f2 = three[2];
-               cout << " ;3' in "<< three[0]->in_degree << " "
+               cout << " 3' "<< three[0]->in_degree << " "
                     << f1->in_degree <<" "<< f2->in_degree;
 
                if (b0 == three[1]->frag_b_id && b0 == three[2]->frag_b_id) {
-                   cout <<" best "; cout.width(5);
+                   cout <<" best "; cout.width(7);
                    cout << b0 << endl;
                } else { 
-                   cout<<" diff ";            cout.width(5);
-                   cout<< b0 <<" ";           cout.width(5);
-                   cout<< f1->frag_b_id<<" "; cout.width(5);
+                   cout<<" diff ";            cout.width(7);
+                   cout<< b0 <<" ";           cout.width(7);
+                   cout<< f1->frag_b_id<<" "; cout.width(7);
                    cout<< f2->frag_b_id << endl;
                }
            }
        } // end for each metric
    } // end for each fragment
+   for( j = 0; j < metrics.size(); j++)  {
+       metrics[j]->transitiveContainment();
+   }
    map<CDS_IID_t,AS_BOG::BestContainment> c1 = metrics[0]->_best_containments;
    for(map<CDS_IID_t,AS_BOG::BestContainment>::const_iterator it = c1.begin();
            it != c1.end(); it++)

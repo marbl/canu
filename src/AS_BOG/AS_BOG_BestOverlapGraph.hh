@@ -34,8 +34,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.hh,v 1.13 2005-08-29 21:22:25 eliv Exp $
- * $Revision: 1.13 $
+ * $Id: AS_BOG_BestOverlapGraph.hh,v 1.14 2005-09-01 20:41:10 eliv Exp $
+ * $Revision: 1.14 $
 */
 
 //  System include files
@@ -117,6 +117,7 @@ namespace AS_BOG{
 			iuid getNumFragments() { return _num_fragments; }
 
 			BestContainment *getBestContainer(iuid frag_id);
+            void transitiveContainment();
 
             void scoreOverlap(const Long_Olap_Data_t& olap);
             bool checkForNextFrag(const Long_Olap_Data_t& olap);

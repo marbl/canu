@@ -34,13 +34,14 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.10 2005-08-29 21:22:25 eliv Exp $
- * $Revision: 1.10 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.11 2005-09-01 20:41:10 eliv Exp $
+ * $Revision: 1.11 $
 */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.10 2005-08-29 21:22:25 eliv Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.11 2005-09-01 20:41:10 eliv Exp $";
 
 //  System include files
+#include<iostream>
 
 #include "AS_BOG_BestOverlapGraph.hh"
 //#include "AS_BOG_BestOverlapGraphVisitor.hh"
@@ -114,6 +115,42 @@ namespace AS_BOG{
             return NULL;
 	}
 
+    void BestOverlapGraph::transitiveContainment() {
+        for(std::map<CDS_IID_t,BestContainment>::const_iterator it = _best_containments.begin();
+                it != _best_containments.end(); it++)
+        {
+            CDS_IID_t id = it->first;
+            BestContainment bst = it->second;
+            bool sameOrient = bst.sameOrientation;
+            std::map<CDS_IID_t,BestContainment>::iterator i2 =
+                                        _best_containments.find( bst.container);
+            std::map<CDS_IID_t,BestContainment> found;
+            found[bst.container] = bst;
+            while ( i2 != _best_containments.end() ) {
+                BestContainment nb = i2->second;
+                std::cout << id <<" "<<bst.container<<" "<< nb.container<< std::endl;
+                if ( nb.container == id ) {
+                    _best_containments.erase( id );
+                    std::cout << "Erase self" << std::endl;
+                    break;
+                }
+                std::map<CDS_IID_t,BestContainment>::iterator seen= found.find( nb.container );
+                if ( seen != found.end() ) { 
+                    _best_containments[ id ] = seen->second;
+                    std::cout << "Circled " << seen->second.container<< std::endl;
+                    _best_containments.erase( seen->second.container );
+                    break;
+                }
+                _best_containments[ id ] = nb;
+                found[ nb.container ] = nb;
+                if (!sameOrient)
+                    sameOrient = _best_containments[id].sameOrientation = ! nb.sameOrientation;
+                found[nb.container].sameOrientation = sameOrient;
+                i2 = _best_containments.find( nb.container);
+            }
+        }
+    }
+
     void BestOverlapGraph::setBestEdge(const Long_Olap_Data_t& olap, float newScore) {
 
         if (AEnd(olap) == THREE_PRIME) {
@@ -184,16 +221,21 @@ namespace AS_BOG{
     void BestOverlapGraph::scoreOverlap(const Long_Olap_Data_t& olap)
     {
         float newScr = score(olap);
-        if ( olap.a_hang == 0 && olap.b_hang == 0 )
+/*        if ( olap.a_hang == 0 && olap.b_hang == 0 )
          {
              //multiContain[ olap.a_iid ].equal[ olap.b_iid ] = erate;
              //handle identical containment
          }
-         else if ( olap.a_hang >= 0 && olap.b_hang <= 0 )
+         else
+*/
+         if ( olap.a_hang >= 0 && olap.b_hang <= 0 )
          {
              //handle a contains b
              BestContainment *best = getBestContainer( olap.b_iid );
-             if (NULL == best || newScr > best->score) {
+             if (NULL == best || newScr > best->score ||
+               newScr == best->score && fragLen(best->container) < fragLen(olap.a_iid))
+             {
+//                 std::cout << olap.a_iid << " contains " << olap.b_iid <<" "<< fragLen(olap.a_iid) << std::endl; 
                  BestContainment newBest;
                  newBest.container = olap.a_iid;
                  newBest.score     = newScr;
