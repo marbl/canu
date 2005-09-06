@@ -30,7 +30,10 @@
 #include "AS_PER_gkpStore.h"
 
 int usage(char *pgmname){
-  fprintf(stderr,"Usage: %s [-b firstIID] [-e lastIID] [-U] <FrgStorePath> <GkpStorePath>\n",
+  fprintf(stderr,"Usage: %s [-b firstIID] [-e lastIID] [-U] [-D]<FrgStorePath> <GkpStorePath>\n"
+	  "\t-U\tcauses UIDs to be printed\n"
+	  "\t-D\tcauses info for deleted fragments to be printed\n" 
+	  ,
 	    pgmname);
     return 0;
 }
@@ -46,10 +49,14 @@ int main(int argc, char *argv[]){
   uint32 clr_bgn,clr_end;
   GateKeeperStore gkpStore;
   GateKeeperFragmentRecord gkpFrag;
+  int includeDeleted=0;
 
 
-  while ((ch = getopt(argc, argv, "b:e:U")) != EOF){
+  while ((ch = getopt(argc, argv, "b:e:UD")) != EOF){
     switch(ch) {
+    case 'D':
+      includeDeleted=1;
+      break;
     case 'e':
       end = atoi(optarg);
       fprintf(stderr,"* end = %d\n", end);
@@ -99,13 +106,21 @@ int main(int argc, char *argv[]){
   for(i = begin; i <= end; i++){
     if(getGateKeeperFragmentStore(gkpStore.frgStore,i,&gkpFrag)!=0)
       assert(0);
-    if(gkpFrag.deleted)continue;
+    if(gkpFrag.deleted&&!includeDeleted)continue;
     getFragStore(source, i, FRAG_S_ALL, myRead);
     getClearRegion_ReadStruct(myRead, &clr_bgn,&clr_end, READSTRUCT_LATEST);
     if(printUIDs){
-      printf(F_UID "\t%d\n",gkpFrag.readUID,clr_end-clr_bgn);
+      if(includeDeleted){
+	printf(F_UID "\t%d\t%d\n",gkpFrag.readUID,clr_end-clr_bgn,gkpFrag.deleted);
+      } else {
+	printf(F_UID "\t%d\n",gkpFrag.readUID,clr_end-clr_bgn);
+      }
     } else {
-      printf("%d\t%d\n",i,clr_end-clr_bgn);
+      if(includeDeleted){
+	printf("%d\t%d\t%d\n",i,clr_end-clr_bgn,gkpFrag.deleted);
+      } else {
+	printf("%d\t%d\n",i,clr_end-clr_bgn);
+      }
     }
   }
 
