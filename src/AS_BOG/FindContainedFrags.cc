@@ -31,17 +31,18 @@
 *************************************************/
 
 /* RCS info
- * $Id: FindContainedFrags.cc,v 1.10 2005-09-01 20:41:10 eliv Exp $
- * $Revision: 1.10 $
+ * $Id: FindContainedFrags.cc,v 1.11 2005-09-07 18:04:58 eliv Exp $
+ * $Revision: 1.11 $
 */
 
-static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.10 2005-09-01 20:41:10 eliv Exp $";
+static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.11 2005-09-07 18:04:58 eliv Exp $";
 
 //  System include files
 
 #include<map>
 #include<set>
 #include<vector>
+#include<cmath>   // for ceil and log10
 #include<cstdlib> // for abs(int)
 #include<iostream>
 
@@ -104,6 +105,8 @@ int  main
    Free_OVL_Store( my_store );
    closeFragStore( BestOverlapGraph::fragStoreHandle ); 
 
+   int pad = static_cast<int>(ceil( log10( last )));
+
    for(int i = 1; i <= last; i++) {
        AS_BOG::BestEdgeOverlap* five[metrics.size()];
        AS_BOG::BestEdgeOverlap* three[metrics.size()];
@@ -117,17 +120,17 @@ int  main
                AS_BOG::BestEdgeOverlap* f1 = five[1];
                AS_BOG::BestEdgeOverlap* f2 = five[2];
                cout.flags(std::ios_base::left);
-               cout.width(7);
+               cout.width(pad);
                cout << i <<" 5' "<< five[0]->in_degree << " "
                     << f1->in_degree <<" "<< f2->in_degree;
 
                if (b0 == five[1]->frag_b_id && b0 == five[2]->frag_b_id) {
-                   cout <<" best "; cout.width(23);
+                   cout <<" best "; cout.width(pad * 3 + 2);
                    cout << b0 ;
                } else { 
-                   cout<< " diff "          ; cout.width(7);
-                   cout<< b0 <<" "          ; cout.width(7);
-                   cout<< f1->frag_b_id<<" "; cout.width(7);
+                   cout<< " diff "          ; cout.width(pad);
+                   cout<< b0 <<" "          ; cout.width(pad);
+                   cout<< f1->frag_b_id<<" "; cout.width(pad);
                    cout<< f2->frag_b_id ;
                }
                b0 = three[0]->frag_b_id;
@@ -137,12 +140,12 @@ int  main
                     << f1->in_degree <<" "<< f2->in_degree;
 
                if (b0 == three[1]->frag_b_id && b0 == three[2]->frag_b_id) {
-                   cout <<" best "; cout.width(7);
+                   cout <<" best "; cout.width(pad);
                    cout << b0 << endl;
                } else { 
-                   cout<<" diff ";            cout.width(7);
-                   cout<< b0 <<" ";           cout.width(7);
-                   cout<< f1->frag_b_id<<" "; cout.width(7);
+                   cout<<" diff ";            cout.width(pad);
+                   cout<< b0 <<" ";           cout.width(pad);
+                   cout<< f1->frag_b_id<<" "; cout.width(pad);
                    cout<< f2->frag_b_id << endl;
                }
            }
