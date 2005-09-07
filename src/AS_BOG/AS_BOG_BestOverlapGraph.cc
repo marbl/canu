@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.11 2005-09-01 20:41:10 eliv Exp $
- * $Revision: 1.11 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.12 2005-09-07 18:03:47 eliv Exp $
+ * $Revision: 1.12 $
 */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.11 2005-09-01 20:41:10 eliv Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.12 2005-09-07 18:03:47 eliv Exp $";
 
 //  System include files
 #include<iostream>
@@ -221,6 +221,8 @@ namespace AS_BOG{
     void BestOverlapGraph::scoreOverlap(const Long_Olap_Data_t& olap)
     {
         float newScr = score(olap);
+        if ( newScr <= 0 )
+            return;
 /*        if ( olap.a_hang == 0 && olap.b_hang == 0 )
          {
              //multiContain[ olap.a_iid ].equal[ olap.b_iid ] = erate;
@@ -232,8 +234,8 @@ namespace AS_BOG{
          {
              //handle a contains b
              BestContainment *best = getBestContainer( olap.b_iid );
-             if (NULL == best || newScr > best->score ||
-               newScr == best->score && fragLen(best->container) < fragLen(olap.a_iid))
+             if (NULL == best || newScr > best->score || newScr == best->score
+                      && fragLen(best->container) < fragLen(olap.a_iid) )
              {
 //                 std::cout << olap.a_iid << " contains " << olap.b_iid <<" "<< fragLen(olap.a_iid) << std::endl; 
                  BestContainment newBest;
@@ -260,7 +262,9 @@ namespace AS_BOG{
              checkForNextFrag(olap);
              BestEdgeOverlap *best = getBestEdge( olap.a_iid, AEnd(olap));
              short olapLen = olapLength(olap);
-             if (newScr > best->score || newScr == best->score && olapLen > bestLength ) {
+             if (newScr > best->score || newScr == best->score &&
+                olapLen > bestLength )
+             {
                  setBestEdge( olap, newScr );
                  bestLength = olapLen;
              }
