@@ -20,6 +20,9 @@
 #ifndef BIO_KMER_H
 #define BIO_KMER_H
 
+//  The maximum size of a mer.  You get 32 bases per word, so
+//  KMER_WORDS=4 will get you up to a 128-mer.
+//
 #define KMER_WORDS  1
 
 
