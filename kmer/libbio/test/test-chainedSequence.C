@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <math.h>
 
 #include "bio++.H"
@@ -144,6 +145,9 @@ main(int argc, char **argv) {
     fprintf(stderr, "Test failed.\n");
   else
     fprintf(stderr, "Test passed.\n");
+
+  unlink("junk.chainedSequence");
+  unlink("junk.copied.chainedSequence");
 
   return(err);
 }
