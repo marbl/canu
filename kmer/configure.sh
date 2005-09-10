@@ -78,7 +78,7 @@ case $target in
 # -malign-natural changes the size of structures compared to -g.  -Wpadded supposedly warns when this happens
 #
 FAST              := -Wpadded -O3 -funroll-loops -fstrict-aliasing -fsched-interblock -falign-loops=16 -falign-jumps=16 -falign-functions=16 -falign-jumps-max-skip=15 -falign-loops-max-skip=15 -malign-natural -ffast-math -mpowerpc-gpopt -force_cpusubtype_ALL -fstrict-aliasing -mtune=G5 -mcpu=G5
-FAST              := -fast
+FAST              := -fast -fPIC
 CC                := gcc
 SHLIB_FLAGS       := -dynamiclib
 CFLAGS_COMPILE    := \$(FAST) -fmessage-length=0 -D_THREAD_SAFE -Wall
@@ -89,6 +89,7 @@ CXXFLAGS_COMPILE  := \$(FAST) -fmessage-length=0 -D_THREAD_SAFE -Wall
 CXXLDFLAGS        := 
 CXXLIBS           := 
 ARFLAGS           := ruvs
+INSTALL/          := darwin/
 EOF
     ;;
   osx-debug)
@@ -107,6 +108,7 @@ CXXFLAGS_COMPILE  := -g3 -fmessage-length=0 -D_THREAD_SAFE -Wall
 CXXLDFLAGS        := 
 CXXLIBS           := 
 ARFLAGS           := ruvs
+INSTALL/          := darwin/
 EOF
     ;;
   osx-profile)
@@ -126,6 +128,7 @@ CXXFLAGS_COMPILE  := \$(FAST) -fmessage-length=0 -D_THREAD_SAFE -Wall
 CXXLDFLAGS        := -pg
 CXXLIBS           := 
 ARFLAGS           := ruvs
+INSTALL/          := darwin/
 EOF
     ;;
   freebsd)
@@ -146,6 +149,7 @@ CXXFLAGS_COMPILE  := -O3 \$(THREADS) -Wall -funroll-loops -fexpensive-optimizati
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := \$(THREADL)
 ARFLAGS           := ruvs
+INSTALL/          := freebsd/
 EOF
     ;;
   freebsd-profile)
@@ -165,6 +169,7 @@ CXXFLAGS_COMPILE  := -pg -O3 \$(THREADS) -Wall -funroll-loops -fexpensive-optimi
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := \$(THREADL)
 ARFLAGS           := ruvs
+INSTALL/          := freebsd/
 EOF
     ;;
   freebsd-debug)
@@ -191,6 +196,7 @@ CXXFLAGS_COMPILE  := -g \$(THREADS) -Wall -Wshadow -Wtraditional -Wpointer-arith
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := \$(THREADL)
 ARFLAGS           := ruvs
+INSTALL/          := freebsd/
 EOF
     ;;
   freebsd-debug-34)
@@ -212,6 +218,7 @@ CXXFLAGS_COMPILE  := -g \$(THREADS) -Wall -Wshadow -Wtraditional -Wpointer-arith
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := \$(THREADL)
 ARFLAGS           := ruvs
+INSTALL/          := freebsd/
 EOF
     ;;
   aix)
@@ -230,6 +237,7 @@ CXXFLAGS_COMPILE  := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES -q6
 CXXLDFLAGS        := 
 CXXLIBS           := 
 ARFLAGS           := -X 64 ruv
+INSTALL/          := aix/
 EOF
     ;;
   aix-profile)
@@ -248,6 +256,7 @@ CXXFLAGS_COMPILE  := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES -q6
 CXXLDFLAGS        := 
 CXXLIBS           := 
 ARFLAGS           := -X 64 ruv
+INSTALL/          := aix/
 EOF
     ;;
   aix-debug)
@@ -266,6 +275,7 @@ CXXFLAGS_COMPILE  := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES \$(
 CXXLDFLAGS        := 
 CXXLIBS           := 
 ARFLAGS           := -X 64 ruv
+INSTALL/          := aix/
 EOF
     ;;
   aix-debug-full|aix-full-debug)
@@ -284,6 +294,7 @@ CXXFLAGS_COMPILE  := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES \$(
 CXXLDFLAGS        := \$(ccDBUG)
 CXXLIBS           := 
 ARFLAGS           := -X 64 ruv
+INSTALL/          := aix/
 EOF
     ;;
   compaq|tru64)
@@ -304,6 +315,7 @@ CXXLDFLAGS        :=
 CXXLIBS           := -lpthread -lrt
 ARFLAGS           := ruv
 CXX_TMP_ARCH      := cxx_repository
+INSTALL/          := osf1/
 EOF
     ;;
   compaq-debug|tru64-debug)
@@ -322,6 +334,7 @@ CXXLDFLAGS        :=
 CXXLIBS           := -lpthread -lrt
 ARFLAGS           := ruv
 CXX_TMP_ARCH      := cxx_repository
+INSTALL/          := osf1/
 EOF
     ;;
   linux)
@@ -341,6 +354,7 @@ CXXFLAGS_COMPILE  := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := \$(THREADL) -ldl
 ARFLAGS           := ruvs
+INSTALL/          := linux/
 EOF
     ;;
   linux64)
@@ -360,6 +374,7 @@ CXXFLAGS_COMPILE  := -m64 -fPIC -D_REENTRANT -O3 \$(THREADS) -fmessage-length=0 
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := \$(THREADL) -ldl
 ARFLAGS           := ruvs
+INSTALL/          := linux64/
 EOF
     ;;
   linux-debug)
@@ -379,6 +394,7 @@ CXXFLAGS_COMPILE  := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := \$(THREADL) -ldl
 ARFLAGS           := ruvs
+INSTALL/          := linux/
 EOF
     ;;
 
@@ -408,6 +424,7 @@ CXXFLAGS_COMPILE  := -D_REENTRANT -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -O3
 CXXLDFLAGS        := 
 CXXLIBS           := -lpthread -lrt
 ARFLAGS           := ruv
+INSTALL/          := solaris/
 EOF
     ;;
   *)
@@ -426,7 +443,8 @@ EOF
     echo "          tru64, compaq             Tru64, optimized"
     echo "          tru64-debug, compaq-debug Tru64, debug, warnings, trapuv"
     echo ""
-    echo "          linux                     Linux, optimized"
+    echo "          linux                     Linux, i686, optimized"
+    echo "          linux64                   Linux, Opteron, optimized"
     echo ""
     echo "          solaris                   Solaris, gcc, optimized (STALE)"
     exit
