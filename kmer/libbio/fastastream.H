@@ -42,10 +42,13 @@ public:
     initialClear();
 
     if ((filename == 0L) ||
-        ((filename[0] == '-') && (filename[1] == 0)))
+        ((filename[0] == '-') && (filename[1] == 0))) {
+      fprintf(stderr, "FastAstream::FastAstream()--  Opening stdin\n");
       _rb = new readBuffer(fileno(stdin), "stdin");
-    else
+    } else {
+      fprintf(stderr, "FastAstream::FastAstream()--  Opening '%s'\n", filename);
       _rb = new readBuffer(filename);
+    }
   };
 
   ~FastAstream() {
