@@ -95,10 +95,11 @@ ifeq ($(OSTYPE), FreeBSD)
   CC               = gcc
   CXX              = g++
   CFLAGS_OPT       = -g 
-  CFLAGS          += -O3 -DNEEDXDRUHYPER -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 
+  CFLAGS          += -O3 -DNEEDXDRUHYPER -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads 
   CXXDEFS          = -D__cplusplus
   INC_IMPORT_DIRS += /usr/local/include /usr/X11R6/include
   USRLIB          += /usr/local/lib /usr/X11R6/lib
+  LDFLAGS         += -llthread -llgcc_r
 endif
 
 ifeq ($(OSTYPE), Darwin)
