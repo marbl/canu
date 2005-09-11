@@ -335,7 +335,7 @@ runSegment(merylArgs *args, u64bit segment) {
 
   C = new speedCounter(" Counting mers in buckets: %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, args->beVerbose);
   R = new merStreamFileReader(args->outputFile, args->merSize);
-  R->seekToMer(args->mersPerBatch * segment);
+  R->setIterationStart(args->mersPerBatch * segment);
   R->setIterationLimit(args->mersPerBatch);
 
   if (args->doForward) {
@@ -403,7 +403,7 @@ runSegment(merylArgs *args, u64bit segment) {
 
   C = new speedCounter(" Filling mers into list:   %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, args->beVerbose);
   R = new merStreamFileReader(args->outputFile, args->merSize);
-  R->seekToMer(args->mersPerBatch * segment);
+  R->setIterationStart(args->mersPerBatch * segment);
   R->setIterationLimit(args->mersPerBatch);
 
   while (R->nextMer()) {

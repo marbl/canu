@@ -423,6 +423,7 @@ merStreamFileReader::merStreamFileReader(const char *i, u32bit desiredMerSize) {
 
   _firstMer      = u64bitZERO;
 
+  _iterationStart =  u64bitZERO;
   _iterationLimit = ~u64bitZERO;
   _iteration      =  u64bitZERO;
 

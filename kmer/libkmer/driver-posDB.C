@@ -20,9 +20,18 @@
 char const *usage =
 "usage: %s [-mersize s] [-merskip k] [-tablesize t]\n"
 "         default: s=20, k=0, t=auto\n"
+
+
+
 "\n"
-"       The default operation is to create an image:\n"
-"         [build opts] <sequence.fasta> <datafile>\n"
+"       -mersize k         The size of the mers, default=20.\n"
+"       -merskip k         The skip between mers, default=0\n"
+"       -tablesize t       The size of the hash table, default=0 (auto)\n"
+"       -use a-b,c         Specify which sequences to use, default=all\n"
+"       -merbegin b        Build on a subset of the mers, starting at mer #b, default=all mers\n"
+"       -merend e          Build on a subset of the mers, ending at mer #e, default=all mers\n"
+"       -sequence s.fasta  Input sequences.\n"
+"       -output p.posDB    Output filename.\n"
 "\n"
 "       To dump information about an image:\n"
 "         -dump datafile\n"
@@ -30,21 +39,17 @@ char const *usage =
 "       To run sanity tests:\n"
 "         -buildonly [build opts] sequence.fasta\n"
 "           --  just builds a table and exits\n"
-"\n"
 "         -existence [build opts] sequence.fasta\n"
 "           --  builds (or reads) a table reports if any mers\n"
 "               in sequence.fasta cannot be found\n"
-"\n"
 "         -extra [build opts] sequence.fasta\n"
 "           --  builds (or reads) a table reports if any mers\n"
 "               NOT in sequence.fasta are be found\n"
-"\n"
 "         -test1 sequence.fasta\n"
 "           --  Tests if each and every mer is found in the\n"
 "               positionDB.  Reports if it doesn't find a mer\n"
 "               at the correct position.  Doesn't report if table\n"
 "               has too much stuff.\n"
-"\n"
 "         -test2 db.fasta sequence.fasta\n"
 "           --  Builds a positionDB from db.fasta, then searches\n"
 "               the table for each mer in sequence.fasta.  Reports\n"
@@ -155,11 +160,32 @@ test2(char *filename, char *query) {
 
 
 
+//  Builds a positionDB possibly using a subset of the file.
+//
+//  Subset on entire sequences:
+//    -use x-y,a,b  
+//
+//  Subset on a range of mers, in this case, use only the 1000th
+//  through 1999th (inclusive) mer:
+//    -merbegin 1000 -merend 2000
+//
+//  Or do both, use the first 1000 mers from the 3rd sequence:
+//    -use 3 -merbegin 0 -merend 1000
+
+
+
 int
 main(int argc, char **argv) {
-  u32bit    mersize = 20;
-  u32bit    merskip = 0;
-  u32bit    tblsize = 0;
+  u32bit           mersize = 20;
+  u32bit           merskip = 0;
+  u32bit           tblsize = 0;
+
+  chainedSequence  useList;
+  u64bit           merBegin = ~u64bitZERO;
+  u64bit           merEnd   = ~u64bitZERO;
+
+  char            *inputFile  = 0L;
+  char            *outputFile = 0L;
 
   if (argc < 3) {
     fprintf(stderr, usage, argv[0]);
@@ -170,13 +196,31 @@ main(int argc, char **argv) {
   while (arg < argc) {
     if        (strncmp(argv[arg], "-mersize", 6) == 0) {
       arg++;
-      mersize = atoi(argv[arg]);
+      mersize = strtou32bit(argv[arg], 0L);
     } else if (strncmp(argv[arg], "-merskip", 6) == 0) {
       arg++;
-      merskip = atoi(argv[arg]);
+      merskip = strtou32bit(argv[arg], 0L);
     } else if (strncmp(argv[arg], "-tablesize", 3) == 0) {
       arg++;
-      tblsize = atoi(argv[arg]);
+      tblsize = strtou32bit(argv[arg], 0L);
+
+    } else if (strncmp(argv[arg], "-use", 2) == 0) {
+      arg++;
+      useList.parse(argv[arg]);
+    } else if (strncmp(argv[arg], "-merbegin", 5) == 0) {
+      arg++;
+      merBegin = strtou64bit(argv[arg], 0L);
+    } else if (strncmp(argv[arg], "-merend", 5) == 0) {
+      arg++;
+      merEnd = strtou64bit(argv[arg], 0L);
+
+    } else if (strncmp(argv[arg], "-sequence", 2) == 0) {
+      arg++;
+      inputFile = argv[arg];
+    } else if (strncmp(argv[arg], "-output", 2) == 0) {
+      arg++;
+      outputFile = argv[arg];
+
     } else if (strncmp(argv[arg], "-dump", 2) == 0) {
       positionDB *e = new positionDB(argv[argc-1], false);
       e->printState(stdout);
@@ -186,41 +230,90 @@ main(int argc, char **argv) {
       exit(test1(argv[arg+1]));
     } else if (strncmp(argv[arg], "-test2", 6) == 0) {
       exit(test2(argv[arg+1], argv[arg+2]));
+    } else {
+      fprintf(stderr, "ERROR: unknown arg '%s'\n", argv[arg]);
+      exit(1);
     }
     arg++;
   }
 
-  fprintf(stderr, "Building table with merSize "u32bitFMT", merSkip "u32bitFMT" and table size "u32bitFMT"\n", mersize, merskip, tblsize);
 
-  u64bit    seqlen  = 0;
-  u32bit    ts      = 25;
+  useList.setSource(inputFile);
+  useList.setSeparatorLength(1);
+  useList.finish();
 
-  fprintf(stderr, "Opening '%s', finding length of sequences\n", argv[argc-2]);
-  FastAWrapper  *F = new FastAWrapper(argv[argc-2]);
-  F->openIndex();
-  for (u32bit i=0; i<F->getNumberOfSequences(); i++)
-    seqlen += F->sequenceLength(i);
+  merStream *MS      = new merStream(mersize, &useList);
 
-  if (seqlen < 64 * 1024 * 1024) ts = 24;
-  if (seqlen < 16 * 1024 * 1024) ts = 23;
-  if (seqlen <  4 * 1024 * 1024) ts = 22;
-  if (seqlen <  2 * 1024 * 1024) ts = 21;
-  if (seqlen <  1 * 1024 * 1024) ts = 20;
+  //  Approximate the number of mers in the sequences.
+  //
+  u64bit     numMers = useList.lengthOfSequences();
 
-  if (tblsize == 0)
-    tblsize = ts;
+  //  Reset the limits.
+  //
+  //  XXX: If the user somehow knows how many mers are in the input
+  //  file, and specifies an end between there and the amount of
+  //  sequence, we'll pointlessly still make a merStreamFile, even
+  //  though we shouldn't.
+  //
+  if (merBegin == ~u64bitZERO)   merBegin = 0;
+  if (merEnd   == ~u64bitZERO)   merEnd   = useList.lengthOfSequences();
 
-  if (ts != tblsize)
-    fprintf(stderr, "For sequence length "u64bitFMT", suggested tableSize is "u32bitFMT", you want "u32bitFMT"\n", seqlen, ts, tblsize);
+  if (merBegin >= merEnd) {
+    fprintf(stderr, "ERROR: merbegin="u64bitFMT" and merend="u64bitFMT" are incompatible.\n",
+            merBegin, merEnd);
+    exit(1);
+  }
 
-#if 0
-  positionDB  *e = new positionDB(0L, argv[argc-2], mersize, merskip, tblsize, true);
+  //  We need a merStreamFile to implement -merbegin (using
+  //  seekToMer()) and -merend (using setIterationLimit()).
+  //
+  if ((merBegin > 0) || (merEnd < numMers)) {
+    char  *merStreamFile = new char [1024];
+    sprintf(merStreamFile, "%s.merStream", outputFile);
 
-  fprintf(stderr, "Writing positionDB state to '%s'\n", argv[argc-1]);
-  e->saveState(argv[argc-1]);
+    if (fileExists(merStreamFile)) {
+      fprintf(stderr, "Using existing merStreamFile '%s'\n", merStreamFile);
+    } else {
+      fprintf(stderr, "Building a merStreamFile to support a mer subrange.\n");
+      merStreamFileBuilder *MSFB = new merStreamFileBuilder(MS, outputFile);
+      numMers = MSFB->build();
+      delete MSFB;
+    }
 
-  delete e;
-#endif
+    delete MS;
+
+    merStreamFileReader *MSFR = new merStreamFileReader(outputFile);
+    MSFR->setIterationStart(merBegin);
+    MSFR->setIterationLimit(merEnd - merBegin);
+    MS = new merStream(MSFR);
+  }
+
+
+
+  //  Figure out a nice size of the hash.
+  //
+  //  XXX:  This probably should be tuned.
+  //
+  if (tblsize == 0) {
+    tblsize = 25;
+    if (numMers < 64 * 1024 * 1024)  tblsize = 24;
+    if (numMers < 16 * 1024 * 1024)  tblsize = 23;
+    if (numMers <  4 * 1024 * 1024)  tblsize = 22;
+    if (numMers <  2 * 1024 * 1024)  tblsize = 21;
+    if (numMers <  1 * 1024 * 1024)  tblsize = 20;
+  }
+
+  fprintf(stderr, "Building table with merSize "u32bitFMT", merSkip "u32bitFMT" and table size "u32bitFMT"\n",
+          mersize, merskip, tblsize);
+
+  positionDB *positions = new positionDB(MS, mersize, merskip, tblsize, 0L, 0L, true);
+
+  fprintf(stderr, "Dumping positions table to '%s'\n", outputFile);
+
+  positions->saveState(outputFile);
+
+  delete MS;
+  delete positions;
 
   exit(0);
 }

@@ -69,19 +69,40 @@ public:
   char const            *theDefLine(void)            { return(">nodefline");  };
 #endif
 
+private:
+  //  These used to be public, but seekToMer() has been replaced by
+  //  setIterationStart(), and nobody was using seekToSequence().
+  //
   bool                   seekToMer(u64bit merNumber);
   bool                   seekToSequence(u64bit seqNumber);
 
+public:
   //  This will limit the number of mers returned to 'limit'.  The
   //  seek*() methods do not reset the count or the limit.  The
   //  current count is reset when this function is called.  Set to
   //  ~u64bitZERO for an infinite limit.  Zero really does mean zero,
   //  not infinity.
   //
+  bool                   setIterationStart(u64bit start) {
+    //fprintf(stderr, "merStreamFileReader::setInterationStart()-- Set to "u64bitFMT"\n", start);
+    _iterationStart = start;
+    _iteration      = u64bitZERO;
+    return(seekToMer(_iterationStart));
+  };
   void                   setIterationLimit(u64bit limit) {
+    //fprintf(stderr, "merStreamFileReader::setInterationLimit()-- Set to "u64bitFMT"\n", limit);
     _iterationLimit = limit;
     _iteration      = u64bitZERO;
   };
+
+  //  Rewind to the start of the iteration.
+  //
+  bool                   rewind(void) {
+    //fprintf(stderr, "merStreamFileReader::rewind()--\n");
+    return(setIterationStart(_iterationStart));
+  };
+
+
 
   bool                   nextMer(u32bit skip=0);
 private:
@@ -115,6 +136,7 @@ private:
 
   //  Things used to stop the stream
   //
+  u64bit                _iterationStart;
   u64bit                _iterationLimit;
   u64bit                _iteration;
 

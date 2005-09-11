@@ -141,7 +141,7 @@ merStream::rewind(void) {
   bool  ret = false;
 
   if (_ms_mers) {
-    ret = _ms_mers->seekToMer(0);
+    ret = _ms_mers->rewind();
     _fMer = _ms_mers->theFMer();
     _rMer = _ms_mers->theRMer();
   } else if (_fs_file) {
