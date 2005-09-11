@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.29 2005-08-27 13:37:19 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.30 2005-09-11 20:02:15 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -1897,11 +1897,17 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
         {
             if (GetNumint16s(tied)> 0) 
             {
-                // break a tie randomly
-                // THIS COULD BE THE REASON FOR AN INTER-PLATFORM DIFFERENCE !!!!
-                Appendint16(tied, &max_ind);
-                max_ind = *Getint16(tied,1);
+                int16 n = GetNumint16s(tied);
+                int16 *max_inds = safe_malloc(n * sizeof(int16)); 
+                int m;
+                int32 quasi_rand_int = (cid%3 + cid%5 + cid%7 + cid%11 + cid*13)%n;
+                for (m=0; m<n; m++)
+                {
+                    max_inds[m] = *Getint16(tied,m);
+                } 
+                max_ind = max_inds[quasi_rand_int];   // exclude '-', but include 'T'
                 max_cw = cw[max_ind];
+                FREE(max_inds);
             } 
         }
         if ( verbose ) {
