@@ -25,6 +25,8 @@ configuration::configuration(void) {
   _doValidation         = false;
   _doValidationFileName = 0L;
 
+  _doAlignments         = true;
+
   _Lo                   = 0.5;
   _Hi                   = 1.0;
   _Va                   = 0.6;
@@ -120,6 +122,7 @@ static char const *usageString =
 "Output Options:\n"
 "    -verbose                Entertain the user with useless statistics.\n"
 "    -output f               Write output to file f.\n"
+"    -{no}aligns             Enable/Disable full alignments.  Enabled by default.\n"
 "    -log f                  Write some debugging/logging information to file f.  This\n"
 "                            is mostly for developers, and does NOT provide useful\n"
 "                            information unless you know the guts of snapper.\n"
@@ -197,6 +200,10 @@ configuration::read(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-output") == 0) {
       arg++;
       _outputFileName = argv[arg];
+    } else if (strcmp(argv[arg], "-aligns") == 0) {
+      _doAlignments = true;
+    } else if (strcmp(argv[arg], "-noaligns") == 0) {
+      _doAlignments = false;
     } else if (strcmp(argv[arg], "-log") == 0) {
       arg++;
       _logmsgFileName = argv[arg];
@@ -296,10 +303,11 @@ configuration::display(FILE *out) {
     fprintf(out, "merSkip             = "u32bitFMT"\n",   _merSkip);
     fprintf(out, "doReverse           = %s\n",   _doReverse ? "true" : "false");
     fprintf(out, "doForward           = %s\n",   _doForward ? "true" : "false");
+    fprintf(out, "doAlignments        = %s\n",   _doAlignments ? "true" : "false");
     fprintf(out, "\n");
     fprintf(out, "maxDiagonal         = "u32bitFMT"\n",   _maxDiagonal);
     fprintf(out, "minHitLength        = "u32bitFMT"\n",   _minHitLength + _merSize);
-    fprintf(out, "minHitCoverage      = %lf\n",  _minHitCoverage);
+    fprintf(out, "minHitCoverage      = %f\n",  _minHitCoverage);
     fprintf(out, "minMatchIdentity    = "u32bitFMT"\n",   _minMatchIdentity);
     fprintf(out, "minMatchCoverage    = "u32bitFMT"\n",   _minMatchCoverage);
     fprintf(out, "\n");

@@ -208,7 +208,8 @@ main(int argc, char **argv) {
       }
     }
 
-    fprintf(stderr, "Created %u filters (out of %u available) to test/validate.\n", numFilters, maxFilters);
+    fprintf(stderr, "Created "u32bitFMT" filters (out of "u32bitFMT" available) to test/validate.\n",
+            numFilters, maxFilters);
   }
 
 
@@ -373,7 +374,7 @@ main(int argc, char **argv) {
   //
   //  Configure sim4
   //
-  sim4params.setPrintAlignments();
+  sim4params.setPrintAlignments(config._doAlignments);
   sim4params.setFindAllExons();
   sim4params.setMinCoverage( (config._minMatchCoverage - 10) / 100.0);
   sim4params.setMinPercentExonIdentity( config._minMatchIdentity - 5);
@@ -586,7 +587,7 @@ main(int argc, char **argv) {
       double perSec    = outputPos / thisTimeD;
       double remTime   = (numberOfQueries - outputPos) * thisTimeD / outputPos;
 
-      fprintf(stderr, "O:"u32bitFMTW(7)" S:"u32bitFMTW(7)" I:%7u T:"u32bitFMTW(7)" (%5.1f%%; %8.3f/sec) Finish in %5.2f seconds.\r",
+      fprintf(stderr, "O:"u32bitFMTW(7)" S:"u32bitFMTW(7)" I:"u32bitFMTW(7)" T:"u32bitFMTW(7)" (%5.1f%%; %8.3f/sec) Finish in %5.2f seconds.\r",
               outputPos,
               inputTail,
               inputHead,

@@ -79,6 +79,8 @@ public:
   bool             _doValidation;
   char            *_doValidationFileName;
 
+  bool             _doAlignments;
+
   double           _Lo;
   double           _Hi;
   double           _Va;
