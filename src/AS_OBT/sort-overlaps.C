@@ -34,9 +34,9 @@ int
 main(int argc, char **argv) {
   u64bit  memoryLimit = 512 * 1024 * 1024;
   u64bit  maxIID      = 0;
-  char   *fileList[128];
   u32bit  fileListLen = 0;
   u32bit  fileListMax = 10 * 1024;  //  If you run more than 10,000 overlapper jobs, you'll die.
+  char  **fileList    = new char * [fileListMax];
   char   *tmpPath = ".";
 
   int arg=1;
@@ -67,6 +67,9 @@ main(int argc, char **argv) {
         fgets(line, 1024, F);
       }
       fclose(F);
+
+      if (fileListLen >= fileListMax)
+        fprintf(stderr, "Too many input files, increase fileListMax.\n"), exit(1);
     } else {
       //  Assume it's an input file
       //
