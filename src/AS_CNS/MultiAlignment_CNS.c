@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.30 2005-09-11 20:02:15 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.31 2005-09-12 19:17:32 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -686,15 +686,14 @@ int SetUngappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) 
    for (ifrag=0;ifrag<num_frags;ifrag++,frag++){
      epos.frg_or_utg = CNS_ELEMENT_IS_FRAGMENT;
      epos.idx.fragment.frgIdent = frag->ident;
-     hash_rc = LookupInPHashTable_AS (unitigFrags, IDENT_NAMESPACE, frag->ident, &ovalue);
-     if (hash_rc == HASH_SUCCESS ) {
-       // this indicates a problem... the fragment is already in the hashtable at this point
-       fprintf(cnslog,"Failure to insert ident %d in hashtable, entry already appears\n",frag->ident); 
-       assert(FALSE);
-     }
      hash_rc = InsertInPHashTable_AS(&unitigFrags,IDENT_NAMESPACE, (uint64) frag->ident, &value, FALSE,FALSE);
      if ( hash_rc != HASH_SUCCESS) {
-        fprintf(stderr,"Failure to insert ident %d in hashtable\n",frag->ident); 
+       hash_rc = LookupInPHashTable_AS (unitigFrags, IDENT_NAMESPACE, frag->ident, &ovalue);
+       if (hash_rc == HASH_SUCCESS)
+         fprintf(cnslog,"Failure to insert ident %d in hashtable, entry already appears\n",frag->ident); 
+       else
+         fprintf(stderr,"Failure to insert ident %d in hashtable\n",frag->ident); 
+       assert(FALSE);
      }
      epos.idx.fragment.frgType = frag->type;
      epos.idx.fragment.frgContained = frag->contained;
@@ -812,15 +811,14 @@ int SetGappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) {
    for (ifrag=0;ifrag<num_frags;ifrag++,frag++){
      epos.frg_or_utg = CNS_ELEMENT_IS_FRAGMENT;
      epos.idx.fragment.frgIdent = frag->ident;
-     hash_rc = LookupInPHashTable_AS (unitigFrags, IDENT_NAMESPACE, frag->ident, &ovalue);
-     if (hash_rc == HASH_SUCCESS ) {
-       // this indicates a problem... the fragment is already in the hashtable at this point
-       fprintf(cnslog,"Failure to insert ident %d in hashtable, entry already appears\n",frag->ident); 
-       assert(FALSE);
-     }
      hash_rc = InsertInPHashTable_AS(&unitigFrags,IDENT_NAMESPACE, (uint64) frag->ident, &value, FALSE,FALSE);
      if ( hash_rc != HASH_SUCCESS) {
-        fprintf(stderr,"Failure to insert ident %d in hashtable\n",frag->ident); 
+       hash_rc = LookupInPHashTable_AS (unitigFrags, IDENT_NAMESPACE, frag->ident, &ovalue);
+       if (hash_rc == HASH_SUCCESS)
+         fprintf(cnslog,"Failure to insert ident %d in hashtable, entry already appears\n",frag->ident); 
+       else
+         fprintf(stderr,"Failure to insert ident %d in hashtable\n",frag->ident); 
+       assert(FALSE);
      }
      epos.idx.fragment.frgType = frag->type;
      epos.idx.fragment.frgContained = frag->contained;
@@ -5412,12 +5410,16 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
      
              num_reads++;
              value.IID = positions[i].ident;
-             hash_rc = InsertInPHashTable_AS(&thash,IDENT_NAMESPACE, 
-                           (uint64)positions[i].ident, &value, FALSE,FALSE);
-             if ( hash_rc != HASH_SUCCESS) {
-                  fprintf(stderr,"Failure to insert ident %d in hashtable\n",
-                      positions[i].ident); 
-             } 
+
+             hash_rc = InsertInPHashTable_AS(&thash,IDENT_NAMESPACE, (uint64)positions[i].ident, &value, FALSE,FALSE);
+             if (hash_rc != HASH_SUCCESS) {
+               hash_rc = LookupInPHashTable_AS(thash, IDENT_NAMESPACE, (uint64)positions[i].ident, &value);
+               if (hash_rc == HASH_SUCCESS )
+                 fprintf(cnslog,"Failure to insert ident %d in hashtable, entry already appears\n", positions[i].ident); 
+               else
+                 fprintf(stderr,"Failure to insert ident %d in hashtable\n", positions[i].ident);
+               assert(FALSE);
+             }
              fid = AppendFragToLocalStore(positions[i].type, 
 				  positions[i].ident, 
 				  complement,
@@ -5940,13 +5942,15 @@ int MultiAlignContig(IntConConMesg *contig,
        PHashValue_AS value;
        PHashValue_AS ovalue;
        value.IID = contig->pieces[i].ident;
-       hash_rc = LookupInPHashTable_AS (thash, IDENT_NAMESPACE, contig->pieces[i].ident, &ovalue);
-       if ( hash_rc == HASH_SUCCESS) {
-          // indicates that the fragment appears more than once in the f_list;
-          fprintf(stderr,"Failure to insert ident %d in fragment hashtable, already present\n",contig->pieces[i].ident); 
-          assert(FALSE);
-       }
        hash_rc = InsertInPHashTable_AS(&thash,IDENT_NAMESPACE, (uint64) contig->pieces[i].ident, &value, FALSE,FALSE);
+       if (hash_rc != HASH_SUCCESS) {
+         hash_rc = LookupInPHashTable_AS (thash, IDENT_NAMESPACE, contig->pieces[i].ident, &ovalue);
+         if (hash_rc == HASH_SUCCESS)
+           fprintf(stderr,"Failure to insert ident %d in fragment hashtable, already present\n",contig->pieces[i].ident); 
+         else
+           fprintf(stderr,"Failure to insert ident %d in fragment hashtable\n",contig->pieces[i].ident); 
+         assert(FALSE);
+       }
      }
      //if ( cnslog != NULL ) {
      //  fprintf(cnslog,"Contigging ICM %d:\n",contig->iaccession);
