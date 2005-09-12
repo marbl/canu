@@ -26,11 +26,11 @@
 LOCAL_WORK = $(shell cd ../..; pwd)
 
 SOURCES = chimera.C consolidate.C dumpFragStoreAsFasta.C dumpFragStoreAsOFG.c \
-          intersectTrim.C \
+          findDuplicateFragsInStore.C intersectTrim.C \
           merge-trimming.C qualityTrim.C sort-overlaps.C trim.C util++.C
 OBJECTS = $(SOURCES:.C=.o)
 PROGS   = qualityTrim intersectTrim merge-trimming sort-overlaps chimera consolidate \
-          dumpFragStoreAsFasta dumpFragStoreAsOFG
+          dumpFragStoreAsFasta dumpFragStoreAsOFG findDuplicateFragsInStore
 SCRIPTS = doOBT.pl
 
 all: $(PROGS) $(SCRIPTS)
@@ -55,6 +55,7 @@ dumpFragStoreAsFasta: dumpFragStoreAsFasta.o trim.o -lAS_PER -lAS_UTL
 
 dumpFragStoreAsOFG: dumpFragStoreAsOFG.o -lAS_PER -lAS_UTL
 
+findDuplicateFragsInStore: findDuplicateFragsInStore.o -lAS_PER -lAS_UTL
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
