@@ -27,7 +27,7 @@ main(int argc, char **argv) {
 
   //  Open the store
   //
-  FragStoreHandle   fs = openFragStore(frgStore, "r+");
+  FragStoreHandle   fs = openFragStore(frgStore, "r");
   if (fs == NULLSTOREHANDLE) {
     fprintf(stderr, "Failed to open %s\n", frgStore);
     exit(1);
