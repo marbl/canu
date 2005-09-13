@@ -12,9 +12,6 @@ my %validArgs = ("-help"            => "0",  #
                  "-mapmrna"         => "3",  # 
                  "-mapsnp"          => "3",  # 
 
-                 "-buildtables"     => "2",  # 2, build search tables and exit
-                 "-usetables"       => "2",  # 2, use prebuilt tables
-
                  "-snpdelimiter"    => "1",  # 
                  "-snpoffset"       => "1",  # 
                  "-snppostag"       => "1",  # 
@@ -39,7 +36,6 @@ my %validArgs = ("-help"            => "0",  #
                  "-lsfpolishqueue"  => "1",  # 4
                  "-lsffinishqueue"  => "1",  # 45
                  "-maskmers"        => "1",  # 2, undocumented
-                 "-memory"          => "1",  # 1
                  "-mersize"         => "1",  # 2
                  "-mincoverage"     => "1",  # 45
                  "-minidentity"     => "1",  # 45
@@ -56,7 +52,6 @@ my %validArgs = ("-help"            => "0",  #
                  "-savetemporary"   => "0",  # 5
                  "-searchopts"      => "1",  # 2
                  "-searchthreads"   => "1",  # 2
-                 "-segments"        => "1",  # 1
                  "-sge"             => "1",  # 2, takes name
                  "-sgeaccount"      => "1",  # 2, takes account string
                  "-sgepriority"     => "1",  # 2, takes integer

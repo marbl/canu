@@ -64,7 +64,6 @@ sub filter {
 
     ($path eq "")                         and die "FATAL ERROR: ESTmapper/filter-- No directory given.\n";
     (! -d "$path")                        and die "FATAL ERROR: ESTmapper/filter-- No directory '$path' found!\n";
-    (! -f "$path/0-input/scaffolds-list") and die "FATAL ERROR: ESTmapper/filter-- No scaffolds-list?\n";
     (! -f "$path/1-search/allDone")       and die "FATAL ERROR: ESTmapper/filter-- The searches failed to complete successfully.\n";
 
     mkdir "$path/2-filter" if (! -d "$path/2-filter");
@@ -112,19 +111,7 @@ sub filter {
     #
     if (! -e "$path/2-filter/hitCounts") {
         print STDERR "ESTmapper/filter-- Merging counts.\n";
-
-        my $cmd = "$mergeCounts";
-
-        open(F, "< $path/0-input/scaffolds-list");
-        while (<F>) {
-            chomp;
-            $cmd .= " $path/1-search/$_.count";
-        }
-        close(F);
-
-        $cmd .= "> $path/2-filter/hitCounts";
-
-        if (runCommand($cmd)) {
+        if (runCommand("$mergeCounts $path/1-search/??.count > $path/2-filter/hitCounts")) {
             die "Failed.\n";
         }
     }
@@ -133,12 +120,7 @@ sub filter {
     #  Setup the filtering and sorting
     #
     if (! -e "$path/2-filter/filteredHits") {
-        my $fcmd;
-        my $scmd;
-
-        #  The sort command used to depend on the type, but no more.
-        #
-        $scmd = "$sortHits $verbose -m $hitMemory -t $path/2-filter $path/2-filter/filtHits > $path/2-filter/filteredHits";
+        my $fcmd = "cat $path/1-search/*hits | $extrafilter > $path/2-filter/filtHits";
 
         if      ($type eq "est") {
             #  Original settings, but $filterEST was rewritten to fix
@@ -155,8 +137,6 @@ sub filter {
             $fcmd = "$filterMRNA $verbose -c $path/2-filter/hitCounts $path/1-search/*hits | $extrafilter > $path/2-filter/filtHits";
         } elsif ($type eq "mrna") {
             $fcmd = "$filterMRNA $verbose -c $path/2-filter/hitCounts $path/1-search/*hits | $extrafilter > $path/2-filter/filtHits";
-        } elsif ($type eq "none") {
-            $fcmd = "cat $path/1-search/*hits | $extrafilter > $path/2-filter/filtHits";
         }
 
         print STDERR "ESTmapper/filter-- Filtering.\n";
@@ -164,6 +144,8 @@ sub filter {
             unlink "$path/2-filter/filtHits";
             die "Failed.\n";
         }
+
+        my $scmd = "$sortHits $verbose -m $hitMemory -t $path/2-filter $path/2-filter/filtHits > $path/2-filter/filteredHits";
 
         print STDERR "ESTmapper/filter-- Sorting.\n";
         if (runCommand($scmd)) {

@@ -7,14 +7,28 @@
 
 static
 int
-hitCompare(const void *a, const void *b) {
+hitCompareCoverage(const void *a, const void *b) {
   const hit_s  *A = (const hit_s *)a;
   const hit_s  *B = (const hit_s *)b;
 
   if (A->coverage > B->coverage)
     return(-1);
-  else
-    return(A->coverage < B->coverage);
+  return(A->coverage < B->coverage);
+}
+
+static
+int
+hitCompareGenPos(const void *a, const void *b) {
+  const hit_s  *A = (const hit_s *)a;
+  const hit_s  *B = (const hit_s *)b;
+
+  if (A->a._dsIdx < B->a._dsIdx) return(-1);
+  if (A->a._dsIdx > B->a._dsIdx) return(1);
+
+  if (A->a._dsLo  < B->a._dsLo) return(-1);
+  if (A->a._dsLo  > B->a._dsLo) return(1);
+
+  return(0);
 }
 
 
@@ -181,6 +195,8 @@ hitReader::loadHits(void) {
     }
   }
 
+  mergeOverlappingHits();
+
   return(true);
 }
 
@@ -188,5 +204,79 @@ hitReader::loadHits(void) {
 
 void
 hitReader::sortByCoverage(void) {
-  qsort(_list, _listLen, sizeof(hit_s), hitCompare);
+  qsort(_list, _listLen, sizeof(hit_s), hitCompareCoverage);
 };
+
+
+
+
+
+//  scan the list of hits (for a single EST, remember) and merge
+//  any that are overlapping
+void
+hitReader::mergeOverlappingHits(void) {
+
+  //  Sort by the genomic position
+  //
+  qsort(_list, _listLen, sizeof(hit_s), hitCompareGenPos);
+
+  //  Scan through the list, merging.
+  //
+  u32bit   cur = 0;  //  Currently active entry
+  u32bit   exa = 1;  //  Entry we examine for merging
+  while (exa < _listLen) {
+
+    //  Do they overlap?
+    if ((_list[cur].a._dsIdx     == _list[exa].a._dsIdx) &&
+        (_list[cur].a._forward   == _list[exa].a._forward) &&
+        (_list[cur].a._dsHi      >= _list[exa].a._dsLo)) {
+
+      //  Yup, merge.  Extend the current hit if it is smaller.
+
+      if ((_list[cur].a._dsLo == _list[exa].a._dsLo) &&
+          (_list[cur].a._dsHi == _list[exa].a._dsHi)) {
+        //  Nop, they're the same.
+      } else if (_list[cur].a._dsHi >= _list[exa].a._dsHi) {
+        //  Nop, exa is contained in cur.
+      } else {
+
+        //  exa extends cur!
+
+        //  If cur is a subset of exa, exa replaces cur, including scores.
+        //  Otherwise, we need to fudge up new scores.  An alternative is to
+        //  somehow mark these so that they are never filtered.
+        //
+        if (_list[cur].a._dsLo == _list[exa].a._dsLo) {
+          memcpy(_list+cur, _list+exa, sizeof(hit_s));
+        } else {
+          fprintf(stderr,
+                  "MERGE: "
+                  u32bitFMT":"u32bitFMT"-"u32bitFMT"("u32bitFMT"-"u32bitFMT"-"u32bitFMT") "
+                  u32bitFMT":"u32bitFMT"-"u32bitFMT"("u32bitFMT"-"u32bitFMT"-"u32bitFMT")\n",
+                  _list[cur].a._dsIdx, _list[cur].a._dsLo, _list[cur].a._dsHi,
+                  _list[cur].a._covered, _list[cur].a._matched, _list[cur].a._numMers,
+                  _list[exa].a._dsIdx, _list[exa].a._dsLo, _list[exa].a._dsHi,
+                  _list[exa].a._covered, _list[exa].a._matched, _list[exa].a._numMers);
+
+          _list[cur].a._merged = true;
+          _list[cur].a._covered = 0;
+          _list[cur].a._matched = 0;
+          _list[cur].a._dsHi = _list[exa].a._dsHi;
+        }
+      }
+
+    } else {
+      //  Nope, copy exa to the next spot (unless they're the same)
+      //  and move there.
+      //
+      cur++;
+      if (cur != exa)
+        memcpy(_list+cur, _list+exa, sizeof(hit_s));
+    }
+
+    //  Move to the next examination!
+    exa++;
+  }
+
+  _listLen = cur + 1;
+}

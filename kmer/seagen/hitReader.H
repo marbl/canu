@@ -56,6 +56,7 @@ public:
   u32bit numHits(void)    { return(_listLen);    };
 
   void   sortByCoverage(void);
+  void   mergeOverlappingHits(void);
 
   hit_s &operator[](u32bit x) {
     if (x >= _listLen) {
@@ -78,9 +79,5 @@ private:
   double        _worstScore;
   u32bit        _iid;
 };
-
-
-
-
 
 #endif  //  HITREADER_H

@@ -1,142 +1,22 @@
 use strict;
 
-#  A wild over-estimation of the cost per base for the search.  Last
-#  thing we want to do is thrash.
+
+#  Takes three args:
+#    path to our working directory
+#    path to the genome build directory
+#    path to the ESTs
 #
-my $scaleFactor = 12;
-
-
-sub configure_pack {
-    my $path      = shift @_;
-    my $segments  = shift @_;
-    my $maxmemory = 0;
-    my $segmentID = "000";
-
-    open(L, "> $path/0-input/scaffolds-list");
-    open(F, "$leaff -F $path/0-input/genomic.fasta --partition $segments |");
-    $segments = <F>;
-    while(<F>) {
-        my $segments = "";
-        my @pieces   = split '\s+', $_;
-        my $memory   = shift @pieces;
-
-        if ($memory =~ m/^\d+\]\((\d+)\)$/) {
-            $memory = $1;
-        } else {
-            die "Error parsing memory for segment: $_\n";
-        }
-
-        foreach my $piece (@pieces) {
-            if ($piece =~ m/(\d+)\(\d+\)/) {
-                $segments .= "$1\n";
-            } else {
-                die "Error parsing segment: $piece\n";
-            }
-        }
-
-        printf STDERR "ESTmapper/configure-- Created group $segmentID with $memory bases (%8.3fMB of memory).\n", $memory * $scaleFactor / 1024.0 / 1024.0;
-
-        open(S, "> $path/0-input/scaffolds-$segmentID");
-        print S $segments;
-        close(S);
-
-        print L "$segmentID\n";
-
-        $maxmemory = $memory if ($memory > $maxmemory);
-
-        $segmentID++;
-    }
-    close(F);
-    close(L);
-
-    return $scaleFactor * $maxmemory;
-}
-
-
-
-
-sub testSourceFile {
-    my $oldpath = shift @_;
-    my $newfile = shift @_;
-
-    #  If the $oldpath exists, make sure it is the same as the $newpath.
-    #  We use both identical path, as well as identical index files.
-    #
-    #  This will fail if the user points to a different file with the
-    #  same name that also has a valid index with it.
-    #
-    if (-f $oldpath) {
-        my $oldfile = readlink $oldpath;
-
-        #  If we get a different name here, fail if the index files
-        #  are different (or don't exist).
-        #
-        if ($oldfile ne $newfile) {
-            my $indexOK = 1;
-
-            #  If the oldpath has an index file (and it's not a symlink), see if it's compatible with the
-            #  new file.
-            #
-            if (-e "${oldpath}idx" && ! -l "${oldpath}idx") {
-                $indexOK = system("$leaff --testindex $newfile ${oldpath}idx");
-            }
-
-            #  If not compatible, or no index present, fail.
-            #
-            if ($indexOK == 0) {
-                print STDERR "ESTmapper/configure-- WARNING: Previous run of ESTmapper used a genomic file\n";
-                print STDERR "                      with a different name.  As far as I can tell, the old\n";
-                print STDERR "                      file name and the new file name are the same file.\n";
-                print STDERR "                      This run will continue using the NEW file.\n";
-
-                unlink "${oldpath}";
-                unlink "${oldpath}idx";
-            } else {
-                print STDERR "ESTmapper/configure-- ERROR: Previous run of ESTmapper used genomic file\n";
-                print STDERR "                        $oldfile\n";
-                print STDERR "                      But this run wants to use\n";
-                print STDERR "                        $newfile\n";
-                print STDERR "                      And these files seem to be different.\n";
-                print STDERR "                      This run is aborted.\n";
-                exit(1);
-            }
-
-        }
-    }
-}
-
-
 sub configure {
-    my $startTime = time();
-    my @ARGS      = @_;
-    my $path      = "";
-    my $genomic   = "";
-    my $cdna      = "";
-    my $memory    = 800;
-    my $segments  = 0;
+    my $path      = shift @_;
+    my $genomic   = shift @_;
+    my $cdna      = shift @_;
 
     print STDERR "ESTmapper: Performing a configure.\n";
-
-    while (scalar @ARGS > 0) {
-        my $arg = shift @ARGS;
-
-        $path    = shift @ARGS  if ($arg eq "-configure");
-        $genomic = shift @ARGS  if ($arg eq "-genomic");
-        $cdna    = shift @ARGS  if ($arg eq "-cdna");
-
-        if ($arg eq "-memory") {
-            $memory   = shift @ARGS;
-            $segments = 0;
-        }
-        if ($arg eq "-segments") {
-            $memory   = 0;
-            $segments = shift @ARGS;
-        }
-    }
 
     ($path eq "")    and die "ERROR: ESTmapper/configure-- no directory given.\n";
     ($genomic eq "") and die "ERROR: ESTmapper/configure-- no genomic sequences given.\n";
     ($cdna eq "")    and die "ERROR: ESTmapper/configure-- no cDNA sequences given.\n";
+    (! -f $cdna)     and die "ERROR: ESTmapper/configure-- can't find the cdna sequence '$cdna'\n";
 
     #  Make some organization
     #
@@ -146,60 +26,19 @@ sub configure {
     mkdir "$path/2-filter" if (! -d "$path/2-filter");
     mkdir "$path/3-polish" if (! -d "$path/3-polish");
 
+    #  XXX:  We should check that the genome dir is valid and complete.
+    #
+    system("ln -s $genomic $path/0-input/genome");
+
     #  Check the input files exist, create symlinks to them, and find/build index files
     #
-    die "ERROR: ESTmapper/configure-- can't find the genomic sequence '$genomic'\n" if (! -f "$genomic");
-    die "ERROR: ESTmapper/configure-- can't find the cdna sequence '$cdna'\n"       if (! -f "$cdna");
-
-    testSourceFile("$path/0-input/genomic.fasta", $genomic);
-    testSourceFile("$path/0-input/cDNA.fasta",    $cdna);
-
-    symlink "${genomic}",    "$path/0-input/genomic.fasta"    if ((! -f "$path/0-input/genomic.fasta"));
-    symlink "${genomic}idx", "$path/0-input/genomic.fastaidx" if ((! -f "$path/0-input/genomic.fastaidx") && (-f "${genomic}idx"));
     symlink "${cdna}",       "$path/0-input/cDNA.fasta"       if ((! -f "$path/0-input/cDNA.fasta"));
     symlink "${cdna}idx",    "$path/0-input/cDNA.fastaidx"    if ((! -f "$path/0-input/cDNA.fastaidx") && (-f "${cdna}idx"));
 
-    if (! -f "$path/0-input/genomic.fastaidx") {
-        print STDERR "ESTmapper/configure-- Generating the index for '$path/0-input/genomic.fasta'\n";
-        print STDERR "ESTmapper/configure-- WARNING:  This is done in the work directory!\n";
-        if (runCommand("$leaff -F $path/0-input/genomic.fasta")) {
-            die "Failed.\n";
-        }
-    }
-
     if (! -f "$path/0-input/cDNA.fastaidx") {
         print STDERR "ESTmapper/configure-- Generating the index for '$path/0-input/cDNA.fasta'\n";
-        print STDERR "ESTmapper/configure-- WARNING:  This is done in the work directory!\n";
-        if (runCommand("$leaff -F $path/0-input/cDNA.fasta")) {
-            die "Failed.\n";
-        }
-    }
-
-    #  Partition the genome into itty-bitty pieces
-    #
-    if (! -f "$path/0-input/scaffolds-list") {
-        if ($memory > 0) {
-            print STDERR "ESTmapper/configure-- packing to preserve ${memory}MB memory limit\n";
-            $memory /= $scaleFactor;
-            $memory .= "mbp";
-            $memory = configure_pack($path, $memory);
-        }
-
-        if ($segments > 0) {
-            print STDERR "ESTmapper/configure-- packing to preserve $segments processor limit\n";
-            $memory = configure_pack($path, $segments);
-        }
-
-        #  Argh!  Looks like int() is really trunc()
-        $memory = int($memory / 1024.0 / 1024.0 + 1);
-
-        open(F, "> $path/0-input/memoryLimit") or die "Can't write $path/0-input/memoryLimit\n";
-        print F "$memory\n";
-        close(F);
-
-        print STDERR "ESTmapper/configure-- Created groups with maximum memory requirement of ${memory}MB.\n";
+        runCommand("$leaff -F $path/0-input/cDNA.fasta") and die "Failed.\n";
     }
 }
-
 
 1;

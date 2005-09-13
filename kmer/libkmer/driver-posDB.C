@@ -18,12 +18,7 @@
 #define TBLSIZE 19
 
 char const *usage =
-"usage: %s [-mersize s] [-merskip k] [-tablesize t]\n"
-"         default: s=20, k=0, t=auto\n"
-
-
-
-"\n"
+"usage: %s [args]\n"
 "       -mersize k         The size of the mers, default=20.\n"
 "       -merskip k         The skip between mers, default=0\n"
 "       -tablesize t       The size of the hash table, default=0 (auto)\n"
@@ -237,6 +232,12 @@ main(int argc, char **argv) {
     arg++;
   }
 
+  //  Exit quickly if the output file exists.
+  //
+  if (fileExists(outputFile)) {
+    fprintf(stderr, "Output file '%s' exists already!\n", outputFile);
+    exit(0);
+  }
 
   useList.setSource(inputFile);
   useList.setSeparatorLength(1);

@@ -1,44 +1,34 @@
 use strict;
 
 sub checkFinished {
-    my ($path, $cdnaInInput, $buildonly, $buildprefix, @scafList) = @_;
+    my ($path, $cdnaInInput, @segList) = @_;
     my @searchesToRun;
 
     open(S, "> $path/1-search/run.sh");
-    foreach my $s (@scafList) {
+    foreach my $s (@segList) {
         my $c = 0;
 
-        if ($buildonly) {
+        #  If the hits file is NOT found, remove the count file.
+        #
+        unlink "$path/1-search/$s.count" if (! -e "$path/1-search/$s.hits");
 
-            #  We're done if the table file exists for this piece
-            #
-            if (! -e "$buildprefix.$s") {
-                print S "$path/1-search/$s.cmd\n";
-                push @searchesToRun, "$path/1-search/$s.cmd";
-            }
-        } else {
+        #  If there is a count file, count the number of lines in it.
+        #
+        $c = int(`wc -l < $path/1-search/$s.count`) if (-e "$path/1-search/$s.count");
 
-            #  If the hits file is NOT found, remove the count file.
-            #
-            unlink "$path/1-search/$s.count" if (! -e "$path/1-search/$s.hits");
-
-            #  If there is a count file, count the number of lines in it.
-            #
-            $c = int(`wc -l < $path/1-search/$s.count`) if (-e "$path/1-search/$s.count");
-
-            #  There should be one for each cDNA.
-            #
-            if ($c != $cdnaInInput) {
-                print STDERR "ESTmapper/search-- Found signal for $c cDNA out of $cdnaInInput for segment $s.\n";
-                print S "$path/1-search/$s.cmd\n";
-                push @searchesToRun, "$path/1-search/$s.cmd";
-            }
+        #  There should be one for each cDNA.
+        #
+        if ($c != $cdnaInInput) {
+            print STDERR "ESTmapper/search-- Found signal for $c cDNA out of $cdnaInInput for segment $s.\n";
+            print S "$path/1-search/$s.sh\n";
+            push @searchesToRun, "$path/1-search/$s.sh";
         }
     }
     close(S);
 
     return(@searchesToRun);
 }
+
 
 
 sub search {
@@ -48,9 +38,6 @@ sub search {
     my $opts         = "";
     my $mersize      = 20;
     my $maskFile     = undef;
-    my $buildonly    = 0;
-    my $builddir     = undef;
-    my $buildprefix  = undef;
     my $verbose      = "";
     my $stats        = 1;
 
@@ -95,17 +82,6 @@ sub search {
         }
         if ($arg eq "-mersize") {
             $mersize = shift @ARGS;
-        }
-
-        if ($arg eq "-buildtables") {
-            $buildonly   = 1;
-            $builddir    = shift @ARGS;
-            $buildprefix = shift @ARGS;
-        }
-        if ($arg eq "-usetables") {
-            $buildonly   = 0;
-            $builddir    = shift @ARGS;
-            $buildprefix = shift @ARGS;
         }
 
         $stats = 1 if ($arg eq "-stats");
@@ -171,7 +147,6 @@ sub search {
 
     ($path eq "")                              and die "ERROR: ESTmapper/search-- no directory given.\n";
     (! -d "$path")                             and die "ERROR: ESTmapper/search-- no directory '$path' found!\n";
-    (! -f "$path/0-input/scaffolds-list")      and die "ERROR: ESTmapper/search-- no scaffolds-list?\n";
 
     mkdir "$path/1-search" if (! -d "$path/1-search");
 
@@ -179,77 +154,12 @@ sub search {
 
     #  Read the list of segments the searches used
     #
-    open(F, "< $path/0-input/scaffolds-list");
-    my @scafList = <F>;
+    open(F, "< $path/0-input/genome/segments") or die "Can't open genome segments list!\n";
+    my @segList = <F>;
     close(F);
-    chomp @scafList;
+    chomp(@segList);
 
-    #  Make the directory for building tables, and create an info file in there.
-    #  If we're $buildonly, we have $buildprefix and $builddir defined.
-    #
-    #  Else, if we're reading tables back, make sure that the info file is
-    #  in agreement with our configuration.
-    #
-    #  This is sensitive to moving the genome file around.
-    #
-    if ($buildonly) {
-        mkdir "$builddir" if (! -d "$builddir");
 
-        my $genomepath = readlink "$path/0-input/genomic.fasta";
-
-        open(F, "> $builddir/$buildprefix.$mersize.info");
-        print F "$genomepath\n";
-
-        foreach my $s (@scafList) {
-            my $segment;
-
-            open(G, "< $path/0-input/scaffolds-$s");
-            while (<G>) {
-                chomp;
-                $segment .= $_;
-            }
-            close(G);
-            print F "$segment\n";
-        }
-        close(F);
-    } elsif (defined($buildprefix)) {
-        if (! -e "$builddir/$buildprefix.$mersize.info") {
-            print STDERR "ESTmapper/search-- Table incompatible: No info file found!\n";
-            exit(1);
-        }
-
-        open(F, "< $builddir/$buildprefix.$mersize.info");
-
-        my $genomepath = readlink "$path/0-input/genomic.fasta";
-        my $genomesave = <F>;
-        chomp $genomesave;
-
-        if ($genomepath ne $genomesave) {
-            print STDERR "ESTmapper/search-- Table incompatible: built using $genomesave\n";
-            print STDERR "ESTmapper/search--                     this run is $genomepath\n";
-            exit(1);
-        }
-
-        foreach my $s (@scafList) {
-            my $segment;
-
-            open(G, "< $path/0-input/scaffolds-$s");
-            while (<G>) {
-                chomp;
-                $segment .= $_;
-            }
-            close(G);
-
-            my $tablesegment = <F>;
-            chomp $tablesegment;
-
-            if ($segment ne $tablesegment) {
-                print STDERR "ESTmapper/search-- Table incompatible: segment $s is wrong.\n";
-                exit(1);
-            }
-        }
-        close(F);
-    }
 
     #  Create a bunch of scripts to process
     #
@@ -257,29 +167,30 @@ sub search {
     #  we would, say, change the stats or number of threads, and is
     #  needed for switching from -buildtables to -usetables.
     #
-    foreach my $s (@scafList) {
-        open(F, "> $path/1-search/$s.cmd");
-        print F "$searchGENOME $verbose -binary -mersize $mersize $opts -numthreads $numthread";
-        print F " -buildtemporary $path/1-search/$s.tmp";
-        print F " -buildtables $builddir/$buildprefix.$mersize.$s" if (defined($buildprefix) &&  $buildonly);
-        print F " -usetables   $builddir/$buildprefix.$mersize.$s" if (defined($buildprefix) && !$buildonly);
-        print F " -cdna $path/0-input/cDNA.fasta";
-        print F " -genomic $path/0-input/genomic.fasta";
-        print F " -use $path/0-input/scaffolds-$s";
-        print F " -output $path/1-search/$s.hits";
-        print F " -count $path/1-search/$s.count";
-        print F " -stats $builddir/$buildprefix.$mersize.$s.stats" if (($stats == 1) &&  $buildonly);
-        print F " -stats $path/1-search/$s.stats"                  if (($stats == 1) && !$buildonly);
+    foreach my $s (@segList) {
+
+        open(F, "> $path/1-search/$s.sh");
+        print F "$searchGENOME \\\n";
+        print F " $verbose -binary -mersize $mersize $opts -numthreads $numthread \\\n";
+        print F " -cdna $path/0-input/cDNA.fasta \\\n";
+        print F " -genomic $path/0-input/genome/genome.fasta \\\n";
+        print F " -positions $path/0-input/genome/seg$s.posDB \\\n";
+        print F " -output $path/1-search/$s.hits \\\n";
+        print F " -count $path/1-search/$s.count \\\n";
+        print F " -stats $path/1-search/$s.stats \\\n" if ($stats == 1);
         print F " -mask $maskFile" if ($maskFile ne "");
         close(F);
 
-        chmod 0755, "$path/1-search/$s.cmd";
+        chmod 0755, "$path/1-search/$s.sh";
     }
+
 
     #  We build a list of jobs to run, and put it into
     #  $path/1-search/run.sh.
     #
-    my @searchesToRun = checkFinished($path, $cdnaInInput, $buildonly, "$builddir/$buildprefix.$mersize", @scafList);
+    my @searchesToRun = checkFinished($path, $cdnaInInput, @segList);
+
+
 
     #  Run searches.  If the search terminated properly, the
     #  hit-counts file should exist.  Run (maybe re-run) the search if
@@ -290,13 +201,9 @@ sub search {
         print STDERR "ESTmapper/search--   $path/1-search/run.sh\n";
         exit(0);
     } elsif ($runtype eq "local") {
-        print STDERR "ESTmapper/search-- Local mode requested; ", scalar @scafList, " processes to compute,\n";
+        print STDERR "ESTmapper/search-- Local mode requested; ", scalar @segList, " processes to compute,\n";
         print STDERR "ESTmapper/search-- Local mode requested; $numproc concurrent processes,\n";
         print STDERR "ESTmapper/search-- Local mode requested; each with $numthread threads.\n";
-
-        my $numTries = 0;
-      again:
-        $numTries++;
 
         #  Run the searches.  We use the scheduler, then check
         #  everything at the end.  This is a little less friendly
@@ -314,18 +221,13 @@ sub search {
             #  See if anything failed.
             #
             print STDERR "ESTmapper/search-- checking search output.  All should have $cdnaInInput cDNA.\n";
-            @searchesToRun = checkFinished($path, $cdnaInInput, $buildonly, "$builddir/$buildprefix.$mersize", @scafList);
-        }
-
-        if (($numTries < 3) && (scalar(@searchesToRun) > 0)) {
-            print STDERR "ESTmapper/search-- ", scalar(@searchesToRun), " searches failed.  Retrying.\n";
-            goto again;
+            @searchesToRun = checkFinished($path, $cdnaInInput, @segList);
         }
 
         if (scalar(@searchesToRun) > 0) {
             print STDERR "ESTmapper/search-- Searches failed.\n";
             foreach my $s (@searchesToRun) {
-                if ($s =~ m/(\d+).cmd/) {
+                if ($s =~ m/(\d+).sh/) {
                     print STDERR "ESTmapper/search-- Search $1 failed.  Output saved as *.CRASH\n";
                     rename "$path/1-search/$1.count", "$path/1-search/$1.count.CRASH";
                     rename "$path/1-search/$1.hits", "$path/1-search/$1.hits.CRASH";
@@ -419,13 +321,27 @@ sub search {
     }
 
 
+
+    #  See if anything is still broken.  If it did, holler!
+    #
+    my $died = 0;
+    foreach my $s (@segList) {
+        if (! -e "$path/1-search/$s.count") {
+            print STDERR "ERROR: ESTmapper/search-- SEARCH $s DIED!\n";
+            $died++;
+        }
+    }
+    die "ERROR: ESTmapper/search-- Searches have a problem ($died).\n" if ($died > 0);
+
+
+
     #  Summarize compute time used.
     #
     my $sysTimeBuild  = 0;
     my $usrTimeBuild  = 0;
     my $sysTimeSearch = 0;
     my $usrTimeSearch = 0;
-    foreach my $s (@scafList) {
+    foreach my $s (@segList) {
         if (-e "$path/1-search/$s.stats") {
             open(F, "< $path/1-search/$s.stats");
             while (<F>) {
@@ -434,38 +350,8 @@ sub search {
             }
             close(F);
         }
-        if (-e "$builddir/$buildprefix.$mersize.$s.stats") {
-            open(F, "< $builddir/$buildprefix.$mersize.$s.stats");
-            while (<F>) {
-                $sysTimeBuild += $1 if (m/^systemTime:\s+(\d+\.\d+)$/);
-                $usrTimeBuild += $1 if (m/^userTime:\s+(\d+\.\d+)$/);
-            }
-            close(F);
-        }
     }
 
-    #  If we were supposed to be doing just table builds, we either
-    #  crashed or are finished.  Either way, we exit.
-    #
-    if ($buildonly) {
-        print STDERR "ESTmapper/search-- Used $sysTimeBuild seconds system time to build tables.\n";
-        print STDERR "ESTmapper/search-- Used $usrTimeBuild seconds user time to build tables.\n";
-        print STDERR "ESTmapper/search-- Script finished in ", time() - $startTime, " wall-clock seconds.\n" if (time() > $startTime + 5);
-        print STDERR "ESTmapper/search-- All finished building tables.\n";
-        exit(0);
-    }
-
-    #  See if anything is still broken.  If it did, holler!
-    #  We also sum the time used here.
-    #
-    my $died = 0;
-    foreach my $s (@scafList) {
-        if (! -e "$path/1-search/$s.count") {
-            print STDERR "ERROR: ESTmapper/search-- SEARCH $s DIED!\n";
-            $died++;
-        }
-    }
-    die "ERROR: ESTmapper/search-- Searches have a problem ($died).\n" if ($died > 0);
 
     #  Rather lazy way to inform the next step (and future calls to this step) that we're all done.
     #

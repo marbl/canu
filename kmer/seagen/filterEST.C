@@ -196,6 +196,12 @@ main(int argc, char **argv) {
             fp++;
           }
 #endif
+        } else if (HR[i].a._merged) {
+          //  We merged this hit, so scores are incorrect.  Give it
+          //  the benefit of the doubt and report it.
+          //
+          hitsSaved++;
+          ahit_printASCII(&HR[i].a, stdout);
         } else {
           hitsFiltered++;
 #ifdef WITH_ANSWERS

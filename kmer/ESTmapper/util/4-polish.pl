@@ -194,7 +194,7 @@ sub polish {
 
         if (! -e "$path/3-polish/$idx.touch") {
             my $cmd;
-            $cmd  = "$sim4db -cdna $path/0-input/cDNA.fasta -genomic $path/0-input/genomic.fasta ";
+            $cmd  = "$sim4db -cdna $path/0-input/cDNA.fasta -genomic $path/0-input/genome/genome.fasta ";
             $cmd .= "$aligns $always $relink $abort $interspecies -cut 0.6 ";
             $cmd .= "-mincoverage $minsim4c ";
             $cmd .= "-minidentity $minsim4i ";

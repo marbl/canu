@@ -567,7 +567,8 @@ hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit
         //
         aHit a;
       
-        a._direction = (direction == 'f');
+        a._forward   = (direction == 'f');
+        a._merged    = false;
         a._qsIdx     = _qsIdx;
         a._dsIdx     = config._useList.IIDOf(currentSeq);
         a._dsLo      = dsLow;

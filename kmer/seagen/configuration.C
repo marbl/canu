@@ -184,6 +184,10 @@ configuration::read(int argc, char **argv) {
       arg++;
       _tableFileName  = argv[arg];
       _tableBuildOnly = false;
+    } else if (strcmp(argv[arg], "-positions") == 0) {
+      arg++;
+      _tableFileName  = argv[arg];
+      _tableBuildOnly = false;
     } else if (strcmp(argv[arg], "-use") == 0) {
       arg++;
       _useList.parse(argv[arg]);

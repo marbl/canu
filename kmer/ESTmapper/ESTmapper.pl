@@ -10,7 +10,10 @@ $| = 1;
 
 use strict;
 
-use vars qw($personality $exechome $ESTmapper $ESTmappersh $searchGENOME $mergeCounts $filterMRNA $filterEST $sim4db $leaff $cleanPolishes $toFILTER $sortHits $sortPolishes $parseSNPs $pickBest);
+use vars qw($personality $exechome $ESTmapper $ESTmappersh
+            $searchGENOME $mergeCounts $filterMRNA $filterEST $sim4db $leaff
+            $cleanPolishes $toFILTER $sortHits $sortPolishes $parseSNPs
+            $pickBest $positionDB $mimsf);
 
 use FindBin;
 use lib "$FindBin::Bin/util";
@@ -37,7 +40,7 @@ $searchGENOME  = "$exechome/seagen";
 $mergeCounts   = "$exechome/mergeCounts";
 $filterMRNA    = "$exechome/filterMRNA";
 $filterEST     = "$exechome/filterEST";
-$sim4db        = "$exechome/sim4db";
+$sim4db        = "$exechome/sim4th";
 $leaff         = "$exechome/leaff";
 $cleanPolishes = "$exechome/cleanPolishes";
 $toFILTER      = "$exechome/filterPolishes";
@@ -45,6 +48,8 @@ $sortHits      = "$exechome/sortHits";
 $sortPolishes  = "$exechome/sortPolishes";
 $parseSNPs     = "$exechome/parseSNP";
 $pickBest      = "$exechome/pickBestPolish";
+$positionDB    = "$exechome/positionDB";
+$mimsf         = "$exechome/mersInMerStreamFile";
 $personality   = "-help";
 
 
@@ -216,7 +221,7 @@ my $runInformationFile;
 if ($personality eq "-mapest") {
     $runInformationFile = createRunInformation($dir, @ARGV);
 
-    configure      ("-configure", "$dir", "-genomic", "$gen", "-cdna", "$est", @ARGV);
+    configure      ($dir, $gen, $est);
     search         ("-searchest", "$dir", "-mersize", "20", "-species", "human", @ARGV);
     filter         ("-filterest", "$dir", @ARGV);
     polish         ("-polish", "$dir", "-mincoverage", "50", "-minidentity", "95", @ARGV);
@@ -224,7 +229,7 @@ if ($personality eq "-mapest") {
 } elsif ($personality eq "-mapmrna") {
     $runInformationFile = createRunInformation($dir, @ARGV);
 
-    configure      ("-configure", "$dir", "-genomic", "$gen", "-cdna", "$est", @ARGV);
+    configure      ($dir, $gen, $est);
     search         ("-searchmrna", "$dir", "-mersize", "20", "-species", "human", @ARGV);
     filter         ("-filtermrna", "$dir", @ARGV);
     polish         ("-polish", "$dir", "-mincoverage", "50", "-minidentity", "95", "-relink", "1000", "-abort", @ARGV);
@@ -232,7 +237,7 @@ if ($personality eq "-mapest") {
 } elsif ($personality eq "-mapsnp") {
     $runInformationFile = createRunInformation($dir, @ARGV);
 
-    configure      ("-configure", "$dir", "-genomic", "$gen", "-cdna", "$est", @ARGV);
+    configure      ($dir, $gen, $est);
     search         ("-searchsnp", "$dir", "-mersize", "20", "-species", "human", @ARGV);
     filter         ("-filtersnp", "$dir", @ARGV);
     polish         ("-polish", "$dir", "-mincoverage", "80", "-minidentity", "95", @ARGV);

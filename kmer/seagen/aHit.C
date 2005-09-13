@@ -18,7 +18,7 @@ void   ahit_readBinary(aHit *a, readBuffer *F) {
 
 void   ahit_printASCII(aHit *a, FILE *F) {
   fprintf(F, "-%c -e "u32bitFMT" -D "u32bitFMT" "u32bitFMT" "u32bitFMT" -M "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
-          a->_direction ? 'f' : 'r',
+          a->_forward ? 'f' : 'r',
           a->_qsIdx,
           a->_dsIdx,
           a->_dsLo,
@@ -62,9 +62,7 @@ void   ahit_printASCII(aHit *a, FILE *F) {
 void   ahit_parseString(aHit *a, char *b) {
   char *c = b+1;
 
-  a->_direction = 0;
-  if (*c == 'f')
-    a->_direction = 1;
+  a->_forward = (*c == 'f');
 
   c += 1;
 

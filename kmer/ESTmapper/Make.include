@@ -1,5 +1,9 @@
 # -*- makefile -*-
 
+LIBUTL/     :=$(call MakePath,$/../libutil/)
+LIBBIO/     :=$(call MakePath,$/../libbio/)
+LIBKMER/    :=$(call MakePath,$/../libkmer/)
+LIBBIO/     :=$(call MakePath,$/../libbio/)
 LEAFF/      :=$(call MakePath,$/../leaff/)
 SEAGEN/     :=$(call MakePath,$/../seagen/)
 SIM4DB/     :=$(call MakePath,$/../sim4db/)
@@ -21,14 +25,18 @@ EXECS :=  $/leaff \
           $/filterPolishes \
           $/pickBestPolish \
           $/parseSNP \
+          $/positionDB \
           $/util/scheduler.pm \
           $/util/fasta.pm
           
 
-$/.CXX_SRCS  := $/mergeCounts.C
-$/.CXX_EXES  := $/mergeCounts
+$(eval $/%.d $/%.o: CXXFLAGS+=-I${LIBKMER/} -I${LIBBIO/} -I${LIBUTL/})
+
+$/.CXX_SRCS  := $/mergeCounts.C $/mersInMerStreamFile.C
+$/.CXX_EXES  := $/mergeCounts   $/mersInMerStreamFile
 
 $/mergeCounts: $/mergeCounts.o
+$/mersInMerStreamFile: $/mersInMerStreamFile.o ${LIBKMER/}libkmer.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 
 $/.CLEAN      := $/*.o
 $/.REAL-CLEAN := $/mergeCounts ${EXECS}
@@ -104,3 +112,8 @@ $/pickBestPolish: ${SIM4UTIL/}pickBestPolish
 	$(RM) $/pickBestPolish
 	$(CP) ${SIM4UTIL/}pickBestPolish $/pickBestPolish
 	chmod 555 $/pickBestPolish
+
+$/positionDB: ${LIBKMER/}positionDB
+	$(RM) $/positionDB
+	$(CP) ${LIBKMER/}positionDB $/positionDB
+	chmod 555 $/positionDB

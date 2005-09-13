@@ -64,6 +64,8 @@ public:
   void        dump(u64bit mer);
   void        dumpTable(void);
 #endif
+
+
 private:
 
   u64bit       HASH(u64bit k) {

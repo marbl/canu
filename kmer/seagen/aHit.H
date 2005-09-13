@@ -5,16 +5,9 @@
 #include "util++.H"
 #include <stdio.h>
 
-//  The field called _flgas used to be _direction and held just the
-//  orientation of the match.  So that we can use sortHits for both
-//  seatac and searchGENOME, this was extended to a _flags field.
-//
-//  FLAG_DIRECTION -- if set, the match is forward, otherwise reverse.
-
-#define FLAG_DIRECTION    0x00000001
-
 struct aHit {
-  u32bit  _direction;
+  u32bit  _forward : 1;
+  u32bit  _merged : 1;
   u32bit  _qsIdx;
   u32bit  _dsIdx;
   u32bit  _dsLo;

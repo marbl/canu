@@ -15,7 +15,7 @@
 ////////////////////////////////////////
 
 struct aHit {
-  u32bit  _direction;
+  u32bit  _forward;
   u32bit  _qsIdx;
   u32bit  _dsIdx;
   u32bit  _dsLo;
@@ -43,7 +43,7 @@ void   ahit_readBinary(aHit *a, FILE *F) {
 void   ahit_printASCII(aHit *a, FILE *F) {
 #ifdef TRUE64BIT
   fprintf(F, "-%c -e %u -D %u %u %u -M %u %u %u %s %u %u\n",
-          a->_direction ? 'f' : 'r',
+          a->_forward ? 'f' : 'r',
           a->_qsIdx,
           a->_dsIdx,
           a->_dsLo,
@@ -56,7 +56,7 @@ void   ahit_printASCII(aHit *a, FILE *F) {
           a->_coverage);
 #else
   fprintf(F, "-%c -e %lu -D %lu %lu %lu -M %lu %lu %lu %s %lu %lu\n",
-          a->_direction ? 'f' : 'r',
+          a->_forward ? 'f' : 'r',
           a->_qsIdx,
           a->_dsIdx,
           a->_dsLo,
@@ -74,7 +74,7 @@ void   ahit_printASCII(aHit *a, FILE *F) {
 void   ahit_parseString(aHit *a, char *b) {
   char *c = b+1;
 
-  a->_direction = (*c == 'f');
+  a->_forward = (*c == 'f');
   c += 1;
 
   if (c[2] != 'e')  fprintf(stderr, "'%s' didn't get -e\n", b);

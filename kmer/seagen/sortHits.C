@@ -94,7 +94,8 @@ public:
 
     rewind(theFile);
 
-    hit._direction = u32bitZERO;
+    hit._forward   = false;
+    hit._merged    = false;
     hit._qsIdx     = u32bitZERO;
     hit._dsIdx     = u32bitZERO;
     hit._dsLo      = u32bitZERO;
@@ -114,7 +115,7 @@ public:
     return(&hit);
   };
   void   nextHit(void) {
-    if (hit._direction != ~u32bitZERO) {
+    if (hit._qsIdx != ~u32bitZERO) {
       errno = 0;
       fread(&hit, sizeof(aHit), 1, theFile);
       if (errno) {
@@ -126,7 +127,8 @@ public:
       //  hit to be junk.
       //
       if (feof(theFile)) {
-        hit._direction = ~u32bitZERO;
+        hit._forward   = false;
+        hit._merged    = false;
         hit._qsIdx     = ~u32bitZERO;
         hit._dsIdx     = ~u32bitZERO;
         hit._dsLo      = ~u32bitZERO;
@@ -282,8 +284,7 @@ main(int argc, char **argv) {
     //  If the smallest hit is invalid, we're done.  Otherwise, write
     //  the hit, and read a new one.
     //
-    //
-    if (tmpF[smallestHit]->theHit()->_direction == ~u32bitZERO) {
+    if (tmpF[smallestHit]->theHit()->_qsIdx == ~u32bitZERO) {
       moreInput = false;
     } else {
       ahit_printASCII(tmpF[smallestHit]->theHit(), stdout);
