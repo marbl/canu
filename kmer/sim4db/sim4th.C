@@ -49,6 +49,11 @@
 //#define COUNT_LOCKED
 
 
+//  Define this to DISABLE the output, useful for debugging and/or
+//  speed testing.
+//#define NO_OUTPUT
+
+
 
 //  Run options set from the command line.
 //
@@ -537,7 +542,9 @@ main(int argc, char **argv) {
         char *o = s4p_polishToString(L4[i]);
 
         errno = 0;
-        //write(fOutput, o, strlen(o) * sizeof(char));
+#ifndef NO_OUTPUT
+        write(fOutput, o, strlen(o) * sizeof(char));
+#endif
         if (errno)
           fprintf(stderr, "Couldn't write the output file '%s': %s\n", outputFileName, strerror(errno)), exit(1);
 
