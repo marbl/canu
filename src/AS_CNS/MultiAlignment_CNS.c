@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.31 2005-09-12 19:17:32 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.32 2005-09-14 12:32:27 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -1830,11 +1830,8 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
             }
         }
 
-        /* This loop is disabled at Karin's seggestion */
-        if (!opp->split_alleles &&
-             (CNS_USE_PUBLIC == 0 || 
-              b_read_depth < CNS_USE_PUBLIC || 
-              (b_read_depth == 0 && o_read_depth == 0))) 
+        // If there are no reads, use fragments of other types
+        if (b_read_depth == 0 && o_read_depth == 0) 
         {
             for (cind = 0; cind < guide_depth; cind++) {
                 gb = GetBead(guides,cind);
@@ -1895,17 +1892,9 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
         {
             if (GetNumint16s(tied)> 0) 
             {
-                int16 n = GetNumint16s(tied);
-                int16 *max_inds = safe_malloc(n * sizeof(int16)); 
-                int m;
-                int32 quasi_rand_int = (cid%3 + cid%5 + cid%7 + cid%11 + cid*13)%n;
-                for (m=0; m<n; m++)
-                {
-                    max_inds[m] = *Getint16(tied,m);
-                } 
-                max_ind = max_inds[quasi_rand_int];   // exclude '-', but include 'T'
+                Appendint16(tied, &max_ind);
+                max_ind = *Getint16(tied,1);
                 max_cw = cw[max_ind];
-                FREE(max_inds);
             } 
         }
         if ( verbose ) {
