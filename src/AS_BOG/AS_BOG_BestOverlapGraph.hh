@@ -21,8 +21,8 @@
 /*************************************************
 * Module:  AS_BOG_BestOverlapGraph.hh
 * Description:
-*	Data structure to contain the best overlaps and containments
-*	based on a defined metric.
+*        Data structure to contain the best overlaps and containments
+*        based on a defined metric.
 * 
 *    Programmer:  K. Li
 *       Started:  20 July 2005
@@ -34,8 +34,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.hh,v 1.14 2005-09-01 20:41:10 eliv Exp $
- * $Revision: 1.14 $
+ * $Id: AS_BOG_BestOverlapGraph.hh,v 1.15 2005-09-15 21:49:41 kli1000 Exp $
+ * $Revision: 1.15 $
 */
 
 //  System include files
@@ -52,86 +52,85 @@ extern "C" {
 
 namespace AS_BOG{
 
-	///////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////
 
-	struct BestEdgeOverlap{
-		iuid frag_b_id;
-		fragment_end_type bend;		
-		int in_degree;
-		float score;
-	};
+    struct BestEdgeOverlap{
+        iuid frag_b_id;
+        fragment_end_type bend;                
+        int in_degree;
+        float score;
+    };
 
-	struct BestFragmentOverlap{
+    struct BestFragmentOverlap{
 
-		// Contains information on what a known fragment overlaps.
-		// It is assumed that an index into an array of BestOverlap
-		// will tell us what fragment has this best overlap
+        // Contains information on what a known fragment overlaps.
+        // It is assumed that an index into an array of BestOverlap
+        // will tell us what fragment has this best overlap
 
-		BestEdgeOverlap five_prime; 
-		BestEdgeOverlap three_prime;
-	};
+        BestEdgeOverlap five_prime; 
+        BestEdgeOverlap three_prime;
+    };
 
-	///////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////
 
-	struct BestContainment{
+    struct BestContainment{
 
-		// Contains what kind of containment relationship exists between
-		// fragment a and fragment b
+        // Contains what kind of containment relationship exists between
+        // fragment a and fragment b
 
-		iuid container;
-		float score;
-		bool sameOrientation;
-	};
+        iuid container;
+        float score;
+        bool sameOrientation;
+    };
 
-	///////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////
 
+    struct BestOverlapGraph {
 
-	struct BestOverlapGraph {
+            // Constructor, parametrizing maximum number of overlaps
+            BestOverlapGraph(int max_fragment_count);
 
-            // Class methods
-        static uint16 *fragLength;
-        static uint16 fragLen( iuid );
-        static ReadStructp fsread;
-        static FragStoreHandle fragStoreHandle;
-        static overlap_type getType(const Long_Olap_Data_t & olap);
-        fragment_end_type AEnd(const Long_Olap_Data_t& olap);
-        fragment_end_type BEnd(const Long_Olap_Data_t& olap);
-        short       olapLength(const Long_Olap_Data_t& olap);
+            // Destructor
+            ~BestOverlapGraph();
 
-        // Constructor, parametrizing maximum number of overlaps
-        BestOverlapGraph(int max_fragment_count);
+            // Interface to graph visitor
+            // accept(BestOverlapGraphVisitor bog_vis){
+            // bog_vis.visit(this);
+            // }
 
-        // Destructor
-        ~BestOverlapGraph();
+            // Accessor Functions
+            BestEdgeOverlap *getBestEdge(iuid frag_id, fragment_end_type which_end);
+            void setBestEdge(const Long_Olap_Data_t& olap, float newScore);
+            iuid getNumFragments() { return _num_fragments; }
+            BestContainment *getBestContainer(iuid frag_id);
 
-        // Interface to graph visitor
-        //			accept(BestOverlapGraphVisitor bog_vis){
-        //				bog_vis.visit(this);
-//			}
-
-			// Accessor Get Functions
-			BestEdgeOverlap *getBestEdge(
-				iuid frag_id, fragment_end_type which_end);
-
-			void setBestEdge(const Long_Olap_Data_t& olap, float newScore);
-			iuid getNumFragments() { return _num_fragments; }
-
-			BestContainment *getBestContainer(iuid frag_id);
-            void transitiveContainment();
-
+            // Graph building methods
+            fragment_end_type AEnd(const Long_Olap_Data_t& olap);
+            fragment_end_type BEnd(const Long_Olap_Data_t& olap);
             void scoreOverlap(const Long_Olap_Data_t& olap);
+            short olapLength(const Long_Olap_Data_t& olap);
             bool checkForNextFrag(const Long_Olap_Data_t& olap);
             virtual float score( const Long_Olap_Data_t& olap) =0;
+            void transitiveContainment();
 
-            std::map<iuid, BestContainment> _best_containments;
-		protected:
-			iuid _num_fragments;
+            // FragStore related variables
+        //These should be moved to protected
+            static uint16 *fragLength;
+            static uint16 fragLen( iuid );
+            static ReadStructp fsread;
+            static FragStoreHandle fragStoreHandle;
+            static overlap_type getType(const Long_Olap_Data_t & olap);
+
+        protected:
+            iuid _num_fragments;
             iuid curFrag;
             int bestLength;
+            BestFragmentOverlap* _best_overlaps;
+            std::map<iuid, BestContainment> _best_containments;
 
-			BestFragmentOverlap* _best_overlaps;
+    }; //BestOverlapGraph
 
-	}; //BestOverlapGraph
+    ///////////////////////////////////////////////////////////////////////////
 
     struct ErateScore : public BestOverlapGraph {
         ErateScore(int num) : BestOverlapGraph(num) {}
@@ -149,6 +148,8 @@ namespace AS_BOG{
             : BestOverlapGraph(num), mismatchCutoff(maxMismatch) {}
         float score( const Long_Olap_Data_t& olap);
     };
+
+    ///////////////////////////////////////////////////////////////////////////
 
 } //AS_BOG namespace
 
