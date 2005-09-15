@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: remove_fragment.c,v 1.4 2005-03-22 19:49:01 jason_miller Exp $ */
+/* $Id: remove_fragment.c,v 1.5 2005-09-15 15:20:16 eliv Exp $ */
 
 /*
   This program, bcp2frg, converts a set of BAC-end batch copy files
@@ -168,7 +168,7 @@ int main( int argc, char ** argv )
     fprintf( stderr, "Failed to open file %s for reading.\n", argv[1] );
     return 1;
   }
-  reader = InputFileType_AS( fp_in );
+  reader = (MesgReader)InputFileType_AS( fp_in );
 
   // set up frag_uids array
   if( argv[3][0] != '-' )

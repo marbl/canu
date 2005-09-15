@@ -21,7 +21,7 @@
 /* SMAcount 
  *    scans all AFG messages and orints out their id and the number of screenmatches they have
  *
- * $Id: SMAcount.c,v 1.4 2005-03-22 19:49:28 jason_miller Exp $
+ * $Id: SMAcount.c,v 1.5 2005-09-15 15:20:16 eliv Exp $
  *
  */
 
@@ -33,7 +33,7 @@
 int main(void)
 { 
   GenericMesg *pmesg;
-  MesgReader reader = InputFileType_AS(stdin);
+  MesgReader reader = (MesgReader)InputFileType_AS(stdin);
   int smatches = 0;
 
  while (reader(stdin,&pmesg) != EOF){

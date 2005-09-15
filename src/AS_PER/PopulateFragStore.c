@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: PopulateFragStore.c,v 1.4 2005-03-22 19:49:21 jason_miller Exp $";
+static char CM_ID[] = "$Id: PopulateFragStore.c,v 1.5 2005-09-15 15:20:16 eliv Exp $";
 
 /*************************************************
 * Module:  PopulateFragStore.c
@@ -235,7 +235,7 @@ int  main(int argc, char * argv [])
     In_fp = File_Open (Input_File_Name, "r");     // frg file
     AssertPtr(In_fp);
 
-    Read_Msg_Fn = InputFileType_AS(In_fp);
+    Read_Msg_Fn = (MesgReader)InputFileType_AS(In_fp);
 
     if(suffix)
       *suffix = '\0';
@@ -408,7 +408,7 @@ int  main(int argc, char * argv [])
   tmpDistStore = createDistStore(NULL,firstDist);
 
 
-  Write_Msg_Fn = OutputFileType_AS(output);
+  Write_Msg_Fn = (MesgWriter)OutputFileType_AS(output);
   {
     int distRead, fragRead;
 

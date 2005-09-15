@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.14 2005-08-24 10:57:43 brianwalenz Exp $
- * $Revision: 1.14 $
+ * $Id: AS_OVL_overlap_common.h,v 1.15 2005-09-15 15:20:16 eliv Exp $
+ * $Revision: 1.15 $
 */
 
 
@@ -539,7 +539,7 @@ fprintf (stderr, "### Bucket size = " F_SIZE_T " bytes\n", sizeof (Hash_Bucket_t
 fprintf (stderr, "### Read error rate = %.2f%%\n", 100.0 * AS_READ_ERROR_RATE);
 fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE);
    noOverlaps = 0; /* If 1, don't compute/generate overlaps */
-   Write_Msg_Fn = OutputFileType_AS (AS_BINARY_OUTPUT);
+   Write_Msg_Fn = (MesgWriter)OutputFileType_AS (AS_BINARY_OUTPUT);
 
    illegal = 0;
    create = 1;
@@ -706,7 +706,7 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
             assert (Outfile_Name != NULL);
             break;
           case  'P' :
-            Write_Msg_Fn = OutputFileType_AS(AS_PROTO_OUTPUT);
+            Write_Msg_Fn = (MesgWriter)OutputFileType_AS(AS_PROTO_OUTPUT);
             break;
           case  'q' :
             Single_Line_Output = TRUE;
@@ -847,7 +847,7 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
 	       assert(NULL == In_Stream);
                In_Stream = File_Open (File_Name, "r");     // inp file
 	       assert(NULL != In_Stream);
-               Read_Msg_Fn = InputFileType_AS (In_Stream);
+               Read_Msg_Fn = (MesgReader)InputFileType_AS (In_Stream);
 
                if  (Outfile_Name == NULL)
                    {
@@ -5071,7 +5071,7 @@ void  Profile_Hits
    printf ("\nStart Profile\n");
 
    profile_stream = File_Open ("dan5.inp", "r");     // inp file
-   Read_Msg_Fn = InputFileType_AS (profile_stream);
+   Read_Msg_Fn = (MesgReader)InputFileType_AS (profile_stream);
 
    while  (EOF != Read_Msg_Fn (profile_stream, & pmesg))
      {

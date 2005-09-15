@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.4 2005-03-22 19:48:53 jason_miller Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.5 2005-09-15 15:20:16 eliv Exp $";
 
 /*************************************************
 * Module:  AS_GKP_main.c
@@ -371,15 +371,15 @@ int  main(int argc, char * argv [])
 	fprintf(stderr,"Input file is %s suffix is %s\n",argv[optind], suffix);
 	strcpy(Input_File_Name, argv[optind]);
 	Infp = File_Open (Input_File_Name, "r", TRUE);     // frg file
-	Reader = InputFileType_AS(Infp);
+	Reader = (MesgReader)InputFileType_AS(Infp);
 
 	if(suffix)
 	  *suffix = '\0';
 
 	strcpy(File_Name_Prefix,argv[optind]);
 
-	Writer = OutputFileType_AS(output);
-	ErrorWriter = OutputFileType_AS(AS_PROTO_OUTPUT);
+	Writer = (MesgWriter)OutputFileType_AS(output);
+	ErrorWriter = (MesgWriter)OutputFileType_AS(AS_PROTO_OUTPUT);
 
 
 	optind++;
@@ -1020,7 +1020,7 @@ int ReadFile(int check_qvs,
 
 	Writer((assembler == AS_ASSEMBLER_GRANDE?Outfp:Ignfp),pmesg);
         /*
-	fprintf(stderr,"# GateKeeper $Revision: 1.4 $\n");
+	fprintf(stderr,"# GateKeeper $Revision: 1.5 $\n");
 	ErrorWriter(Msgfp,pmesg);
         */
         free(params);

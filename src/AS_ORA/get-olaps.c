@@ -20,7 +20,7 @@
  *************************************************************************/
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_ORA/Attic/get-olaps.c,v $
-$Revision: 1.4 $
+$Revision: 1.5 $
 **********************************************************************/
 
 /**********************************************************************
@@ -176,7 +176,7 @@ int GetOverlaps( char * input_ovl_filename,
     return 1;
   }
 
-  Read_Msg_Fn = InputFileType_AS (infile);
+  Read_Msg_Fn = (MesgReader)InputFileType_AS (infile);
 
   // read the found overlaps in one-at-a-time
   while( Read_Msg_Fn( infile, &gmesg ) != EOF )

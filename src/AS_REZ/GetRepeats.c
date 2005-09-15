@@ -26,7 +26,7 @@
 
 /**********************************************************************
  $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_REZ/Attic/GetRepeats.c,v $
- $Revision: 1.4 $
+ $Revision: 1.5 $
 ***********************************************************************/
 
 /*************************************************************************
@@ -75,7 +75,7 @@ int main (int argc, char *argv[]) {
 
   //  icontig = (IntContigMesg *) malloc(sizeof(IntContigMesg));
   i=0;
-  reader = InputFileType_AS(stdin);
+  reader = (MesgReader)InputFileType_AS(stdin);
   while ( reader(stdin,&pmesg) != EOF) {
     imesgtype = pmesg->t;
     switch(imesgtype){

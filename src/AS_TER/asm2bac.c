@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /* RCS info
- * $Id: asm2bac.c,v 1.1 2005-08-24 10:57:43 brianwalenz Exp $
+ * $Id: asm2bac.c,v 1.2 2005-09-15 15:20:16 eliv Exp $
  */
 
 #include <stdio.h>
@@ -508,7 +508,7 @@ int main(int argc, char *argv[])
           }
         }
   }
-  reader = InputFileType_AS( stdin );
+  reader = (MesgReader)InputFileType_AS( stdin );
   dummy_consensus = CreateVA_char(500000);
 
   if ( mapFile != NULL ) {

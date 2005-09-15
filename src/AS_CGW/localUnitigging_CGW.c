@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: localUnitigging_CGW.c,v 1.7 2005-08-24 07:47:15 brianwalenz Exp $";
+static char CM_ID[] = "$Id: localUnitigging_CGW.c,v 1.8 2005-09-15 15:20:16 eliv Exp $";
 
 
 /*********************************************************************
@@ -396,7 +396,7 @@ int main( int argc, char *argv[])
   data->stderrfp = fopen("localUnitigging.stderr","w");
   data->timefp = stderr;
   data->logfp = stderr;
-  data->writer =  OutputFileType_AS(AS_PROTO_OUTPUT);
+  data->writer =  (MesgWriter)OutputFileType_AS(AS_PROTO_OUTPUT);
   sprintf(data->Output_File_Name,"localUnitigging.ICMs",outputPath);
   data->outfp = File_Open (data->Output_File_Name, "w", TRUE);     // cgw file
 

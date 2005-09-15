@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: get-uid-olaps.c,v 1.4 2005-03-22 19:49:19 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Id: get-uid-olaps.c,v 1.5 2005-09-15 15:20:16 eliv Exp $
+ * $Revision: 1.5 $
 */
 
-static char fileID[] = "$Id: get-uid-olaps.c,v 1.4 2005-03-22 19:49:19 jason_miller Exp $";
+static char fileID[] = "$Id: get-uid-olaps.c,v 1.5 2005-09-15 15:20:16 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -120,7 +120,7 @@ int main  (int argc, char * argv [])
 
    ovlfile = File_Open (infile_name, "r");
 
-   read_msg_fn = InputFileType_AS (ovlfile);
+   read_msg_fn = (MesgReader)InputFileType_AS (ovlfile);
 
    pmesg = (GenericMesg *) Safe_malloc (sizeof (GenericMesg));
    pmesg -> t = MESG_ADT;

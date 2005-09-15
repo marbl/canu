@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_unitigger.c,v 1.4 2005-03-22 19:48:31 jason_miller Exp $";
+= "$Id: AS_CGB_unitigger.c,v 1.5 2005-09-15 15:20:15 eliv Exp $";
 /*********************************************************************
  *
  * Module: AS_CGB_unitigger.c
@@ -417,7 +417,7 @@ static void save_the_chunk_graph
         
         if(NULL != fiba) {
           // Output the ADT messages from all the incremental processing.
-          MesgReader ReadMesg_AS = InputFileType_AS(fiba);
+          MesgReader ReadMesg_AS = (MesgReader)InputFileType_AS(fiba);
           GenericMesg *pmesg = NULL;
           while(EOF != ReadMesg_AS(fiba,&pmesg)) {
             WriteMesg_AS(fcgb,pmesg);
@@ -1648,9 +1648,9 @@ static void StandardUnitigger
     MesgWriter ErrorWriter_AS = NULL;
 
     // VersionStamp(argc,argv);
-    WriteMesg_AS = OutputFileType_AS((rg->as_proto_output
+    WriteMesg_AS = (MesgWriter)OutputFileType_AS((rg->as_proto_output
                                       ? AS_PROTO_OUTPUT : AS_BINARY_OUTPUT));
-    ErrorWriter_AS = OutputFileType_AS(AS_PROTO_OUTPUT);
+    ErrorWriter_AS = (MesgWriter)OutputFileType_AS(AS_PROTO_OUTPUT);
     
     if(NULL != rg->Output_Graph_Store_Prefix) {
       save_the_chunk_graph
@@ -1751,7 +1751,7 @@ static void StandardUnitigger
 
       // VersionStamp(argc,argv);
       MesgWriter
-        WriteMesg_AS = OutputFileType_AS
+        WriteMesg_AS = (MesgWriter)OutputFileType_AS
         ((rg->as_proto_output
           ? AS_PROTO_OUTPUT : AS_BINARY_OUTPUT));
       

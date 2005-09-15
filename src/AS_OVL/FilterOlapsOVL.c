@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FilterOlapsOVL.c,v 1.4 2005-03-22 19:49:18 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Id: FilterOlapsOVL.c,v 1.5 2005-09-15 15:20:16 eliv Exp $
+ * $Revision: 1.5 $
 */
 
-static char CM_ID[] = "$Id: FilterOlapsOVL.c,v 1.4 2005-03-22 19:49:18 jason_miller Exp $";
+static char CM_ID[] = "$Id: FilterOlapsOVL.c,v 1.5 2005-09-15 15:20:16 eliv Exp $";
 
 
 //  System include files
@@ -134,7 +134,7 @@ int  main
    GenericMesg  * gmesg = NULL;
    OverlapMesg  * olm = NULL;
 
-   Write_Msg_Fn = OutputFileType_AS (AS_BINARY_OUTPUT);
+   Write_Msg_Fn = (MesgWriter)OutputFileType_AS (AS_BINARY_OUTPUT);
 
    Parse_Command_Line  (argc, argv);
 
@@ -143,7 +143,7 @@ int  main
    Read_Unitig_Pairs ();
 
    in_stream = File_Open (Old_OVL_Path, "r");
-   read_msg_fn = InputFileType_AS (in_stream);
+   read_msg_fn = (MesgReader)InputFileType_AS (in_stream);
 
    out_stream = File_Open (New_OVL_Path, "w");
 
@@ -309,7 +309,7 @@ static void  Parse_Command_Line
      switch  (ch)
        {
         case  'P' :
-          Write_Msg_Fn = OutputFileType_AS (AS_PROTO_OUTPUT);
+          Write_Msg_Fn = (MesgWriter)OutputFileType_AS (AS_PROTO_OUTPUT);
           break;
 
         default :

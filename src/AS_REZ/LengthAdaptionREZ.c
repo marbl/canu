@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: LengthAdaptionREZ.c,v 1.4 2005-03-22 19:49:24 jason_miller Exp $";
+static char CM_ID[] = "$Id: LengthAdaptionREZ.c,v 1.5 2005-09-15 15:20:16 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -131,7 +131,7 @@ int main(int argc, char *argv[])
 
 
   fileInput = file_open(fileName,"r");  
-  readerFn  = InputFileType_AS(fileInput);
+  readerFn  = (MesgReader)InputFileType_AS(fileInput);
   
   /* count the number of fragments */
   while( readerFn(fileInput,&pmesg) != EOF ) 

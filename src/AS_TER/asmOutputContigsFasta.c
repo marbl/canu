@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
      exit(1);
   }
   
-  reader = InputFileType_AS( stdin );
+  reader = (MesgReader)InputFileType_AS( stdin );
 
   while (reader(stdin,&pmesg) != EOF){
     if (pmesg->t ==MESG_CCO)  {

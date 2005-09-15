@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: PartitionSequenceDB1.c,v 1.6 2005-06-20 17:43:36 brianwalenz Exp $";
+static char CM_ID[] = "$Id: PartitionSequenceDB1.c,v 1.7 2005-09-15 15:20:16 eliv Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -135,7 +135,7 @@ int main(int argc, char **argv){
   inputFile = fopen(inputFileName,"r");
   AssertPtr(inputFile);
 
-  reader = InputFileType_AS(inputFile);
+  reader = (MesgReader)InputFileType_AS(inputFile);
 
   sprintf(outputFileName,"%s.%d", inputFileName,currentPartition);
   outputFile = fopen(outputFileName,"w");

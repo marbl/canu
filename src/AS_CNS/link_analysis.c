@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: link_analysis.c,v 1.4 2005-03-22 19:48:52 jason_miller Exp $ */
+/* $Id: link_analysis.c,v 1.5 2005-09-15 15:20:16 eliv Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
   FILE *iumfile;
   int in_unitig;
   iumfile = fopen(argv[4],"r");
-  reader = InputFileType_AS( iumfile );
+  reader = (MesgReader)InputFileType_AS( iumfile );
   reader(iumfile,&pmesg);
   unitig = pmesg->m;
   tig_iids = AllocateID_Array( unitig->num_frags );

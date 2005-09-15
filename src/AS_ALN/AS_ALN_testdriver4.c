@@ -166,7 +166,7 @@ int main(int argc, char *argv[])
     fprintf(stderr,"Printing OVLs to %s\n",argv[2]);
     OVLFile=fopen(argv[2],"w");
     assert(OVLFile!=NULL);
-    WriteMesg_AS = OutputFileType_AS(AS_PROTO_OUTPUT);
+    WriteMesg_AS = (MesgWriter)OutputFileType_AS(AS_PROTO_OUTPUT);
     assert(WriteMesg_AS!=NULL);
   }
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_FGB_io.c,v 1.5 2005-08-19 19:51:31 brianwalenz Exp $";
+= "$Id: AS_FGB_io.c,v 1.6 2005-09-15 15:20:15 eliv Exp $";
 /* *******************************************************************
  *
  * Module: AS_FGB_io.c
@@ -1339,7 +1339,7 @@ static void input_mesgs_internal
   int nadt=0,nidt=0,nrpt=0,nilk=0;
   IntEdge_ID nedges_delta=0,novl_dovetail=0,novl_containment=0,novl_degenerate=0;
   GenericMesg *pmesg;
-  MesgReader ReadMesg_AS = InputFileType_AS(fovl);
+  MesgReader ReadMesg_AS = (MesgReader)InputFileType_AS(fovl);
   VA_TYPE(char) * the_ofg_source = NULL;
   VA_TYPE(char) * the_ovl_source = NULL;
 

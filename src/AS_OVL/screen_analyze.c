@@ -40,11 +40,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: screen_analyze.c,v 1.4 2005-03-22 19:49:19 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Id: screen_analyze.c,v 1.5 2005-09-15 15:20:16 eliv Exp $
+ * $Revision: 1.5 $
 */
 
-static char fileID[] = "$Id: screen_analyze.c,v 1.4 2005-03-22 19:49:19 jason_miller Exp $";
+static char fileID[] = "$Id: screen_analyze.c,v 1.5 2005-09-15 15:20:16 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -155,7 +155,7 @@ int main  (int argc, char * argv [])
                  argv [optind]);
         exit (EXIT_FAILURE);
        }
-   read_msg_fn = InputFileType_AS (urcfile);
+   read_msg_fn = (MesgReader)InputFileType_AS (urcfile);
 
    if  (! Long_Listing)
        fprintf (stderr, "\n");

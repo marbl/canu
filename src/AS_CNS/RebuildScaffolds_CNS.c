@@ -78,7 +78,7 @@ echo 53 | rebuildscaffolds -f oct01.fStore -s oct01.sStore -V 23 -c oct01.cStore
 
  *********************************************************************/
 
-static char CM_ID[] = "$Id: RebuildScaffolds_CNS.c,v 1.6 2005-07-08 21:05:34 brianwalenz Exp $";
+static char CM_ID[] = "$Id: RebuildScaffolds_CNS.c,v 1.7 2005-09-15 15:20:16 eliv Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -274,7 +274,7 @@ int main (int argc, char *argv[]) {
      if(buildScaffDat){
        ctpStore = CreateVA_IntContigPairs(1000000);
        scaffStore = CreateVA_ScaffoldData(100000);
-       reader = InputFileType_AS( stdin );
+       reader = (MesgReader)InputFileType_AS( stdin );
        while (reader(stdin,&pmesg) != EOF){
 	 if ( pmesg->t == MESG_ISF ) {
 	   ScaffoldData scaffData;

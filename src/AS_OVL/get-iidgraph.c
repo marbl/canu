@@ -38,11 +38,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: get-iidgraph.c,v 1.4 2005-03-22 19:49:19 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Id: get-iidgraph.c,v 1.5 2005-09-15 15:20:16 eliv Exp $
+ * $Revision: 1.5 $
 */
 
-static char fileID[] = "$Id: get-iidgraph.c,v 1.4 2005-03-22 19:49:19 jason_miller Exp $";
+static char fileID[] = "$Id: get-iidgraph.c,v 1.5 2005-09-15 15:20:16 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -162,11 +162,11 @@ int  main  (int argc, char * argv [])
    Read_Frag_IDs (fidfile, & hash_table, & hash_table_size);
    fprintf (stderr, "Hash table size = %d\n", hash_table_size);
 
-   read_msg_fn = InputFileType_AS (ovlfile);
+   read_msg_fn = (MesgReader)InputFileType_AS (ovlfile);
    if  (use_binary_output)
-       write_msg_fn = OutputFileType_AS (AS_BINARY_OUTPUT);
+       write_msg_fn = (MesgWriter)OutputFileType_AS (AS_BINARY_OUTPUT);
      else
-       write_msg_fn = OutputFileType_AS (AS_PROTO_OUTPUT);
+       write_msg_fn = (MesgWriter)OutputFileType_AS (AS_PROTO_OUTPUT);
 
    pmesg = (GenericMesg *) Safe_malloc (sizeof (GenericMesg));
    pmesg -> t = MESG_ADT;
@@ -187,7 +187,7 @@ int  main  (int argc, char * argv [])
            sprintf (label_line, "%s %s %s", argv [0], infile_name,
                     argv [optind]);
            AppendAuditLine_AS (adt_mesg, & audit_line, time (0), "get-subgraph",
-                               "$Revision: 1.4 $", label_line);
+                               "$Revision: 1.5 $", label_line);
            write_msg_fn (outfile, gmesg);
            break;
           }

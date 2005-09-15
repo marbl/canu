@@ -38,11 +38,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: chunk_analyze.c,v 1.4 2005-03-22 19:49:26 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Id: chunk_analyze.c,v 1.5 2005-09-15 15:20:16 eliv Exp $
+ * $Revision: 1.5 $
 */
 
-static char fileID[] = "$Id: chunk_analyze.c,v 1.4 2005-03-22 19:49:26 jason_miller Exp $";
+static char fileID[] = "$Id: chunk_analyze.c,v 1.5 2005-09-15 15:20:16 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -146,7 +146,7 @@ int main  (int argc, char * argv [])
    Range = (Range_t *) malloc (Range_Size * sizeof (Range_t));
    assert (Range != NULL);
 
-   read_msg_fn = InputFileType_AS (infile);
+   read_msg_fn = (MesgReader)InputFileType_AS (infile);
 
    while  (read_msg_fn (infile, & gmesg) != EOF)
      {

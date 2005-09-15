@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGB_breakers.c,v 1.4 2005-03-22 19:48:24 jason_miller Exp $";
+static char CM_ID[] = "$Id: AS_CGB_breakers.c,v 1.5 2005-09-15 15:20:15 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -428,7 +428,7 @@ int GetUnitigData( BreakerSetp chims,
                cgb_files[file_i] );
       return 1;
     }
-    reader = InputFileType_AS( fp );
+    reader = (MesgReader)InputFileType_AS( fp );
     fprintf( stderr, "Reading cgb file %s\n", cgb_files[file_i] );
     
     while( reader( fp, &gen ) != EOF )

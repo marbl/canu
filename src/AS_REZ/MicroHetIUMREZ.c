@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: MicroHetIUMREZ.c,v 1.4 2005-03-22 19:49:24 jason_miller Exp $";
+static char CM_ID[] = "$Id: MicroHetIUMREZ.c,v 1.5 2005-09-15 15:20:16 eliv Exp $";
 
 
 #include <assert.h>
@@ -108,7 +108,7 @@ int main (int argc, char *argv[]) {
   assert(input != NULL);
 
 
-  reader = InputFileType_AS(input);
+  reader = (MesgReader)InputFileType_AS(input);
   while( reader(input,&pmesg) != EOF ) 
     {
       CGB_Type type;

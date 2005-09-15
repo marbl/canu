@@ -20,7 +20,7 @@
  *************************************************************************/
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_ORA/Attic/get-perfect-olaps.c,v $
-$Revision: 1.4 $
+$Revision: 1.5 $
 **********************************************************************/
 
 /**********************************************************************
@@ -187,11 +187,11 @@ int GetOverlaps( char * input_ovl_filename,
     return 1;
   }
 
-  Read_Msg_Fn = InputFileType_AS (infile);
+  Read_Msg_Fn = (MesgReader)InputFileType_AS (infile);
   if  (ASCII_Output)
-      Write_Msg_Fn = OutputFileType_AS (AS_PROTO_OUTPUT);
+      Write_Msg_Fn = (MesgWriter)OutputFileType_AS (AS_PROTO_OUTPUT);
     else
-      Write_Msg_Fn = OutputFileType_AS (AS_BINARY_OUTPUT);
+      Write_Msg_Fn = (MesgWriter)OutputFileType_AS (AS_BINARY_OUTPUT);
 
 
   // read the found overlaps in one-at-a-time

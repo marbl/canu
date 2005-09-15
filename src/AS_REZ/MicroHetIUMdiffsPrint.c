@@ -25,7 +25,7 @@
  Assumptions:
 **********************************************************************/
 
-static char CM_ID[] = "$Id: MicroHetIUMdiffsPrint.c,v 1.3 2005-03-22 19:49:24 jason_miller Exp $";
+static char CM_ID[] = "$Id: MicroHetIUMdiffsPrint.c,v 1.4 2005-09-15 15:20:16 eliv Exp $";
 
 
 #include <unistd.h> /* man 3 getopt */
@@ -128,7 +128,7 @@ int main (int argc, char *argv[]) {
   assert(input != NULL);
 
 
-  reader = InputFileType_AS(input);
+  reader = (MesgReader)InputFileType_AS(input);
   while( reader(input,&pmesg) != EOF ) 
     {
       CGB_Type type;

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: get-iid-from-frag-src.c,v 1.4 2005-03-22 19:48:32 jason_miller Exp $";
+= "$Id: get-iid-from-frag-src.c,v 1.5 2005-09-15 15:20:15 eliv Exp $";
 /* *******************************************************************
  *
  * Usage:
@@ -101,7 +101,7 @@ static void input_mesgs_pp
   IntFragment_ID nfrg=0,nimp=0;
   IntEdge_ID nuom=0,nuom_dovetail=0,nuom_containment=0;
   GenericMesg *pmesg;
-  MesgReader ReadMesg_AS = InputFileType_AS(fcgi);
+  MesgReader ReadMesg_AS = (MesgReader)InputFileType_AS(fcgi);
 
   IntFragment_ID lfrag = 0; // The global LID counter.
   
@@ -268,8 +268,8 @@ int main(int argc, char * argv [])
   char *target = NULL;
 
   //VersionStamp(argc,argv);
-  WriteMesg_AS = OutputFileType_AS(AS_BINARY_OUTPUT);
-  ErrorWriter_AS = OutputFileType_AS(AS_PROTO_OUTPUT);
+  WriteMesg_AS = (MesgWriter)OutputFileType_AS(AS_BINARY_OUTPUT);
+  ErrorWriter_AS = (MesgWriter)OutputFileType_AS(AS_PROTO_OUTPUT);
   
   /**************** Process Command Line Arguments *********************/
   { /* Parse the argument list using "man 3 getopt". */ 
@@ -282,7 +282,7 @@ int main(int argc, char * argv [])
 	analysis_flag = TRUE;
 	break;
       case 'P':
-	WriteMesg_AS = OutputFileType_AS(AS_PROTO_OUTPUT);
+	WriteMesg_AS = (MesgWriter)OutputFileType_AS(AS_PROTO_OUTPUT);
 	break;
       case 'u':
 	max_unitig_cid = atoi(optarg);

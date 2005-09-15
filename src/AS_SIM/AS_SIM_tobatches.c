@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /* RCS info
- * $Id: AS_SIM_tobatches.c,v 1.4 2005-03-22 19:49:27 jason_miller Exp $
+ * $Id: AS_SIM_tobatches.c,v 1.5 2005-09-15 15:20:16 eliv Exp $
  */
 
 
@@ -193,12 +193,12 @@ int main(int argc, char *argv[])
    }
    
   fprintf(stderr,__FILE__ " "  __DATE__ " " __TIME__ "\n");
-  fprintf(stderr,"$Id: AS_SIM_tobatches.c,v 1.4 2005-03-22 19:49:27 jason_miller Exp $\n");
+  fprintf(stderr,"$Id: AS_SIM_tobatches.c,v 1.5 2005-09-15 15:20:16 eliv Exp $\n");
   fprintf(stderr,"Batch size = %d\n",batch_size);
 
   fin = fopen(File_Name,"r");
   assert(fin != NULL);
-  reader = InputFileType_AS(fin);
+  reader = (MesgReader)InputFileType_AS(fin);
 
   notdone = TRUE;
   fprintf(stderr,"zoot\n");

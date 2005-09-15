@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: BuildSequenceDB.c,v 1.4 2005-03-22 19:49:27 jason_miller Exp $";
+static char CM_ID[] = "$Id: BuildSequenceDB.c,v 1.5 2005-09-15 15:20:16 eliv Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -46,7 +46,7 @@ void usage(void){
 
 void ReadInput(tSequenceDB *sequenceDB, FILE *file, int check){
   GenericMesg   *pmesg;
-  MesgReader reader = InputFileType_AS(file);
+  MesgReader reader = (MesgReader)InputFileType_AS(file);
   int32 totalFrags = 1;
 
   while(  (EOF != (reader)(file, &pmesg))){

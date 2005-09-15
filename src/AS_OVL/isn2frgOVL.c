@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: isn2frgOVL.c,v 1.4 2005-03-22 19:49:19 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Id: isn2frgOVL.c,v 1.5 2005-09-15 15:20:16 eliv Exp $
+ * $Revision: 1.5 $
 */
 
-static char fileID[] = "$Id: isn2frgOVL.c,v 1.4 2005-03-22 19:49:19 jason_miller Exp $";
+static char fileID[] = "$Id: isn2frgOVL.c,v 1.5 2005-09-15 15:20:16 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -78,8 +78,8 @@ int main  (int argc, char * argv [])
    char  qual [AS_READ_MAX_LEN + 1];
 
 
-   read_msg_fn = InputFileType_AS (stdin);
-   write_msg_fn = OutputFileType_AS (AS_PROTO_OUTPUT);
+   read_msg_fn = (MesgReader)InputFileType_AS (stdin);
+   write_msg_fn = (MesgWriter)OutputFileType_AS (AS_PROTO_OUTPUT);
 
    pmesg = (GenericMesg *) Safe_malloc (sizeof (GenericMesg));
    pmesg -> t = MESG_ADT;
@@ -97,7 +97,7 @@ int main  (int argc, char * argv [])
 
            sprintf (label_line, "%s", argv [0]);
            AppendAuditLine_AS (adt_mesg, & audit_line, time (0), "get-subgraph",
-                               "$Revision: 1.4 $", label_line);
+                               "$Revision: 1.5 $", label_line);
            write_msg_fn (stdout, gmesg);
            break;
           }

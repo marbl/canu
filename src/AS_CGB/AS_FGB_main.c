@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_FGB_main.c,v 1.4 2005-03-22 19:48:32 jason_miller Exp $";
+= "$Id: AS_FGB_main.c,v 1.5 2005-09-15 15:20:15 eliv Exp $";
 /*********************************************************************
  *
  * Module:  AS_FGB_main.c
@@ -217,7 +217,7 @@ static void output_mesgs
 
   // Output the IBA and ADT messages from the batches:
   if(NULL != filk) {
-    MesgReader ReadMesg_AS = InputFileType_AS(filk);
+    MesgReader ReadMesg_AS = (MesgReader)InputFileType_AS(filk);
     GenericMesg *pmesg = NULL;
     while(EOF != ReadMesg_AS(filk,&pmesg)) {
       WriteMesg_AS(fcgb,pmesg);
@@ -628,7 +628,7 @@ int main_fgb
   //time_t next_check_point_time = tp3+check_point_interval;
 
   MesgWriter WriteMesg_AS =
-    OutputFileType_AS((rg->as_proto_output
+    (MesgWriter)OutputFileType_AS((rg->as_proto_output
                        ? AS_PROTO_OUTPUT : AS_BINARY_OUTPUT ));
 
   set_compare_edge_function(compare_edge_strong);

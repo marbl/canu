@@ -1052,7 +1052,7 @@ AssemblyStore * CreateAssemblyStoreFromASMFile(FILE * fi,
                                                char * gkpStorePath,
                                                char * frgStorePath)
 {
-  MesgReader readerFn = InputFileType_AS(fi);
+  MesgReader readerFn = (MesgReader)InputFileType_AS(fi);
   AssemblyStore * asmStore;
   GenericMesg * gen;
   unsigned long mesgCount = 0;

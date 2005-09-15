@@ -21,7 +21,7 @@
 /* ScaffoldMap
  *    Prints an iid-uid map of the SCF messages in a protoIO file
  *
- * $Id: ScaffoldMap.c,v 1.4 2005-03-22 19:48:36 jason_miller Exp $
+ * $Id: ScaffoldMap.c,v 1.5 2005-09-15 15:20:15 eliv Exp $
  *
  */
 
@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
 { 
   GenericMesg *pmesg;
   int i = 0;
-  MesgReader reader = InputFileType_AS(stdin);
+  MesgReader reader = (MesgReader)InputFileType_AS(stdin);
 
  while (reader(stdin,&pmesg) != EOF){
    assert(pmesg->t <= MAX_MESG );

@@ -20,7 +20,7 @@
  *************************************************************************/
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_ORA/Attic/AS_ORA_overlaps.c,v $
-$Revision: 1.4 $
+$Revision: 1.5 $
 **********************************************************************/
 
 
@@ -148,7 +148,7 @@ uint32 GetNumFoundOverlaps( char * filename )
              filename );
     return 1;
   }
-  reader = InputFileType_AS( fp );
+  reader = (MesgReader)InputFileType_AS( fp );
 
   while( reader( fp, &gmesg ) != EOF )
   {

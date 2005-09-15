@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: extract_gap_flanking.c,v 1.4 2005-03-22 19:48:52 jason_miller Exp $ */
+/* $Id: extract_gap_flanking.c,v 1.5 2005-09-15 15:20:16 eliv Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
   int isplaced = 1;
   int threshold=atoi(argv[1]);
   placed = CreateVA_int(800000);
-  reader = InputFileType_AS( stdin );
+  reader = (MesgReader)InputFileType_AS( stdin );
 
  while (reader(stdin,&pmesg) != EOF){
     if (pmesg->t ==MESG_IUM)  {

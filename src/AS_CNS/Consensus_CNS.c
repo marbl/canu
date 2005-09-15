@@ -27,7 +27,7 @@
                  
  *********************************************************************/
 
-static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.14 2005-08-24 10:57:43 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.15 2005-09-15 15:20:16 eliv Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -634,7 +634,7 @@ int main (int argc, char *argv[]) {
         cgwin = stdin;
       }
       binary_io = (InputFileType_AS( cgwin ) == ReadProtoMesg_AS) ? 0 : 1;
-      reader = (binary_io == 1) ? ReadBinaryMesg_AS : ReadProtoMesg_AS;
+      reader =(MesgReader)((binary_io == 1) ? ReadBinaryMesg_AS : ReadProtoMesg_AS);
 
 
       switch(extract) 
@@ -738,9 +738,9 @@ int main (int argc, char *argv[]) {
         cnslog = stderr;   // write log to stderr
       }
       if ( output == AS_PROTO_OUTPUT ) {
-        writer = WriteProtoMesg_AS;
+        writer = (MesgWriter)WriteProtoMesg_AS;
       } else {
-        writer = (binary_io == 1) ? WriteBinaryMesg_AS : WriteProtoMesg_AS;
+        writer = (MesgWriter)((binary_io == 1) ? WriteBinaryMesg_AS : WriteProtoMesg_AS);
       }
       if (process_sublist) 
       {
@@ -819,7 +819,7 @@ int main (int argc, char *argv[]) {
       VA_TYPE(char) *quality=CreateVA_char(200000);
       time_t t;
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.14 $ processing. Started %s\n",
+      fprintf(stderr,"# Consensus $Revision: 1.15 $ processing. Started %s\n",
         ctime(&t));
       InitializeAlphTable();
       if ( ! align_ium && USE_SDB && extract > -1 ) 
@@ -1098,7 +1098,7 @@ int main (int argc, char *argv[]) {
             {
               AuditLine auditLine;
               AppendAuditLine_AS(adt_mesg, &auditLine, t,
-                                 "Consensus", "$Revision: 1.14 $","(empty)");
+                                 "Consensus", "$Revision: 1.15 $","(empty)");
             }
 #endif
               VersionStampADT(adt_mesg,argc,argv);
@@ -1122,7 +1122,7 @@ int main (int argc, char *argv[]) {
       }
 
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.14 $ Finished %s\n",ctime(&t));
+      fprintf(stderr,"# Consensus $Revision: 1.15 $ Finished %s\n",ctime(&t));
       if (printcns) 
       {
         int unitig_length = (unitig_count>0)? (int) input_lengths/unitig_count: 0; 

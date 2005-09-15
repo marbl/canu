@@ -74,7 +74,7 @@ static void input_mesgs_to_VA
   {
     int nadt=0,nidt=0,nilk=0,nofg=0,novl=0,nirp=0,nibc=0,niba=0;
     GenericMesg *pmesg = NULL;
-    MesgReader ReadMesg_AS = InputFileType_AS(fovl);
+    MesgReader ReadMesg_AS = (MesgReader)InputFileType_AS(fovl);
     while( EOF != ReadMesg_AS(fovl, &pmesg)) {
       const MessageType imesgtype = pmesg->t;
       
@@ -284,7 +284,7 @@ int main(int argc, char * argv [])
 
   {
 
-    MesgWriter WriteMesg_AS = OutputFileType_AS(AS_PROTO_OUTPUT);
+    MesgWriter WriteMesg_AS = (MesgWriter)OutputFileType_AS(AS_PROTO_OUTPUT);
     
     output_the_IUM_to_file
       (/* Input Only*/

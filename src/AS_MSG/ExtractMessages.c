@@ -21,7 +21,7 @@
 /* CountMessages
  *    Extracts messages of a given set of types
  *
- * $Id: ExtractMessages.c,v 1.4 2005-03-22 19:49:00 jason_miller Exp $
+ * $Id: ExtractMessages.c,v 1.5 2005-09-15 15:20:16 eliv Exp $
  *
  */
 
@@ -38,7 +38,7 @@ int main(int argc, char **argv)
   int i;
   int Include = TRUE;
   int numTypesExtracted = 0;
-  MesgReader reader = InputFileType_AS(stdin);
+  MesgReader reader = (MesgReader)InputFileType_AS(stdin);
 
   if(argc < 2){
     fprintf(stderr,"* usage: extractmessages [-x] [list of message types] < <input file>\n");

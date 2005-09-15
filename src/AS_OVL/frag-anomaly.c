@@ -38,11 +38,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: frag-anomaly.c,v 1.4 2005-03-22 19:49:19 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Id: frag-anomaly.c,v 1.5 2005-09-15 15:20:16 eliv Exp $
+ * $Revision: 1.5 $
 */
 
-static char fileID[] = "$Id: frag-anomaly.c,v 1.4 2005-03-22 19:49:19 jason_miller Exp $";
+static char fileID[] = "$Id: frag-anomaly.c,v 1.5 2005-09-15 15:20:16 eliv Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -159,11 +159,11 @@ int main  (int argc, char * argv [])
    ovlfile = File_Open (infile_name, "r");
    outfile = File_Open (outfile_name, "w");
 
-   read_msg_fn = InputFileType_AS (ovlfile);
+   read_msg_fn = (MesgReader)InputFileType_AS (ovlfile);
    if  (use_binary_output)
-       write_msg_fn = OutputFileType_AS (AS_BINARY_OUTPUT);
+       write_msg_fn = (MesgWriter)OutputFileType_AS (AS_BINARY_OUTPUT);
      else
-       write_msg_fn = OutputFileType_AS (AS_PROTO_OUTPUT);
+       write_msg_fn = (MesgWriter)OutputFileType_AS (AS_PROTO_OUTPUT);
 
 
    // Get fragment count and allocate array to hold adjacency lists
@@ -531,7 +531,7 @@ printf ("\n olap1 = %d %c %c %d  olap2 = %d %c %c %d",
            sprintf (label_line, "%s %s %s", argv [0], infile_name,
                     argv [optind]);
            AppendAuditLine_AS (adt_mesg, & audit_line, time (0), "frag-anomaly screen",
-                               "$Revision: 1.4 $", label_line);
+                               "$Revision: 1.5 $", label_line);
            write_msg_fn (outfile, gmesg);
            break;
           }

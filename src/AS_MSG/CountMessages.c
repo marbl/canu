@@ -21,7 +21,7 @@
 /* CountMessages
  *    Print counts of all 'top-level' messages
  *
- * $Id: CountMessages.c,v 1.4 2005-03-22 19:49:00 jason_miller Exp $
+ * $Id: CountMessages.c,v 1.5 2005-09-15 15:20:16 eliv Exp $
  *
  */
 
@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
   size_t sizes[MAX_MESG+1];
   long prevPos, currPos;
   int i;
-  MesgReader reader = InputFileType_AS(stdin);
+  MesgReader reader = (MesgReader)InputFileType_AS(stdin);
   ProtoIOMode mode = AS_HUMAN_MODE;
   if(argc == 2){
     char c = argv[1][1];

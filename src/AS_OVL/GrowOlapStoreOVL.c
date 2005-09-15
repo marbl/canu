@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: GrowOlapStoreOVL.c,v 1.6 2005-06-16 20:02:37 brianwalenz Exp $
- * $Revision: 1.6 $
+ * $Id: GrowOlapStoreOVL.c,v 1.7 2005-09-15 15:20:16 eliv Exp $
+ * $Revision: 1.7 $
 */
 
-static char CM_ID[] = "$Id: GrowOlapStoreOVL.c,v 1.6 2005-06-16 20:02:37 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GrowOlapStoreOVL.c,v 1.7 2005-09-15 15:20:16 eliv Exp $";
 
 
 //  System include files
@@ -876,7 +876,7 @@ static void  Process_OVL_Files
 
       filename = * GetVA_char_Ptr_t (OVL_File_List, i);
       fp = File_Open (filename, "r");
-      read_msg_fn = InputFileType_AS (fp);
+      read_msg_fn = (MesgReader)InputFileType_AS (fp);
 
       now = time (NULL);
       fprintf (stderr, "Starting file \"%s\"\n", filename);

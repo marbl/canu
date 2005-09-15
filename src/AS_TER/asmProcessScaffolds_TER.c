@@ -437,7 +437,7 @@ int main(int argc, char *argv[]) {
   quality_sequence  = CreateVA_char(200000);
  
   
-  reader = InputFileType_AS( stdin );
+  reader = (MesgReader)InputFileType_AS( stdin );
 
   while (reader(stdin,&pmesg) != EOF){
     if (pmesg->t ==MESG_UTG)  {

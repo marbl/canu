@@ -80,7 +80,7 @@ int main(int argc, char * argv [])
       time(&tp1); fprintf(stderr,"Begin timing\n");
     }
 
-    reader = InputFileType_AS(stdin);
+    reader = (MesgReader)InputFileType_AS(stdin);
 
     while (reader(stdin,&pmesg) != EOF)
       {

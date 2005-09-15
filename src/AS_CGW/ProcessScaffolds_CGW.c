@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: ProcessScaffolds_CGW.c,v 1.5 2005-06-09 21:15:34 brianwalenz Exp $ */
+/* $Id: ProcessScaffolds_CGW.c,v 1.6 2005-09-15 15:20:15 eliv Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -896,7 +896,7 @@ int main(int argc, char *argv[])
     }
   }
 
-  reader = InputFileType_AS( stdin );
+  reader = (MesgReader)InputFileType_AS( stdin );
 #if 0
   sublist_file = argv[1];
   if ( sublist_file[0] == 'A' ) { do_all = 1;}

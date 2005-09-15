@@ -152,7 +152,7 @@ static void save_the_chunk_graph
         
         if(NULL != fiba) {
           // Output the ADT messages from all the incremental processing.
-          MesgReader ReadMesg_AS = InputFileType_AS(fiba);
+          MesgReader ReadMesg_AS = (MesgReader)InputFileType_AS(fiba);
           GenericMesg *pmesg = NULL;
           while(EOF != ReadMesg_AS(fiba,&pmesg)) {
             WriteMesg_AS(fcgb,pmesg);
@@ -309,9 +309,9 @@ int main(int argc, char * argv[]) {
     MesgWriter ErrorWriter_AS = NULL;
 
     // VersionStamp(argc,argv);
-    WriteMesg_AS = OutputFileType_AS((rg->as_proto_output
+    WriteMesg_AS = (MesgWriter)OutputFileType_AS((rg->as_proto_output
                                       ? AS_PROTO_OUTPUT : AS_BINARY_OUTPUT));
-    ErrorWriter_AS = OutputFileType_AS(AS_PROTO_OUTPUT);
+    ErrorWriter_AS = (MesgWriter)OutputFileType_AS(AS_PROTO_OUTPUT);
     
     if(NULL != rg->Output_Graph_Store_Prefix) {
       save_the_chunk_graph

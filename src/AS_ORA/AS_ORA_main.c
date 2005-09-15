@@ -20,7 +20,7 @@
  *************************************************************************/
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_ORA/Attic/AS_ORA_main.c,v $
-$Revision: 1.4 $
+$Revision: 1.5 $
 **********************************************************************/
 
 /**********************************************************************
@@ -931,7 +931,7 @@ int CompareOverlaps( FragmentArrayp fragments,
              input_ovl_filename );
     return 1;
   }
-  reader = InputFileType_AS( fp );
+  reader = (MesgReader)InputFileType_AS( fp );
 
   // since the file was opened before, start at the right place
   if( reader == ReadBinaryMesg_AS )
@@ -1290,7 +1290,7 @@ int GenerateOverlapFile( char * output_ovl_filename,
     // regressor ADL message
     auditLine2.complete = time(0);
     auditLine2.name = "overlap_regressor";
-    auditLine2.version = "$Revision: 1.4 $ $Date: 2005-03-22 19:49:02 $";
+    auditLine2.version = "$Revision: 1.5 $ $Date: 2005-09-15 15:20:16 $";
     auditLine2.comment = "(empty)";
     auditLine2.next = NULL;
 

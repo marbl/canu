@@ -25,7 +25,7 @@
  Assumptions: There is no UID 0
 **********************************************************************/
 
-static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.9 2005-08-24 10:57:43 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.10 2005-09-15 15:20:16 eliv Exp $";
 
 
 
@@ -1687,8 +1687,8 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
 
     /* detect whether reader is ASCII or binary and set
        writer to provided parameter */
-    readerFn  = InputFileType_AS(fileInput);
-    writerFn  = OutputFileType_AS(output);
+    readerFn  = (MesgReader)InputFileType_AS(fileInput);
+    writerFn  = (MesgWriter)OutputFileType_AS(output);
 
 
     /* main loop  */

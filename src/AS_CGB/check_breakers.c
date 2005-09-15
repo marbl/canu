@@ -628,7 +628,7 @@ int GetUnitigData( BreakerSetp chims, BreakerSetp craps, char * cgb_filename )
              cgb_filename );
     return 1;
   }
-  reader = InputFileType_AS( fp );
+  reader = (MesgReader)InputFileType_AS( fp );
 
   chim_i = 0;
   crap_i = 0;
@@ -1385,7 +1385,7 @@ typedef CheckGlobals * CheckGlobalsp;
 void InitializeGlobals( CheckGlobalsp globals, char * program_name )
 {
   globals->program_name = program_name;
-  globals->version = "$Revision: 1.5 $";
+  globals->version = "$Revision: 1.6 $";
   globals->chims_file = NULL;
   globals->craps_file = NULL;
   globals->cgb_file = NULL;

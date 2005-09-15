@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: CorrectOlapsOVL.c,v 1.4 2005-03-22 19:49:18 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Id: CorrectOlapsOVL.c,v 1.5 2005-09-15 15:20:16 eliv Exp $
+ * $Revision: 1.5 $
 */
 
-static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.4 2005-03-22 19:49:18 jason_miller Exp $";
+static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.5 2005-09-15 15:20:16 eliv Exp $";
 
 
 //  System include files
@@ -750,7 +750,7 @@ static void  Build_FOM_List
      UF [i] = -1;
 
    fp = File_Open (CGB_File_Path, "r");
-   read_msg_fn = InputFileType_AS (fp);
+   read_msg_fn = (MesgReader)InputFileType_AS (fp);
 
    while  (read_msg_fn (fp, & gmesg) != EOF)
      {
@@ -848,7 +848,7 @@ static void  Build_FOM_List
        return;
 
    fp = File_Open (CGB_File2_Path, "r");
-   read_msg_fn = InputFileType_AS (fp);
+   read_msg_fn = (MesgReader)InputFileType_AS (fp);
 
    while  (read_msg_fn (fp, & gmesg) != EOF)
      {
@@ -1771,9 +1771,9 @@ static void  Initialize_Globals
      Error_Bound [i] = (int) (i * MAX_ERROR_RATE);
 
    if  (P_Option)
-       Write_Msg_Fn = OutputFileType_AS (AS_PROTO_OUTPUT);
+       Write_Msg_Fn = (MesgWriter)OutputFileType_AS (AS_PROTO_OUTPUT);
      else
-       Write_Msg_Fn = OutputFileType_AS (AS_BINARY_OUTPUT);
+       Write_Msg_Fn = (MesgWriter)OutputFileType_AS (AS_BINARY_OUTPUT);
 
    return;
   }

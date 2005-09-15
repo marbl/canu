@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.10 2005-08-20 16:55:42 gdenisov Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.11 2005-09-15 15:20:15 eliv Exp $";
 
 
 /*********************************************************************
@@ -574,9 +574,9 @@ int main(int argc, char *argv[]){
 	strcpy(data->Input_File_Name, argv[optind]);
 	infp = File_Open (data->Input_File_Name, "r", TRUE);     // frg file
 	AssertPtr(infp);
-	data->reader = reader = InputFileType_AS(infp);
-	data->writer = writer = OutputFileType_AS(outputFormat);
-	data->errorWriter = OutputFileType_AS(AS_PROTO_OUTPUT);
+	data->reader = reader = (MesgReader)InputFileType_AS(infp);
+	data->writer = writer = (MesgWriter)OutputFileType_AS(outputFormat);
+	data->errorWriter = (MesgWriter)OutputFileType_AS(AS_PROTO_OUTPUT);
 
 	strcpy(data->File_Name_Prefix, outputPath);
 	sprintf(data->TempFileName,"%s.tempium", outputPath);

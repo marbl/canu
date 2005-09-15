@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: null_scaffolder.c,v 1.5 2005-07-08 22:07:53 gdenisov Exp $ */
+/* $Id: null_scaffolder.c,v 1.6 2005-09-15 15:20:16 eliv Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
   int in_iums=0;
   int nread;
   if (argc > 1) coverage_threshold = atof(argv[1]);
-  reader = InputFileType_AS(stdin);
+  reader = (MesgReader)InputFileType_AS(stdin);
 
   while ( 1 ){
     nread = reader(stdin,&pmesg);

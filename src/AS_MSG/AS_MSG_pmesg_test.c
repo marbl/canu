@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg_test.c,v 1.4 2005-03-22 19:49:00 jason_miller Exp $ */
+/* $Id: AS_MSG_pmesg_test.c,v 1.5 2005-09-15 15:20:16 eliv Exp $ */
 
 #include <assert.h>
 #include <errno.h>
@@ -88,7 +88,7 @@ int main(int argc, char * argv [])
       time(&tp1); fprintf(stderr,"Begin timing\n");
     }
 
-    reader = InputFileType_AS(stdin);
+    reader = (MesgReader)InputFileType_AS(stdin);
 
     while (reader(stdin,&pmesg) != EOF)
       {

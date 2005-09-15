@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: post_analysis.c,v 1.4 2005-03-22 19:48:52 jason_miller Exp $ */
+/* $Id: post_analysis.c,v 1.5 2005-09-15 15:20:16 eliv Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
  cds_int64  this_id;
  int do_all = 0;
  out = fopen("post_analysis.out","w");
- reader = InputFileType_AS( stdin );
+ reader = (MesgReader)InputFileType_AS( stdin );
  frag_store = openFragStore(argv[1], "rb");
  if ( argc == 5 ) {
    bactig_store = openFragStore(argv[2],"rb");

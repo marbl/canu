@@ -32,7 +32,7 @@
  Assumptions: 
 **********************************************************************/
 
-static char CM_ID[] = "$Id: ExtractQualityREZ.c,v 1.4 2005-03-22 19:49:21 jason_miller Exp $";
+static char CM_ID[] = "$Id: ExtractQualityREZ.c,v 1.5 2005-09-15 15:20:16 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -215,8 +215,8 @@ int main(int argc, char *argv[])
   if( processRest == TRUE)
     fprintf(statOutputR,"Qualities of remaining overlap types\n");
 
-  readerFn  = InputFileType_AS(fileInput);
-  writerFn  = OutputFileType_AS(outputType);
+  readerFn  = (MesgReader)InputFileType_AS(fileInput);
+  writerFn  = (MesgWriter)OutputFileType_AS(outputType);
 
   InitTimerT(&timer);
 
