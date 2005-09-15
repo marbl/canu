@@ -37,7 +37,7 @@
 
 
 
-static char fileID[] = "$Id: GapFillREZ.c,v 1.5 2005-06-09 21:15:34 brianwalenz Exp $";
+static char fileID[] = "$Id: GapFillREZ.c,v 1.6 2005-09-15 22:56:01 mcschatz Exp $";
 
 
 #include <stdio.h>
@@ -4709,9 +4709,11 @@ if  (fp != NULL)
                                (this_chunk, right_scaff_contig,
                                 & this_sequence, & right_scaff_sequence, fp);
 
+                 // allow up to 3 bases of overhang and still regard
+                 // as contained
                  if  (right_olap == NULL
                         && left_olap != NULL
-                        && left_olap -> length >= this_chunk -> len)
+                        && left_olap -> begpos >= 0 && left_olap -> endpos <= 3)
                      {
                       if  (fp != NULL)
                           fprintf (fp, "cid %5d Left olap  %6d %6d %6d\n",
@@ -4725,7 +4727,7 @@ if  (fp != NULL)
                      }
                  else if  (left_olap == NULL
                         && right_olap != NULL
-                        && right_olap -> length >= this_chunk -> len)
+                        && right_olap -> begpos <= 3 && right_olap -> endpos >= 0)
                      {
                       if  (fp != NULL)
                           fprintf (fp, "cid %5d Right olap  %6d %6d %6d\n",
