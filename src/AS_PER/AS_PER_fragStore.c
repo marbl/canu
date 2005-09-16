@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_fragStore.c,v 1.6 2005-08-24 17:44:03 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_fragStore.c,v 1.7 2005-09-16 17:04:16 eliv Exp $";
 
 /*************************************************************************
  Module:  AS_PER_fragStore
@@ -238,7 +238,7 @@ void unloadFragRecord(FragStore *myStore, FragRecord *fr, int32 getFlags){
 
      getVLRecordStore(GET_FILEHANDLE(myStore->sourceStore, fr->frag.sourceOffset), 
 		     GET_FILEOFFSET(fr->frag.sourceOffset), fr->source, 
-		     (VLSTRING_SIZE_T)(MAX_SOURCE_LENGTH + MAX_SCREEN_MATCH*sizeof(IntScreenMatch) + sizeof(int32) + sizeof(int64)), 
+		     (VLSTRING_SIZE_T)VLSTRING_MAX_SIZE, 
 		     &actualLength);
     
 #ifdef DEBUG
@@ -278,7 +278,7 @@ void unloadFragRecord(FragStore *myStore, FragRecord *fr, int32 getFlags){
   }
   if(getFlags & FRAG_S_SEQUENCE){
     getVLRecordStore(GET_FILEHANDLE(myStore->sequenceStore, fr->frag.sequenceOffset), 
-		     GET_FILEOFFSET(fr->frag.sequenceOffset), encodeBuffer, (VLSTRING_SIZE_T)MAX_SEQUENCE_LENGTH, &actualLength);
+		     GET_FILEOFFSET(fr->frag.sequenceOffset), encodeBuffer, (VLSTRING_SIZE_T)VLSTRING_MAX_SIZE, &actualLength);
     
     encodeBuffer[actualLength] = '\0';
     decodeSequenceQuality(encodeBuffer, actualLength, fr->sequence, fr->quality, fr->frag.hasQuality);
@@ -328,7 +328,7 @@ void unloadFragRecordPartition(StoreHandle seqStore, StoreHandle srcStore, FragR
 
      getVLRecordStore(srcStore,
 		     GET_FILEOFFSET(fr->frag.sourceOffset), fr->source, 
-		     (VLSTRING_SIZE_T)(MAX_SOURCE_LENGTH + MAX_SCREEN_MATCH*sizeof(IntScreenMatch) + sizeof(int32) + sizeof(int64)), 
+		     (VLSTRING_SIZE_T)VLSTRING_MAX_SIZE, 
 		     &actualLength);
     
 #ifdef DEBUG
@@ -368,7 +368,7 @@ void unloadFragRecordPartition(StoreHandle seqStore, StoreHandle srcStore, FragR
   }
   if(getFlags & FRAG_S_SEQUENCE){
     getVLRecordStore(seqStore, 
-		     GET_FILEOFFSET(fr->frag.sequenceOffset), encodeBuffer, (VLSTRING_SIZE_T)MAX_SEQUENCE_LENGTH, &actualLength);
+		     GET_FILEOFFSET(fr->frag.sequenceOffset), encodeBuffer, (VLSTRING_SIZE_T)VLSTRING_MAX_SIZE, &actualLength);
     
     encodeBuffer[actualLength] = '\0';
     decodeSequenceQuality(encodeBuffer, actualLength, fr->sequence, fr->quality, fr->frag.hasQuality);
@@ -1303,12 +1303,14 @@ int appendFragStorePartition(FragStoreHandle store, ReadStructp rs, int32 partit
   fprintf(stderr,"* Appending source field of length " F_VLS " screenLength = %u\n",
 	  length, screenMatchLength);
 #endif
+  assert(length <= VLSTRING_MAX_SIZE);
   appendVLRecordStore(myStore->sourceStore[partition]   , fr->source, length);
 
   /*** NOTE: encodeBuffer is NOT a null terminated string.  Therefore
    *** we use the elngth of the sequence data as the length of the VL
    *** record.
    ***/
+  assert(strlen(fr->sequence) <= VLSTRING_MAX_SIZE);
   length = (VLSTRING_SIZE_T)strlen(fr->sequence);
   appendVLRecordStore(myStore->sequenceStore[partition]   , encodeBuffer, length);
 
@@ -1386,6 +1388,7 @@ int appendFragStore(FragStoreHandle store, ReadStructp rs){
   }else{
     length = sourceLength + screenMatchLength;
   }
+  assert(length <= VLSTRING_MAX_SIZE);
 
 #if 0
   fprintf(stderr,"* Appending source field of length " F_VLS " screenLength = %u\n",
@@ -1397,6 +1400,7 @@ int appendFragStore(FragStoreHandle store, ReadStructp rs){
    *** we use the elngth of the sequence data as the length of the VL
    *** record.
    ***/
+  assert(strlen(fr->sequence) <= VLSTRING_MAX_SIZE);
   length = (VLSTRING_SIZE_T)strlen(fr->sequence);
   appendVLRecordStore(myStore->sequenceStore[0]   , encodeBuffer, length);
 
@@ -1445,7 +1449,11 @@ int appendDumpToFragStore(FragStoreHandle store, ShortFragRecord *fr, VA_TYPE(ch
 
   appendIndexStore(myStore->fragStore, (void *)(fr));
 
+  assert(GetNumchars(source) <= VLSTRING_MAX_SIZE);
+
   appendVLRecordStore(myStore->sourceStore[0]   , Getchar(source,0), GetNumchars(source));
+
+  assert(GetNumchars(sequence) <= VLSTRING_MAX_SIZE);
 
   appendVLRecordStore(myStore->sequenceStore[0]   , Getchar(sequence,0), GetNumchars(sequence));
 
@@ -1747,7 +1755,7 @@ void unloadNDumpFragRecord(FragStore *myStore, FragRecord *fr, FILE *outfp){
 
     getVLRecordStore(myStore->sourceStore[0], 
 		     fr->frag.sourceOffset, fr->source, 
-		     (uint16)(MAX_SOURCE_LENGTH + MAX_SCREEN_MATCH*sizeof(IntScreenMatch) + sizeof(int32) + sizeof(int64)), 
+		     (VLSTRING_SIZE_T)VLSTRING_MAX_SIZE, 
 		     &actualLength);
     
 #ifdef DEBUG
@@ -1765,7 +1773,7 @@ void unloadNDumpFragRecord(FragStore *myStore, FragRecord *fr, FILE *outfp){
 
 
     getVLRecordStore(myStore->sequenceStore[0], 
-		     fr->frag.sequenceOffset, encodeBuffer, (VLSTRING_SIZE_T)MAX_SEQUENCE_LENGTH, &actualLength);
+		     fr->frag.sequenceOffset, encodeBuffer, (VLSTRING_SIZE_T)VLSTRING_MAX_SIZE, &actualLength);
     
 
     safeWrite(outfp,&actualLength, sizeof(actualLength));
