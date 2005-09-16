@@ -928,14 +928,11 @@ partitionByBucket(u64bit partitionSize) {
 
 void
 dumpBlocks(void) {
-  FastASequenceInCore  *S = 0L;
+  FastASequenceOnDisk  *S     = 0L;
   u32bit                seqno = 0;
 
   failIfNoSource();
   failIfNotRandomAccess();
-
-  fprintf(stderr, "dumpBlocks is a memory pig.  Someone should rewrite it\n");
-  fprintf(stderr, "to not load the whole sequence into core.\n");
 
   bool                  V[256];
   for (u32bit i=0; i<256; i++)
@@ -943,26 +940,31 @@ dumpBlocks(void) {
   V[(int)'n'] = true;
   V[(int)'N'] = true;
 
-  S = f->getSequence();
+  S = f->getSequenceOnDisk();
   while (S) {
-    char   *seq = S->sequence();
-    u32bit  len = S->sequenceLength();
-    bool    nnn = V[(int)seq[0]];
-    u32bit  i   = 0;
+    char    seq    = S->get();
+    u32bit  len    = S->sequenceLength();
+    bool    nnn    = V[(int)seq];
+    char    begseq = seq;
+    u32bit  begpos = 0;
 
-    fprintf(stdout, "%c "u32bitFMT" 0\n", seq[0], seqno);
-
-    for (; i<len; i++) {
-      if (nnn != V[(int)seq[i]]) {
-        fprintf(stdout, "%c "u32bitFMT" "u32bitFMT"\n", seq[i], seqno, i);
-        nnn = V[(int)seq[i]];
+    u32bit pos = 0;
+    for ( ; pos<len; pos++) {
+      S->next();
+      seq = S->get();
+      if (nnn != V[(int)seq]) {
+        fprintf(stdout, "%c "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
+                begseq, seqno, begpos, pos - begpos);
+        nnn = V[(int)seq];
+        begpos = pos;
+        begseq = seq;
       }
     }
 
-    fprintf(stdout, ". "u32bitFMT" "u32bitFMT"\n", seqno, i);
+    fprintf(stdout, ". "u32bitFMT" "u32bitFMT" "u32bitFMT"\n", seqno, pos, u32bitZERO);
 
     delete S;
-    S = f->getSequence();
+    S = f->getSequenceOnDisk();
 
     seqno++;
   }
