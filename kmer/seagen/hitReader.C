@@ -249,10 +249,11 @@ hitReader::mergeOverlappingHits(void) {
         if (_list[cur].a._dsLo == _list[exa].a._dsLo) {
           memcpy(_list+cur, _list+exa, sizeof(hit_s));
         } else {
-          fprintf(stderr,
-                  "MERGE: "
+          fprintf(stdout,
+                  "MERGE: -e "u32bitFMT" "
                   u32bitFMT":"u32bitFMT"-"u32bitFMT"("u32bitFMT"-"u32bitFMT"-"u32bitFMT") "
                   u32bitFMT":"u32bitFMT"-"u32bitFMT"("u32bitFMT"-"u32bitFMT"-"u32bitFMT")\n",
+                  _list[cur].a._qsIdx,
                   _list[cur].a._dsIdx, _list[cur].a._dsLo, _list[cur].a._dsHi,
                   _list[cur].a._covered, _list[cur].a._matched, _list[cur].a._numMers,
                   _list[exa].a._dsIdx, _list[exa].a._dsLo, _list[exa].a._dsHi,
