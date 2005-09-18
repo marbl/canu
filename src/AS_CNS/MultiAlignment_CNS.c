@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.33 2005-09-17 18:11:15 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.34 2005-09-18 19:44:45 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -5450,6 +5450,14 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
     //  assume opp is a valid pointer
     //
 
+    CNS_Options  opp_private;
+    if (opp == NULL) {
+      opp_private.split_alleles   = CNS_OPTIONS_SPLIT_ALLELES_DEFAULT;
+      opp_private.smooth_win      = CNS_OPTIONS_SMOOTH_WIN_DEFAULT;
+      opp_private.max_num_alleles = CNS_OPTIONS_MAX_NUM_ALLELES;
+      opp = &opp_private;
+    }
+
     if ( cnslog == NULL ) cnslog = stderr;
     ALIGNMENT_CONTEXT=AS_CONSENSUS;
     global_fragStore=fragStore;
@@ -5492,8 +5500,16 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
              hash_rc = InsertInPHashTable_AS(&thash,IDENT_NAMESPACE, 
                            (uint64)positions[i].ident, &value, FALSE,FALSE);
              if ( hash_rc != HASH_SUCCESS) {
-                  fprintf(stderr,"Failure to insert ident %d in hashtable\n",
-                      positions[i].ident); 
+                 hash_rc = LookupInPHashTable_AS(thash, IDENT_NAMESPACE, 
+                    (uint64)positions[i].ident, &value);
+               if (hash_rc == HASH_SUCCESS )
+                  fprintf(cnslog,
+                "Failure to insert ident %d in hashtable, entry already appears\n", 
+                  positions[i].ident);
+               else
+                 fprintf(stderr,"Failure to insert ident %d in hashtable\n", 
+                  positions[i].ident);
+               assert(FALSE);
              } 
              fid = AppendFragToLocalStore(positions[i].type, 
 				  positions[i].ident, 
@@ -6458,6 +6474,7 @@ int ExamineConfirmedMMColumns(FILE *outFile,int32 sid, int32 mid, UnitigData *ti
   }
   return 1;
 }
+
 
 
 int TestFragmentPositions(MultiAlignT *ma) {
