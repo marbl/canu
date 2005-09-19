@@ -31,11 +31,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FindContainedFrags.cc,v 1.11 2005-09-07 18:04:58 eliv Exp $
- * $Revision: 1.11 $
+ * $Id: FindContainedFrags.cc,v 1.12 2005-09-19 17:24:12 kli1000 Exp $
+ * $Revision: 1.12 $
 */
 
-static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.11 2005-09-07 18:04:58 eliv Exp $";
+static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.12 2005-09-19 17:24:12 kli1000 Exp $";
 
 //  System include files
 
@@ -68,62 +68,85 @@ int  main
    OVL_Store_t  * my_store;
    OVL_Stream_t  * my_stream;
    Long_Olap_Data_t  olap;
-   uint32  first,last;
+   uint32  first,last;			// IUID of first/last fragments in olap store
    first = 1;
 
+   // Get path/names of olap and frg stores from command line
    const char* OVL_Store_Path = argv[1];
    const char* FRG_Store_Path = argv[2];
 
    my_store = New_OVL_Store ();
    my_stream = New_OVL_Stream ();
 
+   // Open Frag store
    BestOverlapGraph::fragStoreHandle = openFragStore( FRG_Store_Path, "r");
 
+   // Open and initialize Overlap store
    Open_OVL_Store (my_store, OVL_Store_Path);
    last = Last_Frag_In_OVL_Store (my_store);
    Init_OVL_Stream (my_stream, first, last, my_store);
 
+   // Allocate and Initialize fragLength array
+   // Seems like this should be done privately
    BestOverlapGraph::fragLength = new uint16[last+1];
    memset( BestOverlapGraph::fragLength, 0, sizeof(uint16)*(last+1));
 
+   // Initialize our three different types of Best Overlap Graphs
    AS_BOG::ErateScore erScore(last);
    AS_BOG::LongestEdge lenScore(last);
    AS_BOG::LongestHighIdent lenIdent(last,2.0);
-   vector<BestOverlapGraph *> metrics;
 
+   // Put the three graphs into a vector, so we can step through them
+   vector<BestOverlapGraph *> metrics;
    metrics.push_back(&erScore);
    metrics.push_back(&lenScore);
    metrics.push_back(&lenIdent);
 
+   // Go through the overlap stream, and populate the 3 overlap graphs
    int j;
    while  (Next_From_OVL_Stream (&olap, my_stream))
      {
          for( j = 0; j < metrics.size(); j++) 
                 metrics[j]->scoreOverlap( olap );
      }
+
+   // Free/clean up the frag/overlap store/stream handles
    Free_OVL_Stream( my_stream );
    Free_OVL_Store( my_store );
    closeFragStore( BestOverlapGraph::fragStoreHandle ); 
 
+   // Compute the width (number of digits) in the largest IUID
    int pad = static_cast<int>(ceil( log10( last )));
 
+   // For each IUID
    for(int i = 1; i <= last; i++) {
        AS_BOG::BestEdgeOverlap* five[metrics.size()];
        AS_BOG::BestEdgeOverlap* three[metrics.size()];
 
+       // For each graph type
        for( j = 0; j < metrics.size(); j++)  { // output olap graph
+
+           // Retrieve the best overlaps from the BOG for the current IUID
            five[j] = metrics[j]->getBestEdge( i, AS_BOG::FIVE_PRIME );
            three[j] = metrics[j]->getBestEdge( i, AS_BOG::THREE_PRIME );
 
+           // Why isn't this just outside of the for j loop?
            if ( j == metrics.size()-1 ) {
+
+               // Get the 5' overlap for the current IUID
                CDS_IID_t b0 = five[0]->frag_b_id;
                AS_BOG::BestEdgeOverlap* f1 = five[1];
                AS_BOG::BestEdgeOverlap* f2 = five[2];
+
+               // Set up output formatting
                cout.flags(std::ios_base::left);
                cout.width(pad);
+
+               // Output the fragments 5' ends in_degree, for each graph
                cout << i <<" 5' "<< five[0]->in_degree << " "
                     << f1->in_degree <<" "<< f2->in_degree;
 
+               // Report whether best overlaps agree between graphs
                if (b0 == five[1]->frag_b_id && b0 == five[2]->frag_b_id) {
                    cout <<" best "; cout.width(pad * 3 + 2);
                    cout << b0 ;
@@ -133,12 +156,17 @@ int  main
                    cout<< f1->frag_b_id<<" "; cout.width(pad);
                    cout<< f2->frag_b_id ;
                }
+
+               // Get the 3' overlap for the current IUID
                b0 = three[0]->frag_b_id;
                f1 = three[1];
                f2 = three[2];
+
+               // Output the fragments 3' ends in_degree, for each graph
                cout << " 3' "<< three[0]->in_degree << " "
                     << f1->in_degree <<" "<< f2->in_degree;
 
+               // Report whether best overlaps agree between graphs
                if (b0 == three[1]->frag_b_id && b0 == three[2]->frag_b_id) {
                    cout <<" best "; cout.width(pad);
                    cout << b0 << endl;
@@ -148,30 +176,51 @@ int  main
                    cout<< f1->frag_b_id<<" "; cout.width(pad);
                    cout<< f2->frag_b_id << endl;
                }
+
            }
        } // end for each metric
    } // end for each fragment
+
+   // Remove transitive containments
    for( j = 0; j < metrics.size(); j++)  {
        metrics[j]->transitiveContainment();
    }
+
+   // We should typedef this map for best_containments
    map<CDS_IID_t,AS_BOG::BestContainment> c1 = metrics[0]->_best_containments;
+
+   // Iterate through all the containees, this may miss containees that exists
+   //   by other metrics/graph types
    for(map<CDS_IID_t,AS_BOG::BestContainment>::const_iterator it = c1.begin();
            it != c1.end(); it++)
    {
+
+       // First is containee IUID, Second is container IUID
        CDS_IID_t id = it->first;
        AS_BOG::BestContainment bst = it->second;
-       cout << id << " c1 by "<< bst.container << " " << bst.score << " sameOrient " << bst.sameOrientation << endl;
 
+
+	//  1: erScore
+       cout << id << " c1 by "<< bst.container << " " << bst.score << 
+            " sameOrient " << bst.sameOrientation << endl;
+
+	//  2: lenScore
        AS_BOG::BestContainment* b2 = metrics[1]->getBestContainer( id );
        if ( b2 != NULL )
-           cout << id << " c2 by "<< b2->container << " " << b2->score << " sameOrient " << b2->sameOrientation << endl;
+           cout << id << " c2 by "<< b2->container << " " << b2->score << 
+            " sameOrient " << b2->sameOrientation << endl;
        
+        //  3: lenIdent
        AS_BOG::BestContainment* b3 = metrics[2]->getBestContainer( id );
        if ( b3 != NULL )
-           cout << id << " c3 by "<< b3->container << " " << b3->score << " sameOrient " << b3->sameOrientation << endl;
+           cout << id << " c3 by "<< b3->container << " " << b3->score << 
+            " sameOrient " << b3->sameOrientation << endl;
 
    }
+
+   // Shouldn't these both be n a  destructor in BOG?
    delete[] BestOverlapGraph::fragLength;
    delete_ReadStruct(BestOverlapGraph::fsread);
+
    return  0;
 }
