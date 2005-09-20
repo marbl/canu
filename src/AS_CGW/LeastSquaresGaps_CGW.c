@@ -18,13 +18,14 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: LeastSquaresGaps_CGW.c,v 1.6 2005-08-23 15:45:20 catmandew Exp $";
+static char CM_ID[] = "$Id: LeastSquaresGaps_CGW.c,v 1.7 2005-09-20 14:41:23 brianwalenz Exp $";
 
 #define FIXED_RECOMPUTE_SINGULAR /* long standing bug: is it fixed yet? */
 #undef LIVE_ON_THE_EDGE   /* abort on singularities -- this would be a good idea, unless you
           can't afford to have the assembly crash on a rare problem */
 
 #define FIXED_RECOMPUTE_NOT_ENOUGH_CLONES /* long standing bug: is it fixed yet? it seems to be */
+#undef  FIXED_RECOMPUTE_NOT_ENOUGH_CLONES /* nope */
 
 #undef NEG_GAP_VARIANCE_PROBLEM_FIXED  /* if undef'ed, allow processing to continue despite a negative gap variance */
 
@@ -1724,7 +1725,12 @@ int IsInternalEdgeStatusVaguelyOK(EdgeCGW_T *edge,CDS_CID_t thisCIid){
 
   /* We only want to label edges between CIs in the same scaffold; this is up to the caller. */
   if(otherCI->scaffoldID != thisCI->scaffoldID){
+    fprintf(stderr, "WARNING:  IsInternalEdgeStatusVaguelyOK() got an edge between different scaffolds.\n");
+    fprintf(stderr, "   edge:  idA:%d idB:%d\n", edge->idA, edge->idB);
+    fprintf(stderr, " thisCI:  scaffoldID:%d isA:%d\n", thisCI->scaffoldID, edge->idA == thisCI->id);
+    fprintf(stderr, "otherCI:  scaffoldID:%d isA:%d\n", otherCI->scaffoldID, edge->idA == otherCI->id);
     assert(0);
+    return(0);
   }
 
   /* We only want to do this to an edge once; the calling routine should
