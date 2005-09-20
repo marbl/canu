@@ -24,85 +24,11 @@
 
 ######################################################################
 # $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_UID/Makefile,v $
-# $Revision: 1.5 $
-# $Date: 2005-08-24 10:57:43 $
+# $Revision: 1.6 $
+# $Date: 2005-09-20 20:15:06 $
 # $Name: not supported by cvs2svn $
-# $Author: brianwalenz $
-# $Log: not supported by cvs2svn $
-# Revision 1.4  2005/08/17 16:57:11  brianwalenz
-# Rework the way the UID server is selected; now define either
-# UID_SERVER=TIGR or UID_SERVER=JCVI in AS_UID/uid_transport.as.
-# c_make.as then sets CFLAGS,CXXFLAGS,LDFLAGS appropriately.  Makefiles
-# that need to access the UID server via curl needed to be modified
-# to remove the explicit link to libcurl.a; everyone now links
-# against it.  Hopefully, cleaner, and easier to extent to other
-# sites.
-#
-# Revision 1.3  2005/03/22 19:49:28  jason_miller
-# The TIGR tip as of March 22 2005. Commit by Jason Miller at TIGR.
-#
-# Revision 1.3  2004/09/10 12:31:43  mschatz
-# Add standard copyright notice
-#
-# Revision 1.2  2004/09/09 22:34:12  mschatz
-# USE_SOAP_UID support, cleanup
-#
-# Revision 1.1  2004/06/24 12:51:06  mpop
-# Added AS_UID
-#
-# Revision 1.3  2003/05/13 19:20:08  mpop
-# Fixed the UID client code, now the terminator can terminate :)
-#
-# Revision 1.2  2003/05/09 21:04:02  mpop
-# Dos2unixed all files.
-# Modified c_make.as to set SEP_PATH relative to LOCAL_WORK
-#
-# Revision 1.1.1.1  2003/05/08 18:40:11  aaronhalpern
-# versions from TIGR
-#
-# Revision 1.2  2001/09/25 23:03:20  mpop
-# Dos2Unixed
-#
-# Revision 1.1.1.1  2001/09/25 20:21:05  mpop
-# Celera Assembler
-#
-# Revision 1.8  1999/10/13 19:03:53  sdmurphy
-# added standalone client
-#
-# Revision 1.7  1999/07/22 01:13:46  dewim
-# added += to *_IMPORT_DIRS assignments
-# now including $(SEP_PATH)/makefiles/c_make.gen
-#
-# Revision 1.6  1999/06/30 20:57:52  stine
-# Changed the makefile to use the cds.h from cds/SYS as determined
-# by the SEPTIC group.
-#
-# Revision 1.5  1999/03/04 22:41:33  sdmurphy
-# added SYS_UIDerror.o to libuid.a
-#
-# Revision 1.4  1999/01/13 20:09:43  sdmurphy
-# changed uid_server to uidsvrd
-#
-# Revision 1.3  1999/01/13 14:27:47  sdmurphy
-# version 0 prelim
-#
-# Revision 1.2  1998/12/22 21:17:01  sdmurphy
-# added c++ support
-#
-# Revision 1.1  1998/12/17 21:20:12  sdmurphy
-# Makefile for UID libs and progs
-#
+# $Author: catmandew $
 ######################################################################
-
-######################################################################
-# Module:
-#
-# Description:
-#
-# Assumptions:
-#
-######################################################################
-
 
 CLIENT_SOURCES = \
   SYS_UIDcommon.c \
@@ -141,11 +67,13 @@ LIBRARIES = \
   libAS_UID.a 
 
 
-## Include to test if TIGR_UID_SERVER is true
+LOCAL_WORK = $(shell cd ../../; pwd)
+
+## Include to set UID_SERVER
 include uid_transport.as
 
 SOAPOBJS = 
-ifeq ($(UID_SERVER), "TIGR")
+ifeq ($(UID_SERVER), TIGR)
   SOURCES     += checkEuidService.c
   PROGS       += checkEuidService
   SOAPSOURCES  = stdsoap2.c euidC.c euidClientLib.c 
@@ -153,12 +81,11 @@ ifeq ($(UID_SERVER), "TIGR")
   SOAPOBJS     = $(SOAPSOURCES:.c=.o)
 endif
 
+## Now include c_make.as with the updated SOURCES and OBJECTS
+include $(LOCAL_WORK)/src/c_make.as
+
 OBJECTS = \
   $(SOURCES:.c=.o)
-
-## Now reinclude c_make.as with the updated SOURCES and OBJECTS
-LOCAL_WORK = $(shell cd ../../; pwd)
-include $(LOCAL_WORK)/src/c_make.as
 
 all: $(LIBRARIES) $(PROGS)
 

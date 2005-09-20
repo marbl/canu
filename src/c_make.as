@@ -35,6 +35,8 @@ export OSTYPE
 MACHINETYPE = $(shell echo `uname -m`)
 export MACHINETYPE
 
+include $(LOCAL_WORK)/src/site_name.as
+
 # AS Project Standards
 include $(LOCAL_WORK)/src/c_make.gen
 
@@ -244,15 +246,12 @@ OBJ_SEARCH_PATH = $(LOCAL_OBJ)
 
 ## Load if we are using SOAP or CURL as our UID transport
 ## This has to be external to this file so that AS_UID/Makefile will work
+#include $(LOCAL_WORK)/src/AS_UID/uid_transport.as
 
-include $(LOCAL_WORK)/src/AS_UID/uid_transport.as
-
-ifeq ($(UID_SERVER), TIGR)
+ifeq ($(USE_SOAP_UID), 1)
   CFLAGS   += -DUSE_SOAP_UID
   CXXFLAGS += -DUSE_SOAP_UID
-endif
-
-ifeq ($(UID_SERVER), JCVI)
+else
   LDFLAGS += -lcurl
 endif
 

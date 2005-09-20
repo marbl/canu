@@ -25,4 +25,11 @@
 ## Set this to JCVI to use CURL to access JCVI's UID server.
 ## Set this to TIGR to use SOAP to access TIGR's UID server.
 ## Add your own favorite server....
-UID_SERVER = JCVI
+
+include $(LOCAL_WORK)/src/site_name.as
+
+UID_SERVER = $(SITE_NAME)
+
+ifeq ($(UID_SERVER), TIGR)
+  USE_SOAP_UID = 1
+endif
