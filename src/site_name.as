@@ -1,5 +1,5 @@
 #
-# $Id:
+# $Id: site_name.as,v 1.2 2005-09-20 20:16:21 catmandew Exp $
 #
 # This file sets the site name where the assembler is to be built
 # Site-specific settings can be made in c_make.as and other makfiles,
