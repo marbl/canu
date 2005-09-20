@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpSingletons.c,v 1.4 2005-08-24 10:57:42 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpSingletons.c,v 1.5 2005-09-20 14:34:41 brianwalenz Exp $";
 
 
 /*********************************************************************/
@@ -210,12 +210,20 @@ int main( int argc, char *argv[])
 	assert(frag->numLinks==1);
 	mate = GetCIFragT(ScaffoldGraph->CIFrags,frag->mateOf);
 
-	if(mate->flags.bits.isChaff){
-	  if(frag->iid>mate->iid) {
-	    //	    printf("%d is chaff ",frag->iid);
-	    //	    printf(" would not print (should have been taken care of already)\n");
-	    continue;
-	  }
+        //  Hmmm, why don't we have a mate?!  Probably a bug somewhere
+        //  (in the input, perhaps??)  Perhaps this is from OBT
+        //  deleting fragments, but not deleting the link.
+        //
+        if (!mate) {
+          frag->numLinks = 0;
+        } else {
+          if(mate->flags.bits.isChaff){
+            if(frag->iid>mate->iid) {
+              //	    printf("%d is chaff ",frag->iid);
+              //	    printf(" would not print (should have been taken care of already)\n");
+              continue;
+            }
+          }
 	}
 
       }
