@@ -6,6 +6,7 @@
 
 CC      = g++
 CCFLAGS = -fpic -O -Wall -I/usr/local/include/python2.3
+CCFLAGS = -fPIC -O -Wall -I/home/bwalenz/linux64/include/python2.4
 CCFLAGS = -fpic -O -Wall -I/home/bwalenz/linux/include/python2.4
 
 SOURCE  = localalign/GF_ALN_dpaligner.cc \
