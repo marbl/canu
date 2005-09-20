@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_fgb.c,v 1.4 2005-03-22 19:48:27 jason_miller Exp $";
+= "$Id: AS_CGB_fgb.c,v 1.5 2005-09-20 20:54:10 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module: AS_CGB_fgb.c
@@ -565,9 +565,10 @@ static void pack_the_edges
       {
         old_dovetail_degree++;
         new_dovetail_degree++;
-	memcpy( GetVA_Aedge(edges,idup),
-		GetVA_Aedge(edges,iold),
-		sizeof(Aedge));
+        if (idup != iold)
+          memcpy( GetVA_Aedge(edges,idup),
+                  GetVA_Aedge(edges,iold),
+                  sizeof(Aedge));
 	idup++;
       }
       break;
@@ -577,9 +578,10 @@ static void pack_the_edges
       {
         old_containment_degree++;
         new_containment_degree++;
-	memcpy( GetVA_Aedge(edges,idup),
-		GetVA_Aedge(edges,iold),
-		sizeof(Aedge));
+        if (idup != iold)
+          memcpy( GetVA_Aedge(edges,idup),
+                  GetVA_Aedge(edges,iold),
+                  sizeof(Aedge));
 	idup++;
       }
       break;
