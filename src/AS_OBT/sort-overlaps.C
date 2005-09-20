@@ -251,7 +251,7 @@ main(int argc, char **argv) {
   //
   for (u32bit i=0; i<overlapBatches; i++) {
     char name[1024];
-    sprintf(name, "/scratch/sort-overlap.dump."u32bitFMTW(03), i);
+    sprintf(name, "%s/sort-overlap.dump."u32bitFMTW(03), tmpPath, i);
     unlink(name);
   }
 
