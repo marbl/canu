@@ -255,7 +255,7 @@ if (! -e "$ATACdir/$matches.mask.done") {
             my $cmd;
             $cmd  = "$meryl ";
             $cmd .= "-M xor ";
-            $cmd .= "-s $MERYLdir/$id2 ";
+            $cmd .= "-s $MERYLdir/$id2.ms$mersize ";
             $cmd .= "-s $ATACdir/$minFile ";
             $cmd .= "-o $ATACdir/$matches.exclude ";
             $cmd .= "-stats $ATACdir/$matches.exclude.stats";
@@ -636,29 +636,29 @@ sub countMers {
         $cmd .= "-threads $merylThreads ";
         $cmd .= "-m $mersize ";
         $cmd .= "-s $MERYLdir/$id.fasta ";
-        $cmd .= "-o $MERYLdir/$id ";
-        $cmd .= "-stats $MERYLdir/$id.stats";
+        $cmd .= "-o $MERYLdir/$id.ms$mersize ";
+        $cmd .= "-stats $MERYLdir/$id.ms$mersize.stats";
         if (runCommand($cmd)) {
-            unlink "$MERYLdir/$id.mcidx";
-            unlink "$MERYLdir/$id.mcdat";
+            unlink "$MERYLdir/$id.ms$mersize.mcidx";
+            unlink "$MERYLdir/$id.ms$mersize.mcdat";
             die "Failed to count mers in $id\n";
         }
     }
 
-    if (! -e "$MERYLdir/$id.le$merlimit.mcdat") {
+    if (! -e "$MERYLdir/$id.ms$mersize.le$merlimit.mcdat") {
         my $cmd;
         $cmd  = "$meryl -v ";
         $cmd .= "-M lessthanorequal $merlimit ";
-        $cmd .= "-s $MERYLdir/$id ";
-        $cmd .= "-o $MERYLdir/$id.le$merlimit ";
-        $cmd .= "-stats $MERYLdir/$id.le$merlimit.stats";
+        $cmd .= "-s $MERYLdir/$id.ms$mersize ";
+        $cmd .= "-o $MERYLdir/$id.ms$mersize.le$merlimit ";
+        $cmd .= "-stats $MERYLdir/$id.ms$mersize.le$merlimit.stats";
         if (runCommand($cmd)) {
-            unlink "$MERYLdir/$id.le$merlimit.mcidx";
-            unlink "$MERYLdir/$id.le$merlimit.mcdat";
+            unlink "$MERYLdir/$id.ms$mersize.le$merlimit.mcidx";
+            unlink "$MERYLdir/$id.ms$mersize.le$merlimit.mcdat";
             die "Failed to count mers lessthanorequal $merlimit in $id\n";
         }
     }
 
-    return "$id.le$merlimit";
+    return "$id.ms$mersize.le$merlimit";
 }
 
