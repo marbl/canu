@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.34 2005-09-18 19:44:45 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.35 2005-09-20 14:38:08 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -1007,7 +1007,7 @@ int32 AppendFragToLocalStore(FragType type, int32 iid, int complement,int32 cont
             GetNumIntMultiPoss(uma->f_list)+GetNumIntUnitigPoss(uma->u_list);
       //      if(ALIGNMENT_CONTEXT!=AS_MERGE)
       if(1){
-	fprintf(stderr,"Merge context --> ungapped positions\n");
+	//fprintf(stderr,"Merge context --> ungapped positions\n");
 	fragment.components = 
 	  SetUngappedFragmentPositions(type,fragment.n_components,uma);
       } else {
@@ -6134,6 +6134,13 @@ int MultiAlignContig(IntConConMesg *contig,
         if ( ! olap_success ) {
            fprintf(stderr,"Could (really) not find overlap between %d (%c) and %d (%c) estimated ahang: %d\n",
               afrag->iid,afrag->type,bfrag->iid,bfrag->type,ahang);
+#if 0
+           fprintf(stderr, ">afrag %d (%c) ahang %d\n", afrag->iid, afrag->type, ahang);
+           utl_showstring(stderr,a,100);
+           fprintf(stderr, ">bfrag %d (%c)\n", bfrag->iid, bfrag->type);
+           utl_showstring(stderr,b,100);
+#endif
+
            CleanExit("",__LINE__,1);
            // if you remove the above CleanExit, 
            // the following should  have the affect of abutting the unitigs
