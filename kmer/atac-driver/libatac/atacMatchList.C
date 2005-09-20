@@ -50,7 +50,7 @@ matchList::matchList(char *filename) {
   _seq2->openIndex();
 
   _matchesLen = 0;
-  _matchesMax = 2 * 1048576;
+  _matchesMax = 32 * 1048576;
   _matches    = new match_t [_matchesMax];
 
   //  For the coverage to work correctly, we need to either have one
