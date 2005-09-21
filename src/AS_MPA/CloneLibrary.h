@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: CloneLibrary.h,v 1.4 2005-03-22 19:48:56 jason_miller Exp $ */
+/* $Id: CloneLibrary.h,v 1.5 2005-09-21 20:13:07 catmandew Exp $ */
 #ifndef CLONELIBRARY_H
 #define CLONELIBRARY_H
 
@@ -31,7 +31,14 @@
 class CloneLibrary
 {
 public:
-  CloneLibrary() {pUID = 0; pMean = 0; pStddev = 0; pOrient = PAIR_INNIE;}
+  CloneLibrary()
+    {
+      pUID = 0;
+      pMean = 0;
+      pStddev = 0;
+      pOrient = PAIR_INNIE;
+      pCount = 0;
+    }
 
   CloneLibrary(uint64 uid, double mean, double stddev,
                PairOrientation_e orient = PAIR_INNIE)
@@ -40,6 +47,7 @@ public:
       pMean = mean;
       pStddev = stddev;
       pOrient = orient;
+      pCount = 0;
     }
 
   void setFromString(char * line)
@@ -52,11 +60,15 @@ public:
   void setMean(double mean) {pMean = mean;}
   void setStddev(double stddev) {pStddev = stddev;}
   void setOrientation(PairOrientation_e orient) {pOrient = orient;}
+  void resetCount() {pCount = 0;}
+  void setCount(uint32 count) {pCount = count;}
+  void incrementCount() {pCount++;}
 
   uint64 getUID() const {return pUID;}
   double getMean() const {return pMean;}
   double getStddev() const {return pStddev;}
   PairOrientation_e getOrientation() const {return pOrient;}
+  uint32 getCount() const {return pCount;}
 
   friend ostream & operator<<(ostream & os, const CloneLibrary & cl)
     {
@@ -68,6 +80,7 @@ private:
   double pMean;
   double pStddev;
   PairOrientation_e pOrient;
+  uint32 pCount;
 };
 
 #endif

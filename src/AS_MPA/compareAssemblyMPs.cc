@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: compareAssemblyMPs.cc,v 1.4 2005-03-22 19:48:57 jason_miller Exp $ */
+/* $Id: compareAssemblyMPs.cc,v 1.5 2005-09-21 20:13:07 catmandew Exp $ */
 #include <cstdio>  // for sscanf
 #include <iostream>
 #include <iomanip>
@@ -51,33 +51,27 @@ char * MatePairLabel[MPI_NUM_INDICES] =
   "inversion",
   "transposition",
   "satisfied",
-  "interChromosome",
+  "interSequence",
   "unknown"
 };
-
-char * DefaultBaseDir = "/home/dewim/celera/sandbox/cds/IR/COMPASS/data";
-char * DefaultSpecies = "human";
-
-char * IntraDir = "intraChromosome";
-char * InterDir = "interChromosome";
 
 /*
   Read in all raw & processed mate pairs from two assemblies & compare
 
   INPUT:
-    Intra-chromosome
+    Intra-sequence
       Read raw mate pairs
         separate by category. store whole record in hashtables key = leftUID
       Read confirmed unsatisfied mate pairs
         keep separate categories. store in arrays of MatePairGroup
           store pointers to each MPG in hashtable key = leftUID
 
-    Inter-chromosome
+    Inter-sequence
       Read confirmed mate pairs. store MatePairGroups in array
         store pointers to each MPG in hashtable key = leftUID
 
   PROCESSING:
-    For each confirmed unsatisfied intra-chromosome mate pair group
+    For each confirmed unsatisfied intra-sequence mate pair group
       look at status in other assembly:
         # of agreeing satisfieds & location
         # of confirmed dissatisfied by type & location
@@ -85,10 +79,10 @@ char * InterDir = "interChromosome";
         # of raw satisfieds & location
         # of raw dissatisfied by type & location
 
-    For each confirmed inter-chromosome mate pair group
+    For each confirmed inter-sequence mate pair group
       look at status in other assembly:
-        # of agreeing, satisfied, intra-chromosome mps & location
-        # of confirmed, dissatisfied intra-chromosome...
+        # of agreeing, satisfied, intra-sequence mps & location
+        # of confirmed, dissatisfied intra-sequence...
         of the rest
         # of raw satisfied intra
         # of raw dissatisfied intra
@@ -112,14 +106,14 @@ void Usage(char * progname, char * message)
   cerr << "\t-a assembly     assembly name - multiple are required\n";
 
   cerr << "\n";
-  cerr << "So, .ata files for intra-chromosome analysis of a given assembly\n";
-  cerr << "would be in basePath/species/assembly/intraChromosome\n\n";
+  cerr << "So, .ata files for intra-sequence analysis of a given assembly\n";
+  cerr << "would be in basePath/species/assembly/intraSequence\n\n";
   exit(1);
 }
 
 
 void ReadIntraMPs(vector<AssessedMatePair> & amps,
-                  int32 chrom,
+                  ID_TYPE seqID,
                   map<ID_TYPE, CloneLibrary> & libs,
                   double numStddevs,
                   ifstream & fin)
@@ -133,7 +127,7 @@ void ReadIntraMPs(vector<AssessedMatePair> & amps,
     PairOrientation_e pairOrient;
     char orient;
     ID_TYPE leftUID, rightUID, libUID;
-    COORD_TYPE left5, right5;
+    UNIT_TYPE left5, right5;
     sscanf(line, "%c " F_U64 " " F_U64 " " F_U64 " %d %d",
            &orient, &leftUID, &rightUID, &libUID, &left5, &right5);
     switch(orient)
@@ -158,10 +152,10 @@ void ReadIntraMPs(vector<AssessedMatePair> & amps,
       
     map<ID_TYPE, CloneLibrary>::iterator iter;
     iter = libs.find(libUID);
-    amp.set(pairOrient, leftUID, rightUID, libUID, left5, right5, chrom,
-            (COORD_TYPE) ((*iter).second.getMean() +
+    amp.set(pairOrient, leftUID, rightUID, libUID, left5, right5, seqID,
+            (UNIT_TYPE) ((*iter).second.getMean() +
                           numStddevs * (*iter).second.getStddev()),
-            (COORD_TYPE) ((*iter).second.getMean() -
+            (UNIT_TYPE) ((*iter).second.getMean() -
                           numStddevs * (*iter).second.getStddev()));
     amps.push_back(amp);
   }
@@ -178,12 +172,12 @@ void ReadInterMPs(vector<AssessedMatePair> & amps,
   {
     char leftOrient[4], rightOrient[4];
     ID_TYPE leftUID, rightUID, libUID;
-    int32 leftChrom, rightChrom;
-    COORD_TYPE left5, right5;
+    ID_TYPE leftSeqID, rightSeqID;
+    UNIT_TYPE left5, right5;
     
     sscanf(line, F_U64 " %d %d %s " F_U64 " %d %d %s " F_U64,
-           &leftUID, &leftChrom, &left5, leftOrient,
-           &rightUID, &rightChrom, &right5, leftOrient,
+           &leftUID, &leftSeqID, &left5, leftOrient,
+           &rightUID, &rightSeqID, &right5, leftOrient,
            &libUID);
 
     PairOrientation_e pairOrient;
@@ -213,7 +207,7 @@ void ReadInterMPs(vector<AssessedMatePair> & amps,
     amp.set(pairOrient,
             leftUID, rightUID, libUID,
             left5, right5,
-            leftChrom, rightChrom,
+            leftSeqID, rightSeqID,
             0, 0);
     
     amps.push_back(amp);
@@ -232,10 +226,10 @@ void ReadAssemblyMatePairs(vector<AssessedMatePair> & amps,
   int numMPs = 0;
 
   // loop over all #.txt files & read into mps
-  for(int32 chrom = 0; chrom < 24; chrom++)
+  for(ID_TYPE seqID = 0; seqID < 24; seqID++)
   {
     sprintf(filename, "%s/%s/%s/%s/%03d.txt",
-            baseDir, species, assembly.c_str(), IntraDir, chrom);
+            baseDir, species, assembly.c_str(), IntraDir, seqID);
     ifstream fmp(filename, ios::in);
     
     // cerr << "Opening " << filename << ".\n";
@@ -243,16 +237,16 @@ void ReadAssemblyMatePairs(vector<AssessedMatePair> & amps,
       continue;
 
     cerr << "Reading raw mate pairs from " << filename << ".\n";
-    ReadIntraMPs(amps, chrom, libs, numStddevs, fmp);
+    ReadIntraMPs(amps, seqID, libs, numStddevs, fmp);
     fmp.close();
     cerr << "  " << amps.size() - numMPs << " mps\n";
     numMPs = amps.size();
   }
 
-  for(int32 chrom = 24; ; chrom++)
+  for(ID_TYPE seqID = 24; ; seqID++)
   {
     sprintf(filename, "%s/%s/%s/%s/unmapped/%03d.txt",
-            baseDir, species, assembly.c_str(), IntraDir, chrom);
+            baseDir, species, assembly.c_str(), IntraDir, seqID);
     ifstream fmp(filename, ios::in);
     
     // cerr << "Opening " << filename << ".\n";
@@ -260,17 +254,17 @@ void ReadAssemblyMatePairs(vector<AssessedMatePair> & amps,
       break;
 
     cerr << "Reading raw mate pairs from " << filename << ".\n";
-    ReadIntraMPs(amps, chrom, libs, numStddevs, fmp);
+    ReadIntraMPs(amps, seqID, libs, numStddevs, fmp);
     fmp.close();
     cerr << "  " << amps.size() - numMPs << " mps\n";
     numMPs = amps.size();
   }
 
-  // read inter-chromosome matepairs
-  for(int32 chrom = 0; chrom < 24; chrom++)
+  // read inter-sequence matepairs
+  for(ID_TYPE seqID = 0; seqID < 24; seqID++)
   {
     sprintf(filename, "%s/%s/%s/%s/%03d.txt",
-            baseDir, species, assembly.c_str(), InterDir, chrom);
+            baseDir, species, assembly.c_str(), InterDir, seqID);
     ifstream fmp(filename, ios::in);
     
     // cerr << "Opening " << filename << ".\n";
@@ -283,10 +277,10 @@ void ReadAssemblyMatePairs(vector<AssessedMatePair> & amps,
     cerr << "  " << amps.size() - numMPs << " mps\n";
     numMPs = amps.size();
   }
-  for(int32 chrom = 24; ; chrom++)
+  for(ID_TYPE seqID = 24; ; seqID++)
   {
     sprintf(filename, "%s/%s/%s/%s/unmapped/%03d.txt",
-            baseDir, species, assembly.c_str(), InterDir, chrom);
+            baseDir, species, assembly.c_str(), InterDir, seqID);
     ifstream fmp(filename, ios::in);
     
     // cerr << "Opening " << filename << ".\n";
@@ -310,7 +304,7 @@ void CompareRawUnsatisfiedMPs(vector<AssessedMatePair> & rawMPs,
 {
   /*
     for each assembly beyond 0
-      for each chromosome
+      for each sequence
         for each unsatisfied category:
         (stretched, compressed, outtie, normal, antinormal)
           for each mate pair in raw file
@@ -318,12 +312,12 @@ void CompareRawUnsatisfiedMPs(vector<AssessedMatePair> & rawMPs,
    */
   for(unsigned int aIndex = 1; aIndex < assemblies.size(); aIndex++)
   {
-    for(int chrom = 0; chrom < 24; chrom++)
+    for(int seqID = 0; seqID < 24; seqID++)
     {
       int numUnsatisfied = 0;
-      int numDiffChrom = 0;
+      int numDiffSeqID = 0;
       int numUnmapped = 0;
-      int numInterChrom = 0;
+      int numInterSeqID = 0;
       int numAbsent = 0;
       int numSeen = 0;
       for(int mpi = 0; mpi < MPI_INVERSION; mpi++)
@@ -331,7 +325,7 @@ void CompareRawUnsatisfiedMPs(vector<AssessedMatePair> & rawMPs,
         char filename[4096];
         sprintf(filename, "%s/%s/%s/%s/%s.%03d.%s.raw",
                 baseDir, species, assemblies[aIndex].c_str(), IntraDir,
-                assemblies[aIndex].c_str(), chrom,
+                assemblies[aIndex].c_str(), seqID,
                 MatePairLabel[mpi]);
         ifstream fin(filename, ios::in);
     
@@ -348,7 +342,7 @@ void CompareRawUnsatisfiedMPs(vector<AssessedMatePair> & rawMPs,
                << " " << rmp.getRightFragUID() << " ): ";
 
           cout << "( " << assemblies[aIndex] << " "
-               << chrom << " "
+               << seqID << " "
                << MatePairLabel[mpi] << " "
                << rmp.getLeftCoord() << " "
                << rmp.getRightCoord() - rmp.getLeftCoord() << " ) ";
@@ -368,24 +362,24 @@ void CompareRawUnsatisfiedMPs(vector<AssessedMatePair> & rawMPs,
           {
             AssessedMatePair & mp = rawMPs[(*iter).second];
             
-            if(mp.getType() == MPI_INTERCHROMOSOME)
+            if(mp.getType() == MPI_INTERSEQUENCE)
             {
-              numInterChrom++;
+              numInterSeqID++;
             }
             else
             {
               numUnsatisfied += (mp.getType() != MPI_SATISFIED) ? 1 : 0;
-              if(mp.getChromosome() < 24)
-                numDiffChrom += (mp.getChromosome() != chrom) ? 1 : 0;
+              if(mp.getSequenceID() < 24)
+                numDiffSeqID += (mp.getSequenceID() != seqID) ? 1 : 0;
               else
                 numUnmapped++;
             }
             
-            if(mp.getChromosome() == -1)
+            if(mp.getSequenceID() == -1)
             {
               cout << "( " << assemblies[0] << " "
-                   << mp.getLeftChromosome() << "_"
-                   << mp.getRightChromosome() << " "
+                   << mp.getLeftSequenceID() << "_"
+                   << mp.getRightSequenceID() << " "
                    << MatePairLabel[mp.getType()] << " "
                    << mp.getLeftCoord() << " "
                    << mp.getRightCoord() - mp.getLeftCoord() << " )"
@@ -394,7 +388,7 @@ void CompareRawUnsatisfiedMPs(vector<AssessedMatePair> & rawMPs,
             else
             {
               cout << "( " << assemblies[0] << " "
-                   << mp.getChromosome() << " "
+                   << mp.getSequenceID() << " "
                    << MatePairLabel[mp.getType()] << " "
                    << mp.getLeftCoord() << " "
                    << mp.getRightCoord() - mp.getLeftCoord() << " )"
@@ -404,8 +398,8 @@ void CompareRawUnsatisfiedMPs(vector<AssessedMatePair> & rawMPs,
         }
         cout << MatePairLabel[mpi] << " - "
              << " unsatisfied: " << numUnsatisfied
-             << " diffChrom: " << numDiffChrom
-             << " interChrom: " << numInterChrom
+             << " diffSeqID: " << numDiffSeqID
+             << " interSeqID: " << numInterSeqID
              << " unmapped: " << numUnmapped
              << " absent: " << numAbsent << endl;
       }
@@ -422,7 +416,7 @@ void CompareUnsatisfiedMPGs(vector<AssessedMatePair> & rawMPs,
 {
   /*
     for each assembly beyond 0
-      for each chromosome
+      for each sequence
         for each unsatisfied category:
         (stretched, compressed, inversion, transposition)
           for each mate pair group in ata file
@@ -435,14 +429,14 @@ void CompareUnsatisfiedMPGs(vector<AssessedMatePair> & rawMPs,
   mpIndices.push_back(MPI_TRANSPOSITION);
   for(unsigned int aIndex = 1; aIndex < assemblies.size(); aIndex++)
   {
-    for(int chrom = 0; chrom < 24; chrom++)
+    for(int seqID = 0; seqID < 24; seqID++)
     {
       for(unsigned int mpiIndex = 0; mpiIndex < mpIndices.size(); mpiIndex++)
       {
         char filename[4096];
         sprintf(filename, "%s/%s/%s/%s/%s.%03d.%s.ata",
                 baseDir, species, assemblies[aIndex].c_str(), IntraDir,
-                assemblies[aIndex].c_str(), chrom,
+                assemblies[aIndex].c_str(), seqID,
                 MatePairLabel[mpIndices[mpiIndex]]);
         ifstream fin(filename, ios::in);
     
@@ -458,16 +452,16 @@ void CompareUnsatisfiedMPGs(vector<AssessedMatePair> & rawMPs,
           if(strstr(line, "weight") == NULL) continue;
 
           char mpgName[50];
-          COORD_TYPE start, length;
+          UNIT_TYPE start, length;
           int weight;
           sscanf(line, "%*c %*s %s . %*s %d %d %*d %*d . . > /weight=%d",
                  mpgName, &start, &length, &weight);
 
           int numUnsatisfied = 0;
-          int numDiffChrom = 0;
+          int numDiffSeqID = 0;
           int numUnmapped = 0;
           int numPartUnmapped = 0;
-          int numInterChrom = 0;
+          int numInterSeqID = 0;
           int numAbsent = 0;
           int numSeen = 0;
           while(numSeen < weight && fin.getline(line, 4095))
@@ -477,7 +471,7 @@ void CompareUnsatisfiedMPGs(vector<AssessedMatePair> & rawMPs,
               numSeen++;
 
               // get left uid
-              COORD_TYPE start, length;
+              UNIT_TYPE start, length;
               ID_TYPE leftUID, rightUID;
               sscanf(line, "%*c %*s %*s %*s %*s %d %d . . . . > /leftUID=" F_U64 " > /rightUID=" F_U64,
                      &start, &length, &leftUID, &rightUID);
@@ -485,7 +479,7 @@ void CompareUnsatisfiedMPGs(vector<AssessedMatePair> & rawMPs,
               cout << "( " << leftUID << " " << rightUID << " ): ";
 
               cout << "( " << assemblies[aIndex] << " "
-                   << chrom << " "
+                   << seqID << " "
                    << MatePairLabel[mpIndices[mpiIndex]] << " "
                    << start << " "
                    << length << " ) ";
@@ -505,24 +499,24 @@ void CompareUnsatisfiedMPGs(vector<AssessedMatePair> & rawMPs,
               {
                 AssessedMatePair & mp = rawMPs[(*iter).second];
 
-                if(mp.getType() == MPI_INTERCHROMOSOME)
+                if(mp.getType() == MPI_INTERSEQUENCE)
                 {
-                  numInterChrom++;
+                  numInterSeqID++;
                 }
                 else
                 {
                   numUnsatisfied += (mp.getType() != MPI_SATISFIED) ? 1 : 0;
-                  if(mp.getChromosome() < 24)
-                    numDiffChrom += (mp.getChromosome() != chrom) ? 1 : 0;
+                  if(mp.getSequenceID() < 24)
+                    numDiffSeqID += (mp.getSequenceID() != seqID) ? 1 : 0;
                   else
                     numUnmapped++;
                 }
 
-                if(mp.getChromosome() == -1)
+                if(mp.getSequenceID() == -1)
                 {
                   cout << "( " << assemblies[0] << " "
-                       << mp.getLeftChromosome() << "_"
-                       << mp.getRightChromosome() << " "
+                       << mp.getLeftSequenceID() << "_"
+                       << mp.getRightSequenceID() << " "
                        << MatePairLabel[mp.getType()] << " "
                        << mp.getLeftCoord() << " "
                        << mp.getRightCoord() - mp.getLeftCoord() << " )"
@@ -531,7 +525,7 @@ void CompareUnsatisfiedMPGs(vector<AssessedMatePair> & rawMPs,
                 else
                 {
                   cout << "( " << assemblies[0] << " "
-                       << mp.getChromosome() << " "
+                       << mp.getSequenceID() << " "
                        << MatePairLabel[mp.getType()] << " "
                        << mp.getLeftCoord() << " "
                        << mp.getRightCoord() - mp.getLeftCoord() << " )"
@@ -544,8 +538,8 @@ void CompareUnsatisfiedMPGs(vector<AssessedMatePair> & rawMPs,
                << start << " , " << length 
                << " weight: " << weight
                << " unsatisfied: " << numUnsatisfied
-               << " diffChrom: " << numDiffChrom
-               << " interChrom: " << numInterChrom
+               << " diffSeqID: " << numDiffSeqID
+               << " interSeqID: " << numInterSeqID
                << " unmapped: " << numUnmapped
                << " absent: " << numAbsent << endl;
         }
@@ -619,7 +613,7 @@ int main(int argc, char ** argv)
   ReadCloneLibs(libs, flib);
   flib.close();
 
-  // read in raw intra-chromosome mate pairs of first assembly
+  // read in raw intra-sequence mate pairs of first assembly
   vector<AssessedMatePair> rawMPs;
   ReadAssemblyMatePairs(rawMPs, baseDir, species, assemblies[0],
                         libs, numStddevs);
@@ -635,7 +629,7 @@ int main(int argc, char ** argv)
 
   CompareRawUnsatisfiedMPs(rawMPs, rawMap, baseDir, species, assemblies);
   
-  // read in intra-chromosome unsatisfied mate pair groups of all assemblies
+  // read in intra-sequence unsatisfied mate pair groups of all assemblies
   // evaluate while reading in
   CompareUnsatisfiedMPGs(rawMPs, rawMap, baseDir, species, assemblies);
   

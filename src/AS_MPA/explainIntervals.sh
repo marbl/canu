@@ -22,7 +22,7 @@
 #
 ###########################################################################
 #
-# $Id: explainIntervals.sh,v 1.4 2005-03-22 19:48:58 jason_miller Exp $
+# $Id: explainIntervals.sh,v 1.5 2005-09-21 20:13:07 catmandew Exp $
 #
 
 # params: 1=assembly, 2=input file, 3=tempdir
@@ -64,7 +64,7 @@ function ProcessFiles
       # do satisfied intervals
       fn=${1}.${chr}.${lib}.intervals.txt
       # make sure file of satisfied intervals of 'lib' mates is present
-      if [ ! -f ${fn} ]; then
+      if [ ! -f ${fn} ] && [ -f ${1}.${chr}.satisfied.raw ] ; then
         fgrep -f ${DATA_DIR}/libs/${lib}Libs.txt ${1}.${chr}.satisfied.raw | gawk '{print $5, $6-$5}' > ${fn}
       fi
       echo "Intersecting with ${fn}"
@@ -106,7 +106,7 @@ function ProcessFiles
     # make sure files of unsatisfied intervals are present
     for type in "${Unsat1[@]}"; do
       fn=${1}.${chr}.${type}.intervals.txt
-      if [ ! -f ${fn} ]; then
+      if [ ! -f ${fn} ] && [ -f ${1}.${chr}.${type}.ata ] ; then
         grep weight ${1}.${chr}.${type}.ata | gawk '{print $6, $7}' > ${fn}
       fi
       echo "Intersecting with ${fn}"
@@ -115,7 +115,7 @@ function ProcessFiles
     for type in "${Unsat2[@]}"; do
       # do bad intervals
       fn=${1}.${chr}.${type}.intervals.txt
-      if [ ! -f ${fn} ]; then
+      if [ ! -f ${fn} ]  && [ -f ${1}.${chr}.${type}.ata ] ; then
         grep weight ${1}.${chr}.${type}.ata | gawk '{print $6, $7}' > ${fn}
       fi
       echo "Intersecting with ${fn}"
@@ -123,7 +123,7 @@ function ProcessFiles
 
       # do breakpoint intervals
       fn=${1}.${chr}.${type}.breakpoints.txt
-      if [ ! -f ${fn} ]; then
+      if [ ! -f ${fn} ]  && [ -f ${1}.${chr}.${type}.ata ] ; then
         gawk '{if($1=="F" && NF==11)print $6, $7}' ${1}.${chr}.${type}.ata> ${fn}
       fi
       echo "Intersecting with ${fn}"

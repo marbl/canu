@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: MatePair.h,v 1.5 2005-08-05 00:56:41 catmandew Exp $ */
+/* $Id: MatePair.h,v 1.6 2005-09-21 20:13:07 catmandew Exp $ */
 #ifndef MATEPAIR_H
 #define MATEPAIR_H
 
@@ -52,13 +52,13 @@ public:
     }
 
   void setLibUID(ID_TYPE libUID) {pLibUID = libUID;}
-  void setLeftCoord(COORD_TYPE coord) {pLeftFrag.setFiveP(coord);}
+  void setLeftCoord(UNIT_TYPE coord) {pLeftFrag.setFiveP(coord);}
   void setLeftFrag(FragmentPosition lfp)
     {
       pLeftFrag = lfp;
       setOrientFromFrags();
     }
-  void setRightCoord(COORD_TYPE coord) {pRightFrag.setFiveP(coord);}
+  void setRightCoord(UNIT_TYPE coord) {pRightFrag.setFiveP(coord);}
   void setRightFrag(FragmentPosition rfp)
     {
       pRightFrag = rfp;
@@ -69,34 +69,35 @@ public:
       pOrient = po;
       setFragOrients();
     }
-  void setChromosome(int32 chrom)
+  void setSequenceID(ID_TYPE seqID)
     {
-      pLeftFrag.setChromosome(chrom);
-      pRightFrag.setChromosome(chrom);
+      pLeftFrag.setSequenceID(seqID);
+      pRightFrag.setSequenceID(seqID);
     }
 
-  void setFromInterChromosomeString(char * line)
+  void setFromInterSequenceString(char * line)
     {
       ID_TYPE leftUID, rightUID;
-      int32 leftChrom, rightChrom;
-      COORD_TYPE left5p, right5p;
+      ID_TYPE leftSeqID, rightSeqID;
+      UNIT_TYPE left5p, right5p;
       char leftO[4], rightO[4];
       
-      sscanf(line, F_U64 " %d " F_U64 " %s " F_U64 " %d " F_U64 " %s " F_U64,
-             &leftUID, &leftChrom, &left5p, leftO,
-             &rightUID, &rightChrom, &right5p, rightO,
+      sscanf(line, F_MPID " %d " F_MPID " %s " F_MPID " %d "
+             F_MPID " %s " F_MPID,
+             &leftUID, &leftSeqID, &left5p, leftO,
+             &rightUID, &rightSeqID, &right5p, rightO,
              &pLibUID);
-      pLeftFrag.set(leftUID, left5p, leftO, leftChrom);
-      pRightFrag.set(rightUID, right5p, rightO, rightChrom);
+      pLeftFrag.set(leftUID, left5p, leftO, leftSeqID);
+      pRightFrag.set(rightUID, right5p, rightO, rightSeqID);
       setOrientFromFrags();
     }
   
-  void setFromString(char * line, int32 chrom = -1)
+  void setFromString(char * line, ID_TYPE seqID = BOGUS_ID)
     {
       ID_TYPE leftUID, rightUID;
-      COORD_TYPE left5p, right5p;
+      UNIT_TYPE left5p, right5p;
       char orient;
-      sscanf(line, "%c " F_U64 " " F_U64 " " F_U64 " " F_U64 " " F_U64,
+      sscanf(line, "%c " F_MPID " " F_MPID " " F_MPID " " F_MPID " " F_MPID,
              &orient, &leftUID, &rightUID, &pLibUID, &left5p, &right5p);
       pLeftFrag.set(leftUID, left5p);
       pRightFrag.set(rightUID, right5p);
@@ -122,31 +123,31 @@ public:
   
   const FragmentPosition & getLeftFrag() const {return pLeftFrag;}
   ID_TYPE getLeftFragUID() const {return pLeftFrag.getUID();}
-  COORD_TYPE getLeftCoord() const {return pLeftFrag.getFiveP();}
+  UNIT_TYPE getLeftCoord() const {return pLeftFrag.getFiveP();}
   SingleOrientation_e getLeftFragOrientation() const
     {
       return pLeftFrag.getOrientation();
     }
-  int32 getLeftChromosome() const {return pLeftFrag.getChromosome();}
+  ID_TYPE getLeftSequenceID() const {return pLeftFrag.getSequenceID();}
 
   const FragmentPosition & getRightFrag() const {return pRightFrag;}
   ID_TYPE getRightFragUID() const {return pRightFrag.getUID();}
-  COORD_TYPE getRightCoord() const {return pRightFrag.getFiveP();}
+  UNIT_TYPE getRightCoord() const {return pRightFrag.getFiveP();}
   SingleOrientation_e getRightFragOrientation() const
     {
       return pRightFrag.getOrientation();
     }
-  int32 getRightChromosome() const {return pRightFrag.getChromosome();}
+  ID_TYPE getRightSequenceID() const {return pRightFrag.getSequenceID();}
   ID_TYPE getLibUID() const {return pLibUID;}
   PairOrientation_e getOrientation() const {return pOrient;}
 
-  int32 getChromosome() const
+  ID_TYPE getSequenceID() const
     {
-      return ((pRightFrag.getChromosome() == pLeftFrag.getChromosome()) ?
-              pRightFrag.getChromosome() : -1);
+      return ((pRightFrag.getSequenceID() == pLeftFrag.getSequenceID()) ?
+              pRightFrag.getSequenceID() : BOGUS_ID);
     }
       
-  bool isWithinDelta(const MatePair & other, COORD_TYPE delta) const
+  bool isWithinDelta(const MatePair & other, UNIT_TYPE delta) const
     {
       return(getLeftCoord() + delta >= other.getLeftCoord() &&
              getLeftCoord() - delta <= other.getLeftCoord() &&
@@ -159,7 +160,7 @@ public:
       return (getLeftCoord() < other.getLeftCoord());
     }
   
-  bool intersects(COORD_TYPE left, COORD_TYPE right) const
+  bool intersects(UNIT_TYPE left, UNIT_TYPE right) const
     {
       return(getLeftCoord() < right && left < getRightCoord());
     }
@@ -168,7 +169,7 @@ public:
       return intersects(other.getLeftCoord(), other.getRightCoord());
     }
   
-  bool spans(COORD_TYPE left, COORD_TYPE right) const
+  bool spans(UNIT_TYPE left, UNIT_TYPE right) const
     {
       return(getLeftCoord() < left && right < getRightCoord());
     }
@@ -177,8 +178,8 @@ public:
       return spans(other.getLeftCoord(), other.getRightCoord());
     }
 
-  bool getIntersection(COORD_TYPE left, COORD_TYPE right,
-                       COORD_TYPE & leftI, COORD_TYPE & rightI) const
+  bool getIntersection(UNIT_TYPE left, UNIT_TYPE right,
+                       UNIT_TYPE & leftI, UNIT_TYPE & rightI) const
     {
       if(!intersects(left, right)) return false;
       leftI = max(left, getLeftCoord());
@@ -186,15 +187,15 @@ public:
       return true;
     }
   bool getIntersection(const MatePair & other,
-                       COORD_TYPE & leftI, COORD_TYPE & rightI) const
+                       UNIT_TYPE & leftI, UNIT_TYPE & rightI) const
     {
       return getIntersection(other.getLeftCoord(),
                              other.getRightCoord(),
                              leftI, rightI);
     }
 
-  void printATA(ostream & os, char * assembly, char * chromosome,
-                char * pKey, int pID, int id) const
+  void printATA(ostream & os, char * assembly, char * sequenceID,
+                char * pKey, int relativeID, unsigned int index) const
     {
       switch(pOrient)
       {
@@ -214,14 +215,14 @@ public:
           return;
           break;
       }
-      if(pID > -1)
-        os << assembly << "-" << pID << "-" << id
-           << " " << pKey << assembly << "-" << pID;
+      if(relativeID > -1)
+        os << assembly << "-" << relativeID << "-" << index
+           << " " << pKey << assembly << "-" << relativeID;
       else
-        os << assembly << "-" << id
+        os << assembly << "-" << index
            << " .";
 
-      os << " " << assembly << ":" << chromosome
+      os << " " << assembly << ":" << sequenceID
          << " " << getLeftCoord()
          << " " << getRightCoord() - getLeftCoord()
          << " ."

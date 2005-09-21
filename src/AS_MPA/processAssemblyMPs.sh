@@ -1,4 +1,4 @@
-#!/usr/local/bin/bash
+#!/bin/bash
 #
 ###########################################################################
 #
@@ -22,40 +22,43 @@
 #
 ###########################################################################
 #
-# $Id: processAssemblyMPs.sh,v 1.4 2005-03-22 19:48:58 jason_miller Exp $
+# $Id: processAssemblyMPs.sh,v 1.5 2005-09-21 20:13:07 catmandew Exp $
 #
 
 ######################################################################
 # 'main' function
 
 AS=${1}
-
-if [ -z ${DATA_DIR} ]; then
-  if [ ${OS} == "AIX" ] || [ ${OS} == "OSF1" ]; then
-    export DATA_DIR=/prod/IR01/dewim/mps/human
-  else
-    export DATA_DIR=/home/dewim/celera/sandbox/cds/IR/COMPASS/data/human
-  fi
-fi
+LIBFILE=${2}
 
 if [ -z ${AS} ] || [ ${AS} == "bell-style" ] ; then
-  echo "Please identify the assembly (B33A, VAN, HG06, ...)"
+  echo "Please identify the assembly as 1st parameter"
+  echo "Please identify the clone library stats file as 2nd parameter"
+  return
+fi
+
+if [ -z ${LIBFILE} ] || [ ! -f ${LIBFILE} ] ; then
+  echo "Please identify the assembly as 1st parameter"
+  echo "Please identify the clone library stats file as 2nd parameter"
   return
 fi
 
 echo "  analyzing mapped intra-chromosome mate pairs"
-cd ${DATA_DIR}/${AS}/intraChromosome
-processIntraMPs.sh ${AS}
+processIntraMPs.sh ${AS} ${LIBFILE}
 
-echo "  analyzing unmapped intra-chromosome mate pairs"
-cd ${DATA_DIR}/${AS}/intraChromosome/unmapped
-processIntraMPs.sh ${AS}
+if [ -d "unmapped" ] ; then
+  echo "  analyzing unmapped intra-chromosome mate pairs"
+  cd unmapped
+  processIntraMPs.sh ${AS} ${LIBFILE}
+  cd ..
+fi
 
 echo "  analyzing mapped inter-chromosome mate pairs"
-cd ${DATA_DIR}/${AS}/interChromosome
-processInterMPsATA.sh ${AS} mapped
+processInterMPsATA.sh ${AS} ${LIBFILE}
   
-echo "  analyzing unmapped inter-chromosome mate pairs"
-cd ${DATA_DIR}/${AS}/interChromosome/unmapped
-processInterMPsATA.sh ${AS} unmapped
+if [ -d "unmapped" ] ; then
+  echo "  analyzing unmapped inter-chromosome mate pairs"
+  cd unmapped
+  processInterMPsATA.sh ${AS} ${LIBFILE} unmapped
+fi
 ######################################################################

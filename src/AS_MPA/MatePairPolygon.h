@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: MatePairPolygon.h,v 1.4 2005-03-22 19:48:56 jason_miller Exp $ */
+/* $Id: MatePairPolygon.h,v 1.5 2005-09-21 20:13:07 catmandew Exp $ */
 #ifndef MATEPAIRPOLYGON_H
 #define MATEPAIRPOLYGON_H
 
@@ -91,18 +91,10 @@ public:
           else if(mp.getRightCoord() < mp.getLeftCoord() + small)
           {
             // compressed
-          /* Four points:p
-           */
             /*
-            p.setX(mp.getLeftCoord());
-            p.setY(small);
-            append(p);
-            p.setY(large);
-            append(p);
-            p.setX(mp.getRightCoord());
-            append(p);
-            p.setY(small);
-            append(p);
+              This is CR_NATIVE format, in which both mates are
+              on the X axis and the range of possible deleted lengths
+              is on the Y axis
             */
             p.setX(mp.getLeftCoord());
             p.setY(mp.getLeftCoord() + small - mp.getRightCoord());
@@ -226,7 +218,7 @@ public:
       }
     }
 
-  void printForGnuplot(ostream & os) const
+  void printForGnuplot(ostream & os, CompressedRepresentation_e cr) const
     {
       if(this->ppts.size() == 0) return;
 
@@ -235,13 +227,24 @@ public:
 
       if(isCompressed())
       {
-        UnitType minX = this->getMinX();
-        UnitType maxX = this->getMaxX();
-        os << minX << " " << minX << endl;
-        os << minX << " " << maxX << endl;
-        os << maxX << " " << maxX << endl;
-        os << maxX << " " << minX << endl;
-        os << minX << " " << minX << endl << endl;
+        switch(cr)
+        {
+          case CR_COMPATIBLE:
+            os << this->getMinX() << " " << this->getMinX() << endl;
+            os << this->getMinX() << " " << this->getMaxX() << endl;
+            os << this->getMaxX() << " " << this->getMaxX() << endl;
+            os << this->getMaxX() << " " << this->getMinX() << endl;
+            os << this->getMinX() << " " << this->getMinX() << endl;
+            break;
+          case CR_NATIVE:
+            os << this->getMinX() << " " << this->getMinY() << endl;
+            os << this->getMinX() << " " << this->getMaxY() << endl;
+            os << this->getMaxX() << " " << this->getMaxY() << endl;
+            os << this->getMaxX() << " " << this->getMinY() << endl;
+            os << this->getMinX() << " " << this->getMinY() << endl;
+            break;
+        }
+        os << endl;
       }
       else
       {

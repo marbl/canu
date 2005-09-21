@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: getIntervalIntersections.cc,v 1.4 2005-03-22 19:48:58 jason_miller Exp $ */
+/* $Id: getIntervalIntersections.cc,v 1.5 2005-09-21 20:13:07 catmandew Exp $ */
 #include <cstdio>
 #include <iostream>
 #include <fstream>
@@ -184,10 +184,10 @@ int main(int argc, char ** argv)
   ReadIntervals(argv[1], ilist, true);
   if(ilist.size() == 0)
   {
-    cerr << "file 1 has no intervals\n";
+    // cerr << "file 1 has no intervals\n";
     return 0;
   }
-  cerr << ilist.size() << " intervals in " << argv[1] << endl;
+  // cerr << ilist.size() << " intervals in " << argv[1] << endl;
   ilist.sort();
 
   list<Interval> nlist;
@@ -195,7 +195,7 @@ int main(int argc, char ** argv)
   ReadIntervals(argv[2], nlist, false);
   if(nlist.size() == 0)
   {
-    cerr << "file 2 has no intervals\n";
+    // cerr << "file 2 has no intervals\n";
     // regurgitate lines of file 1 & exit
     for(iiter = ilist.begin(); iiter != ilist.end(); iiter++)
       cout << *iiter << ":\n";

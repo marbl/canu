@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: pullFragmentLocations.cc,v 1.4 2005-03-22 19:48:58 jason_miller Exp $ */
+/* $Id: pullFragmentLocations.cc,v 1.5 2005-09-21 20:13:07 catmandew Exp $ */
 #include <cstdio>  // for sscanf
 #include <iostream>
 #include <iomanip>
@@ -26,6 +26,8 @@
 #include <vector>
 #include <list>
 #include <map>
+
+#include "cds.h"
 
 using namespace std;
 
@@ -41,13 +43,11 @@ int main(int argc, char ** argv)
   ifstream fuids(argv[1], ios::in);
   if(!fuids.good())
     exit(-1);
-  map<unsigned long, int> uids;
+  map<CDS_UID_t, int> uids;
   char line[2048];
   while(fuids.getline(line, 2047))
   {
-    unsigned long uid;
-    sscanf(line, "%lu", &uid);
-    uids[uid] = 0;
+    uids[STR_TO_UID(line, NULL, 10)] = 0;
   }
   fuids.close();
 
@@ -62,27 +62,27 @@ int main(int argc, char ** argv)
 
     while(fin.getline(line, 2047))
     {
-      int chrom;
-      unsigned long uid;
+      int seqID;
+      CDS_UID_t uid;
       int fivep, threep;
-      sscanf(line, "%lu %d %d %d", &uid, &chrom, &fivep, &threep);
+      sscanf(line, F_UID " %d %d %d", &uid, &seqID, &fivep, &threep);
       if(uids.find(uid) != uids.end())
       {
         uids[uid] = uids[uid] + 1;
         if(fivep < threep)
         {
-          cout << chrom << " " << fivep << " " << threep << " " << uid << endl;
+          cout << seqID << " " << fivep << " " << threep << " " << uid << endl;
         }
         else
         {
-          cout << chrom << " " << threep << " " << fivep << " " << uid << endl;
+          cout << seqID << " " << threep << " " << fivep << " " << uid << endl;
         }
       }
     }
     fin.close();
   }
 
-  map<unsigned long, int>::iterator iter;
+  map<CDS_UID_t, int>::iterator iter;
   for(iter=uids.begin(); iter != uids.end(); iter++)
   {
     if(iter->second == 0)

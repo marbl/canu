@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: processInterCG.cc,v 1.5 2005-08-05 00:56:41 catmandew Exp $ */
+/* $Id: processInterCG.cc,v 1.6 2005-09-21 20:13:07 catmandew Exp $ */
 #include <cstdio>  // for sscanf
 #include <iostream>
 #include <iomanip>
@@ -48,7 +48,7 @@ using namespace std;
 
 //#define OUTPUT_ATAC_FORMAT
 
-#define CHROM_OFFSET 500000000
+#define SEQ_OFFSET 500000000
 
 #ifndef LINE_SIZE
 #define LINE_SIZE 4096
@@ -64,32 +64,32 @@ char * MatePairLabel[MPI_NUM_INDICES] =
   "inversion",
   "transposition",
   "satisfied",
-  "interChromosome",
+  "interSequence",
   "unknown"
 };
 
 
 /*
   PURPOSE:
-    Process inter-chromosome mate pairs - mate pairs for which each fragment
-    was mapped to a different chromosome - to identify mis-assemblies and
+    Process inter-sequence mate pairs - mate pairs for which each fragment
+    was mapped to a different sequence - to identify mis-assemblies and
     perhaps re-sequenced plates or collapsed repeats
 
   PLAN:
     Read in clone library length estimates
     
-    Read in all intra-chromosome mate pairs for a given chromosome/assembly
+    Read in all intra-sequence mate pairs for a given sequence/assembly
       store each mate pair twice (by left and by right frag coord)
       sort by 'left' coorinate
       
-    Read in all inter-chromosome mate pairs for a given chromosome/assembly
-      Maintain separate list of mates for each other chromosome
-        optionally omit lower numbered chromosomes to avoid duplication
-      Sort each list by coordinate on other chromosome
+    Read in all inter-sequence mate pairs for a given sequence/assembly
+      Maintain separate list of mates for each other sequence
+        optionally omit lower numbered sequences to avoid duplication
+      Sort each list by coordinate on other sequence
 
-    c = this chromosome
-    For each other chromosome, o
-      for each mate, m, on that chromosome
+    c = this sequence
+    For each other sequence, o
+      for each mate, m, on that sequence
         create a list, l, of agreeing mate pairs
         determine relative coordinate range & orientation of m
           on c based on m's mate's coordinate & orientation
@@ -103,41 +103,38 @@ void Usage(char * progname, char * message)
 {
   if(message != NULL)
     cerr << endl << message << endl;
-  cerr << "Usage: " << progname << " [-l lib] [-e filename] [-n #] [-f #] -g\n";
+  cerr << "Usage: " << progname << " -l lib  -e filename  [-n #]  [-f #]  [-a]  [-g]\n";
   cerr << "\t-l lib        name of clone library file\n";
-  cerr << "\t-e filename   name of inter-chromosome matepairs file\n";
+  cerr << "\t-e filename   name of inter-sequence matepairs file\n";
   cerr << "\t                filename must have form:\n";
   cerr << "\t                assemblyName_#_inter.txt\n";
-  cerr << "\t                where # is the scaffold or chromosome number\n";
-  /*
-  cerr << "\t-a assembly   assembly name (e.g., B33A, VAN)\n";
-  cerr << "\t-c chrom      chromosome number (index into fasta file)\n";
-  */
+  cerr << "\t                where # is the scaffold or sequence number\n";
   cerr << "\t-n #          number of stddevs from mean that is excessive\n\n";
   cerr << "\t                default is " << STDDEVS_THRESHOLD << endl;
   cerr << "\t-f #          filter out mate pair sets with fewer members\n";
   cerr << "\t                default is " << CONFIRMATION_THRESHOLD << endl;
-  cerr << "\t-g            print gnuplot output instead of ata output\n";
+  cerr << "\t-a            generate ATA-fomratted output\n";
+  cerr << "\t-g            generate gnuplot output\n";
   
   cerr << endl;
   exit(1);
 }
 
 
-void ReadInterChromosomeMPs(vector<MatePair> & mps,
+void ReadInterSequenceMPs(vector<MatePair> & mps,
                             ifstream & fin,
-                            int filterChrom)
+                            ID_TYPE filterSeqID)
 {
   char line[LINE_SIZE];
   while(fin.getline(line, LINE_SIZE-1))
   {
-    int otherChrom;
-    sscanf(line, "%*s %*d %*d %*s %*s %d", &otherChrom);
-    if(otherChrom == filterChrom)
+    ID_TYPE otherSeqID;
+    sscanf(line, "%*s %*d %*d %*s %*s " F_MPID, &otherSeqID);
+    if(otherSeqID == filterSeqID)
     {
       MatePair mp;
-      mp.setFromInterChromosomeString(line);
-      mp.setRightCoord(mp.getRightCoord() + CHROM_OFFSET);
+      mp.setFromInterSequenceString(line);
+      mp.setRightCoord(mp.getRightCoord() + SEQ_OFFSET);
       mps.push_back(mp);
     }
   }
@@ -148,17 +145,16 @@ int main(int argc, char ** argv)
 {
   char * libFilename = NULL;
   char * ewFilename = NULL;
-  // char * assembly = NULL;
-  // int chromosome = -1;
   char assembly[4096];
-  char chromosome[4096];
+  char sequence[4096];
   double numStddevs = STDDEVS_THRESHOLD;
   int filterThresh = CONFIRMATION_THRESHOLD;
-  bool printForGnuplot = false;
+  bool printGnuplot = false;
+  bool printATA = false;
 
   {
     int ch, errflg = 0;
-    while(!errflg && ((ch = getopt(argc, argv, "l:e:a:c:n:f:g")) != EOF))
+    while(!errflg && ((ch = getopt(argc, argv, "l:e:n:f:ag")) != EOF))
     {
       switch(ch)
       {
@@ -168,22 +164,17 @@ int main(int argc, char ** argv)
         case 'e':
           ewFilename = optarg;
           break;
-        /*
-        case 'a':
-          assembly = optarg;
-          break;
-        case 'c':
-          chromosome = atoi(optarg);
-          break;
-        */
         case 'n':
           numStddevs = atof(optarg);
           break;
         case 'f':
           filterThresh = atoi(optarg);
           break;
+        case 'a':
+          printATA = true;
+          break;
         case 'g':
-          printForGnuplot = true;
+          printGnuplot = true;
           break;
         default:
           errflg++;
@@ -193,23 +184,17 @@ int main(int argc, char ** argv)
     if(libFilename == NULL)
       Usage(argv[0], "Please specify a clone library filename");
     if(ewFilename == NULL)
-      Usage(argv[0], "Please specify an inter-chromosome mate pair filename");
+      Usage(argv[0], "Please specify an inter-sequence mate pair filename");
     if(numStddevs <= 0)
       Usage(argv[0], "Please specify a positive number of std deviations");
-    /*
-    if(assembly == NULL)
-      Usage(argv[0], "Please specify an assembly name");
-    if(chromosome < 0)
-      Usage(argv[0], "Please specify a chromosome number");
-    */
     {
       char * ptr;
       strcpy(assembly, ewFilename);
       ptr = index(assembly, (int) '_');
       assert(ptr != NULL);
       ptr[0] = '\0';
-      strcpy(chromosome, ++ptr);
-      ptr = index(chromosome, (int) '_');
+      strcpy(sequence, ++ptr);
+      ptr = index(sequence, (int) '_');
       assert(ptr != NULL);
       ptr[0] = '\0';
     }
@@ -228,7 +213,7 @@ int main(int argc, char ** argv)
   flib.close();
 
   // open & pre-read input file
-  set<int> otherChromosomes;
+  set<ID_TYPE> otherSequences;
   char line[LINE_SIZE];
   ifstream fe(ewFilename, ios::in);
   if(!fe.good())
@@ -238,60 +223,74 @@ int main(int argc, char ** argv)
   }
   while(fe.getline(line, LINE_SIZE-1))
   {
-    int otherChrom;
-    sscanf(line, "%*s %*d %*d %*s %*s %d", &otherChrom);
-    otherChromosomes.insert(otherChrom);
+    ID_TYPE otherSeqID;
+    sscanf(line, "%*s %*d %*d %*s %*s " F_MPID, &otherSeqID);
+    otherSequences.insert(otherSeqID);
   }
   fe.close();
 
   // open output file
   char fname[1024];
-  ofstream fo;
-  int atacCount = atoi(chromosome) * 10000;
-  if(printForGnuplot)
+  ofstream gnuOS;
+  ofstream ataOS;
+  ID_TYPE atacCount;
+  sscanf(sequence, F_MPID, &atacCount);
+  atacCount *= 10;
+  if(printGnuplot)
   {
-    sprintf(fname, "%s.%s.interChromosome.gp", assembly, chromosome);
-    fo.open(fname, ios::out);
-    if(!fo.good())
+    sprintf(fname, "%s.%s.inter.gp", assembly, sequence);
+    gnuOS.open(fname, ios::out);
+    if(!gnuOS.good())
     {
       cerr << "Failed to open " << fname << " for writing\n";
       exit(-1);
     }
   }
-  else
+  if(printATA)
   {
-    sprintf(fname, "%s.%s.interChromosome.ata", assembly, chromosome);
-    fo.open(fname, ios::out);
-    if(!fo.good())
+    sprintf(fname, "%s.%s.inter.ata", assembly, sequence);
+    ataOS.open(fname, ios::out);
+    if(!ataOS.good())
     {
       cerr << "Failed to open " << fname << " for writing\n";
       exit(-1);
     }
     // write ata header lines
-    fo << "! format ata 1.0\n";
-    fo << "# numStddevs=" << numStddevs << endl;
+    ataOS << "! format ata 1.0\n";
+    ataOS << "# numStddevs=" << numStddevs << endl;
+  }
+  ofstream listOS;
+  {
+    char tempFN[1024];
+    sprintf(tempFN, "%s.%s.inter.breakpoints.txt", assembly, sequence);
+    listOS.open(tempFN, ios::out);
+    if(!listOS.good())
+    {
+      cerr << "Failed to open " << tempFN << " for writing\n";
+      exit(-1);
+    }
   }
   
-  // iterate over all other chromosomes in the set
-  set<int>::iterator siter;
-  for(siter = otherChromosomes.begin();
-      siter != otherChromosomes.end();
+  // iterate over all other sequences in the set
+  set<ID_TYPE>::iterator siter;
+  for(siter = otherSequences.begin();
+      siter != otherSequences.end();
       siter++)
   {
-    int otherChrom = *siter;
-    if(otherChrom >= atoi(chromosome))
+    ID_TYPE otherSeqID = *siter;
+    if(otherSeqID >= STR_TO_UID(sequence, NULL, 10))
       break;
 
-    if(printForGnuplot)
-      fo << "# " << otherChrom << endl;
+    if(printGnuplot)
+      gnuOS << "# " << otherSeqID << endl;
     
     vector<MatePair> mps;
     ifstream fel(ewFilename, ios::in);
-    ReadInterChromosomeMPs(mps, fel, otherChrom);
+    ReadInterSequenceMPs(mps, fel, otherSeqID);
     fel.close();
     
     list<MatePair> mpl[MPI_NUM_INDICES];
-    int badLibMatePairs = 0;
+    int badLibMatePairCount = 0;
     for(int i = 0; i < mps.size(); i++)
     {
       if(libs[mps[i].getLibUID()].getMean() >=
@@ -305,14 +304,14 @@ int main(int argc, char ** argv)
       }
       else
       {
-        badLibMatePairs++;
+        badLibMatePairCount++;
       }
     }
-    // cerr << "Omitted " << badLibMatePairs << " matepair(s) from bad clone libraries\n";
+    // cerr << "Omitted " << badLibMatePairCount << " matepair(s) from bad clone libraries\n";
 
     // process stretched, outtie, normal, & antinormal
     vector<CompositeMPPolygon<UNIT_TYPE> > mpps[MPI_NUM_INDICES]; // input
-    map<uint64, MatePairPolygon<UNIT_TYPE> > mppsMap[MPI_NUM_INDICES];
+    map<ID_TYPE, MatePairPolygon<UNIT_TYPE> > mppsMap[MPI_NUM_INDICES];
     vector<CompositeMPPolygon<UNIT_TYPE> > cmpps[MPI_NUM_INDICES];
     for(int mpii = 0; mpii < MPI_INVERSION; mpii++)
     {
@@ -332,7 +331,7 @@ int main(int argc, char ** argv)
         cmpp.rotateByDegrees(45);
         mpps[mpii].push_back(cmpp);
         for(int j = 0; j < mpp.size(); j++)
-            mpp[j].setY(mpp[j].getY() - CHROM_OFFSET);
+            mpp[j].setY(mpp[j].getY() - SEQ_OFFSET);
         mppsMap[mpii][mpli->getLeftFragUID()] = mpp;
       }
       
@@ -352,7 +351,7 @@ int main(int argc, char ** argv)
           for(int j = 0; j < mpps[mpii][i].size(); j++)
             for(int k = 0; k < mpps[mpii][i][j].size(); k++)
               mpps[mpii][i][j][k].setY(mpps[mpii][i][j][k].getY() -
-                                       CHROM_OFFSET);
+                                       SEQ_OFFSET);
         }
         
         for(int i = 0; i < cmpps[mpii].size(); i++)
@@ -361,26 +360,24 @@ int main(int argc, char ** argv)
           for(int j = 0; j < cmpps[mpii][i].size(); j++)
             for(int k = 0; k < cmpps[mpii][i][j].size(); k++)
               cmpps[mpii][i][j][k].setY(cmpps[mpii][i][j][k].getY() -
-                                        CHROM_OFFSET);
+                                        SEQ_OFFSET);
 
-
-          if(printForGnuplot)
+          if(printGnuplot)
           {
-            cmpps[mpii][i].printForGnuplot(fo);
+            cmpps[mpii][i].printForGnuplot(gnuOS, CR_NATIVE);
             for(int j = 0; j < cmpps[mpii][i].getNumMPs(); j++)
-              mppsMap[mpii][cmpps[mpii][i].getMP(j).getLeftFragUID()].printForGnuplot(fo);
+              mppsMap[mpii][cmpps[mpii][i].getMP(j).getLeftFragUID()].printForGnuplot(gnuOS, CR_NATIVE);
           }
-          else
           {
-            int leftThis, rightThis, leftOther, rightOther;
+            UNIT_TYPE leftThis, rightThis, leftOther, rightOther;
             UNIT_TYPE val =
-              cmpps[mpii][i].getMP(0).getRightCoord() - CHROM_OFFSET;
+              cmpps[mpii][i].getMP(0).getRightCoord() - SEQ_OFFSET;
             leftThis = cmpps[mpii][i].getMP(0).getLeftCoord();
             rightThis = leftThis;
             leftOther = rightOther = val;
             for(int j = 1; j < cmpps[mpii][i].getNumMPs(); j++)
             {
-              val = cmpps[mpii][i].getMP(j).getRightCoord() - CHROM_OFFSET;
+              val = cmpps[mpii][i].getMP(j).getRightCoord() - SEQ_OFFSET;
               leftThis =
                 (leftThis > cmpps[mpii][i].getMP(j).getLeftCoord()) ?
                 cmpps[mpii][i].getMP(j).getLeftCoord() : leftThis;
@@ -394,48 +391,70 @@ int main(int argc, char ** argv)
             switch(mpii)
             {
               case MPI_STRETCHED:
-                fo << "M HL HL" << atacCount++ << " . "
-                   << assembly << ":" << chromosome << " "
-                   << leftThis << " " << rightThis - leftThis << " 1 "
-                   << assembly << ":" << otherChrom << " "
-                   << leftOther << " " << rightOther - leftOther << " 1 "
-                   << "> /weight=" << cmpps[mpii][i].getNumMPs() << endl;
+                if(printATA)
+                  ataOS << "M HL HL" << atacCount++ << " . "
+                        << assembly << ":" << sequence << " "
+                        << leftThis << " " << rightThis - leftThis << " 1 "
+                        << assembly << ":" << otherSeqID << " "
+                        << leftOther << " " << rightOther - leftOther << " 1 "
+                        << "> /weight=" << cmpps[mpii][i].getNumMPs() << endl;
+                listOS << "I\t";
                 break;
               case MPI_NORMAL:
-                fo << "M Hl Hl" << atacCount++ << " . "
-                   << assembly << ":" << chromosome << " "
-                   << leftThis << " " << rightThis - leftThis << " 1 "
-                   << assembly << ":" << otherChrom << " "
-                   << leftOther << " " << rightOther - leftOther << " -1 "
-                   << "> /weight=" << cmpps[mpii][i].getNumMPs() << endl;
+                if(printATA)
+                  ataOS << "M Hl Hl" << atacCount++ << " . "
+                        << assembly << ":" << sequence << " "
+                        << leftThis << " " << rightThis - leftThis << " 1 "
+                        << assembly << ":" << otherSeqID << " "
+                        << leftOther << " " << rightOther - leftOther << " -1 "
+                        << "> /weight=" << cmpps[mpii][i].getNumMPs() << endl;
+                listOS << "N\t";
                 break;
               case MPI_ANTINORMAL:
-                fo << "M hL hL" << atacCount++ << " . "
-                   << assembly << ":" << chromosome << " "
-                   << leftThis << " " << rightThis - leftThis << " -1 "
-                   << assembly << ":" << otherChrom << " "
-                   << leftOther << " " << rightOther - leftOther << " 1 "
-                   << "> /weight=" << cmpps[mpii][i].getNumMPs() << endl;
+                if(printATA)
+                  ataOS << "M hL hL" << atacCount++ << " . "
+                        << assembly << ":" << sequence << " "
+                        << leftThis << " " << rightThis - leftThis << " -1 "
+                        << assembly << ":" << otherSeqID << " "
+                        << leftOther << " " << rightOther - leftOther << " 1 "
+                        << "> /weight=" << cmpps[mpii][i].getNumMPs() << endl;
+                listOS << "A\t";
                 break;
               case MPI_OUTTIE:
-                fo << "M hl hl" << atacCount++ << " . "
-                   << assembly << ":" << chromosome << " "
-                   << leftThis << " " << rightThis - leftThis << " -1 "
-                   << assembly << ":" << otherChrom << " "
-                   << leftOther << " " << rightOther - leftOther << " -1 "
-                   << "> /weight=" << cmpps[mpii][i].getNumMPs() << endl;
+                if(printATA)
+                  ataOS << "M hl hl" << atacCount++ << " . "
+                        << assembly << ":" << sequence << " "
+                        << leftThis << " " << rightThis - leftThis << " -1 "
+                        << assembly << ":" << otherSeqID << " "
+                        << leftOther << " " << rightOther - leftOther << " -1 "
+                        << "> /weight=" << cmpps[mpii][i].getNumMPs() << endl;
+                listOS << "O\t";
                 break;
               default:
                 cerr << "Unknown matepair type: " << mpii << endl;
                 exit(-100);
                 break;
-            }
-          }
+            } // switch
+            
+            // print basic output
+            listOS << leftThis << "\t"
+                   << rightThis - leftThis << "\t"
+                   << leftOther << "\t"
+                   << rightOther - leftOther << "\t"
+                   << otherSeqID << "\t"
+                   << cmpps[mpii][i].getNumMPs() << endl;
+            
+          } // faux scope
         } // loop over composite polygons
       } // if there are matepairs
     } // loop over matepair types
-  } // loop over other chromosomes
-  fo.close();
+  } // loop over other sequences
+
+  if(printATA)
+    ataOS.close();
+  if(printGnuplot)
+    gnuOS.close();
+  listOS.close();
   
   return 0;
 }

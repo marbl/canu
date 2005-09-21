@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: quads2mbrs.cc,v 1.4 2005-03-22 19:48:58 jason_miller Exp $ */
+/* $Id: quads2mbrs.cc,v 1.5 2005-09-21 20:13:07 catmandew Exp $ */
 #include <cstdio>
 #include <iostream>
 #include <string>
@@ -44,15 +44,15 @@ int main(int argc, char ** argv)
     ID_TYPE id;
     UNIT_TYPE x[4], y[4];
     if(sscanf(line,
-              UNIT_SCAN_FORMAT " "
-              UNIT_SCAN_FORMAT " "
-              UNIT_SCAN_FORMAT " "
-              UNIT_SCAN_FORMAT " "
-              UNIT_SCAN_FORMAT " "
-              UNIT_SCAN_FORMAT " "
-              UNIT_SCAN_FORMAT " "
-              UNIT_SCAN_FORMAT " "
-              ID_SCAN_FORMAT,
+              F_MPUNIT " "
+              F_MPUNIT " "
+              F_MPUNIT " "
+              F_MPUNIT " "
+              F_MPUNIT " "
+              F_MPUNIT " "
+              F_MPUNIT " "
+              F_MPUNIT " "
+              F_MPID,
               &(x[0]), &(y[0]),
               &(x[1]), &(y[1]),
               &(x[2]), &(y[2]),

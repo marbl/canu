@@ -1,4 +1,4 @@
-#!/usr/local/bin/bash
+#!/bin/bash
 #
 ###########################################################################
 #
@@ -22,35 +22,31 @@
 #
 ###########################################################################
 #
-# $Id: processInterMPsATA.sh,v 1.4 2005-03-22 19:48:58 jason_miller Exp $
+# $Id: processInterMPsATA.sh,v 1.5 2005-09-21 20:13:07 catmandew Exp $
 #
 
 AS=${1}
-mapping=${2}
+LIBFILE=${2}
 
-if [ -z ${DATA_DIR} ]; then
-  if [ ${OS} == "AIX" ] || [ ${OS} == "OSF1" ]; then
-    export DATA_DIR=/prod/IR01/dewim/mps/human
-  else
-    export DATA_DIR=/home/dewim/celera/sandbox/cds/IR/COMPASS/data/human
-  fi
-fi
-
-if [ -z ${AS} ] || [ ${AS} == "bell-style" ]; then
-  echo "Please identify the assembly (B33A, VAN, HG06, ...)"
+if [ -z ${AS} ] || [ ${AS} == "bell-style" ] ; then
+  echo "Please identify the assembly (B33A, VAN, HG06, ...) as parameter 1"
+  echo "Optional 3rd parameter: 'unmapped'"
   return
 fi
 
-#if [ -z ${mapping} ] || [ ${AS} == "bell-style" ]; then
-#  echo "Please provide second parameter - mapped or unmapped"
-#  return
-#fi
+if [ -z ${LIBFILE} ] || [ ! -f ${LIBFILE} ] ; then
+  echo "Please identify the assembly (B33A, VAN, HG06, ...) as parameter 1"
+  echo "Please identify the library stats file as parameter 2"
+  echo "Optional 3rd parameter: 'unmapped'"
+  return
+fi
 
-for file in `ls [0-9][0-9][0-9].txt | sort -n`; do
-  chrom=${file%%.*}
-  echo "    working on ${chrom}"
-  processInterCG -l ${DATA_DIR}/libs/humanLibs.txt -e ${file} -a ${AS} -c ${chrom} -L 2> ${chrom}.err
+for file in `ls | egrep "${AS}_(.+)_inter.txt"`; do
+  chrom=${file%_*}
+  chrom=${chrom##*_}
+  echo -n -e "    working on ${chrom}                   \r"
+  processInterCG -l ${LIBFILE} -e ${file} 2> ${AS}.${chrom}.err
 done
 
-echo "  summarizing inter-chromosome results"
+echo -e "\n\n  summarizing inter-chromosome results"
 filterIntersWithSatisfieds.sh ${AS} ${mapping}

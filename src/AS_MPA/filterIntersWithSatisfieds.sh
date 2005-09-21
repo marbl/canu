@@ -1,4 +1,4 @@
-#!/usr/local/bin/bash
+#!/bin/bash
 #
 ###########################################################################
 #
@@ -22,27 +22,27 @@
 #
 ###########################################################################
 #
-# $Id: filterIntersWithSatisfieds.sh,v 1.4 2005-03-22 19:48:58 jason_miller Exp $
+# $Id: filterIntersWithSatisfieds.sh,v 1.5 2005-09-21 20:13:07 catmandew Exp $
 #
 
 
-# satfile, chromosome, hi or lo chromosome, and inter-dir
+# satfile, chromosome, hi or lo chromosome
 function DoIntersections
 {
-  gawk -v c=${2} '{if($1==c)print $2, $3, NR}' ${4}/${3}.txt > ${4}/${2}.${3}.txt
-  getIntervalIntersections ${4}/${2}.${3}.txt ${1} -i -q | gawk '{print $1, NF-1}' | sed 's/[,:]/ /g' |gawk '{print $3, $4}' > ${4}/${2}.${3}I.txt
+  gawk -v c=${3} '{if($1==c)print $2, $3, NR}' ${1}.${4}.txt > ${1}.${3}.${4}.txt
+  getIntervalIntersections ${1}.${3}.${4}.txt ${2} -i -q | gawk '{print $1, NF-1}' | sed 's/[,:]/ /g' |gawk '{print $3, $4}' > ${1}.${3}.${4}I.txt 2> /dev/null
 }
 
 
-# parameter is inter-dir
 function DoAllIntersections
 {
-  for file in `ls [0-9][0-9][0-9].txt`; do
-    chr=${file%%.*}
-    satFile=${AS}.${chr}.satisfied.clones.txt
+  for file in `ls | egrep "${1}_(.+)_inter.txt"`; do
+    chr=${file%_*}
+    chr=${chr##*_}
+    satFile=${1}.${chr}.satisfied.clones.txt
   
-    DoIntersections ${satFile} ${chr} hiChrom ${1}
-    DoIntersections ${satFile} ${chr} loChrom ${1}
+    DoIntersections ${1} ${satFile} ${chr} hiChrom
+    DoIntersections ${1} ${satFile} ${chr} loChrom
   done
 }
 
@@ -50,24 +50,18 @@ function DoAllIntersections
 # make sure all required satisfied clone files exist
 function MakeSatCloneFiles
 {
-  for file in `ls [0-9][0-9][0-9].txt`; do
-    chr=${file%%.*}
-    satFile=${1}.${chr}.satisfied.clones.txt
+  for file in `ls | egrep "${1}_(.+)_inter.txt"`; do
+    chrom=${file%_*}
+    chrom=${chrom##*_}
+    satFile=${1}.${chrom}.satisfied.clones.txt
+    inFile=${1}.${chrom}.satisfied.raw
 
-    if [ ! -f ${satFile} ]; then
-      gawk '{print $5, $6-$5}' ${1}.${chr}.satisfied.raw > ${satFile}
+    if [ ! -f ${satFile} ] && [ -f ${inFile} ] ; then
+      gawk '{print $5, $6-$5}' ${inFile} > ${satFile}
     fi
   done
 }
 
-
-if [ -z ${DATA_DIR} ]; then
-  if [ ${OS} == "AIX" ] || [ ${OS} == "OSF1" ]; then
-    export DATA_DIR=/prod/IR01/dewim/mps/human
-  else
-    export DATA_DIR=/home/dewim/celera/sandbox/cds/IR/COMPASS/data/human
-  fi
-fi
 
 AS=${1}
 mapping=${2}
@@ -77,49 +71,67 @@ if [ -z ${AS} ] || [ ${AS} == "bell-style" ]; then
   return 
 fi
 
-# work in current directory
-currDir=`pwd`
-
-# see if we're in an unmapped dir
-declare -i unmapped=0
-if [ -f 024.txt ]; then
-  unmapped=1
-fi
-
+outFile="${AS}.hiChrom.txt"
 # cut hi chromosome intervals into hiChrom.txt
-cat ${AS}.???.interChromosome.ata | sed 's/:/ /g' | gawk '{if($1=="M")print $6, $7, $8}' > hiChrom.txt
+if [ -f ${outFile} ] ; then
+  rm -f ${outFile}
+fi
+for file in `ls | egrep "${AS}\.(.+)\.interChromosome.ata"`; do
+  cat ${file} | \
+    sed 's/:/ /g' | \
+    gawk '{if($1=="M")print $6, $7, $8}' >> ${outFile}
+done
 
+outFile="${AS}.loChrom.txt"
 # cut lo chromosome intervals into loChrom.txt
-cat ${AS}.???.interChromosome.ata | sed 's/:/ /g' | gawk '{if($1=="M")print $11, $12, $13}' > loChrom.txt
+if [ -f ${outFile} ] ; then
+  rm -f ${outFile}
+fi
+for file in `ls | egrep "${AS}\.(.+)\.interChromosome.ata"`; do
+  cat ${file} | \
+    sed 's/:/ /g' | \
+    gawk '{if($1=="M")print $11, $12, $13}' >> ${outFile}
+done
 
 # change to mapped intrachromosome dir
-cd ${DATA_DIR}/${AS}/intraChromosome
 MakeSatCloneFiles ${AS}
 
 # intersect with all satisfieds, mapped chromosome by chromosome
-DoAllIntersections ${currDir}
+DoAllIntersections ${AS}
 
 # change to mapped intrachromosome dir
-if [ ${unmapped} -eq 1 ]; then
-  cd ${DATA_DIR}/${AS}/intraChromosome/unmapped
+if [ "${mapping}" == "unmapped" ]; then
+  cd unmapped
   MakeSatCloneFiles ${AS}
+  cd ..
 
-  cd ${DATA_DIR}/${AS}/intraChromosome
-  DoAllIntersections ${currDir}
+  DoAllIntersections ${AS}
 
-  cd ${DATA_DIR}/${AS}/intraChromosome/unmapped
-  DoAllIntersections ${currDir}
+  cd unmapped
+  DoAllIntersections ${AS}
+  cd ..
 fi
 
-# go to the inter-dir & continue with processing
-cd ${currDir}
+outFile="${AS}.all.hiChromI.txt"
+if [ -f ${outFile} ] ; then
+  rm -f ${outFile}
+fi
+for file in `ls | egrep "${AS}\.(.+)\.hiChromI.txt"`; do
+  cat ${file}
+done | sort -n > ${outFile}
 
-cat [0-9][0-9][0-9].hiChromI.txt | sort -n > all.hiChromI.txt
-cat [0-9][0-9][0-9].loChromI.txt | sort -n > all.loChromI.txt
+outFile="${AS}.all.loChromI.txt"
+if [ -f ${outFile} ] ; then
+  rm -f ${outFile}
+fi
+for file in `ls | egrep "${AS}\.(.+)\.loChromI.txt"`; do
+  cat ${file}
+done | sort -n > ${outFile}
 
-paste all.hiChromI.txt all.loChromI.txt > pasted.hi_loChromI.txt
+paste ${AS}.all.hiChromI.txt ${AS}.all.loChromI.txt > ${AS}.pasted.hi_loChromI.txt
 
-paste pasted.hi_loChromI.txt hiChrom.txt > deleteme.txt
-paste deleteme.txt loChrom.txt > hi_loChromI.txt
+paste ${AS}.pasted.hi_loChromI.txt ${AS}.hiChrom.txt > deleteme.txt
+paste deleteme.txt ${AS}.loChrom.txt > ${AS}.hi_loChromI.txt
+rm -f deleteme.txt
 
 processHiLoInterChromIntervalFiles.sh ${AS}

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: CompositeMPPolygon.h,v 1.5 2005-08-05 00:56:41 catmandew Exp $ */
+/* $Id: CompositeMPPolygon.h,v 1.6 2005-09-21 20:13:07 catmandew Exp $ */
 #ifndef COMPOSITEMPPOLYGON_H
 #define COMPOSITEMPPOLYGON_H
 
@@ -41,31 +41,31 @@ public:
     {
     }
 
-  void printLeftBP(ostream & os,
+  void printLeftBPATA(ostream & os,
                    char * assembly,
-                   char * chromosome,
-                   int id,
+                   char * sequenceID,
+                   int relativeID,
                    char * parentKey,
                    char * bpKey) const
     {
-      os << "F " << bpKey << " " << bpKey << assembly << "-" << id
-         << " " << parentKey << assembly << "-" << id
-         << " " << assembly << ":" << chromosome
+      os << "F " << bpKey << " " << bpKey << assembly << "-" << relativeID
+         << " " << parentKey << assembly << "-" << relativeID
+         << " " << assembly << ":" << sequenceID
          << " " << this->getMinX()
          << " " << this->getMaxX() - this->getMinX()
          << " . . . ." << endl;
     }
   
-  void printRightBP(ostream & os,
+  void printRightBPATA(ostream & os,
                     char * assembly,
-                    char * chromosome,
-                    int id,
+                    char * sequenceID,
+                    int relativeID,
                     char * parentKey,
                     char * bpKey) const
     {
-      os << "F " << bpKey << " " << bpKey << assembly << "-" << id
-         << " " << parentKey << assembly << "-" << id
-         << " " << assembly << ":" << chromosome
+      os << "F " << bpKey << " " << bpKey << assembly << "-" << relativeID
+         << " " << parentKey << assembly << "-" << relativeID
+         << " " << assembly << ":" << sequenceID
          << " " << this->getMinY()
          << " " << this->getMaxY() - this->getMinY()
          << " . . . ." << endl;
@@ -73,8 +73,8 @@ public:
   
   void printATA(ostream & os,
                 char * assembly,
-                char * chromosome,
-                int id,
+                char * sequenceID,
+                int relativeID,
                 bool printMatePairs) const
     {
       /*
@@ -93,9 +93,9 @@ public:
           sprintf(key, "ii");
           // print left end & maximum insertion length
           os << "F " << key << " " << key
-             << assembly << "-" << id
+             << assembly << "-" << relativeID
              << " ."
-             << " " << assembly << ":" << chromosome
+             << " " << assembly << ":" << sequenceID
              << " " << this->getMinX()
              << " " << this->getMaxY() - this->getMinX()
              << " -1"
@@ -103,16 +103,16 @@ public:
              << " ."
              << " ."
              << " > /weight=" << getNumMPs() << endl;
-          printLeftBP(os, assembly, chromosome, id, key, "il");
-          printRightBP(os, assembly, chromosome, id, key, "ir");
+          printLeftBPATA(os, assembly, sequenceID, relativeID, key, "il");
+          printRightBPATA(os, assembly, sequenceID, relativeID, key, "ir");
           break;
         case MPI_COMPRESSED:
           sprintf(key, "dd");
           // print left end & maximum deletion length
           os << "F " << key << " " << key
-             << assembly << "-" << id
+             << assembly << "-" << relativeID
              << " ."
-             << " " << assembly << ":" << chromosome
+             << " " << assembly << ":" << sequenceID
              << " " << this->getMinX()  // leftmost possible breakpoint
              << " " << this->getMaxX() - this->getMinX()
              << " -1"
@@ -121,9 +121,9 @@ public:
              << " ."
              << " > /weight=" << getNumMPs() << endl;
           os << "F " << key << "s " << key
-             << assembly << "s-" << id
+             << assembly << "s-" << relativeID
              << " ."
-             << " " << assembly << ":" << chromosome
+             << " " << assembly << ":" << sequenceID
              << " " << this->getMinY()  // smallest possible size
              << " " << this->getMaxY()
              << " -1"
@@ -135,9 +135,9 @@ public:
         case MPI_NORMAL:
           sprintf(key, "nn");
           os << "F " << key << " " << key
-             << assembly << "-" << id
+             << assembly << "-" << relativeID
              << " ."
-             << " " << assembly << ":" << chromosome
+             << " " << assembly << ":" << sequenceID
              << " " << this->getMinX()
              << " " << this->getMinY() - this->getMinX()
              << " -1"
@@ -145,15 +145,15 @@ public:
              << " ."
              << " ."
              << " > /weight=" << getNumMPs() << endl;
-          printLeftBP(os, assembly, chromosome, id, key, "nl");
-          printRightBP(os, assembly, chromosome, id, key, "nr");
+          printLeftBPATA(os, assembly, sequenceID, relativeID, key, "nl");
+          printRightBPATA(os, assembly, sequenceID, relativeID, key, "nr");
           break;
         case MPI_ANTINORMAL:
           sprintf(key, "aa");
           os << "F " << key << " " << key
-             << assembly << "-" << id
+             << assembly << "-" << relativeID
              << " ."
-             << " " << assembly << ":" << chromosome
+             << " " << assembly << ":" << sequenceID
              << " " << this->getMaxX()
              << " " << this->getMaxY() - this->getMaxX()
              << " -1"
@@ -161,15 +161,15 @@ public:
              << " ."
              << " ."
              << " > /weight=" << getNumMPs() << endl;
-          printLeftBP(os, assembly, chromosome, id, key, "al");
-          printRightBP(os, assembly, chromosome, id, key, "ar");
+          printLeftBPATA(os, assembly, sequenceID, relativeID, key, "al");
+          printRightBPATA(os, assembly, sequenceID, relativeID, key, "ar");
           break;
         case MPI_OUTTIE:
           sprintf(key, "oo");
           os << "F " << key << " " << key
-             << assembly << "-" << id
+             << assembly << "-" << relativeID
              << " ."
-             << " " << assembly << ":" << chromosome
+             << " " << assembly << ":" << sequenceID
              << " " << this->getMaxX()
              << " " << this->getMinY() - this->getMaxX()
              << " -1"
@@ -177,16 +177,16 @@ public:
              << " ."
              << " ."
              << " > /weight=" << getNumMPs() << endl;
-          printLeftBP(os, assembly, chromosome, id, key, "ol");
-          printRightBP(os, assembly, chromosome, id, key, "or");
+          printLeftBPATA(os, assembly, sequenceID, relativeID, key, "ol");
+          printRightBPATA(os, assembly, sequenceID, relativeID, key, "or");
           break;
         case MPI_INVERSION:
           sprintf(key, "vv");
           // print left end & maximum insertion length
           os << "F " << key << " " << key
-             << assembly << "-" << id
+             << assembly << "-" << relativeID
              << " ."
-             << " " << assembly << ":" << chromosome
+             << " " << assembly << ":" << sequenceID
              << " " << this->getMinX()
              << " " << this->getMaxY() - this->getMinX()
              << " -1"
@@ -194,15 +194,15 @@ public:
              << " ."
              << " ."
              << " > /weight=" << getNumMPs() << endl;
-          printLeftBP(os, assembly, chromosome, id, key, "ol");
-          printRightBP(os, assembly, chromosome, id, key, "or");
+          printLeftBPATA(os, assembly, sequenceID, relativeID, key, "ol");
+          printRightBPATA(os, assembly, sequenceID, relativeID, key, "or");
           break;
         case MPI_TRANSPOSITION:
           sprintf(key, "tt");
           os << "F " << key << " " << key
-             << assembly << "-" << id
+             << assembly << "-" << relativeID
              << " ."
-             << " " << assembly << ":" << chromosome
+             << " " << assembly << ":" << sequenceID
              << " " << this->getMinX()
              << " " << this->getMaxY() - this->getMinX()
              << " -1"
@@ -210,15 +210,15 @@ public:
              << " ."
              << " ."
              << " > /weight=" << getNumMPs() << endl;
-          printLeftBP(os, assembly, chromosome, id, key, "tl");
-          printRightBP(os, assembly, chromosome, id, key, "tr");
+          printLeftBPATA(os, assembly, sequenceID, relativeID, key, "tl");
+          printRightBPATA(os, assembly, sequenceID, relativeID, key, "tr");
           break;
         case MPI_SATISFIED:
           sprintf(key, "ss");
           os << "F " << key << " " << key
-             << assembly << "-" << id
+             << assembly << "-" << relativeID
              << " ."
-             << " " << assembly << ":" << chromosome
+             << " " << assembly << ":" << sequenceID
              << " " << this->getMinX()
              << " " << this->getMaxY() - this->getMinX()
              << " -1"
@@ -232,9 +232,9 @@ public:
           /*
           sprintf(key, "un");
           os << "F " << key << " " << key
-             << assembly << "-" << id
+             << assembly << "-" << relativeID
              << " ."
-             << " " << assembly << ":" << chromosome
+             << " " << assembly << ":" << sequenceID
              << " " << this->getMinX()
              << " " << this->getMaxY() - this->getMinX()
              << " -1"
@@ -250,28 +250,49 @@ public:
       if(printMatePairs)
       {
         for(unsigned int i = 0; i < getNumMPs(); i++)
-          pmps[i].printATA(os, assembly, chromosome, key, id, i);
+          pmps[i].printATA(os, assembly, sequenceID, key, relativeID, i);
       }
     }
-  void printForGnuplot(ostream & os) const
+  
+  void printForGnuplot(ostream & os, CompressedRepresentation_e cr) const
     {
       for(unsigned int i = 0; i < getNumMPs(); i++)
         os << "# " << pmps[i] << endl;
 
       if(isCompressed())
       {
-        for(unsigned int i = 0; i < this->pPolys.size(); i++)
+        switch(cr)
         {
-          Polygon<UnitType> tempP;
-          UnitType minX = this->getMinX();
-          UnitType maxX = this->getMaxX();
-          UnitType minY = this->getMinY();
-          UnitType maxY = this->getMaxY();
-          tempP.append(minX, minY);
-          tempP.append(minX, maxY);
-          tempP.append(maxX, maxY);
-          tempP.append(maxX, minY);
-          tempP.printForGnuplot(os);
+          case CR_COMPATIBLE:
+            for(unsigned int i = 0; i < this->pPolys.size(); i++)
+            {
+              Polygon<UnitType> tempP;
+              UnitType minX = this->getMinX();
+              UnitType maxX = this->getMaxX();
+              UnitType minY = this->getMinX();
+              UnitType maxY = this->getMaxX();
+              tempP.append(minX, minY);
+              tempP.append(minX, maxY);
+              tempP.append(maxX, maxY);
+              tempP.append(maxX, minY);
+              tempP.printForGnuplot(os);
+            }
+            break;
+          case CR_NATIVE:
+            for(unsigned int i = 0; i < this->pPolys.size(); i++)
+            {
+              Polygon<UnitType> tempP;
+              UnitType minX = this->getMinX();
+              UnitType maxX = this->getMaxX();
+              UnitType minY = this->getMinY();
+              UnitType maxY = this->getMaxY();
+              tempP.append(minX, minY);
+              tempP.append(minX, maxY);
+              tempP.append(maxX, maxY);
+              tempP.append(maxX, minY);
+              tempP.printForGnuplot(os);
+            }
+            break;
         }
       }
       else
@@ -282,6 +303,28 @@ public:
         }
       }
     }
+  void printSummary(ostream & os) const
+    {
+      if(this->getMPIndex() == MPI_COMPRESSED)
+      {
+        os << this->getMinX() << "\t"
+           << this->getMaxX() - this->getMinX() << "\t"
+           << this->getMinY() << "\t"
+           << this->getMaxY() << "\t"
+           << this->getNumMPs() << endl;
+      }
+      else
+      {
+        os << this->getMinX() << "\t"
+           << this->getMaxX() - this->getMinX() << "\t"
+           << this->getMinY() << "\t"
+           << this->getMaxY() - this->getMinY() << "\t"
+           << ((this->getMaxY() + this->getMinY()) -
+               (this->getMaxX() + this->getMinX())) / 2 << "\t"
+           << this->getNumMPs() << endl;
+      }
+    }
+
 private:
 };
 

@@ -1,4 +1,4 @@
-#!/usr/local/bin/bash
+#!/bin/bash
 #
 ###########################################################################
 #
@@ -22,50 +22,47 @@
 #
 ###########################################################################
 #
-# $Id: processIntraMPs.sh,v 1.4 2005-03-22 19:48:58 jason_miller Exp $
+# $Id: processIntraMPs.sh,v 1.5 2005-09-21 20:13:07 catmandew Exp $
 #
 
 AS=${1}
-
-if [ -z ${DATA_DIR} ]; then
-  if [ ${OS} == "AIX" ] || [ ${OS} == "OSF1" ]; then
-    export DATA_DIR=/prod/IR01/dewim/mps/human
-  else
-    export DATA_DIR=/home/dewim/celera/sandbox/cds/IR/COMPASS/data/human
-  fi
-fi
+LIBFILE=${2}
 
 if [ -z ${AS} ] || [ ${AS} == "bell-style" ] ; then
-  echo "Please identify the assembly (B33A, VAN, HG06, ...)"
+  echo "Please identify the assembly name as 1st parameter"
+  echo "Please identify the library stats file as 2nd parameter"
   return
 fi
 
-# remove types of files
-echo "  removing files to be reproduced"
-for file in `ls | grep ${AS}`; do
-  rm ${file}
-done
+if [ -z ${LIBFILE} ] || [ ! -f ${LIBFILE} ] ; then
+  echo "Please identify the assembly name as 1st parameter"
+  echo "Please identify the library stats file as 2nd parameter"
+  return
+fi
+
 rm *.err
 if [ -f stretchedInnies.txt ]; then
   rm compressedInnies.txt stretchedInnies.txt transpInnie*.txt
 fi
   
 # process each file
-for file in `ls [0-9][0-9][0-9].txt | sort -n`; do
-  chrom=${file%%.*}
-  echo "    working on ${chrom}"
-  processIntra -l ${DATA_DIR}/libs/humanLibs.txt -m ${file} -a ${AS} -c ${chrom} 2> ${chrom}.err
+for file in `ls | egrep "${AS}_(.+)_intra.txt"`; do
+  chrom=${file%_*}
+  chrom=${chrom##*_}
+  echo -n -e "    working on ${chrom}                   \r"
+  processIntra -l ${LIBFILE} -m ${file} 2> ${AS}.${chrom}.intra.err
 done
+echo -e "\n\n"
 
-# summarize results
-echo "  summarizing intra-chromosome results"
-getIntraResults.sh ${AS}
+# # summarize results
+# echo "  summarizing intra-chromosome results"
+getIntraResults.sh ${AS} ${LIBFILE}
 
-# get Ns in stretched & compressed intervals
-echo "  analyzing sequence gaps"
-analyzeGaps.sh ${AS}
+# # get Ns in stretched & compressed intervals
+# echo "  analyzing sequence gaps"
+# analyzeGaps.sh ${AS}
 
-# identify double-counted mate pairs in transpositions
+# # identify double-counted mate pairs in transpositions
 echo "  identifying double-counted compressed & stretched in transpositions"
 getDoubleCountedInTranpositions.sh ${AS} > ${AS}_doubleCountedInTranspositions.txt
 

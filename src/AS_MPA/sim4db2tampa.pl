@@ -1,4 +1,25 @@
 #!/usr/bin/perl
+#
+###########################################################################
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received (LICENSE.txt) a copy of the GNU General Public 
+# License along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+###########################################################################
+#
+# $Id: sim4db2tampa.pl,v 1.2 2005-09-21 20:13:07 catmandew Exp $
+#
 
 use FileHandle;
 use Getopt::Long;
@@ -144,7 +165,6 @@ while(<$sim4FH>)
 
     # printf STDOUT "$_\n";
 
-    $fragID = $fields[0];
     # chromosome/scaffold
     $hashArray[0] = $fields[5];
     
@@ -161,6 +181,16 @@ while(<$sim4FH>)
     $hashArray[5] = 1;
 
     $numMappings++;
+    next;
+  }
+
+  # line indicating which fragment
+  if($recordLine == 3)
+  {
+    s/[\[\] <>=]/-/g;
+    @fields = split "-";
+    
+    $fragID = $fields[2];
     next;
   }
   

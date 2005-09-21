@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: processInter.cc,v 1.4 2005-03-22 19:48:58 jason_miller Exp $ */
+/* $Id: processInter.cc,v 1.5 2005-09-21 20:13:07 catmandew Exp $ */
 #include <cstdio>  // for sscanf
 #include <iostream>
 #include <iomanip>
@@ -57,7 +57,7 @@ char * MatePairLabel[MPI_NUM_INDICES] =
   "inversion",
   "transposition",
   "satisfied",
-  "interChromosome",
+  "interSequence",
   "unknown"
 };
 
@@ -81,12 +81,12 @@ public:
       if(f1.getOrientation() == SINGLE_A_B)
       {
         // f2 should be to the right
-        _shiftBP = (int32) (f1.getFiveP() + lib.getMean() - f2.getFiveP());
+        _shiftBP = (UNIT_TYPE) (f1.getFiveP() + lib.getMean() - f2.getFiveP());
       }
       else
       {
         // f2 should be to the left
-        _shiftBP = (int32) (f1.getFiveP() - lib.getMean() - f2.getFiveP());
+        _shiftBP = (UNIT_TYPE) (f1.getFiveP() - lib.getMean() - f2.getFiveP());
       }
     }
   
@@ -94,7 +94,7 @@ public:
     {
       fback.setUID(f.getUID());
       fback.setFiveP(f.getFiveP() + getShift());
-      fback.setChromosome(f.getChromosome());
+      fback.setSequenceID(f.getSequenceID());
       
       switch(f.getOrientation())
       {
@@ -117,8 +117,8 @@ public:
     }
 
   bool getFlip() const {return _flip;}
-  int32 getShift() const {return _shiftBP;}
-  bool isCompatible(const Translation & other, int32 slop) const
+  UNIT_TYPE getShift() const {return _shiftBP;}
+  bool isCompatible(const Translation & other, UNIT_TYPE slop) const
     {
       return(getFlip() == other.getFlip() &&
              getShift() + slop >= other.getShift() &&
@@ -132,30 +132,30 @@ private:
   // _shiftBP is the number of basepairs to shift f2's 5p coordinate
   // on f2's axis to get it to where it should be relative to
   // f1's 5p coordinate on f1's axis
-  int32 _shiftBP;
+  UNIT_TYPE _shiftBP;
 };
 
 /*
   PURPOSE:
-    Process inter-chromosome mate pairs - mate pairs for which each fragment
-    was mapped to a different chromosome - to identify mis-assemblies and
+    Process inter-sequence mate pairs - mate pairs for which each fragment
+    was mapped to a different sequence - to identify mis-assemblies and
     perhaps re-sequenced plates or collapsed repeats
 
   PLAN:
     Read in clone library length estimates
     
-    Read in all intra-chromosome mate pairs for a given chromosome/assembly
+    Read in all intra-sequence mate pairs for a given sequence/assembly
       store each mate pair twice (by left and by right frag coord)
       sort by 'left' coorinate
       
-    Read in all inter-chromosome mate pairs for a given chromosome/assembly
-      Maintain separate list of mates for each other chromosome
-        optionally omit lower numbered chromosomes to avoid duplication
-      Sort each list by coordinate on other chromosome
+    Read in all inter-sequence mate pairs for a given sequence/assembly
+      Maintain separate list of mates for each other sequence
+        optionally omit lower numbered sequences to avoid duplication
+      Sort each list by coordinate on other sequence
 
-    c = this chromosome
-    For each other chromosome, o
-      for each mate, m, on that chromosome
+    c = this sequence
+    For each other sequence, o
+      for each mate, m, on that sequence
         create a list, l, of agreeing mate pairs
         determine relative coordinate range & orientation of m
           on c based on m's mate's coordinate & orientation
@@ -170,52 +170,52 @@ void Usage(char * progname, char * message)
   if(message != NULL)
     cerr << endl << message << endl;
 #ifdef USE_SATISFIEDS
-  cerr << "Usage: " << progname << " [-l lib] [-m intra-chromosomeMPs] [-e inter-chromosomeMPs] [-n #stddevs] -[A|H|L]\n";
+  cerr << "Usage: " << progname << " [-l lib] [-m intra-sequenceMPs] [-e inter-sequenceMPs] [-n #stddevs] -[A|H|L]\n";
   cerr << "\t-m mps        name of mate pair file\n";
 #else
-  cerr << "Usage: " << progname << " [-l lib] [-e inter-chromosomeMPs] [-n #stddevs] -[A|H|L]\n";
+  cerr << "Usage: " << progname << " [-l lib] [-e inter-sequenceMPs] [-n #stddevs] -[A|H|L]\n";
   cerr << "\t-l lib        name of clone library file\n";
 #endif
 
-  cerr << "\t-e name of inter-chromosome matepairs file\n";
+  cerr << "\t-e name of inter-sequence matepairs file\n";
   cerr << "\t-n #stddevs   number of stddevs from mean that is excessive\n\n";
   cerr << "\t                default is " << STDDEVS_THRESHOLD << endl;
   cerr << "\t-a assembly   assembly name (e.g., B33A, VAN)\n";
-  cerr << "\t-c chrom      chromosome number (index into fasta file)\n";
+  cerr << "\t-s #          sequence number (index into fasta file)\n";
   cerr << "\t-g            do not print gnuplot output\n";
   cerr << "\t-f #          filter out mate pair sets with fewer members\n";
   cerr << "\t                default is " << CONFIRMATION_THRESHOLD << endl;
   cerr << "\t-[A|H|L]      process mates in All, Higher-numbered only, or\n";
-  cerr << "\t                Lower-numbered only inter-chromosome pairs.\n";
-  cerr << "\t                default is " << INTER_C_DEFAULT_SCOPE << endl;
+  cerr << "\t                Lower-numbered only inter-sequence pairs.\n";
+  cerr << "\t                default is " << INTER_S_DEFAULT_SCOPE << endl;
   exit(1);
 }
 
 
-void ReadInterChromosomeMPs(vector<list<MatePair> > & icmps,
+void ReadInterSequenceMPs(vector<list<MatePair> > & icmps,
                             ifstream & fin,
-                            InterChromosomeScope interScope)
+                            InterSequenceScope_e interScope)
 {
   char line[4096];
   MatePair mp;
   while(fin.getline(line, 4095))
   {
-    mp.setFromInterChromosomeString(line);
-    // left chromosome is 'this' chromosome
-    if(interScope == ICS_ALL ||
-       (mp.getRightChromosome() > mp.getLeftChromosome() &&
-        interScope == ICS_HIGHER) ||
-       (mp.getRightChromosome() < mp.getLeftChromosome() &&
-        interScope == ICS_LOWER))
+    mp.setFromInterSequenceString(line);
+    // left sequence is 'this' sequence
+    if(interScope == ISS_ALL ||
+       (mp.getRightSequenceID() > mp.getLeftSequenceID() &&
+        interScope == ISS_HIGHER) ||
+       (mp.getRightSequenceID() < mp.getLeftSequenceID() &&
+        interScope == ISS_LOWER))
     {
       // make sure that icmps has enough entries to add a
-      // matepair from this chromosome to a list in icmps
-      while(icmps.size() <= mp.getRightChromosome())
+      // matepair from this sequence to a list in icmps
+      while(icmps.size() <= mp.getRightSequenceID())
       {
         list<MatePair> lmp;
         icmps.push_back(lmp);
       }
-      icmps[mp.getRightChromosome()].push_back(mp);
+      icmps[mp.getRightSequenceID()].push_back(mp);
     }
   }
   for(unsigned int i = 0; i < icmps.size(); i++)
@@ -234,15 +234,15 @@ int main(int argc, char ** argv)
 #endif
   char * ewFilename = NULL;
   char * assembly = NULL;
-  int chromosome = -1;
+  int sequenceID = -1;
   double numStddevs = STDDEVS_THRESHOLD;
   int filterThresh = CONFIRMATION_THRESHOLD;
-  InterChromosomeScope interScope = INTER_C_DEFAULT_SCOPE;
+  InterSequenceScope_e interScope = INTER_S_DEFAULT_SCOPE;
   bool printGnuplot = true;
 
   {
     int ch, errflg = 0;
-    while(!errflg && ((ch = getopt(argc, argv, "l:m:e:n:a:c:gf:AHL")) != EOF))
+    while(!errflg && ((ch = getopt(argc, argv, "l:m:e:n:a:s:gf:AHL")) != EOF))
     {
       switch(ch)
       {
@@ -263,8 +263,8 @@ int main(int argc, char ** argv)
         case 'a':
           assembly = optarg;
           break;
-        case 'c':
-          chromosome = atoi(optarg);
+        case 's':
+          sequenceID = atoi(optarg);
           break;
         case 'g':
           printGnuplot = false;
@@ -273,13 +273,13 @@ int main(int argc, char ** argv)
           filterThresh = atoi(optarg);
           break;
         case 'A':
-          interScope = ICS_ALL;
+          interScope = ISS_ALL;
           break;
         case 'H':
-          interScope = ICS_HIGHER;
+          interScope = ISS_HIGHER;
           break;
         case 'L':
-          interScope = ICS_LOWER;
+          interScope = ISS_LOWER;
           break;
         default:
           errflg++;
@@ -290,16 +290,16 @@ int main(int argc, char ** argv)
       Usage(argv[0], "Please specify a clone library filename");
 #ifdef USE_SATSIFIEDS
     if(mpFilename == NULL)
-      Usage(argv[0], "Please specify an intra-chromosome mate pair filename");
+      Usage(argv[0], "Please specify an intra-sequence mate pair filename");
 #endif
     if(ewFilename == NULL)
-      Usage(argv[0], "Please specify an inter-chromosome mate pair filename");
+      Usage(argv[0], "Please specify an inter-sequence mate pair filename");
     if(numStddevs <= 0)
       Usage(argv[0], "Please specify a positive number of std deviations");
     if(assembly == NULL)
       Usage(argv[0], "Please specify an assembly name");
-    if(chromosome < 0)
-      Usage(argv[0], "Please specify a chromosome number");
+    if(sequenceID < 0)
+      Usage(argv[0], "Please specify a sequence number");
   }
 
   // read the clone library files
@@ -316,19 +316,19 @@ int main(int argc, char ** argv)
 
   vector<list<MatePair > > icmps;
   {
-    // read inter-chromosome mate pairs
+    // read inter-sequence mate pairs
     ifstream fe(ewFilename, ios::in);
     if(!fe.good())
     {
       cerr << "Failed to open " << ewFilename << " for reading\n";
       exit(-1);
     }
-    // cerr << "Reading inter-chromosome mate pairs from " << ewFilename << endl;
-    ReadInterChromosomeMPs(icmps, fe, interScope);
+    // cerr << "Reading inter-sequence mate pairs from " << ewFilename << endl;
+    ReadInterSequenceMPs(icmps, fe, interScope);
     fe.close();
     if(icmps.size() == 0)
     {
-      cerr << "No inter-chromosome mate pairs read from file "
+      cerr << "No inter-sequence mate pairs read from file "
            << ewFilename << endl;
       exit(0);
     }
@@ -385,7 +385,7 @@ int main(int argc, char ** argv)
 
 #ifdef OUTPUT_ATAC_FORMAT
   char fname[1024];
-  sprintf(fname, "%s.%03d.interChromosome.ata", assembly, chromosome);
+  sprintf(fname, "%s.%03d.interSequence.ata", assembly, sequenceID);
   ofstream fo(fname, ios::out);
   if(!fo.good())
   {
@@ -396,35 +396,36 @@ int main(int argc, char ** argv)
   // write ata header lines
   fo << "! format ata 1.0\n";
   fo << "# numStddevs=" << numStddevs << endl;
-  int atacCount = chromosome * 10000;;
+  int atacCount = sequenceID * 10000;;
 #endif
   
-  // for each other chromosome
+  // for each other sequence
   for(unsigned int i = 0; i < icmps.size(); i++)
   {
     list<MatePair>::iterator lmp1;
-    int32 numDupes = 0;
+    int numDupes = 0;
     
-    // for each half mate pair in the other chromosome
+    // for each half mate pair in the other sequence
     for(lmp1 = icmps[i].begin(); lmp1 != icmps[i].end(); lmp1++)
     {
       list<MatePair> matches;
       matches.push_back(*lmp1);
       
-      int32 maxDelta = (int32) (numStddevs * libs[lmp1->getLibUID()].getStddev());
+      UNIT_TYPE maxDelta =
+        (UNIT_TYPE) (numStddevs * libs[lmp1->getLibUID()].getStddev());
       /*
-        This coordinate is considered to be LEFT of the other chromosome
+        This coordinate is considered to be LEFT of the other sequence
         For intervals in which there are fragments,
-          thisLeft = leftmost coordinate on this chromosome
-          thisRight = rightmost coordinate on this chromosome
-          otherLeft = leftmost coordinate on other chromosome
-          otherRight = rightmost coordinate on other chromosome
+          thisLeft = leftmost coordinate on this sequence
+          thisRight = rightmost coordinate on this sequence
+          otherLeft = leftmost coordinate on other sequence
+          otherRight = rightmost coordinate on other sequence
         For intervals where the fragments might/should go
-          otherProjectThisLeft = leftmost coordinate on this chromosome
+          otherProjectThisLeft = leftmost coordinate on this sequence
             (left end of other projected onto this)
-          otherProjectThisRight = rightmost coordinate on this chromosome
-          thisProjectOtherLeft = leftmost coordinate on other chromosome
-          thisProjectOtherRight = rightmost coordinate on other chromosome
+          otherProjectThisRight = rightmost coordinate on this sequence
+          thisProjectOtherLeft = leftmost coordinate on other sequence
+          thisProjectOtherRight = rightmost coordinate on other sequence
           
        */
       Translation trans1(lmp1->getLeftFrag(),
@@ -433,10 +434,10 @@ int main(int argc, char ** argv)
       Translation revTrans1(lmp1->getRightFrag(),
                             lmp1->getLeftFrag(),
                             libs[lmp1->getLibUID()]);
-      int32 thisLeft, thisRight;
-      int32 thisProjectOtherLeft, thisProjectOtherRight;
-      int32 otherLeft, otherRight;
-      int32 otherProjectThisLeft, otherProjectThisRight;
+      UNIT_TYPE thisLeft, thisRight;
+      UNIT_TYPE thisProjectOtherLeft, thisProjectOtherRight;
+      UNIT_TYPE otherLeft, otherRight;
+      UNIT_TYPE otherProjectThisLeft, otherProjectThisRight;
       FragmentPosition fpt;
       
       thisLeft = thisRight = lmp1->getLeftCoord();
@@ -449,7 +450,7 @@ int main(int argc, char ** argv)
       trans1.translate(lmp1->getRightFrag(), fpt);
       otherProjectThisLeft = otherProjectThisRight = fpt.getFiveP();
       
-      int32 numInterfering = 0;
+      int numInterfering = 0;
       list<MatePair>::iterator lmp2 = lmp1;
       for(lmp2++; lmp2 != icmps[i].end(); )
       {
@@ -479,20 +480,20 @@ int main(int argc, char ** argv)
           
           matches.push_back(*lmp2);
 
-          // update extreme left/right on this chromosome
+          // update extreme left/right on this sequence
           thisLeft = (thisLeft < lmp2->getLeftCoord()) ?
             thisLeft : lmp2->getLeftCoord();
           thisRight = (thisRight > lmp2->getLeftCoord()) ?
             thisRight : lmp2->getLeftCoord();
 
-          // update extreme left/right on other chromosome
+          // update extreme left/right on other sequence
           otherLeft = (otherLeft < lmp2->getRightCoord()) ?
             otherLeft : lmp2->getRightCoord();
           otherRight = (otherRight > lmp2->getRightCoord()) ?
             otherRight : lmp2->getRightCoord();
 
           // update extreme left/right of projection of this
-          // chromosome onto other
+          // sequence onto other
           revTrans2.translate(lmp2->getLeftFrag(), fpt);
           thisProjectOtherLeft = (thisProjectOtherLeft < fpt.getFiveP()) ?
             thisProjectOtherLeft : fpt.getFiveP();
@@ -500,7 +501,7 @@ int main(int argc, char ** argv)
             thisProjectOtherRight : fpt.getFiveP();
           
           // update extreme left/right of projection of other
-          // chromosome onto this
+          // sequence onto this
           trans2.translate(lmp2->getRightFrag(), fpt);
           otherProjectThisLeft = (otherProjectThisLeft < fpt.getFiveP()) ?
             otherProjectThisLeft : fpt.getFiveP();
@@ -520,14 +521,14 @@ int main(int argc, char ** argv)
 #ifdef OUTPUT_ATAC_FORMAT
         /*
           write ATAC format:
-          Parent Match between an interval on each chromosome. (white)
+          Parent Match between an interval on each sequence. (white)
             Intervals are from
-              left 5p to where right 5p should be on one chromosome
-              where left 5p should be to right 5p on the other chromosome
+              left 5p to where right 5p should be on one sequence
+              where left 5p should be to right 5p on the other sequence
           Example:
             M ma ma1 . VAN:1 0 10000 ? VAN:2 5 10005 ?
-          2 Child matches between interval with fragments on one chrom
-            to interval w/o fragments on other chrom (green)
+          2 Child matches between interval with fragments on one sequence
+            to interval w/o fragments on other sequence (green)
           Example:
             M mb 2 ma1 VAN:1 8000 10000 ? VAN:2 8005 10005 ?
             M mb 3 ma1 VAN:2 5 2005 ? VAN:1 0 2000 ?
@@ -540,11 +541,11 @@ int main(int argc, char ** argv)
         */
         
         int refCount = atacCount++;
-        int delta;
+        UNIT_TYPE delta;
         
         // parent match between large to/from intervals
         fo << "M xa xa" << refCount << " . "
-           << assembly << ":" << lmp1->getLeftChromosome() << " ";
+           << assembly << ":" << lmp1->getLeftSequenceID() << " ";
         if(thisLeft > otherProjectThisRight)
         {
           delta = thisLeft - otherProjectThisRight;
@@ -555,7 +556,7 @@ int main(int argc, char ** argv)
           delta = otherProjectThisRight - thisLeft;
           fo << thisLeft << " " << delta << " 1 ";
         }
-        fo << assembly << ":" << lmp1->getRightChromosome() << " "
+        fo << assembly << ":" << lmp1->getRightSequenceID() << " "
            << otherLeft << " " << delta << " 1 "
            << " > /weight=" << matches.size();
 
@@ -565,39 +566,39 @@ int main(int argc, char ** argv)
           fo << " /mixedOrientations=0\n";
 
         // first child match between from/to intervals
-        // interval of frags on THIS chrom and where they would go
-        // on the OTHER chrom
+        // interval of frags on THIS sequence and where they would go
+        // on the OTHER sequence
         fo << "M xb " << atacCount++ << " xa" << refCount << " "
-           << assembly << ":" << lmp1->getLeftChromosome() << " "
+           << assembly << ":" << lmp1->getLeftSequenceID() << " "
            << thisLeft << " " << thisRight - thisLeft << " 1 "
-           << assembly << ":" << lmp1->getRightChromosome() << " "
+           << assembly << ":" << lmp1->getRightSequenceID() << " "
            << thisProjectOtherLeft << " " << thisProjectOtherRight - thisProjectOtherLeft << " 1 " << endl;
 
         // second child match between from/to intervals
-        // interval of frags on OTHER chrom and where they would go
-        // on the THIS chrom
+        // interval of frags on OTHER seq and where they would go
+        // on the THIS seq
         fo << "M xc " << atacCount++ << " xa" << refCount << " "
-           << assembly << ":" << lmp1->getLeftChromosome() << " "
+           << assembly << ":" << lmp1->getLeftSequenceID() << " "
            << otherProjectThisLeft << " " << otherProjectThisRight - otherProjectThisLeft << " 1 "
-           << assembly << ":" << lmp1->getRightChromosome() << " "
+           << assembly << ":" << lmp1->getRightSequenceID() << " "
            << otherLeft << " " << otherRight - otherLeft << " 1 " << endl;
 
         // last interval match, between two intervals with frags
         fo << "M xd " << atacCount++ << " xa" << refCount << " "
-           << assembly << ":" << lmp1->getLeftChromosome() << " "
+           << assembly << ":" << lmp1->getLeftSequenceID() << " "
            << thisLeft << " " << thisRight - thisLeft << " 1 "
-           << assembly << ":" << lmp1->getRightChromosome() << " "
+           << assembly << ":" << lmp1->getRightSequenceID() << " "
            << otherLeft << " " << otherRight - otherLeft << " 1 " << endl;
         
         atacCount++;
 #else
         cout << endl;
         cout << matches.size() << " mps in ( "
-             << lmp1->getLeftChromosome() << " "
+             << lmp1->getLeftSequenceID() << " "
              << thisLeft << " " << thisRight << " ) indicate ";
-        cout << "( " << lmp1->getRightChromosome() << " "
+        cout << "( " << lmp1->getRightSequenceID() << " "
              << otherLeft << " " << otherRight << " ) ==> ( "
-             << lmp1->getLeftChromosome() << " ";
+             << lmp1->getLeftSequenceID() << " ";
         if(trans1.getFlip())
           cout << otherProjectThisRight << " " << otherProjectThisLeft;
         else

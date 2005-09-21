@@ -2,10 +2,6 @@
 #
 ###########################################################################
 #
-# This file is part of Celera Assembler, a software program that 
-# assembles whole-genome shotgun reads into contigs and scaffolds.
-# Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
-# 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
@@ -22,7 +18,7 @@
 #
 ###########################################################################
 #
-# $Id: combineCloneLengthFiles.sh,v 1.1 2005-08-04 23:57:26 catmandew Exp $
+# $Id: combineCloneLengthFiles.sh,v 1.2 2005-09-21 20:13:07 catmandew Exp $
 #
 
 fileList=""
@@ -32,4 +28,4 @@ done
 
 echo "Files: ${fileList}" >&2
 
-sort -k 2 ${fileList}
+sort -k 2n ${fileList}

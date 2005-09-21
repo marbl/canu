@@ -1,4 +1,4 @@
-#!/usr/local/bin/bash
+#!/bin/bash
 #
 ###########################################################################
 #
@@ -22,10 +22,12 @@
 #
 ###########################################################################
 #
-# $Id: getIntraResults.sh,v 1.4 2005-03-22 19:48:58 jason_miller Exp $
+# $Id: getIntraResults.sh,v 1.5 2005-09-21 20:13:07 catmandew Exp $
 #
 
 AS=${1}
+LIBFILE=${2}
+
 Type=(stretched compressed outtie normal antinormal inversion transposition)
 Status=(raw confirmed fewer)
 
@@ -35,14 +37,13 @@ Status=(raw confirmed fewer)
 #        for import into excel spreadsheet
 #    header line: chromosome, raw, confirmed, fewer
 #    other lines:   # , # , # , #
-#  2. ${AS}_${t}_lengths_weights.txt file summarizing lengths & weights of confirmed bad intervals
+#  2. ${AS}.${t}.lengthsWeights.txt file summarizing lengths & weights of confirmed bad intervals
 # Also create a ${AS}_satisfied.csv file
 
 function ProcessDirFiles
 {
-
   # count the number of chromosome input files - if it's only 1, treat differently
-  declare -i numFiles=`ls [0-9][0-9][0-9].txt | gawk 'END{print NR}'`
+  declare -i numFiles=`ls | egrep "${AS}_(.+)_intra.txt" | gawk 'END{print NR}'`
   
   # process each type of unsatisfied mate pair/bad interval
   for t in "${Type[@]}"; do
@@ -53,14 +54,18 @@ function ProcessDirFiles
     for s in "${Status[@]}"; do
       echo "  scanning ${s}"
 
+      # a couple filenames
+      fn="${AS}.${t}.${s}.txt"
+      fnA="${fn}A"
+      
       # delete temporary files to be written to
-      if [ -f ${AS}_${t}_${s}.txtA ]; then
-        rm ${AS}_${t}_${s}.txtA
+      if [ -f ${fnA} ]; then
+        rm ${fnA}
       fi
-      if [ -f ${AS}_${t}_${s}.txt ]; then
-        rm ${AS}_${t}_${s}.txt
+      if [ -f ${fn} ]; then
+        rm ${fn}
       fi
-      echo "${s}" > ${AS}_${t}_${s}.txt
+      echo "${s}" > ${fn}
 
       # do raw numbers separately
       if [ ${s} == "raw" ]; then
@@ -69,24 +74,25 @@ function ProcessDirFiles
         if [ ${t} != "inversion" ] && [ ${t} != "transposition" ]; then
 
           # create line with two lines: chromosome# and count of raw mate pairs
-          wc -l ${AS}.[0-9][0-9][0-9].${t}.raw | sed 's/[.]/ /g' | gawk '{print $3+1,$1}' >> ${AS}_${t}_${s}.txtA
+          wc -l `ls | egrep "${AS}\.(.+)\.${t}\.raw"` | sed 's/[.]/ /g' | gawk '{print $3,$1}'  >> ${fnA}
 
           # count number of chromosomes/lines in the temporary file
           # if there are more than 1 .raw files, wc will add a total line
-          # declare -i a=`wc -l ${AS}_${t}_${s}.txtA | gawk '{print $1}'`
+          # declare -i a=`wc -l ${fnA} | gawk '{print $1}'`
           if [ ${numFiles} -gt 1 ]; then
-            head -n ${numFiles} ${AS}_${t}_${s}.txtA >> ${AS}_${t}_${s}.txt
+            head -n ${numFiles} ${fnA} |sort -n >> ${fn}
           else
-            cat ${AS}_${t}_${s}.txtA >> ${AS}_${t}_${s}.txt
+            cat ${fnA} >> ${fn}
           fi
-          rm ${AS}_${t}_${s}.txtA
+          # rm ${fnA}
         else
 
           # for inversions & transpositions, create dummy lines
           # use gawk because numbers may confuse bash with leading 0s
-          for file in `ls [0-9][0-9][0-9].txt`; do
-            chr=${file%%.*}
-            gawk -v c=${chr} 'BEGIN{print c+1, 0}' >> ${AS}_${t}_${s}.txt
+          for file in `ls | egrep "${AS}_(.+)_intra.txt"`; do
+            chr=${file%_*}
+            chr=${chr##*_}
+            gawk -v c=${chr} 'BEGIN{print c, 0}' >> ${fn}
           done
         fi
         
@@ -95,14 +101,15 @@ function ProcessDirFiles
         # for non-raw types, scan .err files
         # if there multiple files, egrep will prefix the matching line with the filename
         if [ ${numFiles} -gt 1 ]; then
-          egrep " ${t}" [0-9][0-9][0-9].err |egrep ${s} |sed 's/[:.]/ /g' |gawk '{print $1+1, $3}' >> ${AS}_${t}_${s}.txt
+          egrep " ${t}" ${AS}.*.intra.err |egrep ${s} |sed 's/[:.]/ /g' |gawk '{print $2, $5}' |sort -n >> ${fn}
         else
-          filename=`ls [0-9][0-9][0-9].txt`
-          chr=${filename%%.*}
-          egrep " ${t}" [0-9][0-9][0-9].err |egrep ${s} |gawk -v c=${chr} '{print c+1, $1}' >> ${AS}_${t}_${s}.txt
+          filename=`ls |egrep "${AS}_(.+)_intra.txt"`
+          chr=${filename%_*}
+          chr=${chr##*_}
+          egrep " ${t}" ${AS}.*.intra.err |egrep ${s} |gawk -v c=${chr} '{print c, $1}' >> ${fn}
         fi
       fi
-      string="${string} ${AS}_${t}_${s}.txt"
+      string="${string} ${fn}"
     done
 
     # paste together the raw, confirmed, & fewer temporary files
@@ -112,23 +119,19 @@ function ProcessDirFiles
   
     echo "  getting lengths & weights"
     if [ ${numFiles} -gt 1 ]; then
-      egrep weight ${AS}.[0-9][0-9][0-9].${t}.ata |sed 's/[=.]/ /g' |gawk '{print $2+1, $9, $14}' > ${AS}_${t}_lengths_weights.txt
-      egrep "raw satisfied" [0-9][0-9][0-9].err |sed 's/[:.]/ /g' |gawk '{print $1+1, ",", $3}' > ${AS}_satisfied.csv
+      egrep weight ${AS}.*.${t}.ata |sed 's/[=.]/ /g' |gawk '{print $2, $9, $14}' > ${AS}.${t}.lengthsWeights.txt
+      egrep "raw satisfied" ${AS}.*.intra.err |sed 's/[:.]/ /g' |gawk '{print $1, ",", $3}' > ${AS}_satisfied.csv
     else
-      filename=`ls [0-9][0-9][0-9].txt`
-      chr=${filename%%.*}
-      egrep weight ${AS}.[0-9][0-9][0-9].${t}.ata |sed 's/[=.]/ /g' |gawk -v c=${chr} '{print c, $6, $11}' > ${AS}_${t}_lengths_weights.txt
-      egrep "raw satisfied" [0-9][0-9][0-9].err |sed 's/[:.]/ /g' |gawk -v c=${chr} '{print c, ",", $1}' > ${AS}_satisfied.csv
+      filename=`ls | egrep "${AS}_(.+)_intra.txt"`
+      chr=${filename%_*}
+      chr=${chr##*_}
+      egrep weight ${AS}.*.${t}.ata |sed 's/[=.]/ /g' |gawk -v c=${chr} '{print c, $6, $11}' > ${AS}.${t}.lengthsWeights.txt
+      egrep "raw satisfied" ${AS}.*.intra.err |sed 's/[:.]/ /g' |gawk -v c=${chr} '{print c, ",", $1}' > ${AS}_satisfied.csv
 
     fi
   done
 }
 
-if [ -z ${AS} ] || [ ${AS} == "bell-style" ]; then
-  echo "Please identify assembly name"
-  return
-fi
-
 ProcessDirFiles
 
-getLibSpecifics.sh ${AS}
+getLibSpecifics.sh ${AS} ${LIBFILE}

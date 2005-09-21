@@ -1,7 +1,23 @@
+/**************************************************************************
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ * License along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *************************************************************************/
+/* $Id: identifyMistrackedClones.c,v 1.3 2005-09-21 20:13:07 catmandew Exp $ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-//#include <values.h>
+#include <values.h>
 #include <math.h>
 
 #define DEFAULT_NUM_SIGMAS       4
@@ -9,7 +25,8 @@
 
 void usage(char * progname)
 {
-  fprintf(stderr, "Usage: %s [-h] -f lengthsFile  -l libFile  -n libNum  -s sigmas -c count\n"
+  fprintf(stderr, "Usage: %s [-h] -f lengthsFile  -l libFile  -n libNum\n"
+          "\t[-s sigmas]  [-p]  [-z count]  [-o count]  [-t count]\n"
           "  -h               print help\n"
           "  -f lengthsFile   name of file containing clone length data\n"
           "                     default is stdin\n"
@@ -17,7 +34,12 @@ void usage(char * progname)
           "  -n libNum        UID of 'other' library in libFile to check against\n"
           "  -s sigmas        require lengths to be within sigmas from mean\n"
           "                     default is %u\n"
-          "  -c count         require count instances of clone to identify as mistracked\n",
+          "  -p               identify clones if 100%% agree with other lib\n"
+          "  -z count         count instances of clone with zero disagreements identify it as mistracked\n"
+          "  -o count         count instances of clone with one disagreement identify it as mistracked\n\n"
+          "  -t count         count instances of clone with two disagreements identify it as mistracked\n\n"
+          "Output is written to stdout.\n"
+          "If clone has a disagreement, the disagreeing distance is written\n",
 
           progname, DEFAULT_NUM_SIGMAS);
   exit(1);
@@ -33,7 +55,10 @@ int main(int argc, char ** argv)
   char line[2048];
   unsigned long n;
   unsigned long long libNum;
-  unsigned int minCount = 0;
+  unsigned int minZCount = 0;
+  unsigned int minOCount = 0;
+  unsigned int minTCount = 0;
+  int do100Pct = 0;
   double numSigmas = DEFAULT_NUM_SIGMAS;
   double val;
   double mean;
@@ -42,7 +67,7 @@ int main(int argc, char ** argv)
   // scope for scope's sake
   {
     int ch;
-    while((ch = getopt(argc, argv, "hf:l:n:s:c:")) != EOF)
+    while((ch = getopt(argc, argv, "hf:l:n:s:z:o:t:p")) != EOF)
     {
       switch(ch)
       {
@@ -61,8 +86,17 @@ int main(int argc, char ** argv)
         case 's':
           numSigmas = atoi(optarg);
           break;
-        case 'c':
-          minCount = atoi(optarg);
+        case 'z':
+          minZCount = atoi(optarg);
+          break;
+        case 'o':
+          minOCount = atoi(optarg);
+          break;
+        case 't':
+          minTCount = atoi(optarg);
+          break;
+        case 'p':
+          do100Pct = 1;
           break;
         default:
           usage(argv[0]);
@@ -71,7 +105,7 @@ int main(int argc, char ** argv)
     }
   }
 
-  if(minCount <= 1 || numSigmas <= 0)
+  if(minZCount <= 1 || numSigmas <= 0 || minOCount <= 0)
     usage(argv[0]);
   
   // read lib info
@@ -96,9 +130,20 @@ int main(int argc, char ** argv)
     unsigned long long minUID;
     unsigned long long maxUID;
     unsigned long long lastMinUID = 0;
-    int thisUIDCount = 1;
+    unsigned long long lastMaxUID = 0;
+    int numThisUID = 1;
+    int numThisUIDOkay = 0;
+    double printLength;
+    double lastVal;
 
-    fprintf(stderr, "Identifying clones between %lf and %lf bp with %d or more instances\n", minLength, maxLength, minCount);
+    fprintf(stderr, "Identifying clones between %lf and %lf bp with\n"
+            "%d or more non-conflicting instances or with\n"
+            "%d or more instances with at most one conflict or with\n"
+            "%d or more instances with at most two conflicts\n",
+            minLength, maxLength, minZCount, minOCount, minTCount);
+
+    if(do100Pct)
+      fprintf(stderr, "Or if 100%% of clones agree\n");
       
     if(dfn == NULL || (dfp = fopen(dfn, "r")) == NULL)
       usage(argv[0]);
@@ -106,24 +151,51 @@ int main(int argc, char ** argv)
     {
       sscanf(line, "%lf %llu %llu", &val, &minUID, &maxUID);
 
-      if(val < minLength || val > maxLength) continue;
-
       if(minUID == lastMinUID)
       {
-        thisUIDCount++;
+        numThisUID++;
       }
       else
       {
-        if(thisUIDCount >= minCount)
+        printLength = ((numThisUIDOkay != numThisUID) ? printLength : lastVal);
+        if(((numThisUIDOkay >= minZCount || do100Pct) &&
+            numThisUIDOkay == numThisUID) ||
+           (numThisUIDOkay >= minOCount && numThisUID - numThisUIDOkay == 1) ||
+           (numThisUIDOkay >= minTCount && numThisUID - numThisUIDOkay == 2))
         {
-          fprintf(stdout, "%lf %llu %llu %d\n",
-                  val, minUID, maxUID, thisUIDCount);
+          fprintf(stdout, "%lf %llu %llu %d %d\n",
+                  printLength, lastMinUID, lastMaxUID,
+                  numThisUIDOkay, numThisUID - numThisUIDOkay);
         }
-        thisUIDCount = 1;
+        numThisUID = 1;
+        numThisUIDOkay = 0;
       }
+      
+      if(val < minLength || val > maxLength)
+      {
+        printLength = val;
+      }
+      else
+      {
+        numThisUIDOkay++;
+      }
+
+      lastVal = val;
       lastMinUID = minUID;
+      lastMaxUID = maxUID;
     } // lines in file
     fclose(lfp);
+
+    printLength = ((numThisUIDOkay != numThisUID) ? printLength : lastVal);
+    if(((numThisUIDOkay >= minZCount || do100Pct) &&
+        numThisUIDOkay == numThisUID) ||
+       (numThisUIDOkay >= minOCount && numThisUID - numThisUIDOkay == 1) ||
+       (numThisUIDOkay >= minTCount && numThisUID - numThisUIDOkay == 2))
+    {
+      fprintf(stdout, "%lf %llu %llu %d %d\n",
+              printLength, lastMinUID, lastMaxUID,
+              numThisUIDOkay, numThisUID - numThisUIDOkay);
+    }
   } // scope
 
   return 0;

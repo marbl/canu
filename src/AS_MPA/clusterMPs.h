@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: clusterMPs.h,v 1.4 2005-03-22 19:48:57 jason_miller Exp $ */
+/* $Id: clusterMPs.h,v 1.5 2005-09-21 20:13:07 catmandew Exp $ */
 #ifndef CLUSTERMPS_H
 #define CLUSTERMPS_H
 
@@ -41,10 +41,15 @@ void ClusterMPPs(const vector<CompositeMPPolygon<UNIT_TYPE> > & mpps,
                  vector<CompositeMPPolygon<UNIT_TYPE> > & fmpps,
                  MatePairIndex_e mpii, unsigned int filterThresh);
 void RefineInversions(vector<CompositeMPPolygon<UNIT_TYPE> > & cmpps,
+                      vector<CompositeMPPolygon<UNIT_TYPE> > & polys,
                       const vector<MatePair> & smpsv,
                       unsigned int filterThresh);
 void RefineStretched(vector<CompositeMPPolygon<UNIT_TYPE> > & cmpps,
                      const vector<MatePair> & smpsv);
+void RefineWithSatisfied(vector<CompositeMPPolygon<UNIT_TYPE> > & cmpps,
+                         vector<CompositeMPPolygon<UNIT_TYPE> > & polys,
+                         const vector<MatePair> & smpsv,
+                         MatePairIndex_e mpii);
 void DetectTranspositions(const vector<CompositeMPPolygon<UNIT_TYPE> > & compressed,
                           const vector<CompositeMPPolygon<UNIT_TYPE> > & stretched,
                           const vector<CompositeMPPolygon<UNIT_TYPE> > & outties,

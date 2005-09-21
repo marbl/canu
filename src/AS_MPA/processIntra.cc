@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: processIntra.cc,v 1.5 2005-08-05 00:56:41 catmandew Exp $ */
+/* $Id: processIntra.cc,v 1.6 2005-09-21 20:13:07 catmandew Exp $ */
 #include <cstdio>  // for sscanf
 #include <iostream>
 #include <iomanip>
@@ -56,17 +56,17 @@ char * MatePairLabel[MPI_NUM_INDICES] =
   "inversion",
   "transposition",
   "satisfied",
-  "interChromosome",
+  "interSequence",
   "unknown"
 };
 
 void PrintRawMatePairs(vector<CompositeMPPolygon<UNIT_TYPE> > & cmpps,
                        MatePairIndex_e mpii,
-                       char * assembly, char * chromosome)
+                       char * assembly, char * seqID)
 {
   char outFilename[1024];
   sprintf(outFilename, "%s.%s.%s.raw",
-          assembly, chromosome, MatePairLabel[mpii]);
+          assembly, seqID, MatePairLabel[mpii]);
   ofstream myOS(outFilename, ios::out);
   
   vector<CompositeMPPolygon<UNIT_TYPE> >::iterator iter;
@@ -102,11 +102,11 @@ void PrintRawMatePairs(vector<CompositeMPPolygon<UNIT_TYPE> > & cmpps,
 
 
 void PrintRawSatisfiedMatePairs(vector<MatePair> & smpsv,
-                                char * assembly, char * chromosome)
+                                char * assembly, char * seqID)
 {
   char outFilename[1024];
   sprintf(outFilename, "%s.%s.%s.raw",
-          assembly, chromosome, MatePairLabel[MPI_SATISFIED]);
+          assembly, seqID, MatePairLabel[MPI_SATISFIED]);
   ofstream myOS(outFilename, ios::out);
 
   vector<MatePair>::iterator iter;
@@ -122,47 +122,116 @@ void PrintRawSatisfiedMatePairs(vector<MatePair> & smpsv,
   myOS.close();
 }
 
-
-void PrintBasicOutput(vector<CompositeMPPolygon<UNIT_TYPE> > & printmpps,
-                      MatePairIndex_e mpii,
-                      vector<CompositeMPPolygon<UNIT_TYPE> > & mpps,
-                      map<uint64, int> & mppsMap,
-                      char * assembly,
-                      char * chromosome,
-                      double numStddevs,
-                      int * localUID,
-                      bool printGnuplot)
+void PrintSingleBPFieldLabels(ofstream & listOS)
 {
-  char outFilename[1024];
-  sprintf(outFilename, "%s.%s.%s.ata",
-          assembly, chromosome, MatePairLabel[mpii]);
-  ofstream myOS(outFilename, ios::out);
-  myOS << "! format ata 1.0\n";
-  myOS << "# numStddevs=" << numStddevs << endl;
+  listOS << "Breakpoint Interval\t\t"
+         << "Deleted Length\t\t"
+         << "Weight\n";
+  listOS << "Left\t"
+         << "Length\t"
+         << "Min\t"
+         << "Max\t"
+         << "Mates\n";
+}
+
+void PrintDoubleBPFieldLabels(ofstream & listOS)
+{
+  listOS << "Breakpoint Intervals\n";
   
+  listOS << "Left Interval\t\t"
+         << "Right Interval\t\t"
+         << "Problem Length\t"
+         << "Weight\n";
+
+  listOS << "Left\t"
+         << "Length\t"
+         << "Left\t"
+         << "Length\t"
+         << "Estimate\t"
+         << "Mates\n";
+}
+
+void PrintOutput(vector<CompositeMPPolygon<UNIT_TYPE> > & printmpps,
+                 MatePairIndex_e mpii,
+                 vector<CompositeMPPolygon<UNIT_TYPE> > & mpps,
+                 map<uint64, int> & mppsMap,
+                 char * assembly,
+                 char * seqID,
+                 char * status,
+                 double numStddevs,
+                 int * relativeID,
+                 ofstream & listOS,
+                 bool printATA,
+                 bool printGnuplot)
+{
+  char label[1024];
+  char outFilename[1024];
+  ofstream ataOS, gnuOS;
+
+  switch(mpii)
+  {
+    case MPI_STRETCHED:
+      sprintf(label, "insertion");
+      break;
+    case MPI_COMPRESSED:
+      sprintf(label, "deletion");
+      break;
+    default:
+      sprintf(label, MatePairLabel[mpii]);
+      break;
+  }
+  
+  if(printATA)
+  {
+    sprintf(outFilename, "%s.%s.%s.%s.ata",
+            assembly, seqID, status, label);
+    ataOS.open(outFilename, ios::out);
+    ataOS << "! format ata 1.0\n";
+    ataOS << "# numStddevs=" << numStddevs << endl;
+  }
+    
+  if(printGnuplot)
+  {
+    sprintf(outFilename, "%s.%s.%s.%s.gp",
+            assembly, seqID, status, label);
+    gnuOS.open(outFilename, ios::out);
+  }
+
+  listOS << "======> " << label << " <======\n";
+  if(mpii == MPI_COMPRESSED)
+    PrintSingleBPFieldLabels(listOS);
+  else
+    PrintDoubleBPFieldLabels(listOS);
+
   vector<CompositeMPPolygon<UNIT_TYPE> >::iterator mppIter;
   for(mppIter = printmpps.begin(); mppIter != printmpps.end(); mppIter++)
   {
-    mppIter->printATA(myOS, assembly, chromosome, (*localUID)++, true);
-  }
-  myOS.close();
-  
-  if(printGnuplot)
-  {
-    sprintf(outFilename, "%s.%s.%s.gp",
-            assembly, chromosome, MatePairLabel[mpii]);
-    myOS.open(outFilename, ios::out);
-    for(mppIter = printmpps.begin(); mppIter != printmpps.end(); mppIter++)
+    if(printATA)
+      mppIter->printATA(ataOS, assembly, seqID, (*relativeID)++, true);
+
+    if(printGnuplot)
     {
-      mppIter->printForGnuplot(myOS);
+      CompressedRepresentation_e cr = (mpii == MPI_COMPRESSED ?
+                                       CR_NATIVE : CR_COMPATIBLE);
+      
+      mppIter->printForGnuplot(gnuOS, cr);
       
       for(unsigned int i = 0; i < mppIter->getNumMPs(); i++)
       {
-        mpps[mppsMap[(mppIter->getMP(i)).getLeftFragUID()]].printForGnuplot(myOS);
+        mpps[mppsMap[(mppIter->getMP(i)).getLeftFragUID()]].printForGnuplot(gnuOS, cr);
       }
     }
-    myOS.close();
+
+    mppIter->printSummary(listOS);
   }
+  
+  listOS << "\n";
+  
+  if(printGnuplot)
+    gnuOS.close();
+  
+  if(printATA)
+    ataOS.close();
 }
 
 
@@ -175,17 +244,15 @@ void Usage(char * progname, char * message)
   cerr << "\t-m mps        name of mate pair file\n";
   cerr << "\t                filename must have form:\n";
   cerr << "\t                assemblyName_#_intra.txt\n";
-  cerr << "\t                where # is the scaffold or chromosome number\n";
+  cerr << "\t                where # is the sequence number, such as a\n";
+  cerr << "\t                scaffold or chromosome number\n";
   cerr << "\t-n #stddevs   number of stddevs from mean that is excessive\n";
   cerr << "\t                default is " << STDDEVS_THRESHOLD << endl;
-  /*
-  cerr << "\t-a assembly   ata assembly name\n";
-  cerr << "\t-c chrom      chromosome number (index into fasta file)\n";
-  */
-  cerr << "\t-g            do not print gnuplot output\n";
+  cerr << "\t-a            generate ATA-formatted output\n";
+  cerr << "\t-g            generate gnuplot output\n";
+  cerr << "\t-r            dump raw mate pairs to files\n";
   cerr << "\t-f #          filter out mate pair sets with fewer members\n";
   cerr << "\t                default is " << CONFIRMATION_THRESHOLD << endl;
-  cerr << "\t-e            process 'elsewheres'";
   cerr << "\n\n";
   exit(1);
 }
@@ -195,21 +262,20 @@ int main(int argc, char ** argv)
 {
   char * libFilename = NULL;
   char * mpFilename = NULL;
-  // char * assembly = NULL;
-  // int chromosome = -1;
   char assembly[4096];
-  char chromosome[4096];
+  char seqID[4096];
   double numStddevs = STDDEVS_THRESHOLD;
   unsigned int filterThresh = CONFIRMATION_THRESHOLD;
-  bool printGnuplot = true;
+  bool printATA = false;
+  bool printGnuplot = false;
+  bool printRaw = false;
   unsigned int i;
-  int localUID = 1;
-  MatePairIndex_e maxMPIndex = MPI_TRANSPOSITION;
+  int relativeID = 1;
   
   {
     int ch, errflg = 0;
     // while(!errflg && ((ch = getopt(argc, argv, "l:m:n:a:c:gf:e")) != EOF))
-    while(!errflg && ((ch = getopt(argc, argv, "l:m:n:gf:e")) != EOF))
+    while(!errflg && ((ch = getopt(argc, argv, "l:m:n:agrf:e")) != EOF))
     {
       switch(ch)
       {
@@ -222,22 +288,16 @@ int main(int argc, char ** argv)
         case 'n':
           numStddevs = atof(optarg);
           break;
-        /*
         case 'a':
-          assembly = optarg;
+          printATA = true;
           break;
-        case 'c':
-          chromosome = atoi(optarg);
-          break;
-        */
         case 'g':
-          printGnuplot = false;
+          printGnuplot = true;
           break;
+        case 'r':
+          printRaw = true;
         case 'f':
           filterThresh = atoi(optarg);
-          break;
-        case 'e':
-          maxMPIndex = MPI_ANTINORMAL;
           break;
         default:
           errflg++;
@@ -250,20 +310,15 @@ int main(int argc, char ** argv)
       Usage(argv[0], "Please specify a mate pair filename");
     if(numStddevs <= 0)
       Usage(argv[0], "Please specify a positive number of std deviations");
-    /*
-    if(assembly == NULL)
-      Usage(argv[0], "Please specify an assembly name");
-    if(chromosome < 0)
-      Usage(argv[0], "Please specify a chromosome number");
-    */
+
     {
       char * ptr;
       strcpy(assembly, mpFilename);
       ptr = index(assembly, (int) '_');
       assert(ptr != NULL);
       ptr[0] = '\0';
-      strcpy(chromosome, ++ptr);
-      ptr = index(chromosome, (int) '_');
+      strcpy(seqID, ++ptr);
+      ptr = index(seqID, (int) '_');
       assert(ptr != NULL);
       ptr[0] = '\0';
     }
@@ -277,7 +332,7 @@ int main(int argc, char ** argv)
     cerr << "Failed to open " << libFilename << " for reading\n";
     exit(-1);
   }
-  cerr << "Reading clone library data from file " << libFilename << endl;
+  // cerr << "Reading clone library data from file " << libFilename << endl;
   ReadCloneLibs(libs, flib);
   flib.close();
 
@@ -308,17 +363,20 @@ int main(int argc, char ** argv)
       cerr << "Failed to open " << mpFilename << " for reading\n";
       exit(-1);
     }
-    cerr << "Reading mate pair data in file " << mpFilename << endl;
+    // cerr << "Reading mate pair data in file " << mpFilename << endl;
     ReadMatePairs(mps, fmp);
     fmp.close();
 
-    cerr << "Separating mate pairs by type\n";
     // separate mate pairs by type
+    // and count number in each library
+    // and identify right-most coordinate
     list<MatePair> mpl[MPI_NUM_INDICES];
     list<MatePair>::iterator mpli;
     int badLibMatePairs = 0;
+    uint64 rightMostCoord = 0;
     for(i = 0; i < mps.size(); i++)
     {
+      libs[mps[i].getLibUID()].incrementCount();
       if(libs[mps[i].getLibUID()].getMean() >=
          (numStddevs + .1) * libs[mps[i].getLibUID()].getStddev())
       {
@@ -341,16 +399,29 @@ int main(int argc, char ** argv)
       {
         badLibMatePairs++;
       }
+      rightMostCoord = (rightMostCoord > mps[i].getRightCoord() ?
+                        rightMostCoord : mps[i].getRightCoord());
     }
-    cerr << "Omitted " << badLibMatePairs << " matepair(s) from bad clone libraries\n";
     
-    cerr << "Sorting mate pairs left to right\n";
+    cout << rightMostCoord
+         << " is right-most coordinate of any mated fragment\n";
+    for(liter = libs.begin(); liter != libs.end(); liter++)
+    {
+      CloneLibrary lib = (CloneLibrary) (*liter).second;
+      cout << lib.getCount()
+           << " clones from library "
+           << lib.getUID() << "\n";
+    }
+    cout << badLibMatePairs
+         << " mate pairs omitted from bad clone libraries\n";
+    
+    // cerr << "Sorting mate pairs left to right\n";
     // sort by left coordinate, remove coincident pairs, & populate vectors
     int numCoincident = 0;
     int numKept = 0;
     for(int mpii = 0; mpii < MPI_INVERSION; mpii++)
     {
-      cerr << "Working on " << MatePairLabel[mpii] << endl;
+      // cerr << "Working on " << MatePairLabel[mpii] << endl;
       if(mpl[mpii].size() > 1)
         mpl[mpii].sort();
 
@@ -373,6 +444,7 @@ int main(int argc, char ** argv)
                                        numStddevs);
         CompositeMPPolygon<UNIT_TYPE> cmpp(mpp);
 
+        // rotate polygon cw 45deg so it's more orthogonally rectangular
         if(mpii != MPI_COMPRESSED)
           cmpp.rotateByDegrees(45);
         mpps[mpii].push_back(cmpp);
@@ -381,8 +453,7 @@ int main(int argc, char ** argv)
         mppsMap[mpii][mpli->getLeftFragUID()] = mpps[mpii].size() - 1;
 
         // for detecting inversions
-        if(maxMPIndex >= MPI_INVERSION &&
-           (cmpp.isNormal() || cmpp.isAntinormal()))
+        if(cmpp.isNormal() || cmpp.isAntinormal())
         {
           mppsMap[MPI_INVERSION][mpli->getLeftFragUID()] =
             mpps[MPI_INVERSION].size();
@@ -390,9 +461,9 @@ int main(int argc, char ** argv)
         }
           
         // for detecting transpositions
-        if(maxMPIndex >= MPI_TRANSPOSITION &&
-           (cmpp.isOuttie() || cmpp.isStretched() || cmpp.isCompressed()))
+        if(cmpp.isOuttie() || cmpp.isStretched() || cmpp.isCompressed())
         {
+          // matepairs are not rotated relative to genomic axis
           if(!cmpp.isCompressed())
             cmpp.rotateByDegrees(-45);
           mppsMap[MPI_TRANSPOSITION][mpli->getLeftFragUID()] =
@@ -403,7 +474,7 @@ int main(int argc, char ** argv)
         numCoincident--;
         numKept++;
         // remove this & all coincident mate pairs
-        // NOTE: this won't necessarily remove all coincident matepairs...
+        // NOTE: this won't necessarily remove all coincident mate pairs...
         MatePair mp(*mpli);
         while(mpli != mpl[mpii].end() &&
               mpli->getLeftCoord() + COINCIDENT_THRESHOLD >=
@@ -419,18 +490,21 @@ int main(int argc, char ** argv)
           numCoincident++;
         }
       }
-      PrintRawMatePairs(mpps[mpii], (MatePairIndex_e) mpii,
-                        assembly, chromosome);
+      if(printRaw)
+      {
+        PrintRawMatePairs(mpps[mpii], (MatePairIndex_e) mpii,
+                          assembly, seqID);
+      }
     }
     
-    // filter out coincident satisfied matepairs
-    // NOTE: this won't necessarily remove all coincident matepairs...
+    // filter out coincident satisfied mate pairs
+    // NOTE: this won't necessarily remove all coincident mate pairs...
     mpl[MPI_SATISFIED].sort();
     for(mpli = mpl[MPI_SATISFIED].begin(); mpli != mpl[MPI_SATISFIED].end();)
     {
       list<MatePair>::iterator mpliKeep = mpli;
       mpli++;
-      // delete all (directly) subsequent matepairs coincident with this one
+      // delete all (directly) subsequent mate pairs coincident with this one
       while(mpli != mpl[MPI_SATISFIED].end() &&
             mpli->getLeftCoord() + COINCIDENT_THRESHOLD >=
             mpliKeep->getLeftCoord() &&
@@ -445,7 +519,8 @@ int main(int argc, char ** argv)
         numCoincident++;
       }
     }
-    cerr << "Deleted " << numCoincident << " coincident mate pairs\n";
+    cout << numCoincident
+         << " coincident mate pairs deleted\n";
 
     // duplicate each entry in satisfied for later filtering
     int numTotal = mpl[MPI_SATISFIED].size();
@@ -463,144 +538,221 @@ int main(int argc, char ** argv)
     }
     mpl[MPI_SATISFIED].sort();
 
-    // copy satisfied matepairs into vector form
+    // copy satisfied mate pairs into vector form
     for(mpli = mpl[MPI_SATISFIED].begin();
         mpli != mpl[MPI_SATISFIED].end();
         mpli++)
     {
       smpsv.push_back(*mpli);
     }
-    PrintRawSatisfiedMatePairs(smpsv, assembly, chromosome);
+    if(printRaw)
+      PrintRawSatisfiedMatePairs(smpsv, assembly, seqID);
       
-    cerr << numKept << " unsatisfied mate pairs to be processed\n";
+    cout << smpsv.size() / 2 << " raw "
+         << MatePairLabel[MPI_SATISFIED] << " mate pairs\n";
+
+    cout << numKept << " unsatisfied mate pairs to be processed\n";
+    if(numKept == 0)
+      return 0;
   }
 
-  for(int l = 0; i < maxMPIndex; i++)
+  for(int l = 0; l < MPI_INVERSION; l++)
   {
-    cerr << mpps[l].size() << " raw " << MatePairLabel[l] << " on input\n";
+    cout << mpps[l].size() << " raw " << MatePairLabel[l] << " mate pairs\n";
   }
-  if(maxMPIndex <= MPI_SATISFIED)
-  {
-    cerr << smpsv.size() / 2 << " raw "
-         << MatePairLabel[MPI_SATISFIED] << " on input\n";
-  }
-
 #ifdef DEBUG_PROCESSMPS
   cerr << "Looking for unions of intersecting MBRs\n";
 #endif
   
-  cerr << "Processing mate pair polygons\n";
+  // cerr << "Processing mate pair polygons\n";
+
+  ofstream listOS;
+  {
+    char tempFN[1024];
+    sprintf(tempFN, "%s.%s.intra.breakpoints.txt", assembly, seqID);
+    listOS.open(tempFN, ios::out);
+    if(!listOS.good())
+    {
+      cerr << "Failed to open " << tempFN << " for writing\n";
+      exit(-1);
+    }
+  }
   
   vector<CompositeMPPolygon<UNIT_TYPE> > cmpps[MPI_NUM_INDICES]; // clustered
   list<Rectangle<int, UNIT_TYPE> > rects1;
-  for(int mpii = 0; mpii < maxMPIndex; mpii++)
+  for(int mpii = 0; mpii <= MPI_INVERSION; mpii++)
   {
-    cerr << "  working on " << MatePairLabel[mpii] << "...\n";
+    vector<CompositeMPPolygon<UNIT_TYPE> > probs; // problematic
+    vector<CompositeMPPolygon<UNIT_TYPE> > fews; // below-threshold
+    vector<CompositeMPPolygon<UNIT_TYPE> > polys; // polymorphic
+    vector<CompositeMPPolygon<UNIT_TYPE> > misls; // mis-labeled libs
+
+    // cerr << "  working on " << MatePairLabel[mpii] << "...\n";
     rects1.clear();
     if(mpps[mpii].size() > 0)
     {
 #ifdef DEBUG_PROCESSMPS
       cerr << "Processing " << MatePairLabel[mpii] << endl;
 #endif
-  
-      // do the clustering
-      vector<CompositeMPPolygon<UNIT_TYPE> > pmpps; // problematic
-      vector<CompositeMPPolygon<UNIT_TYPE> > fmpps; // filtered out
-      vector<CompositeMPPolygon<UNIT_TYPE> > mmpps; // mis-labelled libs
 
-      ClusterMPPs(mpps[mpii], cmpps[mpii], pmpps, fmpps,
+      // non-compressed mate pairs are all rotated cw 45deg
+      // relative to genomic axis
+      ClusterMPPs(mpps[mpii], cmpps[mpii], probs, fews,
                   (MatePairIndex_e) mpii, filterThresh);
 
-      // unrotate
+      // rotate back to genomic axis
       if(mpii != MPI_COMPRESSED)
       {
         for(unsigned int i = 0; i < mpps[mpii].size(); i++)
           mpps[mpii][i].rotateByDegrees(-45);
         for(unsigned int i = 0; i < cmpps[mpii].size(); i++)
           cmpps[mpii][i].rotateByDegrees(-45);
-        for(unsigned int i = 0; i < pmpps.size(); i++)
-          pmpps[i].rotateByDegrees(-45);
-        for(unsigned int i = 0; i < fmpps.size(); i++)
-          fmpps[i].rotateByDegrees(-45);
+        for(unsigned int i = 0; i < probs.size(); i++)
+          probs[i].rotateByDegrees(-45);
+        for(unsigned int i = 0; i < fews.size(); i++)
+          fews[i].rotateByDegrees(-45);
       }
 
       // filter out compressed/stretched that are in the wrong library
       if(mpii == MPI_STRETCHED || mpii == MPI_COMPRESSED)
       {
-        FilterMislabelledLibs(cmpps[mpii], mmpps, 10);
-        if(mmpps.size() > 0)
+        // FilterMislabelledLibs is rotation-independent
+        FilterMislabelledLibs(cmpps[mpii], misls, 10);
+        if(misls.size() > 0)
         {
-          char myChrom[4096];
-          sprintf(myChrom, "%s_misLabelledOrPolymorphic", chromosome);
-          PrintBasicOutput(mmpps, (MatePairIndex_e) mpii,
-                           mpps[mpii], mppsMap[mpii],
-                           assembly, myChrom, numStddevs,
-                           &localUID, printGnuplot);
+          listOS << "Possibly mislabeled clone lib clusters of type\n";
+
+          // PrintOutput] assumes rotation to genomic axis
+          PrintOutput(misls, (MatePairIndex_e) mpii,
+                      mpps[mpii], mppsMap[mpii],
+                      assembly, seqID, "misLabeled", numStddevs,
+                      &relativeID, listOS, printATA, printGnuplot);
         }
       }
       
-      // not all overlapping normal/antinormals are consistent with a inversion
-      if(mpii == MPI_INVERSION)
-        RefineInversions(cmpps[mpii], smpsv, filterThresh);
-
-      if(mpii == MPI_STRETCHED)
-        RefineStretched(cmpps[mpii], smpsv);
-      
-      if(cmpps[mpii].size() > 0)
+      if(mpii == MPI_STRETCHED ||
+         mpii == MPI_COMPRESSED ||
+         mpii == MPI_INVERSION)
       {
-        PrintBasicOutput(cmpps[mpii], (MatePairIndex_e) mpii,
-                         mpps[mpii], mppsMap[mpii],
-                         assembly, chromosome, numStddevs,
-                         &localUID, printGnuplot);
-      }
+        if(mpii == MPI_STRETCHED || mpii == MPI_INVERSION)
+        {
+          // RefineWithSatisfied assumes rotation to genomic axis
+          if(mpii == MPI_STRETCHED)
+            RefineWithSatisfied(cmpps[mpii], polys, smpsv,
+                                (MatePairIndex_e) mpii);
+          else
+            RefineInversions(cmpps[mpii], polys, smpsv, filterThresh);
+            
+          if(polys.size() > 0)
+          {
+            listOS << "Possibly polymorphic regions of type\n";
+            
+            PrintOutput(polys, (MatePairIndex_e) mpii,
+                        mpps[mpii], mppsMap[mpii],
+                        assembly, seqID, "polymorphic", numStddevs,
+                        &relativeID, listOS, printATA, printGnuplot);
+          }
+        }
 
-      if(pmpps.size() > 0)
-      {
+        if(probs.size() > 0)
+        {
 #ifdef DEBUG_PROCESSMPS
-        cerr << pmpps.size() << " problematic mate pair groups:\n";
-        
-        vector<CompositeMPPolygon<UNIT_TYPE> >::iterator mppIter;
-        for(mppIter = pmpps.begin(); mppIter != pmpps.end(); mppIter++)
-        {
-          cerr << "# No intersection for this set of mate pairs:\n";
-          cerr << "# Category: " << MatePairLabel[mpii] << endl;
-          cerr << "# MBR intersection: " << *mppIter << endl << endl;
-        }
+          vector<CompositeMPPolygon<UNIT_TYPE> >::iterator mppIter;
+          for(mppIter = probs.begin(); mppIter != probs.end(); mppIter++)
+          {
+            cerr << "# No intersection for this set of mate pairs:\n";
+            cerr << "# Category: " << MatePairLabel[mpii] << endl;
+            cerr << "# MBR intersection: " << *mppIter << endl << endl;
+          }
 #endif
+          {
+            listOS << "Problematic sets of type\n";
+
+            PrintOutput(probs, (MatePairIndex_e) mpii,
+                        mpps[mpii], mppsMap[mpii],
+                        assembly, seqID, "problematic", numStddevs,
+                        &relativeID, listOS, printATA, printGnuplot);
+          }
+        }
+        
+        if(cmpps[mpii].size() > 0)
         {
-          char myChrom[4096];
-          sprintf(myChrom, "%s_problematic", chromosome);
-          PrintBasicOutput(pmpps, (MatePairIndex_e) mpii,
-                           mpps[mpii], mppsMap[mpii],
-                           assembly, myChrom, numStddevs,
-                           &localUID, printGnuplot);
+          listOS << "Confirmed sets of type\n";
+
+          PrintOutput(cmpps[mpii], (MatePairIndex_e) mpii,
+                      mpps[mpii], mppsMap[mpii],
+                      assembly, seqID, "confirmed", numStddevs,
+                      &relativeID, listOS, printATA, printGnuplot);
         }
       }
-      cerr << cmpps[mpii].size() << " " << MatePairLabel[mpii]
-           << " matepair sets 'confirmed'.\n";
-      cerr << fmpps.size() << " " << MatePairLabel[mpii]
-           << " matepairs sets with fewer than "
-           << filterThresh << " members.\n";
     }
+    cout << probs.size() << " problematic " << MatePairLabel[mpii]
+         << " mate pair sets\n";
+    cout << cmpps[mpii].size() << " confirmed " << MatePairLabel[mpii]
+         << " mate pair sets\n";
+    cout << fews.size() << " below-threshold "
+         << MatePairLabel[mpii]
+         << " mate pair sets (<"
+         << filterThresh << ")\n";
   }
 
-  DetectTranspositions(mpps[MPI_COMPRESSED],
-                       mpps[MPI_STRETCHED],
-                       cmpps[MPI_OUTTIE],
-                       cmpps[MPI_TRANSPOSITION],
+  DetectTranspositions(mpps[MPI_COMPRESSED], // not rotated, raw
+                       mpps[MPI_STRETCHED], // not rotated, raw
+                       cmpps[MPI_OUTTIE], // not rotated, clustered
+                       cmpps[MPI_TRANSPOSITION], // not rotated, empty
                        libs,
                        numStddevs,
                        filterThresh);
-  cerr << cmpps[MPI_TRANSPOSITION].size() << " "
+  cout << cmpps[MPI_TRANSPOSITION].size() << " confirmed "
        << MatePairLabel[MPI_TRANSPOSITION]
-       << " matepair sets 'confirmed'.\n";
+       << " mate pair sets\n";
   if(cmpps[MPI_TRANSPOSITION].size() > 0)
   {
-    PrintBasicOutput(cmpps[MPI_TRANSPOSITION], MPI_TRANSPOSITION,
-                     mpps[MPI_TRANSPOSITION], mppsMap[MPI_TRANSPOSITION],
-                     assembly, chromosome, numStddevs,
-                     &localUID, printGnuplot);
+    listOS << "Confirmed sets of type\n";
+    
+    PrintOutput(cmpps[MPI_TRANSPOSITION], MPI_TRANSPOSITION,
+                mpps[MPI_TRANSPOSITION], mppsMap[MPI_TRANSPOSITION],
+                assembly, seqID, "confirmed", numStddevs,
+                &relativeID, listOS, printATA, printGnuplot);
+
+    // identify stretched & compressed double-counted in transpositions
+    vector<CompositeMPPolygon<UNIT_TYPE> >::iterator mppIter;
+    map<ID_TYPE, int> inTransps;
+    for(mppIter = cmpps[MPI_TRANSPOSITION].begin();
+        mppIter != cmpps[MPI_TRANSPOSITION].end();
+        mppIter++)
+    {
+      for(unsigned int i = 0; i < mppIter->getNumMPs(); i++)
+      {
+        if(mppIter->getMP(i).getOrientation() == PAIR_INNIE)
+          inTransps[mppIter->getMP(i).getLeftFragUID()] = 0;
+      }
+    }
+
+    for(int q = 0; q < 2; q++)
+    {
+      MatePairIndex_e mpii = (q == 0 ? MPI_STRETCHED : MPI_COMPRESSED);
+      int doubleCounted = 0;
+      for(mppIter = cmpps[mpii].begin();
+          mppIter != cmpps[mpii].end();
+          mppIter++)
+      {
+        for(unsigned int i = 0; i < mppIter->getNumMPs(); i++)
+        {
+          if(inTransps.find(mppIter->getMP(i).getLeftFragUID()) !=
+             inTransps.end())
+          {
+            doubleCounted++;
+            break;
+          }
+        }
+      }
+      cout << doubleCounted << " confirmed "
+           << (mpii == MPI_STRETCHED ? "insertions " : "deletions ")
+           << "used to confirm transpositions\n";
+    }
   }
+  listOS.close();
 
   return 0;
 }

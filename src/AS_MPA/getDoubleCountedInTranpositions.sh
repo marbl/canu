@@ -1,4 +1,4 @@
-#!/usr/local/bin/bash
+#!/bin/bash
 #
 ###########################################################################
 #
@@ -22,7 +22,7 @@
 #
 ###########################################################################
 #
-# $Id: getDoubleCountedInTranpositions.sh,v 1.4 2005-03-22 19:48:58 jason_miller Exp $
+# $Id: getDoubleCountedInTranpositions.sh,v 1.5 2005-09-21 20:13:07 catmandew Exp $
 #
 
 if [ -z ${1} ] || [ ${1} == "bell-style" ]; then
@@ -34,13 +34,13 @@ AS=${1}
 
 InnieATACode=mi
 
-egrep ${InnieATACode} ${AS}.0[0-9][0-9].transposition.ata |sed 's/[-=]/ /g' |gawk '{print $4, $17, $20}' |gawk 'BEGIN{last=-1}{if($1!=last){if(last!=-1)printf("\n");last=$1;printf("%d %s %s", $1, $2, $3)}else{printf(" %s %s", $2, $3)}}' > transpInnies.txt
+egrep ${InnieATACode} ${AS}.*.transposition.ata |sed 's/[-=]/ /g' |gawk '{print $4, $17, $20}' |gawk 'BEGIN{last=-1}{if($1!=last){if(last!=-1)printf("\n");last=$1;printf("%d %s %s", $1, $2, $3)}else{printf(" %s %s", $2, $3)}}' > transpInnies.txt
 
 gawk '{for(n=2;n<=NF;n++){print $n}}' transpInnies.txt > transpInnieUIDs.txt
 
-egrep ${InnieATACode} ${AS}.0[0-9][0-9].compressed.ata |sed 's/[-=]/ /g' |gawk '{print $4, $17, $20}' |gawk 'BEGIN{last=-1}{if($1!=last){if(last!=-1)printf("\n");last=$1;printf("%d %s %s", $1, $2, $3)}else{printf(" %s %s", $2, $3)}}' > compressedInnies.txt
+egrep ${InnieATACode} ${AS}.*.compressed.ata |sed 's/[-=]/ /g' |gawk '{print $4, $17, $20}' |gawk 'BEGIN{last=-1}{if($1!=last){if(last!=-1)printf("\n");last=$1;printf("%d %s %s", $1, $2, $3)}else{printf(" %s %s", $2, $3)}}' > compressedInnies.txt
 
-egrep ${InnieATACode} ${AS}.0[0-9][0-9].stretched.ata |sed 's/[-=]/ /g' |gawk '{print $4, $17, $20}' |gawk 'BEGIN{last=-1}{if($1!=last){if(last!=-1)printf("\n");last=$1;printf("%d %s %s", $1, $2, $3)}else{printf(" %s %s", $2, $3)}}' > stretchedInnies.txt
+egrep ${InnieATACode} ${AS}.*.stretched.ata |sed 's/[-=]/ /g' |gawk '{print $4, $17, $20}' |gawk 'BEGIN{last=-1}{if($1!=last){if(last!=-1)printf("\n");last=$1;printf("%d %s %s", $1, $2, $3)}else{printf(" %s %s", $2, $3)}}' > stretchedInnies.txt
 
 s=`fgrep -f transpInnieUIDs.txt stretchedInnies.txt |sort -n |uniq |wc -l|gawk '{print $1}'`
 

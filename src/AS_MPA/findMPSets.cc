@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: findMPSets.cc,v 1.4 2005-03-22 19:48:58 jason_miller Exp $ */
+/* $Id: findMPSets.cc,v 1.5 2005-09-21 20:13:07 catmandew Exp $ */
 #include <cstdio>  // for sscanf
 #include <iostream>
 #include <fstream>
@@ -40,19 +40,19 @@ using namespace std;
 //#define USE_INT_IDS
 #ifdef USE_INT_IDS
 #define ID_TYPE          int
-#define ID_SCAN_FORMAT   "%d"
+#define F_MPID   "%d"
 #else
 #define ID_TYPE          cds_uint64
-#define ID_SCAN_FORMAT   F_U64
+#define F_MPID   F_U64
 #endif
 
 #define USE_INT_UNITS
 #ifdef USE_INT_UNITS
 #define UNIT_TYPE        int
-#define UNIT_SCAN_FORMAT "%d"
+#define F_MPUNIT "%d"
 #else
 #define UNIT_TYPE        double
-#define UNIT_SCAN_FORMAT "%lf"
+#define F_MPUNIT "%lf"
 #endif
 #endif
 
@@ -67,15 +67,15 @@ void ReadInputAsMBRs(list<Rectangle<ID_TYPE, UNIT_TYPE> > & rects,
     UNIT_TYPE x[4], y[4];
     UNIT_TYPE xmin, xmax, ymin, ymax;
     if(sscanf(line,
-              UNIT_SCAN_FORMAT " "
-              UNIT_SCAN_FORMAT " "
-              UNIT_SCAN_FORMAT " "
-              UNIT_SCAN_FORMAT " "
-              UNIT_SCAN_FORMAT " "
-              UNIT_SCAN_FORMAT " "
-              UNIT_SCAN_FORMAT " "
-              UNIT_SCAN_FORMAT " "
-              ID_SCAN_FORMAT,
+              F_MPUNIT " "
+              F_MPUNIT " "
+              F_MPUNIT " "
+              F_MPUNIT " "
+              F_MPUNIT " "
+              F_MPUNIT " "
+              F_MPUNIT " "
+              F_MPUNIT " "
+              F_MPID,
               &(x[0]), &(y[0]),
               &(x[1]), &(y[1]),
               &(x[2]), &(y[2]),

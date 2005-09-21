@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: clusterMPs.cc,v 1.4 2005-03-22 19:48:57 jason_miller Exp $ */
+/* $Id: clusterMPs.cc,v 1.5 2005-09-21 20:13:07 catmandew Exp $ */
 #include <iostream>
 #include <vector>
 #include <list>
@@ -304,24 +304,26 @@ void DetectTranspositions(const vector<CompositeMPPolygon<UNIT_TYPE> > & compres
 
       /*
 
-         A           B              C              D             E
-      -------|--------------|--------------|----------------|----------
+      Genome:
+                     A          B          C           D          E
+                  -------|----------|-------------|---------|----------
+   O                           -->                 <--
+   S1              -->       <--
+   S2                                                -->          <--
+   C1                -->                              <--
+   C2                        -->                              <--
 
-   O                -->                        <--
-   S1  -->       <--
-   S2                                              -->          <--
-   C1  -->                                       <--
-   C2                -->                                          <--
 
-         A           D                C              B           E
-      -------|----------------|--------------|--------------|----------
-   O              <--                              -->
-   S1  -->                                      <--
-   S2                 -->                                       <--
-   C1  -->         <--
-   C2                                               -->           <--
+      Mis-assembly:
+                     A        D           C             B         E
+                  -------|---------|-------------|----------|----------
+   O ( )                  <--                          -->                  ( )
+   S1              -->        ( )         ( )        <--
+   S2                       -->           ( )       ( )           <--
+   C1)               -->     <--                       ( )
+   C2                       ( )                      -->      <--             (
 
-       */
+      */
 
       // look at all the stretched mate pairs 
       for(unsigned int j = 0; j < stretched.size(); j++)
@@ -331,20 +333,22 @@ void DetectTranspositions(const vector<CompositeMPPolygon<UNIT_TYPE> > & compres
         double hbound = libs[stretched[j].getMP(0).getLibUID()].getMean() +
           numStddevs * libs[stretched[j].getMP(0).getLibUID()].getStddev();
 
-        if(// left breakpoint intervals intersect
-           mpp.getMinX() < stretched[j].getMaxX() &&
-           mpp.getMaxX() > stretched[j].getMinX() &&
-           // right stretched read is between left outtie read and
-           // rightmost end of right breakpoint interval of outtie
-           mpp.getMaxX() < stretched[j].getMaxY() &&
-           mpp.getMaxY() > stretched[j].getMaxY())
+        if(// S1:
+          // left breakpoint intervals intersect
+          mpp.getMinX() < stretched[j].getMaxX() &&
+          mpp.getMaxX() > stretched[j].getMinX() &&
+          // right stretched read is between left outtie read and
+          // rightmost end of right breakpoint interval of outtie
+          mpp.getMaxX() < stretched[j].getMaxY() &&
+          mpp.getMaxY() > stretched[j].getMaxY())
         {
           numLeftStretched++;
           if(numLeftStretched == 1)
             for(unsigned int k = 0; k < stretched[j].getNumMPs(); k++)
               mpp.appendMP(stretched[j].getMP(k));
         }
-        else if(// right breakpoint intervals intersect
+        else if(// S2:
+                // right breakpoint intervals intersect
           mpp.getMaxY() > stretched[j].getMinY() &&
           mpp.getMinY() < stretched[j].getMaxY() &&
           // left stretched read is between right outtie read and
@@ -370,10 +374,12 @@ void DetectTranspositions(const vector<CompositeMPPolygon<UNIT_TYPE> > & compres
     mpp.setType(MPI_TRANSPOSITION);
     for(unsigned int j = 0; j < compressed.size(); j++)
     {
-      if(// compressed breakpoint interval intersects left outtie bpt intervavl
+      if(// C1:
+        // compressed bpt interval intersects left outtie bpt intervavl
         mpp.getMaxX() > compressed[j].getMinX() &&
         mpp.getMinX() < compressed[j].getMaxX() &&
         // right compressed read will end up to right of left outtie read
+        // after correction
         mpp.getMaxX() < compressed[j].getMaxX() + compressed[j].getMaxY() &&
         // right compressed read will end up to left of right outtie breakpoint
         mpp.getMaxY() > compressed[j].getMaxX() + compressed[j].getMinY())
@@ -382,7 +388,8 @@ void DetectTranspositions(const vector<CompositeMPPolygon<UNIT_TYPE> > & compres
         for(unsigned int k = 0; k < compressed[j].getNumMPs(); k++)
           mpp.appendMP(compressed[j].getMP(k));
       }
-      else if(// compressed bpt interval intersects right outtie bpt interval
+      else if(// C2:
+        // compressed bpt interval intersects right outtie bpt interval
         mpp.getMaxY() > compressed[j].getMinX() &&
         mpp.getMinY() < compressed[j].getMaxX() &&
         // left compressed read will end up to left of right outtie read
@@ -714,6 +721,8 @@ bool RefineCPWithSatisfied(CompositeMPPolygon<UNIT_TYPE> & cmpp,
   PolygonIntersector<UNIT_TYPE> pi;
   for(;si < smpsv.size();si++)
   {
+
+    // NOTE: at this point left & right aren't necessarily so
     if(smpsv[si].getLeftCoord() >= maxRight &&
        smpsv[si].getRightCoord() >= maxRight)
       break;
@@ -721,6 +730,7 @@ bool RefineCPWithSatisfied(CompositeMPPolygon<UNIT_TYPE> & cmpp,
        smpsv[si].getRightCoord() <= minLeft)
       continue;
 
+    // determine the left & right coords of the satisfied mp
     UNIT_TYPE left, right;
     if(smpsv[si].getLeftCoord() < smpsv[si].getRightCoord())
     {
@@ -759,7 +769,7 @@ bool RefineCPWithSatisfied(CompositeMPPolygon<UNIT_TYPE> & cmpp,
       sp.reset();
       sp.append(minLeft - NUDGE_BP, right);    // lower left
       sp.append(minLeft - NUDGE_BP, maxRight + NUDGE_BP); // upper left
-      sp.append(left, maxRight - NUDGE_BP);    // upper right
+      sp.append(left, maxRight + NUDGE_BP);    // upper right
       sp.append(left, right);       // lower right
       refiner.append(sp);
     }
@@ -776,7 +786,7 @@ bool RefineCPWithSatisfied(CompositeMPPolygon<UNIT_TYPE> & cmpp,
     }
 
 #ifdef NEVER
-    // lower right - shouldn't need this one?
+    // lower right - impossible situation
     if(minRight < left && maxLeft > right)
     {
       sp.reset();
@@ -820,12 +830,12 @@ bool RefineCPWithSatisfied(CompositeMPPolygon<UNIT_TYPE> & cmpp,
 
 
 void RefineInversions(vector<CompositeMPPolygon<UNIT_TYPE> > & cmpps,
-                     const vector<MatePair> & smpsv, // satisfied matepairs
-                     unsigned int filterThresh)
+                      vector<CompositeMPPolygon<UNIT_TYPE> > & polys,
+                      const vector<MatePair> & smpsv, // satisfied matepairs
+                      unsigned int filterThresh)
 {
   /*
-    filter out inversions that are just normal or antinormal
-    OR don't have the right properties:
+    filter out inversions that don't have the right properties:
     
     |--------------|------------------------|------------------|
              -->     <--            -->       <--
@@ -920,27 +930,29 @@ void RefineInversions(vector<CompositeMPPolygon<UNIT_TYPE> > & cmpps,
 #ifdef DEBUG_CLUSTERMPS
         cerr << "Incompatible original & refined inversions\n";
 #endif
+        polys.push_back(*mppIter);
         mppIter = cmpps.erase(mppIter);
         numSatisfiedInvalidates++;
       }
     }
   }
-  cerr << "Deleted "
-       << numJustOneKind + numSatisfiedInvalidates
-       << " of " << numTotal << " potential inversions.\n";
-  cerr << "  " << numJustOneKind << " insufficient total or combination of types.\n";
-  cerr << "  " << numSatisfiedInvalidates << " invalidated by satisfied matepairs.\n";
-  cerr << "Kept " << cmpps.size() << " inversions.\n";
+  /*
+  cout << numJustOneKind + numSatisfiedInvalidates
+       << " of " << numTotal << " potential inversions deleted.\n";
+  */
+  if(numJustOneKind > 0)
+    cout << numJustOneKind << " below-threshold inversions (<"
+         << filterThresh << ")\n";
+  cout << numSatisfiedInvalidates << " polymorphic inversion mate pair sets\n";
+  // cerr << "Kept " << cmpps.size() << " inversions.\n";
 }
 
 
-void RefineStretched(vector<CompositeMPPolygon<UNIT_TYPE> > & cmpps,
-                     const vector<MatePair> & smpsv) // satisfied matepairs
+void RefineWithSatisfied(vector<CompositeMPPolygon<UNIT_TYPE> > & cmpps,
+                         vector<CompositeMPPolygon<UNIT_TYPE> > & polys,
+                         const vector<MatePair> & smpsv,
+                         MatePairIndex_e mpii)
 {
-  /*
-    Stretched instances should not have one fragment inside the interval
-    and the other fragment outside
-  */
   int i;
   int numErased = 0;
   unsigned int numTotal = cmpps.size();
@@ -959,15 +971,14 @@ void RefineStretched(vector<CompositeMPPolygon<UNIT_TYPE> > & cmpps,
     }
     else
     {
-#ifdef DEBUG_CLUSTERMPS
-      cerr << "Stretched interval disagrees with satisfied matepairs.\n";
-#endif
+      polys.push_back(*mppIter);
       mppIter = cmpps.erase(mppIter);
       numErased++;
     }
   }
-  cerr << "Deleted " << numErased << " of "
-       << numTotal << " potential stretched matepairs invalidated by satisfied matepairs.\n";
+  cout << numErased << " polymorphic "
+       << (mpii == MPI_STRETCHED ? "insertion " : "inversion ")
+       << "mate pair sets\n";
 }
 
 
@@ -976,7 +987,7 @@ void RefineStretched(vector<CompositeMPPolygon<UNIT_TYPE> > & cmpps,
   same library, assume it's bad tracking in the lab
 */
 void FilterMislabelledLibs(vector<CompositeMPPolygon<UNIT_TYPE> > & cmpps,
-                           vector<CompositeMPPolygon<UNIT_TYPE> > & mmpps,
+                           vector<CompositeMPPolygon<UNIT_TYPE> > & misls,
                            unsigned int minFilterCount)
 {
   vector<CompositeMPPolygon<UNIT_TYPE> >::iterator mppIter;
@@ -1001,7 +1012,7 @@ void FilterMislabelledLibs(vector<CompositeMPPolygon<UNIT_TYPE> > & cmpps,
 
     if(badMP)
     {
-      mmpps.push_back((CompositeMPPolygon<UNIT_TYPE>) (*mppIter));
+      misls.push_back((CompositeMPPolygon<UNIT_TYPE>) (*mppIter));
       mppIter = cmpps.erase(mppIter);
     }
     else

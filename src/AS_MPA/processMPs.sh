@@ -22,7 +22,7 @@
 #
 ###########################################################################
 #
-# $Id: processMPs.sh,v 1.4 2005-03-22 19:48:58 jason_miller Exp $
+# $Id: processMPs.sh,v 1.5 2005-09-21 20:13:07 catmandew Exp $
 #
 
 if [ ${OS} == "AIX" ] || [ ${OS} == "OSF1" ]; then
@@ -38,5 +38,5 @@ Assemblies=(HG05 HG06 CSAB WGAB VAN VAN_asm B28 R26 R27 B33A B34)
 for assembly in "${Assemblies[@]}"; do
 
   echo "Processing assembly ${assembly}"
-  processAssemblyMPs.sh ${assembly}
+  processAssemblyMPs.sh ${assembly} ${DATA_DIR}/libs/humanLibs.txt
 done

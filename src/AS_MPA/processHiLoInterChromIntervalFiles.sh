@@ -1,4 +1,4 @@
-#!/usr/local/bin/bash
+#!/bin/bash
 #
 ###########################################################################
 #
@@ -22,17 +22,9 @@
 #
 ###########################################################################
 #
-# $Id: processHiLoInterChromIntervalFiles.sh,v 1.4 2005-03-22 19:48:58 jason_miller Exp $
+# $Id: processHiLoInterChromIntervalFiles.sh,v 1.5 2005-09-21 20:13:07 catmandew Exp $
 #
 
-
-if [ -z ${DATA_DIR} ]; then
-  if [ ${OS} == "AIX" ] || [ ${OS} == "OSF1" ]; then
-    export DATA_DIR=/prod/IR01/dewim/mps/human
-  else
-    export DATA_DIR=/home/dewim/celera/sandbox/cds/IR/COMPASS/data/human
-  fi
-fi
 
 AS=${1}
 mapping=${2}
@@ -84,4 +76,4 @@ gawk '{ \
            rptI[i], rptBP[i], \
            unkI[i], unkBP[i]) \
   } \
-}' hi_loChromI.txt > ${AS}_${mapping}InterSummary.csv
+}' ${AS}.hi_loChromI.txt > ${AS}_${mapping}InterSummary.csv

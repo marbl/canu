@@ -13,11 +13,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: calcStats.c,v 1.3 2005-08-24 10:57:43 brianwalenz Exp $ */
+/* $Id: calcStats.c,v 1.4 2005-09-21 20:13:07 catmandew Exp $ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <float.h>
+#include <values.h>
 #include <math.h>
 
 /*
@@ -56,8 +56,8 @@ int main(int argc, char ** argv)
   double val;
   double mean;
   double sigma;
-  double greaterThan = DBL_MIN;
-  double lessThan = DBL_MAX;
+  double greaterThan = MINDOUBLE;
+  double lessThan = MAXDOUBLE;
   {
     int ch;
     while((ch = getopt(argc, argv, "chf:g:l:")) != EOF)
@@ -86,10 +86,15 @@ int main(int argc, char ** argv)
     }
   }
   if(fn == NULL)
-    usage(argv[0]);
-  fp = fopen(fn, "r");
-  if(fp == NULL)
-    usage(argv[0]);
+  {
+    fp = stdin;
+  }
+  else
+  {
+    fp = fopen(fn, "r");
+    if(fp == NULL)
+      usage(argv[0]);
+  }
 
   sumX = sumX2 = n = 0;
   if(type == 1)

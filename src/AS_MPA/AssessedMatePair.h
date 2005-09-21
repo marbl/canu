@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AssessedMatePair.h,v 1.4 2005-03-22 19:48:56 jason_miller Exp $ */
+/* $Id: AssessedMatePair.h,v 1.5 2005-09-21 20:13:07 catmandew Exp $ */
 #ifndef ASSESSEDMATEPAIR_H
 #define ASSESSEDMATEPAIR_H
 
@@ -64,9 +64,9 @@ public:
 
   void assess(int32 tooFar, int32 tooClose)
     {
-      if(getLeftChromosome() != getRightChromosome())
+      if(getLeftSequenceID() != getRightSequenceID())
       {
-        _mpi = MPI_INTERCHROMOSOME;
+        _mpi = MPI_INTERSEQUENCE;
         return;
       }
       switch(getOrientation())
@@ -102,16 +102,16 @@ public:
 
   void set(PairOrientation_e po,
            ID_TYPE leftUID, ID_TYPE rightUID, ID_TYPE libUID,
-           COORD_TYPE left5, COORD_TYPE right5,
-           int32 leftChrom, int32 rightChrom,
-           COORD_TYPE tooFar, COORD_TYPE tooClose)
+           UNIT_TYPE left5, UNIT_TYPE right5,
+           int32 leftSeqID, int32 rightSeqID,
+           UNIT_TYPE tooFar, UNIT_TYPE tooClose)
     {
       FragmentPosition fpl(leftUID, left5,
                            (po == PAIR_INNIE || po == PAIR_NORMAL),
-                           leftChrom);
+                           leftSeqID);
       FragmentPosition fpr(rightUID, right5,
                           (po == PAIR_OUTTIE || po == PAIR_NORMAL),
-                           rightChrom);
+                           rightSeqID);
       setLibUID(libUID);
       setLeftFrag(fpl);
       setRightFrag(fpr);
@@ -120,8 +120,8 @@ public:
     }
   void set(PairOrientation_e po,
            ID_TYPE leftUID, ID_TYPE rightUID, ID_TYPE libUID,
-           COORD_TYPE left5, COORD_TYPE right5, int32 chrom,
-           COORD_TYPE tooFar, COORD_TYPE tooClose)
+           UNIT_TYPE left5, UNIT_TYPE right5, int32 seqID,
+           UNIT_TYPE tooFar, UNIT_TYPE tooClose)
     {
       FragmentPosition fpl(leftUID, left5,
                            (po == PAIR_INNIE || po == PAIR_NORMAL));
@@ -130,7 +130,7 @@ public:
       setLibUID(libUID);
       setLeftFrag(fpl);
       setRightFrag(fpr);
-      setChromosome(chrom);
+      setSequenceID(seqID);
       setOrientation(po);
       assess(tooFar, tooClose);
     }

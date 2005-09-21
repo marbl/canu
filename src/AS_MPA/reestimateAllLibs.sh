@@ -2,10 +2,6 @@
 #
 ###########################################################################
 #
-# This file is part of Celera Assembler, a software program that 
-# assembles whole-genome shotgun reads into contigs and scaffolds.
-# Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
-# 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
@@ -22,10 +18,8 @@
 #
 ###########################################################################
 #
-# $Id: reestimateAllLibs.sh,v 1.1 2005-08-04 23:57:26 catmandew Exp $
+# $Id: reestimateAllLibs.sh,v 1.2 2005-09-21 20:13:07 catmandew Exp $
 #
-
-binPath=~/AS_MPA
 
 prefix=${1}
 
@@ -34,13 +28,8 @@ if [ -z ${prefix} ] || [ ${prefix} == "bell-style" ] ; then
   return
 fi
 
-newfile="${prefix}ReestimatedLibs.txt"
-if [ -f ${newfile} ] ; then
-  rm -f ${newfile}
-fi
-
 for lib in `cut -f 1 -d ' ' ${prefix}Libs.txt`; do
-  ${binPath}/reestimateLibs -f ${lib}Lengths.txt \
+  reestimateLibs -f ${lib}Lengths.txt \
                             -l ${prefix}Libs.txt \
-                            -n ${lib} >> ${newfile}
+                            -n ${lib} 
 done

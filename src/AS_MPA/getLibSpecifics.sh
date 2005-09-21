@@ -1,4 +1,4 @@
-#!/usr/local/bin/bash
+#!/bin/bash
 #
 ###########################################################################
 #
@@ -22,21 +22,21 @@
 #
 ###########################################################################
 #
-# $Id: getLibSpecifics.sh,v 1.4 2005-03-22 19:48:58 jason_miller Exp $
+# $Id: getLibSpecifics.sh,v 1.5 2005-09-21 20:13:07 catmandew Exp $
 #
 
 AS=${1}
-
-if [ -z ${DATA_DIR} ]; then
-  if [ ${OS} == "AIX" ] || [ ${OS} == "OSF1" ]; then
-    export DATA_DIR=/prod/IR01/dewim/mps/human
-  else
-    export DATA_DIR=/home/dewim/celera/sandbox/cds/IR/COMPASS/data/human
-  fi
-fi
+LIBFILE=${2}
 
 if [ -z ${AS} ] || [ ${AS} == "bell-style" ] ; then
-  echo "Please identify the assembly (B33A, VAN, HG06, ...)"
+  echo "Please identify the assembly name as 1st parameter"
+  echo "Please identify the library stats file as 2nd parameter"
+  return
+fi
+
+if [ -z ${LIBFILE} ] || [ ! -f ${LIBFILE} ] ; then
+  echo "Please identify the assembly name as 1st parameter"
+  echo "Please identify the library stats file as 2nd parameter"
   return
 fi
 
@@ -45,18 +45,19 @@ Type=(stretched compressed inversion transposition)
 declare -i lcount=0
 declare -i total=0
 
-libFile=${DATA_DIR}/libs/humanLibs.txt
-
 for t in "${Type[@]}"; do
   fn=${AS}_${t}_type.txt
   echo "${t}" > ${fn}
-  for lib in `sort -k 2n ${libFile} | gawk '{print $1}'`; do
-    mean=`egrep ${lib} ${libFile} | gawk '{print $2}'`
+  for lib in `sort -k 2n ${LIBFILE} | gawk '{print $1}'`; do
+    mean=`egrep ${lib} ${LIBFILE} | gawk '{print $2}'`
     lcount=0
     total=0
-    for file in `ls [0-9][0-9][0-9].txt`; do
-      chr=${file%%.*}
-      lcount=`grep -c ${lib} ${AS}.${chr}.${t}.ata`
+    for file in `ls ${AS}_*_intra.txt`; do
+      chr=${file%_*}
+      chr=${chr##*_}
+      if [ -f ${AS}.${chr}.${t}.ata ] ; then
+        lcount=`grep -c ${lib} ${AS}.${chr}.${t}.ata`
+      fi
       total=${lcount}+${total}
     done
     echo "${lib} ${mean} ${total}" >> ${fn}
