@@ -100,6 +100,10 @@ CloneData * GetScaffoldCloneData(AssemblyStore * asmStore,
                                  int canonicalOnly, int isDegenerate);
 void PrintCloneData(Scaffold_ID containerUID,
                     CloneData * cd, char * which, FILE * fo);
+void PrintAsmStoreIntraTampaData(Scaffold_ID containerUID,
+                                 CloneData * cd,
+                                 int includeSPS,
+                                 FILE * fo);
 void PrintChromosomeElsewheres(AssemblyStore * asmStore,
                                MapStore * mapStore,
                                Scaffold_ID containerUID,

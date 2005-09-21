@@ -882,8 +882,10 @@ int AddSCF2Store(AssemblyStore * asmStore, SnapScaffoldMesg * ssm)
                     &contigIID);
     getASM_CCOStore(asmStore->ccoStore, contigIID, &cco);
 
+    /*
     fprintf(stdout, F_UID " " F_COORD,
             scf.uid, max(cco.scaffoldPos.bgn, cco.scaffoldPos.end));
+    */
   }
   return 0;
 }
@@ -1052,7 +1054,7 @@ AssemblyStore * CreateAssemblyStoreFromASMFile(FILE * fi,
                                                char * gkpStorePath,
                                                char * frgStorePath)
 {
-  MesgReader readerFn = (MesgReader)InputFileType_AS(fi);
+  MesgReader readerFn = InputFileType_AS(fi);
   AssemblyStore * asmStore;
   GenericMesg * gen;
   unsigned long mesgCount = 0;
@@ -1357,11 +1359,11 @@ void PrintInnieMatePairs(VA_TYPE(ASM_MatePair) * mps, FILE * fo)
   
   for(i = 0; i < numMPs; i++)
   {
-    fprintf(fo, "%c\t" F_UID "\t" F_UID "\t" F_UID "\t" F_UID "\t" F_COORD "\t" F_COORD "\t" F_COORD "\t%f\n",
-            (char) AS_INNIE, myMPs[i].containerUID,
-            myMPs[i].leftUID, myMPs[i].rightUID, myMPs[i].distUID,
-            myMPs[i].fivePrimes.bgn, myMPs[i].fivePrimes.end,
-            myMPs[i].basePairs, myMPs[i].stddevs);
+    fprintf(fo,
+            "%c\t" F_UID "\t" F_UID "\t" F_UID "\t" F_COORD "\t" F_COORD "\n",
+            (char) AS_INNIE, myMPs[i].leftUID, myMPs[i].rightUID,
+            myMPs[i].distUID,
+            myMPs[i].fivePrimes.bgn, myMPs[i].fivePrimes.end);
   }
 }
 
@@ -1375,8 +1377,8 @@ void PrintMatePairs(VA_TYPE(ASM_MatePair) * mps,
   
   for(i = 0; i < numMPs; i++)
   {
-    fprintf(fo, "%c\t" F_UID "\t" F_UID "\t" F_UID "\t" F_UID "\t" F_COORD "\t" F_COORD "\n",
-            (char) orient, myMPs[i].containerUID,
+    fprintf(fo, "%c\t" F_UID "\t" F_UID "\t" F_UID "\t" F_COORD "\t" F_COORD "\n",
+            (char) orient,
             myMPs[i].leftUID, myMPs[i].rightUID, myMPs[i].distUID,
             myMPs[i].fivePrimes.bgn, myMPs[i].fivePrimes.end);
   }
@@ -1451,6 +1453,15 @@ void WriteBinaryCloneData(Scaffold_ID containerUID, CloneData * cd)
   WriteBinaryMatePairs(fpref, 'N', cd->normal);
   WriteBinaryMatePairs(fpref, 'A', cd->antinormal);
   WriteBinaryMatePairs(fpref, 'O', cd->outtie);
+}
+
+
+void PrintIntraCloneData(Scaffold_ID containerUID, CloneData * cd, FILE * fo)
+{
+  PrintInnieMatePairs(cd->innie, fo);
+  PrintMatePairs(cd->normal, AS_NORMAL, fo);
+  PrintMatePairs(cd->antinormal, AS_ANTI, fo);
+  PrintMatePairs(cd->outtie, AS_OUTTIE, fo);
 }
 
 
