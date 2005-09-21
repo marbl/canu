@@ -1,0 +1,230 @@
+
+
+
+I came from CIscaffold_Cleanup_CGW.c, right before the real ContigContainment
+
+
+#if 0
+/****************************************************************************/
+/*  
+	This function is meant to be called by LeastSquares to merge together two contigs that have a 
+	containment relationship between them,
+	but it can actually handle dovetails.  If there is no overlap, it asserts.
+*/
+void   notContigContainment(CIScaffoldT *scaffold, NodeCGW_T *prevCI, NodeCGW_T *thisCI, EdgeCGW_T *overlapEdge)
+{
+  CDS_COORD_t minAhang, maxAhang;
+  int flip;
+  CDS_CID_t firstContig;
+  IntElementPos contigPos;
+  int mergeStatus = 0;
+  Overlap *contigOverlap;
+  ChunkOrientationType overlapOrientation, actualOverlapOrientation;
+  NodeCGW_T *leftContig, *rightContig;
+
+  if ( min( prevCI->offsetAEnd.mean, prevCI->offsetBEnd.mean) <= 
+	   min( thisCI->offsetAEnd.mean, thisCI->offsetBEnd.mean))
+  {
+	leftContig = prevCI;
+	rightContig = thisCI;
+  }
+  else
+  {
+	leftContig = thisCI;
+	rightContig = prevCI;
+  }
+
+  if(ContigPositions == NULL)
+  {
+    ContigPositions = CreateVA_IntElementPos(10);
+  }
+  ResetVA_IntElementPos(ContigPositions);
+
+  if ( leftContig->offsetAEnd.mean < leftContig->offsetBEnd.mean)  // leftContig is AB
+  {
+	if ( rightContig->offsetAEnd.mean < rightContig->offsetBEnd.mean) // rightContig is AB
+	{
+	  overlapOrientation = AB_AB;
+	  minAhang = (CDS_COORD_t) (rightContig->offsetAEnd.mean - leftContig->offsetAEnd.mean) - AHANGSLOP;
+	  maxAhang = minAhang + (2 * AHANGSLOP);
+	}
+	else // rightContig is BA
+	{
+	  overlapOrientation = AB_BA;
+	  minAhang = (CDS_COORD_t) (rightContig->offsetBEnd.mean - leftContig->offsetAEnd.mean) - AHANGSLOP;
+	  maxAhang = minAhang + (2 * AHANGSLOP);
+	}
+  }
+  else  // leftContig is BA
+  {
+	if ( rightContig->offsetAEnd.mean < rightContig->offsetBEnd.mean) // rightContig is AB
+	{
+	  overlapOrientation = BA_AB;
+	  minAhang = (CDS_COORD_t) (rightContig->offsetAEnd.mean - leftContig->offsetBEnd.mean) - AHANGSLOP;
+	  maxAhang = minAhang + (2 * AHANGSLOP);
+	}
+	else // rightContig is BA
+	{
+	  overlapOrientation = BA_BA;
+	  minAhang = (CDS_COORD_t) (rightContig->offsetBEnd.mean - leftContig->offsetBEnd.mean) - AHANGSLOP;
+	  maxAhang = minAhang + (2 * AHANGSLOP);
+	}
+  }
+
+  contigOverlap = OverlapContigs( leftContig, rightContig, &overlapOrientation, minAhang, maxAhang, TRUE);
+  if (contigOverlap == NULL)
+  {
+	CDS_COORD_t maxLength;
+	  
+	fprintf( GlobalData->stderrc, "no overlap found between " F_CID " and " F_CID " with standard AHANGSLOP, retrying...\n",
+			 leftContig->id, rightContig->id);
+
+	maxLength = max( leftContig->bpLength.mean, rightContig->bpLength.mean);
+	  
+	fprintf( stderr, "overlapOrientation: %c, minAhang: " F_COORD ", maxAhang: " F_COORD "\n", 
+			 (char) overlapOrientation, -maxLength, maxLength);
+
+	// this is code to special case a particular contig arrangement that was happening in mouse
+	// we really need to use the edge being passed in to this routine, see ContigContainment_new below
+	if (0) //(leftContig->id == 3152359 && rightContig->id == 3152361)
+	{
+	  LengthT NullLength = {0.0, 0.0}, leftOffset, rightOffset;
+	  CDS_CID_t newScaffoldID;
+	  // create & init a new scaffold
+	  CIScaffoldT * newScaffold = (CIScaffoldT *) safe_malloc( sizeof (CIScaffoldT));
+	  InitializeScaffold( newScaffold, REAL_SCAFFOLD);
+	  newScaffold->info.Scaffold.AEndCI = NULLINDEX;
+	  newScaffold->info.Scaffold.BEndCI = NULLINDEX;
+	  newScaffold->info.Scaffold.numElements = 0;
+	  newScaffold->edgeHead = NULLINDEX;
+	  newScaffold->bpLength = NullLength;
+	  newScaffoldID = newScaffold->id = GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph);
+	  newScaffold->flags.bits.isDead = FALSE;
+	  newScaffold->aEndCoord = newScaffold->bEndCoord = -1;
+	  newScaffold->numEssentialA = newScaffold->numEssentialB = 0;
+	  newScaffold->essentialEdgeB = newScaffold->essentialEdgeA = NULLINDEX;
+	  AppendGraphNode( ScaffoldGraph->ScaffoldGraph, newScaffold);
+
+	  leftOffset.mean = 0.0;
+	  leftOffset.variance = 0.0;
+	  rightOffset.mean = leftContig->bpLength.mean;
+	  rightOffset.variance = ComputeFudgeVariance(leftContig->bpLength.mean);
+	  
+	  RemoveCIFromScaffold( ScaffoldGraph, scaffold, leftContig, FALSE);
+	  InsertCIInScaffold( ScaffoldGraph, leftContig->id, newScaffoldID, 
+						  leftOffset, rightOffset, TRUE, FALSE);
+	  
+	  leftOffset.mean = 1590.0;
+	  leftOffset.variance = ComputeFudgeVariance( leftOffset.mean );
+	  rightOffset.mean = leftOffset.mean + rightContig->bpLength.mean;
+	  rightOffset.variance = leftOffset.variance + ComputeFudgeVariance(rightContig->bpLength.mean);;
+
+	  RemoveCIFromScaffold( ScaffoldGraph, scaffold, rightContig, FALSE);
+	  InsertCIInScaffold( ScaffoldGraph, rightContig->id, newScaffoldID, 
+						  leftOffset, rightOffset, TRUE, FALSE);
+
+	  return;
+	}
+	
+	contigOverlap = OverlapContigs( leftContig, rightContig, &overlapOrientation, -maxLength, maxLength, FALSE);
+
+	if (contigOverlap == NULL)
+	{
+	  fprintf( GlobalData->stderrc, "no overlap found between " F_CID " and " F_CID " with maximum slop, aborting...\n",
+			   leftContig->id, rightContig->id);
+	  dumpContigInfo(leftContig);
+	  dumpContigInfo(rightContig);
+	  assert(0);
+	}	
+  }
+
+  if (contigOverlap->begpos < 0) // contigs need to be reversed
+  {
+	leftContig = thisCI;
+	rightContig = prevCI;
+	// adjust Overlap fields for later use in positioning
+	contigOverlap->begpos = - contigOverlap->begpos;
+	contigOverlap->endpos = - contigOverlap->endpos;	
+
+	switch(overlapOrientation){
+	case AB_AB:
+	case BA_BA:
+	  actualOverlapOrientation = overlapOrientation;	  
+	  break;
+	case AB_BA:
+	  actualOverlapOrientation = BA_AB;
+	  break;
+	case BA_AB:
+	  actualOverlapOrientation = AB_BA;
+	  break;
+	default:
+	  assert(0);
+	}
+	fprintf(GlobalData->stderrc,"* Switched right-left  orientation went from %c to %c\n",
+		overlapOrientation, actualOverlapOrientation);
+  }else{
+
+    actualOverlapOrientation = overlapOrientation;
+  }
+  
+  fprintf(GlobalData->stderrc,"* Containing contig is " F_CID " contained contig is " F_CID " ahg:%d bhg:%d orient:%c\n",
+		  leftContig->id, rightContig->id, contigOverlap->begpos, contigOverlap->endpos, actualOverlapOrientation);
+
+  fprintf(GlobalData->stderrc,"* Initial Positions:\n\t" F_CID " [%g,%g]\n\t" F_CID " [%g,%g]\n",
+		  leftContig->id, 
+	          leftContig->offsetAEnd.mean, leftContig->offsetBEnd.mean,
+		  rightContig->id, 
+	          rightContig->offsetAEnd.mean, rightContig->offsetBEnd.mean);
+
+  // assume we leave the leftContig where it is
+  if ( actualOverlapOrientation == AB_AB)
+  {
+	rightContig->offsetAEnd.mean = leftContig->offsetAEnd.mean + contigOverlap->begpos;
+	rightContig->offsetBEnd.mean = rightContig->offsetAEnd.mean + rightContig->bpLength.mean;
+  }
+  else if ( actualOverlapOrientation == AB_BA)
+  {
+	rightContig->offsetBEnd.mean = leftContig->offsetAEnd.mean + contigOverlap->begpos;
+	rightContig->offsetAEnd.mean = rightContig->offsetBEnd.mean + rightContig->bpLength.mean;
+  }
+  else if ( actualOverlapOrientation == BA_AB)
+  {
+	rightContig->offsetAEnd.mean = leftContig->offsetBEnd.mean + contigOverlap->begpos;
+	rightContig->offsetBEnd.mean = rightContig->offsetAEnd.mean + rightContig->bpLength.mean;
+  }
+  if ( actualOverlapOrientation == BA_BA)
+  {
+	rightContig->offsetBEnd.mean = leftContig->offsetBEnd.mean + contigOverlap->begpos;
+	rightContig->offsetAEnd.mean = rightContig->offsetBEnd.mean + rightContig->bpLength.mean;
+  }
+
+  contigPos.ident = leftContig->id;
+  contigPos.type = AS_CONTIG;
+  contigPos.position.bgn = leftContig->offsetAEnd.mean;
+  contigPos.position.end = leftContig->offsetBEnd.mean;
+  AppendIntElementPos(ContigPositions, &contigPos);
+  contigPos.ident = rightContig->id;
+  contigPos.type = AS_CONTIG;
+  contigPos.position.bgn = rightContig->offsetAEnd.mean;
+  contigPos.position.end = rightContig->offsetBEnd.mean;
+  AppendIntElementPos(ContigPositions, &contigPos);
+  
+  fprintf(GlobalData->stderrc,"* Final Positions:\n\t" F_CID " [%g,%g]\n\t" F_CID " [%g,%g]\n",
+		  leftContig->id, 
+	          leftContig->offsetAEnd.mean, leftContig->offsetBEnd.mean,
+		  rightContig->id, 
+	          rightContig->offsetAEnd.mean, rightContig->offsetBEnd.mean);
+  
+  flip = (leftContig->offsetBEnd.mean < leftContig->offsetAEnd.mean);
+  if(flip)
+  {
+	mergeStatus = CreateAContigInScaffold(scaffold, ContigPositions, leftContig->offsetBEnd, leftContig->offsetAEnd);
+  }
+  else
+  {
+	mergeStatus = CreateAContigInScaffold(scaffold, ContigPositions, leftContig->offsetAEnd, leftContig->offsetBEnd);
+  }
+  assert(mergeStatus == TRUE);
+}
+#endif
+
