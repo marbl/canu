@@ -2637,9 +2637,6 @@ void PrintScaffoldElsewheres(AssemblyStore * asmStore,
             iid2 = (lkg.frag1 == iid1) ? lkg.frag2 : lkg.frag1;
             getASM_AFGStore(asmStore->afgStore, iid2, &afg2);
             
-            if(canonicalOnly && afg1.uid > afg2.uid)
-              break;
-            
             if(afg2.chaff ||
                afg2.sInsIndex == 0 ||
                afg2.inDegenerate ||
@@ -2660,12 +2657,14 @@ void PrintScaffoldElsewheres(AssemblyStore * asmStore,
               ASM_SCFRecord scf2;
               getASM_SCFStore(asmStore->scfStore,
                               ins2.containerIndex, &scf2);
-              fprintf(fo, F_UID " " F_UID " " F_COORD " %s " F_UID " " F_UID " " F_COORD " %s " F_UID "\n",
-                      afg1.uid, scf1.uid, ins1.pos.bgn,
-                      (ins1.pos.bgn < ins1.pos.end) ? "A_B" : "B_A",
-                      afg2.uid, scf2.uid, ins2.pos.bgn,
-                      (ins2.pos.bgn < ins2.pos.end) ? "A_B" : "B_A",
-                      mdi.uid);
+              
+              if(!canonicalOnly || scf1.uid > scf2.uid)
+                fprintf(fo, F_UID " " F_UID " " F_COORD " %s " F_UID " " F_UID " " F_COORD " %s " F_UID "\n",
+                        afg1.uid, scf1.uid, ins1.pos.bgn,
+                        (ins1.pos.bgn < ins1.pos.end) ? "A_B" : "B_A",
+                        afg2.uid, scf2.uid, ins2.pos.bgn,
+                        (ins2.pos.bgn < ins2.pos.end) ? "A_B" : "B_A",
+                        mdi.uid);
             }
             break;
           } // real link
