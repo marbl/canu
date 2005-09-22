@@ -26,8 +26,8 @@
 
 
 /* RCS info
- * $Id: OlapStoreOVL.c,v 1.6 2005-05-05 14:20:36 ahalpern Exp $
- * $Revision: 1.6 $
+ * $Id: OlapStoreOVL.c,v 1.7 2005-09-22 03:49:49 ahalpern Exp $
+ * $Revision: 1.7 $
 */
 
 
@@ -96,7 +96,7 @@ void  Init_OVL_Stream
 
   {
    char  filename [MAX_FILENAME_LEN];
-   size_t  file_position;
+   off_t  file_position;
    uint32  i, header [3];
    int  len, new_file_index;
 
@@ -164,8 +164,8 @@ void  Init_OVL_Stream
                  store -> name, stream -> curr_file_index);
         stream -> fp = Local_File_Open (filename, "rb");
        }
-   file_position = stream -> offset_buff [i - first] * sizeof (Short_Olap_Data_t);
-   CDS_FSEEK (stream -> fp, (off_t) file_position, SEEK_SET);
+   file_position = stream -> offset_buff [i - first] * (off_t) sizeof (Short_Olap_Data_t);
+   CDS_FSEEK (stream -> fp, file_position, SEEK_SET);
    stream -> curr_offset = stream -> offset_buff [i - first];
    stream -> store = store;
 
@@ -181,7 +181,7 @@ void  Init_OVL_Stream_Intra_Frg
 
   {
    char  filename [MAX_FILENAME_LEN];
-   size_t  file_position;
+   off_t  file_position;
    uint32  i, header [3];
    int  len, new_file_index;
 
@@ -241,8 +241,8 @@ void  Init_OVL_Stream_Intra_Frg
                  store -> name, stream -> curr_file_index);
         stream -> fp = Local_File_Open (filename, "rb");
        }
-   file_position = ( stream -> offset_buff [ 0 ] + skipped_ovls ) * sizeof (Short_Olap_Data_t);
-   CDS_FSEEK (stream -> fp, (off_t) file_position, SEEK_SET);
+   file_position = ( stream -> offset_buff [ 0 ] + skipped_ovls ) * (off_t) sizeof (Short_Olap_Data_t);
+   CDS_FSEEK (stream -> fp,  file_position, SEEK_SET);
    stream -> curr_offset = stream -> offset_buff [ 0 ] + skipped_ovls;
    stream -> store = store;
 
@@ -400,7 +400,7 @@ int  Next_From_OVL_Stream
    if  (stream -> curr_id % store -> frags_per_file == 0)
        {
         char  filename [MAX_FILENAME_LEN];
-        size_t  file_position;
+        off_t  file_position;
 
         if  (stream -> curr_id == stream -> stop_id)
             return  FALSE;
@@ -423,8 +423,8 @@ int  Next_From_OVL_Stream
 
         stream -> curr_id = i;
         file_position = stream -> offset_buff [i - stream -> start_id]
-                          * sizeof (Short_Olap_Data_t);
-        CDS_FSEEK (stream -> fp, (off_t) file_position, SEEK_SET);
+                          * (off_t) sizeof (Short_Olap_Data_t);
+        CDS_FSEEK (stream -> fp,  file_position, SEEK_SET);
         stream -> curr_offset = stream -> offset_buff [i - stream -> start_id];
 
         return  Next_From_OVL_Stream (olap, stream);
