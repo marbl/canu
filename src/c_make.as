@@ -84,7 +84,9 @@ ifeq ($(OSTYPE), Linux)
     CXX       = g++
     CFLAGS   += -m64 -mcmodel=medium 
     CXXFLAGS += -m64 -mcmodel=medium
-    USRLIB    = /usr/lib64 /usr/X11R6/lib64
+    ifneq ($(SITE_NAME), TIGR)
+      USRLIB    = /usr/lib64 /usr/X11R6/lib64
+    endif
   endif
 endif
 
