@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.6 2005-08-24 17:44:03 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.7 2005-09-22 23:58:54 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -45,6 +45,7 @@ static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.6 2005-08-24 17:44:03 brianw
 #include "CommonREZ.h"
 #include "GreedyOverlapREZ.h"
 #include "Stats_CGW.h"
+#include "Checkpoints_CGW.h"
 
 ScaffoldGraphT *ScaffoldGraph = NULL;
 tSequenceDB *SequenceDB = NULL;
@@ -140,17 +141,16 @@ void CheckpointScaffoldGraph(ScaffoldGraphT *graph, int logicalCheckpoint){
 
 #if 0
   sprintf(buffer,"%s.ckpl",name);
-
   storeStore(graph->gkplStore, buffer);
 #endif
 
   sprintf(buffer,"%s.ckp.%d",name,graph->checkPointIteration++);
-  
+
   {
     time_t t;
     t = time(0);
-    fprintf(GlobalData->timefp,">>>>*************************************************************************<<<<\n");    
-    fprintf(GlobalData->timefp, "====> Saving %s at %s\n", buffer, ctime(&t));
+    fprintf(GlobalData->timefp,"\n");
+    fprintf(GlobalData->timefp, "====> Saving %s at %s", buffer, ctime(&t));
   }
   {
     long cycles;
@@ -185,8 +185,8 @@ void CheckpointScaffoldGraph(ScaffoldGraphT *graph, int logicalCheckpoint){
   {
     time_t t;
     t = time(0);
-    fprintf(GlobalData->timefp, "====> Done with checkpoint %d (logical %d) at %s\n", graph->checkPointIteration - 1, logicalCheckpoint, ctime(&t));
-    fprintf(GlobalData->timefp,">>>>*************************************************************************<<<<\n\n\n");    
+    fprintf(GlobalData->timefp, "====> Done with checkpoint %d (logical %d) at %s", graph->checkPointIteration - 1, logicalCheckpoint, ctime(&t));
+    fprintf(GlobalData->timefp, "\n");
     fflush(NULL);
   }
   fclose(outStream);
@@ -1004,32 +1004,7 @@ void RebuildScaffolds(ScaffoldGraphT *ScaffoldGraph,
 	  GlobalData->saveCheckPoints, markShakyBifurcations);
   fflush(GlobalData->stderrc);
 
-  if( markShakyBifurcations){
-    char temp[2000];
-    fprintf(GlobalData->timefp,"* Checkpoint %d, After Building Initial Unique CI Scaffolds and before Tidying up there are %d scaffolds\n",
-	    ScaffoldGraph->checkPointIteration,
-            (int) GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph));
-    if(GlobalData->dumpScaffoldSnapshots){
-      sprintf(temp,"Rebuild%d",ScaffoldGraph->checkPointIteration);
-      DumpScaffoldSnapshot(temp);
-    }
-    CheckpointScaffoldGraph(ScaffoldGraph, -1);
-  }
-
   TidyUpScaffolds (ScaffoldGraph);
-
-  if(GlobalData->saveCheckPoints){
-    char temp[2000];
-
-    fprintf(GlobalData->timefp,"* After RebuildScaffolds #%d there are %d scaffolds\n",
-	    ScaffoldGraph->checkPointIteration,
-            (int) GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph));
-    if(GlobalData->dumpScaffoldSnapshots){
-      sprintf(temp,"Rebuild%d",ScaffoldGraph->checkPointIteration);
-      DumpScaffoldSnapshot(temp);
-    }
-    CheckpointScaffoldGraph(ScaffoldGraph, -1);
-  }
 
   return;
 }
@@ -1078,30 +1053,32 @@ void BuildScaffoldsFromFirstPriniciples(ScaffoldGraphT *ScaffoldGraph,
 
   GenerateScaffoldGraphStats("initial",1);
 
-  if(skipInitialScaffolding){
-    // This is a continuation of a previous partial result, or
-    // a continuation of rocks
-    fprintf(stderr,"* Tidying Up...\n");
-    TidyUpScaffolds (ScaffoldGraph);
-    fprintf(stderr,"* Done Tidying Up...\n");
+  if (skipInitialScaffolding) {
 
-    if(GlobalData->saveCheckPoints){
-      
-      fprintf(GlobalData->timefp,
-              "* Checkpoint %d after tidying up %d scaffolds\n",
-	      ScaffoldGraph->checkPointIteration,
-              (int) GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph));
-      if(GlobalData->dumpScaffoldSnapshots){
-	char temp[2000];
-	sprintf(temp,"Rebuild%d",ScaffoldGraph->checkPointIteration);
-	DumpScaffoldSnapshot(temp);
-      }
-      CheckpointScaffoldGraph(ScaffoldGraph, -1);
-    }
-  }else{
+    //  This is a continuation of a previous partial result, or a
+    //  continuation of rocks, in either case, we have a checkpoint,
+    //  so we skip the creation of a new one after TidyUpScaffolds(),
+    //  and just get on with our work.
+
+    TidyUpScaffolds (ScaffoldGraph);
+
+  } else {
     // This includes CleanupScaffolds
     RebuildScaffolds(ScaffoldGraph, TRUE); // Transitive reduction of RezGraph followed by construction of SEdges
+
+    //  Hooray!  We have scaffolds!  Checkpoint!
+
+    fprintf(GlobalData->timefp,"* Checkpoint %d, After Building Initial Unique CI Scaffolds and before Tidying up there are %d scaffolds\n",
+            ScaffoldGraph->checkPointIteration,
+            (int) GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph));
+    if(GlobalData->dumpScaffoldSnapshots){
+      char temp[2000];
+      sprintf(temp,"Rebuild%d",ScaffoldGraph->checkPointIteration);
+      DumpScaffoldSnapshot(temp);
+    }
+    CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_AFTER_BUILDING_SCAFFOLDS);
   }
+
   GenerateScaffoldGraphStats("initial",1);
   GeneratePlacedContigGraphStats("initial",1);
   GenerateLinkStats(ScaffoldGraph->ContigGraph,"initial",1);
@@ -1110,6 +1087,7 @@ void BuildScaffoldsFromFirstPriniciples(ScaffoldGraphT *ScaffoldGraph,
 
   if(GlobalData->repeatRezLevel > 0){
     int iter = 0;
+    int ctme = time(0);
 
     fprintf(GlobalData->stderrc,"** Running Level 1 Repeat Rez **\n");
     do{
@@ -1134,14 +1112,32 @@ void BuildScaffoldsFromFirstPriniciples(ScaffoldGraphT *ScaffoldGraph,
 				 CHECK_CONNECTIVITY, FALSE);
 #endif
 	// Build Scaffolds of Discriminator Uniques
-	fprintf (GlobalData -> timefp,
-                 "Checkpoint %d written after Rocks %d\n",
-                 ScaffoldGraph -> checkPointIteration, iter);
         
         // Transitive reduction of RezGraph followed by construction of SEdges
 	RebuildScaffolds(ScaffoldGraph, FALSE); 
 
-	iter ++;
+        //  This checkpoint used to be included in RebuildScaffolds,
+        //  but checkpointing after every iteration generates far too
+        //  many checkpoints.  On a large mammal, on Opteron 2.2GHz,
+        //  an iteration takes 15 - 20 minutes.  Microbes take seconds.
+        //
+        //  So, if we've been running for 2 hours, AND we've not just completed
+        //  the last iteration, checkpoint.
+        //
+        if ((GlobalData->saveCheckPoints) &&
+            (time(0) - ctme > 120 * 60) && (iter+1 < MAX_OUTER_REZ_ITERATIONS)) {
+          ctme = time(0);
+          fprintf(GlobalData->timefp, "* After RebuildScaffolds Rocks %d there are %d scaffolds\n",
+                  iter, (int)GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph));
+          if(GlobalData->dumpScaffoldSnapshots){
+            char temp[2000];
+            sprintf(temp,"Rebuild%d",ScaffoldGraph->checkPointIteration);
+            DumpScaffoldSnapshot(temp);
+          }
+          CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_AFTER_BUILDING_SCAFFOLDS);
+        }
+
+        iter ++;
       }
     
 #ifdef DEBUG_BUCIS
@@ -1151,29 +1147,24 @@ void BuildScaffoldsFromFirstPriniciples(ScaffoldGraphT *ScaffoldGraph,
       DumpCIScaffolds(GlobalData->logfp,ScaffoldGraph, FALSE);
 #endif   
     }while(changedByRepeatRez && iter < MAX_OUTER_REZ_ITERATIONS);
-      
-    fprintf(GlobalData->timefp,
-            "\n\nCheckpoint %d written after Gap Filling\n",
+
+
+    //  Hooray!  We have cleaned scaffolds!
+
+    fprintf(GlobalData->timefp,"* Checkpoint %d, After Gap Filling\n",
             ScaffoldGraph->checkPointIteration);
-    CheckpointScaffoldGraph(ScaffoldGraph, -1);
-    
+    if(GlobalData->dumpScaffoldSnapshots){
+      char temp[2000];
+      sprintf(temp,"Rebuild%d",ScaffoldGraph->checkPointIteration);
+      DumpScaffoldSnapshot(temp);
+    }
+    CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_AFTER_BUILDING_AND_CLEANING_SCAFFOLDS);
   }
 
-  
-    
-
-  // ++++++++++++++++++++++++++++++++
-  // + CHANGED ++++++++++++++++++++++
-  // ++++++++++++++++++++++++++++++++
-  //     checkEdgeQuality(ScaffoldGraph->RezGraph,100,10,filePrefix);
-  //  place_multiply_contained(ScaffoldGraph->ContigGraph,100,10,filePrefix;)
-
-  
 
   fprintf(GlobalData->stderrc,"* After building scaffolds \n");
   fprintf(GlobalData->logfp,"* After building scaffolds \n");
   DumpCIScaffolds(GlobalData->logfp,ScaffoldGraph,FALSE);
-
 }
 
 

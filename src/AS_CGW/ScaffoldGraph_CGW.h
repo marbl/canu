@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: ScaffoldGraph_CGW.h,v 1.5 2005-06-09 21:15:35 brianwalenz Exp $	 */
+/* 	$Id: ScaffoldGraph_CGW.h,v 1.6 2005-09-22 23:58:54 brianwalenz Exp $	 */
 /***************************************************************************
  *  ScaffoldGraph
  *  
@@ -202,7 +202,7 @@ int InsertScaffoldContentsIntoScaffold(ScaffoldGraphT *sgraph,
                                        LengthT * offset,
                                        int contigNow);
 
-void MergeScaffoldsAggressive(ScaffoldGraphT *sgraph, int verbose);
+void MergeScaffoldsAggressive(ScaffoldGraphT *sgraph, int logicalcheckpointnumber, int verbose);
 
 
 

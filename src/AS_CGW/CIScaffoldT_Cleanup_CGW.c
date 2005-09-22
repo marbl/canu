@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.8 2005-09-21 17:41:29 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.9 2005-09-22 23:58:54 brianwalenz Exp $";
 
 #define DEBUG 0
 #undef DEBUG_DETAILED
@@ -1335,13 +1335,13 @@ int CleanupScaffolds(ScaffoldGraphT *sgraph, int lookForSmallOverlaps,
       fflush(GlobalData->stderrc);
     }
 
-#if 0
-    //  If enabled, it needs a real logical checkpoint number (not -1)
     if(GetSizeOfCurrentSequenceDB(ScaffoldGraph->sequenceDB) > GlobalData->maxSequencedbSize){
-      fprintf(GlobalData->timefp,"\n\nCheckpoint %d written during CleanupScaffolds after scaffold " F_CID "\n",ScaffoldGraph->checkPointIteration, scaffold->id);
+      fprintf(GlobalData->timefp, "\n\nCheckpoint %d written during CleanupScaffolds after scaffold " F_CID "\n",
+              ScaffoldGraph->checkPointIteration, scaffold->id);
+      fprintf(GlobalData->timefp, "Sorry, no way to know which logical checkpoint this really is!\n");
       CheckpointScaffoldGraph(ScaffoldGraph, -1);
     }
-#endif
+
     CheckScaffoldGraphCache(ScaffoldGraph);
   }
 
@@ -1483,9 +1483,6 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
   int32 i;
   int mergesAttempted = 0;
   int allMergesSucceeded = FALSE;
-#if 0
-  static time_t lastCkpTime = (time_t) -1;
-#endif
 
   if(!GlobalData->performCleanupScaffolds){
     return 0;
@@ -1633,25 +1630,7 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
   {
     ContigEndsT *ctg = GetContigEndsT(ContigEnds,0);
     int32 numContigs = GetNumContigEndsTs(ContigEnds);
-#if 0
-    /******************************DEAD CODE *********************************/
-    ContigT newContig;
-    CDS_CID_t firstContig;
-    int32 numContigs;
 
-    InitializeContig(&newContig, CONTIG_CGW);
-    firstContig = GetNumGraphNodes(graph->ContigGraph);
-    numContigs = GetNumContigEndsTs(ContigEnds);
-
-    newContig.flags.bits.isUnique = (scaffold->type == REAL_SCAFFOLD?TRUE:FALSE);
-    newContig.flags.bits.cgbType = UU_CGBTYPE;
-    newContig.aEndCoord = newContig.bEndCoord = -1;
-    newContig.scaffoldID = ctg->firstCI->scaffoldID;
-    assert(newContig.scaffoldID != NULLINDEX);
-    newContig.edgeHead = NULLINDEX;
-    newContig.microhetScore = NULLINDEX;
-    /******************************END DEAD CODE *********************************/
-#endif
     if(ContigPositions == NULL){
       ContigPositions = CreateVA_IntElementPos(10);
     }
@@ -1712,39 +1691,12 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
   }
 #endif
 
-#if 0
-  //  If enabled, it needs a real logical checkpoint number (not -1)
-  // initialize the timer the first time we cleanup a scaffold
-  if (lastCkpTime == (time_t) -1)
-  	lastCkpTime = time(NULL);
-  
-  if (GetSizeOfCurrentSequenceDB(ScaffoldGraph->sequenceDB) > GlobalData->maxSequencedbSize
-	  || time(NULL) - lastCkpTime > 3600 * 4)  // if we've got enough to write or it's been 4 hours
-  {
-	if (time(NULL) - lastCkpTime > 3600 * 3)  // even with enough to write we must go three hours to checkpoint
-	{
-	  fprintf(GlobalData->timefp,"\n\nCheckpoint %d written during CleanupAScaffold after scaffold " F_CID "\n",
-			  ScaffoldGraph->checkPointIteration, scaffold->id);
-	  // fprintf( stderr, "would write a checkpoint at time: " F_TIME_T "\n", time(NULL));
-	  CheckpointScaffoldGraph(ScaffoldGraph, -1);
-	  lastCkpTime = time(NULL);
-	}
-  }
-#endif
 
-  if (GetSizeOfCurrentSequenceDB(ScaffoldGraph->sequenceDB) > GlobalData->maxSequencedbSize)
-  {
-	  fprintf(GlobalData->timefp,"\n\nCheckpoint %d written during CleanupAScaffold after scaffold " F_CID "\n",
-			  ScaffoldGraph->checkPointIteration, scaffold->id);
-	  CheckpointScaffoldGraph(ScaffoldGraph, -1);
-  }
-  
-  
   if(mergesAttempted == 0)
     return 0;
   if(allMergesSucceeded)
     return TRUE;
-  //else
+
   return NULLINDEX;
 }
 

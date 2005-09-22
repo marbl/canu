@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Output_CGW.c,v 1.8 2005-08-05 13:36:08 gdenisov Exp $";
+static char CM_ID[] = "$Id: Output_CGW.c,v 1.9 2005-09-22 23:58:54 brianwalenz Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -318,7 +318,7 @@ void OutputContigsFromMultiAligns(){
       numUnitig = GetNumIntUnitigPoss(ma->u_list);
       up = GetIntUnitigPos(ma->u_list,0);
       
-      tmpSource = safe_malloc((GetNumIntMultiPoss(ma->f_list) + 1) * sizeof(CDS_IID_t));
+      tmpSource = (CDS_IID_t *)safe_malloc((GetNumIntMultiPoss(ma->f_list) + 1) * sizeof(CDS_IID_t));
       
       if(numUnitig >= ubufSize){
         ubufSize = numUnitig * 2;
@@ -819,7 +819,7 @@ void OutputUnitigsFromMultiAligns(void){
     CDS_IID_t * tmpSource;
     assert (ci->type != CONTIG_CGW);
 
-    tmpSource = safe_malloc(sizeof(CDS_IID_t) * (GetNumIntMultiPoss(ma->f_list) + 1));
+    tmpSource = (CDS_IID_t *)safe_malloc(sizeof(CDS_IID_t) * (GetNumIntMultiPoss(ma->f_list) + 1));
     {
       CDS_IID_t i;
       // Null out the source field

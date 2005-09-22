@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.6 2005-08-25 20:36:41 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.7 2005-09-22 23:58:54 brianwalenz Exp $";
 
 #undef ORIG_MERGE_EDGE_INVERT
 #define MINSATISFIED_CUTOFF 0.985
@@ -5086,6 +5086,7 @@ void BuildNewScaffoldEdges(ScaffoldGraphT * graph,
 
 int MergeScaffoldsExhaustively(ScaffoldGraphT * graph,
                                InterleavingSpec * iSpec,
+                               int logicalcheckpointnumber,
                                int verbose)
 {
   static VA_TYPE(PtrT) *sEdges = NULL;
@@ -5095,25 +5096,27 @@ int MergeScaffoldsExhaustively(ScaffoldGraphT * graph,
   int32 iterations = 0;
   int32 giterations = 0;
   time_t t;
-  int ckpIterationCounter = 0;
   float minWeightThreshold = 0.0;
   CDS_CID_t prevFirstNewScaffoldID = NULLINDEX;
   int32 totalMerged = 0;
-  
+
+  int    buildEdgeCounter = -1;
+  time_t lastCkpTime      = time(0) - 90 * 60;
+
   // loop until nothing gets merged
   do{
     CDS_CID_t currFirstNewScaffoldID;
     
-    // checkpoint periodically - assume 3 hrs per iteration for mammals
-    if (++ckpIterationCounter == 8)
-    {
+    //  Checkpoint periodically - every two hours seems nice!  The
+    //  first checkpoint is done after 30 minutes of work here,
+    //  though.
+    //
+    if (time(0) - lastCkpTime > 120 * 60) {
       CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, FALSE);
-      fprintf( GlobalData->stderrc, "Checkpoint %d written during MergeScaffoldsAggressive at giteration %d\n",
-               ScaffoldGraph->checkPointIteration, giterations);
-      fprintf( GlobalData->timefp,"Checkpoint %d written written during MergeScaffoldsAggressive at giteration %d\n",
-               ScaffoldGraph->checkPointIteration, giterations);
-      CheckpointScaffoldGraph(ScaffoldGraph, -1);
-      ckpIterationCounter = 0;
+      fprintf(GlobalData->timefp,"Checkpoint %d written written during MergeScaffoldsAggressive at giteration %d\n",
+              ScaffoldGraph->checkPointIteration, giterations);
+      CheckpointScaffoldGraph(ScaffoldGraph, logicalcheckpointnumber);
+      lastCkpTime = time(0);
     }
     currFirstNewScaffoldID = GetNumGraphNodes(graph->ScaffoldGraph);
     
@@ -5134,9 +5137,18 @@ int MergeScaffoldsExhaustively(ScaffoldGraphT * graph,
       CelamyCIScaffolds(buffer, ScaffoldGraph);
     }
     
-    // initially & periodically build scaffold edges from scratch
-    if(giterations == 1 || ckpIterationCounter == 0)
+    //  Initially & periodically build scaffold edges from scratch --
+    //  assumes that buildEdgeCounter is initialized to -1.  When
+    //  switching the checkpoint above from a fixed iteration to time
+    //  based, we needed to change the logic here.  Versions previous
+    //  to 2005-09-22 (the date of the checkpoint change) would
+    //  SetUpSEdges() on the 1st, 8th, 16th, etc iteration, which we
+    //  preserve with the following unnatural test.
+    //
+    buildEdgeCounter++;
+    if ((buildEdgeCounter == 0) || (buildEdgeCounter == 8))
     {
+      buildEdgeCounter = 0;
       if(SetUpSEdges(graph, &sEdges, &overlapSEdges, &minWeightThreshold,
                      TRUE, iSpec, verbose))
       {
@@ -5145,7 +5157,7 @@ int MergeScaffoldsExhaustively(ScaffoldGraphT * graph,
         break;
       }
     }
-    else
+    else 
     {
       // delete all edges to dead (merged) scaffolds
       DeleteDeadScaffoldEdges(graph, deadScaffoldIDs);
@@ -5209,7 +5221,7 @@ void DeleteContigOverlapEdges(void)
   fprintf(stderr, "Number of null contig edges: %d\n", numNulls);
 }
 
-void MergeScaffoldsAggressive(ScaffoldGraphT *graph, int verbose)
+void MergeScaffoldsAggressive(ScaffoldGraphT *graph, int logicalcheckpointnumber, int verbose)
 {
   time_t t;
   InterleavingSpec iSpec;
@@ -5253,7 +5265,7 @@ void MergeScaffoldsAggressive(ScaffoldGraphT *graph, int verbose)
   iSpec.minSatisfied, iSpec.maxDelta);
   iSpec.checkForTinyScaffolds = TRUE;
   iSpec.doInterleaving = FALSE;
-  MergeScaffoldsExhaustively(graph, &iSpec, verbose);
+  MergeScaffoldsExhaustively(graph, &iSpec, logicalcheckpointnumber, verbose);
   
 #else
 
@@ -5265,7 +5277,7 @@ void MergeScaffoldsAggressive(ScaffoldGraphT *graph, int verbose)
     iSpec.checkForTinyScaffolds = FALSE;
     iSpec.doInterleaving = TRUE;
     //    LeastSquaresGapEstimates(graph, TRUE, FALSE, TRUE, TRUE, FALSE);
-    MergeScaffoldsExhaustively(graph, &iSpec, verbose);
+    MergeScaffoldsExhaustively(graph, &iSpec, logicalcheckpointnumber, verbose);
     // GlobalData->aligner = DP_Compare;
 #endif    
   }

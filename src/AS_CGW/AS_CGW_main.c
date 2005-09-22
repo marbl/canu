@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.11 2005-09-15 15:20:15 eliv Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.12 2005-09-22 23:58:54 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -155,44 +155,8 @@ static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.11 2005-09-15 15:20:15 eliv 
 FILE *  File_Open (const char * Filename, const char * Mode, int exitOnFailure);
 
 
-#define CHECKPOINT_AFTER_READING_INPUT 0
-#define CHECKPOINT_AFTER_UNITIG_SPLITTING 1
-#define CHECKPOINT_AFTER_BUILDING_EDGES 2
-#define CHECKPOINT_AFTER_BUILDING_CIGRAPH 3
-#define CHECKPOINT_AFTER_BUILDING_SCAFFOLDS 4
-#define CHECKPOINT_AFTER_BUILDING_AND_CLEANING_SCAFFOLDS 5
-#define CHECKPOINT_BEFORE_CONSERVATIVE_WALKING 6
-#define CHECKPOINT_BEFORE_1ST_SCAFF_MERGE 7
-#define CHECKPOINT_BEFORE_STONES 8
-#define CHECKPOINT_BEFORE_AGGRESSIVE_WALKING 9
-#define CHECKPOINT_BEFORE_2ND_SCAFF_MERGE 10
-#define CHECKPOINT_BEFORE_FINAL_ROCKS 11
-#define CHECKPOINT_BEFORE_PARTIAL_STONES 12
-#define CHECKPOINT_BEFORE_FINAL_CONTAINED_STONES 13
-#define CHECKPOINT_BEFORE_INTER_SCAFFOLD_WALKING 14
-#define CHECKPOINT_BEFORE_FINAL_CLEANUP 15
-
-/* more recently, it used to be
-#define CHECKPOINT_AFTER_BUILDING_EDGES 1
-#define CHECKPOINT_AFTER_BUILDING_CIGRAPH 2
-#define CHECKPOINT_AFTER_BUILDING_SCAFFOLDS 3
-#define CHECKPOINT_AFTER_BUILDING_AND_CLEANING_SCAFFOLDS 4
-#define CHECKPOINT_BEFORE_CONSERVATIVE_WALKING 5
-#define CHECKPOINT_BEFORE_1ST_SCAFF_MERGE 6
-#define CHECKPOINT_BEFORE_STONES 7
-#define CHECKPOINT_BEFORE_AGGRESSIVE_WALKING 8
-#define CHECKPOINT_BEFORE_2ND_SCAFF_MERGE 9
-#define CHECKPOINT_BEFORE_PARTIAL_STONES 10
-#define CHECKPOINT_BEFORE_FINAL_CONTAINED_STONES 11
-#define CHECKPOINT_BEFORE_FINAL_CLEANUP 12
-*/
-
-// How it used to be
-// #define CHECKPOINT_BEFORE_SCAFFOLD_MERGING 5
-// #define CHECKPOINT_BEFORE_STONES 6
-// #define CHECKPOINT_BEFORE_WALKING 7
-// #define CHECKPOINT_AFTER_SCAFFOLD_MERGING 8
-// #define CHECKPOINT_BEFORE_FINAL_CLEANUP 9
+//  The checkpoint list that used to be here is now in Checkpoints_CGW.h
+#include "Checkpoints_CGW.h"
 
 
 int main(int argc, char *argv[]){
@@ -778,8 +742,6 @@ int main(int argc, char *argv[]){
 
 
     if(checkPoint){
-      fprintf(GlobalData->stderrc," Dumping checkpoint %d after BuildInitialContigs\n", 
-			  ScaffoldGraph->checkPointIteration); 
       fprintf(GlobalData->timefp," Dumping checkpoint %d after BuildInitialContigs\n",
 			  ScaffoldGraph->checkPointIteration); 
       CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_AFTER_BUILDING_SCAFFOLDS);
@@ -799,11 +761,6 @@ int main(int argc, char *argv[]){
      ((restartFromLogicalCheckpoint < CHECKPOINT_AFTER_BUILDING_AND_CLEANING_SCAFFOLDS) &&
      data->repeatRezLevel > 0)){
   
-    int skipInitialScaffolds = (restartFromLogicalCheckpoint >= CHECKPOINT_AFTER_BUILDING_SCAFFOLDS);
-    
-    fprintf(GlobalData->stderrc,"* Before BuildScaffolds  with skipInitialScaffolds = %d*\n", skipInitialScaffolds);
-    fprintf(data->logfp,"* Before BuildScaffolds with skipInitialScaffolds = %d*\n", skipInitialScaffolds);
-
 #ifdef RAT_LBAC_REACTIVATION
 #include obsolete/rat_lbac_reactivation
 #endif
@@ -815,8 +772,12 @@ int main(int argc, char *argv[]){
     fprintf(GlobalData->stderrc, "VALIDATING ALL CONTIG EDGES...\n");
     ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
 #endif
+
+    int skipInitialScaffolds = (restartFromLogicalCheckpoint >= CHECKPOINT_AFTER_BUILDING_SCAFFOLDS);
+
     fprintf(GlobalData->stderrc,"**** Running BuildScaffoldsFromFirstPriniciples ****\n");
-    fflush(stderr);
+    fprintf(GlobalData->stderrc,"**** with skipInitialScaffolds = %d\n", skipInitialScaffolds);
+
     BuildScaffoldsFromFirstPriniciples(ScaffoldGraph, skipInitialScaffolds);  // rocks is called inside of here
 
 #if defined(CHECK_CONTIG_ORDERS) || defined(CHECK_CONTIG_ORDERS_INCREMENTAL)
@@ -826,6 +787,11 @@ int main(int argc, char *argv[]){
     
     if(GlobalData->debugLevel > 0)
       DumpCIScaffolds(GlobalData->stderrc,ScaffoldGraph, FALSE);
+
+    //  The checkpoints are written in BuildScaffoldsFromFirstPriniciples(), either for
+    //  AFTER_BUILDING_SCAFFOLDS or AFTER_BUILDING_AND_CLEANING_SCAFFOLDS, depending on
+    //  (GlobalData->repeatRezLevel > 0).
+
   }
 
 #ifdef COMPUTE_NEW_DIST_ESTIMATES
@@ -868,6 +834,7 @@ int main(int argc, char *argv[]){
       ResetContigOrientChecker(coc);
       AddAllScaffoldsToContigOrientChecker(ScaffoldGraph, coc);
 #endif
+
       fprintf(data->timefp,"Checkpoint %d written after Conservative Walking\n",ScaffoldGraph->checkPointIteration);
       CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_BEFORE_CONSERVATIVE_WALKING+1);
     }
@@ -896,7 +863,7 @@ int main(int argc, char *argv[]){
     }
     /* First we try to merge Scaffolds agressively */
 #define DEBUG_MERGE_SCAF FALSE
-    MergeScaffoldsAggressive(ScaffoldGraph, DEBUG_MERGE_SCAF);
+    MergeScaffoldsAggressive(ScaffoldGraph, CHECKPOINT_BEFORE_1ST_SCAFF_MERGE, DEBUG_MERGE_SCAF);
 
 #ifdef FIX_CONTIG_EDGES
     fprintf(GlobalData->stderrc, "VALIDATING ALL CONTIG EDGES...\n");
@@ -914,7 +881,6 @@ int main(int argc, char *argv[]){
     AddAllScaffoldsToContigOrientChecker(ScaffoldGraph, coc);
 #endif
 
-    fprintf(GlobalData->stderrc,"Checkpoint %d written after 1st Scaffold Merge\n",ScaffoldGraph->checkPointIteration);
     fprintf(data->timefp,"Checkpoint %d written after 1st Scaffold Merge\n",ScaffoldGraph->checkPointIteration);
     CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_BEFORE_1ST_SCAFF_MERGE+1);
   } // No immediate output
@@ -975,9 +941,8 @@ int main(int argc, char *argv[]){
        AddAllScaffoldsToContigOrientChecker(ScaffoldGraph, coc);
 #endif
 
-       fprintf (data -> timefp,
-                "Checkpoint %d written after Stone Throwing and CleanupScaffolds\n",
-                ScaffoldGraph -> checkPointIteration);
+       fprintf(data -> timefp, "Checkpoint %d written after Stone Throwing and CleanupScaffolds\n",
+               ScaffoldGraph -> checkPointIteration);
        CheckpointScaffoldGraph (ScaffoldGraph, CHECKPOINT_BEFORE_STONES+1);
 
        GenerateLinkStats (ScaffoldGraph -> CIGraph, "Stones", 0);
@@ -1069,7 +1034,7 @@ int main(int argc, char *argv[]){
       }
 #endif
 
-    MergeScaffoldsAggressive(ScaffoldGraph, DEBUG_MERGE_SCAF);
+    MergeScaffoldsAggressive(ScaffoldGraph, CHECKPOINT_BEFORE_2ND_SCAFF_MERGE, DEBUG_MERGE_SCAF);
 
 #ifdef FIX_CONTIG_EDGES
     fprintf(GlobalData->stderrc, "VALIDATING ALL CONTIG EDGES...\n");
@@ -1221,12 +1186,9 @@ int main(int argc, char *argv[]){
       ResetContigOrientChecker(coc);
       AddAllScaffoldsToContigOrientChecker(ScaffoldGraph, coc);
 #endif
-      fprintf (GlobalData -> stderrc,
-               "Checkpoint %d written after Final Contained Stones\n",
-               ScaffoldGraph->checkPointIteration);
-      fprintf (data -> timefp,
-               "Checkpoint %d written after Final Contained Stones\n",
-               ScaffoldGraph->checkPointIteration);
+
+      fprintf(data -> timefp, "Checkpoint %d written after Final Contained Stones\n",
+              ScaffoldGraph->checkPointIteration);
       CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_BEFORE_FINAL_CONTAINED_STONES+1);
 
       GenerateLinkStats (ScaffoldGraph -> CIGraph, "CStones", 0);
