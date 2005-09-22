@@ -1,5 +1,5 @@
 #!/usr/local/bin/perl
-# $Id: runTampa.pl,v 1.2 2005-09-21 20:12:30 catmandew Exp $
+# $Id: runTampa.pl,v 1.3 2005-09-22 21:27:42 catmandew Exp $
 #
 # Wrapper to run and post-process results from TAMPA
 # (Tool for Analyzing Mate Pairs in Assemblies)
@@ -16,39 +16,46 @@ use FileHandle;
 use Getopt::Long;
 
 # mate pair types & statuses
-my %Indices = ("mate" => 0,
-               "coincident" => 1,
-               "raw" => {"satisfied" => 2,
-                         "stretched" => 3,
-                         "compressed" => 4,
-                         "outtie" => 5,
-                         "normal" => 6,
-                         "antinormal" => 7,},
-               "confirmed" => {"stretched" => 8,
-                               "compressed" => 9,
-                               "outtie" => -1,
-                               "normal" => -1,
-                               "antinormal" => -1,
-                               "inversion" => 10,
-                               "transposition" => 11,
-                               "insertions" => 23,
-                               "deletions" => 24,},
-               "below-threshold" => {"stretched" => 12,
-                                     "compressed" => 13,
-                                     "outtie" => -1,
-                                     "normal" => -1,
-                                     "antinormal" => -1,
-                                     "inversion" => 14,
-                                     "transposition" => 15,},
-               "polymorphic" => {"insertion" => 16,
-                                 "inversion" => 17,},
-               "problematic" => {"stretched" => 18,
-                                 "compressed" => 19,
-                                 "outtie" => 20,
-                                 "normal" => 21,
-                                 "antinormal" => 22,
-                                 "inversion" => -1,},);
-my $LastIndex = 24;
+my %IntraIndices = ("mate" => 0,
+                    "coincident" => 1,
+                    "raw" => {"satisfied" => 2,
+                              "stretched" => 3,
+                              "compressed" => 4,
+                              "outtie" => 5,
+                              "normal" => 6,
+                              "antinormal" => 7,},
+                    "confirmed" => {"stretched" => 8,
+                                    "compressed" => 9,
+                                    "outtie" => -1,
+                                    "normal" => -1,
+                                    "antinormal" => -1,
+                                    "inversion" => 10,
+                                    "transposition" => 11,
+                                    "insertions" => 23,
+                                    "deletions" => 24,},
+                    "below-threshold" => {"stretched" => 12,
+                                          "compressed" => 13,
+                                          "outtie" => -1,
+                                          "normal" => -1,
+                                          "antinormal" => -1,
+                                          "inversion" => 14,
+                                          "transposition" => 15,},
+                    "polymorphic" => {"insertion" => 16,
+                                      "inversion" => 17,},
+                    "problematic" => {"stretched" => 18,
+                                      "compressed" => 19,
+                                      "outtie" => 20,
+                                      "normal" => 21,
+                                      "antinormal" => 22,
+                                      "inversion" => -1,},);
+my $LastIntraIndex = 24;
+
+my %InterIndices = ("mate" => 0,
+                    "stretched" => 1,
+                    "outtie" => 2,
+                    "normal" => 3,
+                    "antinormal" => 4,);
+my $LastInterIndex = 4;
 
 my $lengthAccumulator = 0;
 my %libMateCounter;
@@ -57,15 +64,18 @@ my %PARAMETERS = ("assemblyPrefix" => "",
                   "libFilename" => "",
                   "numSigmas" => 3,
                   "minPairs" => 2,
-                  "binaryPath" => "",
+                  "binariesPath" => "",
                   "dontReestimate" => 0,
                   "reestIters" => 4,
                   "reestSigmas" => 4,
                   "dontDoIntra" => 0,
                   "dontDoInter" => 0,
-                  "verboseLevel" => 0,);
+                  "verboseLevel" => 0,
+                  "gnuplotOutput" => 0,
+                  "ataOutput" => 0,
+                  "rawOutput" => 0,);
 
-my $MY_VERSION = " Version 1.01 (Build " . (qw/$Revision: 1.2 $/ )[1]. ")";
+my $MY_VERSION = " Version 1.01 (Build " . (qw/$Revision: 1.3 $/ )[1]. ")";
 my $MY_APPLICATION = "TAMPA";
 
 my $REFERENCE = qq~
@@ -125,6 +135,12 @@ Run TAMPA (Tool for Analyzing Mate Pairs in Assemblies) on a genomic assembly.
 
       -x               Do not run TAMPA on inter-sequence mate pairs.
 
+      -g               Generate output for gnuplot.
+
+      -t               Generate ATAC output.
+
+      -m               Generate raw output.
+
 $MY_VERSION
 
 ~;
@@ -142,7 +158,7 @@ GetOptions("a=s" => \$PARAMETERS{"assemblyPrefix"},
            "l=s" => \$PARAMETERS{"libFilename"},
            "h|help" => \$helpRequested,
            "c" => \$printCitation,
-           "b=s" => \$PARAMETERS{"binaryPath"},
+           "b=s" => \$PARAMETERS{"binariesPath"},
            "v|V|verbose:1" => \$PARAMETERS{"verboseLevel"},
            "r+" => \$PARAMETERS{"dontReestimate"},
            "i=i" => \$reestIters,
@@ -150,7 +166,10 @@ GetOptions("a=s" => \$PARAMETERS{"assemblyPrefix"},
            "s=f" => \$PARAMETERS{"numSigmas"},
            "p=i" => \$PARAMETERS{"minPairs"},
            "o+" => \$PARAMETERS{"dontDoIntra"},
-           "x+" => \$PARAMETERS{"dontDoInter"}) or die $HELPTEXT;
+           "x+" => \$PARAMETERS{"dontDoInter"},
+           "g+" => \$PARAMETERS{"gnuplotOutput"},
+           "t+" => \$PARAMETERS{"ataOutput"},
+           "m+" => \$PARAMETERS{"rawOutput"}) or die $HELPTEXT;
 
 if($helpRequested)
 {
@@ -231,9 +250,9 @@ if($PARAMETERS{"verboseLevel"})
   print "\n";
 
   print "Binaries located in ";
-  if($PARAMETERS{"binaryPath"})
+  if($PARAMETERS{"binariesPath"})
   {
-    print $PARAMETERS{"binaryPath"} . "\n";
+    print $PARAMETERS{"binariesPath"} . "\n";
   }
   else
   {
@@ -245,7 +264,7 @@ if($PARAMETERS{"verboseLevel"})
   system("date");
 }
 
-$PARAMETERS{"binaryPath"} .= "/" if($PARAMETERS{"binaryPath"});
+$PARAMETERS{"binariesPath"} .= "/" if($PARAMETERS{"binariesPath"});
 
 ######################################################################
 # Get the complete list of sequences to process
@@ -317,7 +336,7 @@ if(!$PARAMETERS{"dontReestimate"})
     close($ofh);
 
     my $appender = ($numLibs == 0 ? " > " : " >> ");
-    my $command = $PARAMETERS{"binaryPath"} . "reestimateLibs" .
+    my $command = $PARAMETERS{"binariesPath"} . "reestimateLibs" .
       " -f " . $ofn .
       " -l " . $PARAMETERS{"libFilename"} .
       " -n " . $libFields[0] .
@@ -326,7 +345,8 @@ if(!$PARAMETERS{"dontReestimate"})
       $appender . $rlfn;
     
     print "Running $command\n" if($PARAMETERS{"verboseLevel"} > 1);
-    system($command);
+    system($command) == 0
+      or die "Failed to run command\n$command\n\n";
     $numLibs++;
   }
   close($ilfh);
@@ -349,7 +369,7 @@ if(!$PARAMETERS{"dontDoIntra"})
       die "Failed to open $sfn for writing";
 
   # write title
-  print $sfh "TAMPA Intra-sequence results on " .
+  print $sfh "TAMPA Intra-sequence results for " .
     $PARAMETERS{"assemblyPrefix"} . " assembly\n\n";
   
   # write field labels
@@ -382,7 +402,7 @@ if(!$PARAMETERS{"dontDoIntra"})
   # set up accumulators
   my @totals;
   my $i;
-  for($i = 0; $i <= $LastIndex; $i++)
+  for($i = 0; $i <= $LastIntraIndex; $i++)
   {
     $totals[$i] = 0;
   }
@@ -392,12 +412,15 @@ if(!$PARAMETERS{"dontDoIntra"})
     # run TAMPA on intra-sequence
     my $ofn = $PARAMETERS{"assemblyPrefix"} . "." . $intra . ".intra.summary.txt";
     my $ifn = $PARAMETERS{"assemblyPrefix"} . "_" . $intra . "_intra.txt";
-    my $command = $PARAMETERS{"binaryPath"} . "processIntra" .
+    my $command = $PARAMETERS{"binariesPath"} . "processIntra" .
       " -l " . $PARAMETERS{"libFilename"} .
       " -m $ifn" .
       " -n " . $PARAMETERS{"numSigmas"} .
-      " -f " . $PARAMETERS{"minPairs"} .
-      " > " . $ofn;
+      " -f " . $PARAMETERS{"minPairs"};
+    $command .= " -g " if($PARAMETERS{"gnuplotOutput"});
+    $command .= " -a " if($PARAMETERS{"ataOutput"});
+    $command .= " -r " if($PARAMETERS{"rawOutput"});
+    $command .= " > " . $ofn;
     print "Running $command\n" if($PARAMETERS{"verboseLevel"} > 1);
     system($command) == 0
       or die "\nFailed to run command\n$command\n\n";
@@ -405,7 +428,7 @@ if(!$PARAMETERS{"dontDoIntra"})
     # parse summary file & add to summary spreadsheet file
     printf $sfh "$intra";
     my @vals;
-    for($i = 0; $i <= $LastIndex; $i++)
+    for($i = 0; $i <= $LastIntraIndex; $i++)
     {
       $vals[$i] = 0;
     }
@@ -424,7 +447,7 @@ if(!$PARAMETERS{"dontDoIntra"})
          $fields[1] eq "polymorphic" ||
          $fields[1] eq "problematic")
       {
-        $index = $Indices{$fields[1]}{$fields[2]};
+        $index = $IntraIndices{$fields[1]}{$fields[2]};
       }
       elsif($fields[1] eq "is")
       {
@@ -436,9 +459,9 @@ if(!$PARAMETERS{"dontDoIntra"})
         $libMateCounter{$fields[4]} += $fields[0];
         next;
       }
-      elsif(defined($Indices{$fields[1]}))
+      elsif(defined($IntraIndices{$fields[1]}))
       {
-        $index = $Indices{$fields[1]};
+        $index = $IntraIndices{$fields[1]};
       }
 
       next if($index <= -1);
@@ -447,7 +470,7 @@ if(!$PARAMETERS{"dontDoIntra"})
     }
     close($iofh);
 
-    for($i = 0; $i <= $LastIndex; $i++)
+    for($i = 0; $i <= $LastIntraIndex; $i++)
     {
       printf $sfh "\t$vals[$i]";
     }
@@ -456,7 +479,7 @@ if(!$PARAMETERS{"dontDoIntra"})
 
   # print totals
   printf $sfh "\nTotals";
-  for($i = 0; $i <= $LastIndex; $i++)
+  for($i = 0; $i <= $LastIntraIndex; $i++)
   {
     printf $sfh "\t$totals[$i]";
   }
@@ -473,20 +496,90 @@ if(!$PARAMETERS{"dontDoInter"})
 {
   print "\n\nProcessing inter-sequence mate pairs\n\n"
     if($PARAMETERS{"verboseLevel"} > 1);
+
+  # create csv file for sequence-by-sequence summary
+  my $sfn = $PARAMETERS{"assemblyPrefix"} . ".inter.spreadsheet.txt";
+  my $sfh = new FileHandle $sfn, "w" or
+      die "Failed to open $sfn for writing";
+
+  # write title
+  print $sfh "TAMPA Inter-sequence results for " .
+    $PARAMETERS{"assemblyPrefix"} . " assembly\n\n";
+  
+  # write field labels
+  print $sfh "\t\t" .
+    "Confirmed intervals\n";
+
+  # 5 fields after sequence id
+  print $sfh "Sequence ID\t" .
+    #    0
+    "Raw clones\t" .
+    #  1      2       3         4
+    "Innie\tOuttie\tNormal\tAntinormal\n";
+
+  # set up accumulators
+  my @totals;
+  my $i;
+  for($i = 0; $i <= $LastInterIndex; $i++)
+  {
+    $totals[$i] = 0;
+  }
+
   foreach my $inter (sort {$a <=> $b} (keys(%inters)))
   {
+    my $ofn = $PARAMETERS{"assemblyPrefix"} . "." . $inter . ".inter.summary.txt";
     my $ifn = $PARAMETERS{"assemblyPrefix"} . "_" . $inter . "_inter.txt";
-    my $command = $PARAMETERS{"binaryPath"} . "processInterCG" .
+    my $command = $PARAMETERS{"binariesPath"} . "processInterCG" .
       " -l " . $PARAMETERS{"libFilename"} .
-      " -e $ifn" .
+      " -m $ifn" .
       " -n " . $PARAMETERS{"numSigmas"} .
       " -f " . $PARAMETERS{"minPairs"};
+    $command .= " -g " if($PARAMETERS{"gnuplotOutput"});
+    $command .= " -a " if($PARAMETERS{"ataOutput"});
+    $command .= " > " . $ofn;
     print "Running $command\n" if($PARAMETERS{"verboseLevel"} > 1);
     system($command) == 0
       or die "\nFailed to run command\n$command\n\n";
+
+    # parse summary file & add to summary spreadsheet file
+    printf $sfh "$inter";
+    my @vals;
+    for($i = 0; $i <= $LastInterIndex; $i++)
+    {
+      $vals[$i] = 0;
+    }
+    
+    my $iofh = new FileHandle $ofn, "r" or
+      die "Failed to open $ofn for reading";
+    while(<$iofh>)
+    {
+      my @fields = split;
+
+      $vals[$InterIndices{$fields[2]}] = $fields[0];
+      $totals[$InterIndices{$fields[2]}] += $fields[0];
+    }
+    close($iofh);
+
+    for($i = 0; $i <= $LastInterIndex; $i++)
+    {
+      printf $sfh "\t$vals[$i]";
+    }
+    printf $sfh "\n";
   }
 
-  # process results
+  # print totals
+  printf $sfh "\nTotals";
+  for($i = 0; $i <= $LastInterIndex; $i++)
+  {
+    printf $sfh "\t$totals[$i]";
+  }
+
+  # calculate probability of detections & print
+  
+  printf $sfh "\n\nPlease cite the following in any publications" .
+    "$REFERENCE\n";
+  
+  close($sfh);
 }
 
 

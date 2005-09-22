@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: processIntra.cc,v 1.6 2005-09-21 20:13:07 catmandew Exp $ */
+/* $Id: processIntra.cc,v 1.7 2005-09-22 21:27:42 catmandew Exp $ */
 #include <cstdio>  // for sscanf
 #include <iostream>
 #include <iomanip>
@@ -68,7 +68,7 @@ void PrintRawMatePairs(vector<CompositeMPPolygon<UNIT_TYPE> > & cmpps,
   sprintf(outFilename, "%s.%s.%s.raw",
           assembly, seqID, MatePairLabel[mpii]);
   ofstream myOS(outFilename, ios::out);
-  
+
   vector<CompositeMPPolygon<UNIT_TYPE> >::iterator iter;
   for(iter = cmpps.begin(); iter != cmpps.end(); iter++)
   {
@@ -296,6 +296,7 @@ int main(int argc, char ** argv)
           break;
         case 'r':
           printRaw = true;
+          break;
         case 'f':
           filterThresh = atoi(optarg);
           break;

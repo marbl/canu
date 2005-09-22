@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: processInterCG.cc,v 1.6 2005-09-21 20:13:07 catmandew Exp $ */
+/* $Id: processInterCG.cc,v 1.7 2005-09-22 21:27:42 catmandew Exp $ */
 #include <cstdio>  // for sscanf
 #include <iostream>
 #include <iomanip>
@@ -103,9 +103,9 @@ void Usage(char * progname, char * message)
 {
   if(message != NULL)
     cerr << endl << message << endl;
-  cerr << "Usage: " << progname << " -l lib  -e filename  [-n #]  [-f #]  [-a]  [-g]\n";
+  cerr << "Usage: " << progname << " -l lib  -m filename  [-n #]  [-f #]  [-a]  [-g]\n";
   cerr << "\t-l lib        name of clone library file\n";
-  cerr << "\t-e filename   name of inter-sequence matepairs file\n";
+  cerr << "\t-m filename   name of inter-sequence matepairs file\n";
   cerr << "\t                filename must have form:\n";
   cerr << "\t                assemblyName_#_inter.txt\n";
   cerr << "\t                where # is the scaffold or sequence number\n";
@@ -113,7 +113,7 @@ void Usage(char * progname, char * message)
   cerr << "\t                default is " << STDDEVS_THRESHOLD << endl;
   cerr << "\t-f #          filter out mate pair sets with fewer members\n";
   cerr << "\t                default is " << CONFIRMATION_THRESHOLD << endl;
-  cerr << "\t-a            generate ATA-fomratted output\n";
+  cerr << "\t-a            generate ATA-formatted output\n";
   cerr << "\t-g            generate gnuplot output\n";
   
   cerr << endl;
@@ -129,7 +129,7 @@ void ReadInterSequenceMPs(vector<MatePair> & mps,
   while(fin.getline(line, LINE_SIZE-1))
   {
     ID_TYPE otherSeqID;
-    sscanf(line, "%*s %*d %*d %*s %*s " F_MPID, &otherSeqID);
+    sscanf(line, "%*s %*s %*s %*s %*s " F_MPID, &otherSeqID);
     if(otherSeqID == filterSeqID)
     {
       MatePair mp;
@@ -144,7 +144,7 @@ void ReadInterSequenceMPs(vector<MatePair> & mps,
 int main(int argc, char ** argv)
 {
   char * libFilename = NULL;
-  char * ewFilename = NULL;
+  char * inFilename = NULL;
   char assembly[4096];
   char sequence[4096];
   double numStddevs = STDDEVS_THRESHOLD;
@@ -154,15 +154,15 @@ int main(int argc, char ** argv)
 
   {
     int ch, errflg = 0;
-    while(!errflg && ((ch = getopt(argc, argv, "l:e:n:f:ag")) != EOF))
+    while(!errflg && ((ch = getopt(argc, argv, "l:m:n:f:ag")) != EOF))
     {
       switch(ch)
       {
         case 'l':
           libFilename = optarg;
           break;
-        case 'e':
-          ewFilename = optarg;
+        case 'm':
+          inFilename = optarg;
           break;
         case 'n':
           numStddevs = atof(optarg);
@@ -183,13 +183,13 @@ int main(int argc, char ** argv)
     }
     if(libFilename == NULL)
       Usage(argv[0], "Please specify a clone library filename");
-    if(ewFilename == NULL)
+    if(inFilename == NULL)
       Usage(argv[0], "Please specify an inter-sequence mate pair filename");
     if(numStddevs <= 0)
       Usage(argv[0], "Please specify a positive number of std deviations");
     {
       char * ptr;
-      strcpy(assembly, ewFilename);
+      strcpy(assembly, inFilename);
       ptr = index(assembly, (int) '_');
       assert(ptr != NULL);
       ptr[0] = '\0';
@@ -213,12 +213,13 @@ int main(int argc, char ** argv)
   flib.close();
 
   // open & pre-read input file
+  int numInterSequenceMPs = 0;
   set<ID_TYPE> otherSequences;
   char line[LINE_SIZE];
-  ifstream fe(ewFilename, ios::in);
+  ifstream fe(inFilename, ios::in);
   if(!fe.good())
   {
-    cerr << "Failed to open " << ewFilename << " for reading\n";
+    cerr << "Failed to open " << inFilename << " for reading\n";
     exit(-1);
   }
   while(fe.getline(line, LINE_SIZE-1))
@@ -226,16 +227,24 @@ int main(int argc, char ** argv)
     ID_TYPE otherSeqID;
     sscanf(line, "%*s %*d %*d %*s %*s " F_MPID, &otherSeqID);
     otherSequences.insert(otherSeqID);
+    numInterSequenceMPs++;
   }
   fe.close();
+  cout << numInterSequenceMPs << " inter-sequence mate pairs\n";
 
-  // open output file
+  // open output files
   char fname[1024];
+  
+  ofstream listOS;
+  sprintf(fname, "%s.%s.inter.breakpoints.txt", assembly, sequence);
+  listOS.open(fname, ios::out);
+  if(!listOS.good())
+  {
+    cerr << "Failed to open " << fname << " for writing\n";
+    exit(-1);
+  }
+  
   ofstream gnuOS;
-  ofstream ataOS;
-  ID_TYPE atacCount;
-  sscanf(sequence, F_MPID, &atacCount);
-  atacCount *= 10;
   if(printGnuplot)
   {
     sprintf(fname, "%s.%s.inter.gp", assembly, sequence);
@@ -246,6 +255,11 @@ int main(int argc, char ** argv)
       exit(-1);
     }
   }
+  
+  ofstream ataOS;
+  ID_TYPE atacCount;
+  sscanf(sequence, F_MPID, &atacCount);
+  atacCount *= 10;
   if(printATA)
   {
     sprintf(fname, "%s.%s.inter.ata", assembly, sequence);
@@ -259,17 +273,11 @@ int main(int argc, char ** argv)
     ataOS << "! format ata 1.0\n";
     ataOS << "# numStddevs=" << numStddevs << endl;
   }
-  ofstream listOS;
-  {
-    char tempFN[1024];
-    sprintf(tempFN, "%s.%s.inter.breakpoints.txt", assembly, sequence);
-    listOS.open(tempFN, ios::out);
-    if(!listOS.good())
-    {
-      cerr << "Failed to open " << tempFN << " for writing\n";
-      exit(-1);
-    }
-  }
+  
+  // totals for summary output
+  int totals[MPI_NUM_INDICES]; 
+  for(int mpii = 0; mpii < MPI_NUM_INDICES; mpii++)
+    totals[mpii] = 0;
   
   // iterate over all other sequences in the set
   set<ID_TYPE>::iterator siter;
@@ -285,7 +293,7 @@ int main(int argc, char ** argv)
       gnuOS << "# " << otherSeqID << endl;
     
     vector<MatePair> mps;
-    ifstream fel(ewFilename, ios::in);
+    ifstream fel(inFilename, ios::in);
     ReadInterSequenceMPs(mps, fel, otherSeqID);
     fel.close();
     
@@ -447,6 +455,10 @@ int main(int argc, char ** argv)
           } // faux scope
         } // loop over composite polygons
       } // if there are matepairs
+
+      // update the total confirmed intervals of this type
+      totals[mpii] += cmpps[mpii].size();
+
     } // loop over matepair types
   } // loop over other sequences
 
@@ -455,6 +467,11 @@ int main(int argc, char ** argv)
   if(printGnuplot)
     gnuOS.close();
   listOS.close();
+  
+  for(int mpii = 0; mpii < MPI_INVERSION; mpii++)
+    if(mpii != MPI_COMPRESSED)
+      cout << totals[mpii] << " confirmed "
+           << MatePairLabel[mpii] << " inter-sequence intervals\n";
   
   return 0;
 }

@@ -1,5 +1,5 @@
 #!/usr/local/bin/perl
-# $Id: asm2TampaResults.pl,v 1.2 2005-09-21 20:12:30 catmandew Exp $
+# $Id: asm2TampaResults.pl,v 1.3 2005-09-22 21:27:42 catmandew Exp $
 #
 # Wrapper to run and post-process results from TAMPA
 # (Tool for Analyzing Mate Pairs in Assemblies)
@@ -15,7 +15,7 @@ use Carp;
 use FileHandle;
 use Getopt::Long;
 
-my $MY_VERSION = " Version 1.01 (Build " . (qw/$Revision: 1.2 $/ )[1]. ")";
+my $MY_VERSION = " Version 1.01 (Build " . (qw/$Revision: 1.3 $/ )[1]. ")";
 
 my $HELPTEXT = qq~
 Produce TAMPA results from an assembly
@@ -30,6 +30,8 @@ Produce TAMPA results from an assembly
     options:
       -h               Print help.
 
+      -b path          Path to TAMPA binaries and scripts.
+
 $MY_VERSION
 
 ~;
@@ -37,7 +39,9 @@ $MY_VERSION
 
 my $assemblyPrefix = "";
 my $helpRequested;
+my $binariesPath = "";
 GetOptions("a=s" => \$assemblyPrefix,
+           "b=s" => \$binariesPath,
            "h|help" => \$helpRequested);
 
 if($helpRequested)
@@ -54,12 +58,18 @@ if(!$assemblyPrefix)
   exit 1;
 }
 
+$binariesPath .= "/" if($binariesPath);
+
 # build an assembly store
 my $gkpStorename = $assemblyPrefix . ".gkpStore";
 my $frgStorename = $assemblyPrefix . ".frgStore";
 my $asmFilename = $assemblyPrefix . ".asm";
 my $asmStorename = $assemblyPrefix . ".asmStore";
-my $command = "asm2asmStore -g $gkpStorename -f $frgStorename -a $asmFilename -s $asmStorename";
+my $command = $binariesPath . "asm2asmStore " .
+  "-g $gkpStorename " .
+  "-f $frgStorename " .
+  "-a $asmFilename " .
+  "-s $asmStorename";
 print "Running $command\n";
 system($command) == 0
   or die "\nFailed to run command\n$command\n\n";
@@ -71,20 +81,32 @@ mkdir($subdir) or die "Failed to create $subdir dir";
 chdir($subdir) or die "Failed to chdir to $subdir";
 
 # populate tampa subdirectory with files
-$command = "dumpForTampa -a $assemblyPrefix -s ../$asmStorename";
+$command = $binariesPath . "dumpForTampa " .
+  "-a $assemblyPrefix " .
+  "-s ../$asmStorename";
 print "Running $command\n";
 system($command) == 0
   or die "\nFailed to run command\n$command\n\n";
 
 # run TAMPA
 my $libFilename = $assemblyPrefix . "Libs.txt";
-$command = "runTampa.pl -a $assemblyPrefix -l $libFilename";
+$command = $binariesPath . "runTampa.pl " .
+  "-a $assemblyPrefix " .
+  "-l $libFilename";
+$command .= " -b $binariesPath" if($binariesPath);
 print "Running $command\n";
 system($command) == 0
   or die "\nFailed to run command\n$command\n\n";
 
-# copy spreadsheet file
+# copy spreadsheet files
+# intra
 my $spreadsheetFilename = $assemblyPrefix . ".intra.spreadsheet.txt";
+$command = "cp $spreadsheetFilename ..";
+print "Running $command\n";
+system($command) == 0
+  or die "\nFailed to run command\n$command\n\n";
+# inter
+$spreadsheetFilename = $assemblyPrefix . ".inter.spreadsheet.txt";
 $command = "cp $spreadsheetFilename ..";
 print "Running $command\n";
 system($command) == 0
