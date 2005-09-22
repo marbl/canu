@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_UTL_version.c,v 1.7 2005-07-15 18:19:55 eliv Exp $";
+static const char CM_ID[] = "$Id: AS_UTL_version.c,v 1.8 2005-09-22 13:35:21 catmandew Exp $";
 
 #include "AS_UTL_version.h"
 #include "PrimitiveVA.h"
@@ -119,6 +119,10 @@ int VersionStampADTWithCommentAndVersion(AuditMesg *adt_mesg, int argc, char *ar
     char *startOfInterestingPart = NULL;
     size_t len;
     VA_TYPE(char) * adt_ident = CreateVA_char(5000);
+    char * NoVersionWarning =
+      "WARNING! No source code version keywords detected with ident!\n\n"
+      "Please consider recompiling with different flags so that this\n"
+      "useful information is not stripped from the program binary.\n\n";
 
     SAFE_FOPEN(adt_tmp_file, adt_tmp_name, "r");
     while( c = fgetc(adt_tmp_file), ch = c, c != EOF) {
@@ -131,13 +135,20 @@ int VersionStampADTWithCommentAndVersion(AuditMesg *adt_mesg, int argc, char *ar
     input = GetVA_char(adt_ident,0);
     //    fprintf(stderr,"* input = %s\n",input);
     // We're not interested in the first part of the ident output
-    startOfInterestingPart = strstr(input,"     $Id: ");
-    len = strlen(startOfInterestingPart) + strlen(comment);
-    //    fprintf(stderr,"* len = %d\n", len);
 
+    len = strlen(comment);
+    startOfInterestingPart = strstr(input,"     $Id: ");
+    // NOTE: gcc versions 3.4.0 to 3.4.2 (?) strip out ident strings
+    //       and this ought to be checked anyway
+    startOfInterestingPart = (startOfInterestingPart == NULL ?
+                              NoVersionWarning : startOfInterestingPart);
+    len += strlen(startOfInterestingPart);
+    
+    // fprintf(stderr,"* len = %d\n", len);
     SAFE_MALLOC(adt_char, char, len+3);
     sprintf(adt_char,"\n%s\n", comment);
     strcat(adt_char,startOfInterestingPart);
+    
     /*        fprintf(stderr,"* version:%s argc:%d argv:%s adt_char = %s\n", version, argc,argv[0],adt_char);
 	      fflush(NULL); */
     AppendAuditLine_AS(adt_mesg, auditLine, t0, argv[0], version, adt_char);
