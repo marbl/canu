@@ -48,14 +48,20 @@ include $(LOCAL_WORK)/src/c_make.as
 
 #  This _should_ be localized to this module, and not propagate to
 #  other modules.
-#
-#  The previous default (OSF1) also included -ldnet_stub, and Linux
-#  included -ldl
-#
-LDFLAGS += -lXt -lX11 -lSM -lICE
+LDFLAGS += -lXt -lX11 -lm -lSM -lICE
+ifeq ($(OSTYPE),Linux)
+  LDFLAGS += -ldl
+  ifeq ($(MACHINETYPE), x86_64)
+    LDFLAGS += -L/usr/X11R6/lib64
+  endif
+else
+  ifeq ($(OSTYPE),OSF1)
+    LDFLAGS += -ldnet_stub
+  endif
+endif
 
-
-default: $(OBJECTS) $(PROGS)
+default: all
+all: $(OBJECTS) $(PROGS)
 
 celamy: $(CELAMY_OBJECTS) $(COMMON_OBJECTS) libAS_UTL.a
 
