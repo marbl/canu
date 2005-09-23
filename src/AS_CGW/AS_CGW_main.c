@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.12 2005-09-22 23:58:54 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.13 2005-09-23 01:08:32 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -760,7 +760,8 @@ int main(int argc, char *argv[]){
   if(immediateOutput == 0 && 
      ((restartFromLogicalCheckpoint < CHECKPOINT_AFTER_BUILDING_AND_CLEANING_SCAFFOLDS) &&
      data->repeatRezLevel > 0)){
-  
+    int skipInitialScaffolds = 0;
+
 #ifdef RAT_LBAC_REACTIVATION
 #include obsolete/rat_lbac_reactivation
 #endif
@@ -773,7 +774,7 @@ int main(int argc, char *argv[]){
     ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
 #endif
 
-    int skipInitialScaffolds = (restartFromLogicalCheckpoint >= CHECKPOINT_AFTER_BUILDING_SCAFFOLDS);
+    skipInitialScaffolds = (restartFromLogicalCheckpoint >= CHECKPOINT_AFTER_BUILDING_SCAFFOLDS);
 
     fprintf(GlobalData->stderrc,"**** Running BuildScaffoldsFromFirstPriniciples ****\n");
     fprintf(GlobalData->stderrc,"**** with skipInitialScaffolds = %d\n", skipInitialScaffolds);
