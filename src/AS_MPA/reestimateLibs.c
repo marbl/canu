@@ -13,11 +13,10 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: reestimateLibs.c,v 1.3 2005-09-21 20:13:07 catmandew Exp $ */
+/* $Id: reestimateLibs.c,v 1.4 2005-09-23 01:17:07 brianwalenz Exp $ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <values.h>
 #include <math.h>
 
 #define DEFAULT_NUM_ITERATIONS   4
