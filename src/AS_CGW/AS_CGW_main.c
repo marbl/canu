@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.13 2005-09-23 01:08:32 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.14 2005-09-26 20:46:58 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -49,13 +49,14 @@ static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.13 2005-09-23 01:08:32 brian
  *                    [-r <repeatRezlevel>]
  *                    [-s <stoneLevel> ]
  *                    [-t]           Don't ignore UOM Transchunks
+ *                    [-T]           ignore UOM transchunks
  *                    [-u]           don't ignore UOM containments     (default)
+ *                    [-U]           ignore UOM containments
  *                    [-v]           verbose
  *                    [-w <walkLevel> ]
  *                    [-x]           Dump stats on checkpoint load
  *                    [-y]           Turn off Check for -R < -N, for restarting small assemblies
- *                    [-U]           ignore UOM containments
- *                    [-t]           don't ignore UOM transchunks     (default)
+ *
  *                    [-A]           don't align overlaps (quality values reflect bayesian)
  *                    [-B]           ignore UOM between contained
  *                    [-C]           Don't cleanup scaffolds
@@ -65,12 +66,12 @@ static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.13 2005-09-23 01:08:32 brian
  *                    [-H]           fail on merge alignment failure   (default)
  *                    [-I]           ignore chaff unitigs
  *                    [-J]           annotate celamy output with Bactig content (default = false)
+ *                    [-M]           don't do interleaved scaffold merging
  *                    [-N <checkpoint>] see CHECKPOINT_* below
  *                    [-O [icC]]     i = immediate, c = continue, C = celamy output only 
  *                    [-P]                            Proto Output
  *                    [-R <checkPoint>]
- *                    [-S ]          Walk scaffolds smallest to biggest (biggest first is default)
- *                    [-T]           ignore UOM transchunks
+ *                    [-S]           Walk scaffolds smallest to biggest (biggest first is default)
  *                    [-W <startWalkFromScaffold> ]
  *                    [-X <Estimated number of nodes>]
  *                    [-Y <Estimated number of edges>]
@@ -163,6 +164,7 @@ int main(int argc, char *argv[]){
   int preMergeRezLevel = -1;
   int generateOutput = 1;
   int annotateUnitigs = 0;
+  int doInterleavedScaffoldMerging = 1;
   int debugLevel = 0;
   int repeatRezLevel = 0;
   int write_rock_log = FALSE;
@@ -317,6 +319,9 @@ int main(int argc, char *argv[]){
       case 'J':
 	annotateUnitigs = 1;
 	break;
+      case 'M':
+	doInterleavedScaffoldMerging = 0;
+	break;
       case 'v':
 	ignoreUOMs = 0;
 	break;
@@ -417,9 +422,9 @@ int main(int argc, char *argv[]){
 	fprintf(GlobalData->stderrc,"* stoneLevel set to %d\n", stoneLevel);
 	break;
       case 'S':
-       walkScaffoldsBiggestFirst = FALSE;
-       fprintf(GlobalData->stderrc,"* walkScaffoldsBiggestFirst set to FALSE\n");
-	break;
+        walkScaffoldsBiggestFirst = FALSE;
+        fprintf(GlobalData->stderrc,"* walkScaffoldsBiggestFirst set to FALSE\n");
+        break;
       case 'w':
 	walkLevel = atoi(optarg);
 	fprintf(GlobalData->stderrc,"* walkLevel set to %d\n", walkLevel);
@@ -505,6 +510,7 @@ int main(int argc, char *argv[]){
       fprintf(GlobalData->stderrc,"* cgbDefinitelyUniqueCutoff set to %f\n", cgbUniqueCutoff);
     }
     data->annotateUnitigs = annotateUnitigs;
+    data->doInterleavedScaffoldMerging = doInterleavedScaffoldMerging;
     data->dumpScaffoldSnapshots = dumpScaffoldSnapshots;
     data->maxSequencedbSize = MAX_SEQUENCEDB_SIZE;
     data->maxSequencedbCacheSize = MAX_SEQUENCEDB_CACHE_SIZE;

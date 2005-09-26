@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: Globals_CGW.h,v 1.4 2005-03-22 19:48:35 jason_miller Exp $	 */
+/* 	$Id: Globals_CGW.h,v 1.5 2005-09-26 20:46:58 brianwalenz Exp $	 */
 #ifndef GLOBALS_CGW_H
 #define GLOBALS_CGW_H
 
@@ -33,7 +33,6 @@
 
 typedef struct Global_CGW_tag {
   int verbose;
-  int ericOutput;
   MesgReader reader;
   MesgWriter writer;
   MesgWriter errorWriter;
@@ -65,6 +64,7 @@ typedef struct Global_CGW_tag {
   int  starting_stone_scaffold;
   float cgbMicrohetProb;
   int  annotateUnitigs;
+  int  doInterleavedScaffoldMerging;
   FILE *logfp;  // .cgwlog
   FILE *outfp;  // .cgw    frags, unitigs, singleton contigs and degenerate scaffolds
   FILE *outfp1;  // .cgw_contigs   input for post-cgw consensus

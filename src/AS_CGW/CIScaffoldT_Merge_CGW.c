@@ -18,12 +18,23 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.7 2005-09-22 23:58:54 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.8 2005-09-26 20:46:58 brianwalenz Exp $";
 
 #undef ORIG_MERGE_EDGE_INVERT
 #define MINSATISFIED_CUTOFF 0.985
 #undef DEBUG_MERGE_EDGE_INVERT	  
 #undef  DEBUG_BAD_MATE_RATIO
+
+
+
+//  Define this to check (and assert) if the graph is not internally
+//  connected before recomputing offsets.  It's expensive, and if you
+//  already know it's OK (debugging, maybe??) you can skip it.
+#define CHECKCONNECTED
+
+//  Define this to enable more aggressive scaffold abutment rules.
+#define AGGRESSIVE_ABUTTING
+
 
 //  Draw .cam files for bad mates, if they have more than N
 //  contributing edges.  '8' should reduce the number of cam files to
@@ -282,11 +293,17 @@ int InsertScaffoldContentsIntoScaffold(ScaffoldGraphT *sgraph,
   InitCIScaffoldTIterator(sgraph, oldScaffold, (orient == A_B), FALSE, &CIs);
   while((CI = NextCIScaffoldTIterator(&CIs)) != NULL){
     LengthT offsetAEnd, offsetBEnd;
+
+#if 0
+    fprintf(GlobalData->stderrc, "* CI->offsetAEnd=%d  CI->offsetBEnd=%d  oldScaffold->bpLength=%d\n",
+            (int)CI->offsetAEnd.mean, (int)CI->offsetBEnd.mean, (int)oldScaffold->bpLength.mean);
+#endif
+
     if(orient == A_B){
-      offsetAEnd.mean = offset->mean + CI->offsetAEnd.mean;
-      offsetAEnd.variance = offset->variance + CI->offsetAEnd.variance;
-      offsetBEnd.mean = offset->mean + CI->offsetBEnd.mean;
-      offsetBEnd.variance = offset->variance + CI->offsetBEnd.variance;
+      offsetAEnd.mean      = offset->mean     + CI->offsetAEnd.mean;
+      offsetAEnd.variance  = offset->variance + CI->offsetAEnd.variance;
+      offsetBEnd.mean      = offset->mean     + CI->offsetBEnd.mean;
+      offsetBEnd.variance  = offset->variance + CI->offsetBEnd.variance;
     }else{
       if(!(CI->offsetAEnd.mean <= oldScaffold->bpLength.mean) ||
          !(CI->offsetBEnd.mean <= oldScaffold->bpLength.mean)){
@@ -294,10 +311,11 @@ int InsertScaffoldContentsIntoScaffold(ScaffoldGraphT *sgraph,
                 (int)CI->offsetAEnd.mean, (int)CI->offsetBEnd.mean, (int)oldScaffold->bpLength.mean);
         assert(0);
       }
-      offsetAEnd.mean = offset->mean + ( oldScaffold->bpLength.mean - CI->offsetAEnd.mean);
-      offsetAEnd.variance = offset->variance +( oldScaffold->bpLength.variance - CI->offsetAEnd.variance);
-      offsetBEnd.mean = offset->mean  + (oldScaffold->bpLength.mean - CI->offsetBEnd.mean);
-      offsetBEnd.variance = offset->variance +( oldScaffold->bpLength.variance - CI->offsetBEnd.variance);
+      offsetAEnd.mean     = offset->mean     + (oldScaffold->bpLength.mean     - CI->offsetAEnd.mean);
+      offsetAEnd.variance = offset->variance + (oldScaffold->bpLength.variance - CI->offsetAEnd.variance);
+      offsetBEnd.mean     = offset->mean     + (oldScaffold->bpLength.mean     - CI->offsetBEnd.mean);
+      offsetBEnd.variance = offset->variance + (oldScaffold->bpLength.variance - CI->offsetBEnd.variance);
+
       if(CI->offsetBEnd.variance > oldScaffold->bpLength.variance){
         if(GlobalData->debugLevel > 0)
           fprintf(GlobalData->stderrc,"* CI " F_CID " has BEnd variance %g > scaffold bpLength.variance %g\n",
@@ -311,8 +329,15 @@ int InsertScaffoldContentsIntoScaffold(ScaffoldGraphT *sgraph,
         offsetAEnd.variance = offset->variance;
       }
     }
+
     if(!(offsetBEnd.variance >= 0.0 && offsetAEnd.variance >= 0.0)){
-      fprintf(GlobalData->stderrc,"variance meanA:%d offsetA:%g meanB:%d offsetB:%g < 0...sigh...\n",
+      fprintf(stderr, "oldScaffold:\n");
+      DumpCIScaffold(GlobalData->stderrc, sgraph, oldScaffold, FALSE);
+
+      fprintf(stderr, "newScaffold:\n");
+      DumpCIScaffold(GlobalData->stderrc, sgraph, newScaffold, FALSE);
+
+      fprintf(GlobalData->stderrc,"offsetAEnd mean:%d variance:%g offsetBEnd mean:%d variance:%g < 0...sigh...\n",
               (int)offsetAEnd.mean, offsetAEnd.variance,
               (int)offsetBEnd.mean, offsetBEnd.variance);
       assert(0);
@@ -3415,8 +3440,11 @@ void SaveBadScaffoldMergeEdge(SEdgeT * edge,
 
 #define STDDEVS_PER_WEIGHT_THRESHOLD                 0.5
 #define EDGE_PER_MIN_SCAFFOLD_LENGTH_THRESHOLD       0.002
+
+#ifdef  AGGRESSIVE_ABUTTING
 #define MAX_OVERLAP_TO_ABUT                          2000
 #define MAX_PERC_SCAFFOLD_LEN                        0.5
+#endif
 
 int LooseAbuttingCheck(SEdgeT * curEdge,
                        CIScaffoldT * scaffoldA,
@@ -3443,9 +3471,13 @@ int LooseAbuttingCheck(SEdgeT * curEdge,
 #endif
 
   if ((stddevsPerWeight < STDDEVS_PER_WEIGHT_THRESHOLD &&
-       edgeMinScaffoldLengthRatio < EDGE_PER_MIN_SCAFFOLD_LENGTH_THRESHOLD) ||
+       edgeMinScaffoldLengthRatio < EDGE_PER_MIN_SCAFFOLD_LENGTH_THRESHOLD)
+#ifdef  AGGRESSIVE_ABUTTING
+      ||
       (edgeMinScaffoldLengthRatio < MAX_PERC_SCAFFOLD_LEN &&
-       -curEdge->distance.mean < MAX_OVERLAP_TO_ABUT))
+       -curEdge->distance.mean < MAX_OVERLAP_TO_ABUT)
+#endif
+      )
   {
     
 #ifdef DEBUG1
@@ -4634,6 +4666,7 @@ int MergeScaffolds(VA_TYPE(CDS_CID_t) * deadScaffoldIDs,
       continue;
     }
     InitializeScaffold(&CIScaffold, REAL_SCAFFOLD);
+
     CIScaffold.info.Scaffold.AEndCI = NULLINDEX;
     CIScaffold.info.Scaffold.BEndCI = NULLINDEX;
     CIScaffold.info.Scaffold.numElements = 0;
@@ -4641,6 +4674,7 @@ int MergeScaffolds(VA_TYPE(CDS_CID_t) * deadScaffoldIDs,
     CIScaffold.bpLength = nullLength;
     thisScaffold->setID = currentSetID;
     newScaffoldID = CIScaffold.id = GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph);
+
     CIScaffold.flags.bits.isDead = FALSE;
     CIScaffold.aEndCoord = CIScaffold.bEndCoord = -1;
     CIScaffold.numEssentialA = CIScaffold.numEssentialB = 0;
@@ -4648,9 +4682,11 @@ int MergeScaffolds(VA_TYPE(CDS_CID_t) * deadScaffoldIDs,
     CIScaffold.microhetScore = 0.0;
     CIScaffold.setID = NULLINDEX;
     thisScaffold->flags.bits.isDead = TRUE;  // Mark the old scaffold dead
+
     AppendGraphNode(ScaffoldGraph->ScaffoldGraph, &CIScaffold);  /* Potential realloc of ScaffoldGraph->ScaffoldGraph->nodes */
+
     thisScaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph, thisScaffoldID);
-    neighbor = GetGraphNode(ScaffoldGraph->ScaffoldGraph, neighborID);
+    neighbor     = GetGraphNode(ScaffoldGraph->ScaffoldGraph, neighborID);
     
     if(verbose){
       fprintf(GlobalData->stderrc,"* START: Inserting scaffold " F_CID " into scaffold " F_CID "\n", thisScaffold->id, newScaffoldID);
@@ -4676,7 +4712,7 @@ int MergeScaffolds(VA_TYPE(CDS_CID_t) * deadScaffoldIDs,
                          InstrumenterVerbose2, GlobalData->stderrc);
       AddMateInstrumenterCounts(&matesBefore, &(scaff_inst->mates));
       
-v      if(GetMateStatsBad(&(matesBefore.intra)) +
+      if(GetMateStatsBad(&(matesBefore.intra)) +
          GetMateStatsBad(&(matesBefore.inter)) +
          GetMateStatsHappy(&(matesBefore.intra)) +
          GetMateStatsHappy(&(matesBefore.inter)) > 0)
@@ -4708,8 +4744,9 @@ v      if(GetMateStatsBad(&(matesBefore.intra)) +
                                        newScaffoldID, thisScaffold->id,
                                        orientCI, &currentOffset,
                                        iSpec->contigNow);
+
     thisScaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph, thisScaffoldID);
-    neighbor = GetGraphNode(ScaffoldGraph->ScaffoldGraph, neighborID);
+    neighbor     = GetGraphNode(ScaffoldGraph->ScaffoldGraph, neighborID);
     
     currentOffset = thisScaffold->bpLength;
     numMerged = 1;
@@ -4886,10 +4923,12 @@ v      if(GetMateStatsBad(&(matesBefore.intra)) +
                                1000.0 * SLOPPY_EDGE_VARIANCE_THRESHHOLD,
                                TRUE, TRUE, 0, TRUE);
 
+#ifdef CHECKCONNECTED
 	assert(IsScaffoldInternallyConnected(ScaffoldGraph,
 					     GetGraphNode(ScaffoldGraph->ScaffoldGraph,
 							  newScaffoldID),
 					     ALL_EDGES));
+#endif
 
         status =
           RecomputeOffsetsInScaffold(ScaffoldGraph,
@@ -5255,33 +5294,36 @@ void MergeScaffoldsAggressive(ScaffoldGraphT *graph, int logicalcheckpointnumber
      iSpec.minSatisfied > 0.975;
      iSpec.minSatisfied -= 0.005)
   */
-  {
 
-#ifdef NON_INTERLEAVED
-  // merge scaffolds without interleaving
-  fprintf(GlobalData->stderrc,
-  "** Merging scaffolds without interleaving.\n");
-  fprintf(GlobalData->stderrc, "** MinSatisfied: %f, MaxDelta: %f\n",
-  iSpec.minSatisfied, iSpec.maxDelta);
-  iSpec.checkForTinyScaffolds = TRUE;
-  iSpec.doInterleaving = FALSE;
-  MergeScaffoldsExhaustively(graph, &iSpec, logicalcheckpointnumber, verbose);
-  
-#else
+  if (GlobalData->doInterleavedScaffoldMerging) {
 
     // merge scaffolds with interleaving
+
     fprintf(GlobalData->stderrc, "** Merging scaffolds with interleaving.\n");
     fprintf(GlobalData->stderrc, "** MinSatisfied: %f, MaxDelta: %f\n",
             iSpec.minSatisfied, iSpec.maxDelta);
+
     // GlobalData->aligner = Local_Overlap_AS_forCNS;
     iSpec.checkForTinyScaffolds = FALSE;
-    iSpec.doInterleaving = TRUE;
+    iSpec.doInterleaving        = TRUE;
     //    LeastSquaresGapEstimates(graph, TRUE, FALSE, TRUE, TRUE, FALSE);
     MergeScaffoldsExhaustively(graph, &iSpec, logicalcheckpointnumber, verbose);
     // GlobalData->aligner = DP_Compare;
-#endif    
+
+  } else {
+
+    // merge scaffolds without interleaving
+
+    fprintf(GlobalData->stderrc, "** Merging scaffolds without interleaving.\n");
+    fprintf(GlobalData->stderrc, "** MinSatisfied: %f, MaxDelta: %f\n",
+            iSpec.minSatisfied, iSpec.maxDelta);
+
+    iSpec.checkForTinyScaffolds = TRUE;
+    iSpec.doInterleaving        = FALSE;
+    MergeScaffoldsExhaustively(graph, &iSpec, logicalcheckpointnumber, verbose);
   }
   
+ 
   DeleteScaffoldAlignmentInterface(iSpec.sai);
   {
     int32 i;

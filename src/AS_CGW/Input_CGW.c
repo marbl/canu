@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.6 2005-09-15 15:20:15 eliv Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.7 2005-09-26 20:46:58 brianwalenz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -120,10 +120,8 @@ int ProcessInput(Global_CGW *data, int optind, int argc, char *argv[]){
       switch(pmesg->t){
 
       case MESG_IDT:
+        //  We load these from the gatekeeper store
 	numIDT++;
-#if 0
-	ProcessIDT(pmesg->m);  //We now load these from the gatekeeper store
-#endif
 	break;
       case MESG_UOM:  // UnitigOverlapMesg
 	if (ScaffoldGraph->ignoreUOMs == 0)
@@ -141,54 +139,13 @@ int ProcessInput(Global_CGW *data, int optind, int argc, char *argv[]){
 	if(numIUM % 10000 == 0)
 	  fprintf(stderr,"Read %d unitigs\n",numIUM);
 	ProcessIUM(pmesg->m);
-	//      if(!ScaffoldGraph->doRezOnContigs )
-	//	(data->writer)(tempfp,pmesg);      // Echo to output
 	break;
-
-
       case MESG_ADT:
 	// We already processes this
-#if 0
-	{
-	  AuditLine auditLine;
-	  AuditMesg *adt_mesg;
-
-
-	  adt_mesg = pmesg->m;
-	  pmesg->t = MESG_ADT;
-
-	  AppendAuditLine_AS(adt_mesg, &auditLine, time(0), "CGW", "$Revision: 1.6 $", "(empty)");
-
-	  (data->writer)(data->outfp,pmesg);      // Echo to output
-
-	}
-#endif
 	break;
       case MESG_ILK:
 	numILK++;
 	break;
-
-#if 0
-	if (data->ericOutput)
-	  (data->writer)(data->outfp,pmesg);	// echo for eric
-	// Save the ILK messages to a store for later
-	// We handle them after the entire input file has beenr ead
-	{
-	  InternalLinkMesg *ilk_msg = pmesg->m;
-
-	  if(ilk_msg->type != AS_REREAD){
-	    AppendInternalLinkMesg(ILKs, pmesg->m);
-	    if((numILK % 100000) == 0){
-	      fprintf(stderr,"\n* Read %d ILKs\n",numILK);
-	      ReportMemorySize(ScaffoldGraph, stderr);
-	    }
-	  }else{
-	    numILKReread++;
-	  }
-	}
-	break;
-#endif
-
       case MESG_IRP:
       case MESG_IBA:
       case MESG_FOM:
@@ -198,7 +155,6 @@ int ProcessInput(Global_CGW *data, int optind, int argc, char *argv[]){
 	fprintf(stderr,"* Oops: Read Message with type = %d\n", pmesg->t);
 #ifdef DEBUG
 	(data->errorWriter)(data->outfp,pmesg);      // Echo to error output
-	
 	exit(1);
 #endif
 	(data->writer)(data->outfp,pmesg);      // Echo to output
