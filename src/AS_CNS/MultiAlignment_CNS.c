@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.35 2005-09-20 14:38:08 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.36 2005-09-26 20:01:57 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -792,7 +792,7 @@ int SetGappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) {
       SetVA_int32(gapped_positions,unitig->position.end,&unitig->position.end);
    }
    if ( Getint32(gapped_positions,num_columns) == NULL ) {
-      fprintf(stderr,"Misformed Multialign... fragment positions only extend to bp %d out of %d/n",
+      fprintf(stderr,"Misformed Multialign... fragment positions only extend to bp %d out of %d\n",
               (int) GetNumint32s(gapped_positions),num_columns+1);
       DeleteVA_int32(gapped_positions);
       return -1;
@@ -6892,59 +6892,59 @@ MultiAlignT *MergeMultiAligns( tSequenceDB *sequenceDBp,
      //    a)  containing frag (if contained)
      // or b)  previously aligned frag
      for (i=1;i<num_contigs;i++) {
-        int ahang,ovl;
-        int32 alid,blid;
-        OverlapType otype;
-        int olap_success=0;
-        int try_contained=0;
-        Fragment *afrag = NULL;
-        Fragment *bfrag = GetFragment(fragmentStore,i); 
-        blid = bfrag->lid;
-        // check whether contained, if so
-        // align_to = containing
-        // else 
-        align_to = i-1;
-      while (! olap_success) {
-        while ( align_to > 0 && ( (try_contained)?0:IsContained(align_to)) ) {
-          align_to--;
-        }
-        if ( align_to < 0 ) break;
-        afrag = GetFragment(fragmentStore, align_to);
-        alid = afrag->lid;
-        ovl = offsets[alid].end - offsets[blid].bgn;
-        if( ovl <= 0 ){
-          fprintf(stderr,"MergeMultiAligns positions indicate no overlap between contigs %d and %d bailing...",
-		  afrag->iid, bfrag->iid);
-          DeleteMANode(ma->lid);
-          free(offsets);
-	  return NULL;
-        }
-        if ( offsets[alid].end > offsets[blid].end ) { // containment
-          ahang = afrag->length - bfrag->length - (offsets[alid].end-offsets[blid].end);
-        } else {
-          ahang = afrag->length - ovl;
-        }
-        olap_success = GetAlignmentTrace(afrag->lid, 0,bfrag->lid, &ahang, ovl, trace, &otype,DP_Compare,DONT_SHOW_OLAP,0);
-        if ( !olap_success && COMPARE_FUNC != DP_Compare ) {
-          olap_success = GetAlignmentTrace(afrag->lid, 0,bfrag->lid, &ahang, ovl, trace, &otype,COMPARE_FUNC,SHOW_OLAP,0);
-        }
-        if ( ! olap_success ) break; 
-      }
-        if ( ! olap_success ) {
-          fprintf(stderr,"MergeMultiAligns failed to find overlap between contigs %d and %d, bailing...\n",
-             afrag->iid,bfrag->iid);
-          DeleteMANode(ma->lid);
-          free(offsets);
-          return NULL;
-        }
-        if ( otype == AS_CONTAINMENT ) { 
-          MarkAsContained(i);
-        }
-        ApplyAlignment(afrag->lid,0,bfrag->lid,ahang,Getint32(trace,0));
+       int ahang,ovl;
+       int32 alid,blid;
+       OverlapType otype;
+       int olap_success=0;
+       int try_contained=0;
+       Fragment *afrag = NULL;
+       Fragment *bfrag = GetFragment(fragmentStore,i); 
+       blid = bfrag->lid;
+       // check whether contained, if so
+       // align_to = containing
+       // else 
+       align_to = i-1;
+       while (! olap_success) {
+         while ( align_to > 0 && ( (try_contained)?0:IsContained(align_to)) ) {
+           align_to--;
+         }
+         if ( align_to < 0 ) break;
+         afrag = GetFragment(fragmentStore, align_to);
+         alid = afrag->lid;
+         ovl = offsets[alid].end - offsets[blid].bgn;
+         if( ovl <= 0 ){
+           fprintf(stderr,"MergeMultiAligns positions indicate no overlap between contigs %d and %d bailing...",
+                   afrag->iid, bfrag->iid);
+           DeleteMANode(ma->lid);
+           free(offsets);
+           return NULL;
+         }
+         if ( offsets[alid].end > offsets[blid].end ) { // containment
+           ahang = afrag->length - bfrag->length - (offsets[alid].end-offsets[blid].end);
+         } else {
+           ahang = afrag->length - ovl;
+         }
+         olap_success = GetAlignmentTrace(afrag->lid, 0,bfrag->lid, &ahang, ovl, trace, &otype,DP_Compare,DONT_SHOW_OLAP,0);
+         if ( !olap_success && COMPARE_FUNC != DP_Compare ) {
+           olap_success = GetAlignmentTrace(afrag->lid, 0,bfrag->lid, &ahang, ovl, trace, &otype,COMPARE_FUNC,SHOW_OLAP,0);
+         }
+         if ( ! olap_success ) break; 
+       }
+       if ( ! olap_success ) {
+         fprintf(stderr,"MergeMultiAligns failed to find overlap between contigs %d and %d, bailing...\n",
+                 afrag->iid,bfrag->iid);
+         DeleteMANode(ma->lid);
+         free(offsets);
+         return NULL;
+       }
+       if ( otype == AS_CONTAINMENT ) { 
+         MarkAsContained(i);
+       }
+       ApplyAlignment(afrag->lid,0,bfrag->lid,ahang,Getint32(trace,0));
      }
      RefreshMANode(ma->lid, 0, opp, &nv, &vl, 0);
      // DeleteVA_int32(trace);
-  }
+   }
   {
 
   // Now, want to generate a new MultiAlignT which merges the u_list and f_list of the contigs
