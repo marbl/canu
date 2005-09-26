@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.8 2005-07-13 14:47:56 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.9 2005-09-26 20:00:02 brianwalenz Exp $";
 /********************************************************************/
 /* Variable Length C Array Package 
  * 
@@ -30,8 +30,8 @@ static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.8 2005-07-13 14:47:56 brianwalenz E
  * It defines a basic set of operations, and provides a set of
  * macros that expand to support typesafe manipulation of the
  * arrays.
- * Revision: $Revision: 1.8 $
- * Date:     $Date: 2005-07-13 14:47:56 $
+ * Revision: $Revision: 1.9 $
+ * Date:     $Date: 2005-09-26 20:00:02 $
  * CMM, 1999/03/29:  Ported to large arrays on the Digital systems by declaring
  * array sizes using size_t, rather than unit32.
  *
@@ -47,20 +47,21 @@ static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.8 2005-07-13 14:47:56 brianwalenz E
 #include "math_AS.h"
 #include "AS_UTL_Var.h"
 
-#define PORTABLE_FILE_IO
+#include "AS_UTL_fileIO.h"
 
-#ifndef PORTABLE_FILE_IO
-typedef VarArrayType FileVarArrayType;
-#else // PORTABLE_FILE_IO
+
+//  We write a VarArrayType as a known-size structure -- The size of a
+//  VarArrayType changes between 32-bit and 64-bit platforms.
+//
 typedef struct {
-  uint64 Elements; /* The Data pointer. Must be cast to the appropriate type */
-  uint64 sizeofElement;   /* The size in bytes of the appropriate type. */
-  uint64 numElements;     
+  uint64 Elements;
+  uint64 sizeofElement;
+  uint64 numElements;
   uint64 allocatedElements;
-  char typeofElement[VA_TYPENAMELEN]; /* The name of the data type of 
-					  each element. */
+  char typeofElement[VA_TYPENAMELEN];
 } FileVarArrayType;
-#endif // PORTABLE_FILE_IO
+
+
   
 // Re-allocations are rounded up to a power of two number of bytes
 // when the EnableRange functionality is used.  This can be avoided by
@@ -451,31 +452,8 @@ void ReInitializeFromFile_VA
     assert(vat.numElements == nelem);
     assert(nsize > 0);
 
-    if(nelem > 0) {
-#if 0
-      assert(elems != NULL);
-      nitems = fread(elems,nsize,nelem,fp);
-      assert(nitems == nelem);
-#else // Implement the Digital UNIX bug work-around!
-      const size_t mm = (1 << 20); // The target size in bytes for a buffer
-      const size_t nbatch = (mm - 1)/nsize + 1;
-      size_t it;
-      assert(elems != NULL);
-      for(it=0;it<nelem;it += nbatch) {
-	const size_t nx = (nelem-it);
-	const size_t ny = ( nx < nbatch ? nx : nbatch );
-	const size_t nitems = fread(elems + it * nsize,nsize,ny,fp);
-	if( nitems != ny ) {
-	  fprintf(stderr,
-		  "InitializeFromFile_VA fread failed [" F_SIZE_T "," F_SIZE_T ")\n",
-		  it,it+ny);
-	}
-	assert(nitems == ny);
-      }
-#endif
-    }
+    AS_UTL_safeRead(fp, elems, "ReInitializeFromFile_VA", nelem * nsize);
   }
-
 }
 
 void LoadFromFile_VA (FILE * const fp, 
@@ -550,29 +528,7 @@ void InitializeFromFile_VA
     assert(vat.sizeofElement == va->sizeofElement);
     assert(nsize > 0);
 
-    if(nelem > 0) {
-#if 0
-      assert(elems != NULL);
-      nitems = fread(elems,nsize,nelem,fp);
-      assert(nitems == nelem);
-#else // Implement the Digital UNIX bug work-around!
-      const size_t mm = (1 << 20); // The target size in bytes for a buffer
-      const size_t nbatch = (mm - 1)/nsize + 1;
-      size_t it;
-      assert(elems != NULL);
-      for(it=0;it<nelem;it += nbatch) {
-	const size_t nx = (nelem-it);
-	const size_t ny = ( nx < nbatch ? nx : nbatch );
-	const size_t nitems = fread(elems + it * nsize,nsize,ny,fp);
-	if( nitems != ny ) {
-	  fprintf(stderr,
-		  "InitializeFromFile_VA fread failed [" F_SIZE_T "," F_SIZE_T ")\n",
-		  it,it+ny);
-	}
-	assert(nitems == ny);
-      }
-#endif
-    }
+    AS_UTL_safeRead(fp, elems, "InitializeFromFile_VA", nelem * nsize);
   }
 }
 
@@ -582,17 +538,14 @@ size_t CopyToFile_VA(const VarArrayType * const va,FILE *fp){
   size_t nitems = 0;
   assert(fp != NULL);
   assert(va != NULL);
-#ifndef PORTABLE_FILE_IO
-  vat = *va; /* Make a handle suitable for regression testing. */
-  vat.Elements = NULL;
-#else // PORTABLE_FILE_IO
+
   /* Make a handle suitable for regression testing. */
   vat.Elements = 0;
   vat.sizeofElement = va->sizeofElement;
   vat.numElements = va->numElements;
   vat.allocatedElements = va->allocatedElements;
   strncpy(vat.typeofElement,va->typeofElement,VA_TYPENAMELEN);
-#endif // PORTABLE_FILE_IO
+
   /* we should use the safe read and write routines here. */
   nitems = fwrite(&vat,sizeof(FileVarArrayType),1,fp);
   totalSize += sizeof(FileVarArrayType);
@@ -606,27 +559,8 @@ size_t CopyToFile_VA(const VarArrayType * const va,FILE *fp){
     assert(nsize > 0);
     
     totalSize += nsize * nelem;
-    if(nelem > 0){
-#if 0
-      nitems = fwrite(elems,nsize,nelem,fp);
-      assert(nelem == nitems);
-#else // Implement the Digital UNIX fwrite bug work-around!
-      const size_t mm = (1 << 20); // The target size in bytes for a buffer.
-      const size_t nbatch = (mm - 1)/nsize + 1;
-      size_t it;
-      for(it=0;it<nelem;it += nbatch) {
-	const size_t nx = (nelem-it);
-	const size_t ny = ( nx < nbatch ? nx : nbatch );
-	const size_t nitems = fwrite(elems + it * nsize,nsize,ny,fp);
-	if( nitems != ny ) {
-	  fprintf(stderr,
-		  "CopyToFile_VA fwrite failed [" F_SIZE_T "," F_SIZE_T ")\n",
-		  it,it+ny);
-	}
-	assert(nitems == ny);
-      }
-#endif
-    }
+
+    AS_UTL_safeWrite(fp, elems, "CopyToFile_VA", nelem * nsize);
   }
   //  fprintf(stderr,"* CopyFileToVa appended " F_SIZE_T " bytes\n", totalSize);
   return totalSize;
@@ -661,36 +595,21 @@ void CheckFile_VA
     assert(nelem <= va->allocatedElements);
     assert(nsize > 0);
 
-    if(nelem > 0) {
-      const size_t mm = (1<<20); // The target size in bytes for a buffer.
-      const size_t nbatch = (mm - 1)/nsize + 1;
-      size_t it;
-      char *tmp = (char *)malloc(nbatch*nsize*sizeof(char));
-      for(it=0;it<nelem;it += nbatch) {
-	const size_t nx = (nelem-it);
-	const size_t ny = ( nx < nbatch ? nx : nbatch );
-	const size_t nitems = fread(tmp,nsize,ny,fp);
-	if( nitems != ny ) {
-	  fprintf(stderr,
-		  "CheckFile_VA fread failed [" F_SIZE_T "," F_SIZE_T ")\n",
-		  it,it+ny);
-	}
-	assert(nitems == ny);
-#if 0
-	{
-	  size_t ndiff;
-	  ndiff = strncmp(elems + it * nsize,tmp,ny*nsize);
-	  assert(ndiff == 0);
-	}
-#else
-	{ 
-	  size_t ii; 
-	  for(ii=0;ii<ny*nsize;ii++) {
-	    assert(elems[it*nsize + ii] == tmp[ii]);
-	  }
-	}
-#endif
-      }
+    //  XXX: This should read in pieces at a time, rather than the
+    //  whole thing!
+    //
+    //  XXX: Better, we should convince ourselves that this does
+    //  nothing when the writer properly catches errors.
+
+    {
+      char *tmp = (char *)malloc(nelem * nsize);
+      size_t ii; 
+
+      AS_UTL_safeRead(fp, tmp, "CheckFile_VA", nelem * nsize);
+
+      for(ii=0;ii<nelem*nsize;ii++)
+        assert(elems[ii] == tmp[ii]);
+
       free(tmp);
     }
   }
