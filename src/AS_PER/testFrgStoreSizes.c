@@ -78,6 +78,8 @@ int main(int argc, char *argv[]){
   printf("CDS_IID_t size is %ld\n",sizeof(CDS_IID_t));
   printf("CDS_UID_t size is %ld\n",sizeof(CDS_UID_t));
   printf("time_t size is %ld\n",sizeof(time_t));
+  printf("size_t size is %ld\n",sizeof(size_t));
+  printf("off_t size is %ld\n",sizeof(off_t));
   return (0);
 }
 
