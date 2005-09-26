@@ -27,7 +27,7 @@
                  
  *********************************************************************/
 
-static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.15 2005-09-15 15:20:16 eliv Exp $";
+static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.16 2005-09-26 21:27:15 gdenisov Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -142,6 +142,11 @@ help_message(int argc, char *argv[])
     "                           3 = like 2, but dots are replaced with whitespace\n"
     "                           4 = like 1, but with unitigs in  multi-alignment print in .clg\n"
     "    -O BtigStore Overlay Assembler mode: BactigStoreDir argument required\n"
+    "    -K           don't split alleles when calling consensus\n"
+    "    -N           don't output variation record to .cns file\n"
+    "    -w win_size  specify the size of the 'smoothing window' that will be used in consensus calling\n"
+    "                 If two SNPs are located win_size or less bases apart one from another,\n"
+    "                 then they will be treated as one block\n"
     "    -T secs      time threshold which, if exceeded, should trigger clean exit.\n"
     "    -S partition Use fragStorePartition partition\n"
     "    -m           Load fragStorePartition into memory (default reads from disk)\n"
@@ -268,6 +273,7 @@ int main (int argc, char *argv[]) {
 
     USE_SDB=0;
     USE_SDB_PART=0;
+    novar = 0;
 
     optarg = NULL;
     debug_out = 1;
@@ -279,7 +285,7 @@ int main (int argc, char *argv[]) {
     
     while ( !errflg && 
            ( (ch = getopt(argc, argv, 
-                 "gnfhPKv:d:O:o:r:S:w:M:mIUXAD:ECR:iGp:q:e:l:t:T:zs:V:a:")) != EOF)) 
+                 "a:d:e:fghil:mno:p:q:r:s:t:v:w:zACD:EGIKM:NO:PR:S:T:UV:X")) != EOF))
     {
         switch(ch) {
         case 'n':
@@ -337,6 +343,9 @@ int main (int argc, char *argv[]) {
           ALIGNMENT_CONTEXT = AS_OVERLAY;
           iflags++;
           iflags++;
+          break;
+        case 'N':
+          novar++;   
           break;
         case 'o':
           output_override=1;
@@ -819,7 +828,7 @@ int main (int argc, char *argv[]) {
       VA_TYPE(char) *quality=CreateVA_char(200000);
       time_t t;
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.15 $ processing. Started %s\n",
+      fprintf(stderr,"# Consensus $Revision: 1.16 $ processing. Started %s\n",
         ctime(&t));
       InitializeAlphTable();
       if ( ! align_ium && USE_SDB && extract > -1 ) 
@@ -1098,7 +1107,7 @@ int main (int argc, char *argv[]) {
             {
               AuditLine auditLine;
               AppendAuditLine_AS(adt_mesg, &auditLine, t,
-                                 "Consensus", "$Revision: 1.15 $","(empty)");
+                                 "Consensus", "$Revision: 1.16 $","(empty)");
             }
 #endif
               VersionStampADT(adt_mesg,argc,argv);
@@ -1122,7 +1131,7 @@ int main (int argc, char *argv[]) {
       }
 
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.15 $ Finished %s\n",ctime(&t));
+      fprintf(stderr,"# Consensus $Revision: 1.16 $ Finished %s\n",ctime(&t));
       if (printcns) 
       {
         int unitig_length = (unitig_count>0)? (int) input_lengths/unitig_count: 0; 
