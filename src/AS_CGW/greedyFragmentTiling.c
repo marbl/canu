@@ -967,16 +967,13 @@ int main (int argc , char * argv[] ) {
       }
     }
 
-    if(numFwdOvls>0){     // if we did the forward extension
-      seen[seediid]--; // decrement the seen counter for the seed frg
-    }
-
+    seen[seediid]--; // decrement the seen counter for the seed frg
 
     // if we hit the seed again, don't go back off the other end
     if(seen[seediid]!=0){
       continue;
     }
- 
+
     //    fprintf(stderr,"now for the other end...\n");
     
     stillGoing=1;
@@ -1064,5 +1061,6 @@ int main (int argc , char * argv[] ) {
   }
 
   finished_with_ovlStore();  
+  exit(0);
 }
 
