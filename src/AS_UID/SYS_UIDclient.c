@@ -32,7 +32,8 @@
 #include <assert.h>
 
 // default server name
-const char *TIGR_DefaultEuidServerNames = "tools.tigr.org:8190";
+const char *TIGR_DefaultEuidServerNames =
+  "http://tools2.tigr.org:8080/axis/services/EUIDServer";
 // pointer to runtime configuration
 char * EuidServerNames = NULL;
 
@@ -472,7 +473,7 @@ CDS_UID_t getGUIDBlock(int guidRequestSize)
 
   for(i = 0; i < loop; i++) 
   {
-    sprintf(dummy,"http://%s/axis/services/EUIDServer", servers[i]);
+    strcpy(dummy,servers[i]);
     fprintf(stderr, "Trying to contact %s\n", dummy);
 
     if (soap_call_impl__getEUIDBlock (&soap, dummy,	"", "TIGR_DEFAULT", 
