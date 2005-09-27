@@ -60,7 +60,8 @@ SUBDIRS = AS_MSG \
           AS_MER \
           AS_MPA \
           AS_OBT \
-          AS_UID
+          AS_UID \
+          AS_RUN
 
 # Compiler & flags
 
@@ -74,8 +75,9 @@ USRLIB     = /usr/lib
 ifeq ($(OSTYPE), Linux)
   CC         = gcc
   CXX        = g++
-  CFLAGS_OPT = -g 
-  CFLAGS    += -O3 -DANSI_C -DX86_GCC_LINUX -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 
+  CFLAGS_OPT = -g
+  CFLAGS    += -O3 -DANSI_C -DX86_GCC_LINUX -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+  CXXFLAGS  += -O3 -DANSI_C -DX86_GCC_LINUX -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
   USRLIB     = /usr/X11R6/lib
   CXXDEFS    = -D__cplusplus
 
