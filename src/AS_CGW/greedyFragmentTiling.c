@@ -49,9 +49,11 @@ static ReadStructp fsread;
 static int useCorrectedErate=0;
 static int maxOvlsToConsider=-1;
 static int *IIDusability;
+static int *SeedUsability;
 static int restrictIDs=0;
 static int restrictSeeds=0;
 static char iidListFile[250];
+static char seedListFile[250];
 static int *iid2sample;
 static char *seen;
 static int thickestOvlsCountAsSeen=0;
@@ -558,13 +560,15 @@ void finished_with_ovlStore(void){
 }
 
 
-void setUpIIDrestrictions(int last_stored_frag){
-  FILE *frglist = fopen(iidListFile,"r");
+void setUpRestrictions(int last_stored_frag,char *listfile,int *usabilityArray){
+  FILE *frglist = fopen(listfile,"r");
   char range[256];
   int i;
 
+  assert(frglist!=NULL);
+
   for(i=0;i<=last_stored_frag;i++){
-    IIDusability[i]=0;
+    usabilityArray[i]=0;
   }
 
   // this should be made much more sophisticated, with token parsing etc
@@ -584,14 +588,15 @@ void setUpIIDrestrictions(int last_stored_frag){
       e = atoi(strstr(range,"-")+1);
       assert(b>0&&b<=e&&e<=last_stored_frag);
       for(i=b;i<=e;i++){
-	IIDusability[i]=1;
+	usabilityArray[i]=1;
       }
     } else {
       int i = atoi(range);
       assert(i>0&&i<=last_stored_frag);
-      IIDusability[i]=1;
+      usabilityArray[i]=1;
     }
   }
+  fclose(frglist);
 }
 
 
@@ -744,7 +749,6 @@ int main (int argc , char * argv[] ) {
 	setFullGkp = TRUE;
 	break;
       case 'i':
-	restrictSeeds=1;
 	restrictIDs=1;
 	{
 	  int n ;
@@ -759,7 +763,7 @@ int main (int argc , char * argv[] ) {
       case 'I':
 	restrictSeeds=1;
 	{
-	  char *c = strncpy(iidListFile,optarg,249);
+	  char *c = strncpy(seedListFile,optarg,249);
 	  int n;
 	  n = strlen(c);
 	  if(n==249&&optarg[249]!='\0'){
@@ -815,9 +819,14 @@ int main (int argc , char * argv[] ) {
   setup_stores(full_ovlPath,full_frgPath,full_gkpPath);
   last_stored_frag = getLastElemFragStore (my_frg_store);
 
-  if(restrictIDs||restrictSeeds){
-    IIDusability = (int *) safe_malloc(sizeof(int)*last_stored_frag);
-    setUpIIDrestrictions(last_stored_frag);
+  if(restrictIDs){
+    IIDusability = (int *) safe_malloc(sizeof(int)*(last_stored_frag+1));
+    setUpRestrictions(last_stored_frag,iidListFile,IIDusability);
+  }
+
+  if(restrictSeeds){
+    SeedUsability = (int *) safe_malloc(sizeof(int)*(last_stored_frag+1));
+    setUpRestrictions(last_stored_frag,seedListFile,SeedUsability);
   }
 
   if(favorSameSample>0){
@@ -871,11 +880,13 @@ int main (int argc , char * argv[] ) {
       assert(0);
     if(gkpFrag.deleted)continue;
 
-    // if this fragment is not in the restricted list ...
-    if(restrictSeeds&& IIDusability[seediid]==0){continue;}
+    // if this fragment is not in the select list(s) ... skip it
+    if(restrictSeeds&& SeedUsability[seediid]==0){continue;}
+    if(restrictIDs&&IIDusability[seediid]==0){continue;}
 
     // if already seen, skip it
     if(seen[seediid]!='\0')continue;
+
     // otherwise, use it as a seed ...
 
     printf("Seed %d\n",seediid);
