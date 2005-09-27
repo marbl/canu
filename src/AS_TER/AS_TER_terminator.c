@@ -29,12 +29,12 @@ accession numbers.
 **********************************************************************/
 
 /* RCS info
- * $Id: AS_TER_terminator.c,v 1.6 2005-08-24 10:57:43 brianwalenz Exp $
- * $Revision: 1.6 $
+ * $Id: AS_TER_terminator.c,v 1.7 2005-09-27 21:31:54 gdenisov Exp $
+ * $Revision: 1.7 $
  */
 
 
-static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.6 2005-08-24 10:57:43 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.7 2005-09-27 21:31:54 gdenisov Exp $";
 
 
 /*************************************************************************/
@@ -56,10 +56,12 @@ static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.6 2005-08-24 10:57:43 
 #include "AS_TER_terminator.h"
 #include "AS_TER_utils.h" 
 #include "AS_TER_terminator_funcs.h"
+#include "AS_MSG_pmesg.h"
 
 #include <SYS_UIDcommon.h>
 #include <SYS_UIDclient.h>
 
+extern int novar;
 
 int main (int argc, char *argv[]) {
   char *inputFileName   = NULL;
@@ -87,6 +89,7 @@ int main (int argc, char *argv[]) {
     int ch,errflg=FALSE;
     optarg = NULL;
     while (!errflg && ((ch = getopt(argc, argv, "Pub:f:g:i:o:m:rs:E:hQ")) != EOF))
+    while (!errflg && ((ch = getopt(argc, argv, "b:f:g:hi:o:m:rs:uE:NPQ")) != EOF))
       switch(ch) 
 	{
 	case 'P':
@@ -139,6 +142,9 @@ int main (int argc, char *argv[]) {
 	  SYS_UIDset_euid_server(optarg);
 	  break;
 #endif
+        case 'N':
+          novar++;
+          break;
 	case 'h':	  
 	  help = TRUE;
 	  break;
@@ -162,6 +168,7 @@ int main (int argc, char *argv[]) {
 	     "-E <server:port> changes default EUID server from tools.tigr.org:8190 (implies -u)\n"
 #endif
 	     "-u forces real UIDs\n"
+             "-N don't output variation record to .asm file\n"
 	     "-Q runs also for simulator\n");
     exit (AS_TER_EXIT_FAILURE);
   }
