@@ -1,0 +1,3 @@
+This directory contains scripts or whatever other logic is needed to
+run collections of binaries produced in the src/ directory one level up.
+For example, it contains scripts to generate an assembly given a .frg file.
