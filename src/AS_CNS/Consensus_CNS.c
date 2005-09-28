@@ -27,7 +27,7 @@
                  
  *********************************************************************/
 
-static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.16 2005-09-26 21:27:15 gdenisov Exp $";
+static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.17 2005-09-28 13:53:34 gdenisov Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -346,6 +346,7 @@ int main (int argc, char *argv[]) {
           break;
         case 'N':
           novar++;   
+          iflags++;
           break;
         case 'o':
           output_override=1;
@@ -828,7 +829,7 @@ int main (int argc, char *argv[]) {
       VA_TYPE(char) *quality=CreateVA_char(200000);
       time_t t;
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.16 $ processing. Started %s\n",
+      fprintf(stderr,"# Consensus $Revision: 1.17 $ processing. Started %s\n",
         ctime(&t));
       InitializeAlphTable();
       if ( ! align_ium && USE_SDB && extract > -1 ) 
@@ -1107,7 +1108,7 @@ int main (int argc, char *argv[]) {
             {
               AuditLine auditLine;
               AppendAuditLine_AS(adt_mesg, &auditLine, t,
-                                 "Consensus", "$Revision: 1.16 $","(empty)");
+                                 "Consensus", "$Revision: 1.17 $","(empty)");
             }
 #endif
               VersionStampADT(adt_mesg,argc,argv);
@@ -1131,7 +1132,7 @@ int main (int argc, char *argv[]) {
       }
 
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.16 $ Finished %s\n",ctime(&t));
+      fprintf(stderr,"# Consensus $Revision: 1.17 $ Finished %s\n",ctime(&t));
       if (printcns) 
       {
         int unitig_length = (unitig_count>0)? (int) input_lengths/unitig_count: 0; 
