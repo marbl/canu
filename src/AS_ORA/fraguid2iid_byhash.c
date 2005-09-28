@@ -20,7 +20,7 @@
  *************************************************************************/
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_ORA/Attic/fraguid2iid_byhash.c,v $
-$Revision: 1.2 $
+$Revision: 1.3 $
 **********************************************************************/
 
 //  Convert a list of fragment uids to iids using a gkp store
@@ -151,12 +151,15 @@ int main( int argc, char ** argv )
        printf(F_UID "\t",uid);
      }
      printf(F_IID,iid);
-     if(printSTATUS&&iid>0){
-       GateKeeperFragmentRecord gkpFrag;
-       if(getGateKeeperFragmentStore(my_gkp_store.frgStore,iid,&gkpFrag)!=0)
-	 assert(0);
-       printf(" %d",(gkpFrag).deleted);
-     }
+     if(printSTATUS){
+       if(iid>0){
+	 GateKeeperFragmentRecord gkpFrag;
+	 if(getGateKeeperFragmentStore(my_gkp_store.frgStore,iid,&gkpFrag)!=0)
+	   assert(0);
+	 printf(" %d",(gkpFrag).deleted);
+       } else {
+	 printf(" 1"); // could not find UID -- call it delelted
+       }
      printf("\n");
    }
 
