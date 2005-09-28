@@ -144,7 +144,7 @@ include $(LOCAL_WORK)/src/c_make.as
 all: $(OBJECTS) $(LIBRARIES) $(PROGS)
 
 count-sma:               $(SMA_OBJS)     libAS_MSG.a libAS_UTL.a
-terminator:              $(TERM_OBJS)    libAS_CNS.a libAS_CGW.a libAS_SDB.a             libAS_CGW.a libAS_PER.a libAS_UTL.a libAS_MSG.a libAS_ALN.a libAS_LIN.a libAS_OVL.a libAS_UID.a
+terminator:              $(TERM_OBJS)    libAS_CNS.a libAS_CGW.a libAS_SDB.a libAS_REZ.a libAS_CGW.a libAS_PER.a libAS_UTL.a libAS_MSG.a libAS_ALN.a libAS_LIN.a libAS_OVL.a libAS_UID.a
 asmProcessScaffolds_TER: $(PRCSCF_OBJS)  libAS_CNS.a libAS_CGW.a libAS_SDB.a libAS_REZ.a libAS_CGW.a libAS_PER.a libAS_UTL.a libAS_MSG.a libAS_ALN.a libAS_LIN.a libAS_OVL.a libAS_UID.a
 asmOutputContigsFasta:   $(CTGOUT_OBJS)  libAS_MSG.a libAS_PER.a libAS_UTL.a
 asm2bac:                 $(ASM2BAC_OBJS) libAS_CNS.a libAS_REZ.a libAS_SDB.a libAS_MSG.a             libAS_CGW.a libAS_REZ.a libAS_CGW.a libAS_REZ.a libAS_ALN.a libAS_LIN.a libAS_OVL.a libAS_PER.a libAS_MSG.a libAS_UTL.a libAS_UID.a
