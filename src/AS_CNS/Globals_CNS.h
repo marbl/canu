@@ -170,5 +170,5 @@ static float EffectiveCoverage(int contig_length) {
    if ( index > 36 ) index = 36;
    return CNS_eff_cov[index];
 }
-int novar;
+extern int novar;
 #endif
