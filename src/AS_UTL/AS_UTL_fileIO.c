@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//static char CM_ID[] = "$Id: AS_UTL_fileIO.c,v 1.1 2005-09-26 20:00:02 brianwalenz Exp $";
+//static char CM_ID[] = "$Id: AS_UTL_fileIO.c,v 1.2 2005-09-28 15:24:15 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -64,7 +64,7 @@ AS_UTL_safeWrite(FILE *file, const void *buffer, char *desc, size_t nbytes) {
     errno = 0;
     written = fwrite(((char *)buffer) + position, sizeof(char), towrite, file);
 
-    int failed = errno;
+    failed = errno;
 #ifdef VERY_SAFE
     if (towrite != written)
       failed = 1;
