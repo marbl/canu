@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.10 2005-08-18 19:12:38 gdenisov Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.11 2005-09-28 15:15:24 gdenisov Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -27,6 +27,8 @@
 #include <time.h>
 
 #include "AS_global.h"
+
+int novar;
 
 /* Exported constant definitions; Macro definitions; type definitions */
 

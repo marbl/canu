@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.11 2005-08-25 07:46:53 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.12 2005-09-28 15:15:24 gdenisov Exp $";
 
 #define AFG_BACKWARDS_COMPATIBLE
 //#define FIX_DANIELS_MESS
@@ -420,7 +420,8 @@ static void *Read_Screen_Mesg(FILE *fin, int external)
   smesg.source   = (char *) GetText("src:",fin,FALSE);
   smesg.sequence = (char *) GetText("seq:",fin,TRUE);
   GET_FIELD(smesg.min_length,MINC_FORMAT,"min length field");
-  GET_FIELD(smesg.variation,VAR_FORMAT,"variation field");
+  if (!novar)
+     GET_FIELD(smesg.variation,VAR_FORMAT,"variation field");
   GET_EOM; 
   // Convert from an index to a pointer.
   smesg.source   = MemBuffer + ((long) (smesg.source));
@@ -1482,24 +1483,30 @@ static void *Read_ICM_Mesg(FILE *fin)
   GET_FIELD(mesg.forced,"for:" F_S32," forced flag");
   GET_FIELD(mesg.num_pieces,"npc:" F_S32," number of pieces");
   GET_FIELD(mesg.num_unitigs,"nou:" F_S32," number of unitigs");
-  GET_FIELD(mesg.num_vars,"nvr:" F_S32,"num vars field");
+  if (!novar)
+  {
+      GET_FIELD(mesg.num_vars,"nvr:" F_S32,"num vars field");
+  }
   /* Why use 8 boundary above & below? Damned if I know - ela */
   vindx = vpindx = MoreSpace(mesg.num_vars   *sizeof(IntMultiVar),8); 
   indx  = mpindx = MoreSpace(mesg.num_pieces *sizeof(IntMultiPos),8);
   uindx = upindx = MoreSpace(mesg.num_unitigs*sizeof(IntUnitigPos),8);
 
-  if (mesg.num_vars > 0)
+  if (!novar)
   {
-    mesg.v_list = (IntMultiVar *) (MemBuffer + vpindx);
-    for (i=0; i < mesg.num_vars; ++i) {
-      if (strncmp(GetLine(fin,TRUE),"{IMV",4) != 0)
-        MgenError("Expecting IMV record");
-      Read_IMV_Mesg(fin, vindx);
-      vindx += sizeof(IntMultiVar);
-    }
-  }
+     if (mesg.num_vars > 0)
+     {
+       mesg.v_list = (IntMultiVar *) (MemBuffer + vpindx);
+       for (i=0; i < mesg.num_vars; ++i) {
+         if (strncmp(GetLine(fin,TRUE),"{IMV",4) != 0)
+           MgenError("Expecting IMV record");
+         Read_IMV_Mesg(fin, vindx);
+         vindx += sizeof(IntMultiVar);
+       }
+     }
   else
     mesg.v_list = NULL;
+  }
 // **************************************************
   if (mesg.num_pieces > 0)
   {
@@ -1529,12 +1536,15 @@ static void *Read_ICM_Mesg(FILE *fin)
 // **************************************************
   mesg.consensus = MemBuffer + cindx;
   mesg.quality = MemBuffer + qindx;
-  if (mesg.num_vars > 0)
-    mesg.v_list = (IntMultiVar *) (MemBuffer + vpindx);
-  else
-    mesg.v_list = NULL;
-  for (i=0; i < mesg.num_vars; ++i) {
-    mesg.v_list[i].var_seq = MemBuffer + (long) mesg.v_list[i].var_seq;
+  if (!novar)
+  {
+     if (mesg.num_vars > 0)
+       mesg.v_list = (IntMultiVar *) (MemBuffer + vpindx);
+     else
+       mesg.v_list = NULL;
+     for (i=0; i < mesg.num_vars; ++i) {
+       mesg.v_list[i].var_seq = MemBuffer + (long) mesg.v_list[i].var_seq;
+     }
   }
 // **************************************************
   if (mesg.num_pieces > 0)
@@ -1943,24 +1953,30 @@ static void *Read_CCO_Mesg(FILE *fin)
   GET_FIELD(mesg.forced,"for:" F_S32,"forced flag");
   GET_FIELD(mesg.num_pieces,"npc:" F_S32,"number of pieces");
   GET_FIELD(mesg.num_unitigs,"nou:" F_S32,"number of unitigs");
-  GET_FIELD(mesg.num_vars,"nvr:" F_S32,"number of vars");
+  if (!novar)
+  {
+     GET_FIELD(mesg.num_vars,"nvr:" F_S32,"number of vars");
+  }
   /* Why use 8 boundary above & below? Damned if I know - ela */
   vindx = vpindx = MoreSpace(mesg.num_vars  *sizeof(IntMultiVar),8);
   indx  = mpindx = MoreSpace(mesg.num_pieces*sizeof(SnapMultiPos),8);
   uindx =upindx = MoreSpace(mesg.num_unitigs*sizeof(UnitigPos),8);
 
-  if (mesg.num_vars > 0)
+  if (!novar)
   {
-    mesg.vars = (IntMultiVar *) (MemBuffer + vpindx);
-    for (i=0; i < mesg.num_vars; ++i) {
-      if (strncmp(GetLine(fin,TRUE),"{VAR",4) != 0)
-        MgenError("Expecting VAR record");
-      Read_VAR_Mesg(fin, vindx);
-      vindx += sizeof(IntMultiVar);
-    }
+     if (mesg.num_vars > 0)
+     {
+        mesg.vars = (IntMultiVar *) (MemBuffer + vpindx);
+        for (i=0; i < mesg.num_vars; ++i) {
+          if (strncmp(GetLine(fin,TRUE),"{VAR",4) != 0)
+            MgenError("Expecting VAR record");
+          Read_VAR_Mesg(fin, vindx);
+          vindx += sizeof(IntMultiVar);
+        }
+      }
+      else
+        mesg.vars = NULL;
   }
-  else
-    mesg.vars = NULL;
 // **************************************************
   for (i=0; i < mesg.num_pieces; ++i) {
     if (strncmp(GetLine(fin,TRUE),"{MPS",4) != 0)
@@ -1983,13 +1999,16 @@ static void *Read_CCO_Mesg(FILE *fin)
   GET_EOM;
   mesg.consensus = MemBuffer + cindx;
   mesg.quality = MemBuffer + qindx;
-  if (mesg.num_vars > 0)
-    mesg.vars = (IntMultiVar *) (MemBuffer + vpindx);
-  else
-    mesg.vars = NULL;
-  for (i=0; i < mesg.num_vars; ++i) {
-    mesg.vars[i].var_seq = MemBuffer + (long) mesg.vars[i].var_seq;
-  } 
+  if (!novar)
+  {
+    if (mesg.num_vars > 0)
+      mesg.vars = (IntMultiVar *) (MemBuffer + vpindx);
+    else
+      mesg.vars = NULL;
+    for (i=0; i < mesg.num_vars; ++i) {
+      mesg.vars[i].var_seq = MemBuffer + (long) mesg.vars[i].var_seq;
+    } 
+  }
   if (mesg.num_pieces > 0)
     mesg.pieces = (SnapMultiPos *) (MemBuffer + mpindx);
   else
@@ -2487,7 +2506,8 @@ static void Write_Screen_Mesg(FILE *fout, void *vmesg, int external)
   PutText(fout,"src:",mesg->source,FALSE);
   PutText(fout,"seq:",mesg->sequence,TRUE);
   fprintf(fout,MINC_FORMAT "\n",mesg->min_length);
-  fprintf(fout,VAR_FORMAT "\n",mesg->variation);
+  if (!novar)
+     fprintf(fout,VAR_FORMAT "\n",mesg->variation);
   fprintf(fout,"}\n");
 }
 
@@ -3153,11 +3173,14 @@ static void Write_ICM_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"for:" F_S32 "\n",mesg->forced);
   fprintf(fout,"npc:" F_S32 "\n",mesg->num_pieces);
   fprintf(fout,"nou:" F_S32 "\n",mesg->num_unitigs);
-  fprintf(fout,"nvr:" F_S32 "\n",mesg->num_vars);
-  fflush(NULL); 
-  for (i=0; i < mesg->num_vars; ++i)
-    Write_IMV_Mesg(fout, &mesg->v_list[i]);
-  fflush(NULL); 
+  if (!novar)
+  {
+     fprintf(fout,"nvr:" F_S32 "\n",mesg->num_vars);
+     fflush(NULL); 
+     for (i=0; i < mesg->num_vars; ++i)
+       Write_IMV_Mesg(fout, &mesg->v_list[i]);
+  }
+  fflush(NULL);
   for (i=0; i < mesg->num_pieces; ++i)
     Write_IMP_Mesg(fout, &mesg->pieces[i]);
   fflush(NULL);
@@ -3314,9 +3337,12 @@ static void Write_CCO_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"for:" F_S32 "\n",mesg->forced);
   fprintf(fout,"npc:" F_S32 "\n",mesg->num_pieces);
   fprintf(fout,"nou:" F_S32 "\n",mesg->num_unitigs);
-  fprintf(fout,"nvr:" F_S32 "\n",mesg->num_vars);
-  for (i=0; i < mesg->num_vars; ++i)
-    Write_VAR_Mesg(fout, &(mesg->vars[i]));
+  if (!novar)
+  {
+     fprintf(fout,"nvr:" F_S32 "\n",mesg->num_vars);
+     for (i=0; i < mesg->num_vars; ++i)
+       Write_VAR_Mesg(fout, &(mesg->vars[i]));
+  }
   for (i=0; i < mesg->num_pieces; ++i)
     Write_MPS_Mesg(fout, &mesg->pieces[i]);
   for (i=0; i < mesg->num_unitigs; ++i)
