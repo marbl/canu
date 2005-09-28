@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.14 2005-09-26 20:46:58 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.15 2005-09-28 15:13:00 gdenisov Exp $";
 
 
 /*********************************************************************
@@ -183,7 +183,7 @@ int main(int argc, char *argv[]){
   int ignoreUOMBetweenContained = 1; // -b turn off with -B
   int ignoreUOMTranschunk = 1; // -t turn off with -T
   int ignoreChaffUnitigs = 0;
-  int failOn_NoOverlapFound = 0; // -F to turn it off
+  int failOn_NoOverlapFound = 0; 
   int geneOutput = 1;  // output simulated coordinates
   int checkPoint = 0;
   int dumpGraphs = 0;
@@ -253,7 +253,7 @@ int main(int argc, char *argv[]){
     optarg = NULL;
     while (!errflg && ((ch = getopt(argc, argv,
                // unused F, M
-		       "abcde:f:g:hi:j:k:l:m:n:o:p:q:r:s:tuvw:xyz:ABCD:EGHIJK:L:N:O:PQR:STUV:W:X:Y:Z")) != EOF)){
+		       "abcde:f:g:hi:j:k:l:m:n:o:p:q:r:s:tuvw:xyz:ABCD:EFGHIJK:L:N:O:PQR:STUV:W:X:Y:Z")) != EOF)){
 #if 0
       fprintf(GlobalData->stderrc,"* ch = %c optopt= %c optarg = %s\n", ch, optopt, (optarg?optarg:"(NULL)"));
       fflush(stderr);
@@ -307,6 +307,9 @@ int main(int argc, char *argv[]){
       case 'h':
 	failOn_NoOverlapFound = 0;
 	break;
+      case 'F':
+        novar++;
+        break;
       case 'G':
 	generateOutput = 0;
 	break;
