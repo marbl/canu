@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.36 2005-09-26 20:01:57 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.37 2005-09-29 14:20:45 ahalpern Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -3961,7 +3961,8 @@ void PrintAlignment(FILE *print, int32 mid, int32 from, int32 to, CNS_PrintKey w
   Fragment *fragment;
   SeqInterval *positions;
   int dots=0;
-  
+
+  if(what == CNS_VIEW_UNITIG)what=CNS_DOTS;
   if (what != CNS_CONSENSUS && what != CNS_DOTS && what != CNS_NODOTS && what != CNS_VERBOSE ) return;
   if (what == CNS_DOTS) dots = 1;
   if (what == CNS_NODOTS) dots = 2;
@@ -6179,7 +6180,7 @@ int MultiAlignContig(IntConConMesg *contig,
      AbacusRefine(ma,0,-1,CNS_INDEL, opp);
      MergeRefine(ma->lid, &(contig->v_list), &(contig->num_vars), opp);
      //     PrintAlignment(cnslog,ma->lid,0,-1,'C');
-     if ( cnslog != NULL  && (printwhat == CNS_VERBOSE || printwhat == CNS_VIEW_UNITIG)) { 
+     if ( cnslog != NULL  && printwhat != CNS_QUIET && printwhat !=CNS_STATS_ONLY) {
        fprintf(cnslog,"\nFinal refined alignment\n");
        PrintAlignment(cnslog,ma->lid,0,-1,printwhat);
      }
