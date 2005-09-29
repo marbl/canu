@@ -29,12 +29,12 @@ accession numbers.
 **********************************************************************/
 
 /* RCS info
- * $Id: AS_TER_terminator.c,v 1.7 2005-09-27 21:31:54 gdenisov Exp $
- * $Revision: 1.7 $
+ * $Id: AS_TER_terminator.c,v 1.8 2005-09-29 19:10:20 gdenisov Exp $
+ * $Revision: 1.8 $
  */
 
 
-static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.7 2005-09-27 21:31:54 gdenisov Exp $";
+static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.8 2005-09-29 19:10:20 gdenisov Exp $";
 
 
 /*************************************************************************/
@@ -61,8 +61,6 @@ static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.7 2005-09-27 21:31:54 
 #include <SYS_UIDcommon.h>
 #include <SYS_UIDclient.h>
 
-extern int novar;
-
 int main (int argc, char *argv[]) {
   char *inputFileName   = NULL;
   char *outputFileName  = NULL;
@@ -82,6 +80,7 @@ int main (int argc, char *argv[]) {
   uint32 random  = FALSE;
   uint32 quiet   = FALSE;
   uint64 uidStart = 0;
+  novar          = 0;
 
   fprintf(stderr, "Version: %s\n",CM_ID);
 
