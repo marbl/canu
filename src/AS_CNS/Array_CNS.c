@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: Array_CNS.c,v 1.4 2005-03-22 19:48:40 jason_miller Exp $";
+static char CM_ID[] = "$Id: Array_CNS.c,v 1.5 2005-09-29 19:50:50 ahalpern Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -226,6 +226,7 @@ int IMP2Array(IntMultiPos *all_frags,
       ClearLane(&space);
       PushLaneNode(new_mlp,&space);
       SetLane(Packed, next_lane, &space);
+      lane_depth++;
     } 
   }
   { 
@@ -261,7 +262,7 @@ int IMP2Array(IntMultiPos *all_frags,
      // if all lanes are occupied, then depth will still be -1 here,
      //  and should be set to lane_depth
      if ( *depth == -1 ) *depth = lane_depth;
-     if ( *depth < lane_depth ) {
+     if ( *depth <= lane_depth ) {
         rc = 1;
 
      multia = (char **)safe_malloc(2*(*depth)*sizeof(char *));
