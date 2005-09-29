@@ -70,7 +70,8 @@ RUNCAOBTUTIL = runCA-OBT/runCAutil/applyOverlapCorrection.pl \
                runCA-OBT/runCAutil/scaffolder.pl \
                runCA-OBT/runCAutil/terminate.pl \
                runCA-OBT/runCAutil/unitigger.pl \
-               runCA-OBT/runCAutil/util.pl
+               runCA-OBT/runCAutil/util.pl \
+               runCA-OBT/runCAutil/scheduler.pm
 
 runCA-OBT.pl: runCA-OBT/runCA.pl $(RUNCAOBTUTIL)
 	cat runCA-OBT/runCA.pl $(RUNCAOBTUTIL) > $(LOCAL_BIN)/runCA-OBT.pl

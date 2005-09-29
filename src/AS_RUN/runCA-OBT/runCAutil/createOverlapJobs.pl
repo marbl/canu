@@ -70,12 +70,22 @@ sub createOverlapJobs {
     print F "  -o $scratch/$asm.\$bat-\$job.$$.ovl \\\n";
     print F "  $wrk/$asm.frgStore \\\n";
     print F "&& \\\n";
-    print F "$gin/overlap-to-binary $scratch/$asm.\$bat-\$job.$$.ovl $scratch/$asm.\$bat-\$job.$$.ovb \\\n";
-    print F "&& \\\n";
-    print F "mv $scratch/$asm.\$bat-\$job.$$.ovb \\\n";
-    print F "   $wrk/$outDir/\$bat/\$job.ovb \\\n";
-    print F "&& \\\n";
-    print F "rm -f $scratch/$asm.\$bat-\$job.$$.ovl \\\n";
+
+    if ($isTrim eq "trim") {
+        print F "$gin/overlap-convert -b $scratch/$asm.\$bat-\$job.$$.ovl $scratch/$asm.\$bat-\$job.$$.ovb \\\n";
+        print F "&& \\\n";
+        print F "mv $scratch/$asm.\$bat-\$job.$$.ovb \\\n";
+        print F "   $wrk/$outDir/\$bat/\$job.ovb \\\n";
+        #print F "&& \\\n";
+        #print F "mv $scratch/$asm.\$bat-\$job.$$.ovl \\\n";
+        #print F "   $wrk/$outDir/\$bat/\$job.ovl \\\n";
+        print F "&& \\\n";
+        print F "rm -f $scratch/$asm.\$bat-\$job.$$.ovl \\\n";
+    } else {
+        print F "mv $scratch/$asm.\$bat-\$job.$$.ovl \\\n";
+        print F "   $wrk/$outDir/\$bat/\$job.ovl \\\n";
+    }
+
     print F "&& \\\n";
     print F "touch $wrk/$outDir/\$bat/\$job.success\n";
     print F "exit 0\n";

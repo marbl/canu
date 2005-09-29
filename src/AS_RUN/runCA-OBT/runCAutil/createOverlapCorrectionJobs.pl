@@ -1,5 +1,5 @@
 use strict;
-use scheduler;
+#use scheduler;
 
 #  Use the fragment correction results to update the overlap store.
 

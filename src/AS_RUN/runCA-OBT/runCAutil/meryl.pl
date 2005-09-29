@@ -1,11 +1,10 @@
 use strict;
 
-my $merSize = 22;
-
 #  This needs the fragstore, but we could use the parallel meryl on
 #  *.inp, the output from gatekeeper.
 
 sub meryl {
+    my $merSize = 22;
 
     #  If we want to use the better meryl, .....
     #

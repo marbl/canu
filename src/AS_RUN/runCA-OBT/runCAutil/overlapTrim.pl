@@ -88,7 +88,7 @@ sub overlapTrim {
     if (! -e "$wrk/0-overlaptrim/$asm.trim.ovl.sorted") {
         print STDERR "Starting -- overlap trimming - sorting\n";
 
-        if (runCommand("find $wrk/0-overlaptrim-overlap -name \\*ovl -print > $wrk/0-overlaptrim/all-overlaps-trim.ovllist")) {
+        if (runCommand("find $wrk/0-overlaptrim-overlap -follow -name \\*ovb -print > $wrk/0-overlaptrim/all-overlaps-trim.ovllist")) {
             print STDERR "Failed to generate a list of all the overlap files.\n";
             exit(1);
         }
@@ -109,7 +109,9 @@ sub overlapTrim {
           unlink "$wrk/0-overlaptrim/$asm.ovl.trim.consolidated.1";
           die "Failed to sort.\n";
         }
-       
+
+        print STDERR "Starting -- overlap trimming - consolidation - cleaning\n";
+
         #  Clean up stuff
         #   - add missing fragments to $wrk/0-overlaptrim/$asm.trim.ovl.consolidated
         #
@@ -129,6 +131,9 @@ sub overlapTrim {
             $otId = $inId;
         }
         close(F);
+
+        print STDERR "$otId $numFrags\n";
+
         $otId++;
         while ($otId <= $numFrags) {
             print G "$otId  0 0 0 0 0  0 0 0 0 0  0\n";

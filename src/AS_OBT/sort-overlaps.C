@@ -16,6 +16,11 @@
 //  things into core.  This will probably be a completely different
 //  path than the bucket sort here.
 
+//  Define this to keep the sorted overlap file as ASCII -- it'll get
+//  really big and be really slow, but you can then read it.
+//
+//#define ASCII_OVERLAPS
+
 
 int
 overlap_t_sort(const void *a, const void *b) {
@@ -83,16 +88,14 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  //  Based on filesize, guess the number of overlaps in the file.
-  //  Unless someone changed the format string in overlap, there are
-  //  exactly 57 bytes per line (per overlap).
-  //
+
+  //  We support ONLY binary input files.  If you have ASCII overlap output,
+  //  convert it first using overlap-to-binary.
+
   u64bit  numOverlaps    = 0;
 
-  for (u32bit i=0; i<fileListLen; i++) {
-    numOverlaps += sizeOfFile(fileList[i]) / 57;
-    //fprintf(stderr, "%s -- "u64bitFMT" -- %d\n", fileList[i], numOverlaps, (int)numOverlaps);
-  }
+  for (u32bit i=0; i<fileListLen; i++)
+    numOverlaps += sizeOfFile(fileList[i]) / sizeof(overlap_t);
 
   fprintf(stderr, "I think there are "u64bitFMT" overlaps in your input, so "u64bitFMT" overlaps to sort.\n", numOverlaps, 2*numOverlaps);
   fprintf(stderr, "You'll let me use "u64bitFMT" bytes of memory.\n", memoryLimit);
@@ -149,7 +152,6 @@ main(int argc, char **argv) {
   C->enableLiner();
 #endif
 
-  char line[1024];
 
   for (u32bit i=0; i<fileListLen; i++) {
     fprintf(stderr, "\nWorking on %s\n", fileList[i]);
@@ -158,28 +160,29 @@ main(int argc, char **argv) {
     if (errno)
       fprintf(stderr, "Failed to open input '%s': %s\n", fileList[i], strerror(errno)), exit(1);
 
-    fgets(line, 1024, inFile);
+    overlap.load(inFile);
     while (!feof(inFile)) {
-      overlap.decode(line, false);
+
+      //overlap.print(stderr);
 
       if ((overlap.Aiid >= maxIID) || (overlap.Biid >= maxIID))
-        fprintf(stderr, "ERROR:  Too many IID's!  Input is:\n        %s\n", line), exit(1);
+        fprintf(stderr, "ERROR:  Too many IID's!  Input is:\n        "), overlap.print(stderr), exit(1);
       if (overlap.Aiid / overlapIIDPerBatch >= overlapBatches)
-        fprintf(stderr, "ERROR:  Aiid overflowed the batch!  Input is:\n        %s\n", line), exit(1);
+        fprintf(stderr, "ERROR:  Aiid overflowed the batch!  Input is:\n        "), overlap.print(stderr), exit(1);
       if (overlap.Biid / overlapIIDPerBatch >= overlapBatches)
-        fprintf(stderr, "ERROR:  Biid overflowed the batch!  Input is:\n        %s\n", line), exit(1);
-
+        fprintf(stderr, "ERROR:  Biid overflowed the batch!  Input is:\n        "), overlap.print(stderr), exit(1);
 
       if (overlap.acceptable()) {
-        overlap.dump(dumpFiles[overlap.Aiid / overlapIIDPerBatch]);
+        overlap.dump(dumpFiles[overlap.Aiid / overlapIIDPerBatch], true);
         dumpFilesLen[overlap.Aiid / overlapIIDPerBatch]++;
 
-        overlap.decode(line, true);
-        overlap.dump(dumpFiles[overlap.Aiid / overlapIIDPerBatch]);
+        overlap.flip();
+        overlap.dump(dumpFiles[overlap.Aiid / overlapIIDPerBatch], true);
         dumpFilesLen[overlap.Aiid / overlapIIDPerBatch]++;
       }
 
-      fgets(line, 1024, inFile);
+      overlap.load(inFile);
+
 #ifdef SPEEDCOUNTER_H
       C->tick();
 #endif
@@ -195,17 +198,13 @@ main(int argc, char **argv) {
     fclose(dumpFiles[i]);
   }
 
-#endif
+#endif  //  ifndef RESTART
 
   //
   //  Read each bucket, sort it, and dump it to the output
   //
 
   FILE *mergeFile = stdout;
-  //errno = 0;
-  //FILE *mergeFile = fopen("/scratch/sort-overlap-out", "wb");
-  //if (errno)
-  //  fprintf(stderr, "Failed to create '%s': %s\n", name, strerror(errno)), exit(1);
 
   for (u32bit i=0; i<overlapBatches; i++) {
     char name[1024];
@@ -237,7 +236,10 @@ main(int argc, char **argv) {
     for (u32bit x=0; x<dumpFilesLen[i]; x++)
       overlapsort[x].print(mergeFile);
 #else
-    fwrite(overlapsort, sizeof(overlap_t), dumpFilesLen[i], mergeFile);
+    for (u32bit x=0; x<dumpFilesLen[i]; x++)
+      overlapsort[x].dump(mergeFile);
+
+    //fwrite(overlapsort, sizeof(overlap_t), dumpFilesLen[i], mergeFile);
 #endif
 
     delete [] overlapsort;

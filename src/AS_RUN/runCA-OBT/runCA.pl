@@ -15,27 +15,27 @@ use vars qw($stoneLevel);
 use vars qw($doExtendClearRanges);
 use vars qw($doBackups);
 
-use FindBin;
-use lib "$FindBin::Bin/runCAutil";
+#use FindBin;
+#use lib "$FindBin::Bin/runCAutil";
 
 #  In alphabetical order, instead of execution order.
-require "applyOverlapCorrection.pl";
-require "checkOverlap.pl";
-require "checkPostUnitiggerConsensus.pl";
-require "createConsensusJobs.pl";
-require "createFragmentCorrectionJobs.pl";
-require "createOverlapCorrectionJobs.pl";
-require "createOverlapJobs.pl";
-require "createOverlapStore.pl";
-require "createPostUnitiggerConsensus.pl";
-require "mergeFragmentCorrection.pl";
-require "meryl.pl";
-require "overlapTrim.pl";
-require "preoverlap.pl";
-require "scaffolder.pl";
-require "terminate.pl";
-require "unitigger.pl";
-require "util.pl";
+#require "applyOverlapCorrection.pl";
+#require "checkOverlap.pl";
+#require "checkPostUnitiggerConsensus.pl";
+#require "createConsensusJobs.pl";
+#require "createFragmentCorrectionJobs.pl";
+#require "createOverlapCorrectionJobs.pl";
+#require "createOverlapJobs.pl";
+#require "createOverlapStore.pl";
+#require "createPostUnitiggerConsensus.pl";
+#require "mergeFragmentCorrection.pl";
+#require "meryl.pl";
+#require "overlapTrim.pl";
+#require "preoverlap.pl";
+#require "scaffolder.pl";
+#require "terminate.pl";
+#require "unitigger.pl";
+#require "util.pl";
 
 
 $doBackups = 1;
