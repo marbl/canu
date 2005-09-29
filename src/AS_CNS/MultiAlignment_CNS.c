@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.37 2005-09-29 14:20:45 ahalpern Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.38 2005-09-29 18:08:10 ahalpern Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -4010,7 +4010,11 @@ void PrintAlignment(FILE *print, int32 mid, int32 from, int32 to, CNS_PrintKey w
      bgn_column = (GetBead(beadStore,fragment->beads))->column_index;
      end_column = (GetBead(beadStore,fragment->beads+fragment->length-1))->column_index;
 #ifdef PRINTUIDS
-     fids[i] = fragment->uid;
+     if(fragment->type==AS_READ){
+       fids[i] = fragment->uid;
+     } else {
+       fids[i] = fragment->iid;
+     }
 #else
      fids[i] = fragment->iid;
 #endif
