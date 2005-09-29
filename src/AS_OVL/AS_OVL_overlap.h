@@ -26,8 +26,8 @@
  *********************************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap.h,v 1.5 2005-06-16 20:02:37 brianwalenz Exp $
- * $Revision: 1.5 $
+ * $Id: AS_OVL_overlap.h,v 1.6 2005-09-29 14:25:29 ahalpern Exp $
+ * $Revision: 1.6 $
 */
 
 
@@ -187,9 +187,21 @@
     //  cannot initiate an overlap.  Can be changed on the command
     //  line with  -K  option
 
-#define  DEFAULT_BRANCH_MATCH_VAL    0.272
+#define  DEFAULT_BRANCH_MATCH_VAL    0.0566
 #define  PARTIAL_BRANCH_MATCH_VAL    0.0566
     //  Value to add for a match in finding branch points.
+    //  ALH: Note that AS_READ_ERROR_RATE also affects what overlaps get found
+    //  ALH: Scoring seems to be unusual: given an alignment
+    //  of length l with k mismatches, the score seems to be
+    //  computed as l + k * error value and NOT (l-k)*match+k*error
+    // 
+    //  I.e. letting x := DEFAULT_BRANCH_MATCH_VAL,
+    //  the max mismatch fraction p to give a non-negative score
+    //  would be p = x/(1-x); conversely, to compute x for a
+    //  goal p, we have x = p/(1+p).  E.g. 
+    //  for p=0.06, x = .06/(1.06) = .0566038; 
+    //  for p=0.35, x = .35/(1.35) = .259259
+    //
     //  Value was for 6% vs 35% error discrimination.
     //  Converting to integers didn't make it faster.
     //  Corresponding error value is this value minus 1.0
