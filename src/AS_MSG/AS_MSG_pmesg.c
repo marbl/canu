@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.12 2005-09-28 15:15:24 gdenisov Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.13 2005-09-29 07:30:34 brianwalenz Exp $";
 
 #define AFG_BACKWARDS_COMPATIBLE
 //#define FIX_DANIELS_MESS
@@ -125,6 +125,9 @@ static const char *Mcode;       /* 3-code of current read/write routine */
 
 static char *MemBuffer = NULL;   /* Memory allocation buffer for messages */
 static int   MemMax = -1, MemTop;   /* Memory ceiling and current top */
+
+int novar = 0;  /*  Output or not the variation records */
+
 
 /* Make sure there is a block of size bytes left in memory buffer starting
    at an index that is a multiple of boundary.  Return the *index* into the
