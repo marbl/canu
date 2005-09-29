@@ -20,7 +20,7 @@
  *************************************************************************/
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_ORA/Attic/fraguid2iid_byhash.c,v $
-$Revision: 1.3 $
+$Revision: 1.4 $
 **********************************************************************/
 
 //  Convert a list of fragment uids to iids using a gkp store
@@ -158,8 +158,9 @@ int main( int argc, char ** argv )
 	   assert(0);
 	 printf(" %d",(gkpFrag).deleted);
        } else {
-	 printf(" 1"); // could not find UID -- call it delelted
+	 printf(" 1"); // could not find UID -- call it deleted
        }
+     }
      printf("\n");
    }
 
