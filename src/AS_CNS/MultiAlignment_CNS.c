@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.38 2005-09-29 18:08:10 ahalpern Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.39 2005-09-30 14:06:28 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -2605,7 +2605,7 @@ int RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
                         sizeof(IntMultiVar));
                 }
                 (*v_list)[*nvars].position.bgn = beg;
-                (*v_list)[*nvars].position.end = end;
+                (*v_list)[*nvars].position.end = end+1;
                 (*v_list)[*nvars].num_reads = (int32)ap.nr;
                 (*v_list)[*nvars].nr_best_allele = (int32)ap.nr_best_allele;
                 (*v_list)[*nvars].num_alleles = 2;
