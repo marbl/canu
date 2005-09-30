@@ -25,7 +25,7 @@
  Assumptions:
 **********************************************************************/
 
-static char CM_ID[] = "$Id: SYS_UIDclient_simple.c,v 1.1 2005-08-24 10:57:43 brianwalenz Exp $";
+static char CM_ID[] = "$Id: SYS_UIDclient_simple.c,v 1.2 2005-09-30 20:15:01 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,7 +36,7 @@ static char CM_ID[] = "$Id: SYS_UIDclient_simple.c,v 1.1 2005-08-24 10:57:43 bri
 
 
 
-static uint64 SYS_UID_uidStart = 99000000000;
+static uint64 SYS_UID_uidStart = 99000000000LL;
 
 
 int32 get_uids(uint64 blockSize, uint64 *interval, int32 real)
