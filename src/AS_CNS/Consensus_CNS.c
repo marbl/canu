@@ -27,7 +27,7 @@
                  
  *********************************************************************/
 
-static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.17 2005-09-28 13:53:34 gdenisov Exp $";
+static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.18 2005-09-30 17:50:37 eliv Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -643,7 +643,7 @@ int main (int argc, char *argv[]) {
       } else {
         cgwin = stdin;
       }
-      binary_io = (InputFileType_AS( cgwin ) == ReadProtoMesg_AS) ? 0 : 1;
+      binary_io = ((MesgReader)InputFileType_AS( cgwin ) == ReadProtoMesg_AS) ? 0 : 1;
       reader =(MesgReader)((binary_io == 1) ? ReadBinaryMesg_AS : ReadProtoMesg_AS);
 
 
@@ -829,7 +829,7 @@ int main (int argc, char *argv[]) {
       VA_TYPE(char) *quality=CreateVA_char(200000);
       time_t t;
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.17 $ processing. Started %s\n",
+      fprintf(stderr,"# Consensus $Revision: 1.18 $ processing. Started %s\n",
         ctime(&t));
       InitializeAlphTable();
       if ( ! align_ium && USE_SDB && extract > -1 ) 
@@ -1108,7 +1108,7 @@ int main (int argc, char *argv[]) {
             {
               AuditLine auditLine;
               AppendAuditLine_AS(adt_mesg, &auditLine, t,
-                                 "Consensus", "$Revision: 1.17 $","(empty)");
+                                 "Consensus", "$Revision: 1.18 $","(empty)");
             }
 #endif
               VersionStampADT(adt_mesg,argc,argv);
@@ -1132,7 +1132,7 @@ int main (int argc, char *argv[]) {
       }
 
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.17 $ Finished %s\n",ctime(&t));
+      fprintf(stderr,"# Consensus $Revision: 1.18 $ Finished %s\n",ctime(&t));
       if (printcns) 
       {
         int unitig_length = (unitig_count>0)? (int) input_lengths/unitig_count: 0; 
