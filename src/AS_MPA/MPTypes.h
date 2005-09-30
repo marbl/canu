@@ -18,15 +18,17 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: MPTypes.h,v 1.5 2005-09-21 20:13:07 catmandew Exp $ */
+/* $Id: MPTypes.h,v 1.6 2005-09-30 19:51:52 eliv Exp $ */
 #ifndef MPTYPES_H
 #define MPTYPES_H 1
 
+extern "C" {
 #include "cds.h"
+}
+#include <limits>
 
 #define ID_TYPE CDS_UID_t
 #define F_MPID  F_UID
-#define BOGUS_ID CDS_UINT64_MAX
 
 #define UNIT_TYPE int64
 #define F_MPUNIT  F_S64
@@ -34,6 +36,11 @@
 #define COINCIDENT_THRESHOLD  50  // bp
 #define CONFIRMATION_THRESHOLD 2  // 2 agreeing unsatisfieds confirm each other
 #define STDDEVS_THRESHOLD 3.0     // mean +/- N stddevs
+
+#undef max
+// BOGUS_ID used to be a macro using CDS_UINT64_MAX, however this doesn't work in c++ code
+// because of some compatibility issue with C99, so do it the C++ way 
+static const long long BOGUS_ID = numeric_limits<unsigned long long>::max();
 
 typedef enum
 {
