@@ -34,8 +34,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.hh,v 1.15 2005-09-15 21:49:41 kli1000 Exp $
- * $Revision: 1.15 $
+ * $Id: AS_BOG_BestOverlapGraph.hh,v 1.16 2005-09-30 14:17:31 eliv Exp $
+ * $Revision: 1.16 $
 */
 
 //  System include files
@@ -81,6 +81,8 @@ namespace AS_BOG{
         iuid container;
         float score;
         bool sameOrientation;
+        int a_hang;
+        int b_hang;
     };
 
     ///////////////////////////////////////////////////////////////////////
@@ -121,12 +123,13 @@ namespace AS_BOG{
             static FragStoreHandle fragStoreHandle;
             static overlap_type getType(const Long_Olap_Data_t & olap);
 
+            std::map<iuid, BestContainment> _best_containments;
+
         protected:
             iuid _num_fragments;
             iuid curFrag;
             int bestLength;
             BestFragmentOverlap* _best_overlaps;
-            std::map<iuid, BestContainment> _best_containments;
 
     }; //BestOverlapGraph
 

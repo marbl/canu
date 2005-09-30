@@ -37,11 +37,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.13 2005-09-15 21:12:19 kli1000 Exp $
- * $Revision: 1.13 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.14 2005-09-30 14:17:31 eliv Exp $
+ * $Revision: 1.14 $
 */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.13 2005-09-15 21:12:19 kli1000 Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.14 2005-09-30 14:17:31 eliv Exp $";
 
 //  System include files
 #include<iostream>
@@ -178,6 +178,7 @@ namespace AS_BOG{
 
             // Get container information based on containee id/containment record
             bool sameOrient = bst.sameOrientation;
+            bool useAhang = true;
 
             // For this std::map:
             //   iuid is the containee iuid
@@ -231,9 +232,13 @@ namespace AS_BOG{
                 found[ nb.container ] = nb;
 
                 // Reset the orientation of id's containment.
-                if (!sameOrient)
+                if (!sameOrient) {
                     sameOrient = _best_containments[id].sameOrientation = ! nb.sameOrientation;
+                    useAhang = !useAhang;
+                }
                 found[nb.container].sameOrientation = sameOrient;
+                // make hang relative to new container
+                _best_containments[ id ].a_hang += useAhang ? bst.a_hang : abs(bst.b_hang); 
 
                 // Iterator to the i2's container
                 i2 = _best_containments.find( nb.container);
@@ -381,7 +386,9 @@ namespace AS_BOG{
                  BestContainment newBest;
                  newBest.container = olap.a_iid;
                  newBest.score     = newScr;
-                 newBest.sameOrientation = olap.flipped ? false : true;
+                 newBest.sameOrientation =  olap.flipped ? false : true;
+                 newBest.a_hang =  olap.a_hang;
+                 newBest.b_hang =  olap.b_hang;
                  _best_containments[ olap.b_iid ] = newBest;
              }
         
