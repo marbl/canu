@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.40 2005-09-30 15:44:34 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.41 2005-10-01 15:20:31 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -4563,41 +4563,63 @@ int32 AffineScoreAbacus(Abacus *abacus)
 
 int MergeAbacus(Abacus *abacus) {
 // sweep through abacus from left to right
-// testing for Level 1 (neighbor) merge compatibility of each column 
+// testing for Level 1 (neighbor) merge compatibility of each column
 // with right neighbor
 // and merge if compatible
-   int i,j,mergeok,merged=0,nrc;
-   char b,m;
-   int last_non_null=abacus->columns-1;
-   for (j=abacus->columns-1;j>0;j--) {
-     if ( abacus->calls[j] != 'n' ) break;
-     last_non_null = j;
-   }
-     for (j=0;j<last_non_null;j++) {
-     //for (j=0;j<abacus->columns-1;j++) {
-       mergeok=1;
-       nrc=1;
-       for (i=0;i<abacus->rows;i++) {
-        b = *GetAbacus(abacus,i,j);
-        m = *GetAbacus(abacus,i,j+1);
-	if (m != '-' && m!= 'm' ) { nrc=0; }
-        if ( ! ((b == '-') | ( m == '-')) ) mergeok = 0;
-       }
-       if ( mergeok ) { // go ahead and do merge
-	 if ( ! ( nrc && j+1==last_non_null) ) {
-	   for (i=0;i<abacus->rows;i++) {
-	     b = *GetAbacus(abacus,i,j);
-	     m = *GetAbacus(abacus,i,j+1);
-	     if ( b != '-' && b != 'n' ) { 
-	       SetAbacus(abacus,i,j,m);
-	       SetAbacus(abacus,i,j+1,b);
-	     } 
-	   }
-	 }
-	 merged++;
-       }
-     }
-     return merged;
+//
+//  GD: this code will merge practically any
+    int i,j,mergeok, next_column_good;
+    char b,m;
+    int last_non_null=abacus->columns-1;
+    int columns_merged = 0;
+    for (j=abacus->columns-1;j>0;j--)
+    {
+        int null_column = 1;
+        for (i=0; i<abacus->rows; i++) {
+            b = *GetAbacus(abacus,i,j);
+            if (b != '-') null_column = 0;
+        }
+        if (!null_column)
+           break;
+        last_non_null = j;
+    }
+    for (j=0;j<last_non_null;j++) {
+        mergeok = 1;
+        next_column_good = -1;
+        for (i=0;i<abacus->rows;i++) {
+            b = *GetAbacus(abacus,i,j);
+            m = *GetAbacus(abacus,i,j+1);
+            // at least in one column there should be a gap
+            // or, alternatively, both should be 'n'
+            if (b != '-' && m != '-') {
+                if (b != 'n' || m != 'n') {
+                    mergeok = 0;
+                    break;
+                }
+            }
+
+            // next column should contain at least one good base - a, c, g or t
+            if (m != '-' && m != 'n') {
+                next_column_good = i;
+
+            }
+        }
+        if (mergeok && next_column_good >= 0)  // next column contains a, c, g or t) {
+        {
+            columns_merged++;
+            for (i=0;i<abacus->rows;i++) {
+                b = *GetAbacus(abacus,i,j);
+                m = *GetAbacus(abacus,i,j+1);
+                if (b == 'n' && m == 'n')
+                    continue;
+                if ( b != '-' && b != 'n' ) {
+                    SetAbacus(abacus,i,j,m);
+                    SetAbacus(abacus,i,j+1,b);
+                }
+            }
+        }
+    }
+    return columns_merged;
 }
 
 int32 LeftShift(Abacus *abacus, int *lcols) 
