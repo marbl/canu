@@ -62,8 +62,8 @@ static HashTable_AS *subset_name2iid;
 static HashTable_AS *full_name2iid;
 static char subset_names[2000000][20];
 static char full_names[2000000][20];
-static VA_TYPE(uint64) *subset_iid2name;
-static VA_TYPE(uint64) *full_iid2name;
+static VA_TYPE(PtrT) *subset_iid2name;
+static VA_TYPE(PtrT) *full_iid2name;
 static OVL_Store_t  * my_store = NULL;
 
 typedef enum { SCAFFOLD_BEGIN,SCAFFOLD_END } scfEnds;
@@ -85,8 +85,8 @@ void setup_frg_maps(const char *subset_map, const char *full_map){
   assert(subset_frg_map !=NULL);
   assert(full_frg_map !=NULL);
 
-  subset_iid2name = CreateVA_uint64(2000000);
-  full_iid2name = CreateVA_uint64(2000000);
+  subset_iid2name = CreateVA_PtrT(2000000);
+  full_iid2name = CreateVA_PtrT(2000000);
 
   subset_name2iid = CreateHashTable_AS(2000000,StringHashFn_AS,strhashcmp);
   full_name2iid = CreateHashTable_AS(2000000,StringHashFn_AS,strhashcmp);
@@ -106,8 +106,8 @@ void setup_frg_maps(const char *subset_map, const char *full_map){
     //            (int) LookupInHashTable_AS(subset_name2iid,name,strlen(name)));
 
     { 
-      uint64 dummy = (uint64) &(subset_names[i][0]);
-      SetElement_VA(subset_iid2name,iid, &dummy);
+      char *dummy = (char *) &(subset_names[i][0]);
+      SetElement_VA(subset_iid2name,iid, dummy);
     }
     // demonstration of how to get value back from variable array
     //    fprintf(stdout,"post-insert iid2name gives %s\n",
@@ -409,7 +409,7 @@ void explore_end_of_contig(ContigT *contig,int whichEnd){
     if(!useFrgMaps){
       firstFrag_full = firstFrag;
     } else {
-      name = (char *) (* (uint64 *)  GetElement_VA(subset_iid2name,firstFrag));
+      name = (char *) GetElement_VA(subset_iid2name,firstFrag);
       firstFrag_full = (int) LookupInHashTable_AS(full_name2iid,name,strlen(name));
     }
 #ifdef VERBOSE
@@ -441,7 +441,7 @@ void explore_end_of_contig(ContigT *contig,int whichEnd){
     if(!useFrgMaps){
       lastFrag_full = lastFrag;
     } else {
-      name = (char *) (* (uint64 *)  GetElement_VA(subset_iid2name,lastFrag));
+      name = (char *) GetElement_VA(subset_iid2name,lastFrag);
       lastFrag_full = (int) LookupInHashTable_AS(full_name2iid,name,strlen(name));
     }
     
