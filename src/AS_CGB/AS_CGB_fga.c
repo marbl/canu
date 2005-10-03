@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_fga.c,v 1.4 2005-03-22 19:48:27 jason_miller Exp $";
+= "$Id: AS_CGB_fga.c,v 1.5 2005-10-03 17:55:16 eliv Exp $";
 /*********************************************************************
  *
  * Module: AS_CGB_fga.c
@@ -447,7 +447,7 @@ void view_fgb_chkpnt
             "uid %16" F_UIDP " "
 #endif
 	    "%c%c%c "
-            "raw: %d %d %d %d "
+            "raw: %2d %2d %2d %2d "
 	    //"src %10ld "
 	    "prefix:"
             //"%8ld"
