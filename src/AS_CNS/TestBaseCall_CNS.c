@@ -25,7 +25,7 @@
                  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: TestBaseCall_CNS.c,v 1.9 2005-08-18 18:55:27 gdenisov Exp $";
+static char CM_ID[] = "$Id: TestBaseCall_CNS.c,v 1.10 2005-10-03 15:58:09 eliv Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -77,7 +77,7 @@ int main (int argc, char *argv[])
    int cid=-1;
    int display_keys=0;
    int ch,errflg=0,illegal_use=0,iflags=0;
-   float var = 0.;
+   double var = 0.;
 
    ap.nr = 0;       
    InitializeAlphTable();
