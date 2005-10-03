@@ -89,7 +89,7 @@ if (!defined($genome) || !defined($path)) {
 
 system("mkdir -p $path") if (! -d $path);
 
-if ($genome !~ m/^!/) {
+if ($genome !~ m/^\//) {
     my $cwd = `pwd`;
     chomp $cwd;
     $genome = "$cwd/$genome";
