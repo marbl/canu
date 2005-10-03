@@ -58,7 +58,7 @@ typedef struct FragIterator{
   CDS_CID_t id;
   MultiAlignT *ma;
   cds_int32 fOrder; /* which fragment within multialign is next */
-  GraphNodeIterator subchunks;
+  ContigTIterator subchunks;
   struct FragIterator *subchunkIterator;
 
 } CGWFragIterator;
