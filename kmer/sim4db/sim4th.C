@@ -49,10 +49,6 @@
 //#define COUNT_LOCKED
 
 
-//  Define this to DISABLE the output, useful for debugging and/or
-//  speed testing.
-//#define NO_OUTPUT
-
 
 
 //  Run options set from the command line.
@@ -162,7 +158,7 @@ loaderSave(state_s *&tail, state_s *&head, state_s *thisState, sim4command *cmd)
   thisState->next  = 0L;
 
   if (tail) {
-    tail->next = thisState;
+    head->next = thisState;
     head       = thisState;
   } else {
     tail = head = thisState;
@@ -174,6 +170,10 @@ loaderSave(state_s *&tail, state_s *&head, state_s *thisState, sim4command *cmd)
 //
 void
 loaderAppend(state_s *&tail, state_s *&head) {
+
+  if ((tail == 0L) || (head == 0L))
+    return;
+
   pthread_mutex_lock(&stateMutex);
 
   if (headState == 0L) {
@@ -278,8 +278,11 @@ loader(void *) {
       //  Didn't read, must be all done!  Push on the end-of-input marker state.
       //
 #ifdef LOAD_BATCHES
-#endif
+      loaderSave(tail, head, newState(), 0L);
+      loaderAppend(tail, head);
+#else
       loaderAdd(newState(), 0L);
+#endif
       moreToLoad = false;
     }
   }
@@ -423,19 +426,19 @@ worker(void *) {
 
 int
 openOutputFile(char *outputFileName) {
-  int  fOutput = 0;
+  int  f = 0;
 
   if (strcmp(outputFileName, "-") == 0) {
-    fOutput = fileno(stdout);
+    f = fileno(stdout);
   } else {
     errno = 0;
-    fOutput = open(outputFileName,
-                   O_WRONLY | O_LARGEFILE | O_CREAT | O_TRUNC,
-                   S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+    f = open(outputFileName,
+             O_WRONLY | O_LARGEFILE | O_CREAT | O_TRUNC,
+             S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
     if (errno)
       fprintf(stderr, "Couldn't open the output file '%s': %s\n", outputFileName, strerror(errno)), exit(1);
   }
-  return(fOutput);
+  return(f);
 }
 
 
@@ -469,6 +472,15 @@ stats(void *) {
     fflush(stderr);
     nanosleep(&naptime, 0L);
   }
+
+  fprintf(stderr, " (%6.1f/s) (out="u32bitFMTW(8)" + "u32bitFMTW(8)" = cpu = "u32bitFMTW(8)" + "u32bitFMTW(8)" = in = "u32bitFMTW(8)"\n",
+          numberOutput / (getTime() - startTime),
+          numberOutput,
+          numberComputed - numberOutput,
+          numberComputed,
+          numberLoaded - numberComputed,
+          numberLoaded);
+
   return(0L);
 }
 
@@ -542,9 +554,7 @@ main(int argc, char **argv) {
         char *o = s4p_polishToString(L4[i]);
 
         errno = 0;
-#ifndef NO_OUTPUT
         write(fOutput, o, strlen(o) * sizeof(char));
-#endif
         if (errno)
           fprintf(stderr, "Couldn't write the output file '%s': %s\n", outputFileName, strerror(errno)), exit(1);
 
@@ -577,7 +587,6 @@ main(int argc, char **argv) {
     }
   }
 
-
   //  Only close the file if it isn't stdout
   //
   if (strcmp(outputFileName, "-") != 0)
@@ -597,5 +606,5 @@ main(int argc, char **argv) {
     fclose(touchFile);
   }
 
-  return(0);
+  exit(0);
 }
