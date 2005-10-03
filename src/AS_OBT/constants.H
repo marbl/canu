@@ -1,6 +1,10 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
+extern "C" {
+#include "AS_MSG_pmesg.h" 
+}
+
 //
 //  Constants used for overlap based trimming.
 //
