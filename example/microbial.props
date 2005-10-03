@@ -2,5 +2,5 @@ gatekeeper=gatekeeper -X -C -N -Q
 meryl=meryl -m 22 -K 10 -n 50
 overlap=overlap -h 1- -r 1- -M 1GB
 growOlapStore=grow-olap-store -cfS -M 512
-unitigger=unitigger -c -P -A 1 -d 1 -x 1 -z 10 -j 5
+unitigger=unitigger -c -P -A 1 -d 1 -x 1 -z 10 -j 5 -U 1 -e 15
 scaffolder=cgw -c -j 1 -k 5 -r 5 -s 0 -w 0 -T

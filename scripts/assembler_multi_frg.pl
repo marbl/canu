@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/local/bin/perl -w
 #
 ###########################################################################
 #
@@ -22,7 +22,7 @@
 # # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 #############################################################################
-# $Id: assembler_multi_frg.pl,v 1.2 2005-08-03 21:09:54 eliv Exp $
+# $Id: assembler_multi_frg.pl,v 1.3 2005-10-03 15:02:39 eliv Exp $
 print "The Celera Whole Genome Shotgun Assembler.\n";
 #######################################################################
 #
@@ -393,16 +393,6 @@ sub run_new_unitigger {
 
     my $fgbStoreHold = "$prefix.fgbStore";
 
-    my $overlapErrorThreshold = "-e 60";
-    my $smooth_bubbles = &Assembler::getGlobal("use bubble popping");
-
-    my $useFragmentCorrection = 
-	&Assembler::getGlobal("use fragment correction");
-    if ($useFragmentCorrection) {
-	# -e means ignore overlaps with error rates above this value.
-	$overlapErrorThreshold = "-e 15";
-    }
-
     my $local_bin = &Assembler::getGlobal("local bin");
     my $IID_CMD = "lastfraginstore";
     my $lastiid;
@@ -441,157 +431,12 @@ sub run_new_unitigger {
       }
 
       my $UTG_CMD = Assembler::getGlobal("unitigger");
-      $UTG_CMD .=  " $preAllocateParm -U $smooth_bubbles $overlapErrorThreshold -F $prefix.frgStore -f -o $fgbStoreHold $ofgListParm -I $prefix.ovlStore";
+      $UTG_CMD .=  " $preAllocateParm -F $prefix.frgStore -f -o $fgbStoreHold $ofgListParm -I $prefix.ovlStore";
 
       $descriptionLine = "Run unitigger"; 
       $commandLine = $UTG_CMD;
       &Assembler::runLocal($descriptionLine,$commandLine);
     }    
-
-}
-
-#----------------------------------------------------------------
-# Run Unitigger.
-# Build maximal contigs containing no contradicted elements.
-# Parameter 1: First number for numbering each step (for the logs).
-#----------------------------------------------------------------
-sub run_unitigger {
-    my ($nextStep) = @_;
-    &Assembler::setNextStep($nextStep);
-    my $commandLine;
-    my $descriptionLine;
-    my $prefix = &Assembler::getGlobal("prefix");
-
-    my $smooth_spurs = 1;
-    my $smooth_bubbles = &Assembler::getGlobal("use bubble popping");
-
-    my $num_crappies = 0;
-    my $fgbStoreHold = "$prefix.tmp.fgbStore";
-
-    my $overlapErrorThreshold = "-e 0.060";
-    my $useFragmentCorrection = 
-	&Assembler::getGlobal("use fragment correction");
-    if ($useFragmentCorrection) {
-	# -e means ignore overlaps with error rates above this value.
-	$overlapErrorThreshold = "-e 0.015";
-    }
-
-    # -x sets dovetail double-sided degree threshold.
-    # -z sets containment degree threshold.
-    my $degreeThresholds = "-x 1 -z 10";
-
-    my $ReaperOptions = "$degreeThresholds " .
-	"$overlapErrorThreshold " .
-	    " -d 0 -M 0 ";
-    my $FGBOptions = " -d 1 -M 1 ";    
-
-    my $FGB_LOGGING = " 1>> $prefix.fgb.log ";
-    my $ANAL_OPT = "-A 2 ";  
-    my $U_UNITIG_ASTAT = "-j " . 
-	&Assembler::getGlobal("U-unitig A-statistic");
-    
-    my $REAPER_CMD="fgb $OUTPUT_MODE $ANAL_OPT $FILE_CLOBBER ".
-	"$ReaperOptions ";
-    my $FGB_CMD =  "fgb $OUTPUT_MODE $ANAL_OPT $FILE_CLOBBER ".
-	"$FGBOptions $FGB_LOGGING";
-    my $CGB_CMD =  "cgb $OUTPUT_MODE $ANAL_OPT";
-
-    # Convert a newer data format to an older format.
-    # This step is for compatibility with older code.
-    # Note FragStore needs changes before fgb can read it.
-    # Known bug: looses coordinates from frag source field.
-
-    if (&Assembler::shouldExecute()) {
-	$descriptionLine = "Convert FragStore to OFG messages."; 
-        $commandLine = "make_OFG_from_FragStore " .
-	    "$prefix.frgStore > $prefix.ofg";
-	&Assembler::runLocal($descriptionLine,$commandLine);
-    }    
-
-    if (&Assembler::shouldExecute()) {
-	$descriptionLine = "Reaper. Filters out many overlaps, ".
-	    "and labels some fragments spurs or contained."; 
-        $commandLine = "$REAPER_CMD " .
-	    "-I $prefix.ovlStore -Q 0 -c -o $prefix.fgbStore $prefix.ofg";
-	&Assembler::runLocal($descriptionLine,$commandLine);
-    }    
-    
-    if (&Assembler::shouldExecute()) {
-	$descriptionLine = "FGB, after reaper."; 
-        $commandLine="$FGB_CMD " .
-	    " -a -i $prefix.fgbStore " ;
-	&Assembler::runLocal($descriptionLine,$commandLine);
-    }    
-
-    if (&Assembler::shouldExecute() && $smooth_spurs) {
-	$descriptionLine = "CGB. Spur smoothing."; 
-        $commandLine = "$CGB_CMD -s -b 0 $U_UNITIG_ASTAT  " . 
-	    " -U 0 $prefix.frgStore $prefix.fgbStore ";
-	&Assembler::runLocal($descriptionLine,$commandLine);
-    }    
-
-    # This next bit is ugly. Should find a better way to count.
-    if (&Assembler::shouldExecute()) {
-	print "Start steps that clean up crappies.\n";
-	$descriptionLine = "Count crappies.";
-	$commandLine = 
-	    "gawk '{ if(\$0 !~ /^#/) print \$0;}' " .
-		"$prefix.cgb_crappies | wc -l";
-	$num_crappies = 0 +
-	    &Assembler::readChildProcess
-		($descriptionLine,$commandLine);
-	print "There are $num_crappies crappies.\n";
-    }
-    if (&Assembler::shouldExecute() && $num_crappies>0) {
-	$descriptionLine = "Repair breakers."; 
-        $commandLine = "repair_breakers -S $prefix.cgb_crappies " . 
-	    "-F $prefix.frgStore -O $prefix.breaker_overlaps.ovl " .
-		"$prefix.cgb";
-	&Assembler::runLocal($descriptionLine,$commandLine);
-    }
-    if (&Assembler::shouldExecute() && $num_crappies>0) {
-	$descriptionLine = "FGB, after repair breakers."; 
-        $commandLine="$FGB_CMD " .
-	    " -a -i $prefix.fgbStore " .
-		    "$prefix.breaker_overlaps.ovl ";
-	&Assembler::runLocal($descriptionLine,$commandLine);
-    }    
-    if (&Assembler::shouldExecute() && $num_crappies>0) {
-	print "Finished steps that clean up crappies.\n";
-    }
-
-    if (&Assembler::shouldExecute() && $smooth_bubbles) {
-	print "Start steps that smooth bubbles.\n";
-	$descriptionLine = "CGB, smooth bubbles.";
-        $commandLine = "$CGB_CMD $U_UNITIG_ASTAT -b 0 " .
-	    "-U 1 $prefix.frgStore $prefix.fgbStore ";
-	&Assembler::runLocal($descriptionLine,$commandLine);
-    }
-    if (&Assembler::shouldExecute() && $smooth_bubbles) {
-	$descriptionLine = "FGB, after smoothing bubbles.";
-#        $commandLine = "$FGB_CMD " . 
-#	    "-a -i $prefix.fgbStore " .
-# A work around for a bug in append mode ...            
-        $commandLine = "$FGB_CMD " . 
-            "$degreeThresholds " . "$overlapErrorThreshold " .
-            "-c -f -o $prefix.fgbStore " .
-            "-I $prefix.ovlStore " .
-            "$prefix.ofg " .
-	      (($num_crappies > 0)?"$prefix.breaker_overlaps.ovl":"").
-            "$prefix.bubble_edges.ovl ";
-	    
-	&Assembler::runLocal($descriptionLine,$commandLine);
-    }
-    if (&Assembler::shouldExecute() && $smooth_bubbles) {
-        print "Finished steps that smooth bubbles.\n";
-    }
-            
-    if (&Assembler::shouldExecute()) {
-	$descriptionLine = "CGB, final run.";
-        $commandLine = "$CGB_CMD -b 0 $U_UNITIG_ASTAT " .
-	    "-U 0 $prefix.frgStore $prefix.fgbStore";
-	&Assembler::runLocal($descriptionLine,$commandLine);
-    }
 
 }
 
@@ -861,8 +706,6 @@ sub main {
     # only if error correction is being done; otherwise, this is moot
     &Assembler::setGlobal("force erates on doubleton overlaps",0);
     &Assembler::setGlobal("use countmessages", 0);
-    &Assembler::setGlobal("use bubble popping",1);
-
     
     # Handle the -start and -end options for this script.
     &Assembler::setStartAndEnd($startAt,$endAt);
