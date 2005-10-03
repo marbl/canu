@@ -30,12 +30,13 @@
 using namespace std;
 
 
-u32bit   DEF_MIN_END_RUN_LEN   = 10;
-u32bit   DEF_MAX_MM_BLOCK      = 3;
-u32bit   DEF_MIN_BLOCK_SEP     = 20;
-double   DEF_MIN_IDENTITY      = 0.95;
-u32bit   DEF_MAX_NBR_SEP       = 100;
-u32bit   DEF_MAX_NBR_PATH_MM   = 5;
+extern u32bit  minEndRunLen;
+extern u32bit  maxMMBlock;
+extern u32bit  minBlockSep;
+extern double  minIdentity;
+extern u32bit  maxNbrSep;
+extern u32bit  maxNbrPathMM;
+
 
 //#define DEBUG_TRACE
 //#define DEBUG_TRIMTOPERCENT
@@ -171,7 +172,7 @@ extend_match_backward(vector<match_s *>& matches,
 
       //  If we've gone long enough, erase our mismatch record
       //
-      if (good_run_len == DEF_MIN_BLOCK_SEP)  //  20 by default
+      if (good_run_len == minBlockSep)  //  20 by default
 	num_recent_mismatches = 0;
 
       //  If we're in the middle of a long good run, add the character
@@ -183,9 +184,9 @@ extend_match_backward(vector<match_s *>& matches,
       //  Otherwise, this character is pending.  However, still do
       //  output if we're run out of sequence.
       //
-      if (good_run_len > DEF_MIN_END_RUN_LEN) {
+      if (good_run_len > minEndRunLen) {
 	m->extendLeft(1);
-      } else if (good_run_len == DEF_MIN_END_RUN_LEN) {
+      } else if (good_run_len == minEndRunLen) {
 	m->extendLeft(num_pending + 1);
 	num_pending = 0;
       } else {
@@ -195,7 +196,7 @@ extend_match_backward(vector<match_s *>& matches,
       good_run_len = 0;
       num_pending++;
       num_recent_mismatches++;
-      if (num_recent_mismatches > DEF_MAX_MM_BLOCK)  //  3 by default
+      if (num_recent_mismatches > maxMMBlock)  //  3 by default
 	break;
     }
 
@@ -226,7 +227,7 @@ can_reach_nearby_match(match_s *src, match_s *dest) {
   fprintf(stderr, "can_reach_nearby_match()\n");
 #endif
 
-  if (dest->pos1() - (src->pos1() + src->len()) > (u32bit) DEF_MAX_NBR_SEP)  // 100
+  if (dest->pos1() - (src->pos1() + src->len()) > (u32bit) maxNbrSep)  // 100
     return false;
 
 #if 0
@@ -245,7 +246,7 @@ can_reach_nearby_match(match_s *src, match_s *dest) {
 
   u32bit  num_mismatch = 0;
 
-  while ((num_mismatch    <= DEF_MAX_NBR_PATH_MM) &&  // 5
+  while ((num_mismatch    <= maxNbrPathMM) &&  // 5
          (A.getPosition() <  dest->pos1()) &&
          (A.isValid()) &&
          (B.isValid())) {
@@ -261,7 +262,7 @@ can_reach_nearby_match(match_s *src, match_s *dest) {
           num_mismatch, A.getPosition(), dest->pos1(), A.isValid(), B.isValid());
 #endif
 
-  return(num_mismatch <= DEF_MAX_NBR_PATH_MM);  // 5
+  return(num_mismatch <= maxNbrPathMM);  // 5
 }
 
 
@@ -309,7 +310,7 @@ extend_match_forward(vector<match_s *>& matches, u32bit midx, match_s *target) {
 
       // Pass Go and collect $200
       //
-      if (good_run_len == DEF_MIN_BLOCK_SEP)
+      if (good_run_len == minBlockSep)
 	num_recent_mismatches = 0;
 
       //  If not enough good characters yet, increase the length
@@ -322,12 +323,12 @@ extend_match_forward(vector<match_s *>& matches, u32bit midx, match_s *target) {
       //  Otherwise, if we're above the minimum good length, extend by
       //  another character.
       //
-      if (good_run_len < DEF_MIN_END_RUN_LEN) {
+      if (good_run_len < minEndRunLen) {
 	num_pending++;
-      } else if (good_run_len == DEF_MIN_END_RUN_LEN) {
+      } else if (good_run_len == minEndRunLen) {
 	m->extendRight(num_pending + 1);
 	num_pending = 0;
-      } else if (good_run_len > DEF_MIN_END_RUN_LEN) {
+      } else if (good_run_len > minEndRunLen) {
 	m->extendRight(1);
       }
 
@@ -341,7 +342,7 @@ extend_match_forward(vector<match_s *>& matches, u32bit midx, match_s *target) {
       num_pending++;
       num_recent_mismatches++;
 
-      if (num_recent_mismatches > DEF_MAX_MM_BLOCK)
+      if (num_recent_mismatches > maxMMBlock)
 	return(false);
     }
 
@@ -352,7 +353,7 @@ extend_match_forward(vector<match_s *>& matches, u32bit midx, match_s *target) {
   //  If we've got a short good run but have hit the end of
   //  a sequence, do extension.
   //
-  if ((!A.isValid() || !B.isValid()) && (good_run_len < DEF_MIN_END_RUN_LEN))
+  if ((!A.isValid() || !B.isValid()) && (good_run_len < minEndRunLen))
     m->extendRight(num_pending);
 
 #ifdef DEBUG_EXTEND_FORWARD
@@ -492,7 +493,7 @@ extend_matches_on_diagonal(vector<match_s *>& matches, u32bit diag_start) {
 
     //  Didn't make it, so trim and move on
     //
-    if (trim_to_pct(matches, idx, DEF_MIN_IDENTITY)) {
+    if (trim_to_pct(matches, idx, minIdentity)) {
 #ifdef DEBUG_EXTEND_TRIMMING
       m->dump(stderr, "After trimming:", true);
 #endif

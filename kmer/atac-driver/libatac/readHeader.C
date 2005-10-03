@@ -23,8 +23,20 @@
 #include "bio++.H"
 #include "atac.H"
 
+//  inLine is a large character buffer, uninitialized.  It will
+//  contain the first match after this function.
+//
+//  in is the atac file, hopefully at the beginning.
+//  out, if present, receives a copy of the header.
+//
+//  file1 and file2 are preallocated strings to hold the genome paths.
+
 void
-readHeader(char *inLine, FILE *in, char *file1, char *file2, FILE *out) {
+readHeader(char *inLine,
+           FILE *in,
+           char *file1, char *file2,
+           FILE *out,
+           map<string, string> *params) {
 
   fgets(inLine, 1024, in);
   while (!feof(in) && (inLine[0] != 'M')) {
@@ -54,6 +66,25 @@ readHeader(char *inLine, FILE *in, char *file1, char *file2, FILE *out) {
         strcpy(file2, tmp);
         chomp(file2);
       }
+    }
+
+    if (params) {
+      //  XXX:  UNTESTED!
+      string  key;
+      string  val;
+
+      for (int i=0; inLine[i]; i++)
+        if (inLine[i] == '=') {
+          inLine[i] = 0;
+          val = inLine + i + 1;
+          break;
+        }
+      for (int i=0; inLine[i]; i++)
+        if (inLine[i] == '/') {
+          key = inLine + i + 1;
+          break;
+        }
+      (*params)[key] = val;
     }
 
     fgets(inLine, 1024, in);

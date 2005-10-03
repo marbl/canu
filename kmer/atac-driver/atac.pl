@@ -29,36 +29,38 @@ use lib "$FindBin::Bin/util";
 require "run.pl";
 
 
-my $id1            = undef;
-my $seq1           = undef;
-my $id2            = undef;
-my $seq2           = undef;
+my $id1               = undef;
+my $seq1              = undef;
+my $id2               = undef;
+my $seq2              = undef;
 
-my $ATACdir        = undef;
-my $GENOMEdir      = "default";   #  Location of genome assemblies
-my $MERYLdir       = "default";   #  Location of genome mercount databases
+my $ATACdir           = undef;
+my $GENOMEdir         = "default";   #  Location of genome assemblies
+my $MERYLdir          = "default";   #  Location of genome mercount databases
 
-my $mersize        = 20; # the mer size
-my $minfill        = 20; # the mimimum fill for a reported match.
-my $merlimit       = 1;  # unique mers only
-my $maxgap         = 0;  # the maximum substitution gap
+my $mersize           = 20; # the mer size
+my $minfill           = 20; # the mimimum fill for a reported match.
+my $merlimit          = 1;  # unique mers only
+my $maxgap            = 0;  # the maximum substitution gap
 
-my $crossSpecies   = 0;  # annotates the resulting atac file with parameters
+my $crossSpecies      = 0;  # annotates the resulting atac file with parameters
+                            # for cross species, also sets match extender options
+my $matchExtenderOpts = "";
 
-my $filtername     = "filter-heavychains.so";
-my $filteropts     = "-S 100 -J 100000";
+my $filtername        = "filter-heavychains.so";
+my $filteropts        = "-S 100 -J 100000";
 
-my $numSegments    = 2;
-my $numThreads     = 4;
+my $numSegments       = 2;
+my $numThreads        = 4;
 
-my $merylThreads   = 2;
+my $merylThreads      = 2;
 
-my $merylOnly      = 0;
+my $merylOnly         = 0;
 
-my $segmentIDtorun = undef;
-my $buildOnly      = undef;
+my $segmentIDtorun    = undef;
+my $buildOnly         = undef;
 
-my $execHome       = undef;
+my $execHome          = undef;
 
 
 
@@ -502,14 +504,16 @@ if (! -e "$ATACdir/$matches.matches.sorted") {
 
     if ($crossSpecies){
         # The non-default parameters for Mouse versus Rat.
-        print ATACFILE "/matchExtenderMaxMMBlock=5\n";
-        print ATACFILE "/matchExtenderMaxNbrPathMM=25\n";
-        print ATACFILE "/matchExtenderMaxNbrSep=100\n";
-        print ATACFILE "/matchExtenderMinBlockSep=5\n";
         print ATACFILE "/matchExtenderMinEndRunLen=4\n";
+        print ATACFILE "/matchExtenderMaxMMBlock=5\n";
+        print ATACFILE "/matchExtenderMinBlockSep=5\n";
         print ATACFILE "/matchExtenderMinIdentity=0.7\n";
+        print ATACFILE "/matchExtenderMaxNbrSep=100\n";
+        print ATACFILE "/matchExtenderMaxNbrPathMM=25\n";
         print ATACFILE "/globalMatchMinSize=20\n";
         print ATACFILE "/fillIntraRunGapsErate=0.30\n";
+
+        $matchExtenderOpts = "-e 4 -b 5 -s 5 -i 0.70 -p 100 -d 25";
     }
 
     #print ATACFILE "/matchesFile=$ATACdir/$matches.matches.sorted.bz2\n";
@@ -554,7 +558,7 @@ if (! -e "$ATACdir/$matches.matches.sorted") {
 if ((! -e "$ATACdir/$matches.matches.sorted.extended") ||
     (0 == -s "$ATACdir/$matches.matches.sorted.extended")) {
     my $cmd;
-    $cmd  = "$execHome/matchExtender ";
+    $cmd  = "$execHome/matchExtender $matchExtenderOpts ";
     $cmd .= "< $ATACdir/$matches.matches.sorted ";
     $cmd .= "> $ATACdir/$matches.matches.sorted.extended ";
 

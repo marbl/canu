@@ -84,8 +84,8 @@ matchList::matchList(char *filename) {
     if (inLine[0] == 'M') {
       splitToWords  S(inLine);
 
-      if ((S[1][0] == 'u') || (S[1][0] == 'x')) {
-        //if ((S[1][0] == 'r')) {
+      //if ((S[1][0] == 'u') || (S[1][0] == 'x')) {
+      if ((S[1][0] == 'r')) {
         u32bit  iid1=0, pos1=0, len1=0, ori1=0;
         u32bit  iid2=0, pos2=0, len2=0, ori2=0;
         decodeMatch(S, iid1, pos1, len1, ori1, iid2, pos2, len2, ori2);

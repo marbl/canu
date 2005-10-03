@@ -19,9 +19,19 @@
 #ifndef ATAC_COMMON_H
 #define ATAC_COMMON_H
 
+#include <string>
+#include <map>
+using namespace std;
+
 #include "bio++.H"
 
-void   readHeader(char *inLine, FILE *in, char *file1, char *file2, FILE *out);
+void   readHeader(char *inLine,
+                  FILE *in,
+                  char *file1=0L,
+                  char *file2=0L,
+                  FILE *out=0L,
+                  map<string,string> *params=0L);
+
 void   decodeMatch(splitToWords &W,
                    u32bit &iid1, u32bit &pos1, u32bit &len1, u32bit &ori1,
                    u32bit &iid2, u32bit &pos2, u32bit &len2, u32bit &ori2);

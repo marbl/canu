@@ -29,6 +29,14 @@ using namespace std;
 #include "match.H"
 
 
+u32bit  minEndRunLen = 10;    // -E /matchExtenderMinEndRunLen
+u32bit  maxMMBlock   = 3;     // -B /matchExtenderMaxMMBlock
+u32bit  minBlockSep  = 20;    // -S /matchExtenderMinBlockSep
+double  minIdentity  = 0.95;  // -I /matchExtenderMinIdentity
+u32bit  maxNbrSep    = 100;   // -P /matchExtenderMaxNbrSep
+u32bit  maxNbrPathMM = 5;     // -D /matchExtenderMaxNbrPathMM
+
+
 bool
 trim_to_pct(vector<match_s *>& matches, u32bit midx, double pct);
 
@@ -137,24 +145,56 @@ readMatches(char *inLine,
 
 
 
-
 int
 main(int argc, char *argv[]) {
+  bool    fail = false;
 
   int arg=1;
   while (arg < argc) {
+    if        (strcmp(argv[arg], "-e") == 0) {
+      minEndRunLen = strtou32bit(argv[++arg], 0L);
+    } else if (strcmp(argv[arg], "-b") == 0) {
+      maxMMBlock   = strtou32bit(argv[++arg], 0L);
+    } else if (strcmp(argv[arg], "-s") == 0) {
+      minBlockSep  = strtou32bit(argv[++arg], 0L);
+    } else if (strcmp(argv[arg], "-i") == 0) {
+      minIdentity  = atof(argv[++arg]);
+    } else if (strcmp(argv[arg], "-p") == 0) {
+      maxNbrSep    = strtou32bit(argv[++arg], 0L);
+    } else if (strcmp(argv[arg], "-d") == 0) {
+      maxNbrPathMM = strtou32bit(argv[++arg], 0L);
+    } else {
+      fprintf(stderr, "unknown option %s\n", argv[arg]);
+      fail = true;
+    }
 
     arg++;
+  }
+
+  if (fail) {
+    fprintf(stderr, "usage: %s [options] < matches.atac > matches.atac\n");
+    fprintf(stderr, "  -e <int>     matchExtenderMinEndRunLen, 10\n");
+    fprintf(stderr, "  -b <int>     matchExtenderMaxMMBlock, 3\n");
+    fprintf(stderr, "  -s <int>     matchExtenderMinBlockSep, 20\n");
+    fprintf(stderr, "  -i <float>   matchExtenderMinIdentity, 0.95\n");
+    fprintf(stderr, "  -p <int>     matchExtenderMaxNbrSep, 100\n");
+    fprintf(stderr, "  -d <int>     matchExtenderMaxNbrPathMM, 5\n");
+    exit(1);
   }
 
   //  Read the preamble, look for our data sources.  This leaves us with
   //  the first match in the inLine, and fills in file1 and file2.
   //
-  char *inLine = new char [1024];
-  char *file1  = new char [1024];
-  char *file2  = new char [1024];
+  char                *inLine = new char [1024];
+  char                *file1  = new char [1024];
+  char                *file2  = new char [1024];
+  map<string,string>  *params = new map<string,string>;
 
-  readHeader(inLine, stdin, file1, file2, stdout);
+  readHeader(inLine, stdin, file1, file2, stdout, params);
+
+  //  XXX: Grab some parameters from params.  Honestly, it would have
+  //  been so much easier to just embed this in the scripts and pass
+  //  command line arguments.  So we did.
 
   //  cachesize, loadall, report
   //
