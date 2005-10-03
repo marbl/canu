@@ -43,6 +43,8 @@ my $minfill        = 20; # the mimimum fill for a reported match.
 my $merlimit       = 1;  # unique mers only
 my $maxgap         = 0;  # the maximum substitution gap
 
+my $crossSpecies   = 0;  # annotates the resulting atac file with parameters
+
 my $filtername     = "filter-heavychains.so";
 my $filteropts     = "-S 100 -J 100000";
 
@@ -135,20 +137,21 @@ while (scalar(@ARGV) > 0) {
     } elsif ($arg eq "-buildonly") {
         $buildOnly = 1;
     } elsif ($arg eq "-samespecies") {
-        $mersize   = 20; # the mer size
-        $merlimit  = 1;  # unique mers only
-        $minfill   = 20; # the mimimum fill for a reported match.
-        $maxgap    = 0;  # the maximum substitution gap
+        $mersize      = 20; # the mer size
+        $merlimit     = 1;  # unique mers only
+        $minfill      = 20; # the mimimum fill for a reported match.
+        $maxgap       = 0;  # the maximum substitution gap
     } elsif ($arg eq "-samespecies9") {
-        $mersize   = 20; # the mer size
-        $merlimit  = 9;  # unique mers only
-        $minfill   = 20; # the mimimum fill for a reported match.
-        $maxgap    = 0;  # the maximum substitution gap
+        $mersize      = 20; # the mer size
+        $merlimit     = 9;  # unique mers only
+        $minfill      = 20; # the mimimum fill for a reported match.
+        $maxgap       = 0;  # the maximum substitution gap
     } elsif ($arg eq "-crossspecies") {
-        $mersize   = 18; # the mer size
-        $merlimit  = 9;  # unique mers only
-        $minfill   = 18; # the mimimum fill for a reported match.
-        $maxgap    = 0;  # the maximum substitution gap
+        $mersize      = 18; # the mer size
+        $merlimit     = 9;  # unique mers only
+        $minfill      = 18; # the mimimum fill for a reported match.
+        $maxgap       = 0;  # the maximum substitution gap
+        $crossSpecies = 1;  # extra parameters in the atac file
     } elsif($arg eq "-filtername") {
         $filtername = shift @ARGV;
     } elsif($arg eq "-filteropts") {
@@ -497,7 +500,7 @@ if (! -e "$ATACdir/$matches.matches.sorted") {
     print ATACFILE "/uniqueFilterOn=1\n";
     print ATACFILE "/fillIntraRunGapsOn=1\n";
 
-    if (0){
+    if ($crossSpecies){
         # The non-default parameters for Mouse versus Rat.
         print ATACFILE "/matchExtenderMaxMMBlock=5\n";
         print ATACFILE "/matchExtenderMaxNbrPathMM=25\n";
@@ -630,7 +633,7 @@ sub countMers {
     #  same order of magnitude in size.  This value is appropriate for
     #  sequences that are genome size.
 
-    if (! -e "$MERYLdir/$id.mcdat") {
+    if (! -e "$MERYLdir/$id.ms$mersize.mcdat") {
         my $cmd;
         $cmd  = "$meryl -B -C ";
         $cmd .= "-threads $merylThreads ";
@@ -638,6 +641,7 @@ sub countMers {
         $cmd .= "-s $MERYLdir/$id.fasta ";
         $cmd .= "-o $MERYLdir/$id.ms$mersize ";
         $cmd .= "-stats $MERYLdir/$id.ms$mersize.stats";
+        #die "why rebuild $MERYLdir/$id.ms$mersize.mcdat\n";
         if (runCommand($cmd)) {
             unlink "$MERYLdir/$id.ms$mersize.mcidx";
             unlink "$MERYLdir/$id.ms$mersize.mcdat";
@@ -652,6 +656,7 @@ sub countMers {
         $cmd .= "-s $MERYLdir/$id.ms$mersize ";
         $cmd .= "-o $MERYLdir/$id.ms$mersize.le$merlimit ";
         $cmd .= "-stats $MERYLdir/$id.ms$mersize.le$merlimit.stats";
+        #die "why rebuild $MERYLdir/$id.ms$mersize.le$merlimit.mcdat\n";
         if (runCommand($cmd)) {
             unlink "$MERYLdir/$id.ms$mersize.le$merlimit.mcidx";
             unlink "$MERYLdir/$id.ms$mersize.le$merlimit.mcdat";
