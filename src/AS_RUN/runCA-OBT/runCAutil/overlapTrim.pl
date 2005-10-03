@@ -13,7 +13,9 @@ sub overlapTrim {
     system("mkdir $wrk/0-overlaptrim")         if (! -d "$wrk/0-overlaptrim");
     system("mkdir $wrk/0-overlaptrim-overlap") if (! -d "$wrk/0-overlaptrim-overlap");
 
-    if (! -e "$wrk/0-overlaptrim/$asm.trim.qualityLog") {
+    if ((! -e "$wrk/0-overlaptrim/$asm.trim.qualityLog") &&
+        (! -e "$wrk/0-overlaptrim/$asm.trim.qualityLog.bz2")) {
+        #die "Failed test - quality\n";
         print STDERR "Starting -- overlap trimming - quality trimming\n";
 
         if (($doBackups) && (! -e "$wrk/$asm.frgStore/db.frg.beforeQualityTrim")) {
@@ -32,7 +34,10 @@ sub overlapTrim {
 
     #  Do the _optional_ vector intersection
 
-    if ((-e $vectorIntersect) && (! -e "$wrk/0-overlaptrim/$asm.trim.vectorIntersectionLog")) {
+    if ((-e $vectorIntersect) &&
+        (! -e "$wrk/0-overlaptrim/$asm.trim.vectorIntersectionLog") &&
+        (! -e "$wrk/0-overlaptrim/$asm.trim.vectorIntersectionLog.bz2")) {
+        #die "Failed test - intersect\n";
         print STDERR "Starting -- overlap trimming - vector intersection\n";
 
         if (($doBackups) && (! -e "$wrk/$asm.frgStore/db.frg.beforeOverlapIntersection")) {
@@ -85,7 +90,9 @@ sub overlapTrim {
     #  Sort the overlaps -- this also duplicates each overlap so that
     #  all overlaps for a fragment A are localized.
 
-    if (! -e "$wrk/0-overlaptrim/$asm.trim.ovl.sorted") {
+    if ((! -e "$wrk/0-overlaptrim/$asm.trim.ovl.sorted") &&
+        (! -e "$wrk/0-overlaptrim/$asm.trim.ovl.sorted.bz2")) {
+        #die "Failed test - sort\n";
         print STDERR "Starting -- overlap trimming - sorting\n";
 
         if (runCommand("find $wrk/0-overlaptrim-overlap -follow -name \\*ovb -print > $wrk/0-overlaptrim/all-overlaps-trim.ovllist")) {
@@ -102,7 +109,9 @@ sub overlapTrim {
     #  Consolidate the overlaps, listing all overlaps for a single
     #  fragment on a single line.  These are still iid's.
 
-    if (! -e "$wrk/0-overlaptrim/$asm.trim.ovl.consolidated") {
+    if ((! -e "$wrk/0-overlaptrim/$asm.trim.ovl.consolidated") &&
+        (! -e "$wrk/0-overlaptrim/$asm.trim.ovl.consolidated.bz2")) {
+        #die "Failed test - consolidate\n";
         print STDERR "Starting -- overlap trimming - consolidation\n";
 
         if (runCommand("$bin/consolidate < $wrk/0-overlaptrim/$asm.trim.ovl.sorted > $wrk/0-overlaptrim/$asm.trim.ovl.consolidated.1")) {
@@ -156,7 +165,11 @@ sub overlapTrim {
         rename "$wrk/0-preoverlap/$asm.ofg.orig", "$wrk/0-preoverlap/$asm.ofg";
     }
 
-    if (! -e "$wrk/0-preoverlap/$asm.ofg.orig") {
+    if ((! -e "$wrk/0-preoverlap/$asm.ofg.orig") &&
+        (! -e "$wrk/0-preoverlap/$asm.ofg.orig.bz2") &&
+        (! -e "$wrk/0-overlaptrim/$asm.trim.mergeLog") &&
+        (! -e "$wrk/0-overlaptrim/$asm.trim.mergeLog.bz2")) {
+        #die "Failed test - ofg - merge\n";
         print STDERR "Starting -- overlap trimming - merging\n";
 
         if (($doBackups) && (! -e "$wrk/$asm.frgStore/db.frg.beforeTrimMerge")) {
@@ -176,7 +189,9 @@ sub overlapTrim {
 
     #  Be nice, and generate a report for Granger
     #
-    if (! -e "$wrk/0-overlaptrim/$asm.trim.report") {
+    if ((! -e "$wrk/0-overlaptrim/$asm.trim.report") &&
+        (! -e "$wrk/0-overlaptrim/$asm.trim.report.bz2")) {
+        #die "Failed test - report\n";
         print STDERR "Starting -- overlap trimming - reporting\n";
 
         open(A, "< $wrk/0-overlaptrim/$asm.trim.qualityLog") or die "Failed to open $wrk/0-overlaptrim/$asm.trim.qualityLog\n";
@@ -215,7 +230,9 @@ sub overlapTrim {
     }
 
 
-    if (! -e "$wrk/0-overlaptrim/$asm.trim.chimera.report") {
+    if ((! -e "$wrk/0-overlaptrim/$asm.trim.chimera.report") &&
+        (! -e "$wrk/0-overlaptrim/$asm.trim.chimera.report.bz2")) {
+        #die "Failed test - chimera\n";
         print STDERR "Starting -- overlap trimming - chimera\n";
 
         #  Add "-delete" to remove, instead of fix, chimera and spurs.
