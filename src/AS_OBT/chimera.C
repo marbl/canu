@@ -27,6 +27,8 @@ extern "C" {
 #define POSITION_OVLP_L   (3 * POSITION_BITS)
 #define POSITION_LENGTH   (4 * POSITION_BITS)
 
+#define WITH_REPORT
+
 //  Define this to delete chimeric and spur fragments, instead of
 //  fixing them.
 bool fixChimera = true;
@@ -177,11 +179,13 @@ private:
 
 
 
-u32bit   chimeraDetected = 0;
-u32bit   spurDetected    = 0;
-u32bit   noInniePair     = 0;
-u32bit   noChimericOvl   = 0;
-u32bit   fullCoverage    = 0;
+u32bit   chimeraDetected     = 0;
+u32bit   chimeraDeletedSmall = 0;
+u32bit   spurDetected        = 0;
+u32bit   spurDeletedSmall    = 0;
+u32bit   noInniePair         = 0;
+u32bit   noChimericOvl       = 0;
+u32bit   fullCoverage        = 0;
 
 
 
@@ -598,18 +602,23 @@ process(u32bit iid, FragStoreHandle fs, overlapList *overlap, u32bit ola, u32bit
           exit(1);
         }
         delete_ReadStruct(rd);
-        if (intervalMax < 40)
+
+        if (intervalMax < 40) {
+          spurDeletedSmall++;
           deleteFragStore(fs, iid);
+        }
       } else {
         deleteFragStore(fs, iid);
       }
 
+#ifdef WITH_REPORT
       fprintf(stdout, "----------------------------------------SPUR!("u32bitFMT","u32bitFMT")\n", intervalBeg, intervalEnd);
       fprintf(stdout, u32bitFMT" has "u32bitFMT" intervals and "u32bitFMT" potential chimeric overlaps (%5.2f%%).\n",
               iid, IL.numberOfIntervals(), hasPotentialChimera,
               (double)hasPotentialChimera / (double)overlap->length() * 100);
       for (u32bit i=0; i<overlap->length(); i++)
         overlap->print(stdout, i);
+#endif
     } else if ((IL.numberOfIntervals() > 1) &&
                (hasPotentialChimera > 0) &&
                (hasInniePair > 0)) {
@@ -624,21 +633,27 @@ process(u32bit iid, FragStoreHandle fs, overlapList *overlap, u32bit ola, u32bit
           exit(1);
         }
         delete_ReadStruct(rd);
-        if (intervalMax < 40)
+
+        if (intervalMax < 40) {
+          chimeraDeletedSmall++;
           deleteFragStore(fs, iid);
+        }
       } else {
         deleteFragStore(fs, iid);
       }
 
+#ifdef WITH_REPORT
       fprintf(stdout, "----------------------------------------CHIMERA!("u32bitFMT","u32bitFMT")\n", intervalBeg, intervalEnd);
       fprintf(stdout, u32bitFMT" has "u32bitFMT" intervals and "u32bitFMT" potential chimeric overlaps (%5.2f%%).\n",
               iid, IL.numberOfIntervals(), hasPotentialChimera,
               (double)hasPotentialChimera / (double)overlap->length() * 100);
       for (u32bit i=0; i<overlap->length(); i++)
         overlap->print(stdout, i);
+#endif
     } else if (IL.numberOfIntervals() == 1) {
       fullCoverage++;
 
+#ifdef WITH_REPORT
       fprintf(stdout, "----------------------------------------FULL COVERAGE\n");
       fprintf(stdout, u32bitFMT" has "u32bitFMT" intervals and "u32bitFMT" potential chimeric overlaps (%5.2f%%).\n",
               iid, IL.numberOfIntervals(), hasPotentialChimera,
@@ -647,18 +662,22 @@ process(u32bit iid, FragStoreHandle fs, overlapList *overlap, u32bit ola, u32bit
       for (u32bit i=0; i<overlap->length(); i++)
         overlap->print(stdout, i);
 #endif
+#endif
     } else if (hasPotentialChimera == 0) {
       noChimericOvl++;
 
+#ifdef WITH_REPORT
       fprintf(stdout, "----------------------------------------NO CHIMERIC OVERLAPS\n");
       fprintf(stdout, u32bitFMT" has "u32bitFMT" intervals and "u32bitFMT" potential chimeric overlaps (%5.2f%%).\n",
               iid, IL.numberOfIntervals(), hasPotentialChimera,
               (double)hasPotentialChimera / (double)overlap->length() * 100);
       for (u32bit i=0; i<overlap->length(); i++)
         overlap->print(stdout, i);
+#endif
     } else if (hasInniePair == 0) {
       noInniePair++;
 
+#ifdef WITH_REPORT
       fprintf(stdout, "----------------------------------------NO INNIE PAIR (innie="u32bitFMT")\n",
               hasInniePair);
       fprintf(stdout, u32bitFMT" has "u32bitFMT" intervals and "u32bitFMT" potential chimeric overlaps (%5.2f%%).\n",
@@ -666,13 +685,16 @@ process(u32bit iid, FragStoreHandle fs, overlapList *overlap, u32bit ola, u32bit
               (double)hasPotentialChimera / (double)overlap->length() * 100);
       for (u32bit i=0; i<overlap->length(); i++)
         overlap->print(stdout, i);
+#endif
     } else {
+#ifdef WITH_REPORT
       fprintf(stdout, "----------------------------------------NOT CHIMERA, don't know why\n");
       fprintf(stdout, u32bitFMT" has "u32bitFMT" intervals and "u32bitFMT" potential chimeric overlaps (%5.2f%%).\n",
               iid, IL.numberOfIntervals(), hasPotentialChimera,
               (double)hasPotentialChimera / (double)overlap->length() * 100);
       for (u32bit i=0; i<overlap->length(); i++)
         overlap->print(stdout, i);
+#endif
     }
   }
 }
@@ -695,6 +717,9 @@ readOverlap(FILE *file, overlap_t &ovl) {
 #else
   ovl.load(file);
 #endif
+
+  if (feof(file))
+    return(false);
 
   return(true);
 }
@@ -938,11 +963,13 @@ main(int argc, char **argv) {
 
   closeFragStore(fs);
 
-  fprintf(stderr, "fullCoverage:    "u32bitFMT"\n", fullCoverage);
-  fprintf(stderr, "noInniePair:     "u32bitFMT"\n", noInniePair);
-  fprintf(stderr, "noChimericOvl:   "u32bitFMT"\n", noChimericOvl);
-  fprintf(stderr, "chimeraDetected: "u32bitFMT"\n", chimeraDetected);
-  fprintf(stderr, "spurDetected: "u32bitFMT"\n", spurDetected);
+  fprintf(stderr, "fullCoverage:        "u32bitFMT"\n", fullCoverage);
+  fprintf(stderr, "noInniePair:         "u32bitFMT"\n", noInniePair);
+  fprintf(stderr, "noChimericOvl:       "u32bitFMT"\n", noChimericOvl);
+  fprintf(stderr, "chimeraDetected:     "u32bitFMT"\n", chimeraDetected);
+  fprintf(stderr, "chimeraDeletedSmall: "u32bitFMT"\n", chimeraDeletedSmall);
+  fprintf(stderr, "spurDetected:        "u32bitFMT"\n", spurDetected);
+  fprintf(stderr, "spurDeletedSmall:    "u32bitFMT"\n", spurDeletedSmall);
 
   exit(0);
 }
