@@ -71,7 +71,7 @@ findModeOfFivePrimeMode(FragStoreHandle fs, char *name) {
 
 int
 main(int argc, char **argv) {
-  u32bit   stats[20] = {0};
+  u32bit   stats[32] = {0};
   FILE    *O         = 0L;
   FILE    *logFile   = 0L;
   FILE    *staFile   = 0L;
@@ -136,6 +136,10 @@ main(int argc, char **argv) {
   //
   u32bit modemode5 = findModeOfFivePrimeMode(fs, ovlFile);
 
+  if (staFile)
+    fprintf(staFile, "Mode of the 5'-mode is "u32bitFMT"\n", modemode5);
+
+
   //  Stream through the overlap-trim file, applying some rules to
   //  decide on the correct trim points
 
@@ -167,7 +171,6 @@ main(int argc, char **argv) {
 
       lid++;
     }
-
 
     //  Read the fragment from the store, compute the quality trim
     //  points.  All the values from overlap are off by the original
@@ -286,7 +289,7 @@ main(int argc, char **argv) {
         ((qltL + OBT_CQO_LENGTH > qltR) &&
          ((min5 + OBT_CQO_OVERLAP > qltR) ||
           (qltL + OBT_CQO_OVERLAP > max3)))) {
-      stats[1]++;
+      stats[1]++;  //  short quality
       if ((qltL  + OBT_CQ_SHORT > qltR) ||
 	  (mode5 + OBT_CQ_SHORT > qltR) ||
 	  (qltL  + OBT_CQ_SHORT > mode3)) {
@@ -305,6 +308,7 @@ main(int argc, char **argv) {
 #endif
     } else {
       stats[4]++;
+
       if ((minm5 < qltL + OBT_QLT_CLOSE_5) && (minm5c > 1)) {
 	stats[6]++;
         left = minm5;
@@ -336,6 +340,13 @@ main(int argc, char **argv) {
 	stats[10]++;
         right = qltR;
       }
+
+      if ((left == 0) && (right == 0)) {
+        stats[18]++;
+        fprintf(stderr, "INVALID CLEAR from OVL: "u64bitFMTW(8)" "u32bitFMTW(3)"-"u32bitFMTW(4)" -> "u32bitFMTW(3)"-"u32bitFMTW(4)" -- %s\n",
+                iid, qltL, qltR, left, right,
+                line);
+      }
     }
 
     //  If after all that, we have an invalid range, throw it out.
@@ -359,7 +370,7 @@ main(int argc, char **argv) {
     //
     if ((left + right > 0) && ((left + OBT_MIN_LENGTH) > right)) {
       stats[13]++;
-      fprintf(stderr, "INVALID CLEAR: "u64bitFMT" "u32bitFMT"-"u32bitFMT" -> "u32bitFMT"-"u32bitFMT"\n               %s\n",
+      fprintf(stderr, "INVALID CLEAR: "u64bitFMTW(8)" "u32bitFMTW(3)"-"u32bitFMTW(4)" -> "u32bitFMTW(3)"-"u32bitFMTW(4)" -- %s\n",
               iid, qltL, qltR, left, right,
               line);
       left  = 0;
@@ -375,12 +386,18 @@ main(int argc, char **argv) {
               iid, qltL, qltR, left, right);
     }
 
-    if (doModify) {
-      if ((left == 0) && (right == 0)) {
-        //  XXX:  We also need to delete any links this fragment has
-        //setClearRegion_ReadStruct(rd, left, right, READSTRUCT_OVL);
+    if ((left == 0) && (right == 0)) {
+      stats[19]++;
+
+      //  XXX:  We also need to delete any links this fragment has
+      //setClearRegion_ReadStruct(rd, left, right, READSTRUCT_OVL);
+
+      if (doModify)
         deleteFragStore(fs, iid);
-      } else {
+    } else {
+      stats[20]++;
+
+      if (doModify) {
         setClearRegion_ReadStruct(rd, left, right, READSTRUCT_OVL);
         if (setFragStore(fs, iid, rd)) {
           fprintf(stderr, "setFragStore() failed.\n");
@@ -404,10 +421,10 @@ main(int argc, char **argv) {
   fprintf(staFile, u32bitFMTW(8)": reset qltL to vector left\n", stats[15]);
   fprintf(staFile, u32bitFMTW(8)": reset qltR to vector right\n", stats[16]);
   fprintf(staFile, u32bitFMTW(8)": reset qltR to qltL due to inconsistency\n", stats[17]);
-  fprintf(staFile, u32bitFMTW(8)": short quality\n", stats[1]);
-  fprintf(staFile, u32bitFMTW(8)": very short quality < %d or very short in common < %d, discard frag\n", stats[2], OBT_CQ_SHORT, OBT_CQ_SHORT);
-  fprintf(staFile, u32bitFMTW(8)": short quality use overlap modes\n", stats[3]);
-  fprintf(staFile, u32bitFMTW(8)": use the min/max/mode\n", stats[4]);
+  fprintf(staFile, u32bitFMTW(8)": short quality:\n", stats[1]);
+  fprintf(staFile, u32bitFMTW(8)":   very short quality < %d or very short in common < %d, discard frag\n", stats[2], OBT_CQ_SHORT, OBT_CQ_SHORT);
+  fprintf(staFile, u32bitFMTW(8)":   short quality use overlap modes\n", stats[3]);
+  fprintf(staFile, u32bitFMTW(8)": use the min/max/mode:\n", stats[4]);
   fprintf(staFile, u32bitFMTW(8)":   use mode (5')\n", stats[5]);
   fprintf(staFile, u32bitFMTW(8)":   use min>1 (5')\n", stats[6]);
   fprintf(staFile, u32bitFMTW(8)":   use quality (5')\n", stats[7]);
@@ -417,7 +434,10 @@ main(int argc, char **argv) {
   fprintf(staFile, u32bitFMTW(8)":   use min (5')\n", stats[11]);
   fprintf(staFile, u32bitFMTW(8)":   use max (3')\n", stats[12]);
   fprintf(staFile, u32bitFMTW(8)":   use max>1 close to max (3')\n", stats[14]);
+  fprintf(staFile, u32bitFMTW(8)": invalid clear after merging overlaps (should be 0)\n", stats[18]);
   fprintf(staFile, u32bitFMTW(8)": short or inconsistent\n", stats[13]);
+  fprintf(staFile, u32bitFMTW(8)": deleted fragment due to zero clear\n", stats[19]);
+  fprintf(staFile, u32bitFMTW(8)": updated fragment clear range\n", stats[20]);
 
   fclose(logFile);
   fclose(staFile);
