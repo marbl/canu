@@ -193,7 +193,7 @@ sub createOverlapJobs {
         for (my $i=1; $i<=$jobs; $i++) {
             my $out = substr("0000" . $i, -4);
             $ENV{'SGE_TASK_ID'} = $i;
-            if (runCommand("$wrk/$outDir/overlap.sh >& $wrk/$outDir/$out.out")) {
+            if (runCommand("$wrk/$outDir/overlap.sh > $wrk/$outDir/$out.out 2>&1")) {
                 print STDERR "Failed job $i\n";
                 exit(1);
             }
