@@ -38,79 +38,77 @@ int32 ProcessPartitionFile(FILE *partitionfp,
 
 int main(int argc, char *argv[]){
 
- FILE *partitionfp;
- FragStoreHandle source;
- FragStoreHandle target;
- FragStreamHandle jane;
- ReadStructp myRead;
- int numPartitions;
- CDS_IID_t firstFragID, lastFragID;
- StoreStat stats;
- char *sourceStorePath, *targetStorePath, *partitionFilePath;
- FragStore *sourceStore;
- int32 *fragBins;
- int32 handleBinZeroSpecial = FALSE;
+  FILE *partitionfp;
+  FragStoreHandle source;
+  FragStoreHandle target;
+  FragStreamHandle jane;
+  ReadStructp myRead;
+  int numPartitions;
+  CDS_IID_t firstFragID, lastFragID;
+  StoreStat stats;
+  char *sourceStorePath, *targetStorePath, *partitionFilePath;
+  FragStore *sourceStore;
+  int32 *fragBins;
+  int32 handleBinZeroSpecial = FALSE;
 
-   { /* Parse the argument list using "man 3 getopt". */ 
+  { /* Parse the argument list using "man 3 getopt". */ 
     int ch,errflg=0;
     optarg = NULL;
     while (!errflg && ((ch = getopt(argc, argv,
-		       "z")) != EOF)){
+                                    "z")) != EOF)){
       switch(ch){
-      case 'z':
-	handleBinZeroSpecial = TRUE;
-	break;
-      case '?':
-	fprintf(stderr,"Unrecognized option -%c",optopt);
-      default :
-	errflg++;
+        case 'z':
+          handleBinZeroSpecial = TRUE;
+          break;
+        case '?':
+          fprintf(stderr,"Unrecognized option -%c",optopt);
+        default :
+          errflg++;
       }
     }
-   }
-   if(argc - optind != 3){
+  }
+  if(argc - optind != 3){
+    fprintf(stderr,"Usage: %s <PartitionFilePath> <SourceStorePath> <PartitionedStorePath>\n",
+            argv[0]);
+    exit(1);
+  }
+  partitionFilePath = argv[optind++];   
+  sourceStorePath = argv[optind++];
+  targetStorePath = argv[optind++];
 
-     fprintf(stderr,"Usage: %s <PartitionFilePath> <SourceStorePath> <PartitionedStorePath>\n",
-	     argv[0]);
-     exit(1);
-   }
- partitionFilePath = argv[optind++];   
- sourceStorePath = argv[optind++];
- targetStorePath = argv[optind++];
+  partitionfp = fopen(partitionFilePath, "r");
+  if(!partitionfp){
+    fprintf(stderr,"* Couldn't open partition file %s\n", partitionFilePath);
+    exit(1);
+  }
+  source = openFragStore(sourceStorePath,"r");
 
- partitionfp = fopen(partitionFilePath, "r");
- if(!partitionfp){
-   fprintf(stderr,"* Couldn't open partition file %s\n", partitionFilePath);
- }
- source = openFragStore(sourceStorePath,"r");
+  sourceStore =  FragStore_myStruct(source);
+  statsStore(sourceStore->fragStore, &stats);
+  firstFragID = (CDS_IID_t) stats.firstElem;
+  lastFragID = (CDS_IID_t) stats.lastElem;
 
- sourceStore =  FragStore_myStruct(source);
- statsStore(sourceStore->fragStore, &stats);
- firstFragID = (CDS_IID_t) stats.firstElem;
- lastFragID = (CDS_IID_t) stats.lastElem;
+  fprintf(stderr,"* Allocated fragBins to size " F_IID "\n", lastFragID + 1);
+  fragBins = (int32 *)calloc(lastFragID + 1, sizeof(int32));
+  numPartitions = ProcessPartitionFile(partitionfp, firstFragID, lastFragID, fragBins);
 
- fprintf(stderr,"* Allocated fragBins to size " F_IID "\n", lastFragID + 1);
- fragBins = (int32 *)calloc(lastFragID + 1, sizeof(int32));
- numPartitions = ProcessPartitionFile(partitionfp, firstFragID, lastFragID, fragBins);
+  target = createPartitionedFragStore(targetStorePath,"partitioned",stats.firstElem,numPartitions);
 
- target = createPartitionedFragStore(targetStorePath,"partitioned",stats.firstElem,numPartitions);
+  fprintf(stderr,"* Opened all files\n");
+  fprintf(stderr,"* Processing partition file\n");
 
- fprintf(stderr,"* Opened all files\n");
- fprintf(stderr,"* Processing partition file\n");
+  myRead =  new_ReadStruct();
 
+  fprintf(stdout,"* Partitioning fragStore %s (" F_S64 "," F_S64 ") (each dot represents 64k fragments)\n",
+          sourceStorePath,getFirstElemFragStore(source), getLastElemFragStore(source));
 
+  jane = openFragStream(source,NULL,0);
 
- myRead =  new_ReadStruct();
-
- fprintf(stdout,"* Partitioning fragStore %s (" F_S64 "," F_S64 ") (each dot represents 64k fragments)\n",
-	 sourceStorePath,getFirstElemFragStore(source), getLastElemFragStore(source));
-
- jane = openFragStream(source,NULL,0);
-
-   while(nextFragStream(jane, myRead, FRAG_S_ALL)){
-     uint32 id;
-     int32 bin;
-     getReadIndex_ReadStruct(myRead, &id);
-     bin = fragBins[id];
+  while(nextFragStream(jane, myRead, FRAG_S_ALL)){
+    uint32 id;
+    int32 bin;
+    getReadIndex_ReadStruct(myRead, &id);
+    bin = fragBins[id];
     if((id & 0x0000ffff) == 0){
       fprintf(stderr,".");
       if((id & 0x000fffff) == 0){
@@ -118,8 +116,8 @@ int main(int argc, char *argv[]){
       }
       fflush(stderr);
     }
-     //     fprintf(stderr,"* Inserting frag %u in bin %d\n", id,bin);
-     //     fflush(stderr);
+    //     fprintf(stderr,"* Inserting frag %u in bin %d\n", id,bin);
+    //     fflush(stderr);
     if(bin == 0 && handleBinZeroSpecial){
       FragRecord *fr = (FragRecord *)myRead;
       fr->frag.deleted = TRUE;
@@ -132,17 +130,17 @@ int main(int argc, char *argv[]){
       setLocalePos_ReadStruct(myRead, 0,0);
       setScreenMatches_ReadStruct(myRead, 0, NULL);
     }
-     appendFragStorePartition(target,myRead,bin);  
-   }
+    appendFragStorePartition(target,myRead,bin);  
+  }
 
-   fprintf(stdout,"*\n Closing target, source\n");
+  fprintf(stdout,"*\n Closing target, source\n");
 
-   closeFragStore(target);
-   closeFragStream(jane);
-   closeFragStore(source);
-   fprintf(stdout,"* Bye Bye\n");
+  closeFragStore(target);
+  closeFragStream(jane);
+  closeFragStore(source);
+  fprintf(stdout,"* Bye Bye\n");
 
-   exit(0);
+  exit(0);
 }
 
 
@@ -160,34 +158,32 @@ int32 ProcessPartitionFile(FILE *partitionfp,
   fflush(stderr);
   while(fgets(buffer,1999,partitionfp)){
     if(2 == sscanf(buffer,"%d " F_IID, &binID, &fragID)){
-    int32 *cnt;
-    numFrags++;
-    if((numFrags & 0x0000ffff) == 0){
-      fprintf(stderr,".");
-      if((numFrags & 0x000fffff) == 0){
-	fprintf(stderr,"\n%d",numFrags);
+      int32 *cnt;
+      numFrags++;
+      if((numFrags & 0x0000ffff) == 0){
+        fprintf(stderr,".");
+        if((numFrags & 0x000fffff) == 0){
+          fprintf(stderr,"\n%d",numFrags);
+        }
+        fflush(stderr);
       }
-      fflush(stderr);
-    }
     
-    cnt = Getint32(binFrags, binID);
-    if(!cnt){
-      int32 dummy = 1;
-      Setint32(binFrags,binID, &dummy);
-    }else{
-      (*cnt)++;
-    }
-    if(fragID > lastID || fragID < firstID){
-      fprintf(stderr,"*** FATAL ERROR: Bad line %d:   %s\n*** fragID " F_IID " is OUT OF RANGE [" F_IID "," F_IID "] ...exiting\n",
-	      numFrags, buffer, fragID, firstID, lastID);
-      exit(1);
-    }
+      cnt = Getint32(binFrags, binID);
+      if(!cnt){
+        int32 dummy = 1;
+        Setint32(binFrags,binID, &dummy);
+      }else{
+        (*cnt)++;
+      }
+      if(fragID > lastID || fragID < firstID){
+        fprintf(stderr,"*** FATAL ERROR: Bad line %d:   %s\n*** fragID " F_IID " is OUT OF RANGE [" F_IID "," F_IID "] ...exiting\n",
+                numFrags, buffer, fragID, firstID, lastID);
+        exit(1);
+      }
 
-    fragBins[fragID] = binID;
-    if(binID>maxBin){
-      maxBin = binID;
-    }
-    //      fprintf(stderr,"*Read frag " F_IID " bin %d\n", fragID, binID);
+      fragBins[fragID] = binID;
+      if(binID>maxBin)
+        maxBin = binID;
     }else{
       fprintf(stderr,"* Skipped line %s\n", buffer);
       fflush(stderr);
