@@ -177,6 +177,9 @@ readOverlap(FILE *file, overlap_t &ovl) {
   ovl.load(file);
 #endif
 
+  if (feof(file))
+    return(false);
+
   return(true);
 }
 
