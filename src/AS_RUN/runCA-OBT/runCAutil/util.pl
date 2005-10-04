@@ -434,6 +434,10 @@ sub copyStoresLocally {
 #  the user take care of fixing limits.
 #
 sub checkProcessLimits {
+
+    #  deprecated
+    return;
+
     open (F, "> /tmp/ch$$.tcsh");
     print F "#!/bin/tcsh\n";
     print F "limit\n";
