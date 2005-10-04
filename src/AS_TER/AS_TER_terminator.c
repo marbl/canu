@@ -29,12 +29,12 @@ accession numbers.
 **********************************************************************/
 
 /* RCS info
- * $Id: AS_TER_terminator.c,v 1.8 2005-09-29 19:10:20 gdenisov Exp $
- * $Revision: 1.8 $
+ * $Id: AS_TER_terminator.c,v 1.9 2005-10-04 08:42:49 brianwalenz Exp $
+ * $Revision: 1.9 $
  */
 
 
-static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.8 2005-09-29 19:10:20 gdenisov Exp $";
+static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.9 2005-10-04 08:42:49 brianwalenz Exp $";
 
 
 /*************************************************************************/
@@ -87,7 +87,6 @@ int main (int argc, char *argv[]) {
   { /* Parse the argument list using "man 3 getopt". */
     int ch,errflg=FALSE;
     optarg = NULL;
-    while (!errflg && ((ch = getopt(argc, argv, "Pub:f:g:i:o:m:rs:E:hQ")) != EOF))
     while (!errflg && ((ch = getopt(argc, argv, "b:f:g:hi:o:m:rs:uE:NPQ")) != EOF))
       switch(ch) 
 	{
