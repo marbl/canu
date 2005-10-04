@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_fragStore.c,v 1.7 2005-09-16 17:04:16 eliv Exp $";
+static char CM_ID[] = "$Id: AS_PER_fragStore.c,v 1.8 2005-10-04 06:51:08 brianwalenz Exp $";
 
 /*************************************************************************
  Module:  AS_PER_fragStore
@@ -518,22 +518,22 @@ int testOpenFragStore(const char *FragStorePath, const char *rw){
   FILE *fragFile, *sourceFile, *seqFile, *parFile;
 
   if(FragStorePath){
-  dbDir = opendir(FragStorePath);
- if(dbDir == NULL){
-   fprintf(stderr,"*** Couldn't find Fragment Store directory %s\n", FragStorePath);
-   return 1; // failure
- }
- closedir(dbDir);
+    dbDir = opendir(FragStorePath);
+    if(dbDir == NULL){
+      fprintf(stderr,"*** Couldn't find Fragment Store directory %s\n", FragStorePath);
+      return 1; // failure
+    }
+    closedir(dbDir);
 #ifdef DEBUG_OPEN
- fprintf(stderr," Verified existence of directory %s\n", FragStorePath);
+    fprintf(stderr," Verified existence of directory %s\n", FragStorePath);
 #endif
   }else{
     fprintf(stderr,"Can't Open a Memory-based frag Store....\n");
     return 1; // failure
   }
- sourceFile = fragFile = seqFile = parFile = NULL;
- sprintf(parbuffer,"%s/db.par", FragStorePath);
- if((parFile = fopen(parbuffer,rw)) == NULL){
+  sourceFile = fragFile = seqFile = parFile = NULL;
+  sprintf(parbuffer,"%s/db.par", FragStorePath);
+  if((parFile = fopen(parbuffer,rw)) == NULL){
 
    fprintf(stderr,"* Unpartitioned frag store no file %s\n", parbuffer);
    fflush(stderr);
@@ -623,7 +623,6 @@ FragStoreHandle openFragStoreCommon
   const char *rw,             /* "r" or "r+" */
   const int needIndex){
 
-  // mode_t mode;
   char frgbuffer[FILENAME_MAX];
   char parbuffer[FILENAME_MAX];
   char srcbuffer[FILENAME_MAX];
@@ -749,15 +748,15 @@ int copyFragStore
     /* Create a directory if needed */
     {
       DIR *dbDir = opendir(TargetFragStorePath);
-      if(dbDir == NULL)
-      if(mkdir(TargetFragStorePath, S_IRWXU | S_IRWXG | S_IROTH)){
-	sprintf(buffer,"%sFragStore: Failure to create directory %s", (move?"move":"copy"),TargetFragStorePath);
-	perror(buffer);
-	return 1;
+      if (dbDir) {
+        closedir(dbDir);
+      } else {
+        if(mkdir(TargetFragStorePath, S_IRWXU | S_IRWXG | S_IROTH)){
+          sprintf(buffer,"%sFragStore: Failure to create directory %s", (move?"move":"copy"),TargetFragStorePath);
+          perror(buffer);
+          return 1;
+        }
       }
-
-    /* chdir(FragStorePath); */
-      closedir (dbDir);
     }
 
   sprintf(cmd,"%s %s/db.frg %s/db.src %s/db.seq %s", (move?"mv":"cp"),SourceFragStorePath, SourceFragStorePath, SourceFragStorePath, TargetFragStorePath);
@@ -776,7 +775,6 @@ FragStoreHandle loadFragStorePartial
 {
   DIR *dbDir;
   FILE *fragFile, *sourceFile, *seqFile;
-  // mode_t mode;
   char frgbuffer[2048];
   char srcbuffer[2048];
   char seqbuffer[2048];
@@ -796,13 +794,13 @@ FragStoreHandle loadFragStorePartial
 
   if(FragStorePath){
   dbDir = opendir(FragStorePath);
- if(dbDir == NULL){
-   fprintf(stderr,"*** Couldn't find Fragment Store directory %s\n", FragStorePath);
-   return NULLSTOREHANDLE;
- }
- closedir(dbDir);
+  if (dbDir == NULL) {
+    fprintf(stderr,"*** Couldn't find Fragment Store directory %s\n", FragStorePath);
+    return NULLSTOREHANDLE;
+  }
+  closedir(dbDir);
 #ifdef DEBUG_OPEN
- fprintf(stderr," Verified existence of directory %s\n", FragStorePath);
+  fprintf(stderr," Verified existence of directory %s\n", FragStorePath);
 #endif
   }else{
     fprintf(stderr,"Can't Open a Memory-based frag Store....\n");
@@ -936,7 +934,6 @@ FragStoreHandle loadFragStore
 */  
 FragStoreHandle createFragStoreCommon
 ( const char *FragStorePath, const char *name, int64 firstID, int indexed, int numPartitions){
-  mode_t mode;
   char buffer[2048];
   char *nameBuffer = NULL;
   // int myStoreIndex;
@@ -961,24 +958,24 @@ FragStoreHandle createFragStoreCommon
   /* First we need to create a directory for the database */
 
 
-  mode = S_IRWXU | S_IRWXG | S_IROTH;
   if(FragStorePath){
 #ifdef DEBUG
     fprintf(stderr," Creating file-based fragment store\n");
 #endif
     DIR *dbDir = opendir(FragStorePath);
 
-    if(dbDir == NULL)
-      if(mkdir(FragStorePath, mode)){
+    if (dbDir) {
+      closedir(dbDir);
+    } else {
+      if (mkdir(FragStorePath, S_IRWXU | S_IRWXG | S_IROTH)) {
 	sprintf(buffer,"createFragStore: Failure to create directory %s",
                 FragStorePath);
 	perror(buffer);
 	exit(1);
       }
+    }
 
-    /* chdir(FragStorePath); */
     nameBuffer = buffer;
-    closedir (dbDir);
   } else{
     nameBuffer = NULL;
 #ifdef DEBUG
