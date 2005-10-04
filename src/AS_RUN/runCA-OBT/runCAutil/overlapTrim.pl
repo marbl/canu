@@ -159,15 +159,7 @@ sub overlapTrim {
     #  that we can get the mode of the 5'mode.  We could do this all in
     #  core, but that would take lots of space.
 
-    #  This is for restarting -- I always seem to remove the *.ofg, and
-    #  forget to rename the original back.
-    if ((! -e "$wrk/0-preoverlap/$asm.ofg") && (-e "$wrk/0-preoverlap/$asm.ofg.orig")) {
-        rename "$wrk/0-preoverlap/$asm.ofg.orig", "$wrk/0-preoverlap/$asm.ofg";
-    }
-
-    if ((! -e "$wrk/0-preoverlap/$asm.ofg.orig") &&
-        (! -e "$wrk/0-preoverlap/$asm.ofg.orig.bz2") &&
-        (! -e "$wrk/0-overlaptrim/$asm.trim.mergeLog") &&
+    if ((! -e "$wrk/0-overlaptrim/$asm.trim.mergeLog") &&
         (! -e "$wrk/0-overlaptrim/$asm.trim.mergeLog.bz2")) {
         #die "Failed test - ofg - merge\n";
         print STDERR "Starting -- overlap trimming - merging\n";
@@ -180,10 +172,11 @@ sub overlapTrim {
             }
         }
 
-        runCommand("$bin/merge-trimming -log $wrk/0-overlaptrim/$asm.trim.mergeLog -frg $wrk/$asm.frgStore -ovl $wrk/0-overlaptrim/$asm.trim.ovl.consolidated") and die;
-        runCommand("$bin/make_OFG_from_FragStore $wrk/$asm.frgStore > $wrk/0-preoverlap/$asm.2.ofg") and die;
-        rename "$wrk/0-preoverlap/$asm.ofg", "$wrk/0-preoverlap/$asm.ofg.orig";
-        rename "$wrk/0-preoverlap/$asm.2.ofg", "$wrk/0-preoverlap/$asm.ofg";
+        if (runCommand("$bin/merge-trimming -log $wrk/0-overlaptrim/$asm.trim.mergeLog -frg $wrk/$asm.frgStore -ovl $wrk/0-overlaptrim/$asm.trim.ovl.consolidated")) {
+            unlink "$wrk/0-overlaptrim/$asm.trim.mergeLog";
+            unlink "$wrk/0-overlaptrim/$asm.trim.mergeLog.stats";
+            die "Failed to merge trimming.\n";
+        }
     }
 
 
@@ -230,14 +223,38 @@ sub overlapTrim {
     }
 
 
+    #  Add "-delete" to remove, instead of fix, chimera and spurs.
+    #
     if ((! -e "$wrk/0-overlaptrim/$asm.trim.chimera.report") &&
         (! -e "$wrk/0-overlaptrim/$asm.trim.chimera.report.bz2")) {
         #die "Failed test - chimera\n";
         print STDERR "Starting -- overlap trimming - chimera\n";
 
-        #  Add "-delete" to remove, instead of fix, chimera and spurs.
+        if (($doBackups) && (! -e "$wrk/$asm.frgStore/db.frg.beforeChimera")) {
+            print STDERR "Backing up the frgStore.\n";
+            if (runCommand("cp -p $wrk/$asm.frgStore/db.frg $wrk/$asm.frgStore/db.frg.beforeChimera")) {
+                unlink "$wrk/$asm.frgStore/db.frg.beforeChimera";
+                die "Failed to backup frgStore.\n";
+            }
+        }
 
-        runCommand("$bin/chimera -frg $wrk/$asm.frgStore < $wrk/0-overlaptrim/$asm.trim.ovl.sorted > $wrk/0-overlaptrim/$asm.trim.chimera.report") and die;
+        if (runCommand("$bin/chimera -frg $wrk/$asm.frgStore < $wrk/0-overlaptrim/$asm.trim.ovl.sorted > $wrk/0-overlaptrim/$asm.trim.chimera.report")) {
+            rename "$wrk/0-overlaptrim/$asm.trim.chimera.report", "$wrk/0-overlaptrim/$asm.trim.chimera.report.FAILED";
+            die "Failed.\n";
+        }
+    }
+
+
+    #  Unitigger needs an input .ofg file, which is pretty much just a dump of the fragstore.
+    #
+    if ((! -e "$wrk/0-preoverlap/$asm.ofg.orig") &&
+        (! -e "$wrk/0-preoverlap/$asm.ofg.orig.bz2")) {
+        if (runCommand("$bin/make_OFG_from_FragStore $wrk/$asm.frgStore > $wrk/0-preoverlap/$asm.2.ofg")) {
+            unlink "$wrk/0-preoverlap/$asm.2.ofg";
+            die "Failed.\n";
+        }
+        rename "$wrk/0-preoverlap/$asm.ofg", "$wrk/0-preoverlap/$asm.ofg.orig";
+        rename "$wrk/0-preoverlap/$asm.2.ofg", "$wrk/0-preoverlap/$asm.ofg";
     }
 }
 
