@@ -53,74 +53,19 @@
 #include "OlapStoreOVL.h"
 
 
+int DistFromGap = 20;
+
 HashTable_AS *CreateHashTable_AS(int numItemsToHash, HashFn_AS hash, HashCmpFn_AS cmp); /*);*/
 int StringHashFn_AS(const void *pointerToString, int length);
 
-static HashTable_AS *subset_name2iid;
-static HashTable_AS *full_name2iid;
-static char subset_names[2000000][20];
-static char full_names[2000000][20];
-static VA_TYPE(uint64) *subset_iid2name;
-static VA_TYPE(uint64) *full_iid2name;
 static OVL_Store_t  * my_store = NULL;
+static char verbose = 0;
 
 int strhashcmp(const void *a , const void *b){
   char *A = (char *) a;
   char *B = (char *) b;
   return strcmp(A,B);
 }
-
-void setup_frg_maps(const char *subset_map, const char *full_map){
-  FILE *subset_frg_map = fopen(subset_map,"r");
-  FILE *full_frg_map = fopen(full_map,"r");
-  int iid,uid,i=0,j=0;
-  char name[100];
-
-  assert(subset_frg_map !=NULL);
-  assert(full_frg_map !=NULL);
-
-  subset_iid2name = CreateVA_uint64(2000000);
-  full_iid2name = CreateVA_uint64(2000000);
-
-  subset_name2iid = CreateHashTable_AS(2000000,StringHashFn_AS,strhashcmp);
-  full_name2iid = CreateHashTable_AS(2000000,StringHashFn_AS,strhashcmp);
-
-  while(fscanf(subset_frg_map,"%d %d %s\n",&iid,&uid,name)==3){
-
-    strcpy(&(subset_names[i][0]),name);
-
-    assert(LookupInHashTable_AS(subset_name2iid,name,strlen(name))==NULL);
-
-    // N.B.: the hash table actually stores the IID, instead of a pointer; but it will have to be cast
-
-    InsertInHashTable_AS(subset_name2iid,&(subset_names[i][0]),strlen(name),(void*)iid);
-
-    // demonstration of how to get value back from hash table:
-    //    fprintf(stdout,"post-insert Hash table contains %d\n",
-    //            (int) LookupInHashTable_AS(subset_name2iid,name,strlen(name)));
-
-    { 
-      uint64 dummy = (uint64) &(subset_names[i][0]);
-      SetElement_VA(subset_iid2name,iid, &dummy);
-    }
-    // demonstration of how to get value back from variable array
-    //    fprintf(stdout,"post-insert iid2name gives %s\n",
-    //            (char*)(* (uint64*)GetElement_VA(subset_iid2name,iid)));
-
-    i++;
-  }
-
-  while(fscanf(full_frg_map,"%d %d %s\n",&iid,&uid,name)==3){
-    strcpy(&(full_names[j][0]),name);
-    //    fprintf(stdout,"Working on %d %d %s\n",iid,uid,subset_names[j]);
-    assert(LookupInHashTable_AS(full_name2iid,name,strlen(name))==NULL);
-    // N.B.: the hash table actually stores the IID, instead of a pointer; but it will have to be cast
-    InsertInHashTable_AS(full_name2iid,&(full_names[j][0]),strlen(name),(void*)iid);
-    SetElement_VA(full_iid2name,iid, &(full_names[j][0]));
-    j++;
-  }
-}
-
 
 void setup_ovlStore(char *OVL_Store_Path){
 
@@ -172,7 +117,7 @@ void finished_with_ovlStore(void){
 
 
 void usage(char *pgm){
-	fprintf (stderr, "USAGE:  %s -f <FragStoreName> -g <GatekeeperStoreName> -c <CkptFileName> -n <CkpPtNum> -1 <subset_map> -2 <full_map> -o <full_ovlStore>\n",
+	fprintf (stderr, "USAGE:  %s -f <FragStoreName> -g <GatekeeperStoreName> -c <CkptFileName> -n <CkpPtNum> -d distance_from_end -o <full_ovlStore>\n",
 		 pgm);
 }
 
@@ -206,19 +151,17 @@ void find_first_and_last_unitigs(
       *lastUTGid = utg->id;
       *lastUTGisAtoB = utgIsAtoB;
     }
-#ifdef VERBOSE
-    fprintf(stdout,"    Processing unitig %d [ %.0f , %.0f ] ori in contig %s\n",utg->id,
+    if (verbose) 
+        fprintf(stdout,"    Processing unitig %d [ %.0f , %.0f ] ori in contig %s\n",utg->id,
 	    utg->offsetAEnd.mean,utg->offsetBEnd.mean,
 	    (utg->offsetAEnd.mean < utg->offsetBEnd.mean ? "fwd" : "rev"));
-#endif
   }
-#ifdef VERBOSE
-  fprintf(stdout,"    First utg %d (ori %s), last %d (ori %s)\n",
+  if (verbose) 
+    fprintf(stdout,"    First utg %d (ori %s), last %d (ori %s)\n",
 	  *firstUTGid,
 	  *firstUTGisAtoB ? "fwd" : "rev",
 	  *lastUTGid,
 	  *lastUTGisAtoB ? "fwd" : "rev");
-#endif
 }
 
 
@@ -283,86 +226,6 @@ void getTipFrag(int utgID,int *theFrg, int *theFrgIsAtoB, int wantAEnd){
   }
 }
 
-void explore_ends_of_contig(ContigT *contig){
-  int ctgIsAtoB;
-  int firstUTGid;
-  int lastUTGid;
-  int firstUTGisAtoB;
-  int lastUTGisAtoB;
-  int ctgID = contig->id;
-  int firstFrag;
-  int firstFragisAtoB;
-  int firstFrag_full;
-  int lastFrag;
-  int lastFragisAtoB;
-  int lastFrag_full;
-  int contigIsAtoB = ( contig->offsetAEnd.mean < contig->offsetBEnd.mean ? 1 : 0 ) ;
-  char *name;
-
-#ifdef VERBOSE
-  fprintf(stdout,
-	  "  Working on contig %d [ %.0f , %.0f ] ori in scf %s\n",contig->id,
-	  contig->offsetAEnd.mean,contig->offsetBEnd.mean,
-	  (contigIsAtoB ? "fwd" : "rev"));
-#endif
-
-  find_first_and_last_unitigs(ctgID,contigIsAtoB,
-			      &firstUTGid,
-			      &lastUTGid,
-			      &firstUTGisAtoB,
-			      &lastUTGisAtoB);
-
-  if(! contigIsAtoB ){
-    int tmp;
-    tmp=firstUTGid;
-    firstUTGid=lastUTGid;
-    lastUTGid=tmp;
-    tmp=firstUTGisAtoB;
-    firstUTGisAtoB = ( 1 - lastUTGisAtoB );
-    lastUTGisAtoB = ( 1 - tmp );
-	  
-#ifdef VERBOSE
-    fprintf(stdout,
-	    "   First utg %d (ori %s), last %d (ori %s)  (after adjusting for contig ori)\n",
-	    firstUTGid,
-	    firstUTGisAtoB ? "fwd" : "rev",
-	    lastUTGid,
-	    lastUTGisAtoB ? "fwd" : "rev");
-#endif
-  }
-
-
-			 
-  getTipFrag(firstUTGid,&firstFrag,&firstFragisAtoB,firstUTGisAtoB);
-  name = (char *) (* (uint64 *)  GetElement_VA(subset_iid2name,firstFrag));
-  firstFrag_full = (int) LookupInHashTable_AS(full_name2iid,name,strlen(name));
-
-#ifdef VERBOSE
-  fprintf(stdout,"First frg of contig is %d ori %s name %s fullID %d\n",firstFrag,
-	  firstFragisAtoB ? "fwd" : "rev",name,firstFrag_full);
-  fprintf(stdout,"  overlaps off %c end: %d\n",
-	  firstFragisAtoB ? 'A' : 'B',
-	  count_overlaps_off_end(firstFrag_full,firstFragisAtoB));
-#endif
-
-  getTipFrag(lastUTGid,&lastFrag,&lastFragisAtoB,1-lastUTGisAtoB);
-  name = (char *) (* (uint64 *)  GetElement_VA(subset_iid2name,lastFrag));
-  lastFrag_full = (int) LookupInHashTable_AS(full_name2iid,name,strlen(name));
-
-#ifdef VERBOSE
-  fprintf(stdout,"Last frg of contig is %d ori %s name %s fullID %d\n",lastFrag,
-	  lastFragisAtoB ? "fwd" : "rev",name,lastFrag_full);
-  fprintf(stdout,"  overlaps off %c end: %d\n",
-	  lastFragisAtoB ? 'B' : 'A',
-	  count_overlaps_off_end(lastFrag_full,1-lastFragisAtoB));
-#endif
-
-  fprintf(stdout,"      %d <---      contig %d    --->  %d       (overlap counts)\n",
-	  count_overlaps_off_end(firstFrag_full,firstFragisAtoB),
-	  contig->id,
-	  count_overlaps_off_end(lastFrag_full,1-lastFragisAtoB));
-}
-
 void explore_ending_of_contig(ContigT *contig, int *frontCnt, int *tailCnt){
 
    VA_TYPE(IntElementPos) *positions = CreateVA_IntElementPos(5000);
@@ -400,11 +263,11 @@ void explore_ending_of_contig(ContigT *contig, int *frontCnt, int *tailCnt){
 	 beg=tmp;
        }
        //       fprintf(stdout,"  frg pos %d %d\n",beg,end);
-       if(beg<40){
+       if(beg<DistFromGap){
 	 (*frontCnt)++;
 	 //	 fprintf(stdout,"    front incremented to %d\n",*frontCnt);
        }
-       if(len-end<40){
+       if(len-end<DistFromGap){
 	 (*tailCnt)++;
 	 //	 fprintf(stdout,"    tail incremented to %d\n",*tailCnt);
        }
@@ -431,7 +294,6 @@ void explore_gap_structure_for_a_scaffold(int sid){
   InitCIScaffoldTIterator( ScaffoldGraph, scaff, TRUE, FALSE, &CIs);
   endPrev=-1;
   while ( (contig = NextCIScaffoldTIterator( &CIs )) != NULL){
-    {
       float begThis,varThis;
       if(contig->offsetAEnd.mean<contig->offsetBEnd.mean){
 	begThis=contig->offsetAEnd.mean;
@@ -447,14 +309,12 @@ void explore_gap_structure_for_a_scaffold(int sid){
 		sqrt(varThis-varPrev));
       }
 		
-      explore_ends_of_contig(contig);
-      
       { 
 	int frontCnt=0;
 	int tailCnt=0;
 	explore_ending_of_contig(contig,&frontCnt,&tailCnt);
-	fprintf(stdout,"      %d  <-- frgs within 40bp of end --> %d\n",
-		frontCnt,tailCnt);
+	fprintf(stdout,"      %d  <-- frgs within %dbp of end --> %d\n",
+		frontCnt,DistFromGap,tailCnt);
       }
 
       if(contig->offsetAEnd.mean<contig->offsetBEnd.mean){
@@ -465,7 +325,6 @@ void explore_gap_structure_for_a_scaffold(int sid){
 	varPrev=contig->offsetAEnd.variance;
       }
 
-    }
   }
 }
 
@@ -478,10 +337,6 @@ int main (int argc , char * argv[] ) {
   int setPrefixName = FALSE;
   int ckptNum = NULLINDEX;
   int i, index;
-  char subset_map[1000];
-  char full_map[1000];
-  char setSubsetMap=0;
-  char setFullMap=0;
   char full_ovlPath[1000];
   int setFullOvl=0;
 
@@ -497,12 +352,19 @@ int main (int argc , char * argv[] ) {
   { /* Parse the argument list using "man 3 getopt". */ 
     int ch,errflg=0;
     optarg = NULL;
-    while (!errflg && ((ch = getopt(argc, argv,"c:f:g:n:1:2:o:")) != EOF)){
+    while (!errflg && ((ch = getopt(argc, argv,"c:d:f:g:n:o:v")) != EOF)){
       switch(ch) {
       case 'c':
 	strcpy( data->File_Name_Prefix, argv[optind - 1]);
 	setPrefixName = TRUE;		  
 	break;
+      case 'd':
+        if (strlen(argv[optind - 1]) > 4) {
+            fprintf(stderr,"-d option too large.\n");
+            exit(1);
+        }
+        DistFromGap = atoi(argv[optind - 1]);
+        break;
       case 'f':
 	strcpy( data->Frag_Store_Name, argv[optind - 1]);
 	setFragStore = TRUE;
@@ -514,14 +376,8 @@ int main (int argc , char * argv[] ) {
       case 'n':
 	ckptNum = atoi(argv[optind - 1]);
 	break;
-      case '1':
-	strcpy(subset_map,argv[optind-1]);
-	setSubsetMap=1;
-	break;
-      case '2':
-	strcpy(full_map,argv[optind-1]);
-	setFullMap=1;
-	break;
+      case 'v':
+	    verbose = 1; break;
       case 'o':
 	strcpy(full_ovlPath,argv[optind-1]);
 	setFullOvl=1;
@@ -533,7 +389,7 @@ int main (int argc , char * argv[] ) {
       }
     }
 
-    if((setPrefixName == FALSE) || (setFragStore == 0) || (setGatekeeperStore == 0) || !setSubsetMap || !setFullMap || !setFullOvl)
+    if((setPrefixName == FALSE) || (setFragStore == 0) || (setGatekeeperStore == 0) || !setFullOvl)
       {
 	fprintf(stderr,"* argc = %d optind = %d setFragStore = %d setGatekeeperStore = %d\n",
 		argc, optind, setFragStore,setGatekeeperStore);
@@ -545,8 +401,6 @@ int main (int argc , char * argv[] ) {
 
   ScaffoldGraph = 
     LoadScaffoldGraphFromCheckpoint( data->File_Name_Prefix, ckptNum, FALSE);
-
-  setup_frg_maps(subset_map, full_map);
 
   setup_ovlStore(full_ovlPath);
 
