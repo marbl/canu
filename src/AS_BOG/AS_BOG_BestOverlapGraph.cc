@@ -37,11 +37,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.14 2005-09-30 14:17:31 eliv Exp $
- * $Revision: 1.14 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.15 2005-10-06 14:45:55 eliv Exp $
+ * $Revision: 1.15 $
 */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.14 2005-09-30 14:17:31 eliv Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.15 2005-10-06 14:45:55 eliv Exp $";
 
 //  System include files
 #include<iostream>
@@ -149,11 +149,18 @@ namespace AS_BOG{
         }
     }
 
+    bool BestOverlapGraph::isContained(const iuid fragIID) {
+        std::map<iuid,BestContainment>::iterator i =
+                                _best_containments.find( fragIID ); 
+        if ( i != _best_containments.end() ) 
+            return true;
+        else
+            return false;
+    }
     // Given a containee, returns pointer to BestContainment record
     BestContainment* BestOverlapGraph::getBestContainer(iuid containee)
     {
-        std::map<iuid,BestContainment>::iterator i = _best_containments.find( containee ); 
-        if ( i != _best_containments.end() ) 
+        if ( isContained( containee ) ) 
             return &_best_containments[containee];
         else
             return NULL;
@@ -303,24 +310,27 @@ namespace AS_BOG{
 	//   curFrag is the IID of the fragment prior to receiving this olap.
         if (curFrag != olap.a_iid) {
 
-            // Update B's in degree on A's 3' End
-            iuid bid = _best_overlaps[ curFrag ].three_prime.frag_b_id;
-            switch(_best_overlaps[ curFrag ].three_prime.bend){
-                case THREE_PRIME:
-                    _best_overlaps[ bid ].three_prime.in_degree++; break;
-                case FIVE_PRIME:
-                    _best_overlaps[ bid ].five_prime.in_degree++; break;
-                default: assert(0);
-            }
+            // update in degree if not contained
+            if ( ! isContained(curFrag) ) {
+                // Update B's in degree on A's 3' End
+                iuid bid = _best_overlaps[ curFrag ].three_prime.frag_b_id;
+                switch(_best_overlaps[ curFrag ].three_prime.bend){
+                    case THREE_PRIME:
+                        _best_overlaps[ bid ].three_prime.in_degree++; break;
+                    case FIVE_PRIME:
+                        _best_overlaps[ bid ].five_prime.in_degree++; break;
+                    default: assert(0);
+                }
 
-            // Update B's in degree on A's 5' End
-            bid = _best_overlaps[ curFrag ].five_prime.frag_b_id;
-            switch(_best_overlaps[ curFrag ].five_prime.bend){
-                case THREE_PRIME:
-                    _best_overlaps[ bid ].three_prime.in_degree++; break;
-                case FIVE_PRIME:
-                    _best_overlaps[ bid ].five_prime.in_degree++; break;
-                default: assert(0);
+                // Update B's in degree on A's 5' End
+                bid = _best_overlaps[ curFrag ].five_prime.frag_b_id;
+                switch(_best_overlaps[ curFrag ].five_prime.bend){
+                    case THREE_PRIME:
+                        _best_overlaps[ bid ].three_prime.in_degree++; break;
+                    case FIVE_PRIME:
+                        _best_overlaps[ bid ].five_prime.in_degree++; break;
+                    default: assert(0);
+                }
             }
 
             // Set up the curFrag to refer to the incoming (next) fragment IUID	

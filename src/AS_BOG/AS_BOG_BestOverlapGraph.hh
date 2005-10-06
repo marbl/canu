@@ -34,8 +34,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.hh,v 1.16 2005-09-30 14:17:31 eliv Exp $
- * $Revision: 1.16 $
+ * $Id: AS_BOG_BestOverlapGraph.hh,v 1.17 2005-10-06 14:45:55 eliv Exp $
+ * $Revision: 1.17 $
 */
 
 //  System include files
@@ -104,6 +104,7 @@ namespace AS_BOG{
             BestEdgeOverlap *getBestEdge(iuid frag_id, fragment_end_type which_end);
             void setBestEdge(const Long_Olap_Data_t& olap, float newScore);
             iuid getNumFragments() { return _num_fragments; }
+            bool isContained(const iuid);
             BestContainment *getBestContainer(iuid frag_id);
 
             // Graph building methods
