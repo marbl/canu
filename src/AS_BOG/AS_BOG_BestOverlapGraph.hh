@@ -34,8 +34,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.hh,v 1.17 2005-10-06 14:45:55 eliv Exp $
- * $Revision: 1.17 $
+ * $Id: AS_BOG_BestOverlapGraph.hh,v 1.18 2005-10-06 21:39:20 eliv Exp $
+ * $Revision: 1.18 $
 */
 
 //  System include files
@@ -44,6 +44,8 @@
 #define INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 
 #include <map>
+#include <vector>
+
 #include "AS_BOG_Datatypes.hh"
 
 extern "C" {
@@ -115,6 +117,7 @@ namespace AS_BOG{
             bool checkForNextFrag(const Long_Olap_Data_t& olap);
             virtual float score( const Long_Olap_Data_t& olap) =0;
             void transitiveContainment();
+            void updateInDegree();
 
             // FragStore related variables
         //These should be moved to protected
@@ -154,9 +157,13 @@ namespace AS_BOG{
     };
 
     ///////////////////////////////////////////////////////////////////////////
+    struct BOG_Runner {
+        void push_back(BestOverlapGraph *bog) { metrics.push_back(bog); }
+        void processOverlapStream(OVL_Stream_t *);
 
+        std::vector<BestOverlapGraph *> metrics;
+    };
 } //AS_BOG namespace
 
 
 #endif //INCLUDE_AS_BOG_BESTOVERLAPGRAPH
-

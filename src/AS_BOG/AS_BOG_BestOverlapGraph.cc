@@ -37,11 +37,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.15 2005-10-06 14:45:55 eliv Exp $
- * $Revision: 1.15 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.16 2005-10-06 21:39:20 eliv Exp $
+ * $Revision: 1.16 $
 */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.15 2005-10-06 14:45:55 eliv Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.16 2005-10-06 21:39:20 eliv Exp $";
 
 //  System include files
 #include<iostream>
@@ -292,6 +292,29 @@ namespace AS_BOG{
 
     ///////////////////////////////////////////////////////////////////////////
 
+    void BestOverlapGraph::updateInDegree() {
+        if ( ! isContained(curFrag) ) {
+            // Update B's in degree on A's 3' End
+            iuid bid = _best_overlaps[ curFrag ].three_prime.frag_b_id;
+            switch(_best_overlaps[ curFrag ].three_prime.bend){
+                case THREE_PRIME:
+                    _best_overlaps[ bid ].three_prime.in_degree++; break;
+                case FIVE_PRIME:
+                    _best_overlaps[ bid ].five_prime.in_degree++; break;
+                default: assert(0);
+            }
+
+            // Update B's in degree on A's 5' End
+            bid = _best_overlaps[ curFrag ].five_prime.frag_b_id;
+            switch(_best_overlaps[ curFrag ].five_prime.bend){
+                case THREE_PRIME:
+                    _best_overlaps[ bid ].three_prime.in_degree++; break;
+                case FIVE_PRIME:
+                    _best_overlaps[ bid ].five_prime.in_degree++; break;
+                default: assert(0);
+            }
+        }
+    }
     bool BestOverlapGraph::checkForNextFrag(const Long_Olap_Data_t& olap) {
         // Update the in_degrees whenever the incoming overlap's A's Fragment IUID changes.
         //   Returns true, if the olap's A fragment ID has changed since the previous call,
@@ -311,27 +334,7 @@ namespace AS_BOG{
         if (curFrag != olap.a_iid) {
 
             // update in degree if not contained
-            if ( ! isContained(curFrag) ) {
-                // Update B's in degree on A's 3' End
-                iuid bid = _best_overlaps[ curFrag ].three_prime.frag_b_id;
-                switch(_best_overlaps[ curFrag ].three_prime.bend){
-                    case THREE_PRIME:
-                        _best_overlaps[ bid ].three_prime.in_degree++; break;
-                    case FIVE_PRIME:
-                        _best_overlaps[ bid ].five_prime.in_degree++; break;
-                    default: assert(0);
-                }
-
-                // Update B's in degree on A's 5' End
-                bid = _best_overlaps[ curFrag ].five_prime.frag_b_id;
-                switch(_best_overlaps[ curFrag ].five_prime.bend){
-                    case THREE_PRIME:
-                        _best_overlaps[ bid ].three_prime.in_degree++; break;
-                    case FIVE_PRIME:
-                        _best_overlaps[ bid ].five_prime.in_degree++; break;
-                    default: assert(0);
-                }
-            }
+            updateInDegree();
 
             // Set up the curFrag to refer to the incoming (next) fragment IUID	
             curFrag = olap.a_iid;
@@ -473,5 +476,19 @@ namespace AS_BOG{
     }
 
     ///////////////////////////////////////////////////////////////////////////
+
+    void BOG_Runner::processOverlapStream(OVL_Stream_t *my_stream) {
+
+        // Go through the overlap stream, and populate the overlap graphs
+        Long_Olap_Data_t olap;
+        while  (Next_From_OVL_Stream (&olap, my_stream))
+        {
+            for(int j = 0; j < metrics.size(); j++)
+                metrics[j]->scoreOverlap( olap );
+        }
+        // Update degree on final frag
+        for(int j = 0; j < metrics.size(); j++)
+            metrics[j]->updateInDegree();
+    }
 
 } //AS_BOG namespace

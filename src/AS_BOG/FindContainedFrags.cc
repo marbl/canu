@@ -31,11 +31,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FindContainedFrags.cc,v 1.14 2005-10-06 14:17:55 eliv Exp $
- * $Revision: 1.14 $
+ * $Id: FindContainedFrags.cc,v 1.15 2005-10-06 21:39:20 eliv Exp $
+ * $Revision: 1.15 $
 */
 
-static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.14 2005-10-06 14:17:55 eliv Exp $";
+static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.15 2005-10-06 21:39:20 eliv Exp $";
 
 //  System include files
 
@@ -52,7 +52,6 @@ using std::cout;
 using std::endl;
 using std::map;
 using std::set;
-using std::vector;
 using AS_BOG::BestOverlapGraph;
 
 //  Local include files
@@ -67,7 +66,6 @@ int  main
 {
    OVL_Store_t  * my_store;
    OVL_Stream_t  * my_stream;
-   Long_Olap_Data_t  olap;
    uint32  first,last;			// IUID of first/last fragments in olap store
    first = 1;
 
@@ -97,18 +95,13 @@ int  main
    AS_BOG::LongestHighIdent lenIdent(last,2.0);
 
    // Put the three graphs into a vector, so we can step through them
-   vector<BestOverlapGraph *> metrics;
-   metrics.push_back(&erScore);
-   metrics.push_back(&lenScore);
-   metrics.push_back(&lenIdent);
+   AS_BOG::BOG_Runner bogRunner;
+   bogRunner.push_back(&erScore);
+   bogRunner.push_back(&lenScore);
+   bogRunner.push_back(&lenIdent);
 
    // Go through the overlap stream, and populate the 3 overlap graphs
-   int j;
-   while  (Next_From_OVL_Stream (&olap, my_stream))
-     {
-         for( j = 0; j < metrics.size(); j++) 
-                metrics[j]->scoreOverlap( olap );
-     }
+   bogRunner.processOverlapStream( my_stream );
 
    // Free/clean up the frag/overlap store/stream handles
    Free_OVL_Stream( my_stream );
@@ -120,18 +113,18 @@ int  main
 
    // For each IUID
    for(int i = 1; i <= last; i++) {
-       AS_BOG::BestEdgeOverlap* five[metrics.size()];
-       AS_BOG::BestEdgeOverlap* three[metrics.size()];
+       AS_BOG::BestEdgeOverlap* five[bogRunner.metrics.size()];
+       AS_BOG::BestEdgeOverlap* three[bogRunner.metrics.size()];
 
        // For each graph type
-       for( j = 0; j < metrics.size(); j++)  { // output olap graph
+       for(int j = 0; j < bogRunner.metrics.size(); j++)  { // output olap graph
 
            // Retrieve the best overlaps from the BOG for the current IUID
-           five[j] = metrics[j]->getBestEdge( i, AS_BOG::FIVE_PRIME );
-           three[j] = metrics[j]->getBestEdge( i, AS_BOG::THREE_PRIME );
+           five[j] = bogRunner.metrics[j]->getBestEdge( i, AS_BOG::FIVE_PRIME );
+           three[j] = bogRunner.metrics[j]->getBestEdge( i, AS_BOG::THREE_PRIME );
 
            // Why isn't this just outside of the for j loop?
-           if ( j == metrics.size()-1 ) {
+           if ( j == bogRunner.metrics.size()-1 ) {
 
                // Get the 5' overlap for the current IUID
                CDS_IID_t b0 = five[0]->frag_b_id;
@@ -182,15 +175,15 @@ int  main
    } // end for each fragment
 
    // Remove transitive containments
-   for( j = 0; j < metrics.size(); j++)  {
-       metrics[j]->transitiveContainment();
+   for(int j = 0; j < bogRunner.metrics.size(); j++)  {
+       bogRunner.metrics[j]->transitiveContainment();
    }
 
    // We should typedef this map for best_containments
-   map<CDS_IID_t,AS_BOG::BestContainment> c1 = metrics[0]->_best_containments;
+   map<CDS_IID_t,AS_BOG::BestContainment> c1 = bogRunner.metrics[0]->_best_containments;
 
    // Iterate through all the containees, this may miss containees that exists
-   //   by other metrics/graph types
+   //   by other bogRunner.metrics/graph types
    for(map<CDS_IID_t,AS_BOG::BestContainment>::const_iterator it = c1.begin();
            it != c1.end(); it++)
    {
@@ -205,13 +198,13 @@ int  main
             " " << bst.b_hang <<" sameOrient " << bst.sameOrientation << endl;
 
 	//  2: lenScore
-       AS_BOG::BestContainment* b2 = metrics[1]->getBestContainer( id );
+       AS_BOG::BestContainment* b2 = bogRunner.metrics[1]->getBestContainer( id );
        if ( b2 != NULL )
            cout << id << " c2 by "<< b2->container << " " << b2->score << " " << b2->a_hang <<
             " " << b2->b_hang <<" sameOrient " << b2->sameOrientation << endl;
        
         //  3: lenIdent
-       AS_BOG::BestContainment* b3 = metrics[2]->getBestContainer( id );
+       AS_BOG::BestContainment* b3 = bogRunner.metrics[2]->getBestContainer( id );
        if ( b3 != NULL )
            cout << id << " c3 by "<< b3->container << " " << b3->score << " " << b3->a_hang <<
            " " << b3->b_hang << " sameOrient " << b3->sameOrientation << endl;
