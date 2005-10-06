@@ -31,11 +31,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FindContainedFrags.cc,v 1.13 2005-09-30 14:17:31 eliv Exp $
- * $Revision: 1.13 $
+ * $Id: FindContainedFrags.cc,v 1.14 2005-10-06 14:17:55 eliv Exp $
+ * $Revision: 1.14 $
 */
 
-static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.13 2005-09-30 14:17:31 eliv Exp $";
+static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.14 2005-10-06 14:17:55 eliv Exp $";
 
 //  System include files
 
@@ -202,19 +202,19 @@ int  main
 
 	//  1: erScore
        cout << id << " c1 by "<< bst.container << " " << bst.score << " " << bst.a_hang <<
-            " sameOrient " << bst.sameOrientation << endl;
+            " " << bst.b_hang <<" sameOrient " << bst.sameOrientation << endl;
 
 	//  2: lenScore
        AS_BOG::BestContainment* b2 = metrics[1]->getBestContainer( id );
        if ( b2 != NULL )
            cout << id << " c2 by "<< b2->container << " " << b2->score << " " << b2->a_hang <<
-            " sameOrient " << b2->sameOrientation << endl;
+            " " << b2->b_hang <<" sameOrient " << b2->sameOrientation << endl;
        
         //  3: lenIdent
        AS_BOG::BestContainment* b3 = metrics[2]->getBestContainer( id );
        if ( b3 != NULL )
            cout << id << " c3 by "<< b3->container << " " << b3->score << " " << b3->a_hang <<
-            " sameOrient " << b3->sameOrientation << endl;
+           " " << b3->b_hang << " sameOrient " << b3->sameOrientation << endl;
 
    }
 
