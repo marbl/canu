@@ -71,6 +71,7 @@ CFLAGS_OPT = -g
 CXXDEFS    = -D__cplusplus
 ARFLAGS    = rvs
 USRLIB     = /usr/lib
+LDFLAGS   += -O3
 
 ifeq ($(OSTYPE), Linux)
   CC         = gcc
@@ -80,6 +81,7 @@ ifeq ($(OSTYPE), Linux)
   CXXFLAGS  += -O3 -DANSI_C -DX86_GCC_LINUX -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
   USRLIB     = /usr/X11R6/lib
   CXXDEFS    = -D__cplusplus
+  LDFLAGS   += --gc-sections
 
   ifeq ($(MACHINETYPE), x86_64)
     CC        = gcc
