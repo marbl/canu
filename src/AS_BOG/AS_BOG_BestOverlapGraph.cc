@@ -37,11 +37,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.16 2005-10-06 21:39:20 eliv Exp $
- * $Revision: 1.16 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.17 2005-10-07 15:40:48 eliv Exp $
+ * $Revision: 1.17 $
 */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.16 2005-10-06 21:39:20 eliv Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.17 2005-10-07 15:40:48 eliv Exp $";
 
 //  System include files
 #include<iostream>
@@ -487,8 +487,10 @@ namespace AS_BOG{
                 metrics[j]->scoreOverlap( olap );
         }
         // Update degree on final frag
-        for(int j = 0; j < metrics.size(); j++)
+        for(int j = 0; j < metrics.size(); j++) {
             metrics[j]->updateInDegree();
+            metrics[j]->transitiveContainment();
+        }
     }
 
 } //AS_BOG namespace

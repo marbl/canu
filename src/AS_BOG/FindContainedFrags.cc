@@ -31,11 +31,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FindContainedFrags.cc,v 1.15 2005-10-06 21:39:20 eliv Exp $
- * $Revision: 1.15 $
+ * $Id: FindContainedFrags.cc,v 1.16 2005-10-07 15:40:48 eliv Exp $
+ * $Revision: 1.16 $
 */
 
-static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.15 2005-10-06 21:39:20 eliv Exp $";
+static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.16 2005-10-07 15:40:48 eliv Exp $";
 
 //  System include files
 
@@ -173,11 +173,6 @@ int  main
            }
        } // end for each metric
    } // end for each fragment
-
-   // Remove transitive containments
-   for(int j = 0; j < bogRunner.metrics.size(); j++)  {
-       bogRunner.metrics[j]->transitiveContainment();
-   }
 
    // We should typedef this map for best_containments
    map<CDS_IID_t,AS_BOG::BestContainment> c1 = bogRunner.metrics[0]->_best_containments;

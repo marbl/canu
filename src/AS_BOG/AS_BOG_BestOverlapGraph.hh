@@ -34,8 +34,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.hh,v 1.18 2005-10-06 21:39:20 eliv Exp $
- * $Revision: 1.18 $
+ * $Id: AS_BOG_BestOverlapGraph.hh,v 1.19 2005-10-07 15:40:48 eliv Exp $
+ * $Revision: 1.19 $
 */
 
 //  System include files
@@ -91,6 +91,8 @@ namespace AS_BOG{
 
     struct BestOverlapGraph {
 
+            friend class BOG_Runner;
+
             // Constructor, parametrizing maximum number of overlaps
             BestOverlapGraph(int max_fragment_count);
 
@@ -112,12 +114,7 @@ namespace AS_BOG{
             // Graph building methods
             fragment_end_type AEnd(const Long_Olap_Data_t& olap);
             fragment_end_type BEnd(const Long_Olap_Data_t& olap);
-            void scoreOverlap(const Long_Olap_Data_t& olap);
             short olapLength(const Long_Olap_Data_t& olap);
-            bool checkForNextFrag(const Long_Olap_Data_t& olap);
-            virtual float score( const Long_Olap_Data_t& olap) =0;
-            void transitiveContainment();
-            void updateInDegree();
 
             // FragStore related variables
         //These should be moved to protected
@@ -128,6 +125,13 @@ namespace AS_BOG{
             static overlap_type getType(const Long_Olap_Data_t & olap);
 
             std::map<iuid, BestContainment> _best_containments;
+
+        private:
+            bool checkForNextFrag(const Long_Olap_Data_t& olap);
+            void scoreOverlap(const Long_Olap_Data_t& olap);
+            void updateInDegree();
+            void transitiveContainment();
+            virtual float score( const Long_Olap_Data_t& olap) =0;
 
         protected:
             iuid _num_fragments;
