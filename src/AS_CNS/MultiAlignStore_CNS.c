@@ -25,7 +25,7 @@
    Assumptions:  libAS_UTL.a
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.10 2005-08-25 06:49:30 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.11 2005-10-07 18:58:11 ahalpern Exp $";
 
 
 #include <assert.h>
@@ -568,6 +568,8 @@ CreateMultiAlignTFromIUM(IntUnitigMesg *ium, int localID, int sequenceOnly)
 
 }
 
+
+
 MultiAlignT *
 CreateMultiAlignTFromICM(IntConConMesg *icm, int localID, int sequenceOnly)
 {
@@ -656,7 +658,7 @@ CreateMultiAlignTFromICM(IntConConMesg *icm, int localID, int sequenceOnly)
          tmp.num_alleles = cvr_mesg->num_alleles;
          tmp.window_size = cvr_mesg->window_size;
          tmp.var_length = cvr_mesg->var_length;
-         tmp.var_seq = (char *) safe_malloc((tmp.var_length+1)*sizeof(char));
+         tmp.var_seq = (char *) safe_malloc(((tmp.var_length+1)*tmp.num_alleles+1)*sizeof(char));
          strcpy(tmp.var_seq, cvr_mesg->var_seq);
          SetIntMultiVar(ma->v_list, cvr, &tmp);
       }
@@ -1825,7 +1827,7 @@ PrintMultiAlignT(FILE *out,
   int depth;
   int rc,i;
   int window,length;
-  char **multia; 
+  char **multia=NULL; 
   int **idarray;
   int **oriarray;
   char *consensus = Getchar(ma->consensus,0);
@@ -1846,8 +1848,8 @@ PrintMultiAlignT(FILE *out,
   rc = MultiAlignT2Array(ma, frag_store, pfrag_store,
                        bactig_store,
                       &depth, &multia, &idarray,&oriarray,clrrng_flag);
-  fprintf(out,"<<< begin Contig %d >>>",ma->id);;
   if (rc) {
+    fprintf(out,"<<< begin Contig %d >>>",ma->id);;
        int ungapped=1;
        int tick=1;
        for (window=0;window<length;) {
@@ -1950,7 +1952,7 @@ PrintMultiAlignT(FILE *out,
        }
        fprintf(out,"\n<<< end Contig %d >>>\n",ma->id);
   } else {
-       fprintf(stderr,"Error returned from IMP2Array.\n");
+       fprintf(stderr,"Error returned from MultiAlignT2Array.\n");
   }
   if (multia) {
        for (i=0;i<2*depth;i++) {
