@@ -9,7 +9,8 @@ void
 usage(char *name) {
   fprintf(stderr, "usage: %s [options] -intersect file -frg some.frgStore\n", name);
   fprintf(stderr, "\n");
-  fprintf(stderr, "  -update    Update the clear range in the fragStore.\n");
+  fprintf(stderr, "  -quiet     Don't update the clear range in the fragStore.\n");
+  fprintf(stderr, "  -update    Update the clear range in the fragStore (the default).\n");
   fprintf(stderr, "  -memory    Use X MB of memory per batch -- greatly improves performance!\n");
   fprintf(stderr, "  -intersect Intersect our quality trim range with the range in 'file'\n");
   fprintf(stderr, "             Format: 'UID low high'\n");
@@ -23,7 +24,7 @@ usage(char *name) {
 
 int
 main(int argc, char **argv) {
-  bool    doUpdate     = false;
+  bool    doUpdate     = true;
   char   *intFileName  = 0L;
   char   *frgStore     = 0L;
   FILE   *logFile      = 0L;
@@ -38,6 +39,8 @@ main(int argc, char **argv) {
       frgStore = argv[++arg];
     } else if (strncmp(argv[arg], "-update", 2) == 0) {
       doUpdate = true;
+    } else if (strncmp(argv[arg], "-quiet", 2) == 0) {
+      doUpdate = false;
     } else if (strncmp(argv[arg], "-memory", 2) == 0) {
       ++arg;
       //batchMemory = strtou32bit(argv[arg], 0L) * 1024 * 1024;
@@ -62,7 +65,7 @@ main(int argc, char **argv) {
 
   //  Open the store
   //
-  FragStoreHandle   fs = openFragStore(frgStore, "r+");
+  FragStoreHandle   fs = openFragStore(frgStore, doUpdate ? "r+" : "r");
   if (fs == NULLSTOREHANDLE) {
     fprintf(stderr, "Failed to open %s\n", frgStore);
     exit(1);
@@ -91,21 +94,27 @@ main(int argc, char **argv) {
   char intLine[1024] = {0};
   fgets(intLine, 1024, intFile);
   while (!feof(intFile)) {
+    chomp(intLine);
     splitToWords  W(intLine);
-    u64bit  uid  = strtou64bit(W[0], 0L);
-    u32bit  intl = strtou32bit(W[1], 0L);
-    u32bit  intr = strtou32bit(W[2], 0L);
+    if ((W[0] == 0L) || (W[1] == 0L) || (W[2] == 0L)) {
+      fprintf(stderr, "WARNING: Invalid line '%s'\n", intLine);
+    } else {
+      u64bit  uid  = strtou64bit(W[0], 0L);
+      u32bit  intl = strtou32bit(W[1], 0L);
+      u32bit  intr = strtou32bit(W[2], 0L);
 
-    //  Silently swap, if needed
-    if (intl > intr) {
-      u32bit  s = intl;
-      intl = intr;
-      intr = s;
+      //  Silently swap, if needed
+      if (intl > intr) {
+        u32bit  s = intl;
+        intl = intr;
+        intr = s;
+      }
+
+      //  These look base-based!
+      intL[uid] = intl - 1;
+      intR[uid] = intr - 1;
     }
 
-    //  These look base-based!
-    intL[uid] = intl - 1;
-    intR[uid] = intr - 1;
     //C->tick();
     fgets(intLine, 1024, intFile);
   }
