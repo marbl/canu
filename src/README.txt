@@ -29,6 +29,17 @@ for linux, aix, and osf3.2. If you wish to build the assembler, you
 may need to either edit the OSTYPE environment variable or the
 c_make.as file.
 
+
+Before building the assembler, you'll need to set the SITE_NAME make variable.
+This is used for controlling site specific configurations, especially for
+the terminiator and EUIDs. To set it, either create a file called site_name.as
+with a single line:
+
+SITE_NAME=Your_site_name
+
+or run make as 'make SITE_NAME=Your_site_name'
+
+
 Scripts (perl, csh, bash, etc) in the scripts and example directories
 as well as in subdirectories of src specify the path of the
 shell/interpreter for the script. You may need to edit these to match
