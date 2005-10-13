@@ -43,7 +43,9 @@ SCRIPTS = runCA-OBT.pl \
           assemblyCompare.pl \
           qcCompare.pl \
           tampaCompare.pl \
-          mummerCompare.pl
+          mummerCompare.pl \
+	  testVersionOnPlatform.sh \
+	  apply_assembler.pl
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
@@ -94,5 +96,13 @@ tampaCompare.pl: testing/$@
 	chmod 775 $(LOCAL_BIN)/$@
 
 mummerCompare.pl: testing/$@
+	cp testing/$@ $(LOCAL_BIN)/$@
+	chmod 775 $(LOCAL_BIN)/$@
+
+apply_assembler.pl: testing/$@
+	cp testing/$@ $(LOCAL_BIN)/$@
+	chmod 775 $(LOCAL_BIN)/$@
+
+testVersionOnPlatform.sh: testing/$@
 	cp testing/$@ $(LOCAL_BIN)/$@
 	chmod 775 $(LOCAL_BIN)/$@
