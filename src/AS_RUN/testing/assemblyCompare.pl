@@ -1,5 +1,5 @@
 #!/usr/local/bin/perl
-# $Id: assemblyCompare.pl,v 1.2 2005-10-13 21:21:12 catmandew Exp $
+# $Id: assemblyCompare.pl,v 1.3 2005-10-13 21:31:39 catmandew Exp $
 #
 # Program to compare two assemblies
 #
@@ -17,7 +17,7 @@ use FileHandle;
 use Getopt::Long;
 use Env qw(PWD);
 
-my $MY_VERSION = " Version 1.01 (Build " . (qw/$Revision: 1.2 $/ )[1]. ")";
+my $MY_VERSION = " Version 1.01 (Build " . (qw/$Revision: 1.3 $/ )[1]. ")";
 my $MY_APPLICATION = "assemblyCompare";
 
 my $HELPTEXT = qq~
@@ -120,10 +120,10 @@ if(!$dontTampa)
 {
   my @types = ("intra", "inter");
   # assume either results files are present or TAMPA has not been run
-  my $tampRun = 1;
-  for($i = 0; $i <= $#dirs; $i++)
+  my $tampaRun = 1;
+  for(my $i = 0; $i <= $#dirs; $i++)
   {
-    for($j = 0; $j <= $#types; $j++)
+    for(my $j = 0; $j <= $#types; $j++)
     {
       my $fn = $dirs[$i] . "/" . $assemblies[$i] . "." .
         $types[$j] . ".summary.tampa";
@@ -139,7 +139,7 @@ if(!$dontTampa)
   if(!$tampaRun)
   {
     # run tampa
-    for($i = 0; $i <= $#dirs; $i++)
+    for(my $i = 0; $i <= $#dirs; $i++)
     {
       chdir($dirs[$i]);
       my $command = "asm2TampaResults -a $assemblies[$i]";
@@ -155,17 +155,17 @@ if(!$dontTampa)
 }
 
 
-if(!dontMummer)
+if(!$dontMummer)
 {
   # assume mummer hasn't been run on this pair, since a pairwise thing..
   my $pid = getppid();
-  my $prefix = "$dirs[0]_$dirs[1]_$pid";
+  my $prefix = "$assemblies[0]_$assemblies[1]_$pid";
   my @fnps;
   for(my $i = 0; $i <= $#dirs; $i++)
   {
-    $fnps[$i] = $dirs[$i] . "/" . $assemblies[i]"
+    $fnps[$i] = $dirs[$i] . "/" . $assemblies[$i];
   }
-  my $command = "nucmer -p $prefix $fnps[0].scaffolds.fasa $fnps[1].scaffolds.fasta";
+  my $command = "nucmer -p $prefix $fnps[0].scaffolds.fasta $fnps[1].scaffolds.fasta";
   printf STDERR "Running $command\n";
   system($command);
 
