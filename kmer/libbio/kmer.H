@@ -50,9 +50,15 @@ public:
   kMer(u32bit ms=u32bitZERO)  { setMerSize(ms); clear(); };
   ~kMer()                     { };
 
+
+#if 0
+
+  //  We were calling reverseComplementMer incorrectly, but it looks
+  //  like we never called this function anyway!
+
   void   reverseComplement(void) {
 #if KMER_WORDS == 1
-    reverseComplementMer(_wd[0], _merSize);
+    reverseComplementMer(_merSize, _wd[0]);
 #else
 
     //  Reverse all the words, reverse and complement the bases in
@@ -77,7 +83,7 @@ public:
 #endif
   };
 
-
+#endif
 
 
   //  Return the right-most bits in the mer, XXX, used only by bitPackedFileBuilder
