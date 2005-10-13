@@ -39,7 +39,11 @@ OBJECTS = $(C_OBJECTS) $(CXX_OBJECTS)
 
 PROGS = 
 
-SCRIPTS = runCA-OBT.pl
+SCRIPTS = runCA-OBT.pl \
+          assemblyCompare.pl \
+          qcCompare.pl \
+          tampaCompare.pl \
+          mummerCompare.pl
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
@@ -76,3 +80,19 @@ RUNCAOBTUTIL = runCA-OBT/runCAutil/applyOverlapCorrection.pl \
 runCA-OBT.pl: runCA-OBT/runCA.pl $(RUNCAOBTUTIL)
 	cat runCA-OBT/runCA.pl $(RUNCAOBTUTIL) > $(LOCAL_BIN)/runCA-OBT.pl
 	chmod 775 $(LOCAL_BIN)/runCA-OBT.pl
+
+assemblyCompare.pl: testing/$@
+	cp testing/$@ $(LOCAL_BIN)/$@
+	chmod 775 $(LOCAL_BIN)/$@
+
+qcCompare.pl: testing/$@
+	cp testing/$@ $(LOCAL_BIN)/$@
+	chmod 775 $(LOCAL_BIN)/$@
+
+tampaCompare.pl: testing/$@
+	cp testing/$@ $(LOCAL_BIN)/$@
+	chmod 775 $(LOCAL_BIN)/$@
+
+mummerCompare.pl: testing/$@
+	cp testing/$@ $(LOCAL_BIN)/$@
+	chmod 775 $(LOCAL_BIN)/$@
