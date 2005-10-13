@@ -185,19 +185,22 @@ void syntenicSegments
 #endif
           
   // Step 3 (optional): 
-
+  //
   // a) fix the chain of segments so that the segments don't overlap.
   // It must be a 1-1 mapping. (can either trim or delete segments--or
   // leave them completely alone)
-
+  //
   // b) construct an alignment "trace" 
-
+  //
   // The "trace" is the standard "AS" encoding of an alignment.
 
   if(Ov != NULL) {
-    // coordinate munge between Gene's local aligner and DP_Compare()-related routines
-    // coordinates from Find_Local routines will be one off from
-    // those expected by the trace routines, so adjust them!
+
+    // coordinate munge between Gene's local aligner and
+    // DP_Compare()-related routines coordinates from Find_Local
+    // routines will be one off from those expected by the trace
+    // routines, so adjust them!
+
     for(int i=0;i<=Ov->num_pieces;i++){
       if(i<Ov->num_pieces){
         Ov->chain[i].piece.abpos++;
@@ -207,16 +210,14 @@ void syntenicSegments
       }
     }
 
-    //fprintf(stderr,"Hello Bertha\n");
-    //fprintf(stderr,"Ov=%p\n", Ov);
-    /* AS_Local_Trace assumes string pointer one before start of string! */
+    //  AS_Local_Trace assumes string pointer one before start of string!
+
     if(Ov != NULL) {
       int *trace = AS_Local_Trace(Ov,Ausable-1,Busable-1);
       if(trace == NULL) {
-        fprintf(stderr,"EXCEPTION %s Ov=%p trace=%p\n", __LINE__, Ov, trace);
+        fprintf(stderr,"EXCEPTION Ov=%p trace=%p\n", Ov, trace);
       }
     }
-    //fprintf(stderr,"Goodbye Bertha\n");
 
     for(int i=0;i<=Ov->num_pieces;i++){
       if(i<Ov->num_pieces){
@@ -228,33 +229,10 @@ void syntenicSegments
     }
   }
 
-  //free(local_results);
-  //free(Ov);
-
   if(Ov != NULL) { Ov->next = 0;}
   desc = Ov;
-
-  //fprintf(stderr,"Ov=%p\n", Ov);
-  //fprintf(stderr,"Goodbye Alice\n");
 }
 
-#if 0
-#if DEBUG_LOCALOVL > 2
-  fprintf(outfile, "#LA_FLO alen=%d blen=%d reverse=%d\n", alen, blen, sequence_reversed_match);
-#endif
-  if(NULL != Ov) {
-    Print_Local_Overlap2
-      ( outfile, Ov,
-        selfid, parentid,
-        a_uid, b_uid,
-        a_scaf_pos, b_scaf_pos, alen, blen, sequence_reversed_match,
-        a_lft_seed_len,
-        b_lft_seed_len,
-        a_rht_seed_len,
-        b_rht_seed_len
-        );
-  }
-#endif
 
 
 static void Print_Local_Overlap2
