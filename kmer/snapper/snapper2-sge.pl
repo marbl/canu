@@ -8,6 +8,8 @@ my $genome = "";
 my $query  = "";
 my $dir    = "";
 my $mask   = "";
+my $gseg   = 16;
+my $qseg   = 16;
 
 my $bin = "$FindBin::Bin";
 
@@ -22,13 +24,23 @@ while (scalar(@ARGV) > 0) {
         $dir    = shift @ARGV;
     } elsif ($arg =~ m/^-mask/) {
         $mask   = shift @ARGV;
+    } elsif ($arg =~ m/^-gseg/) {
+        $gseg   = shift @ARGV;
+    } elsif ($arg =~ m/^-qseg/) {
+        $qseg   = shift @ARGV;
     } else {
         print STDERR "unknown option '$arg'\n";
     }
 }
 
 if (!defined($genome) || !defined($query) || !defined($dir)) {
-    print STDERR "usage: $0 <-genome x.fasta> <-query q.fasta> <-dir /path/to/work> <...>\n";
+    print STDERR "usage: $0 [arg]\n";
+    print STDERR "  -genome x.fasta\n";
+    print STDERR "  -query  q.fasta\n";
+    print STDERR "  -dir    /path/to/work\n";
+    print STDERR "  -mask   /path/to/mask.fasta  (def: make a new mask)\n";
+    print STDERR "  -gseg   gseg                 (def: 32 segs, see leaff for format\n";
+    print STDERR "  -qseg   qseg                 (def: 32 segs, see leaff for format\n";
     exit(1);
 }
 
@@ -40,14 +52,14 @@ die "Can't find '$dir'\n" if (! -d $dir);
 
 if (! -e "$dir/gen/gen.partitioned") {
     system("mkdir $dir/gen")  if (! -d "$dir/gen");
-    system("$bin/leaff -F $genome --partition $dir/gen/gen 2mbp");
+    system("$bin/leaff -F $genome --partition $dir/gen/gen $gseg");
     open(F, "> $dir/gen/gen.partitioned");
     close(F);
 }
 
 if (! -e "$dir/qry/qry.partitioned") {
     system("mkdir $dir/qry")  if (! -d "$dir/qry");
-    system("$bin/leaff -F $query  --partition $dir/qry/qry 32");
+    system("$bin/leaff -F $query  --partition $dir/qry/qry $qseg");
     open(F, "> $dir/qry/qry.partitioned");
     close(F);
 }
