@@ -41,17 +41,53 @@ u32bitcompare(const void *a, const void *b) {
 
 int
 main(int argc, char **argv) {
+  u64bit  genomeSize    = 0;
+  char   *atacFile      = 0L;
+  char   *prefix        = 0L;
+  bool    error         = false;
+  char    matchesOrRuns = 'm';
 
-  if (argc != 3) {
-    fprintf(stderr, "usage: %s <file.atac> <outprefix>\n", argv[0]);
+  int arg=1;
+  while (arg < argc) {
+    if (strcmp(argv[arg], "-g") == 0) {
+      ++arg;
+      if        (argv[arg][0] == 'A') {
+        genomeSize = 0;
+      } else if (argv[arg][0] == 'B') {
+        genomeSize = 1;
+      } else {
+        genomeSize = strtou64bit(argv[arg], 0L);
+      }
+    } else if (strcmp(argv[arg], "-m") == 0) {
+      matchesOrRuns = 'm';
+    } else if (strcmp(argv[arg], "-r") == 0) {
+      matchesOrRuns = 'r';
+    } else {
+      if (atacFile == 0L) {
+        atacFile = argv[arg];
+      } else if (prefix == 0L) {
+        prefix = argv[arg];
+      } else {
+        error = true;
+      }
+    }
+    arg++;
+  }
+
+  if (!atacFile || !prefix || error) {
+    fprintf(stderr, "usage: %s [-m | -r] [-g {A | B | g}] <file.atac> <outprefix>\n", argv[0]);
+    fprintf(stderr, "  -m          use matches\n");
+    fprintf(stderr, "  -r          use runs\n");
+    fprintf(stderr, "  -g          use a genome size of g for the Nx computation, defaults to\n");
+    fprintf(stderr, "              the length of the A sequence.  Or use the actual length\n");
+    fprintf(stderr, "              of sequence A or B.\n");
     exit(1);
   }
 
   //  matchList also computes the length and coverage of the matches.
   //
-  matchList     matches(argv[1]);
+  matchList     matches(atacFile, matchesOrRuns);
   FILE         *out;
-  char         *prefix = argv[2];
   char          filename[1024];
 
   //  Generate an Nx plot, and a match length histogram
@@ -88,9 +124,16 @@ main(int argc, char **argv) {
   fclose(out);
 
   //  Compute the total length of the sequence
-  u32bit totalLength = 0;
-  for (u32bit i=0; i<matches._seq1->getNumberOfSequences(); i++)
-    totalLength += matches._seq1->sequenceLength(i);
+  u64bit totalLength = 0;
+  if (genomeSize == 0) {
+    for (u32bit i=0; i<matches._seq1->getNumberOfSequences(); i++)
+      totalLength += matches._seq1->sequenceLength(i);
+  } else if (genomeSize == 1) {
+    for (u32bit i=0; i<matches._seq2->getNumberOfSequences(); i++)
+      totalLength += matches._seq2->sequenceLength(i);
+  } else {
+    totalLength = genomeSize;
+  }
 
   //  Sort the n50 list of lengths
   qsort(n50, matches.numMatches(), sizeof(u32bit), u32bitcompare);
@@ -101,16 +144,16 @@ main(int argc, char **argv) {
   sprintf(filename, "%s.Nx", prefix);
   out = fopen(filename, "w");
 
-  for (u32bit n=1; n<100; n++) {
-    u32bit  limit = totalLength / 100 * n;
-    u32bit  iter  = 0;
-    u32bit  sum   = 0;
+  for (u64bit n=1; n<100; n++) {
+    u64bit  limit = totalLength / 100 * n;
+    u64bit  iter  = 0;
+    u64bit  sum   = 0;
 
     while ((sum < limit) && (iter < matches.numMatches())) {
       sum += n50[iter++];
     }
 
-    fprintf(out, u32bitFMT" "u32bitFMT"\n", n, n50[iter-1]);
+    fprintf(out, u64bitFMT" "u64bitFMT"\n", n, n50[iter-1]);
   }
 
   fclose(out);
