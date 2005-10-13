@@ -82,14 +82,16 @@ const char *usage =
 "                    Builds a map of IIDs from a.fasta and b.fasta that have\n"
 "                    identical sequences.  Format is \"IIDa <-> IIDb\"\n"
 "\n"
-"       --partition n\n"
-"                    Partition the sequences into n roughly equal size pieces\n"
-"\n"
-"       --partition n[gmk]bp\n"
+"       --partition prefix [ n[gmk]bp | n ]\n"
+"       --partitionmap [ n[gmk]bp | n ]\n"
 "                    Partition the sequences into roughly equal size pieces of\n"
-"                    size nbp, nkbp, nmbp or ngbp.  Sequences larger that the\n"
-"                    partition size are in a partition by themself.\n"
-"                    Example: --partition 130mbp\n"
+"                    size nbp, nkbp, nmbp or ngbp; or into n roughly equal sized\n"
+"                    parititions.  Sequences larger that the partition size are\n"
+"                    in a partition by themself.  --partitionmap writes a\n"
+"                    description of the partition to stdout; --partiton creates\n"
+"                    a fasta file 'prefix-###.fasta' for each partition.\n"
+"                    Example: -F some.fasta --partition parts 130mbp\n"
+"                             -F some.fasta --partition parts 16\n"
 "\n"
 "       --checksum a.fasta\n"
 "                    One of three actions:\n"
@@ -412,9 +414,8 @@ printRandomlyGeneratedSequence(u32bit n, u32bit s, u32bit l) {
   char     *seq      = new char [l + 1];
 
   if (s > l) {
-    u32bit t = s;
-    s = l;
-    l = t;
+    fprintf(stderr, "leaff: usage: -G num-seqs min-length max-length\n");
+    exit(1);
   }
 
   if (s == 0)
@@ -422,8 +423,8 @@ printRandomlyGeneratedSequence(u32bit n, u32bit s, u32bit l) {
 
   for (u32bit i=0; i<n; i++) {
     u32bit j = s + (mtRandom32(mtctx) % (l-s));
-    seq[j] = 0;
 
+    seq[j] = 0;
     while (j)
       seq[--j] = bases[mtRandom32(mtctx) & 0x3];            
 
@@ -431,7 +432,7 @@ printRandomlyGeneratedSequence(u32bit n, u32bit s, u32bit l) {
       if (specialDefLine)
         fprintf(stdout, ">%s\n", specialDefLine);
       else
-        fprintf(stdout, ">%lu\n", i);
+        fprintf(stdout, ">"u32bitFMT"\n", i);
 
     fprintf(stdout, "%s\n", seq);
   }
@@ -445,7 +446,7 @@ findSequenceAndPrint(char *id) {
   bool found = false;
 
   if (seqIDtype == 'i')
-    found = f->find((u32bit)atoi(id));
+    found = f->find(strtou32bit(id, 0L));
   else
     found = f->find(id);
 
@@ -471,14 +472,14 @@ printRangeOfSequences(char *argl, char *argh) {
   bool   fail   = false;
 
   if (seqIDtype == 'i') {
-    lowID  = atoi(argl);
+    lowID  = strtou32bit(argl, 0L);
     if (lowID >= f->getNumberOfSequences()) {
       fprintf(stderr, "ERROR: Internal id of %lu for starting sequence is too large; only %lu sequences.\n",
               lowID, f->getNumberOfSequences());
       fail = true;
     }
 
-    highID = atoi(argh);
+    highID = strtou32bit(argh, 0L);
     if (highID >= f->getNumberOfSequences()) {
       fprintf(stderr, "ERROR: Internal id of %lu for ending sequence is too large; only %lu sequences.\n",
               highID, f->getNumberOfSequences());
@@ -826,7 +827,7 @@ partition_s *loadPartition(void) {
 }
 
 void
-outputPartition(partition_s *p, u32bit openP, u32bit n) {
+outputPartition(char *prefix, partition_s *p, u32bit openP, u32bit n) {
 
   //  Check that everything has been partitioned
   //
@@ -834,23 +835,56 @@ outputPartition(partition_s *p, u32bit openP, u32bit n) {
     if (p[i].used == 0)
       fprintf(stderr, "ERROR: Failed to partition "u32bitFMT"\n", i);
 
-  fprintf(stdout, u32bitFMT"\n", openP);
-  for (u32bit o=1; o<=openP; o++) {
-    u32bit  sizeP = 0;
-    for (u32bit i=0; i<n; i++)
-      if (p[i].used == o)
-        sizeP += p[i].length;
-    fprintf(stdout, u32bitFMT"]("u32bitFMT")", o, sizeP);
-    for (u32bit i=0; i<n; i++)
-      if (p[i].used == o)
-        fprintf(stdout, " "u32bitFMT"("u32bitFMT")", p[i].index, p[i].length);
-    fprintf(stdout, "\n");
+  if (prefix) {
+
+    //  This rewrites the source fasta file into partitioned fasta files
+    //
+    for (u32bit o=1; o<=openP; o++) {
+
+      char  filename[1024];
+      sprintf(filename, "%s-"u32bitFMTW(03)".fasta", prefix, o);
+
+      errno = 0;
+      FILE *file = fopen(filename, "w");
+      if (errno)
+        fprintf(stderr, "Couldn't open '%s' for write: %s\n", filename, strerror(errno));
+
+      for (u32bit i=0; i<n; i++)
+        if (p[i].used == o) {
+          f->find(i);
+          FastASequenceInCore *S = f->getSequence();
+          fprintf(file, "%s\n", S->header());
+          fwrite(S->sequence(), sizeof(char), S->sequenceLength(), file);
+          fprintf(file, "\n");
+          delete S;
+        }
+
+      fclose(file);
+    }
+
+  } else {
+
+    //  This dumps the partition information to stdout.
+    //
+    fprintf(stdout, u32bitFMT"\n", openP);
+    for (u32bit o=1; o<=openP; o++) {
+      u32bit  sizeP = 0;
+      for (u32bit i=0; i<n; i++)
+        if (p[i].used == o)
+          sizeP += p[i].length;
+      fprintf(stdout, u32bitFMT"]("u32bitFMT")", o, sizeP);
+      for (u32bit i=0; i<n; i++)
+        if (p[i].used == o)
+          fprintf(stdout, " "u32bitFMT"("u32bitFMT")", p[i].index, p[i].length);
+      fprintf(stdout, "\n");
+    }
+
   }
 }
 
 
 void
-partitionBySize(u64bit partitionSize) {
+partitionBySize(char *prefix, u64bit partitionSize) {
   u32bit        n = f->getNumberOfSequences();
   partition_s  *p = loadPartition();
 
@@ -886,13 +920,13 @@ partitionBySize(u64bit partitionSize) {
     sizeP = 0;
   }
 
-  outputPartition(p, openP-1, n);
+  outputPartition(prefix, p, openP-1, n);
   delete [] p;
 }
 
 
 void
-partitionByBucket(u64bit partitionSize) {
+partitionByBucket(char *prefix, u64bit partitionSize) {
   u32bit        n = f->getNumberOfSequences();
   partition_s  *p = loadPartition();
 
@@ -919,7 +953,7 @@ partitionByBucket(u64bit partitionSize) {
     p[nextS].used = openP+1;
   }
 
-  outputPartition(p, (u32bit)partitionSize, n);
+  outputPartition(prefix, p, (u32bit)partitionSize, n);
   delete [] p;
 }
 
@@ -990,16 +1024,23 @@ processArray(int argc, char **argv) {
     } else if (strncmp(argv[arg], "--mapduplicates", 3) == 0) {
       arg += 2;
       mapDuplicates(argv[arg-1], argv[arg]);
-    } else if (strncmp(argv[arg], "--partition", 3) == 0) {
+    } else if ((strncmp(argv[arg], "--partition", 3) == 0) ||
+               (strncmp(argv[arg], "--partitionmap", 3) == 0)) {
       failIfNoSource();
       failIfNotRandomAccess();
+
+      char *prefix = 0L;
+      if (strcmp(argv[arg], "--partition") == 0) {
+        arg++;
+        prefix = argv[arg];
+      }
 
       arg++;
       //  does the next arg end with gbp, mbp, kbp or bp?  If so,
       //  partition by length, else partition into buckets.
       //
       int     al = (int)strlen(argv[arg]);
-      u64bit  ps = (u32bit)atoi(argv[arg]);
+      u64bit  ps = (u32bit)strtou32bit(argv[arg], 0L);
 
       char a3 = (al<3) ? '0' : (char)tolower(argv[arg][al-3]);
       char a2 = (al<2) ? '0' : (char)tolower(argv[arg][al-2]);
@@ -1015,13 +1056,16 @@ processArray(int argc, char **argv) {
         } else if (isdigit(a3) && (a2 == 'b') && (a1 == 'p')) {
           ps *= 1;
         } else {
-          fprintf(stderr, "Unknown partition option '%s'\n", argv[arg]);
-          exit(1);
+          fprintf(stderr, "Unknown partition option '%s'\n", argv[arg]), exit(1);
         }
 
-        partitionBySize(ps);
+        if (ps == 0)
+          fprintf(stderr, "Unknown or zero partition size '%s'\n", argv[arg]), exit(1);
+        partitionBySize(prefix, ps);
       } else {
-        partitionByBucket(ps);
+        if (ps == 0)
+          fprintf(stderr, "Unknown or zero partition size '%s'\n", argv[arg]), exit(1);
+        partitionByBucket(prefix, ps);
       }
     } else if (strncmp(argv[arg], "--checksum", 3) == 0) {
       arg++;
@@ -1036,11 +1080,11 @@ processArray(int argc, char **argv) {
     } else if (strncmp(argv[arg], "--dumpblocks", 3) == 0) {
       dumpBlocks();
     } else if (strncmp(argv[arg], "--errors", 3) == 0) {
-      int    L = atoi(argv[++arg]);  //  Desired length
-      int    l = 0;                  //  min of desired length, length of sequence
-      int    N = atoi(argv[++arg]);  //  number of copies per sequence
-      int    C = atoi(argv[++arg]);  //  number of mutations per copy
-      double P = atof(argv[++arg]);  //  probability of mutation
+      int    L = strtou32bit(argv[++arg], 0L);  //  Desired length
+      int    l = 0;                             //  min of desired length, length of sequence
+      int    N = strtou32bit(argv[++arg], 0L);  //  number of copies per sequence
+      int    C = strtou32bit(argv[++arg], 0L);  //  number of mutations per copy
+      double P = atof(argv[++arg]);             //  probability of mutation
       
       //  hacking to get rid of 'mode' in simseq (and driver and here)
       //  hacking to load seq
@@ -1107,8 +1151,8 @@ processArray(int argc, char **argv) {
           break;
         case 'L':
           failIfNoSource();
-          printSequenceBetweenSize(atoi(argv[arg+1]),
-                                   atoi(argv[arg+2]));
+          printSequenceBetweenSize(strtou32bit(argv[arg+1], 0L),
+                                   strtou32bit(argv[arg+2], 0L));
           arg += 2;
           break;
         case 'W':
@@ -1116,7 +1160,9 @@ processArray(int argc, char **argv) {
           printSequenceBetweenSize(u32bitZERO, ~u32bitZERO);
           break;
         case 'G':
-          printRandomlyGeneratedSequence(atoi(argv[arg+1]), atoi(argv[arg+2]), atoi(argv[arg+3])+1);
+          printRandomlyGeneratedSequence(strtou32bit(argv[arg+1], 0L),
+                                         strtou32bit(argv[arg+2], 0L),
+                                         strtou32bit(argv[arg+3], 0L)+1);
           arg += 3;
           break;
         case 's':
@@ -1135,7 +1181,7 @@ processArray(int argc, char **argv) {
           failIfNoSource();
           failIfNotRandomAccess();
           f->optimizeRandomAccess();
-          findAndPrintRandomSequences(atoi(argv[++arg]));
+          findAndPrintRandomSequences(strtou32bit(argv[++arg], 0L));
           break;
         case 'q':
           failIfNoSource();
@@ -1150,7 +1196,7 @@ processArray(int argc, char **argv) {
           withLineBreaks = 60;
           if ((argv[arg+1] != 0L) && (argv[arg+1][0] != '-')) {
             arg++;
-            withLineBreaks = atoi(argv[arg]);
+            withLineBreaks = strtou32bit(argv[arg], 0L);
           }
           break;
         case 'u':
@@ -1178,8 +1224,8 @@ processArray(int argc, char **argv) {
           specialDefLine = argv[++arg];
           break;
         case 'e':
-          begPos = atoi(argv[arg+1]);
-          endPos = atoi(argv[arg+2]);
+          begPos = strtou32bit(argv[arg+1], 0L);
+          endPos = strtou32bit(argv[arg+2], 0L);
           arg += 2;
           break;
         case 'm':
