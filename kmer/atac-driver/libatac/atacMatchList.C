@@ -27,7 +27,16 @@
 //  While loading matches, we compute the mapped length and covered
 //  length.
 
-matchList::matchList(char *filename) {
+matchList::matchList(char *filename, char matchOrRun) {
+
+  if ((matchOrRun != 'u') && (matchOrRun != 'x') && (matchOrRun != 'r') && (matchOrRun != 'm')) {
+    fprintf(stderr, "matchList::matchList()-- Invalid value '%c' for matchOrRun, should be:\n");
+    fprintf(stderr, "                         'u' -- ungapped matches, with mismatches\n");
+    fprintf(stderr, "                         'x' -- ungapped matches, exact\n");
+    fprintf(stderr, "                         'm' -- ungapped matches, both 'u' and 'x'\n");
+    fprintf(stderr, "                         'r' -- runs (gapped)\n");
+    exit(1);
+  }
 
   errno = 0;
   FILE   *inFile = fopen(filename, "r");
@@ -84,8 +93,9 @@ matchList::matchList(char *filename) {
     if (inLine[0] == 'M') {
       splitToWords  S(inLine);
 
-      //if ((S[1][0] == 'u') || (S[1][0] == 'x')) {
-      if ((S[1][0] == 'r')) {
+      if ((S[1][0] == matchOrRun) ||
+          ((matchOrRun == 'm') && ((S[1][0] == 'u') || (S[1][0] == 'x')))) {
+
         u32bit  iid1=0, pos1=0, len1=0, ori1=0;
         u32bit  iid2=0, pos2=0, len2=0, ori2=0;
         decodeMatch(S, iid1, pos1, len1, ori1, iid2, pos2, len2, ori2);
@@ -136,6 +146,9 @@ matchList::matchList(char *filename) {
 
     fgets(inLine, 1024, inFile);
   }
+
+  fprintf(stderr, "numberOfItems  %c "u64bitFMT"\n",
+          matchOrRun, (u64bit)_matchesLen);
 
   fprintf(stderr, "totalLength    A "u64bitFMT" B "u64bitFMT"\n",
           (u64bit)length1,

@@ -48,7 +48,7 @@ public:
 
 class matchList {
 public:
-  matchList(char *filename);
+  matchList(char *filename, char matchOrRun = 'm');
   ~matchList() {
     delete _seq1;
     delete _seq2;
