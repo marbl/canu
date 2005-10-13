@@ -3,10 +3,17 @@
 # Takes a partition output from leaff, and splits the original
 # sequence into those partitions.
 
-my $genomeseq = "h.fasta";
-my $genomeout = "h-part";
+if (scalar(@ARGV) != 3) {
+    die "usage: $0 genome.fasta partition prefix\n";
+}
 
-open(P, "/home/bwalenz/src/genomics/leaff/leaff -F $genomeseq --partition 16 |");
+my $genomeseq = shift @ARGV;
+my $partition = shift @ARGV;
+my $genomeout = shift @ARGV;
+
+my $leaff = "/bioinfo/assembly/walenz/src/genomics/osf1/bin/leaff";
+
+open(P, "$leaff -F $genomeseq --partition $partition |");
 my $numParts = int(<P>);
 
 while (<P>) {
@@ -31,7 +38,7 @@ while (<P>) {
 
     @q = sort { $a <=> $b } @q;
 
-    open(Z, "| /home/bwalenz/src/genomics/leaff/leaff -F $genomeseq -A - > $genomeout-$id.fasta");
+    open(Z, "| $leaff -F $genomeseq -A - > $genomeout-$id.fasta");
     foreach my $x (@q) {
         print Z "-s $x\n";
     }
