@@ -1,5 +1,5 @@
 #!/usr/local/bin/perl
-# $Id: runTampa.pl,v 1.3 2005-09-22 21:27:42 catmandew Exp $
+# $Id: runTampa.pl,v 1.4 2005-10-14 17:48:36 catmandew Exp $
 #
 # Wrapper to run and post-process results from TAMPA
 # (Tool for Analyzing Mate Pairs in Assemblies)
@@ -75,7 +75,7 @@ my %PARAMETERS = ("assemblyPrefix" => "",
                   "ataOutput" => 0,
                   "rawOutput" => 0,);
 
-my $MY_VERSION = " Version 1.01 (Build " . (qw/$Revision: 1.3 $/ )[1]. ")";
+my $MY_VERSION = " Version 1.01 (Build " . (qw/$Revision: 1.4 $/ )[1]. ")";
 my $MY_APPLICATION = "TAMPA";
 
 my $REFERENCE = qq~
@@ -362,9 +362,14 @@ if(!$PARAMETERS{"dontDoIntra"})
 {
   print "\n\nProcessing intra-sequence mate pairs\n\n"
     if($PARAMETERS{"verboseLevel"} > 1);
+
+  # create concatenated breakpoints file
+  my $bfn = $PARAMETERS{"assemblyPrefix"} . ".intra.breakpoints.tampa";
+  my $bfh = new FileHandle $bfn, "w" or
+      die "Failed to open $bfn for writing";
   
   # create csv file for sequence-by-sequence summary
-  my $sfn = $PARAMETERS{"assemblyPrefix"} . ".intra.spreadsheet.txt";
+  my $sfn = $PARAMETERS{"assemblyPrefix"} . ".intra.summary.tampa";
   my $sfh = new FileHandle $sfn, "w" or
       die "Failed to open $sfn for writing";
 
@@ -424,6 +429,16 @@ if(!$PARAMETERS{"dontDoIntra"})
     print "Running $command\n" if($PARAMETERS{"verboseLevel"} > 1);
     system($command) == 0
       or die "\nFailed to run command\n$command\n\n";
+
+    # add breakpoints to concatenated breakpoints file
+    $ifn = $PARAMETERS{"assemblyPrefix"} . "." . $intra . ".intra.breakpoints.txt";
+    my $ifh = new FileHandle $ifn, "r" or
+      die "Failed to open $ofn for reading";
+    while(<$ifh>)
+    {
+      s/[\n\r\cZ]//g;
+      printf($bfh "%s\t%s\n", $intra, $_);
+    }
     
     # parse summary file & add to summary spreadsheet file
     printf $sfh "$intra";
@@ -476,6 +491,7 @@ if(!$PARAMETERS{"dontDoIntra"})
     }
     printf $sfh "\n";
   }
+  close($bfh);
 
   # print totals
   printf $sfh "\nTotals";
@@ -497,8 +513,13 @@ if(!$PARAMETERS{"dontDoInter"})
   print "\n\nProcessing inter-sequence mate pairs\n\n"
     if($PARAMETERS{"verboseLevel"} > 1);
 
+  # create concatenated breakpoints file
+  my $bfn = $PARAMETERS{"assemblyPrefix"} . ".inter.breakpoints.tampa";
+  my $bfh = new FileHandle $bfn, "w" or
+      die "Failed to open $bfn for writing";
+  
   # create csv file for sequence-by-sequence summary
-  my $sfn = $PARAMETERS{"assemblyPrefix"} . ".inter.spreadsheet.txt";
+  my $sfn = $PARAMETERS{"assemblyPrefix"} . ".inter.summary.tampa";
   my $sfh = new FileHandle $sfn, "w" or
       die "Failed to open $sfn for writing";
 
@@ -541,6 +562,16 @@ if(!$PARAMETERS{"dontDoInter"})
     system($command) == 0
       or die "\nFailed to run command\n$command\n\n";
 
+    # add breakpoints to concatenated breakpoints file
+    $ifn = $PARAMETERS{"assemblyPrefix"} . "." . $inter . ".inter.breakpoints.txt";
+    my $ifh = new FileHandle $ifn, "r" or
+      die "Failed to open $ofn for reading";
+    while(<$ifh>)
+    {
+      s/[\n\r\cZ]//g;
+      printf($bfh "%s\t%s\n", $inter, $_);
+    }
+    
     # parse summary file & add to summary spreadsheet file
     printf $sfh "$inter";
     my @vals;
@@ -566,6 +597,7 @@ if(!$PARAMETERS{"dontDoInter"})
     }
     printf $sfh "\n";
   }
+  close($bfh);
 
   # print totals
   printf $sfh "\nTotals";
