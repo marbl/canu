@@ -1,5 +1,5 @@
 #!/usr/local/bin/perl
-# $Id: runTampa.pl,v 1.4 2005-10-14 17:48:36 catmandew Exp $
+# $Id: runTampa.pl,v 1.5 2005-10-14 20:26:37 catmandew Exp $
 #
 # Wrapper to run and post-process results from TAMPA
 # (Tool for Analyzing Mate Pairs in Assemblies)
@@ -75,7 +75,7 @@ my %PARAMETERS = ("assemblyPrefix" => "",
                   "ataOutput" => 0,
                   "rawOutput" => 0,);
 
-my $MY_VERSION = " Version 1.01 (Build " . (qw/$Revision: 1.4 $/ )[1]. ")";
+my $MY_VERSION = " Version 1.01 (Build " . (qw/$Revision: 1.5 $/ )[1]. ")";
 my $MY_APPLICATION = "TAMPA";
 
 my $REFERENCE = qq~
@@ -367,6 +367,7 @@ if(!$PARAMETERS{"dontDoIntra"})
   my $bfn = $PARAMETERS{"assemblyPrefix"} . ".intra.breakpoints.tampa";
   my $bfh = new FileHandle $bfn, "w" or
       die "Failed to open $bfn for writing";
+  my $wroteToBFH = 0;
   
   # create csv file for sequence-by-sequence summary
   my $sfn = $PARAMETERS{"assemblyPrefix"} . ".intra.summary.tampa";
@@ -432,12 +433,20 @@ if(!$PARAMETERS{"dontDoIntra"})
 
     # add breakpoints to concatenated breakpoints file
     $ifn = $PARAMETERS{"assemblyPrefix"} . "." . $intra . ".intra.breakpoints.txt";
-    my $ifh = new FileHandle $ifn, "r" or
-      die "Failed to open $ofn for reading";
-    while(<$ifh>)
+    if(-f $ifn)
     {
-      s/[\n\r\cZ]//g;
-      printf($bfh "%s\t%s\n", $intra, $_);
+      my $ifh = new FileHandle $ifn, "r" or
+        die "Failed to open $ifn for reading";
+      my $numLines = 0;
+      while(<$ifh>)
+      {
+        s/[\n\r\cZ]//g;
+        $numLines++;
+
+        next if($numLines == 1 && $wroteToBFH == 1);
+        printf($bfh "%s\n", $_);
+      }
+      $wroteToBFH = 1;
     }
     
     # parse summary file & add to summary spreadsheet file
@@ -517,6 +526,7 @@ if(!$PARAMETERS{"dontDoInter"})
   my $bfn = $PARAMETERS{"assemblyPrefix"} . ".inter.breakpoints.tampa";
   my $bfh = new FileHandle $bfn, "w" or
       die "Failed to open $bfn for writing";
+  my $wroteToBFH = 0;
   
   # create csv file for sequence-by-sequence summary
   my $sfn = $PARAMETERS{"assemblyPrefix"} . ".inter.summary.tampa";
@@ -564,12 +574,20 @@ if(!$PARAMETERS{"dontDoInter"})
 
     # add breakpoints to concatenated breakpoints file
     $ifn = $PARAMETERS{"assemblyPrefix"} . "." . $inter . ".inter.breakpoints.txt";
-    my $ifh = new FileHandle $ifn, "r" or
-      die "Failed to open $ofn for reading";
-    while(<$ifh>)
+    if(-f $ifn)
     {
-      s/[\n\r\cZ]//g;
-      printf($bfh "%s\t%s\n", $inter, $_);
+      my $ifh = new FileHandle $ifn, "r" or
+        die "Failed to open $ifn for reading";
+      my $numLines = 0;
+      while(<$ifh>)
+      {
+        s/[\n\r\cZ]//g;
+        $numLines++;
+
+        next if($numLines == 1 && $wroteToBFH == 1);
+        printf($bfh "%s\n", $_);
+      }
+      $wroteToBFH = 1;
     }
     
     # parse summary file & add to summary spreadsheet file

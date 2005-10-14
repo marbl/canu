@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: processIntra.cc,v 1.7 2005-09-22 21:27:42 catmandew Exp $ */
+/* $Id: processIntra.cc,v 1.8 2005-10-14 20:26:37 catmandew Exp $ */
 #include <cstdio>  // for sscanf
 #include <iostream>
 #include <iomanip>
@@ -165,19 +165,33 @@ void PrintOutput(vector<CompositeMPPolygon<UNIT_TYPE> > & printmpps,
                  bool printGnuplot)
 {
   char label[1024];
+  char type;
+  bool polymorphic;
   char outFilename[1024];
   ofstream ataOS, gnuOS;
 
+  polymorphic = (strcmp(status, "polymorphic") == 0);
   switch(mpii)
   {
     case MPI_STRETCHED:
       sprintf(label, "insertion");
+      type = 's';
       break;
     case MPI_COMPRESSED:
       sprintf(label, "deletion");
+      type = 'd';
+      break;
+    case MPI_INVERSION:
+      sprintf(label, MatePairLabel[mpii]);
+      type = 'v';
+      break;
+    case MPI_TRANSPOSITION:
+      sprintf(label, MatePairLabel[mpii]);
+      type = 't';
       break;
     default:
       sprintf(label, MatePairLabel[mpii]);
+      type = '?';
       break;
   }
   
@@ -196,12 +210,6 @@ void PrintOutput(vector<CompositeMPPolygon<UNIT_TYPE> > & printmpps,
             assembly, seqID, status, label);
     gnuOS.open(outFilename, ios::out);
   }
-
-  listOS << "======> " << label << " <======\n";
-  if(mpii == MPI_COMPRESSED)
-    PrintSingleBPFieldLabels(listOS);
-  else
-    PrintDoubleBPFieldLabels(listOS);
 
   vector<CompositeMPPolygon<UNIT_TYPE> >::iterator mppIter;
   for(mppIter = printmpps.begin(); mppIter != printmpps.end(); mppIter++)
@@ -222,10 +230,8 @@ void PrintOutput(vector<CompositeMPPolygon<UNIT_TYPE> > & printmpps,
       }
     }
 
-    mppIter->printSummary(listOS);
+    mppIter->printSummary(listOS, seqID, type, polymorphic);
   }
-  
-  listOS << "\n";
   
   if(printGnuplot)
     gnuOS.close();
@@ -578,6 +584,14 @@ int main(int argc, char ** argv)
       exit(-1);
     }
   }
+  listOS << "SeqID\t"
+         << "LeftBpILeftC\t"
+         << "Length\t"
+         << "RightBpILeftC/MinDel\t"
+         << "Length/MaxDel\t"
+         << "Type\t"
+         << "PolyMorphic\t"
+         << "NumMPs\n";
   
   vector<CompositeMPPolygon<UNIT_TYPE> > cmpps[MPI_NUM_INDICES]; // clustered
   list<Rectangle<int, UNIT_TYPE> > rects1;
@@ -621,13 +635,13 @@ int main(int argc, char ** argv)
         FilterMislabelledLibs(cmpps[mpii], misls, 10);
         if(misls.size() > 0)
         {
-          listOS << "Possibly mislabeled clone lib clusters of type\n";
-
           // PrintOutput] assumes rotation to genomic axis
+          /*
           PrintOutput(misls, (MatePairIndex_e) mpii,
                       mpps[mpii], mppsMap[mpii],
-                      assembly, seqID, "misLabeled", numStddevs,
+                      assembly, seqID, "mislabeled", numStddevs,
                       &relativeID, listOS, printATA, printGnuplot);
+          */
         }
       }
       
@@ -643,11 +657,9 @@ int main(int argc, char ** argv)
                                 (MatePairIndex_e) mpii);
           else
             RefineInversions(cmpps[mpii], polys, smpsv, filterThresh);
-            
+
           if(polys.size() > 0)
           {
-            listOS << "Possibly polymorphic regions of type\n";
-            
             PrintOutput(polys, (MatePairIndex_e) mpii,
                         mpps[mpii], mppsMap[mpii],
                         assembly, seqID, "polymorphic", numStddevs,
@@ -666,20 +678,18 @@ int main(int argc, char ** argv)
             cerr << "# MBR intersection: " << *mppIter << endl << endl;
           }
 #endif
+          /*
           {
-            listOS << "Problematic sets of type\n";
-
             PrintOutput(probs, (MatePairIndex_e) mpii,
                         mpps[mpii], mppsMap[mpii],
                         assembly, seqID, "problematic", numStddevs,
                         &relativeID, listOS, printATA, printGnuplot);
           }
+          */
         }
         
         if(cmpps[mpii].size() > 0)
         {
-          listOS << "Confirmed sets of type\n";
-
           PrintOutput(cmpps[mpii], (MatePairIndex_e) mpii,
                       mpps[mpii], mppsMap[mpii],
                       assembly, seqID, "confirmed", numStddevs,
@@ -709,8 +719,6 @@ int main(int argc, char ** argv)
        << " mate pair sets\n";
   if(cmpps[MPI_TRANSPOSITION].size() > 0)
   {
-    listOS << "Confirmed sets of type\n";
-    
     PrintOutput(cmpps[MPI_TRANSPOSITION], MPI_TRANSPOSITION,
                 mpps[MPI_TRANSPOSITION], mppsMap[MPI_TRANSPOSITION],
                 assembly, seqID, "confirmed", numStddevs,

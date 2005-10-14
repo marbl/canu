@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: CompositeMPPolygon.h,v 1.6 2005-09-21 20:13:07 catmandew Exp $ */
+/* $Id: CompositeMPPolygon.h,v 1.7 2005-10-14 20:26:37 catmandew Exp $ */
 #ifndef COMPOSITEMPPOLYGON_H
 #define COMPOSITEMPPOLYGON_H
 
@@ -303,26 +303,31 @@ public:
         }
       }
     }
-  void printSummary(ostream & os) const
+  void printSummary(ostream & os, char * seqID,
+                    char type, bool polymorphic) const
     {
+      os << seqID << "\t";
       if(this->getMPIndex() == MPI_COMPRESSED)
       {
         os << this->getMinX() << "\t"
            << this->getMaxX() - this->getMinX() << "\t"
            << this->getMinY() << "\t"
-           << this->getMaxY() << "\t"
-           << this->getNumMPs() << endl;
+           << this->getMaxY() << "\t";
       }
       else
       {
         os << this->getMinX() << "\t"
            << this->getMaxX() - this->getMinX() << "\t"
            << this->getMinY() << "\t"
-           << this->getMaxY() - this->getMinY() << "\t"
+           << this->getMaxY() - this->getMinY() << "\t";
+          /*
            << ((this->getMaxY() + this->getMinY()) -
-               (this->getMaxX() + this->getMinX())) / 2 << "\t"
-           << this->getNumMPs() << endl;
+               (this->getMaxX() + this->getMinX())) / 2 << "\t";
+          */
       }
+      os << type << "\t"
+         << (polymorphic ? "Y" : "N") << "\t"
+         << this->getNumMPs() << endl;
     }
 
 private:

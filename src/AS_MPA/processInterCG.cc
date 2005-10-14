@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: processInterCG.cc,v 1.7 2005-09-22 21:27:42 catmandew Exp $ */
+/* $Id: processInterCG.cc,v 1.8 2005-10-14 20:26:37 catmandew Exp $ */
 #include <cstdio>  // for sscanf
 #include <iostream>
 #include <iomanip>
@@ -243,6 +243,14 @@ int main(int argc, char ** argv)
     cerr << "Failed to open " << fname << " for writing\n";
     exit(-1);
   }
+  listOS << "thisSeqID\t"
+         << "thisLeft\t"
+         << "thisLength\t"
+         << "otherSeqID\t"
+         << "otherLeft\t"
+         << "otherLength\t"
+         << "Orientation\t"
+         << "NumMPs\n";
   
   ofstream gnuOS;
   if(printGnuplot)
@@ -377,6 +385,7 @@ int main(int argc, char ** argv)
               mppsMap[mpii][cmpps[mpii][i].getMP(j).getLeftFragUID()].printForGnuplot(gnuOS, CR_NATIVE);
           }
           {
+            char orient;
             UNIT_TYPE leftThis, rightThis, leftOther, rightOther;
             UNIT_TYPE val =
               cmpps[mpii][i].getMP(0).getRightCoord() - SEQ_OFFSET;
@@ -406,7 +415,7 @@ int main(int argc, char ** argv)
                         << assembly << ":" << otherSeqID << " "
                         << leftOther << " " << rightOther - leftOther << " 1 "
                         << "> /weight=" << cmpps[mpii][i].getNumMPs() << endl;
-                listOS << "I\t";
+                orient = 'I';
                 break;
               case MPI_NORMAL:
                 if(printATA)
@@ -416,7 +425,7 @@ int main(int argc, char ** argv)
                         << assembly << ":" << otherSeqID << " "
                         << leftOther << " " << rightOther - leftOther << " -1 "
                         << "> /weight=" << cmpps[mpii][i].getNumMPs() << endl;
-                listOS << "N\t";
+                orient = 'N';
                 break;
               case MPI_ANTINORMAL:
                 if(printATA)
@@ -426,7 +435,7 @@ int main(int argc, char ** argv)
                         << assembly << ":" << otherSeqID << " "
                         << leftOther << " " << rightOther - leftOther << " 1 "
                         << "> /weight=" << cmpps[mpii][i].getNumMPs() << endl;
-                listOS << "A\t";
+                orient = 'A';
                 break;
               case MPI_OUTTIE:
                 if(printATA)
@@ -436,7 +445,7 @@ int main(int argc, char ** argv)
                         << assembly << ":" << otherSeqID << " "
                         << leftOther << " " << rightOther - leftOther << " -1 "
                         << "> /weight=" << cmpps[mpii][i].getNumMPs() << endl;
-                listOS << "O\t";
+                orient = 'O';
                 break;
               default:
                 cerr << "Unknown matepair type: " << mpii << endl;
@@ -445,11 +454,13 @@ int main(int argc, char ** argv)
             } // switch
             
             // print basic output
-            listOS << leftThis << "\t"
+            listOS << sequence << "\t"
+                   << leftThis << "\t"
                    << rightThis - leftThis << "\t"
+                   << otherSeqID << "\t"
                    << leftOther << "\t"
                    << rightOther - leftOther << "\t"
-                   << otherSeqID << "\t"
+                   << orient << "\t"
                    << cmpps[mpii][i].getNumMPs() << endl;
             
           } // faux scope
