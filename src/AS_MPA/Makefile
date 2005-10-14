@@ -198,10 +198,10 @@ all: $(OBJECTS) $(LIBRARIES) $(PROGS) $(SCRIPTS)
 	chmod 775 $(LOCAL_BIN)/processHiLoInterChromIntervalFiles.sh
 	cp -f sim4db2tampa.pl $(LOCAL_BIN)
 	chmod 775 $(LOCAL_BIN)/sim4db2tampa.pl
-	cp -f runTampa.pl $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/runTampa.pl
-	cp -f asm2TampaResults.pl $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/asm2TampaResults.pl
+	cp -f runTampa.pl $(LOCAL_BIN)/runTampa
+	chmod 775 $(LOCAL_BIN)/runTampa
+	cp -f asm2TampaResults.pl $(LOCAL_BIN)/asm2TampaResults
+	chmod 775 $(LOCAL_BIN)/asm2TampaResults
 	cp -f relabelCloneLibs.pl $(LOCAL_BIN)
 	chmod 775 $(LOCAL_BIN)/relabelCloneLibs.pl
 	cp -f reestimateAllLibs.sh $(LOCAL_BIN)
