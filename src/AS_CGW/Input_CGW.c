@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.7 2005-09-26 20:46:58 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.8 2005-10-19 19:45:22 brianwalenz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -1469,8 +1469,15 @@ void ProcessFrags(void)
       j = GKPLink.frag2;
       {
 	InfoByIID *infoj = GetInfoByIID(ScaffoldGraph->iidToFragIndex,j);
-	  
-	if(!infoj->set){ // 2nd fragment is not part of assembly input
+
+        //  BPW has seen one case where infoj was not defined -- it
+        //  was the last frag in the store, and that frag was deleted.
+        //  He suspected that the ScaffoldGraph was truncated, and
+        //  returning NULL instead of an object with 'set' of 0.  He
+        //  didn't check if that was true or not, but, hey, if it's
+        //  not in the ScaffoldGraph, it's still not in the assembly!
+        //
+	if((!infoj) || (!infoj->set)){ // 2nd fragment is not part of assembly input
 	  fprintf(stderr,"* Fragment with iid " F_CID ", mate of fragment with iid " F_CID " is NOT in assembly\n",
 		  GKPLink.frag2, GKPLink.frag1);
 	  continue;
