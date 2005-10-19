@@ -103,6 +103,10 @@ Overlap *Copy_Overlap(Overlap *ovl);
 #define AS_ANALYZE_INSERTS       2
 #define AS_ANALYZE_SUBSTITUTIONS 3
 
+#if 0
+
+//  2005-oct-19, BPW, dead code.
+
 int *Analyze_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
                         OverlapMesg *align, int amode,
                         int *alen, int *blen, int *del, int *sub, int *ins);
@@ -116,15 +120,19 @@ int *Analyze_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
      sub  - # of substitutions,
      ins  - # of unaligned symbols in b.                                 */
 
-int *Analyze_Affine_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
-                        OverlapMesg *align, int amode,
-                        int *alen, int *blen, int *del, int *sub, int *ins,
-			int *affdel, int *affins, 
-			int *blockdel, int *blockins, int blocksize);
-/* Just like Analyze_Overlap_AS with addition of evaluation of affine model */
-/* Analyze the overlap between fragments a and b.
-   Returns a -1 terminated list of the positions in the a sequences at
-   which an error of type "amode" occurs, as well as:
+#endif
+
+void Analyze_Affine_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
+                               OverlapMesg *align, int amode,
+                               int *alen, int *blen,
+                               int *del, int *sub, int *ins,
+                               int *affdel, int *affins, 
+                               int *blockdel, int *blockins, int blocksize,
+                               int *biggestBlock);
+/* Just like Analyze_Overlap_AS with addition of evaluation of affine model
+   Analyze the overlap between fragments a and b.
+   Returns:  (previous versions returned a list of positions at which these
+   errors occured, but that was buggy and not used)
      alen - # of a symbols in overlap,
      blen - # of b symbols in overlap,
      del  - # of unaligned symbols in a,
@@ -134,16 +142,12 @@ int *Analyze_Affine_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
      affins - # of runs of unaligned symbols in b,
      blockdel - # of runs of size > blocksize of unaligned symbols in a,
      blockins - # of runs of size > blocksize of unaligned symbols in b,
-     const blocksize - min length of an indel to count as a block.  */
+     const blocksize - min length of an indel to count as a block.
+     optional biggestBlock - the length of the largest mismatch, OK to give it NULL here
+
+*/
 
 
-
-int *Analyze_Affine_Overlap_IndelSize_AS(InternalFragMesg *a, InternalFragMesg *b,
-                        OverlapMesg *align, int amode,
-                        int *alen, int *blen, int *del, int *sub, int *ins,
-			int *affdel, int *affins, 
-			int *blockdel, int *blockins, int blocksize,int *biggestBlock);
-/* Just like Analyze_Affin_Overlap_AS with addition of evaluation of biggest block mismatch */
 
 
 OverlapMesg *QV_ReAligner_AS(InternalFragMesg *a, InternalFragMesg *b,

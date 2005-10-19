@@ -371,7 +371,7 @@ int main(int argc, char *argv[])
 	      
 #define AFFINEBLOCKSIZE 4
 	      Analyze_Affine_Overlap_AS(&A,&B,O,AS_ANALYZE_ALL,&alen,&blen,&del,&sub,&ins,
-					&affdel,&affins,&blockdel,&blockins,AFFINEBLOCKSIZE);
+					&affdel,&affins,&blockdel,&blockins,AFFINEBLOCKSIZE, NULL);
 	      
 	      errRate = (sub+ins+del)/(double)(alen+ins);
 	      

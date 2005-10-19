@@ -28,6 +28,9 @@
 #include "AS_ALN_aligners.h"
 #include "AS_ALN_local.h"
 
+//  Setting this to 4 causes a crash in
+//     print_piece (O=0x57179d0, piece=0, aseq=0x5815c5f "", bseq=0x580c9cf "") at AS_ALN_loverlapper.c:186
+//
 #define DEBUG_LOCALOVL 0
 #if DEBUG_LOCALOVL > 3
 #define DEBUG_TRACE
@@ -1332,7 +1335,7 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
       }
 
 
-    } else {
+    } else {  //  asymmetricEnds == 0
 
 
       if(min(O->chain[0].agap,
@@ -1360,7 +1363,7 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
       }
 
 
-    }
+    }  //  if asymmetricEnds
 
 
 #ifndef CHECK_FINAL_QUALITY
@@ -1771,7 +1774,7 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
       }
 
 
-    } else {
+    } else {  //  asymmetricEnds == 0
 
 
       if(min(O->chain[0].agap+max(O->begpos,0),
@@ -1799,7 +1802,7 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
       }
 
 
-    }
+    }  //  if asymmetricEnds
 
 
     //////////
@@ -1808,7 +1811,7 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
       Complement_Fragment_AS(b);
     }
 
-    Analyze_Affine_Overlap_IndelSize_AS(a,b,&QVBuffer,AS_ANALYZE_ALL,&alen,&blen,&del,&sub,&ins,
+    Analyze_Affine_Overlap_AS(a,b,&QVBuffer,AS_ANALYZE_ALL,&alen,&blen,&del,&sub,&ins,
 			      &affdel,&affins,&blockdel,&blockins,AFFINEBLOCKSIZE,&max_indel_AS_ALN_LOCOLAP_GLOBAL);
 
     //    {
@@ -1819,10 +1822,8 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
       Complement_Fragment_AS(b);
     }
 
-    errRate = (sub+ins+del)/(double)(alen+ins);
-		
-    errRateAffine = (sub+affins+affdel)/
-      (double)(alen-del+affins+affdel);
+    errRate       = (sub+   ins+   del) / (double)(alen+      ins);
+    errRateAffine = (sub+affins+affdel) / (double)(alen-del+affins+affdel);
 
 
     if(errRateAffine>erate){
@@ -1849,7 +1850,7 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
   }
 #else
     Analyze_Affine_Overlap_AS(a,b,&QVBuffer,AS_ANALYZE_ALL,&alen,&blen,&del,&sub,&ins,
-			      &affdel,&affins,&blockdel,&blockins,AFFINEBLOCKSIZE);
+			      &affdel,&affins,&blockdel,&blockins,AFFINEBLOCKSIZE, 0L);
 #endif
 
 

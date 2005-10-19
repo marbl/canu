@@ -476,9 +476,10 @@ void Print_Overlap_AS(FILE *file, InternalFragMesg *a,
 #ifdef DEBUG
       { int i;
 
-        fprintf(file,"\nUncompressed trace:\n");
+        fprintf(stderr,"Print_Overlap_AS()-- uncompressed trace\n");
         for (i = 0; trace[i] != 0; i++)
-          fprintf(file,"  %3d\n",trace[i]);
+          fprintf(file," %3d",trace[i]);
+        fprintf(stderr, "\n");
       }
 #endif
 
@@ -496,6 +497,10 @@ void Print_Overlap_AS(FILE *file, InternalFragMesg *a,
     }
 } 
 
+#if 0
+
+//  2005-oct-19, BPW, dead code.
+
 /*** OVERLAP ANALYSIS ROUTINE ***/
 
 /* Analyze an alignment between a and b given in trace (unpacked).
@@ -508,7 +513,6 @@ void Print_Overlap_AS(FILE *file, InternalFragMesg *a,
      sub  - # of substitutions,
      ins  - # of unaligned symbols in b.
 */
-
 static int *AnalyzeAlign(int prefix, int suffix,
 			 char *a, char *b, int *trace, int amode,
                          int *alen, int *blen, int *del, int *sub, int *ins)
@@ -634,66 +638,51 @@ static int *AnalyzeAlign(int prefix, int suffix,
   return (mismatch);
 }
 
+#endif
 
-/* Analyze an alignment between a and b given in trace (unpacked).
-   Prefix gives the length of the initial prefix of a that is unaligned.
-   Suffix gives the length of the bhang: positive if there is a suffix of
-      b that is unaligned, negative if there is a suffix of a instead.
-   Returns a -1 terminated list of the positions in the a sequences at
-   which errors of type amode occur, as well as:
-     alen - # of a symbols in overlap,
-     blen - # of b symbols in overlap,
-     del  - # of unaligned symbols in a,
-     sub  - # of substitutions,
-     ins  - # of unaligned symbols in b,
-     affdel - # of runs of unaligned symbols in a,
-     affins - # of runs of unaligned symbols in b.
-     blockdel - # of runs of size > blocksize of unaligned symbols in a,
-     blockins - # of runs of size > blocksize of unaligned symbols in b,
-     const blocksize - min length of an indel to count as a block.
 
-*/
 
-static int *AnalyzeAffineAlign(int prefix, int suffix, 
-			 char *a, char *b, int *trace, int amode,
-                         int *alen, int *blen, int *del, int *sub, int *ins,
-			 int *affdel, int *affins,
-			 int *blockdel, int *blockins, int blocksize)
-{ int i, j, oa, ob;
+
+// Analyze an alignment between a and b given in trace (unpacked).
+// Prefix gives the length of the initial prefix of a that is unaligned.
+// Suffix gives the length of the bhang: positive if there is a suffix of
+//    b that is unaligned, negative if there is a suffix of a instead.
+// Returns a -1 terminated list of the positions in the a sequences at
+// which errors of type amode occur, as well as:
+//   alen - # of a symbols in overlap,
+//   blen - # of b symbols in overlap,
+//   del  - # of unaligned symbols in a,
+//   sub  - # of substitutions,
+//   ins  - # of unaligned symbols in b,
+//   affdel - # of runs of unaligned symbols in a,
+//   affins - # of runs of unaligned symbols in b.
+//   blockdel - # of runs of size > blocksize of unaligned symbols in a,
+//   blockins - # of runs of size > blocksize of unaligned symbols in b,
+//   const blocksize - min length of an indel to count as a block.
+//   optional biggestBlock - the length of the largest mismatch
+//
+//  Our only caller of this function (and
+//  AnalyzeAffineAlign_MaxIndexSize) never used the return value
+//  mismatch, so it's gone now.  See comments at
+//  Analyze_Affine_Overlap_IndelSize_AS() below.
+//
+void
+AnalyzeAffineAlign(int prefix, int suffix, 
+                   char *a, char *b, int *trace, int amode,
+                   int *alen, int *blen, int *del, int *sub, int *ins,
+                   int *affdel, int *affins,
+                   int *blockdel, int *blockins, int blocksize,
+                   int *biggestBlock) {
+  int i, j;
   int inserts, deletes, subtit;
   int affinserts, affdeletes, lastindel,blockcount;
   int alength, blength;
-  int *amismatch, *bmismatch;
-  int dodels, doins, dosubs;
-  static int *mismatch = NULL;
-  static int mislen  = -1;
 
-  alength = strlen(a);
-  blength = strlen(b);
-  alength += 1;
-  blength += 1;
-  if (mislen < alength+blength)
-    { mislen = (int)(1.4*(alength+blength)) + 500;
-      fprintf(stderr,"(Re)allocating %d for mismatch at %d\n",mislen,__LINE__);
-      mismatch = (int *) ckrealloc(mismatch,mislen*sizeof(int));
-    } 
-  amismatch = mismatch;
-  bmismatch = mismatch + alength;
+  if (biggestBlock)
+    *biggestBlock =0;
 
-  dodels = doins = dosubs = 0;
-  if (amode == AS_ANALYZE_ALL)
-    dodels = doins = dosubs = 1;
-  else if (amode == AS_ANALYZE_DELETES)
-    dodels = 1;
-  else if (amode == AS_ANALYZE_INSERTS)
-    doins = 1;
-  else
-    dosubs = 1;
-  
   a -= 1;
   b -= 1;
-  oa = 0;
-  ob = 0;
   i  = prefix+1;
   j  = 1;
 
@@ -709,89 +698,67 @@ static int *AnalyzeAffineAlign(int prefix, int suffix,
   *blockins=0;
   *blockdel=0;
 
-  { int p, c;      /* Output columns of alignment til reach trace end */
+  {
+    int p, c;      /* Output columns of alignment til reach trace end */
 
     p = 0;
-    while ((c = trace[p++]) != 0)
-      if (c < 0)
-        { if(c!=lastindel)
-	    {
-	      affinserts++;
-	      blockcount=1;
-	    } else {
-	      (*blockins)+=(++blockcount == blocksize);
-	    }
-	  lastindel=c;
-	  c = -c;
-          while (i != c)
-            { if (a[i++] != b[j++])
-                { subtit += 1;
-                  if (dosubs)
-                    { amismatch[oa++] = i-1;
-                      bmismatch[ob++] = j-1;
-                    }
-                }
-              alength += 1;
-              blength += 1;
-            }
-          inserts += 1;
-          if (dodels)
-            amismatch[oa++] = i;
-          if (doins)
-            bmismatch[ob++] = j;
-          blength += 1;
-          j += 1;
+    while ((c = trace[p++]) != 0) {
+      if (c < 0) {
+        if(c!=lastindel) {
+          affinserts++;
+          blockcount=1;
+        } else {
+          (*blockins)+=(++blockcount == blocksize);
+          if ((biggestBlock) && (blockcount > *biggestBlock))
+              *biggestBlock = blockcount;
         }
-      else
-        { if(c!=lastindel)
-	    { affdeletes++;
-	      blockcount=1;
-  	    } else {
-	      (*blockdel)+=(++blockcount == blocksize);
-	    }
-	  lastindel=c;
-	  while (j != c)
-            { if (a[i++] != b[j++])
-                { subtit += 1;
-                  if (dosubs)
-                    { amismatch[oa++] = i-1;
-                      bmismatch[ob++] = j-1;
-                    }
-                }
-              alength += 1;
-              blength += 1;
-            }
-          deletes += 1;
-          if (doins)
-            amismatch[oa++] = i;
-          if (dodels)
-            bmismatch[ob++] = j;
+        lastindel=c;
+        c = -c;
+        while (i != c) {
+          if (a[i++] != b[j++])
+            subtit += 1;
           alength += 1;
-          i += 1;
+          blength += 1;
         }
-
-  }
-
-  { int x, y;     /* Output remaining column including unaligned suffix */
-
-    while ((x = a[i++]) != 0)
-      { if ((y = b[j++]) != 0){
-          if (x != y)
-            { subtit += 1;
-              if (dosubs)
-                { amismatch[oa++] = i-1;
-                  bmismatch[ob++] = j-1;
-                }
-            }
-	  alength += 1;
-	  blength += 1;
-      } else
-          break;
+        inserts += 1;
+        blength += 1;
+        j += 1;
+      } else {
+        if(c!=lastindel) {
+          affdeletes++;
+          blockcount=1;
+        } else {
+          (*blockdel)+=(++blockcount == blocksize);
+          if ((biggestBlock) && (blockcount > *biggestBlock))
+              *biggestBlock = blockcount;
+        }
+        lastindel=c;
+        while (j != c) {
+          if (a[i++] != b[j++])
+            subtit += 1;
+          alength += 1;
+          blength += 1;
+        }
+        deletes += 1;
+        alength += 1;
+        i += 1;
       }
+    }
   }
 
-  amismatch[oa] = -1;
-  bmismatch[ob] = -1;
+  {
+    int x, y;     /* Output remaining column including unaligned suffix */
+
+    while ((x = a[i++]) != 0) {
+      if ((y = b[j++]) != 0){
+        if (x != y)
+          subtit += 1;
+        alength += 1;
+        blength += 1;
+      } else
+        break;
+    }
+  }
 
   *alen = alength;
   *blen = blength;
@@ -800,166 +767,13 @@ static int *AnalyzeAffineAlign(int prefix, int suffix,
   *ins  = inserts;
   *affdel = affdeletes;
   *affins = affinserts;
-
-  return (mismatch);
 }
 
 
-static int *AnalyzeAffineAlign_MaxIndelSize(int prefix, int suffix, 
-			 char *a, char *b, int *trace, int amode,
-                         int *alen, int *blen, int *del, int *sub, int *ins,
-			 int *affdel, int *affins,
-			 int *blockdel, int *blockins, int blocksize,
-			 int *biggestBlock)
-{ int i, j, oa, ob;
-  int inserts, deletes, subtit;
-  int affinserts, affdeletes, lastindel,blockcount;
-  int alength, blength;
-  int *amismatch, *bmismatch;
-  int dodels, doins, dosubs;
-  static int *mismatch = NULL;
-  static int mislen  = -1;
-
-  alength = strlen(a);
-  blength = strlen(b);
-  alength += 1;
-  blength += 1;
-  if (mislen < alength+blength)
-    { mislen = (int)(1.4*(alength+blength)) + 500;
-      fprintf(stderr,"(Re)allocating %d for mismatch at %d\n",mislen,__LINE__);
-      mismatch = (int *) ckrealloc(mismatch,mislen*sizeof(int));
-    } 
-  amismatch = mismatch;
-  bmismatch = mismatch + alength;
 
 
-  *biggestBlock =0;
-  dodels = doins = dosubs = 0;
-  if (amode == AS_ANALYZE_ALL)
-    dodels = doins = dosubs = 1;
-  else if (amode == AS_ANALYZE_DELETES)
-    dodels = 1;
-  else if (amode == AS_ANALYZE_INSERTS)
-    doins = 1;
-  else
-    dosubs = 1;
-  
-  a -= 1;
-  b -= 1;
-  oa = 0;
-  ob = 0;
-  i  = prefix+1;
-  j  = 1;
 
-  alength = 0;
-  blength = 0;
-  deletes = 0;
-  subtit  = 0;
-  inserts = 0;
-  affinserts = 0;
-  affdeletes = 0;
-  blockcount=0;
-  lastindel = 0;
-  *blockins=0;
-  *blockdel=0;
-
-  { int p, c;      /* Output columns of alignment til reach trace end */
-
-    p = 0;
-    while ((c = trace[p++]) != 0)
-      if (c < 0)
-        { if(c!=lastindel)
-	    {
-	      affinserts++;
-	      blockcount=1;
-	    } else {
-	      (*blockins)+=(++blockcount == blocksize);
-              if(blockcount>*biggestBlock)*biggestBlock=blockcount;
-	    }
-	  lastindel=c;
-	  c = -c;
-          while (i != c)
-            { if (a[i++] != b[j++])
-                { subtit += 1;
-                  if (dosubs)
-                    { amismatch[oa++] = i-1;
-                      bmismatch[ob++] = j-1;
-                    }
-                }
-              alength += 1;
-              blength += 1;
-            }
-          inserts += 1;
-          if (dodels)
-            amismatch[oa++] = i;
-          if (doins)
-            bmismatch[ob++] = j;
-          blength += 1;
-          j += 1;
-        }
-      else
-        { if(c!=lastindel)
-	    { affdeletes++;
-	      blockcount=1;
-  	    } else {
-	      (*blockdel)+=(++blockcount == blocksize);
-              if(blockcount>*biggestBlock)*biggestBlock=blockcount;
-	    }
-	  lastindel=c;
-	  while (j != c)
-            { if (a[i++] != b[j++])
-                { subtit += 1;
-                  if (dosubs)
-                    { amismatch[oa++] = i-1;
-                      bmismatch[ob++] = j-1;
-                    }
-                }
-              alength += 1;
-              blength += 1;
-            }
-          deletes += 1;
-          if (doins)
-            amismatch[oa++] = i;
-          if (dodels)
-            bmismatch[ob++] = j;
-          alength += 1;
-          i += 1;
-        }
-
-  }
-
-  { int x, y;     /* Output remaining column including unaligned suffix */
-
-    while ((x = a[i++]) != 0)
-      { if ((y = b[j++]) != 0){
-          if (x != y)
-            { subtit += 1;
-              if (dosubs)
-                { amismatch[oa++] = i-1;
-                  bmismatch[ob++] = j-1;
-                }
-            }
-	  alength += 1;
-	  blength += 1;
-      } else
-          break;
-      }
-  }
-
-  amismatch[oa] = -1;
-  bmismatch[ob] = -1;
-
-  *alen = alength;
-  *blen = blength;
-  *del  = deletes;
-  *sub  = subtit;
-  *ins  = inserts;
-  *affdel = affdeletes;
-  *affins = affinserts;
-
-  return (mismatch);
-}
-
+#if 0
 
 /* Analyze the overlap between fragments a and b.
    Returns a -1 terminated list of the positions in the a sequences at
@@ -994,9 +808,10 @@ int *Analyze_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
 #ifdef DEBUG
       { int i;
 
-        fprintf(file,"\nUncompressed trace:\n");
+        fprintf(stderr,"Analyze_Overlap_AS()-- uncompressed trace:\n");
         for (i = 0; trace[i] != 0; i++)
-          fprintf(file,"  %3d\n",trace[i]);
+          fprintf(stderr," %3d",trace[i]);
+        fprintf(stderr, "\n");
       }
 #endif
 
@@ -1053,204 +868,135 @@ int *Analyze_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
   return (mismatches);
 } 
 
-
-
-
-/* Analyze the overlap between fragments a and b.
-   Returns a -1 terminated list of the positions in the a sequences at
-   which errors of type amode occur, as well as:
-     alen - # of a symbols in overlap,
-     blen - # of b symbols in overlap,
-     del  - # of unaligned symbols in a,
-     sub  - # of substitutions,
-     ins  - # of unaligned symbols in b,
-     affdel - # of runs of unaligned symbols in a,
-     affins - # of runs of unaligned symbols in b.
-     
-*/
-
-int *Analyze_Affine_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
-                        OverlapMesg *align, int amode,
-                        int *alen, int *blen, int *del, int *sub, int *ins,
-                        int *affdel, int *affins, 
-			int *blockdel, int *blockins, int blocksize)
-{ int *mismatches = NULL;
-  int swap;
-
-  swap = 0;
-  if (a->iaccession == align->bifrag)
-    { InternalFragMesg *c;
-      c = a;
-      a = b;
-      b = c;
-      swap = 1;
-    }
- 
-  if (align->delta != NULL)
-    { int *trace;
-
-      trace = Unpack_Alignment_AS(align);
-
-#ifdef DEBUG
-      { int i;
-
-        fprintf(file,"\nUncompressed trace:\n");
-        for (i = 0; trace[i] != 0; i++)
-          fprintf(file,"  %3d\n",trace[i]);
-      }
 #endif
 
-      if (align->orientation == AS_INNIE)
-        Complement_Fragment_AS(b);
-      else if (align->orientation == AS_OUTTIE)
-        Complement_Fragment_AS(a);
 
-      mismatches = AnalyzeAffineAlign(align->ahg,align->bhg,
-				    a->sequence,b->sequence,trace,amode,
-				    alen,blen,del,sub,ins,
-				    affdel,affins,
-				    blockdel,blockins,blocksize);
 
-      if (align->orientation == AS_INNIE)
-        { int alength, blength, i, j, c;
-          Complement_Fragment_AS(b);
-          alength = strlen(a->sequence)+1;
-          blength = strlen(b->sequence)+1;
-          for (i = alength; mismatches[i] >= 0; i++)
-            mismatches[i] = blength - mismatches[i];
-          j = alength;
-          i -= 1;
-          while (j < i)
-            { c = mismatches[i];
-              mismatches[i--] = mismatches[j];
-              mismatches[j++] = c;
-            }
-        }
-      else if (align->orientation == AS_OUTTIE)
-        { int alength, i, j, c;
-          Complement_Fragment_AS(a);
-          alength = strlen(a->sequence)+1;
-          for (i = 0; mismatches[i] >= 0; i++)
-            mismatches[i] = alength - mismatches[i];
-          j = 0;
-          i -= 1;
-          while (j < i)
-            { c = mismatches[i];
-              mismatches[i--] = mismatches[j];
-              mismatches[j++] = c;
-            }
-        }
-    }
 
-  if (swap)
-    { int x;
-      x = *alen;
-      *alen = *blen;
-      *blen = x;
-      x = *del;
-      *del = *ins;
-      *ins = x;
-      x = *affdel;
-      *affdel = *affins;
-      *affins = x;
-      return (mismatches + strlen(a->sequence) + 1);
-    }
-  return (mismatches);
+
+// Analyze the overlap between fragments a and b.
+//     alen - # of a symbols in overlap,
+//     blen - # of b symbols in overlap,
+//     del  - # of unaligned symbols in a,
+//     sub  - # of substitutions,
+//     ins  - # of unaligned symbols in b,
+//     affdel - # of runs of unaligned symbols in a,
+//     affins - # of runs of unaligned symbols in b.
+//
+//  2005-oct-18: BPW removed significant portions of this function and
+//  merged in Analyze_Affine_Overlap_IndelSize_AS().
+//
+//  The only callers of these functions are calling to compute the
+//  number of substitutions, inserts and deletes.  There was a bug in
+//  the functionality that would return a list of the locations with
+//  errors in the alignment.  As it was not being used, and fixing
+//  properly would have been ugly, I removed said functionality.
+//
+void Analyze_Affine_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
+                               OverlapMesg *align, int amode,
+                               int *alen, int *blen, int *del, int *sub, int *ins,
+                               int *affdel, int *affins, 
+                               int *blockdel, int *blockins, int blocksize,
+                               int *biggestBlock) {
+  int swap = 0;
+
+  if (a->iaccession == align->bifrag) {
+    InternalFragMesg *c;
+    c = a;
+    a = b;
+    b = c;
+    swap = 1;
+  }
+
+  if (align->delta != NULL) {
+    int *trace = Unpack_Alignment_AS(align);
+
+    if (align->orientation == AS_INNIE)
+      Complement_Fragment_AS(b);
+    else if (align->orientation == AS_OUTTIE)
+      Complement_Fragment_AS(a);
+
+    AnalyzeAffineAlign(align->ahg,align->bhg,
+                       a->sequence,b->sequence,trace,amode,
+                       alen,blen,del,sub,ins,
+                       affdel,affins,
+                       blockdel,blockins,blocksize,
+                       biggestBlock);
+
+    if (align->orientation == AS_INNIE)
+      Complement_Fragment_AS(b);
+    else if (align->orientation == AS_OUTTIE)
+      Complement_Fragment_AS(a);
+  }
+
+  if (swap) {
+    swap = *alen;
+    *alen = *blen;
+    *blen = swap;
+
+    swap = *del;
+    *del = *ins;
+    *ins = swap;
+
+    swap = *affdel;
+    *affdel = *affins;
+    *affins = swap;
+  }
 } 
 
 
-/* Analyze_Affine_Overlap_IndelSize_AS: 
-   Just like Analyze_Affin_Overlap_AS with addition of evaluation of biggest block mismatch */
+#if 0
+void
+ Analyze_Affine_Overlap_IndelSize_AS(InternalFragMesg *a, InternalFragMesg *b,
+                                    OverlapMesg *align, int amode,
+                                    int *alen, int *blen, int *del, int *sub, int *ins,
+                                    int *affdel, int *affins, 
+                                    int *blockdel, int *blockins, int blocksize,int *biggestBlock) { 
+  int swap = 0;
 
-int *Analyze_Affine_Overlap_IndelSize_AS(InternalFragMesg *a, InternalFragMesg *b,
-                        OverlapMesg *align, int amode,
-                        int *alen, int *blen, int *del, int *sub, int *ins,
-			int *affdel, int *affins, 
-			int *blockdel, int *blockins, int blocksize,int *biggestBlock)
-{ int *mismatches = NULL;
-  int swap;
+  if (a->iaccession == align->bifrag) {
+    InternalFragMesg *c;
+    c = a;
+    a = b;
+    b = c;
+    swap = 1;
+  }
 
-  swap = 0;
-  if (a->iaccession == align->bifrag)
-    { InternalFragMesg *c;
-      c = a;
-      a = b;
-      b = c;
-      swap = 1;
-    }
- 
-  if (align->delta != NULL)
-    { int *trace;
+  if (align->delta != NULL) {
+    int *trace = Unpack_Alignment_AS(align);
 
-      trace = Unpack_Alignment_AS(align);
+    if (align->orientation == AS_INNIE)
+      Complement_Fragment_AS(b);
+    else if (align->orientation == AS_OUTTIE)
+      Complement_Fragment_AS(a);
 
-#ifdef DEBUG
-      { int i;
+    AnalyzeAffineAlign_MaxIndelSize(align->ahg,align->bhg,
+                                    a->sequence,b->sequence,trace,amode,
+                                    alen,blen,del,sub,ins,
+                                    affdel,affins,
+                                    blockdel,blockins,blocksize,biggestBlock);
 
-        fprintf(file,"\nUncompressed trace:\n");
-        for (i = 0; trace[i] != 0; i++)
-          fprintf(file,"  %3d\n",trace[i]);
-      }
-#endif
+    if (align->orientation == AS_INNIE)
+      Complement_Fragment_AS(b);
+    else if (align->orientation == AS_OUTTIE)
+      Complement_Fragment_AS(a);
+  }
 
-      if (align->orientation == AS_INNIE)
-        Complement_Fragment_AS(b);
-      else if (align->orientation == AS_OUTTIE)
-        Complement_Fragment_AS(a);
+  if (swap) {
+    swap = *alen;
+    *alen = *blen;
+    *blen = swap;
 
-      mismatches = AnalyzeAffineAlign_MaxIndelSize(align->ahg,align->bhg,
-				    a->sequence,b->sequence,trace,amode,
-				    alen,blen,del,sub,ins,
-				    affdel,affins,
-				    blockdel,blockins,blocksize,biggestBlock);
+    swap = *del;
+    *del = *ins;
+    *ins = swap;
 
-      if (align->orientation == AS_INNIE)
-        { int alength, blength, i, j, c;
-          Complement_Fragment_AS(b);
-          alength = strlen(a->sequence)+1;
-          blength = strlen(b->sequence)+1;
-          for (i = alength; mismatches[i] >= 0; i++)
-            mismatches[i] = blength - mismatches[i];
-          j = alength;
-          i -= 1;
-          while (j < i)
-            { c = mismatches[i];
-              mismatches[i--] = mismatches[j];
-              mismatches[j++] = c;
-            }
-        }
-      else if (align->orientation == AS_OUTTIE)
-        { int alength, i, j, c;
-          Complement_Fragment_AS(a);
-          alength = strlen(a->sequence)+1;
-          for (i = 0; mismatches[i] >= 0; i++)
-            mismatches[i] = alength - mismatches[i];
-          j = 0;
-          i -= 1;
-          while (j < i)
-            { c = mismatches[i];
-              mismatches[i--] = mismatches[j];
-              mismatches[j++] = c;
-            }
-        }
-    }
-
-  if (swap)
-    { int x;
-      x = *alen;
-      *alen = *blen;
-      *blen = x;
-      x = *del;
-      *del = *ins;
-      *ins = x;
-      x = *affdel;
-      *affdel = *affins;
-      *affins = x;
-      return (mismatches + strlen(a->sequence) + 1);
-    }
-  return (mismatches);
+    swap = *affdel;
+    *affdel = *affins;
+    *affins = swap;
+  }
 } 
-
+#endif
 
 
 
@@ -1698,9 +1444,10 @@ OverlapMesg *QV_ReAligner_AS(InternalFragMesg *a, InternalFragMesg *b,
 
 #ifdef DEBUG
   { int i;
-    printf("\nOutput trace:  ahang = %d bhang = %d\n",ahang,bhang);
+    printf("QV_ReAligner_AS()-- output trace:  ahang = %d bhang = %d\n",ahang,bhang);
     for (i = 0; otrace[i] != 0; i++)
-      printf("   %3d\n",otrace[i]);
+      printf(" %3d",otrace[i]);
+    fprintf(stderr, "\n");
   }
   printf("\nQV:  ahang = %d bhang = %d\n",QVBuffer.ahg,QVBuffer.bhg);
 #endif
@@ -1815,7 +1562,7 @@ OverlapMesg *AS_ALN_affine_overlap(InternalFragMesg *a, InternalFragMesg *b,
     float errRate, errRateAffine;
 
     Analyze_Affine_Overlap_AS(a,b,O,AS_ANALYZE_ALL,&alen,&blen,&del,&sub,&ins,
-			      &affdel,&affins,&blockdel,&blockins,AFFINEBLOCKSIZE);
+			      &affdel,&affins,&blockdel,&blockins,AFFINEBLOCKSIZE, NULL);
 
     errRate = (sub+ins+del)/(double)(alen+ins);
 
