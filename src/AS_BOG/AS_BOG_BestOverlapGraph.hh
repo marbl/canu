@@ -34,8 +34,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.hh,v 1.19 2005-10-07 15:40:48 eliv Exp $
- * $Revision: 1.19 $
+ * $Id: AS_BOG_BestOverlapGraph.hh,v 1.20 2005-10-25 21:03:04 eliv Exp $
+ * $Revision: 1.20 $
 */
 
 //  System include files
@@ -130,6 +130,7 @@ namespace AS_BOG{
             bool checkForNextFrag(const Long_Olap_Data_t& olap);
             void scoreOverlap(const Long_Olap_Data_t& olap);
             void updateInDegree();
+            void changeContainedToContainer();
             void transitiveContainment();
             virtual float score( const Long_Olap_Data_t& olap) =0;
 

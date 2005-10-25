@@ -37,11 +37,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.17 2005-10-07 15:40:48 eliv Exp $
- * $Revision: 1.17 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.18 2005-10-25 21:03:04 eliv Exp $
+ * $Revision: 1.18 $
 */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.17 2005-10-07 15:40:48 eliv Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.18 2005-10-25 21:03:04 eliv Exp $";
 
 //  System include files
 #include<iostream>
@@ -170,6 +170,19 @@ namespace AS_BOG{
     ///////////////////////////////////////////////////////////////////////////
     // Graph creation methods
 
+    void BestOverlapGraph::changeContainedToContainer() {
+
+        for(iuid i=1; i<=_num_fragments; i++) {
+            BestEdgeOverlap *best = getBestEdge(i, THREE_PRIME);
+            if (isContained( best->frag_b_id) ) {
+                best->frag_b_id = getBestContainer( best->frag_b_id)->container;
+            }
+
+            best = getBestEdge(i, FIVE_PRIME);
+            if (isContained( best->frag_b_id) )
+                best->frag_b_id = getBestContainer( best->frag_b_id)->container;
+        }
+    }
     ///////////////////////////////////////////////////////////////////////////
     // Transitively removes redundant containments, so all containees in a container, refer
     // to the same container.  Algorithm will go through each element in the list of contained
