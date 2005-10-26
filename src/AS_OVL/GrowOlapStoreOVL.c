@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: GrowOlapStoreOVL.c,v 1.7 2005-09-15 15:20:16 eliv Exp $
- * $Revision: 1.7 $
+ * $Id: GrowOlapStoreOVL.c,v 1.8 2005-10-26 14:23:21 brianwalenz Exp $
+ * $Revision: 1.8 $
 */
 
-static char CM_ID[] = "$Id: GrowOlapStoreOVL.c,v 1.7 2005-09-15 15:20:16 eliv Exp $";
+static char CM_ID[] = "$Id: GrowOlapStoreOVL.c,v 1.8 2005-10-26 14:23:21 brianwalenz Exp $";
 
 
 //  System include files
@@ -869,13 +869,40 @@ static void  Process_OVL_Files
      {
       FILE  * fp;
       char  * filename;
+      int     filenamelen;
+      int     filenameiscompressed;
       MesgReader  read_msg_fn;
       MessageType  imesgtype;
       GenericMesg  * pmesg;
       OverlapMesg  * ovl_mesg;
 
       filename = * GetVA_char_Ptr_t (OVL_File_List, i);
-      fp = File_Open (filename, "r");
+
+      //  It is desirable to be able to processes compressed .ovl files,
+      //  which breaks File_Open().  We end up doing it the hard way.
+      //
+      filenamelen = strlen(filename);
+      filenameiscompressed = 0;
+      if        (strcmp(filename + filenamelen - 3, ".gz") == 0) {
+        char  cmd[1024];
+        sprintf(cmd, "gzip -dc %s", filename);
+        errno = 0;
+        fp = popen(cmd, "r");
+        if (errno)
+          fprintf(stderr,"ERROR: cannot open '%s': %s\n", filename, strerror(errno)), exit(1);
+        filenameiscompressed = 1;
+      } else if (strcmp(filename + filenamelen - 4, ".bz2") == 0) {
+        char  cmd[1024];
+        sprintf(cmd, "bzip2 -dc %s", filename);
+        errno = 0;
+        fp = popen(cmd, "r");
+        if (errno)
+          fprintf(stderr,"ERROR: cannot open '%s': %s\n", filename, strerror(errno)), exit(1);
+        filenameiscompressed = 1;
+      } else {
+        fp = File_Open (filename, "r");
+      }
+
       read_msg_fn = (MesgReader)InputFileType_AS (fp);
 
       now = time (NULL);
@@ -997,7 +1024,14 @@ static void  Process_OVL_Files
 
         }
 
-      fclose (fp);
+      if (filenameiscompressed) {
+        errno = 0;
+        pclose(fp);
+        if (errno)
+          fprintf(stderr, "WARNING: couldn't close '%s': %s\n", filename, strerror(errno));
+      } else {
+        fclose (fp);
+      }
      }
 
    return;
@@ -1099,7 +1133,7 @@ static void  Usage
   {
    fprintf (stderr,
        "USAGE:  %s [-aAcfhS] [-i <InputStore> [-o <OutputStore>]\n"
-       "        [-L <ListFile>] [-D <DumpFile>] [-M <MB of memory>]\""
+       "        [-L <ListFile>] [-D <DumpFile>] [-M <MB of memory>]\n"
        "        [-v <VerboseLevel>] <OlapFile1> [<OlapFile2> ...]\n"
        "\n"
        "Create or add to a compact, sorted, binary-file of fragment\n"
