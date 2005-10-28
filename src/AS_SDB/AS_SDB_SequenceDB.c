@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_SDB_SequenceDB.c,v 1.5 2005-06-21 14:45:22 gdenisov Exp $";
+static char CM_ID[] = "$Id: AS_SDB_SequenceDB.c,v 1.6 2005-10-28 20:29:52 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -31,6 +31,7 @@ static char CM_ID[] = "$Id: AS_SDB_SequenceDB.c,v 1.5 2005-06-21 14:45:22 gdenis
 #include <dirent.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -208,20 +209,27 @@ tSequenceDB *OpenSequenceDB(char *path, int readWrite, int revision){
    The indicies are maintained in memory.
 */
 void SaveSequenceDB(tSequenceDB *db){  // Save the current revision of the indices
-  char buffer[FILENAME_MAX + 30];
-  FILE *currentDatafp, *indexfp;
-  int64 end = db->offsetOfEOF;
+  char    buffer[FILENAME_MAX + 30];
+  FILE   *currentDatafp = NULL;
+  FILE   *indexfp = NULL;
+  int64   end = db->offsetOfEOF;
 
   fprintf(stderr,"* SaveSequenceDB  end = " F_S64 "\n", end);
   sprintf(buffer,"%s/seqDB.unitigs.%d",db->path, db->currentRevision);
+  errno = 0;
   indexfp = fopen(buffer,"w");
+  if (errno)
+    fprintf(stderr, "* Failed to open '%s' for write: %s\n", buffer, strerror(errno)), exit(1);
   CopyToFileVA_tMARecord(db->Unitigs, indexfp);
   fclose(indexfp);
   fprintf(stderr,"* Saved " F_SIZE_T " Unitig records to %s\n",
           GetNumtMARecords(db->Unitigs),buffer);
 
   sprintf(buffer,"%s/seqDB.contigs.%d",db->path, db->currentRevision);
+  errno = 0;
   indexfp = fopen(buffer,"w");
+  if (errno)
+    fprintf(stderr, "* Failed to open '%s' for write: %s\n", buffer, strerror(errno)), exit(1);
   CopyToFileVA_tMARecord(db->Contigs, indexfp);
   fclose(indexfp);
   fprintf(stderr,"* Saved " F_SIZE_T " Contig records to %s\n",
@@ -229,34 +237,16 @@ void SaveSequenceDB(tSequenceDB *db){  // Save the current revision of the indic
 
   /* Close the current data file, and reopen it as read only */
   currentDatafp = (FILE *) *GetPtrT(db->SubStores, db->currentRevision);
-  fflush(currentDatafp);
+  errno = 0;
+  fsync(fileno(currentDatafp));
+  if (errno)
+    fprintf(stderr, "* Failed to sync '%s': %s\n", buffer, strerror(errno)), exit(1);
   fclose(currentDatafp);
-
   sprintf(buffer,"%s/seqDB.data.%d",db->path,db->currentRevision);
-  // Now we have to make sure the data has been written to the file before proceeding
-  // if(end > 0)
-  {
-    while(1){
-      int result;
-      currentDatafp = fopen(buffer,"r");
-      result = CDS_FSEEK(currentDatafp,
-                         (off_t) (((end == 0) ? 0 : (end - (off_t)1))),SEEK_SET);
-      if(result  == 0){ // couldn't seek until the end...still flushing
-	break;
-      }
-      fprintf(stderr,"* Sleeping 15 seconds while buffers flush. Seeking to offset " F_S64 " returned %d\n",
-	      end, result);
-      perror("Error: ");
-      CDS_FSEEK(currentDatafp, (off_t) 0, SEEK_END);
-      fprintf(stderr,
-              "* EOF is at offset " F_OFF_T " offsetOfOEF = " F_SIZE_T "\n",
-              CDS_FTELL(currentDatafp), end);
-      fflush(stderr);
-      fclose(currentDatafp);
-      sleep(15);
-    }
-  }
-  /// SetPtrT(db->SubStores, db->currentRevision, (void *)&currentDatafp);
+  errno = 0;
+  currentDatafp = fopen(buffer,"r");
+  if (errno)
+    fprintf(stderr, "* Failed to open '%s' for read: %s\n", buffer, strerror(errno)), exit(1);
   SetPtrT(db->SubStores, db->currentRevision, (const void *) &currentDatafp);
   fprintf(stderr,"* Reopened %s as read only\n", buffer);
 
@@ -266,9 +256,10 @@ void SaveSequenceDB(tSequenceDB *db){  // Save the current revision of the indic
   db->positionedAtEnd = 1;
 
   sprintf(buffer,"%s/seqDB.data.%d",db->path,db->currentRevision);
+  errno = 0;
   currentDatafp = fopen(buffer,"w+");
-
-  /// SetPtrT(db->SubStores, db->currentRevision, (void *)&currentDatafp);
+  if (errno)
+    fprintf(stderr, "* Failed to open '%s' for write: %s\n", buffer, strerror(errno)), exit(1);
   SetPtrT(db->SubStores, db->currentRevision, (const void *)&currentDatafp);
 
   fprintf(stderr,"* Opened %s as write\n", buffer);
