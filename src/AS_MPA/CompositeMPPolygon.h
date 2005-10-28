@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: CompositeMPPolygon.h,v 1.7 2005-10-14 20:26:37 catmandew Exp $ */
+/* $Id: CompositeMPPolygon.h,v 1.8 2005-10-28 19:52:16 catmandew Exp $ */
 #ifndef COMPOSITEMPPOLYGON_H
 #define COMPOSITEMPPOLYGON_H
 
@@ -304,7 +304,7 @@ public:
       }
     }
   void printSummary(ostream & os, char * seqID,
-                    char type, bool polymorphic) const
+                    char * type, bool polymorphic) const
     {
       os << seqID << "\t";
       if(this->getMPIndex() == MPI_COMPRESSED)

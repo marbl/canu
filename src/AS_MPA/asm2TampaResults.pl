@@ -1,6 +1,26 @@
 #!/usr/local/bin/perl
-# $Id: asm2TampaResults.pl,v 1.4 2005-10-14 17:48:36 catmandew Exp $
 #
+###########################################################################
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received (LICENSE.txt) a copy of the GNU General Public 
+# License along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+###########################################################################
+#
+# $Id: asm2TampaResults.pl,v 1.5 2005-10-28 19:52:16 catmandew Exp $
+#
+
 # Wrapper to run and post-process results from TAMPA
 # (Tool for Analyzing Mate Pairs in Assemblies)
 #
@@ -15,7 +35,7 @@ use Carp;
 use FileHandle;
 use Getopt::Long;
 
-my $MY_VERSION = " Version 1.01 (Build " . (qw/$Revision: 1.4 $/ )[1]. ")";
+my $MY_VERSION = " Version 1.01 (Build " . (qw/$Revision: 1.5 $/ )[1]. ")";
 
 my $HELPTEXT = qq~
 Produce TAMPA results from an assembly
@@ -70,13 +90,13 @@ my $command = $binariesPath . "asm2asmStore " .
   "-f $frgStorename " .
   "-a $asmFilename " .
   "-s $asmStorename";
-print "Running $command\n";
+print STDERR "Running $command\n";
 system($command) == 0
   or die "\nFailed to run command\n$command\n\n";
 
 # create a tampa subdirectory
 my $subdir = "TAMPA";
-print "Creating & cd'ing to $subdir subdirectory\n";
+print STDERR "Creating & cd'ing to $subdir subdirectory\n";
 mkdir($subdir) or die "Failed to create $subdir dir";
 chdir($subdir) or die "Failed to chdir to $subdir";
 
@@ -84,7 +104,7 @@ chdir($subdir) or die "Failed to chdir to $subdir";
 $command = $binariesPath . "dumpForTampa " .
   "-a $assemblyPrefix " .
   "-s ../$asmStorename";
-print "Running $command\n";
+print STDERR "Running $command\n";
 system($command) == 0
   or die "\nFailed to run command\n$command\n\n";
 
@@ -94,7 +114,7 @@ $command = $binariesPath . "runTampa " .
   "-a $assemblyPrefix " .
   "-l $libFilename";
 $command .= " -b $binariesPath" if($binariesPath);
-print "Running $command\n";
+print STDERR "Running $command\n";
 system($command) == 0
   or die "\nFailed to run command\n$command\n\n";
 
@@ -102,7 +122,7 @@ system($command) == 0
 # intra
 my $filenames = $assemblyPrefix . ".int*.tampa";
 $command = "cp $filenames ..";
-print "Running $command\n";
+print STDERR "Running $command\n";
 system($command) == 0
   or die "\nFailed to run command\n$command\n\n";
 
