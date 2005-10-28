@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: resolveSurrogates.c,v 1.3 2005-06-09 21:15:35 brianwalenz Exp $";
+static char CM_ID[] = "$Id: resolveSurrogates.c,v 1.4 2005-10-28 20:49:17 brianwalenz Exp $";
 
 
 /*********************************************************************/
@@ -194,6 +194,24 @@ int main( int argc, char *argv[])
       candidateChunk = GetGraphNode(ScaffoldGraph->CIGraph, index);
       AssertPtr (candidateChunk);
 
+      //  BPW
+      if (parentChunk->type != UNRESOLVEDCHUNK_CGW) {
+        //  ERROR!  We should be this type!
+        fprintf(stderr, "HELP!  parentChunk is not UNRESOLVEDCHUNK_CGW\n");
+      }
+      if (candidateChunk->type != RESOLVEDREPEATCHUNK_CGW) {
+        //  ERROR!  We should be this type!
+        fprintf(stderr, "HELP!  candidateChunk is not RESOLVEDREPEATCHUNK_CGW\n");
+      }
+      if (parentChunk == candidateChunk) {
+        fprintf(stderr, "HELP!  parentChunk == candidateChunk ???\n");
+      }
+
+      if ((parentChunk->type    != UNRESOLVEDCHUNK_CGW) ||
+          (candidateChunk->type != RESOLVEDREPEATCHUNK_CGW) ||
+          (parentChunk == candidateChunk))
+        continue;
+
       if(candidateChunk->info.CI.baseID != parentChunk->id){
 	if(candidateChunk==parentChunk){
 	  fprintf(stderr,"resolveSurrogates: instance == parent for " F_CID " instance %d\n",
@@ -248,7 +266,7 @@ int main( int argc, char *argv[])
 	CleanupCIFragTInChunkIterator(&frags);
       }
 
-    }
+    }  //  Over all instances
 
 
     if(numFrgsToPlace==0)continue;
@@ -269,10 +287,15 @@ int main( int argc, char *argv[])
     }
 
     for(i=0;i<numInstances;i++){
+
       int j, numToPlace = GetNumIntMultiPoss(impLists[i]);
       VA_TYPE(CDS_CID_t) *toplace;
-      if(numToPlace==0)continue;
+      if(numToPlace==0)
+        continue;
+
       toplace = CreateVA_CDS_CID_t(numToPlace);
+
+      //  Build the list of fragments to place
       for(j=0;j<numToPlace;j++){
 	CDS_CID_t iid = GetIntMultiPos(impLists[i],j)->ident;
 	int32 *count_so_far = LookupInUID2IIDHashTable_AS(fHash,(uint64)iid);
@@ -283,8 +306,11 @@ int main( int argc, char *argv[])
 	}
 	AppendVA_CDS_CID_t(toplace,&iid);
       }
-      ReallyAssignFragsToResolvedCI(ScaffoldGraph->CIGraph, parentChunk->id, 
-			      my_getChunkInstanceID(parentChunk,i),toplace);
+
+      ReallyAssignFragsToResolvedCI(ScaffoldGraph->CIGraph,
+                                    parentChunk->id, 
+                                    my_getChunkInstanceID(parentChunk,i),
+                                    toplace);
 
       numReallyPlaced+=GetNumCDS_CID_ts(toplace);
 
