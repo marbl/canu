@@ -1,6 +1,26 @@
 #!/usr/local/bin/perl
-# $Id: assemblyCompare.pl,v 1.3 2005-10-13 21:31:39 catmandew Exp $
 #
+###########################################################################
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received (LICENSE.txt) a copy of the GNU General Public 
+# License along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+###########################################################################
+#
+# $Id: assemblyCompare.pl,v 1.4 2005-10-28 19:54:41 catmandew Exp $
+#
+
 # Program to compare two assemblies
 #
 #  Compare two qc files
@@ -17,7 +37,7 @@ use FileHandle;
 use Getopt::Long;
 use Env qw(PWD);
 
-my $MY_VERSION = " Version 1.01 (Build " . (qw/$Revision: 1.3 $/ )[1]. ")";
+my $MY_VERSION = " Version 1.01 (Build " . (qw/$Revision: 1.4 $/ )[1]. ")";
 my $MY_APPLICATION = "assemblyCompare";
 
 my $HELPTEXT = qq~
@@ -109,7 +129,7 @@ if(!$dontQC)
   if(-f $rfn && -f $qfn)
   {
     printf("==========> QC Statistics Comparison\n\n");
-    my $command = "qcCompare.pl -f $rfn -f $qfn";
+    my $command = "qcCompare -f $rfn -f $qfn";
     printf STDERR "Running $command\n";
     system($command);
   }    
@@ -120,27 +140,24 @@ if(!$dontTampa)
 {
   my @types = ("intra", "inter");
   # assume either results files are present or TAMPA has not been run
-  my $tampaRun = 1;
   for(my $i = 0; $i <= $#dirs; $i++)
   {
+    my $generateTAMPAData = 0;
     for(my $j = 0; $j <= $#types; $j++)
     {
       my $fn = $dirs[$i] . "/" . $assemblies[$i] . "." .
         $types[$j] . ".summary.tampa";
       if(! -f $fn )
       {
-        $tampaRun = 0;
+        $generateTAMPAData = 1;
         last;
       }
-      last if($tampaRun == 0);
+      last if($generateTAMPAData == 1);
     }
-  }
 
-  if(!$tampaRun)
-  {
-    # run tampa
-    for(my $i = 0; $i <= $#dirs; $i++)
+    if($generateTAMPAData)
     {
+      # run tampa
       chdir($dirs[$i]);
       my $command = "asm2TampaResults -a $assemblies[$i]";
       printf STDERR "Running $command\n";
@@ -149,12 +166,13 @@ if(!$dontTampa)
     chdir($PWD);
   }
 
-  my $command = "tampaCompare.pl -d $dirs[0] -a $assemblies[0] -d $dirs[1] -a $assemblies[1]";
+  printf("==========> TAMPA Comparison\n\n");
+  my $command = "tampaCompare -d $dirs[0] -a $assemblies[0] -d $dirs[1] -a $assemblies[1]";
   printf STDERR "Running $command\n";
   system($command);
 }
 
-
+$dontMummer = 1;
 if(!$dontMummer)
 {
   # assume mummer hasn't been run on this pair, since a pairwise thing..
@@ -175,7 +193,8 @@ if(!$dontMummer)
   system($command);
 
   # now compare
-  $command = "mummerCompare.pl -r $fnps[0].scaff -q $fnps[1].scaff -c $prefix.show-coords";
+  printf("==========> Mummer Comparison\n\n");
+  $command = "mummerCompare -r $fnps[0].scaff -q $fnps[1].scaff -c $prefix.show-coords";
   printf STDERR "Running $command\n";
   system($command);
 }
