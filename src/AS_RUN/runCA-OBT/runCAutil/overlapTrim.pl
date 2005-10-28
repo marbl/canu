@@ -34,6 +34,10 @@ sub overlapTrim {
 
     #  Do the _optional_ vector intersection
 
+    if (($vectorIntersect ne "") && (! -e $vectorIntersect)) {
+        die "vectorIntersect '$vectorIntersect' supplied, but not found!\n";
+    }
+
     if ((-e $vectorIntersect) &&
         (! -e "$wrk/0-overlaptrim/$asm.trim.vectorIntersectionLog") &&
         (! -e "$wrk/0-overlaptrim/$asm.trim.vectorIntersectionLog.bz2")) {
