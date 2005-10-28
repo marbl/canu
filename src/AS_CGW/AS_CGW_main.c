@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.15 2005-09-28 15:13:00 gdenisov Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.16 2005-10-28 20:51:08 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -253,7 +253,7 @@ int main(int argc, char *argv[]){
     optarg = NULL;
     while (!errflg && ((ch = getopt(argc, argv,
                // unused F, M
-		       "abcde:f:g:hi:j:k:l:m:n:o:p:q:r:s:tuvw:xyz:ABCD:EFGHIJK:L:N:O:PQR:STUV:W:X:Y:Z")) != EOF)){
+		       "abcde:f:g:hi:j:k:l:m:n:o:p:q:r:s:tuvw:xyz:ABCD:EFGHIJK:L:N:MO:PQR:STUV:W:X:Y:Z")) != EOF)){
 #if 0
       fprintf(GlobalData->stderrc,"* ch = %c optopt= %c optarg = %s\n", ch, optopt, (optarg?optarg:"(NULL)"));
       fflush(stderr);
