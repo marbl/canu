@@ -25,7 +25,7 @@
  Assumptions: There is no UID 0
 **********************************************************************/
 
-static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.10 2005-09-15 15:20:16 eliv Exp $";
+static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.11 2005-10-28 20:26:37 brianwalenz Exp $";
 
 
 
@@ -103,7 +103,6 @@ extern CDS_UID_t AS_TER_uidStart;
 
 static void remove_output(void)
 {
-  char command[100];
   if( IFPREZ != NULL )
     fclose(IFPREZ);
   if( OFPREZ != NULL )
@@ -111,10 +110,10 @@ static void remove_output(void)
   if( IID2UIDFPREZ != NULL )
     fclose(IID2UIDFPREZ);
   if( ! PipeOut ){ 
-    sprintf(command,"rm -f %s ",OutFileNameREZ);
-    system(command);
-    sprintf(command,"rm -f %s ",IID2UIDFileNameREZ);
-    system(command);
+    if (OutFileNameREZ)
+      unlink(OutFileNameREZ);
+    if (IID2UIDFileNameREZ)
+      unlink(IID2UIDFileNameREZ);
   }
 }
 
