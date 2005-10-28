@@ -65,7 +65,7 @@ sub setBinDirectory {
         #  Linux, on Intel 686
         $binDir       = "$binRoot/Linux/bin";
         $scratch      = "/scratch";
-        $processStats = "/home/bwalenz/linux/bin/processstats";
+        $processStats = "time";
     } elsif (($host eq "Linux") && ($mach eq "x86_64")) {
         #  Linux on Opteron
         $binDir       = "$binRoot/Linux64/bin";
