@@ -31,7 +31,7 @@ my $commandLine;
 #This are the assembler script  arguments
 
 $prefix="a006";
-$AS_BIN="../bin";
+$AS_BIN="../Linux64/bin";
 
 #The update  variable allows cgw to to run with different values for j and K
 # -i <thresh>]  Set max coverage stat for microhet determination of non-uniqueness (default -1)         
@@ -142,7 +142,7 @@ print "Finishing makeng the range file" . localtime() . "\n";
 if (! -e "done.overlap") {
 print "Create and Execute: Overlap\n";
 
-$commandLine = "time $AS_BIN/overlap -h 1-700 -r  1-700  -w -k ${prefix}.counts.fasta -o  batch.r1-700h1-700.ovl ${prefix}.frgStore ";
+$commandLine = "time $AS_BIN/overlap -M 1GB -h 1-700 -r  1-700  -w -k ${prefix}.counts.fasta -o  batch.r1-700h1-700.ovl ${prefix}.frgStore ";
 
 print "Execute: $commandLine\n";
 $systemReturn = system($commandLine) && die "Failed: $commandLine";
