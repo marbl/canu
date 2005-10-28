@@ -40,12 +40,12 @@ OBJECTS = $(C_OBJECTS) $(CXX_OBJECTS)
 PROGS = 
 
 SCRIPTS = runCA-OBT.pl \
-          assemblyCompare.pl \
-          qcCompare.pl \
-          tampaCompare.pl \
-          mummerCompare.pl \
+          assemblyCompare \
+          qcCompare \
+          tampaCompare \
+          mummerCompare \
 	  testVersionOnPlatform.sh \
-	  apply_assembler.pl
+	  apply_assembler
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
@@ -83,24 +83,24 @@ runCA-OBT.pl: runCA-OBT/runCA.pl $(RUNCAOBTUTIL)
 	cat runCA-OBT/runCA.pl $(RUNCAOBTUTIL) > $(LOCAL_BIN)/runCA-OBT.pl
 	chmod 775 $(LOCAL_BIN)/runCA-OBT.pl
 
-assemblyCompare.pl: testing/$@
-	cp testing/$@ $(LOCAL_BIN)/$@
+assemblyCompare: testing/assemblyCompare.pl
+	cp testing/assemblyCompare.pl $(LOCAL_BIN)/$@
 	chmod 775 $(LOCAL_BIN)/$@
 
-qcCompare.pl: testing/$@
-	cp testing/$@ $(LOCAL_BIN)/$@
+qcCompare: testing/qcCompare.pl
+	cp testing/qcCompare.pl $(LOCAL_BIN)/$@
 	chmod 775 $(LOCAL_BIN)/$@
 
-tampaCompare.pl: testing/$@
-	cp testing/$@ $(LOCAL_BIN)/$@
+tampaCompare: testing/tampaCompare.pl
+	cp testing/tampaCompare.pl $(LOCAL_BIN)/$@
 	chmod 775 $(LOCAL_BIN)/$@
 
-mummerCompare.pl: testing/$@
-	cp testing/$@ $(LOCAL_BIN)/$@
+mummerCompare: testing/mummerCompare.pl
+	cp testing/mummerCompare.pl $(LOCAL_BIN)/$@
 	chmod 775 $(LOCAL_BIN)/$@
 
-apply_assembler.pl: testing/$@
-	cp testing/$@ $(LOCAL_BIN)/$@
+apply_assembler: testing/apply_assembler.pl
+	cp testing/apply_assembler.pl $(LOCAL_BIN)/$@
 	chmod 775 $(LOCAL_BIN)/$@
 
 testVersionOnPlatform.sh: testing/$@
