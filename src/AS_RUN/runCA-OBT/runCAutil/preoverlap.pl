@@ -14,7 +14,7 @@ sub preoverlap {
     #  the stores, so we can't use that as indication that we're done
     #  here.
 
-    if (! -e "$wrk/0-preoverlap/extractMessages.success") {
+    if (! -e "$wrk/0-preoverlap/$asm.frg") {
         print STDERR "Starting -- extract messages\n";
 
         my $failedFiles = 0;
@@ -60,8 +60,6 @@ sub preoverlap {
                 exit(1);
             }
         }
-
-        touch("$wrk/0-preoverlap/extractMessages.success");
     }
 
     ########################################
