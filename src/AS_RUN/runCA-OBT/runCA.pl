@@ -15,7 +15,7 @@ use vars qw($stoneLevel);
 use vars qw($doExtendClearRanges);
 use vars qw($doBackups);
 
-#use FindBin;
+use FindBin;
 #use lib "$FindBin::Bin/runCAutil";
 
 #  In alphabetical order, instead of execution order.
