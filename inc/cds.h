@@ -1,4 +1,3 @@
-
 /**************************************************************************
  * This file is part of Celera Assembler, a software program that 
  * assembles whole-genome shotgun reads into contigs and scaffolds.
@@ -117,8 +116,13 @@ typedef double float64;
     #define CDS_INT64_MAX  INT64_MAX
     #define CDS_UINT64_MAX UINT64_MAX
   #else
-    #define CDS_INT64_MAX  LLONG_MAX
-    #define CDS_UINT64_MAX ULLONG_MAX
+    #ifdef ULLONG_MAX
+      #define CDS_INT64_MAX  LLONG_MAX
+      #define CDS_UINT64_MAX ULLONG_MAX
+    #else
+      #define CDS_INT64_MAX  9223372036854775807LL
+      #define CDS_UINT64_MAX 18446744073709551615ULL
+    #endif
   #endif
 
   #define F_S16     "%d"
@@ -329,3 +333,4 @@ typedef cds_int32  CDS_COORD_t;
 #define F_COORDP F_S32P
 
 #endif
+
