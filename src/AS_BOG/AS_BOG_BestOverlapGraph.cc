@@ -37,11 +37,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.19 2005-10-25 21:05:28 eliv Exp $
- * $Revision: 1.19 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.20 2005-10-28 15:20:21 kli1000 Exp $
+ * $Revision: 1.20 $
 */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.19 2005-10-25 21:05:28 eliv Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.20 2005-10-28 15:20:21 kli1000 Exp $";
 
 //  System include files
 #include<iostream>
@@ -123,7 +123,7 @@ namespace AS_BOG{
 
     //  Given a fragment IUID and which end, returns pointer to
     //  BestOverlap node.  
-    BestEdgeOverlap *BestOverlapGraph::getBestEdge(
+    BestEdgeOverlap *BestOverlapGraph::getBestEdgeOverlap(
         iuid frag_id, fragment_end_type which_end){
 
         if(which_end == FIVE_PRIME)
@@ -134,18 +134,20 @@ namespace AS_BOG{
     }
 
     //  Given an overlap, determines which record (iuid and end) and sets the newScore.
-    void BestOverlapGraph::setBestEdge(const Long_Olap_Data_t& olap, float newScore) {
+    void BestOverlapGraph::setBestEdgeOverlap(const Long_Olap_Data_t& olap, float newScore) {
 
         if (AEnd(olap) == THREE_PRIME) {
             _best_overlaps[ olap.a_iid ].three_prime.frag_b_id = olap.b_iid;
             _best_overlaps[ olap.a_iid ].three_prime.score     = newScore;
             _best_overlaps[ olap.a_iid ].three_prime.bend      = BEnd(olap);
+            _best_overlaps[ olap.a_iid ].three_prime.olap_len  = olapLength(olap);
 
         }
         if (AEnd(olap) == FIVE_PRIME) {
             _best_overlaps[ olap.a_iid ].five_prime.frag_b_id = olap.b_iid;
             _best_overlaps[ olap.a_iid ].five_prime.score     = newScore;
             _best_overlaps[ olap.a_iid ].five_prime.bend      = BEnd(olap);
+            _best_overlaps[ olap.a_iid ].five_prime.olap_len  = olapLength(olap);
         }
     }
 
@@ -173,12 +175,12 @@ namespace AS_BOG{
     void BestOverlapGraph::changeContainedToContainer() {
 
         for(iuid i=1; i<=_num_fragments; i++) {
-            BestEdgeOverlap *best = getBestEdge(i, THREE_PRIME);
+            BestEdgeOverlap *best = getBestEdgeOverlap(i, THREE_PRIME);
             if (isContained( best->frag_b_id) ) {
                 best->frag_b_id = getBestContainer( best->frag_b_id)->container;
             }
 
-            best = getBestEdge(i, FIVE_PRIME);
+            best = getBestEdgeOverlap(i, FIVE_PRIME);
             if (isContained( best->frag_b_id) )
                 best->frag_b_id = getBestContainer( best->frag_b_id)->container;
         }
@@ -187,7 +189,7 @@ namespace AS_BOG{
     // Transitively removes redundant containments, so all containees in a container, refer
     // to the same container.  Algorithm will go through each element in the list of contained
     // fragments, and then for each element follow each container's container.
-    void BestOverlapGraph::transitiveContainment() {
+    void BestOverlapGraph::removeTransitiveContainment() {
 
         // Loop through each containee that has been stored in _best_containments
         for(std::map<iuid,BestContainment>::const_iterator it = _best_containments.begin();
@@ -218,13 +220,13 @@ namespace AS_BOG{
             // Loop while the current container is a containee of another container 
             while ( i2 != _best_containments.end() ) {
                 BestContainment nb = i2->second;
-                std::cout << id <<" "<<bst.container<<" "<< nb.container<< std::endl;
+                //std::cout << id <<" "<<bst.container<<" "<< nb.container<< std::endl;
 
                 // Delete containee under analysis from _best_containments if its container is concontained
                 //   by itself.  ie if id's container is contained by id.  This eliminates ciruclar containment.
                 if ( nb.container == id ) {
                     _best_containments.erase( id );
-                    std::cout << "Erase self" << std::endl;
+                    //std::cout << "Erase self" << std::endl;
                     break;
                 }
 
@@ -237,7 +239,7 @@ namespace AS_BOG{
 
                     // Set id's container to the larger container.
                     _best_containments[ id ] = seen->second;
-                    std::cout << "Circled " << seen->second.container<< std::endl;
+                    //std::cout << "Circled " << seen->second.container<< std::endl;
 
                     // Remove the container of id's new larger container
                     _best_containments.erase( seen->second.container );
@@ -333,7 +335,7 @@ namespace AS_BOG{
         //   Returns true, if the olap's A fragment ID has changed since the previous call,
         //   else false.
         //
-        // This method is only called by scoreOverlap, should make it private.
+        // This method is only called by processOverlap, should make it private.
         //
         // Since the overlaps are coming in in order of A's iuid, 
         //   its safe for us to assume that once the incoming overlap A iuid changes
@@ -365,7 +367,7 @@ namespace AS_BOG{
         return false;
     }
 
-    void BestOverlapGraph::scoreOverlap(const Long_Olap_Data_t& olap) {
+    void BestOverlapGraph::processOverlap(const Long_Olap_Data_t& olap) {
         // This function builds the BestOverlapGraph by considering the specified
         //   overlap record.  It's important to remember that the overlaps
         //   must be passed in in sorted order of fragment A's iuid.  Also,
@@ -378,13 +380,12 @@ namespace AS_BOG{
         //   then stores the overlap in the BestOverlapGraph member variables.
 
         // Compute the score for this overlap based on the virtual score function
-        float newScr = score(olap);
+        float newScr = scoreOverlap(olap);
 
         // If the score is 0, the overlap doesn't pass the scoring criteria at all
         //   so don't store the overlap whether or not it's dovetailing or containment.
         if ( newScr <= 0 )
             return;
-
 
 /*        if ( olap.a_hang == 0 && olap.b_hang == 0 )
          {
@@ -439,7 +440,7 @@ namespace AS_BOG{
              //   A fragment is different than the previous one.
              checkForNextFrag(olap);
 
-             BestEdgeOverlap *best = getBestEdge( olap.a_iid, AEnd(olap));
+             BestEdgeOverlap *best = getBestEdgeOverlap( olap.a_iid, AEnd(olap));
              short olapLen = olapLength(olap);
 
              // Store the overlap if:
@@ -454,7 +455,7 @@ namespace AS_BOG{
              if (newScr > best->score || newScr == best->score &&
                 olapLen > bestLength )
              {
-                 setBestEdge( olap, newScr );
+                 setBestEdgeOverlap( olap, newScr );
                  bestLength = olapLen;
              }
          }
@@ -462,20 +463,37 @@ namespace AS_BOG{
 
     ///////////////////////////////////////////////////////////////////////////
 
-    float ErateScore::score(const Long_Olap_Data_t& olap) {
+    void BestOverlapGraph::printFrom(iuid begin, iuid end){
+        iuid i;
+
+	end=(end==0)?begin:end;
+
+	for(i=begin; i<=end; i++){
+	    std::cout << 
+		_best_overlaps[i].five_prime.frag_b_id << 
+		"<-" << i << "->" <<
+	        _best_overlaps[i].three_prime.frag_b_id << 
+		"\t" <<  _best_overlaps[i].five_prime.in_degree <<
+		"/" <<  _best_overlaps[i].three_prime.in_degree <<
+		std::endl;
+	}
+    }
+    ///////////////////////////////////////////////////////////////////////////
+
+    float ErateScore::scoreOverlap(const Long_Olap_Data_t& olap) {
     // Computes the score for a Error Rate BOG based on overlap corrected error rate.  
     //        Error rate is normalized so that the higher the error rate, the lower the score.
 
         return 100 - Expand_Quality(olap.corr_erate) * 100;
     }
     
-    float LongestEdge::score(const Long_Olap_Data_t& olap) {
+    float LongestEdge::scoreOverlap(const Long_Olap_Data_t& olap) {
     // Computes the score for a Longest Edge BOG based on overlap length only.
 
         return olapLength(olap);
     }
 
-    float LongestHighIdent::score(const Long_Olap_Data_t& olap) {
+    float LongestHighIdent::scoreOverlap(const Long_Olap_Data_t& olap) {
     // Computes the score for a Longest Edge BOG based on overlap length but
     //   after applying an an error rate cutoff.
 
@@ -497,12 +515,12 @@ namespace AS_BOG{
         while  (Next_From_OVL_Stream (&olap, my_stream))
         {
             for(int j = 0; j < metrics.size(); j++)
-                metrics[j]->scoreOverlap( olap );
+                metrics[j]->processOverlap( olap );
         }
         // Update degree on final frag
         for(int j = 0; j < metrics.size(); j++) {
             metrics[j]->updateInDegree();
-            metrics[j]->transitiveContainment();
+            metrics[j]->removeTransitiveContainment();
             metrics[j]->changeContainedToContainer();
         }
     }
