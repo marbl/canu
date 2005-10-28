@@ -1027,11 +1027,12 @@ void SetUnitigAndFragmentScaffoldCoordinates(AssemblyStore * asmStore)
 void InitializeAFGStore(AssemblyStore * asmStore)
 {
   int32 i;
-  int32 numFRGs = getNumGateKeeperFragments(asmStore->gkpStore->frgStore);
+  int32 numFRGs;
   GateKeeperFragmentRecord gkfr;
   ASM_AFGRecord afg;
   PHashValue_AS value;
 
+  numFRGs = getNumGateKeeperFragments(asmStore->gkpStore->frgStore);
   memset(&afg, 0, sizeof(ASM_AFGRecord));
   
   for(i = 1; i <= numFRGs; i++)
@@ -1054,7 +1055,7 @@ AssemblyStore * CreateAssemblyStoreFromASMFile(FILE * fi,
                                                char * gkpStorePath,
                                                char * frgStorePath)
 {
-  MesgReader readerFn = (MesgReader)InputFileType_AS(fi);
+  MesgReader readerFn = (MesgReader) InputFileType_AS(fi);
   AssemblyStore * asmStore;
   GenericMesg * gen;
   unsigned long mesgCount = 0;
@@ -2295,8 +2296,14 @@ void PrintScaffoldContigCoordinates(AssemblyStore * asmStore,
               doAssemblyCoords ? (CDS_COORD_t) assemblyLength : fastaLength,
               offset + cco.length);
     else
-      fprintf(fo, F_UID "\t" F_UID "\t" F_COORD "\t" F_COORD "\n", scf.uid, cco.uid,
-              offset, offset + cco.length);
+    {
+      if(cco.scaffoldPos.bgn < cco.scaffoldPos.end)
+        fprintf(fo, F_UID "\t" F_UID "\t" F_COORD "\t" F_COORD "\n",
+                scf.uid, cco.uid, offset, offset + cco.length);
+      else
+        fprintf(fo, F_UID "\t" F_UID "\t" F_COORD "\t" F_COORD "\n",
+                scf.uid, cco.uid, offset + cco.length, offset);
+    }
 
     offset += cco.length;
     if(doAssemblyCoords)

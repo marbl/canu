@@ -72,11 +72,13 @@ int main(int argc, char ** argv)
   }
 
   // check command line requirements
-  if(asmFilename == NULL || storePath == NULL)
+  if(asmFilename == NULL ||
+     storePath == NULL ||
+     gkpStorePath == NULL ||
+     frgStorePath == NULL)
   {
     fprintf(stderr,
-            "Usage: %s [-a asmFilename] [-s storePath] [-g gkpStore] [-f frgStore]\n"
-            "\t-g & -f are optional, but strongly encouraged.\n",
+            "Usage: %s [-a asmFilename] [-s storePath] [-g gkpStore] [-f frgStore]\n",
             argv[0]);
     exit(-1);
   }
