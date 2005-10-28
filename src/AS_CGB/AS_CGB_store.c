@@ -36,9 +36,13 @@
 #include "AS_MSG_pmesg.h"
 #include "AS_CGB_all.h"
 
+//  Define this to disable reading/writing the store from/to disk.
+//
+#define DONT_USE_STORE
+
 /*************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_store.c,v 1.4 2005-03-22 19:48:31 jason_miller Exp $";
+= "$Id: AS_CGB_store.c,v 1.5 2005-10-28 20:38:26 brianwalenz Exp $";
 /*************************************************************************/
 
 void open_fgb_store
@@ -123,6 +127,14 @@ void read_fgb_store
   
   //fprintf(stderr, "* theStorePath = %p\n", theStorePath);
   //fprintf(stderr, "* theStorePath [0] = %d\n", (int) (theStorePath [0]));
+
+#ifdef DONT_USE_STORE
+  if(! my_createmode){
+    fprintf(stderr, "ERROR: Someone wanted to read the store '%s', but DONT_USE_STORE is defined.\n",
+            theStorePath);
+    assert(0);
+  }
+#endif
 
   if(! my_createmode){
     char buffer[FILENAME_MAX];
@@ -255,6 +267,10 @@ void write_fgb_store
 {
   int ierr=0;
 
+#ifdef DONT_USE_STORE
+  return;
+#endif
+
   assert( NULL != theStorePath );
   assert( '\0' != theStorePath[0] );
 
@@ -337,7 +353,13 @@ void check_fgb_store
   TStateGlobals gtmp = {0};
   int ierr=0;
   size_t nitems = 0;
-  FILE * fp = fopen(theStorePath,"r");
+  FILE *fp;
+
+#ifdef DONT_USE_STORE
+  return;
+#endif
+
+  fp = fopen(theStorePath,"r");
   assert(fp != NULL);
 
   fprintf(stderr,"Now check the store for correctness!\n");
