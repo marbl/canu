@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_FGB_io.c,v 1.6 2005-09-15 15:20:15 eliv Exp $";
+= "$Id: AS_FGB_io.c,v 1.7 2005-10-28 20:37:24 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_FGB_io.c
@@ -69,7 +69,11 @@ int REAPER_VALIDATION = FALSE;
 
 //  Define to print a message whenever we read an overlap
 //  that refers to a non-existent frag.
-#define REPORT_DEGENERATE_OVERLAPS
+//#define REPORT_DEGENERATE_OVERLAPS
+
+//  Define to print a message whenever we delete an
+//  undefined fragment
+//#define REPORT_DELETED_UNDEF_FRAGS
 
 
 static void add_OFGMesg_to_graph
@@ -102,8 +106,10 @@ static void add_OFGMesg_to_graph
       set_del_fragment(frags,vid,TRUE);
       //set_con_fragment(frags,vid,FALSE); // Set default to non-contained
     } else {
+#ifdef REPORT_DELETED_UNDEF_FRAGS
       fprintf(stderr,"Deleting an undefined fragment (uid,iid)=("
               F_UID "," F_IID ")\n", uid,iid);
+#endif
     }
   }
   
