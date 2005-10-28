@@ -29,7 +29,7 @@ sub setBinDirectory {
     #  Let the user override this root, for no good reason.  We'll warn, though.
     #
     my $t = getGlobal("binRoot", undef);
-    if (defined($binRoot) && (defined($t))) {
+    if (defined($binRoot) && (defined($t)) && ($binRoot ne $t)) {
         print STDERR "WARNING: I appear to be installed in $binRoot, but you\n";
         print STDERR "         specified a bin directory of $t in the spec file.\n";
         $binRoot = $t;
@@ -51,6 +51,15 @@ sub setBinDirectory {
     #
     $host    = shift @_ if (scalar(@_));
     $mach    = shift @_ if (scalar(@_));
+
+    if ($host eq "") {
+        $host = `uname`;
+        chomp $host;
+    }
+    if ($mach eq "") {
+        $mach = `uname -m`;
+        chomp $mach;
+    }
 
     if      (($host eq "Linux") && ($mach eq "i686")) {
         #  Linux, on Intel 686
@@ -136,7 +145,7 @@ sub setParameters {
     my $ginhost = getGlobal("gridHost",     "Linux");
     my $ginmach = getGlobal("gridMachine",  "i686");
 
-    $useGrid = getGlobal("useGrid", 1);
+    $useGrid = getGlobal("useGrid", 0);
     $bin     = setBinDirectory($binhost, $binmach);
     $gin     = setBinDirectory($binhost, $binmach)  if ($useGrid == 0);  #  bin for the Grid
     $gin     = setBinDirectory($ginhost, $ginmach)  if ($useGrid == 1);  #  bin for the Grid
