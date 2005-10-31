@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.12 2005-09-29 07:30:34 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.13 2005-10-31 16:37:02 eliv Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -27,6 +27,7 @@
 #include <time.h>
 
 #include "AS_global.h"
+#include "GlobalConstants.h"
 
 extern int novar;
 
@@ -46,9 +47,6 @@ typedef enum{
 void SetProtoMode_AS(ProtoIOMode mode);
 ProtoIOMode GetProtoMode_AS(void);
 
-
-#define AS_FRAG_MAX_LEN (2048)
-#define AS_FRAG_MIN_LEN (64)
 
 #define AS_BACTIG_MAX_LEN (500000)
 #define AS_BACTIG_MIN_LEN (150)
