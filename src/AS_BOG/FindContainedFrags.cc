@@ -31,11 +31,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FindContainedFrags.cc,v 1.16 2005-10-07 15:40:48 eliv Exp $
- * $Revision: 1.16 $
+ * $Id: FindContainedFrags.cc,v 1.17 2005-10-31 15:55:57 eliv Exp $
+ * $Revision: 1.17 $
 */
 
-static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.16 2005-10-07 15:40:48 eliv Exp $";
+static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.17 2005-10-31 15:55:57 eliv Exp $";
 
 //  System include files
 
@@ -101,7 +101,7 @@ int  main
    bogRunner.push_back(&lenIdent);
 
    // Go through the overlap stream, and populate the 3 overlap graphs
-   bogRunner.processOverlapStream( my_stream );
+   bogRunner.processOverlapStream( my_store, my_stream );
 
    // Free/clean up the frag/overlap store/stream handles
    Free_OVL_Stream( my_stream );
@@ -120,8 +120,8 @@ int  main
        for(int j = 0; j < bogRunner.metrics.size(); j++)  { // output olap graph
 
            // Retrieve the best overlaps from the BOG for the current IUID
-           five[j] = bogRunner.metrics[j]->getBestEdge( i, AS_BOG::FIVE_PRIME );
-           three[j] = bogRunner.metrics[j]->getBestEdge( i, AS_BOG::THREE_PRIME );
+           five[j] = bogRunner.metrics[j]->getBestEdgeOverlap( i, AS_BOG::FIVE_PRIME );
+           three[j] = bogRunner.metrics[j]->getBestEdgeOverlap( i, AS_BOG::THREE_PRIME );
 
            // Why isn't this just outside of the for j loop?
            if ( j == bogRunner.metrics.size()-1 ) {

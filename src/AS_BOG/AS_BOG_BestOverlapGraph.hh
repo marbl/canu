@@ -34,8 +34,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.hh,v 1.21 2005-10-28 15:20:21 kli1000 Exp $
- * $Revision: 1.21 $
+ * $Id: AS_BOG_BestOverlapGraph.hh,v 1.22 2005-10-31 15:55:57 eliv Exp $
+ * $Revision: 1.22 $
 */
 
 //  System include files
@@ -133,9 +133,10 @@ namespace AS_BOG{
             BestContainmentMap _best_containments;
 
             bool checkForNextFrag(const Long_Olap_Data_t& olap);
-	    void updateInDegree(void);
+            void scoreContainment(const Long_Olap_Data_t& olap);
+            void scoreEdge(const Long_Olap_Data_t& olap);
+            void updateInDegree(void);
             void removeTransitiveContainment();
-            void changeContainedToContainer();
 
         protected:
             iuid _num_fragments;
@@ -167,7 +168,7 @@ namespace AS_BOG{
     ///////////////////////////////////////////////////////////////////////////
     struct BOG_Runner {
         void push_back(BestOverlapGraph *bog) { metrics.push_back(bog); }
-        void processOverlapStream(OVL_Stream_t *);
+        void processOverlapStream(OVL_Store_t *, OVL_Stream_t *);
 
         std::vector<BestOverlapGraph *> metrics;
     };

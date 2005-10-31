@@ -37,11 +37,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.20 2005-10-28 15:20:21 kli1000 Exp $
- * $Revision: 1.20 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.21 2005-10-31 15:55:57 eliv Exp $
+ * $Revision: 1.21 $
 */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.20 2005-10-28 15:20:21 kli1000 Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.21 2005-10-31 15:55:57 eliv Exp $";
 
 //  System include files
 #include<iostream>
@@ -172,19 +172,6 @@ namespace AS_BOG{
     ///////////////////////////////////////////////////////////////////////////
     // Graph creation methods
 
-    void BestOverlapGraph::changeContainedToContainer() {
-
-        for(iuid i=1; i<=_num_fragments; i++) {
-            BestEdgeOverlap *best = getBestEdgeOverlap(i, THREE_PRIME);
-            if (isContained( best->frag_b_id) ) {
-                best->frag_b_id = getBestContainer( best->frag_b_id)->container;
-            }
-
-            best = getBestEdgeOverlap(i, FIVE_PRIME);
-            if (isContained( best->frag_b_id) )
-                best->frag_b_id = getBestContainer( best->frag_b_id)->container;
-        }
-    }
     ///////////////////////////////////////////////////////////////////////////
     // Transitively removes redundant containments, so all containees in a container, refer
     // to the same container.  Algorithm will go through each element in the list of contained
@@ -220,13 +207,13 @@ namespace AS_BOG{
             // Loop while the current container is a containee of another container 
             while ( i2 != _best_containments.end() ) {
                 BestContainment nb = i2->second;
-                //std::cout << id <<" "<<bst.container<<" "<< nb.container<< std::endl;
+                std::cout << id <<" "<<bst.container<<" "<< nb.container<< std::endl;
 
                 // Delete containee under analysis from _best_containments if its container is concontained
                 //   by itself.  ie if id's container is contained by id.  This eliminates ciruclar containment.
                 if ( nb.container == id ) {
                     _best_containments.erase( id );
-                    //std::cout << "Erase self" << std::endl;
+                    std::cout << "Erase self" << std::endl;
                     break;
                 }
 
@@ -239,7 +226,7 @@ namespace AS_BOG{
 
                     // Set id's container to the larger container.
                     _best_containments[ id ] = seen->second;
-                    //std::cout << "Circled " << seen->second.container<< std::endl;
+                    std::cout << "Circled " << seen->second.container<< std::endl;
 
                     // Remove the container of id's new larger container
                     _best_containments.erase( seen->second.container );
@@ -366,9 +353,8 @@ namespace AS_BOG{
 	// Means that A's fragment ID is the same
         return false;
     }
-
-    void BestOverlapGraph::processOverlap(const Long_Olap_Data_t& olap) {
-        // This function builds the BestOverlapGraph by considering the specified
+    void BestOverlapGraph::scoreContainment(const Long_Olap_Data_t& olap) {
+        // This function builds the Containment graph by considering the specified
         //   overlap record.  It's important to remember that the overlaps
         //   must be passed in in sorted order of fragment A's iuid.  Also,
         //   it is also very important that overlaps are doubly listed, ie.
@@ -386,14 +372,6 @@ namespace AS_BOG{
         //   so don't store the overlap whether or not it's dovetailing or containment.
         if ( newScr <= 0 )
             return;
-
-/*        if ( olap.a_hang == 0 && olap.b_hang == 0 )
-         {
-             //multiContain[ olap.a_iid ].equal[ olap.b_iid ] = erate;
-             //handle identical containment
-         }
-         else
-*/
 
         // A contains B
         if ( olap.a_hang >= 0 && olap.b_hang <= 0 ) {
@@ -423,15 +401,40 @@ namespace AS_BOG{
         //   recorded is listed twice in the overlap store.
         } else if ( olap.a_hang <= 0 && olap.b_hang >= 0 ) {
              //handle b contains a
-/*             BestContainment *best = getBestContainer( olap.a_iid );
-             if (NULL == best || newScr > best->score) {
-                 BestContainment newBest;
-                 newBest.container = olap.b_iid;
-                 newBest.score     = newScr;
-                 newBest.sameOrientation = olap.flipped ? false : true;
-                 _best_containments[ olap.a_iid ] = newBest;
-             }
-*/
+             
+        //  Dove tailing overlap
+        } else {
+        }
+    }
+    void BestOverlapGraph::scoreEdge(const Long_Olap_Data_t& olap) {
+        // This function builds the BestOverlapGraph by considering the specified
+        //   overlap record.  It's important to remember that the overlaps
+        //   must be passed in in sorted order of fragment A's iuid.  Also,
+        //   it is also very important that overlaps are doubly listed, ie.
+        //   if an overlap exists, an olap must be passed in where A overlaps with
+        //   B and an olap must later be passed in where B overlaps A.
+        //
+        // It calls the virtual score function to score the overlap,
+        //   determines whether the overlap is containment or dovetailing,
+        //   then stores the overlap in the BestOverlapGraph member variables.
+
+        // Compute the score for this overlap based on the virtual score function
+        float newScr = scoreOverlap(olap);
+
+        // If the score is 0, the overlap doesn't pass the scoring criteria at all
+        //   so don't store the overlap whether or not it's dovetailing or containment.
+        if ( newScr <= 0 )
+            return;
+
+        // A contains B
+        if ( olap.a_hang >= 0 && olap.b_hang <= 0 ) {
+             //handle a contains b
+
+        // B contains A, this code is commented out/unnecessary because the overlap
+        //   recorded is listed twice in the overlap store.
+        } else if ( olap.a_hang <= 0 && olap.b_hang >= 0 ) {
+             //handle b contains a
+             
         //  Dove tailing overlap
         } else {
              // no containment, so score
@@ -508,20 +511,37 @@ namespace AS_BOG{
 
     ///////////////////////////////////////////////////////////////////////////
 
-    void BOG_Runner::processOverlapStream(OVL_Stream_t *my_stream) {
+    void BOG_Runner::processOverlapStream(OVL_Store_t * my_store,OVL_Stream_t *my_stream) {
 
-        // Go through the overlap stream, and populate the overlap graphs
+        // Go through the overlap stream in two passes:
+        // first pass finds the containments
+        // second pass builds the overlap graph, excluding contained frags
+        
         Long_Olap_Data_t olap;
         while  (Next_From_OVL_Stream (&olap, my_stream))
         {
             for(int j = 0; j < metrics.size(); j++)
-                metrics[j]->processOverlap( olap );
+                metrics[j]->scoreContainment( olap );
+        }
+        for(int j = 0; j < metrics.size(); j++) {
+            metrics[j]->removeTransitiveContainment();
+        }
+        Renew_OVL_Stream(my_stream);
+        uint32 last = Last_Frag_In_OVL_Store( my_store );
+        Init_OVL_Stream(my_stream, 1, last, my_store);
+
+        while  (Next_From_OVL_Stream (&olap, my_stream))
+        {
+            for(int j = 0; j < metrics.size(); j++) {
+                if (metrics[j]->isContained( olap.b_iid ) )
+                    continue; // no contained frags in BestOverlapGraph
+
+                metrics[j]->scoreEdge( olap );
+            }
         }
         // Update degree on final frag
         for(int j = 0; j < metrics.size(); j++) {
             metrics[j]->updateInDegree();
-            metrics[j]->removeTransitiveContainment();
-            metrics[j]->changeContainedToContainer();
         }
     }
 
