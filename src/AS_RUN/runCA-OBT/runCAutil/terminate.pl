@@ -34,6 +34,8 @@ sub terminate {
     if (! -e "$wrk/$asm.asm") {
         print STDERR "Starting h -- terminator\n";
 
+        my $uidServer = getGlobal("uidServer", undef);
+
         my $cmd;
         $cmd  = "cd $wrk && ";
         $cmd .= "cat $wrk/7-CGW/$asm.cgw ";
@@ -41,10 +43,11 @@ sub terminate {
         $cmd .= "    $wrk/7-CGW/$asm.cgw_scaffolds | ";
         $cmd .= "$bin/terminator -P -s 100000000 " if ($terminateFakeUID != 0);
         $cmd .= "$bin/terminator -P -u "           if ($terminateFakeUID == 0);
+        $cmd .= "    $uidServer "                  if (defined($uidServer));
         $cmd .= "    -f $wrk/$asm.frgStore ";
         $cmd .= "    -g $wrk/$asm.gkpStore ";
         $cmd .= "    -o $wrk/$asm.asm ";
-        $cmd .= "    -m $wrk/$asm.map";
+        $cmd .= "    -m $wrk/$asm.map ";
         $cmd .= "> $wrk/terminator.out ";
         $cmd .= "2> $wrk/terminator.err";
 
