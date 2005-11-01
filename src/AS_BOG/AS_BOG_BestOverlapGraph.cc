@@ -37,11 +37,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.22 2005-11-01 18:44:58 kli1000 Exp $
- * $Revision: 1.22 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.23 2005-11-01 21:20:35 eliv Exp $
+ * $Revision: 1.23 $
 */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.22 2005-11-01 18:44:58 kli1000 Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.23 2005-11-01 21:20:35 eliv Exp $";
 
 //  System include files
 #include<iostream>
@@ -501,10 +501,18 @@ namespace AS_BOG{
     //   after applying an an error rate cutoff.
 
         short olapLen = olapLength(olap);
-        float erate = Expand_Quality(olap.corr_erate) * 100;
+        float erate = Expand_Quality(olap.corr_erate) * 1000;
+/*        if ( olap.a_iid == 3771 && olap.b_iid == 5550 || olap.a_iid == 26784 && olap.b_iid == 11910 || olap.a_iid == 27570 && (olap.b_iid == 16509 || olap.b_iid == 26319) )
+            std::cerr << olap.a_iid << " " << olap.b_iid << " Erate " <<
+                olap.corr_erate << " expanded " << erate << " cutoff " <<
+                mismatchCutoff * 10 << " greater " << (rint(erate) > mismatchCutoff * 10) 
+                << std::endl;
+For debugging i386, alpha differences on float conversion
+*/
 
         // mismatchCuoff is specified in the constructor
-        if (erate > mismatchCutoff)
+        // alpha and i386 frequently disagree on float conversions, so force the issue
+        if (rint(erate) > mismatchCutoff * 10)
             return 0;
         return olapLen;
     }
