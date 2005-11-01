@@ -37,11 +37,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.21 2005-10-31 15:55:57 eliv Exp $
- * $Revision: 1.21 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.22 2005-11-01 18:44:58 kli1000 Exp $
+ * $Revision: 1.22 $
 */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.21 2005-10-31 15:55:57 eliv Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.22 2005-11-01 18:44:58 kli1000 Exp $";
 
 //  System include files
 #include<iostream>
@@ -207,13 +207,13 @@ namespace AS_BOG{
             // Loop while the current container is a containee of another container 
             while ( i2 != _best_containments.end() ) {
                 BestContainment nb = i2->second;
-                std::cout << id <<" "<<bst.container<<" "<< nb.container<< std::endl;
+                //std::cout << id <<" "<<bst.container<<" "<< nb.container<< std::endl;
 
                 // Delete containee under analysis from _best_containments if its container is concontained
                 //   by itself.  ie if id's container is contained by id.  This eliminates ciruclar containment.
                 if ( nb.container == id ) {
                     _best_containments.erase( id );
-                    std::cout << "Erase self" << std::endl;
+                    //std::cout << "Erase self" << std::endl;
                     break;
                 }
 
@@ -226,7 +226,7 @@ namespace AS_BOG{
 
                     // Set id's container to the larger container.
                     _best_containments[ id ] = seen->second;
-                    std::cout << "Circled " << seen->second.container<< std::endl;
+                    //std::cout << "Circled " << seen->second.container<< std::endl;
 
                     // Remove the container of id's new larger container
                     _best_containments.erase( seen->second.container );

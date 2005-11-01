@@ -33,8 +33,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_Datatypes.hh,v 1.6 2005-08-10 14:46:19 eliv Exp $
- * $Revision: 1.6 $
+ * $Id: AS_BOG_Datatypes.hh,v 1.7 2005-11-01 18:44:58 kli1000 Exp $
+ * $Revision: 1.7 $
 */
 
 //  System include files
@@ -95,6 +95,7 @@ namespace AS_BOG{
 	} orientation_type;
 
 	typedef CDS_IID_t iuid;
+	const iuid NULL_FRAG_ID=0;
 
 } //AS_BOG namespace
 

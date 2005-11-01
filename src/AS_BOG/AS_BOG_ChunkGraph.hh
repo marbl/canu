@@ -22,6 +22,9 @@
 * Module:  AS_BOG_ChunkGraph.hh
 * Description:
 *	Data structure to keep track of if overlaps can be chunked together.
+*	We should be able to get rid of the data structure, but the rules
+*	for deciding whether a overlaps can be chunked together should be
+*	kept here.
 * 
 *    Programmer:  K. Li
 *       Started:  2 Aug 2005
@@ -33,34 +36,47 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_ChunkGraph.hh,v 1.1 2005-08-08 21:51:03 kli1000 Exp $
- * $Revision: 1.1 $
+ * $Id: AS_BOG_ChunkGraph.hh,v 1.2 2005-11-01 18:44:58 kli1000 Exp $
+ * $Revision: 1.2 $
 */
-
-static char CM_ID[] = "$Id: AS_BOG_ChunkGraph.hh,v 1.1 2005-08-08 21:51:03 kli1000 Exp $";
-
-//  System include files
 
 #ifndef INCLUDE_AS_BOG_CHUNKGRAPH
 #define INCLUDE_AS_BOG_CHUNKGRAPH
 
+static char AS_BOG_CHUNK_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_ChunkGraph.hh,v 1.2 2005-11-01 18:44:58 kli1000 Exp $";
+
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
-#include "AS_BOG_BestOverlapGraphVisitor.hh"
 
 namespace AS_BOG{
 
-	class ChunkGraph{
+	struct ChunkGraph{
 
 	    public:
 
-		ChunkGraph(iuid max_fragments);
+		// Constructor
+		ChunkGraph(void);
+
+		// Destructor
 		~ChunkGraph(void);
 
-		void accept(ChunkGraphVisitor cgv);
-	
-		iuid getFivePrimeChunking(iuid src_frag_id);
-		iuid getThreePrimeChunking(iuid src_frag_id);
+		// Build the ChunkGraph, based on a BOG
+		void build(BestOverlapGraph *bovlg);		
+
+		// Chunkability rule
+		bool isChunkable(iuid frag_id, fragment_end_type whichEnd);
+
+	        bool isChunkable(
+			BestEdgeOverlap *beo,
+			BestOverlapGraph *bovlg);
+
+	        bool isChunkable(
+			iuid frag_a_id, fragment_end_type which_end,
+			BestOverlapGraph *bovlg);
+
+		// Returns IUID of 5' or 3' end of specified frag_id
+		//  Since there should only be one out/incoming connection
+		iuid getChunking(iuid src_frag_id, fragment_end_type whichEnd);
 
 		void getChunking(
 			iuid src_frag_id, 
@@ -70,46 +86,25 @@ namespace AS_BOG{
 			iuid src_frag_id, 
 			iuid five_prime_dst_frag_id, iuid three_prime_dst_frag_id);
 
+		void printFrom(iuid begin, iuid end);
+		long getNumFragments(void);
+		long countSingletons(void);
+
+		friend std::ostream& operator<< (std::ostream& os, ChunkGraph &cg);
+
+		void checkInDegree(BestOverlapGraph *bovlg);
+
 	    private:
 
 		struct _chunk_unit_struct{
 			iuid five_prime;
 			iuid three_prime;
-		}
+		};
 
-		_chunk_unit_struct _chunkable_array[];
-		iuid _num_fragments;
+		_chunk_unit_struct *_chunkable_array;
 		iuid _max_fragments;
 
-	}
-
-	//////////////////////////////////////////////////////////////////////////////
-
-	class ChunkGraphBuilder : public BestOverlapGraphVisitor{
-
-	    public:
-
-		void visit(BestOverlapGraph& bovlg);
-
-		bool isChunkable(
-			iuid frag_id, fragment_end_type which_end, BestOverlapGraph& bovlg);
-
-		bool isChunkable(
-			BestEdgeOverlap *beo, BestOverlapGraph& bovlg);
-
-	    private:
-
-		ChunkGraph *_chunk_graph_ptr=NULL;
-
-	}
-
-	//////////////////////////////////////////////////////////////////////////////
-
-	class ChunkGraphVisitor{
-	    public:
-		virtual void visit(ChunkGraph &cg);
-	}
-		
+	};
 
 } //AS_BOG namespace
 

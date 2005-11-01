@@ -34,93 +34,181 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.hh,v 1.4 2005-08-08 21:49:02 kli1000 Exp $
- * $Revision: 1.4 $
+ * $Id: AS_BOG_UnitigGraph.hh,v 1.5 2005-11-01 18:44:58 kli1000 Exp $
+ * $Revision: 1.5 $
 */
 
-static char CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.4 2005-08-08 21:49:02 kli1000 Exp $";
 
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
+static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.5 2005-11-01 18:44:58 kli1000 Exp $";
+
 #include <vector>
 #include <map>
+#include <iostream>
 #include "AS_BOG_Datatypes.hh"
+#include "AS_BOG_ChunkGraph.hh"
+
+#include "AS_MSG_pmesg.h"
 
 namespace AS_BOG{
 
-	class DoveTailPath{
+	///////////////////////////////////////////////////////////////////////
+	// For the sake of self-documenting code
 
-		SetNextFragment(iuid frag_id, orientation_type ori);
-	
-		GetNextFragment(iuid& frag_id, orientation_type& ori);
-		
-		ostream& operator<<(ostream& s, DoveTailPath &dtp);
-		
-		struct _dt_path_node{
-			iuid frag_id;
-			orientation_type ori;
-		}
-
-		vector<_dt_path_node> _dt_path;
-	}
+	typedef iuid container_id;
+	typedef iuid containee_id;
+	typedef iuid fragment_id;
+	typedef std::vector<fragment_id> FragmentList;
 
 	///////////////////////////////////////////////////////////////////////
 
-	class Unitig{
+	struct DoveTailNode{
+		iuid frag_id;
+		orientation_type ori;
+		long olap_len; //3' overlap, last node has no overlap
+		long frag_len;
+	};
+	typedef std::vector<DoveTailNode> DoveTailPath;
 
-		// Contains the "chunk", based on a list of fragment iuids
-		// which is the dovetail path.  The contained fragments are
-		// also stored here.
 
-		public:
-			// Constructor
-			Unitig(iuid utg_id);
-			setDoveTailPath(DoveTailPath *dt_ptr);
-			setContainments(iuid container, iuid containee);
-
-			// Computable statistics on this unitig
-			float Compute_Astat(void);
-			float Compute_Rho(void);
-
-			iuid unitig_id;
-			DoveTailPath *dovetail_path;
-			map<iuid, iuid> contained_frags;
-	}
+	struct ContaineeNode{
+		iuid frag_id;
+		bool same_ori;
+		long olap_offset;
+		long frag_len;
+	};
+	typedef std::vector<ContaineeNode> ContaineeList;	
+	typedef std::map<container_id, ContaineeList> ContainerMap;
 
 	///////////////////////////////////////////////////////////////////////
 
-	class UnitigOverlap{
+	// Position of fragment in unitig
+	struct interval{ 
+		long begin;
+		long end;
+	};
+	typedef std::map<fragment_id, interval> FragmentPositionMap;
+	std::ostream& operator<< (std::ostream& os, FragmentPositionMap *fpm_ptr);
 
+	///////////////////////////////////////////////////////////////////////
+
+	struct Unitig{
+
+		Unitig(void);		
+		~Unitig(void);		
+
+		// Compute unitig based on given dovetails and containments
+		FragmentPositionMap *computeFragmentPositions(void);
+
+		// Accessor methods
+		float getAvgRho(void);
+		void setGlobalArrivalRate(float global_arrival_rate);
+		float getCovStat(void);
+		long getLength(void);
+		long getNumFrags(void);
+		long getNumRandomFrags(void); // For now, same as numFrags, but should be randomly sampled frag count
+		// For proto I/O messages
+		IntUnitigMesg *getIUM_Mesg(void);
+		void freeIUM_Mesg(IntUnitigMesg *ium_ptr);
+
+		friend std::ostream& operator<< (std::ostream& os, Unitig& utg);
+
+		// Public Member Variables
+		iuid id;
+	        DoveTailPath *dovetail_path_ptr;
+		ContainerMap *contained_frags_ptr;
+		FragmentPositionMap *frag_pos_map_ptr;
+
+		private:
+			// Do not access these private variables directly, they may not be
+			//  computed yet, use accessors!
+			float _avgRho;
+			float _covStat;
+			long _length;
+			long _numFrags;
+			long _numRandomFrags;
+			static float _globalArrivalRate;
+	};
+
+	///////////////////////////////////////////////////////////////////////
+
+	struct UnitigOverlap{
 		// Contains the description of how unitigs are connected to
 		// each other
 			
-		public:
-			UnitigOverlap(iuid utg_a, iuid utg_b, overlap_type type, int score);
+		iuid unitig_a;
+		orientation_type ori_a;
 
-			iuid unitig_a;
-			iuid unitig_b;
-			overlap_type ovl_type;
-			int ovl_score;
-	}
+		iuid unitig_b;
+		orientation_type ori_b;
+
+		overlap_type ovl_type;
+		int ovl_score;
+	};
 
 	///////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////
 
-	class UnitigGraph{
+	typedef std::vector<Unitig*> UnitigVector;
 
-		// Contains the set of unitigs and how they are connected together
-		// in one object for a given assembly.
+	struct UnitigGraph{
+		// This will store the entire set of unitigs that are generated
+		// It's just a unitig container.
 
-		public:
-			void AddUnitig(Unitig *utg);
-			void AddOverlap(UnitigOverlap *ovl);
+		// Call this on a chunk graph pointer to build a unitig graph
+		void build(ChunkGraph *cg_ptr, BestOverlapGraph *bog_ptr, long num_rand_frags, long genome_size);
 
-			vector<&Unitig> unitigs;
-			vector<&UnitigOverlap> overlaps;
+		// Debugging output operator
+		friend std::ostream& operator<< (std::ostream& os, UnitigGraph& utgrph);
 
-	}
+		// For compatibility with the rest of the assembler
+		void writeIUMtoFile(char *filename);
 
-}
+		float getGlobalArrivalRate(long total_random_frags_in_genome=0, long genome_size=0);
+
+		///////////////////////////////////////////////////////////////
+		// Member Variables
+
+		// Unitigs are the dove tails and their contained fragments
+		UnitigVector unitigs;
+
+		// Overlaps are unitig overlaps
+		std::vector<UnitigOverlap*> overlaps;
+
+
+		private:
+			// Given a fragment, it will follow it's overlaps until 
+			//   the end, and return the path that it traversed.
+			DoveTailPath *_extract_dovetail_path(
+				iuid src_frag_id, 
+				orientation_type direction,
+				ChunkGraph *cg_ptr,
+				BestOverlapGraph *bog_ptr);
+
+			// Inverts the containment map to key by container, instead of containee
+			ContainerMap *_build_container_map(BestOverlapGraph *bog_ptr);
+
+			// Build containee list
+			ContainerMap *_extract_containees(DoveTailPath *dtp_ptr, 
+				ContainerMap *cntnrmap_ptr);
+
+			// Given a fragment and end, it will find the fragment it
+			// overlaps and it's end.
+			void _follow_to_next_fragment(
+				iuid src_frag_id, orientation_type src_end,
+				iuid& dst_frag_id, orientation_type& dst_end,
+				ChunkGraph *cg_ptr);
+
+			// Compute the global arrival rate based on the unitig rho's.
+			float _compute_global_arrival_rate(void);
+
+	};
+		
+	///////////////////////////////////////////////////////////////////////
+
+};
 
 #endif
 
