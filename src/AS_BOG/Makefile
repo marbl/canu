@@ -26,11 +26,16 @@
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
-TOOL_SRCS = FindContainedFrags.cc 
+TOOL_SRCS = BuildUnitigs.cc FindContainedFrags.cc
 
-SOURCES = AS_BOG_BestOverlapGraph.cc $(TOOL_SRCS)
-OBJECTS = $(SOURCES:.cc=.o) 
+HEADERS = AS_BOG_BestOverlapGraph.hh AS_BOG_ChunkGraph.hh AS_BOG_UnitigGraph.hh
+LIB_SOURCES = AS_BOG_BestOverlapGraph.cc AS_BOG_ChunkGraph.cc AS_BOG_UnitigGraph.cc 
 
+SOURCES = $(LIB_SOURCES) $(TOOL_SRCS)
+
+TOOL_OBJS = $(TOOL_SRCS:.cc=.o)
+LIB_OBJS = $(LIB_SOURCES:.cc=.o) 
+OBJECTS =  $(LIB_OBJS)  $(TOOL_OBJS)
 
 #LIBRARIES = libAS_OVL.a
 
@@ -41,13 +46,17 @@ AS_LIBRARIES = libAS_PER.a libAS_UTL.a libAS_MSG.a libAS_OVL.a
 #	libAS_OVL.a libAS_MSG.a libAS_LIN.a
 SYS_LIBRARIES = 
 
-TOOL_PROGS = findContainedFrags
+TOOL_PROGS = buildUnitigs findContainedFrags
 
 PROGS = $(TOOL_PROGS)
+
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
 
-all:    $(OBJECTS) $(LIBRARIES) $(PROGS) 
+all:    $(OBJECTS) $(TOOL_OBJS) $(LIBRARIES) $(PROGS) 
 
-findContainedFrags:  $(OBJECTS) $(AS_LIBRARIES) $(SYS_LIBRARIES)
+buildUnitigs: BuildUnitigs.o $(LIB_OBJS) $(AS_LIBRARIES) $(SYS_LIBRARIES) 
+
+findContainedFrags:  FindContainedFrags.o $(LIB_OBJS) $(AS_LIBRARIES) $(SYS_LIBRARIES)
+
