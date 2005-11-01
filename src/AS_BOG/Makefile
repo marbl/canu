@@ -54,7 +54,7 @@ PROGS = $(TOOL_PROGS)
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
 
-all:    $(OBJECTS) $(TOOL_OBJS) $(LIBRARIES) $(PROGS) 
+all:    $(OBJECTS) $(LIBRARIES) $(PROGS) 
 
 buildUnitigs: BuildUnitigs.o $(LIB_OBJS) $(AS_LIBRARIES) $(SYS_LIBRARIES) 
 
