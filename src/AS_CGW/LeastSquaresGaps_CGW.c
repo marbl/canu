@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: LeastSquaresGaps_CGW.c,v 1.7 2005-09-20 14:41:23 brianwalenz Exp $";
+static char CM_ID[] = "$Id: LeastSquaresGaps_CGW.c,v 1.8 2005-11-02 18:00:38 brianwalenz Exp $";
 
 #define FIXED_RECOMPUTE_SINGULAR /* long standing bug: is it fixed yet? */
 #undef LIVE_ON_THE_EDGE   /* abort on singularities -- this would be a good idea, unless you
@@ -313,9 +313,9 @@ void CheckInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
     }
     numCIs = indexCIs;
     if(numCIs != scaffold->info.Scaffold.numElements){
-        fprintf(GlobalData->logfp, "NumElements inconsistent %d,%d\n",
-                numCIs, scaffold->info.Scaffold.numElements);
-        scaffold->info.Scaffold.numElements = numCIs;
+       fprintf(GlobalData->logfp, "NumElements inconsistent %d,%d\n",
+               numCIs, scaffold->info.Scaffold.numElements);
+       scaffold->info.Scaffold.numElements = numCIs;
     }
 
     assert(indexCIs == numCIs);
@@ -1595,8 +1595,10 @@ void MarkInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
                         otherCI->scaffoldID,
                         gapDistance.mean, gapDistance.variance,
                         edge->distance.mean, edge->distance.variance);
-                DumpACIScaffoldNew(GlobalData->logfp,ScaffoldGraph,scaffold,TRUE);
-                DumpACIScaffoldNew(GlobalData->logfp,ScaffoldGraph,scaffold,FALSE);
+                //  If you're serious about debugging this, enable these dumps, otherwise,
+                //  don't fill up the cgwlog with useless crud.
+                //DumpACIScaffoldNew(GlobalData->logfp,ScaffoldGraph,scaffold,TRUE);
+                //DumpACIScaffoldNew(GlobalData->logfp,ScaffoldGraph,scaffold,FALSE);
 
                 SetEdgeStatus(graph->RezGraph, edge, markUntrusted ? UNTRUSTED_EDGE_STATUS :
                         TENTATIVE_UNTRUSTED_EDGE_STATUS);
@@ -1812,11 +1814,9 @@ int IsInternalEdgeStatusVaguelyOK(EdgeCGW_T *edge,CDS_CID_t thisCIid){
       otherCI->scaffoldID,
       gapDistance.mean, gapDistance.variance,
       edge->distance.mean, edge->distance.variance);
+#ifdef NEG_GAP_VARIANCE_PROBLEM_FIXED
     DumpACIScaffoldNew(GlobalData->logfp,ScaffoldGraph,GetGraphNode(ScaffoldGraph->ScaffoldGraph,thisCI->scaffoldID),TRUE);
     DumpACIScaffoldNew(GlobalData->logfp,ScaffoldGraph,GetGraphNode(ScaffoldGraph->ScaffoldGraph,thisCI->scaffoldID),FALSE);
-
-
-#ifdef NEG_GAP_VARIANCE_PROBLEM_FIXED
     assert(0);
 #endif
   }
@@ -1829,6 +1829,7 @@ int IsInternalEdgeStatusVaguelyOK(EdgeCGW_T *edge,CDS_CID_t thisCIid){
       otherCI->scaffoldID,
       gapDistance.mean, gapDistance.variance,
       edge->distance.mean, edge->distance.variance);
+    //  Unlike the above, we leave these in, since we are asserting.
     DumpACIScaffoldNew(GlobalData->logfp,ScaffoldGraph,GetGraphNode(ScaffoldGraph->ScaffoldGraph,thisCI->scaffoldID),TRUE);
     DumpACIScaffoldNew(GlobalData->logfp,ScaffoldGraph,GetGraphNode(ScaffoldGraph->ScaffoldGraph,thisCI->scaffoldID),FALSE);
 
