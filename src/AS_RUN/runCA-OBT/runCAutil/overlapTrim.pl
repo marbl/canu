@@ -104,7 +104,7 @@ sub overlapTrim {
             exit(1);
         }
 
-        if (runCommand("$bin/sort-overlaps -memory 16000 -maxiid $numFrags -L $wrk/0-overlaptrim/all-overlaps-trim.ovllist > $wrk/0-overlaptrim/$asm.trim.ovl.sorted")) {
+        if (runCommand("$bin/sort-overlaps -memory $getGlobal("ovlSortMemory", 1000) -maxiid $numFrags -L $wrk/0-overlaptrim/all-overlaps-trim.ovllist > $wrk/0-overlaptrim/$asm.trim.ovl.sorted")) {
             unlink "$wrk/0-overlaptrim/$asm.trim.ovl.sorted";
             die "Failed to sort.\n";
         }
