@@ -34,11 +34,12 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.3 2005-11-01 18:44:58 kli1000 Exp $
- * $Revision: 1.3 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.4 2005-11-04 22:07:51 eliv Exp $
+ * $Revision: 1.4 $
 */
 
-static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.3 2005-11-01 18:44:58 kli1000 Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.4 2005-11-04 22:07:51 eliv Exp $";
+static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -850,7 +851,7 @@ namespace AS_BOG{
 		}
 
 		// Populate the IUM message with unitig info
-		/*IntChunk_ID*/		ium_mesg_ptr->iaccession=id;
+		/*IntChunk_ID*/		ium_mesg_ptr->iaccession=id-1;
 		#ifdef AS_ENABLE_SOURCE
 		/*char*/		ium_mesg_ptr->source=AS_BOG_UNITIG_GRAPH_CC_CM_ID;
 		#endif
