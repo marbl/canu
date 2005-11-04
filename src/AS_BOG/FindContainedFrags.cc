@@ -31,11 +31,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FindContainedFrags.cc,v 1.17 2005-10-31 15:55:57 eliv Exp $
- * $Revision: 1.17 $
+ * $Id: FindContainedFrags.cc,v 1.18 2005-11-04 22:14:10 eliv Exp $
+ * $Revision: 1.18 $
 */
 
-static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.17 2005-10-31 15:55:57 eliv Exp $";
+static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.18 2005-11-04 22:14:10 eliv Exp $";
 
 //  System include files
 
@@ -186,23 +186,42 @@ int  main
        // First is containee IUID, Second is container IUID
        CDS_IID_t id = it->first;
        AS_BOG::BestContainment bst = it->second;
+       CDS_IID_t cr1 = bst.container;
+       int ahng1 = bst.a_hang;
 
 
 	//  1: erScore
-       cout << id << " c1 by "<< bst.container << " " << bst.score << " " << bst.a_hang <<
+       cout << id << " c1 by "<< cr1 << " " << bst.score << " " << ahng1 <<
             " " << bst.b_hang <<" sameOrient " << bst.sameOrientation << endl;
 
 	//  2: lenScore
-       AS_BOG::BestContainment* b2 = bogRunner.metrics[1]->getBestContainer( id );
-       if ( b2 != NULL )
-           cout << id << " c2 by "<< b2->container << " " << b2->score << " " << b2->a_hang <<
+       AS_BOG::BestContainment* b2 = bogRunner.metrics[1]->getBestContainer(id);
+
+       if ( b2 != NULL ) {
+           CDS_IID_t cr2 = b2->container;
+           int ahng2 = b2->a_hang;
+
+           cout << id << " c2 by "<< cr2 << " " << b2->score << " " << ahng2 <<
             " " << b2->b_hang <<" sameOrient " << b2->sameOrientation << endl;
+
+           if ( cr1 == cr2 && ahng1 != ahng2 )
+              cout<<"Error, hang mismatch: "<<cr1<<" "<<ahng1<<" "<<ahng2<<endl;
+           cr1   = cr2;
+           ahng1 = ahng2;
+       }
        
         //  3: lenIdent
-       AS_BOG::BestContainment* b3 = bogRunner.metrics[2]->getBestContainer( id );
-       if ( b3 != NULL )
-           cout << id << " c3 by "<< b3->container << " " << b3->score << " " << b3->a_hang <<
+       AS_BOG::BestContainment* b3 = bogRunner.metrics[2]->getBestContainer(id);
+       if ( b3 != NULL ) {
+           CDS_IID_t cr3 = b3->container;
+           int ahng3 = b3->a_hang;
+
+           cout << id << " c3 by "<< cr3 << " " << b3->score << " " << ahng3 <<
            " " << b3->b_hang << " sameOrient " << b3->sameOrientation << endl;
+
+           if ( cr3 == cr1 && ahng3 != ahng1 )
+              cout<<"Error, hang mismatch: "<<cr3<<" "<<ahng3<<" "<<ahng1<<endl;
+       }
 
    }
 

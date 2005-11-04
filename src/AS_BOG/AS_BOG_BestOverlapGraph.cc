@@ -37,11 +37,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.23 2005-11-01 21:20:35 eliv Exp $
- * $Revision: 1.23 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.24 2005-11-04 22:14:10 eliv Exp $
+ * $Revision: 1.24 $
 */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.23 2005-11-01 21:20:35 eliv Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.24 2005-11-04 22:14:10 eliv Exp $";
 
 //  System include files
 #include<iostream>
@@ -151,6 +151,16 @@ namespace AS_BOG{
         }
     }
 
+    void BestOverlapGraph::setBestContainer(const Long_Olap_Data_t& olap, float newScr) {
+
+        BestContainment newBest;
+        newBest.container = olap.a_iid;
+        newBest.score     = newScr;
+        newBest.sameOrientation =  olap.flipped ? false : true;
+        newBest.a_hang =  olap.a_hang;
+        newBest.b_hang =  olap.b_hang;
+        _best_containments[ olap.b_iid ] = newBest;
+    }
     bool BestOverlapGraph::isContained(const iuid fragIID) {
         std::map<iuid,BestContainment>::iterator i =
                                 _best_containments.find( fragIID ); 
@@ -241,9 +251,22 @@ namespace AS_BOG{
                 found[ nb.container ] = nb;
 
                 // Reset the orientation of id's containment.
-                if (!sameOrient) {
-                    sameOrient = _best_containments[id].sameOrientation = ! nb.sameOrientation;
-                    useAhang = !useAhang;
+                if (sameOrient) {
+                    if (nb.sameOrientation) {
+                       useAhang = true;
+                       sameOrient =_best_containments[id].sameOrientation=true;
+                    } else {
+                       sameOrient =_best_containments[id].sameOrientation=false;
+                       useAhang = false;
+                    }
+                } else {
+                    if (nb.sameOrientation) {
+                       sameOrient =_best_containments[id].sameOrientation=false;
+                       useAhang = true;
+                    } else {
+                       useAhang = false;
+                       sameOrient =_best_containments[id].sameOrientation=true;
+                    }
                 }
                 found[nb.container].sameOrientation = sameOrient;
                 // make hang relative to new container
@@ -286,10 +309,20 @@ namespace AS_BOG{
         //   overlap record and fragment length (which is not in the
         //   overlap record).
         uint16 alen = fragLen(olap.a_iid);
-        if (olap.a_hang < 0)
-            return alen - abs(olap.b_hang);
-        else
-            return alen - olap.a_hang;
+        if (olap.a_hang < 0) {
+            if (olap.b_hang < 0 )
+                return alen + olap.b_hang;
+            else { 
+                uint16 blen = fragLen(olap.a_iid);
+                return blen + olap.a_hang - olap.b_hang; // spur or containment
+            }
+
+        } else {
+            if (olap.b_hang < 0 )
+                return alen + olap.b_hang - olap.a_hang; // spur or containment
+            else
+                return alen - olap.a_hang;
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -377,6 +410,17 @@ namespace AS_BOG{
         if ( olap.a_hang >= 0 && olap.b_hang <= 0 ) {
              //handle a contains b
 
+             short alignLen = olapLength( olap );
+             uint16 afrgLen = fragLen( olap.a_iid );
+             uint16 bfrgLen = fragLen( olap.b_iid );
+             if ( alignLen + 30 < (afrgLen < bfrgLen ? afrgLen:bfrgLen )) {
+                 // spur, not containment
+                 std::cout << "Spur "<< olap.a_iid <<" "<<olap.b_iid <<
+                     " olapLen "<< alignLen <<" alen "<< afrgLen <<
+                     " blen "<< bfrgLen <<std::endl;
+                return;
+             } 
+
              //  Get the pointer to the container for the containee, B, if it exists
              BestContainment *best = getBestContainer( olap.b_iid );
 
@@ -388,13 +432,7 @@ namespace AS_BOG{
                       && fragLen(best->container) < fragLen(olap.a_iid) )
              {
 //                 std::cout << olap.a_iid << " contains " << olap.b_iid <<" "<< fragLen(olap.a_iid) << std::endl; 
-                 BestContainment newBest;
-                 newBest.container = olap.a_iid;
-                 newBest.score     = newScr;
-                 newBest.sameOrientation =  olap.flipped ? false : true;
-                 newBest.a_hang =  olap.a_hang;
-                 newBest.b_hang =  olap.b_hang;
-                 _best_containments[ olap.b_iid ] = newBest;
+                 setBestContainer( olap, newScr );
              }
         
         // B contains A, this code is commented out/unnecessary because the overlap
@@ -541,8 +579,15 @@ For debugging i386, alpha differences on float conversion
         while  (Next_From_OVL_Stream (&olap, my_stream))
         {
             for(int j = 0; j < metrics.size(); j++) {
-                if (metrics[j]->isContained( olap.b_iid ) )
+                if (metrics[j]->isContained( olap.b_iid ) ) {
+                    BestContainment *best = metrics[j]->getBestContainer(
+                                                                 olap.b_iid );
+                    // Get olap info directly, less error prone then transitive
+                    if ( best->container == olap.a_iid )
+                        metrics[j]->setBestContainer( olap, 0 );
+
                     continue; // no contained frags in BestOverlapGraph
+                }
 
                 metrics[j]->scoreEdge( olap );
             }
