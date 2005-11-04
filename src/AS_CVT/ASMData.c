@@ -311,6 +311,123 @@ void PrintFragmentScaffoldCoordinates(AssemblyStore * asmStore,
 }
 
 
+/*
+  Format of reads.placed file:
+    white-space delimited, one line per fragment
+     # (a) NCBI ti number for read (or *, if none known)
+     # (b) read name
+     # (c) start of trimmed read on original read
+     # (d) number of bases in trimmed read
+     # (e) orientation on contig (0 = forward, 1 = reverse)
+     # (f) contig name
+     # (g) supercontig name
+     # (h) approximate start of trimmed read on contig
+     # (i) approximate start of trimmed read on supercontig.
+
+     for (a), we write frag UID
+         (b), concatenate frag type, parent type, and frag UID
+ */
+void PrintReadsPlaced(AssemblyStore * asmStore,
+                      int doInstances,
+                      int doSingleSurrogates,
+                      int doDegenerates,
+                      int doChaff,
+                      int doUnreferenced,
+                      FILE * fo)
+{
+  uint32 i;
+  ASM_AFGRecord afg;
+  ASM_DSCRecord dsc;
+  ASM_CCORecord cco;
+  ASM_SCFRecord scf;
+  ASM_InstanceRecord contigIns;
+  ASM_InstanceRecord scaffIns;
+  ASM_LKGRecord lkg;
+  GateKeeperLinkRecordIterator iterator;
+  int32 numAFGs = getNumASM_AFGs(asmStore->afgStore);
+  
+  for(i = 1; i <= numAFGs; i++)
+  {
+    getASM_AFGStore(asmStore->afgStore, i, &afg);
+
+    if(afg.deleted) continue;
+    
+    if(afg.chaff)
+    {
+      if(doChaff)
+      {
+        fprintf(fo, F_UID " %cC" F_UID " " F_COORD " " F_COORD " 0 - - - -\n",
+                afg.uid, (char) afg.type, afg.uid,
+                afg.asmClr.bgn + 1, afg.asmClr.end - afg.asmClr.bgn);
+      }
+      else
+        continue;
+    }
+    else
+    {
+      if(afg.inDegenerate)
+      {
+        if(doDegenerates)
+        {
+          getASM_InstanceStore(asmStore->asiStore, afg.sInsIndex, &scaffIns);
+          getASM_DSCStore(asmStore->dscStore, scaffIns.containerIndex, &dsc);
+          fprintf(fo, F_UID " %cD" F_UID " " F_COORD " " F_COORD
+                  " %d " F_UID " " F_UID " " F_COORD " " F_COORD "\n",
+                  afg.uid, (char) afg.type, afg.uid,
+                  afg.asmClr.bgn + 1, afg.asmClr.end - afg.asmClr.bgn,
+                  ((scaffIns.pos.bgn < scaffIns.pos.end) ? 0 : 1),
+                  dsc.uid, dsc.uid, scaffIns.pos.bgn, scaffIns.pos.bgn);
+        }
+        else
+          continue;
+      }
+      else
+      {
+        // in real scaffold(s) - or missing from contigs/scaffolds
+        if(afg.cInsIndex != 0 && afg.sInsIndex != 0 &&
+           (!afg.inSurrogate || doSingleSurrogates) &&
+           (!afg.unreferenced || doUnreferenced))
+        {
+          getASM_InstanceStore(asmStore->aciStore, afg.cInsIndex, &contigIns);
+          getASM_CCOStore(asmStore->ccoStore, contigIns.containerIndex, &cco);
+          getASM_InstanceStore(asmStore->asiStore, afg.sInsIndex, &scaffIns);
+          getASM_SCFStore(asmStore->scfStore, scaffIns.containerIndex, &scf);
+          if(scaffIns.next == 0 || doInstances)
+          {
+            fprintf(fo, F_UID " %c%c" F_UID " " F_COORD " " F_COORD
+                    " %d " F_UID " " F_UID " " F_COORD " " F_COORD "\n",
+                    afg.uid, (char) afg.type,
+                    (afg.inSurrogate || scaffIns.next != 0) ? 'S' : 
+                    (afg.unreferenced ? 'U' : 'R'), afg.uid,
+                    afg.asmClr.bgn + 1, afg.asmClr.end - afg.asmClr.bgn,
+                    ((contigIns.pos.bgn < contigIns.pos.end) ? 0 : 1),
+                    cco.uid, scf.uid,
+                    contigIns.pos.bgn, scaffIns.pos.bgn);
+          }
+          
+          while(doInstances && scaffIns.next && contigIns.next)
+          {
+            getASM_InstanceStore(asmStore->aciStore, afg.cInsIndex, &contigIns);
+            getASM_CCOStore(asmStore->ccoStore, contigIns.containerIndex, &cco);
+            getASM_InstanceStore(asmStore->asiStore, scaffIns.next, &scaffIns);
+            getASM_SCFStore(asmStore->scfStore, scaffIns.containerIndex, &scf);
+            fprintf(fo, F_UID " %c%c" F_UID " " F_COORD " " F_COORD
+                    " %d " F_UID " " F_UID " " F_COORD " " F_COORD "\n",
+                    afg.uid, (char) afg.type,
+                    (afg.inSurrogate || scaffIns.next != 0) ? 'S' : 
+                    (afg.unreferenced ? 'U' : 'R'), afg.uid,
+                    afg.asmClr.bgn + 1, afg.asmClr.end - afg.asmClr.bgn,
+                    ((contigIns.pos.bgn < contigIns.pos.end) ? 0 : 1),
+                    cco.uid, scf.uid,
+                    contigIns.pos.bgn, scaffIns.pos.bgn);
+          }
+        }
+      }
+    }
+  }
+}
+
+
 int AddMDI2Store(AssemblyStore * asmStore, SnapMateDistMesg * smdm)
 {
   ASM_MDIRecord mdi;

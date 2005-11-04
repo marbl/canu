@@ -37,7 +37,8 @@ SOURCES = AS_CVT_hashtable.c AS_CVT_uid_interface.c \
 	  dumpMapStore.c dumpLibs.c dumpMappedMatePairs.c \
 	  dumpMappedMatePairsBinary.c scf2chrSimple.c \
 	  dumpMappedElsewheres.c dumpMappedBACFragIntervals.c \
-	  concatRegions.c dumpElsewheres.c dumpForTampa.c
+	  concatRegions.c dumpElsewheres.c dumpForTampa.c \
+          generateReadsFiles.c
 OBJECTS = $(SOURCES:.c=.o)
 
 LIBRARIES = 
@@ -53,7 +54,8 @@ PROGS = extract_component make_cns_list make_range_file \
 	dumpMapStore dumpLibs dumpMappedMatePairs \
 	dumpMappedMatePairsBinary scf2chrSimple \
 	dumpMappedElsewheres dumpMappedBACFragIntervals \
-	concatRegions dumpElsewheres dumpForTampa
+	concatRegions dumpElsewheres dumpForTampa \
+        generateReadsFiles
 
 
 SCRIPTS = run_components_thru_grande \
@@ -90,6 +92,9 @@ dumpElsewheres: dumpElsewheres.o ASMData.o \
 	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
 dumpForTampa: dumpForTampa.o ASMData.o \
+	libAS_MSG.a libAS_PER.a libAS_UTL.a
+
+generateReadsFiles: generateReadsFiles.o ASMData.o \
 	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
 dumpMappedElsewheres: dumpMappedElsewheres.o ASMData.o \

@@ -92,6 +92,13 @@ void PrintFragmentScaffoldCoordinates(AssemblyStore * asmStore,
                                       int doLinks,
                                       int doUnreferenced,
                                       FILE * fo);
+void PrintReadsPlaced(AssemblyStore * asmStore,
+                      int doInstances,
+                      int doSingleSurrogates,
+                      int doDegenerates,
+                      int doChaff,
+                      int doUnreferenced,
+                      FILE * fo);
 
 void DeleteCloneData(CloneData * cd);
 CloneData * CreateCloneData(void);
