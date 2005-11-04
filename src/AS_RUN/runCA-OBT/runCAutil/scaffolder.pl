@@ -1,160 +1,179 @@
 use strict;
 
-#  aka, CGW
+#  should we require stoneLevel be passed into scaffolder?
+
+sub CGW ($$$$) {
+    my $thisDir    = shift @_;
+    my $lastDir    = shift @_;
+    my $stoneLevel = shift @_;
+    my $logickp    = shift @_;
+
+    return $thisDir if (-e "$wrk/$thisDir/cgw.success");
+
+    my $lastckp = findLastCheckpoint($lastDir)  if (defined($lastDir));
+    my $ckp     = "-R $lastckp -N $logickp"     if (defined($lastckp) && defined($logickp));
+
+    system("mkdir $wrk/$thisDir")               if (! -d "$wrk/$thisDir");
+    system("mkdir $wrk/$asm.SeqStore")          if (! -d "$wrk/$asm.SeqStore");
+
+    system("ln -s $wrk/5-consensus/$asm.cgi $wrk/$thisDir/$asm.cgi")          if (! -e "$wrk/$thisDir/$asm.cgi");
+    system("ln -s $wrk/$asm.SeqStore        $wrk/$thisDir/$asm.SeqStore")     if (! -e "$wrk/$thisDir/$asm.SeqStore");
+
+    system("ln -s $wrk/$lastDir/$asm.ckp.$lastckp $wrk/$thisDir/$asm.ckp.$lastckp") if (defined($lastDir));
+
+    my $cmd;
+    $cmd  = "cd $wrk/$thisDir && ";
+    $cmd .= "$bin/cgw $ckp -c -j 1 -k 5 -r 4 -s $stoneLevel -w 0 -T -P ";
+    $cmd .= "-f $wrk/$asm.frgStore ";
+    $cmd .= "-g $wrk/$asm.gkpStore ";
+    $cmd .= "-o $wrk/$thisDir/$asm ";
+    $cmd .= "$wrk/$thisDir/$asm.cgi ";
+    $cmd .= "> $wrk/$thisDir/cgw.out ";
+    $cmd .= "2> $wrk/$thisDir/cgw.err";
+        
+    if (runCommand($cmd)) {
+        print STDERR "Failed.\n";
+        exit(1);
+    }
+
+    touch("$wrk/$thisDir/cgw.success");
+
+    return $thisDir;
+}
+
+
+sub eCR ($$) {
+    my $thisDir = shift @_;
+    my $lastDir = shift @_;
+
+    return $thisDir if (-e "$wrk/$thisDir/extendClearRanges.success");
+
+    my $lastckp = findLastCheckpoint($lastDir);
+
+    system("mkdir $wrk/$thisDir") if (! -d "$wrk/$thisDir");
+
+    system("ln -s $wrk/$lastDir/$asm.ckp.$lastckp $wrk/$thisDir/$asm.ckp.$lastckp")  if (! -e "$wrk/$thisDir/$asm.ckp.$lastckp");
+    system("ln -s $wrk/$asm.SeqStore              $wrk/$thisDir/$asm.SeqStore")      if (! -e "$wrk/$thisDir/$asm.SeqStore");
+
+    my $cmd;
+    $cmd  = "cd $wrk/$thisDir && ";
+    $cmd .= "$bin/extendClearRanges ";
+    $cmd .= "-f $wrk/$asm.frgStore ";
+    $cmd .= "-g $wrk/$asm.gkpStore ";
+    $cmd .= "-c $asm ";
+    $cmd .= "-n $lastckp ";
+    $cmd .= "-s -1 ";
+    $cmd .= "> $wrk/$thisDir/extendClearRanges.out ";
+    $cmd .= "2> $wrk/$thisDir/extendClearRanges.err ";
+
+    if (runCommand($cmd)) {
+        print STDERR "Failed.\n";
+        exit(1);
+    }
+
+    touch("$wrk/$thisDir/extendClearRanges.success");
+
+    return $thisDir;
+}
+
+
+sub resolveSurrogates ($$) {
+    my $thisDir = shift @_;
+    my $lastDir = shift @_;
+
+    return $thisDir if (-e "$wrk/$thisDir/resolveSurrogates.success");
+
+    my $lastckp = findLastCheckpoint($lastDir);
+
+    system("mkdir $wrk/$thisDir")  if (! -d "$wrk/$thisDir");
+
+    system("ln -s $wrk/$lastDir/$asm.ckp.$lastckp $wrk/$thisDir/$asm.ckp.$lastckp")  if (! -e "$wrk/$thisDir/$asm.ckp.$lastckp");
+    system("ln -s $wrk/$asm.SeqStore              $wrk/$thisDir/$asm.SeqStore")      if (! -e "$wrk/$thisDir/$asm.SeqStore");
+
+    my $cmd;
+    $cmd  = "cd $wrk/$thisDir && ";
+    $cmd .= "$bin/resolveSurrogates ";
+    $cmd .= "-f $wrk/$asm.frgStore ";
+    $cmd .= "-g $wrk/$asm.gkpStore ";
+    $cmd .= "-c $asm ";
+    $cmd .= "-n $lastckp ";
+    $cmd .= "-1 ";
+    $cmd .= "> $wrk/$thisDir/resolveSurrogates.out ";
+    $cmd .= "2> $wrk/$thisDir/resolveSurrogates.err ";
+
+    if (runCommand($cmd)) {
+        print STDERR "Failed.\n";
+        exit(1);
+    }
+
+    touch("$wrk/$thisDir/resolveSurrogates.success");
+
+    return $thisDir;
+}
+
 
 sub scaffolder {
-    my $dir = shift @_;
-    my $rkp = shift @_;
-    my $lkp = shift @_;
-    my $ckp = undef;
+    my $lastDir = undef;
+    my $thisDir = 0;
 
-    if (!defined($dir)) {
-        $dir = "7-CGW";
-    }
-    if (defined($rkp) && defined($lkp)) {
-        $ckp = "-R $rkp -N $lkp";
-    }
 
-    system("mkdir $wrk/$dir") if (! -d "$wrk/$dir");
-
-    if (! -e "$wrk/$dir/$asm.cgi") {
-        system("ln -s $wrk/5-consensus/$asm.cgi $wrk/$dir/$asm.cgi");
+    #  If we're not doing eCR, we just do a single scaffolder run, and
+    #  get the heck outta here!
+    #
+    if ($doExtendClearRanges == 0) {
+        CGW("7-CGW", $lastDir, $stoneLevel, undef);
+        return;
     }
 
-    if (! -e "$wrk/$dir/cgw.success") {
-        print STDERR "Starting f -- CGW\n";
 
-        my $cmd;
-        $cmd  = "cd $wrk/$dir && ";
-        $cmd .= "$bin/cgw $ckp -c -j 1 -k 5 -r 4 -s $stoneLevel -w 0 -T -P ";
-        $cmd .= "-f $wrk/$asm.frgStore ";
-        $cmd .= "-g $wrk/$asm.gkpStore ";
-        $cmd .= "-o $wrk/$dir/$asm ";
-        $cmd .= "$wrk/$dir/$asm.cgi ";
-        $cmd .= "> $wrk/$dir/cgw.out ";
-        $cmd .= "2> $wrk/$dir/cgw.err";
-        
-        if (runCommand($cmd)) {
-            print STDERR "Failed.\n";
-            exit(1);
-        }
+    #  Otherwise, we want to do eCR (and surrogates and a bunch of
+    #  scaffolder runs), so run the first scaffolder WITHOUT stones.
+    #
+    $lastDir = CGW("7-$thisDir-CGW", $lastDir, 0, undef);
+    $thisDir++;
 
-        touch("$wrk/$dir/cgw.success");
+
+    #  Then do a round of eCR
+    #
+    $lastDir = eCR("7-$thisDir-ECR", $lastDir);
+    $thisDir++;
+
+
+    #  If we're iterating over eCR, do another scaffolder WITHOUT
+    #  stones, then another eCR.  Again, and again.
+    #
+    for (my $eCRRounds = getGlobal("eCRRounds", 1); $eCRRounds > 0; $eCRRounds--) {
+        $lastDir = CGW("7-$thisDir-CGW", $lastDir, 0, 3);
+        $thisDir++;
+
+        $lastDir = eCR("7-$thisDir-ECR", $lastDir);
+        $thisDir++;
     }
+
+
+    #  Finally, finish it off with a scaffolder from checkpoint level
+    #  3, this time throwing stones!
+    #
+    $lastDir = CGW("7-$thisDir-CGW", $lastDir, $stoneLevel, 3);
+    $thisDir++;
+
+
+    #  Then resolve surrogates.
+    #
+    $lastDir = resolveSurrogates("7-$thisDir-resolveSurrogates", $lastDir);
+    $thisDir++;
+
+
+    #  And yet another scaffolder, this time to just do output
+    #
+    $lastDir = CGW("7-$thisDir-CGW", $lastDir, $stoneLevel, 14);
+    $thisDir++;
+
+
+    #  And, finally, we're All Done!  Point to the correct output directory.
+    #
+    system("ln -s $wrk/$lastDir $wrk/7-CGW") if (! -d "$wrk/7-CGW");
 }
-
-
-sub extendClearRanges {
-
-    ########################################
-    #
-    #  Run the first scaffolder, WITHOUT STONES ALWAYS!
-    #
-    if (! -e "$wrk/7-0-CGW/cgw.success") {
-        my $stoneLevelSave = $stoneLevel;
-        $stoneLevel = 0;
-        scaffolder("7-0-CGW");
-        $stoneLevel = $stoneLevelSave;
-    }
-
-    ########################################
-
-    if (! -e "$wrk/7-1-ECR/extendClearRanges.success") {
-        my $lastckp = findLastCheckpoint("7-0-CGW");
-
-        system("mkdir $wrk/7-1-ECR") if (! -d "$wrk/7-1-ECR");
-        system("ln -s $wrk/7-0-CGW/$asm.ckp.$lastckp $wrk/7-1-ECR/$asm.ckp.$lastckp");
-        system("ln -s $wrk/7-0-CGW/$asm.SeqStore     $wrk/7-1-ECR/$asm.SeqStore");
-
-        my $cmd;
-        $cmd  = "cd $wrk/7-1-ECR && ";
-        $cmd .= "$bin/extendClearRanges ";
-        $cmd .= "-f $wrk/$asm.frgStore ";
-        $cmd .= "-g $wrk/$asm.gkpStore ";
-        $cmd .= "-c $asm ";
-        $cmd .= "-n $lastckp ";
-        $cmd .= "-s -1 ";
-        $cmd .= "> $wrk/7-1-ECR/extendClearRanges.out ";
-        $cmd .= "2> $wrk/7-1-ECR/extendClearRanges.err ";
-
-        if (runCommand($cmd)) {
-            print STDERR "Failed.\n";
-            exit(1);
-        }
-
-        touch("$wrk/7-1-ECR/extendClearRanges.success");
-    }
-
-
-    ########################################
-
-    if (! -e "$wrk/7-2-CGW/cgw.success") {
-        my $lastckp = findLastCheckpoint("7-1-ECR");
-
-        system("mkdir $wrk/7-2-CGW") if (! -d "$wrk/7-2-CGW");
-        system("ln -s $wrk/7-1-ECR/$asm.ckp.$lastckp $wrk/7-2-CGW/$asm.ckp.$lastckp");
-        system("ln -s $wrk/7-0-CGW/$asm.SeqStore     $wrk/7-2-CGW/$asm.SeqStore");
-   
-        scaffolder("7-2-CGW", findLastCheckpoint("7-1-ECR"), 3);
-    }
-
-    ########################################
-    #
-    #
-    #
-    if (! -e "$wrk/7-3-resolveSurrogates/resolveSurrogates.success") {
-        my $lastckp = findLastCheckpoint("7-2-CGW");
-
-        system("mkdir $wrk/7-3-resolveSurrogates") if (! -d "$wrk/7-3-resolveSurrogates");
-        system("ln -s $wrk/7-2-CGW/$asm.ckp.$lastckp $wrk/7-3-resolveSurrogates/$asm.ckp.$lastckp");
-        system("ln -s $wrk/7-0-CGW/$asm.SeqStore     $wrk/7-3-resolveSurrogates/$asm.SeqStore");
-
-        my $cmd;
-        $cmd  = "cd $wrk/7-3-resolveSurrogates && ";
-        $cmd .= "$bin/resolveSurrogates ";
-        $cmd .= "-f $wrk/$asm.frgStore ";
-        $cmd .= "-g $wrk/$asm.gkpStore ";
-        $cmd .= "-c $asm ";
-        $cmd .= "-n $lastckp ";
-        $cmd .= "-1 ";
-        $cmd .= "> $wrk/7-3-resolveSurrogates/resolveSurrogates.out ";
-        $cmd .= "2> $wrk/7-3-resolveSurrogates/resolveSurrogates.err ";
-
-        if (runCommand($cmd)) {
-            print STDERR "Failed.\n";
-            exit(1);
-        }
-
-        touch("$wrk/7-3-resolveSurrogates/resolveSurrogates.success");
-    }
-
-
-
-    ########################################
-    #
-    #  Another scaffolder, this time to just do output
-    #
-    if (! -e "$wrk/7-4-CGW/cgw.success") {
-        my $lastckp = findLastCheckpoint("7-3-resolveSurrogates");
-
-        system("mkdir $wrk/7-4-CGW") if (! -d "$wrk/7-4-CGW");
-        system("ln -s $wrk/7-3-resolveSurrogates/$asm.ckp.$lastckp $wrk/7-4-CGW/$asm.ckp.$lastckp");
-        system("ln -s $wrk/7-0-CGW/$asm.SeqStore                   $wrk/7-4-CGW/$asm.SeqStore");
-
-        scaffolder("7-4-CGW", $lastckp, 14);
-    }
-
-
-    ########################################
-    #
-    #  All done, point to the correct output
-    #
-    if (! -d "$wrk/7-CGW") {
-        system("ln -s $wrk/7-4-CGW $wrk/7-CGW");
-    }
-}
-
-
 
 
 1;

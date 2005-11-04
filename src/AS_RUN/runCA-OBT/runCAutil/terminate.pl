@@ -7,8 +7,8 @@ sub terminate {
 
     my $failedJobs = 0;
 
-    open(CGW, "ls $wrk/7-CGW/$asm.cgw_contigs.* |") or die;
-    while (<CGW>) {
+    open(CGWIN, "ls $wrk/7-CGW/$asm.cgw_contigs.* |") or die;
+    while (<CGWIN>) {
         chomp;
 
         if (m/cgw_contigs.(\d+)/) {
@@ -22,7 +22,7 @@ sub terminate {
             print STDERR "WARNING: didn't match $_ for cgw_contigs filename!\n";
         }
     }
-    close(CGW);
+    close(CGWIN);
 
     if ($failedJobs) {
         print STDERR "$failedJobs failed.  Good luck.\n";

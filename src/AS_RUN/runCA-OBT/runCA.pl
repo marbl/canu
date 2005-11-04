@@ -106,8 +106,7 @@ applyOverlapCorrection();
 unitigger();
 createPostUnitiggerConsensusJobs();             #  parallel, run manually
 checkPostUnitiggerConsensus();
-extendClearRanges() if ($doExtendClearRanges);
-scaffolder("7-CGW");                            #  ignored, if $doExtendClearRanges
+scaffolder();
 createConsensusJobs();                          #  parallel, run manually
 terminate();
 
