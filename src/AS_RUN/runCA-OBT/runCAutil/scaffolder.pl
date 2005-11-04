@@ -142,7 +142,7 @@ sub scaffolder {
     #  If we're iterating over eCR, do another scaffolder WITHOUT
     #  stones, then another eCR.  Again, and again.
     #
-    for (my $eCRRounds = getGlobal("eCRRounds", 1); $eCRRounds > 0; $eCRRounds--) {
+    for (my $eCRRounds = getGlobal("eCRRounds", 1)-1; $eCRRounds > 0; $eCRRounds--) {
         $lastDir = CGW("7-$thisDir-CGW", $lastDir, 0, 3);
         $thisDir++;
 
