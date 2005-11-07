@@ -370,9 +370,11 @@ main(int argc, char **argv) {
     //
     if ((left + right > 0) && ((left + OBT_MIN_LENGTH) > right)) {
       stats[13]++;
+#if 0
       fprintf(stderr, "INVALID CLEAR: "u64bitFMTW(8)" "u32bitFMTW(3)"-"u32bitFMTW(4)" -> "u32bitFMTW(3)"-"u32bitFMTW(4)" -- %s\n",
               iid, qltL, qltR, left, right,
               line);
+#endif
       left  = 0;
       right = 0;
     }
