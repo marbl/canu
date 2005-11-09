@@ -197,7 +197,7 @@ main(int argc, char **argv) {
   fprintf(stderr, "Fragments with no vector clear:  "u32bitFMT"\n", stat_notPresent);
   fprintf(stderr, "Fragments with no intersection:  "u32bitFMT"\n", stat_noIntersect);
   fprintf(stderr, "Fragments with no change:        "u32bitFMT"\n", stat_noChange);
-  fprintf(stderr, "Fragments changed:               "u32bitFMT"\n", stat_Change);
+  fprintf(stderr, "Fragments changed:               "u32bitFMT"\n", stat_change);
 
   closeFragStore(fs);
 }
