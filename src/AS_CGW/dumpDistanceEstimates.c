@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.1 2005-11-09 13:55:40 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.2 2005-11-09 22:35:36 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -747,6 +747,8 @@ main( int argc, char **argv) {
   int          minSamplesForOverride = 1000;
   CDS_UID_t   *libMap                = 0L;
 
+  int arg=1;
+
   GlobalData  = data = CreateGlobal_CGW();
   data->stderrc   = stderr;
   data->stderro   = stderr;
@@ -754,14 +756,30 @@ main( int argc, char **argv) {
   data->timefp    = stderr;
   data->logfp     = stderr;
 
-  //  Assumes args are:
-  //    frgStore gkpStore prefix ckpNum
+  while (arg < argc) {
+    if        (strncmp(argv[arg], "-frg", 2) == 0) {
+      arg++;
+      strcpy(data->Frag_Store_Name, argv[arg]);
+    } else if (strncmp(argv[arg], "-gkp", 2) == 0) {
+      arg++;
+      strcpy(data->Gatekeeper_Store_Name, argv[arg]);
+    } else if (strncmp(argv[arg], "-prefix", 2) == 0) {
+      arg++;
+      strcpy(data->File_Name_Prefix, argv[arg]);
+    } else if (strncmp(argv[arg], "-nckp", 2) == 0) {
+      arg++;
+      ckptNum = atoi(argv[arg]);
+    } else {
+      fprintf(stderr, "%s: unknown arg %s\n", argv[arg]);
+    }
 
-  strcpy(data->Frag_Store_Name,       argv[1]);
-  strcpy(data->Gatekeeper_Store_Name, argv[2]);
-  strcpy(data->File_Name_Prefix,      argv[3]);
+    arg++;
+  }
 
-  ckptNum = atoi(argv[4]);
+  if (ckptNum == NULLINDEX) {
+    fprintf(stderr, "usage: %s -frg frgStore -gkp gkpStore -prefix asmprefix -nckp ckptNum\n", argv[0]);
+    exit(1);
+  }
 
   //  We need to map the library IID to UID, so we can create a gatekeeper update.
   //  Alternatively, we could modify the gatekeeperstore directly here.
