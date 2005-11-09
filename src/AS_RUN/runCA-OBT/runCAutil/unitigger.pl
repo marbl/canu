@@ -20,27 +20,22 @@ sub unitigger {
         $cmd .= "$bin/unitigger ";
         $cmd .= " -B 250000 ";
 
-        #  XXX:  Quick hack to set the memory limits??
-        #
-        #if (($bin =~ m/Linux64/) || ($bin =~ m/OSF/)) {
-        #    $cmd .= " -n 30000000 -m 95000000 ";
-        #} else {
-        #    $cmd .= " -n 30000 -m 95000 ";
-        #}
+        my $l = getGlobal("genomeSize", undef);
+        my $m = getGlobal("unitiggerEdges", undef);
+        my $n = getGlobal("unitiggerFragments", undef);
 
-        #  Disable!
-        #
-        $cmd .= " -n 30000 -m 95000";
+        $cmd .= " $l " if defined($l);
+        $cmd .= " $m " if defined($m);
+        $cmd .= " $n " if defined($n);
+
         $cmd .= " -c -P -A 1 -d 1 -x 1 -z 10 -j 5 -U 1 -e 15 ";
-
-
         $cmd .= " -F $wrk/$asm.frgStore ";
         $cmd .= " -f ";
         $cmd .= " -o $wrk/4-unitigger/$asm.fgbStore ";
         $cmd .= " -L $wrk/4-unitigger/$asm.ofgList ";
         $cmd .= " -I $wrk/$asm.ovlStore ";
-        $cmd .= "> $wrk/4-unitigger/unitigger.out ";
-        $cmd .= "2> $wrk/4-unitigger/unitigger.err";
+        $cmd .= " > $wrk/4-unitigger/unitigger.out ";
+        $cmd .= " 2> $wrk/4-unitigger/unitigger.err ";
 
         if (runCommand($cmd)) {
             print STDERR "Failed to unitig.\n";
@@ -50,6 +45,5 @@ sub unitigger {
         touch("$wrk/4-unitigger/unitigger.success");
     }
 }
-
 
 1;

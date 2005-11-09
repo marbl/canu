@@ -123,6 +123,17 @@ ovlCorrOnGrid    = 0
 
 ############################################################
 #
+#  Unitigger parameters
+#
+#  The default values are usually acceptable.
+#
+#genomeSize         = -l 185000000
+#unitiggerEdges     = -m 95000000
+#unitiggerFragments = -n 30000000
+
+
+############################################################
+#
 #  Scaffolding parameters
 #
 
