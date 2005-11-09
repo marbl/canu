@@ -121,6 +121,7 @@ sub setParameters {
     if (defined($specFile)) {
         open(F, "< $specFile") or die "Failed to open '$specFile'\n";
         while (<F>) {
+            next if (m/^#/);
             my ($var, $val) = split '=', $_;
             $var =~ s/^\s+//; $var =~ s/\s+$//;
             $val =~ s/^\s+//; $val =~ s/\s+$//;
