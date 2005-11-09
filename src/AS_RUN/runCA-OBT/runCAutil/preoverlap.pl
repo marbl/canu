@@ -64,7 +64,7 @@ sub preoverlap {
 
     ########################################
 
-    if ((! -e "$wrk/$asm.gkpStore") || (! -e "$wrk/$asm.gkpStore/gkp.frg")) {
+    if ((! -d "$wrk/$asm.gkpStore") || (! -e "$wrk/$asm.gkpStore/gkp.frg")) {
         print STDERR "Starting -- gatekeeper\n";
 
         my $cmd;
@@ -83,7 +83,7 @@ sub preoverlap {
 
     ########################################
 
-    if ((! -e "$wrk/$asm.frgStore") || (! -e "$wrk/$asm.frgStore/db.frg")) {
+    if ((! -d "$wrk/$asm.frgStore") || (! -e "$wrk/$asm.frgStore/db.frg")) {
         print STDERR "Starting -- populate fragStore\n";
 
         my $cmd;
