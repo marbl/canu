@@ -98,7 +98,7 @@ sub updateDistanceRecords ($) {
     $cmd .= " -p $asm ";
     $cmd .= " -n $lastckp ";
     $cmd .= " > $distupdate/update.dst ";
-    $cmd .= "2> $distupdate/update.err ";
+    $cmd .= "2> $distupdate/dumpDistanceEstimates.err ";
     if (runCommand($cmd)) {
         rename "$distupdate/update.dst", "$distupdate/update.dst.FAILED";
         print STDERR "dumpDistanceEstimates Failed.\n";
@@ -106,7 +106,8 @@ sub updateDistanceRecords ($) {
     }
 
     $cmd  = "cd $distupdate && $bin/gatekeeper ";
-    $cmd .= " -X -Q -C -P -a $wrk/$asm.gkpStore $distupdate/update.dst";
+    $cmd .= " -X -Q -C -P -a $wrk/$asm.gkpStore $distupdate/update.dst ";
+    $cmd .= "1>&2 2> gatekeeper.err";
     if (runCommand($cmd)) {
         print STDERR "Gatekeeper Failed.\n";
         exit(1);
