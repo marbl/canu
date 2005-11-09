@@ -27,7 +27,14 @@ extern "C" {
 #define POSITION_OVLP_L   (3 * POSITION_BITS)
 #define POSITION_LENGTH   (4 * POSITION_BITS)
 
+//  WITH_REPORT will report spurs and chimera.  WITH_REPORT_FULL will
+//  report unmodified fragments.
+//
 #define WITH_REPORT
+//#define WITH_REPORT_FULL
+
+FILE   *summaryFile = 0L;
+FILE   *reportFile  = 0L;
 
 //  Define this to delete chimeric and spur fragments, instead of
 //  fixing them.
@@ -612,12 +619,12 @@ process(u32bit iid, FragStoreHandle fs, overlapList *overlap, u32bit ola, u32bit
       }
 
 #ifdef WITH_REPORT
-      fprintf(stdout, "----------------------------------------SPUR!("u32bitFMT","u32bitFMT")\n", intervalBeg, intervalEnd);
-      fprintf(stdout, u32bitFMT" has "u32bitFMT" intervals and "u32bitFMT" potential chimeric overlaps (%5.2f%%).\n",
+      fprintf(reportFile, "----------------------------------------SPUR!("u32bitFMT","u32bitFMT")\n", intervalBeg, intervalEnd);
+      fprintf(reportFile, u32bitFMT" has "u32bitFMT" intervals and "u32bitFMT" potential chimeric overlaps (%5.2f%%).\n",
               iid, IL.numberOfIntervals(), hasPotentialChimera,
               (double)hasPotentialChimera / (double)overlap->length() * 100);
       for (u32bit i=0; i<overlap->length(); i++)
-        overlap->print(stdout, i);
+        overlap->print(reportFile, i);
 #endif
     } else if ((IL.numberOfIntervals() > 1) &&
                (hasPotentialChimera > 0) &&
@@ -643,57 +650,53 @@ process(u32bit iid, FragStoreHandle fs, overlapList *overlap, u32bit ola, u32bit
       }
 
 #ifdef WITH_REPORT
-      fprintf(stdout, "----------------------------------------CHIMERA!("u32bitFMT","u32bitFMT")\n", intervalBeg, intervalEnd);
-      fprintf(stdout, u32bitFMT" has "u32bitFMT" intervals and "u32bitFMT" potential chimeric overlaps (%5.2f%%).\n",
+      fprintf(reportFile, "----------------------------------------CHIMERA!("u32bitFMT","u32bitFMT")\n", intervalBeg, intervalEnd);
+      fprintf(reportFile, u32bitFMT" has "u32bitFMT" intervals and "u32bitFMT" potential chimeric overlaps (%5.2f%%).\n",
               iid, IL.numberOfIntervals(), hasPotentialChimera,
               (double)hasPotentialChimera / (double)overlap->length() * 100);
       for (u32bit i=0; i<overlap->length(); i++)
-        overlap->print(stdout, i);
+        overlap->print(reportFile, i);
 #endif
     } else if (IL.numberOfIntervals() == 1) {
       fullCoverage++;
 
-#ifdef WITH_REPORT
-      fprintf(stdout, "----------------------------------------FULL COVERAGE\n");
-      fprintf(stdout, u32bitFMT" has "u32bitFMT" intervals and "u32bitFMT" potential chimeric overlaps (%5.2f%%).\n",
+#ifdef WITH_REPORT_FULL
+      fprintf(reportFile, "----------------------------------------FULL COVERAGE\n");
+      fprintf(reportFile, u32bitFMT" has "u32bitFMT" intervals and "u32bitFMT" potential chimeric overlaps (%5.2f%%).\n",
               iid, IL.numberOfIntervals(), hasPotentialChimera,
               (double)hasPotentialChimera / (double)overlap->length() * 100);
-#if 0
-      for (u32bit i=0; i<overlap->length(); i++)
-        overlap->print(stdout, i);
-#endif
 #endif
     } else if (hasPotentialChimera == 0) {
       noChimericOvl++;
 
-#ifdef WITH_REPORT
-      fprintf(stdout, "----------------------------------------NO CHIMERIC OVERLAPS\n");
-      fprintf(stdout, u32bitFMT" has "u32bitFMT" intervals and "u32bitFMT" potential chimeric overlaps (%5.2f%%).\n",
+#ifdef WITH_REPORT_FULL
+      fprintf(reportFile, "----------------------------------------NO CHIMERIC OVERLAPS\n");
+      fprintf(reportFile, u32bitFMT" has "u32bitFMT" intervals and "u32bitFMT" potential chimeric overlaps (%5.2f%%).\n",
               iid, IL.numberOfIntervals(), hasPotentialChimera,
               (double)hasPotentialChimera / (double)overlap->length() * 100);
       for (u32bit i=0; i<overlap->length(); i++)
-        overlap->print(stdout, i);
+        overlap->print(reportFile, i);
 #endif
     } else if (hasInniePair == 0) {
       noInniePair++;
 
-#ifdef WITH_REPORT
-      fprintf(stdout, "----------------------------------------NO INNIE PAIR (innie="u32bitFMT")\n",
+#ifdef WITH_REPORT_FULL
+      fprintf(reportFile, "----------------------------------------NO INNIE PAIR (innie="u32bitFMT")\n",
               hasInniePair);
-      fprintf(stdout, u32bitFMT" has "u32bitFMT" intervals and "u32bitFMT" potential chimeric overlaps (%5.2f%%).\n",
+      fprintf(reportFile, u32bitFMT" has "u32bitFMT" intervals and "u32bitFMT" potential chimeric overlaps (%5.2f%%).\n",
               iid, IL.numberOfIntervals(), hasPotentialChimera,
               (double)hasPotentialChimera / (double)overlap->length() * 100);
       for (u32bit i=0; i<overlap->length(); i++)
-        overlap->print(stdout, i);
+        overlap->print(reportFile, i);
 #endif
     } else {
-#ifdef WITH_REPORT
-      fprintf(stdout, "----------------------------------------NOT CHIMERA, don't know why\n");
-      fprintf(stdout, u32bitFMT" has "u32bitFMT" intervals and "u32bitFMT" potential chimeric overlaps (%5.2f%%).\n",
+#ifdef WITH_REPORT_FULL
+      fprintf(reportFile, "----------------------------------------NOT CHIMERA, don't know why\n");
+      fprintf(reportFile, u32bitFMT" has "u32bitFMT" intervals and "u32bitFMT" potential chimeric overlaps (%5.2f%%).\n",
               iid, IL.numberOfIntervals(), hasPotentialChimera,
               (double)hasPotentialChimera / (double)overlap->length() * 100);
       for (u32bit i=0; i<overlap->length(); i++)
-        overlap->print(stdout, i);
+        overlap->print(reportFile, i);
 #endif
     }
   }
@@ -731,6 +734,8 @@ readOverlap(FILE *file, overlap_t &ovl) {
 int
 main(int argc, char **argv) {
   char   *frgStore = 0L;
+  char   *summaryName = 0L;
+  char   *reportName  = 0L;
 
   u32bit  overflow = 0;
   u32bit  notclear = 0;
@@ -741,12 +746,16 @@ main(int argc, char **argv) {
       frgStore = argv[++arg];
     } else if (strncmp(argv[arg], "-delete", 2) == 0) {
       fixChimera = false;
+    } else if (strncmp(argv[arg], "-summary", 2) == 0) {
+      summaryName = argv[++arg];
+    } else if (strncmp(argv[arg], "-report", 2) == 0) {
+      reportName = argv[++arg];
     }
     arg++;
   }
 
   if (frgStore == 0L)
-    fprintf(stderr, "usage: %s -f <fragStore> < overlap-trim-results > overlap-trim-results-updated\n", argv[0]), exit(1);
+    fprintf(stderr, "usage: %s -f <fragStore> [-summary file] [-report file] < overlap-trim-results\n", argv[0]), exit(1);
 
   u32bit           idAlast, olalast, oralast;
 
@@ -759,11 +768,22 @@ main(int argc, char **argv) {
   u64bit           maxIID      = 65536;
   overlapList     *overlap = new overlapList;
 
-  FragStoreHandle fs = openFragStore(frgStore, "r+");
-  if (fs == NULLSTOREHANDLE) {
-    fprintf(stderr, "Failed to open fragStore %s!\n", frgStore);
-    exit(1);
+  if (summaryName) {
+    errno = 0;
+    summaryFile = fopen(summaryName, "w");
+    if (errno)
+      fprintf(stderr, "Failed to open '%s' for writing: %s\n", summaryName, strerror(errno)), exit(1);
   }
+  if (reportName) {
+    errno = 0;
+    reportFile  = fopen(reportName, "w");
+    if (errno)
+      fprintf(stderr, "Failed to open '%s' for writing: %s\n", reportName, strerror(errno)), exit(1);
+  }
+
+  FragStoreHandle fs = openFragStore(frgStore, "r+");
+  if (fs == NULLSTOREHANDLE)
+    fprintf(stderr, "Failed to open fragStore %s!\n", frgStore), exit(1);
 
 #ifdef SPEEDCOUNTER_H
   speedCounter  *C = new speedCounter("%7.2f Moverlaps -- %5.2f Moverlaps/second\r",
@@ -806,8 +826,8 @@ main(int argc, char **argv) {
     oralast = ora;
 
 #ifdef DEBUG
-    fprintf(stdout, "----------------------------------------\n");
-    fprintf(stdout, u32bitFMTW(7)" "u32bitFMTW(7)"  %c "u32bitFMTW(4)" "u32bitFMTW(4)" "u32bitFMTW(4)"  "u32bitFMTW(4)" "u32bitFMTW(4)" "u32bitFMTW(4)" %5.3f\n",
+    fprintf(reportFile, "----------------------------------------\n");
+    fprintf(reportFile, u32bitFMTW(7)" "u32bitFMTW(7)"  %c "u32bitFMTW(4)" "u32bitFMTW(4)" "u32bitFMTW(4)"  "u32bitFMTW(4)" "u32bitFMTW(4)" "u32bitFMTW(4)" %5.3f\n",
             idA, idB, ori, leftA, rightA, lenA, leftB, rightB, lenB, error);
 #endif
 
@@ -870,9 +890,9 @@ main(int argc, char **argv) {
       }
 
 #ifdef DEBUG
-      fprintf(stdout, "A: orig: "u32bitFMT" "u32bitFMT"  ovlp:"u32bitFMT" "u32bitFMT"\n", cla, cra, ola, ora);
-      fprintf(stdout, "B: orig: "u32bitFMT" "u32bitFMT"  ovlp:"u32bitFMT" "u32bitFMT"\n", clb, crb, olb, orb);
-      fprintf(stdout, u32bitFMTW(7)" "u32bitFMTW(7)"  %c "u32bitFMTW(4)" "u32bitFMTW(4)" "u32bitFMTW(4)"  "u32bitFMTW(4)" "u32bitFMTW(4)" "u32bitFMTW(4)" %5.3f\n",
+      fprintf(reportFile, "A: orig: "u32bitFMT" "u32bitFMT"  ovlp:"u32bitFMT" "u32bitFMT"\n", cla, cra, ola, ora);
+      fprintf(reportFile, "B: orig: "u32bitFMT" "u32bitFMT"  ovlp:"u32bitFMT" "u32bitFMT"\n", clb, crb, olb, orb);
+      fprintf(reportFile, u32bitFMTW(7)" "u32bitFMTW(7)"  %c "u32bitFMTW(4)" "u32bitFMTW(4)" "u32bitFMTW(4)"  "u32bitFMTW(4)" "u32bitFMTW(4)" "u32bitFMTW(4)" %5.3f\n",
               idA, idB, ori, leftA, rightA, lenA, leftB, rightB, lenB, error);
 #endif
 
@@ -963,13 +983,16 @@ main(int argc, char **argv) {
 
   closeFragStore(fs);
 
-  fprintf(stderr, "fullCoverage:        "u32bitFMT"\n", fullCoverage);
-  fprintf(stderr, "noInniePair:         "u32bitFMT"\n", noInniePair);
-  fprintf(stderr, "noChimericOvl:       "u32bitFMT"\n", noChimericOvl);
-  fprintf(stderr, "chimeraDetected:     "u32bitFMT"\n", chimeraDetected);
-  fprintf(stderr, "chimeraDeletedSmall: "u32bitFMT"\n", chimeraDeletedSmall);
-  fprintf(stderr, "spurDetected:        "u32bitFMT"\n", spurDetected);
-  fprintf(stderr, "spurDeletedSmall:    "u32bitFMT"\n", spurDeletedSmall);
+
+  if (summaryFile) {
+    fprintf(summaryFile, "fullCoverage:        "u32bitFMT"\n", fullCoverage);
+    fprintf(summaryFile, "noInniePair:         "u32bitFMT"\n", noInniePair);
+    fprintf(summaryFile, "noChimericOvl:       "u32bitFMT"\n", noChimericOvl);
+    fprintf(summaryFile, "chimeraDetected:     "u32bitFMT"\n", chimeraDetected);
+    fprintf(summaryFile, "chimeraDeletedSmall: "u32bitFMT"\n", chimeraDeletedSmall);
+    fprintf(summaryFile, "spurDetected:        "u32bitFMT"\n", spurDetected);
+    fprintf(summaryFile, "spurDeletedSmall:    "u32bitFMT"\n", spurDeletedSmall);
+  }
 
   exit(0);
 }

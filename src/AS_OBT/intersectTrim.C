@@ -121,6 +121,11 @@ main(int argc, char **argv) {
   fclose(intFile);
   //delete C;
 
+  u32bit  stat_notPresent  = 0;
+  u32bit  stat_noIntersect = 0;
+  u32bit  stat_noChange    = 0;
+  u32bit  stat_change      = 0;
+
   for (u32bit elem=firstElem; elem<lastElem; elem++) {
     getFragStore(fs, elem, FRAG_S_ALL, rd);
 
@@ -146,8 +151,10 @@ main(int argc, char **argv) {
 
     if ((intL.count(uid) == 0) || (intR.count(uid) == 0)) {
       //  uid not present in our input list, do nothing.
+      stat_notPresent++;
     } else if ((intL[uid] > clrEnd) || (intR[uid] < clrBeg)) {
       //  don't intersect, we've already set qltL and qltR appropriately.
+      stat_noIntersect++;
     } else {
       //  They intersect.  Pick the largest begin and the smallest end
       if (qltL < intL[uid]) {
@@ -161,6 +168,7 @@ main(int argc, char **argv) {
     }
 
     if (changed) {
+      stat_change++;
       sprintf(intLine, u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t^\t"u32bitFMT"\t"u32bitFMT"\t->\t"u32bitFMT"\t"u32bitFMT"\n",
               elem,
               (u32bit)clrBeg,
@@ -181,8 +189,15 @@ main(int argc, char **argv) {
           exit(1);
         }
       }
+    } else {
+      stat_noChange++;
     }
   }
+
+  fprintf(stderr, "Fragments with no vector clear:  "u32bitFMT"\n", stat_notPresent);
+  fprintf(stderr, "Fragments with no intersection:  "u32bitFMT"\n", stat_noIntersect);
+  fprintf(stderr, "Fragments with no change:        "u32bitFMT"\n", stat_noChange);
+  fprintf(stderr, "Fragments changed:               "u32bitFMT"\n", stat_Change);
 
   closeFragStore(fs);
 }
