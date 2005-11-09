@@ -144,5 +144,10 @@ stoneLevel       = 2
 #  If enabled, it will do $eCRRounds iterations of extendClearRanges.
 #  eCRRounds should be at least one.
 #
-doExtendClearRanges = 0
+doExtendClearRanges = 1
 eCRRounds = 1
+
+#  If enabled, distance records are automagically updated after each
+#  extendClearRanges call round.
+#
+doUpdateDistanceRecords = 1

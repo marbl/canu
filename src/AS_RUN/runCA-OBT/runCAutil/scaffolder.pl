@@ -77,6 +77,45 @@ sub eCR ($$) {
 }
 
 
+sub updateDistanceRecords ($) {
+    my $thisDir = shift @_;
+
+    return if (getGlobal("doUpdateDistanceRecords", 0) == 0);
+    return if (-e "$wrk/$thisDir/distupdate/distupdate.success");
+
+    my $lastckp    = findLastCheckpoint($thisDir);
+    my $distupdate = "$wrk/$thisDir/distupdate";
+
+    system("mkdir $distupdate") if (! -d "$distupdate");
+
+    system("ln -s $wrk/$thisDir/$asm.ckp.$lastckp $distupdate/$asm.ckp.$lastckp")  if (! -e "$distupdate/$asm.ckp.$lastckp");
+    system("ln -s $wrk/$asm.SeqStore              $distupdate/$asm.SeqStore")      if (! -e "$distupdate/$asm.SeqStore");
+
+    my $cmd;
+    $cmd  = "cd $distupdate && $bin/dumpDistanceEstimates ";
+    $cmd .= " -f $wrk/$asm.frgStore ";
+    $cmd .= " -g $wrk/$asm.gkpStore ";
+    $cmd .= " -p $asm ";
+    $cmd .= " -n $lastckp ";
+    $cmd .= " > $distupdate/update.dst ";
+    $cmd .= "2> $distupdate/update.err ";
+    if (runCommand($cmd)) {
+        rename "$distupdate/update.dst", "$distupdate/update.dst.FAILED";
+        print STDERR "dumpDistanceEstimates Failed.\n";
+        exit(1);
+    }
+
+    $cmd  = "cd $distupdate && $bin/gatekeeper ";
+    $cmd .= " -X -Q -C -P -a $wrk/$asm.gkpStore $distupdate/update.dst";
+    if (runCommand($cmd)) {
+        print STDERR "Gatekeeper Failed.\n";
+        exit(1);
+    }
+
+    touch("$distupdate/distupdate.success");
+}
+
+
 sub resolveSurrogates ($$) {
     my $thisDir = shift @_;
     my $lastDir = shift @_;
@@ -138,6 +177,8 @@ sub scaffolder {
     $lastDir = eCR("7-$thisDir-ECR", $lastDir);
     $thisDir++;
 
+    updateDistanceRecords($lastDir);
+
 
     #  If we're iterating over eCR, do another scaffolder WITHOUT
     #  stones, then another eCR.  Again, and again.
@@ -148,6 +189,8 @@ sub scaffolder {
 
         $lastDir = eCR("7-$thisDir-ECR", $lastDir);
         $thisDir++;
+
+        updateDistanceRecords($lastDir);
     }
 
 
