@@ -249,7 +249,14 @@ sub overlapTrim {
             }
         }
 
-        if (runCommand("$bin/chimera -frg $wrk/$asm.frgStore < $wrk/0-overlaptrim/$asm.trim.ovl.sorted > $wrk/0-overlaptrim/$asm.trim.chimera.report")) {
+        my $cmd;
+        $cmd  = "$bin/chimera ";
+        $cmd .= " -frg $wrk/$asm.frgStore ";
+        $cmd .= " -summary $wrk/0-overlaptrim/$asm.trim.chimera.summary ";
+        $cmd .= " -report  $wrk/0-overlaptrim/$asm.trim.chimera.report ";
+        $cmd .= " < $wrk/0-overlaptrim/$asm.trim.ovl.sorted ";
+        $cmd .= " 2> $wrk/0-overlaptrim/$asm.trim.chimera.err ";
+        if (runCommand($cmd)) {
             rename "$wrk/0-overlaptrim/$asm.trim.chimera.report", "$wrk/0-overlaptrim/$asm.trim.chimera.report.FAILED";
             die "Failed.\n";
         }
