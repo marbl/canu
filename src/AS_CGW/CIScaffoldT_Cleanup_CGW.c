@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.9 2005-09-22 23:58:54 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.10 2005-11-10 19:31:16 brianwalenz Exp $";
 
 #define DEBUG 0
 #undef DEBUG_DETAILED
@@ -1701,7 +1701,6 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
 }
 
 
-#if 1
 /***************************************************************************/
 // CheckForContigs
 // Insert chunk instance ci int scaffold sid at offset with orientation orient.
@@ -1829,154 +1828,7 @@ int CheckForContigs(ScaffoldGraphT *sgraph,
   return FALSE;
 }
 
-#else
-
-
-int CheckForContigs(ScaffoldGraphT *sgraph,
-                    CDS_CID_t cid, CDS_CID_t sid,
-                    LengthT offsetAEnd, LengthT offsetBEnd){
-  ChunkInstanceT *CI = GetGraphNode(sgraph->RezGraph, cid);
-  GraphEdgeIterator   edges;
-  CIScaffoldT *scaffold = GetGraphNode(sgraph->ScaffoldGraph, sid);
-  CIEdgeT *edge;
-  IntElementPos pos, *basePos;
-  CDS_CID_t cidOther;
-  int numEdges = 0;
-  int numContainmentEdges = 0;
-  int numAEdges = 0;
-  int numBEdges = 0;
-
-  fprintf(GlobalData->stderrc,"* CheckForContigs scaffold " F_CID "\n", scaffold->id);
-  CI->scaffoldID = NULLINDEX; // test!!!
-
-  if(ContigPositions == NULL){
-    ContigPositions = CreateVA_IntElementPos(10);
-  }
-  ResetVA_IntElementPos(ContigPositions);
-
-  pos.type = AS_CONTIG;
-  pos.ident = cid;
-  // Orientation of inserted chunk is always A_B
-  pos.position.bgn = 0;
-  pos.position.end = CI->bpLength.mean;
-  AppendIntElementPos(ContigPositions, &pos);
-  basePos = GetIntElementPos(ContigPositions,0);
-
-
-  /* Look for overlap edges to Contigs already in this scaffold.
-     The edges must be 'mustOverlap' AND they must overlap by mean
-     contig position...otherwise, don't contig them.
-  */
-  InitGraphEdgeIterator(sgraph->RezGraph, cid, 
-			ALL_END, ALL_EDGES, 
-			GRAPH_EDGE_DEFAULT,
-			&edges); 
-  while (edge = NextGraphEdgeIterator(&edges)) {
-    ChunkInstanceT *CIOther;
-    int end;
-    CDS_COORD_t overlap;
-    ChunkOrientationType orient = GetEdgeOrientationWRT(edge, cid);
-
-    assert(edge != NULL);
-
-
-    if(cid == edge->idA)
-      cidOther = edge->idB;
-    else
-      cidOther = edge->idA;
-
-    CIOther = GetGraphNode(sgraph->RezGraph, cidOther);
-    
-    if(CIOther->scaffoldID != sid || !isOverlapEdge(edge) ||
-       isSingletonOverlapEdge(edge))
-      continue;
-    
-      overlap = IntervalsOverlap(CIOther->offsetAEnd.mean, CIOther->offsetBEnd.mean,
-					 CI->offsetAEnd.mean, CI->offsetBEnd.mean,
-					 -15000);
-
-      //      assert(0/*Why Does overlap > 0 screw this up???? */);
-
-    fprintf(GlobalData->stderrc,"* other scaffold id = " F_CID " (" F_CID ") mustOverlap:%d mean:%g std:%g overlap:" F_COORD " [%g,%g] [%g,%g]\n",
-	    CIOther->scaffoldID, sid,isMustOverlapEdge(edge),   edge->distance.mean, sqrt(edge->distance.variance), overlap,
-	    CIOther->offsetAEnd.mean, CIOther->offsetBEnd.mean,
-	    CI->offsetAEnd.mean, CI->offsetBEnd.mean);
-    if(/*(overlap > 0) && */ 
-       (isMustOverlapEdge(edge) ||
-       (3 * sqrt(edge->distance.variance) <  -edge->distance.mean))){
-
-      numEdges++;
-      switch(orient){
-      case AB_BA:
-	end = B_END;
-	pos.ident = cidOther;
-	pos.position.end = basePos->position.end + edge->distance.mean;
-	pos.position.bgn = pos.position.end + CIOther->bpLength.mean;
-	AppendIntElementPos(ContigPositions, &pos);
-	numBEdges++;
-	break;
-
-      case AB_AB:
-	end = B_END;
-	pos.ident = cidOther;
-	pos.position.bgn = basePos->position.end + edge->distance.mean;
-	pos.position.end = pos.position.bgn + CIOther->bpLength.mean;
-	AppendIntElementPos(ContigPositions, &pos);
-	numBEdges++;
-	break;
-      case BA_BA:
-	end = A_END;
-	pos.ident = cidOther;
-	pos.position.end = basePos->position.bgn - edge->distance.mean;
-	pos.position.bgn = pos.position.end - CIOther->bpLength.mean;
-	AppendIntElementPos(ContigPositions, &pos);
-	numAEdges++;
-	break;
-
-      case BA_AB:
-	end = A_END;
-	pos.ident = cidOther;
-	pos.position.bgn = basePos->position.bgn - edge->distance.mean;
-	pos.position.end = pos.position.bgn - CIOther->bpLength.mean;
-	AppendIntElementPos(ContigPositions, &pos);
-	numAEdges++;
-	break;
-      default:
-	assert(0);
-      }
-      fprintf(GlobalData->stderrc,"* (" F_CID "," F_CID ",%c) [" F_COORD "," F_COORD "]\n",
-	      cid, cidOther, orient, pos.position.bgn, pos.position.end);
-
-      if(edge->flags.bits.hasContainmentOverlap)
-	numContainmentEdges++;
-
-      fprintf(GlobalData->stderrc,"* Inserting CI " F_CID " in scaffold " F_CID " implies contigging with CI " F_CID " by %s on %c end\n",
-	      cid, sid, cidOther, 
-	      (edge->flags.bits.hasContainmentOverlap?"Containment":"Overlap"),
-	      (end == A_END? 'A':'B'));
-      PrintGraphEdge(GlobalData->stderrc,sgraph->RezGraph, " ", edge, cid);
-    }
-  }
-
-  if(numEdges >= 0){
-    fprintf(GlobalData->stderrc,"* Inserting cid " F_CID " into scaffold " F_CID " implied %d contigging operations (%d contains)(%d A, %d B)\n",
-	    cid, sid, numEdges, numContainmentEdges, numAEdges, numBEdges);
-  }
-
-
-  if(GetNumIntElementPoss(ContigPositions) > 1)
-    { 
-
-      return CreateAContigInScaffold(scaffold, ContigPositions, offsetAEnd, offsetBEnd);
-
-    }
-/* This path takes care of the case where there is no contigging
-   implied by this insertion */
-
-  return FALSE;
-
-}
-#endif
+//#include "obsolete/checkforcontigs"
 
 /***************************************************************************/
 // CheckForContainmentContigs
@@ -2519,134 +2371,11 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
 /****************************************************************************/
 /*  This function is called by LeastSquares to merge together two contigs that have a containment relationship between them
  */
-#define DOIT
-void   ContigContainment_old(CIScaffoldT *scaffold, NodeCGW_T *prevCI, NodeCGW_T *thisCI, EdgeCGW_T *overlapEdge){
-  ContigT *containingContig;
-  ContigT *containedContig;
-  IntElementPos contigPos;
-  int mergeStatus = 0;
 
-  if(ContigPositions == NULL){
-    ContigPositions = CreateVA_IntElementPos(10);
-  }
-  ResetVA_IntElementPos(ContigPositions);
-
-  if(overlapEdge->flags.bits.aContainsB){
-    fprintf(GlobalData->stderrc,"* ContigContainment A (" F_CID ") contains B (" F_CID ")  prevCI = " F_CID "  thisCI = " F_CID "\n",
-			overlapEdge->idA, overlapEdge->idB, prevCI->id, thisCI->id);
-    if(prevCI->id == overlapEdge->idA){
-#ifdef DOIT
-      containingContig = prevCI;
-      containedContig = thisCI;
-#endif
-    }else{
-      fprintf(GlobalData->stderrc,"*  prevCI is contained!!!!!\n");
-#ifdef DOIT
-      containedContig = prevCI;
-      containingContig = thisCI;
-#endif
-    }
-  }else if(overlapEdge->flags.bits.bContainsA){
-    fprintf(GlobalData->stderrc,"* ContigContainment B (" F_CID ") contains A (" F_CID ")  prevCI = " F_CID "  thisCI = " F_CID "\n",
-			overlapEdge->idB, overlapEdge->idA, prevCI->id, thisCI->id);
-    if(prevCI->id == overlapEdge->idB){
-#ifdef DOIT
-      containingContig = prevCI;
-      containedContig = thisCI;
-#endif
-    }else{
-      fprintf(GlobalData->stderrc,"*  prevCI is contained!!!!!\n");
-#ifdef DOIT
-      containedContig = prevCI;
-      containingContig = thisCI;
-#endif
-    }
-  }else{
-    assert(0);
-  }
-#ifndef DOIT
-  // Given the way this is called by least squares, the left most contig should be the containing contig --- NOT!
-  // If least squares things it is  dovetail, and it is a contain, the order can be reversed
-  containedContig = thisCI;
-  containingContig = prevCI;
-#endif
-  fprintf(GlobalData->stderrc,"* Containing contig is " F_CID " contained contig is " F_CID "\n",
-	  containingContig->id, containedContig->id);
-
-  /* Now the ContigEnds VA contains the starts/ends of all the contigs */
-  {
-
-
-    double aEndPos = 0., bEndPos = 0.;
-    double overlap = -overlapEdge->distance.mean;
-    // all calculations assume that the containing contig is in the same direction as the scaffold
-    // flip corrects for the opposite case
-    int flip = (containingContig->offsetBEnd.mean < containingContig->offsetAEnd.mean) ? -1 : 1;
-
-    switch(GetEdgeOrientationWRT(overlapEdge,containingContig->id)){
-	  case AB_AB:
-		//              ----------------------->    NORMAL  AB_AB
-		//                ---------------->
-		//                |--------------------|   overlap
-		aEndPos = containingContig->offsetBEnd.mean - flip * overlap;
-		bEndPos = aEndPos + flip * containedContig->bpLength.mean;
-		break;
-	  case BA_BA:
-		//               ------------------------>    Anti-NORMAL AB_BA
-		//                 --------------->
-		//               |----------------|           overlap
-		bEndPos = containingContig->offsetAEnd.mean + flip * overlap;
-		aEndPos = bEndPos - flip * containedContig->bpLength.mean;
-		break;
-	  case BA_AB:
-		//               ----------------------->    Outie
-		//                 <---------------
-		//               |----------------|          overlap
-		aEndPos = containingContig->offsetAEnd.mean +  flip * overlap;
-		bEndPos = aEndPos - flip * containedContig->bpLength.mean;
-		break;
-	  case AB_BA:
-		//              ----------------------->    Innie  AB_BA
-		//               <----------------
-		//               |---------------------|   overlap
-		bEndPos = containingContig->offsetBEnd.mean - flip * overlap;
-		aEndPos = bEndPos + flip * containedContig->bpLength.mean;
-		break;
-          default:
-            assert(0);
-            break;
-    }
-    contigPos.ident = containingContig->id;
-    contigPos.type = AS_CONTIG;
-    contigPos.position.bgn = containingContig->offsetAEnd.mean;
-    contigPos.position.end = containingContig->offsetBEnd.mean;
-    AppendIntElementPos(ContigPositions, &contigPos);
-    contigPos.ident = containedContig->id;
-    contigPos.type = AS_CONTIG;
-	contigPos.position.bgn = aEndPos;
-    contigPos.position.end = bEndPos;
-	// contigPos.position.bgn = containingContig->offsetAEnd.mean;
-	// contigPos.position.end = containingContig->offsetBEnd.mean;
-    AppendIntElementPos(ContigPositions, &contigPos);
-	
-    fprintf(GlobalData->stderrc,"* Positions:\n\t" F_CID " [%g,%g]\n\t" F_CID " [%g,%g]\n",
-			containingContig->id, containingContig->offsetAEnd.mean, containingContig->offsetBEnd.mean,
-			containedContig->id, aEndPos, bEndPos);
-	
-    flip = (containingContig->offsetBEnd.mean < containingContig->offsetAEnd.mean);
-    if(flip){
-      mergeStatus = CreateAContigInScaffold(scaffold, ContigPositions, containingContig->offsetBEnd, containingContig->offsetAEnd);
-    }else{
-      mergeStatus = CreateAContigInScaffold(scaffold, ContigPositions, containingContig->offsetAEnd, containingContig->offsetBEnd);
-	}
-    assert(mergeStatus == TRUE);
-  }
-}
+//#include "obsolete/contig_containment_old"
+//#include "obsolete/not_contig_containment"
 
 #define AHANGSLOP 30
-
-
-//#include "obsolete/not_contig_containment"
 
 
 // this version tries several ways of finding the overlap relationsship if tryHarder is set
