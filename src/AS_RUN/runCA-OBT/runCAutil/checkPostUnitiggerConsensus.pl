@@ -12,14 +12,12 @@ sub checkPostUnitiggerConsensus {
         #  Check that consensus finished properly
         #
         
-        open(CGB, "ls $wrk/5-consensus/*.cgb |") or die;
+        open(CGB, "ls $wrk/4-unitigger/*.cgb |") or die;
         while (<CGB>) {
-            chomp;
-
-            if (m/^.*(\d\d\d).cgb$/) {
+            if (m/^.*(\d\d\d).cgb/) {
                 push @CGBfiles, $1;
 
-                if ((! -e "$wrk/5-consensus/$1.success") ||
+                if ((! -e "$wrk/5-consensus/${asm}_$1.success") ||
                     (! -e "$wrk/5-consensus/${asm}_$1.cgi")) {
                     print STDERR "$wrk/5-consensus/$1 failed -- no .success or no .cgi!\n";
                     $failedJobs++;

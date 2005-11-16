@@ -7,6 +7,15 @@ use strict;
 #      will copy the store before adding
 
 sub preoverlap {
+    my @fragFiles = @_;
+
+    if (scalar(@fragFiles) == 0) {
+        if ((-d "$wrk/$asm.gkpStore") && (-e "$wrk/$asm.gkpStore/gkp.frg")) {
+            return;
+        } else {
+            die "ERROR: No fragment files specified, and stores not created.\n";
+        }
+    }
 
     system("mkdir $wrk/0-preoverlap") if (! -d "$wrk/0-preoverlap");
 

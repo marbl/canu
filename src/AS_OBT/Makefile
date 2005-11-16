@@ -26,12 +26,12 @@
 LOCAL_WORK = $(shell cd ../..; pwd)
 
 SOURCES = chimera.C consolidate.C dumpFragStoreAsFasta.C dumpFragStoreAsOFG.c \
-          findDuplicateFragsInStore.C intersectTrim.C \
-          merge-trimming.C qualityTrim.C sort-overlaps.C \
+          findDuplicateFragsInStore.C initialTrim.C \
+          merge-trimming.C sort-overlaps.C \
           overlap-convert.C trim.C util++.C
 OBJECTS = $(SOURCES:.C=.o)
-PROGS   = qualityTrim intersectTrim merge-trimming sort-overlaps \
-          overlap-convert chimera consolidate \
+PROGS   = chimera consolidate initialTrim merge-trimming sort-overlaps \
+          overlap-convert \
           dumpFragStoreAsFasta dumpFragStoreAsOFG findDuplicateFragsInStore
 SCRIPTS = doOBT.pl
 
@@ -39,9 +39,7 @@ all: $(PROGS) $(SCRIPTS)
 	cp -f doOBT.pl $(LOCAL_BIN)
 	chmod 775 $(LOCAL_BIN)/doOBT.pl
 
-qualityTrim: qualityTrim.o trim.o -lAS_PER -lAS_UTL
-
-intersectTrim: intersectTrim.o -lAS_PER -lAS_UTL
+initialTrim: initialTrim.o trim.o -lAS_PER -lAS_UTL
 
 #sort-overlap-trim: sort-overlap-trim.o util++.o
 

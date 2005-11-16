@@ -1,6 +1,9 @@
 #include "trim.H"
 #include "constants.H"
 
+using namespace std;
+#include <set>
+
 //  Reads the output of sort-overlap-trim, does the actual trim-point
 //  decision, updates the frgStore.
 //
@@ -14,12 +17,14 @@
 u32bit         lineMax = 128 * 1024;
 char          *line    = 0L;
 
+
 void
 readLine(FILE *F) {
   fgets(line, lineMax, F);
   line[lineMax-1] = 0;
   assert(strlen(line) < (lineMax-1));
 }
+
 
 u32bit
 findModeOfFivePrimeMode(FragStoreHandle fs, char *name) {
@@ -69,24 +74,71 @@ findModeOfFivePrimeMode(FragStoreHandle fs, char *name) {
 }
 
 
+
+//  Read a list of UIDs, put into a map.  This is similar to what's
+//  used in initialTrim.
+//
+bool
+readImmutable(char *immutableFileName, set<u64bit> &m) {
+  bool fatal = false;
+
+  if (immutableFileName == 0L)
+    return(false);
+
+  errno = 0;
+  FILE *intFile = fopen(immutableFileName, "r");
+  if (errno)
+    fprintf(stderr, "Can't open '%s': %s\n", immutableFileName, strerror(errno)), exit(1);
+
+  char intLine[1024] = {0};
+  fgets(intLine, 1024, intFile);
+  while (!feof(intFile)) {
+    chomp(intLine);
+    splitToWords  W(intLine);
+    if ((W[0] == 0L) || (W[1] != 0L)) {
+      fprintf(stderr, "readImmutable()-- Invalid line '%s'\n", intLine);
+      fatal = true;
+    } else {
+      u64bit  uid  = strtou64bit(W[0], 0L);
+      m.insert(uid);
+    }
+
+    fgets(intLine, 1024, intFile);
+  }
+
+  fclose(intFile);
+
+  return(fatal);
+}
+
+
+
+
+
+
+
+
+
 int
 main(int argc, char **argv) {
-  u32bit   stats[32] = {0};
-  FILE    *O         = 0L;
-  FILE    *logFile   = 0L;
-  FILE    *staFile   = 0L;
-  char    *frgStore  = 0L;
-  char    *ovlFile   = 0L;
-  bool     doModify  = true;
+  u32bit   stats[32]         = {0};
+  FILE    *O                 = 0L;
+  FILE    *logFile           = 0L;
+  FILE    *staFile           = 0L;
+  char    *frgStore          = 0L;
+  char    *ovlFile           = 0L;
+  bool     doModify          = false;
+  char    *immutableFileName = 0L;
 
   line = new char [lineMax];
 
   if (argc < 5) {
-    fprintf(stderr, "usage: %s [-q] [-log log] -frg frgStore -ovl overlap-trim\n", argv[0]);
-    fprintf(stderr, "  -q          Do not modify the frgStore\n");
-    fprintf(stderr, "  -log x      Write a record of changes to 'x', summary statistics to 'x.stats'\n");
-    fprintf(stderr, "  -frg f      'f' is our frag store\n");
-    fprintf(stderr, "  -ovl o      'o' contains the consolidated overlaps\n");
+    fprintf(stderr, "usage: %s [-update] [-immutable uidlist] [-log log] -frg frgStore -ovl overlap-trim\n", argv[0]);
+    fprintf(stderr, "  -update               Update the clear range in the fragStore.\n");
+    fprintf(stderr, "  -immutable uidlist    Never, ever modify these fragments.\n");
+    fprintf(stderr, "  -ovl o                Read consolidated overlaps from here.n");
+    fprintf(stderr, "  -log x                Write a record of changes to 'x', summary statistics to 'x.stats'\n");
+    fprintf(stderr, "  -frg f                'f' is our frag store\n");
     exit(1);
   }
 
@@ -96,8 +148,10 @@ main(int argc, char **argv) {
       frgStore = argv[++arg];
     } else if (strncmp(argv[arg], "-ovl", 2) == 0) {
       ovlFile = argv[++arg];
-    } else if (strncmp(argv[arg], "-q", 2) == 0) {
-      doModify = false;
+    } else if (strncmp(argv[arg], "-update", 2) == 0) {
+      doModify = true;
+    } else if (strncmp(argv[arg], "-immutable", 2) == 0) {
+      immutableFileName = argv[++arg];
     } else if (strncmp(argv[arg], "-log", 2) == 0) {
       errno=0;
       logFile = fopen(argv[++arg], "w");
@@ -114,6 +168,11 @@ main(int argc, char **argv) {
     arg++;
   }
 
+
+
+
+  ////////////////////////////////////////
+  //
   //  Open the frgStore, prepare for reading fragments
   //
   FragStoreHandle fs = openFragStore(frgStore, doModify ? "r+" : "r");
@@ -125,13 +184,34 @@ main(int argc, char **argv) {
   u32bit   lastElem  = getLastElemFragStore(fs) + 1;
   ReadStructp       rd = new_ReadStruct();
 
+
+  ////////////////////////////////////////
+  //
+  //  Open the overlap file
+  //
   errno = 0;
   O = fopen(ovlFile, "r");
   if (errno)
     fprintf(stderr, "Can't open overlap-trim file %s: %s\n", ovlFile, strerror(errno)), exit(1);
 
+
   double  minQuality = qual.lookupNumber(20);
 
+
+  ////////////////////////////////////////
+  //
+  //  Build a list of the immutable fragments
+  //
+  set<u64bit>  immutable;
+  readImmutable(immutableFileName, immutable);
+
+
+
+
+  
+
+  ////////////////////////////////////////
+  //
   //  Find the mode of the 5'mode.  Read the whole overlap-trim file, counting the 5'mode
   //
   u32bit modemode5 = findModeOfFivePrimeMode(fs, ovlFile);
@@ -151,19 +231,18 @@ main(int argc, char **argv) {
     splitToWords  W(line);
     iid    = strtou64bit(W[0], 0L);
 
+
     //  Report the frags that had no overlap -- these remain with the
     //  quality0 trimming.
     //
     lid++;
     while (lid < iid) {
       if (logFile) {
-        unsigned int  cl = 0;
-        unsigned int  cr = 0;
+        u32bit qltL = 0;
+        u32bit qltR = 0;
 
         getFragStore(fs, lid, FRAG_S_ALL, rd);
-        getClearRegion_ReadStruct(rd, &cl, &cr, READSTRUCT_ORIGINAL);
-        u32bit qltL = cl;
-        u32bit qltR = cr;
+        getClearRegion_ReadStruct(rd, &qltL, &qltR, READSTRUCT_ORIGINAL);
 
         fprintf(logFile, u64bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT" (no overlaps)\n",
                 lid, qltL, qltR, qltL, qltR);
@@ -180,230 +259,229 @@ main(int argc, char **argv) {
     u32bit qltRQ1 = 0;
     u32bit qltL = 0;
     u32bit qltR = 0;
+
     getFragStore(fs, iid, FRAG_S_ALL, rd);
+    getClearRegion_ReadStruct(rd, &qltLQ1, &qltRQ1, READSTRUCT_ORIGINAL);
 
-    {
-      unsigned int  cl = 0;
-      unsigned int  cr = 0;
-      getClearRegion_ReadStruct(rd, &cl, &cr, READSTRUCT_ORIGINAL);
-      qltLQ1 = cl;
-      qltRQ1 = cr;
-    }
+    u64bit uid = 0;
+    getAccID_ReadStruct(rd, &uid);
 
-    u32bit min5   = strtou32bit(W[1], 0L) + qltLQ1;
-    u32bit minm5  = strtou32bit(W[2], 0L) + qltLQ1;
-    u32bit minm5c = strtou32bit(W[3], 0L);
-    u32bit mode5  = strtou32bit(W[4], 0L) + qltLQ1;
-    u32bit mode5c = strtou32bit(W[5], 0L);
-    u32bit max3   = strtou32bit(W[6], 0L) + qltLQ1;
-    u32bit maxm3  = strtou32bit(W[7], 0L) + qltLQ1;
-    u32bit maxm3c = strtou32bit(W[8], 0L);
-    u32bit mode3  = strtou32bit(W[9], 0L) + qltLQ1;
-    u32bit mode3c = strtou32bit(W[10], 0L);
-
-    // Adjust the mode and max/min(m) counts and values if the min/max
-    // or min/max(m) values are within OBT_MODE_WIGGLE (currently, 5
-    // bp) of the mode
+    //  Only proceed if we're mutable.
     //
-
-    if ((min5 != mode5) && ((min5 + OBT_MODE_WIGGLE) >= mode5)){
-      if (minm5 < mode5) {
-	if (min5 < minm5) {
-	  mode5c++;
-	}
-	mode5c += minm5c;
-	minm5c = mode5c;
-      } else if (minm5 == mode5) {
-	mode5c++;
-	minm5c++;
-	assert(minm5c == mode5c);
-      } else {
-	assert(0);
-      }
-      min5 = mode5;
-      minm5 = mode5;
-    } else if ((minm5 != mode5) && ((minm5 + OBT_MODE_WIGGLE) >= mode5)){
-      mode5c += minm5c;
-      minm5c = mode5c;
-      minm5 = mode5;
-    }
-
-    if ((max3 != mode3) && ((max3 - OBT_MODE_WIGGLE) <= mode3)){
-      if (maxm3 > mode3) {
-	if (max3 > maxm3) {
-	  mode3c++;
-	}
-	mode3c += maxm3c;
-	maxm3c = mode3c;
-      } else if (maxm3 == mode3) {
-	mode3c++;
-	maxm3c++;
-	assert(maxm3c == mode3c);
-      } else {
-	assert(0);
-      }
-      max3 = mode3;
-      maxm3 = mode3;
-    } else if ((maxm3 != mode3) && ((maxm3 - OBT_MODE_WIGGLE) <= mode3)){
-      mode3c += maxm3c;
-      maxm3c = mode3c;
-      maxm3 = mode3;
-    }
-
-
-    doTrim(rd, minQuality, qltL, qltR);
-
-    u32bit left  = 0;
-    u32bit right = 0;
-
-    //
-    //  The sort makes sure that all overlaps are "good quality".
-    //
-
-    //  0) if the left quality trim is less than the mode-of-the-mode,
-    //     reset it.
-    //
-    if (qltL < qltLQ1) {
-      stats[15]++;
-      qltL = qltLQ1;
-    }
-    if (qltR > qltRQ1) {
-      stats[16]++;
-      qltR = qltRQ1;
-    }
-    if (qltL < modemode5) {
-      stats[0]++;
-      qltL = modemode5;
-    }
-    if (qltR < qltL) {
-      stats[17]++;
-      qltR = qltL;
-    }
-
-    //  1) if the quality-range is < 100, or 
-    //  2) if the quality-range is < 200 and the intersection with the
-    //     overlap-range is < 100
-    //  be more conservative
-    //
-    if ((qltL + OBT_CQ_LENGTH > qltR) ||
-        ((qltL + OBT_CQO_LENGTH > qltR) &&
-         ((min5 + OBT_CQO_OVERLAP > qltR) ||
-          (qltL + OBT_CQO_OVERLAP > max3)))) {
-      stats[1]++;  //  short quality
-      if ((qltL  + OBT_CQ_SHORT > qltR) ||
-	  (mode5 + OBT_CQ_SHORT > qltR) ||
-	  (qltL  + OBT_CQ_SHORT > mode3)) {
-	stats[2]++;
-	left  = 0;
-	right = 0;
-      } else {
-	stats[3]++;
-	left = mode5;
-	right = mode3;
-      }
-#if 0
-      //  bad?
-      left  = min5;
-      right = max3;
-#endif
+    if (immutable.find(uid) != immutable.end()) {
+      if (logFile)
+        fprintf(logFile, u64bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT" (immutable)\n",
+                lid, qltLQ1, qltRQ1, qltLQ1, qltRQ1);
     } else {
-      stats[4]++;
+      u32bit min5   = strtou32bit(W[1], 0L) + qltLQ1;
+      u32bit minm5  = strtou32bit(W[2], 0L) + qltLQ1;
+      u32bit minm5c = strtou32bit(W[3], 0L);
+      u32bit mode5  = strtou32bit(W[4], 0L) + qltLQ1;
+      u32bit mode5c = strtou32bit(W[5], 0L);
+      u32bit max3   = strtou32bit(W[6], 0L) + qltLQ1;
+      u32bit maxm3  = strtou32bit(W[7], 0L) + qltLQ1;
+      u32bit maxm3c = strtou32bit(W[8], 0L);
+      u32bit mode3  = strtou32bit(W[9], 0L) + qltLQ1;
+      u32bit mode3c = strtou32bit(W[10], 0L);
 
-      if ((minm5 < qltL + OBT_QLT_CLOSE_5) && (minm5c > 1)) {
-	stats[6]++;
-        left = minm5;
-      } else if ((mode5 < qltL + OBT_QLT_CLOSE_5) && (mode5c > 0)) {
-	stats[5]++;
-	left = mode5;
-      } else if ((mode5c > 0) && ((min5 <= qltL) || (min5 < qltL + OBT_QLT_FAR_5))) {
-	stats[11]++;
-	left = min5;
-      } else {
-	stats[7]++;
-        left = qltL;
+      //  Adjust the mode and max/min(m) counts and values if the
+      //  min/max or min/max(m) values are within OBT_MODE_WIGGLE
+      //  (currently, 5 bp) of the mode
+
+      if ((min5 != mode5) && ((min5 + OBT_MODE_WIGGLE) >= mode5)){
+        if (minm5 < mode5) {
+          if (min5 < minm5) {
+            mode5c++;
+          }
+          mode5c += minm5c;
+          minm5c = mode5c;
+        } else if (minm5 == mode5) {
+          mode5c++;
+          minm5c++;
+          assert(minm5c == mode5c);
+        } else {
+          assert(0);
+        }
+        min5 = mode5;
+        minm5 = mode5;
+      } else if ((minm5 != mode5) && ((minm5 + OBT_MODE_WIGGLE) >= mode5)){
+        mode5c += minm5c;
+        minm5c = mode5c;
+        minm5 = mode5;
       }
 
-      if ((maxm3 >= qltR) && (maxm3c > 1)) {
-	stats[8]++;
-        right = maxm3;
-      } else if ((mode3 == max3) && (mode3 == maxm3) && (mode3c > 1) &&
-		 ((mode3 >= qltR) || (qltR < mode3 + OBT_QLT_MODE3))) {
-	stats[9]++;
-        right = mode3;
-      } else if ((maxm3c > 1) && (maxm3 < qltR) && (max3 > qltR) && (max3 < maxm3 + OBT_QLT_CLOSE_MAXM3)) {
-	stats[14]++;
-	right = maxm3;
-      } else if ((mode3c > 0) && ((max3 >= qltR) || (qltR < max3 + OBT_QLT_CLOSE_MAX3))) {
-	stats[12]++;
-	right = max3;
-      } else {
-	stats[10]++;
-        right = qltR;
+      if ((max3 != mode3) && ((max3 - OBT_MODE_WIGGLE) <= mode3)){
+        if (maxm3 > mode3) {
+          if (max3 > maxm3) {
+            mode3c++;
+          }
+          mode3c += maxm3c;
+          maxm3c = mode3c;
+        } else if (maxm3 == mode3) {
+          mode3c++;
+          maxm3c++;
+          assert(maxm3c == mode3c);
+        } else {
+          assert(0);
+        }
+        max3 = mode3;
+        maxm3 = mode3;
+      } else if ((maxm3 != mode3) && ((maxm3 - OBT_MODE_WIGGLE) <= mode3)){
+        mode3c += maxm3c;
+        maxm3c = mode3c;
+        maxm3 = mode3;
       }
 
-      if ((left == 0) && (right == 0)) {
-        stats[18]++;
-        fprintf(stderr, "INVALID CLEAR from OVL: "u64bitFMTW(8)" "u32bitFMTW(3)"-"u32bitFMTW(4)" -> "u32bitFMTW(3)"-"u32bitFMTW(4)" -- %s\n",
+
+      doTrim(rd, minQuality, qltL, qltR);
+
+      u32bit left  = 0;
+      u32bit right = 0;
+
+      //
+      //  The sort makes sure that all overlaps are "good quality".
+      //
+
+      //  0) if the left quality trim is less than the mode-of-the-mode,
+      //     reset it.
+      //
+      if (qltL < qltLQ1) {
+        stats[15]++;
+        qltL = qltLQ1;
+      }
+      if (qltR > qltRQ1) {
+        stats[16]++;
+        qltR = qltRQ1;
+      }
+      if (qltL < modemode5) {
+        stats[0]++;
+        qltL = modemode5;
+      }
+      if (qltR < qltL) {
+        stats[17]++;
+        qltR = qltL;
+      }
+
+      //  1) if the quality-range is < 100, or 
+      //  2) if the quality-range is < 200 and the intersection with the
+      //     overlap-range is < 100
+      //  be more conservative
+      //
+      if ((qltL + OBT_CQ_LENGTH > qltR) ||
+          ((qltL + OBT_CQO_LENGTH > qltR) &&
+           ((min5 + OBT_CQO_OVERLAP > qltR) ||
+            (qltL + OBT_CQO_OVERLAP > max3)))) {
+        stats[1]++;  //  short quality
+        if ((qltL  + OBT_CQ_SHORT > qltR) ||
+            (mode5 + OBT_CQ_SHORT > qltR) ||
+            (qltL  + OBT_CQ_SHORT > mode3)) {
+          stats[2]++;
+          left  = 0;
+          right = 0;
+        } else {
+          stats[3]++;
+          left = mode5;
+          right = mode3;
+        }
+      } else {
+        stats[4]++;
+
+        if ((minm5 < qltL + OBT_QLT_CLOSE_5) && (minm5c > 1)) {
+          stats[6]++;
+          left = minm5;
+        } else if ((mode5 < qltL + OBT_QLT_CLOSE_5) && (mode5c > 0)) {
+          stats[5]++;
+          left = mode5;
+        } else if ((mode5c > 0) && ((min5 <= qltL) || (min5 < qltL + OBT_QLT_FAR_5))) {
+          stats[11]++;
+          left = min5;
+        } else {
+          stats[7]++;
+          left = qltL;
+        }
+
+        if ((maxm3 >= qltR) && (maxm3c > 1)) {
+          stats[8]++;
+          right = maxm3;
+        } else if ((mode3 == max3) && (mode3 == maxm3) && (mode3c > 1) &&
+                   ((mode3 >= qltR) || (qltR < mode3 + OBT_QLT_MODE3))) {
+          stats[9]++;
+          right = mode3;
+        } else if ((maxm3c > 1) && (maxm3 < qltR) && (max3 > qltR) && (max3 < maxm3 + OBT_QLT_CLOSE_MAXM3)) {
+          stats[14]++;
+          right = maxm3;
+        } else if ((mode3c > 0) && ((max3 >= qltR) || (qltR < max3 + OBT_QLT_CLOSE_MAX3))) {
+          stats[12]++;
+          right = max3;
+        } else {
+          stats[10]++;
+          right = qltR;
+        }
+
+        if ((left == 0) && (right == 0)) {
+          stats[18]++;
+          fprintf(stderr, "INVALID CLEAR from OVL: "u64bitFMTW(8)" "u32bitFMTW(3)"-"u32bitFMTW(4)" -> "u32bitFMTW(3)"-"u32bitFMTW(4)" -- %s\n",
+                  iid, qltL, qltR, left, right,
+                  line);
+        }
+      }
+
+      //  If after all that, we have an invalid range, throw it out.
+      //
+      //  What has happened (once) is for a fragment:
+      //
+      //                OVL                QUAL
+      //      ------|---------|---------|---------|---------
+      //              --------
+      //               -------
+      //                ------
+      //
+      //  (that is, lots of 5' alignment in the overlap, none in 3', no
+      //  intersection between OVL and QUAL)
+      //
+      //  We picked the 5'mode (the right end of OVL) and the left
+      //  quality (left end of QUAL), which isn't a valid region.
+      //
+      //  XXX: We should check if the quality of the OVL region is
+      //  decent, and then use that if it is also large.
+      //
+      if ((left + right > 0) && ((left + OBT_MIN_LENGTH) > right)) {
+        stats[13]++;
+#if 0
+        fprintf(stderr, "INVALID CLEAR: "u64bitFMTW(8)" "u32bitFMTW(3)"-"u32bitFMTW(4)" -> "u32bitFMTW(3)"-"u32bitFMTW(4)" -- %s\n",
                 iid, qltL, qltR, left, right,
                 line);
-      }
-    }
-
-    //  If after all that, we have an invalid range, throw it out.
-    //
-    //  What has happened (once) is for a fragment:
-    //
-    //                OVL                QUAL
-    //      ------|---------|---------|---------|---------
-    //              --------
-    //               -------
-    //                ------
-    //
-    //  (that is, lots of 5' alignment in the overlap, none in 3', no
-    //  intersection between OVL and QUAL)
-    //
-    //  We picked the 5'mode (the right end of OVL) and the left
-    //  quality (left end of QUAL), which isn't a valid region.
-    //
-    //  XXX: We should check if the quality of the OVL region is
-    //  decent, and then use that if it is also large.
-    //
-    if ((left + right > 0) && ((left + OBT_MIN_LENGTH) > right)) {
-      stats[13]++;
-#if 0
-      fprintf(stderr, "INVALID CLEAR: "u64bitFMTW(8)" "u32bitFMTW(3)"-"u32bitFMTW(4)" -> "u32bitFMTW(3)"-"u32bitFMTW(4)" -- %s\n",
-              iid, qltL, qltR, left, right,
-              line);
 #endif
-      left  = 0;
-      right = 0;
-    }
+        left  = 0;
+        right = 0;
+      }
 
-    //  Report the iid, quality trim points, and final trimming.  You
-    //  can use the input to this executable to get the overlap trim
-    //  points.  The original trim points are elsewhere.
-    //
-    if (logFile) {
-      fprintf(logFile, u64bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\n",
-              iid, qltL, qltR, left, right);
-    }
+      //  Report the iid, quality trim points, and final trimming.  You
+      //  can use the input to this executable to get the overlap trim
+      //  points.  The original trim points are elsewhere.
+      //
+      if (logFile)
+        fprintf(logFile, u64bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\n",
+                iid, qltL, qltR, left, right);
 
-    if ((left == 0) && (right == 0)) {
-      stats[19]++;
 
-      //  XXX:  We also need to delete any links this fragment has
-      //setClearRegion_ReadStruct(rd, left, right, READSTRUCT_OVL);
+      if ((left == 0) && (right == 0)) {
+        stats[19]++;
 
-      if (doModify)
-        deleteFragStore(fs, iid);
-    } else {
-      stats[20]++;
+        //  XXX:  We also need to delete any links this fragment has
+        //setClearRegion_ReadStruct(rd, left, right, READSTRUCT_OVL);
 
-      if (doModify) {
-        setClearRegion_ReadStruct(rd, left, right, READSTRUCT_OVL);
-        if (setFragStore(fs, iid, rd)) {
-          fprintf(stderr, "setFragStore() failed.\n");
-          exit(1);
+        if (doModify)
+          deleteFragStore(fs, iid);
+      } else {
+        stats[20]++;
+
+        if (doModify) {
+          setClearRegion_ReadStruct(rd, left, right, READSTRUCT_OVL);
+          if (setFragStore(fs, iid, rd)) {
+            fprintf(stderr, "setFragStore() failed.\n");
+            exit(1);
+          }
         }
       }
     }

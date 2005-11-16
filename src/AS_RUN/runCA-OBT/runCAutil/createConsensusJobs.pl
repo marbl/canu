@@ -4,31 +4,21 @@ use strict;
 #    Partition the contigs
 #    Repartition the frag store
 
-
 sub createConsensusJobs {
+    my $pstats            = getGlobal("processStats", undef);
+    my $partitionSize     = getGlobal("consensusPartitionSize", 400000);
 
     system("mkdir $wrk/8-consensus") if (! -d "$wrk/8-consensus");
 
     my $lastckpt = findLastCheckpoint("7-CGW");
 
-
-    ########################################
-
-    #  I guess this is the parition size, for human, it was 400000
-    my $partitionSize = 400000;
-
     if (! -e "$wrk/8-consensus/partitionSDB1.success") {
         my $cmd;
         $cmd  = "cd $wrk/8-consensus && ";
         $cmd .= "$bin/PartitionSDB1 $wrk/7-CGW/$asm.SeqStore $lastckpt $partitionSize $wrk/7-CGW/$asm.cgw_contigs ";
-        $cmd .= "> $wrk/8-consensus/partitionSDB1.out ";
-        $cmd .= "2> $wrk/8-consensus/partitionSDB1.err";
+        $cmd .= "> $wrk/8-consensus/partitionSDB1.err 2>&1";
 
-        if (runCommand($cmd)) {
-            print STDERR "Failed.\n";
-            exit(1);
-        }
-
+        die "Failed.\n" if (runCommand($cmd));
         touch("$wrk/8-consensus/partitionSDB1.success");
     }
 
@@ -36,99 +26,90 @@ sub createConsensusJobs {
         my $cmd;
         $cmd  = "cd $wrk/8-consensus && ";
         $cmd .= "$bin/PartitionSDB2 $wrk/7-CGW/$asm.SeqStore $lastckpt $wrk/8-consensus/UnitigPartition.txt ";
-        $cmd .= "> $wrk/8-consensus/partitionSDB2.out ";
-        $cmd .= "2> $wrk/8-consensus/partitionSDB2.err";
+        $cmd .= "> $wrk/8-consensus/partitionSDB2.err 2>&1";
 
-        if (runCommand($cmd)) {
-            print STDERR "Failed.\n";
-            exit(1);
-        }
-
+        die "Failed.\n" if (runCommand($cmd));
         touch("$wrk/8-consensus/partitionSDB2.success");
     }
-
     
     if (! -e "$wrk/8-consensus/partitionFragStore.success") {
         my $cmd;
         $cmd  = "cd $wrk/8-consensus && ";
         $cmd .= "$bin/partitionFragStore $wrk/8-consensus/FragPartition.txt $wrk/$asm.frgStore $wrk/$asm.frgStore_cns2part ";
-        $cmd .= "> $wrk/8-consensus/partitionFragStore.out ";
-        $cmd .= "2> $wrk/8-consensus/partitionFragStore.err";
+        $cmd .= "> $wrk/8-consensus/partitionFragStore.out 2>&1";
 
-        if (runCommand($cmd)) {
-            print STDERR "Failed.\n";
-            exit(1);
-        }
-
+        die "Failed.\n" if (runCommand($cmd));
         touch("$wrk/8-consensus/partitionFragStore.success");
     }
 
     ########################################
-
-    #  Build consensus jobs for the grid
+    #
+    #  Build consensus jobs for the grid -- this is very similar to that in createPostUnitiggerConsensus.pl
     #
     if (! -e "$wrk/8-consensus/jobsCreated.success") {
 
-        if ($useGrid) {
-            open(SUB, "> $wrk/8-consensus/submit.sh") or die;
-            print SUB "#!/bin/sh\n";
-        }
+        my $jobP;
+        my $jobs = 0;
 
         open(CGW, "ls $wrk/7-CGW/$asm.cgw_contigs.* |") or die;
         while (<CGW>) {
-            chomp;
-
             if (m/cgw_contigs.(\d+)/) {
-                my $jobName   = substr("0000000000" . $1, -8);
-
-                open(F, "> $wrk/8-consensus/$jobName.sh") or die;
-                print F "#!/bin/sh\n";
-                print F "$processStats \\\n";
-                print F "$gin/consensus \\\n";
-                print F "  -P \\\n";
-                print F "  -s $wrk/7-CGW/$asm.SeqStore \\\n";
-                print F "  -V $lastckpt \\\n";
-                print F "  -p $1 \\\n";
-                print F "  -S $1 \\\n";
-                print F "  -m \\\n";
-                print F "  -o $wrk/8-consensus/$asm.cns_contigs.$1 \\\n";
-                print F "  $wrk/$asm.frgStore_cns2part \\\n";
-                print F "  $wrk/7-CGW/$asm.cgw_contigs.$1 \\\n";
-                print F "&& \\\n";
-                print F "touch $wrk/8-consensus/$jobName.success\n";
-                close(F);
-
-                chmod 0755, "$wrk/8-consensus/$jobName.sh";
-
-                if ($useGrid) {
-                    print SUB "qsub ";
-                    print SUB "-p 0 ";  #  Priority
-                    print SUB "-r y ";  #  Rerunnable
-                    print SUB "-N cns2_${asm}_$jobName ";
-                    print SUB "-o $wrk/8-consensus/$jobName.out ";
-                    print SUB "-e $wrk/8-consensus/$jobName.err ";
-                    print SUB "$wrk/8-consensus/$jobName.sh\n";
-                } else {
-                    if (runCommand("sh $wrk/8-consensus/$jobName.sh")) {
-                        print STDERR "Failed.\n";
-                        exit(1);
-                    }
-                }
+                $jobP .= "$1\t";
+                $jobs++;
             } else {
                 print STDERR "Didn't match cgw_contigs.# in $_\n";
             }
         }
         close(CGW);
 
-        if ($useGrid) {
-            close(SUB);
-        }
+        open(F, "> $wrk/8-consensus/consensus.sh") or die "Can't open '$wrk/8-consensus/consensus.sh'\n";
+        print F "#!/bin/sh\n";
+        print F "\n";
+        print F "jobp=`echo $jobP | cut -d' ' -f \$SGE_TASK_ID`\n";
+        print F "\n";
+        print F "if [ -e $wrk/8-consensus/$asm.cns_contigs.\$jobp.success ] ; then\n";
+        print F "  exit 0\n";
+        print F "fi\n";
+        print F "\n";
+        print F "$pstats \\\n" if (defined($pstats));
+        print F "$gin/consensus \\\n";
+        print F "  -P \\\n";
+        print F "  -s $wrk/7-CGW/$asm.SeqStore \\\n";
+        print F "  -V $lastckpt \\\n";
+        print F "  -p \$jobp \\\n";
+        print F "  -S \$jobp \\\n";
+        print F "  -m \\\n";
+        print F "  -o $wrk/8-consensus/$asm.cns_contigs.\$jobp \\\n";
+        print F "  $wrk/$asm.frgStore_cns2part \\\n";
+        print F "  $wrk/7-CGW/$asm.cgw_contigs.\$jobp \\\n";
+        print F " > $wrk/8-consensus/$asm.cns_contigs.\$jobp.err 2>&1 \\\n";
+        print F "&& \\\n";
+        print F "touch $wrk/8-consensus/$asm.cns_contigs.\$jobp.success\n";
+        print F "exit 0\n";
+        close(F);
 
-        touch("$wrk/8-consensus/jobsCreated.success");
+        chmod 0755, "$wrk/8-consensus/consensus.sh";
 
         if ($useGrid) {
-            pleaseExecute("$wrk/8-consensus/submit.sh");
+            my $cmd;
+            $cmd  = "qsub -p 0 -r y -N cns2_${asm} ";
+            $cmd .= "-t 1-$jobs ";
+            $cmd .= "-j y -o /dev/null ";
+            $cmd .= "$wrk/8-consensus/consensus.sh\n";
+            pleaseExecute($cmd);
+            touch("$wrk/8-consensus/jobsCreated.success");
             exit(0);
+        } else {
+            for (my $i=1; $i<=$jobs; $i++) {
+                $ENV{'SGE_TASK_ID'} = $i;
+                if (runCommand("$wrk/8-consensus/consensus.sh")) {
+                    print STDERR "Failed job $i\n";
+                    exit(1);
+                }
+                delete $ENV{'SGE_TASK_ID'};
+            }
+
+            touch("$wrk/8-consensus/jobsCreated.success");
         }
     }
 }

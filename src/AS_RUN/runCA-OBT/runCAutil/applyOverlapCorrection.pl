@@ -3,6 +3,8 @@ use strict;
 #  Check and apply the overlap correction results.
 
 sub applyOverlapCorrection {
+    my $ovlCorrBatchSize    = getGlobal("ovlCorrBatchSize", 175000);
+    my $ovlCorrOnGrid       = getGlobal("ovlCorrOnGrid", 0);
 
     if (! -e "$wrk/3-ovlcorr/$asm.eratesupdated") {
         my $failedJobs = 0;

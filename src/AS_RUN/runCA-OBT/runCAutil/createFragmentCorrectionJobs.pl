@@ -1,6 +1,10 @@
 use strict;
 
 sub createFragmentCorrectionJobs {
+    my $frgCorrBatchSize  = getGlobal("frgCorrBatchSize", 175000);
+    my $frgCorrThreads    = getGlobal("frgCorrThreads", 2);
+    my $frgCorrOnGrid     = getGlobal("frgCorrOnGrid", 0);
+    my $scratch           = getGlobal("scratch", "/scratch");
 
     system("mkdir $wrk/2-frgcorr") if (! -e "$wrk/2-frgcorr");
 
@@ -53,7 +57,7 @@ sub createFragmentCorrectionJobs {
 
             open(F, "> $wrk/2-frgcorr/$batchName/$jobName.sh") or die;
             print F "#!/bin/sh\n";
-            print F "$processStats \\\n";
+            #print F "$processStats \\\n";
             print F "$gin/correct-frags \\\n";
             print F "  -S $wrk/$asm.ovlStore \\\n";
             print F "  -o $scratch/frgcorr-$batchName-$jobName.frgcorr \\\n";

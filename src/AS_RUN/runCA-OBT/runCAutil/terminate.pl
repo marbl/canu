@@ -1,21 +1,16 @@
 use strict;
 
-my $terminateFakeUID = 0;
-
-
 sub terminate {
 
-    my $failedJobs = 0;
+    my $failedJobs       = 0;
 
     open(CGWIN, "ls $wrk/7-CGW/$asm.cgw_contigs.* |") or die;
     while (<CGWIN>) {
         chomp;
 
         if (m/cgw_contigs.(\d+)/) {
-            my $jobName   = substr("0000000000" . $1, -8);
-
-            if (! -e "$wrk/8-consensus/$jobName.success") {
-                print STDERR "$wrk/8-consensus/$jobName failed.\n";
+            if (! -e "$wrk/8-consensus/$asm.cns_contigs.$1.success") {
+                print STDERR "$wrk/8-consensus/$asm.cns_contigs.$1 failed.\n";
                 $failedJobs++;
             }
         } else {
@@ -34,7 +29,8 @@ sub terminate {
     if (! -e "$wrk/$asm.asm") {
         print STDERR "Starting h -- terminator\n";
 
-        my $uidServer = getGlobal("uidServer", undef);
+        my $uidServer        = getGlobal("uidServer", undef);
+        my $terminateFakeUID = getGlobal("fakeUIDs", 0);
 
         my $cmd;
         $cmd  = "cd $wrk && ";

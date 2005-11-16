@@ -115,7 +115,10 @@ frgCorrOnGrid    = 0
 #
 #  Overlap correction parameters
 #
-#  Don't know anything about sizes here....
+#  On Human (26 million fragments)
+#    1000000 gives a 2GB process
+#     400000 gives a 400-800MB process
+#     200000 gives a 300-500MB process
 #
 ovlCorrBatchSize = 175000
 ovlCorrOnGrid    = 0

@@ -4,6 +4,9 @@ use strict;
 #  Use the fragment correction results to update the overlap store.
 
 sub createOverlapCorrectionJobs {
+    my $ovlCorrBatchSize    = getGlobal("ovlCorrBatchSize", 175000);
+    my $ovlCorrOnGrid       = getGlobal("ovlCorrOnGrid", 0);
+    my $scratch             = getGlobal("scratch", "/scratch");
 
     system("mkdir $wrk/3-ovlcorr") if (! -e "$wrk/3-ovlcorr");
 
@@ -47,7 +50,7 @@ sub createOverlapCorrectionJobs {
 
             open(F, "> $wrk/3-ovlcorr/$jobName.sh") or die;
             print F "#!/bin/sh\n";
-            print F "$processStats \\\n";
+            #print F "$processStats \\\n";
             print F "$gin/correct-olaps \\\n";
             print F "  -S $wrk/$asm.ovlStore \\\n";
             print F "  -e $scratch/ovlcorr-$jobName.erate \\\n";

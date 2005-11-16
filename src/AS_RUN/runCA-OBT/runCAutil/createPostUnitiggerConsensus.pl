@@ -3,15 +3,15 @@
 #  Create the post-unitigger consensus jobs.
 
 sub createPostUnitiggerConsensusJobs {
+    my $pstats            = getGlobal("processStats", undef);
 
     system("mkdir $wrk/5-consensus") if (! -d "$wrk/5-consensus");
-
-    #  This is $AS_ROOT/scripts/make_partitionFile, but much safer.
-    #  And just a little more obvious, sigh.
 
     if (! -e "$wrk/5-consensus/$asm.partFile") {
         print STDERR "Starting c -- partition fragStore\n";
 
+        #  Then, build a partition information file, and do the partitioning.
+        #
         open(F, "ls $wrk/4-unitigger/*.cgb |") or die;
         while (<F>) {
             chomp;
@@ -32,9 +32,7 @@ sub createPostUnitiggerConsensusJobs {
         $cmd .= "$wrk/5-consensus/$asm.partFile ";
         $cmd .= "$wrk/$asm.frgStore ";
         $cmd .= "$wrk/$asm.frgStore_cns1part ";
-        $cmd .= "> $wrk/5-consensus/partitionfragstore.out ";
-        $cmd .= "2> $wrk/5-consensus/partitionfragstore.err";
-
+        $cmd .= "> $wrk/5-consensus/partitionfragstore.err 2>&1";
         if (runCommand($cmd)) {
             print STDERR "Failed to partition the fragStore.\n";
             rename "$wrk/5-consensus/$asm.partFile", "$wrk/5-consensus/$asm.partFile.FAILED";
@@ -42,73 +40,72 @@ sub createPostUnitiggerConsensusJobs {
         }
     }
 
-    #  Nasty bits of awk here.  It creates a set of shell scripts to
-    #  run consensus, one per cgb batch.  The last batch is not used,
-    #  the small tests BPW has tried always as an empty file there.
-
-    #  Consensus also uses the prefix of the input cgb to name the
-    #  output cgi, so we link those in.
-
+    ########################################
+    #
+    #  Build consensus jobs for the grid -- this is very similar to that in createConsensusJobs.pl
+    #
+    #  Create a set of shell scripts to run consensus, one per cgb
+    #  batch.  The last batch is not used, the small tests BPW has
+    #  tried always as an empty file there.
+    #
     if (! -e "$wrk/5-consensus/jobsCreated.success") {
-        print STDERR "Starting d -- create post-unitigger consensus\n";
+        my $jobP;
+        my $jobs = 0;
 
-        if (runCommand("ln -f $wrk/4-unitigger/*.cgb $wrk/5-consensus")) {
-            print STDERR "Linking CGB input into consensus directory failed.\n";
-            exit(1);
-        }
-
-        if ($useGrid) {
-            open(SUB, "> $wrk/5-consensus/submit.sh") or die;
-            print SUB "#!/bin/sh\n";
-        }
-
-        open(CGB, "ls $wrk/5-consensus/*.cgb |") or die;
+        open(CGB, "ls $wrk/4-unitigger/*.cgb |") or die;
         while (<CGB>) {
-            chomp;
-
-            if (m/^.*(\d\d\d).cgb$/) {
-                my $jobName   = $1;
-
-                open(F, "> $wrk/5-consensus/$jobName.sh") or die;
-                print F "#!/bin/sh\n";
-                print F "$processStats \\\n";
-                print F "$gin/consensus -P -S $1 -m -U -z $wrk/$asm.frgStore_cns1part $wrk/5-consensus/${asm}_$1.cgb \\\n";
-                print F "&& \\\n";
-                print F "touch $wrk/5-consensus/$jobName.success\n";
-                close(F);
-
-                chmod 0755, "$wrk/5-consensus/$jobName.sh";
-
-                if ($useGrid) {
-                    print SUB "qsub ";
-                    print SUB "-p 0 ";  #  Priority
-                    print SUB "-r y ";  #  Rerunnable
-                    print SUB "-N cns1_${asm}_$1 ";
-                    print SUB "-o $wrk/5-consensus/$jobName.out ";
-                    print SUB "-e $wrk/5-consensus/$jobName.err ";
-                    print SUB "$wrk/5-consensus/$jobName.sh\n";
-                } else {
-                    if (runCommand("sh $wrk/5-consensus/$jobName.sh")) {
-                        print STDERR "Failed.\n";
-                        exit(1);
-                    }
-                }
-
+            if (m/^.*(\d\d\d).cgb/) {
+                $jobP .= "$1\t";
+                $jobs++;
             } else {
                 print STDERR "WARNING: didn't match $_ for CGB filename!\n";
             }
         }
         close(CGB);
 
-        if ($useGrid) {
-            close(SUB);
-        }
+        open(F, "> $wrk/5-consensus/consensus.sh") or die "Can't open '$wrk/5-consensus/consensus.sh'\n";
+        print F "#!/bin/sh\n";
+        print F "\n";
+        print F "jobp=`echo $jobP | cut -d' ' -f \$SGE_TASK_ID`\n";
+        print F "\n";
+        print F "if [ -e $wrk/5-consensus/${asm}_\$jobp.success ] ; then\n";
+        print F "  exit 0\n";
+        print F "fi\n";
+        print F "\n";
+        print F "$pstats \\\n" if (defined($pstats));
+        print F "$gin/consensus \\\n";
+        print F "  -P -m -U \\\n";
+        print F "  -S \$jobp \\\n";
+        print F "  -z $wrk/$asm.frgStore_cns1part \\\n";
+        print F "  -o $wrk/5-consensus/${asm}_\$jobp.cgi \\\n";
+        print F "  $wrk/4-unitigger/${asm}_\$jobp.cgb \\\n";
+        print F " > $wrk/5-consensus/${asm}_\$jobp.err 2>&1 \\\n";
+        print F "&& \\\n";
+        print F "touch $wrk/5-consensus/${asm}_\$jobp.success\n";
+        close(F);
 
-        touch("$wrk/5-consensus/jobsCreated.success");
+        chmod 0755, "$wrk/5-consensus/consensus.sh";
 
         if ($useGrid) {
-            pleaseExecute("$wrk/5-consensus/submit.sh");
+            my $cmd;
+            $cmd  = "qsub -p 0 -r y -N cns1_${asm} ";
+            $cmd .= "-t 1-$jobs ";
+            $cmd .= "-j y -o /dev/null ";
+            $cmd .= "$wrk/5-consensus/consensus.sh\n";
+            pleaseExecute($cmd);
+            touch("$wrk/5-consensus/jobsCreated.success");
             exit(0);
+        } else {
+            for (my $i=1; $i<=$jobs; $i++) {
+                $ENV{'SGE_TASK_ID'} = $i;
+                if (runCommand("$wrk/5-consensus/consensus.sh")) {
+                    print STDERR "Failed job $i\n";
+                    exit(1);
+                }
+                delete $ENV{'SGE_TASK_ID'};
+            }
+
+            touch("$wrk/5-consensus/jobsCreated.success");
         }
     }
 }

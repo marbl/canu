@@ -10,6 +10,13 @@ use strict;
 sub createOverlapJobs {
     my $isTrim = shift @_;
 
+    my $ovlThreads        = getGlobal("ovlThreads", 2);
+    my $ovlHashBlockSize  = getGlobal("ovlHashBlockSize", 40000);
+    my $ovlRefBlockSize   = getGlobal("ovlRefBlockSize", 2000000);
+    my $ovlMemory         = getGlobal("ovlMemory", "1GB");
+    my $scratch           = getGlobal("scratch", "/scratch");
+    my $pstats            = getGlobal("processStats", undef);
+
     if (!defined($isTrim)) {
         die "createOverlapJobs()-- I need to know if I'm trimming or assembling!\n";
     }
@@ -63,7 +70,7 @@ sub createOverlapJobs {
     print F "echo out = $scratch/\$bat-\$job.ovl\n";
     print F "echo out = $wrk/$outDir/\$bat/\$job.ovl";
     print F "\n";
-    print F "$processStats \\\n";
+    print F "$pstats \\\n" if (defined($pstats));
     print F "$gin/overlap -P $ovlOpt -M $ovlMemory -t $ovlThreads \\\n";
     print F "  \$opt \\\n";
     print F "  -k $wrk/0-preoverlap/$asm.nmers.fasta \\\n";
@@ -182,7 +189,7 @@ sub createOverlapJobs {
         $SGE .= "\n";
         $SGE .= "qsub -p 0 -hard -l num_proc=2 -r y -N ovl_${asm} \\\n";
         $SGE .= "  -t 1-$jobs \\\n";
-        $SGE .= "  -o $wrk/$outDir/overlap.\\\$TASK_ID.out \\\n";
+        $SGE .= "  -j y -o $wrk/$outDir/overlap.\\\$TASK_ID.out \\\n";
         $SGE .= "  -e $wrk/$outDir/overlap.\\\$TASK_ID.err \\\n";
         $SGE .= "  $wrk/$outDir/overlap.sh\n";
 
