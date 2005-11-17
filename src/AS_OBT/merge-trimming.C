@@ -238,11 +238,13 @@ main(int argc, char **argv) {
     lid++;
     while (lid < iid) {
       if (logFile) {
-        u32bit qltL = 0;
-        u32bit qltR = 0;
-
         getFragStore(fs, lid, FRAG_S_ALL, rd);
-        getClearRegion_ReadStruct(rd, &qltL, &qltR, READSTRUCT_ORIGINAL);
+
+        unsigned int l=0;
+        unsigned int r=0;
+        getClearRegion_ReadStruct(rd, &l, &r, READSTRUCT_ORIGINAL);
+        u32bit qltL = l;
+        u32bit qltR = r;
 
         fprintf(logFile, u64bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT" (no overlaps)\n",
                 lid, qltL, qltR, qltL, qltR);
@@ -255,13 +257,15 @@ main(int argc, char **argv) {
     //  points.  All the values from overlap are off by the original
     //  clear range, we add it back in as we decode the string.
     //
-    u32bit qltLQ1 = 0;
-    u32bit qltRQ1 = 0;
     u32bit qltL = 0;
     u32bit qltR = 0;
 
     getFragStore(fs, iid, FRAG_S_ALL, rd);
-    getClearRegion_ReadStruct(rd, &qltLQ1, &qltRQ1, READSTRUCT_ORIGINAL);
+    unsigned int l=0;
+    unsigned int r=0;
+    getClearRegion_ReadStruct(rd, &l, &r, READSTRUCT_ORIGINAL);
+    u32bit qltLQ1 = l;
+    u32bit qltRQ1 = r;
 
     u64bit uid = 0;
     getAccID_ReadStruct(rd, &uid);
