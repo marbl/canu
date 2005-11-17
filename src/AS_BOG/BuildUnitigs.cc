@@ -30,11 +30,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: BuildUnitigs.cc,v 1.1 2005-11-01 18:44:58 kli1000 Exp $
- * $Revision: 1.1 $
+ * $Id: BuildUnitigs.cc,v 1.2 2005-11-17 22:08:48 kli1000 Exp $
+ * $Revision: 1.2 $
 */
 
-static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.1 2005-11-01 18:44:58 kli1000 Exp $";
+static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.2 2005-11-17 22:08:48 kli1000 Exp $";
 
 //  System include files
 
@@ -71,10 +71,15 @@ int  main (int argc, char * argv [])
    uint32  first,last;			// IUID of first/last fragments in olap store
    first = 1;
 
-   fprintf(stderr, "%s\n", BUILD_UNITIGS_MAIN_CM_ID);
-   fprintf(stderr, "Starting %s\n", argv[0]);
+   fprintf(stderr, "%s\n\n", BUILD_UNITIGS_MAIN_CM_ID);
+
    if(argc !=4){
-      fprintf(stderr, "%s: <OVL Store Path> <FRG Store Path> <genome size>\n", argv[0]);
+      fprintf(stderr, "%s: <OVL Store Path> <FRG Store Path> <genome size>\n\n", argv[0]);
+      fprintf(stderr, "  If the genome size is set to 0, this will cause the unitigger\n");
+      fprintf(stderr, "  to try to estimate the genome size based on the constructed\n");
+      fprintf(stderr, "  unitig lengths.\n");
+      fprintf(stderr, " \n");
+      return(-1);
    }
 
    // Get path/names of olap and frg stores from command line

@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.4 2005-11-04 22:07:51 eliv Exp $
- * $Revision: 1.4 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.5 2005-11-17 22:09:30 kli1000 Exp $
+ * $Revision: 1.5 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.4 2005-11-04 22:07:51 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.5 2005-11-17 22:09:30 kli1000 Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -849,6 +849,11 @@ namespace AS_BOG{
 			#endif
 			i++;
 		}
+
+		//void qsort(void *base, size_t nmemb, size_t size,
+                //  int(*compar)(const void *, const void *));
+		// Sort by 5' end of fragment position
+		qsort(imp_msg_arr, getNumFrags(), sizeof(IntMultiPos), &IntMultiPosCmp);
 
 		// Populate the IUM message with unitig info
 		/*IntChunk_ID*/		ium_mesg_ptr->iaccession=id-1;
