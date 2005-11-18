@@ -24,12 +24,11 @@ sub CGW ($$$$) {
     my $cmd;
     $cmd  = "cd $wrk/$thisDir && ";
     $cmd .= "$bin/cgw $ckp -c -j 1 -k 5 -r 4 -s $stoneLevel -w 0 -T -P ";
-    $cmd .= "-f $wrk/$asm.frgStore ";
-    $cmd .= "-g $wrk/$asm.gkpStore ";
-    $cmd .= "-o $wrk/$thisDir/$asm ";
-    $cmd .= "$wrk/$thisDir/$asm.cgi ";
-    $cmd .= "> $wrk/$thisDir/cgw.out 2>&1";
-
+    $cmd .= " -f $wrk/$asm.frgStore ";
+    $cmd .= " -g $wrk/$asm.gkpStore ";
+    $cmd .= " -o $wrk/$thisDir/$asm ";
+    $cmd .= " $wrk/$thisDir/$asm.cgi ";
+    $cmd .= " > $wrk/$thisDir/cgw.out 2>&1";
     if (runCommand($cmd)) {
         print STDERR "Failed.\n";
         exit(1);
@@ -54,17 +53,18 @@ sub eCR ($$) {
     system("ln -s $wrk/$lastDir/$asm.ckp.$lastckp $wrk/$thisDir/$asm.ckp.$lastckp")  if (! -e "$wrk/$thisDir/$asm.ckp.$lastckp");
     system("ln -s $wrk/$asm.SeqStore              $wrk/$thisDir/$asm.SeqStore")      if (! -e "$wrk/$thisDir/$asm.SeqStore");
 
+    backupFragStore("before-$thisDir");
+
     my $cmd;
     $cmd  = "cd $wrk/$thisDir && ";
     $cmd .= "$bin/extendClearRanges ";
-    $cmd .= "-f $wrk/$asm.frgStore ";
-    $cmd .= "-g $wrk/$asm.gkpStore ";
-    $cmd .= "-c $asm ";
-    $cmd .= "-n $lastckp ";
-    $cmd .= "-s -1 ";
-    $cmd .= "> $wrk/$thisDir/extendClearRanges.out ";
-    $cmd .= "2> $wrk/$thisDir/extendClearRanges.err ";
-
+    $cmd .= " -B ";
+    $cmd .= " -f $wrk/$asm.frgStore ";
+    $cmd .= " -g $wrk/$asm.gkpStore ";
+    $cmd .= " -c $asm ";
+    $cmd .= " -n $lastckp ";
+    $cmd .= " -s -1 ";
+    $cmd .= " > $wrk/$thisDir/extendClearRanges.err 2>&1";
     if (runCommand($cmd)) {
         print STDERR "Failed.\n";
         exit(1);
@@ -113,7 +113,7 @@ sub updateDistanceRecords ($) {
     $cmd .= " -p $asm ";
     $cmd .= " -n $lastckp ";
     $cmd .= " > $distupdate/update.dst ";
-    $cmd .= "2> $distupdate/dumpDistanceEstimates.err ";
+    $cmd .= " 2> $distupdate/dumpDistanceEstimates.err ";
     if (runCommand($cmd)) {
         rename "$distupdate/update.dst", "$distupdate/update.dst.FAILED";
         print STDERR "dumpDistanceEstimates Failed.\n";
@@ -122,7 +122,7 @@ sub updateDistanceRecords ($) {
 
     $cmd  = "cd $distupdate && $bin/gatekeeper ";
     $cmd .= " -X -Q -C -P -a $wrk/$asm.gkpStore $distupdate/update.dst ";
-    $cmd .= "1>&2 2> gatekeeper.err";
+    $cmd .= " > gatekeeper.err 2>&1";
     if (runCommand($cmd)) {
         print STDERR "Gatekeeper Failed.\n";
         exit(1);
@@ -148,14 +148,12 @@ sub resolveSurrogates ($$) {
     my $cmd;
     $cmd  = "cd $wrk/$thisDir && ";
     $cmd .= "$bin/resolveSurrogates ";
-    $cmd .= "-f $wrk/$asm.frgStore ";
-    $cmd .= "-g $wrk/$asm.gkpStore ";
-    $cmd .= "-c $asm ";
-    $cmd .= "-n $lastckp ";
-    $cmd .= "-1 ";
-    $cmd .= "> $wrk/$thisDir/resolveSurrogates.out ";
-    $cmd .= "2> $wrk/$thisDir/resolveSurrogates.err ";
-
+    $cmd .= " -f $wrk/$asm.frgStore ";
+    $cmd .= " -g $wrk/$asm.gkpStore ";
+    $cmd .= " -c $asm ";
+    $cmd .= " -n $lastckp ";
+    $cmd .= " -1 ";
+    $cmd .= " > $wrk/$thisDir/resolveSurrogates.err 2>&1";
     if (runCommand($cmd)) {
         print STDERR "Failed.\n";
         exit(1);
