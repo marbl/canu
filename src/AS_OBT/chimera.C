@@ -203,7 +203,7 @@ u32bit   fullCoverage        = 0;
 u64bit*
 readClearRanges(char *frgStore) {
 
-  FragStoreHandle fs = openFragStore(frgStore, "r+");
+  FragStoreHandle fs = openFragStore(frgStore, "r");
   if (fs == NULLSTOREHANDLE)
     fprintf(stderr, "Failed to open fragStore %s!\n", frgStore), exit(1);
 
@@ -255,7 +255,7 @@ readClearRanges(char *frgStore) {
 //    Look for chimeric and spur patterns.
 //
 void
-process(u32bit iid, FragStoreHandle fs, overlapList *overlap, u32bit ola, u32bit ora) {
+process(u32bit iid, FragStoreHandle fs, bool doModify, overlapList *overlap, u32bit ola, u32bit ora) {
 
   //fprintf(stderr, "process()-- "u32bitFMT" overlaps.\n", overlap->length());
 
@@ -601,21 +601,25 @@ process(u32bit iid, FragStoreHandle fs, overlapList *overlap, u32bit ola, u32bit
       spurDetected++;
 
       if (fixChimera) {
-        ReadStructp       rd = new_ReadStruct();
-        getFragStore(fs, iid, FRAG_S_ALL, rd);
-        setClearRegion_ReadStruct(rd, intervalBeg, intervalEnd, READSTRUCT_OVL);
-        if (setFragStore(fs, iid, rd)) {
-          fprintf(stderr, "setFragStore() failed.\n");
-          exit(1);
+        if (doModify) {
+          ReadStructp       rd = new_ReadStruct();
+          getFragStore(fs, iid, FRAG_S_ALL, rd);
+          setClearRegion_ReadStruct(rd, intervalBeg, intervalEnd, READSTRUCT_OVL);
+          if (setFragStore(fs, iid, rd)) {
+            fprintf(stderr, "setFragStore() failed.\n");
+            exit(1);
+          }
+          delete_ReadStruct(rd);
         }
-        delete_ReadStruct(rd);
 
         if (intervalMax < 40) {
           spurDeletedSmall++;
-          deleteFragStore(fs, iid);
+          if (doModify)
+            deleteFragStore(fs, iid);
         }
       } else {
-        deleteFragStore(fs, iid);
+        if (doModify)
+          deleteFragStore(fs, iid);
       }
 
 #ifdef WITH_REPORT
@@ -632,21 +636,25 @@ process(u32bit iid, FragStoreHandle fs, overlapList *overlap, u32bit ola, u32bit
       chimeraDetected++;
 
       if (fixChimera) {
-        ReadStructp       rd = new_ReadStruct();
-        getFragStore(fs, iid, FRAG_S_ALL, rd);
-        setClearRegion_ReadStruct(rd, intervalBeg, intervalEnd, READSTRUCT_OVL);
-        if (setFragStore(fs, iid, rd)) {
-          fprintf(stderr, "setFragStore() failed.\n");
-          exit(1);
+        if (doModify) {
+          ReadStructp       rd = new_ReadStruct();
+          getFragStore(fs, iid, FRAG_S_ALL, rd);
+          setClearRegion_ReadStruct(rd, intervalBeg, intervalEnd, READSTRUCT_OVL);
+          if (setFragStore(fs, iid, rd)) {
+            fprintf(stderr, "setFragStore() failed.\n");
+            exit(1);
+          }
+          delete_ReadStruct(rd);
         }
-        delete_ReadStruct(rd);
 
         if (intervalMax < 40) {
           chimeraDeletedSmall++;
-          deleteFragStore(fs, iid);
+          if (doModify)
+            deleteFragStore(fs, iid);
         }
       } else {
-        deleteFragStore(fs, iid);
+        if (doModify)
+          deleteFragStore(fs, iid);
       }
 
 #ifdef WITH_REPORT
@@ -734,6 +742,7 @@ readOverlap(FILE *file, overlap_t &ovl) {
 int
 main(int argc, char **argv) {
   char   *frgStore = 0L;
+  bool    doModify = true;
   char   *summaryName = 0L;
   char   *reportName  = 0L;
 
@@ -746,6 +755,8 @@ main(int argc, char **argv) {
       frgStore = argv[++arg];
     } else if (strncmp(argv[arg], "-delete", 2) == 0) {
       fixChimera = false;
+    } else if (strncmp(argv[arg], "-q", 2) == 0) {
+      doModify = false;
     } else if (strncmp(argv[arg], "-summary", 2) == 0) {
       summaryName = argv[++arg];
     } else if (strncmp(argv[arg], "-report", 2) == 0) {
@@ -755,7 +766,7 @@ main(int argc, char **argv) {
   }
 
   if (frgStore == 0L)
-    fprintf(stderr, "usage: %s -f <fragStore> [-summary file] [-report file] < overlap-trim-results\n", argv[0]), exit(1);
+    fprintf(stderr, "usage: %s [-1] -f <fragStore> [-summary file] [-report file] < overlap-trim-results\n", argv[0]), exit(1);
 
   u32bit           idAlast, olalast, oralast;
 
@@ -781,7 +792,7 @@ main(int argc, char **argv) {
       fprintf(stderr, "Failed to open '%s' for writing: %s\n", reportName, strerror(errno)), exit(1);
   }
 
-  FragStoreHandle fs = openFragStore(frgStore, "r+");
+  FragStoreHandle fs = openFragStore(frgStore, doModify ? "r+" : "r");
   if (fs == NULLSTOREHANDLE)
     fprintf(stderr, "Failed to open fragStore %s!\n", frgStore), exit(1);
 
@@ -817,7 +828,7 @@ main(int argc, char **argv) {
     error  = ovl.erate;
 
     if (idA != idAlast) {
-      process(idAlast, fs, overlap, olalast, oralast);
+      process(idAlast, fs, doModify, overlap, olalast, oralast);
       delete overlap;
       overlap = new overlapList;
     }
@@ -889,6 +900,7 @@ main(int argc, char **argv) {
           break;
       }
 
+
 #ifdef DEBUG
       fprintf(reportFile, "A: orig: "u32bitFMT" "u32bitFMT"  ovlp:"u32bitFMT" "u32bitFMT"\n", cla, cra, ola, ora);
       fprintf(reportFile, "B: orig: "u32bitFMT" "u32bitFMT"  ovlp:"u32bitFMT" "u32bitFMT"\n", clb, crb, olb, orb);
@@ -896,27 +908,63 @@ main(int argc, char **argv) {
               idA, idB, ori, leftA, rightA, lenA, leftB, rightB, lenB, error);
 #endif
 
-      //  Just a simple sanity check.
+
+      //  We've seen a few cases where the resulting overlap is VERY
+      //  small, and near the start of one fragment.  For reasons that
+      //  may or may not be OK, the clear then becomes negative.  We don't use
+      //  overlaps less than 35 bases long anyway, so just stop thinking now
+      //  if we do get a short overlap.
       //
-      if ((leftA > 2048) || (rightA > 2048) || (leftB > 2048) || (rightB > 2048)) {
-        overflow++;
-        fprintf(stderr, "Overflow!  YIKES!\n");
-        fprintf(stderr, u32bitFMTW(7)" "u32bitFMTW(7)"  %c "u32bitFMTW(4)" "u32bitFMTW(4)" "u32bitFMTW(4)"  "u32bitFMTW(4)" "u32bitFMTW(4)" "u32bitFMTW(4)" %5.3f\n",
-                idA, idB, ori, leftA, rightA, lenA, leftB, rightB, lenB, error);
-      }
+      //  Another case where it would have been useful to not be unsigned.
+      //
+      u32bit diffA = rightA - leftA;
+      if (rightA < leftA)  diffA = leftA - rightA;
+
+      u32bit diffB = rightB - leftB;
+      if (rightB < leftB)  diffB = leftB - rightB;
+
 
       //  Another simple test -- if the A or B overlap range has
       //  'flipped' then we don't have any overlap left over after
       //  applying the new clear range.  What happens: fragment A says
       //  take X bases off of the right end, and fragment B says take
       //  Y bases off the left end.  If that's bigger than our
-      //  original overlap, then we have nothing left.
+      //  original overlap, then we have nothing left.  This is
+      //  indicated by the A overlap 'flipping' so that the left is
+      //  bigger than the right.
       //
-      //  Skip this overlap if it's crap
+      //  BUT, if it flips AND is near the start of the overlap, we
+      //  can see negative coordinates.  As unsigned, these come out
+      //  huge.  So, we also check that both ranges are above 34 bp
+      //  long.
       //
-      if ((leftA < rightA) &&
-          (((rightA - leftA > 34) && (error <= 2.0)) ||
-           (rightA - leftA > 69))) {
+      //  And, so, we have rather complicated set of conditions to
+      //  skip this overlap if it's crap.
+      //
+      //  The comments:
+      //    1 - Both ranges are not small.  If we have a negative, one
+      //        range will be REAL big, the other will be small.
+      //    2 - Not flipped.  If we had signed values, this would be
+      //        all we need.  But we're unsigned, so we also need #1.
+      //    3 - Small overlap, but great quality.
+      //    4 - Normal, large overlap.
+      // 
+      if ( (diffA > 34) && (diffB > 34) &&                //  1
+           (leftA < rightA) &&                            //  2
+           (((rightA - leftA > 34) && (error <= 2.0)) ||  //  3
+            (rightA - leftA > 69))) {                     //  4
+
+        //  Just a simple sanity check.
+        //
+        if ((leftA > 2048) || (rightA > 2048) || (leftB > 2048) || (rightB > 2048)) {
+          overflow++;
+          fprintf(stderr, "\n");
+          fprintf(stderr, "Overflow!  YIKES!\n");
+          fprintf(stderr, "A: orig: "u32bitFMT" "u32bitFMT"  ovlp:"u32bitFMT" "u32bitFMT"\n", cla, cra, ola, ora);
+          fprintf(stderr, "B: orig: "u32bitFMT" "u32bitFMT"  ovlp:"u32bitFMT" "u32bitFMT"\n", clb, crb, olb, orb);
+          fprintf(stderr, u32bitFMTW(7)" "u32bitFMTW(7)"  %c "u32bitFMTW(4)" "u32bitFMTW(4)" "u32bitFMTW(4)"  "u32bitFMTW(4)" "u32bitFMTW(4)" "u32bitFMTW(4)" %5.3f\n",
+                  idA, idB, ori, leftA, rightA, lenA, leftB, rightB, lenB, error);
+        }
 
         //  Do something with the overlap
         //
@@ -969,7 +1017,7 @@ main(int argc, char **argv) {
 #endif
   }
 
-  process(idAlast, fs, overlap, olalast, oralast);
+  process(idAlast, fs, doModify, overlap, olalast, oralast);
   delete overlap;
 
 #ifdef SPEEDCOUNTER_H
