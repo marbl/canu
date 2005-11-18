@@ -18,7 +18,7 @@
 #
 ###########################################################################
 #
-# $Id: assemblyCompare.pl,v 1.4 2005-10-28 19:54:41 catmandew Exp $
+# $Id: assemblyCompare.pl,v 1.5 2005-11-18 23:28:31 catmandew Exp $
 #
 
 # Program to compare two assemblies
@@ -37,7 +37,7 @@ use FileHandle;
 use Getopt::Long;
 use Env qw(PWD);
 
-my $MY_VERSION = " Version 1.01 (Build " . (qw/$Revision: 1.4 $/ )[1]. ")";
+my $MY_VERSION = " Version 1.01 (Build " . (qw/$Revision: 1.5 $/ )[1]. ")";
 my $MY_APPLICATION = "assemblyCompare";
 
 my $HELPTEXT = qq~
@@ -172,29 +172,38 @@ if(!$dontTampa)
   system($command);
 }
 
-$dontMummer = 1;
+#$dontMummer = 1;
 if(!$dontMummer)
 {
-  # assume mummer hasn't been run on this pair, since a pairwise thing..
-  my $pid = getppid();
-  my $prefix = "$assemblies[0]_$assemblies[1]_$pid";
+  my $command;
+  my $prefix = "$assemblies[0]_$assemblies[1]_nucmer";
   my @fnps;
   for(my $i = 0; $i <= $#dirs; $i++)
   {
     $fnps[$i] = $dirs[$i] . "/" . $assemblies[$i];
   }
-  my $command = "nucmer -p $prefix $fnps[0].scaffolds.fasta $fnps[1].scaffolds.fasta";
-  printf STDERR "Running $command\n";
-  system($command);
 
-  # now generate secondary output
-  $command = "show-coords -THcl -I 99 $prefix.delta > $prefix.show-coords";
-  printf STDERR "Running $command\n";
-  system($command);
+  my $clusterFN = $prefix . ".cluster";
+  my $deltaFN = $prefix . ".delta";
+  if( ! -f $clusterFN || ! -f $deltaFN )
+  {
+    $command = "nucmer -p $prefix $fnps[0].scaffolds.fasta $fnps[1].scaffolds.fasta";
+    printf STDERR "Running $command\n";
+    system($command);
+  }
+
+  my $showCoordsFN = $prefix . ".show-coords";
+  if( ! -f $showCoordsFN )
+  {
+    # now generate secondary output
+    $command = "show-coords -THcl -I 99 $prefix.delta > $prefix.show-coords";
+    printf STDERR "Running $command\n";
+    system($command);
+  }
 
   # now compare
   printf("==========> Mummer Comparison\n\n");
-  $command = "mummerCompare -r $fnps[0].scaff -q $fnps[1].scaff -c $prefix.show-coords";
+  $command = "analyzeMummerMapping -r $fnps[0].scaff -q $fnps[1].scaff -s $showCoordsFN";
   printf STDERR "Running $command\n";
   system($command);
 }
