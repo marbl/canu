@@ -27,7 +27,7 @@
 //  While loading matches, we compute the mapped length and covered
 //  length.
 
-matchList::matchList(char *filename, char matchOrRun) {
+matchList::matchList(char *filename, char matchOrRun, bool saveLine) {
 
   if ((matchOrRun != 'u') && (matchOrRun != 'x') && (matchOrRun != 'r') && (matchOrRun != 'm')) {
     fprintf(stderr, "matchList::matchList()-- Invalid value '%c' for matchOrRun, should be:\n");
@@ -96,10 +96,13 @@ matchList::matchList(char *filename, char matchOrRun) {
       if ((S[1][0] == matchOrRun) ||
           ((matchOrRun == 'm') && ((S[1][0] == 'u') || (S[1][0] == 'x')))) {
 
-        u32bit  iid1=0, pos1=0, len1=0, ori1=0;
-        u32bit  iid2=0, pos2=0, len2=0, ori2=0;
-        decodeMatch(S, iid1, pos1, len1, ori1, iid2, pos2, len2, ori2);
+        //  Save the name/label
+        if (_name1[0] == 0)
+          decodeMatchNames(S, _name1, _name2);
 
+        u32bit  iid1=0, pos1=0, len1=0, fwd1=0;
+        u32bit  iid2=0, pos2=0, len2=0, fwd2=0;
+        decodeMatch(S, iid1, pos1, len1, fwd1, iid2, pos2, len2, fwd2);
 
         if ((pos1) > _seq1->sequenceLength(iid1) || (pos1 + len1) > _seq1->sequenceLength(iid1)) {
           chomp(inLine);
@@ -132,12 +135,12 @@ matchList::matchList(char *filename, char matchOrRun) {
           _matches[_matchesLen].iid1 = iid1;
           _matches[_matchesLen].pos1 = pos1;
           _matches[_matchesLen].len1 = len1;
-          _matches[_matchesLen].ori1 = ori1;
+          _matches[_matchesLen].fwd1 = fwd1;
 
           _matches[_matchesLen].iid2 = iid2;
           _matches[_matchesLen].pos2 = pos2;
           _matches[_matchesLen].len2 = len2;
-          _matches[_matchesLen].ori2 = ori2;
+          _matches[_matchesLen].fwd2 = fwd2;
 
           _matchesLen++;
         }
@@ -181,8 +184,17 @@ sort1_(const void *a, const void *b) {
   if (A->pos1 > B->pos1)  return(1);
   if (A->len1 > B->len1)  return(-1);
   if (A->len1 < B->len1)  return(1);
-  if (A->ori1 > B->ori1)  return(-1);
-  if (A->ori1 < B->ori1)  return(1);
+#if 0
+  //  disabled so that clumpMaker can use these sorts
+  if (A->fwd1 > B->fwd1)  return(-1);
+  if (A->fwd1 < B->fwd1)  return(1);
+#endif
+  if (A->iid2 < B->iid2)  return(-1);
+  if (A->iid2 > B->iid2)  return(1);
+  if (A->pos2 < B->pos2)  return(-1);
+  if (A->pos2 > B->pos2)  return(1);
+  if (A->len2 > B->len2)  return(-1);
+  if (A->len2 < B->len2)  return(1);
   return(0);
 }
 
@@ -198,8 +210,18 @@ sort2_(const void *a, const void *b) {
   if (A->pos2 > B->pos2)  return(1);
   if (A->len2 > B->len2)  return(-1);
   if (A->len2 < B->len2)  return(1);
-  if (A->ori2 > B->ori2)  return(-1);
-  if (A->ori2 < B->ori2)  return(1);
+#if 0
+  //  disabled so that clumpMaker can use these sorts
+  if (A->fwd2 > B->fwd2)  return(-1);
+  if (A->fwd2 < B->fwd2)  return(1);
+#endif
+  if (A->iid1 < B->iid1)  return(-1);
+  if (A->iid1 > B->iid1)  return(1);
+  if (A->pos1 < B->pos1)  return(-1);
+  if (A->pos1 > B->pos1)  return(1);
+  if (A->len1 > B->len1)  return(-1);
+  if (A->len1 < B->len1)  return(1);
+
   return(0);
 }
 

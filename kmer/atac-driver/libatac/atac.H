@@ -32,23 +32,26 @@ void   readHeader(char *inLine,
                   FILE *out=0L,
                   map<string,string> *params=0L);
 
+void   decodeMatchNames(splitToWords &W,
+                        char *name1,
+                        char *nam2);
 void   decodeMatch(splitToWords &W,
-                   u32bit &iid1, u32bit &pos1, u32bit &len1, u32bit &ori1,
-                   u32bit &iid2, u32bit &pos2, u32bit &len2, u32bit &ori2);
+                   u32bit &iid1, u32bit &pos1, u32bit &len1, u32bit &fwd1,
+                   u32bit &iid2, u32bit &pos2, u32bit &len2, u32bit &fwd2);
 
 
 class match_t {
 public:
   u32bit  matchiid;  //  internal id, usually pointing to an entry in matchList
   u32bit  matchuid;  //  external id
-  u32bit  iid1, pos1, len1, ori1;
-  u32bit  iid2, pos2, len2, ori2;
+  u32bit  iid1, pos1, len1, fwd1;
+  u32bit  iid2, pos2, len2, fwd2;
 };
 
 
 class matchList {
 public:
-  matchList(char *filename, char matchOrRun = 'm');
+  matchList(char *filename, char matchOrRun = 'm', bool saveLine=false);
   ~matchList() {
     delete _seq1;
     delete _seq2;
@@ -72,6 +75,10 @@ public:
 
   char          _file1[1024];
   char          _file2[1024];
+
+  //  The name / label of each of the sequences
+  char          _name1[256];
+  char          _name2[256];
 
   FastAWrapper *_seq1;
   FastAWrapper *_seq2;

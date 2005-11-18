@@ -24,9 +24,26 @@
 #include "atac.H"
 
 void
+decodeMatchNames(splitToWords &W,
+                 char *name1,
+                 char *name2) {
+
+  char *tmp = W[4];
+  while (*tmp && (*tmp != ':'))
+    *name1++ = *tmp++;
+  *name1 = 0;
+
+  tmp = W[8];
+  while (*tmp && (*tmp != ':'))
+    *name2++ = *tmp++;
+  *name2 = 0;
+}
+
+
+void
 decodeMatch(splitToWords &W,
-            u32bit &iid1, u32bit &pos1, u32bit &len1, u32bit &ori1,
-            u32bit &iid2, u32bit &pos2, u32bit &len2, u32bit &ori2) {
+            u32bit &iid1, u32bit &pos1, u32bit &len1, u32bit &fwd1,
+            u32bit &iid2, u32bit &pos2, u32bit &len2, u32bit &fwd2) {
 
   char *tmp = W[4];
   while (*tmp && (*tmp != ':'))
@@ -42,10 +59,10 @@ decodeMatch(splitToWords &W,
 
   pos1 = strtou32bit(W[5], 0L);
   len1 = strtou32bit(W[6], 0L);
-  ori1 = (W[7][0] == '-') ? 0 : 1;
+  fwd1 = (W[7][0] == '-') ? 0 : 1;
 
   pos2 = strtou32bit(W[9], 0L);
   len2 = strtou32bit(W[10], 0L);
-  ori2 = (W[11][0] == '-') ? 0 : 1;
+  fwd2 = (W[11][0] == '-') ? 0 : 1;
 }
 
