@@ -82,7 +82,7 @@ concatRegions: concatRegions.o
 dumpMappedBACFragIntervals: dumpMappedBACFragIntervals.o ASMData.o \
 	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
-ofg2asm: ofg2asm.o libAS_MSG.a
+ofg2asm: ofg2asm.o libAS_MSG.a libAS_UTL.a
 
 dumpMappedMatePairsBinary: dumpMappedMatePairsBinary.o ASMData.o \
 	libAS_MSG.a libAS_PER.a libAS_UTL.a

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.13 2005-10-31 16:37:02 eliv Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.14 2005-11-18 15:34:09 eliv Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -1279,6 +1279,8 @@ extern GenericMesg *DuplicateProtoMesg_AS(GenericMesg *omesg);
    
 extern void FreeProtoMesg_AS(GenericMesg *omesg);
 
+#endif
+
 /* Function: InputFileType_AS
 
    Description: The file cursor for fin must be at the start of the file
@@ -1300,7 +1302,7 @@ extern MesgReader InputFileType_AS(FILE *fin);
 extern MesgWriter OutputFileType_AS(OutputType type);
 
 
-
+#if 0
 
 /* Functions: ReadProtoMesg_AS 
               ReadBinaryMesg_AS
