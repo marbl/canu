@@ -17,25 +17,8 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: extendClearRanges.c,v 1.12 2005-08-25 19:03:54 eliv Exp $";
+static const char CM_ID[] = "$Id: extendClearRanges.c,v 1.13 2005-11-18 20:26:13 brianwalenz Exp $";
 
-
-/*********************************************************************
- * Module:  AS_CGW_LoadCheckpoint
- * Description:
- *    For use with debugger to query values in a checkpoint
- * 
- *    Reference: 
- *
- *    Command Line Interface:
- *        $ loadcgw checkpointPath
- *
- *       CGBInputFiles: The file with new IUM,OUM, etc records to process. 
- *
- *       Checkpoint File: File named <outputName>.ckp.n
- *
- * 
- *********************************************************************/
 //#define DEBUG 1
 //#define DEBUG_BUCIS 1
 //#define DEBUG_MERGE_SCAF 1
@@ -259,6 +242,7 @@ int main( int argc, char *argv[])
   int setPrefixName = FALSE;
   int setSingleSid = FALSE, singleSid = NULLINDEX;
   int ckptNum = NULLINDEX;
+  int backupFrgStore = TRUE;
   int i; // , index;
   int sid, startingGap = 0, setStartingGap = FALSE;
   int numExtendableGaps = 0, numGaps = 0, numGapsClosed = 0, totalBasesInClosedGaps = 0;
@@ -305,46 +289,43 @@ int main( int argc, char *argv[])
     int ch,errflg=0;
     optarg = NULL;
     while (!errflg && ((ch = getopt(argc, argv,
-				    "c:C:f:g:m:n:s:")) != EOF)){
+				    "Bc:C:f:g:m:n:s:")) != EOF)){
       switch(ch) {
-		case 'c':
-		{
-		  strcpy( data->File_Name_Prefix, argv[optind - 1]);
-		  setPrefixName = TRUE;		  
-		}
-		break;
-		case 'C':
-		  startingGap = atoi(argv[optind - 1]);
-		  setStartingGap = TRUE;
-		  break;
-		case 'f':
-		{
-		  strcpy( data->Frag_Store_Name, argv[optind - 1]);
-		  setFragStoreName = TRUE;
-		}
-		break;
-		case 'g':
-		{
-		  strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
-		  setGatekeeperStore = TRUE;
-		}
-		break;	  
-		case 'm':
-		  MaxInteriorGap = atoi(argv[optind - 1]);
-		  fprintf( stderr, "setting MaxInteriorGap to %d\n", MaxInteriorGap);
-		  break;
-		case 'n':
-		  ckptNum = atoi(argv[optind - 1]);
-		  break;
-		case 's':
-		  singleSid = atoi(argv[optind - 1]);
-		  setSingleSid = TRUE;
-		  fprintf( stderr, "setting singleSid to %d\n", singleSid);
-		  break;
-		case '?':
-		  fprintf(stderr,"Unrecognized option -%c",optopt);
-		default :
-		  errflg++;
+        case 'B':
+          backupFrgStore = FALSE;
+          break;
+        case 'c':
+          strcpy( data->File_Name_Prefix, argv[optind - 1]);
+          setPrefixName = TRUE;		  
+          break;
+        case 'C':
+          startingGap = atoi(argv[optind - 1]);
+          setStartingGap = TRUE;
+          break;
+        case 'f':
+          strcpy( data->Frag_Store_Name, argv[optind - 1]);
+          setFragStoreName = TRUE;
+          break;
+        case 'g':
+          strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
+          setGatekeeperStore = TRUE;
+          break;	  
+        case 'm':
+          MaxInteriorGap = atoi(argv[optind - 1]);
+          fprintf( stderr, "setting MaxInteriorGap to %d\n", MaxInteriorGap);
+          break;
+        case 'n':
+          ckptNum = atoi(argv[optind - 1]);
+          break;
+        case 's':
+          singleSid = atoi(argv[optind - 1]);
+          setSingleSid = TRUE;
+          fprintf( stderr, "setting singleSid to %d\n", singleSid);
+          break;
+        case '?':
+          fprintf(stderr,"Unrecognized option -%c",optopt);
+        default :
+          errflg++;
       }
     }
     if((setPrefixName == FALSE) || (setFragStoreName == 0) || (setGatekeeperStore == 0) || (setSingleSid == 0))
@@ -365,7 +346,7 @@ int main( int argc, char *argv[])
   fprintf( stderr, "====> Starting at %s\n", ctime(&t1));
 
   // check to see if db.frg.orig exists, and if not, copy db.frg to it
-  {
+  if (backupFrgStore) {
 	  char temp_buf[1024];
 	  int sysReturn;
 	  FILE *fileExistenceCheck;
@@ -1242,7 +1223,7 @@ int main( int argc, char *argv[])
 	  fprintf( GlobalData->timefp, "checkpoint %d written during extendClearRanges, sumScaffoldLengths: %f\n",
 			   ScaffoldGraph->checkPointIteration, sumScaffoldLengths);
 	  CheckpointScaffoldGraph(ScaffoldGraph, 1);
-	  {
+          if (backupFrgStore) {
 		char temp_buf[1024];
 		int sysReturn;
 		sprintf( temp_buf, "cp %s/db.frg %s/db.frg.%d", 
@@ -1254,12 +1235,11 @@ int main( int argc, char *argv[])
 		else
 		  fprintf( stderr, "error encountered copying frgStore to %s/db.frg.%d\n",
 				   GlobalData->Frag_Store_Name, ScaffoldGraph->checkPointIteration);		  
-
-		writeEcrCheckpoint( numGapsInScaffold, numGapsClosedInScaffold,
-							numSmallGapsInScaffold, numSmallGapsClosedInScaffold,
-							numLargeGapsInScaffold, numLargeGapsClosedInScaffold);
-	  }
-	}
+          }
+          writeEcrCheckpoint( numGapsInScaffold, numGapsClosedInScaffold,
+                              numSmallGapsInScaffold, numSmallGapsClosedInScaffold,
+                              numLargeGapsInScaffold, numLargeGapsClosedInScaffold);
+        }
   }
 
   // Variance = mean(x^2) - (mean(x))^2
@@ -1308,7 +1288,8 @@ int main( int argc, char *argv[])
   fprintf( GlobalData->timefp, "checkpoint %d written at end of extendClearRanges, sumScaffoldLengths: %f",
 		   ScaffoldGraph->checkPointIteration, sumScaffoldLengths);
   CheckpointScaffoldGraph(ScaffoldGraph, 2);
-  {
+
+  if (backupFrgStore) {
 	char temp_buf[1024];
 	int sysReturn;
 	sprintf( temp_buf, "cp %s/db.frg %s/db.frg.ecr.%d", 
@@ -1320,11 +1301,10 @@ int main( int argc, char *argv[])
 	else
 	  fprintf( stderr, "error encountered copying frgStore to %s/db.frg.%d\n",
 			   GlobalData->Frag_Store_Name, ScaffoldGraph->checkPointIteration);		  
-
-	writeEcrCheckpoint( numGapsInScaffold, numGapsClosedInScaffold,
-						numSmallGapsInScaffold, numSmallGapsClosedInScaffold,
-						numLargeGapsInScaffold, numLargeGapsClosedInScaffold);
   }
+  writeEcrCheckpoint( numGapsInScaffold, numGapsClosedInScaffold,
+                      numSmallGapsInScaffold, numSmallGapsClosedInScaffold,
+                      numLargeGapsInScaffold, numLargeGapsClosedInScaffold);
   
 #if 0
   // numDeletedContigs = alterContigs_old( numGaps, closedGap, closedGapDelta, 
