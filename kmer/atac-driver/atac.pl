@@ -145,12 +145,18 @@ while (scalar(@ARGV) > 0) {
         $maxgap       = 0;  # the maximum substitution gap
     } elsif ($arg eq "-samespecies9") {
         $mersize      = 20; # the mer size
-        $merlimit     = 9;  # unique mers only
+        $merlimit     = 9;  # mostly unique mers only
         $minfill      = 20; # the mimimum fill for a reported match.
         $maxgap       = 0;  # the maximum substitution gap
+    } elsif ($arg eq "-crossspecies1") {
+        $mersize      = 20; # the mer size
+        $merlimit     = 1;  # mostly unique mers only
+        $minfill      = 20; # the mimimum fill for a reported match.
+        $maxgap       = 0;  # the maximum substitution gap
+        $crossSpecies = 1;  # extra parameters in the atac file
     } elsif ($arg eq "-crossspecies") {
         $mersize      = 18; # the mer size
-        $merlimit     = 9;  # unique mers only
+        $merlimit     = 9;  # mostly unique mers only
         $minfill      = 18; # the mimimum fill for a reported match.
         $maxgap       = 0;  # the maximum substitution gap
         $crossSpecies = 1;  # extra parameters in the atac file
@@ -295,7 +301,7 @@ exit(0) if ($merylOnly == 1);
 my $segmentID   = "000";
 my @segmentIDs;
 
-open(F, "$leaff -F $MERYLdir/$id1.fasta --partition $numSegments |");
+open(F, "$leaff -F $MERYLdir/$id1.fasta --partitionmap $numSegments |");
 $numSegments = <F>;
 while(<F>) {
     my $segments = "";
