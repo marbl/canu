@@ -10,6 +10,7 @@ my $dir    = "";
 my $mask   = "";
 my $gseg   = 16;
 my $qseg   = 16;
+my $check  = undef;
 
 my $bin = "$FindBin::Bin";
 
@@ -28,10 +29,34 @@ while (scalar(@ARGV) > 0) {
         $gseg   = shift @ARGV;
     } elsif ($arg =~ m/^-qseg/) {
         $qseg   = shift @ARGV;
+    } elsif ($arg =~ m/^-check/) {
+        $check = 1;
     } else {
         print STDERR "unknown option '$arg'\n";
     }
 }
+
+#  If we're checking the results, assume we are in the correct dir,
+#  that the gen and qry dirs exist.
+#
+if (defined($check)) {
+    my ($gen, $qry) = countSequences($dir);
+
+    for (my $g=1; $g<=$gen; $g++) {
+        for (my $q=1; $q<=$qry; $q++) {
+            $g = substr("000$g", -3);
+            $q = substr("000$q", -3);
+
+            if (0) {
+                print STDERR "Why am I doing this?  I'm supposed to be checking overlap, not snapper....\n";
+                exit(1);
+            }
+        }
+    }
+}
+
+
+
 
 if (!defined($genome) || !defined($query) || !defined($dir)) {
     print STDERR "usage: $0 [arg]\n";
@@ -41,6 +66,7 @@ if (!defined($genome) || !defined($query) || !defined($dir)) {
     print STDERR "  -mask   /path/to/mask.fasta  (def: make a new mask)\n";
     print STDERR "  -gseg   gseg                 (def: 32 segs, see leaff for format\n";
     print STDERR "  -qseg   qseg                 (def: 32 segs, see leaff for format\n";
+    print STDERR "  -check                       (check a run, assume we are in the /path/to/work\n";
     exit(1);
 }
 
@@ -68,25 +94,7 @@ if (! -e "$dir/qry/qry.partitioned") {
 #  racing to build them.  And it lets us count how many jobs to
 #  submit.
 #
-my $gen = 0;
-my $qry = 0;
-open(F, "ls $dir/gen/gen-*.fasta $dir/qry/qry-*.fasta |");
-while (<F>) {
-    chomp;
-
-    if (! -e "${_}idx") {
-        system("$bin/leaff -F $_");
-    }
-
-    if (m/\/gen-\d\d\d.fasta$/) {
-        $gen++;
-    } elsif (m/\/qry-\d\d\d.fasta$/) {
-        $qry++;
-    } else {
-        print STDERR "ERROR:  Unknown file '$_'\n";
-    }
-}
-close(F);
+my ($gen, $qry) = countSequences($dir);
 
 if (-e "$mask") {
     system("ln -s $mask $dir/skip.mers.fasta");
@@ -127,3 +135,33 @@ close(F);
 my $numJobs = $gen * $qry;
 
 print STDOUT "qsub -t 1-$numJobs -p -50 -j y -o $dir/map-\\\$TASK_ID $dir/run.sh\n";
+
+
+
+
+
+sub countSequences {
+    my $dir = shift @_;
+    my $gen = 0;
+    my $qry = 0;
+
+    open(F, "ls $dir/gen/gen-*.fasta $dir/qry/qry-*.fasta |");
+    while (<F>) {
+        chomp;
+
+        if (! -e "${_}idx") {
+            system("$bin/leaff -F $_");
+        }
+
+        if (m/\/gen-\d\d\d.fasta$/) {
+            $gen++;
+        } elsif (m/\/qry-\d\d\d.fasta$/) {
+            $qry++;
+        } else {
+            print STDERR "ERROR:  Unknown file '$_'\n";
+        }
+    }
+    close(F);
+
+    return($gen, $qry);
+}
