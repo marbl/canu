@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.8 2005-09-26 20:46:58 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.9 2005-11-18 22:13:35 brianwalenz Exp $";
 
 #undef ORIG_MERGE_EDGE_INVERT
 #define MINSATISFIED_CUTOFF 0.985
@@ -4740,6 +4740,10 @@ int MergeScaffolds(VA_TYPE(CDS_CID_t) * deadScaffoldIDs,
     AppendVA_CDS_CID_t(deadScaffoldIDs, &(thisScaffold->id));
     
     /* Potential realloc of ScaffoldGraph->ScaffoldGraph->nodes */
+
+    //  BPW - being the first merge, all we're doing is copying the
+    //  original scaffold into the new scaffold.
+    //
     InsertScaffoldContentsIntoScaffold(ScaffoldGraph,
                                        newScaffoldID, thisScaffold->id,
                                        orientCI, &currentOffset,
@@ -4903,7 +4907,7 @@ int MergeScaffolds(VA_TYPE(CDS_CID_t) * deadScaffoldIDs,
           neighborID = NULLINDEX;
         }
       }
-    }
+    }  //  while(neighbor != (CIScaffoldT *)NULL)
     
     if(iSpec->contigNow != NO_CONTIGGING &&
        GetGraphNode(ScaffoldGraph->ScaffoldGraph,
@@ -4916,12 +4920,23 @@ int MergeScaffolds(VA_TYPE(CDS_CID_t) * deadScaffoldIDs,
              status == RECOMPUTE_CONTIGGED_CONTAINMENTS))
       {
         // need to make sure scaffold is connected with trusted raw edges
+
+#ifdef BPWDEBUG
+        CIScaffoldT *scaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph,
+                                             newScaffoldID);
+        dumpTrustedEdges(ScaffoldGraph, scaffold, ALL_TRUSTED_EDGES);
+#endif
+
         MarkInternalEdgeStatus(ScaffoldGraph,
                                GetGraphNode(ScaffoldGraph->ScaffoldGraph,
                                             newScaffoldID),
                                PAIRWISECHI2THRESHOLD_CGW,
                                1000.0 * SLOPPY_EDGE_VARIANCE_THRESHHOLD,
                                TRUE, TRUE, 0, TRUE);
+
+#ifdef BPWDEBUG
+        dumpTrustedEdges(ScaffoldGraph, scaffold, ALL_TRUSTED_EDGES);
+#endif
 
 #ifdef CHECKCONNECTED
 	assert(IsScaffoldInternallyConnected(ScaffoldGraph,
@@ -4948,7 +4963,7 @@ int MergeScaffolds(VA_TYPE(CDS_CID_t) * deadScaffoldIDs,
                 "for scaffold " F_CID " in MergeScaffolds\n",
                 status, newScaffoldID);
       }
-    }
+    }  //  if (iSpec->contigNow != NO_CONTIGGING && .....)
     
 #if defined(INSTRUMENT_CGW) || defined(CHECK_CONTIG_ORDERS)
     {
