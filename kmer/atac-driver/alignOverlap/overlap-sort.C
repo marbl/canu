@@ -29,8 +29,8 @@ sortMatches1(const void *a, const void *b) {
   if (A->pos1 > B->pos1)  return(1);
   if (A->len1 > B->len1)  return(-1);
   if (A->len1 < B->len1)  return(1);
-  if (A->ori1 > B->ori1)  return(-1);
-  if (A->ori1 < B->ori1)  return(1);
+  if (A->fwd1 > B->fwd1)  return(-1);
+  if (A->fwd1 < B->fwd1)  return(1);
   return(0);
 }
 
@@ -45,8 +45,8 @@ sortMatches2(const void *a, const void *b) {
   if (A->pos2 > B->pos2)  return(1);
   if (A->len2 > B->len2)  return(-1);
   if (A->len2 < B->len2)  return(1);
-  if (A->ori2 > B->ori2)  return(-1);
-  if (A->ori2 < B->ori2)  return(1);
+  if (A->fwd2 > B->fwd2)  return(-1);
+  if (A->fwd2 < B->fwd2)  return(1);
   return(0);
 }
 

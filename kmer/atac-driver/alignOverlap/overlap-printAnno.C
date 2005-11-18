@@ -55,7 +55,7 @@ printAnno(FILE *F, annoList *AL, u32bit &ALlen,
       u32bit  sta = m1->pos2 + off1;
       u32bit  end = m1->pos2 + off1 + len;
 
-      if (m1->ori2 == 0) {
+      if (m1->fwd2 == 0) {
         sta = m1->pos2 + m1->len2 - off1;
         end = m1->pos2 + m1->len2 - off1 - len;
       }
@@ -77,7 +77,7 @@ printAnno(FILE *F, annoList *AL, u32bit &ALlen,
       u32bit  sta = m2->pos2 + off2;
       u32bit  end = m2->pos2 + off2 + len;
       
-      if (m2->ori2 == 0) {
+      if (m2->fwd2 == 0) {
         sta = m2->pos2 + m2->len2 - off2;
         end = m2->pos2 + m2->len2 - off2 - len;
       }
