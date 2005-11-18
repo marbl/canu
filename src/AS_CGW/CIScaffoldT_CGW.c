@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.4 2005-03-22 19:48:34 jason_miller Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.5 2005-11-18 22:03:35 brianwalenz Exp $";
 
 #undef DEBUG
 #undef DEBUG_INSERT
@@ -1072,11 +1072,11 @@ int IsScaffoldInternallyConnected(ScaffoldGraphT *sgraph,
 	  InitGraphEdgeIterator(sgraph->ContigGraph,chunk->id,ALL_END,
                                 ALL_TRUSTED_EDGES,GRAPH_EDGE_DEFAULT,&Edges);
 	  fprintf(stderr,"Edges out from " F_CID ":\n",chunk->id); 
-	  while(NULL!= (e = NextGraphEdgeIterator(&Edges))){
+	  while(NULL!= (e = NextGraphEdgeIterator(&Edges)))
 	    PrintGraphEdge(stderr, ScaffoldGraph->ContigGraph,
                            "DEBUG Bridge ",e, chunk->id);	
 #endif
-        }
+      }
       if(isSingletonOverlapEdge(edge) ||
 	 (weight == 1 && edge->flags.bits.isBridge))
 	continue;
@@ -1094,7 +1094,7 @@ int IsScaffoldInternallyConnected(ScaffoldGraphT *sgraph,
       UFUnion(UFData, chunk->setID, otherChunk->setID);
     }
   }
-
+  
   //
   // clean it up and return the # of components
   //
@@ -1119,6 +1119,9 @@ int IsScaffoldInternallyConnected(ScaffoldGraphT *sgraph,
     set++;
   }
   UFFreeSets(UFData);
+
+  //fprintf(stderr, "IsScaffoldInternallyConnected() sid:"F_CID" %d\n", scaffold->id, numComponents);
+
   return numComponents;
 }
 
@@ -1250,7 +1253,8 @@ int IsScaffoldInternallyConnectedCheck(ScaffoldGraphT *sgraph,
 /***********************************************************************/
  int32 CheckScaffoldConnectivityAndSplit(ScaffoldGraphT *graph, CIScaffoldT *scaffold, int32 edgeTypes, int verbose){
    int numComponents = IsScaffoldInternallyConnected(graph, scaffold, edgeTypes);
-   int32 numNodes = scaffold->info.Scaffold.numElements;
+   int32 numNodes    = scaffold->info.Scaffold.numElements;
+
    // Expected case, Scaffold is connected
    if(numComponents > 1){
      CDS_CID_t nodes[numNodes];
@@ -1258,7 +1262,7 @@ int IsScaffoldInternallyConnectedCheck(ScaffoldGraphT *sgraph,
 
      // IsScaffoldInternalyConnected does a connected component analysis, marking the contigs with their component number
      // the following code leverages this marking to break up the scaffold.
-     if((numComponents = IsScaffoldInternallyConnected(graph, scaffold,edgeTypes)) !=  1){
+
        int component;
        int  *nodesEnd;
        NodeCGW_T *thisNode;
@@ -1292,6 +1296,7 @@ int IsScaffoldInternallyConnectedCheck(ScaffoldGraphT *sgraph,
 	 int seenFirstOffset;
 	 CIScaffoldT CIScaffold;
 	 CDS_CID_t newScaffoldID;
+
 	 InitializeScaffold(&CIScaffold, REAL_SCAFFOLD);
 	 CIScaffold.info.Scaffold.AEndCI = NULLINDEX;
 	 CIScaffold.info.Scaffold.BEndCI = NULLINDEX;
@@ -1322,6 +1327,7 @@ int IsScaffoldInternallyConnectedCheck(ScaffoldGraphT *sgraph,
 	     offsetBEnd.mean = thisNode->offsetBEnd.mean - firstOffset.mean;
 	     offsetBEnd.variance = thisNode->offsetBEnd.variance -
 	       firstOffset.variance;
+
 	     InsertCIInScaffold(graph, thisNode->id, newScaffoldID,
 				offsetAEnd, offsetBEnd, TRUE, FALSE);
 	   }
@@ -1339,7 +1345,7 @@ int IsScaffoldInternallyConnectedCheck(ScaffoldGraphT *sgraph,
 
        }
        fprintf(stderr,"\n");
-     }
+
    }
    return numComponents;
  }
@@ -1756,7 +1762,6 @@ void CheckCIScaffoldTLength(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
 	 fprintf(GlobalData->logfp,"* Screwed up scaffold " F_CID ": Chunk " F_CID " has bad mean\n",
 		 sid, chunk->id);
 
-	 //AppendPtrT(chunksToBeRemoved, (void *)&chunk);
 	 AppendPtrT(chunksToBeRemoved, (const void *) &chunk);
 
        }else{
@@ -1781,14 +1786,14 @@ void CheckCIScaffoldTLength(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
        }
 
 #if 0	   
-	   // special one-time hack added for mouse_20010307 run
-	   MarkInternalEdgeStatus(sgraph, scaffold, PAIRWISECHI2THRESHOLD_CGW,
-							  SLOPPY_EDGE_VARIANCE_THRESHHOLD, TRUE, TRUE, 0, TRUE);	   
+       // special one-time hack added for mouse_20010307 run
+       MarkInternalEdgeStatus(sgraph, scaffold, PAIRWISECHI2THRESHOLD_CGW,
+                              SLOPPY_EDGE_VARIANCE_THRESHHOLD, TRUE, TRUE, 0, TRUE);	   
 #endif
   
-       if((status =
-	   RecomputeOffsetsInScaffold(sgraph, scaffold, TRUE, TRUE /* was FALSE*/,FALSE)) !=
-	  RECOMPUTE_OK){
+
+       status = RecomputeOffsetsInScaffold(sgraph, scaffold, TRUE, TRUE /* was FALSE*/,FALSE);
+       if (status != RECOMPUTE_OK) {
 	 fprintf(stderr, "RecomputeOffsetsInScaffold failed (%d) for scaffold " F_CID " in CheckScaffolds\n",
 		 status, sid);
 	 fprintf(GlobalData->logfp, "RecomputeOffsetsInScaffold failed (%d) for scaffold " F_CID " in CheckScaffolds\n",
