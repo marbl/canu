@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.10 2005-11-10 19:31:16 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.11 2005-11-18 22:07:23 brianwalenz Exp $";
 
 #define DEBUG 0
 #undef DEBUG_DETAILED
@@ -1371,13 +1371,16 @@ int CleanupFailedMergesInScaffolds(ScaffoldGraphT *sgraph){
     int didSomething = TRUE;
     int iteration = 0;
     while(didSomething > 0){
+
       if(iteration == 0){
+
 	didSomething = CleanupAScaffold(sgraph,scaffold, FALSE, 16 , FALSE);
 	if(didSomething == 0)
 	  break;
 	if(didSomething > 0)
 	  madeChanges = TRUE;
 	fprintf(GlobalData->stderrc,"* Merge failure(16) in scaffold " F_CID " didSomething = %d \n", scaffold->id, didSomething);
+
 	didSomething = CleanupAScaffold(sgraph,scaffold, FALSE, 4 , FALSE);
 	if(didSomething == 0)
 	  break;
@@ -1386,16 +1389,19 @@ int CleanupFailedMergesInScaffolds(ScaffoldGraphT *sgraph){
 	fprintf(GlobalData->stderrc,"* Merge failure(4) in scaffold " F_CID " didSomething = %d \n", scaffold->id, didSomething);
 
       }
+
       didSomething = CleanupAScaffold(sgraph,scaffold, FALSE, 3 , FALSE);
       if(didSomething == 0)
 	break;
       if(didSomething > 0)
-	  madeChanges = TRUE;
+        madeChanges = TRUE;
       fprintf(GlobalData->stderrc,"* Merge failure(3) in scaffold " F_CID " didSomething = %d iteration %d\n", scaffold->id, didSomething, iteration);
+
       didSomething = CleanupAScaffold(sgraph,scaffold, FALSE, 2 , FALSE);
       if(didSomething > 0)
 	madeChanges = TRUE;
       fprintf(GlobalData->stderrc,"* After iteration %d  didSomething = %d\n", iteration, didSomething);
+
       iteration++;
     }
   }
@@ -1406,58 +1412,65 @@ int CleanupFailedMergesInScaffolds(ScaffoldGraphT *sgraph){
 
 	  
 /****************************************************************************/
+
+//  BPW -- appears to delete a contig from a scaffold if that contig
+//  is made up entirely of surrogates and short.  See the printf
+//  below.  Returns TRUE if it did this.
+//
 int  DeleteAllSurrogateContigsFromFailedMerges(CIScaffoldT *scaffold,
                                                NodeCGW_T *contig){
   int didSomething = FALSE;
   int32 i;
-  MultiAlignT *ma;    
+  MultiAlignT *ma;
   int numSurrogates;
 
+#if 0
   fprintf(GlobalData->stderrc,"* DeleteAllSurrogateContigsFromFailedMerges scaffold " F_CID " contig " F_CID "\n",
 	  scaffold->id, contig->id);
-
+#endif
 
   if(contig->bpLength.mean > 2000)
-     return FALSE;
+    return FALSE;
 
-    numSurrogates = 0;
-    ma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE);
-    //    ma = GetMultiAlignInStore(ScaffoldGraph->ContigGraph->maStore, contig->id);
+  numSurrogates = 0;
+  ma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE);
+  //ma = GetMultiAlignInStore(ScaffoldGraph->ContigGraph->maStore, contig->id);
+
+  for(i = 0; i < GetNumIntUnitigPoss(ma->u_list); i++){
+    IntUnitigPos *pos = GetIntUnitigPos(ma->u_list,i);
+    NodeCGW_T *node = GetGraphNode(ScaffoldGraph->CIGraph, pos->ident);
+    if(node->flags.bits.isSurrogate)
+      numSurrogates++;
+  }
+
+  fprintf(GlobalData->stderrc,"* numSurrogates:%d  numCI :%d numElementPos:%d\n",
+          numSurrogates, contig->info.Contig.numCI,
+          (int) GetNumIntUnitigPoss(ma->u_list));
+
+  if(numSurrogates == contig->info.Contig.numCI){
+    NodeCGW_T *scaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph, contig->scaffoldID);
+
+    didSomething = TRUE;
+
+    fprintf(GlobalData->stderrc,"*** Deleting contig " F_CID " from scaffold " F_CID " since it is a short, all surrogate contigging failue\n",
+            contig->id, contig->scaffoldID);
+    DumpContig(GlobalData->stderrc,ScaffoldGraph, contig, FALSE);
+        
+    /* Remove the Contig from the scaffold */
+    RemoveCIFromScaffold(ScaffoldGraph, scaffold, contig, FALSE);
+
+    /* Delete the contig */
+    DeleteGraphNode(ScaffoldGraph->ContigGraph, contig);
+
+    /* Delete all of the surrogate CIs */
     for(i = 0; i < GetNumIntUnitigPoss(ma->u_list); i++){
       IntUnitigPos *pos = GetIntUnitigPos(ma->u_list,i);
       NodeCGW_T *node = GetGraphNode(ScaffoldGraph->CIGraph, pos->ident);
-      if(node->flags.bits.isSurrogate)
-	numSurrogates++;
+      DeleteGraphNode(ScaffoldGraph->CIGraph, node);
     }
-
-    fprintf(GlobalData->stderrc,"* numSurrogates:%d  numCI :%d numElementPos:%d\n",
-	    numSurrogates, contig->info.Contig.numCI,
-            (int) GetNumIntUnitigPoss(ma->u_list));
-
-      if(numSurrogates == contig->info.Contig.numCI){
-	NodeCGW_T *scaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph, contig->scaffoldID);
-
-	didSomething = TRUE;
-	fprintf(GlobalData->stderrc,"*** Deleting contig " F_CID " from scaffold " F_CID " since it is a short, all surrogate contigging failue\n",
-		contig->id, contig->scaffoldID);
-	DumpContig(GlobalData->stderrc,ScaffoldGraph, contig, FALSE);
-        
-	/* Remove the Contig from the scaffold */
-	RemoveCIFromScaffold(ScaffoldGraph, scaffold, contig, FALSE);
-
-	/* Delete the contig */
-	DeleteGraphNode(ScaffoldGraph->ContigGraph, contig);
-
-	/* Delete all of the surrogate CIs */
-	for(i = 0; i < GetNumIntUnitigPoss(ma->u_list); i++){
-	  IntUnitigPos *pos = GetIntUnitigPos(ma->u_list,i);
-	  NodeCGW_T *node = GetGraphNode(ScaffoldGraph->CIGraph, pos->ident);
-	  DeleteGraphNode(ScaffoldGraph->CIGraph, node);
-	}
-	
-      }
+  }
     
-      return didSomething;
+  return didSomething;
 }
 
 
@@ -1487,6 +1500,7 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
   if(!GlobalData->performCleanupScaffolds){
     return 0;
   }
+
 #ifdef DEBUG_DETAILED
   fprintf(GlobalData->stderrc,"* CleanupAScaffold " F_CID " (max:%d)\n", scaffold->id, maxContigsInMerge);
 #endif
@@ -1660,6 +1674,7 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
       // If there is no merging to be done, continue
       if(GetNumIntElementPoss(ContigPositions) <= 1)
 	continue;
+
       mergesAttempted++;
 
       if(deleteUnmergedSurrogates){  // Just find the all-surrogate, unmerged contigs, and nuke them
@@ -1667,6 +1682,13 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
 	for(i = 0; i < GetNumIntElementPoss(ContigPositions); i++){
 	  IntElementPos *pos = GetIntElementPos(ContigPositions, i);
 	  contig = GetGraphNode(ScaffoldGraph->ContigGraph, pos->ident);
+
+          //  XXX: DeleteAllSurrogate..() returns true if it deletes a
+          //  contig, so if it does just one, we set
+          //  allMergesSucceeded to true.  Possibly a bug?
+          //
+          //  Not sure if this ever gets used, though.
+          //
 	  allMergesSucceeded |= DeleteAllSurrogateContigsFromFailedMerges(scaffold, contig);
 	}
       }else{
@@ -2487,7 +2509,7 @@ void ContigContainment(CIScaffoldT *scaffold, NodeCGW_T *prevCI, NodeCGW_T *this
 	  
 	  fprintf( stderr, "overlapOrientation: %c, minAhang: " F_COORD ", maxAhang: " F_COORD "\n", 
 			   (char) overlapOrientation, -maxLength, maxLength);
-	  
+
 	  contigOverlap = OverlapContigs( leftContig, rightContig, &overlapOrientation, -maxLength, maxLength, FALSE);	  
 	}
   
