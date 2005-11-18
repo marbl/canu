@@ -47,8 +47,9 @@ CXX_SOURCES = mapContigsScaffolds.cc \
 	findTTIs.cc \
 	quads2mbrs.cc \
 	rotatePoints.cc \
-	clusterMPs.cc
-#	compareAssemblyMPs.cc
+	clusterMPs.cc \
+	analyzeMummerMapping.cc
+
 CXX_OBJECTS = $(CXX_SOURCES:.cc=.o)
 
 SOURCES = $(C_SOURCES) $(CXX_SOURCES)
@@ -70,8 +71,8 @@ PROGS = calcStats \
 	findMPSets \
 	findTTIs \
 	quads2mbrs \
-	rotatePoints
-#	compareAssemblyMPs
+	rotatePoints \
+	analyzeMummerMapping
 
 SCRIPTS = asm2TampaResults.pl \
         runTampa.pl \
@@ -212,6 +213,8 @@ all: $(OBJECTS) $(LIBRARIES) $(PROGS) $(SCRIPTS)
 	chmod 775 $(LOCAL_BIN)/getCloneLengths.sh
 
 install: all
+
+analyzeMummerMapping: analyzeMummerMapping.o
 
 mapContigsScaffolds: mapContigsScaffolds.o 
 
