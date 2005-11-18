@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: LeastSquaresGaps_CGW.c,v 1.8 2005-11-02 18:00:38 brianwalenz Exp $";
+static char CM_ID[] = "$Id: LeastSquaresGaps_CGW.c,v 1.9 2005-11-18 20:30:30 brianwalenz Exp $";
 
 #define FIXED_RECOMPUTE_SINGULAR /* long standing bug: is it fixed yet? */
 #undef LIVE_ON_THE_EDGE   /* abort on singularities -- this would be a good idea, unless you
@@ -1959,8 +1959,16 @@ void LeastSquaresGapEstimates(ScaffoldGraphT *graph, int markEdges,
         if(status != RECOMPUTE_OK){
             fprintf(GlobalData->logfp, "RecomputeOffsetsInScaffold failed (%d) for scaffold " F_CID "\n",
                     status, scaffold->id);
-            CheckCIScaffoldT(graph, scaffold);  // NEW
 
+            //  If we are 'redo'ing stuff, we have just merged
+            //  contigs.  The merge process does not rebuild trusted
+            //  edges, so the scaffold might be disconnected.
+            //  CheckCIScaffoldT() includes a call to
+            //  RecomputeOffsetsInScaffold(), which needs a connected
+            //  scaffold.  Thus, we skip it in this case.
+            //
+            if (!redo)
+              CheckCIScaffoldT(graph, scaffold);
         }
     }
     return;
