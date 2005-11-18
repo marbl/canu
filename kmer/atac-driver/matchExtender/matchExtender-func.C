@@ -58,6 +58,8 @@ isIdentity(char c1, char c2) {
 
 
 
+//  Finds the largest block >= 'pct' (95%) identity.
+//
 bool
 trim_to_pct(vector<match_s *>& matches, u32bit midx, double pct) {
 #ifdef DEBUG_TRACE
@@ -78,20 +80,40 @@ trim_to_pct(vector<match_s *>& matches, u32bit midx, double pct) {
   //m->dump(stderr, "TrimToPercent", false);
 #endif
 
-  for (u32bit start = 0; start < m->len(); ++start) {
+  //  For all starting positions:
+  //
+  //  We could short-circuit here - once (m->len() - start) becomes
+  //  shorter than our best_len, we have no hope in finding a better
+  //  one.
+  //
+  for (u32bit start=0;
+       (start< m->len()) && (m->len() - start > best_len);
+       ++start) {
     u32bit best_run_len = 0;
     u32bit sum          = 0;
 
     A.setPosition(m->pos1() + start);
     B.setPosition(m->pos2() + start);
 
+    //  And all ending positions:
+    //
+    //  Compute the number of identities we've seen, and remember the
+    //  length of the highest identity.
+    //
     for (u32bit len = 1; start + len <= m->len(); ++len) {
       char c1 = *A;
       char c2 = *B;
 
+      //  We just extend the last result by one, rather than recompute
+      //  the whole value for our new range (start, len).
+      //
       if (isIdentity(c1, c2))
 	sum++;
 
+      //  If the sum is more than 'pct' identities, we are by
+      //  construction the longest run at this starting point, so
+      //  remember it.
+      //
       if (sum >= pct * len)
 	best_run_len = len;
 
@@ -99,15 +121,17 @@ trim_to_pct(vector<match_s *>& matches, u32bit midx, double pct) {
       ++B;
     }
 
-    // Special case : if the whole string is okay, don't check any
-    // subranges
+    //  Special case: if the whole string is okay, don't check any
+    //  subranges
     //
     if ((start == 0) && (best_run_len == m->len()))
       return(false);
 
+    //  If we've just found a longer subrange, remember it.
+    //
     if (best_run_len > best_len) {
-      best_len = best_run_len;
-      best_start = start;   
+      best_start = start;
+      best_len   = best_run_len;
     }
   }
 
