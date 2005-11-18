@@ -1,0 +1,15 @@
+# -*- makefile -*-
+
+LIBUTL/     :=$(call MakePath,$/../../libutil/)
+LIBBIO/     :=$(call MakePath,$/../../libbio/)
+LIBATAC/    :=$(call MakePath,$/../libatac/)
+
+$/.CXX_EXES := $/clumpMaker
+$/.CXX_SRCS := $/clumpMaker.C
+
+$/.CLEAN :=$/*.o $/*~ $/core
+
+$/clumpMaker:          $/clumpMaker.o \
+                       ${LIBATAC/}libatac.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+
+$(eval $/%.d $/%.o:   CXXFLAGS+=-I${LIBATAC/} -I${LIBBIO/} -I${LIBUTL/})
