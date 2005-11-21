@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.5 2005-11-17 22:09:30 kli1000 Exp $
- * $Revision: 1.5 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.6 2005-11-21 23:18:15 kli1000 Exp $
+ * $Revision: 1.6 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.5 2005-11-17 22:09:30 kli1000 Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.6 2005-11-21 23:18:15 kli1000 Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -726,6 +726,12 @@ namespace AS_BOG{
 					cntee_intvl.end   = 
 					    cntee_intvl.begin + cntee_itr->frag_len;
 
+					// Make sure the containee doesn't extend past the container
+					cntee_intvl.begin = (cntee_intvl.begin < cntnr_intvl.begin)?
+						cntnr_intvl.begin:cntee_intvl.begin;
+					cntee_intvl.end = (cntee_intvl.end > cntnr_intvl.end)?
+						cntnr_intvl.end:cntee_intvl.end;
+
 				}else if(cntnr_intvl.begin > cntnr_intvl.end){
 
 				// Container is in reverse direction
@@ -748,6 +754,12 @@ namespace AS_BOG{
 					    cntnr_intvl.begin - cntee_itr->olap_offset;
 					cntee_intvl.end = 
 					    cntee_intvl.begin - cntee_itr->frag_len;
+
+					// Make sure the containee doesn't extend past the container
+					cntee_intvl.begin = (cntee_intvl.begin > cntnr_intvl.begin)?
+						cntnr_intvl.begin:cntee_intvl.begin;
+					cntee_intvl.end = (cntee_intvl.end < cntnr_intvl.end)?
+						cntnr_intvl.end:cntee_intvl.end;
 
 				}else{
 					std::cerr << 
@@ -786,7 +798,15 @@ namespace AS_BOG{
 			impa->position.bgn : impa->position.end;
 		long bleft = (impb->position.bgn < impb->position.end) ?
 			impb->position.bgn : impb->position.end;
-		return(aleft - bleft);
+		if(aleft!=bleft){
+			return(aleft - bleft);
+		}else{
+			if(impa->contained!=0)
+				return(1);
+			if(impb->contained!=0)
+				return(-1);
+			return(0);
+		}
 	}
 
 	IntUnitigMesg *Unitig::getIUM_Mesg(void){
