@@ -21,7 +21,7 @@
 #ifndef MULTIALIGNMENT_CNS_INCLUDE
 #define MULTIALIGNMENT_CNS_INCLUDE
 
-
+#include "AS_global.h"
 #include "MultiAlignStore_CNS.h"
 #include "AS_PER_genericStore.h"
 #include "AS_UTL_Var.h"
@@ -297,7 +297,8 @@ int32 MergeRefine(int32 , IntMultiVar **, int32 *, CNS_Options *);
 typedef enum {
   LEFT_SHIFT  = (int) 'L', // Left Shifted
   RIGHT_SHIFT = (int) 'R', // Right Shifted
-  UNSHIFTED   = (int) 'U'  // Unshifted
+  UNSHIFTED   = (int) 'U', // Unshifted
+  MIXED_SHIFT = (int) 'M'  // shifted in different directions
 } ShiftStatus;
 
 typedef struct {
