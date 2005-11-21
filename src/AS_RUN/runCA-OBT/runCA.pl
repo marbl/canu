@@ -36,6 +36,7 @@ while (scalar(@ARGV)) {
     }
 }
 
+setDefaults();
 setParameters($specFile, @specOpts);
 
 die "ERROR: I need a directory to run the assembly in (-d option).\n" if (!defined($wrk));

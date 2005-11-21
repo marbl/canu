@@ -20,9 +20,9 @@ sub unitigger {
         $cmd .= "$bin/unitigger ";
         $cmd .= " -B 250000 ";
 
-        my $l = getGlobal("genomeSize", undef);
-        my $m = getGlobal("unitiggerEdges", undef);
-        my $n = getGlobal("unitiggerFragments", undef);
+        my $l = getGlobal("genomeSize");
+        my $m = getGlobal("unitiggerEdges");
+        my $n = getGlobal("unitiggerFragments");
 
         $cmd .= " $l " if defined($l);
         $cmd .= " $m " if defined($m);

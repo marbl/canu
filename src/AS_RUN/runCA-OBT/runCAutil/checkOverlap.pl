@@ -40,7 +40,6 @@ sub checkOverlap {
         $jobIndex++;
     }
 
-    print STDERR "Checked $jobIndex jobs!\n";
     if ($failedJobs) {
         print STDERR "$failedJobs failed.  Good luck.\n\n";
         print STDERR "(Yes, I should give you some help, I guess.)\n";

@@ -10,12 +10,12 @@ use strict;
 sub createOverlapJobs {
     my $isTrim = shift @_;
 
-    my $ovlThreads        = getGlobal("ovlThreads", 2);
-    my $ovlHashBlockSize  = getGlobal("ovlHashBlockSize", 40000);
-    my $ovlRefBlockSize   = getGlobal("ovlRefBlockSize", 2000000);
-    my $ovlMemory         = getGlobal("ovlMemory", "1GB");
-    my $scratch           = getGlobal("scratch", "/scratch");
-    my $pstats            = getGlobal("processStats", undef);
+    my $ovlThreads        = getGlobal("ovlThreads");
+    my $ovlHashBlockSize  = getGlobal("ovlHashBlockSize");
+    my $ovlRefBlockSize   = getGlobal("ovlRefBlockSize");
+    my $ovlMemory         = getGlobal("ovlMemory");
+    my $scratch           = getGlobal("scratch");
+    my $pstats            = getGlobal("processStats");
 
     if (!defined($isTrim)) {
         die "createOverlapJobs()-- I need to know if I'm trimming or assembling!\n";

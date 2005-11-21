@@ -3,7 +3,7 @@
 #  Create the post-unitigger consensus jobs.
 
 sub createPostUnitiggerConsensusJobs {
-    my $pstats            = getGlobal("processStats", undef);
+    my $pstats            = getGlobal("processStats");
 
     system("mkdir $wrk/5-consensus") if (! -d "$wrk/5-consensus");
 

@@ -3,7 +3,7 @@ use strict;
 #  Check and merge the fragment correction results
 
 sub mergeFragmentCorrection {
-    my $frgCorrBatchSize  = getGlobal("frgCorrBatchSize", 175000);
+    my $frgCorrBatchSize  = getGlobal("frgCorrBatchSize");
 
     if (! -e "$wrk/2-frgcorr/$asm.corr") {
         my $failedJobs = 0;

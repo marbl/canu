@@ -5,8 +5,8 @@ use strict;
 #    Repartition the frag store
 
 sub createConsensusJobs {
-    my $pstats            = getGlobal("processStats", undef);
-    my $partitionSize     = getGlobal("consensusPartitionSize", 400000);
+    my $pstats            = getGlobal("processStats");
+    my $partitionSize     = getGlobal("consensusPartitionSize");
 
     system("mkdir $wrk/8-consensus") if (! -d "$wrk/8-consensus");
 

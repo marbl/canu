@@ -5,7 +5,7 @@ use strict;
 #  This could be split into smaller batches, use option -A instead of -cf
 
 sub createOverlapStore {
-    my $ovlStoreMemory    = getGlobal("ovlStoreMemory", 16384);
+    my $ovlStoreMemory    = getGlobal("ovlStoreMemory");
 
     if (! -e "$wrk/1-overlapper/all-overlaps.ovllist") {
         if (runCommand("find $wrk/1-overlapper/ -name \\*ovl -print > $wrk/1-overlapper/all-overlaps.ovllist")) {

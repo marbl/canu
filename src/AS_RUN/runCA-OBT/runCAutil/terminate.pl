@@ -29,23 +29,22 @@ sub terminate {
     if (! -e "$wrk/$asm.asm") {
         print STDERR "Starting h -- terminator\n";
 
-        my $uidServer        = getGlobal("uidServer", undef);
-        my $terminateFakeUID = getGlobal("fakeUIDs", 0);
+        my $uidServer = getGlobal("uidServer");
+        my $fakeUIDs  = getGlobal("fakeUIDs");
 
         my $cmd;
         $cmd  = "cd $wrk && ";
         $cmd .= "cat $wrk/7-CGW/$asm.cgw ";
-        $cmd .= "    $wrk/8-consensus/$asm.cns_contigs.*[0-9] ";
-        $cmd .= "    $wrk/7-CGW/$asm.cgw_scaffolds | ";
-        $cmd .= "$bin/terminator -P -s 100000000 " if ($terminateFakeUID != 0);
-        $cmd .= "$bin/terminator -P -u "           if ($terminateFakeUID == 0);
-        $cmd .= "    $uidServer "                  if (defined($uidServer));
-        $cmd .= "    -f $wrk/$asm.frgStore ";
-        $cmd .= "    -g $wrk/$asm.gkpStore ";
-        $cmd .= "    -o $wrk/$asm.asm ";
-        $cmd .= "    -m $wrk/$asm.map ";
-        $cmd .= "> $wrk/terminator.out ";
-        $cmd .= "2> $wrk/terminator.err";
+        $cmd .= " $wrk/8-consensus/$asm.cns_contigs.*[0-9] ";
+        $cmd .= " $wrk/7-CGW/$asm.cgw_scaffolds | ";
+        $cmd .= "$bin/terminator -P -s $fakeUIDs " if ($fakeUIDs != 0);
+        $cmd .= "$bin/terminator -P -u "           if ($fakeUIDs == 0);
+        $cmd .= " $uidServer "                     if (defined($uidServer));
+        $cmd .= " -f $wrk/$asm.frgStore ";
+        $cmd .= " -g $wrk/$asm.gkpStore ";
+        $cmd .= " -o $wrk/$asm.asm ";
+        $cmd .= " -m $wrk/$asm.map ";
+        $cmd .= "> $wrk/terminator.err 2>&1 ";
 
         if (runCommand($cmd)) {
             print STDERR "Failed.\n";

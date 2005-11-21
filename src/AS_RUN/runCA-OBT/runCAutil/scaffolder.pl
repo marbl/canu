@@ -79,7 +79,7 @@ sub eCR ($$) {
 sub updateDistanceRecords ($) {
     my $thisDir = shift @_;
 
-    return if (getGlobal("doUpdateDistanceRecords", 1) == 0);
+    return if (getGlobal("doUpdateDistanceRecords") == 0);
     return if (-e "$wrk/$thisDir/distupdate/distupdate.success");
 
     my $lastckp    = findLastCheckpoint($thisDir);
@@ -94,8 +94,8 @@ sub updateDistanceRecords ($) {
     #  UIDs, we just use the checkpoint number to offset from some
     #  arbitrary UID.
     #
-    my $terminateFakeUID = getGlobal("fakeUIDs", 0);
-    my $uidServer        = getGlobal("uidServer", undef);
+    my $terminateFakeUID = getGlobal("fakeUIDs");
+    my $uidServer        = getGlobal("uidServer");
 
     #  Some funny baloney to get around perl wanting to print large
     #  numbers in scientific notation.  Make you just want to hate and
@@ -168,12 +168,12 @@ sub resolveSurrogates ($$) {
 sub scaffolder {
     my $lastDir    = undef;
     my $thisDir    = 0;
-    my $stoneLevel = getGlobal("throwStones", 2);
+    my $stoneLevel = getGlobal("throwStones");
 
     #  If we're not doing eCR, we just do a single scaffolder run, and
     #  get the heck outta here!  OK, we'll do resolveSurrogates() too.
     #
-    if (getGlobal("doExtendClearRanges", 1) == 0) {
+    if (getGlobal("doExtendClearRanges") == 0) {
         $lastDir = CGW("7-CGW", $lastDir, $stoneLevel, undef);
         $thisDir++;
     } else {
@@ -194,7 +194,7 @@ sub scaffolder {
         #  then another eCR.  Again, and again, until we get dizzy and
         #  fall over.
         #
-        for (my $rounds = getGlobal("doExtendClearRanges", 1) - 1; $rounds > 0; $rounds--) {
+        for (my $rounds = getGlobal("doExtendClearRanges") - 1; $rounds > 0; $rounds--) {
             $lastDir = CGW("7-$thisDir-CGW", $lastDir, 0, 3);
             $thisDir++;
 

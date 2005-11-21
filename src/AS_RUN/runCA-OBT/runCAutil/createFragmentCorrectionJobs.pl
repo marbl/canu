@@ -1,10 +1,10 @@
 use strict;
 
 sub createFragmentCorrectionJobs {
-    my $frgCorrBatchSize  = getGlobal("frgCorrBatchSize", 175000);
-    my $frgCorrThreads    = getGlobal("frgCorrThreads", 2);
-    my $frgCorrOnGrid     = getGlobal("frgCorrOnGrid", 0);
-    my $scratch           = getGlobal("scratch", "/scratch");
+    my $frgCorrBatchSize  = getGlobal("frgCorrBatchSize");
+    my $frgCorrThreads    = getGlobal("frgCorrThreads");
+    my $frgCorrOnGrid     = getGlobal("frgCorrOnGrid");
+    my $scratch           = getGlobal("scratch");
 
     system("mkdir $wrk/2-frgcorr") if (! -e "$wrk/2-frgcorr");
 

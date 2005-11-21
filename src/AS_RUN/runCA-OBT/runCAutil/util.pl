@@ -30,7 +30,7 @@ sub setBinDirectory ($$) {
 
     #  Let the user override this root, for no good reason.  We'll warn, though.
     #
-    my $t = getGlobal("binRoot", undef);
+    my $t = getGlobal("binRoot");
     if (defined($binRoot) && (defined($t)) && ($binRoot ne $t)) {
         print STDERR "WARNING: I appear to be installed in $binRoot, but you\n";
         print STDERR "         specified a bin directory of $t in the spec file.\n";
@@ -80,18 +80,59 @@ sub setBinDirectory ($$) {
 #  Return the second argument, unless the first argument is found in
 #  %global, in which case return that.
 #
-sub getGlobal {
+sub getGlobal ($) {
     my $var = shift @_;
-    my $val = shift @_;
-    $val = $global{$var} if (defined($global{$var}));
-    #print STDERR "spec: return '$val' -> '$var'\n";
+    my $val = undef;
+
+    if (!exists($global{$val})) {
+        $val = $global{$var};
+    } else {
+        die "ERROR: $var has no defined value!\n";
+    }
+
     return($val);
 }
 
-sub setGlobal {
+sub setGlobal ($$) {
     my $var = shift @_;
     my $val = shift @_;
+
     $global{$var} = $val;
+}
+
+sub setDefaults {
+    setGlobal("binRoot",                    undef);
+    setGlobal("consensusPartitionSize",     400000);
+    setGlobal("doBackupFragStore",          1);
+    setGlobal("doExtendClearRanges",        1);
+    setGlobal("doOverlapTrimming",          1);
+    setGlobal("doUpdateDistanceRecords",    1);
+    setGlobal("fakeUIDs",                   0);
+    setGlobal("frgCorrBatchSize",           175000);
+    setGlobal("frgCorrOnGrid",              0);
+    setGlobal("frgCorrThreads",             2);
+    setGlobal("genomeSize",                 undef);
+    setGlobal("gridHost",                   "Linux");
+    setGlobal("gridMachine",                "i686");
+    setGlobal("immutableFrags",             undef);
+    setGlobal("localHost",                  undef);
+    setGlobal("localMachine",               undef);
+    setGlobal("ovlCorrBatchSize",           175000);
+    setGlobal("ovlCorrOnGrid",              0);
+    setGlobal("ovlHashBlockSize",           40000);
+    setGlobal("ovlMemory",                  "1GB");
+    setGlobal("ovlRefBlockSize",            2000000);
+    setGlobal("ovlStoreMemory",             512);
+    setGlobal("ovlThreads",                 2);
+    setGlobal("processStats",               undef);
+    setGlobal("scratch",                    "/scratch");
+    setGlobal("throwStones",                2);
+    setGlobal("uidServer",                  undef);
+    setGlobal("unitiggerEdges",             undef);
+    setGlobal("unitiggerFragments",         undef);
+    setGlobal("useGrid",                    0);
+    setGlobal("vectorIntersect",            undef);
+    setGlobal('ovlSortMemory',              1000);
 }
 
 sub setParameters {
@@ -125,12 +166,12 @@ sub setParameters {
 
     #  If we have been given a configuration in the spec file, use that instead.
     #
-    my $binhost = getGlobal("localHost",    undef);
-    my $binmach = getGlobal("localMachine", undef);
-    my $ginhost = getGlobal("gridHost",     "Linux");
-    my $ginmach = getGlobal("gridMachine",  "i686");
+    my $binhost = getGlobal("localHost");
+    my $binmach = getGlobal("localMachine");
+    my $ginhost = getGlobal("gridHost");
+    my $ginmach = getGlobal("gridMachine");
 
-    $useGrid = getGlobal("useGrid", 0);
+    $useGrid = getGlobal("useGrid");
     $bin     = setBinDirectory($binhost, $binmach);
     $gin     = setBinDirectory($binhost, $binmach)  if ($useGrid == 0);  #  bin for the Grid
     $gin     = setBinDirectory($ginhost, $ginmach)  if ($useGrid == 1);  #  bin for the Grid
