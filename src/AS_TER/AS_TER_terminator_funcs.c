@@ -25,7 +25,7 @@
  Assumptions: There is no UID 0
 **********************************************************************/
 
-static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.11 2005-10-28 20:26:37 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.12 2005-11-21 09:31:35 brianwalenz Exp $";
 
 
 
@@ -46,7 +46,8 @@ static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.11 2005-10-28 20:26:37
 #include <SYS_UIDcommon.h>
 #include <SYS_UIDclient.h>
 
-#define DEBUG 0
+#define DEBUG       0
+#define DEBUG_UID   0
 
 /*--------------------------------------------------------------------*/
 /*  Output Routine for all Messages in the genome snapshot. The static*/
@@ -99,7 +100,6 @@ static FILE *IID2UIDFPREZ = NULL;
 static FragStoreHandle FSHandle,BSHandle;
 static GateKeeperStore GKPStore;
 
-extern CDS_UID_t AS_TER_uidStart;
 
 static void remove_output(void)
 {
@@ -1884,7 +1884,6 @@ void read_stores(char* fragStoreName, char* bactigStoreName, char* gkpStoreName)
   //  FragStoreHandle storeHandle = 0;
   FragStoreHandle streamHandle = 0;
   CDS_UID_t *di;
-  int32 first = TRUE;
 
   fprintf(stderr,"*** Terminator : Reading Fragment Store ***\n");
 
@@ -1942,16 +1941,16 @@ void read_stores(char* fragStoreName, char* bactigStoreName, char* gkpStoreName)
     SetCDS_UID_t(FRGmap,iid,&uid);
     Setshort(FRGpresent,iid,&truedummy);
 
-    if( first ){
+    //  BPW - before 21nov2005, we used to always set_start_uid(uid+1)
+    //  on the first time through here.  What this did is to just
+    //  reset the start uid specified on the command line to be the
+    //  highest uid in the .asm + 1.  So, we don't do that anymore.
+    //
+    if(get_start_uid() <= uid)
       set_start_uid(uid+1);
-      first = FALSE;
-    }
-    else
-      if(get_start_uid() <= uid)
-	set_start_uid(uid+1);
     
-#if DEBUG > 1
-    fprintf(stderr,"AS_TER_uidStart after reading frags = %lu\n",AS_TER_uidStart);
+#if DEBUG_UID
+    fprintf(stderr,"SYS_UID_uidStart after reading frags = %lu\n",get_start_uid());
 #endif
 
     /* get the clear region from the frag store */
@@ -2018,8 +2017,8 @@ void read_stores(char* fragStoreName, char* bactigStoreName, char* gkpStoreName)
        if( get_start_uid() <= gkpd.UID )
          set_start_uid(gkpd.UID+1);
 
-#if DEBUG > 1
-       fprintf(stderr,"AS_TER_uidStart after reading distribs %lu\n",AS_TER_uidStart);
+#if DEBUG_UID
+       fprintf(stderr,"SYS_UID_uidStart after reading distribs %lu\n",get_start_uid());
 #endif
      }
     }
@@ -2079,8 +2078,8 @@ void read_stores(char* fragStoreName, char* bactigStoreName, char* gkpStoreName)
 	 set_start_uid(gkps.UID+1);
      }
     } 
-#if DEBUG > 1
-       fprintf(stderr,"AS_TER_uidStart after reading repeats %lu\n",AS_TER_uidStart);
+#if DEBUG_UID
+       fprintf(stderr,"SYS_UID_uidStart after reading repeats %lu\n",get_start_uid());
 #endif
  
 
