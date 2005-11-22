@@ -1,7 +1,6 @@
 #include "trim.H"
+#include "maps.H"
 
-using namespace std;
-#include <map>
 
 //  Read a fragStore, does quality trimming based on quality scores,
 //  modifies the original clear range in the store.
@@ -30,113 +29,6 @@ usage(char *name) {
   fprintf(stderr, "    iid originalBegin originalEnd newBegin newEnd\n");
   fprintf(stderr, "    uid,iid origBegin origEnd qualBegin qualEnd vecBeg vecEnd newBegin newEnd\n");
 }
-
-
-class vectorInfo {
-public:
-  vectorInfo() {
-    vecL      = 0;
-    vecR      = 0;
-    hasVec    = 0;
-    immutable = 0;
-  };
-
-  u32bit  vecL      : 12;
-  u32bit  vecR      : 12;
-  u32bit  hasVec    : 1;
-  u32bit  immutable : 1;
-};
-
-
-bool
-readVectorIntersection(char *vectorFileName, map<u64bit, vectorInfo> &m) {
-  bool fatal = false;
-
-  if (vectorFileName == 0L)
-    return(false);
-
-  errno = 0;
-  FILE *intFile = fopen(vectorFileName, "r");
-  if (errno)
-    fprintf(stderr, "Can't open '%s': %s\n", vectorFileName, strerror(errno)), exit(1);
-
-  char intLine[1024] = {0};
-  fgets(intLine, 1024, intFile);
-  while (!feof(intFile)) {
-    chomp(intLine);
-    splitToWords  W(intLine);
-    if ((W[0] == 0L) || (W[1] == 0L) || (W[2] == 0L) || (W[3] != 0L)) {
-      fprintf(stderr, "readVectorIntersection()-- Invalid line '%s'\n", intLine);
-      fatal = true;
-    } else {
-
-      //  These look base-based!
-
-      u64bit  uid  = strtou64bit(W[0], 0L);
-      u32bit  intl = strtou32bit(W[1], 0L) - 1;
-      u32bit  intr = strtou32bit(W[2], 0L) - 1;
-
-      //  Silently swap, if needed
-
-      if (intl > intr) {
-        u32bit  s = intl;
-        intl = intr;
-        intr = s;
-      }
-
-      vectorInfo v;
-      v.vecL      = intl;
-      v.vecR      = intr;
-      v.hasVec    = 1;
-      v.immutable = 0;
-
-      m[uid] = v;
-    }
-
-    fgets(intLine, 1024, intFile);
-  }
-
-  fclose(intFile);
-
-  return(fatal);
-}
-
-
-
-
-bool
-readImmutable(char *immutableFileName, map<u64bit, vectorInfo> &m) {
-  bool fatal = false;
-
-  if (immutableFileName == 0L)
-    return(false);
-
-  errno = 0;
-  FILE *intFile = fopen(immutableFileName, "r");
-  if (errno)
-    fprintf(stderr, "Can't open '%s': %s\n", immutableFileName, strerror(errno)), exit(1);
-
-  char intLine[1024] = {0};
-  fgets(intLine, 1024, intFile);
-  while (!feof(intFile)) {
-    chomp(intLine);
-    splitToWords  W(intLine);
-    if ((W[0] == 0L) || (W[1] != 0L)) {
-      fprintf(stderr, "readImmutable()-- Invalid line '%s'\n", intLine);
-      fatal = true;
-    } else {
-      u64bit  uid  = strtou64bit(W[0], 0L);
-      m[uid].immutable = 1;
-    }
-
-    fgets(intLine, 1024, intFile);
-  }
-
-  fclose(intFile);
-
-  return(fatal);
-}
-
 
 
 int
@@ -191,15 +83,9 @@ main(int argc, char **argv) {
 
   //srand48(time(NULL));
 
-  map<u64bit, vectorInfo> m;
-
-  bool fatal = false;
-  fatal |= readVectorIntersection(vectorFileName, m);
-  fatal |= readImmutable(immutableFileName, m);
-  if (fatal) {
-    fprintf(stderr, "%s: I encountered errors reading the input.  Fatal error.\n", argv[0]);
-    exit(1);
-  }
+  vectorMap  m;
+  m.readVectorMap(vectorFileName);
+  m.readImmutableMap(immutableFileName);
 
   //  Open the store
   //
@@ -231,7 +117,10 @@ main(int argc, char **argv) {
     getFragStore(fs, elem, FRAG_S_ALL, rd);
     getAccID_ReadStruct(rd, &uid);
 
-    if (m[uid].immutable == 1) {
+    //  Bail now if we've been told to not modify this read.  We do
+    //  not print a message in the log.
+    //
+    if (m.exists(uid) && (m[uid].immutable == 1)) {
       stat_immutable++;
       continue;
     }
@@ -240,7 +129,9 @@ main(int argc, char **argv) {
     vecL = qltL;
     vecR = qltR;
 
-    if (m[uid].hasVec == 0) {
+    //  Intersect with the vector clear range, if it exists
+    //
+    if (!m.exists(uid) || (m[uid].hasVec == 0)) {
       //  uid not present in our input list, do nothing.
       stat_notPresent++;
     } else if ((m[uid].vecL > vecR) || (m[uid].vecR < vecL)) {

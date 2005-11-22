@@ -12,6 +12,7 @@ extern "C" {
 
 #include "util++.H"
 #include "overlap.H"
+#include "maps.H"
 
 //  Reads the output of overlap used to find trim points.  Overlaps
 //  were computed using the READSTRUCT_ORIGINAL trimming.  Massages
@@ -223,7 +224,6 @@ readClearRanges(char *frgStore) {
     getFragStore(fs, iid, FRAG_S_ALL, rd);
     getClearRegion_ReadStruct(rd, &origl, &origr, READSTRUCT_ORIGINAL);
     getClearRegion_ReadStruct(rd, &ovlpl, &ovlpr, READSTRUCT_OVL);
-    getSequence_ReadStruct(rd, 0L, 0L, 0);
 
     clear[iid]   = getSequence_ReadStruct(rd, 0L, 0L, 0);
     clear[iid] <<= POSITION_BITS;
@@ -255,9 +255,13 @@ readClearRanges(char *frgStore) {
 //    Look for chimeric and spur patterns.
 //
 void
-process(u32bit iid, FragStoreHandle fs, bool doModify, overlapList *overlap, u32bit ola, u32bit ora) {
-
-  //fprintf(stderr, "process()-- "u32bitFMT" overlaps.\n", overlap->length());
+process(u32bit           iid,
+        FragStoreHandle  fs,
+        bool             doUpdate,
+        vectorMap       &m,
+        overlapList     *overlap,
+        u32bit           ola,
+        u32bit           ora) {
 
   if (overlap->length() > 0) {
     intervalList   IL;
@@ -349,14 +353,6 @@ process(u32bit iid, FragStoreHandle fs, bool doModify, overlapList *overlap, u32
     IL.merge();
 
 
-#if 0
-    if (iid == 17426)
-      for (u32bit interval=0; interval<IL.numberOfIntervals(); interval++)
-        fprintf(stderr, "interval: "u32bitFMT" "u32bitFMT"\n",
-                (u32bit)IL.lo(interval),
-                (u32bit)IL.hi(interval));
-#endif
-
     //  Run through the overlaps again, counting the number of innie
     //  pairs across each gap in the intervals.
     //  Also mark hangs at the ends of intervals.
@@ -364,11 +360,6 @@ process(u32bit iid, FragStoreHandle fs, bool doModify, overlapList *overlap, u32
     for (u32bit interval=0; interval<=IL.numberOfIntervals(); interval++) {
       u32bit  begGap = (interval == 0) ? ola : IL.hi(interval-1);
       u32bit  endGap = (interval == IL.numberOfIntervals()) ? ora : IL.lo(interval);
-
-#if 0
-      if (iid == 17426)
-        fprintf(stderr, "Gap = ("u32bitFMT","u32bitFMT")\n", begGap, endGap);
-#endif
 
       u32bit  l = 0;
       u32bit  r = 0;
@@ -394,10 +385,6 @@ process(u32bit iid, FragStoreHandle fs, bool doModify, overlapList *overlap, u32
             assert(interval > 0);
             rightIntervalHang[interval-1] = true;
 	  }
-#if 0
-	  if (iid == 17426)
-	    fprintf(stderr, "ovlL "u32bitFMT"-"u32bitFMT"\n", (u32bit)ovl->Abeg, (u32bit)ovl->Aend);
-#endif
 	  break;
           
 	case 13:
@@ -409,10 +396,6 @@ process(u32bit iid, FragStoreHandle fs, bool doModify, overlapList *overlap, u32
 	      rightIntervalHang[interval-1] = true;
 	    }
 	  }
-#if 0
-	  if (iid == 17426)
-	    fprintf(stderr, "ovlL "u32bitFMT"-"u32bitFMT"\n", (u32bit)ovl->Abeg, (u32bit)ovl->Aend);
-#endif
 	  break;
           
 	case 10:
@@ -423,10 +406,6 @@ process(u32bit iid, FragStoreHandle fs, bool doModify, overlapList *overlap, u32
             assert(interval < IL.numberOfIntervals());
 	    leftIntervalHang[interval] = true;
 	  }
-#if 0
-	  if (iid == 17426)
-	    fprintf(stderr, "ovlR "u32bitFMT"-"u32bitFMT"\n", (u32bit)ovl->Abeg, (u32bit)ovl->Aend);
-#endif
 	  break;
 	  
 	case 14:
@@ -438,10 +417,6 @@ process(u32bit iid, FragStoreHandle fs, bool doModify, overlapList *overlap, u32
 	      leftIntervalHang[interval] = true;
 	    }
 	  }
-#if 0
-	  if (iid == 17426)
-	    fprintf(stderr, "ovlR "u32bitFMT"-"u32bitFMT"\n", (u32bit)ovl->Abeg, (u32bit)ovl->Aend);
-#endif
 	  break;
 	  
         case 15:
@@ -596,39 +571,65 @@ process(u32bit iid, FragStoreHandle fs, bool doModify, overlapList *overlap, u32
       }
     }
 
+    ReadStructp       rd    = new_ReadStruct();
+    u64bit            uid   = 0;
+
+    if (doUpdate) {
+      getFragStore(fs, iid, FRAG_S_ALL, rd);
+      getAccID_ReadStruct(rd, &uid);
+
+      //  If we don't have the uid in our map, we are allowed to
+      //  modify it.  We just reset the doUpdate flag to disallow
+      //  modification.  The flag is passed by value, so the change
+      //  is local to here.
+      //
+      if (m.exists(uid))
+        doUpdate = false;
+    }
+
+#if defined(WITH_REPORT) || defined(WITH_REPORT_FULL)
+    //  If we are with reporting, we need the uid regardless of the
+    //  doUpdate status.
+    //
+    if (uid == 0) {
+      getFragStore(fs, iid, FRAG_S_ALL, rd);
+      getAccID_ReadStruct(rd, &uid);
+    }
+#endif
+
 
     if (isSpur) {
       spurDetected++;
 
       if (fixChimera) {
-        if (doModify) {
-          ReadStructp       rd = new_ReadStruct();
-          getFragStore(fs, iid, FRAG_S_ALL, rd);
+        if (doUpdate) {
           setClearRegion_ReadStruct(rd, intervalBeg, intervalEnd, READSTRUCT_OVL);
           if (setFragStore(fs, iid, rd)) {
             fprintf(stderr, "setFragStore() failed.\n");
             exit(1);
           }
-          delete_ReadStruct(rd);
         }
 
         if (intervalMax < 40) {
           spurDeletedSmall++;
-          if (doModify)
+          if (doUpdate)
             deleteFragStore(fs, iid);
         }
       } else {
-        if (doModify)
+        if (doUpdate)
           deleteFragStore(fs, iid);
       }
 
 #ifdef WITH_REPORT
-      fprintf(reportFile, "----------------------------------------SPUR!("u32bitFMT","u32bitFMT")\n", intervalBeg, intervalEnd);
-      fprintf(reportFile, u32bitFMT" has "u32bitFMT" intervals and "u32bitFMT" potential chimeric overlaps (%5.2f%%).\n",
-              iid, IL.numberOfIntervals(), hasPotentialChimera,
-              (double)hasPotentialChimera / (double)overlap->length() * 100);
-      for (u32bit i=0; i<overlap->length(); i++)
-        overlap->print(reportFile, i);
+      if (reportFile) {
+        fprintf(reportFile, "----------------------------------------SPUR!("u32bitFMT","u32bitFMT") update=%d\n",
+                intervalBeg, intervalEnd, doUpdate);
+        fprintf(reportFile, u64bitFMT","u32bitFMT" has "u32bitFMT" intervals and "u32bitFMT" potential chimeric overlaps (%5.2f%%).\n",
+                uid, iid, IL.numberOfIntervals(), hasPotentialChimera,
+                (double)hasPotentialChimera / (double)overlap->length() * 100);
+        for (u32bit i=0; i<overlap->length(); i++)
+          overlap->print(reportFile, i);
+      }
 #endif
     } else if ((IL.numberOfIntervals() > 1) &&
                (hasPotentialChimera > 0) &&
@@ -636,77 +637,88 @@ process(u32bit iid, FragStoreHandle fs, bool doModify, overlapList *overlap, u32
       chimeraDetected++;
 
       if (fixChimera) {
-        if (doModify) {
-          ReadStructp       rd = new_ReadStruct();
-          getFragStore(fs, iid, FRAG_S_ALL, rd);
+        if (doUpdate) {
           setClearRegion_ReadStruct(rd, intervalBeg, intervalEnd, READSTRUCT_OVL);
           if (setFragStore(fs, iid, rd)) {
             fprintf(stderr, "setFragStore() failed.\n");
             exit(1);
           }
-          delete_ReadStruct(rd);
         }
 
         if (intervalMax < 40) {
           chimeraDeletedSmall++;
-          if (doModify)
+          if (doUpdate)
             deleteFragStore(fs, iid);
         }
       } else {
-        if (doModify)
+        if (doUpdate)
           deleteFragStore(fs, iid);
       }
 
 #ifdef WITH_REPORT
-      fprintf(reportFile, "----------------------------------------CHIMERA!("u32bitFMT","u32bitFMT")\n", intervalBeg, intervalEnd);
-      fprintf(reportFile, u32bitFMT" has "u32bitFMT" intervals and "u32bitFMT" potential chimeric overlaps (%5.2f%%).\n",
-              iid, IL.numberOfIntervals(), hasPotentialChimera,
-              (double)hasPotentialChimera / (double)overlap->length() * 100);
-      for (u32bit i=0; i<overlap->length(); i++)
-        overlap->print(reportFile, i);
+      if (reportFile) {
+        fprintf(reportFile, "----------------------------------------CHIMERA!("u32bitFMT","u32bitFMT") update=%d\n",
+                intervalBeg, intervalEnd, doUpdate);
+        fprintf(reportFile, u64bitFMT","u32bitFMT" has "u32bitFMT" intervals and "u32bitFMT" potential chimeric overlaps (%5.2f%%).\n",
+                uid, iid, IL.numberOfIntervals(), hasPotentialChimera,
+                (double)hasPotentialChimera / (double)overlap->length() * 100);
+        for (u32bit i=0; i<overlap->length(); i++)
+          overlap->print(reportFile, i);
+      }
 #endif
     } else if (IL.numberOfIntervals() == 1) {
       fullCoverage++;
 
 #ifdef WITH_REPORT_FULL
-      fprintf(reportFile, "----------------------------------------FULL COVERAGE\n");
-      fprintf(reportFile, u32bitFMT" has "u32bitFMT" intervals and "u32bitFMT" potential chimeric overlaps (%5.2f%%).\n",
-              iid, IL.numberOfIntervals(), hasPotentialChimera,
-              (double)hasPotentialChimera / (double)overlap->length() * 100);
+      if (reportFile) {
+        fprintf(reportFile, "----------------------------------------FULL COVERAGE\n");
+        fprintf(reportFile, u64bitFMT","u32bitFMT" has "u32bitFMT" intervals and "u32bitFMT" potential chimeric overlaps (%5.2f%%).\n",
+                uid, iid, IL.numberOfIntervals(), hasPotentialChimera,
+                (double)hasPotentialChimera / (double)overlap->length() * 100);
+      }
 #endif
     } else if (hasPotentialChimera == 0) {
       noChimericOvl++;
 
 #ifdef WITH_REPORT_FULL
-      fprintf(reportFile, "----------------------------------------NO CHIMERIC OVERLAPS\n");
-      fprintf(reportFile, u32bitFMT" has "u32bitFMT" intervals and "u32bitFMT" potential chimeric overlaps (%5.2f%%).\n",
-              iid, IL.numberOfIntervals(), hasPotentialChimera,
-              (double)hasPotentialChimera / (double)overlap->length() * 100);
-      for (u32bit i=0; i<overlap->length(); i++)
-        overlap->print(reportFile, i);
+      if (reportFile) {
+        fprintf(reportFile, "----------------------------------------NO CHIMERIC OVERLAPS\n");
+        fprintf(reportFile, u64bitFMT","u32bitFMT" has "u32bitFMT" intervals and "u32bitFMT" potential chimeric overlaps (%5.2f%%).\n",
+                uid, iid, IL.numberOfIntervals(), hasPotentialChimera,
+                (double)hasPotentialChimera / (double)overlap->length() * 100);
+        for (u32bit i=0; i<overlap->length(); i++)
+          overlap->print(reportFile, i);
+      }
 #endif
     } else if (hasInniePair == 0) {
       noInniePair++;
 
 #ifdef WITH_REPORT_FULL
-      fprintf(reportFile, "----------------------------------------NO INNIE PAIR (innie="u32bitFMT")\n",
-              hasInniePair);
-      fprintf(reportFile, u32bitFMT" has "u32bitFMT" intervals and "u32bitFMT" potential chimeric overlaps (%5.2f%%).\n",
-              iid, IL.numberOfIntervals(), hasPotentialChimera,
-              (double)hasPotentialChimera / (double)overlap->length() * 100);
-      for (u32bit i=0; i<overlap->length(); i++)
-        overlap->print(reportFile, i);
+      if (reportFile) {
+        fprintf(reportFile, "----------------------------------------NO INNIE PAIR (innie="u32bitFMT")\n",
+                hasInniePair);
+        fprintf(reportFile, u64bitFMT","u32bitFMT" has "u32bitFMT" intervals and "u32bitFMT" potential chimeric overlaps (%5.2f%%).\n",
+                uid, iid, IL.numberOfIntervals(), hasPotentialChimera,
+                (double)hasPotentialChimera / (double)overlap->length() * 100);
+        for (u32bit i=0; i<overlap->length(); i++)
+          overlap->print(reportFile, i);
+      }
 #endif
     } else {
 #ifdef WITH_REPORT_FULL
-      fprintf(reportFile, "----------------------------------------NOT CHIMERA, don't know why\n");
-      fprintf(reportFile, u32bitFMT" has "u32bitFMT" intervals and "u32bitFMT" potential chimeric overlaps (%5.2f%%).\n",
-              iid, IL.numberOfIntervals(), hasPotentialChimera,
-              (double)hasPotentialChimera / (double)overlap->length() * 100);
-      for (u32bit i=0; i<overlap->length(); i++)
-        overlap->print(reportFile, i);
+      if (reportFile) {
+        fprintf(reportFile, "----------------------------------------NOT CHIMERA, don't know why\n");
+        fprintf(reportFile, u64bitFMT","u32bitFMT" has "u32bitFMT" intervals and "u32bitFMT" potential chimeric overlaps (%5.2f%%).\n",
+                uid, iid, IL.numberOfIntervals(), hasPotentialChimera,
+                (double)hasPotentialChimera / (double)overlap->length() * 100);
+        for (u32bit i=0; i<overlap->length(); i++)
+          overlap->print(reportFile, i);
+      }
 #endif
     }
+
+    //  Clean up our read struct.
+    delete_ReadStruct(rd);
   }
 }
 
@@ -741,10 +753,11 @@ readOverlap(FILE *file, overlap_t &ovl) {
 
 int
 main(int argc, char **argv) {
-  char   *frgStore = 0L;
-  bool    doModify = true;
-  char   *summaryName = 0L;
-  char   *reportName  = 0L;
+  char   *frgStore          = 0L;
+  bool    doUpdate          = false;
+  char   *summaryName       = 0L;
+  char   *reportName        = 0L;
+  char   *immutableFileName = 0L;
 
   u32bit  overflow = 0;
   u32bit  notclear = 0;
@@ -753,10 +766,12 @@ main(int argc, char **argv) {
   while (arg < argc) {
     if        (strncmp(argv[arg], "-frg", 2) == 0) {
       frgStore = argv[++arg];
+    } else if (strncmp(argv[arg], "-immutable", 2) == 0) {
+      immutableFileName = argv[++arg];
+    } else if (strncmp(argv[arg], "-update", 2) == 0) {
+      doUpdate = true;
     } else if (strncmp(argv[arg], "-delete", 2) == 0) {
       fixChimera = false;
-    } else if (strncmp(argv[arg], "-q", 2) == 0) {
-      doModify = false;
     } else if (strncmp(argv[arg], "-summary", 2) == 0) {
       summaryName = argv[++arg];
     } else if (strncmp(argv[arg], "-report", 2) == 0) {
@@ -765,8 +780,15 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  if (frgStore == 0L)
-    fprintf(stderr, "usage: %s [-1] -f <fragStore> [-summary file] [-report file] < overlap-trim-results\n", argv[0]), exit(1);
+  if (frgStore == 0L) {
+    fprintf(stderr, "usage: %s [-1] -f <fragStore> [opts] < overlap-trim-results\n", argv[0]);
+    fprintf(stderr, "  -immutable I    don't modify the uids listed in I\n");
+    fprintf(stderr, "  -update         do update the frag store\n");
+    fprintf(stderr, "  -delete         instead of fixing chimera, delete them\n");
+    fprintf(stderr, "  -summary S      write a summary of the fixes to S\n");
+    fprintf(stderr, "  -report R       write a detailed report of the fixes to R\n");
+    exit(1);
+  }
 
   u32bit           idAlast, olalast, oralast;
 
@@ -778,6 +800,14 @@ main(int argc, char **argv) {
   u64bit          *clear = readClearRanges(frgStore);
   u64bit           maxIID      = 65536;
   overlapList     *overlap = new overlapList;
+
+  //  Our vectorMap is used exclusively for testing if the fragment is
+  //  mutable.  If the uid has a key int the map, then it is NOT
+  //  mutable.  Be sure to update tests for this if more stuff is
+  //  inserted into the map (search for exists()).
+  //
+  vectorMap  m;
+  m.readImmutableMap(immutableFileName);
 
   if (summaryName) {
     errno = 0;
@@ -792,7 +822,7 @@ main(int argc, char **argv) {
       fprintf(stderr, "Failed to open '%s' for writing: %s\n", reportName, strerror(errno)), exit(1);
   }
 
-  FragStoreHandle fs = openFragStore(frgStore, doModify ? "r+" : "r");
+  FragStoreHandle fs = openFragStore(frgStore, doUpdate ? "r+" : "r");
   if (fs == NULLSTOREHANDLE)
     fprintf(stderr, "Failed to open fragStore %s!\n", frgStore), exit(1);
 
@@ -828,7 +858,7 @@ main(int argc, char **argv) {
     error  = ovl.erate;
 
     if (idA != idAlast) {
-      process(idAlast, fs, doModify, overlap, olalast, oralast);
+      process(idAlast, fs, doUpdate, m, overlap, olalast, oralast);
       delete overlap;
       overlap = new overlapList;
     }
@@ -837,9 +867,11 @@ main(int argc, char **argv) {
     oralast = ora;
 
 #ifdef DEBUG
-    fprintf(reportFile, "----------------------------------------\n");
-    fprintf(reportFile, u32bitFMTW(7)" "u32bitFMTW(7)"  %c "u32bitFMTW(4)" "u32bitFMTW(4)" "u32bitFMTW(4)"  "u32bitFMTW(4)" "u32bitFMTW(4)" "u32bitFMTW(4)" %5.3f\n",
-            idA, idB, ori, leftA, rightA, lenA, leftB, rightB, lenB, error);
+    if (reportFile) {
+      fprintf(reportFile, "----------------------------------------\n");
+      fprintf(reportFile, u32bitFMTW(7)" "u32bitFMTW(7)"  %c "u32bitFMTW(4)" "u32bitFMTW(4)" "u32bitFMTW(4)"  "u32bitFMTW(4)" "u32bitFMTW(4)" "u32bitFMTW(4)" %5.3f\n",
+              idA, idB, ori, leftA, rightA, lenA, leftB, rightB, lenB, error);
+    }
 #endif
 
     //  Make sure that the overlap at least intersects both of the
@@ -902,10 +934,12 @@ main(int argc, char **argv) {
 
 
 #ifdef DEBUG
-      fprintf(reportFile, "A: orig: "u32bitFMT" "u32bitFMT"  ovlp:"u32bitFMT" "u32bitFMT"\n", cla, cra, ola, ora);
-      fprintf(reportFile, "B: orig: "u32bitFMT" "u32bitFMT"  ovlp:"u32bitFMT" "u32bitFMT"\n", clb, crb, olb, orb);
-      fprintf(reportFile, u32bitFMTW(7)" "u32bitFMTW(7)"  %c "u32bitFMTW(4)" "u32bitFMTW(4)" "u32bitFMTW(4)"  "u32bitFMTW(4)" "u32bitFMTW(4)" "u32bitFMTW(4)" %5.3f\n",
-              idA, idB, ori, leftA, rightA, lenA, leftB, rightB, lenB, error);
+      if (reportFile) {
+        fprintf(reportFile, "A: orig: "u32bitFMT" "u32bitFMT"  ovlp:"u32bitFMT" "u32bitFMT"\n", cla, cra, ola, ora);
+        fprintf(reportFile, "B: orig: "u32bitFMT" "u32bitFMT"  ovlp:"u32bitFMT" "u32bitFMT"\n", clb, crb, olb, orb);
+        fprintf(reportFile, u32bitFMTW(7)" "u32bitFMTW(7)"  %c "u32bitFMTW(4)" "u32bitFMTW(4)" "u32bitFMTW(4)"  "u32bitFMTW(4)" "u32bitFMTW(4)" "u32bitFMTW(4)" %5.3f\n",
+                idA, idB, ori, leftA, rightA, lenA, leftB, rightB, lenB, error);
+      }
 #endif
 
 
@@ -1017,7 +1051,7 @@ main(int argc, char **argv) {
 #endif
   }
 
-  process(idAlast, fs, doModify, overlap, olalast, oralast);
+  process(idAlast, fs, doUpdate, m, overlap, olalast, oralast);
   delete overlap;
 
 #ifdef SPEEDCOUNTER_H

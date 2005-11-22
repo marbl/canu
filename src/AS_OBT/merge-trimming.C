@@ -1,5 +1,6 @@
 #include "trim.H"
 #include "constants.H"
+#include "maps.H"
 
 using namespace std;
 #include <set>
@@ -72,49 +73,6 @@ findModeOfFivePrimeMode(FragStoreHandle fs, char *name) {
 
   return(mode5);
 }
-
-
-
-//  Read a list of UIDs, put into a map.  This is similar to what's
-//  used in initialTrim.
-//
-bool
-readImmutable(char *immutableFileName, set<u64bit> &m) {
-  bool fatal = false;
-
-  if (immutableFileName == 0L)
-    return(false);
-
-  errno = 0;
-  FILE *intFile = fopen(immutableFileName, "r");
-  if (errno)
-    fprintf(stderr, "Can't open '%s': %s\n", immutableFileName, strerror(errno)), exit(1);
-
-  char intLine[1024] = {0};
-  fgets(intLine, 1024, intFile);
-  while (!feof(intFile)) {
-    chomp(intLine);
-    splitToWords  W(intLine);
-    if ((W[0] == 0L) || (W[1] != 0L)) {
-      fprintf(stderr, "readImmutable()-- Invalid line '%s'\n", intLine);
-      fatal = true;
-    } else {
-      u64bit  uid  = strtou64bit(W[0], 0L);
-      m.insert(uid);
-    }
-
-    fgets(intLine, 1024, intFile);
-  }
-
-  fclose(intFile);
-
-  return(fatal);
-}
-
-
-
-
-
 
 
 
@@ -202,11 +160,8 @@ main(int argc, char **argv) {
   //
   //  Build a list of the immutable fragments
   //
-  set<u64bit>  immutable;
-  readImmutable(immutableFileName, immutable);
-
-
-
+  vectorMap  immutable;
+  immutable.readImmutableMap(immutableFileName);
 
   
 
@@ -253,6 +208,8 @@ main(int argc, char **argv) {
       lid++;
     }
 
+
+
     //  Read the fragment from the store, compute the quality trim
     //  points.  All the values from overlap are off by the original
     //  clear range, we add it back in as we decode the string.
@@ -272,7 +229,7 @@ main(int argc, char **argv) {
 
     //  Only proceed if we're mutable.
     //
-    if (immutable.find(uid) != immutable.end()) {
+    if (immutable.exists(uid)) {
       if (logFile)
         fprintf(logFile, u64bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT" (immutable)\n",
                 lid, qltLQ1, qltRQ1, qltLQ1, qltRQ1);
