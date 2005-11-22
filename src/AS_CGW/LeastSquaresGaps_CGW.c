@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: LeastSquaresGaps_CGW.c,v 1.10 2005-11-18 21:04:21 brianwalenz Exp $";
+static char CM_ID[] = "$Id: LeastSquaresGaps_CGW.c,v 1.11 2005-11-22 16:02:43 brianwalenz Exp $";
 
 #define FIXED_RECOMPUTE_SINGULAR /* long standing bug: is it fixed yet? */
 #undef LIVE_ON_THE_EDGE   /* abort on singularities -- this would be a good idea, unless you
@@ -751,7 +751,7 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
         fprintf(stderr, "RecomputeOffsetsInScaffold()- WARNING: scaffold " F_CID " is not internally connected using ALL_TRUSTED_EDGES\n");
         fprintf(stderr, "                              will proceed with edge set determined by IsInternalEdgeStatusVaguelyOK\n");
         fprintf(stderr, "                              instead of PairwiseChiSquare test\n",scaffold->id);
-        assert(0);
+        //assert(0);
     }
 
     numCIs = scaffold->info.Scaffold.numElements;
