@@ -37,7 +37,7 @@
 
 
 
-static char fileID[] = "$Id: GapFillREZ.c,v 1.6 2005-09-15 22:56:01 mcschatz Exp $";
+static char fileID[] = "$Id: GapFillREZ.c,v 1.7 2005-11-23 01:32:13 mcschatz Exp $";
 
 
 #include <stdio.h>
@@ -4350,7 +4350,7 @@ static void  Choose_Stones
                    assign_succeeded
                        = Assign_To_Gap (cid, left_end, right_end,
                                         gap, scaff_id,
-                                        stack [0] . flipped, fill_chunks,
+                                        stack [i] . flipped, fill_chunks,
                                         edge_quality, cover_stat, link_ct,
                                         copy_letter);
                    if  (! assign_succeeded)
