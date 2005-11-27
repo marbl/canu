@@ -1,15 +1,6 @@
 #ifndef FASTA_TYPES_H
 #define FASTA_TYPES_H
 
-//  Externally visible types
-//
-typedef u32bit IID_t;
-
-//  Types used in the index
-//
-typedef off_t  _idxfa_pos;
-typedef u32bit _idxfa_len;
-
 //  VERSION NUMBERS
 //
 //  versionNumber 1 contains the simple index, name or defline.  You
@@ -28,8 +19,12 @@ typedef u32bit _idxfa_len;
 //  smaller than on OSF1/cxx65, even though the endianess was the
 //  same).
 //
+//  versionNumber 5 adjusts for differences in off_t / time_t between
+//  Linux and Linux64.
+
+
 #define FASTA_MAGICNUMBER   0x4abeadeddadababeULL
-#define FASTA_VERSIONNUMBER 4
+#define FASTA_VERSIONNUMBER 5
 
 
 //  INDEX TYPES
@@ -53,15 +48,32 @@ typedef u32bit _idxfa_len;
 #define FASTA_UNDECLARED    0x00000001
 
 
+typedef u32bit IID_t;
+typedef off_t  _idxfa_pos;
+typedef u32bit _idxfa_len;
+
+#if FASTA_VERSIONNUMBER < 5
+typedef time_t _idxfa_time
+#else
+typedef s64bit _idxfa_time;
+#endif
+
+#if FASTA_VERSIONNUMBER > 4
+#define offtSwap       u64bitSwap
+#define idxfaTimeSwap  u64bitSwap
+#define idxfaPosSwap   u64bitSwap
+#define idxfaLenSwap   u32bitSwap
+#endif
+
 struct _idxfa_global {
   u64bit       _magic;
   u32bit       _version;
   u32bit       _indexType;
   u32bit       _fastaType;
   u32bit       _numberOfSequences;      //  Number of sequences in the file
-  off_t        _fastaFileSize;          //  st_size  - size of file in bytes
-  time_t       _fastaModificationTime;  //  st_mtime - time of last data modification
-  time_t       _fastaCreationTime;      //  st_ctime - time of last file status change
+  _idxfa_pos   _fastaFileSize;          //  st_size  - size of file in bytes
+  _idxfa_time  _fastaModificationTime;  //  st_mtime - time of last data modification
+  _idxfa_time  _fastaCreationTime;      //  st_ctime - time of last file status change
   _idxfa_len   _seqlineLength;          //  Length of the sequence lines, if fixed width
   _idxfa_len   _seqendlLength;          //  Length of the sequence line terminators, if fixed width (really, "\n" or "\r\n"?)
 #if FASTA_VERSIONNUMBER < 4
