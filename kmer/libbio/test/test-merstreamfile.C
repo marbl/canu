@@ -110,7 +110,7 @@ randomAccessTest(char *msfile) {
 
     //  Seek to the proper spot in R
     //
-    R->seekToMer(merNum);
+    R->setIterationStart(merNum);
     R->nextMer();
 
     errors += test(merNum, M, R);

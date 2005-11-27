@@ -18,7 +18,7 @@
 //  Then we reconstruct the sequences using mers.  All three merstream
 //  sources are tested (the character string source is not tested).
 //  The merStreamFile is tested both forwards (nextMer(), via the
-//  merstream interface) and backwards (seekToMer()).
+//  merstream interface) and backwards (setIterationStart()).
 
 //  Minimum KMER_WORDS is 13 -- mersizes up to 416 bases
 #if KMER_WORDS < 13
@@ -140,7 +140,7 @@ test1(u32bit style) {
         //
         for (u32bit i=MERS_PER_SEQ; i--; ) {
           char  copy[TEST_SIZE + 1];
-          RD->seekToMer(s * (MERS_PER_SEQ * TEST_SIZE - TEST_SIZE + 1) + i * (TEST_SIZE));
+          RD->setIterationStart(s * (MERS_PER_SEQ * TEST_SIZE - TEST_SIZE + 1) + i * (TEST_SIZE));
           RD->nextMer();
           RD->theFMer().merToString(copy);
           strncpy(mseq + i * TEST_SIZE, copy, TEST_SIZE);
