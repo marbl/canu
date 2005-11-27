@@ -82,7 +82,9 @@ merStreamFileBuilder::build(bool beVerbose) {
   u64bit lastSeq           = _merStream->theSequenceNumber();
   u64bit lastBlockPosInSeq = _merStream->thePositionInSequence();
   u64bit lastBlockPosInStr = _merStream->thePositionInStream();
+#ifdef ENABLE_DEFLINE_SUPPORT
   u32bit lastDef           = ~u32bitZERO;
+#endif
 
   lastMer.writeToBitPackedFile(STREAM);
 
@@ -186,9 +188,9 @@ merStreamFileBuilder::build(bool beVerbose) {
   off_t deflineFileSize = sizeOfFile(deflinName);
   off_t streamFileSize  = sizeOfFile(streamName);
 
-  off_t blkStart = 8 * (sizeof(char) * 16 + sizeof(u32bit) * 2 + sizeof(u64bit) * 4 + sizeof(off_t) * 6);
-  off_t strStart = blkStart + 8 * blockFileSize;
-  off_t defStart = blkStart + 8 * blockFileSize + 8 * streamFileSize;
+  off_t blkStart = sizeof(char) * 16 + sizeof(u32bit) * 2 + sizeof(u64bit) * 4 + sizeof(off_t) * 6;
+  off_t strStart = blkStart + blockFileSize;
+  off_t defStart = blkStart + blockFileSize + streamFileSize;
 
   //
   //  This block MUST be a multiple of 64 bits long to keep the
@@ -270,8 +272,6 @@ merStreamFileReader::merStreamFileReader(const char *i, u32bit desiredMerSize) {
     exit(1);
   }
 
-  _streamFile = new bitPackedFile(streamName);
-
   errno = 0;
   fread(cigam,             sizeof(char),   16, rawFile);
   fread(&_merSizeInFile,   sizeof(u32bit), 1,  rawFile);  //  Padding.
@@ -326,7 +326,7 @@ merStreamFileReader::merStreamFileReader(const char *i, u32bit desiredMerSize) {
 
   //  Read the blocks
   //
-  _streamFile->seek(_blkStart);
+  bitPackedFile *blocksFile = new bitPackedFile(streamName, _blkStart);
 
   _blockSize      = new u32bit [_numBlocks];
   _blockSequence  = new u32bit [_numBlocks];
@@ -341,10 +341,10 @@ merStreamFileReader::merStreamFileReader(const char *i, u32bit desiredMerSize) {
   u32bit   merSizeDifference    = _merSizeDesired - _merSizeInFile;
 
   for (u64bit b=0; b<_numBlocks; b++) {
-    _blockSize[b]     = (u32bit)_streamFile->getNumber();
-    _blockSequence[b] = (u32bit)_streamFile->getNumber();
-    _blockPosInSeq[b] = (u64bit)_streamFile->getNumber();
-    _blockPosInStr[b] = (u64bit)_streamFile->getNumber();
+    _blockSize[b]     = (u32bit)blocksFile->getNumber();
+    _blockSequence[b] = (u32bit)blocksFile->getNumber();
+    _blockPosInSeq[b] = (u64bit)blocksFile->getNumber();
+    _blockPosInStr[b] = (u64bit)blocksFile->getNumber();
 
     //  XXX recompute the number of mers in this file here!
 
@@ -356,6 +356,8 @@ merStreamFileReader::merStreamFileReader(const char *i, u32bit desiredMerSize) {
             b, _blockSize[b], _blockSequence[b], _blockPosInSeq[b], _blockPosInStr[b]);
 #endif
   }
+
+  delete blocksFile;
 
   fprintf(stderr, "Found "u64bitFMT" mers at size "u32bitFMT", and "u64bitFMT" mers at desired size of "u32bitFMT"\n",
           _numMers, _merSizeInFile, numMersAtSizeDesired, _merSizeDesired);
@@ -373,7 +375,7 @@ merStreamFileReader::merStreamFileReader(const char *i, u32bit desiredMerSize) {
 
   errno = 0;
 
-  fseeko(rawFile, _defStart >> 3, SEEK_SET);
+  fseeko(rawFile, _defStart, SEEK_SET);
 
   if (errno) {
     fprintf(stderr, "merStreamFileReader()-- Failed to position file to deflines: %s\n", strerror(errno));
@@ -408,7 +410,7 @@ merStreamFileReader::merStreamFileReader(const char *i, u32bit desiredMerSize) {
 
   //  Position the bitPackedFile to the start of the merStream
   //
-  _streamFile->seek(_strStart);
+  _streamFile = new bitPackedFile(streamName, _strStart);
 
   delete [] streamName;
 
@@ -480,7 +482,7 @@ merStreamFileReader::seekToMer(u64bit merNumber) {
 
     _defline    = 0L;
 
-    _streamFile->seek(_strStart);
+    _streamFile->seek(0);
 
     return(true);
   }
@@ -539,8 +541,7 @@ merStreamFileReader::seekToMer(u64bit merNumber) {
   //  the block, the offset to the _start_ of the mer doesn't differ
   //  (the end of the mer does).
   //
-  _streamFile->seek(_strStart +
-                    block * _merSizeInFile * 2 +      //  first mer in n-1 blocks before this one
+  _streamFile->seek(block * _merSizeInFile * 2 +      //  first mer in n-1 blocks before this one
                     (totalMersInFile - block) * 2 +   //  rest of mers in those blocks
                     (merNumber - totalMers) * 2);     //  mers in this block before the mer we want
 
