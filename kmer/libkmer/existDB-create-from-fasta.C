@@ -10,7 +10,8 @@
 bool
 existDB::createFromFastA(char const  *filename,
                          u32bit       merSize,
-                         u32bit       tblBits) {
+                         u32bit       tblBits,
+                         u32bit       flags) {
 
   _hashTable = 0L;
   _buckets   = 0L;
@@ -32,10 +33,16 @@ existDB::createFromFastA(char const  *filename,
   u64bit  numberOfMers       = u64bitZERO;
   u64bit *countingTable      = new u64bit [tableSizeInEntries + 1];
 
+  if (_beVerbose)
+    fprintf(stderr, "existDB::createFromFastA()-- countingTable is "u64bitFMT"MB\n",
+            tableSizeInEntries >> 17);
+
   for (u64bit i=tableSizeInEntries+1; i--; )
     countingTable[i] = 0;
 
-
+  bool  doCanonical = flags & existDBcanonical;
+  bool  doForward   = flags & existDBforward;
+  bool  doReverse   = flags & existDBreverse;
 
   ////////////////////////////////////////////////////////////////////////////////
   //
@@ -45,10 +52,22 @@ existDB::createFromFastA(char const  *filename,
   merStream     *M = new merStream(_merSizeInBases, F);
 
   while (M->nextMer()) {
-    countingTable[ HASH(M->theFMer()) ]++;
-    numberOfMers++;
+    if (doForward) {
+      countingTable[ HASH(M->theFMer()) ]++;
+      numberOfMers++;
+    }
+
+    if (doReverse) {
+      countingTable[ HASH(M->theRMer()) ]++;
+      numberOfMers++;
+    }
+
+    if (doCanonical) {
+      fprintf(stderr, "ERROR:  canonical mers in existDB not implemented.\n");
+      exit(1);
+    }
   }
-    
+
   delete M;
   delete F;
 
@@ -153,20 +172,15 @@ existDB::createFromFastA(char const  *filename,
   F = new FastAstream(filename);
   M = new merStream(_merSizeInBases, F);
 
-  u64bit  h;
-
   while (M->nextMer()) {
-    h = HASH(M->theFMer());
+    if (doForward)
+      INSERT(HASH(M->theFMer()), CHECK(M->theFMer()), countingTable);
 
-    if (_compressedBucket)
-      setDecodedValue(_buckets,
-                      countingTable[h] * _chckWidth,
-                      _chckWidth,
-                      CHECK(M->theFMer()));
-    else
-      _buckets[countingTable[h]] = CHECK(M->theFMer());
+    if (doReverse)
+      INSERT(HASH(M->theRMer()), CHECK(M->theRMer()), countingTable);
 
-    countingTable[h]++;
+    if (doCanonical)
+      ;  //  Not implemented, caught above
   }
 
   delete M;

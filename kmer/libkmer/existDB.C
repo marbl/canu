@@ -51,17 +51,22 @@ existDB::existDB(char const    *filename,
     return;
   }
 
+  //  If no direction flags are set, set the default direction of forward.
   //
+  if (flags & (existDBcanonical | existDBforward | existDBreverse) == 0)
+    flags |= existDBforward;
+
+
   //  If we can open 'filename' for reading, then we assume the file is a multi-fasta, and
   //  we build an existDB using merSize = p1 and tblBits = p2
   //
   //  Otherwise, we assume that 'filename' is really the prefix for a meryl database.
-  //  
+
 
   if (fileExists(filename))
-    createFromFastA(filename, merSize, tblBits);
+    createFromFastA(filename, merSize, tblBits, flags);
   else
-    createFromMeryl(filename, lo, hi, tblBits);
+    createFromMeryl(filename, lo, hi, tblBits, flags);
 }
 
 

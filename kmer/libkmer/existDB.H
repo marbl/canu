@@ -57,11 +57,13 @@ private:
   bool        loadState(char const *filename, bool beNoisy=false, bool loadData=true);
   bool        createFromFastA(char const  *filename,
                               u32bit       merSize,
-                              u32bit       tblBits);
+                              u32bit       tblBits,
+                              u32bit       flags);
   bool        createFromMeryl(char const  *filename,
                               u32bit       lo,
                               u32bit       hi,
-                              u32bit       tblBits);
+                              u32bit       tblBits,
+                              u32bit       flags);
 
   u64bit       HASH(u64bit k) {
     return(((k >> _shift1) ^ (k >> _shift2) ^ k) & _mask1);
@@ -69,6 +71,14 @@ private:
 
   u64bit       CHECK(u64bit k) {
     return(k & _mask2);
+  };
+
+  void         INSERT(u64bit h, u64bit c, u64bit *countingTable) {
+    if (_compressedBucket)
+      setDecodedValue(_buckets, countingTable[h] * _chckWidth, _chckWidth, c);
+    else
+      _buckets[countingTable[h]] = c;
+    countingTable[h]++;
   };
 
   bool        _compressedHash;

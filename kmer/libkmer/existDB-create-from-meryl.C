@@ -11,7 +11,8 @@ bool
 existDB::createFromMeryl(char const  *prefix,
                          u32bit       lo,
                          u32bit       hi,
-                         u32bit       tblBits) {
+                         u32bit       tblBits,
+                         u32bit       flags) {
 
   merylStreamReader *M = new merylStreamReader(prefix);
 
@@ -35,26 +36,42 @@ existDB::createFromMeryl(char const  *prefix,
   u64bit  numberOfMers       = u64bitZERO;
   u64bit *countingTable      = new u64bit [tableSizeInEntries + 1];
 
-#if 1
-  fprintf(stderr, "existDB::createFromMeryl()-- countingTable is "u64bitFMT"MB\n",
-          tableSizeInEntries >> 17);
-#endif
+  if (_beVerbose)
+    fprintf(stderr, "existDB::createFromMeryl()-- countingTable is "u64bitFMT"MB\n",
+            tableSizeInEntries >> 17);
 
   for (u64bit i=tableSizeInEntries+1; i--; )
     countingTable[i] = 0;
 
+  bool  doCanonical = flags & existDBcanonical;
+  bool  doForward   = flags & existDBforward;
+  bool  doReverse   = flags & existDBreverse;
 
   //  1) Count bucket sizes
   //     While we don't know the bucket sizes right now, but we do know
-  //     how many buckets and how many mers.  Unfortunately, we still
-  //     need to HASH() each of the mers, so that we can use the existing
-  //     exists() method.
+  //     how many buckets and how many mers.
   //
-
+  //  Because we could be inserting both forward and reverse, we can't
+  //  really move the direction testing outside the loop, unless we
+  //  want to do two iterations over M.
+  //
   while (M->nextMer()) {
     if ((lo <= M->theCount()) && (M->theCount() <= hi)) {
-      countingTable[ HASH(M->theFMer()) ]++;
-      numberOfMers++;
+      if (doForward) {
+        countingTable[ HASH(M->theFMer()) ]++;
+        numberOfMers++;
+      }
+
+      if (doReverse) {
+        //  Ouch!  No nice way to do this.  reverseComplement() modifies theFMer inplace!
+        countingTable[ HASH(M->theFMer().reverseComplement()) ]++;
+        numberOfMers++;
+      }
+
+      if (doCanonical) {
+        fprintf(stderr, "ERROR:  canonical mers in existDB not implemented.\n");
+        exit(1);
+      }
     }
   }
 
@@ -134,21 +151,18 @@ existDB::createFromMeryl(char const  *prefix,
   //
   M = new merylStreamReader(prefix);
 
-  u64bit  h;
-
   while (M->nextMer()) {
     if ((lo <= M->theCount()) && (M->theCount() <= hi)) {
-      h = HASH(M->theFMer());
+      if (doForward)
+        INSERT(HASH(M->theFMer()), CHECK(M->theFMer()), countingTable);
 
-      if (_compressedBucket)
-        setDecodedValue(_buckets,
-                        countingTable[h] * _chckWidth,
-                        _chckWidth,
-                        CHECK(M->theFMer()));
-      else
-        _buckets[countingTable[h]] = CHECK(M->theFMer());
+      if (doReverse) {
+        M->theFMer().reverseComplement();
+        INSERT(HASH(M->theFMer()), CHECK(M->theFMer()), countingTable);
+      }
 
-      countingTable[h]++;
+      if (doCanonical)
+        ;  //  Not implemented, caught above
     }
   }
 
