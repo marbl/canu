@@ -8,6 +8,7 @@
 //
 #include "bitOperations.h"
 #include "bitPacking.h"
+#include "endianess.H"
 
 //  Various methods for encoding numbers into a bitstream.
 //
