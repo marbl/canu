@@ -51,12 +51,7 @@ public:
   ~kMer()                     { };
 
 
-#if 0
-
-  //  We were calling reverseComplementMer incorrectly, but it looks
-  //  like we never called this function anyway!
-
-  void   reverseComplement(void) {
+  kMer  &reverseComplement(void) {
 #if KMER_WORDS == 1
     reverseComplementMer(_merSize, _wd[0]);
 #else
@@ -81,9 +76,9 @@ public:
 
     *this >>= KMER_WORDS * 64 - 2 * _merSize;
 #endif
+    return(*this);
   };
 
-#endif
 
 
   //  Return the right-most bits in the mer, XXX, used only by bitPackedFileBuilder
