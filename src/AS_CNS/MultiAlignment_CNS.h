@@ -61,13 +61,14 @@ typedef struct {
  */
 int32    nr;          // number of reads in the region of variation
 int32    max_nr;
-int32   *iids;        // iids of the reads
-char    *alleles;     // may be 0 or 1
 int32    nr_best_allele;
-char    *types;
 int32    best_allele;
-int32   *sum_qvs;     // used to select the best allele
 double   ratio;
+char    *bases;
+char    *alleles;     // may be 0 or 1
+char    *types;
+int32   *iids;        // iids of the reads
+int32   *sum_qvs;     // used to select the best allele
 int32  **dist_matrix; // nr x nr matrix of cross-distances between reads
 } AlPair;
 
@@ -292,7 +293,7 @@ int GetMANodeConsensus(int32 mid, VA_TYPE(char) *, VA_TYPE(char) *);
 int GetMANodePositions(int32 , int, IntMultiPos *, int, IntUnitigPos *, 
     VA_TYPE(int32) *);
 void PrintAlignment(FILE *, int32, int32, int32, CNS_PrintKey );
-int32 MergeRefine(int32 , IntMultiVar **, int32 *, CNS_Options *);
+int32 MergeRefine(int32 , IntMultiVar **, int32 *, CNS_Options *, int);
 
 typedef enum {
   LEFT_SHIFT  = (int) 'L', // Left Shifted
