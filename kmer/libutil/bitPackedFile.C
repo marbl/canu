@@ -12,7 +12,7 @@
 //  N.B. any read/write pair (either way) must have a seek (or a fflush) in between.
 //
 
-bitPackedFile::bitPackedFile(char const *name) {
+bitPackedFile::bitPackedFile(char const *name, u64bit offset) {
 
   //  Try to open the original name -- we don't support compressed
   //  files for rewrite.  We just fail with a can't open message.
@@ -57,6 +57,58 @@ bitPackedFile::bitPackedFile(char const *name) {
   stat_seekOutside  = u64bitZERO;
   stat_dirtyFlushes = u64bitZERO;
 
+  //  Move to the correct position in the file.
+  //
+  file_offset = offset;
+  lseek(_file, file_offset, SEEK_SET);
+
+  //  Deal with endianess.  We write out some bytes (or read back some bytes) to the start of
+  //  the file, and then hide them from the user.
+  //
+  endianess_offset  = 32 + file_offset;
+  endianess_flipped = false;
+
+  char    t[16] = { 'b', 'i', 't', 'P', 'a', 'c', 'k', 'e', 'd', 'F', 'i', 'l', 'e', 0, 0, 1 };
+  char    c[16] = { 0 };
+  u64bit  a = u64bitNUMBER(0xdeadbeeffeeddada );
+  u64bit  b = u64bitNUMBER(0x0abeadedbabed8f8);
+
+  size_t num = read(_file, c, sizeof(char) * 16);
+  if (num == 0) {
+    //  Empty file!  Write the magic number and our endianess check.
+    //
+    errno = 0;
+    write(_file,  t, sizeof(char) * 16);
+    write(_file, &a, sizeof(u64bit));
+    write(_file, &b, sizeof(u64bit));
+    if (errno)
+      fprintf(stderr, "bitPackedFile::bitPackedFile()-- '%s' failed to write the header: %s\n", name, strerror(errno)), exit(1);
+  } else {
+    //  We read something.  Make sure it's correct, then check endianess.
+    //
+    if (strncmp(t, c, 16) == 0) {
+      u64bit ac, bc;
+      read(_file, &ac, sizeof(u64bit));
+      read(_file, &bc, sizeof(u64bit));
+
+      if ((a == ac) && (b == bc)) {
+        endianess_flipped = false;
+      } else if ((a == u64bitSwap(ac)) && (b == u64bitSwap(bc))) {
+        endianess_flipped = true;
+      } else {
+        fprintf(stderr, "bitPackedFile::bitPackedFile()-- '%s' looked like a bitPackedFile, but failed the endianess check, not opened.\n", name);
+        exit(1);
+      }
+    } else {
+      fprintf(stderr, "bitPackedFile::bitPackedFile()-- '%s' doesn't appear to be a bitPackedFile, not opened.\n", name);
+      fprintf(stderr, "bitPackedFile::bitPackedFile()-- found ");
+      for (u32bit i=0; i<16; i++)
+        fprintf(stderr, "%c", isascii(c[i]) ? c[i] : '.');
+      fprintf(stderr, " at position "u64bitHEX"\n", file_offset);
+      exit(1);
+    }
+  }
+
   seek(0, true);
 }
 
@@ -79,7 +131,7 @@ bitPackedFile::flushDirty(void) {
     stat_dirtyFlushes++;
 
     errno = 0;
-    lseek(_file, _pos * sizeof(u64bit), SEEK_SET);
+    lseek(_file, _pos * sizeof(u64bit) + endianess_offset, SEEK_SET);
     if (errno) {
       fprintf(stderr, "bitPackedFile::seek() failed: %s\n", strerror(errno));
       exit(1);
@@ -93,12 +145,25 @@ bitPackedFile::flushDirty(void) {
     //  on to the next one, we'll flush that word again.  So, in
     //  either case, we flush the word that contains _bit.
     //
+
+    //  If we need to , flip all the words we are going to write
+    //
+    if (endianess_flipped)
+      for (u32bit i=0; i<_bfrmax; i++)
+        _bfr[i] = u64bitSwap(_bfr[i]);
+
     errno = 0;
     write(_file, _bfr, sizeof(u64bit) * _bfrmax);
     if (errno) {
       fprintf(stderr, "bitPackedFile::write() failed: %s\n", strerror(errno));
       exit(1);
     }
+
+    //  And then flip them back
+    //
+    if (endianess_flipped)
+      for (u32bit i=0; i<_bfrmax; i++)
+        _bfr[i] = u64bitSwap(_bfr[i]);
 
     _bfrDirty = false;
   }
@@ -157,7 +222,7 @@ bitPackedFile::seek(u64bit bitpos, bool forceLoad) {
 
 
   errno = 0;
-  lseek(_file, _pos * 8, SEEK_SET);
+  lseek(_file, _pos * 8 + endianess_offset, SEEK_SET);
   if (errno) {
     fprintf(stderr, "bitPackedFile::seek() failed: %s\n", strerror(errno));
     exit(1);
@@ -169,6 +234,12 @@ bitPackedFile::seek(u64bit bitpos, bool forceLoad) {
     fprintf(stderr, "bitPackedFile::bitPackedFile got %s\n", strerror(errno));
     exit(1);
   }
+
+  //  Flip all the words we just read, if needed
+  //
+  if (endianess_flipped)
+    for (u32bit i=0; i<wordsread; i++)
+      _bfr[i] = u64bitSwap(_bfr[i]);
 
   //  Clear any words that we didn't read (supposedly, because we hit
   //  EOF).

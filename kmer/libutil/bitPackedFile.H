@@ -7,7 +7,7 @@
 //
 class bitPackedFile {
 public:
-  bitPackedFile(char const *name);
+  bitPackedFile(char const *name, u64bit offset=0);
   ~bitPackedFile();
 
   u64bit     getBits(u32bit size);
@@ -58,6 +58,12 @@ private:
   u64bit  stat_seekInside;
   u64bit  stat_seekOutside;
   u64bit  stat_dirtyFlushes;
+
+  //  For converting between hardware of different endianess.
+  //
+  u64bit  file_offset;
+  u64bit  endianess_offset;
+  bool    endianess_flipped;
 };
 
 
