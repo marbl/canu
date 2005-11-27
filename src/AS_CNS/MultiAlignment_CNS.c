@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.42 2005-11-21 01:28:45 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.43 2005-11-27 17:06:42 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -73,10 +73,11 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.42 2005-11-21 01:28:45 gden
 #define CNS_LOOSESEMIBANDWIDTH            100
 #define CNS_NEG_AHANG_CUTOFF               -5
 #define CNS_MAX_ALIGN_SLIP                 20
-#define STABWIDTH                           6
+#define INITIAL_NR                         50
 #define MAX_ALLOWED_MA_DEPTH               40
 #define MAX_EXTEND_LENGTH                2048
 #define SHOW_ABACUS                        0
+#define STABWIDTH                           6
 
 // Parameters used by Abacus processing code
 #define MSTRING_SIZE                        3
@@ -110,6 +111,16 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.42 2005-11-21 01:28:45 gden
 #include "Array_CNS.h"
 #include "UtilsREZ.h"
 //#include "CA_ALN_local.h"
+
+extern int MaxBegGap;       // [ init value is 200; this could be set to the amount you extend the clear
+                            // range of seq b, plus 10 for good measure]
+extern int MaxEndGap;       // [ init value is 200; this could be set to the amount you extend the
+                            // clear range of seq a, plus 10 for good measure]
+
+int ScoreNumColumns;
+int ScoreNumRunsOfGaps;
+int ScoreNumAAMismatches;
+int ScoreNumFAMismatches;
 
 //*********************************************************************************
 //  Tables to facilitate SNP Basecalling
@@ -1749,10 +1760,17 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
                 continue;
             }
             bmask = AMASK[BaseToInt(cbase)];
-            type = GetFragment(fragmentStore,bead->frag_index)->type;
-            iid  = GetFragment(fragmentStore,bead->frag_index)->iid;
+            type  = GetFragment(fragmentStore,bead->frag_index)->type;
+            iid   = GetFragment(fragmentStore,bead->frag_index)->iid;
+            k     = IidToIndex(iid, ap.iids, ap.nr);
 
-            k = IidToIndex(iid, ap.iids, ap.nr);
+            if ((k>=0) &&
+                ((type  == AS_READ)   ||
+                 (type  == AS_B_READ) ||
+                 (type  == AS_EXTR)   ||
+                 (type  == AS_TRNR)))
+                ap.bases[k] = cbase;
+
             if (((type  == AS_READ)   ||
                  (type  == AS_B_READ) ||
                  (type  == AS_EXTR)   ||
@@ -2150,14 +2168,12 @@ GetReadIids(int cid, AlPair *ap)
             num_reads++;
             if (IsNewRead(iid, ap)) {
 
-                if (ap->nr == ap->max_nr)
-                {
+                if (ap->nr == ap->max_nr) {
                     int l;
                     ap->max_nr += MIN_ALLOCATED_DEPTH;
                     ap->iids = (int32 *)safe_realloc(ap->iids, 
                         ap->max_nr*sizeof(int32));
-                    for (l=ap->nr; l<ap->max_nr; l++)
-                    {
+                    for (l=ap->nr; l<ap->max_nr; l++) {
                         ap->iids[l] = -1;
                     }
                 }
@@ -2397,6 +2413,9 @@ ClusterReads(AlPair *ap)
         }
     }
 
+#if 0
+    fprintf(stderr, "sum_qv0= %d sum_qv1= %d\n", sum_qv0, sum_qv1);
+#endif
     if (sum_qv0 > sum_qv1 + ZERO_PLUS) 
     {
         ap->best_allele = 0;
@@ -2409,20 +2428,79 @@ ClusterReads(AlPair *ap)
         ap->ratio = (double)sum_qv0/(double)sum_qv1;   
         ap->nr_best_allele = nr1;
     }
+#if 0
+    fprintf(stderr, "sum_qv0 = %d sum_qv1 = %d best_allele = %d ratio = %f nrb = %d\n", 
+        sum_qv0,  sum_qv1, ap->best_allele, ap->ratio, ap->nr_best_allele);
+#endif
+
+}
+
+static int
+is_good_base(char b)
+{
+    if (b == '-')             return 1;
+    if (b == 'a' || b == 'A') return 1;
+    if (b == 'c' || b == 'C') return 1;
+    if (b == 'g' || b == 'G') return 1;
+    if (b == 't' || b == 'T') return 1;
+    if (b == 'n' || b == 'N') return 1;
+    return 0;
+}
+
+static void
+UpdateScores(AlPair ap, char cbase, char abase, int prev_nr, char *prev_bases,
+   int32 *prev_iids)
+{
+    int i, j;
+
+    if (cbase != abase)
+        ScoreNumAAMismatches++;
+
+    // Updating count of fragment bases mismatching 
+    // the consensus base of the corresponding allele
+    for (i=0; i<ap.nr; i++)
+    {
+       if ((ap.alleles[i] == ap.best_allele) && 
+           is_good_base(ap.bases[i])         &&
+           (ap.bases[i]   != cbase))
+            ScoreNumFAMismatches++;
+
+       if ((ap.alleles[i] != ap.best_allele) &&
+           is_good_base(ap.bases[i])         &&
+           (ap.bases[i]   != abase))
+            ScoreNumFAMismatches++;
+    } 
+
+    // Updating count of stretches of gaps          
+    for (i=0; i<prev_nr; i++) {
+       if (prev_bases[i] == '-')
+           continue;
+
+       for (j=0; j<ap.nr; j++) { 
+           if (ap.bases[j] != '-')
+               continue;
+
+           if (prev_iids[i] == ap.iids[j])
+               ScoreNumRunsOfGaps++;
+       }
+    }
 }
 
 //*********************************************************************************
 // Basic MultiAlignmentNode (MANode) manipulation
 //*********************************************************************************
-    int RefreshMANode(int32 mid, int quality, CNS_Options *opp, 
-                      int32 *nvars, IntMultiVar **v_list, int make_v_list)
+int 
+RefreshMANode(int32 mid, int quality, CNS_Options *opp, 
+                      int32 *nvars, IntMultiVar **v_list, int make_v_list,
+                      int get_scores)
 {
     // refresh columns from cid to end
     // if quality == -1, don't recall the consensus base
-    int     i, j, index=0, len_manode = MIN_SIZE_OF_MANODE;
-    int32   cid, *cids;
-    int     window, beg, end, vbeg, vend;
-    char    cbase;
+    int     i, j, l, index=0, len_manode = MIN_SIZE_OF_MANODE;
+    int32   cid, *cids, *prev_iids;
+    int     window, beg, end, vbeg, vend, max_prev_nr=INITIAL_NR,
+            prev_nr=0;
+    char    cbase, abase, *prev_bases;
     char   *var_seq=NULL;
     double *varf=NULL, *svarf=NULL;
     Column *column;
@@ -2443,6 +2521,9 @@ ClusterReads(AlPair *ap)
 
     window = opp->smooth_win;
 
+#if 0
+    fprintf(stderr, "Calling RefreshMANode, quality = %d\n", quality);
+#endif
     SetDefault(&ap);
     varf  = (double *)safe_calloc(len_manode, sizeof(double)); 
     cids = (int32 *)safe_calloc(len_manode, sizeof(int32));
@@ -2468,6 +2549,8 @@ ClusterReads(AlPair *ap)
                 varf  = (double *)safe_realloc(varf,  len_manode*sizeof(double));
                 cids = (int32 *)safe_realloc(cids, len_manode*sizeof(int32));
             }
+            // Call consensus using both the alleles
+            // The goal is to calculate variation at a given position
             BaseCall(cid, quality, &(varf[index]), ap, -1, &cbase, 0, opp);
             cids[index] = cid;
         }
@@ -2482,8 +2565,15 @@ ClusterReads(AlPair *ap)
                 CleanExit("RefreshMANode column relationships violated",__LINE__,1);
             }
         }
+
         cid = column->next;
         index++;
+    }
+
+    if (get_scores ) {
+        ScoreNumColumns += index;
+        prev_bases = (char  *)safe_malloc(max_prev_nr*sizeof(char ));
+        prev_iids  = (int32 *)safe_malloc(max_prev_nr*sizeof(int32));
     }
 
     if ((opp->split_alleles == 0) ||
@@ -2498,17 +2588,14 @@ ClusterReads(AlPair *ap)
     // Smoothen variation 
     len_manode = index -1;
     svarf= (double *)safe_calloc(len_manode, sizeof(double));
-    for (i=0; i<len_manode; i++)
-    {
+    for (i=0; i<len_manode; i++) {
         svarf[i] = varf[i];
     }
     SmoothenVariation(svarf, len_manode, window);
 
     // Recall beses using only one of two alleles
-    for (i=0; i<len_manode; i++)
-    { 
-        if (svarf[i] == 0)
-        {
+    for (i=0; i<len_manode; i++) { 
+        if (svarf[i] == 0) {
             continue;
         }
         else 
@@ -2528,41 +2615,40 @@ ClusterReads(AlPair *ap)
             while (varf[end] < ZERO_PLUS)
                 end--;
 
+#if 0
+            fprintf(stderr, "window=%d vbeg=%d beg=%d end=%d vend=%d\n", 
+                window, vbeg, beg, end, vend);
+#endif
+ 
             // Store iids of all the reads in current region
             ap.nr = 0;
             ap.max_nr = MIN_ALLOCATED_DEPTH;
-            ap.iids = (int32 *)safe_calloc(MIN_ALLOCATED_DEPTH, sizeof(int32));
-            {
-                int l;
-                for(l=0; l<MIN_ALLOCATED_DEPTH; l++)
-                {
-                    ap.iids[l] = -1;
-                }
-            }
+            ap.iids = (int32 *)safe_calloc(ap.max_nr, sizeof(int32));
+            for(l=0; l<ap.max_nr; l++) 
+                ap.iids[l] = -1;
 
             // Get all the read iids 
             // Calculate the total number of reads, ap.nr (corresponding to any allele)
-            for (j=beg; j<=end; j++)
-            {
+            for (j=beg; j<=end; j++) 
                 GetReadIids(cids[j], &ap);
-            }
 #if 0
             fprintf(stderr, "beg= %d end= %d\n", beg, end);
             fprintf(stderr, "total number of reads after GetReadIids= %d\n", ap.nr);
 #endif       
    
             ap.alleles = (char *)safe_calloc(ap.nr, sizeof(char));
+            ap.bases   = (char *)safe_calloc(ap.nr, sizeof(char));
             ap.sum_qvs = (int  *)safe_calloc(ap.nr, sizeof(int));
             for (j=0; j<ap.nr; j++)
                 ap.alleles[j] = -1;    
 
 
             AllocateDistMatrix(&ap);
+
+            // Calculate a sum of qvs for each read within a variation region
             // Populate the distance matrix
             for (j=beg; j<=end; j++)
-            {
                 PopulateDistMatrix(cids[j], &ap);    
-            }
 
 //          OutputDistMatrix(&ap);
 
@@ -2570,6 +2656,9 @@ ClusterReads(AlPair *ap)
             // Determine the best allele and the number of reads in this allele
             ClusterReads(&ap);   
 
+#if 0
+            fprintf(stderr, "total number of reads after ClusterReads %d\n", ap.nr);
+#endif
             /* Store variations in a v_list */
            *nvars = 0;
             if ((quality > 0) && make_v_list 
@@ -2604,17 +2693,31 @@ ClusterReads(AlPair *ap)
                     {
                        // Get the consensus base for an alternative allele
                        BaseCall(cids[beg+m], quality, &fict_var, ap,
-                           ap.best_allele == 0 ? 1 : 0, &cbase, 0, opp);
-                       (*v_list)[*nvars].var_seq[end-beg+2+m] = cbase;
-                    }
-                    (*v_list)[*nvars].var_seq[end-beg+1] = '/';
-                    for (m=0; m<end-beg+1; m++)
-                    {
+                           ap.best_allele == 0 ? 1 : 0, &abase, 0, opp);
                        // Get the consensus base for the best allele
                        BaseCall(cids[beg+m], quality, &fict_var, ap,
-                           ap.best_allele, &cbase, 0, opp);
-                       (*v_list)[*nvars].var_seq[m] = cbase;
-                    } 
+                           ap.best_allele,              &cbase, 0, opp);
+                       (*v_list)[*nvars].var_seq[end-beg+2+m] = abase;
+                       (*v_list)[*nvars].var_seq[m          ] = cbase;
+                       if (get_scores)
+                       {
+                           UpdateScores(ap, cbase, abase, prev_nr, prev_bases,
+                              prev_iids);
+                           if (ap.nr > max_prev_nr) {
+                               max_prev_nr =  ap.nr;           
+                               prev_bases = (char *)safe_realloc(prev_bases,
+                                   max_prev_nr*sizeof(char));
+                               prev_iids  = (int32 *)safe_realloc(prev_iids,
+                                   max_prev_nr*sizeof(int32));
+                           }
+                           prev_nr = ap.nr;
+                           for (i=0; i<ap.nr; i++) {
+                               prev_bases[i] = ap.bases[i];
+                               prev_iids[i]  = ap.iids[i];
+                           }
+                        }
+                    }
+                    (*v_list)[*nvars].var_seq[end-beg+1] = '/';
                     (*v_list)[*nvars].var_seq[2*(end-beg)+3] = '\0';
                 }
                 (*nvars)++;
@@ -2623,6 +2726,7 @@ ClusterReads(AlPair *ap)
             i = vend;
             FREE(ap.iids); 
             FREE(ap.alleles);
+            FREE(ap.bases);    
             FREE(ap.sum_qvs);
 
             for (j=0; j<ap.nr; j++)
@@ -2636,6 +2740,10 @@ ClusterReads(AlPair *ap)
     FREE(varf);
     FREE(svarf);
     FREE(cids);
+    if (get_scores) {
+        FREE(prev_bases);
+        FREE(prev_iids);
+    }
     return 1;
 }
 
@@ -2664,7 +2772,7 @@ int SeedMAWithFragment(int32 mid, int32 fid, int quality,
       IntMultiVar *vl = NULL;
       int32 nv=0;
       int make_v_list = 0;
-      RefreshMANode(mid, quality, opp, &nv, &vl, make_v_list); 
+      RefreshMANode(mid, quality, opp, &nv, &vl, make_v_list, 0); 
       if (vl) free(vl);
   }
   return 1;
@@ -2760,13 +2868,6 @@ int * UnpackTrace(int ahang, signed char *rdelta) {
   delta[delta_pos]=0;
   return delta;
 }
-
-
-extern int MaxBegGap;       // [ init value is 200; this could be set to the amount you extend the clear
-                            // range of seq b, plus 10 for good measure]
-extern int MaxEndGap;       // [ init value is 200; this could be set to the amount you extend the
-                            // clear range of seq a, plus 10 for good measure]
-
 
 
 typedef enum { 
@@ -4116,7 +4217,7 @@ int RemoveNullColumn(int32 nid) {
 //*********************************************************************************
 
 int32 MergeRefine(int32 mid, IntMultiVar **v_list, int32 *num_vars, 
-    CNS_Options *opp)
+    CNS_Options *opp, int get_scores)
 {
   MANode      *ma = NULL;
   int32 cid;
@@ -4153,7 +4254,7 @@ int32 MergeRefine(int32 mid, IntMultiVar **v_list, int32 *num_vars,
  
       if (v_list && num_vars)
           make_v_list = 1;
-      RefreshMANode(mid, 1, opp, &nv, &vl, make_v_list);
+      RefreshMANode(mid, 1, opp, &nv, &vl, make_v_list, get_scores);
       if (make_v_list && num_vars)
       {
           if (nv > 0)
@@ -4567,6 +4668,10 @@ int MergeAbacus(Abacus *abacus)
            break;
         last_non_null = j;
     }
+#if 0
+    fprintf(stderr, "abacus->columns=%d last non-null = %d\n", 
+        abacus->columns, last_non_null);
+#endif
     for (j=0;j<last_non_null;j++) {
         //for (j=0;j<abacus->columns-1;j++) {
         mergeok = 1;
@@ -4810,16 +4915,28 @@ int32 MixedShift(Abacus *abacus, int *mcols, AlPair ap, int lpos, int rpos,
                    (ccol+1<window_end) ) {
                ccol++;
             }
+#if 0
+            fprintf(stderr, "ccol=%d\n", ccol);
+#endif
             // now, from ccol back down to j, look for column with matching call
             for ( pcol = ccol;pcol>j;pcol--) {
                call = abacus->calls[pcol];
+#if 0
+               fprintf(stderr, "i=%d j=%d c=%c pcol=%d call=%d \n", i, j, c, pcol, call);
+#endif
                if ( call != 'n' && call != c && c != 'n' ) {
                   continue;
                }
                if ( call == 'n') {
                   abacus->calls[pcol] = c;
                }
+#if 0
+               fprintf(stderr, "abacus->calls=%c c=%c\n", abacus->calls, c);
+#endif
                if (abacus->calls[pcol] == c || c == 'n' ) {
+#if 0
+               fprintf(stderr, "Swapping elements (%d, %d)=%c  and (%d, %d)='-'\n", i, j, c, i, pcol);
+#endif
                   SetAbacus(abacus,i,j,'-');
                   SetAbacus(abacus,i,pcol,c);
                   break;
@@ -5196,17 +5313,6 @@ void ShowCalls(Abacus *abacus)
     fprintf(stderr, "\n");
 }
 
-is_good_base(char b)
-{
-    if (b == '-')             return 1;
-    if (b == 'a' || b == 'A') return 1;
-    if (b == 'c' || b == 'C') return 1;
-    if (b == 'g' || b == 'G') return 1;
-    if (b == 't' || b == 'T') return 1;
-    if (b == 'n' || b == 'N') return 1;
-    return 0;
-}
-   
 static void 
 GetReadsForAbacus(char ***reads, Abacus *abacus)
 {
@@ -5316,6 +5422,9 @@ ClusterReadsForAbacus(AlPair *ap, char **reads, Abacus *abacus)
         }
     }
 
+#if 0
+    fprintf(stderr, "sum_qv0= %d sum_qv1= %d\n", sum_qv0, sum_qv1);
+#endif
     if (sum_ng0 > sum_ng1) {
         ap->best_allele = 0;
         ap->ratio = (double)sum_ng1/(double)sum_ng0;
@@ -5326,6 +5435,11 @@ ClusterReadsForAbacus(AlPair *ap, char **reads, Abacus *abacus)
         ap->ratio = (double)sum_ng0/(double)sum_ng1;
         ap->nr_best_allele = nr1;
     }
+#if 0
+    fprintf(stderr, "sum_qv0 = %d sum_qv1 = %d best_allele = %d ratio = %f nrb = %d\n",
+        sum_qv0,  sum_qv1, ap->best_allele, ap->ratio, ap->nr_best_allele);
+#endif
+
 }
 
 static int 
@@ -5363,6 +5477,9 @@ GetConsensusForAbacus(AlPair *ap, char **reads, Abacus *abacus,
         int best_count1=0, second_best_count1=0;
         char cbase0, cbase1;
         for (j=0; j<abacus->rows; j++) {
+#if 0
+            fprintf(stderr, " reads[%d][%d]= %c\n", j, i, reads[j][i]);
+#endif
             if (is_good_base(reads[j][i]))
             {
                 if   (ap->alleles[j] == 0) 
@@ -5596,6 +5713,9 @@ GetRightScore(char **ugconsensus, int *uglen, int **imap, int *adjright,
         j--;
     }
     /* Position in ungapped consensus */
+#if 0
+     fprintf(stderr, "long_allele=%d  maxpos =%d \n", long_allele, *maxpos);
+#endif
     *maxpos = imap[short_allele][*maxpos];
 }
 
@@ -5603,6 +5723,11 @@ static void
 AdjustShiftingInterfaces(int *lpos, int *rpos, int lscore, int rscore,
     int *adjleft, int *adjright, int long_allele, int short_allele)
 {
+#if 0
+    fprintf(stderr, "\nlpos=%d rpos=%d lscore=%d rscore=%d \n", *lpos, *rpos, lscore, rscore);
+    fprintf(stderr, "adjleft = %d %d  adjright= %d %d \n", adjleft[0], adjleft[1],
+        adjright[0], adjright[1]);
+#endif
     if (adjleft[long_allele] > 5)
     {
        *lpos = -1;
@@ -5729,10 +5854,28 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
     //ShowAbacus(orig_abacus);
     MergeAbacus(orig_abacus);
     orig_score = ScoreAbacus(orig_abacus,&orig_columns);
+#if 0
+    fprintf(stderr, "OrigCalls=\n");
+    ShowCalls(orig_abacus);
+    fprintf(stderr, "Abacus=\n");
+    ShowAbacus(orig_abacus);
+#endif
     //ShowAbacus(orig_abacus);
     right_abacus = CloneAbacus(left_abacus);
     left_score = LeftShift(left_abacus,&left_columns);
+#if 0
+    fprintf(stderr, "LeftShiftCalls=\n");
+    ShowCalls(left_abacus);
+    fprintf(stderr, "Abacus=\n");
+    ShowAbacus(left_abacus);
+#endif
     right_score = RightShift(right_abacus,&right_columns);
+#if 0
+    fprintf(stderr, "RightShiftCalls=\n");
+    ShowCalls(right_abacus);
+    fprintf(stderr, "Abacus=\n");
+    ShowAbacus(right_abacus);
+#endif
     //fprintf(stderr,"Abacus Report:\norig_score: %d left_score: %d right_score: %d\n",
     //             orig_score,left_score,right_score);
     //ShowAbacus(left_abacus);
@@ -5746,6 +5889,15 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
     best_gap_score  = orig_gap_score;
     best_score      = orig_score;
 
+
+#if 0
+    fprintf(stderr, "In RefineWindow: beg= %lu end= %d\n", start_column->lid, stab_bgn);
+     fprintf(stderr, "    w_width left= %d orig= %d right= %d\n", left_abacus->window_width, orig_abacus->window_width,
+                                                                     right_abacus->window_width);
+    fprintf(stderr, "       score left= %d orig= %d right= %d\n", left_score, orig_score, right_score);
+    fprintf(stderr, "   gap_score left= %d orig= %d right= %d\n", left_gap_score, orig_gap_score, right_gap_score);
+    fprintf(stderr, "     columns left= %d orig= %d right= %d\n", left_columns, orig_columns, right_columns);
+#endif
     // Changed by Gennady Denisov:
     // Apply hyerarchically three criteria to refine abacus:
     //      1) score
@@ -5758,6 +5910,9 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
           //fprintf(stderr,"\nTry to apply LEFT abacus:\n");
           //ShowAbacus(left_abacus);
           GetAbacusBaseCount(left_abacus,&abacus_count);
+#if 0
+          fprintf(stderr, " Applying left abacus\n");
+#endif
           best_abacus    = left_abacus;
           best_score     = left_score;
           best_columns   = left_columns;
@@ -5769,6 +5924,9 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
           //fprintf(stderr,"\nTry to apply RIGHT abacus:\n");
           //ShowAbacus(right_abacus);
           GetAbacusBaseCount(right_abacus,&abacus_count);
+#if 0
+          fprintf(stderr, " Applying right abacus\n");
+#endif
           best_abacus    = right_abacus;
           best_score     = right_score;
           best_columns   = right_columns;
@@ -5782,6 +5940,9 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
           if (left_columns <= right_columns)
           {
              GetAbacusBaseCount(left_abacus,&abacus_count);
+#if 0
+             fprintf(stderr, " Applying left abacus\n");
+#endif
              best_abacus    = left_abacus;
              best_score     = left_score;
              best_columns   = left_columns;
@@ -5790,6 +5951,9 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
           else // left_columns > right_columns
           {
              GetAbacusBaseCount(right_abacus,&abacus_count);
+#if 0
+             fprintf(stderr, " Applying right abacus\n");
+#endif
              best_abacus    = right_abacus;
              best_score     = right_score;
              best_columns   = right_columns;
@@ -5803,6 +5967,9 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
              if (left_gap_score <= right_gap_score)
              {
                 GetAbacusBaseCount(left_abacus,&abacus_count);
+#if 0
+                fprintf(stderr, " Applying left abacus\n");
+#endif
                 best_abacus    = left_abacus;
                 best_score     = left_score;
                 best_columns   = left_columns;
@@ -5811,6 +5978,9 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
              else
              {
                 GetAbacusBaseCount(right_abacus,&abacus_count);
+#if 0
+                fprintf(stderr, " Applying right abacus\n");
+#endif
                 best_abacus    = right_abacus;
                 best_score     = right_score;
                 best_columns   = right_columns;
@@ -5847,10 +6017,38 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
 
         AllocateDistMatrixForAbacus(&ap);
         GetReadsForAbacus(&reads, best_abacus);
+#if 0
+    fprintf(stderr, "\nReads =\n");
+    {
+        int j;
+        for (i=0; i<ap.nr; i++)
+        {
+            for (j=0; j<3*best_abacus->window_width; j++)
+                fprintf(stderr, "%c", reads[i][j]);
+            fprintf(stderr, "\n");
+        }
+        fprintf(stderr, "\n\n");
+    }
+#endif
         PopulateDistMatrixForAbacus(reads, 3*best_abacus->window_width,
             &max_element, &ap, best_abacus);
+#if 0
+    fprintf(stderr, "Max element =%d ap.nr=%d num_rows=%d\n", max_element,
+              ap.nr, best_abacus->rows);
+#endif
+//    OutputDistMatrix(&ap);
+
+    /* If only one allele is detected, as indicated by small distance between
+     * the reads, apply the best abacus so far and quit
+     */
+#if 0
+        fprintf(stderr, "max_element = %d\n", max_element);
+#endif
         if (max_element < 3)
         {
+#if 0
+        fprintf(stderr, "No MixedShift will be performed: max_element = %d < 3\n", max_element);
+#endif
             ApplyAbacus(best_abacus, opp);
 
             DeleteAbacus(orig_abacus);
@@ -5871,12 +6069,34 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
         }
 
         ClusterReadsForAbacus(&ap, reads, best_abacus);
+#if 0
+        fprintf(stderr, "ap.alleles= ");
+        for (i=0; i<ap.nr; i++)
+            fprintf(stderr, "%d", ap.alleles[i]);
+
+#endif
         GetConsensusForAbacus(&ap, reads, best_abacus, &consensus);
+#if 0
+        fprintf(stderr, "\nconsensus[0]=\n");
+        for (i=0; i<3*best_abacus->window_width; i++)
+            fprintf(stderr, "%c", consensus[0][i]);
+        fprintf(stderr, "\n");
+        fprintf(stderr, "consensus[1]=\n");
+        for (i=0; i<3*best_abacus->window_width; i++)
+            fprintf(stderr, "%c", consensus[1][i]);
+        fprintf(stderr, "\n\n");
+#endif
         CountGaps(consensus, 3*best_abacus->window_width, gapcount);
         short_allele = (gapcount[0] >= gapcount[1]) ? 0 : 1;
         long_allele  = (gapcount[0] <  gapcount[1]) ? 0 : 1;
+#if 0
+        fprintf(stderr, "gapcounts[0, 1] = %d %d\n", gapcount[0], gapcount[1]);
+#endif
         if (gapcount[short_allele] == 0)
         {
+#if 0
+        fprintf(stderr, "No MixedShift will be performed: gapcount[short_allele] = %d\n", gapcount[short_allele]);
+#endif
             ApplyAbacus(best_abacus, opp);
 
             DeleteAbacus(orig_abacus);
@@ -5905,6 +6125,9 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
             uglen);
         if ((uglen[0] < MSTRING_SIZE) || (uglen[1] < MSTRING_SIZE))
         {
+#if 0
+        fprintf(stderr, "No MixedShift will be performed: uglen = %d %d\n", uglen[0], uglen[1]);
+#endif
             ApplyAbacus(best_abacus, opp);
 
             DeleteAbacus(orig_abacus);
@@ -5934,10 +6157,25 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
             FREE(imap);
             return score_reduction;
         }
+
+#if 0
+        fprintf(stderr, "\nuglen[0]=%d ugconsensus[0] =\n", uglen[0]);
+        for (i=0; i<uglen[0]; i++)
+            fprintf(stderr, "%c", ugconsensus[0][i]);
+        fprintf(stderr, "\n");
+        fprintf(stderr, "uglen[1]=%d ugconsensus[1] =\n", uglen[1]);
+        for (i=0; i<uglen[1]; i++)
+            fprintf(stderr, "%c", ugconsensus[1][i]);
+        fprintf(stderr, "\n\n");
+#endif
         FindAdjustedLeftBounds(adjleft, ugconsensus, uglen, short_allele,
             long_allele);
         FindAdjustedRightBounds(adjright, ugconsensus, uglen, short_allele,
             long_allele);
+#if 0
+        fprintf(stderr, "Adjusted left bounds 0, 1= %d %d \n", adjleft[0], adjleft[1]);
+        fprintf(stderr, "Adjusted right bounds 0, 1= %d %d \n", adjright[0], adjright[1]);
+#endif
         GetLeftScore(ugconsensus, uglen, imap, adjleft,
             short_allele, long_allele, &lscore, &lpos);
         GetRightScore(ugconsensus, uglen, imap, adjright,
@@ -5949,9 +6187,32 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
             short_allele, long_allele);
 
         mixed_abacus = CloneAbacus(best_abacus);
+#if 0
+   {
+   fprintf(stderr, "Template = \n");
+   for (i=0; i<3*best_abacus->window_width; i++)
+       fprintf(stderr, "%c", template[i]);
+   fprintf(stderr, "\n");
+   }
+   fprintf(stderr, "Start calling MixedShift\n\n");
+   fprintf(stderr, "   Final lpos=%d rpos=%d window_width=%d long_allele=%d short_allele=%d\n",
+          lpos, rpos, best_abacus->window_width, long_allele, short_allele);
+#endif
         mixed_score = MixedShift(mixed_abacus, &mixed_columns, ap, lpos, rpos,
             template, long_allele, short_allele);
+
+#if 0
+   fprintf(stderr, "Mixed abacus=\n");
+    ShowAbacus(mixed_abacus);
+   fprintf(stderr, "End calling MixedShift\n\n");
+   fprintf(stderr, "mixed_score=%d bast_score=%d\n", mixed_score, best_score);
+   fprintf(stderr, "mixed_columns=%d best_columns=%d\n", mixed_columns, best_columns);
+   fprintf(stderr, "mixed_gap_score=%d best_gap_score=%d\n", mixed_gap_score, best_gap_score);
+#endif
         mixed_gap_score  = AffineScoreAbacus(mixed_abacus);
+#if 0
+         fprintf(stderr, "mixed_gap_score=%d best_gap_score=%d mixed_columns=%d best_columns=%d mixed_score=%d best_score=%d\n", mixed_gap_score, best_gap_score, mixed_columns, best_columns, mixed_score, best_score);
+#endif
         if ( (mixed_gap_score <  best_gap_score) ||
             ((mixed_gap_score == best_gap_score) && (mixed_columns < best_columns))
              ||
@@ -5963,14 +6224,38 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
             best_columns   = mixed_columns;
             best_gap_score = mixed_gap_score;
         }
+#if 0
+        ShowCalls(best_abacus);
+        fprintf(stderr, "Best Abacus after MixedShift =\n");
+        ShowAbacus(best_abacus);
+#endif
 
 //      OutputDistMatrix(&ap);
+
+#if 0
+        {
+            int j;
+            fprintf(stderr, "Consensus0 =\n");
+            for (j=0; j<3*best_abacus->window_width; j++)
+                fprintf(stderr, "%c", consensus[0][j]);
+            fprintf(stderr, "\n\n");
+            fprintf(stderr, "Consensus1 =\n");
+            for (j=0; j<3*best_abacus->window_width; j++)
+                fprintf(stderr, "%c", consensus[1][j]);
+            fprintf(stderr, "\n\n");
+        }
+#endif
 
     /* Otherwise, try to do a more sophisticated shift:
      * - only shifting reads of the short allele
      * - only within a subregion of abacus window where the two alleles match
      */
+#if 0
+        fprintf(stderr, "Applying the Best abacus\n");
+#endif
         ApplyAbacus(best_abacus, opp);
+
+//      fprintf(stderr, "ap.nr = %d\n", ap.nr);
 
         DeleteAbacus(orig_abacus);
         DeleteAbacus(left_abacus);
@@ -6060,6 +6345,9 @@ int AbacusRefine(MANode *ma,int32 from, int32 to, CNS_RefineLevel level,
           }
           if ( window_width < 100 ) { // if the window is too big, there's likely a 
                                       // polymorphism that won't respond well to abacus, so skip it
+#if 0
+            fprintf(stderr, "window_width = %d\n", window_width);
+#endif
             score_reduction += RefineWindow(ma,start_column,stab_bgn, opp);
           } 
           start_column = GetColumn(columnStore, stab_bgn);
@@ -6070,7 +6358,7 @@ int AbacusRefine(MANode *ma,int32 from, int32 to, CNS_RefineLevel level,
       int32 nv=0;
       IntMultiVar *vl=NULL;
       int make_v_list = 0;
-      RefreshMANode(ma->lid, 1, opp, &nv, &vl, make_v_list);
+      RefreshMANode(ma->lid, 1, opp, &nv, &vl, make_v_list, 0);
       if (vl) free(vl);
   }
   refined_length = GetMANodeLength(ma->lid);
@@ -6267,7 +6555,7 @@ int RealignToConsensus(int32 mid,
    {
       IntMultiVar *vl=NULL;
       int32 nv=0;
-      RefreshMANode(mid, 0, opp, &nv, &vl, 0);
+      RefreshMANode(mid, 0, opp, &nv, &vl, 0, 0);
    }
   }
  
@@ -6520,7 +6808,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
   {
     IntMultiVar *vl=NULL;
     int32 nv=0;
-    RefreshMANode(ma->lid, 0, opp, &nv, &vl, 0);
+    RefreshMANode(ma->lid, 0, opp, &nv, &vl, 0, 0);
   }
     free(offsets);
 
@@ -6529,13 +6817,13 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
     if ( ! unitig_forced ) {
         score_reduction = AbacusRefine(ma,0,-1,CNS_SMOOTH, opp);
         //fprintf(cnslog,"Score reduced by %d in AbacusRefine.\n", score_reduction);
-        MergeRefine(ma->lid, NULL, NULL, opp);
+        MergeRefine(ma->lid, NULL, NULL, opp, 0);
         AbacusRefine(ma,0,-1,CNS_POLYX, opp);
-        MergeRefine(ma->lid, NULL, NULL, opp);
+        MergeRefine(ma->lid, NULL, NULL, opp, 0);
         if ( cnslog != NULL && printwhat == CNS_VERBOSE)
             PrintAlignment(cnslog,ma->lid,0,-1,printwhat);
         AbacusRefine(ma,0,-1,CNS_INDEL, opp);
-        MergeRefine(ma->lid, NULL, NULL, opp);
+        MergeRefine(ma->lid, NULL, NULL, opp, 0);
         if (cnslog != NULL && printwhat != CNS_QUIET && printwhat != CNS_STATS_ONLY) 
         {
           fprintf(stderr,"Should print alignment!\n");
@@ -6817,11 +7105,10 @@ int32 PlaceFragments(int32 fid, Overlap *(*COMPARE_FUNC)(COMPARE_ARGS),
      MANode *manode = GetMANode(manodeStore,col->ma_id);
      MultiAlignT *mal = GetMultiAlignInStore(unitigStore, col->ma_id);
      int i;
-  {
-    IntMultiVar *vl = NULL;
-    int32        nv  = 0;
-    RefreshMANode(manode->lid, 0, opp, &nv, &vl, 0);
-  }
+     IntMultiVar *vl = NULL;
+     int32        nv  = 0;
+
+     RefreshMANode(manode->lid, 0, opp, &nv, &vl, 0, 0);
      afirst = GetBead(beadStore,afrag->beads+ahang);
      col = GetColumn(columnStore,afirst->column_index);
 
@@ -7030,7 +7317,7 @@ int MultiAlignContig(IntConConMesg *contig,
      {
          IntMultiVar  *vl=NULL;
          int32 nv=0;
-         RefreshMANode(ma->lid, 0, opp, &nv, &vl, 0);
+         RefreshMANode(ma->lid, 0, opp, &nv, &vl, 0, 0);
      }
      // Now, must find fragments in regions of overlapping unitigs, and adjust 
      // their alignments as needed
@@ -7044,19 +7331,19 @@ int MultiAlignContig(IntConConMesg *contig,
       fprintf(stderr, "Contig = %lu\n\n", contig->iaccession);
 #endif
      AbacusRefine(ma,0,-1,CNS_SMOOTH, opp);
-  {
-     IntMultiVar  *vl=NULL;
-     int32 nv=0;
-     MergeRefine(ma->lid, NULL, NULL, opp);
-     AbacusRefine(ma,0,-1,CNS_POLYX, opp);
-     if ( cnslog != NULL && printwhat == CNS_VERBOSE) {
-       fprintf(cnslog,"\nPOLYX refined alignment\n");
-       PrintAlignment(cnslog,ma->lid,0,-1,printwhat);
+     {
+        IntMultiVar  *vl=NULL;
+        int32 nv=0;
+        MergeRefine(ma->lid, NULL, NULL, opp, 0);
+        AbacusRefine(ma,0,-1,CNS_POLYX, opp);
+        if ( cnslog != NULL && printwhat == CNS_VERBOSE) {
+          fprintf(cnslog,"\nPOLYX refined alignment\n");
+          PrintAlignment(cnslog,ma->lid,0,-1,printwhat);
+        }
+        RefreshMANode(ma->lid, 0, opp, &nv, &vl, 0, 0);
+        AbacusRefine(ma,0,-1,CNS_INDEL, opp);
+        MergeRefine(ma->lid, &(contig->v_list), &(contig->num_vars), opp, 1);
      }
-     RefreshMANode(ma->lid, 0, opp, &nv, &vl, 0);
-     AbacusRefine(ma,0,-1,CNS_INDEL, opp);
-     MergeRefine(ma->lid, &(contig->v_list), &(contig->num_vars), opp);
-  }
      //     PrintAlignment(cnslog,ma->lid,0,-1,'C');
      if ( cnslog != NULL  && (printwhat == CNS_VERBOSE || printwhat == CNS_VIEW_UNITIG)) { 
        fprintf(cnslog,"\nFinal refined alignment\n");
@@ -7161,11 +7448,11 @@ int MultiAlignContig_NoCompute(FILE *outFile,
 	tracep[imp->delta_length]=0;
         ApplyIMPAlignment(afrag->lid,blid,ahang,tracep);
      }
-  {
-     IntMultiVar *vl;
-     int32 nv;
-     RefreshMANode(ma->lid, -2, opp, &nv, &vl, 0);
-  }
+     {
+        IntMultiVar *vl;
+        int32 nv;
+        RefreshMANode(ma->lid, -2, opp, &nv, &vl, 0, 0);
+     }
      UnAlignFragment(0); // remove the consensus string from the multialignment
 
      //PrintAlignment(stdout,ma->lid,0,-1,CNS_DOTS);
@@ -7508,7 +7795,7 @@ MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
          {
            IntMultiVar *vl;
            int32 nv;
-           RefreshMANode(ma->lid, 0, opp, &nv, &vl, 0);
+           RefreshMANode(ma->lid, 0, opp, &nv, &vl, 0, 0);
          }
 	 //PrintAlignment(stderr,ma->lid,0,-1,'C');
          pos_offset=ahang;
@@ -7824,7 +8111,7 @@ MultiAlignT *MergeMultiAligns( tSequenceDB *sequenceDBp,
      {
        IntMultiVar *vl;
        int32 nv;
-       RefreshMANode(ma->lid, 0, opp, &nv, &vl, 0);
+       RefreshMANode(ma->lid, 0, opp, &nv, &vl, 0, 0);
      }
      // DeleteVA_int32(trace);
    }

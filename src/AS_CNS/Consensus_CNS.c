@@ -27,7 +27,7 @@
                  
  *********************************************************************/
 
-static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.19 2005-11-20 15:18:42 gdenisov Exp $";
+static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.20 2005-11-27 17:06:42 gdenisov Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -67,6 +67,11 @@ static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.19 2005-11-20 15:18:42 gde
 #include "MultiAlignment_CNS.h"
 #include "Globals_CNS.h"
 #include "PublicAPI_CNS.h"
+
+extern int ScoreNumColumns;
+extern int ScoreNumRunsOfGaps;
+extern int ScoreNumAAMismatches;
+extern int ScoreNumFAMismatches;
 
 float CNS_SEQUENCING_ERROR_EST = .02; // Used to calculate '-' probability
 float CNS_SNP_RATE   = 0.0003; // Used to calculate BIAS
@@ -192,6 +197,15 @@ help_message(int argc, char *argv[])
     exit(1);
 }
 
+static void
+OutputScores(int NumColumns, int NumRunsOfGaps, int NumAAMismatches, int NumFAMismatches)
+{
+     fprintf(stderr, "\nScoreNumColumns     = %d\n", NumColumns);
+     fprintf(stderr, "ScoreNumRunsOfGaps  = %d\n", NumRunsOfGaps);
+     fprintf(stderr, "ScoreNumAAMismatches= %d\n", NumAAMismatches);
+     fprintf(stderr, "ScoreNumFAMismatches= %d\n", NumFAMismatches);
+}
+
 int main (int argc, char *argv[]) {
     MesgReader   reader;
     MesgWriter   writer;
@@ -282,7 +296,12 @@ int main (int argc, char *argv[]) {
     allow_forced_frags=0;
     allow_neg_hang=0;
     ALIGNMENT_CONTEXT=AS_CONSENSUS;
-    
+   
+    ScoreNumColumns = 0;
+    ScoreNumRunsOfGaps = 0;
+    ScoreNumAAMismatches = 0;
+    ScoreNumFAMismatches = 0;
+ 
     while ( !errflg && 
            ( (ch = getopt(argc, argv, 
                  "a:d:e:fghil:mno:p:q:r:s:t:v:w:zACD:EGIKM:NO:PR:S:T:UV:X")) != EOF))
@@ -666,6 +685,7 @@ int main (int argc, char *argv[]) {
           fprintf(stderr,"\n");
       }
 
+
       if ( !std_output) 
       {
         if (output_override) 
@@ -699,6 +719,7 @@ int main (int argc, char *argv[]) {
       {
         cnsout = stdout;
       }
+
 
       if ( ! std_input ) {
          sprintf(LogFileName,"%s%s.clg",OutputFileNameTmp,
@@ -752,6 +773,7 @@ int main (int argc, char *argv[]) {
       } else {
         writer = (MesgWriter)((binary_io == 1) ? WriteBinaryMesg_AS : WriteProtoMesg_AS);
       }
+
       if (process_sublist) 
       {
         char   string[1000];
@@ -771,7 +793,12 @@ int main (int argc, char *argv[]) {
         rewind( sublist );
         tig_iids = AllocateID_Array( num_uids );
         tig_iids_found = AllocateID_Array( num_uids );
-        if( tig_iids == NULL || tig_iids_found == NULL ) return 1;
+        if( tig_iids == NULL || tig_iids_found == NULL ) {
+#if 1
+            fprintf(stderr, "Leaving consensus \n");
+#endif
+            return 1;
+        }
         for( this_id = 0; this_id < num_uids - 1; this_id++ )
         {
           fgets( string, 1000, sublist );
@@ -785,6 +812,7 @@ int main (int argc, char *argv[]) {
       if (extract_id) 
         free(extract_id);
     }
+
 
     /**************** Prepare Unitig Store ****************************/
     if ( USE_SDB ) {
@@ -829,7 +857,7 @@ int main (int argc, char *argv[]) {
       VA_TYPE(char) *quality=CreateVA_char(200000);
       time_t t;
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.19 $ processing. Started %s\n",
+      fprintf(stderr,"# Consensus $Revision: 1.20 $ processing. Started %s\n",
         ctime(&t));
       InitializeAlphTable();
       if ( ! align_ium && USE_SDB && extract > -1 ) 
@@ -845,13 +873,13 @@ int main (int argc, char *argv[]) {
         ctmp.length      = GetNumchars(ma->consensus);
         ctmp.num_pieces  = GetNumIntMultiPoss(ma->f_list);
         ctmp.pieces      = GetIntMultiPos(ma->f_list,0);
-        ctmp.num_vars    = GetNumIntMultiVars(ma->v_list);
         ctmp.num_unitigs = GetNumIntUnitigPoss(ma->u_list);
         ctmp.unitigs     = GetIntUnitigPos(ma->u_list,0);
         ctmp.placed      = AS_PLACED;
-#if 1
+#if 0
         fprintf(stderr, "Before MultiAlignContig #%d: ctmp.num_vars = %d\n", ctmp.iaccession, ctmp.num_vars);
 #endif
+        ctmp.num_vars    = GetNumIntMultiVars(ma->v_list);
         if (ctmp.num_vars == 0)
         {
             ctmp.num_vars = 1;
@@ -859,36 +887,37 @@ int main (int argc, char *argv[]) {
         }
         MultiAlignContig(&ctmp, sequence, quality, deltas, printwhat,
                         COMPARE_FUNC, &options);
-#if 1
+#if 0
         fprintf(stderr, "After  MultiAlignContig #%d: ctmp.num_vars = %d\n", ctmp.iaccession, ctmp.num_vars);
 #endif
         if ( printwhat != CNS_STATS_ONLY && cnslog != NULL )
         {
-           ma = CreateMultiAlignTFromICM(&ctmp,-1,0);
-           PrintMultiAlignT(cnslog,ma,global_fragStore,global_fragStorePartition, 
+           MultiAlignT *ma1 = CreateMultiAlignTFromICM(&ctmp,-1,0);
+           PrintMultiAlignT(cnslog,ma1,global_fragStore,global_fragStorePartition, 
                             global_bactigStore, 1,0,READSTRUCT_LATEST);
-          fflush(cnslog);
-          tmesg.t = MESG_ICM; 
-          tmesg.m = &ctmp; 
-          writer(cnsout,&tmesg); 
-          fflush(cnsout);
-          if (ctmp.v_list != NULL)
-          {
+           fflush(cnslog);
+           tmesg.t = MESG_ICM; 
+           tmesg.m = &ctmp; 
+           writer(cnsout,&tmesg); 
+           fflush(cnsout);
+           if (ctmp.v_list != NULL)
+           {
               int i;
               for (i=0; i<ctmp.num_vars; i++)
 //                if (ctmp.v_list[i].var_seq != 0)
                       free(ctmp.v_list[i].var_seq);      
               free(ctmp.v_list);
-          }
-          ctmp.num_vars = 0;
+           }
+           ctmp.num_vars = 0;
+//         FREE(ma1);
         }
+        OutputScores(ScoreNumColumns, ScoreNumRunsOfGaps, ScoreNumAAMismatches,
+            ScoreNumFAMismatches);
+
         exit(0); 
       }
 
       while ( (reader(cgwin,&pmesg) != EOF)
-#if 1
-            &&((time_limit == 0) || ((time(NULL)-tp1) <= time_limit))
-#endif            
             ) 
       { 
         switch(pmesg->t)
@@ -956,8 +985,9 @@ int main (int argc, char *argv[]) {
                   (iunitig->iaccession < tig_range.bgn || 
                    iunitig->iaccession > tig_range.end )) 
               {
-                if (iunitig->iaccession > tig_range.end ) exit(0); 
-                 break;
+                if (iunitig->iaccession > tig_range.end ) 
+                    exit(0); 
+                break;
               }
               if (-1 == MultiAlignUnitig(iunitig,
                                    global_fragStore,
@@ -975,6 +1005,7 @@ int main (int argc, char *argv[]) {
               }
               // Create a MultiAlignT from the MANode
             }
+
             if ( ! no_contigs & ! USE_SDB ) {
                 ma = CreateMultiAlignTFromIUM(iunitig,-1,0);
                 SetMultiAlignInStore(unitigStore,ma->id,ma);
@@ -1006,9 +1037,11 @@ int main (int argc, char *argv[]) {
            // RemoveSNPs(iunitig);
               }
               writer(cnsout,pmesg); // pass through the Unitig message and continue
-              if (iunitig->iaccession == extract) exit(0);
+              if (iunitig->iaccession == extract) 
+                 exit(0);
             }
             unitig_count++;
+
             break;
           }
           case MESG_ICM:
@@ -1033,7 +1066,8 @@ int main (int argc, char *argv[]) {
                         ( (pcontig->iaccession<tig_range.bgn) || 
                           (pcontig->iaccession>tig_range.end))))
             {
-              if ( pcontig->iaccession > tig_range.end ) exit(0);
+              if ( pcontig->iaccession > tig_range.end ) 
+                  exit(0);
               break;
             } 
             else if (process_sublist)
@@ -1079,7 +1113,9 @@ int main (int argc, char *argv[]) {
               //camview(cam,pcontig->iaccession,pcontig->pieces,pcontig->num_pieces,pcontig->unitigs,
               //        pcontig->num_unitigs,global_fragStore);
               writer(cnsout,pmesg);
-              exit(0);
+              OutputScores(ScoreNumColumns, ScoreNumRunsOfGaps, ScoreNumAAMismatches,
+                  ScoreNumFAMismatches);
+                  exit(0);
             }
             if (pcontig->v_list != NULL) 
             {
@@ -1109,7 +1145,7 @@ int main (int argc, char *argv[]) {
             {
               AuditLine auditLine;
               AppendAuditLine_AS(adt_mesg, &auditLine, t,
-                                 "Consensus", "$Revision: 1.19 $","(empty)");
+                                 "Consensus", "$Revision: 1.20 $","(empty)");
             }
 #endif
               VersionStampADT(adt_mesg,argc,argv);
@@ -1133,7 +1169,7 @@ int main (int argc, char *argv[]) {
       }
 
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.19 $ Finished %s\n",ctime(&t));
+      fprintf(stderr,"# Consensus $Revision: 1.20 $ Finished %s\n",ctime(&t));
       if (printcns) 
       {
         int unitig_length = (unitig_count>0)? (int) input_lengths/unitig_count: 0; 
@@ -1158,6 +1194,7 @@ int main (int argc, char *argv[]) {
       }
     }
 
+
     if (cgbout == 1) {  /* This may be used later to bypass proto i/o for MultialignTs */
 //    umaout = fopen(MAStoreFileName,"w");
 //    SaveMultiAlignStoreTToStream(unitigStore,umaout,0);
@@ -1176,5 +1213,9 @@ int main (int argc, char *argv[]) {
                 "ERROR: failure moving the cnsout file to final file name.\n");}
       }
     }
+
+    OutputScores(ScoreNumColumns, ScoreNumRunsOfGaps, ScoreNumAAMismatches,
+        ScoreNumFAMismatches);
+
      return 0;
 }
