@@ -295,10 +295,8 @@ void    psetdebug(int on);
 typedef struct {
   u64bit  a;
   u64bit  b;
-  u32bit  i;  //  the iid, used in leaff
-#ifdef __APPLE__
-  u32bit  pad;
-#endif
+  u32bit  i;    //  the iid, used in leaff
+  u32bit  pad;  //  keep us size compatible between 32- and 64-bit machines.
 } md5_s;
 
 #define MD5_BUFFER_SIZE   32*1024
