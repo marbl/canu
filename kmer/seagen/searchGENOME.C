@@ -180,20 +180,25 @@ main(int argc, char **argv) {
 
 
 
-  //  Build the masking database
+  //  Build the masking database.
+  //
+  //  Previous versions build the existDB takeing the posDB as a
+  //  parameter.  The existDB would then be exclude mers not in the
+  //  posDB.  A neat and nice feature, but with only 45,000 to 70,000
+  //  mers in the masks, hardly worth the effort.
   //
   maskDB = 0L;
   if (config._maskFileName) {
     if (config._beVerbose)
       fprintf(stderr, "Building maskDB from '%s'\n", config._maskFileName);
-    maskDB = new existDB(config._maskFileName, config._merSize, 19, u32bitZERO, ~u32bitZERO, positions);
+    maskDB = new existDB(config._maskFileName, config._merSize, 19, u32bitZERO, ~u32bitZERO);
   }
 
   onlyDB = 0L;
   if (config._onlyFileName) {
     if (config._beVerbose)
       fprintf(stderr, "Building onlyDB from '%s'\n", config._onlyFileName);
-    onlyDB = new existDB(config._onlyFileName, config._merSize, 19, u32bitZERO, ~u32bitZERO, positions);
+    onlyDB = new existDB(config._onlyFileName, config._merSize, 19, u32bitZERO, ~u32bitZERO);
   }
 
   config._buildTime = getTime();

@@ -11,8 +11,7 @@ bool
 existDB::createFromMeryl(char const  *prefix,
                          u32bit       lo,
                          u32bit       hi,
-                         u32bit       tblBits,
-                         positionDB  *posDB) {
+                         u32bit       tblBits) {
 
   merylStreamReader *M = new merylStreamReader(prefix);
 
@@ -52,26 +51,10 @@ existDB::createFromMeryl(char const  *prefix,
   //     exists() method.
   //
 
-  if (posDB) {
-    while (M->nextMer()) {
-      u64bit  fmer = M->theFMer();
-      u64bit  rmer = reverseComplementMer(_merSizeInBases, fmer);
-
-      if ((lo <= M->theCount()) && (M->theCount() <= hi) && (posDB->exists(fmer))) {
-        countingTable[ HASH(fmer) ]++;
-        numberOfMers++;
-      }
-      if ((lo <= M->theCount()) && (M->theCount() <= hi) && (posDB->exists(rmer))) {
-        countingTable[ HASH(rmer) ]++;
-        numberOfMers++;
-      }
-    }
-  } else {
-    while (M->nextMer()) {
-      if ((lo <= M->theCount()) && (M->theCount() <= hi)) {
-        countingTable[ HASH(M->theFMer()) ]++;
-        numberOfMers++;
-      }
+  while (M->nextMer()) {
+    if ((lo <= M->theCount()) && (M->theCount() <= hi)) {
+      countingTable[ HASH(M->theFMer()) ]++;
+      numberOfMers++;
     }
   }
 
@@ -151,68 +134,21 @@ existDB::createFromMeryl(char const  *prefix,
   //
   M = new merylStreamReader(prefix);
 
-  //  XXX:  Pretty big code bloat here
-  //
-  //  I don't want to bury a test in the posDB on every mer,
-  //  especially if we are never using the capability, as ESTmapper
-  //  searchGENOME does.
-  //
-  //  So, I bloated the code (a little bit).
-  //
-  if (posDB) {
-    u64bit  fmer;
-    u64bit  rmer;
-    u64bit  h;
+  u64bit  h;
 
-    while (M->nextMer()) {
-      fmer = M->theFMer();
-      rmer = reverseComplementMer(_merSizeInBases, fmer);
+  while (M->nextMer()) {
+    if ((lo <= M->theCount()) && (M->theCount() <= hi)) {
+      h = HASH(M->theFMer());
 
-      if ((lo <= M->theCount()) && (M->theCount() <= hi) && (posDB->exists(fmer))) {
-        h = HASH(fmer);
+      if (_compressedBucket)
+        setDecodedValue(_buckets,
+                        countingTable[h] * _chckWidth,
+                        _chckWidth,
+                        CHECK(M->theFMer()));
+      else
+        _buckets[countingTable[h]] = CHECK(M->theFMer());
 
-        if (_compressedBucket)
-          setDecodedValue(_buckets,
-                          countingTable[h] * _chckWidth,
-                          _chckWidth,
-                          CHECK(fmer));
-        else
-          _buckets[countingTable[h]] = CHECK(fmer);
-
-        countingTable[h]++;
-      }
-
-      if ((lo <= M->theCount()) && (M->theCount() <= hi) && (posDB->exists(rmer))) {
-        h = HASH(rmer);
-
-        if (_compressedBucket)
-          setDecodedValue(_buckets,
-                          countingTable[h] * _chckWidth,
-                          _chckWidth,
-                          CHECK(rmer));
-        else
-          _buckets[countingTable[h]] = CHECK(rmer);
-
-        countingTable[h]++;
-      }
-    }
-  } else {
-    u64bit  h;
-
-    while (M->nextMer()) {
-      if ((lo <= M->theCount()) && (M->theCount() <= hi)) {
-        h = HASH(M->theFMer());
-
-        if (_compressedBucket)
-          setDecodedValue(_buckets,
-                          countingTable[h] * _chckWidth,
-                          _chckWidth,
-                          CHECK(M->theFMer()));
-        else
-          _buckets[countingTable[h]] = CHECK(M->theFMer());
-
-        countingTable[h]++;
-      }
+      countingTable[h]++;
     }
   }
 

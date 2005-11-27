@@ -10,8 +10,7 @@
 bool
 existDB::createFromFastA(char const  *filename,
                          u32bit       merSize,
-                         u32bit       tblBits,
-                         positionDB  *posDB) {
+                         u32bit       tblBits) {
 
   _hashTable = 0L;
   _buckets   = 0L;
@@ -45,22 +44,9 @@ existDB::createFromFastA(char const  *filename,
   FastAstream   *F = new FastAstream(filename);
   merStream     *M = new merStream(_merSizeInBases, F);
 
-  if (posDB) {
-    while (M->nextMer()) {
-      if (posDB->exists(M->theFMer())) {
-        countingTable[ HASH(M->theFMer()) ]++;
-        numberOfMers++;
-      }
-      if (posDB->exists(M->theRMer())) {
-        countingTable[ HASH(M->theRMer()) ]++;
-        numberOfMers++;
-      }
-    }
-  } else {
-    while (M->nextMer()) {
-      countingTable[ HASH(M->theFMer()) ]++;
-      numberOfMers++;
-    }
+  while (M->nextMer()) {
+    countingTable[ HASH(M->theFMer()) ]++;
+    numberOfMers++;
   }
     
   delete M;
@@ -167,66 +153,20 @@ existDB::createFromFastA(char const  *filename,
   F = new FastAstream(filename);
   M = new merStream(_merSizeInBases, F);
 
-  //  XXX:  Pretty big code bloat here
-  //
-  //  I don't want to bury a test in the posDB on every mer,
-  //  especially if we are never using the capability, as ESTmapper
-  //  searchGENOME does.
-  //
-  //  So, I bloated the code (a little bit).
-  //
-  if (posDB) {
-    u64bit  fmer;
-    u64bit  rmer;
-    u64bit  h;
+  u64bit  h;
 
-    while (M->nextMer()) {
-      fmer = M->theFMer();
-      rmer = M->theRMer();
+  while (M->nextMer()) {
+    h = HASH(M->theFMer());
 
-      if (posDB->exists(fmer)) {
-        h = HASH(fmer);
+    if (_compressedBucket)
+      setDecodedValue(_buckets,
+                      countingTable[h] * _chckWidth,
+                      _chckWidth,
+                      CHECK(M->theFMer()));
+    else
+      _buckets[countingTable[h]] = CHECK(M->theFMer());
 
-        if (_compressedBucket)
-          setDecodedValue(_buckets,
-                          countingTable[h] * _chckWidth,
-                          _chckWidth,
-                          CHECK(fmer));
-        else
-          _buckets[countingTable[h]] = CHECK(fmer);
-
-        countingTable[h]++;
-      }
-      if (posDB->exists(rmer)) {
-        h = HASH(rmer);
-
-        if (_compressedBucket)
-          setDecodedValue(_buckets,
-                          countingTable[h] * _chckWidth,
-                          _chckWidth,
-                          CHECK(rmer));
-        else
-          _buckets[countingTable[h]] = CHECK(rmer);
-
-        countingTable[h]++;
-      }
-    }
-  } else {
-    u64bit  h;
-
-    while (M->nextMer()) {
-      h = HASH(M->theFMer());
-
-      if (_compressedBucket)
-        setDecodedValue(_buckets,
-                        countingTable[h] * _chckWidth,
-                        _chckWidth,
-                        CHECK(M->theFMer()));
-      else
-        _buckets[countingTable[h]] = CHECK(M->theFMer());
-
-      countingTable[h]++;
-    }
+    countingTable[h]++;
   }
 
   delete M;

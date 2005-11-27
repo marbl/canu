@@ -21,7 +21,14 @@
 //
 //#define STATS
 
-class positionDB;
+
+typedef u32bit existDBflags;
+const existDBflags  existDBcompressHash    = 0x0001;
+const existDBflags  existDBcompressBuckets = 0x0002;
+const existDBflags  existDBverbose         = 0x0004;
+const existDBflags  existDBcanonical       = 0x0008;
+const existDBflags  existDBforward         = 0x0010;
+const existDBflags  existDBreverse         = 0x0020;
 
 class existDB {
 public:
@@ -31,15 +38,12 @@ public:
           bool         loadData=true);
 
   //  Load mers from an existing existDB file, a fastafile, or a meryl database
-  existDB(char const  *filename,
-          u32bit       merSize,
-          u32bit       tblBits,
-          u32bit       lo = 0,
-          u32bit       hi = ~u32bitZERO,
-          positionDB  *posDB = 0L,
-          bool         compressHash = false,
-          bool         compressBuckets = false,
-          bool         beVerbose = false);
+  existDB(char const    *filename,
+          u32bit         merSize,
+          u32bit         tblBits,
+          u32bit         lo = 0,
+          u32bit         hi = ~u32bitZERO,
+          existDBflags   flags = 0x0000);
   ~existDB();
 
   void        saveState(char const *filename);
@@ -53,13 +57,11 @@ private:
   bool        loadState(char const *filename, bool beNoisy=false, bool loadData=true);
   bool        createFromFastA(char const  *filename,
                               u32bit       merSize,
-                              u32bit       tblBits,
-                              positionDB  *posDB);
+                              u32bit       tblBits);
   bool        createFromMeryl(char const  *filename,
                               u32bit       lo,
                               u32bit       hi,
-                              u32bit       tblBits,
-                              positionDB  *posDB);
+                              u32bit       tblBits);
 
   u64bit       HASH(u64bit k) {
     return(((k >> _shift1) ^ (k >> _shift2) ^ k) & _mask1);

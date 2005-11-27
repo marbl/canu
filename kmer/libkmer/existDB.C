@@ -16,19 +16,17 @@ existDB::existDB(char const  *filename,
 }
 
 
-existDB::existDB(char const  *filename,
-                 u32bit       merSize,
-                 u32bit       tblBits,
-                 u32bit       lo,
-                 u32bit       hi,
-                 positionDB  *posDB,
-                 bool         compressHash,
-                 bool         compressBuckets,
-                 bool         beVerbose) {
+existDB::existDB(char const    *filename,
+                 u32bit         merSize,
+                 u32bit         tblBits,
+                 u32bit         lo,
+                 u32bit         hi,
+                 existDBflags   flags) {
 
-  _compressedHash   = compressHash;
-  _compressedBucket = compressBuckets;
-  _beVerbose        = beVerbose;
+  _compressedHash   = flags & existDBcompressHash;
+  _compressedBucket = flags & existDBcompressBuckets;
+  _beVerbose        = flags & existDBverbose;
+
 
   //  Try to read state from the filename.  If successful, make sure that
   //  the merSize and tblBits are correct.
@@ -60,13 +58,10 @@ existDB::existDB(char const  *filename,
   //  Otherwise, we assume that 'filename' is really the prefix for a meryl database.
   //  
 
-  if (fileExists(filename)) {
-    //fprintf(stderr, "Loading mers from fasta '%s'\n", filename);
-    createFromFastA(filename, merSize, tblBits, posDB);
-  } else {
-    //fprintf(stderr, "Loading mers from meryl '%s'\n", filename);
-    createFromMeryl(filename, lo, hi, tblBits, posDB);
-  }
+  if (fileExists(filename))
+    createFromFastA(filename, merSize, tblBits);
+  else
+    createFromMeryl(filename, lo, hi, tblBits);
 }
 
 
