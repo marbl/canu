@@ -13,6 +13,27 @@ sub CGW ($$$$) {
     my $lastckp = findLastCheckpoint($lastDir)  if (defined($lastDir));
     my $ckp     = "-y -R $lastckp -N $logickp"  if (defined($lastckp) && defined($logickp));
 
+    #  If there is a timing file here, assume we are restarting.  Not
+    #  all restarts are possible, but we try hard to make it so.
+    #
+    if (-e "$wrk/$thisDir/$asm.timing") {
+        undef $ckp;
+
+        open(F, "< $wrk/$thisDir/$asm.timing");
+        while (<F>) {
+            if (m/Done\swith/) {
+                print $_;
+            }
+            if (m/Done\swith\scheckpoint\s(\d+)\s\(logical\s(\d+)\)/) {
+                $ckp = "-y -R $1 -N $2";
+            }
+        }
+        close(F);
+
+        die "ERROR:  Found a timing file, but didn't find the checkpoint information!\n" if (!defined($ckp));
+        print STDERR "Found a timing file, restarting: $ckp\n";
+    }
+
     system("mkdir $wrk/$thisDir")               if (! -d "$wrk/$thisDir");
     system("mkdir $wrk/$asm.SeqStore")          if (! -d "$wrk/$asm.SeqStore");
 
