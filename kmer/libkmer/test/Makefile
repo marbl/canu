@@ -3,12 +3,24 @@ include ../../Make.compilers
 #  Bigger tblsize makes existDB much faster, but uses more memory (not
 #  much, really).  23 is nice.
 
-all: position-passed
+all: test-maskonly-passed position-passed
 	@echo "existDB has expensive tests.  They take:"
 	@echo "  70 minutes on 2.0GHz G5 (old)"
 	@echo "  60 minutes on 2.8GHz P4 (with KMER=1)"
 	@echo " 120 minutes on 2.0GHz G5 (with KMER=8)"
 	@echo "If you really want to run them, do 'make exist-passed'."
+
+#	../../meryl/meryl -M equal 1 -s xp -o xp1
+#	../../meryl/meryl -Dt -n 1 -s xp1 > xp.uni.fasta
+
+test-maskonly-passed:
+	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-maskonly.o test-maskonly.C $(INCLUDE)
+	$(CXX) $(CXXLDFLAGS) -o test-maskonly test-maskonly.o $(LIBS)
+	../../leaff/leaff -G 10000 5000 10000 > xp.fasta
+	../../meryl/meryl -B -f -m 14 -s xp.fasta -o xp
+	../../meryl/meryl -Dt -n 2 -s xp  > xp.dup.fasta
+	./test-maskonly xp.fasta xp.dup.fasta xp.dup.fasta
+	touch test-maskonly-passed
 
 position-passed: position-passed1 position-passed2 exist-fast-passed
 	touch position-passed
@@ -46,7 +58,7 @@ exist-passed3: ../existDB xe.fasta ../../meryl/meryl
 	touch exist-passed3
 
 
-INCLUDE = -I../../libbio -I../../libutil -I../../libmeryl
+INCLUDE = -I../../libbio -I../../libutil -I../../libmeryl -I..
 LIBS    = -L../../libbio -L../../libutil -L../../libmeryl -L.. -lkmer -lmeryl -lbio -lutil
 DBGOPT  = -DERROR_CHECK_COUNTING -DERROR_CHECK_COUNTING_ENCODING -DERROR_CHECK_EMPTY_BUCKETS
 
@@ -73,3 +85,4 @@ clean:
 	rm -f *passed*
 	rm -f testerp *.o xp.fasta* yp.fasta*
 	rm -f testere junk* xe.fasta* xe.mcidx xe.mcdat xe.merStream
+	rm -f test-maskonly xp.dup.fasta xp.mcidx xp.mcdat
