@@ -18,9 +18,10 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: analyzeMummerMapping.cc,v 1.1 2005-11-18 23:27:52 catmandew Exp $ */
+/* $Id: analyzeMummerMapping.cc,v 1.2 2005-12-02 22:11:52 catmandew Exp $ */
 #include <cstdio>  // for sscanf
 #include <cmath>
+#include <cassert>
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -29,14 +30,11 @@
 #include <map>
 #include <unistd.h> /* man 3 getopt */
 
-//#define DEBUG_INSTANCE
-//#define VERBOSE
-
 using namespace std;
 
 #include "cds.h"
 
-/*
+/****************************************************************************
   Purpose: Analyze & summarize output of show-coords program, which itself
     produces readable output from nucmer/mummer
 
@@ -52,44 +50,51 @@ using namespace std;
     1. create 2 assembly objects
     2. read .scaff file into each
     3. read show-coords file & keep track of best matches
-    4. for each assembly
-         for each scaffold in the assembly
-           check consistency of consecutive matches between assemblies
-           identify unmatched sequence
-       
- */
+    4. analyze mapping
 
+       for each assembly
+         for each scaffold
+           check intra-scaffold, inter-match consistency
+             to the same scaffold?, spacing, orientation
+             if not consistent,
+               how are ends of matches associated with gaps?
+           is there unmatched (unique) sequence?
+
+       
+****************************************************************************/
+
+
+/****************************************************************************/
+// ENUMS
 typedef enum
 {
-  Reference = 0,
-  Query,
-  NumSequenceTypes
+  AMM_Reference_e = 0,
+  AMM_Query_e,
+  AMM_NumSequenceTypes_e
 } SequenceType;
 
 
 typedef enum
 {
-  Forward = 0,
-  Reverse,
-  NumDirections
-} DirectionType;
+  AMM_Forward_e = 0,
+  AMM_Reverse_e,
+  AMM_NumOrientations_e
+} OrientationType;
+/****************************************************************************/
 
+
+/****************************************************************************/
+// CLASSES
 class Interval
 {
 public:
-  Interval() {set(0,0,0);}
-  Interval(CDS_UID_t uid, CDS_COORD_t begin, CDS_COORD_t end)
+  Interval() {set(0,0);}
+  Interval(CDS_COORD_t begin, CDS_COORD_t end)
     {
-      set(uid, begin, end);
+      set(begin, end);
     }
 
-  void set(CDS_UID_t uid, CDS_COORD_t begin, CDS_COORD_t end)
-    {
-      setUID(uid);
-      setCoords(begin, end);
-    }
-
-  void setCoords(CDS_COORD_t begin, CDS_COORD_t end)
+  void set(CDS_COORD_t begin, CDS_COORD_t end)
     {
       _begin = begin;
       _end = end;
@@ -97,48 +102,116 @@ public:
       _max = (_begin > _end ? _begin : _end);
     }
   
-  void setUID(CDS_UID_t uid) {_uid = uid;}
-  void setBegin(CDS_COORD_t begin) {setCoords(begin, getEnd());}
-  void setEnd(CDS_COORD_t end) {setCoords(getBegin(), end);}
+  void setBegin(CDS_COORD_t begin) {set(begin, getEnd());}
+  void setEnd(CDS_COORD_t end) {set(getBegin(), end);}
 
-  CDS_UID_t getUID() const {return _uid;}
   CDS_COORD_t getBegin() const {return _begin;}
   CDS_COORD_t getEnd() const {return _end;}
   CDS_COORD_t getMin() const {return _min;}
   CDS_COORD_t getMax() const {return _max;}
+  CDS_COORD_t getLength() const {return getMax() - getMin();}
   bool isVoid() const
     {
-      return (getUID() == 0 && getBegin() == 0 && getEnd() == 0);
+      return (getBegin() == 0 && getEnd() == 0);
     }
 
   bool isForward() const {return getBegin() <= getEnd();}
   bool isReverse() const {return !isReverse();}
-  DirectionType getDirection() const
+  OrientationType getOrientation() const
     {
-      return (isForward() ? Forward : Reverse);
+      return (isForward() ? AMM_Forward_e : AMM_Reverse_e);
     }
-  
-  bool intersects(Interval interval) const
+
+  bool intersects(CDS_COORD_t coord) const
     {
-      if(interval.getUID() == getUID() &&
-         interval.getMin() <= getMax() &&
-         interval.getMax() >= getMin())
-        return true;
-      return false;
+      return (coord < getMax() && coord > getMin());
+    }
+  bool intersects(const Interval & interval) const
+    {
+      return (interval.getMin() < getMax() && interval.getMax() > getMin());
+    }
+
+  bool spans(const Interval & interval) const
+    {
+      return (getMin() <= interval.getMin() && getMax() >= interval.getMax());
+    }
+
+  bool isSpannedBy(const Interval & interval) const
+    {
+      return interval.spans(*this);
+    }
+
+  bool endsBefore(CDS_COORD_t coord) const
+    {
+      return (getMax() <= coord);
+    }
+  bool endsBeforeEnd(const Interval & interval) const
+    {
+      return endsBefore(interval.getMax());
+    }
+  bool strictlyComesBefore(const Interval & interval) const
+    {
+      return endsBefore(interval.getMin());
+    }
+
+  bool startsAfter(CDS_COORD_t coord) const
+    {
+      return (getMin() >= coord);
+    }
+  bool startsAfterStart(const Interval & interval) const
+    {
+      return startsAfter(interval.getMin());
+    }
+  bool strictlyComesAfter(const Interval & interval) const
+    {
+      return startsAfter(interval.getMax());
     }
   
 private:
-  CDS_UID_t _uid;
   CDS_COORD_t _begin;
   CDS_COORD_t _end;
   CDS_COORD_t _min;
   CDS_COORD_t _max;
 };
 
+
+class AssemblyInterval : public Interval
+{
+public:
+  AssemblyInterval() {set(0,0,0);}
+  AssemblyInterval(CDS_UID_t uid, CDS_COORD_t begin, CDS_COORD_t end)
+    {
+      set(uid, begin, end);
+    }
+  
+  void set(CDS_UID_t uid, CDS_COORD_t begin, CDS_COORD_t end)
+    {
+      setUID(uid);
+      Interval::set(begin, end);
+    }
+
+  void setUID(CDS_UID_t uid) {_uid = uid;}
+  CDS_UID_t getUID() const {return _uid;}
+
+  bool isVoid() const
+    {
+      return (getUID() == 0 && Interval::isVoid());
+    }
+  
+private:
+  CDS_UID_t _uid;
+};
+
+
 class Match
 {
 public:
-  Match() {_onSeq[Reference].set(0,0,0); _onSeq[Query].set(0,0,0); _pctID = 0;}
+  Match()
+    {
+      _onSeq[AMM_Reference_e].set(0,0,0);
+      _onSeq[AMM_Query_e].set(0,0,0);
+      _pctID = 0;
+    }
   Match(char * line) {set(line);}
 
   void set(char * line)
@@ -161,7 +234,8 @@ public:
       int b1, b2, e1, e2;
       CDS_UID_t uid1, uid2;
       sscanf(line,
-             "%d\t%d\t%d\t%d\t%*d\t%*d\t%f\t%*d\t%*d\t%*f\t%*f\t" F_UID "\t" F_UID,
+             "%d\t%d\t%d\t%d\t%*d\t%*d\t%f\t%*d\t%*d\t%*f\t%*f\t"
+             F_UID "\t" F_UID,
              &b1, &e1, &b2, &e2, &_pctID, &uid1, &uid2);
       // switch to 0-offset inter-bp based coordinates
       b1--;
@@ -176,39 +250,60 @@ public:
     }
   
   CDS_UID_t getUID(SequenceType which) const {return _onSeq[which].getUID();}
-  CDS_COORD_t getBegin(SequenceType which) const {return _onSeq[which].getBegin();}
+  
+  const AssemblyInterval getInterval(SequenceType which) const
+    {
+      return _onSeq[which];
+    }
+  CDS_COORD_t getBegin(SequenceType which) const
+    {
+      return _onSeq[which].getBegin();
+    }
   CDS_COORD_t getEnd(SequenceType which) const {return _onSeq[which].getEnd();}
   CDS_COORD_t getMin(SequenceType which) const {return _onSeq[which].getMin();}
   CDS_COORD_t getMax(SequenceType which) const {return _onSeq[which].getMax();}
-  float getPctID() const {return _pctID;}
-  DirectionType getDirection(SequenceType which) const
+  CDS_COORD_t getLength(SequenceType which) const
     {
-      return (getBegin(which) == getMin(which) ? Forward : Reverse);
+      return _onSeq[which].getLength();
+    }
+  float getPctID() const {return _pctID;}
+  OrientationType getOrientation(SequenceType which) const
+    {
+      return _onSeq[which].getOrientation();
     }
   bool isFlipped() const
     {
-      return (getDirection(Reference) != getDirection(Query));
+      return (getOrientation(AMM_Reference_e) != getOrientation(AMM_Query_e));
     }
-  DirectionType getDirection() const
+  OrientationType getOrientation() const
     {
-      return (isFlipped() ? Reverse : Forward);
+      return (isFlipped() ? AMM_Reverse_e : AMM_Forward_e);
+    }
+  bool intersects(SequenceType thisWhich,
+                  const Match & other,
+                  SequenceType otherWhich) const
+    {
+      return this->_onSeq[thisWhich].intersects(other._onSeq[otherWhich]);
     }
 
   void reversePerspective()
     {
-      Interval dummy = _onSeq[0];
+      AssemblyInterval dummy = _onSeq[0];
       _onSeq[0] = _onSeq[1];
       _onSeq[1] = dummy;
     }
   
   void setUID(SequenceType which, CDS_UID_t uid) {_onSeq[which].setUID(uid);}
-  void setBegin(SequenceType which, CDS_COORD_t begin) {_onSeq[which].setBegin(begin);}
+  void setBegin(SequenceType which, CDS_COORD_t begin)
+    {
+      _onSeq[which].setBegin(begin);
+    }
   void setEnd(SequenceType which, CDS_COORD_t end) {_onSeq[which].setEnd(end);}
   void setPctID(float pctID) {_pctID = pctID;}
 
   friend ostream & operator<<(ostream & os, const Match & m)
     {
-      for(int i = 0; i < NumSequenceTypes; i++)
+      for(int i = 0; i < AMM_NumSequenceTypes_e; i++)
       {
         os << m.getUID((SequenceType) i) << "\t"
            << m.getBegin((SequenceType) i) << "\t"
@@ -219,9 +314,10 @@ public:
     }
   
 private:
-  Interval _onSeq[2];
+  AssemblyInterval _onSeq[2];
   float _pctID;
 };
+
 
 
 class Scaffold
@@ -248,16 +344,17 @@ public:
   
   void set(CDS_UID_t uid, CDS_COORD_t seqLength, CDS_COORD_t gappedLength)
     {
+      reset();
       _uid = uid;
       _seqLength = seqLength;
       _gappedLength = gappedLength;
-      _contigs.clear();
-      _gaps.clear();
     }
 
   void reset()
     {
-      set(0,0,0);
+      _uid = _seqLength = _gappedLength = 0;
+      _contigs.clear();
+      _gaps.clear();
     }
   
   void addContig(char * line)
@@ -272,157 +369,15 @@ public:
       begin += (getNumGaps() > 0 ? _gaps[getNumGaps() - 1].getEnd() : 0);
       end += begin;
 
-      Interval newContig(uid, begin, end);
+      AssemblyInterval newContig(uid, begin, end);
       _contigs.push_back(newContig);
 
       if(fabsf(gapMean) > 0.00001)
       {
         gapMean = (gapMean < 20 ? 20 : gapMean);
-        Interval newGap(0, end, (CDS_COORD_t) (end + gapMean + 0.5));
+        Interval newGap(end, (CDS_COORD_t) (end + gapMean + 0.5));
         _gaps.push_back(newGap);
       }
-    }
-
-  void considerMatch(Match match, float minIdentity)
-    {
-      /* given the current list of matches, compare, & do one of the following:
-         discard match
-         insert (prepend, insert, append)
-         replace 1 or more current matches with this one
-
-         first, iterate to match just preceding this one (in coordinates)
-           then, iterate to match just after this one
-             then,
-               if there are intersecting matches
-               and all have lower identity
-                 replace
-               else if there are no intersecting matches
-                 insert
-       */
-      if(match.getPctID() < minIdentity) return;
-      
-      if(_matches.size() == 0)
-      {
-        _matches.push_back(match);
-        return;
-      }
-
-#ifdef DEBUG_INSTANCE
-      if(match.getUID(Reference) == 1099520668465 &&
-         match.getUID(Query) == 1099520657064)
-      {
-        cout << "Before adding\n";
-        cout << match;
-        cout << endl;
-        printMatches(cout);
-      }
-#endif
-      
-      // find first match that intersects
-      list<Match>::iterator minIter;
-      for(minIter = _matches.begin();
-          minIter != _matches.end() &&
-            minIter->getMax(Reference) <= match.getMin(Reference);
-          minIter++);
-
-      if(minIter == _matches.end())
-      {
-#ifdef DEBUG_INSTANCE
-        if(match.getUID(Reference) == 1099520668465 &&
-           match.getUID(Query) == 1099520657064)
-        {
-          cout << "push_back\n";
-        }
-#endif
-        _matches.push_back(match);
-        return;
-      }
-
-      // tally things to compare later & decide which match(es) to keep
-      // first check if there actually is an intersection
-      int numIntersecting = 0;
-      CDS_COORD_t minIntersectCoord = CDS_COORD_MAX;
-      CDS_COORD_t maxIntersectCoord = CDS_COORD_MIN;
-      CDS_COORD_t bpCovered = 0;
-      float sumBPIdentities = 0;
-      if(minIter->getMin(Reference) < match.getMax(Reference) &&
-         match.getMin(Reference) < minIter->getMax(Reference))
-      {
-        numIntersecting = 1;
-        minIntersectCoord = minIter->getMin(Reference);
-        maxIntersectCoord = minIter->getMax(Reference);
-        bpCovered = minIter->getMax(Reference) - minIter->getMin(Reference);
-        sumBPIdentities =
-          (minIter->getPctID() *
-           (minIter->getMax(Reference) - minIter->getMin(Reference)));
-      }
-
-      // find first match beyond this one
-      list<Match>::iterator maxIter = minIter;
-      for(++maxIter;
-          maxIter != _matches.end() &&
-            maxIter->getMin(Reference) < match.getMax(Reference);
-          maxIter++)
-      {
-        numIntersecting++;
-        minIntersectCoord = (maxIter->getMin(Reference) < minIntersectCoord ?
-                             maxIter->getMin(Reference) : minIntersectCoord);
-        maxIntersectCoord = (maxIter->getMax(Reference) > maxIntersectCoord ?
-                             maxIter->getMax(Reference) : maxIntersectCoord);
-        bpCovered += maxIter->getMax(Reference) - maxIter->getMin(Reference);
-        sumBPIdentities +=
-          (maxIter->getPctID() *
-           (maxIter->getMax(Reference) - maxIter->getMin(Reference)));
-      }
-      
-      if(maxIter == _matches.begin())
-      {
-#ifdef DEBUG_INSTANCE
-        if(match.getUID(Reference) == 1099520668465 &&
-           match.getUID(Query) == 1099520657064)
-        {
-          cout << "push_front\n";
-        }
-#endif
-        _matches.push_front(match);
-        return;
-      }
-
-      /* if here, there is an intersection to deal with. Need to
-         determine whether this match or the intersecting match(es)
-         is preferable: age-old problem.
-
-         Since we expect only high-identity matches, select the match(es)
-         that cover the most basepairs
-
-         Obviously there is code here to support other heuristics...
-      */
-      float meanBPIdentity = sumBPIdentities / bpCovered;
-      if(bpCovered > (match.getMax(Reference) - match.getMin(Reference)))
-      {
-#ifdef DEBUG_INSTANCE
-        if(match.getUID(Reference) == 1099520668465 &&
-           match.getUID(Query) == 1099520657064)
-        {
-          cout << "rejected\n";
-        }
-#endif
-        return;
-      }
-
-      // if here, replace
-      _matches.insert(minIter, match);
-      if(numIntersecting > 0)
-        _matches.erase(minIter, maxIter);
-      
-#ifdef DEBUG_INSTANCE
-      if(match.getUID(Reference) == 1099520668465 &&
-         match.getUID(Query) == 1099520657064)
-      {
-        cout << "After\n";
-        printMatches(cout);
-      }
-#endif
     }
 
   CDS_UID_t getUID() const {return _uid;}
@@ -431,98 +386,63 @@ public:
   
   int getNumContigs() const {return _contigs.size();}
   int getNumGaps() const {return _gaps.size();}
-  int getNumMatches() const {return _matches.size();}
 
-  const Interval getContig(int i) const {return _contigs[i];}
+  const AssemblyInterval getContig(int i) const {return _contigs[i];}
   const Interval getGap(int i) const {return _gaps[i];}
 
-  /*
-    simple check routine
-    are consecutive matches consistent wrt other scaffold & coords
-  */
-  void checkMatches1(ostream & os, float ratio, int bps) const
+  bool intersectsGap(CDS_COORD_t begin, CDS_COORD_t end) const
     {
-      // assumption that this is the 'reference' sequence, relatively
-      Match lastMatch;
-
-      list<Match>::const_iterator iter;
-      for(iter = _matches.begin(); iter != _matches.end(); iter++)
+      Interval interval(begin, end);
+      return intersectsGap(interval);
+    }
+  bool intersectsGap(const Interval & interval) const
+    {
+      for(int i = 0; i < getNumGaps(); i++)
       {
-        if(!lastMatch.isVoid())
-        {
-          // check if mapping continues in same scaffold
-          if(lastMatch.getUID(Query) != iter->getUID(Query))
-          {
-            os << "Mapping splits scaffold "
-               << lastMatch.getUID(Reference) << ":\n";
-            os << lastMatch << endl;
-            os << *iter << endl << endl;
-          }
-          else
-          {
-            // check for a change in orientation
-            if(lastMatch.getDirection(Query) != iter->getDirection(Query) ||
-               lastMatch.getDirection(Reference) != iter->getDirection(Reference))
-            {
-              // change in orientation
-              os << "Relative inversion breakpoint in scaffold "
-                 << lastMatch.getUID(Reference) 
-                 << " between "
-                 << lastMatch.getMax(Reference) << " and "
-                 << iter->getMin(Reference) << ":\n";
-              os << lastMatch << endl;
-              os << *iter << endl << endl;
-            }
-            else
-            {
-              /*
-                NOTE: THIS CODE DOESN'T PROPERLY HANDLE INVERSE MAPPINGS
-                OF SCAFFOLDS TO EACH OTHER
-              */
-              
-              // check if spacing is about right
-              CDS_COORD_t refDelta =
-                 iter->getMin(Reference) - lastMatch.getMax(Reference);
-              CDS_COORD_t queryDelta =
-                (lastMatch.isFlipped() ?
-                 lastMatch.getMin(Query) - iter->getMax(Query) :
-                 iter->getMin(Query) - lastMatch.getMax(Query));
-              CDS_COORD_t diff = refDelta - queryDelta;
-              float diffRatio = (queryDelta == 0 ? 1. : diff / queryDelta);
-              
-              if(diffRatio > ratio || diff > bps)
-              {
-                os << "Relative insertion in scaffold "
-                   << lastMatch.getUID(Reference)
-                   << " of " << diff << " bps between "
-                   << lastMatch.getMax(Reference) << " and "
-                   << iter->getMin(Reference) << ":\n";
-                os << lastMatch << endl;
-                os << *iter << endl << endl;
-              }
-              else if(diffRatio < -ratio || diff < -bps)
-              {
-                os << "Relative deletion in scaffold "
-                   << lastMatch.getUID(Reference)
-                   << " of " << -diff << " bps between "
-                   << lastMatch.getMax(Reference) << " and "
-                   << iter->getMin(Reference) << ":\n";
-                os << lastMatch << endl;
-                os << *iter << endl << endl;
-              }
-            }
-          }
-        }
-        lastMatch = *iter;
+        if(_gaps[i].intersects(interval)) return true;
+        if(_gaps[i].strictlyComesBefore(interval)) return false;
       }
     }
-  
-  void printMatches(ostream & os) const
+
+  bool isSpannedByGap(CDS_COORD_t begin, CDS_COORD_t end) const
     {
-      list<Match>::const_iterator iter;
-      for(iter = _matches.begin(); iter != _matches.end(); iter++)
+      Interval interval(begin, end);
+      return isSpannedByGap(interval);
+    }
+  bool isSpannedByGap(const Interval & interval) const
+    {
+      for(int i = 0; i < getNumGaps(); i++)
       {
-        os << *iter << endl;
+        if(_gaps[i].spans(interval)) return true;
+        if(_gaps[i].startsAfterStart(interval)) return false;
+      }
+    }
+
+  bool isInGap(CDS_COORD_t coord) const
+    {
+      for(int i = 0; i < getNumGaps(); i++)
+      {
+        if(_gaps[i].intersects(coord)) return true;
+        if(_gaps[i].startsAfter(coord)) return false;
+      }
+    }
+
+  bool isAtEndOfContig(const Interval & interval) const
+    {
+      return isNearEndOfContig(interval, 0);
+    }
+
+  bool isNearEndOfContig(const Interval & interval,
+                         CDS_COORD_t fudgeFactor) const
+    {
+      for(int i = 0; i < getNumContigs(); i++)
+      {
+        if((_contigs[i].getMin() - fudgeFactor <= interval.getMin() &&
+            _contigs[i].getMin() + fudgeFactor >= interval.getMin()) ||
+           (_contigs[i].getMax() - fudgeFactor <= interval.getMax() &&
+            _contigs[i].getMax() + fudgeFactor >= interval.getMax()))
+          return true;
+        if(_contigs[i].strictlyComesAfter(interval)) return false;
       }
     }
   
@@ -534,7 +454,7 @@ public:
          << getGappedLength() << "\n";
       for(int i = 0; i < getNumContigs(); i++)
       {
-        const Interval contig = getContig(i);
+        const AssemblyInterval contig = getContig(i);
         os << contig.getUID() << " "
            << (contig.isForward() ? "BE" : "EB") << " "
            << contig.getBegin() << " "
@@ -554,52 +474,457 @@ public:
     {
       s.printStructure(os);
       os << endl;
-      s.printMatches(os);
       return os;
     }
   
-private:
+protected:
   CDS_UID_t _uid;
   CDS_COORD_t _seqLength;
   CDS_COORD_t _gappedLength;
-  vector<Interval> _contigs;
+  vector<AssemblyInterval> _contigs;
   vector<Interval> _gaps;
+};
+
+
+class MappedScaffold : public Scaffold
+{
+public:
+  MappedScaffold() {set(0,0,0);}
+  
+  int set(char * line)
+    {
+      reset();
+      return Scaffold::set(line);
+    }
+  void set(CDS_UID_t uid, CDS_COORD_t seqLength, CDS_COORD_t gappedLength)
+    {
+      reset();
+      Scaffold::set(uid, seqLength, gappedLength);
+    }
+  
+  void reset()
+    {
+      Scaffold::reset();
+      _matches.clear();
+      _mappedScaffoldUID = 0;
+      _mappedBPs = _mappedScaffoldBPs = 0;
+      _mappedScaffoldOrientation = AMM_Forward_e;
+      _hasDeletion =
+        _hasInsertion =
+        _hasInversion =
+        _mapsToMultipleScaffolds = false;
+    }
+
+  void addContig(char * line)
+    {
+      Scaffold::addContig(line);
+      finalizeMapping();
+    }
+  
+  void considerMatch(const Match & match, float minIdentity)
+    {
+      /*
+        given the current list of matches, compare, & do one of the
+        following:
+          discard match,
+          insert (prepend, insert, append) match, or
+          replace 1 or more current matches with this one
+       */
+      if(match.getPctID() < minIdentity) return;
+      
+      if(_matches.size() == 0)
+      {
+        _matches.push_back(match);
+        finalizeMapping();
+        return;
+      }
+
+      /*
+        find the first match in the current list that intersects this
+        match. '<=' is appropriate because in inter-base coordinates
+        the '=' still means the last bp of the minIter match precedes
+        the first bp of this match
+      */
+      list<Match>::iterator minIter;
+      for(minIter = _matches.begin();
+          minIter != _matches.end() &&
+            minIter->getMax(AMM_Reference_e) <= match.getMin(AMM_Reference_e);
+          minIter++);
+
+      /*
+        if loop got to the end (i.e., beyond the last match) of the
+        current list of matches, this match is beyond the last one, so
+        append & return
+      */
+      if(minIter == _matches.end())
+      {
+        _matches.push_back(match);
+        finalizeMapping();
+        return;
+      }
+
+      /*
+        if there is no intersection, then this match precedes the
+        one pointed to by minIter and can be inserted cleanly
+      */
+      if(!match.intersects(AMM_Reference_e, *minIter, AMM_Reference_e))
+      {
+        _matches.insert(minIter, match);
+        finalizeMapping();
+        return;
+      }
+
+      /*
+        If here, there is at least one intersecting match to compare
+        with. Start tallying some values to compare later & decide
+        which match(es) to keep or delete based on this match
+        intersecting one or more in the current list
+      */
+      int numIntersecting = 1;
+      CDS_COORD_t minIntersectCoord = minIter->getMin(AMM_Reference_e);
+      CDS_COORD_t maxIntersectCoord = minIter->getMax(AMM_Reference_e);
+      CDS_COORD_t bpCovered = minIter->getLength(AMM_Reference_e);
+      float sumBPIdentities =
+        minIter->getPctID() * minIter->getLength(AMM_Reference_e);
+
+      // find first match beyond the one pointed to by minIter
+      list<Match>::iterator maxIter = minIter;
+      for(++maxIter;
+          maxIter != _matches.end() &&
+            maxIter->getMin(AMM_Reference_e) < match.getMax(AMM_Reference_e);
+          maxIter++)
+      {
+        // for each match, update the variables being kept track of
+        numIntersecting++;
+        minIntersectCoord =
+          (maxIter->getMin(AMM_Reference_e) < minIntersectCoord ?
+           maxIter->getMin(AMM_Reference_e) : minIntersectCoord);
+        maxIntersectCoord =
+          (maxIter->getMax(AMM_Reference_e) > maxIntersectCoord ?
+           maxIter->getMax(AMM_Reference_e) : maxIntersectCoord);
+        bpCovered += maxIter->getLength(AMM_Reference_e);
+        sumBPIdentities +=
+          maxIter->getPctID() * maxIter->getLength(AMM_Reference_e);
+      }
+
+      /*
+        Need to determine whether this match or the intersecting
+        match(es) is preferable: age-old problem.
+
+        Since we expect only high-identity matches, select the match(es)
+        that cover the most basepairs
+
+        Obviously there is code here to support other heuristics...
+      */
+      // float meanBPIdentity = sumBPIdentities / bpCovered;
+      if(bpCovered > match.getLength(AMM_Reference_e))
+      {
+        return;
+      }
+
+      // Insert new match upstream of minIter
+      _matches.insert(minIter, match);
+      
+      /*
+        erase any intersecting matches including minIter up to
+        but excluding maxIter
+      */
+      if(numIntersecting > 0)
+        _matches.erase(minIter, maxIter);
+      
+      finalizeMapping();
+    }
+
+  CDS_UID_t getMappedScaffoldUID() const
+    {
+      return _mappedScaffoldUID;
+    }
+
+  CDS_COORD_t getMappedScaffoldBPs() const
+    {
+      return _mappedScaffoldBPs;
+    }
+
+  OrientationType getMappedScaffoldOrientation() const
+    {
+      return _mappedScaffoldOrientation;
+    }
+
+  CDS_COORD_t getMappedBPs() const
+    {
+      return _mappedBPs;
+    }
+
+  int getNumMatches() const {return _matches.size();}
+
+  /*
+    simple check routine
+    are consecutive matches consistent wrt other scaffold & coords
+  */
+  void checkConsecutiveMatchConsistency(ostream & os,
+                                        bool print,
+                                        float ratio,
+                                        int bps)
+    {
+      // assumption that this is the 'reference' sequence, relatively
+      Match lastMatch;
+      _hasDeletion =
+        _hasInsertion =
+        _hasInversion =
+        _mapsToMultipleScaffolds = false;
+
+      list<Match>::const_iterator iter;
+      for(iter = _matches.begin(); iter != _matches.end(); iter++)
+      {
+        if(!lastMatch.isVoid())
+        {
+          // check if mapping continues in same scaffold
+          if(lastMatch.getUID(AMM_Query_e) != iter->getUID(AMM_Query_e))
+          {
+            if(print)
+            {
+              os << "Mapping splits scaffold "
+                 << lastMatch.getUID(AMM_Reference_e) << ":\n";
+              os << lastMatch << endl;
+              os << *iter << endl << endl;
+            }
+            _mapsToMultipleScaffolds = true;
+          }
+          else
+          {
+            // check for a change in orientation
+            if(lastMatch.getOrientation(AMM_Query_e) !=
+               iter->getOrientation(AMM_Query_e) ||
+               lastMatch.getOrientation(AMM_Reference_e) !=
+               iter->getOrientation(AMM_Reference_e))
+            {
+              // change in orientation
+              if(print)
+              {
+                os << "Relative inversion breakpoint in scaffold "
+                   << lastMatch.getUID(AMM_Reference_e) 
+                   << " between "
+                   << lastMatch.getMax(AMM_Reference_e) << " and "
+                   << iter->getMin(AMM_Reference_e) << ":\n";
+                os << lastMatch << endl;
+                os << *iter << endl << endl;
+              }
+              _hasInversion = true;
+            }
+            else
+            {
+              // check if spacing is about right
+              CDS_COORD_t refDelta = iter->getMin(AMM_Reference_e) -
+                lastMatch.getMax(AMM_Reference_e);
+              CDS_COORD_t queryDelta =
+                (lastMatch.isFlipped() ?
+                 lastMatch.getMin(AMM_Query_e) - iter->getMax(AMM_Query_e) :
+                 iter->getMin(AMM_Query_e) - lastMatch.getMax(AMM_Query_e));
+              CDS_COORD_t diff = refDelta - queryDelta;
+              float diffRatio = (queryDelta == 0 ? 1. : diff / queryDelta);
+              
+              if(diffRatio > ratio || diff > bps)
+              {
+                if(print)
+                {
+                  os << "Relative insertion in scaffold "
+                     << lastMatch.getUID(AMM_Reference_e)
+                     << " of " << diff << " bps between "
+                     << lastMatch.getMax(AMM_Reference_e) << " and "
+                     << iter->getMin(AMM_Reference_e) << ":\n";
+                  os << lastMatch << endl;
+                  os << *iter << endl << endl;
+                }
+                _hasInsertion = true;
+              }
+              else if(diffRatio < -ratio || diff < -bps)
+              {
+                if(print)
+                {
+                  os << "Relative deletion in scaffold "
+                     << lastMatch.getUID(AMM_Reference_e)
+                     << " of " << -diff << " bps between "
+                     << lastMatch.getMax(AMM_Reference_e) << " and "
+                     << iter->getMin(AMM_Reference_e) << ":\n";
+                  os << lastMatch << endl;
+                  os << *iter << endl << endl;
+                }
+                _hasDeletion = true;
+              }
+            }
+          }
+        }
+        lastMatch = *iter;
+      }
+    }
+
+  void printMatches(ostream & os) const
+    {
+      list<Match>::const_iterator iter;
+      for(iter = _matches.begin(); iter != _matches.end(); iter++)
+      {
+        os << *iter << endl;
+      }
+    }
+
+  void printBestScaffoldMapping(ostream & os) const
+    {
+      float pct = 0;
+      if(getSeqLength() > 0)
+        pct = 100. * getMappedScaffoldBPs() / (float) getSeqLength();
+      
+      os << getUID() << "\t"
+         << getMappedBPs() << "\t"
+         << getSeqLength() << "\t"
+         << getGappedLength() << "\t"
+         << getMappedScaffoldUID() << "\t"
+         << getMappedScaffoldBPs() << "\t"
+         << pct << "\t"
+         << (getMappedScaffoldOrientation() == AMM_Forward_e ? "f" : "r")
+         << endl;
+    }
+
+  void printMisMappings(ostream & os) const
+    {
+      if(!_hasDeletion &&
+         !_hasInsertion &&
+         !_hasInversion &&
+         !_mapsToMultipleScaffolds &&
+         getSeqLength() == _mappedBPs)
+        return;
+
+      /*
+        loop over contigs, since there has to be at least one, and
+        check matches to find mis-mappings
+      */
+      CDS_COORD_t currBP;
+      list<Match>::const_iterator iter;
+      int c;
+      for(currBP = 0, c = 0, iter = _matches.begin(); c < getNumContigs(); c++)
+      {
+        // loop over matches
+        while(iter != _matches.end() &&
+              iter->getMax(AMM_Reference_e) <= getContig(c).getMax())
+        {
+          iter++;
+        }
+      }
+      
+      os << getUID() << " has mapping issues\n";
+    }
+  
+private:
   list<Match> _matches;
+  CDS_UID_t _mappedScaffoldUID;
+  CDS_COORD_t _mappedScaffoldBPs;
+  OrientationType _mappedScaffoldOrientation;
+  CDS_COORD_t _mappedBPs;
+  bool _hasDeletion;
+  bool _hasInsertion;
+  bool _hasInversion;
+  bool _mapsToMultipleScaffolds;
+  
+  void finalizeMapping()
+    {
+      if(getNumMatches() == 0)
+        return;
+      
+      // iterate over matches, count basepairs matched to each scaffold
+      // scaffold with most matching basepairs is the mapped scaffold
+      map<CDS_UID_t, CDS_COORD_t> matchBPs[2];
+      _mappedBPs = _mappedScaffoldBPs = 0;
+
+      list<Match>::iterator iter;
+      for(iter = _matches.begin(); iter != _matches.end(); iter++)
+      {
+        CDS_UID_t otherUID = iter->getUID(AMM_Query_e);
+        int orient = (int) iter->getOrientation();
+        
+        _mappedBPs += iter->getLength(AMM_Reference_e);
+
+        matchBPs[orient][otherUID] += iter->getLength(AMM_Reference_e);
+        matchBPs[1 - orient][otherUID] += 0;
+        
+        if(matchBPs[AMM_Forward_e][otherUID] +
+           matchBPs[AMM_Reverse_e][otherUID] > _mappedScaffoldBPs)
+        {
+          _mappedScaffoldUID = otherUID;
+          _mappedScaffoldBPs = matchBPs[AMM_Forward_e][otherUID] +
+            matchBPs[AMM_Reverse_e][otherUID];
+          _mappedScaffoldOrientation = (matchBPs[AMM_Forward_e][otherUID] >=
+                                        matchBPs[AMM_Reverse_e][otherUID] ?
+                                        AMM_Forward_e : AMM_Reverse_e);
+        }
+      }
+
+      checkConsecutiveMatchConsistency(cout, false, 0.03, 5);
+      if(!_mapsToMultipleScaffolds && _mappedScaffoldBPs != _mappedBPs)
+      {
+        assert(0);
+      }
+    }
 };
 
 
 // An assembly is simply map<UID, Scaffold>, so no class needed for that
+// An assembly pair is simply an array of two assemblies...
+// A mapped assembly pair is simply an array of two map<UID, MappedScaffold>
+/****************************************************************************/
 
-void checkMatches1(ostream & os,
-                   map<CDS_UID_t, Scaffold> &assembly,
-                   float ratio, int bps)
+
+/****************************************************************************/
+// FUNCTIONS
+void printBestScaffoldMappings(ostream & os,
+                               const map<CDS_UID_t, MappedScaffold> & assembly)
 {
-  map<CDS_UID_t, Scaffold>::iterator iter;
+  os << "ThisScaffoldUID\t"
+     << "TotalBasesMapped\t"
+     << "SequenceLength\t"
+     << "TotalLength\t"
+     << "MappedToScaffoldUID\t"
+     << "BasesMappedToScaffold\t"
+     << "PctBasesMappedToScaffold\t"
+     << "OrientationOfMapping\n";
+  
+  map<CDS_UID_t, MappedScaffold>::const_iterator iter;
   for(iter = assembly.begin(); iter != assembly.end(); iter++)
   {
-    ((Scaffold) iter->second).checkMatches1(os, ratio, bps);
+    ((MappedScaffold) iter->second).printBestScaffoldMapping(os);
   }
 }
 
-void printMatches(ostream & os, map<CDS_UID_t, Scaffold> &assembly)
+
+void printMisMappings(ostream & os,
+                      const map<CDS_UID_t, MappedScaffold> & assembly)
 {
-  map<CDS_UID_t, Scaffold>::iterator iter;
+  map<CDS_UID_t, MappedScaffold>::const_iterator iter;
   for(iter = assembly.begin(); iter != assembly.end(); iter++)
   {
-    ((Scaffold) iter->second).printMatches(os);
+    ((MappedScaffold) iter->second).printMisMappings(os);
   }
 }
 
-void printScaffs(ostream & os, map<CDS_UID_t, Scaffold> &assembly)
+
+void printMatches(ostream & os,
+                  const map<CDS_UID_t, MappedScaffold> & assembly)
 {
-  map<CDS_UID_t, Scaffold>::iterator iter;
+  map<CDS_UID_t, MappedScaffold>::const_iterator iter;
   for(iter = assembly.begin(); iter != assembly.end(); iter++)
   {
-    ((Scaffold) iter->second).printStructure(os);
+    ((MappedScaffold) iter->second).printMatches(os);
   }
 }
 
-void readScaffFile(char * filename, map<CDS_UID_t, Scaffold> &assembly)
+void printScaffs(ostream & os, const map<CDS_UID_t, MappedScaffold> & assembly)
+{
+  map<CDS_UID_t, MappedScaffold>::const_iterator iter;
+  for(iter = assembly.begin(); iter != assembly.end(); iter++)
+  {
+    ((MappedScaffold) iter->second).printStructure(os);
+  }
+}
+
+void readScaffFile(char * filename, map<CDS_UID_t, MappedScaffold> & assembly)
 {
   ifstream fin(filename, ios::in);
   if(!fin.good())
@@ -612,7 +937,7 @@ void readScaffFile(char * filename, map<CDS_UID_t, Scaffold> &assembly)
   char line[4096];
   while(fin.getline(line, 4095))
   {
-    Scaffold scaff;
+    MappedScaffold scaff;
     int numContigs = scaff.set(line);
     for(int i = 0; i < numContigs; i++)
     {
@@ -625,7 +950,7 @@ void readScaffFile(char * filename, map<CDS_UID_t, Scaffold> &assembly)
 }
 
 void readShowCoordsFile(char * filename,
-                        map<CDS_UID_t, Scaffold> assemblies[2],
+                        map<CDS_UID_t, MappedScaffold> assemblies[2],
                         float minIdentity)
 {
   ifstream fin(filename, ios::in);
@@ -640,9 +965,11 @@ void readShowCoordsFile(char * filename,
   while(fin.getline(line, 4095))
   {
     Match match(line);
-    assemblies[Reference][match.getUID(Reference)].considerMatch(match, minIdentity);
+    assemblies[AMM_Reference_e][match.getUID(AMM_Reference_e)].considerMatch(match,
+                                                                             minIdentity);
     match.reversePerspective();
-    assemblies[Query][match.getUID(Reference)].considerMatch(match, minIdentity);
+    assemblies[AMM_Query_e][match.getUID(AMM_Reference_e)].considerMatch(match,
+                                                             minIdentity);
   }
   fin.close();
 }
@@ -651,14 +978,16 @@ void Usage(char * progname, char * message)
 {
   if(message != NULL)
     cerr << endl << message << endl << endl;;
-  cerr << "Usage: " << progname << " [-i minIdentity] -r ref.scaff  -q query.scaff  -s showCoordsFile\n";
-  cerr << "\t-r ref.scaff       .scaff file of reference sequence\n";
-  cerr << "\t-q query.scaff     .scaff file of query sequence\n";
-  cerr << "\t-s showCoordsFile  output file from show-coords for 2 sequences\n";
-  cerr << "\t-i minIdentity     minimum pct identity of matches to consider\n";
-  cerr << "\t                     default is 95\n";
-  cerr << "\nOutput written to stdout\n";
-  cerr << "\n\n";
+  cerr << "Usage: " << progname << " [-h] [-v level] [-i minIdentity] -r ref.scaff  -q query.scaff  -s showCoordsFile\n"
+       << "\t-h                 print usage and exit\n"
+       << "\t-v level           set verbosity level\n"
+       << "\t-r ref.scaff       .scaff file of reference sequence\n"
+       << "\t-q query.scaff     .scaff file of query sequence\n"
+       << "\t-s showCoordsFile  output file from show-coords for 2 sequences\n"
+       << "\t-i minIdentity     minimum pct identity of matches to consider\n"
+       << "\t                     default is 95\n"
+       << "\nOutput written to stdout\n"
+       << "\n\n";
   exit(1);
 }
 
@@ -668,23 +997,27 @@ int main(int argc, char ** argv)
   char * scaffFilenames[2];
   char * showCoordsFilename = NULL;
   float minIdentity = 95;
-  scaffFilenames[Reference] = scaffFilenames[Query] = NULL;
+  scaffFilenames[AMM_Reference_e] = scaffFilenames[AMM_Query_e] = NULL;
+  int verboseLevel = 0;
 
   // process the command line
   {
     int ch, errflg = 0;
-    while(!errflg && ((ch = getopt(argc, argv, "hi:r:q:s:")) != EOF))
+    while(!errflg && ((ch = getopt(argc, argv, "hv:i:r:q:s:")) != EOF))
     {
       switch(ch)
       {
         case 'h':
           Usage(argv[0], "Instructions");
           break;
+        case 'v':
+          verboseLevel = atoi(optarg);
+          break;
         case 'r':
-          scaffFilenames[Reference] = optarg;
+          scaffFilenames[AMM_Reference_e] = optarg;
           break;
         case 'q':
-          scaffFilenames[Query] = optarg;
+          scaffFilenames[AMM_Query_e] = optarg;
           break;
         case 's':
           showCoordsFilename = optarg;
@@ -697,9 +1030,9 @@ int main(int argc, char ** argv)
           break;
       }
     }
-    if(scaffFilenames[Reference] == NULL)
+    if(scaffFilenames[AMM_Reference_e] == NULL)
       Usage(argv[0], "Please specify a reference .scaff file");
-    if(scaffFilenames[Query] == NULL)
+    if(scaffFilenames[AMM_Query_e] == NULL)
       Usage(argv[0], "Please specify a query .scaff file");
     if(showCoordsFilename == NULL)
       Usage(argv[0], "Please specify a .show-coords file");
@@ -708,32 +1041,55 @@ int main(int argc, char ** argv)
   }
 
   // read in .scaff files
-  map<CDS_UID_t, Scaffold> assemblies[2];
-  for(int i = 0; i < NumSequenceTypes; i++)
+  map<CDS_UID_t, MappedScaffold> assemblies[2];
+  for(int i = 0; i < AMM_NumSequenceTypes_e; i++)
   {
     readScaffFile(scaffFilenames[i], assemblies[i]);
-#ifdef VERBOSE
-    printScaffs(cout, assemblies[i]);
-#endif
+    if(verboseLevel > 1)
+    {
+      printScaffs(cout, assemblies[i]);
+    }
   }
 
   // read in the show-coords file
   readShowCoordsFile(showCoordsFilename, assemblies, minIdentity);
   
-  for(int i = 0; i < NumSequenceTypes; i++)
+  for(int i = 0; i < AMM_NumSequenceTypes_e; i++)
   {
-#ifdef VERBOSE
-    cout << "Matches in "
-         << ((SequenceType) i == Reference ? "reference " : "query ")
+    if(verboseLevel > 0)
+    {
+      cout << "Matches in "
+           << ((SequenceType) i == AMM_Reference_e ? "reference " : "query ")
+           << "sequence:\n";
+      printMatches(cout, assemblies[i]);
+      cout << endl;
+    }
+    
+    cout << "Mapping inconsistencies in the "
+         << ((SequenceType) i == AMM_Reference_e ? "reference " : "query ")
          << "sequence:\n";
-    printMatches(cout, assemblies[i]);
+    printMisMappings(cout, assemblies[i]);
     cout << endl;
-#endif
-    cout << "Mapping discrepancies from the perspective of the "
-         << ((SequenceType) i == Reference ? "reference " : "query ")
+                     
+    /*
+    cout << "Best scaffold mapping for each scaffold in the "
+         << ((SequenceType) i == AMM_Reference_e ? "reference " : "query ")
          << "sequence:\n";
-    checkMatches1(cout, assemblies[i], 0.03, 5);
+    printBestScaffoldMappings(cout, assemblies[i]);
     cout << endl;
+
+    cout << "Gaps filled in the "
+         << ((SequenceType) i == AMM_Reference_e ? "reference " : "query ")
+         << "sequence:\n";
+    printGapsFilled(cout, assemblies[i]);
+
+    cout << "Unique mid-contig sequence in the "
+         << ((SequenceType) i == AMM_Reference_e ? "reference " : "query ")
+         << "sequence:\n";
+    printUniqueMidContigSequences(cout, assemblies[i]);
+    */
   }
   return 0;
 }
+/****************************************************************************/
+// FIN
