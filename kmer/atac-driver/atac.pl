@@ -223,7 +223,13 @@ my $matches   = "${id1}vs${id2}.k$mersize.u$merlimit.f$minfill.g$maxgap";
 #  Find the include or exclude mask
 #
 if (! -e "$ATACdir/$matches.mask.done") {
+
     my $minFile="min.$mercount1.$mercount2";
+
+    #  $mercount1 and $mercount2 are the mers we want to use for
+    #  searching.  Obviously, only in-common mers can be found, we
+    #  make a file of those mers here.
+
     if (! -e "$ATACdir/$minFile.mcdat") {
         print STDERR "Finding the min count between $mercount1 and $mercount2.\n";
         
@@ -244,17 +250,31 @@ if (! -e "$ATACdir/$matches.mask.done") {
 
     die "Failed to make the mask?\n" if (! -e "$ATACdir/$minFile.mcdat");
 
-    #  Decide if we want to use an include mask, or an exclude mask, based
-    #  on the estimated size of each.
+    #  From that list of in-common mers (in-common and below some
+    #  count) we want to make a list of the mers that can be used in
+    #  the search table.  We can either make a positive (use these
+    #  mers) or negative (don't use these mers) list, we just want to
+    #  pick the smaller of the two.
     #
-    #  An include mask is just the 'min' mers found above, while an exclude
-    #  mask is 'id1-min' mers.
+    #
+    #  The positive 'include' list is just the 'min' mers found above.
+    #
+    #  The negative 'exclude' list is the min mers, removed from the mers in id1.
     #
     my $includeSize = (-s "$ATACdir/$minFile.mcdat");
-    my $excludeSize = (-s "$MERYLdir/$mercount1.mcdat") - (-s "$ATACdir/$minFile.mcdat");
+    my $excludeSize = (-s "$MERYLdir/$id1.ms$mersize.mcdat") - (-s "$ATACdir/$minFile.mcdat");
 
-    print STDERR "includeSize is about $includeSize\n";
-    print STDERR "excludeSize is about $excludeSize\n";
+    print STDERR "includeSize is proportional to $includeSize.\n";
+    print STDERR "excludeSize is proportional to $excludeSize.\n";
+
+    #  But this sometimes breaks (if the mcidx files are different sizes), so we now
+    #  pay the cost of actually counting the number of mers.
+    #
+    $includeSize = numberOfMers("$ATACdir/$minFile");
+    $excludeSize = numberOfMers("$MERYLdir/$id1.ms$mersize") - $includeSize;
+
+    print STDERR "includeSize is exactly $includeSize mers.\n";
+    print STDERR "excludeSize is exactly $excludeSize mers.\n";
 
     if ($includeSize < $excludeSize) {
         rename "$ATACdir/$minFile.mcidx", "$ATACdir/$matches.include.mcidx";
@@ -263,10 +283,15 @@ if (! -e "$ATACdir/$matches.mask.done") {
         if (! -e "$ATACdir/$matches.exclude.mcdat") {
             print STDERR "Finding 'exclude' mers!\n";
 
+            #  Our use of xor here is really just a subtraction.  We
+            #  want to report those mers that are only in the first
+            #  file, not in the second.  All mers in the second file
+            #  should be in the first file, by construction.
+
             my $cmd;
             $cmd  = "$meryl ";
             $cmd .= "-M xor ";
-            $cmd .= "-s $MERYLdir/$id2.ms$mersize ";
+            $cmd .= "-s $MERYLdir/$id1.ms$mersize ";
             $cmd .= "-s $ATACdir/$minFile ";
             $cmd .= "-o $ATACdir/$matches.exclude ";
             $cmd .= "-stats $ATACdir/$matches.exclude.stats";
@@ -320,6 +345,46 @@ while(<F>) {
     print S $segments;
     close(S);
 
+    open(S, "> $ATACdir/$matches-$segmentID.build.sh");
+    print S "#!/bin/sh\n";
+    print S "$seatac \\\n";
+    print S "-verbose \\\n";
+    print S "-mersize     $mersize \\\n";
+    print S "-minlength   $minfill \\\n";
+    print S "-maxgap      $maxgap \\\n";
+    print S "-numthreads  $numThreads \\\n";
+    print S "-table       $MERYLdir/$id1.fasta \\\n";
+    print S "-stream      $MERYLdir/$id2.fasta \\\n";
+    print S "-only        $ATACdir/$matches.include \\\n" if (-e "$ATACdir/$matches.include.mcdat");
+    print S "-mask        $ATACdir/$matches.exclude \\\n" if (-e "$ATACdir/$matches.exclude.mcdat");
+    print S "-use         $ATACdir/$matches-segment-$segmentID \\\n";
+    print S "-output      $ATACdir/$matches-segment-$segmentID.matches \\\n";
+    print S "-stats       $ATACdir/$matches-segment-$segmentID.build.stats \\\n";
+    print S "-buildtables $ATACdir/$matches-segment-$segmentID.table \\\n";
+    print S "-filtername  $filtername \\\n" if (defined($filtername));
+    print S "-filteropts  \"-1 $id1 -2 $id2 $filteropts\" \n";
+    close(S);
+
+    open(S, "> $ATACdir/$matches-$segmentID.sh");
+    print S "#!/bin/sh\n";
+    print S "$seatac \\\n";
+    print S "-verbose \\\n";
+    print S "-mersize     $mersize \\\n";
+    print S "-minlength   $minfill \\\n";
+    print S "-maxgap      $maxgap \\\n";
+    print S "-numthreads  $numThreads \\\n";
+    print S "-table       $MERYLdir/$id1.fasta \\\n";
+    print S "-stream      $MERYLdir/$id2.fasta \\\n";
+    print S "-only        $ATACdir/$matches.include \\\n" if (-e "$ATACdir/$matches.include.mcdat");
+    print S "-mask        $ATACdir/$matches.exclude \\\n" if (-e "$ATACdir/$matches.exclude.mcdat");
+    print S "-use         $ATACdir/$matches-segment-$segmentID \\\n";
+    print S "-output      $ATACdir/$matches-segment-$segmentID.matches \\\n";
+    print S "-usetables   $ATACdir/$matches-segment-$segmentID.table \\\n";
+    print S "-stats       $ATACdir/$matches-segment-$segmentID.stats \\\n";
+    print S "-filtername  $filtername \\\n" if (defined($filtername));
+    print S "-filteropts  \"-1 $id1 -2 $id2 $filteropts\" \n";
+    close(S);
+
     push @segmentIDs, $segmentID;
 
     $segmentID++;
@@ -341,30 +406,7 @@ foreach my $segmentID (@segmentIDs) {
     next if (-e "$ATACdir/$matches-segment-$segmentID.table");
 
     if (! -e "$ATACdir/$matches-segment-$segmentID.build.stats") {
-        my $cmd = "";
-
-        $cmd  = "$seatac \\\n";
-        $cmd .= "-verbose \\\n";
-        $cmd .= "-mersize     $mersize \\\n";
-        $cmd .= "-minlength   $minfill \\\n";
-        $cmd .= "-maxgap      $maxgap \\\n";
-        $cmd .= "-numthreads  $numThreads \\\n";
-        $cmd .= "-table       $MERYLdir/$id1.fasta \\\n";
-        $cmd .= "-stream      $MERYLdir/$id2.fasta \\\n";
-        $cmd .= "-only        $ATACdir/$matches.include \\\n" if (-e "$ATACdir/$matches.include.mcdat");
-        $cmd .= "-mask        $ATACdir/$matches.exclude \\\n" if (-e "$ATACdir/$matches.exclude.mcdat");
-        $cmd .= "-use         $ATACdir/$matches-segment-$segmentID \\\n";
-        $cmd .= "-output      $ATACdir/$matches-segment-$segmentID.matches \\\n";
-        $cmd .= "-stats       $ATACdir/$matches-segment-$segmentID.build.stats \\\n";
-        $cmd .= "-buildtables $ATACdir/$matches-segment-$segmentID.table \\\n";
-        $cmd .= "-filtername  $filtername \\\n" if (defined($filtername));
-        $cmd .= "-filteropts  \"-1 $id1 -2 $id2 $filteropts\" ";
-
-        open(F, "> $ATACdir/$matches-$segmentID.build.cmd");
-        print F "$cmd\n";
-        close(F);
-
-        if (runCommand($cmd)) {
+        if (runCommand("sh $ATACdir/$matches-$segmentID.build.sh > $ATACdir/$matches-$segmentID.build.out 2>&1")) {
             unlink "$ATACdir/$matches-segment-$segmentID.matches.crash";
             rename "$ATACdir/$matches-segment-$segmentID.matches", "$ATACdir/$matches-segment-$segmentID.matches.crash";
             unlink "$ATACdir/$matches-segment-$segmentID.build.stats.crash";
@@ -401,24 +443,6 @@ foreach my $segmentID (@segmentIDs) {
     next if (defined($segmentIDtorun) && ($segmentID ne $segmentIDtorun));
 
     if (! -e "$ATACdir/$matches-segment-$segmentID.stats") {
-        my $cmd = "";
-
-        $cmd  = "$seatac \\\n";
-        $cmd .= "-verbose \\\n";
-        $cmd .= "-mersize     $mersize \\\n";
-        $cmd .= "-minlength   $minfill \\\n";
-        $cmd .= "-maxgap      $maxgap \\\n";
-        $cmd .= "-numthreads  $numThreads \\\n";
-        $cmd .= "-table       $MERYLdir/$id1.fasta \\\n";
-        $cmd .= "-stream      $MERYLdir/$id2.fasta \\\n";
-        $cmd .= "-only        $ATACdir/$matches.include \\\n" if (-e "$ATACdir/$matches.include.mcdat");
-        $cmd .= "-mask        $ATACdir/$matches.exclude \\\n" if (-e "$ATACdir/$matches.exclude.mcdat");
-        $cmd .= "-use         $ATACdir/$matches-segment-$segmentID \\\n";
-        $cmd .= "-output      $ATACdir/$matches-segment-$segmentID.matches \\\n";
-        $cmd .= "-usetables   $ATACdir/$matches-segment-$segmentID.table \\\n";
-        $cmd .= "-stats       $ATACdir/$matches-segment-$segmentID.stats \\\n";
-        $cmd .= "-filtername  $filtername \\\n" if (defined($filtername));
-        $cmd .= "-filteropts  \"-1 $id1 -2 $id2 $filteropts\" ";
 
         #  Prevent me from overwriting a run in progress
         #
@@ -426,11 +450,7 @@ foreach my $segmentID (@segmentIDs) {
             die "WARNING:  Matches already exist!  Exiting!\n";
         }
 
-        open(F, "> $ATACdir/$matches-$segmentID.cmd");
-        print F "$cmd\n";
-        close(F);
-
-        if (runCommand($cmd)) {
+        if (runCommand("sh $ATACdir/$matches-$segmentID.sh > $ATACdir/$matches-$segmentID.out 2>&1")) {
             unlink "$ATACdir/$matches-segment-$segmentID.matches.crash";
             rename "$ATACdir/$matches-segment-$segmentID.matches", "$ATACdir/$matches-segment-$segmentID.matches.crash";
             unlink "$ATACdir/$matches-segment-$segmentID.stats.crash";
@@ -675,5 +695,19 @@ sub countMers {
     }
 
     return "$id.ms$mersize.le$merlimit";
+}
+
+
+#  Return the number of mers in a meryl file.
+#
+sub numberOfMers ($) {
+    my $mers = 0;
+    open(F, "$meryl -Dc -s $_[0] |");
+    while (<F>) {
+        $mers = $1 if (m/Found\s(\d+)\smers/);
+    }
+    close(F);
+    print STDERR "$_[0] has $mers mers.\n";
+    return($mers);
 }
 
