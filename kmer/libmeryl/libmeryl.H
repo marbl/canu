@@ -76,6 +76,10 @@ merylStreamReader::nextMer(void) {
   if (_thisBucket >= _numBuckets)
     return(_validMer = false);
 
+  //  Before you get rid of the clear() -- if, say, the list of mers
+  //  is sorted and we can shift the mer to make space for the new
+  //  stuff -- make sure that nobody is calling reverseComplement()!
+  //
   _thisMer.clear();
   _thisMer.readFromBitPackedFile(_DAT, _merDataSize);
   _thisMer.setBits(_merDataSize, _prefixSize, _thisBucket);
