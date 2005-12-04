@@ -171,9 +171,9 @@ def trimMatchOverlapsInX(inpfile,outfile, trim_subtype):
                             right.y_start  -= gaplen # modify the match
                 else:
                     # picketed region contains right.
-                    print >>sys.stderr, "trimMatchOverlapsInX: Contained"
-                    print >>sys.stderr, left
-                    print >>sys.stderr, right
+                    #print >>sys.stderr, "trimMatchOverlapsInX: Contained"
+                    #print >>sys.stderr, left
+                    #print >>sys.stderr, right
                     contained += 1
                     right = None # remove this match
             if(right != None):
@@ -247,9 +247,9 @@ def trimMatchOverlapsInY(inpfile,outfile, trim_subtype):
                             right.x_start  -= gaplen # modify the match
                 else:
                     # picketed region contains right.
-                    print >>sys.stderr, "trimMatchOverlapsInY: Contained"
-                    print >>sys.stderr, left
-                    print >>sys.stderr, right
+                    #print >>sys.stderr, "trimMatchOverlapsInY: Contained"
+                    #print >>sys.stderr, left
+                    #print >>sys.stderr, right
                     contained += 1
                     right = None # remove this match
             if(right != None):
