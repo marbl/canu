@@ -11,9 +11,9 @@ typedef u64bit heapbit;
 //
 //#define SILENTPOSITIONDB
 
-//  Define this to enable some debugging methods
-//
+//  Define these to enable some debugging methods
 //#define DEBUGPOSDB
+//#define DEBUGREBUILD
 
 class existDB;
 
@@ -28,6 +28,7 @@ public:
              u32bit         tblBits,
              existDB       *mask,
              existDB       *only,
+             u32bit         maxCount,
              bool           beVerbose);
 
   ~positionDB();
@@ -66,6 +67,26 @@ public:
 #endif
 
 
+  bool         checkREBUILD(u64bit m) {
+#ifdef DEBUGREBUILD
+    u64bit h = HASH(m);
+    u64bit c = CHECK(m);
+    u64bit r = REBUILD(h, c);
+    if (r != m) {
+      fprintf(stderr, "shift1 = "u32bitFMT"\n", _shift1);
+      fprintf(stderr, "shift2 = "u32bitFMT"\n", _shift2);
+      fprintf(stderr, "M = "u64bitHEX"\n", m);
+      fprintf(stderr, "H = "u64bitHEX"\n", h);
+      fprintf(stderr, "C = "u64bitHEX"\n", c);
+      fprintf(stderr, "R = "u64bitHEX"\n", r);
+      return(false);
+    }
+    return(true);
+#else
+    return(REBUILD(HASH(m), CHECK(m)) == m);
+#endif
+  };
+
 private:
 
   u64bit       HASH(u64bit k) {
@@ -76,12 +97,49 @@ private:
     return(k & _mask2);
   };
 
+  u64bit       REBUILD(u64bit h, u64bit c) {
+    //  Decode a HASH and a CHECK to get back the mer.  You'd better
+    //  bloody PRAY you don't break this (test/test-rebuild.C).  It
+    //  was a headache++ to write.
+
+    u64bit sha = _shift1 - _shift2;
+    u64bit msk = u64bitMASK(sha);
+
+    //  The check is exactly the mer....just not all there.
+    u64bit mer = c;
+
+    u64bit shf = sha - (_tableSizeInBits % 2);
+    u64bit shg = 0;
+    u64bit shh = _shift1;
+
+    //  Unrolling this is troublesome - we still need the tests,
+    //  bizarre merSize, tblSize combinations use lots of iterations
+    //  (when the merSize and tblSize are about the same, the CHECK is
+    //  small, and so we need to do lots of iterations).
+
+    //fprintf(stderr, "shf="u64bitFMTW(2)" shg="u64bitFMTW(2)" shh="u64bitFMTW(2)" mer="u64bitHEX"\n", shf, shg, shh, mer);
+
+    do {
+      mer |= (((h >> shg) ^ (mer >> shg) ^ (mer >> shf)) & msk) << shh;
+      //fprintf(stderr, "shf="u64bitFMTW(2)" shg="u64bitFMTW(2)" shh="u64bitFMTW(2)" mer="u64bitHEX"\n", shf, shg, shh, mer);
+
+      shf += sha;
+      shg += sha;
+      shh += sha;
+    } while ((shf < _merSizeInBits) && (shh < 64));
+
+    mer &= u64bitMASK(_merSizeInBits);
+
+    return(mer);
+  };
+
   void         sortAndRepackBucket(u64bit b);
 
   u32bit     *_bucketSizes;
   u64bit     *_countingBuckets;
   u64bit     *_hashTable;
   u64bit     *_buckets;
+
   u64bit     *_positions;
 
   u32bit      _merSizeInBases;

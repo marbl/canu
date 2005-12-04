@@ -59,18 +59,21 @@ testExistence(char *filename, u32bit merSize, u32bit tblSize) {
   existDB     *E      = new existDB(filename, merSize, tblSize);
   FastAstream *F      = new FastAstream(filename);
   merStream   *M      = new merStream(merSize, F);
+  u64bit       tried  = 0;
   u64bit       lost   = 0;
 
-  while (M->nextMer())
+  while (M->nextMer()) {
+    tried++;
     if (!E->exists(M->theFMer()))
       lost++;
+  }
 
   delete M;
   delete F;
   delete E;
 
   if (lost) {
-    fprintf(stderr, "Didn't find "u64bitFMT" merStream mers in the existDB.\n", lost);
+    fprintf(stderr, "Tried "u64bitFMT", didn't find "u64bitFMT" merStream mers in the existDB.\n", tried, lost);
     return(1);
   } else {
     return(0);

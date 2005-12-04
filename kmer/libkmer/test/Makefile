@@ -22,6 +22,11 @@ test-maskonly-passed:
 	./test-maskonly xp.fasta xp.dup.fasta xp.dup.fasta
 	touch test-maskonly-passed
 
+test-rebuild: test-rebuild.C ../positionDB.H
+	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-rebuild.o test-rebuild.C $(INCLUDE)
+	$(CXX) $(CXXLDFLAGS) -o test-rebuild test-rebuild.o $(LIBS)
+	./test-rebuild 20 23
+
 position-passed: position-passed1 position-passed2 exist-fast-passed
 	touch position-passed
 xp.fasta: ../../leaff/leaff
@@ -86,3 +91,4 @@ clean:
 	rm -f testerp *.o xp.fasta* yp.fasta*
 	rm -f testere junk* xe.fasta* xe.mcidx xe.mcdat xe.merStream
 	rm -f test-maskonly xp.dup.fasta xp.mcidx xp.mcdat
+	rm -f test-rebuild

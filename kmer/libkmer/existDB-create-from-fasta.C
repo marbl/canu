@@ -33,6 +33,8 @@ existDB::createFromFastA(char const  *filename,
   u64bit  numberOfMers       = u64bitZERO;
   u64bit *countingTable      = new u64bit [tableSizeInEntries + 1];
 
+  _beVerbose=true;
+
   if (_beVerbose)
     fprintf(stderr, "existDB::createFromFastA()-- countingTable is "u64bitFMT"MB\n",
             tableSizeInEntries >> 17);
@@ -174,10 +176,10 @@ existDB::createFromFastA(char const  *filename,
 
   while (M->nextMer()) {
     if (doForward)
-      INSERT(HASH(M->theFMer()), CHECK(M->theFMer()), countingTable);
+      insertMer(HASH(M->theFMer()), CHECK(M->theFMer()), countingTable);
 
     if (doReverse)
-      INSERT(HASH(M->theRMer()), CHECK(M->theRMer()), countingTable);
+      insertMer(HASH(M->theRMer()), CHECK(M->theRMer()), countingTable);
 
     if (doCanonical)
       ;  //  Not implemented, caught above

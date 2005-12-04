@@ -55,6 +55,8 @@ existDB::createFromMeryl(char const  *prefix,
   //  really move the direction testing outside the loop, unless we
   //  want to do two iterations over M.
   //
+  speedCounter  *C = new speedCounter("    %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, _beVerbose);
+
   while (M->nextMer()) {
     if ((lo <= M->theCount()) && (M->theCount() <= hi)) {
       if (doForward) {
@@ -69,22 +71,26 @@ existDB::createFromMeryl(char const  *prefix,
       }
 
       if (doCanonical) {
-        fprintf(stderr, "ERROR:  canonical mers in existDB not implemented.\n");
+        fprintf(stderr, "existDB::createFromMeryl()-- canonical mers in existDB not implemented.\n");
         exit(1);
       }
+
+      C->tick();
     }
   }
 
+  delete C;
   delete M;
-  
+
   if (_compressedHash) {
     _hashWidth = 1;
     while ((numberOfMers+1) > (u64bitONE << _hashWidth))
       _hashWidth++;
   }
 
-  fprintf(stderr, "existDB: Found "u64bitFMT" mers between count of "u32bitFMT" and "u32bitFMT"\n",
-          numberOfMers, lo, hi);
+  if (_beVerbose)
+    fprintf(stderr, "existDB::createFromMeryl()-- Found "u64bitFMT" mers between count of "u32bitFMT" and "u32bitFMT"\n",
+            numberOfMers, lo, hi);
 
 
   //  2) Allocate hash table, mer storage buckets
@@ -97,15 +103,16 @@ existDB::createFromMeryl(char const  *prefix,
   if (_compressedBucket)
     _bucketsWords = _bucketsWords * _chckWidth / 64 + 1;
 
+  if (_beVerbose) {
+    fprintf(stderr, "existDB::createFromMeryl()-- hashTable is "u64bitFMT"MB\n",
+            _hashTableWords >> 17);
+    fprintf(stderr, "existDB::createFromMeryl()-- buckets is "u64bitFMT"MB\n",
+            _bucketsWords >> 17);
+  }
+
   _hashTable = new u64bit [_hashTableWords];
   _buckets   = new u64bit [_bucketsWords];
 
-#if 1
-  fprintf(stderr, "existDB::createFromMeryl()-- hashTable is "u64bitFMT"MB\n",
-          _hashTableWords >> 17);
-  fprintf(stderr, "existDB::createFromMeryl()-- buckets is "u64bitFMT"MB\n",
-          _bucketsWords >> 17);
-#endif
 
   ////////////////////////////////////////////////////////////////////////////////
   //
@@ -150,22 +157,26 @@ existDB::createFromMeryl(char const  *prefix,
   //  3)  Build list of mers, placed into buckets
   //
   M = new merylStreamReader(prefix);
+  C = new speedCounter("    %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, _beVerbose);
 
   while (M->nextMer()) {
     if ((lo <= M->theCount()) && (M->theCount() <= hi)) {
       if (doForward)
-        INSERT(HASH(M->theFMer()), CHECK(M->theFMer()), countingTable);
+        insertMer(HASH(M->theFMer()), CHECK(M->theFMer()), countingTable);
 
       if (doReverse) {
         M->theFMer().reverseComplement();
-        INSERT(HASH(M->theFMer()), CHECK(M->theFMer()), countingTable);
+        insertMer(HASH(M->theFMer()), CHECK(M->theFMer()), countingTable);
       }
 
       if (doCanonical)
         ;  //  Not implemented, caught above
+
+      C->tick();
     }
   }
 
+  delete C;
   delete M;
   delete [] countingTable;
 

@@ -19,10 +19,17 @@
 
 #define MSG_OUTPUT  stderr
 
+//  Enable masking of mers during final table construction.  This is
+//  slightly faster, but uses more memory to build.  Disabling this
+//  returns to the previous method of masking mers during the counting
+//  phases.
+//
+#define MER_REMOVAL_DURING_XFER
+//#define MER_REMOVAL_TEST
+
 
 positionDB::positionDB(char const    *filename,
                        bool           loadData) {
-  bool fail = false;
 
   if (loadState(filename, true, loadData) == false) {
     fprintf(stderr, "positionDB::positionDB()-- Tried to read state from '%s', but failed.\n", filename);
@@ -30,6 +37,11 @@ positionDB::positionDB(char const    *filename,
   }
 
 #if 0
+  //  We used to check that the positionDB loaded agreed with what the user
+  //  claims we should be.  Not anymore.
+
+  bool fail = false;
+
   if (_merSizeInBases != merSize) {
     fprintf(stderr, "positionDB::positionDB()-- Read state from '%s', but got different mer sizes\n", filename);
     fprintf(stderr, "positionDB::positionDB()-- Got "u32bitFMT", expected "u32bitFMT"\n", _merSizeInBases, merSize);
@@ -45,10 +57,10 @@ positionDB::positionDB(char const    *filename,
     fprintf(stderr, "positionDB::positionDB()-- Got "u32bitFMT", expected "u32bitFMT"\n", _tableSizeInBits, tblBits);
     fail = true;
   }
-#endif
 
   if (fail)
     exit(1);
+#endif
 }
 
 
@@ -58,6 +70,7 @@ positionDB::positionDB(merStream   *MS,
                        u32bit       tblBits,
                        existDB     *mask,
                        existDB     *only,
+                       u32bit       maxCount,
                        bool         beVerbose) {
 
   _bucketSizes           = 0L;
@@ -109,7 +122,8 @@ positionDB::positionDB(merStream   *MS,
     exit(1);
   }
 
-
+  if (maxCount == 0)
+    maxCount = ~u32bitZERO;
 
   ////////////////////////////////////////////////////////////////////////////////
   //
@@ -131,8 +145,8 @@ positionDB::positionDB(merStream   *MS,
   try {
     bktAlloc = new u64bit [_tableSizeInEntries / 2 + 2];
   } catch (std::bad_alloc) {
-    fprintf(stderr, "hitMatrix::filter()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
-    fprintf(stderr, "hitMatrix::filter()-- bktAlloc = new u64bit ["u64bitFMT"]\n", _tableSizeInEntries / 2 + 2);
+    fprintf(stderr, "positionDB::positionDB()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
+    fprintf(stderr, "positionDB::positionDB()-- bktAlloc = new u64bit ["u64bitFMT"]\n", _tableSizeInEntries / 2 + 2);
     exit(1);
   }
   bool     bktAllocIsJunk = false;
@@ -179,6 +193,7 @@ positionDB::positionDB(merStream   *MS,
     exit(1);
   }
 
+#ifndef MER_REMOVAL_DURING_XFER
   if (mask) {
     while (MS->nextMer(_merSkipInBases)) {
       u64bit  canonicalmer = MS->theFMer();
@@ -208,6 +223,8 @@ positionDB::positionDB(merStream   *MS,
       C->tick();
     }
   } else {
+#endif
+
     while (MS->nextMer(_merSkipInBases)) {
       _bucketSizes[ HASH(MS->theFMer()) ]++;
 
@@ -219,7 +236,11 @@ positionDB::positionDB(merStream   *MS,
       _numberOfPositions = MS->thePositionInStream();
       C->tick();
     }
+
+#ifndef MER_REMOVAL_DURING_XFER
   }
+#endif
+
 
   delete C;
   C = 0L;
@@ -231,6 +252,9 @@ positionDB::positionDB(merStream   *MS,
   //  position after the last mer.  That is, if there are two mers, we
   //  will store that the first mer is at position 0, the second mer
   //  is at position 1, and the end of the second mer is at position 2.
+  //
+  //  In reality, it should be the number of distinct mers, not the
+  //  total number of mers, but we don't know that yet.
   //
   _hashWidth = 1;
   while ((_numberOfMers+1) > (u64bitONE << _hashWidth))
@@ -264,8 +288,8 @@ positionDB::positionDB(merStream   *MS,
   try {
     _countingBuckets = new u64bit [bucketsSpace];
   } catch (std::bad_alloc) {
-    fprintf(stderr, "hitMatrix::filter()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
-    fprintf(stderr, "hitMatrix::filter()-- _countingBuckets = new u64bit ["u64bitFMT"]\n", bucketsSpace);
+    fprintf(stderr, "positionDB::positionDB()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
+    fprintf(stderr, "positionDB::positionDB()-- _countingBuckets = new u64bit ["u64bitFMT"]\n", bucketsSpace);
     exit(1);
   }
 
@@ -312,6 +336,7 @@ positionDB::positionDB(merStream   *MS,
   //  client that uses masking)
   //
 
+#ifndef MER_REMOVAL_DURING_XFER
   if (mask) {
 
     while (MS->nextMer(_merSkipInBases)) {
@@ -348,6 +373,8 @@ positionDB::positionDB(merStream   *MS,
     }
 
   } else {
+#endif
+
     while (MS->nextMer(_merSkipInBases)) {
       u64bit h = HASH(MS->theFMer());
 
@@ -403,7 +430,11 @@ positionDB::positionDB(merStream   *MS,
 
       C->tick();
     }
+
+#ifndef MER_REMOVAL_DURING_XFER
   }
+#endif
+
 
   delete C;
   C = 0L;
@@ -469,6 +500,19 @@ positionDB::positionDB(merStream   *MS,
   //
   //  5)  Allocate: real hash table, buckets and position table.
   //
+
+  //  XXXX how do we count the number of buckets/positions we never
+  //  use because they are masked out??
+  //
+  //  If we are just thresholding (ignore things with count > 100)
+  //  it's easy, a simple loop over something.
+  //
+  //  If we have an exist/only db....are they in the same order?  Can
+  //  we loop over both at the same time and count that way?  That'd
+  //  be cool!  Mersize is the same, why can the table size be the
+  //  same too -- OK, if the existDB has a small number of mers in it,
+  //  then we don't need a large table.
+
   u64bit  hs = _tableSizeInEntries * _hashWidth / 64 + 1;
   u64bit  bs = _numberOfDistinct   * _wFin      / 64 + 1;
   u64bit  ps = _numberOfEntries    * _posnWidth / 64 + 1;
@@ -487,8 +531,8 @@ positionDB::positionDB(merStream   *MS,
     try {
       _hashTable     = new u64bit [hs];
     } catch (std::bad_alloc) {
-      fprintf(stderr, "hitMatrix::filter()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
-      fprintf(stderr, "hitMatrix::filter()-- _hashTable = new u64bit ["u64bitFMT"]\n", hs);
+      fprintf(stderr, "positionDB::positionDB()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
+      fprintf(stderr, "positionDB::positionDB()-- _hashTable = new u64bit ["u64bitFMT"]\n", hs);
       exit(1);
     }
     bktAllocIsJunk = true;
@@ -519,8 +563,8 @@ positionDB::positionDB(merStream   *MS,
     try {
       _buckets   = new u64bit [bs];
     } catch (std::bad_alloc) {
-      fprintf(stderr, "hitMatrix::filter()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
-      fprintf(stderr, "hitMatrix::filter()-- _buckets = new u64bit ["u64bitFMT"]\n", bs);
+      fprintf(stderr, "positionDB::positionDB()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
+      fprintf(stderr, "positionDB::positionDB()-- _buckets = new u64bit ["u64bitFMT"]\n", bs);
       exit(1);
     }
   }
@@ -530,8 +574,8 @@ positionDB::positionDB(merStream   *MS,
   try {
     _positions = new u64bit [ps];
   } catch (std::bad_alloc) {
-    fprintf(stderr, "hitMatrix::filter()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
-    fprintf(stderr, "hitMatrix::filter()-- _positions = new u64bit ["u64bitFMT"\n", ps);
+    fprintf(stderr, "positionDB::positionDB()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
+    fprintf(stderr, "positionDB::positionDB()-- _positions = new u64bit ["u64bitFMT"\n", ps);
     exit(1);
   }
 
@@ -558,11 +602,25 @@ positionDB::positionDB(merStream   *MS,
   u32bit *posPtrCheck = new u32bit [65826038];
 #endif
 
+  //  We also take this opportunity to reset some statistics that are
+  //  wrong.  Technically, we only need to do this if we are
+  //  MER_REMOVAL_DURING_XFER, but everbody benefits from it (the old
+  //  method gets the number of entries and positions wrong).
+  //
+  _numberOfMers      = 0;
+  _numberOfPositions = 0;
+  _numberOfDistinct  = 0;
+  _numberOfUnique    = 0;
+  _numberOfEntries   = 0;
+  _maximumEntries    = 0;
+
+  C = new speedCounter("    %7.2f Mbuckets -- %5.2f Mbuckets/second\r", 1000000.0, 0x1fffff, beVerbose);
 
   //  We need b outside the loop!
   //
-  u32bit  b;
+  u64bit  b;
   for (b=0; b<_tableSizeInEntries; b++) {
+    C->tick();
 
     //  Set the start of the bucket -- we took pains to ensure that
     //  we don't overwrite _bucketSizes[b], if we are reusing that
@@ -620,8 +678,45 @@ positionDB::positionDB(merStream   *MS,
       //  edM is now the mer after the last.  Write all mers from stM up to edM
       //  to the final structure.  If there is one mer, put it in the bucket.
       //  If not, put a pointer to the position array there.
+
+      //  We're in bucket b, looking at mer (_sortedList[stM] & checkMask).
+      //  Ask the only/mask if that exists, if so do/do not include the mer.
       //
+      bool useMer = true;
+#ifdef MER_REMOVAL_DURING_XFER
+      if (mask || only) {
+
+        //  Great.  The existDB has (usually) the canonical mer.  We
+        //  have the forward mer.  Well, no, we have the forward mers'
+        //  hash and check.  So, we reconstruct the mer, reverse
+        //  complement it, and then throw the mer out if either the
+        //  forward or reverse exists (or doesn't exist).
+
+        u64bit m = REBUILD(b, (_sortedList[stM] & checkMask) >> _posnWidth);
+        u64bit r = reverseComplementMer(_merSizeInBases, m);
+
+        if (r < m)
+          m = r;
+
+        if ((mask) && (mask->exists(m)))
+          useMer = false;
+
+        if ((only) && (!only->exists(m)))
+          useMer = false;
+      }
+
+      if (edM - stM > maxCount)
+        useMer = false;
+#endif
+
+      if (useMer) {
+        _numberOfMers      += edM - stM;
+        _numberOfPositions += edM - stM;
+        _numberOfDistinct++;
+
       if (stM+1 == edM) {
+        _numberOfUnique++;
+
 #ifdef TEST_NASTY_BUGS
         posPtrCheck[currentBpos++] = _sortedList[stM] & _posnMask;
 #endif
@@ -633,10 +728,16 @@ positionDB::positionDB(merStream   *MS,
         v |= (_sortedList[stM] & _posnMask) << _chckWidth;
         v |= (_sortedList[stM] & checkMask) >> _posnWidth;
 
+        //  Finally, add the mer and position to the bucket.
+        //
         setDecodedValue(_buckets, currentBbit, _wFin, v);
         currentBbit += _wFin;
         bucketStartPosition++;
       } else {
+        _numberOfEntries  += edM - stM;
+        if (_maximumEntries < edM - stM)
+          _maximumEntries = edM - stM;
+
 #ifdef TEST_NASTY_BUGS
         posPtrCheck[currentBpos++] = currentPpos;
  #endif
@@ -647,6 +748,8 @@ positionDB::positionDB(merStream   *MS,
         v |= (currentPpos      & _posnPtrMask) << _chckWidth;
         v |= (_sortedList[stM] & checkMask)    >> _posnWidth;
 
+        //  Add the mer to the bucket.
+        //
         setDecodedValue(_buckets, currentBbit, _wFin, v);
         currentBbit += _wFin;
         bucketStartPosition++;
@@ -666,25 +769,96 @@ positionDB::positionDB(merStream   *MS,
           currentPpos++;
         }
       }
+      }  //  useMer
 
       //  All done with this mer.
       //
       stM = edM;
     }
-  }
+  }  //  for each bucket
 
   //  Set the end of the last bucket
   //
   setDecodedValue(_hashTable, b * _hashWidth, _hashWidth, bucketStartPosition);
 
+  delete C;
+
+  //  Clear out the end of the arrays -- this is only so that we can
+  //  checksum the result.
+  //
+  b = b * _hashWidth + _hashWidth;
+  setDecodedValue(_hashTable, b,           64 - (b % 64),           u64bitZERO);
+  setDecodedValue(_buckets,   currentBbit, 64 - (currentBbit % 64), u64bitZERO);
+  setDecodedValue(_positions, currentPbit, 64 - (currentPbit % 64), u64bitZERO);
+
+
   if (beVerbose) {
     fprintf(MSG_OUTPUT, "    Avail: Bucket "u64bitFMTW(12)"    Position "u64bitFMTW(12)" (64-bit words)\n", bs, ps);
+    fprintf(MSG_OUTPUT, "    Avail: Bucket "u64bitFMTW(12)"    Position "u64bitFMTW(12)" (entries)\n", _numberOfDistinct, _numberOfEntries);
     fprintf(MSG_OUTPUT, "    Used:  Bucket "u64bitFMTW(12)"    Position "u64bitFMTW(12)" (64-bit words)\n", currentBbit / 64, currentPbit / 64);
   }
 
+  //  Reset the sizes to what we actually found.  If we then
+  //  dump/reload, we shrink our footprint.
+  //
+  _numberOfDistinct = currentBbit / _wFin;
+  _numberOfEntries  = currentPbit / _posnWidth;
+
+  if (beVerbose) {
+    fprintf(MSG_OUTPUT, "    Used:  Bucket "u64bitFMTW(12)"    Position "u64bitFMTW(12)" (entries)\n", _numberOfDistinct, _numberOfEntries);
+  }
+
+
+#ifdef MER_REMOVAL_DURING_XFER
+  //  If we removed mers, there is a small chance that our hash table
+  //  is too big -- we might have removed enoough mers to make the
+  //  width smaller.  If so, rebuild the hash table.
+  //
+  //  Also, hooray, we finally know the number of distinct mers, so we
+  //  can make this nice and tight
+  //
+  u32bit newHashWidth = 1;
+  while ((_numberOfDistinct+1) > (u64bitONE << newHashWidth))
+    newHashWidth++;
+  
+  if (newHashWidth != _hashWidth) {
+    u64bit npos = 0;
+    u64bit opos = 0;
+
+    fprintf(stderr, "    Rebuilding the hash table, from "u32bitFMT" bits wide to "u32bitFMT" bits wide.\n",
+            _hashWidth, newHashWidth);
+
+    for (u64bit b=0; b<_tableSizeInEntries+1; b++) {
+
+      //  Set the start of the bucket -- we took pains to ensure that
+      //  we don't overwrite _bucketSizes[b], if we are reusing that
+      //  space for _hashTable.
+      //
+      setDecodedValue(_hashTable,
+                      npos,
+                      newHashWidth, 
+                      getDecodedValue(_hashTable,
+                                      opos,
+                                      _hashWidth));
+      npos += newHashWidth;
+      opos += _hashWidth;
+    }
+
+    //  Clear the end again.
+    setDecodedValue(_hashTable, npos, 64 - (npos % 64), u64bitZERO);
+
+    _hashWidth = newHashWidth;
+  }
+#endif
+
+
+
+
+
 
 #ifdef TEST_NASTY_BUGS
-  //  Unpack the bucket positions and check.  Report the first one that is broken.
+  //  Unpack the bucket positions and check.  Report the first one
+  //  that is broken.
   //
   for(u64bit b=0; b<currentBpos; b++) {
     u64bit c = (getDecodedValue(_buckets, b * _wFin, _wFin) >> _chckWidth) & _posnPtrMask;
@@ -701,7 +875,49 @@ positionDB::positionDB(merStream   *MS,
 #endif
 
 
-  //  Free the counting buckets is we aren't using the space for
+#ifdef MER_REMOVAL_TEST
+  MS->rewind();
+  if (mask) {
+    if (beVerbose)
+      fprintf(MSG_OUTPUT, "    TESTING MER REMOVAL - mask.\n");
+
+    C = new speedCounter("    %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, beVerbose);
+
+    u32bit  extraMer   = 0;
+    while (MS->nextMer(_merSkipInBases)) {
+      u64bit  mer = MS->theFMer();
+
+      if (mask->exists(mer) && exists(mer)) {
+        extraMer++;
+      }
+
+      C->tick();
+    }
+    delete C;
+    fprintf(stderr, "mask: "u32bitFMT" mers extra!\n", extraMer);
+  } else if (only) {
+    if (beVerbose)
+      fprintf(MSG_OUTPUT, "    TESTING MER REMOVAL - only.\n");
+
+    C = new speedCounter("    %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, beVerbose);
+
+    u32bit  missingMer = 0;
+    while (MS->nextMer(_merSkipInBases)) {
+      u64bit  mer = MS->theFMer();
+
+      if (only->exists(mer) && !exists(mer)) {
+        missingMer++;
+      }
+
+      C->tick();
+    }
+    delete C;
+    fprintf(stderr, "only: "u32bitFMT" mers missing!\n", missingMer);
+  }
+#endif
+
+
+  //  Free the counting buckets if we aren't using the space for
   //  something else.
   //
   if (_buckets != _countingBuckets)
@@ -728,4 +944,3 @@ positionDB::~positionDB() {
   delete [] _buckets;
   delete [] _positions;
 }
-

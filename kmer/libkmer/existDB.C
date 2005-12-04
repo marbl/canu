@@ -9,6 +9,7 @@
 
 existDB::existDB(char const  *filename,
                  bool         loadData) {
+  clear();
   if (loadState(filename, true, loadData) == false) {
     fprintf(stderr, "existDB::existDB()-- Tried to read state from '%s', but failed.\n", filename);
     exit(1);
@@ -22,6 +23,7 @@ existDB::existDB(char const    *filename,
                  u32bit         lo,
                  u32bit         hi,
                  existDBflags   flags) {
+  clear();
 
   _compressedHash   = flags & existDBcompressHash;
   _compressedBucket = flags & existDBcompressBuckets;
@@ -51,11 +53,11 @@ existDB::existDB(char const    *filename,
     return;
   }
 
-  //  If no direction flags are set, set the default direction of forward.
+  //  If no direction flags are set, set the default direction of
+  //  forward.  Stupid precedence rules.
   //
-  if (flags & (existDBcanonical | existDBforward | existDBreverse) == 0)
+  if ((flags & (existDBcanonical | existDBforward | existDBreverse)) == u32bitZERO)
     flags |= existDBforward;
-
 
   //  If we can open 'filename' for reading, then we assume the file is a multi-fasta, and
   //  we build an existDB using merSize = p1 and tblBits = p2
@@ -116,3 +118,73 @@ existDB::exists(u64bit mer) {
   return(false);
 }
 
+
+//  Special case used from inside the posDB.  Errrr, it _was_ used
+//  inside the posDB.
+//
+//  If:
+//    The existDB and posDB are built using the same hashWidth.
+//    We know the bucket and check we want to find.
+//    The checks are in increasing order.
+//  Then we can bypass a lot of the overhead of checking for existence.
+//
+#if 0
+bool
+existDB::exists(u64bit b, u64bit c) {
+
+  //  Are we in a new bucket?  Reset!
+  //
+  if (b != _es_bucket) {
+    _es_bucket = b;
+
+    if (_compressedHash) {
+      b      *= _hashWidth;
+      _es_st  = getDecodedValue(_hashTable, b,              _hashWidth);
+      _es_ed  = getDecodedValue(_hashTable, b + _hashWidth, _hashWidth);
+    } else {
+      _es_st  = _hashTable[b];
+      _es_ed  = _hashTable[b+1];
+    }
+
+    if (_compressedBucket) {
+      _es_st *= _chckWidth;
+      _es_ed *= _chckWidth;
+    }
+  }
+
+  //  If we're all done, return early.  Probably doesn't do much, just
+  //  skips the setup of a for loop.
+  //
+  if (_es_st == _es_ed)
+    return(false);
+
+#ifdef ES_SORTED
+  //  This would work great, except existDB isn't sorted.
+  if (_compressedBucket) {
+    for (; _es_st<_es_ed; _es_st += _chckWidth) {
+      if (getDecodedValue(_buckets, _es_st, _chckWidth) == c)
+        return(true);
+    }
+  } else {
+    for (; _es_st<_es_ed; _es_st++) {
+      if (_buckets[_es_st] == c)
+        return(true);
+    }
+  }
+#else
+  if (_compressedBucket) {
+    for (u64bit st=_es_st; st<_es_ed; st += _chckWidth) {
+      if (getDecodedValue(_buckets, st, _chckWidth) == c)
+        return(true);
+    }
+  } else {
+    for (u64bit st=_es_st; st<_es_ed; st++) {
+      if (_buckets[st] == c)
+        return(true);
+    }
+  }
+#endif
+
+  return(false);
+}
+#endif

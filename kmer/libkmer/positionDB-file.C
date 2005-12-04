@@ -41,7 +41,38 @@ positionDB::saveState(char const *filename) {
     exit(1);
   }
 
+  //  If only to be completely annoying and anal, we clear the
+  //  pointers before we write the data.  Sure, we could just write
+  //  the stuff we care about, but this is easier.  This is easier.
+  //  Before you go rip out this stuff, remember that you can now
+  //  checksum the resulting files.  So don't do it.
+  //
+  u32bit     *bs = _bucketSizes;
+  u64bit     *cb = _countingBuckets;
+  u64bit     *ht = _hashTable;
+  u64bit     *bu = _buckets;
+  u64bit     *ps = _positions;
+
+  _bucketSizes     = 0L;
+  _countingBuckets = 0L;
+ _hashTable       = 0L;
+  _buckets         = 0L;
+  _positions       = 0L;
+
   safeWrite(F, this,       "this",       sizeof(positionDB) * 1);
+
+  _bucketSizes     = bs;
+  _countingBuckets = cb;
+  _hashTable       = ht;
+  _buckets         = bu;
+  _positions       = ps;
+
+#if 0
+  fprintf(stderr, "hash: %d\n", sizeof(u64bit) * (_tableSizeInEntries * _hashWidth / 64 + 1));
+  fprintf(stderr, "buck: %d\n", sizeof(u64bit) * (_numberOfDistinct   * _wFin      / 64 + 1));
+  fprintf(stderr, "posn: %d\n", sizeof(u64bit) * (_numberOfEntries    * _posnWidth / 64 + 1));
+#endif
+
   safeWrite(F, _hashTable, "_hashTable", sizeof(u64bit) * (_tableSizeInEntries * _hashWidth / 64 + 1));
   safeWrite(F, _buckets,   "_buckets",   sizeof(u64bit) * (_numberOfDistinct   * _wFin      / 64 + 1));
   safeWrite(F, _positions, "_positions", sizeof(u64bit) * (_numberOfEntries    * _posnWidth / 64 + 1));
@@ -141,13 +172,13 @@ positionDB::loadState(char const *filename, bool beNoisy, bool loadData) {
 
 void
 positionDB::printState(FILE *stream) {
-  fprintf(stream, "merSizeInBases:       "u32bitFMT"\n",  _merSizeInBases);
-  fprintf(stream, "merSkipInBases:       "u32bitFMT"\n",  _merSkipInBases);
-  fprintf(stream, "tableSizeInBits:      "u32bitFMT"\n",  _tableSizeInBits);
+  fprintf(stream, "merSizeInBases:       "u32bitFMT"\n", _merSizeInBases);
+  fprintf(stream, "merSkipInBases:       "u32bitFMT"\n", _merSkipInBases);
+  fprintf(stream, "tableSizeInBits:      "u32bitFMT"\n", _tableSizeInBits);
   fprintf(stream, "tableSizeInEntries:   "u64bitFMT"\n", _tableSizeInEntries);
-  fprintf(stream, "hashWidth:            "u32bitFMT"\n",  _hashWidth);
-  fprintf(stream, "chckWidth:            "u32bitFMT"\n",  _chckWidth);
-  fprintf(stream, "posnWidth:            "u32bitFMT"\n",  _posnWidth);
+  fprintf(stream, "hashWidth:            "u32bitFMT"\n", _hashWidth);
+  fprintf(stream, "chckWidth:            "u32bitFMT"\n", _chckWidth);
+  fprintf(stream, "posnWidth:            "u32bitFMT"\n", _posnWidth);
   fprintf(stream, "numberOfMers:         "u64bitFMT"\n", _numberOfMers);
   fprintf(stream, "numberOfPositions:    "u64bitFMT"\n", _numberOfPositions);
   fprintf(stream, "numberOfDistinct:     "u64bitFMT"\n", _numberOfDistinct);

@@ -57,7 +57,7 @@ int
 test1(char *filename) {
   FastAstream *F       = new FastAstream(filename);
   merStream   *T       = new merStream(MERSIZE, F);
-  positionDB  *M       = new positionDB(T, MERSIZE, 0, TBLSIZE, 0L, 0L, true);
+  positionDB  *M       = new positionDB(T, MERSIZE, 0, TBLSIZE, 0L, 0L, 0, true);
   u64bit      *posn    = new u64bit [1024];
   u64bit       posnMax = 1024;
   u64bit       posnLen = u64bitZERO;
@@ -116,7 +116,7 @@ int
 test2(char *filename, char *query) {
   FastAstream *F       = new FastAstream(filename);
   merStream   *T       = new merStream(MERSIZE, F);
-  positionDB  *M       = new positionDB(T, MERSIZE, 0, TBLSIZE, 0L, 0L, true);
+  positionDB  *M       = new positionDB(T, MERSIZE, 0, TBLSIZE, 0L, 0L, 0, true);
   u64bit      *posn    = new u64bit [1024];
   u64bit       posnMax = 1024;
   u64bit       posnLen = u64bitZERO;
@@ -307,7 +307,7 @@ main(int argc, char **argv) {
   fprintf(stderr, "Building table with merSize "u32bitFMT", merSkip "u32bitFMT" and table size "u32bitFMT"\n",
           mersize, merskip, tblsize);
 
-  positionDB *positions = new positionDB(MS, mersize, merskip, tblsize, 0L, 0L, true);
+  positionDB *positions = new positionDB(MS, mersize, merskip, tblsize, 0L, 0L, 0, true);
 
   fprintf(stderr, "Dumping positions table to '%s'\n", outputFile);
 

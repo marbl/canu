@@ -21,6 +21,7 @@
 //
 //#define STATS
 
+//#define VERBOSE_BUILD
 
 typedef u32bit existDBflags;
 const existDBflags  existDBcompressHash    = 0x0001;
@@ -53,6 +54,7 @@ public:
   //  Inlining this is a loss on x86.
   //
   bool        exists(u64bit mer);
+  bool        exists(u64bit b, u64bit c);
 private:
   bool        loadState(char const *filename, bool beNoisy=false, bool loadData=true);
   bool        createFromFastA(char const  *filename,
@@ -73,7 +75,10 @@ private:
     return(k & _mask2);
   };
 
-  void         INSERT(u64bit h, u64bit c, u64bit *countingTable) {
+  void         insertMer(u64bit h, u64bit c, u64bit *countingTable) {
+#ifdef VERBOSE_BUILD
+    fprintf(stderr, "existDB::insert()-- h="u64bitHEX" c="u64bitHEX"\n", h, c);
+#endif
     if (_compressedBucket)
       setDecodedValue(_buckets, countingTable[h] * _chckWidth, _chckWidth, c);
     else
@@ -102,6 +107,21 @@ private:
   u64bit      _bucketsWords;
   u64bit     *_hashTable;
   u64bit     *_buckets;
+
+  //  Used by the streaming exists interface
+#if 0
+  u64bit      _es_bucket;
+  u64bit      _es_st;
+  u64bit      _es_ed;
+#endif
+
+  void clear(void) {
+#if 0
+    _es_bucket = ~u64bitZERO;
+    _es_st     = 0;
+    _es_ed     = 0;
+#endif
+  };
 };
 
 #endif  //  EXISTDB_H
