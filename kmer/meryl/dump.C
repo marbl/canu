@@ -42,9 +42,9 @@ countUnique(merylArgs *args) {
 
   delete M;
 
-  fprintf(stderr, "Found "u64bitFMT" mers.\n", numMers);
-  fprintf(stderr, "Found "u64bitFMT" distinct mers.\n", numDistinct);
-  fprintf(stderr, "Found "u64bitFMT" unique mers.\n", numUnique);
+  fprintf(stdout, "Found "u64bitFMT" mers.\n", numMers);
+  fprintf(stdout, "Found "u64bitFMT" distinct mers.\n", numDistinct);
+  fprintf(stdout, "Found "u64bitFMT" unique mers.\n", numUnique);
 }
 
 
