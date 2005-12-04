@@ -251,7 +251,7 @@ main(int argc, char **argv) {
     if (config._useList.lengthOfSequences() <  2 * 1024 * 1024) tblSize = 21;
     if (config._useList.lengthOfSequences() <  1 * 1024 * 1024) tblSize = 20;
 
-    positions = new positionDB(MS, config._merSize, config._merSkip, tblSize, 0L, 0L, config._beVerbose);
+    positions = new positionDB(MS, config._merSize, config._merSkip, tblSize, 0L, 0L, 0, config._beVerbose);
 
     delete    MS;
 

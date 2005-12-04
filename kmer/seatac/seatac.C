@@ -125,7 +125,6 @@ main(int argc, char **argv) {
       positions = new positionDB(config._tableFileName, true);
     }
   } else {
-    merStream *MS = new merStream(config._merSize, &config._useList);
 
     //  Figure out a nice size of the hash.
     //
@@ -142,22 +141,24 @@ main(int argc, char **argv) {
     if (config._maskFileName) {
       if (config._beVerbose)
         fprintf(stderr, "Building maskDB from '%s'\n", config._maskFileName);
-      maskDB = new existDB(config._maskFileName, config._merSize, 23, 0, ~u32bitZERO, 0L, false, true, false);
+      maskDB = new existDB(config._maskFileName, config._merSize, tblSize, 0, ~u32bitZERO, existDBverbose | existDBcompressHash | existDBcompressBuckets);
     }
 
     existDB *onlyDB = 0L;
     if (config._onlyFileName) {
       if (config._beVerbose)
         fprintf(stderr, "Building onlyDB from '%s'\n", config._onlyFileName);
-      onlyDB = new existDB(config._onlyFileName, config._merSize, 23, 0, ~u32bitZERO, 0L, false, true, false);
+      onlyDB = new existDB(config._onlyFileName, config._merSize, tblSize, 0, ~u32bitZERO, existDBverbose | existDBcompressHash | existDBcompressBuckets);
     }
 
-    positions = new positionDB(MS, config._merSize, config._merSkip, tblSize, maskDB, onlyDB, config._beVerbose);
+    merStream *MS = new merStream(config._merSize, &config._useList);
+
+    positions = new positionDB(MS, config._merSize, config._merSkip, tblSize, maskDB, onlyDB, 0, config._beVerbose);
+
+    delete    MS;
 
     delete maskDB;
     delete onlyDB;
-
-    delete    MS;
 
     if (config._tableFileName) {
       if (config._beVerbose)

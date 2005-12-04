@@ -157,7 +157,7 @@ main(int argc, char **argv) {
     if (config._useList.lengthOfSequences() <  2 * 1024 * 1024) tblSize = 21;
     if (config._useList.lengthOfSequences() <  1 * 1024 * 1024) tblSize = 20;
 
-    positions = new positionDB(MS, config._merSize, config._merSkip, tblSize, 0L, 0L, config._beVerbose);
+    positions = new positionDB(MS, config._merSize, config._merSkip, tblSize, 0L, 0L, 0, config._beVerbose);
 
     delete    MS;
 
@@ -273,7 +273,7 @@ main(int argc, char **argv) {
         if (outputPos > 0)
           finish = (numberOfQueries - outputPos) / (outputPos / (getTime() - zeroTime));
 
-        fprintf(stderr, "O:"u32bitFMTW(7)" S:"u32bitFMTW(7)" I:%7u T:"u32bitFMTW(7)" (%5.1f%%; %8.3f/sec) Finish in %5.2f seconds.\r",
+        fprintf(stderr, "O:"u32bitFMTW(7)" S:"u32bitFMTW(7)" I:"u32bitFMTW(7)" T:"u32bitFMTW(7)" (%5.1f%%; %8.3f/sec) Finish in %5.2f seconds.\r",
                 outputPos,
                 inputTail,
                 inputHead,

@@ -160,7 +160,7 @@ doSearch(searcherState       *state,
                                                     config._merSize,
                                                     0,
                                                     20,
-                                                    0L, 0L, false);
+                                                    0L, 0L, 0, false);
 
       hitMatrix            *HM = new hitMatrix(seq->sequenceLength(), qMers, idx);
 
