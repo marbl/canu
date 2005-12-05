@@ -18,13 +18,13 @@ sub unitigger {
         $cmd .= "$bin/unitigger ";
         $cmd .= " -B 250000 ";
 
-        my $l = getGlobal("genomeSize");
-        my $m = getGlobal("unitiggerEdges");
-        my $n = getGlobal("unitiggerFragments");
+        my $l = getGlobal("utgGenomeSize");
+        my $m = getGlobal("utgEdges");
+        my $n = getGlobal("utgFragments");
 
-        $cmd .= " $l " if defined($l);
-        $cmd .= " $m " if defined($m);
-        $cmd .= " $n " if defined($n);
+        $cmd .= " -l $l " if defined($l);
+        $cmd .= " -m $m " if defined($m);
+        $cmd .= " -n $n " if defined($n);
 
         $cmd .= " -c -P -A 1 -d 1 -x 1 -z 10 -j 5 -U 1 -e 15 ";
         $cmd .= " -F $wrk/$asm.frgStore ";

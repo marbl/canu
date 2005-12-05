@@ -5,9 +5,12 @@
 \usepackage{ulem}
 \usepackage{parskip}
 \usepackage{calc,ifthen,epsfig}
+\usepackage{longtable}
 \sloppy
 
-\usepackage{longtable}
+
+%\begin{tabularx}{\linewidth}{lX}
+
 
 %  A few float parameters
 %
@@ -52,7 +55,8 @@ assembly is performed in the current directory, using the prefix
 
 The available command line options are:
 
-\begin{tabular}{lp{4.0in}}
+
+\begin{longtable}{lp{3.0in}}
 -d {\it directory} &
 Place the assembly in {\it directory}, if {\it directory} doesn't exist,
 create it.
@@ -60,11 +64,11 @@ create it.
 -s {\it specfile} &
 Read options from the specifications file {\it specfile}.  These options
 may also be supplied on the command line, as 'optionKey=optionValue',
-for example, 'useGrid=1'.
+for example, 'useGrid=1'.  Please quote appropriately.
 \\
 -p {\it prefix} &
 Call the assembly {\it prefix}, for example, 'prefix.asm'.
-\end{tabular}
+\end{longtable}
 
 \section{Specification File}
 
@@ -77,14 +81,23 @@ for an assembler run.  For example, how many threads to use when
 overlapping, if overlap-based trimming should be used, how many rounds
 of extendClearRanges, etc.
 
+White-space is allowed in option values.  A line of:
+\begin{verbatim}
+ovlMemory    =    1GB --hashload 0.8
+\end{verbatim}
+will set the {\tt ovlMemory} option to the value {\tt 1GB --hashload
+0.8} (in particular, trimming whitespace from the ends).
+
 \subsection{General Configuration Options}
 
-\begin{tabular}{lp{4.0in}}
+\begin{longtable}{lp{3.0in}}
 binRoot={\it path} &
 The path to the wgs-assembler build directory.  This is the directory
-where the {\it src/} directory is.  If our {\it gatekeeper} binary is
-located in {\it /opt/software/wgs-assembler/FreeBSD/bin/gatekeeper}, then
-we would specify {\it binRoot=/opt/software/wgs-assembler}.
+where the Celera Assembler {\it src/} directory is.  If our {\it
+gatekeeper} binary is located in {\it
+/opt/software/wgs-assembler/FreeBSD/bin/gatekeeper}, then we would
+specify {\it binRoot=/opt/software/wgs-assembler}.  If not specified,
+this defaults to the location of \runCA.
 \\
 
 localMachine={\it string} &
@@ -102,17 +115,50 @@ defaults to the result of {\it uname}.
 \\
 
 gridMachine={\it string} &
-The architecture of the grid machines.  See {\it localMachine}.\\
+The architecture of the grid machines, {\tt i686} by default.  See
+{\it localMachine}.
+\\
 
 gridHost={\it string} &
-The operating system of the grid machines.  See {\it localHost}.\\
+The operating system of the grid machines {\tt Linux} by default.  See
+{\it localHost}.
+\\
 
 useGrid={\it integer} &
 If zero, no module will use the grid.  If non-zero, the grid will be
 used for modules that support it.  Each module may independently
-decide to not use the grid.
+decide to not use the grid.  The default is to not use the grid.
 \\
-\end{tabular}
+
+doBackupFragStore={\it integer} &
+If zero, do not backup the fragment store before steps that modify it.
+You probably don't want to disable this.  The default is to backup the
+fragment store.
+\\
+
+fakeUIDs={\it integer} &
+If zero, use real UID's from the UID server.  Otherwise, use UID's
+starting from this value.  The default is to use real UID's.
+\\
+
+uidServer={\it string} &
+Pass this string to modules that access the UID server (currently,
+{\tt AS\_TER/terminator} and {\tt AS\_OBT/dumpDistanceEstimates}).
+This is undefined by default.
+\\
+
+processStats={\it string} &
+If defined, this shall be a command used to report run-time statistics
+on processes, {\it e.g.}, {\tt /usr/bin/time}.  This is undefined by
+default.
+\\
+
+scratch={\it string} &
+A path to a local scratch disk.  Used to store the output of overlap and
+consensus as they execute.  This is {\tt /scratch} by default.
+\\
+
+\end{longtable}
 
 
 
@@ -120,6 +166,8 @@ decide to not use the grid.
 
 Overlap Based Trimming invokes the overlap module, see
 Section~\ref{sec:overlapopts} for options to configure the overlapper.
+It is not possible to configure the overlapper differently for overlap
+based trimming and normal overlaps.
 
 Overlap based trimming writes several log files:
 
@@ -139,25 +187,28 @@ change.
 \end{enumerate}
 
 
-\begin{tabular}{lp{4.0in}}
+\begin{longtable}{lp{3.0in}}
 doOverlapTrimming={\it integer} &
-If non-zero, do overlap-based trimming.
+If non-zero, do overlap-based trimming.  The default is to do overlap
+based trimming.
 \\
 
 vectorIntersect={\it path} &
-The path to a file containing a list of the vector clear range for each read.
-Format {\it uid vector-left vector-right}, one UID per line.  Coordiates are base-based.
+The path to a file containing a list of the vector clear range for
+each read.  Format {\it uid vector-left vector-right}, one UID per
+line.  Coordiates are base-based.
 \\
 
 immutableFrags={\it path} &
-The path to a file containing a list of uids that should not be modified
-by overlap-based trimming.  One UID per line.
+The path to a file containing a list of uids that should not be
+modified by overlap-based trimming.  One UID per line.
 \\
 
 ovlSortMemory={\it integer} &
-The amount of memory, in megabytes, to use for sorting overlaps.
+The amount of memory, in megabytes, to use for sorting overlaps.  The
+default is to use 1GB memory.
 \\
-\end{tabular}
+\end{longtable}
 
 
 
@@ -177,24 +228,26 @@ the amount of parallelization one wishes to get and use that.  To get
 16 jobs, divide your number of fragments by 4.
 
 For large assemblies, the author advocates using a large {\it
-ovlRefBlockSize}, and using {\it ovlHashSize} to control the number of
+ovlRefBlockSize}, and using {\it ovlHashBlockSize} to control the number of
 jobs.  See {\it ovlMemory}.
 
-\begin{tabular}{lp{4.0in}}
+\begin{longtable}{lp{3.0in}}
 ovlThreads={\it integer} &
 The number of compute threads to use.  Usually the number of CPUs your
 host has.  Even if your grid schedules N jobs per N CPU host, there is
 an advantage to telling each job to use N threads -- when one jobs
-does I/O, the other jobs will use the now mostly idle CPU.
+does I/O, the other jobs will use the now mostly idle CPU.  The default is 2 threads.
 \\
 
-ovlHashSize={\it integer} &
-The number of fragments to use for hash table construction.  Overlapper will, internally,
-fragment this range so as to not exceed its memory limit.
+ovlHashBlockSize={\it integer} &
+The number of fragments to use for hash table construction.
+Overlapper will, internally, fragment this range so as to not exceed
+its memory limit.  The default is 40,000 fragments.
 \\
 
 ovlRefBlockSize={\it integer} &
-The number of fragments to use for generating alignments.
+The number of fragments to use for generating alignments.  The default
+is 2,000,000 fragments.
 \\
 
 ovlMemory={\it integer} &
@@ -209,19 +262,43 @@ detailed overlap memory switched (not documented here).  The memory sizes are:
 \\
 
 ovlStoreMemory={\it integer} &
-The amount of memory, in megabytes, to use for building the overlap store.  It is critical
-that this value be as large as possible, especially with large assemblies.
+The amount of memory, in megabytes, to use for building the overlap
+store.  It is critical that this value be as large as possible,
+especially with large assemblies.  The default is 512MB memory.
 \\
-\end{tabular}
+\end{longtable}
 
 
 
 \subsection{Fragment Error Correction Options}
 
-\begin{tabular}{lp{4.0in}}
+\begin{longtable}{lp{3.0in}}
 frgCorrBatchSize={\it integer} &
-The number of reads to load into core at once.  Fragment error correction will then
-scan the entire fragment store, recomputing overlaps.
+The number of reads to load into core at once.  Fragment error
+correction will then scan the entire fragment store, recomputing
+overlaps.  As a rough guide:
+
+\begin{center}
+\begin{tabular}{|c|c|}
+\hline
+frgCorrBatchSize & Memory (MB) \\
+\hline
+\hline
+   10,000 &     132 \\
+   50,000 &     650 \\
+  100,000 &    1300 \\
+  200,000 &    2500 \\
+  500,000 &    6300 \\
+1,000,000 &   13000 \\
+2,000,000 &   23000 \\
+2,500,000 &   32000 \\
+3,000,000 &   32000 \\
+\hline
+\end{tabular}
+\end{center}
+
+The larger batch sizes assume {\tt correct-frags} is NOT using
+a temporary internal store.  This is probably not enabled by default.
 \\
 
 frgCorrThreads={\it integer} &
@@ -242,37 +319,37 @@ ovlCorrOnGrid={\it integer} &
 If zero, do not use the grid.  XXXXX.  Unless your grid has fast
 access to this store, use of the grid is strongly discouraged.
 \\
-\end{tabular}
+\end{longtable}
 
 
 
 
 \subsection{Unitigger Options}
 
-\begin{tabular}{lp{4.0in}}
-genomeSize={\it integer} &
+\begin{longtable}{lp{3.0in}}
+utgGenomeSize={\it integer} &
 The genome size, in bases, to force unitigger to use.  This option is
 for advanced use only, and is not usually specified.
 \\
 
-unitiggerEdges={\it integer} &
+utgEdges={\it integer} &
 The estimated number of edges unitigger will encounter.  If you find that unitigger
 is exhausting its process size, setting this to slightly more than the actual number of edges
 might help.  Otherwise, do not use.
 \\
 
-unitiggerFragments={\it integer} &
+utgFragments={\it integer} &
 The estimated number of fragments unitigger will encounter.  If you find that unitigger
 is exhausting its process size, setting this to slightly more than the actual number of fragments
 might help.  Otherwise, do not use.
 \\
-\end{tabular}
+\end{longtable}
 
 
 
 \subsection{Scaffolder Options}
 
-\begin{tabular}{lp{4.0in}}
+\begin{longtable}{lp{3.0in}}
 stoneLevel={\it integer} &
 The amount of stones thrown in the last iteration of cgw.
 \\
@@ -284,7 +361,19 @@ If non-zero, do that many round of {\it extendClearRanges}.
 doUpdateDistanceRecords={\it integer} &
 If non-zero, update the distance records after each round of {\it extendClearRanges}.
 \\
-\end{tabular}
+\end{longtable}
+
+
+
+\subsection{Consensus Options}
+
+\begin{longtable}{lp{3.0in}}
+consensusPartitionSize={\it integer} &
+The partition size of the final (post-scaffolder) consensus.  Default
+is 400,000 objects.
+\\
+\end{longtable}
+
 
 
 \end{document}

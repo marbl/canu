@@ -104,7 +104,6 @@ sub setDefaults {
     $global{"frgCorrBatchSize"} =            175000;
     $global{"frgCorrOnGrid"} =               0;
     $global{"frgCorrThreads"} =              2;
-    $global{"genomeSize"} =                  undef;
     $global{"gridHost"} =                    "Linux";
     $global{"gridMachine"} =                 "i686";
     $global{"immutableFrags"} =              undef;
@@ -115,17 +114,18 @@ sub setDefaults {
     $global{"ovlHashBlockSize"} =            40000;
     $global{"ovlMemory"} =                   "1GB";
     $global{"ovlRefBlockSize"} =             2000000;
+    $global{"ovlSortMemory"} =               1000;
     $global{"ovlStoreMemory"} =              512;
     $global{"ovlThreads"} =                  2;
     $global{"processStats"} =                undef;
     $global{"scratch"} =                     "/scratch";
-    $global{"throwStones"} =                 2;
+    $global{"stoneLevel"} =                  2;
     $global{"uidServer"} =                   undef;
-    $global{"unitiggerEdges"} =              undef;
-    $global{"unitiggerFragments"} =          undef;
+    $global{"utgEdges"} =                    undef;
+    $global{"utgFragments"} =                undef;
+    $global{"utgGenomeSize"} =               undef;
     $global{"useGrid"} =                     0;
     $global{"vectorIntersect"} =             undef;
-    $global{"ovlSortMemory"} =               1000);
 }
 
 sub setParameters {

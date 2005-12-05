@@ -190,7 +190,7 @@ sub resolveSurrogates ($$) {
 sub scaffolder {
     my $lastDir    = undef;
     my $thisDir    = 0;
-    my $stoneLevel = getGlobal("throwStones");
+    my $stoneLevel = getGlobal("stoneLevel");
 
     #  If we're not doing eCR, we just do a single scaffolder run, and
     #  get the heck outta here!  OK, we'll do resolveSurrogates() too.
