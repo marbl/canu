@@ -82,57 +82,50 @@ sub setBinDirectory ($$) {
 #
 sub getGlobal ($) {
     my $var = shift @_;
-    my $val = undef;
-
-    if (!exists($global{$val})) {
-        $val = $global{$var};
-    } else {
-        die "ERROR: $var has no defined value!\n";
-    }
-
-    return($val);
+    die "ERROR: $var has no defined value!\n" if (!exists($global{$var}));
+    return($global{$var});
 }
 
 sub setGlobal ($$) {
     my $var = shift @_;
     my $val = shift @_;
-
+    die "ERROR: $var is not a valid option.\n" if (!exists($global{$var}));
     $global{$var} = $val;
 }
 
 sub setDefaults {
-    setGlobal("binRoot",                    undef);
-    setGlobal("consensusPartitionSize",     400000);
-    setGlobal("doBackupFragStore",          1);
-    setGlobal("doExtendClearRanges",        1);
-    setGlobal("doOverlapTrimming",          1);
-    setGlobal("doUpdateDistanceRecords",    1);
-    setGlobal("fakeUIDs",                   0);
-    setGlobal("frgCorrBatchSize",           175000);
-    setGlobal("frgCorrOnGrid",              0);
-    setGlobal("frgCorrThreads",             2);
-    setGlobal("genomeSize",                 undef);
-    setGlobal("gridHost",                   "Linux");
-    setGlobal("gridMachine",                "i686");
-    setGlobal("immutableFrags",             undef);
-    setGlobal("localHost",                  undef);
-    setGlobal("localMachine",               undef);
-    setGlobal("ovlCorrBatchSize",           175000);
-    setGlobal("ovlCorrOnGrid",              0);
-    setGlobal("ovlHashBlockSize",           40000);
-    setGlobal("ovlMemory",                  "1GB");
-    setGlobal("ovlRefBlockSize",            2000000);
-    setGlobal("ovlStoreMemory",             512);
-    setGlobal("ovlThreads",                 2);
-    setGlobal("processStats",               undef);
-    setGlobal("scratch",                    "/scratch");
-    setGlobal("throwStones",                2);
-    setGlobal("uidServer",                  undef);
-    setGlobal("unitiggerEdges",             undef);
-    setGlobal("unitiggerFragments",         undef);
-    setGlobal("useGrid",                    0);
-    setGlobal("vectorIntersect",            undef);
-    setGlobal('ovlSortMemory',              1000);
+    $global{"binRoot"} =                     undef;
+    $global{"consensusPartitionSize"} =      400000;
+    $global{"doBackupFragStore"} =           1;
+    $global{"doExtendClearRanges"} =         2;
+    $global{"doOverlapTrimming"} =           1;
+    $global{"doUpdateDistanceRecords"} =     1;
+    $global{"fakeUIDs"} =                    0;
+    $global{"frgCorrBatchSize"} =            175000;
+    $global{"frgCorrOnGrid"} =               0;
+    $global{"frgCorrThreads"} =              2;
+    $global{"genomeSize"} =                  undef;
+    $global{"gridHost"} =                    "Linux";
+    $global{"gridMachine"} =                 "i686";
+    $global{"immutableFrags"} =              undef;
+    $global{"localHost"} =                   undef;
+    $global{"localMachine"} =                undef;
+    $global{"ovlCorrBatchSize"} =            175000;
+    $global{"ovlCorrOnGrid"} =               0;
+    $global{"ovlHashBlockSize"} =            40000;
+    $global{"ovlMemory"} =                   "1GB";
+    $global{"ovlRefBlockSize"} =             2000000;
+    $global{"ovlStoreMemory"} =              512;
+    $global{"ovlThreads"} =                  2;
+    $global{"processStats"} =                undef;
+    $global{"scratch"} =                     "/scratch";
+    $global{"throwStones"} =                 2;
+    $global{"uidServer"} =                   undef;
+    $global{"unitiggerEdges"} =              undef;
+    $global{"unitiggerFragments"} =          undef;
+    $global{"useGrid"} =                     0;
+    $global{"vectorIntersect"} =             undef;
+    $global{"ovlSortMemory"} =               1000);
 }
 
 sub setParameters {
