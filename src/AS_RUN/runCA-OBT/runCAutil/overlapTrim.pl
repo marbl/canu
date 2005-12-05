@@ -15,7 +15,9 @@ sub backupFragStore ($) {
     return if ($doBackups == 0);
 
     if (-e "$wrk/$asm.frgStore/db.frg.$backupName") {
+
         print STDERR "Found a backup for $backupName!  Restoring!\n";
+
         unlink "$wrk/$asm.frgStore/db.frg";
         if (runCommand("cp -p $wrk/$asm.frgStore/db.frg.$backupName $wrk/$asm.frgStore/db.frg")) {
             unlink "$wrk/$asm.frgStore/db.frg";
@@ -23,7 +25,9 @@ sub backupFragStore ($) {
         }
     }
     if (! -e "$wrk/$asm.frgStore/db.frg.$backupName") {
+
         print STDERR "Backing up the frgStore to $backupName.\n";
+
         if (runCommand("cp -p $wrk/$asm.frgStore/db.frg $wrk/$asm.frgStore/db.frg.$backupName")) {
             unlink "$wrk/$asm.frgStore/db.frg.$backupName";
             die "Failed to backup frgStore.\n";
@@ -39,12 +43,16 @@ sub overlapTrim {
     system("mkdir $wrk/0-overlaptrim")         if (! -d "$wrk/0-overlaptrim");
     system("mkdir $wrk/0-overlaptrim-overlap") if (! -d "$wrk/0-overlaptrim-overlap");
 
+    #  We use this in a couple of places, so just make it more global.
+    #
+    my $im = getGlobal("immutableFrags");
+    die "immutableFrags '$im' supplied, but not found!\n" if (defined($im) && (! -e $im));
+
     #  Do an initial overly-permissive quality trimming, intersected
     #  with any known vector trimming.
     #
     if ((! -e "$wrk/0-overlaptrim/$asm.initialTrimLog") &&
         (! -e "$wrk/0-overlaptrim/$asm.initialTrimLog.bz2")) {
-        #print STDERR "Starting -- overlap trimming - initial trimming\n";
 
         my $vi = getGlobal("vectorIntersect");
         my $im = getGlobal("immutableFrags");
@@ -55,7 +63,7 @@ sub overlapTrim {
 
         my $cmd;
         $cmd  = "$bin/initialTrim -update -q 12 ";
-        $cmd .= " -vector $vi " if (defined($vi));
+        $cmd .= " -vector $vi "    if (defined($vi));
         $cmd .= " -immutable $im " if (defined($im));
         $cmd .= " -log $wrk/0-overlaptrim/$asm.initialTrimLog ";
         $cmd .= " -frg $wrk/$asm.frgStore ";
@@ -78,7 +86,6 @@ sub overlapTrim {
     #  If you change 100, you should also change meryl.pl.
 
     if (! -e "$wrk/0-overlaptrim-overlap/$asm.nmers.fasta") {
-        #print STDERR "Starting -- overlap trimming - meryl (filter)\n";
 
         open(F, "< $wrk/0-preoverlap/$asm.nmers.fasta")  or die "Failed to open $wrk/0-preoverlap/$asm.nmers.fasta for reading.\n";
         open(G, "> $wrk/0-overlaptrim-overlap/$asm.nmers.fasta") or die "Failed to open $wrk/0-overlaptrim-overlap/$asm.nmers.fasta for writing.\n";
@@ -104,7 +111,6 @@ sub overlapTrim {
 
     if ((! -e "$wrk/0-overlaptrim/$asm.ovl.sorted") &&
         (! -e "$wrk/0-overlaptrim/$asm.ovl.sorted.bz2")) {
-        #print STDERR "Starting -- overlap trimming - sorting\n";
 
         if (runCommand("find $wrk/0-overlaptrim-overlap -follow -name \\*ovb -print > $wrk/0-overlaptrim/all-overlaps-trim.ovllist")) {
             print STDERR "Failed to generate a list of all the overlap files.\n";
@@ -129,46 +135,11 @@ sub overlapTrim {
 
     if ((! -e "$wrk/0-overlaptrim/$asm.ovl.consolidated") &&
         (! -e "$wrk/0-overlaptrim/$asm.ovl.consolidated.bz2")) {
-        #print STDERR "Starting -- overlap trimming - consolidation\n";
 
-        if (runCommand("$bin/consolidate < $wrk/0-overlaptrim/$asm.ovl.sorted > $wrk/0-overlaptrim/$asm.ovl.consolidated.1")) {
-          unlink "$wrk/0-overlaptrim/$asm.ovl.consolidated.1";
-          die "Failed to sort.\n";
+        if (runCommand("$bin/consolidate < $wrk/0-overlaptrim/$asm.ovl.sorted > $wrk/0-overlaptrim/$asm.ovl.consolidated")) {
+          unlink "$wrk/0-overlaptrim/$asm.ovl.consolidated";
+          die "Failed to consolidate.\n";
         }
-
-        #print STDERR "Starting -- overlap trimming - consolidation - cleaning\n";
-
-        #  Clean up stuff
-        #   - add missing fragments to $wrk/0-overlaptrim/$asm.ovl.consolidated
-        #
-        open(G, "> $wrk/0-overlaptrim/$asm.ovl.consolidated");
-        open(F, "< $wrk/0-overlaptrim/$asm.ovl.consolidated.1");
-        my $inId = 0;
-        my $otId = 0;
-        while (<F>) {
-            ($inId) = split '\s+', $_;
-            $otId++;
-            while ($otId < $inId) {
-                #print STDERR "$otId has no overlaps (but $inId does).\n";
-                print G "$otId  0 0 0 0 0  0 0 0 0 0  0\n";
-                $otId++;
-            }
-            print G $_;
-            $otId = $inId;
-        }
-        close(F);
-
-        print STDERR "$otId $numFrags\n";
-
-        $otId++;
-        while ($otId <= $numFrags) {
-            print G "$otId  0 0 0 0 0  0 0 0 0 0  0\n";
-            $otId++;
-        }
-
-        close(G);
-
-        unlink "$wrk/0-overlaptrim/$asm.ovl.consolidated.1";
     }
 
 
@@ -178,12 +149,8 @@ sub overlapTrim {
 
     if ((! -e "$wrk/0-overlaptrim/$asm.mergeLog") &&
         (! -e "$wrk/0-overlaptrim/$asm.mergeLog.bz2")) {
-        #print STDERR "Starting -- overlap trimming - merging\n";
 
         backupFragStore("beforeTrimMerge");
-
-        my $im = getGlobal("immutableFrags");
-        die "immutableFrags '$im' supplied, but not found!\n" if (defined($im) && (! -e $im));
 
         my $cmd;
         $cmd  = "$bin/merge-trimming ";
@@ -203,13 +170,42 @@ sub overlapTrim {
     #  Be nice, and generate a report of our trimming done.
     #
     if (0) {
+
         if ((! -e "$wrk/0-overlaptrim/$asm.report") &&
             (! -e "$wrk/0-overlaptrim/$asm.report.bz2")) {
-            #print STDERR "Starting -- overlap trimming - reporting\n";
+
+
+            #  Clean up stuff
+            #   - add missing fragments to $wrk/0-overlaptrim/$asm.ovl.consolidated
+            #
+            open(F, "< $wrk/0-overlaptrim/$asm.ovl.consolidated");
+            open(G, "> $wrk/0-overlaptrim/$asm.ovl.consolidated.full");
+            my $inId = 0;
+            my $otId = 0;
+            while (<F>) {
+                ($inId) = split '\s+', $_;
+                $otId++;
+                while ($otId < $inId) {
+                    #print STDERR "$otId has no overlaps (but $inId does).\n";
+                    print G "$otId  0 0 0 0 0  0 0 0 0 0  0\n";
+                    $otId++;
+                }
+                print G $_;
+                $otId = $inId;
+            }
+            close(F);
+
+            $otId++;
+            while ($otId <= $numFrags) {
+                print G "$otId  0 0 0 0 0  0 0 0 0 0  0\n";
+                $otId++;
+            }
+            close(G);
+
 
             open(A, "< $wrk/0-overlaptrim/$asm.qualityLog") or die "Failed to open $wrk/0-overlaptrim/$asm.qualityLog\n";
             open(B, "< $wrk/0-overlaptrim/$asm.mergeLog") or die "Failed to open $wrk/0-overlaptrim/$asm.mergeLog\n";
-            open(C, "< $wrk/0-overlaptrim/$asm.ovl.consolidated") or die "Failed to open $wrk/0-overlaptrim/$asm.ovl.consolidated\n";
+            open(C, "< $wrk/0-overlaptrim/$asm.ovl.consolidated.full") or die "Failed to open $wrk/0-overlaptrim/$asm.ovl.consolidated.full\n";
             open(F, "> $wrk/0-overlaptrim/$asm.report") or die "Failed to open $wrk/0-overlaptrim/$asm.report\n";
 
             while (!eof(A) || !eof(B) || !eof(C)) {
@@ -240,6 +236,8 @@ sub overlapTrim {
             close(B);
             close(A);
             close(F);
+
+            unlink "$wrk/0-overlaptrim/$asm.ovl.consolidated.full";
         }
     }
 
@@ -248,13 +246,13 @@ sub overlapTrim {
     #
     if ((! -e "$wrk/0-overlaptrim/$asm.chimera.report") &&
         (! -e "$wrk/0-overlaptrim/$asm.chimera.report.bz2")) {
-        #print STDERR "Starting -- overlap trimming - chimera\n";
 
         backupFragStore("beforeChimera");
 
         my $cmd;
-        $cmd  = "$bin/chimera ";
+        $cmd  = "$bin/chimera -update ";
         $cmd .= " -frg $wrk/$asm.frgStore ";
+        $cmd .= " -immutable $im " if (defined($im));
         $cmd .= " -summary $wrk/0-overlaptrim/$asm.chimera.summary ";
         $cmd .= " -report  $wrk/0-overlaptrim/$asm.chimera.report ";
         $cmd .= " < $wrk/0-overlaptrim/$asm.ovl.sorted ";
