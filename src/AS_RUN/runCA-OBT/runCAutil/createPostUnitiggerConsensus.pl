@@ -8,7 +8,6 @@ sub createPostUnitiggerConsensusJobs {
     system("mkdir $wrk/5-consensus") if (! -d "$wrk/5-consensus");
 
     if (! -e "$wrk/5-consensus/$asm.partFile") {
-        print STDERR "Starting c -- partition fragStore\n";
 
         #  Then, build a partition information file, and do the partitioning.
         #
@@ -71,6 +70,15 @@ sub createPostUnitiggerConsensusJobs {
         print F "if [ -e $wrk/5-consensus/${asm}_\$jobp.success ] ; then\n";
         print F "  exit 0\n";
         print F "fi\n";
+        print F "\n";
+        print F "echo \\\n";
+        print F "$gin/consensus \\\n";
+        print F "  -P -m -U \\\n";
+        print F "  -S \$jobp \\\n";
+        print F "  -z $wrk/$asm.frgStore_cns1part \\\n";
+        print F "  -o $wrk/5-consensus/${asm}_\$jobp.cgi \\\n";
+        print F "  $wrk/4-unitigger/${asm}_\$jobp.cgb \\\n";
+        print F " \\> $wrk/5-consensus/${asm}_\$jobp.err 2\\>\\&1\n";
         print F "\n";
         print F "$pstats \\\n" if (defined($pstats));
         print F "$gin/consensus \\\n";
