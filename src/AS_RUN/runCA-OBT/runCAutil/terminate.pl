@@ -27,8 +27,6 @@ sub terminate {
     ########################################
 
     if (! -e "$wrk/$asm.asm") {
-        print STDERR "Starting h -- terminator\n";
-
         my $uidServer = getGlobal("uidServer");
         my $fakeUIDs  = getGlobal("fakeUIDs");
 

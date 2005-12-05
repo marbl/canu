@@ -13,8 +13,6 @@ sub unitigger {
     }
 
     if (! -e "$wrk/4-unitigger/unitigger.success") {
-        print STDERR "Starting b -- unitigger\n";
-
         my $cmd;
         $cmd  = "cd $wrk/4-unitigger && ";
         $cmd .= "$bin/unitigger ";

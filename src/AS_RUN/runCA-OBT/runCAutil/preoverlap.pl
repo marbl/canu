@@ -24,8 +24,6 @@ sub preoverlap {
     #  here.
 
     if (! -e "$wrk/0-preoverlap/$asm.frg") {
-        print STDERR "Starting -- extract messages\n";
-
         my $failedFiles = 0;
         foreach my $frg (@fragFiles) {
             if (! -e $frg) {
@@ -74,8 +72,6 @@ sub preoverlap {
     ########################################
 
     if ((! -d "$wrk/$asm.gkpStore") || (! -e "$wrk/$asm.gkpStore/gkp.frg")) {
-        print STDERR "Starting -- gatekeeper\n";
-
         my $cmd;
         $cmd  = "cd $wrk/0-preoverlap && ";
         $cmd .= "$bin/gatekeeper -X -Q -C -P -e 10000000 -f $wrk/$asm.gkpStore $wrk/0-preoverlap/$asm.frg ";
@@ -93,8 +89,6 @@ sub preoverlap {
     ########################################
 
     if ((! -d "$wrk/$asm.frgStore") || (! -e "$wrk/$asm.frgStore/db.frg")) {
-        print STDERR "Starting -- populate fragStore\n";
-
         my $cmd;
         $cmd  = "cd $wrk/0-preoverlap && ";
         $cmd .= "$bin/PopulateFragStore -P -c -f ";

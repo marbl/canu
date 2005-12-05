@@ -10,8 +10,6 @@ sub meryl {
     #
     if (0) {
         if (! -e "$wrk/0-preoverlap/$asm.nmers.fasta") {
-            print STDERR "Starting -- meryl\n";
-
             my $cmd;
             $cmd  = "cd $wrk/0-preoverlap && ";
             $cmd .= "$bin/dumpFragStoreAsFasta -frg $wrk/$asm.frgStore | ";
@@ -54,7 +52,6 @@ sub meryl {
 
 
     if (! -e "$wrk/0-preoverlap/$asm.nmers.fasta") {
-        print STDERR "Starting -- meryl\n";
 
         #  Meryl is run at the most resticted setting (the one used
         #  for assembly); Overlap trimming is responsible for taking

@@ -16,8 +16,6 @@ sub createOverlapStore {
     }
 
     if (! -e "$wrk/$asm.ovlStore") {
-        print STDERR "Starting -- make overlap store\n";
-
         my $cmd;
         $cmd  = "$bin/grow-olap-store ";
         $cmd .= "-cfS ";
