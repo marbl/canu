@@ -1,0 +1,291 @@
+\documentclass[twoside,11pt]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{moreverb}
+\usepackage{fancyheadings}
+\usepackage{ulem}
+\usepackage{parskip}
+\usepackage{calc,ifthen,epsfig}
+\sloppy
+
+\usepackage{longtable}
+
+%  A few float parameters
+%
+\renewcommand{\dbltopfraction}{0.9}
+\renewcommand{\dblfloatpagefraction}{0.9}
+%\renewcommand{\textfraction}{0.05}
+
+\begin{document}
+\pagestyle{fancy}
+
+\rhead[]{}
+\chead[runCA-OBT]{runCA-OBT}
+\lhead[\today]{\today}
+
+\newcommand{\runCA}{{\sc runCA-OBT.pl}}
+
+\normalem
+
+\title{runCA-OBT\\
+{\small or, how to run the Celera Assembler with Overlap Based Trimming in 54 easy steps}}
+\author{Brian P. Walenz\thanks{bwalenz@venterinstitute.org}}
+
+\maketitle
+
+%\tableofcontents
+%\listoffigures
+%\listoftables
+
+%\section{Introduction}
+%\label{chap:intro}
+
+\section{Running}
+
+\runCA\ has no actual required arguments, but makes several assumptions
+if no options are supplied.
+
+It looks for fragments files *.frg in the current directory.  The
+assembly is performed in the current directory, using the prefix
+'asm'.
+
+\subsection{Command Line Options}
+
+The available command line options are:
+
+\begin{tabular}{lp{4.0in}}
+-d {\it directory} &
+Place the assembly in {\it directory}, if {\it directory} doesn't exist,
+create it.
+\\
+-s {\it specfile} &
+Read options from the specifications file {\it specfile}.  These options
+may also be supplied on the command line, as 'optionKey=optionValue',
+for example, 'useGrid=1'.
+\\
+-p {\it prefix} &
+Call the assembly {\it prefix}, for example, 'prefix.asm'.
+\end{tabular}
+
+\section{Specification File}
+
+NOTE: the 'sample.spec' file in the source directory is likely more up
+to date than this document.  If glaring inconsistencies are found,
+please notify the authors.
+
+The specification file contains algorithmic and computational options
+for an assembler run.  For example, how many threads to use when
+overlapping, if overlap-based trimming should be used, how many rounds
+of extendClearRanges, etc.
+
+\subsection{General Configuration Options}
+
+\begin{tabular}{lp{4.0in}}
+binRoot={\it path} &
+The path to the wgs-assembler build directory.  This is the directory
+where the {\it src/} directory is.  If our {\it gatekeeper} binary is
+located in {\it /opt/software/wgs-assembler/FreeBSD/bin/gatekeeper}, then
+we would specify {\it binRoot=/opt/software/wgs-assembler}.
+\\
+
+localMachine={\it string} &
+The architecture of the local machine, usually the machine you
+initiate \runCA\ from.  Currently supported machines are {\it alpha},
+{\it i686}, {\it i386} and {\it x86\_64}.  If not specified, it
+defaults to the result of {\it uname -m}.
+\\
+
+localHost={\it string} &
+The operating system of the local machine, usually the machine you
+initiate \runCA\ from.  Currently supported hosts are {\it Darwin},
+{\it FreeBSD}, {\it Linux}, {\it Linux64} and {\it OSF1}.  If not specified, it
+defaults to the result of {\it uname}.
+\\
+
+gridMachine={\it string} &
+The architecture of the grid machines.  See {\it localMachine}.\\
+
+gridHost={\it string} &
+The operating system of the grid machines.  See {\it localHost}.\\
+
+useGrid={\it integer} &
+If zero, no module will use the grid.  If non-zero, the grid will be
+used for modules that support it.  Each module may independently
+decide to not use the grid.
+\\
+\end{tabular}
+
+
+
+\subsection{Overlap Based Trimming Options}
+
+Overlap Based Trimming invokes the overlap module, see
+Section~\ref{sec:overlapopts} for options to configure the overlapper.
+
+Overlap based trimming writes several log files:
+
+\begin{enumerate}
+\item {\it asm}.initialTrimLog -- one line per read.  Immutable reads do not
+get modified, and do now appear in the log.  Whitespace separated list
+of uid,iid pair, original clear begin, end, quality trim begin and
+end, vector clear begin and end, final clear begin, end.
+
+\item {\it asm}.mergeLog -- one line per read.  Whitespace separated list of
+IID, final left and right trimming.  Trimming due to chimera and spur
+detection are not included here.  All reads are reported.
+
+\item {\it asm}.chimera.report -- many lines per read.  It shows the type of
+problem fixed, the resulting clear range, and any evidence for the
+change.
+\end{enumerate}
+
+
+\begin{tabular}{lp{4.0in}}
+doOverlapTrimming={\it integer} &
+If non-zero, do overlap-based trimming.
+\\
+
+vectorIntersect={\it path} &
+The path to a file containing a list of the vector clear range for each read.
+Format {\it uid vector-left vector-right}, one UID per line.  Coordiates are base-based.
+\\
+
+immutableFrags={\it path} &
+The path to a file containing a list of uids that should not be modified
+by overlap-based trimming.  One UID per line.
+\\
+
+ovlSortMemory={\it integer} &
+The amount of memory, in megabytes, to use for sorting overlaps.
+\\
+\end{tabular}
+
+
+
+\subsection{Overlapper Options}
+\label{sec:overlapopt}
+
+Overlapper performs an all-fragments against all-fragments alignment.
+Each pair of fragments is aligned to decide if they overlap.  In
+effect, it is populating an array with alignment information.
+Overlapper is able to segment the computation on both axes of the
+array.  The fragments along one axis are used to construct a
+hash-table to seed the alignments.  The fragments along the other axis
+then query the hash-table one at a time.
+
+For small assemblies, one can simply divide the number of fragments by
+the amount of parallelization one wishes to get and use that.  To get
+16 jobs, divide your number of fragments by 4.
+
+For large assemblies, the author advocates using a large {\it
+ovlRefBlockSize}, and using {\it ovlHashSize} to control the number of
+jobs.  See {\it ovlMemory}.
+
+\begin{tabular}{lp{4.0in}}
+ovlThreads={\it integer} &
+The number of compute threads to use.  Usually the number of CPUs your
+host has.  Even if your grid schedules N jobs per N CPU host, there is
+an advantage to telling each job to use N threads -- when one jobs
+does I/O, the other jobs will use the now mostly idle CPU.
+\\
+
+ovlHashSize={\it integer} &
+The number of fragments to use for hash table construction.  Overlapper will, internally,
+fragment this range so as to not exceed its memory limit.
+\\
+
+ovlRefBlockSize={\it integer} &
+The number of fragments to use for generating alignments.
+\\
+
+ovlMemory={\it integer} &
+One of a set of predefined memory sizes, optionally followed by any
+detailed overlap memory switched (not documented here).  The memory sizes are:
+{\it 256MB},
+{\it 1GB},
+{\it 2GB},
+{\it 4GB},
+{\it 8GB} and
+{\it 16GB}.
+\\
+
+ovlStoreMemory={\it integer} &
+The amount of memory, in megabytes, to use for building the overlap store.  It is critical
+that this value be as large as possible, especially with large assemblies.
+\\
+\end{tabular}
+
+
+
+\subsection{Fragment Error Correction Options}
+
+\begin{tabular}{lp{4.0in}}
+frgCorrBatchSize={\it integer} &
+The number of reads to load into core at once.  Fragment error correction will then
+scan the entire fragment store, recomputing overlaps.
+\\
+
+frgCorrThreads={\it integer} &
+The number of threads to use for fragment error correction.
+\\
+
+frgCorrOnGrid={\it integer} &
+If zero, do not use the grid.  Fragment error correction makes heavy
+use of the fragment store.  Unless your grid has fast
+access to this store, use of the grid is strongly discouraged.
+\\
+
+ovlCorrBatchSize={\it integer} &
+{\it what do we load, again?}
+\\
+
+ovlCorrOnGrid={\it integer} &
+If zero, do not use the grid.  XXXXX.  Unless your grid has fast
+access to this store, use of the grid is strongly discouraged.
+\\
+\end{tabular}
+
+
+
+
+\subsection{Unitigger Options}
+
+\begin{tabular}{lp{4.0in}}
+genomeSize={\it integer} &
+The genome size, in bases, to force unitigger to use.  This option is
+for advanced use only, and is not usually specified.
+\\
+
+unitiggerEdges={\it integer} &
+The estimated number of edges unitigger will encounter.  If you find that unitigger
+is exhausting its process size, setting this to slightly more than the actual number of edges
+might help.  Otherwise, do not use.
+\\
+
+unitiggerFragments={\it integer} &
+The estimated number of fragments unitigger will encounter.  If you find that unitigger
+is exhausting its process size, setting this to slightly more than the actual number of fragments
+might help.  Otherwise, do not use.
+\\
+\end{tabular}
+
+
+
+\subsection{Scaffolder Options}
+
+\begin{tabular}{lp{4.0in}}
+stoneLevel={\it integer} &
+The amount of stones thrown in the last iteration of cgw.
+\\
+
+doExtendClearRanges={\it integer} &
+If non-zero, do that many round of {\it extendClearRanges}.
+\\
+
+doUpdateDistanceRecords={\it integer} &
+If non-zero, update the distance records after each round of {\it extendClearRanges}.
+\\
+\end{tabular}
+
+
+\end{document}
+
