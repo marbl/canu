@@ -1,6 +1,6 @@
 use strict;
 
-#  should we require stoneLevel be passed into scaffolder?
+#  Don't do interleaved merging unless we are throwing stones.
 
 sub CGW ($$$$) {
     my $thisDir    = shift @_;
@@ -44,7 +44,8 @@ sub CGW ($$$$) {
 
     my $cmd;
     $cmd  = "cd $wrk/$thisDir && ";
-    $cmd .= "$bin/cgw $ckp -c -j 1 -k 5 -r 4 -s $stoneLevel -w 0 -T -P ";
+    $cmd .= "$bin/cgw $ckp -c -j 1 -k 5 -r 5 -s $stoneLevel -w 0 -T -P ";
+    $cmd .= " -M " if ($stoneLevel == 0);
     $cmd .= " -f $wrk/$asm.frgStore ";
     $cmd .= " -g $wrk/$asm.gkpStore ";
     $cmd .= " -o $wrk/$thisDir/$asm ";
