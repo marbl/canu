@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.3 2005-11-16 23:01:14 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.4 2005-12-06 20:23:16 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -775,7 +775,7 @@ int
 main( int argc, char **argv) {
   Global_CGW  *data                  = 0L;
   int          ckptNum               = NULLINDEX;
-  int          minSamplesForOverride = 1000;
+  int          minSamplesForOverride = 50;  //  Was 1000, but that doesn't work for smaller assemblies.
   CDS_UID_t   *libMap                = 0L;
   int          realUIDs              = FALSE;
   CDS_UID_t    uidStart              = 987654321987654321ULL;
