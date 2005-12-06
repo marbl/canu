@@ -806,6 +806,12 @@ positionDB::positionDB(merStream   *MS,
 
   if (beVerbose) {
     fprintf(MSG_OUTPUT, "    Used:  Bucket "u64bitFMTW(12)"    Position "u64bitFMTW(12)" (entries)\n", _numberOfDistinct, _numberOfEntries);
+    fprintf(MSG_OUTPUT,
+            "    Found "u64bitFMTW(12)" total mers\n"
+            "    Found "u64bitFMTW(12)" distinct mers\n"
+            "    Found "u64bitFMTW(12)" unique mers\n"
+            "    Need "u64bitFMT" non-unique position list entries ("u64bitFMT" maximum count)\n",
+            _numberOfMers, _numberOfDistinct, _numberOfUnique, _numberOfEntries, _maximumEntries);
   }
 
 
@@ -825,8 +831,9 @@ positionDB::positionDB(merStream   *MS,
     u64bit npos = 0;
     u64bit opos = 0;
 
-    fprintf(stderr, "    Rebuilding the hash table, from "u32bitFMT" bits wide to "u32bitFMT" bits wide.\n",
-            _hashWidth, newHashWidth);
+    if (beVerbose)
+      fprintf(stderr, "    Rebuilding the hash table, from "u32bitFMT" bits wide to "u32bitFMT" bits wide.\n",
+              _hashWidth, newHashWidth);
 
     for (u64bit b=0; b<_tableSizeInEntries+1; b++) {
 
@@ -850,10 +857,6 @@ positionDB::positionDB(merStream   *MS,
     _hashWidth = newHashWidth;
   }
 #endif
-
-
-
-
 
 
 #ifdef TEST_NASTY_BUGS
