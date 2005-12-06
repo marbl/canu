@@ -238,7 +238,35 @@ main(int argc, char **argv) {
       positions = new positionDB(config._psFileName, true);
     }
   } else {
-    merStream *MS = new merStream(config._merSize, &config._useList);
+
+
+
+    //  The masking databases
+    //
+    maskDB = 0L;
+    if (config._maskFileName) {
+      if (config._beVerbose)
+        fprintf(stderr, "Building maskDB from fasta file '%s'\n", config._maskFileName);
+      maskDB = new existDB(config._maskFileName, config._merSize, 19);
+    }
+    if (config._maskPrefix) {
+      if (config._beVerbose)
+        fprintf(stderr, "Building maskDB from meryl prefix '%s'\n", config._maskPrefix);
+      maskDB = new existDB(config._maskPrefix, config._merSize, 19, config._maskThreshold, ~u32bitZERO);
+    }
+
+    onlyDB = 0L;
+    if (config._onlyFileName) {
+      if (config._beVerbose)
+        fprintf(stderr, "Building onlyDB from fasta file '%s'\n", config._onlyFileName);
+      onlyDB = new existDB(config._onlyFileName, config._merSize, 19);
+    }
+    if (config._onlyPrefix) {
+      if (config._beVerbose)
+        fprintf(stderr, "Building onlyDB from meryl prefix '%s'\n", config._onlyPrefix);
+      onlyDB = new existDB(config._onlyPrefix, config._merSize, 19, 0, config._onlyThreshold);
+    }
+
 
     //  Figure out a nice size of the hash.
     //
@@ -251,9 +279,18 @@ main(int argc, char **argv) {
     if (config._useList.lengthOfSequences() <  2 * 1024 * 1024) tblSize = 21;
     if (config._useList.lengthOfSequences() <  1 * 1024 * 1024) tblSize = 20;
 
-    positions = new positionDB(MS, config._merSize, config._merSkip, tblSize, 0L, 0L, 0, config._beVerbose);
+    merStream *MS = new merStream(config._merSize, &config._useList);
+
+    positions = new positionDB(MS, config._merSize, config._merSkip, tblSize,
+                               maskDB, onlyDB, config._ignoreThreshold, config._beVerbose);
 
     delete    MS;
+
+    delete    maskDB;
+    delete    onlyDB;
+
+    maskDB = 0L;
+    onlyDB = 0L;
 
     if (config._psFileName) {
       if (config._beVerbose)
@@ -265,6 +302,9 @@ main(int argc, char **argv) {
         dumpStats();
         exit(0);
       }
+
+      delete positions;
+      positions = new positionDB(config._psFileName, true);
     }
   }
 
@@ -280,33 +320,6 @@ main(int argc, char **argv) {
   cache = new FastACache(config._dbFileName, 0, true);
   //cache = new FastACache(config._dbFileName, 256, false);
 
-
-
-  //  The masking databases
-  //
-  maskDB = 0L;
-  if (config._maskFileName) {
-    if (config._beVerbose)
-      fprintf(stderr, "Building maskDB from fasta file '%s'\n", config._maskFileName);
-    maskDB = new existDB(config._maskFileName, config._merSize, 19);
-  }
-  if (config._maskPrefix) {
-    if (config._beVerbose)
-      fprintf(stderr, "Building maskDB from meryl prefix '%s'\n", config._maskPrefix);
-    maskDB = new existDB(config._maskPrefix, config._merSize, 19, config._maskThreshold, ~u32bitZERO);
-  }
-
-  onlyDB = 0L;
-  if (config._onlyFileName) {
-    if (config._beVerbose)
-      fprintf(stderr, "Building onlyDB from fasta file '%s'\n", config._onlyFileName);
-    onlyDB = new existDB(config._onlyFileName, config._merSize, 19);
-  }
-  if (config._onlyPrefix) {
-    if (config._beVerbose)
-      fprintf(stderr, "Building onlyDB from meryl prefix '%s'\n", config._onlyPrefix);
-    onlyDB = new existDB(config._onlyPrefix, config._merSize, 19, 0, config._onlyThreshold);
-  }
 
 
   //  Open and init the query sequence

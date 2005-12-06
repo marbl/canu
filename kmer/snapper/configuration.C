@@ -46,8 +46,17 @@ configuration::configuration(void) {
   _dbFileName           = 0L;
   _psFileName           = 0L;
   _qsFileName           = 0L;
+
   _maskFileName         = 0L;
   _onlyFileName         = 0L;
+
+  _ignoreThreshold      = 0;
+
+  _maskPrefix           = 0L;
+  _maskThreshold        = 0;
+  _onlyPrefix           = 0L;
+  _onlyThreshold        = 0;
+
   _outputFileName       = 0L;
   _logmsgFileName       = 0L;
   _statsFileName        = 0L;
@@ -98,11 +107,13 @@ static char const *usageString =
 "    -setfilter L H V        Use { L,H,V } as the filter parameters.\n"
 "\n"
 "Input Options:\n"
+"    -ignore n               Ignore mers with count at least n.\n"
 "    -mask f                 Ignore (only use) all mers listed in file f.\n"
 "    -only f\n"
 "    -maskn f n              Ignore (only use) the mers listed in meryl prefix f.\n"
 "    -onlyn f n              For mask, mers with count >= n are masked.\n"
 "                            For only, mers with count <= n are used.\n"
+"\n"
 "    -queries c.fasta        Query sequences.\n"
 "    -genomic g.fasta        Database sequences.\n"
 "    -positions p.positionDB Build and save / use positionDB.  Assumes you aren't using -use.\n"
@@ -149,6 +160,9 @@ configuration::read(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-numthreads") == 0) {
       arg++;
       _numSearchThreads = atoi(argv[arg]);
+    } else if (strcmp(argv[arg], "-ignore") == 0) {
+      ++arg;
+      _ignoreThreshold = strtou32bit(argv[arg], 0L);
     } else if (strcmp(argv[arg], "-mask") == 0) {
       arg++;
       _maskFileName = argv[arg];

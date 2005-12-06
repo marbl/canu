@@ -107,6 +107,7 @@ public:
 
   bool             _buildOnly;
 
+  u32bit           _ignoreThreshold;
   char            *_maskPrefix;
   u32bit           _maskThreshold;
   char            *_onlyPrefix;
