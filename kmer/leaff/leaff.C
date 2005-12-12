@@ -828,6 +828,7 @@ partition_s *loadPartition(void) {
 
 void
 outputPartition(char *prefix, partition_s *p, u32bit openP, u32bit n) {
+  char  filename[1024];
 
   //  Check that everything has been partitioned
   //
@@ -840,8 +841,6 @@ outputPartition(char *prefix, partition_s *p, u32bit openP, u32bit n) {
     //  This rewrites the source fasta file into partitioned fasta files
     //
     for (u32bit o=1; o<=openP; o++) {
-
-      char  filename[1024];
       sprintf(filename, "%s-"u32bitFMTW(03)".fasta", prefix, o);
 
       errno = 0;
@@ -851,7 +850,7 @@ outputPartition(char *prefix, partition_s *p, u32bit openP, u32bit n) {
 
       for (u32bit i=0; i<n; i++)
         if (p[i].used == o) {
-          f->find(i);
+          f->find(p[i].index);
           FastASequenceInCore *S = f->getSequence();
           fprintf(file, "%s\n", S->header());
           fwrite(S->sequence(), sizeof(char), S->sequenceLength(), file);
