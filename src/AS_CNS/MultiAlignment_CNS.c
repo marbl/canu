@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.45 2005-12-13 03:06:45 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.46 2005-12-13 20:42:44 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -7819,15 +7819,22 @@ MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
          SeedMAWithFragment(ma->lid, aid, 0, opp);
 
          // do the alignment 
-#if 0
+#if 1
          olap_success = GetAlignmentTrace(aid, 0,bid,&ahang,ovl,trace,&otype, DP_Compare,SHOW_OLAP,0);
          if ( !olap_success && COMPARE_FUNC != DP_Compare ) {
            olap_success = GetAlignmentTrace(aid, 0,bid,&ahang,ovl,trace,&otype, COMPARE_FUNC,SHOW_OLAP,0);
          }
-#endif
-         // BPW swiched over to Local_Overlap_AS_forCNS
+#else
+         //  BPW swiched over to Local_Overlap_AS_forCNS.
+         //
+         //  It's not clear if this does anything useful or not, but
+         //  it's now consistent with the rest of eCR.
+         //
+         //  Sadly, this also caused one microbe to fail eCR, so it's
+         //  now disabled.
+         //
          olap_success = GetAlignmentTrace(aid, 0,bid,&ahang,ovl,trace,&otype, Local_Overlap_AS_forCNS, SHOW_OLAP,0);
-
+#endif
          assert(olap_success);
 
          ApplyAlignment(aid, 0, bid, ahang, Getint32(trace,0));
