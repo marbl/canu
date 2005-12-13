@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.44 2005-12-12 22:14:46 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.45 2005-12-13 03:06:45 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -4624,11 +4624,28 @@ int32 AffineScoreAbacus(Abacus *abacus)
    int score=0;
    char b;
    int i,j;
+   int start_column, end_column;
+
+   if (abacus->shift == LEFT_SHIFT)
+   {
+       start_column = 0;
+       end_column   = abacus->columns/3;
+   }
+   else if (abacus->shift == RIGHT_SHIFT)
+   {
+       start_column = 2*abacus->columns/3;
+       end_column   =   abacus->columns;
+   }
+   else //  abacus->shift == UNSHIFTED
+   {
+       start_column =   abacus->columns/3;
+       end_column   = 2*abacus->columns/3;
+   }
 
    for (i=0;i<abacus->rows;i++) 
    {
      int in_gap=0;
-     for (j=0;j<abacus->columns;j++) 
+     for (j=start_column;j<end_column;j++)
      {
         b = *GetAbacus(abacus,i,j);
 //      if ( abacus->calls[j] != 'n') 
