@@ -56,6 +56,11 @@ sub CGW ($$$$) {
         exit(1);
     }
 
+    system("mkdir $wrk/$thisDir/log")        if (! -d "$wrk/$thisDir/log");
+    system("mkdir $wrk/$thisDir/analysis")   if (! -d "$wrk/$thisDir/analysis");
+    system("mv $wrk/$thisDir/*.log      $wrk/$thisDir/log");
+    system("mv $wrk/$thisDir/*.analysis $wrk/$thisDir/analysis");
+
     touch("$wrk/$thisDir/cgw.success");
 
     return $thisDir;
