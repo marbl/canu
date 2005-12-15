@@ -9,12 +9,11 @@ use strict;
 sub preoverlap {
     my @fragFiles = @_;
 
+    $numFrags = getNumberOfFragsInStore($bin, $wrk, $asm);
+
     if (scalar(@fragFiles) == 0) {
-        if ((-d "$wrk/$asm.gkpStore") && (-e "$wrk/$asm.gkpStore/gkp.frg")) {
-            return;
-        } else {
-            die "ERROR: No fragment files specified, and stores not created.\n";
-        }
+        return if ($numFrags > 0);
+        die "ERROR: No fragment files specified, and stores not created.\n";
     }
 
     system("mkdir $wrk/0-preoverlap") if (! -d "$wrk/0-preoverlap");
@@ -36,11 +35,14 @@ sub preoverlap {
         #  Rather than deal with grabbing the first BAT from the frist
         #  file (which is arbitrary anyway) we just write our own BAT.
         #
+        #  The accession is chosen to be one before fakeUIDs used in
+        #  updating distance records.
+        #
         open(G, "> $wrk/0-preoverlap/$asm.frg") or die;
         print G "{BAT\n";
         print G "bna:$asm frags\n";
         print G "crt:0\n";
-        print G "acc:1\n";
+        print G "acc:987654321987654320\n";
         print G "com:";
         print G "All fragments contained in:\n";
         foreach my $frg (@fragFiles) {
