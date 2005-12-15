@@ -199,7 +199,7 @@ sub getNumberOfFragsInStore {
     my $wrk = shift @_;
     my $asm = shift @_;
 
-    return(0) if (! -e "$wrk/$asm.frgStore");
+    return(0) if (! -e "$wrk/$asm.frgStore/db.frg");
 
     open(F, "$bin/lastfraginstore $wrk/$asm.frgStore 2> /dev/null |") or die;
     $_ = <F>;    chomp $_;
