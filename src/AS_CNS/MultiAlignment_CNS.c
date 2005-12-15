@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.46 2005-12-13 20:42:44 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.47 2005-12-15 19:42:08 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -55,10 +55,7 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.46 2005-12-13 20:42:44 bria
 #define MIN_QV_FOR_VARIATION               22
 #define QV_FOR_MULTI_GAP                   14
 #define SHOW_OLAP                           1
-
-//  this is probably dead code.  It crashed quickly on 2005-12-09
 #undef  ALIGN_TO_CONSENSUS
-
 #define PRINTUIDS
 
 #define CNS_DP_RANGE                       40
@@ -76,7 +73,7 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.46 2005-12-13 20:42:44 bria
 #define CNS_LOOSESEMIBANDWIDTH            100
 #define CNS_NEG_AHANG_CUTOFF               -5
 #define CNS_MAX_ALIGN_SLIP                 20
-#define INITIAL_NR                         50
+#define INITIAL_NR                        100
 #define MAX_ALLOWED_MA_DEPTH               40
 #define MAX_EXTEND_LENGTH                2048
 #define SHOW_ABACUS                        0
@@ -120,8 +117,10 @@ extern int MaxBegGap;       // [ init value is 200; this could be set to the amo
 extern int MaxEndGap;       // [ init value is 200; this could be set to the amount you extend the
                             // clear range of seq a, plus 10 for good measure]
 
-int ScoreNumColumns;
-int ScoreNumRunsOfGaps;
+int ScoreNumColumnsInUnitigs;
+int ScoreNumRunsOfGapsInUnitigs;
+int ScoreNumColumnsInContigs;
+int ScoreNumRunsOfGapsInContigs;
 int ScoreNumAAMismatches;
 int ScoreNumFAMismatches;
 
@@ -675,22 +674,16 @@ int SetUngappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) 
    unitigFrags = CreatePHashTable_AS(2*(num_frags+num_unitigs),NULL);
    frag = GetIntMultiPos(uma->f_list,0);
    for (ifrag=0;ifrag<num_frags;ifrag++,frag++){
-#ifdef DEBUG_FRAG_POS
-     fprintf(stderr, "BPW: fragment %d from %d to %d\n", frag->ident, frag->position.bgn, frag->position.end);
-#endif
       SetVA_int32(gapped_positions,frag->position.bgn,&frag->position.bgn);
       SetVA_int32(gapped_positions,frag->position.end,&frag->position.end);
    }
    unitig = GetIntUnitigPos(uma->u_list,0);
    for (ifrag=0;ifrag<num_unitigs;ifrag++,unitig++){
-#ifdef DEBUG_FRAG_POS
-     fprintf(stderr, "BPW: unitig %d  from %d to %d\n", unitig->ident, unitig->position.bgn, unitig->position.end);
-#endif
       SetVA_int32(gapped_positions,unitig->position.bgn,&unitig->position.bgn);
       SetVA_int32(gapped_positions,unitig->position.end,&unitig->position.end);
    }
    if ( Getint32(gapped_positions,num_columns) == NULL ) {
-      fprintf(stderr,"Misformed Multialign... fragment positions only extend to bp %d out of %d\n",
+      fprintf(stderr,"Misformed Multialign... fragment positions only extend to bp %d out of %d/n",
               (int) GetNumint32s(gapped_positions),num_columns+1);
       DeleteVA_int32(gapped_positions);
       return -1;
@@ -1664,11 +1657,12 @@ IidToIndex(int32 iid, int32 *iids, int nr)
 // Function: BaseCalling
 // Purpose: Calculate the consensus base for the given column
 //*********************************************************************************
-int 
-BaseCall(int32 cid, int quality, double *var, AlPair ap, 
-    int target_allele, char *cons_base, int verbose, CNS_Options *opp) 
+int
+BaseCall(int32 cid, int quality, double *var, AlPair *ap,
+    int target_allele, char *cons_base, int verbose, int get_scores,
+    CNS_Options *opp)
 {
-    /* NOTE: negative target_allele means the the alleles will be used */ 
+    /* NOTE: negative target_allele means the the alleles will be used */
 
     Column *column=GetColumn(columnStore,cid);
     Bead *call = GetBead(beadStore, column->call);
@@ -1676,7 +1670,7 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
     int best_read_base_count[CNS_NP]  = {0};
     int other_read_base_count[CNS_NP] = {0};
     int guide_base_count[CNS_NP]      = {0};
-    
+
     int best_read_qv_count[CNS_NP] = {0};
     int other_read_qv_count[CNS_NP] = {0};
 
@@ -1696,7 +1690,8 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
     int sum_qv_cbase=0, sum_qv_all=0;
     int k;
 
-   
+    ap->nb = 0;
+
     //  Make sure that we have valid options here, we then reset the
     //  pointer to the freshly copied options, so that we can always
     //  assume opp is a valid pointer
@@ -1715,7 +1710,7 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
     }
 
    *var = 0.;
-    if (quality > 0) 
+    if (quality > 0)
     {
         static int guides_alloc=0;
         static VarArrayBead  *guides;
@@ -1740,7 +1735,7 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
             o_reads  = CreateVA_Bead(16);
             tied   = CreateVA_int16(32);
             guides_alloc = 1;
-        } 
+        }
         else {
             ResetBead(guides);
             ResetBead(b_reads);
@@ -1752,17 +1747,17 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
         }
 
         // Scan a column of aligned bases (=beads).
-        // Sort the beads into three groups:   
-        //      - those corresponding to the reads of the best allele,  
+        // Sort the beads into three groups:
+        //      - those corresponding to the reads of the best allele,
         //      - those corresponding to the reads of the other allele and
         //      - those corresponding to non-read fragments (aka guides)
-        while ( (bid = NextColumnBead(&ci)) != -1) 
+        while ( (bid = NextColumnBead(&ci)) != -1)
         {
             bead =  GetBead(beadStore,bid);
             cbase = *Getchar(sequenceStore,bead->soffset);
             qv = (int) ( *Getchar(qualityStore,bead->soffset)-'0');
-            if ( cbase == 'N' ) { 
-                // skip 'N' base calls 
+            if ( cbase == 'N' ) {
+                // skip 'N' base calls
                 // fprintf(stderr,
                 //    "encountered 'n' base in fragment data at column cid=%d\n",
                 //    cid);
@@ -1771,46 +1766,51 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
             bmask = AMASK[BaseToInt(cbase)];
             type  = GetFragment(fragmentStore,bead->frag_index)->type;
             iid   = GetFragment(fragmentStore,bead->frag_index)->iid;
-            k     = IidToIndex(iid, ap.iids, ap.nr);
+            k     = IidToIndex(iid, ap->iids, ap->nr);
 
-            if ((k>=0) &&
-                ((type  == AS_READ)   ||
-                 (type  == AS_B_READ) ||
-                 (type  == AS_EXTR)   ||
-                 (type  == AS_TRNR)))
-                ap.bases[k] = cbase;
-
-            if (((type  == AS_READ)   ||
-                 (type  == AS_B_READ) ||
-                 (type  == AS_EXTR)   ||
-                 (type  == AS_TRNR))
-                                          &&
-                ((target_allele < 0)  ||   // use any allele
-                 !opp->split_alleles  ||   // use any allele
-                 (ap.nr >  0  &&
-                  ap.alleles[k] == target_allele))) // use the best allele
+            if ((type == AS_READ)   ||
+                (type == AS_B_READ) ||
+                (type == AS_EXTR)   ||
+                (type == AS_TRNR))
             {
-                best_read_base_count[BaseToInt(cbase)]++;
-                best_read_qv_count[BaseToInt(cbase)] += qv;
-                AppendBead(b_reads, bead);
-            }
-            else
-            {
-                if (((type  == AS_READ)   ||
-                     (type  == AS_B_READ) ||
-                     (type  == AS_EXTR)   ||
-                     (type  == AS_TRNR)))
+                if (target_allele < 0 && get_scores)
                 {
-                    other_read_base_count[BaseToInt(cbase)]++;
-                    other_read_qv_count[BaseToInt(cbase)] += qv;
-                    AppendBead(o_reads, bead);        
+                    ap->bases[ap->nb] = cbase;
+                    ap->iids[ap->nb]  = iid;
+                    ap->nb++;
+                    if (ap->nb == ap->max_nr)
+                    {
+                       ap->max_nr += INITIAL_NR;
+                       ap->bases = (char *)safe_realloc(ap->bases,
+                                   ap->max_nr*sizeof(char));
+                       ap->iids = (int32 *)safe_realloc(ap->iids,
+                                   ap->max_nr*sizeof(int32));
+                    }
+                }
+
+                if (((target_allele < 0)  ||   // use any allele
+                     !opp->split_alleles  ||   // use any allele
+                     (ap->nr >  0  &&
+                      ap->alleles[k] == target_allele))) // use the best allele
+                {
+                    best_read_base_count[BaseToInt(cbase)]++;
+                    best_read_qv_count[BaseToInt(cbase)] += qv;
+                    AppendBead(b_reads, bead);
                 }
                 else
                 {
-                    guide_base_count[BaseToInt(cbase)]++;
-                    AppendBead(guides, bead);
+                    other_read_base_count[BaseToInt(cbase)]++;
+                    other_read_qv_count[BaseToInt(cbase)] += qv;
+                    AppendBead(o_reads, bead);
                 }
             }
+            else
+            {
+                guide_base_count[BaseToInt(cbase)]++;
+                AppendBead(guides, bead);
+            }
+
+
             if ( type != AS_UNITIG ) {
                 frag_cov++;
             }
@@ -1825,12 +1825,12 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
         // It will be used to calculate cw
         if (b_read_depth > 0)
         {
-            for (cind = 0; cind < b_read_depth; cind++) 
+            for (cind = 0; cind < b_read_depth; cind++)
             {
                 gb = GetBead(b_reads, cind);
                 cbase = *Getchar(sequenceStore,gb->soffset);
                 qv = (int) ( *Getchar(qualityStore,gb->soffset)-'0');
-                if ( qv == 0 ) 
+                if ( qv == 0 )
                     qv += 5;
                 bmask = AMASK[BaseToInt(cbase)];
                 for (bi=0;bi<CNS_NP;bi++) {
@@ -1863,17 +1863,17 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
         }
 
         // If there are no reads, use fragments of other types
-        if (b_read_depth == 0 && o_read_depth == 0) 
+        if (b_read_depth == 0 && o_read_depth == 0)
         {
             for (cind = 0; cind < guide_depth; cind++) {
                 gb = GetBead(guides,cind);
                 type  = GetFragment(fragmentStore,gb->frag_index)->type;
                 utype = GetFragment(fragmentStore,gb->frag_index)->utype;
 
-                if ( type == AS_UNITIG && 
-                         ((utype != AS_STONE_UNITIG && 
-                           utype != AS_PEBBLE_UNITIG && 
-                           utype != AS_OTHER_UNITIG) || b_read_depth > 0)) 
+                if ( type == AS_UNITIG &&
+                         ((utype != AS_STONE_UNITIG &&
+                           utype != AS_PEBBLE_UNITIG &&
+                           utype != AS_OTHER_UNITIG) || b_read_depth > 0))
                 {
                     continue;
                 }
@@ -1881,7 +1881,7 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
                 // only for surrogates, use their basecalls/quality in contig consensus
                 cbase = *Getchar(sequenceStore,gb->soffset);
                 qv = (int) ( *Getchar(qualityStore, gb->soffset)-'0');
-                if ( qv == 0 ) 
+                if ( qv == 0 )
                     qv += 5;
                 bmask = AMASK[BaseToInt(cbase)];
                 for (bi=0; bi<CNS_NP; bi++) {
@@ -1898,12 +1898,12 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
             cw[bi] = tau[bi] *COMP_BIAS[bi];
             normalize += cw[bi];
         }
-        if (normalize) 
+        if (normalize)
             normalize = 1./normalize;
 
         // Calculate max_ind as {i | cw[i] -> max_cw}
         // Store all other indexes { i | cw[i] == max_cw } in VA Array tied
-        for (bi=0; bi<CNS_NP; bi++) 
+        for (bi=0; bi<CNS_NP; bi++)
         {
             cw[bi] *= normalize;
             if (cw[bi] > max_cw + ZERO_PLUS) {
@@ -1919,21 +1919,21 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
         // Otherwise, it will be selected RANDOMLY (!!!) from all {i|cw[i]==max_cw}
         if (DBL_EQ_DBL(max_cw, (double)0.0)) {
             max_ind = 0;      // consensus is gap
-        } 
-        else 
+        }
+        else
         {
-            if (GetNumint16s(tied)> 0) 
+            if (GetNumint16s(tied)> 0)
             {
                 Appendint16(tied, &max_ind);
                 max_ind = *Getint16(tied,1);
                 max_cw = cw[max_ind];
-            } 
+            }
         }
         if ( verbose ) {
             fprintf(stdout,"calculated probabilities:\n");
 //          for (bi=0;bi<CNS_NP;bi++) {
 //              fprintf(stdout,"%c = %16.8f",RALPHABET[bi],cw[bi]);
-//              if ( bi == max_ind ) 
+//              if ( bi == max_ind )
 //                  fprintf(stdout," *");
 //              fprintf(stdout,"\n");
 //          }
@@ -1945,14 +1945,14 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
         if (DBL_EQ_DBL(max_cw, (double)1.0)) {
             cqv = CNS_MAX_QV+'0';
             Setchar(qualityStore, call->soffset, &cqv);
-        } 
-        else 
+        }
+        else
         {
-            if ( frag_cov != 1 || used_surrogate) 
+            if ( frag_cov != 1 || used_surrogate)
             {
                 tmpqv =  -10.0 * log10(1.0-max_cw);
                 qv = DBL_TO_INT(tmpqv);
-                if ((tmpqv - qv)>=.50) 
+                if ((tmpqv - qv)>=.50)
                     qv++;
             }
             cqv = QVInRange(qv);
@@ -1960,7 +1960,7 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
       // if (CNS_CALL_PUBLIC), then check whether call disagrees with guide data.
       //    if so, call the public base
 
-        if ( CNS_CALL_PUBLIC && (num_guides=GetNumBeads(guides)) > 0 ) 
+        if ( CNS_CALL_PUBLIC && (num_guides=GetNumBeads(guides)) > 0 )
         {
             int i;
             char gbase=(char) 0;
@@ -1973,27 +1973,27 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
                 }
             }
             if ( gbase != (char) 0  && gbase != cbase ) {
-                // override the Celera call with the guide call 
+                // override the Celera call with the guide call
                 cbase = gbase;
                 cqv = 0 + '0';
             }
         }
 
-         
+
        *cons_base = cbase;
-        if (target_allele <  0 || target_allele == ap.best_allele)
+        if (target_allele <  0 || target_allele == ap->best_allele)
         {
             Setchar(sequenceStore, call->soffset, &cbase);
             Setchar(qualityStore, call->soffset, &cqv);
         }
-        
+
         for (bi=0; bi<CNS_NALPHABET-1; bi++)
             b_read_count += best_read_base_count[bi];
 
-        for (bi=0; bi<CNS_NALPHABET-1; bi++) { 
+        for (bi=0; bi<CNS_NALPHABET-1; bi++) {
             // NALAPHBET-1 to exclude "n" base call
             bmask = AMASK[bi];  // mask for indicated base
-            if ( ! ((bmask>>max_ind) & 1) ) { 
+            if ( ! ((bmask>>max_ind) & 1) ) {
                 // penalize only if base in not represented in call
                 score += best_read_base_count[bi] + other_read_base_count[bi]
                       + guide_base_count[bi];
@@ -2001,7 +2001,7 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
             /* To be considered, base should either have high enough quality
              * or be confirmed by another base (Granger's suggestion - GD)
              */
-            if ((best_read_base_count[bi] > 1) || 
+            if ((best_read_base_count[bi] > 1) ||
                 (best_read_qv_count[bi] > MIN_QV_FOR_VARIATION))
             {
                 sum_qv_all += best_read_qv_count[bi];
@@ -2011,11 +2011,11 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
         }
         if ((b_read_count == 1 ) || (sum_qv_all == 0))
            *var = 0.;
-        else 
+        else
            *var = 1. - (double)sum_qv_cbase / (double)sum_qv_all;
         return score;
-    } 
-    else if (quality == 0 ) 
+    }
+    else if (quality == 0 )
     {
         int max_count=0,max_index=-1,tie_count=0;
         int tie_breaker, max_tie, i;
@@ -2033,7 +2033,7 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
                 type  != AS_EXTR &&
                 type  != AS_TRNR ) {
                 guide_base_count[BaseToInt(cbase)]++;
-            } 
+            }
             else {
                 best_read_base_count[BaseToInt(cbase)]++;
             }
@@ -2044,16 +2044,16 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
                 max_index = i;
             }
         }
-        if ( best_read_base_count[max_index] + guide_base_count[max_index] > 
-            (b_read_depth                 + guide_depth)/2 ) 
+        if ( best_read_base_count[max_index] + guide_base_count[max_index] >
+            (b_read_depth                 + guide_depth)/2 )
         {
             tie_count = 0;
-        } 
-        else 
+        }
+        else
         {
-            for (i=0;i<CNS_NALPHABET;i++) 
+            for (i=0;i<CNS_NALPHABET;i++)
             {
-                if (best_read_base_count[i]+guide_base_count[i] == max_count) 
+                if (best_read_base_count[i]+guide_base_count[i] == max_count)
                 {
                     max_index = i;
                     tie_count++;
@@ -2062,10 +2062,10 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
         }
         max_tie=-1;
         if ( tie_count > 1 ) {
-            for (i=1;i<CNS_NALPHABET;i++) 
+            for (i=1;i<CNS_NALPHABET;i++)
             {     /* i starts at 1 to prevent ties */
                   /* from being broken with '-'    */
-                if ( best_read_base_count[i]+guide_base_count[i] == max_count ) 
+                if ( best_read_base_count[i]+guide_base_count[i] == max_count )
                 {
                     /* Break unresolved ties with random numbers: */
                     tie_breaker = random();
@@ -2081,13 +2081,13 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
         cqv = 0 + '0';
         Setchar(qualityStore, call->soffset, &cqv);
         for (bi=0;bi<CNS_NALPHABET;bi++) {
-            if (bi != BaseToInt(cbase)) 
+            if (bi != BaseToInt(cbase))
             {
                 score += best_read_base_count[bi]+guide_base_count[bi];
             }
         }
         return score;
-    } 
+    }
     else if (quality == -1 ) {
         // here, just promote the aligned fragment's seq and quality to the basecall
         char bqv;
@@ -2099,8 +2099,9 @@ BaseCall(int32 cid, int quality, double *var, AlPair ap,
         Setchar(qualityStore, call->soffset, &bqv);
         return score;
     }
-    return score; 
+    return score;
 }
+
 
 static void
 SetDefault(AlPair *ap)
@@ -2457,19 +2458,44 @@ is_good_base(char b)
 }
 
 static void
-UpdateScores(AlPair ap, char cbase, char abase, int prev_nr, char *prev_bases,
-   int32 *prev_iids)
+UpdateScoreNumRunsOfGaps(AlPair ap, int prev_nr, char *prev_bases,
+    int32 *prev_iids, int get_scores)
+{
+    int i, j;
+
+    // Updating count of stretches of gaps
+    for (i=0; i<prev_nr; i++) {
+       if (prev_bases[i] == '-')
+           continue;
+
+       for (j=0; j<ap.nb; j++) {
+           if (ap.bases[j] != '-')
+               continue;
+
+           if (prev_iids[i] == ap.iids[j])
+           {
+               if (get_scores == 1)
+                   ScoreNumRunsOfGapsInUnitigs++;
+               else if (get_scores == 2)
+                   ScoreNumRunsOfGapsInContigs++;
+           }
+       }
+    }
+}
+
+static void
+UpdateScores(AlPair ap, char cbase, char abase)
 {
     int i, j;
 
     if (cbase != abase)
         ScoreNumAAMismatches++;
 
-    // Updating count of fragment bases mismatching 
+    // Updating count of fragment bases mismatching
     // the consensus base of the corresponding allele
     for (i=0; i<ap.nr; i++)
     {
-       if ((ap.alleles[i] == ap.best_allele) && 
+       if ((ap.alleles[i] == ap.best_allele) &&
            is_good_base(ap.bases[i])         &&
            (ap.bases[i]   != cbase))
             ScoreNumFAMismatches++;
@@ -2478,22 +2504,9 @@ UpdateScores(AlPair ap, char cbase, char abase, int prev_nr, char *prev_bases,
            is_good_base(ap.bases[i])         &&
            (ap.bases[i]   != abase))
             ScoreNumFAMismatches++;
-    } 
-
-    // Updating count of stretches of gaps          
-    for (i=0; i<prev_nr; i++) {
-       if (prev_bases[i] == '-')
-           continue;
-
-       for (j=0; j<ap.nr; j++) { 
-           if (ap.bases[j] != '-')
-               continue;
-
-           if (prev_iids[i] == ap.iids[j])
-               ScoreNumRunsOfGaps++;
-       }
     }
 }
+
 
 //*********************************************************************************
 // Basic MultiAlignmentNode (MANode) manipulation
@@ -2533,16 +2546,26 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
 #if 0
     fprintf(stderr, "Calling RefreshMANode, quality = %d\n", quality);
 #endif
-    SetDefault(&ap);
-    varf  = (double *)safe_calloc(len_manode, sizeof(double)); 
-    cids = (int32 *)safe_calloc(len_manode, sizeof(int32));
     if (ma == NULL ) 
         CleanExit("RefreshMANode ma==NULL",__LINE__,1);
     if ( ma->first == -1 ) 
         return 1;
+
+    SetDefault(&ap);
+    ap.max_nr = MIN_ALLOCATED_DEPTH;
+    ap.iids  = (int32 *)safe_calloc(ap.max_nr, sizeof(int32));
+    ap.bases =  (char *)safe_calloc(ap.max_nr, sizeof(char));
+
+    varf     = (double *)safe_calloc(len_manode, sizeof(double));
+    cids     =  (int32 *)safe_calloc(len_manode, sizeof(int32));
     Resetint32(ma->columns);
     cid = ma->first;
     ap.nr = -1;
+
+    if (get_scores ) {
+        prev_bases = (char  *)safe_malloc(max_prev_nr*sizeof(char ));
+        prev_iids  = (int32 *)safe_malloc(max_prev_nr*sizeof(int32));
+    }
 
     // Calculate variation as a function of position in MANode. 
     while ( cid  > -1 ) 
@@ -2560,7 +2583,8 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
             }
             // Call consensus using both the alleles
             // The goal is to calculate variation at a given position
-            BaseCall(cid, quality, &(varf[index]), ap, -1, &cbase, 0, opp);
+            BaseCall(cid, quality, &(varf[index]), &ap, -1, &cbase, 0, get_scores, 
+                opp);
             cids[index] = cid;
         }
         column->ma_index = index;
@@ -2575,19 +2599,56 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
             }
         }
 
+        if (get_scores)
+        {
+#if 0
+            fprintf(stderr, "ap.nb=%d ap.bases=", ap.nb);
+            for (i=0; i<ap.nb; i++) 
+                fprintf(stderr, "%c", ap.bases[i]);
+            fprintf(stderr, " prev_nr=%d prev_bases=", prev_nr);
+            for (i=0; i<prev_nr; i++)
+                fprintf(stderr, "%c", prev_bases[i]);
+            fprintf(stderr, " ScoreNumRunsOfGaps=%d \nap.iids= ", ScoreNumRunsOfGaps);
+            for (i=0; i<ap.nb; i++)
+                fprintf(stderr, "%d ", ap.iids[i]);
+            fprintf(stderr, "\n");
+            fprintf(stderr, "prev_iids= ");
+            for (i=0; i<prev_nr; i++)
+                fprintf(stderr, "%d ", prev_iids[i]);
+            fprintf(stderr, "\n");                
+#endif
+            UpdateScoreNumRunsOfGaps(ap, prev_nr, prev_bases, prev_iids, 
+                get_scores);
+            if (ap.nb > max_prev_nr) {
+                max_prev_nr =  ap.nb;
+                prev_bases = (char *)safe_realloc(prev_bases,
+                    max_prev_nr*sizeof(char));
+                prev_iids  = (int32 *)safe_realloc(prev_iids,
+                    max_prev_nr*sizeof(int32));
+            }
+            prev_nr = ap.nb;
+            for (i=0; i<ap.nb; i++) {
+                prev_bases[i] = ap.bases[i];
+                prev_iids[i]  = ap.iids[i];
+            }
+        }
+
         cid = column->next;
         index++;
     }
 
-    if (get_scores ) {
-        ScoreNumColumns += index;
-        prev_bases = (char  *)safe_malloc(max_prev_nr*sizeof(char ));
-        prev_iids  = (int32 *)safe_malloc(max_prev_nr*sizeof(int32));
+    if (get_scores == 1) {
+        ScoreNumColumnsInUnitigs += index;
+    }
+    else if (get_scores == 2) {
+        ScoreNumColumnsInContigs += index;
     }
 
     if ((opp->split_alleles == 0) ||
         (quality <= 0))
     {
+        FREE(ap.bases);
+        FREE(ap.iids);
         FREE(varf);
         FREE(cids);
         return 1;
@@ -2603,7 +2664,8 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
     SmoothenVariation(svarf, len_manode, window);
 
     // Recall beses using only one of two alleles
-    for (i=0; i<len_manode; i++) { 
+    for (i=0; i<len_manode; i++) 
+    { 
         if (svarf[i] == 0) {
             continue;
         }
@@ -2631,8 +2693,7 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
  
             // Store iids of all the reads in current region
             ap.nr = 0;
-            ap.max_nr = MIN_ALLOCATED_DEPTH;
-            ap.iids = (int32 *)safe_calloc(ap.max_nr, sizeof(int32));
+//          ap.iids = (int32 *)safe_realloc(ap.iids, ap.max_nr * sizeof(int32));
             for(l=0; l<ap.max_nr; l++) 
                 ap.iids[l] = -1;
 
@@ -2646,7 +2707,7 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
 #endif       
    
             ap.alleles = (char *)safe_calloc(ap.nr, sizeof(char));
-            ap.bases   = (char *)safe_calloc(ap.nr, sizeof(char));
+//          ap.bases   = (char *)safe_realloc(ap.bases, ap.nr * sizeof(char));
             ap.sum_qvs = (int  *)safe_calloc(ap.nr, sizeof(int));
             for (j=0; j<ap.nr; j++)
                 ap.alleles[j] = -1;    
@@ -2668,6 +2729,7 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
 #if 0
             fprintf(stderr, "total number of reads after ClusterReads %d\n", ap.nr);
 #endif
+
             /* Store variations in a v_list */
            *nvars = 0;
             if ((quality > 0) && make_v_list 
@@ -2701,30 +2763,15 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
                     for (m=0; m<end-beg+1; m++)
                     {
                        // Get the consensus base for an alternative allele
-                       BaseCall(cids[beg+m], quality, &fict_var, ap,
-                           ap.best_allele == 0 ? 1 : 0, &abase, 0, opp);
+                       BaseCall(cids[beg+m], quality, &fict_var, &ap,
+                           ap.best_allele == 0 ? 1 : 0, &abase, 0, 0, opp);
                        // Get the consensus base for the best allele
-                       BaseCall(cids[beg+m], quality, &fict_var, ap,
-                           ap.best_allele,              &cbase, 0, opp);
+                       BaseCall(cids[beg+m], quality, &fict_var, &ap,
+                           ap.best_allele,              &cbase, 0, 0, opp);
                        (*v_list)[*nvars].var_seq[end-beg+2+m] = abase;
                        (*v_list)[*nvars].var_seq[m          ] = cbase;
                        if (get_scores)
-                       {
-                           UpdateScores(ap, cbase, abase, prev_nr, prev_bases,
-                              prev_iids);
-                           if (ap.nr > max_prev_nr) {
-                               max_prev_nr =  ap.nr;           
-                               prev_bases = (char *)safe_realloc(prev_bases,
-                                   max_prev_nr*sizeof(char));
-                               prev_iids  = (int32 *)safe_realloc(prev_iids,
-                                   max_prev_nr*sizeof(int32));
-                           }
-                           prev_nr = ap.nr;
-                           for (i=0; i<ap.nr; i++) {
-                               prev_bases[i] = ap.bases[i];
-                               prev_iids[i]  = ap.iids[i];
-                           }
-                        }
+                           UpdateScores(ap, cbase, abase); 
                     }
                     (*v_list)[*nvars].var_seq[end-beg+1] = '/';
                     (*v_list)[*nvars].var_seq[2*(end-beg)+3] = '\0';
@@ -2733,9 +2780,7 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
             }
             
             i = vend;
-            FREE(ap.iids); 
             FREE(ap.alleles);
-            FREE(ap.bases);    
             FREE(ap.sum_qvs);
 
             for (j=0; j<ap.nr; j++)
@@ -2745,7 +2790,8 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
             ap.nr = 0;
         }
     }
-
+    FREE(ap.bases);
+    FREE(ap.iids);
     FREE(varf);
     FREE(svarf);
     FREE(cids);
@@ -4617,8 +4663,8 @@ int32 ScoreAbacus(Abacus *abacus, int *cols)
    return score;       
 }
 
-int32 AffineScoreAbacus(Abacus *abacus)  
-{ 
+int32 AffineScoreAbacus(Abacus *abacus)
+{
    // This simply counts the number of opened gaps, to be used in tie breaker
    //   of edit scores.
    int score=0;
@@ -4642,24 +4688,24 @@ int32 AffineScoreAbacus(Abacus *abacus)
        end_column   = 2*abacus->columns/3;
    }
 
-   for (i=0;i<abacus->rows;i++) 
+   for (i=0;i<abacus->rows;i++)
    {
      int in_gap=0;
      for (j=start_column;j<end_column;j++)
      {
         b = *GetAbacus(abacus,i,j);
-//      if ( abacus->calls[j] != 'n') 
+//      if ( abacus->calls[j] != 'n')
 //      commented out in order to make gap_score
 //      of the orig_abacus non-zero - GD
         {// don't look at null columns
-           if ( b != '-' ) 
+           if ( b != '-' )
            {
               in_gap=0;
-           } 
-           else 
+           }
+           else
            {
               // Size of a gap does not matter, their number in a row does - GD
-              if ( ! in_gap ) 
+              if ( ! in_gap )
               {
                  in_gap = 1;
                  score++;
@@ -5079,7 +5125,7 @@ int ApplyAbacus(Abacus *a, CNS_Options *opp)
                 exch_bead->boffset);
          */
        }
-       BaseCall(column->lid, 1, &var, ap, -1, &base, 0, opp);
+       BaseCall(column->lid, 1, &var, &ap, -1, &base, 0, 0, opp);
        column = GetColumn(columnStore,column->next);
        columns++;
      } 
@@ -5146,7 +5192,7 @@ int ApplyAbacus(Abacus *a, CNS_Options *opp)
                 exch_bead->boffset);
          */
        }
-       BaseCall(column->lid, 1, &var, ap, -1, &base, 0, opp);
+       BaseCall(column->lid, 1, &var, &ap, -1, &base, 0, 0, opp);
        column = GetColumn(columnStore,column->prev);
        columns++;
      } 
@@ -6609,6 +6655,20 @@ int RealignToConsensus(int32 mid,
 #endif
 }
 
+int32
+GetFragmentIndex(IntFragment_ID ident2, IntMultiPos *positions, int num_frags)
+{
+    int i;
+    for (i=0; i<num_frags; i++)
+    {
+        if (ident2 == positions[i].ident)
+        {
+            return i;
+        }
+    }
+    return -1;
+}
+
 int MultiAlignUnitig(IntUnitigMesg *unitig, 
                          FragStoreHandle fragStore,
 			 VA_TYPE(char) *sequence,
@@ -6623,7 +6683,6 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
     // (due to overlap failure)
     int32 fid,i,align_to;
     int32 num_reads=0,num_guides=0,num_columns=0;
-
     #ifdef ALIGN_TO_CONSENSUS
     int32 aoffset;
     #endif 
@@ -6736,7 +6795,11 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
     // Now, loop on remaining fragments, aligning to:
     //    a)  containing frag (if contained)
     // or b)  previously aligned frag
-    for (i=1;i<num_frags;i++) 
+    #ifdef NEW_UNITIGGER_INTERFACE
+    for (i=0;i<num_frags;i++) 
+    #else
+    for (i=1;i<num_frags;i++)
+    #endif
     {
        int ahang;
        int olap_success=0;
@@ -6748,8 +6811,19 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
        // align_to = containing
        // else 
        int frag_forced=0;
+       #ifdef NEW_UNITIGGER_INTERFACE
+       align_to = GetFragmentIndex(positions[i].ident2, positions, num_frags);
+       if (align_to < 0)
+           continue;
+       assert(align_to >= 0);
+       afrag = GetFragment(fragmentStore, align_to);
+       ahang = positions[i].ahang;
+       #else
        align_to = i-1;
-       while (! olap_success) {
+       while (! olap_success) 
+       #endif
+       {
+       #ifndef NEW_UNITIGGER_INTERFACE
          if (align_to < 0) break;
          afrag = GetFragment(fragmentStore, align_to);
          if ( bfrag->contained ) {
@@ -6766,7 +6840,13 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
          }
          if ( align_to < 0 ) break;
          ahang = offsets[bfrag->lid].bgn - offsets[afrag->lid].bgn;
+       #endif 
          ovl = offsets[afrag->lid].end - offsets[bfrag->lid].bgn;
+#if 0
+       fprintf(stderr, "Aligning frag #%d (or %d) to #%d (or %d), ahang=%d\n", 
+           positions[i].ident, bfrag->iid, positions[i].ident2, afrag->iid, ahang);
+#endif
+
 #ifdef ALIGN_TO_CONSENSUS
          { 
            Bead *afirst = GetBead(beadStore,afrag->beads);
@@ -6787,7 +6867,9 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
          }
 #endif
          if ( !olap_success ) {
+         #ifndef NEW_UNITIGGER_INTERFACE       
             align_to--;
+         #endif
             fprintf(stderr,
         "Could not find overlap between %d (%c) and %d (%c) estimated ahang: %d %s\n",
             afrag->iid,afrag->type,bfrag->iid,bfrag->type,ahang, 
@@ -6831,12 +6913,12 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
 #endif
        }
     }
-  unitig->num_vars = 0;
-  {
-    IntMultiVar *vl=NULL;
-    int32 nv=0;
-    RefreshMANode(ma->lid, 0, opp, &nv, &vl, 0, 0);
-  }
+    unitig->num_vars = 0;
+    {
+      IntMultiVar *vl=NULL;
+      int32 nv=0;
+      RefreshMANode(ma->lid, 0, opp, &nv, &vl, 0, 0);
+    }
     free(offsets);
 
     if ( cnslog != NULL && printwhat == CNS_VERBOSE) 
@@ -6850,7 +6932,8 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
         if ( cnslog != NULL && printwhat == CNS_VERBOSE)
             PrintAlignment(cnslog,ma->lid,0,-1,printwhat);
         AbacusRefine(ma,0,-1,CNS_INDEL, opp);
-        MergeRefine(ma->lid, NULL, NULL, opp, 0);
+        MergeRefine(ma->lid, NULL, NULL, opp, 1);
+
         if (cnslog != NULL && printwhat != CNS_QUIET && printwhat != CNS_STATS_ONLY) 
         {
           fprintf(stderr,"Should print alignment!\n");
@@ -7132,10 +7215,11 @@ int32 PlaceFragments(int32 fid, Overlap *(*COMPARE_FUNC)(COMPARE_ARGS),
      MANode *manode = GetMANode(manodeStore,col->ma_id);
      MultiAlignT *mal = GetMultiAlignInStore(unitigStore, col->ma_id);
      int i;
-     IntMultiVar *vl = NULL;
-     int32        nv  = 0;
-
-     RefreshMANode(manode->lid, 0, opp, &nv, &vl, 0, 0);
+     {
+       IntMultiVar *vl = NULL;
+       int32        nv  = 0;
+       RefreshMANode(manode->lid, 0, opp, &nv, &vl, 0, 0);
+     }
      afirst = GetBead(beadStore,afrag->beads+ahang);
      col = GetColumn(columnStore,afirst->column_index);
 
@@ -7358,19 +7442,20 @@ int MultiAlignContig(IntConConMesg *contig,
       fprintf(stderr, "Contig = %lu\n\n", contig->iaccession);
 #endif
      AbacusRefine(ma,0,-1,CNS_SMOOTH, opp);
-     {
-        IntMultiVar  *vl=NULL;
-        int32 nv=0;
-        MergeRefine(ma->lid, NULL, NULL, opp, 0);
-        AbacusRefine(ma,0,-1,CNS_POLYX, opp);
-        if ( cnslog != NULL && printwhat == CNS_VERBOSE) {
-          fprintf(cnslog,"\nPOLYX refined alignment\n");
-          PrintAlignment(cnslog,ma->lid,0,-1,printwhat);
-        }
-        RefreshMANode(ma->lid, 0, opp, &nv, &vl, 0, 0);
-        AbacusRefine(ma,0,-1,CNS_INDEL, opp);
-        MergeRefine(ma->lid, &(contig->v_list), &(contig->num_vars), opp, 1);
+  {
+     IntMultiVar  *vl=NULL;
+     int32 nv=0;
+     MergeRefine(ma->lid, NULL, NULL, opp, 0);
+     AbacusRefine(ma,0,-1,CNS_POLYX, opp);
+     if ( cnslog != NULL && printwhat == CNS_VERBOSE) {
+       fprintf(cnslog,"\nPOLYX refined alignment\n");
+       PrintAlignment(cnslog,ma->lid,0,-1,printwhat);
      }
+     RefreshMANode(ma->lid, 0, opp, &nv, &vl, 0, 0);
+     AbacusRefine(ma,0,-1,CNS_INDEL, opp);
+     MergeRefine(ma->lid, &(contig->v_list), &(contig->num_vars), opp, 1);
+  }
+
      //     PrintAlignment(cnslog,ma->lid,0,-1,'C');
      if ( cnslog != NULL  && (printwhat == CNS_VERBOSE || printwhat == CNS_VIEW_UNITIG)) { 
        fprintf(cnslog,"\nFinal refined alignment\n");
@@ -7549,7 +7634,7 @@ int ExamineMANode(FILE *outFile,int32 sid, int32 mid, UnitigData *tigData,int nu
     qv = *Getchar(qualityStore,cbead->soffset);
     fprintf(outFile,"%d\t%d\t%d\t%d\t%c\t%c\t" ,sid,ma->iid,index,ugindex,base,qv);
     ShowBaseCountPlain(outFile,&column->base_count);
-    BaseCall(cid, 1, &var, ap, ap.best_allele, &base, 0, opp); 
+    BaseCall(cid, 1, &var, &ap, ap.best_allele, &base, 0, 0, opp); 
          // recall with quality on (and QV parameters set by user)
     fprintf(outFile,"%c\t%c\t", *Getchar(sequenceStore,cbead->soffset), 
         *Getchar(qualityStore,cbead->soffset));
@@ -7730,7 +7815,7 @@ MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
 
    //ALIGNMENT_CONTEXT=AS_CONSENSUS;
    ALIGNMENT_CONTEXT=AS_MERGE;
-
+   
    cnslog = stderr;
    USE_SDB=1;
    sequenceDB = sequenceDBp;
@@ -7743,7 +7828,6 @@ MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
    u_list=GetIntUnitigPos(oma->u_list,0);
    f_list=GetIntMultiPos(oma->f_list,0);
    v_list = GetIntMultiVar(oma->v_list,0);
-
    // capture the consensus sequence of the original contig and put into local "fragment" format
    //PrintIMPInfo(stderr,num_frags,f_list);
    //PrintIUPInfo(stderr,num_unitigs,u_list);
@@ -7779,14 +7863,12 @@ MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
    } else {
      ResetVA_int32(trace);
    }
-
    {
-     int ahang,ovl;
+     int ahang,ovl,pos_offset=0;  
+     int tigs_adjusted_pos=0;
      OverlapType otype;
      int olap_success=0;
-
      cfrag=GetFragment(fragmentStore,cid);
-
      for(i=0;i<num_unitigs;i++) {
        uint32 id=u_list[i].ident;
        if ( id == unitig_iid ) {
@@ -7796,12 +7878,9 @@ MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
          int left=(complement_tmp)?end:bgn;
          int right=(complement_tmp)?bgn:end;
          complement=complement_tmp;
-
          tid = AppendFragToLocalStore(AS_UNITIG,id,complement,0,0,AS_OTHER_UNITIG,NULL);
          tfrag=GetFragment(fragmentStore,tid);
-
          ovl = right-left;  // this is the size of the original (non-extended) unitig
-
          if ( extendingLeft ) {
             // need to set aid to unitig to preserve positive ahang
             append_left=1;
@@ -7815,9 +7894,7 @@ MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
             bid=tid;
             ahang=left;
          }
-
-         SeedMAWithFragment(ma->lid, aid, 0, opp);
-
+         SeedMAWithFragment(ma->lid,aid,0, opp);
          // do the alignment 
 #if 1
          olap_success = GetAlignmentTrace(aid, 0,bid,&ahang,ovl,trace,&otype, DP_Compare,SHOW_OLAP,0);
@@ -7845,13 +7922,12 @@ MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
            RefreshMANode(ma->lid, 0, opp, &nv, &vl, 0, 0);
          }
 
-	 //PrintAlignment(stderr,ma->lid,0,-1,'C');
+         //PrintAlignment(stderr,ma->lid,0,-1,'C');
 
          break;
        }
     }
   }
-
 
   // Now, want to generate a new MultiAlignT which is an appropriate adjustment of original
   cma = CreateMultiAlignT();
@@ -7861,7 +7937,6 @@ MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
   cma->refCnt = 0;
   cma->source_alloc = oma->source_alloc;
   GetMANodeConsensus(ma->lid, cma->consensus, cma->quality);
-
   // no deltas required at this stage 
   // merge the f_lists and u_lists by cloning and concating
   cma->f_list = Clone_VA(oma->f_list);
@@ -7886,52 +7961,47 @@ MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
   int range_bgn=0,range_end=0,new_tig=0;
   components=GetCNS_AlignedContigElement(fragment_positions,cfrag->components);
   tcomponents=GetCNS_AlignedContigElement(fragment_positions,tfrag->components);
-
   // make adjustments to positions
   if ( append_left) {
-    // fragments within unitig are 0 to tfrag->n_components
-    // and cfrag->n_components-num_unitigs
-    range_bgn = 0;
-    range_end = tfrag->n_components - 1;
-    new_tig=cfrag->n_components-num_unitigs;
-  } else {  // changed unitig on right
-    // fragments within unitig are (num_frags-tfrag->n_components) to num_frags
-    // and cfrag->n_components-1;
-    range_bgn = num_frags - (tfrag->n_components-1);
-    range_end = num_frags;
-    new_tig=cfrag->n_components-1;
-  }
+       // fragments within unitig are 0 to tfrag->n_components
+       // and cfrag->n_components-num_unitigs
+      range_bgn = 0;
+      range_end = tfrag->n_components-1;
+      new_tig=cfrag->n_components-num_unitigs;
+   } else {  // changed unitig on right
+      // fragments within unitig are (num_frags-tfrag->n_components) to num_frags
+      // and cfrag->n_components-1;
+      range_bgn = (num_frags-(tfrag->n_components-1));
+      range_end = num_frags;
+      new_tig=cfrag->n_components-1;
+   }    
    while (ci < cfrag->n_components) { 
       contig_component = &components[ci];
-      if ((contig_component->frg_or_utg == CNS_ELEMENT_IS_FRAGMENT) &&
-          (contig_component->idx.fragment.frgInUnitig == unitig_iid )) {
-        //  A fragment in the correct unitig, so modify it.
-
+      if ( contig_component->frg_or_utg == CNS_ELEMENT_IS_FRAGMENT && contig_component->idx.fragment.frgInUnitig == unitig_iid ) {
         aligned_component = &tcomponents[tc++];
         if ( complement ) {
-          bgn = tfrag->length - aligned_component->position.bgn;
-          end = tfrag->length - aligned_component->position.end;
+          bgn = tfrag->length-aligned_component->position.bgn;
+          end = tfrag->length-aligned_component->position.end;
         } else {
           bgn = aligned_component->position.bgn;
           end = aligned_component->position.end;
         }
         frag = tfrag;
-#undef DEBUG_POSITIONS
 #ifdef DEBUG_POSITIONS
-        fprintf(stderr,"a compci->idx %12d bgn: %10d end: %10d\n",ci,bgn,end);
+fprintf(stderr,"compci->idx %12d bgn: %10d end: %10d\n",ci,bgn,end);
 #endif
       } else if ( ci == new_tig ) {
         aligned_component =  &tcomponents[tc++];
         if ( complement ) {
-          bgn = tfrag->length - aligned_component->position.bgn;
-          end = tfrag->length - aligned_component->position.end;
+          bgn = tfrag->length-aligned_component->position.bgn;
+          end = tfrag->length-aligned_component->position.end;
         } else {
           bgn = aligned_component->position.bgn;
           end = aligned_component->position.end;
         }
         frag = tfrag;
 #ifdef DEBUG_POSITIONS
-        fprintf(stderr,"b compci->idx %12d bgn: %10d end: %10d\n",ci,bgn,end);
+fprintf(stderr,"compci->idx %12d bgn: %10d end: %10d\n",ci,bgn,end);
 #endif
       } else {
         aligned_component =  contig_component;
@@ -7939,7 +8009,7 @@ MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
         end = aligned_component->position.end;
         frag = cfrag;
 #ifdef DEBUG_POSITIONS
-        fprintf(stderr,"c compci->idx %12d bgn: %10d end: %10d\n",ci,bgn,end);
+fprintf(stderr,"compci->idx %12d bgn: %10d end: %10d\n",ci,bgn,end);
 #endif
       }
       left = (bgn<end)?bgn:end;
@@ -7962,7 +8032,8 @@ MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
           iup->delta_length = 0;
           iup->delta = NULL;
 #ifdef DEBUG_POSITIONS
-	  fprintf(stderr," d element %d at %d,%d\n", ci,bgn,end);
+	  fprintf(stderr," element %d at %d,%d\n",
+		  ci,bgn,end);
 #endif
           ci++;iunitig++;
        } else {
@@ -7973,7 +8044,7 @@ MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
           imp->position.bgn = bgn;
           imp->position.end = end;
 #ifdef DEBUG_POSITIONS
-fprintf(stderr," e element %d at %d,%d\n", ci,bgn,end);
+fprintf(stderr," element %d at %d,%d\n", ci,bgn,end);
 #endif
           imp->delta_length = 0;
           imp->delta = NULL;
@@ -7981,9 +8052,6 @@ fprintf(stderr," e element %d at %d,%d\n", ci,bgn,end);
        }
     }
   }
-
-
-
   DeleteMANode(ma->lid);
   return cma;
 }
