@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.4 2005-12-06 20:23:16 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.5 2005-12-15 20:22:36 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -807,7 +807,7 @@ main( int argc, char **argv) {
       realUIDs = TRUE;
     } else if (strncmp(argv[arg], "-s", 2) == 0) {
       realUIDs = FALSE;
-      set_start_uid(strtoul(argv[++arg], NULL, 10));
+      set_start_uid(STR_TO_UID(argv[++arg], NULL, 10));
 #ifdef USE_SOAP_UID
     } else if (strncmp(argv[arg], "-E", 2) == 0) {
       SYS_UIDset_euid_server(argv[++arg]);
