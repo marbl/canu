@@ -61,6 +61,7 @@ typedef struct {
  */
 int32    nr;          // number of reads in the region of variation
 int32    max_nr;
+int32    nb;
 int32    nr_best_allele;
 int32    best_allele;
 double   ratio;
@@ -293,7 +294,7 @@ int GetMANodeConsensus(int32 mid, VA_TYPE(char) *, VA_TYPE(char) *);
 int GetMANodePositions(int32 , int, IntMultiPos *, int, IntUnitigPos *, 
     VA_TYPE(int32) *);
 void PrintAlignment(FILE *, int32, int32, int32, CNS_PrintKey );
-int32 MergeRefine(int32 , IntMultiVar **, int32 *, CNS_Options *, int);
+    int32 MergeRefine(int32 , IntMultiVar **, int32 *, CNS_Options *, int);
 
 typedef enum {
   LEFT_SHIFT  = (int) 'L', // Left Shifted
@@ -347,7 +348,8 @@ MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *, FragStoreHandle ,
 
 void ResetStores(int32 num_frags, int32 num_columns);
 int SetupSingleColumn(char *, char *, char *, char *, CNS_Options *opp);
-int BaseCall(int32 , int , double *, AlPair , int, char *, int, CNS_Options *opp);
+int BaseCall(int32 , int , double *, AlPair *, int, char *, int, int,
+   CNS_Options *);
 void ShowColumn(int32 cid);
 
 int MultiAlignUnitig(IntUnitigMesg *, FragStoreHandle, VA_TYPE(char) *,
