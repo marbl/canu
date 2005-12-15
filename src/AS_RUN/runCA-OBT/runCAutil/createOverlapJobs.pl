@@ -10,6 +10,8 @@ use strict;
 sub createOverlapJobs {
     my $isTrim = shift @_;
 
+    die "createOverlapJobs()--  Help!  I have no frags!\n" if ($numFrags == 0);
+
     my $ovlThreads        = getGlobal("ovlThreads");
     my $ovlHashBlockSize  = getGlobal("ovlHashBlockSize");
     my $ovlRefBlockSize   = getGlobal("ovlRefBlockSize");
