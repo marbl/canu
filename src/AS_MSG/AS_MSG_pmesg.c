@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.13 2005-09-29 07:30:34 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.14 2005-12-15 19:43:23 gdenisov Exp $";
 
 #define AFG_BACKWARDS_COMPATIBLE
 //#define FIX_DANIELS_MESS
@@ -182,7 +182,8 @@ static char  CurLine[MAX_LINE_LEN];     /* Line buffer for reading messages. */
 static char *Sentinal = CurLine + (MAX_LINE_LEN-2); /* ...for line overflow. */
 
 static char *GetLine(FILE *fin, int skipComment)   /* Get next input line (there must be one). */
-{ do {
+{ 
+  do {
     LineNum += 1;
     if (fgets(CurLine,MAX_LINE_LEN,fin) == NULL)
       {
@@ -1068,8 +1069,11 @@ static void Read_IMP_Mesg(FILE *fin, long indx)
   imp = (IntMultiPos *) (MemBuffer + indx);
   GET_TYPE(ch,TYP1_FORMAT "[RXTELUFSUcBCG]","multipos$");
   imp->type = (FragType) ch;
-  GET_FIELD(imp->ident,"mid:" F_IID,"multipos id");
+  GET_FIELD(imp->ident,    "mid:" F_IID,"multipos id");
   GET_FIELD(imp->contained,"con:" F_IID,"contained id");
+  #ifdef NEW_UNITIGGER_INTERFACE
+  GET_FIELD(imp->ident2,   "aid:" F_IID,"multipos id");
+  #endif
 #ifdef AS_ENABLE_SOURCE
   tindx = GetText("src:",fin,FALSE);
   imp = (IntMultiPos *) (MemBuffer + indx);	// in case of realloc
@@ -1077,6 +1081,10 @@ static void Read_IMP_Mesg(FILE *fin, long indx)
 #endif
   GET_PAIR(imp->position.bgn,imp->position.end,
            POS2_FORMAT,"position field");
+  #ifdef NEW_UNITIGGER_INTERFACE
+  GET_FIELD(imp->ahang       ,"ahg:" F_S32,"ahang");
+  GET_FIELD(imp->bhang       ,"bhg:" F_S32,"bhang");
+  #endif
   GET_FIELD(imp->delta_length,"dln:" F_S32,"delta length");
   if (strncmp(GetLine(fin,TRUE),"del:",4) != 0)
     MgenError("Missing del: field");
@@ -2915,11 +2923,18 @@ static void Write_IMP_Mesg(FILE *fout, IntMultiPos *mlp)
   fprintf(fout,TYP_FORMAT "\n",(char) mlp->type);
   fprintf(fout,"mid:" F_IID "\n",mlp->ident);
   fprintf(fout,"con:" F_IID "\n",mlp->contained);
+  #ifdef NEW_INITIGGER_INTERFACE
+  fprintf(fout,"aid:" F_IID "\n",mlp->ident2);
+  #endif
   #ifdef AS_ENABLE_SOURCE
   PutText(fout,"src:",mlp->source,FALSE);
   #endif
   fprintf(fout,POS2_FORMAT "\n",
           mlp->position.bgn,mlp->position.end);
+  #ifdef NEW_INITIGGER_INTERFACE
+  fprintf(fout,"ahg:" F_S32 "\n",mlp->ahang);
+  fprintf(fout,"bhg:" F_S32 "\n",mlp->bhang); 
+  #endif
   fprintf(fout,"dln:" F_S32 "\n",mlp->delta_length);
   fprintf(fout,"del:\n");
   if (mlp->delta_length > 0 ) {

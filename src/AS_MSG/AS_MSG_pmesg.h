@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.14 2005-11-18 15:34:09 eliv Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.15 2005-12-15 19:43:23 gdenisov Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -60,6 +60,7 @@ ProtoIOMode GetProtoMode_AS(void);
 #define AS_READ_MAX_LEN AS_FRAG_MAX_LEN
 #endif
 #define AS_READ_MIN_LEN AS_FRAG_MIN_LEN
+//   #define NEW_UNITIGGER_INTERFACE
 #define DEFINE_IDs(type)\
 typedef CDS_UID_t type##_ID;\
 typedef CDS_IID_t Int##type##_ID;
@@ -730,20 +731,25 @@ typedef struct MultiPos {
 typedef struct IntMultiPos {
   FragType        type;
   IntFragment_ID  ident;
-
+#ifdef NEW_UNITIGGER_INTERFACE
+  IntFragment_ID  ident2; // iid of the fragment that will align with current one
+#endif
+  
 # ifdef AS_ENABLE_SOURCE
   char		  *source;
 #ifdef i386
   int32 ptrPad1;
 #endif
-# endif
+#endif
 
   SeqInterval     position;
-
-  IntFragment_ID       contained;
+  IntFragment_ID  contained;
   int32           delta_length;
-
-  int32           *delta;
+  int32          *delta;
+#ifdef NEW_UNITIGGER_INTERFACE
+  int32           ahang;
+  int32           bhang;
+#endif
 #ifdef i386
   int32 ptrPad2;
 #endif
