@@ -1,4 +1,4 @@
-#!/usr/local/bin/bash
+#!/usr/bin/env bash
 #
 ###########################################################################
 #
@@ -18,7 +18,7 @@
 #
 ###########################################################################
 #
-# $Id: testVersionOnPlatform.sh,v 1.3 2005-10-28 19:54:41 catmandew Exp $
+# $Id: testVersionOnPlatform.sh,v 1.4 2005-12-16 22:12:38 catmandew Exp $
 #
 
 cwd=`pwd`

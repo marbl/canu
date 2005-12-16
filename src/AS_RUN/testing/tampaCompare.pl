@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl
+#!/usr/bin/env perl
 #
 ###########################################################################
 #
@@ -18,7 +18,7 @@
 #
 ###########################################################################
 #
-# $Id: tampaCompare.pl,v 1.3 2005-10-28 19:54:41 catmandew Exp $
+# $Id: tampaCompare.pl,v 1.4 2005-12-16 22:12:38 catmandew Exp $
 #
 
 # Program to compare tampa output files
@@ -74,7 +74,7 @@ use strict;
 use FileHandle;
 use Getopt::Long;
 
-my $MY_VERSION = " Version 1.01 (Build " . (qw/$Revision: 1.3 $/ )[1]. ")";
+my $MY_VERSION = " Version 1.01 (Build " . (qw/$Revision: 1.4 $/ )[1]. ")";
 my $MY_APPLICATION = "tampaCompare";
 
 my $HELPTEXT = qq~

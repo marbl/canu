@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl
+#!/usr/bin/env perl
 #
 ###########################################################################
 #
@@ -18,7 +18,7 @@
 #
 ###########################################################################
 #
-# $Id: assemblyCompare.pl,v 1.5 2005-11-18 23:28:31 catmandew Exp $
+# $Id: assemblyCompare.pl,v 1.6 2005-12-16 22:12:38 catmandew Exp $
 #
 
 # Program to compare two assemblies
@@ -37,7 +37,7 @@ use FileHandle;
 use Getopt::Long;
 use Env qw(PWD);
 
-my $MY_VERSION = " Version 1.01 (Build " . (qw/$Revision: 1.5 $/ )[1]. ")";
+my $MY_VERSION = " Version 1.01 (Build " . (qw/$Revision: 1.6 $/ )[1]. ")";
 my $MY_APPLICATION = "assemblyCompare";
 
 my $HELPTEXT = qq~
@@ -45,6 +45,7 @@ Compare two assemblies
 
     assemblyCompare  [options]  -d refDir  -a refAssembly
                                 -d queryDir  -a queryAssembly
+                                ...
 
     -d refDir        The 'reference' assembly directory
 
@@ -55,7 +56,8 @@ Compare two assemblies
     -a queryAssembly   The 'query' assembly name
 
     Reference directory and assembly name must both be listed before
-    the query reference directory and assembly name.
+    the query reference directories and assembly names. Any number of
+    query directories/assemblies may be specified.
   
     options:
       -h               Print help.
@@ -100,22 +102,20 @@ if($helpRequested)
   exit 0;
 }
 
-if($#dirs != 1 || ! -d $dirs[0] || ! -d $dirs[1])
+if($#dirs < 1 || ! -d $dirs[0] || ! -d $dirs[1])
 {
   print STDERR "Please specify a reference and query directory\n\n";
   print STDERR $HELPTEXT;
   exit 1;
 }
 
-if($#assemblies != 1)
+if($#assemblies < 1 || $#assemblies != $#dirs)
 {
-  print STDERR "Please specify a reference and query assembly name\n\n";
+  print STDERR "Please specify at least one reference and query assembly name,\n";
+  print STDERR "and please specify the same number of dirs as assemblies\n\n";
   print STDERR $HELPTEXT;
   exit 1;
 }
-
-printf("\nComparing assembly %s in %s\n", $assemblies[0], $dirs[0]);
-printf("with assembly %s in %s\n\n", $assemblies[1], $dirs[1]);
 
 
 ######################################################################
@@ -124,15 +124,23 @@ printf("with assembly %s in %s\n\n", $assemblies[1], $dirs[1]);
 if(!$dontQC)
 {
   my $rfn = $dirs[0] . "/" . $assemblies[0] . ".qc";
-  my $qfn = $dirs[1] . "/" . $assemblies[1] . ".qc";
-
-  if(-f $rfn && -f $qfn)
+  for(my $i = 1; $i <= $#dirs; $i++)
   {
-    printf("==========> QC Statistics Comparison\n\n");
-    my $command = "qcCompare -f $rfn -f $qfn";
-    printf STDERR "Running $command\n";
-    system($command);
-  }    
+    my $qfn = $dirs[$i] . "/" . $assemblies[$i] . ".qc";
+
+    if(-f $rfn && -f $qfn)
+    {
+      printf("==========> QC Statistics Comparison: Reference vs Assembly $i\n\n");
+      my $command = "qcCompare -f $rfn -f $qfn";
+      printf STDERR "Running $command\n";
+      my $retval = system($command);
+      if($retval != 0)
+      {
+        printf STDERR "Command failed. Aborting.\n";
+        exit 1;
+      }
+    }
+  }
 }
 
 
@@ -161,49 +169,80 @@ if(!$dontTampa)
       chdir($dirs[$i]);
       my $command = "asm2TampaResults -a $assemblies[$i]";
       printf STDERR "Running $command\n";
-      system($command);
+      my $retval = system($command);
+      if($retval != 0)
+      {
+        printf STDERR "Command failed. Aborting.\n";
+        exit 1;
+      }
+
     }
     chdir($PWD);
   }
 
-  printf("==========> TAMPA Comparison\n\n");
-  my $command = "tampaCompare -d $dirs[0] -a $assemblies[0] -d $dirs[1] -a $assemblies[1]";
-  printf STDERR "Running $command\n";
-  system($command);
+  for(my $i = 1; $i <= $#dirs; $i++)
+  {
+    printf("==========> TAMPA Comparison: Reference vs. Assembly $i\n\n");
+    my $command = "tampaCompare -d $dirs[0] -a $assemblies[0] -d $dirs[$i] -a $assemblies[$i]";
+    printf STDERR "Running $command\n";
+    my $retval = system($command);
+    if($retval != 0)
+    {
+      printf STDERR "Command failed. Aborting.\n";
+      exit 1;
+    }
+  }
 }
 
 #$dontMummer = 1;
 if(!$dontMummer)
 {
   my $command;
-  my $prefix = "$assemblies[0]_$assemblies[1]_nucmer";
   my @fnps;
-  for(my $i = 0; $i <= $#dirs; $i++)
+  $fnps[0] = $dirs[0] . "/" . $assemblies[0];
+  for(my $i = 1; $i <= $#dirs; $i++)
   {
     $fnps[$i] = $dirs[$i] . "/" . $assemblies[$i];
-  }
+    
+    my $prefix = $assemblies[0] . "_" . $assemblies[$i] . "_" . $i . "_nucmer";
 
-  my $clusterFN = $prefix . ".cluster";
-  my $deltaFN = $prefix . ".delta";
-  if( ! -f $clusterFN || ! -f $deltaFN )
-  {
-    $command = "nucmer -p $prefix $fnps[0].scaffolds.fasta $fnps[1].scaffolds.fasta";
+    my $clusterFN = $prefix . ".cluster";
+    my $deltaFN = $prefix . ".delta";
+    if( ! -f $clusterFN || ! -f $deltaFN )
+    {
+      $command = "nucmer -p $prefix $fnps[0].scaffolds.fasta $fnps[$i].scaffolds.fasta";
+      printf STDERR "Running $command\n";
+      my $retval = system($command);
+      if($retval != 0)
+      {
+        printf STDERR "Command failed. Aborting.\n";
+        exit 1;
+      }
+    }
+    
+    my $showCoordsFN = $prefix . ".show-coords";
+    if( ! -f $showCoordsFN )
+    {
+      # now generate secondary output
+      $command = "show-coords -THcl -I 99 $prefix.delta > $prefix.show-coords";
+      printf STDERR "Running $command\n";
+      my $retval = system($command);
+      if($retval != 0)
+      {
+        printf STDERR "Command failed. Aborting.\n";
+        exit 1;
+      }
+    }
+    
+    # now compare
+    printf("==========> Mummer Comparison: Reference vs. Assembly $i\n\n");
+    $command = "analyzeMummerMapping -r $fnps[0].scaff -q $fnps[$i].scaff -s $showCoordsFN";
     printf STDERR "Running $command\n";
-    system($command);
+    my $retval = system($command);
+    if($retval != 0)
+    {
+      printf STDERR "Command failed. Aborting.\n";
+      exit 1;
+    }
   }
-
-  my $showCoordsFN = $prefix . ".show-coords";
-  if( ! -f $showCoordsFN )
-  {
-    # now generate secondary output
-    $command = "show-coords -THcl -I 99 $prefix.delta > $prefix.show-coords";
-    printf STDERR "Running $command\n";
-    system($command);
-  }
-
-  # now compare
-  printf("==========> Mummer Comparison\n\n");
-  $command = "analyzeMummerMapping -r $fnps[0].scaff -q $fnps[1].scaff -s $showCoordsFN";
-  printf STDERR "Running $command\n";
-  system($command);
 }
