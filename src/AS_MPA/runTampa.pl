@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl
+#!/usr/bin/env perl
 #
 ###########################################################################
 #
@@ -18,7 +18,7 @@
 #
 ###########################################################################
 #
-# $Id: runTampa.pl,v 1.6 2005-10-28 19:52:16 catmandew Exp $
+# $Id: runTampa.pl,v 1.7 2005-12-16 22:13:07 catmandew Exp $
 #
 
 # Wrapper to run and post-process results from TAMPA
@@ -95,7 +95,7 @@ my %PARAMETERS = ("assemblyPrefix" => "",
                   "ataOutput" => 0,
                   "rawOutput" => 0,);
 
-my $MY_VERSION = " Version 1.01 (Build " . (qw/$Revision: 1.6 $/ )[1]. ")";
+my $MY_VERSION = " Version 1.01 (Build " . (qw/$Revision: 1.7 $/ )[1]. ")";
 my $MY_APPLICATION = "TAMPA";
 
 my $REFERENCE = qq~

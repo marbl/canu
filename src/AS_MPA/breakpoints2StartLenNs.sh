@@ -1,4 +1,4 @@
-#!/usr/local/bin/bash
+#!/usr/bin/env bash
 #
 ###########################################################################
 #
@@ -22,7 +22,7 @@
 #
 ###########################################################################
 #
-# $Id: breakpoints2StartLenNs.sh,v 1.4 2005-03-22 19:48:57 jason_miller Exp $
+# $Id: breakpoints2StartLenNs.sh,v 1.5 2005-12-16 22:13:07 catmandew Exp $
 #
 
 awk 'BEGIN{ \

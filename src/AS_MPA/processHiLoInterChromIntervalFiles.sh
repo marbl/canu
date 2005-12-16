@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 ###########################################################################
 #
@@ -22,7 +22,7 @@
 #
 ###########################################################################
 #
-# $Id: processHiLoInterChromIntervalFiles.sh,v 1.5 2005-09-21 20:13:07 catmandew Exp $
+# $Id: processHiLoInterChromIntervalFiles.sh,v 1.6 2005-12-16 22:13:07 catmandew Exp $
 #
 
 

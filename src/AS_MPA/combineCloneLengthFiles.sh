@@ -1,4 +1,4 @@
-#!/usr/local/bin/bash
+#!/usr/bin/env bash
 #
 ###########################################################################
 #
@@ -18,7 +18,7 @@
 #
 ###########################################################################
 #
-# $Id: combineCloneLengthFiles.sh,v 1.2 2005-09-21 20:13:07 catmandew Exp $
+# $Id: combineCloneLengthFiles.sh,v 1.3 2005-12-16 22:13:07 catmandew Exp $
 #
 
 fileList=""

@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl
+#!/usr/bin/env perl
 #
 ###########################################################################
 #
@@ -18,7 +18,7 @@
 #
 ###########################################################################
 #
-# $Id: asm2TampaResults.pl,v 1.5 2005-10-28 19:52:16 catmandew Exp $
+# $Id: asm2TampaResults.pl,v 1.6 2005-12-16 22:13:07 catmandew Exp $
 #
 
 # Wrapper to run and post-process results from TAMPA
@@ -35,7 +35,7 @@ use Carp;
 use FileHandle;
 use Getopt::Long;
 
-my $MY_VERSION = " Version 1.01 (Build " . (qw/$Revision: 1.5 $/ )[1]. ")";
+my $MY_VERSION = " Version 1.01 (Build " . (qw/$Revision: 1.6 $/ )[1]. ")";
 
 my $HELPTEXT = qq~
 Produce TAMPA results from an assembly

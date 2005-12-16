@@ -1,4 +1,4 @@
-#!/usr/local/bin/bash
+#!/usr/bin/env bash
 #
 ###########################################################################
 #
@@ -22,7 +22,7 @@
 #
 ###########################################################################
 #
-# $Id: explainIntervals.sh,v 1.5 2005-09-21 20:13:07 catmandew Exp $
+# $Id: explainIntervals.sh,v 1.6 2005-12-16 22:13:07 catmandew Exp $
 #
 
 # params: 1=assembly, 2=input file, 3=tempdir

@@ -1,4 +1,4 @@
-#if [ -f toProcess.txt ]; then
+#!/usr/bin/env bash
 #
 ###########################################################################
 #
@@ -22,7 +22,7 @@
 #
 ###########################################################################
 #
-# $Id: filterExplain.sh,v 1.4 2005-03-22 19:48:58 jason_miller Exp $
+# $Id: filterExplain.sh,v 1.5 2005-12-16 22:13:07 catmandew Exp $
 #
 #  rm toProcess.txt
 #fi
