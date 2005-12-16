@@ -37,14 +37,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.24 2005-11-04 22:14:10 eliv Exp $
- * $Revision: 1.24 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.25 2005-12-16 21:40:05 eliv Exp $
+ * $Revision: 1.25 $
 */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.24 2005-11-04 22:14:10 eliv Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.25 2005-12-16 21:40:05 eliv Exp $";
 
 //  System include files
 #include<iostream>
+#include<vector>
 
 #include "AS_BOG_BestOverlapGraph.hh"
 //#include "AS_BOG_BestOverlapGraphVisitor.hh"
@@ -100,12 +101,11 @@ namespace AS_BOG{
     // Create BestOverlapGraph as an array of size max fragments.
     //     Assuming that our iuids start at index value of 1.
 
-    BestOverlapGraph::BestOverlapGraph(int max_fragments)
-        : _num_fragments(max_fragments), curFrag(0)
+    BestOverlapGraph::BestOverlapGraph() : curFrag(0)
     {
-        _best_overlaps = new BestFragmentOverlap[max_fragments+1];
+        _best_overlaps = new BestFragmentOverlap[lastFrg+1];
 
-        memset(_best_overlaps, 0, sizeof(BestFragmentOverlap)*(max_fragments+1));
+        memset(_best_overlaps, 0, sizeof(BestFragmentOverlap)*(lastFrg+1));
     }
 
     // Destructor
@@ -285,20 +285,14 @@ namespace AS_BOG{
     //   to access contents b/c method will read info from FragStore and populate
     //   record if not already read in.
     uint16         *BestOverlapGraph::fragLength;                        
+    iuid BestOverlapGraph::lastFrg;
 
     // Frag Store related data structures
-    ReadStructp     BestOverlapGraph::fsread = new_ReadStruct();
-    FragStoreHandle BestOverlapGraph::fragStoreHandle;
 
     uint16 BestOverlapGraph::fragLen( iuid iid ) {
         // If fragLength is not already cached, compute it after reading it
         //   in from the fragStore, store it and return it to the caller.
-        if (BestOverlapGraph::fragLength[ iid ] == 0) {
-            uint32 clrBgn, clrEnd;
-            getFragStore( fragStoreHandle, iid, FRAG_S_SEQUENCE, fsread);
-            getClearRegion_ReadStruct( fsread, &clrBgn, &clrEnd, READSTRUCT_LATEST);
-            BestOverlapGraph::fragLength[ iid ] = clrEnd - clrBgn;
-        }
+        assert(BestOverlapGraph::fragLength[ iid ] != 0);
         return BestOverlapGraph::fragLength[ iid ];
     }
 
@@ -328,6 +322,8 @@ namespace AS_BOG{
     ///////////////////////////////////////////////////////////////////////////
 
     void BestOverlapGraph::updateInDegree() {
+        if (curFrag == 0)
+            return;
         if ( ! isContained(curFrag) ) {
             // Update B's in degree on A's 3' End
             iuid bid = _best_overlaps[ curFrag ].three_prime.frag_b_id;
@@ -557,7 +553,26 @@ For debugging i386, alpha differences on float conversion
 
     ///////////////////////////////////////////////////////////////////////////
 
-    void BOG_Runner::processOverlapStream(OVL_Store_t * my_store,OVL_Stream_t *my_stream) {
+    void BOG_Runner::processOverlapStream(OVL_Store_t * my_store,OVL_Stream_t *my_stream,
+            const char* FRG_Store_Path ) {
+
+        // Open Frag store
+        FragStoreHandle fragStoreHandle = openFragStore( FRG_Store_Path, "r");
+        FragStreamHandle fragStream = openFragStream( fragStoreHandle, NULL,0);
+        ReadStructp     fsread = new_ReadStruct();
+
+        // Allocate and Initialize fragLength array
+        BestOverlapGraph::fragLength = new uint16[BestOverlapGraph::lastFrg+1];
+        memset( BestOverlapGraph::fragLength, 0, sizeof(uint16)*(BestOverlapGraph::lastFrg+1));
+        iuid iid = 1;
+        while(nextFragStream( fragStream, fsread, FRAG_S_FIXED)) {
+            uint32 clrBgn, clrEnd;
+            getClearRegion_ReadStruct( fsread, &clrBgn, &clrEnd, READSTRUCT_OVL);
+            BestOverlapGraph::fragLength[ iid++ ] = clrEnd - clrBgn;
+        }
+        delete_ReadStruct( fsread );
+        closeFragStream( fragStream ); 
+        closeFragStore( fragStoreHandle ); 
 
         // Go through the overlap stream in two passes:
         // first pass finds the containments

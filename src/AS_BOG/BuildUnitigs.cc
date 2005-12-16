@@ -30,11 +30,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: BuildUnitigs.cc,v 1.2 2005-11-17 22:08:48 kli1000 Exp $
- * $Revision: 1.2 $
+ * $Id: BuildUnitigs.cc,v 1.3 2005-12-16 21:40:05 eliv Exp $
+ * $Revision: 1.3 $
 */
 
-static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.2 2005-11-17 22:08:48 kli1000 Exp $";
+static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.3 2005-12-16 21:40:05 eliv Exp $";
 
 //  System include files
 
@@ -93,31 +93,25 @@ int  main (int argc, char * argv [])
    my_store = New_OVL_Store ();
    my_stream = New_OVL_Stream ();
 
-   // Open Frag store
-   BestOverlapGraph::fragStoreHandle = openFragStore( FRG_Store_Path, "r");
-
    // Open and initialize Overlap store
    Open_OVL_Store (my_store, OVL_Store_Path);
-   last = Last_Frag_In_OVL_Store (my_store);
+   last = Last_Frag_In_OVL_Store(my_store);
    Init_OVL_Stream (my_stream, first, last, my_store);
 
-   // Allocate and Initialize fragLength array
-   // Seems like this should be done privately
-   BestOverlapGraph::fragLength = new uint16[last+1];
-   memset( BestOverlapGraph::fragLength, 0, sizeof(uint16)*(last+1));
+   // must be before creating the scoring objects, because it sets their size
+   AS_BOG::BOG_Runner bogRunner(last);
 
    // Initialize our three different types of Best Overlap Graphs
-   AS_BOG::ErateScore erScore(last);
-   AS_BOG::LongestEdge lenScore(last);
-   AS_BOG::LongestHighIdent lenIdent(last,2.0);
+   AS_BOG::ErateScore erScore;
+   AS_BOG::LongestEdge lenScore;
+   AS_BOG::LongestHighIdent lenIdent(2.0);
 
    // Put the three graphs into a vector, so we can step through them
-   AS_BOG::BOG_Runner bogRunner;
    bogRunner.push_back(&erScore);
    bogRunner.push_back(&lenScore);
    bogRunner.push_back(&lenIdent);
 
-   bogRunner.processOverlapStream(my_store, my_stream);
+   bogRunner.processOverlapStream(my_store, my_stream, FRG_Store_Path);
 
 
    ////////////////////////////////////////////////////////////////////////////
@@ -163,10 +157,8 @@ int  main (int argc, char * argv [])
    // Free/clean up the frag/overlap store/stream handles
    Free_OVL_Stream( my_stream );
    Free_OVL_Store( my_store );
-   closeFragStore( BestOverlapGraph::fragStoreHandle ); 
    // Shouldn't these both be n a  destructor in BOG?
    delete[] BestOverlapGraph::fragLength;
-   delete_ReadStruct(BestOverlapGraph::fsread);
 
    return  0;
 }

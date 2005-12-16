@@ -33,18 +33,18 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_Datatypes.hh,v 1.7 2005-11-01 18:44:58 kli1000 Exp $
- * $Revision: 1.7 $
+ * $Id: AS_BOG_Datatypes.hh,v 1.8 2005-12-16 21:40:05 eliv Exp $
+ * $Revision: 1.8 $
 */
+
+#ifndef INCLUDE_AS_BOG_DATATYPES
+#define INCLUDE_AS_BOG_DATATYPES
 
 //  System include files
 
 extern "C" {
 #include "cds.h"
 }
-
-#ifndef INCLUDE_AS_BOG_DATATYPES
-#define INCLUDE_AS_BOG_DATATYPES
 
 namespace AS_BOG{
 

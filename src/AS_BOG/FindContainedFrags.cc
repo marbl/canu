@@ -31,11 +31,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FindContainedFrags.cc,v 1.18 2005-11-04 22:14:10 eliv Exp $
- * $Revision: 1.18 $
+ * $Id: FindContainedFrags.cc,v 1.19 2005-12-16 21:40:05 eliv Exp $
+ * $Revision: 1.19 $
 */
 
-static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.18 2005-11-04 22:14:10 eliv Exp $";
+static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.19 2005-12-16 21:40:05 eliv Exp $";
 
 //  System include files
 
@@ -76,37 +76,30 @@ int  main
    my_store = New_OVL_Store ();
    my_stream = New_OVL_Stream ();
 
-   // Open Frag store
-   BestOverlapGraph::fragStoreHandle = openFragStore( FRG_Store_Path, "r");
-
    // Open and initialize Overlap store
    Open_OVL_Store (my_store, OVL_Store_Path);
-   last = Last_Frag_In_OVL_Store (my_store);
+   last = Last_Frag_In_OVL_Store(my_store);
    Init_OVL_Stream (my_stream, first, last, my_store);
 
-   // Allocate and Initialize fragLength array
-   // Seems like this should be done privately
-   BestOverlapGraph::fragLength = new uint16[last+1];
-   memset( BestOverlapGraph::fragLength, 0, sizeof(uint16)*(last+1));
+   // must be before creating scores, since it sets the num frags
+   AS_BOG::BOG_Runner bogRunner(last);
 
    // Initialize our three different types of Best Overlap Graphs
-   AS_BOG::ErateScore erScore(last);
-   AS_BOG::LongestEdge lenScore(last);
-   AS_BOG::LongestHighIdent lenIdent(last,2.0);
+   AS_BOG::ErateScore erScore;
+   AS_BOG::LongestEdge lenScore;
+   AS_BOG::LongestHighIdent lenIdent(2.0);
 
    // Put the three graphs into a vector, so we can step through them
-   AS_BOG::BOG_Runner bogRunner;
    bogRunner.push_back(&erScore);
    bogRunner.push_back(&lenScore);
    bogRunner.push_back(&lenIdent);
 
    // Go through the overlap stream, and populate the 3 overlap graphs
-   bogRunner.processOverlapStream( my_store, my_stream );
+   bogRunner.processOverlapStream( my_store, my_stream, FRG_Store_Path );
 
    // Free/clean up the frag/overlap store/stream handles
    Free_OVL_Stream( my_stream );
    Free_OVL_Store( my_store );
-   closeFragStore( BestOverlapGraph::fragStoreHandle ); 
 
    // Compute the width (number of digits) in the largest IUID
    int pad = static_cast<int>(ceil( log10( last )));
@@ -227,7 +220,6 @@ int  main
 
    // Shouldn't these both be n a  destructor in BOG?
    delete[] BestOverlapGraph::fragLength;
-   delete_ReadStruct(BestOverlapGraph::fsread);
 
    return  0;
 }

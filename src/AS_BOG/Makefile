@@ -30,6 +30,7 @@ TOOL_SRCS = BuildUnitigs.cc FindContainedFrags.cc
 
 HEADERS = AS_BOG_BestOverlapGraph.hh AS_BOG_ChunkGraph.hh AS_BOG_UnitigGraph.hh
 LIB_SOURCES = AS_BOG_BestOverlapGraph.cc AS_BOG_ChunkGraph.cc AS_BOG_UnitigGraph.cc 
+#LIB_SOURCES = AS_BOG_BestOverlapGraph.cc
 
 SOURCES = $(LIB_SOURCES) $(TOOL_SRCS)
 

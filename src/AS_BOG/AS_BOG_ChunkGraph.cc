@@ -33,15 +33,16 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_ChunkGraph.cc,v 1.2 2005-11-01 18:44:58 kli1000 Exp $
- * $Revision: 1.2 $
+ * $Id: AS_BOG_ChunkGraph.cc,v 1.3 2005-12-16 21:40:05 eliv Exp $
+ * $Revision: 1.3 $
 */
 
-static char AS_BOG_CHUNK_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_ChunkGraph.cc,v 1.2 2005-11-01 18:44:58 kli1000 Exp $";
+static char AS_BOG_CHUNK_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_ChunkGraph.cc,v 1.3 2005-12-16 21:40:05 eliv Exp $";
 
 //  System include files
 
 #include<iostream>
+#include<vector>
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"

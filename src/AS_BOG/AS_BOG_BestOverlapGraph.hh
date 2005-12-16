@@ -34,8 +34,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.hh,v 1.23 2005-11-04 22:14:10 eliv Exp $
- * $Revision: 1.23 $
+ * $Id: AS_BOG_BestOverlapGraph.hh,v 1.24 2005-12-16 21:40:05 eliv Exp $
+ * $Revision: 1.24 $
 */
 
 //  System include files
@@ -44,7 +44,7 @@
 #define INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 
 #include <map>
-#include <vector>
+//#include <vector>
 
 #include "AS_BOG_Datatypes.hh"
 
@@ -97,7 +97,7 @@ namespace AS_BOG{
             friend class BOG_Runner;
 
             // Constructor, parametrizing maximum number of overlaps
-            BestOverlapGraph(int max_fragment_count);
+            BestOverlapGraph();
 
             // Destructor
             ~BestOverlapGraph();
@@ -111,7 +111,7 @@ namespace AS_BOG{
             BestEdgeOverlap *getBestEdgeOverlap(iuid frag_id, fragment_end_type which_end);
             void setBestEdgeOverlap(const Long_Olap_Data_t& olap, float newScore);
             void setBestContainer(const Long_Olap_Data_t& olap, float newScore);
-            iuid getNumFragments() { return _num_fragments; }
+            iuid getNumFragments() { return lastFrg; }
             bool isContained(const iuid);
             BestContainment *getBestContainer(iuid frag_id);
             void printFrom(iuid begin, iuid end=0);
@@ -128,8 +128,6 @@ namespace AS_BOG{
         //These should be moved to protected
             static uint16 *fragLength;
             static uint16 fragLen( iuid );
-            static ReadStructp fsread;
-            static FragStoreHandle fragStoreHandle;
 
             BestContainmentMap _best_containments;
 
@@ -140,7 +138,7 @@ namespace AS_BOG{
             void removeTransitiveContainment();
 
         protected:
-            iuid _num_fragments;
+            static iuid lastFrg;
             iuid curFrag;
             int bestLength;
             BestFragmentOverlap* _best_overlaps;
@@ -150,26 +148,27 @@ namespace AS_BOG{
     ///////////////////////////////////////////////////////////////////////////
 
     struct ErateScore : public BestOverlapGraph {
-        ErateScore(int num) : BestOverlapGraph(num) {}
+        ErateScore() : BestOverlapGraph() {}
         float scoreOverlap( const Long_Olap_Data_t& olap);
     };
 
     struct LongestEdge : public BestOverlapGraph {
-        LongestEdge(int num) : BestOverlapGraph(num) {}
+        LongestEdge() : BestOverlapGraph() {}
         float scoreOverlap( const Long_Olap_Data_t& olap);
     };
 
     struct LongestHighIdent : public BestOverlapGraph {
         float mismatchCutoff;
-        LongestHighIdent(int num, float maxMismatch)
-            : BestOverlapGraph(num), mismatchCutoff(maxMismatch) {}
+        LongestHighIdent( float maxMismatch)
+            : BestOverlapGraph(), mismatchCutoff(maxMismatch) {}
         float scoreOverlap( const Long_Olap_Data_t& olap);
     };
 
     ///////////////////////////////////////////////////////////////////////////
     struct BOG_Runner {
+        BOG_Runner(int lastFrag) { BestOverlapGraph::lastFrg = lastFrag; }
         void push_back(BestOverlapGraph *bog) { metrics.push_back(bog); }
-        void processOverlapStream(OVL_Store_t *, OVL_Stream_t *);
+        void processOverlapStream(OVL_Store_t *, OVL_Stream_t *, const char*);
 
         std::vector<BestOverlapGraph *> metrics;
     };
