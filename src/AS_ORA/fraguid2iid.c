@@ -20,7 +20,7 @@
  *************************************************************************/
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_ORA/Attic/fraguid2iid.c,v $
-$Revision: 1.5 $
+$Revision: 1.6 $
 **********************************************************************/
 
 //  Convert a list of fragment uids to iids using a fragment store
@@ -351,7 +351,7 @@ static void  Read_Frag_IDs
    //fprintf (stderr, "ct = %d\n", ct);
    (* size) = Next_Odd_Prime ((int64) (ct / HASH_LOAD_FACTOR));
    if(*size < SKIP_MODULUS){
-     (*size) =  Next_Odd_Prime ((SKIP_MODULUS));
+     (*size) =  Next_Odd_Prime ((SKIP_MODULUS+1));
    }
    (* tab) = (int64 *) malloc ((* size) * sizeof (int64));
    if  (* tab == NULL)
