@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: analyzeMummerMapping.cc,v 1.2 2005-12-02 22:11:52 catmandew Exp $ */
+/* $Id: analyzeMummerMapping.cc,v 1.3 2005-12-16 22:13:27 catmandew Exp $ */
 #include <cstdio>  // for sscanf
 #include <cmath>
 #include <cassert>
@@ -545,7 +545,7 @@ public:
         the '=' still means the last bp of the minIter match precedes
         the first bp of this match
       */
-      list<Match>::iterator minIter;
+      vector<Match>::iterator minIter;
       for(minIter = _matches.begin();
           minIter != _matches.end() &&
             minIter->getMax(AMM_Reference_e) <= match.getMin(AMM_Reference_e);
@@ -588,7 +588,7 @@ public:
         minIter->getPctID() * minIter->getLength(AMM_Reference_e);
 
       // find first match beyond the one pointed to by minIter
-      list<Match>::iterator maxIter = minIter;
+      vector<Match>::iterator maxIter = minIter;
       for(++maxIter;
           maxIter != _matches.end() &&
             maxIter->getMin(AMM_Reference_e) < match.getMax(AMM_Reference_e);
@@ -655,7 +655,29 @@ public:
       return _mappedBPs;
     }
 
+  bool hasDeletion() const
+    {
+      return _hasDeletion;
+    }
+
+  bool hasInsertion() const
+    {
+      return _hasInsertion;
+    }
+
+  bool hasInversion() const
+    {
+      return _hasInversion;
+    }
+
+  bool mapsToMultipleScaffolds() const
+    {
+      return _mapsToMultipleScaffolds;
+    }
+
   int getNumMatches() const {return _matches.size();}
+
+  Match getMatch(int i) const {return _matches[i];}
 
   /*
     simple check routine
@@ -673,7 +695,7 @@ public:
         _hasInversion =
         _mapsToMultipleScaffolds = false;
 
-      list<Match>::const_iterator iter;
+      vector<Match>::const_iterator iter;
       for(iter = _matches.begin(); iter != _matches.end(); iter++)
       {
         if(!lastMatch.isVoid())
@@ -760,7 +782,7 @@ public:
 
   void printMatches(ostream & os) const
     {
-      list<Match>::const_iterator iter;
+      vector<Match>::const_iterator iter;
       for(iter = _matches.begin(); iter != _matches.end(); iter++)
       {
         os << *iter << endl;
@@ -798,7 +820,7 @@ public:
         check matches to find mis-mappings
       */
       CDS_COORD_t currBP;
-      list<Match>::const_iterator iter;
+      vector<Match>::const_iterator iter;
       int c;
       for(currBP = 0, c = 0, iter = _matches.begin(); c < getNumContigs(); c++)
       {
@@ -814,7 +836,7 @@ public:
     }
   
 private:
-  list<Match> _matches;
+  vector<Match> _matches;
   CDS_UID_t _mappedScaffoldUID;
   CDS_COORD_t _mappedScaffoldBPs;
   OrientationType _mappedScaffoldOrientation;
@@ -834,7 +856,7 @@ private:
       map<CDS_UID_t, CDS_COORD_t> matchBPs[2];
       _mappedBPs = _mappedScaffoldBPs = 0;
 
-      list<Match>::iterator iter;
+      vector<Match>::iterator iter;
       for(iter = _matches.begin(); iter != _matches.end(); iter++)
       {
         CDS_UID_t otherUID = iter->getUID(AMM_Query_e);
@@ -894,13 +916,147 @@ void printBestScaffoldMappings(ostream & os,
 }
 
 
-void printMisMappings(ostream & os,
-                      const map<CDS_UID_t, MappedScaffold> & assembly)
+/*
+  NOTE: assemblies should be const....
+ */
+void printMappings(ostream & os,
+                   map<CDS_UID_t, MappedScaffold> & refAssembly,
+                   map<CDS_UID_t, MappedScaffold> & queryAssembly)
 {
+  // loop over scaffolds in reference assembly
   map<CDS_UID_t, MappedScaffold>::const_iterator iter;
-  for(iter = assembly.begin(); iter != assembly.end(); iter++)
+  for(iter = refAssembly.begin(); iter != refAssembly.end(); iter++)
   {
-    ((MappedScaffold) iter->second).printMisMappings(os);
+    MappedScaffold thisScaff =
+      refAssembly[((MappedScaffold) iter->second).getUID()];
+    
+    cout << thisScaff.getUID()
+         << "\t" << thisScaff.getSeqLength()
+         << "bps seq\t" << thisScaff.getGappedLength()
+         << " bps gapped";
+
+    // check if this scaffold maps to the other assembly
+    if(thisScaff.getMappedScaffoldUID() == 0)
+    {
+      cout << "\tNo mapping to query assembly\n";
+      continue;
+    }
+
+    // check if the mapping is 'perfect'
+    if(!thisScaff.hasDeletion() &&
+       !thisScaff.hasInsertion() &&
+       !thisScaff.hasInversion() &&
+       !thisScaff.mapsToMultipleScaffolds() &&
+       thisScaff.getMappedScaffoldUID() != 0 &&
+       thisScaff.getSeqLength() ==
+       thisScaff.getMappedBPs())
+    {
+      cout << "\tPerfect mapping to scaffold "
+           << thisScaff.getMappedScaffoldUID() << endl;
+      continue;
+    }
+
+    // If this scaffold has a dominant mapping to a single scaffold
+    // then step through both
+    float pctMappedToScaffold =
+      100.0 * thisScaff.getMappedScaffoldBPs() / thisScaff.getMappedBPs();
+    if(pctMappedToScaffold > 90.0)
+       
+    {
+      cout << "\tImperfect mapping (" << pctMappedToScaffold
+           << "% of bps) to scaffold "
+           << thisScaff.getMappedScaffoldUID() << endl;
+
+      CDS_UID_t otherUID = thisScaff.getMappedScaffoldUID();
+      MappedScaffold otherScaff = queryAssembly[otherUID];
+      OrientationType orient = thisScaff.getMappedScaffoldOrientation();
+
+      // Things to keep track of as we step through scaffold pair
+      // this contig index, this match index, this coordinate
+      int tci;
+      int tmi;
+      CDS_COORD_t tCoord;
+      // other contig index;
+      int oci = (orient == AMM_Forward_e ? 0 : otherScaff.getNumContigs() -1 );
+      // other match index
+      int omi = (orient == AMM_Forward_e ? 0 : otherScaff.getNumMatches() -1 );
+      // other coordinate
+      CDS_COORD_t oCoord =
+        (orient == AMM_Forward_e ? 0 : otherScaff.getGappedLength());
+      
+      AssemblyInterval tContig = thisScaff.getContig(tci);
+      AssemblyInterval tlContig;
+      AssemblyInterval oContig = otherScaff.getContig(oci);
+      AssemblyInterval olContig;
+      Match tMatch = thisScaff.getMatch(tmi);
+      Match tlMatch;
+      Match oMatch = otherScaff.getMatch(omi);
+      Match olMatch;
+      
+      
+      // walk through everything relevant, jumping in coords as needed
+      for(tci = tmi = tCoord = 0; tCoord < thisScaff.getGappedLength();)
+      {
+
+        /*
+          analysis looks at current contig & match:
+            is sequence matched or unmatched?
+              if unmatched is it at the beginning, middle, or end of a contig?
+                if at beginning or end, is it filling a gap relative to
+                  other scaffold?
+                if in middle is it inserted relative to other scaffold?
+            what is quality of current match?
+              ideal = high identity, full contig
+            what is quality of last-to-current match 'gap'?
+              ideal = same scaffold, same orientation, corresponds to
+                      sequence gap, delta on this scaff = delta on other scaff
+        */
+        if(tContig.getMin() < tMatch.getMin(AMM_Reference_e) &&
+           (tlMatch.isVoid() ||
+            tContig.getMin() >= tlMatch.getMax(AMM_Reference_e)))
+        {
+          cout << "Sequence unmatched at start of contig\n";
+        }
+        
+        if(tContig.getMax() > tMatch.getMax(AMM_Reference_e))
+        {
+          // contig extends beyond end of match - increment match
+          tCoord = tMatch.getMax(AMM_Reference_e);
+          tlMatch = tMatch;
+          tmi++;
+          if(tmi < thisScaff.getNumMatches())
+            tMatch = thisScaff.getMatch(tmi);
+        }
+        else if(tContig.getMax() < tMatch.getMax(AMM_Reference_e))
+        {
+          // match extends beyond end of contig?!
+          assert(0);
+          tCoord = tContig.getMax();
+          tlContig = tContig;
+          tci++;
+          if(tci < thisScaff.getNumContigs())
+            tContig = thisScaff.getContig(tci);
+        }
+        else
+        {
+          // equal ends - increment contig and match
+          tCoord = tMatch.getMax(AMM_Reference_e);
+          tlMatch = tMatch;
+          tmi++;
+          if(tmi < thisScaff.getNumMatches())
+            tMatch = thisScaff.getMatch(tmi);
+          tlContig = tContig;
+          tci++;
+          if(tci < thisScaff.getNumContigs())
+            tContig = thisScaff.getContig(tci);
+        }
+      }
+      continue;
+    }
+    
+    // if here, then too small a fraction of matching basepairs were to
+    // a single scaffold in the other assembly
+    cout << endl;
   }
 }
 
@@ -969,7 +1125,7 @@ void readShowCoordsFile(char * filename,
                                                                              minIdentity);
     match.reversePerspective();
     assemblies[AMM_Query_e][match.getUID(AMM_Reference_e)].considerMatch(match,
-                                                             minIdentity);
+                                                                         minIdentity);
   }
   fin.close();
 }
@@ -1068,7 +1224,7 @@ int main(int argc, char ** argv)
     cout << "Mapping inconsistencies in the "
          << ((SequenceType) i == AMM_Reference_e ? "reference " : "query ")
          << "sequence:\n";
-    printMisMappings(cout, assemblies[i]);
+    printMappings(cout, assemblies[0], assemblies[1]);
     cout << endl;
                      
     /*
