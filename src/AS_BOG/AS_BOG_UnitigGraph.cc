@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.6 2005-11-21 23:18:15 kli1000 Exp $
- * $Revision: 1.6 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.7 2005-12-16 19:45:47 kli1000 Exp $
+ * $Revision: 1.7 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.6 2005-11-21 23:18:15 kli1000 Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.7 2005-12-16 19:45:47 kli1000 Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -809,6 +809,12 @@ namespace AS_BOG{
 		}
 	}
 
+	typedef struct{
+		long ahang;
+		long bhang;
+		iuid a_id;
+	}overlap_info_struct;
+
 	IntUnitigMesg *Unitig::getIUM_Mesg(void){
 		
 		IntUnitigMesg *ium_mesg_ptr=new IntUnitigMesg;
@@ -820,8 +826,13 @@ namespace AS_BOG{
 		// dovetail, filling in containees as their containers
 		// get traversed.
 		std::map<containee_id, container_id> cntnee_map;
+
+		typedef std::map<iuid, overlap_info_struct> olap_info_map_type;
+		olap_info_map_type olap_info_map;
+
 		FragmentList frag_order;
 		DoveTailPath::iterator dp_itr;
+		iuid prior_frag_id=0;
 		for(
 			dp_itr=dovetail_path_ptr->begin();
 			dp_itr!=dovetail_path_ptr->end();
@@ -829,6 +840,8 @@ namespace AS_BOG{
 		){
 			// Push back the dovetailers
 			frag_order.push_back(dp_itr->frag_id);
+
+			olap_info_map[dp_itr->frag_id].a_id=prior_frag_id;
 
 			// Push back the containees
 			ContaineeList *ctees=&(*contained_frags_ptr)[dp_itr->frag_id];
@@ -838,6 +851,48 @@ namespace AS_BOG{
 			    ctee_itr++){
 				frag_order.push_back(ctee_itr->frag_id);
 				cntnee_map[ctee_itr->frag_id]=dp_itr->frag_id;
+				olap_info_map[ctee_itr->frag_id].a_id=dp_itr->frag_id;
+			}
+
+			prior_frag_id=dp_itr->frag_id;
+		}
+
+
+		// Estimate ahangs/bhangs between A and B fragment overlaps
+		olap_info_map_type::iterator olap_info_map_itr;
+		for(
+		    olap_info_map_itr=olap_info_map.begin();
+		    olap_info_map_itr!=olap_info_map.end();
+		    olap_info_map_itr++){
+		
+			iuid a_frag_id=olap_info_map_itr->second.a_id;
+			iuid b_frag_id=olap_info_map_itr->first;
+
+			if(a_frag_id!=0){
+				long a_begin=(*frag_pos_map_ptr)[a_frag_id].begin;
+				long a_end  =(*frag_pos_map_ptr)[a_frag_id].end;
+				long b_begin=(*frag_pos_map_ptr)[b_frag_id].begin;
+				long b_end  =(*frag_pos_map_ptr)[b_frag_id].end;
+
+				if(a_begin>a_end){
+					long tmp;
+					tmp=a_begin;
+					a_begin=a_end;
+					a_end=tmp;
+				}
+
+				if(b_begin>b_end){
+					long tmp;
+					tmp=b_begin;
+					b_begin=b_end;
+					b_end=tmp;
+				}
+
+				olap_info_map[b_frag_id].ahang=b_begin-a_begin;
+				olap_info_map[b_frag_id].bhang=b_end-a_end;
+			}else{
+				olap_info_map[b_frag_id].ahang=0;
+				olap_info_map[b_frag_id].bhang=0;
 			}
 		}
 	
@@ -863,7 +918,14 @@ namespace AS_BOG{
 			/*SeqInterval*/     imp_msg_arr[i].position.end=(*frag_pos_map_ptr)[*fp_itr].end;
 			/*IntFragment_ID*/  imp_msg_arr[i].contained=cntnee_map[*fp_itr];
 			/*int32*/           imp_msg_arr[i].delta_length=0;
-			/*int32* */         imp_msg_arr[i].delta=NULL;
+			/*int32*/           imp_msg_arr[i].delta=NULL;
+
+			#ifdef NEW_UNITIGGER_INTERFACE
+			/*IntFragment_ID*/  imp_msg_arr[i].ident2=olap_info_map[*fp_itr].a_id;
+			/*int32*/           imp_msg_arr[i].ahang=olap_info_map[*fp_itr].ahang;
+			/*int32*/           imp_msg_arr[i].bhang=olap_info_map[*fp_itr].bhang;
+			#endif
+
 			#ifdef i386
 			/*int32*/           imp_msg_arr[i].ptrPad2;
 			#endif
