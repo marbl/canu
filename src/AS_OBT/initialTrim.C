@@ -1,6 +1,6 @@
 #include "trim.H"
 #include "maps.H"
-
+#include "constants.H"
 
 //  Read a fragStore, does quality trimming based on quality scores,
 //  modifies the original clear range in the store.
@@ -8,8 +8,6 @@
 //  Optionally intersects the quality trim with a vector trim.
 //
 //  Optionally does NOT modify a list of fragment UIDs
-//
-
 
 void
 usage(char *name) {
@@ -163,12 +161,14 @@ main(int argc, char **argv) {
       unsigned int      clrEnd = 0;
       getClearRegion_ReadStruct(rd, &clrBeg, &clrEnd, READSTRUCT_ORIGINAL);
 
-      fprintf(logFile, u64bitFMT","u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\n",
+      fprintf(logFile, u64bitFMT","u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"%s\n",
               uid, elem,
               (u32bit)clrBeg, (u32bit)clrEnd,
               qltL, qltR,
               m[uid].vecL, m[uid].vecR,
-              vecL, vecR);
+              vecL, vecR,
+              ((vecL + OBT_MIN_LENGTH) > vecR) ? " (deleted)" : "");
+
     }
 
     if (doReplace) {
@@ -176,13 +176,12 @@ main(int argc, char **argv) {
 
     if (doUpdate) {
       setClearRegion_ReadStruct(rd, vecL, vecR, READSTRUCT_ORIGINAL);
-    }
 
-    if (doReplace || doUpdate) {
-      if (setFragStore(fs, elem, rd)) {
-        fprintf(stderr, "setFragStore() failed.\n");
-        exit(1);
-      }
+      if (setFragStore(fs, elem, rd))
+        fprintf(stderr, "setFragStore() failed.\n"), exit(1);
+
+      if ((vecL + OBT_MIN_LENGTH) > vecR)
+        deleteFragStore(fs, elem);
     }
   }
 
@@ -194,10 +193,3 @@ main(int argc, char **argv) {
   fprintf(stderr, "Fragments low quality vector:    "u32bitFMT"\n", stat_noChange);
   fprintf(stderr, "Fragments marked immutable:      "u32bitFMT"\n", stat_immutable);
 }
-
-
-
-
-
-
-
