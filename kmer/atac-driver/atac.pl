@@ -621,7 +621,11 @@ sub findSources {
         if (m/^!\s*format\s+atac\s+(.*)$/) {
             print STDERR "Found format $1\n";
         } elsif (m/^S\s+(\S+)\s+(\S+)$/) {
-            $GENOMEaliases{$1} = $2 if (-e $2);
+            if (-e $2) {
+                $GENOMEaliases{$1} = $2;
+            } else {
+                print STDERR "WARNING:  File '$2' not found for alias '$1'.\n";
+            }
         } else {
             #die "Error parsing genome description.\n  '$_'\n";
         }
