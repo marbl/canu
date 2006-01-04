@@ -34,15 +34,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.hh,v 1.5 2005-11-01 18:44:58 kli1000 Exp $
- * $Revision: 1.5 $
+ * $Id: AS_BOG_UnitigGraph.hh,v 1.6 2006-01-04 15:17:39 eliv Exp $
+ * $Revision: 1.6 $
 */
 
 
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.5 2005-11-01 18:44:58 kli1000 Exp $";
+static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.6 2006-01-04 15:17:39 eliv Exp $";
 
 #include <vector>
 #include <map>
@@ -68,7 +68,6 @@ namespace AS_BOG{
 		iuid frag_id;
 		orientation_type ori;
 		long olap_len; //3' overlap, last node has no overlap
-		long frag_len;
 	};
 	typedef std::vector<DoveTailNode> DoveTailPath;
 
@@ -77,7 +76,6 @@ namespace AS_BOG{
 		iuid frag_id;
 		bool same_ori;
 		long olap_offset;
-		long frag_len;
 	};
 	typedef std::vector<ContaineeNode> ContaineeList;	
 	typedef std::map<container_id, ContaineeList> ContainerMap;

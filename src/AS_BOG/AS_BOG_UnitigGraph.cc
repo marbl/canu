@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.7 2005-12-16 19:45:47 kli1000 Exp $
- * $Revision: 1.7 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.8 2006-01-04 15:17:39 eliv Exp $
+ * $Revision: 1.8 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.7 2005-12-16 19:45:47 kli1000 Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.8 2006-01-04 15:17:39 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -216,7 +216,6 @@ namespace AS_BOG{
 				current_frag_id, 
 				(travel_dir == FORWARD)? THREE_PRIME : FIVE_PRIME)->
 				olap_len;
-			dt_node.frag_len=bog_ptr->fragLen(current_frag_id);
 
 			dtp_ptr->push_back(dt_node);
 
@@ -315,7 +314,6 @@ namespace AS_BOG{
 			ctnee.frag_id=bstcnmap_itr->first;
 			ctnee.same_ori=bstcnmap_itr->second.sameOrientation;
 			ctnee.olap_offset=bstcnmap_itr->second.a_hang;
-			ctnee.frag_len=bog_ptr->fragLen(ctnee.frag_id);
 
 			container_id=bstcnmap_itr->second.container;
 
@@ -496,12 +494,12 @@ namespace AS_BOG{
 
 		// Get first fragment's length
 		dtp_iter=dovetail_path_ptr->begin();
-		long first_frag_len = dtp_iter->frag_len;
+		long first_frag_len = BestOverlapGraph::fragLen(dtp_iter->frag_id);
 
 		// Get last fragment's length
 		dtp_iter=dovetail_path_ptr->end();
 		dtp_iter--;
-		long last_frag_len = dtp_iter->frag_len;
+		long last_frag_len = BestOverlapGraph::fragLen(dtp_iter->frag_id);
 
 		// Get average of first and last fragment lengths
 		double avg_frag_len = (last_frag_len + first_frag_len)/2.0;
@@ -661,7 +659,7 @@ namespace AS_BOG{
 		    dt_itr!=dovetail_path_ptr->end(); 
 		    dt_itr++){
 
-			frag_ins_end=frag_ins_begin + dt_itr->frag_len;
+			frag_ins_end=frag_ins_begin + BestOverlapGraph::fragLen(dt_itr->frag_id);
 
 			interval intvl;
 			if(dt_itr->ori==REVERSE){
@@ -724,7 +722,7 @@ namespace AS_BOG{
 					cntee_intvl.begin = 
 					    cntnr_intvl.begin + cntee_itr->olap_offset;
 					cntee_intvl.end   = 
-					    cntee_intvl.begin + cntee_itr->frag_len;
+					    cntee_intvl.begin + BestOverlapGraph::fragLen(cntee_itr->frag_id);
 
 					// Make sure the containee doesn't extend past the container
 					cntee_intvl.begin = (cntee_intvl.begin < cntnr_intvl.begin)?
@@ -753,7 +751,7 @@ namespace AS_BOG{
 					cntee_intvl.begin = 
 					    cntnr_intvl.begin - cntee_itr->olap_offset;
 					cntee_intvl.end = 
-					    cntee_intvl.begin - cntee_itr->frag_len;
+					    cntee_intvl.begin - BestOverlapGraph::fragLen(cntee_itr->frag_id);
 
 					// Make sure the containee doesn't extend past the container
 					cntee_intvl.begin = (cntee_intvl.begin > cntnr_intvl.begin)?
