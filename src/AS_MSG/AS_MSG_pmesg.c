@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.14 2005-12-15 19:43:23 gdenisov Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.15 2006-01-09 16:37:23 eliv Exp $";
 
 #define AFG_BACKWARDS_COMPATIBLE
 //#define FIX_DANIELS_MESS
@@ -2923,7 +2923,7 @@ static void Write_IMP_Mesg(FILE *fout, IntMultiPos *mlp)
   fprintf(fout,TYP_FORMAT "\n",(char) mlp->type);
   fprintf(fout,"mid:" F_IID "\n",mlp->ident);
   fprintf(fout,"con:" F_IID "\n",mlp->contained);
-  #ifdef NEW_INITIGGER_INTERFACE
+  #ifdef NEW_UNITIGGER_INTERFACE
   fprintf(fout,"aid:" F_IID "\n",mlp->ident2);
   #endif
   #ifdef AS_ENABLE_SOURCE
@@ -2931,7 +2931,7 @@ static void Write_IMP_Mesg(FILE *fout, IntMultiPos *mlp)
   #endif
   fprintf(fout,POS2_FORMAT "\n",
           mlp->position.bgn,mlp->position.end);
-  #ifdef NEW_INITIGGER_INTERFACE
+  #ifdef NEW_UNITIGGER_INTERFACE
   fprintf(fout,"ahg:" F_S32 "\n",mlp->ahang);
   fprintf(fout,"bhg:" F_S32 "\n",mlp->bhang); 
   #endif
