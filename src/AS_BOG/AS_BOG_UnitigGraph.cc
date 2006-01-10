@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.8 2006-01-04 15:17:39 eliv Exp $
- * $Revision: 1.8 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.9 2006-01-10 21:05:11 eliv Exp $
+ * $Revision: 1.9 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.8 2006-01-04 15:17:39 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.9 2006-01-10 21:05:11 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -105,15 +105,15 @@ namespace AS_BOG{
 					tp_dst_frag_id);
 
 				if(  // If the 5' end is NULL but 3' end isn't, or vice versa
-				   ((fp_dst_frag_id == NULL_FRAG_ID &&
+				    (fp_dst_frag_id == NULL_FRAG_ID &&
 				     tp_dst_frag_id != NULL_FRAG_ID ) ||
 				    (tp_dst_frag_id == NULL_FRAG_ID &&
 				     fp_dst_frag_id != NULL_FRAG_ID ) ||
 				    (tp_dst_frag_id == NULL_FRAG_ID &&
 				     fp_dst_frag_id == NULL_FRAG_ID ) 
-				)){
+				){
 
-					if(!(unitig_id%1000)){
+					if(!(unitig_id%10000)){
 						std::cerr << ".";
 					}
 
