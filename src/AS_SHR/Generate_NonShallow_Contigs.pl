@@ -22,11 +22,12 @@
 #
 ##########################################################################
 
-# $Id: Generate_NonShallow_Contigs.pl,v 1.1 2006-01-10 22:44:42 kli1000 Exp $
+# $Id: Generate_NonShallow_Contigs.pl,v 1.2 2006-01-11 20:58:00 eliv Exp $
 
 use strict;
 use Getopt::Std;
 use FileHandle;
+use Annotation::UID;
 use vars qw($opt_a $opt_f $opt_s);
 
 my $MIN_COVERAGE=1;
@@ -68,11 +69,21 @@ my $fasta_fh=new FileHandle ">$opt_f";
 
 # || die "Could not open the 454 ace file: $opt_a\n";
 
-
 my ($num_contigs, $num_reads)=read_AS($fh);
 
 print STDERR "Number of Contigs: $num_contigs\n";
 print STDERR "Number of Reads:   $num_reads\n";
+
+my $logConf = q(
+log4perl.category.GUID          = WARN, Screen
+log4perl.appender.Screen        = Log::Log4perl::Appender::Screen
+log4perl.appender.Screen.stderr = 0
+log4perl.appender.Screen.layout = Log::Log4perl::Layout::SimpleLayout
+);
+Log::Log4perl->init(\$logConf);
+my $uidBatchSize = 100;
+my $uidNamespace = 'seq454';
+my $uidServ = new Annotation::UID( $uidBatchSize, $uidNamespace);
 
 my $contig_idx;
 for($contig_idx=0; $contig_idx<$num_contigs; $contig_idx++){
@@ -182,10 +193,12 @@ for($contig_idx=0; $contig_idx<$num_contigs; $contig_idx++){
 			my $gapless_seq_len=length($sub_contig_seq);
 
 			# Output to fasta file
+            my $ctgUid = $uidServ->incrUID;
 			print $fasta_fh 
-				">$contig_id.$output_contig_count " .
-				"/average_coverage=$avg_cov " .
-				"/length=$gapless_seq_len " .
+				">$ctgUid ",
+                "/ace_contig=$contig_id " ,
+				"/average_coverage=$avg_cov " ,
+				"/length=$gapless_seq_len " ,
 				"/gapped_length=$sub_seq_len \n";
 			print $fasta_fh "$sub_contig_seq\n";
 
@@ -362,14 +375,3 @@ sub read_DS{
 	}
 	die "Could not find DS to read.\n";
 }
-
-
-
-
-
-
-
-
-
-
-

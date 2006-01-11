@@ -22,7 +22,7 @@
 #
 ##########################################################################
 
-# $Id: FASTA_to_frg_file.pl,v 1.1 2006-01-10 22:44:42 kli1000 Exp $
+# $Id: FASTA_to_frg_file.pl,v 1.2 2006-01-11 20:58:00 eliv Exp $
 
 use strict;
 use Getopt::Std;
@@ -127,9 +127,9 @@ sub process_record{
 
 	print STDOUT "{FRG\n";
 	print STDOUT "act:A\n";
-	print STDOUT "acc:$frag_id_counter\n";
+	print STDOUT "acc:$frag_id\n";
 	print STDOUT "typ:R\n";
-	print STDOUT "src:\n(No source)\n.\n";
+	print STDOUT "src:\n.\n";
 	print STDOUT "etm:0\n";
 
 	print STDOUT "seq:\n";

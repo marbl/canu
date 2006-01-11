@@ -22,11 +22,12 @@
 #
 ##########################################################################
 
-# $Id: Shred_Contigs.pl,v 1.1 2006-01-10 22:44:42 kli1000 Exp $
+# $Id: Shred_Contigs.pl,v 1.2 2006-01-11 20:58:00 eliv Exp $
 
 use strict;
 use Getopt::Std;
 use FileHandle;
+use Annotation::UID;
 use vars qw($opt_r $opt_f);
 
 getopts("f:r:");
@@ -53,6 +54,17 @@ if(!defined($read_length)){
 	$read_length=600;
 }
 print STDERR "Read Length: $read_length\n";
+
+my $logConf = q(
+log4perl.category.GUID          = WARN, Screen
+log4perl.appender.Screen        = Log::Log4perl::Appender::Screen
+log4perl.appender.Screen.stderr = 0
+log4perl.appender.Screen.layout = Log::Log4perl::Layout::SimpleLayout
+);
+Log::Log4perl->init(\$logConf);
+my $uidBatchSize = 1000;
+my $uidNamespace = 'seq454';
+my $uidServ = new Annotation::UID( $uidBatchSize, $uidNamespace);
 
 ###############################################################################
 
@@ -105,12 +117,14 @@ sub process_record{
 			${$begin_shred_ref}[$shred_idx],
 			${$end_shred_ref}[$shred_idx]-${$begin_shred_ref}[$shred_idx]);
 
+        my $frgId = $uidServ->incrUID;
 		print STDOUT 
-			">$seq_id\.$shred_idx " .
-			"/target_coverage=$avg_cov " .
-			"/accomplished_coverage=$accomplished_coverage " .
-			"/input_length=$seq_len " .
-			"/range=${$begin_shred_ref}[$shred_idx]-" .
+            ">$frgId " ,
+			"/contig=$seq_id\.$shred_idx " ,
+			"/target_coverage=$avg_cov " ,
+			"/accomplished_coverage=$accomplished_coverage " ,
+			"/input_length=$seq_len " ,
+			"/range=${$begin_shred_ref}[$shred_idx]-" ,
 			       "${$end_shred_ref}[$shred_idx]\n";
 
 		my $length=length($shredded_sequence);
