@@ -1,5 +1,5 @@
 #
-# $Id: site_name.as,v 1.2 2005-09-20 20:16:21 catmandew Exp $
+# $Id: site_name.as,v 1.3 2006-01-12 21:34:56 eliv Exp $
 #
 # This file sets the site name where the assembler is to be built
 # Site-specific settings can be made in c_make.as and other makfiles,
@@ -8,9 +8,10 @@
 
 # Default site name is invalid to prompt user to edit this file
 ifeq ($(SITE_NAME),)
-  SITE_NAME=CELERA
+#  SITE_NAME=CELERA
 #  SITE_NAME=TIGR
-#  SITE_NAME=JCVI
+  SITE_NAME=JCVI
+  SITE_INC=/bioinfo/assembly/wgs_include
 endif
 
 ifeq ($(SITE_NAME), CELERA)

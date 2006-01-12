@@ -21,11 +21,14 @@
 
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_UID/Attic/SYS_UIDclient_local.h,v $
-$Revision: 1.3 $
-$Date: 2005-03-22 19:49:28 $
+$Revision: 1.4 $
+$Date: 2006-01-12 21:34:56 $
 $Name: not supported by cvs2svn $
-$Author: jason_miller $
+$Author: eliv $
 $Log: not supported by cvs2svn $
+Revision 1.3  2005/03/22 19:49:28  jason_miller
+The TIGR tip as of March 22 2005. Commit by Jason Miller at TIGR.
+
 Revision 1.3  2004/09/10 12:31:43  mschatz
 Add standard copyright notice
 
@@ -79,7 +82,9 @@ Assumptions:
 #ifndef UID_CLIENT_LOCAL_H
 #define UID_CLIENT_LOCAL_H
 
-const char JTC_GUID_URL[] = "http://guid.jtc.jcvsf.org:8080/guid/GuidClientServer?Request=GET&Size=";
+#ifndef USE_SOAP_UID
+#include "site_jcvi.h"
+#endif
 
 // local functions /////////
 

@@ -291,7 +291,7 @@ dummy_expected_directories := $(shell $(make_expected_directories))
 INC_DIRS = $(patsubst %, -I%, \
     $(strip $(LOCAL_INC) \
             $(INC_IMPORT_DIRS) \
-            $(INC_SEARCH_PATH)))
+            $(INC_SEARCH_PATH)) $(SITE_INC))
 
 #### Set LD_DIRS for finding libraries
 LD_DIRS = $(patsubst %, -L%, \
