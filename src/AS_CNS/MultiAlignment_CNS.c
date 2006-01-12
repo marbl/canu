@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.48 2005-12-16 21:46:01 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.49 2006-01-12 20:46:03 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -117,12 +117,14 @@ extern int MaxBegGap;       // [ init value is 200; this could be set to the amo
 extern int MaxEndGap;       // [ init value is 200; this could be set to the amount you extend the
                             // clear range of seq a, plus 10 for good measure]
 
-int ScoreNumColumnsInUnitigs;
-int ScoreNumRunsOfGapsInUnitigs;
-int ScoreNumColumnsInContigs;
-int ScoreNumRunsOfGapsInContigs;
-int ScoreNumAAMismatches;
-int ScoreNumFAMismatches;
+int NumColumnsInUnitigs;
+int NumRunsOfGapsInUnitigReads;
+int NumGapsInUnitigs;
+int NumColumnsInContigs;
+int NumRunsOfGapsInContigReads;
+int NumGapsInContigs;
+int NumAAMismatches;
+int NumFAMismatches;
 
 //*********************************************************************************
 //  Tables to facilitate SNP Basecalling
@@ -2475,11 +2477,23 @@ UpdateScoreNumRunsOfGaps(AlPair ap, int prev_nr, char *prev_bases,
            if (prev_iids[i] == ap.iids[j])
            {
                if (get_scores == 1)
-                   ScoreNumRunsOfGapsInUnitigs++;
+                   NumRunsOfGapsInUnitigReads++;
                else if (get_scores == 2)
-                   ScoreNumRunsOfGapsInContigs++;
+                   NumRunsOfGapsInContigReads++;
            }
        }
+    }
+}
+
+static void
+UpdateScoreNumGaps(char cbase, int get_scores)
+{
+    if (cbase == '-')
+    {
+        if (get_scores == 1)
+            NumGapsInUnitigs++;
+        else if (get_scores == 2)
+            NumGapsInContigs++;
     }
 }
 
@@ -2489,7 +2503,7 @@ UpdateScores(AlPair ap, char cbase, char abase)
     int i, j;
 
     if (cbase != abase)
-        ScoreNumAAMismatches++;
+        NumAAMismatches++;
 
     // Updating count of fragment bases mismatching
     // the consensus base of the corresponding allele
@@ -2498,12 +2512,12 @@ UpdateScores(AlPair ap, char cbase, char abase)
        if ((ap.alleles[i] == ap.best_allele) &&
            is_good_base(ap.bases[i])         &&
            (ap.bases[i]   != cbase))
-            ScoreNumFAMismatches++;
+            NumFAMismatches++;
 
        if ((ap.alleles[i] != ap.best_allele) &&
            is_good_base(ap.bases[i])         &&
            (ap.bases[i]   != abase))
-            ScoreNumFAMismatches++;
+            NumFAMismatches++;
     }
 }
 
@@ -2562,7 +2576,7 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
     cid = ma->first;
     ap.nr = -1;
 
-    if (get_scores ) {
+    if (get_scores > 0) {
         prev_bases = (char  *)safe_malloc(max_prev_nr*sizeof(char ));
         prev_iids  = (int32 *)safe_malloc(max_prev_nr*sizeof(int32));
     }
@@ -2599,7 +2613,7 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
             }
         }
 
-        if (get_scores)
+        if (get_scores> 0)
         {
 #if 0
             fprintf(stderr, "ap.nb=%d ap.bases=", ap.nb);
@@ -2608,7 +2622,7 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
             fprintf(stderr, " prev_nr=%d prev_bases=", prev_nr);
             for (i=0; i<prev_nr; i++)
                 fprintf(stderr, "%c", prev_bases[i]);
-            fprintf(stderr, " ScoreNumRunsOfGaps=%d \nap.iids= ", ScoreNumRunsOfGaps);
+            fprintf(stderr, " NumRunsOfGaps=%d \nap.iids= ", NumRunsOfGaps);
             for (i=0; i<ap.nb; i++)
                 fprintf(stderr, "%d ", ap.iids[i]);
             fprintf(stderr, "\n");
@@ -2619,6 +2633,7 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
 #endif
             UpdateScoreNumRunsOfGaps(ap, prev_nr, prev_bases, prev_iids, 
                 get_scores);
+            UpdateScoreNumGaps(cbase, get_scores);
             if (ap.nb > max_prev_nr) {
                 max_prev_nr =  ap.nb;
                 prev_bases = (char *)safe_realloc(prev_bases,
@@ -2638,10 +2653,10 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
     }
 
     if (get_scores == 1) {
-        ScoreNumColumnsInUnitigs += index;
+        NumColumnsInUnitigs += index;
     }
     else if (get_scores == 2) {
-        ScoreNumColumnsInContigs += index;
+        NumColumnsInContigs += index;
     }
 
     if ((opp->split_alleles == 0) ||
@@ -2770,7 +2785,7 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
                            ap.best_allele,              &cbase, 0, 0, opp);
                        (*v_list)[*nvars].var_seq[end-beg+2+m] = abase;
                        (*v_list)[*nvars].var_seq[m          ] = cbase;
-                       if (get_scores)
+                       if (get_scores > 0)
                            UpdateScores(ap, cbase, abase); 
                     }
                     (*v_list)[*nvars].var_seq[end-beg+1] = '/';
@@ -2795,7 +2810,7 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
     FREE(varf);
     FREE(svarf);
     FREE(cids);
-    if (get_scores) {
+    if (get_scores > 0) {
         FREE(prev_bases);
         FREE(prev_iids);
     }
@@ -7461,7 +7476,7 @@ int MultiAlignContig(IntConConMesg *contig,
      }
      RefreshMANode(ma->lid, 0, opp, &nv, &vl, 0, 0);
      AbacusRefine(ma,0,-1,CNS_INDEL, opp);
-     MergeRefine(ma->lid, &(contig->v_list), &(contig->num_vars), opp, 1);
+     MergeRefine(ma->lid, &(contig->v_list), &(contig->num_vars), opp, 2);
   }
 
      //     PrintAlignment(cnslog,ma->lid,0,-1,'C');
@@ -8150,7 +8165,7 @@ MultiAlignT *MergeMultiAligns( tSequenceDB *sequenceDBp,
    ResetStores(num_contigs,num_columns);
 
    if (num_contigs == 1) {
-        cma = LoadMultiAlignTFromSequenceDB(sequenceDB, cpositions[0].ident, FALSE);
+      cma = LoadMultiAlignTFromSequenceDB(sequenceDB, cpositions[0].ident, FALSE);
       //      cma = GetMultiAlignInStore(contig_store,cpositions[0].ident); 
       free(offsets);
       return cma;
@@ -8444,6 +8459,7 @@ MultiAlignT *MergeMultiAligns( tSequenceDB *sequenceDBp,
   free(offsets);
   return cma; 
 }
+/* end of MergeMultiAlign */
 
 int32 AppendArtificialFragToLocalStore(FragType type, int32 iid, int complement,int32 contained,
       UnitigType utype, char *seq, char *qlt, int len) {

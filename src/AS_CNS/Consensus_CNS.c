@@ -27,7 +27,7 @@
                  
  *********************************************************************/
 
-static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.21 2005-12-15 19:37:20 gdenisov Exp $";
+static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.22 2006-01-12 20:46:03 gdenisov Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -68,12 +68,14 @@ static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.21 2005-12-15 19:37:20 gde
 #include "Globals_CNS.h"
 #include "PublicAPI_CNS.h"
 
-extern int ScoreNumColumnsInUnitigs;
-extern int ScoreNumRunsOfGapsInUnitigs;
-extern int ScoreNumColumnsInContigs;
-extern int ScoreNumRunsOfGapsInContigs;
-extern int ScoreNumAAMismatches;
-extern int ScoreNumFAMismatches;
+extern int NumColumnsInUnitigs;
+extern int NumRunsOfGapsInUnitigReads;
+extern int NumGapsInUnitigs;
+extern int NumColumnsInContigs;
+extern int NumRunsOfGapsInContigReads;
+extern int NumGapsInContigs;
+extern int NumAAMismatches;
+extern int NumFAMismatches;
 
 float CNS_SEQUENCING_ERROR_EST = .02; // Used to calculate '-' probability
 float CNS_SNP_RATE   = 0.0003; // Used to calculate BIAS
@@ -200,16 +202,21 @@ help_message(int argc, char *argv[])
 }
 
 static void
-OutputScores(int NumColumnsInUnitigs, int NumRunsOfGapsInUnitigs, 
-             int NumColumnsInContigs, int NumRunsOfGapsInContigs,
-             int NumAAMismatches, int NumFAMismatches)
+OutputScores(int NumColumnsInUnitigs,        int NumRunsOfGapsInUnitigReads, 
+             int NumGapsInUnitigs,           int NumColumnsInContigs, 
+             int NumRunsOfGapsInContigReads, int NumGapsInContigs,
+             int NumAAMismatches,            int NumFAMismatches)
 {
-     fprintf(stderr, "\nScoreNumColumnsInUnitigs  = %d\n", NumColumnsInUnitigs);
-     fprintf(stderr, "ScoreNumRunsOfGapsInUnitigs = %d\n", NumRunsOfGapsInUnitigs);
-     fprintf(stderr, "ScoreNumColumnsInContigs  = %d\n", NumColumnsInContigs);
-     fprintf(stderr, "ScoreNumRunsOfGapsInContigs = %d\n", NumRunsOfGapsInContigs);
-     fprintf(stderr, "ScoreNumAAMismatches        = %d\n", NumAAMismatches);
-     fprintf(stderr, "ScoreNumFAMismatches        = %d\n", NumFAMismatches);
+     fprintf(stderr, "\nNumColumnsInUnitigs      = %d\n", NumColumnsInUnitigs);
+     fprintf(stderr, "NumGapsInUnitigs           = %d\n", NumGapsInUnitigs);
+     fprintf(stderr, "NumRunsOfGapsInUnitigReads = %d\n", 
+         NumRunsOfGapsInUnitigReads);
+     fprintf(stderr, "NumColumnsInContigs        = %d\n", NumColumnsInContigs);
+     fprintf(stderr, "NumGapsInContigs           = %d\n", NumGapsInContigs);
+     fprintf(stderr, "NumRunsOfGapsInContigReads = %d\n", 
+         NumRunsOfGapsInContigReads);
+     fprintf(stderr, "NumAAMismatches            = %d\n", NumAAMismatches);
+     fprintf(stderr, "NumFAMismatches            = %d\n", NumFAMismatches);
 }
 
 int main (int argc, char *argv[]) {
@@ -303,12 +310,14 @@ int main (int argc, char *argv[]) {
     allow_neg_hang=0;
     ALIGNMENT_CONTEXT=AS_CONSENSUS;
    
-    ScoreNumColumnsInUnitigs = 0;
-    ScoreNumRunsOfGapsInUnitigs = 0;
-    ScoreNumColumnsInContigs = 0;
-    ScoreNumRunsOfGapsInContigs = 0;
-    ScoreNumAAMismatches = 0;
-    ScoreNumFAMismatches = 0;
+    NumColumnsInUnitigs = 0;
+    NumRunsOfGapsInUnitigReads = 0;
+    NumGapsInUnitigs = 0;
+    NumColumnsInContigs = 0;
+    NumRunsOfGapsInContigReads = 0;
+    NumGapsInContigs = 0;
+    NumAAMismatches = 0;
+    NumFAMismatches = 0;
  
     while ( !errflg && 
            ( (ch = getopt(argc, argv, 
@@ -865,7 +874,7 @@ int main (int argc, char *argv[]) {
       VA_TYPE(char) *quality=CreateVA_char(200000);
       time_t t;
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.21 $ processing. Started %s\n",
+      fprintf(stderr,"# Consensus $Revision: 1.22 $ processing. Started %s\n",
         ctime(&t));
       InitializeAlphTable();
       if ( ! align_ium && USE_SDB && extract > -1 ) 
@@ -919,9 +928,10 @@ int main (int argc, char *argv[]) {
            ctmp.num_vars = 0;
 //         FREE(ma1);
         }
-        OutputScores(ScoreNumColumnsInUnitigs, ScoreNumRunsOfGapsInUnitigs, 
-                     ScoreNumColumnsInContigs, ScoreNumRunsOfGapsInContigs,
-                     ScoreNumAAMismatches, ScoreNumFAMismatches);
+        OutputScores(NumColumnsInUnitigs, NumRunsOfGapsInUnitigReads, 
+                     NumGapsInUnitigs, NumColumnsInContigs, 
+                     NumRunsOfGapsInContigReads, NumGapsInContigs,
+                     NumAAMismatches, NumFAMismatches);
 
         exit(0); 
       }
@@ -1122,9 +1132,10 @@ int main (int argc, char *argv[]) {
               //camview(cam,pcontig->iaccession,pcontig->pieces,pcontig->num_pieces,pcontig->unitigs,
               //        pcontig->num_unitigs,global_fragStore);
               writer(cnsout,pmesg);
-              OutputScores(ScoreNumColumnsInUnitigs, ScoreNumRunsOfGapsInUnitigs,
-                     ScoreNumColumnsInContigs, ScoreNumRunsOfGapsInContigs,
-                     ScoreNumAAMismatches, ScoreNumFAMismatches);
+              OutputScores(NumColumnsInUnitigs, NumRunsOfGapsInUnitigReads,
+                     NumGapsInUnitigs, NumColumnsInContigs,
+                     NumRunsOfGapsInContigReads, NumGapsInContigs,
+                     NumAAMismatches, NumFAMismatches);
                   exit(0);
             }
             if (pcontig->v_list != NULL) 
@@ -1155,7 +1166,7 @@ int main (int argc, char *argv[]) {
             {
               AuditLine auditLine;
               AppendAuditLine_AS(adt_mesg, &auditLine, t,
-                                 "Consensus", "$Revision: 1.21 $","(empty)");
+                                 "Consensus", "$Revision: 1.22 $","(empty)");
             }
 #endif
               VersionStampADT(adt_mesg,argc,argv);
@@ -1179,7 +1190,7 @@ int main (int argc, char *argv[]) {
       }
 
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.21 $ Finished %s\n",ctime(&t));
+      fprintf(stderr,"# Consensus $Revision: 1.22 $ Finished %s\n",ctime(&t));
       if (printcns) 
       {
         int unitig_length = (unitig_count>0)? (int) input_lengths/unitig_count: 0; 
@@ -1224,9 +1235,10 @@ int main (int argc, char *argv[]) {
       }
     }
 
-    OutputScores(ScoreNumColumnsInUnitigs, ScoreNumRunsOfGapsInUnitigs,
-                     ScoreNumColumnsInContigs, ScoreNumRunsOfGapsInContigs,
-                     ScoreNumAAMismatches, ScoreNumFAMismatches);
+    OutputScores(NumColumnsInUnitigs, NumRunsOfGapsInUnitigReads,
+                     NumGapsInUnitigs, NumColumnsInContigs,
+                     NumRunsOfGapsInContigReads, NumGapsInContigs,
+                     NumAAMismatches, NumFAMismatches);
 
      return 0;
 }
