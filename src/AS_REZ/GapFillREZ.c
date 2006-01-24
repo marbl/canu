@@ -37,7 +37,7 @@
 
 
 
-static char fileID[] = "$Id: GapFillREZ.c,v 1.7 2005-11-23 01:32:13 mcschatz Exp $";
+static char fileID[] = "$Id: GapFillREZ.c,v 1.8 2006-01-24 18:17:59 mcschatz Exp $";
 
 
 #include <stdio.h>
@@ -4648,6 +4648,7 @@ static void  Confirm_Contained
          Gap_Chunk_t  * left_scaff_contig = NULL;
          Gap_Chunk_t  * right_scaff_contig = NULL;
          char  * left_scaff_sequence = NULL, * right_scaff_sequence = NULL;
+         int  avail_extend, used_left_extend, used_right_extend;
 
          if  (this_gap -> num_chunks == 0)
              continue;
@@ -4686,12 +4687,23 @@ if  (fp != NULL)
                   }
              }
 
+         //**ALD
+         // Don't let rock/stones stick out past the end of the the containing contig
+         // enough to cause the gap to become less than - CGW_DP_MINLEN
+         //  avail_extend  will have the number of bases
+         // still available for sticking out into the gap on either side.
+         //  used_(left|right)_extend  will have
+         // the number of bases that have been used by earlier stones
+         // sticking out on the respective side.
+         avail_extend = (int) (this_gap -> len + CGW_DP_MINLEN);
+         used_left_extend = used_right_extend = 0;
          ct = 0;
          for  (k = 0;  k < this_gap -> num_chunks;  k ++)
            {
             Overlap  * left_olap = NULL, * right_olap = NULL;
             Gap_Chunk_t  * this_chunk = this_gap -> chunk + k;
             char  * this_sequence = NULL;
+            int  trim;
 
             if  ((use_all || this_chunk -> keep)
                    && this_chunk != left_scaff_contig
@@ -4720,6 +4732,22 @@ if  (fp != NULL)
                                this_chunk -> chunk_id,
                                left_olap -> begpos, left_olap -> endpos,
                                left_olap -> length);
+                      trim = left_olap -> endpos - used_left_extend;
+                      if  (trim > 0)
+                          {
+                           if  (trim > avail_extend)
+                               {
+                                trim -= avail_extend;
+                                used_left_extend += avail_extend;
+                                avail_extend = 0;
+                                left_olap -> endpos -= trim;
+                               }
+                             else
+                               {
+                                used_left_extend += trim;
+                                avail_extend -= trim;
+                               }
+                          }
                       Set_Position_From_Left_Olap
                           (this_gap -> left_cid, this_chunk, left_olap);
                       this_chunk -> keep = TRUE;
@@ -4734,6 +4762,22 @@ if  (fp != NULL)
                                this_chunk -> chunk_id,
                                right_olap -> begpos, right_olap -> endpos,
                                right_olap -> length);
+                      trim = right_olap -> begpos - used_right_extend;
+                      if  (trim > 0)
+                          {
+                           if  (trim > avail_extend)
+                               {
+                                trim -= avail_extend;
+                                used_right_extend += avail_extend;
+                                avail_extend = 0;
+                                right_olap -> begpos -= trim;
+                               }
+                             else
+                               {
+                                used_right_extend += trim;
+                                avail_extend -= trim;
+                               }
+                          }
                       Set_Position_From_Right_Olap
                           (this_chunk, this_gap -> right_cid, right_olap);
                       this_chunk -> keep = TRUE;
