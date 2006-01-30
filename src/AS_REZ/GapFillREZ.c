@@ -37,7 +37,7 @@
 
 
 
-static char fileID[] = "$Id: GapFillREZ.c,v 1.8 2006-01-24 18:17:59 mcschatz Exp $";
+static char fileID[] = "$Id: GapFillREZ.c,v 1.9 2006-01-30 21:07:01 mcschatz Exp $";
 
 
 #include <stdio.h>
@@ -477,6 +477,8 @@ static int  By_Scaff_And_Flipped
     (const void * a, const void * b);
 static int  By_Scaff_Flipped_And_Left_End
     (const void * a, const void * b);
+static void  Canonicalize
+    (CIEdgeT * edge, const Gap_Chunk_t * c1, const Gap_Chunk_t * c2);
 static void  Check_Olaps
     (Gap_Fill_t * gap);
 static void  Check_Other_Links
@@ -2589,6 +2591,126 @@ fprintf (fp, "  now (%.0f [%.0f], %.0f [%.0f])\n",
 
 
 
+static void  Canonicalize
+    (CIEdgeT * edge, const Gap_Chunk_t * c1, const Gap_Chunk_t * c2)
+
+//  Flip  edge  if necessary so that it represents the gap between
+//   c1  and  c2 , depending on which begins to the left of the other.
+
+  {
+   bool  c1_flipped, c2_flipped, need_change;
+   double  left_c1, left_c2;
+
+   // Make edge go from c1 to c2 if necessary
+   if  (edge -> idA != c1 -> chunk_id)
+       {
+        const Gap_Chunk_t  * tmp;
+
+        tmp = c1;
+        c1 = c2;
+        c2 = tmp;
+       }
+assert (edge -> idA == c1 -> chunk_id && edge -> idB == c2 -> chunk_id);
+
+   if  (c1 -> start . mean < c1 -> end . mean)
+       {
+        c1_flipped = FALSE;
+        left_c1 = c1 -> start . mean;
+       }
+     else
+       {
+        c1_flipped = TRUE;
+        left_c1 = c1 -> end . mean;
+       }
+   if  (c2 -> start . mean < c2 -> end . mean)
+       {
+        c2_flipped = FALSE;
+        left_c2 = c2 -> start . mean;
+       }
+     else
+       {
+        c2_flipped = TRUE;
+        left_c2 = c2 -> end . mean;
+       }
+
+   need_change = FALSE;
+   if  (left_c1 < left_c2)
+       {
+        switch (edge -> orient)
+          {
+           case  AB_AB :
+           case  AB_BA :
+             if  (c1_flipped)
+                 need_change = TRUE;
+             break;
+           case  BA_AB :
+           case  BA_BA :
+             if  (! c1_flipped)
+                 need_change = TRUE;
+             break;
+           default :
+             fprintf (stderr, "YIKES:  Bad orientation = %d at line %d file %s\n",
+                  (int) edge -> orient, __LINE__, __FILE__);
+             assert (FALSE);
+          }
+       }
+     else
+       {
+        switch (edge -> orient)
+          {
+           case  AB_AB :
+           case  AB_BA :
+             if  (! c1_flipped)
+                 need_change = TRUE;
+             break;
+           case  BA_AB :
+           case  BA_BA :
+             if  (c1_flipped)
+                 need_change = TRUE;
+             break;
+           default :
+             fprintf (stderr, "YIKES:  Bad orientation = %d at line %d file %s\n",
+                  (int) edge -> orient, __LINE__, __FILE__);
+             assert (FALSE);
+          }
+       }
+       
+   if  (need_change)
+       {
+        double  c1_len, c2_len;
+        double  neg_half;
+
+        c1_len = fabs (c1 -> end . mean - c1 -> start . mean);
+        c2_len = fabs (c2 -> end . mean - c2 -> start . mean);
+        neg_half = (c1_len + c2_len) / -2.0;
+        edge -> distance . mean = - c1_len - c2_len - edge -> distance . mean;
+
+        switch (edge -> orient)
+          {
+           case  AB_AB :
+             edge -> orient = BA_BA;
+             break;
+           case  AB_BA :
+             edge -> orient = BA_AB;
+             break;
+           case  BA_AB :
+             edge -> orient = AB_BA;
+             break;
+           case  BA_BA :
+             edge -> orient = AB_AB;
+             break;
+           default :
+             fprintf (stderr, "YIKES:  Bad orientation = %d at line %d file %s\n",
+                  (int) edge -> orient, __LINE__, __FILE__);
+             assert (FALSE);
+          }
+       }
+
+   return;
+  }
+
+
+
 static void  Check_Olaps
     (Gap_Fill_t * gap)
 
@@ -4687,7 +4809,6 @@ if  (fp != NULL)
                   }
              }
 
-         //**ALD
          // Don't let rock/stones stick out past the end of the the containing contig
          // enough to cause the gap to become less than - CGW_DP_MINLEN
          //  avail_extend  will have the number of bases
@@ -6499,6 +6620,7 @@ static int  Estimate_Chunk_Ends
   {
    Gap_Fill_t  * g;
    Gap_Chunk_t  new_chunk;
+   CIEdgeT  tmp_edge;
    double  max_left_variance, min_right_variance, ref_variance;
    double  center, min_dist, min_variance, max_variance, new_ref_variance;
    int  got_new_bad_links;
@@ -6602,8 +6724,15 @@ if  (good_edge < 0)
          scaff_chunk . start = REF (stack [i] . chunk_id) . a_end;
          scaff_chunk . end = REF (stack [i] . chunk_id) . b_end;
 
+         // Contained edges can have two different orientations
+         // Make  tmp_edge  be the one that matches how
+         //  Is_Edge_Consistent  does its test.
+         tmp_edge = * (stack [i] . edge);
+         if  (tmp_edge . distance . mean < 0.0)
+             Canonicalize (& tmp_edge, & new_chunk, & scaff_chunk);
+
          if  (Single_Fragment_Only
-                  || Is_Edge_Consistent (stack [i] . edge, & new_chunk, & scaff_chunk))
+                  || Is_Edge_Consistent (& tmp_edge, & new_chunk, & scaff_chunk))
              {
               (* edge_quality) += CIEdge_Quality (stack [i] . edge);
               good_links += stack [i] . num_good_mates;
@@ -10417,6 +10546,10 @@ static void  Print_Potential_Fill_Chunks
                        fprintf (fp, " r-lap");
                    if  (stack [i] . edge -> flags . bits . rangeTruncated)
                        fprintf (fp, " Trunc");
+                   if  (isProbablyBogusEdge (stack [i] . edge))
+                       fprintf (fp, " Bogus");
+                   if  (isSloppyEdge (stack [i] . edge))
+                       fprintf (fp, " Sloppy");
 #if  VERBOSE
                    fprintf (fp, " numInstances=%d", ci -> info . CI . numInstances);
 #endif
