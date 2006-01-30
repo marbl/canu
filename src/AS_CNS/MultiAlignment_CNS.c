@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.49 2006-01-12 20:46:03 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.50 2006-01-30 18:41:09 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -685,7 +685,7 @@ int SetUngappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) 
       SetVA_int32(gapped_positions,unitig->position.end,&unitig->position.end);
    }
    if ( Getint32(gapped_positions,num_columns) == NULL ) {
-      fprintf(stderr,"Misformed Multialign... fragment positions only extend to bp %d out of %d/n",
+      fprintf(stderr,"Misformed Multialign... fragment positions only extend to bp %d out of %d\n",
               (int) GetNumint32s(gapped_positions),num_columns+1);
       DeleteVA_int32(gapped_positions);
       return -1;
@@ -1035,7 +1035,23 @@ int32 AppendFragToLocalStore(FragType type, int32 iid, int complement,int32 cont
 	  SetGappedFragmentPositions(type,fragment.n_components,uma);
       }
       if ( fragment.components == -1) { // error was encountered in SetUngapped...
-         fprintf(stderr,"Bad multialignment for contig/unitig %d\n", iid);
+         fprintf(stderr, "Bad multialignment for contig/unitig %d\n", iid);
+         fprintf(stderr, "(If this is extendClearRanges, we should have caught this error!)\n");
+
+         //  extendClearRanges can (and does) generate new unitigs
+         //  that trigger this condition.  When aligning the new
+         //  unitig to the old contig, we see that the new unitig's
+         //  unextended end has changed.  If the change resulted in
+         //  the new unitig being shorter, there are now uncovered
+         //  bases in the alignment.
+         //
+         //  ------------------------------------  old contig
+         //                          ------------  old unitig
+         //                   ------------------   new unitig (extended to the left by eCR).
+         //
+         //  SetUngappedFragmentPositions() should have complained about:
+         //    Misformed Multialign... fragment positions only extend to bp 838 out of 841
+
          assert(0);
       } 
 
@@ -3608,11 +3624,13 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
    last_b_aligned = -1;
    apos = max(ahang,0);
    bpos = 0;
+
    if ( ahang == alen ) { // special case where fragments abutt
      abead = GetBead(beadStore,aindex[alen-1]);
    } else {
      abead = GetBead(beadStore,aindex[apos]);
    }
+
    first_touched_column = abead->column_index;
    if ( ahang < 0 ) {
      gbead = GetBead(beadStore,bboffset);
@@ -3622,7 +3640,9 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
      }
      last_b_aligned = bboffset+bpos-1;
    }
+
    last_a_aligned = GetBead(beadStore,aindex[apos])->prev;
+
    while ( (NULL != trace) && *trace != 0 ) {
       if ( *trace < 0 ) {  // gap is in afrag
         // align ( - *trace - apos ) positions
@@ -3754,6 +3774,7 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
    // remaining alignment contains no indels
    ovl_remaining  = (blen-bpos < alen-apos)?blen-bpos:alen-apos;
    while ( ovl_remaining-- > 0 ) {
+
       abead = GetBead(beadStore,aindex[apos]);
       AlignBead(abead->column_index, bboffset+bpos);
       last_a_aligned = abead->boffset;
@@ -3777,6 +3798,7 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
    }
    column_appends = blen-bpos;
    column_index = abead->column_index;
+
    if ( column_appends > 0 ) {
       // First, if there are any previously aligned columns to right of abead 
       // insert gaps into b to align with these columns
@@ -6698,9 +6720,9 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
     // (due to overlap failure)
     int32 fid,i,align_to;
     int32 num_reads=0,num_guides=0,num_columns=0;
-    #ifdef ALIGN_TO_CONSENSUS
+#ifdef ALIGN_TO_CONSENSUS
     int32 aoffset;
-    #endif 
+#endif 
     int do_rez=1; // command line arg that is now obsolete
     // mark_contains is used in the case where post-unitigging processes 
     // (SplitUnitig, extendClearRange,e.g.) are used to re-align unitigs after 
@@ -6776,10 +6798,12 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
              value.IID = positions[i].ident;
              hash_rc = InsertInPHashTable_AS(&thash,IDENT_NAMESPACE, 
                            (uint64)positions[i].ident, &value, FALSE,FALSE);
-             if ( hash_rc != HASH_SUCCESS) {
-                  fprintf(stderr,"Failure to insert ident %d in hashtable\n",
-                      positions[i].ident); 
-             } 
+
+             if (hash_rc != HASH_SUCCESS) {
+               fprintf(stderr,"Failure to insert ident %d in hashtable\n", positions[i].ident); 
+               assert(0);
+             }
+
              fid = AppendFragToLocalStore(positions[i].type, 
 				  positions[i].ident, 
 				  complement,
@@ -6787,14 +6811,11 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
 				  positions[i].source,
 				  AS_OTHER_UNITIG, ///ZERO,
 				  NULL);
-             SetVA_PtrT(fragment_source,
-	    	fid,
-		(const void *) &positions[i].source);
-             //SetVA_PtrT(fragment_source,positions[i].ident,(void *)&positions[i].source);
-             offsets[fid].bgn = 
-                 complement?positions[i].position.end:positions[i].position.bgn;
-             offsets[fid].end = 
-                 complement?positions[i].position.bgn:positions[i].position.end;
+
+             SetVA_PtrT(fragment_source, fid, (const void *) &positions[i].source);
+
+             offsets[fid].bgn = complement ? positions[i].position.end : positions[i].position.bgn;
+             offsets[fid].end = complement ? positions[i].position.bgn : positions[i].position.end;
              break;
           }
           case AS_UNITIG:
@@ -6818,11 +6839,11 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
     // Now, loop on remaining fragments, aligning to:
     //    a)  containing frag (if contained)
     // or b)  previously aligned frag
-    #ifdef NEW_UNITIGGER_INTERFACE
+#ifdef NEW_UNITIGGER_INTERFACE
     for (i=0;i<num_frags;i++) 
-    #else
+#else
     for (i=1;i<num_frags;i++)
-    #endif
+#endif
     {
        int ahang;
        int olap_success=0;
@@ -6834,40 +6855,56 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
        // align_to = containing
        // else 
        int frag_forced=0;
-       #ifdef NEW_UNITIGGER_INTERFACE
+#ifdef NEW_UNITIGGER_INTERFACE
        align_to = GetFragmentIndex(positions[i].ident2, positions, num_frags);
        if (align_to < 0)
            continue;
        assert(align_to >= 0);
        afrag = GetFragment(fragmentStore, align_to);
        ahang = positions[i].ahang;
-       #else
+#else
        align_to = i-1;
        while (! olap_success) 
-       #endif
+#endif
        {
-       #ifndef NEW_UNITIGGER_INTERFACE
-         if (align_to < 0) break;
+#ifndef NEW_UNITIGGER_INTERFACE
+         if (align_to < 0)
+           break;
+
          afrag = GetFragment(fragmentStore, align_to);
+
          if ( bfrag->contained ) {
            while ( align_to>-1 ) {
-            if ( afrag->iid == bfrag->contained && afrag->contained != afrag->iid) break;
-            align_to--;
-            if ( align_to>-1) afrag = GetFragment(fragmentStore, align_to);
+             if ( afrag->iid == bfrag->contained && afrag->contained != afrag->iid)
+               break;
+             align_to--;
+             if ( align_to > -1)
+               afrag = GetFragment(fragmentStore, align_to);
            }
          } else {
            while ( align_to>0 && afrag->contained ) {
              align_to--;
-             if (align_to>-1) afrag = GetFragment(fragmentStore, align_to);
+             if (align_to > -1)
+               afrag = GetFragment(fragmentStore, align_to);
            }
          }
          if ( align_to < 0 ) break;
          ahang = offsets[bfrag->lid].bgn - offsets[afrag->lid].bgn;
-       #endif 
+#endif 
+
          ovl = offsets[afrag->lid].end - offsets[bfrag->lid].bgn;
+
 #if 0
-       fprintf(stderr, "Aligning frag #%d (or %d) to #%d (or %d), ahang=%d\n", 
-           positions[i].ident, bfrag->iid, positions[i].ident2, afrag->iid, ahang);
+         fprintf(stderr, "Aligning frag #%d (iid %d, range %d,%d) to afrag iid %d range %d,%d -- ovl=%d ahang=%d\n", 
+                 positions[i].ident,
+                 bfrag->iid,
+                 offsets[bfrag->lid].bgn,
+                 offsets[bfrag->lid].end,
+                 afrag->iid,
+                 offsets[afrag->lid].bgn,
+                 offsets[afrag->lid].end,
+                 ovl,
+                 ahang);
 #endif
 
 #ifdef ALIGN_TO_CONSENSUS
@@ -6890,11 +6927,10 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
          }
 #endif
          if ( !olap_success ) {
-         #ifndef NEW_UNITIGGER_INTERFACE       
+#ifndef NEW_UNITIGGER_INTERFACE       
             align_to--;
-         #endif
-            fprintf(stderr,
-        "Could not find overlap between %d (%c) and %d (%c) estimated ahang: %d %s\n",
+#endif
+            fprintf(stderr, "Could not find overlap between %d (%c) and %d (%c) estimated ahang: %d %s\n",
             afrag->iid,afrag->type,bfrag->iid,bfrag->type,ahang, 
             (bfrag->contained)?"(reported contained)":"");
          }
@@ -6903,12 +6939,10 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
          if ( bfrag->contained && afrag->iid != bfrag->contained ) {
            // report a more meaningful error in the case were overlap with
            //   a declared contained isn't successful
-           fprintf(stderr,
-          "Could not find overlap between %d (%c) and its containing fragment, %d.\n",
+           fprintf(stderr, "Could not find overlap between %d (%c) and its containing fragment, %d.\n",
             bfrag->iid,bfrag->type,bfrag->contained);
          } else {
-           fprintf(stderr,
-       "Could (really) not find overlap between %d (%c) and %d (%c) estimated ahang: %d\n",
+           fprintf(stderr, "Could (really) not find overlap between %d (%c) and %d (%c) estimated ahang: %d\n",
                 afrag->iid,afrag->type,bfrag->iid,bfrag->type,ahang);
          }
          PrintFrags(cnslog,0,&positions[i],1,global_fragStore, 
@@ -7918,24 +7952,21 @@ MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
             ahang=left;
          }
          SeedMAWithFragment(ma->lid,aid,0, opp);
-         // do the alignment 
-#if 1
+
+         //  do the alignment 
          olap_success = GetAlignmentTrace(aid, 0,bid,&ahang,ovl,trace,&otype, DP_Compare,SHOW_OLAP,0);
-         if ( !olap_success && COMPARE_FUNC != DP_Compare ) {
+         if ( !olap_success && COMPARE_FUNC != DP_Compare )
            olap_success = GetAlignmentTrace(aid, 0,bid,&ahang,ovl,trace,&otype, COMPARE_FUNC,SHOW_OLAP,0);
+
+         //  If the alignment fails -- usually because the ahang is
+         //  negative -- return an empty alignment.  This causes
+         //  extendClearRanges (the sole user of this function) to
+         //  gracefully handle the failure.
+         //
+         if (olap_success == 0) {
+           return(NULL);
+           assert(olap_success);
          }
-#else
-         //  BPW swiched over to Local_Overlap_AS_forCNS.
-         //
-         //  It's not clear if this does anything useful or not, but
-         //  it's now consistent with the rest of eCR.
-         //
-         //  Sadly, this also caused one microbe to fail eCR, so it's
-         //  now disabled.
-         //
-         olap_success = GetAlignmentTrace(aid, 0,bid,&ahang,ovl,trace,&otype, Local_Overlap_AS_forCNS, SHOW_OLAP,0);
-#endif
-         assert(olap_success);
 
          ApplyAlignment(aid, 0, bid, ahang, Getint32(trace,0));
 
