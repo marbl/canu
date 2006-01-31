@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.7 2005-09-22 23:58:54 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.8 2006-01-31 21:54:37 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -243,16 +243,19 @@ ScaffoldGraphT * LoadScaffoldGraphFromStream(FILE *stream){
   ScaffoldGraph = sgraph;
   sgraph->sequenceDB = SequenceDB;
 
+  //  BPW is unsure why we copy names to 'buffer'
+
   if(strlen(GlobalData->Frag_Store_Name) > 1)
   {
     char buffer[256];
     sprintf(buffer,"%s", GlobalData->Frag_Store_Name);
     fprintf(GlobalData->stderrc,"* Trying to open %s\n", buffer);
-#if 0
-    sgraph->fragStore = loadFragStore( buffer);
-#else
-    sgraph->fragStore = openFragStore( buffer, "r+");
-#endif
+
+    //  BPW switched to read-only.
+    //  Instead of opening, we could load:
+    //    sgraph->fragStore = loadFragStore( buffer);
+    //
+    sgraph->fragStore = openFragStore( buffer, "r");
 
     if(sgraph->fragStore == NULLSTOREHANDLE){
       fprintf(stderr,"**** Failure to open frag store %s ...exiting\n",buffer);
@@ -269,19 +272,20 @@ ScaffoldGraphT * LoadScaffoldGraphFromStream(FILE *stream){
     }else{
       fprintf(stderr,"*** Succeeded to open Gatekeeper Store.\n");
     }
-  }
-  else
+  } else {
+    fprintf(stderr,"*** No fragStore to open!\n");
     sgraph->fragStore = NULLSTOREHANDLE;
+  }
 
   status = safeRead(stream, sgraph->name, 256 * sizeof(char));
   assert(status == FALSE);
   fprintf(GlobalData->stderrc,"* Reading graph %s *\n", sgraph->name);
 
 
-  sgraph->iidToFragIndex = CreateFromFileVA_InfoByIID( stream,0);
-  sgraph->CIFrags =        CreateFromFileVA_CIFragT(stream,0);
-  sgraph->SourceFields =  CreateFromFileVA_char(stream,0);
-  sgraph->Dists =          CreateFromFileVA_DistT( stream,0);
+  sgraph->iidToFragIndex = CreateFromFileVA_InfoByIID(stream, 0);
+  sgraph->CIFrags        = CreateFromFileVA_CIFragT(stream, 0);
+  sgraph->SourceFields   = CreateFromFileVA_char(stream, 0);
+  sgraph->Dists          = CreateFromFileVA_DistT(stream, 0);
   {
     int i;
     for( i = 0; i < GetNumDistTs(sgraph->Dists); i++){
@@ -289,11 +293,9 @@ ScaffoldGraphT * LoadScaffoldGraphFromStream(FILE *stream){
       dist->samples = NULL;
     }
   }
-  fflush(stderr);
-  //  fprintf(GlobalData->stderrc,"* Loading CIGraph \n");
-  sgraph->CIGraph = LoadGraphCGWFromStream(stream);
-  //  fprintf(GlobalData->stderrc,"* Loading ContigGraph \n");
-  sgraph->ContigGraph = LoadGraphCGWFromStream(stream);
+
+  sgraph->CIGraph       = LoadGraphCGWFromStream(stream);
+  sgraph->ContigGraph   = LoadGraphCGWFromStream(stream);
   sgraph->ScaffoldGraph = LoadGraphCGWFromStream(stream);
 
   CheckGraph(sgraph->CIGraph);
@@ -304,22 +306,28 @@ ScaffoldGraphT * LoadScaffoldGraphFromStream(FILE *stream){
   sgraph->ChunkInstances = sgraph->CIGraph->nodes;
   sgraph->Contigs        = sgraph->ContigGraph->nodes;
   sgraph->CIScaffolds    = sgraph->ScaffoldGraph->nodes;
-  sgraph->CIEdges =        sgraph->CIGraph->edges;
+  sgraph->CIEdges        = sgraph->CIGraph->edges;
   sgraph->ContigEdges    = sgraph->ContigGraph->edges;
   sgraph->SEdges         = sgraph->ScaffoldGraph->edges;
-  sgraph->overlapper = sgraph->CIGraph->overlapper;
+  sgraph->overlapper     = sgraph->CIGraph->overlapper;
 
-
+  //  Disabled, BPW, 2005-12-28.  I can't find a reason why we reload
+  //  the fragStore, especially without destroying the previously
+  //  loaded store.  Now, we just check if we actually needed to
+  //  load.
+#if 1
+  if ((strlen(GlobalData->Frag_Store_Name) > 1) && (sgraph->fragStore == NULLSTOREHANDLE)) {
+    fprintf(stderr, "FAIL!  We didn't load the fragstore the first time, and\n");
+    fprintf(stderr, "BPW disabled the second load attempt.\n");
+    assert(0);
+  }
+#else
   if(strlen(GlobalData->Frag_Store_Name) > 1)
   {
     char buffer[256];
     sprintf(buffer,"%s", GlobalData->Frag_Store_Name);
     fprintf(GlobalData->stderrc,"* Trying to open %s\n", buffer);
-#if 0
-    sgraph->fragStore = loadFragStore( buffer);
-#else
-    sgraph->fragStore = openFragStore( buffer, "r+");
-#endif
+    sgraph->fragStore = openFragStore( buffer, "r");
 
     if(sgraph->fragStore == NULLSTOREHANDLE){
       fprintf(stderr,"**** Failure to open frag store %s ...exiting\n",buffer);
@@ -335,6 +343,8 @@ ScaffoldGraphT * LoadScaffoldGraphFromStream(FILE *stream){
   }
   else
     sgraph->fragStore = NULLSTOREHANDLE;
+#endif
+
 
   status = safeRead(stream, &sgraph->doRezOnContigs, sizeof(int32));
   assert(status == FALSE);
@@ -459,7 +469,8 @@ ScaffoldGraphT *CreateScaffoldGraph(int rezOnContigs, char *name,
 #if  0
     sgraph->fragStore = loadFragStore( buffer);
 #else
-    sgraph->fragStore = openFragStore( buffer, "r+");
+    //  BPW switched to read only
+    sgraph->fragStore = openFragStore( buffer, "r");
 #endif
     if(sgraph->fragStore == NULLSTOREHANDLE){
       fprintf(stderr,"**** Failure to open frag store %s ...exiting\n",buffer);
