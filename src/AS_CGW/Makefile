@@ -83,7 +83,7 @@ CGW_SOURCES = AS_CGW_LoadCheckpoint.c AS_CGW_main.c AS_CGW_dataTypes.c \
 	Output_CGW.c Input_CGW.c TransitiveReduction_CGW.c \
 	ChunkOverlap_CGW.c SplitScaffolds_CGW.c \
 	CIScaffoldT_Biconnected_CGW.c SplitChunks_CGW.c Instrument_CGW.c \
-	extendClearRanges.c localUnitigging_CGW.c \
+	eCR.c eCR-examineGap.c eCR-diagnostic.c localUnitigging_CGW.c \
 	AS_CGW_EdgeDiagnostics.c findMissedOverlaps.c scaffold2fasta.c \
 	examineFragStore.c InterleavedMerging.c exploreMates.c \
 	fixZLFContigs.c fixECRCheckpoint.c dumpBinaryUnitigMAs.c \
@@ -133,9 +133,10 @@ CGW_LIB_OBJECTS = $(CGW_LIB_SOURCES:.c=.o)
 LIBRARIES = libAS_CGW.a
 
 #PROGS = cgw CreateChunkStore LoadChunkStore testChunkOverlap
-PROGS = cgw CheckILK Checkpoint process_scaffolds loadcgw \
+#PROGS = extendClearRanges
+PROGS = cgw extendClearRanges CheckILK Checkpoint process_scaffolds loadcgw \
         ScaffoldMap testSplitChunks instrumentCheckpoint \
-	traceNodes extendClearRanges findMissedOverlaps localUnitigging_CGW \
+	traceNodes findMissedOverlaps localUnitigging_CGW \
 	scaffold2fasta examineFragStore exploreMates fixECRCheckpoint \
 	dumpBinaryUnitigMAs assemblyStructure dumpContigFromCkpt \
 	exploreGapStructure exploreScaffoldEnds asmInfoForFrg \
@@ -149,7 +150,6 @@ PROGS = cgw CheckILK Checkpoint process_scaffolds loadcgw \
 include $(LOCAL_WORK)/src/c_make.as
 
 #-include make.conf
-
 
 all: $(OBJECTS) $(LIBRARIES) $(PROGS)
 
@@ -167,7 +167,7 @@ exploreMates: exploreMates.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a li
 
 #smallLargeScaffolds: smallLargeScaffolds.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_CGW.a libAS_ALN.a libAS_SDB.a libAS_CGW.a $(LIN_ALG_LIB) libAS_MSG.a libAS_CGW.a libAS_UTL.a 
 
-extendClearRanges: extendClearRanges.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_CGW.a libAS_ALN.a libAS_SDB.a libAS_CGW.a $(LIN_ALG_LIB) libAS_MSG.a libAS_CGW.a libAS_UTL.a libAS_OVL.a
+extendClearRanges: eCR.o eCR-examineGap.o eCR-diagnostic.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_CGW.a libAS_ALN.a libAS_SDB.a libAS_CGW.a $(LIN_ALG_LIB) libAS_MSG.a libAS_CGW.a libAS_UTL.a libAS_OVL.a
 
 #fixContigMultiAligns: FixContigMultiAligns.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_CGW.a libAS_ALN.a libAS_SDB.a libAS_CGW.a $(LIN_ALG_LIB) libAS_MSG.a libAS_CGW.a libAS_UTL.a 
 
