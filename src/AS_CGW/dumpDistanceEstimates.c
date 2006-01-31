@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.5 2005-12-15 20:22:36 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.6 2006-01-31 21:46:26 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -613,12 +613,17 @@ dde_stats(int         operateOnNodes,
               dptr->mu, dptr->mean,
               dptr->sigma, dptr->stddev,
               dptr->numSamples, dptr->numReferences);
-      fprintf(stdout, "{DST\n");
-      fprintf(stdout, "act:R\n");
-      fprintf(stdout, "acc:"F_UID"\n", libMap[i]);
-      fprintf(stdout, "mea:%f\n", dptr->mu);
-      fprintf(stdout, "std:%f\n", dptr->sigma);
-      fprintf(stdout, "}\n");
+
+      if (dptr->mu - 3.0 * dptr->sigma < 0.0) {
+        fprintf(stderr, "Distance %3d is INVALID!  Possibly bimodal?\n", i);
+      } else {
+        fprintf(stdout, "{DST\n");
+        fprintf(stdout, "act:R\n");
+        fprintf(stdout, "acc:"F_UID"\n", libMap[i]);
+        fprintf(stdout, "mea:%f\n", dptr->mu);
+        fprintf(stdout, "std:%f\n", dptr->sigma);
+        fprintf(stdout, "}\n");
+      }
 
       //  We don't update here, just report
       //dptr->mean   = dptr->mu;
