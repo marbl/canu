@@ -88,6 +88,53 @@ ovlMemory    =    1GB --hashload 0.8
 will set the {\tt ovlMemory} option to the value {\tt 1GB --hashload
 0.8} (in particular, trimming whitespace from the ends).
 
+\subsection{Suggested Configurations}
+
+The following is some hints for running assemblies of various sizes.
+Emphasis here is on making the assembly run with acceptable
+computational performance.  It is left as an exercise to the reader to
+decide how to get acceptable algorithmic performance (i.e., a decent
+assembly).
+
+\subsubsection{Microbe}
+
+No special settings are needed.
+
+\subsubsection{Drosophilia}
+
+No special setting are needed, however, using the grid ({tt
+useGrid=1}) is suggested.  If possible, use local disk for the
+fragment store.  See Human below.
+
+\subsubsection{Human}
+
+Use of the grid is essential for both overlapper and consensus.
+
+Overlapper very quickly overwhelms the NFS server, so we increase both
+the hash size (the number of fragments ``in core'') and the reference
+block size (the number of fragments ``per job'').  To accomodate this,
+we need to use a carefully constructed {\tt ovlMemory} string that
+overrides some reasonable defaults.
+
+Fragment correction also benefits greatly by increasing the batch
+size.  See the {\tt frgCorrBatchSize} below for details.  At this
+size, we might as well use all processors available.
+
+Our settings are then:
+
+\begin{verbatim}
+useGrid=1
+ovlMemory=2GB --hashload 0.8 --hashstrings 110000
+ovlHashBlockSize=600000
+ovlRefBlockSize=7630000
+frgCorrBatchSize=1000000
+frgCorrThreads=4
+\end{verbatim}
+
+If specified on the command line, be sure to quote the spaces in {\tt
+ovlMemory}, either include the whole thing in quotes or use backslashes.
+
+
 \subsection{General Configuration Options}
 
 \begin{longtable}{lp{3.0in}}
