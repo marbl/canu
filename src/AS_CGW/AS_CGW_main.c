@@ -18,77 +18,76 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.16 2005-10-28 20:51:08 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.17 2006-01-31 21:47:16 brianwalenz Exp $";
 
 
-/*********************************************************************
- * Module:  AS_CGW_main.c
- * Description:
- *    cgw main
- * 
- *    Reference: 
- *
- *    Command Line Interface:
- *        $ cgw       
- *                    [-a]           align overlaps  (default)
- *                    [-b]           don't ignore UOM between contained     (default)
- *                    [-c]           Generate checkpoints
- *                    [-d]           DumpGraphs
- *                    [-e <thresh>]  Microhet score probability cutoff
- *                    [-f]           FragStore path (required)
- *                    [-g]           gkp Store path (required)
- *                    [-h]           Don't fail on merge alignment failure 
- *                    [-i <thresh>]  Set max coverage stat for microhet determination of non-uniqueness (default -1)         
- *                    [-j <thresh>]  Set min coverage stat for definite uniqueness         
- *                    [-k <thresh>]  Set max coverage stat for possible uniqueness         
- *                    [-l <maxdegree> ] 
- *                    [-m <minSamplesForOverride>]   For ComputeMatePairStatisticsRestricted, default is 1000
- *                    [-n] <scaffnum>  Starting scaffold number for stones          
- *                    [-o]           Output Name (required)
- *                    [-q <cutoff>]  Transquality cutoff
- *                    [-r <repeatRezlevel>]
- *                    [-s <stoneLevel> ]
- *                    [-t]           Don't ignore UOM Transchunks
- *                    [-T]           ignore UOM transchunks
- *                    [-u]           don't ignore UOM containments     (default)
- *                    [-U]           ignore UOM containments
- *                    [-v]           verbose
- *                    [-w <walkLevel> ]
- *                    [-x]           Dump stats on checkpoint load
- *                    [-y]           Turn off Check for -R < -N, for restarting small assemblies
- *
- *                    [-A]           don't align overlaps (quality values reflect bayesian)
- *                    [-B]           ignore UOM between contained
- *                    [-C]           Don't cleanup scaffolds
- *                    [-D <debugLevel>]
- *                    [-E]           output overlap only contig edges 
- *                    [-G]           Don't generate output (cgw or cam)
- *                    [-H]           fail on merge alignment failure   (default)
- *                    [-I]           ignore chaff unitigs
- *                    [-J]           annotate celamy output with Bactig content (default = false)
- *                    [-M]           don't do interleaved scaffold merging
- *                    [-N <checkpoint>] see CHECKPOINT_* below
- *                    [-O [icC]]     i = immediate, c = continue, C = celamy output only 
- *                    [-P]                            Proto Output
- *                    [-R <checkPoint>]
- *                    [-S]           Walk scaffolds smallest to biggest (biggest first is default)
- *                    [-W <startWalkFromScaffold> ]
- *                    [-X <Estimated number of nodes>]
- *                    [-Y <Estimated number of edges>]
- *                    [-Z] Don't demote singleton scaffolds
- *                    <CGBInputFile>
- *
- *       CGBInputFiles: The file with new IUM,OUM, etc records to process. 
- *
- *       Checkpoint File: File named <outputName>.ckp.n
- *
- *       The Chunk Graph Walker processes the input file, reporting errors and
- *       warnings.  Any message that causes an error warning is output
- *       to stderr, along with the associated warning/error messages.
- *       Copious log info is sent to <inputFile>.cgwlog.
- *       Celamy output is sent to <inputFile>.cam
- * 
- *********************************************************************/
+static const char *usage = 
+"usage: %s [options] -f <FragStoreName> -g <GatekeeperStoreName> -o <OutputPath> <InputCGB.ext>\n"
+"\n"
+"   [-a]           align overlaps  (default)\n"
+"   [-b]           don't ignore UOM between contained     (default)\n"
+"   [-c]           Generate checkpoints\n"
+"   [-d]           DumpGraphs\n"
+"   [-e <thresh>]  Microhet score probability cutoff\n"
+"   [-f]           FragStore path (required)\n"
+"   [-g]           gkp Store path (required)\n"
+"   [-h]           Don't fail on merge alignment failure\n"
+"   [-i <thresh>]  Set max coverage stat for microhet determination of non-uniqueness (default -1)\n"
+"   [-j <thresh>]  Set min coverage stat for definite uniqueness\n"
+"   [-k <thresh>]  Set max coverage stat for possible uniqueness\n"
+"   [-l <maxdegree> ]\n"
+"   [-m <minSamplesForOverride>]   For ComputeMatePairStatisticsRestricted, default is 1000\n"
+"   [-n] <scaffnum>  Starting scaffold number for stones\n"
+"   [-o]           Output Name (required)\n"
+"   [-q <cutoff>]  Transquality cutoff\n"
+"   [-r <repeatRezlevel>]\n"
+"   [-s <stoneLevel> ]\n"
+"   [-t]           Don't ignore UOM Transchunks\n"
+"   [-T]           ignore UOM transchunks\n"
+"   [-u]           don't ignore UOM containments     (default)\n"
+"   [-U]           ignore UOM containments\n"
+"   [-v]           verbose\n"
+"   [-w <walkLevel> ]\n"
+"   [-x]           Dump stats on checkpoint load\n"
+"   [-y]           Turn off Check for -R < -N, for restarting small assemblies\n"
+"\n"
+"   [-A]           don't align overlaps (quality values reflect bayesian)\n"
+"   [-B]           ignore UOM between contained\n"
+"   [-C]           Don't cleanup scaffolds\n"
+"   [-D <debugLevel>]\n"
+"   [-E]           output overlap only contig edges\n"
+"   [-G]           Don't generate output (cgw or cam)\n"
+"   [-H]           fail on merge alignment failure   (default)\n"
+"   [-I]           ignore chaff unitigs\n"
+"   [-J]           annotate celamy output with Bactig content (default = false)\n"
+"   [-M]           don't do interleaved scaffold merging\n"
+"   [-N <checkpoint>] see CHECKPOINT_* below\n"
+"   [-O [icC]]     i = immediate, c = continue, C = celamy output only\n"
+"   [-P]                            Proto Output\n"
+"   [-R <checkPoint>]\n"
+"   [-S]           Walk scaffolds smallest to biggest (biggest first is default)\n"
+"   [-W <startWalkFromScaffold> ]\n"
+"   [-X <Estimated number of nodes>]\n"
+"   [-Y <Estimated number of edges>]\n"
+"   [-Z] Don't demote singleton scaffolds\n"
+"\n"
+"CGBInputFiles: The file with new IUM,OUM, etc records to process.\n"
+"\n"
+"Checkpoint File: File named <outputName>.ckp.n\n"
+"\n"
+"The Chunk Graph Walker processes the input file, reporting errors and\n"
+"warnings.  Any message that causes an error warning is output\n"
+"to stderr, along with the associated warning/error messages.\n"
+"\n"
+"Copious log info is sent to <inputFile>.cgwlog\n"
+"Celamy output is sent to <inputFile>.cam\n"
+"\n"
+"Use 'L' after <repeatRezLevel> or <stoneLevel> to generate copious .log and .analysis files\n"
+"Opens ALL [<InputFileName>.<ext>]* to read input\n"
+"Writes diagnostic output to <OutputPath>.cgwlog\n"
+"Writes multiAlignments to <OutputPath>.SeqStore\n"
+"Writes output to <OutputPath>.cgw\n";
+
 //#define DEBUG 1
 //#define DEBUG_BUCIS 1
 //#define DEBUG_MERGE_SCAF 1
@@ -493,17 +492,11 @@ int main(int argc, char *argv[]){
 	errflg++;
       }
     }
-    if((argc - optind < 1 ) || (setFragStore == 0) || (setGatekeeperStore == 0) || (outputPath == NULL))
-      {
+
+    if ((argc - optind < 1 ) || (setFragStore == 0) || (setGatekeeperStore == 0) || (outputPath == NULL)) {
 	fprintf(GlobalData->stderrc,"* argc = %d optind = %d setFragStore = %d setGatekeeperStore = %d outputPath = %s\n",
 		argc, optind, setFragStore,setGatekeeperStore, outputPath);
-	fprintf (GlobalData->stderrc, "USAGE:  cgw [-deEcvPuUtTjXyY] [-j <uniqueCutoff>] [-D <debugLevel>] [-r <repeatRezLevel>] [-p <preMergeRezLevel>[L]] [-s <stoneLevel>[L]] [-w <walkLevel>] [-R <checkpoint>] [-N <cgwStage>] [-K <aligner>] -f <FragStoreName> -g <GatekeeperStoreName> -o <OutputPath> [<InputFileName>.<ext>]*\n"
-                 "Use 'L' after <repeatRezLevel> or <stoneLevel> to generate\n"
-                 "  copious .log and .analysis files\n"
-		 "Opens ALL [<InputFileName>.<ext>]* to read input\n"
-		 "Writes diagnostic output to <OutputPath>.cgwlog\n"
-		 "Writes multiAlignments to <OutputPath>.SeqStore\n"
-		 "Writes output to <OutputPath>.cgw\n");
+        fprintf(GlobalData->stderrc, usage, argv[0]);
 	exit (EXIT_FAILURE);
       }
 
@@ -908,9 +901,9 @@ int main(int argc, char *argv[]){
   // to unplaced contigs so they might be placed as stones
 
   if(demoteSingletonScaffolds){
-    fprintf(GlobalData->stderrc,"* Before DemoteSmallSingletonScaffolds \n");
+    fprintf(GlobalData->stderrc,"* Before DemoteSmallSingletonScaffolds\n");
     DemoteSmallSingletonScaffolds();
-    fprintf(GlobalData->stderrc,"* Before MergeScaffoldsAggressive \n");
+    fprintf(GlobalData->stderrc,"* Before MergeScaffoldsAggressive\n");
   }
   /* Now we throw stones */
   if  (((immediateOutput == -1)
@@ -1035,7 +1028,7 @@ int main(int argc, char *argv[]){
 
   if(immediateOutput == 0 && 
      (restartFromLogicalCheckpoint <= CHECKPOINT_BEFORE_2ND_SCAFF_MERGE)){
-    fprintf(GlobalData->stderrc,"* Before Final MergeScaffoldsAggressive \n");
+    fprintf(GlobalData->stderrc,"* Before Final MergeScaffoldsAggressive\n");
     CheckCIScaffoldTs(ScaffoldGraph);
 
 #if 0
@@ -1110,7 +1103,7 @@ int main(int argc, char *argv[]){
      {
       int  partial_stones;
 
-      fprintf (GlobalData -> stderrc, "* Starting Partial_Stones \n");
+      fprintf (GlobalData -> stderrc, "* Starting Partial_Stones\n");
 
       CheckCIScaffoldTs (ScaffoldGraph);
       StartTimerT (& data -> StoneThrowingTimer);
@@ -1166,7 +1159,7 @@ int main(int argc, char *argv[]){
      {
       int  contained_stones;
 
-      fprintf (GlobalData -> stderrc, "* Starting Final Contained Stones \n");
+      fprintf (GlobalData -> stderrc, "* Starting Final Contained Stones\n");
 
       CheckCIScaffoldTs (ScaffoldGraph);
       StartTimerT (& data -> StoneThrowingTimer);
@@ -1215,7 +1208,7 @@ int main(int argc, char *argv[]){
 	int mergedScaffolds = TRUE, round = 0;
 	char middleName[32];
 
-    fprintf(GlobalData->stderrc,"* Before Inter_Scaffold_Walking \n");
+    fprintf(GlobalData->stderrc,"* Before Inter_Scaffold_Walking\n");
 	
 	while ( mergedScaffolds && round < 10)
 	{
@@ -1251,7 +1244,7 @@ int main(int argc, char *argv[]){
 #if 1
   if(immediateOutput == 0 && 
      (restartFromLogicalCheckpoint <= CHECKPOINT_BEFORE_FINAL_CLEANUP)){
-    fprintf(GlobalData->stderrc,"* Before CleanupFailedMerges \n");
+    fprintf(GlobalData->stderrc,"* Before CleanupFailedMerges\n");
 
 
     // Try to cleanup failed merges, and if we do, generate a checkpoint
@@ -1335,7 +1328,7 @@ int main(int argc, char *argv[]){
   CelamyCIScaffolds(data->File_Name_Prefix,ScaffoldGraph);
   fprintf(stderr,"* Calling CelamyAssembly\n");
   CelamyAssembly(data->File_Name_Prefix);
-  fprintf(stderr,"* Done with Celamy output \n");
+  fprintf(stderr,"* Done with Celamy output\n");
   fflush(NULL);
   }
 
