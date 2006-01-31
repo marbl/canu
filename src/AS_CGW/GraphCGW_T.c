@@ -23,7 +23,7 @@ cc -g -pg -qfullpath   -qstrict -qbitfields=signed -qchars=signed -qlanglvl=ext 
 -o /work/assembly/rbolanos/IBM_PORT_CDS/ibm_migration_work_dir/cds/AS/obj/GraphCGW_T.o GraphCGW_T.c
 */
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.8 2005-11-08 21:37:34 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.9 2006-01-31 21:51:31 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2021,38 +2021,34 @@ void CheckEdgesAgainstOverlapper(GraphCGW_T *graph){
   EdgeCGW_T *edge;
   GraphEdgeIterator edgeMates;
   GraphNodeIterator nodes;
-  CDS_CID_t cid;
   NodeCGW_T *node;
+  ChunkOverlapCheckT olap;
+  int count    = 0;
   int failures = 0;
-  
+
   fprintf(GlobalData->stderrc,"**** Calling CheckEdgesAgainstOverlapper ****\n");
   InitGraphNodeIterator(&nodes, graph, GRAPH_NODE_DEFAULT);
+
   while(NULL != (node = NextGraphNodeIterator(&nodes))){
-    
-    cid = node->id;
-    InitGraphEdgeIterator(graph, cid, ALL_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edgeMates);
-    
+    InitGraphEdgeIterator(graph, node->id, ALL_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edgeMates);
+
     while(NULL != (edge = NextGraphEdgeIterator(&edgeMates))){
-      
-      
       if(isOverlapEdge(edge)){
-        ChunkOverlapCheckT olap;
-        int overlapCheckFound = LookupOverlap(graph, 
-                                              edge->idA, edge->idB,
-                                              edge->orient, &olap);
-        
-        if(!overlapCheckFound ){
-          fprintf(GlobalData->stderrc,"* Failure in CheckEdgeAgainstOverlapper for:\n");
-          PrintGraphEdge(GlobalData->stderrc, graph, " ", edge, cid);
+        count++;
+        if (LookupOverlap(graph, 
+                          edge->idA, edge->idB,
+                          edge->orient, &olap) == FALSE) {
+          fprintf(GlobalData->stderrc,"* Failure in CheckEdgeAgainstOverlapper for edge #%d:\n", count);
+          PrintGraphEdge(GlobalData->stderrc, graph, " ", edge, node->id);
           failures++;
         }
-        assert(overlapCheckFound);
-        // This is no longer true!!!! assert(olap.overlap);
       }
     }
   }
+
+  assert(failures == 0);
+
   fprintf(GlobalData->stderrc,"**** Survived CheckEdgesAgainstOverlapper with %d failures****\n", failures);
-  
 }
 
 /****************************************************************************/

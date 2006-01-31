@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: GraphCGW_T.h,v 1.5 2005-11-18 20:47:34 brianwalenz Exp $	 */
+/* 	$Id: GraphCGW_T.h,v 1.6 2006-01-31 21:51:31 brianwalenz Exp $	 */
 
 /**************************************************************************
  *  GraphCGW
@@ -1402,11 +1402,6 @@ void CollectChunkOverlap(GraphCGW_T *graph,
                          float32 meanOverlap, float32 deltaOverlap,
                          float32 quality, int bayesian,
                          int fromCGB, int verbose);
-
-int LookupOverlap(GraphCGW_T *graph,
-		  CDS_CID_t cidA, CDS_CID_t cidB,
-		  ChunkOrientationType orientation,
-		  ChunkOverlapCheckT *olap);
 
 
 int32 GetGappedMultipleCoverageInterval(GraphCGW_T *graph, CDS_CID_t cid,
