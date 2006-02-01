@@ -80,21 +80,55 @@ sub eCR ($$) {
     system("ln -s $wrk/$lastDir/$asm.ckp.$lastckp $wrk/$thisDir/$asm.ckp.$lastckp")  if (! -e "$wrk/$thisDir/$asm.ckp.$lastckp");
     system("ln -s $wrk/$asm.SeqStore              $wrk/$thisDir/$asm.SeqStore")      if (! -e "$wrk/$thisDir/$asm.SeqStore");
 
-    backupFragStore("before-$thisDir");
+    #  Run eCR in smaller batches, hopefully making restarting from a failure both
+    #  faster and easier.
 
-    my $cmd;
-    $cmd  = "cd $wrk/$thisDir && ";
-    $cmd .= "$bin/extendClearRanges ";
-    $cmd .= " -B ";
-    $cmd .= " -f $wrk/$asm.frgStore ";
-    $cmd .= " -g $wrk/$asm.gkpStore ";
-    $cmd .= " -c $asm ";
-    $cmd .= " -n $lastckp ";
-    $cmd .= " -s -1 ";
-    $cmd .= " > $wrk/$thisDir/extendClearRanges.err 2>&1";
-    if (runCommand($cmd)) {
-        print STDERR "Failed.\n";
-        exit(1);
+    my $curScaffold  = 0;
+    my $endScaffold  = 0;
+    my $numScaffolds = findNumScaffoldsInCheckpoint($thisDir, $lastckp);
+    my $stepSize     = 5000;
+
+    my $substrlen = length("$numScaffolds");
+
+    while ($curScaffold < $numScaffolds) {
+        $endScaffold = $curScaffold + $stepSize;
+        $endScaffold = $numScaffolds if ($endScaffold > $numScaffolds);
+
+        $curScaffold = substr("000000000$curScaffold", -$substrlen);
+
+        if (! -e "$wrk/$thisDir/extendClearRanges-scaffold.$curScaffold.success") {
+            backupFragStore("before-$thisDir-scaffold.$curScaffold");
+
+            $lastckp = findLastCheckpoint($thisDir);
+
+            my $cmd;
+            $cmd  = "cd $wrk/$thisDir && ";
+            $cmd .= "$bin/extendClearRanges ";
+            $cmd .= " -B ";
+            $cmd .= " -b $curScaffold -e $endScaffold ";
+            $cmd .= " -f $wrk/$asm.frgStore ";
+            $cmd .= " -g $wrk/$asm.gkpStore ";
+            $cmd .= " -c $asm ";
+            $cmd .= " -n $lastckp ";
+            $cmd .= " -s -1 ";
+            $cmd .= " > $wrk/$thisDir/extendClearRanges-scaffold.$curScaffold.err 2>&1";
+
+            open(F, "> $wrk/$thisDir/extendClearRanges-scaffold.$curScaffold.sh");
+            print F "$cmd\n";
+            close(F);
+
+            if (runCommand($cmd)) {
+                print STDERR "Failed.\n";
+                print STDERR "fragStore restored:    db.frg -> db.frg.during.$thisDir-scaffold.$curScaffold.FAILED\n";
+                print STDERR "                       db.frg.before-$thisDir-scaffold.$curScaffold -> db.frg\n";
+                rename "$wrk/$asm.frgStore/db.frg", "$wrk/$asm.frgStore/db.frg.during.$thisDir-scaffold.$curScaffold.FAILED";
+                rename "$wrk/$asm.frgStore/db.frg.before-$thisDir-scaffold.$curScaffold", "$wrk/$asm.frgStore/db.frg";
+                exit(1);
+            }
+            touch("$wrk/$thisDir/extendClearRanges-scaffold.$curScaffold.success");
+        }
+
+        $curScaffold = $endScaffold;
     }
 
     touch("$wrk/$thisDir/extendClearRanges.success");
@@ -125,7 +159,7 @@ sub updateDistanceRecords ($) {
     my $uidServer        = getGlobal("uidServer");
 
     #  Some funny baloney to get around perl wanting to print large
-    #  numbers in scientific notation.  Make you just want to hate and
+    #  numbers in scientific notation.  Makes you just want to hate and
     #  love perl, don't it?
     #
     $terminateFakeUID = "987654312198765" . (4321 + $lastckp) if ($terminateFakeUID > 0);
