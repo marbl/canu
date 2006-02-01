@@ -262,25 +262,6 @@ sub overlapTrim {
             die "Failed.\n";
         }
     }
-
-
-    #  Finally, for any UID's in the "do not trim" file, restore their
-    #  original trimming, and possibly undelete them.
-
-
-    #  Unitigger needs an input .ofg file, which is pretty much just a dump of the fragstore.
-    #
-    if ((! -e "$wrk/0-preoverlap/$asm.ofg.orig") &&
-        (! -e "$wrk/0-preoverlap/$asm.ofg.orig.bz2")) {
-        if (runCommand("$bin/make_OFG_from_FragStore $wrk/$asm.frgStore > $wrk/0-preoverlap/$asm.2.ofg")) {
-            unlink "$wrk/0-preoverlap/$asm.2.ofg";
-            die "Failed.\n";
-        }
-        rename "$wrk/0-preoverlap/$asm.ofg", "$wrk/0-preoverlap/$asm.ofg.orig";
-        rename "$wrk/0-preoverlap/$asm.2.ofg", "$wrk/0-preoverlap/$asm.ofg";
-    }
 }
-
-
 
 1;

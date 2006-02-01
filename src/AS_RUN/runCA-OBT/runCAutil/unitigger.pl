@@ -4,15 +4,32 @@ sub unitigger {
 
     system("mkdir $wrk/4-unitigger") if (! -e "$wrk/4-unitigger");
 
-    if (! -e "$wrk/4-unitigger/$asm.ofgList") {
-        if (runCommand("ls -1 $wrk/0-preoverlap/*.ofg > $wrk/4-unitigger/$asm.ofgList")) {
-            print STDERR "Failed to find the ofg's.\n";
-            rename "$wrk/4-unitigger/$asm.ofgList", "$wrk/4-unitigger/$asm.ofgList.FAILED";
-            exit(1);
-        }
-    }
-
     if (! -e "$wrk/4-unitigger/unitigger.success") {
+
+        if (! -e "$wrk/4-unitigger/$asm.ofgList") {
+            if (runCommand("ls -1 $wrk/0-preoverlap/*.ofg > $wrk/4-unitigger/$asm.ofgList")) {
+                print STDERR "Failed to find the ofg's.\n";
+                rename "$wrk/4-unitigger/$asm.ofgList", "$wrk/4-unitigger/$asm.ofgList.FAILED";
+                exit(1);
+            }
+        }
+
+
+        #  Unitigger needs an input .ofg file, which is pretty much just a
+        #  dump of the fragstore.  We used to save the original, for no
+        #  real reason.  Now, just rebuild the .ofg if the fragstore is
+        #  newer than the ofg we have.
+        #
+        my $cmd;
+        $cmd  = "[ $wrk/$asm.frgStore/db.frg -nt $wrk/0-preoverlap/$asm.ofg ] && ";
+        $cmd .= "$bin/make_OFG_from_FragStore $wrk/$asm.frgStore > $wrk/0-preoverlap/$asm.ofg || ";
+        $cmd .= "true";
+        if (runCommand($cmd)) {
+            #unlink "$wrk/0-preoverlap/$asm.ofg";
+            die "Failed.\n";
+        }
+
+
         my $cmd;
         $cmd  = "cd $wrk/4-unitigger && ";
         $cmd .= "$bin/unitigger ";
