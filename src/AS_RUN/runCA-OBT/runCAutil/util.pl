@@ -139,10 +139,7 @@ sub setParameters {
             my ($var, $val) = split '=', $_;
             $var =~ s/^\s+//; $var =~ s/\s+$//;
             $val =~ s/^\s+//; $val =~ s/\s+$//;
-            if (($var ne "") && ($val ne "")) {
-                $global{$var} = $val;
-                print STDERR "spec: '$var' <- '$val'\n";
-            }
+            setGlobal($var, $val);
         }
         close(F);
     }
@@ -151,10 +148,7 @@ sub setParameters {
         my ($var, $val) = split '=', $s;
         $var =~ s/^\s+//; $var =~ s/\s+$//;
         $val =~ s/^\s+//; $val =~ s/\s+$//;
-        if (($var ne "") && ($val ne "")) {
-            $global{$var} = $val;
-            print STDERR "opts: '$var' <- '$val'\n";
-        }
+        setGlobal($var, $val);
     }
 
     #  If we have been given a configuration in the spec file, use that instead.
@@ -174,7 +168,7 @@ sub setParameters {
 }
 
 
-sub findLastCheckpoint {
+sub findLastCheckpoint ($) {
     my $dir     = shift @_;
     my $lastckp = "000";
 
@@ -191,6 +185,20 @@ sub findLastCheckpoint {
     close(F);
 
     return($lastckp);
+}
+
+sub findNumScaffoldsInCheckpoint ($$) {
+    my $dir     = shift @_;
+    my $lastckp = shift @_;
+
+    open(F, "cd $wrk/$dir && $bin/getNumScaffolds $asm $lastckp 2> /dev/null |");
+    my $numscaf = <F>;  chomp $numscaf;
+    close(F);
+    $numscaf = int($numscaf);
+
+    die "findNumSCaffoldsInCheckpoint($dir, $lastckp) found no scaffolds?!" if ($numscaf == 0);
+    print STDERR "Found $numscaf in $dir checkpoint $lastckp\n";
+    return($numscaf);
 }
 
 
