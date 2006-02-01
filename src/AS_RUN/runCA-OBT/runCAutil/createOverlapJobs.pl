@@ -57,9 +57,18 @@ sub createOverlapJobs {
     print F "  perl=/usr/local/bin/perl\n";
     print F "fi\n";
     print F "\n";
-    print F "bat=`\$perl $wrk/$outDir/ovlopts.pl bat \$SGE_TASK_ID`\n";
-    print F "job=`\$perl $wrk/$outDir/ovlopts.pl job \$SGE_TASK_ID`\n";
-    print F "opt=`\$perl $wrk/$outDir/ovlopts.pl opt \$SGE_TASK_ID`\n";
+    print F "jobid=\$SGE_TASK_ID\n";
+    print F "if [ x\$jobid = x ]; then\n";
+    print F "  jobid=\$1\n";
+    print F "fi\n";
+    print F "if [ x\$jobid = x ]; then\n";
+    print F "  echo Error: I need SGE_TASK_ID set, or a job index on the command line.\n";
+    print F "  exit 1\n";
+    print F "fi\n";
+    print F "\n";
+    print F "bat=`\$perl $wrk/$outDir/ovlopts.pl bat \$jobid`\n";
+    print F "job=`\$perl $wrk/$outDir/ovlopts.pl job \$jobid`\n";
+    print F "opt=`\$perl $wrk/$outDir/ovlopts.pl opt \$jobid`\n";
     print F "\n";
     print F "if [ ! -d $wrk/$outDir/\$bat ]; then\n";
     print F "  mkdir $wrk/$outDir/\$bat\n";
@@ -71,6 +80,11 @@ sub createOverlapJobs {
     print F "\n";
     print F "echo out = $scratch/\$bat-\$job.ovl\n";
     print F "echo out = $wrk/$outDir/\$bat/\$job.ovl";
+    print F "\n";
+    print F "if [ -e $wrk/$outDir/\$bat/\$job.success ]; then\n";
+    print F "  echo Job previously completed successfully.\n";
+    print F "  exit\n";
+    print F "fi\n";
     print F "\n";
     print F "$pstats \\\n" if (defined($pstats));
     print F "$gin/overlap -P $ovlOpt -M $ovlMemory -t $ovlThreads \\\n";
@@ -201,12 +215,10 @@ sub createOverlapJobs {
     } else {
         for (my $i=1; $i<=$jobs; $i++) {
             my $out = substr("0000" . $i, -4);
-            $ENV{'SGE_TASK_ID'} = $i;
-            if (runCommand("$wrk/$outDir/overlap.sh > $wrk/$outDir/$out.out 2>&1")) {
+            if (runCommand("$wrk/$outDir/overlap.sh $i > $wrk/$outDir/$out.out 2>&1")) {
                 print STDERR "Failed job $i\n";
                 exit(1);
             }
-            delete $ENV{'SGE_TASK_ID'};
         }
 
         touch("$wrk/$outDir/jobsCreated.success");
