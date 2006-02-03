@@ -30,7 +30,7 @@
 
 **********************************************************************/
 
-static char CM_ID[] = "$Id: ConsistencyChecksREZ.c,v 1.4 2005-03-22 19:49:21 jason_miller Exp $";
+static char CM_ID[] = "$Id: ConsistencyChecksREZ.c,v 1.5 2006-02-03 16:25:42 mcschatz Exp $";
 
 
 /* ---------------------------------------------------- */
@@ -71,9 +71,18 @@ static char CM_ID[] = "$Id: ConsistencyChecksREZ.c,v 1.4 2005-03-22 19:49:21 jas
 #include "ChiSquareTest_CGW.h"
 
 
+extern int  Global_Debug_Flag;
+
 /* ---------------------------------------------------- */
 /* static function and variable declaration */
 /* ---------------------------------------------------- */
+
+static void  Canonicalize
+    (CIEdgeT * edge, const Gap_Chunk_t * c1, const Gap_Chunk_t * c2);
+
+static bool check_distribs(LengthT *, 
+			   LengthT *, 
+			   LengthT *);
 
 static bool left_of(const Gap_Chunk_t *,
 		    const Gap_Chunk_t *);
@@ -82,9 +91,6 @@ static void estimate_gap_distrib(const Gap_Chunk_t *,
 				 const Gap_Chunk_t *,
 				 LengthT *);
 
-static bool check_distribs(LengthT *, 
-			   LengthT *, 
-			   LengthT *);
 
 
 #if  CHECK_CELSIM_COORDS
@@ -124,8 +130,15 @@ int Is_Edge_Orientation_Consistent(CIEdgeT * edge,
   // of the chunks
   //
   CIOrient leftCIorient = X_X, rightCIorient = X_X;
+  CIEdgeT  tmp_edge = * edge;
   
-  switch (GetEdgeOrientationWRT(edge, left->chunk_id)) {
+  // Contained edges can have two different orientations
+  // Make  tmp_edge  be the one that matches how
+  // this test is done.
+  if  (tmp_edge . distance . mean < 0.0)
+      Canonicalize (& tmp_edge, left, right);
+
+  switch (GetEdgeOrientationWRT(& tmp_edge, left->chunk_id)) {
   case AB_AB:
     //      leftCI                                        rightCI
     //  A --------------------- B               A --------------------- B
@@ -183,19 +196,30 @@ int Is_Edge_Consistent(CIEdgeT *edge,
   LengthT
     estimated_distribution,
     combined_distribution;
+  CIEdgeT  tmp_edge;
   int retVal;
   assert(edge != NULL);
   assert(left != NULL);
   assert(right != NULL);
 
+  // Contained edges can have two different orientations
+  // Make  tmp_edge  be the one that matches how
+  // this test is done.
+  tmp_edge = * edge;
+  if  (tmp_edge . distance . mean < 0.0)
+      Canonicalize (& tmp_edge, left, right);
+      
   estimate_gap_distrib(left, right, &estimated_distribution);
-  combine_two_distrib(estimated_distribution, edge->distance, &combined_distribution);
-  retVal = check_distribs(&estimated_distribution, &(edge->distance), &combined_distribution);
+  combine_two_distrib(estimated_distribution, tmp_edge . distance, &combined_distribution);
+  retVal = check_distribs(&estimated_distribution, &(tmp_edge . distance),
+       &combined_distribution);
+
   /*  if(!retVal){
     fprintf(stderr,"* Edge (%d,%d,%c) is inconsistent\n",
 	    edge->idA, edge->idB, edge->orient);
   }
   */
+
   return retVal;
 }
 
@@ -951,6 +975,127 @@ static void estimate_gap_distrib(const Gap_Chunk_t *cT1,
   }
   return;
 }
+
+
+
+static void  Canonicalize
+    (CIEdgeT * edge, const Gap_Chunk_t * c1, const Gap_Chunk_t * c2)
+
+//  Flip  edge  if necessary so that it represents the gap between
+//   c1  and  c2 , depending on which begins to the left of the other.
+
+  {
+   bool  c1_flipped, c2_flipped, need_change;
+   double  left_c1, left_c2;
+
+   // Make edge go from c1 to c2 if necessary
+   if  (edge -> idA != c1 -> chunk_id)
+       {
+        const Gap_Chunk_t  * tmp;
+
+        tmp = c1;
+        c1 = c2;
+        c2 = tmp;
+       }
+assert (edge -> idA == c1 -> chunk_id && edge -> idB == c2 -> chunk_id);
+
+   if  (c1 -> start . mean < c1 -> end . mean)
+       {
+        c1_flipped = FALSE;
+        left_c1 = c1 -> start . mean;
+       }
+     else
+       {
+        c1_flipped = TRUE;
+        left_c1 = c1 -> end . mean;
+       }
+   if  (c2 -> start . mean < c2 -> end . mean)
+       {
+        c2_flipped = FALSE;
+        left_c2 = c2 -> start . mean;
+       }
+     else
+       {
+        c2_flipped = TRUE;
+        left_c2 = c2 -> end . mean;
+       }
+
+   need_change = FALSE;
+   if  (left_c1 < left_c2)
+       {
+        switch (edge -> orient)
+          {
+           case  AB_AB :
+           case  AB_BA :
+             if  (c1_flipped)
+                 need_change = TRUE;
+             break;
+           case  BA_AB :
+           case  BA_BA :
+             if  (! c1_flipped)
+                 need_change = TRUE;
+             break;
+           default :
+             fprintf (stderr, "YIKES:  Bad orientation = %d at line %d file %s\n",
+                  (int) edge -> orient, __LINE__, __FILE__);
+             assert (FALSE);
+          }
+       }
+     else
+       {
+        switch (edge -> orient)
+          {
+           case  AB_AB :
+           case  AB_BA :
+             if  (! c1_flipped)
+                 need_change = TRUE;
+             break;
+           case  BA_AB :
+           case  BA_BA :
+             if  (c1_flipped)
+                 need_change = TRUE;
+             break;
+           default :
+             fprintf (stderr, "YIKES:  Bad orientation = %d at line %d file %s\n",
+                  (int) edge -> orient, __LINE__, __FILE__);
+             assert (FALSE);
+          }
+       }
+       
+   if  (need_change)
+       {
+        double  c1_len, c2_len;
+        double  neg_half;
+
+        c1_len = fabs (c1 -> end . mean - c1 -> start . mean);
+        c2_len = fabs (c2 -> end . mean - c2 -> start . mean);
+        neg_half = (c1_len + c2_len) / -2.0;
+        edge -> distance . mean = - c1_len - c2_len - edge -> distance . mean;
+
+        switch (edge -> orient)
+          {
+           case  AB_AB :
+             edge -> orient = BA_BA;
+             break;
+           case  AB_BA :
+             edge -> orient = BA_AB;
+             break;
+           case  BA_AB :
+             edge -> orient = AB_BA;
+             break;
+           case  BA_BA :
+             edge -> orient = AB_AB;
+             break;
+           default :
+             fprintf (stderr, "YIKES:  Bad orientation = %d at line %d file %s\n",
+                  (int) edge -> orient, __LINE__, __FILE__);
+             assert (FALSE);
+          }
+       }
+
+   return;
+  }
+
 
 
 static bool check_distribs(LengthT *est, 
