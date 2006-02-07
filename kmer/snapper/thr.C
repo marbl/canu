@@ -134,6 +134,21 @@ searchThread(void *U) {
 
         ///////////////////////////////////////
         //
+        //  If we aren't validating or aren't logging, don't save those pieces, just nuke them now.
+        //
+        if (config._doValidation == false) {
+          delete [] theHits;
+          theHitsLen  = 0;
+          theHits     = 0L;
+        }
+
+        if (config._logmsgFileName == 0L) {
+          delete theLog;
+          theLog = 0L;
+        }
+
+        ///////////////////////////////////////
+        //
         //  Signal that we are done.
         //
         answerLen[idx] = theHitsLen;
