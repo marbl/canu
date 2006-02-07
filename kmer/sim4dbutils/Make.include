@@ -7,12 +7,14 @@ LIBKMER/    :=$(call MakePath,$/../libkmer/)
 LIBSIM4/    :=$(call MakePath,$/../libsim4/)
 
 src  := $/cleanPolishes.C \
+        $/fixPolishesIID.C \
         $/comparePolishes.C \
         $/filterPolishes.c \
         $/headPolishes.c \
         $/mergePolishes.C \
         $/parseSNP.c \
         $/pickBestPolish.c \
+        $/pickUniquePolish.C \
         $/plotCoverageVsIdentity.c \
         $/removeDuplicate.c \
         $/sortPolishes.c \
@@ -31,12 +33,14 @@ obj_C := ${$/.CXX_SRCS:.C=.o}
 
 # always using c++ to link
 $/.CXX_EXES := $/cleanPolishes \
+               $/fixPolishesIID \
                $/comparePolishes \
                $/filterPolishes \
                $/headPolishes \
                $/mergePolishes \
                $/parseSNP \
                $/pickBestPolish \
+               $/pickUniquePolish \
                $/plotCoverageVsIdentity \
                $/removeDuplicate \
                $/sortPolishes \
@@ -56,7 +60,9 @@ $/headPolishes                : $/headPolishes.o
 $/mergePolishes               : $/mergePolishes.o
 $/sortPolishes                : $/sortPolishes.o
 $/pickBestPolish              : $/pickBestPolish.o
+$/pickUniquePolish            : $/pickUniquePolish.o
 $/cleanPolishes               : $/cleanPolishes.o
+$/fixPolishesIID              : $/fixPolishesIID.o
 $/plotIntronSize              : $/plotIntronSize.o
 $/plotCoverageVsIdentity      : $/plotCoverageVsIdentity.o
 $/parseSNP                    : $/parseSNP.o
