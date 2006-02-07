@@ -322,21 +322,23 @@ main(int argc, char **argv) {
 
 
 
-  //  Open and init the query sequence
+  //  Open and init the query sequence.
   //
   if (config._beVerbose)
     fprintf(stderr, "Opening the cDNA sequences.\n");
 
   qsFASTA = new FastAWrapper(config._qsFileName);
-
-#if 0
-  fprintf(stderr, "WARNING:  USING HARDCODED NUMBER OF QUERIES!\n");
-  numberOfQueries = 31917167;
-#else
   qsFASTA->openIndex();
 
   numberOfQueries  = qsFASTA->getNumberOfSequences();
-#endif
+
+  //  All we use the index for is to count the number of sequences for
+  //  the output display (and, OK, sizing the queues).  Close the
+  //  index to free up significant memory on large datasets.
+
+  delete qsFASTA;
+  qsFASTA = new FastAWrapper(config._qsFileName);
+
   input            = new FastASequenceInCore * [numberOfQueries];
   inputHead        = 0;
   inputTail        = 0;
@@ -354,19 +356,6 @@ main(int argc, char **argv) {
     output[i]           = 0L;
     logmsg[i]           = 0L;
   }
-
-#if 0
-  //  All we use the index for is to count the number of sequences for
-  //  the output display (and, OK, sizing the queues).  Close the
-  //  index to free up significant memory on large datasets.
-
-  delete qsFASTA;
-
-  //  And then open it again
-
-  qsFASTA = new FastAWrapper(config._qsFileName);
-#endif
-
 
 
   //  Init all done!
@@ -610,14 +599,10 @@ main(int argc, char **argv) {
               remTime);
       fflush(stderr);
 
-      if      (perSec < 32.0)
-        outputMask = 0xf;
-      else if (perSec < 256.0)
-        outputMask = 0x7f;
-      else if (perSec < 1024.0)
-        outputMask = 0x1ff;
-      else
-        outputMask = 0x3ff;
+      if      (perSec <   32.0) outputMask = 0x000f;
+      else if (perSec <  256.0) outputMask = 0x007f;
+      else if (perSec < 1024.0) outputMask = 0x01ff;
+      else                      outputMask = 0x03ff;
     }
   }
 
