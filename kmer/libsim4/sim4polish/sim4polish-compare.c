@@ -57,6 +57,70 @@ s4p_genIDcompare(const void *a, const void *b) {
 
 
 
+int
+s4p_estDEFcompare(const void *a, const void *b) {
+  sim4polish *A = (*(sim4polish **)a);
+  sim4polish *B = (*(sim4polish **)b);
+  int         e = 0;
+
+  if (A == 0L)  return(1);
+  if (B == 0L)  return(-1);
+
+  if (A->estDefLine == 0L)  return(1);
+  if (B->estDefLine == 0L)  return(-1);
+  e = strcmp(A->estDefLine, B->estDefLine);
+  if (e < 0) return(-1);
+  if (e > 0) return(1);
+
+  if (A->genDefLine == 0L)  return(1);
+  if (B->genDefLine == 0L)  return(-1);
+  e = strcmp(A->genDefLine, B->genDefLine);
+  if (e < 0) return(-1);
+  if (e > 0) return(1);
+
+  if (A->genLo < B->genLo) return(-1);
+  if (A->genLo > B->genLo) return(1);
+  if (A->exons[0].genFrom < B->exons[0].genFrom) return(-1);
+  if (A->exons[0].genFrom > B->exons[0].genFrom) return(1);
+
+  return(0);
+}
+
+
+
+int
+s4p_genDEFcompare(const void *a, const void *b) {
+  sim4polish *A = (*(sim4polish **)a);
+  sim4polish *B = (*(sim4polish **)b);
+  int         e = 0;
+
+  if (A == 0L)  return(1);
+  if (B == 0L)  return(-1);
+
+  if (A->genDefLine == 0L)  return(1);
+  if (B->genDefLine == 0L)  return(-1);
+  e = strcmp(A->genDefLine, B->genDefLine);
+  if (e < 0) return(-1);
+  if (e > 0) return(1);
+
+  if (A->estDefLine == 0L)  return(1);
+  if (B->estDefLine == 0L)  return(-1);
+  e = strcmp(A->estDefLine, B->estDefLine);
+  if (e < 0) return(-1);
+  if (e > 0) return(1);
+
+  if (A->genLo < B->genLo) return(-1);
+  if (A->genLo > B->genLo) return(1);
+  if (A->exons[0].genFrom < B->exons[0].genFrom) return(-1);
+  if (A->exons[0].genFrom > B->exons[0].genFrom) return(1);
+
+  return(0);
+}
+
+
+
+
+
 
 
 //  Return false if not from the same EST/GEN pair, or mapped to
@@ -111,7 +175,6 @@ int
 s4p_IsRegionOverlap(sim4polish *A, sim4polish *B) {
   int Alo=0, Ahi=0;
   int Blo=0, Bhi=0;
-  int Dlo=0, Dhi=0;
 
   if (A->genID != B->genID)
     return(0);

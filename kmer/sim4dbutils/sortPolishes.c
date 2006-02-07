@@ -15,8 +15,8 @@
 
 char const *usage =
 "usage: %s [-c | -g] [-m M] [-t T]\n"
-"  -c         Sort by the cDNA index.\n"
-"  -g         Sort by the genomic index.\n"
+"  -c (-C)    Sort by the cDNA index (defline).\n"
+"  -g (-G)    Sort by the genomic index (defline).\n"
 "  -m M       Use at most M MB of core, using a disk-based merge if memory\n"
 "             is exhausted.  Default: 4096.\n"
 "  -t T       Use directory 'T' for temporary files.  Default is the current\n"
@@ -212,6 +212,10 @@ main(int argc, char **argv) {
       fcn = s4p_estIDcompare;
     } else if (strncmp(argv[arg], "-g", 2) == 0) {
       fcn = s4p_genIDcompare;
+    } else if (strncmp(argv[arg], "-C", 2) == 0) {
+      fcn = s4p_estDEFcompare;
+    } else if (strncmp(argv[arg], "-G", 2) == 0) {
+      fcn = s4p_genDEFcompare;
     } else if (strncmp(argv[arg], "-m", 2) == 0) {
       arg++;
       upperAlloc = atof(argv[arg]) * 1048576.0;
@@ -235,7 +239,8 @@ main(int argc, char **argv) {
   }
 
   if (fcn == 0L) {
-    fprintf(stderr, "%s: what key do you want to sort on (-c or -g)\n", argv[0]);
+    fputs(usage, stderr);
+    fprintf(stderr, "%s: what key do you want to sort on (-c, -g, -C, -G)\n", argv[0]);
     exit(1);
   }
 

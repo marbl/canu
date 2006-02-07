@@ -79,6 +79,9 @@ extern "C" {
 int            s4p_genIDcompare(const void *a, const void *b);
 int            s4p_estIDcompare(const void *a, const void *b);
 
+int            s4p_genDEFcompare(const void *a, const void *b);
+int            s4p_estDEFcompare(const void *a, const void *b);
+
 sim4polish    *s4p_readPolish(FILE *F);
 sim4polish    *s4p_copyPolish(sim4polish *orig);
 
