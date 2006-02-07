@@ -110,11 +110,10 @@ const char *usage =
 "\n"
 "       --dumpblocks\n"
 "                    Generates a list of the blocks of N and non-N.  Output\n"
-"                    format is 'base seq# position'.  'N 84 483' means that\n"
-"                    a block of N's starts at space-based position 483 in\n"
-"                    sequence ordinal 84.  The length of the block is found\n"
-"                    using the start of the next block.  A '.' is the end of\n"
-"                    sequence marker.\n"
+"                    format is 'base seq# beg end len'.  'N 84 483 485 2' means\n"
+"                    that a block of 2 N's starts at space-based position 483\n"
+"                    in sequence ordinal 84.  A '.' is the end of sequence\n"
+"                    marker.\n"
 "\n"
 "       --errors L N C P\n"
 "                    For every sequence in the input file, generate new\n"
@@ -981,13 +980,13 @@ dumpBlocks(void) {
     char    begseq = seq;
     u32bit  begpos = 0;
 
-    u32bit pos = 0;
+    u32bit pos = 1;
     for ( ; pos<len; pos++) {
       S->next();
       seq = S->get();
       if (nnn != V[(int)seq]) {
-        fprintf(stdout, "%c "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
-                begseq, seqno, begpos, pos - begpos);
+        fprintf(stdout, "%c "u32bitFMT" "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
+                begseq, seqno, begpos, pos, pos - begpos);
         nnn = V[(int)seq];
         begpos = pos;
         begseq = seq;
