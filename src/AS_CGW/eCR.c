@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: eCR.c,v 1.1 2006-01-31 22:03:20 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: eCR.c,v 1.2 2006-02-07 15:25:33 eliv Exp $";
 
 #include "eCR.h"
 
@@ -999,7 +999,7 @@ main(int argc, char **argv) {
                 if (CheckNewUnitigMultiAlign(scaff, ContigPositions)) {
                   fprintf(stderr, "CheckNewUnitigMultiAlign()-- The new unitig multialignment is messed up, will not close this gap.\n");
                   unitigToContigFailures++;
-                  success = NULL;
+                  success = 0;
                 } else {
                   success = CreateAContigInScaffold(scaff, ContigPositions, newOffsetAEnd, newOffsetBEnd);
                 }
