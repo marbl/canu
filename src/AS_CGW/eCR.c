@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: eCR.c,v 1.2 2006-02-07 15:25:33 eliv Exp $";
+static const char CM_ID[] = "$Id: eCR.c,v 1.3 2006-02-08 20:53:29 brianwalenz Exp $";
 
 #include "eCR.h"
 
@@ -1126,11 +1126,17 @@ main(int argc, char **argv) {
             (status == RECOMPUTE_SINGULAR ||
              status == RECOMPUTE_CONTIGGED_CONTAINMENTS)) {
         // need to make sure scaffold is connected with trusted raw edges
+
+        //  BPW 20060208 - replaced 1000 * SLOPPY_EDGE_VARIANCE_THRESHHOLD with
+        //  SLOPPY_EDGE_VARIANCE_THRESHHOLD, to be the same as cgw.
+        //  The 1000 factor is used if useGuides is true, which it
+        //  never is.
+        //
         MarkInternalEdgeStatus(ScaffoldGraph,
                                GetGraphNode(ScaffoldGraph->ScaffoldGraph,
                                             sid),
                                PAIRWISECHI2THRESHOLD_CGW,
-                               1000.0 * SLOPPY_EDGE_VARIANCE_THRESHHOLD,
+                               SLOPPY_EDGE_VARIANCE_THRESHHOLD,
                                TRUE, TRUE, 0, TRUE);
 
         assert(IsScaffoldInternallyConnected(ScaffoldGraph,
