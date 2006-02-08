@@ -39,6 +39,7 @@ sub backupFragStore ($) {
 sub overlapTrim {
 
     return if (getGlobal("doOverlapTrimming") == 0);
+    return if (-e "$wrk/0-overlaptrim/overlaptrim.success");
 
     system("mkdir $wrk/0-overlaptrim")         if (! -d "$wrk/0-overlaptrim");
     system("mkdir $wrk/0-overlaptrim-overlap") if (! -d "$wrk/0-overlaptrim-overlap");
@@ -262,6 +263,8 @@ sub overlapTrim {
             die "Failed.\n";
         }
     }
+
+    touch("$wrk/0-overlaptrim/overlaptrim.success");
 }
 
 1;

@@ -45,7 +45,7 @@ sub CGW ($$$$) {
     my $cmd;
     $cmd  = "cd $wrk/$thisDir && ";
     $cmd .= "$bin/cgw $ckp -c -j 1 -k 5 -r 5 -s $stoneLevel -w 0 -T -P ";
-    $cmd .= " -M " if ($stoneLevel == 0);
+    $cmd .= " -M " if (($stoneLevel == 0) && (getGlobal("delayInterleavedMerging") == 1));
     $cmd .= " -f $wrk/$asm.frgStore ";
     $cmd .= " -g $wrk/$asm.gkpStore ";
     $cmd .= " -o $wrk/$thisDir/$asm ";
@@ -264,12 +264,12 @@ sub scaffolder {
 
             updateDistanceRecords($lastDir);
         }
-    }
 
-    #  Then another scaffolder, chucking stones into the big holes.
-    #
-    $lastDir = CGW("7-$thisDir-CGW", $lastDir, $stoneLevel, 3);
-    $thisDir++;
+        #  Then another scaffolder, chucking stones into the big holes.
+        #
+        $lastDir = CGW("7-$thisDir-CGW", $lastDir, $stoneLevel, 3);
+        $thisDir++;
+    }
 
     #  Then resolve surrogates.
     #

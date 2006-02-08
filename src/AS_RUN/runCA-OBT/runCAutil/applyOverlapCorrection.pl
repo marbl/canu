@@ -3,6 +3,9 @@ use strict;
 #  Check and apply the overlap correction results.
 
 sub applyOverlapCorrection {
+
+    return if (getGlobal("doFragmentCorrection") == 0);
+
     my $ovlCorrBatchSize    = getGlobal("ovlCorrBatchSize");
     my $ovlCorrOnGrid       = getGlobal("ovlCorrOnGrid");
 

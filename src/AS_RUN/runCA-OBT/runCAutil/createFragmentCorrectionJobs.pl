@@ -6,6 +6,8 @@ sub createFragmentCorrectionJobs {
     my $frgCorrOnGrid     = getGlobal("frgCorrOnGrid");
     my $scratch           = getGlobal("scratch");
 
+    return if (getGlobal("doFragmentCorrection") == 0);
+
     system("mkdir $wrk/2-frgcorr") if (! -e "$wrk/2-frgcorr");
 
     return if (-e "$wrk/2-frgcorr/jobsCreated.success");

@@ -4,6 +4,8 @@ use strict;
 
 sub checkPostUnitiggerConsensus {
 
+    return if (-e "$wrk/5-consensus/consensus.success");
+
     if (! -e "$wrk/5-consensus/$asm.cgi") {
         my $failedJobs = 0;
         my @CGBfiles;
@@ -46,6 +48,8 @@ sub checkPostUnitiggerConsensus {
         }
         close(CGB);
     }
+
+    touch ("$wrk/5-consensus/consensus.success");
 }
 
 1;

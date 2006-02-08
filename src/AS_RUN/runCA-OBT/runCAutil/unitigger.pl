@@ -37,13 +37,14 @@ sub unitigger {
 
         my $l = getGlobal("utgGenomeSize");
         my $m = getGlobal("utgEdges");
+        my $e = getGlobal("utgErrorRate");
         my $n = getGlobal("utgFragments");
 
         $cmd .= " -l $l " if defined($l);
         $cmd .= " -m $m " if defined($m);
         $cmd .= " -n $n " if defined($n);
 
-        $cmd .= " -c -P -A 1 -d 1 -x 1 -z 10 -j 5 -U 1 -e 15 ";
+        $cmd .= " -c -P -A 1 -d 1 -x 1 -z 10 -j 5 -U 1 -e $e ";
         $cmd .= " -F $wrk/$asm.frgStore ";
         $cmd .= " -f ";
         $cmd .= " -o $wrk/4-unitigger/$asm.fgbStore ";

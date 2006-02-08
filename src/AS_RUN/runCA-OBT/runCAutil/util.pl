@@ -96,8 +96,10 @@ sub setGlobal ($$) {
 sub setDefaults {
     $global{"binRoot"} =                     undef;
     $global{"consensusPartitionSize"} =      400000;
+    $global{"delayInterleavedMerging"} =     1;
     $global{"doBackupFragStore"} =           1;
     $global{"doExtendClearRanges"} =         2;
+    $global{"doFragmentCorrection"} =        1;
     $global{"doOverlapTrimming"} =           1;
     $global{"doUpdateDistanceRecords"} =     1;
     $global{"fakeUIDs"} =                    0;
@@ -122,6 +124,7 @@ sub setDefaults {
     $global{"stoneLevel"} =                  2;
     $global{"uidServer"} =                   undef;
     $global{"utgEdges"} =                    undef;
+    $global{"utgErrorRate"} =                15;
     $global{"utgFragments"} =                undef;
     $global{"utgGenomeSize"} =               undef;
     $global{"useGrid"} =                     0;
@@ -136,19 +139,28 @@ sub setParameters {
         open(F, "< $specFile") or die "Failed to open '$specFile'\n";
         while (<F>) {
             next if (m/^\#/);
-            my ($var, $val) = split '=', $_;
-            $var =~ s/^\s+//; $var =~ s/\s+$//;
-            $val =~ s/^\s+//; $val =~ s/\s+$//;
-            setGlobal($var, $val);
+            if (m/\s*(\w*)\s*=(.*)/) {
+                my ($var, $val) = ($1, $2);
+                $var =~ s/^\s+//; $var =~ s/\s+$//;
+                $val =~ s/^\s+//; $val =~ s/\s+$//;
+                setGlobal($var, $val);
+            } else {
+                chomp;
+                print STDERR "WARNING!  Invalid specFile line '$_'\n";
+            }
         }
         close(F);
     }
 
     foreach my $s (@specOpts) {
-        my ($var, $val) = split '=', $s;
-        $var =~ s/^\s+//; $var =~ s/\s+$//;
-        $val =~ s/^\s+//; $val =~ s/\s+$//;
-        setGlobal($var, $val);
+        if ($s =~ m/\s*(\w*)\s*=(.*)/) {
+            my ($var, $val) = ($1, $2);
+            $var =~ s/^\s+//; $var =~ s/\s+$//;
+            $val =~ s/^\s+//; $val =~ s/\s+$//;
+            setGlobal($var, $val);
+        } else {
+            print STDERR "WARNING!  Misformed specOption '$s'\n";
+        }
     }
 
     #  If we have been given a configuration in the spec file, use that instead.

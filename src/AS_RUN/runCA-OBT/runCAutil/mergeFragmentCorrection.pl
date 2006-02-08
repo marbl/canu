@@ -3,6 +3,9 @@ use strict;
 #  Check and merge the fragment correction results
 
 sub mergeFragmentCorrection {
+
+    return if (getGlobal("doFragmentCorrection") == 0);
+
     my $frgCorrBatchSize  = getGlobal("frgCorrBatchSize");
 
     if (! -e "$wrk/2-frgcorr/$asm.corr") {
