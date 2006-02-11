@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_ReadStruct.c,v 1.5 2005-07-20 19:55:38 eliv Exp $";
+static char CM_ID[] = "$Id: AS_PER_ReadStruct.c,v 1.6 2006-02-11 19:58:19 brianwalenz Exp $";
 /*************************************************************************
  Module:  AS_PER_ReadStruct
  Description:
@@ -45,6 +45,11 @@ static char CM_ID[] = "$Id: AS_PER_ReadStruct.c,v 1.5 2005-07-20 19:55:38 eliv E
 #include "AS_PER_fragStore_private.h"
 
 int  FragStore_Version = FRAGSTORE_VERSION;
+
+//  Enable this to get dumpFragStore, and anything that calls
+//  dump_ReadStruct(), to print quality in the non-internal two-digits
+//  format.  E.g., 03 01 03 10, etc.
+//#define DUMP_QUALITY_AS_NUMBERS
 
 
 /*****************************************************************************/
@@ -150,7 +155,19 @@ int dump_ReadStruct(ReadStructp rs, FILE *fout, int clearRangeOnly){
   }else{
     fprintf(fout,"\tsequence (selength=" F_SIZE_T ") : %s\n",
             strlen(fr->sequence), fr->sequence);
+
+#ifdef DUMP_QUALITY_AS_NUMBERS
+    fprintf(fout,"\tquality :");
+    {
+      char *q;
+      for (q = fr->quality; *q; q++)
+        fprintf(fout, " %02d", *q - '0');
+      fprintf(fout, "\n");
+    }
+#else
     fprintf(fout,"\tquality : %s\n", fr->quality);
+#endif
+
   }
   if(fr->frag.numScreenMatches > 0){
     IntScreenMatch *m = fr->matches;
