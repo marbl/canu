@@ -1,26 +1,18 @@
 use strict;
 
-#  Remove BAT and ADT messages from the input
-#    o BAT should only be at the start of the file
-#    o ADT (audit) should be OK to have multiple copies, but test
-#    o _major_ performance boost if one frag file, as many things
-#      will copy the store before adding
 
 sub preoverlap {
     my @fragFiles = @_;
 
     $numFrags = getNumberOfFragsInStore($bin, $wrk, $asm);
 
-    if (scalar(@fragFiles) == 0) {
-        return if ($numFrags > 0);
-        die "ERROR: No fragment files specified, and stores not created.\n";
-    }
+    #  Return if there are fragments in the store, and die if there
+    #  are no fragments and no source files.
+    #
+    return if ($numFrags > 0);
+    die "ERROR: No fragment files specified, and stores not created.\n" if (scalar(@fragFiles) == 0);
 
     system("mkdir $wrk/0-preoverlap") if (! -d "$wrk/0-preoverlap");
-
-    #  For big assemblies, we want to remove the .frg after building
-    #  the stores, so we can't use that as indication that we're done
-    #  here.
 
     if (! -e "$wrk/0-preoverlap/$asm.frg") {
         my $failedFiles = 0;
@@ -52,6 +44,12 @@ sub preoverlap {
         print G "}\n";
         close(G);
 
+        #  Remove BAT and ADT messages from the input
+        #    o BAT should only be at the start of the file
+        #    o ADT (audit) should be OK to have multiple copies, but test
+        #    o _major_ performance boost if one frag file, as many things
+        #      will copy the store before adding
+
         foreach my $frg (@fragFiles) {
             print STDERR "$frg\n";
 
@@ -70,8 +68,6 @@ sub preoverlap {
             }
         }
     }
-
-    ########################################
 
     if ((! -d "$wrk/$asm.gkpStore") || (! -e "$wrk/$asm.gkpStore/gkp.frg")) {
         my $cmd;
@@ -110,7 +106,7 @@ sub preoverlap {
 
     #  Lots of people need this, so we just make it a global.
     $numFrags = getNumberOfFragsInStore($bin, $wrk, $asm);
-    print STDERR "found $numFrags frags\n";
+    print STDERR "Found $numFrags frags!\n";
 }
 
 1;
