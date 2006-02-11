@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.6 2006-01-31 21:46:26 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.7 2006-02-11 20:08:37 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -837,7 +837,13 @@ main( int argc, char **argv) {
   //
   libMap = buildLibraryIIDmap(data->Gatekeeper_Store_Name);
 
-  ScaffoldGraph = LoadScaffoldGraphFromCheckpoint( data->File_Name_Prefix, ckptNum, FALSE);
+  //  LoadScaffoldGraphFromCheckpoint wants to CheckCIScaffoldT()
+  //  which can RecomputeOffsetsInScaffold(), which can eventually,
+  //  try to get an overlap.  Unless this is set, it bombs.
+  //
+  GlobalData->aligner=Local_Overlap_AS_forCNS;
+
+  ScaffoldGraph = LoadScaffoldGraphFromCheckpoint(data->File_Name_Prefix, ckptNum, FALSE);
 
   fprintf(stdout, "{BAT\n");
   fprintf(stdout, "bna:Distance Update\n");
@@ -857,6 +863,14 @@ main( int argc, char **argv) {
   fprintf(stderr, "= CONTIGS                                                                      =\n");
   fprintf(stderr, "================================================================================\n");
   dde_stats(CONTIG_OPERATIONS, minSamplesForOverride, "contig_final", libMap);
+
+  //  eCR should call CheckCIScaffoldTs() before dumping a checkpoint -- so we won't have to do any
+  //  thing here when we load the checkpoint (change the TRUE to a FALSE then).
+  //
+  //CheckpointScaffoldGraph(ScaffoldGraph, 1);
+
+  DestroyScaffoldGraph(ScaffoldGraph);
+  DeleteGlobal_CGW(data);
 
   exit(0);
 }
