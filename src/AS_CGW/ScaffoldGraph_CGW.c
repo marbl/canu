@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.8 2006-01-31 21:54:37 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.9 2006-02-13 20:00:50 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -290,9 +290,54 @@ ScaffoldGraphT * LoadScaffoldGraphFromStream(FILE *stream){
     int i;
     for( i = 0; i < GetNumDistTs(sgraph->Dists); i++){
       DistT *dist = GetDistT(sgraph->Dists,i);
+      fprintf(stderr, "Dist %2d -- nominal %10.3f %10.3f -- chunk %10.3f %10.3f\n",
+              dist->mean, dist->stddev, dist->mu, dist->sigma);
       dist->samples = NULL;
     }
   }
+
+
+  //  If we have a fragStore (we always have a gkpStore) update the
+  //  distances here!  Some codes (aka, getNumScaffolds) load a
+  //  checkpoint, but don't bother opening the fragments.  BPW isn't
+  //  sure why we need a fragstore, but it does:
+  //    Program received signal SIGSEGV, Segmentation fault.
+  //    statsStore (s=0, stats=0x7fbfff8e80) at AS_PER_genericStore.c:1222
+  //    1222      *((StoreStat *)stats) = myStore->header;
+  //    (gdb) where
+  //    #0  statsStore (s=0, stats=0x7fbfff8e80) at AS_PER_genericStore.c:1222
+  //    #1  0x0000000000403675 in LoadScaffoldGraphFromStream (stream=0xb18a70) at /bioinfo/assembly/walenz/wgs-assembler/src/AS_PER/AS_PER_gkpStore.h:365
+  //    #2  0x000000000040577c in LoadScaffoldGraphFromCheckpoint (name=0x7fbfffe4f4 "7-1-ECR/x", checkPointNum=8, readWrite=11635312) at ScaffoldGraph_CGW.c:71
+  //    #3  0x00000000004021be in main (argc=3, argv=0x7fbfff9578) at /usr/include/stdlib.h:382
+  //  
+  //  Derived from LoadDistData().  Should be moved to Input_CGW.c,
+  //  probably.
+  //
+  if (sgraph->fragStore != NULLSTOREHANDLE) {
+    int32     numDists = getNumGateKeeperDistances(ScaffoldGraph->gkpStore.dstStore);
+    CDS_CID_t i;
+
+    fprintf(stderr, "Dist RESET!\n");
+  
+    for(i = 1; i <= numDists; i++){
+      DistT                     *dist;
+      GateKeeperDistanceRecord   gkpd;
+
+      getGateKeeperDistanceStore(ScaffoldGraph->gkpStore.dstStore, i, &gkpd);
+    
+      if(gkpd.deleted)
+        continue;
+
+      dist = GetDistT(sgraph->Dists, i);
+
+      dist->mean   = gkpd.mean;
+      dist->stddev = gkpd.stddev;
+
+      fprintf(stderr, "Dist %2d -- nominal %10.3f %10.3f -- chunk %10.3f %10.3f\n",
+              i, dist->mean, dist->stddev, dist->mu, dist->sigma);
+    }
+  }
+
 
   sgraph->CIGraph       = LoadGraphCGWFromStream(stream);
   sgraph->ContigGraph   = LoadGraphCGWFromStream(stream);
@@ -376,14 +421,13 @@ ScaffoldGraphT * LoadScaffoldGraphFromStream(FILE *stream){
 
   fprintf(stderr,"* Calling SetCIScaffoldTLengths\n");
   SetCIScaffoldTLengths(sgraph, TRUE);
+
   fprintf(stderr,"* Calling CheckCIScaffoldTs\n");
-  fflush(stderr);
   CheckCIScaffoldTs(sgraph);
+
   fprintf(stderr,"* Done with CheckCIScaffoldTs\n");
-  fflush(stderr);
 
   return sgraph;
-
 }
 
 
