@@ -57,9 +57,9 @@ void DumpContigMultiAlignInfo (char *label, MultiAlignT *cma, int contigID) {
 
     for (j = 0; j < GetNumIntMultiPoss(uma->f_list); j++) {
       IntMultiPos *pos = GetIntMultiPos(uma->f_list, j);
-      fprintf(stderr, "  fragment %8d, bgn: %10d, end: %10d, length: %10d, source: %d\n", 
+      fprintf(stderr, "  fragment %8d, bgn: %10d, end: %10d, length: %10d, source: %10d\n", 
               pos->ident, pos->position.bgn, pos->position.end, abs(pos->position.bgn - pos->position.end),
-              pos->source);
+              pos->sourceInt);
     }
   }
   fprintf(stderr, "\n");
@@ -89,9 +89,9 @@ void DumpUnitigInfo(char *label, NodeCGW_T *unitig) {
 
   for (j = 0; j < GetNumIntMultiPoss(uma->f_list); j++) {
     IntMultiPos *mpos = GetIntMultiPos(uma->f_list, j);
-    fprintf(stderr, "  fragment %8d, bgn: %10d, end: %10d, length: %10d, source: %d\n", 
+    fprintf(stderr, "  fragment %8d, bgn: %10d, end: %10d, length: %10d, source: %10d\n", 
             mpos->ident, mpos->position.bgn, mpos->position.end, abs(mpos->position.bgn - mpos->position.end),
-            mpos->source);
+            mpos->sourceInt);
   }
   fprintf(stderr, "\n");
 #endif
@@ -148,7 +148,7 @@ DumpContigUngappedOffsets(char *label, int contigID) {
 
   for(i = 0; i < GetNumIntMultiPoss(cma->f_list); i++) {
     IntMultiPos *mp = GetIntMultiPos(cma->f_list, i);
-    int fragID = (int)mp->source; // GetInfoByIID(ScaffoldGraph->iidToFragIndex, mp->ident)->fragIndex;
+    int fragID = mp->sourceInt; // GetInfoByIID(ScaffoldGraph->iidToFragIndex, mp->ident)->fragIndex;
     // hack next line replaces above
     // int fragID = GetInfoByIID(ScaffoldGraph->iidToFragIndex, mp->ident)->fragIndex;
     CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags, fragID);
@@ -171,9 +171,9 @@ DumpContigUngappedOffsets(char *label, int contigID) {
       }
 
     fprintf(stderr, "in DCUO, contig %8d, frag %10d, mp->position.bgn: %10d, mp->position.end: %10d, "
-            "len: %10d, contained: %8d, source: %d\n",
+            "len: %10d, contained: %8d, source: %10d\n",
             contigID, frag->iid, mp->position.bgn, mp->position.end, abs(mp->position.bgn - mp->position.end),
-            mp->contained, (int)mp->source);
+            mp->contained, mp->sourceInt);
   }
 #endif
 }

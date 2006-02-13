@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.7 2006-02-11 20:08:37 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.8 2006-02-13 22:16:31 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -198,7 +198,7 @@ dde_stats(int         operateOnNodes,
       CIFragT *frag, *mate;
       CDS_COORD_t dist;
       
-      frag = GetCIFragT(ScaffoldGraph->CIFrags, (CDS_CID_t)mp->source);
+      frag = GetCIFragT(ScaffoldGraph->CIFrags, (CDS_CID_t)mp->sourceInt);
       assert(frag->iid == mp->ident);
 
       // This is important for keeping our computation as local as possible.
@@ -223,7 +223,7 @@ dde_stats(int         operateOnNodes,
       // If the id of the current fragment is greater than its mate, skip it, to
       // avoid double counting.
       //
-      if ((CDS_CID_t)mp->source > frag->mateOf)
+      if ((CDS_CID_t)mp->sourceInt > frag->mateOf)
         continue;
       
 
@@ -233,7 +233,7 @@ dde_stats(int         operateOnNodes,
       if ( frag->offset5p.mean > frag->offset3p.mean)
         continue;
       
-      assert(mate != NULL && mate->mateOf == (CDS_CID_t)mp->source);
+      assert(mate != NULL && mate->mateOf == (CDS_CID_t)mp->sourceInt);
 
       dptr = GetDistT(ScaffoldGraph->Dists, frag->dist);
       dptr->numReferences++;

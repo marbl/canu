@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.11 2005-11-18 22:07:23 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.12 2006-02-13 22:16:31 eliv Exp $";
 
 #define DEBUG 0
 #undef DEBUG_DETAILED
@@ -2013,7 +2013,7 @@ void DumpMultiAlignT(FILE * fp, ScaffoldGraphT * graph,
   // Null out the source field
   for(i = 0; i < numFrag; i++){
     IntMultiPos *mp_i = GetIntMultiPos(ma->f_list,i);
-    CIFragT *frag = GetCIFragT(graph->CIFrags,(CDS_CID_t)mp_i->source);
+    CIFragT *frag = GetCIFragT(graph->CIFrags,(CDS_CID_t)mp_i->sourceInt);
     fprintf(fp, "frag " F_CID ": ", frag->iid);
     switch(frag->type)
     {
@@ -2314,7 +2314,7 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
 	  int32 numFrags = GetNumIntMultiPoss(newMultiAlign->f_list);
 	  for(j = 0; j <numFrags ; j++){
 	    IntMultiPos *fpos = GetIntMultiPos(newMultiAlign->f_list, j);
-	    fprintf(GlobalData->stderrc,"* Fragment " F_CID " [" F_COORD "," F_COORD "]\n",(CDS_CID_t)fpos->source, fpos->position.bgn, fpos->position.end);
+	    fprintf(GlobalData->stderrc,"* Fragment " F_CID " [" F_COORD "," F_COORD "]\n",(CDS_CID_t)fpos->sourceInt, fpos->position.bgn, fpos->position.end);
 	  }
 
 	  for(j = 0; j < numElements ; j++){

@@ -25,7 +25,7 @@
    Assumptions:  libAS_UTL.a
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.13 2005-11-20 14:56:57 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.14 2006-02-13 22:16:31 eliv Exp $";
 
 
 #include <assert.h>
@@ -264,14 +264,6 @@ CopyMultiAlignT(MultiAlignT *newma, MultiAlignT *ma)
       IntMultiPos *npos = GetIntMultiPos(newma->f_list,i);
       int offset = (npos->delta - oldbase);
       npos->delta = newbase + offset;
-      if ( newma->source_alloc ) {
-         if (npos->source) {
-           old_source = npos->source;
-           src_len = strlen(old_source);
-           npos->source = (char *) safe_malloc((src_len+1)*sizeof(char));
-           strcpy(npos->source,old_source);
-         }  
-      }     
     }
     for(i = 0; i < numv; i++)
     {
@@ -406,7 +398,7 @@ CreateMultiAlignTFromIUM(IntUnitigMesg *ium, int localID, int sequenceOnly)
   MultiAlignT *ma = (MultiAlignT *)safe_malloc(sizeof(MultiAlignT));
   char *ptr;
   IntUnitigPos unitigPos;
-  int localFragID = localID;
+  long localFragID = localID;
   int delta_len=0;
 
   assert(ium->length == strlen(ium->consensus));
@@ -480,19 +472,13 @@ CreateMultiAlignTFromIUM(IntUnitigMesg *ium, int localID, int sequenceOnly)
 	//	tmp.type = cfr_mesg->type;
 	//	tmp.ident = cfr_mesg->ident;
 	if (localFragID == -2) {
-             tmp.source = cfr_mesg->source;
+          tmp.sourceInt = cfr_mesg->sourceInt;
 			 ma->source_alloc = 0;
 	} else if (localFragID < 0) {
-          int32 src_len;
-          if (cfr_mesg->source) {
-             src_len =  strlen(cfr_mesg->source);
-             tmp.source = (char *) safe_malloc((src_len+1)*sizeof(char));
-             strcpy(tmp.source,cfr_mesg->source);
-	  } else {
-             tmp.source = cfr_mesg->source;
-          }
+          tmp.sourceInt = INT_MAX;
+          ma->source_alloc = 0;
 	} else {
-	  tmp.source = (char *)localFragID++;
+	  tmp.sourceInt = localFragID++;
 	}
 	//	tmp.position = cfr_mesg->position;
 	//	tmp.delta_length = cfr_mesg->delta_length;
@@ -578,7 +564,7 @@ CreateMultiAlignTFromICM(IntConConMesg *icm, int localID, int sequenceOnly)
   MultiAlignT *ma = (MultiAlignT *)safe_malloc(sizeof(MultiAlignT));
   char *ptr;
   IntUnitigPos unitigPos;
-  int localFragID = localID;
+  long localFragID = localID;
   int delta_len=0;
 
   assert(icm->length == strlen(icm->consensus));
@@ -624,16 +610,9 @@ CreateMultiAlignTFromICM(IntConConMesg *icm, int localID, int sequenceOnly)
              tmp.source = cfr_mesg->source;
 			 } else */
 	if (localFragID < 0) {
-          int32 src_len;
-          if (cfr_mesg->source) {
-             src_len =  strlen(cfr_mesg->source);
-             tmp.source = (char *) safe_malloc((src_len+1)*sizeof(char));
-             strcpy(tmp.source,cfr_mesg->source);
-	  } else {
-             tmp.source = cfr_mesg->source;
-          }
+          tmp.sourceInt = cfr_mesg->sourceInt;
 	} else {
-	  tmp.source = (char *)localFragID++;
+	  tmp.sourceInt = localFragID++;
 	}
 	tmp.position = cfr_mesg->position;
 	tmp.contained = cfr_mesg->contained;
@@ -703,7 +682,7 @@ CreateMultiAlignTFromCCO(SnapConConMesg *cco, int localID, int sequenceOnly)
   MultiAlignT *ma = (MultiAlignT *)malloc(sizeof(MultiAlignT));
   char *ptr;
   UnitigPos unitigPos;
-  int localFragID = localID;
+  long localFragID = localID;
   int delta_len=0;
 
   assert(cco->length == strlen(cco->consensus));
@@ -857,10 +836,6 @@ DeleteMultiAlignT(MultiAlignT *ma)
     int n_frags=GetNumIntMultiPoss(ma->f_list);
     int n_vars=GetNumIntMultiVars(ma->v_list);
     if (n_frags > 0) t=GetIntMultiPos(ma->f_list,0);
-    for (i=0;i<n_frags;i++){
-       if ( t->source ) free(t->source);
-       t++;
-    }
     if (n_vars > 0) v=GetIntMultiVar(ma->v_list, 0);
     for (i=0;i<n_vars;i++){
        if ( v->var_seq) free(v->var_seq);
@@ -938,7 +913,7 @@ SaveMultiAlignTToStream(MultiAlignT *ma, FILE *stream)
     int numf = GetNumIntMultiPoss(ma->f_list);
     for(i = 0; i < numf; i++){
       IntMultiPos *pos = GetIntMultiPos(ma->f_list,i);
-      int offset = (pos->delta - base);
+      long offset = (pos->delta - base);
       //      fprintf(stderr,"* %d delta:%x 0x%x \n", i, offset, pos->delta);
       pos->delta = (int32 *)offset;
     }
@@ -949,7 +924,7 @@ SaveMultiAlignTToStream(MultiAlignT *ma, FILE *stream)
     int numu = GetNumIntUnitigPoss(ma->u_list);
     for(i = 0; i < numu; i++){
       IntUnitigPos *pos = GetIntUnitigPos(ma->u_list,i);
-      int offset = (pos->delta - base);
+      long offset = (pos->delta - base);
       pos->delta = (int32 *)offset;
     }
   }
@@ -977,7 +952,7 @@ SaveMultiAlignTToStream(MultiAlignT *ma, FILE *stream)
     for(i = 0; i < numf; i++){
       IntMultiPos *pos = GetIntMultiPos(ma->f_list,i);
       //      fprintf(stderr,"* %d delta:%d", i,pos->delta);
-      pos->delta = base + (int)(pos->delta);
+      pos->delta = base + (long)(pos->delta);
       //      fprintf(stderr," after 0x%x\n", pos->delta);
     }
   }
@@ -988,7 +963,7 @@ SaveMultiAlignTToStream(MultiAlignT *ma, FILE *stream)
     int32 numu = GetNumIntUnitigPoss(ma->u_list);
     for(i = 0; i < numu; i++){
       IntUnitigPos *pos = GetIntUnitigPos(ma->u_list,i);
-      pos->delta = base + (int)(pos->delta);
+      pos->delta = base + (long)(pos->delta);
     }
   }
   return totalSize;
@@ -1045,7 +1020,7 @@ LoadMultiAlignTFromStream(FILE *stream, int32 *reference)
     for(i = 0; i < numf; i++){
       IntMultiPos *pos = GetIntMultiPos(ma->f_list,i);
       //      fprintf(stderr,"* %d delta:%d\n", i,pos->delta);
-      pos->delta = base + (int)(pos->delta);
+      pos->delta = base + (long)(pos->delta);
     }
   }
   // Restore the udelta pointers since they were saved as offset from base of delta array
@@ -1055,7 +1030,7 @@ LoadMultiAlignTFromStream(FILE *stream, int32 *reference)
     int32 numu = GetNumIntUnitigPoss(ma->u_list);
     for(i = 0; i < numu; i++){
       IntUnitigPos *pos = GetIntUnitigPos(ma->u_list,i);
-      pos->delta = base + (int)(pos->delta);
+      pos->delta = base + (long)(pos->delta);
     }
   }
 
@@ -1119,7 +1094,7 @@ ReLoadMultiAlignTFromStream(FILE *stream, MultiAlignT *ma, int32 *reference)
     for(i = 0; i < numf; i++){
       IntMultiPos *pos = GetIntMultiPos(ma->f_list,i);
       //      fprintf(stderr,"* %d delta:%d\n", i,pos->delta);
-      pos->delta = base + (int)(pos->delta);
+      pos->delta = base + (long)(pos->delta);
     }
   }
   // Restore the udelta pointers since they were saved as offset from base of delta array
@@ -1129,7 +1104,7 @@ ReLoadMultiAlignTFromStream(FILE *stream, MultiAlignT *ma, int32 *reference)
     int32 numu = GetNumIntUnitigPoss(ma->u_list);
     for(i = 0; i < numu; i++){
       IntUnitigPos *pos = GetIntUnitigPos(ma->u_list,i);
-      pos->delta = base + (int)(pos->delta);
+      pos->delta = base + (long)(pos->delta);
     }
   }
 

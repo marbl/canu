@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.5 2005-07-08 21:05:33 brianwalenz Exp $";
+static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.6 2006-02-13 22:16:31 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -964,18 +964,6 @@ static int StoreIUMStruct(ScaffoldGraphT * graph,
     assert(FALSE);
   }
   
-#ifdef AS_ENABLE_SOURCE
-  /*
-    if the fragment source fields are allocated before MultiAlignUnitig,
-    they'll disappear but they're needed for functions below
-  */
-  for(i = 0; i < is->ium.num_frags; i++)
-  {
-    // source is overloaded to hold an index in imp...
-    is->ium.f_list[i].source = " ";
-  }
-#endif
-    
   // add ium to the system
   {
     MultiAlignT *ma = CreateMultiAlignTFromIUM(&(is->ium),
@@ -996,7 +984,7 @@ static int StoreIUMStruct(ScaffoldGraphT * graph,
 
       hasFbacFrags = (frag->type == AS_FBAC) ? 1 : hasFbacFrags;
 #ifdef AS_ENABLE_SOURCE
-      imp->source = (char *) (info->fragIndex);
+      imp->sourceInt = info->fragIndex;
 #endif
     }
     

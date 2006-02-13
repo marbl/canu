@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /* All of the CGW celamy stuff is here */
-static char CM_ID[] = "$Id: Celamy_CGW.c,v 1.4 2005-03-22 19:48:35 jason_miller Exp $";
+static char CM_ID[] = "$Id: Celamy_CGW.c,v 1.5 2006-02-13 22:16:31 eliv Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -900,7 +900,7 @@ void CelamyScaffold(FILE *fout, CIScaffoldT *scaffold,
             switch ( frag[fi].type ) {
             case AS_UBAC:
             case AS_FBAC:
-               ci_frag = GetCIFragT(ScaffoldGraph->CIFrags, (CDS_CID_t)frag[fi].source);
+               ci_frag = GetCIFragT(ScaffoldGraph->CIFrags, (CDS_CID_t)frag[fi].sourceInt);
                if (ci_frag->locale >= 0) {
 		   CDS_CID_t *bacID;
 

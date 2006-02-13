@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_MSG_bmesg.c,v 1.5 2005-08-04 21:21:13 gdenisov Exp $";
+static char CM_ID[] = "$Id: AS_MSG_bmesg.c,v 1.6 2006-02-13 22:16:31 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -162,7 +162,7 @@ static void Read_RPT_Mesg(FILE *fin, void *vmesg)
   rmesg->which = MemBuffer + (long) (rmesg->which);
 }
 
-static int Read_ADL_Struct(int last, FILE *fin)
+static int Read_ADL_Struct(long last, FILE *fin)
 { 
   AuditLine mesg; // temporary
   long crnt;
@@ -333,11 +333,6 @@ static void Read_IUM_Mesg(FILE *fin, void *vmesg)
     for(i=0; i < mesg->num_frags; i++) {
       mlp = ((IntMultiPos *) (MemBuffer + mpindx)) + i;
       FREAD(mlp,sizeof(IntMultiPos),1,fin);
-#     ifdef AS_ENABLE_SOURCE
-      indx = GetString(fin);
-      mlp = ((IntMultiPos *) (MemBuffer + mpindx)) + i; // in case realloc
-      mlp->source = (char *) indx;
-#     endif
       if (mlp->delta_length > 0) {
 	indx = MoreSpace(sizeof(int32)*mlp->delta_length,8);
 	/* The next line guards against reallocs */
@@ -356,9 +351,6 @@ static void Read_IUM_Mesg(FILE *fin, void *vmesg)
   mesg->consensus = MemBuffer + cindx;
   mesg->quality  = MemBuffer + qindx;
   for (i=0; i < mesg->num_frags; ++i) {
-#   ifdef AS_ENABLE_SOURCE
-    mesg->f_list[i].source = MemBuffer + (long) mesg->f_list[i].source;
-#   endif
     if (mesg->f_list[i].delta_length > 0)
       mesg->f_list[i].delta = (int32 *) (MemBuffer+(long)mesg->f_list[i].delta);
   }
@@ -921,9 +913,6 @@ static void Write_IUM_Mesg(FILE *fout, void *vmesg)
 # endif
   for (i=0; i<mesg->num_frags; i++) {
     FWRITE(&mesg->f_list[i],sizeof(IntMultiPos),1,fout);
-#   ifdef AS_ENABLE_SOURCE
-    PutString(fout,mesg->f_list[i].source);
-#   endif
     if (mesg->f_list[i].delta_length > 0)
       FWRITE(mesg->f_list[i].delta,sizeof(int32),
 	     mesg->f_list[i].delta_length,fout);
@@ -1050,11 +1039,6 @@ static void Read_ICM_Mesg(FILE *fin, void *vmesg)
     for (i=0; i < mesg->num_pieces; ++i) {
       mlp = ((IntMultiPos *) (MemBuffer + pindx)) + i;
       FREAD(mlp,sizeof(IntMultiPos),1,fin);
-      #ifdef AS_ENABLE_SOURCE
-      indx = GetString(fin);
-      mlp = ((IntMultiPos *) (MemBuffer + pindx)) + i; // in case of realloc
-      mlp->source = (char *) indx;
-      #endif
       if (mlp->delta_length > 0) {
 	indx = MoreSpace(sizeof(int32)*mlp->delta_length,8);
 	mlp = ((IntMultiPos *) (MemBuffer + pindx)) + i; // in case of realloc
@@ -1108,9 +1092,6 @@ static void Read_ICM_Mesg(FILE *fin, void *vmesg)
   if(mesg->num_pieces > 0){
     mesg->pieces = (IntMultiPos *)(MemBuffer + pindx);
   for (i=0; i < mesg->num_pieces; ++i) {
-    #ifdef AS_ENABLE_SOURCE
-    mesg->pieces[i].source = MemBuffer + (long) mesg->pieces[i].source;
-    #endif
     if (mesg->pieces[i].delta_length > 0){
       mesg->pieces[i].delta = 
 		      (int32 *) (MemBuffer + (long) mesg->pieces[i].delta);
@@ -1140,9 +1121,6 @@ static void Write_ICM_Mesg(FILE *fout, void *vmesg)
   PutString(fout,mesg->quality);
   for (i=0; i < mesg->num_pieces; ++i) {
     FWRITE(&mesg->pieces[i],sizeof(IntMultiPos),1,fout);
-    #ifdef AS_ENABLE_SOURCE
-    PutString(fout,mesg->pieces[i].source);
-    #endif
     if (mesg->pieces[i].delta_length > 0)
       FWRITE(mesg->pieces[i].delta,sizeof(int32),
 	     mesg->pieces[i].delta_length,fout);

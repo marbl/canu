@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: ProcessScaffolds_CGW.c,v 1.6 2005-09-15 15:20:15 eliv Exp $ */
+/* $Id: ProcessScaffolds_CGW.c,v 1.7 2006-02-13 22:16:31 eliv Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -297,44 +297,6 @@ int IsForward(SeqInterval s) {
   return (s.bgn < s.end);
 }
 
-int getMultiAlignSimCoords(MultiAlignT *unitig,
-                           CDS_COORD_t *bgn, CDS_COORD_t *end) {
-  IntMultiPos *frag_0 = GetIntMultiPos(unitig->f_list,0); 
-  IntMultiPos *frag_e = GetIntMultiPos(unitig->f_list,GetNumIntMultiPoss(unitig->f_list)-1); 
-  SeqInterval sim_0, sim_e;
-  CDS_COORD_t sim_left,sim_right;
-  CDS_COORD_t unitig_len = (CDS_COORD_t) GetNumchars(unitig->consensus) - 1;
-  char *coord_start;
-  if ( frag_0 == NULL ) return 0;
-  while ( frag_0 != frag_e ) {
-     if ( min(frag_0->position.bgn,frag_0->position.end) == 0 ) break;
-     frag_0++;
-  }
-  if ( max(frag_0->position.bgn,frag_0->position.end) == unitig_len ) { 
-     frag_e = frag_0; // this is likely when first frag is a bactig
-  } else {
-     frag_e=GetIntMultiPos(unitig->f_list,GetNumIntMultiPoss(unitig->f_list)-1); 
-     while ( frag_e != frag_0 ) {
-       if ( max(frag_e->position.bgn,frag_e->position.end) == unitig_len ) break;
-       frag_e--;
-     }
-  }
-  coord_start = strchr(frag_0->source,'[');
-  if ( coord_start == NULL || (sscanf(coord_start,"[" F_COORD "," F_COORD "]",&sim_0.bgn,&sim_0.end) != 2) ) return 0;
-  coord_start = strchr(frag_e->source,'[');
-  if ( coord_start == NULL || (sscanf(coord_start,"[" F_COORD "," F_COORD "]",&sim_e.bgn,&sim_e.end) != 2) ) return 0;
-  sim_left = min(min(sim_0.bgn,sim_0.end),min(sim_e.bgn,sim_e.end));
-  sim_right = max(max(sim_0.bgn,sim_0.end),max(sim_e.bgn,sim_e.end));
-  if ( IsForward(sim_0) ^ IsForward(frag_0->position) ) {
-     *bgn = sim_left;
-     *end = sim_right;
-  } else {
-     *end = sim_left;
-     *bgn = sim_right;
-  }
-  return 1;
-}
-
 int CelamyContig(FILE *out, CDS_IID_t scaffid, CDS_IID_t contigid, int reverse)  {
   MultiAlignT *contig=GetMultiAlignInStore(cstore,contigid);
   MultiAlignT *unitig;
@@ -377,11 +339,7 @@ int CelamyContig(FILE *out, CDS_IID_t scaffid, CDS_IID_t contigid, int reverse) 
         ci_leftcoord = leftcoord + t_leftcoord;
         ci_rightcoord = leftcoord + t_rightcoord;
      }
-     if ( getMultiAlignSimCoords(unitig,&multialign_sim.bgn,&multialign_sim.end) ) {
-        sprintf(buffer," [" F_COORD "," F_COORD "]",multialign_sim.bgn,multialign_sim.end);
-     } else {
-        buffer[0] = '\0';
-     }
+     buffer[0] = '\0';
      fprintf(out,F_IID "CtgCI" F_IID ": " F_COORD " A%dCGBColor " F_COORD " R%d # Contig " F_IID " CI " F_IID "%s\n",
 		  contigid, unitig->id,
 		  ci_leftcoord,
@@ -403,16 +361,8 @@ int CelamyContig(FILE *out, CDS_IID_t scaffid, CDS_IID_t contigid, int reverse) 
         ci_leftcoord = leftcoord + t_leftcoord;
         ci_rightcoord = leftcoord + t_rightcoord;
      }
-     if ( frag->source ) {
-       coord_start = strchr(frag->source,'[');
-     } else {
-       coord_start = NULL;
-     }
-     if ( coord_start != NULL && (sscanf(coord_start,"[" F_COORD "," F_COORD "]",&sim.bgn,&sim.end) == 2) ) {
-       sprintf(buffer," [" F_COORD "," F_COORD "]",sim.bgn,sim.end);
-     } else {
-       buffer[0] = '\0';
-     }
+     coord_start = NULL;
+     buffer[0] = '\0';
      if (show_uids) {
       if (frag->type == AS_BACTIG ) {
        getFragStore(bactig_store,frag->ident,FRAG_S_FIXED,rsp);

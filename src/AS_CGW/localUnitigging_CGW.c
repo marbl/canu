@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: localUnitigging_CGW.c,v 1.8 2005-09-15 15:20:16 eliv Exp $";
+static char CM_ID[] = "$Id: localUnitigging_CGW.c,v 1.9 2006-02-13 22:16:31 eliv Exp $";
 
 
 /*********************************************************************
@@ -130,12 +130,12 @@ static void DumpUnitigMultiAlignInfo ( VA_TYPE(ChunkPlacement) *piece_list,
   for ( i = 0; i < ium->num_frags; i++,pos++)
   {
         piece = GetChunkPlacement(piece_list, pos->ident-1);
-	fprintf( stderr, "	in DUMAI, %c fragment %8" F_UIDP ",%8" F_IIDP ", bgn: %10" F_COORDP ", end: %10" F_COORDP ", length: %10" F_COORDP ", source: %d\n", 
+	fprintf( stderr, "	in DUMAI, %c fragment %8" F_UIDP ",%8" F_IIDP ", bgn: %10" F_COORDP ", end: %10" F_COORDP ", length: %10" F_COORDP ", source: " F_IIDP "\n", 
                  piece->status,
                  ofgs[pos->ident-1].eaccession,
                  pos->ident, pos->position.bgn, pos->position.end,
                  abs(pos->position.bgn - pos->position.end),
-                 (int) pos->source);
+                 pos->sourceInt);
 	InitContigTIterator(ScaffoldGraph, ofgs[pos->ident-1].eaccession,
                             TRUE, FALSE, &cis);
 	while(NULL != (ci = NextContigTIterator(&cis))){
@@ -1306,7 +1306,6 @@ void OutputMergedMetaUnitig(CDS_CID_t sid,MultiAlignT *ma){
   int32 ubufSize = 100;
   CDS_IID_t numFrag;
   CDS_IID_t numUnitig;
-  CDS_IID_t * tmpSource;
   IntMultiPos *mp;
   IntUnitigPos *up;
   int i;
@@ -1327,8 +1326,6 @@ void OutputMergedMetaUnitig(CDS_CID_t sid,MultiAlignT *ma){
   numUnitig = GetNumIntUnitigPoss(ma->u_list);
   up = GetIntUnitigPos(ma->u_list,0);
       
-  tmpSource = safe_malloc((GetNumIntMultiPoss(ma->f_list) + 1) * sizeof(CDS_IID_t));
-
   if(numUnitig >= ubufSize){
     ubufSize = numUnitig * 2;
     icm_mesg.unitigs = (IntUnitigPos *) safe_realloc(icm_mesg.unitigs, ubufSize*sizeof(IntUnitigPos));
@@ -1359,14 +1356,6 @@ void OutputMergedMetaUnitig(CDS_CID_t sid,MultiAlignT *ma){
       iup->ident = unitig->info.CI.baseID; // map back to the parent of this instance
     }
     uptr[i].ident = iup->ident;
-  }
-  // Null out the source field
-  for(i = 0; i < numFrag; i++){
-    IntMultiPos *mp_i = GetIntMultiPos(ma->f_list,i);
-    CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags,
-			       (CDS_CID_t)mp_i->source);
-    tmpSource[i] = (CDS_IID_t) mp_i->source;
-    mp_i->source = NULL;
   }
 
   icm_mesg.placed = (scaffold && (scaffold->type == REAL_SCAFFOLD)?AS_PLACED:AS_UNPLACED);
@@ -1412,13 +1401,6 @@ void OutputMergedMetaUnitig(CDS_CID_t sid,MultiAlignT *ma){
     }     
   }
       
-  // Restore the source values
-  for(i = 0; i < numFrag; i++){
-    IntMultiPos *mp_i = GetIntMultiPos(ma->f_list,i);
-    mp_i->source = (char *)tmpSource[i];
-  }
-  free(tmpSource);
-
 free(icm_mesg.unitigs);
 fflush(NULL);
 

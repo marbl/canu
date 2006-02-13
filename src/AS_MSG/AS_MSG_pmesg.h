@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.15 2005-12-15 19:43:23 gdenisov Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.16 2006-02-13 22:16:31 eliv Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -735,25 +735,21 @@ typedef struct IntMultiPos {
   IntFragment_ID  ident2; // iid of the fragment that will align with current one
 #endif
   
-# ifdef AS_ENABLE_SOURCE
-  char		  *source;
-#ifdef i386
-  int32 ptrPad1;
+#ifdef AS_ENABLE_SOURCE
+  int32        sourceInt;
 #endif
+#ifdef NEW_UNITIGGER_INTERFACE
+  int32           ahang;
+  int32           bhang;
 #endif
 
   SeqInterval     position;
   IntFragment_ID  contained;
   int32           delta_length;
   int32          *delta;
-#ifdef NEW_UNITIGGER_INTERFACE
-  int32           ahang;
-  int32           bhang;
-#endif
 #ifdef i386
-  int32 ptrPad2;
+  int32           ptrPad2;
 #endif
-
 } IntMultiPos;
 
 /* IMV message */

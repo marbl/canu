@@ -575,7 +575,7 @@ void ReallyAssignFragsToResolvedCI(GraphCGW_T *graph,
     
     fragPos.type = AS_MSG_SafeConvert_charToFragType(frag->type,TRUE);
     fragPos.ident = fragID;
-    fragPos.source = (char *)frgIdx;
+    fragPos.sourceInt = frgIdx;
     fragPos.position.bgn = frag->offset5p.mean;
     fragPos.position.end = frag->offset3p.mean;
     AppendIntMultiPos(f_list_CI, &fragPos);

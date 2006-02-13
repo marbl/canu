@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.15 2006-01-09 16:37:23 eliv Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.16 2006-02-13 22:16:31 eliv Exp $";
 
 #define AFG_BACKWARDS_COMPATIBLE
 //#define FIX_DANIELS_MESS
@@ -1075,9 +1075,7 @@ static void Read_IMP_Mesg(FILE *fin, long indx)
   GET_FIELD(imp->ident2,   "aid:" F_IID,"multipos id");
   #endif
 #ifdef AS_ENABLE_SOURCE
-  tindx = GetText("src:",fin,FALSE);
-  imp = (IntMultiPos *) (MemBuffer + indx);	// in case of realloc
-  imp->source = (char *) tindx;
+  imp->sourceInt = -1;
 #endif
   GET_PAIR(imp->position.bgn,imp->position.end,
            POS2_FORMAT,"position field");
@@ -1233,9 +1231,6 @@ static void *Read_IUM_Mesg(FILE *fin)
 	 (strlen(mesg.consensus) == 0) );
 
   for (i=0; i < mesg.num_frags; ++i) {
-#   ifdef AS_ENABLE_SOURCE
-    mesg.f_list[i].source = MemBuffer + (long) mesg.f_list[i].source;
-#   endif
     if (mesg.f_list[i].delta_length > 0)
       mesg.f_list[i].delta = (int32 *) (MemBuffer+(long) mesg.f_list[i].delta);
   }
@@ -1563,9 +1558,6 @@ static void *Read_ICM_Mesg(FILE *fin)
   else
     mesg.pieces = NULL;
   for (i=0; i < mesg.num_pieces; ++i) {
-    #ifdef AS_ENABLE_SOURCE
-    mesg.pieces[i].source = MemBuffer + (long) mesg.pieces[i].source;
-    #endif
     if (mesg.pieces[i].delta_length > 0)
       mesg.pieces[i].delta = (int32 *) (MemBuffer +
 				 (long) mesg.pieces[i].delta);
@@ -2925,9 +2917,6 @@ static void Write_IMP_Mesg(FILE *fout, IntMultiPos *mlp)
   fprintf(fout,"con:" F_IID "\n",mlp->contained);
   #ifdef NEW_UNITIGGER_INTERFACE
   fprintf(fout,"aid:" F_IID "\n",mlp->ident2);
-  #endif
-  #ifdef AS_ENABLE_SOURCE
-  PutText(fout,"src:",mlp->source,FALSE);
   #endif
   fprintf(fout,POS2_FORMAT "\n",
           mlp->position.bgn,mlp->position.end);

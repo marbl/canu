@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.8 2005-10-19 19:45:22 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.9 2006-02-13 22:16:31 eliv Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -918,29 +918,9 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg,
 	    
 #ifdef DEBUG_DATA
 	{
-	  char *interval;
-	  if(NULL != (interval = strstr(cfr_mesg->source,"["))){
-	    sscanf(interval + 1," " F_COORD "," F_COORD,
-		   &cifrag.aEndCoord, &cifrag.bEndCoord);
-	    if(strstr(cfr_mesg->source,"False Mate")){
-	      cifrag.flags.bits.hasFalseMate = TRUE;
-	    }
-	  }else{
 	    cifrag.aEndCoord = cifrag.bEndCoord = -1;
-	  }
 	}
-	// Save the source field to a separate character store
-
-	if(cfr_mesg->source &&  GlobalData->debugLevel > 0){
-	  char *c = cfr_mesg->source;
-	  cifrag.source = GetNumchars(ScaffoldGraph->SourceFields);
-	  while(*c != '\0'){
-	    Appendchar(ScaffoldGraph->SourceFields,c++);
-	  }
-	  Appendchar(ScaffoldGraph->SourceFields,c);
-	}else{
 	  cifrag.source = NULLINDEX;
-	}
 #endif	    
 	    
 	AppendCIFragT(ScaffoldGraph->CIFrags, &cifrag);

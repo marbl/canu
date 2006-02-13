@@ -37,7 +37,7 @@
 
 
 
-static char fileID[] = "$Id: GapFillREZ.c,v 1.10 2006-02-03 16:25:42 mcschatz Exp $";
+static char fileID[] = "$Id: GapFillREZ.c,v 1.11 2006-02-13 22:16:31 eliv Exp $";
 
 
 #include <stdio.h>
@@ -10244,7 +10244,7 @@ static void  Print_Frag_Info
    for  (i = 0;  i < num_frags;  i ++)
      {
       IntMultiPos  * mp = GetIntMultiPos (ma -> f_list, i);
-      CDS_CID_t  fragID = (CDS_CID_t) mp -> source;
+      CDS_CID_t  fragID = (CDS_CID_t) mp -> sourceInt;
         // This is an internal-data-structure ID
       CDS_CID_t  ident = (CDS_CID_t) mp -> ident;
         // This is the read's IID
@@ -12512,7 +12512,7 @@ static void  Show_Read_Info
    for  (i = 0;  i < num_frags;  i ++)
      {
       IntMultiPos  * mp = GetIntMultiPos (ma -> f_list, i);
-      CDS_CID_t  fragID = (CDS_CID_t) mp -> source;
+      CDS_CID_t  fragID = (CDS_CID_t) mp -> sourceInt;
         // This is an internal-data-structure ID
       CDS_CID_t  ident = (CDS_CID_t) mp -> ident;
         // This is the read's IID

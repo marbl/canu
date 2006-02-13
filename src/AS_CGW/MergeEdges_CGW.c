@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: MergeEdges_CGW.c,v 1.5 2005-08-24 07:47:15 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MergeEdges_CGW.c,v 1.6 2006-02-13 22:16:31 eliv Exp $";
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -85,7 +85,7 @@ static int ConfirmAnotherFragmentOverlap(GraphCGW_T *graph,
     CDS_COORD_t overlap;
     for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++){
       IntMultiPos *mp = GetIntMultiPos(ma->f_list, i);
-      fragID = (CDS_CID_t)mp->source;
+      fragID = (CDS_CID_t)mp->sourceInt;
       frag = GetCIFragT(ScaffoldGraph->CIFrags, fragID);
 
       /* Skip the extremal read that we're trying to check */

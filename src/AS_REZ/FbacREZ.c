@@ -34,7 +34,7 @@
 
  **********************************************************************/
 
-static char fileID[] = "$Id: FbacREZ.c,v 1.4 2005-03-22 19:49:21 jason_miller Exp $";
+static char fileID[] = "$Id: FbacREZ.c,v 1.5 2006-02-13 22:16:31 eliv Exp $";
 
 #define FBACDEBUG 2
 
@@ -195,7 +195,7 @@ int getLocalesInNode(NodeCGW_T* node, localeInfoT** localeInfo, int end,
 	{
 	  IntMultiPos *imp = GetIntMultiPos(uma->f_list, icntfrag);
 
-	  frag = GetCIFragT(ScaffoldGraph->CIFrags, (int32) imp->source);
+	  frag = GetCIFragT(ScaffoldGraph->CIFrags, (int32) imp->sourceInt);
 
 	  // keep track of whether the contig that this frag is in the assembly
 	  // or if it was reached via a surrogate
@@ -329,7 +329,7 @@ int getLocalesInNode(NodeCGW_T* node, localeInfoT** localeInfo, int end,
 		  // use the first frag we run across from this locale as the initial reference point
 		  newLocale->localeNumber = frag->locale;
           newLocale->contigID = node->id;
-		  newLocale->extremalFragID = (int32) imp->source;
+		  newLocale->extremalFragID = (int32) imp->sourceInt;
 		  newLocale->extremalFragIid = frag->iid;
 		  newLocale->extremalFragUnitigID = originalUnitig->id;  // unitig may be a surrogate
 		  newLocale->basesFromEnd = basesFromEnd; // frag->contigOffset5p.mean;
@@ -374,7 +374,7 @@ int getLocalesInNode(NodeCGW_T* node, localeInfoT** localeInfo, int end,
 		if (basesFromEnd < currentLocale->basesFromEnd)
 		{
           currentLocale->contigID = node->id;
-		  currentLocale->extremalFragID = (int32) imp->source;
+		  currentLocale->extremalFragID = (int32) imp->sourceInt;
 		  currentLocale->extremalFragIid = frag->iid;
 		  currentLocale->extremalFragUnitigID = originalUnitig->id;  // unitig may be a surrogate
 		  currentLocale->basesFromEnd = basesFromEnd; // frag->contigOffset5p.mean;
@@ -462,7 +462,7 @@ BacStatusREZ isFbacConsistent(NodeCGW_T* node)
 	for( fragCnt = 0; fragCnt < numFrags; fragCnt++)
 	{
 	  mp   = GetIntMultiPos(ma->f_list, fragCnt);
-	  frag = GetCIFragT(ScaffoldGraph->CIFrags, (int32) mp->source);
+	  frag = GetCIFragT(ScaffoldGraph->CIFrags, (int32) mp->sourceInt);
 	  
 	  // fprintf( stderr, "frag->iid: %d, frag->locale: %d\n", frag->iid, frag->locale);
 
@@ -2951,7 +2951,7 @@ int GetFragInfo (ChunkInstanceT* chunk, int locale, unsigned int* minFragIid, un
 	CIFragT *frag;  //
 	ump = GetIntMultiPos(uma->f_list, ii);
 	
-	frag = GetCIFragT(ScaffoldGraph->CIFrags, (int32) ump->source);
+	frag = GetCIFragT(ScaffoldGraph->CIFrags, (int32) ump->sourceInt);
 	
 	// deal with frags from locales first
 	//GetFragmentPositionInContigFromChunk( frag, &min, &max, &fragContigOrientation,
@@ -3580,7 +3580,7 @@ void localeCam(char *middleName)
 		  for (ii = 0; ii < numFrags; ii++)
 		  {
 			ump = GetIntMultiPos(uma->f_list, ii);
-			frag = GetCIFragT(ScaffoldGraph->CIFrags, (int32)ump->source);
+			frag = GetCIFragT(ScaffoldGraph->CIFrags, (int32)ump->sourceInt);
 		
 			// deal with frags from locales first
 			if (frag->locale != -1) 
@@ -3896,7 +3896,7 @@ void localeSimCam()
 		int fragLocaleMod;
 		
 		mp   = GetIntMultiPos(ma->f_list, i);
-		frag = GetCIFragT(ScaffoldGraph->CIFrags, (int32)mp->source);
+		frag = GetCIFragT(ScaffoldGraph->CIFrags, (int32)mp->sourceInt);
 		
 		if( frag->locale != -1 )
 		{

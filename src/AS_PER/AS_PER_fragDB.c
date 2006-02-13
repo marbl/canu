@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_fragDB.c,v 1.5 2005-07-20 19:55:39 eliv Exp $";
+static char CM_ID[] = "$Id: AS_PER_fragDB.c,v 1.6 2006-02-13 22:16:31 eliv Exp $";
 /*************************************************************************
  Module:  AS_PER_fragDB
  Description:
@@ -290,10 +290,8 @@ int getFragDB(int64 index, int32 getFlags, ReadStructp rs, int blockSize){
   int32 blobLength;
   char blob[16000];
   static int OCIInitialized = 0;
-#endif
   
   // fprintf(stderr,"* getFragDB " F_S64 "\n", index);
-#ifdef AS_ORACLE
   if (!OCIInitialized)
   {
 	initializeOCI(blockSize);
@@ -301,11 +299,11 @@ int getFragDB(int64 index, int32 getFlags, ReadStructp rs, int blockSize){
   }
   GetFragFromDB(index, &fr->frag, blob, &blobLength);
   unloadFragBlobs( blob, blobLength, fr, getFlags);
-#endif
 
 #ifdef DEBUG
  fprintf(stderr,"* GetFragDB " F_S64 " with id " F_IID " src: %s  seq: %s \n qu: %s\n",
 		 index, fr->frag.readIndex, fr->source, fr->sequence, fr->quality);
+#endif
 #endif
  return(0);
 }

@@ -88,7 +88,7 @@ typedef struct {
     IntFragment_ID       frgIdent;
     IntFragment_ID       frgContained;
     IntUnitig_ID         frgInUnitig;
-    char		*frgSource;    
+    int32		         frgSource;    
 } CNS_FragmentContigElement;
 
 typedef struct {

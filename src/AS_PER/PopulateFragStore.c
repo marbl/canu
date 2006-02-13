@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: PopulateFragStore.c,v 1.5 2005-09-15 15:20:16 eliv Exp $";
+static char CM_ID[] = "$Id: PopulateFragStore.c,v 1.6 2006-02-13 22:16:31 eliv Exp $";
 
 /*************************************************
 * Module:  PopulateFragStore.c
@@ -549,7 +549,7 @@ static int  ReadFrags(int maxFrags,
 	DistRecord distRecord;
 	InternalDistMesg  *idt_mesg = (InternalDistMesg *) pmesg->m;
 #ifdef DEBUG
-	fprintf(stderr,"Read DST message %c ( " F_UID ", " F_IID " ) nextDist = " FS_64 "\n", 
+	fprintf(stderr,"Read DST message %c ( " F_UID ", " F_IID " ) nextDist = " F_S64 "\n", 
 		idt_mesg->action,
 		idt_mesg->eaccession,
 		idt_mesg->iaccession,

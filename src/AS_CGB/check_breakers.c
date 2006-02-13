@@ -532,14 +532,6 @@ int AllocateAndCopyIMPs( cds_int32 * dest_num, IntMultiPos ** dest_f_list,
   for( i = 0; i < src_num; i++ )
   {
     memcpy( &((*dest_f_list)[i]), &src_f_list[i], sizeof( IntMultiPos ) );
-#ifdef AS_ENABLE_SOURCE
-    if( AllocateAndCopyString( &((*dest_f_list)[i].source),
-                               src_f_list[i].source ) )
-    {
-      fprintf( stderr, "Failed to allocate IMP source memory\n" );
-      return 1;
-    }
-#endif
     // NOTE: these will be used to hold sequence for alignments
     (*dest_f_list)[i].delta_length = 0;
     (*dest_f_list)[i].delta = NULL;
@@ -1385,7 +1377,7 @@ typedef CheckGlobals * CheckGlobalsp;
 void InitializeGlobals( CheckGlobalsp globals, char * program_name )
 {
   globals->program_name = program_name;
-  globals->version = "$Revision: 1.6 $";
+  globals->version = "$Revision: 1.7 $";
   globals->chims_file = NULL;
   globals->craps_file = NULL;
   globals->cgb_file = NULL;

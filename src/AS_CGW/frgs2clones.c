@@ -364,7 +364,7 @@ int main( int argc, char *argv[])
 	    the_imps[0].type = 'R';
 	    the_imps[0].ident = fragIID;
 	    the_imps[0].contained = 0;
-	    the_imps[0].source = "";
+	    the_imps[0].sourceInt = -1;
 	    the_imps[0].position.bgn = (ovl->begpos >= 0 ) ? 0 : -ovl->begpos;
 	    the_imps[0].position.end = (ovl->begpos >= 0 ) ? len1 : len1 - ovl->begpos;
 	    the_imps[0].delta_length = 0;
@@ -372,7 +372,7 @@ int main( int argc, char *argv[])
 	    the_imps[1].type = 'R';
 	    the_imps[1].ident = mateIID;
 	    the_imps[1].contained = 0;
-	    the_imps[1].source = "";
+	    the_imps[1].sourceInt = -1;
 	    // due to inversion of mate, note the following swap of end and beg
 	    the_imps[1].position.end = (ovl->begpos >= 0) ? ovl->begpos : 0;
 	    the_imps[1].position.bgn = (ovl->begpos >= 0) ? ovl->begpos + len2 : len2;

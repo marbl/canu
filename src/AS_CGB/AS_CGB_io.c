@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_io.c,v 1.5 2005-08-12 20:17:02 gdenisov Exp $";
+= "$Id: AS_CGB_io.c,v 1.6 2006-02-13 22:16:31 eliv Exp $";
 /* *******************************************************************
  *
  * Module: AS_CGB_io.c
@@ -213,12 +213,6 @@ void output_the_chunks
       a_frag.type   = get_typ_fragment(frags,vid);
       a_frag.ident  = get_iid_fragment(frags,vid);
       a_frag.contained  = get_container_fragment(frags,vid);
-      a_frag.source =   ( (analysis_level == 0)
-			  ? NULL
-			  :  ( (NULL != frag_source_index)
-			       ? GetVA_char(newfragsrc,frag_source_index[vid])
-			       : GetVA_char(fragsrc, get_src_fragment(frags,vid)) 
-			       ));
       a_frag.position.bgn = get_o5p_fragment(frags,vid);
       a_frag.position.end = get_o3p_fragment(frags,vid);
       a_frag.delta_length = 0;
@@ -574,9 +568,6 @@ void convert_the_chunks_to_IUM
       a_frag.type   = get_typ_fragment(frags,vid);
       a_frag.ident  = get_iid_fragment(frags,vid);
       a_frag.contained  = get_container_fragment(frags,vid);
-      a_frag.source =   ( (analysis_level == 0)
-			  ? NULL
-			  : GetVA_char(fragsrc, get_src_fragment(frags,vid)) );
       a_frag.position.bgn = get_o5p_fragment(frags,vid);
       a_frag.position.end = get_o3p_fragment(frags,vid);
       a_frag.delta_length = 0;

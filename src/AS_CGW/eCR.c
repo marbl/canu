@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: eCR.c,v 1.4 2006-02-11 20:10:56 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: eCR.c,v 1.5 2006-02-13 22:16:31 eliv Exp $";
 
 #include "eCR.h"
 
@@ -1283,7 +1283,7 @@ findFirstExtendableFrags(ContigT *contig, extendableFrag *extFragsArray) {
   // *extensionOut = 0;
   for (i = 0; i < numFrags; i++) {
     mp = GetIntMultiPos(ma->f_list, i);
-    frag = GetCIFragT(ScaffoldGraph->CIFrags, (int32) mp->source);
+    frag = GetCIFragT(ScaffoldGraph->CIFrags, (int32) mp->sourceInt);
 
     if (frag->contigOffset3p.mean < 100.0 &&      // frag is within a cutoff of the low end of the contig
         frag->locale == -1 &&                     // and is a read
@@ -1407,7 +1407,7 @@ findLastExtendableFrags(ContigT *contig, extendableFrag *extFragsArray) {
   // *extensionOut = 0;
   for (i = 0; i < numFrags; i++) {
     mp = GetIntMultiPos(ma->f_list, i);
-    frag = GetCIFragT(ScaffoldGraph->CIFrags, (int32) mp->source);
+    frag = GetCIFragT(ScaffoldGraph->CIFrags, (int32) mp->sourceInt);
 
     // if (frag->contigOffset3p.mean == maxContigPos && frag->locale == -1)
     if (frag->contigOffset3p.mean > maxContigPos - 100.0 &&      // frag is within a cutoff of the high end of the contig

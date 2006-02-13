@@ -44,9 +44,6 @@ void WriteIMPToFile(IntMultiPos * imp, FILE * fp)
   fwrite(&(imp->type), sizeof(imp->type), 1, fp);
   fwrite(&(imp->ident), sizeof(imp->ident), 1, fp);
   fwrite(&(imp->contained), sizeof(imp->contained), 1, fp);
-#ifdef AS_ENABLE_SOURCE
-  fwrite(&(imp->source), sizeof(imp->source), 1, fp);
-#endif
   fwrite(&(imp->position), sizeof(imp->position), 1, fp);
   fwrite(&(imp->delta_length), sizeof(imp->delta_length), 1, fp);
   if(imp->delta_length > 0)
@@ -58,7 +55,7 @@ void ReadIMPFromFile(IntMultiPos * imp, FILE * fp)
   fread(&(imp->ident), sizeof(imp->ident), 1, fp);
   fread(&(imp->contained), sizeof(imp->contained), 1, fp);
 #ifdef AS_ENABLE_SOURCE
-  fread(&(imp->source), sizeof(imp->source), 1, fp);
+  imp->sourceInt = -1;
 #endif
   fread(&(imp->position), sizeof(imp->position), 1, fp);
   fread(&(imp->delta_length), sizeof(imp->delta_length), 1, fp);
@@ -564,7 +561,7 @@ void UpdateNodeFragmentLinkFlags(GraphCGW_T * cGraph, ChunkInstanceT * node)
   for(findex = 0; findex < GetNumIntMultiPoss(localMA->f_list); findex++)
   {
     IntMultiPos *mp = GetIntMultiPos(localMA->f_list, findex);
-    CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags, (int32) mp->source);
+    CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags, (int32) mp->sourceInt);
 
     UpdateFragLinkFlags(frag, node, TRUE);
   }

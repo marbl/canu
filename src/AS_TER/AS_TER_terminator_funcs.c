@@ -25,7 +25,7 @@
  Assumptions: There is no UID 0
 **********************************************************************/
 
-static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.12 2005-11-21 09:31:35 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.13 2006-02-13 22:16:31 eliv Exp $";
 
 
 
@@ -529,7 +529,7 @@ static SnapUnitigMesg* convert_IUM_to_UTG(IntUnitigMesg* iumMesg, int64 blockSiz
     for(i=0; i<iumMesg->num_frags; i++){
       utgMesg->f_list[i].type = iumMesg->f_list[i].type;
 #ifdef AS_ENABLE_SOURCE
-      utgMesg->f_list[i].source = strdup(iumMesg->f_list[i].source);
+      utgMesg->f_list[i].source = NULL;
 #endif
       if( iumMesg->f_list[i].type == AS_BACTIG )
 	di = fetch_UID_from_bactigStore(iumMesg->f_list[i].ident);
@@ -732,7 +732,7 @@ static SnapConConMesg* convert_ICM_to_CCO(IntConConMesg* icmMesg, int64 blockSiz
     for(i=0; i<icmMesg->num_pieces; i++){// i loop
       ccoMesg->pieces[i].type = icmMesg->pieces[i].type;
 #ifdef AS_ENABLE_SOURCE
-      ccoMesg->pieces[i].source = strdup(icmMesg->pieces[i].source);
+      ccoMesg->pieces[i].source = NULL;
 #endif
 
 #if DEBUG > 1

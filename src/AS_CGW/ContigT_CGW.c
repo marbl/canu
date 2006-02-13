@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ContigT_CGW.c,v 1.4 2005-03-22 19:48:35 jason_miller Exp $";
+static char CM_ID[] = "$Id: ContigT_CGW.c,v 1.5 2006-02-13 22:16:31 eliv Exp $";
 
 //#define DEBUG 1
 //#define TRY_IANS_EDGES
@@ -918,7 +918,7 @@ void SetCIScaffoldIds(ChunkInstanceT *CI, CDS_CID_t scaffoldID){
   CI->scaffoldID = scaffoldID;
   if(CI->flags.bits.isChaff){ // This can only happen once
     MultiAlignT *ma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, CI->id, TRUE);
-    CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags,  (int)GetIntMultiPos(ma->f_list,0)->source);
+    CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags,  (int)GetIntMultiPos(ma->f_list,0)->sourceInt);
     assert(frag->flags.bits.isSingleton);
     frag->flags.bits.isChaff = FALSE;
     CI->flags.bits.isChaff = FALSE;
@@ -1231,7 +1231,7 @@ void CheckAllContigFragments(void){
      }
      for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++){
        IntMultiPos *mp = GetIntMultiPos(ma->f_list,i);
-       CDS_CID_t fragID = (CDS_CID_t)mp->source;
+       CDS_CID_t fragID = (CDS_CID_t)mp->sourceInt;
        CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags,fragID);
        assert(frag->contigID == contig->id);
      }

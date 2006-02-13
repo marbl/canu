@@ -38,11 +38,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: chunk_analyze.c,v 1.5 2005-09-15 15:20:16 eliv Exp $
- * $Revision: 1.5 $
+ * $Id: chunk_analyze.c,v 1.6 2006-02-13 22:16:31 eliv Exp $
+ * $Revision: 1.6 $
 */
 
-static char fileID[] = "$Id: chunk_analyze.c,v 1.5 2005-09-15 15:20:16 eliv Exp $";
+static char fileID[] = "$Id: chunk_analyze.c,v 1.6 2006-02-13 22:16:31 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -189,16 +189,6 @@ int main  (int argc, char * argv [])
                }
 
            Range_Ct = 0;
-
-           for  (i = 0;  i < Num_Frags;  i ++)
-             {
-              fid = msg -> f_list [i] . ident;
-              p = strstr (msg -> f_list [i] . source, "\n[");
-              if  (p != NULL
-                     && sscanf (p + 2, "%d,%d", & a_end, & b_end) == 2
-                     && has_r_flag)
-                  Add_Range_Entry (fid, a_end, b_end);
-             }
 
            Analyze_Range (chunk_id);
           }

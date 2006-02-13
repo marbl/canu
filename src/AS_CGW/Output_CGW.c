@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Output_CGW.c,v 1.9 2005-09-22 23:58:54 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Output_CGW.c,v 1.10 2006-02-13 22:16:31 eliv Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -308,7 +308,6 @@ void OutputContigsFromMultiAligns(){
       CIScaffoldT *scaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph, ctg->scaffoldID);
       CDS_IID_t numFrag;
       CDS_IID_t numUnitig;
-      CDS_IID_t * tmpSource;
       IntMultiPos *mp;
       IntUnitigPos *up;
       //    MultiAlignT *ma = GetMultiAlignInStore(graph->maStore, ctg->id);
@@ -317,8 +316,6 @@ void OutputContigsFromMultiAligns(){
       mp = GetIntMultiPos(ma->f_list,0);
       numUnitig = GetNumIntUnitigPoss(ma->u_list);
       up = GetIntUnitigPos(ma->u_list,0);
-      
-      tmpSource = (CDS_IID_t *)safe_malloc((GetNumIntMultiPoss(ma->f_list) + 1) * sizeof(CDS_IID_t));
       
       if(numUnitig >= ubufSize){
         ubufSize = numUnitig * 2;
@@ -350,20 +347,6 @@ void OutputContigsFromMultiAligns(){
           iup->ident = unitig->info.CI.baseID; // map back to the parent of this instance
         }
         uptr[i].ident = iup->ident;
-      }
-      // Null out the source field
-      for(i = 0; i < numFrag; i++){
-        IntMultiPos *mp_i = GetIntMultiPos(ma->f_list,i);
-        CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags,
-                                   (CDS_CID_t)mp_i->source);
-        tmpSource[i] = (CDS_IID_t) mp_i->source;
-#ifdef DEBUG_DATA
-	// This is only turned on if GlobalData->debugLevel > 0  see Input_CGW.c
-	mp_i->source = Getchar(ScaffoldGraph->SourceFields, frag->source);
-	//      fprintf(GlobalData->stderrc,"* " F_IID "  Frag " F_IID " has source " F_IID " %s\n", i,tmpSource[i] ,(CDS_CID_t) frag->source, (CDS_CID_t) mp_i->source);
-#else
-	mp_i->source = NULL;
-#endif
       }
       ctg->outputID = ctg->id ;  // cid++;
       icm_mesg.placed = (scaffold && (scaffold->type == REAL_SCAFFOLD)?AS_PLACED:AS_UNPLACED);
@@ -408,13 +391,7 @@ void OutputContigsFromMultiAligns(){
         }     
       }
       
-      // Restore the source values
-      for(i = 0; i < numFrag; i++){
-        IntMultiPos *mp_i = GetIntMultiPos(ma->f_list,i);
-        mp_i->source = (char *)tmpSource[i];
-      }
       //    UnloadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ctg->id, FALSE);
-      free(tmpSource);
     }
   }
   free(icm_mesg.unitigs);
@@ -816,20 +793,8 @@ void OutputUnitigsFromMultiAligns(void){
     ReLoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ma, ci->id, TRUE);
     {
     CDS_IID_t numFrag = GetNumIntMultiPoss(ma->f_list);
-    CDS_IID_t * tmpSource;
     assert (ci->type != CONTIG_CGW);
 
-    tmpSource = (CDS_IID_t *)safe_malloc(sizeof(CDS_IID_t) * (GetNumIntMultiPoss(ma->f_list) + 1));
-    {
-      CDS_IID_t i;
-      // Null out the source field
-      for(i = 0; i < numFrag; i++){
-	IntMultiPos *mp_i = GetIntMultiPos(ma->f_list,i);
-	tmpSource[i] = (CDS_IID_t)mp_i->source;
-	mp_i->source = NULL;
-	assert(mp_i->ident);
-      }
-    }
     ci->outputID = cid++;
     //assert(ci->outputID == ci->id); // TRUE FOR UNITIGS UNTIL WE SPLIT
     
@@ -854,16 +819,7 @@ void OutputUnitigsFromMultiAligns(void){
     ium_mesg.v_list = GetIntMultiVar(ma->v_list,0);
 
     (GlobalData->writer)(GlobalData->outfp,&pmesg);
-    {
-      CDS_IID_t i;
-      // Restore the source field
-      for(i = 0; i < numFrag; i++){
-	IntMultiPos *mp_i = GetIntMultiPos(ma->f_list,i);
-	mp_i->source = (char *)tmpSource[i];
-      }
-    }
     //    UnloadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ci->id, TRUE);
-    free(tmpSource);
     }
   }	// while NextGraphNode
   DeleteMultiAlignT(ma);

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGB_breakers.c,v 1.5 2005-09-15 15:20:15 eliv Exp $";
+static char CM_ID[] = "$Id: AS_CGB_breakers.c,v 1.6 2006-02-13 22:16:31 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -71,17 +71,9 @@ void FreeBreakerSet( BreakerSetp bs )
             int k;
             for( k = 0; k < bs->breakers[i].chunks[j].num_frags; k++ )
             {
-# ifdef AS_ENABLE_SOURCE
-            if( bs->breakers[i].chunks[j].f_list[k].source );
-              free( bs->breakers[i].chunks[j].f_list[k].source );
-#endif
               if( bs->breakers[i].chunks[j].f_list[k].delta )
                 free( bs->breakers[i].chunks[j].f_list[k].delta );
             }
-# ifdef AS_ENABLE_SOURCE
-            if( bs->breakers[i].chunks[j].source )
-              free( bs->breakers[i].chunks[j].source );
-#endif
             if( bs->breakers[i].chunks[j].consensus )
               free( bs->breakers[i].chunks[j].consensus );
             if( bs->breakers[i].chunks[j].quality )
@@ -332,15 +324,6 @@ static int AllocateAndCopyIMPs( cds_int32 * dest_num, IntMultiPos ** dest_f_list
     (*dest_f_list)[i].delta_length = 0;
     (*dest_f_list)[i].delta = NULL;
     
-#ifdef AS_ENABLE_SOURCE
-    (*dest_f_list)[i].source = NULL;
-    if( AllocateAndCopyString( &((*dest_f_list)[i].source),
-                               src_f_list[i].source ) )
-    {
-      fprintf( stderr, "Failed to allocate IMP source memory\n" );
-      return 1;
-    }
-#endif
     // NOTE: these will be used to hold sequence for alignments
   }
   *dest_num = src_num;

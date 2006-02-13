@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: get-iid-from-frag-src.c,v 1.5 2005-09-15 15:20:15 eliv Exp $";
+= "$Id: get-iid-from-frag-src.c,v 1.6 2006-02-13 22:16:31 eliv Exp $";
 /* *******************************************************************
  *
  * Usage:
@@ -164,10 +164,9 @@ static void input_mesgs_pp
 
 	for( ifrag=0; ifrag<num_frags; ifrag++) {
 	  const IntFragment_ID iid = f_list[ifrag].ident;
-	  const char * source = f_list[ifrag].source;
-	  const char * present = strstr(source,target);
+	  int present = f_list[ifrag].sourceInt;
 	  lfrag++;
-	  if(present != NULL) {
+	  if(present != -1) {
 	    fprintf(stdout,F_IID "\n",iid);
 	  }
 	}

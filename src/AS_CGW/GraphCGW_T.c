@@ -23,7 +23,7 @@ cc -g -pg -qfullpath   -qstrict -qbitfields=signed -qchars=signed -qlanglvl=ext 
 -o /work/assembly/rbolanos/IBM_PORT_CDS/ibm_migration_work_dir/cds/AS/obj/GraphCGW_T.o GraphCGW_T.c
 */
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.9 2006-01-31 21:51:31 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.10 2006-02-13 22:16:31 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2171,7 +2171,7 @@ void UpdateNodeFragments(GraphCGW_T *graph, CDS_CID_t cid,
   
   for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++){
     IntMultiPos *mp = GetIntMultiPos(ma->f_list, i);
-    CDS_CID_t fragID = (CDS_CID_t)mp->source; // GetInfoByIID(ScaffoldGraph->iidToFragIndex, mp->ident)->fragIndex;
+    CDS_CID_t fragID = (CDS_CID_t)mp->sourceInt; // GetInfoByIID(ScaffoldGraph->iidToFragIndex, mp->ident)->fragIndex;
     CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags, fragID);
     LengthT offset3p, offset5p;
     CDS_COORD_t ubgn, uend;
@@ -2928,11 +2928,11 @@ void  BuildGraphEdgesFromMultiAlign(GraphCGW_T *graph, NodeCGW_T *node,
   
   for(i = 0; i < numFrags; i++){
     IntMultiPos *mp = GetIntMultiPos(ma->f_list, i);
-    CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags, (CDS_CID_t)mp->source);
+    CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags, (CDS_CID_t)mp->sourceInt);
     int numLinks = frag->numLinks;
     int hasExternalLinks = FALSE;
     CDS_CID_t mfragID;
-    CDS_CID_t fragID = (CDS_CID_t)mp->source;
+    CDS_CID_t fragID = (CDS_CID_t)mp->sourceInt;
     CIFragT *mfrag;
     
     /* If this fragment has no constraints... continue */
@@ -3407,7 +3407,7 @@ void AssignFragsToResolvedCI(GraphCGW_T *graph,
     //fragPos.type = frag->type;
     fragPos.type = AS_MSG_SafeConvert_charToFragType(frag->type,TRUE);
     
-    fragPos.source = (char *)fragID;
+    fragPos.sourceInt = fragID;
     fragPos.position.bgn = frag->offset5p.mean;
     fragPos.position.end = frag->offset3p.mean;
     AppendIntMultiPos(f_list_CI, &fragPos);
@@ -3492,7 +3492,7 @@ CDS_CID_t SplitUnresolvedCI(GraphCGW_T *graph,
   
   if(node->info.CI.numInstances == 0){
     if( node->flags.bits.isChaff == TRUE){
-      CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags,  (int)GetIntMultiPos(oldMA->f_list,0)->source);
+      CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags,  (int)GetIntMultiPos(oldMA->f_list,0)->sourceInt);
       assert(frag->flags.bits.isSingleton);
       newNode->flags.bits.isChaff = FALSE;  // Making a surrogate causes the parent & surrogate to become !chaff
       node->flags.bits.isChaff = FALSE;
@@ -3929,7 +3929,7 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
       CIFragT *frag, *mate;
       CDS_COORD_t dist;
       
-      frag = GetCIFragT(ScaffoldGraph->CIFrags, (CDS_CID_t)mp->source);
+      frag = GetCIFragT(ScaffoldGraph->CIFrags, (CDS_CID_t)mp->sourceInt);
       assert(frag->iid == mp->ident);
 
 #if 0
@@ -3960,7 +3960,7 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
       // If the id of the current fragment is greater than its mate, skip it, to
       // avoid double counting.
       //
-      if ((CDS_CID_t)mp->source > frag->mateOf){
+      if ((CDS_CID_t)mp->sourceInt > frag->mateOf){
         continue;		// only examine each pair once
       }
       
@@ -3970,7 +3970,7 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
       if ( frag->offset5p.mean > frag->offset3p.mean)
         continue;
       
-      assert(mate != NULL && mate->mateOf == (CDS_CID_t)mp->source);
+      assert(mate != NULL && mate->mateOf == (CDS_CID_t)mp->sourceInt);
       dptr = GetDistT(ScaffoldGraph->Dists, frag->dist);
       dptr->numReferences++;
       
@@ -4496,7 +4496,8 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
         {
           int32 binVal = dist->histogram[j];
           
-          fprintf(GlobalData->stderrc,"* [%5d,%5d]\t%d\n",
+          if (binVal > 0 )
+            fprintf(GlobalData->stderrc,"* [%5d,%5d]\t%d\n",
                   (int32)(dist->min + j * dist->bsize), (int32)(dist->min + (j + 1) * dist->bsize), binVal);
         }
       }
@@ -4882,8 +4883,8 @@ void  CheckUnitigs(CDS_CID_t startUnitigID)
     {
       IntMultiPos *mp = GetIntMultiPos(ma->f_list, i);
       CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags,
-                                 (CDS_CID_t)mp->source);
-      CDS_CID_t fragID = (CDS_CID_t) mp->source;
+                                 (CDS_CID_t)mp->sourceInt);
+      CDS_CID_t fragID = (CDS_CID_t) mp->sourceInt;
       
       if(frag->cid != node->id)
       {
