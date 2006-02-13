@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: dumpGatekeeper.c,v 1.5 2005-08-17 16:47:11 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpGatekeeper.c,v 1.6 2006-02-13 19:58:04 brianwalenz Exp $";
 
 /* Dump the gatekeeper stores for debug */
 
@@ -202,24 +202,24 @@ int  main(int argc, char * argv [])
            fprintf(stdout,"\t* No Donor set\n");
          }
        }
+     }
+
+     if(!quiet)
+       fprintf(stdout,"* Printing Shadowed Dists\n");
        
-       if(!quiet)
-         fprintf(stdout,"* Printing Shadowed Dists\n");
+     statsStore(gkpStore.s_dstStore, &shadow_stat);
+     fprintf(stdout,"* Stats for s_Dist Store are first:" F_S64 " last :" F_S64 "\n",
+             shadow_stat.firstElem, shadow_stat.lastElem);
        
-       statsStore(gkpStore.s_dstStore, &shadow_stat);
-       fprintf(stdout,"* Stats for s_Dist Store are first:" F_S64 " last :" F_S64 "\n",
-               shadow_stat.firstElem, shadow_stat.lastElem);
+     j = shadow_stat.firstElem;
        
-       j = shadow_stat.firstElem;
-       
-       for(j = 1; j <= shadow_stat.lastElem; j++){
-         getGateKeeperDistanceStore(gkpStore.s_dstStore,j,&gkpd);
+     for(j = 1; j <= shadow_stat.lastElem; j++){
+       getGateKeeperDistanceStore(gkpStore.s_dstStore,j,&gkpd);
          
-         if(!quiet)
-           fprintf(stdout,"* Dist " F_S64 " UID:" F_UID " del:%d red:%d mean:%f std:%f batch(" F_U16 "," F_U16 ") prevID: " F_IID " prevInstanceID:" F_IID "\n",
-                   j,gkpd.UID, gkpd.deleted, gkpd.redefined, gkpd.mean, gkpd.stddev,
-                   gkpd.birthBatch, gkpd.deathBatch, gkpd.prevID, gkpd.prevInstanceID);
-       }
+       if(!quiet)
+         fprintf(stdout,"* Dist " F_S64 " UID:" F_UID " del:%d red:%d mean:%f std:%f batch(" F_U16 "," F_U16 ") prevID: " F_IID " prevInstanceID:" F_IID "\n",
+                 j,gkpd.UID, gkpd.deleted, gkpd.redefined, gkpd.mean, gkpd.stddev,
+                 gkpd.birthBatch, gkpd.deathBatch, gkpd.prevID, gkpd.prevInstanceID);
      }
    }
      
