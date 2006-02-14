@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: eCR.c,v 1.5 2006-02-13 22:16:31 eliv Exp $";
+static const char CM_ID[] = "$Id: eCR.c,v 1.6 2006-02-14 16:23:47 eliv Exp $";
 
 #include "eCR.h"
 
@@ -1067,12 +1067,16 @@ main(int argc, char **argv) {
 
       fprintf(stderr, "after gapNumber %d:\n", gapNumber);
       fprintf(stderr, "             numSmallGaps: %d (closed %d, %.2f%%)\n", 
-              numSmallGaps, numSmallGapsClosed, 100.0 * numSmallGapsClosed / numSmallGaps);
+              numSmallGaps, numSmallGapsClosed,
+              (numSmallGaps == 0) ? 0 : 100.0 * numSmallGapsClosed / numSmallGaps);
       fprintf(stderr, "             numLargeGaps: %d (closed %d, %.2f%%)\n", 
-              numLargeGaps, numLargeGapsClosed, 100.0 * numLargeGapsClosed / numLargeGaps);
+              numLargeGaps, numLargeGapsClosed,
+              (numLargeGaps == 0) ? 0 : 100.0 * numLargeGapsClosed / numLargeGaps);
       fprintf(stderr, "                  allGaps: %d (closed %d, %.2f%%)\n", 
               numSmallGaps + numLargeGaps, numSmallGapsClosed + numLargeGapsClosed, 
-              100.0 * (numSmallGapsClosed + numLargeGapsClosed) / (numSmallGaps + numLargeGaps));
+              (numSmallGaps + numLargeGaps == 0) ? 0 : 100.0 * (numSmallGapsClosed + 
+numLargeGapsClosed) / (numSmallGaps + numLargeGaps));
+
 
       gapNumber++;
       lcontig = rcontig;
