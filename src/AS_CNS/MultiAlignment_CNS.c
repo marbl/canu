@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.50 2006-01-30 18:41:09 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.51 2006-02-14 14:27:56 eliv Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -718,7 +718,7 @@ int SetUngappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) 
      epos.idx.fragment.frgType = frag->type;
      epos.idx.fragment.frgContained = frag->contained;
      epos.idx.fragment.frgInUnitig = (type == AS_CONTIG)?-1:uma->id;
-     epos.idx.fragment.frgSource = frag->source;
+     epos.idx.fragment.frgSource = frag->sourceInt;
      epos.position.bgn = *Getint32(gapped_positions,frag->position.bgn);
      epos.position.end = *Getint32(gapped_positions,frag->position.end);
      if(epos.position.bgn==epos.position.end){
@@ -843,7 +843,7 @@ int SetGappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) {
      epos.idx.fragment.frgType = frag->type;
      epos.idx.fragment.frgContained = frag->contained;
      epos.idx.fragment.frgInUnitig = (type == AS_CONTIG)?-1:uma->id;
-     epos.idx.fragment.frgSource = frag->source;
+     epos.idx.fragment.frgSource = frag->sourceInt;
      epos.position.bgn = *Getint32(gapped_positions,frag->position.bgn);
      epos.position.end = *Getint32(gapped_positions,frag->position.end);
      if(epos.position.bgn==epos.position.end){
@@ -3945,7 +3945,6 @@ int GetMANodePositions(int32 mid, int mesg_n_frags, IntMultiPos *imps, int mesg_
     //      fimp->source = NULL;
     //    }
     //    fimp->source = NULL;
-        fimp->source = fragment->source;
         //fimp->source = *GetPtrT(fragment_source,fragment->iid);
         fimp->position.bgn = (fragment->complement)?position.end:position.bgn;
         fimp->position.end = (fragment->complement)?position.bgn:position.end;
@@ -6808,11 +6807,9 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
 				  positions[i].ident, 
 				  complement,
 				  positions[i].contained,
-				  positions[i].source,
+				  NULL,
 				  AS_OTHER_UNITIG, ///ZERO,
 				  NULL);
-
-             SetVA_PtrT(fragment_source, fid, (const void *) &positions[i].source);
 
              offsets[fid].bgn = complement ? positions[i].position.end : positions[i].position.bgn;
              offsets[fid].end = complement ? positions[i].position.bgn : positions[i].position.end;
@@ -8094,7 +8091,7 @@ fprintf(stderr,"compci->idx %12d bgn: %10d end: %10d\n",ci,bgn,end);
           imp = GetIntMultiPos(cma->f_list,ifrag);
           imp->ident = aligned_component->idx.fragment.frgIdent;
           imp->contained = aligned_component->idx.fragment.frgContained;
-          imp->source = aligned_component->idx.fragment.frgSource;
+          imp->sourceInt = aligned_component->idx.fragment.frgSource;
           imp->position.bgn = bgn;
           imp->position.end = end;
 #ifdef DEBUG_POSITIONS
@@ -8418,7 +8415,7 @@ MultiAlignT *MergeMultiAligns( tSequenceDB *sequenceDBp,
 	  } else {
 	    imp = GetIntMultiPos(cma->f_list,ifrag);
 	    imp->ident = compci->idx.fragment.frgIdent;
-	    imp->source = compci->idx.fragment.frgSource;
+	    imp->sourceInt = compci->idx.fragment.frgSource;
 	    imp->position.bgn = bgn;
 	    imp->position.end = end;
 	    imp->delta_length = 0;
