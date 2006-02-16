@@ -6,29 +6,33 @@ sub unitigger {
 
     if (! -e "$wrk/4-unitigger/unitigger.success") {
 
-        if (! -e "$wrk/4-unitigger/$asm.ofgList") {
-            if (runCommand("ls -1 $wrk/0-preoverlap/*.ofg > $wrk/4-unitigger/$asm.ofgList")) {
-                print STDERR "Failed to find the ofg's.\n";
-                rename "$wrk/4-unitigger/$asm.ofgList", "$wrk/4-unitigger/$asm.ofgList.FAILED";
-                exit(1);
-            }
-        }
-
-
         #  Unitigger needs an input .ofg file, which is pretty much just a
         #  dump of the fragstore.  We used to save the original, for no
         #  real reason.  Now, just rebuild the .ofg if the fragstore is
         #  newer than the ofg we have.
         #
-        my $cmd;
-        $cmd  = "[ $wrk/$asm.frgStore/db.frg -nt $wrk/0-preoverlap/$asm.ofg ] && ";
-        $cmd .= "$bin/make_OFG_from_FragStore $wrk/$asm.frgStore > $wrk/0-preoverlap/$asm.ofg || ";
-        $cmd .= "true";
-        if (runCommand($cmd)) {
-            #unlink "$wrk/0-preoverlap/$asm.ofg";
-            die "Failed.\n";
+        #  -M says "start time - mod time" so if that is small, it's newer
+        #
+        if ((! -e "$wrk/4-unitigger/$asm.ofg") ||
+            (-M "$wrk/$asm.frgStore/db.frg" < -M "$wrk/4-unitigger/$asm.ofg")) {
+            my $cmd;
+            #$cmd  = "[ $wrk/$asm.frgStore/db.frg -nt $wrk/0-preoverlap/$asm.ofg ] && ";
+            #$cmd .= "$bin/make_OFG_from_FragStore $wrk/$asm.frgStore > $wrk/0-preoverlap/$asm.ofg || ";
+            #$cmd .= "true";
+            $cmd .= "$bin/make_OFG_from_FragStore $wrk/$asm.frgStore > $wrk/4-unitigger/$asm.ofg";
+            if (runCommand($cmd)) {
+                rename "$wrk/4-unitigger/$asm.ofg", "$wrk/4-unitigger/$asm.ofg.FAILED";
+                die "Failed.\n";
+            }
         }
 
+        if (! -e "$wrk/4-unitigger/$asm.ofgList") {
+            if (runCommand("ls -1 $wrk/4-unitigger/*.ofg > $wrk/4-unitigger/$asm.ofgList")) {
+                print STDERR "Failed to find the ofg's.\n";
+                rename "$wrk/4-unitigger/$asm.ofgList", "$wrk/4-unitigger/$asm.ofgList.FAILED";
+                exit(1);
+            }
+        }
 
         my $cmd;
         $cmd  = "cd $wrk/4-unitigger && ";
