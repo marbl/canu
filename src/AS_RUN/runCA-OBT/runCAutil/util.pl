@@ -123,6 +123,7 @@ sub setDefaults {
     $global{"scratch"} =                     "/scratch";
     $global{"stoneLevel"} =                  2;
     $global{"uidServer"} =                   undef;
+    $global{"updateDistanceType"} =          "pre";
     $global{"utgEdges"} =                    undef;
     $global{"utgErrorRate"} =                15;
     $global{"utgFragments"} =                undef;

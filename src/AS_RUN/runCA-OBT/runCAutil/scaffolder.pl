@@ -231,11 +231,20 @@ sub scaffolder {
     my $thisDir    = 0;
     my $stoneLevel = getGlobal("stoneLevel");
 
+    #  Do an initial CGW to update distances, then update the
+    #  gatekeeper.  This initial run shouldn't be used for later
+    #  CGW'ing.
+    #
+    if (getGlobal("updateDistanceType") eq "pre") {
+        updateDistanceRecords(CGW("7-CGW-distances", undef, $stoneLevel, undef));
+    }
+
+
     #  If we're not doing eCR, we just do a single scaffolder run, and
     #  get the heck outta here!  OK, we'll do resolveSurrogates() too.
     #
     if (getGlobal("doExtendClearRanges") == 0) {
-        $lastDir = CGW("7-CGW", $lastDir, $stoneLevel, undef);
+        $lastDir = CGW("7-$thisDir-CGW", $lastDir, $stoneLevel, undef);
         $thisDir++;
     } else {
 
@@ -249,7 +258,9 @@ sub scaffolder {
         $lastDir = eCR("7-$thisDir-ECR", $lastDir);
         $thisDir++;
 
-        updateDistanceRecords($lastDir);
+        if (getGlobal("updateDistanceType") ne "pre") {
+            updateDistanceRecords($lastDir);
+        }
 
         #  Iterate eCR: do another scaffolder still without stones,
         #  then another eCR.  Again, and again, until we get dizzy and
@@ -262,7 +273,9 @@ sub scaffolder {
             $lastDir = eCR("7-$thisDir-ECR", $lastDir);
             $thisDir++;
 
-            updateDistanceRecords($lastDir);
+            if (getGlobal("updateDistanceType") ne "pre") {
+                updateDistanceRecords($lastDir);
+            }
         }
 
         #  Then another scaffolder, chucking stones into the big holes.
