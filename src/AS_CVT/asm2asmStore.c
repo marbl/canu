@@ -73,15 +73,21 @@ int main(int argc, char ** argv)
 
   // check command line requirements
   if(asmFilename == NULL ||
-     storePath == NULL ||
-     gkpStorePath == NULL ||
-     frgStorePath == NULL)
+     storePath == NULL)
   {
     fprintf(stderr,
-            "Usage: %s [-a asmFilename] [-s storePath] [-g gkpStore] [-f frgStore]\n",
+            "Usage: %s -a asmFilename -s storePath [-g gkpStore] [-f frgStore]\n",
             argv[0]);
     exit(-1);
   }
+
+  if(gkpStorePath == NULL)
+    fprintf(stderr, "\n\nWarning: Creating an assembly store with no gatekeeper store!\n"
+            "\tClone/mate-pair data will NOT be available from the assembly store.\n\n\n");
+
+  if(frgStorePath == NULL)
+    fprintf(stderr, "\n\nWarning: Creating an assembly store with no fragment store!\n"
+            "\tOriginal clear ranges will NOT be available from the assembly store.\n\n\n");
 
   // read asm file into data structures
   {

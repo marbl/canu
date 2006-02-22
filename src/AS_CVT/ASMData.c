@@ -443,24 +443,27 @@ int AddMDI2Store(AssemblyStore * asmStore, SnapMateDistMesg * smdm)
   mdi.uid = smdm->erefines;
   mdi.asmMean = smdm->mean;
   mdi.asmStddev = smdm->stddev;
+  mdi.inMean = mdi.inStddev = 0.0;
 
-  // look up original in gatekeeper store
-  if(HASH_FAILURE == LookupInPHashTable_AS(asmStore->gkpStore->hashTable,
-                                           ASM_UID_NAMESPACE,
-                                           mdi.uid,
-                                           &value))
+  if(asmStore->gkpStore != NULL)
   {
-    fprintf(stderr, "Failed to lookup " F_UID " in gatekeeper store hashtable\n",
-            mdi.uid);
-    mdi.inMean = mdi.inStddev = 0.0;
-  }
-  else
-  {
-    GateKeeperDistanceRecord gkdr;
-    getGateKeeperDistanceStore(asmStore->gkpStore->dstStore,
-                               value.IID, &gkdr);
-    mdi.inMean = gkdr.mean;
-    mdi.inStddev = gkdr.stddev;
+    if(HASH_FAILURE == LookupInPHashTable_AS(asmStore->gkpStore->hashTable,
+                                             ASM_UID_NAMESPACE,
+                                             mdi.uid,
+                                             &value))
+    {
+      // look up original in gatekeeper store
+      fprintf(stderr, "Failed to lookup " F_UID " in gatekeeper store hashtable\n",
+              mdi.uid);
+    }
+    else
+    {
+      GateKeeperDistanceRecord gkdr;
+      getGateKeeperDistanceStore(asmStore->gkpStore->dstStore,
+                                 value.IID, &gkdr);
+      mdi.inMean = gkdr.mean;
+      mdi.inStddev = gkdr.stddev;
+    }
   }
   appendASM_MDIStore(asmStore->mdiStore, &mdi);
 
@@ -479,6 +482,20 @@ int AddAFG2Store(AssemblyStore * asmStore, AugFragMesg * afg)
   static ReadStructp rs;
   GateKeeperFragmentRecord gkfr;
   
+  if(asmStore->gkpStore == NULL)
+  { 
+    memset(&myAFG, 0, sizeof(ASM_AFGRecord));
+  
+    myAFG.uid = afg->eaccession;
+    myAFG.deleted = FALSE;
+    appendASM_AFGStore(asmStore->afgStore, &myAFG);
+    
+    memset(&value, 0, sizeof(PHashValue_AS));
+    value.type = AS_IID_AFG;
+    InsertInPHashTable_AS(&(asmStore->hashTable), ASM_UID_NAMESPACE,
+                          myAFG.uid, &value, FALSE, TRUE);
+  }
+
   if(HASH_FAILURE == LookupInPHashTable_AS(asmStore->hashTable,
                                            ASM_UID_NAMESPACE,
                                            afg->eaccession,
@@ -496,11 +513,14 @@ int AddAFG2Store(AssemblyStore * asmStore, AugFragMesg * afg)
   myAFG.asmClr = afg->clear_rng;
   
   // get link fields - 1:1 correspondence between AFGs & gkfrs
-  getGateKeeperFragmentStore(asmStore->gkpStore->frgStore,
-                             value.IID, &gkfr);
-  myAFG.type = gkfr.type;
-  myAFG.numLinks = gkfr.numLinks;
-  myAFG.linkHead = gkfr.linkHead;
+  if(asmStore->gkpStore != NULL)
+  {
+    getGateKeeperFragmentStore(asmStore->gkpStore->frgStore,
+                               value.IID, &gkfr);
+    myAFG.type = gkfr.type;
+    myAFG.numLinks = gkfr.numLinks;
+    myAFG.linkHead = gkfr.linkHead;
+  }
   
   // get input clear range
   if(asmStore->frgStore != NULLSTOREHANDLE)
@@ -1076,10 +1096,14 @@ int AddGenericMesg2Store(AssemblyStore * asmStore, GenericMesg * gen)
 
 void CopyGateKeeperLKGStore(AssemblyStore * asmStore)
 {
-  int32 numLNKs = getNumGateKeeperLinks(asmStore->gkpStore->lnkStore);
+  int32 numLNKs;
   int32 i;
   GateKeeperLinkRecord lnk;
 
+  if(asmStore->gkpStore == NULL)
+    return;
+
+  numLNKs = getNumGateKeeperLinks(asmStore->gkpStore->lnkStore);
   assert(sizeof(GateKeeperLinkRecord) == sizeof(ASM_LKGRecord));
   assert(asmStore->gkpStore != NULL);
   for(i = 1; i <= numLNKs; i++)
@@ -1149,6 +1173,8 @@ void InitializeAFGStore(AssemblyStore * asmStore)
   ASM_AFGRecord afg;
   PHashValue_AS value;
 
+  if(asmStore->gkpStore == NULL)
+    return;
   numFRGs = getNumGateKeeperFragments(asmStore->gkpStore->frgStore);
   memset(&afg, 0, sizeof(ASM_AFGRecord));
   
@@ -1178,14 +1204,15 @@ AssemblyStore * CreateAssemblyStoreFromASMFile(FILE * fi,
   unsigned long mesgCount = 0;
 
   assert(fi != NULL &&
-         storePath != NULL &&
-         gkpStorePath != NULL &&
-         frgStorePath != NULL);
+         storePath != NULL);
   
   asmStore = CreateAssemblyStore(storePath, gkpStorePath, frgStorePath);
 
-  fprintf(stderr, "Sync'ing assembly store's AFGs with gatekeepers FRGs\n");
-  InitializeAFGStore(asmStore);
+  if(asmStore->gkpStore != NULL)
+  {
+    fprintf(stderr, "Sync'ing assembly store's AFGs with gatekeepers FRGs\n");
+    InitializeAFGStore(asmStore);
+  }
 
   fprintf(stderr, "Reading .asm file\n");
   while(readerFn(fi, &gen) != EOF)
@@ -1201,8 +1228,11 @@ AssemblyStore * CreateAssemblyStoreFromASMFile(FILE * fi,
     }
   }
 
-  fprintf(stderr, "Copying gatekeeeper store mate links\n");
-  CopyGateKeeperLKGStore(asmStore);
+  if(asmStore->gkpStore != NULL)
+  {
+    fprintf(stderr, "Copying gatekeeeper store mate links\n");
+    CopyGateKeeperLKGStore(asmStore);
+  }
 
   fprintf(stderr, "Setting unitig and fragment scaffold coordinates\n");
   SetUnitigAndFragmentScaffoldCoordinates(asmStore);
