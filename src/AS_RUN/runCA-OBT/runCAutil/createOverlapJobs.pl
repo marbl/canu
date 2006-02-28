@@ -69,6 +69,7 @@ sub createOverlapJobs {
     print F "bat=`\$perl $wrk/$outDir/ovlopts.pl bat \$jobid`\n";
     print F "job=`\$perl $wrk/$outDir/ovlopts.pl job \$jobid`\n";
     print F "opt=`\$perl $wrk/$outDir/ovlopts.pl opt \$jobid`\n";
+    print F "jid=\$\$\n";
     print F "\n";
     print F "if [ ! -d $wrk/$outDir/\$bat ]; then\n";
     print F "  mkdir $wrk/$outDir/\$bat\n";
@@ -78,7 +79,7 @@ sub createOverlapJobs {
     print F "echo job = \$job\n";
     print F "echo opt = \$opt\n";
     print F "\n";
-    print F "echo out = $scratch/\$bat-\$job.ovl\n";
+    print F "echo out = $scratch/\$bat-\$job.\$jid.ovl\n";
     print F "echo out = $wrk/$outDir/\$bat/\$job.ovl";
     print F "\n";
     print F "if [ -e $wrk/$outDir/\$bat/\$job.success ]; then\n";
@@ -90,22 +91,22 @@ sub createOverlapJobs {
     print F "$gin/overlap -P $ovlOpt -M $ovlMemory -t $ovlThreads \\\n";
     print F "  \$opt \\\n";
     print F "  -k $wrk/0-preoverlap/$asm.nmers.fasta \\\n";
-    print F "  -o $scratch/$asm.\$bat-\$job.$$.ovl \\\n";
+    print F "  -o $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
     print F "  $wrk/$asm.frgStore \\\n";
     print F "&& \\\n";
 
     if ($isTrim eq "trim") {
-        print F "$gin/overlap-convert -b $scratch/$asm.\$bat-\$job.$$.ovl $scratch/$asm.\$bat-\$job.$$.ovb \\\n";
+        print F "$gin/overlap-convert -b $scratch/$asm.\$bat-\$job.\$jid.ovl $scratch/$asm.\$bat-\$job.\$jid.ovb \\\n";
         print F "&& \\\n";
-        print F "mv $scratch/$asm.\$bat-\$job.$$.ovb \\\n";
+        print F "mv $scratch/$asm.\$bat-\$job.\$jid.ovb \\\n";
         print F "   $wrk/$outDir/\$bat/\$job.ovb \\\n";
         #print F "&& \\\n";
-        #print F "mv $scratch/$asm.\$bat-\$job.$$.ovl \\\n";
+        #print F "mv $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
         #print F "   $wrk/$outDir/\$bat/\$job.ovl \\\n";
         print F "&& \\\n";
-        print F "rm -f $scratch/$asm.\$bat-\$job.$$.ovl \\\n";
+        print F "rm -f $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
     } else {
-        print F "mv $scratch/$asm.\$bat-\$job.$$.ovl \\\n";
+        print F "mv $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
         print F "   $wrk/$outDir/\$bat/\$job.ovl \\\n";
     }
 
