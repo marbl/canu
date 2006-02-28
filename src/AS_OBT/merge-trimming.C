@@ -85,14 +85,13 @@ main(int argc, char **argv) {
   FILE    *staFile           = 0L;
   char    *frgStore          = 0L;
   char    *ovlFile           = 0L;
-  bool     doModify          = false;
+  bool     doModify          = true;  //  Make this false for testing
   char    *immutableFileName = 0L;
 
   line = new char [lineMax];
 
   if (argc < 5) {
-    fprintf(stderr, "usage: %s [-update] [-immutable uidlist] [-log log] -frg frgStore -ovl overlap-trim\n", argv[0]);
-    fprintf(stderr, "  -update               Update the clear range in the fragStore.\n");
+    fprintf(stderr, "usage: %s [-immutable uidlist] [-log log] -frg frgStore -ovl overlap-trim\n", argv[0]);
     fprintf(stderr, "  -immutable uidlist    Never, ever modify these fragments.\n");
     fprintf(stderr, "  -ovl o                Read consolidated overlaps from here.n");
     fprintf(stderr, "  -log x                Write a record of changes to 'x', summary statistics to 'x.stats'\n");
@@ -106,8 +105,6 @@ main(int argc, char **argv) {
       frgStore = argv[++arg];
     } else if (strncmp(argv[arg], "-ovl", 2) == 0) {
       ovlFile = argv[++arg];
-    } else if (strncmp(argv[arg], "-update", 2) == 0) {
-      doModify = true;
     } else if (strncmp(argv[arg], "-immutable", 2) == 0) {
       immutableFileName = argv[++arg];
     } else if (strncmp(argv[arg], "-log", 2) == 0) {
@@ -187,22 +184,52 @@ main(int argc, char **argv) {
     iid    = strtou64bit(W[0], 0L);
 
 
-    //  Report the frags that had no overlap -- these remain with the
-    //  quality0 trimming.
+    //  Report the frags that had no overlap -- we update the clear region
+    //  to the Q20 clear region.  If the two clear regions do not intersect,
+    //  we delete the fragment.
     //
     lid++;
     while (lid < iid) {
-      if (logFile) {
-        getFragStore(fs, lid, FRAG_S_ALL, rd);
+      getFragStore(fs, lid, FRAG_S_ALL, rd);
 
-        unsigned int l=0;
-        unsigned int r=0;
-        getClearRegion_ReadStruct(rd, &l, &r, READSTRUCT_ORIGINAL);
-        u32bit qltL = l;
-        u32bit qltR = r;
+      u32bit  qltL0, qltR0, qltL1, qltR1;
 
-        fprintf(logFile, u64bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT" (no overlaps)\n",
-                lid, qltL, qltR, qltL, qltR);
+      unsigned int l=0;
+      unsigned int r=0;
+      getClearRegion_ReadStruct(rd, &l, &r, READSTRUCT_ORIGINAL);
+      qltL0 = l;
+      qltR0 = r;
+
+      doTrim(rd, minQuality, qltL1, qltR1);
+
+      //  Pick the bigger of the L's and the lesser of the R's.  If
+      //  L<R still, then the Q0 and Q1 trimming intersect, and we
+      //  should use that intersection for the clear range.
+      //  Otherwise, delete the fragment.
+
+      if (l < qltL1)  l = qltL1;
+      if (r > qltR1)  r = qltR1;
+
+      if (l < r) {
+        if (doModify) {
+          setClearRegion_ReadStruct(rd, l, r, READSTRUCT_OVL);
+          if (setFragStore(fs, lid, rd)) {
+            fprintf(stderr, "setFragStore() failed.\n");
+            exit(1);
+          }
+        }
+
+        if (logFile)
+          fprintf(logFile, u64bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT" (no overlaps)\n",
+                  lid, qltL0, qltR0, l, r);
+      } else {
+        //  What?  No intersect?  Delete it!
+        if (doModify)
+          deleteFragStore(fs, lid);
+
+        if (logFile)
+          fprintf(logFile, u64bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT" (no overlaps, no intersection, deleted)\n",
+                  lid, qltL0, qltR0, qltL1, qltR1);
       }
 
       lid++;
@@ -421,21 +448,22 @@ main(int argc, char **argv) {
       //  can use the input to this executable to get the overlap trim
       //  points.  The original trim points are elsewhere.
       //
-      if (logFile)
-        fprintf(logFile, u64bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\n",
-                iid, qltL, qltR, left, right);
-
 
       if ((left == 0) && (right == 0)) {
         stats[19]++;
 
-        //  XXX:  We also need to delete any links this fragment has
-        //setClearRegion_ReadStruct(rd, left, right, READSTRUCT_OVL);
+        if (logFile)
+          fprintf(logFile, u64bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT" (deleted, too short)\n",
+                  iid, qltL, qltR, left, right);
 
         if (doModify)
           deleteFragStore(fs, iid);
       } else {
         stats[20]++;
+
+        if (logFile)
+          fprintf(logFile, u64bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\n",
+                  iid, qltL, qltR, left, right);
 
         if (doModify) {
           setClearRegion_ReadStruct(rd, left, right, READSTRUCT_OVL);
