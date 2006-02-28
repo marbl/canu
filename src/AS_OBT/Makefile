@@ -35,11 +35,9 @@ PROGS   = chimera consolidate initialTrim merge-trimming sort-overlaps \
           overlap-convert \
           dumpRandomMatedFrags \
           dumpFragStoreAsFasta dumpFragStoreAsOFG findDuplicateFragsInStore getNumScaffolds
-SCRIPTS = doOBT.pl
+SCRIPTS = 
 
 all: $(PROGS) $(SCRIPTS)
-	cp -f doOBT.pl $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/doOBT.pl
 
 initialTrim: initialTrim.o trim.o -lAS_PER -lAS_UTL
 
