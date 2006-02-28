@@ -754,7 +754,7 @@ readOverlap(FILE *file, overlap_t &ovl) {
 int
 main(int argc, char **argv) {
   char   *frgStore          = 0L;
-  bool    doUpdate          = false;
+  bool    doUpdate          = true;  //  set to false for testing
   char   *summaryName       = 0L;
   char   *reportName        = 0L;
   char   *immutableFileName = 0L;
@@ -768,8 +768,6 @@ main(int argc, char **argv) {
       frgStore = argv[++arg];
     } else if (strncmp(argv[arg], "-immutable", 2) == 0) {
       immutableFileName = argv[++arg];
-    } else if (strncmp(argv[arg], "-update", 2) == 0) {
-      doUpdate = true;
     } else if (strncmp(argv[arg], "-delete", 2) == 0) {
       fixChimera = false;
     } else if (strncmp(argv[arg], "-summary", 2) == 0) {
