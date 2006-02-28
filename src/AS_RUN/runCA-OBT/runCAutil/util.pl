@@ -139,14 +139,15 @@ sub setParameters {
     if (defined($specFile)) {
         open(F, "< $specFile") or die "Failed to open '$specFile'\n";
         while (<F>) {
-            next if (m/^\#/);
+            chomp;
+            next if (m/^\s*\#/);
+            next if (m/^\s*$/);
             if (m/\s*(\w*)\s*=(.*)/) {
                 my ($var, $val) = ($1, $2);
                 $var =~ s/^\s+//; $var =~ s/\s+$//;
                 $val =~ s/^\s+//; $val =~ s/\s+$//;
                 setGlobal($var, $val);
             } else {
-                chomp;
                 print STDERR "WARNING!  Invalid specFile line '$_'\n";
             }
         }
