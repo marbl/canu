@@ -44,6 +44,7 @@ sub createFragmentCorrectionJobs {
             print F "  -o $wrk/2-frgcorr/$batchName/$jobName.frgcorr \\\n";
             print F "  $wrk/$asm.frgStore \\\n";
             print F " $frgBeg $frgEnd \\\n";
+            print F " > $wrk/2-frgcorr/$jobName.err 2>&1 \\\n";
             print F "&&  \\\n";
             print F "touch $wrk/2-frgcorr/$batchName/$jobName.success\n";
             close(F);
@@ -59,14 +60,16 @@ sub createFragmentCorrectionJobs {
 
             open(F, "> $wrk/2-frgcorr/$batchName/$jobName.sh") or die;
             print F "#!/bin/sh\n";
+            print F "jid=\$\$\n";
             #print F "$processStats \\\n";
             print F "$gin/correct-frags \\\n";
             print F "  -S $wrk/$asm.ovlStore \\\n";
-            print F "  -o $scratch/frgcorr-$batchName-$jobName.frgcorr \\\n";
+            print F "  -o $scratch/frgcorr-$batchName-$jobName.\$jid.frgcorr \\\n";
             print F "  $wrk/$asm.frgStore \\\n";
             print F " $frgBeg $frgEnd \\\n";
+            print F " > $wrk/2-frgcorr/$jobName.err 2>&1 \\\n";
             print F "&&  \\\n";
-            print F "mv $scratch/frgcorr-$batchName-$jobName.frgcorr \\\n";
+            print F "mv $scratch/frgcorr-$batchName-$jobName.\$jid.frgcorr \\\n";
             print F "   $wrk/2-frgcorr/$batchName/$jobName.frgcorr \\\n";
             print F "&& \\\n";
             print F "touch $wrk/2-frgcorr/$batchName/$jobName.success\n";
@@ -78,8 +81,8 @@ sub createFragmentCorrectionJobs {
             print SUB "-p 0 ";  #  Priority
             print SUB "-r y ";  #  Rerunnable
             print SUB "-N frg_${asm}_${batchName}_$jobName ";
-            print SUB "-o $wrk/2-frgcorr/$batchName/$jobName.out ";
-            print SUB "-e $wrk/2-frgcorr/$batchName/$jobName.err ";
+            print SUB "-j y ";
+            print SUB "-o $wrk/2-frgcorr/$batchName/$jobName.grid.err ";
             print SUB "$wrk/2-frgcorr/$batchName/$jobName.sh\n";
         }
 

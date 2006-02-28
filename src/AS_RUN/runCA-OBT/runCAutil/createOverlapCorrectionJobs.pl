@@ -42,6 +42,7 @@ sub createOverlapCorrectionJobs {
             print F "  $wrk/$asm.frgStore \\\n";
             print F "  $wrk/2-frgcorr/$asm.corr \\\n";
             print F "  $frgBeg $frgEnd \\\n";
+            print F " > $wrk/3-ovlcorr/$jobName.err 2>&1 \\\n";
             print F "&& \\\n";
             print F "touch $wrk/3-ovlcorr/$jobName.success\n";
             close(F);
@@ -53,15 +54,17 @@ sub createOverlapCorrectionJobs {
 
             open(F, "> $wrk/3-ovlcorr/$jobName.sh") or die;
             print F "#!/bin/sh\n";
+            print F "jid=\$\$\n";
             #print F "$processStats \\\n";
             print F "$gin/correct-olaps \\\n";
             print F "  -S $wrk/$asm.ovlStore \\\n";
-            print F "  -e $scratch/ovlcorr-$jobName.erate \\\n";
+            print F "  -e $scratch/ovlcorr-$jobName.\$jid.erate \\\n";
             print F "  $wrk/$asm.frgStore \\\n";
             print F "  $wrk/2-frgcorr/$asm.corr \\\n";
             print F "  $frgBeg $frgEnd \\\n";
+            print F " > $wrk/3-ovlcorr/$jobName.err 2>&1 \\\n";
             print F "&&  \\\n";
-            print F "mv $scratch/ovlcorr-$jobName.erate \\\n";
+            print F "mv $scratch/ovlcorr-$jobName.\$jid.erate \\\n";
             print F "   $wrk/3-ovlcorr/$jobName.erate \\\n";
             print F "&& \\\n";
             print F "touch $wrk/3-ovlcorr/$jobName.success\n";
@@ -73,8 +76,8 @@ sub createOverlapCorrectionJobs {
             print SUB "-p 0 ";      #  Priority
             print SUB "-r y ";      #  Rerunnable
             print SUB "-N ovc_${asm}_$jobName ";
-            print SUB "-o $wrk/3-ovlcorr/$jobName.out ";
-            print SUB "-e $wrk/3-ovlcorr/$jobName.err ";
+            print SUB "-j y ";
+            print SUB "-o $wrk/3-ovlcorr/$jobName.grid.err ";
             print SUB "$wrk/3-ovlcorr/$jobName.sh\n";
         }
 
