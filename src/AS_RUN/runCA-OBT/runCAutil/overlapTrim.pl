@@ -119,7 +119,8 @@ sub overlapTrim {
         }
 
         my $cmd;
-        $cmd  = "$bin/sort-overlaps";
+        $cmd  = "cd $wrk && ";
+        $cmd .= "$bin/sort-overlaps";
         $cmd .= " -memory " . getGlobal('ovlSortMemory') . " ";
         $cmd .= " -maxiid $numFrags ";
         $cmd .= " -L $wrk/0-overlaptrim/all-overlaps-trim.ovllist";
@@ -251,7 +252,7 @@ sub overlapTrim {
         backupFragStore("beforeChimera");
 
         my $cmd;
-        $cmd  = "$bin/chimera -update ";
+        $cmd  = "$bin/chimera ";
         $cmd .= " -frg $wrk/$asm.frgStore ";
         $cmd .= " -immutable $im " if (defined($im));
         $cmd .= " -summary $wrk/0-overlaptrim/$asm.chimera.summary ";
