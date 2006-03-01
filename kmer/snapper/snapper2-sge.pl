@@ -7,9 +7,9 @@ use FindBin;
 my $genome = "";
 my $query  = "";
 my $dir    = "";
-my $mask   = "";
-my $gseg   = 16;
-my $qseg   = 16;
+my $mask   = 1000;
+my $gseg   = 32;
+my $qseg   = 32;
 my $check  = undef;
 
 my $bin = "$FindBin::Bin";
@@ -63,9 +63,9 @@ if (!defined($genome) || !defined($query) || !defined($dir)) {
     print STDERR "  -genome x.fasta\n";
     print STDERR "  -query  q.fasta\n";
     print STDERR "  -dir    /path/to/work\n";
-    print STDERR "  -mask   /path/to/mask.fasta  (def: make a new mask)\n";
-    print STDERR "  -gseg   gseg                 (def: 32 segs, see leaff for format\n";
-    print STDERR "  -qseg   qseg                 (def: 32 segs, see leaff for format\n";
+    print STDERR "  -mask   kmer-limit           (def: 1000)\n";
+    print STDERR "  -gseg   gseg                 (def: 16 segs, see leaff for format\n";
+    print STDERR "  -qseg   qseg                 (def: 16 segs, see leaff for format\n";
     print STDERR "  -check                       (check a run, assume we are in the /path/to/work\n";
     exit(1);
 }
@@ -96,17 +96,6 @@ if (! -e "$dir/qry/qry.partitioned") {
 #
 my ($gen, $qry) = countSequences($dir);
 
-if (-e "$mask") {
-    system("ln -s $mask $dir/skip.mers.fasta");
-}
-
-if (! -e "$dir/skip.mers.fasta") {
-    print STDERR "Building skip.mers.fasta!\n";
-
-    system("$bin/meryl -v -B -C -L 100 -m 28 -s $genome -o $dir/gen");
-    system("$bin/meryl -Dt -n 200 -s $dir/gen > $dir/skip.mers.fasta");
-}
-
 open(F, "> $dir/run.sh");
 print F "#!/bin/sh\n";
 print F "PIECE=`expr \$SGE_TASK_ID - 1`\n";
@@ -114,27 +103,42 @@ print F "GPIECE=`expr \$PIECE % $gen + 1`\n";
 print F "QPIECE=`expr \$PIECE / $gen + 1`\n";
 print F "GPIECE=`printf %03d \$GPIECE`\n";
 print F "QPIECE=`printf %03d \$QPIECE`\n";
-print F "echo SGE_TASK_ID = \$SGE_TASK_ID\n";
-print F "echo GPIECE      = \$GPIECE\n";
-print F "echo QPIECE      = \$QPIECE\n";
-#print F "touch $dir/map-gen\$GPIECE-qlt\$QPIECE.success\n";
-#print F "exit\n";
+print F "scratchname=/scratch/\$\$-\$GPIECE-\$QPIECE\n";
+print F "\n";
+print F "ulimit -c 0\n";
+print F "#rm /scratch/[0-9]*-[0-9]*-[0-9]*\n";
+print F "#echo $GPIECE $QPIECE $PIECE\n";
+print F "\n";
+print F "if [ -e $dir/map-gen$GPIECE-qlt$QPIECE.success ] ; then\n";
+print F "  echo map-gen$GPIECE-qlt$QPIECE already done\n";
+print F "  exit\n";
+print F "fi\n";
+print F "\n";
 print F "$bin/snapper2 -verbose \\\n";
-print F "  -mersize 28 -merskip 7 \\\n";
+print F "  -mersize 22 -merskip 0 \\\n";
+print F "  -minhitlength 22 -minhitcoverage 0.0 \\\n";
+#print F "  -setfilter 0.1500 0.1500 0.2500 \\\n";
+print F "  -validate $dir/map-gen\$GPIECE-qlt\$QPIECE.validate \\\n";
 print F "  -genomic $dir/gen/gen-\$GPIECE.fasta \\\n";
 print F "  -queries $dir/qry/qry-\$QPIECE.fasta \\\n";
-print F "  -mask    $dir/skip.mers.fasta \\\n";
-print F "  -output  $dir/map-gen\$GPIECE-qlt\$QPIECE.sim4db \\\n";
+print F "  -ignore  $mask \\\n";
+#print F "  -output  \$scratchname \\\n";
+print F "  -noaligns \\\n";
 print F "  -numthreads 2 \\\n";
-print F "  -minmatchidentity 96 \\\n";
-print F "  -minmatchcoverage 96 \\\n";
+print F "  -minmatchidentity 90 \\\n";
+print F "  -minmatchcoverage 4 \\\n";
+print F "  -loaderhighwatermark 1024 \\\n";
+print F "| \\\n";
+print F "bzip2 -9vc > \$scratchname.bz2 \\\n";
+print F "&& \\\n";
+print F "mv \$scratchname.bz2 $dir/map-gen\$GPIECE-qlt\$QPIECE.sim4db.bz2 \\\n";
 print F "&& \\\n";
 print F "touch $dir/map-gen\$GPIECE-qlt\$QPIECE.success\n";
 close(F);
 
 my $numJobs = $gen * $qry;
 
-print STDOUT "qsub -t 1-$numJobs -p -50 -j y -o $dir/map-\\\$TASK_ID $dir/run.sh\n";
+print STDOUT "qsub -pe thread 2 -t 1-$numJobs -p -50 -j y -o $dir/map-\\\$TASK_ID $dir/run.sh\n";
 
 
 
