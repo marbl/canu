@@ -854,6 +854,11 @@ outputPartition(char *prefix, partition_s *p, u32bit openP, u32bit n) {
           fprintf(file, "%s\n", S->header());
           fwrite(S->sequence(), sizeof(char), S->sequenceLength(), file);
           fprintf(file, "\n");
+
+          if (S->sequenceLength() != p[i].length) {
+            fprintf(stderr, "Huh?  '%s' "u32bitFMT" != "u32bitFMT"\n", S->header(), S->sequenceLength(), p[i].length);
+          }
+
           delete S;
         }
 
@@ -931,11 +936,14 @@ partitionByBucket(char *prefix, u64bit partitionSize) {
   if (partitionSize > n)
     partitionSize = n;
 
+  //  The size, in bases, of each partition
+  //
   u32bit       *s = new u32bit [partitionSize];
-
   for (u32bit i=0; i<partitionSize; i++)
     s[i] = 0;
 
+  //  For each sequence
+  //
   for (u32bit nextS=0; nextS<n; nextS++) {
 
     //  find the smallest partition
