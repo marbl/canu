@@ -84,6 +84,7 @@ int            s4p_estDEFcompare(const void *a, const void *b);
 
 sim4polish    *s4p_readPolish(FILE *F);
 sim4polish    *s4p_copyPolish(sim4polish *orig);
+sim4polish    *s4p_copyPolish_OneExon(sim4polish *orig, int exon);
 
 void           s4p_removeAlignments(sim4polish *p);
 void           s4p_removeDeflines(sim4polish *p);

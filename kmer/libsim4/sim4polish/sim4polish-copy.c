@@ -32,3 +32,41 @@ s4p_copyPolish(sim4polish *orig) {
 
   return(copy);
 }
+
+
+
+
+sim4polish *
+s4p_copyPolish_OneExon(sim4polish *orig, int exon) {
+  int         i;
+  sim4polish *copy = 0L;
+
+  if (orig == 0L)
+    return(copy);;
+
+  copy = (sim4polish *)memdup(orig, sizeof(sim4polish));
+
+  if (orig->estDefLine)
+    copy->estDefLine = (char *)memdup(orig->estDefLine, sizeof(char) * (strlen(orig->estDefLine) + 1));
+
+  if (orig->genDefLine)
+    copy->genDefLine = (char *)memdup(orig->genDefLine, sizeof(char) * (strlen(orig->genDefLine) + 1));
+
+  copy->exons    = (sim4polishExon *)memdup(orig->exons + exon, sizeof(sim4polishExon));
+  copy->numExons = 1;
+
+  if (orig->exons[exon].estAlignment)
+    copy->exons[0].estAlignment = (char *)memdup(orig->exons[exon].estAlignment, sizeof(char) * (strlen(orig->exons[exon].estAlignment) + 1));
+
+  if (orig->exons[exon].genAlignment)
+    copy->exons[0].genAlignment = (char *)memdup(orig->exons[exon].genAlignment, sizeof(char) * (strlen(orig->exons[exon].genAlignment) + 1));
+
+  //  Rebuild stats
+  copy->numMatches       = copy->exons[0].numMatches;
+  copy->numMatchesN      = copy->exons[0].numMatchesN;
+  copy->numCovered       = copy->exons[0].genTo - copy->exons[0].genFrom + 1;
+  copy->percentIdentity  = copy->exons[0].percentIdentity;
+  copy->querySeqIdentity = (int)floor(100 * (double)(copy->numCovered) / (double)(copy->estLen - copy->estPolyA - copy->estPolyT));
+
+  return(copy);
+}
