@@ -332,12 +332,23 @@ main(int argc, char **argv) {
 
   numberOfQueries  = qsFASTA->getNumberOfSequences();
 
+#if 0
   //  All we use the index for is to count the number of sequences for
   //  the output display (and, OK, sizing the queues).  Close the
   //  index to free up significant memory on large datasets.
-
+  //
+  //  And it turns out we end up wasting ENORMOUS amounts of our
+  //  address space by not knowing the size of the sequence when we
+  //  load it -- the defaults there are to grab 16MB for the sequence.
+  //  So, having a measly 64 sequences loaded chews up 1GB of address
+  //  space.
+  //
+  //  Using a sequenceOnDisk is no better; now we have a readBuffer
+  //  attached, and possibly an open file handle.
+  //
   delete qsFASTA;
   qsFASTA = new FastAWrapper(config._qsFileName);
+#endif
 
   input            = new FastASequenceInCore * [numberOfQueries];
   inputHead        = 0;
@@ -378,8 +389,8 @@ main(int argc, char **argv) {
   //
   sim4params.setPrintAlignments(config._doAlignments);
   sim4params.setFindAllExons();
-  sim4params.setMinCoverage( (config._minMatchCoverage - 10) / 100.0);
-  sim4params.setMinPercentExonIdentity( config._minMatchIdentity - 5);
+  sim4params.setMinCoverage(max(0.0, config._minMatchCoverage / 100.0 - 0.1));
+  sim4params.setMinPercentExonIdentity(config._minMatchIdentity - 5);
   sim4params.setIgnorePolyTails(false);
 
   //sim4params.setWordSize(14);
@@ -421,16 +432,10 @@ main(int argc, char **argv) {
 #endif
 
 
-  fprintf(stderr, "XXX Launching loader\n");
-
-
   //
   //  Start the loader thread
   //
   pthread_create(threadID + threadIDX++, &threadAttr, loaderThread, 0L);
-
-
-  fprintf(stderr, "XXX Launching search\n");
 
 
   //
@@ -438,15 +443,6 @@ main(int argc, char **argv) {
   //
   for (u64bit i=0; i<config._numSearchThreads; i++)
     pthread_create(threadID + threadIDX++, &threadAttr, searchThread, (void *)i);
-
-#if 0
-  fprintf(stderr, "Sleeping 100 seconds for searches to stabilize\n");
-  sleep(100);
-  fprintf(stderr, "Arise!\n");
-#endif
-
-
-  fprintf(stderr, "XXX GO!\n");
 
 
   //
