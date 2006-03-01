@@ -15,6 +15,7 @@ src  := $/cleanPolishes.C \
         $/parseSNP.c \
         $/pickBestPolish.c \
         $/pickUniquePolish.C \
+        $/pickUniquePolish-nhgri.C \
         $/plotCoverageVsIdentity.c \
         $/removeDuplicate.c \
         $/sortPolishes.c \
@@ -41,6 +42,7 @@ $/.CXX_EXES := $/cleanPolishes \
                $/parseSNP \
                $/pickBestPolish \
                $/pickUniquePolish \
+               $/pickUniquePolish-nhgri \
                $/plotCoverageVsIdentity \
                $/removeDuplicate \
                $/sortPolishes \
@@ -61,6 +63,7 @@ $/mergePolishes               : $/mergePolishes.o
 $/sortPolishes                : $/sortPolishes.o
 $/pickBestPolish              : $/pickBestPolish.o
 $/pickUniquePolish            : $/pickUniquePolish.o
+$/pickUniquePolish-nhgri      : $/pickUniquePolish-nhgri.o
 $/cleanPolishes               : $/cleanPolishes.o
 $/fixPolishesIID              : $/fixPolishesIID.o
 $/plotIntronSize              : $/plotIntronSize.o
