@@ -1,5 +1,7 @@
 #include "bio.h"
 
+#include <string.h>
+
 //  Inplace reverse-complement the sequence.  A pointer
 //  the the character string is returned.
 //
