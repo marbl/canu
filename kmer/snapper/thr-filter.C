@@ -21,8 +21,6 @@ configureFilter(double L,
       loQ = theHits[i]._covered;
   }
 
-  double p = 0.0;
-
   //  _numMers is not the same as the number covered, so we should
   //  ensure that h is in range.
   //
@@ -32,9 +30,10 @@ configureFilter(double L,
   if (h > 1.0)
     h = 1.0;
 
-  if (h <= L)    p = 1.0;
-  if (h >= H)    p = V;
-  if (p == 0.0)  p = 1.0 - (1.0 - V) * (h - L) / (H - L);
+  double p = 0.0;
+  if      (h <= L)  p = 1.0;
+  else if (h >= H)  p = V;
+  else              p = 1.0 - (1.0 - V) * (h - L) / (H - L);
 
   if (p > 1.0) {
     fprintf(stderr, "error in p; p=%f > 1.0!  h=%f (L=%f H=%f V=%f)\n", p, h, L, H, V);
