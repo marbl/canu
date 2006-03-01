@@ -235,6 +235,10 @@ off_t     stat_getSize(stat_s *sb);
 int   fileExists(const char *path);
 off_t sizeOfFile(const char *path);
 
+//  Open a file, read/write, using compression based on the file name
+//
+FILE *openFile(const char *path, const char *mode);
+void  closeFile(FILE *F, const char *path);
 
 ////////////////////////////////////////
 //

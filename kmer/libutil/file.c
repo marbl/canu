@@ -351,3 +351,92 @@ safeRead(int filedes, const void *buffer, char *desc, size_t nbytes) {
   }
 }
 
+
+
+void
+closeFile(FILE *F, const char *path) {
+
+  //  If we're given the path name, see if we need to pclose(),
+  //  otherwise just fclose() the file.
+
+  if ((path) &&
+      ((strcmp(path + strlen(path) - 4, ".bz2") == 0) ||
+       (strcmp(path + strlen(path) - 3, ".gz") == 0))) {
+    pclose(F);
+  } else {
+    fclose(F);
+  }
+}
+
+FILE*
+openFile(const char *path, const char *mode) {
+  FILE *F         = 0L;
+  int   isBz      = 0;
+  int   isGz      = 0;
+  int   isRead    = 0;
+  int   isWrite   = 0;
+  int   isRW      = 1;
+  char  cmd[1024] = { 0 };;
+
+  //  Yes, one could make this significantly simpler by saving the
+  //  compression command into a variable, instead of the isBz and
+  //  isGz flags.  Maybe instead we should find a compression command
+  //  that uses different flags.
+
+  if (strcmp(path + strlen(path) - 4, ".bz2") == 0)
+    isBz = 1;
+  if (strcmp(path + strlen(path) - 3, ".gz") == 0)
+    isGz = 1;
+
+  if (strcmp(mode, "w") == 0) {
+    isRead   = 0;
+    isWrite  = 1;
+    isRW     = 0;
+  }
+  if (strcmp(mode, "r") == 0) {
+    isRead   = 1;
+    isWrite  = 0;
+    isRW     = 0;
+  }
+
+  if (isBz) {
+    if        (isRead) {
+      sprintf(cmd, "bzip2 -dc %s", path);
+    } else if (isWrite) {
+      sprintf(cmd, "bzip2 -9c > %s", path);
+    } else {
+      fprintf(stderr, "openFile()-- Error!  Requested mode '%s' unavailable for bzip2 file '%s'\n", mode, path);
+      exit(1);
+    }
+  } else if (isGz) {
+    if        (isRead) {
+      sprintf(cmd, "gzip -dc %s", path);
+    } else if (isWrite) {
+      sprintf(cmd, "gzip -9c > %s", path);
+    } else {
+      fprintf(stderr, "openFile()-- Error!  Requested mode '%s' unavailable for gzip file '%s'\n", mode, path);
+      exit(1);
+    }
+  } else {
+    //  Must be a normal file!
+  }
+
+
+  if (cmd[0]) {
+    errno = 0;
+    F = popen(cmd, mode);
+    //  popen doesn't reliably set errnoman
+    //if (errno)
+    //  fprintf(stderr, "openFile()--  Failed to open pipe '%s': %s\n", cmd, strerror(errno)), exit(1);
+    if (F == 0L)
+      fprintf(stderr, "openFile()--  Failed to open pipe '%s'\n", cmd), exit(1);
+  } else {
+    errno = 0;
+    F = fopen(path, mode);
+    if (errno)
+      fprintf(stderr, "openFile()--  Failed to open '%s': %s\n", path, strerror(errno)), exit(1);
+  }
+
+  return(F);  
+}
+
