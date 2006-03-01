@@ -13,16 +13,17 @@
 int
 main(int argc, char **argv) {
 
-  //  Load all the sequences.  We really do need them all the ESTs in
-  //  core, since they probably aren't in a useful sorted order.  You
-  //  can probably figure out a way to get rid of the FastACache for
-  //  the GEN.  Doing so will reduce memory usage by about 50%.
+  //  Load all the sequences.  We really do need all the ESTs in core,
+  //  since they probably aren't in a useful sorted order.  You can
+  //  probably figure out a way to get rid of the FastACache for the
+  //  GEN.  Doing so will reduce memory usage by about 50%.
 
   FastACache *EST = 0L;
   FastACache *GEN = 0L;
   int         mergeTolerancePerc = 0;
   int         mergeToleranceBase = 0;
   int         statsOnly          = 0;
+  int         warnOnChange       = 0;
 
   //  Statistics on the exon merge
 
@@ -46,12 +47,15 @@ main(int argc, char **argv) {
       if (statsOnly)
         EST = new FastACache(argv[++arg], 1000, false, false);  //  debugging only!
       else 
-        //EST = new FastACache(argv[++arg],    0, true);
-        EST = new FastACache(argv[++arg], 1000, false, false);  //  debugging only!
+        EST = new FastACache(argv[++arg],    0, true);
+      //EST = new FastACache(argv[++arg], 1000, false, false);  //  debugging only!
     } else if (strncmp(argv[arg], "-g", 2) == 0) {
-      GEN = new FastACache(argv[++arg],    1, false, true);
+      //GEN = new FastACache(argv[++arg],    1, false, true);
+      GEN = new FastACache(argv[++arg],    0, true);
     } else if (strncmp(argv[arg], "-q", 2) == 0) {
       statsOnly = 1;
+    } else if (strncmp(argv[arg], "-w", 2) == 0) {
+      warnOnChange = 1;
     }
     arg++;
   }
@@ -83,6 +87,12 @@ main(int argc, char **argv) {
 
   sim4polish *p = 0L;
   while ((p = s4p_readPolish(stdin)) != 0L) {
+
+    //  This only works if polishes are normalized.
+    s4p_normalize(p);
+
+    //fprintf(stdout, "BEFORE\n");
+    //s4p_printPolish(stdout, p, 0);
 
     //  If we have a mergeTolerance, merge adjacent exons that are
     //  separated my approximately equal sized cDNA and genomic gaps.
@@ -212,8 +222,20 @@ main(int argc, char **argv) {
       //
       p->exons[p->numExons-1].intronOrientation = SIM4_INTRON_NONE;
 
+      //  Check that we didn't radically change things
+      u32bit nm = p->numMatches;
+
       s4p_updateAlignmentScores(p);
       s4p_printPolish(stdout, p, 0);
+
+      if (warnOnChange) {
+        u32bit diff = 0;
+        if (nm < p->numMatches)  diff = p->numMatches - nm;
+        if (nm > p->numMatches)  diff = nm - p->numMatches;
+
+        if (diff > p->numMatches / 100)
+          fprintf(stdout, "WARNING: CHANGED! "u32bitFMT" -> "u32bitFMT"\n", nm, p->numMatches);
+      }
     }
 
     if (merged) {
