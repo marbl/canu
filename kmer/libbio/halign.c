@@ -455,5 +455,6 @@ halign(const char *seq1,
   *alnline1 = 0;
   *alnline2 = 0;
 
-  pfree();
+  pfree2(ph);
+  pfreehandle(ph);
 }
