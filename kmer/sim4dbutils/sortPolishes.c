@@ -14,9 +14,10 @@
 //  Sorts a file of polishes by cDNA or genomic idx.
 
 char const *usage =
-"usage: %s [-c | -g] [-m M] [-t T]\n"
+"usage: %s [-c | -g] [-m M] [-t T] [-M [file ...]]\n"
 "  -c (-C)    Sort by the cDNA index (defline).\n"
 "  -g (-G)    Sort by the genomic index (defline).\n"
+"  -M         Skip the sort, just do a merge.\n"
 "  -m M       Use at most M MB of core, using a disk-based merge if memory\n"
 "             is exhausted.  Default: 4096.\n"
 "  -t T       Use directory 'T' for temporary files.  Default is the current\n"
@@ -84,8 +85,12 @@ writeTemporary(char *filePrefix, sim4polish **p, int pLen, int (*fcn)(const void
 
   F = makeTempFile(filePrefix);
 
-  for (i=0; i<pLen; i++)
+  for (i=0; i<pLen; i++) {
+    errno = 0;
     s4p_printPolish(F, p[i], S4P_PRINTPOLISH_FULL);
+    if (errno)
+      fprintf(stderr, "sortPolishes: Failed to write temporary file!\n"), exit(1);
+  }
 
   rewind(F);
 
@@ -200,11 +205,23 @@ main(int argc, char **argv) {
 
   int          moreInput = 1;
 
-  int          mergeFilesLen = 0;
-  int          mergeFilesMax = sysconf(_SC_OPEN_MAX);
-  FILE       **mergeFiles    = (FILE **)malloc(sizeof(FILE*) * mergeFilesMax);
+  int          mergeFilesLen   = 0;
+  int          mergeFilesMax   = sysconf(_SC_OPEN_MAX);
+  FILE       **mergeFiles      = (FILE **)malloc(sizeof(FILE*) * mergeFilesMax);
+  char       **mergeNames      = (char **)malloc(sizeof(char*) * mergeFilesMax);
 
-  int          arg = 1;
+  int          arg = 0;
+
+  if ((mergeFiles == 0L) || (mergeNames == 0L)) {
+    fprintf(stderr, "sortPolishes: Failed to initialize.\n");
+    exit(1);
+  }
+  for (arg=0; arg<mergeFilesMax; arg++) {
+    mergeFiles[i] = NULL;
+    mergeNames[i] = NULL;
+  }
+
+  arg = 1;
   while (arg < argc) {
     if        (strncmp(argv[arg], "-v", 2) == 0) {
       beVerbose = 1;
@@ -222,20 +239,22 @@ main(int argc, char **argv) {
     } else if (strncmp(argv[arg], "-t", 2) == 0) {
       arg++;
       filePrefix = argv[arg];
+    } else if (strncmp(argv[arg], "-M", 2) == 0) {
+      arg++;
+      while ((arg < argc) && (fileExists(argv[arg]))) {
+        if (mergeFilesLen >= mergeFilesMax) {
+          fprintf(stderr, "%s: ERROR!  Too many input files!  Should be less than %d\n", argv[0], mergeFilesMax);
+          exit(1);
+        }
+        mergeNames[mergeFilesLen]   = argv[arg];
+        mergeFiles[mergeFilesLen++] = openFile(argv[arg], "r");
+        arg++;
+      }
+      arg--;
     } else {
       fprintf(stderr, "unknown option: %s\n", argv[arg]);
     }
     arg++;
-  }
-
-  if (mergeFiles == 0L) {
-    fprintf(stderr, "sortPolishes: Failed to initialize.\n");
-    exit(1);
-  }
-
-  if (isatty(fileno(stdin))) {
-    fputs(usage, stderr);
-    exit(1);
   }
 
   if (fcn == 0L) {
@@ -244,123 +263,133 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-
-  //  XXX:  Experimental method to automagically determine the amount of
-  //  memory available (or, to at least, determine if this process can
-  //  get to be as big as the silly user said it can.
-  //
-  upperAlloc = findMemorySize(upperAlloc);
-
-  arrayAlloc = getProcessSize();
-
-  errno = 0;
-  p     = (sim4polish **)calloc(pMax, sizeof(sim4polish *));
-  if (errno) {
-    fprintf(stderr, "ERROR: Can't allocate initial polish storage!\n%s\n", strerror(errno));
-    exit(1);
-  }
-
-  arrayAlloc += sizeof(sim4polish *) * pMax;
-
-
-  //  XXX: With small memory sizes, we occasionally run out of data
-  //  space.  This looks like an artifact of not having palloc() use
-  //  a blocksize that divides our upperAlloc size.  This attempts to
-  //  sync them up.
-  //
-  psetblocksize(upperAlloc / 16);
-
-
-  while (!feof(stdin)) {
-    q = s4p_readPolish(stdin);
-
-    if (q) {
-
-      //  Allocate more pointer space, if we need to
-      //
-      if ((pLen >= pMax) ||
-          (arrayAlloc + matchAlloc >= upperAlloc)) {
-
-        //  If reallocating more pointer space doesn't blow our memory
-        //  limit, try allocating some more space.  We might need
-        //  space for both the original array and the new one, so we
-        //  can copy the old into the new.
-        //
-        sim4polish **N = 0L;
-
-        if (arrayAlloc + matchAlloc + sizeof(sim4polish*) * pMax * 2 < upperAlloc)
-          N = (sim4polish **)realloc(p, sizeof(sim4polish *) * pMax * 2);
-
-        //  If N is NULL, then we were unable to get more space,
-        //  either by a soft limit or failure of realloc.  Save the
-        //  current stuff in a temporary file, and continue.
-        //
-        if (N == 0L) {
-          if (beVerbose) {
-            statusReport(pLen, mergeFilesLen+1, arrayAlloc, matchAlloc);
-            fprintf(stderr, "\n");
-          }
-
-          if (mergeFilesLen >= mergeFilesMax) {
-            fprintf(stderr, "Too many open files.  Try increasing memory size.\n");
-            exit(1);
-          }
-          mergeFiles[mergeFilesLen++] = writeTemporary(filePrefix, p, pLen, fcn);
-
-          pfree();
-          matchAlloc = 0;
-          pLen = 0;
-        } else {
-          pMax *= 2;
-          p       = N;
-
-          arrayAlloc += sizeof(sim4polish *) * pMax;
-        }
-      }
-
-      //  Save, then kill, the polish
-      //
-      p[pLen++] = savePolish(q, &matchAlloc);
-      s4p_destroyPolish(q);
-    }
-
-    if (beVerbose && ((pLen % 2000) == 0))
-      statusReport(pLen, mergeFilesLen+1, arrayAlloc, matchAlloc);
-  }
-
-  if (beVerbose) {
-    statusReport(pLen, mergeFilesLen+1, arrayAlloc, matchAlloc);
-    fprintf(stderr, "\n");
-  }
-
+  fprintf(stderr, "Found %d files to merge!\n", mergeFilesLen);
 
   if (mergeFilesLen == 0) {
-    //  No temporary files.  Sort the polishes, and dump.
-    qsort(p, pLen, sizeof(sim4polish *), fcn);
-
-    for (i=0; i<pLen; i++)
-      s4p_printPolish(stdout, p[i], S4P_PRINTPOLISH_FULL);
-  } else {
-
-    //  Crud.  Temporary files.  Sort the last batch, dump it, then do
-    //  a merge.
-    //
-    if (mergeFilesLen >= mergeFilesMax) {
-      fprintf(stderr, "Too many open files.  Try increasing memory size.\n");
+    if (isatty(fileno(stdin))) {
+      fputs(usage, stderr);
       exit(1);
     }
-    mergeFiles[mergeFilesLen++] = writeTemporary(filePrefix, p, pLen, fcn);
 
-    pfree();
-    matchAlloc = 0;
-    pLen = 0;
-
+    //  XXX:  Experimental method to automagically determine the amount of
+    //  memory available (or, to at least, determine if this process can
+    //  get to be as big as the silly user said it can.
     //
-    //  The merge
+    upperAlloc = findMemorySize(upperAlloc);
+
+    arrayAlloc = getProcessSize();
+
+    errno = 0;
+    p     = (sim4polish **)calloc(pMax, sizeof(sim4polish *));
+    if (errno) {
+      fprintf(stderr, "ERROR: Can't allocate initial polish storage!\n%s\n", strerror(errno));
+      exit(1);
+    }
+
+    arrayAlloc += sizeof(sim4polish *) * pMax;
+
+
+    //  XXX: With small memory sizes, we occasionally run out of data
+    //  space.  This looks like an artifact of not having palloc() use
+    //  a blocksize that divides our upperAlloc size.  This attempts to
+    //  sync them up.
     //
+    psetblocksize(upperAlloc / 16);
 
-    free(p);
 
+    while (!feof(stdin)) {
+      q = s4p_readPolish(stdin);
+
+      if (q) {
+
+        //  Allocate more pointer space, if we need to
+        //
+        if ((pLen >= pMax) ||
+            (arrayAlloc + matchAlloc >= upperAlloc)) {
+
+          //  If reallocating more pointer space doesn't blow our memory
+          //  limit, try allocating some more space.  We might need
+          //  space for both the original array and the new one, so we
+          //  can copy the old into the new.
+          //
+          sim4polish **N = 0L;
+
+          if (arrayAlloc + matchAlloc + sizeof(sim4polish*) * pMax * 2 < upperAlloc)
+            N = (sim4polish **)realloc(p, sizeof(sim4polish *) * pMax * 2);
+
+          //  If N is NULL, then we were unable to get more space,
+          //  either by a soft limit or failure of realloc.  Save the
+          //  current stuff in a temporary file, and continue.
+          //
+          if (N == 0L) {
+            if (beVerbose) {
+              statusReport(pLen, mergeFilesLen+1, arrayAlloc, matchAlloc);
+              fprintf(stderr, "\n");
+            }
+
+            if (mergeFilesLen >= mergeFilesMax) {
+              fprintf(stderr, "Too many open files.  Try increasing memory size.\n");
+              exit(1);
+            }
+            mergeFiles[mergeFilesLen++] = writeTemporary(filePrefix, p, pLen, fcn);
+
+            pfree();
+            matchAlloc = 0;
+            pLen = 0;
+          } else {
+            pMax *= 2;
+            p       = N;
+
+            arrayAlloc += sizeof(sim4polish *) * pMax;
+          }
+        }
+
+        //  Save, then kill, the polish
+        //
+        p[pLen++] = savePolish(q, &matchAlloc);
+        s4p_destroyPolish(q);
+      }
+
+      if (beVerbose && ((pLen % 2000) == 0))
+        statusReport(pLen, mergeFilesLen+1, arrayAlloc, matchAlloc);
+    }
+
+    if (beVerbose) {
+      statusReport(pLen, mergeFilesLen+1, arrayAlloc, matchAlloc);
+      fprintf(stderr, "\n");
+    }
+
+    if (mergeFilesLen == 0) {
+      //  No temporary files.  Sort the polishes, and dump.
+      qsort(p, pLen, sizeof(sim4polish *), fcn);
+
+      for (i=0; i<pLen; i++)
+        s4p_printPolish(stdout, p[i], S4P_PRINTPOLISH_FULL);
+    } else {
+
+      //  Crud.  Temporary files.  Sort the last batch, dump it, then do
+      //  a merge.
+      //
+      if (mergeFilesLen >= mergeFilesMax) {
+        fprintf(stderr, "Too many open files.  Try increasing memory size.\n");
+        exit(1);
+      }
+      mergeFiles[mergeFilesLen++] = writeTemporary(filePrefix, p, pLen, fcn);
+
+      pfree();
+      matchAlloc = 0;
+      pLen = 0;
+
+      free(p);
+    }
+  }
+
+
+  //
+  //  The merge
+  //
+
+  if (mergeFilesLen > 0) {
     p = (sim4polish **)malloc(sizeof(sim4polish) * mergeFilesLen);
     if (p == 0L) {
       fprintf(stderr, "Couldn't allocate polish pointers in merge!\n");
@@ -392,9 +421,13 @@ main(int argc, char **argv) {
         p[smallestPolish] = s4p_readPolish(mergeFiles[smallestPolish]);
       }
     }
+
+    //  Attempt cleanup
+    //
+    for (i=0; i<mergeFilesLen; i++)
+      closeFile(mergeFiles[i], mergeNames[i]);
   }
 
 
   return(0);
 }
-
