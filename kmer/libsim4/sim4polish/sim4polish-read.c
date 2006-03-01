@@ -23,7 +23,7 @@ _line *newLine(void) {
   L = (_line *)malloc(sizeof(_line));
   if (errno) {
     fprintf(stderr, "malloc() error in sim4reader::newLine\n%s\n", strerror(errno));
-    exit(1);
+    assert(0), exit(1);
   }
   L->l = 0;
   L->a = 10;
@@ -32,7 +32,7 @@ _line *newLine(void) {
   L->s = (char *)malloc(sizeof(char) * L->a);
   if (errno) {
     fprintf(stderr, "malloc() error in sim4reader::newLine\n%s\n", strerror(errno));
-    exit(1);
+    assert(0), exit(1);
   }
   return(L);
 }
@@ -60,7 +60,7 @@ readLine(FILE *F, _line *L) {
       L->s  = (char *)realloc(L->s, sizeof(char) * L->a);
       if (errno) {
         fprintf(stderr, "realloc() error in sim4reader::readLine("u32bitFMT") -- can't allocate more char\n%s\n", L->lineNumber, strerror(errno));
-        exit(1);
+        assert(0), exit(1);
       }
       fgets(L->s + L->l, L->a - L->l, F);
       L->l += strlen(L->s + L->l);
@@ -114,7 +114,7 @@ s4p_readPolish(FILE *F) {
   p = (sim4polish *)malloc(sizeof(sim4polish));
   if (errno) {
     fprintf(stderr, "malloc() error in sim4reader::readPolish("u32bitFMT") -- can't allocate sim4polish\n%s\n", l->lineNumber, strerror(errno));
-    exit(1);
+    assert(0), exit(1);
   }
 
   //  Read the description line
@@ -199,7 +199,7 @@ s4p_readPolish(FILE *F) {
     p->comment = (char *)malloc(sizeof(char) * l->l - 7);
     if (errno) {
       fprintf(stderr, "malloc() error in sim4reader::readPolish("u32bitFMT") -- can't allocate comment\n'%s'\n%s\n", l->lineNumber, l->s, strerror(errno));
-      exit(1);
+      assert(0), exit(1);
     }
     strcpy(p->comment, l->s + 8);
 
@@ -212,7 +212,7 @@ s4p_readPolish(FILE *F) {
     p->estDefLine = (char *)malloc(sizeof(char) * l->l - 4);
     if (errno) {
       fprintf(stderr, "malloc() error in sim4reader::readPolish("u32bitFMT") -- can't allocate estDefLine\n'%s'\n%s\n", l->lineNumber, l->s, strerror(errno));
-      exit(1);
+      assert(0), exit(1);
     }
     strcpy(p->estDefLine, l->s + 5);
 
@@ -225,7 +225,7 @@ s4p_readPolish(FILE *F) {
     p->genDefLine = (char *)malloc(sizeof(char) * l->l - 4);
     if (errno) {
       fprintf(stderr, "malloc() error in sim4reader::readPolish("u32bitFMT") -- can't allocate genDefLine\n'%s'\n%s\n", l->lineNumber, l->s, strerror(errno));
-      exit(1);
+      assert(0), exit(1);
     }
     strcpy(p->genDefLine, l->s + 5);
 
@@ -241,7 +241,7 @@ s4p_readPolish(FILE *F) {
   ex = (sim4polishExon *)malloc(sizeof(sim4polishExon) * em);
   if (errno) {
     fprintf(stderr, "malloc() error in sim4reader::readPolish("u32bitFMT") -- can't allocate sim4polishExon\n%s\n", l->lineNumber, strerror(errno));
-    exit(1);
+    assert(0), exit(1);
   }
 
   p->numCovered = 0;
@@ -254,7 +254,7 @@ s4p_readPolish(FILE *F) {
       ex  = (sim4polishExon *)realloc(ex, sizeof(sim4polishExon) * em);
       if (errno) {
         fprintf(stderr, "realloc() error in sim4reader::readPolish("u32bitFMT") -- can't allocate more sim4polishExon\n%s\n", l->lineNumber, strerror(errno));
-        exit(1);
+        assert(0), exit(1);
       }
     }
 
@@ -304,7 +304,7 @@ s4p_readPolish(FILE *F) {
   p->exons    = (sim4polishExon *)malloc(sizeof(sim4polishExon) * el);
   if (errno) {
     fprintf(stderr, "malloc() error in sim4reader::readPolish("u32bitFMT") -- can't allocate %d exons\n%s\n", l->lineNumber, el, strerror(errno));
-    exit(1);
+    assert(0), exit(1);
   }
   memcpy(p->exons, ex, sizeof(sim4polishExon) * el);
 
@@ -319,7 +319,7 @@ s4p_readPolish(FILE *F) {
       p->exons[el].estAlignment = (char *)malloc(sizeof(char) * (l->l + 1));
       if (errno) {
         fprintf(stderr, "malloc() error in sim4reader::readPolish("u32bitFMT") -- can't allocate estAlignment\n%s\n", l->lineNumber, strerror(errno));
-        exit(1);
+        assert(0), exit(1);
       }
       strcpy(p->exons[el].estAlignment, l->s);
       readLine(F, l);
@@ -328,7 +328,7 @@ s4p_readPolish(FILE *F) {
       p->exons[el].genAlignment = (char *)malloc(sizeof(char) * (l->l + 1));
       if (errno) {
         fprintf(stderr, "malloc() error in sim4reader::readPolish("u32bitFMT") -- can't allocate genAlignment\n%s\n", l->lineNumber, strerror(errno));
-        exit(1);
+        assert(0), exit(1);
       }
       strcpy(p->exons[el].genAlignment, l->s);
       readLine(F, l);
