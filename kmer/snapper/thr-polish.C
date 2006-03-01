@@ -140,6 +140,38 @@ doPolish(searcherState       *state,
         sim4polishList  *l4 = S4->run(P4);
         sim4polishList  &L4 = *l4;
 
+
+        //  Clean up the matches -- remove small exons from the match, split things with big gaps into
+        //  two matches.
+        //
+        for (u32bit i=0; L4[i]; i++) {
+          if (L4[i]->numExons > 1) {
+            for (u32bit j=L4[i]->numExons; j--; ) {
+              if (((L4[i]->exons[j].estTo - L4[i]->exons[j].estFrom) < config._discardExonLength)  ||
+                  (L4[i]->exons[j].percentIdentity < config._discardExonQuality)) {
+                s4p_deleteExon(L4[i], j);
+              }
+            }
+
+            while (L4[i]->numExons > 1) {
+              sim4polish *n = s4p_copyPolish_OneExon(L4[i], L4[i]->numExons-1);
+              L4.push(n);
+              s4p_deleteExon(L4[i], L4[i]->numExons-1);
+            }
+
+            //  Rebuild the stats on this guy -- we now have one exon, so just copy
+            //  the exon stats to the global stats.
+
+            L4[i]->numMatches       = L4[i]->exons[0].numMatches;
+            L4[i]->numMatchesN      = L4[i]->exons[0].numMatchesN;
+            L4[i]->numCovered       = L4[i]->exons[0].genTo - L4[i]->exons[0].genFrom + 1;
+            L4[i]->percentIdentity  = L4[i]->exons[0].percentIdentity;
+            L4[i]->querySeqIdentity = (int)floor(100 * (double)(L4[i]->numCovered) / (double)(L4[i]->estLen - L4[i]->estPolyA - L4[i]->estPolyT));
+          }
+
+        }
+
+
         //  Even though we don't expect multiple polishes, we still have to deal with
         //  them.  :-(
 

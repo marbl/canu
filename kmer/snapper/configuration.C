@@ -43,6 +43,10 @@ configuration::configuration(void) {
   _minMatchIdentity     = 98;
   _minMatchCoverage     = 96;
 
+  _discardExonLength    = 64;
+  _discardExonQuality   = 90;
+  _splitMatches         = true;
+
   _dbFileName           = 0L;
   _psFileName           = 0L;
   _qsFileName           = 0L;
@@ -99,6 +103,8 @@ static char const *usageString =
 "    -minhitcoverage c       Minimum coverage for a hit to be polished (0.2, 0.0 to 1.0).\n"
 "    -minmatchidentity i     Minimum percent identity for matches (98, integer).\n"
 "    -minmatchcoverage c     Minimum coverage for matches (96, integer).\n"
+"    -discardexonlength l    Discard exons less than l bp long (64).\n"
+"    -discardexonquality p   Discard exons less than p percent identity (90).\n"
 "    -extendweight w         For each unhit base, extend by this much (2).\n"
 "    -extendminimum e        Always extend hits by at least this much (100).\n"
 "\n"
@@ -153,13 +159,13 @@ configuration::read(int argc, char **argv) {
   while (arg < argc) {
     if        (strcmp(argv[arg], "-mersize") == 0) {
       arg++;
-      _merSize = atoi(argv[arg]);
+      _merSize = strtou32bit(argv[arg], 0L);
     } else if (strcmp(argv[arg], "-merskip") == 0) {
       arg++;
-      _merSkip = atoi(argv[arg]);
+      _merSkip = strtou32bit(argv[arg], 0L);
     } else if (strcmp(argv[arg], "-numthreads") == 0) {
       arg++;
-      _numSearchThreads = atoi(argv[arg]);
+      _numSearchThreads = strtou32bit(argv[arg], 0L);
     } else if (strcmp(argv[arg], "-ignore") == 0) {
       ++arg;
       _ignoreThreshold = strtou32bit(argv[arg], 0L);
@@ -173,12 +179,12 @@ configuration::read(int argc, char **argv) {
       arg++;
       _maskPrefix    = argv[arg];
       arg++;
-      _maskThreshold = atoi(argv[arg]);
+      _maskThreshold = strtou32bit(argv[arg], 0L);
     } else if (strcmp(argv[arg], "-onlyn") == 0) {
       arg++;
       _onlyPrefix    = argv[arg];
       arg++;
-      _onlyThreshold = atoi(argv[arg]);
+      _onlyThreshold = strtou32bit(argv[arg], 0L);
     } else if (strcmp(argv[arg], "-queries") == 0) {
       arg++;
       _qsFileName = argv[arg];
@@ -226,27 +232,33 @@ configuration::read(int argc, char **argv) {
       _statsFileName = argv[arg];
     } else if (strcmp(argv[arg], "-maxdiagonal") == 0) {
       arg++;
-      _maxDiagonal = atoi(argv[arg]);
+      _maxDiagonal = strtou32bit(argv[arg], 0L);
     } else if (strcmp(argv[arg], "-minhitlength") == 0) {
       arg++;
-      _minHitLength = atoi(argv[arg]);
+      _minHitLength = strtou32bit(argv[arg], 0L);
     } else if (strcmp(argv[arg], "-minhitcoverage") == 0) {
       arg++;
       _minHitCoverage = atof(argv[arg]);
     } else if (strcmp(argv[arg], "-minmatchidentity") == 0) {
       arg++;
-      _minMatchIdentity = atoi(argv[arg]);
+      _minMatchIdentity = strtou32bit(argv[arg], 0L);
     } else if (strcmp(argv[arg], "-minmatchcoverage") == 0) {
       arg++;
-      _minMatchCoverage = atoi(argv[arg]);
-    } else if (strncmp(argv[arg], "-extendweight", 7) == 0) {
+      _minMatchCoverage = strtou32bit(argv[arg], 0L);
+    } else if (strcmp(argv[arg], "-discardexonlength") == 0) {
+      arg++;
+      _discardExonLength = strtou32bit(argv[arg], 0L);
+    } else if (strcmp(argv[arg], "-discardexonquality") == 0) {
+      arg++;
+      _discardExonQuality = strtou32bit(argv[arg], 0L);
+    } else if (strncmp(argv[arg], "-extendweight", 8) == 0) {
       arg++;
       _extendWeight = atof(argv[arg]);
-    } else if (strncmp(argv[arg], "-extendminimum", 7) == 0) {
+    } else if (strncmp(argv[arg], "-extendminimum", 8) == 0) {
       arg++;
-      _extendMinimum = atoi(argv[arg]);
+      _extendMinimum = strtou32bit(argv[arg], 0L);
     } else if (strncmp(argv[arg], "-loaderhighwatermark", 8) == 0) {
-      _loaderHighWaterMark = atoi(argv[++arg]);
+      _loaderHighWaterMark = strtou32bit(argv[++arg], 0L);
     } else if (strncmp(argv[arg], "-loadersleep",         8) == 0) {
       setTime(&_loaderSleep, atof(argv[++arg]));
     } else if (strncmp(argv[arg], "-loaderwarnings",      8) == 0) {
@@ -254,12 +266,11 @@ configuration::read(int argc, char **argv) {
     } else if (strncmp(argv[arg], "-searchsleep",         8) == 0) {
       setTime(&_searchSleep, atof(argv[++arg]));
     } else if (strncmp(argv[arg], "-writerhighwatermark", 8) == 0) {
-      _writerHighWaterMark = atoi(argv[++arg]);
+      _writerHighWaterMark = strtou32bit(argv[++arg], 0L);
     } else if (strncmp(argv[arg], "-writersleep",         8) == 0) {
       setTime(&_writerSleep, atof(argv[++arg]));
     } else if (strncmp(argv[arg], "-writerwarnings",      8) == 0) {
       _writerWarnings = true;
-
     } else if (strncmp(argv[arg], "--buildinfo", 3) == 0) {
       buildinfo_snapper2(stderr);
 #if 0

@@ -98,6 +98,11 @@ public:
   u32bit           _minMatchIdentity;
   u32bit           _minMatchCoverage;
 
+  //  Filtering and/or cleanup of matches
+  u32bit           _discardExonLength;
+  u32bit           _discardExonQuality;
+  bool             _splitMatches;
+
   char            *_dbFileName;
   char            *_psFileName;
   char            *_qsFileName;
