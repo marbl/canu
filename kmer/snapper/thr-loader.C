@@ -29,7 +29,7 @@ loaderThread(void *) {
     //
     if ((slept) && (waterLevel <= 1)) {
 
-      u32bit i = 0.1 * config._loaderHighWaterMark;
+      u32bit i = config._loaderHighWaterMark / 10;
       if (i == 0)
         i = 1;
       config._loaderHighWaterMark += i;
@@ -62,7 +62,7 @@ loaderThread(void *) {
         B = qsFASTA->getSequence();
       } catch (std::bad_alloc) {
         fprintf(stderr, "loaderThread()-- Failed to load next query sequence\ncaught bad_alloc in %s at line %d\n", __FILE__, __LINE__);
-        exit(1);
+        abort();
       }
 
       pthread_mutex_lock(&inputTailMutex);
