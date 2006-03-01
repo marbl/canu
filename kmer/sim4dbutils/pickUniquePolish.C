@@ -17,19 +17,21 @@
 //  silently discard all.
 //
 
-int statOneMatch      = 0;
-int statConsistent    = 0;
-int statInconsistent  = 0;
-int statUnique        = 0;
-int statLost          = 0;
-int uniqueMatches     = 0;
-int uniqueIdentity    = 0;
-int uniqueNot         = 0;
+u32bit statOneMatch      = 0;
+u32bit statConsistent    = 0;
+u32bit statInconsistent  = 0;
+u32bit statUnique        = 0;
+u32bit statLost          = 0;
+u32bit uniqueMatches     = 0;
+u32bit uniqueIdentity    = 0;
+u32bit uniqueNot         = 0;
+
+
 
 
 
 void
-pickBestSlave(sim4polish **p, int pNum) {
+pickBestSlave(sim4polish **p, u32bit pNum) {
   u32bit        identitym = 0, nmatchesm = 0;  //  Best score for the mList
   u32bit        identityi = 0, nmatchesi = 0;  //  Best score the the iList
   u32bit        matchi = 0,    matchm = 0;
@@ -58,7 +60,7 @@ pickBestSlave(sim4polish **p, int pNum) {
   //  identitym is the highest percent identity for the best numMatches match(es).
   //  matchm    is the match index
 
-  for (int i=0; i<pNum; i++) {
+  for (u32bit i=0; i<pNum; i++) {
     if ((p[i]->percentIdentity > identityi) || 
         (p[i]->percentIdentity == identityi && p[i]->numMatches > nmatchesi)) {
       identityi = p[i]->percentIdentity;
@@ -75,7 +77,7 @@ pickBestSlave(sim4polish **p, int pNum) {
   }
 
 
-  int  matchIsOK = 0;
+  bool  matchIsOK = false;
 
   //  If we are in agreement on what the best quality match is,
   //  see if the best match is obviously unique.
@@ -96,7 +98,7 @@ pickBestSlave(sim4polish **p, int pNum) {
     u32bit nm = 0;
 
     //  Find the second largest percent identity and number of matches
-    for (int i=0; i<pNum; i++) {
+    for (u32bit i=0; i<pNum; i++) {
       if ((p[i]->percentIdentity > id) && (p[i]->percentIdentity < identityi))
         id = p[i]->percentIdentity;
       if ((p[i]->numMatches > nm) && (p[i]->numMatches < nmatchesi))
@@ -115,10 +117,10 @@ pickBestSlave(sim4polish **p, int pNum) {
     //
     if (nmatchesi * 0.98 >= nm){
       uniqueMatches++;
-      matchIsOK = 1;
+      matchIsOK = true;
     } else if (identityi * 0.98 >= id) {
       uniqueIdentity++;
-      matchIsOK = 1;
+      matchIsOK = true;
     } else {
       uniqueNot++;
     }
@@ -163,18 +165,17 @@ pickBestSlave(sim4polish **p, int pNum) {
 //  destroy polishes when we're done.
 //
 void
-pickBest(sim4polish **p, int pNum) {
-  int i;
+pickBest(sim4polish **p, u32bit pNum) {
 
   pickBestSlave(p, pNum);
 
-  for (i=0; i<pNum; i++)
+  for (u32bit i=0; i<pNum; i++)
     s4p_destroyPolish(p[i]);
 }
 
 
 int
-main(int argc, char **argv) {
+main(u32bit argc, char **argv) {
   u32bit       pNum   = 0;
   u32bit       pAlloc = 8388608;
   sim4polish **p      = 0L;
