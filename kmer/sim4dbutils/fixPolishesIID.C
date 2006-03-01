@@ -12,7 +12,8 @@
 //  polishes.
 
 const char *usage =
-"usage: %s [-c x] [-C x] [-g x] [-G x] < polishes > polishes\n"
+"usage: %s [-v] [-c x] [-g x] < polishes > polishes\n"
+"     -v         Entertain the user\n"
 "     -c x       Read cDNA deflines from x\n"
 "     -g x       Read genomic deflines from x\n"
 "  x is a fasta file, or a list of deflines (fasta file with no sequence)\n";
@@ -56,12 +57,16 @@ headerCompare(const void *a, const void *b) {
 
 int
 main(int argc, char **argv) {
+  bool   beVerbose = false;
   char  *cDeflines = 0L;
   char  *gDeflines = 0L;
 
   int arg=1;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-c") == 0) {
+    
+    if        (strcmp(argv[arg], "-v") == 0) {
+      beVerbose = true;
+    } else if (strcmp(argv[arg], "-c") == 0) {
       cDeflines = argv[++arg];
     } else if (strcmp(argv[arg], "-g") == 0) {
       gDeflines = argv[++arg];
@@ -79,8 +84,14 @@ main(int argc, char **argv) {
   //  We parse args, then build the dictionaries, so we can do
   //  any quick error detection first.
 
+  if (beVerbose)
+    fprintf(stderr, "%s: Reading genomic deflines from '%s'\n", gDeflines);
+
   dict_t  *g = dict_create(DICTCOUNT_T_MAX, headerCompare);
   addToDict(g, gDeflines);
+
+  if (beVerbose)
+    fprintf(stderr, "%s: Reading genomic deflines from '%s'\n", cDeflines);
 
   dict_t  *c = dict_create(DICTCOUNT_T_MAX, headerCompare);
   addToDict(c, cDeflines);
@@ -89,6 +100,9 @@ main(int argc, char **argv) {
   //  with no IID, holler and die.
 
   sim4polish *p;
+
+  //speedCounter  *C = new speedCounter("%12.0f polishes -- %12.0f polishes/second\r",
+  //                                    1.0, 0xfff, beVerbose);
 
   while ((p = s4p_readPolish(stdin)) != 0L) {
 
@@ -116,7 +130,11 @@ main(int argc, char **argv) {
 
     s4p_printPolish(stdout, p, S4P_PRINTPOLISH_NOTVALUABLE);
     s4p_destroyPolish(p);
+
+    //C->tick();
   }
+
+  //delete C;
 
   //  We should clean up our dictionaries, but we just let the OS do it.
   exit(0);
