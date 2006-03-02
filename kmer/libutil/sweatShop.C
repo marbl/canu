@@ -1,0 +1,388 @@
+#include "sweatShop.H"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/time.h>
+#include <time.h>
+
+
+//  Simply forwards control to the class
+void*
+loaderThread(void *ss) {
+  sweatShop *SS = (sweatShop *)ss;
+  return(SS->loader());
+}
+
+void*
+workerThread(void *ss) {
+  sweatShop *SS = (sweatShop *)ss;
+  return(SS->worker());
+}
+
+void*
+writerThread(void *ss) {
+  sweatShop *SS = (sweatShop *)ss;
+  return(SS->writer());
+}
+
+void*
+statusThread(void *ss) {
+  sweatShop *SS = (sweatShop *)ss;
+  return(SS->status());
+}
+
+
+
+sweatShop::sweatShop(void*(*loader)(void *G),
+                     void (*worker)(void *G, void *S),
+                     void (*writer)(void *G, void *S)) {
+  _userLoader = loader;
+  _userWorker = worker;
+  _userWriter = writer;
+
+  _globalUserData = 0L;
+
+  _writerP = 0L;  //  Where output takes stuff from, the tail
+  _workerP = 0L;  //  Where computes happen, the middle
+  _loaderP = 0L;  //  Where input is put, the head
+
+  _loadBatches = false;
+
+  _loaderQueueSize  =  128 * 1024;
+  _writerQueueSize  =   64 * 1024;
+
+  _numberOfWorkers = 3;
+
+  _numberLoaded   = 0;
+  _numberComputed = 0;
+  _numberOutput   = 0;
+}
+
+
+sweatShop::~sweatShop() {
+}
+
+
+u32bit
+sweatShop::loaderQueueSize(u32bit x=0) {
+  if (x > 0)
+    _loaderQueueSize = x;
+  return(_loaderQueueSize);
+}
+
+u32bit
+sweatShop::writerQueueSize(u32bit x=0) {
+  if (x > 0)
+    _writerQueueSize = x;
+  return(_writerQueueSize);
+}
+
+u32bit
+sweatShop::numberOfWorkers(u32bit x=0) {
+  if (x > 0)
+    _numberOfWorkers = x;
+  return(_numberOfWorkers);
+}
+
+
+//  Add a new state to the head of the queue.  This is just gross.
+//
+void
+sweatShop::loaderAdd(state_s *thisState) {
+  pthread_mutex_lock(&_stateMutex);
+  thisState->_next  = 0L;
+  if (_loaderP == 0L) {
+    _writerP      = thisState;
+    _workerP      = thisState;
+    _loaderP      = thisState;
+  } else {
+    _loaderP->_next = thisState;
+  }
+  _loaderP        = thisState;
+  pthread_mutex_unlock(&_stateMutex);
+  _numberLoaded++;
+}
+
+
+//  Build a list of states to add in one swoop
+//
+void
+sweatShop::loaderSave(state_s *&tail, state_s *&head, state_s *thisState) {
+
+  thisState->_next  = 0L;
+
+  if (tail) {
+    head->_next = thisState;
+    head        = thisState;
+  } else {
+    tail = head = thisState;
+  }
+  _numberLoaded++;
+}
+
+
+//  Add a bunch of new states to the queue.
+//
+void
+sweatShop::loaderAppend(state_s *&tail, state_s *&head) {
+
+  if ((tail == 0L) || (head == 0L))
+    return;
+
+  pthread_mutex_lock(&_stateMutex);
+
+  if (_loaderP == 0L) {
+    _writerP      = tail;
+    _workerP      = tail;
+    _loaderP      = head;
+  } else {
+    _loaderP->_next = tail;
+  }
+  _loaderP        = head;
+
+  pthread_mutex_unlock(&_stateMutex);
+
+  tail = 0L;
+  head = 0L;
+}
+
+
+
+void*
+sweatShop::loader(void) {
+
+  struct timespec   naptime;
+  naptime.tv_sec      = 0;
+  naptime.tv_nsec     = 10000000ULL;
+
+  //  We can batch several loads together before we push them onto the
+  //  queue, this should reduce the number of times the loader needs to
+  //  lock the queue.
+  //
+  //  But it also increases the latency, so it's disabled by default.
+  //
+  state_s               *tail = 0L;  //  The first thing loaded
+  state_s               *head = 0L;  //  The last thing loaded
+  u32bit                 batchSize  = 0;
+  u32bit                 batchLimit = 128;
+
+  bool  moreToLoad = true;
+
+  while (moreToLoad) {
+
+    //  Zzzzzzz....
+    while (_numberLoaded - _numberComputed > _loaderQueueSize)
+      nanosleep(&naptime, 0L);
+
+    state_s  *thisState = new state_s( (*_userLoader)(_globalUserData) );
+
+    //  If we actually loaded a new state, add it
+    //
+    if (thisState->_user) {
+      if (_loadBatches) {
+        loaderSave(tail, head, thisState);
+        batchSize++;
+        if (batchSize >= batchLimit)
+          loaderAppend(tail, head);
+      } else {
+        loaderAdd(thisState);
+      }
+    } else {
+      //  Didn't read, must be all done!  Push on the end-of-input marker state.
+      //
+      if (_loadBatches) {
+        loaderSave(tail, head, new state_s(0L));
+        loaderAppend(tail, head);
+      } else {
+        loaderAdd(new state_s(0L));
+      }
+      moreToLoad = false;
+    }
+  }
+
+  //fprintf(stderr, "sweatShop::reader exits.\n");
+  return(0L);
+}
+
+
+
+void*
+sweatShop::worker(void) {
+
+  struct timespec   naptime;
+  naptime.tv_sec      = 0;
+  naptime.tv_nsec     = 500000000ULL;
+
+  bool    moreToCompute = true;
+
+  while (moreToCompute) {
+
+    while (_numberComputed - _numberOutput > _writerQueueSize)
+      nanosleep(&naptime, 0L);
+
+    //  Grab the next state.  We don't grab it if it's the last in the
+    //  queue (else we would fall off the end) UNLESS it really is the
+    //  last one.
+    //
+    state_s  *thisState = 0L;
+
+    pthread_mutex_lock(&_stateMutex);
+    if ((_workerP) && ((_workerP->_next != 0L) || (_workerP->_user == 0L))) {
+      thisState = _workerP;
+      _workerP = _workerP->_next;
+    }
+    if (_workerP == 0L) {
+      moreToCompute = false;
+    }
+    pthread_mutex_unlock(&_stateMutex);
+
+    //  Execute
+    //
+    if (thisState && thisState->_user) {
+      (*_userWorker)(_globalUserData, thisState->_user);
+      thisState->_computed = true;
+      _numberComputed++;
+    } else {
+      //  When we really do run out of stuff to do, we'll end up here
+      //  (only one thread will end up in the other case, with
+      //  something to do and moreToCompute=false).  If it's actually
+      //  the end, skip the sleep and just get outta here.
+      //
+      if (moreToCompute == true)
+        nanosleep(&naptime, 0L);
+    }
+  }
+
+  //fprintf(stderr, "sweatShop::worker exits.\n");
+  return(0L);
+}
+
+
+void*
+sweatShop::writer(void) {
+
+  struct timespec   naptime;
+  naptime.tv_sec      = 0;
+  naptime.tv_nsec     = 100000000ULL;
+
+  //  Wait for output to appear.
+  //
+  while (_writerP && _writerP->_user) {
+
+    //  Wait a bit if there is no output on this node (we caught up to
+    //  the computes), or there is no next node (we caught up to the
+    //  input, yikes!)
+    //
+    if ((_writerP->_computed == false) || (_writerP->_next == 0L)) {
+      nanosleep(&naptime, 0L);
+    } else {
+      (*_userWriter)(_globalUserData, _writerP->_user);
+
+      state_s  *saveState = _writerP->_next;
+      delete    _writerP;
+      _writerP = saveState;
+
+      _numberOutput++;
+    }
+  }
+
+  //fprintf(stderr, "sweatShop::writer exits.\n");
+  return(0L);
+}
+
+
+double
+getTime(void) {
+  struct timeval  tp;
+  gettimeofday(&tp, NULL);
+  return(tp.tv_sec + (double)tp.tv_usec / 1000000.0);
+}
+
+void*
+sweatShop::status(void) {
+
+  struct timespec   naptime;
+  naptime.tv_sec      = 0;
+  naptime.tv_nsec     = 250000000ULL;
+
+  double  startTime = getTime() - 0.001;
+
+  while (_writerP && _writerP->_user) {
+    fprintf(stderr, " (%6.1f/s) (out="u64bitFMTW(8)" + "u64bitFMTW(8)" = cpu = "u64bitFMTW(8)" + "u64bitFMTW(8)" = in = "u64bitFMTW(8)"\r",
+            _numberOutput / (getTime() - startTime),
+            _numberOutput,
+            _numberComputed - _numberOutput,
+            _numberComputed,
+            _numberLoaded - _numberComputed,
+            _numberLoaded);
+    fflush(stderr);
+    nanosleep(&naptime, 0L);
+  }
+
+  fprintf(stderr, " (%6.1f/s) (out="u64bitFMTW(8)" + "u64bitFMTW(8)" = cpu = "u64bitFMTW(8)" + "u64bitFMTW(8)" = in = "u64bitFMTW(8)"\n",
+          _numberOutput / (getTime() - startTime),
+          _numberOutput,
+          _numberComputed - _numberOutput,
+          _numberComputed,
+          _numberLoaded - _numberComputed,
+          _numberLoaded);
+
+  //fprintf(stderr, "sweatShop::status exits.\n");
+  return(0L);
+}
+
+
+
+
+
+void
+sweatShop::run(void *user=0L) {
+    pthread_attr_t   threadAttr;
+    pthread_t        threadID;
+
+    _globalUserData = user;
+
+    pthread_mutex_init(&_stateMutex, NULL);
+
+    pthread_attr_init(&threadAttr);
+    pthread_attr_setscope(&threadAttr, PTHREAD_SCOPE_SYSTEM);
+    pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_DETACHED);
+    pthread_attr_setschedpolicy(&threadAttr, SCHED_OTHER);
+
+    //  Fire off the loader, or the all-vs-all loader
+    //
+    pthread_create(&threadID, &threadAttr, loaderThread, this);
+
+    //  Wait for it to actually load something (otherwise all the
+    //  workers immediately go home)
+    //
+    while (!_writerP && !_workerP && !_loaderP) {
+      struct timespec   naptime;
+      naptime.tv_sec      = 0;
+      naptime.tv_nsec     = 250000ULL;
+      nanosleep(&naptime, 0L);
+    }
+
+    //  Fire off some workers
+    //
+    for (u32bit i=0; i<_numberOfWorkers; i++)
+      pthread_create(&threadID, &threadAttr, workerThread, this);
+
+    //  And the stats
+    //
+    pthread_create(&threadID, &threadAttr, statusThread, this);
+
+    //  We run the writer in the main, right here.  We could probably
+    //  run stats here, but we certainly aren't done until the worker
+    //  finishes, so just do that one.
+    //
+    writer();
+
+    //  If the writer exits, then someone signalled that we're done.
+    //  Clean up -- make sure all the queues are free'd.
+    //
+    delete _loaderP;
+    _loaderP = _workerP = _writerP = 0L;
+  }

@@ -8,6 +8,8 @@ src    := $/util++.H \
           $/util.h \
           $/bigQueue.H \
           $/bigQueue.C \
+          $/sweatShop.H \
+          $/sweatShop.C \
           $/time.C \
           $/file.c \
           $/intervalList.C \
