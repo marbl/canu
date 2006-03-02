@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.51 2006-02-14 14:27:56 eliv Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.52 2006-03-02 18:11:07 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -6609,7 +6609,6 @@ int RealignToConsensus(int32 mid,
  static char cnstmpqlt[2*AS_READ_MAX_LEN+1];
  int i;
  MANode *ma_realigned=NULL;
- MultiAlignT *mal;
  Fragment *afrag;
  Bead *afirst;
  Column *col;
@@ -7267,7 +7266,6 @@ int32 PlaceFragments(int32 fid, Overlap *(*COMPARE_FUNC)(COMPARE_ARGS),
      Bead *afirst = GetBead(beadStore,afrag->beads+ahang);
      Column *col = GetColumn(columnStore,afirst->column_index);
      MANode *manode = GetMANode(manodeStore,col->ma_id);
-     MultiAlignT *mal = GetMultiAlignInStore(unitigStore, col->ma_id);
      int i;
      {
        IntMultiVar *vl = NULL;
