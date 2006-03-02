@@ -8,7 +8,8 @@ PROG    = test-bigQueue \
           test-mmap \
           test-palloc \
           test-readBuffer \
-          test-types
+          test-types \
+          tcat
 
 INCLUDE = -I..
 LIBS    = -L.. -lutil -lm
@@ -75,6 +76,10 @@ test-types: test-types.c ../libutil.a ../util.h ../util++.H
 	$(CC) $(CFLAGS_COMPILE) -c -o test-types.o test-types.c $(INCLUDE)
 	$(CC) $(CLDFLAGS) -o test-types test-types.o $(LIBS)
 	./test-types
+
+tcat: tcat.C ../libutil.a ../util.h ../util++.H
+	$(CXX) $(CXXFLAGS_COMPILE) -c -o tcat.o tcat.C $(INCLUDE) $(THREADS)
+	$(CXX) $(CXXLDFLAGS) -o tcat tcat.o $(LIBS) $(THREADL)
 
 clean:
 	rm -f $(PROG) *.o *junk*
