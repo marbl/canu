@@ -293,13 +293,6 @@ sweatShop::writer(void) {
 }
 
 
-double
-getTime(void) {
-  struct timeval  tp;
-  gettimeofday(&tp, NULL);
-  return(tp.tv_sec + (double)tp.tv_usec / 1000000.0);
-}
-
 void*
 sweatShop::status(void) {
 
