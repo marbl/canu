@@ -210,7 +210,7 @@ main(int argc, char **argv) {
       if (l < qltL1)  l = qltL1;
       if (r > qltR1)  r = qltR1;
 
-      if (l < r) {
+      if (l + OBT_MIN_LENGTH < r) {
         if (doModify) {
           setClearRegion_ReadStruct(rd, l, r, READSTRUCT_OVL);
           if (setFragStore(fs, lid, rd)) {
@@ -223,13 +223,18 @@ main(int argc, char **argv) {
           fprintf(logFile, u64bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT" (no overlaps)\n",
                   lid, qltL0, qltR0, l, r);
       } else {
-        //  What?  No intersect?  Delete it!
+        //  What?  No intersect...too small?  Delete it!
+        //
         if (doModify)
           deleteFragStore(fs, lid);
 
         if (logFile)
-          fprintf(logFile, u64bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT" (no overlaps, no intersection, deleted)\n",
-                  lid, qltL0, qltR0, qltL1, qltR1);
+          if (l < r)
+            fprintf(logFile, u64bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT" (no overlaps, intersection too short, deleted)\n",
+                    lid, qltL0, qltR0, qltL1, qltR1);
+          else
+            fprintf(logFile, u64bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT" (no overlaps, no intersection, deleted)\n",
+                    lid, qltL0, qltR0, qltL1, qltR1);
       }
 
       lid++;
