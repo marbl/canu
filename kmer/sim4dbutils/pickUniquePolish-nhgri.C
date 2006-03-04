@@ -76,7 +76,8 @@ FastAWrapper  *SEQ = 0L;
 FastAWrapper  *QLT = 0L;
 
 double       filter      = 0.0;
-FILE        *oFile       = 0L;
+FILE        *oFile       = stdout;
+int          oFileIsPipe = 0;
 FILE        *sFile       = 0L;
 FILE        *uFile       = 0L;
 bool         doFiltering = false;
@@ -398,6 +399,12 @@ nextPolish(void) {
   int smallestPolish = 0;
   int nextPolish     = 1;
 
+  //  If no merge files, read from stdin
+  //
+  if (mergeFilesLen == 0) {
+    return(s4p_readPolish(stdin));
+  }
+
   //  Find the smallest polish.
   //
   for (nextPolish = smallestPolish+1; nextPolish < mergeFilesLen; nextPolish++) {
@@ -516,11 +523,13 @@ main(int argc, char **argv) {
       fprintf(stderr, "reading genomic deflines from '%s'\n", argv[arg]);
       GENdict = dict_create(DICTCOUNT_T_MAX, headerCompare);
       addToDict(GENdict, argv[arg]);
-    } else if (strcmp(argv[arg], "-f") == 0) {
+    } else if (strcmp(argv[arg], "-F") == 0) {
       ++arg;
       fprintf(stderr, "reading query deflines from '%s'\n", argv[arg]);
       SEQdict = dict_create(DICTCOUNT_T_MAX, headerCompare);
       addToDict(SEQdict, argv[arg]);
+    } else if (strcmp(argv[arg], "-f") == 0) {
+      ++arg;
       SEQ = new FastAWrapper(argv[arg]);
       SEQ->openIndex();
     } else if (strcmp(argv[arg], "-q") == 0) {
@@ -535,11 +544,18 @@ main(int argc, char **argv) {
       char  cmd[1024] = {0};
       errno = 0;
       ++arg;
-      if (strcmp(argv[arg] + strlen(argv[arg]) - 4, ".bz2") == 0)
+      if (strcmp(argv[arg] + strlen(argv[arg]) - 4, ".bz2") == 0) {
         sprintf(cmd, "bzip2 -1c > %s", argv[arg]);
-      if (strcmp(argv[arg] + strlen(argv[arg]) - 3, ".gz") == 0)
+        oFile = popen(cmd, "w");
+        oFileIsPipe = 1;
+      } else if (strcmp(argv[arg] + strlen(argv[arg]) - 3, ".gz") == 0) {
         sprintf(cmd, "gzip -1c > %s", argv[arg]);
-      oFile = popen(cmd, "w");
+        oFile = popen(cmd, "w");
+        oFileIsPipe = 1;
+      } else {
+        fprintf(stderr, "Got %s, not .bz2 not .gz!\n", argv[arg]);
+        exit(1);
+      }
       if (errno)
         fprintf(stderr, "Failed to open '%s': %s\n", cmd, strerror(errno));
       doFiltering = true;
@@ -592,10 +608,10 @@ main(int argc, char **argv) {
   }
 
 
-  if ((SEQdict == 0L) || (GENdict == 0L)) {
-    fprintf(stderr, "Sorry, I need both -f and -g\n");
-    exit(1);
+  if ((IIDdict == 0L) || (SEQdict == 0L) || (GENdict == 0L)) {
+    fprintf(stderr, "WARNING!  No sequence dictionaries, NOT FIXING IIDs!  (supply -fpart, -f and -g)\n");
   }
+
 
   if ((SEQ == 0L) || (QLT == 0L)) {
     fprintf(stderr, "I need -f and -q\n");
@@ -612,7 +628,7 @@ main(int argc, char **argv) {
     found[i] = false;
 
 
-  //  Initialize the merge
+  //  Initialize the merge -- if no merge files, nothing done!
   //
   for (int i=0; i<mergeFilesLen; i++) {
     mergePolishes[i] = s4p_readPolish(mergeFiles[i]);
