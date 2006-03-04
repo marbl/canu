@@ -17,6 +17,7 @@
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "sim4db.H"
+#include "sweatShop.H"
 
 //  A threaded sim4db implementation
 //
@@ -34,19 +35,12 @@
 
 
 
-//  Define this to enable the loader to submit things to the queue in
-//  batches, hopefully, will reduce the contention on the lock.
-//
-#define LOAD_BATCHES
 
 
-//  We keep a count of the number of times the workers try to access
-//  the mutex but it is locked.
-//
-//  This is not an issue, even disabling LOAD_BATCHES (waste of time
-//  that was!)
-//
-//#define COUNT_LOCKED
+//  XXX  Both loader and loaderAll leave the last gen sequence undeleted!
+
+
+
 
 
 
@@ -63,362 +57,201 @@ char             *touchFileName    = 0L;
 bool              beVerbose        = false;       //  Print progress
 bool              beYesNo          = false;       //  Print each script line as we process, with answer
 
-sim4parameters    sim4params;
+u32bit            loaderCacheSize  = 1024;        //  Size of the EST cache
 
-
-//  We used to use five arrays holding the state for each compute.  all-vs-all
-//  usually blew out the memory on just those arrays, so we switched over
-//  to a linked list of structs.
+//  Things that the various threads need -- we should put these into a
+//  sim4thGlobal class, but we already have a bunch of globals
+//  anyway....
 //
-struct state_s {
+readBuffer           *scriptFile       = 0L;
+
+sim4parameters        sim4params;
+
+FastAWrapper         *GENs             = 0L;
+FastACache           *ESTs             = 0L;
+
+u32bit                lastGENiid       = ~u32bitZERO;
+u32bit                lastESTiid       = ~u32bitZERO;
+FastASequenceInCore  *lastGENseq       = 0L;
+
+int                   fOutput          = 0;
+
+
+
+class sim4thWork {
 public:
   sim4command          *input;
   char                 *script;
   sim4polishList       *output;
   FastASequenceInCore  *gendelete;
   FastASequenceInCore  *estdelete;
-  state_s              *next;
 
-  state_s() {
+  sim4thWork() {
     input = 0L;
     script = 0L;
     output = 0L;
     gendelete = 0L;
     estdelete = 0L;
-    next = 0L;
   };
 };
-
-pthread_mutex_t        stateMutex;
-state_s               *rootState = 0L;  //  Where output takes stuff from, the tail
-state_s               *currState = 0L;  //  Where computes happen, the middle
-state_s               *headState = 0L;  //  Where input is put, the head
-
-u32bit                 numberLoaded   = 0;
-u32bit                 numberComputed = 0;
-u32bit                 numberOutput   = 0;
-
-#ifdef COUNT_LOCKED
-u32bit            mutexLocked = 0;
-#endif
-
-state_s*
-newState(void) {
-  return(new state_s);
-}
-
-void
-freeState(state_s *s) {
-  delete s;
-}
-
-FastAWrapper     *GENs             = 0L;
-FastACache       *ESTs             = 0L;
-
-//  I see 500/sec on a dual P4 Xeon 2.8 with local disk, so
-//  loaderQueueSize gives us 16 seconds of buffer.  ESTs are ~500 bp
-//  long, keeping 256,000 in the cache will eat up 128MB.  I can't
-//  characterize what types of sequences will see benefits from
-//  increasing or decreasing this.
-//
-//  Increased loaderQueueSize to make sure that we don't hit a bad
-//  region in the middle of a run and empty the queue.
-//
-u32bit            loaderQueueSize  =  64 * 1024;
-u32bit            loaderCacheSize  = 128 * 1024;
-
-
-//  Add a new state to the head of the queue.  This is just gross.
-//
-void
-loaderAdd(state_s *thisState, sim4command *cmd) {
-  pthread_mutex_lock(&stateMutex);
-  thisState->input = cmd;
-  thisState->next  = 0L;
-  if (headState == 0L) {
-    rootState      = thisState;
-    currState      = thisState;
-    headState      = thisState;
-  } else {
-    headState->next = thisState;
-  }
-  headState        = thisState;
-  pthread_mutex_unlock(&stateMutex);
-  numberLoaded++;
-}
-
-#ifdef LOAD_BATCHES
-
-//  Build a list of states to add in one swoop
-//
-void
-loaderSave(state_s *&tail, state_s *&head, state_s *thisState, sim4command *cmd) {
-
-  thisState->input = cmd;
-  thisState->next  = 0L;
-
-  if (tail) {
-    head->next = thisState;
-    head       = thisState;
-  } else {
-    tail = head = thisState;
-  }
-  numberLoaded++;
-}
-
-//  Add a bunch of new states to the queue.
-//
-void
-loaderAppend(state_s *&tail, state_s *&head) {
-
-  if ((tail == 0L) || (head == 0L))
-    return;
-
-  pthread_mutex_lock(&stateMutex);
-
-  if (headState == 0L) {
-    rootState      = tail;
-    currState      = tail;
-    headState      = head;
-  } else {
-    headState->next = tail;
-  }
-  headState        = head;
-
-  pthread_mutex_unlock(&stateMutex);
-
-  tail = 0L;
-  head = 0L;
-}
-
-#endif
 
 
 
 
 void*
-loader(void *) {
-  u32bit                lastGENiid = ~u32bitZERO;
-  FastASequenceInCore  *lastGENseq = 0L;
+loader(void *U) {
+  bool                  doForward = true;
+  bool                  doReverse = true;
+  u32bit                ESTiid = 0;
+  u32bit                GENiid = 0;
+  u32bit                GENlo  = 0;
+  u32bit                GENhi  = 0;
 
-  //  We can batch several loads together before we push them onto the
-  //  queue, this should reduce the number of times the loader needs to
-  //  lock the queue.
-  //
-#ifdef LOAD_BATCHES
-  state_s               *tail = 0L;  //  The first thing loaded
-  state_s               *head = 0L;  //  The last thing loaded
-  u32bit                 batchSize  = 0;
-  u32bit                 batchLimit = 128;
-#endif
+  sim4thWork *p = new sim4thWork();
+  
+  p->script = getNextScript(ESTiid, GENiid, GENlo, GENhi, doForward, doReverse, scriptFile);
 
-  struct timespec   naptime;
-  naptime.tv_sec      = 0;
-  naptime.tv_nsec     = 10000000;
+  if (p->script) {
+    FastASequenceInCore  *ESTseq = 0L;
+    FastASequenceInCore  *GENseq = 0L;
 
-  //  Open our script file
-  //
-  readBuffer  *scriptFile = new readBuffer(scriptFileName);
-
-  bool  moreToLoad = true;
-
-  while (moreToLoad) {
-
-    //  Zzzzzzz....
-    while (numberLoaded - numberComputed > loaderQueueSize)
-      nanosleep(&naptime, 0L);
-
-    bool                  doForward = true;
-    bool                  doReverse = true;
-    u32bit                ESTiid = 0;
-    u32bit                GENiid = 0;
-    u32bit                GENlo  = 0;
-    u32bit                GENhi  = 0;
-
-    state_s  *thisState = newState();
-    thisState->script = getNextScript(ESTiid, GENiid, GENlo, GENhi, doForward, doReverse, scriptFile);
-
-    if (thisState->script) {
-      FastASequenceInCore  *ESTseq = 0L;
-      FastASequenceInCore  *GENseq = 0L;
-
-      //  If we already have the GENseq, use that, otherwise, register it for deletion.
-      //
-      if (lastGENiid == GENiid) {
-        GENseq = lastGENseq;
-      } else {
-        //  Technically, we're deleting this on the state AFTER it's
-        //  used, but we can't guarantee that that state is still
-        //  around.
-        //
-        thisState->gendelete = lastGENseq;
-
-        GENs->find(GENiid);
-        GENseq = GENs->getSequence();
-
-        lastGENiid = GENiid;
-        lastGENseq = GENseq;
-      }
-
-      //  For now, we just copy the EST from the cache.
-      //
-      ESTseq               = ESTs->getSequence(ESTiid)->copy();
-      thisState->estdelete = ESTseq;
-
-#ifdef LOAD_BATCHES
-      loaderSave(tail, head, thisState, new sim4command(ESTseq, GENseq, GENlo, GENhi, doForward, doReverse));
-      batchSize++;
-      if (batchSize >= batchLimit)
-        loaderAppend(tail, head);
-#else
-      loaderAdd(thisState, new sim4command(ESTseq, GENseq, GENlo, GENhi, doForward, doReverse));
-#endif
-      thisState = newState();
+    //  If we already have the GENseq, use that, otherwise, register it for deletion.
+    //
+    if (lastGENiid == GENiid) {
+      GENseq = lastGENseq;
     } else {
-      //  Didn't read, must be all done!  Push on the end-of-input marker state.
+
+      //  Register it for deletion.  Technically, we're deleting this
+      //  on the state AFTER it's used, but we can't guarantee that
+      //  that state is still around.  The writer is deleting this, so
+      //  by the time it gets here, it already wrote everyone that
+      //  used this, which kind of implies that everyone that needs
+      //  this is already computed.
       //
-#ifdef LOAD_BATCHES
-      loaderSave(tail, head, newState(), 0L);
-      loaderAppend(tail, head);
-#else
-      loaderAdd(newState(), 0L);
-#endif
-      moreToLoad = false;
+      p->gendelete = lastGENseq;
+
+      GENs->find(GENiid);
+      GENseq = GENs->getSequence();
+
+      lastGENiid = GENiid;
+      lastGENseq = GENseq;
     }
+
+    //  The cache can, and does, overwrite the EST sequence we care
+    //  about.  For now, we just copy the EST from the cache.
+    //
+    ESTseq         = ESTs->getSequence(ESTiid)->copy();
+    p->estdelete   = ESTseq;
+
+    p->input       = new sim4command(ESTseq, GENseq, GENlo, GENhi, doForward, doReverse);
+  } else {
+    delete p;
+    p = 0L;
   }
 
-  delete scriptFile;
-
-  return(0L);
+  return(p);
 }
 
 
 
 void*
 loaderAll(void *) {
-  FastASequenceInCore  *ESTseq = 0L;
-  FastASequenceInCore  *GENseq = 0L;
 
-  bool                  doForward = true;
-  bool                  doReverse = true;
+  sim4thWork  *p = new sim4thWork();
 
-  u32bit                numESTs = ESTs->fasta()->getNumberOfSequences();
+  //  Previous implementations "Ping-pong'd" through the ESTs.  The
+  //  idea being we would use the cache on the ends.  We can't easily
+  //  do that here, so we always go forward.
 
-  //  It's super easy for us to fill up the queue, so the delay here
-  //  is pretty large.
-  //
-  struct timespec   naptime;
-  naptime.tv_sec      = 1;
-  naptime.tv_nsec     = 0;
+  //  Flip around the end, if needed.
+  if (lastESTiid >= ESTs->fasta()->getNumberOfSequences()) {
+    lastESTiid   = 0;
+    p->gendelete = lastGENseq;
+    lastGENseq   = 0L;
 
-  //  We ping-pong through the ESTs.  At least we can use the cache a little
-  //  bit on the ends.
-  //
-  //  Of course, this really REALLY bites us for the reverse when
-  //  we're not in the cache.
-
-  for (u32bit GENiid=0; GENiid < GENs->getNumberOfSequences(); GENiid++) {
-    GENs->find(GENiid);
-    GENseq = GENs->getSequence();
-
-    for (u32bit ESTiid=0; ESTiid < numESTs; ESTiid++) {
-      while (numberLoaded - numberComputed > loaderQueueSize)
-        nanosleep(&naptime, 0L);
-
-      state_s  *thisState = newState();
-
-      ESTseq           = ESTs->getSequence(ESTiid)->copy();
-      thisState->estdelete = ESTseq;
-
-      if (ESTiid == numESTs-1)
-        thisState->gendelete = GENseq;
-
-      loaderAdd(thisState, new sim4command(ESTseq,
-                                           GENseq, 0, GENseq->sequenceLength(),
-                                           doForward, doReverse));
-    }
-
-    //  Ping pong!
-
-    GENiid++;
-    if (GENiid == GENs->getNumberOfSequences())
-      return(0L);
-
-    GENs->find(GENiid);
-    GENseq = GENs->getSequence();
-
-    for (u32bit ESTiid=numESTs; ESTiid-- > 0;) {
-      while (numberLoaded - numberComputed > loaderQueueSize)
-        nanosleep(&naptime, 0L);
-
-      state_s  *thisState = newState();
-
-      ESTseq           = ESTs->getSequence(ESTiid)->copy();
-      thisState->estdelete = ESTseq;
-
-      if (ESTiid == 0)
-        thisState->gendelete = GENseq;
-
-      loaderAdd(thisState, new sim4command(ESTseq,
-                                           GENseq, 0, GENseq->sequenceLength(),
-                                           doForward, doReverse));
-    }
-  } 
-
-  //  All done, push on the stop
-  loaderAdd(newState(), 0L);
-
-  return(0L);
-}
-
-
-
-
-
-void*
-worker(void *) {
-  struct timespec   naptime;
-  naptime.tv_sec      = 0;
-  naptime.tv_nsec     = 500000000;
-
-  while (currState && currState->input) {
-
-    //  Grab the next state.  We don't grab it if it's the last in the
-    //  queue (else we would fall off the end) UNLESS it really is the
-    //  last one.
-    //
-    state_s  *thisState = 0L;
-
-#ifdef COUNT_LOCKED
-    if (pthread_mutex_trylock(&stateMutex)) {
-      //  mutex already locked, wait for it.
-      mutexLocked++;
-      pthread_mutex_lock(&stateMutex);
-    }
-#else
-    pthread_mutex_lock(&stateMutex);
-#endif
-
-    if ((currState) && ((currState->next != 0L) || (currState->input == 0L))) {
-      thisState = currState;
-      currState = currState->next;
-    }
-    pthread_mutex_unlock(&stateMutex);
-
-    //  Execute
-    //
-    if (thisState && thisState->input) {
-      Sim4            *sim = new Sim4(&sim4params);
-      thisState->output    = sim->run(thisState->input);
-      delete sim;
-      numberComputed++;
-    } else {
-      nanosleep(&naptime, 0L);
-    }
+    if (lastGENiid == ~u32bitZERO)  //  happens on the first time through
+      lastGENiid = 0;
+    else
+      lastGENiid++;
   }
 
-  return(0L);
+  //  If we've run out of sequences, we're done!
+  if (lastGENiid >= GENs->getNumberOfSequences()) {
+    delete p;
+    return(0L);
+  }
+
+  //  Update the genomic sequence?
+  if (lastGENseq == 0L) {
+    GENs->find(lastGENiid);
+    lastGENseq = GENs->getSequence();
+  }
+
+  //  Grab the EST sequence
+  p->estdelete = ESTs->getSequence(lastESTiid++)->copy();
+
+  //  build the command
+  p->input     = new sim4command(p->estdelete,
+                                 lastGENseq, 0, lastGENseq->sequenceLength(),
+                                 true, true);
+
+  return(p);
 }
+
+
+
+
+
+void
+worker(void *U, void *S) {
+  sim4thWork  *p = (sim4thWork *)S;
+
+  Sim4       *sim = new Sim4(&sim4params);
+  p->output       = sim->run(p->input);
+  delete sim;
+}
+
+
+void
+writer(void *U, void *S) {
+  sim4thWork  *p = (sim4thWork *)S;
+
+  sim4polishList  &L4 = *(p->output);
+
+  for (u32bit i=0; L4[i]; i++) {
+    char *o = s4p_polishToString(L4[i]);
+
+    errno = 0;
+    write(fOutput, o, strlen(o) * sizeof(char));
+    if (errno)
+      fprintf(stderr, "Couldn't write the output file '%s': %s\n", outputFileName, strerror(errno)), exit(1);
+
+    free(o);
+  }
+
+  if (beYesNo) {
+    if (L4[0])
+      fprintf(stdout, "%s -Y "u32bitFMT" "u32bitFMT"\n",
+              p->script,
+              L4[0]->percentIdentity,
+              L4[0]->querySeqIdentity);
+    else
+      fprintf(stdout, "%s -N 0 0\n",
+              p->script);
+  }
+
+  //  Release this compute
+
+  delete    p->input;
+  delete [] p->script;
+  delete    p->output;
+  delete    p->gendelete;
+  delete    p->estdelete;
+  delete    p;
+}
+
+
+
 
 
 
@@ -442,47 +275,6 @@ openOutputFile(char *outputFileName) {
 }
 
 
-void*
-stats(void *) {
-  struct timespec   naptime;
-  naptime.tv_sec      = 0;
-  naptime.tv_nsec     = 250000000ULL;
-
-  double  startTime = getTime() - 0.001;
-
-  while (rootState) {
-#ifdef COUNT_LOCKED
-    fprintf(stderr, " (%6.1f/s) (out="u32bitFMTW(8)" + "u32bitFMTW(8)" = cpu = "u32bitFMTW(8)" + "u32bitFMTW(8)" ("u32bitFMTW(8)" locked) = in = "u32bitFMTW(8)"\r",
-            numberOutput / (getTime() - startTime),
-            numberOutput,
-            numberComputed - numberOutput,
-            numberComputed,
-            numberLoaded - numberComputed,
-            mutexLocked,
-            numberLoaded);
-#else
-    fprintf(stderr, " (%6.1f/s) (out="u32bitFMTW(8)" + "u32bitFMTW(8)" = cpu = "u32bitFMTW(8)" + "u32bitFMTW(8)" = in = "u32bitFMTW(8)"\r",
-            numberOutput / (getTime() - startTime),
-            numberOutput,
-            numberComputed - numberOutput,
-            numberComputed,
-            numberLoaded - numberComputed,
-            numberLoaded);
-#endif
-    fflush(stderr);
-    nanosleep(&naptime, 0L);
-  }
-
-  fprintf(stderr, " (%6.1f/s) (out="u32bitFMTW(8)" + "u32bitFMTW(8)" = cpu = "u32bitFMTW(8)" + "u32bitFMTW(8)" = in = "u32bitFMTW(8)"\n",
-          numberOutput / (getTime() - startTime),
-          numberOutput,
-          numberComputed - numberOutput,
-          numberComputed,
-          numberLoaded - numberComputed,
-          numberLoaded);
-
-  return(0L);
-}
 
 
 
@@ -500,97 +292,33 @@ main(int argc, char **argv) {
 
   GENs->openIndex();
 
-  //  Launch some threads
-  //
-  pthread_attr_t   threadAttr;
-  pthread_t        threadID;
-
-  pthread_mutex_init(&stateMutex, NULL);
-
-  pthread_attr_init(&threadAttr);
-  pthread_attr_setscope(&threadAttr, PTHREAD_SCOPE_SYSTEM);
-  pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_DETACHED);
-  pthread_attr_setschedpolicy(&threadAttr, SCHED_OTHER);
-
-  //  Fire off the loader, or the all-vs-all loader
-  pthread_create(&threadID, &threadAttr, (scriptFileName) ? loader : loaderAll, 0L);
-
-  //  Wait for it to actually load something (otherwise all the threads exit)
-  while (!rootState && !currState && !headState)
-    sleep(1);
-
-  //  And the stats
-  pthread_create(&threadID, &threadAttr, stats, 0L);
-
-  //  Give it some lead time to load stuff
-  //sleep(32);
-
-  //  Fire off some workers
-  pthread_create(&threadID, &threadAttr, worker, 0L);
-  pthread_create(&threadID, &threadAttr, worker, 0L);
-  pthread_create(&threadID, &threadAttr, worker, 0L);
-
   //  Open the output file
-  int fOutput = openOutputFile(outputFileName);
+  fOutput = openOutputFile(outputFileName);
 
-  struct timespec   naptime;
-  naptime.tv_sec      = 0;
-  naptime.tv_nsec     = 100000000;
+  sweatShop  *ss = 0L;
 
-  //  Wait for output to appear.
+  //  If we have a script, read work from there, otherwise,
+  //  do an all-vs-all.
   //
-  while (rootState && rootState->input) {
-
-    //  Wait a bit if there is no output on this node (we caught up to
-    //  the computes), or there is no next node (we caught up to the
-    //  input, yikes!)
-    //
-    if ((rootState->output == 0L) || (rootState->next == 0L)) {
-      nanosleep(&naptime, 0L);
-    } else {
-      sim4polishList  &L4 = *(rootState->output);
-
-      for (u32bit i=0; L4[i]; i++) {
-        char *o = s4p_polishToString(L4[i]);
-
-        errno = 0;
-        write(fOutput, o, strlen(o) * sizeof(char));
-        if (errno)
-          fprintf(stderr, "Couldn't write the output file '%s': %s\n", outputFileName, strerror(errno)), exit(1);
-
-        free(o);
-      }
-
-      if (beYesNo) {
-        if (L4[0])
-          fprintf(stdout, "%s -Y "u32bitFMT" "u32bitFMT"\n",
-                  rootState->script,
-                  L4[0]->percentIdentity,
-                  L4[0]->querySeqIdentity);
-        else
-          fprintf(stdout, "%s -N 0 0\n",
-                  rootState->script);
-      }
-
-      state_s  *saveState = rootState->next;
-
-      delete    rootState->input;
-      delete [] rootState->script;
-      delete    rootState->output;
-      delete    rootState->gendelete;
-      delete    rootState->estdelete;
-      delete    rootState;
-
-      rootState = saveState;
-
-      numberOutput++;
-    }
+  if (scriptFileName) {
+    scriptFile = new readBuffer(scriptFileName);
+    ss = new sweatShop(loader,
+                       worker,
+                       writer);
+  } else {
+    //ss = new sweatShop(loader,
+    //                   workerAll,
+    //                   writer);
   }
+
+  ss->run();
 
   //  Only close the file if it isn't stdout
   //
   if (strcmp(outputFileName, "-") != 0)
     close(fOutput);
+
+  delete scriptFile;
 
   if (statsFileName) {
     FILE  *statsFile = fopen(statsFileName, "w");
