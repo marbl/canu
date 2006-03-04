@@ -18,6 +18,8 @@ typedef struct {
 } tcatGlobal_s;
 
 
+#define BLOCKSIZE 1048576
+
 void*
 tcatReader(void *G) {
   tcatGlobal_s  *g = (tcatGlobal_s *)G;
@@ -26,8 +28,8 @@ tcatReader(void *G) {
   //  XXX:  Should use safeRead()
 
   s->frameNumber = g->globalFrameNumber++;
-  s->data        = new char [1024];
-  s->dataLen     = fread(s->data, sizeof(char), 1024, stdin);
+  s->data        = new char [1048576];
+  s->dataLen     = fread(s->data, sizeof(char), 1048576, stdin);
 
   if (s->dataLen == 0L) {
     delete [] s->data;
@@ -45,11 +47,13 @@ tcatWorker(void *G, void *S) {
 
   //  Noop!
 
+#if 0
   struct timespec   naptime;
   naptime.tv_sec      = 0;
-  naptime.tv_nsec     = lrand48() % 10000000;
+  naptime.tv_nsec     = lrand48() % 10000;
 
   nanosleep(&naptime, 0L);
+#endif
 }
 
 void
@@ -69,6 +73,9 @@ tcatWriter(void *G, void *S) {
 int
 main(int argc, char **argv) {
   sweatShop   *ss = new sweatShop(tcatReader, tcatWorker, tcatWriter);
+
+  ss->loaderQueueSize(1048576);
+  ss->writerQueueSize(1048576);
 
   tcatGlobal_s  *G = new tcatGlobal_s;
   G->globalFrameNumber = 0;
