@@ -66,21 +66,21 @@ sweatShop::~sweatShop() {
 
 
 u32bit
-sweatShop::loaderQueueSize(u32bit x=0) {
+sweatShop::loaderQueueSize(u32bit x) {
   if (x > 0)
     _loaderQueueSize = x;
   return(_loaderQueueSize);
 }
 
 u32bit
-sweatShop::writerQueueSize(u32bit x=0) {
+sweatShop::writerQueueSize(u32bit x) {
   if (x > 0)
     _writerQueueSize = x;
   return(_writerQueueSize);
 }
 
 u32bit
-sweatShop::numberOfWorkers(u32bit x=0) {
+sweatShop::numberOfWorkers(u32bit x) {
   if (x > 0)
     _numberOfWorkers = x;
   return(_numberOfWorkers);
@@ -229,13 +229,22 @@ sweatShop::worker(void) {
     state_s  *thisState = 0L;
 
     pthread_mutex_lock(&_stateMutex);
+
     if ((_workerP) && ((_workerP->_next != 0L) || (_workerP->_user == 0L))) {
       thisState = _workerP;
       _workerP = _workerP->_next;
     }
-    if (_workerP == 0L) {
+
+    //  We really want this to be around the same time we actually do
+    //  the compute, but we also don't want to lock the mutex again.
+    //  This addition seems to be not atomic on Linux64/Opteron.
+    //
+    if (thisState && thisState->_user)
+      _numberComputed++;
+
+    if (_workerP == 0L)
       moreToCompute = false;
-    }
+
     pthread_mutex_unlock(&_stateMutex);
 
     //  Execute
@@ -243,7 +252,6 @@ sweatShop::worker(void) {
     if (thisState && thisState->_user) {
       (*_userWorker)(_globalUserData, thisState->_user);
       thisState->_computed = true;
-      _numberComputed++;
     } else {
       //  When we really do run out of stuff to do, we'll end up here
       //  (only one thread will end up in the other case, with
@@ -262,6 +270,7 @@ sweatShop::worker(void) {
 
 void*
 sweatShop::writer(void) {
+  state_s  *deleteState = 0L;
 
   struct timespec   naptime;
   naptime.tv_sec      = 0;
@@ -272,19 +281,18 @@ sweatShop::writer(void) {
   while (_writerP && _writerP->_user) {
 
     //  Wait a bit if there is no output on this node (we caught up to
-    //  the computes), or there is no next node (we caught up to the
-    //  input, yikes!)
+    //  the computes).  We now don't need to explicitly check if we catch
+    //  the input (yikes!) because it still won't have been computed.
     //
     if ((_writerP->_computed == false) || (_writerP->_next == 0L)) {
       nanosleep(&naptime, 0L);
     } else {
       (*_userWriter)(_globalUserData, _writerP->_user);
-
-      state_s  *saveState = _writerP->_next;
-      delete    _writerP;
-      _writerP = saveState;
-
       _numberOutput++;
+
+      deleteState = _writerP;
+      _writerP    = _writerP->_next;
+      delete deleteState;
     }
   }
 
@@ -302,19 +310,33 @@ sweatShop::status(void) {
 
   double  startTime = getTime() - 0.001;
 
+  u64bit  deltaOut = 0;
+  u64bit  deltaCPU = 0;
+
   while (_writerP && _writerP->_user) {
-    fprintf(stderr, " (%6.1f/s) (out="u64bitFMTW(8)" + "u64bitFMTW(8)" = cpu = "u64bitFMTW(8)" + "u64bitFMTW(8)" = in = "u64bitFMTW(8)"\r",
+    deltaOut = deltaCPU = 0;
+    if (_numberComputed > _numberOutput)
+      deltaOut = _numberComputed - _numberOutput;
+    if (_numberLoaded > _numberComputed)
+      deltaCPU = _numberLoaded - _numberComputed;
+
+    fprintf(stderr, "%6.1f/s (out="u64bitFMTW(8)") + "u64bitFMTW(8)" = (cpu = "u64bitFMTW(8)") + "u64bitFMTW(8)" = (in = "u64bitFMTW(8)")\n",
             _numberOutput / (getTime() - startTime),
             _numberOutput,
-            _numberComputed - _numberOutput,
+            deltaOut,
             _numberComputed,
-            _numberLoaded - _numberComputed,
+            deltaCPU,
             _numberLoaded);
     fflush(stderr);
     nanosleep(&naptime, 0L);
   }
 
-  fprintf(stderr, " (%6.1f/s) (out="u64bitFMTW(8)" + "u64bitFMTW(8)" = cpu = "u64bitFMTW(8)" + "u64bitFMTW(8)" = in = "u64bitFMTW(8)"\n",
+  if (_numberComputed > _numberOutput)
+    deltaOut = _numberComputed - _numberOutput;
+  if (_numberLoaded > _numberComputed)
+    deltaCPU = _numberLoaded - _numberComputed;
+
+  fprintf(stderr, "%6.1f/s (out="u64bitFMTW(8)") + "u64bitFMTW(8)" = (cpu = "u64bitFMTW(8)") + "u64bitFMTW(8)" = (in = "u64bitFMTW(8)")\n",
           _numberOutput / (getTime() - startTime),
           _numberOutput,
           _numberComputed - _numberOutput,
@@ -331,51 +353,51 @@ sweatShop::status(void) {
 
 
 void
-sweatShop::run(void *user=0L) {
-    pthread_attr_t   threadAttr;
-    pthread_t        threadID;
+sweatShop::run(void *user) {
+  pthread_attr_t   threadAttr;
+  pthread_t        threadID;
 
-    _globalUserData = user;
+  _globalUserData = user;
 
-    pthread_mutex_init(&_stateMutex, NULL);
+  pthread_mutex_init(&_stateMutex, NULL);
 
-    pthread_attr_init(&threadAttr);
-    pthread_attr_setscope(&threadAttr, PTHREAD_SCOPE_SYSTEM);
-    pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_DETACHED);
-    pthread_attr_setschedpolicy(&threadAttr, SCHED_OTHER);
+  pthread_attr_init(&threadAttr);
+  pthread_attr_setscope(&threadAttr, PTHREAD_SCOPE_SYSTEM);
+  pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_DETACHED);
+  pthread_attr_setschedpolicy(&threadAttr, SCHED_OTHER);
 
-    //  Fire off the loader, or the all-vs-all loader
-    //
-    pthread_create(&threadID, &threadAttr, loaderThread, this);
+  //  Fire off the loader, or the all-vs-all loader
+  //
+  pthread_create(&threadID, &threadAttr, loaderThread, this);
 
-    //  Wait for it to actually load something (otherwise all the
-    //  workers immediately go home)
-    //
-    while (!_writerP && !_workerP && !_loaderP) {
-      struct timespec   naptime;
-      naptime.tv_sec      = 0;
-      naptime.tv_nsec     = 250000ULL;
-      nanosleep(&naptime, 0L);
-    }
-
-    //  Fire off some workers
-    //
-    for (u32bit i=0; i<_numberOfWorkers; i++)
-      pthread_create(&threadID, &threadAttr, workerThread, this);
-
-    //  And the stats
-    //
-    pthread_create(&threadID, &threadAttr, statusThread, this);
-
-    //  We run the writer in the main, right here.  We could probably
-    //  run stats here, but we certainly aren't done until the worker
-    //  finishes, so just do that one.
-    //
-    writer();
-
-    //  If the writer exits, then someone signalled that we're done.
-    //  Clean up -- make sure all the queues are free'd.
-    //
-    delete _loaderP;
-    _loaderP = _workerP = _writerP = 0L;
+  //  Wait for it to actually load something (otherwise all the
+  //  workers immediately go home)
+  //
+  while (!_writerP && !_workerP && !_loaderP) {
+    struct timespec   naptime;
+    naptime.tv_sec      = 0;
+    naptime.tv_nsec     = 250000ULL;
+    nanosleep(&naptime, 0L);
   }
+
+  //  Fire off some workers
+  //
+  for (u32bit i=0; i<_numberOfWorkers; i++)
+    pthread_create(&threadID, &threadAttr, workerThread, this);
+
+  //  And the stats
+  //
+  pthread_create(&threadID, &threadAttr, statusThread, this);
+
+  //  We run the writer in the main, right here.  We could probably
+  //  run stats here, but we certainly aren't done until the worker
+  //  finishes, so just do that one.
+  //
+  writer();
+
+  //  If the writer exits, then someone signalled that we're done.
+  //  Clean up -- make sure all the queues are free'd.
+  //
+  delete _loaderP;
+  _loaderP = _workerP = _writerP = 0L;
+}
