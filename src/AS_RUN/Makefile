@@ -45,7 +45,8 @@ SCRIPTS = runCA-OBT.pl \
           tampaCompare \
           mummerCompare \
 	  testVersionOnPlatform.sh \
-	  apply_assembler
+	  apply_assembler \
+      caqc.pl
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
@@ -82,6 +83,10 @@ RUNCAOBTUTIL = runCA-OBT/runCAutil/applyOverlapCorrection.pl \
 runCA-OBT.pl: runCA-OBT/runCA.pl $(RUNCAOBTUTIL)
 	cat runCA-OBT/runCA.pl $(RUNCAOBTUTIL) > $(LOCAL_BIN)/runCA-OBT.pl
 	chmod 775 $(LOCAL_BIN)/runCA-OBT.pl
+
+caqc.pl: asmQC/caqc.pl
+	cp $< $(LOCAL_BIN)/$@
+	chmod 775 $(LOCAL_BIN)/$@
 
 assemblyCompare: testing/assemblyCompare.pl
 	cp testing/assemblyCompare.pl $(LOCAL_BIN)/$@
