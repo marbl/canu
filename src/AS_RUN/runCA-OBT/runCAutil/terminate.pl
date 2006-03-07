@@ -119,7 +119,7 @@ sub terminate {
 
         my $cmd;
         $cmd  = "cd $wrk && ";
-        $cmd .= "$perl /jtc/datadelivery/bin/caqc.pl $wrk/$asm.asm";
+        $cmd .= "$perl $bin/caqc.pl $wrk/$asm.asm";
         if (runCommand($cmd)) {
             print "Failed.\n";
             rename "$wrk/$asm.qc", "$wrk/$asm.qc.FAILED";
