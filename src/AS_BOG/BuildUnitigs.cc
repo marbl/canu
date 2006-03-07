@@ -30,11 +30,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: BuildUnitigs.cc,v 1.3 2005-12-16 21:40:05 eliv Exp $
- * $Revision: 1.3 $
+ * $Id: BuildUnitigs.cc,v 1.4 2006-03-07 22:01:41 eliv Exp $
+ * $Revision: 1.4 $
 */
 
-static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.3 2005-12-16 21:40:05 eliv Exp $";
+static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.4 2006-03-07 22:01:41 eliv Exp $";
 
 //  System include files
 
@@ -104,12 +104,14 @@ int  main (int argc, char * argv [])
    // Initialize our three different types of Best Overlap Graphs
    AS_BOG::ErateScore erScore;
    AS_BOG::LongestEdge lenScore;
-   AS_BOG::LongestHighIdent lenIdent(2.0);
+   AS_BOG::LongestHighIdent len25(2.5);
+   AS_BOG::LongestHighIdent len15(1.5);
+   AS_BOG::LongestHighIdent len10(1.0);
 
    // Put the three graphs into a vector, so we can step through them
-   bogRunner.push_back(&erScore);
-   bogRunner.push_back(&lenScore);
-   bogRunner.push_back(&lenIdent);
+   bogRunner.push_back(&len25);
+   bogRunner.push_back(&len15);
+   bogRunner.push_back(&len10);
 
    bogRunner.processOverlapStream(my_store, my_stream, FRG_Store_Path);
 
@@ -135,13 +137,13 @@ int  main (int argc, char * argv [])
 	//std::cout<< utg << endl;
 	switch(i){
 		case 0:
-		utg.writeIUMtoFile("er.ium");
+		utg.writeIUMtoFile("len25.ium");
 		break;
 		case 1:
-		utg.writeIUMtoFile("len.ium");
+		utg.writeIUMtoFile("len15.ium");
 		break;
 		case 2:
-		utg.writeIUMtoFile("lenid.ium");
+		utg.writeIUMtoFile("len10.ium");
 		break;
 	}
 	std::cerr << "///////////////////////////////////////////////////////////\n" << std::endl;

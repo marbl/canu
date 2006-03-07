@@ -37,11 +37,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.25 2005-12-16 21:40:05 eliv Exp $
- * $Revision: 1.25 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.26 2006-03-07 22:01:41 eliv Exp $
+ * $Revision: 1.26 $
 */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.25 2005-12-16 21:40:05 eliv Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.26 2006-03-07 22:01:41 eliv Exp $";
 
 //  System include files
 #include<iostream>
@@ -217,13 +217,13 @@ namespace AS_BOG{
             // Loop while the current container is a containee of another container 
             while ( i2 != _best_containments.end() ) {
                 BestContainment nb = i2->second;
-                //std::cout << id <<" "<<bst.container<<" "<< nb.container<< std::endl;
+                std::cout << id <<" "<<bst.container<<" "<< nb.container<< std::endl;
 
                 // Delete containee under analysis from _best_containments if its container is concontained
                 //   by itself.  ie if id's container is contained by id.  This eliminates ciruclar containment.
                 if ( nb.container == id ) {
                     _best_containments.erase( id );
-                    //std::cout << "Erase self" << std::endl;
+                    std::cout << "Erase self" << std::endl;
                     break;
                 }
 
@@ -236,7 +236,7 @@ namespace AS_BOG{
 
                     // Set id's container to the larger container.
                     _best_containments[ id ] = seen->second;
-                    //std::cout << "Circled " << seen->second.container<< std::endl;
+                    std::cout << "Circled " << seen->second.container<< std::endl;
 
                     // Remove the container of id's new larger container
                     _best_containments.erase( seen->second.container );
@@ -584,9 +584,11 @@ For debugging i386, alpha differences on float conversion
             for(int j = 0; j < metrics.size(); j++)
                 metrics[j]->scoreContainment( olap );
         }
+/*
         for(int j = 0; j < metrics.size(); j++) {
             metrics[j]->removeTransitiveContainment();
         }
+*/
         Renew_OVL_Stream(my_stream);
         uint32 last = Last_Frag_In_OVL_Store( my_store );
         Init_OVL_Stream(my_stream, 1, last, my_store);
@@ -594,13 +596,8 @@ For debugging i386, alpha differences on float conversion
         while  (Next_From_OVL_Stream (&olap, my_stream))
         {
             for(int j = 0; j < metrics.size(); j++) {
-                if (metrics[j]->isContained( olap.b_iid ) ) {
-                    BestContainment *best = metrics[j]->getBestContainer(
-                                                                 olap.b_iid );
-                    // Get olap info directly, less error prone then transitive
-                    if ( best->container == olap.a_iid )
-                        metrics[j]->setBestContainer( olap, 0 );
-
+                if (metrics[j]->isContained( olap.a_iid ) || 
+                    metrics[j]->isContained( olap.b_iid ) ) {
                     continue; // no contained frags in BestOverlapGraph
                 }
 

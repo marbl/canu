@@ -34,15 +34,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.hh,v 1.6 2006-01-04 15:17:39 eliv Exp $
- * $Revision: 1.6 $
+ * $Id: AS_BOG_UnitigGraph.hh,v 1.7 2006-03-07 22:01:41 eliv Exp $
+ * $Revision: 1.7 $
 */
 
 
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.6 2006-01-04 15:17:39 eliv Exp $";
+static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.7 2006-03-07 22:01:41 eliv Exp $";
 
 #include <vector>
 #include <map>
@@ -74,8 +74,9 @@ namespace AS_BOG{
 
 	struct ContaineeNode{
 		iuid frag_id;
+		int a_hang;
+		int b_hang;
 		bool same_ori;
-		long olap_offset;
 	};
 	typedef std::vector<ContaineeNode> ContaineeList;	
 	typedef std::map<container_id, ContaineeList> ContainerMap;
@@ -98,7 +99,7 @@ namespace AS_BOG{
 		~Unitig(void);		
 
 		// Compute unitig based on given dovetails and containments
-		FragmentPositionMap *computeFragmentPositions(void);
+		FragmentPositionMap *computeFragmentPositions(ContainerMap*);
 
 		// Accessor methods
 		float getAvgRho(void);
@@ -108,7 +109,7 @@ namespace AS_BOG{
 		long getNumFrags(void);
 		long getNumRandomFrags(void); // For now, same as numFrags, but should be randomly sampled frag count
 		// For proto I/O messages
-		IntUnitigMesg *getIUM_Mesg(void);
+		IntUnitigMesg *getIUM_Mesg(BestContainmentMap*);
 		void freeIUM_Mesg(IntUnitigMesg *ium_ptr);
 
 		friend std::ostream& operator<< (std::ostream& os, Unitig& utg);
@@ -116,10 +117,12 @@ namespace AS_BOG{
 		// Public Member Variables
 		iuid id;
 	        DoveTailPath *dovetail_path_ptr;
-		ContainerMap *contained_frags_ptr;
 		FragmentPositionMap *frag_pos_map_ptr;
 
 		private:
+            void placeContains( ContainerMap*, FragmentPositionMap *,
+                            iuid , interval );
+
 			// Do not access these private variables directly, they may not be
 			//  computed yet, use accessors!
 			float _avgRho;
@@ -177,6 +180,7 @@ namespace AS_BOG{
 
 
 		private:
+            BestContainmentMap *best_cntr;
 			// Given a fragment, it will follow it's overlaps until 
 			//   the end, and return the path that it traversed.
 			DoveTailPath *_extract_dovetail_path(
@@ -186,7 +190,7 @@ namespace AS_BOG{
 				BestOverlapGraph *bog_ptr);
 
 			// Inverts the containment map to key by container, instead of containee
-			ContainerMap *_build_container_map(BestOverlapGraph *bog_ptr);
+			ContainerMap *_build_container_map();
 
 			// Build containee list
 			ContainerMap *_extract_containees(DoveTailPath *dtp_ptr, 

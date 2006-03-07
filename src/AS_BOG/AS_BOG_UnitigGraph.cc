@@ -34,17 +34,18 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.9 2006-01-10 21:05:11 eliv Exp $
- * $Revision: 1.9 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.10 2006-03-07 22:01:41 eliv Exp $
+ * $Revision: 1.10 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.9 2006-01-10 21:05:11 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.10 2006-03-07 22:01:41 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
 #include <float.h>
 #include <stdlib.h>
+#include <set>
 
 extern "C" {
 	#include "AS_global.h"
@@ -56,7 +57,7 @@ namespace AS_BOG{
 
 	std::ostream& operator<< (std::ostream& os, FragmentPositionMap *fpm_ptr){
 
-		FragmentPositionMap::iterator itr;
+		FragmentPositionMap::const_iterator itr;
 		for(
 		    itr=fpm_ptr->begin();
 		    itr!=fpm_ptr->end();
@@ -83,10 +84,8 @@ namespace AS_BOG{
 		std::map<iuid, bool> visited_map;
 		visited_map.clear();
 
-		ContainerMap *cntnrmap_ptr;
-		BestContainmentMap *bcmp_ptr=&(bog_ptr->_best_containments);
-
-		cntnrmap_ptr=_build_container_map(bog_ptr);
+		best_cntr = &(bog_ptr->_best_containments);
+		ContainerMap *cntnrmap_ptr = _build_container_map();
 
 		// Step through all the fragments 
 		std::cerr << "Building Unitigs from " << num_frags << " fragments.\n"; 
@@ -96,9 +95,9 @@ namespace AS_BOG{
 
 			// Check the map to so we don't visit a unitig twice (once from
 			//   both ends)
-			if(visited_map.find(frag_idx)==visited_map.end() && 
-				bog_ptr->_best_containments.find(frag_idx)==bog_ptr->_best_containments.end()){
-
+			if(visited_map.find(frag_idx) == visited_map.end() && 
+				 best_cntr->find(frag_idx) == best_cntr->end() )
+            { 
 				cg_ptr->getChunking(
 					frag_idx, 
 					fp_dst_frag_id, 
@@ -143,16 +142,10 @@ namespace AS_BOG{
 						[(*utg->dovetail_path_ptr).size()-1].frag_id;
 					visited_map[last_frag_id_in_dovetail]=true;
 
-					// Store the containees
-					utg->contained_frags_ptr=
-						_extract_containees(
-							utg->dovetail_path_ptr,
-							cntnrmap_ptr);
-	
 					//std::cerr << "Containment Extracted. " << std::endl;
 
 					utg->frag_pos_map_ptr=
-						utg->computeFragmentPositions();
+						utg->computeFragmentPositions(cntnrmap_ptr);
 					//std::cerr << utg->frag_pos_map_ptr << std::endl;
 
 					// Set id
@@ -290,7 +283,7 @@ namespace AS_BOG{
 
 	//////////////////////////////////////////////////////////////////////////////
 
-	ContainerMap *UnitigGraph::_build_container_map(BestOverlapGraph *bog_ptr){
+	ContainerMap *UnitigGraph::_build_container_map(void){
 
 	// I don't need the whole overlap graph, just the BestContainmentMap and
 	//  the fragment lengths
@@ -299,21 +292,15 @@ namespace AS_BOG{
 		iuid container_id, containee_id;
 		long containees=0;
 
-		// I'm getting the pointer here, so in the future you can just
-		// pass in the pointer to a BestContainmentMap instead of the whole
-		// BestOverlapGraph
-		BestContainmentMap *cntrmap_ptr=&(bog_ptr->_best_containments);
-
-		BestContainmentMap::iterator bstcnmap_itr;
-		for(
-		    bstcnmap_itr=cntrmap_ptr->begin(); 
-		    bstcnmap_itr!=cntrmap_ptr->end(); 
-		    bstcnmap_itr++){
-
+		BestContainmentMap::const_iterator bstcnmap_itr;
+		for( bstcnmap_itr  = best_cntr->begin(); 
+		     bstcnmap_itr != best_cntr->end(); bstcnmap_itr++)
+        {
 			ContaineeNode ctnee;
 			ctnee.frag_id=bstcnmap_itr->first;
 			ctnee.same_ori=bstcnmap_itr->second.sameOrientation;
-			ctnee.olap_offset=bstcnmap_itr->second.a_hang;
+			ctnee.a_hang=bstcnmap_itr->second.a_hang;
+			ctnee.b_hang=bstcnmap_itr->second.b_hang;
 
 			container_id=bstcnmap_itr->second.container;
 
@@ -359,7 +346,7 @@ namespace AS_BOG{
 		
 		os << "Dovetails:" << std::endl;
 
-		DoveTailPath::iterator dt_itr;
+		DoveTailPath::const_iterator dt_itr;
 		for(dt_itr=utg.dovetail_path_ptr->begin();
 			dt_itr!=utg.dovetail_path_ptr->end(); 
 			dt_itr++){
@@ -369,21 +356,6 @@ namespace AS_BOG{
 
 		os << "Containments:" << std::endl;
 	
-		ContainerMap::iterator ctmp_itr;
-		for(ctmp_itr=utg.contained_frags_ptr->begin();
-			ctmp_itr!=utg.contained_frags_ptr->end(); 
-			ctmp_itr++){
-			
-			os << "  " << ctmp_itr->first << std::endl;
-
-			ContaineeList::iterator frgl_itr;
-			for(frgl_itr=ctmp_itr->second.begin();
-			    frgl_itr!=ctmp_itr->second.end(); 
-			    frgl_itr++){
-			       os << "    " << frgl_itr->frag_id << std::endl;
-			}
-		}
-
 		os << "avgRho: " << utg.getAvgRho() << std::endl;
 		os << "covStat: " << utg.getCovStat() << std::endl;
 		os << "numFrags: " << utg.getNumFrags() << std::endl;
@@ -398,7 +370,7 @@ namespace AS_BOG{
 
 	std::ostream& operator << (std::ostream& os, UnitigGraph& utgrph){
 		
-		UnitigVector::iterator utg_itr;
+		UnitigVector::const_iterator utg_itr;
 		iuid num_utgs=0;
 		for(utg_itr=utgrph.unitigs.begin();
 			utg_itr!=utgrph.unitigs.end();
@@ -426,7 +398,7 @@ namespace AS_BOG{
 			float total_arrival_frags=0;
 
 			// Go through all the unitigs to sum rho and unitig arrival frags
-			UnitigVector::iterator iter;
+			UnitigVector::const_iterator iter;
 			for(
 			    iter=unitigs.begin();
 			    iter!=unitigs.end();
@@ -462,7 +434,6 @@ namespace AS_BOG{
 		_numFrags=-1;
 		_numRandomFrags=-1;
 		dovetail_path_ptr=NULL;
-		contained_frags_ptr=NULL;
 		frag_pos_map_ptr=NULL;
 	}
 
@@ -470,7 +441,6 @@ namespace AS_BOG{
 
 	Unitig::~Unitig(void){
 		if(dovetail_path_ptr!=NULL) delete dovetail_path_ptr;
-		if(contained_frags_ptr!=NULL) delete contained_frags_ptr;
 		if(frag_pos_map_ptr!=NULL) delete frag_pos_map_ptr;
 		
 	}
@@ -490,7 +460,7 @@ namespace AS_BOG{
 		//   direction we are walking the unitig from.  We will take the average 
 		//   of the rhos through both directions.
 
-		DoveTailPath::iterator dtp_iter;
+		DoveTailPath::const_iterator dtp_iter;
 
 		// Get first fragment's length
 		dtp_iter=dovetail_path_ptr->begin();
@@ -566,7 +536,7 @@ namespace AS_BOG{
 			std::cerr << "This Unitig has an empty FragmentPositionMap." << std::endl;	
 		}
 
-		FragmentPositionMap::iterator fpm_itr;
+		FragmentPositionMap::const_iterator fpm_itr;
 
 		for(
 		    fpm_itr=frag_pos_map_ptr->begin();
@@ -595,31 +565,20 @@ namespace AS_BOG{
 		if(_numFrags!=-1){
 			return(_numFrags);
 		}
+        if (!frag_pos_map_ptr->empty()) {
+            _numFrags = frag_pos_map_ptr->size();
+            return _numFrags;
+        }
 
 		long num_dovetailing_frags=0;
 		long num_contained_frags=0;
 
 		// Count dovetailing fragments
-		DoveTailPath::iterator dt_itr;
+		DoveTailPath::const_iterator dt_itr;
 		for(dt_itr=dovetail_path_ptr->begin();
 			dt_itr!=dovetail_path_ptr->end(); 
 			dt_itr++){
 			num_dovetailing_frags++;	
-		}
-
-		// Count contained fragments
-		ContainerMap::iterator ctmp_itr;
-		for(ctmp_itr=contained_frags_ptr->begin();
-			ctmp_itr!=contained_frags_ptr->end(); 
-			ctmp_itr++){
-
-			ContaineeList::iterator clist_itr;
-			for(clist_itr=ctmp_itr->second.begin();
-			    clist_itr!=ctmp_itr->second.end(); 
-			    clist_itr++){
-
-				num_contained_frags++;
-			}
 		}
 
 		// Total frags are the sum
@@ -643,10 +602,56 @@ namespace AS_BOG{
 	}
 
 	//////////////////////////////////////////////////////////////////////////////
+    //Recursively place all contains under this one into the FragmentPositionMap
 
-	FragmentPositionMap *Unitig::computeFragmentPositions(void){
+    void Unitig::placeContains( ContainerMap* cntnrp, FragmentPositionMap* fpmp, 
+            iuid container, interval intvl)
+    {
+            ContainerMap::const_iterator ctmp_itr = cntnrp->find( container );
+            if (ctmp_itr != cntnrp->end() ) {
 
-		FragmentPositionMap *fpmp=new FragmentPositionMap;
+                ContaineeList::const_iterator cntee_itr;
+                for(cntee_itr  = ctmp_itr->second.begin();
+                    cntee_itr != ctmp_itr->second.end(); cntee_itr++)
+                {
+                    iuid cntee = cntee_itr->frag_id;
+                    FragmentPositionMap::const_iterator placed = fpmp->find(cntee);
+                    if (placed != fpmp->end())
+                        continue;
+
+                    interval cntee_intvl;
+                    int offset = cntee_itr->a_hang;
+                    int bhang  = cntee_itr->b_hang;
+
+                    if(intvl.begin < intvl.end) {
+                        cntee_intvl.begin = intvl.begin + offset;
+                        cntee_intvl.end   = intvl.end + bhang;
+
+                    } else if (intvl.begin > intvl.end) {
+                        cntee_intvl.begin = intvl.begin - offset;
+                        cntee_intvl.end   = intvl.end - bhang;
+
+                    }else{
+                        std::cerr << "Error, container size is zero." << std::endl;
+                        assert(0);
+                    }
+                    // Swap ends if containee is not same strand as container
+                    if(!cntee_itr->same_ori){
+                        int tmp           = cntee_intvl.begin;
+                        cntee_intvl.begin = cntee_intvl.end;
+                        cntee_intvl.end   = tmp;
+                    }
+
+                    (*fpmp)[cntee] = cntee_intvl;	
+                    placeContains( cntnrp, fpmp, cntee,  cntee_intvl);
+                }
+            }
+    }
+    FragmentPositionMap *Unitig::computeFragmentPositions(ContainerMap *allcntnr_ptr)
+    {
+
+		FragmentPositionMap *fpmp = new FragmentPositionMap;
+		ContainerMap *cntnr_ptr   = new ContainerMap;
 		
 		long frag_ins_begin;
 		long frag_ins_end;
@@ -654,12 +659,13 @@ namespace AS_BOG{
 		//std::cerr << "Positioning dovetails." << std::endl;
 		// place dovetails in a row
 		frag_ins_begin=0;
-		DoveTailPath::iterator dt_itr;
+		DoveTailPath::const_iterator dt_itr;
 		for(dt_itr=dovetail_path_ptr->begin();
 		    dt_itr!=dovetail_path_ptr->end(); 
 		    dt_itr++){
 
-			frag_ins_end=frag_ins_begin + BestOverlapGraph::fragLen(dt_itr->frag_id);
+            iuid fragId  = dt_itr->frag_id;
+            frag_ins_end = frag_ins_begin + BestOverlapGraph::fragLen(fragId);
 
 			interval intvl;
 			if(dt_itr->ori==REVERSE){
@@ -670,111 +676,53 @@ namespace AS_BOG{
 				intvl.end=frag_ins_end;
 			}else{
 				std::cerr << "Unknown orientation type for frag id:"
-				     << dt_itr->frag_id << std::endl;
+				     << fragId << std::endl;
 			}
 
 			// Store interval in the map
-			(*fpmp)[dt_itr->frag_id]=intvl;
-			
+			(*fpmp)[fragId]=intvl;
+
+            placeContains( allcntnr_ptr, fpmp, fragId, intvl);
+
 			// Prep the start position of the next fragment
 			frag_ins_begin = frag_ins_end - dt_itr->olap_len;
-			
 		}
+        // Compute assuming that containee is the same orientation as container
+        //	if(cntnr_intvl.begin < cntnr_intvl.end)
 
-		//std::cerr << "Positioning containees." << std::endl;
-		// Place containees into unitig
-		ContainerMap::iterator ctmp_itr;
-		// For each container
-		for(
-		    ctmp_itr=contained_frags_ptr->begin();
-		    ctmp_itr!=contained_frags_ptr->end(); 
-		    ctmp_itr++){
+        // Container is in forward direction
+        //
+        // |=========F0============|
+        // 0          |=============CER=============>|
+        //                    |=====CEE=====>|
+        //
+        // |---Cro----|
+        //            |--Ceo--|
+        // |-------Cep--------|
+        //
+        // Cro = container offset from beginning of unitig = cntnr_intvl.begin
+        // Ceo = containee offset from 5' end of container = cntee->olap_offset
+        // Cep = containee offset from beginning of unitig = cntee_intvl.begin
+        // CEE fragment can be from either orientation since
+        //   definition of olap_offset is based on 3' origin.
 
-			iuid container_id=ctmp_itr->first;
-			interval cntnr_intvl=(*fpmp)[container_id];
+        // else if(cntnr_intvl.begin > cntnr_intvl.end)
 
-			// For each containee
-			ContaineeList::iterator cntee_itr;
-			for(cntee_itr=ctmp_itr->second.begin();
-			    cntee_itr!=ctmp_itr->second.end(); 
-			    cntee_itr++){
-
-				interval cntee_intvl;
-				// Compute assuming that containee is the same orientation as container
-				if(cntnr_intvl.begin < cntnr_intvl.end){
-
-				// Container is in forward direction
-				//
-				// |=========F0============|
-				// 0          |=============CER=============>|
-				//                    |=====CEE=====>|
-				//
-				// |---Cro----|
-				//            |--Ceo--|
-				// |-------Cep--------|
-				//
-				// Cro = container offset from beginning of unitig = cntnr_intvl.begin
-				// Ceo = containee offset from 5' end of container = cntee->olap_offset
-				// Cep = containee offset from beginning of unitig = cntee_intvl.begin
-				// CEE fragment can be from either orientation since
-				//   definition of olap_offset is based on 3' origin.
-
-					cntee_intvl.begin = 
-					    cntnr_intvl.begin + cntee_itr->olap_offset;
-					cntee_intvl.end   = 
-					    cntee_intvl.begin + BestOverlapGraph::fragLen(cntee_itr->frag_id);
-
-					// Make sure the containee doesn't extend past the container
-					cntee_intvl.begin = (cntee_intvl.begin < cntnr_intvl.begin)?
-						cntnr_intvl.begin:cntee_intvl.begin;
-					cntee_intvl.end = (cntee_intvl.end > cntnr_intvl.end)?
-						cntnr_intvl.end:cntee_intvl.end;
-
-				}else if(cntnr_intvl.begin > cntnr_intvl.end){
-
-				// Container is in reverse direction
-				//
-				// |=========F0============|
-				// 0          |<============CER==============|
-				//                    |<====CEE======|
-				//
-				// |---Cro----|
-				//                                   |--Ceo--|
-				// |-------Cep-----------------------|
-				//
-				// Cro = container offset from beginning of unitig = cntnr_intvl.end
-				// Ceo = containee offset from 5' end of container = cntee->olap_offset
-				// Cep = containee offset from beginning of unitig = cntee_intvl.end
-				// CEE fragment can be from either orientation since
-				//   definition of olap_offset is based on 3' origin.
-
-					cntee_intvl.begin = 
-					    cntnr_intvl.begin - cntee_itr->olap_offset;
-					cntee_intvl.end = 
-					    cntee_intvl.begin - BestOverlapGraph::fragLen(cntee_itr->frag_id);
-
-					// Make sure the containee doesn't extend past the container
-					cntee_intvl.begin = (cntee_intvl.begin > cntnr_intvl.begin)?
-						cntnr_intvl.begin:cntee_intvl.begin;
-					cntee_intvl.end = (cntee_intvl.end < cntnr_intvl.end)?
-						cntnr_intvl.end:cntee_intvl.end;
-
-				}else{
-					std::cerr << 
-					    "Error, container size is zero." << std::endl;
-				}
-
-				// Swap begin/ends, if containee is not same orientation as container.
-				if(!cntee_itr->same_ori){
-					long tmp;
-					tmp=cntee_intvl.begin;
-					cntee_intvl.begin=cntee_intvl.end;
-					cntee_intvl.end=tmp;
-				}
-
-				(*fpmp)[cntee_itr->frag_id]=cntee_intvl;	
-			}
-		}
+        // Container is in reverse direction
+        //
+        // |=========F0============|
+        // 0          |<============CER==============|
+        //                    |<====CEE======|
+        //
+        // |---Cro----|
+        //                                   |--Ceo--|
+        // |-------Cep-----------------------|
+        //
+        // Cro = container offset from beginning of unitig = cntnr_intvl.end
+        // Ceo = containee offset from 5' end of container = cntee->olap_offset
+        // Cep = containee offset from beginning of unitig = cntee_intvl.end
+        // CEE fragment can be from either orientation since
+        //   definition of olap_offset is based on 3' origin.
 
 		return(fpmp);
 
@@ -792,13 +740,34 @@ namespace AS_BOG{
 	int IntMultiPosCmp(const void *a, const void *b){
 		IntMultiPos *impa=(IntMultiPos*)a;
 		IntMultiPos *impb=(IntMultiPos*)b;
-		long aleft = (impa->position.bgn < impa->position.end) ?
-			impa->position.bgn : impa->position.end;
-		long bleft = (impb->position.bgn < impb->position.end) ?
-			impb->position.bgn : impb->position.end;
-		if(aleft!=bleft){
+        long aleft,aright,bleft,bright;
+		if (impa->position.bgn < impa->position.end) {
+			aleft  = impa->position.bgn;
+            aright = impa->position.end;
+        } else {
+			aright = impa->position.bgn;
+            aleft  = impa->position.end;
+        }
+		if (impb->position.bgn < impb->position.end) {
+			bleft  = impb->position.bgn;
+            bright = impb->position.end;
+        } else {
+			bright = impb->position.bgn;
+            bleft  = impb->position.end;
+        }
+		if(aleft!=bleft)
+        {
 			return(aleft - bleft);
-		}else{
+		}
+        else if (aright != bright)
+        {
+            return(bright - aright);
+        }
+        else {
+			if(impa->contained == impb->ident)
+                return(1);
+			if(impb->contained == impa->ident)
+                return(-1);
 			if(impa->contained!=0)
 				return(1);
 			if(impb->contained!=0)
@@ -807,95 +776,22 @@ namespace AS_BOG{
 		}
 	}
 
-	typedef struct{
-		long ahang;
-		long bhang;
-		iuid a_id;
-	}overlap_info_struct;
-
-	IntUnitigMesg *Unitig::getIUM_Mesg(void){
+	IntUnitigMesg *Unitig::getIUM_Mesg(BestContainmentMap *cntr_ptr){
 		
 		IntUnitigMesg *ium_mesg_ptr=new IntUnitigMesg;
 		IntMultiPos *imp_msg_arr=new IntMultiPos[getNumFrags()];
 
-		// Determine which order to print out fragments
-		// Consensus needs contained fragments listed after their
-		// containers.  We will order fragments by how they
-		// dovetail, filling in containees as their containers
-		// get traversed.
-		std::map<containee_id, container_id> cntnee_map;
-
-		typedef std::map<iuid, overlap_info_struct> olap_info_map_type;
-		olap_info_map_type olap_info_map;
-
 		FragmentList frag_order;
-		DoveTailPath::iterator dp_itr;
-		iuid prior_frag_id=0;
-		for(
-			dp_itr=dovetail_path_ptr->begin();
-			dp_itr!=dovetail_path_ptr->end();
-			dp_itr++
-		){
-			// Push back the dovetailers
-			frag_order.push_back(dp_itr->frag_id);
-
-			olap_info_map[dp_itr->frag_id].a_id=prior_frag_id;
-
-			// Push back the containees
-			ContaineeList *ctees=&(*contained_frags_ptr)[dp_itr->frag_id];
-			ContaineeList::iterator ctee_itr;
-			for(ctee_itr=ctees->begin();
-			    ctee_itr!=ctees->end();
-			    ctee_itr++){
-				frag_order.push_back(ctee_itr->frag_id);
-				cntnee_map[ctee_itr->frag_id]=dp_itr->frag_id;
-				olap_info_map[ctee_itr->frag_id].a_id=dp_itr->frag_id;
-			}
-
-			prior_frag_id=dp_itr->frag_id;
+		FragmentPositionMap::const_iterator fpmp_itr;
+		for( fpmp_itr =  frag_pos_map_ptr->begin();
+			 fpmp_itr != frag_pos_map_ptr->end(); fpmp_itr++)
+        {
+			assert(fpmp_itr->first);
+			frag_order.push_back(fpmp_itr->first);
 		}
 
-
-		// Estimate ahangs/bhangs between A and B fragment overlaps
-		olap_info_map_type::iterator olap_info_map_itr;
-		for(
-		    olap_info_map_itr=olap_info_map.begin();
-		    olap_info_map_itr!=olap_info_map.end();
-		    olap_info_map_itr++){
-		
-			iuid a_frag_id=olap_info_map_itr->second.a_id;
-			iuid b_frag_id=olap_info_map_itr->first;
-
-			if(a_frag_id!=0){
-				long a_begin=(*frag_pos_map_ptr)[a_frag_id].begin;
-				long a_end  =(*frag_pos_map_ptr)[a_frag_id].end;
-				long b_begin=(*frag_pos_map_ptr)[b_frag_id].begin;
-				long b_end  =(*frag_pos_map_ptr)[b_frag_id].end;
-
-				if(a_begin>a_end){
-					long tmp;
-					tmp=a_begin;
-					a_begin=a_end;
-					a_end=tmp;
-				}
-
-				if(b_begin>b_end){
-					long tmp;
-					tmp=b_begin;
-					b_begin=b_end;
-					b_end=tmp;
-				}
-
-				olap_info_map[b_frag_id].ahang=b_begin-a_begin;
-				olap_info_map[b_frag_id].bhang=b_end-a_end;
-			}else{
-				olap_info_map[b_frag_id].ahang=0;
-				olap_info_map[b_frag_id].bhang=0;
-			}
-		}
-	
 		// Populate IMP Messages
-		FragmentList::iterator fp_itr;
+		FragmentList::const_iterator fp_itr;
 		long i=0;
 		
 		for(
@@ -908,13 +804,10 @@ namespace AS_BOG{
 			/*IntFragment_ID*/  imp_msg_arr[i].ident=*fp_itr;
 			# ifdef AS_ENABLE_SOURCE
 			/*char* */          imp_msg_arr[i].source="";
-			#ifdef i386
-			/*int32*/           imp_msg_arr[i].ptrPad1;
-			#endif
 			# endif
 			/*SeqInterval*/     imp_msg_arr[i].position.bgn=(*frag_pos_map_ptr)[*fp_itr].begin;
 			/*SeqInterval*/     imp_msg_arr[i].position.end=(*frag_pos_map_ptr)[*fp_itr].end;
-			/*IntFragment_ID*/  imp_msg_arr[i].contained=cntnee_map[*fp_itr];
+			/*IntFragment_ID*/  imp_msg_arr[i].contained=(*cntr_ptr)[*fp_itr].container;
 			/*int32*/           imp_msg_arr[i].delta_length=0;
 			/*int32*/           imp_msg_arr[i].delta=NULL;
 
@@ -924,9 +817,6 @@ namespace AS_BOG{
 			/*int32*/           imp_msg_arr[i].bhang=olap_info_map[*fp_itr].bhang;
 			#endif
 
-			#ifdef i386
-			/*int32*/           imp_msg_arr[i].ptrPad2;
-			#endif
 			i++;
 		}
 
@@ -974,7 +864,7 @@ namespace AS_BOG{
 		for(utg_itr=unitigs.begin(); utg_itr!=unitigs.end(); utg_itr++){
 
 			IntUnitigMesg *ium_mesg_ptr;
-			ium_mesg_ptr=(*utg_itr)->getIUM_Mesg();
+			ium_mesg_ptr=(*utg_itr)->getIUM_Mesg(best_cntr);
 
 			GenericMesg mesg;
 			mesg.m=ium_mesg_ptr;
