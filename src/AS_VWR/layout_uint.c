@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: layout_uint.c,v 1.4 2005-03-22 19:49:32 jason_miller Exp $ */
+/* $Id: layout_uint.c,v 1.5 2006-03-08 20:43:10 eliv Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -254,9 +254,9 @@ static HashTable *NameTable;
 
 static int *NameToStyle;
 
-static int GetIdentifier(HashTable *table, char *s, char **end, int isdef)
+static long GetIdentifier(HashTable *table, char *s, char **end, int isdef)
 { char *t;
-  int   a, id;
+  long   a, id;
   char  message[MAX_LINE_LEN];
 
   t = s;
@@ -953,7 +953,7 @@ void BuildAssembly(void)
       for (i = 0; i < NumLinks; i++)
         { LinkIndex[i] = lk;
           for (lp = lk->beg; lp < lk->end; lp++)
-            { *lp = LineIndex[(int) (*lp)];
+            { *lp = LineIndex[(long) (*lp)];
               (*lp)->attach += 1;
             }
           StyleIndex[lk->att]->usage |= LINKSTYLE;
@@ -991,8 +991,8 @@ void BuildAssembly(void)
     { Overlap *ov;
 
       for (ov = OvlpList; ov != NULL; ov = ov->next)
-        { ov->id1 = LineIndex[(int) (ov->id1)]; 
-          ov->id2 = LineIndex[(int) (ov->id2)]; 
+        { ov->id1 = LineIndex[(long) (ov->id1)]; 
+          ov->id2 = LineIndex[(long) (ov->id2)]; 
           StyleIndex[ov->att]->usage |= OVLPSTYLE;
         }
     }
