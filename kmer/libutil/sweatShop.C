@@ -16,27 +16,27 @@ loaderThread(void *ss) {
 }
 
 void*
-workerThread(void *ss) {
-  sweatShop *SS = (sweatShop *)ss;
-  return(SS->worker());
+workerThread(void *x) {
+  sweatShopWorker *SW = (sweatShopWorker *)x;
+  return(SW->shop->worker(SW));
 }
 
 void*
-writerThread(void *ss) {
-  sweatShop *SS = (sweatShop *)ss;
+writerThread(void *x) {
+  sweatShop *SS = (sweatShop *)x;
   return(SS->writer());
 }
 
 void*
-statusThread(void *ss) {
-  sweatShop *SS = (sweatShop *)ss;
+statusThread(void *x) {
+  sweatShop *SS = (sweatShop *)x;
   return(SS->status());
 }
 
 
 
 sweatShop::sweatShop(void*(*loader)(void *G),
-                     void (*worker)(void *G, void *S),
+                     void (*worker)(void *G, void *T, void *S),
                      void (*writer)(void *G, void *S)) {
   _userLoader = loader;
   _userWorker = worker;
@@ -54,6 +54,8 @@ sweatShop::sweatShop(void*(*loader)(void *G),
   _writerQueueSize  =   64 * 1024;
 
   _numberOfWorkers = 3;
+
+  _workerData = new sweatShopWorker [_numberOfWorkers];
 
   _numberLoaded   = 0;
   _numberComputed = 0;
@@ -81,9 +83,22 @@ sweatShop::writerQueueSize(u32bit x) {
 
 u32bit
 sweatShop::numberOfWorkers(u32bit x) {
-  if (x > 0)
+  if (x > 0) {
     _numberOfWorkers = x;
+    delete [] _workerData;
+    _workerData = new sweatShopWorker [_numberOfWorkers];
+  }
   return(_numberOfWorkers);
+}
+
+void
+sweatShop::setThreadData(u32bit t, void *x) {
+  if (t >= _numberOfWorkers) {
+    fprintf(stderr, "sweatShop::setThreadData()-- worker ID "u32bitFMT" more than number of workers="u32bitFMT"\n",
+            t, _numberOfWorkers);
+    exit(1);
+  }
+  _workerData[t].threadUserData = x;
 }
 
 
@@ -209,7 +224,7 @@ sweatShop::loader(void) {
 
 
 void*
-sweatShop::worker(void) {
+sweatShop::worker(sweatShopWorker *workerData) {
 
   struct timespec   naptime;
   naptime.tv_sec      = 0;
@@ -235,13 +250,6 @@ sweatShop::worker(void) {
       _workerP = _workerP->_next;
     }
 
-    //  We really want this to be around the same time we actually do
-    //  the compute, but we also don't want to lock the mutex again.
-    //  This addition seems to be not atomic on Linux64/Opteron.
-    //
-    if (thisState && thisState->_user)
-      _numberComputed++;
-
     if (_workerP == 0L)
       moreToCompute = false;
 
@@ -250,8 +258,9 @@ sweatShop::worker(void) {
     //  Execute
     //
     if (thisState && thisState->_user) {
-      (*_userWorker)(_globalUserData, thisState->_user);
+      (*_userWorker)(_globalUserData, workerData->threadUserData, thisState->_user);
       thisState->_computed = true;
+      workerData->numComputed++;
     } else {
       //  When we really do run out of stuff to do, we'll end up here
       //  (only one thread will end up in the other case, with
@@ -353,7 +362,7 @@ sweatShop::status(void) {
 
 
 void
-sweatShop::run(void *user) {
+sweatShop::run(void *user, bool beVerbose) {
   pthread_attr_t   threadAttr;
   pthread_t        threadID;
 
@@ -380,14 +389,22 @@ sweatShop::run(void *user) {
     nanosleep(&naptime, 0L);
   }
 
+
   //  Fire off some workers
   //
-  for (u32bit i=0; i<_numberOfWorkers; i++)
-    pthread_create(&threadID, &threadAttr, workerThread, this);
+  for (u32bit i=0; i<_numberOfWorkers; i++) {
+    _workerData[i].shop           = this;
+    _workerData[i].threadUserData = 0L;
+    _workerData[i].threadID       = i;
+    _workerData[i].numComputed    = 0;
+
+    pthread_create(&threadID, &threadAttr, workerThread, _workerData + i);
+  }
 
   //  And the stats
   //
-  pthread_create(&threadID, &threadAttr, statusThread, this);
+  if (beVerbose)
+    pthread_create(&threadID, &threadAttr, statusThread, this);
 
   //  We run the writer in the main, right here.  We could probably
   //  run stats here, but we certainly aren't done until the worker
