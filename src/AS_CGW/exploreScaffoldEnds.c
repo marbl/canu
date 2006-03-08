@@ -79,7 +79,7 @@ static int useFrgMaps = 0;
 void setup_frg_maps(const char *subset_map, const char *full_map){
   FILE *subset_frg_map = fopen(subset_map,"r");
   FILE *full_frg_map = fopen(full_map,"r");
-  int iid,uid,i=0,j=0;
+  long iid,uid,i=0,j=0;
   char name[100];
 
   assert(subset_frg_map !=NULL);
@@ -349,10 +349,10 @@ void explore_end_of_contig(ContigT *contig,int whichEnd){
   int ctgID = contig->id;
   int firstFrag;
   int firstFragisAtoB;
-  int firstFrag_full;
+  long firstFrag_full;
   int lastFrag;
   int lastFragisAtoB;
-  int lastFrag_full;
+  long lastFrag_full;
   int contigIsAtoB = ( contig->offsetAEnd.mean < contig->offsetBEnd.mean ? 1 : 0 ) ;
   char *name;
   int ctgAendCnt,ctgBendCnt;
@@ -410,7 +410,7 @@ void explore_end_of_contig(ContigT *contig,int whichEnd){
       firstFrag_full = firstFrag;
     } else {
       name = (char *) GetElement_VA(subset_iid2name,firstFrag);
-      firstFrag_full = (int) LookupInHashTable_AS(full_name2iid,name,strlen(name));
+      firstFrag_full = (long) LookupInHashTable_AS(full_name2iid,name,strlen(name));
     }
 #ifdef VERBOSE
     fprintf(stdout,"First frg of contig is %d ori %s\n",firstFrag,
@@ -442,7 +442,7 @@ void explore_end_of_contig(ContigT *contig,int whichEnd){
       lastFrag_full = lastFrag;
     } else {
       name = (char *) GetElement_VA(subset_iid2name,lastFrag);
-      lastFrag_full = (int) LookupInHashTable_AS(full_name2iid,name,strlen(name));
+      lastFrag_full = (long) LookupInHashTable_AS(full_name2iid,name,strlen(name));
     }
     
 #ifdef VERBOSE
