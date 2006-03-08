@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.10 2006-03-07 22:01:41 eliv Exp $
- * $Revision: 1.10 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.11 2006-03-08 15:57:13 eliv Exp $
+ * $Revision: 1.11 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.10 2006-03-07 22:01:41 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.11 2006-03-08 15:57:13 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -803,7 +803,7 @@ namespace AS_BOG{
 			/*FragType*/        imp_msg_arr[i].type=AS_READ;
 			/*IntFragment_ID*/  imp_msg_arr[i].ident=*fp_itr;
 			# ifdef AS_ENABLE_SOURCE
-			/*char* */          imp_msg_arr[i].source="";
+			/*char* */          imp_msg_arr[i].sourceInt=-1;
 			# endif
 			/*SeqInterval*/     imp_msg_arr[i].position.bgn=(*frag_pos_map_ptr)[*fp_itr].begin;
 			/*SeqInterval*/     imp_msg_arr[i].position.end=(*frag_pos_map_ptr)[*fp_itr].end;
