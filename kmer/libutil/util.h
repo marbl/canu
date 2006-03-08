@@ -188,7 +188,7 @@ u32bit freeDiskSpace(char *path);
 //  Safer read(2) and write(2).
 //
 void   safeWrite(int filedes, const void *buffer, char *desc, size_t nbytes);
-void   safeRead(int filedes, const void *buffer, char *desc, size_t nbytes);
+int    safeRead(int filedes, const void *buffer, char *desc, size_t nbytes);
 
 
 

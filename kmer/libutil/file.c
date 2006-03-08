@@ -326,12 +326,13 @@ safeWrite(int filedes, const void *buffer, char *desc, size_t nbytes) {
   }
 }
 
-void
+int
 safeRead(int filedes, const void *buffer, char *desc, size_t nbytes) {
   size_t  position = 0;
   size_t  length   = 32 * 1024 * 1024;
   size_t  toread   = 0;
   size_t  written  = 0;  //  readen?
+  int     failed   = 0;
 
   while (position < nbytes) {
     toread = length;
@@ -341,14 +342,25 @@ safeRead(int filedes, const void *buffer, char *desc, size_t nbytes) {
     errno = 0;
     written = read(filedes, ((char *)buffer) + position, toread);
 
-    if ((errno) || (toread != written)) {
+    failed = errno;
+#ifdef VERY_SAFE
+    if (toread != written)
+      failed = 1;
+#endif
+
+    if ((failed) && (errno != EINTR)) {
       fprintf(stderr, "safeRead()-- Read failure on %s: %s.\n", desc, strerror(errno));
       fprintf(stderr, "safeRead()-- Wanted to read "s64bitFMT" bytes, read "s64bitFMT".\n", (s64bit)toread, (s64bit)written);
       exit(1);
     }
 
+    if (written == 0)
+      break;
+
     position += written;
   }
+
+  return(position);
 }
 
 
