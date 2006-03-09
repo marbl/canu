@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_Bubble.c,v 1.4 2005-03-22 19:48:09 jason_miller Exp $";
+= "$Id: AS_CGB_Bubble.c,v 1.5 2006-03-09 17:42:34 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -138,7 +138,7 @@ _collect_bubbles(BubGraph_t bg, BubVertexSet *fwd, BubVertexSet *rvs,
 
       if (i_node) {
 	AS_CGB_Bubble_List_t new_bub = NULL;
-	SAFE_MALLOC_QUIET(new_bub, AS_CGB_Bubble_List, 1);
+	SAFE_MALLOC(new_bub, AS_CGB_Bubble_List, 1);
 	bub_start = *i_node;
 	new_bub->start = bub_start;
 	new_bub->end = top[f];
@@ -393,7 +393,7 @@ AS_CGB_Bubble_find_and_remove_bubbles
 
     bptr = bubs;
     bubs = bubs->next;
-    SAFE_FREE_QUIET(bptr);
+    SAFE_FREE(bptr);
     // release memory as we go.
   }
   // All the memory for bubs is released.

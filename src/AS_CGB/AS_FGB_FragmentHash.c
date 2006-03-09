@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_FGB_FragmentHash.c,v 1.4 2005-03-22 19:48:32 jason_miller Exp $
+ * $Id: AS_FGB_FragmentHash.c,v 1.5 2006-03-09 17:42:34 brianwalenz Exp $
  *
  * Module:
  * Description:
@@ -35,31 +35,39 @@
 
 #include "AS_FGB_FragmentHash.h"
 
-#define  SAFE_MALLOC_QUIET(the_name, the_type, length) \
+//  Copied from AS_CGB_all.h
+
+#define  SAFE_MALLOC(the_name, the_type, length) \
   assert(NULL == the_name); \
   the_name = (the_type *) malloc(length*sizeof(the_type)); \
-  assert(NULL != the_name);
-#define  SAFE_MALLOC(the_name, the_type, length) \
+  assert(NULL != the_name)
+#define  SAFE_MALLOC_NOISY(the_name, the_type, length) \
   fprintf(stderr, "SAFE_MALLOC " F_SIZE_T " " #the_name " " #the_type  " " F_SIZE_T " " F_SIZE_T "\n", length * sizeof(the_type), length, sizeof(the_type) ); \
-  SAFE_MALLOC_QUIET(the_name, the_type, length)
+  SAFE_MALLOC(the_name, the_type, length)
 
 #define  SAFE_CALLOC(the_name, the_type, length) \
-  fprintf(stderr, "SAFE_CALLOC " F_SIZE_T " " #the_name " " #the_type  " " F_SIZE_T " " F_SIZE_T "\n", length * sizeof(the_type), length, sizeof(the_type) ); \
   assert(NULL == the_name); \
   the_name = (the_type *) calloc(length,sizeof(the_type)); \
-  assert(NULL != the_name);
+  assert(NULL != the_name)
+#define  SAFE_CALLOC_NOISY(the_name, the_type, length) \
+  fprintf(stderr, "SAFE_CALLOC " F_SIZE_T " " #the_name " " #the_type  " " F_SIZE_T " " F_SIZE_T "\n", length * sizeof(the_type), length, sizeof(the_type) ); \
+  SAFE_CALLOC(the_name, the_type, length)
 
 #define  SAFE_REALLOC(the_name, the_type, length) \
-  fprintf(stderr, "SAFE_REALLOC " F_SIZE_T " " #the_name " " #the_type  " " F_SIZE_T " " F_SIZE_T "\n", length * sizeof(the_type), length, sizeof(the_type) ); \
   assert(NULL != the_name); \
   the_name = (the_type *) realloc(the_name,length * sizeof(the_type)); \
-  assert(NULL != the_name);
+  assert(NULL != the_name)
+#define  SAFE_REALLOC_NOISY(the_name, the_type, length) \
+  fprintf(stderr, "SAFE_REALLOC " F_SIZE_T " " #the_name " " #the_type  " " F_SIZE_T " " F_SIZE_T "\n", length * sizeof(the_type), length, sizeof(the_type) ); \
+  SAFE_REALLOC(the_name, the_type, length)
 
-#define SAFE_FREE_QUIET(the_name) \
-  assert(NULL != the_name); free(the_name); the_name = NULL;
 #define SAFE_FREE(the_name) \
+  assert(NULL != the_name); \
+  free(the_name); \
+  the_name = NULL
+#define SAFE_FREE_NOISY(the_name) \
   fprintf(stderr, "SAFE_FREE " #the_name  "\n" ); \
-  SAFE_FREE_QUIET(the_name)
+  SAFE_FREE(the_name)
 
 #if 0
 #define max(a,b) (a > b ? a : b)

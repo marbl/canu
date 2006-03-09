@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_Bubble_Popper.c,v 1.4 2005-03-22 19:48:09 jason_miller Exp $";
+= "$Id: AS_CGB_Bubble_Popper.c,v 1.5 2006-03-09 17:42:34 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -77,7 +77,7 @@ BP_init(BubblePopper_t bp, BubGraph_t bg, TChunkMesg *chunks,
   SAFE_CALLOC(bp->bubOlaps, OverlapMesg, BP_SQR(POPPER_MAX_BUBBLE_SIZE));
 
   for (i = 0; i < POPPER_MAX_BUBBLE_SIZE; ++i) {
-    SAFE_MALLOC_QUIET(bp->bubMesgs[i].sequence, char, (AS_FRAG_MAX_LEN + 3));
+    SAFE_MALLOC(bp->bubMesgs[i].sequence, char, (AS_FRAG_MAX_LEN + 3));
     /* This is a hack for DP_compare.  It might not be necessary. */
     bp->bubMesgs[i].sequence[0] = '\0';
     (bp->bubMesgs[i].sequence)++;
@@ -87,7 +87,7 @@ BP_init(BubblePopper_t bp, BubGraph_t bg, TChunkMesg *chunks,
 
 #ifndef DONT_ALLOC_OLAP_DELTAS
   for (i = 0; i < BP_SQR(POPPER_MAX_BUBBLE_SIZE); ++i) {
-    SAFE_MALLOC_QUIET(bp->bubOlaps[i].delta, signed char, 1);
+    SAFE_MALLOC(bp->bubOlaps[i].delta, signed char, 1);
     bp->bubOlaps[i].delta[0] = 0;
   }
 #endif // DONT_ALLOC_OLAP_DELTAS
@@ -575,12 +575,12 @@ AS_CGB_Bubble_Popper_destroy(BubblePopper_t bp)
 
   for (i = 0; i < POPPER_MAX_BUBBLE_SIZE; ++i) {
     (bp->bubMesgs[i].sequence)--; /* Other end of the hack in _init() */
-    SAFE_FREE_QUIET(bp->bubMesgs[i].sequence);
+    SAFE_FREE(bp->bubMesgs[i].sequence);
   }
   
 #ifndef DONT_ALLOC_OLAP_DELTAS
   for (i = 0; i < BP_SQR(POPPER_MAX_BUBBLE_SIZE); ++i) {
-    SAFE_FREE_QUIET(bp->bubOlaps[i].delta);
+    SAFE_FREE(bp->bubOlaps[i].delta);
   }
 #endif // DONT_ALLOC_OLAP_DELTAS
   

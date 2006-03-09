@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_Bubble_VertexSet.c,v 1.4 2005-03-22 19:48:09 jason_miller Exp $";
+= "$Id: AS_CGB_Bubble_VertexSet.c,v 1.5 2006-03-09 17:42:34 brianwalenz Exp $";
 
 #include <string.h>
 #include "AS_CGB_all.h"
@@ -58,7 +58,7 @@ BVS__alloc(void)
   if (BVS_memstack_top_G == 0) {
     for (BVS_memstack_top_G = 0; BVS_memstack_top_G < BVS_MEMSTACK_SIZE / 2; ++BVS_memstack_top_G) {
       BVS_memstack_G[BVS_memstack_top_G] = NULL;
-      SAFE_MALLOC_QUIET(BVS_memstack_G[BVS_memstack_top_G], BubVertexEntry,  
+      SAFE_MALLOC(BVS_memstack_G[BVS_memstack_top_G], BubVertexEntry,  
 		  AS_CGB_BUBBLE_set_size_G );
     }
   }
@@ -152,7 +152,7 @@ BVS_sysInit(void)
 {
   SAFE_CALLOC(BVS_memstack_G, BubVertexEntry *, BVS_MEMSTACK_SIZE);
   for (BVS_memstack_top_G = 0; BVS_memstack_top_G < BVS_MEMSTACK_SIZE / 2; ++BVS_memstack_top_G) {
-    SAFE_MALLOC_QUIET(BVS_memstack_G[BVS_memstack_top_G], BubVertexEntry, 
+    SAFE_MALLOC(BVS_memstack_G[BVS_memstack_top_G], BubVertexEntry, 
 		AS_CGB_BUBBLE_set_size_G );
   }
 }
@@ -164,7 +164,7 @@ BVS_sysDone(void)
   int t;
 
   for (t = 0; t < BVS_memstack_top_G; ++t) {
-    SAFE_FREE_QUIET(BVS_memstack_G[t]);
+    SAFE_FREE(BVS_memstack_G[t]);
   }
   SAFE_FREE(BVS_memstack_G);
 }
@@ -186,7 +186,7 @@ BVS_destroy(BubVertexSet_t bvs)
     BVS__free(bvs->entries);
     bvs->entries = NULL;
 #else
-    SAFE_FREE_QUIET(bvs->entries);
+    SAFE_FREE(bvs->entries);
 #endif    
   }
 }
