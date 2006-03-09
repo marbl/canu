@@ -95,7 +95,9 @@ sub setGlobal ($$) {
 
 sub setDefaults {
     $global{"binRoot"} =                     undef;
-    $global{"consensusPartitionSize"} =      400000;
+    $global{"cnsPartitions"} =               128;
+    $global{"cnsMinFrags"} =                 75000;
+    $global{"cnsConcurrency"} =              2;
     $global{"delayInterleavedMerging"} =     1;
     $global{"doBackupFragStore"} =           1;
     $global{"doExtendClearRanges"} =         2;

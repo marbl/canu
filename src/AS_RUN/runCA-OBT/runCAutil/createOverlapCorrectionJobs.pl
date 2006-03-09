@@ -84,8 +84,6 @@ sub createOverlapCorrectionJobs {
         $frgBeg = $frgEnd + 1;
     }
 
-    touch("$wrk/3-ovlcorr/jobsCreated.success");
-
     if ($ovlCorrOnGrid) {
         close(SUB);
         pleaseExecute("$wrk/3-ovlcorr/submit.sh");
@@ -94,6 +92,8 @@ sub createOverlapCorrectionJobs {
         &scheduler::schedulerSetNumberOfProcesses(4);
         &scheduler::schedulerFinish();
     }
+
+    touch("$wrk/3-ovlcorr/jobsCreated.success");
 }
 
 1;

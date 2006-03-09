@@ -34,15 +34,19 @@ sub unitigger {
             }
         }
 
+
         my $cmd;
         $cmd  = "cd $wrk/4-unitigger && ";
         $cmd .= "$bin/unitigger ";
-        $cmd .= " -B 250000 ";
 
         my $l = getGlobal("utgGenomeSize");
         my $m = getGlobal("utgEdges");
         my $e = getGlobal("utgErrorRate");
         my $n = getGlobal("utgFragments");
+        my $B = int($numFrags / getGlobal("cnsPartitions"));
+        $B = getGlobal("cnsMinFrags") if ($B < getGlobal("cnsMinFrags"));
+
+        $cmd .= " -B $B ";
 
         $cmd .= " -l $l " if defined($l);
         $cmd .= " -m $m " if defined($m);

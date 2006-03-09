@@ -115,7 +115,9 @@ sub terminate {
     #  But not in the assembly tree.
 
     if (! -e "$wrk/$asm.qc") {
-        $ENV{'PERL5LIB'} = "/home/smurphy/preassembly/test/TIGR/scripts";
+        if (!defined($ENV{'PERL5LIB'})) {
+            $ENV{'PERL5LIB'} = "/home/smurphy/preassembly/test/TIGR/scripts";
+        }
 
         my $cmd;
         $cmd  = "cd $wrk && ";

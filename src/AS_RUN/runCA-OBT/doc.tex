@@ -396,9 +396,10 @@ The default is 15, or 1.5\% error.
 \\
 
 utgFragments={\it integer} &
-The estimated number of fragments unitigger will encounter.  If you find that unitigger
-is exhausting its process size, setting this to slightly more than the actual number of fragments
-might help.  Otherwise, do not use.
+The estimated number of fragments unitigger will encounter.  If you
+find that unitigger is exhausting its process size, setting this to
+slightly more than the actual number of fragments might help.
+Otherwise, do not use.
 \\
 \end{longtable}
 
@@ -431,11 +432,27 @@ If non-zero, update the distance records after each round of {\it extendClearRan
 
 \subsection{Consensus Options}
 
+These options apply to both post-unitigger and post-scaffolder consensus.
+
 \begin{longtable}{lp{3.0in}}
-consensusPartitionSize={\it integer} &
-The partition size of the final (post-scaffolder) consensus.  Default
-is 400,000 objects.
+cnsPartitions={\it integer} &
+The approximate number of partitions unitigger/scaffolder will
+generate for consensus.  There will be no more than this, but likely
+will be fewer.  The default is 128 partitions, or partitions
+consisting of about {\it cnsMinFrags} fragments, whichever results in fewer
+partitions.
 \\
+
+cnsMinFrags={\it integer} &
+The minimum number of fragments in a consensus partition.  Default
+is 75,000.
+\\
+
+cnsConcurrency={\it integer} &
+If the grid is not enabled, run this many consensus jobs at the same
+time.  Default is 2.
+\\
+
 \end{longtable}
 
 
