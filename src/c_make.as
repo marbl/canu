@@ -113,8 +113,8 @@ endif
 ifeq ($(OSTYPE), Darwin)
   CC         = gcc
   CXX        = g++
-  CFLAGS_OPT = -g
-  CFLAGS    += -fast -DNEEDXDRUHYPER -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 
+  CFLAGS_OPT = -O3 -g
+  CFLAGS    += -DNEEDXDRUHYPER -D_THREAD_SAFE -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 
   USRLIB    += /usr/local/lib /usr/X11R6/lib
 endif
 

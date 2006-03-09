@@ -115,9 +115,6 @@ ifeq ($(OSTYPE), FreeBSD)
 endif
 
 ifeq ($(OSTYPE), Darwin)
-  LDFLAGS  += -pthread
-  CFLAGS   += -pthread
-  CPPFLAGS += -pthread
 endif
 
 
