@@ -18,11 +18,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.16 2006-02-13 22:16:31 eliv Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.17 2006-03-09 18:27:35 brianwalenz Exp $";
 
+//  reads old and new AFG message (with and w/o chaff field)
 #define AFG_BACKWARDS_COMPATIBLE
-//#define FIX_DANIELS_MESS
-/* reads old and new AFG message (with and w/o chaff field */
+#define IAF_BACKWARDS_COMPATIBLE
+
 
 
 #include <stdio.h>
@@ -181,23 +182,41 @@ static long MoreSpace(const int size, const int boundary)
 static char  CurLine[MAX_LINE_LEN];     /* Line buffer for reading messages. */
 static char *Sentinal = CurLine + (MAX_LINE_LEN-2); /* ...for line overflow. */
 
+static char *ReadLine(char *line, int lineMax, FILE *fin) {
+
+  line[lineMax-2] = '\n';
+  line[lineMax-1] = 0;
+
+  errno = 0;
+
+  LineNum++;
+  if (fgets(line, lineMax-1, fin) == NULL) {
+    fprintf(stderr,"ERROR: AS_MSG_pmesg.c::ReadLine()-- Premature end of input at line %d (%s)\n", LineNum, Mcode);
+    fprintf(stderr,"       %100s\n", CurLine);
+    exit(1);
+  }
+
+  if (errno) {
+    fprintf(stderr,"ERROR: AS_MSG_pmesg.c::ReadLine()-- Read error at line %d: '%s'\n", LineNum, strerror(errno));
+    fprintf(stderr,"       %100s\n", CurLine);
+    exit(1);
+  }
+
+  if (*Sentinal != '\n') {
+    fprintf(stderr,"ERROR: Input line %d is too long (%s)", LineNum, Mcode);
+    fprintf(stderr,"       %100s\n", CurLine);
+    exit(1);
+  }
+
+  return(line);
+}
+
+
 static char *GetLine(FILE *fin, int skipComment)   /* Get next input line (there must be one). */
 { 
   do {
-    LineNum += 1;
-    if (fgets(CurLine,MAX_LINE_LEN,fin) == NULL)
-      {
-        fprintf(stderr,"ERROR: Premature end of input (%s)\n",Mcode);
-        fprintf(stderr,"       %100s\n", CurLine);
-        exit (1);
-      }
-    if (*Sentinal != '\n')
-      { fprintf(stderr,"ERROR: Input line is too long (%s)",Mcode);
-        fprintf(stderr,"       %100s\n", CurLine);
-        fprintf(stderr," at line %d\n",LineNum);
-        exit (1);
-      }
-    }
+    ReadLine(CurLine, MAX_LINE_LEN, fin);
+  }
   while (skipComment && CurLine[0] == '#');
   return (CurLine);
 }
@@ -270,12 +289,13 @@ static long GetText(const char * const tag, FILE *fin, const int delnewlines)
 static long GetString(const char * const tag, FILE *fin)
 { char *str;
   int   eos, len, text, idx;
- 
+
+  errno = 0;
+
   text = MemTop;
   do
-    { LineNum += 1;
-      if (fgets(CurLine,MAX_LINE_LEN,fin) == NULL)
-        MgenError("Premature end of input");
+    {
+      ReadLine(CurLine, MAX_LINE_LEN, fin);
     }
   while (CurLine[0] == '#');
   if (strncmp(CurLine,tag,4) != 0)
@@ -289,9 +309,7 @@ static long GetString(const char * const tag, FILE *fin)
       idx = MoreSpace(len,1);
       strncpy(MemBuffer+idx,str,len);
       if (eos) break;
-      if (fgets(CurLine,MAX_LINE_LEN,fin) == NULL)
-        MgenError("Premature end of input");
-      str = CurLine;
+      str = ReadLine(CurLine,MAX_LINE_LEN,fin);
     }
   idx = MoreSpace(1,1);
   MemBuffer[idx] = '\0';
@@ -1574,7 +1592,6 @@ static void *Read_ICM_Mesg(FILE *fin)
   return ((void *) (&mesg));
 }
 
-#define IAF_BACKWARDS_COMPATIBLE
 
 static void *Read_IAF_Mesg(FILE *fin)
 { static IntAugFragMesg		mesg;
@@ -1587,17 +1604,17 @@ static void *Read_IAF_Mesg(FILE *fin)
 #ifdef IAF_BACKWARDS_COMPATIBLE
 	{
 		int i, j;
-  		static char str[512];
+  		char *line;
 
-		fgets(str,512,fin);
-		if(sscanf(str,"cha:" F_S32,&i)==1)
+		line = GetLine(fin, TRUE);
+		if(sscanf(line,"cha:" F_S32,&i)==1)
 		{
 			mesg.chaff=i;
-			fgets(str,512,fin);
+                        line = GetLine(fin, TRUE);
 		}
 		else
 			mesg.chaff=0;
-		if(sscanf(str,CLR_FORMAT,&i,&j)==2)
+		if(sscanf(line,CLR_FORMAT,&i,&j)==2)
 		{
 			mesg.clear_rng.bgn=i;
 			mesg.clear_rng.end=j;
@@ -2067,44 +2084,6 @@ static void *Read_CLK_Mesg(FILE *fin)
   mesg.status = (PlacementStatusType) ch;
   if (strncmp(GetLine(fin,TRUE),"jls:",4) != 0)
       MgenError("Expecting jls field");
-#ifdef FIX_DANIELS_MESS
-  // dirty fix
-  /*  line = GetLine(fin,TRUE);
-  while( strcmp(line,"}\n") != 0 )
-    line = GetLine(fin,TRUE);  
-  */
-  // mediocre dirty fix
-  {
-    int correctnum=0;
-    uint64 lv1,lv2;
-    char lv3;
-    size = mesg.num_contributing;
-    if (mesg.overlap_type != AS_NO_OVERLAP)
-      --size;
-    if (size > 0) {
-      indx = MoreSpace(sizeof(SnapMate_Pairs)*size,8);
-      imp = mesg.jump_list = (SnapMate_Pairs *) (MemBuffer + indx);
-      line = GetLine(fin, TRUE);
-      while(sscanf(line,F_UID ","F_UID ",%1[MSBRYT]",&(lv1),&(lv2), &(lv3)) == 3){
-	correctnum++;
-	imp->in1 = lv1;
-	imp->in2 = lv2;
-	imp->type= lv3;
-	imp++;
-	line = GetLine(fin, TRUE);
-      }
-      assert(strcmp(line,"}\n")==0);
-      if( mesg.overlap_type == AS_OVERLAP )
-	mesg.num_contributing = correctnum+1;
-      else
-	mesg.num_contributing = correctnum;
-    }
-    else{
-      GET_EOM;
-      mesg.jump_list = NULL;
-    }
-  }
-#else
   size = mesg.num_contributing;
   if (mesg.overlap_type != AS_NO_OVERLAP)
     --size;
@@ -2122,7 +2101,6 @@ static void *Read_CLK_Mesg(FILE *fin)
   else
     mesg.jump_list = NULL;
   GET_EOM;
-#endif
   return ((void *) (&mesg));
 }
 
@@ -4009,11 +3987,13 @@ int ReadProtoMesg_AS(FILE *fin, GenericMesg **pmesg)
 
   *Sentinal = '\n';
   MemTop    = 0;
-  LineNum  += 1;
-  do
-    { if (fgets(CurLine,MAX_LINE_LEN,fin) == NULL)
-        return (EOF);
-    }
+  do {
+    //  Can't use ReadLine() here, because we want to return EOF if we
+    //  read an empty line.
+    LineNum++;
+    if (fgets(CurLine,MAX_LINE_LEN,fin) == NULL)
+      return (EOF);
+  }
   while (CurLine[0] == '#');
 
   if (errno)
