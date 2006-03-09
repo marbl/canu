@@ -404,7 +404,8 @@ examineGap(ContigT *lcontig, int lFragIid, ContigT *rcontig, int rFragIid,
         *leftFragFlapLength = 0;
         if (overlap->trace[ numTraceElements - 1 ] > 0 && overlap->endpos > 0) {
           icnt = numTraceElements - 1;
-          while (overlap->trace[ icnt ] == strlen(rcompBuffer) - overlap->endpos + 1 && icnt >= 0) {
+          while ((icnt >= 0) &&
+                 (overlap->trace[ icnt ] == strlen(rcompBuffer) - overlap->endpos + 1)) {
             (*leftFragFlapLength)++; icnt--;
           }
         }
