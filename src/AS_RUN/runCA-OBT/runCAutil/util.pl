@@ -131,6 +131,7 @@ sub setDefaults {
     $global{"utgFragments"} =                undef;
     $global{"utgGenomeSize"} =               undef;
     $global{"useGrid"} =                     0;
+    $global{"useBogUnitig"} =                0;
     $global{"vectorIntersect"} =             undef;
 }
 

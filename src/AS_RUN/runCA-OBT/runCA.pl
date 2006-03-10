@@ -55,7 +55,11 @@ createFragmentCorrectionJobs();                 #  parallel, run manually
 mergeFragmentCorrection();
 createOverlapCorrectionJobs();                  #  parallel, run manually
 applyOverlapCorrection();
-unitigger();
+if ($global{'useBogUnitig'}) {
+    bogUnitigger();
+} else {
+    unitigger();
+}
 createPostUnitiggerConsensusJobs();             #  parallel, run manually
 checkPostUnitiggerConsensus();
 scaffolder();

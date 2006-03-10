@@ -77,6 +77,7 @@ RUNCAOBTUTIL = runCA-OBT/runCAutil/applyOverlapCorrection.pl \
                runCA-OBT/runCAutil/scaffolder.pl \
                runCA-OBT/runCAutil/terminate.pl \
                runCA-OBT/runCAutil/unitigger.pl \
+               runCA-OBT/runCAutil/bogUnitigger.pl \
                runCA-OBT/runCAutil/util.pl \
                runCA-OBT/runCAutil/scheduler.pm
 
