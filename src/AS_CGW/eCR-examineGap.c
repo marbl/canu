@@ -398,15 +398,20 @@ examineGap(ContigT *lcontig, int lFragIid, ContigT *rcontig, int rFragIid,
       // right flap, left frag
       {
         // first find the number of elements in trace
-        int numTraceElements = 0, icnt = 0;
-        while (overlap->trace[ icnt++ ] != 0) numTraceElements++;
-		
+        int numTraceElements = 0, icnt = 0, rcompLength = 0;
+        while (overlap->trace[ icnt++ ] != 0)
+          numTraceElements++;
+
         *leftFragFlapLength = 0;
-        if (overlap->trace[ numTraceElements - 1 ] > 0 && overlap->endpos > 0) {
+        if ((numTraceElements > 0) &&
+            (overlap->endpos > 0) &&
+            (overlap->trace[ numTraceElements - 1 ] > 0)) {
           icnt = numTraceElements - 1;
+          rcompLength = strlen(rcompBuffer) - overlap->endpos + 1;
           while ((icnt >= 0) &&
-                 (overlap->trace[ icnt ] == strlen(rcompBuffer) - overlap->endpos + 1)) {
-            (*leftFragFlapLength)++; icnt--;
+                 (overlap->trace[icnt] == rcompLength)) {
+            (*leftFragFlapLength)++;
+            icnt--;
           }
         }
       }
