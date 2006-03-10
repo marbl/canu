@@ -59,6 +59,7 @@ SUBDIRS = AS_MSG \
           AS_CVT \
           AS_MER \
           AS_MPA \
+          AS_BOG \
           AS_OBT \
           AS_UID \
           AS_RUN
@@ -77,8 +78,8 @@ ifeq ($(OSTYPE), Linux)
   CC         = gcc
   CXX        = g++
   CFLAGS_OPT = -g
-  CFLAGS    += -O3 -DANSI_C -DX86_GCC_LINUX -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
-  CXXFLAGS  += -O3 -DANSI_C -DX86_GCC_LINUX -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+  CFLAGS    += -march=i686 -Os -DANSI_C -DX86_GCC_LINUX -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+  CXXFLAGS  += -march=i686 -Os -DANSI_C -DX86_GCC_LINUX -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
   USRLIB     = /usr/X11R6/lib
   CXXDEFS    = -D__cplusplus
   LDFLAGS   += --gc-sections
