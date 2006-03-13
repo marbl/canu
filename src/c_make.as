@@ -78,12 +78,17 @@ ifeq ($(OSTYPE), Linux)
   CC         = gcc
   CXX        = g++
   CFLAGS_OPT = -g
-  CFLAGS    += -march=i686 -Os -DANSI_C -DX86_GCC_LINUX -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
-  CXXFLAGS  += -march=i686 -Os -DANSI_C -DX86_GCC_LINUX -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+  CFLAGS    += -Os -DANSI_C -DX86_GCC_LINUX -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+  CXXFLAGS  += -Os -DANSI_C -DX86_GCC_LINUX -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
   USRLIB     = /usr/X11R6/lib
   CXXDEFS    = -D__cplusplus
   LDFLAGS   += --gc-sections
 
+  ifeq ($(MACHINETYPE), i686)
+    CFLAGS   += -march=i686
+    CXXFLAGS += -march=i686
+    LDFLAGS  += -march=i686
+  endif
   ifeq ($(MACHINETYPE), x86_64)
     CC        = gcc
     CXX       = g++
