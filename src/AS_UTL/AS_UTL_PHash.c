@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_UTL_PHash.c,v 1.4 2005-03-22 19:49:28 jason_miller Exp $";
+static char CM_ID[] = "$Id: AS_UTL_PHash.c,v 1.5 2006-03-14 18:21:59 mhayton Exp $";
 /*************************************************************************
  Module:  AS_UTL_PHash
  Description:
@@ -492,8 +492,9 @@ PHashTable_AS *CreatePHashTable_AS(int numItemsToHash, char *pathToHashTable){
     hashsize(logAllocatedSize) * sizeof(PHashNode_AS) +   /* nodes */
     sizeof(PHashTable_AS);                                /* header */
 
-  allocate = (char *)malloc(totalHashSize);
+  allocate = (char *)calloc(1, totalHashSize);
   assert(NULL != allocate);
+
   table = (PHashTable_AS *)allocate;
   table->isDirty = 1; // Never been saved
   table->isReadWrite = 1;
@@ -583,7 +584,7 @@ static PHashTable_AS *OpenPHashTableCommon_AS(char *pathToHashTable, int32 readW
 	    totalFileSize, totalHashSize);
 #endif
     if(readWrite){
-      allocate = (char *)malloc(totalHashSize);
+      allocate = (char *)calloc(1, totalHashSize);
       assert(NULL != allocate);
 
       CDS_FSEEK(fp,(off_t) 0,SEEK_SET);
@@ -596,7 +597,7 @@ static PHashTable_AS *OpenPHashTableCommon_AS(char *pathToHashTable, int32 readW
       table = (PHashTable_AS *)allocate;
     }else{
 
-      table = (PHashTable_AS *)malloc(sizeof(PHashTable_AS));
+      table = (PHashTable_AS *)calloc(1, sizeof(PHashTable_AS));
       table->numBuckets = header.numBuckets;
       table->hashmask = header.hashmask;
       table->numNodesAllocated = header.numNodesAllocated;
@@ -620,7 +621,6 @@ static PHashTable_AS *OpenPHashTableCommon_AS(char *pathToHashTable, int32 readW
   table->allocated = (PHashNode_AS *) (allocate +
 				       sizeof(PHashTable_AS) +
 				       table->numBuckets * sizeof(uint32));
-
   table->isReadWrite = readWrite;
 
   return table;
