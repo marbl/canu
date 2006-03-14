@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.4 2005-03-22 19:48:53 jason_miller Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.5 2006-03-14 17:46:10 mhayton Exp $";
 
 //#define DEBUG_GKP 1
 //#define DEBUG_GKP_VERBOSE 1
@@ -77,6 +77,7 @@ int Check_FragMesg(FragMesg *frg_mesg,
       int seqLength, quaLength;
       char *s;
       
+      memset(&gkf, 0, sizeof(gkf));
       gkf.localeID = gkf.seqID = gkf.bactigID = 0;
       gkf.deleted = FALSE;
       gkf.birthBatch = batchID;

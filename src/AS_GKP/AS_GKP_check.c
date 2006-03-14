@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_GKP_check.c,v 1.4 2005-03-22 19:48:52 jason_miller Exp $";
+static char CM_ID[] = "$Id: AS_GKP_check.c,v 1.5 2006-03-14 17:46:09 mhayton Exp $";
 
 //#define DEBUG_GKP 1
 #define DEBUG_GKP_VERBOSE 1
@@ -67,6 +67,8 @@ int Check_DistanceMesg(DistanceMesg *dst_mesg,
   PHashValue_AS value;
   GateKeeperDistanceRecord gkpdst;
 
+  memset(&gkpdst, 0, sizeof(gkpdst));
+
   Transfer_DST_to_IDT_AS(dst_mesg, idt_mesg);
 
   switch(dst_mesg->action){
@@ -101,6 +103,7 @@ int Check_DistanceMesg(DistanceMesg *dst_mesg,
     InsertInPHashTable_AS(&(GkpStore.hashTable), UID_NAMESPACE_AS, dst_mesg->eaccession, &value, FALSE, TRUE);
 
     idt_mesg->iaccession = value.IID;
+
     gkpdst.UID = dst_mesg->eaccession;
     gkpdst.birthBatch = (uint16) currentBatchID;
     gkpdst.deathBatch = 0;
@@ -220,6 +223,9 @@ int Check_BatchMesg(BatchMesg *bat_mesg,
   PHashValue_AS value;
   GateKeeperBatchRecord gkpbat;
   char *comment = (char *)malloc(strlen(bat_mesg->comment) + 2048);
+
+  memset(&gkpbat, 0, sizeof(gkpbat));
+
   /* 
      Check validity of UID
      Check validity of Entrytime
@@ -310,6 +316,8 @@ int Check_LinkMesg(LinkMesg *lkg_mesg,
   PHashValue_AS value;
   GateKeeperLinkRecord newLink;
 
+  memset(&newLink, 0, sizeof(newLink));
+
   Transfer_LKG_to_ILK_AS(lkg_mesg, ilk_mesg);
 
 #ifdef DEBUG_GKP
@@ -381,6 +389,9 @@ int Check_LinkMesg(LinkMesg *lkg_mesg,
     {
       GateKeeperFragmentRecord gkFrag1;
       GateKeeperFragmentRecord gkFrag2;
+
+      memset(&gkFrag1, 0, sizeof(gkFrag1));
+      memset(&gkFrag2, 0, sizeof(gkFrag2));
 
 #ifdef DEBUG_GKP
       fprintf(Msgfp,"**** Checking a Link ADD\n");
@@ -531,6 +542,7 @@ int Check_LinkMesg(LinkMesg *lkg_mesg,
         if(matchBAC_DstsInLkgMsgs)
         {
 	  GateKeeperLocaleRecord gkpl;
+	  memset(&gkpl, 0, sizeof(gkpl));
 	  
 	  getGateKeeperLocaleStore(GkpStore.locStore, gkFrag1.localeID, &gkpl);
 
@@ -658,6 +670,9 @@ int Check_LinkMesg(LinkMesg *lkg_mesg,
       GateKeeperFragmentRecord gkFrag2;
       int deleteLink1 = 0;
 
+      memset(&gkFrag1, 0, sizeof(gkFrag1));
+      memset(&gkFrag2, 0, sizeof(gkFrag2));
+
 #ifdef DEBUG_GKP
       fprintf(Msgfp,"**** Checking a Link DELETE\n");
       fprintf(stderr,"*** Deleting link (" F_IID "," F_IID ")\n",
@@ -724,6 +739,8 @@ int Check_RepeatItemMesg(RepeatItemMesg *rpt_mesg,
   PHashValue_AS value;
   GateKeeperRepeatRecord gkprpt;
 
+  memset(&gkprpt, 0, sizeof(gkprpt));
+
   *irp_mesg = *rpt_mesg;
 
   if(rpt_mesg->length < 0){
@@ -771,7 +788,8 @@ int Check_ScreenItemMesg(ScreenItemMesg *scn_mesg,
 			 int verbose){
   PHashValue_AS value;
   GateKeeperScreenRecord gkpscn;
-
+  
+  memset(&gkpscn, 0, sizeof(gkpscn));
   gkpscn.deleted = FALSE;
   gkpscn.spare = 0;
   gkpscn.UID = scn_mesg->eaccession;
@@ -915,6 +933,9 @@ static int AddPlateWells(PlateMesg * pla_mesg,
   Well_ID well_id = 0;
   int i;
   
+  memset(&gkpwel, 0, sizeof(gkpwel));
+  memset(&gkpafr, 0, sizeof(gkpafr));
+
   gkpwel.deleted = FALSE;
   
   // check library & fragment for each well
@@ -976,6 +997,8 @@ static int AddPlateWells(PlateMesg * pla_mesg,
     /* check that the fragment type is acceptable */
     {
       GateKeeperFragmentRecord gkpfr;
+      memset(&gkpfr, 0, sizeof(gkpfr));
+
       getGateKeeperFragmentStore(GkpStore.frgStore, gkpwel.ifrag, &gkpfr);
       if(gkpfr.type != AS_READ &&
          gkpfr.type != AS_EXTR &&
@@ -1027,6 +1050,8 @@ int Check_PlateMesg(PlateMesg *pla_mesg,
                     int verbose){
   GateKeeperSequencePlateRecord gkpsqp;
   PHashValue_AS value;
+
+  memset(&gkpsqp, 0, sizeof(gkpsqp));
 
   switch(pla_mesg->action){
     case AS_ADD:
@@ -1089,6 +1114,8 @@ int Check_PlateMesg(PlateMesg *pla_mesg,
       GateKeeperSequencePlateRecord gkpsqp;
       IntWell_ID i;
       
+      memset(&gkpsqp, 0, sizeof(gkpsqp));
+
       /* Check that plate exists */
       if(HASH_SUCCESS != LookupTypeInPHashTable_AS(GkpStore.hashTable, 
                                                    UID_NAMESPACE_AS,
@@ -1111,10 +1138,13 @@ int Check_PlateMesg(PlateMesg *pla_mesg,
        */
       for(i = gkpsqp.firstWell; i < gkpsqp.firstWell + gkpsqp.numWells; i++){
         GateKeeperWellRecord gkpwel;
+        memset(&gkpwel, 0, sizeof(gkpwel));
 
         getGateKeeperWellStore(GkpStore.welStore, i, &gkpwel);
         if(gkpwel.ifrag > 0){
           GateKeeperAuxFragRecord gkpafr;
+          memset(&gkpafr, 0, sizeof(gkpafr));
+
           getGateKeeperAuxFragStore(GkpStore.auxStore, gkpwel.ifrag, &gkpafr);
           memset(&gkpafr, 0, sizeof(GateKeeperAuxFragRecord));
           setGateKeeperAuxFragStore(GkpStore.auxStore, gkpwel.ifrag, &gkpafr);
@@ -1196,6 +1226,9 @@ int Check_LinkPlateMesg(LinkPlateMesg *lkp_mesg,
   PHashValue_AS value;
   IntPlate_ID iplate_for;
   IntPlate_ID iplate_rev;
+
+  memset(&gkpsqp_for, 0, sizeof(gkpsqp_for));
+  memset(&gkpsqp_rev, 0, sizeof(gkpsqp_rev));
 
   if(lkp_mesg->action != AS_ADD &&
      lkp_mesg->action != AS_DELETE){
@@ -1310,6 +1343,8 @@ int Check_LibDonorMesg(LibDonorMesg *lib_mesg,
   IntLibrary_ID lib_iid;
   GateKeeperLibDonorRecord gkpldr;
 
+  memset(&gkpldr, 0, sizeof(gkpldr));
+
   switch(lib_mesg->action){
     case AS_ADD:
     {
@@ -1347,6 +1382,8 @@ int Check_LibDonorMesg(LibDonorMesg *lib_mesg,
                                                    Msgfp,
                                                    &value)){
         GateKeeperDonorRecord gkpdon;
+        memset(&gkpdon, 0, sizeof(gkpdon));
+
         value.type = AS_IID_DON;
         InsertInPHashTable_AS(&(GkpStore.hashTable), UID_NAMESPACE_AS, lib_mesg->donor, &value, FALSE, TRUE);
         gkpdon.deleted = 0;
@@ -1438,6 +1475,8 @@ int findLinksInCompatibleWith(GateKeeperLinkStore store,
 
   GateKeeperLinkRecordIterator iterator;
   GateKeeperLinkRecord link;
+
+  memset(&link, 0, sizeof(link));
 
 #ifdef DEBUG_GKP
   fprintf(stderr,"*FindIncompatible from link " F_IID " with link (" F_IID "," F_IID ",t%d)\n",
