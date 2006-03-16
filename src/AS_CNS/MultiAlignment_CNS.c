@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.53 2006-03-08 20:26:08 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.54 2006-03-16 19:51:58 eliv Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -675,13 +675,13 @@ int SetUngappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) 
    num_frags = GetNumIntMultiPoss(uma->f_list);
    num_unitigs = GetNumIntUnitigPoss(uma->u_list);
    unitigFrags = CreatePHashTable_AS(2*(num_frags+num_unitigs),NULL);
-   frag = GetIntMultiPos(uma->f_list,0);
-   for (ifrag=0;ifrag<num_frags;ifrag++,frag++){
+   for (ifrag=0;ifrag<num_frags;ifrag++){
+      frag = GetIntMultiPos(uma->f_list,ifrag);
       SetVA_int32(gapped_positions,frag->position.bgn,&frag->position.bgn);
       SetVA_int32(gapped_positions,frag->position.end,&frag->position.end);
    }
-   unitig = GetIntUnitigPos(uma->u_list,0);
-   for (ifrag=0;ifrag<num_unitigs;ifrag++,unitig++){
+   for (ifrag=0;ifrag<num_unitigs;ifrag++){
+      unitig = GetIntUnitigPos(uma->u_list,ifrag);
       SetVA_int32(gapped_positions,unitig->position.bgn,&unitig->position.bgn);
       SetVA_int32(gapped_positions,unitig->position.end,&unitig->position.end);
    }
@@ -700,11 +700,11 @@ int SetUngappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) 
         ungapped_pos++; 
       }
    }
-   frag = GetIntMultiPos(uma->f_list,0);
 
    first_frag=GetNumCNS_AlignedContigElements(fragment_positions);
 
-   for (ifrag=0;ifrag<num_frags;ifrag++,frag++){
+   for (ifrag=0;ifrag<num_frags;ifrag++){
+     frag = GetIntMultiPos(uma->f_list,ifrag);
      epos.frg_or_utg = CNS_ELEMENT_IS_FRAGMENT;
      epos.idx.fragment.frgIdent = frag->ident;
      hash_rc = InsertInPHashTable_AS(&unitigFrags,IDENT_NAMESPACE, (uint64) frag->ident, &value, FALSE,FALSE);
@@ -744,8 +744,8 @@ int SetUngappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) 
      AppendVA_CNS_AlignedContigElement (fragment_positions,&epos);
    }
    last_frag = GetNumCNS_AlignedContigElements(fragment_positions)-1;
-   unitig = GetIntUnitigPos(uma->u_list,0);
-   for (ifrag=0;ifrag<num_unitigs;ifrag++,unitig++){
+   for (ifrag=0;ifrag<num_unitigs;ifrag++){
+     unitig = GetIntUnitigPos(uma->u_list,ifrag);
      epos.frg_or_utg = CNS_ELEMENT_IS_UNITIG;
      epos.idx.unitig.utgIdent = unitig->ident;
      epos.idx.unitig.utgType = unitig->type;
