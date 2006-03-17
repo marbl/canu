@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.17 2006-03-09 18:27:35 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.18 2006-03-17 22:15:42 gdenisov Exp $";
 
 //  reads old and new AFG message (with and w/o chaff field)
 #define AFG_BACKWARDS_COMPATIBLE
@@ -1090,7 +1090,7 @@ static void Read_IMP_Mesg(FILE *fin, long indx)
   GET_FIELD(imp->ident,    "mid:" F_IID,"multipos id");
   GET_FIELD(imp->contained,"con:" F_IID,"contained id");
   #ifdef NEW_UNITIGGER_INTERFACE
-  GET_FIELD(imp->ident2,   "aid:" F_IID,"multipos id");
+  GET_FIELD(imp->ident2,   "bid:" F_IID,"multipos id");
   #endif
 #ifdef AS_ENABLE_SOURCE
   imp->sourceInt = -1;
@@ -2894,7 +2894,7 @@ static void Write_IMP_Mesg(FILE *fout, IntMultiPos *mlp)
   fprintf(fout,"mid:" F_IID "\n",mlp->ident);
   fprintf(fout,"con:" F_IID "\n",mlp->contained);
   #ifdef NEW_UNITIGGER_INTERFACE
-  fprintf(fout,"aid:" F_IID "\n",mlp->ident2);
+  fprintf(fout,"bid:" F_IID "\n",mlp->ident2);
   #endif
   fprintf(fout,POS2_FORMAT "\n",
           mlp->position.bgn,mlp->position.end);
