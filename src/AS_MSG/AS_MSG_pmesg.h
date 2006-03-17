@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.16 2006-02-13 22:16:31 eliv Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.17 2006-03-17 15:09:18 eliv Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -748,7 +748,7 @@ typedef struct IntMultiPos {
   int32           delta_length;
   int32          *delta;
 #ifdef i386
-  int32           ptrPad2;
+  int64           ptrPad2; // pad 8 bytes, 4 for pointer, 4 for 8-byte alignment
 #endif
 } IntMultiPos;
 
