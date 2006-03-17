@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.54 2006-03-16 19:51:58 eliv Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.55 2006-03-17 22:24:32 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -6839,17 +6839,21 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
     //    a)  containing frag (if contained)
     // or b)  previously aligned frag
 #ifdef NEW_UNITIGGER_INTERFACE
-    for (i=0;i<num_frags;i++) 
+    for (i=0;i<num_frags-1;i++) 
+    {
+       Fragment *afrag = GetFragment(fragmentStore,i);
+       Fragment *bfrag = NULL;
 #else
     for (i=1;i<num_frags;i++)
-#endif
     {
+       Fragment *bfrag = GetFragment(fragmentStore,i);
+       Fragment *afrag = NULL;
+#endif
        int ahang;
        int olap_success=0;
        int ovl=0;
        OverlapType otype;
-       Fragment *afrag = NULL;
-       Fragment *bfrag = GetFragment(fragmentStore,i); 
+       
        // check whether contained, if so
        // align_to = containing
        // else 
@@ -6859,7 +6863,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
        if (align_to < 0)
            continue;
        assert(align_to >= 0);
-       afrag = GetFragment(fragmentStore, align_to);
+       bfrag = GetFragment(fragmentStore, align_to);
        ahang = positions[i].ahang;
 #else
        align_to = i-1;
