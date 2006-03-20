@@ -34,15 +34,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.hh,v 1.7 2006-03-07 22:01:41 eliv Exp $
- * $Revision: 1.7 $
+ * $Id: AS_BOG_UnitigGraph.hh,v 1.8 2006-03-20 18:51:19 eliv Exp $
+ * $Revision: 1.8 $
 */
 
 
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.7 2006-03-07 22:01:41 eliv Exp $";
+static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.8 2006-03-20 18:51:19 eliv Exp $";
 
 #include <vector>
 #include <map>
@@ -50,7 +50,9 @@ static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.7 2
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
 
+extern "C" {
 #include "AS_MSG_pmesg.h"
+}
 
 namespace AS_BOG{
 
@@ -64,31 +66,14 @@ namespace AS_BOG{
 
 	///////////////////////////////////////////////////////////////////////
 
-	struct DoveTailNode{
-		iuid frag_id;
-		orientation_type ori;
-		long olap_len; //3' overlap, last node has no overlap
-	};
-	typedef std::vector<DoveTailNode> DoveTailPath;
+	typedef std::vector<BestEdgeOverlap> DoveTailPath;
 
-
-	struct ContaineeNode{
-		iuid frag_id;
-		int a_hang;
-		int b_hang;
-		bool same_ori;
-	};
-	typedef std::vector<ContaineeNode> ContaineeList;	
+	typedef std::vector<iuid> ContaineeList;	
 	typedef std::map<container_id, ContaineeList> ContainerMap;
 
 	///////////////////////////////////////////////////////////////////////
 
-	// Position of fragment in unitig
-	struct interval{ 
-		long begin;
-		long end;
-	};
-	typedef std::map<fragment_id, interval> FragmentPositionMap;
+	typedef std::map<fragment_id, SeqInterval> FragmentPositionMap;
 	std::ostream& operator<< (std::ostream& os, FragmentPositionMap *fpm_ptr);
 
 	///////////////////////////////////////////////////////////////////////
@@ -99,7 +84,7 @@ namespace AS_BOG{
 		~Unitig(void);		
 
 		// Compute unitig based on given dovetails and containments
-		FragmentPositionMap *computeFragmentPositions(ContainerMap*);
+		void computeFragmentPositions(ContainerMap*, BestContainmentMap*);
 
 		// Accessor methods
 		float getAvgRho(void);
@@ -109,19 +94,19 @@ namespace AS_BOG{
 		long getNumFrags(void);
 		long getNumRandomFrags(void); // For now, same as numFrags, but should be randomly sampled frag count
 		// For proto I/O messages
-		IntUnitigMesg *getIUM_Mesg(BestContainmentMap*);
+		IntUnitigMesg *getIUM_Mesg();
 		void freeIUM_Mesg(IntUnitigMesg *ium_ptr);
 
 		friend std::ostream& operator<< (std::ostream& os, Unitig& utg);
 
 		// Public Member Variables
 		iuid id;
-	        DoveTailPath *dovetail_path_ptr;
-		FragmentPositionMap *frag_pos_map_ptr;
+        DoveTailPath *dovetail_path_ptr;
+        std::vector<IntMultiPos> fragPositions;
 
 		private:
-            void placeContains( ContainerMap*, FragmentPositionMap *,
-                            iuid , interval );
+            void placeContains( const ContainerMap*, BestContainmentMap*,
+                            const iuid , const SeqInterval );
 
 			// Do not access these private variables directly, they may not be
 			//  computed yet, use accessors!
@@ -157,6 +142,7 @@ namespace AS_BOG{
 	struct UnitigGraph{
 		// This will store the entire set of unitigs that are generated
 		// It's just a unitig container.
+        ~UnitigGraph();
 
 		// Call this on a chunk graph pointer to build a unitig graph
 		void build(ChunkGraph *cg_ptr, BestOverlapGraph *bog_ptr, long num_rand_frags, long genome_size);
@@ -180,7 +166,6 @@ namespace AS_BOG{
 
 
 		private:
-            BestContainmentMap *best_cntr;
 			// Given a fragment, it will follow it's overlaps until 
 			//   the end, and return the path that it traversed.
 			DoveTailPath *_extract_dovetail_path(
@@ -190,7 +175,7 @@ namespace AS_BOG{
 				BestOverlapGraph *bog_ptr);
 
 			// Inverts the containment map to key by container, instead of containee
-			ContainerMap *_build_container_map();
+			ContainerMap *_build_container_map(BestContainmentMap*);
 
 			// Build containee list
 			ContainerMap *_extract_containees(DoveTailPath *dtp_ptr, 

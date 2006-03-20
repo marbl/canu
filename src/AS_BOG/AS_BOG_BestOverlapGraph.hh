@@ -34,8 +34,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.hh,v 1.24 2005-12-16 21:40:05 eliv Exp $
- * $Revision: 1.24 $
+ * $Id: AS_BOG_BestOverlapGraph.hh,v 1.25 2006-03-20 18:51:19 eliv Exp $
+ * $Revision: 1.25 $
 */
 
 //  System include files
@@ -50,18 +50,18 @@
 
 extern "C" {
 #include "OlapStoreOVL.h"
+#include "AS_MSG_pmesg.h"
 }
 
 namespace AS_BOG{
 
     ///////////////////////////////////////////////////////////////////////
 
-    struct BestEdgeOverlap{
-        iuid frag_b_id;
-        fragment_end_type bend;                
+    struct BestEdgeOverlap : IntMultiPos {
         int in_degree;
         float score;
-	int olap_len;
+        orientation_type ori;
+        fragment_end_type bend;                
     };
 
     struct BestFragmentOverlap{
@@ -83,9 +83,10 @@ namespace AS_BOG{
 
         iuid container;
         float score;
-        bool sameOrientation;
         int a_hang;
         int b_hang;
+        bool sameOrientation;
+        bool isPlaced;
     };
 
     typedef std::map<iuid, BestContainment> BestContainmentMap;
@@ -120,7 +121,6 @@ namespace AS_BOG{
             fragment_end_type AEnd(const Long_Olap_Data_t& olap);
             fragment_end_type BEnd(const Long_Olap_Data_t& olap);
             void processOverlap(const Long_Olap_Data_t& olap);
-            short olapLength(const Long_Olap_Data_t& olap);
             static overlap_type getType(const Long_Olap_Data_t & olap);
             virtual float scoreOverlap(const Long_Olap_Data_t& olap)=0;
 
@@ -128,6 +128,8 @@ namespace AS_BOG{
         //These should be moved to protected
             static uint16 *fragLength;
             static uint16 fragLen( iuid );
+            static uint16 olapLength( iuid, iuid, short, short);
+            static uint16 olapLength(const Long_Olap_Data_t& olap);
 
             BestContainmentMap _best_containments;
 
@@ -167,6 +169,7 @@ namespace AS_BOG{
     ///////////////////////////////////////////////////////////////////////////
     struct BOG_Runner {
         BOG_Runner(int lastFrag) { BestOverlapGraph::lastFrg = lastFrag; }
+        ~BOG_Runner();
         void push_back(BestOverlapGraph *bog) { metrics.push_back(bog); }
         void processOverlapStream(OVL_Store_t *, OVL_Stream_t *, const char*);
 

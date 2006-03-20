@@ -31,11 +31,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FindContainedFrags.cc,v 1.20 2006-03-07 22:01:41 eliv Exp $
- * $Revision: 1.20 $
+ * $Id: FindContainedFrags.cc,v 1.21 2006-03-20 18:51:19 eliv Exp $
+ * $Revision: 1.21 $
 */
 
-static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.20 2006-03-07 22:01:41 eliv Exp $";
+static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.21 2006-03-20 18:51:19 eliv Exp $";
 
 //  System include files
 
@@ -124,7 +124,7 @@ int  main
            if ( j == bogRunner.metrics.size()-1 ) {
 
                // Get the 5' overlap for the current IUID
-               CDS_IID_t b0 = five[0]->frag_b_id;
+               CDS_IID_t b0 = five[0]->ident2;
                AS_BOG::BestEdgeOverlap* f1 = five[1];
                AS_BOG::BestEdgeOverlap* f2 = five[2];
 
@@ -137,18 +137,18 @@ int  main
                     << f1->in_degree <<" "<< f2->in_degree;
 
                // Report whether best overlaps agree between graphs
-               if (b0 == five[1]->frag_b_id && b0 == five[2]->frag_b_id) {
+               if (b0 == five[1]->ident2 && b0 == five[2]->ident2) {
                    cout <<" best "; cout.width(pad * 3 + 2);
                    cout << b0 ;
                } else { 
                    cout<< " diff "          ; cout.width(pad);
                    cout<< b0 <<" "          ; cout.width(pad);
-                   cout<< f1->frag_b_id<<" "; cout.width(pad);
-                   cout<< f2->frag_b_id ;
+                   cout<< f1->ident2<<" "; cout.width(pad);
+                   cout<< f2->ident2 ;
                }
 
                // Get the 3' overlap for the current IUID
-               b0 = three[0]->frag_b_id;
+               b0 = three[0]->ident2;
                f1 = three[1];
                f2 = three[2];
 
@@ -157,14 +157,14 @@ int  main
                     << f1->in_degree <<" "<< f2->in_degree;
 
                // Report whether best overlaps agree between graphs
-               if (b0 == three[1]->frag_b_id && b0 == three[2]->frag_b_id) {
+               if (b0 == three[1]->ident2 && b0 == three[2]->ident2) {
                    cout <<" best "; cout.width(pad);
                    cout << b0 << endl;
                } else { 
                    cout<<" diff ";            cout.width(pad);
                    cout<< b0 <<" ";           cout.width(pad);
-                   cout<< f1->frag_b_id<<" "; cout.width(pad);
-                   cout<< f2->frag_b_id << endl;
+                   cout<< f1->ident2<<" "; cout.width(pad);
+                   cout<< f2->ident2 << endl;
                }
 
            }

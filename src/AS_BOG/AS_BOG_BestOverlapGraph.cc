@@ -37,11 +37,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.26 2006-03-07 22:01:41 eliv Exp $
- * $Revision: 1.26 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.27 2006-03-20 18:51:19 eliv Exp $
+ * $Revision: 1.27 $
 */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.26 2006-03-07 22:01:41 eliv Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.27 2006-03-20 18:51:19 eliv Exp $";
 
 //  System include files
 #include<iostream>
@@ -137,17 +137,25 @@ namespace AS_BOG{
     void BestOverlapGraph::setBestEdgeOverlap(const Long_Olap_Data_t& olap, float newScore) {
 
         if (AEnd(olap) == THREE_PRIME) {
-            _best_overlaps[ olap.a_iid ].three_prime.frag_b_id = olap.b_iid;
-            _best_overlaps[ olap.a_iid ].three_prime.score     = newScore;
-            _best_overlaps[ olap.a_iid ].three_prime.bend      = BEnd(olap);
-            _best_overlaps[ olap.a_iid ].three_prime.olap_len  = olapLength(olap);
+            _best_overlaps[ olap.a_iid ].three_prime.type   = AS_READ;
+            _best_overlaps[ olap.a_iid ].three_prime.ident  = olap.a_iid;
+            _best_overlaps[ olap.a_iid ].three_prime.ident2 = olap.b_iid;
+            _best_overlaps[ olap.a_iid ].three_prime.score  = newScore;
+            _best_overlaps[ olap.a_iid ].three_prime.bend   = BEnd(olap);
+            _best_overlaps[ olap.a_iid ].three_prime.ahang  = olap.a_hang;
+            _best_overlaps[ olap.a_iid ].three_prime.bhang  = olap.b_hang;
+            _best_overlaps[ olap.a_iid ].three_prime.ori    = UNKNOWN;
 
         }
         if (AEnd(olap) == FIVE_PRIME) {
-            _best_overlaps[ olap.a_iid ].five_prime.frag_b_id = olap.b_iid;
-            _best_overlaps[ olap.a_iid ].five_prime.score     = newScore;
-            _best_overlaps[ olap.a_iid ].five_prime.bend      = BEnd(olap);
-            _best_overlaps[ olap.a_iid ].five_prime.olap_len  = olapLength(olap);
+            _best_overlaps[ olap.a_iid ].five_prime.type   = AS_READ;
+            _best_overlaps[ olap.a_iid ].five_prime.ident  = olap.a_iid;
+            _best_overlaps[ olap.a_iid ].five_prime.ident2 = olap.b_iid;
+            _best_overlaps[ olap.a_iid ].five_prime.score  = newScore;
+            _best_overlaps[ olap.a_iid ].five_prime.bend   = BEnd(olap);
+            _best_overlaps[ olap.a_iid ].five_prime.ahang  = olap.a_hang;
+            _best_overlaps[ olap.a_iid ].five_prime.bhang  = olap.b_hang;
+            _best_overlaps[ olap.a_iid ].five_prime.ori    = UNKNOWN;
         }
     }
 
@@ -159,6 +167,7 @@ namespace AS_BOG{
         newBest.sameOrientation =  olap.flipped ? false : true;
         newBest.a_hang =  olap.a_hang;
         newBest.b_hang =  olap.b_hang;
+        newBest.isPlaced = false;
         _best_containments[ olap.b_iid ] = newBest;
     }
     bool BestOverlapGraph::isContained(const iuid fragIID) {
@@ -298,25 +307,29 @@ namespace AS_BOG{
 
     ///////////////////////////////////////////////////////////////////////////
 
-    short BestOverlapGraph::olapLength(const Long_Olap_Data_t& olap) {
+    uint16 BestOverlapGraph::olapLength(iuid a_iid, iuid b_iid,
+                                       short a_hang, short b_hang ) {
         // Computes overlap length given the amount of overhang in the
         //   overlap record and fragment length (which is not in the
         //   overlap record).
-        uint16 alen = fragLen(olap.a_iid);
-        if (olap.a_hang < 0) {
-            if (olap.b_hang < 0 )
-                return alen + olap.b_hang;
+        uint16 alen = fragLen(a_iid);
+        if (a_hang < 0) {
+            if (b_hang < 0 )
+                return alen + b_hang;
             else { 
-                uint16 blen = fragLen(olap.a_iid);
-                return blen + olap.a_hang - olap.b_hang; // spur or containment
+                uint16 blen = fragLen(b_iid);
+                return blen + a_hang - b_hang; // spur or containment
             }
 
         } else {
-            if (olap.b_hang < 0 )
-                return alen + olap.b_hang - olap.a_hang; // spur or containment
+            if (b_hang < 0 )
+                return alen + b_hang - a_hang; // spur or containment
             else
-                return alen - olap.a_hang;
+                return alen - a_hang;
         }
+    }
+    uint16 BestOverlapGraph::olapLength(const Long_Olap_Data_t& olap) {
+        return olapLength(olap.a_iid, olap.b_iid, olap.a_hang, olap.b_hang);
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -326,7 +339,7 @@ namespace AS_BOG{
             return;
         if ( ! isContained(curFrag) ) {
             // Update B's in degree on A's 3' End
-            iuid bid = _best_overlaps[ curFrag ].three_prime.frag_b_id;
+            iuid bid = _best_overlaps[ curFrag ].three_prime.ident2;
             switch(_best_overlaps[ curFrag ].three_prime.bend){
                 case THREE_PRIME:
                     _best_overlaps[ bid ].three_prime.in_degree++; break;
@@ -336,7 +349,7 @@ namespace AS_BOG{
             }
 
             // Update B's in degree on A's 5' End
-            bid = _best_overlaps[ curFrag ].five_prime.frag_b_id;
+            bid = _best_overlaps[ curFrag ].five_prime.ident2;
             switch(_best_overlaps[ curFrag ].five_prime.bend){
                 case THREE_PRIME:
                     _best_overlaps[ bid ].three_prime.in_degree++; break;
@@ -507,9 +520,9 @@ namespace AS_BOG{
 
 	for(i=begin; i<=end; i++){
 	    std::cout << 
-		_best_overlaps[i].five_prime.frag_b_id << 
+		_best_overlaps[i].five_prime.ident2 << 
 		"<-" << i << "->" <<
-	        _best_overlaps[i].three_prime.frag_b_id << 
+	        _best_overlaps[i].three_prime.ident2 << 
 		"\t" <<  _best_overlaps[i].five_prime.in_degree <<
 		"/" <<  _best_overlaps[i].three_prime.in_degree <<
 		std::endl;
@@ -553,6 +566,11 @@ For debugging i386, alpha differences on float conversion
 
     ///////////////////////////////////////////////////////////////////////////
 
+    BOG_Runner::~BOG_Runner() {
+        std::vector<BestOverlapGraph*>::iterator bogIter = metrics.begin();
+        for(; bogIter != metrics.end(); bogIter++)
+            delete *bogIter;
+    }
     void BOG_Runner::processOverlapStream(OVL_Store_t * my_store,OVL_Stream_t *my_stream,
             const char* FRG_Store_Path ) {
 

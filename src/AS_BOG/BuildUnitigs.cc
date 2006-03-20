@@ -30,11 +30,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: BuildUnitigs.cc,v 1.4 2006-03-07 22:01:41 eliv Exp $
- * $Revision: 1.4 $
+ * $Id: BuildUnitigs.cc,v 1.5 2006-03-20 18:51:19 eliv Exp $
+ * $Revision: 1.5 $
 */
 
-static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.4 2006-03-07 22:01:41 eliv Exp $";
+static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.5 2006-03-20 18:51:19 eliv Exp $";
 
 //  System include files
 
@@ -102,22 +102,15 @@ int  main (int argc, char * argv [])
    AS_BOG::BOG_Runner bogRunner(last);
 
    // Initialize our three different types of Best Overlap Graphs
-   AS_BOG::ErateScore erScore;
-   AS_BOG::LongestEdge lenScore;
-   AS_BOG::LongestHighIdent len25(2.5);
-   AS_BOG::LongestHighIdent len15(1.5);
-   AS_BOG::LongestHighIdent len10(1.0);
-
-   // Put the three graphs into a vector, so we can step through them
-   bogRunner.push_back(&len25);
-   bogRunner.push_back(&len15);
-   bogRunner.push_back(&len10);
+   //AS_BOG::ErateScore erScore;
+   //AS_BOG::LongestEdge lenScore;
+   bogRunner.push_back( new AS_BOG::LongestHighIdent(2.5));
+   bogRunner.push_back( new AS_BOG::LongestHighIdent(1.5));
+   bogRunner.push_back( new AS_BOG::LongestHighIdent(1.0));
 
    bogRunner.processOverlapStream(my_store, my_stream, FRG_Store_Path);
 
-
    ////////////////////////////////////////////////////////////////////////////
-
 
    int i;
    for(i=0; i<3; i++){
@@ -133,6 +126,7 @@ int  main (int argc, char * argv [])
 	AS_BOG::UnitigGraph utg;
 	std::cerr << "Building Unitigs.\n" << std::endl;
 	utg.build(&cg, bogRunner.metrics[i], cg.getNumFragments(), genome_size=0);
+
 	std::cerr << "Reporting.\n" << std::endl;
 	//std::cout<< utg << endl;
 	switch(i){

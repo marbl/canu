@@ -33,11 +33,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_ChunkGraph.cc,v 1.3 2005-12-16 21:40:05 eliv Exp $
- * $Revision: 1.3 $
+ * $Id: AS_BOG_ChunkGraph.cc,v 1.4 2006-03-20 18:51:19 eliv Exp $
+ * $Revision: 1.4 $
 */
 
-static char AS_BOG_CHUNK_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_ChunkGraph.cc,v 1.3 2005-12-16 21:40:05 eliv Exp $";
+static char AS_BOG_CHUNK_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_ChunkGraph.cc,v 1.4 2006-03-20 18:51:19 eliv Exp $";
 
 //  System include files
 
@@ -85,10 +85,10 @@ namespace AS_BOG{
 
 	void ChunkGraph::getChunking(
 		iuid src_frag_id,
-		iuid& five_prime_dst_frag_id, iuid& three_prime_dst_frag_id){
+		iuid* five_prime_dst_frag_id, iuid* three_prime_dst_frag_id){
 
-		five_prime_dst_frag_id=_chunkable_array[src_frag_id].five_prime;
-		three_prime_dst_frag_id=_chunkable_array[src_frag_id].three_prime;
+		*five_prime_dst_frag_id=_chunkable_array[src_frag_id].five_prime;
+		*three_prime_dst_frag_id=_chunkable_array[src_frag_id].three_prime;
 	}
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -115,6 +115,7 @@ namespace AS_BOG{
 			delete[] _chunkable_array;
 		}
 		_chunkable_array=new _chunk_unit_struct[num_frags+1];
+        memset(_chunkable_array, 0, (num_frags+1)*sizeof(_chunk_unit_struct));
 		_max_fragments=num_frags;
 
 		// Go through every fragment in the BOG
@@ -133,8 +134,8 @@ namespace AS_BOG{
 
 			// Save chunkability
 			setChunking(frag_id, 
-				(fp_chunkability)?fp_beo->frag_b_id:NULL_FRAG_ID,
-				(tp_chunkability)?tp_beo->frag_b_id:NULL_FRAG_ID
+				(fp_chunkability)?fp_beo->ident2:NULL_FRAG_ID,
+				(tp_chunkability)?tp_beo->ident2:NULL_FRAG_ID
 			);
 		}
 	}
@@ -155,10 +156,10 @@ namespace AS_BOG{
 
 			// Get B's overlap information
 			BestEdgeOverlap *b_beo;
-			b_beo=bovlg->getBestEdgeOverlap(a_beo->frag_b_id, a_beo->bend);
+			b_beo=bovlg->getBestEdgeOverlap(a_beo->ident2, a_beo->bend);
 
 			// If b points to a, as well
-			if((b_beo->frag_b_id == frag_a_id) &&
+			if((b_beo->ident2 == frag_a_id) &&
 			   (b_beo->bend == which_end)
 			){
 				// Check for unambiguous in degrees
@@ -266,33 +267,33 @@ namespace AS_BOG{
 			if(bovlg->_best_containments.find(frag_id)==
 			    bovlg->_best_containments.end()){
 
-				if(bovlg->_best_containments.find(fivep_overlap_ptr->frag_b_id)!=
+				if(bovlg->_best_containments.find(fivep_overlap_ptr->ident2)!=
 				    bovlg->_best_containments.end()){
 					std::cerr << frag_id << "(5') best olaps w/ containee:" << 
-					fivep_overlap_ptr->frag_b_id << " contained in " << 
-		(bovlg->_best_containments[threep_overlap_ptr->frag_b_id].container) <<
+					fivep_overlap_ptr->ident2 << " contained in " << 
+		(bovlg->_best_containments[threep_overlap_ptr->ident2].container) <<
 					std::endl;
 				}
-				if(bovlg->_best_containments.find(threep_overlap_ptr->frag_b_id)!=
+				if(bovlg->_best_containments.find(threep_overlap_ptr->ident2)!=
 				    bovlg->_best_containments.end()){
 					std::cerr << frag_id << "(3') best olaps w/ containee:" << 
-					threep_overlap_ptr->frag_b_id << " contained in " << 
-		(bovlg->_best_containments[threep_overlap_ptr->frag_b_id].container) <<
+					threep_overlap_ptr->ident2 << " contained in " << 
+		(bovlg->_best_containments[threep_overlap_ptr->ident2].container) <<
 					std::endl;
 				}
 
 
 				if(fivep_overlap_ptr->bend==FIVE_PRIME){
-					fivep_indegree_arr[fivep_overlap_ptr->frag_b_id]++;
+					fivep_indegree_arr[fivep_overlap_ptr->ident2]++;
 				}
 				if(fivep_overlap_ptr->bend==THREE_PRIME){
-					threep_indegree_arr[fivep_overlap_ptr->frag_b_id]++;
+					threep_indegree_arr[fivep_overlap_ptr->ident2]++;
 				}
 				if(threep_overlap_ptr->bend==FIVE_PRIME){
-					fivep_indegree_arr[threep_overlap_ptr->frag_b_id]++;
+					fivep_indegree_arr[threep_overlap_ptr->ident2]++;
 				}
 				if(threep_overlap_ptr->bend==THREE_PRIME){
-					threep_indegree_arr[threep_overlap_ptr->frag_b_id]++;
+					threep_indegree_arr[threep_overlap_ptr->ident2]++;
 				}
 			}
 		}
