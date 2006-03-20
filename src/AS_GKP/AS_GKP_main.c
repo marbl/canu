@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.5 2005-09-15 15:20:16 eliv Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.6 2006-03-20 15:39:18 mhayton Exp $";
 
 /*************************************************
 * Module:  AS_GKP_main.c
@@ -700,19 +700,39 @@ int  main(int argc, char * argv [])
        CloseGateKeeperStore(&GkpStore);
      }
    }else{
-     fprintf(stderr,"# Too Many Errors -- removing output and exiting  output_exists = %d\n", output_exists);
-     sprintf(cmd,"rm -f %s %s", Output_File_Name, Ignore_File_Name);
-     if(system(cmd) != 0) assert(0);
+     fprintf(stderr, "# ReadFile() failed - see %s for details\n",
+	     Error_File_Name);
+     fprintf(stderr,"# Too Many Errors -- removing output and exiting "
+	     "output_exists = %d\n", output_exists);
+
+     if (unlink(Output_File_Name) < 0) {
+       fprintf(stderr, "%s:%d - unlink(%s) failed: %s\n",
+	       __FILE__, __LINE__, Output_File_Name,
+	       strerror(errno));
+       exit(1);
+     }
+
+     if (unlink(Ignore_File_Name) < 0) {
+       fprintf(stderr, "%s:%d - unlink(%s) failed: %s\n",
+	       __FILE__, __LINE__, Ignore_File_Name,
+	       strerror(errno));
+       exit(1);
+     }
+
      if(append){
        sprintf(cmd,"rm -rf %s ", tmpFilePath);
        fprintf(stderr,"* Removing temp output store: %s\n",cmd);
        if(system(cmd) != 0) assert(0);
      }else{
+       CloseGateKeeperStore(&GkpStore);
        RemoveGateKeeperStoreFiles(&GkpStore);
-       if((output_exists == 0)){
-	 sprintf(cmd,"rm -rf %s ", Output_Store_Name);
-	 fprintf(stderr,"* Removing output store: rm -rf %s ", Output_Store_Name);
-         if(system(cmd) != 0) assert(0);
+       if ((output_exists == 0)) {
+         fprintf(stderr,"* Removing output store: %s ", Output_Store_Name);
+         if (rmdir(Output_Store_Name) < 0) {
+           fprintf(stderr, "%s:%d - rmdir(%s) failed: %s\n",
+              __FILE__, __LINE__, Output_Store_Name, strerror(errno));
+           exit(1);
+         }
        }
      }
    }
@@ -722,7 +742,7 @@ int  main(int argc, char * argv [])
    fclose (Outfp);
 
    exit(status != GATEKEEPER_SUCCESS);
-  }
+}
 
 
 /******************************************************************************/
@@ -1020,7 +1040,7 @@ int ReadFile(int check_qvs,
 
 	Writer((assembler == AS_ASSEMBLER_GRANDE?Outfp:Ignfp),pmesg);
         /*
-	fprintf(stderr,"# GateKeeper $Revision: 1.5 $\n");
+	fprintf(stderr,"# GateKeeper $Revision: 1.6 $\n");
 	ErrorWriter(Msgfp,pmesg);
         */
         free(params);

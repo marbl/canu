@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_GKP_include.h,v 1.4 2005-03-22 19:48:53 jason_miller Exp $ */
+/* $Id: AS_GKP_include.h,v 1.5 2006-03-20 15:39:18 mhayton Exp $ */
 
 /*************************************************
 * Module:  AS_GKP_include.h
@@ -41,6 +41,7 @@
 #define GATEKEEPER_FAILURE 2
 
 #include <stdio.h>
+#include <errno.h>
 #include "AS_PER_gkpStore.h"
 #include "AS_UTL_Var.h"
 #include "PrimitiveVA.h"
