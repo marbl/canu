@@ -494,7 +494,7 @@ done
 # Check external dependences
 ###
 $(which $XXD_BIN > /dev/null 2>&1) || {
-  echo "Err: $XXD binary not found"
+  echo "Err: $XXD_BIN binary not found"
   exit 1
 }
 
