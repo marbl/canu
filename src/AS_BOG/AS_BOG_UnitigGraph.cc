@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.12 2006-03-20 18:51:19 eliv Exp $
- * $Revision: 1.12 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.13 2006-03-21 14:40:38 eliv Exp $
+ * $Revision: 1.13 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.12 2006-03-20 18:51:19 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.13 2006-03-21 14:40:38 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -191,6 +191,12 @@ namespace AS_BOG{
                 dt_node->type  = AS_READ;
                 dt_node->ident = current_frag_id;
             }
+            // consensus likes positive hangs
+            if (dt_node->ahang < 0 && dt_node->bhang < 0 ) {
+                int tmp = -dt_node->ahang;
+                dt_node->ahang = -dt_node->bhang;
+                dt_node->bhang = tmp;
+            }
 			dt_node->ori=travel_dir;
 		    next_frag_id = dt_node->ident2;
 
@@ -207,10 +213,7 @@ namespace AS_BOG{
 			travel_dir=next_trav_dir;
         }
 
-
-
 		return(dtp_ptr);
-			
 	}
 
 	//////////////////////////////////////////////////////////////////////////////
