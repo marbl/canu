@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.13 2006-03-21 14:40:38 eliv Exp $
- * $Revision: 1.13 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.14 2006-03-22 16:39:26 eliv Exp $
+ * $Revision: 1.14 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.13 2006-03-21 14:40:38 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.14 2006-03-22 16:39:26 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -89,8 +89,8 @@ namespace AS_BOG{
             { 
 				cg_ptr->getChunking(
 					frag_idx, 
-					&fp_dst_frag_id, 
-					&tp_dst_frag_id);
+					fp_dst_frag_id, 
+					tp_dst_frag_id);
 
 				if(  // If the 5' end is NULL but 3' end isn't, or vice versa
 				    (fp_dst_frag_id == NULL_FRAG_ID &&
@@ -112,15 +112,15 @@ namespace AS_BOG{
 					if(fp_dst_frag_id == NULL_FRAG_ID && tp_dst_frag_id != NULL_FRAG_ID){
 						utg->dovetail_path_ptr=
 							_extract_dovetail_path(
-								frag_idx, FORWARD, cg_ptr, bog_ptr);
+								frag_idx, THREE_PRIME, cg_ptr, bog_ptr);
 					}else if(tp_dst_frag_id == NULL_FRAG_ID && fp_dst_frag_id != NULL_FRAG_ID){
 						utg->dovetail_path_ptr=
 							_extract_dovetail_path(
-								frag_idx, REVERSE, cg_ptr, bog_ptr);
+								frag_idx, FIVE_PRIME, cg_ptr, bog_ptr);
 					}else{
 						utg->dovetail_path_ptr=
 							_extract_dovetail_path(
-								frag_idx, FORWARD, cg_ptr, bog_ptr);
+								frag_idx, THREE_PRIME, cg_ptr, bog_ptr);
 					}
 
 					// Get the fragment ID of the last fragment in the
@@ -161,7 +161,7 @@ namespace AS_BOG{
 	//////////////////////////////////////////////////////////////////////////////
 
 	DoveTailPath *UnitigGraph::_extract_dovetail_path(
-		iuid src_frag_id, orientation_type ori, ChunkGraph *cg_ptr, BestOverlapGraph *bog_ptr){
+		iuid src_frag_id, fragment_end_type firstEnd, ChunkGraph *cg_ptr, BestOverlapGraph *bog_ptr){
 
 	// Note:  I only need BestOverlapGraph for it's frag_len and olap_length
 
@@ -170,102 +170,64 @@ namespace AS_BOG{
 		iuid fp_frag_id, tp_frag_id;
 		iuid current_frag_id=src_frag_id;
 		iuid next_frag_id;
-		fragment_end_type overlap_end;
-		orientation_type travel_dir;
-
-		travel_dir=ori;	
-
-		// Start walking the chunk path
-		orientation_type next_trav_dir;
+		fragment_end_type whichEnd = firstEnd;
+        int frag_end,frag_begin;
+        frag_begin = 0;
 
 		//std::cerr<<"Working on: "<<src_frag_id<< " Dir: " << travel_dir <<std::endl;
 		iuid last_frag_id;
 		while(current_frag_id != NULL_FRAG_ID) {
-            fragment_end_type whichEnd = travel_dir == FORWARD ? THREE_PRIME :
-                                                                  FIVE_PRIME ;
 			// Store the current fragment into dovetail path
-			BestEdgeOverlap* dt_node = bog_ptr->getBestEdgeOverlap(
+			BestEdgeOverlap* bestEdge = bog_ptr->getBestEdgeOverlap(
 				current_frag_id, whichEnd
                 );
-            if (dt_node->ident == 0) {
-                dt_node->type  = AS_READ;
-                dt_node->ident = current_frag_id;
+            DoveTailNode dt_node;
+            dt_node.type         = AS_READ;
+            dt_node.ident        = current_frag_id;
+            dt_node.sourceInt    = -1;
+            dt_node.contained    = 0;
+            dt_node.delta_length = 0;
+            dt_node.delta        = NULL;
+            next_frag_id         = bestEdge->frag_b_id;
+#ifdef NEW_UNITIGGER_INTERFACE
+            dt_node.ident2       = next_frag_id;
+            // consensus wants positive hangs, so swap
+            if (bestEdge->ahang < 0 && bestEdge->bhang < 0 ) {
+                dt_node.ahang = -bestEdge->bhang;
+                dt_node.bhang = -bestEdge->ahang;
+            } else {
+                dt_node.ahang = bestEdge->ahang;
+                dt_node.bhang = bestEdge->bhang;
             }
-            // consensus likes positive hangs
-            if (dt_node->ahang < 0 && dt_node->bhang < 0 ) {
-                int tmp = -dt_node->ahang;
-                dt_node->ahang = -dt_node->bhang;
-                dt_node->bhang = tmp;
-            }
-			dt_node->ori=travel_dir;
-		    next_frag_id = dt_node->ident2;
+#endif
+            frag_end = frag_begin + BestOverlapGraph::fragLen(current_frag_id);
 
-			dtp_ptr->push_back(*dt_node);
-
-			// Get next fragment
-			_follow_to_next_fragment(
-				current_frag_id, travel_dir,
-				next_frag_id, next_trav_dir,
-				cg_ptr);
-			
-			// Set current to next
-			current_frag_id=next_frag_id;
-			travel_dir=next_trav_dir;
-        }
-
-		return(dtp_ptr);
-	}
-
-	//////////////////////////////////////////////////////////////////////////////
-
-	void UnitigGraph::_follow_to_next_fragment(
-	    iuid src_frag_id, orientation_type src_end,
-	    iuid& dst_frag_id, orientation_type& dst_end,
-	    ChunkGraph *cg_ptr
-	){
-
-		//  5  A  3        5  B  3
-		//  O=====O -----> O=====O
-		//
-		//  Given A's ID and end, will return B's ID and the end A is not pointing to.
-
-		iuid dst_fp_frag_id, dst_tp_frag_id;	//Wht the source points at
-
-		cg_ptr->getChunking(src_frag_id, &dst_fp_frag_id, &dst_tp_frag_id);
-		//std::cerr << "[" << src_frag_id << "] " << dst_fp_frag_id << " " <<dst_tp_frag_id << 
-		//	" (" << src_end <<  ")" << std::endl;
-
-		// Follow the next node based on the suggested direction
-		if(src_end == FORWARD){
-			dst_frag_id = dst_tp_frag_id;
-		}else if(src_end == REVERSE){
-			dst_frag_id = dst_fp_frag_id;
-		}
-
-		// See what the next node is pointing to
-		iuid dst_dst_fp_frag_id, dst_dst_tp_frag_id;	//What the destination points at
-		cg_ptr->getChunking(dst_frag_id, &dst_dst_fp_frag_id, &dst_dst_tp_frag_id);
-
-		// If the next node points back to the source node, we want to go the 
-		// opposite direction
-		if(dst_dst_fp_frag_id == src_frag_id){
-			dst_end = FORWARD;
-		}else if(dst_dst_tp_frag_id == src_frag_id){
-			dst_end = REVERSE;
-		}else{
-			if(dst_frag_id != NULL_FRAG_ID){
-				std::cerr << 
-				    "Error, dst node does not point back at src node." << std::endl;
-				std::cerr << 
-				    "Src: " <<  src_frag_id << " End: " << src_end << std::endl;
-				std::cerr << 
-				    "Dst: " << dst_dst_fp_frag_id << " " << dst_dst_tp_frag_id << std::endl;
-			}else{
-				//std::cerr << "End of unitig reached.\n";
+			if(whichEnd == FIVE_PRIME){
+				dt_node.position.bgn = frag_end;
+				dt_node.position.end = frag_begin;
+			}else {
+				dt_node.position.bgn = frag_begin;
+				dt_node.position.end = frag_end;
 			}
-		}	
-		
-		return;
+			dtp_ptr->push_back(dt_node);
+
+            int chunkNextId = cg_ptr->getChunking(current_frag_id, whichEnd); 
+            if ( chunkNextId != NULL_FRAG_ID )
+                assert( chunkNextId == next_frag_id );
+
+			// Prep the start position of the next fragment
+			frag_begin = frag_end - BestOverlapGraph::olapLength( current_frag_id,
+                    next_frag_id, bestEdge->ahang, bestEdge->bhang );
+
+			// Set current to next
+			current_frag_id = chunkNextId;
+            if ( bestEdge->bend == FIVE_PRIME ) {
+                whichEnd = THREE_PRIME;
+            } else {
+                whichEnd = FIVE_PRIME;
+            }
+        }
+		return(dtp_ptr);
 	}
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -304,7 +266,7 @@ namespace AS_BOG{
 			dt_itr!=utg.dovetail_path_ptr->end(); 
 			dt_itr++){
 			
-			os << "  " << dt_itr->ident << " [" << dt_itr->ori << "]" << std::endl;
+			os << "  " << dt_itr->ident << std::endl;
 		}
 
 		os << "Containments:" << std::endl;
@@ -483,15 +445,14 @@ namespace AS_BOG{
 		
 		long max_pos=-1;
 
-		if(fragPositions.size()==0){
+		if(dovetail_path_ptr->size()==0){
 			std::cerr << "This Unitig has an empty fragPositions." << std::endl;	
 		}
 
-        std::vector<IntMultiPos>::const_iterator fpm_itr;
-
+        DoveTailPath::const_iterator fpm_itr;
 		for(
-		    fpm_itr=fragPositions.begin();
-		    fpm_itr!=fragPositions.end();
+		    fpm_itr=dovetail_path_ptr->begin();
+		    fpm_itr!=dovetail_path_ptr->end();
 		    fpm_itr++){
 
 			SeqInterval intrvl=fpm_itr->position;
@@ -513,11 +474,11 @@ namespace AS_BOG{
 
 	long Unitig::getNumFrags(void){
 
-		if(_numFrags!=-1){
-			return(_numFrags);
-		}
-        if (!fragPositions.empty()) {
-            _numFrags = fragPositions.size();
+//		if(_numFrags!=-1){
+//			return(_numFrags);
+//		}
+        if (!dovetail_path_ptr->empty()) {
+            _numFrags = dovetail_path_ptr->size();
             return _numFrags;
         }
 
@@ -560,23 +521,25 @@ namespace AS_BOG{
                     iuid cntee = *cntee_itr;
                     BestContainment &best = (*bestCtn)[ cntee ];
 
-                    if (!best.isPlaced)
+                    if (best.isPlaced)
                         continue;
 
                     assert( best.container == container );
 
                     int offset = best.a_hang;
                     int bhang  = best.b_hang;
-                    IntMultiPos pos;
+                    DoveTailNode pos;
                     pos.type         = AS_READ;
                     pos.ident        = cntee;
-                    pos.ident2       = container;
                     pos.sourceInt    = -1;
-                    pos.ahang        = offset;
-                    pos.bhang        = bhang;
                     pos.contained    = container;
                     pos.delta_length = 0;
                     pos.delta        = NULL;
+#ifdef NEW_UNITIGGER_INTERFACE
+                    pos.ident2       = container;
+                    pos.ahang        = offset;
+                    pos.bhang        = bhang;
+#endif
 
                     if(intvl.bgn < intvl.end) {
                         pos.position.bgn = intvl.bgn + offset;
@@ -597,7 +560,7 @@ namespace AS_BOG{
                         pos.position.end = tmp;
                     }
 
-                    fragPositions.push_back( pos );
+                    dovetail_path_ptr->push_back( pos );
                     best.isPlaced = true;
                     placeContains( cntnrp, bestCtn, cntee, pos.position);
                 }
@@ -610,46 +573,24 @@ namespace AS_BOG{
 		long frag_ins_begin = 0;
 		long frag_ins_end;
         iuid lastFrag = 0;
+#ifdef NEW_UNITIGGER_INTERFACE
         iuid nextFrag = 0;
-
+#endif
 		//std::cerr << "Positioning dovetails." << std::endl;
 		// place dovetails in a row
-		DoveTailPath::iterator dt_itr;
-		for(dt_itr=dovetail_path_ptr->begin();
-		    dt_itr!=dovetail_path_ptr->end(); 
-		    dt_itr++){
+        long numDoveTail = dovetail_path_ptr->size();
+		for(long i=0; i < numDoveTail-1; i++) {
+            DoveTailNode *dt_itr = &(*dovetail_path_ptr)[i];
 
             iuid fragId  = dt_itr->ident;
+#ifdef NEW_UNITIGGER_INTERFACE
             if ( nextFrag != 0 )
                 assert( nextFrag == fragId);
             nextFrag = dt_itr->ident2;
-
-            frag_ins_end = frag_ins_begin + BestOverlapGraph::fragLen(fragId);
-
-            dt_itr->sourceInt    = -1;
-            dt_itr->contained    = 0;
-            dt_itr->delta_length = 0;
-            dt_itr->delta        = NULL;
-
-			if(dt_itr->ori==REVERSE){
-				dt_itr->position.bgn = frag_ins_end;
-				dt_itr->position.end = frag_ins_begin;
-			}else if(dt_itr->ori==FORWARD){
-				dt_itr->position.bgn = frag_ins_begin;
-				dt_itr->position.end = frag_ins_end;
-			}else{
-				std::cerr << "Unknown orientation type for frag id:"
-				     << fragId << std::endl;
-			}
-
-			fragPositions.push_back(*dt_itr);
+#endif
             lastFrag = fragId;
 
             placeContains( allcntnr_ptr, bestContain, fragId, dt_itr->position);
-
-			// Prep the start position of the next fragment
-			frag_ins_begin = frag_ins_end - BestOverlapGraph::olapLength(
-                    fragId, dt_itr->ident2, dt_itr->ahang, dt_itr->bhang );
 		}
         // Compute assuming that containee is the same orientation as container
         //	if(cntnr_intvl.begin < cntnr_intvl.end)
@@ -740,7 +681,7 @@ namespace AS_BOG{
 	IntUnitigMesg *Unitig::getIUM_Mesg(){
 		
 		IntUnitigMesg *ium_mesg_ptr=new IntUnitigMesg;
-		IntMultiPos *imp_msg_arr   = &fragPositions.front();
+		IntMultiPos *imp_msg_arr   = &(dovetail_path_ptr->front());
 
 		//void qsort(void *base, size_t nmemb, size_t size,
                 //  int(*compar)(const void *, const void *));

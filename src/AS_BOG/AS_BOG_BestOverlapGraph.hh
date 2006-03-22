@@ -34,8 +34,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.hh,v 1.25 2006-03-20 18:51:19 eliv Exp $
- * $Revision: 1.25 $
+ * $Id: AS_BOG_BestOverlapGraph.hh,v 1.26 2006-03-22 16:39:26 eliv Exp $
+ * $Revision: 1.26 $
 */
 
 //  System include files
@@ -50,18 +50,19 @@
 
 extern "C" {
 #include "OlapStoreOVL.h"
-#include "AS_MSG_pmesg.h"
 }
 
 namespace AS_BOG{
 
     ///////////////////////////////////////////////////////////////////////
 
-    struct BestEdgeOverlap : IntMultiPos {
-        int in_degree;
+    struct BestEdgeOverlap{
+        iuid frag_b_id;
         float score;
-        orientation_type ori;
+        int in_degree;
         fragment_end_type bend;                
+        short ahang;
+        short bhang;
     };
 
     struct BestFragmentOverlap{
@@ -83,8 +84,8 @@ namespace AS_BOG{
 
         iuid container;
         float score;
-        int a_hang;
-        int b_hang;
+        short a_hang;
+        short b_hang;
         bool sameOrientation;
         bool isPlaced;
     };
@@ -169,7 +170,6 @@ namespace AS_BOG{
     ///////////////////////////////////////////////////////////////////////////
     struct BOG_Runner {
         BOG_Runner(int lastFrag) { BestOverlapGraph::lastFrg = lastFrag; }
-        ~BOG_Runner();
         void push_back(BestOverlapGraph *bog) { metrics.push_back(bog); }
         void processOverlapStream(OVL_Store_t *, OVL_Stream_t *, const char*);
 

@@ -34,15 +34,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.hh,v 1.8 2006-03-20 18:51:19 eliv Exp $
- * $Revision: 1.8 $
+ * $Id: AS_BOG_UnitigGraph.hh,v 1.9 2006-03-22 16:39:26 eliv Exp $
+ * $Revision: 1.9 $
 */
 
 
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.8 2006-03-20 18:51:19 eliv Exp $";
+static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.9 2006-03-22 16:39:26 eliv Exp $";
 
 #include <vector>
 #include <map>
@@ -66,7 +66,8 @@ namespace AS_BOG{
 
 	///////////////////////////////////////////////////////////////////////
 
-	typedef std::vector<BestEdgeOverlap> DoveTailPath;
+    typedef IntMultiPos DoveTailNode;
+	typedef std::vector<DoveTailNode> DoveTailPath;
 
 	typedef std::vector<iuid> ContaineeList;	
 	typedef std::map<container_id, ContaineeList> ContainerMap;
@@ -102,7 +103,6 @@ namespace AS_BOG{
 		// Public Member Variables
 		iuid id;
         DoveTailPath *dovetail_path_ptr;
-        std::vector<IntMultiPos> fragPositions;
 
 		private:
             void placeContains( const ContainerMap*, BestContainmentMap*,
@@ -170,7 +170,7 @@ namespace AS_BOG{
 			//   the end, and return the path that it traversed.
 			DoveTailPath *_extract_dovetail_path(
 				iuid src_frag_id, 
-				orientation_type direction,
+				fragment_end_type whichEnd,
 				ChunkGraph *cg_ptr,
 				BestOverlapGraph *bog_ptr);
 
@@ -180,13 +180,6 @@ namespace AS_BOG{
 			// Build containee list
 			ContainerMap *_extract_containees(DoveTailPath *dtp_ptr, 
 				ContainerMap *cntnrmap_ptr);
-
-			// Given a fragment and end, it will find the fragment it
-			// overlaps and it's end.
-			void _follow_to_next_fragment(
-				iuid src_frag_id, orientation_type src_end,
-				iuid& dst_frag_id, orientation_type& dst_end,
-				ChunkGraph *cg_ptr);
 
 			// Compute the global arrival rate based on the unitig rho's.
 			float _compute_global_arrival_rate(void);

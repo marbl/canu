@@ -36,14 +36,14 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_ChunkGraph.hh,v 1.3 2006-03-20 18:51:19 eliv Exp $
- * $Revision: 1.3 $
+ * $Id: AS_BOG_ChunkGraph.hh,v 1.4 2006-03-22 16:39:26 eliv Exp $
+ * $Revision: 1.4 $
 */
 
 #ifndef INCLUDE_AS_BOG_CHUNKGRAPH
 #define INCLUDE_AS_BOG_CHUNKGRAPH
 
-static char AS_BOG_CHUNK_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_ChunkGraph.hh,v 1.3 2006-03-20 18:51:19 eliv Exp $";
+static char AS_BOG_CHUNK_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_ChunkGraph.hh,v 1.4 2006-03-22 16:39:26 eliv Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -80,7 +80,7 @@ namespace AS_BOG{
 
 		void getChunking(
 			iuid src_frag_id, 
-			iuid* five_prime_dst_frag_id, iuid* three_prime_dst_frag_id);
+			iuid& five_prime_dst_frag_id, iuid& three_prime_dst_frag_id);
 
 		void setChunking(
 			iuid src_frag_id, 
