@@ -19,7 +19,6 @@ int main() { return (sizeof(unsigned long) * 8) != 64; }
 EOF
 
   $CC -o $exe_file $src_file > /dev/null 2>&1
-  $CC -o $exe_file $src_file 
   if [ ! -f $exe_file ]; then
     echo "is_64bit: couldn't compile test program"
     exit 1
