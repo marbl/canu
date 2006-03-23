@@ -16,6 +16,7 @@ usage="Usage: $progname <gkpbin>
 
 FRAG_PREF="inv_clr"
 FRAG_FILE=${FRAG_PREF}.frg
+ERR_FILE=${FRAG_PREF}.err
 
 GKP_BIN=""
 
@@ -35,6 +36,7 @@ FAILED() {
 
 CLEANUP() {
   rm -f $FRAG_FILE
+  rm -f $ERR_FILE
 }
 
 
