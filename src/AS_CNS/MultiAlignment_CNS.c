@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.56 2006-03-23 03:22:12 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.57 2006-03-23 22:43:50 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -6839,7 +6839,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
     //    a)  containing frag (if contained)
     // or b)  previously aligned frag
 #ifdef NEW_UNITIGGER_INTERFACE
-    for (i=0;i<num_frags-1;i++) 
+    for (i=0;i<num_frags;i++) 
     {
        Fragment *afrag = GetFragment(fragmentStore,i);
        Fragment *bfrag = NULL;
@@ -6859,10 +6859,27 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
        // else 
        int frag_forced=0;
 #ifdef NEW_UNITIGGER_INTERFACE
+#if 0
+       fprintf(stderr, "i=%d contained=%d align_to=%d num_frags=%d\n", 
+           i, afrag->contained, align_to, num_frags);
+#endif
+       // Don't process the last fragment unless it is contained!
+       if ((i==num_frags-1) && !afrag->contained)
+           continue;
        align_to = GetFragmentIndex(positions[i].ident2, positions, num_frags);
+       if (align_to < 0)
+           continue;
        assert(align_to >= 0);
        ahang = positions[align_to].ahang;
-       bfrag = GetFragment(fragmentStore, align_to);
+       if (align_to < i)
+       {
+           // Redefine afrag and bfrag: afrag should be the upstream one!
+           bfrag = afrag;
+           ahang = positions[i].ahang;
+           afrag = GetFragment(fragmentStore, align_to);
+       }
+       else
+           bfrag = GetFragment(fragmentStore, align_to);
 #else
        align_to = i-1;
        while (! olap_success) 
