@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.55 2006-03-17 22:24:32 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.56 2006-03-23 03:22:12 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -6860,11 +6860,9 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
        int frag_forced=0;
 #ifdef NEW_UNITIGGER_INTERFACE
        align_to = GetFragmentIndex(positions[i].ident2, positions, num_frags);
-       if (align_to < 0)
-           continue;
        assert(align_to >= 0);
+       ahang = positions[align_to].ahang;
        bfrag = GetFragment(fragmentStore, align_to);
-       ahang = positions[i].ahang;
 #else
        align_to = i-1;
        while (! olap_success) 
