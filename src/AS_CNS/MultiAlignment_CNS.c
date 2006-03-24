@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.57 2006-03-23 22:43:50 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.58 2006-03-24 15:38:59 eliv Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -6870,12 +6870,11 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
        if (align_to < 0)
            continue;
        assert(align_to >= 0);
-       ahang = positions[align_to].ahang;
+       ahang = positions[i].ahang;
        if (align_to < i)
        {
            // Redefine afrag and bfrag: afrag should be the upstream one!
            bfrag = afrag;
-           ahang = positions[i].ahang;
            afrag = GetFragment(fragmentStore, align_to);
        }
        else

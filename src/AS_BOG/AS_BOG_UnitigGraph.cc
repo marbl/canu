@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.14 2006-03-22 16:39:26 eliv Exp $
- * $Revision: 1.14 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.15 2006-03-24 15:38:59 eliv Exp $
+ * $Revision: 1.15 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.14 2006-03-22 16:39:26 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.15 2006-03-24 15:38:59 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -535,20 +535,26 @@ namespace AS_BOG{
                     pos.contained    = container;
                     pos.delta_length = 0;
                     pos.delta        = NULL;
-#ifdef NEW_UNITIGGER_INTERFACE
-                    pos.ident2       = container;
-                    pos.ahang        = offset;
-                    pos.bhang        = bhang;
-#endif
 
                     if(intvl.bgn < intvl.end) {
                         pos.position.bgn = intvl.bgn + offset;
                         pos.position.end = intvl.end + bhang;
+#ifdef NEW_UNITIGGER_INTERFACE
+                        pos.ident2       = container;
+                        pos.ahang        = offset;
+                        pos.bhang        = bhang;
+#endif
 
                     } else if (intvl.bgn > intvl.end) {
                         pos.position.bgn = intvl.bgn - offset;
                         pos.position.end = intvl.end - bhang;
-
+#ifdef NEW_UNITIGGER_INTERFACE
+                        pos.ident2       = container;
+                        // consensus seeems to need these reversed to get the
+                        // correct alignment
+                        pos.bhang        = -offset;
+                        pos.ahang        = -bhang;
+#endif
                     }else{
                         std::cerr << "Error, container size is zero." << std::endl;
                         assert(0);
@@ -579,7 +585,7 @@ namespace AS_BOG{
 		//std::cerr << "Positioning dovetails." << std::endl;
 		// place dovetails in a row
         long numDoveTail = dovetail_path_ptr->size();
-		for(long i=0; i < numDoveTail-1; i++) {
+		for(long i=0; i < numDoveTail; i++) {
             DoveTailNode *dt_itr = &(*dovetail_path_ptr)[i];
 
             iuid fragId  = dt_itr->ident;
