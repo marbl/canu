@@ -73,10 +73,31 @@ set_BINDIR() {
   fi
 }
 
+check_BINS() {
+  local dirbin=""
+  local bin=""
+
+  for dirbin in $DIRBIN_LIST
+  do
+    bin=${BINDIR}/$(echo $dirbin | awk -F: '{ print $2 }') 
+
+    if [ ! -f $bin ]; then
+      echo "check_BINS: file $bin does not exist"
+      exit 1
+    fi
+
+    if [ ! -x $bin ]; then
+      echo "check_BINS: file $bin is not executable"
+      exit 1
+    fi
+  done
+}
+
 ####
 # MAIN:
 ####
 set_BINDIR
+check_BINS
 
 for dirbin in $DIRBIN_LIST
 do
