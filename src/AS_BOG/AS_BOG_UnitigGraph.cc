@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.15 2006-03-24 15:38:59 eliv Exp $
- * $Revision: 1.15 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.16 2006-03-24 21:38:26 eliv Exp $
+ * $Revision: 1.16 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.15 2006-03-24 15:38:59 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.16 2006-03-24 21:38:26 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -154,6 +154,7 @@ namespace AS_BOG{
 		Unitig static_proxy;
 		static_proxy.setGlobalArrivalRate(getGlobalArrivalRate(num_rand_frags, genome_size));
 
+		std::cerr << "Global Arrival Rate: " << getGlobalArrivalRate(num_rand_frags, genome_size) << std::endl;
 		std::cerr << std::endl << "There were " << unitigs.size() << " unitigs generated.\n";
 	}
 
@@ -470,6 +471,28 @@ namespace AS_BOG{
 
 	}
 
+	//////////////////////////////////////////////////////////////////////////////
+	long Unitig::getSumFragLength(void){
+	// The length of the unitig is just the position of the fragment 
+	//   with the large begin or end value 
+
+		long sum=0;
+
+		if(dovetail_path_ptr->size()==0){
+			std::cerr << "This Unitig has an empty dovetail." << std::endl;	
+		}
+
+        DoveTailPath::const_iterator fpm_itr;
+		for(
+		    fpm_itr=dovetail_path_ptr->begin();
+		    fpm_itr!=dovetail_path_ptr->end();
+		    fpm_itr++){
+
+			SeqInterval intrvl=fpm_itr->position;
+            sum += abs( intrvl.end - intrvl.bgn );
+		}
+		return(sum);
+	}
 	//////////////////////////////////////////////////////////////////////////////
 
 	long Unitig::getNumFrags(void){

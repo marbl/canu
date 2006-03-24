@@ -30,11 +30,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: BuildUnitigs.cc,v 1.5 2006-03-20 18:51:19 eliv Exp $
- * $Revision: 1.5 $
+ * $Id: BuildUnitigs.cc,v 1.6 2006-03-24 21:38:26 eliv Exp $
+ * $Revision: 1.6 $
 */
 
-static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.5 2006-03-20 18:51:19 eliv Exp $";
+static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.6 2006-03-24 21:38:26 eliv Exp $";
 
 //  System include files
 
@@ -60,7 +60,10 @@ using AS_BOG::BestOverlapGraph;
 extern "C" {
 #include "OlapStoreOVL.h"
 #include "AS_PER_fragStore.h"
+#include "AS_CGB_myhisto.h"
 }
+
+void outputHistograms(AS_BOG::UnitigGraph *);
 
 int  main (int argc, char * argv [])
 
@@ -135,6 +138,7 @@ int  main (int argc, char * argv [])
 		break;
 		case 1:
 		utg.writeIUMtoFile("len15.ium");
+        outputHistograms( &utg );
 		break;
 		case 2:
 		utg.writeIUMtoFile("len10.ium");
@@ -157,4 +161,45 @@ int  main (int argc, char * argv [])
    delete[] BestOverlapGraph::fragLength;
 
    return  0;
+}
+
+
+void outputHistograms(AS_BOG::UnitigGraph *utg) {
+    const int nsample=500;
+    const int nbucket=500;
+    MyHistoDataType zork;
+
+    Histogram_t *length_of_unitigs_histogram = create_histogram(nsample,nbucket,0,TRUE);
+    extend_histogram(length_of_unitigs_histogram, sizeof(MyHistoDataType),
+            myindexdata,mysetdata,myaggregate,myprintdata);
+
+    AS_BOG::UnitigVector::const_iterator uiter = utg->unitigs.begin();
+    for(;uiter != utg->unitigs.end(); uiter++) {
+
+        AS_BOG::Unitig *u = *uiter;
+        zork.nsamples = 1;
+        long numFrags = u->getNumFrags();
+        zork.sum_frags = numFrags;
+        zork.min_frags = numFrags;
+        zork.max_frags = numFrags;
+        long bases = u->getSumFragLength();
+        zork.sum_bp = bases;
+        zork.min_bp = bases;
+        zork.max_bp = bases;
+        long rho = static_cast<long>(u->getAvgRho());
+        zork.sum_rho = rho;
+        zork.min_rho = rho;
+        zork.max_rho = rho;
+        //long covg = static_cast<long>(rint(u->getCovStat() * 1000));
+        long covg = static_cast<long>(u->getCovStat());
+        zork.sum_discr = covg;
+        zork.min_discr = covg;
+        zork.max_discr = covg;
+        zork.sum_rs_frags=zork.min_rs_frags=zork.max_rs_frags=0;
+        zork.sum_nr_frags=zork.min_nr_frags=zork.max_nr_frags=0;
+        zork.sum_arrival=zork.min_arrival=zork.max_arrival=0;
+        add_to_histogram(length_of_unitigs_histogram,
+                u->getLength(),&zork);
+    }
+    print_histogram(stderr,length_of_unitigs_histogram, 0, 1);
 }

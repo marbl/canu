@@ -40,7 +40,7 @@ OBJECTS =  $(LIB_OBJS)  $(TOOL_OBJS)
 
 #LIBRARIES = libAS_OVL.a
 
-AS_LIBRARIES = libAS_PER.a libAS_UTL.a libAS_MSG.a libAS_OVL.a
+AS_LIBRARIES = libAS_PER.a libAS_UTL.a libAS_MSG.a libAS_OVL.a libAS_CGB.a
 #libAS_ALN.a libAS_CNS.a \
 #	libAS_CGW.a libAS_REZ.a libAS_SDB.a libAS_CNS.a libAS_CGW.a \
 #	libAS_REZ.a libAS_SDB.a libAS_ALN.a libAS_UTL.a libAS_PER.a \
