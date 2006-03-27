@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.16 2006-03-24 21:38:26 eliv Exp $
- * $Revision: 1.16 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.17 2006-03-27 18:52:00 eliv Exp $
+ * $Revision: 1.17 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.16 2006-03-24 21:38:26 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.17 2006-03-27 18:52:00 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -151,10 +151,11 @@ namespace AS_BOG{
         delete cntnrmap_ptr;
 
 		std::cerr << "Setting Global Arrival Rate.\n";
+		float globalARate = getGlobalArrivalRate(num_rand_frags, genome_size);
 		Unitig static_proxy;
-		static_proxy.setGlobalArrivalRate(getGlobalArrivalRate(num_rand_frags, genome_size));
+		static_proxy.setGlobalArrivalRate(globalARate);
 
-		std::cerr << "Global Arrival Rate: " << getGlobalArrivalRate(num_rand_frags, genome_size) << std::endl;
+		std::cerr << "Global Arrival Rate: " << globalARate << std::endl;
 		std::cerr << std::endl << "There were " << unitigs.size() << " unitigs generated.\n";
 	}
 
@@ -320,11 +321,14 @@ namespace AS_BOG{
 			    iter!=unitigs.end();
 			    iter++){
 				
-				total_rho += (*iter)->getAvgRho();
+				float avg_rho = (*iter)->getAvgRho();
+				total_rho += avg_rho;
 				float unitig_random_frags = (*iter)->getNumRandomFrags();
-				total_arrival_frags += (unitig_random_frags > 0)?
-					unitig_random_frags - 1 :
-					0;
+                if (--unitig_random_frags < 0)
+                    unitig_random_frags = 0;
+
+				total_arrival_frags += unitig_random_frags;
+                (*iter)->setLocalArrivalRate( unitig_random_frags / avg_rho );
 			}
 
 			// Estimate GAR
@@ -345,6 +349,7 @@ namespace AS_BOG{
 	Unitig::Unitig(void){
 		// Initialize values to unlikely values
 		_globalArrivalRate=-1;
+		_localArrivalRate=-1;
 		_covStat=FLT_MAX;
 		_length=-1;
 		_numFrags=-1;
@@ -363,9 +368,11 @@ namespace AS_BOG{
 
 	float Unitig::getAvgRho(void){
 
-		if(_avgRho!=-1){
+        if(dovetail_path_ptr->size() == 1) 
+            _avgRho = 1;
+		if(_avgRho!=-1)
 			return(_avgRho);
-		}
+		
 		
 		// We will compute the average rho.
 		//
@@ -402,6 +409,15 @@ namespace AS_BOG{
 	void Unitig::setGlobalArrivalRate(float global_arrival_rate){
 		_globalArrivalRate=global_arrival_rate;
 	}
+	void Unitig::setLocalArrivalRate(float local_arrival_rate){
+		_localArrivalRate=local_arrival_rate;
+	}
+	float Unitig::getLocalArrivalRate(){
+		if (_localArrivalRate != -1 )
+            return _localArrivalRate;
+        _localArrivalRate = (getNumFrags() - 1) / getAvgRho();
+        return _localArrivalRate;
+    }
 
 	//////////////////////////////////////////////////////////////////////////////
 

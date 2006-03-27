@@ -30,11 +30,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: BuildUnitigs.cc,v 1.6 2006-03-24 21:38:26 eliv Exp $
- * $Revision: 1.6 $
+ * $Id: BuildUnitigs.cc,v 1.7 2006-03-27 18:52:00 eliv Exp $
+ * $Revision: 1.7 $
 */
 
-static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.6 2006-03-24 21:38:26 eliv Exp $";
+static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.7 2006-03-27 18:52:00 eliv Exp $";
 
 //  System include files
 
@@ -170,7 +170,14 @@ void outputHistograms(AS_BOG::UnitigGraph *utg) {
     MyHistoDataType zork;
 
     Histogram_t *length_of_unitigs_histogram = create_histogram(nsample,nbucket,0,TRUE);
+    Histogram_t *covg_histogram = create_histogram(nsample,nbucket,0,TRUE);
+    Histogram_t *arate_histogram = create_histogram(nsample,nbucket,0,TRUE);
+
     extend_histogram(length_of_unitigs_histogram, sizeof(MyHistoDataType),
+            myindexdata,mysetdata,myaggregate,myprintdata);
+    extend_histogram(covg_histogram, sizeof(MyHistoDataType),
+            myindexdata,mysetdata,myaggregate,myprintdata);
+    extend_histogram(arate_histogram, sizeof(MyHistoDataType),
             myindexdata,mysetdata,myaggregate,myprintdata);
 
     AS_BOG::UnitigVector::const_iterator uiter = utg->unitigs.begin();
@@ -179,27 +186,35 @@ void outputHistograms(AS_BOG::UnitigGraph *utg) {
         AS_BOG::Unitig *u = *uiter;
         zork.nsamples = 1;
         long numFrags = u->getNumFrags();
-        zork.sum_frags = numFrags;
-        zork.min_frags = numFrags;
-        zork.max_frags = numFrags;
+        zork.sum_frags = zork.min_frags = zork.max_frags = numFrags;
+
         long bases = u->getSumFragLength();
-        zork.sum_bp = bases;
-        zork.min_bp = bases;
-        zork.max_bp = bases;
+        zork.sum_bp = zork.min_bp = zork.max_bp = bases;
+
         long rho = static_cast<long>(u->getAvgRho());
-        zork.sum_rho = rho;
-        zork.min_rho = rho;
-        zork.max_rho = rho;
+        zork.sum_rho = zork.min_rho = zork.max_rho = rho;
+
         //long covg = static_cast<long>(rint(u->getCovStat() * 1000));
-        long covg = static_cast<long>(u->getCovStat());
-        zork.sum_discr = covg;
-        zork.min_discr = covg;
-        zork.max_discr = covg;
+        long covg = static_cast<long>(rint(u->getCovStat()));
+        zork.sum_discr = zork.min_discr = zork.max_discr = covg;
+
+        long arate = static_cast<long>(rint(u->getLocalArrivalRate() * 10000));
+        zork.sum_arrival = zork.min_arrival = zork.max_arrival = arate;
+
         zork.sum_rs_frags=zork.min_rs_frags=zork.max_rs_frags=0;
         zork.sum_nr_frags=zork.min_nr_frags=zork.max_nr_frags=0;
-        zork.sum_arrival=zork.min_arrival=zork.max_arrival=0;
-        add_to_histogram(length_of_unitigs_histogram,
-                u->getLength(),&zork);
+
+        add_to_histogram(length_of_unitigs_histogram, u->getLength(), &zork);
+        add_to_histogram(covg_histogram, covg, &zork);
+        add_to_histogram(arate_histogram, arate, &zork);
     }
+    std::cerr << "Length of Unitigs histogram" << std::endl;
     print_histogram(stderr,length_of_unitigs_histogram, 0, 1);
+    std::cerr << "Unitig Coverage Stat histogram" << std::endl;
+    print_histogram(stderr,covg_histogram, 0, 1);
+    std::cerr << "Unitig Arrival Rate histogram" << std::endl;
+    print_histogram(stderr,arate_histogram, 0, 1);
+    free_histogram( length_of_unitigs_histogram );
+    free_histogram( covg_histogram );
+    free_histogram( arate_histogram );
 }

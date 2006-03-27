@@ -34,15 +34,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.hh,v 1.10 2006-03-24 21:38:26 eliv Exp $
- * $Revision: 1.10 $
+ * $Id: AS_BOG_UnitigGraph.hh,v 1.11 2006-03-27 18:52:00 eliv Exp $
+ * $Revision: 1.11 $
 */
 
 
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.10 2006-03-24 21:38:26 eliv Exp $";
+static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.11 2006-03-27 18:52:00 eliv Exp $";
 
 #include <vector>
 #include <map>
@@ -90,6 +90,8 @@ namespace AS_BOG{
 		// Accessor methods
 		float getAvgRho(void);
 		void setGlobalArrivalRate(float global_arrival_rate);
+		void setLocalArrivalRate(float local_arrival_rate);
+		float getLocalArrivalRate(void);
 		float getCovStat(void);
 		long getLength(void);
 		long getNumFrags(void);
@@ -116,6 +118,7 @@ namespace AS_BOG{
 			long _length;
 			long _numFrags;
 			long _numRandomFrags;
+			float _localArrivalRate;
 			static float _globalArrivalRate;
 	};
 
