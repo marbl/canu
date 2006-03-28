@@ -18,10 +18,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: post_analysis.c,v 1.5 2005-09-15 15:20:16 eliv Exp $ */
+/* $Id: post_analysis.c,v 1.6 2006-03-28 03:22:41 ahalpern Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "assert.h"
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -30,6 +31,16 @@
 #include "MultiAlignStore_CNS.h"
 #include "MultiAlignment_CNS.h"
 #include "AS_UTL_ID_store.h"
+
+void usage (char *pgmname){
+  fprintf(stderr,"USAGE: %s -f <frgStore> -o <outprefix> [-O] [-b <btigStore>] [-m <minlen>] [-l <iidlist>]\n"
+	  "\t-o outprefix specifies prefix of output file names\n"
+	  "\t-O instructs to write out protoIO messages of selected IDs\n"
+	  "\t-m instructs to ignore contigs less than minlen columns\n"
+	  "\t-l gives a list of contig IIDs to process\n"
+	  ,pgmname);
+  exit(-1);
+}
 
 
 int main(int argc, char *argv[])
@@ -41,86 +52,107 @@ int main(int argc, char *argv[])
  IntConConMesg *contig;
  IntUnitigMesg *unitig;
  MultiAlignT *ma;
- MultiAlignT *ma1;
- MultiAlignT *ma2;
- MultiAlignStoreT *cstore = CreateMultiAlignStoreT(0);
- MultiAlignStoreT *ustore = CreateMultiAlignStoreT(0);
- IntMultiPos *frag1;
- IntMultiPos *frag2;
- int num_frag1;
- int num_frag2;
- int ma1_len;
- int ma2_len;
- int scaffold=-1;
- int num_pairs;
  int i;
  int isplaced = 1;
  FragStoreHandle frag_store;
  FragStoreHandle bactig_store;
  FILE *pcs = NULL;
  FILE *pfs = NULL;
- FILE *dcs = NULL;
- FILE *dfs = NULL;
  FILE *out = NULL;
  FILE *sublist = NULL;
  char buffer[256];
- char *sublist_file;
- char *output_file;
+ char *frgstore_name=NULL;
+ char *bactigstore_name=NULL;
+ char *sublist_file=NULL;
+ char *outputfile_prefix=NULL;
  ID_Arrayp  tig_iids;
  ID_Arrayp  tig_iids_found;
  cds_int64  this_id;
- int do_all = 0;
- out = fopen("post_analysis.out","w");
- reader = (MesgReader)InputFileType_AS( stdin );
- frag_store = openFragStore(argv[1], "rb");
- if ( argc == 5 ) {
-   bactig_store = openFragStore(argv[2],"rb");
-   sublist_file = argv[3];
-   output_file = argv[4];
- } else {
-   bactig_store = NULL;
-   sublist_file = argv[2];
-   output_file = argv[3];
+ int do_all = 1;
+ int errflg=0;
+ char ch;
+ int min_len=0;
+
+ while ( !errflg && 
+	 ( (ch = getopt(argc, argv, "b:f:l:m:o:O")) != EOF)) {
+   switch(ch){
+   case 'b':
+     bactigstore_name = optarg;
+     break;
+   case 'f':
+     frag_store = openFragStore(optarg, "rb");
+     break;
+   case 'l':
+     do_all=0;
+     sublist_file = optarg;
+     break;
+   case 'm':
+     min_len = atoi(optarg);
+     assert(min_len>=0);
+     break;
+   case 'o':
+     outputfile_prefix=optarg;
+     break;
+   case 'O':
+     out = fopen("post_analysis.out","w");
+     assert(out!=NULL);
+     break;
+   default:
+     errflg=1;
+     break;
+   }
  }
- if ( sublist_file[0] == 'A' ) { do_all = 1;}
- sprintf(buffer,"%s.pcs",output_file);
+ if(errflg || frag_store==NULLSTOREHANDLE){
+   usage(argv[0]);
+ }
+ if(bactigstore_name!=NULL){
+   bactig_store = openFragStore(bactigstore_name,"rb");
+   assert(bactig_store!=NULL);
+ }
+
+ assert(outputfile_prefix!=NULL);
+ sprintf(buffer,"%s.pcs",outputfile_prefix);
  pcs = fopen(buffer,"w");
- sprintf(buffer,"%s.pfs",output_file);
+ sprintf(buffer,"%s.pfs",outputfile_prefix);
  pfs = fopen(buffer,"w");
  assert(pfs && pcs );
+
+ reader = InputFileType_AS( stdin );
+
    
  if ( !do_all ) {
    char   string[1000];
-   int    num_uids;
+   int    num_iids=0;
    sublist = fopen(sublist_file,"r");
    if( sublist == NULL )
      {
        fprintf( stderr, "Failed to open list file %s for reading.\n", argv[2] );
        exit(1);
      }
-   num_uids = 0;
+   num_iids = 0;
    while( fgets( string, 1000, sublist ) )
      {
-       num_uids++;
+       num_iids++;
      }
    rewind( sublist );
-   tig_iids = AllocateID_Array( num_uids );
-   tig_iids_found = AllocateID_Array( num_uids );
+   tig_iids = AllocateID_Array( num_iids );
+   tig_iids_found = AllocateID_Array( num_iids );
    if( tig_iids == NULL || tig_iids_found == NULL ) return 1;
-   for( this_id = 0; this_id < num_uids - 1; this_id++ )
+   for( this_id = 0; this_id < num_iids - 1; this_id++ )
      {
        fgets( string, 1000, sublist );
-       AppendToID_Array( tig_iids, STR_TO_UID(string, NULL, 10), 0 );
+       AppendToID_Array( tig_iids, atoi(string),1);
      }
    fgets( string, 1000, sublist );
-   AppendToID_Array( tig_iids, STR_TO_UID(string, NULL, 10), 1 );
+   AppendToID_Array( tig_iids, atoi(string), 1 );
   
    fclose( sublist );
  }
 
  while (reader(stdin,&pmesg) != EOF){
-   if (pmesg->t ==MESG_ISF)  {
+   if (pmesg->t ==MESG_ICM)  {
      contig = (IntConConMesg *) pmesg->m;
+     if(contig->length < min_len) continue;
      if( do_all || (this_id = FindID_ArrayID( tig_iids, contig->iaccession)) > -1 ) {
        if ( ! do_all ) AppendToID_Array( tig_iids_found, contig->iaccession, 1 );
        ma = CreateMultiAlignTFromICM(contig, contig->iaccession,  0);
@@ -130,11 +162,11 @@ int main(int argc, char *argv[])
        } 
          
        //      PrintMultiAlignT(out,ma,frag_store,0,0);
-       fflush(out);
-       if ( ! do_all ) {
+       if(out!=NULL)fflush(out);
+       if ( ! do_all && out != NULL) {
 	 WriteProtoMesg_AS(out,pmesg);
        }
-       fflush(out);
+       if(out!=NULL)fflush(out);
        DeleteMultiAlignT(ma);
      }
    }
@@ -144,5 +176,6 @@ int main(int argc, char *argv[])
  }
  fclose(pcs);
  fclose(pfs);
+ if(out!=NULL)fclose(out);
  exit (0);
 }
