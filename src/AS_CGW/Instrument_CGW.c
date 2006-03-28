@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.6 2005-08-24 07:47:15 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.7 2006-03-28 02:54:24 ahalpern Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -4649,7 +4649,7 @@ void PrintScaffoldMateDetail(HashTable_AS * cpHT,
     // new version here
     if(strcmp(category,"SATISFIED")==0){
       strcpy(catString,"A1CMColor");
-      row=110;
+      row=110+(int)( abs(frag5p-mate5p)/1000.);
     } else if(strcmp(category,"MISORIENTED")==0){
       if(oIs == BA_BA){
 	strcpy(catString,"A2CMColor");
