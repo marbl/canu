@@ -199,6 +199,7 @@ int MSORT(const void *l, const void *r);
 
 /* sort function for matches */
 
+
 #ifdef AHANG_BAND_TEST
 Segment *Align_Scaffold(Segment *seglist, int numsegs, int varwin,
 			Scaffold *AF, Scaffold *BF, int *best,
@@ -206,6 +207,18 @@ Segment *Align_Scaffold(Segment *seglist, int numsegs, int varwin,
 #else
 Segment *Align_Scaffold(Segment *seglist, int numsegs, int varwin,
 			Scaffold *AF, Scaffold *BF, int *best);
+#endif
+
+#undef TRY_NEW_COMPARATOR
+#ifdef  TRY_NEW_COMPARATOR
+#ifdef AHANG_BAND_TEST
+Segment *Align_Scaffold_ala_Aaron(Segment *seglist, int numsegs, int varwin,
+			Scaffold *AF, Scaffold *BF, int *best,
+			int bandbeg, int bandend);
+#else
+Segment *Align_Scaffold_ala_Aaron(Segment *seglist, int numsegs, int varwin,
+			Scaffold *AF, Scaffold *BF, int *best);
+#endif
 #endif
 
 /* find overlap alignment between two scaffolds at given sigma */
