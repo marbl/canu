@@ -127,6 +127,7 @@ int main( int argc, char *argv[])
   VA_TYPE(char) *sequence=CreateVA_char(200000);
   VA_TYPE(char) *quality=CreateVA_char(200000);
   int runConsensus=0;
+  int Ngaps=0;
 
   //  setbuf(stdout,NULL);
 
@@ -134,7 +135,7 @@ int main( int argc, char *argv[])
     int ch,errflg=0;
     optarg = NULL;
     while (!errflg && ((ch = getopt(argc, argv,
-				    "f:g:UC")) != EOF)){
+				    "f:g:NUC")) != EOF)){
       switch(ch) {
       case 'C':
 	runConsensus=1;
@@ -147,6 +148,9 @@ int main( int argc, char *argv[])
 	strcpy( GKP_Store_Name, argv[optind - 1]);
 	setGatekeeperStore = TRUE;
 	break;	  
+      case 'N':
+	Ngaps=1;
+	break;
       case 'U':
 	realUID=1;
 	break;
@@ -334,11 +338,22 @@ int main( int argc, char *argv[])
 
       ovl = Local_Overlap_AS_forCNS(clear1, clear2, -len2,len1,1,.06,1e-6,40,AS_FIND_LOCAL_ALIGN_NO_TRACE);
 
-      if(ovl==NULL||ovl->begpos<0||ovl->endpos<0){
-	// if they don't overlap, output two sequences, but with a clone UID plus "a" or "b"
+      if(ovl==NULL||
+	 ( (ovl->begpos<0||ovl->endpos<0) &&
+	   ((len1+len2)-abs(ovl->begpos)-abs(ovl->endpos))/2<100)
+	 ){
 	
-	printf(">" F_S64 "a (fragment " F_S64 ")\n%s\n>" F_S64 "b (fragment " F_S64 ")\n%s\n",
-	       mergeUid,fragUID,clear1,mergeUid,mateUID,clear2);
+	// if they don't overlap reasonably,
+
+	if(Ngaps){
+	  printf(">" F_S64 " from mated fragments " F_S64 " and " F_S64 "\n%sNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN%s\n",
+		 mergeUid,fragUID,mateUID,clear1,clear2);
+	} else {
+	  // output two sequences, but with a clone UID plus "a" or "b"
+	
+	  printf(">" F_S64 "a (fragment " F_S64 ")\n%s\n>" F_S64 "b (fragment " F_S64 ")\n%s\n",
+		 mergeUid,fragUID,clear1,mergeUid,mateUID,clear2);
+	}
 
       } else { // there is an overlap
 
