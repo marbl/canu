@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.58 2006-03-24 15:38:59 eliv Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.59 2006-03-28 05:36:57 ahalpern Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -7679,6 +7679,94 @@ int UnitigDataCmp( const void *l, const void *m) {
   return TRUE; 
 }
 
+
+int MultiAlignContig_ReBasecall(MultiAlignT *cma, VA_TYPE(char) *sequence, VA_TYPE(char) *quality, 
+                               CNS_Options *opp) 
+{
+   MANode *ma; // this is to build, for purposes of ascii printout or analysis
+   MultiAlignStoreT *contigStore;
+   int contigID=cma->id;
+   int num_unitigs,num_frags;
+   int32 num_columns=0;
+   int32 fid,i;
+   IntMultiPos *fpositions; 
+   IntUnitigPos *upositions; 
+   IntMultiVar *vl;
+   int32 nv;
+
+   // static VA_TYPE(int32) *trace=NULL;
+   static int32 *tracep=NULL;
+   
+   num_frags=GetNumIntMultiPoss(cma->f_list);
+   num_unitigs=GetNumIntUnitigPoss(cma->u_list);
+   fpositions=GetIntMultiPos(cma->f_list,0);
+   upositions=GetIntUnitigPos(cma->u_list,0);
+
+   RALPH_INIT = InitializeAlphTable();
+
+   if ( tracep == NULL ) {
+     tracep = safe_malloc(sizeof(int32)*(AS_READ_MAX_LEN+1));
+   } 
+
+   ResetStores(num_unitigs,num_columns);
+   contigStore = CreateMultiAlignStoreT(0);
+   SetMultiAlignInStore(contigStore,cma->id,cma);
+
+   ma = CreateMANode(contigID);
+   fid = AppendFragToLocalStore(AS_CONTIG, contigID, 0, 0, 0, 
+       AS_OTHER_UNITIG, contigStore);
+   SeedMAWithFragment(ma->lid, GetFragment(fragmentStore,0)->lid,-1, opp);
+     
+     // Now, loop on the fragments, applying the computed alignment from the InMultiPos:
+     for (i=0;i<num_frags;i++) {
+ 	IntMultiPos *imp=fpositions +i;
+        int ahang;
+        int32 blid;
+        Fragment *afrag=GetFragment(fragmentStore,0); // always align to the contig consensus
+	int fcomplement=(imp->position.bgn<imp->position.end)?0:1;
+        
+	ahang=(fcomplement)?imp->position.end:imp->position.bgn;
+        blid = AppendFragToLocalStore(
+	   imp->type, 
+	   imp->ident, 
+	   fcomplement,
+	   0,
+	   NULL, // bfrag->idx.fragment.frgSource,
+	   AS_OTHER_UNITIG, ///ZERO,
+	   NULL);
+        assert ( imp->delta_length < AS_READ_MAX_LEN );
+        memcpy(tracep,imp->delta,imp->delta_length*sizeof(int32));
+	tracep[imp->delta_length]=0;
+        ApplyIMPAlignment(afrag->lid,blid,ahang,tracep);
+     }
+     for (i=0;i<num_unitigs;i++) {
+ 	IntUnitigPos *iup=upositions +i;
+        int ahang;
+        int32 blid;
+        Fragment *afrag=GetFragment(fragmentStore,0); // always align to the contig consensus
+	int fcomplement=(iup->position.bgn<iup->position.end)?0:1;
+        
+	ahang=(fcomplement)?iup->position.end:iup->position.bgn;
+        blid = AppendFragToLocalStore(
+	   AS_UNITIG, 
+	   iup->ident, 
+	   fcomplement,
+	   0,
+	   NULL, // bfrag->idx.fragment.frgSource,
+	   iup->type,
+	   unitigStore);
+        assert ( iup->delta_length < AS_READ_MAX_LEN );
+        memcpy(tracep,iup->delta,iup->delta_length*sizeof(int32));
+	tracep[iup->delta_length]=0;
+        ApplyIMPAlignment(afrag->lid,blid,ahang,tracep);
+     }
+     RefreshMANode(ma->lid, 1, opp, &nv, &vl, 1, 0);
+     GetMANodeConsensus(ma->lid,sequence,quality);
+     // DeleteVA_int32(trace);
+     DeleteMANode(ma->lid);
+     if ( contigStore ) DeleteMultiAlignStoreT(contigStore);
+  return 0; 
+}
 
 int MultiAlignContig_NoCompute(FILE *outFile, 
                                int scaffoldID,MultiAlignT *cma,
