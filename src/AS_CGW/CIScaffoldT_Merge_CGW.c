@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.9 2005-11-18 22:13:35 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.10 2006-03-28 04:23:47 ahalpern Exp $";
 
 #undef ORIG_MERGE_EDGE_INVERT
 #define MINSATISFIED_CUTOFF 0.985
@@ -4210,7 +4210,12 @@ void ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
 	  assert(sai->numSegs==GetNumSegmentsInList(sai->segmentList));
 
           if((sai->segmentList =
+
+#ifdef TRY_NEW_COMPARATOR
+              Align_Scaffold_ala_Aaron(sai->segmentList,
+#else
               Align_Scaffold(sai->segmentList,
+#endif
                              //sai->numSegs,
 			     GetNumSegmentsInList(sai->segmentList), 
                              sai->varWin,
