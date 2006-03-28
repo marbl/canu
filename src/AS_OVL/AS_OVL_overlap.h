@@ -26,8 +26,8 @@
  *********************************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap.h,v 1.6 2005-09-29 14:25:29 ahalpern Exp $
- * $Revision: 1.6 $
+ * $Id: AS_OVL_overlap.h,v 1.7 2006-03-28 04:02:51 ahalpern Exp $
+ * $Revision: 1.7 $
 */
 
 
@@ -187,8 +187,13 @@
     //  cannot initiate an overlap.  Can be changed on the command
     //  line with  -K  option
 
-#define  DEFAULT_BRANCH_MATCH_VAL    0.0566
-#define  PARTIAL_BRANCH_MATCH_VAL    0.0566
+#ifdef HIGH_ERR_MODEL_IN_AS_GLOBAL_H
+  #define  DEFAULT_BRANCH_MATCH_VAL    0.259259
+  #define  PARTIAL_BRANCH_MATCH_VAL    0.259259
+#else
+  #define  DEFAULT_BRANCH_MATCH_VAL    0.0566
+  #define  PARTIAL_BRANCH_MATCH_VAL    0.0566
+#endif
     //  Value to add for a match in finding branch points.
     //  ALH: Note that AS_READ_ERROR_RATE also affects what overlaps get found
     //  ALH: Scoring seems to be unusual: given an alignment
@@ -314,7 +319,11 @@
 #define  MIN_BRANCH_END_DIST     20
     //  Branch points must be at least this many bases from the
     //  end of the fragment to be reported
-#define  MIN_BRANCH_TAIL_SLOPE   0.20
+#ifdef HIGH_ERR_MODEL_IN_AS_GLOBAL_H
+  #define  MIN_BRANCH_TAIL_SLOPE   1.0
+#else
+  #define  MIN_BRANCH_TAIL_SLOPE   0.20
+#endif
     //  Branch point tails must fall off from the max by at least
     //  this rate
 #define  MIN_CALC_KMER           4
@@ -378,7 +387,11 @@
 #if  FOR_CARL_FOSLER
   #define  WINDOW_SIZE             28
 #else
-  #define  WINDOW_SIZE             22
+  #ifdef HIGH_ERR_MODEL_IN_AS_GLOBAL_H
+    #define  WINDOW_SIZE             14
+  #else
+    #define  WINDOW_SIZE             22
+  #endif
 #endif
     //  Length of segments hashed, i.e., the  k  value in k-mer.
     //  There must be an exact match of this length or more to
