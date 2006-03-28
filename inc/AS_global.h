@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_global.h,v 1.5 2005-08-24 07:49:23 brianwalenz Exp $	 */
+/* 	$Id: AS_global.h,v 1.6 2006-03-28 04:13:29 ahalpern Exp $	 */
 
 /* This is the global include file that all C files in the AS subsystem should
    include.
@@ -48,11 +48,20 @@
 // for the allowed slop between the minimum overlap and maximum overlap before
 // calling an overlap definately a tandem repeat.
 
-#define  AS_READ_ERROR_RATE         0.06
-//#define  AS_READ_ERROR_RATE         0.10
+#undef HIGH_ERR_MODEL_IN_AS_GLOBAL_H
+#ifdef HIGH_ERR_MODEL_IN_AS_GLOBAL_H
+  #define  AS_READ_ERROR_RATE         0.35
+#else
+  #define  AS_READ_ERROR_RATE         0.06
+  //#define  AS_READ_ERROR_RATE         0.10
+#endif
     //  Errors per base allowed in matching regions between frag reads
-#define  AS_GUIDE_ERROR_RATE        0.06
-//#define  AS_GUIDE_ERROR_RATE        0.10
+#ifdef HIGH_ERR_MODEL_IN_AS_GLOBAL_H
+  #define  AS_GUIDE_ERROR_RATE        0.35
+#else
+  #define  AS_GUIDE_ERROR_RATE        0.06
+  //#define  AS_GUIDE_ERROR_RATE        0.10
+#endif
     //  Errors per base allowed in matching regions involving BAC ends
     //  or other guides.
 
