@@ -1704,7 +1704,7 @@ Segment *Align_Scaffold_ala_Aaron(Segment *seglist, int numsegs, int varwin,
     //   For each B contig,
     //     Process accessibility list (modifying following B contigs' lists and also following A-gap's left-edge accessibility list), and check for terminal solutions out bottom
     for(j=0;j<=BF->num_gaps;j++){
-      if(Project_segments_accross_Bgaps(&bestTerm,Blists,&nextAlist,i,AF,BF,varwin)){
+      if(Project_segments_across_Bgaps(&bestTerm,Blists,&nextAlist,i,AF,BF,varwin)){
 	term=1;
       }
     }
