@@ -24,7 +24,7 @@
 #include "fragmentPlacement.h"
 
 
-/*  my_getChunkInstanceID() is a clone of  pushdgetChunkInstanceID() from AS_REZ/PlaceFragments.c */
+/*  my_getChunkInstanceID() is a clone of  getChunkInstanceID() from AS_REZ/PlaceFragments.c */
 
 int my_getChunkInstanceID(ChunkInstanceT *chunk, int index)
 {
@@ -196,7 +196,10 @@ void InitCIFragTInChunkIterator(CGWFragIterator* frags,NodeCGW_T *chunk, int inc
 
   frags->includeSurrogateFrgs = includeSurrogates;
 
+
   if(frags->isCtg && frags->includeSurrogateFrgs){
+
+    // if a contig and we want surrogate frags, then we need to get all frags out of all constituent unitigs,
 
     NodeCGW_T *ci;
     InitContigTIterator(ScaffoldGraph, chunk->id, TRUE, FALSE, &(frags->subchunks));
@@ -211,6 +214,8 @@ void InitCIFragTInChunkIterator(CGWFragIterator* frags,NodeCGW_T *chunk, int inc
     InitCIFragTInChunkIterator(frags->subchunkIterator,GetGraphNode(ScaffoldGraph->CIGraph,ci->id),frags->includeSurrogateFrgs);
 
   } else {
+
+    // otherwise (either we have a unitig or we want only nonsurrogate fragments), we can use the fragments already in the multialignment
 
     int rv;
     if(frags->ma==NULL){
