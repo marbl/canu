@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.15 2005-09-15 15:20:16 eliv Exp $
- * $Revision: 1.15 $
+ * $Id: AS_OVL_overlap_common.h,v 1.16 2006-03-28 04:05:18 ahalpern Exp $
+ * $Revision: 1.16 $
 */
 
 
@@ -235,10 +235,16 @@ static int  Unique_Olap_Per_Pair = TRUE;
 static size_t  Used_Data_Len = 0;
     //  Number of bytes of Data currently occupied, including
     //  regular strings and extra kmer screen strings
+
+#ifdef HIGH_ERR_MODEL_IN_AS_GLOBAL_H
+static int  Use_Hopeless_Check = FALSE;
+#else
 static int  Use_Hopeless_Check = TRUE;
+#endif
     //  Determines whether check for absence of kmer matches
     //  at the end of a read is used to abort the overlap before
     //  the extension from a single kmer match is attempted.
+
 static int  Use_Window_Filter = FALSE;
     //  Determines whether check for a window containing too many
     //  errors is used to disqualify overlaps.
@@ -732,7 +738,12 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
             Unique_Olap_Per_Pair = TRUE;
             break;
           case  'w' :
-            Use_Window_Filter = TRUE;
+            #ifndef HIGH_ERR_MODEL_IN_AS_GLOBAL_H
+              Use_Window_Filter = TRUE;
+            #else
+              Use_Window_Filter = FALSE;
+	      fprintf(stderr,"This overlap executable looks for high-error overlaps -- window-filter turned off despite -w flag!\n");
+           #endif
             break;
           case  'z' :
             Use_Hopeless_Check = FALSE;
