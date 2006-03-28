@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.12 2006-02-13 22:16:31 eliv Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.13 2006-03-28 02:48:01 ahalpern Exp $";
 
 #define DEBUG 0
 #undef DEBUG_DETAILED
@@ -2437,6 +2437,11 @@ void ContigContainment(CIScaffoldT *scaffold, NodeCGW_T *prevCI, NodeCGW_T *this
   }
   ResetVA_IntElementPos(ContigPositions);
 
+
+  // Ad hominem critique (ALH): the following seems at this late hour an insane way to
+  // set the allowed ahang range: the input edge should be used rather than the 
+  // positions the contigs currently think they have in the scaffold ... which can be way off!
+
   if ( leftContig->offsetAEnd.mean < leftContig->offsetBEnd.mean)  // leftContig is AB
   {
 	if ( rightContig->offsetAEnd.mean < rightContig->offsetBEnd.mean) // rightContig is AB
@@ -2543,7 +2548,88 @@ void ContigContainment(CIScaffoldT *scaffold, NodeCGW_T *prevCI, NodeCGW_T *this
 	  
 	  // restore the orientation
 	  overlapOrientation = InvertEdgeOrient( (const ChunkOrientationType) overlapOrientation );
+
+	  // Now, a series of attempts involving swapping the two contigs ...
+	  {
+
+
+	    // to swap, need to:
+	    //  - change orientation to the other contig's perspective
+	    //  - change ahang range to other contig's perspective -- unless we just use -/+maxLength
+            //  - call OverlapContigs with left and right swapped
+	    overlapOrientation = EdgeOrientSwap( (const ChunkOrientationType) overlapOrientation);
+
+	    fprintf(stderr,"trying to swap contigs ... " F_CID " and " F_CID " with overlapOrientation %c minAhang: " F_COORD ", maxAhang: " F_COORD "\n",
+		    rightContig->id,leftContig->id,
+		    overlapOrientation,-maxLength,maxLength);
+
+	    contigOverlap = OverlapContigs( rightContig, leftContig, &overlapOrientation, -maxLength, maxLength, FALSE);
+	    
+	    // if we found an overlap, must munge to swap contigs
+	    if (contigOverlap==NULL){
+
+	      // try with flipped orientation as well, but not for now ...
+
+	      overlapOrientation = InvertEdgeOrient( (const ChunkOrientationType) overlapOrientation);
+
+	      fprintf(stderr,"trying swapped and inverted contigs ... " F_CID " and " F_CID " with overlapOrientation %c minAhang: " F_COORD ", maxAhang: " F_COORD "\n",
+		    rightContig->id,leftContig->id,
+		    overlapOrientation,-maxLength,maxLength);
+
+	      contigOverlap = OverlapContigs( rightContig, leftContig, &overlapOrientation, -maxLength, maxLength, FALSE);
+
+	      if ( contigOverlap != NULL)
+		{
+		  CDS_COORD_t temp;
+		  
+		  temp = -contigOverlap->begpos;
+		  contigOverlap->begpos = -contigOverlap->endpos;
+		  contigOverlap->endpos = temp;
+		}
+
+	      // restore orientation
+	      overlapOrientation = InvertEdgeOrient( (const ChunkOrientationType) overlapOrientation);
+
+	    }
+
+	    // after swapping fragments, need to correct the hangs
+	    if( contigOverlap != NULL ){
+	      contigOverlap->begpos *= -1;
+	      contigOverlap->endpos *= -1;
+	    } 
+
+	    // restore orientation
+	    overlapOrientation = EdgeOrientSwap( (const ChunkOrientationType) overlapOrientation);
+
+	  }
+
+	  // if we STILL do not have an overlap
+	  if(contigOverlap == NULL && 
+	     // AND we have been relatively conservative finding overlaps
+	     GlobalData->aligner == DP_Compare)
+	    {
+	      // make sure we are supposed to try hard ... in case someone 
+	      // moves this code around
+	      assert(tryHarder);
+
+	      // get out the big guns ...
+	      GlobalData->aligner = Local_Overlap_AS_forCNS;
+
+	      // redo the whole function, with the new aligner settings
+	      ContigContainment(scaffold, prevCI, thisCI, overlapEdge, tryHarder);
+	      // restore the settings to what they were ...
+	      GlobalData->aligner = DP_Compare;
+
+	      // if we found an overlap, then all the necessary side effects
+	      // were taken care of in the inner call of the function, so
+	      // just return
+	      if(contigOverlap != NULL){
+		return;
+	      }
+	    }
+
 	}
+
   }
 
   if (contigOverlap == NULL)
