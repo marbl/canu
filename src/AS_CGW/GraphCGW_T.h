@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: GraphCGW_T.h,v 1.6 2006-01-31 21:51:31 brianwalenz Exp $	 */
+/* 	$Id: GraphCGW_T.h,v 1.7 2006-03-28 02:51:31 ahalpern Exp $	 */
 
 /**************************************************************************
  *  GraphCGW
@@ -592,6 +592,29 @@ static ChunkOrientationType FlipEdgeOrient(ChunkOrientationType orient){
   }
   return new_orient;
 }
+
+
+// Given orientation relating X and Y as ori(X)_ori(Y), return ori(Y)_ori(X)
+static ChunkOrientationType EdgeOrientSwap
+(const ChunkOrientationType orient){
+  ChunkOrientationType new_orient = orient;
+  switch(orient){
+  case AB_BA:
+    new_orient = BA_AB; break;
+  case BA_AB:
+    new_orient = AB_BA; break;
+  case XX_XX:
+    new_orient = orient; break;
+  case AB_AB:
+    new_orient = AB_AB; break;
+  case BA_BA:
+    new_orient = BA_BA; break;
+  default:
+    assert(0);
+  }
+  return new_orient;
+}
+
 
 static NodeOrient FlipNodeOrient(NodeOrient orient){
   NodeOrient new_orient = orient;
