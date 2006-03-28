@@ -825,6 +825,8 @@ interval_list *add_to_ilist_special(interval_list *tail, interval to_add){
   assert(tail!=NULL);
   assert(to_add.beg < tail->ival.beg);
 
+  fprintf(stderr,"Inefficient addition into interval list!\n");
+
   curr=tail;
 
   // back up until to_add would be a simple append
@@ -867,8 +869,15 @@ interval_list *add_to_ilist(interval_list *tail, interval to_add){
   if (tail!=NULL){
 
     // mostly, segments will be added in an order, and constrained in a fashion, 
-    // that allow us to consider only the last segment and the new one to check for overlaps
-    // ... but when that is not the case, it requires a special case:
+    // that allow us to consider only the last segment and the new one to check for overlaps.
+    // 
+    // Ideally, this would never happen and we could:
+    //      assert( tail->ival.beg <= to_add.beg);
+    //
+    // But so far that is not strictly maintained.  Additions violating these criteria can be handled, but it is clearly less efficient,
+    // especially if applied to a simple linked list rather than something that can be searched in O(log N) rather than O(N).
+    // Currently, we use the linked list, so let us make it a special case:
+
     if(tail->ival.beg > to_add.beg){
       return(add_to_ilist_special(tail,to_add));
     }
@@ -1550,9 +1559,9 @@ int Project_segments_across_Bgaps(COvlps **bestTerm, interval_list **BgapLists, 
   int i;
   for(i=0;i<B->num_gaps;i++){
     interval_list *curr = BgapLists[i];
+    assert(curr==NULL||curr->next==NULL); /* we are going to try to process backwards, as this adds A intervals in the right order ... */
     while(curr!=NULL){
       assert(curr->ival.traceback != NULL);
-      
       if( curr->ival.traceback->seg->overlap->endpos < 0 ) {  // i.e. we come out the bottom
 	interval to_add;
 	to_add.beg = A->ctgs[whichA].length + curr->ival.traceback->seg->overlap->endpos;
@@ -1567,7 +1576,7 @@ int Project_segments_across_Bgaps(COvlps **bestTerm, interval_list **BgapLists, 
 	*nextAgapList = add_to_ilist(*nextAgapList,to_add);
       }
 
-      curr=curr->next;
+      curr=curr->prev;
     }
 
     BgapLists[i]=cleanup_ilist(BgapLists[i]);
@@ -1593,7 +1602,7 @@ int Project_segments_across_Bgaps(COvlps **bestTerm, interval_list **BgapLists, 
 	*nextAgapList = add_to_ilist(*nextAgapList,to_add);
       }
       
-      curr=curr->next;
+      curr=curr->prev;
     }
     BgapLists[i]=cleanup_ilist(BgapLists[i]);
   }
@@ -1604,47 +1613,12 @@ int Project_segments_across_Bgaps(COvlps **bestTerm, interval_list **BgapLists, 
 
 
 
-void   init_scaffold_align(seglist,numsegs,varwin,AF,BF,best
-#ifdef AHANG_BAND_TEST
-		      ,bandbeg,bandend
-#endif
-		      ){
-
-}
-
-
-
 Segment *Align_Scaffold_ala_Aaron(Segment *seglist, int numsegs, int varwin,
 			     Scaffold *AF, Scaffold *BF, int *best,
 			     int bandbeg, int bandend){
 
-// need to be able to:
-// append intervals == add_to_ilist()
-// handle a reached segment == Process_seg()
-// process the left edge of an A-gap (from list of accessible intervals to list) == Project_across_Agap()
-// process the right edge of an A-gap (from list of accessible intervals ) == Process_Agap_accessible_intervals()
-//     this includes - reaching segments on left edge of A contig and processing appropriately
-//                   - reaching segments on top edge of B contig and processing approp.
-//                   - reaching left side of following Agap and processing approp.
-// process the bottom edge of a B-gap: list of accessible intervals along an A contig == Project_segments_across_Bgaps()
 
-// Given these, top level control is:
-// Initialize 0'th A-gap's right edge with accessible interval based on banding
-// For each A-gap
-//   Initialize B-contigs' accessibility (really, accessibility of A-contig as relevant to each B-contig)
-//     For first B-contig, initialize accessible portion of A-contig based on banding
-//     Null for all others
-//   Process right edge of A-gap (modifying B-contigs' accessibility lists and following A-gap's left-edge accessibility list)
-//     Check for terminal solutions out bottom
-//   For each B contig,
-//     Process accessibility list (modifying following B contigs' lists and also following A-gap's left-edge accessibility list)
-//     If final contig,
-//       Check for terminal solutions
-//   If not final gap, 
-//     Process left edge of following A-gap (creating accessibility list for right edge of that gap)
-//   Else
-//     Check for terminal solutions
-
+  // Simple initialization stuff at the top; comments on interesting parts further down ...
 
   interval_list *thisAlist=NULL,*nextAlist=NULL,**Blists=NULL;
   interval topEdgeAccess, *contigTopEdgeAccessPtr=NULL;
@@ -1774,6 +1748,40 @@ Segment *Align_Scaffold_ala_Aaron(Segment *seglist, int numsegs, int varwin,
   }
 #endif
 
+  // Interesting stuff:
+  // need to be able to:
+  // append intervals == add_to_ilist()
+  // handle a reached segment == Process_seg()
+  // process the left edge of an A-gap (from list of accessible intervals to list) == Project_across_Agap()
+  // process the right edge of an A-gap (from list of accessible intervals ) == Process_Agap_accessible_intervals()
+  //     this includes - reaching segments on left edge of A contig and processing appropriately
+  //                   - reaching segments on top edge of B contig and processing approp.
+  //                   - reaching left side of following Agap and processing approp.
+  // process the bottom edge of a B-gap: list of accessible intervals along an A contig == Project_segments_across_Bgaps()
+
+  // Given these, top level control is:
+  // Initialize 0'th A-gap's right edge with accessible interval based on banding
+  // For each A-gap
+  //   Initialize B-contigs' accessibility (really, accessibility of A-contig as relevant to each B-contig)
+  //     For first B-contig, initialize accessible portion of A-contig based on banding
+  //     Null for all others
+  //   Process right edge of A-gap (modifying B-contigs' accessibility lists and following A-gap's left-edge accessibility list)
+  //     Check for terminal solutions out bottom
+  //   For each B contig,
+  //     Process accessibility list (modifying following B contigs' lists and also following A-gap's left-edge accessibility list)
+  //     If final contig,
+  //       Check for terminal solutions
+  //   If not final gap, 
+  //     Process left edge of following A-gap (creating accessibility list for right edge of that gap)
+  //   Else
+  //     Check for terminal solutions
+
+  // Room for improvement: For a given A-gap, if we could process the A-contig-bottom-exit-points for each B contig
+  // at just the right time, then interval additions would be guaranteed monotonic so that add_to_ilist() could always
+  // just worry about the tail of the current list.  This would sometimes require processing of the bottom edge inside the processing
+  // if an A-gap accessible interval (between processing the portion on a contig and the portion in the following gap) and sometimes
+  // require processing between A-gap accessible intervals.
+
   // Initialize along left edge of first A contig
   { interval startupAgap;
     startupAgap.end=-min(0,bandbeg);
@@ -1807,6 +1815,10 @@ Segment *Align_Scaffold_ala_Aaron(Segment *seglist, int numsegs, int varwin,
       }
     }
 
+    // thisAlist was constructed so that we always have the tail; trace backwards to get the head, as processing is assumed to be from head to tail
+    while(thisAlist!=NULL&&thisAlist->prev!=NULL){
+      thisAlist=thisAlist->prev;
+    }
     //   Process right edge of A-gap (modifying B-contigs' accessibility lists and following A-gap's left-edge accessibility list)
     if(Process_Agap_accessible_intervals(&thisAlist,
 					 contigTopEdgeAccessPtr, 
@@ -1823,6 +1835,9 @@ Segment *Align_Scaffold_ala_Aaron(Segment *seglist, int numsegs, int varwin,
     //   For each B contig,
     //     Process accessibility list (modifying following B contigs' lists and also following A-gap's left-edge accessibility list), and check for terminal solutions out bottom
     for(j=0;j<=BF->num_gaps;j++){
+      if(Blists[j]==NULL)continue;
+      interval_list *tmp=Blists[j];
+      assert(Blists[j]->next==NULL); /* we want to process these guys from tail to head, as this will potentially introduce A gap intervals from top to bottom */
       if(Project_segments_across_Bgaps(&bestTerm,Blists,&nextAlist,i,AF,BF,varwin)){
 	term=1;
       }
