@@ -1603,6 +1603,17 @@ int Project_segments_across_Bgaps(COvlps **bestTerm, interval_list **BgapLists, 
 }
 
 
+
+void   init_scaffold_align(seglist,numsegs,varwin,AF,BF,best
+#ifdef AHANG_BAND_TEST
+		      ,bandbeg,bandend
+#endif
+		      ){
+
+}
+
+
+
 Segment *Align_Scaffold_ala_Aaron(Segment *seglist, int numsegs, int varwin,
 			     Scaffold *AF, Scaffold *BF, int *best,
 			     int bandbeg, int bandend){
@@ -1645,15 +1656,123 @@ Segment *Align_Scaffold_ala_Aaron(Segment *seglist, int numsegs, int varwin,
 
   Blists=(interval_list**)safe_malloc(sizeof(interval_list)*(BF->num_gaps+1));
 
-  // setup:
+  // setup (copied directly from Align_Scaffold() ):
 
-  init_scaffold_align(seglist,numsegs,varwin,AF,BF,best
-#ifdef AHANG_BAND_TEST
-		      ,bandbeg,bandend
+#ifdef XFIG
+ static int Case=0; 
+ char fname[50]; 
+  
+ sprintf(fname,"Graphic_case_%d.fig",Case++); 
+ fprintf(stderr,"Align_Scaffold writing xfig to %s\n", fname); 
+ figfile = fopen(fname,"w"); 
+ Draw_Matrix(seglist,numsegs,AF,BF,varwin); 
 #endif
-		      );
 
 
+#ifdef AHANG_BAND_TEST
+  assert(bandbeg<=bandend);
+  assert(bandend<=AF->length);
+  assert(bandbeg>=-(BF->length));
+#endif
+
+  if (numsegs > MaxAlign)
+    { MaxAlign = (int)(1.3*numsegs + 100);
+      CtgOvls  = (COvlps *) realloc(CtgOvls,sizeof(COvlps)*MaxAlign);
+      if (CtgOvls == NULL)
+        { fprintf(stderr,"Out of memory allocating DP array\n");
+          exit (1);
+        }
+    }
+
+  if (AF->num_gaps + BF->num_gaps + 2 > MaxBucket)
+    { MaxBucket = (int)(1.3*(AF->num_gaps + BF->num_gaps + 2) + 100);
+      ABuckets  = (COvlps **) realloc(ABuckets,sizeof(COvlps *)*MaxBucket);
+      if (ABuckets == NULL)
+        { fprintf(stderr,"Out of memory allocating segment sort arrays\n");
+          exit (1);
+        }
+    }
+  BBuckets  = ABuckets + (AF->num_gaps+1);
+
+  { int i,c;
+    Segment *s;
+
+
+    for (i = 0; i <= AF->num_gaps; i++)
+      ABuckets[i] = NULL;
+    for (i = 0; i <= BF->num_gaps; i++)
+      BBuckets[i] = NULL;
+
+    c = numsegs;
+    for (s = seglist; s != NULL; s = s->next)
+      { c -= 1;
+        CtgOvls[c].seg = s;
+        CtgOvls[c].best = -1;
+        CtgOvls[c].trace = NULL;
+
+#ifdef DEBUG_SEGORDER
+	fprintf(stderr,"CtgOvls[%d] actg: %d bctg: %d\n",
+		c,CtgOvls[c].seg->a_contig,
+		CtgOvls[c].seg->b_contig);
+#endif
+	// push segment onto Alink list; this needs to result in all 
+	// segments involving s->a_contig being linked together,
+	// and the order of the elements should be such that
+	// s->b_contig <= s->Alink->b_contig (if s->Alink != NULL)
+
+        CtgOvls[c].Alink = ABuckets[s->a_contig];
+        ABuckets[s->a_contig] = CtgOvls+c;
+	if(ABuckets[s->a_contig]->Alink!=NULL)
+	  assert(ABuckets[s->a_contig]->seg->b_contig <= ABuckets[s->a_contig]->Alink->seg->b_contig);
+
+	// original code did something similar for BBuckets and Blink,
+      }
+
+
+    // push segment onto Blink list; this needs to result in all 
+    // segments involving s->b_contig being linked together,
+    // and the order of the elements should be such that
+    // s->a_contig <= s->Blink->a_contig (if s->Blink != NULL)
+    
+    for(i=AF->num_gaps;i>=0;i--){
+      COvlps *co;
+      co = ABuckets[i];
+      while(co!=NULL){
+	co->Blink = BBuckets[co->seg->b_contig];
+        BBuckets[co->seg->b_contig] = co;
+	if(co->Blink!=NULL)
+	  assert(co->seg->a_contig <= co->Blink->seg->a_contig);
+	co=co->Alink;
+      }
+    }
+
+  }
+
+#ifdef DEBUG_ALIGN
+  { Segment *s;
+    COvlps  *c;
+    int      i;
+
+    fprintf(stderr,"\nAlign Scaffolds\n\n  Seglist:\n");
+    for (s = seglist; s != NULL; s = s->next)
+      fprintf(stderr,"    (%d,%d)\n",s->a_contig,s->b_contig);
+    fprintf(stderr,"\n  A-Buckets:\n");
+    for (i = 0; i <= AF->num_gaps; i++)
+      { fprintf(stderr,"    %2d:",i);
+        for (c = ABuckets[i]; c != NULL; c = c->Alink)
+          fprintf(stderr," %d",c->seg->b_contig);
+        fprintf(stderr,"\n");
+      }
+    fprintf(stderr,"\n  B-Buckets:\n");
+    for (i = 0; i <= BF->num_gaps; i++)
+      { fprintf(stderr,"    %2d:",i);
+        for (c = BBuckets[i]; c != NULL; c = c->Blink)
+          fprintf(stderr," %d",c->seg->a_contig);
+        fprintf(stderr,"\n");
+      }
+    fprintf(stderr,"\n");
+  }
+#endif
 
   // Initialize along left edge of first A contig
   { interval startupAgap;
@@ -2272,7 +2391,7 @@ Segment *Align_Scaffold(Segment *seglist, int numsegs, int varwin,
 { int optc = 0, mval=-1;
  COvlps *optco = NULL; 
  int     score=0, term;
- 
+
 #ifdef XFIG
  static int Case=0; 
  char fname[50]; 
@@ -2388,6 +2507,7 @@ Segment *Align_Scaffold(Segment *seglist, int numsegs, int varwin,
     fprintf(stderr,"\n");
   }
 #endif
+
 
   { int i;
 
