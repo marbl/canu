@@ -39,7 +39,7 @@
 #include "Globals_CNS.h"
 #include "PublicAPI_CNS.h"
 
-static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.1 2006-03-28 03:12:43 ahalpern Exp $";
+static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.2 2006-03-28 05:38:13 ahalpern Exp $";
 
 static UIDHashTable_AS *utgUID2IID;
 
@@ -130,7 +130,7 @@ static IntUnitigMesg* convert_UTG_to_IUM(SnapUnitigMesg* utgMesg)
     for(i=0; i<iumMesg->num_frags; i++){
       iumMesg->f_list[i].type = utgMesg->f_list[i].type;
 #ifdef AS_ENABLE_SOURCE
-      iumMesg->f_list[i].source = strdup(utgMesg->f_list[i].source);
+      iumMesg->f_list[i].sourceInt = atoi(utgMesg->f_list[i].source);
 #endif
       if( iumMesg->f_list[i].type == AS_BACTIG ){
 	assert(0);
@@ -208,7 +208,7 @@ static IntConConMesg* convert_CCO_to_ICM(SnapConConMesg* ccoMesg)
     for(i=0; i<icmMesg->num_pieces; i++){// i loop
       icmMesg->pieces[i].type = ccoMesg->pieces[i].type;
 #ifdef AS_ENABLE_SOURCE
-      icmMesg->pieces[i].source = strdup(ccoMesg->pieces[i].source);
+      icmMesg->pieces[i].sourceInt = atoi(ccoMesg->pieces[i].source);
 #endif
 
       if( icmMesg->pieces[i].type == AS_BACTIG ){
@@ -486,7 +486,7 @@ int main (int argc, char *argv[]) {
       MultiAlignT *ma;
       time_t t;
       t = time(0);
-      fprintf(stderr,"# asmReBaseCall $Revision: 1.1 $ processing. Started %s\n",
+      fprintf(stderr,"# asmReBaseCall $Revision: 1.2 $ processing. Started %s\n",
 	      ctime(&t));
       InitializeAlphTable();
 
@@ -503,12 +503,6 @@ int main (int argc, char *argv[]) {
 	    ma = CreateMultiAlignTFromIUM(iunitig,-1,0);
 #ifdef AS_ENABLE_SOURCE
 	    free(iunitig->source);
-	    { 
-	      int i;
-	      for(i=0;i<iunitig->num_frags;i++){
-		free(iunitig->f_list[i].source);
-	      }
-	    }
 #endif
 	    free(iunitig->f_list);
 	    free(iunitig->consensus);
@@ -542,11 +536,6 @@ int main (int argc, char *argv[]) {
 	    }
 	    { 
 	      int i;
-#ifdef AS_ENABLE_SOURCE
-	      for(i=0;i<icontig->num_pieces;i++){
-		free(icontig->pieces[i].source);
-	      }
-#endif
 	      if(icontig->v_list!=NULL){
 		for(i=0;i<icontig->num_vars;i++){
 		  free(icontig->v_list[i].var_seq);
