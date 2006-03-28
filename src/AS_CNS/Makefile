@@ -35,16 +35,15 @@ LOCAL_WORK = $(shell cd ../..; pwd)
 AS_CNS_SRCS = $(LIB_SOURCES) Consensus_CNS.c null_scaffolder.c quality_assess.c \
               placed_contigs.c TestBaseCall_CNS.c TestAlign_CNS.c \
 		RebuildMultiAlign_CNS.c RebuildScaffolds_CNS.c ScaffoldUnitigProfile_CNS.c \
-	      colCorr_CNS.c
-# post_analysis.c AlignStats_CNS.c
+	      colCorr_CNS.c post_analysis.c AS_CNS_asmReBaseCall.c
+# AlignStats_CNS.c
 
 AS_CNS_OBJS = $(AS_CNS_SRCS:.c=.o)
 
 SOURCES = $(AS_CNS_SRCS)
 OBJECTS = $(AS_CNS_OBJS)
 
-PROGS = consensus null_scaffolder quality_assess placed_contigs testbasecall testalignment rebuildalignment rebuildscaffolds scaffoldunitigs
-# post_analysis 
+PROGS = consensus null_scaffolder quality_assess placed_contigs testbasecall testalignment rebuildalignment rebuildscaffolds scaffoldunitigs post_analysis asmReBaseCall
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
@@ -56,11 +55,12 @@ install: all
 
 libAS_CNS.a: $(LIB_OBJECTS)
 
-LIBS = -lAS_CGW -lAS_REZ -lAS_CGW -lAS_PER -lAS_MSG \
-       -lAS_SDB -lAS_ALN -lAS_OVL -lAS_UTL -lAS_LIN
+LIBS =  libAS_CGW.a libAS_REZ.a libAS_CGW.a libAS_PER.a libAS_MSG.a \
+        libAS_CNS.a libAS_SDB.a libAS_ALN.a libAS_OVL.a \
+	libAS_CGW.a libAS_REZ.a libAS_CGW.a libAS_REZ.a libAS_CGW.a libAS_OVL.a  libAS_ALN.a libAS_UTL.a libAS_PER.a libAS_LIN.a libAS_MSG.a 
 
 consensus: Consensus_CNS.o  MultiAlignment_CNS.o MultiAlignStore_CNS.o \
-	Array_CNS.o Utilities_CNS.o $(LIBS)
+	Array_CNS.o Utilities_CNS.o $(LIBS) 
 
 testbasecall: TestBaseCall_CNS.o  MultiAlignment_CNS.o MultiAlignStore_CNS.o \
 	Array_CNS.o Utilities_CNS.o $(LIBS)
@@ -81,8 +81,12 @@ scaffoldunitigs: ScaffoldUnitigProfile_CNS.o  MultiAlignment_CNS.o MultiAlignSto
 #	Array_CNS.o Utilities_CNS.o \
 #	libAS_MSG.a libAS_PER.a libAS_ALN.a libAS_SDB.a libAS_UTL.a libAS_REZ.a 
 
-#post_analysis: post_analysis.o \
-#         libAS_CNS.a libAS_MSG.a libAS_PER.a libAS_ALN.a libAS_SDB.a libAS_UTL.a libAS_REZ.a libAS_CNS.a
+post_analysis: post_analysis.o \
+         $(LIBS)
+
+asmReBaseCall: AS_CNS_asmReBaseCall.o \
+         $(LIBS)
+
 
 placed_contigs: placed_contigs.o $(LIBS)
 
