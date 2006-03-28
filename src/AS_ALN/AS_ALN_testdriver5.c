@@ -47,7 +47,11 @@
 
 extern int max_indel_AS_ALN_LOCOLAP_GLOBAL;
 extern int MaxGaps;
- 
+extern int MaxInteriorGap;
+extern int asymmetricEnds;
+extern int MaxBegGap;
+extern int MaxEndGap;
+
 void usage(void)
 {
   fprintf( stderr, "usage: AS_ALN_testdriver5 [-a <abnd>] [-b <bbnd>] [-e <error_rate>] [-m <minlen>] [-P <proto_output_file>] [-o] [-1 <Aseq.fasta> -2 <Bseq.fasta>]\n");
@@ -246,19 +250,31 @@ int main(int argc, char *argv[])
   { /* Parse the argument list using "man 3 getopt". */ 
     int ch,errflg=0;
     optarg = NULL;
-    while (!errflg && ((ch = getopt(argc, argv, "a:b:e:hm:oP:F:1:2:")) != EOF))
+    while (!errflg && ((ch = getopt(argc, argv, "Aa:b:B:e:E:hm:oP:f:F:1:2:")) != EOF))
       {
 	switch(ch) {
 	case 'a':
 	  abnd = atoi(optarg);
 	  abndFromUser = TRUE;
 	  break;
+	case 'A':
+	  asymmetricEnds=TRUE;
+	  break;
 	case 'b':
 	  bbnd = atoi(optarg);
 	  bbndFromUser = TRUE;
 	  break;
+	case 'B':
+	  MaxBegGap = atoi(optarg);
+	  break;
 	case 'e':
 	  err = atof(optarg);
+	  break;
+	case 'E':
+	  MaxEndGap = atoi(optarg);
+	  break;
+	case 'f':
+	  MaxInteriorGap = atoi(optarg);
 	  break;
 	case 'F':
 	  MaxGaps = atoi(optarg);
