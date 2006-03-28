@@ -38,6 +38,10 @@
 #undef DEBUG_TRACE
 #endif
 
+// to print calling params and global variables inside Local_Overlap_AS() ...
+#undef DEBUG_PARAMS
+
+
 #define CHECK_FINAL_QUALITY
 
 //maximum number of matching segments that can be pieced together
@@ -186,9 +190,9 @@ static void print_piece(Local_Overlap *O,int piece,char *aseq,char *bseq){
     if(spnt<0){
       int i=0;
       printf("(B sequence on top (2nd place in src); spnt=%d!!!\n",spnt);
-      while(segtrace[piece]!=0){segtrace[i++]*=-1;}
+      while(segtrace[i]!=0){segtrace[i++]*=-1;}
       PrintAlign(stdout,-spnt,0,bseg,aseg,segtrace);
-      i=0; while(segtrace[piece]!=0){segtrace[i++]*=-1;}
+      i=0; while(segtrace[i]!=0){segtrace[i++]*=-1;}
     } else {
       PrintAlign(stdout,spnt,0,aseg,bseg,segtrace);
     }
@@ -1121,6 +1125,23 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
   bseq = b->sequence;
   alen = strlen(aseq);
   blen = strlen(bseq);
+
+
+#ifdef DEBUG_PARAMS
+  fprintf(stderr,
+	  "Local_Overlap_AS params:\n"
+	  "MaxGaps %d MaxBegGap %d MaxEndGap %d MaxInteriorGap %d asymmetricEnds %d\n" 
+	  "MaxFreeFlap %d bubblePoppingVersion %d useSizeToOrderBlocks %d\n"
+	  "beg %d end %d opposite %d erate %f minlen %d\n"
+	  ">a\n%s\n>b\n%s\n",
+	  MaxGaps,MaxBegGap,MaxEndGap,MaxInteriorGap,asymmetricEnds,
+	  MaxFreeFlap,bubblePoppingVersion,useSizeToOrderBlocks,
+	  beg,end,opposite,erate,minlen,
+	  aseq,bseq);
+	  
+#endif
+
+
 
   aseq -= MINUS_ONE;
   bseq -= MINUS_ONE;
