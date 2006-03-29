@@ -115,7 +115,7 @@ do
         echo "Test $test failed"
       fi
     done
-    popd $dir > /dev/null 2>&1
+    popd > /dev/null 2>&1
   else
     echo "Error: directory $dir does not exist"
   fi
