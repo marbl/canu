@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.59 2006-03-28 05:36:57 ahalpern Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.60 2006-04-05 17:47:30 mhayton Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -3784,7 +3784,7 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
       last_b_aligned = bboffset+bpos;
       apos++;bpos++; 
       binsert = bboffset+bpos-1;
-      while ( abead->next > -1 && 
+      while ( abead->next > -1 && apos < alen &&
 	      (abead = GetBead(beadStore,abead->next))->boffset != 
 	      aindex[apos] ) {
          // insert a gap bead in b and align to    
