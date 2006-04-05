@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.60 2006-04-05 17:47:30 mhayton Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.61 2006-04-05 21:04:22 mhayton Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -5137,13 +5137,16 @@ int ApplyAbacus(Abacus *a, CNS_Options *opp)
                //fprintf(stderr,"Adding gapbead %d\n",eid);
               // ColumnAppend(exch_bead->column_index,eid);
                { // mods (ALH) to handle reallocation of columnStore
-
+                 int32 off   = 0;
                  int curridx = column->lid;
 
+                 // remember bead offset in case realloc() moves the
+                 // memory and exch_bead becomes a stale pointer
+                 off = exch_bead->boffset; 
                  ColumnAppend(exch_bead->column_index,eid);
+                 exch_bead = GetBead(beadStore, off);
 
                  column=GetColumn(columnStore,curridx);
-
                } 
              }
              exch_bead = GetBead(beadStore,exch_bead->next);
