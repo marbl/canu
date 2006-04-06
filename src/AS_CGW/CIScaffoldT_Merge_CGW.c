@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.10 2006-03-28 04:23:47 ahalpern Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.11 2006-04-06 16:55:44 brianwalenz Exp $";
 
 #undef ORIG_MERGE_EDGE_INVERT
 #define MINSATISFIED_CUTOFF 0.985
@@ -4404,31 +4404,6 @@ void ExamineUsableSEdges(VA_TYPE(PtrT) *sEdges,
             "* Considering edges with weight >= %d (maxWeightEdge/%d: %d)\n",
             minWeightThreshold, (int) EDGE_WEIGHT_FACTOR,
             (int) (maxWeightEdge/EDGE_WEIGHT_FACTOR));
-    
-    // temp code starts here --------------------------------------------
-    {
-      int32 edgeWeightCount[128];
-      fprintf( GlobalData->stderrc,"GetNumPtrTs( sEdges ) = %d\n",
-               (int) GetNumPtrTs( sEdges ));
-      
-      fprintf( GlobalData->stderrc, "maxEdgeWeight = %d\n", maxWeightEdge);
-      
-      for ( i = 0; i < 128; i++)
-        edgeWeightCount[i] = 0;
-      assert(maxWeightEdge < 128);
-      
-      for ( i = 0; i < GetNumPtrTs( sEdges ); i++)
-      {
-        edgeWeightCount[ sEdge[i]->edgesContributing ]++;
-      }
-
-      for ( i = 0; i <= maxWeightEdge; i++)
-      {
-        if ( edgeWeightCount[i] > 0 )
-          fprintf( GlobalData->stderrc,"edgeWeightCount[ %3d ] = %3d\n", i, edgeWeightCount[i]);
-      }
-    }
-    // temp code ends here ----------------------------------------
   }
   
   // examine the edges
