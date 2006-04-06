@@ -204,7 +204,7 @@ sub createOverlapJobs {
     if ($useGrid) {
         my $SGE;
         $SGE .= "\n";
-        $SGE .= "qsub -p 0 -hard -l num_proc=2 -r y -N ovl_${asm} \\\n";
+        $SGE .= "qsub -p 0 -r y -N ovl_${asm} \\\n";
         $SGE .= "  -t 1-$jobs \\\n";
         $SGE .= "  -j y -o $wrk/$outDir/overlap.\\\$TASK_ID.out \\\n";
         $SGE .= "  -e $wrk/$outDir/overlap.\\\$TASK_ID.err \\\n";

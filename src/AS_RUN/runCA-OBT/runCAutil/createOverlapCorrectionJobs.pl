@@ -17,7 +17,7 @@ sub createOverlapCorrectionJobs {
 
     if ($ovlCorrOnGrid) {
         open(SUB, "> $wrk/3-ovlcorr/submit.sh") or die;
-        print SUB "#!/bin/sh\n";
+        print SUB "#!/bin/sh\n\n";
     }
 
     my $frgBeg = 1;
@@ -34,7 +34,7 @@ sub createOverlapCorrectionJobs {
             #  Run right here, right now
 
             open(F, "> $wrk/3-ovlcorr/$jobName.sh") or die;
-            print F "#!/bin/sh\n";
+            print F "#!/bin/sh\n\n";
             #print F "$processStats \\\n";
             print F "$bin/correct-olaps \\\n";
             print F "  -S $wrk/$asm.ovlStore \\\n";
@@ -53,7 +53,7 @@ sub createOverlapCorrectionJobs {
             #  Run on the grid
 
             open(F, "> $wrk/3-ovlcorr/$jobName.sh") or die;
-            print F "#!/bin/sh\n";
+            print F "#!/bin/sh\n\n";
             print F "jid=\$\$\n";
             #print F "$processStats \\\n";
             print F "$gin/correct-olaps \\\n";

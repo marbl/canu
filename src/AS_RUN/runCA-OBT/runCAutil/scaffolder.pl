@@ -114,6 +114,7 @@ sub eCR ($$) {
             $cmd .= " > $wrk/$thisDir/extendClearRanges-scaffold.$curScaffold.err 2>&1";
 
             open(F, "> $wrk/$thisDir/extendClearRanges-scaffold.$curScaffold.sh");
+            prnit F "#!/bin/sh\n\n";
             print F "$cmd\n";
             close(F);
 

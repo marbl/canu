@@ -72,7 +72,10 @@ sub preoverlap {
     if ((! -d "$wrk/$asm.gkpStore") || (! -e "$wrk/$asm.gkpStore/gkp.frg")) {
         my $cmd;
         $cmd  = "cd $wrk/0-preoverlap && ";
-        $cmd .= "$bin/gatekeeper -X -Q -C -P -e 10000000 -f $wrk/$asm.gkpStore $wrk/0-preoverlap/$asm.frg ";
+        $cmd .= "$bin/gatekeeper -X -C -P -e 10000000 ";
+        $cmd .= "-Q -T -N " if (getGlobal("doOverlapTrimming"));
+        $cmd .= "-f $wrk/$asm.gkpStore ";
+        $cmd .= "$wrk/0-preoverlap/$asm.frg ";
         $cmd .= "> $wrk/0-preoverlap/gatekeeper.out ";
         $cmd .= "2> $wrk/0-preoverlap/gatekeeper.err";
 

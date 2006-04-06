@@ -348,7 +348,7 @@ The larger batch sizes assume {\tt correct-frags} is NOT using
 a temporary internal store.  This is probably not enabled by default.
 \\
 
-doFragmentCorrection=\{\it integer} &
+doFragmentCorrection={\it integer} &
 If non-zero, do fragment error correction (and, implicitly, overlap
 error correction).  The default is to do fragment error correction.
 \\
@@ -364,7 +364,7 @@ access to this store, use of the grid is strongly discouraged.
 \\
 
 ovlCorrBatchSize={\it integer} &
-{\it what do we load, again?}
+{\it what do we load, again?}  1,000,000 uses about 2.5GB memory.  400,000 uses 750MB.
 \\
 
 ovlCorrOnGrid={\it integer} &
@@ -417,6 +417,7 @@ If non-zero, interleaved scaffold merging will be performed only when
 stones are thrown, usually the last iteration of cgw, in particular,
 after all iterations of {\it extendClearRanges}.  The default is to
 delay merging until stones are thrown.
+\\
 
 doExtendClearRanges={\it integer} &
 If non-zero, do that many round of {\it extendClearRanges}.  Stones are disabled

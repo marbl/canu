@@ -17,7 +17,7 @@ sub createFragmentCorrectionJobs {
 
     if ($frgCorrOnGrid) {
         open(SUB, "> $wrk/2-frgcorr/submit.sh") or die;
-        print SUB "#!/bin/sh\n";
+        print SUB "#!/bin/sh\n\n";
     }
 
     while ($frgBeg < $numFrags) {
@@ -36,7 +36,7 @@ sub createFragmentCorrectionJobs {
             #  Run the correction job right here, right now.
 
             open(F, "> $wrk/2-frgcorr/$batchName/$jobName.sh") or die;
-            print F "#!/bin/sh\n";
+            print F "#!/bin/sh\n\n";
             #print F "$processStats \\\n";
             print F "$bin/correct-frags \\\n";
             print F "  -t $frgCorrThreads \\\n";
@@ -59,7 +59,7 @@ sub createFragmentCorrectionJobs {
             #  Run the correction ob on the grid.
 
             open(F, "> $wrk/2-frgcorr/$batchName/$jobName.sh") or die;
-            print F "#!/bin/sh\n";
+            print F "#!/bin/sh\n\n";
             print F "jid=\$\$\n";
             #print F "$processStats \\\n";
             print F "$gin/correct-frags \\\n";

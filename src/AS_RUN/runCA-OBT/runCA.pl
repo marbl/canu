@@ -23,6 +23,10 @@ while (scalar(@ARGV)) {
 
     if      ($arg =~ m/^-d/) {
         $wrk = shift @ARGV;
+        if ($wrk !~ m!^/!) {
+            $wrk = "$ENV{'PWD'}/$wrk";
+            print STDERR "WARNING:  Constructing full path to work directory: $wrk\n";
+        }
     } elsif ($arg =~ m/^-p/) {
         $asm = shift @ARGV;
     } elsif ($arg =~ m/^-s/) {

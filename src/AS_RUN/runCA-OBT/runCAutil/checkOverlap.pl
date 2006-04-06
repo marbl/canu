@@ -29,6 +29,7 @@ sub checkOverlap {
     my $failedJobs = 0;
 
     open(F, "> $wrk/$outDir/overlap-restart.sh");
+    print F "#!/bin/sh\n\n";
 
     while (scalar(@bat) > 0) {
         my $batchName = shift @bat;
@@ -38,7 +39,7 @@ sub checkOverlap {
             print STDERR "$wrk/$outDir/$batchName/$jobName failed, job index $jobIndex.\n";
 
             if ($useGrid) {
-                print F "qsub -p 0 -hard -l num_proc=2 -r y -N ovl_${asm} \\\n";
+                print F "qsub -p 0 -r y -N ovl_${asm} \\\n";
                 print F "  -t $jobIndex \\\n";
                 print F "  -j y -o $wrk/$outDir/overlap.\\\$TASK_ID.out \\\n";
                 print F "  -e $wrk/$outDir/overlap.\\\$TASK_ID.err \\\n";

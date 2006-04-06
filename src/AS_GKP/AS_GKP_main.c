@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.6 2006-03-20 15:39:18 mhayton Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.7 2006-04-06 18:53:14 brianwalenz Exp $";
 
 /*************************************************
 * Module:  AS_GKP_main.c
@@ -207,7 +207,7 @@ int  main(int argc, char * argv [])
     int ch,errflg=0;
     optarg = NULL;
     optind = 1;
-    while (!errflg && ((ch = getopt(argc, argv, "bfe:i:o:p:t:n:achCNGsOPQXvd:l")) != EOF)){
+    while (!errflg && ((ch = getopt(argc, argv, "bfe:i:o:p:t:n:achCNGsOPQTXvd:l")) != EOF)){
       switch(ch) {
       case 'l':
         matchBAC_DstsInLkgMsgs = 0;
@@ -330,6 +330,9 @@ int  main(int argc, char * argv [])
       case 'Q':
 	check_qvs = 0;
 	break;
+      case 'T':
+        assembler = AS_ASSEMBLER_OBT;
+        break;
       case 'X':
         experimental = 1;
 	break;
@@ -340,9 +343,13 @@ int  main(int argc, char * argv [])
 	illegal = 1;
       }
   }
-    fprintf(stderr,"* Gatekeeper for %s\n",
-	    (assembler == AS_ASSEMBLER_GRANDE?"Assembler Grande":"Overlap Assembler"));
-       
+
+    switch (assembler) {
+      case AS_ASSEMBLER_GRANDE:  fprintf(stderr, "* Gatekeeper for Assembler Grande\n"); break;
+      case AS_ASSEMBLER_OVERLAY: fprintf(stderr, "* Gatekeeper for Overlay Assembler\n"); break;
+      case AS_ASSEMBLER_OBT:     fprintf(stderr, "* Gatekeeper for Assembler Grande with Overlap Based Trimming\n"); break;
+    }
+
     if(force == 1 && append  == 1)
       {
 	fprintf (stderr,
@@ -783,13 +790,11 @@ int ReadFile(int check_qvs,
   GenericMesg   *pmesg;
   time_t currentTime = time(0);
   int messageCount = 0;
-  int shreddedFragmentsIgnored = 0; // For overlap assembler
+  int shreddedFragmentsIgnored = 0; // For overlay assembler
   int bacFragmentsIgnored = 0;      // For grande
 
   /* Read maxFrags fragments from the stream, adding their accession numbers, and
      those of the DST records to their respective hash tables */
-
-  assert(assembler == AS_ASSEMBLER_GRANDE  || assembler == AS_ASSEMBLER_OVERLAY);
 
   while(  EOF != Reader(Infp, &pmesg)) {
 
@@ -826,7 +831,7 @@ int ReadFile(int check_qvs,
 	case GATEKEEPER_SUCCESS:
 	  pmesg->t = MESG_IBA;
 	  pmesg->m = &iba_mesg;
-	  Writer((assembler == AS_ASSEMBLER_GRANDE?Outfp:Ignfp),pmesg);      
+	  Writer((assembler == AS_ASSEMBLER_OVERLAY?Ignfp:Outfp),pmesg);      
 	  currentBatchID = iba_mesg.iaccession;
 	  fprintf(stderr,"Gatekeeper reading batch " F_IID "\n",
 		  iba_mesg.iaccession);
@@ -913,7 +918,7 @@ int ReadFile(int check_qvs,
 	   Check_DistanceMesg(dst_mesg, &idt_mesg, currentBatchID,  verbose)){
 	   pmesg->m = &idt_mesg;
 	   pmesg->t = MESG_IDT;
-	  Writer((assembler == AS_ASSEMBLER_GRANDE?Outfp:Outfp),pmesg);      
+	  Writer(Outfp,pmesg);      
 	}else{
 	  fprintf(Msgfp,"# Line %d of input\n", GetProtoLineNum_AS());
 	   ErrorWriter(Msgfp,pmesg);      
@@ -940,7 +945,7 @@ int ReadFile(int check_qvs,
 
 	  pmesg->m = &ifg_mesg;
 	  pmesg->t = MESG_IFG;
-	  if(assembler == AS_ASSEMBLER_GRANDE){
+	  if((assembler == AS_ASSEMBLER_GRANDE) || (assembler == AS_ASSEMBLER_OBT)){
 	     
 	    if(ifg_mesg.type == AS_BACTIG || ifg_mesg.type == AS_FULLBAC){
 	      bacFragmentsIgnored++;
@@ -993,7 +998,7 @@ int ReadFile(int check_qvs,
 	  /**************************** We DON'T output ILK messages anymore *********************************/
 	  pmesg->m = &ilk_mesg;
 	  pmesg->t = MESG_ILK;
-	  Writer((assembler == AS_ASSEMBLER_GRANDE?Outfp:Ignfp),pmesg);      
+	  Writer((assembler == AS_ASSEMBLER_OVERLAY?Ignfp:Outfp),pmesg);      
 #endif
 	  break;
 	case GATEKEEPER_FAILURE:
@@ -1038,9 +1043,9 @@ int ReadFile(int check_qvs,
 	    argv[0], "",
 	    params);
 
-	Writer((assembler == AS_ASSEMBLER_GRANDE?Outfp:Ignfp),pmesg);
+	Writer((assembler == AS_ASSEMBLER_OVERLAY?Ignfp:Outfp),pmesg);
         /*
-	fprintf(stderr,"# GateKeeper $Revision: 1.6 $\n");
+	fprintf(stderr,"# GateKeeper $Revision: 1.7 $\n");
 	ErrorWriter(Msgfp,pmesg);
         */
         free(params);
@@ -1320,7 +1325,7 @@ void printGKPError(FILE *fout, GKPErrorType type){
     break;
 
   case GKPError_FRGWrongTypeForOverlay:
-    fprintf(fout,"# GKP Error %d: Overlap Assembler only accepts BAC FRGs of type BACTIG\n",(int)type);
+    fprintf(fout,"# GKP Error %d: Overlay Assembler only accepts BAC FRGs of type BACTIG\n",(int)type);
     break;
 
   case GKPError_DSTValues:
@@ -1339,7 +1344,7 @@ void printGKPError(FILE *fout, GKPErrorType type){
     break;
 
   case GKPError_IncompleteOAInput:
-    fprintf(fout,"# GKP Error %d: Overlap Assembler Requires that a Bactig and its\n",(int)type);
+    fprintf(fout,"# GKP Error %d: Overlay Assembler Requires that a Bactig and its\n",(int)type);
     fprintf(fout,"#               associated fragment must appear in the same batch\n");
     break;
     }
@@ -1415,7 +1420,8 @@ int32   CheckNmerProbabilities(FILE *fout, double threshhold){
 		 "  -s  strict enforcement of -G -O rules\n"
 		 "  -t <float>  threshhold for frequent n-mer check in units of std deviations\n"
 		 "  -G  gatekeeper for assembler Grande (default)\n"
-		 "  -O  gatekeeper for overlap assembler\n"
+		 "  -O  gatekeeper for overlay assembler\n"
+		 "  -T  gatekeeper for assembler Grande with Overlap Based Trimming\n"
 		 "  -C  compatiblity mode\n"
 		 "  -N  don't check n-mer frequencies\n"
 		 "  -Q  don't check quality-based data quality\n"

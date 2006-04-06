@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_GKP_include.h,v 1.5 2006-03-20 15:39:18 mhayton Exp $ */
+/* $Id: AS_GKP_include.h,v 1.6 2006-04-06 18:53:14 brianwalenz Exp $ */
 
 /*************************************************
 * Module:  AS_GKP_include.h
@@ -56,9 +56,9 @@
 
 #define GATEKEEPER_MAX_WELL_NUMBER  384
 
-#define AS_ASSEMBLER_GRANDE ((int)'A')
+#define AS_ASSEMBLER_GRANDE  ((int)'A')
 #define AS_ASSEMBLER_OVERLAY ((int)'O')
-
+#define AS_ASSEMBLER_OBT     ((int)'T')
 
 /* The persistent symbol table has 3 name spaces, UIDs,RPDIDs,LOCALEIDs */
 #define UID_NAMESPACE_AS 'U'

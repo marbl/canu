@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.5 2006-03-14 17:46:10 mhayton Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.6 2006-04-06 18:53:14 brianwalenz Exp $";
 
 //#define DEBUG_GKP 1
 //#define DEBUG_GKP_VERBOSE 1
@@ -465,8 +465,13 @@ int CheckLengthsIntervalsLocales(FragMesg *frg_mesg,
       }
       break;
     default:
-      minlen = AS_FRAG_MIN_LEN;
-      maxlen = AS_FRAG_MAX_LEN;
+      if (assembler == AS_ASSEMBLER_OBT) {
+        minlen = 0;
+        maxlen = AS_FRAG_MAX_LEN;
+      } else {
+        minlen = AS_FRAG_MIN_LEN;
+        maxlen = AS_FRAG_MAX_LEN;
+      }
       break;
     }
     /* Check that lengths are legit -- not too long */
