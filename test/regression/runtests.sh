@@ -6,7 +6,7 @@
 CC=$(which cc)
 
 BINDIR=""
-DIRBIN_LIST="AS_GKP:gatekeeper"
+DIRBIN_LIST="AS_GKP:gatekeeper AS_CNS:consensus"
 
 is_64bit()
 {
@@ -109,7 +109,8 @@ do
     for test in $(ls -1 [0-9][0-9][0-9].sh)
     do
       echo "[*] Running $dir/$test ..."
-      $test $bin
+      cwd=$(pwd)
+      ${cwd}/$test $bin
       test_status=$?
       if [ $test_status != "0" ]; then
         echo "Test $test failed"
