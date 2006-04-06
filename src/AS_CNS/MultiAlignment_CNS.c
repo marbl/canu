@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.61 2006-04-05 21:04:22 mhayton Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.62 2006-04-06 16:49:32 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -83,6 +83,13 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.61 2006-04-05 21:04:22 mhay
 // Parameters used by Abacus processing code
 #define MSTRING_SIZE                        3
 #define MAX_SIZE_OF_ADJUSTED_REGION         5
+
+//  Define this to dump multifasta to stderr of the unitigs
+//  we try to align in MultiAlignContig().  Was useful for
+//  debugging bad layout.
+//
+#undef DUMP_UNITIGS_IN_MULTIALIGNCONTIG
+
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -7467,7 +7474,18 @@ int MultiAlignContig(IntConConMesg *contig,
        //      offsets[fid].bgn,offsets[fid].end, (complement)?'R':'F');
       // }
      }
-     
+
+#ifdef DUMP_UNITIGS_IN_MULTIALIGNCONTIG
+     for (i=0; i<num_unitigs; i++) {
+       Fragment *f;
+       char     *s;
+
+       f = GetFragment(fragmentStore,i); 
+       s = Getchar(sequenceStore,f->sequence);
+       fprintf(stderr, ">unitig-%d\n%s\n", f->iid, s);
+     }
+#endif
+
      ma = CreateMANode(contig->iaccession);
      if ( trace == NULL ) {
        trace = CreateVA_int32(AS_READ_MAX_LEN);
@@ -7584,14 +7602,19 @@ int MultiAlignContig(IntConConMesg *contig,
         }
         if ( ! olap_success ) {
            fprintf(stderr,"Could (really) not find overlap between %d (%c) and %d (%c)", 
-              afrag->iid,afrag->type,bfrag->iid,bfrag->type);
+                   afrag->iid,afrag->type,bfrag->iid,bfrag->type);
            fprintf(stderr,"estimated ahang: %d\n", ahang);
+           fprintf(stderr,"You can force these to abut by removing line %d in MultiAlignment_CNS.c\n", __LINE__+1);
            CleanExit("",__LINE__,1);
            // if you remove the above CleanExit, 
            // the following should  have the affect of abutting the unitigs
            //   NEW: rather than abutting, let's try forced identity alignment
            //        to original placement.
            forced_contig = 1; 
+
+           //  BUG! (?)  if there is no overlap between the first and
+           //  second frag, we might not have *_first set.
+
            afrag = afrag_first;
            ahang = ahang_first;
            if ( ahang > afrag->length ) ahang = afrag->length - 20;
