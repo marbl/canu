@@ -9,6 +9,7 @@ LIBSIM4/    :=$(call MakePath,$/../libsim4/)
 src  := $/cleanPolishes.C \
         $/fixPolishesIID.C \
         $/comparePolishes.C \
+        $/convertToAtac.C \
         $/filterPolishes.c \
         $/headPolishes.c \
         $/mergePolishes.C \
@@ -36,6 +37,7 @@ obj_C := ${$/.CXX_SRCS:.C=.o}
 $/.CXX_EXES := $/cleanPolishes \
                $/fixPolishesIID \
                $/comparePolishes \
+               $/convertToAtac \
                $/filterPolishes \
                $/headPolishes \
                $/mergePolishes \
@@ -70,6 +72,7 @@ $/plotIntronSize              : $/plotIntronSize.o
 $/plotCoverageVsIdentity      : $/plotCoverageVsIdentity.o
 $/parseSNP                    : $/parseSNP.o
 $/comparePolishes             : $/comparePolishes.o $/s4p_overlap.o
+$/convertToAtac               : $/convertToAtac.o
 $/trimSequencesBasedOnMatches : $/trimSequencesBasedOnMatches.o
 $/uniqPolishes                : $/uniqPolishes.o
 $/summarizePolishes           : $/summarizePolishes.o
