@@ -63,9 +63,11 @@ u32bit  statConsistent    = 0;
 u32bit  statInconsistent  = 0;
 u32bit  statUnique        = 0;
 u32bit  statLost          = 0;
+
 u32bit  consistentTie         = 0;
 u32bit  consistentMatches     = 0;
 u32bit  consistentIdentity    = 0;
+u32bit  consistentTooShort    = 0;
 u32bit  consistentNot         = 0;
 
 u32bit  totLQ = 0;
@@ -76,7 +78,7 @@ FastAWrapper  *SEQ = 0L;
 FastAWrapper  *QLT = 0L;
 
 double       filter      = 0.0;
-FILE        *oFile       = stdout;
+FILE        *oFile       = 0L;
 int          oFileIsPipe = 0;
 FILE        *sFile       = 0L;
 FILE        *uFile       = 0L;
@@ -238,9 +240,14 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
       //  If only one match has close quality (the one we want to save!),
       //  save it.  Otherwise, label this query as multiple.
 
+      u32bit  length = p[matchi]->exons[0].estFrom - p[matchi]->exons[0].estTo;
+
       if (closeQuality == 1) {
         matchIsOK = true;
         consistentMatches++;
+      } else if ((length > 100) &&
+                 (length / p[matchi]->estLen < 0.5)) {
+        consistentTooShort++;
       } else {
         consistentNot++;
       }
@@ -571,8 +578,10 @@ main(int argc, char **argv) {
       arg++;
       if (strcmp(argv[arg] + strlen(argv[arg]) - 4, ".bz2") == 0)
         sprintf(cmd, "bzip2 -1c > %s", argv[arg]);
-      if (strcmp(argv[arg] + strlen(argv[arg]) - 3, ".gz") == 0)
+      else if (strcmp(argv[arg] + strlen(argv[arg]) - 3, ".gz") == 0)
         sprintf(cmd, "gzip -1c > %s", argv[arg]);
+      else
+        sprintf(cmd, "cat > %s", argv[arg]);
       uFile = popen(cmd, "w");
       if (errno)
         fprintf(stderr, "Failed to open '%s': %s\n", cmd, strerror(errno));
@@ -683,9 +692,9 @@ main(int argc, char **argv) {
   if (uFile)  pclose(uFile);
   if (sFile)  fclose(sFile);
 
-  fprintf(stderr, "Uni:"u32bitFMTW(8)" Con:"u32bitFMTW(8)" (T:"u32bitFMTW(8)" M:"u32bitFMTW(8)" I:"u32bitFMTW(8)" N:"u32bitFMTW(8)") Inc:"u32bitFMTW(8)" -- Save:"u32bitFMTW(8)" Lost:"u32bitFMTW(8)"\n",
+  fprintf(stderr, "Uni:"u32bitFMTW(8)" Con:"u32bitFMTW(8)" (T:"u32bitFMTW(8)" M:"u32bitFMTW(8)" I:"u32bitFMTW(8)" S:"u32bitFMTW(8)" N:"u32bitFMTW(8)") Inc:"u32bitFMTW(8)" -- Save:"u32bitFMTW(8)" Lost:"u32bitFMTW(8)"\n",
           statOneMatch,
-          statConsistent, consistentTie, consistentMatches, consistentIdentity, consistentNot,
+          statConsistent, consistentTie, consistentMatches, consistentIdentity, consistentTooShort, consistentNot,
           statInconsistent,
           statUnique, statLost);
   fprintf(stderr, "total:  LQ:"u32bitFMT" MQ:"u32bitFMT" RQ:"u32bitFMT"\n",
