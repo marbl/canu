@@ -83,7 +83,7 @@ main(int argc, char **argv) {
   int     l2 = 0;
 
   speedCounter  *C = new speedCounter("%12.0f polishes -- %12.0f polishes/second\r",
-                                      1.0, 0xf, true);
+                                      1.0, 0xff, true);
 
   sim4polish *p = 0L;
   while ((p = s4p_readPolish(stdin)) != 0L) {
@@ -195,16 +195,19 @@ main(int argc, char **argv) {
       p->estPolyT = 0;
 
       for (u32bit i=0; i<p->numExons; i++) {
-        l1 = p->exons[i].estTo - p->exons[i].estFrom;
-        l2 = p->exons[i].genTo - p->exons[i].genFrom;
+        l1 = p->exons[i].estTo - p->exons[i].estFrom + 1;
+        l2 = p->exons[i].genTo - p->exons[i].genFrom + 1;
 
-        strncpy(s1, EST->getSequence(p->estID)->sequence() + p->exons[i].estFrom, l1);
-        strncpy(s2, GEN->getSequence(p->genID)->sequence() + p->exons[i].genFrom, l2);
+        strncpy(s1, EST->getSequence(p->estID)->sequence() + p->exons[i].estFrom - 1, l1);
+        strncpy(s2, GEN->getSequence(p->genID)->sequence() + p->exons[i].genFrom - 1, l2);
 
         if (p->matchOrientation == SIM4_MATCH_COMPLEMENT) {
           strncpy(s1, EST->getSequence(p->estID)->sequence() + p->estLen - p->exons[i].estTo, l1);
           reverseComplementSequence(s1, l1);
         }
+
+        s1[l1] = 0;
+        s2[l2] = 0;
 
         free(p->exons[i].estAlignment);
         free(p->exons[i].genAlignment);
