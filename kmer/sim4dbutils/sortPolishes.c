@@ -263,7 +263,8 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  fprintf(stderr, "Found %d files to merge!\n", mergeFilesLen);
+  if (mergeFilesLen > 0)
+    fprintf(stderr, "Found %d files to merge!\n", mergeFilesLen);
 
   if (mergeFilesLen == 0) {
     if (isatty(fileno(stdin))) {
