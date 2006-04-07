@@ -1,10 +1,11 @@
+#!/bin/sh
+
 ######################################################################
 # Verify that the gatekeeper binary being tested  produces the same 
 # frag store that an earlier known good version of gatekeeper 
 # produced. Verification is made by comparing the md5 of the generated
 # store files with the known good md5's
 ######################################################################
-#!/bin/sh
 
 ###
 # Name by which this script was invoked.

@@ -1,3 +1,5 @@
+#!/bin/sh
+
 ######################################################################
 # Verify that the consensus binary being tested produces the 
 # same *.cgi file that an earlier known good version of consensus
@@ -8,7 +10,6 @@
 # --------------------
 # consensus -P -U baseline.frgStore baseline.cgb
 ######################################################################
-#!/bin/sh
 
 ###
 # Name by which this script was invoked.

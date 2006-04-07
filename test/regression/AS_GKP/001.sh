@@ -1,8 +1,9 @@
+#!/bin/sh
+
 ######################################################################
 # Verify that gatekeeper will abort when fed 
 # a fragment with an invalid clear range
 ######################################################################
-#!/bin/sh
 
 ###
 # Name by which this script was invoked.

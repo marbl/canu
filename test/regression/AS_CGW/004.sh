@@ -1,3 +1,5 @@
+#!/bin/sh
+
 ######################################################################
 # Verify that the cgw binary being tested produces the same *.cgw 
 # file that an earlier known good version of cgw produced. 
@@ -9,7 +11,6 @@
 # cgw -j 1 -k 5 -r 4 -s 2 -w 0 -T -P -f baseline.frgStore \
 #   -g baseline.gkpStore -o baseline baseline.cgi
 ######################################################################
-#!/bin/sh
 
 ###
 # Name by which this script was invoked.
