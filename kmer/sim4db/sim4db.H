@@ -40,6 +40,8 @@ extern char             *outputFileName;
 extern char             *statsFileName;
 extern char             *touchFileName;
 
+extern bool              pairwise;
+
 extern bool              beVerbose;
 extern bool              beYesNo;
 

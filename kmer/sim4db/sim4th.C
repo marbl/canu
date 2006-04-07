@@ -39,6 +39,7 @@
 
 //  XXX  Both loader and loaderAll leave the last gen sequence undeleted!
 
+//  XXX  we should move the globals into a config class!
 
 
 
@@ -53,6 +54,8 @@ char             *databaseFileName = 0L;
 char             *outputFileName   = 0L;
 char             *statsFileName    = 0L;
 char             *touchFileName    = 0L;
+
+bool              pairwise         = false;
 
 bool              beVerbose        = false;       //  Print progress
 bool              beYesNo          = false;       //  Print each script line as we process, with answer
@@ -154,6 +157,44 @@ loader(void *U) {
 
 
 
+
+
+void*
+loaderPairwise(void *) {
+
+  //  Align cDNA i to genomic i.
+
+  if (lastGENiid == ~u32bitZERO)  //  happens on the first time through
+    lastGENiid = 0;
+  if (lastESTiid == ~u32bitZERO)  //  happens on the first time through
+    lastESTiid = 0;
+
+  //  If we've run out of sequences, we're done!
+  if ((lastGENiid >= GENs->getNumberOfSequences()) ||
+      (lastESTiid >= ESTs->fasta()->getNumberOfSequences()))
+    return(0L);
+
+  sim4thWork  *p = new sim4thWork();
+
+  //  Grab the GEN sequence
+  GENs->find(lastGENiid++);
+  p->gendelete = GENs->getSequence();
+
+  //  Grab the EST sequence
+  p->estdelete = ESTs->getSequence(lastESTiid++)->copy();
+
+  //  build the command
+  p->input     = new sim4command(p->estdelete,
+                                 p->gendelete, 0, p->gendelete->sequenceLength(),
+                                 true, true);
+
+  return(p);
+}
+
+
+
+
+
 void*
 loaderAll(void *) {
 
@@ -202,8 +243,12 @@ loaderAll(void *) {
 
 
 
+
+
+
+
 void
-worker(void *U, void *S) {
+worker(void *U, void *T, void *S) {
   sim4thWork  *p = (sim4thWork *)S;
 
   Sim4       *sim = new Sim4(&sim4params);
@@ -305,13 +350,17 @@ main(int argc, char **argv) {
     ss = new sweatShop(loader,
                        worker,
                        writer);
+  } else if (pairwise) {
+    ss = new sweatShop(loaderPairwise,
+                       worker,
+                       writer);
   } else {
-    //ss = new sweatShop(loader,
-    //                   workerAll,
-    //                   writer);
+    ss = new sweatShop(loaderAll,
+                       worker,
+                       writer);
   }
 
-  ss->run();
+  ss->run(0L, beVerbose);
 
   //  Only close the file if it isn't stdout
   //

@@ -120,11 +120,13 @@ parseCommandLine(int argc, char **argv) {
     } else if (strncmp(argv[arg], "-o", 2) == 0) {
       arg++;
       outputFileName = argv[arg];
-    } else if (strncmp(argv[arg], "-p", 2) == 0) {
+    } else if (strncmp(argv[arg], "-po", 3) == 0) {
       sim4params.setIgnorePolyTails(false);
     } else if (strncmp(argv[arg], "-sc", 3) == 0) {
       arg++;
       scriptFileName = argv[arg];
+    } else if (strncmp(argv[arg], "-pa", 3) == 0) {
+      pairwise = true;
     } else if (strncmp(argv[arg], "-st", 3) == 0) {
       arg++;
       statsFileName = argv[arg];
