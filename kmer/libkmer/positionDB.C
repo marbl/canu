@@ -79,6 +79,13 @@ positionDB::positionDB(merStream   *MS,
   _buckets               = 0L;
   _positions             = 0L;
 
+  //  Reset the tblBits if it is too big for our mersize
+  //
+  if (tblBits > 2 * merSize) {
+    //fprintf(stderr, "positionDB::positionDB()--  WARNING!  tblBits="u32bitFMT" > merBits="u32bitFMT", reset tblBits to merBits-4\n", tblBits, 2*merSize);
+    tblBits = 2 * merSize - 4;            
+  }
+
   _merSizeInBases        = merSize;
   _merSizeInBits         = 2 * _merSizeInBases;
   _merSkipInBases        = merSkip;
@@ -110,6 +117,17 @@ positionDB::positionDB(merStream   *MS,
   _sortedListLen         = u32bitZERO;
   _sortedList            = 0L;
 
+
+#if 0
+  fprintf(stderr, "positionDB::positionDB()--  _merSizeInBases       = "u32bitFMT"\n", _merSizeInBases);
+  fprintf(stderr, "positionDB::positionDB()--  _merSizeInBits        = "u32bitFMT"\n", _merSizeInBits);
+  fprintf(stderr, "positionDB::positionDB()--  _merSkipInBases       = "u32bitFMT"\n", _merSkipInBases);
+  fprintf(stderr, "positionDB::positionDB()--  _tableSizeInBits      = "u32bitFMT"\n", _tableSizeInBits);
+  fprintf(stderr, "positionDB::positionDB()--  _tableSizeInEntries   = "u32bitFMT"\n", _tableSizeInEntries);
+  fprintf(stderr, "positionDB::positionDB()--  _chckWidth            = "u32bitFMT"\n", _chckWidth);
+  fprintf(stderr, "positionDB::positionDB()--  _shift1               = "u32bitFMT"\n", _shift1);
+  fprintf(stderr, "positionDB::positionDB()--  _shift2               = "u32bitFMT"\n", _shift2);
+#endif
 
   if (MS == 0L) {
     fprintf(stderr, "positionDB()-- ERROR: No merStream?  Nothing to build a table with!\n");
