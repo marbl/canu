@@ -16,12 +16,15 @@
 //
 
 unsigned char  whitespaceSymbol[256];
+unsigned char  toLower[256];
+unsigned char  toUpper[256];
 unsigned char  compressSymbol[256];
 unsigned char  validSymbol[256];
 unsigned char  decompressSymbol[256];
 unsigned char  complementSymbol[256];
 unsigned char  validCompressedSymbol[256];
 unsigned char  IUPACidentity[128][128];
+
 
 //  Huh?  g++ 2.95.4 (FreeBSD 4.10, still!) was complaining about no
 //  previous prototype for this, so we made one.
@@ -42,6 +45,8 @@ initCompressionTables(void) {
 
   for (i=0; i<256; i++) {
     whitespaceSymbol[i]      = (unsigned char)0x00;
+    toLower[i]               = (unsigned char)0x00;
+    toUpper[i]               = (unsigned char)0x00;
     compressSymbol[i]        = (unsigned char)0x00;
     validSymbol[i]           = (unsigned char)0x00;
     decompressSymbol[i]      = (unsigned char)0x00;
@@ -49,8 +54,11 @@ initCompressionTables(void) {
     validCompressedSymbol[i] = (unsigned char)0xff;
   }
 
-  for (i=0; i<256; i++)
-    whitespaceSymbol[i] = isspace(i);
+  for (i=0; i<256; i++) {
+    whitespaceSymbol[i] = isspace(i) ? 1 : 0;
+    toLower[i]          = tolower(i);
+    toUpper[i]          = toupper(i);
+  }
 
   for (i=0; i<128; i++)
     for (j=0; j<128; j++)
@@ -205,6 +213,18 @@ main(int argc, char **argv) {
   fprintf(C, "unsigned char const   whitespaceSymbol[256] = { %d", whitespaceSymbol[0]);
   for (i=1; i<256; i++)
     fprintf(C, ", %d", whitespaceSymbol[i]);
+  fprintf(C, " };\n");
+
+  fprintf(H, "extern unsigned char const   toLower[256];\n");
+  fprintf(C, "unsigned char const   toLower[256] = { %d", toLower[0]);
+  for (i=1; i<256; i++)
+    fprintf(C, ", %d", toLower[i]);
+  fprintf(C, " };\n");
+
+  fprintf(H, "extern unsigned char const   toUpper[256];\n");
+  fprintf(C, "unsigned char const   toUpper[256] = { %d", toUpper[0]);
+  for (i=1; i<256; i++)
+    fprintf(C, ", %d", toUpper[i]);
   fprintf(C, " };\n");
 
   fprintf(H, "extern unsigned char const   compressSymbol[256];\n");
