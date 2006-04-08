@@ -377,6 +377,26 @@ ARFLAGS           := ruvs
 INSTALL/          := linux64/
 EOF
     ;;
+  linux64-debug)
+    rm -f Make.compilers
+    cat <<EOF > Make.compilers
+# -*- makefile -*-
+#  Linux64, optimized
+THREADS           := -D_THREAD_SAFE -pthread
+THREADL           := -pthread
+CC                := cc
+SHLIB_FLAGS       := -shared
+CFLAGS_COMPILE    := -m64 -fPIC -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -g \$(THREADS) -fmessage-length=0 -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CLDFLAGS          := -L/usr/local/lib
+CLIBS             := \$(THREADL) -ldl
+CXX               := g++
+CXXFLAGS_COMPILE  := -m64 -fPIC -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -g \$(THREADS) -fmessage-length=0 -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CXXLDFLAGS        := -L/usr/local/lib
+CXXLIBS           := \$(THREADL) -ldl
+ARFLAGS           := ruvs
+INSTALL/          := linux64/
+EOF
+    ;;
   linux-debug)
     rm -f Make.compilers
     cat <<EOF > Make.compilers
