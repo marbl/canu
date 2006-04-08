@@ -25,10 +25,8 @@ s4p_estIDcompare(const void *a, const void *b) {
   if (A->estID > B->estID) return(1);
   if (A->genID < B->genID) return(-1);
   if (A->genID > B->genID) return(1);
-  if (A->genLo < B->genLo) return(-1);
-  if (A->genLo > B->genLo) return(1);
-  if (A->exons[0].genFrom < B->exons[0].genFrom) return(-1);
-  if (A->exons[0].genFrom > B->exons[0].genFrom) return(1);
+  if (A->genLo + A->exons[0].genFrom < B->genLo + B->exons[0].genFrom) return(-1);
+  if (A->genLo + A->exons[0].genFrom > B->genLo + B->exons[0].genFrom) return(1);
 
   return(0);
 }
@@ -45,12 +43,10 @@ s4p_genIDcompare(const void *a, const void *b) {
 
   if (A->genID < B->genID) return(-1);
   if (A->genID > B->genID) return(1);
+  if (A->genLo + A->exons[0].genFrom < B->genLo + B->exons[0].genFrom) return(-1);
+  if (A->genLo + A->exons[0].genFrom > B->genLo + B->exons[0].genFrom) return(1);
   if (A->estID < B->estID) return(-1);
   if (A->estID > B->estID) return(1);
-  if (A->genLo < B->genLo) return(-1);
-  if (A->genLo > B->genLo) return(1);
-  if (A->exons[0].genFrom < B->exons[0].genFrom) return(-1);
-  if (A->exons[0].genFrom > B->exons[0].genFrom) return(1);
 
   return(0);
 }
