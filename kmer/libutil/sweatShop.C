@@ -226,6 +226,8 @@ sweatShop::loader(void) {
 void*
 sweatShop::worker(sweatShopWorker *workerData) {
 
+  fprintf(stderr, "Worker %d!\n", workerData->threadID);
+
   struct timespec   naptime;
   naptime.tv_sec      = 0;
   naptime.tv_nsec     = 500000000ULL;
@@ -289,6 +291,15 @@ sweatShop::writer(void) {
   //
   while (_writerP && _writerP->_user) {
 
+    //  SOMEONE needs to update the number of things computed,
+    //  otherwise everyone stalls.  This used to be in stats(), but if
+    //  we disable those, then obviously we don't update this.
+    //
+    u32bit nc = 0;
+    for (u32bit i=0; i<_numberOfWorkers; i++)
+      nc += _workerData[i].numComputed;
+    _numberComputed = nc;
+
     //  Wait a bit if there is no output on this node (we caught up to
     //  the computes).  We now don't need to explicitly check if we catch
     //  the input (yikes!) because it still won't have been computed.
@@ -324,10 +335,12 @@ sweatShop::status(void) {
 
   while (_writerP && _writerP->_user) {
     deltaOut = deltaCPU = 0;
+
     if (_numberComputed > _numberOutput)
       deltaOut = _numberComputed - _numberOutput;
     if (_numberLoaded > _numberComputed)
       deltaCPU = _numberLoaded - _numberComputed;
+
 
     fprintf(stderr, "%6.1f/s (out="u64bitFMTW(8)") + "u64bitFMTW(8)" = (cpu = "u64bitFMTW(8)") + "u64bitFMTW(8)" = (in = "u64bitFMTW(8)")\n",
             _numberOutput / (getTime() - startTime),
@@ -345,7 +358,7 @@ sweatShop::status(void) {
   if (_numberLoaded > _numberComputed)
     deltaCPU = _numberLoaded - _numberComputed;
 
-  fprintf(stderr, "%6.1f/s (out="u64bitFMTW(8)") + "u64bitFMTW(8)" = (cpu = "u64bitFMTW(8)") + "u64bitFMTW(8)" = (in = "u64bitFMTW(8)")\n",
+  fprintf(stderr, "%6.1f/s (out="u64bitFMTW(8)") + "u64bitFMTW(8)" = (cpu = "u64bitFMTW(8)") + "u64bitFMTW(8)" = (in = "u64bitFMTW(8)")\r",
           _numberOutput / (getTime() - startTime),
           _numberOutput,
           _numberComputed - _numberOutput,
