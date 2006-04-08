@@ -44,8 +44,11 @@ snake(const char *seq1, const char *seq2, int k, int x, int endx, int endy) {
 
   if (x<0) return x;
   y = x+k;
-  while (x<endx && y<endy && seq1[x]==seq2[y]) {
-    ++x; ++y;
+  while ((x < endx) &&
+         (y < endy) &&
+         (toUpper[seq1[x]] == toUpper[seq2[y]])) {
+    ++x;
+    ++y;
   }
   return x;
 }
@@ -63,8 +66,11 @@ rsnake(const char *seq1, const char *seq2, int k, int x, int startx, int starty,
     fprintf(stderr, "halign::rsnake()-- TROUBLE!!! x:  %5d,  y:  %5d\n",x,x+k);
 
   y = x+k;
-  while (x>startx && y>starty && seq1[x-1]==seq2[y-1]) {
-    --x; --y;
+  while ((x>startx) &&
+         (y>starty) &&
+         (toUpper[seq1[x-1]] == toUpper[seq2[y-1]])) {
+    --x;
+    --y;
   }
   return x;
 }
@@ -413,12 +419,12 @@ halign(const char *seq1,
     switch (tp->op_type) {
       case SUB:
         for (i=0; i<tp->num; i++) {
-          if (*seq1 == *seq2) {
-            *alnline1 = tolower(*seq1);
-            *alnline2 = tolower(*seq2);
+          if (toUpper[*seq1] == toUpper[*seq2]) {
+            *alnline1 = toLower[*seq1];
+            *alnline2 = toLower[*seq2];
           } else {
-            *alnline1 = toupper(*seq1);
-            *alnline2 = toupper(*seq2);
+            *alnline1 = toUpper[*seq1];
+            *alnline2 = toUpper[*seq2];
           }
           seq1++;
           seq2++;
@@ -430,7 +436,7 @@ halign(const char *seq1,
       case INS:
         for (i=0; i<tp->num; i++) {
           *alnline1 = '-';
-          *alnline2 = toupper(*seq2);
+          *alnline2 = toUpper[*seq2];
           seq2++;
           alnline1++;
           alnline2++;
@@ -440,7 +446,7 @@ halign(const char *seq1,
       case DEL:
         for (i=0; i<tp->num; i++) {
           *alnline2 = '-';
-          *alnline1 = toupper(*seq1);
+          *alnline1 = toUpper[*seq1];
           seq1++;
           alnline1++;
           alnline2++;
