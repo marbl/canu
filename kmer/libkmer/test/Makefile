@@ -3,7 +3,7 @@ include ../../Make.compilers
 #  Bigger tblsize makes existDB much faster, but uses more memory (not
 #  much, really).  23 is nice.
 
-all: test-maskonly-passed position-passed
+all: test-mertable test-maskonly-passed position-passed
 	@echo "existDB has expensive tests.  They take:"
 	@echo "  70 minutes on 2.0GHz G5 (old)"
 	@echo "  60 minutes on 2.8GHz P4 (with KMER=1)"
@@ -12,6 +12,12 @@ all: test-maskonly-passed position-passed
 
 #	../../meryl/meryl -M equal 1 -s xp -o xp1
 #	../../meryl/meryl -Dt -n 1 -s xp1 > xp.uni.fasta
+
+test-mertable:
+	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-mertable.o test-mertable.C $(INCLUDE)
+	$(CXX) $(CXXLDFLAGS) -o test-mertable test-mertable.o $(LIBS)
+	../../leaff/leaff -G 10000 5000 10000 > xp.fasta
+	./test-mertable xp.fasta
 
 test-maskonly-passed:
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-maskonly.o test-maskonly.C $(INCLUDE)
