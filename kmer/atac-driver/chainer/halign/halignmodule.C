@@ -59,72 +59,6 @@
 #undef DEBUGGING
 #include "halign.h"
 
-
-#if 0
-#include <string>
-#include <time>
-#include "AtacMatch.h"
-
-int main(int argc, char *argv[])
-{
-   char *seq1, *seq2;
-   int   len1, len2;
-   int   offset1, offset2;
-   H_Alignment_t* aln_ptr;
-   // Sequence coordinates are base-based, starting from 0
-   halign(seq1+offset1, // This is the first base in the comparison.
-          seq2+offset2,
-          offset1, offset2,
-          len1, len2,
-          &aln_ptr);
-   
-   printUngappedAlign(aln_ptr);
-   printUngappedAlignSharpEnds(aln_ptr);
-
-   printUngappedAlignSharpEndsOnConsole(aln_ptr, seq1, seq2, 0);
-   printUngappedAlignSharpEndsOnConsole(aln_ptr, seq1, seq2, 1);
-   printUngappedAlignSharpEndsOnConsole(aln_ptr, seq1, seq2, 2);
-   Free_align(aln_ptr); // Must call for each halign() but after printing output.
-
-   exit(0);
-}
-
-#endif
-
-
-
-
-/////////////////////////////////////////////////////////////////////////////////////
-
-#if 0
-static PyObject * tp_iter( PyObject *self, PyObject *args) {
-  //getiterfunc
-  // calls the iterator for the beginning.
-  PyObject *result;
-  char *arg1;
-  char *arg2;
-  char *arg3;
-  
-  if (!PyArg_ParseTuple(args, "sss:call", &arg1, &arg2, &arg3)) {
-    return NULL;
-  }
-  result = PyString_FromFormat(
-			       "Returning -- value: [\%d] arg1: [\%s] arg2: [\%s] arg3: [\%s]\n",
-			       obj->obj_UnderlyingDatatypePtr->size,
-			       arg1, arg2, arg3);
-  printf("\%s", PyString_AS_STRING(result));
-  return result;
-}
-
-static PyObject * tp_iternext( PyObject *self, PyObject *args) {
-  //iternextfunc tp_iternext;
-  // returns an 
-  PyObject *result;
-
-  return result;
-}
-#endif 
-
 static H_Alignment_t* aln_ptr = NULL;
 
 static PyObject *
@@ -133,10 +67,6 @@ spam_halignStart( PyObject *self, PyObject *args) {
   int   len1=0, len2=0;
   int   offset1=0, offset2=0;
 
-#ifdef DEBUGGING
-  fprintf( stderr, "Before PyArg_ParseTuple\n");
-#endif
-  
   if (!PyArg_ParseTuple(args,
 			"ss"
 			,&seq1
@@ -145,21 +75,15 @@ spam_halignStart( PyObject *self, PyObject *args) {
     return NULL;
   }
 
-#ifdef DEBUGGING
-  fprintf( stderr, "After PyArg_ParseTuple\n");
-  fprintf( stderr, "seq1=%s\n", seq1);
-  fprintf( stderr, "seq2=%s\n", seq2);
-#endif
-
   len1 = strlen(seq1);
   len2 = strlen(seq2);
   // Sequence coordinates are base-based, starting from 0
   if(len1 > 0 && len2 >0 ) {
     halignStart(seq1+offset1, // This is the first base in the comparison.
-           seq2+offset2,
-           offset1, offset2,
-           len1, len2,
-           &aln_ptr);
+                seq2+offset2,
+                offset1, offset2,
+                len1, len2,
+                &aln_ptr);
   } else {
     if(aln_ptr != NULL){
       Free_align(aln_ptr); // Must call for each halign() but after printing output.
@@ -170,48 +94,18 @@ spam_halignStart( PyObject *self, PyObject *args) {
   return Py_None;
 }
 
-#if 0  
-static PyObject *
-spam_demo_halign( PyObject *self, PyObject *args) {
-  printUngappedAlign(aln_ptr);
-  printUngappedAlignSharpEnds(aln_ptr);
-  
-  printUngappedAlignSharpEndsOnConsole(aln_ptr, seq1, seq2, 0);
-  printUngappedAlignSharpEndsOnConsole(aln_ptr, seq1, seq2, 1);
-  printUngappedAlignSharpEndsOnConsole(aln_ptr, seq1, seq2, 2);
-
-  Py_INCREF(Py_None);  // This is a module function returning void.
-  return Py_None;
-}
-#endif
   
 static PyObject *
 spam_halignDedash( PyObject *self, PyObject *args) {
-#ifdef DEBUGGING
-  fprintf( stderr, "Before PyArg_ParseTuple\n");
-#endif
-#if 0
-  if (!PyArg_ParseTuple(args,
-			"i"
-			,&first
-			)) {
-    return NULL;
-  }
-#endif
-#ifdef DEBUGGING
-  fprintf( stderr, "After PyArg_ParseTuple\n");
-#endif
 
-  {
-    int bgn1, bgn2, len1, len2, nmat;
-    int valid = iterateUngappedAlignSharpEnds(aln_ptr, bgn1, bgn2, len1, len2, nmat);
-    if(valid){ 
-      // build a tuple here
-      return Py_BuildValue("(iiiii)", bgn1, bgn2, len1, len2, nmat);
-    } else {
-      Py_INCREF(Py_None);  // This is a module function returning void.
-      return Py_None;
-    }
+  int bgn1, bgn2, len1, len2, nmat;
+  int valid = iterateUngappedAlignSharpEnds(aln_ptr, bgn1, bgn2, len1, len2, nmat);
+  if(valid){ 
+    // build a tuple here
+    return Py_BuildValue("(iiiii)", bgn1, bgn2, len1, len2, nmat);
+  } else {
+    Py_INCREF(Py_None);  // This is a module function returning void.
+    return Py_None;
   }
 }
 
@@ -245,7 +139,7 @@ spam_hello( PyObject *self, PyObject *args) {
 			"O"
                         ,&py_outfile
                         )) {
-        return NULL;
+    return NULL;
   }
   FILE * outfile = PyFile_AsFile(py_outfile);
   fprintf(stderr,"outfile = %p\n", outfile);

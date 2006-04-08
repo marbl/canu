@@ -44,13 +44,7 @@ def cvm(f,x,y):
     # end if
 # end def
     
-def carp(x):
-    print >>STDERR, x
-# end if
 
-def ftsize(path):
-    return os.stat(path)[6]
-# end def
 
 class GlobalParam:
     def __init__(self,line):
