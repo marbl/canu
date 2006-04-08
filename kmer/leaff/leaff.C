@@ -10,7 +10,6 @@
 #include <time.h>
 
 #include "bio++.H"
-//#include "fasta.H"
 
 void          simseq(char *,char *,int,int,int,int,double);
 
@@ -276,7 +275,8 @@ char                  *specialDefLine    = 0L;
 u32bit                 withLineBreaks    = 0;
 bool                   toUppercase       = false;
 char                  *sourceFile        = 0L;
-FastAWrapper          *f                 = 0L;
+FastAWrapper          *fasta             = 0L;
+FastACache            *cache             = 0L;
 char                   seqIDtype         = 'i';
 u32bit                 begPos            = ~(u32bit)0;
 u32bit                 endPos            = ~(u32bit)0;
@@ -286,7 +286,7 @@ mt_s                  *mtctx             = 0L;
 
 void
 failIfNoSource(void) {
-  if (f == 0L) {
+  if (fasta == 0L) {
     fprintf(stderr, "No source file specified.\n");
     exit(1);
   }
@@ -294,7 +294,7 @@ failIfNoSource(void) {
 
 void
 failIfNotRandomAccess(void) {
-  if (f->isRandomAccess() == false) {
+  if (fasta->isRandomAccess() == false) {
     fprintf(stderr, "No index exists for %s\n", sourceFile);
     exit(1);
   }
@@ -320,10 +320,10 @@ FastASequenceInCore *loadSequence(FastAWrapper *F) {
 FastAWrapper*
 openNewFile(char *name, char *arg) {
 
-  if (f)
-    delete f;
+  if (fasta)
+    delete fasta;
 
-  f = new FastAWrapper(name);
+  fasta = new FastAWrapper(name);
 
   seqIDtype = 'i';
 
@@ -348,13 +348,13 @@ openNewFile(char *name, char *arg) {
       }
     }
 
-    f->openIndex(indextype | md5type);
+    fasta->openIndex(indextype | md5type);
   }
 
   delete lastSeq;
   lastSeq = 0L;
 
-  return(f);
+  return(fasta);
 }
 
 
@@ -364,8 +364,8 @@ printIID(u32bit iid, FastASequenceInCore *s=0L) {
 
   if (s == 0L) {
     mySeq = true;
-    f->find(iid);
-    s = loadSequence(f);
+    fasta->find(iid);
+    s = loadSequence(fasta);
   }
 
   if (printMD5) {
@@ -396,8 +396,8 @@ printSequenceBetweenSize(u32bit small, u32bit large) {
 
   //  XXX: could be faster (maybe) with an index
 
-  while (!f->eof()) {
-    FastASequenceInCore *s = loadSequence(f);
+  while (!fasta->eof()) {
+    FastASequenceInCore *s = loadSequence(fasta);
 
     if ((small <= s->sequenceLength()) &&
         (s->sequenceLength() < large))
@@ -445,18 +445,18 @@ findSequenceAndPrint(char *id) {
   bool found = false;
 
   if (seqIDtype == 'i')
-    found = f->find(strtou32bit(id, 0L));
+    found = fasta->find(strtou32bit(id, 0L));
   else
-    found = f->find(id);
+    found = fasta->find(id);
 
   if (found) {
     if ((lastSeq == 0L) ||
-        (lastSeq->getIID() != f->currentIID())) {
+        (lastSeq->getIID() != fasta->currentIID())) {
       delete lastSeq;
-      lastSeq = loadSequence(f);
+      lastSeq = loadSequence(fasta);
     }
 
-    printIID(f->currentIID(), lastSeq);
+    printIID(fasta->currentIID(), lastSeq);
   } else {
     fprintf(stderr, "WARNING: Didn't find %s id '%s'\n",
             seqIDtype == 'i' ? "internal" : "external",
@@ -472,28 +472,28 @@ printRangeOfSequences(char *argl, char *argh) {
 
   if (seqIDtype == 'i') {
     lowID  = strtou32bit(argl, 0L);
-    if (lowID >= f->getNumberOfSequences()) {
-      fprintf(stderr, "ERROR: Internal id of %lu for starting sequence is too large; only %lu sequences.\n",
-              lowID, f->getNumberOfSequences());
+    if (lowID >= fasta->getNumberOfSequences()) {
+      fprintf(stderr, "ERROR: Internal id of "u32bitFMT" for starting sequence is too large; only "u32bitFMT" sequences.\n",
+              lowID, fasta->getNumberOfSequences());
       fail = true;
     }
 
     highID = strtou32bit(argh, 0L);
-    if (highID >= f->getNumberOfSequences()) {
-      fprintf(stderr, "ERROR: Internal id of %lu for ending sequence is too large; only %lu sequences.\n",
-              highID, f->getNumberOfSequences());
+    if (highID >= fasta->getNumberOfSequences()) {
+      fprintf(stderr, "ERROR: Internal id of "u32bitFMT" for ending sequence is too large; only "u32bitFMT" sequences.\n",
+              highID, fasta->getNumberOfSequences());
       fail = true;
     }
   } else {
-    if (f->find(argl)) {
-      lowID = f->currentIID();
+    if (fasta->find(argl)) {
+      lowID = fasta->currentIID();
     } else {
       fprintf(stderr, "ERROR: Can't find external id '%s' of starting sequence.\n", argl);
       fail = true;
     }
     
-    if (f->find(argh)) {
-      highID = f->currentIID();
+    if (fasta->find(argh)) {
+      highID = fasta->currentIID();
     } else {
       fprintf(stderr, "ERROR: Can't find external id '%s' of ending sequence.\n", argh);
       fail = true;
@@ -519,20 +519,20 @@ printRangeOfSequences(char *argl, char *argh) {
 void
 findAndPrintRandomSequences(u32bit num) {
 
-  if (num >= f->getNumberOfSequences()) {
-    fprintf(stderr, "WARNING: file has %lu sequences, and you asked for %lu.\n",
-            f->getNumberOfSequences(), num);
+  if (num >= fasta->getNumberOfSequences()) {
+    fprintf(stderr, "WARNING: file has "u32bitFMT" sequences, and you asked for "u32bitFMT".\n",
+            fasta->getNumberOfSequences(), num);
     printSequenceBetweenSize(u32bitZERO, ~u32bitZERO);
     return;
   }
 
-  u32bit  *seqs = new u32bit [f->getNumberOfSequences()];
+  u32bit  *seqs = new u32bit [fasta->getNumberOfSequences()];
 
-  for (u32bit i=0; i<f->getNumberOfSequences(); i++)
+  for (u32bit i=0; i<fasta->getNumberOfSequences(); i++)
     seqs[i] = i;
 
-  for (u32bit i=0; i<f->getNumberOfSequences(); i++) {
-    u32bit j = (unsigned int)(mtRandom32(mtctx) % f->getNumberOfSequences());
+  for (u32bit i=0; i<fasta->getNumberOfSequences(); i++) {
+    u32bit j = (unsigned int)(mtRandom32(mtctx) % fasta->getNumberOfSequences());
     u32bit t = seqs[j];
     seqs[j] = seqs[i];
     seqs[i] = t;
@@ -592,7 +592,7 @@ printIDsFromFile(char *name) {
 
 md5_s *
 computeMD5ForEachSequence(FastAWrapper *F) {
-  u32bit   numSeqs = F->getNumberOfSequences();
+  u32bit   numSeqs = fasta->getNumberOfSequences();
   md5_s   *result  = new md5_s [numSeqs];
 
   F->find((u32bit)0);
@@ -811,11 +811,11 @@ partition_s_compare(const void *A, const void *B) {
 }
 
 partition_s *loadPartition(void) {
-  u32bit        n = f->getNumberOfSequences();
+  u32bit        n = fasta->getNumberOfSequences();
   partition_s  *p = new partition_s [n];
 
   for (u32bit i=0; i<n; i++) {
-    p[i].length = f->sequenceLength(i);
+    p[i].length = fasta->sequenceLength(i);
     p[i].index  = i;
     p[i].used   = 0;
   }
@@ -849,8 +849,8 @@ outputPartition(char *prefix, partition_s *p, u32bit openP, u32bit n) {
 
       for (u32bit i=0; i<n; i++)
         if (p[i].used == o) {
-          f->find(p[i].index);
-          FastASequenceInCore *S = f->getSequence();
+          fasta->find(p[i].index);
+          FastASequenceInCore *S = fasta->getSequence();
           fprintf(file, "%s\n", S->header());
           fwrite(S->sequence(), sizeof(char), S->sequenceLength(), file);
           fprintf(file, "\n");
@@ -888,7 +888,7 @@ outputPartition(char *prefix, partition_s *p, u32bit openP, u32bit n) {
 
 void
 partitionBySize(char *prefix, u64bit partitionSize) {
-  u32bit        n = f->getNumberOfSequences();
+  u32bit        n = fasta->getNumberOfSequences();
   partition_s  *p = loadPartition();
 
   u32bit  openP = 1;  //  Currently open partition
@@ -930,7 +930,7 @@ partitionBySize(char *prefix, u64bit partitionSize) {
 
 void
 partitionByBucket(char *prefix, u64bit partitionSize) {
-  u32bit        n = f->getNumberOfSequences();
+  u32bit        n = fasta->getNumberOfSequences();
   partition_s  *p = loadPartition();
 
   if (partitionSize > n)
@@ -980,7 +980,7 @@ dumpBlocks(void) {
   V[(int)'n'] = true;
   V[(int)'N'] = true;
 
-  S = f->getSequenceOnDisk();
+  S = fasta->getSequenceOnDisk();
   while (S) {
     char    seq    = S->get();
     u32bit  len    = S->sequenceLength();
@@ -1004,7 +1004,7 @@ dumpBlocks(void) {
     fprintf(stdout, ". "u32bitFMT" "u32bitFMT" "u32bitFMT"\n", seqno, pos, u32bitZERO);
 
     delete S;
-    S = f->getSequenceOnDisk();
+    S = fasta->getSequenceOnDisk();
 
     seqno++;
   }
@@ -1048,9 +1048,9 @@ processArray(int argc, char **argv) {
       int     al = (int)strlen(argv[arg]);
       u64bit  ps = (u32bit)strtou32bit(argv[arg], 0L);
 
-      char a3 = (al<3) ? '0' : (char)tolower(argv[arg][al-3]);
-      char a2 = (al<2) ? '0' : (char)tolower(argv[arg][al-2]);
-      char a1 = (al<1) ? '0' : (char)tolower(argv[arg][al-1]);
+      char a3 = (al<3) ? '0' : (char)toLower[argv[arg][al-3]];
+      char a2 = (al<2) ? '0' : (char)toLower[argv[arg][al-2]];
+      char a1 = (al<1) ? '0' : (char)toLower[argv[arg][al-1]];
 
       if (!isdigit(a1) || !isdigit(a2) || !isdigit(a3)) {
         if        ((a3 == 'g') && (a2 == 'b') && (a1 == 'p')) {
@@ -1077,9 +1077,9 @@ processArray(int argc, char **argv) {
       arg++;
       checksum(argv[arg]);
     } else if (strncmp(argv[arg], "--testindex", 3) == 0) {
-      f = new FastAWrapper(argv[arg+1]);
+      fasta = new FastAWrapper(argv[arg+1]);
 
-      if (f->isIndexValid(argv[arg+2]))
+      if (fasta->isIndexValid(argv[arg+2]))
         exit(0);
 
       exit(1);
@@ -1095,7 +1095,7 @@ processArray(int argc, char **argv) {
       //  hacking to get rid of 'mode' in simseq (and driver and here)
       //  hacking to load seq
 
-      FastASequenceInCore *S = f->getSequence();
+      FastASequenceInCore *S = fasta->getSequence();
       while (S) {
         char   *seq = S->sequence();
         char   *hdr = S->header();
@@ -1108,7 +1108,7 @@ processArray(int argc, char **argv) {
         simseq(seq, hdr, len, N, l, C, P);
 
         delete S;
-        S = f->getSequence();
+        S = fasta->getSequence();
       }
     } else {
       switch(argv[arg][1]) {
@@ -1118,7 +1118,7 @@ processArray(int argc, char **argv) {
         case 'f':
         case 'F':
           sourceFile = argv[++arg];
-          f = openNewFile(sourceFile, argv[arg-1]);
+          fasta = openNewFile(sourceFile, argv[arg-1]);
           break;
         case 'I':
           switch (argv[arg][2]) {
@@ -1138,12 +1138,12 @@ processArray(int argc, char **argv) {
             case 0:
               failIfNoSource();
               failIfNotRandomAccess();
-              f->printATADescription(stdout, argv[++arg]);
+              fasta->printATADescription(stdout, argv[++arg]);
               break;
             case 'i':
               failIfNoSource();
               failIfNotRandomAccess();
-              f->printTextDescription(stdout);
+              fasta->printTextDescription(stdout);
               break;
             default:
               fprintf(stderr, "WARNING: unknown option '%s'\n", argv[arg]);
@@ -1153,7 +1153,7 @@ processArray(int argc, char **argv) {
         case 'd':
           failIfNoSource();
           failIfNotRandomAccess();
-          printf(u32bitFMT"\n", f->getNumberOfSequences());
+          printf(u32bitFMT"\n", fasta->getNumberOfSequences());
           break;
         case 'L':
           failIfNoSource();
@@ -1174,7 +1174,7 @@ processArray(int argc, char **argv) {
         case 's':
           failIfNoSource();
           failIfNotRandomAccess();
-          f->optimizeRandomAccess();
+          fasta->optimizeRandomAccess();
           findSequenceAndPrint(argv[++arg]);
           break;
         case 'S':
@@ -1186,7 +1186,7 @@ processArray(int argc, char **argv) {
         case 'r':
           failIfNoSource();
           failIfNotRandomAccess();
-          f->optimizeRandomAccess();
+          fasta->optimizeRandomAccess();
           findAndPrintRandomSequences(strtou32bit(argv[++arg], 0L));
           break;
         case 'q':
@@ -1210,7 +1210,7 @@ processArray(int argc, char **argv) {
 
           if (toUppercase)
             for (int z=0; z<256; z++)
-              translate[z] = (char)toupper(z);
+              translate[z] = (char)toUpper[z];
           else
             for (int z=0; z<256; z++)
               translate[z] = (char)z;
@@ -1245,9 +1245,9 @@ processArray(int argc, char **argv) {
     arg++;
   }
 
-  if (f) {
-    delete f;
-    f = 0L;
+  if (fasta) {
+    delete fasta;
+    fasta = 0L;
   }
 }
 
@@ -1276,7 +1276,7 @@ processFile(char  *filename) {
       len = fread(data+pos, 1, max - pos, stdin);
       if (errno) {
 #ifdef TRUE64BIT
-        fprintf(stderr, "error: Couldn't read %llu bytes from '%s'\n%s\n",
+        fprintf(stderr, "error: Couldn't read %lu bytes from '%s'\n%s\n",
                 max-pos, filename, strerror(errno));
 #else
         fprintf(stderr, "error: Couldn't read %d bytes from '%s'\n%s\n",
@@ -1311,7 +1311,7 @@ processFile(char  *filename) {
     fread(data, 1, len, F);
     if (errno) {
 #ifdef TRUE64BIT
-      fprintf(stderr, "error: Couldn't read %llu bytes from '%s'\n%s\n",
+      fprintf(stderr, "error: Couldn't read %lu bytes from '%s'\n%s\n",
               len, filename, strerror(errno));
 #else
       fprintf(stderr, "error: Couldn't read %d bytes from '%s'\n%s\n",
@@ -1382,6 +1382,6 @@ main(int argc, char **argv) {
 
   processArray(argc, argv);
 
-  if (f)
-    delete f;
+  if (fasta)
+    delete fasta;
 }
