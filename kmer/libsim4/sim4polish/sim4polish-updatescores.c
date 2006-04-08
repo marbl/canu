@@ -35,22 +35,32 @@ s4p_updateAlignmentScores(sim4polish *p) {
         if        ((*est == '-') || (*gen == '-')) {
           ni++;
           ne++;
+          *est = toupper(*est);
+          *gen = toupper(*gen);
         } else if (estn && genn) {
           //  Both are N.  It isn't a match and it isn't an edit.
           //
           nn++;
+          *est = toupper(*est);
+          *gen = toupper(*gen);
         } else if (estn || genn) {
           //  One is an N.  Someone has low quality sequence, and we
           //  should penalize.  We need to special case this because
           //  IUPACidentity[][] claims N matches all.
           //
           ne++;
+          *est = toupper(*est);
+          *gen = toupper(*gen);
         } else if (IUPACidentity[(int)*est][(int)*gen]) {
           //  Got a match.
           nm++;
+          *est = tolower(*est);
+          *gen = tolower(*gen);
         } else {
           //  Got a substitution
           ne++;
+          *est = toupper(*est);
+          *gen = toupper(*gen);
         }
 
         est++;
