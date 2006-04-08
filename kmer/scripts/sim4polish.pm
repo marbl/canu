@@ -41,6 +41,45 @@ sub updatePolishInfoLine {
 }
 
 
+sub updatePolish {
+    my %p = @_;
+    my $l;
+
+    $l  = "sim4begin\n";
+    $l .= "$p{'estID'}\[$p{'estLen'}-$p{'pA'}-$p{'pT'}\] ";
+    $l .= "$p{'dbID'}\[$p{'dbLo'}-$p{'dbHi'}\] ";
+    $l .= "<$p{'numMatches'}-$p{'numMatchesN'}-$p{'percentID'}-$p{'matchOrientation'}-$p{'strandPrediction'}>\n";
+
+    $l .= "comment=$p{'comment'}\n" if defined($p{'comment'});
+    $l .= "edef=$p{'estDefLine'}\n" if defined($p{'estDefLine'});
+    $l .= "ddef=$p{'dbDefLine'}\n"  if defined($p{'estDefLine'});
+
+    foreach my $exon (@{@p{'exons'}}) {
+        my $e;
+        $e  = "$exon->{'cDNAstart'}-$exon->{'cDNAend'} ";
+        $e .= "($exon->{'GENOMICstart'}-$exon->{'GENOMICend'}) ";
+        $e .= "<$exon->{'numMatches'}-$exon->{'numMatchesN'}-$exon->{'percentID'}> ";
+        $e .= "$exon->{'intronOrientation'}";
+
+        $e =~ s/^\s+//;
+        $e =~ s/\s+$//;
+
+        $l .= "$e\n";
+    }
+
+    foreach my $exon (@{@p{'exons'}}) {
+        $l .= "$exon->{'cDNAalign'}\n";
+        $l .= "$exon->{'GENOMICalign'}\n";
+    }
+
+    $l .= "sim4end\n";
+
+    return($l);
+}
+
+
+
+
 ######################################################################
 #
 #  Subroutine to read a single sim4 polish, and return it as a structure.
