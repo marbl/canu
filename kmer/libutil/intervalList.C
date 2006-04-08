@@ -5,13 +5,9 @@
 #include "util++.H"
 
 
-//  Define this to print some debugging information
-//
-//#define DEBUG_LIST
-
-
 intervalList::intervalList() {
   _isSorted = true;
+  _isMerged = true;
   _listLen  = 0;
   _listMax  = 16;
   _list     = new _intervalPair [_listMax];
@@ -26,6 +22,7 @@ intervalList::~intervalList() {
 intervalList &
 intervalList::operator=(intervalList &src) {
   _isSorted = src._isSorted;
+  _isMerged = src._isMerged;
   _listLen = src._listLen;
 
   if (_listMax < src._listMax) {
@@ -39,12 +36,9 @@ intervalList::operator=(intervalList &src) {
   return(*this);
 }
 
+
 void
 intervalList::add(intervalNumber position, intervalNumber length) {
-
-#ifdef DEBUG_LIST
-  fprintf(stderr, "Adding %u - %u\n", position, position+length);
-#endif
 
   if (_listLen >= _listMax) {
     _listMax *= 2;
@@ -54,15 +48,33 @@ intervalList::add(intervalNumber position, intervalNumber length) {
     _list = l;
   }
 
-  _list[_listLen].lo = position;
-  _list[_listLen].hi = position + length;
+  _list[_listLen].lo   = position;
+  _list[_listLen].hi   = position + length;
 
+#if 0
+  //  Aborted attempt to add a data field here.  Got stuck
+  //  deciding how to handle merges lightweight
+
+  _list[_listLen].data = 0L;
+
+  if (data != ~u64bitZERO) {
+    _list[_listLen].dataLen = 1;
+    _list[_listLen].dataMax = 4;
+    _list[_listLen].data    = new u64bit [_list[_listLen].dataMax];
+    _list[_listLen].data[0] = data;
+  }
+#endif
+    
   if ((_listLen > 0) &&
       (_list[_listLen-1].lo > _list[_listLen].lo)) {
-#ifdef DEBUG_LIST
-    fprintf(stderr, "list isn't sorted\n");
-#endif
     _isSorted = false;
+  }
+
+  //  XXX  not sure if we need >= here or not
+  //
+  if ((_listLen > 0) &&
+      (_list[_listLen-1].lo >= _list[_listLen].lo)) {
+    _isMerged = false;
   }
 
   _listLen++;
@@ -86,12 +98,8 @@ intervalList_sort_helper(const void *a, const void *b) {
 void
 intervalList::sort(void) {
 
-  if (_isSorted) {
-#ifdef DEBUG_LIST
-    fprintf(stderr, "List is already sorted!\n");
-#endif
+  if (_isSorted)
     return;
-  }
 
   if (_listLen > 1)
     qsort(_list, _listLen, sizeof(_intervalPair), intervalList_sort_helper);
@@ -166,8 +174,56 @@ intervalList::merge(void) {
 
   if (thisInterval+1 < _listLen)
     _listLen = thisInterval + 1;
+
+  _isMerged = true;
 }
 
+
+void
+intervalList::invert(intervalNumber lo, intervalNumber hi) {
+
+  if (!_isSorted || !_isMerged) {
+    fprintf(stderr, "intervalList::invert()--  ERROR!  List is not sorted or not merged!\n");
+    exit(1);
+  }
+
+  //  Create a new list to store the inversion
+  //
+  u32bit             invLen = 0;
+  u32bit             invMax = _listLen + 2;
+  _intervalPair     *inv    = new _intervalPair [invMax];
+
+  //  Add the first
+  //
+  if (lo < _list[0].lo) {
+    inv[invLen].lo = lo;
+    inv[invLen].hi = _list[0].lo;
+    invLen++;
+  }
+
+  //  Add the pieces
+  for (u32bit i=1; i<_listLen; i++) {
+    if (_list[i-1].hi < _list[i].lo) {
+      inv[invLen].lo = _list[i-1].hi;
+      inv[invLen].hi = _list[i].lo;
+      invLen++;
+    }
+  }
+
+  //  Add the last
+  if (_list[_listLen-1].hi < hi) {
+    inv[invLen].lo = _list[_listLen-1].hi;
+    inv[invLen].hi = hi;
+    invLen++;
+  }
+
+  //  Nuke the old list, swap in the new one
+  delete [] _list;
+
+  _list = inv;
+  _listLen = invLen;
+  _listMax = invMax;
+}
 
 
 

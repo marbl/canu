@@ -23,6 +23,7 @@ public:
   //  Clear a list
   void        clear(void) {
     _isSorted = true;
+    _isMerged = true;
     _listLen  = 0;
   }
 
@@ -34,6 +35,8 @@ public:
 
   //  Merge overlapping or adjacent intervals together.
   void        merge(void);
+
+  void        invert(intervalNumber lo, intervalNumber hi);
 
   //  Returns the number of intervals
   u32bit      numberOfIntervals(void) {
@@ -66,6 +69,7 @@ public:
 
 private:
   bool                      _isSorted;
+  bool                      _isMerged;
   u32bit                    _listLen;
   u32bit                    _listMax;
   _intervalPair            *_list;
