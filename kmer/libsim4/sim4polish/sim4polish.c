@@ -51,4 +51,6 @@ s4p_normalize(sim4polish *p) {
     p->exons[i].genFrom += p->genLo;
     p->exons[i].genTo   += p->genLo;
   }
+  p->genLo = 0;
+  p->genHi = 0;
 }
