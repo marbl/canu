@@ -18,9 +18,9 @@
 
 #include "overlap.H"
 
-matchTree::matchTree(matchList *L, u32bit side) {
+matchTree::matchTree(atacMatchList *L, u32bit side) {
 
-  //  Construct a list of pointers to the matchList data
+  //  Construct a list of pointers to the atacMatchList data
   //
   //  kazlib was modified to be qsort() compatible and so it passes a
   //  pointer to whatever it is sorting.  Since kazlib operates on
@@ -35,7 +35,7 @@ matchTree::matchTree(matchList *L, u32bit side) {
   //
   //  qsort() below sorts pointers to objects, and does the same.
 
-  match_t  **matchPointers = new match_t * [L->_matchesLen];
+  atacMatch  **matchPointers = new atacMatch * [L->_matchesLen];
   for (u32bit i=0; i<L->_matchesLen; i++)
     matchPointers[i] = L->_matches + i;
 
@@ -47,7 +47,7 @@ matchTree::matchTree(matchList *L, u32bit side) {
   
   //  Sort
 
-  qsort(matchPointers, L->_matchesLen, sizeof(match_t *), sortMatches);
+  qsort(matchPointers, L->_matchesLen, sizeof(atacMatch *), sortMatches);
 
   //  Load the tree (use DICTCOUNT_T_MAX for max nodes)
 

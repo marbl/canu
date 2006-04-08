@@ -26,12 +26,14 @@
 //  results in 'nodeINDEXA' not 'node1'
 
 void
-NAME(FILE         *outfile,
-     spanTree     *S,
-     matchList    *M1,
-     matchList    *M2,
-     overlapStats &stats,
-     annoList     *AL, u32bit &ALlen, u32bit &ALmax) {
+NAME(FILE             *outfile,
+     spanTree         *S,
+     atacMatchList    *M1,
+     atacMatchList    *M2,
+     overlapStats     &stats,
+     annoList         *AL,
+     u32bit           &ALlen,
+     u32bit           &ALmax) {
 
   dnode_t  *node = dict_first(S->_tree);
 
@@ -44,7 +46,7 @@ NAME(FILE         *outfile,
       printAnno(outfile, AL, ALlen, 'U', INDEX, span);
     } else if (span->_matchesLen == 1) {
       u32bit    match = span->_matches[0];
-      match_t  *m;
+      atacMatch  *m;
 
       if (match >> COLORSHIFT) {
         m = &M2->_matches[match & COLORMASK];
@@ -68,8 +70,8 @@ NAME(FILE         *outfile,
         match2 = span->_matches[0];
       }
 
-      match_t  *m1 = &M1->_matches[match1 & COLORMASK];
-      match_t  *m2 = &M2->_matches[match2 & COLORMASK];
+      atacMatch  *m1 = &M1->_matches[match1 & COLORMASK];
+      atacMatch  *m2 = &M2->_matches[match2 & COLORMASK];
 
       if (m1->iid2 == m2->iid2) {
         u32bit off1  = span->_beg - m1->POS1;

@@ -21,10 +21,10 @@
 
 #include "overlap.H"
 
-//  Contructs a search tree from a matchList
+//  Contructs a search tree from a atacMatchList
 class matchTree {
 public:
-  matchTree(matchList *L, u32bit side);
+  matchTree(atacMatchList *L, u32bit side);
   ~matchTree() {
     dict_free_nodes(_tree);
     dict_free(_tree);

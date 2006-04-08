@@ -38,8 +38,8 @@ public:
 
   void add(char type_,
            u32bit  iid1_,  u32bit pos1_,  u32bit len1_,
-           u32bit  match1, match_t *m1,
-           u32bit  match2, match_t *m2) {
+           u32bit  match1, atacMatch *m1,
+           u32bit  match2, atacMatch *m2) {
     type  = type_;
     iid1  = iid1_;
     pos1  = pos1_;

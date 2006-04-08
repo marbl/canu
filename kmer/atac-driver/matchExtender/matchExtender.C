@@ -138,7 +138,7 @@ readMatches(char *inLine,
   } while (!feof(stdin) && cont);
 
 
-  fprintf(stderr, " with %8d fwd and %8d rev matches\r", fwdMatches.size(), revMatches.size());
+  fprintf(stderr, " with %8d fwd and %8d rev matches\r", (int)fwdMatches.size(), (int)revMatches.size());
   fflush(stderr);
 }
 
@@ -172,7 +172,7 @@ main(int argc, char *argv[]) {
   }
 
   if (fail) {
-    fprintf(stderr, "usage: %s [options] < matches.atac > matches.atac\n");
+    fprintf(stderr, "usage: %s [options] < matches.atac > matches.atac\n", argv[0]);
     fprintf(stderr, "  -e <int>     matchExtenderMinEndRunLen, 10\n");
     fprintf(stderr, "  -b <int>     matchExtenderMaxMMBlock, 3\n");
     fprintf(stderr, "  -s <int>     matchExtenderMinBlockSep, 20\n");

@@ -27,9 +27,9 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  matchList  *M1 = new matchList(argv[1]);
-  matchList  *M2 = new matchList(argv[2]);
-  char       *OP = argv[3];
+  atacMatchList  *M1 = new atacMatchList(argv[1]);
+  atacMatchList  *M2 = new atacMatchList(argv[2]);
+  char           *OP = argv[3];
 
 
   //  We want to annotate the two assembies with:

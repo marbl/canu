@@ -38,28 +38,32 @@ int spanCompare(const void *a, const void *b);
 #include "overlap-stats.H"
 
 void
-process1(FILE         *outfile,
-         spanTree     *S,
-         matchList    *M1,
-         matchList    *M2,
-         overlapStats &stats,
-         annoList     *AL, u32bit &ALlen, u32bit &ALmax);
+process1(FILE             *outfile,
+         spanTree         *S,
+         atacMatchList    *M1,
+         atacMatchList    *M2,
+         overlapStats     &stats,
+         annoList         *AL,
+         u32bit           &ALlen,
+         u32bit           &ALmax);
 
 void
-process2(FILE         *outfile,
-         spanTree     *S,
-         matchList    *M1,
-         matchList    *M2,
-         overlapStats &stats,
-         annoList     *AL, u32bit &ALlen, u32bit &ALmax);
+process2(FILE             *outfile,
+         spanTree         *S,
+         atacMatchList    *M1,
+         atacMatchList    *M2,
+         overlapStats     &stats,
+         annoList         *AL,
+         u32bit           &ALlen,
+         u32bit           &ALmax);
 
 void
 printAnno(FILE *F, annoList *AL, u32bit &ALlen,
           char label,
           u32bit axis,
           span_t *span,
-          u32bit match1=u32bitZERO, match_t *m1=0L,
-          u32bit match2=u32bitZERO, match_t *m2=0L);
+          u32bit match1=u32bitZERO, atacMatch *m1=0L,
+          u32bit match2=u32bitZERO, atacMatch *m2=0L);
 
 void
 findIsolatedUnique(annoList *AL, u32bit ALlen);

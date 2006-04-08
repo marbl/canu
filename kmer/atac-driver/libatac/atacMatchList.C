@@ -27,27 +27,33 @@
 //  While loading matches, we compute the mapped length and covered
 //  length.
 
-matchList::matchList(char *filename, char matchOrRun, bool saveLine) {
+atacMatchList::atacMatchList(char *filename, char matchOrRun, bool saveLine) {
 
   if ((matchOrRun != 'u') && (matchOrRun != 'x') && (matchOrRun != 'r') && (matchOrRun != 'm')) {
-    fprintf(stderr, "matchList::matchList()-- Invalid value '%c' for matchOrRun, should be:\n");
-    fprintf(stderr, "                         'u' -- ungapped matches, with mismatches\n");
-    fprintf(stderr, "                         'x' -- ungapped matches, exact\n");
-    fprintf(stderr, "                         'm' -- ungapped matches, both 'u' and 'x'\n");
-    fprintf(stderr, "                         'r' -- runs (gapped)\n");
+    fprintf(stderr, "atacMatchList::atacMatchList()-- Invalid value '%c' for matchOrRun, should be:\n", matchOrRun);
+    fprintf(stderr, "                                 'u' -- ungapped matches, with mismatches\n");
+    fprintf(stderr, "                                 'x' -- ungapped matches, exact\n");
+    fprintf(stderr, "                                 'm' -- ungapped matches, both 'u' and 'x'\n");
+    fprintf(stderr, "                                 'r' -- runs (gapped)\n");
     exit(1);
   }
 
-  errno = 0;
-  FILE   *inFile = fopen(filename, "r");
-  if (errno)
-    fprintf(stderr, "matchList::matchList()-- failed to load %s: %s\n", filename, strerror(errno)), exit(1);
+  FILE *inFile = stdin;
+  if ((filename != 0L) && (strcmp(filename, "-") != 0)) {
+    errno = 0;
+    inFile = fopen(filename, "r");
+    if (errno)
+      fprintf(stderr, "atacMatchList::atacMatchList()-- failed to load %s: %s\n", filename, strerror(errno)), exit(1);
+  }
 
   //  Read the preamble, look for our data sources.  This leaves us with
   //  the first match in the inLine, and fills in file1 and file2.
   //
   char    inLine[1024];
   readHeader(inLine, inFile, _file1, _file2, 0L);
+
+  _name1[0] = 0;
+  _name2[0] = 0;
 
   //  Open some FastAWrappers for each of the files -- we use these
   //  only to get the length of the sequence.
@@ -60,7 +66,7 @@ matchList::matchList(char *filename, char matchOrRun, bool saveLine) {
 
   _matchesLen = 0;
   _matchesMax = 32 * 1048576;
-  _matches    = new match_t [_matchesMax];
+  _matches    = new atacMatch [_matchesMax];
 
   //  For the coverage to work correctly, we need to either have one
   //  intervalList per input sequence, or build a table of the chained
@@ -106,12 +112,16 @@ matchList::matchList(char *filename, char matchOrRun, bool saveLine) {
 
         if ((pos1) > _seq1->sequenceLength(iid1) || (pos1 + len1) > _seq1->sequenceLength(iid1)) {
           chomp(inLine);
-          fprintf(stderr, "Match longer than sequence in 1: "u32bitFMT" %s\n", _seq1->sequenceLength(iid1), inLine);
+          fprintf(stderr, "Match longer than sequence (by "u32bitFMT"bp) in 1: seqLen="u32bitFMTW(8)" %s\n",
+                  pos1 + len1 - _seq1->sequenceLength(iid1),
+                  _seq1->sequenceLength(iid1), inLine);
         }
 
         if ((pos2) > _seq2->sequenceLength(iid2) || (pos2 + len2) > _seq2->sequenceLength(iid2)) {
           chomp(inLine);
-          fprintf(stderr, "Match longer than sequence in 2: "u32bitFMT" %s\n", _seq2->sequenceLength(iid2), inLine);
+          fprintf(stderr, "Match longer than sequence (by "u32bitFMT"bp) in 2: seqLen="u32bitFMTW(8)" %s\n",
+                  pos2 + len2 - _seq2->sequenceLength(iid2),
+                  _seq2->sequenceLength(iid2), inLine);
         }
 
         if ((iid1 >= _seq1->getNumberOfSequences()) || (iid2 >= _seq2->getNumberOfSequences())) {
@@ -130,7 +140,11 @@ matchList::matchList(char *filename, char matchOrRun, bool saveLine) {
           }
 
           _matches[_matchesLen].matchiid = _matchesLen;
-          _matches[_matchesLen].matchuid = strtou32bit(S[2], 0L);
+          strncpy(_matches[_matchesLen].matchuid,  S[2], 16);
+          strncpy(_matches[_matchesLen].parentuid, S[3], 16);
+
+          _matches[_matchesLen].matchuid[15]  = 0;
+          _matches[_matchesLen].parentuid[15] = 0;
 
           _matches[_matchesLen].iid1 = iid1;
           _matches[_matchesLen].pos1 = pos1;
@@ -175,8 +189,8 @@ matchList::matchList(char *filename, char matchOrRun, bool saveLine) {
 static
 int
 sort1_(const void *a, const void *b) {
-  const match_t *A = (const match_t *)a;
-  const match_t *B = (const match_t *)b;
+  const atacMatch *A = (const atacMatch *)a;
+  const atacMatch *B = (const atacMatch *)b;
 
   if (A->iid1 < B->iid1)  return(-1);
   if (A->iid1 > B->iid1)  return(1);
@@ -184,11 +198,6 @@ sort1_(const void *a, const void *b) {
   if (A->pos1 > B->pos1)  return(1);
   if (A->len1 > B->len1)  return(-1);
   if (A->len1 < B->len1)  return(1);
-#if 0
-  //  disabled so that clumpMaker can use these sorts
-  if (A->fwd1 > B->fwd1)  return(-1);
-  if (A->fwd1 < B->fwd1)  return(1);
-#endif
   if (A->iid2 < B->iid2)  return(-1);
   if (A->iid2 > B->iid2)  return(1);
   if (A->pos2 < B->pos2)  return(-1);
@@ -201,8 +210,8 @@ sort1_(const void *a, const void *b) {
 static
 int
 sort2_(const void *a, const void *b) {
-  const match_t *A = (const match_t *)a;
-  const match_t *B = (const match_t *)b;
+  const atacMatch *A = (const atacMatch *)a;
+  const atacMatch *B = (const atacMatch *)b;
 
   if (A->iid2 < B->iid2)  return(-1);
   if (A->iid2 > B->iid2)  return(1);
@@ -210,11 +219,6 @@ sort2_(const void *a, const void *b) {
   if (A->pos2 > B->pos2)  return(1);
   if (A->len2 > B->len2)  return(-1);
   if (A->len2 < B->len2)  return(1);
-#if 0
-  //  disabled so that clumpMaker can use these sorts
-  if (A->fwd2 > B->fwd2)  return(-1);
-  if (A->fwd2 < B->fwd2)  return(1);
-#endif
   if (A->iid1 < B->iid1)  return(-1);
   if (A->iid1 > B->iid1)  return(1);
   if (A->pos1 < B->pos1)  return(-1);
@@ -225,16 +229,107 @@ sort2_(const void *a, const void *b) {
   return(0);
 }
 
+static
+int
+sortdiagonal_(const void *a, const void *b) {
+  const atacMatch *A = (const atacMatch *)a;
+  const atacMatch *B = (const atacMatch *)b;
 
-void
-matchList::sort1(u32bit first, u32bit len) {
-  if (len == 0) len = _matchesLen;
-  qsort(_matches + first, len, sizeof(match_t), sort1_);
+  if (A->iid2 < B->iid2)  return(-1);
+  if (A->iid2 > B->iid2)  return(1);
+  if (A->iid1 < B->iid1)  return(-1);
+  if (A->iid1 > B->iid1)  return(1);
+  if (A->fwd2 < B->fwd2)  return(-1);
+  if (A->fwd2 > B->fwd2)  return(1);
+
+  //  We're now in the same sequence pair with the same orientation.
+
+  //  So much easier if we use signed math.
+
+  //  This works for forward matches
+  s32bit dA = (s32bit)A->pos2 - (s32bit)A->pos1;
+  s32bit dB = (s32bit)B->pos2 - (s32bit)B->pos1;
+
+  if (A->fwd2 == 0) {
+    //  OK, so not the greatest diagonal computation ever.  We end up
+    //  with a gigantic discontinuity at the origin, but we don't
+    //  care, just as long as the diagonals are distinct.
+    //
+    dA = (s32bit)A->pos2 - (1000000000 - (s32bit)(A->pos2 + A->len2));
+    dB = (s32bit)B->pos2 - (1000000000 - (s32bit)(B->pos2 + B->len2));
+  }
+
+  if (dA < dB)  return(-1);
+  if (dA > dB)  return(1);
+
+  //  This is just candy; might make things easier later
+  if (A->pos1 < B->pos1)  return(-1);
+  if (A->pos1 > B->pos1)  return(1);
+  if (A->len1 > B->len1)  return(-1);
+  if (A->len1 < B->len1)  return(1);
+
+  return(0);
+}
+
+static
+int
+sortmatchuid_(const void *a, const void *b) {
+  const atacMatch *A = (const atacMatch *)a;
+  const atacMatch *B = (const atacMatch *)b;
+
+  int  r = strcmp(A->matchuid, B->matchuid);
+  if (r < 0)  return(-1);
+  if (r > 0)  return(1);
+  r = strcmp(A->parentuid, B->parentuid);
+  if (r < 0)  return(-1);
+  if (r > 0)  return(1);
+
+  return(0);
+}
+
+static
+int
+sortparentuid_(const void *a, const void *b) {
+  const atacMatch *A = (const atacMatch *)a;
+  const atacMatch *B = (const atacMatch *)b;
+
+  int  r = strcmp(A->parentuid, B->parentuid);
+  if (r < 0)  return(-1);
+  if (r > 0)  return(1);
+  r = strcmp(A->matchuid, B->matchuid);
+  if (r < 0)  return(-1);
+  if (r > 0)  return(1);
+  
+  return(0);
 }
 
 
 void
-matchList::sort2(u32bit first, u32bit len) {
+atacMatchList::sort1(u32bit first, u32bit len) {
   if (len == 0) len = _matchesLen;
-  qsort(_matches + first, len, sizeof(match_t), sort2_);
+  qsort(_matches + first, len, sizeof(atacMatch), sort1_);
+}
+
+void
+atacMatchList::sort2(u32bit first, u32bit len) {
+  if (len == 0) len = _matchesLen;
+  qsort(_matches + first, len, sizeof(atacMatch), sort2_);
+}
+
+void
+atacMatchList::sortDiagonal(u32bit first, u32bit len) {
+  if (len == 0) len = _matchesLen;
+  qsort(_matches + first, len, sizeof(atacMatch), sortdiagonal_);
+}
+
+void
+atacMatchList::sortMatchUID(u32bit first, u32bit len) {
+  if (len == 0) len = _matchesLen;
+  qsort(_matches + first, len, sizeof(atacMatch), sortmatchuid_);
+}
+
+void
+atacMatchList::sortParentUID(u32bit first, u32bit len) {
+  if (len == 0) len = _matchesLen;
+  qsort(_matches + first, len, sizeof(atacMatch), sortparentuid_);
 }

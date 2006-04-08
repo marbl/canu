@@ -40,19 +40,28 @@ void   decodeMatch(splitToWords &W,
                    u32bit &iid2, u32bit &pos2, u32bit &len2, u32bit &fwd2);
 
 
-class match_t {
+class atacMatch {
 public:
-  u32bit  matchiid;  //  internal id, usually pointing to an entry in matchList
-  u32bit  matchuid;  //  external id
+  char    matchuid[16];     //  external id
+  char    parentuid[16];    //  external parent id
+  u32bit  matchiid;         //  internal id, usually pointing to an entry in atacMatchList
+  u32bit  pad;              //  nothing, just keep things aligned
   u32bit  iid1, pos1, len1, fwd1;
   u32bit  iid2, pos2, len2, fwd2;
+
+  void  print(FILE *f, char *label1, char *label2) {
+    fprintf(f, "M u %s %s %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" %d %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" %d\n",
+            matchuid, parentuid,
+            label1, iid1, pos1, len1, fwd1 ? 1 : -1,
+            label2, iid2, pos2, len2, fwd2 ? 1 : -1);
+  }
 };
 
 
-class matchList {
+class atacMatchList {
 public:
-  matchList(char *filename, char matchOrRun = 'm', bool saveLine=false);
-  ~matchList() {
+  atacMatchList(char *filename, char matchOrRun = 'm', bool saveLine=false);
+  ~atacMatchList() {
     delete _seq1;
     delete _seq2;
     delete [] _matches;
@@ -61,17 +70,20 @@ public:
   u32bit         numMatches(void) {
     return(_matchesLen);
   };
-  match_t       *getMatch(u32bit i) {
+  atacMatch     *getMatch(u32bit i) {
     return(_matches + i);
   };
 
-  match_t       *operator[](u32bit i) {
+  atacMatch     *operator[](u32bit i) {
     return(_matches + i);
   };
 
   //  Sort by the A assembly or B assembly location
   void           sort1(u32bit first=0, u32bit len=0);
   void           sort2(u32bit first=0, u32bit len=0);
+  void           sortDiagonal(u32bit first=0, u32bit len=0);
+  void           sortMatchUID(u32bit first=0, u32bit len=0);
+  void           sortParentUID(u32bit first=0, u32bit len=0);
 
   char          _file1[1024];
   char          _file2[1024];
@@ -85,7 +97,7 @@ public:
 
   u32bit        _matchesLen;
   u32bit        _matchesMax;
-  match_t      *_matches;
+  atacMatch    *_matches;
 };
 
 

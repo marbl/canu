@@ -40,7 +40,7 @@ public:
     return((u32bit)dict_count(_tree));
   };
 
-  void addMatch(match_t *match, u32bit side, u32bit color) {
+  void addMatch(atacMatch *match, u32bit side, u32bit color) {
 
     //  Query the tree for the first match before this position.
     //  We're guaranteed to find one before, since the tree was

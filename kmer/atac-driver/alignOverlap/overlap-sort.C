@@ -20,8 +20,8 @@
 
 int
 sortMatches1(const void *a, const void *b) {
-  const match_t *A = *((const match_t * const *)a);
-  const match_t *B = *((const match_t * const *)b);
+  const atacMatch *A = *((const atacMatch * const *)a);
+  const atacMatch *B = *((const atacMatch * const *)b);
 
   if (A->iid1 < B->iid1)  return(-1);
   if (A->iid1 > B->iid1)  return(1);
@@ -36,8 +36,8 @@ sortMatches1(const void *a, const void *b) {
 
 int
 sortMatches2(const void *a, const void *b) {
-  const match_t *A = *((const match_t * const *)a);
-  const match_t *B = *((const match_t * const *)b);
+  const atacMatch *A = *((const atacMatch * const *)a);
+  const atacMatch *B = *((const atacMatch * const *)b);
 
   if (A->iid2 < B->iid2)  return(-1);
   if (A->iid2 > B->iid2)  return(1);

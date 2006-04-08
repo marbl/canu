@@ -26,8 +26,8 @@
 
 //  Compute some simple statistics on a set of matches
 
-void mappedMultiply1(matchList &matches, char *prefix);
-void mappedMultiply2(matchList &matches, char *prefix);
+void mappedMultiply1(atacMatchList &matches, char *prefix);
+void mappedMultiply2(atacMatchList &matches, char *prefix);
 
 //  Sort u32bit backwards
 int
@@ -84,11 +84,11 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  //  matchList also computes the length and coverage of the matches.
+  //  atacMatchList also computes the length and coverage of the matches.
   //
-  matchList     matches(atacFile, matchesOrRuns);
-  FILE         *out;
-  char          filename[1024];
+  atacMatchList      matches(atacFile, matchesOrRuns);
+  FILE              *out;
+  char               filename[1024];
 
   //  Generate an Nx plot, and a match length histogram
   //  We block the histogram at 1kb, 0 is for things too big.
@@ -102,7 +102,7 @@ main(int argc, char **argv) {
     lengthHistogram[i] = 0;
 
   for (u32bit i=0; i<matches.numMatches(); i++) {
-    match_t  *m = matches.getMatch(i);
+    atacMatch  *m = matches.getMatch(i);
 
     //  Update the length histogram
     //
@@ -153,7 +153,7 @@ main(int argc, char **argv) {
       sum += n50[iter++];
     }
 
-    fprintf(out, u64bitFMT" "u64bitFMT"\n", n, n50[iter-1]);
+    fprintf(out, u64bitFMT" "u32bitFMT"\n", n, n50[iter-1]);
   }
 
   fclose(out);
@@ -206,7 +206,7 @@ main(int argc, char **argv) {
 //  XXX:  Sadly, this function is needed twice, one for each direction.
 
 void
-mappedMultiply1(matchList &matches, char *prefix) {
+mappedMultiply1(atacMatchList &matches, char *prefix) {
   u32bit   beg = 0;
   u32bit   end = 0;
   char     filename[1024];
@@ -290,7 +290,7 @@ mappedMultiply1(matchList &matches, char *prefix) {
 
 
 void
-mappedMultiply2(matchList &matches, char *prefix) {
+mappedMultiply2(atacMatchList &matches, char *prefix) {
   u32bit   beg = 0;
   u32bit   end = 0;
   char     filename[1024];

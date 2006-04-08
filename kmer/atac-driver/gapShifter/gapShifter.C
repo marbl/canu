@@ -47,42 +47,11 @@ u32bit  gapLimit = 5;
 //  Shifting is done for both assembly-axes.
 
 
-
-class match_s {
-public:
-  u32bit  matchid;
-  u32bit  iid1, pos1, len1, ori1;
-  u32bit  iid2, pos2, len2, ori2;
-};
-
-
-int compareMatches1(const void *a, const void *b) {
-  const match_s  *A = (const match_s *)a;
-  const match_s  *B = (const match_s *)b;
-
-  if (A->iid1 < B->iid1) return(-1);
-  if (A->iid1 > B->iid1) return(1);
-  if (A->pos1 < B->pos1) return(-1);
-  if (A->pos1 > B->pos1) return(1);
-  return(0);
-}
-
-int compareMatches2(const void *a, const void *b) {
-  const match_s  *A = (const match_s *)a;
-  const match_s  *B = (const match_s *)b;
-
-  if (A->iid2 < B->iid2) return(-1);
-  if (A->iid2 > B->iid2) return(1);
-  if (A->pos2 < B->pos2) return(-1);
-  if (A->pos2 > B->pos2) return(1);
-  return(0);
-}
-
-
+////  SWITCHED to use atacMatchList, untested!
 
 
 u32bit
-shiftRight(match_s *m1, match_s *m2, FastACache *C1, FastACache *C2) {
+shiftRight(atacMatch *m1, atacMatch *m2, FastACache *C1, FastACache *C2) {
   u32bit shifted = 0;
 
   //  Don't do anything if they're on different sequences
@@ -92,7 +61,7 @@ shiftRight(match_s *m1, match_s *m2, FastACache *C1, FastACache *C2) {
   //  Don't do anything if the orientation of the two matches is
   //  different.  This is probably not a gap we want to muck with.
   //
-  if (m1->ori2 != m2->ori2)
+  if (m1->fwd2 != m2->fwd2)
     return(0);
 
   //  Don't do anything if the length is zero
@@ -113,7 +82,7 @@ shiftRight(match_s *m1, match_s *m2, FastACache *C1, FastACache *C2) {
 
   //  Don't do anything if the gap is big -- if we are reverse, then m2 is before m1 on
   //  the other assembly!
-  if (m1->ori1 == 0) {
+  if (m1->fwd1 == 0) {
     if ((m1->pos1 + m1->len1 == m2->pos1) && (m2->pos2 + m2->len2 + gapLimit <= m1->pos2))
       return(0);
     if ((m1->pos2 + m1->len2 == m2->pos2) && (m2->pos1 + m2->len1 + gapLimit <= m1->pos1))
@@ -125,11 +94,11 @@ shiftRight(match_s *m1, match_s *m2, FastACache *C1, FastACache *C2) {
       return(0);
   }
 
-  match_s m1c;
-  match_s m2c;
+  atacMatch m1c;
+  atacMatch m2c;
 
-  memcpy(&m1c, m1, sizeof(match_s));
-  memcpy(&m2c, m2, sizeof(match_s));
+  memcpy(&m1c, m1, sizeof(atacMatch));
+  memcpy(&m2c, m2, sizeof(atacMatch));
 
   //  Grab those sequences from the wrapper
   //
@@ -137,12 +106,12 @@ shiftRight(match_s *m1, match_s *m2, FastACache *C1, FastACache *C2) {
   FastASequenceInCore  *S2 = C2->getSequence(m1->iid2);
 
   FastAAccessor A1(S1, false);
-  FastAAccessor A2(S2, (m1->ori1 != m1->ori2));
+  FastAAccessor A2(S2, (m1->fwd1 != m1->fwd2));
   A1.setRange(m1->pos1, m1->len1);
   A2.setRange(m1->pos2, m1->len2);
 
   FastAAccessor B1(S1, false);
-  FastAAccessor B2(S2, (m2->ori1 != m2->ori2));
+  FastAAccessor B2(S2, (m2->fwd1 != m2->fwd2));
   B1.setRange(m2->pos1, m2->len1);
   B2.setRange(m2->pos2, m2->len2);
 
@@ -200,17 +169,17 @@ shiftRight(match_s *m1, match_s *m2, FastACache *C1, FastACache *C2) {
   if (shifted) {
     fprintf(stderr, "inp "u32bitFMT" "u32bitFMT" "u32bitFMT" 1  "u32bitFMT" "u32bitFMT" "u32bitFMT" %d\n",
             m1c.iid1, m1c.pos1, m1c.len1,
-            m1c.iid2, m1c.pos2, m1c.len2, m1c.ori2 ? 1 : -1);
+            m1c.iid2, m1c.pos2, m1c.len2, m1c.fwd2 ? 1 : -1);
     fprintf(stderr, "inp "u32bitFMT" "u32bitFMT" "u32bitFMT" 1  "u32bitFMT" "u32bitFMT" "u32bitFMT" %d\n",
             m2c.iid1, m2c.pos1, m2c.len1,
-            m2c.iid2, m2c.pos2, m2c.len2, m2c.ori2 ? 1 : -1);
+            m2c.iid2, m2c.pos2, m2c.len2, m2c.fwd2 ? 1 : -1);
     fprintf(stderr, "shifted "u32bitFMT"\n", shifted);
     fprintf(stderr, "out "u32bitFMT" "u32bitFMT" "u32bitFMT" 1  "u32bitFMT" "u32bitFMT" "u32bitFMT" %d\n",
             m1->iid1, m1->pos1, m1->len1,
-            m1->iid2, m1->pos2, m1->len2, m1->ori2 ? 1 : -1);
+            m1->iid2, m1->pos2, m1->len2, m1->fwd2 ? 1 : -1);
     fprintf(stderr, "out "u32bitFMT" "u32bitFMT" "u32bitFMT" 1  "u32bitFMT" "u32bitFMT" "u32bitFMT" %d\n",
             m2->iid1, m2->pos1, m2->len1,
-            m2->iid2, m2->pos2, m2->len2, m2->ori2 ? 1 : -1);
+            m2->iid2, m2->pos2, m2->len2, m2->fwd2 ? 1 : -1);
   }
 #endif
 
@@ -225,7 +194,7 @@ shiftRight(match_s *m1, match_s *m2, FastACache *C1, FastACache *C2) {
     fprintf(stderr, "WARNING:  end of assembly 1 moved!\n");
   }
 
-  if (m1->ori2 == 0) {
+  if (m1->fwd2 == 0) {
     if (m2c.pos2 != m2->pos2) {
       errors++;
       fprintf(stderr, "WARNING:  begin of assembly 2 moved (rc)!\n");
@@ -277,75 +246,32 @@ main(int argc, char *argv[]) {
 
   fprintf(stderr, "gapLimit is "u32bitFMT"\n", gapLimit);
 
-  char  inLine[1024] = {0};
-  char  file1[1024]  = {0};
-  char  file2[1024]  = {0};
+  atacMatchList  ML("-", 'm', false);
+  ML.sort1();
 
-  readHeader(inLine, stdin, file1, file2, stdout);
-
-  //  Read the mapping into core, then sort.
-  //
-  u32bit    matchesLen = 0;
-  u32bit    matchesMax = 2 * 1024 * 1024;
-  match_s  *matches    = new match_s [matchesMax];
-
-  while (!feof(stdin)) {
-    if ((inLine[0] == 'M') && (inLine[2] != 'r')) {
-      splitToWords  W(inLine);
-
-      //  Parse out the sequence iid from the atac iid
-      //
-      u32bit  iid1=0, pos1=0, len1=0, ori1=0;
-      u32bit  iid2=0, pos2=0, len2=0, ori2=0;
-
-      decodeMatch(W, iid1, pos1, len1, ori1, iid2, pos2, len2, ori2);
-
-      if (matchesLen >= matchesMax) {
-        fprintf(stderr, "too many matches!\n"), exit(1);
-      }
-
-      matches[matchesLen].matchid = 0;
-      matches[matchesLen].iid1 = iid1;
-      matches[matchesLen].pos1 = pos1;
-      matches[matchesLen].len1 = len1;
-      matches[matchesLen].ori1 = ori1;
-      matches[matchesLen].iid2 = iid2;
-      matches[matchesLen].pos2 = pos2;
-      matches[matchesLen].len2 = len2;
-      matches[matchesLen].ori2 = ori2;
-
-      matchesLen++;
-    }
-
-    fgets(inLine, 1024, stdin);
-  }
-
+  FastACache  *C1 = new FastACache(ML._file1,    2, true, false);
+  FastACache  *C2 = new FastACache(ML._file2, 1024, true, false);
 
   u32bit gapsShifted = 0;
 
-  FastACache  *C1 = new FastACache(file1,    2, true, false);  //C1->openIndex();
-  FastACache  *C2 = new FastACache(file2, 1024, true, false);  //C2->openIndex();
-
-  qsort(matches, matchesLen, sizeof(match_s), compareMatches1);
-
-  for (u32bit i=1; i<matchesLen; i++)
-    if (shiftRight(&matches[i-1], &matches[i], C1, C2)) {
+  for (u32bit i=1; i<ML.numMatches(); i++)
+    if (shiftRight(ML[i-1], ML[i], C1, C2)) {
       gapsShifted++;
       //fprintf(stderr, "Sort 1: shifted "u32bitFMT" out of "u32bitFMT" (%6.2f%%)\r", gapsShifted, i, (double)gapsShifted / (double)i * 100.0);
       //fflush(stderr);
     }
-  fprintf(stderr, "Sort 1: shifted "u32bitFMT" out of "u32bitFMT" (%6.2f%%)\n", gapsShifted, matchesLen, (double)gapsShifted / (double)matchesLen * 100.0);
+  fprintf(stderr, "Sort 1: shifted "u32bitFMT" out of "u32bitFMT" (%6.2f%%)\n", gapsShifted, ML.numMatches(), (double)gapsShifted / (double)ML.numMatches() * 100.0);
 
 
   //  Dump all the matches.
   //
-  for (u32bit i=0; i<matchesLen; i++) {
-    match_s *m1 = &matches[i];
+  for (u32bit i=0; i<ML.numMatches(); i++) {
+    atacMatch *m1 = ML[i];
     if ((m1->len1 > 0) && (m1->len2 > 0))
       fprintf(stdout, "M u "u32bitFMT" . B35LC:"u32bitFMT" "u32bitFMT" "u32bitFMT" 1  HUREF2:"u32bitFMT" "u32bitFMT" "u32bitFMT" %d\n",
               i,
               m1->iid1, m1->pos1, m1->len1,
-              m1->iid2, m1->pos2, m1->len2, m1->ori2 ? 1 : -1);
+              m1->iid2, m1->pos2, m1->len2, m1->fwd2 ? 1 : -1);
   }
 
   return(0);

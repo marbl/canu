@@ -23,8 +23,8 @@ printAnno(FILE *F, annoList *AL, u32bit &ALlen,
           char label,
           u32bit axis,
           span_t *span,
-          u32bit match1, match_t *m1,
-          u32bit match2, match_t *m2) {
+          u32bit match1, atacMatch *m1,
+          u32bit match2, atacMatch *m2) {
 
   //  If we're just given match1, make it match2 if it is the second mapping
   //
@@ -48,7 +48,7 @@ printAnno(FILE *F, annoList *AL, u32bit &ALlen,
           span->_iid, span->_beg, span->_end, len);
 
   if (m1) {
-    fprintf(F, u32bitFMTW(07)" ", m1->matchuid);
+    fprintf(F, "%s ", m1->matchuid);
     u32bit off1 = span->_beg - m1->pos1;
 
     if (axis == 1) {
@@ -70,7 +70,7 @@ printAnno(FILE *F, annoList *AL, u32bit &ALlen,
   }
 
   if (m2) {
-    fprintf(F, u32bitFMTW(07)" ", m2->matchuid);
+    fprintf(F, "%s ", m2->matchuid);
     u32bit off2 = span->_beg - m2->pos1;
 
     if (axis == 1) {
