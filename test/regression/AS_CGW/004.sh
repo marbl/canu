@@ -22,14 +22,27 @@ usage="Usage: $progname <cgw binary>
 <cgw>            Path to cgw binary to test
 "
 
+###
+# Tests should always be run from the directory
+# in which the script exists
+###
+CWD=$(pwd)
+
+PROGFILE=$(basename $progname)
+PROGPRFX=${PROGFILE%%.sh}
+
+RUN_DIR=${PROGPRFX}_run
+TMP_DIR=${PROGPRFX}_tmp
+
 FRAG_PREF=baseline
 FRAG_STORE_DIR=${FRAG_PREF}.frgStore
 GKPR_STORE_DIR=${FRAG_PREF}.gkpStore
 FRAG_CGI=${FRAG_PREF}.cgi
 
-TEST_MD5=/tmp/test_md5sum.$$
-GOOD_MD5=/tmp/good_md5sum.$$
+TEST_MD5=${CWD}/${TMP_DIR}/test_md5sum.$$
+GOOD_MD5=${CWD}/${TMP_DIR}/good_md5sum.$$
 
+MD5_BIN=md5sum
 CNS_BIN=""
 
 PASSED() {
@@ -47,6 +60,7 @@ FAILED() {
 }
 
 CLEANUP() {
+  pushd ${RUN_DIR} > /dev/null 2>&1
   rm -rf $FRAG_STORE_DIR
   rm -rf $GKPR_STORE_DIR
   rm -rf ${FRAG_PREF}.SeqStore
@@ -55,8 +69,30 @@ CLEANUP() {
   rm -f  $TEST_MD5
   rm -f  $GOOD_MD5
   echo
+  popd > /dev/null 2>&1
+
+  rmdir $RUN_DIR
+  rmdir $TMP_DIR
 }
 
+CHECK_UTILS() {
+  $(which $MD5_BIN > /dev/null 2>&1) || {
+    echo "Err: $MD5_BIN binary not found"
+    exit 1
+  }
+}
+
+INIT() {
+  rm -rf $RUN_DIR
+  mkdir $RUN_DIR
+
+  rm -rf $TMP_DIR
+  mkdir $TMP_DIR
+
+  create_cgi_file
+  create_frgStore_files
+  create_gkpStore_files
+}
 
 #####
 # Function
@@ -205,20 +241,22 @@ RUN_TEST() {
     FAILED
   fi
 
-  if [ ! -d $FRAG_STORE_DIR ]; then
-    echo "Err: $(pwd)/$FRAG_STORE_DIR directory not found"
+  if [ ! -d ${RUN_DIR}/$FRAG_STORE_DIR ]; then
+    echo "Err: $(pwd)/${RUN_DIR}/$FRAG_STORE_DIR directory not found"
     FAILED
   fi
 
-  if [ ! -d $GKPR_STORE_DIR ]; then
-    echo "Err: $(pwd)/$GKPR_STORE_DIR directory not found"
+  if [ ! -d ${RUN_DIR}/$GKPR_STORE_DIR ]; then
+    echo "Err: $(pwd)/${RUN_DIR}/$GKPR_STORE_DIR directory not found"
     FAILED
   fi
 
-  if [ ! -f $FRAG_CGI ]; then
-    echo "Err: $(pwd)/$FRAG_CGI file not found"
+  if [ ! -f ${RUN_DIR}/$FRAG_CGI ]; then
+    echo "Err: $(pwd)/${RUN_DIR}/$FRAG_CGI file not found"
     FAILED
   fi
+
+  pushd ${RUN_DIR} > /dev/null 2>&1
 
   ###
   # Clean up from any previous runs
@@ -272,6 +310,8 @@ RUN_TEST() {
     ###
     FAILED
   fi
+
+  popd > /dev/null 2>&1
 }
 
 #####
@@ -293,6 +333,8 @@ RUN_TEST() {
 #
 #####
 create_cgi_file() {
+  pushd $RUN_DIR > /dev/null 2>&1
+
 uudecode -o ${FRAG_CGI}.gz <<- "EOF"
 begin 640 baseline.cgi.gz
 M'XL("(Q'+40``V)A<V5L:6YE+F-G:0#L6EMWVLB6?J]?X8?S<&9-NHT`W^A<
@@ -9231,6 +9273,8 @@ EOF
     echo "Err: couldn't gunzip compressed *.cgw file"
     exit 1
   fi
+
+  popd > /dev/null 2>&1
 }
 
 #####
@@ -9252,6 +9296,8 @@ EOF
 #
 #####
 create_frgStore_files() {
+  pushd $RUN_DIR > /dev/null 2>&1
+
 uudecode -o ${FRAG_STORE_DIR}.tar.gz <<- "EOF"
 begin 640 baseline.frgStore.tar.gz
 M'XL("`!'+40``V)A<V5L:6YE+F9R9U-T;W)E+G1A<@#DVW=T5767QO%]SPZ]
@@ -43890,6 +43936,8 @@ EOF
 #
 #####
 create_gkpStore_files() {
+  pushd $RUN_DIR > /dev/null 2>&1
+
 uudecode -o ${GKPR_STORE_DIR}.tar.gz <<- "EOF"
 begin 640 baseline.gkpStore.tar.gz
 M'XL("&%'+40``V)A<V5L:6YE+F=K<%-T;W)E+G1A<@#LW7=XE06>Q7&J`M(D
@@ -44559,6 +44607,8 @@ EOF
     echo "Err: couldn't gunzip/untar compressed gatekeeper store"
     exit 1
   fi
+
+  popd > /dev/null 2>&1
 }
 
 #####
@@ -44574,9 +44624,7 @@ CGW_BIN=$1
 ###
 # INIT
 ###
-create_cgi_file
-create_frgStore_files
-create_gkpStore_files
+INIT
 
 ###
 # BODY
