@@ -17,14 +17,38 @@ usage="Usage: $progname <gkpbin>
 <gkpbin>            Path to gatekeeper binary to test
 "
 
+###
+# Tests should always be run from the directory
+# in which the script exists
+###
+CWD=$(pwd)
+
+PROGFILE=$(basename $progname)
+PROGPRFX=${PROGFILE%%.sh}
+
+RUN_DIR=${PROGPRFX}_run
+TMP_DIR=${PROGPRFX}_tmp
+
 FRAG_PREF=1500frags
 FRAG_FILE=1500frags.frg
 
-TEST_MD5S=/tmp/test_md5sums.$$
-GOOD_MD5S=/tmp/good_md5sums.$$
+TEST_MD5S=${CWD}/${TMP_DIR}/test_md5sums.$$
+GOOD_MD5S=${CWD}/${TMP_DIR}/good_md5sums.$$
 
+MD5_BIN=md5sum
 XXD_BIN=xxd
 GKP_BIN=""
+
+CHECK_UTILS() {
+  $(which $XXD_BIN > /dev/null 2>&1) || {
+    echo "Err: $XXD_BIN binary not found"
+    exit 1
+  }
+  $(which $MD5_BIN > /dev/null 2>&1) || {
+    echo "Err: $MD5_BIN binary not found"
+    exit 1
+  }
+}
 
 PASSED() {
   echo "-----------------------------"; 
@@ -41,11 +65,26 @@ FAILED() {
 }
 
 CLEANUP() {
+  pushd ${RUN_DIR} > /dev/null 2>&1
   rm -rf ${FRAG_PREF}.gkpStore
   rm -f  ${FRAG_PREF}.*
   rm -f $TEST_MD5S
   rm -f $GOOD_MD5S
   echo
+  popd > /dev/null 2>&1
+
+  rmdir $RUN_DIR
+  rmdir $TMP_DIR
+}
+
+INIT() {
+  rm -rf $RUN_DIR
+  mkdir $RUN_DIR
+
+  rm -rf $TMP_DIR
+  mkdir $TMP_DIR
+
+  create_frag_file
 }
 
 #####
@@ -287,12 +326,12 @@ gen_test_md5s()
   for file in $(ls -1 | grep -v "\.phash$")
   do
     patch_gkpStore_tfields $file
-    md5sum $file >> $TEST_MD5S
+    $MD5_BIN $file >> $TEST_MD5S
   done
   for file in $(ls -1 | grep "\.phash$")
   do
     patch_gkpStore_phash $file
-    md5sum $file >> $TEST_MD5S
+    $MD5_BIN $file >> $TEST_MD5S
   done
   popd > /dev/null 2>&1
 }
@@ -321,10 +360,12 @@ RUN_TEST() {
     FAILED
   fi
 
-  if [ ! -f $FRAG_FILE ]; then
-    echo "Err: $(pwd)/$FRAG_FILE not found"
+  if [ ! -f ${RUN_DIR}/$FRAG_FILE ]; then
+    echo "Err: $(pwd)/$FRAG_FILE/$FRAG_FILE not found"
     FAILED
   fi
+
+  pushd ${RUN_DIR} > /dev/null 2>&1
 
   ###
   # Clean up from any previous runs
@@ -376,6 +417,8 @@ RUN_TEST() {
     ###
     FAILED
   fi
+
+  popd > /dev/null 2>&1
 }
 
 #####
@@ -404,6 +447,8 @@ RUN_TEST() {
 #   using gzip and then uuencoded to text form.
 #####
 create_frag_file() {
+  pushd $RUN_DIR > /dev/null 2>&1
+
 uudecode -o ${FRAG_FILE}.gz <<- "EOF"
 begin 640 ${FRAG_FILE}.gz
 M'XL("#H*!D0``S$U,#!F<F%G<RYF<F<`I'UKD^,VDNUW_`K_`,]$MVO<>I2>
@@ -28465,6 +28510,8 @@ EOF
     echo "Err: couldn't gunzip compressed frag file"
     exit 1
   fi
+
+  popd > /dev/null 2>&1
 }
 
 #####
@@ -28477,15 +28524,15 @@ fi
 
 GKP_BIN=$1
 
-$(which $XXD_BIN > /dev/null 2>&1) || {
-  echo "Err: $XXD_BIN binary not found"
-  exit 1
-}
+#####
+# Verify we have the tools needed for the test
+#####
+CHECK_UTILS
 
 ###
 # INIT
 ###
-create_frag_file
+INIT
 
 ###
 # BODY

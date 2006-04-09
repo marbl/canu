@@ -15,6 +15,10 @@ usage="Usage: $progname <gkpbin>
 <gkpbin>            Path to gatekeeper binary to test
 "
 
+PROGFILE=$(basename $progname)
+PROGPRFX=${PROGFILE%%.sh}
+RUN_DIR=${PROGPRFX}_run
+
 FRAG_PREF="inv_clr"
 FRAG_FILE=${FRAG_PREF}.frg
 ERR_FILE=${FRAG_PREF}.err
@@ -36,10 +40,17 @@ FAILED() {
 }
 
 CLEANUP() {
-  rm -f $FRAG_FILE
-  rm -f $ERR_FILE
+  rm -f ${RUN_DIR}/$FRAG_FILE
+  rm -f ${RUN_DIR}/$ERR_FILE
+  rmdir ${RUN_DIR}
 }
 
+INIT() {
+  rm -rf $RUN_DIR
+  mkdir $RUN_DIR
+
+  create_frag_file
+}
 
 #####
 # Function
@@ -64,10 +75,12 @@ RUN_TEST() {
     FAILED
   fi
 
-  if [ ! -f $FRAG_FILE ]; then
-    echo "RUN_TEST: $(pwd)/$FRAG_FILE not found"
+  if [ ! -f ${RUN_DIR}/$FRAG_FILE ]; then
+    echo "RUN_TEST: $(pwd)/${RUN_DIR}/$FRAG_FILE not found"
     FAILED
   fi
+
+  pushd ${RUN_DIR} > /dev/null 2>&1
 
   # clean up from any previous runs
   rm -rf ${FRAG_PREF}.gkpStore
@@ -86,6 +99,8 @@ RUN_TEST() {
     echo "RUN_TEST: $(pwd)/gatekeeper should have created a *.err file!"
     FAILED
   fi
+
+  popd > /dev/null 2>&1
 }
 
 #####
@@ -106,7 +121,7 @@ RUN_TEST() {
 #   failure - exit 1
 #####
 create_frag_file() {
-cat > $FRAG_FILE <<EOF
+cat > ${RUN_DIR}/$FRAG_FILE <<EOF
 {BAT
 bna:Celera Assembler
 crt:1140792660
@@ -206,7 +221,7 @@ GKP_BIN=$1
 ###
 # INIT
 ###
-create_frag_file
+INIT
 
 ###
 # BODY
