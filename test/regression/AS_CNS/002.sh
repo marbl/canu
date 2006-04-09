@@ -21,13 +21,26 @@ usage="Usage: $progname <consensus binary>
 <consensus>            Path to consensus binary to test
 "
 
+###
+# Tests should always be run from the directory
+# in which the script exists
+###
+CWD=$(pwd)
+
+PROGFILE=$(basename $progname)
+PROGPRFX=${PROGFILE%%.sh}
+
+RUN_DIR=${PROGPRFX}_run
+TMP_DIR=${PROGPRFX}_tmp
+
 FRAG_PREF=baseline
 FRAG_STORE_DIR=${FRAG_PREF}.frgStore
 FRAG_CGW_TOTAL=${FRAG_PREF}.cgw_total
 
-TEST_MD5=/tmp/test_md5sum.$$
-GOOD_MD5=/tmp/good_md5sum.$$
+TEST_MD5=${CWD}/${TMP_DIR}/test_md5sum.$$
+GOOD_MD5=${CWD}/${TMP_DIR}/good_md5sum.$$
 
+MD5_BIN=md5sum
 CNS_BIN=""
 
 PASSED() {
@@ -45,13 +58,28 @@ FAILED() {
 }
 
 CLEANUP() {
+  pushd ${RUN_DIR} > /dev/null 2>&1
   rm -rf $FRAG_STORE_DIR
   rm -f  ${FRAG_PREF}.*
   rm -f  $TEST_MD5
   rm -f  $GOOD_MD5
   echo
+  popd > /dev/null 2>&1
+
+  rmdir $RUN_DIR
+  rmdir $TMP_DIR
 }
 
+INIT() {
+  rm -rf $RUN_DIR
+  mkdir $RUN_DIR
+
+  rm -rf $TMP_DIR
+  mkdir $TMP_DIR
+
+  create_cgw_total_file
+  create_fragStore_files
+}
 
 #####
 # Function
@@ -200,15 +228,17 @@ RUN_TEST() {
     FAILED
   fi
 
-  if [ ! -d $FRAG_STORE_DIR ]; then
-    echo "Err: $(pwd)/$FRAG_STORE_DIR directory not found"
+  if [ ! -d ${RUN_DIR}/$FRAG_STORE_DIR ]; then
+    echo "Err: $(pwd)/${RUN_DIR}/$FRAG_STORE_DIR directory not found"
     FAILED
   fi
 
-  if [ ! -f $FRAG_CGW_TOTAL ]; then
-    echo "Err: $(pwd)/$FRAG_CGW_TOTAL file not found"
+  if [ ! -f ${RUN_DIR}/$FRAG_CGW_TOTAL ]; then
+    echo "Err: $(pwd)/${RUN_DIR}/$FRAG_CGW_TOTAL file not found"
     FAILED
   fi
+
+  pushd ${RUN_DIR} > /dev/null 2>&1
 
   ###
   # Clean up from any previous runs
@@ -262,6 +292,8 @@ RUN_TEST() {
     ###
     FAILED
   fi
+
+  popd > /dev/null 2>&1
 }
 
 #####
@@ -283,6 +315,8 @@ RUN_TEST() {
 #
 #####
 create_cgw_total_file() {
+  pushd $RUN_DIR > /dev/null 2>&1
+
 uudecode -o ${FRAG_CGW_TOTAL}.gz <<- "EOF"
 begin 640 baseline.cgw_total.gz
 M'XL("/&P*D0``V)A<V5L:6YE+F-G=U]T;W1A;`#LG6]W&S>6I]_S4_C%O)@]
@@ -16760,6 +16794,8 @@ EOF
     echo "Err: couldn't gunzip compressed *.cgw_total file"
     exit 1
   fi
+
+  popd > /dev/null 2>&1
 }
 
 #####
@@ -16781,6 +16817,8 @@ EOF
 #
 #####
 create_fragStore_files() {
+  pushd $RUN_DIR > /dev/null 2>&1
+
 uudecode -o ${FRAG_STORE_DIR}.tar.gz <<- "EOF"
 begin 640 baseline.frgStore.tar.gz
 M'XL("+RP*D0``V)A<V5L:6YE+F9R9U-T;W)E+G1A<@#DVW>0E&6VQ_'3?9J<
@@ -52473,6 +52511,8 @@ EOF
     echo "Err: couldn't gunzip/untar compressed frag store"
     exit 1
   fi
+
+  popd > /dev/null 2>&1
 }
 
 #####
@@ -52488,8 +52528,7 @@ CNS_BIN=$1
 ###
 # INIT
 ###
-create_cgw_total_file
-create_fragStore_files
+INIT
 
 ###
 # BODY
