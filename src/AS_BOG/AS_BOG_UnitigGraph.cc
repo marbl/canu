@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.17 2006-03-27 18:52:00 eliv Exp $
- * $Revision: 1.17 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.18 2006-04-10 18:08:48 eliv Exp $
+ * $Revision: 1.18 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.17 2006-03-27 18:52:00 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.18 2006-04-10 18:08:48 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -46,6 +46,7 @@ static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 #include <float.h>
 #include <stdlib.h>
 #include <set>
+#include <limits>
 
 extern "C" {
 	#include "AS_global.h"
@@ -385,11 +386,13 @@ namespace AS_BOG{
 
 		// Get first fragment's length
 		dtp_iter=dovetail_path_ptr->begin();
+        int ident1 = dtp_iter->ident;
 		long first_frag_len = BestOverlapGraph::fragLen(dtp_iter->ident);
 
 		// Get last fragment's length
 		dtp_iter=dovetail_path_ptr->end();
 		dtp_iter--;
+        int ident2 = dtp_iter->ident;
 		long last_frag_len = BestOverlapGraph::fragLen(dtp_iter->ident);
 
 		// Get average of first and last fragment lengths
@@ -399,6 +402,12 @@ namespace AS_BOG{
 		long unitig_length=getLength();
 		_avgRho = unitig_length - avg_frag_len;
 		
+        if (_avgRho <= 0 ) {
+            std::cerr << "Negative Rho fid1 " << ident1 << " fid2 " << ident2 <<
+                   " ulen " << unitig_length << " len1 " << first_frag_len <<
+                   " len2 " << last_frag_len << " avg " << avg_frag_len <<std::endl;
+            _avgRho = 1;
+        }
 		return(_avgRho);
 	}
 
@@ -410,12 +419,16 @@ namespace AS_BOG{
 		_globalArrivalRate=global_arrival_rate;
 	}
 	void Unitig::setLocalArrivalRate(float local_arrival_rate){
-		_localArrivalRate=local_arrival_rate;
+        
+        if ( local_arrival_rate < std::numeric_limits<float>::epsilon())
+            _localArrivalRate = 0;
+        else
+		    _localArrivalRate = local_arrival_rate;
 	}
 	float Unitig::getLocalArrivalRate(){
 		if (_localArrivalRate != -1 )
             return _localArrivalRate;
-        _localArrivalRate = (getNumFrags() - 1) / getAvgRho();
+        setLocalArrivalRate((getNumFrags() - 1) / getAvgRho());
         return _localArrivalRate;
     }
 
@@ -742,7 +755,7 @@ namespace AS_BOG{
 		/*UnitigStatus*/	ium_mesg_ptr->status=AS_UNASSIGNED;
 		/*CDS_COORD_t*/		ium_mesg_ptr->a_branch_point=0;
 		/*CDS_COORD_t*/		ium_mesg_ptr->b_branch_point=0;
-		/*CDS_COORD_t*/		ium_mesg_ptr->length=_length;
+		/*CDS_COORD_t*/		ium_mesg_ptr->length=getLength();
 		/*char* */		ium_mesg_ptr->consensus="";
 		/*char* */		ium_mesg_ptr->quality="";
 		/*int32*/		ium_mesg_ptr->forced=0;
