@@ -7,6 +7,8 @@
 # store files with the known good md5's
 ######################################################################
 
+. ../testconf
+
 ###
 # Name by which this script was invoked.
 ###
@@ -35,8 +37,6 @@ FRAG_FILE=1500frags.frg
 TEST_MD5S=${CWD}/${TMP_DIR}/test_md5sums.$$
 GOOD_MD5S=${CWD}/${TMP_DIR}/good_md5sums.$$
 
-MD5_BIN=md5sum
-XXD_BIN=xxd
 GKP_BIN=""
 
 CHECK_UTILS() {
@@ -361,7 +361,7 @@ RUN_TEST() {
   fi
 
   if [ ! -f ${RUN_DIR}/$FRAG_FILE ]; then
-    echo "Err: $(pwd)/$FRAG_FILE/$FRAG_FILE not found"
+    echo "Err: $(pwd)/${RUN_DIR}/$FRAG_FILE not found"
     FAILED
   fi
 

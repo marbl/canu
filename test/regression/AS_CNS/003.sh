@@ -11,6 +11,8 @@
 # consensus -P -U baseline.frgStore baseline.cgb
 ######################################################################
 
+. ../testconf
+
 ###
 # Name by which this script was invoked.
 ###
@@ -40,8 +42,14 @@ FRAG_CGB=${FRAG_PREF}.cgb
 TEST_MD5=${CWD}/${TMP_DIR}/test_md5sum.$$
 GOOD_MD5=${CWD}/${TMP_DIR}/good_md5sum.$$
 
-MD5_BIN=md5sum
 CNS_BIN=""
+
+CHECK_UTILS() {
+  $(which $MD5_BIN > /dev/null 2>&1) || {
+    echo "Err: $MD5_BIN binary not found"
+    exit 1
+  }
+}
 
 PASSED() {
   echo "-----------------------------"; 
@@ -36895,6 +36903,11 @@ if [ "$#" -ne 1 ]; then
 fi
 
 CNS_BIN=$1
+
+#####
+# Verify we have the tools needed for the test
+#####
+CHECK_UTILS
 
 ###
 # INIT
