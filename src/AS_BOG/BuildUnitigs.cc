@@ -30,11 +30,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: BuildUnitigs.cc,v 1.7 2006-03-27 18:52:00 eliv Exp $
- * $Revision: 1.7 $
+ * $Id: BuildUnitigs.cc,v 1.8 2006-04-10 18:09:31 eliv Exp $
+ * $Revision: 1.8 $
 */
 
-static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.7 2006-03-27 18:52:00 eliv Exp $";
+static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.8 2006-04-10 18:09:31 eliv Exp $";
 
 //  System include files
 
@@ -185,20 +185,25 @@ void outputHistograms(AS_BOG::UnitigGraph *utg) {
 
         AS_BOG::Unitig *u = *uiter;
         zork.nsamples = 1;
-        long numFrags = u->getNumFrags();
+        int numFrags = u->getNumFrags();
         zork.sum_frags = zork.min_frags = zork.max_frags = numFrags;
 
-        long bases = u->getSumFragLength();
+        int bases = u->getSumFragLength();
         zork.sum_bp = zork.min_bp = zork.max_bp = bases;
 
-        long rho = static_cast<long>(u->getAvgRho());
+        int rho = static_cast<int>(u->getAvgRho());
         zork.sum_rho = zork.min_rho = zork.max_rho = rho;
 
         //long covg = static_cast<long>(rint(u->getCovStat() * 1000));
-        long covg = static_cast<long>(rint(u->getCovStat()));
+        int covg = static_cast<int>(rintf(u->getCovStat()));
         zork.sum_discr = zork.min_discr = zork.max_discr = covg;
 
-        long arate = static_cast<long>(rint(u->getLocalArrivalRate() * 10000));
+        float arateF = u->getLocalArrivalRate() * 10000;
+        int arate = static_cast<int>(rintf(arateF));
+        if (arate < 0) {
+            std::cerr << "Negative Local ArrivalRate " << arateF << " id " << u->id
+                << " arate " << arate << std::endl;
+        }
         zork.sum_arrival = zork.min_arrival = zork.max_arrival = arate;
 
         zork.sum_rs_frags=zork.min_rs_frags=zork.max_rs_frags=0;
