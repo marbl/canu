@@ -48,7 +48,7 @@ int MaxWindow = 0;
 #undef  DEBUG_LOCAL
 #undef  DEBUG_OPTTAIL
 #undef  DEBUG_SEGORDER
-#undef  XFIG
+#define  XFIG
 #undef  STATS
 
 #define ALLOW_NO_OVERLAP_INTERLEAVINGS
@@ -56,8 +56,6 @@ int MaxWindow = 0;
 
 #define MAX_LINE_LEN   1000
 #define MAX_SEQ_LEN  500000
-
-
 
 /* Read a sequence of fast files for scaffolds and return a list of these. */
 
@@ -783,8 +781,8 @@ void Print_Stats()
 // BEGINNING OF NEW CODE MARCH 2006
 
 typedef struct ival_tag {
-  int beg;
-  int end;
+  double beg;
+  double end;
   COvlps *traceback;
 } interval;
 
@@ -799,7 +797,7 @@ interval_list *cleanup_ilist(interval_list *list){
   interval_list *link;
   int fromTail=0;
 
-  if(list==NULL)return;
+  if(list==NULL)return NULL;
 
   // we should be on one end or the other
   assert( list->next==NULL || list->prev==NULL);
@@ -858,12 +856,20 @@ interval_list *add_to_ilist_special(interval_list *tail, interval to_add){
     next=next->next;
   }
   cleanup_ilist(to_delete_tail);
+
+  while(curr->next!=NULL){
+    curr=curr->next;
+  }
+
+  assert(curr->prev!=curr);
   return(curr);
 
 }
 
 interval_list *add_to_ilist(interval_list *tail, interval to_add){
   interval_list *il;
+
+  assert(to_add.beg<=to_add.end);
 
   // if this interval is being added to an existing (nonempty) list, 
   if (tail!=NULL){
@@ -882,29 +888,55 @@ interval_list *add_to_ilist(interval_list *tail, interval to_add){
       return(add_to_ilist_special(tail,to_add));
     }
 
-    // if there is overlap
-    if(tail->ival.end > to_add.beg){
+    // if the intervals exactly match ...
+    if(tail->ival.beg == to_add.beg && tail->ival.end == to_add.end){
 
-      // if it is exact
-      if(tail->ival.beg == to_add.beg && tail->ival.end == to_add.end){
+      // nothing will be appended: we either discard new or replace tail
 
-	// nothing will be appended: we either discard new or replace tail
-
-	// if tail is at least as good,
-	if( to_add.traceback==NULL || (tail->ival.traceback != NULL && tail->ival.traceback->best >= to_add.traceback->best ) ){
+      // if tail is at least as good,
+      if( to_add.traceback==NULL || (tail->ival.traceback != NULL && tail->ival.traceback->best >= to_add.traceback->best ) ){
 	
-	  //do nothing
-	  return tail;
+	//do nothing
+	assert(tail->ival.beg<=tail->ival.end);
+	assert(tail->prev!=tail);
+	return tail;
 
-	} else { // new is better
+      } else { // new is better
 
-	  // replace tail entirely, in place
-	  tail->ival.traceback=to_add.traceback;
-	  return tail;
+	// replace tail entirely, in place
+	tail->ival.traceback=to_add.traceback;
+	assert(tail->ival.beg<=tail->ival.end);
+	assert(tail->prev!=tail);
+	return tail;
 
+      }
+
+    } 
+
+    // special case when new segment is contained within old
+    if(tail->ival.end>to_add.end){
+      if(to_add.traceback==NULL|| (tail->ival.traceback != NULL && tail->ival.traceback->best >= to_add.traceback->best ) ){
+	assert(tail->prev!=tail);
+	return(tail);
+      } else {
+	interval bonus=tail->ival;
+	bonus.beg=to_add.end;
+	tail->ival.end=to_add.beg;
+	if(tail->ival.beg==tail->ival.end){
+	  tail->ival=to_add;
+	} else {
+	  tail = add_to_ilist(tail,to_add);
 	}
+	if(bonus.beg<bonus.end){
+	  tail = add_to_ilist(tail,bonus);
+	}
+      }
+      assert(tail->prev!=tail);
+      return(tail);
+    }
 
-      } 
+    // if there is either a propoer overlap or tail is a subset of to_add
+    if(tail->ival.end > to_add.beg){
 
       // if tail is a subset of new
       if( tail->ival.beg == to_add.beg && tail->ival.end < to_add.end){
@@ -914,12 +946,14 @@ interval_list *add_to_ilist(interval_list *tail, interval to_add){
 
 	  // adjust new to append just part that sticks out past tail
 	  to_add.beg=tail->ival.end;
-
+	  assert(to_add.beg<=to_add.end);
 	} else {
 
 	  // replace tail in place
 	  tail->ival.end=to_add.end;
 	  tail->ival.traceback=to_add.traceback;
+	  assert(tail->ival.beg<=tail->ival.end);
+	  assert(tail->prev!=tail);
 	  return tail;
 
 	}
@@ -931,11 +965,12 @@ interval_list *add_to_ilist(interval_list *tail, interval to_add){
 
 	  // adjust new
 	  to_add.beg=tail->ival.end;
-
+	  assert(to_add.beg<=to_add.end);
 	} else {
 
 	  // adjust tail
 	  tail->ival.end=to_add.beg;
+	  assert(tail->ival.beg<=tail->ival.end);
 
 	}
 
@@ -943,7 +978,8 @@ interval_list *add_to_ilist(interval_list *tail, interval to_add){
     }
   } 
 
-  il = (interval_list*) safe_malloc(sizeof(interval_list));
+  il = (interval_list*) malloc(sizeof(interval_list));
+  assert(il!=NULL);
   il->ival.beg=to_add.beg;
   il->ival.end=to_add.end;
   il->ival.traceback=to_add.traceback;
@@ -954,6 +990,7 @@ interval_list *add_to_ilist(interval_list *tail, interval to_add){
     tail->next=il;
   }
 	
+  assert(il->prev!=il);
   return il;
 }  
 
@@ -971,9 +1008,9 @@ interval_list *add_to_ilist(interval_list *tail, interval to_add){
 // in gap size above or below the point is only the relevant fraction of the gap's stretchiness.
 //
 
-int Project_across_Agap_one_interval(interval *inoutIval,COvlps **bestTerm, float Agap_length, float Agap_var,Scaffold *B, int varwin){
-  int top=inoutIval->beg;
-  int bot=inoutIval->end;
+int Project_across_Agap_one_interval(interval *inoutIval,COvlps **bestTerm, double Agap_length, double Agap_var,Scaffold *B, int varwin){
+  double top=inoutIval->beg;
+  double bot=inoutIval->end;
   int terminal=0;
 
   {
@@ -981,18 +1018,63 @@ int Project_across_Agap_one_interval(interval *inoutIval,COvlps **bestTerm, floa
     // This happens when 
     //   - Agap is smallest
     //   - Bgaps are biggest
-    int remainingToUseUp;
-    int BctgBeg,BctgEnd;
+    double remainingToUseUp;
+    double BctgBeg,BctgEnd;
     int i,j;
-    int Bmin;
-    float fraction_of_gap;
+    double Bmin;
+    double fraction_of_gap;
 
     Bmin=top;
 
     // figure out the minimum distance to be accounted for by the projection
-    remainingToUseUp = (int) Agap_length - (int) Agap_var * varwin;
 
 
+    // what SHOULD we do if minimum length of gap is negative?
+
+#define ALLOW_NEG_GAP_BACKUP
+#ifdef ALLOW_NEG_GAP_BACKUP
+    remainingToUseUp = Agap_length -  Agap_var * varwin;
+    if(remainingToUseUp < 0){
+
+      { // if Bmin falls in a gap, figure out how to adjust for fact that a
+	// position in the gap factors in the stretchiness of the gap itself ...
+	j=0;
+	double ctgend;
+	while(j<B->num_gaps && B->ctgs[j+1].lft_end<=Bmin){
+	  j++;
+	}
+	ctgend=B->ctgs[j].lft_end+B->ctgs[j].length;
+	if(ctgend<Bmin){
+	  double gapFrac,adjustment;
+	  assert(j<B->num_gaps);
+	  gapFrac = (Bmin-ctgend)/B->gaps[j].gap_length;
+	  assert(gapFrac>=0);
+	  adjustment = gapFrac*(B->gaps[j].gap_length+B->gaps[j].gap_var*varwin);
+	  if(adjustment <= -remainingToUseUp){
+	    remainingToUseUp += adjustment;
+	    Bmin = ctgend;
+	  } else {
+	    gapFrac = -remainingToUseUp/(B->gaps[j].gap_length+B->gaps[j].gap_var*varwin);
+	    assert(gapFrac>=0);
+	    remainingToUseUp=0;
+	    Bmin -= gapFrac * B->gaps[j].gap_length;
+	    assert(Bmin>ctgend);
+	  }
+	}
+      }
+      assert(remainingToUseUp<=0);
+
+      Bmin+=remainingToUseUp;
+      if(Bmin<0){
+	Bmin=0;
+      }
+      top=Bmin;
+      remainingToUseUp=0;
+    }
+#else
+    remainingToUseUp = max(0, Agap_length -  Agap_var * varwin);
+#endif
+    
     // once past contigs and gaps clearly above the interval,
     // contigs or fractions thereof use up their own length
     // B gaps use up their mean PLUS maximum stretch
@@ -1001,7 +1083,7 @@ int Project_across_Agap_one_interval(interval *inoutIval,COvlps **bestTerm, floa
 
     i=0;
     while ( remainingToUseUp > 0 && i < B->num_gaps){
-      int ctgend;
+      double ctgend;
       // skip contigs and gaps completely above the relevant interval
       if(B->ctgs[i+1].lft_end<=Bmin){
 	i++;
@@ -1028,9 +1110,10 @@ int Project_across_Agap_one_interval(interval *inoutIval,COvlps **bestTerm, floa
       // if not full gap, figure out what fraction
       fraction_of_gap = 1.;
       if(Bmin!=ctgend){
-	fraction_of_gap -= ((float)( Bmin-ctgend)) / B->gaps[i].gap_length;
+	fraction_of_gap -= ((double)( Bmin-ctgend)) /(double) B->gaps[i].gap_length;
+	assert(fraction_of_gap>=0);
       }
-      remainingToUseUp -= (int)( fraction_of_gap * (B->gaps[i].gap_length + B->gaps[i].gap_var*varwin));
+      remainingToUseUp -=  fraction_of_gap * (B->gaps[i].gap_length + B->gaps[i].gap_var*varwin);
       Bmin = B->ctgs[i+1].lft_end;
       if(remainingToUseUp < 0 ) {
 	if(0){
@@ -1040,8 +1123,9 @@ int Project_across_Agap_one_interval(interval *inoutIval,COvlps **bestTerm, floa
 	  }
 	  remainingToUseUp=0;
 	} else {
-	  float frac = -((float) remainingToUseUp)/(B->gaps[i].gap_length + B->gaps[i].gap_var*varwin) ;
-	  Bmin = B->ctgs[i+1].lft_end-(int)(frac*B->gaps[i].gap_length);
+	  double frac = -((double) remainingToUseUp)/(double)(B->gaps[i].gap_length + B->gaps[i].gap_var*varwin) ;
+	  assert(frac>=0);
+	  Bmin = B->ctgs[i+1].lft_end- (frac*B->gaps[i].gap_length);
 	  remainingToUseUp=0;
 	}
 	break;
@@ -1054,7 +1138,7 @@ int Project_across_Agap_one_interval(interval *inoutIval,COvlps **bestTerm, floa
 
       //handle the final contig
 
-      assert(Bmin==B->ctgs[i].lft_end);
+      assert(Bmin==B->ctgs[i].lft_end||(Bmin==top&&top>B->ctgs[i].lft_end));
 
       // is this conditional gratuitous?
       if(Bmin<B->ctgs[i].lft_end+B->ctgs[i].length){
@@ -1085,16 +1169,17 @@ int Project_across_Agap_one_interval(interval *inoutIval,COvlps **bestTerm, floa
     // This happens when 
     //   - Agap is largest
     //   - Bgaps are smallest
-    int remainingToUseUp;
-    int BctgBeg,BctgEnd;
+    double remainingToUseUp;
+    double BctgBeg,BctgEnd;
     int i,j;
-    int Bmax;
+    double Bmax;
 
     Bmax=bot;
 
-    // figure out the minimum distance to be accounted for by the projection
-    remainingToUseUp = (int) Agap_length + (int) Agap_var * varwin;
-
+    // figure out the maximum distance to be accounted for by the projection
+    remainingToUseUp = max(0, Agap_length + Agap_var * varwin);
+    // what SHOULD we do if max length of gap is negative?
+    assert(remainingToUseUp>=0);
 
     // once past contigs and gaps clearly above the interval,
     // contigs or fractions thereof use up their own length
@@ -1104,8 +1189,8 @@ int Project_across_Agap_one_interval(interval *inoutIval,COvlps **bestTerm, floa
 
     i=0;
     while ( remainingToUseUp > 0 && i < B->num_gaps){
-      int ctgend;
-      float fraction_of_gap;
+      double ctgend;
+      double fraction_of_gap;
 
       // skip contigs and gaps completely above the relevant interval
       if(B->ctgs[i+1].lft_end<=Bmax){
@@ -1132,33 +1217,38 @@ int Project_across_Agap_one_interval(interval *inoutIval,COvlps **bestTerm, floa
 
       // if not full gap, figure out what fraction
       if(Bmax!=ctgend){
-	fraction_of_gap = 1-((float)( Bmax-ctgend)) / B->gaps[i].gap_length;
+	fraction_of_gap = 1.-((double)( Bmax-ctgend)) /(double) B->gaps[i].gap_length;
+	assert(fraction_of_gap>=0 && fraction_of_gap <= 1);
       } else {
 	fraction_of_gap = 1.;
       }
 
-      remainingToUseUp -= (int)( fraction_of_gap * (B->gaps[i].gap_length - B->gaps[i].gap_var*varwin));
+      remainingToUseUp -=  fraction_of_gap * (B->gaps[i].gap_length - B->gaps[i].gap_var*varwin); 
+
       Bmax = B->ctgs[i+1].lft_end;
       if(remainingToUseUp < 0 ) {
+	assert(B->gaps[i].gap_length - B->gaps[i].gap_var*varwin >= 0) ;
 	if(0){
 	  Bmax -= remainingToUseUp;
 	  assert(Bmax >= ctgend);
 	  remainingToUseUp=0;
 	} else {
-	  float frac = -((float) remainingToUseUp)/(B->gaps[i].gap_length - B->gaps[i].gap_var*varwin) ;
-	  Bmax = B->ctgs[i+1].lft_end-(int)(frac*B->gaps[i].gap_length);
+	  double frac = -((double) remainingToUseUp)/(double)(B->gaps[i].gap_length - B->gaps[i].gap_var*varwin) ;
+	  assert(frac>=0);
+	  Bmax = B->ctgs[i+1].lft_end - (frac*B->gaps[i].gap_length);
 	  remainingToUseUp=0;
 	}
 	break;
       }
+      i++;
     }
     assert( remainingToUseUp == 0 || i == B->num_gaps );
-
+  
     if(remainingToUseUp>0){
 
       //handle the final contig
 
-      assert(Bmax==B->ctgs[i].lft_end);
+      assert(Bmax==B->ctgs[i].lft_end||(Bmax==bot&&bot>B->ctgs[i].lft_end));
 
       // is this conditional gratuitous?
       if(Bmax<B->ctgs[i].lft_end+B->ctgs[i].length){
@@ -1182,6 +1272,7 @@ int Project_across_Agap_one_interval(interval *inoutIval,COvlps **bestTerm, floa
 
   inoutIval->beg=top;
   inoutIval->end=bot;
+  assert(top<=bot);
   return terminal;
 }
 
@@ -1195,9 +1286,7 @@ int Project_across_Agap_one_interval(interval *inoutIval,COvlps **bestTerm, floa
 //   return whether we came out the bottom -- i.e. found a solution
 //
 
-int Project_across_Agap(interval_list *inList,interval_list **outList, COvlps **bestTerm,float Agap_length, float Agap_var,Scaffold *B, int varwin){
-
-
+int Project_across_Agap(interval_list *inList,interval_list **outList, COvlps **bestTerm,double Agap_length, double Agap_var,Scaffold *B, int varwin){
 
 // To process the left edge of an A-gap (list of accessible intervals)
 // For each vertical interval,
@@ -1208,10 +1297,9 @@ int Project_across_Agap(interval_list *inList,interval_list **outList, COvlps **
 //     If go off bottom, 
 //       If best so far, update best
 
-  interval_list *curr=inList,*head=NULL;
+  interval_list *curr=inList;
   int terminal=0;
-  assert(*outList==NULL);
-  
+
   while(curr!=NULL){
     int thisterm = Project_across_Agap_one_interval(&(curr->ival),bestTerm,Agap_length,Agap_var,B,varwin);
     if(thisterm){
@@ -1221,12 +1309,9 @@ int Project_across_Agap(interval_list *inList,interval_list **outList, COvlps **
       }
     }
     *outList=add_to_ilist(*outList,curr->ival);
-    if(head==NULL){
-      head=*outList;
-    }
     curr=curr->next;
   }
-  *outList=head;
+  while(*outList!=NULL&&(*outList)->prev!=NULL)*outList=(*outList)->prev;
   return terminal;
 }
 
@@ -1242,38 +1327,31 @@ int Process_seg(COvlps *af,COvlps **bestTerm,
 
   to_add.traceback=af;
 
-  if(af->seg->overlap->endpos>0){ // we come out in middle of B contig ... makes portion of bottom edge of B contig 'accessible'
+  if(af->seg->overlap->endpos>0){ // we come out in middle of B contig ... makes portion of right  edge of B contig 'accessible'
 
-    // B contig coordinates are local (contig)
 
-    to_add.beg=B->ctgs[whichB].length-af->seg->overlap->endpos;
+    // coordinates are global, relative to entire B scaffold
+
+    to_add.beg = B->ctgs[whichB].lft_end + (B->ctgs[whichB].length-af->seg->overlap->endpos);
+    assert(to_add.beg>=B->ctgs[whichB].lft_end);
+    to_add.end=to_add.beg;
+
+    *nextAgapList=add_to_ilist(*nextAgapList,to_add);
+
+    // if terminal, we should deal with it at a higher level
+
+  }else { // we come out in middle (or at end) of A contig ... makes portion of bottom edge of contig  accessible
+
+    // contig coordinates are local (i.e. relative to A contig)
+    // endpos is negative
+    to_add.beg=A->ctgs[whichA].length + af->seg->overlap->endpos;
     assert(to_add.beg >= 0);
-
     to_add.end=to_add.beg;
 
     BgapLists[whichB]=add_to_ilist(BgapLists[whichB],to_add);
 
     // if terminal, process accordingly
     if(whichB==B->num_gaps){
-      terminal=1;
-      if( *bestTerm==NULL || (*bestTerm)->best < af->best ){
-	*bestTerm = af;
-      }
-    }
-
-  }else { // we come out in middle (or at end) of A contig ... makes portion of A gap accessible
-
-
-    // coordinates are global, relative to entire A scaffold
-    // endpos is negative
-    to_add.beg = A->ctgs[whichA].lft_end + A->ctgs[whichA].length + af->seg->overlap->endpos;
-    assert(to_add.beg>=A->ctgs[whichA].lft_end);
-    to_add.end=to_add.beg;
-
-    *nextAgapList=add_to_ilist(*nextAgapList,to_add);
-
-    // if terminal, process
-    if(whichA==A->num_gaps){
       terminal=1;
       if( *bestTerm==NULL || (*bestTerm)->best < af->best ){
 	*bestTerm = af;
@@ -1290,11 +1368,11 @@ int Process_Agap_one_accessible_interval(interval curr,COvlps **bestTerm,
 					 interval_list ** BgapLists, 
 					 int whichA,Scaffold *A, Scaffold *B,int varwin){
   int i=0;
-  int top=curr.beg;
-  int bot=curr.end;
+  double top=curr.beg;
+  double bot=curr.end;
   int terminal=0;
   while(i<B->num_gaps && bot>B->ctgs[i].lft_end){
-    int ctgend;
+    double ctgend;
     // skip contigs and gaps completely above the relevant interval
     if(B->ctgs[i+1].lft_end <= top){
       i++;
@@ -1312,8 +1390,8 @@ int Process_Agap_one_accessible_interval(interval curr,COvlps **bestTerm,
 //       Else, add exit (in middle of A contig) to bottom edge of B contig's accessible list
 
     if(top<ctgend){
-      int from=top;
-      int to=min(bot,ctgend);
+      double from=max(top,B->ctgs[i].lft_end);
+      double to=min(bot,ctgend);
       assert(from >= B->ctgs[i].lft_end);
 
       from-=B->ctgs[i].lft_end;
@@ -1330,9 +1408,10 @@ int Process_Agap_one_accessible_interval(interval curr,COvlps **bestTerm,
 	for (af = afing; af != NULL && af->seg->b_contig == i; af = af->Alink){
 	  // if the segment begins in the accessible interval
 	  if(af->seg->overlap->begpos <= 0 ) { //ahang is nonpositive, i.e. segment starts in B contig
-	    int pnt = af->seg->overlap->begpos;
+	    double pnt = - af->seg->overlap->begpos;
 	    if (from <= pnt && pnt <= to) {
-	      int score = af->seg->overlap->length;
+	      int score = af->seg->overlap->length - max(0,-af->seg->overlap->begpos) - max(0,-af->seg->overlap->endpos);
+	      assert(score>0);
 	      if (curr.traceback != NULL)
 		score += curr.traceback->best;
 	      if (score > af->best){
@@ -1351,7 +1430,7 @@ int Process_Agap_one_accessible_interval(interval curr,COvlps **bestTerm,
 
     // process following gap, if overlapped
     {
-      int from, to;
+      double from, to;
       from=max(top,ctgend);
       to=min(bot,ctgend+B->gaps[i].gap_length);
 
@@ -1359,16 +1438,21 @@ int Process_Agap_one_accessible_interval(interval curr,COvlps **bestTerm,
       if(from<to){
 
 	// determine portion of A contig that can be reached
-	int left, right, amountOff_A_contig=0;
+	double left, right, amountOff_A_contig=0;
 
 	// leftmost point along A contig is: 
 	//     [ fraction of B gap that is below 'to' value ] * [ maximum height of B gap ] 
-	left = (int) (((float)(B->ctgs[i+1].lft_end-to))/B->gaps[i].gap_length * (B->gaps[i].gap_length + B->gaps[i].gap_var*varwin) );
-	assert(left>=0);
+	//N.B. Things are screwy here if the gap can be negative
+	{
+	  double frac;
+	  frac= ((double)(B->ctgs[i+1].lft_end-to))/(double)B->gaps[i].gap_length;
+	  assert(frac>=0);
+	  left = max(0, frac * ((double) B->gaps[i].gap_length - B->gaps[i].gap_var*varwin) );
+	}
 
 	// rightmost point is:
 	//      [ fraction of B gap that is below 'from' value ] * [ minimum height of B gap ] 
-	right = (int) (((float)(B->ctgs[i+1].lft_end-from))/B->gaps[i].gap_length * (B->gaps[i].gap_length - B->gaps[i].gap_var*varwin) );
+	right = (((double)(B->ctgs[i+1].lft_end-from))/(double) B->gaps[i].gap_length * (B->gaps[i].gap_length + B->gaps[i].gap_var*varwin) );
 	assert(right>=left);
 	// ... though if this is off the end of the contig, we must correct
 	if( right > A->ctgs[whichA].length){
@@ -1382,14 +1466,15 @@ int Process_Agap_one_accessible_interval(interval curr,COvlps **bestTerm,
 	  COvlps *afing,*af;
 	  afing=ABuckets[whichA];
 	  // while there are segments on far side of horizontal gap, advance until we are in or past the relevant b-contig
-	  while (afing != NULL && afing->seg->b_contig < i)
+	  while (afing != NULL && afing->seg->b_contig <= i)
             afing = afing->Alink; 
 	  // over all segments in contigs [whichA,i]
-	  for (af = afing; af != NULL && af->seg->b_contig == i; af = af->Alink){
+	  for (af = afing; af != NULL && af->seg->b_contig == i+1; af = af->Alink){
 	    // if the segment comes begins in the accessible interval
 	    if(af->seg->overlap->begpos>0){
 	      if (left <= af->seg->overlap->begpos && af->seg->overlap->begpos <= right) {
-		int score = af->seg->overlap->length;
+		int score = af->seg->overlap->length - max(0,-af->seg->overlap->begpos) - max(0,-af->seg->overlap->endpos);
+		assert(score>0);
 		if (curr.traceback != NULL)
 		  score += curr.traceback->best;
 		if (score > af->best){
@@ -1397,7 +1482,7 @@ int Process_Agap_one_accessible_interval(interval curr,COvlps **bestTerm,
 		  af->trace = curr.traceback;
 		}
 		// now process the segment's projections
-		if(Process_seg(af,bestTerm,nextAgapList,BgapLists,whichA,i,A,B,varwin)){
+		if(Process_seg(af,bestTerm,nextAgapList,BgapLists,whichA,i+1,A,B,varwin)){
 		  terminal=1;
 		}
 	      }
@@ -1407,38 +1492,49 @@ int Process_Agap_one_accessible_interval(interval curr,COvlps **bestTerm,
 
 	// now, if there is any projection onto the far A gap, add interval to the A gap
 	if( amountOff_A_contig > 0){
-	  float fracTop, fracBot;
-	  int fartop,farbot;
+	  double fracTop, fracBot;
+	  double fartop,farbot;
 	  interval ival;
 
-	  fracTop = ((float)amountOff_A_contig) / (B->gaps[i].gap_length + B->gaps[i].gap_var*varwin);
-	  fracBot = ((float) (left - A->ctgs[whichA].length )) / (B->gaps[i].gap_length - B->gaps[i].gap_var*varwin);
+	  fracTop = ((double)amountOff_A_contig) /(double) (B->gaps[i].gap_length + B->gaps[i].gap_var*varwin);
+
+	  // things get weird when the gap can be negative, 
+	  // so let us sanity check:
+	  // it seems that if left is past end of contig, 
+	  // (recalling that left is set based on smallest possible
+	  // gap length), this should only happen when smallest
+	  // possible gap length is positive
+	  assert( ( left - A->ctgs[whichA].length <= 0 ) || B->gaps[i].gap_length - B->gaps[i].gap_var*varwin > 0 );
+
+
+	  fracBot = ((double) max(0,left - A->ctgs[whichA].length )) / (B->gaps[i].gap_length - B->gaps[i].gap_var*varwin); 
 	
-	  if(fracBot<0){
-	    fracBot=0;
-	  }
+	  assert(fracBot>=0&&fracBot<=fracTop&&fracTop<=1);
 
-	  assert(fracTop>=fracBot);
-
-	  ival.beg=B->ctgs[i+1].lft_end-(int)(fracTop*B->gaps[i].gap_length);
-	  ival.end=B->ctgs[i+1].lft_end-(int)(fracBot*B->gaps[i].gap_length);
+	  ival.beg=B->ctgs[i+1].lft_end-(fracTop*B->gaps[i].gap_length); 
+	  ival.end=B->ctgs[i+1].lft_end-(fracBot*B->gaps[i].gap_length);
 	  ival.traceback=curr.traceback;
+
+	  if(ival.end<B->ctgs[i+1].lft_end){
+	    assert( B->gaps[i].gap_length - B->gaps[i].gap_var*varwin > 0 );
+	  }
 
 	  *nextAgapList = add_to_ilist(*nextAgapList,ival);
 	}
 
       }
     }
+    i++;
   }
 
   // process final B contig, if overlapped, and test for terminal
   if( bot > B->ctgs[i].lft_end ){
     assert(i==B->num_gaps);
-    int ctgend=B->ctgs[i].lft_end+B->ctgs[i].length;
+    double ctgend=B->ctgs[i].lft_end+B->ctgs[i].length;
     // if there is an overlap
     if(top<ctgend){
-      int from=max(top,B->ctgs[i].lft_end);
-      int to=min(bot,ctgend);
+      double from=max(top,B->ctgs[i].lft_end);
+      double to=min(bot,ctgend);
       assert(from<=to);
       to-=B->ctgs[i].lft_end;
       from-=B->ctgs[i].lft_end;
@@ -1453,9 +1549,10 @@ int Process_Agap_one_accessible_interval(interval curr,COvlps **bestTerm,
 	for (af = afing; af != NULL && af->seg->b_contig == i; af = af->Alink){
 	  // if the segment begins in the accessible interval
 	  if(af->seg->overlap->begpos <= 0 ) { //ahang is nonpositive, i.e. segment starts in B contig
-	    int pnt = af->seg->overlap->begpos;
+	    double pnt = -af->seg->overlap->begpos;
 	    if (from <= pnt && pnt <= to) {
-	      int score = af->seg->overlap->length;
+	      int score = af->seg->overlap->length - max(0,-af->seg->overlap->begpos) - max(0,-af->seg->overlap->endpos);
+	      assert(score>0);
 	      if (curr.traceback != NULL)
 		score += curr.traceback->best;
 	      if (score > af->best){
@@ -1510,7 +1607,7 @@ int Process_Agap_accessible_intervals(interval_list **accessList,
   if(contigTopEdgeAccess!=NULL){
 
     COvlps *afing,*af;
-    int from,to;
+    double from,to;
 
     from=contigTopEdgeAccess->beg;
     to=contigTopEdgeAccess->end;
@@ -1518,10 +1615,10 @@ int Process_Agap_accessible_intervals(interval_list **accessList,
     // over all segments in contigs [whichA,0]
     for (af = afing; af != NULL && af->seg->b_contig == 0; af = af->Alink){
       // if the segment begins in the accessible interval
-      if(af->seg->overlap->begpos <= 0 ) { //ahang is nonpositive, i.e. segment starts in B contig
-	int pnt = af->seg->overlap->begpos;
+      if(af->seg->overlap->begpos >= 0 ) { //ahang is nonpositive, i.e. segment starts in A contig
+	double pnt = af->seg->overlap->begpos;
 	if (from <= pnt && pnt <= to) {
-	  af->best = af->seg->overlap->length;
+	  af->best = af->seg->overlap->length - max(0,-af->seg->overlap->begpos) - max(0,-af->seg->overlap->endpos);
 	  assert(contigTopEdgeAccess->traceback==NULL);
 	  af->trace = NULL;
 	  // now process the segment's projections
@@ -1563,11 +1660,89 @@ int Project_segments_across_Bgaps(COvlps **bestTerm, interval_list **BgapLists, 
     while(curr!=NULL){
       assert(curr->ival.traceback != NULL);
       if( curr->ival.traceback->seg->overlap->endpos < 0 ) {  // i.e. we come out the bottom
-	interval to_add;
-	to_add.beg = A->ctgs[whichA].length + curr->ival.traceback->seg->overlap->endpos;
-	to_add.end = to_add.beg;
-	to_add.traceback = curr->ival.traceback;
-	BgapLists[i+1]=add_to_ilist(BgapLists[i+1],to_add);
+	// here, we consider either ended up at A gap or hitting another segment...
+	
+	double from = (A->ctgs[whichA].length+curr->ival.traceback->seg->overlap->endpos) + (B->gaps[i].gap_length-B->gaps[i].gap_var*varwin); 
+	double to = (A->ctgs[whichA].length+curr->ival.traceback->seg->overlap->endpos) + (B->gaps[i].gap_length+B->gaps[i].gap_var*varwin); 
+
+	// {from, to} are positions along the contig, in local (contig) coordinates
+	{ 
+	  COvlps *afing,*af;
+	  afing=ABuckets[whichA];
+	  // while there are segments on far side of horizontal gap, advance until we are in or past the relevant b-contig
+	  while (afing != NULL && afing->seg->b_contig < i+1)
+	    afing = afing->Alink; 
+	  // over all segments in contigs [whichA,i]
+	  for (af = afing; af != NULL && af->seg->b_contig == i+1; af = af->Alink){
+	    // if the segment begins in the accessible interval
+#if 0
+	    if(af->seg->overlap->begpos <= 0 ) { //ahang is nonpositive, i.e. segment starts in B contig
+	      double pnt = - af->seg->overlap->begpos;
+	      if (from <= pnt && pnt <= to) {
+		int score = af->seg->overlap->length - max(0,-af->seg->overlap->begpos) - max(0,-af->seg->overlap->endpos);
+		assert(score>0);
+		if (curr->ival.traceback != NULL)
+		  score += curr->ival.traceback->best;
+		if (score > af->best){
+		  af->best  = score;
+		  af->trace = curr->ival.traceback;
+		}
+		// now process the segment's projections
+		if(Process_seg(af,bestTerm,nextAgapList,BgapLists,whichA,i,A,B,varwin)){
+		  terminal=1;
+		}
+	      }
+	    }
+
+#else
+
+	    if(af->seg->overlap->begpos >= 0 ) { //ahang is nonnegative, i.e. segment starts in A contig
+	      double pnt = af->seg->overlap->begpos;
+	      if (from <= pnt && pnt <= to) {
+		int score = af->seg->overlap->length - max(0,-af->seg->overlap->begpos) - max(0,-af->seg->overlap->endpos);
+		assert(score>0);
+		if (curr->ival.traceback != NULL)
+		  score += curr->ival.traceback->best;
+		if (score > af->best){
+		  af->best  = score;
+		  af->trace = curr->ival.traceback;
+		}
+		// now process the segment's projections
+		if(Process_seg(af,bestTerm,nextAgapList,BgapLists,whichA,i+1,A,B,varwin)){
+		  terminal=1;
+		}
+	      }
+	    }
+
+#endif
+
+	  }
+	}
+	if(from<to && to>A->ctgs[whichA].length){
+	  interval to_add;
+	  double gapFrac;
+
+	  gapFrac = 
+	    ((double) (to-A->ctgs[whichA].length))/
+	    (double) (B->gaps[i].gap_length + varwin*B->gaps[i].gap_var);
+	  to_add.beg = B->ctgs[i+1].lft_end-gapFrac*B->gaps[i].gap_length;
+
+	  to_add.end = B->ctgs[i+1].lft_end;
+	  if(from > A->ctgs[whichA].length){
+	    assert(B->gaps[i].gap_length - varwin*B->gaps[i].gap_var > 0);
+
+	    gapFrac = 
+	      ((double) (from - A->ctgs[whichA].length)) /
+	      (double) (B->gaps[i].gap_length - varwin*B->gaps[i].gap_var); 
+	  
+	    to_add.end -= gapFrac*B->gaps[i].gap_length;
+	  }
+
+	  to_add.traceback=curr->ival.traceback;
+
+	  *nextAgapList = add_to_ilist(*nextAgapList,to_add);
+	}
+
       } else { // we come out the side into A gap, in middle of B contig
 	interval to_add;
 	to_add.beg = B->ctgs[i].lft_end+B->ctgs[i].length - curr->ival.traceback->seg->overlap->endpos;
@@ -1592,7 +1767,6 @@ int Project_segments_across_Bgaps(COvlps **bestTerm, interval_list **BgapLists, 
 	if(*bestTerm==NULL || ( curr->ival.traceback!=NULL && (*bestTerm)->best < curr->ival.traceback->best) ){
 	  *bestTerm=curr->ival.traceback;
 	}
-	curr=curr->next;
 	terminal=1;
       } else { // we come out in A gap
 	interval to_add;
@@ -1612,6 +1786,129 @@ int Project_segments_across_Bgaps(COvlps **bestTerm, interval_list **BgapLists, 
 }
 
 
+int ProjectFromTopEdge(interval_list **thisAlist, COvlps **bestTerm,int whichA,Scaffold *A, Scaffold *B,int varwin,int bandbeg,int bandend){
+
+  int terminal=0;
+  double low,high,top,bot;
+  double minX,maxX;
+  double gapFrac;
+
+  assert(*thisAlist==NULL);
+
+  // find relevant interval in A-scaffold coordinates:
+  low=max(bandbeg,A->ctgs[whichA].lft_end+A->ctgs[whichA].length);
+  high=min(bandend,A->ctgs[whichA+1].lft_end);
+
+  // if none, we are done
+  if(low>=high){
+    return 0;
+  }
+
+  // find the minimum and maximum amount into the B-scaffold we have to travel ...
+  gapFrac = ((double)(A->ctgs[whichA+1].lft_end-low))/(double) A->gaps[whichA].gap_length;
+  assert(gapFrac>=0&&gapFrac<=1);
+  maxX = (gapFrac * A->gaps[whichA].gap_length + A->gaps[whichA].gap_var * varwin);
+  gapFrac = ((double)(A->ctgs[whichA+1].lft_end-high))/(double) A->gaps[whichA].gap_length;
+  assert(gapFrac>=0&&gapFrac<=1);
+  minX = max(0,(gapFrac * A->gaps[whichA].gap_length - A->gaps[whichA].gap_var * varwin)); 
+  
+  // for the minimum, turn this into a position within the B scaffold, taking
+  // gap stretchiness into account ...
+  top=0;
+  {
+
+    double intoB=0;
+
+    // what SHOULD we do if minimum length of gap is negative?
+
+    // process a contig+gap at a time
+
+    int i=0;
+    while ( intoB < minX && i < B->num_gaps){
+
+      intoB+=B->ctgs[i].length;
+      if(intoB>=minX){
+	top = B->ctgs[i].lft_end+B->ctgs[i].length-(intoB-minX);
+	break;
+      }
+
+      intoB+=(B->gaps[i].gap_length+B->gaps[i].gap_var*varwin);
+
+      if(intoB>=minX){
+	gapFrac=((double)(intoB-minX))/(double) (B->gaps[i].gap_length+B->gaps[i].gap_var*varwin);
+	assert(gapFrac>=0);
+	top=B->ctgs[i+1].lft_end-(B->gaps[i].gap_length*gapFrac);
+	break;
+      }
+      i++;
+    }
+    if(i==B->num_gaps){
+      intoB+=B->ctgs[i].length;
+      if(intoB>=minX){
+	top = B->ctgs[i].lft_end+B->ctgs[i].length-(intoB-minX);
+      } else {
+	// top edge of interval out bottom of Scaffold B -- terminal, with no interval to add to A-gap access list
+	return(1);
+      }
+    }
+  }
+
+  // for the maximum, turn this into a position within the B scaffold, taking
+  // gap stretchiness into account ...
+  {
+
+    double intoB=0;
+
+    // what SHOULD we do if minimum length of gap is negative?
+
+    // process a contig+gap at a time
+
+    int i=0;
+    bot=0;
+    while ( intoB < maxX && i < B->num_gaps){
+
+      intoB+=B->ctgs[i].length;
+      if(intoB>=maxX){
+	bot = B->ctgs[i].lft_end+B->ctgs[i].length-(intoB-maxX);
+	break;
+      }
+
+      intoB+=(B->gaps[i].gap_length - B->gaps[i].gap_var*varwin); 
+
+      if(intoB>=maxX){
+
+	// no trouble with negative gap lengths here?
+	assert(B->gaps[i].gap_length - B->gaps[i].gap_var*varwin > 0); 
+
+	gapFrac=((double)(intoB-maxX))/(double) (B->gaps[i].gap_length - B->gaps[i].gap_var*varwin); 
+
+	assert(gapFrac>=0);
+	bot=B->ctgs[i+1].lft_end - (B->gaps[i].gap_length*gapFrac);
+	break;
+      }
+      i++;
+    }
+    if(i==B->num_gaps){
+      intoB+=B->ctgs[i].length;
+      if(intoB>=maxX){
+	bot = B->ctgs[i].lft_end+B->ctgs[i].length-(intoB-maxX);
+      } else {
+	// bottom edge of interval out bottom of Scaffold B -- terminal, with no interval to add to A-gap access list
+	terminal=1;
+	bot = B->ctgs[i].lft_end+B->ctgs[i].length;
+      }
+    }
+  }
+  assert(top<=bot);
+  {
+    interval to_add;
+    to_add.beg=top;
+    to_add.end=bot;
+    to_add.traceback=NULL;
+    *thisAlist = add_to_ilist(*thisAlist,to_add);
+  }
+  return terminal;
+}
 
 Segment *Align_Scaffold_ala_Aaron(Segment *seglist, int numsegs, int varwin,
 			     Scaffold *AF, Scaffold *BF, int *best,
@@ -1632,15 +1929,6 @@ Segment *Align_Scaffold_ala_Aaron(Segment *seglist, int numsegs, int varwin,
 
   // setup (copied directly from Align_Scaffold() ):
 
-#ifdef XFIG
- static int Case=0; 
- char fname[50]; 
-  
- sprintf(fname,"Graphic_case_%d.fig",Case++); 
- fprintf(stderr,"Align_Scaffold writing xfig to %s\n", fname); 
- figfile = fopen(fname,"w"); 
- Draw_Matrix(seglist,numsegs,AF,BF,varwin); 
-#endif
 
 
 #ifdef AHANG_BAND_TEST
@@ -1782,20 +2070,127 @@ Segment *Align_Scaffold_ala_Aaron(Segment *seglist, int numsegs, int varwin,
   // if an A-gap accessible interval (between processing the portion on a contig and the portion in the following gap) and sometimes
   // require processing between A-gap accessible intervals.
 
+
+  // negative gap lengths cause serious complications.  Get rid of them!
+  // Also, there is some trouble with rounding errors on coordinates
+ {
+   int i;
+   int extra=0;
+   int extraB=0;
+   int into;
+
+   i=0;
+   into=0;
+   extra=0;
+
+   while(i<AF->num_gaps){
+     int diff=AF->ctgs[i+1].lft_end+extra-(AF->ctgs[i].lft_end+AF->ctgs[i].length);
+     into+=AF->ctgs[i].length;
+     if(diff<1){
+       // if a band value occurs before the gap starts, then adjust
+       if(bandbeg>AF->ctgs[i].length+AF->ctgs[i].lft_end){
+	 bandbeg+=1-diff;
+       }
+       if(bandend>AF->ctgs[i].length+AF->ctgs[i].lft_end){
+	 bandend+=1-diff;
+       }
+       extra+=1-diff;
+       AF->gaps[i].gap_length=1;
+     }
+     AF->ctgs[i+1].lft_end+=extra;
+     AF->gaps[i].gap_length=max(1,diff);
+     assert(AF->ctgs[i].lft_end+AF->ctgs[i].length+AF->gaps[i].gap_length == AF->ctgs[i+1].lft_end);
+     into+=AF->gaps[i].gap_length;
+     i++;
+   }
+
+   i=0;
+   into=0;
+   extra=0;
+   while(i<BF->num_gaps){
+     int diff=BF->ctgs[i+1].lft_end+extra-(BF->ctgs[i].lft_end+BF->ctgs[i].length);
+     into+=BF->ctgs[i].length;
+     if(diff < 1 ){
+       // if a band value occurs before the gap starts, then adjust
+       if(-bandbeg>BF->ctgs[i].length+BF->ctgs[i].lft_end){
+	 bandbeg-=1-diff;
+       }
+       if(-bandend>BF->ctgs[i].length+BF->ctgs[i].lft_end){
+	 bandend-=1-diff;
+       }
+       extra+=1-diff;
+       BF->gaps[i].gap_length=1;
+     }
+     BF->ctgs[i+1].lft_end += extra;
+     BF->gaps[i].gap_length=max(diff,1);
+     assert(BF->ctgs[i].lft_end+BF->ctgs[i].length+BF->gaps[i].gap_length == BF->ctgs[i+1].lft_end);
+     into+=BF->gaps[i].gap_length;
+     i++;
+   }
+
+ }
+
   // Initialize along left edge of first A contig
-  { interval startupAgap;
-    startupAgap.end=-min(0,bandbeg);
-    startupAgap.beg=-min(0,bandend);
+  if(bandbeg<0){
+    interval startupAgap;
+    int top=-min(0,bandend);
+    int bot=-min(0,bandbeg);
+    int beg;
+    int end;
+    int intoB=0;
+    int i;
+    i=0;
+    while(i<BF->num_gaps){
+      intoB+=BF->ctgs[i].length;
+      if(intoB>top){
+	beg=top;
+	break;
+      }
+      intoB+=BF->gaps[i].gap_length;
+      if(intoB>top){
+	double gapFrac = ((double) (top - (BF->ctgs[i].lft_end+BF->ctgs[i].length))) / 
+	                (double) (BF->gaps[i].gap_length+varwin*BF->gaps[i].gap_var);
+	assert(gapFrac>=0);
+	beg = BF->ctgs[i].lft_end+BF->ctgs[i].length + gapFrac * BF->gaps[i].gap_length;
+	break;
+      }
+    }
+    if(i==BF->num_gaps){
+      beg=top;
+    }
+    i=0;
+    intoB=0;
+    while(i<BF->num_gaps){
+      intoB+=BF->ctgs[i].length;
+      if(intoB>bot){
+	end=bot;
+	break;
+      }
+      intoB+=BF->gaps[i].gap_length;
+      if(intoB>bot){
+	double gapFrac = ((double)(intoB-bot)) / (double)(BF->gaps[i].gap_length+varwin*BF->gaps[i].gap_var);
+	assert(gapFrac>=0);
+	end = BF->ctgs[i+1].lft_end - gapFrac * BF->gaps[i].gap_length;
+	break;
+      }
+      i++;
+    }
+    if(i==BF->num_gaps){
+      end=bot;
+    }
+    assert(end>=beg);
+    startupAgap.end=end;
+    startupAgap.beg=beg;
     startupAgap.traceback=NULL;
     thisAlist = add_to_ilist(NULL,startupAgap);
   }
 
   // For each A-gap
-  for(i=0;i<AF->num_gaps;i++){
+  for(i=0;i<=AF->num_gaps;i++){
     int j;
     //   Initialize B-contig bottom-edge accessibility (really, accessibility of A-contig as relevant to each B-contig) to NULL
     for(j=0;j<=BF->num_gaps;j++){
-      Blists[j]=cleanup_ilist(Blists[j]);
+      Blists[j]=NULL; /* was: cleanup_ilist(Blists[j]);*/
     }
 
     //     For first B-contig, initialize accessible portion of A-contig based on banding
@@ -1846,12 +2241,19 @@ Segment *Align_Scaffold_ala_Aaron(Segment *seglist, int numsegs, int varwin,
     // we are done with current interval list; reset to prepare for next gap
     thisAlist=cleanup_ilist(thisAlist);
 
-    //     Process left edge of following A-gap (creating accessibility list for right edge of that gap)
-    if( i+1 < AF->num_gaps ){
-      if( Project_across_Agap(nextAlist,&thisAlist,&bestTerm,AF->gaps[i+1].gap_length,AF->gaps[i+1].gap_var,BF,varwin) ){
+    if( i < AF->num_gaps ){
+      // process top edge of following a-gap (creating accessibility list for right edge of that gap)
+      if( ProjectFromTopEdge(&thisAlist,&bestTerm,i,AF,BF,varwin,bandbeg,bandend)){
 	term=1;
       }
-      nextAlist=cleanup_ilist(nextAlist);
+      //     Process left edge of following A-gap (creating accessibility list for right edge of that gap)
+      if(nextAlist!=NULL){
+	while(nextAlist->prev!=NULL)nextAlist=nextAlist->prev;
+	if( Project_across_Agap(nextAlist,&thisAlist,&bestTerm,AF->gaps[i].gap_length,AF->gaps[i].gap_var,BF,varwin) ){
+	  term=1;
+	}
+	nextAlist=cleanup_ilist(nextAlist);
+      }
     }
 
   }
@@ -1862,6 +2264,7 @@ Segment *Align_Scaffold_ala_Aaron(Segment *seglist, int numsegs, int varwin,
     if(bestTerm==NULL || (nextAlist->ival.traceback!=NULL && bestTerm->best < nextAlist->ival.traceback->best )){
       bestTerm=nextAlist->ival.traceback;
     }
+    nextAlist=nextAlist->prev; // we start from tail and work backwards
   }
 
   // Now, we need to use a solution, if any was found
@@ -2015,7 +2418,8 @@ int Link_Horizontal(Scaffold *A, Scaffold *B, int varwin,
             if (af->seg->overlap->begpos <= 0)
               { pnt = B->ctgs[k].lft_end - af->seg->overlap->begpos;
                 if (beg <= pnt && pnt <= end)
-                  { score = af->seg->overlap->length;
+                  { score = af->seg->overlap->length - max(0,-af->seg->overlap->begpos) - max(0,-af->seg->overlap->endpos);
+		  assert(score>0);
                     if (source != NULL)
                       score += source->best;
                     if (score > af->best)
@@ -2268,7 +2672,8 @@ int Link_Vertical(Scaffold *A, Scaffold *B, int varwin,
             if (bf->seg->overlap->begpos >= 0)
               { pnt = A->ctgs[k].lft_end + bf->seg->overlap->begpos;
                 if (beg <= pnt && pnt <= end)
-                  { score = bf->seg->overlap->length;
+                  { score = bf->seg->overlap->length  - max(0,-bf->seg->overlap->begpos) - max(0,-bf->seg->overlap->endpos);
+		  assert(score>0);
                     if (source != NULL)
                       score += source->best;
                     if (score > bf->best)
@@ -2579,10 +2984,12 @@ Segment *Align_Scaffold(Segment *seglist, int numsegs, int varwin,
         low = BF->ctgs[i].lft_end + BF->ctgs[i].length;
         hgh = BF->ctgs[i+1].lft_end;
 
+#ifdef AHANG_BAND_TEST
 	// adjust low and hgh to conform to the banding 
 	if(-hgh>bandend||-low<bandbeg)continue;
 	if(-hgh<bandbeg)hgh=-bandbeg;
 	if(-low>bandend)low=-bandend;
+#endif
 
 #ifdef DEBUG_ALIGN
         fprintf(stderr,"  Start ray B[%d,%d] at %d,%d\n",low,hgh,0,i);
@@ -2620,8 +3027,14 @@ Segment *Align_Scaffold(Segment *seglist, int numsegs, int varwin,
     // over all segments involving the first A contig
     for (c = ABuckets[0]; c != NULL; c = c->Alink)
       // if ahang is negative, the overlap starts along the B edge, so it is a starting point
-      if (c->seg->overlap->begpos <= 0)
-        { score = c->seg->overlap->length;
+      if (c->seg->overlap->begpos <= 0 
+#ifdef AHANG_BAND_TEST
+	  && (c->seg->overlap->begpos - BF->ctgs[c->seg->b_contig].lft_end) <= bandend
+	  && (c->seg->overlap->begpos - BF->ctgs[c->seg->b_contig].lft_end) >= bandbeg
+#endif
+	  )
+        { score = c->seg->overlap->length - max(0,-c->seg->overlap->begpos) - max(0,-c->seg->overlap->endpos);
+	assert(score>=0);
           if (score > c->best)
             { c->best  = score;
               c->trace = NULL;
@@ -2634,8 +3047,14 @@ Segment *Align_Scaffold(Segment *seglist, int numsegs, int varwin,
     // over all segments involving the first B contig
     for (c = BBuckets[0]; c != NULL; c = c->Blink)
       // if ahang is positive, the overlap starts along the A edge, so it is a starting point
-      if (c->seg->overlap->begpos >= 0)
-        { score = c->seg->overlap->length;
+      if (c->seg->overlap->begpos >= 0
+#ifdef AHANG_BAND_TEST
+	  && (c->seg->overlap->begpos + AF->ctgs[c->seg->a_contig].lft_end) <= bandend
+	  && (c->seg->overlap->begpos + AF->ctgs[c->seg->a_contig].lft_end) >= bandbeg
+#endif
+)
+        { score = c->seg->overlap->length - max(0,-c->seg->overlap->begpos) - max(0,-c->seg->overlap->endpos);
+	assert(score>=0);
           if (score > c->best)
             { c->best  = score;
               c->trace = NULL;
