@@ -37,11 +37,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.28 2006-03-22 16:39:26 eliv Exp $
- * $Revision: 1.28 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.29 2006-04-10 18:07:22 eliv Exp $
+ * $Revision: 1.29 $
 */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.28 2006-03-22 16:39:26 eliv Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.29 2006-04-10 18:07:22 eliv Exp $";
 
 //  System include files
 #include<iostream>
@@ -416,7 +416,7 @@ namespace AS_BOG{
              short alignLen = olapLength( olap );
              uint16 afrgLen = fragLen( olap.a_iid );
              uint16 bfrgLen = fragLen( olap.b_iid );
-             if ( alignLen + 30 < (afrgLen < bfrgLen ? afrgLen:bfrgLen )) {
+             if ( alignLen + 50 < (afrgLen < bfrgLen ? afrgLen:bfrgLen )) {
                  // spur, not containment
                  std::cout << "Spur "<< olap.a_iid <<" "<<olap.b_iid <<
                      " olapLen "<< alignLen <<" alen "<< afrgLen <<
