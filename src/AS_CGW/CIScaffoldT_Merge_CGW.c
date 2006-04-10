@@ -18,14 +18,14 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.11 2006-04-06 16:55:44 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.12 2006-04-10 17:51:47 ahalpern Exp $";
 
 #undef ORIG_MERGE_EDGE_INVERT
 #define MINSATISFIED_CUTOFF 0.985
 #undef DEBUG_MERGE_EDGE_INVERT	  
 #undef  DEBUG_BAD_MATE_RATIO
 
-
+extern int try_new_comparator;
 
 //  Define this to check (and assert) if the graph is not internally
 //  connected before recomputing offsets.  It's expensive, and if you
@@ -4209,22 +4209,74 @@ void ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
 	  // this is still a problem but why?  (MP)
 	  assert(sai->numSegs==GetNumSegmentsInList(sai->segmentList));
 
-          if((sai->segmentList =
+	  {
+	    Segment *(*scfAligner)(Segment *seglist, int numsegs, int varwin, Scaffold *AF, Scaffold *BF, int *best, int bandbeg, int bandend);
 
-#ifdef TRY_NEW_COMPARATOR
-              Align_Scaffold_ala_Aaron(sai->segmentList,
-#else
-              Align_Scaffold(sai->segmentList,
+	    Segment *inputListHead=NULL;
+#define DEBUG_NEW_COMPARATOR
+#ifdef DEBUG_NEW_COMPARATOR
+	    Segment *copyList=NULL;
+	    Segment *copyListHead=NULL;
 #endif
-                             //sai->numSegs,
-			     GetNumSegmentsInList(sai->segmentList), 
-                             sai->varWin,
-                             sai->scaffoldA->scaffold,
-                             sai->scaffoldB->scaffold,
-                             &(sai->best),
-                             sai->scaffoldA->bandBeg,
-                             sai->scaffoldA->bandEnd)) != NULL ||
-             sai->best >= 0)
+
+	    if(try_new_comparator){
+	      scfAligner=Align_Scaffold_ala_Aaron;
+
+#ifdef DEBUG_NEW_COMPARATOR
+	      copyList=DuplicateSegmentList(sai->segmentList);
+	      assert(sai->numSegs==GetNumSegmentsInList(copyList));
+#endif
+
+	    } else { 
+	      scfAligner=Align_Scaffold;
+	    }
+
+	    sai->segmentList = scfAligner(sai->segmentList,
+					  sai->numSegs,
+					  sai->varWin,
+					  sai->scaffoldA->scaffold,
+					  sai->scaffoldB->scaffold,
+					  &(sai->best),
+					  sai->scaffoldA->bandBeg,
+					  sai->scaffoldA->bandEnd);
+
+#ifdef DEBUG_NEW_COMPARATOR
+	    if(try_new_comparator){
+	      int score;
+	      Segment *origSegList=DuplicateSegmentList(copyList);
+	      copyList = Align_Scaffold(copyList,
+				    GetNumSegmentsInList(copyList),
+				    sai->varWin,
+				    sai->scaffoldA->scaffold,
+				    sai->scaffoldB->scaffold,
+				    &score,
+				    sai->scaffoldA->bandBeg,
+				    sai->scaffoldA->bandEnd);
+	      if(score!=sai->best || 
+		 GetNumSegmentsInList(copyList) != GetNumSegmentsInList(sai->segmentList)){
+		PrintScaffoldAlignmentInterface(stderr,sai);
+		fprintf(stderr,"Input segment list:\n");
+		PrintSegmentList(stderr,origSegList);
+
+	      }
+	      DeleteSegmentList(origSegList);
+
+
+	      // deal with suspected memory leak ...
+	      if(copyList==NULL&&copyListHead!=NULL){
+		DeleteSegmentList(copyListHead);
+	      }
+	      DeleteSegmentList(copyList);
+	    }	      
+#endif
+
+	    // deal with suspected memory leak ...
+	    if(sai->segmentList==NULL&&inputListHead!=NULL){
+	      DeleteSegmentList(inputListHead);
+	    }
+
+	  }
+          if(sai->segmentList != NULL ||             sai->best >= 0)
           {
             if(verbose)
             {
