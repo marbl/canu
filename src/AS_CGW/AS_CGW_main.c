@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.17 2006-01-31 21:47:16 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.18 2006-04-10 17:52:39 ahalpern Exp $";
 
 
 static const char *usage = 
@@ -70,6 +70,7 @@ static const char *usage =
 "   [-X <Estimated number of nodes>]\n"
 "   [-Y <Estimated number of edges>]\n"
 "   [-Z] Don't demote singleton scaffolds\n"
+"   [-9] Use new interleaved merging procedure in place of old\n"
 "\n"
 "CGBInputFiles: The file with new IUM,OUM, etc records to process.\n"
 "\n"
@@ -151,6 +152,8 @@ static const char *usage =
 #if defined(CHECK_CONTIG_ORDERS) || defined(CHECK_CONTIG_ORDERS_INCREMENTAL)
 #include "AS_CGW_EdgeDiagnostics.h"
 #endif
+
+int try_new_comparator=0;
 
 FILE *  File_Open (const char * Filename, const char * Mode, int exitOnFailure);
 
@@ -252,12 +255,15 @@ int main(int argc, char *argv[]){
     optarg = NULL;
     while (!errflg && ((ch = getopt(argc, argv,
                // unused F, M
-		       "abcde:f:g:hi:j:k:l:m:n:o:p:q:r:s:tuvw:xyz:ABCD:EFGHIJK:L:N:MO:PQR:STUV:W:X:Y:Z")) != EOF)){
+		       "abcde:f:g:hi:j:k:l:m:n:o:p:q:r:s:tuvw:xyz:ABCD:EFGHIJK:L:N:MO:PQR:STUV:W:X:Y:Z9")) != EOF)){
 #if 0
       fprintf(GlobalData->stderrc,"* ch = %c optopt= %c optarg = %s\n", ch, optopt, (optarg?optarg:"(NULL)"));
       fflush(stderr);
 #endif
       switch(ch) {
+      case '9':
+	try_new_comparator=1;
+	break;
       case 'O':
 	fprintf(GlobalData->stderrc,"* Immediate output specified: arg %s\n", optarg);
 	switch(*optarg){
