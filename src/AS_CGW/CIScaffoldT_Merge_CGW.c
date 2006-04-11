@@ -18,14 +18,14 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.12 2006-04-10 17:51:47 ahalpern Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.13 2006-04-11 14:30:59 ahalpern Exp $";
 
 #undef ORIG_MERGE_EDGE_INVERT
 #define MINSATISFIED_CUTOFF 0.985
 #undef DEBUG_MERGE_EDGE_INVERT	  
 #undef  DEBUG_BAD_MATE_RATIO
 
-extern int try_new_comparator;
+int try_new_comparator=0;
 
 //  Define this to check (and assert) if the graph is not internally
 //  connected before recomputing offsets.  It's expensive, and if you

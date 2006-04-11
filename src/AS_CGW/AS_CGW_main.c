@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.18 2006-04-10 17:52:39 ahalpern Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.19 2006-04-11 14:31:00 ahalpern Exp $";
 
 
 static const char *usage = 
@@ -153,7 +153,7 @@ static const char *usage =
 #include "AS_CGW_EdgeDiagnostics.h"
 #endif
 
-int try_new_comparator=0;
+extern int try_new_comparator;
 
 FILE *  File_Open (const char * Filename, const char * Mode, int exitOnFailure);
 
