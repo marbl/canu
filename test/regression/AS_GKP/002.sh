@@ -363,7 +363,7 @@ cmp_md5s()
     then
       echo -n "Error: test md5sum and baseline md5sum do "
       echo -n "not match for file $gmd5_line"
-      FAILURE 
+      FAILED 
     fi 
 
     c=$(( $c + 1 ))
