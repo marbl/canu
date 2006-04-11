@@ -103,6 +103,7 @@ SEdgeT * MakeScaffoldAlignmentAdjustments(CIScaffoldT * scaffoldA,
                                           CIScaffoldT * scaffoldB,
                                           SEdgeT * sEdge,
                                           ScaffoldAlignmentInterface * sai);
+Segment* DuplicateSegmentList(Segment * segmentList);
 int GetNumSegmentsInList(Segment * segmentList);
 
 

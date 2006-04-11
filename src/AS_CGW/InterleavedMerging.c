@@ -41,7 +41,7 @@
 
 #undef DEBUG1
 
-#undef PRINT_OVERLAPS
+#define PRINT_OVERLAPS
 
 //  Define this to enable checking of the stretching / compression
 //  of interleaved scaffold merges.  See the detailed comment at the
@@ -300,6 +300,31 @@ void DeleteSegmentList(Segment * segmentList)
     free(curr->overlap);
     free(curr);
   }
+}
+
+Segment* DuplicateSegmentList(Segment * segmentList)
+{
+  Segment * curr;
+  Segment * head=NULL;
+  Segment * tail=NULL;
+  Local_Overlap * ovl=NULL;
+  for(curr = segmentList; curr != NULL; curr = curr->next)
+  {
+    Segment *this = (Segment *)malloc(sizeof(Segment));
+    assert(this!=NULL);
+    ovl=(Local_Overlap*)malloc(sizeof(Local_Overlap));
+    assert(ovl!=NULL);
+    *ovl=*(curr->overlap);
+    *this = *curr;
+    this->overlap=ovl;
+    if(head==NULL){
+      tail=head=this;
+    } else {
+      tail->next=this;
+      tail=this;
+    }
+  }
+  return head;
 }
 
 void DeleteScaffoldAlignmentInterface(ScaffoldAlignmentInterface * sai)
@@ -739,7 +764,7 @@ void PopulateScaffoldStuff(ScaffoldStuff * ss,
   // problem with disconnected scaffolds, so perhaps it is worth trying
   // to use the version above once again.  -- ALH, 9/28/04
 
-#undef SIMPLE_BAND_COMPUTE
+#define SIMPLE_BAND_COMPUTE
 #ifdef SIMPLE_BAND_COMPUTE
   if(isA){
     ss->bandBeg =
@@ -878,6 +903,15 @@ Overlap * LookForChunkOverlapFromContigElements(ContigElement * ceA,
       myOverlap.length = chunkOverlap.overlap;
       myOverlap.diffs = 0;
       retOverlap = &myOverlap;
+
+#ifdef PRINT_OVERLAPS    
+    fprintf(stderr,"B_A: Trying to find overlap between " F_CID " and "
+            F_CID " overlap range " F_COORD "," F_COORD
+            " orientation %c --> " F_COORD "\n",
+	    ceA->id,ceB->id,minOverlap,maxOverlap,
+            overlapOrient,chunkOverlap.overlap);
+#endif
+
     }
   }
 
