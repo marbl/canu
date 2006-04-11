@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.13 2006-04-11 14:30:59 ahalpern Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.14 2006-04-11 19:28:45 ahalpern Exp $";
 
 #undef ORIG_MERGE_EDGE_INVERT
 #define MINSATISFIED_CUTOFF 0.985
@@ -4213,20 +4213,9 @@ void ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
 	    Segment *(*scfAligner)(Segment *seglist, int numsegs, int varwin, Scaffold *AF, Scaffold *BF, int *best, int bandbeg, int bandend);
 
 	    Segment *inputListHead=NULL;
-#define DEBUG_NEW_COMPARATOR
-#ifdef DEBUG_NEW_COMPARATOR
-	    Segment *copyList=NULL;
-	    Segment *copyListHead=NULL;
-#endif
 
 	    if(try_new_comparator){
 	      scfAligner=Align_Scaffold_ala_Aaron;
-
-#ifdef DEBUG_NEW_COMPARATOR
-	      copyList=DuplicateSegmentList(sai->segmentList);
-	      assert(sai->numSegs==GetNumSegmentsInList(copyList));
-#endif
-
 	    } else { 
 	      scfAligner=Align_Scaffold;
 	    }
@@ -4239,36 +4228,6 @@ void ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
 					  &(sai->best),
 					  sai->scaffoldA->bandBeg,
 					  sai->scaffoldA->bandEnd);
-
-#ifdef DEBUG_NEW_COMPARATOR
-	    if(try_new_comparator){
-	      int score;
-	      Segment *origSegList=DuplicateSegmentList(copyList);
-	      copyList = Align_Scaffold(copyList,
-				    GetNumSegmentsInList(copyList),
-				    sai->varWin,
-				    sai->scaffoldA->scaffold,
-				    sai->scaffoldB->scaffold,
-				    &score,
-				    sai->scaffoldA->bandBeg,
-				    sai->scaffoldA->bandEnd);
-	      if(score!=sai->best || 
-		 GetNumSegmentsInList(copyList) != GetNumSegmentsInList(sai->segmentList)){
-		PrintScaffoldAlignmentInterface(stderr,sai);
-		fprintf(stderr,"Input segment list:\n");
-		PrintSegmentList(stderr,origSegList);
-
-	      }
-	      DeleteSegmentList(origSegList);
-
-
-	      // deal with suspected memory leak ...
-	      if(copyList==NULL&&copyListHead!=NULL){
-		DeleteSegmentList(copyListHead);
-	      }
-	      DeleteSegmentList(copyList);
-	    }	      
-#endif
 
 	    // deal with suspected memory leak ...
 	    if(sai->segmentList==NULL&&inputListHead!=NULL){
