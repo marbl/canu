@@ -145,6 +145,44 @@ gen_test_md5()
   md5sum $file > $TEST_MD5
 }
 
+cmp_md5s() 
+{
+  local gmd5_line=""
+  local gmd5_file=""
+  local tmd5_line=""
+  local gmd5=""
+  local tmd5=""
+  local c=1
+  local n=$(wc -l <$GOOD_MD5)
+  
+  while [ $c -lt $n ]
+  do
+    gmd5_line=$(head -n $c $GOOD_MD5 | tail -1)
+    gmd5=$(echo $gmd5_line | awk '{ print $1 }')
+    
+    gmd5_file=$(echo $gmd5_line | awk '{ print $NF }')
+    tmd5_line=$(grep $gmd5_file $TEST_MD5S)
+    ret=$?
+
+    if [ "$ret" != "0" ]; then
+      echo "Error: $gmd5_file not found in file $TEST_MD5S"
+      FAILED        
+    fi
+
+    tmd5=$(echo $tmd5_line | awk '{ print $1 }')
+    if [ "$tmd5" != "$gmd5" ]
+    then
+      echo -n "Error: test md5sum and baseline md5sum do "
+      echo    "not match for file $gmd5_file"
+      echo "baseline md5: $bmd5"
+      echo "baseline md5: $tmd5"
+      FAILED 
+    fi 
+
+    c=$(( $c + 1 ))
+  done
+}
+
 #####
 # Function
 #   clean_cgi_file
@@ -294,19 +332,11 @@ RUN_TEST() {
   # They should be the same since we are running
   # consensus against the same input used to 
   # generate the baseline MD5s
+  #
+  # Test will abort within this function if the MD5 sums
+  # do not match
   ###
-#  diff -q $TEST_MD5 $GOOD_MD5 > /dev/null
-  diff $TEST_MD5 $GOOD_MD5 
-  ret=$?
-
-  if [ "$ret" -ne "0" ]; then
-    ###
-    # They were not the same! If the output *should*
-    # be different the known good MD5s should be
-    # updated!
-    ###
-    FAILED
-  fi
+  cmp_md5s
 
   popd > /dev/null 2>&1
 }

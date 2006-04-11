@@ -344,11 +344,13 @@ cmp_md5s()
   local gmd5=""
   local tmd5=""
   local c=1
+  local n=$(wc -l <$GOOD_MD5S)
   
-  for gmd5_line in "$(head -n $c $GOOD_MD5S | tail -1)"
+  while [ $c -lt $n ]
   do
+    gmd5_line=$(head -n $c $GOOD_MD5S | tail -1)
     gmd5=$(echo $gmd5_line | awk '{ print $1 }')
-    
+
     gmd5_file=$(echo $gmd5_line | awk '{ print $NF }')
     tmd5_line=$(grep $gmd5_file $TEST_MD5S)
     ret=$?
@@ -362,7 +364,9 @@ cmp_md5s()
     if [ "$tmd5" != "$gmd5" ]
     then
       echo -n "Error: test md5sum and baseline md5sum do "
-      echo -n "not match for file $gmd5_line"
+      echo    "not match for file $gmd5_file"
+      echo "baseline md5: $bmd5"
+      echo "baseline md5: $tmd5"
       FAILED 
     fi 
 
