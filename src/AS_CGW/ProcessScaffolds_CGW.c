@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: ProcessScaffolds_CGW.c,v 1.7 2006-02-13 22:16:31 eliv Exp $ */
+/* $Id: ProcessScaffolds_CGW.c,v 1.8 2006-04-12 19:51:12 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -398,41 +398,15 @@ int CelamyContig(FILE *out, CDS_IID_t scaffid, CDS_IID_t contigid, int reverse) 
 
 static void Complement(char *in, CDS_COORD_t len);
 
-#define HENDERSON_GAP_SIZE (50)
-#define ZLAI_NEG_GAP_SIZE (50)
-#define ZLAI_SMALL_GAP_SIZE (51)
-#define IR_GAP_SIZE (50)
-#define ZLAI_GAP_SIZE (51)
 
-CDS_COORD_t compute_gap(double gapsize, int32 alternate_gap_spec){
-  switch(alternate_gap_spec){
-  default:
-  case 0:
-    return (CDS_COORD_t) max(IR_GAP_SIZE, gapsize);
 
-  case 1: // Henderson
-    if(gapsize > 0){
-      return (CDS_COORD_t)gapsize; // truncate and return
-    }else{
-      return HENDERSON_GAP_SIZE;
-    }
-
-  case 2:  // ZLai
-    if(gapsize < 0){
-       return (ZLAI_GAP_SIZE - 1);
-    }else  if(gapsize < ZLAI_GAP_SIZE){
-      return (ZLAI_GAP_SIZE );
-    } else{
-      return (CDS_COORD_t) gapsize;
-    }
-  }
+CDS_COORD_t compute_gap(double gapsize){
+  return (CDS_COORD_t) max(20, gapsize);
 }
 
 
 
-
-
-int FastaScaffold(FILE *out, IntScaffoldMesg *scaff, int alternate_gap_spec)  {
+int FastaScaffold(FILE *out, IntScaffoldMesg *scaff)  {
   CDS_IID_t i,num_pairs=scaff->num_contig_pairs; 
   CDS_IID_t contigid;
   MultiAlignT *contig;
@@ -441,21 +415,9 @@ int FastaScaffold(FILE *out, IntScaffoldMesg *scaff, int alternate_gap_spec)  {
   char *fseq;
   char *cseq;
   CDS_COORD_t running_length=0;
-  char nchar;
+  char nchar = 'n';
   CDS_COORD_t scaffold_length,contig_length,flen,ngaps;
 
-  switch(alternate_gap_spec){
-  case 0:
-  default:
-    nchar = 'n';
-    break;
-  case 1:
-    nchar = 'N';
-    break;
-  case 2:
-    nchar = 'S';
-    break;
-  }
   if(cids == NULL){
     cids=CreateVA_CDS_IID_t(1);
     reversedVA=CreateVA_int32(num_pairs + 1);
@@ -473,28 +435,8 @@ int FastaScaffold(FILE *out, IntScaffoldMesg *scaff, int alternate_gap_spec)  {
     reversed = Getint32(reversedVA,0);
   contigid = cp[0].contig1;
   // output label line for this scaffold
-  fprintf(stderr,"* alternate_gap_spec = %d\n", alternate_gap_spec);
-  if(alternate_gap_spec == 2){
-  /*The info line is as follows             
-    >173000047796280 U       other       2 173000047796250 173000047796251
-    scf UID             orient    class     #contigs    ctg1 UID      ctg2 UID
- 
-    so you should put U for orient, seed for class.
-  */
-    fprintf(out,">" F_IID " U seed " F_IID " ", scaff->iaccession, num_pairs + 1);
-    fprintf(stderr,">" F_IID " U seed " F_IID " ", scaff->iaccession, num_pairs + 1);
-    for(i = 0; i < (num_pairs>0? num_pairs:1); i++){
-      fprintf(out,F_IID " ", cp[i].contig1);
-      fprintf(stderr,F_IID " ", cp[i].contig1);
-    }
-    if(num_pairs > 0){
-      fprintf(out,F_IID " ", cp[i].contig2);
-      fprintf(stderr,F_IID " ", cp[i].contig2);
-    }
-    fprintf(out,"\n");
-    fprintf(stderr,"\n");
 
-  }else   if ( ! show_stddev ) {
+  if ( ! show_stddev ) {
     fprintf(out,">%s_Scaffold_" F_IID "\n",fastaIdent,scaff->iaccession);
   } else {
     fprintf(out,">%s_Scaffold_" F_IID " stddev: " F_IID,fastaIdent,scaff->iaccession,num_pairs);
@@ -508,10 +450,8 @@ int FastaScaffold(FILE *out, IntScaffoldMesg *scaff, int alternate_gap_spec)  {
   // calculate length of sequence:
   scaffold_length += GetMultiAlignUngappedLength(GetMultiAlignInStore(cstore,contigid));
   for ( i=0;i<num_pairs;i++ ) {
-    scaffold_length += compute_gap(cp[i].mean, alternate_gap_spec);
-    //     scaffold_length += max(20,cp[i].mean);
-
-     scaffold_length += GetMultiAlignUngappedLength(GetMultiAlignInStore(cstore,cp[i].contig2));
+    scaffold_length += compute_gap(cp[i].mean);
+    scaffold_length += GetMultiAlignUngappedLength(GetMultiAlignInStore(cstore,cp[i].contig2));
   }
   EnableRangeVA_char(scaffold_sequence,scaffold_length+1);
   EnableRangeVA_int32(reversedVA, num_pairs + 1);
@@ -572,9 +512,9 @@ int FastaScaffold(FILE *out, IntScaffoldMesg *scaff, int alternate_gap_spec)  {
 
 
   for ( i=0;i<num_pairs;i++ ) {
-    ngaps = compute_gap(cp[i].mean, alternate_gap_spec);
+    ngaps = compute_gap(cp[i].mean);
 
-     // append ngaps N's (or n's, depending on alternate_gap_spec)  to string as intercontig space
+     // append ngaps N's to string as intercontig space
      ResetVA_char(ctmp);  
      EnableRangeVA_char(ctmp,ngaps+1);
      running_length+=ngaps;
@@ -730,7 +670,6 @@ int main(int argc, char *argv[])
   int ch;
   int do_all = 0;
   int celamy = 0;
-  int alternate_gap_spec = 0;
   show_stddev =0;
   show_uids = 0;
   do_all = 1;
@@ -800,13 +739,6 @@ int main(int argc, char *argv[])
         case 'B':  // specify BactigStore for use to get fragment UIDs in Celamy file
           bactig_store = openFragStore(optarg, "rb");
           break;
-       case 'H': // alternate gap spec as per Henderson
-	  alternate_gap_spec = 1;
-	  break;
-       case 'Z': // alternate gap spec as per ZLai
-	  alternate_gap_spec = 2;
-	  fprintf(stderr,"* Z option invoked, alternate_gap_spec == 2\n");
-	  break;
         case 's':
           show_stddev=1; 
           break;
@@ -943,7 +875,7 @@ int main(int argc, char *argv[])
         CelamyProcessScaffold(celamyFile, (IntScaffoldMesg *)pmesg->m);
       }
       if ( fasta ) {
-        FastaScaffold(fastaFile, (IntScaffoldMesg *)pmesg->m, alternate_gap_spec);
+        FastaScaffold(fastaFile, (IntScaffoldMesg *)pmesg->m);
         fflush(fastaFile);
       }
     }
