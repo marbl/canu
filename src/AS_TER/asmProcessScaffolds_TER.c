@@ -110,8 +110,8 @@ static void Reverse(char *in, int len);
 
 
 int32 compute_gap(double gapsize){
-  if(gapsize<=0)
-    return(50);  //  IR_GAP_SIZE, INTERSCAFFDIST
+  if ((int32)gapsize <= 20)
+    return(20);
   return (int32)gapsize;
 }
 
