@@ -48,7 +48,7 @@ int MaxWindow = 0;
 #undef  DEBUG_LOCAL
 #undef  DEBUG_OPTTAIL
 #undef  DEBUG_SEGORDER
-#define  XFIG
+#undef  XFIG
 #undef  STATS
 
 #define ALLOW_NO_OVERLAP_INTERLEAVINGS
