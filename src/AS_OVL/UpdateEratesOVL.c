@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: UpdateEratesOVL.c,v 1.5 2005-06-16 19:57:23 brianwalenz Exp $
- * $Revision: 1.5 $
+ * $Id: UpdateEratesOVL.c,v 1.6 2006-04-14 18:36:15 adelcher Exp $
+ * $Revision: 1.6 $
 */
 
-static char CM_ID[] = "$Id: UpdateEratesOVL.c,v 1.5 2005-06-16 19:57:23 brianwalenz Exp $";
+static char CM_ID[] = "$Id: UpdateEratesOVL.c,v 1.6 2006-04-14 18:36:15 adelcher Exp $";
 
 
 //  System include files
@@ -76,6 +76,10 @@ static char CM_ID[] = "$Id: UpdateEratesOVL.c,v 1.5 2005-06-16 19:57:23 brianwal
 
 //  Static Globals
 
+static int  Dump_Only = FALSE;
+    // If set true (by the -D option) then dump to standard
+    // output the revised overlaps instead of applying them
+    // to the overlap store.
 static char  * OVL_Store_Path = NULL;
     // Location of overlap store to be updated
 static char  * Erate_File_Path = NULL;
@@ -85,6 +89,8 @@ static char  * Erate_File_Path = NULL;
 
 //  Static Functions
 
+static void  Display_Erate
+    (uint32 a_id, const Short_Olap_Data_t * olap, uint16 erate);
 static void  Parse_Command_Line
     (int argc, char * argv []);
 static void  Set_Corrected_Erate
@@ -123,6 +129,24 @@ int  main
 
 
 
+static void  Display_Erate
+    (uint32 a_id, const Short_Olap_Data_t * olap, uint16 erate)
+
+//  Display to stdout the overlap in  (* olap)  whose A-read ID is
+//   a_id  with the error rate  erate.
+
+  {
+   printf ("%8u %8u %c %5d %5d %4.1f\n",
+           a_id, olap -> b_iid,
+           olap -> flipped ? 'I' : 'N',
+           olap -> a_hang, olap -> b_hang,
+           Expand_Quality (erate) * 100.0);
+
+   return;
+  }
+
+
+
 static void  Parse_Command_Line
     (int argc, char * argv [])
 
@@ -135,9 +159,13 @@ static void  Parse_Command_Line
    optarg = NULL;
 
    while  (! errflg
-             && ((ch = getopt (argc, argv, "h")) != EOF))
+             && ((ch = getopt (argc, argv, "Dh")) != EOF))
      switch  (ch)
        {
+        case  'D' :
+          Dump_Only = TRUE;
+          break;
+
         case  'h' :
           Usage (argv [0]);
           exit (EXIT_FAILURE);
@@ -249,15 +277,25 @@ static void  Set_Corrected_Erate
 	assert(NULL != fp);
 	while  (fread (& buff, sizeof (Short_Olap_Data_t), 1, fp) == 1)
             {
-             buff . corr_erate = erate [ct];
-             io_buff [io_buff_ct ++] = buff;
+             if  (Dump_Only)
+                 Display_Erate (i, & buff, erate [ct]);
+               else
+                 {
+                  buff . corr_erate = erate [ct];
+                  io_buff [io_buff_ct] = buff;
+                 }
+             io_buff_ct ++;
              ct ++;
              file_position += sizeof (Short_Olap_Data_t);
              if  (io_buff_ct >= IO_BUFF_SIZE)
                  {
                   assert (io_buff_ct == IO_BUFF_SIZE);
-                  CDS_FSEEK(fp, (off_t) io_buff_start, SEEK_SET);
-                  Safe_fwrite (io_buff, sizeof (Short_Olap_Data_t), io_buff_ct, fp);
+                  if  (! Dump_Only)
+                      {
+                       CDS_FSEEK(fp, (off_t) io_buff_start, SEEK_SET);
+                       Safe_fwrite (io_buff, sizeof (Short_Olap_Data_t),
+                            io_buff_ct, fp);
+                      }
                   io_buff_ct = 0;
                   io_buff_start = file_position;
                   CDS_FSEEK (fp, (off_t) file_position, SEEK_SET);
@@ -268,15 +306,25 @@ static void  Set_Corrected_Erate
 	  {
 	     assert(NULL != fp);
              Safe_fread (& buff, sizeof (Short_Olap_Data_t), 1, fp);
-             buff . corr_erate = erate [ct];
-             io_buff [io_buff_ct ++] = buff;
+             if  (Dump_Only)
+                 Display_Erate (i, & buff, erate [ct]);
+               else
+                 {
+                  buff . corr_erate = erate [ct];
+                  io_buff [io_buff_ct] = buff;
+                 }
+             io_buff_ct ++;
              ct ++;
              file_position += sizeof (Short_Olap_Data_t);
              if  (io_buff_ct >= IO_BUFF_SIZE)
                  {
                   assert (io_buff_ct == IO_BUFF_SIZE);
-                  CDS_FSEEK (fp, (off_t) io_buff_start, SEEK_SET);
-                  Safe_fwrite (io_buff, sizeof (Short_Olap_Data_t), io_buff_ct, fp);
+                  if  (! Dump_Only)
+                      {
+                       CDS_FSEEK (fp, (off_t) io_buff_start, SEEK_SET);
+                       Safe_fwrite (io_buff, sizeof (Short_Olap_Data_t),
+                            io_buff_ct, fp);
+                      }
                   io_buff_ct = 0;
                   io_buff_start = file_position;
                   CDS_FSEEK (fp, (off_t) file_position, SEEK_SET);
@@ -287,7 +335,7 @@ static void  Set_Corrected_Erate
       if  (i % frags_per_file == 0 || i == hi_id)
           {
 	   assert(NULL != fp);
-           if  (io_buff_ct > 0)
+           if  (io_buff_ct > 0 && ! Dump_Only)
                {
                 CDS_FSEEK (fp, (off_t) io_buff_start, SEEK_SET);
                 Safe_fwrite (io_buff, sizeof (Short_Olap_Data_t), io_buff_ct, fp);
@@ -330,6 +378,7 @@ static void  Usage
        "as corrected error rates\n"
        "\n"
        "Options:\n"
+       "-D  dump error rates to stdout *WITHOUT* storing them in <OVLStore>\n"
        "-h  print this message\n",
        command);
 
