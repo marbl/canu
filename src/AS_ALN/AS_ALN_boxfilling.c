@@ -72,43 +72,12 @@ static void safe_suffix(char **Dest,int *DestLen,char *src,int start){
    1) Providing a wrapper around the local alignment code so that users
    can carry out operations on the level of the "message" (IFM, OVL, etc).
 
-   2) Determine whether the best possible overlap is good enough to constitute
-   an overlap for the purposes of unitigging.  A preliminary set of criteria
-   are given below.
+   2) Once a set of local alignments has been found, determine the best chaining
+   using the local overlap code
 
-   3) Combine bits of existing code to provide a full alignment specification
-   for the local overlapper; one can debate whether large gaps should be 
-   encoded in an edit trace, but for the purposes of integration with the
-   existing code base, the current function will aim to specify an
-   alignment in terms of an ahang, a bhang and a trace, which will get
-   converted into the core elements of an overlap message just as in
-   DP_Compare_AS.  
+   3) Resolve any overlaps within the best chain
 
-   PRELIMINARY DECISION CRITERIA:
-
-     - if an overall %-match of less than erate with length MinLen[=40]
-       exists, then the overlap should be allowed regardless of the
-       following additional criteria
-     - at least one segment of at least MinLen bases
-     - if we treat an affine event as a single error (and the length involved
-       to likewise be a single base) for the purpose of calculating an
-       error rate, the error rate should be no more than erate.
-     - no more than MaxGaps [=2?] unaligned regions ("gaps") in the overlap;
-       this also entails no more than MaxGaps+1 matching segments
-       
-     Additional criteria that we might want to use:
-
-     - no more than MaxEndGap [=20?] unaligned bases at either end; this
-       is to prevent a classic branchpoint out of a repeat into distinct
-       regions from being overlapped; on the other hand, the requirement
-       that all fragments in a bubble go back together might mean that
-       this filter is unnecessary.
-     - only one end may end in a gap; having both ends
-       be in polymorphic regions should be quite unlikely, and it is
-       not currently our concern to handle crappy fragment ends (= spurs,
-       handled by other means).
-
-
+   The following values for 'what' may or may not be relevant here:
    AS_FIND_LOCAL_OVERLAP:
       Just find a good alignment to the boundary of the d.p. matrix.  From
       this extrapolate a rough overlap relationship without an alignment
@@ -220,7 +189,7 @@ OverlapMesg *BoxFill_AS(InternalFragMesg *a, InternalFragMesg *b,
 
   local_results=Find_Local_Segments(Ausable-MINUS_ONE,strlen(Ausable),
 				    Busable-MINUS_ONE,strlen(Busable),
-				    LOCAL_FORW, 16, .1, &NumSegs);
+				    LOCAL_FORW, 16, erate, &NumSegs);
 
   if(NumSegs==0){
     goto nooverlap;    
