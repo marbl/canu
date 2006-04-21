@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.19 2006-04-21 14:42:19 eliv Exp $
- * $Revision: 1.19 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.20 2006-04-21 15:18:33 eliv Exp $
+ * $Revision: 1.20 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.19 2006-04-21 14:42:19 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.20 2006-04-21 15:18:33 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -181,11 +181,13 @@ namespace AS_BOG{
         iuid beforeLast = 0;
         DoveTailNode* joinerNode = tig->getLastBackboneNode(beforeLast);
         iuid beginId = joinerNode->ident;
+        // Never join on a contain
         assert( joinerNode->contained == 0 );
         BestEdgeOverlap* fivePrime = bog_ptr->getBestEdgeOverlap( beginId, FIVE_PRIME );
         BestEdgeOverlap* threePrime = bog_ptr->getBestEdgeOverlap( beginId, THREE_PRIME );
 
         BestEdgeOverlap* bestEdge;
+        bool begRev = joinerNode->position.bgn > joinerNode->position.end;
         if ( beforeLast == fivePrime->frag_b_id ) {
             bestEdge = threePrime;
         } else if ( beforeLast == threePrime->frag_b_id ) {
@@ -194,8 +196,7 @@ namespace AS_BOG{
             std::cerr << "Disagree: JID "<< beginId << " PREV " << beforeLast
                 << " 5' " << fivePrime->frag_b_id << " 3' " << threePrime->frag_b_id
                 << std::endl;
-            return;
-            if ( joinerNode->position.bgn > joinerNode->position.end)
+            if ( begRev )
                 bestEdge = fivePrime;
             else
                 bestEdge = threePrime;
@@ -209,19 +210,23 @@ namespace AS_BOG{
         if (joiner != 0 && joined.find(tigIdToAdd) == joined.end() &&
                  visited_map.find(joiner) != visited_map.end())
         {
-            assert( beginId != tig->dovetail_path_ptr->front().ident);
+            // Code assumes joining only from end of unitig
+            if ( beforeLast != 0 ) // ok to join singleton though
+                assert( beginId != tig->dovetail_path_ptr->front().ident);
             BestEdgeOverlap* addFivePrime = bog_ptr->getBestEdgeOverlap(
                     joiner, FIVE_PRIME );
             BestEdgeOverlap* addThreePrime = bog_ptr->getBestEdgeOverlap(
                     joiner, THREE_PRIME );
 
-            bool begRev = joinerNode->position.bgn > joinerNode->position.end;
             bool reverse = false;
             DoveTailNode first = tigToAdd->dovetail_path_ptr->front();
-            DoveTailNode* last  = tigToAdd->getLastBackboneNode(beforeLast);
+            iuid notUsed;
+            DoveTailNode* last  = tigToAdd->getLastBackboneNode(notUsed);
             if (joiner == first.ident)
                 last = &first;
             bool lastReverse = last->position.bgn > last->position.end;
+            // asserts one of the in_degree's should always be none zero at a unitig break
+            // then make sure the both frags agree on which ends are being used
             if ( bestEdge == threePrime ) {
                 if ( addFivePrime->frag_b_id == beginId) {
                     assert( bestEdge->in_degree != 1 || addFivePrime->in_degree != 1 );
@@ -287,6 +292,7 @@ namespace AS_BOG{
                     }
                 }
             }
+            // if the start frag is reversed, we join on it's 5' edge, else 3'
             if ( begRev )
                 assert( bestEdge == fivePrime );
             else
