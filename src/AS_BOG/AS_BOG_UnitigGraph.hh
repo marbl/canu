@@ -34,18 +34,19 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.hh,v 1.11 2006-03-27 18:52:00 eliv Exp $
- * $Revision: 1.11 $
+ * $Id: AS_BOG_UnitigGraph.hh,v 1.12 2006-04-21 14:42:20 eliv Exp $
+ * $Revision: 1.12 $
 */
 
 
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.11 2006-03-27 18:52:00 eliv Exp $";
+static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.12 2006-04-21 14:42:20 eliv Exp $";
 
 #include <vector>
 #include <map>
+#include <set>
 #include <iostream>
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -97,6 +98,7 @@ namespace AS_BOG{
 		long getNumFrags(void);
 		long getSumFragLength(void);
 		long getNumRandomFrags(void); // For now, same as numFrags, but should be randomly sampled frag count
+        DoveTailNode* getLastBackboneNode(iuid&);
 		// For proto I/O messages
 		IntUnitigMesg *getIUM_Mesg();
 		void freeIUM_Mesg(IntUnitigMesg *ium_ptr);
@@ -146,10 +148,11 @@ namespace AS_BOG{
 	struct UnitigGraph{
 		// This will store the entire set of unitigs that are generated
 		// It's just a unitig container.
+        UnitigGraph( BestOverlapGraph*);
         ~UnitigGraph();
 
 		// Call this on a chunk graph pointer to build a unitig graph
-		void build(ChunkGraph *cg_ptr, BestOverlapGraph *bog_ptr, long num_rand_frags, long genome_size);
+		void build(ChunkGraph *cg_ptr, long num_rand_frags, long genome_size);
 
 		// Debugging output operator
 		friend std::ostream& operator<< (std::ostream& os, UnitigGraph& utgrph);
@@ -175,8 +178,7 @@ namespace AS_BOG{
 			DoveTailPath *_extract_dovetail_path(
 				iuid src_frag_id, 
 				fragment_end_type whichEnd,
-				ChunkGraph *cg_ptr,
-				BestOverlapGraph *bog_ptr);
+				ChunkGraph *cg_ptr);
 
 			// Inverts the containment map to key by container, instead of containee
 			ContainerMap *_build_container_map(BestContainmentMap*);
@@ -184,10 +186,15 @@ namespace AS_BOG{
 			// Build containee list
 			ContainerMap *_extract_containees(DoveTailPath *dtp_ptr, 
 				ContainerMap *cntnrmap_ptr);
+            // Merge Unitigs by follow the bid's
+            void mergeAllUnitigs( std::map<iuid,iuid> &);
+            void mergeUnitigs(Unitig*, std::set<iuid> &, std::map<iuid,iuid> &);
+
 
 			// Compute the global arrival rate based on the unitig rho's.
 			float _compute_global_arrival_rate(void);
 
+            BestOverlapGraph *bog_ptr;
 	};
 		
 	///////////////////////////////////////////////////////////////////////

@@ -30,11 +30,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: BuildUnitigs.cc,v 1.8 2006-04-10 18:09:31 eliv Exp $
- * $Revision: 1.8 $
+ * $Id: BuildUnitigs.cc,v 1.9 2006-04-21 14:42:20 eliv Exp $
+ * $Revision: 1.9 $
 */
 
-static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.8 2006-04-10 18:09:31 eliv Exp $";
+static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.9 2006-04-21 14:42:20 eliv Exp $";
 
 //  System include files
 
@@ -126,9 +126,9 @@ int  main (int argc, char * argv [])
 	std::cout << std::endl;
 
 	//std::cerr << er_cg << std::endl;
-	AS_BOG::UnitigGraph utg;
+	AS_BOG::UnitigGraph utg(bogRunner.metrics[i]);
 	std::cerr << "Building Unitigs.\n" << std::endl;
-	utg.build(&cg, bogRunner.metrics[i], cg.getNumFragments(), genome_size=0);
+	utg.build(&cg, cg.getNumFragments(), genome_size=0);
 
 	std::cerr << "Reporting.\n" << std::endl;
 	//std::cout<< utg << endl;
