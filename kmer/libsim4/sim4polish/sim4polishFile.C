@@ -243,7 +243,11 @@ sim4polishFile::buildIndex(void) {
       if (p) {
 
         if (_polishRecordLen >= _polishRecordMax) {
-          fprintf(stderr, "sim4polishFile needs to resize!\n");
+          _polishRecordMax *= 2;
+          polishRecord  *n = new polishRecord [_polishRecordMax];
+          memcpy(n, _polishRecord, sizeof(polishRecord) * _polishRecordLen);
+          delete [] _polishRecord;
+          _polishRecord = n;
         }
 
         _polishRecord[_polishRecordLen]._fileposition = fp;
