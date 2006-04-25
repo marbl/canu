@@ -25,6 +25,7 @@ src  := $/cleanPolishes.C \
         $/vennPolishes.C \
         $/realignPolishes.C \
         $/removeRedundant.C \
+        $/reportAlignmentDifferences.C \
         $/s4p_overlap.C
 
 $/.C_SRCS   :=${filter %.c,${src}}
@@ -52,7 +53,8 @@ $/.CXX_EXES := $/cleanPolishes \
                $/uniqPolishes \
                $/vennPolishes \
                $/realignPolishes \
-               $/removeRedundant
+               $/removeRedundant \
+               $/reportAlignmentDifferences
 
 $/.CLEAN := $/*.o
 
@@ -80,6 +82,7 @@ $/removeDuplicate             : $/removeDuplicate.o
 $/vennPolishes                : $/vennPolishes.o
 $/realignPolishes             : $/realignPolishes.o
 $/removeRedundant             : $/removeRedundant.o $/s4p_overlap.o
+$/reportAlignmentDifferences  : $/reportAlignmentDifferences.o
 
 #  Yeah, not everyone needs all these libraries.  Live with it.
 #
