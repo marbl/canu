@@ -16,18 +16,17 @@
 // License along with this program; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+//  Compute some simple statistics on a set of matches
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <math.h>
 
 #include "bio++.H"
 #include "util++.H"
 #include "atac.H"
 
-//  Compute some simple statistics on a set of matches
-
-void mappedMultiply1(atacMatchList &matches, char *prefix);
-void mappedMultiply2(atacMatchList &matches, char *prefix);
 
 //  Sort u32bit backwards
 int
@@ -39,139 +38,344 @@ u32bitcompare(const void *a, const void *b) {
   return(0);
 }
 
-int
-main(int argc, char **argv) {
-  u64bit  genomeSize    = 0;
-  char   *atacFile      = 0L;
-  char   *prefix        = 0L;
-  bool    error         = false;
-  char    matchesOrRuns = 'm';
 
-  int arg=1;
-  while (arg < argc) {
-    if (strcmp(argv[arg], "-g") == 0) {
-      ++arg;
-      if        (argv[arg][0] == 'A') {
-        genomeSize = 0;
-      } else if (argv[arg][0] == 'B') {
-        genomeSize = 1;
+class histogram {
+public:
+  histogram(u64bit blockSize, u64bit maxSize) {
+    _b = blockSize;
+    _m = maxSize;
+    _l = 0;
+    _h = new u32bit [maxSize / blockSize + 1];
+    for (u32bit i=0; i<maxSize / blockSize + 1; i++)
+      _h[i] = 0;
+    _eLen = 0;
+    _eMax = 100000;
+    _e = new u32bit [_eMax];
+  };
+  ~histogram() {
+    delete [] _h;
+  };
+
+  void       add(u64bit x) {
+    if (_eLen >= _eMax) {
+      _eMax *= 2;
+      u32bit *e = new u32bit [_eMax];
+      memcpy(e, _e, sizeof(u32bit) * _eLen);
+      delete [] _e;
+      _e = e;
+    }
+    _e[_eLen++] = x;
+
+    if (x > _m)
+      _l++;
+    else
+      _h[x/_b]++;
+  };
+
+  void       show(char *label) {
+    double  average = 0;
+    double  stddev  = 0;
+
+    for (u32bit i=0; i<_eLen; i++)
+      average += _e[i];
+    average /= _eLen;
+
+    for (u32bit i=0; i<_eLen; i++)
+      stddev += (_e[i] - average) * (_e[i] - average);
+    stddev = sqrt(stddev / _eLen);
+
+    fprintf(stdout, "histogram %s "u32bitFMT" items %8.3f average %8.3f std.dev.\n",
+            label, _eLen, average, stddev);
+  };
+
+  void       dump(char *prefix, char *label) {
+    char   filename[1024];
+    sprintf(filename, "%s.%s.histogramdat", prefix, label);
+    FILE *out = fopen(filename, "w");
+    for (u64bit i=0; i<_m / _b; i++)
+      fprintf(out, u64bitFMT" "u32bitFMT"\n", i * _b, _h[i]);
+    fclose(out);
+  }
+
+  void       plot(char *prefix, char *label) {
+
+    //  Find max's of the data
+    u64bit  maxx = 0;
+    u64bit  maxy = 0;
+
+    for (u64bit i=0; i<_m / _b; i++) {
+      if (_h[i] > 0)
+        maxx = i * _b;
+      if (maxy < _h[i])
+        maxy = _h[i];
+    }
+
+    char   filename[1024];
+    sprintf(filename, "%s.%s.histogram.gnuplot", prefix, label);
+    FILE *out = fopen(filename, "w");
+    fprintf(out, "set terminal postscript color\n");
+    fprintf(out, "set output \"%s.%s.histogram.ps\"\n", prefix, label);
+    fprintf(out, "set xlabel \"length bp\"\n");
+    fprintf(out, "set ylabel \"number of matches\"\n");
+    fprintf(out, "plot [0:"u64bitFMT"][0:"u64bitFMT"] \"%s.%s.histogramdat\" using 2 with lines\n",
+            maxx, maxy, prefix, label);
+    fprintf(out, "set output \"%s.%s.histogram.closeup.ps\"\n", prefix, label);
+    fprintf(out, "plot [0:"u64bitFMT"][0:"u64bitFMT"] \"%s.%s.histogramdat\" using 2 with lines\n",
+            maxx/10, maxy, prefix, label);
+    fprintf(out, "quit\n");
+    fclose(out);
+    sprintf(filename, "gnuplot < %s.%s.histogram.gnuplot", prefix, label);
+    if (system(filename))
+      fprintf(stderr, "Failed to execute '%s'\n", filename);
+  };
+
+
+private:
+  u64bit    _b;  //  blockSize
+  u64bit    _m;  //  maximum element size
+  u32bit    _l;  //  number of things bigger than _m
+  u32bit   *_h;  //  the histogram
+  u32bit    _eMax;
+  u32bit    _eLen;
+  u32bit   *_e;  //  the elements -- for computing the stats;
+};
+
+
+
+//  Compute the total gapped and ungapped length of the input
+//  sequences.  Uses atacMatchList only to access the underlying fasta
+//  sequences.
+//
+void
+totalLength(atacMatchList &matches, FastACache *A, FastACache *B) {
+  u64bit   length1 = 0;
+  u64bit   length2 = 0;
+
+  for (u32bit i=0; i<matches.fastaA()->getNumberOfSequences(); i++)
+    length1 += matches.fastaA()->sequenceLength(i);
+  for (u32bit i=0; i<matches.fastaB()->getNumberOfSequences(); i++)
+    length2 += matches.fastaB()->sequenceLength(i);
+
+  fprintf(stdout, "totalLength    %s "u64bitFMT"  %s "u64bitFMT" # all letters, including N\n",
+          matches.labelA(), length1,
+          matches.labelB(), length2);
+
+  length1 = 0;
+  length2 = 0;
+  for (u32bit i=0; i<matches.fastaA()->getNumberOfSequences(); i++) {
+    FastASequenceInCore *S = A->getSequence(i);
+    char                *s = S->sequence();
+    for (u32bit j=0; j<S->sequenceLength(); j++)
+      if (validSymbol[s[j]])
+        length1++;
+  }
+  for (u32bit i=0; i<matches.fastaB()->getNumberOfSequences(); i++) {
+    FastASequenceInCore *S = B->getSequence(i);
+    char                *s = S->sequence();
+    for (u32bit j=0; j<S->sequenceLength(); j++)
+      if (validSymbol[s[j]])
+        length2++;
+  }
+
+  fprintf(stdout, "totalLength    %s "u64bitFMT"  %s "u64bitFMT" # ACGT only\n",
+          matches.labelA(), length1,
+          matches.labelB(), length2);
+}
+
+
+void
+totalLength(atacFeatureList &features) {
+  histogram     hi(10, 100000);
+  intervalList  il;
+
+  for (u32bit i=0; i<features.numberOfFeatures(); i++)
+    il.add(features[i]->pos, features[i]->len);
+
+  fprintf(stdout, "numberOfItems "u64bitFMT"\n", (u64bit)features.numberOfFeatures());
+  fprintf(stdout, "totalLength   "u64bitFMT" # sum of lengths of all features\n", il.sumOfLengths());
+  il.merge();
+  fprintf(stdout, "coveredLength "u64bitFMT" # sequence covered by a feature, including N\n", il.sumOfLengths());
+}
+
+
+
+
+void
+mappedLengths(atacMatchList &matches, char *prefix) {
+  histogram  h1(10, 1000000);
+  histogram  h2(10, 1000000);
+
+  //  For the coverage to work correctly, we need to either have one
+  //  intervalList per input sequence, or build a table of the chained
+  //  sequence positions.
+  //
+  u64bit  *offset1 = new u64bit [matches.fastaA()->getNumberOfSequences()];
+  u64bit  *offset2 = new u64bit [matches.fastaB()->getNumberOfSequences()];
+
+  offset1[0] = 1000000;
+  for (u32bit i=1; i<matches.fastaA()->getNumberOfSequences(); i++)
+    offset1[i] = offset1[i-1] + matches.fastaA()->sequenceLength(i-1) + 1;
+
+  offset2[0] = 1000000;
+  for (u32bit i=1; i<matches.fastaB()->getNumberOfSequences(); i++)
+    offset2[i] = offset2[i-1] + matches.fastaB()->sequenceLength(i-1) + 1;
+
+  intervalList  intervalA;
+  intervalList  intervalB;
+
+  for (u32bit m=0; m<matches.numberOfMatches(); m++) {
+    intervalA.add(offset1[matches[m]->iid1] + (u64bit)matches[m]->pos1, (u64bit)matches[m]->len1);
+    intervalB.add(offset2[matches[m]->iid2] + (u64bit)matches[m]->pos2, (u64bit)matches[m]->len2);
+
+    h1.add(matches[m]->len1);
+    h2.add(matches[m]->len2);
+  }
+
+  delete [] offset1;
+  delete [] offset2;
+
+  fprintf(stdout, "numberOfItems "u64bitFMT"\n", (u64bit)matches.numberOfMatches());
+
+  fprintf(stdout, "matchLength   %s "u64bitFMT"  %s "u64bitFMT" # Sum of lengths of sequence in matches\n",
+          matches.labelA(), (u64bit)intervalA.sumOfLengths(),
+          matches.labelB(), (u64bit)intervalB.sumOfLengths());
+
+  h1.show("AmatchLength");
+  h2.show("BmatchLength");
+  h1.dump(prefix, "AmatchLength");    h1.plot(prefix, "AmatchLength");
+  h2.dump(prefix, "BmatchLength");    h2.plot(prefix, "BmatchLength");
+
+  intervalA.merge();
+  intervalB.merge();
+
+  fprintf(stdout, "coveredLength  %s "u64bitFMT"  %s "u64bitFMT" # sequence covered by a match, including N\n",
+          matches.labelA(), (u64bit)intervalA.sumOfLengths(),
+          matches.labelB(), (u64bit)intervalB.sumOfLengths());
+}
+
+
+//  Returns the amount of N covered by a match (only possible for runs, we hope!)
+//
+void
+mappedNs(atacMatchList &matches, FastACache *A, FastACache *B, char *prefix) {
+  histogram  h1(10, 10000);
+  histogram  h2(10, 10000);
+
+  u64bit   length  = 0;
+  u64bit   length1 = 0;
+  u64bit   length2 = 0;
+  u64bit   length1n = 0;
+  u64bit   length2n = 0;
+
+  for (u32bit m=0; m<matches.numberOfMatches(); m++) {
+    FastASequenceInCore *Sa = A->getSequence(matches[m]->iid1);
+    FastASequenceInCore *Sb = B->getSequence(matches[m]->iid2);
+
+    char                *sa = Sa->sequence() + matches[m]->pos1;
+    char                *sb = Sb->sequence() + matches[m]->pos2;
+
+    length = 0;
+    for (u32bit j=0; j<matches[m]->len1; j++) {
+      bool valid = (validSymbol[sa[j]] != 0);
+      if (valid) {
+        length1++;
       } else {
-        genomeSize = strtou64bit(argv[arg], 0L);
+        length1n++;
+        length++;
       }
-    } else if (strcmp(argv[arg], "-m") == 0) {
-      matchesOrRuns = 'm';
-    } else if (strcmp(argv[arg], "-r") == 0) {
-      matchesOrRuns = 'r';
-    } else {
-      if (atacFile == 0L) {
-        atacFile = argv[arg];
-      } else if (prefix == 0L) {
-        prefix = argv[arg];
-      } else {
-        error = true;
+      if (length && valid) {        //  Last time we were N, this time not.
+        h1.add(length);
+        length = 0;
       }
     }
-    arg++;
-  }
+    if (length)
+      h1.add(length);
 
-  if (!atacFile || !prefix || error) {
-    fprintf(stderr, "usage: %s [-m | -r] [-g {A | B | g}] <file.atac> <outprefix>\n", argv[0]);
-    fprintf(stderr, "  -m          use matches\n");
-    fprintf(stderr, "  -r          use runs\n");
-    fprintf(stderr, "  -g          use a genome size of g for the Nx computation, defaults to\n");
-    fprintf(stderr, "              the length of the A sequence.  Or use the actual length\n");
-    fprintf(stderr, "              of sequence A or B.\n");
-    exit(1);
-  }
-
-  //  atacMatchList also computes the length and coverage of the matches.
-  //
-  atacMatchList      matches(atacFile, matchesOrRuns);
-  FILE              *out;
-  char               filename[1024];
-
-  //  Generate an Nx plot, and a match length histogram
-  //  We block the histogram at 1kb, 0 is for things too big.
-  //
-  u32bit    histogramMax    = 1000000;
-  u32bit    histogramBlock  = 100;
-  u32bit   *lengthHistogram = new u32bit [histogramMax / histogramBlock];
-  u32bit   *n50             = new u32bit [matches.numMatches()];
-
-  for (u32bit i=0; i<histogramMax / histogramBlock; i++)
-    lengthHistogram[i] = 0;
-
-  for (u32bit i=0; i<matches.numMatches(); i++) {
-    atacMatch  *m = matches.getMatch(i);
-
-    //  Update the length histogram
-    //
-    if (m->len1 > histogramMax) {
-      lengthHistogram[0]++;
-    } else {
-      lengthHistogram[m->len1 / histogramBlock]++;
+    length = 0;
+    for (u32bit j=0; j<matches[m]->len2; j++) {
+      bool valid = (validSymbol[sb[j]] != 0);
+      if (valid) {
+        length2++;
+      } else {
+        length2n++;
+        length++;
+      }
+      if (length && valid) {        //  Last time we were N, this time not.
+        h2.add(length);
+        length = 0;
+      }
     }
-
-    //  Save the length for the n50 plot
-    n50[i] = m->len1;
+    if (length)
+      h2.add(length);
   }
 
-  //  Dump the histogram
-  sprintf(filename, "%s.matchlengthhistogram", prefix);
-  out = fopen(filename, "w");
-  for (u32bit i=0; i<histogramMax / histogramBlock; i++)
-    fprintf(out, u32bitFMT" "u32bitFMT"\n", i * histogramBlock, lengthHistogram[i]);
-  fclose(out);
+  fprintf(stdout, "coveredLength  %s "u64bitFMT"  %s "u64bitFMT" # sequence covered by a match, ACGT only\n",
+          matches.labelA(), length1,
+          matches.labelB(), length2);
+  fprintf(stdout, "coveredLength  %s "u64bitFMT"  %s "u64bitFMT" # sequence covered by a match, non ACGT\n",
+          matches.labelA(), length1n,
+          matches.labelB(), length2n);
+
+  h1.show("AcoveredN");
+  h2.show("BcoveredN");
+  h1.dump(prefix, "AcoveredN");  h1.plot(prefix, "AcoveredN");
+  h2.dump(prefix, "BcoveredN");  h2.plot(prefix, "BcoveredN");
+}
+
+
+
+//  Generate an Nx plot
+void
+NxOfMapped(atacMatchList &matches,
+                  u64bit  genomeSize,
+                  char *prefix) {
+
+  u32bit   *n50             = new u32bit [matches.numberOfMatches()];
+
+  for (u32bit i=0; i<matches.numberOfMatches(); i++)
+    n50[i] = matches[i]->len1;
 
   //  Compute the total length of the sequence
   u64bit totalLength = 0;
-  if (genomeSize == 0) {
-    for (u32bit i=0; i<matches._seq1->getNumberOfSequences(); i++)
-      totalLength += matches._seq1->sequenceLength(i);
-  } else if (genomeSize == 1) {
-    for (u32bit i=0; i<matches._seq2->getNumberOfSequences(); i++)
-      totalLength += matches._seq2->sequenceLength(i);
-  } else {
-    totalLength = genomeSize;
+  switch (genomeSize) {
+    case 0:
+      for (u32bit i=0; i<matches.fastaA()->getNumberOfSequences(); i++)
+        totalLength += matches.fastaA()->sequenceLength(i);
+      break;
+    case 1:
+      for (u32bit i=0; i<matches.fastaB()->getNumberOfSequences(); i++)
+        totalLength += matches.fastaB()->sequenceLength(i);
+      break;
+    default:
+      totalLength = genomeSize;
+      break;
   }
 
   //  Sort the n50 list of lengths
-  qsort(n50, matches.numMatches(), sizeof(u32bit), u32bitcompare);
+  qsort(n50, matches.numberOfMatches(), sizeof(u32bit), u32bitcompare);
 
   //  It's slow and obvious and, yes, there is a better way.  Dump the
   //  Nx plot as it's being generated.
-
+  //
+  char   filename[1024];
   sprintf(filename, "%s.Nx", prefix);
-  out = fopen(filename, "w");
+  FILE *out = fopen(filename, "w");
 
   for (u64bit n=1; n<100; n++) {
     u64bit  limit = totalLength / 100 * n;
     u64bit  iter  = 0;
     u64bit  sum   = 0;
 
-    while ((sum < limit) && (iter < matches.numMatches())) {
+    while ((sum < limit) && (iter < matches.numberOfMatches()))
       sum += n50[iter++];
-    }
 
     fprintf(out, u64bitFMT" "u32bitFMT"\n", n, n50[iter-1]);
   }
 
   fclose(out);
 
-  sprintf(filename, "%s.matchlengthhistogram.gnuplot", prefix);
-  out = fopen(filename, "w");
-  fprintf(out, "set terminal postscript color\n");
-  fprintf(out, "set output \"%s.matchlengthhistogram1.ps\"\n", prefix);
-  fprintf(out, "set xlabel \"Length / 1000\"\n");
-  fprintf(out, "set ylabel \"Number of Matches\"\n");
-  fprintf(out, "plot [][0:100000] \"%s.matchlengthhistogram\" using 2 with lines\n", prefix);
-  fprintf(out, "set output \"%s.matchlengthhistogram2.ps\"\n", prefix);
-  fprintf(out, "plot [][0:100]    \"%s.matchlengthhistogram\" using 2 with lines\n", prefix);
-  fclose(out);
-  sprintf(filename, "gnuplot < %s.matchlengthhistogram.gnuplot", prefix);
-  if (system(filename))
-    fprintf(stderr, "Failed to execute '%s'\n", filename);
-
+  //  Now plot it.
+  //
   sprintf(filename, "%s.Nx.gnuplot", prefix);
   out = fopen(filename, "w");
   fprintf(out, "set terminal postscript color\n");
@@ -184,188 +388,301 @@ main(int argc, char **argv) {
   if (system(filename))
     fprintf(stderr, "Failed to execute '%s'\n", filename);
 
+  delete [] n50;
+}
 
 
-  ////////////////////////////////////////
-  //
-  //  Decide how many sequences in A are mapped to more than one thing
-  //  in B.  For each sequence in A, we compute the percent of it
-  //  mapped, the largest and smallest percent mapped to a single
-  //  sequence, and the number of sequences it mapped to.
-  //
-  //  A:4 num-mapped-to percent-mapped largest-mapped smallest-mapped
-  //
-  mappedMultiply1(matches, prefix);
-  mappedMultiply2(matches, prefix);
+//  Computes the percentage of each chromosome (assumes chromosomes are A)
+//  that is mapped, with and without N's.
+//
+void
+MappedByChromosome(atacMatchList &matches, FastACache *A, FastACache *B, char *prefix) {
+  u32bit         maxIID1 = matches.fastaA()->getNumberOfSequences();
+  intervalList  *il1full;
+  intervalList  *il1acgt;
+  histogram    **hist1full;
+  histogram    **hist1acgt;
 
-  return(0);
+
+  //  We could cache this when we compute the totalLength() above
+  u64bit   *nonNlength = new u64bit [maxIID1+1];
+  for (u32bit i=0; i<matches.fastaA()->getNumberOfSequences(); i++) {
+    FastASequenceInCore *S = A->getSequence(i);
+    char                *s = S->sequence();
+    nonNlength[i] = 0;
+    for (u32bit j=0; j<S->sequenceLength(); j++)
+      if (validSymbol[s[j]])
+        nonNlength[i]++;
+  }
+
+  il1full = new intervalList [maxIID1 + 1];
+  il1acgt = new intervalList [maxIID1 + 1];
+
+  hist1full = new histogram * [maxIID1 + 1];
+  hist1acgt = new histogram * [maxIID1 + 1];
+
+  for (u32bit i=0; i<matches.fastaA()->getNumberOfSequences(); i++) {
+    hist1full[i] = new histogram(10, 10000);
+    hist1acgt[i] = new histogram(10, 10000);
+  }
+
+  for (u32bit m=0; m<matches.numberOfMatches(); m++) {
+    il1full[matches[m]->iid1].add(matches[m]->pos1, matches[m]->len1);
+    hist1full[matches[m]->iid1]->add(matches[m]->len1);
+
+    FastASequenceInCore *Sa = A->getSequence(matches[m]->iid1);
+    char                *sa = Sa->sequence() + matches[m]->pos1;
+
+    u32bit               length = 0;
+
+    for (u32bit j=0; j<matches[m]->len1; j++) {
+      bool invalid = (validSymbol[sa[j]] == 0);
+
+      if (!invalid)
+        length++;
+
+      if (length && invalid) {        //  Last time we were ACGT, this time not.
+        il1acgt[matches[m]->iid1].add(matches[m]->pos1 + j - length, length);
+        hist1acgt[matches[m]->iid1]->add(length);
+        length = 0;
+      }
+    }
+    if (length) {
+      il1acgt[matches[m]->iid1].add(matches[m]->pos1 + matches[m]->len1 - length, length);
+      hist1acgt[matches[m]->iid1]->add(length);
+    }
+  }
+
+  for (u32bit c=0; c<maxIID1; c++) {
+    fprintf(stdout, "chrCoveredLength["u32bitFMTW(2)"]  %s "u64bitFMT" "u64bitFMT" %6.2f%%   "u64bitFMT" "u64bitFMT" %6.2f%% # seqCov, totalSeq for both ALL and ACGTonly\n",
+            c, matches.labelA(),
+            il1full[c].sumOfLengths(), (u64bit)matches.fastaA()->sequenceLength(c), 100.0 * il1full[c].sumOfLengths() / matches.fastaA()->sequenceLength(c),
+            il1acgt[c].sumOfLengths(), nonNlength[c], 100.0 * il1acgt[c].sumOfLengths() / nonNlength[c]);
+  }
+
+  for (u32bit c=0; c<maxIID1; c++) {
+    char  label[1024];
+
+    sprintf(label, "chr%02dfull", c);
+    hist1full[c]->dump(prefix, label);
+    hist1full[c]->plot(prefix, label);
+
+    sprintf(label, "chr%02dacgt", c);
+    hist1acgt[c]->dump(prefix, label);
+    hist1acgt[c]->plot(prefix, label);
+  }
+
+  delete [] il1full;
+  delete [] il1acgt;
+  for (u32bit i=0; i<matches.fastaA()->getNumberOfSequences(); i++) {
+    delete hist1full[i];
+    delete hist1acgt[i];
+  }
+  delete [] hist1full;
+  delete [] hist1acgt;
+  delete [] nonNlength;
 }
 
 
 
-//  XXX:  Sadly, this function is needed twice, one for each direction.
+
+
 
 void
-mappedMultiply1(atacMatchList &matches, char *prefix) {
-  u32bit   beg = 0;
-  u32bit   end = 0;
-  char     filename[1024];
-  FILE    *out;
-  u32bit   mappedMultiply = 0;
+statsInACGT(FastASequenceInCore  *S,
+      u32bit                beg,
+      u32bit                len,
+      intervalList         *IL,
+      histogram            *HI) {
+  char     *s = S->sequence() + beg;
+  u32bit    length = 0;
 
-  sprintf(filename, "%s.multiple1", prefix);
-  out = fopen(filename, "w");
+  for (u32bit j=0; j<len; j++) {
+    bool invalid = (validSymbol[s[j]] == 0);
 
+    if (!invalid)
+      length++;
+
+    if (length && invalid) {        //  Last time we were ACGT, this time not.
+      if (IL) IL->add(beg + j - length, length);
+      if (HI) HI->add(length);
+      length = 0;
+    }
+  }
+  if (length) {
+    if (IL)  IL->add(beg + len - length, length);
+    if (HI)  HI->add(length);
+  }
+}
+
+
+
+
+//  Computes the amount of ACGT in runs that is unmapped
+//
+void
+unmappedInRuns(atacMatchList &matches, FastACache *A, FastACache *B, char *prefix) {
+
+  //  We must sort by the location and not the parentID; when we
+  //  stream through, we check that the pair of matches are in the
+  //  same parent.
+  //
   matches.sort1();
 
-  while (beg < matches.numMatches()) {
+  intervalList  il1full, il2full;
+  intervalList  il1acgt, il2acgt;
 
-    //  Figure out how many matches we have for this sequence
-    end = beg;
-    while ((end < matches.numMatches()) && (matches[beg]->iid1 == matches[end]->iid1))
-      end++;
+  histogram     hist1full(10, 100000), hist2full(10, 100000);
+  histogram     hist1acgt(10, 100000), hist2acgt(10, 100000);
 
-    //  Sort that range by the other index
-    matches.sort2(beg, end-beg);
+  for (u32bit i=1; i<matches.numberOfMatches(); i++) {
+    if (strcmp(matches[i-1]->parentuid, matches[i]->parentuid) == 0) {
+      u32bit  l1, r1, l2, r2;
 
-    //  Count the number of sequences this sequence maps to
-    u32bit numTargets = 1;
+      if (matches[i]->fwd2 == 1) {
+        l1 = matches[i-1]->pos1 + matches[i-1]->len1;
+        r1 = matches[i]->pos1;
+        l2 = matches[i-1]->pos2 + matches[i-1]->len2;
+        r2 = matches[i]->pos2;
+      } else {
+        l1 = matches[i-1]->pos1 + matches[i-1]->len1;
+        r1 = matches[i]->pos1;
+        l2 = matches[i]->pos2 + matches[i]->len2;
+        r2 = matches[i-1]->pos2;
+      }
 
-    for (u32bit i=beg+1; i<end; i++) {
-      if (matches[i-1]->iid2 != matches[i]->iid2)
-        numTargets++;
+      il1full.add(l1, r1-l1);
+      il2full.add(l2, r2-l2);
+
+      hist1full.add(r1-l1);
+      hist2full.add(r2-l2);
+
+      //  Crimeny!  I really should put this in a function....  Lessee...it needs the
+      //  sequence, the begin and length, the il and the histogram.
+
+      statsInACGT(A->getSequence(matches[i]->iid1),
+                  l1,
+                  r1-l1,
+                  &il1acgt,
+                  &hist1acgt);
+      statsInACGT(B->getSequence(matches[i]->iid2),
+                  l2,
+                  r2-l2,
+                  &il2acgt,
+                  &hist2acgt);
     }
-
-    //  Build an interval list (of the regions in us) for each sequence we map to
-    intervalList   AL;
-    intervalList  *IL = new intervalList [numTargets];
-    u32bit target = 0;
-
-    for (u32bit i=beg; i<end; i++) {
-      AL.add(matches[i]->pos1, matches[i]->len1);
-      IL[target].add(matches[i]->pos1, matches[i]->len1);
-
-      if ((i+1 < end) &&
-          (matches[i]->iid2 != matches[i+1]->iid2))
-        target++;
-    }
-
-    //  Squash the lists, compute the min and max coverage
-
-    double minc = 100.0;
-    double maxc =   0.0;
-
-    for (u32bit i=0; i<numTargets; i++) {
-      IL[i].merge();
-
-      double c = 100.0 * IL[i].sumOfLengths() / matches._seq1->sequenceLength(matches[beg]->iid1);
-
-      if (minc > c)  minc = c;
-      if (maxc < c)  maxc = c;
-    }
-
-    //  report
-
-    AL.merge();
-
-    fprintf(out, u32bitFMT" "u32bitFMT" "u32bitFMT" %8.4f %8.4f %8.4f\n",
-            matches[beg]->iid1, numTargets,
-            end - beg,
-            minc,
-            maxc,
-            100.0 * AL.sumOfLengths() / matches._seq1->sequenceLength(matches[beg]->iid1) );
-
-    if (numTargets > 1)
-      mappedMultiply++;
-
-    beg = end+1;
   }
 
-  fclose(out);
+  //  Dump the stats
 
-  fprintf(stderr, "mappedMultiply A: "u32bitFMT"\n", mappedMultiply);
+  fprintf(stdout, "runMissingFull  %s "u64bitFMT"  %s "u64bitFMT" # sequence in run, not covered, including N\n",
+          matches.labelA(), (u64bit)il1full.sumOfLengths(),
+          matches.labelB(), (u64bit)il2full.sumOfLengths());
+  fprintf(stdout, "runMissingFull  %s "u64bitFMT"  %s "u64bitFMT" # sequence in run, not covered, ACGT only\n",
+          matches.labelA(), (u64bit)il1acgt.sumOfLengths(),
+          matches.labelB(), (u64bit)il2acgt.sumOfLengths());
+
+
+  hist1full.dump(prefix, "ARunMissingFull");
+  hist1full.plot(prefix, "ARunMissingFull");
+
+  hist2full.dump(prefix, "BRunMissingFull");
+  hist2full.plot(prefix, "BRunMissingFull");
+
+  hist1acgt.dump(prefix, "ARunMissingACGT");
+  hist1acgt.plot(prefix, "ARunMissingACGT");
+
+  hist2acgt.dump(prefix, "BRunMissingACGT");
+  hist2acgt.plot(prefix, "BRunMissingACGT");
 }
 
 
 
+int
+main(int argc, char **argv) {
+  u64bit  genomeSize         = 0;
+  char   *atacFile           = 0L;
+  char   *prefix             = 0L;
+  char   *trFile1  = 0L;
+  char   *trFile2  = 0L;
+  char    prefixFull[1024];
+  bool    error              = false;
 
-void
-mappedMultiply2(atacMatchList &matches, char *prefix) {
-  u32bit   beg = 0;
-  u32bit   end = 0;
-  char     filename[1024];
-  FILE    *out;
-  u32bit   mappedMultiply = 0;
-
-  sprintf(filename, "%s.multiple2", prefix);
-  out = fopen(filename, "w");
-
-  matches.sort2();
-
-  while (beg < matches.numMatches()) {
-
-    //  Figure out how many matches we have for this sequence
-    end = beg;
-    while ((end < matches.numMatches()) && (matches[beg]->iid2 == matches[end]->iid2))
-      end++;
-
-    //  Sort that range by the other index
-    matches.sort1(beg, end-beg);
-
-    //  Count the number of sequences this sequence maps to
-    u32bit numTargets = 1;
-
-    for (u32bit i=beg+1; i<end; i++) {
-      if (matches[i-1]->iid1 != matches[i]->iid1)
-        numTargets++;
+  int arg=1;
+  while (arg < argc) {
+    if (strcmp(argv[arg], "-g") == 0) {
+      ++arg;
+      if        (argv[arg][0] == 'A') {
+        genomeSize = 0;
+      } else if (argv[arg][0] == 'B') {
+        genomeSize = 1;
+      } else {
+        genomeSize = strtou64bit(argv[arg], 0L);
+      }
+    } else if (strcmp(argv[arg], "-a") == 0) {
+      atacFile = argv[++arg];
+    } else if (strcmp(argv[arg], "-p") == 0) {
+      prefix = argv[++arg];
+    } else if (strcmp(argv[arg], "-ta") == 0) {
+      trFile1 = argv[++arg];
+    } else if (strcmp(argv[arg], "-tb") == 0) {
+      trFile2 = argv[++arg];
+    } else {
+      error = true;
     }
-
-    //  Build an interval list (of the regions in us) for each sequence we map to
-    intervalList   AL;
-    intervalList  *IL = new intervalList [numTargets];
-    u32bit target = 0;
-
-    for (u32bit i=beg; i<end; i++) {
-      AL.add(matches[i]->pos2, matches[i]->len2);
-      IL[target].add(matches[i]->pos2, matches[i]->len2);
-
-      if ((i+1 < end) &&
-          (matches[i]->iid1 != matches[i+1]->iid1))
-        target++;
-    }
-
-    //  Squash the lists, compute the min and max coverage
-
-    double minc = 100.0;
-    double maxc =   0.0;
-
-    for (u32bit i=0; i<numTargets; i++) {
-      IL[i].merge();
-
-      double c = 100.0 * IL[i].sumOfLengths() / matches._seq2->sequenceLength(matches[beg]->iid2);
-
-      if (minc > c)  minc = c;
-      if (maxc < c)  maxc = c;
-    }
-
-    //  report
-
-    AL.merge();
-
-    fprintf(out, u32bitFMT" "u32bitFMT" "u32bitFMT" %8.4f %8.4f %8.4f\n",
-            matches[beg]->iid2, numTargets,
-            end - beg,
-            minc,
-            maxc,
-            100.0 * AL.sumOfLengths() / matches._seq2->sequenceLength(matches[beg]->iid2) );
-
-    if (numTargets > 1)
-      mappedMultiply++;
-
-    beg = end+1;
+    arg++;
   }
 
-  fclose(out);
+  if (!atacFile || !prefix || error) {
+    fprintf(stderr, "usage: %s -m <file.atac> -p <outprefix> [-t trfile] [-g {A | B | g}]\n", argv[0]);
+    fprintf(stderr, "  -a          read input from 'file.atac'\n");
+    fprintf(stderr, "  -p          write stats to files prefixed with 'outprefix'\n");
+    fprintf(stderr, "  -g          use a genome size of g for the Nx computation, defaults to\n");
+    fprintf(stderr, "  -t          read tandem repeats from trfile\n");
+    fprintf(stderr, "              the length of the A sequence.  Or use the actual length\n");
+    fprintf(stderr, "              of sequence A or B.\n");
+    exit(1);
+  }
 
-  fprintf(stderr, "mappedMultiply B: "u32bitFMT"\n", mappedMultiply);
+  atacMatchList      matches(atacFile, 'm');
+  atacMatchList      runs(atacFile,    'r');
+
+  atacFeatureList    tr1(trFile1);
+  atacFeatureList    tr2(trFile2);
+
+  //  We end up using sequences a lot here, so just bite it and load them in a cache.
+  //
+  FastACache  *A = new FastACache(matches.assemblyFileA(), 0, true, true);
+  FastACache  *B = new FastACache(matches.assemblyFileB(), 0, true, true);
+
+  fprintf(stdout, "\nSEQUENCE\n");
+  totalLength(matches, A, B);
+
+  fprintf(stdout, "\nTANDEM REPEATS in %s\n", tr1.label());
+  totalLength(tr1);
+
+  fprintf(stdout, "\nTANDEM REPEATS in %s\n", tr2.label());
+  totalLength(tr2);
+
+  fprintf(stdout, "\nMATCHES IN RUNS\n");
+  unmappedInRuns(matches, A, B, prefix);
+
+  fprintf(stdout, "\nMATCHES\n");
+  sprintf(prefixFull, "%s-matches", prefix);
+  mappedLengths(matches, prefixFull);
+  mappedNs(matches, A, B, prefixFull);
+  NxOfMapped(matches, genomeSize, prefixFull);
+  MappedByChromosome(matches, A, B, prefixFull);
+
+  fprintf(stdout, "\nRUNS\n");
+  sprintf(prefixFull, "%s-runs", prefix);
+  mappedLengths(runs, prefixFull);
+  mappedNs(runs, A, B, prefixFull);
+  NxOfMapped(runs, genomeSize, prefixFull);
+  MappedByChromosome(runs, A, B, prefixFull);
+  
+  delete A;
+  delete B;
+
+  return(0);
 }
