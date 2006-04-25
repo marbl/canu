@@ -26,10 +26,16 @@
 //  Reads a set of atac matches, computes the percent identity of the
 //  regions, and warns if any identites are low.
 
+void
+usage(char *name) {
+    fprintf(stderr, "usage: %s [-d identity] [-i identity] -m matches\n", name);
+    fprintf(stderr, "  -i    print a warning if a match is below this percent identity\n");
+}
+
 int
 main(int argc, char *argv[]) {
-  char         *matchesFile   = 0L;
-  double        identityLimit = 0.9;
+  char         *matchesFile      = 0L;
+  double        identityLimit    = 0.9;
 
   int arg=1;
   while (arg < argc) {
@@ -40,18 +46,18 @@ main(int argc, char *argv[]) {
       if (identityLimit > 1.0)
         identityLimit /= 100;
     } else {
-      fprintf(stderr, "usage: %s -m matches\n", argv[0]);
+      usage(argv[0]);
       exit(1);
     }
     arg++;
   }
 
   if (matchesFile == 0L)
-      fprintf(stderr, "usage: %s -m matches\n", argv[0]), exit(1);
+    usage(argv[0]), exit(1);
 
   atacMatchList  ML(matchesFile, 'm', false);
-  FastACache     Acache(ML._file1, 0, true, false);
-  FastACache     Bcache(ML._file2, 0, true, false);
+  FastACache     Acache(ML.assemblyFileA(), 0, true, false);
+  FastACache     Bcache(ML.assemblyFileB(), 0, true, false);
 
   for (u32bit i=0; i<ML.numMatches(); i++) {
     atacMatch            *m = ML.getMatch(i);
@@ -73,10 +79,12 @@ main(int argc, char *argv[]) {
       }
     }
 
-    if ((double)identities / m->len1 < identityLimit) {
+    double   myIdentity = (double)identities / m->len1;
+
+    if (myIdentity < identityLimit) {
       fprintf(stderr, "match "u32bitFMT" is only %6.2f%% identity:  ",
               i, 100.0 * identities / m->len1);
-      m->print(stderr, ML._name1, ML._name2);
+      m->print(stderr, ML.labelA(), ML.labelB());
       if (m->len1 < 200) {
         char   tmp[1000];
 

@@ -68,8 +68,8 @@ main(int argc, char *argv[]) {
   //  We could use the FastACache, but with only a handful of gaps, we
   //  just let the OS cache stuff.
 
-  FastACache           *C1 = new FastACache(ML._file1,    2, true, false);
-  FastACache           *C2 = new FastACache(ML._file2, 1024, true, false);
+  FastACache           *C1 = new FastACache(ML.assemblyFileA(),    2, true, false);
+  FastACache           *C2 = new FastACache(ML.assemblyFileB(), 1024, true, false);
 
   FastASequenceInCore  *S1 = 0L;
   FastASequenceInCore  *S2 = 0L;
@@ -134,8 +134,8 @@ main(int argc, char *argv[]) {
                 //
                 if (strcmp(l->parentuid, r->parentuid) != 0) {
                   fprintf(logFile, "HEY!  F gap of size "u32bitFMT" not in a run?\n", gap1);
-                  l->print(logFile, ML._name1, ML._name2);
-                  r->print(logFile, ML._name1, ML._name2);
+                  l->print(logFile, ML.labelA(), ML.labelB());
+                  r->print(logFile, ML.labelA(), ML.labelB());
                 } else {
                   fgaps++;
 
@@ -143,8 +143,8 @@ main(int argc, char *argv[]) {
                   
                   //fprintf(logFile, "potential f gap of size L "u32bitFMTW(4)" (n1="u32bitFMTW(4)" n2="u32bitFMTW(4)" ident="u32bitFMTW(4)"/"u32bitFMTW(4)")!\n",
                   //        gap1, n1, n2, identities, gap1);
-                  //l->print(logFile, ML._name1, ML._name2);
-                  //r->print(logFile, ML._name1, ML._name2);
+                  //l->print(logFile, ML.labelA(), ML.labelB());
+                  //r->print(logFile, ML.labelA(), ML.labelB());
                 }
               }
             }
@@ -196,8 +196,8 @@ main(int argc, char *argv[]) {
                 //
                 if (strcmp(l->parentuid, r->parentuid) != 0) {
                   fprintf(logFile, "HEY!  R gap of size "u32bitFMT" not in a run?\n", gap1);
-                  l->print(logFile, ML._name1, ML._name2);
-                  r->print(logFile, ML._name1, ML._name2);
+                  l->print(logFile, ML.labelA(), ML.labelB());
+                  r->print(logFile, ML.labelA(), ML.labelB());
                 } else {
                   rgaps++;
 
@@ -205,8 +205,8 @@ main(int argc, char *argv[]) {
 
                   //fprintf(logFile, "potential r gap of size L "u32bitFMTW(4)" (n1="u32bitFMTW(4)" n2="u32bitFMTW(4)" ident="u32bitFMTW(4)"/"u32bitFMTW(4)")!\n",
                   //        gap1, n1, n2, identities, gap1);
-                  //l->print(logFile, ML._name1, ML._name2);
-                  //r->print(logFile, ML._name1, ML._name2);
+                  //l->print(logFile, ML.labelA(), ML.labelB());
+                  //r->print(logFile, ML.labelA(), ML.labelB());
                 }
               }
 
@@ -217,40 +217,15 @@ main(int argc, char *argv[]) {
       }
 
       if (joinMatches) {
-        atacMatch   n;
-
-        sprintf(n.matchuid, "merge%d", mergeuid++);
-        strcpy(n.parentuid, l->parentuid);
-
-        n.matchiid = 0;
-
-        n.iid1 = l->iid1;
-        n.pos1 = l->pos1;
-        n.len1 = (r->pos1 + r->len1) - (l->pos1);
-        n.fwd1 = l->fwd1;
-
-        n.iid2 = l->iid2;
-        n.pos2 = l->pos2;
-        if (r->fwd2 == false)
-          n.pos2 = r->pos2;
-        n.len2 = n.len1;
-        n.fwd2 = r->fwd2;
-
-        //  update the PRIVATE data for atacMatchList.
-
         fprintf(logFile, "CLOSE "u32bitFMT"----------------------------------------\n", gap1);
-        l->print(logFile, ML._name1, ML._name2);
-        r->print(logFile, ML._name1, ML._name2);
-        n.print(logFile, ML._name1, ML._name2);
+        l->print(logFile, ML.labelA(), ML.labelB());
+        r->print(logFile, ML.labelA(), ML.labelB());
 
-        memcpy(l, &n, sizeof(atacMatch));
+        ML.mergeMatches(l, r, mergeuid);
 
-        //  Hopefully faster than sorting  'r' == M[i]
-        //
-        ML._matchesLen--;
-        for (u32bit j=i; j<ML._matchesLen; j++)
-          memcpy(ML[j], ML[j+1], sizeof(atacMatch));
+        l->print(logFile, ML.labelA(), ML.labelB());
 
+        mergeuid++;
         i--;
       }
     }
@@ -313,7 +288,7 @@ main(int argc, char *argv[]) {
   //  Write the new output to stdout.
   //
   for (u32bit i=0; i<ML.numMatches(); i++)
-    ML[i]->print(stdout, ML._name1, ML._name2);
+    ML[i]->print(stdout, ML.labelA(), ML.labelB());
 
   return(0);
 }

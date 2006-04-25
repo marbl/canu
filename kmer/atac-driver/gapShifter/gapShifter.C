@@ -249,8 +249,8 @@ main(int argc, char *argv[]) {
   atacMatchList  ML("-", 'm', false);
   ML.sort1();
 
-  FastACache  *C1 = new FastACache(ML._file1,    2, true, false);
-  FastACache  *C2 = new FastACache(ML._file2, 1024, true, false);
+  FastACache  *C1 = new FastACache(ML.assemblyFileA(),    2, true, false);
+  FastACache  *C2 = new FastACache(ML.assemblyFileB(), 1024, true, false);
 
   u32bit gapsShifted = 0;
 
