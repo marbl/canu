@@ -35,32 +35,6 @@ positionDB::positionDB(char const    *filename,
     fprintf(stderr, "positionDB::positionDB()-- Tried to read state from '%s', but failed.\n", filename);
     exit(1);
   }
-
-#if 0
-  //  We used to check that the positionDB loaded agreed with what the user
-  //  claims we should be.  Not anymore.
-
-  bool fail = false;
-
-  if (_merSizeInBases != merSize) {
-    fprintf(stderr, "positionDB::positionDB()-- Read state from '%s', but got different mer sizes\n", filename);
-    fprintf(stderr, "positionDB::positionDB()-- Got "u32bitFMT", expected "u32bitFMT"\n", _merSizeInBases, merSize);
-    fail = true;
-  }
-  if (_merSkipInBases != merSkip) {
-    fprintf(stderr, "positionDB::positionDB()-- Read state from '%s', but got different mer skips\n", filename);
-    fprintf(stderr, "positionDB::positionDB()-- Got "u32bitFMT", expected "u32bitFMT"\n", _merSkipInBases, merSkip);
-    fail = true;
-  }
-  if (_tableSizeInBits != tblBits) {
-    fprintf(stderr, "positionDB::positionDB()-- Read state from '%s', but got different table sizes\n", filename);
-    fprintf(stderr, "positionDB::positionDB()-- Got "u32bitFMT", expected "u32bitFMT"\n", _tableSizeInBits, tblBits);
-    fail = true;
-  }
-
-  if (fail)
-    exit(1);
-#endif
 }
 
 
@@ -78,6 +52,20 @@ positionDB::positionDB(merStream   *MS,
   _hashTable             = 0L;
   _buckets               = 0L;
   _positions             = 0L;
+
+  //  Guesstimate a nice table size based on the number of input mers and the mersize, unless the user gave
+  //  us a table size.
+  //
+  if (tblBits == 0) {
+    u64bit  approxMers = MS->approximateNumberOfMers();
+
+    tblBits = 25;
+    if (approxMers < 64 * 1024 * 1024) tblBits = 24;
+    if (approxMers < 16 * 1024 * 1024) tblBits = 23;
+    if (approxMers <  4 * 1024 * 1024) tblBits = 22;
+    if (approxMers <  2 * 1024 * 1024) tblBits = 21;
+    if (approxMers <  1 * 1024 * 1024) tblBits = 20;
+  }
 
   //  Reset the tblBits if it is too big for our mersize
   //
