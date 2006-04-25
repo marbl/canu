@@ -61,6 +61,25 @@ public:
   u64bit                 thePositionInStream(void);
   u64bit                 theSequenceNumber(void);
   char const            *theDefLine(void);
+
+  //  Return a guess on the number of mers in the input.  Our guess
+  //  will never be too small.  Returns ~u64bitZERO if no guess is
+  //  possible.
+  //
+  u64bit                 approximateNumberOfMers(void) {
+    if (_ms_mers)
+      return(_ms_mers->numberOfMers());
+    if (_fs_file)
+      //  XXX!  Not actually true!  If the FastAstream was sourced from a chainedSequence,
+      //  we can get the length.  This needs to be implemented.
+      fprintf(stderr, "WARNING:  merStream::approximateNumberOfMers()-- using a FastAstream, bri needs to implement this!\n");
+      return(~u64bitZERO);
+    if (_cs_chainedSeq)
+      return(_cs_chainedSeq->lengthOfSequences());
+    if (_st_string)
+      return(_st_stringLen);
+  };
+
 private:
   void                   loadMer(u32bit s);
   u64bit                 nextSymbol(void);
