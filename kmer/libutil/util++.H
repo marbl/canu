@@ -34,6 +34,7 @@
 #include "bitPackedFile.H"
 #include "intervalList.H"
 #include "bigQueue.H"
+#include "sweatShop.H"
 
 #endif  //  UTIL_PLUS_PLUS_H
 
