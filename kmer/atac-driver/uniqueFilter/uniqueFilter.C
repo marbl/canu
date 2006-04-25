@@ -208,7 +208,7 @@ offsetsToCoverage(u32bit minCov, bigQueue *I, coverageIntervals *L) {
 
 
   L->beginLoad();
-  speedCounter D(" %8.0f matches treed  (%8.2f matches/sec)\r", 1, 511, true);
+  speedCounter D(" %8.0f matches treed  (%8.2f matches/sec)\r", 1, 511, false);
   while (I->next()) {
     coverage1_s  *cov1 = (coverage1_s *)I->get();
 
@@ -261,7 +261,7 @@ findCoverageIntervals(char const *fileName,
   FILE     *inFile = fopen(fileName, "r");
   fgets(inLine, 1024, inFile);
 
-  speedCounter C(" %8.0f matches loaded (%8.2f matches/sec)\r", 1, 511, true);
+  speedCounter C(" %8.0f matches loaded (%8.2f matches/sec)\r", 1, 511, false);
 
   while (!feof(inFile)) {
     if (inLine[0] == 'M') {
