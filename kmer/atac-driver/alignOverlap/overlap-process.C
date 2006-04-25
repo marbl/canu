@@ -49,10 +49,10 @@ NAME(FILE             *outfile,
       atacMatch  *m;
 
       if (match >> COLORSHIFT) {
-        m = &M2->_matches[match & COLORMASK];
+        m = M2->getMatch(match & COLORMASK);
         stats.map2unique += spanLen;
       } else {
-        m = &M1->_matches[match & COLORMASK];
+        m = M1->getMatch(match & COLORMASK);
         stats.map1unique += spanLen;
       }
 
@@ -70,8 +70,8 @@ NAME(FILE             *outfile,
         match2 = span->_matches[0];
       }
 
-      atacMatch  *m1 = &M1->_matches[match1 & COLORMASK];
-      atacMatch  *m2 = &M2->_matches[match2 & COLORMASK];
+      atacMatch  *m1 = M1->getMatch(match1 & COLORMASK);
+      atacMatch  *m2 = M2->getMatch(match2 & COLORMASK);
 
       if (m1->iid2 == m2->iid2) {
         u32bit off1  = span->_beg - m1->POS1;

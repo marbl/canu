@@ -35,9 +35,9 @@ matchTree::matchTree(atacMatchList *L, u32bit side) {
   //
   //  qsort() below sorts pointers to objects, and does the same.
 
-  atacMatch  **matchPointers = new atacMatch * [L->_matchesLen];
-  for (u32bit i=0; i<L->_matchesLen; i++)
-    matchPointers[i] = L->_matches + i;
+  atacMatch  **matchPointers = new atacMatch * [L->numberOfMatches()];
+  for (u32bit i=0; i<L->numberOfMatches(); i++)
+    matchPointers[i] = L->getMatch(i);
 
   //  Choose a comparison function based on the side we want
 
@@ -47,16 +47,16 @@ matchTree::matchTree(atacMatchList *L, u32bit side) {
   
   //  Sort
 
-  qsort(matchPointers, L->_matchesLen, sizeof(atacMatch *), sortMatches);
+  qsort(matchPointers, L->numberOfMatches(), sizeof(atacMatch *), sortMatches);
 
   //  Load the tree (use DICTCOUNT_T_MAX for max nodes)
 
-  _tree = dict_create(L->_matchesLen, sortMatches);
+  _tree = dict_create(L->numberOfMatches(), sortMatches);
   dict_allow_dupes(_tree);
 
   dict_load_begin(&_load, _tree);
 
-  for (u32bit i=0; i<L->_matchesLen; i++) {
+  for (u32bit i=0; i<L->numberOfMatches(); i++) {
     dnode_t   *node = (dnode_t *)malloc(sizeof(dnode_t));
     dnode_init(node, 0L);
     dict_load_next(&_load, node, matchPointers[i]);

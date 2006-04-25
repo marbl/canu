@@ -53,20 +53,20 @@ main(int argc, char **argv) {
   //  Initialize the tree of spans by inserting a single span for each
   //  sequence in the file.
   //
-  for (u32bit i=0; i<M1->_seq1->getNumberOfSequences(); i++)
-    S1->addNewSpan(i, M1->_seq1->sequenceLength(i));
-  for (u32bit i=0; i<M1->_seq2->getNumberOfSequences(); i++)
-    S2->addNewSpan(i, M1->_seq2->sequenceLength(i));
+  for (u32bit i=0; i<M1->fastaA()->getNumberOfSequences(); i++)
+    S1->addNewSpan(i, M1->fastaA()->sequenceLength(i));
+  for (u32bit i=0; i<M1->fastaB()->getNumberOfSequences(); i++)
+    S2->addNewSpan(i, M1->fastaB()->sequenceLength(i));
 
   //  Add every match to the spanTrees.
 
-  for (u32bit i=0; i<M1->_matchesLen; i++) {
-    S1->addMatch(M1->_matches+i, 0, 0);
-    S2->addMatch(M1->_matches+i, 1, 0);
+  for (u32bit i=0; i<M1->numberOfMatches(); i++) {
+    S1->addMatch(M1->getMatch(i), 0, 0);
+    S2->addMatch(M1->getMatch(i), 1, 0);
   }
-  for (u32bit i=0; i<M2->_matchesLen; i++) {
-    S1->addMatch(M2->_matches+i, 0, 1);
-    S2->addMatch(M2->_matches+i, 1, 1);
+  for (u32bit i=0; i<M2->numberOfMatches(); i++) {
+    S1->addMatch(M2->getMatch(i), 0, 1);
+    S2->addMatch(M2->getMatch(i), 1, 1);
   }
 
   //  Dump each spanTree: For each span, we need to check that
