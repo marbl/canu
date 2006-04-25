@@ -23,20 +23,20 @@
 #include "bio++.H"
 #include "atac.H"
 
-void
-decodeMatchNames(splitToWords &W,
-                 char *name1,
-                 char *name2) {
-
-  char *tmp = W[4];
-  while (*tmp && (*tmp != ':'))
-    *name1++ = *tmp++;
-  *name1 = 0;
-
-  tmp = W[8];
-  while (*tmp && (*tmp != ':'))
-    *name2++ = *tmp++;
-  *name2 = 0;
+u32bit
+decodeAtacName(char *atac,
+               char *label) {
+  if (label) {
+    while (*atac && (*atac != ':'))
+      *label++ = *atac++;
+    *label = 0;
+  } else {
+    while (*atac && (*atac != ':'))
+      atac++;
+  }
+  if (*atac)
+    return(strtou32bit(atac+1, 0L));
+  return(~u32bitZERO);
 }
 
 
@@ -45,24 +45,23 @@ decodeMatch(splitToWords &W,
             u32bit &iid1, u32bit &pos1, u32bit &len1, u32bit &fwd1,
             u32bit &iid2, u32bit &pos2, u32bit &len2, u32bit &fwd2) {
 
-  char *tmp = W[4];
-  while (*tmp && (*tmp != ':'))
-    tmp++;
-  if (*tmp)
-    iid1 = strtou32bit(tmp+1, 0L);
-
-  tmp = W[8];
-  while (*tmp && (*tmp != ':'))
-    tmp++;
-  if (*tmp)
-    iid2 = strtou32bit(tmp+1, 0L);
-
+  iid1 = decodeAtacName(W[4], 0L);
   pos1 = strtou32bit(W[5], 0L);
   len1 = strtou32bit(W[6], 0L);
   fwd1 = (W[7][0] == '-') ? 0 : 1;
-
+  iid2 = decodeAtacName(W[8], 0L);
   pos2 = strtou32bit(W[9], 0L);
   len2 = strtou32bit(W[10], 0L);
   fwd2 = (W[11][0] == '-') ? 0 : 1;
+}
+
+
+void
+decodeFeature(splitToWords &W,
+              u32bit &iid, u32bit &pos, u32bit &len) {
+
+  iid = decodeAtacName(W[4], 0L);
+  pos = strtou32bit(W[5], 0L);
+  len = strtou32bit(W[6], 0L);
 }
 

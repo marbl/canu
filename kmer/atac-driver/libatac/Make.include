@@ -3,7 +3,7 @@
 LIBUTL/     :=$(call MakePath,$/../../libutil/)
 LIBBIO/     :=$(call MakePath,$/../../libbio/)
 
-$/.CXX_SRCS := $/decodeMatch.C $/matchList.C $/readHeader.C
+$/.CXX_SRCS := $/decodeMatch.C $/readHeader.C $/matchList.C $/featureList.C
 $/.CXX_LIBS := $/libatac.a
 
 $/.CLEAN :=$/*.o $/*~ $/core

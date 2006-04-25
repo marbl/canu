@@ -1,5 +1,5 @@
 // This file is part of A2Amapper.
-// Copyright (c) 2005 J. Craig Venter Institute
+// Copyright (c) 2005, 2006 J. Craig Venter Institute
 // Author: Brian Walenz
 // 
 // This program is free software; you can redistribute it and/or modify
@@ -31,6 +31,15 @@
 //
 //  file1 and file2 are preallocated strings to hold the genome paths.
 
+//  Returns true if the line looks like a header line
+//
+bool
+isHeader(char *inLine) {
+  return((inLine[0] == '!') ||
+         (inLine[0] == '#') ||
+         (inLine[0] == '/'));
+}
+
 void
 readHeader(char *inLine,
            FILE *in,
@@ -38,8 +47,11 @@ readHeader(char *inLine,
            FILE *out,
            map<string, string> *params) {
 
+  if (file1)  file1[0] = 0;
+  if (file2)  file2[0] = 0;
+
   fgets(inLine, 1024, in);
-  while (!feof(in) && (inLine[0] != 'M')) {
+  while (!feof(in) && isHeader(inLine)) {
 
     //  Copy the line to the output, if there is an output.
     //
@@ -90,8 +102,13 @@ readHeader(char *inLine,
     fgets(inLine, 1024, in);
   }
 
-  if (((file1) && (file1[0] == 0)) || ((file2) && (file2[0] == 0))) {
-    fprintf(stderr, "I didn't find /assemblyFile1= or /assemblyFile2=\n");
+#if 0
+  bool error=false;
+  if ((file1) && (file1[0] == 0))
+    fprintf(stderr, "I was told to look for /assemblyFile1=, but didn't find it!\n"), error=true;
+  if ((file2) && (file2[0] == 0))
+    fprintf(stderr, "I was told to look for /assemblyFile2=, but didn't find it!\n"), error=true;
+  if (error)
     exit(1);
-  }
+#endif
 }

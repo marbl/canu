@@ -1,5 +1,5 @@
 // This file is part of A2Amapper.
-// Copyright (c) 2005 J. Craig Venter Institute
+// Copyright (c) 2005, 2006 J. Craig Venter Institute
 // Author: Brian Walenz
 // 
 // This program is free software; you can redistribute it and/or modify
@@ -24,10 +24,7 @@
 #include "atac.H"
 
 
-//  While loading matches, we compute the mapped length and covered
-//  length.
-
-atacMatchList::atacMatchList(char *filename, char matchOrRun, bool saveLine) {
+atacMatchList::atacMatchList(char *filename, char matchOrRun, FILE *headerOut) {
 
   if ((matchOrRun != 'u') && (matchOrRun != 'x') && (matchOrRun != 'r') && (matchOrRun != 'm')) {
     fprintf(stderr, "atacMatchList::atacMatchList()-- Invalid value '%c' for matchOrRun, should be:\n", matchOrRun);
@@ -50,50 +47,28 @@ atacMatchList::atacMatchList(char *filename, char matchOrRun, bool saveLine) {
   //  the first match in the inLine, and fills in file1 and file2.
   //
   char    inLine[1024];
-  readHeader(inLine, inFile, _file1, _file2, 0L);
-
-  _name1[0] = 0;
-  _name2[0] = 0;
+  readHeader(inLine, inFile, _file1, _file2, headerOut);
 
   //  Open some FastAWrappers for each of the files -- we use these
   //  only to get the length of the sequence.
   //
-  _seq1 = new FastAWrapper(_file1);
-  _seq2 = new FastAWrapper(_file2);
+  _seq1 = 0L;
+  _seq2 = 0L;
+  if (_file1 && _file1[0]) {
+    _seq1 = new FastAWrapper(_file1);
+    _seq1->openIndex();
+  }
+  if (_file2 && _file2[0]) {
+    _seq2 = new FastAWrapper(_file2);
+    _seq2->openIndex();
+  }
 
-  _seq1->openIndex();
-  _seq2->openIndex();
+  _label1[0] = 0;
+  _label2[0] = 0;
 
   _matchesLen = 0;
   _matchesMax = 32 * 1048576;
   _matches    = new atacMatch [_matchesMax];
-
-  //  For the coverage to work correctly, we need to either have one
-  //  intervalList per input sequence, or build a table of the chained
-  //  sequence positions.
-  //
-  u64bit  *offset1 = new u64bit [_seq1->getNumberOfSequences()];
-  u64bit  *offset2 = new u64bit [_seq2->getNumberOfSequences()];
-
-  u32bit   length1 = 0;
-  u32bit   length2 = 0;
-
-  offset1[0] = 1000000;
-  for (u32bit i=1; i<_seq1->getNumberOfSequences(); i++)
-    offset1[i] = offset1[i-1] + _seq1->sequenceLength(i-1) + 1;
-
-  offset2[0] = 1000000;
-  for (u32bit i=1; i<_seq2->getNumberOfSequences(); i++)
-    offset2[i] = offset2[i-1] + _seq2->sequenceLength(i-1) + 1;
-
-  for (u32bit i=0; i<_seq1->getNumberOfSequences(); i++)
-    length1 += _seq1->sequenceLength(i);
-
-  for (u32bit i=0; i<_seq2->getNumberOfSequences(); i++)
-    length2 += _seq2->sequenceLength(i);
-
-  intervalList  intervalA;
-  intervalList  intervalB;
 
   while (!feof(inFile)) {
     if (inLine[0] == 'M') {
@@ -103,33 +78,41 @@ atacMatchList::atacMatchList(char *filename, char matchOrRun, bool saveLine) {
           ((matchOrRun == 'm') && ((S[1][0] == 'u') || (S[1][0] == 'x')))) {
 
         //  Save the name/label
-        if (_name1[0] == 0)
-          decodeMatchNames(S, _name1, _name2);
+        if (_label1[0] == 0) {
+          decodeAtacName(S[4], _label1);
+          decodeAtacName(S[8], _label2);
+        }
 
         u32bit  iid1=0, pos1=0, len1=0, fwd1=0;
         u32bit  iid2=0, pos2=0, len2=0, fwd2=0;
         decodeMatch(S, iid1, pos1, len1, fwd1, iid2, pos2, len2, fwd2);
 
-        if ((pos1) > _seq1->sequenceLength(iid1) || (pos1 + len1) > _seq1->sequenceLength(iid1)) {
-          chomp(inLine);
-          fprintf(stderr, "Match longer than sequence (by "u32bitFMT"bp) in 1: seqLen="u32bitFMTW(8)" %s\n",
-                  pos1 + len1 - _seq1->sequenceLength(iid1),
-                  _seq1->sequenceLength(iid1), inLine);
+        bool matchOK = true;
+        if (_seq1 && _seq2) {
+          if ((pos1) > _seq1->sequenceLength(iid1) || (pos1 + len1) > _seq1->sequenceLength(iid1)) {
+            chomp(inLine);
+            fprintf(stderr, "Match longer than sequence (by "u32bitFMT"bp) in 1: seqLen="u32bitFMTW(8)" %s\n",
+                    pos1 + len1 - _seq1->sequenceLength(iid1),
+                    _seq1->sequenceLength(iid1), inLine);
+            matchOK = false;
+          }
+
+          if ((pos2) > _seq2->sequenceLength(iid2) || (pos2 + len2) > _seq2->sequenceLength(iid2)) {
+            chomp(inLine);
+            fprintf(stderr, "Match longer than sequence (by "u32bitFMT"bp) in 2: seqLen="u32bitFMTW(8)" %s\n",
+                    pos2 + len2 - _seq2->sequenceLength(iid2),
+                    _seq2->sequenceLength(iid2), inLine);
+            matchOK = false;
+          }
+
+          if ((iid1 >= _seq1->getNumberOfSequences()) || (iid2 >= _seq2->getNumberOfSequences())) {
+            chomp(inLine);
+            fprintf(stderr, "Match references invalid sequence iid: %s\n", inLine);
+            matchOK = false;
+          }
         }
 
-        if ((pos2) > _seq2->sequenceLength(iid2) || (pos2 + len2) > _seq2->sequenceLength(iid2)) {
-          chomp(inLine);
-          fprintf(stderr, "Match longer than sequence (by "u32bitFMT"bp) in 2: seqLen="u32bitFMTW(8)" %s\n",
-                  pos2 + len2 - _seq2->sequenceLength(iid2),
-                  _seq2->sequenceLength(iid2), inLine);
-        }
-
-        if ((iid1 >= _seq1->getNumberOfSequences()) || (iid2 >= _seq2->getNumberOfSequences())) {
-          chomp(inLine);
-          fprintf(stderr, "Match references invalid sequence iid: %s\n", inLine);
-        } else {
-          intervalA.add(offset1[iid1] + (u64bit)pos1, (u64bit)len1);
-          intervalB.add(offset2[iid2] + (u64bit)pos2, (u64bit)len2);
+        if (matchOK) {
 
           //  Add it to our list of matches
           //
@@ -139,12 +122,19 @@ atacMatchList::atacMatchList(char *filename, char matchOrRun, bool saveLine) {
             exit(1);
           }
 
-          _matches[_matchesLen].matchiid = _matchesLen;
           strncpy(_matches[_matchesLen].matchuid,  S[2], 16);
           strncpy(_matches[_matchesLen].parentuid, S[3], 16);
 
           _matches[_matchesLen].matchuid[15]  = 0;
           _matches[_matchesLen].parentuid[15] = 0;
+
+          _matches[_matchesLen].matchiid = _matchesLen;
+
+          _matches[_matchesLen].type[0] = S[1][0];
+          _matches[_matchesLen].type[1] = S[1][1];
+          if (S[1][1])
+            _matches[_matchesLen].type[2] = S[1][2];
+          _matches[_matchesLen].type[3] = 0;
 
           _matches[_matchesLen].iid1 = iid1;
           _matches[_matchesLen].pos1 = pos1;
@@ -163,26 +153,41 @@ atacMatchList::atacMatchList(char *filename, char matchOrRun, bool saveLine) {
 
     fgets(inLine, 1024, inFile);
   }
-
-  fprintf(stderr, "numberOfItems  %c "u64bitFMT"\n",
-          matchOrRun, (u64bit)_matchesLen);
-
-  fprintf(stderr, "totalLength    A "u64bitFMT" B "u64bitFMT"\n",
-          (u64bit)length1,
-          (u64bit)length2);
-
-  fprintf(stderr, "intervalLength A "u64bitFMT" B "u64bitFMT"\n",
-          (u64bit)intervalA.sumOfLengths(),
-          (u64bit)intervalB.sumOfLengths());
-
-  intervalA.merge();
-  intervalB.merge();
-
-  fprintf(stderr, "coveredLength  A "u64bitFMT" B "u64bitFMT"\n",
-          (u64bit)intervalA.sumOfLengths(),
-          (u64bit)intervalB.sumOfLengths());
 }
 
+
+void
+atacMatchList::mergeMatches(atacMatch *l, atacMatch *r, u32bit mergeuid) {
+  atacMatch   n;
+
+  sprintf(n.matchuid, "merge"u32bitFMT, mergeuid);
+  strcpy(n.parentuid, l->parentuid);
+
+  n.matchiid = 0;
+
+  n.iid1 = l->iid1;
+  n.pos1 = l->pos1;
+  n.len1 = (r->pos1 + r->len1) - (l->pos1);
+  n.fwd1 = l->fwd1;
+
+  n.iid2 = l->iid2;
+  n.pos2 = l->pos2;
+  if (r->fwd2 == false)
+    n.pos2 = r->pos2;
+  n.len2 = n.len1;
+  n.fwd2 = r->fwd2;
+
+  memcpy(l, &n, sizeof(atacMatch));
+
+  //  Hopefully faster than sorting!
+
+  l = r;
+  r++;
+  while (r != _matches + _matchesLen)
+    memcpy(l++, r++, sizeof(atacMatch));
+
+  _matchesLen--;
+}
 
 
 
