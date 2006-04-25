@@ -1,19 +1,19 @@
 #include "posix.H"
 #include "hitMatrix.H"
 
-//  $Id$
-
-//
 //  Sort by dsPos
-//
+
+//  p, n and c used to be s32bit, but I see no reason for that!
+//  then I go and fiddle with the for loop in sort_dsPos!
+//  used to be (s32bit i=_hitsLen/2-1; i>=0; i--)
 
 inline
 void
-adjustHeap_dsPos(diagonalLine *L, s32bit p, s32bit n) {
+adjustHeap_dsPos(diagonalLine *L, u32bit p, u32bit n) {
   u32bit  q = L[p]._qsPos;
   u32bit  d = L[p]._dsPos;
   u32bit  l = L[p]._diagonalID;
-  s32bit  c = (p << 1) + 1;  //  let c be the left child of p
+  u32bit  c = (p << 1) + 1;  //  let c be the left child of p
 
   while (c < n) {
 
@@ -51,7 +51,7 @@ hitMatrix::sort_dsPos(void) {
 
     //  Create the heap of lines.
     //
-    for (s32bit i=_hitsLen/2-1; i>=0; i--)
+    for (u32bit i=_hitsLen/2; i--; )
       adjustHeap_dsPos(_hits, i, _hitsLen);
 
     //  Interchange the new maximum with the element at the end of the tree
@@ -73,9 +73,3 @@ hitMatrix::sort_dsPos(void) {
     }
   }
 }
-
-
-////////////////////////////////////////
-////////////////////////////////////////
-
-
