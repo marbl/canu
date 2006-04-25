@@ -17,8 +17,8 @@ src := $/existDB-create-from-fasta.C \
        $/positionDB.C \
        $/positionDB.H
 
-$/.CXX_SRCS   := $/driver-existDB.C $/driver-posDB.C $/merTableTest.C $(filter %.C,${src})
-$/.CXX_EXES   := $/existDB $/positionDB $/merTableTest
+$/.CXX_SRCS   := $/driver-existDB.C $/driver-posDB.C $(filter %.C,${src})
+$/.CXX_EXES   := $/existDB $/positionDB
 $/.CXX_LIBS   := $/libkmer.a
 $/.CLEAN      := $/*.o
 $/.REAL-CLEAN := $/buildinfo-*
@@ -26,7 +26,9 @@ $/.REAL-CLEAN := $/buildinfo-*
 $/libkmer.a:     $/buildinfo-libkmer.o $(filter %.o,${src:.C=.o})
 $/existDB:       $/driver-existDB.o $/libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a 
 $/positionDB:    $/driver-posDB.o   $/libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a 
-$/merTableTest:  $/merTableTest.o   $/libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a 
+
+# $/merTableTest
+#$/merTableTest:  $/merTableTest.o   $/libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a 
 
 $(eval $/%.d $/%.o:    CXXFLAGS+= -I${LIBMERYL/} -I${LIBBIO/} -I${LIBUTL/})
 
