@@ -103,16 +103,18 @@ indelFixAlignment(char *a, char *b) {
 
 int
 main(int argc, char **argv) {
-  char  *nickname1 = 0L;
-  char  *nickname2 = 0L;
+  char  *nickname1 = 0L, *asmfile1 = 0L;
+  char  *nickname2 = 0L, *asmfile2 = 0L;
   bool   flip      = false;
 
   int arg = 1;
   while (arg < argc) {
     if        (strncmp(argv[arg], "-1", 2) == 0) {
       nickname1 = argv[++arg];
+      asmfile1  = argv[++arg];
     } else if (strncmp(argv[arg], "-2", 2) == 0) {
       nickname2 = argv[++arg];
+      asmfile2  = argv[++arg];
     } else if (strncmp(argv[arg], "-f", 2) == 0) {
       flip = true;
     } else {
@@ -122,8 +124,22 @@ main(int argc, char **argv) {
   }
 
   if ((nickname1 == 0L) || (nickname2 == 0L)) {
-    fprintf(stderr, "usage: %s [-f] -1 nickname1 -2 nickname2 < matches.sim4db > matches.atac\n", argv[0]);
+    fprintf(stderr, "usage: %s [-f] -1 nickname1 asmfile1 -2 nickname2 asmfile2 < matches.sim4db > matches.atac\n", argv[0]);
     exit(1);
+  }
+
+  if (flip == false) {
+    fprintf(stdout, "!format atac 1.0\n");
+    fprintf(stdout, "/assemblyFile1=%s\n", asmfile1);
+    fprintf(stdout, "/assemblyFile2=%s\n", asmfile2);
+    fprintf(stdout, "/assemblyId1=%s\n", nickname1);
+    fprintf(stdout, "/assemblyId2=%s\n", nickname2);
+  } else {
+    fprintf(stdout, "!format atac 1.0\n");
+    fprintf(stdout, "/assemblyFile1=%s\n", asmfile2);
+    fprintf(stdout, "/assemblyFile2=%s\n", asmfile1);
+    fprintf(stdout, "/assemblyId1=%s\n", nickname2);
+    fprintf(stdout, "/assemblyId2=%s\n", nickname1);
   }
 
   u32bit   dupRecordIID = 0;
@@ -222,6 +238,21 @@ main(int argc, char **argv) {
 
         totalFixed += indelFixAlignment(e->estAlignment, e->genAlignment);
 
+        //  Skip mismatches/gaps at the start of this sequence
+        //
+        while ((e->estAlignment[aPos] == '-') ||
+               (e->genAlignment[aPos] == '-') ||
+               (e->estAlignment[aPos] != e->genAlignment[aPos])) {
+          if (e->estAlignment[aPos] != '-')
+            if (fwd) qBeg++;
+            else     qBeg--;
+          if (e->genAlignment[aPos] != '-')
+            gBeg++;
+          //fprintf(stderr, "SKIP BEGIN %c %c\n", e->estAlignment[aPos], e->genAlignment[aPos]);
+          aPos++;
+        }
+
+
         bool  notDone = true;  //  There should be a way to get rid of this stupid variable....
         while (notDone) {
           notDone = ((e->estAlignment[aPos] != 0) &&
@@ -232,17 +263,27 @@ main(int argc, char **argv) {
           if ((e->estAlignment[aPos] == '-') || (e->estAlignment[aPos] == 0) ||
               (e->genAlignment[aPos] == '-') || (e->genAlignment[aPos] == 0)) {
 
+            //  Trim off any mismatches at the end of this block.
+            //
+            u32bit  mismatch = 0;
+            while ((aPos > mismatch) &&
+                   (e->estAlignment[aPos - mismatch - 1] != e->genAlignment[aPos - mismatch - 1])) {
+              //fprintf(stderr, "SKIP MIDDLE %c %c\n", e->estAlignment[aPos-mismatch], e->genAlignment[aPos-mismatch]);
+              mismatch++;
+            }
+
             //  If there is an indel at the start (which probably
             //  shouldn't happen anyway!), or possibly at the end,
             //  then our length is zero, and we should not emit
             //  anything.
             //
-            if (mLen > 0) {
+            if (mLen > mismatch) {
+              mLen -= mismatch;
+
               if (flip == false) {
                 fprintf(stdout, "M u dupr"u32bitFMT" dupp"u32bitFMT" %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" 1 %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" %s\n",
                         dupRecordIID,
                         dupParentIID,
-                        //nickname1, qSeqIID, qBeg, mLen,
                         nickname1, qSeqIID, (fwd) ? qBeg : qBeg - mLen, mLen,
                         nickname2, gSeqIID, gBeg, mLen,
                         (fwd) ? "1" : "-1");
@@ -251,11 +292,12 @@ main(int argc, char **argv) {
                         dupRecordIID,
                         dupParentIID,
                         nickname2, gSeqIID, gBeg, mLen,
-                        //nickname1, qSeqIID, qBeg, mLen,
                         nickname1, qSeqIID, (fwd) ? qBeg : qBeg - mLen, mLen,
                         (fwd) ? "1" : "-1");
               }
               dupRecordIID++;
+
+              mLen += mismatch;
 
               //  Adjust our begin and end positions to the end of this record
               if (fwd)  qBeg += mLen;
@@ -265,14 +307,17 @@ main(int argc, char **argv) {
               mLen  = 0;
             }
 
-            //  Skip whatever caused us to emit a gapless block
+            //  Skip whatever caused us to emit a gapless block, also skip any mismatches here
+            //
             while ((e->estAlignment[aPos] == '-') ||
-                   (e->genAlignment[aPos] == '-')) {
-              if (e->estAlignment[aPos] == '-')
-                gBeg++;
-              if (e->genAlignment[aPos] == '-')
+                   (e->genAlignment[aPos] == '-') ||
+                   (e->estAlignment[aPos] != e->genAlignment[aPos])) {
+              if (e->estAlignment[aPos] != '-')
                 if (fwd) qBeg++;
                 else     qBeg--;
+              if (e->genAlignment[aPos] != '-')
+                gBeg++;
+              //fprintf(stderr, "SKIP END %c %c\n", e->estAlignment[aPos], e->genAlignment[aPos]);
               aPos++;
             }
           } else {
