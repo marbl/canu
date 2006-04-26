@@ -34,15 +34,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.hh,v 1.12 2006-04-21 14:42:20 eliv Exp $
- * $Revision: 1.12 $
+ * $Id: AS_BOG_UnitigGraph.hh,v 1.13 2006-04-26 20:14:42 eliv Exp $
+ * $Revision: 1.13 $
 */
 
 
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.12 2006-04-21 14:42:20 eliv Exp $";
+static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.13 2006-04-26 20:14:42 eliv Exp $";
 
 #include <vector>
 #include <map>
@@ -190,6 +190,10 @@ namespace AS_BOG{
             void mergeAllUnitigs( std::map<iuid,iuid> &);
             void mergeUnitigs(Unitig*, std::set<iuid> &, std::map<iuid,iuid> &);
 
+            // handles next iteration setup for mergUnitigs
+            BestEdgeOverlap* UnitigGraph::nextJoiner( Unitig*,
+                    iuid &aPrev, iuid &fragA, int &tigEnd, bool &begRev,
+                    BestEdgeOverlap *&fivePrime, BestEdgeOverlap *&threePrime );
 
 			// Compute the global arrival rate based on the unitig rho's.
 			float _compute_global_arrival_rate(void);

@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.20 2006-04-21 15:18:33 eliv Exp $
- * $Revision: 1.20 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.21 2006-04-26 20:14:42 eliv Exp $
+ * $Revision: 1.21 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.20 2006-04-21 15:18:33 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.21 2006-04-26 20:14:42 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -173,27 +173,28 @@ namespace AS_BOG{
 		std::cerr << "Global Arrival Rate: " << globalARate << std::endl;
 		std::cerr << std::endl << "There were " << unitigs.size() << " unitigs generated.\n";
 	}
-
     //////////////////////////////////////////////////////////////////////////////
-    void UnitigGraph::mergeUnitigs(Unitig* tig, std::set<iuid> &joined,
-            std::map<iuid,iuid> &visited_map)
+    BestEdgeOverlap* UnitigGraph::nextJoiner( Unitig* tig, 
+            iuid &aPrev, iuid &fragA, int &tigEnd, bool &begRev,
+                       BestEdgeOverlap *&fivePrime, BestEdgeOverlap *&threePrime )
     {
-        iuid beforeLast = 0;
-        DoveTailNode* joinerNode = tig->getLastBackboneNode(beforeLast);
-        iuid beginId = joinerNode->ident;
+        aPrev = 0;
+        DoveTailNode* joinerNode = tig->getLastBackboneNode(aPrev);
+        fragA = joinerNode->ident;
         // Never join on a contain
         assert( joinerNode->contained == 0 );
-        BestEdgeOverlap* fivePrime = bog_ptr->getBestEdgeOverlap( beginId, FIVE_PRIME );
-        BestEdgeOverlap* threePrime = bog_ptr->getBestEdgeOverlap( beginId, THREE_PRIME );
+        fivePrime = bog_ptr->getBestEdgeOverlap( fragA, FIVE_PRIME );
+        threePrime = bog_ptr->getBestEdgeOverlap( fragA, THREE_PRIME );
 
         BestEdgeOverlap* bestEdge;
-        bool begRev = joinerNode->position.bgn > joinerNode->position.end;
-        if ( beforeLast == fivePrime->frag_b_id ) {
+        begRev = joinerNode->position.bgn > joinerNode->position.end;
+        tigEnd = begRev ? joinerNode->position.bgn : joinerNode->position.end;
+        if ( aPrev == fivePrime->frag_b_id ) {
             bestEdge = threePrime;
-        } else if ( beforeLast == threePrime->frag_b_id ) {
+        } else if ( aPrev == threePrime->frag_b_id ) {
             bestEdge = fivePrime;
         } else {
-            std::cerr << "Disagree: JID "<< beginId << " PREV " << beforeLast
+            std::cerr << "Disagree: JID "<< fragA << " PREV " << aPrev
                 << " 5' " << fivePrime->frag_b_id << " 3' " << threePrime->frag_b_id
                 << std::endl;
             if ( begRev )
@@ -201,13 +202,24 @@ namespace AS_BOG{
             else
                 bestEdge = threePrime;
         }
+        return bestEdge;
+    }
 
-        iuid joiner = bestEdge->frag_b_id;
-
-//        iuid joiner = joinerNode->ident2;
+    //////////////////////////////////////////////////////////////////////////////
+    void UnitigGraph::mergeUnitigs(Unitig* tig, std::set<iuid> &joined,
+            std::map<iuid,iuid> &visited_map)
+    {
+        iuid beforeLast, beginId, joiner;
+        int tigEnd;
+        bool begRev;
+        BestEdgeOverlap *bestEdge,*fivePrime,*threePrime;
+        bestEdge = nextJoiner( tig, beforeLast,
+                beginId, tigEnd, begRev, fivePrime, threePrime
+        );
+        joiner = bestEdge->frag_b_id;
         iuid tigIdToAdd = visited_map[ joiner ];
         Unitig* tigToAdd = unitigs[ tigIdToAdd - 1];
-        if (joiner != 0 && joined.find(tigIdToAdd) == joined.end() &&
+        while (joiner != 0 && joined.find(tigIdToAdd) == joined.end() &&
                  visited_map.find(joiner) != visited_map.end())
         {
             // Code assumes joining only from end of unitig
@@ -298,9 +310,7 @@ namespace AS_BOG{
             else
                 assert( bestEdge == threePrime );
 
-            int end = joinerNode->position.end > joinerNode->position.bgn ? 
-                      joinerNode->position.end : joinerNode->position.bgn;
-            int offset  = 1 + end - BestOverlapGraph::olapLength( joinerNode->ident,
+            int offset  = 1 + tigEnd - BestOverlapGraph::olapLength( beginId,
                     joiner, bestEdge->ahang, bestEdge->bhang
             );
             if (!reverse && joiner == first.ident) {
@@ -332,7 +342,12 @@ namespace AS_BOG{
                 }
             }
             joined.insert(tigIdToAdd);
-            mergeUnitigs( tig, joined, visited_map);
+            bestEdge = nextJoiner( tig, beforeLast,
+                    beginId, tigEnd, begRev, fivePrime, threePrime
+            );
+            joiner = bestEdge->frag_b_id;
+            tigIdToAdd = visited_map[ joiner ];
+              tigToAdd = unitigs[ tigIdToAdd - 1];
         }
     }
     //////////////////////////////////////////////////////////////////////////////
@@ -959,7 +974,6 @@ namespace AS_BOG{
 		qsort(imp_msg_arr, getNumFrags(), sizeof(IntMultiPos), &IntMultiPosCmp);
 
 		// Populate the IUM message with unitig info
-		/*IntChunk_ID*/		ium_mesg_ptr->iaccession=id-1;
 		#ifdef AS_ENABLE_SOURCE
 		/*char*/		ium_mesg_ptr->source=AS_BOG_UNITIG_GRAPH_CC_CM_ID;
 		#endif
@@ -993,11 +1007,13 @@ namespace AS_BOG{
 		}
 
 		// Step through all the unitigs
+        int iumId = 0;
 		UnitigVector::iterator utg_itr;
 		for(utg_itr=unitigs.begin(); utg_itr!=unitigs.end(); utg_itr++){
 
 			IntUnitigMesg *ium_mesg_ptr;
 			ium_mesg_ptr=(*utg_itr)->getIUM_Mesg();
+			ium_mesg_ptr->iaccession=iumId++; //IntChunk_ID
 
 			GenericMesg mesg;
 			mesg.m=ium_mesg_ptr;
