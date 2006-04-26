@@ -22,6 +22,7 @@ static char CM_ID[] = "$Id:";
 #include "SYS_UIDcommon.h"
 #include "SYS_UIDclient.h"
 
+#include "Globals_CNS.h"
 #include "MultiAlignment_CNS.h"
 
 #define MAXSEQLEN 20000
@@ -114,7 +115,7 @@ int main( int argc, char *argv[])
   ReadStructp fsread=new_ReadStruct();
   ReadStructp fsmate=new_ReadStruct();
   int realUID=0;
-  int UIDstart=1230000;
+  CDS_UID_t UIDstart=1230000;
   int firstUID=1;
   CDS_UID_t       interval_UID[4];
   Overlap *ovl;
@@ -200,19 +201,19 @@ int main( int argc, char *argv[])
   {
 
     {
-      int32 blockSize = 300;
+      uint64 blockSize = 300;
       int32  uidStatus;
       CDS_UID_t interval_UID[4];
       if(firstUID){
 	firstUID=0;
 	set_start_uid(UIDstart); /* used if readUID == FALSE */
-	get_uids(blockSize,interval_UID,realUID);
+	get_uids(blockSize,&(interval_UID[0]),realUID);
       }
 
       uidStatus = get_next_uid(&mergeUid,realUID);
       if( uidStatus != UID_CODE_OK )
 	{
-	  uidStatus = get_uids(blockSize,interval_UID,realUID);
+	  uidStatus = get_uids(blockSize,&(interval_UID[0]),realUID);
 	  get_next_uid(&mergeUid,realUID);
 	}	  
       if( UID_CODE_OK != uidStatus )
@@ -309,19 +310,19 @@ int main( int argc, char *argv[])
       /*********************************************/
 
       {
-	int32 blockSize = 300;
+	uint64 blockSize = 300;
 	int32  uidStatus;
 	CDS_UID_t interval_UID[4];
 	if(firstUID){
 	  firstUID=0;
 	  set_start_uid(UIDstart); /* used if readUID == FALSE */
-	  get_uids(blockSize,interval_UID,realUID);
+	  get_uids(blockSize,&(interval_UID[0]),realUID);
 	}
 
 	uidStatus = get_next_uid(&mergeUid,realUID);
 	if( uidStatus != UID_CODE_OK )
 	  {
-	    uidStatus = get_uids(blockSize,interval_UID,realUID);
+	    uidStatus = get_uids(blockSize,&(interval_UID[0]),realUID);
 	    get_next_uid(&mergeUid,realUID);
 	  }	  
 	if( UID_CODE_OK != uidStatus )
@@ -411,6 +412,10 @@ int main( int argc, char *argv[])
 	    Overlap *(*COMPARE_FUNC)(COMPARE_ARGS)=Local_Overlap_AS_forCNS;
 	    //Overlap *(*COMPARE_FUNC)(COMPARE_ARGS)=DP_Compare;
 
+	    
+	    if(ovl->begpos<0){
+	      allow_neg_hang=1;
+	    }
 
 	    //      fprintf(stderr,"Doing the multialignment\n");
 
@@ -422,6 +427,10 @@ int main( int argc, char *argv[])
 	    }
 
 	    //      fprintf(stderr,"Done with the multialignment\n");
+
+	    if(ovl->begpos<0){
+	      allow_neg_hang=1;
+	    }
 
 
 	    len = GetNumVA_char(sequence)-1;
