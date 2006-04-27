@@ -260,9 +260,14 @@ sub pleaseExecute {
 sub runCommand {
     my $cmd = shift @_;
 
-    print STDERR "----------------------------------------START\n$cmd\n";
+    my $t = localtime();
+    my $d = time();
+    print STDERR "----------------------------------------START $t\n$cmd\n";
 
     my $rc = 0xffff & system($cmd);
+
+    $t = localtime();
+    print STDERR "----------------------------------------END (", time() - $d, " seconds)\n$cmd\n";
 
     #  Pretty much copied from Programming Perl page 230
 
