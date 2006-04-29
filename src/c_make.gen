@@ -203,14 +203,6 @@
 #
 ######################################################################
 
-#### Use GNU make
-# MP - commenting it out may actually work 
-#MAKE = /usr/local/bin/gmake
-#MAKE = /usr/bin/gnumake 
-
-#### Soft link programs
-LINKS_PGM = /cm/cmtools/bin/links.pl
-
 LOCAL_OS_TYPE = $(OSTYPE)
 
 ifeq ($(MACHINETYPE), x86_64)
@@ -347,33 +339,15 @@ DEPS           := $(C_DEPS) $(CXX_DEPS)
 
 #### *.c
 $(C_OBJECTS): %.o: %.c
-	@ echo "@@@@@@@@@@@@@@@@@@@ " $< "@@@@@@@@@@@@@@@@@@@@@";
-	@ if [ -e $(notdir $<) ] ; then \
-	  todo='$(CC) $(CPPFLAGS) $(CDEFS) $(CFLAGS) -c $(INC_DIRS) -o $(LOCAL_OBJ)/$*.o $<' ; \
-	else \
-	  todo='$(LINKS_PGM) $(LOCAL_OBJ) "$(patsubst %, :%, $(strip $(OBJ_SEARCH_PATH)))" $(notdir $@)' ; \
-	fi ; \
-	(if [ -n "$(VERBOSE)" ]; then echo "$$todo"; fi; eval "$$todo")
+	$(CC) $(CPPFLAGS) $(CDEFS) $(CFLAGS) -c $(INC_DIRS) -o $(LOCAL_OBJ)/$*.o $<
 
 #### *.cc
 $(CXX_OBJECTS_CC): %.o: %.cc
-	@ echo "@@@@@@@@@@@@@@@@@@@ " $< "@@@@@@@@@@@@@@@@@@@@@";
-	@ if [ -e $(notdir $<) ] ; then \
-	  todo='$(CXX) $(CPPFLAGS) $(CXXDEFS) $(CXXFLAGS) -c $(INC_DIRS) -o $(LOCAL_OBJ)/$*.o $<' ; \
-	else \
-	  todo='$(LINKS_PGM) $(LOCAL_OBJ) "$(patsubst %, :%, $(strip $(OBJ_SEARCH_PATH)))" $(notdir $@)' ; \
-	fi ; \
-	(if [ -n "$(VERBOSE)" ]; then echo "$$todo"; fi; eval "$$todo")
+	$(CXX) $(CPPFLAGS) $(CXXDEFS) $(CXXFLAGS) -c $(INC_DIRS) -o $(LOCAL_OBJ)/$*.o $<
 
 #### *.C
 $(CXX_OBJECTS_C): %.o: %.C
-	@ echo "@@@@@@@@@@@@@@@@@@@ " $< "@@@@@@@@@@@@@@@@@@@@@";
-	@ if [ -e $(notdir $<) ] ; then \
-	  todo='$(CXX) $(CPPFLAGS) $(CXXDEFS) $(CXXFLAGS) -c $(INC_DIRS) -o $(LOCAL_OBJ)/$*.o $<' ; \
-	else \
-	  todo='$(LINKS_PGM) $(LOCAL_OBJ) "$(patsubst %, :%, $(strip $(OBJ_SEARCH_PATH)))" $(notdir $@)'; \
-	fi ; \
-	(if [ -n "$(VERBOSE)" ]; then echo "$$todo"; fi; eval "$$todo")
+	$(CXX) $(CPPFLAGS) $(CXXDEFS) $(CXXFLAGS) -c $(INC_DIRS) -o $(LOCAL_OBJ)/$*.o $<
 
 #### To accommodate referencing of objects in other working directories.
 $(SOURCES):
@@ -447,10 +421,8 @@ echo "* Make Target is " $(TGT);
 for i in $(SUBDIRS);\
   do \
     if [ -d $$i ]; then \
-      cd $$i;\
-      echo "#####    Making Directory " `pwd` " " $(TGT) " #####";\
-      $(MAKE) $(TGT);\
-      cd ..;\
+      echo "############################## $$i ##############################"  ;\
+      $(MAKE) --no-print-directory -C $$i $(TGT) ;\
     fi; \
   done;
 endef
