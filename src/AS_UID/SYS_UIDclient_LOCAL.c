@@ -19,42 +19,34 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef UID_CLIENT_H
-#define UID_CLIENT_H
+//  A very simple, but not very good, uid "server".  Reads the next
+//  available uid from a file, and then updates the file.
 
-//  The simple UID client interface, from AS_TER
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
 
-cds_int32    SYS_UIDgetLastUIDInterval(cds_uint64* interval);
-cds_int32    SYS_UIDgetNewUIDInterval(cds_uint64* interval);
-cds_int32    SYS_UIDgetMaxUIDSize(cds_uint64* size);
-void         SYS_UIDsetUIDSize(cds_uint64 block_size);
-cds_int32    SYS_UIDgetNextUID(cds_uint64* uid);
-cds_int32    SYS_UIDgetLastUID(cds_uint64* uid);
-void         SYS_UIDset_euid_server(const char * servers);
+#include "cds.h"
 
+CDS_UID_t
+getGUIDBlock(int guidRequestSize) {
+  CDS_UID_t guidStart = 7180000000000;
 
-// Allocates blockSize many UIDs from the UID server if real is
-// TRUE. Otherwise it allocates some dummy numbers.
-//
-int32 get_uids(uint64 blockSize, uint64 *interval, int32 real);
+  errno = 0;
+  FILE *F = fopen(".local-guid", "r+");
+  if (errno == ENOENT) {
+    //  Dang, doesn't exist!  Make it.
+    F = fopen(".local-guid", "w+");
+    fprintf(F, F_UID"\n", guidStart);
+  } else if (errno) {
+    fprintf(stderr, "getGUIDBlock()-- Can't open '.local-guid' for read/write, can't get last UID used: %s\n", strerror(errno));
+    exit(1);
+  } else {
+    fscanf(F, F_UID"\n", &guidStart);
+  }
+  rewind(F);
+  fprintf(F, F_UID"\n", guidStart + guidRequestSize);
+  fclose(F);
 
-
-// Returns the next available uid. (A real if real==TRUE, o.w. a fake
-// UID
-//
-int32 get_next_uid(uint64 *uid, int32 real);
-
-
-//  Sets the initial UID to return, if get_uids() is returning dummy
-//  numbers.
-//
-void    set_start_uid(uint64 s);
-uint64  get_start_uid(void);
-
-#endif
-
-
-
-
-
-
+  return(guidStart);
+}

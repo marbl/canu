@@ -29,12 +29,12 @@ accession numbers.
 **********************************************************************/
 
 /* RCS info
- * $Id: AS_TER_terminator.c,v 1.9 2005-10-04 08:42:49 brianwalenz Exp $
- * $Revision: 1.9 $
+ * $Id: AS_TER_terminator.c,v 1.10 2006-04-29 05:16:26 brianwalenz Exp $
+ * $Revision: 1.10 $
  */
 
 
-static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.9 2005-10-04 08:42:49 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.10 2006-04-29 05:16:26 brianwalenz Exp $";
 
 
 /*************************************************************************/
@@ -200,7 +200,7 @@ int main (int argc, char *argv[]) {
     }
     
   /* Start the main routines */  
-  check_environment();
+  //check_environment();
   output_snapshot(fragStoreName,bactigStoreName,gkpStoreName,inputList,numInputs,outputFileName,mapFileName,output,300,realUIDs,quiet,random,uidStart,argc,argv);
   
   }

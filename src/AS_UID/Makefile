@@ -22,14 +22,6 @@
 ###########################################################################
 #
 
-######################################################################
-# $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_UID/Makefile,v $
-# $Revision: 1.6 $
-# $Date: 2005-09-20 20:15:06 $
-# $Name: not supported by cvs2svn $
-# $Author: catmandew $
-######################################################################
-
 CLIENT_SOURCES = \
   SYS_UIDcommon.c \
   SYS_UIDerror.c \
@@ -52,7 +44,6 @@ SOURCES = $(CLIENT_SOURCES) $(SERVER_SOURCES)
 #  uid_client_test_cpp 
 #  libAS_UIDcpp.a
 
-
 CLIENT_PROGS = \
   uidclient \
   uid_client_test
@@ -70,16 +61,30 @@ LIBRARIES = \
 LOCAL_WORK = $(shell cd ../../; pwd)
 
 ## Include to set UID_SERVER
-include uid_transport.as
+#include uid_transport.as
 
-SOAPOBJS = 
-ifeq ($(UID_SERVER), TIGR)
-  SOURCES     += checkEuidService.c
-  PROGS       += checkEuidService
-  SOAPSOURCES  = stdsoap2.c euidC.c euidClientLib.c 
-  SOURCES     += $(SOAPSOURCES)
-  SOAPOBJS     = $(SOAPSOURCES:.c=.o)
+include $(LOCAL_WORK)/src/site_name.as
+
+SITEOBJS = 
+
+ifeq ($(SITE_NAME), TIGR)
+  SOURCES        += SYS_UIDclient_SOAP.c checkEuidService.c
+  PROGS          += checkEuidService
+  SOAPSOURCES     = stdsoap2.c euidC.c euidClientLib.c 
+  SOURCES        += $(SOAPSOURCES)
+  SITEOBJS        = SYS_UIDclient_SOAP.o $(SOAPSOURCES:.c=.o)
 endif
+
+ifeq ($(SITE_NAME), JCVI)
+  SOURCES        += SYS_UIDclient_JTC.c
+  SITEOBJS        = SYS_UIDclient_JTC.o
+endif
+
+ifeq ($(SITE_NAME), LOCAL)
+  SOURCES        += SYS_UIDclient_LOCAL.c
+  SITEOBJS       += SYS_UIDclient_LOCAL.o
+endif
+
 
 ## Now include c_make.as with the updated SOURCES and OBJECTS
 include $(LOCAL_WORK)/src/c_make.as
@@ -89,13 +94,12 @@ OBJECTS = \
 
 all: $(LIBRARIES) $(PROGS)
 
-libAS_UID.a: SYS_UIDcommon.o SYS_UIDclient.o SYS_UIDclient_simple.o SYS_UIDerror.o $(SOAPOBJS)
+libAS_UID.a: SYS_UIDcommon.o SYS_UIDclient.o SYS_UIDclient_simple.o SYS_UIDerror.o $(SITEOBJS)
 
 libAS_UIDcpp.a: SYS_UIDclient_cpp.o
 
 uidsvrd: SYS_UIDcommon.o SYS_UIDserver.o SYS_UIDerror.o SYS_UIDserver_main.o
 
-## Commenting out libssl.a libcrypto.a libz.a
 uid_client_test: SYS_UIDclient_test.o libAS_UID.a
 
 checkEuidService: checkEuidService.o libAS_UID.a

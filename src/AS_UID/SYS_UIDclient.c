@@ -19,119 +19,16 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-
-/**********************************************************************
-$Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_UID/Attic/SYS_UIDclient.c,v $
-$Revision: 1.6 $
-$Date: 2005-10-28 19:59:50 $
-$Name: not supported by cvs2svn $
-$Author: catmandew $
-$Log: not supported by cvs2svn $
-Revision 1.4.2.2  2005/10/07 20:48:45  catmandew
-Jason's mods to use full URL to specify UID server at TIGR
-
-Revision 1.5  2005/10/07 16:38:46  jmiller
-In the TIGR CVS tree, I changed the TIGR-only code (inside the #ifdef SOAP block) to expect a full URL. No longer will the code prepend the "http://" protocol, etc. I also hardenend it against a buffer overwrite due to a long URL.
-
-Revision 1.4  2004/09/10 12:31:43  mschatz
-Add standard copyright notice
-
-Revision 1.3  2004/09/09 22:39:03  mschatz
-USE_SOAP_UID support
-
-Revision 1.2  2004/06/25 04:05:04  ahalpern
-Fixes to allow access to JTC uid server from linux
-
-Revision 1.1  2004/06/24 12:51:06  mpop
-Added AS_UID
-
-Revision 1.2  2003/05/09 21:04:03  mpop
-Dos2unixed all files.
-Modified c_make.as to set SEP_PATH relative to LOCAL_WORK
-
-Revision 1.1.1.1  2003/05/08 18:40:11  aaronhalpern
-versions from TIGR
-
-Revision 1.2  2001/09/25 23:03:20  mpop
-Dos2Unixed
-
-Revision 1.1.1.1  2001/09/25 20:21:05  mpop
-Celera Assembler
-
-Revision 1.5  1999/10/13 19:02:56  sdmurphy
-misc small changes for debugging
-
-Revision 1.4  1999/07/14 17:24:33  stine
-update_cds script was executed against these files.
-
-Revision 1.3  1999/01/28 14:57:45  sdmurphy
-added GetMaxUIDSize and QueryServer
-
-Revision 1.2  1999/01/13 14:28:05  sdmurphy
-version 0 prelim
-
-Revision 1.1  1998/12/30 19:46:13  sdmurphy
-Renamed uid_client.c to SYS_UIDclient.c
-
-Revision 1.3  1998/12/21 19:04:04  sdmurphy
-added support for uid incrementer
-
-Revision 1.2  1998/12/18 18:02:50  sdmurphy
-made set_UID_size return void type
-
-Revision 1.1  1998/12/17 21:21:20  sdmurphy
-Implements uid client API
-
-**********************************************************************/
-
-/**********************************************************************
-Module:
-
-Description:
-
-Assumptions:
-
-**********************************************************************/
-
 #include "cds.h"
 #include "SYS_UIDcommon.h"
 #include "SYS_UIDerror.h"
 #include "SYS_UIDclient.h"
 #include "SYS_UIDclient_local.h"
 
-#ifdef USE_SOAP_UID
-
-#include "euidH.h"
-#include "soapEUIDServerService.nsmap"
-#include <assert.h>
-
-const char *TIGR_DefaultEuidServerNames 
-     = "http://intranet.tigr.org/servlet/axis/services/EUIDServer";
-char * EuidServerNames = NULL;
-const int DUMMY_BUFFER_LENGTH = 1000;
-#endif
-
-
 
 /*******************************************************************************
 
 Description: Utility func for setting interval message array.
-
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
 
 *******************************************************************************/
 void SetUIDInterval(cds_uint64 a, cds_uint64 a_size, cds_uint64 b, cds_uint64 b_size)
@@ -148,22 +45,6 @@ void SetUIDInterval(cds_uint64 a, cds_uint64 a_size, cds_uint64 b, cds_uint64 b_
 
 Description: External function for setting current blocksize.
 
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
-
 *******************************************************************************/
 void SYS_UIDsetUIDSize(cds_uint64 block_size)
 {
@@ -175,35 +56,18 @@ void SYS_UIDsetUIDSize(cds_uint64 block_size)
 
 Description: Gets maximum UID size
 
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
-
 *******************************************************************************/
 cds_int32  SYS_UIDgetMaxUIDSize(cds_uint64* size)
 {
-   cds_uint64  interval_buffer[4];
 
    if (size == NULL)
       return UID_CODE_NULL_INTERVAL_PTR;
-   /* Not implemented for JTC
+#ifndef NOT_IMPLEMENTED_JTC
    return QueryServer(UID_CODE_NEED_SIZE_INFO, size);
-   */
-   *size = JTC_MAX_REQUEST_SIZE; 
+#else
+   *size = UID_MAX_REQUEST_SIZE; 
    return UID_CODE_OK;
-
+#endif
 }
 
 
@@ -215,22 +79,6 @@ Description:
    current value of the incrementer, and increments the value for next time.
    Note that even though it increments the value, it returns the
    pre-incremented value.
-
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
 
 *******************************************************************************/
 cds_int32   SYS_UIDgetNextUID(cds_uint64* uid)
@@ -259,22 +107,6 @@ cds_int32   SYS_UIDgetNextUID(cds_uint64* uid)
 
 Description: External function for getting the last incremented UID
 
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
-
 *******************************************************************************/
 cds_int32   SYS_UIDgetLastUID(cds_uint64* uid)
 {
@@ -299,22 +131,6 @@ cds_int32   SYS_UIDgetLastUID(cds_uint64* uid)
 
 Description: External function for getting the current UID interval
 
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
-
 *******************************************************************************/
 cds_int32 SYS_UIDgetLastUIDInterval(cds_uint64* interval)
 {
@@ -337,26 +153,11 @@ cds_int32 SYS_UIDgetLastUIDInterval(cds_uint64* interval)
 
 Description: Initializes state of client on first NEW call
 
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
-
 *******************************************************************************/
 void Initialize(void)
 {
-  /* Not implemented for JTC 
+
+#ifndef NOT_IMPLEMENTED_JTC
    char* port_string;
    char* host_string;
    char* failsafe_port_string;
@@ -407,28 +208,12 @@ failsafe server host name\n");
          strcpy(failsafe_server_host_name, UID_DEFAULT_FAILSAFE_SERVER_HOST_NAME);
       }   
    }
-  */
+#endif
 }
 
 /*******************************************************************************
 
 Description: External function for getting a new UID interval
-
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
 
 *******************************************************************************/
 cds_int32 SYS_UIDgetNewUIDInterval(cds_uint64* interval)
@@ -457,22 +242,6 @@ cds_int32 SYS_UIDgetNewUIDInterval(cds_uint64* interval)
 
 Description: Internal function for handling server communication
 
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
-
 *******************************************************************************/
 static cds_int32 QueryServer(cds_int32 code, cds_uint64* interval)
 {
@@ -480,7 +249,7 @@ static cds_int32 QueryServer(cds_int32 code, cds_uint64* interval)
    char        failsafe_flag = 0;
    CDS_UID_t   newBlockStart = 0;
 
-   /* Not implemented for JTC
+#ifndef NOT_IMPLEMENTED_JTC
 
    if (FirstTime)
    {
@@ -522,9 +291,8 @@ static cds_int32 QueryServer(cds_int32 code, cds_uint64* interval)
       CloseFailsafeConnection(); 
    }
 
-   */
+#else
   
-   /* Begin new JTC section */
    newBlockStart = getGUIDBlock(size_UID);
    if (newBlockStart > 0) {
      code = UID_CODE_OK;
@@ -537,243 +305,15 @@ static cds_int32 QueryServer(cds_int32 code, cds_uint64* interval)
      status = UID_CODE_CANT_CONNECT;
    }
    return status;
-}
 
-/***********************************************************************************/
-
-size_t
-JTC_GUIDWriteMemoryCallback(void *ptr, size_t size, size_t nmemb, void *data)
-{
-  register int realsize = size * nmemb;
-  struct JTC_GUIDMemoryStruct *mem = (struct JTC_GUIDMemoryStruct *)data;
-  
-  mem->memory = (char *)realloc(mem->memory, mem->size + realsize + 1);
-  if (mem->memory) {
-    memcpy(&(mem->memory[mem->size]), ptr, realsize);
-    mem->size += realsize;
-    mem->memory[mem->size] = 0;
-  }
-  return realsize;
-}
-
-
-#ifdef USE_SOAP_UID
-void SYS_UIDset_euid_server(const char * servers)
-{
-  EuidServerNames=strdup(servers);
-  assert(EuidServerNames != NULL);
-}
 #endif
-
-/***************************************************************************************/
-
-CDS_UID_t getGUIDBlock(int guidRequestSize)
-{
-  CDS_UID_t guidStart = 0;
-
-#ifndef USE_SOAP_UID
-  CURL *curl_handle;
-  char guidRequest[JTC_GUID_REQUEST_URL_MAX_SIZE];
-  char httpResponse[JTC_GUID_HTTP_RESPONSE_MAX_SIZE];
-  char guidNumResponse[JTC_GUID_NUM_BUFFER_SIZE]; /* needs to comfortably fit a long as a string */
-  int guidNumLength = 0;
-  struct JTC_GUIDMemoryStruct chunk;
-  int i;
-  int guidPositionStart = 0;
-  int guidPositionEnd = 0;
-
-  chunk.memory=NULL; /* we expect realloc(NULL, size) to work */
-  chunk.size = 0;    /* no data at this point */
- 
-  curl_global_init(CURL_GLOBAL_ALL);
- 
-  /* init the curl session */
-  curl_handle = curl_easy_init();
- 
-  /* specify URL to get */
-  sprintf(guidRequest, "%s%d", JTC_GUID_URL, guidRequestSize);
-  curl_easy_setopt(curl_handle, CURLOPT_URL, guidRequest);
- 
-  /* send all data to this function  */
-  curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, JTC_GUIDWriteMemoryCallback);
-
-  /* we pass our 'chunk' struct to the callback function */
-  curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void *)&chunk);
-  
-  /* get it! */
-  curl_easy_perform(curl_handle);
- 
-  /* cleanup curl stuff */
-  curl_easy_cleanup(curl_handle);
-
-  if (chunk.size >= JTC_GUID_HTTP_RESPONSE_MAX_SIZE) {
-    /* error */
-    free(chunk.memory);
-    return 0;
-  }
-
-  memcpy(httpResponse, chunk.memory, chunk.size);
-  httpResponse[chunk.size] = '\0';
-
-  /* HTTP response of this form is assumed:   */
-  /* <html><title>SUCCESS</title><body>       */
-  /* <h2>Guid Start:</h2>                     */
-  /* 1089045040000                            */
-  /* </body></html>                           */
-
-  if (strncmp(httpResponse+13,"SUCCESS",7)==0) {
-    guidPositionStart = findGuidStartFromHttpString(httpResponse);
-    guidPositionEnd = findGuidEndFromHttpString(httpResponse);
-    guidNumLength = guidPositionEnd - guidPositionStart;
-    if (guidPositionStart == 0 || guidPositionEnd <= guidPositionStart) {
-      /* error */
-      free(chunk.memory);
-      return 0;
-    }
-    memcpy(guidNumResponse, httpResponse + guidPositionStart, guidNumLength);
-    for (i=guidNumLength;i<JTC_GUID_NUM_BUFFER_SIZE;i++) {
-      guidNumResponse[i] = '\0';
-    }
-    guidStart = STR_TO_UID(guidNumResponse,NULL,10);
-  } else {
-    /* error */
-    free(chunk.memory);
-    return 0;
-  }
-
-  free(chunk.memory);
-#else
-  struct soap soap;
-  struct impl__getEUIDBlockResponse euid;
-  char dummy[DUMMY_BUFFER_LENGTH+1];
-  char euidServerBuffer[2048];
-  char *servers[10];
-  int loop;
-  int i,j;
-
-  if (EuidServerNames == NULL)
-  {
-    // Have to copy because a static string lives in a read-only section on alpha
-    strcpy(euidServerBuffer, TIGR_DefaultEuidServerNames);
-  }
-  else
-  {
-    strcpy(euidServerBuffer, EuidServerNames);
-  }
-
-  fprintf(stderr, "Parsing \"%s\"\n", euidServerBuffer);
-
-  servers[0] = strtok(euidServerBuffer, ","); 
-  if(servers[0] == NULL) 
-  {
-    SYS_UIDerrorMsg("EUIDService URL not specified\n");
-    return UID_FAILS; // Error
-  }
-
-  fprintf(stderr, "servers[0]=\"%s\"\n", servers[0]);
-
-  // parse rest of servers
-  for(loop=1; loop < 10; loop++) 
-  {
-    servers[loop] = strtok(NULL, ",");
-    if(servers[loop] == NULL) { break; }
-    fprintf(stderr, "servers[%d]=\"%s\"\n", loop, servers[loop]);
-  }
-
-  fprintf(stderr, "Initializing soap... ");
-  soap_init(&soap);
-  fprintf(stderr, "ok.\n");
-
-  for(i = 0; i < loop; i++) 
-  {
-    //// sprintf(dummy,"http://%s/axis/services/EUIDServer", servers[i]);
-
-    // Jason Miller October 2005.
-    // We now expect to be given the full URL.
-
-    // Avoid write beyond buffer on unexpectedly long server names.
-    // If URL is too long, truncate it. Let the SOAP request fail.
-    strncpy (dummy, servers[i], DUMMY_BUFFER_LENGTH);
-
-    fprintf(stderr, "Trying to contact %s\n", dummy);
-
-    if (soap_call_impl__getEUIDBlock (&soap, dummy,	"", "TIGR_DEFAULT", 
-                                      guidRequestSize, &euid ) == SOAP_OK) 
-    {
-      // got an euid
-      guidStart = euid._getEUIDBlockReturn;
-      fprintf(stderr, "EUID query suceeded -- starting EUID is "F_S64"\n", guidStart);
-      break;
-    }
-  }
-	  
-  if(guidStart == 0)
-  {
-    // error condition
-    soap_print_fault(&soap,stderr);
-    SYS_UIDerrorMsg("EUIDService failure -- no servers available\n");
-    return UID_FAILS;
-  }
-#endif
- 
-  return guidStart;
 }
 
-/***************************************************************************/
-
-int findGuidStartFromHttpString(char* httpString) {
-  /* the first position after the 2nd return character */
-  int returnCount = 0;
-  int i;
-  for (i=0;i<JTC_GUID_NUM_BUFFER_SIZE;i++) {
-    if (httpString[i] == '\n') {
-      returnCount++;
-    }
-    if (returnCount == 2) {
-      return i+1;
-    }
-  }
-  /* error */
-  return 0;
-}
-
-/***************************************************************************/
-
-int findGuidEndFromHttpString(char* httpString) {
-  /* the first position before the 3nd return character */
-  int returnCount = 0;
-  int i;
-  for (i=0;i<JTC_GUID_NUM_BUFFER_SIZE;i++) {
-    if (httpString[i] == '\n') {
-      returnCount++;
-    }
-    if (returnCount == 3) {
-      return i-1;
-    }
-  }
-  /* error */
-  return 0;
-}
+ 
 
 /*******************************************************************************
 
 Description: Utility func for creating a socket connection to server
-
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
 
 *******************************************************************************/
 static cds_int32  CreateConnection(void)
@@ -821,22 +361,6 @@ static cds_int32  CreateConnection(void)
 
 Description: Utility func for creating a socket connection to failsafe server
 
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
-
 *******************************************************************************/
 static cds_int32  CreateFailsafeConnection(void)
 {
@@ -852,22 +376,6 @@ static cds_int32  CreateFailsafeConnection(void)
 /*******************************************************************************
 
 Description: Utility func for setting up server host info
-
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
 
 *******************************************************************************/
 static cds_int32  GetServerHostInfo(void)
@@ -887,22 +395,6 @@ static cds_int32  GetServerHostInfo(void)
 
 Description: Utility func for setting up failsafe server host info
 
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
-
 *******************************************************************************/
 static cds_int32  GetFailsafeServerHostInfo(void)
 {
@@ -921,22 +413,6 @@ static cds_int32  GetFailsafeServerHostInfo(void)
 /*******************************************************************************
 
 Description: Utility func for configuring socket to server
-
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
 
 *******************************************************************************/
 static cds_int32  ConfigureConnection(void)
@@ -960,22 +436,6 @@ static cds_int32  ConfigureConnection(void)
 /*******************************************************************************
 
 Description: Utility func for configuring socket to failsafe server
-
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
 
 *******************************************************************************/
 static cds_int32  ConfigureFailsafeConnection(void)
@@ -1002,22 +462,6 @@ static cds_int32  ConfigureFailsafeConnection(void)
 /*******************************************************************************
 
 Description: Function for retrieving UID message from server
-
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
 
 *******************************************************************************/
 static void  ReceiveServerMessage(cds_int32 code, cds_uint64* interval)
@@ -1084,22 +528,6 @@ static void  ReceiveServerMessage(cds_int32 code, cds_uint64* interval)
 /*******************************************************************************
 
 Description: Function for retrieving UID message from failsafe server
-
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
 
 *******************************************************************************/
 static void  ReceiveFailsafeServerMessage(cds_int32 code, cds_uint64* interval)
@@ -1170,22 +598,6 @@ static void  ReceiveFailsafeServerMessage(cds_int32 code, cds_uint64* interval)
 
 Description: Utility func for closing connection
 
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
-
 *******************************************************************************/
 static void  CloseConnection(void)
 {
@@ -1195,22 +607,6 @@ static void  CloseConnection(void)
 /*******************************************************************************
 
 Description: Utility func for closing connection to failsafe server
-
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
 
 *******************************************************************************/
 static void  CloseFailsafeConnection(void)

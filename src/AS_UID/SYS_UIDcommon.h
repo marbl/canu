@@ -19,91 +19,19 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/**********************************************************************
-$Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_UID/Attic/SYS_UIDcommon.h,v $
-$Revision: 1.4 $
-$Date: 2005-07-13 14:47:55 $
-$Name: not supported by cvs2svn $
-$Author: brianwalenz $
-$Log: not supported by cvs2svn $
-Revision 1.3  2005/03/22 19:49:28  jason_miller
-The TIGR tip as of March 22 2005. Commit by Jason Miller at TIGR.
-
-Revision 1.4  2004/09/10 12:31:43  mschatz
-Add standard copyright notice
-
-Revision 1.3  2004/09/09 22:37:40  mschatz
-USE_SOAP_UID support
-
-Revision 1.2  2004/07/19 14:54:46  mpop
-Added a fix for CURL on linux
-
-Revision 1.1  2004/06/24 12:51:06  mpop
-Added AS_UID
-
-Revision 1.2  2003/05/09 21:04:01  mpop
-Dos2unixed all files.
-Modified c_make.as to set SEP_PATH relative to LOCAL_WORK
-
-Revision 1.1.1.1  2003/05/08 18:40:11  aaronhalpern
-versions from TIGR
-
-Revision 1.2  2001/09/25 23:03:20  mpop
-Dos2Unixed
-
-Revision 1.1.1.1  2001/09/25 20:21:05  mpop
-Celera Assembler
-
-Revision 1.8  2000/07/25 14:32:32  cmobarry
-Linting for PC/Linux
-
-Revision 1.7  2000/03/02 17:49:51  sdmurphy
-extended err msg buffer
-
-Revision 1.6  1999/10/15 15:00:50  sdmurphy
-added timeout info
-
-Revision 1.5  1999/07/14 17:24:16  stine
-update_cds script was executed against these files.
-Only one manual modification - to SYS_UIDcommon.h - I
-put in a #include <cds.h> so that it would find the
-newfangled cds_* typedefs. Previously, it must have been
-using those defined elsewhere in the system.
-
-Revision 1.4  1999/03/05 21:01:01  jlscott
-Changed C++ style comments to C style comments (mostly so that client programs
-can compile with the -std1 option).
-
-Revision 1.3  1999/03/04 22:15:48  sdmurphy
-new size info code
-
-Revision 1.2  1999/01/13 14:31:14  sdmurphy
-version 0 prelim
-
-Revision 1.1  1998/12/30 20:06:22  sdmurphy
-Renamed uid_common.h to SYS_UIDcommon.h
-
-Revision 1.4  1998/12/24 15:55:06  sdmurphy
-externed certain data
-
-Revision 1.3  1998/12/22 12:08:05  sdmurphy
-added header (forgot previously)
-
-
-**********************************************************************/
-
-/**********************************************************************
-Module:
-
-Description:
-
-Assumptions:
-
-**********************************************************************/
-
 #ifndef UID_COMMON_H
 #define UID_COMMON_H
 
+/*  New UID server/client disabled/modified the original
+ *  code.  This enables those changes.
+ *
+ *  This also disables the need for these environment variables:
+ *    SYS_UID_SERVER_HOSTNAME
+ *    SYS_UID_SERVER_PORT
+ *    SYS_UID_FAILSAFE_SERVER_HOSTNAME
+ *    SYS_UID_FAILSAFE_SERVER_PORT
+ */
+#define NOT_IMPLEMENTED_JTC
 
 #define UID_OK                          1
 #define UID_FAILS                       0
@@ -154,11 +82,10 @@ Assumptions:
 #define UID_CODE_NULL_INTERVAL_PTR      306
 #define UID_CODE_INCREMENT_OVERFLOW     307
 
-/* FOR JTC */
-#define JTC_MAX_REQUEST_SIZE        1000000
-#define JTC_GUID_REQUEST_URL_MAX_SIZE 2048
-#define JTC_GUID_HTTP_RESPONSE_MAX_SIZE 4096
-#define JTC_GUID_NUM_BUFFER_SIZE 100
+/* New UID client does not implement SYS_UIDgetMaxUIDSize()
+ * as a server query, instead, just returns this constant.
+ */
+#define UID_MAX_REQUEST_SIZE            1000000
 
 #ifdef __cplusplus
 extern "C" {
@@ -189,18 +116,8 @@ extern "C" {
 #include <signal.h>
 #include <limits.h>
 
-#ifndef USE_SOAP_UID
-#include <curl/curl.h>
-#include <curl/types.h>
-#include <curl/easy.h>
-#endif
-
 
 /* structs *******************************************************/
-struct JTC_GUIDMemoryStruct {
-  char *memory;
-  size_t size;
-};
 
 /* variables ********************************************************/
 extern char   SYS_UIDerr_str[UID_ERR_STR_SIZE];
@@ -209,19 +126,14 @@ extern char   SYS_UIDtype;
 extern char   SYS_UIDdebug_flag;
 
 /* functions */
-void   SYS_UIDperr(const char* message);
+void       SYS_UIDperr(const char* message);
 cds_int32  SYS_UIDreadn(cds_int32 fd, char* ptr, cds_int32 nbytes);
 cds_int32  SYS_UIDwriten(cds_int32 fd, char* ptr, cds_int32 nbytes);
 cds_int32  SYS_UIDpackUIDMessageXdr(cds_uint64* uid, cds_int32 status);
 cds_int32  SYS_UIDunpackUIDMessageXdr(cds_uint64* uid, cds_int32* status);
 cds_int32  SYS_UIDpackUIDRequestXdr(char* writebuffer, cds_int32 status, cds_uint64 request_size);
 cds_int32  SYS_UIDunpackUIDRequestXdr(char* readbuffer, cds_int32* status, cds_uint64* request_size);
-void   SYS_UIDlogMessage(const char* message);
-
-#ifndef i386
-/* this is ifdef'ed out of the unistd.h for some reason and needs to be here */
-//extern int usleep(useconds_t useconds);
-#endif
+void       SYS_UIDlogMessage(const char* message);
 
 #ifdef __cplusplus
 }

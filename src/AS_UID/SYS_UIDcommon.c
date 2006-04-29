@@ -19,67 +19,6 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/**********************************************************************
-$Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_UID/Attic/SYS_UIDcommon.c,v $
-$Revision: 1.4 $
-$Date: 2005-08-24 10:57:43 $
-$Name: not supported by cvs2svn $
-$Author: brianwalenz $
-$Log: not supported by cvs2svn $
-Revision 1.3  2005/03/22 19:49:28  jason_miller
-The TIGR tip as of March 22 2005. Commit by Jason Miller at TIGR.
-
-Revision 1.2  2004/09/10 12:31:43  mschatz
-Add standard copyright notice
-
-Revision 1.1  2004/06/24 12:51:06  mpop
-Added AS_UID
-
-Revision 1.2  2003/05/09 21:04:03  mpop
-Dos2unixed all files.
-Modified c_make.as to set SEP_PATH relative to LOCAL_WORK
-
-Revision 1.1.1.1  2003/05/08 18:40:12  aaronhalpern
-versions from TIGR
-
-Revision 1.2  2001/09/25 23:03:20  mpop
-Dos2Unixed
-
-Revision 1.1.1.1  2001/09/25 20:21:05  mpop
-Celera Assembler
-
-Revision 1.5  1999/10/13 19:02:57  sdmurphy
-misc small changes for debugging
-
-Revision 1.4  1999/07/14 17:24:33  stine
-update_cds script was executed against these files.
-
-Revision 1.3  1999/01/13 15:49:57  sdmurphy
-added error.h
-
-Revision 1.2  1999/01/13 14:29:16  sdmurphy
-version 0 prelim
-
-Revision 1.1  1998/12/30 19:56:07  sdmurphy
-Renamed uid_common.c to SYS_UIDcommon.c
-
-Revision 1.2  1998/12/22 21:20:11  sdmurphy
-minor reorganization
-
-Revision 1.1  1998/12/17 21:23:00  sdmurphy
-common .c file for UID libs and progs
-
-**********************************************************************/
-
-/**********************************************************************
-Module:
-
-Description:
-
-Assumptions:
-
-**********************************************************************/
-
 #include "SYS_UIDcommon.h"
 #include "SYS_UIDerror.h"
 

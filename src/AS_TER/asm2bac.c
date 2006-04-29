@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /* RCS info
- * $Id: asm2bac.c,v 1.2 2005-09-15 15:20:16 eliv Exp $
+ * $Id: asm2bac.c,v 1.3 2006-04-29 05:16:26 brianwalenz Exp $
  */
 
 #include <stdio.h>
@@ -516,7 +516,7 @@ int main(int argc, char *argv[])
      read_map(mapFile);
   } // else, maps will be NULL and identity mapping will be assumed
   if ( REAL_UIDS ) {
-      check_environment();
+      //check_environment();
   } else {
       set_start_uid(first_faux_uid);
   }

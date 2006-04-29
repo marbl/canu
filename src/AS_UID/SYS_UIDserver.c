@@ -19,76 +19,6 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/**********************************************************************
-$Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_UID/Attic/SYS_UIDserver.c,v $
-$Revision: 1.5 $
-$Date: 2005-06-16 20:28:05 $
-$Name: not supported by cvs2svn $
-$Author: brianwalenz $
-$Log: not supported by cvs2svn $
-Revision 1.4  2005/03/30 21:11:56  eliv
-Fix a couple of gcc warnings.
-
-Revision 1.3  2005/03/22 19:49:28  jason_miller
-The TIGR tip as of March 22 2005. Commit by Jason Miller at TIGR.
-
-Revision 1.2  2004/09/10 12:31:43  mschatz
-Add standard copyright notice
-
-Revision 1.1  2004/06/24 12:51:06  mpop
-Added AS_UID
-
-Revision 1.2  2003/05/09 21:04:03  mpop
-Dos2unixed all files.
-Modified c_make.as to set SEP_PATH relative to LOCAL_WORK
-
-Revision 1.1.1.1  2003/05/08 18:40:12  aaronhalpern
-versions from TIGR
-
-Revision 1.2  2001/09/25 23:03:20  mpop
-Dos2Unixed
-
-Revision 1.1.1.1  2001/09/25 20:21:05  mpop
-Celera Assembler
-
-Revision 1.6  2000/03/02 17:48:48  sdmurphy
-added full path warning
-
-Revision 1.5  1999/10/13 19:02:57  sdmurphy
-misc small changes for debugging
-
-Revision 1.4  1999/07/14 17:24:34  stine
-update_cds script was executed against these files.
-
-Revision 1.3  1999/01/28 15:01:31  sdmurphy
-added support for GetMaxUIDSize and beefed up messages
-
-Revision 1.2  1999/01/13 14:29:45  sdmurphy
-version 0 prelim
-
-Revision 1.1  1998/12/30 19:36:50  sdmurphy
-Renamed uid_server.c SYS_UIDserver.c
-
-Revision 1.3  1998/12/21 16:42:39  sdmurphy
-added daemon logging capability
-
-Revision 1.2  1998/12/18 18:25:19  sdmurphy
-removed vestigial var us_current_uid_block_size
-
-Revision 1.1  1998/12/17 21:23:52  sdmurphy
-Implements uid server
-
-**********************************************************************/
-
-/**********************************************************************
-Module:
-
-Description:
-
-Assumptions:
-
-**********************************************************************/
-
 #include "cds.h"
 #include "SYS_UIDcommon.h"
 #include "SYS_UIDerror.h"
@@ -98,22 +28,6 @@ Assumptions:
 /*******************************************************************************
 
 Description: prints usage if args don't match
-
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
 
 *******************************************************************************/
 void Usage(cds_int32 argc, char** argv)
@@ -131,11 +45,13 @@ printf("Use -r in the machine boot script to start the server daemon       \n");
 printf("                                                                   \n");
 printf("usage: %s -r                                                       \n", argv[0]);
 printf("   <pos_filename> <start#> <size> <max_block> <update_freq> <port> \n");
-/* Non implemented for JTC
+
+#ifndef NOT_IMPLEMENTED_JTC
 printf("   [-ma <hour interval> <address list for email on all requests>]  \n");
 printf("   [-me <hour interval> <address list for email on errors>]        \n");
 printf("   [-mf <address list for email on fatal error>]                   \n");
-*/
+#endif
+
 printf("   [-d debug]                                                      \n");
 printf("                                                                   \n");
 printf("Use -k to kill a uid_server currently running in the background    \n");
@@ -149,22 +65,6 @@ printf("usage: %s -k <port of server to kill>                            \n\n", 
 /*******************************************************************************
 
 Description: Parses command line options
-
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
 
 *******************************************************************************/
 void SYS_UIDparseOptions(cds_int32 argc, char** argv)
@@ -201,7 +101,8 @@ void SYS_UIDparseOptions(cds_int32 argc, char** argv)
          SYS_UIDdebug_flag = 1;
          SYS_UIDerrorMsg("Debug flag ON\n");
       }
-   /* Not implemented for JTC
+
+#ifndef NOT_IMPLEMENTED_JTC
    // ma alert option
    FillAddressList("-ma", &ma_address_list, argc, argv, &ma_alert_interval); 
    if (SYS_UIDdebug_flag == 1)
@@ -236,29 +137,13 @@ void SYS_UIDparseOptions(cds_int32 argc, char** argv)
           SYS_UIDerrorMsg(SYS_UIDerr_str);
        }
    }
-   */
+#endif
 
 }
 
 /*******************************************************************************
 
 Description: Initializes alerts
-
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
 
 *******************************************************************************/
 void FillAddressList(const char*    option, 
@@ -325,22 +210,6 @@ void FillAddressList(const char*    option,
 
 Description: Initializes alerts by obtaining the current system time
 
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
-
 *******************************************************************************/
 void InitializeAlerts(void)
 {
@@ -352,24 +221,8 @@ void InitializeAlerts(void)
 
 Description: Activates MA alert if time requirement is met
 
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
-
 *******************************************************************************/
-/* Not implemented for JTC
+#ifndef NOT_IMPLEMENTED_JTC
 void TriggerMaAlert(void)
 {
    cds_int32 hours_elapsed;
@@ -392,30 +245,14 @@ void TriggerMaAlert(void)
      ma_alert_time = current_time;
      }
 }
-*/
+#endif
 
 /*******************************************************************************
 
 Description: Activates ME alert if time requirement is met
 
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
-
 *******************************************************************************/
-/* Not implemented for JTC
+#ifndef NOT_IMPLEMENTED_JTC
 void TriggerMeAlert(void)
 {
    cds_int32 hours_elapsed;
@@ -436,30 +273,14 @@ void TriggerMeAlert(void)
      me_alert_time = current_time;
      }
 }
-*/
+#endif
 
 /*******************************************************************************
 
 Description: Activates MF alert - always sends messages
 
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
-
 *******************************************************************************/
-/* Not implemented for JTC
+#ifndef NOT_IMPLEMENTED_JTC
 void TriggerMfAlert(void)
 {
    char emessage[800];
@@ -467,30 +288,14 @@ void TriggerMfAlert(void)
    sprintf(emessage,"fatal UID server error", tcp_port);
    SendMailList("fatal UID server error", emessage, mf_address_list);
 }
-*/
+#endif
 
 /*******************************************************************************
 
 Description: Sends mail to address list with subject
 
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
-
 *******************************************************************************/
-/* Not implemented for JTC
+#ifndef NOT_IMPLEMENTED_JTC
 void SendMailList(const char* subject, const char* emessage, const char* address_list)
 {
    char sendbuffer[1000];
@@ -505,27 +310,11 @@ void SendMailList(const char* subject, const char* emessage, const char* address
 	   emessage, subject, address_list);
    system(sendbuffer);
 }
-*/
+#endif
 
 /*******************************************************************************
 
 Description: Sets the UID status and manages the unrecoverable_error_flag
-
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
 
 *******************************************************************************/
 void SetStatus(cds_int32 status, char flag)
@@ -538,22 +327,6 @@ void SetStatus(cds_int32 status, char flag)
 /*******************************************************************************
 
 Description: initializes vars and parses arguments, branching appropriately
-
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
 
 *******************************************************************************/
 cds_int32 SYS_UIDserverInitialize(cds_int32 argc, char** argv)
@@ -651,18 +424,6 @@ Description:
 
    Writes current_position_UID to position file.
  
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
 Notes:
 
    Does not change the value: this value must be incremented before this 
@@ -698,21 +459,6 @@ Description:
 
    Reads the UID_current_pos_value from the position file.
    Should only be called once per program invocation.
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
 
 *******************************************************************************/
 cds_int32  PositionRead(void)
@@ -761,22 +507,9 @@ Description:
    If there are problems setting up UID_current, the uid_status_code is
    set appropriately.
 
-
-Input:
-
-
 Output:
 
    Returns UID_OK or UID_FAILS
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
 
 *******************************************************************************/
 cds_int32  UpdateFromPositionFile(void)
@@ -807,18 +540,6 @@ Description:
 
    Updates the position file. 
 
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
 Notes:
 
    This keys off of the current_UID value to ensure that even if a
@@ -843,20 +564,6 @@ Description:
 
    This is the  service body and indefinite loop.
 
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
 
 *******************************************************************************/
 cds_int32 SYS_UIDserverStart(void)
@@ -867,7 +574,7 @@ cds_int32 SYS_UIDserverStart(void)
    {
       if (AcceptClientConnection() == UID_OK) 
       {
-	/* Not implemented for JTC
+#ifndef NOT_IMPLEMENTED_JTC
          if (ma_address_list != NULL)
             TriggerMaAlert();
          if (SendClientMessage() == UID_FAILS)
@@ -878,13 +585,13 @@ cds_int32 SYS_UIDserverStart(void)
             CloseConnection();
             return UID_FAILS;
             }
-	*/
+#endif
       }
       CloseConnection();
-      /* Not implemented for JTC
+#ifndef NOT_IMPLEMENTED_JTC
      if (status_code != UID_CODE_OK && me_address_list != NULL)
         TriggerMeAlert();
-      */
+#endif
    }
    return UID_FAILS; // should never reach
 }
@@ -894,20 +601,6 @@ cds_int32 SYS_UIDserverStart(void)
 Description: 
 
    Reads the request message from UID clients
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
 
 
 *******************************************************************************/
@@ -951,20 +644,6 @@ Description:
 
    Writes the request message to UID clients
 
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
 
 *******************************************************************************/
 void  WriteClientRequest(void)
@@ -996,21 +675,6 @@ void  WriteClientRequest(void)
 Description: 
 
    Prints message debug information in hex rows and columns.
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
 
 *******************************************************************************/
 void  DebugClientMessage(void)
@@ -1054,21 +718,6 @@ void  DebugClientMessage(void)
 Description: 
 
    Processes a UID block request from the client.
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
 
 *******************************************************************************/
 cds_int32  SendClientMessage(void)
@@ -1129,21 +778,6 @@ Description:
 
    closes connection with current client
 
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
-
 *******************************************************************************/
 void CloseConnection(void)
 {
@@ -1157,21 +791,6 @@ Description:
    This function checks whether the desired blocksize would be out of
    bounds. If not, it leaves state vars alone such that future 
    requests that are within bounds will work.
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
 
 *******************************************************************************/
 cds_int32  UIDIsValid(cds_uint64 block_size)
@@ -1210,21 +829,6 @@ cds_int32  UIDIsValid(cds_uint64 block_size)
 Description: 
 
    opens server socket for business
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
 
 *******************************************************************************/
 cds_int32  CreateConnection(void)
@@ -1271,21 +875,6 @@ Description:
 
    configures server socket
 
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
-
 *******************************************************************************/
 cds_int32  RegisterConnection(void)
 {
@@ -1319,21 +908,6 @@ Description:
 
    Activates the server socket as listening.
 
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
-
 *******************************************************************************/
 cds_int32  ActivateConnection(void)
 {
@@ -1353,19 +927,6 @@ cds_int32  ActivateConnection(void)
 Description: 
 
    Blocks for a client to connect.
-
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
 
 Notes:
 
@@ -1409,22 +970,6 @@ Description:
 
    Utility func for setting interval message array
 
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
-
 *******************************************************************************/
 void SetUIDInterval(cds_uint64 a, cds_uint64 a_size, 
                          cds_uint64 b, cds_uint64 b_size)
@@ -1454,18 +999,6 @@ Description:
 
    It is assumed that the calling function takes responsbility for
    validating error states before this function is called.
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
 
 Notes:
 
@@ -1516,21 +1049,6 @@ Description:
    This is a cleanup called between client connects - empty now
    but may be necessary in the future.
 
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
-
 *******************************************************************************/
 cds_int32 CleanConnectionPath(void)
 {
@@ -1546,21 +1064,9 @@ Description:
    at the port specified of the local machine. If there is no server at that
    port, or a message cannot be established, an error is issued.
 
-Input:
-
-
-Output:
-
-
 Returns:
 
    UID_OK if successful, otherwise UID_FAILS
-
-Globals:
-
-
-Notes:
-
 
 *******************************************************************************/
 cds_int32 IssueKillSignal(void)
@@ -1612,21 +1118,6 @@ Description:
 
    Shuts down the server gracefully.
 
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
-
 *******************************************************************************/
 void ShutdownServer(void)
 {
@@ -1658,21 +1149,6 @@ void ShutdownServer(void)
 Description: 
 
    Attempts to initialize the port
-
-Input:
-
-
-Output:
-
-
-Returns:
-
-
-Globals:
-
-
-Notes:
-
 
 *******************************************************************************/
 int AttemptPortInitialization(void)
