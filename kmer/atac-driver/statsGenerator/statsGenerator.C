@@ -1,5 +1,5 @@
 // This file is part of A2Amapper.
-// Copyright (c) 2005 J. Craig Venter Institute
+// Copyright (c) 2005, 2006 J. Craig Venter Institute
 // Author: Brian Walenz
 // 
 // This program is free software; you can redistribute it and/or modify
@@ -94,6 +94,7 @@ public:
     FILE *out = fopen(filename, "w");
     for (u64bit i=0; i<_m / _b; i++)
       fprintf(out, u64bitFMT" "u32bitFMT"\n", i * _b, _h[i]);
+    fprintf(out, ">"u64bitFMT" "u32bitFMT"\n", _m, _l);
     fclose(out);
   }
 
@@ -183,9 +184,10 @@ totalLength(atacMatchList &matches, FastACache *A, FastACache *B) {
 }
 
 
+
 void
 totalLength(atacFeatureList &features) {
-  histogram     hi(10, 100000);
+  histogram     hi(100, 100000);
   intervalList  il;
 
   for (u32bit i=0; i<features.numberOfFeatures(); i++)
@@ -202,8 +204,8 @@ totalLength(atacFeatureList &features) {
 
 void
 mappedLengths(atacMatchList &matches, char *prefix) {
-  histogram  h1(10, 1000000);
-  histogram  h2(10, 1000000);
+  histogram  h1(100, 1000000);
+  histogram  h2(100, 1000000);
 
   //  For the coverage to work correctly, we need to either have one
   //  intervalList per input sequence, or build a table of the chained
@@ -258,8 +260,8 @@ mappedLengths(atacMatchList &matches, char *prefix) {
 //
 void
 mappedNs(atacMatchList &matches, FastACache *A, FastACache *B, char *prefix) {
-  histogram  h1(10, 10000);
-  histogram  h2(10, 10000);
+  histogram  h1(100, 1000000);
+  histogram  h2(100, 1000000);
 
   u64bit   length  = 0;
   u64bit   length1 = 0;
@@ -422,8 +424,8 @@ MappedByChromosome(atacMatchList &matches, FastACache *A, FastACache *B, char *p
   hist1acgt = new histogram * [maxIID1 + 1];
 
   for (u32bit i=0; i<matches.fastaA()->getNumberOfSequences(); i++) {
-    hist1full[i] = new histogram(10, 10000);
-    hist1acgt[i] = new histogram(10, 10000);
+    hist1full[i] = new histogram(100, 1000000);
+    hist1acgt[i] = new histogram(100, 1000000);
   }
 
   for (u32bit m=0; m<matches.numberOfMatches(); m++) {
@@ -532,8 +534,8 @@ unmappedInRuns(atacMatchList &matches, FastACache *A, FastACache *B, char *prefi
   intervalList  il1full, il2full;
   intervalList  il1acgt, il2acgt;
 
-  histogram     hist1full(10, 100000), hist2full(10, 100000);
-  histogram     hist1acgt(10, 100000), hist2acgt(10, 100000);
+  histogram     hist1full(100, 1000000), hist2full(100, 1000000);
+  histogram     hist1acgt(100, 1000000), hist2acgt(100, 1000000);
 
   for (u32bit i=1; i<matches.numberOfMatches(); i++) {
     if (strcmp(matches[i-1]->parentuid, matches[i]->parentuid) == 0) {
