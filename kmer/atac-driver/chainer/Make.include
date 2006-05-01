@@ -1,0 +1,17 @@
+$(eval $(call MakeRecursive))
+
+#$/atac/atac-driver.sh:                 $/.all
+#$/atac/localAlignerInterfacemodule.so: $/.all
+#$/atac/halignmodule.so:                $/.all
+
+$/.all:
+	cd `dirname $@` && ${MAKE} all
+
+$/.install:
+	cd `dirname $@` && ${MAKE} install
+
+$/.clean:
+	cd `dirname $@` && ${MAKE} clean
+
+$/.real-clean:
+	cd `dirname $@` && ${MAKE} real-clean

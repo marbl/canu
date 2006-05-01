@@ -6,6 +6,7 @@ LIBMERYL/     :=$/libmeryl/
 LIBKMER/      :=$/libkmer/
 LIBSIM4/      :=$/libsim4/
 
+
 # Bah!  Order is important here.  It would be nice to get things to
 # build in order of dependency (e.g., libbri, then fasta, then
 # existdb, then posdb, then searchgen), but the .d dependency
@@ -22,7 +23,7 @@ $(eval $(call Include,$/atac-driver/))
 
 $(eval $(call Include,$/leaff/))
 $(eval $(call Include,$/meryl/))
-$(eval $(call Include,$/seagen/))
+#$(eval $(call Include,$/seagen/))
 $(eval $(call Include,$/seatac/))
 $(eval $(call Include,$/sim4dbutils/))
 $(eval $(call Include,$/sim4db/))
@@ -35,3 +36,12 @@ $(eval $(call Include,${LIBKMER/}))
 $(eval $(call Include,${LIBMERYL/}))
 $(eval $(call Include,${LIBBIO/}))
 $(eval $(call Include,${LIBUTL/}))
+
+$(eval $(call Include,$/atac/))
+
+#//-RECURSIVE := $/atac/
+
+
+
+
+
