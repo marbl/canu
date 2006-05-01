@@ -246,7 +246,7 @@ main(int argc, char *argv[]) {
 
   fprintf(stderr, "gapLimit is "u32bitFMT"\n", gapLimit);
 
-  atacMatchList  ML("-", 'm', false);
+  atacMatchList  ML("-", 'm');
   ML.sort1();
 
   FastACache  *C1 = new FastACache(ML.assemblyFileA(),    2, true, false);

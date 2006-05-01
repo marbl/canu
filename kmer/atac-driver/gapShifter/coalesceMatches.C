@@ -32,7 +32,7 @@ main(int argc, char *argv[]) {
 
   //  No args, reads stdin, writes stdout.
 
-  atacMatchList  ML("-", 'm', false);
+  atacMatchList  ML("-", 'm');
 
   //  Sort by the ID's; we'll coalesce 
   ML.sortDiagonal();

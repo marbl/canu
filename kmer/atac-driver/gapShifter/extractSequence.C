@@ -92,7 +92,7 @@ main(int argc, char *argv[]) {
   if (matchesFile == 0L)
     usage(argv[0]), exit(1);
 
-  atacMatchList  ML(matchesFile, 'm', false);
+  atacMatchList  ML(matchesFile, 'm');
 
   FastACache  *A = new FastACache(ML.assemblyFileA(), 0, true, true);
   FastACache  *B = new FastACache(ML.assemblyFileB(), 0, true, true);

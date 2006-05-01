@@ -525,7 +525,7 @@ main(int argc, char *argv[]) {
   if (matchesFile == 0L)
     usage(argv[0]), exit(1);
 
-  atacMatchList  ML(matchesFile, 'm', false);
+  atacMatchList  ML(matchesFile, 'm');
 
   //  Build caches for both sequences, then modify that sequence to
   //  mask out tandem repeats.

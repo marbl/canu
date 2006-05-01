@@ -57,7 +57,7 @@ main(int argc, char *argv[]) {
   if (logFile == 0L)
     usage(argv[0]), exit(1);
 
-  atacMatchList  ML(matchesFile, 'm', false);
+  atacMatchList  ML(matchesFile, 'm');
 
   //  Sort by either axis.
   ML.sort1();
