@@ -40,7 +40,7 @@ main(int argc, char **argv) {
         u32bit  gBeg = e->genFrom - 1;
 
         if (fwd == false)
-          qBeg = p->estLen - e->estTo + 1;
+          qBeg = p->estLen - e->estFrom + 1;
 
 
         bool  notDone = true;  //  There should be a way to get rid of this stupid variable....
