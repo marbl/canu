@@ -55,7 +55,10 @@ main(int argc, char **argv) {
     getIsDeleted_ReadStruct(rd, &deleted);
 
     if (allfrags || !deleted) {
+      Fragment_ID      uid = 0;
+
       getClearRegion_ReadStruct(rd, &clrBeg, &clrEnd, READSTRUCT_OVL);
+      getAccID_ReadStruct(rd, &uid);
 
       if (getSequence_ReadStruct(rd, seq, qlt, seqMax)) {
         fprintf(stderr, "getSequence_ReadStruct() failed.\n");
@@ -63,13 +66,13 @@ main(int argc, char **argv) {
       }
 
       if (allbases) {
-        fprintf(stdout, ">"u32bitFMT" beg="u32bitFMT" end="u32bitFMT" trimmed=0 deleted=%d\n%s\n",
-                elem, clrBeg, clrEnd, deleted,
+        fprintf(stdout, ">"u64bitFMT","u32bitFMT" beg="u32bitFMT" end="u32bitFMT" trimmed=0 deleted=%d\n%s\n",
+                (u64bit)uid, elem, clrBeg, clrEnd, deleted,
                 seq);
       } else {
         seq[clrEnd] = 0;
-        fprintf(stdout, ">"u32bitFMT" beg="u32bitFMT" end="u32bitFMT" trimmed=1 deleted=%d\n%s\n",
-                elem, clrBeg, clrEnd, deleted,
+        fprintf(stdout, ">"u64bitFMT","u32bitFMT" beg="u32bitFMT" end="u32bitFMT" trimmed=1 deleted=%d\n%s\n",
+                (u64bit)uid, elem, clrBeg, clrEnd, deleted,
                 seq + clrBeg);
       }
     }
