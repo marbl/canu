@@ -46,6 +46,7 @@ SCRIPTS = runCA-OBT.pl \
           mummerCompare \
 	  testVersionOnPlatform.sh \
 	  apply_assembler \
+	  glen_est_truncadjusted.pl \
       caqc.pl
 
 # Include for AS project rules
@@ -112,3 +113,8 @@ apply_assembler: testing/apply_assembler.pl
 testVersionOnPlatform.sh: testing/$@
 	cp testing/$@ $(LOCAL_BIN)/$@
 	chmod 775 $(LOCAL_BIN)/$@
+
+glen_est_truncadjusted.pl: dataQC/$@
+	cp dataQC/$@ $(LOCAL_BIN)/$@
+	chmod 775 $(LOCAL_BIN)/$@
+
