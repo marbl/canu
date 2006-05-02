@@ -9,9 +9,10 @@ LIBSIM4/    :=$(call MakePath,$/../libsim4/)
 src      := $/searchGENOME.C \
             $/configuration.C \
             $/encodedQuery.C \
-            $/thr-search.C \
-            $/thr-loader.C \
             $/thr-deadlock.C \
+            $/thr-loader.C \
+            $/thr-search.C \
+            $/thr-output.C \
             $/hitMatrix-sort.C \
             $/aHit.H \
             $/aHit.C \

@@ -47,19 +47,28 @@ configuration::configuration(void) {
   _queryMatchFileName      = 0L;
   _statsFileName           = 0L;
 
+  _outputFile              = STDOUT_FILENO;
+  _matchCountsFile         = -1;
+
   _tableTemporaryFileName  = 0L;
   _tableFileName           = 0L;
   _tableBuildOnly          = false;
 
   _binaryOutput            = false;
 
-  _startTime               = 0.0;
-  _initTime                = 0.0;
-  _buildTime               = 0.0;
-  _searchTime              = 0.0;
-  _totalTime               = 0.0;
+  _qsFASTA                 = 0L;
+  _maskDB                  = 0L;
+  _onlyDB                  = 0L;
+  _positions               = 0L;
 
-  _loaderHighWaterMark     = 16 * 1024;
+  _numberOfQueries         = 0;
+
+  _startTime               = getTime();
+  _initTime                = _startTime;
+  _buildTime               = _startTime;
+  _searchTime              = _startTime;
+
+  _loaderQueue             = 16 * 1024;
   _loaderSleep.tv_sec      = 1;
   _loaderSleep.tv_nsec     = 0;
   _loaderWarnings          = false;
@@ -67,13 +76,32 @@ configuration::configuration(void) {
   _searchSleep.tv_sec      = 0;
   _searchSleep.tv_nsec     = 10000000;
 
-  _writerHighWaterMark     = 32 * 1024;
+  _writerQueue             = 32 * 1024;
   _writerSleep.tv_sec      = 1;
   _writerSleep.tv_nsec     = 0;
   _writerWarnings          = false;
 }
 
 configuration::~configuration() {
+
+  if (_beVerbose) {
+    u32bit nq = _qsFASTA->getNumberOfSequences();
+    double tm = _searchTime - _buildTime;
+    fprintf(stderr, "\n"u32bitFMTW(7)" sequences in %5.2f seconds, %8.3f per second.\n", nq, tm, nq/tm);
+  }
+
+  errno = 0;
+  close(_outputFile);
+  close(_matchCountsFile);
+  if (errno)
+    fprintf(stderr, "Couldn't close to the output file '%s': %s\n", config._outputFileName, strerror(errno));
+
+  delete _qsFASTA;
+  delete _maskDB;
+  delete _onlyDB;
+  delete _positions;
+
+  dumpStats();
 }
 
 static char const *usageString =
@@ -99,13 +127,17 @@ static char const *usageString =
 "\n"
 "Process Options\n"
 "    -numthreads n           Use n search threads\n"
-"    -loaderhighwatermark h  Size of the loader queue\n"
+"\n"
+"    -loaderqueue h          Size of the loader queue\n"
 "    -loadersleep t          Time the loader will sleep when its output queue is full\n"
 "    -loaderwarnings         Enable warning messages for the loader\n"
+"\n"
 "    -searchsleep t          Time the searcher will sleep when it has no input\n"
-"    -writerhighwatermark h  Size of the output queue\n"
+"\n"
+"    -writerqueue h          Size of the output queue\n"
 "    -writersleep t          Time the writer will sleep when it has nothing to write\n"
 "    -writerwarnings         Enable warning messages for the writer\n"
+"\n"
 "\n"
 "    -buildtables datfile    If 'datfile' doesn't exist, build the tables, write\n"
 "                            them to 'datfile' and exit.\n"
@@ -136,14 +168,14 @@ configuration::usage(char *name) {
 
 
 
-
-
-
-
-
 void
 configuration::read(int argc, char **argv) {
   int arg = 1;
+
+  if (argc < 2) {
+    usage(argv[0]);
+    exit(1);
+  }
 
   while (arg < argc) {
     if        (strcmp(argv[arg], "-mersize") == 0) {
@@ -249,16 +281,18 @@ configuration::read(int argc, char **argv) {
       _extendMinimum = atoi(argv[arg]);
       _extendAlternate = true;
 
-    } else if (strncmp(argv[arg], "-loaderhighwatermark", 8) == 0) {
-      _loaderHighWaterMark = atoi(argv[++arg]);
+    } else if (strncmp(argv[arg], "-loaderqueue", 8) == 0) {
+      _loaderQueue = atoi(argv[++arg]);
     } else if (strncmp(argv[arg], "-loadersleep",         8) == 0) {
       setTime(&_loaderSleep, atof(argv[++arg]));
     } else if (strncmp(argv[arg], "-loaderwarnings",      8) == 0) {
       _loaderWarnings = true;
+
     } else if (strncmp(argv[arg], "-searchsleep",         8) == 0) {
       setTime(&_searchSleep, atof(argv[++arg]));
-    } else if (strncmp(argv[arg], "-writerhighwatermark", 8) == 0) {
-      _writerHighWaterMark = atoi(argv[++arg]);
+
+    } else if (strncmp(argv[arg], "-writerqueue", 8) == 0) {
+      _writerQueue = atoi(argv[++arg]);
     } else if (strncmp(argv[arg], "-writersleep",         8) == 0) {
       setTime(&_writerSleep, atof(argv[++arg]));
     } else if (strncmp(argv[arg], "-writerwarnings",      8) == 0) {
@@ -280,11 +314,6 @@ configuration::read(int argc, char **argv) {
   //  Make sure some constraints are met
   //
 
-  if (_numSearchThreads > MAX_THREADS) {
-    fprintf(stderr, "ERROR:  Threads are limited to %d.\n", MAX_THREADS);
-    exit(1);
-  }
-
   if (_maskFileName && _onlyFileName) {
     fprintf(stderr, "ERROR:  At most one of -mask and -only may be used.\n");
     exit(-1);
@@ -303,75 +332,79 @@ configuration::read(int argc, char **argv) {
   if (((_minLengthSingle   == 0) && (_minCoverageSingle   == 0.0)) ||
       ((_minLengthMultiple == 0) && (_minCoverageMultiple == 0.0)))
     fprintf(stderr, "WARNING:  Minimum match lengths not specified.  All matches will be reported.\n");
+
+
+  //  Open output file
+  //
+  if (_outputFileName) {
+    errno = 0;
+    _outputFile = open(_outputFileName,
+                      O_WRONLY | O_LARGEFILE | O_CREAT | O_TRUNC,
+                      S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+    if (errno) {
+      fprintf(stderr, "Couldn't open the output file '%s'?\n%s\n", _outputFileName, strerror(errno));
+      exit(1);
+    }
+  }
+
+
+  if (_queryMatchFileName) {
+    errno = 0;
+    _matchCountsFile = open(_queryMatchFileName,
+                            O_WRONLY | O_LARGEFILE | O_CREAT | O_TRUNC,
+                            S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+    if (errno) {
+      fprintf(stderr, "Couldn't open the match counts file '%s'?\n%s\n", _queryMatchFileName, strerror(errno));
+      exit(1);
+    }
+  }
+
+
+  //  Gotta go somewhere!
+  //
+  _startTime = getTime();
 }
+
+
+
 
 void
 configuration::display(FILE *out) {
   if ((out == stdout) && (_beVerbose)) {
     fprintf(out, "--Using these Options--\n");
-#ifdef TRUE64BIT
-    fprintf(out, "numSearchThreads    = %u\n",   _numSearchThreads);
-#else
-    fprintf(out, "numSearchThreads    = %lu\n",   _numSearchThreads);
-#endif
+    fprintf(out, "numSearchThreads    = "u32bitFMT"\n",   _numSearchThreads);
 
     fprintf(out, "\n");
 
-#ifdef TRUE64BIT
-    fprintf(out, "loaderHighWaterMark = %u\n", _loaderHighWaterMark);
-#else
-    fprintf(out, "loaderHighWaterMark = %lu\n", _loaderHighWaterMark);
-#endif
+    fprintf(out, "loaderQueue         = "u32bitFMT"\n", _loaderQueue);
     fprintf(out, "loaderSleep         = %f\n", (double)_loaderSleep.tv_sec + (double)_loaderSleep.tv_nsec * 1e-9);
     fprintf(out, "loaderWarnings      = %s\n", _loaderWarnings ? "true" : "false");
     fprintf(out, "searchSleep         = %f\n", (double)_searchSleep.tv_sec + (double)_searchSleep.tv_nsec * 1e-9);
-#ifdef TRUE64BIT
-    fprintf(out, "writerHighWaterMark = %u\n", _writerHighWaterMark);
-#else
-    fprintf(out, "writerHighWaterMark = %lu\n", _writerHighWaterMark);
-#endif
+    fprintf(out, "writerQueue         = "u32bitFMT"\n", _writerQueue);
     fprintf(out, "writerSleep         = %f\n", (double)_writerSleep.tv_sec + (double)_writerSleep.tv_nsec * 1e-9);
     fprintf(out, "writerWarnings      = %s\n", _writerWarnings ? "true" : "false");
 
     fprintf(out, "\n");
 
 
-#ifdef TRUE64BIT
-    fprintf(out, "merSize             = %u\n",   _merSize);
-    fprintf(out, "merSkip             = %u\n",   _merSkip);
-#else
-    fprintf(out, "merSize             = %lu\n",   _merSize);
-    fprintf(out, "merSkip             = %lu\n",   _merSkip);
-#endif
+    fprintf(out, "merSize             = "u32bitFMT"\n",   _merSize);
+    fprintf(out, "merSkip             = "u32bitFMT"\n",   _merSkip);
     fprintf(out, "doReverse           = %s\n",   _doReverse ? "true" : "false");
     fprintf(out, "doForward           = %s\n",   _doForward ? "true" : "false");
     fprintf(out, "\n");
 
 
     fprintf(out, "--Using these Parameters--\n");
-#ifdef TRUE64BIT
-    fprintf(out, "maxDiagonal         = %u\n",   _maxDiagonal);
-    fprintf(out, "maxGap              = %u\n",   _maxGap);
-    fprintf(out, "qsOverlap           = %u\n",   _qsOverlap);
-    fprintf(out, "dsOverlap           = %u\n",   _dsOverlap);
-    fprintf(out, "maxIntron           = %u\n",   _maxIntronLength);
-    fprintf(out, "smallSeqCutoff      = %u\n",   _smallSequenceCutoff);
-    fprintf(out, "minLengthSingle     = %u\n",   _minLengthSingle   + _merSize);
-    fprintf(out, "minCoverageSingle   = %lf\n",   _minCoverageSingle);
-    fprintf(out, "minLengthMultiple   = %u\n",   _minLengthMultiple + _merSize);
-    fprintf(out, "minCoverageMultiple = %lf\n",   _minCoverageMultiple);
-#else
-    fprintf(out, "maxDiagonal         = %lu\n",   _maxDiagonal);
-    fprintf(out, "maxGap              = %lu\n",   _maxGap);
-    fprintf(out, "qsOverlap           = %lu\n",   _qsOverlap);
-    fprintf(out, "dsOverlap           = %lu\n",   _dsOverlap);
-    fprintf(out, "maxIntron           = %lu\n",   _maxIntronLength);
-    fprintf(out, "smallSeqCutoff      = %lu\n",   _smallSequenceCutoff);
-    fprintf(out, "minLengthSingle     = %lu\n",   _minLengthSingle   + _merSize);
-    fprintf(out, "minCoverageSingle   = %f\n",    _minCoverageSingle);
-    fprintf(out, "minLengthMultiple   = %lu\n",   _minLengthMultiple + _merSize);
-    fprintf(out, "minCoverageMultiple = %f\n",    _minCoverageMultiple);
-#endif
+    fprintf(out, "maxDiagonal         = "u32bitFMT"\n",   _maxDiagonal);
+    fprintf(out, "maxGap              = "u32bitFMT"\n",   _maxGap);
+    fprintf(out, "qsOverlap           = "u32bitFMT"\n",   _qsOverlap);
+    fprintf(out, "dsOverlap           = "u32bitFMT"\n",   _dsOverlap);
+    fprintf(out, "maxIntron           = "u32bitFMT"\n",   _maxIntronLength);
+    fprintf(out, "smallSeqCutoff      = "u32bitFMT"\n",   _smallSequenceCutoff);
+    fprintf(out, "minLengthSingle     = "u32bitFMT"\n",   _minLengthSingle   + _merSize);
+    fprintf(out, "minCoverageSingle   = %f\n",   _minCoverageSingle);
+    fprintf(out, "minLengthMultiple   = "u32bitFMT"\n",   _minLengthMultiple + _merSize);
+    fprintf(out, "minCoverageMultiple = %f\n",   _minCoverageMultiple);
     fprintf(out, "\n");
     fprintf(out, "--Using these Files--\n");
     if (_dbFileName)
@@ -411,4 +444,42 @@ configuration::display(FILE *out) {
 
     fprintf(out, "\n");
   }
+}
+
+
+
+
+void
+configuration::dumpStats(void) {
+
+  if (_statsFileName) {
+    errno = 0;
+    FILE *F = fopen(_statsFileName, "wb");
+    if (errno) {
+      fprintf(stderr, "Couldn't open the stats file '%s': %s\nStats going to stderr.", _statsFileName, strerror(errno));
+      _statsFileName = 0L;
+      F = stderr;
+    }
+
+    display(F);
+    write_rusage(F);
+      
+    fprintf(F, "wallClockTimes--------------------------\n");
+    fprintf(F, "init:     %9.5f\n", _initTime   - _startTime);
+    fprintf(F, "build:    %9.5f\n", _buildTime  - _initTime);
+    fprintf(F, "search:   %9.5f\n", _searchTime - _buildTime);
+    fprintf(F, "total:    %9.5f\n", getTime()   - _startTime);
+
+#if 0
+    fprintf(F, "searchThreadInfo------------------------\n");
+    for (u64bit i=0; i<_numSearchThreads; i++)
+      if (threadStats[i])
+        fprintf(F, threadStats[i]);
+#endif
+
+    if (_statsFileName)
+      fclose(F);
+  }
+
+
 }

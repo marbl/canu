@@ -7,6 +7,7 @@
 
 #include "bio++.H"
 #include "positionDB.H"
+#include "encodedQuery.H"
 
 struct diagonalLine {
   u32bit   _qsPos;
@@ -36,6 +37,21 @@ public:
 };
 
 class hitMatrix {
+public:
+  hitMatrix(u32bit qsLen,
+            u32bit qsMers,
+            u32bit qsIdx,
+            bool   reversed);
+  ~hitMatrix();
+
+  void    addHits(u32bit  qi,
+                  u64bit *ps,
+                  u64bit  cn);
+
+  void    sort_diagonal(void);
+  void    sort_dsPos(void);
+
+  void    filter(encodedQuery *query, bool isReverse);
 private:
   u32bit                        _qsLen;   //  Seq Len of Q
   u32bit                        _qsMers;  //  Valid mers in Q
@@ -72,18 +88,6 @@ private:
                 u32bit         dsHi,
                 merCovering   *IL);
 
-public:
-  hitMatrix(u32bit qsLen, u32bit q, u32bit qsIdx, bool reversed=false);
-  ~hitMatrix();
-
-  void    addHits(u32bit  qi,
-                  u64bit *ps,
-                  u64bit  cn);
-
-  void    sort_diagonal(void);
-  void    sort_dsPos(void);
-
-  void    filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit &theOutputMax);
 };
 
 

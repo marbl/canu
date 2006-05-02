@@ -1,5 +1,5 @@
-#include "posix.H"
 #include "searchGENOME.H"
+#include "encodedQuery.H"
 
 //  If you really, really, really want to know the exact number
 //  of bases left in the query, use the interval list.  Otherwise,
@@ -7,215 +7,69 @@
 //
 //#define USEEXACTSIZE
 
-
-#ifdef TRUE64BIT
-char const *srchGbye = "[%lu] computed: %8lu  blocked: %4lu/%4lu  encodeTime: %7.2f   searchTime: %7.2f   filterTime: %7.2f\n";
-#else
-char const *srchGbye = "[%llu] computed: %8lu  blocked: %4lu/%4lu  encodeTime: %7.2f   searchTime: %7.2f   filterTime: %7.2f\n";
-#endif
-
-
-class searcherState {
-public:
-  u64bit         posnMax;
-  u64bit         posnLen;
-  u64bit        *posn;
-
-#ifdef __APPLE__
-  u32bit         pad;
-#endif
-
-  double         encodeTime;
-  double         maskTime;
-  double         searchTime;
-  double         filterTime;
-
-  searcherState() {
-    posnMax = 16384;
-    posnLen = 0;
-    posn    = new u64bit [ posnMax ];
-
-    encodeTime = 0.0;
-    maskTime   = 0.0;
-    searchTime = 0.0;
-    filterTime = 0.0;
-  };
-
-  ~searcherState() {
-    delete [] posn;
-  };
-};
-
-
 void
 doSearch(searcherState *state,
-         FastASequenceInCore *seq,
-         u32bit idx,
-         bool rc,
-         char *&theOutput, u32bit &theOutputPos, u32bit &theOutputMax) {
-  encodedQuery  *query  = 0L;
-  hitMatrix     *matrix = 0L;
-  u32bit         qMers  = 0;
-  double         startTime  = 0.0;
-
-  //  Build and mask the query
-  //
-  startTime = getTime();
-  query = new encodedQuery(seq->sequence(), seq->sequenceLength(), config._merSize, rc);
-  state->encodeTime += getTime() - startTime;
-
-
-  startTime = getTime();
-  if (maskDB)
-    for (u32bit qi=0; qi<query->numberOfMers(); qi++)
-      if ((query->getSkip(qi) == false) &&
-          (maskDB->exists(query->getMer(qi))))
-        query->setSkip(qi);
-
-  if (onlyDB)
-    for (u32bit qi=0; qi<query->numberOfMers(); qi++)
-      if ((query->getSkip(qi) == false) &&
-          (!onlyDB->exists(query->getMer(qi))))
-        query->setSkip(qi);
-
-#ifdef USEEXACTSIZE
-  merCovering   *IL = new merCovering(config._merSize);
-
-  for (u32bit qi=0; qi<query->numberOfMers(); qi++) {
-    if (query->getSkip(qi) == false)
-      IL->addMer(qi);
-  }
-
-  qMers = IL->sumLengths();
-  delete IL;
-#else
-  qMers = query->numberOfValidMers();
-#endif
-  state->maskTime += getTime() - startTime;
-
-
+         encodedQuery  *query,
+         bool           isReverse) {
 
   //  Get the hits
-  //
-  startTime = getTime();
-  matrix = new hitMatrix(seq->sequenceLength(), qMers, idx);
+  double startTime = getTime();
+
+  hitMatrix *matrix = new hitMatrix(query->bpTotal(),
+                                    query->bpCovered(false),
+                                    query->IID(),
+                                    isReverse);
+
   for (u32bit qi=0; qi<query->numberOfMers(); qi++)
-    if ((query->getSkip(qi) == false) &&
-        (positions->get(query->getMer(qi), state->posn, state->posnMax, state->posnLen)))
+    if ((query->getSkip(qi, isReverse) == false) &&
+        (config._positions->get(query->getMer(qi, isReverse),
+                                state->posn,
+                                state->posnMax,
+                                state->posnLen)))
       matrix->addHits(qi, state->posn, state->posnLen);
+
   state->searchTime += getTime() - startTime;
 
-  //  Filter, storing the resutls into theOutput
-  //
-  startTime = getTime();
-  matrix->filter(rc ? 'r' : 'f', theOutput, theOutputPos, theOutputMax);
-  state->filterTime += getTime() - startTime;
 
+  //  Filter, storing the resutls into theOutput
+  startTime = getTime();
+
+  matrix->filter(query, isReverse);
   delete matrix;
-  delete query;
+
+  state->filterTime += getTime() - startTime;
 }
 
 
 
-void*
-searchThread(void *U) {
-  u32bit               idx      = 0;
-  FastASequenceInCore *seq      = 0L;
-  u32bit               blockedI = 0;
-  u32bit               blockedO = 0;
-  u32bit               computed = 0;
+void
+searchThread(void *U, void *T, void *Q) {
+  searcherState *state = (searcherState *)T;
+  encodedQuery  *query = (encodedQuery *)Q;
 
-  searcherState       *state    = new searcherState;
-
-  u32bit               theOutputPos = 0;
-  u32bit               theOutputMax = 0;
-  char                *theOutput    = 0L;
-
-  //  Allocate and fill out the thread stats -- this ensures that we
-  //  always have stats (even if they're bogus).
+  //  Finish building the query -- mask out repetitive junk
   //
-  threadStats[(u64bit)U] = new char [1025];
-  sprintf(threadStats[(u64bit)U], srchGbye,
-          (u64bit)U,
-          (u32bit)0, (u32bit)0, (u32bit)0,
-          0.0, 0.0, 0.0);
+  double startTime = getTime();
 
-  while (inputTail < numberOfQueries) {
+  if (config._maskDB)
+    for (u32bit qi=0; qi<query->numberOfMers(); qi++)
+      if ((query->getSkip(qi, false) == false) &&
+          (config._maskDB->exists(query->getMer(qi, false))))
+        query->setSkip(qi, false);
 
-    //  Grab the next sequence.
-    //
-    pthread_mutex_lock(&inputTailMutex);
-    idx = inputTail;
-    if (idx < numberOfQueries) {
-      seq = input[idx];
-      input[idx] = 0L;
-      if (seq)
-        inputTail++;
-    }
-    pthread_mutex_unlock(&inputTailMutex);
+  if (config._onlyDB)
+    for (u32bit qi=0; qi<query->numberOfMers(); qi++)
+      if ((query->getSkip(qi, false) == false) &&
+          (!config._onlyDB->exists(query->getMer(qi, false))))
+        query->setSkip(qi, false);
 
-    //  Still need to check that the index is valid.  Another thread
-    //  could (and does) steal execution between the while and the
-    //  mutex lock.
-    //
-    if (idx < numberOfQueries) {
-
-      //  If there is no sequence, oh boy, we are in bad shape.  Sleep a
-      //  little bit to let the loader catch up, then try again.
-      //
-      if (seq == 0L) {
-        //if (config._loaderWarnings)
-        //  fprintf(stderr, "%lu Blocked by input.\n", (u64bit)U);
-        blockedI++;
-        nanosleep(&config._searchSleep, 0L);
-      } else {
-
-        //  If our idx is too far away from the output thread, sleep
-        //  a little bit.  We keep the idx and seq that we have obtained,
-        //  though.
-        //
-        while (idx > (outputPos + config._writerHighWaterMark)) {
-          if (config._writerWarnings)
-            fprintf(stderr, u64bitFMT" Blocked by output (idx = "u32bitFMT", outputPos = "u32bitFMT").\n", (u64bit)U, idx, outputPos);
-          blockedO++;
-          nanosleep(&config._searchSleep, 0L);
-        }
-
-        //  Allocate space for the output -- 1MB should be enough for
-        //  about 29000 signals.  Make it 32K -> 900 signals.
-        //
-        theOutputPos = 0;
-        theOutputMax = 32 * 1024;
-        theOutput    = new char [theOutputMax];
-
-        //  Do searches.
-        //
-        if (config._doForward)
-          doSearch(state, seq, idx, false, theOutput, theOutputPos, theOutputMax);
-        if (config._doReverse)
-          doSearch(state, seq, idx, true,  theOutput, theOutputPos, theOutputMax);
-
-        //  Signal that we are done.
-        //
-        outputLen[idx] = theOutputPos;
-        output[idx]    = theOutput;
-        computed++;
-
-        delete seq;
-      } // end of seq != 0L
-    } // end of idx < numberOfQueries
-  } // end of inputTail < numberOfQueries
+  state->maskTime += getTime() - startTime;
 
 
-  //  OK, now fill out the read thread stats
+  //  Do searches.
   //
-  sprintf(threadStats[(u64bit)U], srchGbye, (u64bit)U,
-          computed, blockedI, blockedO,
-          state->encodeTime,
-          state->searchTime,
-          state->filterTime);
-
-  delete state;
-
-  return(0L);
+  if (config._doForward)
+    doSearch(state, query, false);
+  if (config._doReverse)
+    doSearch(state, query, true);
 }

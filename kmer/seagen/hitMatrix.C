@@ -176,11 +176,10 @@ adjustHeap(diagonalLine *L, s32bit p, s32bit n) {
 }
 
 void
-hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit &theOutputMax) {
+hitMatrix::filter(encodedQuery *query, bool isReverse) {
 
   if (_hitsLen == 0)
     return;
-
 
   //  Decide on the minimum quality values; we pick the larger of
   //  the fixed lengths, and the sequence length * coverage.
@@ -538,36 +537,11 @@ hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit
         delete n;
       }
 
-      if (theOutputPos + 128 >= theOutputMax) {
-        theOutputMax <<= 1;
-        char *o = 0L;
-        try {
-          o = new char [theOutputMax];
-        } catch (std::bad_alloc) {
-          fprintf(stderr, "hitMatrix::filter()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
-          fprintf(stderr, "hitMatrix::filter()-- tried to extend output string from %lu to %lu bytes.\n", theOutputPos, theOutputMax);
-          exit(1);
-        }
-        memcpy(o, theOutput, theOutputPos);
-        delete [] theOutput;
-        theOutput = o;
-      }
-
 
       if (config._binaryOutput) {
-        //  This little bit of nastiness is to make the compiler stop warning about
-        //  alignment when we just cast a char pointer + offset to u32bit:
-        //
-        //  u32bit *O = (u32bit *)(theOutput + theOutputPos);
-        //
-        //  hitMatrix.C:534: warning: cast from `char*' to `u32bit*' increases required 
-        //  alignment of target type
-        //
-        //  Plus, it lets us define a type for hits.
-        //
         aHit a;
       
-        a._forward   = (direction == 'f');
+        a._forward   = !isReverse;
         a._merged    = false;
         a._qsIdx     = _qsIdx;
         a._dsIdx     = config._useList.IIDOf(currentSeq);
@@ -577,33 +551,19 @@ hitMatrix::filter(char direction, char *&theOutput, u32bit &theOutputPos, u32bit
         a._matched   = ML;
         a._numMers   = _qsMers;
 
-        memcpy(theOutput + theOutputPos, &a, sizeof(aHit));
-
-        theOutputPos += (u32bit)sizeof(aHit);
+        query->addOutput(&a, sizeof(aHit));
       } else {
+        char  line[128];
 
-#ifdef TRUE64BIT
-#define HITOUTPUTLINE "-%c -e %u -D %u %u %u -M %u %u %u\n"
-#else
-#define HITOUTPUTLINE 
-#endif
-
-
-
-        sprintf(theOutput + theOutputPos, "-%c -e "u32bitFMT" -D "u64bitFMT" "u32bitFMT" "u32bitFMT" -M "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
-                direction, _qsIdx,
+        sprintf(line, "-%c -e "u32bitFMT" -D "u64bitFMT" "u32bitFMT" "u32bitFMT" -M "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
+                isReverse ? 'r' : 'f', _qsIdx,
                 config._useList.IIDOf(currentSeq),
                 dsLow, dsHigh, IL->sumLengths(), ML, _qsMers);
 
-        while (theOutput[theOutputPos])
-          theOutputPos++;
+        query->addOutput(line, 0);
       }
 
       delete IL;
-
-      //pthread_mutex_lock(&queryMatchMutex);
-      queryMatchCounts[_qsIdx]++;
-      //pthread_mutex_unlock(&queryMatchMutex);
     }
 
     //  All done with these hits.  Move to the next set.
