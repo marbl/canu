@@ -30,11 +30,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: BuildUnitigs.cc,v 1.9 2006-04-21 14:42:20 eliv Exp $
- * $Revision: 1.9 $
+ * $Id: BuildUnitigs.cc,v 1.10 2006-05-02 15:02:12 eliv Exp $
+ * $Revision: 1.10 $
 */
 
-static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.9 2006-04-21 14:42:20 eliv Exp $";
+static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.10 2006-05-02 15:02:12 eliv Exp $";
 
 //  System include files
 
@@ -146,6 +146,7 @@ int  main (int argc, char * argv [])
 	}
 	std::cerr << "///////////////////////////////////////////////////////////\n" << std::endl;
 
+    delete bogRunner.metrics[i];
    }
 
 
@@ -180,8 +181,8 @@ void outputHistograms(AS_BOG::UnitigGraph *utg) {
     extend_histogram(arate_histogram, sizeof(MyHistoDataType),
             myindexdata,mysetdata,myaggregate,myprintdata);
 
-    AS_BOG::UnitigVector::const_iterator uiter = utg->unitigs.begin();
-    for(;uiter != utg->unitigs.end(); uiter++) {
+    AS_BOG::UnitigVector::const_iterator uiter = utg->unitigs->begin();
+    for(;uiter != utg->unitigs->end(); uiter++) {
 
         AS_BOG::Unitig *u = *uiter;
         zork.nsamples = 1;

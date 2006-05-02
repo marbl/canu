@@ -34,15 +34,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.hh,v 1.13 2006-04-26 20:14:42 eliv Exp $
- * $Revision: 1.13 $
+ * $Id: AS_BOG_UnitigGraph.hh,v 1.14 2006-05-02 15:02:12 eliv Exp $
+ * $Revision: 1.14 $
 */
 
 
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.13 2006-04-26 20:14:42 eliv Exp $";
+static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.14 2006-05-02 15:02:12 eliv Exp $";
 
 #include <vector>
 #include <map>
@@ -98,7 +98,7 @@ namespace AS_BOG{
 		long getNumFrags(void);
 		long getSumFragLength(void);
 		long getNumRandomFrags(void); // For now, same as numFrags, but should be randomly sampled frag count
-        DoveTailNode* getLastBackboneNode(iuid&);
+        DoveTailNode getLastBackboneNode(iuid&);
 		// For proto I/O messages
 		IntUnitigMesg *getIUM_Mesg();
 		void freeIUM_Mesg(IntUnitigMesg *ium_ptr);
@@ -166,7 +166,7 @@ namespace AS_BOG{
 		// Member Variables
 
 		// Unitigs are the dove tails and their contained fragments
-		UnitigVector unitigs;
+		UnitigVector *unitigs;
 
 		// Overlaps are unitig overlaps
 		std::vector<UnitigOverlap*> overlaps;
@@ -187,8 +187,8 @@ namespace AS_BOG{
 			ContainerMap *_extract_containees(DoveTailPath *dtp_ptr, 
 				ContainerMap *cntnrmap_ptr);
             // Merge Unitigs by follow the bid's
-            void mergeAllUnitigs( std::map<iuid,iuid> &);
-            void mergeUnitigs(Unitig*, std::set<iuid> &, std::map<iuid,iuid> &);
+            void mergeAllUnitigs( std::map<iuid,iuid> *);
+            void mergeUnitigs(Unitig*, std::set<iuid> *, std::map<iuid,iuid> *);
 
             // handles next iteration setup for mergUnitigs
             BestEdgeOverlap* UnitigGraph::nextJoiner( Unitig*,

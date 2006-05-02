@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.21 2006-04-26 20:14:42 eliv Exp $
- * $Revision: 1.21 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.22 2006-05-02 15:02:12 eliv Exp $
+ * $Revision: 1.22 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.21 2006-04-26 20:14:42 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.22 2006-05-02 15:02:12 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -56,12 +56,16 @@ extern "C" {
 namespace AS_BOG{
 
 	//////////////////////////////////////////////////////////////////////////////
-    UnitigGraph::UnitigGraph(BestOverlapGraph *in_bog_ptr) : bog_ptr(in_bog_ptr) {}
+    UnitigGraph::UnitigGraph(BestOverlapGraph *in_bog_ptr) : bog_ptr(in_bog_ptr)
+    {
+        unitigs = new UnitigVector;
+    }
 
     UnitigGraph::~UnitigGraph() {
 		UnitigVector::iterator utg_itr;
-		for(utg_itr=unitigs.begin(); utg_itr!=unitigs.end(); utg_itr++)
+		for(utg_itr=unitigs->begin(); utg_itr!=unitigs->end(); utg_itr++)
             delete *utg_itr;
+        delete unitigs;
     }
 
 	void UnitigGraph::build(ChunkGraph *cg_ptr, long num_rand_frags, long genome_size){
@@ -73,8 +77,8 @@ namespace AS_BOG{
 		iuid fp_dst_frag_id, tp_dst_frag_id;
 
 		// Initialize where we've been to nowhere; "Do not retraverse list"
-		std::map<iuid, iuid> visited_map;
-		visited_map.clear();
+		std::map<iuid, iuid> *visited_map = new std::map<iuid,iuid>;
+		visited_map->clear();
 
 		BestContainmentMap *best_cntr = &(bog_ptr->_best_containments);
 		ContainerMap *cntnrmap_ptr = _build_container_map(best_cntr);
@@ -87,7 +91,7 @@ namespace AS_BOG{
 
 			// Check the map to so we don't visit a unitig twice (once from
 			//   both ends)
-			if(visited_map.find(frag_idx) == visited_map.end() && 
+			if(visited_map->find(frag_idx) == visited_map->end() && 
 				 best_cntr->find(frag_idx) == best_cntr->end() )
             { 
 				cg_ptr->getChunking(
@@ -111,7 +115,7 @@ namespace AS_BOG{
 					// Allocated a new unitig node
 					Unitig *utg=new Unitig;
 
-					visited_map[frag_idx]=unitig_id;
+					(*visited_map)[frag_idx]=unitig_id;
 					// Store the dovetails
 					if(fp_dst_frag_id == NULL_FRAG_ID && tp_dst_frag_id != NULL_FRAG_ID){
 						utg->dovetail_path_ptr=
@@ -131,8 +135,8 @@ namespace AS_BOG{
 					//   dovetail, then store it in the "do not retraverse
 					//   list"
                     iuid notUsed;
-					iuid last_frag_id_in_dovetail= utg->getLastBackboneNode(notUsed)->ident;
-					visited_map[last_frag_id_in_dovetail]=unitig_id;
+					iuid last_frag_id_in_dovetail= utg->getLastBackboneNode(notUsed).ident;
+					(*visited_map)[last_frag_id_in_dovetail]=unitig_id;
                     if (utg->getNumFrags() > 1) {
                         std::cerr << "IUM " << unitig_id << " FID " << frag_idx
                             << " LID " << last_frag_id_in_dovetail
@@ -151,7 +155,7 @@ namespace AS_BOG{
 					unitig_id++;
 
 					// Store unitig in unitig graph
-					unitigs.push_back(utg);
+					unitigs->push_back(utg);
 
 				}else{
 					// We are either in the middle of a dovetail sequence,
@@ -164,6 +168,7 @@ namespace AS_BOG{
         delete cntnrmap_ptr;
 
         mergeAllUnitigs( visited_map );
+        delete visited_map;
 
 		std::cerr << "Setting Global Arrival Rate.\n";
 		float globalARate = getGlobalArrivalRate(num_rand_frags, genome_size);
@@ -171,7 +176,7 @@ namespace AS_BOG{
 		static_proxy.setGlobalArrivalRate(globalARate);
 
 		std::cerr << "Global Arrival Rate: " << globalARate << std::endl;
-		std::cerr << std::endl << "There were " << unitigs.size() << " unitigs generated.\n";
+		std::cerr << std::endl << "There were " << unitigs->size() << " unitigs generated.\n";
 	}
     //////////////////////////////////////////////////////////////////////////////
     BestEdgeOverlap* UnitigGraph::nextJoiner( Unitig* tig, 
@@ -179,16 +184,17 @@ namespace AS_BOG{
                        BestEdgeOverlap *&fivePrime, BestEdgeOverlap *&threePrime )
     {
         aPrev = 0;
-        DoveTailNode* joinerNode = tig->getLastBackboneNode(aPrev);
-        fragA = joinerNode->ident;
+        DoveTailNode joinerNode = tig->getLastBackboneNode(aPrev);
+        fragA = joinerNode.ident;
+        assert( aPrev != fragA );
         // Never join on a contain
-        assert( joinerNode->contained == 0 );
+        assert( joinerNode.contained == 0 );
         fivePrime = bog_ptr->getBestEdgeOverlap( fragA, FIVE_PRIME );
         threePrime = bog_ptr->getBestEdgeOverlap( fragA, THREE_PRIME );
 
         BestEdgeOverlap* bestEdge;
-        begRev = joinerNode->position.bgn > joinerNode->position.end;
-        tigEnd = begRev ? joinerNode->position.bgn : joinerNode->position.end;
+        begRev = joinerNode.position.bgn > joinerNode.position.end;
+        tigEnd = begRev ? joinerNode.position.bgn : joinerNode.position.end;
         if ( aPrev == fivePrime->frag_b_id ) {
             bestEdge = threePrime;
         } else if ( aPrev == threePrime->frag_b_id ) {
@@ -206,8 +212,8 @@ namespace AS_BOG{
     }
 
     //////////////////////////////////////////////////////////////////////////////
-    void UnitigGraph::mergeUnitigs(Unitig* tig, std::set<iuid> &joined,
-            std::map<iuid,iuid> &visited_map)
+    void UnitigGraph::mergeUnitigs(Unitig* tig, std::set<iuid> *joined,
+            std::map<iuid,iuid> *visited_map)
     {
         iuid beforeLast, beginId, joiner;
         int tigEnd;
@@ -217,11 +223,11 @@ namespace AS_BOG{
                 beginId, tigEnd, begRev, fivePrime, threePrime
         );
         joiner = bestEdge->frag_b_id;
-        iuid tigIdToAdd = visited_map[ joiner ];
-        Unitig* tigToAdd = unitigs[ tigIdToAdd - 1];
-        while (joiner != 0 && joined.find(tigIdToAdd) == joined.end() &&
-                 visited_map.find(joiner) != visited_map.end())
+        iuid tigIdToAdd = (*visited_map)[ joiner ];
+        while (joiner != 0 && joined->find(tigIdToAdd) == joined->end() &&
+                 visited_map->find(joiner) != visited_map->end())
         {
+            Unitig* tigToAdd = unitigs->at( tigIdToAdd - 1);
             // Code assumes joining only from end of unitig
             if ( beforeLast != 0 ) // ok to join singleton though
                 assert( beginId != tig->dovetail_path_ptr->front().ident);
@@ -233,10 +239,10 @@ namespace AS_BOG{
             bool reverse = false;
             DoveTailNode first = tigToAdd->dovetail_path_ptr->front();
             iuid notUsed;
-            DoveTailNode* last  = tigToAdd->getLastBackboneNode(notUsed);
+            DoveTailNode last  = tigToAdd->getLastBackboneNode(notUsed);
             if (joiner == first.ident)
-                last = &first;
-            bool lastReverse = last->position.bgn > last->position.end;
+                last = first;
+            bool lastReverse = last.position.bgn > last.position.end;
             // asserts one of the in_degree's should always be none zero at a unitig break
             // then make sure the both frags agree on which ends are being used
             if ( bestEdge == threePrime ) {
@@ -321,8 +327,8 @@ namespace AS_BOG{
                     tig->dovetail_path_ptr->push_back( *addIter );
                 }
             } else { // reverse complement
-                int lastEnd = last->position.end > last->position.bgn ? 
-                              last->position.end : last->position.bgn;
+                int lastEnd = last.position.end > last.position.bgn ? 
+                              last.position.end : last.position.bgn;
                 DoveTailPath contains;
                 DoveTailPath::reverse_iterator addIter =
                                  tigToAdd->dovetail_path_ptr->rbegin();
@@ -341,47 +347,55 @@ namespace AS_BOG{
                     }
                 }
             }
-            joined.insert(tigIdToAdd);
+            delete tigToAdd;
+            unitigs->at( tigIdToAdd - 1) = NULL;
+            joined->insert(tigIdToAdd);
             bestEdge = nextJoiner( tig, beforeLast,
                     beginId, tigEnd, begRev, fivePrime, threePrime
             );
             joiner = bestEdge->frag_b_id;
-            tigIdToAdd = visited_map[ joiner ];
-              tigToAdd = unitigs[ tigIdToAdd - 1];
+            if ( joiner == 0)
+                break;
+            tigIdToAdd = (*visited_map)[ joiner ];
         }
     }
     //////////////////////////////////////////////////////////////////////////////
-    void UnitigGraph::mergeAllUnitigs( std::map<iuid,iuid> &visited_map) {
+    void UnitigGraph::mergeAllUnitigs( std::map<iuid,iuid> *visited_map) {
 
-        std::set<iuid> joined;
-        UnitigVector newTigs;
-        UnitigVector::iterator tigIter = unitigs.begin();
-        for(;tigIter != unitigs.end(); tigIter++) {
+        std::set<iuid>* joined = new std::set<iuid>;
+        UnitigVector* newTigs = new UnitigVector;
+        UnitigVector::iterator tigIter = unitigs->begin();
+        for(;tigIter != unitigs->end(); tigIter++) {
             Unitig* tig = *tigIter;
-            if (joined.find( tig->id ) == joined.end()) {
-                joined.insert( tig->id );
+            if (tig == NULL)
+                continue;
+            if (joined->find( tig->id ) == joined->end()) {
+                joined->insert( tig->id );
                 if (tig->getNumFrags() == 1) {
-                    newTigs.push_back( tig );
+                    newTigs->push_back( tig );
                     continue;
                 }
                 mergeUnitigs( tig, joined, visited_map );
-                newTigs.push_back( tig );
+                newTigs->push_back( tig );
             }
         }
+        delete unitigs;
         unitigs = newTigs;
+        delete joined;
     }
 	//////////////////////////////////////////////////////////////////////////////
-    DoveTailNode* Unitig::getLastBackboneNode(iuid &prevId) {
+    DoveTailNode Unitig::getLastBackboneNode(iuid &prevId) {
         DoveTailPath::reverse_iterator rIter = dovetail_path_ptr->rbegin();
-        DoveTailNode* lastNonContain = NULL;
+        DoveTailNode lastNonContain;
+        memset(&lastNonContain, 0, sizeof(lastNonContain));
         for(;rIter != dovetail_path_ptr->rend(); rIter++) {
-            DoveTailNode* node = &(*rIter);
-            if (node->contained == 0) {
-                if (lastNonContain == NULL)
+            DoveTailNode node = *rIter;
+            if (node.contained == 0) {
+                if (lastNonContain.ident == 0)
                     lastNonContain = node;
                 else
                 {
-                    prevId = node->ident;
+                    prevId = node.ident;
                     return lastNonContain;
                 }
             }
@@ -517,8 +531,8 @@ namespace AS_BOG{
 		
 		UnitigVector::const_iterator utg_itr;
 		iuid num_utgs=0;
-		for(utg_itr=utgrph.unitigs.begin();
-			utg_itr!=utgrph.unitigs.end();
+		for(utg_itr=utgrph.unitigs->begin();
+			utg_itr!=utgrph.unitigs->end();
 			utg_itr++){
 		
 			std::cerr << num_utgs << std::endl;
@@ -545,8 +559,8 @@ namespace AS_BOG{
 			// Go through all the unitigs to sum rho and unitig arrival frags
 			UnitigVector::const_iterator iter;
 			for(
-			    iter=unitigs.begin();
-			    iter!=unitigs.end();
+			    iter=unitigs->begin();
+			    iter!=unitigs->end();
 			    iter++){
 				
 				float avg_rho = (*iter)->getAvgRho();
@@ -1009,7 +1023,7 @@ namespace AS_BOG{
 		// Step through all the unitigs
         int iumId = 0;
 		UnitigVector::iterator utg_itr;
-		for(utg_itr=unitigs.begin(); utg_itr!=unitigs.end(); utg_itr++){
+		for(utg_itr=unitigs->begin(); utg_itr!=unitigs->end(); utg_itr++){
 
 			IntUnitigMesg *ium_mesg_ptr;
 			ium_mesg_ptr=(*utg_itr)->getIUM_Mesg();
