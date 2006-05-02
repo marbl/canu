@@ -17,7 +17,15 @@
 
 class sweatShop;
 
-struct sweatShopWorker {
+class sweatShopWorker {
+public:
+  sweatShopWorker() {
+    shop           = 0L;
+    threadUserData = 0L;
+    threadID       = 0;
+    numComputed    = 0;
+  };
+
   sweatShop   *shop;
   void        *threadUserData;
   u32bit       threadID;
@@ -63,10 +71,13 @@ private:
   };
 
   //  Stubs that forward control from the c-based pthread to this class
-  friend void  *loaderThread(void *ss);
-  friend void  *workerThread(void *ss);
-  friend void  *writerThread(void *ss);
-  friend void  *statusThread(void *ss);
+  friend void  *_sweatshop_loaderThread(void *ss);
+  friend void  *_sweatshop_workerThread(void *ss);
+#if 0
+  //  unused
+  friend void  *_sweatshop_writerThread(void *ss);
+#endif
+  friend void  *_sweatshop_statusThread(void *ss);
 
   //  The threaded routines
   void   *loader(void);
@@ -99,6 +110,7 @@ private:
   u32bit                 _numberOfWorkers;
 
   sweatShopWorker       *_workerData;
+  bool                   _workerDataSet;
 
   u64bit                 _numberLoaded;
   u64bit                 _numberComputed;

@@ -10,25 +10,28 @@
 
 //  Simply forwards control to the class
 void*
-loaderThread(void *ss) {
+_sweatshop_loaderThread(void *ss) {
   sweatShop *SS = (sweatShop *)ss;
   return(SS->loader());
 }
 
 void*
-workerThread(void *x) {
+_sweatshop_workerThread(void *x) {
   sweatShopWorker *SW = (sweatShopWorker *)x;
   return(SW->shop->worker(SW));
 }
 
+#if 0
+//  unused, we do this in 'main()'
 void*
-writerThread(void *x) {
+_sweatshop_writerThread(void *x) {
   sweatShop *SS = (sweatShop *)x;
   return(SS->writer());
 }
+#endif
 
 void*
-statusThread(void *x) {
+_sweatshop_statusThread(void *x) {
   sweatShop *SS = (sweatShop *)x;
   return(SS->status());
 }
@@ -55,7 +58,8 @@ sweatShop::sweatShop(void*(*loader)(void *G),
 
   _numberOfWorkers = 3;
 
-  _workerData = new sweatShopWorker [_numberOfWorkers];
+  _workerData     = new sweatShopWorker [_numberOfWorkers];
+  _workerDataSet  = false;
 
   _numberLoaded   = 0;
   _numberComputed = 0;
@@ -84,9 +88,13 @@ sweatShop::writerQueueSize(u32bit x) {
 u32bit
 sweatShop::numberOfWorkers(u32bit x) {
   if (x > 0) {
+    if (_workerDataSet) {
+      fprintf(stderr, "sweatShop::numberOfWorkers()-- ERROR!  This cannot be called after setThreadData()\n");
+      exit(1);
+    }
     _numberOfWorkers = x;
     delete [] _workerData;
-    _workerData = new sweatShopWorker [_numberOfWorkers];
+    _workerData    = new sweatShopWorker [_numberOfWorkers];
   }
   return(_numberOfWorkers);
 }
@@ -99,6 +107,7 @@ sweatShop::setThreadData(u32bit t, void *x) {
     exit(1);
   }
   _workerData[t].threadUserData = x;
+  _workerDataSet = true;
 }
 
 
@@ -226,7 +235,7 @@ sweatShop::loader(void) {
 void*
 sweatShop::worker(sweatShopWorker *workerData) {
 
-  fprintf(stderr, "Worker %d!\n", workerData->threadID);
+  fprintf(stderr, "Worker %d! (userData=%p)\n", workerData->threadID, workerData->threadUserData);
 
   struct timespec   naptime;
   naptime.tv_sec      = 0;
@@ -342,7 +351,7 @@ sweatShop::status(void) {
       deltaCPU = _numberLoaded - _numberComputed;
 
 
-    fprintf(stderr, "%6.1f/s (out="u64bitFMTW(8)") + "u64bitFMTW(8)" = (cpu = "u64bitFMTW(8)") + "u64bitFMTW(8)" = (in = "u64bitFMTW(8)")\n",
+    fprintf(stderr, "%6.1f/s (out="u64bitFMTW(8)") + "u64bitFMTW(8)" = (cpu = "u64bitFMTW(8)") + "u64bitFMTW(8)" = (in = "u64bitFMTW(8)")\r",
             _numberOutput / (getTime() - startTime),
             _numberOutput,
             deltaOut,
@@ -390,7 +399,7 @@ sweatShop::run(void *user, bool beVerbose) {
 
   //  Fire off the loader, or the all-vs-all loader
   //
-  pthread_create(&threadID, &threadAttr, loaderThread, this);
+  pthread_create(&threadID, &threadAttr, _sweatshop_loaderThread, this);
 
   //  Wait for it to actually load something (otherwise all the
   //  workers immediately go home)
@@ -407,17 +416,15 @@ sweatShop::run(void *user, bool beVerbose) {
   //
   for (u32bit i=0; i<_numberOfWorkers; i++) {
     _workerData[i].shop           = this;
-    _workerData[i].threadUserData = 0L;
     _workerData[i].threadID       = i;
-    _workerData[i].numComputed    = 0;
 
-    pthread_create(&threadID, &threadAttr, workerThread, _workerData + i);
+    pthread_create(&threadID, &threadAttr, _sweatshop_workerThread, _workerData + i);
   }
 
   //  And the stats
   //
   if (beVerbose)
-    pthread_create(&threadID, &threadAttr, statusThread, this);
+    pthread_create(&threadID, &threadAttr, _sweatshop_statusThread, this);
 
   //  We run the writer in the main, right here.  We could probably
   //  run stats here, but we certainly aren't done until the worker
