@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.62 2006-04-06 16:49:32 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.63 2006-05-03 21:42:07 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -6754,6 +6754,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
     IntMultiPos *positions=unitig->f_list;
     int num_frags = unitig->num_frags;
     int unitig_forced = 0;
+    int32 *is_pointed = NULL, i_afrag;
 
     if ((num_frags == 1) && 
         (positions[0].position.bgn == positions[0].position.end))
@@ -6849,6 +6850,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
     //    a)  containing frag (if contained)
     // or b)  previously aligned frag
 #ifdef NEW_UNITIGGER_INTERFACE
+    is_pointed = safe_calloc(num_frags,sizeof(int32));
     for (i=0;i<num_frags;i++) 
     {
        Fragment *afrag = GetFragment(fragmentStore,i);
@@ -6881,6 +6883,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
            continue;
        assert(align_to >= 0);
        ahang = positions[i].ahang;
+       is_pointed[align_to] = 1;
        if (align_to < i)
        {
            // Redefine afrag and bfrag: afrag should be the upstream one!
@@ -7050,6 +7053,16 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
        if ( mark_contains && otype == AS_CONTAINMENT ) { 
          MarkAsContained(i);
        }
+#ifdef NEW_UNITIGGER_INTERFACE
+       i_afrag = (i<align_to) ? i : align_to;
+       if (i_afrag && !is_pointed[i] && !afrag->contained && !bfrag->contained)
+       {
+           fprintf(stderr, 
+               "Error: no other fragment pointed to uncontained fragment %d. Exit\n",
+               positions[i].ident);
+           CleanExit("",__LINE__,1);
+       }
+#endif
        if ( frag_forced ) {
             ApplyAlignment(afrag->lid,0,bfrag->lid,ahang,Getint32(trace,0));
        } else {
@@ -7060,6 +7073,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
 #endif
        }
     } /* loop through all the unitigfs */
+    FREE(is_pointed);
 
     unitig->num_vars = 0;
     {
