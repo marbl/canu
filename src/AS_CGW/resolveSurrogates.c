@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: resolveSurrogates.c,v 1.4 2005-10-28 20:49:17 brianwalenz Exp $";
+static char CM_ID[] = "$Id: resolveSurrogates.c,v 1.5 2006-05-03 18:52:27 ahalpern Exp $";
 
 
 /*********************************************************************/
@@ -238,7 +238,7 @@ int main( int argc, char *argv[])
 	  ChunkInstanceT *mateChunk;
 	  int fragIsGood = 0;
 
-	  if( placeAllFragsInSinglePlacedSurros ) {
+	  if( placeAllFragsInSinglePlacedSurros && numInstances == 1 ) {
 	    fragIsGood=1;
 	  } else {
 	    if(matePlacedOnlyIn(nextfrg,sid,&mate,&mateChunk)){
