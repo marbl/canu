@@ -58,7 +58,7 @@ sub createOverlapJobs {
     print F "fi\n";
     print F "\n";
     print F "jobid=\$SGE_TASK_ID\n";
-    print F "if [ x\$jobid = x ]; then\n";
+    print F "if [ x\$jobid = x -o x\$jobid = xundefined ]; then\n";
     print F "  jobid=\$1\n";
     print F "fi\n";
     print F "if [ x\$jobid = x ]; then\n";
@@ -201,10 +201,11 @@ sub createOverlapJobs {
     #  Submit to the grid (or tell the user to do it), or just run
     #  things here
     #
-    if ($useGrid) {
+    if (getGlobal("useGrid") && getGlobal("ovlOnGrid")) {
         my $SGE;
         $SGE .= "\n";
         $SGE .= "qsub -p 0 -r y -N ovl_${asm} \\\n";
+        $SGE .= "  -pe thread 2 \\\n";
         $SGE .= "  -t 1-$jobs \\\n";
         $SGE .= "  -j y -o $wrk/$outDir/overlap.\\\$TASK_ID.out \\\n";
         $SGE .= "  -e $wrk/$outDir/overlap.\\\$TASK_ID.err \\\n";
@@ -214,15 +215,17 @@ sub createOverlapJobs {
         touch("$wrk/$outDir/jobsCreated.success");
         exit(0);
     } else {
+        my $failures = 0;
         for (my $i=1; $i<=$jobs; $i++) {
             my $out = substr("0000" . $i, -4);
             if (runCommand("$wrk/$outDir/overlap.sh $i > $wrk/$outDir/$out.out 2>&1")) {
-                print STDERR "Failed job $i\n";
-                exit(1);
+                $failures++;
             }
         }
 
-        touch("$wrk/$outDir/jobsCreated.success");
+        if ($failures == 0) {
+            touch("$wrk/$outDir/jobsCreated.success");
+        }
     }
 }
 

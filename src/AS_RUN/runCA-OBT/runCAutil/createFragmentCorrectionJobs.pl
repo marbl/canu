@@ -3,7 +3,7 @@ use strict;
 sub createFragmentCorrectionJobs {
     my $frgCorrBatchSize  = getGlobal("frgCorrBatchSize");
     my $frgCorrThreads    = getGlobal("frgCorrThreads");
-    my $frgCorrOnGrid     = getGlobal("frgCorrOnGrid");
+    my $frgCorrOnGrid     = getGlobal("frgCorrOnGrid") && getGlobal("useGrid");
     my $scratch           = getGlobal("scratch");
 
     return if (getGlobal("doFragmentCorrection") == 0);
@@ -32,30 +32,7 @@ sub createFragmentCorrectionJobs {
 
         system("mkdir $wrk/2-frgcorr/$batchName") if (! -d "$wrk/2-frgcorr/$batchName");
 
-        if ($frgCorrOnGrid == 0) {
-            #  Run the correction job right here, right now.
-
-            open(F, "> $wrk/2-frgcorr/$batchName/$jobName.sh") or die;
-            print F "#!/bin/sh\n\n";
-            #print F "$processStats \\\n";
-            print F "$bin/correct-frags \\\n";
-            print F "  -t $frgCorrThreads \\\n";
-            print F "  -S $wrk/$asm.ovlStore \\\n";
-            print F "  -o $wrk/2-frgcorr/$batchName/$jobName.frgcorr \\\n";
-            print F "  $wrk/$asm.frgStore \\\n";
-            print F " $frgBeg $frgEnd \\\n";
-            print F " > $wrk/2-frgcorr/$jobName.err 2>&1 \\\n";
-            print F "&&  \\\n";
-            print F "touch $wrk/2-frgcorr/$batchName/$jobName.success\n";
-            close(F);
-
-            if (! -e "$wrk/2-frgcorr/$batchName/$jobName.success") {
-                if (runCommand("sh $wrk/2-frgcorr/$batchName/$jobName.sh")) {
-                    rename "$wrk/2-frgcorr/$batchName/$jobName.frgcorr", "$wrk/2-frgcorr/$batchName/$jobName.frgcorr.FAILED";
-                    die "Failed.\n";
-                }
-            }
-        } else {
+        if ($frgCorrOnGrid) {
             #  Run the correction ob on the grid.
 
             open(F, "> $wrk/2-frgcorr/$batchName/$jobName.sh") or die;
@@ -84,18 +61,41 @@ sub createFragmentCorrectionJobs {
             print SUB "-j y ";
             print SUB "-o $wrk/2-frgcorr/$batchName/$jobName.grid.err ";
             print SUB "$wrk/2-frgcorr/$batchName/$jobName.sh\n";
+        } else {
+            #  Run the correction job right here, right now.
+
+            open(F, "> $wrk/2-frgcorr/$batchName/$jobName.sh") or die;
+            print F "#!/bin/sh\n\n";
+            #print F "$processStats \\\n";
+            print F "$bin/correct-frags \\\n";
+            print F "  -t $frgCorrThreads \\\n";
+            print F "  -S $wrk/$asm.ovlStore \\\n";
+            print F "  -o $wrk/2-frgcorr/$batchName/$jobName.frgcorr \\\n";
+            print F "  $wrk/$asm.frgStore \\\n";
+            print F " $frgBeg $frgEnd \\\n";
+            print F " > $wrk/2-frgcorr/$jobName.err 2>&1 \\\n";
+            print F "&&  \\\n";
+            print F "touch $wrk/2-frgcorr/$batchName/$jobName.success\n";
+            close(F);
+
+            chmod 0755, "$wrk/2-frgcorr/$batchName/$jobName.sh";
+
+            &scheduler::schedulerSubmit("$wrk/2-frgcorr/$batchName/$jobName.sh");
         }
 
         $frgBeg = $frgEnd + 1;
     }
 
-    touch("$wrk/2-frgcorr/jobsCreated.success");
-
     if ($frgCorrOnGrid) {
         close(SUB);
         pleaseExecute("$wrk/2-frgcorr/submit.sh");
         exit(0);
+    } else {
+        &scheduler::schedulerSetNumberOfProcesses($global{"frgCorrConcurrency"});
+        &scheduler::schedulerFinish();
     }
+
+    touch("$wrk/2-frgcorr/jobsCreated.success");
 }
 
 1;

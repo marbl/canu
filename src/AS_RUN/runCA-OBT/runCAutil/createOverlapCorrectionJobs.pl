@@ -8,10 +8,10 @@ sub createOverlapCorrectionJobs {
     return if (getGlobal("doFragmentCorrection") == 0);
 
     my $ovlCorrBatchSize    = getGlobal("ovlCorrBatchSize");
-    my $ovlCorrOnGrid       = getGlobal("ovlCorrOnGrid");
+    my $ovlCorrOnGrid       = getGlobal("ovlCorrOnGrid") && getGlobal("useGrid");
     my $scratch             = getGlobal("scratch");
 
-    system("mkdir $wrk/3-ovlcorr") if (! -e "$wrk/3-ovlcorr");
+    system("mkdir $wrk/3-ovlcorr") if (! -d "$wrk/3-ovlcorr");
 
     return if (-e "$wrk/3-ovlcorr/jobsCreated.success");
 
@@ -29,27 +29,7 @@ sub createOverlapCorrectionJobs {
 
         my $jobName   = substr("0000000000" . $frgBeg, -8);
 
-
-        if ($ovlCorrOnGrid == 0) {
-            #  Run right here, right now
-
-            open(F, "> $wrk/3-ovlcorr/$jobName.sh") or die;
-            print F "#!/bin/sh\n\n";
-            #print F "$processStats \\\n";
-            print F "$bin/correct-olaps \\\n";
-            print F "  -S $wrk/$asm.ovlStore \\\n";
-            print F "  -e $wrk/3-ovlcorr/$jobName.erate \\\n";
-            print F "  $wrk/$asm.frgStore \\\n";
-            print F "  $wrk/2-frgcorr/$asm.corr \\\n";
-            print F "  $frgBeg $frgEnd \\\n";
-            print F " > $wrk/3-ovlcorr/$jobName.err 2>&1 \\\n";
-            print F "&& \\\n";
-            print F "touch $wrk/3-ovlcorr/$jobName.success\n";
-            close(F);
-
-            #runCommand("sh $wrk/3-ovlcorr/$jobName.sh") and die;
-            &scheduler::schedulerSubmit("sh $wrk/3-ovlcorr/$jobName.sh");
-        } else {
+        if ($ovlCorrOnGrid) {
             #  Run on the grid
 
             open(F, "> $wrk/3-ovlcorr/$jobName.sh") or die;
@@ -79,6 +59,24 @@ sub createOverlapCorrectionJobs {
             print SUB "-j y ";
             print SUB "-o $wrk/3-ovlcorr/$jobName.grid.err ";
             print SUB "$wrk/3-ovlcorr/$jobName.sh\n";
+        } else {
+            #  Run right here, right now
+
+            open(F, "> $wrk/3-ovlcorr/$jobName.sh") or die;
+            print F "#!/bin/sh\n\n";
+            #print F "$processStats \\\n";
+            print F "$bin/correct-olaps \\\n";
+            print F "  -S $wrk/$asm.ovlStore \\\n";
+            print F "  -e $wrk/3-ovlcorr/$jobName.erate \\\n";
+            print F "  $wrk/$asm.frgStore \\\n";
+            print F "  $wrk/2-frgcorr/$asm.corr \\\n";
+            print F "  $frgBeg $frgEnd \\\n";
+            print F " > $wrk/3-ovlcorr/$jobName.err 2>&1 \\\n";
+            print F "&& \\\n";
+            print F "touch $wrk/3-ovlcorr/$jobName.success\n";
+            close(F);
+
+            &scheduler::schedulerSubmit("sh $wrk/3-ovlcorr/$jobName.sh");
         }
 
         $frgBeg = $frgEnd + 1;
@@ -89,7 +87,7 @@ sub createOverlapCorrectionJobs {
         pleaseExecute("$wrk/3-ovlcorr/submit.sh");
         exit(0);
     } else {
-        &scheduler::schedulerSetNumberOfProcesses(4);
+        &scheduler::schedulerSetNumberOfProcesses($global{"ovlCorrConcurrency"});
         &scheduler::schedulerFinish();
     }
 

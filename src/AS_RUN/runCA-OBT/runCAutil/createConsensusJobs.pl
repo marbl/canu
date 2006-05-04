@@ -70,7 +70,7 @@ sub createConsensusJobs {
     print F "#!/bin/sh\n";
     print F "\n";
     print F "jobid=\$SGE_TASK_ID\n";
-    print F "if [ x\$jobid = x ]; then\n";
+    print F "if [ x\$jobid = x -o x\$jobid = xundefined ]; then\n";
     print F "  jobid=\$1\n";
     print F "fi\n";
     print F "if [ x\$jobid = x ]; then\n";
@@ -115,7 +115,7 @@ sub createConsensusJobs {
 
     chmod 0755, "$wrk/8-consensus/consensus.sh";
 
-    if ($useGrid) {
+    if (getGlobal("cnsOnGrid") && getGlobal("useGrid")) {
         my $cmd;
         $cmd  = "qsub -p 0 -r y -N cns2_${asm} ";
         $cmd .= "-t 1-$jobs ";
@@ -127,13 +127,6 @@ sub createConsensusJobs {
     } else {
         for (my $i=1; $i<=$jobs; $i++) {
             &scheduler::schedulerSubmit("sh $wrk/8-consensus/consensus.sh $i");
-
-            #$ENV{'SGE_TASK_ID'} = $i;
-            #if (runCommand("$wrk/8-consensus/consensus.sh")) {
-            #    print STDERR "Failed job $i\n";
-            #    exit(1);
-            #}
-            #delete $ENV{'SGE_TASK_ID'};
         }
 
         &scheduler::schedulerSetNumberOfProcesses(getGlobal("cnsConcurrency"));

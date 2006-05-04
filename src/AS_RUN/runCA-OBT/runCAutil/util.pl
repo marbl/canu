@@ -94,45 +94,49 @@ sub setGlobal ($$) {
 }
 
 sub setDefaults {
-    $global{"binRoot"} =                     undef;
-    $global{"cnsPartitions"} =               128;
-    $global{"cnsMinFrags"} =                 75000;
-    $global{"cnsConcurrency"} =              2;
-    $global{"delayInterleavedMerging"} =     1;
-    $global{"doBackupFragStore"} =           1;
-    $global{"doExtendClearRanges"} =         2;
-    $global{"doFragmentCorrection"} =        1;
-    $global{"doOverlapTrimming"} =           1;
-    $global{"doUpdateDistanceRecords"} =     1;
-    $global{"fakeUIDs"} =                    0;
-    $global{"frgCorrBatchSize"} =            175000;
-    $global{"frgCorrOnGrid"} =               0;
-    $global{"frgCorrThreads"} =              2;
-    $global{"gridHost"} =                    "Linux";
-    $global{"gridMachine"} =                 "i686";
-    $global{"immutableFrags"} =              undef;
-    $global{"localHost"} =                   undef;
-    $global{"localMachine"} =                undef;
-    $global{"ovlCorrBatchSize"} =            175000;
-    $global{"ovlCorrOnGrid"} =               0;
-    $global{"ovlHashBlockSize"} =            40000;
-    $global{"ovlMemory"} =                   "1GB";
-    $global{"ovlRefBlockSize"} =             2000000;
-    $global{"ovlSortMemory"} =               1000;
-    $global{"ovlStoreMemory"} =              512;
-    $global{"ovlThreads"} =                  2;
-    $global{"processStats"} =                undef;
-    $global{"scratch"} =                     "/scratch";
-    $global{"stoneLevel"} =                  2;
-    $global{"uidServer"} =                   undef;
-    $global{"updateDistanceType"} =          "pre";
-    $global{"utgEdges"} =                    undef;
-    $global{"utgErrorRate"} =                15;
-    $global{"utgFragments"} =                undef;
-    $global{"utgGenomeSize"} =               undef;
-    $global{"useGrid"} =                     0;
-    $global{"useBogUnitig"} =                0;
-    $global{"vectorIntersect"} =             undef;
+    $global{"binRoot"}                     = undef;
+    $global{"cnsPartitions"}               = 128;
+    $global{"cnsMinFrags"}                 = 75000;
+    $global{"cnsConcurrency"}              = 2;
+    $global{"cnsOnGrid"}                   = 1;
+    $global{"delayInterleavedMerging"}     = 1;
+    $global{"doBackupFragStore"}           = 1;
+    $global{"doExtendClearRanges"}         = 2;
+    $global{"doFragmentCorrection"}        = 1;
+    $global{"doOverlapTrimming"}           = 1;
+    $global{"doUpdateDistanceRecords"}     = 1;
+    $global{"fakeUIDs"}                    = 0;
+    $global{"frgCorrBatchSize"}            = 175000;
+    $global{"frgCorrOnGrid"}               = 0;
+    $global{"frgCorrThreads"}              = 2;
+    $global{"frgCorrConcurrency"}          = 1;
+    $global{"gridHost"}                    = "Linux";
+    $global{"gridMachine"}                 = "i686";
+    $global{"immutableFrags"}              = undef;
+    $global{"localHost"}                   = undef;
+    $global{"localMachine"}                = undef;
+    $global{"ovlCorrBatchSize"}            = 175000;
+    $global{"ovlCorrOnGrid"}               = 0;
+    $global{"ovlCorrConcurrency"}          = 4;
+    $global{"ovlHashBlockSize"}            = 40000;
+    $global{"ovlMemory"}                   = "1GB";
+    $global{"ovlRefBlockSize"}             = 2000000;
+    $global{"ovlSortMemory"}               = 1000;
+    $global{"ovlStoreMemory"}              = 512;
+    $global{"ovlThreads"}                  = 2;
+    $global{"ovlOnGrid"}                   = 1;
+    $global{"processStats"}                = undef;
+    $global{"scratch"}                     = "/scratch";
+    $global{"stoneLevel"}                  = 2;
+    $global{"uidServer"}                   = undef;
+    $global{"updateDistanceType"}          = "pre";
+    $global{"utgEdges"}                    = undef;
+    $global{"utgErrorRate"}                = 15;
+    $global{"utgFragments"}                = undef;
+    $global{"utgGenomeSize"}               = undef;
+    $global{"useGrid"}                     = 0;
+    $global{"useBogUnitig"}                = 0;
+    $global{"vectorIntersect"}             = undef;
 }
 
 sub setParameters {
@@ -175,13 +179,46 @@ sub setParameters {
     my $ginhost = getGlobal("gridHost");
     my $ginmach = getGlobal("gridMachine");
 
-    $useGrid = getGlobal("useGrid");
-    $bin     = setBinDirectory($binhost, $binmach);
-    $gin     = setBinDirectory($binhost, $binmach)  if ($useGrid == 0);  #  bin for the Grid
-    $gin     = setBinDirectory($ginhost, $ginmach)  if ($useGrid == 1);  #  bin for the Grid
+    $bin        = setBinDirectory($binhost, $binmach);
+    $gin        = setBinDirectory($binhost, $binmach)  if (getGlobal("useGrid") == 0);  #  bin for the Grid
+    $gin        = setBinDirectory($ginhost, $ginmach)  if (getGlobal("useGrid") == 1);  #  bin for the Grid
 
     die "Can't find local bin/gatekeeper in $bin\n" if (! -e "$bin/gatekeeper");
     die "Can't find grid bin/gatekeeper in $gin\n"  if (! -e "$gin/gatekeeper");
+}
+
+
+sub checkDirectories {
+
+    #  Check that we were supplied a work directory, and that it
+    #  exists, or we can create it.
+    #
+    die "ERROR: I need a directory to run the assembly in (-d option).\n" if (!defined($wrk));
+    system("mkdir -p $wrk") if (! -d $wrk);
+    die "ERROR: Directory '$wrk' doesn't exist (-d option) and couldn't be created.\n" if (! -d $wrk);
+
+    #  Check that we have scratch space, or try to make one in the
+    #  work directory.
+
+    #  See if we can use the supplied scratch space
+    #
+    my $scratch = getGlobal("scratch");
+    system("mkdir -p $scratch") if (! -d $scratch);
+
+    #  If not created, warn, and try to make one in the work directory.
+    #
+    if (! -d $scratch) {
+        print STDERR "WARNING: Scratch directory '$scratch' doesn't exist and couldn't be created; trying '$wrk/scratch' instead.\n";
+        $scratch = "$wrk/scratch";
+        system("mkdir -p $scratch");
+        setGlobal("scratch", $scratch);
+    }
+
+    #  If still not created, die.
+    #
+    if (! -d $scratch) {
+        die "ERROR:  Scratch directory '$scratch' doesn't exist, and couldn't be created!\n";
+    }
 }
 
 
@@ -254,8 +291,7 @@ sub pleaseExecute {
 }
 
 
-#  Utility to run a command and check the exit status, grabbed from
-#  ESTmapper util
+#  Utility to run a command and check the exit status, report time used.
 #
 sub runCommand {
     my $cmd = shift @_;
@@ -267,7 +303,7 @@ sub runCommand {
     my $rc = 0xffff & system($cmd);
 
     $t = localtime();
-    print STDERR "----------------------------------------END (", time() - $d, " seconds)\n$cmd\n";
+    print STDERR "----------------------------------------END $t (", time() - $d, " seconds)\n";
 
     #  Pretty much copied from Programming Perl page 230
 

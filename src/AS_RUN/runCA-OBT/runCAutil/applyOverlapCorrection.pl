@@ -7,7 +7,7 @@ sub applyOverlapCorrection {
     return if (getGlobal("doFragmentCorrection") == 0);
 
     my $ovlCorrBatchSize    = getGlobal("ovlCorrBatchSize");
-    my $ovlCorrOnGrid       = getGlobal("ovlCorrOnGrid");
+    my $ovlCorrOnGrid       = getGlobal("ovlCorrOnGrid") && getGlobal("useGrid");
 
     if (! -e "$wrk/3-ovlcorr/$asm.eratesupdated") {
         my $failedJobs = 0;

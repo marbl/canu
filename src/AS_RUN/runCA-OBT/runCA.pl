@@ -7,7 +7,6 @@ use FindBin;
 use vars qw($bin $gin $wrk $asm);
 
 use vars qw($numFrags);
-use vars qw($useGrid);
 
 #  Set some not reasonable defaults.
 $wrk = undef;
@@ -42,10 +41,7 @@ while (scalar(@ARGV)) {
 
 setDefaults();
 setParameters($specFile, @specOpts);
-
-die "ERROR: I need a directory to run the assembly in (-d option).\n" if (!defined($wrk));
-system("mkdir -p $wrk") if (! -d $wrk);
-die "ERROR: Directory '$wrk' doesn't exist (-d option).  Fail.\n" if (! -d $wrk);
+checkDirectories();
 
 #  Begin
 

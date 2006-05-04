@@ -173,8 +173,9 @@ The operating system of the grid machines {\tt Linux} by default.  See
 
 useGrid={\it integer} &
 If zero, no module will use the grid.  If non-zero, the grid will be
-used for modules that support it.  Each module may independently
-decide to not use the grid.  The default is to not use the grid.
+used for modules that support it, and that are enabled.  Each module
+may independently decide to not use the grid.  The default is to not
+use the grid.
 \\
 
 doBackupFragStore={\it integer} &
@@ -308,6 +309,12 @@ detailed overlap memory switched (not documented here).  The memory sizes are:
 {\it 16GB}.
 \\
 
+ovlOnGrid={\it integer} &
+If zero, do not use the grid for overlapping.  This is enabled by
+default, however, {\em useGrid} is not enabled by default, thus,
+overlapping, by default is not done on the grid.
+\\
+
 ovlStoreMemory={\it integer} &
 The amount of memory, in megabytes, to use for building the overlap
 store.  It is critical that this value be as large as possible,
@@ -363,6 +370,11 @@ use of the fragment store.  Unless your grid has fast
 access to this store, use of the grid is strongly discouraged.
 \\
 
+frgCorrConcurrency={\it integer} &
+If the grid is not enabled, run this many fragment correction jobs at the same
+time.  Default is 1.
+\\
+
 ovlCorrBatchSize={\it integer} &
 {\it what do we load, again?}  1,000,000 uses about 2.5GB memory.  400,000 uses 750MB.
 \\
@@ -370,6 +382,11 @@ ovlCorrBatchSize={\it integer} &
 ovlCorrOnGrid={\it integer} &
 If zero, do not use the grid.  XXXXX.  Unless your grid has fast
 access to this store, use of the grid is strongly discouraged.
+\\
+
+ovlCorrConcurrency={\it integer} &
+If the grid is not enabled, run this many overlap correction jobs at the same
+time.  Default is 4.
 \\
 \end{longtable}
 
@@ -449,6 +466,12 @@ The minimum number of fragments in a consensus partition.  Default
 is 75,000.
 \\
 
+cnsOnGrid={\it integer} &
+If zero, do not use the grid for consensus.  This is enabled by
+default, however, {\em useGrid} is not enabled by default, thus,
+consensus, by default is not done on the grid.
+\\
+
 cnsConcurrency={\it integer} &
 If the grid is not enabled, run this many consensus jobs at the same
 time.  Default is 2.
@@ -456,7 +479,4 @@ time.  Default is 2.
 
 \end{longtable}
 
-
-
 \end{document}
-

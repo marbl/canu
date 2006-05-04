@@ -38,8 +38,9 @@ sub checkOverlap {
         if (! -e "$wrk/$outDir/$batchName/$jobName.success") {
             print STDERR "$wrk/$outDir/$batchName/$jobName failed, job index $jobIndex.\n";
 
-            if ($useGrid) {
+            if (getGlobal("useGrid") && getGlobal("ovlOnGrid")) {
                 print F "qsub -p 0 -r y -N ovl_${asm} \\\n";
+                print F "  -pe thread 2 \\\n";
                 print F "  -t $jobIndex \\\n";
                 print F "  -j y -o $wrk/$outDir/overlap.\\\$TASK_ID.out \\\n";
                 print F "  -e $wrk/$outDir/overlap.\\\$TASK_ID.err \\\n";
@@ -58,7 +59,7 @@ sub checkOverlap {
     close(F);
 
     if ($failedJobs) {
-        print STDERR "$failedJobs failed.  See $wrk/$outDir/overlap-restart.sh for resubmission.\n";
+        print STDERR "$failedJobs failed.  See $wrk/$outDir/overlap-restart.sh for resubmission commands.\n";
         exit(1);
     }
 }
