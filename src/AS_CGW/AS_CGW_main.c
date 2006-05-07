@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.19 2006-04-11 14:31:00 ahalpern Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.20 2006-05-07 23:45:31 brianwalenz Exp $";
 
 
 static const char *usage = 
@@ -70,7 +70,6 @@ static const char *usage =
 "   [-X <Estimated number of nodes>]\n"
 "   [-Y <Estimated number of edges>]\n"
 "   [-Z] Don't demote singleton scaffolds\n"
-"   [-9] Use new interleaved merging procedure in place of old\n"
 "\n"
 "CGBInputFiles: The file with new IUM,OUM, etc records to process.\n"
 "\n"
@@ -153,7 +152,6 @@ static const char *usage =
 #include "AS_CGW_EdgeDiagnostics.h"
 #endif
 
-extern int try_new_comparator;
 
 FILE *  File_Open (const char * Filename, const char * Mode, int exitOnFailure);
 
@@ -254,16 +252,9 @@ int main(int argc, char *argv[]){
 
     optarg = NULL;
     while (!errflg && ((ch = getopt(argc, argv,
-               // unused F, M
-		       "abcde:f:g:hi:j:k:l:m:n:o:p:q:r:s:tuvw:xyz:ABCD:EFGHIJK:L:N:MO:PQR:STUV:W:X:Y:Z9")) != EOF)){
-#if 0
-      fprintf(GlobalData->stderrc,"* ch = %c optopt= %c optarg = %s\n", ch, optopt, (optarg?optarg:"(NULL)"));
-      fflush(stderr);
-#endif
+                                    "abcde:f:g:hi:j:k:l:m:n:o:p:q:r:s:tuvw:xyz:"
+                                    "ABCD:EFGHIJK:L:N:MO:PQR:STUV:W:X:Y:Z")) != EOF)){
       switch(ch) {
-      case '9':
-	try_new_comparator=1;
-	break;
       case 'O':
 	fprintf(GlobalData->stderrc,"* Immediate output specified: arg %s\n", optarg);
 	switch(*optarg){
@@ -299,212 +290,212 @@ int main(int argc, char *argv[]){
 	break;
       case 'f':
 	  {
-		strcpy( data->Frag_Store_Name, argv[optind - 1]);
-		setFragStore = 1;
+            strcpy( data->Frag_Store_Name, argv[optind - 1]);
+            setFragStore = 1;
 	  }
-    break;
-      case 'g':
+          break;
+        case 'g':
 	  {
-		strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
-		setGatekeeperStore = 1;
+            strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
+            setGatekeeperStore = 1;
 	  }
-    break;	  
-      case 'h':
-	failOn_NoOverlapFound = 0;
-	break;
-      case 'F':
-        novar++;
-        break;
-      case 'G':
-	generateOutput = 0;
-	break;
-      case 'H':
-	failOn_NoOverlapFound = 1;
-	break;
-      case 'I':
-	ignoreChaffUnitigs = 1;
-	break;
-      case 'J':
-	annotateUnitigs = 1;
-	break;
-      case 'M':
-	doInterleavedScaffoldMerging = 0;
-	break;
-      case 'v':
-	ignoreUOMs = 0;
-	break;
-      case 'V':
-	ignoreUOMs = 1;
-	break;
-      case 'Q':
-	fprintf(stderr,"* -Q  dumpScaffoldSnapshots == 1\n");
-	dumpScaffoldSnapshots = 1;;
-	break;
-      case 'u':
-	ignoreUOMContainments = 0;
-	break;
-      case 'U':
-	ignoreUOMContainments = 1;
-	break;
-      case 't':
-	ignoreUOMTranschunk = 0;
-	break;
-      case 'T':
-	ignoreUOMTranschunk = 1;
-	break;
-      case 'b':
-	ignoreUOMBetweenContained = 0;
-	break;
-      case 'B':
-	ignoreUOMBetweenContained = 1;
-	break;
-      case 'K':
-        switch(optarg[0]) {
-          case 'D':
-            GlobalData->aligner=DP_Compare;
-            break;
-          case 'L':
-            GlobalData->aligner=Local_Overlap_AS_forCNS;
-            break;
-          case 'A':
-            GlobalData->aligner=Affine_Overlap_AS_forCNS;
-            break;
-          default:
-            GlobalData->aligner=DP_Compare;
-            fprintf(stderr,"Unrecognized value for option -%c (%s)",optopt,optarg);
+          break;	  
+        case 'h':
+          failOn_NoOverlapFound = 0;
+          break;
+        case 'F':
+          novar++;
+          break;
+        case 'G':
+          generateOutput = 0;
+          break;
+        case 'H':
+          failOn_NoOverlapFound = 1;
+          break;
+        case 'I':
+          ignoreChaffUnitigs = 1;
+          break;
+        case 'J':
+          annotateUnitigs = 1;
+          break;
+        case 'M':
+          doInterleavedScaffoldMerging = 0;
+          break;
+        case 'v':
+          ignoreUOMs = 0;
+          break;
+        case 'V':
+          ignoreUOMs = 1;
+          break;
+        case 'Q':
+          fprintf(stderr,"* -Q  dumpScaffoldSnapshots == 1\n");
+          dumpScaffoldSnapshots = 1;;
+          break;
+        case 'u':
+          ignoreUOMContainments = 0;
+          break;
+        case 'U':
+          ignoreUOMContainments = 1;
+          break;
+        case 't':
+          ignoreUOMTranschunk = 0;
+          break;
+        case 'T':
+          ignoreUOMTranschunk = 1;
+          break;
+        case 'b':
+          ignoreUOMBetweenContained = 0;
+          break;
+        case 'B':
+          ignoreUOMBetweenContained = 1;
+          break;
+        case 'K':
+          switch(optarg[0]) {
+            case 'D':
+              GlobalData->aligner=DP_Compare;
+              break;
+            case 'L':
+              GlobalData->aligner=Local_Overlap_AS_forCNS;
+              break;
+            case 'A':
+              GlobalData->aligner=Affine_Overlap_AS_forCNS;
+              break;
+            default:
+              GlobalData->aligner=DP_Compare;
+              fprintf(stderr,"Unrecognized value for option -%c (%s)",optopt,optarg);
           } 
-	break;
-      case 'q':
-	transQualityCutoff = (float)atof(optarg);
-	fprintf(GlobalData->stderrc,"* transQualityCutoff set to %f\n", transQualityCutoff);
-	break;
-      case 'i':
-	cgbApplyMicrohetCutoff = (float)atof(optarg);
-	fprintf(GlobalData->stderrc,"* cgbApplyMicrohetCutoff set to %f\n", cgbApplyMicrohetCutoff);
-	break;
-      case 'j':
-	cgbUniqueCutoff = (float)atof(optarg);
-	fprintf(GlobalData->stderrc,"* cgbUniqueCutoff set to %f\n", cgbUniqueCutoff);
-	break;
-      case 'k':
-	cgbDefinitelyUniqueCutoff = (float)atof(optarg);
-	fprintf(GlobalData->stderrc,"* cgbDefinitelyUniqueCutoff set to %f\n", cgbDefinitelyUniqueCutoff);
-	break;
-      case 'l':
-	maxDegree = atoi(optarg);
-	fprintf(GlobalData->stderrc,"* maxDegree set to %d\n", maxDegree);
-	break;
-      case 'm':
-	minSamplesForOverride = atoi(optarg);
-	fprintf(GlobalData->stderrc,"* minSamplesForOverride set to %d\n", minSamplesForOverride);
-	break;
-      case 'n':
-	starting_stone_scaffold = atoi(optarg);
-	fprintf (GlobalData -> stderrc,"* Starting Scaffold for Stones set to %d\n",
-                 starting_stone_scaffold);
-	break;
-      case 'L':
-	maxDegreeUnique = atoi(optarg);
-	fprintf(GlobalData->stderrc,"* maxDegreeUnique set to %d\n", maxDegreeUnique);
-	break;
-      case 'X':
-	numNodes = atoi(optarg);
-	fprintf(GlobalData->stderrc,"* numNodes set to %d\n", numNodes);
-	break;
-      case 'y':
-        checkpointChecker = 0;
-        break;
-      case 'Y':
-	numEdges = atoi(optarg);
-	fprintf(GlobalData->stderrc,"* numEdges set to %d\n", numEdges);
-	break;
+          break;
+        case 'q':
+          transQualityCutoff = (float)atof(optarg);
+          fprintf(GlobalData->stderrc,"* transQualityCutoff set to %f\n", transQualityCutoff);
+          break;
+        case 'i':
+          cgbApplyMicrohetCutoff = (float)atof(optarg);
+          fprintf(GlobalData->stderrc,"* cgbApplyMicrohetCutoff set to %f\n", cgbApplyMicrohetCutoff);
+          break;
+        case 'j':
+          cgbUniqueCutoff = (float)atof(optarg);
+          fprintf(GlobalData->stderrc,"* cgbUniqueCutoff set to %f\n", cgbUniqueCutoff);
+          break;
+        case 'k':
+          cgbDefinitelyUniqueCutoff = (float)atof(optarg);
+          fprintf(GlobalData->stderrc,"* cgbDefinitelyUniqueCutoff set to %f\n", cgbDefinitelyUniqueCutoff);
+          break;
+        case 'l':
+          maxDegree = atoi(optarg);
+          fprintf(GlobalData->stderrc,"* maxDegree set to %d\n", maxDegree);
+          break;
+        case 'm':
+          minSamplesForOverride = atoi(optarg);
+          fprintf(GlobalData->stderrc,"* minSamplesForOverride set to %d\n", minSamplesForOverride);
+          break;
+        case 'n':
+          starting_stone_scaffold = atoi(optarg);
+          fprintf (GlobalData -> stderrc,"* Starting Scaffold for Stones set to %d\n",
+                   starting_stone_scaffold);
+          break;
+        case 'L':
+          maxDegreeUnique = atoi(optarg);
+          fprintf(GlobalData->stderrc,"* maxDegreeUnique set to %d\n", maxDegreeUnique);
+          break;
+        case 'X':
+          numNodes = atoi(optarg);
+          fprintf(GlobalData->stderrc,"* numNodes set to %d\n", numNodes);
+          break;
+        case 'y':
+          checkpointChecker = 0;
+          break;
+        case 'Y':
+          numEdges = atoi(optarg);
+          fprintf(GlobalData->stderrc,"* numEdges set to %d\n", numEdges);
+          break;
 
-      case 'r':
-	repeatRezLevel = (int) strtol (optarg, & p, 10);
-        write_rock_log = (* p == 'L');
-	fprintf(GlobalData->stderrc,"* repeatRezLevel set to %d\n", repeatRezLevel);
-	break;
-      case 's':
-	stoneLevel = (int) strtol (optarg, & p, 10);
-        write_stone_log = (* p == 'L');
-	fprintf(GlobalData->stderrc,"* stoneLevel set to %d\n", stoneLevel);
-	break;
-      case 'S':
-        walkScaffoldsBiggestFirst = FALSE;
-        fprintf(GlobalData->stderrc,"* walkScaffoldsBiggestFirst set to FALSE\n");
-        break;
-      case 'w':
-	walkLevel = atoi(optarg);
-	fprintf(GlobalData->stderrc,"* walkLevel set to %d\n", walkLevel);
-	break;
-      case 'W':
-	startScaffoldWalkFrom = atoi(optarg);
-	fprintf(GlobalData->stderrc,"* startScaffoldWalkFrom scaffold %d\n", startScaffoldWalkFrom);
-	break;
-      case 'D':
-	debugLevel = atoi(optarg);
-	fprintf(GlobalData->stderrc,"* debugLevel set to %d\n", debugLevel);
-	break;
-      case 'o':
-	outputPath = strdup(optarg);
-	break;
-      case 'p':
-        preMergeRezLevel = atoi(optarg);
-        if(preMergeRezLevel < 0){
-          fprintf(GlobalData->stderrc,"* pre-first-scaffold-merge repeatRezLevel must be >= 0\n");
-          fprintf(stderr,"* pre-first-scaffold-merge repeatRezLevel must be >= 0\n");
-          exit(-99);
-        }
-        fprintf(GlobalData->stderrc,"* pre-first-scaffold-merge repeatRezLevel set to %d\n", preMergeRezLevel);
-        break;
-      case 'c':
-	checkPoint = 1;
-	break;
-      case 'd':
-	dumpGraphs = 1;
-	fprintf(GlobalData->stderrc,"* dumpGraphs set to 1\n");
-	break;
-      case 'e':
-	cgbMicrohetProb = atof(optarg);
-	fprintf(GlobalData->stderrc,"* Microhet probability threshhold set to %g\n",cgbMicrohetProb);
-	break;
-      case 'E':
-	outputOverlapOnlyContigEdges = 1;
-	fprintf(GlobalData->stderrc,"* Output overlap only  contig edges set to TRUE\n");
-	break;
-      case 'P':
-	outputFormat = AS_PROTO_OUTPUT;
-	break;
-      case 'R':
-	restartFromCheckpoint = atoi(optarg);
-	fprintf(GlobalData->stderrc,"* Restarting from checkpoint %d\n", restartFromCheckpoint);
-	break;
-      case 'N':
-	restartFromLogicalCheckpoint = atoi(optarg);
-	fprintf(GlobalData->stderrc,"* Restarting from logical checkpoint %d\n", restartFromLogicalCheckpoint);
-	break;
-      case 'x':
-	dumpStatsOnRestart = TRUE;
-	fprintf(GlobalData->stderrc,"* Dumping Stats on restart\n");
-	break;
-      case 'Z':
-	fprintf(GlobalData->stderrc,"* DON'T demote singleton scaffolds\n");
-	demoteSingletonScaffolds = FALSE;
-	break;
+        case 'r':
+          repeatRezLevel = (int) strtol (optarg, & p, 10);
+          write_rock_log = (* p == 'L');
+          fprintf(GlobalData->stderrc,"* repeatRezLevel set to %d\n", repeatRezLevel);
+          break;
+        case 's':
+          stoneLevel = (int) strtol (optarg, & p, 10);
+          write_stone_log = (* p == 'L');
+          fprintf(GlobalData->stderrc,"* stoneLevel set to %d\n", stoneLevel);
+          break;
+        case 'S':
+          walkScaffoldsBiggestFirst = FALSE;
+          fprintf(GlobalData->stderrc,"* walkScaffoldsBiggestFirst set to FALSE\n");
+          break;
+        case 'w':
+          walkLevel = atoi(optarg);
+          fprintf(GlobalData->stderrc,"* walkLevel set to %d\n", walkLevel);
+          break;
+        case 'W':
+          startScaffoldWalkFrom = atoi(optarg);
+          fprintf(GlobalData->stderrc,"* startScaffoldWalkFrom scaffold %d\n", startScaffoldWalkFrom);
+          break;
+        case 'D':
+          debugLevel = atoi(optarg);
+          fprintf(GlobalData->stderrc,"* debugLevel set to %d\n", debugLevel);
+          break;
+        case 'o':
+          outputPath = strdup(optarg);
+          break;
+        case 'p':
+          preMergeRezLevel = atoi(optarg);
+          if(preMergeRezLevel < 0){
+            fprintf(GlobalData->stderrc,"* pre-first-scaffold-merge repeatRezLevel must be >= 0\n");
+            fprintf(stderr,"* pre-first-scaffold-merge repeatRezLevel must be >= 0\n");
+            exit(-99);
+          }
+          fprintf(GlobalData->stderrc,"* pre-first-scaffold-merge repeatRezLevel set to %d\n", preMergeRezLevel);
+          break;
+        case 'c':
+          checkPoint = 1;
+          break;
+        case 'd':
+          dumpGraphs = 1;
+          fprintf(GlobalData->stderrc,"* dumpGraphs set to 1\n");
+          break;
+        case 'e':
+          cgbMicrohetProb = atof(optarg);
+          fprintf(GlobalData->stderrc,"* Microhet probability threshhold set to %g\n",cgbMicrohetProb);
+          break;
+        case 'E':
+          outputOverlapOnlyContigEdges = 1;
+          fprintf(GlobalData->stderrc,"* Output overlap only  contig edges set to TRUE\n");
+          break;
+        case 'P':
+          outputFormat = AS_PROTO_OUTPUT;
+          break;
+        case 'R':
+          restartFromCheckpoint = atoi(optarg);
+          fprintf(GlobalData->stderrc,"* Restarting from checkpoint %d\n", restartFromCheckpoint);
+          break;
+        case 'N':
+          restartFromLogicalCheckpoint = atoi(optarg);
+          fprintf(GlobalData->stderrc,"* Restarting from logical checkpoint %d\n", restartFromLogicalCheckpoint);
+          break;
+        case 'x':
+          dumpStatsOnRestart = TRUE;
+          fprintf(GlobalData->stderrc,"* Dumping Stats on restart\n");
+          break;
+        case 'Z':
+          fprintf(GlobalData->stderrc,"* DON'T demote singleton scaffolds\n");
+          demoteSingletonScaffolds = FALSE;
+          break;
 
-      case '?':
-	fprintf(GlobalData->stderrc,"Unrecognized option -%c",optopt);
-      default :
-	errflg++;
+        case '?':
+          fprintf(GlobalData->stderrc,"Unrecognized option -%c",optopt);
+        default :
+          errflg++;
       }
     }
 
     if ((argc - optind < 1 ) || (setFragStore == 0) || (setGatekeeperStore == 0) || (outputPath == NULL)) {
-	fprintf(GlobalData->stderrc,"* argc = %d optind = %d setFragStore = %d setGatekeeperStore = %d outputPath = %s\n",
-		argc, optind, setFragStore,setGatekeeperStore, outputPath);
-        fprintf(GlobalData->stderrc, usage, argv[0]);
-	exit (EXIT_FAILURE);
-      }
+      fprintf(GlobalData->stderrc,"* argc = %d optind = %d setFragStore = %d setGatekeeperStore = %d outputPath = %s\n",
+              argc, optind, setFragStore,setGatekeeperStore, outputPath);
+      fprintf(GlobalData->stderrc, usage, argv[0]);
+      exit (EXIT_FAILURE);
+    }
 
 
     if(cgbDefinitelyUniqueCutoff < cgbUniqueCutoff){
@@ -618,9 +609,9 @@ int main(int argc, char *argv[]){
   data->outputCalculatedOffsets = (geneOutput == 0);
 
   if(checkpointChecker && restartFromCheckpoint < restartFromLogicalCheckpoint &&
-          restartFromLogicalCheckpoint !=  CHECKPOINT_BEFORE_FINAL_CLEANUP){
-      fprintf(GlobalData->stderrc,"* Logical Checkpoint (%d)  MUST be no greater than restart checkpoint (%d)\n", restartFromLogicalCheckpoint, restartFromCheckpoint);
-      exit(1);
+     restartFromLogicalCheckpoint !=  CHECKPOINT_BEFORE_FINAL_CLEANUP){
+    fprintf(GlobalData->stderrc,"* Logical Checkpoint (%d)  MUST be no greater than restart checkpoint (%d)\n", restartFromLogicalCheckpoint, restartFromCheckpoint);
+    exit(1);
   }
 
   if(restartFromLogicalCheckpoint == NULLINDEX){
@@ -665,7 +656,7 @@ int main(int argc, char *argv[]){
     }
   }
 
-  if(restartFromLogicalCheckpoint < CHECKPOINT_AFTER_BUILDING_CIGRAPH){
+  if(restartFromLogicalCheckpoint < CHECKPOINT_AFTER_BUILDING_CIGRAPH) {
 
     // Split chimeric unitigs
     if( restartFromLogicalCheckpoint < CHECKPOINT_AFTER_UNITIG_SPLITTING ){
@@ -701,7 +692,7 @@ int main(int argc, char *argv[]){
                 ScaffoldGraph->checkPointIteration);
         CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_AFTER_BUILDING_EDGES);
       }
-    }
+    }  //  checkpoint < CHECKPOINT_AFTER_BUILDING_EDGES
 
     // Compute all overlaps implied by mate links between pairs of unique unitigs
     ComputeOverlaps( ScaffoldGraph->CIGraph, TRUE, alignOverlaps);  
@@ -736,22 +727,22 @@ int main(int argc, char *argv[]){
       ScaffoldGraph->CIGraph->overlapper = tmp;
       ScaffoldGraph->RezGraph = ScaffoldGraph->ContigGraph;
     }
-      /* Construct the Contigs and Contig Edges from the Chunk Instances */
-      ClearCacheSequenceDB(ScaffoldGraph->sequenceDB, TRUE);
-      BuildInitialContigs(ScaffoldGraph);
-      if(GlobalData->debugLevel){
-	CheckEdgesAgainstOverlapper(ScaffoldGraph->ContigGraph);
-      }
-      // Clear both sequence caches...they will reload as necessary
-      fprintf(GlobalData->stderrc,"* Start Flushing sequenceDB caches!\n");
-          ClearCacheSequenceDB(ScaffoldGraph->sequenceDB, TRUE);
-          ClearCacheSequenceDB(ScaffoldGraph->sequenceDB, FALSE);
-      fprintf(GlobalData->stderrc,"* Done Flushing sequenceDB caches!\n");
+    /* Construct the Contigs and Contig Edges from the Chunk Instances */
+    ClearCacheSequenceDB(ScaffoldGraph->sequenceDB, TRUE);
+    BuildInitialContigs(ScaffoldGraph);
+    if(GlobalData->debugLevel){
+      CheckEdgesAgainstOverlapper(ScaffoldGraph->ContigGraph);
+    }
+    // Clear both sequence caches...they will reload as necessary
+    fprintf(GlobalData->stderrc,"* Start Flushing sequenceDB caches!\n");
+    ClearCacheSequenceDB(ScaffoldGraph->sequenceDB, TRUE);
+    ClearCacheSequenceDB(ScaffoldGraph->sequenceDB, FALSE);
+    fprintf(GlobalData->stderrc,"* Done Flushing sequenceDB caches!\n");
 
 
     if(checkPoint){
       fprintf(GlobalData->timefp," Dumping checkpoint %d after BuildInitialContigs\n",
-			  ScaffoldGraph->checkPointIteration); 
+              ScaffoldGraph->checkPointIteration); 
       CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_AFTER_BUILDING_SCAFFOLDS);
     }
 
@@ -760,14 +751,14 @@ int main(int argc, char *argv[]){
       CheckEdgesAgainstOverlapper(ScaffoldGraph->RezGraph);
     }
 
-  }
+  }  //  checkpoint < CHECKPOINT_AFTER_BUILDING_CIGRAPH
 
 
   // Build scaffolds and do rocks
 
   if(immediateOutput == 0 && 
      ((restartFromLogicalCheckpoint < CHECKPOINT_AFTER_BUILDING_AND_CLEANING_SCAFFOLDS) &&
-     data->repeatRezLevel > 0)){
+      data->repeatRezLevel > 0)){
     int skipInitialScaffolds = 0;
 
 #ifdef RAT_LBAC_REACTIVATION
@@ -786,6 +777,16 @@ int main(int argc, char *argv[]){
 
     fprintf(GlobalData->stderrc,"**** Running BuildScaffoldsFromFirstPriniciples ****\n");
     fprintf(GlobalData->stderrc,"**** with skipInitialScaffolds = %d\n", skipInitialScaffolds);
+
+
+#if 0
+    //  BPW HACK!  We still have big edges that aren't getting updated.
+
+    ScaffoldGraph->ScaffoldGraph = CreateGraphCGW(SCAFFOLD_GRAPH, NULLINDEX, NULLINDEX);
+    ScaffoldGraph->CIScaffolds   = ScaffoldGraph->ScaffoldGraph->nodes;
+    ScaffoldGraph->SEdges        = ScaffoldGraph->ScaffoldGraph->edges;
+#endif
+
 
     BuildScaffoldsFromFirstPriniciples(ScaffoldGraph, skipInitialScaffolds);  // rocks is called inside of here
 
@@ -810,47 +811,47 @@ int main(int argc, char *argv[]){
   // Conservative external gap walking
 
   if((immediateOutput == -1) || (immediateOutput <= 1 &&
-     (restartFromLogicalCheckpoint <= CHECKPOINT_BEFORE_CONSERVATIVE_WALKING))){
-  if( GlobalData->walkLevel > 0 )
-    {
-      fprintf(GlobalData->stderrc,"**** Running Conservative Walking level %d ****\n",GlobalData->walkLevel);
-      if(GlobalData->debugLevel > 0){
-	DumpCIScaffolds(GlobalData->stderrc,ScaffoldGraph, FALSE);
-	CheckEdgesAgainstOverlapper(ScaffoldGraph->RezGraph);
-      }
-      CheckCIScaffoldTs(ScaffoldGraph);
-      StartTimerT(&data->GapWalkerTimer);
-      Walk_Gaps(GlobalData, GlobalData->File_Name_Prefix, GlobalData->walkLevel, startScaffoldWalkFrom, 
-		CONSERVATIVE_WALKING_STD_DEVS);
-      StopTimerT(&data->GapWalkerTimer);
+                                 (restartFromLogicalCheckpoint <= CHECKPOINT_BEFORE_CONSERVATIVE_WALKING))){
+    if( GlobalData->walkLevel > 0 )
+      {
+        fprintf(GlobalData->stderrc,"**** Running Conservative Walking level %d ****\n",GlobalData->walkLevel);
+        if(GlobalData->debugLevel > 0){
+          DumpCIScaffolds(GlobalData->stderrc,ScaffoldGraph, FALSE);
+          CheckEdgesAgainstOverlapper(ScaffoldGraph->RezGraph);
+        }
+        CheckCIScaffoldTs(ScaffoldGraph);
+        StartTimerT(&data->GapWalkerTimer);
+        Walk_Gaps(GlobalData, GlobalData->File_Name_Prefix, GlobalData->walkLevel, startScaffoldWalkFrom, 
+                  CONSERVATIVE_WALKING_STD_DEVS);
+        StopTimerT(&data->GapWalkerTimer);
 #ifdef FIX_CONTIG_EDGES
-      fprintf(GlobalData->stderrc, "VALIDATING ALL CONTIG EDGES...\n");
-      ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
+        fprintf(GlobalData->stderrc, "VALIDATING ALL CONTIG EDGES...\n");
+        ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
 #endif
-      CheckCIScaffoldTs(ScaffoldGraph);
+        CheckCIScaffoldTs(ScaffoldGraph);
 
 
-      fprintf(GlobalData->stderrc,"**** Finished Conservative Walking level %d ****\n",GlobalData->walkLevel);
-      if(GlobalData->debugLevel > 0)
-	DumpCIScaffolds(GlobalData->stderrc,ScaffoldGraph, FALSE);
+        fprintf(GlobalData->stderrc,"**** Finished Conservative Walking level %d ****\n",GlobalData->walkLevel);
+        if(GlobalData->debugLevel > 0)
+          DumpCIScaffolds(GlobalData->stderrc,ScaffoldGraph, FALSE);
 
 #if defined(CHECK_CONTIG_ORDERS) || defined(CHECK_CONTIG_ORDERS_INCREMENTAL)
-      fprintf(stderr,
-              "---Checking contig orders after Walk_Gaps (1)\n\n");
-      CheckAllContigOrientationsInAllScaffolds(ScaffoldGraph, coc, POPULATE_COC_HASHTABLE);
+        fprintf(stderr,
+                "---Checking contig orders after Walk_Gaps (1)\n\n");
+        CheckAllContigOrientationsInAllScaffolds(ScaffoldGraph, coc, POPULATE_COC_HASHTABLE);
 #endif
 #ifdef CHECK_CONTIG_ORDERS_INCREMENTAL
-      ResetContigOrientChecker(coc);
-      AddAllScaffoldsToContigOrientChecker(ScaffoldGraph, coc);
+        ResetContigOrientChecker(coc);
+        AddAllScaffoldsToContigOrientChecker(ScaffoldGraph, coc);
 #endif
 
-      fprintf(data->timefp,"Checkpoint %d written after Conservative Walking\n",ScaffoldGraph->checkPointIteration);
-      CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_BEFORE_CONSERVATIVE_WALKING+1);
-    }
+        fprintf(data->timefp,"Checkpoint %d written after Conservative Walking\n",ScaffoldGraph->checkPointIteration);
+        CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_BEFORE_CONSERVATIVE_WALKING+1);
+      }
   }
 
   if((immediateOutput == -1) || (immediateOutput <= 1 &&
-     (restartFromLogicalCheckpoint <= CHECKPOINT_BEFORE_1ST_SCAFF_MERGE))){
+                                 (restartFromLogicalCheckpoint <= CHECKPOINT_BEFORE_1ST_SCAFF_MERGE))){
     fprintf(GlobalData->stderrc,"*** CS before SM ***\n");
     fflush(GlobalData->stderrc);
 
@@ -900,7 +901,7 @@ int main(int argc, char *argv[]){
     now that we are done with initial scaffold merge, we want to use the
     standard/default repeatRezLevel. Up to now, the value of preMergeRezLevel
     was in use if set on the command line
-   */
+  */
   data->repeatRezLevel = repeatRezLevel;
   
   // Convert single-contig scaffolds that are marginally unique back
@@ -913,58 +914,58 @@ int main(int argc, char *argv[]){
   }
   /* Now we throw stones */
   if  (((immediateOutput == -1)
-         || (immediateOutput <= 1 &&
-               (restartFromLogicalCheckpoint <= CHECKPOINT_BEFORE_STONES)))
+        || (immediateOutput <= 1 &&
+            (restartFromLogicalCheckpoint <= CHECKPOINT_BEFORE_STONES)))
        && GlobalData->stoneLevel > 0)
-      {
-       fprintf (GlobalData -> stderrc,
-                "**** Running Stone Throwing level %d ****\n",
-                GlobalData -> stoneLevel);
+    {
+      fprintf (GlobalData -> stderrc,
+               "**** Running Stone Throwing level %d ****\n",
+               GlobalData -> stoneLevel);
 
-       CheckCIScaffoldTs(ScaffoldGraph);
-       StartTimerT (& data -> StoneThrowingTimer);
-       Throw_Stones (GlobalData -> File_Name_Prefix, GlobalData -> stoneLevel, FALSE);
-       StopTimerT (& data -> StoneThrowingTimer);
+      CheckCIScaffoldTs(ScaffoldGraph);
+      StartTimerT (& data -> StoneThrowingTimer);
+      Throw_Stones (GlobalData -> File_Name_Prefix, GlobalData -> stoneLevel, FALSE);
+      StopTimerT (& data -> StoneThrowingTimer);
 
-       CheckCIScaffoldTs (ScaffoldGraph);
-       fprintf (GlobalData -> stderrc,
-                "**** FORCE variances after Stone Throwing  ****\n");
-       Force_Increasing_Variances ();
-       fprintf (GlobalData -> stderrc,
-                "**** Finished Stone Throwing level %d ****\n",
-                GlobalData -> stoneLevel);
+      CheckCIScaffoldTs (ScaffoldGraph);
+      fprintf (GlobalData -> stderrc,
+               "**** FORCE variances after Stone Throwing  ****\n");
+      Force_Increasing_Variances ();
+      fprintf (GlobalData -> stderrc,
+               "**** Finished Stone Throwing level %d ****\n",
+               GlobalData -> stoneLevel);
 
 #ifdef FIX_CONTIG_EDGES
-       fprintf(GlobalData->stderrc, "VALIDATING ALL CONTIG EDGES...\n");
-       ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
+      fprintf(GlobalData->stderrc, "VALIDATING ALL CONTIG EDGES...\n");
+      ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
 #endif
-       CleanupScaffolds (ScaffoldGraph, FALSE, NULLINDEX, FALSE);
+      CleanupScaffolds (ScaffoldGraph, FALSE, NULLINDEX, FALSE);
        
 #if defined(CHECK_CONTIG_ORDERS) || defined(CHECK_CONTIG_ORDERS_INCREMENTAL)
-       fprintf(stderr,
-               "---Checking contig orders after Throw_Stones\n\n");
-       CheckAllContigOrientationsInAllScaffolds(ScaffoldGraph, coc, POPULATE_COC_HASHTABLE);
+      fprintf(stderr,
+              "---Checking contig orders after Throw_Stones\n\n");
+      CheckAllContigOrientationsInAllScaffolds(ScaffoldGraph, coc, POPULATE_COC_HASHTABLE);
 #endif
 #ifdef CHECK_CONTIG_ORDERS_INCREMENTAL
-       ResetContigOrientChecker(coc);
-       AddAllScaffoldsToContigOrientChecker(ScaffoldGraph, coc);
+      ResetContigOrientChecker(coc);
+      AddAllScaffoldsToContigOrientChecker(ScaffoldGraph, coc);
 #endif
 
-       fprintf(data -> timefp, "Checkpoint %d written after Stone Throwing and CleanupScaffolds\n",
-               ScaffoldGraph -> checkPointIteration);
-       CheckpointScaffoldGraph (ScaffoldGraph, CHECKPOINT_BEFORE_STONES+1);
+      fprintf(data -> timefp, "Checkpoint %d written after Stone Throwing and CleanupScaffolds\n",
+              ScaffoldGraph -> checkPointIteration);
+      CheckpointScaffoldGraph (ScaffoldGraph, CHECKPOINT_BEFORE_STONES+1);
 
-       GenerateLinkStats (ScaffoldGraph -> CIGraph, "Stones", 0);
-       GeneratePlacedContigGraphStats ("Stones", 0);
-       GenerateLinkStats (ScaffoldGraph -> ContigGraph, "Stones", 0);
-       GenerateScaffoldGraphStats ("Stones", 0);
-      }
+      GenerateLinkStats (ScaffoldGraph -> CIGraph, "Stones", 0);
+      GeneratePlacedContigGraphStats ("Stones", 0);
+      GenerateLinkStats (ScaffoldGraph -> ContigGraph, "Stones", 0);
+      GenerateScaffoldGraphStats ("Stones", 0);
+    }
 
 
   // More aggressive external gap walking
 
   if((immediateOutput == -1) || (immediateOutput <= 1 &&
-     (restartFromLogicalCheckpoint <= CHECKPOINT_BEFORE_AGGRESSIVE_WALKING))){
+                                 (restartFromLogicalCheckpoint <= CHECKPOINT_BEFORE_AGGRESSIVE_WALKING))){
 
 #ifdef INSTRUMENT_CGW
     MateInstrumenter mi_before;
@@ -983,10 +984,10 @@ int main(int argc, char *argv[]){
       CheckCIScaffoldTs(ScaffoldGraph);
       
 #ifdef INSTRUMENT_CGW
-        InstrumentScaffoldGraph(ScaffoldGraph, sg_inst,
-                                30000, CDS_UINT32_MAX,
-                                InstrumenterVerbose1, GlobalData->stderrc);
-        GetMateInstrumenterFromScaffoldGraphInstrumenter(&mi_before, sg_inst);
+      InstrumentScaffoldGraph(ScaffoldGraph, sg_inst,
+                              30000, CDS_UINT32_MAX,
+                              InstrumenterVerbose1, GlobalData->stderrc);
+      GetMateInstrumenterFromScaffoldGraphInstrumenter(&mi_before, sg_inst);
 #endif
         
       StartTimerT(&data->GapWalkerTimer);
@@ -995,21 +996,21 @@ int main(int argc, char *argv[]){
       StopTimerT(&data->GapWalkerTimer);
 
 #ifdef INSTRUMENT_CGW
-        InstrumentScaffoldGraph(ScaffoldGraph, sg_inst,
-                                30000, CDS_UINT32_MAX,
-                                InstrumenterVerbose1, GlobalData->stderrc);
-        CompareMateInstrumenters(&(mi_before),
-                                 &(sg_inst->scaffold.mates),
-                                 InstrumenterVerbose1,
-                                 GlobalData->stderrc);
-        DestroyScaffoldGraphInstrumenter(sg_inst);
+      InstrumentScaffoldGraph(ScaffoldGraph, sg_inst,
+                              30000, CDS_UINT32_MAX,
+                              InstrumenterVerbose1, GlobalData->stderrc);
+      CompareMateInstrumenters(&(mi_before),
+                               &(sg_inst->scaffold.mates),
+                               InstrumenterVerbose1,
+                               GlobalData->stderrc);
+      DestroyScaffoldGraphInstrumenter(sg_inst);
 #endif
 
 #ifdef FIX_CONTIG_EDGES
-        fprintf(GlobalData->stderrc, "VALIDATING ALL CONTIG EDGES...\n");
-        ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
+      fprintf(GlobalData->stderrc, "VALIDATING ALL CONTIG EDGES...\n");
+      ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
 #endif
-        CheckCIScaffoldTs(ScaffoldGraph);
+      CheckCIScaffoldTs(ScaffoldGraph);
 
 
       fprintf(GlobalData->stderrc,"**** Finished Aggressive Walking level %d ****\n",GlobalData->walkLevel);
@@ -1038,9 +1039,9 @@ int main(int argc, char *argv[]){
     CheckCIScaffoldTs(ScaffoldGraph);
 
 #if 0
-      if(GlobalData->dumpScaffoldSnapshots){
-	DumpScaffoldSnapshot("PreScafMerge");
-      }
+    if(GlobalData->dumpScaffoldSnapshots){
+      DumpScaffoldSnapshot("PreScafMerge");
+    }
 #endif
 
     MergeScaffoldsAggressive(ScaffoldGraph, CHECKPOINT_BEFORE_2ND_SCAFF_MERGE, DEBUG_MERGE_SCAF);
@@ -1070,43 +1071,43 @@ int main(int argc, char *argv[]){
   CheckScaffoldGraphCache(ScaffoldGraph);
 
   if  (immediateOutput == 0
-         && (restartFromLogicalCheckpoint <= CHECKPOINT_BEFORE_FINAL_ROCKS)
-         && GlobalData -> repeatRezLevel > 0)
-      {
-       const int  MAX_EXTRA_ROCKS_ITERS = 5;
-       int  iter = 0, extra_rocks;
+       && (restartFromLogicalCheckpoint <= CHECKPOINT_BEFORE_FINAL_ROCKS)
+       && GlobalData -> repeatRezLevel > 0)
+    {
+      const int  MAX_EXTRA_ROCKS_ITERS = 5;
+      int  iter = 0, extra_rocks;
 
-       fprintf (GlobalData -> stderrc,
-            "** Running Final Round of RepeatRez (Rocks) **\n");
-       do
-         {
+      fprintf (GlobalData -> stderrc,
+               "** Running Final Round of RepeatRez (Rocks) **\n");
+      do
+        {
           extra_rocks = Fill_Gaps (GlobalData, GlobalData -> File_Name_Prefix,
-               GlobalData -> repeatRezLevel, iter);
+                                   GlobalData -> repeatRezLevel, iter);
           fprintf (GlobalData -> stderrc, "Threw additional %d rocks on iter %d\n",
-               extra_rocks, iter);
+                   extra_rocks, iter);
 
           if  (extra_rocks > 0)
-              CheckScaffoldGraphCache (ScaffoldGraph);
-         }  while  (extra_rocks > 1 && iter < MAX_EXTRA_ROCKS_ITERS);
+            CheckScaffoldGraphCache (ScaffoldGraph);
+        }  while  (extra_rocks > 1 && iter < MAX_EXTRA_ROCKS_ITERS);
 
-       if  (checkPoint)
-           {
-            fprintf (GlobalData -> stderrc,
-                 "Checkpoint %d written after Final Rocks\n",
-                 ScaffoldGraph -> checkPointIteration);
-            fprintf (data->timefp,
-                 "Checkpoint %d written after Final Rocks\n",
-                 ScaffoldGraph -> checkPointIteration);
-            CheckpointScaffoldGraph (ScaffoldGraph, CHECKPOINT_BEFORE_FINAL_ROCKS+1);
-           }
-      }
+      if  (checkPoint)
+        {
+          fprintf (GlobalData -> stderrc,
+                   "Checkpoint %d written after Final Rocks\n",
+                   ScaffoldGraph -> checkPointIteration);
+          fprintf (data->timefp,
+                   "Checkpoint %d written after Final Rocks\n",
+                   ScaffoldGraph -> checkPointIteration);
+          CheckpointScaffoldGraph (ScaffoldGraph, CHECKPOINT_BEFORE_FINAL_ROCKS+1);
+        }
+    }
 
 
 #if  1
   if  (immediateOutput == 0
-         && (restartFromLogicalCheckpoint <= CHECKPOINT_BEFORE_PARTIAL_STONES)
-         && GlobalData -> stoneLevel > 0)
-     {
+       && (restartFromLogicalCheckpoint <= CHECKPOINT_BEFORE_PARTIAL_STONES)
+       && GlobalData -> stoneLevel > 0)
+    {
       int  partial_stones;
 
       fprintf (GlobalData -> stderrc, "* Starting Partial_Stones\n");
@@ -1114,8 +1115,8 @@ int main(int argc, char *argv[]){
       CheckCIScaffoldTs (ScaffoldGraph);
       StartTimerT (& data -> StoneThrowingTimer);
       partial_stones
-          = Throw_Stones (GlobalData -> File_Name_Prefix,
-                          GlobalData -> stoneLevel, TRUE);
+        = Throw_Stones (GlobalData -> File_Name_Prefix,
+                        GlobalData -> stoneLevel, TRUE);
       StopTimerT (& data -> StoneThrowingTimer);
       CheckCIScaffoldTs (ScaffoldGraph);
       fprintf (GlobalData -> stderrc,
@@ -1155,14 +1156,14 @@ int main(int argc, char *argv[]){
       GeneratePlacedContigGraphStats ("PStones", 0);
       GenerateLinkStats(ScaffoldGraph -> ContigGraph, "PStones", 0);
       GenerateScaffoldGraphStats ("PStones", 0);
-     }
+    }
 #endif
 
 #if  1
   if  (immediateOutput == 0
-         && (restartFromLogicalCheckpoint <= CHECKPOINT_BEFORE_FINAL_CONTAINED_STONES)
-         && GlobalData -> stoneLevel > 0)
-     {
+       && (restartFromLogicalCheckpoint <= CHECKPOINT_BEFORE_FINAL_CONTAINED_STONES)
+       && GlobalData -> stoneLevel > 0)
+    {
       int  contained_stones;
 
       fprintf (GlobalData -> stderrc, "* Starting Final Contained Stones\n");
@@ -1170,8 +1171,8 @@ int main(int argc, char *argv[]){
       CheckCIScaffoldTs (ScaffoldGraph);
       StartTimerT (& data -> StoneThrowingTimer);
       contained_stones
-          = Toss_Contained_Stones (GlobalData -> File_Name_Prefix,
-                                   GlobalData -> stoneLevel, 0);
+        = Toss_Contained_Stones (GlobalData -> File_Name_Prefix,
+                                 GlobalData -> stoneLevel, 0);
       StopTimerT (& data -> StoneThrowingTimer);
 #ifdef FIX_CONTIG_EDGES
       fprintf(GlobalData->stderrc, "VALIDATING ALL CONTIG EDGES...\n");
@@ -1204,47 +1205,47 @@ int main(int argc, char *argv[]){
       GeneratePlacedContigGraphStats ("CStones", 0);
       GenerateLinkStats(ScaffoldGraph -> ContigGraph, "CStones", 0);
       GenerateScaffoldGraphStats ("CStones", 0);
-     }
+    }
 #endif
 
 #if 1
   if(immediateOutput == 0 && GlobalData->walkLevel > 0 &&
      (restartFromLogicalCheckpoint <= CHECKPOINT_BEFORE_INTER_SCAFFOLD_WALKING))
-  {
-	int mergedScaffolds = TRUE, round = 0;
-	char middleName[32];
+    {
+      int mergedScaffolds = TRUE, round = 0;
+      char middleName[32];
 
-    fprintf(GlobalData->stderrc,"* Before Inter_Scaffold_Walking\n");
+      fprintf(GlobalData->stderrc,"* Before Inter_Scaffold_Walking\n");
 	
-	while ( mergedScaffolds && round < 10)
+      while ( mergedScaffolds && round < 10)
 	{
 	  // GlobalData->gwlogfp = file_open("temp.gwlog", "w");
 	  // assert(GlobalData->gwlogfp != NULL);
 	  
 	  mergedScaffolds = Inter_Scaffold_Walking();
 	  if (mergedScaffolds)
-	  {
-		sprintf( middleName, "rnd_%d", round++);
-		localeCam( middleName );
-	  }
+            {
+              sprintf( middleName, "rnd_%d", round++);
+              localeCam( middleName );
+            }
 	}
 #if defined(CHECK_CONTIG_ORDERS) || defined(CHECK_CONTIG_ORDERS_INCREMENTAL)
-        fprintf(stderr,
-                "---Checking contig orders after Inter_Scaffold_Walking\n\n");
-        CheckAllContigOrientationsInAllScaffolds(ScaffoldGraph, coc, POPULATE_COC_HASHTABLE);
+      fprintf(stderr,
+              "---Checking contig orders after Inter_Scaffold_Walking\n\n");
+      CheckAllContigOrientationsInAllScaffolds(ScaffoldGraph, coc, POPULATE_COC_HASHTABLE);
 #endif
 #ifdef CHECK_CONTIG_ORDERS_INCREMENTAL
-        ResetContigOrientChecker(coc);
-        AddAllScaffoldsToContigOrientChecker(ScaffoldGraph, coc);
+      ResetContigOrientChecker(coc);
+      AddAllScaffoldsToContigOrientChecker(ScaffoldGraph, coc);
 #endif
 #ifdef FIX_CONTIG_EDGES
-        fprintf(GlobalData->stderrc, "VALIDATING ALL CONTIG EDGES...\n");
-        ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
+      fprintf(GlobalData->stderrc, "VALIDATING ALL CONTIG EDGES...\n");
+      ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
 #endif
-	fprintf(data->timefp,"Checkpoint %d written after Inter_Scaffold_Walking\n", 
-			ScaffoldGraph->checkPointIteration);
-	CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_BEFORE_INTER_SCAFFOLD_WALKING+1);
-  }
+      fprintf(data->timefp,"Checkpoint %d written after Inter_Scaffold_Walking\n", 
+              ScaffoldGraph->checkPointIteration);
+      CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_BEFORE_INTER_SCAFFOLD_WALKING+1);
+    }
 #endif
 
 #if 1
@@ -1288,39 +1289,39 @@ int main(int argc, char *argv[]){
   // now recompute mate pair statistics, once on scaffolds, once on contigs, with 
   // the results on contigs being the ones that are output in OutputMateDists
   if (immediateOutput == 0)
-  {
-	if (1)
+    {
+      if (1)
 	{
 	  fprintf(GlobalData->stderrc,"* Calling ComputeMatePairStatisticsRestricted (SCAFFOLD_OPERATIONS)\n");
 	  fflush(stderr);
 	  ComputeMatePairStatisticsRestricted( SCAFFOLD_OPERATIONS, minSamplesForOverride /* update distance estimates */,
-								 "scaffold_final");
+                                               "scaffold_final");
 	  
 	  //fprintf(data->timefp,"Checkpoint %d written after ComputeMatePairStatisticsRestricted (SCAFFOLD_OPERATIONS)\n",
 	  //	  ScaffoldGraph->checkPointIteration);
 	  //CheckpointScaffoldGraph(ScaffoldGraph);
 	}
 
-	if (1)
+      if (1)
 	{
 	  fprintf(GlobalData->stderrc,"* Calling ComputeMatePairStatisticsRestricted (CONTIG_OPERATIONS)\n");
 	  fflush(stderr);
 	  ComputeMatePairStatisticsRestricted( CONTIG_OPERATIONS, minSamplesForOverride /* update distance estimates */,
-								 "contig_final");
+                                               "contig_final");
 
 	  //fprintf(data->timefp,"Checkpoint %d written after ComputeMatePairStatisticsRestricted (CONTIG_OPERATIONS)\n",
 	  //	  ScaffoldGraph->checkPointIteration);
 	  //CheckpointScaffoldGraph(ScaffoldGraph);
 	}
-  }
+    }
   
-    fprintf(GlobalData->stderrc,"* Output cam files *\n");
-    GenerateCIGraph_U_Stats();
-    GenerateLinkStats(ScaffoldGraph->CIGraph,"final",0);
-    GeneratePlacedContigGraphStats("final",0);
-    GenerateLinkStats(ScaffoldGraph->ContigGraph,"final",0);
-    GenerateScaffoldGraphStats("final",0);
-    GenerateSurrogateStats("final");
+  fprintf(GlobalData->stderrc,"* Output cam files *\n");
+  GenerateCIGraph_U_Stats();
+  GenerateLinkStats(ScaffoldGraph->CIGraph,"final",0);
+  GeneratePlacedContigGraphStats("final",0);
+  GenerateLinkStats(ScaffoldGraph->ContigGraph,"final",0);
+  GenerateScaffoldGraphStats("final",0);
+  GenerateSurrogateStats("final");
   //  GenerateContigAlignmentStats("final");
 
   CheckScaffoldGraphCache(ScaffoldGraph);
@@ -1330,12 +1331,12 @@ int main(int argc, char *argv[]){
 
   if(camFileOnly || generateOutput){
 
-  fprintf(stderr,"* Calling CelamyCIScaffolds\n");
-  CelamyCIScaffolds(data->File_Name_Prefix,ScaffoldGraph);
-  fprintf(stderr,"* Calling CelamyAssembly\n");
-  CelamyAssembly(data->File_Name_Prefix);
-  fprintf(stderr,"* Done with Celamy output\n");
-  fflush(NULL);
+    fprintf(stderr,"* Calling CelamyCIScaffolds\n");
+    CelamyCIScaffolds(data->File_Name_Prefix,ScaffoldGraph);
+    fprintf(stderr,"* Calling CelamyAssembly\n");
+    CelamyAssembly(data->File_Name_Prefix);
+    fprintf(stderr,"* Done with Celamy output\n");
+    fflush(NULL);
   }
 
   /************* Output ***************/
@@ -1352,13 +1353,13 @@ int main(int argc, char *argv[]){
     StartTimerT(&data->OutputTimer);
     MarkContigEdges();
     OutputMateDists(ScaffoldGraph);
-  fprintf(GlobalData->stderrc,"* Before Output Mate Dists*\n");
-  ReportMemorySize(ScaffoldGraph,stderr);
-  fflush(stderr);
+    fprintf(GlobalData->stderrc,"* Before Output Mate Dists*\n");
+    ReportMemorySize(ScaffoldGraph,stderr);
+    fflush(stderr);
     OutputFrags(ScaffoldGraph);
-  fprintf(GlobalData->stderrc,"* Before OutputUnitigs *\n");
-  ReportMemorySize(ScaffoldGraph,stderr);
-  fflush(stderr);
+    fprintf(GlobalData->stderrc,"* Before OutputUnitigs *\n");
+    ReportMemorySize(ScaffoldGraph,stderr);
+    fflush(stderr);
     // We always have multiAlignments for Unitigs
     OutputUnitigsFromMultiAligns();
     OutputUnitigLinksFromMultiAligns();
@@ -1416,7 +1417,7 @@ int main(int argc, char *argv[]){
   }
 
   if(data->verbose)
-  fprintf(GlobalData->stderrc,"* Deleting Scaffold Graph *\n");
+    fprintf(GlobalData->stderrc,"* Deleting Scaffold Graph *\n");
   DestroyScaffoldGraph(ScaffoldGraph);
 
   if(restartFromCheckpoint == NULLINDEX){

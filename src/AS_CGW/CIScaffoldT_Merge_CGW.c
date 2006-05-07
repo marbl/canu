@@ -18,14 +18,13 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.14 2006-04-11 19:28:45 ahalpern Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.15 2006-05-07 23:45:32 brianwalenz Exp $";
 
 #undef ORIG_MERGE_EDGE_INVERT
 #define MINSATISFIED_CUTOFF 0.985
 #undef DEBUG_MERGE_EDGE_INVERT	  
 #undef  DEBUG_BAD_MATE_RATIO
 
-int try_new_comparator=0;
 
 //  Define this to check (and assert) if the graph is not internally
 //  connected before recomputing offsets.  It's expensive, and if you
@@ -4214,20 +4213,14 @@ void ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
 
 	    Segment *inputListHead=NULL;
 
-	    if(try_new_comparator){
-	      scfAligner=Align_Scaffold_ala_Aaron;
-	    } else { 
-	      scfAligner=Align_Scaffold;
-	    }
-
-	    sai->segmentList = scfAligner(sai->segmentList,
-					  sai->numSegs,
-					  sai->varWin,
-					  sai->scaffoldA->scaffold,
-					  sai->scaffoldB->scaffold,
-					  &(sai->best),
-					  sai->scaffoldA->bandBeg,
-					  sai->scaffoldA->bandEnd);
+	    sai->segmentList = Align_Scaffold(sai->segmentList,
+                                              sai->numSegs,
+                                              sai->varWin,
+                                              sai->scaffoldA->scaffold,
+                                              sai->scaffoldB->scaffold,
+                                              &(sai->best),
+                                              sai->scaffoldA->bandBeg,
+                                              sai->scaffoldA->bandEnd);
 
 	    // deal with suspected memory leak ...
 	    if(sai->segmentList==NULL&&inputListHead!=NULL){
