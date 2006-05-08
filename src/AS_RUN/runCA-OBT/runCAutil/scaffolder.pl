@@ -1,5 +1,9 @@
 use strict;
 
+sub localSymlink ($$$) {
+    my ($wrk,$src,$dst) = @_;
+    system "(cd $wrk && ln -s $src $dst)";
+}
 #  Don't do interleaved merging unless we are throwing stones.
 
 sub CGW ($$$$) {
@@ -37,10 +41,10 @@ sub CGW ($$$$) {
     system("mkdir $wrk/$thisDir")               if (! -d "$wrk/$thisDir");
     system("mkdir $wrk/$asm.SeqStore")          if (! -d "$wrk/$asm.SeqStore");
 
-    system("ln -s $wrk/5-consensus/$asm.cgi $wrk/$thisDir/$asm.cgi")          if (! -e "$wrk/$thisDir/$asm.cgi");
-    system("ln -s $wrk/$asm.SeqStore        $wrk/$thisDir/$asm.SeqStore")     if (! -e "$wrk/$thisDir/$asm.SeqStore");
+    localSymlink($wrk,"5-consensus/$asm.cgi", "$thisDir/$asm.cgi")          if (! -e "$wrk/$thisDir/$asm.cgi");
+    localSymlink($wrk,"$asm.SeqStore", "$thisDir/$asm.SeqStore")     if (! -e "$wrk/$thisDir/$asm.SeqStore");
 
-    system("ln -s $wrk/$lastDir/$asm.ckp.$lastckp $wrk/$thisDir/$asm.ckp.$lastckp") if (defined($lastDir));
+    localSymlink($wrk,"$lastDir/$asm.ckp.$lastckp", "$thisDir/$asm.ckp.$lastckp") if (defined($lastDir));
 
     my $cmd;
     $cmd  = "cd $wrk/$thisDir && ";
@@ -77,8 +81,8 @@ sub eCR ($$) {
 
     system("mkdir $wrk/$thisDir") if (! -d "$wrk/$thisDir");
 
-    system("ln -s $wrk/$lastDir/$asm.ckp.$lastckp $wrk/$thisDir/$asm.ckp.$lastckp")  if (! -e "$wrk/$thisDir/$asm.ckp.$lastckp");
-    system("ln -s $wrk/$asm.SeqStore              $wrk/$thisDir/$asm.SeqStore")      if (! -e "$wrk/$thisDir/$asm.SeqStore");
+    localSymlink($wrk,"$lastDir/$asm.ckp.$lastckp", "$thisDir/$asm.ckp.$lastckp")  if (! -e "$wrk/$thisDir/$asm.ckp.$lastckp");
+    localSymlink($wrk,"$asm.SeqStore", "$wrk/$thisDir/$asm.SeqStore")      if (! -e "$wrk/$thisDir/$asm.SeqStore");
 
     #  Run eCR in smaller batches, hopefully making restarting from a failure both
     #  faster and easier.
@@ -204,8 +208,8 @@ sub resolveSurrogates ($$) {
 
     system("mkdir $wrk/$thisDir")  if (! -d "$wrk/$thisDir");
 
-    system("ln -s $wrk/$lastDir/$asm.ckp.$lastckp $wrk/$thisDir/$asm.ckp.$lastckp")  if (! -e "$wrk/$thisDir/$asm.ckp.$lastckp");
-    system("ln -s $wrk/$asm.SeqStore              $wrk/$thisDir/$asm.SeqStore")      if (! -e "$wrk/$thisDir/$asm.SeqStore");
+    localSymlink($wrk,"$lastDir/$asm.ckp.$lastckp","$thisDir/$asm.ckp.$lastckp")  if (! -e "$wrk/$thisDir/$asm.ckp.$lastckp");
+    localSymlink($wrk,"$asm.SeqStore","$thisDir/$asm.SeqStore")      if (! -e "$wrk/$thisDir/$asm.SeqStore");
 
     my $cmd;
     $cmd  = "cd $wrk/$thisDir && ";
@@ -297,7 +301,7 @@ sub scaffolder {
 
     #  And, finally, hold on, we're All Done!  Point to the correct output directory.
     #
-    system("ln -s $wrk/$lastDir $wrk/7-CGW") if (! -d "$wrk/7-CGW");
+    localSymlink($wrk, $lastDir, '7-CGW') if (! -d "$wrk/7-CGW");
 }
 
 
