@@ -2,7 +2,7 @@ use strict;
 
 sub localSymlink ($$$) {
     my ($wrk,$src,$dst) = @_;
-    system "(cd $wrk && ln -s $src $dst)";
+    system "cd $wrk && ln -s $src $dst";
 }
 #  Don't do interleaved merging unless we are throwing stones.
 
