@@ -75,19 +75,16 @@ public:
   double           _buildTime;
   double           _searchTime;
 
-  //  Loader parameters
+  //  sweatShop queue sizes; maximum number of sequences pre-loaded,
+  //  maximum number of results waiting for output.
   //
-  u32bit           _loaderHighWaterMark;
+  u32bit           _loaderQueue;
   struct timespec  _loaderSleep;
   bool             _loaderWarnings;
 
-  //  Search parameters
-  //
   struct timespec  _searchSleep;
 
-  //  Output parameters
-  //
-  u32bit           _writerHighWaterMark;
+  u32bit           _writerQueue;
   struct timespec  _writerSleep;
   bool             _writerWarnings;
 

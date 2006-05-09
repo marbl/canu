@@ -116,8 +116,8 @@ main(int argc, char **argv) {
   for (u32bit i=0; i<config._numSearchThreads; i++)
     ss->setThreadData(i, new searcherState);
 
-  ss->loaderQueueSize(8192);
-  ss->writerQueueSize(4096);
+  ss->loaderQueueSize(config._loaderQueue);
+  ss->writerQueueSize(config._writerQueue);
 
   ss->run(0L, config._beVerbose);
 
