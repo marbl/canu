@@ -173,7 +173,7 @@ close(F);
 #
 open(F, "> $path/create.sh");
 print F "#!/bin/sh\n";
-print F "/usr/bin/perl $path/create.pl\n";
+print F "/usr/bin/perl $path/create.pl \$@\n";
 close(F);
 
 open(F, "> $path/create.pl");
@@ -184,7 +184,12 @@ print F "my \@args = <F>;\n";
 print F "close(F);\n";
 print F "chomp \@args;\n";
 print F "\n";
-print F "my (\$seg, \$beg, \$end) = split '\\s+', \$args[\$ENV{'SGE_TASK_ID'} - 1];\n";
+print F "my \$jid = shift @ARGV;\n";
+print F "if (!defined(\$jid)) {\n";
+print F "    \$jid = \$ENV{'SGE_TASK_ID'} - 1;\n";
+print F "}\n";
+print F "\n";
+print F "my (\$seg, \$beg, \$end) = split '\\s+', \$args[\$jid];\n";
 print F "\n";
 print F "if (! -e \"$path/init.merStream\") {\n";
 print F "  die \"Didn't find the merStreamFile!\\n\";\n";
@@ -229,13 +234,14 @@ print STDERR "configureESTmapper-- Created $segId groups with maximum memory req
 #
 if      ($local) {
     my $seg = "00";
+
     while ($seg ne $segId) {
-        $ENV{'SGE_TASK_ID'} = $seg + 1;
+        print STDERR "Creating $seg out of $segId\n";
+
         if (! -e "$path/seg$seg.posDB") {
-            if (runCommand("/bin/sh $path/create.sh")) {
-                die "Segment $seg failed.\n";
-            }
+            runCommand("/bin/sh $path/create.sh $seg") and die "Segment $seg failed.\n";
         }
+
         $seg++;
     }
 } elsif ($sge) {
