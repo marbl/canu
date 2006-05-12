@@ -10,6 +10,7 @@ sub filter {
     my $farmcode    = undef;
     my $filtqueue   = undef;
     my $sgename     = undef;
+    my $sgeoptions  = undef;
     my $sgeaccount  = undef;
     my $sgepriority = undef;
     my $extrafilter = "cat";
@@ -59,6 +60,7 @@ sub filter {
 
         $sgename     = shift @ARGS         if ($arg eq "-sge");
         $sgeaccount  = "-A " . shift @ARGS if ($arg eq "-sgeaccount");
+        $sgeoptions  = shift @ARGS         if ($arg eq "-sgeoptions");
         $sgepriority = "-p " . shift @ARGS if ($arg eq "-sgepriority");
     }
 
@@ -91,7 +93,7 @@ sub filter {
     #
     if (! -e "$path/2-filter/filteredHits" && defined($sgename) && !defined($ENV{'SGE_TASK_ID'})) {
         my $cmd;
-        $cmd  = "qsub -cwd $sgeaccount $sgepriority ";
+        $cmd  = "qsub -cwd $sgeaccount $sgepriority $sgeoptions ";
         $cmd .= " -j y -o $path/stage2.sgeout ";
         $cmd .= " -N \"f$sgename\" ";
         $cmd .= " $ESTmappersh $ESTmapper -restart $path";

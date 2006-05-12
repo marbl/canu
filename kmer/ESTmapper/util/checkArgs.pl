@@ -55,6 +55,7 @@ my %validArgs = ("-help"            => "0",  #
                  "-sge"             => "1",  # 2, takes name
                  "-sgeaccount"      => "1",  # 2, takes account string
                  "-sgepriority"     => "1",  # 2, takes integer
+                 "-sgeoptions"      => "1",  # 2, takes quoted list of args
                  "-species"         => "1",  # 2
                  "-stats"           => "0",  # 24
                  "-verbose"         => "0"); # 123

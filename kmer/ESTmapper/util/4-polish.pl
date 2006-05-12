@@ -22,6 +22,7 @@ sub polish {
 
     my $sgename      = undef;
     my $sgeaccount   = undef;
+    my $sgeoptions   = undef;
     my $sgepriority  = undef;
 
     my $runtype      = "local";
@@ -65,6 +66,7 @@ sub polish {
 
         $sgename     = shift @ARGS         if ($arg eq "-sge");
         $sgeaccount  = "-A " . shift @ARGS if ($arg eq "-sgeaccount");
+        $sgeoptions  = shift @ARGS         if ($arg eq "-sgeoptions");
         $sgepriority = "-p " . shift @ARGS if ($arg eq "-sgepriority");
 
         $runtype    = "later"     if ($arg eq "-runlater");
@@ -287,7 +289,7 @@ sub polish {
                 print STDERR "ESTmapper/polish-- Submitting to SGE.\n";
 
                 my $cmd;
-                $cmd  = "qsub -cwd $sgeaccount $sgepriority ";
+                $cmd  = "qsub -cwd $sgeaccount $sgepriority $sgeoptions ";
                 $cmd .= " -pe thread 2 ";
                 $cmd .= " -j y -o $path/3-polish/sim4db-\\\$TASK_ID.sgeout ";
                 $cmd .= " -N \"p$sgename\" ";
@@ -298,7 +300,7 @@ sub polish {
                     die "Failed.\n";
                 }
 
-                $cmd  = "qsub -cwd $sgeaccount $sgepriority ";
+                $cmd  = "qsub -cwd $sgeaccount $sgepriority $sgeoptions ";
                 $cmd .= " -j y -o $path/stage3.sgeout ";
                 $cmd .= " -hold_jid \"p$sgename\" ";
                 $cmd .= " -N \"o$sgename\" ";

@@ -48,6 +48,7 @@ sub search {
 
     my $sgename      = undef;
     my $sgeaccount   = undef;
+    my $sgeoptions   = undef;
     my $sgepriority  = undef;
 
     my $runtype      = "local";
@@ -94,6 +95,7 @@ sub search {
 
         $sgename     = shift @ARGS         if ($arg eq "-sge");
         $sgeaccount  = "-A " . shift @ARGS if ($arg eq "-sgeaccount");
+        $sgeoptions  = shift @ARGS         if ($arg eq "-sgeoptions");
         $sgepriority = "-p " . shift @ARGS if ($arg eq "-sgepriority");
 
         $runtype    = "later"     if ($arg eq "-runlater");
@@ -288,7 +290,7 @@ sub search {
             #  Still need to set number of threads, use parallel execution environment
             #  -p priority
 
-            $cmd  = "qsub -cwd $sgeaccount $sgepriority ";
+            $cmd  = "qsub -cwd $sgeaccount $sgepriority $sgeoptions ";
             $cmd .= " -pe thread $numthread ";
             $cmd .= " -j y -o $path/1-search/seagen-\\\$TASK_ID.sgeout ";
             $cmd .= " -N \"s$sgename\" ";
@@ -301,7 +303,7 @@ sub search {
 
             #  Submit the filter, and make it wait for the searches, if they were submitted.
             #
-            $cmd  = "qsub -cwd $sgeaccount $sgepriority ";
+            $cmd  = "qsub -cwd $sgeaccount $sgepriority $sgeoptions ";
             $cmd .= " -j y -o $path/stage2.sgeout ";
             $cmd .= " -hold_jid \"s$sgename\" ";
             $cmd .= " -N \"f$sgename\" ";
