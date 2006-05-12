@@ -223,6 +223,7 @@ sweatShop::loader(void) {
         loaderAdd(new state_s(0L));
       }
       moreToLoad = false;
+      delete thisState;
     }
   }
 
