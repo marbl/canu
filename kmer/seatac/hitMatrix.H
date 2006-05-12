@@ -7,7 +7,6 @@
 
 #include "bio++.H"
 #include "positionDB.H"
-
 #include "filterObj.H"
 
 //  Define this to cut the space required for storing hits by 1/3 --
@@ -39,6 +38,20 @@ struct diagonalLine {
 
 
 class hitMatrix {
+public:
+  hitMatrix(u32bit qsLen,
+            u32bit qsIdx);
+  ~hitMatrix();
+
+  void    addHits(u32bit  qi,
+                  u64bit *ps,
+                  u64bit  cn);
+
+  void    sort_diagonal(void);
+  void    sort_dsPos(void);
+
+  void    processMatrix(char direction, filterObj *FO);
+
 private:
   u32bit                        _qsLen;   //  Seq Len of Q
   u32bit                        _qsIdx;   //  Index of Q in the FastA
@@ -51,19 +64,6 @@ private:
   u32bit                        _hitsLen;
   u32bit                        _hitsMax;
   diagonalLine                 *_hits;
-
-public:
-  hitMatrix(u32bit qsLen, u32bit qsIdx, bool reversed=false);
-  ~hitMatrix();
-
-  void    addHits(u32bit  qi,
-                  u64bit *ps,
-                  u64bit  cn);
-
-  void    sort_diagonal(void);
-  void    sort_dsPos(void);
-
-  void    processMatrix(char direction, filterObj *FO);
 };
 
 
@@ -74,15 +74,13 @@ hitMatrix::addHits(u32bit  qi,
                    u64bit  cn) {
 
   if ((_hitsLen + cn) >= _hitsMax) {
-    fprintf(stderr, "Need more diagonalLines: from "u32bitFMT" to "u32bitFMT"\n", _hitsMax, _hitsMax + _hitsMax + (u32bit)cn);
-
     _hitsMax = _hitsMax + _hitsMax + (u32bit)cn;
 
     diagonalLine *h;
     try {
       h = new diagonalLine [_hitsMax];
     } catch (std::bad_alloc) {
-      fprintf(stderr, "hitMatrix::addHits()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
+      fprintf(stderr, "hitMatrix::addHits()-- caught std::bad_alloc in %s at line %d.\n", __FILE__, __LINE__);
       fprintf(stderr, "hitMatrix::addHits()-- have "u32bitFMT" hits, tried to add "u64bitFMT" more\n", _hitsLen, cn);
       exit(1);
     }

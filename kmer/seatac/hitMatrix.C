@@ -2,7 +2,7 @@
 #include "seatac.H"
 
 
-hitMatrix::hitMatrix(u32bit qsLen, u32bit qsIdx, bool reversed) {
+hitMatrix::hitMatrix(u32bit qsLen, u32bit qsIdx) {
   _qsLen    = qsLen;
   _qsIdx    = qsIdx;
 
@@ -17,11 +17,6 @@ hitMatrix::hitMatrix(u32bit qsLen, u32bit qsIdx, bool reversed) {
 
 
 hitMatrix::~hitMatrix() {
-#if 0
-  if (_hitsLen > 0)
-    fprintf(stderr, "hitMatrix::~hitMatrix()-- qsIdx="u32bitFMTW(6)": releasing _hits "u32bitFMTW(8)" used (%4dMB) out of "u32bitFMTW(8)" allocated (%4dMB).\n",
-            _qsIdx, _hitsLen, (sizeof(diagonalLine) * _hitsLen) >> 20, _hitsMax, (sizeof(diagonalLine) * _hitsMax) >> 20);
-#endif
   delete [] _hits;
 }
 
@@ -202,17 +197,8 @@ hitMatrix::processMatrix(char direction, filterObj *FO) {
 
     //  Adjust the hits to be relative to the start of this sequence
     //
-#if 0
-    fprintf(stderr, "subtracting "u32bitFMT"\n", config._useList.startOf(currentSeq));
-#endif
-    for (u32bit i=firstHit; i<lastHit; i++) {
+    for (u32bit i=firstHit; i<lastHit; i++)
       _hits[i]._dsPos -= config._useList.startOf(currentSeq);
-
-#if 0
-      fprintf(stderr, "adjusted seq "u32bitFMT" to "u32bitFMT" from "u32bitFMT" (offset = "u64bitFMT")\n",
-              currentSeq, _hits[i]._dsPos, _hits[i]._dsPos + (u32bit)config._useList.startOf(currentSeq), config._useList.startOf(currentSeq));
-#endif
-    }
 
     //  Sort them, if needed.
     //
@@ -280,10 +266,7 @@ hitMatrix::processMatrix(char direction, filterObj *FO) {
     IL.clear();
 
     for (u32bit i=firstHit; i<lastHit; i++) {
-
-#if 0
-      fprintf(stdout, "hit[%6u] seq=%8u qs=%5u ds=%5u\n", i, currentSeq, _hits[i]._qsPos, _hits[i]._dsPos);
-#endif
+      //fprintf(stdout, "hit[%6u] seq=%8u qs=%5u ds=%5u\n", i, currentSeq, _hits[i]._qsPos, _hits[i]._dsPos);
 
       //
       //  Extend if on the same diagonal, and consecutive sequence.

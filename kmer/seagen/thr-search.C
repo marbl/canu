@@ -17,8 +17,7 @@ doSearch(searcherState *state,
 
   hitMatrix *matrix = new hitMatrix(query->bpTotal(),
                                     query->bpCovered(false),
-                                    query->IID(),
-                                    isReverse);
+                                    query->IID());
 
   for (u32bit qi=0; qi<query->numberOfMers(); qi++)
     if ((query->getSkip(qi, isReverse) == false) &&

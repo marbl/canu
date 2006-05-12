@@ -4,7 +4,7 @@
 
 #define TRACE    0
 
-hitMatrix::hitMatrix(u32bit qsLen, u32bit qsMers, u32bit qsIdx, bool reversed) {
+hitMatrix::hitMatrix(u32bit qsLen, u32bit qsMers, u32bit qsIdx) {
   _qsLen    = qsLen;
   _qsMers   = qsMers;
   _qsIdx    = qsIdx;
@@ -12,8 +12,6 @@ hitMatrix::hitMatrix(u32bit qsLen, u32bit qsMers, u32bit qsIdx, bool reversed) {
   _hitsLen  = 0;
   _hitsMax  = 128;
   _hits     = new diagonalLine [_hitsMax];
-
-  //_reversed = reversed;
 
   _matches  = 0L;
 }
@@ -123,7 +121,67 @@ hitMatrix::addMatch(u32bit         qsLo,
 //
 //  The two comparison functions return true if the first line
 //  is less than the second line.
-//
+
+#ifdef WITHOUT_DIAGONALID
+
+inline
+int
+compareLines(diagonalLine *A, diagonalLine *B, u32bit qsLen) {
+  u32bit a = qsLen - A->_qsPos - 1 + A->_dsPos;
+  u32bit b = qsLen - B->_qsPos - 1 + B->_dsPos;
+
+  return(((a  < b)) ||
+         ((a == b) && (A->_qsPos < B->_qsPos)));
+}
+
+inline
+int
+compareLines(u32bit l, u32bit q, diagonalLine *B, u32bit qsLen) {
+  u32bit b = qsLen - B->_qsPos - 1 + B->_dsPos;
+
+  return(((l  < b)) ||
+         ((l == b) && (q < B->_qsPos)));
+}
+
+inline
+void
+adjustHeap(diagonalLine *L, s32bit p, s32bit n, u32bit qsLen) {
+  u32bit  q = L[p]._qsPos;
+  u32bit  d = L[p]._dsPos;
+  u32bit  l = qsLen - q - 1 + d;
+  s32bit  c = (p << 1) + 1;  //  let c be the left child of p
+
+  while (c < n) {
+
+    //  Find the larger of the two children
+    //
+    if ((c+1 < n) && compareLines(L+c, L+c+1, qsLen))
+      c++;
+
+    //  Does the node in question fit here?
+    //
+    if (compareLines(l, q, L+c, qsLen) == false)
+      break;
+
+    //  Else, swap the parent and the child
+    //
+    L[p]._qsPos      = L[c]._qsPos;
+    L[p]._dsPos      = L[c]._dsPos;
+
+    //  Move down the tree
+    //
+    p = c;
+    c = (p << 1) + 1;
+  }
+
+  L[p]._qsPos      = q;
+  L[p]._dsPos      = d;
+}
+
+
+#else // WITH_DIAGONALID
+
+
 inline
 int
 compareLines(diagonalLine *A, diagonalLine *B) {
@@ -175,7 +233,10 @@ adjustHeap(diagonalLine *L, s32bit p, s32bit n) {
   L[p]._diagonalID = l;
 }
 
-void
+
+#endif
+
+void
 hitMatrix::filter(encodedQuery *query, bool isReverse) {
 
   if (_hitsLen == 0)
@@ -267,7 +328,11 @@ hitMatrix::filter(encodedQuery *query, bool isReverse) {
       //  same time as the scan for the last hit, but it can't (easily)
       //
       for (s32bit i=(lastHit - firstHit)/2 - 1; i>=0; i--)
+#ifdef WITHOUT_DIAGONALID
+        adjustHeap(hitsToSort, i, lastHit - firstHit, _qsLen);
+#else
         adjustHeap(hitsToSort, i, lastHit - firstHit);
+#endif
 
       //  Sort the hits be diagonal.  This is the second part of
       //  heap sort -- Interchange the new maximum with the element
@@ -276,17 +341,27 @@ hitMatrix::filter(encodedQuery *query, bool isReverse) {
       for (u32bit i=lastHit - firstHit - 1; i>0; i--) {
         u32bit  q  = hitsToSort[i]._qsPos;
         u32bit  d  = hitsToSort[i]._dsPos;
+#ifndef WITHOUT_DIAGONALID
         u32bit  l  = hitsToSort[i]._diagonalID;
+#endif
         
         hitsToSort[i]._qsPos      = hitsToSort[0]._qsPos;
         hitsToSort[i]._dsPos      = hitsToSort[0]._dsPos;
+#ifndef WITHOUT_DIAGONALID
         hitsToSort[i]._diagonalID = hitsToSort[0]._diagonalID;
+#endif
 
         hitsToSort[0]._qsPos      = q;
         hitsToSort[0]._dsPos      = d;
+#ifndef WITHOUT_DIAGONALID
         hitsToSort[0]._diagonalID = l;
-      
+#endif      
+
+#ifdef WITHOUT_DIAGONALID
+        adjustHeap(hitsToSort, 0, i, _qsLen);
+#else
         adjustHeap(hitsToSort, 0, i);
+#endif
       }
     }
 
@@ -324,8 +399,13 @@ hitMatrix::filter(encodedQuery *query, bool isReverse) {
 
     //  Filter them
     //
+#ifdef WITHOUT_DIAGONALID
+    u32bit  frstDiagonal = _qsLen - _hits[firstHit]._qsPos - 1 + _hits[firstHit]._dsPos;
+    u32bit  lastDiagonal = frstDiagonal;
+#else
     u32bit  frstDiagonal = _hits[firstHit]._diagonalID;
     u32bit  lastDiagonal = _hits[firstHit]._diagonalID;
+#endif
     u32bit  qsLow        = _hits[firstHit]._qsPos;
     u32bit  qsHigh       = _hits[firstHit]._qsPos;
     u32bit  dsLow        = _hits[firstHit]._dsPos;
@@ -336,19 +416,26 @@ hitMatrix::filter(encodedQuery *query, bool isReverse) {
     merCovering *IL = new merCovering(config._merSize);
 
     for (u32bit i=firstHit; i<lastHit; i++) {
+#ifdef WITHOUT_DIAGONALID
+      u32bit thisDiagonalID = _qsLen - _hits[i]._qsPos - 1 + _hits[i]._dsPos;
+#else
+      u32bit thisDiagonalID = _hits[i]._diagonalID;
+#endif
+
+
 
 #if TRACE
       fprintf(stdout, "hit[qs=%6u ds=%7u d=%7u]  box[qs=%6u-%6u ds=%7u-%7u d=%7u-%7u]  ",
               _hits[i]._qsPos,
               _hits[i]._dsPos,
-              _hits[i]._diagonalID,
+              thisDiagonalID,
               qsLow, qsHigh, dsLow, dsHigh, frstDiagonal, lastDiagonal);
 #endif
 
       //  Unconditionally extend if the diagonal difference is small.
       //
-      if (lastDiagonal + config._maxDiagonal >= _hits[i]._diagonalID) {
-        lastDiagonal = _hits[i]._diagonalID;
+      if (lastDiagonal + config._maxDiagonal >= thisDiagonalID) {
+        lastDiagonal = thisDiagonalID;
         if (qsLow  > _hits[i]._qsPos)   qsLow  = _hits[i]._qsPos;
         if (qsHigh < _hits[i]._qsPos)   qsHigh = _hits[i]._qsPos;
         if (dsLow  > _hits[i]._dsPos)   dsLow  = _hits[i]._dsPos;
@@ -368,46 +455,44 @@ hitMatrix::filter(encodedQuery *query, bool isReverse) {
       if (((dsHigh <= _hits[i]._dsPos) && (_hits[i]._dsPos - dsHigh <= config._maxIntronLength)) ||
           ((dsHigh >= _hits[i]._dsPos) && (dsHigh - _hits[i]._dsPos <= config._maxIntronLength))) {
 
-      //  Extend into multiple-exon like things only if the input
-      //  sequence is long.
-      //
-      if (_qsLen > config._smallSequenceCutoff) {
-
-        //  Extend if the qsOverlap is small (or nonexistant)
+        //  Extend into multiple-exon like things only if the input
+        //  sequence is long.
         //
-        if ((qsHigh + config._merSize) < (_hits[i]._qsPos + config._qsOverlap)) {
-          lastDiagonal = _hits[i]._diagonalID;
-          if (qsLow  > _hits[i]._qsPos)   qsLow  = _hits[i]._qsPos;
-          if (qsHigh < _hits[i]._qsPos)   qsHigh = _hits[i]._qsPos;
-          if (dsLow  > _hits[i]._dsPos)   dsLow  = _hits[i]._dsPos;
-          if (dsHigh < _hits[i]._dsPos)   dsHigh = _hits[i]._dsPos;
-          IL->addMer(_hits[i]._qsPos);
-#if TRACE
-          fprintf(stdout, "extend qs=%9u-%9u ds=%9u-%9u  diag=%9u-%9u (qsOverlap)\n",
-                  qsLow, qsHigh, dsLow, dsHigh, frstDiagonal, lastDiagonal);
-#endif
-          continue;
-        }
+        if (_qsLen > config._smallSequenceCutoff) {
 
-        //  Extend if the dsOverlap is small (or nonexistant)
-        //
-        if (_hits[i]._dsPos < (dsLow + config._dsOverlap)) {
-          lastDiagonal = _hits[i]._diagonalID;
-          if (qsLow  > _hits[i]._qsPos)   qsLow  = _hits[i]._qsPos;
-          if (qsHigh < _hits[i]._qsPos)   qsHigh = _hits[i]._qsPos;
-          if (dsLow  > _hits[i]._dsPos)   dsLow  = _hits[i]._dsPos;
-          if (dsHigh < _hits[i]._dsPos)   dsHigh = _hits[i]._dsPos;
-          IL->addMer(_hits[i]._qsPos);
+          //  Extend if the qsOverlap is small (or nonexistant)
+          //
+          if ((qsHigh + config._merSize) < (_hits[i]._qsPos + config._qsOverlap)) {
+            lastDiagonal = thisDiagonalID;
+            if (qsLow  > _hits[i]._qsPos)   qsLow  = _hits[i]._qsPos;
+            if (qsHigh < _hits[i]._qsPos)   qsHigh = _hits[i]._qsPos;
+            if (dsLow  > _hits[i]._dsPos)   dsLow  = _hits[i]._dsPos;
+            if (dsHigh < _hits[i]._dsPos)   dsHigh = _hits[i]._dsPos;
+            IL->addMer(_hits[i]._qsPos);
 #if TRACE
-          fprintf(stdout, "extend qs=%9u-%9u ds=%9u-%9u  diag=%9u-%9u (dsOverlap)\n",
-                  qsLow, qsHigh, dsLow, dsHigh, frstDiagonal, lastDiagonal);
+            fprintf(stdout, "extend qs=%9u-%9u ds=%9u-%9u  diag=%9u-%9u (qsOverlap)\n",
+                    qsLow, qsHigh, dsLow, dsHigh, frstDiagonal, lastDiagonal);
 #endif
-          continue;
-        }
-      }
+            continue;
+          }
 
-      //  XXX:  End prototype
-      }
+          //  Extend if the dsOverlap is small (or nonexistant)
+          //
+          if (_hits[i]._dsPos < (dsLow + config._dsOverlap)) {
+            lastDiagonal = thisDiagonalID;
+            if (qsLow  > _hits[i]._qsPos)   qsLow  = _hits[i]._qsPos;
+            if (qsHigh < _hits[i]._qsPos)   qsHigh = _hits[i]._qsPos;
+            if (dsLow  > _hits[i]._dsPos)   dsLow  = _hits[i]._dsPos;
+            if (dsHigh < _hits[i]._dsPos)   dsHigh = _hits[i]._dsPos;
+            IL->addMer(_hits[i]._qsPos);
+#if TRACE
+            fprintf(stdout, "extend qs=%9u-%9u ds=%9u-%9u  diag=%9u-%9u (dsOverlap)\n",
+                    qsLow, qsHigh, dsLow, dsHigh, frstDiagonal, lastDiagonal);
+#endif
+            continue;
+          }
+        }
+      }  //  XXX:  End prototype
 
 #if TRACE
       fprintf(stdout, "close current cluster.\nGOOD?  qsCov=%u; >= %u or %u?  diag: %u < 25?\n",
@@ -441,8 +526,8 @@ hitMatrix::filter(encodedQuery *query, bool isReverse) {
       fprintf(stdout, "reset!\n");
 #endif
 
-      frstDiagonal = _hits[i]._diagonalID;
-      lastDiagonal = _hits[i]._diagonalID;
+      frstDiagonal = thisDiagonalID;
+      lastDiagonal = thisDiagonalID;
       qsLow        = _hits[i]._qsPos;
       qsHigh       = _hits[i]._qsPos;
       dsLow        = _hits[i]._dsPos;
@@ -452,7 +537,7 @@ hitMatrix::filter(encodedQuery *query, bool isReverse) {
       fprintf(stdout, "hit[qs=%6u ds=%7u d=%7u]  box[qs=%6u-%6u ds=%7u-%7u d=%7u-%7u]  (initial hit)\n",
               _hits[i]._qsPos,
               _hits[i]._dsPos,
-              _hits[i]._diagonalID,
+              _qsLen - _hits[i]._qsPos - 1 + _hits[i]._dsPos,
               qsLow, qsHigh, dsLow, dsHigh, frstDiagonal, lastDiagonal);
 #endif
 
