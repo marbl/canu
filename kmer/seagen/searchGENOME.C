@@ -98,13 +98,15 @@ main(int argc, char **argv) {
 
   config._buildTime = getTime();
 
-
+#if 0
+  //  Maybe we don't need this anymore!
 #ifdef __alpha
   //  Start the deadlock detection threads
   //
   fprintf(stderr, "Deadlock detection enabled!\n");
   pthread_create(&threadID, &threadAttr, deadlockDetector, 0L);
   pthread_create(&threadID, &threadAttr, deadlockChecker, 0L);
+#endif
 #endif
 
   sweatShop   *ss = new sweatShop(loaderThread,

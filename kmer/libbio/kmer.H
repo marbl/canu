@@ -194,17 +194,19 @@ public:
 
   //  Mask the mer to the proper size.
   //
-  void     mask(bool full) {
 
 #if KMER_WORDS == 1
+  void     mask(bool) {
     _wd[0] &= _mask;
+  };
 #else
+  void     mask(bool full) {
     _wd[_maskWord] &= _mask;
     if (full)
       for (u32bit x=_maskWord+1; x<KMER_WORDS; x++)
         _wd[x] = u64bitZERO;
-#endif
   };
+#endif
 
 
   //  Used by some of the test routines.

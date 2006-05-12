@@ -73,11 +73,11 @@ public:
       //  XXX!  Not actually true!  If the FastAstream was sourced from a chainedSequence,
       //  we can get the length.  This needs to be implemented.
       fprintf(stderr, "WARNING:  merStream::approximateNumberOfMers()-- using a FastAstream, bri needs to implement this!\n");
-      return(~u64bitZERO);
     if (_cs_chainedSeq)
       return(_cs_chainedSeq->lengthOfSequences());
     if (_st_string)
       return(_st_stringLen);
+    return(~u64bitZERO);
   };
 
 private:

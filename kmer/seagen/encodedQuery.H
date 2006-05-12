@@ -70,7 +70,7 @@ encodedQuery::bpCovered(bool doCompute) {
   }
 
   return(bp);
-};
+}
 
 inline
 u32bit
@@ -92,7 +92,7 @@ encodedQuery::getMer(u32bit i, bool isReverse) {
   } else {
     return(_mers[i]);
   }
-};
+}
 
 inline
 bool
@@ -102,7 +102,7 @@ encodedQuery::getSkip(u32bit i, bool isReverse) {
     i = _mersTotal - i - 1;
 
   return(_skip[i]);
-};
+}
 
 inline
 void
@@ -115,7 +115,7 @@ encodedQuery::setSkip(u32bit i, bool isReverse) {
   //  one from the available.
   _mersAvail -= 1 - _skip[i];
   _skip[i]    = 1;
-};
+}
 
 
 #endif  //  ENCODEDQUERY_H
