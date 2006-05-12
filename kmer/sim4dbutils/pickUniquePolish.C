@@ -34,6 +34,17 @@ u32bit  totMQ = 0;
 u32bit  totRQ = 0;
 
 u32bit  qualityDifference = 5;
+u32bit  minQuality        = 95;
+
+void
+printSummary(void) {
+  fprintf(stderr, "Uni:"u32bitFMTW(8)" Con:"u32bitFMTW(8)" (T:"u32bitFMTW(8)" M:"u32bitFMTW(8)" I:"u32bitFMTW(8)" N:"u32bitFMTW(8)") Inc:"u32bitFMTW(8)" -- Save:"u32bitFMTW(8)" Lost:"u32bitFMTW(8)"\r",
+          statOneMatch,
+          statConsistent, consistentTie, consistentMatches, consistentIdentity, consistentNot,
+          statInconsistent,
+          statUnique, statLost);
+}
+
 
 void
 pickBestSlave(sim4polish **p, u32bit pNum) {
@@ -146,39 +157,16 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
 
   }
 
-  u32bit  best  = 0;
-  u32bit  besti = 0;
-  
+ 
   if (matchIsOK) {
     statUnique++;
-    s4p_printPolish(stdout, p[matchi], S4P_PRINTPOLISH_FULL);
-
     assert(matchi == matchm);
-
-    besti = matchi;
+    s4p_printPolish(stdout, p[matchi], S4P_PRINTPOLISH_FULL);
   } else {
     statLost++;
-
-    //  Just pick the longest match, analyze that.
-
-    for (u32bit i=0; i<pNum; i++) {
-      u32bit  len = p[i]->exons[0].estFrom - p[i]->exons[0].estTo;
-
-      if ((len  > best) ||
-          ((len == best) && (p[i]->numMatches > p[besti]->numMatches))) {
-        best  = len;
-        besti = i;
-      }
-    }
   }
 
-#if 1
-  fprintf(stderr, "Uni:"u32bitFMTW(8)" Con:"u32bitFMTW(8)" (T:"u32bitFMTW(8)" M:"u32bitFMTW(8)" I:"u32bitFMTW(8)" N:"u32bitFMTW(8)") Inc:"u32bitFMTW(8)" -- Save:"u32bitFMTW(8)" Lost:"u32bitFMTW(8)"\r",
-          statOneMatch,
-          statConsistent, consistentTie, consistentMatches, consistentIdentity, consistentNot,
-          statInconsistent,
-          statUnique, statLost);
-#endif
+  //printSummary();
 }
 
 
@@ -258,6 +246,7 @@ main(int argc, char **argv) {
   if (pNum > 0)
     pickBest(p, pNum);
 
+  printSummary();
   fprintf(stderr, "\n");
 
   return(0);
