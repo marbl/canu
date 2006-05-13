@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.5 2005-08-12 20:48:51 ahalpern Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.6 2006-05-13 18:42:14 brianwalenz Exp $";
 
 /*************************************************************************
  Module:  AS_PER_gkpfrgStore
@@ -38,8 +38,8 @@ static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.5 2005-08-12 20:48:51 ahalpern
  *************************************************************************/
 
 /* RCS Info
- * $Id: AS_PER_gkpStore.c,v 1.5 2005-08-12 20:48:51 ahalpern Exp $
- * $Revision: 1.5 $
+ * $Id: AS_PER_gkpStore.c,v 1.6 2006-05-13 18:42:14 brianwalenz Exp $
+ * $Revision: 1.6 $
  *
  */
 #include <assert.h>
@@ -57,15 +57,22 @@ static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.5 2005-08-12 20:48:51 ahalpern
 
 int CreateGateKeeperLinkRecordIterator(GateKeeperLinkStore store, uint32 startFromLink, 
 				       uint32 followFrag, GateKeeperLinkRecordIterator *iterator){
-  assert(startFromLink);
-  iterator->store = store;
-  iterator->prevLinkRecord = 0;
-  iterator->linkRecord = startFromLink;
-  iterator->followFrag = followFrag;
 
-  return 0;
+  assert(startFromLink);
+
+  if (startFromLink == 0)
+    return(1);
+
+  iterator->store          = store;
+  iterator->prevLinkRecord = 0;
+  iterator->linkRecord     = startFromLink;
+  iterator->followFrag     = followFrag;
+
+  return(0);
 }
 
+#if 0
+//  UNUSED
 int CreateGateKeeperLinkRecordFromFragmentIterator(GateKeeperLinkStore store, 
 						   uint32 followFrag, GateKeeperLinkRecordIterator *iterator){
   GateKeeperFragmentRecord gkFrag;
@@ -76,7 +83,7 @@ int CreateGateKeeperLinkRecordFromFragmentIterator(GateKeeperLinkStore store,
 
 
 }
-
+#endif
 
 
 
@@ -131,46 +138,48 @@ int NextGateKeeperLinkRecordIterator(GateKeeperLinkRecordIterator *iterator,
 
 /***********************************************************************************/
 
-     /* Returns link index of link sought */
+/* Returns link index of link sought */
 int findLink(GateKeeperLinkStore store, 
-	          uint32 frag,
-		  uint32 linkHead, 
-		  GateKeeperLinkRecord *searchlink,
-		  GateKeeperLinkRecord *foundlink){
+             uint32 frag,
+             uint32 linkHead, 
+             GateKeeperLinkRecord *searchlink,
+             GateKeeperLinkRecord *foundlink){
        
-       uint32 frag1IID = searchlink->frag1;
-       uint32 frag2IID = searchlink->frag2;
-       int linktype = searchlink->type;
-       uint64 distance = searchlink->distance;
-       int linkOrientation = searchlink->orientation;
+  uint32 frag1IID     = searchlink->frag1;
+  uint32 frag2IID     = searchlink->frag2;
+  int linktype        = searchlink->type;
+  uint64 distance     = searchlink->distance;
+  int linkOrientation = searchlink->orientation;
 
-       GateKeeperLinkRecordIterator iterator;
-       GateKeeperLinkRecord link;
-       if(linkHead == NULL_LINK)
-	 return NULL_LINK;
+  GateKeeperLinkRecordIterator iterator;
+  GateKeeperLinkRecord link;
 
-       CreateGateKeeperLinkRecordIterator(store, linkHead,
-					  frag, &iterator);
+  if(linkHead == NULL_LINK)
+    return NULL_LINK;
 
-       while(NextGateKeeperLinkRecordIterator(&iterator, &link)){
-	 if(link.deleted ||
-	    link.frag1 != frag1IID || link.frag2 != frag2IID ||
-	    link.type != linktype || 
-	    (linkOrientation != AS_GKP_UNKNOWN && (link.orientation != linkOrientation)) ||
-	    (distance != 0 && link.distance != distance)){
-	   continue;
-	 }
+  CreateGateKeeperLinkRecordIterator(store, linkHead,
+                                     frag, &iterator);
+
+  while(NextGateKeeperLinkRecordIterator(&iterator, &link)){
+    if((link.deleted) ||
+       (link.frag1        != frag1IID) ||
+       (link.frag2        != frag2IID) ||
+       (link.type         != linktype) || 
+       ((linkOrientation  != AS_GKP_UNKNOWN) && (link.orientation != linkOrientation)) ||
+       ((distance         != 0)              && (link.distance    != distance))){
+      continue;
+    }
 #ifdef DEBUG_GKP
-	 fprintf(stderr,"* Found link (%d,%d) %d\n",
-		 frag1IID, frag2IID, link.type);
+    fprintf(stderr,"* Found link (%d,%d) %d\n",
+            frag1IID, frag2IID, link.type);
 #endif
-	if(foundlink)
-	  *foundlink = link;
+    if(foundlink)
+      *foundlink = link;
 
-	 return iterator.prevLinkRecord;
-       }
-       return NULL_LINK;
-     }
+    return iterator.prevLinkRecord;
+  }
+  return NULL_LINK;
+}
 
 				
 

@@ -6,6 +6,8 @@ use strict;
 sub checkOverlap {
     my $isTrim = shift @_;
 
+    return if (-d "$wrk/$asm.ovlStore");
+
     if (!defined($isTrim)) {
         die "checkOverlap()-- I need to know if I'm trimming or assembling!\n";
     }

@@ -135,6 +135,18 @@ If specified on the command line, be sure to quote the spaces in {\tt
 ovlMemory}, either include the whole thing in quotes or use backslashes.
 
 
+\section{QC output}
+
+For lack of a better place to put this....
+
+OBT produces two files of interest for QC checks, in the {\tt
+0-overlaptrim} directory.  A summary of chimera and spurs
+detection/removal/fixing is in {\tt *.chimera.summary} and the gory
+details (including UID's) is in {\tt *.chimera.report}.  The
+before/after trimming results are in {\tt *.mergeLog}; the columns are
+uid, iid, original clear, new clear, and a free-form text annotation
+of if the fragment was deleted and why.
+
 \subsection{General Configuration Options}
 
 \begin{longtable}{lp{3.0in}}
@@ -418,6 +430,10 @@ find that unitigger is exhausting its process size, setting this to
 slightly more than the actual number of fragments might help.
 Otherwise, do not use.
 \\
+
+utgBubblePopping={\it integer} &
+If zero, do not pop bubbles in unitigger.  If one, pop bubbles.  Default is to pop bubbles.
+//
 \end{longtable}
 
 
@@ -443,6 +459,10 @@ until after all rounds.
 
 doUpdateDistanceRecords={\it integer} &
 If non-zero, update the distance records after each round of {\it extendClearRanges}.
+\\
+
+doResolveSurrogates={\it integer} &
+If non-zero, resolve surrogates.
 \\
 \end{longtable}
 

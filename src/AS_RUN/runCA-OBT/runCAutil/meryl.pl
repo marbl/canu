@@ -6,7 +6,18 @@ use strict;
 sub meryl {
     my $merSize = 22;
 
-    #  If we want to use the better meryl, .....
+    #  If we are starting from after overlapper, we can skip this step
+    #
+    #return if ((getGlobal("begin") eq "consensus") ||
+    #           (getGlobal("begin") eq "scaffolder"));
+
+
+    #  If we start from prepackaged frg and gkp stores, we don't have
+    #  this directory.
+    #
+    system("mkdir $wrk/0-preoverlap") if (! -d "$wrk/0-preoverlap");
+
+    #  Use the better meryl, .....
     #
     if (0) {
         if (! -e "$wrk/0-preoverlap/$asm.nmers.fasta") {

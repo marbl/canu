@@ -12,6 +12,8 @@ sub createOverlapJobs {
 
     die "createOverlapJobs()--  Help!  I have no frags!\n" if ($numFrags == 0);
 
+    return if (-d "$wrk/$asm.ovlStore");
+
     my $ovlThreads        = getGlobal("ovlThreads");
     my $ovlHashBlockSize  = getGlobal("ovlHashBlockSize");
     my $ovlRefBlockSize   = getGlobal("ovlRefBlockSize");
@@ -36,6 +38,8 @@ sub createOverlapJobs {
     system("mkdir $wrk/$outDir") if (! -d "$wrk/$outDir");
 
     return if (-e "$wrk/$outDir/jobsCreated.success");
+
+    meryl();
 
     #  We make a giant job array for this -- we need to know hashBeg,
     #  hashEnd, refBeg and refEnd -- from that we compute batchName
@@ -98,16 +102,20 @@ sub createOverlapJobs {
     if ($isTrim eq "trim") {
         print F "$gin/overlap-convert -b $scratch/$asm.\$bat-\$job.\$jid.ovl $scratch/$asm.\$bat-\$job.\$jid.ovb \\\n";
         print F "&& \\\n";
-        print F "mv $scratch/$asm.\$bat-\$job.\$jid.ovb \\\n";
-        print F "   $wrk/$outDir/\$bat/\$job.ovb \\\n";
+        print F "cp -p $scratch/$asm.\$bat-\$job.\$jid.ovb \\\n";
+        print F "      $wrk/$outDir/\$bat/\$job.ovb \\\n";
         #print F "&& \\\n";
-        #print F "mv $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
-        #print F "   $wrk/$outDir/\$bat/\$job.ovl \\\n";
+        #print F "cp -p $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
+        #print F "      $wrk/$outDir/\$bat/\$job.ovl \\\n";
+        print F "&& \\\n";
+        print F "rm -f $scratch/$asm.\$bat-\$job.\$jid.ovb \\\n";
         print F "&& \\\n";
         print F "rm -f $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
     } else {
-        print F "mv $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
-        print F "   $wrk/$outDir/\$bat/\$job.ovl \\\n";
+        print F "cp -p $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
+        print F "      $wrk/$outDir/\$bat/\$job.ovl \\\n";
+        print F "&& \\\n";
+        print F "rm -f $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
     }
 
     print F "&& \\\n";

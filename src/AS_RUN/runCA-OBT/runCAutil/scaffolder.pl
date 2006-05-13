@@ -1,14 +1,11 @@
 use strict;
 
-sub localSymlink ($$$) {
-    my ($wrk,$src,$dst) = @_;
-    system "cd $wrk && ln -s $src $dst";
-}
 #  Don't do interleaved merging unless we are throwing stones.
 
-sub CGW ($$$$) {
+sub CGW ($$$$$) {
     my $thisDir    = shift @_;
     my $lastDir    = shift @_;
+    my $cgiFile    = shift @_;
     my $stoneLevel = shift @_;
     my $logickp    = shift @_;
 
@@ -41,10 +38,12 @@ sub CGW ($$$$) {
     system("mkdir $wrk/$thisDir")               if (! -d "$wrk/$thisDir");
     system("mkdir $wrk/$asm.SeqStore")          if (! -d "$wrk/$asm.SeqStore");
 
-    localSymlink($wrk,"5-consensus/$asm.cgi", "$thisDir/$asm.cgi")          if (! -e "$wrk/$thisDir/$asm.cgi");
-    localSymlink($wrk,"$asm.SeqStore", "$thisDir/$asm.SeqStore")     if (! -e "$wrk/$thisDir/$asm.SeqStore");
+    $cgiFile = "../5-consensus/$asm.cgi" if (!defined($cgiFile));
 
-    localSymlink($wrk,"$lastDir/$asm.ckp.$lastckp", "$thisDir/$asm.ckp.$lastckp") if (defined($lastDir));
+    system("ln -s $cgiFile          $wrk/$thisDir/$asm.cgi")          if (! -e "$wrk/$thisDir/$asm.cgi");
+    system("ln -s ../$asm.SeqStore  $wrk/$thisDir/$asm.SeqStore")     if (! -e "$wrk/$thisDir/$asm.SeqStore");
+
+    system("ln -s ../$lastDir/$asm.ckp.$lastckp $wrk/$thisDir/$asm.ckp.$lastckp") if (defined($lastDir));
 
     my $cmd;
     $cmd  = "cd $wrk/$thisDir && ";
@@ -81,8 +80,8 @@ sub eCR ($$) {
 
     system("mkdir $wrk/$thisDir") if (! -d "$wrk/$thisDir");
 
-    localSymlink($wrk,"$lastDir/$asm.ckp.$lastckp", "$thisDir/$asm.ckp.$lastckp")  if (! -e "$wrk/$thisDir/$asm.ckp.$lastckp");
-    localSymlink($wrk,"$asm.SeqStore", "$wrk/$thisDir/$asm.SeqStore")      if (! -e "$wrk/$thisDir/$asm.SeqStore");
+    system("ln -s ../$lastDir/$asm.ckp.$lastckp $wrk/$thisDir/$asm.ckp.$lastckp")  if (! -e "$wrk/$thisDir/$asm.ckp.$lastckp");
+    system("ln -s ../$asm.SeqStore              $wrk/$thisDir/$asm.SeqStore")      if (! -e "$wrk/$thisDir/$asm.SeqStore");
 
     #  Run eCR in smaller batches, hopefully making restarting from a failure both
     #  faster and easier.
@@ -153,8 +152,8 @@ sub updateDistanceRecords ($) {
 
     system("mkdir $distupdate") if (! -d "$distupdate");
 
-    system("ln -s $wrk/$thisDir/$asm.ckp.$lastckp $distupdate/$asm.ckp.$lastckp")  if (! -e "$distupdate/$asm.ckp.$lastckp");
-    system("ln -s $wrk/$asm.SeqStore              $distupdate/$asm.SeqStore")      if (! -e "$distupdate/$asm.SeqStore");
+    system("ln -s ../$asm.ckp.$lastckp   $distupdate/$asm.ckp.$lastckp")  if (! -e "$distupdate/$asm.ckp.$lastckp");
+    system("ln -s ../$asm.SeqStore       $distupdate/$asm.SeqStore")      if (! -e "$distupdate/$asm.SeqStore");
 
     #  Instead of suffering through extreme pain making nice fake
     #  UIDs, we just use the checkpoint number to offset from some
@@ -167,7 +166,7 @@ sub updateDistanceRecords ($) {
     #  numbers in scientific notation.  Makes you just want to hate and
     #  love perl, don't it?
     #
-    $terminateFakeUID = "987654312198765" . (4321 + $lastckp) if ($terminateFakeUID > 0);
+    $terminateFakeUID = "987654312198765" . (4320 + $lastckp + $terminateFakeUID) if ($terminateFakeUID > 0);
 
     my $cmd;
     $cmd  = "cd $distupdate && $bin/dumpDistanceEstimates ";
@@ -188,7 +187,7 @@ sub updateDistanceRecords ($) {
 
     $cmd  = "cd $distupdate && $bin/gatekeeper ";
     $cmd .= " -X -Q -C -P -a $wrk/$asm.gkpStore $distupdate/update.dst ";
-    $cmd .= " > gatekeeper.err 2>&1";
+    $cmd .= " > $distupdate/gatekeeper.err 2>&1";
     if (runCommand($cmd)) {
         print STDERR "Gatekeeper Failed.\n";
         exit(1);
@@ -208,8 +207,8 @@ sub resolveSurrogates ($$) {
 
     system("mkdir $wrk/$thisDir")  if (! -d "$wrk/$thisDir");
 
-    localSymlink($wrk,"$lastDir/$asm.ckp.$lastckp","$thisDir/$asm.ckp.$lastckp")  if (! -e "$wrk/$thisDir/$asm.ckp.$lastckp");
-    localSymlink($wrk,"$asm.SeqStore","$thisDir/$asm.SeqStore")      if (! -e "$wrk/$thisDir/$asm.SeqStore");
+    system("ln -s ../$lastDir/$asm.ckp.$lastckp $wrk/$thisDir/$asm.ckp.$lastckp")  if (! -e "$wrk/$thisDir/$asm.ckp.$lastckp");
+    system("ln -s ../$asm.SeqStore              $wrk/$thisDir/$asm.SeqStore")      if (! -e "$wrk/$thisDir/$asm.SeqStore");
 
     my $cmd;
     $cmd  = "cd $wrk/$thisDir && ";
@@ -231,31 +230,36 @@ sub resolveSurrogates ($$) {
 }
 
 
-sub scaffolder {
+sub scaffolder ($) {
+    my $cgiFile    = shift @_;
     my $lastDir    = undef;
     my $thisDir    = 0;
     my $stoneLevel = getGlobal("stoneLevel");
 
+    return if (-e "$wrk/7-CGW/cgw.success");
+
     #  Do an initial CGW to update distances, then update the
     #  gatekeeper.  This initial run shouldn't be used for later
-    #  CGW'ing.
+    #  CGW'ing.  We need to check explicitly for
+    #  doUpdateDistanceRecords, otherwise that CGW() is run, _then_ we
+    #  check if we should update.
     #
-    if (getGlobal("updateDistanceType") eq "pre") {
-        updateDistanceRecords(CGW("7-CGW-distances", undef, $stoneLevel, undef));
+    if ((getGlobal("updateDistanceType") eq "pre") && (getGlobal("doUpdateDistanceRecords"))) {
+        updateDistanceRecords(CGW("7-CGW-distances", undef, $cgiFile, $stoneLevel, undef));
     }
 
 
     #  If we're not doing eCR, we just do a single scaffolder run, and
-    #  get the heck outta here!  OK, we'll do resolveSurrogates() too.
+    #  get the heck outta here!  OK, we'll do resolveSurrogates(), maybe.
     #
     if (getGlobal("doExtendClearRanges") == 0) {
-        $lastDir = CGW("7-$thisDir-CGW", $lastDir, $stoneLevel, undef);
+        $lastDir = CGW("7-$thisDir-CGW", $lastDir, $cgiFile, $stoneLevel, undef);
         $thisDir++;
     } else {
 
         #  Do the initial CGW, making sure to not throw stones.
         #
-        $lastDir = CGW("7-$thisDir-CGW", $lastDir, 0, undef);
+        $lastDir = CGW("7-$thisDir-CGW", $lastDir, $cgiFile, 0, undef);
         $thisDir++;
 
         #  Followed by at least one eCR, and a distance update.
@@ -272,7 +276,7 @@ sub scaffolder {
         #  fall over.
         #
         for (my $rounds = getGlobal("doExtendClearRanges") - 1; $rounds > 0; $rounds--) {
-            $lastDir = CGW("7-$thisDir-CGW", $lastDir, 0, 3);
+            $lastDir = CGW("7-$thisDir-CGW", $lastDir, $cgiFile, 0, 3);
             $thisDir++;
 
             $lastDir = eCR("7-$thisDir-ECR", $lastDir);
@@ -285,23 +289,25 @@ sub scaffolder {
 
         #  Then another scaffolder, chucking stones into the big holes.
         #
-        $lastDir = CGW("7-$thisDir-CGW", $lastDir, $stoneLevel, 3);
+        $lastDir = CGW("7-$thisDir-CGW", $lastDir, $cgiFile, $stoneLevel, 3);
         $thisDir++;
     }
 
-    #  Then resolve surrogates.
+    #  Then resolve surrogates.  And yet another scaffolder, this time
+    #  to just do output
     #
-    $lastDir = resolveSurrogates("7-$thisDir-resolveSurrogates", $lastDir);
-    $thisDir++;
+    if (getGlobal("doResolveSurrogates")) {
+        $lastDir = resolveSurrogates("7-$thisDir-resolveSurrogates", $lastDir);
+        $thisDir++;
         
-    #  And yet another scaffolder, this time to just do output
-    #
-    $lastDir = CGW("7-$thisDir-CGW", $lastDir, $stoneLevel, 14);
-    $thisDir++;
+        $lastDir = CGW("7-$thisDir-CGW", $lastDir, $cgiFile, $stoneLevel, 14);
+        $thisDir++;
+    }
+
 
     #  And, finally, hold on, we're All Done!  Point to the correct output directory.
     #
-    localSymlink($wrk, $lastDir, '7-CGW') if (! -d "$wrk/7-CGW");
+    system("ln -s $lastDir $wrk/7-CGW") if (! -d "$wrk/7-CGW");
 }
 
 

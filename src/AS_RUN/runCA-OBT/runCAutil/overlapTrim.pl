@@ -265,6 +265,25 @@ sub overlapTrim {
         }
     }
 
+
+    #  Finally, fix up gatekeeper, delete any mate links for fragments that we've deleted.
+    #
+    if (! -e "$wrk/0-overlaptrim/$asm.deletelinks.out") {
+
+        #backupFragStore("beforeChimera");
+
+        my $cmd;
+        $cmd  = "$bin/deleteLinks ";
+        $cmd .= " -f $wrk/$asm.frgStore ";
+        $cmd .= " -g $wrk/$asm.gkpStore ";
+        $cmd .= " > $wrk/0-overlaptrim/$asm.deletelinks.out 2>&1";
+        if (runCommand($cmd)) {
+            rename "$wrk/0-overlaptrim/$asm.deletelinks.out", "$wrk/0-overlaptrim/$asm.deletelinks.out.FAILED";
+            die "Failed.\n";
+        }
+    }
+
+
     touch("$wrk/0-overlaptrim/overlaptrim.success");
 }
 

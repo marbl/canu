@@ -1,10 +1,19 @@
 use strict;
 
-sub unitigger {
+sub unitigger (@) {
+    my @cgbFiles = @_;
 
-    system("mkdir $wrk/4-unitigger") if (! -e "$wrk/4-unitigger");
+    if (scalar(@cgbFiles) > 0) {
+        return(@cgbFiles);
+    }
+
+    if ($global{'useBogUnitig'}) {
+        bogUnitigger();
+        return;
+    }
 
     if (! -e "$wrk/4-unitigger/unitigger.success") {
+        system("mkdir $wrk/4-unitigger") if (! -e "$wrk/4-unitigger");
 
         #  Unitigger needs an input .ofg file, which is pretty much just a
         #  dump of the fragstore.  We used to save the original, for no
@@ -43,6 +52,7 @@ sub unitigger {
         my $m = getGlobal("utgEdges");
         my $e = getGlobal("utgErrorRate");
         my $n = getGlobal("utgFragments");
+        my $u = getGlobal("utgBubblePopping");
         my $B = int($numFrags / getGlobal("cnsPartitions"));
         $B = getGlobal("cnsMinFrags") if ($B < getGlobal("cnsMinFrags"));
 
@@ -52,7 +62,7 @@ sub unitigger {
         $cmd .= " -m $m " if defined($m);
         $cmd .= " -n $n " if defined($n);
 
-        $cmd .= " -c -P -A 1 -d 1 -x 1 -z 10 -j 5 -U 1 -e $e ";
+        $cmd .= " -c -P -A 1 -d 1 -x 1 -z 10 -j 5 -U $u -e $e ";
         $cmd .= " -F $wrk/$asm.frgStore ";
         $cmd .= " -f ";
         $cmd .= " -o $wrk/4-unitigger/$asm.fgbStore ";
@@ -68,6 +78,15 @@ sub unitigger {
 
         touch("$wrk/4-unitigger/unitigger.success");
     }
+
+    #  Other steps (consensus) need the list of cgb files, so we just do it here.
+    #
+    open(F, "ls $wrk/4-unitigger/*.cgb |") or die;
+    @cgbFiles = <F>;
+    close(F);
+    chomp @cgbFiles;
+
+    return(@cgbFiles);
 }
 
 1;

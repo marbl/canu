@@ -1,10 +1,12 @@
 use strict;
 
-sub terminate {
+sub terminate ($) {
+    my $cgwDir = shift @_;
+    $cgwDir = "$wrk/7-CGW" if (!defined($cgwDir));
 
     my $failedJobs       = 0;
 
-    open(CGWIN, "ls $wrk/7-CGW/$asm.cgw_contigs.* |") or die;
+    open(CGWIN, "ls $cgwDir/$asm.cgw_contigs.* |") or die;
     while (<CGWIN>) {
         chomp;
 
@@ -32,9 +34,9 @@ sub terminate {
 
         my $cmd;
         $cmd  = "cd $wrk && ";
-        $cmd .= "cat $wrk/7-CGW/$asm.cgw ";
+        $cmd .= "cat $cgwDir/$asm.cgw ";
         $cmd .= " $wrk/8-consensus/$asm.cns_contigs.*[0-9] ";
-        $cmd .= " $wrk/7-CGW/$asm.cgw_scaffolds | ";
+        $cmd .= " $cgwDir/$asm.cgw_scaffolds | ";
         $cmd .= "$bin/terminator -P -s $fakeUIDs " if ($fakeUIDs != 0);
         $cmd .= "$bin/terminator -P -u "           if ($fakeUIDs == 0);
         $cmd .= " $uidServer "                     if (defined($uidServer));

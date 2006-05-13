@@ -2,51 +2,47 @@ use strict;
 
 #  Check consensus output, prod the user into fixing the broken ones.
 
-sub checkPostUnitiggerConsensus {
+sub checkPostUnitiggerConsensus (@) {
+    my @cgbFiles = @_;
 
     return if (-e "$wrk/5-consensus/consensus.success");
 
     if (! -e "$wrk/5-consensus/$asm.cgi") {
         my $failedJobs = 0;
-        my @CGBfiles;
+        my @cgbIndices;
 
         #
         #  Check that consensus finished properly
         #
-        
-        open(CGB, "ls $wrk/4-unitigger/*.cgb |") or die;
-        while (<CGB>) {
-            if (m/^.*(\d\d\d).cgb/) {
-                push @CGBfiles, $1;
 
-                if ((! -e "$wrk/5-consensus/${asm}_$1.success") ||
-                    (! -e "$wrk/5-consensus/${asm}_$1.cgi")) {
-                    print STDERR "$wrk/5-consensus/$1 failed -- no .success or no .cgi!\n";
-                    $failedJobs++;
-                }
+        foreach my $f (@cgbFiles) {
+            if ($f =~ m/^.*(\d\d\d).cgb$/) {
+                push @cgbIndices, $1;
             } else {
-                print STDERR "WARNING: didn't match CGB '$_'!\n";
+                die "Didn't match '$f' for CGB filename!\n";
             }
         }
-        close(CGB);
 
-        if ($failedJobs) {
-            print STDERR "$failedJobs failed.  Good luck.\n";
-            exit(1);
+        foreach my $f (@cgbIndices) {
+            if ((! -e "$wrk/5-consensus/${asm}_$f.success") ||
+                (! -e "$wrk/5-consensus/${asm}_$f.cgi")) {
+                print STDERR "$wrk/5-consensus/$f failed -- no .success or no .cgi!\n";
+                $failedJobs++;
+            }
         }
+
+        die  "$failedJobs failed.  Good luck.\n" if ($failedJobs);
 
         #
         #  Consolidate all the output
         #
 
-        foreach my $fid (@CGBfiles) {
+        foreach my $fid (@cgbIndices) {
             if (runCommand("cat $wrk/5-consensus/${asm}_$fid.cgi >> $wrk/5-consensus/$asm.cgi")) {
-                print STDERR "Failed.\n";
                 rename "$wrk/5-consensus/$asm.cgi", "$wrk/5-consensus/$asm.cgi.FAILED";
-                exit(1);
+                die "cat failed?\n";
             }
         }
-        close(CGB);
     }
 
     touch ("$wrk/5-consensus/consensus.success");

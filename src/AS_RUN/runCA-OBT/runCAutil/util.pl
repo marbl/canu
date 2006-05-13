@@ -99,11 +99,12 @@ sub setDefaults {
     $global{"cnsMinFrags"}                 = 75000;
     $global{"cnsConcurrency"}              = 2;
     $global{"cnsOnGrid"}                   = 1;
-    $global{"delayInterleavedMerging"}     = 1;
+    $global{"delayInterleavedMerging"}     = 0;
     $global{"doBackupFragStore"}           = 1;
     $global{"doExtendClearRanges"}         = 2;
     $global{"doFragmentCorrection"}        = 1;
     $global{"doOverlapTrimming"}           = 1;
+    $global{"doResolveSurrogates"}         = 1;
     $global{"doUpdateDistanceRecords"}     = 1;
     $global{"fakeUIDs"}                    = 0;
     $global{"frgCorrBatchSize"}            = 175000;
@@ -133,6 +134,7 @@ sub setDefaults {
     $global{"utgEdges"}                    = undef;
     $global{"utgErrorRate"}                = 15;
     $global{"utgFragments"}                = undef;
+    $global{"utgBubblePopping"}            = 1;
     $global{"utgGenomeSize"}               = undef;
     $global{"useGrid"}                     = 0;
     $global{"useBogUnitig"}                = 0;
@@ -224,9 +226,11 @@ sub checkDirectories {
 
 sub findLastCheckpoint ($) {
     my $dir     = shift @_;
-    my $lastckp = "000";
+    my $lastckp;
 
-    open(F, "ls -1 $wrk/$dir/*ckp* |");
+    $dir = "$wrk/$dir" if (! -d $dir);
+
+    open(F, "ls -1 $dir/*ckp* |");
     while (<F>) {
         chomp;
 

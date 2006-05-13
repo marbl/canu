@@ -29,10 +29,11 @@ SOURCES = chimera.C consolidate.C dumpFragStoreAsFasta.C dumpFragStoreAsOFG.c \
           dumpRandomMatedFrags.C \
           findDuplicateFragsInStore.C getNumScaffolds.c initialTrim.C \
           merge-trimming.C sort-overlaps.C \
-          overlap-convert.C trim.C util++.C
+          overlap-convert.C trim.C util++.C \
+          deleteLinks.C
 OBJECTS = $(SOURCES:.C=.o) $(SOURCES:.c=.o)
 PROGS   = chimera consolidate initialTrim merge-trimming sort-overlaps \
-          overlap-convert \
+          overlap-convert deleteLinks \
           dumpRandomMatedFrags \
           dumpFragStoreAsFasta dumpFragStoreAsOFG findDuplicateFragsInStore getNumScaffolds
 SCRIPTS = 
@@ -52,6 +53,8 @@ overlap-convert: overlap-convert.o util++.o
 chimera: chimera.o util++.o -lAS_PER -lAS_UTL
 
 consolidate: consolidate.o util++.o
+
+deleteLinks: deleteLinks.o util++.o -lAS_PER -lAS_UTL
 
 dumpFragStoreAsFasta: dumpFragStoreAsFasta.o trim.o -lAS_PER -lAS_UTL
 

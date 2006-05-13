@@ -91,9 +91,9 @@ main(int argc, char **argv) {
   line = new char [lineMax];
 
   if (argc < 5) {
-    fprintf(stderr, "usage: %s [-immutable uidlist] [-log log] -frg frgStore -ovl overlap-trim\n", argv[0]);
+    fprintf(stderr, "usage: %s [-immutable uidlist] [-log log] -frg frgStore -ovl overlap-consolidated\n", argv[0]);
     fprintf(stderr, "  -immutable uidlist    Never, ever modify these fragments.\n");
-    fprintf(stderr, "  -ovl o                Read consolidated overlaps from here.n");
+    fprintf(stderr, "  -ovl o                Read consolidated overlaps from here.\n");
     fprintf(stderr, "  -log x                Write a record of changes to 'x', summary statistics to 'x.stats'\n");
     fprintf(stderr, "  -frg f                'f' is our frag store\n");
     exit(1);
@@ -200,6 +200,9 @@ main(int argc, char **argv) {
       qltL0 = l;
       qltR0 = r;
 
+      u64bit  uid;
+      getAccID_ReadStruct(rd, &uid);
+
       doTrim(rd, minQuality, qltL1, qltR1);
 
       //  Pick the bigger of the L's and the lesser of the R's.  If
@@ -220,8 +223,8 @@ main(int argc, char **argv) {
         }
 
         if (logFile)
-          fprintf(logFile, u64bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT" (no overlaps)\n",
-                  lid, qltL0, qltR0, l, r);
+          fprintf(logFile, u64bitFMT"\t"u64bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT" (no overlaps)\n",
+                  uid, lid, qltL0, qltR0, l, r);
       } else {
         //  What?  No intersect...too small?  Delete it!
         //
@@ -230,11 +233,11 @@ main(int argc, char **argv) {
 
         if (logFile)
           if (l < r)
-            fprintf(logFile, u64bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT" (no overlaps, intersection too short, deleted)\n",
-                    lid, qltL0, qltR0, qltL1, qltR1);
+            fprintf(logFile, u64bitFMT"\t"u64bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT" (no overlaps, intersection too short, deleted)\n",
+                    uid, lid, qltL0, qltR0, qltL1, qltR1);
           else
-            fprintf(logFile, u64bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT" (no overlaps, no intersection, deleted)\n",
-                    lid, qltL0, qltR0, qltL1, qltR1);
+            fprintf(logFile, u64bitFMT"\t"u64bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT" (no overlaps, no intersection, deleted)\n",
+                    uid, lid, qltL0, qltR0, qltL1, qltR1);
       }
 
       lid++;
@@ -263,8 +266,8 @@ main(int argc, char **argv) {
     //
     if (immutable.exists(uid)) {
       if (logFile)
-        fprintf(logFile, u64bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT" (immutable)\n",
-                lid, qltLQ1, qltRQ1, qltLQ1, qltRQ1);
+        fprintf(logFile, u64bitFMT"\t"u64bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT" (immutable)\n",
+                uid, lid, qltLQ1, qltRQ1, qltLQ1, qltRQ1);
     } else {
       u32bit min5   = strtou32bit(W[1], 0L) + qltLQ1;
       u32bit minm5  = strtou32bit(W[2], 0L) + qltLQ1;
@@ -458,8 +461,8 @@ main(int argc, char **argv) {
         stats[19]++;
 
         if (logFile)
-          fprintf(logFile, u64bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT" (deleted, too short)\n",
-                  iid, qltL, qltR, left, right);
+          fprintf(logFile, u64bitFMT"\t"u64bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT" (deleted, too short)\n",
+                  uid, iid, qltL, qltR, left, right);
 
         if (doModify)
           deleteFragStore(fs, iid);
@@ -467,8 +470,8 @@ main(int argc, char **argv) {
         stats[20]++;
 
         if (logFile)
-          fprintf(logFile, u64bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\n",
-                  iid, qltL, qltR, left, right);
+          fprintf(logFile, u64bitFMT"\t"u64bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\n",
+                  uid, iid, qltL, qltR, left, right);
 
         if (doModify) {
           setClearRegion_ReadStruct(rd, left, right, READSTRUCT_OVL);
