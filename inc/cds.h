@@ -147,14 +147,14 @@ typedef double float64;
   #define F_PID_T    "%d"
   #define F_PID_TP    "d"
 
-  #if _FILE_OFFSET_BITS==64
-    // off_t is 64-bit
-    #define F_OFF_T   "%lld"
-    #define F_OFF_TP   "lld"
-  #else
+  #if defined(_FILE_OFFSET_BITS) && (_FILE_OFFSET_BITS == 32)
     // off_t is 32-bin
     #define F_OFF_T   "%ld"
     #define F_OFF_TP   "ld"
+  #else
+    // off_t is 64-bit
+    #define F_OFF_T   "%lld"
+    #define F_OFF_TP   "lld"
   #endif
 
   #define STR_TO_UID     strtoull
