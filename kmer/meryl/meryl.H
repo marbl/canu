@@ -34,6 +34,7 @@ public:
   bool              readConfig(const char *prefix);
 public:
   char             *execName;
+  char             *options;
 
   bool              beVerbose;
   bool              doForward;
@@ -68,6 +69,7 @@ public:
 
   char             *sgeJobName;
   char             *sgeOptions;
+  bool              isOnGrid;
 
   u32bit            lowCount;
   u32bit            highCount;

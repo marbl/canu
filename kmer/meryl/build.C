@@ -116,7 +116,83 @@ adjustHeap(sortedList_t *M, s64bit i, s64bit n) {
 }
 
 
+void
+submitPrepareBatch(merylArgs *args) {
+  FILE  *F;
+  char   nam[1024];
+  char   cmd[1024];
 
+  sprintf(nam, "%s-prepare.sh", args->outputFile);
+
+  errno = 0;
+  F = fopen(nam, "w");
+  if (errno)
+    fprintf(stderr, "Failed to open '%s': %s\n", nam, strerror(errno)), exit(1);
+
+  fprintf(F, "#!/bin/sh\n\n");
+  fprintf(F, "%s -forcebuild %s\n", args->execName, args->options);
+  fclose(F);
+
+  if (args->sgeOptions)
+    sprintf(cmd, "qsub -cwd -j y -o %s-prepare.err %s -N mp%s %s-prepare.sh",
+            args->outputFile, args->sgeOptions, args->sgeJobName, args->outputFile);
+  else
+    sprintf(cmd, "qsub -cwd -j y -o %s-prepare.err -N mp%s %s-prepare.sh",
+            args->outputFile, args->sgeJobName, args->outputFile);
+  if (system(cmd))
+    fprintf(stderr, "%s\nFailed to execute qsub command: %s\n", cmd, strerror(errno)), exit(1);
+}
+
+
+void
+submitCountBatches(merylArgs *args) {
+  FILE  *F;
+  char   nam[1024];
+  char   cmd[1024];
+
+  sprintf(nam, "%s-count.sh", args->outputFile);
+
+  errno = 0;
+  F = fopen(nam, "w");
+  if (errno)
+    fprintf(stderr, "Failed to open '%s': %s\n", nam, strerror(errno)), exit(1);
+
+  fprintf(F, "#!/bin/sh\n\n");
+  fprintf(F, "batchnum=`expr $SGE_TASK_ID - 1`\n");
+  fprintf(F, "%s -v -countbatch $batchnum -o %s\n", args->execName, args->outputFile);
+  fclose(F);
+
+  if (args->sgeOptions)
+    sprintf(cmd, "qsub -t 1-"u64bitFMT" -cwd -j y -o %s-count-\\$TASK_ID.err %s -N mc%s %s-count.sh",
+            args->segmentLimit, args->outputFile, args->sgeOptions, args->sgeJobName, args->outputFile);
+  else
+    sprintf(cmd, "qsub -t 1-"u64bitFMT" -cwd -j y -o %s-count-\\$TASK_ID.err -N mc%s %s-count.sh",
+            args->segmentLimit, args->outputFile, args->sgeJobName, args->outputFile);
+  if (system(cmd))
+    fprintf(stderr, "%s\nFailed to execute qsub command: %s\n", cmd, strerror(errno)), exit(1);
+
+  //  submit the merge
+
+  sprintf(nam, "%s-merge.sh", args->outputFile);
+
+  errno = 0;
+  F = fopen(nam, "w");
+  if (errno)
+    fprintf(stderr, "Failed to open '%s': %s\n", nam, strerror(errno)), exit(1);
+
+  fprintf(F, "#!/bin/sh\n\n");
+  fprintf(F, "%s -mergebatch -o %s\n", args->execName, args->outputFile);
+  fclose(F);
+
+  if (args->sgeOptions)
+    sprintf(cmd, "qsub -hold_jid mc%s -cwd -j y -o %s-merge.err %s -N mm%s %s-merge.sh",
+            args->sgeJobName, args->outputFile, args->sgeOptions, args->sgeJobName, args->outputFile);
+  else
+    sprintf(cmd, "qsub -hold_jid mc%s -cwd -j y -o %s-merge.err -N mm%s %s-merge.sh",
+            args->sgeJobName, args->outputFile, args->sgeJobName, args->outputFile);
+  if (system(cmd))
+    fprintf(stderr, "%s\nFailed to execute qsub command: %s\n", cmd, strerror(errno)), exit(1);
+}
 
 
 void
@@ -179,14 +255,25 @@ prepareBatch(merylArgs *args) {
     args->numMersActual = R->numberOfMers();
     delete R;
   } else {
-    fprintf(stderr, "Building new merStreamFile!\n");
-    merStreamFileBuilder   *B = new merStreamFileBuilder(args->merSize,
-                                                         args->inputFile,
-                                                         args->outputFile);
+    //  If we are running on the grid (as decided by merylArgs)
+    //  really build the merStreamFile, regardless.
+    //
+    if ((args->isOnGrid) || (args->sgeJobName == 0L)) {
+      fprintf(stderr, "Building new merStreamFile!\n");
+      merStreamFileBuilder   *B = new merStreamFileBuilder(args->merSize,
+                                                           args->inputFile,
+                                                           args->outputFile);
 
-    args->numMersActual = B->build(args->beVerbose);
+      args->numMersActual = B->build(args->beVerbose);
 
-    delete B;
+      delete B;
+    } else {
+      //  Shucks, we need to build the merstream file.  Lets do it
+      //  on the grid!
+      //
+      submitPrepareBatch(args);
+      exit(0);
+    }
   }
 
 
@@ -291,7 +378,7 @@ runSegment(merylArgs *args, u64bit segment) {
 
   //
   //  We can do all allocations up front:
-  //    mer data storate (the buckets themselves, plus 64 for slop)
+  //    mer data storage (the buckets themselves, plus 64 for slop)
   //    bucket pointers (plus an extra bucket at the end and a little for slop)
   //    bucket size counting space, last because we toss it out quickly
   //
@@ -299,9 +386,6 @@ runSegment(merylArgs *args, u64bit segment) {
     fprintf(stderr, " Allocating "u64bitFMT"MB for mer storage ("u32bitFMT" bits wide).\n",
             (args->mersPerBatch * args->merDataWidth + 64) >> 23, args->merDataWidth);
 
-#if SORTED_LIST_WIDTH == 1
-  merDataArray[0] = new u64bit [ (args->mersPerBatch * args->merDataWidth + 64) >> 6 ];
-#else
   for (u64bit mword=0, width=args->merDataWidth; width > 0; ) {
     if (width >= 64) {
       merDataArray[mword] = new u64bit [ args->mersPerBatch + 1 ];
@@ -312,22 +396,20 @@ runSegment(merylArgs *args, u64bit segment) {
       width  = 0;
     }
   }
-#endif
-  //bzero(merData, sizeof(u64bit) * ((args->mersPerBatch * args->merDataWidth + 64) >> 6));
-
 
 
   if (args->beVerbose)
     fprintf(stderr, " Allocating "u64bitFMT"MB for bucket pointer table ("u32bitFMT" bits wide).\n",
             (args->numBuckets * args->bucketPointerWidth + 128) >> 23, args->bucketPointerWidth);
   bucketPointers = new u64bit [(args->numBuckets * args->bucketPointerWidth + 128) >> 6];
-  //bzero(bucketPointers, sizeof(u64bit) * ((args->numBuckets * args->bucketPointerWidth + 128) >> 6));
+
 
   if (args->beVerbose)
     fprintf(stderr, " Allocating "u64bitFMT"MB for counting the size of each bucket.\n", args->numBuckets >> 18);
   bucketSizes = new u32bit [ args->numBuckets ];
   for (u64bit i=args->numBuckets; i--; )
     bucketSizes[i] = u32bitZERO;
+
 
   //  Position the mer stream at the start of this segments' mers.
   //  The last segment goes until the stream runs out of mers,
@@ -421,6 +503,9 @@ runSegment(merylArgs *args, u64bit segment) {
                                                args->bucketPointerWidth);
 
 #if SORTED_LIST_WIDTH == 1
+    //  Even though this would work in the general loop below, we
+    //  special case one word mers to avoid the loop overhead.
+    //
     setDecodedValue(merDataArray[0],
                     element * args->merDataWidth,
                     args->merDataWidth,
@@ -553,14 +638,12 @@ runSegment(merylArgs *args, u64bit segment) {
       //  Build the complete mer
       //
 #if SORTED_LIST_WIDTH == 1
-      //mer.setBits(0, args->merDataWidth, sortedList[t]);
       mer.setWord(0, sortedList[t]);
-      mer.setBits(args->merDataWidth, args->numBuckets_log2, bucket);
 #else
       for (u64bit mword=0; mword < SORTED_LIST_WIDTH; mword++)
         mer.setWord(mword, sortedList[t]._w[mword]);
-      mer.setBits(args->merDataWidth, args->numBuckets_log2, bucket);
 #endif
+      mer.setBits(args->merDataWidth, args->numBuckets_log2, bucket);
 
       //  Add it
       W->addMer(mer);
@@ -583,56 +666,6 @@ runSegment(merylArgs *args, u64bit segment) {
     fprintf(stderr, "Segment "u64bitFMT" finished.\n", segment);
 }
 
-
-void
-submitCountBatches(merylArgs *args) {
-  FILE  *F;
-  char   nam[1024];
-  char   cmd[1024];
-
-  sprintf(nam, "%s-count.sh", args->outputFile);
-
-  errno = 0;
-  F = fopen(nam, "w");
-  if (errno)
-    fprintf(stderr, "Failed to open '%s': %s\n", nam, strerror(errno)), exit(1);
-
-  fprintf(F, "#!/bin/sh\n\n");
-  fprintf(F, "batchnum=`expr $SGE_TASK_ID - 1`\n");
-  fprintf(F, "%s -v -countbatch $batchnum -o %s\n", args->execName, args->outputFile);
-  fclose(F);
-
-  if (args->sgeOptions)
-    sprintf(cmd, "qsub -N mc%s -t 1-"u64bitFMT" -cwd -j y -o %s-count-\\$TASK_ID.err %s %s-count.sh",
-            args->sgeJobName, args->segmentLimit, args->outputFile, args->sgeOptions, args->outputFile);
-  else
-    sprintf(cmd, "qsub -N mc%s -t 1-"u64bitFMT" -cwd -j y -o %s-count-\\$TASK_ID.err %s-count.sh",
-            args->sgeJobName, args->segmentLimit, args->outputFile, args->outputFile);
-  if (system(cmd))
-    fprintf(stderr, "%s\nFailed to execute qsub command: %s\n", cmd, strerror(errno)), exit(1);
-
-  //  submit the merge
-
-  sprintf(nam, "%s-merge.sh", args->outputFile);
-
-  errno = 0;
-  F = fopen(nam, "w");
-  if (errno)
-    fprintf(stderr, "Failed to open '%s': %s\n", nam, strerror(errno)), exit(1);
-
-  fprintf(F, "#!/bin/sh\n\n");
-  fprintf(F, "%s -mergebatch -o %s\n", args->execName, args->outputFile);
-  fclose(F);
-
-  if (args->sgeOptions)
-    sprintf(cmd, "qsub -N mm%s -hold_jid mc%s -cwd -j y -o %s-merge.err %s %s-merge.sh",
-            args->sgeJobName, args->sgeJobName, args->outputFile, args->sgeOptions, args->outputFile);
-  else
-    sprintf(cmd, "qsub -N mm%s -hold_jid mc%s -cwd -j y -o %s-merge.err %s-merge.sh",
-            args->sgeJobName, args->sgeJobName, args->outputFile, args->outputFile);
-  if (system(cmd))
-    fprintf(stderr, "%s\nFailed to execute ub command: %s\n", cmd, strerror(errno)), exit(1);
-}
 
 
 void

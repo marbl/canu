@@ -153,6 +153,14 @@ const char *usagestring =
 "       ...\n"
 "       meryl -countbatch N -o file\n"
 "       meryl -mergebatch N -o file\n"
+"     Batched mode can run on the grid.\n"
+"        -sge        jobname      unique job name for this execution.  Meryl will submit\n"
+"                                 jobs with name mpjobname, ncjobname, nmjobname, for\n"
+"                                 phases prepare, count and merge.\n"
+"        -sgeoptions \"options\"    any additional options to sge, e.g.,\n"
+"                                 \"-p -153 -pe thread 2 -A merylaccount\"\n"
+"                                 N.B. - -N will be ignored\n"
+"                                 N.B. - be sure to quote the options\n"
 "\n"
 "-M:  Given a list of tables, perform a math, logical or threshold operation.\n"
 "     Unless specified, all operations take any number of databases.\n"
@@ -219,6 +227,7 @@ merylArgs::usage(void) {
 
 merylArgs::merylArgs(int argc, char **argv) {
   execName           = duplString(argv[0]);
+  options            = 0L;
 
   beVerbose          = false;
 
@@ -256,6 +265,10 @@ merylArgs::merylArgs(int argc, char **argv) {
   sgeJobName         = 0L;
   sgeOptions         = 0L;
 
+  //  We could possibly do (getenv("SGE_TASK_ID") != 0L), but then we
+  //  break on non-SGE grids.
+  isOnGrid           = false;
+
   lowCount           = 0;
   highCount          = ~lowCount;
   desiredCount       = 0;
@@ -281,15 +294,29 @@ merylArgs::merylArgs(int argc, char **argv) {
   }
 
   //  Count how many '-s' switches there are, then allocate space
-  //  for them in mergeFiles.
+  //  for them in mergeFiles.  We also sum the length of all options,
+  //  so we can copy them into an 'options' string used when we
+  //  resubmit to the grid.
   //
+  u32bit  optionsLen = 0;
   for (int arg=1; arg < argc; arg++) {
+    optionsLen += strlen(argv[arg]) + 1;
     if (strcmp(argv[arg], "-s") == 0)
       mergeFilesMax++;
   }
-  mergeFiles = new char* [mergeFilesMax];
+
+  mergeFiles   = new char * [mergeFilesMax];
+  options      = new char   [optionsLen + 1];
+  options[0]   = 0;
 
   bool fail = false;
+
+  for (int arg=1; arg < argc; arg++) {
+    if (arg > 1)
+      strcat(options, " ");
+    strcat(options, argv[arg]);
+  }
+
 
   //  Parse the options
   //
@@ -454,6 +481,8 @@ merylArgs::merylArgs(int argc, char **argv) {
       sgeJobName = argv[++arg];
     } else if (strcmp(argv[arg], "-sgeoptions") == 0) {
       sgeOptions = argv[++arg];
+    } else if (strcmp(argv[arg], "-forcebuild") == 0) {
+      isOnGrid = true;
     } else {
       fprintf(stderr, "Unknown option '%s'.\n", argv[arg]);
       fail = true;
@@ -473,6 +502,13 @@ merylArgs::merylArgs(int argc, char **argv) {
     numThreads = 0;
   }
 #endif
+
+  //  SGE is not useful unless we are in batch mode.
+  //
+  if (sgeJobName && !configBatch && !countBatch && !mergeBatch) {
+    fprintf(stderr, "ERROR: -sge not useful unless in batch mode (replace -B with -configbatch)\n");
+    exit(1);
+  }
 
   if (fail)
     exit(1);

@@ -60,8 +60,12 @@ estimateNumMersInMemorySize(u32bit merSize,
         //  The number of mers we can then fit into the mer data table
         //  is easy to compute.
         //
+        //  Even though we allocate merDataArray, bucketPointers,
+        //  bucketSizes, we don't use merDataArray until after we
+        //  release bucketSizes, and so we only estimate the maximum
+        //  in core (not allocated) size.
+        //
         u64bit n = (memLimt - bucketsize) / (2*merSize - t);
-
 
         //  We can stop now if our computed number of mers is outside the range that
         //  the bucket pointer table can address.
