@@ -34,15 +34,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.hh,v 1.14 2006-05-02 15:02:12 eliv Exp $
- * $Revision: 1.14 $
+ * $Id: AS_BOG_UnitigGraph.hh,v 1.15 2006-05-15 19:35:37 eliv Exp $
+ * $Revision: 1.15 $
 */
 
 
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.14 2006-05-02 15:02:12 eliv Exp $";
+static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.15 2006-05-15 19:35:37 eliv Exp $";
 
 #include <vector>
 #include <map>
@@ -84,6 +84,9 @@ namespace AS_BOG{
 
 		Unitig(void);		
 		~Unitig(void);		
+
+        // Sort frags by position on the unitig
+        void sort();
 
 		// Compute unitig based on given dovetails and containments
 		void computeFragmentPositions(ContainerMap*, BestContainmentMap*);
