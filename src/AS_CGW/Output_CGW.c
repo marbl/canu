@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Output_CGW.c,v 1.10 2006-02-13 22:16:31 eliv Exp $";
+static char CM_ID[] = "$Id: Output_CGW.c,v 1.11 2006-05-15 14:43:47 eliv Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -96,6 +96,15 @@ void OutputFrags(ScaffoldGraphT *graph){
   GenericMesg		pmesg;
   IntAugFragMesg af_mesg;
   int goodMates = 0;
+  int ctenUntrust=0;
+  int ctenTrust  =0;
+  int ctrusted   =0;
+  int cuntrust   =0;
+  int clongvar   =0;
+  int cunknown   =0;
+  int cinvalid   =0;
+  int cwrongScf  =0;
+
   //MateStatusType status;
   MateStatType status;
   InfoByIID *info = GetInfoByIID(graph->iidToFragIndex,0);
@@ -151,6 +160,16 @@ void OutputFrags(ScaffoldGraphT *graph){
     default:
       assert(0);
     }
+    switch(cifrag->flags.bits.edgeStatus){
+    case INVALID_EDGE_STATUS:             cinvalid++;    break;
+    case TRUSTED_EDGE_STATUS:             ctrusted++;    break;
+    case TENTATIVE_TRUSTED_EDGE_STATUS:   ctenTrust++;   break;
+    case UNTRUSTED_EDGE_STATUS:           cuntrust++;    break;
+    case TENTATIVE_UNTRUSTED_EDGE_STATUS: ctenUntrust++; break;
+    case LARGE_VARIANCE_EDGE_STATUS:      clongvar++;    break;
+    case INTER_SCAFFOLD_EDGE_STATUS:      cwrongScf++;   break;
+    case UNKNOWN_EDGE_STATUS:             cunknown++;    break;
+    }
     af_mesg.mate_status = status;
     af_mesg.chimeric = 0;
 
@@ -177,6 +196,14 @@ void OutputFrags(ScaffoldGraphT *graph){
     (GlobalData->writer)(GlobalData->outfp,&pmesg);
   }
   fprintf(GlobalData->stderrc,"* Saw %d good mates\n", goodMates);
+  fprintf(GlobalData->stderrc,"* Saw %d trusted mates (good)\n", ctrusted);
+  fprintf(GlobalData->stderrc,"* Saw %d tentative trusted mates (good)\n", ctenTrust);
+  fprintf(GlobalData->stderrc,"* Saw %d tentative untrusted mates (bad)\n", ctenUntrust);
+  fprintf(GlobalData->stderrc,"* Saw %d untrusted mates (bad)\n", cuntrust);
+  fprintf(GlobalData->stderrc,"* Saw %d large variance mates (unused)\n", clongvar);
+  fprintf(GlobalData->stderrc,"* Saw %d between scaffold mates (unused)\n", cwrongScf);
+  fprintf(GlobalData->stderrc,"* Saw %d unknown mates (unused)\n", cunknown);
+  fprintf(GlobalData->stderrc,"* Saw %d invalid mates (no mate)\n", cinvalid);
   fflush(NULL);
 
 }
