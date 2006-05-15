@@ -23,7 +23,7 @@ cc -g -pg -qfullpath   -qstrict -qbitfields=signed -qchars=signed -qlanglvl=ext 
 -o /work/assembly/rbolanos/IBM_PORT_CDS/ibm_migration_work_dir/cds/AS/obj/GraphCGW_T.o GraphCGW_T.c
 */
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.10 2006-02-13 22:16:31 eliv Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.11 2006-05-15 14:41:43 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -3897,6 +3897,18 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
 #endif
   }
   
+  int numChaff = 0;
+  int numSingle = 0;
+  int numNolink = 0;
+  int numCtgNotInternal = 0;
+  int numReverse = 0;
+  int numOtherUtg = 0;
+  int numSameOrient = 0;
+  int numNot5stddev = 0;
+  int numDiffScaf = 0;
+  int numTotalFrags = 0;
+  int numNullMate = 0;
+  int numMateNotSource = 0;
   InitGraphNodeIterator(&nodes, graph, GRAPH_NODE_DEFAULT);
   
   while(NULL != (node = NextGraphNodeIterator(&nodes)))
@@ -3914,14 +3926,19 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
     // numFrags, (operateOnNodes == CONTIG_OPERATIONS ? "Contig" : "Unitig"), node->id);
     
     // Don't waste time loading singletons for this
-    if(node->flags.bits.isChaff)
+    if(node->flags.bits.isChaff) {
+      numChaff++;
       continue;
+    }
     
     ReLoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ma, node->id, graph->type == CI_GRAPH);
     numFrags  = GetNumIntMultiPoss(ma->f_list);
+    numTotalFrags += numFrags;
     
-    if (numFrags < 2)
+    if (numFrags < 2) {
+      numSingle++;
       continue;
+    }
     
     for( i = 0; i < numFrags; i++)
     {
@@ -3940,37 +3957,32 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
 #endif
       // This is important for keeping our computation as local as possible.
       // We skip fragments that have external links only, or no links
-      if (frag->numLinks == 0)
+      if (frag->numLinks == 0) {
+        numNolink++;
         continue;
-
+      }
 
       if (frag->numLinks == 1 &&  // the typical case
           (operateOnNodes == CONTIG_OPERATIONS && !frag->flags.bits.hasInternalOnlyContigLinks))
+      {
         //     ||    (!operateOnContigs && !frag->flags.bits.hasInternalOnlyCILinks))
+        numCtgNotInternal++;
         continue;
+      }
       
-
-
       mate = GetCIFragT(ScaffoldGraph->CIFrags,frag->mateOf);
       
       if (operateOnNodes == UNITIG_OPERATIONS && mate != NULL && (mate->cid != frag->cid))
         numExternalLinks++;
 
-      
-      // If the id of the current fragment is greater than its mate, skip it, to
-      // avoid double counting.
-      //
-      if ((CDS_CID_t)mp->sourceInt > frag->mateOf){
-        continue;		// only examine each pair once
+      if (mate == NULL) {
+          numNullMate++;
+          continue;
       }
-      
-
-      // now make sure the 5p end is less than the 3p end
-      // what about outtie mates????????????????????????????????????????????????????????????????????
-      if ( frag->offset5p.mean > frag->offset3p.mean)
-        continue;
-      
-      assert(mate != NULL && mate->mateOf == (CDS_CID_t)mp->sourceInt);
+      if ( mate->mateOf != (CDS_CID_t)mp->sourceInt) {
+          numMateNotSource++;
+          continue;
+      }
       dptr = GetDistT(ScaffoldGraph->Dists, frag->dist);
       dptr->numReferences++;
       
@@ -3979,10 +3991,10 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
       {
         NodeCGW_T *unitig = GetGraphNode( ScaffoldGraph->CIGraph, frag->cid);
 
-        if (frag->cid != mate->cid)
+        if (frag->cid != mate->cid) {
+          numOtherUtg++;
           continue;
-        
-        dist = mate->offset5p.mean - frag->offset5p.mean;
+        }
         
         if(	getCIFragOrient(mate) == getCIFragOrient(frag)) 
         {
@@ -3990,13 +4002,25 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
           frag->flags.bits.edgeStatus = UNTRUSTED_EDGE_STATUS;
           mate->flags.bits.edgeStatus = UNTRUSTED_EDGE_STATUS;
           dptr->numBad++;
+          numSameOrient++;
           continue;
+        }
+
+        // now make sure the 5p end is less than the 3p end
+        if ( frag->offset5p.mean > frag->offset3p.mean) {
+            numReverse++;
+            continue;
         }
 
         // try to sample fairly by only doing mates where ones of any length could live
         if ( frag->offset5p.mean + dptr->mean + 5 * dptr->stddev > unitig->bpLength.mean)
+        {
+          numNot5stddev++;
           continue;
+        }
 
+        dist = mate->offset5p.mean - frag->offset5p.mean;
+        
         if((frag->flags.bits.innieMate && getCIFragOrient(frag) == B_A) ||
            (!frag->flags.bits.innieMate && getCIFragOrient(frag) == A_B) )
           dist = -dist;
@@ -4012,12 +4036,22 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
           frag->flags.bits.edgeStatus = UNTRUSTED_EDGE_STATUS;
           mate->flags.bits.edgeStatus = UNTRUSTED_EDGE_STATUS;
           dptr->numBad++;
+          numSameOrient++;
           continue;
         }
         
+        // now make sure the 5p end is less than the 3p end
+        if ( frag->contigOffset5p.mean > frag->contigOffset3p.mean) {
+            numReverse++;
+            continue;
+        }
+
         // try to sample fairly by only doing mates where ones of any length could live
         if ( frag->contigOffset5p.mean + dptr->mean + 5 * dptr->stddev > contig->bpLength.mean)
+        {
+          numNot5stddev++;
           continue;
+        }
         
         dist =  mate->contigOffset5p.mean - frag->contigOffset5p.mean; 
         //   -------------------->          <----------------------
@@ -4044,14 +4078,32 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
         mateContig = GetGraphNode( ScaffoldGraph->ContigGraph, mate->contigID);
         AssertPtr(mateContig);
         
-        
         // we want them to be in the same scaffold
         if ( fragContig->scaffoldID != mateContig->scaffoldID || fragContig->scaffoldID == -1)
+        {
+          numDiffScaf++;
           continue;
+        }
         
         GetFragmentPositionInScaffold( frag, &fragLeftEnd, &fragRightEnd, &fragScaffoldOrientation);
         GetFragmentPositionInScaffold( mate, &mateLeftEnd, &mateRightEnd, &mateScaffoldOrientation);
+
+        if (fragScaffoldOrientation == mateScaffoldOrientation) 
+        {
+          // fprintf(GlobalData->stderrc,"* (" F_CID "," F_CID ") is bad due to orientation problems\n",      frag->iid, mate->iid);
+          frag->flags.bits.edgeStatus = UNTRUSTED_EDGE_STATUS;
+          mate->flags.bits.edgeStatus = UNTRUSTED_EDGE_STATUS;
+          dptr->numBad++;
+          numSameOrient++;
+          continue;
+        }
         
+        // now make sure the 5p end is less than the 3p end
+        if ( fragScaffoldOrientation == 1 ) {
+            numReverse++;
+            continue;
+        }
+
         // try to sample fairly by only doing mates where ones of any length could live
         {
           NodeCGW_T *scaff, *extremeContig;
@@ -4064,7 +4116,10 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
           GetContigPositionInScaffold ( extremeContig, &contigLeftEnd, &contigRightEnd, &contigScaffoldOrientation);
           
           if ( fragLeftEnd + dptr->mean + 5 * dptr->stddev > contigRightEnd)
+          {
+            numNot5stddev++;
             continue;
+          }
         }
         
 #if 0
@@ -4077,15 +4132,6 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
                    fragLeftEnd, fragRightEnd, fragScaffoldOrientation,
                    mateLeftEnd, mateRightEnd, mateScaffoldOrientation);
 #endif
-        
-        if (fragScaffoldOrientation == mateScaffoldOrientation) 
-        {
-          // fprintf(GlobalData->stderrc,"* (" F_CID "," F_CID ") is bad due to orientation problems\n",      frag->iid, mate->iid);
-          frag->flags.bits.edgeStatus = UNTRUSTED_EDGE_STATUS;
-          mate->flags.bits.edgeStatus = UNTRUSTED_EDGE_STATUS;
-          dptr->numBad++;
-          continue;
-        }
         
         if (frag->flags.bits.innieMate)  
         {
@@ -4185,6 +4231,20 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
     }
   }
   
+  fprintf(GlobalData->stderrc, "* ComputeMatePairStats some mate data:\n");
+  fprintf(GlobalData->stderrc, "* num total - chaff                 %d\n",numTotalFrags);
+  fprintf(GlobalData->stderrc, "* num chaff nodes                   %d\n",numChaff);
+  fprintf(GlobalData->stderrc, "* num singleton                     %d\n",numSingle);
+  fprintf(GlobalData->stderrc, "* num no link                       %d\n",numNolink);
+  fprintf(GlobalData->stderrc, "* num ctg not internal              %d\n",numCtgNotInternal);
+  fprintf(GlobalData->stderrc, "* num 5' > 3' so skip               %d\n",numReverse);
+  fprintf(GlobalData->stderrc, "* num different unitig              %d\n",numOtherUtg);
+  fprintf(GlobalData->stderrc, "* num same orientation              %d\n",numSameOrient);
+  fprintf(GlobalData->stderrc, "* num greater then 5 stddev distant %d\n",numNot5stddev);
+  fprintf(GlobalData->stderrc, "* num different scaffold            %d\n",numDiffScaf);
+  fprintf(GlobalData->stderrc, "* num mate != sourceInt             %d\n",numMateNotSource);
+  fprintf(GlobalData->stderrc, "* num NULL mate                     %d\n",numNullMate);
+
   if (operateOnNodes == UNITIG_OPERATIONS)
   {
     fprintf(GlobalData->stderrc,
