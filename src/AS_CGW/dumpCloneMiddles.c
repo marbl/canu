@@ -59,6 +59,7 @@ static ScaffoldInstrumenter *si;
 extern int do_draw_frags_in_CelamyScaffold;
 extern int do_compute_missing_overlaps;
 extern do_surrogate_tracking;
+extern printMateUIDs;
 
 void dumpCloneMiddle(int sid){
   char camname[1000];
@@ -112,7 +113,7 @@ void finished_with_ovlStore(void){
 }
 
 void usage(char *pgm){
-  fprintf (stderr, "USAGE:  %s -f <FragStoreName> -g <GatekeeperStoreName> -o <OVLStoreName> -c <CkptFileName> -n <CkpPtNum> [ -s <single scfIID> ] [-l <min length>] \n",
+  fprintf (stderr, "USAGE:  %s -f <FragStoreName> -g <GatekeeperStoreName> -o <OVLStoreName> -c <CkptFileName> -n <CkpPtNum> [ -s <single scfIID> ] [-l <min length>] [-U] \n\t-s causes a single scaffold to be generated\n\t-l causes only scaffolds larger than min length to be generated\n\t-U causes clones to be named using the UIDs of their reads\n",
 		 pgm);
 }
 
@@ -147,7 +148,7 @@ int main (int argc , char * argv[] ) {
   { /* Parse the argument list using "man 3 getopt". */ 
     int ch,errflg=0;
     optarg = NULL;
-    while (!errflg && ((ch = getopt(argc, argv,"c:f:g:n:s:o:l:S")) != EOF)){
+    while (!errflg && ((ch = getopt(argc, argv,"c:f:g:n:s:o:l:SU")) != EOF)){
       switch(ch) {
       case 'c':
 	strcpy( data->File_Name_Prefix, argv[optind - 1]);
@@ -177,6 +178,9 @@ int main (int argc , char * argv[] ) {
 	break;	  
       case 'S':
 	do_surrogate_tracking=0;
+	break;
+      case 'U':
+	printMateUIDs=1;
 	break;
       case '?':
 	fprintf(stderr,"Unrecognized option -%c",optopt);

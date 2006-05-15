@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.7 2006-03-28 02:54:24 ahalpern Exp $";
+static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.8 2006-05-15 14:32:11 ahalpern Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -64,6 +64,9 @@ CDS_COORD_t UnitigOffset;
 #define USE_ALL_MATES 1
 
 int do_surrogate_tracking=1;
+
+// if printMateUIDs==1, labels of celamy lines for mate pairs will contain UIDs, not IIDs
+int printMateUIDs=0;
 
 typedef struct
 {
@@ -4681,8 +4684,25 @@ void PrintScaffoldMateDetail(HashTable_AS * cpHT,
     }
 #endif
 
-    fprintf(printTo,F_CID "Mate" F_CID ": " F_COORD " %s%s " F_COORD " R%d # %s " F_CID " " F_CID "\n",
-	    fragIID,mateIID,frag5p,markString,catString,mate5p,row,category,fragIID,mateIID);
+    if(printMateUIDs){
+      cds_uint64 fragUID;
+      cds_uint64 mateUID;
+      GateKeeperFragmentRecord gkpFrag;
+
+      if(getGateKeeperFragmentStore(ScaffoldGraph->gkpStore.frgStore,fragIID,&gkpFrag)!=0){
+	assert(0);
+      }
+      fragUID=gkpFrag.readUID;
+      if(getGateKeeperFragmentStore(ScaffoldGraph->gkpStore.frgStore,mateIID,&gkpFrag)!=0){
+	assert(0);
+      }
+      mateUID=gkpFrag.readUID;
+      fprintf(printTo,F_UID "Mate" F_UID ": " F_COORD " %s%s " F_COORD " R%d # %s " F_CID " " F_CID "\n",
+	      fragUID,mateUID,frag5p,markString,catString,mate5p,row,category,fragIID,mateIID);
+    } else {
+      fprintf(printTo,F_CID "Mate" F_CID ": " F_COORD " %s%s " F_COORD " R%d # %s " F_CID " " F_CID "\n",
+	      fragIID,mateIID,frag5p,markString,catString,mate5p,row,category,fragIID,mateIID);
+    }
 
 
   }
