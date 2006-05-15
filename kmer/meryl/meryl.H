@@ -66,6 +66,9 @@ public:
   bool              mergeBatch;
   u32bit            batchNumber;
 
+  char             *sgeJobName;
+  char             *sgeOptions;
+
   u32bit            lowCount;
   u32bit            highCount;
   u32bit            desiredCount;

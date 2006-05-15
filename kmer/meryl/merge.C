@@ -11,7 +11,7 @@ void
 multipleOperations(merylArgs *args) {
 
   if (args->mergeFilesLen < 2) {
-    fprintf(stderr, "ERROR - must have at least two databases!\n");
+    fprintf(stderr, "ERROR - must have at least two databases (you gave "u32bitFMT")!\n", args->mergeFilesLen);
     exit(1);
   }
   if (args->outputFile == 0L) {
@@ -210,9 +210,10 @@ multipleOperations(merylArgs *args) {
 
 #if 0
     char str[1024];
-    fprintf(stdout, "'%s'/"u32bitFMTW(2)" file="u32bitFMTW(2)"\n",
-            currentMer.merToString(str), currentCount, thisFile);
-    fflush(stdout);
+    currentMer.merToString(str);
+    if (str[0] == 'C')
+      fprintf(stdout, "'%s'/"u32bitFMTW(2)" file="u32bitFMTW(2)"\n",
+              str, currentCount, thisFile);
 #endif
   }
 

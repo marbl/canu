@@ -10,22 +10,13 @@
 #include "meryl.H"
 #include "libmeryl.H"
 
-
-
-
 void
 runSegment(merylArgs *args, u64bit segment);
 
-
-
-//  Shared data
-//
 pthread_mutex_t        segmentMutex;
 u64bit                 segmentNext;
 u64bit                 segmentMax;
 u32bit                *segmentDone;
-
-
 
 
 void*
@@ -51,9 +42,6 @@ buildThread(void *U) {
 }
 
 
-
-
-
 void
 runThreaded(merylArgs *args) {
 
@@ -64,7 +52,6 @@ runThreaded(merylArgs *args) {
   segmentDone = new u32bit [segmentMax];
   for (u64bit s=0; s<segmentMax; s++)
     segmentDone[s] = u32bitZERO;
-
 
   //  Initialize threads
   //
@@ -78,12 +65,10 @@ runThreaded(merylArgs *args) {
   pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_DETACHED);
   pthread_attr_setschedpolicy(&threadAttr, SCHED_OTHER);
 
-
   //  Start the threads
   //
   for (u64bit i=0; i<args->numThreads; i++)
     pthread_create(&threadID, &threadAttr, buildThread, (void *)args);
-
 
   //  Wait for the threads to complete
   //
@@ -99,10 +84,8 @@ runThreaded(merylArgs *args) {
       s++;
   }
 
-
   if (args->beVerbose)
     fprintf(stderr, "Threads all done, cleaning up.\n");
-
 
   //  Cleanup
   //
@@ -111,7 +94,5 @@ runThreaded(merylArgs *args) {
 
   delete [] segmentDone;
 }
-
-
 
 #endif  //  ENABLE_THREADS

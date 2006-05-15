@@ -133,20 +133,20 @@ const char *usagestring =
 "     Segmented, sequential operation: Split the counting into pieces that\n"
 "     will fit into no more than m MB of memory, or into n equal sized pieces.\n"
 "     Each piece is computed sequentially, and the results are merged at the end.\n"
+"     Only one of -memory and -segments is needed.\n"
 "        -memory mMB   (use at most m MB of memory per segment)\n"
 "        -segments n   (use n segments)\n"
 "\n"
 "     Segmented, batched operation: Same as sequential, except this allows\n"
 "     each segment to be manually executed in parallel.\n"
+"     Only one of -memory and -segments is needed.\n"
 "        -memory mMB     (use at most m MB of memory per segment)\n"
 "        -segments n     (use n segments)\n"
 "        -configbatch    (create the batches)\n"
 "        -countbatch n   (run batch number n)\n"
 "        -mergebatch     (merge the batches)\n"
-"\n"
-"     For batches, only -configbatch needs all the build options.  -countbatch and\n"
-"     -mergebatch both are keyes by the output file name, and read the build options\n"
-"     from there.\n"
+"     Initialize the compute with -configbatch, which needs all the build options.\n"
+"     Execute all -countbatch jobs, then -mergebatch to complete.\n"
 "       meryl -configbatch -B [options] -o file\n"
 "       meryl -countbatch 0 -o file\n"
 "       meryl -countbatch 1 -o file\n"
@@ -252,6 +252,9 @@ merylArgs::merylArgs(int argc, char **argv) {
   countBatch         = false;
   mergeBatch         = false;
   batchNumber        = 0;
+
+  sgeJobName         = 0L;
+  sgeOptions         = 0L;
 
   lowCount           = 0;
   highCount          = ~lowCount;
@@ -447,18 +450,33 @@ merylArgs::merylArgs(int argc, char **argv) {
       countBatch  = false;
       mergeBatch  = true;
       batchNumber = u32bitZERO;
+    } else if (strcmp(argv[arg], "-sge") == 0) {
+      sgeJobName = argv[++arg];
+    } else if (strcmp(argv[arg], "-sgeoptions") == 0) {
+      sgeOptions = argv[++arg];
     } else {
       fprintf(stderr, "Unknown option '%s'.\n", argv[arg]);
       fail = true;
     }
   }
 
+#ifdef ENABLE_THREADS
+  //  Using threads is only useful if we are not a batch.
+  //
+  if ((numThreads > 0) && (configBatch || countBatch || mergeBatch)) {
+    if (configBatch)
+      fprintf(stderr, "WARNING: -threads has no effect with -configbatch, disabled.\n");
+    if (countBatch)
+      fprintf(stderr, "WARNING: -threads has no effect with -countbatch, disabled.\n");
+    if (mergeBatch)
+      fprintf(stderr, "WARNING: -threads has no effect with -mergebatch, disabled.\n");
+    numThreads = 0;
+  }
+#endif
+
   if (fail)
     exit(1);
 }
-
-
-
 
 
 
@@ -476,30 +494,29 @@ merylArgs::merylArgs(const char *prefix) {
   }
 
   fread(magic, sizeof(char), 16, F);
-  if (strncmp(magic, "merylBatcherv01", 16) != 0) {
+  if (strncmp(magic, "merylBatcherv02", 16) != 0) {
     fprintf(stderr, "merylArgs::readConfig()-- '%s' doesn't appear to be a merylArgs file.\n", filename);
     exit(1);
   }
 
   fread(this, sizeof(merylArgs), 1, F);
 
-  execName = readString(F);
-
+  execName   = readString(F);
   inputFile  = readString(F);
   outputFile = readString(F);
   queryFile  = readString(F);
+  statsFile  = readString(F);
+  sgeJobName = readString(F);
+  sgeOptions = readString(F);
 
   mergeFiles = new char* [mergeFilesLen];
   for (u32bit i=0; i<mergeFilesLen; i++)
     mergeFiles[i] = readString(F);
 
-  statsFile = readString(F);
-
   fclose(F);
 
   delete [] filename;
 }
-
 
 
 
@@ -518,8 +535,6 @@ merylArgs::~merylArgs() {
 
 
 
-
-
 bool
 merylArgs::writeConfig(void) {
   char *filename;
@@ -533,26 +548,22 @@ merylArgs::writeConfig(void) {
     exit(1);
   }
 
-  fwrite("merylBatcherv01", sizeof(char), 16, F);
+  fwrite("merylBatcherv02", sizeof(char), 16, F);
 
   fwrite(this, sizeof(merylArgs), 1, F);
 
-  writeString(execName, F);
-
-  writeString(inputFile, F);
+  writeString(execName,   F);
+  writeString(inputFile,  F);
   writeString(outputFile, F);
-  writeString(queryFile, F);
+  writeString(queryFile,  F);
+  writeString(statsFile,  F);
+  writeString(sgeJobName, F);
+  writeString(sgeOptions, F);
 
   for (u32bit i=0; i<mergeFilesLen; i++)
     writeString(mergeFiles[i], F);
-
-  writeString(statsFile, F);
 
   fclose(F);
 
   return(true);
 }
-
-
-
-

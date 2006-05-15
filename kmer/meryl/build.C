@@ -584,20 +584,55 @@ runSegment(merylArgs *args, u64bit segment) {
 }
 
 
+void
+submitCountBatches(merylArgs *args) {
+  FILE  *F;
+  char   nam[1024];
+  char   cmd[1024];
 
+  sprintf(nam, "%s-count.sh", args->outputFile);
 
+  errno = 0;
+  F = fopen(nam, "w");
+  if (errno)
+    fprintf(stderr, "Failed to open '%s': %s\n", nam, strerror(errno)), exit(1);
 
+  fprintf(F, "#!/bin/sh\n\n");
+  fprintf(F, "batchnum=`expr $SGE_TASK_ID - 1`\n");
+  fprintf(F, "%s -v -countbatch $batchnum -o %s\n", args->execName, args->outputFile);
+  fclose(F);
 
+  if (args->sgeOptions)
+    sprintf(cmd, "qsub -N mc%s -t 1-"u64bitFMT" -cwd -j y -o %s-count-\\$TASK_ID.err %s %s-count.sh",
+            args->sgeJobName, args->segmentLimit, args->outputFile, args->sgeOptions, args->outputFile);
+  else
+    sprintf(cmd, "qsub -N mc%s -t 1-"u64bitFMT" -cwd -j y -o %s-count-\\$TASK_ID.err %s-count.sh",
+            args->sgeJobName, args->segmentLimit, args->outputFile, args->outputFile);
+  if (system(cmd))
+    fprintf(stderr, "%s\nFailed to execute qsub command: %s\n", cmd, strerror(errno)), exit(1);
 
+  //  submit the merge
 
+  sprintf(nam, "%s-merge.sh", args->outputFile);
 
+  errno = 0;
+  F = fopen(nam, "w");
+  if (errno)
+    fprintf(stderr, "Failed to open '%s': %s\n", nam, strerror(errno)), exit(1);
 
+  fprintf(F, "#!/bin/sh\n\n");
+  fprintf(F, "%s -mergebatch -o %s\n", args->execName, args->outputFile);
+  fclose(F);
 
-
-
-
-
-
+  if (args->sgeOptions)
+    sprintf(cmd, "qsub -N mm%s -hold_jid mc%s -cwd -j y -o %s-merge.err %s %s-merge.sh",
+            args->sgeJobName, args->sgeJobName, args->outputFile, args->sgeOptions, args->outputFile);
+  else
+    sprintf(cmd, "qsub -N mm%s -hold_jid mc%s -cwd -j y -o %s-merge.err %s-merge.sh",
+            args->sgeJobName, args->sgeJobName, args->outputFile, args->outputFile);
+  if (system(cmd))
+    fprintf(stderr, "%s\nFailed to execute ub command: %s\n", cmd, strerror(errno)), exit(1);
+}
 
 
 void
@@ -605,7 +640,6 @@ build(merylArgs *args) {
 
   if (!args->countBatch && !args->mergeBatch)
     prepareBatch(args);
-
 
   //  Three choices:
   //
@@ -622,26 +656,21 @@ build(merylArgs *args) {
 
   bool  doMerge = false;
 
-#ifdef ENABLE_THREADS
-  if (args->numThreads > 1) {
-
-    //  Run, using threads.  There is a lot of baloney needed, so it's
-    //  all in a separate function.
-    //
-    runThreaded(args);
-    doMerge = true;
-  } else
-#endif
   if (args->configBatch) {
 
     //  Write out our configuration and exit if we are -configbatch
     //
     args->writeConfig();
 
-    fprintf(stdout, "Batch prepared.  Please run:\n");
-    for (u64bit s=0; s<args->segmentLimit; s++)
-      fprintf(stdout, "%s -countbatch "u64bitFMT" -o %s\n", args->execName, s, args->outputFile);
-    fprintf(stdout, "%s -mergebatch -o %s\n", args->execName, args->outputFile);
+    if (args->sgeJobName) {
+      fprintf(stdout, "Batch prepared.  Submitting to the grid.\n");
+      submitCountBatches(args);
+    } else {
+      fprintf(stdout, "Batch prepared.  Please run:\n");
+      for (u64bit s=0; s<args->segmentLimit; s++)
+        fprintf(stdout, "%s -countbatch "u64bitFMT" -o %s\n", args->execName, s, args->outputFile);
+      fprintf(stdout, "%s -mergebatch -o %s\n", args->execName, args->outputFile);
+    }
   } else   if (args->countBatch) {
 
     //  Read back the configuration, run the segment and exit if we
@@ -667,11 +696,22 @@ build(merylArgs *args) {
     doMerge = true;
   } else {
 
-    //  No special options given, do all the work here and now
-    //
-    for (u64bit s=0; s<args->segmentLimit; s++)
-      runSegment(args, s);
+#ifdef ENABLE_THREADS
+    if (args->numThreads > 1)
 
+      //  Run, using threads.  There is a lot of baloney needed, so it's
+      //  all in a separate function.
+      //
+      runThreaded(args);
+    else
+#endif
+      //  No special options given, do all the work here and now
+      //
+      for (u64bit s=0; s<args->segmentLimit; s++)
+        runSegment(args, s);
+
+    //  Either case, we want to merge now.
+    //
     doMerge = true;
   }
   
@@ -715,6 +755,12 @@ build(merylArgs *args) {
     arga[argc] = false;  argv[argc++] = "-o";
     arga[argc] = false;  argv[argc++] = args->outputFile;
 
+#if 0
+    if (args->beVerbose)
+      for (u32bit i=0; i<argc; i++)
+        fprintf(stderr, "mergeArg[%2d] = '%s'\n", i, argv[i]);
+#endif
+
     merylArgs *addArgs = new merylArgs(argc, argv);
     multipleOperations(addArgs);
 
@@ -731,14 +777,12 @@ build(merylArgs *args) {
     //
     char *filename = new char [strlen(args->outputFile) + 17];
 
-#ifdef REMOVE_TEMPORARY_FILES
     for (u32bit i=0; i<args->segmentLimit; i++) {
       sprintf(filename, "%s.batch"u32bitFMT".mcidx", args->outputFile, i);
       unlink(filename);
       sprintf(filename, "%s.batch"u32bitFMT".mcdat", args->outputFile, i);
       unlink(filename);
     }
-#endif
 
     delete [] filename;
   }
@@ -754,7 +798,5 @@ build(merylArgs *args) {
 
     delete [] filename;
   }
-#else
-    fprintf(stderr, "NOT REMOVING TEMPORARY FILES!\n");
 #endif
 }
