@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FragCorrectOVL.c,v 1.6 2005-06-16 19:40:28 brianwalenz Exp $
- * $Revision: 1.6 $
+ * $Id: FragCorrectOVL.c,v 1.7 2006-05-16 23:00:02 brianwalenz Exp $
+ * $Revision: 1.7 $
 */
 
-static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.6 2005-06-16 19:40:28 brianwalenz Exp $";
+static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.7 2006-05-16 23:00:02 brianwalenz Exp $";
 
 
 //  System include files
@@ -140,6 +140,10 @@ static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.6 2005-06-16 19:40:28 brianwale
     //  Use the store directly during the stream -- good if you don't have
     //  lots of frags loaded.
 
+//#define USE_STREAM_FOR_EXTRACT
+    //  When loading frags during the stream, use a fragStream instead
+    //  of random access to the store.  Useless unless USE_STORE_DIRECTLY_STREAM
+    //  is enabled.
 
 //  Type definitions
 
@@ -1032,27 +1036,30 @@ static void  Extract_Needed_Frags
 //  global  Frag .
 
   {
+
+#ifdef USE_STREAM_FOR_EXTRACT
    FragStreamHandle  frag_stream;
+   int i;
+#endif
    static ReadStructp  frag_read = NULL;
    uint32  frag_iid;
    int  bytes_used, total_len, new_total;
    int  extract_ct, stream_ct;
    int  j;
-#if 0
-   int i;
-#endif
 
    if  (frag_read == NULL)
        frag_read = new_ReadStruct ();
 
+#ifdef USE_STREAM_FOR_EXTRACT
    frag_stream = openFragStream (store, NULL, 0);
    resetFragStream (frag_stream, lo_frag, hi_frag);
+#endif
 
    list -> ct = 0;
    total_len = 0;
    extract_ct = stream_ct = 0;
 
-#if  0
+#ifdef USE_STREAM_FOR_EXTRACT
    for  (i = 0;
            nextFragStream (frag_stream, frag_read,
                FRAG_S_SEQUENCE) && (* next_olap) < Num_Olaps;
@@ -1071,7 +1078,7 @@ static void  Extract_Needed_Frags
 
       stream_ct ++;
 
-#if  0
+#ifdef USE_STREAM_FOR_EXTRACT
       getReadIndex_ReadStruct (frag_read, & frag_iid);
       if  (frag_iid < Olap [(* next_olap)] . b_iid)
           continue;
@@ -1159,7 +1166,9 @@ static void  Extract_Needed_Frags
       frag_iid = Olap [(* next_olap)] . b_iid;
      }
 
+#ifdef USE_STREAM_FOR_EXTRACT
    closeFragStream (frag_stream);
+#endif
 
    fprintf (stderr, "Extracted %d of %d fragments in iid range %d .. %d\n",
             extract_ct, stream_ct, lo_frag, hi_frag);
@@ -2479,12 +2488,6 @@ void *  Threaded_Process_Stream
    int  olap_ct;
    int  i;
 
-#if 0
-   pthread_mutex_lock (& Print_Mutex);
-   fprintf (stderr, "Starting thread %d\n", wa -> thread_id);
-   pthread_mutex_unlock (& Print_Mutex);
-#endif
-
    olap_ct = 0;
 
    for  (i = 0;  i < wa -> frag_list -> ct;  i ++)
@@ -2541,116 +2544,6 @@ pthread_mutex_unlock (& Print_Mutex);
 
 
 
-#if  0
-static void  Threaded_Stream_Old_Frags
-    (void)
-
-//  Read old fragments in  Frag_Store  that have overlaps with
-//  fragments in  Frag .  Read a batch at a time and process them
-//  with multiple pthreads.  Each thread processes all the old fragments
-//  but only changes entries in  Frag  that correspond to its thread
-//  ID.  Recomputes the overlaps and records the vote information about
-//  changes to make (or not) to fragments in  Frag .
-
-  {
-   pthread_attr_t  attr;
-   pthread_t  * thread_id;
-   Thread_Work_Area_t  * thread_wa;
-   int  next_olap, status;
-   int32  first_frag, last_frag, lo_frag, hi_frag;
-   int  i;
-
-   fprintf (stderr, "### Using %d pthreads (old version)\n", Num_PThreads);
-
-   pthread_mutex_init (& Print_Mutex, NULL);
-   pthread_attr_init (& attr);
-   pthread_attr_setstacksize (& attr, THREAD_STACKSIZE);
-   thread_id = (pthread_t *) Safe_calloc
-                   (Num_PThreads, sizeof (pthread_t));
-   thread_wa = (Thread_Work_Area_t *) Safe_malloc
-                   (Num_PThreads * sizeof (Thread_Work_Area_t));
-
-   for  (i = 0;  i < Num_PThreads;  i ++)
-     Init_Thread_Work_Area (thread_wa + i, i);
-
-   first_frag = Olap [0] . b_iid;
-   last_frag = Olap [Num_Olaps - 1] . b_iid;
-   next_olap = 0;
-
-   for  (lo_frag = first_frag;  lo_frag <= last_frag;  lo_frag = hi_frag + 1)
-     {
-      hi_frag = lo_frag + FRAGS_PER_BATCH - 1;
-      if  (hi_frag > last_frag)
-          hi_frag = last_frag;
-
-      Internal_Frag_Store
-          = loadFragStorePartial (Frag_Store_Path, lo_frag, hi_frag);
-
-      if  (Verbose_Level > 0)
-          {
-           printf ("Extracting needed frags from lo_frag = %d to hi_frag = %d\n",
-                   lo_frag, hi_frag);
-          }
-
-      for  (i = 0;  i < Num_PThreads;  i ++)
-        thread_wa [i] . next_olap = next_olap;
-
-      Extract_Needed_Frags (Internal_Frag_Store, lo_frag, hi_frag,
-                            & Frag_List, & next_olap);
-
-      if  (Verbose_Level > 0)
-          {
-           printf ("Got %d needed frags from lo_frag = %d to hi_frag = %d\n",
-                   Frag_List . ct, lo_frag, hi_frag);
-           for  (i = 0;  i < Frag_List . ct;  i ++)
-             printf ("%9u\n", Frag_List . entry [i] . id);
-          }
-
-#if  1
-      for  (i = 1;  i < Num_PThreads;  i ++)
-        {
-         thread_wa [i] . lo_frag = lo_frag;
-         thread_wa [i] . hi_frag = hi_frag;
-         status = pthread_create
-                      (thread_id + i, & attr, Threaded_Process_Stream,
-                       thread_wa + i);
-         if  (status != 0)
-             {
-              fprintf (stderr, "pthread_create error at line %d:  %s\n",
-                       __LINE__, strerror (status));
-              exit (-3);
-             }
-        }
-#endif
-
-      thread_wa [0] . lo_frag = lo_frag;
-      thread_wa [0] . hi_frag = hi_frag;
-      Threaded_Process_Stream (thread_wa);
-
-#if  1
-      for  (i = 1;  i < Num_PThreads;  i ++)
-        {
-         void  * ptr;
-
-         status = pthread_join (thread_id [i], & ptr);
-         if  (status != 0)
-             {
-              fprintf (stderr, "pthread_join error at line %d:  %s\n",
-                       __LINE__, strerror (status));
-              exit (-3);
-             }
-        }
-#endif
-
-      closeFragStore (Internal_Frag_Store);
-     }
-   
-   return;
-  }
-
-#else
-
-//  New version
 static void  Threaded_Stream_Old_Frags
     (void)
 
@@ -2700,14 +2593,6 @@ static void  Threaded_Stream_Old_Frags
   Internal_Frag_Store = openFragStore (Frag_Store_Path, "r");
   assert (Internal_Frag_Store != NULLSTOREHANDLE);
 #else
-
-#if 0
-   pthread_mutex_lock (& Print_Mutex);
-   Now = time (NULL);
-   fprintf (stderr, "Start loadFragStorePartial at  %s", ctime (& Now));
-   pthread_mutex_unlock (& Print_Mutex);
-#endif
-
    Internal_Frag_Store
        = loadFragStorePartial (Frag_Store_Path, lo_frag, hi_frag);
 #endif
@@ -2716,22 +2601,8 @@ static void  Threaded_Stream_Old_Frags
    next_frag_list = & frag_list_2;
    save_olap = next_olap;
 
-#if 0
-   pthread_mutex_lock (& Print_Mutex);
-   Now = time (NULL);
-   fprintf (stderr, "Start Extract_Needed_Frags at  %s", ctime (& Now));
-   pthread_mutex_unlock (& Print_Mutex);
-#endif
-
    Extract_Needed_Frags (Internal_Frag_Store, lo_frag, hi_frag,
                          curr_frag_list, & next_olap);
-
-#if 0
-   pthread_mutex_lock (& Print_Mutex);
-   Now = time (NULL);
-   fprintf (stderr, "Done extraction at  %s", ctime (& Now));
-   pthread_mutex_unlock (& Print_Mutex);
-#endif
 
 #ifndef USE_STORE_DIRECTLY_STREAM
    closeFragStore (Internal_Frag_Store);
@@ -2805,7 +2676,6 @@ static void  Threaded_Stream_Old_Frags
 
    return;
   }
-#endif
 
 
 
