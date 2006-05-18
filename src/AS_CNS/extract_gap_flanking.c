@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: extract_gap_flanking.c,v 1.5 2005-09-15 15:20:16 eliv Exp $ */
+/* $Id: extract_gap_flanking.c,v 1.6 2006-05-18 18:30:31 vrainish Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -96,10 +96,7 @@ int main(int argc, char *argv[])
                  leftend = (frag1[fi].position.end > frag1[fi].position.bgn)?frag1[fi].position.end:
                                     frag1[fi].position.bgn;
                  while ( fi>0 && leftend > ma1_len-250) {
-                  if (frag1[fi].type != AS_READ &&
-                      frag1[fi].type != AS_B_READ &&
-                      frag1[fi].type != AS_EXTR &&
-                      frag1[fi].type != AS_TRNR) {
+                  if(!AS_FA_READ(frag1[fi].type)){ 
                      fprintf(stdout,"%d 1b %c ",
                           frag1[fi].ident,frag1[fi].type);
                   }
@@ -112,10 +109,7 @@ int main(int argc, char *argv[])
                  rightend = (frag1[fi].position.end < frag1[fi].position.bgn)?frag1[fi].position.end:
                                     frag1[fi].position.bgn;
                  while ( fi<num_frag1 && rightend < 250) {
-                  if (frag1[fi].type != AS_READ &&
-                      frag1[fi].type != AS_B_READ &&
-                      frag1[fi].type != AS_EXTR &&
-                      frag1[fi].type != AS_TRNR) {
+                  if(!AS_FA_READ(frag1[fi].type)){ 
                      fprintf(stdout,"%d 1e %c ",
                           frag1[fi].ident,frag1[fi].type);
                   }
@@ -132,10 +126,7 @@ int main(int argc, char *argv[])
                  leftend = (frag2[fi].position.end > frag2[fi].position.bgn)?frag2[fi].position.end:
                                     frag2[fi].position.bgn;
                  while ( fi>0 && leftend > ma2_len-250) {
-                  if (frag2[fi].type != AS_READ &&
-                      frag2[fi].type != AS_B_READ &&
-                      frag2[fi].type != AS_EXTR &&
-                      frag2[fi].type != AS_TRNR) {
+                  if(!AS_FA_READ(frag2[fi].type)){ 
                      fprintf(stdout,"%d 2e %c ",
                           frag2[fi].ident,frag2[fi].type);
                   }
@@ -148,10 +139,7 @@ int main(int argc, char *argv[])
                  rightend = (frag2[fi].position.end < frag2[fi].position.bgn)?frag2[fi].position.end:
                                     frag2[fi].position.bgn;
                  while ( fi<num_frag2 && rightend < 250) {
-                  if (frag2[fi].type != AS_READ &&
-                      frag2[fi].type != AS_B_READ &&
-                      frag2[fi].type != AS_EXTR &&
-                      frag2[fi].type != AS_TRNR) {
+                  if(!AS_FA_READ(frag2[fi].type)){ 
                      fprintf(stdout,"%d 2b %c ",
                           frag2[fi].ident,frag2[fi].type);
                   }

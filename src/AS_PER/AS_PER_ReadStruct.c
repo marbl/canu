@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_ReadStruct.c,v 1.6 2006-02-11 19:58:19 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_ReadStruct.c,v 1.7 2006-05-18 18:30:31 vrainish Exp $";
 /*************************************************************************
  Module:  AS_PER_ReadStruct
  Description:
@@ -123,14 +123,10 @@ int dump_ReadStruct(ReadStructp rs, FILE *fout, int clearRangeOnly){
   int type = fr->frag.readType;
   fprintf(fout,"Dumping FragRecord at 0x%p\n", fr);
   dumpShortFragRecord(&(fr->frag),fout);
-  if(type != AS_READ &&
-     type != AS_B_READ &&
-     type != AS_EXTR &&
-     type != AS_TRNR){
+  if(!AS_FA_READ(type)){ 
     fprintf(fout,"\tlocale : " F_UID " type %c %d\n",
             fr->localeID, (char)type, type);
-    if(type == AS_UBAC ||
-       type == AS_FBAC){
+    if(AS_FA_SHREDDED(type)){ 
     fprintf(fout,"\tlocale_pos : [" F_VLS "," F_VLS "]\n", fr->localePosStart, fr->localePosEnd);
 
     }

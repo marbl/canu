@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_GKP_check.c,v 1.5 2006-03-14 17:46:09 mhayton Exp $";
+static char CM_ID[] = "$Id: AS_GKP_check.c,v 1.6 2006-05-18 18:30:31 vrainish Exp $";
 
 //#define DEBUG_GKP 1
 #define DEBUG_GKP_VERBOSE 1
@@ -469,11 +469,8 @@ int Check_LinkMesg(LinkMesg *lkg_mesg,
 
 
 	/* First check that both frags are READS or UBACs */
-	if((gkFrag1.type != AS_READ || gkFrag2.type != AS_READ) &&
-           (gkFrag1.type != AS_EXTR || gkFrag2.type != AS_EXTR) &&
-           (gkFrag1.type != AS_TRNR || gkFrag2.type != AS_TRNR) &&
-           (gkFrag1.type != AS_LBAC || gkFrag2.type != AS_LBAC) &&
-           (gkFrag1.type != AS_UBAC || gkFrag2.type != AS_UBAC)){
+        /* This check is that both fragment are of the same type and can have mate.  VR */
+        if((gkFrag1.type != gkFrag2.type) || !AS_FA_CAN_HAVE_MATE(gkFrag1.type)) {
 	  printGKPError(Msgfp, GKPError_LNKFragtypeMismatch);
 	  fprintf(Msgfp,
 		  "# Fragments " F_UID " (type = %d) and " F_UID " (type = %d) are inconsistent with a Mate link\n",

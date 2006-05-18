@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_fragDB.c,v 1.6 2006-02-13 22:16:31 eliv Exp $";
+static char CM_ID[] = "$Id: AS_PER_fragDB.c,v 1.7 2006-05-18 18:30:31 vrainish Exp $";
 /*************************************************************************
  Module:  AS_PER_fragDB
  Description:
@@ -190,6 +190,7 @@ void unloadFragBlobs(char *blob, int32 blobLength,
   checkSum = *(char *)cursor;
   cursor++;
 
+/* FT isolated - locale length is it attribute */
   switch(fr->frag.readType){
   case AS_READ:
   case AS_B_READ:

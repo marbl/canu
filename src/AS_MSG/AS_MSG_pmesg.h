@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.18 2006-03-17 15:32:12 eliv Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.19 2006-05-18 18:30:31 vrainish Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -406,6 +406,89 @@ typedef enum {
   AS_FULLBAC = (int)'C',   // Full Bac C = Complete)
   AS_B_READ  = (int)'G' // BGLII read
 } FragType;
+
+
+/* Extended Granger's comment to fragment types
+
+  AS_READ    Celera Read
+             This should be a .trusted. randomly generated shotgun read from the entire
+             DNA target sequence . usually a whole genome. Features: randomly sampled, trusted for consensus,
+             can have a mate pair.
+
+  AS_EXTR    External WGS read
+             This should be an .untrusted. randomly generated shotgun read . same as above. Features:
+	     randomly sampled, untrusted for consensus, can have a untrusted mate pair
+
+  AS_TRNR    Transposon library read
+             Read was generated from a subclone of the target sequence using transposon .bombing..
+             Features: nonrandom, might include information about subclone, trusted for consensus, can have
+             mate pair but oriented in .outtie. rather .innie..
+
+  AS_EBAC    End of BAC
+             Read is a BAC end . that is a sequence from one end or the other of a BAC subclone.
+             Assumed to be randomly sampled. Variance is assumed to be high for size of insert so not
+             used in initial scaffolding. Features: random sampling, high variance insert size, trusted for consensus,
+             can have mate pair.
+
+  AS_LBAC    Lightly shotgunned
+             Read is shotgun sampled from a subclone (BAC or otherwise). Features: nonrandom, trusted,
+             can have a mate pair.
+
+  AS_UBAC    Unfinished
+             Read is an .artificial. shredding of an unfinished subclone (unfinished means at least one gap
+             in the sequence . so multiple contigs). Features: nonrandom, untrusted, no mate pair.
+
+  AS_FBAC    Finished
+             Same as above but subclone is a single contig.
+
+  AS_STS     Sts
+             Never used or implemented. The idea is to allow constraints to be input to the assembly
+             based on some sequence or clone tag. For instance, the sequence .ACTGTGTGT.. should be
+             on the same chromosome as .GCGACGAGAT.. no orientation known. This is only a read or
+             fragment in the sense that there is an associated sequence. Features: nonrandom, not to be
+             used for consensus, mate pair relationship is present only by analogy.
+
+  AS_UNITIG  Unitig
+             This was used for an old flavor of the assembler . no longer used.
+
+  AS_CONTIG  Contig
+             This was used for an old flavor of the assembler . no longer used.
+
+  AS_BACTIG  BacTig
+             This was used for an old flavor of the assembler . no longer used.
+
+  AS_FULLBAC Full Bac C = Complete)
+             This was used for an old flavor of the assembler . no longer used.
+
+  AS_B_READ  BGLII read (should not be used)
+             This read is sequenced out from an internal spacer sequence added to a clone to
+             replace a section cut out by a restriction enzyme to make the size of the insert stable. Only
+             used once with crappy results . not sure code was fully implemented. Features: nonrandom,
+             trusted, multiple mate pair relationships . outtie, innie, normal, antinormal.
+*/
+
+/*
+
+type/attribute table for used types only 
+
+AS_READ	read			random	trusted			can have mate 
+AS_EXTR	read			random		external read	can have mate 
+AS_TRNR	read				trusted			can have mate 
+AS_EBAC   	guide		random	trusted			can have mate 
+AS_LBAC   				trusted			can have mate 
+AS_UBAC   		shredded 
+AS_FBAC   		shredded 
+AS_STS     
+
+*/
+
+#define AS_FA_READ(type) 		((type == AS_READ) || (type == AS_EXTR) || (type == AS_EXTR) || (type == AS_B_READ))
+#define AS_FA_RANDOM(type) 		((type == AS_READ) || (type == AS_EXTR) || (type == AS_EBAC))
+#define AS_FA_SHREDDED(type) 		((type == AS_FBAC) || (type == AS_UBAC))
+#define AS_FA_CAN_HAVE_MATE(type) 	((type == AS_READ) || (type == AS_EXTR) || (type == AS_TRNR) || (type == AS_LBAC) || (type == AS_EBAC)) 
+#define AS_FA_GUIDE(type)         	(type == AS_EBAC)
+#define AS_FA_TRUSTED_FOR_CNS(type) 	((type == AS_READ) || (type == AS_TRNR) || (type == AS_EBAC) || (type == AS_LBAC) || (type == AS_B_READ))
+#define AS_FA_EXTERNAL_READ(type)	(type == AS_EXTR)
 
 typedef enum {
   AS_UNIQUE_UNITIG   = (int)'U',  // U-Unique

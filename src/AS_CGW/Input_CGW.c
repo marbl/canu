@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.9 2006-02-13 22:16:31 eliv Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.10 2006-05-18 18:30:31 vrainish Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -840,7 +840,7 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg,
 
 
 	// Collect guide stats
-	if(cfr_mesg->type == AS_EBAC){
+        if(AS_FA_GUIDE(cfr_mesg->type)){ 
 	  totalGuideFrags++;
 	  if(CI.flags.bits.isUnique){
 	    inUniqueGuideFrags++;
@@ -860,9 +860,7 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg,
 	}
 	    
 	// Collect read stats
-	if(cfr_mesg->type == AS_READ ||
-           cfr_mesg->type == AS_EXTR ||
-           cfr_mesg->type == AS_TRNR){
+        if (AS_FA_READ(cfr_mesg->type)) { 
 	  totalReadFrags++;
 	  if(CI.flags.bits.isUnique){
 	    inUniqueReadFrags++;
@@ -880,9 +878,8 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg,
 	  }
 	      
 	      
-	}else if(cfr_mesg->type == AS_FBAC ||
-		 cfr_mesg->type == AS_UBAC){
-	  CI.flags.bits.includesFinishedBacFragments = TRUE;
+	}else if(AS_FA_SHREDDED(cfr_mesg->type)){ 
+	  CI.flags.bits.includesFinishedBacFragments = TRUE; 
 	}
 	    
 	cifrag.locale = NULLINDEX;
@@ -1052,7 +1049,7 @@ void  LoadLocaleData(void){ // Load locale info from fragStore
 
       CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags, infobyiid->fragIndex);
 
-      if(frag->type != AS_FBAC && frag->type != AS_UBAC)
+      if(!AS_FA_SHREDDED(frag->type)) 
 	continue;
 
       getFragStore(ScaffoldGraph->fragStore, i, FRAG_S_FIXED, rsp);

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: colCorr_CNS.c,v 1.4 2005-03-22 19:48:52 jason_miller Exp $";
+static char CM_ID[] = "$Id: colCorr_CNS.c,v 1.5 2006-05-18 18:30:31 vrainish Exp $";
 
 #include <stdarg.h>
 #include <stdlib.h>
@@ -467,7 +467,7 @@ static void compress_shreds_and_null_indels_copy(int c, int r,  FragStoreHandle 
 	    printf("(id,loc,beg,end,type) = (" F_IID "," F_UID ",%u,%u,%c)\n",
                    iid1,l1,b1,e1,(char) t1);
 	  
-	  if( t1 == AS_UBAC || t1 == AS_FBAC ){
+	  if(AS_FA_SHREDDED(t1)){ 
 	    for(k=j+1; k<r; k++){ // now eliminate the duplicates
 	      if( verbose > 0 )
 		printf("pos (%d,%d)\n",i,k);
@@ -516,7 +516,7 @@ static void compress_shreds_and_null_indels_copy(int c, int r,  FragStoreHandle 
 	      printf("(id,loc,beg,end,type) = (" F_IID "," F_UID ",%u,%u,%c)\n",
                      iid1,l1,b1,e1,(char) t1);
 	    
-	    if( t1 == AS_UBAC || t1 == AS_FBAC ){
+	    if(AS_FA_SHREDDED(t1)){ 
 	      for(k=j+1; k<r; k++){ // now eliminate the duplicates
 		if( verbose > 0 )
 		  printf("pos (%d,%d)\n",i,k);

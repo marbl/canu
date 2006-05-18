@@ -29,7 +29,7 @@
  Assumptions: 
 **********************************************************************/
 
-static char CM_ID[] = "$Id: MicroHetInterfaceREZ_test3.c,v 1.4 2005-03-22 19:49:25 jason_miller Exp $";
+static char CM_ID[] = "$Id: MicroHetInterfaceREZ_test3.c,v 1.5 2006-05-18 18:30:31 vrainish Exp $";
 
 #include <math.h>
 #include <assert.h>
@@ -278,7 +278,7 @@ void compress_shreds_and_null_indels(int c, int r,  FragStoreHandle frag_store,
 	    printf("(id,loc,beg,end,type) = (" F_IID "," F_UID ",%d,%d,%c)\n",
                    iid1,l1,b1,e1,t1);
 	  
-	  if( t1 == AS_UBAC || t1 == AS_FBAC ){
+	  if(AS_FA_SHREDDED(t1)){ 
 	    for(k=j+1; k<r; k++){ // now eliminate the duplicates
 	      if( verbose > 0 )
 		printf("pos (%d,%d)\n",i,k);
@@ -325,7 +325,7 @@ void compress_shreds_and_null_indels(int c, int r,  FragStoreHandle frag_store,
 	      printf("(id,loc,beg,end,type) = (" F_IID "," F_UID ",%d,%d,%c)\n",
                      iid1,l1,b1,e1,t1);
 	    
-	    if( t1 == AS_UBAC || t1 == AS_FBAC ){
+	    if(AS_FA_SHREDDED(t1)){ 
 	      for(k=j+1; k<r; k++){ // now eliminate the duplicates
 		if( verbose > 0 )
 		  printf("pos (%d,%d)\n",i,k);
@@ -404,7 +404,7 @@ static void compress_shredded_frags(int c, int r,  FragStoreHandle frag_store,
 	  printf("(id,loc,beg,end,type) = (" F_IID "," F_UID ",%d,%d,%c)\n",
                  iid1,l1,b1,e1,t1);
 	
-	if( t1 == AS_UBAC || t1 == AS_FBAC ){
+        if(AS_FA_SHREDDED(t1)){ 
 	  for(k=j+1; k<r; k++){ // now eliminate the duplicates
 	    if( verbose > 0 )
 	      printf("pos (%d,%d)\n",i,k);

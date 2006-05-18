@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FragCorrectOVL.c,v 1.7 2006-05-16 23:00:02 brianwalenz Exp $
- * $Revision: 1.7 $
+ * $Id: FragCorrectOVL.c,v 1.8 2006-05-18 18:30:31 vrainish Exp $
+ * $Revision: 1.8 $
 */
 
-static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.7 2006-05-16 23:00:02 brianwalenz Exp $";
+static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.8 2006-05-18 18:30:31 vrainish Exp $";
 
 
 //  System include files
@@ -1097,16 +1097,7 @@ static void  Extract_Needed_Frags
           goto  Advance_Next_Olap;
 
       getReadType_ReadStruct (frag_read, & read_type);
-      switch  (read_type)
-        {
-         case  AS_UBAC :
-         case  AS_FBAC :
-           shredded = TRUE;
-           break;
-
-         default :
-           shredded = FALSE;
-        }
+      shredded = (AS_FA_SHREDDED(read_type))? TRUE : FALSE; 
 
       result = getSequence_ReadStruct
                    (frag_read, seq_buff, qual_buff, AS_READ_MAX_LEN + 1);
@@ -2193,16 +2184,7 @@ static void  Read_Frags
           }
 
       getReadType_ReadStruct (frag_read, & read_type);
-      switch  (read_type)
-        {
-         case  AS_UBAC :
-         case  AS_FBAC :
-           Frag [i] . shredded = TRUE;
-           break;
-
-         default :
-           Frag [i] . shredded = FALSE;
-        }
+      Frag [i] . shredded = (AS_FA_SHREDDED(read_type))? TRUE : FALSE; 
 
       result = getSequence_ReadStruct
                    (frag_read, seq_buff, qual_buff, AS_READ_MAX_LEN + 1);
@@ -2422,16 +2404,7 @@ static void  Stream_Old_Frags
           continue;
 
       getReadType_ReadStruct (frag_read, & read_type);
-      switch  (read_type)
-        {
-         case  AS_UBAC :
-         case  AS_FBAC :
-           shredded = TRUE;
-           break;
-
-         default :
-           shredded = FALSE;
-        }
+      shredded = (AS_FA_SHREDDED(read_type))? TRUE : FALSE; 
 
       result = getSequence_ReadStruct
                    (frag_read, seq_buff, qual_buff, AS_READ_MAX_LEN + 1);

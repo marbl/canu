@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.23 2006-05-15 19:35:37 eliv Exp $
- * $Revision: 1.23 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.24 2006-05-18 18:30:31 vrainish Exp $
+ * $Revision: 1.24 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.23 2006-05-15 19:35:37 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.24 2006-05-18 18:30:31 vrainish Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -493,7 +493,7 @@ namespace AS_BOG{
 				current_frag_id, whichEnd
                 );
             DoveTailNode dt_node;
-            dt_node.type         = AS_READ;
+            dt_node.type         = AS_READ; /* Isolated fragtype VR */
             dt_node.ident        = current_frag_id;
             dt_node.sourceInt    = -1;
             dt_node.contained    = 0;
@@ -917,7 +917,7 @@ namespace AS_BOG{
                     int offset = best.a_hang;
                     int bhang  = best.b_hang;
                     DoveTailNode pos;
-                    pos.type         = AS_READ;
+                    pos.type         = AS_READ; /* Isolated FT VR */
                     pos.ident        = cntee;
                     pos.sourceInt    = -1;
                     pos.contained    = container;

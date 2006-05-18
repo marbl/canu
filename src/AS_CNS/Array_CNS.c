@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: Array_CNS.c,v 1.5 2005-09-29 19:50:50 ahalpern Exp $";
+static char CM_ID[] = "$Id: Array_CNS.c,v 1.6 2006-05-18 18:30:31 vrainish Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -337,7 +337,7 @@ int IMP2Array(IntMultiPos *all_frags,
            }
            for (col=firstcol;col<lastcol;col++) {
               if ( show_cel_status ) {
-                ia[i][col]=(read->type == AS_READ || read->type == AS_B_READ || read->type == AS_EXTR || read->type == AS_TRNR)?1:0;
+	        ia[i][col] = AS_FA_READ(read->type) ? 1:0; 
               } else {
                 ia[i][col]=read->ident;
               }

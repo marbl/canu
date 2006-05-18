@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_fragStore.c,v 1.8 2005-10-04 06:51:08 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_fragStore.c,v 1.9 2006-05-18 18:30:31 vrainish Exp $";
 
 /*************************************************************************
  Module:  AS_PER_fragStore
@@ -203,6 +203,7 @@ void unloadFragRecord(FragStore *myStore, FragRecord *fr, int32 getFlags){
   uint16 localeLength=0, screenLength;
   VLSTRING_SIZE_T actualLength;
 
+  /*  looks like checking AS_FA_READ and AS_FA_SHREDDED FT isolated VR */
   switch(fr->frag.readType){
   case AS_READ:
   case AS_B_READ:
@@ -294,6 +295,7 @@ void unloadFragRecordPartition(StoreHandle seqStore, StoreHandle srcStore, FragR
   uint16 localeLength=0, screenLength;
   VLSTRING_SIZE_T actualLength;
 
+  /* FT isolated VR */
   switch(fr->frag.readType){
   case AS_READ:
   case AS_B_READ:
@@ -1274,18 +1276,14 @@ int appendFragStorePartition(FragStoreHandle store, ReadStructp rs, int32 partit
     memcpy(fr->source + offset, fr->matches, screenMatchLength);
   }
   /* Tack the locID and localPos onto the end of the source */
-  if(fr->frag.readType != AS_READ &&
-     fr->frag.readType != AS_B_READ &&
-     fr->frag.readType != AS_EXTR &&
-     fr->frag.readType != AS_TRNR){
+  if(!AS_FA_READ(fr->frag.readType)){ 
     int32  offset = sourceLength +  screenMatchLength + 1;
     int type = fr->frag.readType;
 
     memcpy(fr->source + offset, &fr->localeID, sizeof(uint64));
     offset += sizeof(uint64);
 
-    if(type == AS_UBAC ||
-       type == AS_FBAC){
+    if(AS_FA_SHREDDED(type)){ 
       memcpy(fr->source + offset, &fr->localePosStart, sizeof(uint32));
       offset += sizeof(uint32);
       memcpy(fr->source + offset, &fr->localePosEnd, sizeof(uint32));
@@ -1364,18 +1362,14 @@ int appendFragStore(FragStoreHandle store, ReadStructp rs){
     memcpy(fr->source + offset, fr->matches, screenMatchLength);
   }
   /* Tack the locID and localPos onto the end of the source */
-  if(fr->frag.readType != AS_READ &&
-     fr->frag.readType != AS_B_READ &&
-     fr->frag.readType != AS_EXTR &&
-     fr->frag.readType != AS_TRNR){
+  if (!AS_FA_READ(fr->frag.readType)){ 
     int32  offset = sourceLength +  screenMatchLength + 1;
     int type = fr->frag.readType;
 
     memcpy(fr->source + offset, &fr->localeID, sizeof(uint64));
     offset += sizeof(uint64);
 
-    if(type == AS_UBAC ||
-       type == AS_FBAC){
+    if(AS_FA_SHREDDED(type)){ 
       memcpy(fr->source + offset, &fr->localePosStart, sizeof(uint32));
       offset += sizeof(uint32);
       memcpy(fr->source + offset, &fr->localePosEnd, sizeof(uint32));

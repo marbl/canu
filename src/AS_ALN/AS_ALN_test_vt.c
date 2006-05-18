@@ -195,7 +195,7 @@ int main( int argc, char ** argv )
   // set unchanging elements of ifg & isn
   ifg.eaccession = ifg.iaccession = 1;
   ifg.action = AS_ADD;
-  ifg.type = AS_READ;
+  ifg.type = AS_READ; /* Isolated FT VR */
   ifg.sequence = frag_sequence;
   ifg.quality = NULL;
   ifg.source = "\0";

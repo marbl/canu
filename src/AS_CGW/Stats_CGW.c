@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Stats_CGW.c,v 1.5 2005-06-09 21:15:35 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Stats_CGW.c,v 1.6 2006-05-18 18:30:31 vrainish Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -811,9 +811,7 @@ void ComputeFragmentMembershipStats(void){
 	frag++){
     NodeCGW_T *ci = NULL;
 
-    if(frag->type != AS_READ &&
-       frag->type != AS_EXTR &&
-       frag->type != AS_TRNR)
+    if (! AS_FA_READ(frag->type)) 
       continue;
     reads++;
     ci = GetGraphNode(ScaffoldGraph->CIGraph, frag->cid);

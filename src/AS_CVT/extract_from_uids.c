@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: extract_from_uids.c,v 1.4 2005-03-22 19:48:52 jason_miller Exp $";
+static char CM_ID[] = "$Id: extract_from_uids.c,v 1.5 2006-05-18 18:30:31 vrainish Exp $";
 
 /*
   IMPORTANT NOTE:
@@ -790,9 +790,7 @@ int GetInputUIDs( Globalsp globals, HashTablep * rht, HashTablep * bht )
             FreeHashTable( *bht );
             return 1;
           }
-          read_count += (idset.type == AS_READ ||
-                         idset.type == AS_EXTR ||
-                         idset.type == AS_TRNR) ? 1 : 0;
+	  read_count += AS_FA_READ(idset.type) ? 1:0; 
           bac_end_count += (idset.type == AS_EBAC) ? 1 : 0;
         }
       }

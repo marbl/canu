@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.6 2006-02-13 22:16:31 eliv Exp $";
+static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.7 2006-05-18 18:30:31 vrainish Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,6 +53,7 @@ extern void CheckUnitigs(CDS_CID_t start, CDS_CID_t end);
   Only for unitigs >= min distance mean + CGW_CUTOFF * stddev in length
   
   1. create sequence coverage map of reads (AS_READ | AS_EXTR | AS_TRNR?)
+    VR instead of explicit fragment type macro AS_FA_READ is used 
      - trim 30bp from each end of each read in creating map
      if, beyond initial 1x coverage & until last 1x coverage, there is
        at least one location with <=1x coverage then continue
@@ -161,9 +162,8 @@ static int CreateReadCoverageMap(ScaffoldGraphT * graph,
     IntMultiPos * imp = GetIntMultiPos(ma->f_list, i);
 
     // only add 'reads' to sequence coverage map
-    if(imp->type == AS_READ ||
-       imp->type == AS_TRNR ||
-       imp->type == AS_EXTR)
+    
+    if (AS_FA_READ(imp->type))  
     {
       InfoByIID * info = GetInfoByIID(graph->iidToFragIndex,
                                       imp->ident);
@@ -688,9 +688,7 @@ static int AddIMPToIUMStruct(IUMStruct * is, IntMultiPos * imp)
 #endif
 
   is->ium.num_frags++;
-  is->numRandomFragments += (imp->type == AS_READ ||
-                               imp->type == AS_EXTR ||
-                               imp->type == AS_TRNR) ? 1 : 0;
+  is->numRandomFragments += (AS_FA_RANDOM(imp->type)) ? 1 : 0; 
   return 0;
 }
 
@@ -706,9 +704,7 @@ float EstimateGlobalFragmentArrivalRate(ChunkInstanceT * ci,
   for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++)
   {
     IntMultiPos * imp = GetIntMultiPos(ma->f_list, i);
-    if(imp->type == AS_READ ||
-       imp->type == AS_EXTR ||
-       imp->type == AS_TRNR)
+    if (AS_FA_RANDOM(imp->type)) 
     {
       rho = max(rho, min(imp->position.bgn, imp->position.end));
       numRF++;

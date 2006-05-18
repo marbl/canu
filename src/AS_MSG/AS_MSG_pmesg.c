@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.18 2006-03-17 22:15:42 gdenisov Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.19 2006-05-18 18:30:31 vrainish Exp $";
 
 //  reads old and new AFG message (with and w/o chaff field)
 #define AFG_BACKWARDS_COMPATIBLE
@@ -700,8 +700,7 @@ static void *Read_Frag_Mesg(FILE *fin, int frag_class)
             }
           }
 
-          if(fmesg.type == AS_FBAC ||
-             fmesg.type == AS_UBAC){
+	  if(AS_FA_SHREDDED(fmesg.type)){ 
             GET_PAIR(fmesg.locale_pos.bgn,fmesg.locale_pos.end,
                      POS2_FORMAT, "locale pos pair");
           }
@@ -2645,10 +2644,9 @@ static void Write_Frag_Mesg(FILE *fout, void *vmesg, int frag_class)
               fprintf(fout,IBTGS_FORMAT "\n",
                       mesg->ebactig_id,mesg->ibactig_id);
             }
-          }
-	   
-          if(mesg->type == AS_FBAC ||
-             mesg->type == AS_UBAC){
+		  }
+		   
+	  if(AS_FA_SHREDDED(mesg->type)){ 
             fprintf(fout,POS2_FORMAT "\n",
                     mesg->locale_pos.bgn,mesg->locale_pos.end);
           }
