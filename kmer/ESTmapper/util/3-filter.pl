@@ -111,12 +111,12 @@ sub filter {
 
     #  Merge all the hit counts into one list
     #
-    if (! -e "$path/2-filter/hitCounts") {
-        print STDERR "ESTmapper/filter-- Merging counts.\n";
-        if (runCommand("$mergeCounts $path/1-search/??.count > $path/2-filter/hitCounts")) {
-            die "Failed.\n";
-        }
-    }
+    #if (! -e "$path/2-filter/hitCounts") {
+    #    print STDERR "ESTmapper/filter-- Merging counts.\n";
+    #    if (runCommand("$mergeCounts $path/1-search/??.count > $path/2-filter/hitCounts")) {
+    #        die "Failed.\n";
+    #    }
+    #}
 
 
     #  Setup the filtering and sorting
@@ -136,9 +136,9 @@ sub filter {
             #
             $fcmd = "$filterEST -u 200000000000 -r 0 -log $path/2-filter/filterLog $path/1-search/*hits | $extrafilter > $path/2-filter/filtHits";
         } elsif ($type eq "snp") {
-            $fcmd = "$filterMRNA $verbose -c $path/2-filter/hitCounts $path/1-search/*hits | $extrafilter > $path/2-filter/filtHits";
+            $fcmd = "$filterMRNA $verbose $path/1-search/*hits | $extrafilter > $path/2-filter/filtHits";
         } elsif ($type eq "mrna") {
-            $fcmd = "$filterMRNA $verbose -c $path/2-filter/hitCounts $path/1-search/*hits | $extrafilter > $path/2-filter/filtHits";
+            $fcmd = "$filterMRNA $verbose $path/1-search/*hits | $extrafilter > $path/2-filter/filtHits";
         }
 
         print STDERR "ESTmapper/filter-- Filtering.\n";

@@ -148,10 +148,6 @@ main(int argc, char **argv) {
     HR.sortByCoverage();
 
 
-    //  Stuff went here!
-
-
-
     //simpleFilter(HR);
     complicatedFilter(HR);
 

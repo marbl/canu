@@ -25,7 +25,7 @@ main(int argc, char **argv) {
 
   int arg = 1;
   while (arg < argc) {
-    if        (strncmp(argv[arg], "-verbose", 2) == 0) {
+    if        (strncmp(argv[arg], "-v", 2) == 0) {
       beVerbose = true;
     } else if (strcmp(argv[arg], "-l") == 0) {
       L = atof(argv[++arg]);
@@ -57,7 +57,13 @@ main(int argc, char **argv) {
   while (HR.loadHits()) {
     HR.sortByCoverage();
 
-    double h = HR[0].coverage - HR[HR.numHits()-1].coverage;
+    double  hiCov = HR[0].coverage;
+    double  loCov = HR[0].coverage;
+    for (u32bit i=0; i < HR.numHits(); i++)
+      if ((HR[i].a._merged == false) && (loCov > HR[i].coverage))
+        loCov = HR[i].coverage;
+        
+    double h = hiCov - loCov;
     double p = 0.0;
 
     if (h <= L)    p = 1.0;
@@ -74,9 +80,14 @@ main(int argc, char **argv) {
     if (cutL > M)
       cutL = M;
 
+    //  Save the hit if it has good coverage and it's either above
+    //  the minimum coverage or long.  Also blindly save merged
+    //  hits.
+    //
     for (u32bit i=0; i < HR.numHits(); i++)
-      if ((cutL <= HR[i].coverage) &&
-          ((MC <= HR[i].coverage) || (ML <= HR[i].a._covered)))
+      if (((cutL <= HR[i].coverage) && ((MC <= HR[i].coverage) ||
+                                        (ML <= HR[i].a._covered))) ||
+          (HR[i].a._merged))
         ahit_printASCII(&HR[i].a, stdout);
   }
 

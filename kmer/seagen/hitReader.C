@@ -213,6 +213,7 @@ hitReader::sortByCoverage(void) {
 
 //  scan the list of hits (for a single EST, remember) and merge
 //  any that are overlapping
+//
 void
 hitReader::mergeOverlappingHits(void) {
 
@@ -242,21 +243,23 @@ hitReader::mergeOverlappingHits(void) {
 
         //  exa extends cur!
 
-        //  If cur is a subset of exa, exa replaces cur, including scores.
-        //  Otherwise, we need to fudge up new scores.  An alternative is to
-        //  somehow mark these so that they are never filtered.
+        //  If cur is contained in exa, just get rid of cur.
+        //  Otherwise, we need to fudge up new scores -- but we
+        //  instead just mark them as merged, and don't filter them.
         //
         if (_list[cur].a._dsLo == _list[exa].a._dsLo) {
           memcpy(_list+cur, _list+exa, sizeof(hit_s));
         } else {
-          fprintf(stdout,
+          fprintf(stderr,
                   "MERGE: -e "u32bitFMT" "
                   u32bitFMT":"u32bitFMT"-"u32bitFMT"("u32bitFMT"-"u32bitFMT"-"u32bitFMT") "
                   u32bitFMT":"u32bitFMT"-"u32bitFMT"("u32bitFMT"-"u32bitFMT"-"u32bitFMT")\n",
                   _list[cur].a._qsIdx,
-                  _list[cur].a._dsIdx, _list[cur].a._dsLo, _list[cur].a._dsHi,
+                  _list[cur].a._dsIdx,
+                  _list[cur].a._dsLo,    _list[cur].a._dsHi,
                   _list[cur].a._covered, _list[cur].a._matched, _list[cur].a._numMers,
-                  _list[exa].a._dsIdx, _list[exa].a._dsLo, _list[exa].a._dsHi,
+                  _list[exa].a._dsIdx,
+                  _list[exa].a._dsLo,    _list[exa].a._dsHi,
                   _list[exa].a._covered, _list[exa].a._matched, _list[exa].a._numMers);
 
           _list[cur].a._merged = true;
