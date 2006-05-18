@@ -7,6 +7,10 @@ use Config;  #  for @signame
 sub runCommand {
     my $cmd = shift @_;
 
+    print STDERR "RUNNING------------------\n";
+    print STDERR "$cmd\n";
+    print STDERR "-------------------------\n";
+
     my $rc = 0xffff & system($cmd);
 
     #  Pretty much copied from Programming Perl page 230
