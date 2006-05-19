@@ -24,15 +24,16 @@ other_C  := $/hitConverter.C \
             $/filterEST.C \
             $/filterEST-complicated.C \
             $/filterMRNA.C \
+            $/filterNULL.C \
             $/sortHits.C \
             $/filtertest.C \
             $/hitReader.C
 
 $/.CXX_SRCS  :=${src_C} ${other_C} $/hitMatrix.C
 ifdef WITH_THREADS
- $/.CXX_EXES := $/seagen $/hitConverter $/filterEST $/filterMRNA $/filtertest $/sortHits $/filterESTsimple
+ $/.CXX_EXES := $/seagen $/hitConverter $/filterEST $/filterMRNA $/filterNULL $/filtertest $/sortHits $/filterESTsimple
 else
- $/.CXX_EXES := $/hitConverter $/filterEST $/filterMRNA $/filtertest $/sortHits
+ $/.CXX_EXES := $/hitConverter $/filterEST $/filterMRNA $/filterNULL $/filtertest $/sortHits
  $(warning $/seagen require threads: enable WITH_THREADS to build them.)
 endif
 
@@ -55,6 +56,7 @@ $/hitConverter:       $/hitConverter.o $/aHit.o ${LIBUTL/}libutil.a
 $/filterEST:          $/filterEST.o $/filterEST-complicated.o $/hitReader.o $/aHit.o ${LIBUTL/}libutil.a
 $/filterESTsimple:    $/filterESTsimple.o $/hitReader.o $/aHit.o ${LIBUTL/}libutil.a
 $/filterMRNA:         $/filterMRNA.o $/hitReader.o $/aHit.o ${LIBUTL/}libutil.a
+$/filterNULL:         $/filterNULL.o $/hitReader.o $/aHit.o ${LIBUTL/}libutil.a
 $/sortHits:           $/sortHits.o $/aHit.o ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 $/filtertest:         $/filtertest.o
 

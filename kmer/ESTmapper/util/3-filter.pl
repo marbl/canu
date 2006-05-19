@@ -13,7 +13,6 @@ sub filter {
     my $sgeoptions  = undef;
     my $sgeaccount  = undef;
     my $sgepriority = undef;
-    my $extrafilter = "cat";
 
     #  Don't change the value without 2-search
     my $hitMemory = "600";
@@ -44,14 +43,6 @@ sub filter {
         }
         if ($arg eq "-verbose") {
             $verbose = "-verbose";
-        }
-
-        #  If present, this will be called after the real filtering
-        #  gets done.  If -filternone, then this is the only filtering
-        #  done.  Thanks to Alex Levitsky for suggesting this.
-        #
-        if ($arg eq "-extrahitfilter") {
-            $extrafilter = shift @ARGS;
         }
 
         $farmname    = shift @ARGS if ($arg eq "-lsfjobname");
@@ -109,36 +100,36 @@ sub filter {
     }
 
 
-    #  Merge all the hit counts into one list
+    #  Merge all the hit counts into one list -- this is needed for output filtering!
     #
-    #if (! -e "$path/2-filter/hitCounts") {
-    #    print STDERR "ESTmapper/filter-- Merging counts.\n";
-    #    if (runCommand("$mergeCounts $path/1-search/??.count > $path/2-filter/hitCounts")) {
-    #        die "Failed.\n";
-    #    }
-    #}
+    if (! -e "$path/2-filter/hitCounts") {
+        print STDERR "ESTmapper/filter-- Merging counts.\n";
+        if (runCommand("$mergeCounts $path/1-search/??.count > $path/2-filter/hitCounts")) {
+            die "Failed.\n";
+        }
+    }
 
 
     #  Setup the filtering and sorting
     #
     if (! -e "$path/2-filter/filteredHits") {
-        my $fcmd = "cat $path/1-search/*hits | $extrafilter > $path/2-filter/filtHits";
+        my $fcmd = "$filterNULL $path/1-search/*hits > $path/2-filter/filtHits";
 
         if      ($type eq "est") {
             #  Original settings, but $filterEST was rewritten to fix
             #  a bug, and now these settings stink.
             #
-            #$fcmd = "$filterEST -u 200 -r 200 -q 0.2 -log $path/2-filter/filterLog $path/1-search/*hits | $extrafilter > $path/2-filter/filtHits";
+            #$fcmd = "$filterEST -u 200 -r 200 -q 0.2 -log $path/2-filter/filterLog $path/1-search/*hits > $path/2-filter/filtHits";
 
             #  bpw, 20051005, this isn't the perfect filter, but it
             #  does nearly as good as the best filter I've seen, and
             #  produces significantly fewer false positives.
             #
-            $fcmd = "$filterEST -u 200000000000 -r 0 -log $path/2-filter/filterLog $path/1-search/*hits | $extrafilter > $path/2-filter/filtHits";
+            $fcmd = "$filterEST -u 200000000000 -r 0 -log $path/2-filter/filterLog $path/1-search/*hits > $path/2-filter/filtHits";
         } elsif ($type eq "snp") {
-            $fcmd = "$filterMRNA $verbose $path/1-search/*hits | $extrafilter > $path/2-filter/filtHits";
+            $fcmd = "$filterMRNA $verbose $path/1-search/*hits > $path/2-filter/filtHits";
         } elsif ($type eq "mrna") {
-            $fcmd = "$filterMRNA $verbose $path/1-search/*hits | $extrafilter > $path/2-filter/filtHits";
+            $fcmd = "$filterMRNA $verbose $path/1-search/*hits > $path/2-filter/filtHits";
         }
 
         print STDERR "ESTmapper/filter-- Filtering.\n";

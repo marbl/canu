@@ -19,6 +19,7 @@ EXECS :=  $/leaff \
           $/seagen \
           $/filterEST \
           $/filterMRNA \
+          $/filterNULL \
           $/sortHits \
           $/cleanPolishes \
           $/sortPolishes \
@@ -82,6 +83,11 @@ $/filterMRNA: ${SEAGEN/}filterMRNA
 	$(RM) $/filterMRNA
 	$(CP) ${SEAGEN/}filterMRNA $/filterMRNA
 	chmod 555 $/filterMRNA
+
+$/filterNULL: ${SEAGEN/}filterNULL
+	$(RM) $/filterNULL
+	$(CP) ${SEAGEN/}filterNULL $/filterNULL
+	chmod 555 $/filterNULL
 
 $/sortHits: ${SEAGEN/}sortHits
 	$(RM) $/sortHits

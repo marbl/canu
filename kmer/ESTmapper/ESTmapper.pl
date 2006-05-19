@@ -11,7 +11,7 @@ $| = 1;
 use strict;
 
 use vars qw($personality $exechome $ESTmapper $ESTmappersh
-            $searchGENOME $mergeCounts $filterMRNA $filterEST $sim4db $leaff
+            $searchGENOME $mergeCounts $filterEST $filterMRNA $filterNULL $sim4db $leaff
             $cleanPolishes $toFILTER $sortHits $sortPolishes $parseSNPs
             $pickBest $positionDB $mimsf);
 
@@ -38,8 +38,9 @@ $ESTmapper     = "$exechome/ESTmapper.pl";
 $ESTmappersh   = "$exechome/ESTmapper.sh";
 $searchGENOME  = "$exechome/seagen";
 $mergeCounts   = "$exechome/mergeCounts";
-$filterMRNA    = "$exechome/filterMRNA";
 $filterEST     = "$exechome/filterEST";
+$filterMRNA    = "$exechome/filterMRNA";
+$filterNULL    = "$exechome/filterNULL";
 $sim4db        = "$exechome/sim4th";
 $leaff         = "$exechome/leaff";
 $cleanPolishes = "$exechome/cleanPolishes";
@@ -55,8 +56,9 @@ $personality   = "-help";
 
 die "Can't find/execute $searchGENOME\n"  if (! -x $searchGENOME);
 die "Can't find/execute $mergeCounts\n"   if (! -x $mergeCounts);
-die "Can't find/execute $filterMRNA\n"    if (! -x $filterMRNA);
 die "Can't find/execute $filterEST\n"     if (! -x $filterEST);
+die "Can't find/execute $filterMRNA\n"    if (! -x $filterMRNA);
+die "Can't find/execute $filterNULL\n"    if (! -x $filterNULL);
 die "Can't find/execute $sim4db\n"        if (! -x $sim4db);
 die "Can't find/execute $leaff\n"         if (! -x $leaff);
 die "Can't find/execute $cleanPolishes\n" if (! -x $cleanPolishes);
