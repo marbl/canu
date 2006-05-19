@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.63 2006-05-03 21:42:07 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.64 2006-05-19 15:36:32 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -6754,7 +6754,11 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
     IntMultiPos *positions=unitig->f_list;
     int num_frags = unitig->num_frags;
     int unitig_forced = 0;
-    int32 *is_pointed = NULL, i_afrag;
+    int32 *is_pointed = NULL, *is_aligned = NULL, i_afrag;
+
+#if 1
+   fprintf(stderr, "Calling MultiAlignUnitig, iaccession= %d num_frags= %d\n", unitig->iaccession, num_frags);
+#endif
 
     if ((num_frags == 1) && 
         (positions[0].position.bgn == positions[0].position.end))
@@ -6851,6 +6855,8 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
     // or b)  previously aligned frag
 #ifdef NEW_UNITIGGER_INTERFACE
     is_pointed = safe_calloc(num_frags,sizeof(int32));
+    is_aligned = safe_calloc(num_frags,sizeof(int32));
+    is_aligned[0] = 1;
     for (i=0;i<num_frags;i++) 
     {
        Fragment *afrag = GetFragment(fragmentStore,i);
@@ -6892,6 +6898,20 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
        }
        else
            bfrag = GetFragment(fragmentStore, align_to);
+#if 0
+       fprintf(stderr, 
+       "i= %d align_to= %d ident= %d ident2= %d a_contained=%d b_contained= %d ahang= %d bhang= %d num_frags=%d\n", 
+       i, align_to, positions[i].ident, positions[i].ident2, afrag->contained, 
+       bfrag->contained, ahang, positions[i].bhang, num_frags);
+       fprintf(stderr, "Aligned: a=%d b=%d \n", is_aligned[i], is_aligned[align_to]);
+#endif
+       if (!is_aligned[i] && !is_aligned[align_to])
+       {
+           fprintf(stderr,
+               "Error: none of fragments a (i=%d, id=%d) and b (i=%d, id=%d) is prealigned. Exit\n",
+               i, positions[i].ident, align_to, positions[align_to].ident);
+           CleanExit("",__LINE__,1);
+       }
 #else
        align_to = i-1;
        while (! olap_success) 
@@ -7072,8 +7092,11 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
           ApplyAlignment(afrag->lid,0,bfrag->lid,ahang,Getint32(trace,0));
 #endif
        }
+       is_aligned[i       ] = 1;
+       is_aligned[align_to] = 1;
     } /* loop through all the unitigfs */
     FREE(is_pointed);
+    FREE(is_aligned);
 
     unitig->num_vars = 0;
     {
