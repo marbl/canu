@@ -113,6 +113,7 @@ sub setDefaults {
     $global{"frgCorrConcurrency"}          = 1;
     $global{"gridHost"}                    = "Linux";
     $global{"gridMachine"}                 = "i686";
+    $global{"help"}                        = 0;
     $global{"immutableFrags"}              = undef;
     $global{"localHost"}                   = undef;
     $global{"localMachine"}                = undef;
@@ -187,6 +188,20 @@ sub setParameters {
 
     die "Can't find local bin/gatekeeper in $bin\n" if (! -e "$bin/gatekeeper");
     die "Can't find grid bin/gatekeeper in $gin\n"  if (! -e "$gin/gatekeeper");
+}
+
+
+sub printHelp {
+    if (getGlobal("help")) {
+        foreach my $k (sort keys %global) {
+            if (defined(getGlobal($k))) {
+                print substr("$k                             ", 0, 30) . getGlobal($k) . "\n";
+            } else {
+                print substr("$k                             ", 0, 30) . "<not defined>\n";
+            }
+        }
+    }
+    exit(1);
 }
 
 

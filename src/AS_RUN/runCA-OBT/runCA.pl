@@ -22,6 +22,8 @@ my @cgbFiles;
 my $cgiFile;
 my $scaffoldDir;
 
+setDefaults();
+
 while (scalar(@ARGV)) {
     my $arg = shift @ARGV;
 
@@ -35,6 +37,8 @@ while (scalar(@ARGV)) {
         $asm = shift @ARGV;
     } elsif ($arg =~ m/^-s/) {
         $specFile = shift @ARGV;
+    } elsif ($arg =~ m/^-h/) {
+        setGlobal("help", 1);
     } elsif (($arg =~ /\.frg$|frg\.gz$|frg\.bz2$/) && (-e $arg)) {
         push @fragFiles, $arg;
     } elsif (($arg =~ /\.cgb$/) && (-e $arg)) {
@@ -56,8 +60,8 @@ while (scalar(@ARGV)) {
     }
 }
 
-setDefaults();
 setParameters($specFile, @specOpts);
+printHelp();
 checkDirectories();
 
 #  If this is a continuation, we don't want to do obt or fragment
