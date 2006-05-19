@@ -4,6 +4,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <math.h>
+#include <assert.h>
 
 #include "util++.H"
 #include "overlap.H"
@@ -187,10 +188,16 @@ readOverlap(FILE *file, overlap_t &ovl) {
 
 int
 main(int argc, char **argv) {
+  bool  beVerbose = false;
 
-  if (argc != 1) {
-    fprintf(stderr, "usage: %s < overlap-trim-results\n", argv[0]);
-    exit(1);
+  int arg=1;
+  while (arg < argc) {
+    if        (strcmp(argv[arg], "-v") == 0) {
+      beVerbose = true;
+    } else {
+      fprintf(stderr, "usage: %s [-v] < overlap-trim-results\n", argv[0]);
+      exit(1);
+    }
   }
 
   u32bit   idAlast     = 0;
@@ -199,7 +206,7 @@ main(int argc, char **argv) {
   u32bit  *right       = new u32bit [MAX_OVERLAPS_PER_FRAG];
 
   speedCounter  *C = new speedCounter("%7.2f Moverlaps -- %5.2f Moverlaps/second\r",
-                                      1000000.0, 0x7fff, true);
+                                      1000000.0, 0x3ffff, beVerbose);
   C->enableLiner();
 
   overlap_t ovl;
@@ -222,6 +229,7 @@ main(int argc, char **argv) {
     //  the previous read.
     //
     if ((idAlast != idA) && (numOverlaps > 0)) {
+      assert(idA > idAlast);
       sortAndOutput(idAlast, numOverlaps, left, right);
       numOverlaps = 0;
     }
