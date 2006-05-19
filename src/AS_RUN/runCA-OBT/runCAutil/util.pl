@@ -200,8 +200,8 @@ sub printHelp {
                 print substr("$k                             ", 0, 30) . "<not defined>\n";
             }
         }
+        exit(1);
     }
-    exit(1);
 }
 
 
