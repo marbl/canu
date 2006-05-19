@@ -25,8 +25,13 @@ hitCompareGenPos(const void *a, const void *b) {
   if (A->a._dsIdx < B->a._dsIdx) return(-1);
   if (A->a._dsIdx > B->a._dsIdx) return(1);
 
+  if (A->a._forward != B->a._forward) return(1);
+
   if (A->a._dsLo  < B->a._dsLo) return(-1);
   if (A->a._dsLo  > B->a._dsLo) return(1);
+
+  if (A->a._dsHi  < B->a._dsHi) return(-1);
+  if (A->a._dsHi  > B->a._dsHi) return(1);
 
   return(0);
 }
@@ -69,28 +74,13 @@ hitReader::addInputFile(char *filename) {
 
   if (strcmp(filename, "-") == 0) {
     fprintf(stderr, "hitReader::addInputFile()-- stdin not supported!\n"), exit(1);
-    //_files[_filesLen].file = stdin;
   } else {
-    //_files[_filesLen].file = fopen(filename, "r");
     _files[_filesLen].buff = new readBuffer(filename, 16 * 1048576);
   }
 
-#if 0
-  if (_files[_filesLen].buff == 0L) {
-    fprintf(stderr, "hitReader::addInputFile()-- ERROR: couldn't open '%s' for reading.\n", filename);
-    fprintf(stderr, "hitReader::addInputFile()-- %s\n", strerror(errno));
-    exit(1);
-  }
-#endif
-
   //  Binary or ASCII input?
   //
-#if 0
-  char x = (char)fgetc(_files[_filesLen].file);
-  ungetc(x, _files[_filesLen].file);
-#else
   char x = _files[_filesLen].buff->get();
-#endif
 
   _files[_filesLen].isBINARY = (x != '-');
 
@@ -113,7 +103,6 @@ hitReader::loadHit(hitFile_s *HF) {
     //ahit_parseString(&HF->a, HF->b);
   }
 
-  //if (feof(HF->file))
   if (HF->buff->eof())
     HF->stillMore = false;
 };
@@ -252,15 +241,16 @@ hitReader::mergeOverlappingHits(void) {
         } else {
           fprintf(stderr,
                   "MERGE: -e "u32bitFMT" "
-                  u32bitFMT":"u32bitFMT"-"u32bitFMT"("u32bitFMT"-"u32bitFMT"-"u32bitFMT") "
-                  u32bitFMT":"u32bitFMT"-"u32bitFMT"("u32bitFMT"-"u32bitFMT"-"u32bitFMT")\n",
+                  u32bitFMT":"u32bitFMT"-"u32bitFMT"%c("u32bitFMT"-"u32bitFMT"-"u32bitFMT") "
+                  u32bitFMT":"u32bitFMT"-"u32bitFMT"%c("u32bitFMT"-"u32bitFMT"-"u32bitFMT")\n",
                   _list[cur].a._qsIdx,
                   _list[cur].a._dsIdx,
-                  _list[cur].a._dsLo,    _list[cur].a._dsHi,
+                  _list[cur].a._dsLo,    _list[cur].a._dsHi,    _list[cur].a._forward ? 'f' : 'r',
                   _list[cur].a._covered, _list[cur].a._matched, _list[cur].a._numMers,
                   _list[exa].a._dsIdx,
-                  _list[exa].a._dsLo,    _list[exa].a._dsHi,
+                  _list[exa].a._dsLo,    _list[exa].a._dsHi,    _list[exa].a._forward ? 'f' : 'r',
                   _list[exa].a._covered, _list[exa].a._matched, _list[exa].a._numMers);
+
 
           _list[cur].a._merged = true;
           _list[cur].a._covered = 0;
