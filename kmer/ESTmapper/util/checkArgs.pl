@@ -18,23 +18,28 @@ my %validArgs = ("-help"            => "0",  #
                  "-snpsizetag"      => "1",  # 
                  "-snpoutformat"    => "1",  #
 
-                 "-abort"           => "1",  # 4
-                 "-aligns"          => "0",  # 4
-                 "-alwaysprint"     => "1",  # 4
-                 "-batchsize"       => "1",  # 4
-                 "-cleanup"         => "1",  # 5
-                 "-extrahitfilter"  => "1",  # 3, undocumented
-                 "-filternone"      => "0",  # 3
-                 "-hitsortmemory"   => "1",  # 23
-                 "-interspecies"    => "0",  # 4
-                 "-localpolishes"   => "1",  # 4
-                 "-localsearches"   => "1",  # 2
                  "-lsfjobname"      => "1",  # 234
                  "-lsfproject"      => "1",  # 234
                  "-lsfsearchqueue"  => "1",  # 2
                  "-lsffilterqueue"  => "1",  # 23
                  "-lsfpolishqueue"  => "1",  # 4
                  "-lsffinishqueue"  => "1",  # 45
+
+                 "-sge"             => "1",  # 2, takes name
+                 "-sgeaccount"      => "1",  # 2, takes account string
+                 "-sgepriority"     => "1",  # 2, takes integer
+                 "-sgeoptions"      => "1",  # 2, takes quoted list of args
+
+                 "-abort"           => "1",  # 4
+                 "-aligns"          => "0",  # 4
+                 "-alwaysprint"     => "1",  # 4
+                 "-batchsize"       => "1",  # 4
+                 "-cleanup"         => "1",  # 5
+                 "-filternone"      => "0",  # 3
+                 "-hitsortmemory"   => "1",  # 23
+                 "-interspecies"    => "0",  # 4
+                 "-localpolishes"   => "1",  # 4
+                 "-localsearches"   => "1",  # 2
                  "-maskmers"        => "1",  # 2, undocumented
                  "-mersize"         => "1",  # 2
                  "-mincoverage"     => "1",  # 45
@@ -52,10 +57,6 @@ my %validArgs = ("-help"            => "0",  #
                  "-savetemporary"   => "0",  # 5
                  "-searchopts"      => "1",  # 2
                  "-searchthreads"   => "1",  # 2
-                 "-sge"             => "1",  # 2, takes name
-                 "-sgeaccount"      => "1",  # 2, takes account string
-                 "-sgepriority"     => "1",  # 2, takes integer
-                 "-sgeoptions"      => "1",  # 2, takes quoted list of args
                  "-species"         => "1",  # 2
                  "-stats"           => "0",  # 24
                  "-verbose"         => "0"); # 123
