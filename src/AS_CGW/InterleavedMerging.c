@@ -848,6 +848,10 @@ Overlap * LookForChunkOverlapFromContigElements(ContigElement * ceA,
     and B containing A
     contigA:       ----
     contigB:   ------------
+
+    can also have A contain B when the ends are close
+    contigA:   ------------
+    contigB:          ----
   */
 
 
@@ -892,8 +896,16 @@ Overlap * LookForChunkOverlapFromContigElements(ContigElement * ceA,
     {
       if(chunkOverlap.AContainsB || chunkOverlap.BContainsA)
       {
-        myOverlap.begpos = chunkOverlap.ahg;
-        myOverlap.endpos = chunkOverlap.bhg;
+        // if both contigs are reverse(anti-normal) then
+        // OverlapChunks switches them and makes b a so switch back
+        if (chunkOverlap.spec.cidA == ceB->id)
+        { 
+            myOverlap.begpos = chunkOverlap.bhg;
+            myOverlap.endpos = chunkOverlap.ahg;
+        } else {
+            myOverlap.begpos = chunkOverlap.ahg;
+            myOverlap.endpos = chunkOverlap.bhg;
+        }
       }
       else
       {
@@ -954,9 +966,15 @@ Overlap * LookForChunkOverlapFromContigElements(ContigElement * ceA,
     {
       if(chunkOverlap.AContainsB || chunkOverlap.BContainsA)
       {
-        myOverlap.begpos = chunkOverlap.ahg;
-        myOverlap.endpos = chunkOverlap.bhg;
-	myOverlap.length = chunkOverlap.overlap;
+        if (chunkOverlap.spec.cidA == ceB->id)
+        { 
+            myOverlap.begpos = chunkOverlap.bhg;
+            myOverlap.endpos = chunkOverlap.ahg;
+        } else {
+            myOverlap.begpos = chunkOverlap.ahg;
+            myOverlap.endpos = chunkOverlap.bhg;
+        }
+        myOverlap.length = chunkOverlap.overlap;
       }
       else
       {
