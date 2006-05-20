@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.64 2006-05-19 15:36:32 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.65 2006-05-20 12:37:46 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -6853,10 +6853,10 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
     // Now, loop on remaining fragments, aligning to:
     //    a)  containing frag (if contained)
     // or b)  previously aligned frag
-#ifdef NEW_UNITIGGER_INTERFACE
     is_pointed = safe_calloc(num_frags,sizeof(int32));
     is_aligned = safe_calloc(num_frags,sizeof(int32));
     is_aligned[0] = 1;
+#ifdef NEW_UNITIGGER_INTERFACE
     for (i=0;i<num_frags;i++) 
     {
        Fragment *afrag = GetFragment(fragmentStore,i);
@@ -6905,7 +6905,9 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
        bfrag->contained, ahang, positions[i].bhang, num_frags);
        fprintf(stderr, "Aligned: a=%d b=%d \n", is_aligned[i], is_aligned[align_to]);
 #endif
+#ifdef NEW_UNITIGGER_INTERFACE
        if (!is_aligned[i] && !is_aligned[align_to])
+#endif
        {
            fprintf(stderr,
                "Error: none of fragments a (i=%d, id=%d) and b (i=%d, id=%d) is prealigned. Exit\n",
