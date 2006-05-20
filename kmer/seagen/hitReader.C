@@ -25,7 +25,8 @@ hitCompareGenPos(const void *a, const void *b) {
   if (A->a._dsIdx < B->a._dsIdx) return(-1);
   if (A->a._dsIdx > B->a._dsIdx) return(1);
 
-  if (A->a._forward != B->a._forward) return(1);
+  if (A->a._forward < B->a._forward) return(-1);
+  if (A->a._forward > B->a._forward) return(1);
 
   if (A->a._dsLo  < B->a._dsLo) return(-1);
   if (A->a._dsLo  > B->a._dsLo) return(1);
@@ -239,10 +240,12 @@ hitReader::mergeOverlappingHits(void) {
         if (_list[cur].a._dsLo == _list[exa].a._dsLo) {
           memcpy(_list+cur, _list+exa, sizeof(hit_s));
         } else {
+#ifdef DEBUG_HITREADER
           fprintf(stderr,
-                  "MERGE: -e "u32bitFMT" "
+                  "MERGE:   ("u32bitFMT","u32bitFMT") -e "u32bitFMT" "
                   u32bitFMT":"u32bitFMT"-"u32bitFMT"%c("u32bitFMT"-"u32bitFMT"-"u32bitFMT") "
                   u32bitFMT":"u32bitFMT"-"u32bitFMT"%c("u32bitFMT"-"u32bitFMT"-"u32bitFMT")\n",
+                  cur, exa,
                   _list[cur].a._qsIdx,
                   _list[cur].a._dsIdx,
                   _list[cur].a._dsLo,    _list[cur].a._dsHi,    _list[cur].a._forward ? 'f' : 'r',
@@ -250,14 +253,15 @@ hitReader::mergeOverlappingHits(void) {
                   _list[exa].a._dsIdx,
                   _list[exa].a._dsLo,    _list[exa].a._dsHi,    _list[exa].a._forward ? 'f' : 'r',
                   _list[exa].a._covered, _list[exa].a._matched, _list[exa].a._numMers);
-
-
-          _list[cur].a._merged = true;
+#endif
+          _list[cur].a._merged  = true;
           _list[cur].a._covered = 0;
           _list[cur].a._matched = 0;
-          _list[cur].a._dsHi = _list[exa].a._dsHi;
+          _list[cur].a._dsHi    = _list[exa].a._dsHi;
         }
       }
+
+      //  By now, we've updated cur to include all that exa did.  exa is junk.
 
     } else {
       //  Nope, copy exa to the next spot (unless they're the same)
