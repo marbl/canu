@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.65 2006-05-20 12:37:46 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.66 2006-05-21 16:14:24 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -115,9 +115,10 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.65 2006-05-20 12:37:46 gden
 #include "MultiAlignment_CNS.h"
 //#include "AS_ALN_aligners.h"
 #include "dpc_CNS.h"
-#include "MicroHetREZ_test3.h"
 #include "Array_CNS.h"
 #include "UtilsREZ.h"
+#include "MicroHetREZ_test3.h"
+#include "AS_UTL_alloc.h"
 //#include "CA_ALN_local.h"
 
 extern int MaxBegGap;       // [ init value is 200; this could be set to the amount you extend the clear
@@ -2566,6 +2567,7 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
     Column *column;
     AlPair  ap;
     MANode *ma = GetMANode(manodeStore,mid);
+    int32   min_len_vlist = 10;
 
     //  Make sure that we have valid options here, we then reset the
     //  pointer to the freshly copied options, so that we can always
@@ -2580,6 +2582,7 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
     }
 
     window = opp->smooth_win;
+   *nvars = 0;
 
 #if 0
     fprintf(stderr, "Calling RefreshMANode, quality = %d\n", quality);
@@ -2770,12 +2773,10 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
 #endif
 
             /* Store variations in a v_list */
-           *nvars = 0;
             if ((quality > 0) && make_v_list 
                                              // && (ap.nr > 0)
                                                               )
             {
-                int32   min_len_vlist = 10;
                 if (!(*v_list))
                 {
                    *v_list = (IntMultiVar *)safe_malloc(min_len_vlist*
