@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl
 
-# $Id: caqc.pl,v 1.1 2006-03-06 21:34:40 eliv Exp $
+# $Id: caqc.pl,v 1.2 2006-05-23 19:31:05 eliv Exp $
 #
 # This program reads a Celera .asm file and produces aggregate information
 # about the assembly
@@ -18,7 +18,7 @@ use TIGR::AsmLib;
 
 use Time::HiRes;
 
-my $MY_VERSION = " Version 2.11 (Build " . (qw/$Revision: 1.1 $/ )[1] . ")";
+my $MY_VERSION = " Version 2.11 (Build " . (qw/$Revision: 1.2 $/ )[1] . ")";
 
 # Constants
 my $MINQUAL = 20;
@@ -125,6 +125,7 @@ MAIN:
     my $ncontigs = 0;
     my $nunitigs = 0;
     my $numSingletons = 0;
+    my $numVarRecords = 0;
     my $lenPlacedSurrogates = 0;
     my $numPlacedSurrogates = 0;
     my $numPlacedSurrogateFrags = 0;
@@ -150,7 +151,6 @@ MAIN:
     my $timescf = 0;
     my $timeslk = 0;
     my $timeafg = 0;
-
 
     while ($record = getCARecord(\*IN)){
 
@@ -221,6 +221,8 @@ MAIN:
                     $lenPlacedSurrogates +=  abs($ue - $ub);
                     $numPlacedSurrogates++;
                 }
+            } elsif ($sid eq 'VAR') {
+                $numVarRecords++;
             }
         }
 
@@ -372,6 +374,7 @@ MAIN:
     $Results{ReadsInSurrogates}              = 0;
     $Results{SingletonReads}                 = 0;
     $Results{ChaffReads}                     = $numSingletons;
+    $Results{TotalNumVarRecords}             = $numVarRecords;
     $Results{AllReads}                       = 0.0;
     $Results{ContigsOnly}                    = 0.0;
     $Results{ContigsAndDegens}               = 0.0;
@@ -699,6 +702,7 @@ MAIN:
     $fh->print("[Contigs]\n");
     printl('TotalContigsInScaffolds', \%Results, $fh);
     printl('TotalBasesInScaffolds',   \%Results, $fh);
+    printl('TotalNumVarRecords',      \%Results, $fh);
     printlf('MeanContigSize',         \%Results, $fh);
     printl('MinContigSize',           \%Results, $fh);
     printl('MaxContigSize',           \%Results, $fh);
