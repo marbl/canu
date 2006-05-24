@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.20 2006-05-24 13:58:49 eliv Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.21 2006-05-24 14:06:13 eliv Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -1011,7 +1011,7 @@ typedef enum {
   UNASSIGNED         = 'Z',
   GOOD_MATE          = 'G',
   BAD_SHORT_MATE     = 'C',
-  BAD_LONG_MATE      = 'E',
+  BAD_LONG_MATE      = 'L',
   SAME_ORIENT_MATE   = 'S',
   OUTTIE_ORIENT_MATE = 'O',
   NO_MATE            = 'N',
