@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl
 
-# $Id: caqc.pl,v 1.2 2006-05-23 19:31:05 eliv Exp $
+# $Id: caqc.pl,v 1.3 2006-05-24 14:23:00 eliv Exp $
 #
 # This program reads a Celera .asm file and produces aggregate information
 # about the assembly
@@ -18,7 +18,7 @@ use TIGR::AsmLib;
 
 use Time::HiRes;
 
-my $MY_VERSION = " Version 2.11 (Build " . (qw/$Revision: 1.2 $/ )[1] . ")";
+my $MY_VERSION = " Version 2.11 (Build " . (qw/$Revision: 1.3 $/ )[1] . ")";
 
 # Constants
 my $MINQUAL = 20;
@@ -136,6 +136,21 @@ MAIN:
     my $degenReadLen = 0;    # reads in degenerates
     my $utgs = Statistics::Descriptive::Sparse->new();
     my %Results = ();
+    $Results{ReadsWithChaffMate}     = 0;
+    $Results{ReadsWithBadShortMate}  = 0;
+    $Results{ReadsWithBothDegenMate} = 0;
+    $Results{ReadsWithDegenMate}     = 0;
+    $Results{ReadsWithDiffScafMate}  = 0;
+    $Results{ReadsWithGoodMate}      = 0;
+    $Results{ReadsWithBothChaffMate} = 0;
+    $Results{ReadsWithBadLongMate}   = 0;
+    $Results{ReadsWithNoMate}        = 0;
+    $Results{ReadsWithOuttieMate}    = 0;
+    $Results{ReadsWithSurrogateMate} = 0;
+    $Results{ReadsWithSameOrientMate}= 0;
+    $Results{ReadsWithBothSurrMate}  = 0;
+    $Results{ReadsWithUnassigned}    = 0;
+
     my %readLen;
     my $scaffLinkWeights = 0; # sum of links connecting scaffolds
 
@@ -296,14 +311,34 @@ MAIN:
 	    $readLen{$id} = $length;
 	    $totalSeqs++;
 
-	    if ($$fields{'mst'} eq 'N'){
-		$Results{ReadsWithNoMate}++;
-	    } elsif ($$fields{'mst'} eq 'B'){
-		$Results{ReadsWithBadMate}++;
+	    if ($$fields{'mst'} eq 'A'){
+		$Results{ReadsWithChaffMate}++;
+	    } elsif ($$fields{'mst'} eq 'C'){
+		$Results{ReadsWithBadShortMate}++;
+	    } elsif ($$fields{'mst'} eq 'D'){
+		$Results{ReadsWithBothDegenMate}++;
+	    } elsif ($$fields{'mst'} eq 'E'){
+		$Results{ReadsWithDegenMate}++;
+	    } elsif ($$fields{'mst'} eq 'F'){
+		$Results{ReadsWithDiffScafMate}++;
 	    } elsif ($$fields{'mst'} eq 'G'){
 		$Results{ReadsWithGoodMate}++;
+	    } elsif ($$fields{'mst'} eq 'H'){
+		$Results{ReadsWithBothChaffMate}++;
+	    } elsif ($$fields{'mst'} eq 'L'){
+		$Results{ReadsWithBadLongMate}++;
+        } elsif ($$fields{'mst'} eq 'N'){
+		$Results{ReadsWithNoMate}++;
+	    } elsif ($$fields{'mst'} eq 'O'){
+		$Results{ReadsWithOuttieMate}++;
+	    } elsif ($$fields{'mst'} eq 'R'){
+		$Results{ReadsWithSurrogateMate}++;
+	    } elsif ($$fields{'mst'} eq 'S'){
+		$Results{ReadsWithSameOrientMate}++;
 	    } elsif ($$fields{'mst'} eq 'U'){
-		$Results{ReadsWithUnusedMate}++;
+		$Results{ReadsWithBothSurrMate}++;
+	    } elsif ($$fields{'mst'} eq 'Z'){
+		$Results{ReadsWithUnassigned}++;
 	    }
 
         $numSingletons++ if $$fields{'cha'} == 1;
@@ -389,18 +424,7 @@ MAIN:
     $Results{MaxSurrogateSize}               = $utgs->max();
     $Results{SDSurrogateSize}                = $utgs->standard_deviation();
     $Results{RangeSurrogateSize}             = $utgs->sample_range();
-    if (! exists $Results{ReadsWithNoMate}){
-	$Results{ReadsWithNoMate} = 0;
-    }
-    if (! exists $Results{ReadsWithBadMate}){
-	$Results{ReadsWithBadMate} = 0;
-    }
-    if (! exists $Results{ReadsWithGoodMate}){
-	$Results{ReadsWithGoodMate} = 0;
-    }
-    if (! exists $Results{ReadsWithUnusedMate}){
-	$Results{ReadsWithUnusedMate} = 0;
-    }
+
     if (! exists $Results{TotalScaffoldLinks}){
 	$Results{TotalScaffoldLinks} = 0;
 	$Results{MeanScaffoldLinkWeight} = 0;
@@ -772,9 +796,19 @@ MAIN:
     print "[Mates]\n" if (! $silent);
     $fh->print("[Mates]\n");
     printp('ReadsWithNoMate',         \%Results, $fh, $totalSeqs);
-    printp('ReadsWithBadMate',        \%Results, $fh, $totalSeqs);
     printp('ReadsWithGoodMate',       \%Results, $fh, $totalSeqs);
-    printp('ReadsWithUnusedMate',     \%Results, $fh, $totalSeqs);
+    printp('ReadsWithBadShortMate',   \%Results, $fh, $totalSeqs);
+    printp('ReadsWithBadLongMate',    \%Results, $fh, $totalSeqs);
+    printp('ReadsWithSameOrientMate', \%Results, $fh, $totalSeqs);
+    printp('ReadsWithOuttieMate',     \%Results, $fh, $totalSeqs);
+    printp('ReadsWithBothChaffMate',  \%Results, $fh, $totalSeqs);
+    printp('ReadsWithChaffMate',      \%Results, $fh, $totalSeqs);
+    printp('ReadsWithBothDegenMate',  \%Results, $fh, $totalSeqs);
+    printp('ReadsWithDegenMate',      \%Results, $fh, $totalSeqs);
+    printp('ReadsWithBothSurrMate',   \%Results, $fh, $totalSeqs);
+    printp('ReadsWithSurrogateMate',  \%Results, $fh, $totalSeqs);
+    printp('ReadsWithDiffScafMate',   \%Results, $fh, $totalSeqs);
+    printp('ReadsWithUnassigned',     \%Results, $fh, $totalSeqs);
     printl('TotalScaffoldLinks',      \%Results, $fh);
     printlf('MeanScaffoldLinkWeight', \%Results, $fh);
     print "\n" if (! $silent);
