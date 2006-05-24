@@ -23,11 +23,14 @@
  *
  ********************************************************/
 /*********************************************************************
- $Id: Consensus_CNS.h,v 1.4 2005-03-22 19:48:40 jason_miller Exp $
+ $Id: Consensus_CNS.h,v 1.5 2006-05-24 20:44:24 gdenisov Exp $
  *********************************************************************/
 
 #ifndef CONSENSUS_CNS_INCLUDE
 #define CONSENSUS_CNS_INCLUDE
+
+#define MAX_NUM_UNITIG_FAILURES 100
+#define MAX_NUM_CONTIG_FAILURES 100
 
 #endif
 
