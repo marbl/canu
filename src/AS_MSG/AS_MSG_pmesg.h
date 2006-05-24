@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.19 2006-05-18 18:30:31 vrainish Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.20 2006-05-24 13:58:49 eliv Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -1006,11 +1006,22 @@ typedef struct {
 
 /* IAF message */
 
+/* Grangers new list, roughly in order of precedence */
 typedef enum {
-  GOOD_MATE		= (int) 'G',
-  BAD_MATE		= (int) 'B',
-  NO_MATE		= (int) 'N',
-  UNRESOLVED_MATE	= (int) 'U'
+  UNASSIGNED         = 'Z',
+  GOOD_MATE          = 'G',
+  BAD_SHORT_MATE     = 'C',
+  BAD_LONG_MATE      = 'E',
+  SAME_ORIENT_MATE   = 'S',
+  OUTTIE_ORIENT_MATE = 'O',
+  NO_MATE            = 'N',
+  BOTH_CHAFF_MATE    = 'H',
+  CHAFF_MATE         = 'A',
+  BOTH_DEGEN_MATE    = 'D',
+  DEGEN_MATE         = 'E',
+  BOTH_SURR_MATE     = 'U',
+  SURR_MATE          = 'R',
+  DIFF_SCAFF_MATE    = 'F'
 } MateStatType;
 
 typedef struct {
