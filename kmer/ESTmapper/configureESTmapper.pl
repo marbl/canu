@@ -233,7 +233,7 @@ print STDERR "configureESTmapper-- Created $segId groups with maximum memory req
 #  run the jobs.
 #
 if      ($local) {
-    my $seg = "00";
+    my $seg = "000";
 
     while ($seg ne $segId) {
         print STDERR "Creating $seg out of $segId\n";
@@ -253,7 +253,7 @@ if      ($local) {
 
     system("mkdir $path/sgeout") if (! -d "$path/sgeout");
 
-    my $seg = "00";
+    my $seg = "000";
     while ($seg ne $segId) {
         if (-e "$path/seg$seg.posDB") {
             #print STDERR "Segment $seg finished successfully!\n";
@@ -264,7 +264,7 @@ if      ($local) {
         }
 
         $seg++;
-        $seg = substr("00$seg", -2);
+        $seg = substr("000$seg", -3);
     }
 
     if ($wholeThing == $seg) {

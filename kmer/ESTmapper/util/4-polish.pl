@@ -2,84 +2,33 @@ use strict;
 
 sub polish {
     my $startTime = time();
-    my @ARGS         = @_;
-    my $path         = "";
-    my $mini         = "95";
-    my $minc         = "50";
-    my $minl         = "0";
-    my $minsim4i     = "90";
-    my $minsim4c     = "45";
-    my $minsim4l     = "0";
-    my $always       = "";
-    my $relink       = "";
-    my $batchsize    = 0;
-    my $numbatches   = 256;
 
-    my $farmname     = undef;
-    my $farmcode     = undef;
-    my $farmqueue    = undef;
-    my $finiqueue    = undef;
+    #  If we're all done, just get outta here.
+    return if (-e "$args{'path'}/3-polish/allDone");
 
-    my $sgename      = undef;
-    my $sgeaccount   = undef;
-    my $sgeoptions   = undef;
-    my $sgepriority  = undef;
+    my $path         = $args{'path'};
 
-    my $runtype      = "local";
+    my $mini         = ($args{'minidentity'} or 95);
+    my $minc         = ($args{'mincoverage'} or 50);
+    my $minl         = ($args{'minlength'}   or 0);
 
-    my $numproc      = 4;
+    my $minsim4i     = ($args{'minsim4identity'} or 90);
+    my $minsim4c     = ($args{'minsim4coverage'} or 45);
+    my $minsim4l     = ($args{'minsim4length'}   or 0);
 
-    my $aligns       = "-align";
+    my $relink       = "-H $args{'relink'}" if ($args{'relink'});
+    my $always       = "-alwaysprint $args{'alwaysprint'}" if ($args{'alwaysprint'});
+
+    my $batchsize    = ($args{'batchsize'} or 0);
+    my $numbatches   = ($args{'numbatches'} or 256);
+
+    my $numproc      = ($args{'localsearches'} or 4);
+
+    my $aligns       = "-aligns" if ($args{'aligns'});
     my $stats        = 1;
-    my $abort        = "";
-    my $interspecies = "";
+    my $abort        = "-Mp 0.25 -Ma 10000" if ($args{'abort'});
+    my $interspecies = "-interspecies"      if ($args{'interspecies'});
 
-    print STDERR "ESTmapper: Performing a polish.\n";
-
-    while (scalar @ARGS > 0) {
-        my $arg = shift @ARGS;
-
-        $path = shift @ARGS                      if ($arg eq "-polish");
-        $minc = shift @ARGS                      if ($arg eq "-mincoverage");
-        $mini = shift @ARGS                      if ($arg eq "-minidentity");
-        $minl = shift @ARGS                      if ($arg eq "-minlength");
-        $minsim4c = shift @ARGS                  if ($arg eq "-minsim4coverage");
-        $minsim4i = shift @ARGS                  if ($arg eq "-minsim4identity");
-        $minsim4l = shift @ARGS                  if ($arg eq "-minsim4length");
-        $always = "-alwaysprint " . shift @ARGS  if ($arg eq "-alwaysprint");
-        $relink = "-H " . shift @ARGS            if ($arg eq "-relink");
-        $batchsize = int(shift @ARGS)            if ($arg eq "-batchsize");
-        $numbatches = int(shift @ARGS)           if ($arg eq "-numbatches");
-        $aligns = "-align"                       if ($arg eq "-aligns");
-        $aligns = ""                             if ($arg eq "-noaligns");
-
-        $abort = "-Mp 0.25 -Ma 10000"            if ($arg eq "-abort");
-        $interspecies = "-interspecies"          if ($arg eq "-interspecies");
-
-        $stats = 1                               if ($arg eq "-stats");
-        $stats = 0                               if ($arg eq "-nostats");
-
-        $farmname  = shift @ARGS if ($arg eq "-lsfjobname");
-        $farmcode  = shift @ARGS if ($arg eq "-lsfproject");
-        $farmqueue = shift @ARGS if ($arg eq "-lsfpolishqueue");
-        $finiqueue = shift @ARGS if ($arg eq "-lsffinishqueue");
-
-        $sgename     = shift @ARGS         if ($arg eq "-sge");
-        $sgeaccount  = "-A " . shift @ARGS if ($arg eq "-sgeaccount");
-        $sgeoptions  = shift @ARGS         if ($arg eq "-sgeoptions");
-        $sgepriority = "-p " . shift @ARGS if ($arg eq "-sgepriority");
-
-        $runtype    = "later"     if ($arg eq "-runlater");
-        $runtype    = "lsf"       if (defined($farmname));
-        $runtype    = "sge"       if (defined($sgename));
-
-        $numproc   = shift @ARGS if ($arg eq "-localpolishes");
-    }
-
-    ($path eq "")   and die "ERROR: ESTmapper/polish-- no directory given.\n";
-    (! -d "$path")  and die "ERROR: ESTmapper/polish-- no directory '$path' found!\n";
-
-    mkdir "$path/3-polish" if (! -d "$path/3-polish");
 
 
     #  Save the parameters, these are used on later invocations of
@@ -149,21 +98,61 @@ sub polish {
     }
 
 
+    #  Build the sim4 command
+    #
+    open(F, "> $path/3-polish/polish.sh");
+    print F "#!/bin/sh\n";
+    print F "\n";
+    print F "jid=\$SGE_TASK_ID\n";
+    print F "if [ x\$jid = x -o x\$jid = xundefined ] ; then\n";
+    print F "  if [ x\$1 = x ] ; then\n";
+    print F "    echo \"ERROR: I need a job-id on the command line or in \$SGE_TASK_ID\"\n";
+    print F "    exit 1\n";
+    print F "  fi\n";
+    print F "  jid=`expr \$1 + 1`\n";;
+    print F "fi\n";
+    print F "\n";
+    print F "jid=`head -\$jid $path/3-polish/partitions | tail -1`\n";
+    print F "\n";
+    print F "if [ -e \"$path/3-polish/\$jid.success\" ] ; then\n";
+    print F "  exit\n";
+    print F "fi\n";
+    print F "\n";
+    print F "$prog{'sim4db'} \\\n";
+    print F "  -cdna $path/0-input/cDNA.fasta \\\n";
+    print F "  -genomic $path/0-input/genome/genome.fasta \\\n";
+    print F "  $aligns \\\n"         if ($aligns ne "");
+    print F "  $always \\\n"         if ($always ne "");
+    print F "  $relink \\\n"         if ($relink ne "");
+    print F "  $abort \\\n"          if ($abort  ne "");
+    print F "  $interspecies \\\n"   if ($interspecies ne "");
+    print F "  -cut 0.6 \\\n";
+    print F "  -mincoverage $minsim4c \\\n";
+    print F "  -minidentity $minsim4i \\\n";
+    print F "  -minlength   $minsim4l \\\n";
+    print F "  -script      $path/3-polish/\$jid.sim4script \\\n";
+    print F "  -output      $path/3-polish/\$jid.sim4db \\\n";
+    print F "  -stats       $path/3-polish/\$jid.stats \\\n" if ($stats == 1);
+    print F "  -YN          $path/3-polish/\$jid.yn \\\n";
+    print F "&& \\\n";
+    print F "touch $path/3-polish/\$jid.success\n";
+    close(F);
+
+
     #  Splits the filteredHits into several pieces, and outputs a script
     #  that runs sim4db on those pieces.
     #
-    if (! -e "$path/3-polish/splitDone") {
+    if (! -e "$path/3-polish/partitions") {
         print STDERR "ESTmapper/polish-- Creating scripts with $batchsize lines in each.\n";
 
         my @idxs;
         my $idx  = "0000";
 
         open(H, "< $path/2-filter/filteredHits");
-        open(S, "> $path/3-polish/run-script");
         while (!eof(H)) {
             my $c = 0;
 
-            open(F, "> $path/3-polish/$idx.scr");
+            open(F, "> $path/3-polish/$idx.sim4script");
             while (($c < $batchsize) && (!eof(H))) {
                 $_ = <H>;
                 print F $_;
@@ -174,44 +163,25 @@ sub polish {
             push @idxs, "$idx\n";
             $idx++;
         }
-        close(S);
         close(H);
 
         print STDERR "ESTmapper/polish-- Created $idx scripts.\n";
 
-        open(S, "> $path/3-polish/splitDone");
+        open(S, "> $path/3-polish/partitions");
         print S @idxs;
         close(S);
     }
+
 
     #  Build a list of things to run.
     #
     my @jobsToRun;
     
-    open(F, "< $path/3-polish/splitDone");
-    open(S, "> $path/3-polish/run.sh");
+    open(F, "< $path/3-polish/partitions");
     while (<F>) {
-        my $idx = $_;
-        chomp $idx;
-
-        if (! -e "$path/3-polish/$idx.touch") {
-            my $cmd;
-            $cmd  = "$sim4db -cdna $path/0-input/cDNA.fasta -genomic $path/0-input/genome/genome.fasta ";
-            $cmd .= "$aligns $always $relink $abort $interspecies -cut 0.6 ";
-            $cmd .= "-mincoverage $minsim4c ";
-            $cmd .= "-minidentity $minsim4i ";
-            $cmd .= "-minlength $minsim4l ";
-            $cmd .= "-script $path/3-polish/$idx.scr ";
-            $cmd .= "-output $path/3-polish/$idx.polished ";
-            $cmd .= "-stats  $path/3-polish/$idx.stats " if ($stats == 1);
-            $cmd .= "-touch  $path/3-polish/$idx.touch";
-
-            print S "$cmd\n";
-
-            push @jobsToRun, $cmd;
-        }
+        chomp;
+        push @jobsToRun, $_ if (! -e "$path/3-polish/$_.success");
     }
-    close(S);
     close(F);
 
 
@@ -245,105 +215,95 @@ sub polish {
 
         #  Run things, or tell the user to do it for us.
         #
-        if      ($runtype eq "later") {
+        if      (defined($args{'runlater'})) {
             print STDERR "ESTmapper/polish-- Please run the jobs in\n";
             print STDERR "ESTmapper/polish--   $path/3-polish/run.sh\n";
             exit(0);
-        } elsif ($runtype eq "local") {
-                print STDERR "ESTmapper/polish-- Running locally, $numproc at a time.\n";
+        } elsif (defined($args{'sgename'})) {
+            print STDERR "ESTmapper/polish-- Submitting to SGE.\n";
 
-                &scheduler::schedulerSetNumberOfProcesses($numproc);
-                &scheduler::schedulerSetShowCommands(0);
-                &scheduler::schedulerSetShowStatus(1);
+            #  Don't resubmit jobs that are already done, and do
+            #  submit the smallest number of jobs to finish.
+            #  Bugs here should be fixed in 2-search.pl as well.
 
-                foreach my $cmd (@jobsToRun) {
-                    &scheduler::schedulerSubmit($cmd);
+            my @watchJobs;
+
+            my $fJob = shift @jobsToRun;
+            my $lJob = $fJob;
+
+            while (defined($lJob)) {
+                my $nJob = shift @jobsToRun;
+
+                if (($lJob + 1 != $nJob) || (!defined($nJob))) {
+
+                    #  SGE expects jobs to start at 1, but we start at 0.
+                    $fJob++;
+                    $lJob++;
+
+                    print STDERR "Sumbit $fJob - $lJob (njob=$nJob)\n";
+
+                    my $cmd;
+                    $cmd  = "qsub -cwd -j y -o $path/3-polish/sgeout-\\\$TASK_ID ";
+                    $cmd .= " $args{'sgeoptions'} " if (defined($args{'sgeoptions'}));;
+                    $cmd .= " $args{'sgepolish'} "  if (defined($args{'sgepolish'}));
+                    $cmd .= " -N \"p$args{'sgename'}$fJob\" ";
+                    $cmd .= " -t $fJob-$lJob ";
+                    $cmd .= "$path/3-polish/polish.sh";
+
+                    push @watchJobs, "p$args{'sgename'}$fJob";
+
+                    die "Failed to submit job to SGE.\n" if (runCommand($cmd));
+
+                    $fJob = $nJob;
                 }
+                $lJob = $nJob;
+            }
 
-                &scheduler::schedulerFinish();
+            submitFinish(@watchJobs);
 
-                unlink "$path/3-polish/run.sh";
-        } elsif ($runtype eq "lsf") {
-                print STDERR "ESTmapper/polish-- Submitting to LSF.\n";
+            print STDERR "ESTmapper/polish-- Finish submitted.   See ya later!\n";
 
-                my $cmd;
-                $cmd  = "bsub -q $farmqueue -P $farmcode -R \"select[mem>300]rusage[mem=600]\" -o $path/3-polish/%J-%I.lsfout ";
-                $cmd .= " -J \"p$farmname\[1-" . scalar(@jobsToRun) . "\]\" ";
-                $cmd .= "$exechome/util/jobarray.pl $path polish";
-
-                my $jobid = runLSF($cmd);
-
-                $cmd  = "bsub -q $finiqueue -P $farmcode -R \"select[mem>200]rusage[mem=200]\" -o $path/stage3.lsfout ";
-                $cmd .= " -w \"ended($jobid)\"";
-                $cmd .= " -J \"o$farmname\" ";
-                $cmd .= " $ESTmapper -restart $path";
-
-                if (runCommand($cmd)) {
-                    die "Failed.\n";
-                }
-
-                print STDERR "ESTmapper/polish-- Finish submitted.   See ya later!\n";
-
-                exit(0);
-        } elsif ($runtype eq "sge") {
-                print STDERR "ESTmapper/polish-- Submitting to SGE.\n";
-
-                my $cmd;
-                $cmd  = "qsub -cwd $sgeaccount $sgepriority $sgeoptions ";
-                $cmd .= " -pe thread 2 ";
-                $cmd .= " -j y -o $path/3-polish/sim4db-\\\$TASK_ID.sgeout ";
-                $cmd .= " -N \"p$sgename\" ";
-                $cmd .= " -t 1-" . scalar(@jobsToRun) . " ";
-                $cmd .= "$exechome/util/jobarray.sh $exechome/util/jobarray.pl $path polish";
-
-                if (runCommand($cmd)) {
-                    die "Failed.\n";
-                }
-
-                $cmd  = "qsub -cwd $sgeaccount $sgepriority $sgeoptions ";
-                $cmd .= " -j y -o $path/stage3.sgeout ";
-                $cmd .= " -hold_jid \"p$sgename\" ";
-                $cmd .= " -N \"o$sgename\" ";
-                $cmd .= " $ESTmappersh $ESTmapper -restart $path";
-
-                if (runCommand($cmd)) {
-                    die "Failed.\n";
-                }
-
-                print STDERR "ESTmapper/polish-- Finish submitted.   See ya later!\n";
-
-                exit(0);
+            exit(0);
         } else {
+            print STDERR "ESTmapper/polish-- Running locally, $numproc at a time.\n";
+
+            &scheduler::schedulerSetNumberOfProcesses($numproc);
+            &scheduler::schedulerSetShowCommands(0);
+            &scheduler::schedulerSetShowStatus(1);
+
+            foreach my $cmd (@jobsToRun) {
+                &scheduler::schedulerSubmit("/bin/sh $path/3-polish/polish.sh $cmd");
+            }
+
+            &scheduler::schedulerFinish();
+
+            #unlink "$path/3-polish/run.sh";
         }
     }
 
 
+    #  Make sure that all the polishes are finished and OK.
+    #  If not, print dire warnings and exit.
     #
-    #  Summarize run-time performance of the jobs
-    #
-    my $clkTime = 0;
-    my $sysTime = 0;
-    my $usrTime = 0;
-    open(F, "< $path/3-polish/run-script");
-    while (!eof(F)) {
-        my $idx = <F>;  chomp $idx;
-        my $cmd = <F>;
+    my $fail = 0;
 
-        if (-e "$path/3-polish/$idx.stats") {
-            open(X, "< $path/3-polish/$idx.stats");
-            while (<X>) {
-                $clkTime += $1 if (m/^clockTime:\s+(\d+\.\d+)$/);
-                $sysTime += $1 if (m/^systemTime:\s+(\d+\.\d+)$/);
-                $usrTime += $1 if (m/^userTime:\s+(\d+\.\d+)$/);
-            }
-            close(X);
+    open(F, "< $path/3-polish/partitions") or die "Failed to open '$path/3-polish/partitions'\n";;
+    while (<F>) {
+        chomp;
+        if (! -e "$path/3-polish/$_.success") {
+            $fail++;
+            print STDERR "ESTmapper/polish-- segment $_ failed.\n";
         }
     }
     close(F);
 
-    print STDERR "ESTmapper: sim4db required $clkTime seconds wall-clock time.\n";
-    print STDERR "ESTmapper: sim4db required $sysTime seconds system time.\n";
-    print STDERR "ESTmapper: sim4db required $usrTime seconds user time.\n";
+    die "Dang." if ($fail);
+
+    #  Hooray!  Now we're all done!
+
+    open(F, "> $args{'path'}/3-polish/allDone");
+    close(F);
+
     print STDERR "ESTmapper: Polish script finished in ", time() - $startTime, " wall-clock seconds.\n" if (time() > $startTime + 5);
 }
 

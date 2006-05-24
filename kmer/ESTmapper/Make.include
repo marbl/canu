@@ -3,7 +3,8 @@
 LIBUTL/     :=$(call MakePath,$/../libutil/)
 LIBBIO/     :=$(call MakePath,$/../libbio/)
 LIBKMER/    :=$(call MakePath,$/../libkmer/)
-LIBBIO/     :=$(call MakePath,$/../libbio/)
+LIBSIM4/    :=$(call MakePath,$/../libsim4/)
+
 LEAFF/      :=$(call MakePath,$/../leaff/)
 SEAGEN/     :=$(call MakePath,$/../seagen/)
 SIM4DB/     :=$(call MakePath,$/../sim4db/)
@@ -27,22 +28,24 @@ EXECS :=  $/leaff \
           $/pickBestPolish \
           $/parseSNP \
           $/positionDB \
+          $/terminate \
           $/util/scheduler.pm \
           $/util/fasta.pm
           
 
-$(eval $/%.d $/%.o: CXXFLAGS+=-I${LIBKMER/} -I${LIBBIO/} -I${LIBUTL/})
+$(eval $/%.d $/%.o: CXXFLAGS+=-I${LIBKMER/} -I${LIBBIO/} -I${LIBSIM4/} -I${LIBUTL/})
 
-$/.CXX_SRCS  := $/mergeCounts.C $/mersInMerStreamFile.C
-$/.CXX_EXES  := $/mergeCounts   $/mersInMerStreamFile
+$/.CXX_SRCS  := $/mergeCounts.C $/mersInMerStreamFile.C $/terminate.C
+$/.CXX_EXES  := $/mergeCounts   $/mersInMerStreamFile   $/terminate
 
-$/mergeCounts: $/mergeCounts.o
+$/mergeCounts:         $/mergeCounts.o
 $/mersInMerStreamFile: $/mersInMerStreamFile.o ${LIBKMER/}libkmer.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+$/terminate:           $/terminate.o ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a ${LIBSIM4/}libsim4.a
 
 $/.CLEAN      := $/*.o
-$/.REAL-CLEAN := $/mergeCounts ${EXECS}
+$/.REAL-CLEAN := mergeCounts mersInMerStreamFile terminate ${EXECS}
 
-all:  $/mergeCounts ${EXECS}
+all:  $/mergeCounts $/terminate ${EXECS}
 
 $/util/scheduler.pm: ${SCRIPTS/}scheduler.pm
 	$(RM) $/util/scheduler.pm
@@ -123,3 +126,7 @@ $/positionDB: ${LIBKMER/}positionDB
 	$(RM) $/positionDB
 	$(CP) ${LIBKMER/}positionDB $/positionDB
 	chmod 555 $/positionDB
+
+
+
+

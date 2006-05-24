@@ -1,8 +1,8 @@
 #!/usr/bin/perl
 
-#                    Confidential -- Do Not Distribute
-#   Copyright (c) 2002 PE Corporation (NY) through the Celera Genomics Group
-#                           All Rights Reserved.
+#  Copyright (c) 2002 PE Corporation (NY) through the Celera Genomics Group
+#  Copyright (c) 2003, 2004 Applied Biosystems
+#  Copyright (c) 2004, 2005, 2006 Brian Walenz
 
 $| = 1;
 
@@ -10,252 +10,96 @@ $| = 1;
 
 use strict;
 
-use vars qw($personality $exechome $ESTmapper $ESTmappersh
-            $searchGENOME $mergeCounts $filterEST $filterMRNA $filterNULL $sim4db $leaff
-            $cleanPolishes $toFILTER $sortHits $sortPolishes $parseSNPs
-            $pickBest $positionDB $mimsf);
+use vars "%prog", "%args";
 
 use FindBin;
 use lib "$FindBin::Bin/util";
 use scheduler;
 use fasta;
 
-require "checkArgs.pl";
 require "run.pl";
-require "lsf.pl";
-require "util.pl";
 require "1-configure.pl";
 require "2-search.pl";
 require "3-filter.pl";
 require "4-polish.pl";
 require "5-assemble.pl";
 
-my $scriptVersion = "9";
-my $startTime   = time();
+setExecutables();
+parseArgs(@ARGV);
 
-$exechome      = "$FindBin::Bin";
-$ESTmapper     = "$exechome/ESTmapper.pl";
-$ESTmappersh   = "$exechome/ESTmapper.sh";
-$searchGENOME  = "$exechome/seagen";
-$mergeCounts   = "$exechome/mergeCounts";
-$filterEST     = "$exechome/filterEST";
-$filterMRNA    = "$exechome/filterMRNA";
-$filterNULL    = "$exechome/filterNULL";
-$sim4db        = "$exechome/sim4th";
-$leaff         = "$exechome/leaff";
-$cleanPolishes = "$exechome/cleanPolishes";
-$toFILTER      = "$exechome/filterPolishes";
-$sortHits      = "$exechome/sortHits";
-$sortPolishes  = "$exechome/sortPolishes";
-$parseSNPs     = "$exechome/parseSNP";
-$pickBest      = "$exechome/pickBestPolish";
-$positionDB    = "$exechome/positionDB";
-$mimsf         = "$exechome/mersInMerStreamFile";
-$personality   = "-help";
+if      ($args{'runstyle'} eq "est") {
+    configure();
+    search();
+    filter();
+    polish();
+    assembleOutput();
+} elsif ($args{'runstyle'} eq "mrna") {
+    $args{'relink'} = 1000;
+    $args{'abort'}  = 1;
+
+    configure();
+    search();
+    filter();
+    polish();
+    assembleOutput();
+} elsif ($args{'runstyle'} eq "snp") {
+    $args{'minidentity'} = 95;
+    $args{'mincoverage'} = 80;
+
+    configure();
+    search();
+    filter();
+    polish();
+    assembleOutput();
+    parseSNP();
+} elsif ($args{'runstyle'} eq "-time") {
+    summarizeTime();
+    exit(0);
+} else {
+    print STDERR "Basic help N/A.\n";
+}
+
+print STDERR "ESTmapper: script finished everything in ", time() - $args{'startTime'}, " wall-clock seconds.\n" if (time() != $args{'startTime'});
 
 
-die "Can't find/execute $searchGENOME\n"  if (! -x $searchGENOME);
-die "Can't find/execute $mergeCounts\n"   if (! -x $mergeCounts);
-die "Can't find/execute $filterEST\n"     if (! -x $filterEST);
-die "Can't find/execute $filterMRNA\n"    if (! -x $filterMRNA);
-die "Can't find/execute $filterNULL\n"    if (! -x $filterNULL);
-die "Can't find/execute $sim4db\n"        if (! -x $sim4db);
-die "Can't find/execute $leaff\n"         if (! -x $leaff);
-die "Can't find/execute $cleanPolishes\n" if (! -x $cleanPolishes);
-die "Can't find/execute $sortHits\n"      if (! -x $sortHits);
-die "Can't find/execute $sortPolishes\n"  if (! -x $sortPolishes);
-die "Can't find/execute $parseSNPs\n"     if (! -x $parseSNPs);
-die "Can't find/execute $pickBest\n"      if (! -x $pickBest);
-
-
-#  Create a .runInformaiton file, containing supposedly useful information
-#  about this run.
-#
-sub createRunInformation {
-    my ($dir, @ARGS) = @_;
+if (-e $args{'runInforFile'}) {
     my $time = time();
 
-    mkdir "$dir" if (! -d "$dir");
-
-    my $runInformationFile = "$dir/.runInformation.$time";
-
-    print STDERR "ESTmapper: This is run $runInformationFile\n";
-    print STDERR "ESTmapper: The following options are in effect:";
-    foreach my $opt (@ARGS) {
-        print STDERR "\nESTmapper:\t" if ($opt =~ m/^-/);
-        print STDERR "$opt ";
-    }
-    print STDERR "\n";
-
-    #  Write some information and the args to a run info file
-    #
-    open(F, "> $runInformationFile");
-    print F "startTime:  $time (", scalar(localtime($time)), ")\n";
-    print F "operator:   $ENV{'USER'}\n";
-    print F "host:       " . `uname -a`;
-    print F "version:    $scriptVersion\n";
-    print F "parameters:";
-    foreach my $a (@ARGS) { print F " $a"; }
-    print F "\n";
+    open(F, ">> $args{'runInforFile'}");
+    print F "endTime:  $time (", scalar(localtime($time)), ")\n";
     close(F);
-
-    unlink "$dir/.runInformation";
-    symlink "$dir/.runInformation.$time", "$dir/.runInformation";
-
-    #  Write the current set of args to the runOptions file
-    #
-    open(F, "> $dir/.runOptions");
-    foreach my $a (@ARGS) { print F "$a\n"; }
-    close(F);
-
-    return($runInformationFile);
 }
 
-
-
-sub sTOhms {
-    my ($s, $m, $h) = @_;
-    $h = $s / 3600;
-    $m = int(($h - int($h)) * 60);
-    $h = int($h);
-    $s = int($s);
-    return($h,$m,$s);
-}
+exit(0);
 
 
 
 
 
-#  Figure out the $dir, $est and $gen.
-#
-my $dir;
-my $est;
-my $gen;
-my @junkargs = @ARGV;
-while (scalar(@junkargs) > 0) {
-    my $opt = shift @junkargs;
-
-    if ($opt eq "-help") {
-        $personality = $opt;
-    }
-
-    if ($opt eq "-time") {
-        $personality = $opt;
-        $dir = shift @junkargs;
-    }
-
-    if ($opt eq "-restart") {
-        $personality = $opt;
-        $dir = shift @junkargs;
-    }
-
-    if ($opt eq "-mapest") {
-        $personality = $opt;
-        $dir = shift @junkargs;
-        $est = shift @junkargs;
-        $gen = shift @junkargs;
-    }
-
-    if ($opt eq "-mapsnp") {
-        $personality = $opt;
-        $dir = shift @junkargs;
-        $est = shift @junkargs;
-        $gen = shift @junkargs;
-    }
-
-    if ($opt eq "-mapmrna") {
-        $personality = $opt;
-        $dir = shift @junkargs;
-        $est = shift @junkargs;
-        $gen = shift @junkargs;
-    }
-}
-
-
-#  If we are asked to restart, ensure that we are doing mapest,
-#  mapmrna or mapsnp, read in the original args, and prepend those to
-#  the current args.  This lets us override original options, e.g.,
-#  the quality levels.
-#
-if ($personality eq "-restart") {
-    if (! -e "$dir/.runOptions") {
-        print STDERR "ESTmapper/restart-- Nothing to restart!\n";
-        exit;
-    }
-
-    open(F, "< $dir/.runOptions");
-    my @origARGS = <F>;
-    chomp @origARGS;
-    close(F);
-
-    @ARGV = (@origARGS, @ARGV);
-
-    $personality = "-help";
-
-    @junkargs = @ARGV;
-    while (scalar(@junkargs) > 0) {
-        my $opt = shift @junkargs;
-
-        if (($opt eq "-mapest")  ||
-            ($opt eq "-mapmrna") ||
-            ($opt eq "-mapsnp")) {
-            $personality = $opt;
-            $dir = shift @junkargs;
-            $est = shift @junkargs;
-            $gen = shift @junkargs;
-        }
-    }
-
-    print STDERR "ESTmapper: Reastarting with the following options:";
-    foreach my $opt (@ARGV) {
-        print STDERR "\nESTmapper:\t" if ($opt =~ m/^-/);
-        print STDERR "$opt ";
-    }
-    print STDERR "\n";
-}
 
 
 
-checkArgs(@ARGV);
 
-my $runInformationFile;
 
-if ($personality eq "-mapest") {
-    $runInformationFile = createRunInformation($dir, @ARGV);
 
-    configure      ($dir, $gen, $est);
-    search         ("-searchest", "$dir", "-mersize", "20", "-species", "human", @ARGV);
-    filter         ("-filterest", "$dir", @ARGV);
-    polish         ("-polish", "$dir", "-mincoverage", "50", "-minidentity", "95", @ARGV);
-    assembleOutput ("-assembleoutput", "$dir", "-mincoverage", "50", "-minidentity", "95", @ARGV);
-} elsif ($personality eq "-mapmrna") {
-    $runInformationFile = createRunInformation($dir, @ARGV);
 
-    configure      ($dir, $gen, $est);
-    search         ("-searchmrna", "$dir", "-mersize", "20", "-species", "human", @ARGV);
-    filter         ("-filtermrna", "$dir", @ARGV);
-    polish         ("-polish", "$dir", "-mincoverage", "50", "-minidentity", "95", "-relink", "1000", "-abort", @ARGV);
-    assembleOutput ("-assembleoutput", "$dir", "-mincoverage", "50", "-minidentity", "95", @ARGV);
-} elsif ($personality eq "-mapsnp") {
-    $runInformationFile = createRunInformation($dir, @ARGV);
 
-    configure      ($dir, $gen, $est);
-    search         ("-searchsnp", "$dir", "-mersize", "20", "-species", "human", @ARGV);
-    filter         ("-filtersnp", "$dir", @ARGV);
-    polish         ("-polish", "$dir", "-mincoverage", "80", "-minidentity", "95", @ARGV);
-    assembleOutput ("-assembleoutput", "$dir", "-mincoverage", "80", "-minidentity", "95", @ARGV);
 
+
+
+
+sub parseSNP {
     #  Parse the SNPs out
     #
-    if (! -e "$dir/snps-parsed") {
+    if (! -e "$args{'path'}/snps-parsed") {
         print STDERR "ESTmapper--  Parsing the SNPs\n";
 
         #  Sort, if needed.
         #
-        if (! -e "$dir/polishes-good.sorted") {
+        if (! -e "$args{'path'}/polishes-good.sorted") {
             print STDERR "ESTmapper--  Sorting polishes by sequence ID; using 2GB memory maximum.\n";
-            if (runCommand("$sortPolishes -m 2000 -c < $dir/polishes-good > $dir/polishes-good.sorted")) {
-                unlink "$dir/polishes-good.sorted";
+            if (runCommand("$prog{'sortPolishes'} -m 2000 -c < $args{'path'}/polishes-good > $args{'path'}/polishes-good.sorted")) {
+                unlink "$args{'path'}/polishes-good.sorted";
                 die "Failed to sort the polishes.\n";
             }
         }
@@ -292,20 +136,34 @@ if ($personality eq "-mapest") {
 
         #  PARSE!
         #
-        if (runCommand("$parseSNPs $snpdelimiter $snpsizetag $snppostag $snpoffset $snpoutformat -F $dir/snps-failed -O $dir/snps-parsed < $dir/polishes-good.sorted > $dir/summary-snps")) {
-            unlink "$dir/snps-failed";
-            unlink "$dir/snps-parsed";
-            unlink "$dir/summary-snps";
+        if (runCommand("$prog{'parseSNPs'} $snpdelimiter $snpsizetag $snppostag $snpoffset $snpoutformat -F $args{'path'}/snps-failed -O $args{'path'}/snps-parsed < $args{'path'}/polishes-good.sorted > $args{'path'}/summary-snps")) {
+            unlink "$args{'path'}/snps-failed";
+            unlink "$args{'path'}/snps-parsed";
+            unlink "$args{'path'}/summary-snps";
             die "Failed to parse SNP locations from polishes.\n";
         }
     }
-} elsif ($personality eq "-time") {
+}
+
+
+
+
+sub sTOhms ($) {
+    my ($s, $m, $h) = @_;
+    $h = $s / 3600;
+    $m = int(($h - int($h)) * 60);
+    $h = int($h);
+    $s = int($s);
+    return($h,$m,$s);
+}
+
+sub summarizeTime {
     my ($sysTimeS, $usrTimeS, $clkTimeS);
     my ($sysTimeH, $usrTimeH, $clkTimeH);
     my ($sysTimeM, $usrTimeM, $clkTimeM);
 
     $sysTimeS = $usrTimeS = $clkTimeS = 0;
-    open(F, "find $dir/1-search -name *.stats -print |");
+    open(F, "find $args{'path'}/1-search -name *.stats -print |");
     while (<F>) {
         chomp;
         open(G, "< $_");
@@ -326,7 +184,7 @@ if ($personality eq "-mapest") {
     printf STDOUT "ESTmapper: search required %7d seconds user   (%3d:%02d).\n", $usrTimeS, $usrTimeH, $usrTimeM;
 
     $sysTimeS = $usrTimeS = $clkTimeS = 0;
-    open(F, "find $dir/3-polish -name *.stats -print |");
+    open(F, "find $args{'path'}/3-polish -name *.stats -print |");
     while (<F>) {
         chomp;
         open(G, "< $_");
@@ -345,29 +203,4 @@ if ($personality eq "-mapest") {
     printf STDOUT "ESTmapper: polish required %7d seconds wall   (%3d:%02d).\n", $clkTimeS, $clkTimeH, $clkTimeM;
     printf STDOUT "ESTmapper: polish required %7d seconds system (%3d:%02d).\n", $sysTimeS, $sysTimeH, $sysTimeM;
     printf STDOUT "ESTmapper: polish required %7d seconds user   (%3d:%02d).\n", $usrTimeS, $usrTimeH, $usrTimeM;
-
-    exit(0);
-} else {
-    print STDERR "Basic help:\n";
-    print STDERR "\n";
-    print STDERR "  ESTmapper.pl -mapest  work-directory ests.fasta genomic.fasta\n";
-    print STDERR "\n";
-    print STDERR "or\n";
-    print STDERR "\n";
-    print STDERR "  ESTmapper.pl -mapmrna work-directory mrna.fasta genomic.fasta\n";
-    print STDERR "\n";
-    print STDERR "Read the manual for details.\n";
 }
-
-print STDERR "ESTmapper: script finished everything in ", time() - $startTime, " wall-clock seconds.\n" if (time() != $startTime);
-
-
-if (defined($runInformationFile)) {
-    my $time = time();
-
-    open(F, ">> $runInformationFile");
-    print F "endTime:  $time (", scalar(localtime($time)), ")\n";
-    close(F);
-}
-
-exit(0);

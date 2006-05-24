@@ -1,91 +1,31 @@
 use strict;
 
-
-#  Make sure that all the polishes are finished and OK.
-#  Returns 0 if all done, 1 if not done.
+#  This is way too complicated.
 #
-sub polishesNotDone {
-    my ($path) = @_;
-
-    my $failed = 0;
-
-    open(F, "< $path/3-polish/run-script");
-    while (!eof(F)) {
-        my $idx = <F>;  chomp $idx;
-        my $cmd  = <F>;
-        if (! -e "$path/3-polish/$idx.touch") {
-            print STDERR "Polish $idx failed to finish.\n";
-            $failed = 1;
-        }
-    }
-    close(F);
-
-    return $failed;
-}
+#  1) Collect output from 4-polish, put into polishes-good
+#  2) Filter -> polishes-best
+#
+#  Given as input a single polishes file and a cdna file,
+#  we need an executable that: 
+#    Generate stats on mapping, good and best, missing, zero
+#    Filter cDNA to good, missing, zero
 
 
 sub assembleOutput {
     my $startTime   = time();
-    my $errHdr      = "";
-    my @ARGS        = @_;
-    my $path        = "";
-    my $minc        = 50;
-    my $mini        = 95;
-    my $minl        = 0;
-    my $intronLimit = 100000;
-    my $deletetemp  = 1;
 
-    my $farmname;
-    my $farmcode;
-    my $finiqueue;
+    my $path        = $args{'path'};
+    my $mini        = ($args{'minidentity'} or 95);
+    my $minc        = ($args{'mincoverage'} or 50);
+    my $minl        = ($args{'minlength'}   or 0);
+
+    my $intronLimit = $args{'cleanup'} or 100000;
 
     print STDERR "ESTmapper: Performing an assembleOutput.\n";
 
-    while (scalar @ARGS > 0) {
-        my $arg = shift @ARGS;
-
-        $path        = shift @ARGS            if ($arg eq "-assembleoutput");
-        $minc        = shift @ARGS            if ($arg eq "-mincoverage");
-        $mini        = shift @ARGS            if ($arg eq "-minidentity");
-        $minl        = shift @ARGS            if ($arg eq "-minlength");
-        $intronLimit = int(shift @ARGS)       if ($arg eq "-cleanup");
-        $intronLimit = 0                      if ($arg eq "-nocleanup");
-        $deletetemp  = 0                      if ($arg eq "-savetemporary");
-
-        $farmname  = shift @ARGS if ($arg eq "-lsfjobname");
-        $farmcode  = shift @ARGS if ($arg eq "-lsfproject");
-        $finiqueue = shift @ARGS if ($arg eq "-lsffinishqueue");
-    }
-
-    ($path eq "")                   and die "ERROR: ESTmapper/assembleOutput-- no directory given.\n";
-    (! -d "$path")                  and die "ERROR: ESTmapper/assembleOutput-- no directory '$path' found!\n";
     (($mini < 0) || ($mini > 100))  and die "ERROR: ESTmapper/assembleOutput-- supply a value 0 <= x <= 100 for minidentity!\n";
     (($minc < 0) || ($minc > 100))  and die "ERROR: ESTmapper/assembleOutput-- supply a value 0 <= x <= 100 for mincoverage!\n";
     ($minl < 0)                     and die "ERROR: ESTmapper/assembleOutput-- supply a value x >= 0 for minlength!\n";
-
-    (polishesNotDone($path) > 0) and die "There are unfinished polishing jobs.\n";
-
-
-    #  If we're supposed to be running on LSF, but we aren't, restart.
-    #  This can occur if the searches have finished, but the filter
-    #  didn't, and we restart.  (also in 3-filter.pl)
-    #
-    if (((! -e "$path/summary") || (-z "$path/summary")) &&
-        defined($finiqueue) &&
-        !defined($ENV{'LSB_JOBID'})) {
-        my $cmd;
-        $cmd  = "bsub -q $finiqueue -P $farmcode -R \"select[mem>200]rusage[mem=200]\" -o $path/stage3.lsfout ";
-        $cmd .= " -J \"o$farmname\" ";
-        $cmd .= " $ESTmapper -restart $path";
-
-        if (runCommand($cmd)) {
-            die "ESTmapper/assembleOutput-- Failed to restart LSF execution.";
-        }
-
-        print STDERR "ESTmapper/assembleOutput-- Restarted LSF execution.\n";
-
-        exit;
-    }
 
 
 
@@ -141,6 +81,18 @@ sub assembleOutput {
 
 
 
+    #  If we're supposed to be running on LSF, but we aren't, restart.
+    #  This can occur if the searches have finished, but the filter
+    #  didn't, and we restart.  (also in 3-filter.pl)
+    #
+    if (defined($args{'sgename'}) && !defined($ENV{'SGE_TASK_ID'})) {
+        submitFinish();
+        print STDERR "ESTmapper/filter-- Restarted LSF execution.\n";
+        exit;
+    }
+
+
+
     if (! -e "$path/polishes-good") {
         print STDERR "ESTmapper/assembleOutput-- filtering polishes by quality.\n";
 
@@ -151,9 +103,9 @@ sub assembleOutput {
         #  Find all the polishes, run them through the cleaner, and filter by quality.
         #
         my $cmd;
-        $cmd  = "find $path/3-polish/ -name '*.polished' -print | sort | xargs -n 100 cat | ";
-        $cmd .= "$cleanPolishes -threshold $intronLimit -savejunk | " if ($intronLimit);
-        $cmd .= "$toFILTER -c $minc -i $mini -l $minl -o $path/polishes-good -j $path/polishes-aborted > /dev/null";
+        $cmd  = "find $path/3-polish/ -name '*.sim4db' -print | sort | xargs -n 100 cat | ";
+        $cmd .= "$prog{'cleanPolishes'} -threshold $intronLimit -savejunk | " if (defined($args{'cleanup'}));
+        $cmd .= "$prog{'toFILTER'} -c $minc -i $mini -l $minl -o $path/polishes-good -j $path/polishes-aborted > /dev/null";
 
         if (runCommand($cmd)) {
             unlink "$path/polishes-good";
@@ -171,15 +123,15 @@ sub assembleOutput {
 
 
     if (! -e "$path/polishes-best") {
-        if      ($personality eq "-mapmrna") {
+        if      ($args{'runstyle'} eq "mrna") {
             print STDERR "ESTmapper/assembleOutput--  Picking the best mRNA polish.\n";
-            if (runCommand("$sortPolishes -m 400 -c < $path/polishes-good | $pickBest -mrna > $path/polishes-best")) {
+            if (runCommand("$prog{'sortPolishes'} -m 400 -c < $path/polishes-good | $prog{'pickBest'} -mrna > $path/polishes-best")) {
                 unlink "$path/polishes-best";
                 die "Failed.";
             }
-        } elsif ($personality eq "-mapest") {
+        } elsif ($args{'runstyle'} eq "est") {
             print STDERR "ESTmapper/assembleOutput--  Picking the best EST polish.\n";
-            if (runCommand("$sortPolishes -m 400 -c < $path/polishes-good | $pickBest -est > $path/polishes-best")) {
+            if (runCommand("$prog{'sortPolishes'} -m 400 -c < $path/polishes-good | $prog{'pickBest'} -est > $path/polishes-best")) {
                 unlink "$path/polishes-best";
                 die "Failed.";
             }
@@ -192,43 +144,37 @@ sub assembleOutput {
     #  Segregate the sequences
     #
 
-    if (! -e "$path/cDNA-missing.fasta") {
-        unlink "$path/summary";
+    #  XXXX  if the filter prints a list of repeats, we should add those here!
 
-        #  For each polished file, figure out the ESTs that belong with those polishes.
-        #  cDNA-good.fasta, cDNA-lowquality.fasta, cDNA-zero.fasta, cDNA-missing.fasta
-        #
-        print STDERR "ESTmapper/assembleOutput-- finding 'good' cDNA.\n";
-        splitFastABasedOnPolishes("$path/0-input/cDNA.fasta",
-                                  "$path/polishes-good",
-                                  "$path/cDNA-good.fasta",
-                                  "$path/cDNA-lost.fasta");
-
-        if (-e "$path/2-filter/repeats") {
-            print STDERR "ESTmapper/assembleOutput-- finding 'repeat' cDNA.\n";
-            if (runCommand("$leaff -F $path/0-input/cDNA.fasta -q $path/2-filter/repeats > $path/cDNA-repeat.fasta")) {
-                unlink "$path/cDNA-repeat.fasta";
-                die "Failed.";
+    if (! -e "$path/cDNA-good.fasta") {
+        my $iid = 0;
+        open(F, "< $path/2-filter/hitCounts");
+        open(G, "> $path/zero-hit-iid");
+        while (<F>) {
+            if ($_ == 0) {
+                print G "$iid\n";
             }
+            $iid++;
+        }
+        close(G);
+        close(F);
+
+        my $cmd;
+        $cmd  = "/home/work/src/genomics/ESTmapper/terminate";
+        $cmd .= " -P $path/polishes-best $path/cDNA-best.fasta";
+        $cmd .= " -P $path/polishes-good $path/cDNA-good.fasta";
+        $cmd .= " -I $path/zero-hit-iid  $path/cDNA-zero.fasta";
+        $cmd .= " -O $path/cDNA-missing.fasta";
+        $cmd .= " -i $path/0-input/cDNA.fasta";
+        print $cmd;
+        if (runCommand($cmd)) {
+            rename "$path/cDNA-good.fasta", "$path/cDNA-good.fasta.FAILED";
+            rename "$path/cDNA-missing.fasta", "$path/cDNA-missing.fasta.FAILED";
+            rename "$path/cDNA-zero.fasta", "$path/cDNA-zero.fasta.FAILED";
+            die "Failed.\n";
         }
 
-        print STDERR "ESTmapper/assembleOutput-- finding 'zero hit' cDNA.\n";
-        copyZeroFastA("$path/0-input/cDNA.fasta",
-                      "$path/2-filter/hitCounts",
-                      "$path/cDNA-zero.fasta");
-
-        #  subtractFastAfromFastA checks for input file existance, so we need
-        #  not worry that cDNA-repeat.fasta might not exist
-        #
-        print STDERR "ESTmapper/assembleOutput-- finding 'missing' cDNA.\n";
-        subtractFastAfromFastA("$path/cDNA-lost.fasta",
-                               "$path/cDNA-repeat.fasta",
-                               "$path/cDNA-zero.fasta",
-                               "$path/cDNA-missing.fasta");
-
-        #  Remove the temporary files
-        #
-        unlink "$path/cDNA-lost.fasta";
+        unlink "zero-hit-iid";
     }
 
     #
@@ -271,7 +217,7 @@ sub assembleOutput {
     #
     #  All done!
     #
-    if ($deletetemp) {
+    if ($args{'savetemporary'} != 1) {
         if (runCommand("rm -rf $path/1-search $path/2-filter $path/3-polish")) {
             print STDERR "ESTmapper/assembleOutput-- WARNING: Failed to remove temporary directories.\n";
         }
@@ -280,6 +226,55 @@ sub assembleOutput {
 
     print STDERR "ESTmapper: assembleOutput script finished in ", time() - $startTime, " wall-clock seconds.\n" if (time() > $startTime + 5);
 }
+
+
+
+######################################################################
+#
+#  Generates a report on a set of polishes.
+#
+#  number of cDNA-scaffold matches
+#  number of different cDNA sequences in the set
+#  number of different scaffolds in the set
+#
+sub summarizePolishes {
+    my (@files) = @_;
+
+    my %est;
+    my %scf;
+    my $mat = 0;
+    my $ests = 0;
+    my $scfs = 0;
+
+    foreach my $infile (@files) {
+        open(INPUT, "< $infile");
+
+        while (<INPUT>) {
+            if (m/^sim4begin$/) {
+                $mat++;
+            } elsif (m/^edef=/) {
+                $ests++;
+                $est{$_} = 1;
+            } elsif (m/^ddef=/) {
+                $scfs++;
+                $scf{$_} = 1;
+            }
+        }
+
+        close(INPUT);
+    }
+
+    if (($ests != $mat) || ($scfs != $mat)) {
+        print STDERR "WARNING: summarizePolishes counted\n";
+        print STDERR "           $mat matches\n";
+        print STDERR "           $ests cDNA deflines\n";
+        print STDERR "           $scfs scaffold deflines\n";
+        print STDERR "         The number of deflines and the number of matches should be the same!\n";
+    }
+
+    return($mat, (scalar (keys %est)), (scalar (keys %scf)));
+}
+
 
 
 1;
