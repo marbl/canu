@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl
 
-# $Id: caqc.pl,v 1.3 2006-05-24 14:23:00 eliv Exp $
+# $Id: caqc.pl,v 1.4 2006-05-24 17:28:50 eliv Exp $
 #
 # This program reads a Celera .asm file and produces aggregate information
 # about the assembly
@@ -18,7 +18,7 @@ use TIGR::AsmLib;
 
 use Time::HiRes;
 
-my $MY_VERSION = " Version 2.11 (Build " . (qw/$Revision: 1.3 $/ )[1] . ")";
+my $MY_VERSION = " Version 2.11 (Build " . (qw/$Revision: 1.4 $/ )[1] . ")";
 
 # Constants
 my $MINQUAL = 20;
@@ -339,7 +339,9 @@ MAIN:
 		$Results{ReadsWithBothSurrMate}++;
 	    } elsif ($$fields{'mst'} eq 'Z'){
 		$Results{ReadsWithUnassigned}++;
-	    }
+	    } else {
+		$Results{ReadsWithUnassigned}++;
+        }
 
         $numSingletons++ if $$fields{'cha'} == 1;
 
