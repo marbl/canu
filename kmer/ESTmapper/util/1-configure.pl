@@ -36,19 +36,19 @@ sub parseArgs (@) {
     while (scalar(@ARGS) > 0) {
         my $arg = shift @ARGS;
 
-        if      ($arg =~ m/^-directory/) {
+        if      (($arg =~ m/^-dir/) || ($arg =~ m/^-path/)) {
             $args{'path'} = shift @ARGS;
         } elsif ($arg =~ m/^-genome/) {
             $args{'genome'} = shift @ARGS;
 
-        } elsif ($arg =~ m/^-restart/) {
-            $args{'runstyle'} = "restart";
-            $args{'path'}  = shift @ARGS;
         } elsif (($arg =~ m/^-map(est)/) ||
                  ($arg =~ m/^-map(mrna)/) ||
                  ($arg =~ m/^-map(snp)/)) {
             $args{'runstyle'} = $1;
             $args{'queries'}  = shift @ARGS;
+        } elsif ($arg =~ m/^-restart/) {
+            $args{'runstyle'} = "restart";
+            $args{'path'}  = shift @ARGS;
         } elsif ($arg =~ m/^-help/) {
             $args{'runstyle'} = "help";
         } elsif ($arg =~ m/^-time/) {
@@ -126,6 +126,11 @@ sub parseArgs (@) {
             delete $args{'aligns'};
         } elsif ($arg =~ m/^-abort/) {
             $args{'abort'} = 1;
+        } elsif ($arg =~ m/^-nofilter/) {
+            $args{'nofilter'} = 1;
+        } elsif ($arg =~ m/^-yn/) {
+            $args{'nofilter'} = 1;
+            $args{'sim4-yn'} = 1;
         }
 
         #

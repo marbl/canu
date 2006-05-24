@@ -5,8 +5,6 @@ sub submitFilter (@) {
     my $watch = join ",", @_;
     my $path  = $args{'path'};
 
-    print STDERR "submitFilter\n";
-
     open(F, "> $path/1-search/filter-restart.sh");
     print F "#!/bin/sh\n";
     print F "/usr/bin/perl $prog{'ESTmapper'} -restart $path\n";
@@ -27,8 +25,6 @@ sub submitFilter (@) {
 sub submitFinish (@) {
     my $watch = join ",", @_;
     my $path  = $args{'path'};
-
-    print STDERR "submitFinish\n";
 
     open(F, "> $path/3-polish/finish-restart.sh");
     print F "#!/bin/sh\n";

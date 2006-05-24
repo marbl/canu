@@ -133,7 +133,7 @@ sub polish {
     print F "  -script      $path/3-polish/\$jid.sim4script \\\n";
     print F "  -output      $path/3-polish/\$jid.sim4db \\\n";
     print F "  -stats       $path/3-polish/\$jid.stats \\\n" if ($stats == 1);
-    print F "  -YN          $path/3-polish/\$jid.yn \\\n";
+    print F "  -YN          $path/3-polish/\$jid.yn \\\n" if ($args{'sim4-yn'} == 1);
     print F "&& \\\n";
     print F "touch $path/3-polish/\$jid.success\n";
     close(F);

@@ -40,22 +40,24 @@ sub filter {
 
     #  No verbose for filterNULL!
     #
-    my $fcmd = "$prog{'filterNULL'} $path/1-search/*hits > $path/2-filter/filtHits";
+    my $fcmd;
 
     #  bpw, 20051005, this isn't the perfect EST filter, but it does
     #  nearly as good as the best filter I've seen, and produces
     #  significantly fewer false positives.
 
-    #  XXX  need to add a "nofilter" option, and enable -yn in sim4
-
-    if (0) {
-    if      ($args{'runstyle'} eq "est") {
+    if      ($args{'nofilter'} eq 1) {
+        $fcmd = "$prog{'filterNULL'} $path/1-search/*hits > $path/2-filter/filtHits";
+    } elsif ($args{'runstyle'} eq "est") {
         $fcmd = "$prog{'filterEST'} -u 200000000000 -r 0 -log $path/2-filter/filterLog $path/1-search/*hits > $path/2-filter/filtHits";
     } elsif ($args{'runstyle'} eq "snp") {
         $fcmd = "$prog{'filterMRNA'} $verbose $path/1-search/*hits > $path/2-filter/filtHits";
     } elsif ($args{'runstyle'} eq "mrna") {
         $fcmd = "$prog{'filterMRNA'} $verbose $path/1-search/*hits > $path/2-filter/filtHits";
-    }
+    } else {
+        print STDERR "ESTmapper/filter-- nofilter = $args{'nofilter'}\n";
+        print STDERR "ESTmapper/filter-- runstyle = $args{'runstyle'}\n";
+        die "ESTmapper/filter-- Don't know how to filter!\n";
     }
 
     print STDERR "ESTmapper/filter-- Filtering.\n";
