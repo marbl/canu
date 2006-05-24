@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.19 2006-05-18 18:30:31 vrainish Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.20 2006-05-24 19:45:34 eliv Exp $";
 
 //  reads old and new AFG message (with and w/o chaff field)
 #define AFG_BACKWARDS_COMPATIBLE
@@ -1387,7 +1387,7 @@ static void *Read_AFG_Mesg(FILE *fin)
   
   GET_PAIR(mesg.eaccession,mesg.iaccession,IACCS_FORMAT,"accession field");
   Read_SMA_List(fin,&(mesg.screened));
-  GET_TYPE(ch,"mst:%1[GBNU]","mate status");
+  GET_TYPE(ch,"mst:%1[ZGCLSONHADEURF]","mate status");
   mesg.mate_status = (MateStatType) ch;
   GET_FIELD(mesg.chimeric,"chi:" F_S32,"chimeric flag");
 #ifdef AFG_BACKWARDS_COMPATIBLE
@@ -1626,7 +1626,7 @@ static void *Read_IAF_Mesg(FILE *fin)
   GET_PAIR(mesg.clear_rng.bgn,mesg.clear_rng.end,CLR_FORMAT,
 	   "clear range");
 #endif
-  GET_TYPE(ch,"mst:%1[GBNU]","mate status");
+  GET_TYPE(ch,"mst:%1[ZGCLSONHADEURF]","mate status");
   mesg.mate_status = (MateStatType) ch;
   GET_EOM;
   return ((void *) (&mesg));
