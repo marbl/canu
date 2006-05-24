@@ -23,7 +23,7 @@ cc -g -pg -qfullpath   -qstrict -qbitfields=signed -qchars=signed -qlanglvl=ext 
 -o /work/assembly/rbolanos/IBM_PORT_CDS/ibm_migration_work_dir/cds/AS/obj/GraphCGW_T.o GraphCGW_T.c
 */
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.12 2006-05-24 13:56:29 eliv Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.13 2006-05-24 19:46:47 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -3828,10 +3828,50 @@ void ComputeMatePairDetailedStatus() {
   int numDegen      = 0;
   int numDiffScaf   = 0;
 
+  int duCI = 0;
+  int urCI = 0;
+  int uCI  = 0;
+  int rrCI = 0;
+  int ctig  = 0;
+  int uctig = 0;
+  int rctig = 0;
+  int urctig= 0;
+  int rScaf = 0;
+  int oScaf = 0;
+  int sScaf = 0;
+
+  int fduCI = 0;
+  int furCI = 0;
+  int fuCI  = 0;
+  int frrCI = 0;
+  int fctig  = 0;
+  int fuctig = 0;
+  int frctig = 0;
+  int furctig= 0;
+  int frScaf = 0;
+  int foScaf = 0;
+  int fsScaf = 0;
+
   InitGraphNodeIterator(&nodes, graph, GRAPH_NODE_DEFAULT);
   
   while(NULL != (node = NextGraphNodeIterator(&nodes)))
   {
+    switch (node->type)
+    {
+        case DISCRIMINATORUNIQUECHUNK_CGW: duCI++; break;
+        case UNRESOLVEDCHUNK_CGW:          urCI++; break;
+        case UNIQUECHUNK_CGW:               uCI++; break;
+        case RESOLVEDREPEATCHUNK_CGW:      rrCI++; break;
+        case CONTIG_CGW:                   ctig++; break;
+        case UNIQUECONTIG_CGW:            uctig++; break;
+        case RESOLVEDCONTIG_CGW:          rctig++; break;
+        case UNRESOLVEDCONTIG_CGW:       urctig++; break;
+        case REAL_SCAFFOLD:               rScaf++; break;
+        case OUTPUT_SCAFFOLD:             oScaf++; break;
+        case SCRATCH_SCAFFOLD:            sScaf++; break;
+        default:
+            assert(0);
+    }
 
     ReLoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ma, node->id, graph->type == CI_GRAPH);
     int numFrags  = GetNumIntMultiPoss(ma->f_list);
@@ -3847,7 +3887,7 @@ void ComputeMatePairDetailedStatus() {
       assert(frag->iid == mp->ident);
       if (frag->numLinks == 0) {
         numNoMate++;
-        frag->flags.bits.mateDetail == NO_MATE;
+        frag->flags.bits.mateDetail = NO_MATE;
         continue;
       }
       mate = GetCIFragT(ScaffoldGraph->CIFrags,frag->mateOf);
@@ -3891,6 +3931,22 @@ void ComputeMatePairDetailedStatus() {
 
       fragContig = GetGraphNode( ScaffoldGraph->ContigGraph, frag->contigID);
       AssertPtr(fragContig);
+      switch (fragContig->type)
+      {
+          case DISCRIMINATORUNIQUECHUNK_CGW: fduCI++; break;
+          case UNRESOLVEDCHUNK_CGW:          furCI++; break;
+          case UNIQUECHUNK_CGW:               fuCI++; break;
+          case RESOLVEDREPEATCHUNK_CGW:      frrCI++; break;
+          case CONTIG_CGW:                   fctig++; break;
+          case UNIQUECONTIG_CGW:            fuctig++; break;
+          case RESOLVEDCONTIG_CGW:          frctig++; break;
+          case UNRESOLVEDCONTIG_CGW:       furctig++; break;
+          case REAL_SCAFFOLD:               frScaf++; break;
+          case OUTPUT_SCAFFOLD:             foScaf++; break;
+          case SCRATCH_SCAFFOLD:            fsScaf++; break;
+          default:
+                                            assert(0);
+      }
 
       mateContig = GetGraphNode( ScaffoldGraph->ContigGraph, mate->contigID);
       AssertPtr(mateContig);
@@ -3966,11 +4022,35 @@ void ComputeMatePairDetailedStatus() {
   fprintf(GlobalData->stderrc,"* num chaff mates %d\n",numChaff);
   fprintf(GlobalData->stderrc,"* num both degen mates %d\n",numBothDegen);
   fprintf(GlobalData->stderrc,"* num degen mates %d\n",numDegen);
-  fprintf(GlobalData->stderrc,"* num other scaffold %d\n\n",numDiffScaf);
+  fprintf(GlobalData->stderrc,"* num other scaffold %d\n",numDiffScaf);
   int sum = numNoMate + numGood + numShort + numLong + numSame + numOuttie +
          numBothChaff + numChaff + numBothDegen + numDegen + numDiffScaf;
   fprintf(GlobalData->stderrc,"* sum of frag mate status %d\n\n",sum);
   assert( sum == numTotalFrags );
+  fprintf(GlobalData->stderrc,"* Counts of top level node type\n");
+  fprintf(GlobalData->stderrc,"* num DISCRIMINATORUNIQUECHUNK_CGW %d\n", duCI);
+  fprintf(GlobalData->stderrc,"* num UNRESOLVEDCHUNK_CGW          %d\n", urCI);
+  fprintf(GlobalData->stderrc,"* num UNIQUECHUNK_CGW              %d\n", uCI);
+  fprintf(GlobalData->stderrc,"* num RESOLVEDREPEATCHUNK_CGW      %d\n", rrCI);
+  fprintf(GlobalData->stderrc,"* num CONTIG_CGW                   %d\n", ctig);
+  fprintf(GlobalData->stderrc,"* num UNIQUECONTIG_CGW             %d\n", uctig);
+  fprintf(GlobalData->stderrc,"* num RESOLVEDCONTIG_CGW           %d\n", rctig);
+  fprintf(GlobalData->stderrc,"* num UNRESOLVEDCONTIG_CGW         %d\n", urctig);
+  fprintf(GlobalData->stderrc,"* num REAL_SCAFFOLD                %d\n", rScaf);
+  fprintf(GlobalData->stderrc,"* num OUTPUT_SCAFFOLD              %d\n", oScaf);
+  fprintf(GlobalData->stderrc,"* num SCRATCH_SCAFFOLD             %d\n", sScaf);
+  fprintf(GlobalData->stderrc,"* Counts of contig level node type\n");
+  fprintf(GlobalData->stderrc,"* num DISCRIMINATORUNIQUECHUNK_CGW %d\n", fduCI);
+  fprintf(GlobalData->stderrc,"* num UNRESOLVEDCHUNK_CGW          %d\n", furCI);
+  fprintf(GlobalData->stderrc,"* num UNIQUECHUNK_CGW              %d\n", fuCI);
+  fprintf(GlobalData->stderrc,"* num RESOLVEDREPEATCHUNK_CGW      %d\n", frrCI);
+  fprintf(GlobalData->stderrc,"* num CONTIG_CGW                   %d\n", fctig);
+  fprintf(GlobalData->stderrc,"* num UNIQUECONTIG_CGW             %d\n", fuctig);
+  fprintf(GlobalData->stderrc,"* num RESOLVEDCONTIG_CGW           %d\n", frctig);
+  fprintf(GlobalData->stderrc,"* num UNRESOLVEDCONTIG_CGW         %d\n", furctig);
+  fprintf(GlobalData->stderrc,"* num REAL_SCAFFOLD                %d\n", frScaf);
+  fprintf(GlobalData->stderrc,"* num OUTPUT_SCAFFOLD              %d\n", foScaf);
+  fprintf(GlobalData->stderrc,"* num SCRATCH_SCAFFOLD             %d\n\n", fsScaf);
 }
 
 /******************************************************************************
