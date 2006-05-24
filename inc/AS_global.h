@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_global.h,v 1.6 2006-03-28 04:13:29 ahalpern Exp $	 */
+/* 	$Id: AS_global.h,v 1.7 2006-05-24 20:42:19 gdenisov Exp $	 */
 
 /* This is the global include file that all C files in the AS subsystem should
    include.
@@ -32,6 +32,12 @@
 #include "PrimitiveVA.h"
 
 // Constants that SHOULD be included
+#ifndef  EXIT_SUCCESS
+  #define  EXIT_SUCCESS  0
+#endif
+#ifndef  EXIT_FAILURE
+  #define  EXIT_FAILURE  -1
+#endif
 
 #define CGB_INVALID_CUTOFF           -12.0f
 // A threshold value for Gene^s coverage statistic. Values BELOW this value
