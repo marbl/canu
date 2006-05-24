@@ -27,7 +27,7 @@
                  
  *********************************************************************/
 
-static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.22 2006-01-12 20:46:03 gdenisov Exp $";
+static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.23 2006-05-24 20:49:15 gdenisov Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -61,6 +61,7 @@ static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.22 2006-01-12 20:46:03 gde
 #include "AS_UTL_version.h"
 #include "AS_SDB_SequenceDBPartition.h"
 #include "AS_ALN_forcns.h"
+#include "Consensus_CNS.h"
 
 // Consensus includes:
 #include "MultiAlignStore_CNS.h"
@@ -219,7 +220,8 @@ OutputScores(int NumColumnsInUnitigs,        int NumRunsOfGapsInUnitigReads,
      fprintf(stderr, "NumFAMismatches            = %d\n", NumFAMismatches);
 }
 
-int main (int argc, char *argv[]) {
+int main (int argc, char *argv[]) 
+{
     MesgReader   reader;
     MesgWriter   writer;
     int binary_io;
@@ -238,6 +240,7 @@ int main (int argc, char *argv[]) {
     FILE *cgwin;
     FILE *cam;
     FILE *sublist;
+    FILE *failout;
     int sdb_version=-1;
     int sdb_partition=-1;
     ID_Arrayp  tig_iids = NULL;
@@ -270,6 +273,8 @@ int main (int argc, char *argv[]) {
     CNS_Options options = { CNS_OPTIONS_SPLIT_ALLELES_DEFAULT,
                             CNS_OPTIONS_SMOOTH_WIN_DEFAULT,
                             CNS_OPTIONS_MAX_NUM_ALLELES };
+    static int num_unitig_failures = 0;
+    static int num_contig_failures = 0;
 
 #ifdef X86_GCC_LINUX
    /*
@@ -811,10 +816,10 @@ int main (int argc, char *argv[]) {
         tig_iids = AllocateID_Array( num_uids );
         tig_iids_found = AllocateID_Array( num_uids );
         if( tig_iids == NULL || tig_iids_found == NULL ) {
-#if 1
+#if 0
             fprintf(stderr, "Leaving consensus \n");
 #endif
-            return 1;
+            return EXIT_FAILURE;
         }
         for( this_id = 0; this_id < num_uids - 1; this_id++ )
         {
@@ -874,7 +879,7 @@ int main (int argc, char *argv[]) {
       VA_TYPE(char) *quality=CreateVA_char(200000);
       time_t t;
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.22 $ processing. Started %s\n",
+      fprintf(stderr,"# Consensus $Revision: 1.23 $ processing. Started %s\n",
         ctime(&t));
       InitializeAlphTable();
       if ( ! align_ium && USE_SDB && extract > -1 ) 
@@ -902,8 +907,31 @@ int main (int argc, char *argv[]) {
             ctmp.num_vars = 1;
             ctmp.v_list = safe_malloc(sizeof(IntMultiVar));
         }
-        MultiAlignContig(&ctmp, sequence, quality, deltas, printwhat,
-                        COMPARE_FUNC, &options);
+        if (MultiAlignContig(&ctmp, sequence, quality, deltas, printwhat,
+            COMPARE_FUNC, &options) != EXIT_SUCCESS)
+        {
+            num_contig_failures++;
+            if (num_contig_failures <= MAX_NUM_CONTIG_FAILURES)
+            {
+                char fname[1000];
+                sprintf(fname, "%s.failed", argv[optind]);
+                if (num_contig_failures == 1)
+                {
+                    failout = fopen(fname, "w");
+                    fclose(failout);
+                }
+                fprintf(stderr,"MultiAlignContig failed for contig %d\n",
+                    ctmp.iaccession);
+                failout = fopen(fname, "a");
+                writer(failout,pmesg); // pass through the Unitig message and continue
+                fclose(failout);
+            }
+            else
+            {
+                CleanExit("MultiAlignContig failed  more than MAX_NUM_CONTIG_FAILURES times.Exit."
+                    ,__LINE__,1);
+            }
+        } 
 #if 0
         fprintf(stderr, "After  MultiAlignContig #%d: ctmp.num_vars = %d\n", ctmp.iaccession, ctmp.num_vars);
 #endif
@@ -1008,19 +1036,32 @@ int main (int argc, char *argv[]) {
                     exit(0); 
                 break;
               }
-              if (-1 == MultiAlignUnitig(iunitig,
-                                   global_fragStore,
-                                   sequence,
-                                   quality,
-                                   deltas,
-                                   printwhat,
-                                   do_rez,
-                                   COMPARE_FUNC,
-                                   &options)) {
-                fprintf(stderr,"MultiAlignUnitig failed for unitig %d\n", 
-                    iunitig->iaccession);
-          //break;  // un-comment this line to allow failures... intended for diagnosis only.
-                assert(FALSE);
+              if (MultiAlignUnitig(iunitig, global_fragStore, sequence,
+                  quality, deltas, printwhat, do_rez, COMPARE_FUNC, &options)
+                  == EXIT_FAILURE)
+              {
+                  num_unitig_failures++;
+                  if (num_unitig_failures <= MAX_NUM_UNITIG_FAILURES)
+                  { 
+                      char fname[1000];
+                      sprintf(fname, "%s.failed", argv[optind]);
+                      if (num_unitig_failures == 1)
+                      { 
+                          failout = fopen(fname, "w");
+                          fclose(failout);
+                      }
+                      fprintf(stderr,"MultiAlignUnitig failed for unitig %d\n", 
+                          iunitig->iaccession);
+                      failout = fopen(fname, "a");
+                      writer(failout,pmesg); // pass through the Unitig message and continue
+                      fclose(failout);
+                      break; 
+                  }
+                  else
+                  {
+                      CleanExit("MultiAlignUnitig failed  more than MAX_NUM_UNITIG_FAILURES times.Exit."
+                          ,__LINE__,1);
+                  } 
               }
               // Create a MultiAlignT from the MANode
             }
@@ -1106,8 +1147,32 @@ int main (int argc, char *argv[]) {
 //              }
                 pcontig->num_vars == 0;
                 pcontig->v_list == NULL;
-                MultiAlignContig(pcontig, sequence, quality, deltas, printwhat,
-                COMPARE_FUNC, &options);
+                if (MultiAlignContig(pcontig, sequence, quality, deltas, printwhat,
+                    COMPARE_FUNC, &options) != EXIT_SUCCESS)
+                {
+                    num_contig_failures++;
+                    if (num_contig_failures <= MAX_NUM_CONTIG_FAILURES)
+                    {
+                        char fname[1000];
+                        sprintf(fname, "%s.failed", argv[optind]);
+                        if (num_contig_failures == 1)
+                        {
+                            failout = fopen(fname, "w");
+                            fclose(failout);
+                        }
+                        fprintf(stderr,"MultiAlignContig failed for contig %d\n",
+                            pcontig->iaccession);
+                        failout = fopen(fname, "a");
+                        writer(failout,pmesg); // pass through the Unitig message and continue
+                        fclose(failout);
+                        break;
+                    }
+                    else
+                    {
+                        CleanExit("MultiAlignContig failed  more than MAX_NUM_CONTIG_FAILURES times.Exit."
+                            ,__LINE__,1);
+                    }
+                }
             }
             if ( printwhat == CNS_CONSENSUS && cnslog != NULL && 
                  pcontig->num_pieces > 0)
@@ -1166,7 +1231,7 @@ int main (int argc, char *argv[]) {
             {
               AuditLine auditLine;
               AppendAuditLine_AS(adt_mesg, &auditLine, t,
-                                 "Consensus", "$Revision: 1.22 $","(empty)");
+                                 "Consensus", "$Revision: 1.23 $","(empty)");
             }
 #endif
               VersionStampADT(adt_mesg,argc,argv);
@@ -1190,7 +1255,7 @@ int main (int argc, char *argv[]) {
       }
 
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.22 $ Finished %s\n",ctime(&t));
+      fprintf(stderr,"# Consensus $Revision: 1.23 $ Finished %s\n",ctime(&t));
       if (printcns) 
       {
         int unitig_length = (unitig_count>0)? (int) input_lengths/unitig_count: 0; 
@@ -1240,5 +1305,12 @@ int main (int argc, char *argv[]) {
                      NumRunsOfGapsInContigReads, NumGapsInContigs,
                      NumAAMismatches, NumFAMismatches);
 
-     return 0;
+    if (num_unitig_failures)
+        fprintf(stderr, "\nTotal number of unitig failures= %d\n", num_unitig_failures);
+    if (num_contig_failures)
+        fprintf(stderr, "\nTotal number of contig failures= %d\n", num_contig_failures);
+    if (num_unitig_failures || num_contig_failures)
+        return EXIT_FAILURE;
+    else
+        return EXIT_SUCCESS;
 }

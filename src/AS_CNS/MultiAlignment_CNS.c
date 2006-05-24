@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.66 2006-05-21 16:14:24 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.67 2006-05-24 20:49:15 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -6757,7 +6757,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
     int unitig_forced = 0;
     int32 *is_pointed = NULL, *is_aligned = NULL, i_afrag;
 
-#if 1
+#if 0
    fprintf(stderr, "Calling MultiAlignUnitig, iaccession= %d num_frags= %d\n", unitig->iaccession, num_frags);
 #endif
 
@@ -6766,7 +6766,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
     {
         fprintf(stderr, 
             "Warning: unitig #%d contains a single fragment of length 0 !\n");
-        return 0;
+        return EXIT_FAILURE;
     }
 
     //  Make sure that we have valid options here, we then reset the
@@ -6836,7 +6836,12 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
           case AS_UNITIG:
           default:
            {
-             CleanExit("MultiAlignUnitig invalid FragType",__LINE__,1);
+               fprintf(stderr, "Failed to determine the type of fragment %d in unitig %d\n",
+                   i, unitig->iaccession);
+               ClosePHashTable_AS(fragmentMap);
+               ClosePHashTable_AS(bactigMap);
+               DeleteMANode(ma->lid);
+               return EXIT_FAILURE;
            }
       }
     }
@@ -6911,9 +6916,14 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
 #endif
        {
            fprintf(stderr,
-               "Error: none of fragments a (i=%d, id=%d) and b (i=%d, id=%d) is prealigned. Exit\n",
+               "Failed to process unitig %d: ", unitig->iaccession);
+           fprintf(stderr,
+               "none of fragments a (i=%d, id=%d) and b (i=%d, id=%d) is pre-aligned\n",
                i, positions[i].ident, align_to, positions[align_to].ident);
-           CleanExit("",__LINE__,1);
+           ClosePHashTable_AS(fragmentMap);
+           ClosePHashTable_AS(bactigMap);
+           DeleteMANode(ma->lid);
+           return EXIT_FAILURE;        
        }
 #else
        align_to = i-1;
@@ -7067,10 +7077,11 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
             frag_forced = 1;
             unitig_forced = 1;
          } else {
-         ClosePHashTable_AS(fragmentMap);
-         ClosePHashTable_AS(bactigMap);
-            return -1;
-            //CleanExit("",__LINE__,1);
+             ClosePHashTable_AS(fragmentMap);
+             ClosePHashTable_AS(bactigMap);
+             DeleteMANode(ma->lid);
+             return EXIT_FAILURE;
+             //CleanExit("",__LINE__,1);
          }
        }
        if ( mark_contains && otype == AS_CONTAINMENT ) { 
@@ -7080,10 +7091,15 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
        i_afrag = (i<align_to) ? i : align_to;
        if (i_afrag && !is_pointed[i] && !afrag->contained && !bfrag->contained)
        {
+           fprintf(stderr,
+               "Failed to process unitig %d: ", unitig->iaccession);
            fprintf(stderr, 
-               "Error: no other fragment pointed to uncontained fragment %d. Exit\n",
+               "no fragment pointed to uncontained fragment %d.\n",
                positions[i].ident);
-           CleanExit("",__LINE__,1);
+           ClosePHashTable_AS(fragmentMap);
+           ClosePHashTable_AS(bactigMap);
+           DeleteMANode(ma->lid);
+           return EXIT_FAILURE;         
        }
 #endif
        if ( frag_forced ) {
@@ -7182,7 +7198,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
     ClosePHashTable_AS(fragmentMap);
     ClosePHashTable_AS(bactigMap);
     DeleteMANode(ma->lid);
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 int IsDovetail(SeqInterval a,SeqInterval b) {
@@ -7353,7 +7369,7 @@ int32 PlaceFragments(int32 fid, Overlap *(*COMPARE_FUNC)(COMPARE_ARGS),
 
 #define ALLOW_MISSING_CONTAINER_TO_HANDLE_SURROGATE_RESOLUTION
 #ifndef ALLOW_MISSING_CONTAINER_TO_HANDLE_SURROGATE_RESOLUTION
-            CleanExit("",__LINE__,1);
+              return EXIT_FAILURE;
 #else
 	      fprintf(stderr,
 		      "This might be due to surrogate resolution???\n");
@@ -7462,7 +7478,11 @@ int MultiAlignContig(IntConConMesg *contig,
    int           total_aligned_elements=0;
    static        VA_TYPE(int32) *trace=NULL;
 
-   if (contig == NULL ) CleanExit("MultiAlignContig contig==NULL",__LINE__,1);
+   if (contig == NULL ) 
+   {
+       fprintf(stderr, "Null contig #%d detected\n", contig->iaccession);
+       return EXIT_FAILURE;
+   }
    num_unitigs = contig->num_unitigs;
    num_frags = contig->num_pieces;
    upositions = contig->unitigs;
@@ -7645,7 +7665,8 @@ int MultiAlignContig(IntConConMesg *contig,
                    afrag->iid,afrag->type,bfrag->iid,bfrag->type);
            fprintf(stderr,"estimated ahang: %d\n", ahang);
            fprintf(stderr,"You can force these to abut by removing line %d in MultiAlignment_CNS.c\n", __LINE__+1);
-           CleanExit("",__LINE__,1);
+           FREE(offsets);
+           return EXIT_FAILURE;        
            // if you remove the above CleanExit, 
            // the following should  have the affect of abutting the unitigs
            //   NEW: rather than abutting, let's try forced identity alignment
@@ -7722,7 +7743,7 @@ int MultiAlignContig(IntConConMesg *contig,
   }
 
   free(offsets);
-  return 0; 
+  return EXIT_SUCCESS; 
 }
 
 int UnitigDataCmp( const void *l, const void *m) {
