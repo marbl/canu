@@ -190,7 +190,6 @@ merylStreamWriter::~merylStreamWriter() {
   //  Finish writing the buckets.
   //
   while (_thisBucket < _numBuckets) {
-    //fprintf(stderr, "bucket "u64bitFMT" with size "u64bitFMT"\n", _thisBucket, _thisBucketSize);
     _IDX->putNumber(_thisBucketSize);
     _thisBucketSize = 0;
     _thisBucket++;

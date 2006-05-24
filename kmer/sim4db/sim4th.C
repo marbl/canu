@@ -19,31 +19,9 @@
 #include "sim4db.H"
 #include "sweatShop.H"
 
-//  A threaded sim4db implementation
-//
-//  Unthreaded
-//  1101.581u 198.865s 28:57.02 74.8%       281+5357k 294664+10116io 28pf+0w
-//
-//  Threaded, two threads, busy wait on workers
-//  1574.594u 216.661s 16:59.35 175.7%      286+-3135k 503909+10116io 19pf+0w
-//
-//  8 threads, possibly busy wait on workers
-//  1649.177u 205.446s 17:28.67 176.8%      285+-649k 509999+10116io 25pf+0w
-//
-//  3 threads, workers sleep, 64k cache, 16k queue
-//  1232.354u 237.168s 16:22.09 149.6%      288+-13241k 509893+10116io 24pf+0w
-
-
-
-
-
 //  XXX  Both loader and loaderAll leave the last gen sequence undeleted!
 
 //  XXX  we should move the globals into a config class!
-
-
-
-
 
 
 //  Run options set from the command line.
@@ -97,8 +75,6 @@ public:
     estdelete = 0L;
   };
 };
-
-
 
 
 void*
@@ -156,9 +132,6 @@ loader(void *U) {
 }
 
 
-
-
-
 void*
 loaderPairwise(void *) {
 
@@ -190,9 +163,6 @@ loaderPairwise(void *) {
 
   return(p);
 }
-
-
-
 
 
 void*
@@ -238,11 +208,6 @@ loaderAll(void *) {
 
   return(p);
 }
-
-
-
-
-
 
 
 
@@ -297,11 +262,6 @@ writer(void *U, void *S) {
 
 
 
-
-
-
-
-
 int
 openOutputFile(char *outputFileName) {
   int  f = 0;
@@ -318,8 +278,6 @@ openOutputFile(char *outputFileName) {
   }
   return(f);
 }
-
-
 
 
 
