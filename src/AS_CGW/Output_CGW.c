@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Output_CGW.c,v 1.11 2006-05-15 14:43:47 eliv Exp $";
+static char CM_ID[] = "$Id: Output_CGW.c,v 1.12 2006-05-24 13:56:29 eliv Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -105,8 +105,6 @@ void OutputFrags(ScaffoldGraphT *graph){
   int cinvalid   =0;
   int cwrongScf  =0;
 
-  //MateStatusType status;
-  MateStatType status;
   InfoByIID *info = GetInfoByIID(graph->iidToFragIndex,0);
 #if 0
   ReadStructp fsread = new_ReadStruct();
@@ -130,7 +128,6 @@ void OutputFrags(ScaffoldGraphT *graph){
       fflush(stderr);
     }
     fragID = info->fragIndex;
-    status = BAD_MATE;
 
     cifrag = GetCIFragT(graph->CIFrags,fragID);
 
@@ -139,27 +136,8 @@ void OutputFrags(ScaffoldGraphT *graph){
     af_mesg.iaccession = cifrag->iid;
     af_mesg.type = (FragType)cifrag->type;
     af_mesg.chaff = cifrag->flags.bits.isChaff;
-    switch(cifrag->flags.bits.edgeStatus){
-    case INVALID_EDGE_STATUS:
-      status = NO_MATE;
-      break;
-    case TRUSTED_EDGE_STATUS:
-    case TENTATIVE_TRUSTED_EDGE_STATUS:
-      status = GOOD_MATE;
-      goodMates++;
-      break;
-    case  UNTRUSTED_EDGE_STATUS:
-    case  TENTATIVE_UNTRUSTED_EDGE_STATUS:
-      status = BAD_MATE;
-      break;;
-    case LARGE_VARIANCE_EDGE_STATUS:
-    case INTER_SCAFFOLD_EDGE_STATUS:
-    case UNKNOWN_EDGE_STATUS:
-      status = UNRESOLVED_MATE;
-      break;
-    default:
-      assert(0);
-    }
+    af_mesg.mate_status = cifrag->flags.bits.mateDetail;
+
     switch(cifrag->flags.bits.edgeStatus){
     case INVALID_EDGE_STATUS:             cinvalid++;    break;
     case TRUSTED_EDGE_STATUS:             ctrusted++;    break;
@@ -170,7 +148,6 @@ void OutputFrags(ScaffoldGraphT *graph){
     case INTER_SCAFFOLD_EDGE_STATUS:      cwrongScf++;   break;
     case UNKNOWN_EDGE_STATUS:             cunknown++;    break;
     }
-    af_mesg.mate_status = status;
     af_mesg.chimeric = 0;
 
 #if 0

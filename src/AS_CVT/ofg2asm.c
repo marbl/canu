@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: ofg2asm.c,v 1.1 2005-11-17 21:54:49 catmandew Exp $   */
+/* $Id: ofg2asm.c,v 1.2 2006-05-24 13:56:29 eliv Exp $   */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -61,7 +61,7 @@ int main(int argc, char ** argv)
 
   // initialize unchanging attributes of afg messages
   afg.screened = NULL;
-  afg.mate_status = UNRESOLVED_MATE;
+  afg.mate_status = UNASSIGNED;
   afg.chimeric = 0;
   afg.chaff = 1;
 

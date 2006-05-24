@@ -23,7 +23,7 @@ cc -g -pg -qfullpath   -qstrict -qbitfields=signed -qchars=signed -qlanglvl=ext 
 -o /work/assembly/rbolanos/IBM_PORT_CDS/ibm_migration_work_dir/cds/AS/obj/GraphCGW_T.o GraphCGW_T.c
 */
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.11 2006-05-15 14:41:43 eliv Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.12 2006-05-24 13:56:29 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -3807,9 +3807,175 @@ int compareInt (const void * a, const void * b)
 
 
 
+void ComputeMatePairDetailedStatus() {
 
+  GraphCGW_T *graph = ScaffoldGraph->CIGraph;
+  GraphNodeIterator nodes;
+  NodeCGW_T *node;
+  DistT *dptr;
+  MultiAlignT *ma = CreateEmptyMultiAlignT();
+  int numTotalFrags = 0;
+  int numReverse    = 0;
+  int numGood       = 0;
+  int numShort      = 0;
+  int numLong       = 0;
+  int numSame       = 0;
+  int numOuttie     = 0;
+  int numNoMate     = 0;
+  int numBothChaff  = 0;
+  int numChaff      = 0;
+  int numBothDegen  = 0;
+  int numDegen      = 0;
+  int numDiffScaf   = 0;
 
+  InitGraphNodeIterator(&nodes, graph, GRAPH_NODE_DEFAULT);
+  
+  while(NULL != (node = NextGraphNodeIterator(&nodes)))
+  {
 
+    ReLoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ma, node->id, graph->type == CI_GRAPH);
+    int numFrags  = GetNumIntMultiPoss(ma->f_list);
+    numTotalFrags += numFrags;
+    int i;
+    for( i = 0; i < numFrags; i++)
+    {
+      IntMultiPos *mp = GetIntMultiPos(ma->f_list, i);
+      CIFragT *frag, *mate;
+      CDS_COORD_t dist;
+      
+      frag = GetCIFragT(ScaffoldGraph->CIFrags, (CDS_CID_t)mp->sourceInt);
+      assert(frag->iid == mp->ident);
+      if (frag->numLinks == 0) {
+        numNoMate++;
+        frag->flags.bits.mateDetail == NO_MATE;
+        continue;
+      }
+      mate = GetCIFragT(ScaffoldGraph->CIFrags,frag->mateOf);
+
+      if(node->flags.bits.isChaff) {
+          if (mate->flags.bits.mateDetail == CHAFF_MATE) {
+               numBothChaff+=2;
+               numChaff--;
+               mate->flags.bits.mateDetail = BOTH_CHAFF_MATE;
+               frag->flags.bits.mateDetail = BOTH_CHAFF_MATE;
+          } else {
+               numChaff++;
+               mate->flags.bits.mateDetail = CHAFF_MATE;
+               frag->flags.bits.mateDetail = CHAFF_MATE;
+          }
+          continue;
+      }
+      if( numFrags < 2 ) {
+          if (mate->flags.bits.mateDetail == DEGEN_MATE) {
+              numBothDegen+=2;
+              numDegen--;
+              mate->flags.bits.mateDetail = BOTH_DEGEN_MATE;
+              frag->flags.bits.mateDetail = BOTH_DEGEN_MATE;
+          } else {
+              numDegen++;
+              mate->flags.bits.mateDetail = DEGEN_MATE;
+              frag->flags.bits.mateDetail = DEGEN_MATE;
+          }
+          continue;
+      }
+      
+      if ( mate->mateOf != (CDS_CID_t)mp->sourceInt) {
+          assert(0);
+      }
+      dptr = GetDistT(ScaffoldGraph->Dists, frag->dist);
+
+      NodeCGW_T *fragContig, *mateContig;
+      CDS_COORD_t fragLeftEnd, fragRightEnd;
+      CDS_COORD_t mateLeftEnd, mateRightEnd;
+      int mateScaffoldOrientation, fragScaffoldOrientation;
+
+      fragContig = GetGraphNode( ScaffoldGraph->ContigGraph, frag->contigID);
+      AssertPtr(fragContig);
+
+      mateContig = GetGraphNode( ScaffoldGraph->ContigGraph, mate->contigID);
+      AssertPtr(mateContig);
+
+      // we want them to be in the same scaffold
+      if ( fragContig->scaffoldID != mateContig->scaffoldID || fragContig->scaffoldID == -1)
+      {
+          numDiffScaf++;
+          mate->flags.bits.mateDetail = DIFF_SCAFF_MATE;
+          frag->flags.bits.mateDetail = DIFF_SCAFF_MATE;
+          continue;
+      }
+
+      GetFragmentPositionInScaffold( frag, &fragLeftEnd, &fragRightEnd, &fragScaffoldOrientation);
+      GetFragmentPositionInScaffold( mate, &mateLeftEnd, &mateRightEnd, &mateScaffoldOrientation);
+
+      if (fragScaffoldOrientation == mateScaffoldOrientation) 
+      {
+          numSame++;
+          frag->flags.bits.mateDetail = SAME_ORIENT_MATE;
+          mate->flags.bits.mateDetail = SAME_ORIENT_MATE;
+          continue;
+      }
+
+      // now make sure the 5p end is less than the 3p end
+      if ( fragScaffoldOrientation == 1 ) {
+          numReverse++;
+      }
+
+      if (frag->flags.bits.innieMate)  
+      {
+          if (fragScaffoldOrientation == 0) // frag ---->  <---- mate
+              dist = mateRightEnd - fragLeftEnd;		  
+          else                              // mate ---->  <---- frag
+              dist = fragRightEnd - mateLeftEnd;
+      }
+      else  // outtie pair
+      {
+          numOuttie++;
+          frag->flags.bits.mateDetail = OUTTIE_ORIENT_MATE;
+          mate->flags.bits.mateDetail = OUTTIE_ORIENT_MATE;
+          continue; // real outtie mates not currently supported
+      }
+      if (dist < dptr->lower )
+      {
+          numShort++;
+          frag->flags.bits.mateDetail = BAD_SHORT_MATE;
+          mate->flags.bits.mateDetail = BAD_SHORT_MATE;
+      }
+      else if ( dist > dptr->upper)
+      {
+          numLong++;
+          frag->flags.bits.mateDetail = BAD_LONG_MATE;
+          mate->flags.bits.mateDetail = BAD_LONG_MATE;
+      } else
+      {
+          numGood++;
+          frag->flags.bits.mateDetail = GOOD_MATE;
+          mate->flags.bits.mateDetail = GOOD_MATE;
+      }
+    }
+  }
+  fprintf(GlobalData->stderrc,"\n* Mate counts from ComputeMatePairDetailedStatus()\n");
+  fprintf(GlobalData->stderrc,"* num Frags %d\n",numTotalFrags);
+  fprintf(GlobalData->stderrc,"* num reverse frags %d\n",numReverse);
+  fprintf(GlobalData->stderrc,"* num no mates %d\n",numNoMate);
+  fprintf(GlobalData->stderrc,"* num good mates %d\n",numGood);
+  fprintf(GlobalData->stderrc,"* num bad short mates %d\n",numShort);
+  fprintf(GlobalData->stderrc,"* num bad long mates %d\n",numLong);
+  fprintf(GlobalData->stderrc,"* num same orientation mates %d\n",numSame);
+  fprintf(GlobalData->stderrc,"* num outtie mates %d\n",numOuttie);
+  fprintf(GlobalData->stderrc,"* num both chaff mates %d\n",numBothChaff);
+  fprintf(GlobalData->stderrc,"* num chaff mates %d\n",numChaff);
+  fprintf(GlobalData->stderrc,"* num both degen mates %d\n",numBothDegen);
+  fprintf(GlobalData->stderrc,"* num degen mates %d\n",numDegen);
+  fprintf(GlobalData->stderrc,"* num other scaffold %d\n\n",numDiffScaf);
+  int sum = numNoMate + numGood + numShort + numLong + numSame + numOuttie +
+         numBothChaff + numChaff + numBothDegen + numDegen + numDiffScaf;
+  fprintf(GlobalData->stderrc,"* sum of frag mate status %d\n\n",sum);
+  assert( sum == numTotalFrags );
+}
+
+/******************************************************************************
+  *****************************************************************************
+  *****************************************************************************/
 
 
 void ComputeMatePairStatisticsRestricted( int operateOnNodes,

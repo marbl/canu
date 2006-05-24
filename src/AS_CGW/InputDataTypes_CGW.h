@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: InputDataTypes_CGW.h,v 1.4 2005-03-22 19:48:36 jason_miller Exp $	 */
+/* 	$Id: InputDataTypes_CGW.h,v 1.5 2006-05-24 13:56:29 eliv Exp $	 */
 /****************************************************************************
  *  InputDataTypes_CGW
  *  
@@ -120,6 +120,7 @@ typedef struct {
       unsigned int isSingleton:1;                // Singleton unitig
       unsigned int isChaff:1;                    // Must be isSingleton, and is not used either directly or indirectly (surrogate) in scaffold
       unsigned int innieMate:1;                  // True for regular mate pairs, false for Outtie pairs
+      MateStatType mateDetail:8;
   }bits;
     int32 all;
   }flags;

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.20 2006-05-07 23:45:31 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.21 2006-05-24 13:56:29 eliv Exp $";
 
 
 static const char *usage = 
@@ -1314,6 +1314,7 @@ int main(int argc, char *argv[]){
 	  //CheckpointScaffoldGraph(ScaffoldGraph);
 	}
     }
+  ComputeMatePairDetailedStatus();
   
   fprintf(GlobalData->stderrc,"* Output cam files *\n");
   GenerateCIGraph_U_Stats();

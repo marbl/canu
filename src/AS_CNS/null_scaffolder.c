@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: null_scaffolder.c,v 1.6 2005-09-15 15:20:16 eliv Exp $ */
+/* $Id: null_scaffolder.c,v 1.7 2006-05-24 13:56:29 eliv Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
          num_frags = ((IntUnitigMesg *)pmesg->m)->num_frags;
          pmesg->m = &af_mesg;
          pmesg->t = MESG_IAF;
-         af_mesg.mate_status =  UNRESOLVED_MATE;
+         af_mesg.mate_status =  UNASSIGNED;
          af_mesg.chimeric = 0;
          af_mesg.clear_rng.bgn = -1;
          af_mesg.clear_rng.end = -1;
