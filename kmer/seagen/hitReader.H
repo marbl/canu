@@ -19,7 +19,6 @@
 //
 typedef struct {
   bool         stillMore;
-  //FILE        *file;
   readBuffer  *buff;
   char         b[1024];
   aHit         a;
