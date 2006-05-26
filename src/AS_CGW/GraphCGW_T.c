@@ -23,7 +23,7 @@ cc -g -pg -qfullpath   -qstrict -qbitfields=signed -qchars=signed -qlanglvl=ext 
 -o /work/assembly/rbolanos/IBM_PORT_CDS/ibm_migration_work_dir/cds/AS/obj/GraphCGW_T.o GraphCGW_T.c
 */
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.14 2006-05-25 15:31:05 eliv Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.15 2006-05-26 14:42:36 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -3831,6 +3831,7 @@ void ComputeMatePairDetailedStatus() {
   int numDiffScaf   = 0;
   int numInUnresolv = 0;
   int numInResRep   = 0;
+  int numInNullScaf = 0;
 
   int duCI = 0;
   int urCI = 0;
@@ -3895,62 +3896,29 @@ void ComputeMatePairDetailedStatus() {
         continue;
       }
       mate = GetCIFragT(ScaffoldGraph->CIFrags,frag->mateOf);
-
-      if(node->flags.bits.isChaff) {
-          if (mate->flags.bits.mateDetail == CHAFF_MATE) {
-               numBothChaff+=2;
-               numChaff--;
-               mate->flags.bits.mateDetail = BOTH_CHAFF_MATE;
-               frag->flags.bits.mateDetail = BOTH_CHAFF_MATE;
+      if ( mate->mateOf != (CDS_CID_t)mp->sourceInt) {
+          assert(0);
+      }
+      if(frag->flags.bits.isChaff) {
+          if (mate->flags.bits.isChaff) {
+              if (mate->flags.bits.mateDetail != BOTH_CHAFF_MATE) {
+                  mate->flags.bits.mateDetail  = BOTH_CHAFF_MATE;
+                  frag->flags.bits.mateDetail  = BOTH_CHAFF_MATE;
+                  numBothChaff+=2;
+              }
           } else {
-               numChaff++;
+               numChaff+=2;
                mate->flags.bits.mateDetail = CHAFF_MATE;
                frag->flags.bits.mateDetail = CHAFF_MATE;
           }
           continue;
       }
-      if (     node->type != DISCRIMINATORUNIQUECHUNK_CGW ) {
-          if ( node->type == UNRESOLVEDCHUNK_CGW)
-              numInUnresolv++;
-          if ( node->type == RESOLVEDREPEATCHUNK_CGW)
-              numInResRep++;
+      if(mate->flags.bits.isChaff || frag->flags.bits.mateDetail == CHAFF_MATE)
+          continue;
 
-          if( node->scaffoldID == NULLINDEX ) {
-              if (mate->flags.bits.mateDetail == DEGEN_MATE) {
-                  numBothDegen+=2;
-                  numDegen--;
-                  mate->flags.bits.mateDetail = BOTH_DEGEN_MATE;
-                  frag->flags.bits.mateDetail = BOTH_DEGEN_MATE;
-              } else {
-                  numDegen++;
-                  mate->flags.bits.mateDetail = DEGEN_MATE;
-                  frag->flags.bits.mateDetail = DEGEN_MATE;
-              }
-              continue;
-          } else if ( node->flags.bits.isStoneSurrogate ) {
-              if (mate->flags.bits.mateDetail == SURR_MATE) {
-                  numBothSurr+=2;
-                  numSurrogate--;
-                  mate->flags.bits.mateDetail = BOTH_SURR_MATE;
-                  frag->flags.bits.mateDetail = BOTH_SURR_MATE;
-              } else {
-                  numSurrogate++;
-                  mate->flags.bits.mateDetail = SURR_MATE;
-                  frag->flags.bits.mateDetail = SURR_MATE;
-              }
-              continue;
-          }
-      }
-      if ( mate->mateOf != (CDS_CID_t)mp->sourceInt) {
-          assert(0);
-      }
       dptr = GetDistT(ScaffoldGraph->Dists, frag->dist);
 
       NodeCGW_T *fragContig, *mateContig;
-      CDS_COORD_t fragLeftEnd, fragRightEnd;
-      CDS_COORD_t mateLeftEnd, mateRightEnd;
-      int mateScaffoldOrientation, fragScaffoldOrientation;
-
       fragContig = GetGraphNode( ScaffoldGraph->ContigGraph, frag->contigID);
       AssertPtr(fragContig);
       switch (fragContig->type)
@@ -3969,18 +3937,62 @@ void ComputeMatePairDetailedStatus() {
           default:
                                             assert(0);
       }
-
       mateContig = GetGraphNode( ScaffoldGraph->ContigGraph, mate->contigID);
       AssertPtr(mateContig);
 
+      if( fragContig->scaffoldID == NULLINDEX ) {
+          assert( node->type != DISCRIMINATORUNIQUECHUNK_CGW );
+          if (mateContig->scaffoldID == NULLINDEX) {
+              if (mate->flags.bits.mateDetail != BOTH_DEGEN_MATE) {
+                  mate->flags.bits.mateDetail  = BOTH_DEGEN_MATE;
+                  frag->flags.bits.mateDetail  = BOTH_DEGEN_MATE;
+                  numBothDegen+=2;
+              }
+          } else {
+              numDegen+=2;
+              mate->flags.bits.mateDetail = DEGEN_MATE;
+              frag->flags.bits.mateDetail = DEGEN_MATE;
+          }
+          continue;
+      }
+      if(mateContig->scaffoldID == NULLINDEX ||
+         mate->flags.bits.mateDetail == DEGEN_MATE ||
+         frag->flags.bits.mateDetail == DEGEN_MATE)
+          continue;
+
+      if (     node->type != DISCRIMINATORUNIQUECHUNK_CGW ) {
+          if ( node->type == RESOLVEDREPEATCHUNK_CGW)
+              numInResRep++;
+
+          if ( node->flags.bits.isStoneSurrogate ) {
+              if (mate->flags.bits.mateDetail == SURR_MATE) {
+                  numBothSurr+=2;
+                  numSurrogate--;
+                  mate->flags.bits.mateDetail = BOTH_SURR_MATE;
+                  frag->flags.bits.mateDetail = BOTH_SURR_MATE;
+              } else {
+                  numSurrogate++;
+                  mate->flags.bits.mateDetail = SURR_MATE;
+                  frag->flags.bits.mateDetail = SURR_MATE;
+              }
+              continue;
+          }
+      }
+      if ( node->type == UNRESOLVEDCHUNK_CGW)
+          numInUnresolv++;
+      if ( fragContig->scaffoldID == NULLINDEX )
+          numInNullScaf++;
+      else if ( fragContig->scaffoldID != mateContig->scaffoldID )
       // we want them to be in the same scaffold
-      if ( fragContig->scaffoldID != mateContig->scaffoldID || fragContig->scaffoldID == -1)
       {
           numDiffScaf++;
           mate->flags.bits.mateDetail = DIFF_SCAFF_MATE;
           frag->flags.bits.mateDetail = DIFF_SCAFF_MATE;
           continue;
       }
+      CDS_COORD_t fragLeftEnd, fragRightEnd;
+      CDS_COORD_t mateLeftEnd, mateRightEnd;
+      int mateScaffoldOrientation, fragScaffoldOrientation;
 
       GetFragmentPositionInScaffold( frag, &fragLeftEnd, &fragRightEnd, &fragScaffoldOrientation);
       GetFragmentPositionInScaffold( mate, &mateLeftEnd, &mateRightEnd, &mateScaffoldOrientation);
@@ -4039,6 +4051,7 @@ void ComputeMatePairDetailedStatus() {
   fprintf(GlobalData->stderrc,"* num reverse frags %d\n",numReverse);
   fprintf(GlobalData->stderrc,"* num frags in unresolved chunks %d\n",numInUnresolv);
   fprintf(GlobalData->stderrc,"* num frags in repeat chunks %d\n",numInResRep);
+  fprintf(GlobalData->stderrc,"* num frags in NULL scafs %d\n",numInNullScaf);
   fprintf(GlobalData->stderrc,"* num no mates %d\n",numNoMate);
   fprintf(GlobalData->stderrc,"* num good mates %d\n",numGood);
   fprintf(GlobalData->stderrc,"* num bad short mates %d\n",numShort);
