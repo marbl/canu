@@ -23,7 +23,7 @@ cc -g -pg -qfullpath   -qstrict -qbitfields=signed -qchars=signed -qlanglvl=ext 
 -o /work/assembly/rbolanos/IBM_PORT_CDS/ibm_migration_work_dir/cds/AS/obj/GraphCGW_T.o GraphCGW_T.c
 */
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.15 2006-05-26 14:42:36 eliv Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.16 2006-05-26 18:12:01 jason_miller Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -3688,7 +3688,13 @@ CDS_CID_t SplitUnresolvedContig(GraphCGW_T *graph,
   {
     GraphEdgeIterator edges;
     EdgeCGW_T *edge;
+    EdgeCGW_T copyOfEdge;
     
+    // copyOfEdge - Bug fix by Jason Miller, 5/26/06.
+    // The call to GetFreeGraphEdge can realloc the graph.
+    // In that case, the pointer named edge became invalid.
+    // Keeping a copy of the contents solved the problem.
+
     //    fprintf(GlobalData->stderrc,"* Copying edges\n");
     InitGraphEdgeIterator(graph, node->id, ALL_END, ALL_EDGES, GRAPH_EDGE_RAW_ONLY, &edges);
     while(NULL != (edge = NextGraphEdgeIterator(&edges))){
@@ -3697,10 +3703,11 @@ CDS_CID_t SplitUnresolvedContig(GraphCGW_T *graph,
 	CDS_CID_t eid;
 	CDS_CID_t otherCID = (edge->idA == node->id? edge->idB:edge->idA);
         
-	newEdge = GetFreeGraphEdge(graph);
+	copyOfEdge = *edge;
+	newEdge = GetFreeGraphEdge(graph); // has side effects!
 	eid = GetVAIndex_EdgeCGW_T(graph->edges, newEdge);
         
-	*newEdge = *edge;
+	*newEdge = copyOfEdge;
 	newEdge->topLevelEdge = eid;
         
 	// Make it canonical WRT otherCID and node->id
@@ -3725,7 +3732,6 @@ CDS_CID_t SplitUnresolvedContig(GraphCGW_T *graph,
 	}
         // insert the graph edge in the graph
 	InsertGraphEdge(graph, eid, FALSE);
-	//	PrintGraphEdge(GlobalData->stderrc, graph, " *NEW* ", edge, edge->idA);
 	
 	CreateChunkOverlapFromEdge(graph, newEdge, FALSE); // add a hashtable entry
       }
