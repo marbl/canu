@@ -311,10 +311,24 @@ merylArgs::merylArgs(int argc, char **argv) {
 
   bool fail = false;
 
+  char *optptr = options;
+
   for (int arg=1; arg < argc; arg++) {
     if (arg > 1)
-      strcat(options, " ");
-    strcat(options, argv[arg]);
+      *optptr++ = ' ';
+
+    //  Arg!  If the arg has spaces or other stuff that the shell
+    //  needs escaped we need to escape them again.  So, we copy byte
+    //  by byte and insert escapes at the right points.
+
+    for (char *op=argv[arg]; *op; op++, optptr++) {
+      if (isspace(*op) || !isalnum(*op))
+        if ((*op != '-') && (*op != '_') && (*op != '.') && (*op != '/'))
+          *optptr++ = '\\';
+      *optptr = *op;
+    }
+
+    //strcat(options, argv[arg]);
   }
 
 
