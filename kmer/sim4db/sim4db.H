@@ -2,11 +2,9 @@
 #define SIM4DB_H
 
 #if defined(__bsd) || defined(__alpha)
-
 #ifndef _POSIX_C_SOURCE
 #define _POSIX_C_SOURCE 199506L
 #endif
-
 #endif
 
 #include <stdio.h>
@@ -21,9 +19,6 @@
 #include <signal.h>
 #include <math.h>
 
-//  At one time, this was needed for pthread.h or semaphore.h
-typedef unsigned short ushort;
-
 #include <pthread.h>
 #include <semaphore.h>
 
@@ -33,44 +28,58 @@ typedef unsigned short ushort;
 
 //  Run options set from the command line.
 //
-extern char             *cdnaFileName;
-extern char             *scriptFileName;
-extern char             *databaseFileName;
-extern char             *outputFileName;
-extern char             *statsFileName;
-extern char             *touchFileName;
+class configuration {
+public:
+  configuration() {
+    startTime        = getTime();
 
-extern bool              pairwise;
+    cdnaFileName     = 0L;
+    scriptFileName   = 0L;
+    databaseFileName = 0L;
+    outputFileName   = 0L;
+    yesnoFileName    = 0L;
+    statsFileName    = 0L;
+    touchFileName    = 0L;
 
-extern bool              beVerbose;
-extern bool              beYesNo;
+    pairwise         = false;
+    beVerbose        = false;
 
-extern sim4parameters    sim4params;
+    loaderCacheSize  = 1024;
+  };
+  ~configuration() {
+    if (statsFileName) {
+      FILE  *statsFile = fopen(statsFileName, "w");
+      if (statsFile) {
+        write_rusage(statsFile);
+        fprintf(statsFile, "clockTime:      %f\n", getTime() - startTime);
+        fclose(statsFile);
+      }
+    }
 
-extern volatile u32bit            numberOfScripts;
+  };
 
-extern pthread_mutex_t   inputTailMutex;
-extern volatile u32bit            inputTail;
-
-extern sim4command          **input;
-extern char                 **script;
-extern sim4polishList       **output;
-extern FastASequenceInCore  **gendelete;
-
-extern bool              allDone;
-
-extern FastAWrapper     *GENs;
-extern FastACache       *ESTs;
-
+  void parseCommandLine(int argc, char **argv);
 
 
-void    parseCommandLine(int argc, char **argv);
-u32bit  numberOfScriptLines(char *filename);
-char   *getNextScript(u32bit     &ESTseq,
-                      u32bit     &GENseq, u32bit &GENlo, u32bit &GENhi,
-                      bool       &doForward,
-                      bool       &doReverse,
-                      readBuffer *scriptFile);
+  double            startTime;
+
+  char             *cdnaFileName;
+  char             *scriptFileName;
+  char             *databaseFileName;
+  char             *outputFileName;
+  char             *yesnoFileName;
+  char             *statsFileName;
+  char             *touchFileName;
+
+  bool              pairwise;
+
+  bool              beVerbose;
+  bool              beYesNo;
+
+  u32bit            loaderCacheSize;
+
+  sim4parameters    sim4params;
+};
 
 
 

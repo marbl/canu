@@ -17,36 +17,25 @@
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "sim4db.H"
+#include "configuration.H"
 #include "sweatShop.H"
+
+char   *getNextScript(u32bit     &ESTseq,
+                      u32bit     &GENseq, u32bit &GENlo, u32bit &GENhi,
+                      bool       &doForward,
+                      bool       &doReverse,
+                      readBuffer *scriptFile);
+
+configuration config;
 
 //  XXX  Both loader and loaderAll leave the last gen sequence undeleted!
 
-//  XXX  we should move the globals into a config class!
-
-
-//  Run options set from the command line.
-//
-char             *cdnaFileName     = 0L;
-char             *scriptFileName   = 0L;
-char             *databaseFileName = 0L;
-char             *outputFileName   = 0L;
-char             *statsFileName    = 0L;
-char             *touchFileName    = 0L;
-
-bool              pairwise         = false;
-
-bool              beVerbose        = false;       //  Print progress
-bool              beYesNo          = false;       //  Print each script line as we process, with answer
-
-u32bit            loaderCacheSize  = 1024;        //  Size of the EST cache
 
 //  Things that the various threads need -- we should put these into a
 //  sim4thGlobal class, but we already have a bunch of globals
 //  anyway....
 //
 readBuffer           *scriptFile       = 0L;
-
-sim4parameters        sim4params;
 
 FastAWrapper         *GENs             = 0L;
 FastACache           *ESTs             = 0L;
@@ -56,7 +45,7 @@ u32bit                lastESTiid       = ~u32bitZERO;
 FastASequenceInCore  *lastGENseq       = 0L;
 
 int                   fOutput          = 0;
-
+int                   fYesNo           = 0;
 
 
 class sim4thWork {
@@ -216,7 +205,7 @@ void
 worker(void *U, void *T, void *S) {
   sim4thWork  *p = (sim4thWork *)S;
 
-  Sim4       *sim = new Sim4(&sim4params);
+  Sim4       *sim = new Sim4(&config.sim4params);
   p->output       = sim->run(p->input);
   delete sim;
 }
@@ -234,20 +223,21 @@ writer(void *U, void *S) {
     errno = 0;
     write(fOutput, o, strlen(o) * sizeof(char));
     if (errno)
-      fprintf(stderr, "Couldn't write the output file '%s': %s\n", outputFileName, strerror(errno)), exit(1);
+      fprintf(stderr, "Couldn't write the output file '%s': %s\n", config.outputFileName, strerror(errno)), exit(1);
 
     free(o);
   }
 
-  if (beYesNo) {
+  if (config.yesnoFileName) {
+    char  str[128];
+
     if (L4[0])
-      fprintf(stdout, "%s -Y "u32bitFMT" "u32bitFMT"\n",
-              p->script,
-              L4[0]->percentIdentity,
-              L4[0]->querySeqIdentity);
+      sprintf(str, "%s -Y "u32bitFMT" "u32bitFMT"\n",
+              p->script, L4[0]->percentIdentity, L4[0]->querySeqIdentity);
     else
-      fprintf(stdout, "%s -N 0 0\n",
-              p->script);
+      sprintf(str, "%s -N 0 0\n", p->script);
+
+    write(fYesNo, str, strlen(str) * sizeof(char));
   }
 
   //  Release this compute
@@ -284,31 +274,30 @@ openOutputFile(char *outputFileName) {
 int
 main(int argc, char **argv) {
 
-  double  mainStartTime = getTime();
-
-  parseCommandLine(argc, argv);
+  config.parseCommandLine(argc, argv);
 
   //  Open input files
   //
-  GENs = new FastAWrapper(databaseFileName);
-  ESTs = new FastACache(cdnaFileName,     loaderCacheSize, false);
+  GENs = new FastAWrapper(config.databaseFileName);
+  ESTs = new FastACache(config.cdnaFileName, config.loaderCacheSize, false);
 
   GENs->openIndex();
 
   //  Open the output file
-  fOutput = openOutputFile(outputFileName);
+  fOutput = openOutputFile(config.outputFileName);
+  fYesNo  = openOutputFile(config.yesnoFileName);
 
   sweatShop  *ss = 0L;
 
   //  If we have a script, read work from there, otherwise,
   //  do an all-vs-all.
   //
-  if (scriptFileName) {
-    scriptFile = new readBuffer(scriptFileName);
+  if (config.scriptFileName) {
+    scriptFile = new readBuffer(config.scriptFileName);
     ss = new sweatShop(loader,
                        worker,
                        writer);
-  } else if (pairwise) {
+  } else if (config.pairwise) {
     ss = new sweatShop(loaderPairwise,
                        worker,
                        writer);
@@ -318,28 +307,17 @@ main(int argc, char **argv) {
                        writer);
   }
 
-  ss->run(0L, beVerbose);
+  ss->run(0L, config.beVerbose);
 
   //  Only close the file if it isn't stdout
   //
-  if (strcmp(outputFileName, "-") != 0)
+  if (strcmp(config.outputFileName, "-") != 0)
     close(fOutput);
 
+  if (config.yesnoFileName)
+    close(fYesNo);
+
   delete scriptFile;
-
-  if (statsFileName) {
-    FILE  *statsFile = fopen(statsFileName, "w");
-    if (statsFile) {
-      write_rusage(statsFile);
-      fprintf(statsFile, "clockTime:      %f\n", getTime() - mainStartTime);
-      fclose(statsFile);
-    }
-  }
-
-  if (touchFileName) {
-    FILE  *touchFile = fopen(touchFileName, "w");
-    fclose(touchFile);
-  }
 
   exit(0);
 }

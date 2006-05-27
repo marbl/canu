@@ -1,22 +1,5 @@
 #include "sim4db.H"
 
-u32bit
-numberOfScriptLines(char *filename) {
-  u32bit  lines = 0;
-
-  if (filename) {
-    readBuffer  *scr = new readBuffer(filename);
-
-    do {
-      if (scr->get() == '\n')
-        lines++;
-    } while (scr->next() == false);
-
-    delete scr;
-  }
-
-  return(lines);
-}
 
 //  Parse the command line to create a sim4command object
 //

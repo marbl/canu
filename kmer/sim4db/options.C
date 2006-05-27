@@ -1,6 +1,7 @@
 #include "sim4db.H"
+#include "configuration.H"
 
-#include "buildinfo-sim4db.h"
+#include "buildinfo-sim4th.h"
 #include "buildinfo-libbio.h"
 #include "buildinfo-libutil.h"
 
@@ -10,7 +11,7 @@ const char *usage =
 "\n"
 "       -v            print status to stderr while running\n"
 "       -V            print script lines (stderr) as they are processed\n"
-"       -YN           print script lines (stdout) as they are processed, annotated with yes/no\n"
+"       -YN           print script lines (to given file) as they are processed, annotated with yes/no\n"
 "\n"
 "       -cdna         use these cDNA sequences\n"
 "       -genomic      use these genomic sequences\n"
@@ -66,12 +67,12 @@ const char *usage =
 
 
 void
-parseCommandLine(int argc, char **argv) {
+configuration::parseCommandLine(int argc, char **argv) {
   int arg = 1;
 
   while (arg < argc) {
     if        (strncmp(argv[arg], "--buildinfo", 3) == 0) {
-        buildinfo_sim4db(stderr);
+        buildinfo_sim4th(stderr);
         buildinfo_libbio(stderr);
         buildinfo_libutil(stderr);
         exit(1);
@@ -136,7 +137,8 @@ parseCommandLine(int argc, char **argv) {
     } else if (strncmp(argv[arg], "-v", 2) == 0) {
       beVerbose = true;
     } else if (strncmp(argv[arg], "-YN", 3) == 0) {
-      beYesNo = true;
+      arg++;
+      yesnoFileName = argv[arg];
     } else if (strncmp(argv[arg], "-H", 2) == 0) {
       arg++;
       sim4params.setRelinkWeight(atoi(argv[arg]));
