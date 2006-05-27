@@ -139,6 +139,7 @@ submitPrepareBatch(merylArgs *args) {
   else
     sprintf(cmd, "qsub -cwd -j y -o %s-prepare.err -N mp%s %s-prepare.sh",
             args->outputFile, args->sgeJobName, args->outputFile);
+  fprintf(stderr, "%s\n", cmd);
   if (system(cmd))
     fprintf(stderr, "%s\nFailed to execute qsub command: %s\n", cmd, strerror(errno)), exit(1);
 }
@@ -168,6 +169,7 @@ submitCountBatches(merylArgs *args) {
   else
     sprintf(cmd, "qsub -t 1-"u64bitFMT" -cwd -j y -o %s-count-\\$TASK_ID.err -N mc%s %s-count.sh",
             args->segmentLimit, args->outputFile, args->sgeJobName, args->outputFile);
+  fprintf(stderr, "%s\n", cmd);
   if (system(cmd))
     fprintf(stderr, "%s\nFailed to execute qsub command: %s\n", cmd, strerror(errno)), exit(1);
 
@@ -190,6 +192,7 @@ submitCountBatches(merylArgs *args) {
   else
     sprintf(cmd, "qsub -hold_jid mc%s -cwd -j y -o %s-merge.err -N mm%s %s-merge.sh",
             args->sgeJobName, args->outputFile, args->sgeJobName, args->outputFile);
+  fprintf(stderr, "%s\n", cmd);
   if (system(cmd))
     fprintf(stderr, "%s\nFailed to execute qsub command: %s\n", cmd, strerror(errno)), exit(1);
 }
