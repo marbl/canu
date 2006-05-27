@@ -6,28 +6,23 @@ LIBMERYL/   :=$(call MakePath,$/../libmeryl/)
 LIBKMER/    :=$(call MakePath,$/../libkmer/)
 LIBSIM4/    :=$(call MakePath,$/../libsim4/)
 
-$/.CXX_SRCS  := $/sim4db.C $/sim4th.C $/options.C $/script.C
-$/.CXX_EXES  := $/sim4db $/sim4th
+$/.CXX_SRCS  := $/sim4th.C $/options.C $/script.C
+$/.CXX_EXES  := $/sim4th
 
 $/.CLEAN  := $/*.o
 $/.REAL-CLEAN := $/buildinfo-*
 
-$/sim4db: $/buildinfo-sim4db.o $/sim4db.o
-$/sim4th: $/buildinfo-sim4db.o $/sim4th.o $/options.o $/script.o
+$/sim4th: $/buildinfo-sim4th.o $/sim4th.o $/options.o $/script.o
 
 ${$/.CXX_EXES}:  ${LIBSIM4/}libsim4.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 
-$/sim4db.C.d:  $/buildinfo-sim4db.h \
-               ${LIBBIO/}buildinfo-libbio.h \
-               ${LIBUTL/}buildinfo-libutil.h \
-
-$/options.C.d:  $/buildinfo-sim4db.h \
+$/options.C.d:  $/buildinfo-sim4th.h \
                 ${LIBBIO/}buildinfo-libbio.h \
                 ${LIBUTL/}buildinfo-libutil.h \
 
 $(eval $/%.d $/%.o: CXXFLAGS+=  -I${LIBSIM4/} -I${LIBBIO/} -I${LIBUTL/})
 
-$/buildinfo-sim4db.c: $/buildinfo-sim4db.h
-$/buildinfo-sim4db.h: $/sim4db.C
-	@${LIBUTL/}buildinfo.pl sim4db "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
-	@[ `dirname $@` = "." ] || mv buildinfo-sim4db.[ch] `dirname $@`
+$/buildinfo-sim4th.c: $/buildinfo-sim4th.h
+$/buildinfo-sim4th.h: $/sim4th.C
+	@${LIBUTL/}buildinfo.pl sim4th "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
+	@[ `dirname $@` = "." ] || mv buildinfo-sim4th.[ch] `dirname $@`
