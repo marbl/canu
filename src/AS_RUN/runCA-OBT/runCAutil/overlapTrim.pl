@@ -77,41 +77,42 @@ sub overlapTrim {
     }
 
 
-    #  Run meryl on the now quality-trimmed frags.  This hopefully
-    #  will get around some sequencing centers' habit of having N's in
-    #  the low quality region, and is generally just a good idea.
-    #
-    meryl();
-
-    #  Filter the standard set of nmers, throw out things below 100.
-    #  If you change 100, you should also change meryl.pl.
-
-    if (! -e "$wrk/0-overlaptrim-overlap/$asm.nmers.fasta") {
-
-        open(F, "< $wrk/0-preoverlap/$asm.nmers.fasta")  or die "Failed to open $wrk/0-preoverlap/$asm.nmers.fasta for reading.\n";
-        open(G, "> $wrk/0-overlaptrim-overlap/$asm.nmers.fasta") or die "Failed to open $wrk/0-overlaptrim-overlap/$asm.nmers.fasta for writing.\n";
-        while (!eof(F)) {
-            my $def = <F>;
-            my $mer = <F>;
-            if ($def =~ m/^>(\d+)$/) {
-                print G "$def$mer" if ($1 > 100);
-            } else {
-                chomp $def;
-                print STDERR "ERROR:  Got '$def' for a defline!\n";
-            }
-        }
-        close(G);
-        close(F);
-    }
-
-    createOverlapJobs("trim");
-    checkOverlap("trim");
-
-    #  Sort the overlaps -- this also duplicates each overlap so that
-    #  all overlaps for a fragment A are localized.
+    #  Compute overlaps, if we don't have them already
 
     if ((! -e "$wrk/0-overlaptrim/$asm.ovl.sorted") &&
         (! -e "$wrk/0-overlaptrim/$asm.ovl.sorted.bz2")) {
+
+        #  Run meryl on the now quality-trimmed frags.  This hopefully
+        #  will get around some sequencing centers' habit of having N's in
+        #  the low quality region, and is generally just a good idea.
+        #
+        meryl();
+
+        #  Filter the standard set of nmers, throw out things below 100.
+        #  If you change 100, you should also change meryl.pl.
+
+        if (! -e "$wrk/0-overlaptrim-overlap/$asm.nmers.fasta") {
+            open(F, "< $wrk/0-preoverlap/$asm.nmers.fasta")  or die "Failed to open $wrk/0-preoverlap/$asm.nmers.fasta for reading.\n";
+            open(G, "> $wrk/0-overlaptrim-overlap/$asm.nmers.fasta") or die "Failed to open $wrk/0-overlaptrim-overlap/$asm.nmers.fasta for writing.\n";
+            while (!eof(F)) {
+                my $def = <F>;
+                my $mer = <F>;
+                if ($def =~ m/^>(\d+)$/) {
+                    print G "$def$mer" if ($1 > 100);
+                } else {
+                    chomp $def;
+                    print STDERR "ERROR:  Got '$def' for a defline!\n";
+                }
+            }
+            close(G);
+            close(F);
+        }
+
+        createOverlapJobs("trim");
+        checkOverlap("trim");
+
+        #  Sort the overlaps -- this also duplicates each overlap so that
+        #  all overlaps for a fragment A are localized.
 
         if (runCommand("find $wrk/0-overlaptrim-overlap -follow -name \\*ovb -print > $wrk/0-overlaptrim/all-overlaps-trim.ovllist")) {
             print STDERR "Failed to generate a list of all the overlap files.\n";
