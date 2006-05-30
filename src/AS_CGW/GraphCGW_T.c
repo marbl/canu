@@ -23,7 +23,7 @@ cc -g -pg -qfullpath   -qstrict -qbitfields=signed -qchars=signed -qlanglvl=ext 
 -o /work/assembly/rbolanos/IBM_PORT_CDS/ibm_migration_work_dir/cds/AS/obj/GraphCGW_T.o GraphCGW_T.c
 */
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.16 2006-05-26 18:12:01 jason_miller Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.17 2006-05-30 20:35:23 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -3838,6 +3838,12 @@ void ComputeMatePairDetailedStatus() {
   int numInUnresolv = 0;
   int numInResRep   = 0;
   int numInNullScaf = 0;
+  int numZero       = 0;
+  int numOne        = 0;
+  int numMore       = 0;
+  int numSkipChaff  = 0;
+  int numSkipSurr   = 0;
+  int numSkipDegen  = 0;
 
   int duCI = 0;
   int urCI = 0;
@@ -3919,8 +3925,10 @@ void ComputeMatePairDetailedStatus() {
           }
           continue;
       }
-      if(mate->flags.bits.isChaff || frag->flags.bits.mateDetail == CHAFF_MATE)
+      if(mate->flags.bits.isChaff || frag->flags.bits.mateDetail == CHAFF_MATE) {
+          numSkipChaff++;
           continue;
+      }
 
       dptr = GetDistT(ScaffoldGraph->Dists, frag->dist);
 
@@ -3946,6 +3954,37 @@ void ComputeMatePairDetailedStatus() {
       mateContig = GetGraphNode( ScaffoldGraph->ContigGraph, mate->contigID);
       AssertPtr(mateContig);
 
+      NodeCGW_T *mchunk = GetGraphNode( ScaffoldGraph->CIGraph, mate->CIid);
+      if ( node->type == RESOLVEDREPEATCHUNK_CGW)
+          numInResRep++;
+
+      if ( node->type != DISCRIMINATORUNIQUECHUNK_CGW ) {
+          if (node->info.CI.numInstances == 0) {
+              numZero++;
+          } else if (node->info.CI.numInstances == 1) {
+              numOne++;
+          } else {
+              numMore++;
+          }
+      if ( node->flags.bits.isStoneSurrogate ) {
+          if (mchunk->flags.bits.isStoneSurrogate) {
+              if (mate->flags.bits.mateDetail != BOTH_SURR_MATE) {
+                  numBothSurr+=2;
+                  mate->flags.bits.mateDetail = BOTH_SURR_MATE;
+                  frag->flags.bits.mateDetail = BOTH_SURR_MATE;
+              }
+          } else {
+              numSurrogate+=2;
+              mate->flags.bits.mateDetail = SURR_MATE;
+              frag->flags.bits.mateDetail = SURR_MATE;
+          }
+          continue;
+      }
+      }
+      if( mchunk->flags.bits.isStoneSurrogate ) {
+          numSkipSurr++;
+          continue;
+      }
       if( fragContig->scaffoldID == NULLINDEX ) {
           assert( node->type != DISCRIMINATORUNIQUECHUNK_CGW );
           if (mateContig->scaffoldID == NULLINDEX) {
@@ -3961,29 +4000,12 @@ void ComputeMatePairDetailedStatus() {
           }
           continue;
       }
-      if(mateContig->scaffoldID == NULLINDEX ||
-         mate->flags.bits.mateDetail == DEGEN_MATE ||
-         frag->flags.bits.mateDetail == DEGEN_MATE)
+
+      if(mateContig->scaffoldID == NULLINDEX) {
+          numSkipDegen++;
           continue;
-
-      if (     node->type != DISCRIMINATORUNIQUECHUNK_CGW ) {
-          if ( node->type == RESOLVEDREPEATCHUNK_CGW)
-              numInResRep++;
-
-          if ( node->flags.bits.isStoneSurrogate ) {
-              if (mate->flags.bits.mateDetail == SURR_MATE) {
-                  numBothSurr+=2;
-                  numSurrogate--;
-                  mate->flags.bits.mateDetail = BOTH_SURR_MATE;
-                  frag->flags.bits.mateDetail = BOTH_SURR_MATE;
-              } else {
-                  numSurrogate++;
-                  mate->flags.bits.mateDetail = SURR_MATE;
-                  frag->flags.bits.mateDetail = SURR_MATE;
-              }
-              continue;
-          }
       }
+
       if ( node->type == UNRESOLVEDCHUNK_CGW)
           numInUnresolv++;
       if ( fragContig->scaffoldID == NULLINDEX )
@@ -4057,6 +4079,9 @@ void ComputeMatePairDetailedStatus() {
   fprintf(GlobalData->stderrc,"* num reverse frags %d\n",numReverse);
   fprintf(GlobalData->stderrc,"* num frags in unresolved chunks %d\n",numInUnresolv);
   fprintf(GlobalData->stderrc,"* num frags in repeat chunks %d\n",numInResRep);
+  fprintf(GlobalData->stderrc,"* num frags in zero instance chunks %d\n",numZero);
+  fprintf(GlobalData->stderrc,"* num frags in one instance chunks %d\n",numOne);
+  fprintf(GlobalData->stderrc,"* num frags in >=two instance chunks %d\n",numMore);
   fprintf(GlobalData->stderrc,"* num frags in NULL scafs %d\n",numInNullScaf);
   fprintf(GlobalData->stderrc,"* num no mates %d\n",numNoMate);
   fprintf(GlobalData->stderrc,"* num good mates %d\n",numGood);
@@ -4066,16 +4091,19 @@ void ComputeMatePairDetailedStatus() {
   fprintf(GlobalData->stderrc,"* num outtie mates %d\n",numOuttie);
   fprintf(GlobalData->stderrc,"* num both chaff mates %d\n",numBothChaff);
   fprintf(GlobalData->stderrc,"* num chaff mates %d\n",numChaff);
+  fprintf(GlobalData->stderrc,"* num skiped chaff %d\n",numSkipChaff);
   fprintf(GlobalData->stderrc,"* num both degen mates %d\n",numBothDegen);
   fprintf(GlobalData->stderrc,"* num degen mates %d\n",numDegen);
+  fprintf(GlobalData->stderrc,"* num skiped degen %d\n",numSkipDegen);
   fprintf(GlobalData->stderrc,"* num both surrogate mates %d\n",numBothSurr);
   fprintf(GlobalData->stderrc,"* num surrogate mates %d\n",numSurrogate);
+  fprintf(GlobalData->stderrc,"* num skiped surr %d\n",numSkipSurr);
   fprintf(GlobalData->stderrc,"* num other scaffold %d\n",numDiffScaf);
   int sum = numNoMate + numGood + numShort + numLong + numSame + numOuttie +
          numBothChaff + numChaff + numBothSurr + numSurrogate + numBothDegen +
          numDegen + numDiffScaf;
   fprintf(GlobalData->stderrc,"* sum of frag mate status %d\n\n",sum);
-  assert( sum == numTotalFrags );
+//  assert( sum == numTotalFrags );
   fprintf(GlobalData->stderrc,"* Counts of top level node type\n");
   fprintf(GlobalData->stderrc,"* num DISCRIMINATORUNIQUECHUNK_CGW %d\n", duCI);
   fprintf(GlobalData->stderrc,"* num UNRESOLVEDCHUNK_CGW          %d\n", urCI);
