@@ -21,7 +21,8 @@ extern "C" {
 
 
 //  Removes from the gatekeeperstore any links to deleted fragments.
-
+//
+//  XXX:  Does not delete the fragments from gatekeeper.  
 GateKeeperStore gkpStore;
 
 
@@ -84,6 +85,15 @@ deleteLinksForFrag(CDS_IID_t fragIID) {
         UnRefPHashTable_AS(gkpStore.hashTable, UID_NAMESPACE_AS, newLink.distance);
         UnRefPHashTable_AS(gkpStore.hashTable, UID_NAMESPACE_AS, gkFrag2.readUID);
         UnRefPHashTable_AS(gkpStore.hashTable, UID_NAMESPACE_AS, gkFrag1.readUID);
+
+#if 0
+        //  This doesn't work.  It just asserts.
+        //
+        if(HASH_SUCCESS == DeleteFromPHashTable_AS(gkpStore.hashTable, UID_NAMESPACE_AS, gkFrag1.readUID))
+          deleteAndMarkGateKeeperFragmentStore(gkpStore.frgStore, fragIID, gkFrag1.birthBatch);
+        else
+          assert(0);
+#endif
       }
     }
   }
