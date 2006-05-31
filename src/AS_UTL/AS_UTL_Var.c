@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.9 2005-09-26 20:00:02 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.10 2006-05-31 03:35:39 brianwalenz Exp $";
 /********************************************************************/
 /* Variable Length C Array Package 
  * 
@@ -30,8 +30,8 @@ static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.9 2005-09-26 20:00:02 brianwalenz E
  * It defines a basic set of operations, and provides a set of
  * macros that expand to support typesafe manipulation of the
  * arrays.
- * Revision: $Revision: 1.9 $
- * Date:     $Date: 2005-09-26 20:00:02 $
+ * Revision: $Revision: 1.10 $
+ * Date:     $Date: 2006-05-31 03:35:39 $
  * CMM, 1999/03/29:  Ported to large arrays on the Digital systems by declaring
  * array sizes using size_t, rather than unit32.
  *
@@ -48,6 +48,12 @@ static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.9 2005-09-26 20:00:02 brianwalenz E
 #include "AS_UTL_Var.h"
 
 #include "AS_UTL_fileIO.h"
+
+
+//  As a debugging aid (and to torture developers) we can force the VA
+//  to always invalidate pointers.
+//
+#define  ALWAYS_MOVE_VA_ON_MAKEROOM
 
 
 //  We write a VarArrayType as a known-size structure -- The size of a
@@ -67,7 +73,6 @@ typedef struct {
 // when the EnableRange functionality is used.  This can be avoided by
 // using Initialize_VA with the number of elements to pre-allocate.
 
-#define DEBUG
 #undef DEBUG
 
 // *******************************************************************
@@ -104,6 +109,8 @@ int MakeRoom_VA
   fprintf(stderr,"* requested maxElements = " F_SIZE_T "\n", maxElements);
 #endif
 
+
+#ifndef ALWAYS_MOVE_VA_ON_MAKEROOM
   /* If we have enough space, then return now. */
   if(maxElements <= (va->allocatedElements)){
 #ifdef DEBUG
@@ -114,6 +121,7 @@ int MakeRoom_VA
     // assert(va->Elements != NULL);
     return FALSE;
   }
+#endif
 
   oldSize = (va->allocatedElements)*(va->sizeofElement);
   
@@ -137,19 +145,38 @@ int MakeRoom_VA
     // If we need to use the end of the block, do it
     newSize = max(newSize, tentativeNewSize);
   }
+
+#ifdef DEBUG
+  fprintf(stderr,"* MakeRoom_VA newSize=" F_SIZE_T "\n",newSize);
+#endif
+
+#ifdef ALWAYS_MOVE_VA_ON_MAKEROOM
+  if (newSize < oldSize)
+    newSize = oldSize;
+#endif
   
   assert(oldSize <= newSize);
   newElements = (newSize)/va->sizeofElement;
   assert( va->allocatedElements <= newElements);
   assert( maxElements <= newElements);
   
-  if(newSize <= oldSize ) return FALSE; /* Do not need to do anything. */
-  assert(newSize > oldSize);
+#ifndef ALWAYS_MOVE_VA_ON_MAKEROOM
+  //  Do not need to do anything.
+  if (newSize <= oldSize)
+    return FALSE;
+#endif
 
   if( NULL == va->Elements ) {
     mem = (char *)malloc(newSize);
   } else {
+#ifdef ALWAYS_MOVE_VA_ON_MAKEROOM
+    mem = (char *)malloc(newSize);
+    memcpy(mem, va->Elements, oldSize);
+    memset(va->Elements, 0xff, oldSize);
+    free(va->Elements);
+#else
     mem = (char *)realloc(va->Elements, newSize);
+#endif
   }
 
   assert(mem != NULL);
@@ -158,9 +185,13 @@ int MakeRoom_VA
 
   // Initialize the new memory space to zero.
   mem = va->Elements + oldSize;
-  memset(mem,0,newSize - oldSize);
+  if (newSize - oldSize > 0)
+    memset(mem,0,newSize - oldSize);
 
   assert(va->Elements != NULL);
+
+  fprintf(stderr, "* MakeRoom_VA reallocated '%s' from %d bytes to %d bytes.\n", va->typeofElement, oldSize, newSize);
+
   return TRUE;
 }
 
