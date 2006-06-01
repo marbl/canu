@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.67 2006-05-24 20:49:15 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.68 2006-06-01 23:09:31 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -2343,6 +2343,12 @@ PopulateDistMatrix(int32 cid, AlPair *ap)
     }
    
     // Update the matrix
+
+    int *iidtoindexcache = (int *)malloc(sizeof(int) * ap->nr);
+    for (i=0; i<ap->nr; i++)
+      if (iids[i] >= 0)
+        iidtoindexcache[i] = IidToIndex(iids[i], ap->iids, ap->nr);
+
     for (i=0; i<ap->nr; i++)
     {
         for (j=i; j<ap->nr; j++)
@@ -2358,26 +2364,22 @@ PopulateDistMatrix(int32 cid, AlPair *ap)
             if ((iids[i] < 0)  || (iids[j] < 0))
                 continue;
 
-            k = IidToIndex(iids[i], ap->iids, ap->nr);
-            m = IidToIndex(iids[j], ap->iids, ap->nr);
+            k = iidtoindexcache[i];
+            m = iidtoindexcache[j];
 
-            if (bases[i] == bases[j])
-            {
+            //k = IidToIndex(iids[i], ap->iids, ap->nr);
+            //m = IidToIndex(iids[j], ap->iids, ap->nr);
 
-                if (ap->dist_matrix[k][m] < 0) ap->dist_matrix[k][m] = 0;
-                if (ap->dist_matrix[m][k] < 0) ap->dist_matrix[m][k] = 0;
-                continue;
-            }
-            else
-            {
-                if (ap->dist_matrix[k][m] < 0) ap->dist_matrix[k][m] = 0;
-                if (ap->dist_matrix[m][k] < 0) ap->dist_matrix[m][k] = 0;
-                ap->dist_matrix[m][k] +=     qvs[k] + qvs[m] ;
-                ap->dist_matrix[k][m] +=     qvs[k] + qvs[m] ;
-                continue;
+            if (ap->dist_matrix[k][m] < 0) ap->dist_matrix[k][m] = 0;
+            if (ap->dist_matrix[m][k] < 0) ap->dist_matrix[m][k] = 0;
+ 
+            if (bases[i] != bases[j]) {
+              ap->dist_matrix[m][k] += qvs[k] + qvs[m];
+              ap->dist_matrix[k][m] += qvs[k] + qvs[m];
             }
         }
     }
+    free(iidtoindexcache);
     FREE(bases);
     FREE(iids);
     FREE(qvs);
@@ -5208,6 +5210,8 @@ int ApplyAbacus(Abacus *a, CNS_Options *opp)
 	   }
 
            while (  a_entry != *Getchar(sequenceStore,exch_bead->soffset)) {
+             int exchbeadprev = exch_bead->prev;
+
              if (exch_bead->prev == -1 ) {
                 //fprintf(stderr,"Uh-oh... out of beads in fragment. (RIGHT_SHIFT)\n");
                eid = PrependGapBead(exch_bead->boffset);
@@ -5224,7 +5228,7 @@ int ApplyAbacus(Abacus *a, CNS_Options *opp)
                  column = GetColumn(columnStore, curridx);
 	       }
              }
-             exch_bead = GetBead(beadStore,exch_bead->prev);
+             exch_bead = GetBead(beadStore, exchbeadprev);
            }
            /*
            fprintf(stderr,"RightShifting bead %d (%c) with bead %d (%c).\n",
@@ -6460,7 +6464,11 @@ int AbacusRefine(MANode *ma,int32 from, int32 to, CNS_RefineLevel level,
            int32 newbead;
            Bead *firstbead;
            firstbead = GetBead(beadStore,GetBead(beadStore,start_column->call)->down);
-           newbead = AppendGapBead(firstbead->boffset);
+           newbead   = AppendGapBead(firstbead->boffset);
+           //  beadStore could have changed position, so grab
+           //  firstbead again; we could instead have cached boffset
+           //  and column_index
+           firstbead = GetBead(beadStore,GetBead(beadStore,start_column->call)->down);
            fprintf(stderr,"Adding gapbead %d after %d to add abacus room for abacus abutting left of multialignment\n",
                            newbead, firstbead->boffset);
            ColumnAppend(firstbead->column_index,newbead);
