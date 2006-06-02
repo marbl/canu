@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.68 2006-06-01 23:09:31 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.69 2006-06-02 17:52:22 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -5213,14 +5213,14 @@ int ApplyAbacus(Abacus *a, CNS_Options *opp)
              int exchbeadprev = exch_bead->prev;
 
              if (exch_bead->prev == -1 ) {
-                //fprintf(stderr,"Uh-oh... out of beads in fragment. (RIGHT_SHIFT)\n");
-               eid = PrependGapBead(exch_bead->boffset);
-                //fprintf(stderr,"Adding gapbead %d\n",eid);
+               //fprintf(stderr,"Uh-oh... out of beads in fragment. (RIGHT_SHIFT)\n");
+               exchbeadprev = eid = PrependGapBead(exch_bead->boffset);
+               //fprintf(stderr,"Adding gapbead %d\n",eid);
                AlignBead(GetColumn(columnStore,exch_bead->column_index)->prev,eid);
              } else if (exch_bead->column_index == a->start_column) {
-                //fprintf(stderr,"Uh-oh... out of beads in window. (RIGHT_SHIFT)\n");
-               eid = AppendGapBead(exch_bead->prev);
-                //fprintf(stderr,"Adding gapbead %d\n",eid);
+               //fprintf(stderr,"Uh-oh... out of beads in window. (RIGHT_SHIFT)\n");
+               exchbeadprev = eid = AppendGapBead(exch_bead->prev);
+               //fprintf(stderr,"Adding gapbead %d\n",eid);
 
                {// ALH's change to fix reallocation of column store
 	         int curridx = column->lid;
