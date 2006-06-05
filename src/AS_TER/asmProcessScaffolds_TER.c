@@ -110,7 +110,7 @@ static void Reverse(char *in, int len);
 
 
 int32 compute_gap(double gapsize){
-  if ((int32)gapsize <= 20)
+  if (gapsize <= 20.0)
     return(20);
   return (int32)gapsize;
 }
