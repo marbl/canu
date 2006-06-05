@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.16 2006-03-28 04:05:18 ahalpern Exp $
- * $Revision: 1.16 $
+ * $Id: AS_OVL_overlap_common.h,v 1.17 2006-06-05 17:47:06 brianwalenz Exp $
+ * $Revision: 1.17 $
 */
 
 
@@ -671,14 +671,10 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
 #ifdef CONTIG_OVERLAPPER_VERSION
             fprintf (stderr, "M option not allowed for Contig Version--ignored\n");
 #else
-            if       (strcmp (optarg, "16GB") == 0) {
-              Hash_Mask_Bits    = 25;
-              Max_Hash_Strings  = 1000000;
-              Max_Hash_Data_Len = 720000000;
-            } else if (strcmp (optarg, "8GB") == 0) {
+            if       (strcmp (optarg, "8GB") == 0) {
               Hash_Mask_Bits    = 24;
-              Max_Hash_Strings  = 500000;
-              Max_Hash_Data_Len = 360000000;
+              Max_Hash_Strings  = 512000;
+              Max_Hash_Data_Len = 400000000;
             } else if (strcmp (optarg, "4GB") == 0) {
               Hash_Mask_Bits    = 23;
               Max_Hash_Strings  = 250000;
@@ -697,7 +693,7 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
               Max_Hash_Data_Len = 6000000;
             } else {
               fprintf(stderr, "ERROR:  Unknown memory size \"%s\"\n", optarg);
-              fprintf(stderr, "Valid values are '16GB', '8GB', '4GB', '2GB', '1GB', '256MB'\n");
+              fprintf(stderr, "Valid values are '8GB', '4GB', '2GB', '1GB', '256MB'\n");
               errflg ++;
             }
             Max_Frags_In_Memory_Store = OVL_Min_int (Max_Hash_Strings, MAX_OLD_BATCH_SIZE);
@@ -764,7 +760,12 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
 
      if (Max_Hash_Strings == 0) {
        fprintf(stderr, "* No memory model supplied; -M needed!\n");
-       illegal = 1;
+       exit(1);
+     }
+
+     if (Max_Hash_Strings > MAX_STRING_NUM) {
+       fprintf(stderr, "Too many strings (--hashstrings), must be less than %d\n", MAX_STRING_NUM);
+       exit(1);
      }
      
      if  ((illegal == 1)
