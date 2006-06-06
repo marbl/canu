@@ -84,10 +84,10 @@ CGW_SOURCES = AS_CGW_LoadCheckpoint.c AS_CGW_main.c AS_CGW_dataTypes.c \
 	ChunkOverlap_CGW.c SplitScaffolds_CGW.c \
 	CIScaffoldT_Biconnected_CGW.c SplitChunks_CGW.c Instrument_CGW.c \
 	eCR.c eCR-examineGap.c eCR-diagnostic.c localUnitigging_CGW.c \
-	AS_CGW_EdgeDiagnostics.c findMissedOverlaps.c scaffold2fasta.c \
+	AS_CGW_EdgeDiagnostics.c findMissedOverlaps.c dumpCheckpointAsFasta.c \
 	examineFragStore.c InterleavedMerging.c exploreMates.c \
 	fixZLFContigs.c fixECRCheckpoint.c dumpBinaryUnitigMAs.c \
-	assemblyStructure.c dumpContigFromCkpt.c exploreGapStructure.c \
+	assemblyStructure.c exploreGapStructure.c \
 	asmInfoForFrg.c exploreScaffoldEnds.c dumpCloneMiddles.c \
 	whereAreMyOverlaps.c findAnEdge.c dumpSingletons.c combineMates.c \
 	resolveSurrogates.c fragmentPlacement.c ckp_scflen.c frgs2clones.c createFrgDeletes.c \
@@ -137,8 +137,8 @@ LIBRARIES = libAS_CGW.a
 PROGS = cgw extendClearRanges CheckILK Checkpoint process_scaffolds loadcgw \
         ScaffoldMap testSplitChunks instrumentCheckpoint \
 	traceNodes findMissedOverlaps localUnitigging_CGW \
-	scaffold2fasta examineFragStore exploreMates fixECRCheckpoint \
-	dumpBinaryUnitigMAs assemblyStructure dumpContigFromCkpt \
+	dumpCheckpointAsFasta examineFragStore exploreMates fixECRCheckpoint \
+	dumpBinaryUnitigMAs assemblyStructure \
 	exploreGapStructure exploreScaffoldEnds asmInfoForFrg \
 	dumpCloneMiddles whereAreMyOverlaps findAnEdge \
 	dumpSingletons combineMates resolveSurrogates ckp_scflen frgs2clones createFrgDeletes \
@@ -171,7 +171,7 @@ extendClearRanges: eCR.o eCR-examineGap.o eCR-diagnostic.o libAS_CGW.a libAS_MSG
 
 #fixContigMultiAligns: FixContigMultiAligns.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_CGW.a libAS_ALN.a libAS_SDB.a libAS_CGW.a $(LIN_ALG_LIB) libAS_MSG.a libAS_CGW.a libAS_UTL.a 
 
-scaffold2fasta: scaffold2fasta.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_CGW.a libAS_ALN.a libAS_SDB.a libAS_CGW.a $(LIN_ALG_LIB) libAS_MSG.a libAS_CGW.a libAS_OVL.a libAS_UTL.a 
+dumpCheckpointAsFasta: dumpCheckpointAsFasta.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_CGW.a libAS_ALN.a libAS_SDB.a libAS_CGW.a $(LIN_ALG_LIB) libAS_MSG.a libAS_CGW.a libAS_OVL.a libAS_UTL.a 
 
 examineFragStore: examineFragStore.o libAS_CGW.a libAS_MSG.a  libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_CGW.a libAS_SDB.a  libAS_CGW.a $(LIN_ALG_LIB) libAS_MSG.a libAS_CGW.a libAS_OVL.a libAS_ALN.a libAS_UTL.a 
 
@@ -202,8 +202,6 @@ asmInfoForFrg: asmInfoForFrg.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a l
 dumpSingletons: dumpSingletons.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a libAS_UID.a
 
 assemblyStructure: assemblyStructure.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a 
-
-dumpContigFromCkpt: dumpContigFromCkpt.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a 
 
 exploreGapStructure: exploreGapStructure.o libAS_CGW.a libAS_CNS.a libAS_PER.a libAS_ALN.a libAS_REZ.a libAS_CGW.a libAS_ALN.a libAS_CNS.a libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_CGW.a $(LIN_ALG_LIB) libAS_CGW.a libAS_OVL.a libAS_UTL.a 
 
