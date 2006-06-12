@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.69 2006-06-02 17:52:22 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.70 2006-06-12 20:01:26 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -57,7 +57,6 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.69 2006-06-02 17:52:22 bria
 #define SHOW_OLAP                           1
 #undef  ALIGN_TO_CONSENSUS
 #define PRINTUIDS
-//#define VERBOSE_MULTIALIGN_OUTPUT
 
 #define CNS_DP_RANGE                       40
 #define CNS_DP_THRESH                       1e-6
@@ -83,12 +82,6 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.69 2006-06-02 17:52:22 bria
 // Parameters used by Abacus processing code
 #define MSTRING_SIZE                        3
 #define MAX_SIZE_OF_ADJUSTED_REGION         5
-
-//  Define this to dump multifasta to stderr of the unitigs
-//  we try to align in MultiAlignContig().  Was useful for
-//  debugging bad layout.
-//
-#undef DUMP_UNITIGS_IN_MULTIALIGNCONTIG
 
 
 #include <stdlib.h>
@@ -148,6 +141,16 @@ char SRCBUFFER[2048];
 // Utility variable to control width of "pages" of PrintAlignment output
 static int ALNPAGEWIDTH=100;
 
+//  Define this to dump multifasta to stderr of the unitigs
+//  we try to align in MultiAlignContig().  Was useful for
+//  debugging bad layout.
+//
+int DUMP_UNITIGS_IN_MULTIALIGNCONTIG = 0;
+
+// Be noisy when doing multi alignments - this used to be a #ifdef,
+// which made it difficult to switch on in the middle of a debug.
+//
+int VERBOSE_MULTIALIGN_OUTPUT = 0;
 
 
 int isRead(FragType type){
@@ -6763,7 +6766,9 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
     IntMultiPos *positions=unitig->f_list;
     int num_frags = unitig->num_frags;
     int unitig_forced = 0;
+#ifdef NEW_UNITIGGER_INTERFACE
     int32 *is_pointed = NULL, *is_aligned = NULL, i_afrag;
+#endif
 
 #if 0
    fprintf(stderr, "Calling MultiAlignUnitig, iaccession= %d num_frags= %d\n", unitig->iaccession, num_frags);
@@ -6867,10 +6872,11 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
     // Now, loop on remaining fragments, aligning to:
     //    a)  containing frag (if contained)
     // or b)  previously aligned frag
+#ifdef NEW_UNITIGGER_INTERFACE
     is_pointed = safe_calloc(num_frags,sizeof(int32));
     is_aligned = safe_calloc(num_frags,sizeof(int32));
     is_aligned[0] = 1;
-#ifdef NEW_UNITIGGER_INTERFACE
+
     for (i=0;i<num_frags;i++) 
     {
        Fragment *afrag = GetFragment(fragmentStore,i);
@@ -6941,13 +6947,13 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
 #ifndef NEW_UNITIGGER_INTERFACE
          if (align_to < 0)
          {
-             #ifdef VERBOSE_MULTIALIGN_OUTPUT
+           if (VERBOSE_MULTIALIGN_OUTPUT) {
              fprintf(stderr, "MultiAlignUnitig: hit the beginning of ");
              fprintf(stderr, "fragment list: no fragment upstream ");
              fprintf(stderr, "overlaps with current fragment %d\n",
-                 bfrag->iid);
-             #endif
-             break;
+                     bfrag->iid);
+           }
+           break;
          }
          afrag = GetFragment(fragmentStore, align_to);
 
@@ -6970,7 +6976,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
            }
          }
          if ( align_to < 0 ) {
-             #ifdef VERBOSE_MULTIALIGN_OUTPUT
+           if (VERBOSE_MULTIALIGN_OUTPUT) {
              if (bfrag->contained )
              {
                 fprintf(stderr, "MultiAlignUnitig: bfrag %d is contained, ", 
@@ -6983,8 +6989,8 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
                       bfrag->iid);
                  fprintf(stderr, "and no uncontained afrag is found upstream\n");
              }
-             #endif
-             break;
+           }
+           break;
          }
          ahang = offsets[bfrag->lid].bgn - offsets[afrag->lid].bgn;
 
@@ -6993,14 +6999,14 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
           */
          if (ahang < CNS_NEG_AHANG_CUTOFF && (! allow_neg_hang))
          {
-             #ifdef VERBOSE_MULTIALIGN_OUTPUT
+           if (VERBOSE_MULTIALIGN_OUTPUT) {
              fprintf(stderr, "MultiAlignUnitig: too negative ahang is detected ");
              fprintf(stderr, "for afrag %d and bfrag. %d\n",
                  afrag->iid,  bfrag->iid);
              fprintf(stderr, "Proceed to the next upstraem afrag\n"); 
-             #endif
-             align_to--;
-             continue;
+           }
+           align_to--;
+           continue;
          }
 #endif 
 
@@ -7021,14 +7027,14 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
 
          if (ovl < 0)
          {
-             #ifdef VERBOSE_MULTIALIGN_OUTPUT
+           if (VERBOSE_MULTIALIGN_OUTPUT) {
              fprintf(stderr, "MultiAlignUnitig: positions of afrag ");
              fprintf(stderr, "%d and bfrag %d do not overlap. ",
                  afrag->iid, bfrag->iid);
              fprintf(stderr, "Proceed to the next upstream afrag\n");
-             #endif
-             align_to--;
-             continue;
+           }
+           align_to--;
+           continue;
          }
             
 #ifdef ALIGN_TO_CONSENSUS
@@ -7065,20 +7071,21 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
        } /* ! olap_success */
 
        if ( ! olap_success ) {
-         #ifdef VERBOSE_MULTIALIGN_OUTPUT
-         if ( bfrag->contained && afrag->iid != bfrag->contained ) {
-           // report a more meaningful error in the case were overlap with
-           //   a declared contained isn't successful
-           fprintf(stderr, "Could not find overlap between bfrag %d (%c) ",
-               bfrag->iid,bfrag->type);
-           fprintf(stderr, "and its containing fragment, %d.\n",
-               bfrag->contained);
-         } else {
-           fprintf(stderr, "Could (really) not find overlap between ");
-           fprintf(stderr, "afrag %d (%c) and bfrag %d (%c); estimated ahang: %d\n",
-                afrag->iid,afrag->type,bfrag->iid,bfrag->type,ahang);
+         if (VERBOSE_MULTIALIGN_OUTPUT) {
+           if ( bfrag->contained && afrag->iid != bfrag->contained ) {
+             // report a more meaningful error in the case were overlap with
+             //   a declared contained isn't successful
+             fprintf(stderr, "Could not find overlap between bfrag %d (%c) ",
+                     bfrag->iid,bfrag->type);
+             fprintf(stderr, "and its containing fragment, %d.\n",
+                     bfrag->contained);
+           } else {
+             fprintf(stderr, "Could (really) not find overlap between ");
+             fprintf(stderr, "afrag %d (%c) and bfrag %d (%c); estimated ahang: %d\n",
+                     afrag->iid,afrag->type,bfrag->iid,bfrag->type,ahang);
+           }
          }
-         #endif
+
          PrintFrags(cnslog,0,&positions[i],1,global_fragStore, 
              global_bactigStore);
          if ( allow_forced_frags ) {
@@ -7119,11 +7126,15 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
           ApplyAlignment(afrag->lid,0,bfrag->lid,ahang,Getint32(trace,0));
 #endif
        }
+#ifdef NEW_UNITIGGER_INTERFACE
        is_aligned[i       ] = 1;
        is_aligned[align_to] = 1;
-    } /* loop through all the unitigfs */
+#endif
+    } /* loop through all the unitigs */
+#ifdef NEW_UNITIGGER_INTERFACE
     FREE(is_pointed);
     FREE(is_aligned);
+#endif
 
     unitig->num_vars = 0;
     {
@@ -7543,16 +7554,16 @@ int MultiAlignContig(IntConConMesg *contig,
       // }
      }
 
-#ifdef DUMP_UNITIGS_IN_MULTIALIGNCONTIG
-     for (i=0; i<num_unitigs; i++) {
-       Fragment *f;
-       char     *s;
+     if (DUMP_UNITIGS_IN_MULTIALIGNCONTIG > 0) {
+       for (i=0; i<num_unitigs; i++) {
+         Fragment *f;
+         char     *s;
 
-       f = GetFragment(fragmentStore,i); 
-       s = Getchar(sequenceStore,f->sequence);
-       fprintf(stderr, ">unitig-%d\n%s\n", f->iid, s);
+         f = GetFragment(fragmentStore,i); 
+         s = Getchar(sequenceStore,f->sequence);
+         fprintf(stderr, ">unitig-%d\n%s\n", f->iid, s);
+       }
      }
-#endif
 
      ma = CreateMANode(contig->iaccession);
      if ( trace == NULL ) {
@@ -7561,7 +7572,7 @@ int MultiAlignContig(IntConConMesg *contig,
        ResetVA_int32(trace);
      }
     
-     // See multiAlignment with 1st fragment of 1st unitig 
+     // Seed multiAlignment with 1st fragment of 1st unitig 
      SeedMAWithFragment(ma->lid, GetFragment(fragmentStore,0)->lid,0, opp);
      PlaceFragments(GetFragment(fragmentStore,0)->lid,COMPARE_FUNC, opp);
      
@@ -7591,44 +7602,52 @@ int MultiAlignContig(IntConConMesg *contig,
                 align_to--;
             }
             if ( align_to < 0 ) {
-                #ifdef VERBOSE_MULTIALIGN_OUTPUT
+              if (VERBOSE_MULTIALIGN_OUTPUT) {
                 fprintf(stderr, "MultiAlignContig: hit the beginning of ");
                 fprintf(stderr, "unitig list: no unitig upstream ");
                 fprintf(stderr, "overlaps with current unitig %d\n",
-                    bfrag->iid);
-                #endif
-                break;
+                        bfrag->iid);
+              }
+              break;
             }
             afrag = GetFragment(fragmentStore, align_to);
             alid = afrag->lid;
             ovl = offsets[alid].end - offsets[blid].bgn;
             if (ovl <= 0)
             {
-                #ifdef VERBOSE_MULTIALIGN_OUTPUT
+              if (VERBOSE_MULTIALIGN_OUTPUT) {
                 fprintf(stderr, "MultiAlignContig: positions of afrag ");
                 fprintf(stderr, "%d and bfrag %d do not overlap. ",
-                    afrag->iid, bfrag->iid);
+                        afrag->iid, bfrag->iid);
                 fprintf(stderr, "Proceed to the next upstream afrag\n");
-                #endif
-                align_to--;
-                continue;
+              }
+              align_to--;
+              continue;
             }
             else /* ovl > 0 */
             {
                  ahang = offsets[blid].bgn - offsets[alid].bgn;
-             //fprintf(stderr,"Attemping alignment of afrag %d (%c) and bfrag %d (%c) estimated ahang: %d\n",
-             //   afrag->iid,afrag->type,bfrag->iid,bfrag->type,ahang);
+
                  if ( ahang_first == -1) {
                     ahang_first = ahang;
                     afrag_first = afrag;
                  }
                  ResetVA_int32(trace);
+
+                 if (VERBOSE_MULTIALIGN_OUTPUT)
+                   fprintf(stderr,"Attemping alignment (DP_Compare) of afrag %d (%c) and bfrag %d (%c) estimated ahang: %d\n",
+                           afrag->iid,afrag->type,bfrag->iid,bfrag->type,ahang);
                  olap_success = GetAlignmentTrace(afrag->lid, 0,bfrag->lid, &ahang, ovl,
-                     trace, &otype, DP_Compare,DONT_SHOW_OLAP,0);
+                                                  trace, &otype, DP_Compare,DONT_SHOW_OLAP,0);
+
                  if ( !olap_success && COMPARE_FUNC != DP_Compare ) {
-                     olap_success = GetAlignmentTrace(afrag->lid, 0,bfrag->lid, &ahang, ovl,
-                         trace, &otype, COMPARE_FUNC,SHOW_OLAP,0);
+                   if (VERBOSE_MULTIALIGN_OUTPUT)
+                     fprintf(stderr,"Attemping alignment (COMPARE_FUNC) of afrag %d (%c) and bfrag %d (%c) estimated ahang: %d\n",
+                             afrag->iid,afrag->type,bfrag->iid,bfrag->type,ahang);
+                   olap_success = GetAlignmentTrace(afrag->lid, 0,bfrag->lid, &ahang, ovl,
+                                                    trace, &otype, COMPARE_FUNC,SHOW_OLAP,0);
                  }
+
                  // here, calculate the appropriate allowable endgap.
                  //  ------------ afrag
                  //     ----------- bfrag
@@ -7639,43 +7658,44 @@ int MultiAlignContig(IntConConMesg *contig,
                      int max_gap=0;
                      int nlid=blid+1;
                      if ( nlid < num_unitigs )
-                         max_gap = offsets[nlid].bgn - offsets[blid].bgn;
-                     else max_gap = 800;
-                     fprintf(stderr, "Trying local aligner on unitigs %d and %d,",
-                         afrag->iid, bfrag->iid);
-                     fprintf(stderr, " allowing for large endgaps (up to %d)\n",
-                         max_gap);
+                       max_gap = offsets[nlid].bgn - offsets[blid].bgn;
+                     else
+                       max_gap = 800;
+
+                     if (VERBOSE_MULTIALIGN_OUTPUT)
+                       fprintf(stderr, "Trying local aligner on unitigs %d and %d, allowing for large endgaps (up to %d)\n",
+                               afrag->iid, bfrag->iid, max_gap);
                      olap_success = GetAlignmentTrace(afrag->lid, 0,bfrag->lid, &ahang, ovl,
-                         trace, &otype, COMPARE_FUNC,SHOW_OLAP,max_gap);
+                                                      trace, &otype, COMPARE_FUNC,SHOW_OLAP,max_gap);
                  }
             }
             if ( ! olap_success ) {
-                #ifdef VERBOSE_MULTIALIGN_OUTPUT
+              if (VERBOSE_MULTIALIGN_OUTPUT) {
                 fprintf(stderr, "MultiAlignContig: positions of ");
                 fprintf(stderr, "afrag %d (%c) and bfrag %d (%c) overlap, but ",
-                    afrag->iid,afrag->type,bfrag->iid,bfrag->type);
+                        afrag->iid,afrag->type,bfrag->iid,bfrag->type);
                 fprintf(stderr, "GetAlignmentTrace returns no overlap success ");
                 fprintf(stderr, "estimated ahang: %d\n", ahang);
-                #endif
-                align_to--;
-                if ( align_to < 0 && ! try_contained ) {
-                    try_contained = 1;
-                    #ifdef VERBOSE_MULTIALIGN_OUTPUT
-                    fprintf(stderr, "MultiAligncontig: trying contained afrags ");
-                    fprintf(stderr, "for bfrag %d\n", bfrag->iid);
-                    #endif
-                    align_to = i-1;
+              }
+              align_to--;
+              if ( align_to < 0 && ! try_contained ) {
+                try_contained = 1;
+                if (VERBOSE_MULTIALIGN_OUTPUT) {
+                  fprintf(stderr, "MultiAligncontig: trying contained afrags ");
+                  fprintf(stderr, "for bfrag %d\n", bfrag->iid);
                 }
+                align_to = i-1;
+              }
             }
         }
         if ( ! olap_success ) {
            fprintf(stderr,"Could (really) not find overlap between %d (%c) and %d (%c)", 
                    afrag->iid,afrag->type,bfrag->iid,bfrag->type);
            fprintf(stderr,"estimated ahang: %d\n", ahang);
-           fprintf(stderr,"You can force these to abut by removing line %d in MultiAlignment_CNS.c\n", __LINE__+1);
+           fprintf(stderr,"You can force these to abut; see code at line %d in MultiAlignment_CNS.c\n", __LINE__+2);
            FREE(offsets);
-           return EXIT_FAILURE;        
-           // if you remove the above CleanExit, 
+           return EXIT_FAILURE;
+           // if you remove the above FREE() and return(),
            // the following should  have the affect of abutting the unitigs
            //   NEW: rather than abutting, let's try forced identity alignment
            //        to original placement.
@@ -7686,7 +7706,9 @@ int MultiAlignContig(IntConConMesg *contig,
 
            afrag = afrag_first;
            ahang = ahang_first;
-           if ( ahang > afrag->length ) ahang = afrag->length - 20;
+           assert(afrag);
+           if (ahang > afrag->length)
+             ahang = afrag->length - 20;
            otype = AS_DOVETAIL;
         }
         if ( otype == AS_CONTAINMENT ) { 
@@ -8553,34 +8575,36 @@ MultiAlignT *MergeMultiAligns( tSequenceDB *sequenceDBp,
        // align_to = containing
        // else 
        align_to = i-1;
+
+       //  BPW is not sure why this is in a while loop.  If we fail to
+       //  find an overlap, the last thing we do is break out of here
+       //  (the last "if (!olap_success)").  Feel free to document...
+
        while (! olap_success) 
        {
            while ( align_to > 0 && IsContained(align_to) ) {
              align_to--;
            }
            if ( align_to < 0 ) {
-               #ifdef VERBOSE_MULTIALIGN_OUTPUT
-               fprintf(stderr,
-               "MergeMultiAligns: unable to find uncontained contig ");
+             if (VERBOSE_MULTIALIGN_OUTPUT) {
+               fprintf(stderr, "MergeMultiAligns: unable to find uncontained contig ");
                fprintf(stderr, "upstream from current contig %d\n",
                bfrag->iid);
-               #endif
-               break;
+             }
+             break;
            }
            afrag = GetFragment(fragmentStore, align_to);
            alid = afrag->lid;
            ovl = offsets[alid].end - offsets[blid].bgn;
            if( ovl <= 0 ){
-               #ifdef VERBOSE_MULTIALIGN_OUTPUT
-               fprintf(stderr,
-               "MergeMultiAligns: uncontained contig upstream is found, ");
+             if (VERBOSE_MULTIALIGN_OUTPUT) {
+               fprintf(stderr, "MergeMultiAligns: uncontained contig upstream is found, ");
                fprintf(stderr, "but positions indicate no overlap ");
-               fprintf(stderr, "between contigs %d and %d bailing...",
-               afrag->iid, bfrag->iid);
-               #endif                             
-               DeleteMANode(ma->lid);
-               free(offsets);
-               return NULL;
+               fprintf(stderr, "between contigs %d and %d bailing...", afrag->iid, bfrag->iid);
+             }
+             DeleteMANode(ma->lid);
+             free(offsets);
+             return NULL;
            }
            if ( offsets[alid].end > offsets[blid].end ) { // containment
                /* GD: this is a containment, assuming that 
@@ -8598,19 +8622,18 @@ MultiAlignT *MergeMultiAligns( tSequenceDB *sequenceDBp,
               trace, &otype,COMPARE_FUNC,SHOW_OLAP,0);
            }
            if ( ! olap_success ) {
-                #ifdef VERBOSE_MULTIALIGN_OUTPUT
+             if (VERBOSE_MULTIALIGN_OUTPUT) {
                 fprintf(stderr, "MergeMultiAligns: positions of contigs %d and %d ",
-                afrag->iid, bfrag->iid);
+                        afrag->iid, bfrag->iid);
                 fprintf(stderr, "overlap, but GetAlignmentTrace does not return ");
                 fprintf(stderr, "overlap success\n");
-                #endif
-                break; 
+             }
+             break; 
            }
        }
        if ( ! olap_success ) {
-           fprintf(stderr,
-           "MergeMultiAligns failed to find overlap between contigs ");
-           fprintf(stderr, "%d and %d, bailing...\n", afrag->iid,bfrag->iid);
+           fprintf(stderr, "MergeMultiAligns failed to find overlap between contigs %d and %d, bailing...\n",
+                   afrag->iid, bfrag->iid);
            DeleteMANode(ma->lid);
            free(offsets);
            return NULL;
