@@ -27,7 +27,7 @@
                  
  *********************************************************************/
 
-static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.23 2006-05-24 20:49:15 gdenisov Exp $";
+static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.24 2006-06-12 20:02:44 brianwalenz Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -219,6 +219,35 @@ OutputScores(int NumColumnsInUnitigs,        int NumRunsOfGapsInUnitigReads,
      fprintf(stderr, "NumAAMismatches            = %d\n", NumAAMismatches);
      fprintf(stderr, "NumFAMismatches            = %d\n", NumFAMismatches);
 }
+
+static void
+writeFailure(char *OutputFileName, MesgWriter writer, int std_output, GenericMesg *pmesg) {
+
+  if (std_output) {
+    fprintf(stderr, "------------------------------------------------------------\n");
+    writer(stderr, pmesg);
+    fprintf(stderr, "------------------------------------------------------------\n");
+  } else {
+    FILE *fout;
+    char  fname[1000];
+
+    sprintf(fname, "%s.failed", OutputFileName);
+
+    errno = 0;
+    fout = fopen(fname, "a");
+    if (errno) {
+      fprintf(stderr, "Failed to open '%s' for storing the failed messge: %s\n", fname, strerror(errno));
+      fprintf(stderr, "------------------------------------------------------------\n");
+      writer(stderr, pmesg);
+      fprintf(stderr, "------------------------------------------------------------\n");
+    } else {
+      writer(fout,pmesg); // pass through the Unitig message and continue
+      fclose(fout);
+    }
+  }
+}
+
+
 
 int main (int argc, char *argv[]) 
 {
@@ -879,7 +908,7 @@ int main (int argc, char *argv[])
       VA_TYPE(char) *quality=CreateVA_char(200000);
       time_t t;
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.23 $ processing. Started %s\n",
+      fprintf(stderr,"# Consensus $Revision: 1.24 $ processing. Started %s\n",
         ctime(&t));
       InitializeAlphTable();
       if ( ! align_ium && USE_SDB && extract > -1 ) 
@@ -913,18 +942,8 @@ int main (int argc, char *argv[])
             num_contig_failures++;
             if (num_contig_failures <= MAX_NUM_CONTIG_FAILURES)
             {
-                char fname[1000];
-                sprintf(fname, "%s.failed", argv[optind]);
-                if (num_contig_failures == 1)
-                {
-                    failout = fopen(fname, "w");
-                    fclose(failout);
-                }
-                fprintf(stderr,"MultiAlignContig failed for contig %d\n",
-                    ctmp.iaccession);
-                failout = fopen(fname, "a");
-                writer(failout,pmesg); // pass through the Unitig message and continue
-                fclose(failout);
+              fprintf(stderr,"MultiAlignContig failed for contig %d\n", ctmp.iaccession);
+              writeFailure(OutputFileName, writer, std_output, pmesg);
             }
             else
             {
@@ -1043,19 +1062,8 @@ int main (int argc, char *argv[])
                   num_unitig_failures++;
                   if (num_unitig_failures <= MAX_NUM_UNITIG_FAILURES)
                   { 
-                      char fname[1000];
-                      sprintf(fname, "%s.failed", argv[optind]);
-                      if (num_unitig_failures == 1)
-                      { 
-                          failout = fopen(fname, "w");
-                          fclose(failout);
-                      }
-                      fprintf(stderr,"MultiAlignUnitig failed for unitig %d\n", 
-                          iunitig->iaccession);
-                      failout = fopen(fname, "a");
-                      writer(failout,pmesg); // pass through the Unitig message and continue
-                      fclose(failout);
-                      break; 
+                    fprintf(stderr,"MultiAlignUnitig failed for unitig %d\n", iunitig->iaccession);
+                    writeFailure(OutputFileName, writer, std_output, pmesg);
                   }
                   else
                   {
@@ -1153,19 +1161,9 @@ int main (int argc, char *argv[])
                     num_contig_failures++;
                     if (num_contig_failures <= MAX_NUM_CONTIG_FAILURES)
                     {
-                        char fname[1000];
-                        sprintf(fname, "%s.failed", argv[optind]);
-                        if (num_contig_failures == 1)
-                        {
-                            failout = fopen(fname, "w");
-                            fclose(failout);
-                        }
-                        fprintf(stderr,"MultiAlignContig failed for contig %d\n",
-                            pcontig->iaccession);
-                        failout = fopen(fname, "a");
-                        writer(failout,pmesg); // pass through the Unitig message and continue
-                        fclose(failout);
-                        break;
+                      fprintf(stderr,"MultiAlignContig failed for contig %d\n", pcontig->iaccession);
+                      writeFailure(OutputFileName, writer, std_output, pmesg);
+                      break;
                     }
                     else
                     {
@@ -1231,7 +1229,7 @@ int main (int argc, char *argv[])
             {
               AuditLine auditLine;
               AppendAuditLine_AS(adt_mesg, &auditLine, t,
-                                 "Consensus", "$Revision: 1.23 $","(empty)");
+                                 "Consensus", "$Revision: 1.24 $","(empty)");
             }
 #endif
               VersionStampADT(adt_mesg,argc,argv);
@@ -1255,7 +1253,7 @@ int main (int argc, char *argv[])
       }
 
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.23 $ Finished %s\n",ctime(&t));
+      fprintf(stderr,"# Consensus $Revision: 1.24 $ Finished %s\n",ctime(&t));
       if (printcns) 
       {
         int unitig_length = (unitig_count>0)? (int) input_lengths/unitig_count: 0; 
