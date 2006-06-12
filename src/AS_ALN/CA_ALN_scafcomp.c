@@ -832,10 +832,12 @@ interval_list *add_to_ilist_special(interval_list *tail, interval to_add){
     next=curr;
     curr=curr->prev;
   }
+  assert(next!=NULL);
 
   // undo backwards link from next, so we can do a simple cleanup later
-  assert(next!=NULL);
   next->prev=NULL;
+  if (curr)
+    curr->next=NULL;
 
   // for all elements in chain headed by next, append them serially,
   // unless the rest of the chain can simply be tacked on,
@@ -1072,7 +1074,11 @@ int Project_across_Agap_one_interval(interval *inoutIval,COvlps **bestTerm, doub
       remainingToUseUp=0;
     }
 #else
-    remainingToUseUp = max(0, Agap_length -  Agap_var * varwin);
+    remainingToUseUp = Agap_length -  Agap_var * varwin;
+    if (remainingToUseUp < 0) {
+      fprintf(stderr, "ALLOW_NEG_GAP_BACKUP would have fixed a negative remainingToUseUp of %f; we just set it to zero now!\n", remainingToUseUp);
+      remainingToUseUp = 0;
+    }
 #endif
     
     // once past contigs and gaps clearly above the interval,
