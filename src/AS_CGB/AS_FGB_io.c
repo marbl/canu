@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_FGB_io.c,v 1.7 2005-10-28 20:37:24 brianwalenz Exp $";
+= "$Id: AS_FGB_io.c,v 1.8 2006-06-12 19:49:22 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_FGB_io.c
@@ -65,15 +65,23 @@ int REAPER_VALIDATION = FALSE;
 #undef DEBUG113
 #undef DEBUG280
 #undef DEBUG_MOSQ_01
+
+//  Define this to silently ignore overlaps with no valid fragment.
+//  e.g., if you're throwing out fragments after overlaps have been
+//  computed, and don't remove those overlaps.  You'll probably have
+//  trouble in CGW, so good luck!
+//
 #undef USE_FRAGMENT_SUBSET
 
 //  Define to print a message whenever we read an overlap
 //  that refers to a non-existent frag.
-//#define REPORT_DEGENERATE_OVERLAPS
+//
+#undef REPORT_DEGENERATE_OVERLAPS
 
 //  Define to print a message whenever we delete an
 //  undefined fragment
-//#define REPORT_DELETED_UNDEF_FRAGS
+//
+#undef REPORT_DELETED_UNDEF_FRAGS
 
 
 static void add_OFGMesg_to_graph
@@ -503,28 +511,23 @@ static void add_overlap_to_graph
 
   const IntFragment_ID iavx = get_vid_FragmentHash(afr_to_avx,iafr);
   const IntFragment_ID ibvx = get_vid_FragmentHash(afr_to_avx,ibfr);
-  const int ialn = get_length_fragment(frags,iavx);
-  const int ibln = get_length_fragment(frags,ibvx);
 
 #ifdef USE_FRAGMENT_SUBSET
-  if( (iavx == AS_CGB_NOT_SEEN_YET) || (ibvx == AS_CGB_NOT_SEEN_YET) ) {
-    // Ignore this overlap!!
+  if((iavx == AS_CGB_NOT_SEEN_YET) ||
+     (ibvx == AS_CGB_NOT_SEEN_YET))
     return;
-  }
-#endif // USE_FRAGMENT_SUBSET
+#else
+  if ((iavx == AS_CGB_NOT_SEEN_YET))
+    fprintf(stderr, "Unseen fragment iid="F_IID" is referred to in an overlap.  I assert!\n", iafr);
+  if ((ibvx == AS_CGB_NOT_SEEN_YET))
+    fprintf(stderr, "Unseen fragment iid="F_IID" is referred to in an overlap.  I assert!\n", ibfr);
 
-  if( (iavx == AS_CGB_NOT_SEEN_YET) ) {
-    fprintf(stderr,
-            "Unseen fragment iid=" F_IID
-            " is referred to in an overlap.\n", iafr);
-  }
-  if( (ibvx == AS_CGB_NOT_SEEN_YET) ) {
-    fprintf(stderr,
-            "Unseen fragment iid=" F_IID
-            " is referred to in an overlap.\n", ibfr);
-  }
   assert(iavx != AS_CGB_NOT_SEEN_YET);
   assert(ibvx != AS_CGB_NOT_SEEN_YET);
+#endif
+
+  const int ialn = get_length_fragment(frags,iavx);
+  const int ibln = get_length_fragment(frags,ibvx);
   
 #ifdef STORE_OVERLAP_EXTREMES
 #ifdef REPORT_THIS_BUG
