@@ -71,10 +71,20 @@ sub terminate ($) {
     #
     #  Generate singletons
     #
-    # /bioinfo/work/projects/macaque-v3/wgs/Linux64/bin/dumpSingletons
-    # -f v1.frgStore -g v1.gkpStore -c 7-4-CGW/v1 -n 85 -U > v1.singleton.fasta
+    if (! -e "$wrk/$asm.singleton.fasta") {
+        my $lastckp = findLastCheckpoint("$wrk/7-CGW");
 
-
+        my $cmd;
+        $cmd  = "cd $wrk && ";
+        $cmd .= "$bin/dumpSingletons ";
+        $cmd .= " -f $wrk/$asm.frgStore ";
+        $cmd .= " -g $wrk/$asm.gkpStore ";
+        $cmd .= " -c $cgwDir/$asm -n $lastckp -U > $wrk/$asm.singleton.fasta";
+        if (runCommand($cmd)) {
+            print STDERR "Failed.\n";
+            rename "$wrk/$asm.singleton.fasta", "$wrk/$asm.singleton.fasta.FAILED";
+        }
+    }
 
     ########################################
 
