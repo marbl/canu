@@ -42,8 +42,11 @@ public:
     touchFileName    = 0L;
 
     pairwise         = false;
-    beVerbose        = false;
 
+    beVerbose        = false;
+    beYesNo          = false;
+
+    numThreads       = 3;
     loaderCacheSize  = 1024;
   };
   ~configuration() {
@@ -76,6 +79,7 @@ public:
   bool              beVerbose;
   bool              beYesNo;
 
+  u32bit            numThreads;
   u32bit            loaderCacheSize;
 
   sim4parameters    sim4params;
