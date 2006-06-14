@@ -12,6 +12,7 @@ src  := $/cleanPolishes.C \
         $/convertToAtac.C \
         $/filterPolishes.c \
         $/headPolishes.c \
+        $/mappedCoverage.C \
         $/mergePolishes.C \
         $/parseSNP.c \
         $/pickBestPolish.c \
@@ -41,6 +42,7 @@ $/.CXX_EXES := $/cleanPolishes \
                $/convertToAtac \
                $/filterPolishes \
                $/headPolishes \
+               $/mappedCoverage \
                $/mergePolishes \
                $/parseSNP \
                $/pickBestPolish \
@@ -63,6 +65,7 @@ $(eval $/%.d $/%.o:  CXXFLAGS+=-I${LIBUTL/} -I${LIBBIO/} -I${LIBSIM4/})
 
 $/filterPolishes              : $/filterPolishes.o
 $/headPolishes                : $/headPolishes.o
+$/mappedCoverage              : $/mappedCoverage.o
 $/mergePolishes               : $/mergePolishes.o
 $/sortPolishes                : $/sortPolishes.o
 $/pickBestPolish              : $/pickBestPolish.o
