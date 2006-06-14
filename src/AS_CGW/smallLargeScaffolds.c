@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: smallLargeScaffolds.c,v 1.4 2005-03-22 19:48:40 jason_miller Exp $";
+static char CM_ID[] = "$Id: smallLargeScaffolds.c,v 1.5 2006-06-14 19:57:23 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -214,7 +214,7 @@ int main(int argc, char *argv[])
   int sizeLimit = 30000;
 
   GlobalData = CreateGlobal_CGW();
-  GlobalData->logfp = GlobalData->stderrc = stderr;
+  GlobalData->stderrc = stderr;
   GlobalData->File_Name_Prefix[0] = '\0';
   GlobalData->Gatekeeper_Store_Name[0] = '\0';
 

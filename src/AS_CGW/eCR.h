@@ -143,6 +143,8 @@ int extendCgwClearRange(int fragIid, int frag3pDelta);
 void SynchUnitigTWithMultiAlignT(NodeCGW_T *unitig);
 int revertToCnsClearRange(int fragIid);
 
+void saveDefaultLocalAlignerVariables(void);
+void restoreDefaultLocalAlignerVariables(void);
 
 extern int                     totalContigsBaseChange;
 extern ReadStructp             fsread;

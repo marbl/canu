@@ -23,7 +23,7 @@ cc -g -pg -qfullpath   -qstrict -qbitfields=signed -qchars=signed -qlanglvl=ext 
 -o /work/assembly/rbolanos/IBM_PORT_CDS/ibm_migration_work_dir/cds/AS/obj/GraphCGW_T.o GraphCGW_T.c
 */
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.17 2006-05-30 20:35:23 eliv Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.18 2006-06-14 19:57:22 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -988,7 +988,7 @@ void  DeleteGraphEdge(GraphCGW_T *graph,  EdgeCGW_T *edge){
 }
 
 /* ************************************************************/
-void PrintGraphEdge(FILE *logfp, GraphCGW_T *graph,
+void PrintGraphEdge(FILE *fp, GraphCGW_T *graph,
                     char *label, EdgeCGW_T *edge, CDS_CID_t cid){
   char actualOverlap[256];
   CDS_COORD_t actual = 0;
@@ -1000,7 +1000,7 @@ void PrintGraphEdge(FILE *logfp, GraphCGW_T *graph,
   CDS_CID_t eid = GetVAIndex_EdgeCGW_T(graph->edges, edge);
 
   if(edge->flags.bits.isDeleted){
-    fprintf(logfp,"***FOLLOWING EDGE IS DELETED!!!!***\n");
+    fprintf(fp,"***FOLLOWING EDGE IS DELETED!!!!***\n");
   }
   assert(ChunkInstanceA && ChunkInstanceB);
 
@@ -1167,7 +1167,7 @@ void PrintGraphEdge(FILE *logfp, GraphCGW_T *graph,
     flagTrans = "&B";
   }
 
-	  fprintf(logfp,"%s eid:" F_CID " A:" F_CID " B:" F_CID " wgt:%d %s %s %s %s%s ori:%c qua:%3.2g trstd:%d con:%d dst:%d std:%g %s ",
+	  fprintf(fp,"%s eid:" F_CID " A:" F_CID " B:" F_CID " wgt:%d %s %s %s %s%s ori:%c qua:%3.2g trstd:%d con:%d dst:%d std:%g %s ",
 		  label, 
 		  eid,
 		  edge->idA, edge->idB, edge->edgesContributing, flagbuf,
@@ -1182,13 +1182,13 @@ void PrintGraphEdge(FILE *logfp, GraphCGW_T *graph,
 		  actualOverlap);
 
 	  if(edge->flags.bits.isRaw && !isOverlapEdge(edge))
-	    fprintf(logfp,"(" F_CID "," F_CID ")", edge->fragA, edge->fragB);
-	  fprintf(logfp,"\n");
+	    fprintf(fp,"(" F_CID "," F_CID ")", edge->fragA, edge->fragB);
+	  fprintf(fp,"\n");
 }
 
 
 /* ************************************************************/
-void PrintContigEdgeInScfContext(FILE *logfp, GraphCGW_T *graph,
+void PrintContigEdgeInScfContext(FILE *fp, GraphCGW_T *graph,
                                  char *label, EdgeCGW_T *edge,
                                  CDS_CID_t cid){
   char actualOverlap[256];
@@ -1201,7 +1201,7 @@ void PrintContigEdgeInScfContext(FILE *logfp, GraphCGW_T *graph,
   CDS_CID_t eid = GetVAIndex_EdgeCGW_T(graph->edges, edge);
 
   if(edge->flags.bits.isDeleted){
-    fprintf(logfp,"***FOLLOWING EDGE IS DELETED!!!!***\n");
+    fprintf(fp,"***FOLLOWING EDGE IS DELETED!!!!***\n");
   }
   assert(ChunkInstanceA && ChunkInstanceB);
 
@@ -1370,7 +1370,7 @@ void PrintContigEdgeInScfContext(FILE *logfp, GraphCGW_T *graph,
     flagTrans = "&B";
   }
 
-  fprintf(logfp,"%s eid:" F_CID " A:" F_CID " B:" F_CID " wgt:%d %s %s %s %s%s ori:%c qua:%3.2g trstd:%d con:%d dst:%d std:%g %s sameScf: %c Apos [%d,%d] Bpos [%d,%d]",
+  fprintf(fp,"%s eid:" F_CID " A:" F_CID " B:" F_CID " wgt:%d %s %s %s %s%s ori:%c qua:%3.2g trstd:%d con:%d dst:%d std:%g %s sameScf: %c Apos [%d,%d] Bpos [%d,%d]",
           label, 
           eid,
           edge->idA, edge->idB, edge->edgesContributing, flagbuf,
@@ -1390,8 +1390,8 @@ void PrintContigEdgeInScfContext(FILE *logfp, GraphCGW_T *graph,
           (int) ChunkInstanceB->offsetBEnd.mean	);
 
 	  if(edge->flags.bits.isRaw && !isOverlapEdge(edge))
-	    fprintf(logfp,"(" F_CID "," F_CID ")", edge->fragA, edge->fragB);
-	  fprintf(logfp,"\n");
+	    fprintf(fp,"(" F_CID "," F_CID ")", edge->fragA, edge->fragB);
+	  fprintf(fp,"\n");
 }
 
 
@@ -2945,7 +2945,7 @@ void  BuildGraphEdgesFromMultiAlign(GraphCGW_T *graph, NodeCGW_T *node,
     // If this fragment only has links to fragments within this contig...continue 
     if(node->flags.bits.isContig){
       if(frag->contigID != node->id){
-        fprintf(GlobalData->logfp,"* Frag " F_CID " with iid " F_CID " of Contig " F_CID " has contigOf = " F_CID "!!!\n",
+        fprintf(GlobalData->stderrc,"* Frag " F_CID " with iid " F_CID " of Contig " F_CID " has contigOf = " F_CID "!!!\n",
                 fragID,
                 frag->iid, node->id, frag->contigID);
         assert(0);
@@ -2961,7 +2961,7 @@ void  BuildGraphEdgesFromMultiAlign(GraphCGW_T *graph, NodeCGW_T *node,
     }else if(node->flags.bits.isCI){
       // If this fragment only has links to fragments within this CI...continue 
       if(frag->cid != node->id){
-        fprintf(GlobalData->logfp,"* Frag " F_CID " with iid " F_CID " of cid " F_CID " has ci = " F_CID "!!!\n",
+        fprintf(GlobalData->stderrc,"* Frag " F_CID " with iid " F_CID " of cid " F_CID " has ci = " F_CID "!!!\n",
                 fragID,
                 frag->iid, node->id, frag->cid);
         assert(0);
@@ -3010,7 +3010,7 @@ void  BuildGraphEdgesFromMultiAlign(GraphCGW_T *graph, NodeCGW_T *node,
         
         AssertPtr(mfrag);
         if(mfrag->cid == NULLINDEX){
-          fprintf(GlobalData->logfp,"* Serious error: mate of frag " F_CID " from chunk " F_CID ", frag " F_CID " has chunk " F_CID "\n",
+          fprintf(GlobalData->stderrc,"* Serious error: mate of frag " F_CID " from chunk " F_CID ", frag " F_CID " has chunk " F_CID "\n",
                   fragID,
                   frag->cid, mfragID, NULLINDEX);
           assert(0);

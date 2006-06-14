@@ -39,7 +39,7 @@
  **********************************************************************/
 
 
-static char fileID[] = "$Id: GapWalkerREZ.c,v 1.4 2005-03-22 19:49:22 jason_miller Exp $";
+static char fileID[] = "$Id: GapWalkerREZ.c,v 1.5 2006-06-14 19:57:23 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -83,6 +83,7 @@ int
   new_end[NUM_ORIENTATIONS] = {B_END, A_END, B_END, A_END},
   orient[NUM_ORIENTATIONS] = {OR2NUM_AB_AB, OR2NUM_AB_BA, OR2NUM_BA_AB, OR2NUM_BA_BA};
 
+
 //
 // externs
 //
@@ -93,6 +94,8 @@ extern FILE
 
 extern char
   * GW_Filename_Prefix;
+extern FILE
+  * gwlogfp;
 
 
 //
@@ -371,7 +374,7 @@ static void Print_Path (chunk_subgraph * s) {
   for (i = 0; i < s->size; i++) {
     if (s->node[i].path_id) {
 #     if DEBUG_GAP_WALKER > 0
-      fprintf(GlobalData->gwlogfp,
+      fprintf(gwlogfp,
 	      "cid %5d, path_id %4d, path_parent %4d, (%5.2f stdDev %5.2f)\n",
 	      s->node[i].cid,
 	      s->node[i].path_id,
@@ -383,7 +386,7 @@ static void Print_Path (chunk_subgraph * s) {
     }
   }
 # if DEBUG_GAP_WALKER > 0
-  fprintf(GlobalData->gwlogfp,"\n Total nodes on some path: %d\n", cnt);
+  fprintf(gwlogfp,"\n Total nodes on some path: %d\n", cnt);
 # endif
 }
 
@@ -513,7 +516,7 @@ void Visit_Subgraph(chunk_subgraph * s,
 #endif
 
 #   if DEBUG_GAP_WALKER > 2
-    fprintf(GlobalData->gwlogfp,"\nNodes on the path (ordered by chunk id):\n");
+    fprintf(gwlogfp,"\nNodes on the path (ordered by chunk id):\n");
     Print_Path(s);
 #   endif
     Clear_All_Path_Bit(s);          // clear the path bit 
@@ -675,8 +678,8 @@ LengthT Compute_Gap_Length(ChunkInstanceT * lchunk,
       long ullength = GetMultiAlignUngappedLength(lma);
       long urlength = GetMultiAlignUngappedLength(rma);
 
-	fprintf(GlobalData->gwlogfp,"\n*--------------------------------------------------*\n means: lchunk [%5.2f, %5.2f] o:%s - rchunk [%5.2f, %5.2f] o:%s\n", lchunk->offsetAEnd.mean, lchunk->offsetBEnd.mean,(lorient == A_B) ? "A_B" : "B_A",rchunk->offsetAEnd.mean, rchunk->offsetBEnd.mean,(rorient == A_B) ? "A_B" : "B_A");
-      fprintf(GlobalData->gwlogfp,
+	fprintf(gwlogfp,"\n*--------------------------------------------------*\n means: lchunk [%5.2f, %5.2f] o:%s - rchunk [%5.2f, %5.2f] o:%s\n", lchunk->offsetAEnd.mean, lchunk->offsetBEnd.mean,(lorient == A_B) ? "A_B" : "B_A",rchunk->offsetAEnd.mean, rchunk->offsetBEnd.mean,(rorient == A_B) ? "A_B" : "B_A");
+      fprintf(gwlogfp,
 	      "       vars: lchunk [%5.2f, %5.2f] - rchunk [%5.2f, %5.2f]\n",
 	      lchunk->offsetAEnd.variance, lchunk->offsetBEnd.variance,
 	      rchunk->offsetAEnd.variance, rchunk->offsetBEnd.variance);
@@ -689,75 +692,75 @@ LengthT Compute_Gap_Length(ChunkInstanceT * lchunk,
 	if( lorient == A_B )
 	  {	    
 	    pos = GetBendUnitigPos(lma);
-	    fprintf(GlobalData->gwlogfp,"\nRightmost Unitig %d with position (%d,%d)\n",pos->ident,pos->position.bgn,pos->position.end);
-	    fprintf(GlobalData->gwlogfp,"\nLast 1000 bps of consensus and quality of the B end of lchunk %d\n",lchunk->id);
+	    fprintf(gwlogfp,"\nRightmost Unitig %d with position (%d,%d)\n",pos->ident,pos->position.bgn,pos->position.end);
+	    fprintf(gwlogfp,"\nLast 1000 bps of consensus and quality of the B end of lchunk %d\n",lchunk->id);
 	    interval.bgn = max(0,ullength - 1000);
 	    interval.end = ullength;
 	    GetMultiAlignUngappedConsensusFromInterval(lma,interval,consensus,quality);
-	    fprintf(GlobalData->gwlogfp,"Consensus \n%s\n",Getchar(consensus,0));
-	    fprintf(GlobalData->gwlogfp,"Quality   \n%s\n",Getchar(quality,0));
+	    fprintf(gwlogfp,"Consensus \n%s\n",Getchar(consensus,0));
+	    fprintf(gwlogfp,"Quality   \n%s\n",Getchar(quality,0));
 
 
-	    fprintf(GlobalData->gwlogfp,"\nEdges going out from the B end of lchunk %d\n",lchunk->id);
+	    fprintf(gwlogfp,"\nEdges going out from the B end of lchunk %d\n",lchunk->id);
 
 	    InitGraphEdgeIterator(ScaffoldGraph->RezGraph, lchunk->id, B_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);
 
 	    while(( edge = NextGraphEdgeIterator(&edges) ) != NULL)
-	      PrintGraphEdge(GlobalData->gwlogfp,ScaffoldGraph->RezGraph,"relativ from idA ", edge, edge->idA);
+	      PrintGraphEdge(gwlogfp,ScaffoldGraph->RezGraph,"relativ from idA ", edge, edge->idA);
 	  }
 	else
 	  {
 	    pos = GetAendUnitigPos(lma);
-	    fprintf(GlobalData->gwlogfp,"\nLeftmost Unitig %d with position (%d,%d)\n",pos->ident,pos->position.bgn,pos->position.end);
-	    fprintf(GlobalData->gwlogfp,"\nLast 1000 bps of consensus and quality of the A end of lchunk %d\n",lchunk->id);
+	    fprintf(gwlogfp,"\nLeftmost Unitig %d with position (%d,%d)\n",pos->ident,pos->position.bgn,pos->position.end);
+	    fprintf(gwlogfp,"\nLast 1000 bps of consensus and quality of the A end of lchunk %d\n",lchunk->id);
 	    interval.bgn = 0;
 	    interval.end = min(ullength,1000);
 	    GetMultiAlignUngappedConsensusFromInterval(lma,interval,consensus,quality);
-	    fprintf(GlobalData->gwlogfp,"Consensus \n%s\n",Getchar(consensus,0));
-	    fprintf(GlobalData->gwlogfp,"Quality   \n%s\n",Getchar(quality,0));
+	    fprintf(gwlogfp,"Consensus \n%s\n",Getchar(consensus,0));
+	    fprintf(gwlogfp,"Quality   \n%s\n",Getchar(quality,0));
 
-	    fprintf(GlobalData->gwlogfp,"\nEdges going out from the A end of lchunk %d\n",lchunk->id);
+	    fprintf(gwlogfp,"\nEdges going out from the A end of lchunk %d\n",lchunk->id);
 
 	    InitGraphEdgeIterator(ScaffoldGraph->RezGraph, lchunk->id, A_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);
 
 	    while(( edge = NextGraphEdgeIterator(&edges) ) != NULL)
-	      PrintGraphEdge(GlobalData->gwlogfp,ScaffoldGraph->RezGraph,"relativ from idA ", edge, edge->idA);
+	      PrintGraphEdge(gwlogfp,ScaffoldGraph->RezGraph,"relativ from idA ", edge, edge->idA);
 	  }
 	if( rorient == A_B )
 	  {
 	    pos = GetAendUnitigPos(rma);
-	    fprintf(GlobalData->gwlogfp,"\nLeftmost Unitig %d with position (%d,%d)\n",pos->ident,pos->position.bgn,pos->position.end);
-	    fprintf(GlobalData->gwlogfp,"\nLast 1000 bps of consensus and quality of the A end of lchunk %d\n",lchunk->id);   
-	    fprintf(GlobalData->gwlogfp,"\nLast 1000 bps of consensus and quality of the A end of rchunk %d\n",rchunk->id);
+	    fprintf(gwlogfp,"\nLeftmost Unitig %d with position (%d,%d)\n",pos->ident,pos->position.bgn,pos->position.end);
+	    fprintf(gwlogfp,"\nLast 1000 bps of consensus and quality of the A end of lchunk %d\n",lchunk->id);   
+	    fprintf(gwlogfp,"\nLast 1000 bps of consensus and quality of the A end of rchunk %d\n",rchunk->id);
 	    interval.bgn = 0;
 	    interval.end = min(urlength,1000);
 	    GetMultiAlignUngappedConsensusFromInterval(rma,interval,consensus,quality);
-	    fprintf(GlobalData->gwlogfp,"Consensus \n%s\n",Getchar(consensus,0));
-	    fprintf(GlobalData->gwlogfp,"Quality   \n%s\n",Getchar(quality,0));
+	    fprintf(gwlogfp,"Consensus \n%s\n",Getchar(consensus,0));
+	    fprintf(gwlogfp,"Quality   \n%s\n",Getchar(quality,0));
 
-	    fprintf(GlobalData->gwlogfp,"\nEdges going out from the A end of rchunk %d\n",rchunk->id);
+	    fprintf(gwlogfp,"\nEdges going out from the A end of rchunk %d\n",rchunk->id);
 
 	    InitGraphEdgeIterator(ScaffoldGraph->RezGraph, rchunk->id, A_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);
 
 	    while(( edge = NextGraphEdgeIterator(&edges) ) != NULL)
-	      PrintGraphEdge(GlobalData->gwlogfp,ScaffoldGraph->RezGraph,"relativ from idA ", edge, edge->idA);
+	      PrintGraphEdge(gwlogfp,ScaffoldGraph->RezGraph,"relativ from idA ", edge, edge->idA);
 	  }
 	else
 	  {
 	    pos = GetBendUnitigPos(rma);
-	    fprintf(GlobalData->gwlogfp,"\nRightmost Unitig %d with position (%d,%d)\n",pos->ident,pos->position.bgn,pos->position.end);
-	    fprintf(GlobalData->gwlogfp,"\nLast 1000 bps of consensus and quality of the B end of rchunk %d\n",rchunk->id);
+	    fprintf(gwlogfp,"\nRightmost Unitig %d with position (%d,%d)\n",pos->ident,pos->position.bgn,pos->position.end);
+	    fprintf(gwlogfp,"\nLast 1000 bps of consensus and quality of the B end of rchunk %d\n",rchunk->id);
 	    interval.bgn = max(0,urlength-1000);
 	    interval.end = urlength;
 	    GetMultiAlignUngappedConsensusFromInterval(rma,interval,consensus,quality);
-	    fprintf(GlobalData->gwlogfp,"Consensus \n%s\n",Getchar(consensus,0));
-	    fprintf(GlobalData->gwlogfp,"Quality   \n%s\n",Getchar(quality,0));
+	    fprintf(gwlogfp,"Consensus \n%s\n",Getchar(consensus,0));
+	    fprintf(gwlogfp,"Quality   \n%s\n",Getchar(quality,0));
 
-	    fprintf(GlobalData->gwlogfp,"\nEdges going out from the B end of rchunk %d\n",rchunk->id);
+	    fprintf(gwlogfp,"\nEdges going out from the B end of rchunk %d\n",rchunk->id);
 
 	    InitGraphEdgeIterator(ScaffoldGraph->RezGraph, rchunk->id, B_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);
 	    while(( edge = NextGraphEdgeIterator(&edges) ) != NULL)
-	      PrintGraphEdge(GlobalData->gwlogfp,ScaffoldGraph->RezGraph,"relativ from idA ", edge, edge->idA);
+	      PrintGraphEdge(gwlogfp,ScaffoldGraph->RezGraph,"relativ from idA ", edge, edge->idA);
 	  }
       }
       DeleteVA_char(consensus);
@@ -803,7 +806,7 @@ LengthT Compute_Gap_Length(ChunkInstanceT * lchunk,
 
 # if DEBUG_GAP_WALKER > 1
   if( verbose)
-    fprintf(GlobalData->gwlogfp,
+    fprintf(gwlogfp,
 	    "        gap:  mean %5.2f, variance %5.2f\n\n",
 	    gap.mean, gap.variance);
 # endif
@@ -877,7 +880,7 @@ chunk_subgraph * Intra_Scaffold_Gap_Walker(chunk_subgraph * full,
   if (scaff->info.Scaffold.numElements < 2)
     {
 # if DEBUG_GAP_WALKER > 0
-      fprintf(GlobalData->gwlogfp,"Scaffold has less than 2 elements\n");
+      fprintf(gwlogfp,"Scaffold has less than 2 elements\n");
 #endif
       return NULL;
     }
@@ -890,7 +893,7 @@ chunk_subgraph * Intra_Scaffold_Gap_Walker(chunk_subgraph * full,
 
   /*** mjf ***/ 
 #if DEBUG_GAP_WALKER > 0
-  fprintf( GlobalData->gwlogfp, 
+  fprintf( gwlogfp, 
 			 "\nlooking for an intra-scaffold walk from %d ---> |%.2f| ---> %d\n", 
 			 left_cid, gap.mean, right_cid);
 #endif
@@ -902,7 +905,7 @@ chunk_subgraph * Intra_Scaffold_Gap_Walker(chunk_subgraph * full,
   if ((full->table[left_cid] == NULL) ||
       (full->table[right_cid] == NULL))
     {
-      fprintf( GlobalData->gwlogfp,
+      fprintf( gwlogfp,
                "\nNULL: full->table[%d] = %p, full->table[%d] = %p\n", 
                left_cid, full->table[left_cid],
                right_cid, full->table[right_cid]);
@@ -936,13 +939,13 @@ chunk_subgraph * Intra_Scaffold_Gap_Walker(chunk_subgraph * full,
   }
   
 # if DEBUG_GAP_WALKER > 1
-  fprintf(GlobalData->gwlogfp,
+  fprintf(gwlogfp,
 	  "    Subgraph of size %d on the gap of size %5.2f between %d and %d\n",
 	  f0->size,
 	  gap.mean,
 	  left_cid,
 	  right_cid);
-  fflush(GlobalData->gwlogfp);
+  fflush(gwlogfp);
 # endif
   
 # if 1
@@ -1015,7 +1018,7 @@ chunk_subgraph * Intra_Scaffold_Gap_Walker(chunk_subgraph * full,
 	continue;
       else {
 #       if DEBUG_GAP_WALKER > 1
-	fprintf(GlobalData->gwlogfp,
+	fprintf(gwlogfp,
 		"    The chunk %d has been erroneusly selected\n    range [%d,%d] (flanking chunks %d, %d)\n",
 		cid,
 		low,
@@ -1037,12 +1040,12 @@ chunk_subgraph * Intra_Scaffold_Gap_Walker(chunk_subgraph * full,
       else
 	bad_due_to_other_combinations++;
 # if DEBUG_GAP_WALKER > 0
-      fprintf(GlobalData->gwlogfp, "    This subgraph is NOT ok and contains %d uu, %d ur, %d ru, %d rr\n",
+      fprintf(gwlogfp, "    This subgraph is NOT ok and contains %d uu, %d ur, %d ru, %d rr\n",
 	      uu,
 	      ur,
 	      ru,
 	      rr);
-      fprintf(GlobalData->gwlogfp, "    bad due to rr %d, bad due to ur %d, bad due to ru %d, other %d\n",
+      fprintf(gwlogfp, "    bad due to rr %d, bad due to ur %d, bad due to ru %d, other %d\n",
 	      bad_due_to_rr,
 	      bad_due_to_ur,
 	      bad_due_to_ru,
@@ -1050,12 +1053,12 @@ chunk_subgraph * Intra_Scaffold_Gap_Walker(chunk_subgraph * full,
 #endif
     } else if (uu + uniques != f0->size) {
 # if DEBUG_GAP_WALKER > 0
-      fprintf(GlobalData->gwlogfp, "    This subgraph is ok but contains %d uu, %d ur, %d ru, %d rr\n",
+      fprintf(gwlogfp, "    This subgraph is ok but contains %d uu, %d ur, %d ru, %d rr\n",
 	      uu,
 	      ur,
 	      ru,
 	      rr);
-      fprintf(GlobalData->gwlogfp, "    bad due to rr %d, bad due to ur %d, bad due to ru %d, other %d\n",
+      fprintf(gwlogfp, "    bad due to rr %d, bad due to ur %d, bad due to ru %d, other %d\n",
 	      bad_due_to_rr,
 	      bad_due_to_ur,
 	      bad_due_to_ru,
@@ -1064,13 +1067,13 @@ chunk_subgraph * Intra_Scaffold_Gap_Walker(chunk_subgraph * full,
     }
     total++;
 #   if DEBUG_GAP_WALKER > 1
-    fprintf(GlobalData->gwlogfp,"    bad %d, total %d\n",
+    fprintf(gwlogfp,"    bad %d, total %d\n",
 	    bad,
 	    total);
 #   endif
     total_gap += gap.mean;
 #   if DEBUG_GAP_WALKER > 1
-    fprintf(GlobalData->gwlogfp,
+    fprintf(gwlogfp,
 	    "    avg_gap_size %5.2f\n",
 	    total_gap/(double)total);
 #   endif
@@ -1111,7 +1114,7 @@ chunk_subgraph * Intra_Scaffold_Gap_Walker(chunk_subgraph * full,
 	// print f in .dot format
 	//
 #       if DEBUG_GAP_WALKER > 1
-	fprintf(GlobalData->gwlogfp,"Oops: the chunk %d has been erroneusly selected. Range [%d,%d] (chunks %d, %d)\n",
+	fprintf(gwlogfp,"Oops: the chunk %d has been erroneusly selected. Range [%d,%d] (chunks %d, %d)\n",
 		cid,
 		low,
 		high,
@@ -1197,7 +1200,7 @@ int Inter_Scaffold_Gap_Walker(CDS_CID_t a_sid,
   // the scaffold mate edges: what if there is no scaffold mate edge? 
   //
 # if DEBUG_GAP_WALKER > 1
-  fprintf(GlobalData->gwlogfp,
+  fprintf(gwlogfp,
 	  "Looking to outgoing edges of scaffold %d\n",
 	  a_sid);
 # endif
@@ -1221,7 +1224,7 @@ int Inter_Scaffold_Gap_Walker(CDS_CID_t a_sid,
       other_sid = edge->idA;
 
 #   if DEBUG_GAP_WALKER > 1
-    fprintf(GlobalData->gwlogfp,
+    fprintf(gwlogfp,
 	    "* Edge %d to %d, length %5.2f, variance %5.2f, items %d\n",
 	    a_sid, 
 	    other_sid,
@@ -1240,7 +1243,7 @@ int Inter_Scaffold_Gap_Walker(CDS_CID_t a_sid,
 
   if (gap.mean == 0.0) {
 #   if DEBUG_GAP_WALKER > 1
-    fprintf(GlobalData->gwlogfp,
+    fprintf(gwlogfp,
 	    "no Sedge ... return\n");
 #   endif
     return FALSE;
@@ -1287,18 +1290,18 @@ int Inter_Scaffold_Gap_Walker(CDS_CID_t a_sid,
   }
 
 # if DEBUG_GAP_WALKER > 1
-  fprintf(GlobalData->gwlogfp,
+  fprintf(gwlogfp,
 	  "a_left_cid %d, a_right_cid %d\n",
 	  a_left_cid,
 	  a_right_cid);
-  fprintf(GlobalData->gwlogfp,
+  fprintf(gwlogfp,
 	  "b_left_cid %d, b_right_cid %d\n",
 	  b_left_cid,
 	  b_right_cid);
-  fprintf(GlobalData->gwlogfp,
+  fprintf(gwlogfp,
 	  "orientation %s\n",
 	  Orientation_As_String(GetEdgeOrientationWRT(edge, a_sid)));
-  fprintf(GlobalData->gwlogfp,
+  fprintf(gwlogfp,
 	  "A is %d, B is %d \n",
 	  a_cid,
 	  b_cid);
@@ -1315,7 +1318,7 @@ int Inter_Scaffold_Gap_Walker(CDS_CID_t a_sid,
     end = A_END;
   
 # if DEBUG_GAP_WALKER > 1
-  fprintf(GlobalData->gwlogfp,
+  fprintf(gwlogfp,
 	  "\nGap size mean %5.2f, variance %5.2f\n",
 	  gap.mean,
 	  gap.variance);
@@ -1380,7 +1383,7 @@ int Bac_Inter_Scaffold_Gap_Walker(CDS_CID_t a_sid, ChunkInstanceT *lchunk,
   // the scaffold mate edges: what if there is no scaffold mate edge? 
   //
 # if DEBUG_GAP_WALKER > 1
-  fprintf(GlobalData->gwlogfp,
+  fprintf(gwlogfp,
 	  "Looking to outgoing edges of scaffold %d\n",
 	  a_sid);
 # endif
@@ -1404,7 +1407,7 @@ int Bac_Inter_Scaffold_Gap_Walker(CDS_CID_t a_sid, ChunkInstanceT *lchunk,
       other_sid = edge->idA;
 
 #   if DEBUG_GAP_WALKER > 1
-    fprintf(GlobalData->gwlogfp,
+    fprintf(gwlogfp,
 	    "* Edge %d to %d, length %5.2f, variance %5.2f, items %d\n",
 	    a_sid, 
 	    other_sid,
@@ -1462,18 +1465,18 @@ int Bac_Inter_Scaffold_Gap_Walker(CDS_CID_t a_sid, ChunkInstanceT *lchunk,
   }
 
 # if DEBUG_GAP_WALKER > 1
-  fprintf(GlobalData->gwlogfp,
+  fprintf(gwlogfp,
 	  "a_left_cid %d, a_right_cid %d\n",
 	  a_left_cid,
 	  a_right_cid);
-  fprintf(GlobalData->gwlogfp,
+  fprintf(gwlogfp,
 	  "b_left_cid %d, b_right_cid %d\n",
 	  b_left_cid,
 	  b_right_cid);
-  fprintf(GlobalData->gwlogfp,
+  fprintf(gwlogfp,
 	  "orientation %s\n",
 	  Orientation_As_String(GetEdgeOrientationWRT(edge, a_sid)));
-  fprintf(GlobalData->gwlogfp,
+  fprintf(gwlogfp,
 	  "A is %d, B is %d \n",
 	  a_cid,
 	  b_cid);
@@ -1499,7 +1502,7 @@ int Bac_Inter_Scaffold_Gap_Walker(CDS_CID_t a_sid, ChunkInstanceT *lchunk,
     end = A_END;
   
 # if DEBUG_GAP_WALKER > 1
-  fprintf(GlobalData->gwlogfp,
+  fprintf(gwlogfp,
 	  "\nGap size mean %5.2f, variance %5.2f\n",
 	  gap.mean,
 	  gap.variance);
@@ -2228,7 +2231,7 @@ void Dijkstra(chunk_subgraph * s,
   Clear_All_Path_Bit(s);
 
 # if DEBUG_GAP_WALKER > 2
-  fprintf(GlobalData->gwlogfp,"** initialized ok\n");
+  fprintf(gwlogfp,"** initialized ok\n");
 # endif
 
   //
@@ -2237,7 +2240,7 @@ void Dijkstra(chunk_subgraph * s,
   num_nodes = s->size;
   while (num_nodes > 0) {
 #   if DEBUG_GAP_WALKER > 2
-    fprintf(GlobalData->gwlogfp, "\nnum_nodes = %d \n",
+    fprintf(gwlogfp, "\nnum_nodes = %d \n",
 	    num_nodes);
 #   endif
 
@@ -2260,7 +2263,7 @@ void Dijkstra(chunk_subgraph * s,
     u = new_u;
 
 #   if DEBUG_GAP_WALKER > 2
-    fprintf(GlobalData->gwlogfp,"At node u = %d, mindist = %5.2f, end = %d\n",
+    fprintf(gwlogfp,"At node u = %d, mindist = %5.2f, end = %d\n",
 	    u,
 	    min,
 	    s->table[u]->end);
@@ -2305,7 +2308,7 @@ void Dijkstra(chunk_subgraph * s,
 	  continue;
 	
 #       if DEBUG_GAP_WALKER > 3
-	fprintf(GlobalData->gwlogfp,"edge from %d to %d (quality %5.2f) orientation %s ",
+	fprintf(gwlogfp,"edge from %d to %d (quality %5.2f) orientation %s ",
 		u,
 		v,
 		quality(edge,u),
@@ -2441,21 +2444,21 @@ int Find_Greedy_Path(chunk_subgraph * subgraph,
   
 # if DEBUG_GAP_WALKER > 2
   if (verbose) {
-    fprintf(GlobalData->gwlogfp,
+    fprintf(gwlogfp,
 	    "\n");
     for (i = 0; i < level; i++) 
-      fprintf(GlobalData->gwlogfp,
+      fprintf(gwlogfp,
 	      " ");
     if (end == B_END)
-      fprintf(GlobalData->gwlogfp,
+      fprintf(gwlogfp,
 	      "* at the B");
     else if (end == A_END)
-      fprintf(GlobalData->gwlogfp,
+      fprintf(gwlogfp,
 	      "* at the A");
     else 
-      fprintf(GlobalData->gwlogfp,
+      fprintf(gwlogfp,
 	      "* at the A/B");
-    fprintf(GlobalData->gwlogfp,
+    fprintf(gwlogfp,
 	    " end of node %d (mean distance %5.2f, var %5.2f)\n",
 	    from_cid,
 	    travelled_distance.mean,
@@ -2470,7 +2473,7 @@ int Find_Greedy_Path(chunk_subgraph * subgraph,
   (*currentCalls)++;
 
 # if DEBUG_GAP_WALKER > 2
-  fprintf(GlobalData->gwlogfp,
+  fprintf(gwlogfp,
 	  "\nCurrent Calls = %ld maxCalls = %ld\n",*currentCalls,maxCalls);
 #endif
 
@@ -2495,7 +2498,7 @@ int Find_Greedy_Path(chunk_subgraph * subgraph,
     {
       // if( level == 0 )
 #if DEBUG_GAP_WALKER > -1
-	fprintf(GlobalData->gwlogfp,
+	fprintf(gwlogfp,
 	      "$$$ No outgoing edge\n");
 #endif
       return FALSE;
@@ -2533,8 +2536,8 @@ int Find_Greedy_Path(chunk_subgraph * subgraph,
   if (verbose) {
     for (j = 0; j < num_edges; j++) {
       for (i = 0; i < level; i++) 
-	fprintf(GlobalData->gwlogfp," ");
-      fprintf(GlobalData->gwlogfp,
+	fprintf(gwlogfp," ");
+      fprintf(gwlogfp,
 	      "> edge (%d,%d), quality %5.2f, orient %d, distance %5.2f containment relation aCb %d bCa %d\n",
 	      eq[j].edge->idA,
 	      eq[j].edge->idB,
@@ -2559,8 +2562,8 @@ int Find_Greedy_Path(chunk_subgraph * subgraph,
 	e = subgraph->table[from_cid]->edge[o][id];
 	assert(e != NULL);
 	for (i = 0; i < level; i++) 
-	  fprintf(GlobalData->gwlogfp, " ");
-	fprintf(GlobalData->gwlogfp,
+	  fprintf(gwlogfp, " ");
+	fprintf(gwlogfp,
 		"> unused edge (idA, idB) (%d,%d), quality %5.2f, orient %d, distance %5.2f\n",
 		e->idA,
 		e->idB,
@@ -2605,7 +2608,7 @@ int Find_Greedy_Path(chunk_subgraph * subgraph,
 	lower_bound  = max_distance->mean-neg_num_std_deviations*sqrt(e->distance.variance);
 
 #if DEBUG_GAP_WALKER > 2
-	    fprintf(GlobalData->gwlogfp,"gap estimate+SLOP = %f, lower bound = %f\n",gap_estimate+SLOP,lower_bound);
+	    fprintf(gwlogfp,"gap estimate+SLOP = %f, lower bound = %f\n",gap_estimate+SLOP,lower_bound);
 #endif
 
       if ( gap_estimate+SLOP > lower_bound )
@@ -2614,7 +2617,7 @@ int Find_Greedy_Path(chunk_subgraph * subgraph,
 	  {
 	    edge_start_index = j;
 #if DEBUG_GAP_WALKER > 2
-	    if (j != 0) fprintf(GlobalData->gwlogfp, "able to detect destination early for dest: %d\n", destination);
+	    if (j != 0) fprintf(gwlogfp, "able to detect destination early for dest: %d\n", destination);
 #endif
 	  }
       }
@@ -2633,7 +2636,7 @@ int Find_Greedy_Path(chunk_subgraph * subgraph,
     if( j >= edge_start_index + MAXOUTDEGREE )
       {
 #if DEBUG_GAP_WALKER > 2
-	fprintf(GlobalData->gwlogfp,"Skipping rest\n");
+	fprintf(gwlogfp,"Skipping rest\n");
 #endif
 	break;
       }
@@ -2658,8 +2661,8 @@ int Find_Greedy_Path(chunk_subgraph * subgraph,
 #if DEBUG_GAP_WALKER > 2
       if (verbose) {
 	for (i = 0; i < level; i++) 
-	  fprintf(GlobalData->gwlogfp," ");
-	fprintf(GlobalData->gwlogfp," (trivial path, edge skipped)\n");
+	  fprintf(gwlogfp," ");
+	fprintf(gwlogfp," (trivial path, edge skipped)\n");
       }
 # endif
       continue;
@@ -2684,7 +2687,7 @@ int Find_Greedy_Path(chunk_subgraph * subgraph,
 	  if( to_chunk->bpLength.mean+CGW_DP_MINLEN <= -e->distance.mean)
       {
 #if DEBUG_GAP_WALKER > 2
-		fprintf(GlobalData->gwlogfp,
+		fprintf(gwlogfp,
 				"-> IGNORE non contributing containment EDGE (%d,%d), quality %5.2f, orientation %s\n",
 				from_cid,
 				tid,
@@ -2698,8 +2701,8 @@ int Find_Greedy_Path(chunk_subgraph * subgraph,
 #if DEBUG_GAP_WALKER > 2
     if (verbose) {
       for (i = 0; i < level; i++) 
-	fprintf(GlobalData->gwlogfp," ");
-      fprintf(GlobalData->gwlogfp,
+	fprintf(gwlogfp," ");
+      fprintf(gwlogfp,
 	      "-> chosen EDGE (%d,%d), quality %5.2f, orientation %s\n",
 	      from_cid,
 	      tid,
@@ -2717,7 +2720,7 @@ int Find_Greedy_Path(chunk_subgraph * subgraph,
     if ( ( (subgraph->table[tid]->visited) || (tid == source ) )   &&
 	 ((! Stop_At_The_Other_End(to_chunk, destination, subgraph)) ))  {
 #   if DEBUG_GAP_WALKER > 2
-      fprintf(GlobalData->gwlogfp,"Already been here, but not at the other end\n");
+      fprintf(gwlogfp,"Already been here, but not at the other end\n");
 #endif
       continue;
     }
@@ -2727,18 +2730,18 @@ int Find_Greedy_Path(chunk_subgraph * subgraph,
 #   if DEBUG_GAP_WALKER > 2
     if (verbose) {
       for (i = 0; i < level; i++)
-	fprintf(GlobalData->gwlogfp," ");
-      fprintf(GlobalData->gwlogfp,"travelled distance mean %5.2f, variance %5.2f\n",
+	fprintf(gwlogfp," ");
+      fprintf(gwlogfp,"travelled distance mean %5.2f, variance %5.2f\n",
 	      travelled_distance.mean,
 	      travelled_distance.variance);
       for (i = 0; i < level; i++)
-	fprintf(GlobalData->gwlogfp," ");
-      fprintf(GlobalData->gwlogfp,"edge mean %5.2f, edge variance %5.2f\n",
+	fprintf(gwlogfp," ");
+      fprintf(gwlogfp,"edge mean %5.2f, edge variance %5.2f\n",
 	      e->distance.mean,
 	      e->distance.variance);
       for (i = 0; i < level; i++) 
-	fprintf(GlobalData->gwlogfp," ");
-      fprintf(GlobalData->gwlogfp,"chunk mean %5.2f, chunk variance %5.2f\n",
+	fprintf(gwlogfp," ");
+      fprintf(gwlogfp,"chunk mean %5.2f, chunk variance %5.2f\n",
 	      to_chunk->bpLength.mean,
 	      to_chunk->bpLength.variance);
     }
@@ -2767,9 +2770,9 @@ int Find_Greedy_Path(chunk_subgraph * subgraph,
 #   if DEBUG_GAP_WALKER > 5
     if (verbose) {
       for (i = 0; i < level; i++) 
-	fprintf(GlobalData->gwlogfp,
+	fprintf(gwlogfp,
 		" ");
-      fprintf(GlobalData->gwlogfp,
+      fprintf(gwlogfp,
 	      "adding mean %5.2f, adding variance %5.2f, checked distance? %d\n",
 	      add_mean,
 	      add_variance,
@@ -2786,8 +2789,8 @@ int Find_Greedy_Path(chunk_subgraph * subgraph,
 #   if DEBUG_GAP_WALKER > 2
     if (verbose) {
       for (i = 0; i < level; i++)
-	fprintf(GlobalData->gwlogfp," ");
-      fprintf(GlobalData->gwlogfp,"travelled after adding to_chunk distance mean %5.2f, variance %5.2f\n",
+	fprintf(gwlogfp," ");
+      fprintf(gwlogfp,"travelled after adding to_chunk distance mean %5.2f, variance %5.2f\n",
 	      travelled_distance.mean,
 	      travelled_distance.variance);
     }
@@ -2810,19 +2813,19 @@ int Find_Greedy_Path(chunk_subgraph * subgraph,
       float64 upper_bound  = max_distance->mean + pos_num_std_deviations * sqrt(max_distance->variance);
       float64 lower_bound  = max_distance->mean - neg_num_std_deviations * sqrt(max_distance->variance);
 #   if DEBUG_GAP_WALKER > 2
-      fprintf(GlobalData->gwlogfp,"gap estimate+SLOP = %f, upper bound = %f, lower bound = %f\n",gap_estimate+SLOP,upper_bound,lower_bound);
+      fprintf(gwlogfp,"gap estimate+SLOP = %f, upper bound = %f, lower bound = %f\n",gap_estimate+SLOP,upper_bound,lower_bound);
 #endif
       
-      fprintf(GlobalData->gwlogfp, 
+      fprintf(gwlogfp, 
 			  "*** terminate(to_chunk, destination, subgraph): %d\n",
 			  terminate(to_chunk, destination, subgraph));
-      fprintf(GlobalData->gwlogfp, 
+      fprintf(gwlogfp, 
 			  "*** gap_estimate+SLOP > lower_bound: %d\n",
 			  gap_estimate+SLOP > lower_bound);
-      fprintf(GlobalData->gwlogfp, 
+      fprintf(gwlogfp, 
 			  "*** gap_estimate < upper_bound + SLOP: %d\n",
 			  gap_estimate < upper_bound + SLOP);
-      fprintf(GlobalData->gwlogfp, 
+      fprintf(gwlogfp, 
 			  "*** SLOP: %d\n",
 			  SLOP);
 
@@ -2876,9 +2879,9 @@ int Find_Greedy_Path(chunk_subgraph * subgraph,
 	if (verbose) {
 	  int i;
 	  for (i = 0; i < level; i++)
-	    fprintf(GlobalData->gwlogfp,
+	    fprintf(gwlogfp,
 		    " ");
-	  fprintf(GlobalData->gwlogfp,
+	  fprintf(gwlogfp,
 		  "Found path of length %5.2f (stddev %5.2f) with %d hops using edge (%d,%d)\n",
 		  travelled_distance.mean,
 		  sqrt(travelled_distance.variance),
@@ -2903,7 +2906,7 @@ int Find_Greedy_Path(chunk_subgraph * subgraph,
       else
 	{
 #if DEBUG_GAP_WALKER > 0
-	  fprintf(GlobalData->gwlogfp,"Got FALSE returned, undoing to_chunk\n");
+	  fprintf(gwlogfp,"Got FALSE returned, undoing to_chunk\n");
 #endif
 	}
     }
@@ -2971,7 +2974,7 @@ int Find_Greedy_Path(chunk_subgraph * subgraph,
     for (n_b = 0, o = start_index[B_END]; o < end_index[B_END]; o++)
       n_b += subgraph->table[cid]->num_edges[orient[o]];
 
-    //fprintf(GlobalData->gwlogfp,
+    //fprintf(gwlogfp,
     //	    "() %d %d\n", n_a, n_b);
 
     if ((n_a == 1) && (n_b == 1))
@@ -3026,7 +3029,7 @@ int Find_Greedy_Path(chunk_subgraph * subgraph,
 	if ((from->flags.bits.cgbType != (unsigned int)UU_CGBTYPE)||
 	    (to->flags.bits.cgbType != (unsigned int)UU_CGBTYPE)) {
 #         if DEBUG_GAP_WALKER > 2
-	  fprintf(GlobalData->gwlogfp,
+	  fprintf(gwlogfp,
 		  "> Found a repeat chunk %d(%d,%d) or %d(%d,%d)\n",
 		  cid,
 		  from->aEndCoord,
@@ -3108,7 +3111,7 @@ int Find_Greedy_Path(chunk_subgraph * subgraph,
 
 # if DEBUG_GAP_WALKER > 0
   assert(tot_edges != 0);
-  fprintf(GlobalData->gwlogfp,
+  fprintf(gwlogfp,
 	  "chunks %d, total %d\ncorrect %d, bad %d, total %d\n  %3d  |  %3d  |  %3d  |  %3d  |  %3d  |  %3d  |\nmax_err %5.2f\navg_err %5.2f\n",
 	  chunks,
 	  subgraph->size,
@@ -3162,7 +3165,7 @@ static int Path_Degree(chunk_subgraph * s,
   while (Find_Greedy_Path(s, cid, cid, 0, &max, dist,
 			  0, end, No_Quality, NO_QUALITY_THRESH, Stop_At_Unique, c, FALSE,&currentCalls,MAXCALLS,&tooShort,&tooLong)) { 
 #   if DEBUG_GAP_WALKER > 0
-    fprintf(GlobalData->gwlogfp,"\nNodes on the path (ordered by chunk id):\n");
+    fprintf(gwlogfp,"\nNodes on the path (ordered by chunk id):\n");
     Print_Path(s);
 #   endif
     Clear_All_Path_Bit(s);          // clear the path bit 
@@ -3519,7 +3522,7 @@ int Annotate_Edges_For_Consistent_Path(chunk_subgraph * s, chunk_subgraph * ref)
 
 	  if ((from->flags.bits.cgbType != (unsigned int)UU_CGBTYPE)||
 	      (to->flags.bits.cgbType != (unsigned int)UU_CGBTYPE)) {
-	    fprintf(GlobalData->gwlogfp,
+	    fprintf(gwlogfp,
 		    "One of the two end is a chunk %d(%d,%d) or %d(%d,%d)\n",
 		    e->idA,
 		    from->aEndCoord,
@@ -3529,7 +3532,7 @@ int Annotate_Edges_For_Consistent_Path(chunk_subgraph * s, chunk_subgraph * ref)
 		    to->bEndCoord);
 	  }
 
-	  fprintf(GlobalData->gwlogfp,">> Edge %d->%d, weight %d, distance %5.2f\n",
+	  fprintf(gwlogfp,">> Edge %d->%d, weight %d, distance %5.2f\n",
 		  e->idA, e->idB,
 		  e->edgesContributing,
 		  e->distance.mean);
@@ -3544,11 +3547,11 @@ int Annotate_Edges_For_Consistent_Path(chunk_subgraph * s, chunk_subgraph * ref)
 	  if (hops) {
 #           if DEBUG_GAP_WALKER > 1
 	    if (delta > 0.0) {
-	      fprintf(GlobalData->gwlogfp,"Edge is confirmed by a path of lenght %5.2f, hops %d, but delta %5.2f\n",
+	      fprintf(gwlogfp,"Edge is confirmed by a path of lenght %5.2f, hops %d, but delta %5.2f\n",
 		      ref->table[e->idB]->distance.mean,
 		      hops,
 		      delta);
-	      fprintf(GlobalData->gwlogfp,
+	      fprintf(gwlogfp,
 		      "Chunks %d(%d,%d) -> %d(%d,%d)\n",
 		      e->idA,
 		      from->aEndCoord,
@@ -3560,7 +3563,7 @@ int Annotate_Edges_For_Consistent_Path(chunk_subgraph * s, chunk_subgraph * ref)
 	    } else {
 	      confirmed_and_good++;
 	    }
-	    fprintf(GlobalData->gwlogfp,"confirmed: bad/good %d/%d, not_confirmed: good/bad %d/%d, total %d\n\n",
+	    fprintf(gwlogfp,"confirmed: bad/good %d/%d, not_confirmed: good/bad %d/%d, total %d\n\n",
 		    confirmed_but_bad,
 		    confirmed_and_good,
 		    not_confirmed_but_good,
@@ -3580,7 +3583,7 @@ int Annotate_Edges_For_Consistent_Path(chunk_subgraph * s, chunk_subgraph * ref)
 	    if (hops) {
 #             if DEBUG_GAP_WALKER > 1
 	      if (delta > 0.0) {
-		fprintf(GlobalData->gwlogfp,"Edge is confirmed by a path of lenght %5.2f, hops %d, but delta %5.2f\n",
+		fprintf(gwlogfp,"Edge is confirmed by a path of lenght %5.2f, hops %d, but delta %5.2f\n",
 			ref->table[e->idB]->distance.mean,
 			hops,
 			delta);
@@ -3588,7 +3591,7 @@ int Annotate_Edges_For_Consistent_Path(chunk_subgraph * s, chunk_subgraph * ref)
 	      } else {
 		confirmed_and_good++;
 	      }
-	      fprintf(GlobalData->gwlogfp,
+	      fprintf(gwlogfp,
 		      "confirmed: bad/good %d/%d, not_confirmed: good/bad %d/%d, total %d\n\n",
 		      confirmed_but_bad,
 		      confirmed_and_good,
@@ -3600,14 +3603,14 @@ int Annotate_Edges_For_Consistent_Path(chunk_subgraph * s, chunk_subgraph * ref)
 	    } else {
 #             if DEBUG_GAP_WALKER > 1
 	      if (delta == 0.0) {
-		fprintf(GlobalData->gwlogfp,
+		fprintf(gwlogfp,
 			"Edge is NOT confirmed by a path, but the real distance %5.2f was ok\n",
 			d);
 		not_confirmed_but_good++;
 	      } else {
 		not_confirmed_and_bad++;
 	      }
-	      fprintf(GlobalData->gwlogfp,
+	      fprintf(gwlogfp,
 		      "confirmed: bad/good %d/%d, not_confirmed: good/bad %d/%d, total %d\n\n",
 		      confirmed_but_bad,
 		      confirmed_and_good,

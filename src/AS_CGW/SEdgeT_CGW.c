@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: SEdgeT_CGW.c,v 1.4 2005-03-22 19:48:36 jason_miller Exp $";
+static char CM_ID[] = "$Id: SEdgeT_CGW.c,v 1.5 2006-06-14 19:57:23 brianwalenz Exp $";
 
 //#define DEBUG 1
 //#define TRY_IANS_SEDGES
@@ -51,7 +51,7 @@ static char CM_ID[] = "$Id: SEdgeT_CGW.c,v 1.4 2005-03-22 19:48:36 jason_miller 
 #define  LOG_LINE_LEN  255
 
 /* ************************************************************/
-void PrintSEdgeT(FILE *logfp, ScaffoldGraphT *graph, char *label, SEdgeT *edge, CDS_CID_t sid){
+void PrintSEdgeT(FILE *fp, ScaffoldGraphT *graph, char *label, SEdgeT *edge, CDS_CID_t sid){
       char actualOverlap[LOG_LINE_LEN + 1];
       int actual = 0;
       int delta = 0;
@@ -91,7 +91,7 @@ void PrintSEdgeT(FILE *logfp, ScaffoldGraphT *graph, char *label, SEdgeT *edge, 
       }
 
 
-      fprintf(logfp,"\t  cidA:" F_CID " cidB:" F_CID " weight:%d %s ori:%c con:%d distance:%d stddev:%g %s (" F_CID "," F_CID ")\n",
+      fprintf(fp,"\t  cidA:" F_CID " cidB:" F_CID " weight:%d %s ori:%c con:%d distance:%d stddev:%g %s (" F_CID "," F_CID ")\n",
               edge->idA, edge->idB, 
               edge->edgesContributing,
 	      flag,
@@ -101,7 +101,7 @@ void PrintSEdgeT(FILE *logfp, ScaffoldGraphT *graph, char *label, SEdgeT *edge, 
               actualOverlap, edge->fragA, edge->fragB);
 
 #ifdef NEVER
-  fprintf(logfp,
+  fprintf(fp,
          "\tidA:" F_CID " idB:" F_CID " orient:%s edgesContributing:%d quality:%d all:" F_S64 "\n",
           edge->idA,
           edge->idB,
@@ -112,77 +112,77 @@ void PrintSEdgeT(FILE *logfp, ScaffoldGraphT *graph, char *label, SEdgeT *edge, 
           edge->edgesContributing,
           (int) edge->quality,
           edge->flags.all);
-  fprintf(logfp, "\t\tisInferred:%d\n", edge->flags.bits.isInferred);
-  fprintf(logfp, "\t\tisTentative:%d\n", edge->flags.bits.isTentative);
-  fprintf(logfp, "\t\tisLeastSquares:%d\n", edge->flags.bits.isLeastSquares);
-  fprintf(logfp, "\t\tisEssential:%d\n", edge->flags.bits.isEssential);
-  fprintf(logfp, "\t\twasEssential:%d\n", edge->flags.bits.wasEssential);
-  fprintf(logfp, "\t\tisActive:%d\n", edge->flags.bits.isActive);
-  fprintf(logfp, "\t\tisConfirmed:%d\n", edge->flags.bits.isConfirmed);
-  fprintf(logfp, "\t\tisContigConfirming:%d\n",
+  fprintf(fp, "\t\tisInferred:%d\n", edge->flags.bits.isInferred);
+  fprintf(fp, "\t\tisTentative:%d\n", edge->flags.bits.isTentative);
+  fprintf(fp, "\t\tisLeastSquares:%d\n", edge->flags.bits.isLeastSquares);
+  fprintf(fp, "\t\tisEssential:%d\n", edge->flags.bits.isEssential);
+  fprintf(fp, "\t\twasEssential:%d\n", edge->flags.bits.wasEssential);
+  fprintf(fp, "\t\tisActive:%d\n", edge->flags.bits.isActive);
+  fprintf(fp, "\t\tisConfirmed:%d\n", edge->flags.bits.isConfirmed);
+  fprintf(fp, "\t\tisContigConfirming:%d\n",
           edge->flags.bits.isContigConfirming);
-  fprintf(logfp, "\t\tisUniquetoUnique:%d\n",
+  fprintf(fp, "\t\tisUniquetoUnique:%d\n",
           edge->flags.bits.isUniquetoUnique);
-  fprintf(logfp, "\t\tisTransitivelyRemoved:%d\n",
+  fprintf(fp, "\t\tisTransitivelyRemoved:%d\n",
           edge->flags.bits.isTransitivelyRemoved);
-  fprintf(logfp, "\t\tisInferredRemoved:%d\n",
+  fprintf(fp, "\t\tisInferredRemoved:%d\n",
           edge->flags.bits.isInferredRemoved);
-  fprintf(logfp, "\t\tisRedundantRemoved:%d\n",
+  fprintf(fp, "\t\tisRedundantRemoved:%d\n",
           edge->flags.bits.isRedundantRemoved);
-  fprintf(logfp, "\t\tisDeleted:%d\n", edge->flags.bits.isDeleted);
-  fprintf(logfp, "\t\tisPossibleChimera:%d\n",
+  fprintf(fp, "\t\tisDeleted:%d\n", edge->flags.bits.isDeleted);
+  fprintf(fp, "\t\tisPossibleChimera:%d\n",
           edge->flags.bits.isPossibleChimera);
-  fprintf(logfp, "\t\tinducedByUnknownOrientation:%d\n",
+  fprintf(fp, "\t\tinducedByUnknownOrientation:%d\n",
           edge->flags.bits.inducedByUnknownOrientation);
-  fprintf(logfp, "\t\thasContributingOverlap:%d\n",
+  fprintf(fp, "\t\thasContributingOverlap:%d\n",
           edge->flags.bits.hasContributingOverlap);
-  fprintf(logfp, "\t\thasRepeatOverlap:%d\n",
+  fprintf(fp, "\t\thasRepeatOverlap:%d\n",
           edge->flags.bits.hasRepeatOverlap);
-  fprintf(logfp, "\t\thasTandemOverlap:%d\n",
+  fprintf(fp, "\t\thasTandemOverlap:%d\n",
           edge->flags.bits.hasTandemOverlap);
-  fprintf(logfp, "\t\taContainsB:%d\n", edge->flags.bits.aContainsB);
-  fprintf(logfp, "\t\tbContainsA:%d\n", edge->flags.bits.bContainsA);
-  fprintf(logfp, "\t\tmustOverlap:%d\n", edge->flags.bits.mustOverlap);
-  fprintf(logfp, "\t\thasGuide:%d\n", edge->flags.bits.hasGuide);
-  fprintf(logfp, "\t\thasSTSGuide:%d\n", edge->flags.bits.hasSTSGuide);
-  fprintf(logfp, "\t\thasMayJoin:%d\n", edge->flags.bits.hasMayJoin);
-  fprintf(logfp, "\t\thasMustJoin:%d\n", edge->flags.bits.hasMustJoin);
-  fprintf(logfp, "\t\thasTransChunk:%d\n", edge->flags.bits.hasTransChunk);
-  fprintf(logfp, "\t\thasContainmentOverlap:%d\n",
+  fprintf(fp, "\t\taContainsB:%d\n", edge->flags.bits.aContainsB);
+  fprintf(fp, "\t\tbContainsA:%d\n", edge->flags.bits.bContainsA);
+  fprintf(fp, "\t\tmustOverlap:%d\n", edge->flags.bits.mustOverlap);
+  fprintf(fp, "\t\thasGuide:%d\n", edge->flags.bits.hasGuide);
+  fprintf(fp, "\t\thasSTSGuide:%d\n", edge->flags.bits.hasSTSGuide);
+  fprintf(fp, "\t\thasMayJoin:%d\n", edge->flags.bits.hasMayJoin);
+  fprintf(fp, "\t\thasMustJoin:%d\n", edge->flags.bits.hasMustJoin);
+  fprintf(fp, "\t\thasTransChunk:%d\n", edge->flags.bits.hasTransChunk);
+  fprintf(fp, "\t\thasContainmentOverlap:%d\n",
           edge->flags.bits.hasContainmentOverlap);
-  fprintf(logfp, "\t\tisRaw:%d\n", edge->flags.bits.isRaw);
-  fprintf(logfp, "\t\thasExtremalAFrag:%d\n",
+  fprintf(fp, "\t\tisRaw:%d\n", edge->flags.bits.isRaw);
+  fprintf(fp, "\t\thasExtremalAFrag:%d\n",
           edge->flags.bits.hasExtremalAFrag);
-  fprintf(logfp, "\t\thasExtremalBFrag:%d\n",
+  fprintf(fp, "\t\thasExtremalBFrag:%d\n",
           edge->flags.bits.hasExtremalBFrag);
-  fprintf(logfp, "\t\trangeTruncated:%d\n", edge->flags.bits.rangeTruncated);
-  fprintf(logfp, "\t\tinAssembly:%d\n", edge->flags.bits.inAssembly);
-  fprintf(logfp, "\t\tisBogus:%d\n", edge->flags.bits.isBogus);
-  fprintf(logfp, "\t\tisProbablyBogus:%d\n", edge->flags.bits.isProbablyBogus);
-  fprintf(logfp, "\t\thasConfirmingPath:%d\n",
+  fprintf(fp, "\t\trangeTruncated:%d\n", edge->flags.bits.rangeTruncated);
+  fprintf(fp, "\t\tinAssembly:%d\n", edge->flags.bits.inAssembly);
+  fprintf(fp, "\t\tisBogus:%d\n", edge->flags.bits.isBogus);
+  fprintf(fp, "\t\tisProbablyBogus:%d\n", edge->flags.bits.isProbablyBogus);
+  fprintf(fp, "\t\thasConfirmingPath:%d\n",
           edge->flags.bits.hasConfirmingPath);
-  fprintf(logfp, "\t\tedgeStatus:%d\n", edge->flags.bits.edgeStatus);
-  fprintf(logfp, "\t\tisMarkedForDeletion:%d\n",
+  fprintf(fp, "\t\tedgeStatus:%d\n", edge->flags.bits.edgeStatus);
+  fprintf(fp, "\t\tisMarkedForDeletion:%d\n",
           edge->flags.bits.isMarkedForDeletion);
-  fprintf(logfp, "\t\tMeanChangedByWalking:%d\n",
+  fprintf(fp, "\t\tMeanChangedByWalking:%d\n",
           edge->flags.bits.MeanChangedByWalking);
-  fprintf(logfp, "\t\thighQualityA:%d\n", edge->flags.bits.highQualityA);
-  fprintf(logfp, "\t\thighQualityB:%d\n", edge->flags.bits.highQualityB);
-  fprintf(logfp, "\t\tisSloppy:%d\n", edge->flags.bits.isSloppy);
-  fprintf(logfp, "\t\tisBridge:%d\n", edge->flags.bits.isBridge);
-  fprintf(logfp, "\tdistance.mean:%.2f\n", edge->distance.mean);
-  fprintf(logfp, "\tdistance.variance:%.2f\n", edge->distance.variance);
-  fprintf(logfp, "\tnextALink:" F_CID "\n", edge->nextALink);
-  fprintf(logfp, "\tnextBLink:" F_CID "\n", edge->nextBLink);
-  fprintf(logfp, "\tprevALink:" F_CID "\n", edge->prevALink);
-  fprintf(logfp, "\tprevBLink:" F_CID "\n", edge->prevBLink);
-  fprintf(logfp, "\tminDistance:%.2f\n", edge->minDistance);
-  fprintf(logfp, "\tfragA:" F_CID "\n", edge->fragA);
-  fprintf(logfp, "\tfragB:" F_CID "\n", edge->fragB);
-  fprintf(logfp, "\tdistIndex:" F_CID "\n", edge->distIndex);
-  fprintf(logfp, "\tnextRawEdge:" F_CID "\n", edge->nextRawEdge);
-  fprintf(logfp, "\ttopLevelEdge:" F_CID "\n", edge->topLevelEdge);
-  fprintf(logfp, "\treferenceEdge:" F_CID "\n",edge->referenceEdge);
+  fprintf(fp, "\t\thighQualityA:%d\n", edge->flags.bits.highQualityA);
+  fprintf(fp, "\t\thighQualityB:%d\n", edge->flags.bits.highQualityB);
+  fprintf(fp, "\t\tisSloppy:%d\n", edge->flags.bits.isSloppy);
+  fprintf(fp, "\t\tisBridge:%d\n", edge->flags.bits.isBridge);
+  fprintf(fp, "\tdistance.mean:%.2f\n", edge->distance.mean);
+  fprintf(fp, "\tdistance.variance:%.2f\n", edge->distance.variance);
+  fprintf(fp, "\tnextALink:" F_CID "\n", edge->nextALink);
+  fprintf(fp, "\tnextBLink:" F_CID "\n", edge->nextBLink);
+  fprintf(fp, "\tprevALink:" F_CID "\n", edge->prevALink);
+  fprintf(fp, "\tprevBLink:" F_CID "\n", edge->prevBLink);
+  fprintf(fp, "\tminDistance:%.2f\n", edge->minDistance);
+  fprintf(fp, "\tfragA:" F_CID "\n", edge->fragA);
+  fprintf(fp, "\tfragB:" F_CID "\n", edge->fragB);
+  fprintf(fp, "\tdistIndex:" F_CID "\n", edge->distIndex);
+  fprintf(fp, "\tnextRawEdge:" F_CID "\n", edge->nextRawEdge);
+  fprintf(fp, "\ttopLevelEdge:" F_CID "\n", edge->topLevelEdge);
+  fprintf(fp, "\treferenceEdge:" F_CID "\n",edge->referenceEdge);
 #endif
 }
 
@@ -694,7 +694,7 @@ void PrintSEdges(ScaffoldGraphT * graph){
   int32 numEdges = (int32) GetNumGraphEdges(graph->ScaffoldGraph);
   CDS_CID_t i;
   for(i = 0; i < numEdges; i++){
-    PrintSEdgeT(GlobalData->logfp, graph, "\t",
+    PrintSEdgeT(GlobalData->stderrc, graph, "\t",
                 GetGraphEdge(graph->ScaffoldGraph, i), i);
   }
 }
@@ -831,9 +831,10 @@ void BuildSEdges(ScaffoldGraphT *graph, int includeNegativeEdges)
   fprintf(stderr,"* Attempted %d guides of which %d were internal and %d were successful\n",
 	  stats.guidesAttempted, stats.guidesInternal, stats.guidesSucceeded);
  fflush(stderr);
-  fprintf(GlobalData->logfp,"* BuildSEdges *\n*Attempted %d edges of which %d were internal and %d were successful\n",
+  fprintf(GlobalData->stderrc,"* BuildSEdges *\n");
+  fprintf(GlobalData->stderrc,"* Attempted %d edges of which %d were internal and %d were successful\n",
 	  stats.edgesAttempted, stats.edgesInternal, stats.edgesSucceeded);
-  fprintf(GlobalData->logfp,"* Attempted %d guides of which %d were internal and %d were successful\n",
+  fprintf(GlobalData->stderrc,"* Attempted %d guides of which %d were internal and %d were successful\n",
 	  stats.guidesAttempted, stats.guidesInternal, stats.guidesSucceeded);
   fprintf(GlobalData->stderrc,"* BuildSEdges: %d edges on completion\n",
           (int) GetNumGraphEdges(graph->ScaffoldGraph));

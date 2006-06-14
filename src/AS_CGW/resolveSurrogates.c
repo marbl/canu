@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: resolveSurrogates.c,v 1.5 2006-05-03 18:52:27 ahalpern Exp $";
+static char CM_ID[] = "$Id: resolveSurrogates.c,v 1.6 2006-06-14 19:57:23 brianwalenz Exp $";
 
 
 /*********************************************************************/
@@ -96,10 +96,7 @@ int main( int argc, char *argv[])
 
   GlobalData  = data = CreateGlobal_CGW();
   data->stderrc = stderr;
-  data->stderro = stderr;
-  data->stderrfp = fopen("findMissedOverlaps.stderr","w");
   data->timefp = stderr;
-  data->logfp = stderr;
 
   setbuf(stdout,NULL);
 
@@ -332,7 +329,7 @@ int main( int argc, char *argv[])
 	  ScaffoldGraph->checkPointIteration);
   CheckpointScaffoldGraph(ScaffoldGraph, -1);
 
-  fprintf(data->logfp,"Placed  %d surrogate fragments\n",numReallyPlaced);
+  fprintf(data->stderrc,"Placed  %d surrogate fragments\n",numReallyPlaced);
 
   exit(0);
 }

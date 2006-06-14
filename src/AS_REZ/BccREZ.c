@@ -33,7 +33,7 @@
 
  **********************************************************************/
 
-static char fileID[] = "$Id: BccREZ.c,v 1.4 2005-03-22 19:49:21 jason_miller Exp $";
+static char fileID[] = "$Id: BccREZ.c,v 1.5 2006-06-14 19:57:23 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <assert.h>
@@ -70,6 +70,8 @@ static int
 //
 extern char
   * GW_Filename_Prefix;
+extern FILE
+  * gwlogfp;
 
 extern int
   orient[NUM_ORIENTATIONS];
@@ -387,12 +389,12 @@ void DFS_Visit(chunk_subgraph * s,
   Push_Node(ns, this);
 
 # if DEBUG_GAP_WALKER > 2
-  fprintf(GlobalData->gwlogfp,
+  fprintf(gwlogfp,
 	  "\n");
   for (i = 0; i < level; i++) 
-    fprintf(GlobalData->gwlogfp,
+    fprintf(gwlogfp,
 	    " ");
-  fprintf(GlobalData->gwlogfp,
+  fprintf(gwlogfp,
 	  "* node %d (dfs %d, stack %d, top %d)\n",
 	  this,
 	  s->table[this]->dfs_time,
@@ -430,8 +432,8 @@ void DFS_Visit(chunk_subgraph * s,
 
 #     if DEBUG_GAP_WALKER > 2
       for (i = 0; i < level; i++) 
-	fprintf(GlobalData->gwlogfp," ");
-      fprintf(GlobalData->gwlogfp,
+	fprintf(gwlogfp," ");
+      fprintf(gwlogfp,
 	      "} edge from %d to %d orientation %s\n",
 	      this,
 	      tid,
@@ -467,8 +469,8 @@ void DFS_Visit(chunk_subgraph * s,
 
 #       if DEBUG_GAP_WALKER > 2
 	for (i = 0; i < level; i++) 
-	  fprintf(GlobalData->gwlogfp," ");
-	fprintf(GlobalData->gwlogfp,
+	  fprintf(gwlogfp," ");
+	fprintf(gwlogfp,
 		"] child_low %d, dfs %d\n",
 		s->table[tid]->low_time,
 		s->table[this]->dfs_time);
@@ -480,8 +482,8 @@ void DFS_Visit(chunk_subgraph * s,
 	if (s->table[tid]->low_time >= s->table[this]->dfs_time) {
 #         if DEBUG_GAP_WALKER > 2
 	  for (i = 0; i < level; i++) 
-	    fprintf(GlobalData->gwlogfp," ");
-	  fprintf(GlobalData->gwlogfp,
+	    fprintf(gwlogfp," ");
+	  fprintf(gwlogfp,
 		  "> articulation point (this %d, dfs %d, child_low %d)\n",
 		  this,
 		  s->table[this]->dfs_time,
@@ -495,8 +497,8 @@ void DFS_Visit(chunk_subgraph * s,
 	    popped = Pop_Node(ns);
 #           if DEBUG_GAP_WALKER > 2
 	    for (i = 0; i < level; i++) 
-	      fprintf(GlobalData->gwlogfp," ");
-	    fprintf(GlobalData->gwlogfp, "> popping %d - bcc %d\n",
+	      fprintf(gwlogfp," ");
+	    fprintf(gwlogfp, "> popping %d - bcc %d\n",
 		    popped,
 		    bcc_time_stamp);
 #           endif
@@ -515,8 +517,8 @@ void DFS_Visit(chunk_subgraph * s,
 	  if (s->table[tid]->low_time == s->table[this]->dfs_time) {
 #           if DEBUG_GAP_WALKER > 2
 	    for (i = 0; i < level; i++) 
-	      fprintf(GlobalData->gwlogfp," ");
-	    fprintf(GlobalData->gwlogfp,
+	      fprintf(gwlogfp," ");
+	    fprintf(gwlogfp,
 		    "> extra topping %d - bcc %d\n",
 		    this,
 		    bcc_time_stamp);
@@ -538,8 +540,8 @@ void DFS_Visit(chunk_subgraph * s,
 	if (! s->table[tid]->done) {
 #         if DEBUG_GAP_WALKER > 2
 	  for (i = 0; i < level; i++) 
-	    fprintf(GlobalData->gwlogfp," ");
-	  fprintf(GlobalData->gwlogfp,
+	    fprintf(gwlogfp," ");
+	  fprintf(gwlogfp,
 		  "> there is a back edge (dfs %d, fin %d)\n",
 		  s->table[tid]->dfs_time,
 		  s->table[tid]->fin_time);
@@ -563,8 +565,8 @@ void DFS_Visit(chunk_subgraph * s,
       popped = Pop_Node(ns);
 #     if DEBUG_GAP_WALKER > 2
       for (i = 0; i < level; i++) 
-	fprintf(GlobalData->gwlogfp," ");
-      fprintf(GlobalData->gwlogfp,
+	fprintf(gwlogfp," ");
+      fprintf(gwlogfp,
 	      "> megapopping %d - bcc %d\n",
 	      popped,
 	      bcc_time_stamp);
@@ -584,8 +586,8 @@ void DFS_Visit(chunk_subgraph * s,
   time_stamp++;
 # if DEBUG_GAP_WALKER > 2
   for (i = 0; i < level; i++) 
-    fprintf(GlobalData->gwlogfp," ");
-  fprintf(GlobalData->gwlogfp,
+    fprintf(gwlogfp," ");
+  fprintf(gwlogfp,
 	  "* done with the node %d (dfs %d, fin %d, low %d, stack %d, top %d)\n",
 	  this,
 	  s->table[this]->dfs_time,
@@ -618,14 +620,14 @@ void DFS(chunk_subgraph * s,
       DFS_Visit(s, s->node[i].cid, -1, t, 0, filter);
     }
 # if DEBUG_GAP_WALKER > 2
-  fprintf(GlobalData->gwlogfp,
+  fprintf(gwlogfp,
 	  "%d nodes still on the stack: ",
 	  t->top);
   for (i = 0; i < t->top; i++)
-    fprintf(GlobalData->gwlogfp,
+    fprintf(gwlogfp,
 	    "%d ",
 	    t->nodes[i]);
-  fprintf(GlobalData->gwlogfp, "\n");
+  fprintf(gwlogfp, "\n");
 # endif
   Free_Stack(t);
 }
@@ -686,22 +688,22 @@ bcc_array * Compute_Bcc_Array(chunk_subgraph * s) {
     }
 
 # if DEBUG_GAP_WALKER > 1
-  fprintf(GlobalData->gwlogfp,
+  fprintf(gwlogfp,
 	   "GapWalker has found %d biconnected components\n", 
 	   bcc_time_stamp);
 # endif
 
 # if DEBUG_GAP_WALKER > 2
   for (bcc = 0; bcc < bcc_time_stamp; bcc++) {
-    fprintf(GlobalData->gwlogfp,
+    fprintf(gwlogfp,
 	    "bcc %4d, size %4d - (",
 	    bcc,
 	    b[bcc].size); 
     for (j = 0; j < b[bcc].size; j++)
-      fprintf(GlobalData->gwlogfp,
+      fprintf(gwlogfp,
 	      "%d ",
 	      b[bcc].cid[j]);
-    fprintf(GlobalData->gwlogfp,
+    fprintf(gwlogfp,
 	    ")\n");
   }
 # endif
@@ -736,7 +738,7 @@ static void Check_Distance(chunk_subgraph * s,
   assert(bcc_s != NULL);
 
 # if DEBUG_GAP_WALKER > 1
-  fprintf(GlobalData->gwlogfp,
+  fprintf(gwlogfp,
 	  "-> Check_Distance on %d bcc %d\n",source,bcc);
 # endif
 
@@ -753,7 +755,7 @@ static void Check_Distance(chunk_subgraph * s,
     assert(bcc_s->table[cid] != NULL);
     to = GetGraphNode(ScaffoldGraph->RezGraph, cid);
 #   if DEBUG_GAP_WALKER > 1
-    fprintf(GlobalData->gwlogfp,
+    fprintf(gwlogfp,
             "shortest distance from %d:[%d,%d] to %d:[%d,%d] is %5.2f, var %5.2f, d %5.2f, d_neck %5.2f\n",
             source,
             from->aEndCoord - from->aEndCoord,
@@ -947,8 +949,8 @@ int Scan_Components(chunk_subgraph * s,
 #     endif
 
 #     if DEBUG_GAP_WALKER > 1
-      assert(GlobalData->gwlogfp != NULL);
-      fprintf(GlobalData->gwlogfp,
+      assert(gwlogfp != NULL);
+      fprintf(gwlogfp,
 	      "\n------------- bcc %d -------------\n",
 	      bcc);
 #     endif
@@ -986,17 +988,17 @@ int Scan_Components(chunk_subgraph * s,
 	
 #       if DEBUG_GAP_WALKER > 2
         if (Is_Unique(from))
-	  fprintf(GlobalData->gwlogfp,
+	  fprintf(gwlogfp,
 		  "-*> unique chunk %d colors ",
 		  cid);
 	else
-	  fprintf(GlobalData->gwlogfp,
+	  fprintf(gwlogfp,
 		  "-*> chunk %d colors ",
 		  cid);
 	for (j = 0; j < s->table[cid]->colors; j++)
-	  fprintf(GlobalData->gwlogfp, " %d",
+	  fprintf(gwlogfp, " %d",
 		  s->table[cid]->bcc_id[j]);
-	fprintf(GlobalData->gwlogfp, "\n");
+	fprintf(gwlogfp, "\n");
 #       endif
 
 	//
@@ -1030,7 +1032,7 @@ int Scan_Components(chunk_subgraph * s,
 	    if ((from->flags.bits.cgbType != (unsigned int)UU_CGBTYPE)||
 		(to->flags.bits.cgbType != (unsigned int)UU_CGBTYPE)) {
 #             if DEBUG_GAP_WALKER > 1
-	      fprintf(GlobalData->gwlogfp,
+	      fprintf(gwlogfp,
 		      "> Found a repeat chunk %d(%d,%d) or %d(%d,%d)\n",
 		      cid,
 		      from->aEndCoord,
@@ -1116,7 +1118,7 @@ int Scan_Components(chunk_subgraph * s,
 	    }
 
 #           if DEBUG_GAP_WALKER > 2
-	    fprintf(GlobalData->gwlogfp,
+	    fprintf(gwlogfp,
 		    "%s (%4d->%4d), correct %4.2f, edge length %5.2f, std %4.2f, contributions %2d, orientation %4s\n",
 		    id,
 		    cid,
@@ -1139,7 +1141,7 @@ int Scan_Components(chunk_subgraph * s,
 
 #           if DEBUG_GAP_WALKER > 1
 	      
-	      fprintf(GlobalData->gwlogfp,
+	      fprintf(gwlogfp,
 		      "* %s out of the interval [%f,%f], correct %f, error %f, from %d:[%d,%d], to %d:[%d,%d]\n",
 		      id,
 		      left,
@@ -1152,7 +1154,7 @@ int Scan_Components(chunk_subgraph * s,
 		      tid,
 		      to->aEndCoord,
 		      to->bEndCoord);
-	      PrintCIEdgeT(GlobalData->gwlogfp, ScaffoldGraph, "\t", e, e->idA);
+	      PrintCIEdgeT(gwlogfp, ScaffoldGraph, "\t", e, e->idA);
 #           endif
 	    } else if (j == s->table[tid]->colors)
 	      bcc_ok_edges++;
@@ -1169,7 +1171,7 @@ int Scan_Components(chunk_subgraph * s,
 
       tot_non_uniques += (b[bcc].size - b[bcc].uniques);
 #     if DEBUG_GAP_WALKER > 1
-      fprintf(GlobalData->gwlogfp,
+      fprintf(gwlogfp,
 	      "bcc %d, nodes unique/tot (%d/%d) %4.2f, edges bcc/bri/tot (%d/%d/%d)\n",
 	      bcc,
 	      b[bcc].uniques,
@@ -1178,14 +1180,14 @@ int Scan_Components(chunk_subgraph * s,
 	      bcc_edges,
 	      bri_edges,
 	      tot_edges);
-      fprintf(GlobalData->gwlogfp,
+      fprintf(gwlogfp,
 	      "consistent bcc/bri edges (%d/%d), not consistent bcc/bri edges (%d/%d)\n",
 	      bcc_ok_edges,
 	      bri_ok_edges,
 	      bcc_notok_edges,
 	      bri_notok_edges);
       assert(b[bcc].size != 0);
-      fprintf(GlobalData->gwlogfp,
+      fprintf(gwlogfp,
 	      "delta_max %f, delta_avg %f\n\n",
 	      delta_max,
 	      delta_avg/(double)b[bcc].size);
@@ -1225,21 +1227,21 @@ int Scan_Components(chunk_subgraph * s,
     }
   }
 # if DEBUG_GAP_WALKER > 2
-  fprintf(GlobalData->gwlogfp,
+  fprintf(gwlogfp,
 	  "max_colors %d\n",
 	  max_colors);
 # endif
 
 # if DEBUG_GAP_WALKER > 0
-  fprintf(GlobalData->gwlogfp,
+  fprintf(gwlogfp,
 	  "Total non uniques in these bcc %d chunks, max error %f\n",
 	  tot_non_uniques,
 	  delta_max);
-  fprintf(GlobalData->gwlogfp,
+  fprintf(gwlogfp,
 	  "Total of %d bcc-edges considered\n",
 	  tot_edges);
   if (big_bcc)
-    fprintf(GlobalData->gwlogfp,
+    fprintf(gwlogfp,
 	    "Summary: minimum size %d, #bcc/tot %d/%d, edges %d, max_err %5.2f, avg_err %5.2f\n",
 	    BCC_MIN_SIZE,
 	    big_bcc,

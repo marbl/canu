@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: fixECRCheckpoint.c,v 1.5 2005-06-09 21:15:35 brianwalenz Exp $";
+static char CM_ID[] = "$Id: fixECRCheckpoint.c,v 1.6 2006-06-14 19:57:23 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -149,9 +149,6 @@ int main(int argc, char *argv[]){
   
   GlobalData  = data = CreateGlobal_CGW();
   data->stderrc = stderr;
-  data->stderro = stderr;
-  data->stderrfp = fopen("loadcgw.stderr","w");
-  data->logfp = fopen("loadcgw.log","w");
   data->timefp = stderr;
 
   { /* Parse the argument list using "man 3 getopt". */ 

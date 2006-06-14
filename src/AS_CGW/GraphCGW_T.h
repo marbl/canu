@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: GraphCGW_T.h,v 1.8 2006-05-05 19:44:57 eliv Exp $	 */
+/* 	$Id: GraphCGW_T.h,v 1.9 2006-06-14 19:57:22 brianwalenz Exp $	 */
 
 /**************************************************************************
  *  GraphCGW
@@ -1280,10 +1280,10 @@ int32 InsertComputedOverlapEdge(GraphCGW_T *graph,
 				ChunkOverlapCheckT *olap);
 void InsertGraphEdgeInList(GraphCGW_T *graph, CDS_CID_t CIedgeID,
                            CDS_CID_t sid, int verbose);
-void PrintGraphEdge(FILE *logfp, GraphCGW_T *graph, char *label,
+void PrintGraphEdge(FILE *fp, GraphCGW_T *graph, char *label,
                     EdgeCGW_T *edge, CDS_CID_t cid);
 
-void PrintContigEdgeInScfContext(FILE *logfp, GraphCGW_T *graph, char *label, EdgeCGW_T *edge, int cid);
+void PrintContigEdgeInScfContext(FILE *fp, GraphCGW_T *graph, char *label, EdgeCGW_T *edge, int cid);
 
 
 

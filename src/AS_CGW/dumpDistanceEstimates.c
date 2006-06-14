@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.8 2006-02-13 22:16:31 eliv Exp $";
+static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.9 2006-06-14 19:57:23 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -789,10 +789,7 @@ main( int argc, char **argv) {
 
   GlobalData  = data = CreateGlobal_CGW();
   data->stderrc   = stderr;
-  data->stderro   = stderr;
-  data->stderrfp  = stderr;
   data->timefp    = stderr;
-  data->logfp     = stderr;
 
   while (arg < argc) {
     if        (strncmp(argv[arg], "-frg", 2) == 0) {

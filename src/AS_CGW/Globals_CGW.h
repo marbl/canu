@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: Globals_CGW.h,v 1.5 2005-09-26 20:46:58 brianwalenz Exp $	 */
+/* 	$Id: Globals_CGW.h,v 1.6 2006-06-14 19:57:22 brianwalenz Exp $	 */
 #ifndef GLOBALS_CGW_H
 #define GLOBALS_CGW_H
 
@@ -65,15 +65,11 @@ typedef struct Global_CGW_tag {
   float cgbMicrohetProb;
   int  annotateUnitigs;
   int  doInterleavedScaffoldMerging;
-  FILE *logfp;  // .cgwlog
   FILE *outfp;  // .cgw    frags, unitigs, singleton contigs and degenerate scaffolds
   FILE *outfp1;  // .cgw_contigs   input for post-cgw consensus
   FILE *outfp2;  // .cgw_scaffolds non-degenerate scaffolds
-  FILE *gwlogfp;  // .gwlog
   FILE *timefp;  // .timing
-  FILE *stderrfp;  // initially set to .stderr
   FILE *stderrc;  // current - initially set to stderr
-  FILE *stderro; // original - initially set to stderr
 #ifdef NEVER
   HISTOGRAM *scaffold_unique;   
   HISTOGRAM *scaffold_repeat;

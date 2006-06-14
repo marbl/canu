@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.5 2005-04-24 13:31:29 ahalpern Exp $";
+static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.6 2006-06-14 19:57:22 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include <assert.h>
@@ -146,9 +146,6 @@ void  SaveChunkOverlapperToStream(ChunkOverlapperT *chunkOverlapper, FILE *strea
   void *key, *value;
   int64 numOverlaps = 0;
   int status;
-
-  fprintf(GlobalData->logfp,"* SaveChunkOverlapperToStream ************\n");
-
 
   // Iterate over all hashtable elements, just to count them
 
@@ -725,7 +722,7 @@ void ComputeCanonicalOverlap(GraphCGW_T *graph,
 		      canOlap->spec.cidA, canOlap->spec.cidB,
 		      canOlap->minOverlap, canOlap->maxOverlap,
 		      canOlap->cgbMinOverlap, canOlap->cgbMaxOverlap );
-	      PrintChunkOverlapSpec(GlobalData->logfp, &canOlap->spec);
+	      PrintChunkOverlapSpec(GlobalData->stderrc, &canOlap->spec);
 #endif
 
 	      DeleteGraphOverlapEdge(graph, canOlap->spec.cidA, canOlap->spec.cidB, canOlap->spec.orientation);
@@ -767,7 +764,7 @@ void ComputeCanonicalOverlap(GraphCGW_T *graph,
 		b = GetGraphNode(graph, canOlap->spec.cidB);
 		
 		if(a->flags.bits.isUnique && b->flags.bits.isUnique){
-		  fprintf(GlobalData->logfp,"*** DIFFERS ** overlap " F_COORD " is outside [" F_COORD "," F_COORD "]\n",
+		  fprintf(GlobalData->stderrc,"*** DIFFERS ** overlap " F_COORD " is outside [" F_COORD "," F_COORD "]\n",
 			  canOlap->overlap, canOlap->cgbMinOverlap,
                           canOlap->cgbMaxOverlap);
 		}
@@ -973,6 +970,7 @@ void ComputeCanonicalOverlap_new(GraphCGW_T *graph,
                               canOlap -> spec . orientation);
                      assert (FALSE);
                   }
+
 		fprintf(GlobalData->stderrc,">>> Fixing up suspicious overlap (" F_CID "," F_CID ",%c) (ahg:" F_COORD " bhg:" F_COORD ") to (" F_CID "," F_CID ",%c) (ahg:" F_COORD " bhg:" F_COORD ") len: " F_COORD "\n",
 			inSpec.cidA, inSpec.cidB,
                         inSpec.orientation,
@@ -981,20 +979,24 @@ void ComputeCanonicalOverlap_new(GraphCGW_T *graph,
                         canOlap->spec.orientation,
                         canOlap->ahg, canOlap->bhg,
                         canOlap->overlap);
-		     // Add it to the symbol table
+
+                // Add it to the symbol table
+
 #ifndef DEBUG_CHUNKOVERLAP
-		// This insertion may not succeed, if the modified overlap is already in the hashtable
-		     InsertChunkOverlap(chunkOverlapper, canOlap);
+                InsertChunkOverlap(chunkOverlapper, canOlap);
 #else
-		     if(InsertChunkOverlap(chunkOverlapper, canOlap) != HASH_SUCCESS){
-		       fprintf(GlobalData->stderrc,"* (" F_CID "," F_CID ",%c) already exists...not inserting in hash\n",
-			       canOlap->spec.cidB, canOlap->spec.cidA,
-                               canOlap->spec.orientation);
-		     }else{
-		       fprintf(GlobalData->stderrc,"* (" F_CID "," F_CID ",%c) doesn't exist...inserting in hash\n",
-			       canOlap->spec.cidB, canOlap->spec.cidA,
-                               canOlap->spec.orientation);
-		     }
+		// This insertion may not succeed, if the modified
+		// overlap is already in the hashtable
+                //
+                if(InsertChunkOverlap(chunkOverlapper, canOlap) != HASH_SUCCESS){
+                  fprintf(GlobalData->stderrc,"* (" F_CID "," F_CID ",%c) already exists...not inserting in hash\n",
+                          canOlap->spec.cidB, canOlap->spec.cidA,
+                          canOlap->spec.orientation);
+                }else{
+                  fprintf(GlobalData->stderrc,"* (" F_CID "," F_CID ",%c) doesn't exist...inserting in hash\n",
+                          canOlap->spec.cidB, canOlap->spec.cidA,
+                          canOlap->spec.orientation);
+                }
 #endif
 
 #endif
@@ -1282,7 +1284,7 @@ OverlapMesg *ComputeCanonicalOverlapWithTrace(GraphCGW_T *graph,
 					      ChunkOverlapCheckT *canOlap,
 					      InternalFragMesg *AFR,
                                               InternalFragMesg *BFR,
-					      FILE* logfp, int iterate){
+					      FILE* fp, int iterate){
   CDS_COORD_t lengthA, lengthB;
   CDS_COORD_t beg, end;
   int opposite;
@@ -1296,8 +1298,8 @@ OverlapMesg *ComputeCanonicalOverlapWithTrace(GraphCGW_T *graph,
     qualityB = CreateVA_char(2048);
   }
 
-  if( logfp == NULL )
-    logfp = GlobalData->stderrc;
+  if( fp == NULL )
+    fp = GlobalData->stderrc;
 
   // Get the consensus sequences for both chunks from the ChunkStore
   lengthA = GetConsensus(graph, canOlap->spec.cidA, consensusA, qualityA);
@@ -1324,7 +1326,7 @@ OverlapMesg *ComputeCanonicalOverlapWithTrace(GraphCGW_T *graph,
     
 
 #if GREEDYDEBUG > 1
-    fprintf(logfp,"* Calling DP_Compare with trace with %s sequences lengths " F_SIZE_T "," F_SIZE_T " " F_COORD "," F_COORD " beg,end =[" F_COORD "," F_COORD "]\n",
+    fprintf(fp,"* Calling DP_Compare with trace with %s sequences lengths " F_SIZE_T "," F_SIZE_T " " F_COORD "," F_COORD " beg,end =[" F_COORD "," F_COORD "]\n",
 	    (!strcmp(AFR->sequence, BFR->sequence)?"EQUAL":"DIFFERENT"),
 	    strlen(AFR->sequence), strlen(BFR->sequence),
             lengthA, lengthB,
@@ -1395,12 +1397,12 @@ OverlapMesg *ComputeCanonicalOverlapWithTrace(GraphCGW_T *graph,
 		beg, end, opposite);
 
 	if ( flipped )
-	  fprintf(logfp,"FLIPPED\n");
+	  fprintf(fp,"FLIPPED\n");
 #endif
 	// handle containment overlaps correctly
 
 #if GREEDYDEBUG > 4
-	Print_Overlap_AS(logfp,AFR,BFR,O);
+	Print_Overlap_AS(fp,AFR,BFR,O);
 #endif     
       }
 
@@ -1422,7 +1424,7 @@ extern long BayesianComputations;
 			  EdgeCGW_T *edge,
 			  ChunkOrientationType orientation,
 			  ChunkOverlapCheckT *olap, QualityFuncT qfunc,
-			  float* quality, FILE* logfp){
+			  float* quality, FILE* fp){
   int isCanonical;
   ChunkOverlapSpecT spec;
   ChunkOverlapCheckT *lookup;
@@ -1432,8 +1434,8 @@ extern long BayesianComputations;
   CDS_CID_t cidA = edge->idA;
   CDS_CID_t cidB = edge->idB;
 
-  if(logfp == NULL)
-    logfp = GlobalData->stderrc;
+  if(fp == NULL)
+    fp = GlobalData->stderrc;
 
   isCanonical = InitCanonicalOverlapSpec(cidA, cidB, orientation, &spec);
   lookup = LookupCanonicalOverlap(chunkOverlapper, &spec);
@@ -1455,7 +1457,7 @@ extern long BayesianComputations;
   if( lookup->hasBayesianQuality != FALSE)
     {
 #if GREEDYDEBUG > 1
-      fprintf(logfp,"BAYESIAN flag set\n");
+      fprintf(fp,"BAYESIAN flag set\n");
 #endif
       *quality = lookup->quality;
       return TRUE;
@@ -1477,11 +1479,11 @@ extern long BayesianComputations;
       // if the edge has the tandem bit set we try different error rates
       if( edge->flags.bits.hasTandemOverlap)
 	{
-	  omesg = ComputeCanonicalOverlapWithTrace(graph, lookup, &IFG1, &IFG2, logfp, TRUE);
+	  omesg = ComputeCanonicalOverlapWithTrace(graph, lookup, &IFG1, &IFG2, fp, TRUE);
 	}
       else
 	{
-	  omesg = ComputeCanonicalOverlapWithTrace(graph, lookup, &IFG1, &IFG2, logfp, FALSE);
+	  omesg = ComputeCanonicalOverlapWithTrace(graph, lookup, &IFG1, &IFG2, fp, FALSE);
 	}
 
       if( omesg == NULL )
@@ -1509,13 +1511,13 @@ extern long BayesianComputations;
       // compute the quality value and
       // set the quality and the bit in the ChunkOverlapCheckT
       // we do this with and without quality realigning
-      compute_bayesian_quality(&IFG1,&IFG2,&omesgBuffer,0,&length,logfp);
+      compute_bayesian_quality(&IFG1,&IFG2,&omesgBuffer,0,&length,fp);
       BayesianComputations++;
 
       // Realign it using quality values
       normalQuality = omesgBuffer.quality;
 #if GREEDYDEBUG > 1
-      fprintf(logfp,"Quality between " F_CID " and " F_CID " WITHOUT QV Realigning = %f\n",
+      fprintf(fp,"Quality between " F_CID " and " F_CID " WITHOUT QV Realigning = %f\n",
               cidA,cidB,normalQuality);
 #endif   
 
@@ -1523,11 +1525,11 @@ extern long BayesianComputations;
       // Then see whetehr QV Realigning makes it better.
       /*
       omesg = QV_ReAligner_AS(&IFG1,&IFG2,&omesgBuffer);
-      compute_bayesian_quality(&IFG1,&IFG2,omesg,0,&length,logfp);
+      compute_bayesian_quality(&IFG1,&IFG2,omesg,0,&length,fp);
       QVQuality = omesg->quality;
-      fprintf(logfp,"Quality WITH QV Realigning = %f\n",QVQuality);
+      fprintf(fp,"Quality WITH QV Realigning = %f\n",QVQuality);
       if( QVQuality != normalQuality)
-	  fprintf(logfp,"CHANGED quality values\n");
+	  fprintf(fp,"CHANGED quality values\n");
       */
 
       *quality = omesgBuffer.quality;
@@ -1549,7 +1551,7 @@ extern long BayesianComputations;
   if(  lookup->suspicious  )
     {
 #if GREEDYDEBUG > -1
-     fprintf(logfp,"SUSPICIOUS OVERLAP omesg cidA = " F_CID " , canOlap " F_CID " cidA = " F_CID ", omesg Orientation = %c\n",
+     fprintf(fp,"SUSPICIOUS OVERLAP omesg cidA = " F_CID " , canOlap " F_CID " cidA = " F_CID ", omesg Orientation = %c\n",
              omesg->aifrag,olap->spec.cidA,cidA,omesg->orientation);
 #endif
       return FALSE;
@@ -1557,7 +1559,7 @@ extern long BayesianComputations;
   else
     {
 #if GREEDYDEBUG > -1
-      fprintf(logfp,"OVERLAP omesg cidA = " F_CID " , canOlap " F_CID " cidA = " F_CID ", omesg Orientation = %c\n",
+      fprintf(fp,"OVERLAP omesg cidA = " F_CID " , canOlap " F_CID " cidA = " F_CID ", omesg Orientation = %c\n",
               omesg->aifrag,olap->spec.cidA,cidA,omesg->orientation);
 #endif
     }
@@ -1592,7 +1594,7 @@ int ComputeQualityOverlap(GraphCGW_T *graph,
 			  EdgeCGW_T *edge,
 			  ChunkOrientationType orientation,
 			  ChunkOverlapCheckT *olap, QualityFuncT qfunc,
-			  float* quality, FILE* logfp){
+			  float* quality, FILE* fp){
   int isCanonical;
   ChunkOverlapSpecT spec;
   ChunkOverlapCheckT lookup;
@@ -1602,8 +1604,8 @@ int ComputeQualityOverlap(GraphCGW_T *graph,
   CDS_CID_t cidB = edge->idB;
 
 
-  if(logfp == NULL)
-    logfp = GlobalData->stderrc;
+  if(fp == NULL)
+    fp = GlobalData->stderrc;
 
   isCanonical = InitCanonicalOverlapSpec(cidA, cidB, orientation, &spec);
 
@@ -1627,11 +1629,11 @@ int ComputeQualityOverlap(GraphCGW_T *graph,
       // if the edge has the tandem bit set we try different error rates
       if( edge->flags.bits.hasTandemOverlap)
 	{
-	  omesg = ComputeCanonicalOverlapWithTrace(graph, &lookup, &IFG1, &IFG2, logfp, TRUE);
+	  omesg = ComputeCanonicalOverlapWithTrace(graph, &lookup, &IFG1, &IFG2, fp, TRUE);
 	}
       else
 	{
-	  omesg = ComputeCanonicalOverlapWithTrace(graph, &lookup, &IFG1, &IFG2, logfp, FALSE);
+	  omesg = ComputeCanonicalOverlapWithTrace(graph, &lookup, &IFG1, &IFG2, fp, FALSE);
 	}
 
       if( omesg == NULL )
@@ -1653,11 +1655,11 @@ int ComputeQualityOverlap(GraphCGW_T *graph,
       // compute the quality value and
       // set the quality and the bit in the ChunkOverlapCheckT
       // we do this with and without quality realigning
-      compute_bayesian_quality(&IFG1,&IFG2,&omesgBuffer,0,&length,logfp);
+      compute_bayesian_quality(&IFG1,&IFG2,&omesgBuffer,0,&length,fp);
       // Realign it using quality values
       normalQuality = omesgBuffer.quality;
 #if GREEDYDEBUG > 1
-      fprintf(logfp,"Quality between " F_CID " and " F_CID " WITHOUT QV Realigning = %f\n",
+      fprintf(fp,"Quality between " F_CID " and " F_CID " WITHOUT QV Realigning = %f\n",
               cidA,cidB,normalQuality);
 #endif   
 
@@ -1665,11 +1667,11 @@ int ComputeQualityOverlap(GraphCGW_T *graph,
       // Then see whether QV Realigning makes it better.
       /*
       omesg = QV_ReAligner_AS(&IFG1,&IFG2,&omesgBuffer);
-      compute_bayesian_quality(&IFG1,&IFG2,omesg,0,&length,logfp);
+      compute_bayesian_quality(&IFG1,&IFG2,omesg,0,&length,fp);
       QVQuality = omesg->quality;
-      fprintf(logfp,"Quality WITH QV Realigning = %f\n",QVQuality);
+      fprintf(fp,"Quality WITH QV Realigning = %f\n",QVQuality);
       if( QVQuality != normalQuality)
-	  fprintf(logfp,"CHANGED quality values\n");
+	  fprintf(fp,"CHANGED quality values\n");
       */
 
       *quality = omesgBuffer.quality;
@@ -1691,12 +1693,12 @@ int ComputeQualityOverlap(GraphCGW_T *graph,
   
   if(  lookup.suspicious )
     {
-      fprintf(logfp,"SUSPICIOUS OVERLAP omesg cidA = " F_CID " , canOlap " F_CID " cidA = " F_CID ", omesg Orientation = %c\n",
+      fprintf(fp,"SUSPICIOUS OVERLAP omesg cidA = " F_CID " , canOlap " F_CID " cidA = " F_CID ", omesg Orientation = %c\n",
               omesg->aifrag,olap->spec.cidA,cidA,omesg->orientation);
       return FALSE;
     }
   else
-    fprintf(logfp,"OVERLAP omesg cidA = " F_CID " , canOlap " F_CID " cidA = " F_CID ", omesg Orientation = %c\n",
+    fprintf(fp,"OVERLAP omesg cidA = " F_CID " , canOlap " F_CID " cidA = " F_CID ", omesg Orientation = %c\n",
             omesg->aifrag,olap->spec.cidA,cidA,omesg->orientation);
 
 
@@ -1944,8 +1946,10 @@ void ComputeOverlaps(GraphCGW_T *graph, int addEdgeMates,
 		  if(olap->computed || !inSection)
 			continue;
 		  
-		  fprintf(stderr,"* (" F_CID "," F_CID ") \n",
+#if 0
+                  fprintf(stderr,"* (" F_CID "," F_CID ") \n",
                           smaller, bigger);
+#endif
 		}
 		
 		
@@ -2556,6 +2560,7 @@ ChunkOverlapCheckT OverlapChunks( GraphCGW_T *graph,
   return olap;
 }
 
+#if 0
 Overlap* OverlapChunksNew( GraphCGW_T *graph,
                            CDS_CID_t cidA, CDS_CID_t cidB,
                            ChunkOrientationType orientation, 
@@ -2769,7 +2774,7 @@ Overlap* OverlapChunksNew( GraphCGW_T *graph,
   else
 	return(NULL);
 }
-
+#endif
 
 
 size_t ReportMemorySize_CO(ChunkOverlapperT *chunkOverlapper, FILE *stream){
@@ -2829,13 +2834,12 @@ static VA_TYPE(char) *consensus2 = NULL;
 static VA_TYPE(char) *quality1 = NULL;
 static VA_TYPE(char) *quality2 = NULL;
 
-
 Overlap* OverlapContigs(NodeCGW_T *contig1, NodeCGW_T *contig2, 
                         ChunkOrientationType *overlapOrientation,
                         CDS_COORD_t minAhang, CDS_COORD_t maxAhang,
                         int computeAhang)
 {
-  Overlap * tempOlap1;
+  Overlap *tempOlap1;
   char *seq1, *seq2;
   double erate, thresh;
   CDS_COORD_t minlen;

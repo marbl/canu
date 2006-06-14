@@ -34,7 +34,7 @@
  **********************************************************************/
 
 
-static char fileID[] = "$Id: GWDriversREZ.c,v 1.4 2005-03-22 19:49:21 jason_miller Exp $";
+static char fileID[] = "$Id: GWDriversREZ.c,v 1.5 2006-06-14 19:57:23 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <assert.h>
@@ -73,6 +73,8 @@ static char fileID[] = "$Id: GWDriversREZ.c,v 1.4 2005-03-22 19:49:21 jason_mill
 //
 char
 * GW_Filename_Prefix;
+FILE
+* gwlogfp = NULL;
 
 //
 // main Walker functions (called in AS_CGW/AS_CGW_main.c)
@@ -100,8 +102,8 @@ int Walk_Gaps(Global_CGW * data,
   GW_Filename_Prefix = prefix;
 
   sprintf(filename, "%s.gwlog", GW_Filename_Prefix);
-  GlobalData->gwlogfp = file_open(filename,"w");
-  assert(GlobalData->gwlogfp != NULL);
+  gwlogfp = file_open(filename,"w");
+  assert(gwlogfp != NULL);
   
   if (gapSizeStdDevs == AGGRESSIVE_WALKING_STD_DEVS)
 	doSmallContigRemoval = TRUE;
@@ -127,12 +129,12 @@ int Walk_Gaps(Global_CGW * data,
 	default:
 	  fprintf(stderr, "*** Error: walk level %d not defined\n", level);
 
-	  fclose(GlobalData->gwlogfp);
+	  fclose(gwlogfp);
 	  exit(-1);
 	  break;
   }
 
-  fclose(GlobalData->gwlogfp);
+  fclose(gwlogfp);
 
   return 0;
 }
@@ -615,7 +617,7 @@ void Intra_Scaffold_Path_Finding( int startWalkFrom, double gapSizeStdDevs, int 
 
 
 #if DEBUG_GAP_WALKER > -1
-      // fprintf(GlobalData->gwlogfp, "\nlchunk: %d, is surrogate %d  rchunk: %d, is surrogate %d gap length: %f\n", CIs.curr,IsSurrogateNode(lchunk), CIs.next, IsSurrogateNode(rchunk), gapEstimate.mean);
+      // fprintf(gwlogfp, "\nlchunk: %d, is surrogate %d  rchunk: %d, is surrogate %d gap length: %f\n", CIs.curr,IsSurrogateNode(lchunk), CIs.next, IsSurrogateNode(rchunk), gapEstimate.mean);
 #endif      
 
 	  {
@@ -629,7 +631,7 @@ void Intra_Scaffold_Path_Finding( int startWalkFrom, double gapSizeStdDevs, int 
 		int numCommonLocales;
 
 #if DEBUG_GAP_WALKER > -1
-		fprintf(GlobalData->gwlogfp,"Entering Intra_Scaffold_Gap_Walker for scaffold number %d for gap of length %f (stddev : %f)\n",sId, gapEstimate.mean,sqrt(gapEstimate.variance));
+		fprintf(gwlogfp,"Entering Intra_Scaffold_Gap_Walker for scaffold number %d for gap of length %f (stddev : %f)\n",sId, gapEstimate.mean,sqrt(gapEstimate.variance));
 #endif	
 		// ****** Call the main walking routine for that gap *****		
 		
@@ -827,7 +829,7 @@ void Intra_Scaffold_Path_Finding( int startWalkFrom, double gapSizeStdDevs, int 
 	scaff->flags.bits.walkedAlready = TRUE;
 	numScaffoldsWalked++;
 	
-	fprintf(GlobalData->gwlogfp,"*** Time for walking and updating scaffold %d = %g seconds\n",
+	fprintf(gwlogfp,"*** Time for walking and updating scaffold %d = %g seconds\n",
 			sId, TotalTimerT(&singleWalkAndUpdateTime, &cycles));
   }
 

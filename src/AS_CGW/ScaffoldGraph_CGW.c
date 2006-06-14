@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.9 2006-02-13 20:00:50 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.10 2006-06-14 19:57:23 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -548,11 +548,14 @@ ScaffoldGraphT *CreateScaffoldGraph(int rezOnContigs, char *name,
 
   // Temporary
   sgraph->ChunkInstances = sgraph->CIGraph->nodes;
-  sgraph->Contigs = sgraph->ContigGraph->nodes;
-  sgraph->CIScaffolds = sgraph->ScaffoldGraph->nodes;
-  sgraph->CIEdges = sgraph->CIGraph->edges;
-  sgraph->ContigEdges = sgraph->ContigGraph->edges;
-  sgraph->SEdges = sgraph->ScaffoldGraph->edges;
+  sgraph->CIEdges        = sgraph->CIGraph->edges;
+
+  sgraph->Contigs        = sgraph->ContigGraph->nodes;
+  sgraph->ContigEdges    = sgraph->ContigGraph->edges;
+
+  sgraph->CIScaffolds    = sgraph->ScaffoldGraph->nodes;
+  sgraph->SEdges         = sgraph->ScaffoldGraph->edges;
+
 
   sgraph->checkPointIteration = 0;
   sgraph->numContigs = 0;
@@ -917,7 +920,7 @@ int RepeatRez(int repeatRezLevel, char *name){
     int  normal_inserts, contained_inserts, contained_stones;
     ReportMemorySize(ScaffoldGraph,GlobalData->stderrc);
     fflush(GlobalData->stderrc);
-    fprintf(GlobalData->logfp,"**** BEFORE repeat rez ****\n");
+    fprintf(GlobalData->stderrc,"**** BEFORE repeat rez ****\n");
     //
     // repeat Fill_Gaps until we are not able to insert anymore
     //
@@ -999,7 +1002,7 @@ int RepeatRez(int repeatRezLevel, char *name){
     }  while  (normal_inserts + contained_inserts
                + contained_stones > FILL_GAPS_THRESHHOLD);
     
-    fprintf(GlobalData->logfp,"**** AFTER repeat rez ****\n");
+    fprintf(GlobalData->stderrc,"**** AFTER repeat rez ****\n");
   }
   return didSomething;
 }
@@ -1029,10 +1032,10 @@ void RebuildScaffolds(ScaffoldGraphT *ScaffoldGraph,
 
 #ifdef DEBUG_BUCIS
   BuildUniqueCIScaffolds(ScaffoldGraph, markShakyBifurcations,TRUE);
-  fprintf(GlobalData->logfp,"** After BuildUniqueCIScaffolds **\n");
-  DumpChunkInstances(GlobalData->logfp, ScaffoldGraph,
+  fprintf(GlobalData->stderrc,"** After BuildUniqueCIScaffolds **\n");
+  DumpChunkInstances(GlobalData->stderrc, ScaffoldGraph,
                      FALSE, TRUE, TRUE, FALSE);
-  DumpCIScaffolds(GlobalData->logfp,ScaffoldGraph, TRUE);
+  DumpCIScaffolds(GlobalData->stderrc,ScaffoldGraph, TRUE);
 #else
   BuildUniqueCIScaffolds(ScaffoldGraph, markShakyBifurcations, FALSE);
 #endif   
@@ -1091,9 +1094,9 @@ void  TidyUpScaffolds(ScaffoldGraphT *ScaffoldGraph)
   MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, TRUE);// Merge 'em
 
 #ifdef DEBUG_CGW
-  fprintf(GlobalData->logfp,"**** AFTER MERGESEdges ****\n");
+  fprintf(GlobalData->stderrc,"**** AFTER MERGESEdges ****\n");
   fflush(GlobalData->stderrc);
-  DumpCIScaffolds(GlobalData->logfp,ScaffoldGraph, FALSE);
+  DumpCIScaffolds(GlobalData->stderrc,ScaffoldGraph, FALSE);
 #endif
 
   ClearCacheSequenceDB(ScaffoldGraph->sequenceDB, FALSE);
@@ -1196,10 +1199,9 @@ void BuildScaffoldsFromFirstPriniciples(ScaffoldGraphT *ScaffoldGraph,
       }
     
 #ifdef DEBUG_BUCIS
-      fprintf(GlobalData->logfp,"** After Gap Filling **\n");
-      DumpChunkInstances(GlobalData->logfp, ScaffoldGraph,
-                         FALSE, TRUE, TRUE, FALSE);
-      DumpCIScaffolds(GlobalData->logfp,ScaffoldGraph, FALSE);
+      fprintf(GlobalData->stderrc,"** After Gap Filling **\n");
+      DumpChunkInstances(GlobalData->stderrc, ScaffoldGraph, FALSE, TRUE, TRUE, FALSE);
+      DumpCIScaffolds(GlobalData->stderrc,ScaffoldGraph, FALSE);
 #endif   
     }while(changedByRepeatRez && iter < MAX_OUTER_REZ_ITERATIONS);
 
@@ -1217,9 +1219,10 @@ void BuildScaffoldsFromFirstPriniciples(ScaffoldGraphT *ScaffoldGraph,
   }
 
 
+#ifdef DEBUG_BUCIS
   fprintf(GlobalData->stderrc,"* After building scaffolds \n");
-  fprintf(GlobalData->logfp,"* After building scaffolds \n");
-  DumpCIScaffolds(GlobalData->logfp,ScaffoldGraph,FALSE);
+  DumpCIScaffolds(GlobalData->stderrc,ScaffoldGraph,FALSE);
+#endif
 }
 
 

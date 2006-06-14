@@ -342,10 +342,7 @@ int main (int argc , char * argv[] ) {
 
   GlobalData  = data = CreateGlobal_CGW();
   data->stderrc = stderr;
-  data->stderro = stderr;
-  data->stderrfp = fopen("findMissedOverlaps.stderr","w");
   data->timefp = stderr;
-  data->logfp = stderr;
 
   setbuf(stdout,NULL);
 

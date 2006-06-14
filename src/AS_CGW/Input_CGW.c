@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.10 2006-05-18 18:30:31 vrainish Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.11 2006-06-14 19:57:22 brianwalenz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -203,14 +203,7 @@ int ProcessInput(Global_CGW *data, int optind, int argc, char *argv[]){
   fprintf(stderr,"* Total Guides:%d in discriminator unique:%d in other:%d ; in teeny: %d in singles:%d on ends:%d\n",
 	  totalGuideFrags, inUniqueGuideFrags, inRepeatGuideFrags, inTeenyUnitigGuideFrags, inSingletonUnitigGuideFrags,
 	  onEndGuideFrags);
-  fprintf(GlobalData->logfp,"* Total Guides:%d in discriminator unique:%d in other:%d ; in teeny: %d in singles:%d on ends:%d\n",
-	  totalGuideFrags, inUniqueGuideFrags, inRepeatGuideFrags, inTeenyUnitigGuideFrags, inSingletonUnitigGuideFrags,
-	  onEndGuideFrags);
-
   fprintf(stderr,"* Total Reads:%d in discriminator unique:%d in other:%d ; in teeny: %d in singles:%d on ends:%d\n",
-	  totalReadFrags, inUniqueReadFrags, inRepeatReadFrags, inTeenyUnitigReadFrags, inSingletonUnitigReadFrags,
-	  onEndReadFrags);
-  fprintf(GlobalData->logfp,"* Total Reads:%d in discriminator unique:%d in other:%d ; in teeny: %d in singles:%d on ends:%d\n",
 	  totalReadFrags, inUniqueReadFrags, inRepeatReadFrags, inTeenyUnitigReadFrags, inSingletonUnitigReadFrags,
 	  onEndReadFrags);
 
@@ -273,10 +266,8 @@ int ProcessInputADT(Global_CGW *data, FILE *infp, int argc, char **argv){
     VersionStampADT(adt_mesg, argc, argv);
     
     (data->writer)(data->outfp,pmesg);        // Echo to output
-    WriteProtoMesg_AS(data->timefp,pmesg);  // Echo to timing file
 
   return(!finished);
-
 }
 
 
@@ -1029,7 +1020,7 @@ void LoadDistData(void){ // Load the distance record info from the gkpStore
       dist.numReferences = dist.numBad = 0;
 
       if(GlobalData->verbose)
-	fprintf(GlobalData->logfp,"* Loaded dist " F_CID " (%g +/- %g)\n", i, gkpd.mean, gkpd.stddev);
+	fprintf(GlobalData->stderrc,"* Loaded dist " F_CID " (%g +/- %g)\n", i, gkpd.mean, gkpd.stddev);
 
       SetDistT(ScaffoldGraph->Dists, i, &dist);
     }

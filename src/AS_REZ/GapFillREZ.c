@@ -37,7 +37,7 @@
 
 
 
-static char fileID[] = "$Id: GapFillREZ.c,v 1.11 2006-02-13 22:16:31 eliv Exp $";
+static char fileID[] = "$Id: GapFillREZ.c,v 1.12 2006-06-14 19:57:23 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -8423,19 +8423,19 @@ static void UnJigglePositions(void)
       {
         LengthT delta;
 
-        fprintf(GlobalData->stderrc, "\n\nSQUAWK!\n"
+        fprintf(stderr, "\n\nSQUAWK!\n"
                 "scaffold %d's first contig (%d) doesn't start at offset 0.0!\n",
                 scaffold->id, ci->id);
-        fprintf(GlobalData->stderrc, "\toffsets: (%.3f,%.3f) - (%.3f,%.3f)\n",
+        fprintf(stderr, "\toffsets: (%.3f,%.3f) - (%.3f,%.3f)\n",
                 ci->offsetAEnd.mean, ci->offsetAEnd.variance,
                 ci->offsetBEnd.mean, ci->offsetBEnd.variance);
-        fprintf(GlobalData->stderrc,
+        fprintf(stderr,
                 "\tlengths: scaffold (%.3f,%.3f), contig (%.3f, %.3f)\n",
                 scaffold->bpLength.mean, scaffold->bpLength.variance,
                 ci->bpLength.mean, ci->bpLength.variance);
         
-        fprintf(GlobalData->stderrc, "*** BEFORE UNJIGGLING POSITIONS:\n");
-        DumpCIScaffold(GlobalData->stderrc, ScaffoldGraph, scaffold, 0);
+        fprintf(stderr, "*** BEFORE UNJIGGLING POSITIONS:\n");
+        DumpCIScaffold(stderr, ScaffoldGraph, scaffold, 0);
         
         if(ci->offsetAEnd.mean < ci->offsetBEnd.mean)
         {
@@ -8449,8 +8449,8 @@ static void UnJigglePositions(void)
         }
         AddDeltaToScaffoldOffsets(ScaffoldGraph, scaffold->id,
                                   ci->id, TRUE, FALSE, delta);
-        fprintf(GlobalData->stderrc, "*** AFTER UNJIGGLING POSITIONS:\n");
-        DumpCIScaffold(GlobalData->stderrc, ScaffoldGraph, scaffold, 0);
+        fprintf(stderr, "*** AFTER UNJIGGLING POSITIONS:\n");
+        DumpCIScaffold(stderr, ScaffoldGraph, scaffold, 0);
 
       }
     }
@@ -12928,10 +12928,9 @@ PALLOC (Num_Scaffolds * sizeof (char));
 
      if  (total_stones - stones_last_chkpt >= STONES_PER_CHECKPOINT)
          {
-          fprintf (GlobalData -> stderrc,
+          fprintf (stderr,
                    "* Stones CleanupScaffolds through scaffold %d\n",
                    scaff_id);
-          fflush (GlobalData -> stderrc);
 
           fprintf (stderr,
                    "Writing Stone Checkpoint after %d stones at scaffold %d\n",

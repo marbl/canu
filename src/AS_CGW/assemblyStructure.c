@@ -20,7 +20,7 @@
  *************************************************************************/
 
 
-static char CM_ID[] = "$Id: assemblyStructure.c,v 1.3 2005-03-22 19:48:36 jason_miller Exp $";
+static char CM_ID[] = "$Id: assemblyStructure.c,v 1.4 2006-06-14 19:57:23 brianwalenz Exp $";
 
 
 /*********************************************************************/
@@ -144,10 +144,7 @@ int main( int argc, char *argv[])
 
   GlobalData  = data = CreateGlobal_CGW();
   data->stderrc = stderr;
-  data->stderro = stderr;
-  data->stderrfp = fopen("findMissedOverlaps.stderr","w");
   data->timefp = stderr;
-  data->logfp = stderr;
 
   { /* Parse the argument list using "man 3 getopt". */ 
     int ch,errflg=0;

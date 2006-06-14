@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.5 2005-11-18 22:03:35 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.6 2006-06-14 19:57:22 brianwalenz Exp $";
 
 #undef DEBUG
 #undef DEBUG_INSERT
@@ -439,7 +439,7 @@ int InsertCIInScaffold(ScaffoldGraphT *sgraph,
     }
   }
 #ifdef DEBUG_INSERT  
-fprintf(GlobalData->logfp,"* Inserting cid " F_CID " into scaffold " F_CID " at offset %d, %d\n",
+fprintf(GlobalData->stderrc,"* Inserting cid " F_CID " into scaffold " F_CID " at offset %d, %d\n",
 	ci, sid, (int) aEndOffset.mean, (int) bEndOffset.mean);
 #endif
 
@@ -457,7 +457,7 @@ fprintf(GlobalData->logfp,"* Inserting cid " F_CID " into scaffold " F_CID " at 
     ciScaffold->bpLength = *maxOffset;
 
 #ifdef DEBUG_CISCAFFOLD
-    fprintf(GlobalData->logfp,"* Inserted into empty scaffold aEndCoord=" F_COORD " bEndCoord=" F_COORD "\n",
+    fprintf(GlobalData->stderrc,"* Inserted into empty scaffold aEndCoord=" F_COORD " bEndCoord=" F_COORD "\n",
 	    ciScaffold->aEndCoord, ciScaffold->bEndCoord);
 #endif
 #ifdef DEBUG_INSERT
@@ -489,7 +489,7 @@ fprintf(GlobalData->logfp,"* Inserting cid " F_CID " into scaffold " F_CID " at 
 	assert(AEndToBend);
 
 #ifdef DEBUG_INSERT
-	fprintf(GlobalData->logfp,"* Inserting before " F_CID "\n", CI->id);
+	fprintf(GlobalData->stderrc,"* Inserting before " F_CID "\n", CI->id);
 #endif
 	chunkInstance->BEndNext = CI->id;
 	chunkInstance->AEndNext = CI->AEndNext;
@@ -507,11 +507,11 @@ fprintf(GlobalData->logfp,"* Inserting cid " F_CID " into scaffold " F_CID " at 
 	    ciScaffold->aEndCoord = (reversed?chunkInstance->bEndCoord:chunkInstance->aEndCoord);
 	  }
 #ifdef DEBUG_INSERT
-	  fprintf(GlobalData->logfp,"* Inserted at head\n");
+	  fprintf(GlobalData->stderrc,"* Inserted at head\n");
 #endif
 	}else{
 #ifdef DEBUG_INSERT
-	  fprintf(GlobalData->logfp,"* Inserted in middle\n");
+	  fprintf(GlobalData->stderrc,"* Inserted in middle\n");
 #endif
 	}
 
@@ -542,7 +542,7 @@ fprintf(GlobalData->logfp,"* Inserting cid " F_CID " into scaffold " F_CID " at 
 
 
 #ifdef DEBUG_INSERT
-	fprintf(GlobalData->logfp,"* Inserted at end aEndCoord:" F_COORD " bEndCoord:" F_COORD " bpLength = %g\n",
+	fprintf(GlobalData->stderrc,"* Inserted at end aEndCoord:" F_COORD " bEndCoord:" F_COORD " bpLength = %g\n",
 		ciScaffold->aEndCoord, ciScaffold->bEndCoord, ciScaffold->bpLength.mean);
 #endif
 
@@ -560,12 +560,12 @@ fprintf(GlobalData->logfp,"* Inserting cid " F_CID " into scaffold " F_CID " at 
 	chunkInstance->BEndNext = CI->id;
 	chunkInstance->AEndNext = NULLINDEX;
 #ifdef DEBUG_INSERT
-	fprintf(GlobalData->logfp,"* CImin " F_COORD ", chunkInstanceMin " F_COORD "\n", CImin, chunkInstanceMin);
+	fprintf(GlobalData->stderrc,"* CImin " F_COORD ", chunkInstanceMin " F_COORD "\n", CImin, chunkInstanceMin);
 #endif
 	  if(chunkInstance->flags.bits.cgbType == UU_CGBTYPE){
 	    ciScaffold->aEndCoord = (reversed?chunkInstance->bEndCoord:chunkInstance->aEndCoord);
 	  }
-	fprintf(GlobalData->logfp,"* Inserted at head aEndCoord:" F_COORD " bEndCoord:" F_COORD "\n",
+	fprintf(GlobalData->stderrc,"* Inserted at head aEndCoord:" F_COORD " bEndCoord:" F_COORD "\n",
 		ciScaffold->aEndCoord, ciScaffold->bEndCoord);
 	break;
 
@@ -575,7 +575,7 @@ fprintf(GlobalData->logfp,"* Inserting cid " F_CID " into scaffold " F_CID " at 
 
 
 #ifndef DEBUG_INSERT
-    fprintf(GlobalData->logfp,"* Inserted CI " F_CID " in scaffold " F_CID "  Anext = " F_CID "   Bnext = " F_CID "\n",
+    fprintf(GlobalData->stderrc,"* Inserted CI " F_CID " in scaffold " F_CID "  Anext = " F_CID "   Bnext = " F_CID "\n",
 	    chunkInstance->id, sid, chunkInstance->AEndNext, chunkInstance->BEndNext);
 #endif
 
@@ -755,10 +755,7 @@ void FindScaffoldComponents(ScaffoldGraphT *graph, int findPaths){
   //  scaffoldMap = (int *)malloc(sizeof(int) * numScaffolds);
 
 #ifdef DEBUG_MERGE
-  fprintf(stderr,"* ScaffoldGraph has %d scaffolds\n",
-	  graph->numLiveScaffolds);
-  fprintf(GlobalData->logfp,"* ScaffoldGraph has %d scaffolds\n",
-	  graph->numLiveScaffolds);
+  fprintf(stderr,"* ScaffoldGraph has %d scaffolds\n", graph->numLiveScaffolds);
 #endif
 
   for(i = 0; i < numScaffolds; i++){
@@ -968,10 +965,7 @@ void FindScaffoldComponents(ScaffoldGraphT *graph, int findPaths){
   }
   }
   numComponents = UFRenumberSets(UFData);
-  fprintf(GlobalData->logfp," Scaffold Graph has %d subPaths\n",
-	  numComponents);
-  fprintf(stderr," Scaffold Graph has %d subPaths\n",
-	  numComponents);
+  fprintf(stderr," Scaffold Graph has %d subPaths\n", numComponents);
 
   for(set = 0; set < UFData->numSets; set++){
     UFSetT *scaffoldSet = UFGetSet(UFData, set);
@@ -979,7 +973,7 @@ void FindScaffoldComponents(ScaffoldGraphT *graph, int findPaths){
 
     scaffold->setID = scaffoldSet->component;
 #ifdef DEBUG_DIAG
-    fprintf(GlobalData->logfp,"* Scaffold " F_CID " has component " F_CID "\n",
+    fprintf(GlobalData->stderrc,"* Scaffold " F_CID " has component " F_CID "\n",
 	    scaffold->id, scaffold->setID);
 #endif
   }
@@ -1458,16 +1452,6 @@ int CheckAllEdges(ScaffoldGraphT * sgraph,  CDS_CID_t sid, CDS_CID_t cid) {
 	      next_chunk->scaffoldID,
 	      edge->edgesContributing,
 	      edge->flags.bits.edgeStatus);
-#     if 1
-      fprintf(GlobalData->logfp,"in CheckAllEdges -=> BAD edge id:" F_CID " " F_CID "(" F_CID ")->" F_CID "(" F_CID ") (weight %d, status %d)\n",
-	      (CDS_CID_t) GetVAIndex_EdgeCGW_T(sgraph->RezGraph->edges, edge),
-	      cid,
-	      sid,
-	      next,
-	      next_chunk->scaffoldID,
-	      edge->edgesContributing,
-	      edge->flags.bits.edgeStatus);
-#     endif
     }
   }
   return out_of_sid_links;
@@ -1532,12 +1516,13 @@ void  SetCIScaffoldTLength(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold, int32 
      }
    }
 
-   if(verbose && (scaffold->bpLength.mean != maxOffset.mean || scaffold->bpLength.variance != maxOffset.variance)){
+   if(verbose && (scaffold->bpLength.mean != maxOffset.mean ||
+                  scaffold->bpLength.variance != maxOffset.variance)){
      fprintf(GlobalData->stderrc, "SetCIScaffoldTLength adjusted length of scaffold " F_CID " from (%g,%g) to (%g,%g)\n",
 	     scaffold->id, scaffold->bpLength.mean, scaffold->bpLength.variance,
 	     maxOffset.mean, maxOffset.variance);
-     
-     DumpCIScaffold(GlobalData->stderrc, sgraph, scaffold, FALSE);
+     if (verbose > 2)
+       DumpCIScaffold(GlobalData->stderrc, sgraph, scaffold, FALSE);
    }
 
    scaffold->bpLength = maxOffset;
@@ -1558,6 +1543,10 @@ void SetCIScaffoldTLengths(ScaffoldGraphT *sgraph, int verbose){
 }
 
 
+//  bpw -- for each chunk in a scaffold, checks that the chunk
+//  position is sane, printing warnings if not.  Possibly extends the
+//  scaffold size to fit all chunks.
+//
 void CheckCIScaffoldTLength(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
   CIScaffoldTIterator CIs;
    ChunkInstanceT *chunk, *prevChunk;
@@ -1677,7 +1666,7 @@ void CheckCIScaffoldTLength(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
 
    if(scaffold->info.Scaffold.numElements == 1){
 #ifdef DEBUG
-     fprintf(GlobalData->logfp, " Early end to CheckCIScaffoldT() for scaffold " F_CID ": numElements ==1\n",scaffold->id);
+     fprintf(GlobalData->stderrc, " Early end to CheckCIScaffoldT() for scaffold " F_CID ": numElements ==1\n",scaffold->id);
 #endif
      return;
    }
@@ -1759,7 +1748,7 @@ void CheckCIScaffoldTLength(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
 
        if(chunk->offsetAEnd.mean < mean ||
 	  chunk->offsetBEnd.mean < mean){
-	 fprintf(GlobalData->logfp,"* Screwed up scaffold " F_CID ": Chunk " F_CID " has bad mean\n",
+	 fprintf(GlobalData->stderrc,"* Screwed up scaffold " F_CID ": Chunk " F_CID " has bad mean\n",
 		 sid, chunk->id);
 
 	 AppendPtrT(chunksToBeRemoved, (const void *) &chunk);
@@ -1796,8 +1785,6 @@ void CheckCIScaffoldTLength(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
        if (status != RECOMPUTE_OK) {
 	 fprintf(stderr, "RecomputeOffsetsInScaffold failed (%d) for scaffold " F_CID " in CheckScaffolds\n",
 		 status, sid);
-	 fprintf(GlobalData->logfp, "RecomputeOffsetsInScaffold failed (%d) for scaffold " F_CID " in CheckScaffolds\n",
-		 status, sid);
 	 break;
        }
        // This is how much the LSE improved
@@ -1823,11 +1810,10 @@ void CheckCIScaffoldTLength(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
 			   FALSE, &CIs);
    while((chunk = NextCIScaffoldTIterator(&CIs)) != NULL){
     
-     if(
-	(chunk->offsetAEnd.mean > mean && chunk->offsetAEnd.variance < variance) ||
+     if((chunk->offsetAEnd.mean > mean && chunk->offsetAEnd.variance < variance) ||
 	(chunk->offsetBEnd.mean > mean && chunk->offsetBEnd.variance < variance)){
        cgwError = TRUE;
-       fprintf(GlobalData->logfp,"* Screwed up scaffold " F_CID ": Chunk " F_CID " has bad variance\n",
+       fprintf(GlobalData->stderrc,"* Screwed up scaffold " F_CID ": Chunk " F_CID " has bad variance\n",
 	       sid, chunk->id);
      }
 
@@ -1838,8 +1824,7 @@ void CheckCIScaffoldTLength(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
        }
    }
    if(cgwError){
-     fprintf(GlobalData->logfp,"* Screwed up scaffold " F_CID "\n",
-	     sid);
+     fprintf(GlobalData->stderrc,"* Screwed up scaffold " F_CID "\n", sid);
      DumpCIScaffold(stderr,sgraph, scaffold, FALSE);
      iterationError = TRUE;
    }

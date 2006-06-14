@@ -292,10 +292,6 @@ void ReplaceOldScaffoldWithNew(CIScaffoldT * oldScaffold,
               "\t\tReomputeOffsetsInScaffold failed (%d) "
               "for scaffold " F_CID " in MergeScaffolds\n",
               status, newScaffoldO.id);
-      fprintf(GlobalData->logfp,
-              "\t\tReomputeOffsetsInScaffold failed (%d) "
-              "for scaffold " F_CID " in MergeScaffolds\n",
-              status, newScaffoldO.id);
     }
 #endif
   }

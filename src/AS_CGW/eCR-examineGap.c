@@ -20,9 +20,6 @@
 
 #include "eCR.h"
 
-void saveDefaultLocalAlignerVariables(void);
-void restoreDefaultLocalAlignerVariables(void);
-
 
 // externable variables for controlling use of Local_Overlap_AS_forCNS
 

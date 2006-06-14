@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.21 2006-05-24 13:56:29 eliv Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.22 2006-06-14 19:57:22 brianwalenz Exp $";
 
 
 static const char *usage = 
@@ -61,10 +61,10 @@ static const char *usage =
 "   [-I]           ignore chaff unitigs\n"
 "   [-J]           annotate celamy output with Bactig content (default = false)\n"
 "   [-M]           don't do interleaved scaffold merging\n"
-"   [-N <checkpoint>] see CHECKPOINT_* below\n"
+"   [-N <ckp>]     restart from checkpoint location ckp\n"
 "   [-O [icC]]     i = immediate, c = continue, C = celamy output only\n"
 "   [-P]                            Proto Output\n"
-"   [-R <checkPoint>]\n"
+"   [-R <ckp>]     restart from checkpoint file ckp\n"
 "   [-S]           Walk scaffolds smallest to biggest (biggest first is default)\n"
 "   [-W <startWalkFromScaffold> ]\n"
 "   [-X <Estimated number of nodes>]\n"
@@ -202,7 +202,6 @@ int main(int argc, char *argv[]){
   MesgReader reader;
   MesgWriter writer; 
   FILE *infp = NULL, 
-    *logfp = NULL,  /* .cgwlog file */
     *outfp = NULL, /* .cgw file */
     *outfp1 = NULL, /* .cgw_contigs file */
     *outfp2 = NULL; /* .cgw_scaffolds file */
@@ -243,7 +242,7 @@ int main(int argc, char *argv[]){
 #endif
   
   GlobalData  = data = CreateGlobal_CGW();
-  GlobalData->stderro = GlobalData->stderrc = stderr;
+  GlobalData->stderrc = stderr;
   GlobalData->aligner=DP_Compare;
 
   { /* Parse the argument list using "man 3 getopt". */ 
@@ -544,15 +543,8 @@ int main(int argc, char *argv[]){
 	strcpy(data->File_Name_Prefix, outputPath);
 	sprintf(data->TempFileName,"%s.tempium", outputPath);
 
-	sprintf(data->Output_File_Name,"%s.cgwlog",outputPath);
-	data->logfp = logfp = File_Open (data->Output_File_Name, "w", TRUE);     // cgwlog file
-
 	sprintf(data->Output_File_Name,"%s.timing",outputPath);
 	data->timefp = File_Open(data->Output_File_Name,"a", TRUE); // timing file
-
-	sprintf(data->Output_File_Name,"%s.stderr",outputPath);
-	data->stderrfp = File_Open(data->Output_File_Name,"w", TRUE); // stderr file
-
 
 	{
 	  time_t t;
@@ -675,9 +667,9 @@ int main(int argc, char *argv[]){
       ComputeMatePairStatisticsRestricted( UNITIG_OPERATIONS, minSamplesForOverride /* update distance estimates */, 
                                            "unitig_initial");
 
-      fprintf(data->logfp,"** Before BUILDCIEDGES **\n");
+      fprintf(data->stderrc,"** Before BUILDCIEDGES **\n");
       if(GlobalData->debugLevel > 0){
-        DumpChunkInstances(data->logfp, ScaffoldGraph, FALSE, FALSE, FALSE, FALSE);
+        DumpChunkInstances(data->stderrc, ScaffoldGraph, FALSE, FALSE, FALSE, FALSE);
       }
 
       // Allocate space for edges
@@ -714,7 +706,7 @@ int main(int argc, char *argv[]){
 	  DumpScaffoldGraph(ScaffoldGraph);*/
 
     if(GlobalData->debugLevel > 0){
-      DumpChunkInstances(data->logfp, ScaffoldGraph, FALSE, FALSE, FALSE, FALSE);
+      DumpChunkInstances(data->stderrc, ScaffoldGraph, FALSE, FALSE, FALSE, FALSE);
       CheckEdgesAgainstOverlapper(ScaffoldGraph->CIGraph);
     }
 
@@ -766,7 +758,7 @@ int main(int argc, char *argv[]){
 #endif
 
     if(GlobalData->debugLevel > 0)
-      DumpContigs(data->logfp,ScaffoldGraph, FALSE);
+      DumpContigs(data->stderrc,ScaffoldGraph, FALSE);
 
 #ifdef FIX_CONTIG_EDGES
     fprintf(GlobalData->stderrc, "VALIDATING ALL CONTIG EDGES...\n");
@@ -1219,9 +1211,6 @@ int main(int argc, char *argv[]){
 	
       while ( mergedScaffolds && round < 10)
 	{
-	  // GlobalData->gwlogfp = file_open("temp.gwlog", "w");
-	  // assert(GlobalData->gwlogfp != NULL);
-	  
 	  mergedScaffolds = Inter_Scaffold_Walking();
 	  if (mergedScaffolds)
             {
@@ -1367,12 +1356,12 @@ int main(int argc, char *argv[]){
     fprintf(GlobalData->stderrc,"* Before OutputContigs *\n");
     ReportMemorySize(ScaffoldGraph,stderr);
     fflush(stderr);
-    fprintf(data->logfp,"* Before OutputContigs *\n");
+    fprintf(data->stderrc,"* Before OutputContigs *\n");
 
 
     if(GlobalData->debugLevel > 0){
-      DumpContigs(data->logfp,ScaffoldGraph, FALSE);
-      DumpCIScaffolds(GlobalData->logfp,ScaffoldGraph, FALSE);
+      DumpContigs(data->stderrc,ScaffoldGraph, FALSE);
+      DumpCIScaffolds(GlobalData->stderrc,ScaffoldGraph, FALSE);
     }
     if(!ScaffoldGraph->doRezOnContigs){
       assert(0);

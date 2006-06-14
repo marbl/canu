@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.15 2006-05-07 23:45:32 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.16 2006-06-14 19:57:22 brianwalenz Exp $";
 
 #undef ORIG_MERGE_EDGE_INVERT
 #define MINSATISFIED_CUTOFF 0.985
@@ -283,7 +283,7 @@ int InsertScaffoldContentsIntoScaffold(ScaffoldGraphT *sgraph,
   // CheckCIScaffoldTLength(sgraph, oldScaffold);
   // CheckCIScaffoldTLength(sgraph, newScaffold);
   
-#if 0
+#ifdef DEBUG_INSERTSCAFFOLDCONTENTS
   fprintf(GlobalData->stderrc,"* InsertContents of Scaffold " F_CID " into scaffold " F_CID " at offset %g +/- %g orient %c oldScaffold length %g\n",
           oldScaffoldID, newScaffoldID, offset->mean, sqrt(offset->variance), orient, oldScaffold->bpLength.mean);
 #endif
@@ -293,7 +293,7 @@ int InsertScaffoldContentsIntoScaffold(ScaffoldGraphT *sgraph,
   while((CI = NextCIScaffoldTIterator(&CIs)) != NULL){
     LengthT offsetAEnd, offsetBEnd;
 
-#if 0
+#ifdef DEBUG_INSERTSCAFFOLDCONTENTS
     fprintf(GlobalData->stderrc, "* CI->offsetAEnd=%d  CI->offsetBEnd=%d  oldScaffold->bpLength=%d\n",
             (int)CI->offsetAEnd.mean, (int)CI->offsetBEnd.mean, (int)oldScaffold->bpLength.mean);
 #endif
@@ -304,9 +304,10 @@ int InsertScaffoldContentsIntoScaffold(ScaffoldGraphT *sgraph,
       offsetBEnd.mean      = offset->mean     + CI->offsetBEnd.mean;
       offsetBEnd.variance  = offset->variance + CI->offsetBEnd.variance;
     }else{
-      if(!(CI->offsetAEnd.mean <= oldScaffold->bpLength.mean) ||
-         !(CI->offsetBEnd.mean <= oldScaffold->bpLength.mean)){
-        fprintf(GlobalData->stderrc,"* offsetAEnd = %d offsetBEnd = %d scaffoldLength = %d\n",
+      if ((CI->offsetAEnd.mean > oldScaffold->bpLength.mean) ||
+          (CI->offsetBEnd.mean > oldScaffold->bpLength.mean)){
+        fprintf(GlobalData->stderrc, "* CI extends beyond end of scaffold!\n");
+        fprintf(GlobalData->stderrc, "* offsetAEnd = %d offsetBEnd = %d scaffoldLength = %d\n",
                 (int)CI->offsetAEnd.mean, (int)CI->offsetBEnd.mean, (int)oldScaffold->bpLength.mean);
         assert(0);
       }
@@ -329,7 +330,7 @@ int InsertScaffoldContentsIntoScaffold(ScaffoldGraphT *sgraph,
       }
     }
 
-    if(!(offsetBEnd.variance >= 0.0 && offsetAEnd.variance >= 0.0)){
+    if ((offsetBEnd.variance < 0.0) || (offsetAEnd.variance < 0.0)) {
       fprintf(stderr, "oldScaffold:\n");
       DumpCIScaffold(GlobalData->stderrc, sgraph, oldScaffold, FALSE);
 
@@ -341,7 +342,8 @@ int InsertScaffoldContentsIntoScaffold(ScaffoldGraphT *sgraph,
               (int)offsetBEnd.mean, offsetBEnd.variance);
       assert(0);
     }
-#if 0
+
+#ifdef DEBUG_INSERTSCAFFOLDCONTENTS
     fprintf(GlobalData->stderrc,"* Inserting CI " F_CID " at offset (%d,%d) was at (%d,%d)\n",
             CI->id,
             (int) offsetAEnd.mean, (int) offsetBEnd.mean,
@@ -383,9 +385,6 @@ void MarkUnderlyingRawCIEdgeTrusted(ScaffoldGraphT * sgraph, EdgeCGW_T * raw)
   SetGraphEdgeStatus(sgraph->RezGraph, topCIEdge, TRUSTED_EDGE_STATUS);
   if(GlobalData->debugLevel > 0){
     fprintf(GlobalData->stderrc,"* Marked contig edge " F_CID " (" F_CID "," F_CID ")%c as trusted(inside scaf " F_CID ")\n",
-            topCIEdge->topLevelEdge, topCIEdge->idA, topCIEdge->idB, topCIEdge->orient,
-            contigA->scaffoldID);
-    fprintf(GlobalData->logfp,"* Marked contig edge " F_CID " (" F_CID "," F_CID ")%c as trusted(inside scaf " F_CID ")\n",
             topCIEdge->topLevelEdge, topCIEdge->idA, topCIEdge->idB, topCIEdge->orient,
             contigA->scaffoldID);
   }
@@ -4170,30 +4169,27 @@ void ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
           
           if(verbose)
           {
-            fprintf(GlobalData->stderrc,
-                    "Populated ScaffoldAlignmentInterface\n");
-            fprintf(GlobalData->stderrc,
-                    "%d segments in possible scaffold overlap.\n",
-                    (int) GetNumSegmentsInList(sai->segmentList));
+            fprintf(GlobalData->stderrc, "Populated ScaffoldAlignmentInterface\n");
+            fprintf(GlobalData->stderrc, "%d segments in possible scaffold overlap.\n", (int) GetNumSegmentsInList(sai->segmentList));
           }
           
-          /*
-            // punt if the edge distance is too negative & there are no overlaps
-            if( (int) GetNumSegmentsInList(sai->segmentList) == 0 &&
-            endNodeA->bpLength.mean + aGapSize < -minMergeDistance &&
-            endNodeB->bpLength.mean + bGapSize < -minMergeDistance)
+#if 0
+          // punt if the edge distance is too negative & there are no overlaps
+          if( (int) GetNumSegmentsInList(sai->segmentList) == 0 &&
+              endNodeA->bpLength.mean + aGapSize < -minMergeDistance &&
+              endNodeB->bpLength.mean + bGapSize < -minMergeDistance)
             {
-            if(verbose)
-            {
-            fprintf(GlobalData->stderrc,
-            "Large scaffold overlap with no contig overlaps.\n");
-            fprintf(GlobalData->stderrc, "Edge not usable for merging.\n");
+              if(verbose)
+                {
+                  fprintf(GlobalData->stderrc,
+                          "Large scaffold overlap with no contig overlaps.\n");
+                  fprintf(GlobalData->stderrc, "Edge not usable for merging.\n");
+                }
+              SaveBadScaffoldMergeEdge(mergeEdge,
+                                       iSpec->badSEdges);
+              return;
             }
-            SaveBadScaffoldMergeEdge(mergeEdge,
-            iSpec->badSEdges);
-            return;
-            }
-          */
+#endif
           
 	  if(verbose)
 	    fprintf(stderr,
@@ -4208,37 +4204,22 @@ void ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
 	  // this is still a problem but why?  (MP)
 	  assert(sai->numSegs==GetNumSegmentsInList(sai->segmentList));
 
-	  {
-	    Segment *(*scfAligner)(Segment *seglist, int numsegs, int varwin, Scaffold *AF, Scaffold *BF, int *best, int bandbeg, int bandend);
+          sai->segmentList = Align_Scaffold(sai->segmentList,
+                                            sai->numSegs,
+                                            sai->varWin,
+                                            sai->scaffoldA->scaffold,
+                                            sai->scaffoldB->scaffold,
+                                            &(sai->best),
+                                            sai->scaffoldA->bandBeg,
+                                            sai->scaffoldA->bandEnd);
 
-	    Segment *inputListHead=NULL;
-
-	    sai->segmentList = Align_Scaffold(sai->segmentList,
-                                              sai->numSegs,
-                                              sai->varWin,
-                                              sai->scaffoldA->scaffold,
-                                              sai->scaffoldB->scaffold,
-                                              &(sai->best),
-                                              sai->scaffoldA->bandBeg,
-                                              sai->scaffoldA->bandEnd);
-
-	    // deal with suspected memory leak ...
-	    if(sai->segmentList==NULL&&inputListHead!=NULL){
-	      DeleteSegmentList(inputListHead);
-	    }
-
-	  }
           if(sai->segmentList != NULL ||             sai->best >= 0)
           {
             if(verbose)
             {
-              if(sai->best == 0)
-                fprintf(GlobalData->stderrc,
-                        "Align_Scaffold returned best = %d (this should mean pure interleaving)\n",
-                        sai->best);
-              else
-                fprintf(GlobalData->stderrc,
-                        "Align_Scaffold returned best = %d\n", sai->best);
+              fprintf(GlobalData->stderrc, "Align_Scaffold returned best = %d%s\n",
+                      sai->best,
+                      (sai->best == 0) ? " (this should mean pure interleaving)" : "");
               fprintf(GlobalData->stderrc,
                       "Adjusting scaffold contig positions\n");
             }
@@ -4251,12 +4232,13 @@ void ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
               {
                 fprintf(GlobalData->stderrc,
                         "%d segments in scaffold overlap.\n",
-                        (int) GetNumSegmentsInList(sai->segmentList));
+                        GetNumSegmentsInList(sai->segmentList));
               }
               // if there are overlaps or abutting isn't an option
               overlapEdge = MakeScaffoldAlignmentAdjustments(scaffoldA,
                                                              scaffoldB,
                                                              mergeEdge, sai);
+
               if(overlapEdge != NULL)
               {
                 SaveEdgeMeanForLater(mergeEdge);
@@ -4279,8 +4261,7 @@ void ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
             {
               // no overlaps && abutting will work
               SaveEdgeMeanForLater(mergeEdge);
-              mergeEdge->distance.mean = max(-CGW_MISSED_OVERLAP,
-                                             mergeEdge->distance.mean);
+              mergeEdge->distance.mean = max(-CGW_MISSED_OVERLAP, mergeEdge->distance.mean);
               MarkScaffoldsForMerging(mergeEdge, TRUE);
             }
           }
@@ -4288,8 +4269,7 @@ void ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
           {
             // if here, no overlap or interleaving possible
             if(verbose)
-              fprintf(GlobalData->stderrc,
-                      "Align_Scaffold returned best = %d\n",
+              fprintf(GlobalData->stderrc, "Align_Scaffold returned best = %d\n",
                       sai->best);
             
             /* if edge is not highly negative, abutt. Otherwise abort.
@@ -4649,6 +4629,9 @@ int MergeScaffolds(VA_TYPE(CDS_CID_t) * deadScaffoldIDs,
     }else{// Singleton Scaffold
       continue;
     }
+
+    //  This is our last chance to abort before we create a new scaffold!
+
     InitializeScaffold(&CIScaffold, REAL_SCAFFOLD);
 
     CIScaffold.info.Scaffold.AEndCI = NULLINDEX;
@@ -4800,6 +4783,8 @@ int MergeScaffolds(VA_TYPE(CDS_CID_t) * deadScaffoldIDs,
                                                -currentOffset.mean,
                                                orientCI == A_B);
           
+          fprintf(stderr, "Adjusting newScaffold offsets by mean - %f variance + %f\n", currentOffset.mean, variance);
+          
           InitCIScaffoldTIterator(ScaffoldGraph, newScaffold,
                                   TRUE, FALSE, &CIs);
           while((CI = NextCIScaffoldTIterator(&CIs)) != NULL)
@@ -4835,11 +4820,20 @@ int MergeScaffolds(VA_TYPE(CDS_CID_t) * deadScaffoldIDs,
       
       AppendVA_CDS_CID_t(deadScaffoldIDs, &(thisScaffold->id));
       
-      InsertScaffoldContentsIntoScaffold(ScaffoldGraph,
-                                         newScaffoldID, thisScaffold->id,
-                                         orientCI, &currentOffset,
-                                         iSpec->contigNow);
-      
+      if (0 == InsertScaffoldContentsIntoScaffold(ScaffoldGraph,
+                                                  newScaffoldID, thisScaffold->id,
+                                                  orientCI, &currentOffset,
+                                                  iSpec->contigNow)) {
+
+        //  Shucks, we failed to insert the scaffold.  Remove all the
+        //  work we did, and return that nothing got merged.
+        //
+        //  OK, it might just be easier to reconstruct this function,
+        //  but only have it return success/fail, and do no other
+        //  modifications.
+
+      }
+
       if(iSpec->contigNow != NO_CONTIGGING)
       {
         // remove references to edges of dead contigs from scaffold edge
@@ -4892,6 +4886,8 @@ int MergeScaffolds(VA_TYPE(CDS_CID_t) * deadScaffoldIDs,
         }
       }
     }  //  while(neighbor != (CIScaffoldT *)NULL)
+
+    // New scaffold fully popuated now.
     
     if(iSpec->contigNow != NO_CONTIGGING &&
        GetGraphNode(ScaffoldGraph->ScaffoldGraph,
@@ -4939,10 +4935,6 @@ int MergeScaffolds(VA_TYPE(CDS_CID_t) * deadScaffoldIDs,
       if(status != RECOMPUTE_OK)
       {
         fprintf(GlobalData->stderrc,
-                "ReomputeOffsetsInScaffold failed (%d) "
-                "for scaffold " F_CID " in MergeScaffolds\n",
-                status, newScaffoldID);
-        fprintf(GlobalData->logfp,
                 "ReomputeOffsetsInScaffold failed (%d) "
                 "for scaffold " F_CID " in MergeScaffolds\n",
                 status, newScaffoldID);
@@ -5132,7 +5124,6 @@ int MergeScaffoldsExhaustively(ScaffoldGraphT * graph,
   static VA_TYPE(CDS_CID_t) * deadScaffoldIDs = NULL;
   int mergedSomething = FALSE;
   int32 iterations = 0;
-  int32 giterations = 0;
   time_t t;
   float minWeightThreshold = 0.0;
   CDS_CID_t prevFirstNewScaffoldID = NULLINDEX;
@@ -5140,6 +5131,9 @@ int MergeScaffoldsExhaustively(ScaffoldGraphT * graph,
 
   int    buildEdgeCounter = -1;
   time_t lastCkpTime      = time(0) - 90 * 60;
+
+  if(deadScaffoldIDs == NULL)
+    deadScaffoldIDs = CreateVA_CDS_CID_t(10000);
 
   // loop until nothing gets merged
   do{
@@ -5151,26 +5145,25 @@ int MergeScaffoldsExhaustively(ScaffoldGraphT * graph,
     //
     if (time(0) - lastCkpTime > 120 * 60) {
       CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, FALSE);
-      fprintf(GlobalData->timefp,"Checkpoint %d written written during MergeScaffoldsAggressive at giteration %d\n",
-              ScaffoldGraph->checkPointIteration, giterations);
+      fprintf(GlobalData->timefp,"Checkpoint %d written written during MergeScaffoldsAggressive at iteration %d\n",
+              ScaffoldGraph->checkPointIteration, iterations);
       CheckpointScaffoldGraph(ScaffoldGraph, logicalcheckpointnumber);
       lastCkpTime = time(0);
     }
     currFirstNewScaffoldID = GetNumGraphNodes(graph->ScaffoldGraph);
     
     t = time(0);
-    fprintf(GlobalData->stderrc,
-            "* MergeScaffoldsAggressive iteration %d (global %d) at %s\n", 
-            iterations++, giterations++, ctime(&t));
-    fprintf(GlobalData->stderrc,
-            "* " F_CID " scaffolds and %d scaffold edges in the graph\n",
-            currFirstNewScaffoldID,
-            (int) GetNumGraphEdges(graph->ScaffoldGraph));
+    fprintf(GlobalData->stderrc, "* MergeScaffoldsAggressive iteration %d at %s\n", 
+            iterations, ctime(&t));
+    fprintf(GlobalData->stderrc, "* " F_CID " scaffolds and %d scaffold edges in the graph\n",
+            currFirstNewScaffoldID, (int) GetNumGraphEdges(graph->ScaffoldGraph));
     fflush(GlobalData->stderrc);
-    
+
+    iterations++;
+
     if(verbose){
       char buffer[2048];
-      sprintf(buffer,"MSA_%d", giterations);
+      sprintf(buffer,"MSA_%d", iterations);
       CelamyAssembly(buffer);
       CelamyCIScaffolds(buffer, ScaffoldGraph);
     }
@@ -5199,8 +5192,10 @@ int MergeScaffoldsExhaustively(ScaffoldGraphT * graph,
     {
       // delete all edges to dead (merged) scaffolds
       DeleteDeadScaffoldEdges(graph, deadScaffoldIDs);
+
       // raw & merged edges from new scaffolds to all other scaffolds
       BuildNewScaffoldEdges(graph, iSpec, prevFirstNewScaffoldID);
+
       // flags used in marking scaffolds for merging
       ResetScaffoldAndEdgeFlags(graph);
       
@@ -5219,11 +5214,9 @@ int MergeScaffoldsExhaustively(ScaffoldGraphT * graph,
         break;
       }
     }
-    if(deadScaffoldIDs == NULL)
-      deadScaffoldIDs = CreateVA_CDS_CID_t(10000);
-    else
-      ResetVA_CDS_CID_t(deadScaffoldIDs);
-    
+
+    ResetVA_CDS_CID_t(deadScaffoldIDs);
+
     mergedSomething = MergeScaffolds(deadScaffoldIDs, iSpec, verbose);
     totalMerged += mergedSomething;
     prevFirstNewScaffoldID = currFirstNewScaffoldID;
@@ -5264,14 +5257,12 @@ void MergeScaffoldsAggressive(ScaffoldGraphT *graph, int logicalcheckpointnumber
   time_t t;
   InterleavingSpec iSpec;
   
-  if(verbose){
+  if(verbose)
     fprintf(GlobalData->stderrc, "Starting MergeScaffoldsAggressive\n");
-    
-  }
+
   CheckCIScaffoldTs(ScaffoldGraph);
   CheckCIScaffoldTLengths(ScaffoldGraph);
-  fprintf(GlobalData->stderrc,
-          "* Successfully passed checks at beginning of scaffold merging\n");
+  fprintf(GlobalData->stderrc, "* Successfully passed checks at beginning of scaffold merging\n");
   fflush(GlobalData->stderrc);
   
 #if EMIT_STATS
@@ -5287,12 +5278,6 @@ void MergeScaffoldsAggressive(ScaffoldGraphT *graph, int logicalcheckpointnumber
   iSpec.badSEdges = CreateChunkOverlapper();
   iSpec.checkAbutting = TRUE;
   iSpec.contigNow = ALL_CONTIGGING;
-  
-  /* 
-     for(iSpec.minSatisfied = .995;
-     iSpec.minSatisfied > 0.975;
-     iSpec.minSatisfied -= 0.005)
-  */
 
   if (GlobalData->doInterleavedScaffoldMerging) {
 

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIEdgeT_CGW.c,v 1.4 2005-03-22 19:48:33 jason_miller Exp $";
+static char CM_ID[] = "$Id: CIEdgeT_CGW.c,v 1.5 2006-06-14 19:57:22 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -45,7 +45,7 @@ static char CM_ID[] = "$Id: CIEdgeT_CGW.c,v 1.4 2005-03-22 19:48:33 jason_miller
 
 
 
-void PrintCIEdgeT(FILE *logfp, ScaffoldGraphT *graph,
+void PrintCIEdgeT(FILE *fp, ScaffoldGraphT *graph,
                   char *label, CIEdgeT *edge, CDS_CID_t cid){
       char actualOverlap[256];
       CDS_COORD_t actual = 0;
@@ -113,7 +113,7 @@ void PrintCIEdgeT(FILE *logfp, ScaffoldGraphT *graph,
 	flagTrans = "&B";
       }
 
-      fprintf(logfp,"%s A:" F_CID " B:" F_CID " wgt:%d %s %s %s %s%s ori:%c con:%d dst:%d std:%g %s\n",
+      fprintf(fp,"%s A:" F_CID " B:" F_CID " wgt:%d %s %s %s %s%s ori:%c con:%d dst:%d std:%g %s\n",
 	      label, edge->idA, edge->idB, edge->edgesContributing, flag,
 	      (edge->flags.bits.hasExtremalAFrag?"$A":"  "),
 	      (edge->flags.bits.hasExtremalBFrag?"$B":"  "),

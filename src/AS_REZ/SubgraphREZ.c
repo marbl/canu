@@ -34,7 +34,7 @@
  **********************************************************************/
 
 
-static char fileID[] = "$Id: SubgraphREZ.c,v 1.4 2005-03-22 19:49:25 jason_miller Exp $";
+static char fileID[] = "$Id: SubgraphREZ.c,v 1.5 2006-06-14 19:57:23 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -63,7 +63,9 @@ static char fileID[] = "$Id: SubgraphREZ.c,v 1.4 2005-03-22 19:49:25 jason_mille
 // externs
 //
 extern char
-* GW_Filename_Prefix;
+  * GW_Filename_Prefix;
+extern FILE
+  * gwlogfp;
 
 extern int
   orient[NUM_ORIENTATIONS];
@@ -817,7 +819,7 @@ void Print_Dot_Subgraph(chunk_subgraph * s,
 
 void Print_Subgraph(chunk_subgraph * s) {
   //
-  // print the contents of the subgraph <s> in the GlobalData->gwlogfp
+  // print the contents of the subgraph <s> in the gwlogfp
   //
   int32
     i;
@@ -825,14 +827,14 @@ void Print_Subgraph(chunk_subgraph * s) {
   assert(s != NULL);
 
 # if DEBUG_GAP_WALKER > 0
-  fprintf(GlobalData->gwlogfp,
+  fprintf(gwlogfp,
 		  "Subgraph size %d, max entry %d\n",
 		  s->size,
 		  s->max);
-  fprintf(GlobalData->gwlogfp,
+  fprintf(gwlogfp,
 		  "--- Table ---\n");
   for (i = 0; i < s->max; i++)
-    fprintf(GlobalData->gwlogfp,
+    fprintf(gwlogfp,
 			"id %d ptr F_X \n",
 			i,
 			s->table[i]);
@@ -842,7 +844,7 @@ void Print_Subgraph(chunk_subgraph * s) {
     if (s->table[i]) {
       assert (i == s->table[i]->cid);
 #     if DEBUG_GAP_WALKER > 0
-      fprintf(GlobalData->gwlogfp,
+      fprintf(gwlogfp,
 			  "chunk %4d (uid %2d), dfs %d, fin %d, vis %d, pbit %d, pid %d, par %d, dist (%5.2f, %5.2f, %5.2f)\n",
 			  s->table[i]->cid,
 			  s->table[i]->union_id,
@@ -855,7 +857,7 @@ void Print_Subgraph(chunk_subgraph * s) {
 			  s->table[i]->distance.mean,
 			  sqrt(s->table[i]->distance.variance),
 			  s->table[i]->distance.variance);
-	  fprintf(GlobalData->gwlogfp,
+	  fprintf(gwlogfp,
 			  "           has edges (AB_AB) %d, (AB_BA) %d, (BA_AB) %d, (BA_BA) %d\n",
 			  s->table[i]->num_edges[or2num(AB_AB)],
 			  s->table[i]->num_edges[or2num(AB_BA)],
@@ -1373,21 +1375,21 @@ static int Build_Edge_Arrays(chunk_subgraph * s,
     //
 
 # if DEBUG_GAP_WALKER > 2
-	fprintf(GlobalData->gwlogfp,"raw edge between end " F_CID " and " F_CID "\n", e->idA, e->idB);
+	fprintf(gwlogfp,"raw edge between end " F_CID " and " F_CID "\n", e->idA, e->idB);
 # endif
 
 	if (e->idA == 263 || e->idB == 263)
 	{
-	  fprintf( GlobalData->gwlogfp, "about to filter edge between " F_CID " and " F_CID "\n", e->idA, e->idB);
+	  fprintf( gwlogfp, "about to filter edge between " F_CID " and " F_CID "\n", e->idA, e->idB);
 	  if (! filter(e))
-		fprintf( GlobalData->gwlogfp, "edge between " F_CID " and " F_CID " will be filtered out\n", e->idA, e->idB);
+		fprintf( gwlogfp, "edge between " F_CID " and " F_CID " will be filtered out\n", e->idA, e->idB);
 	}
 	
     if (! filter(e))
       continue;
 
 	if (e->idA == 263 || e->idB == 263)
-	  fprintf( GlobalData->gwlogfp, "after filtering edge between " F_CID " and " F_CID "\n", e->idA, e->idB);
+	  fprintf( gwlogfp, "after filtering edge between " F_CID " and " F_CID "\n", e->idA, e->idB);
 	
     //
     // get the other end
@@ -1404,7 +1406,7 @@ static int Build_Edge_Arrays(chunk_subgraph * s,
       assert(s->table[next_chunk_cid] != NULL);
       s->table[cid]->num_edges[or2num(GetEdgeOrientationWRT(e, cid))]++;
 #     if DEBUG_GAP_WALKER > 3
-      fprintf(GlobalData->gwlogfp,
+      fprintf(gwlogfp,
 			  "%s\n",
 			  Orientation_As_String(GetEdgeOrientationWRT(e, cid)));
 #     endif
@@ -1424,7 +1426,7 @@ static int Build_Edge_Arrays(chunk_subgraph * s,
 
   
 # if DEBUG_GAP_WALKER > 2
-  fprintf(GlobalData->gwlogfp,"Chunk %d has %d edges, of which\n%d (AB_AB)\n%d (AB_BA)\n%d (BA_AB)\n%d (BA_BA)\n",
+  fprintf(gwlogfp,"Chunk %d has %d edges, of which\n%d (AB_AB)\n%d (AB_BA)\n%d (BA_AB)\n%d (BA_BA)\n",
 		  cid,
 		  outgoing_edges,
 		  s->table[cid]->num_edges[or2num(AB_AB)],
@@ -1450,12 +1452,12 @@ static int Build_Edge_Arrays(chunk_subgraph * s,
     // if bogus ... discard!
     //
 # if DEBUG_GAP_WALKER > 5
-	PrintGraphEdge(GlobalData->gwlogfp,ScaffoldGraph->RezGraph,"LOOKING at edge  ", e, e->idA);	
+	PrintGraphEdge(gwlogfp,ScaffoldGraph->RezGraph,"LOOKING at edge  ", e, e->idA);	
 #endif
     if (! filter(e))
 	{
 # if DEBUG_GAP_WALKER > 5
-	  PrintGraphEdge(GlobalData->gwlogfp,ScaffoldGraph->RezGraph,"filtered graph edge with respect to idA ", e, e->idA);	
+	  PrintGraphEdge(gwlogfp,ScaffoldGraph->RezGraph,"filtered graph edge with respect to idA ", e, e->idA);	
 #endif
 	  continue;
 	}
@@ -1602,7 +1604,7 @@ void Add_Node(chunk_subgraph * s,
   //
   if (Belong_To(s,cid)) {
 #   if DEBUG_GAP_WALKER > 2
-    fprintf(GlobalData->gwlogfp,
+    fprintf(gwlogfp,
 			"-> %d already in the graph\n",
 			cid);
 #   endif
@@ -1610,7 +1612,7 @@ void Add_Node(chunk_subgraph * s,
   }
 
 # if DEBUG_GAP_WALKER > 2
-  fprintf(GlobalData->gwlogfp,
+  fprintf(gwlogfp,
 		  "-> %d need to be added\n",
 		  cid);
 # endif
@@ -1618,7 +1620,7 @@ void Add_Node(chunk_subgraph * s,
   if (cid >= s->max) {
     s->max = cid + 1;
 #   if DEBUG_GAP_WALKER > 2
-    fprintf(GlobalData->gwlogfp,
+    fprintf(gwlogfp,
 			"-> realloc the table to %d entries\n",
 			s->max);
 #   endif
@@ -1635,7 +1637,7 @@ void Add_Node(chunk_subgraph * s,
   s->size++;
  
 # if DEBUG_GAP_WALKER > 2
-  fprintf(GlobalData->gwlogfp,
+  fprintf(gwlogfp,
 		  "-> realloc the nodes to %d entries\n",
 		  s->size);
 # endif
@@ -1768,7 +1770,7 @@ chunk_subgraph * Build_Subgraph_Bcc(bcc_array * b,
     num_edges += Build_Edge_Arrays(s, s->node[i].cid, filter);
 
 # if DEBUG_GAP_WALKER > 1
-  fprintf(GlobalData->gwlogfp,
+  fprintf(gwlogfp,
 		  "* Subgraph vertices %d, edges %d\n",
 		  s->size, num_edges);
 # endif
@@ -1810,7 +1812,7 @@ chunk_subgraph * Build_Subgraph_Gap(Scaffold_Fill_t * fill_chunks,
   assert(scaff->type == REAL_SCAFFOLD);
   
 # if DEBUG_GAP_WALKER > 1
-  fprintf(GlobalData->gwlogfp,
+  fprintf(gwlogfp,
 		  " Gap %3d:  (%5.2f, stdDev %5.0f)  (%5.2f, stdDev %5.0f)\n",
 		  gapid,
 		  fc->start.mean,
@@ -1867,7 +1869,7 @@ chunk_subgraph * Build_Subgraph_Gap(Scaffold_Fill_t * fill_chunks,
     num_edges += Build_Edge_Arrays(s, s->node[k].cid, filter);
 
 # if DEBUG_GAP_WALKER > 1
-  fprintf(GlobalData->gwlogfp,
+  fprintf(gwlogfp,
 		  "* Subgraph vertices %d, edges %d\n",
 		  s->size, num_edges);
 # endif
@@ -1959,17 +1961,17 @@ chunk_subgraph * Build_Subgraph_Path(chunk_subgraph * f0,
 
 # if DEBUG_GAP_WALKER > -1
     if( *calls > MAXWALKCALLS )
-      fprintf(GlobalData->gwlogfp,
+      fprintf(gwlogfp,
               "\nOOO Exceeded maximal number of explored edges = %ld (%d allowed)\n",
               *calls,MAXWALKCALLS);
-  fprintf(GlobalData->gwlogfp,
+  fprintf(gwlogfp,
           "\n*** Number of explored edges = %ld (%d allowed)\n",
           *calls,MAXWALKCALLS);
 #endif
 
 
 # if DEBUG_GAP_WALKER > 1
-  fprintf(GlobalData->gwlogfp, "PATHS found in standard walking from %d to %d: %d with %d hops\n", left_cid, right_cid, c,*hops);
+  fprintf(gwlogfp, "PATHS found in standard walking from %d to %d: %d with %d hops\n", left_cid, right_cid, c,*hops);
 #endif
 
   Set_Path_Bit(f0, left_cid);
@@ -2123,7 +2125,7 @@ chunk_subgraph * Build_Subgraph(chunk_subgraph * f,
     num_edges += Build_Edge_Arrays(s, s->node[i].cid, filter_edge);
 
 # if DEBUG_GAP_WALKER > 1
-  fprintf(GlobalData->gwlogfp,
+  fprintf(gwlogfp,
 		  "* Subgraph vertices %d, edges %d\n",
 		  s->size, num_edges);
 # endif

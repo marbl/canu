@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ContigT_CGW.c,v 1.5 2006-02-13 22:16:31 eliv Exp $";
+static char CM_ID[] = "$Id: ContigT_CGW.c,v 1.6 2006-06-14 19:57:22 brianwalenz Exp $";
 
 //#define DEBUG 1
 //#define TRY_IANS_EDGES
@@ -1290,17 +1290,18 @@ int IsDefinitelyUniqueContig(ContigT *contig){
 
 int IsShakyContigAtScaffoldEnd(ContigT *contig){
   
-       if(contig->numEssentialB <= 1 &&
-	 contig->numEssentialA <= 1){
-	return FALSE;
-      }
-#if 1
+  if(contig->numEssentialB <= 1 &&
+     contig->numEssentialA <= 1){
+    return FALSE;
+  }
+
+#if 0
   fprintf(stderr,"* IsShakyContigAtScaffoldEnd " F_CID " numA:%d numB:%d %s\n",
           contig->id, 
 	  contig->numEssentialA,
 	  contig->numEssentialB,
 	  (IsDefinitelyUniqueContig(contig)?"unique":"shaky"));
 #endif
-      //      fprintf(stderr,"* returning %s\n", (!IsDefinitelyUniqueContig(contig)?"TRUE":"FALSE"));
-      return(!IsDefinitelyUniqueContig(contig));
+
+  return(!IsDefinitelyUniqueContig(contig));
 }

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGW_dataTypes.c,v 1.4 2005-03-22 19:48:33 jason_miller Exp $";
+static char CM_ID[] = "$Id: AS_CGW_dataTypes.c,v 1.5 2006-06-14 19:57:22 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -41,15 +41,11 @@ static char CM_ID[] = "$Id: AS_CGW_dataTypes.c,v 1.4 2005-03-22 19:48:33 jason_m
 #define INITIAL_NUM_DISTS 10
 
 Global_CGW *CreateGlobal_CGW(void){
-  Global_CGW *g;
-
-  fprintf(stderr,"*CreateGlobal_CGW\n");
-  g = (Global_CGW *)safe_calloc(1, sizeof(Global_CGW));
+  Global_CGW *g = (Global_CGW *)safe_calloc(1, sizeof(Global_CGW));
   AssertPtr(g);
+
   g->verbose = FALSE;
-  g->outfp = NULL;
-  g->logfp = NULL;
-  g->gwlogfp = NULL;
+  g->outfp   = NULL;
 
 #ifdef NEVER
   g->scaffold_repeat = create_extended_histogram(10000,500,0, TRUE, sizeof(ChunkAggregate), 
@@ -114,6 +110,7 @@ void DeleteGlobal_CGW(Global_CGW *g){
   DeleteVA_ScaffoldPOLinkT(GlobalData->ScaffoldPOLinks);
   DeleteVA_ScaffoldPOOverlapT(GlobalData->ScaffoldPOOverlaps);
 #endif
+
   free(g);
 }
 

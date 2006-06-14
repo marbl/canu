@@ -33,7 +33,7 @@
 
  **********************************************************************/
 
-static char fileID[] = "$Id: UpdateREZ.c,v 1.4 2005-03-22 19:49:25 jason_miller Exp $";
+static char fileID[] = "$Id: UpdateREZ.c,v 1.5 2006-06-14 19:57:23 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <assert.h>
@@ -167,7 +167,7 @@ int Trust_Edges(ScaffoldGraphT * sgraph,
 #     endif
     }
 #   if DEBUG_UPDATE > 1
-    fprintf(GlobalData->logfp,"  -=> edge %d->%d (edge weight %d, new status %d, mean %f, var %f) (other end sid %d, %s) * %s", 
+    fprintf(stderr,"  -=> edge %d->%d (edge weight %d, new status %d, mean %f, var %f) (other end sid %d, %s) * %s", 
 			cid,
 			next,
 			edge->edgesContributing,
@@ -232,7 +232,7 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
     * chunk;
 
 # if DEBUG_UPDATE > 1
-  fprintf(GlobalData->logfp,"-=> UPDATE started\n");
+  fprintf(stderr,"-=> UPDATE started\n");
 # endif
 
   //
@@ -254,7 +254,7 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
     if ((isDeadCIScaffoldT(scaffold)) || (scaffold->type != REAL_SCAFFOLD))
       continue;
 #   if DEBUG_UPDATE > 1
-    fprintf(GlobalData->logfp,"\n-=> Scaffold %3d: (LSE %g, num %d)\n",
+    fprintf(stderr,"\n-=> Scaffold %3d: (LSE %g, num %d)\n",
 			scaff_id,
 			scaffold->info.Scaffold.leastSquareError,
 			scaffold->info.Scaffold.numLeastSquareClones);
@@ -279,7 +279,7 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
     for (j = 0; j < fill_chunks[scaff_id].num_gaps;  j++) {
       fc = &(fill_chunks[scaff_id].gap[j]);
 #     if DEBUG_UPDATE > 1
-      fprintf(GlobalData->logfp,"\n -=> Gap %3d:  (%5.2f, %5.2f)-(%5.2f, %5.2f)\n",
+      fprintf(stderr,"\n -=> Gap %3d:  (%5.2f, %5.2f)-(%5.2f, %5.2f)\n",
 			  j,
 			  fc->start.mean,
 			  sqrt(fc->start.variance),
@@ -289,7 +289,7 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
       for  (k = 0;  k < fc->num_chunks;  k++) {
 		table[fc->chunk[k].chunk_id] = &(fc->chunk[k]);
 #       if DEBUG_UPDATE > 1
-		fprintf(GlobalData->logfp,"  -=> Chunk %6d: <%5.2f, %5.2f, %5.2f>-<%5.2f, %5.2f, %5.2f>-<%s>-<%s>\n",
+		fprintf(stderr,"  -=> Chunk %6d: <%5.2f, %5.2f, %5.2f>-<%5.2f, %5.2f, %5.2f>-<%s>-<%s>\n",
 				fc->chunk[k].chunk_id,
 				fc->chunk[k].start.mean,
 				sqrt(fc->chunk[k].start.variance),
@@ -324,13 +324,13 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
     // ScaffoldSanity( scaffold, sgraph);
 
 #   if DEBUG_UPDATE > 1
-    fprintf(GlobalData->logfp,"\n-=> --------------------------------------\n");
-    fprintf(GlobalData->logfp,"-=> Scaffold %3d: (LSE %g, num %d, components %d)\n",
+    fprintf(stderr,"\n-=> --------------------------------------\n");
+    fprintf(stderr,"-=> Scaffold %3d: (LSE %g, num %d, components %d)\n",
 			scaff_id,
 			scaffold->info.Scaffold.leastSquareError,
 			scaffold->info.Scaffold.numLeastSquareClones,
 			IsScaffoldInternallyConnected(sgraph, scaffold));
-    fprintf(GlobalData->logfp,"-=> --------------------------------------\n");
+    fprintf(stderr,"-=> --------------------------------------\n");
 #   endif
 
     //
@@ -344,7 +344,7 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
       fc = &(fill_chunks[scaff_id].gap[j]);
 
 #     if DEBUG_UPDATE > 1
-      fprintf(GlobalData->logfp,"\n -=> Gap %3d:  (%5.2f, %5.2f)-(%5.2f, %5.2f)\n",
+      fprintf(stderr,"\n -=> Gap %3d:  (%5.2f, %5.2f)-(%5.2f, %5.2f)\n",
 			  j,
 			  fc->start.mean,
 			  sqrt(fc->start.variance),
@@ -381,12 +381,12 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
         
         /* scaffold ID must be different */
 #if DEBUG_UPDATE > 1
-        fprintf(GlobalData->logfp,"chunk %d, scaff_id = %d chunkScaffID = %d \n",fc->chunk[k].chunk_id,scaff_id,chunkScaffID);
+        fprintf(stderr,"chunk %d, scaff_id = %d chunkScaffID = %d \n",fc->chunk[k].chunk_id,scaff_id,chunkScaffID);
 #endif
         if( (chunkScaffID != scaff_id) && (chunkScaffID != NULLINDEX) )
         {
 #if DEBUG_UPDATE > 1
-          fprintf(GlobalData->logfp,"FOUND different Scaffold %d \n",chunkScaffID);
+          fprintf(stderr,"FOUND different Scaffold %d \n",chunkScaffID);
 #endif
           //
           // iterate through the chunks that are in the same scaffold "chunkScaffold"
@@ -398,7 +398,7 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
           while((internalChunk = NextCIScaffoldTIterator(&internalChunks)) != NULL)
           {
 #if DEBUG_UPDATE > 1
-            fprintf(GlobalData->logfp,"chunk id = %d, internalChunkID %d \n",fc->chunk[k].chunk_id,internalChunk->id);  
+            fprintf(stderr,"chunk id = %d, internalChunkID %d \n",fc->chunk[k].chunk_id,internalChunk->id);  
 #endif
             keep = FALSE;
             // see if the this chunk from "chunkScaffold" is among the chunks slated for this gap
@@ -417,14 +417,14 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
           { 
             ChunkInstanceT *ci = GetGraphNode(ScaffoldGraph->RezGraph, fc->chunk[l].chunk_id);	
 #if DEBUG_UPDATE > 1
-            fprintf(GlobalData->logfp,"ci->scaffoldID = %d\n",ci->scaffoldID);
+            fprintf(stderr,"ci->scaffoldID = %d\n",ci->scaffoldID);
 #endif
             if( ci->scaffoldID == chunkScaffID )
             {
               if( keep )
               {
 #if DEBUG_UPDATE > 1
-                fprintf(GlobalData->logfp,"SET to TRUE %d \n",fc->chunk[l].chunk_id);
+                fprintf(stderr,"SET to TRUE %d \n",fc->chunk[l].chunk_id);
 #endif
                 RemoveCIFromScaffold(ScaffoldGraph,chunkScaffold,ci, TRUE);
                 fc->chunk[l].keep = TRUE;
@@ -435,7 +435,7 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
               {
                 fc->chunk[l].keep = FALSE;
 #if DEBUG_UPDATE > 1
-                fprintf(GlobalData->logfp,"SET to FALSE %d \n",fc->chunk[l].chunk_id);
+                fprintf(stderr,"SET to FALSE %d \n",fc->chunk[l].chunk_id);
 #endif
               }
             }
@@ -444,7 +444,7 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
           {
             chunkScaffold->flags.bits.isDead = TRUE;  
 # if DEBUG_GAP_WALKER > -1
-            fprintf (GlobalData -> logfp,
+            fprintf (stderr,
                      "GW:  Killed Scaffold %d and inserted its contigs into Scaffold %d\n",
                      chunkScaffID, scaff_id);
 #endif
@@ -456,14 +456,14 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
 		// here we have to filter out the scaffold ends
 		// that means any chunk that is in the scaffold in which the gap is
 #if DEBUG_UPDATE > 1
-		fprintf(GlobalData->logfp,"Chunk Scaff ID = %d, scaff_id= %d \n",GetGraphNode(ScaffoldGraph->RezGraph, fc->chunk[k].chunk_id)->scaffoldID, scaff_id);
+		fprintf(stderr,"Chunk Scaff ID = %d, scaff_id= %d \n",GetGraphNode(ScaffoldGraph->RezGraph, fc->chunk[k].chunk_id)->scaffoldID, scaff_id);
 #endif
  
 		if( GetGraphNode(ScaffoldGraph->RezGraph, fc->chunk[k].chunk_id)->scaffoldID == scaff_id ) 
 		  fc->chunk[k].keep = FALSE;
 
 #       if DEBUG_UPDATE > 1
-		fprintf(GlobalData->logfp,"  -=> Chunk %6d: <%5.2f, %5.2f, %5.2f>-<%5.2f, %5.2f, %5.2f>-<%s><%s>\n",
+		fprintf(stderr,"  -=> Chunk %6d: <%5.2f, %5.2f, %5.2f>-<%5.2f, %5.2f, %5.2f>-<%s><%s>\n",
 				fc->chunk[k].chunk_id,
 				fc->chunk[k].start.mean,
 				sqrt(fc->chunk[k].start.variance),
@@ -488,7 +488,7 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
 		  int cid = fc->chunk[k].chunk_id;
 
 #         if DEBUG_UPDATE > 1
-		  fprintf(GlobalData->logfp,
+		  fprintf(stderr,
 				  "\n  -=> Before insertion of CI %d\n",
 				  fc->chunk[k].chunk_id);
 #         if DEBUG_UPDATE > 2
@@ -505,7 +505,7 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
 			trusted_edges = Trust_Edges(sgraph, fill_chunks, table, scaff_id, cid);
 	      
 #         if DEBUG_UPDATE > 1
-			fprintf(GlobalData->logfp,
+			fprintf(stderr,
 					"-=> TOTAL marked edges for chunk %d is %d\n",
 					cid,
 					trusted_edges);
@@ -660,7 +660,7 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
 
 
 #         if DEBUG_UPDATE > 1
-		  fprintf(GlobalData->logfp,
+		  fprintf(stderr,
 				  "\n  -=> After insertion of CI %d in scaffold %d, ends:%5.2f,%5.2f components: %d\n",
 				  fc->chunk[k].chunk_id,
 				  scaff_id,
@@ -694,7 +694,7 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
 #     endif   
 
 #     if DEBUG_UPDATE > 1
-      fprintf (GlobalData->logfp,
+      fprintf (stderr,
 			   "  -=> Recompute scaffold %d, number of components %d\n",
 			   scaff_id,
 			   IsScaffoldInternallyConnected(sgraph, scaffold));
@@ -736,49 +736,49 @@ if  (scaff_id == 209)
 		switch (res) {
 		  case RECOMPUTE_OK:
 #       if DEBUG_UPDATE > 0
-			fprintf(GlobalData->logfp,
+			fprintf(stderr,
 					"-=> recompute: ok\n");
 #       endif
 			CheckCIScaffoldT(sgraph, scaffold);  // NEW
 			break;
 		  case RECOMPUTE_SINGULAR:
 #       if DEBUG_UPDATE > 0
-			fprintf(GlobalData->logfp,
+			fprintf(stderr,
 					"-=> recompute failed: the matrix is singular\n");
 #       endif
 			fprintf(stderr, "* error failed: the matrix is singular for scaffold %d\n", scaff_id);
 			break;
 		  case RECOMPUTE_LAPACK:
 #       if DEBUG_UPDATE > 0
-			fprintf(GlobalData->logfp,
+			fprintf(stderr,
 					"-=> recompute failed: lapack failed\n");
 #       endif
 			fprintf(stderr, "* error failed: lapack failed on scaffold %d\n", scaff_id);
 			break;
 		  case RECOMPUTE_NO_GAPS:
 #       if DEBUG_UPDATE > 0
-			fprintf(GlobalData->logfp,
+			fprintf(stderr,
 					"-=> recompute failed: the scaffold has only one CI\n");
 #       endif
 			fprintf(stderr, "* warning: scaffold %d has only one CI\n", scaff_id);
 			break;
 		  case RECOMPUTE_FAILED_REORDER_NEEDED:
 #       if DEBUG_UPDATE > 0
-			fprintf(GlobalData->logfp,
+			fprintf(stderr,
 					"-=> recompute failed: reordering needed in scaffold %d\n", scaff_id);
 #       endif
 			fprintf(stderr, "* error: reordering needed in scaffold %d\n", scaff_id);
 			break;
 		  case RECOMPUTE_NOT_ENOUGH_CLONES:
 #       if DEBUG_UPDATE > 0
-			fprintf(GlobalData->logfp,
+			fprintf(stderr,
 					"-=> recompute failed: not enough clones in scaffold %d\n", scaff_id);
 #       endif
 			fprintf(stderr, "* error: not enough clones in scaffold %d\n", scaff_id);
 			break;
 		  default:
 #       if DEBUG_UPDATE > 0
-			fprintf(GlobalData->logfp,
+			fprintf(stderr,
 					"-=> recompute failed: unknow reasons in scaffold %d\n", scaff_id);
 #       endif
 			fprintf(stderr, "* error: recompute failed for unknown reasons for scaffold %d\n", scaff_id);
@@ -813,12 +813,12 @@ if  (scaff_id == 209)
 #     endif   
    
 #     if DEBUG_UPDATE > 1
-      fprintf(GlobalData->logfp,
+      fprintf(stderr,
 			  "\n-=> After adjustement\n");
 #     if DEBUG_UPDATE > 1
       DumpCIScaffold(stderr,sgraph, scaffold, FALSE);
 #     endif
-      fprintf(GlobalData->logfp,
+      fprintf(stderr,
 			  "\n--- End processing scaffold %3d: (LSE %g, num %d, components %d) ---\n",
 			  scaff_id,
 			  scaffold->info.Scaffold.leastSquareError,
@@ -837,7 +837,7 @@ if  (scaff_id == 209)
 #endif
 
 # if DEBUG_UPDATE > 1
-  fprintf(GlobalData->logfp,
+  fprintf(stderr,
 		  "-=> UPDATE ended\n");
 # endif
 

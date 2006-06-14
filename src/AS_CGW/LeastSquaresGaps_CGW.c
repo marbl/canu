@@ -18,25 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: LeastSquaresGaps_CGW.c,v 1.11 2005-11-22 16:02:43 brianwalenz Exp $";
-
-#define FIXED_RECOMPUTE_SINGULAR /* long standing bug: is it fixed yet? */
-#undef LIVE_ON_THE_EDGE   /* abort on singularities -- this would be a good idea, unless you
-          can't afford to have the assembly crash on a rare problem */
-
-#define FIXED_RECOMPUTE_NOT_ENOUGH_CLONES /* long standing bug: is it fixed yet? it seems to be */
-#undef  FIXED_RECOMPUTE_NOT_ENOUGH_CLONES /* nope */
-
-#undef NEG_GAP_VARIANCE_PROBLEM_FIXED  /* if undef'ed, allow processing to continue despite a negative gap variance */
-
-
-//  Debug marking internal edges.
-#undef DEBUG_MARKINTERNAL
-
-//  Enable previously useful debugging output
-#undef BPWDEBUG
-
-
+static char CM_ID[] = "$Id: LeastSquaresGaps_CGW.c,v 1.12 2006-06-14 19:57:22 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -63,13 +45,23 @@ static char CM_ID[] = "$Id: LeastSquaresGaps_CGW.c,v 1.11 2005-11-22 16:02:43 br
 #include "ChiSquareTest_CGW.h"
 #include "ChunkOverlap_CGW.h"
 
-/* declarations for LAPACK/DXML calls to linear algebra routines */
-#define FTN_INT   long int
-#define F_FTN_INT    "%ld"
+
+#define FIXED_RECOMPUTE_NOT_ENOUGH_CLONES /* long standing bug: is it fixed yet? it seems to be */
+#undef  FIXED_RECOMPUTE_NOT_ENOUGH_CLONES /* nope */
+
+#undef NEG_GAP_VARIANCE_PROBLEM_FIXED  /* if undef'ed, allow processing to continue despite a negative gap variance */
+
+#undef TEST_FIXUPMISORDER
 
 
 #define MAX_ABSOLUTE_SLOP 10000
 #define MAX_SIGMA_SLOP 10000 /* essentially infinite ... */
+#define MAX_OVERLAP_SLOP_CGW 10
+
+
+/* declarations for LAPACK/DXML calls to linear algebra routines */
+#define FTN_INT   long int
+#define F_FTN_INT    "%ld"
 
 extern int dgemv_(char *, FTN_INT *, FTN_INT *, 
       double *, double *, FTN_INT *, double *, FTN_INT *, 
@@ -79,124 +71,160 @@ extern int dpbtrf_(char *, FTN_INT *, FTN_INT *, double *,
 extern int dpbtrs_(char *, FTN_INT *, FTN_INT *, FTN_INT *, double *,
        FTN_INT *, double *, FTN_INT *, FTN_INT *);
 
-// Check and fix some wierdnesses that we think creep into LS computations
-void   CheckLSScaffoldWierdnesses(char *string,
-                                  ScaffoldGraphT *graph,
-                                  CIScaffoldT *scaffold);
 
-/// New test code to partly substitute for the status given by MarkInternalEdgeStatus,
-/// for to help handle slightly messier cases!
-int IsInternalEdgeStatusVaguelyOK(EdgeCGW_T *edge,CDS_CID_t thisCIid);
+//  Except as noted:
+//    0 nothing, 1 warnings, 2 lots of stuff
+//
+//  The names end in LV for "level" to distinguish them from the
+//  function that is usually a very similar name.  This would be
+//  incredibly useful if someone wants to, say, merge two classes into
+//  one.
+//
+typedef struct {
+  int   fixUpMisorderedContigsLV;
+  FILE *fixUpMisorderedContigsFP;
 
+  int   checkInternalEdgeStatusLV;
 
-#define MAX_OVERLAP_SLOP_CGW 10
+  int   fixedRecomputeSingluarLV;      //  dump scaffolds AND assert if this bug appears again
 
-/* FixupMisorderedContigs
-   If we find a pair of contigs that are misordered, we rip out thisCI, move it to the right place based on the implied
-   position in the overlapEdge
-*/
-void FixUpMisorderedContigs(CIScaffoldT *scaffold,
-                            ContigT *prevCI, ContigT *thisCI, 
-          ChunkOrientationType edgeOrient, 
-          double inferredMean, double inferredVariance,
-          EdgeCGW_T *overlapEdge){
-    ChunkOrientationType newEdgeOrient = GetEdgeOrientationWRT(overlapEdge,
-            prevCI->id);
-    LengthT aEndOffset, bEndOffset;
+  int   markInternalEdgeStatusLV;
+  FILE *markInternalEdgeStatusFP;
 
-    // 1 == prevCI
-    // 2 == thisCI
-    // edgeOrient is expected orientation of (1,2)
-    // newEdgeOrient is correct orientation of (1,2) 
+  int   recomputeOffsetsVerboseLV;      //  gory detail about the gap size compute
+  int   recomputeOffsetsLV;             //  about the recomputeOffsetsInScaffold process
+  int   leastSquaresGapsLV;             //  info about the gap proces, contig containment, etc
 
-    DumpContig(stderr,ScaffoldGraph, prevCI, FALSE);
-    DumpContig(stderr,ScaffoldGraph, thisCI, FALSE);
-    PrintGraphEdge(stderr, ScaffoldGraph->ContigGraph, " overlapEdge: ",
-            overlapEdge, overlapEdge->idA);
-    fprintf(stderr,"* edgeOrient %c   edge->orient = %c  newEdgeOrient = %c  prevCI = " F_CID "   thisCI = " F_CID " mean:%g\n",
-            edgeOrient, overlapEdge->orient, newEdgeOrient,
-            prevCI->id, thisCI->id, inferredMean);
+} debugflags_t;
 
-    fflush(stderr);
-
-    aEndOffset.mean = aEndOffset.variance = -1.0;
-    bEndOffset.mean = bEndOffset.variance = -1.0;
-    switch(edgeOrient){
-
-        case AB_AB:
-            assert(newEdgeOrient == BA_BA);
-            //           expected                                 actual
-            //       ---------1-------->                            ---------1-------->
-            //                  ---------2-------->     ---------2-------->    
-            //                                                      |<=====|
-            //                                                      overlap length
-
-            // overlap is negative
-            bEndOffset.mean = prevCI->offsetAEnd.mean -  overlapEdge->distance.mean; 
-            bEndOffset.variance = prevCI->offsetAEnd.variance +  overlapEdge->distance.variance;
-            aEndOffset.mean = bEndOffset.mean - thisCI->bpLength.mean;
-            aEndOffset.variance = bEndOffset.variance - thisCI->bpLength.variance;
-            break;
-        case AB_BA:
-            assert(newEdgeOrient == BA_AB);
-            //           expected                                 actual
-            //       ---------1-------->                            ---------1-------->
-            //                  <--------2--------     <--------2--------    
-            //                                                      |<=====|
-            //                                                      overlap length
+static debugflags_t  debug = {0, 0L, 0, 0, 1, 0L, 0, 1, 0};
 
 
-            // overlap is negative
-            aEndOffset.mean = prevCI->offsetAEnd.mean -  overlapEdge->distance.mean; 
-            aEndOffset.variance = prevCI->offsetAEnd.variance + overlapEdge->distance.variance;
-            bEndOffset.mean = aEndOffset.mean - thisCI->bpLength.mean;
-            bEndOffset.variance = aEndOffset.variance - thisCI->bpLength.variance;
-            break;
-        case BA_AB:
-            assert(newEdgeOrient == AB_BA);
-            //           expected                                    actual
-            //       <---------1--------                            <---------1--------
-            //                  --------2-------->     --------2------->    
-            //                                                      |<=====|
-            //                                                      overlap length
 
-            // overlap is negative!
-            bEndOffset.mean = prevCI->offsetBEnd.mean -  overlapEdge->distance.mean; 
-            bEndOffset.variance = prevCI->offsetBEnd.variance -  overlapEdge->distance.variance;
-            aEndOffset.mean = bEndOffset.mean - thisCI->bpLength.mean;
-            aEndOffset.variance = bEndOffset.variance - thisCI->bpLength.variance;
-            break;
-        case BA_BA:
-            assert(newEdgeOrient == AB_AB);
-            //           expected                                 actual
-            //       <---------1--------                            <---------1--------
-            //                  <---------2--------     <---------2--------    
-            //                                                      |<=====|
-            //                                                      overlap length
 
-            // overlap is negative
-            aEndOffset.mean = prevCI->offsetBEnd.mean - overlapEdge->distance.mean; 
-            aEndOffset.variance = prevCI->offsetBEnd.variance +  overlapEdge->distance.variance;
-            bEndOffset.mean = aEndOffset.mean - thisCI->bpLength.mean;
-            bEndOffset.variance = aEndOffset.variance - thisCI->bpLength.variance;
-            break;
-        default:
-            assert(0);
-            break;
-    }
+//   If we find a pair of contigs that are misordered, we rip out
+//   thisCI, move it to the right place based on the implied position
+//   in the overlapEdge
+//
+int
+FixUpMisorderedContigs(CIScaffoldT           *scaffold,
+                       ContigT               *prevCI,
+                       ContigT               *thisCI, 
+                       ChunkOrientationType   edgeOrient, 
+                       double                 inferredMean,
+                       double                 inferredVariance,
+                       EdgeCGW_T             *overlapEdge){
+  ChunkOrientationType newEdgeOrient = GetEdgeOrientationWRT(overlapEdge, prevCI->id);
 
-    fprintf(stderr,"* Overlap is (" F_CID "," F_CID ",%c)  moving " F_CID " from (%g,%g) to (%g,%g)\n",
-            overlapEdge->idA, overlapEdge->idB, overlapEdge->orient,
-            thisCI->id, thisCI->offsetAEnd.mean, thisCI->offsetBEnd.mean,
-            aEndOffset.mean, bEndOffset.mean);
-            thisCI->offsetAEnd = aEndOffset;
-            thisCI->offsetBEnd = bEndOffset;
-            RemoveCIFromScaffold(ScaffoldGraph, scaffold, thisCI, FALSE);
-            InsertCIInScaffold(ScaffoldGraph,
-            thisCI->id, scaffold->id, aEndOffset, bEndOffset,
-            TRUE, FALSE);
+  LengthT aEndOffset, bEndOffset;
+
+  //  Same orientation?  I guess we want to try to merge these contigs then...
+  //
+  if (edgeOrient == newEdgeOrient)
+    return(0);
+
+  // 1 == prevCI
+  // 2 == thisCI
+  // edgeOrient is expected orientation of (1,2)
+  // newEdgeOrient is correct orientation of (1,2) 
+
+  DumpContig(stderr,ScaffoldGraph, prevCI, FALSE);
+  DumpContig(stderr,ScaffoldGraph, thisCI, FALSE);
+  PrintGraphEdge(stderr, ScaffoldGraph->ContigGraph, " overlapEdge: ", overlapEdge, overlapEdge->idA);
+
+  fprintf(stderr,"* edgeOrient %c   edge->orient = %c  newEdgeOrient = %c  prevCI = " F_CID "   thisCI = " F_CID " mean:%g\n",
+          edgeOrient, overlapEdge->orient, newEdgeOrient,
+          prevCI->id, thisCI->id, inferredMean);
+
+
+
+  aEndOffset.mean = aEndOffset.variance = -1.0;
+  bEndOffset.mean = bEndOffset.variance = -1.0;
+
+
+  switch (edgeOrient) {
+    case AB_AB:  //  aka AS_NORMAL
+      assert(newEdgeOrient == BA_BA);
+      //           expected                                 actual
+      //       ---------1-------->                            ---------1-------->
+      //                  ---------2-------->     ---------2-------->    
+      //                                                      |<=====|
+      //                                                      overlap length
+
+      // overlap is negative
+      bEndOffset.mean = prevCI->offsetAEnd.mean -  overlapEdge->distance.mean; 
+      bEndOffset.variance = prevCI->offsetAEnd.variance +  overlapEdge->distance.variance;
+      aEndOffset.mean = bEndOffset.mean - thisCI->bpLength.mean;
+      aEndOffset.variance = bEndOffset.variance - thisCI->bpLength.variance;
+      break;
+    case AB_BA:  //  aka AS_INNIE
+      assert(newEdgeOrient == BA_AB);
+      //           expected                                 actual
+      //       ---------1-------->                            ---------1-------->
+      //                  <--------2--------     <--------2--------    
+      //                                                      |<=====|
+      //                                                      overlap length
+
+
+      // overlap is negative
+      aEndOffset.mean = prevCI->offsetAEnd.mean -  overlapEdge->distance.mean; 
+      aEndOffset.variance = prevCI->offsetAEnd.variance + overlapEdge->distance.variance;
+      bEndOffset.mean = aEndOffset.mean - thisCI->bpLength.mean;
+      bEndOffset.variance = aEndOffset.variance - thisCI->bpLength.variance;
+      break;
+    case BA_AB:  //  aka AS_OUTTIE
+      assert(newEdgeOrient == AB_BA);
+      //           expected                                    actual
+      //       <---------1--------                            <---------1--------
+      //                  --------2-------->     --------2------->    
+      //                                                      |<=====|
+      //                                                      overlap length
+
+      // overlap is negative!
+      bEndOffset.mean = prevCI->offsetBEnd.mean -  overlapEdge->distance.mean; 
+      bEndOffset.variance = prevCI->offsetBEnd.variance -  overlapEdge->distance.variance;
+      aEndOffset.mean = bEndOffset.mean - thisCI->bpLength.mean;
+      aEndOffset.variance = bEndOffset.variance - thisCI->bpLength.variance;
+      break;
+    case BA_BA:  //  aka AS_ANTI
+      assert(newEdgeOrient == AB_AB);
+      //           expected                                 actual
+      //       <---------1--------                            <---------1--------
+      //                  <---------2--------     <---------2--------    
+      //                                                      |<=====|
+      //                                                      overlap length
+
+      // overlap is negative
+      aEndOffset.mean = prevCI->offsetBEnd.mean - overlapEdge->distance.mean; 
+      aEndOffset.variance = prevCI->offsetBEnd.variance +  overlapEdge->distance.variance;
+      bEndOffset.mean = aEndOffset.mean - thisCI->bpLength.mean;
+      bEndOffset.variance = aEndOffset.variance - thisCI->bpLength.variance;
+      break;
+    default:
+      return(0);
+      break;
+  }
+
+  fprintf(stderr,"* Overlap is (" F_CID "," F_CID ",%c)  moving " F_CID " from (%g,%g) to (%g,%g)\n",
+          overlapEdge->idA,
+          overlapEdge->idB,
+          overlapEdge->orient,
+          thisCI->id,
+          thisCI->offsetAEnd.mean,
+          thisCI->offsetBEnd.mean,
+          aEndOffset.mean,
+          bEndOffset.mean);
+
+  thisCI->offsetAEnd = aEndOffset;
+  thisCI->offsetBEnd = bEndOffset;
+
+  RemoveCIFromScaffold(ScaffoldGraph, scaffold, thisCI, FALSE);
+  InsertCIInScaffold(ScaffoldGraph,
+                     thisCI->id, scaffold->id, aEndOffset, bEndOffset,
+                     TRUE, FALSE);
+
+  return(1);
 }
-
 
 
 
@@ -245,9 +273,8 @@ EdgeCGW_T *FindOverlapEdgeChiSquare(ScaffoldGraphT *graph,
         }
     }
 
-    if(bestEdge != (EdgeCGW_T *)NULL){
+    if (bestEdge != NULL)
         return(bestEdge);
-    }
 
     {
         ChunkOverlapCheckT olap;
@@ -309,8 +336,8 @@ void CheckInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
     int32 numCIs;
     int32 indexCIs;
 
-    fprintf(GlobalData->logfp, "Checking Edges for Scaffold " F_CID "\n",
-            scaffold->id);
+    if (debug.checkInternalEdgeStatusLV > 1)
+      fprintf(stderr, "Checking Edges for Scaffold " F_CID "\n", scaffold->id);
 
     InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
 
@@ -321,9 +348,9 @@ void CheckInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
     }
     numCIs = indexCIs;
     if(numCIs != scaffold->info.Scaffold.numElements){
-       fprintf(GlobalData->logfp, "NumElements inconsistent %d,%d\n",
-               numCIs, scaffold->info.Scaffold.numElements);
-       scaffold->info.Scaffold.numElements = numCIs;
+      if (debug.checkInternalEdgeStatusLV > 1)
+        fprintf(stderr, "NumElements inconsistent %d,%d\n", numCIs, scaffold->info.Scaffold.numElements);
+      scaffold->info.Scaffold.numElements = numCIs;
     }
 
     assert(indexCIs == numCIs);
@@ -353,20 +380,19 @@ void CheckInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
             }
             /* Only edges between CIs in the same scaffold should be trusted. */
             if(otherCI->scaffoldID != thisCI->scaffoldID){
-                if(verbose){
-                    EdgeStatus edgeStatus = GetEdgeStatus(edge);
-                    if((edgeStatus == TRUSTED_EDGE_STATUS) ||
-                            (edgeStatus == TENTATIVE_TRUSTED_EDGE_STATUS)){
-                        fprintf(GlobalData->logfp, "[" F_CID "." F_CID "," F_CID "." F_CID "]Trusted edge really interscaffold edge.\n",
-                                thisCI->id, thisCI->scaffoldID, otherCI->id,
-                                otherCI->scaffoldID);
-                    }else if(edgeStatus != INTER_SCAFFOLD_EDGE_STATUS){
-                        fprintf(GlobalData->logfp, "[" F_CID "." F_CID "," F_CID "." F_CID "]Interscaffold edge marked as %d.\n",
-                                thisCI->id, thisCI->scaffoldID, otherCI->id,
-                                otherCI->scaffoldID, edgeStatus);
-                    }
-                }
-                continue;
+              if (debug.checkInternalEdgeStatusLV > 0){
+                EdgeStatus edgeStatus = GetEdgeStatus(edge);
+                if ((edgeStatus == TRUSTED_EDGE_STATUS) ||
+                    (edgeStatus == TENTATIVE_TRUSTED_EDGE_STATUS))
+                  fprintf(stderr, "[" F_CID "." F_CID "," F_CID "." F_CID "]Trusted edge really interscaffold edge.\n",
+                          thisCI->id, thisCI->scaffoldID, otherCI->id,
+                          otherCI->scaffoldID);
+                else if (edgeStatus != INTER_SCAFFOLD_EDGE_STATUS)
+                  fprintf(stderr, "[" F_CID "." F_CID "," F_CID "." F_CID "]Interscaffold edge marked as %d.\n",
+                          thisCI->id, thisCI->scaffoldID, otherCI->id,
+                          otherCI->scaffoldID, edgeStatus);
+              }
+              continue;
             }
             /* We only want to check an edge once and the
                iterator will visit intra scaffold edges twice so we use
@@ -425,36 +451,40 @@ void CheckInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
                     assert(0);
                     break;
             }
-            if((GetNodeOrient(thisCI) != thisCIorient) ||
-                    (GetNodeOrient(otherCI) != otherCIorient)){
+            if ((GetNodeOrient(thisCI) != thisCIorient) ||
+                (GetNodeOrient(otherCI) != otherCIorient)){
                 /* Mark as untrusted an edge whose orientation does not agree
                    with the orientation of the CIs in the scaffold. */
+              if (debug.checkInternalEdgeStatusLV > 0) {
                 EdgeStatus edgeStatus = GetEdgeStatus(edge);
-                if((edgeStatus == TRUSTED_EDGE_STATUS) ||
-                        (edgeStatus == TENTATIVE_TRUSTED_EDGE_STATUS)){
-                    fprintf(GlobalData->logfp, "[" F_CID "." F_CID "," F_CID "." F_CID "]Trusted edge really Bad orientation (%c,%c) (%c,%c).\n",
-                            thisCI->id, thisCI->scaffoldID, otherCI->id,
-                            otherCI->scaffoldID, GetNodeOrient(thisCI), thisCIorient,
-                            GetNodeOrient(otherCI), otherCIorient);
-                }else if((edgeStatus != UNTRUSTED_EDGE_STATUS) &&
-                        (edgeStatus != TENTATIVE_UNTRUSTED_EDGE_STATUS)){
-                    fprintf(GlobalData->logfp, "[" F_CID "." F_CID "," F_CID "." F_CID "]Bad orientation (%c,%c) (%c,%c) edge marked as %d.\n",
-                            thisCI->id, thisCI->scaffoldID, otherCI->id,
-                            otherCI->scaffoldID, GetNodeOrient(thisCI), thisCIorient,
-                            GetNodeOrient(otherCI), otherCIorient, edgeStatus);
-                }
-                continue;
+                if ((edgeStatus == TRUSTED_EDGE_STATUS) ||
+                    (edgeStatus == TENTATIVE_TRUSTED_EDGE_STATUS))
+                  fprintf(stderr, "[" F_CID "." F_CID "," F_CID "." F_CID "]Trusted edge really Bad orientation (%c,%c) (%c,%c).\n",
+                          thisCI->id, thisCI->scaffoldID, otherCI->id,
+                          otherCI->scaffoldID, GetNodeOrient(thisCI), thisCIorient,
+                          GetNodeOrient(otherCI), otherCIorient);
+                else if ((edgeStatus != UNTRUSTED_EDGE_STATUS) &&
+                         (edgeStatus != TENTATIVE_UNTRUSTED_EDGE_STATUS))
+                  fprintf(stderr, "[" F_CID "." F_CID "," F_CID "." F_CID "]Bad orientation (%c,%c) (%c,%c) edge marked as %d.\n",
+                          thisCI->id, thisCI->scaffoldID, otherCI->id,
+                          otherCI->scaffoldID, GetNodeOrient(thisCI), thisCIorient,
+                          GetNodeOrient(otherCI), otherCIorient, edgeStatus);
+              }
+              continue;
             }
             if(gapDistance.variance <= 0.0){
+              if (debug.checkInternalEdgeStatusLV > 0) {
                 EdgeStatus edgeStatus = GetEdgeStatus(edge);
-                fprintf(GlobalData->logfp, "[" F_CID "." F_CID "," F_CID "." F_CID "]Bad Gap Variance (%f,%f) (%f,%f) edge marked as %d.\n",
+                fprintf(stderr, "[" F_CID "." F_CID "," F_CID "." F_CID "]Bad Gap Variance (%f,%f) (%f,%f) edge marked as %d.\n",
                         thisCI->id, thisCI->scaffoldID, otherCI->id,
                         otherCI->scaffoldID,
                         gapDistance.mean, gapDistance.variance,
                         edge->distance.mean, edge->distance.variance, edgeStatus);
-                DumpACIScaffoldNew(GlobalData->logfp,ScaffoldGraph,scaffold,TRUE);
-                DumpACIScaffoldNew(GlobalData->logfp,ScaffoldGraph,scaffold,FALSE);
-
+              }
+              if (debug.checkInternalEdgeStatusLV > 1) {
+                DumpACIScaffoldNew(stderr,ScaffoldGraph,scaffold,TRUE);
+                DumpACIScaffoldNew(stderr,ScaffoldGraph,scaffold,FALSE);
+              }
             }else if(!PairwiseChiSquare((float)gapDistance.mean,
                         gapDistance.variance,
                         (float)edge->distance.mean,
@@ -464,135 +494,62 @@ void CheckInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
                 /* Mark  this edge as untrusted if the distance of the edge is not
                    consistent with the estimated gap distance as judged by the
                    Chi Squared Test. */
+              if (debug.checkInternalEdgeStatusLV > 0) {
                 EdgeStatus edgeStatus = GetEdgeStatus(edge);
-                if((edgeStatus == TRUSTED_EDGE_STATUS) ||
-                        (edgeStatus == TENTATIVE_TRUSTED_EDGE_STATUS)){
-                    fprintf(GlobalData->logfp, "[" F_CID "." F_CID "," F_CID "." F_CID "]Trusted edge really Bad Chi Squared %f (%f,%f) (%f,%f).\n",
-                            thisCI->id, thisCI->scaffoldID, otherCI->id,
-                            otherCI->scaffoldID,
-                            chiSquareResult, gapDistance.mean, gapDistance.variance,
-                            edge->distance.mean, edge->distance.variance);
-                }else if((edgeStatus != UNTRUSTED_EDGE_STATUS) &&
-                        (edgeStatus != TENTATIVE_UNTRUSTED_EDGE_STATUS)){
-                    fprintf(GlobalData->logfp, "[" F_CID "." F_CID "," F_CID "." F_CID "]Bad Chi Squared %f (%f,%f) (%f,%f) edge marked as %d.\n",
-                            thisCI->id, thisCI->scaffoldID, otherCI->id,
-                            otherCI->scaffoldID,
-                            chiSquareResult, gapDistance.mean, gapDistance.variance,
-                            edge->distance.mean, edge->distance.variance, edgeStatus);
-                }
-                continue;
+                if ((edgeStatus == TRUSTED_EDGE_STATUS) ||
+                    (edgeStatus == TENTATIVE_TRUSTED_EDGE_STATUS))
+                  fprintf(stderr, "[" F_CID "." F_CID "," F_CID "." F_CID "]Trusted edge really Bad Chi Squared %f (%f,%f) (%f,%f).\n",
+                          thisCI->id, thisCI->scaffoldID, otherCI->id,
+                          otherCI->scaffoldID,
+                          chiSquareResult, gapDistance.mean, gapDistance.variance,
+                          edge->distance.mean, edge->distance.variance);
+                else if ((edgeStatus != UNTRUSTED_EDGE_STATUS) &&
+                         (edgeStatus != TENTATIVE_UNTRUSTED_EDGE_STATUS))
+                  fprintf(stderr, "[" F_CID "." F_CID "," F_CID "." F_CID "]Bad Chi Squared %f (%f,%f) (%f,%f) edge marked as %d.\n",
+                          thisCI->id, thisCI->scaffoldID, otherCI->id,
+                          otherCI->scaffoldID,
+                          chiSquareResult, gapDistance.mean, gapDistance.variance,
+                          edge->distance.mean, edge->distance.variance, edgeStatus);
+              }
+              continue;
             }
             if(edge->distance.variance > maxVariance){
+              if (debug.checkInternalEdgeStatusLV > 0) {
                 EdgeStatus edgeStatus = GetEdgeStatus(edge);
-                if((edgeStatus == TRUSTED_EDGE_STATUS) ||
-                        (edgeStatus == TENTATIVE_TRUSTED_EDGE_STATUS)){
-                    fprintf(GlobalData->logfp, "[" F_CID "." F_CID "," F_CID "." F_CID "]Trusted edge really Variance too large %f.\n",
-                            thisCI->id, thisCI->scaffoldID, otherCI->id,
-                            otherCI->scaffoldID, edge->distance.variance);
-                }else if(edgeStatus != LARGE_VARIANCE_EDGE_STATUS){
-                    fprintf(GlobalData->logfp, "[" F_CID "." F_CID "," F_CID "." F_CID "]Variance too large %f edge marked as %d.\n",
-                            thisCI->id, thisCI->scaffoldID, otherCI->id,
-                            otherCI->scaffoldID, edge->distance.variance, edgeStatus);
-                }
-                continue;
+                if ((edgeStatus == TRUSTED_EDGE_STATUS) ||
+                    (edgeStatus == TENTATIVE_TRUSTED_EDGE_STATUS))
+                  fprintf(stderr, "[" F_CID "." F_CID "," F_CID "." F_CID "]Trusted edge really Variance too large %f.\n",
+                          thisCI->id, thisCI->scaffoldID, otherCI->id,
+                          otherCI->scaffoldID, edge->distance.variance);
+                else if (edgeStatus != LARGE_VARIANCE_EDGE_STATUS)
+                  fprintf(stderr, "[" F_CID "." F_CID "," F_CID "." F_CID "]Variance too large %f edge marked as %d.\n",
+                          thisCI->id, thisCI->scaffoldID, otherCI->id,
+                          otherCI->scaffoldID, edge->distance.variance, edgeStatus);
+              }
+              continue;
             }
-            {
-                EdgeStatus edgeStatus = GetEdgeStatus(edge);
-                if((edgeStatus != TRUSTED_EDGE_STATUS) &&
-                        (edgeStatus != TENTATIVE_TRUSTED_EDGE_STATUS)){
-                    if(verbose){
-                        fprintf(GlobalData->logfp, "[" F_CID "." F_CID "," F_CID "." F_CID "]Edge marked as %d should be trusted.\n",
-                                thisCI->id, thisCI->scaffoldID, otherCI->id,
-                                otherCI->scaffoldID, edgeStatus);
-                        fprintf(GlobalData->logfp, " - Good Chi Squared %f (%f,%f) (%f,%f)\n",
-                                chiSquareResult, gapDistance.mean, gapDistance.variance,
-                                edge->distance.mean, edge->distance.variance);
-                    }
-                }
+
+            if (debug.checkInternalEdgeStatusLV > 1) {
+              EdgeStatus edgeStatus = GetEdgeStatus(edge);
+              if ((edgeStatus != TRUSTED_EDGE_STATUS) &&
+                  (edgeStatus != TENTATIVE_TRUSTED_EDGE_STATUS)){
+                fprintf(stderr, "[" F_CID "." F_CID "," F_CID "." F_CID "]Edge marked as %d should be trusted.\n",
+                        thisCI->id, thisCI->scaffoldID, otherCI->id,
+                        otherCI->scaffoldID, edgeStatus);
+                fprintf(stderr, " - Good Chi Squared %f (%f,%f) (%f,%f)\n",
+                        chiSquareResult, gapDistance.mean, gapDistance.variance,
+                        edge->distance.mean, edge->distance.variance);
+              }
             }
         }
     }
     return;
 }
 
-typedef struct {
-  int numCIs;
-  int numClones;
-  int numGaps;
-  size_t sizeofLengthCIs;
-  size_t sizeofCloneGapStart;
-  size_t sizeofCloneGapEnd;
-  size_t sizeofGapConstants;
-  size_t sizeofGapCoefficients;
-  size_t sizeofGapVariance;
-  size_t sizeofCloneVariance;
-  size_t sizeofCloneMean;
-  size_t sizeofSpannedGaps;
-  size_t sizeofGapSize;
-  size_t sizeofGapSizeVariance;
-  size_t sizeofGapsToComputeGaps;
-  size_t sizeofComputeGapsToGaps;
-  LengthT *lengthCIs;
-  CDS_COORD_t *cloneGapStart;
-  CDS_COORD_t *cloneGapEnd;
-  double *gapConstants;
-  double *gapCoefficients;
-  double *gapVariance;
-  double *cloneVariance;
-  double *cloneMean;
-  double *spannedGaps;
-  double *gapSize;
-  double *gapSizeVariance;
-  int *gapsToComputeGaps;
-  int *computeGapsToGaps;
-} RecomputeData;
-
-void freeRecomputeData(RecomputeData *data){
-  free(data->lengthCIs);
-  free(data->gapConstants);
-  free(data->gapCoefficients);
-  free(data->gapVariance);
-  free(data->cloneGapStart);
-  free(data->cloneGapEnd);
-  free(data->cloneVariance);
-  free(data->cloneMean);
-  free(data->spannedGaps);
-  free(data->gapSize);
-  free(data->gapSizeVariance);
-  free(data->gapsToComputeGaps);
-  free(data->computeGapsToGaps);
-}
-void ReportRecomputeData(RecomputeData *data, FILE *stream){
-  size_t totalMemorySize = 0;
-  totalMemorySize = 
-    data->sizeofLengthCIs +
-    data->sizeofCloneGapStart +
-    data->sizeofCloneGapEnd +
-    data->sizeofGapConstants +
-    data->sizeofGapCoefficients +
-    data->sizeofGapVariance +
-    data->sizeofCloneVariance +
-    data->sizeofCloneMean +
-    data->sizeofSpannedGaps +
-    data->sizeofGapSize +
-    data->sizeofGapSizeVariance +
-    data->sizeofGapsToComputeGaps +
-    data->sizeofComputeGapsToGaps;
-
-  if(totalMemorySize > 1<<30) // if > 1GB
-    fprintf(stream, "* Recompute Offsets CIs:%d Clones:%d Gaps:%d allocated " F_SIZE_T " bytes\n",
-            data->numCIs,
-            data->numClones,
-            data->numGaps,
-            totalMemorySize);
-}
 
 
 
 
-
-
-#ifdef BPWDEBUG
 //  Dump trusted/raw edges
 void
 dumpTrustedEdges(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold, int32 edgeTypes) {
@@ -667,23 +624,83 @@ dumpTrustedEdges(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold, int32 edgeTypes)
     }
   }
 }
-#endif  //  end dump trusted/raw edges
 
 
 
 
 
+typedef struct {
+  int numCIs;
+  int numClones;
+  int numGaps;
+  size_t sizeofLengthCIs;
+  size_t sizeofCloneGapStart;
+  size_t sizeofCloneGapEnd;
+  size_t sizeofGapConstants;
+  size_t sizeofGapCoefficients;
+  size_t sizeofGapVariance;
+  size_t sizeofCloneVariance;
+  size_t sizeofCloneMean;
+  size_t sizeofSpannedGaps;
+  size_t sizeofGapSize;
+  size_t sizeofGapSizeVariance;
+  size_t sizeofGapsToComputeGaps;
+  size_t sizeofComputeGapsToGaps;
+  LengthT *lengthCIs;
+  CDS_COORD_t *cloneGapStart;
+  CDS_COORD_t *cloneGapEnd;
+  double *gapConstants;
+  double *gapCoefficients;
+  double *gapVariance;
+  double *cloneVariance;
+  double *cloneMean;
+  double *spannedGaps;
+  double *gapSize;
+  double *gapSizeVariance;
+  int *gapsToComputeGaps;
+  int *computeGapsToGaps;
+} RecomputeData;
 
+void freeRecomputeData(RecomputeData *data){
+  free(data->lengthCIs);
+  free(data->gapConstants);
+  free(data->gapCoefficients);
+  free(data->gapVariance);
+  free(data->cloneGapStart);
+  free(data->cloneGapEnd);
+  free(data->cloneVariance);
+  free(data->cloneMean);
+  free(data->spannedGaps);
+  free(data->gapSize);
+  free(data->gapSizeVariance);
+  free(data->gapsToComputeGaps);
+  free(data->computeGapsToGaps);
+}
 
+void ReportRecomputeData(RecomputeData *data, FILE *stream){
+  size_t totalMemorySize = 0;
+  totalMemorySize = 
+    data->sizeofLengthCIs +
+    data->sizeofCloneGapStart +
+    data->sizeofCloneGapEnd +
+    data->sizeofGapConstants +
+    data->sizeofGapCoefficients +
+    data->sizeofGapVariance +
+    data->sizeofCloneVariance +
+    data->sizeofCloneMean +
+    data->sizeofSpannedGaps +
+    data->sizeofGapSize +
+    data->sizeofGapSizeVariance +
+    data->sizeofGapsToComputeGaps +
+    data->sizeofComputeGapsToGaps;
 
-
-
-
-
-
-
-
-
+  if(totalMemorySize > 1<<30) // if > 1GB
+    fprintf(stream, "* Recompute Offsets CIs:%d Clones:%d Gaps:%d allocated " F_SIZE_T " bytes\n",
+            data->numCIs,
+            data->numClones,
+            data->numGaps,
+            totalMemorySize);
+}
 
 RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
                                                   CIScaffoldT *scaffold,
@@ -700,11 +717,6 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
     int32 numCIs;
     int32 indexCIs;
     int standardEdgeStatusFails =0;
-
-#undef DEBUG_LS
-#ifdef DEBUG_LS
-    verbose=1;
-#endif
 
     int numGaps, numComputeGaps;
     LengthT *lengthCIs, *lengthCIsPtr;
@@ -738,19 +750,15 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
 
     StartTimerT(&GlobalData->RecomputeOffsetsTimer);   /*  START */
 
-
-
-    //fprintf(stderr, "RecomputeOffsetsInScaffold()- CheckInternalEdgeStatus for Scaffold " F_CID "\n", scaffold->id);
     CheckInternalEdgeStatus(graph, scaffold, PAIRWISECHI2THRESHOLD_CGW, 100000000000.0, 0, FALSE);
-
-    //fprintf(stderr, "RecomputeOffsetsInScaffold()- IsScaffoldInternallyConnected for Scaffold " F_CID "\n", scaffold->id);
-    //DumpCIScaffold(stderr, graph, scaffold, TRUE);
 
     if(IsScaffoldInternallyConnected(ScaffoldGraph,scaffold,ALL_TRUSTED_EDGES)!=1){
         standardEdgeStatusFails = 1;
-        fprintf(stderr, "RecomputeOffsetsInScaffold()- WARNING: scaffold " F_CID " is not internally connected using ALL_TRUSTED_EDGES\n");
-        fprintf(stderr, "                              will proceed with edge set determined by IsInternalEdgeStatusVaguelyOK\n");
-        fprintf(stderr, "                              instead of PairwiseChiSquare test\n",scaffold->id);
+        if (debug.recomputeOffsetsLV > 0) {
+          fprintf(stderr, "RecomputeOffsetsInScaffold()- WARNING: scaffold " F_CID " is not internally connected using ALL_TRUSTED_EDGES\n");
+          fprintf(stderr, "                              will proceed with edge set determined by IsInternalEdgeStatusVaguelyOK\n");
+          fprintf(stderr, "                              instead of PairwiseChiSquare test\n",scaffold->id);
+        }
         //assert(0);
     }
 
@@ -771,7 +779,8 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
             (thisCI = NextCIScaffoldTIterator(&CIs)) != NULL;){
         thisCI->indexInScaffold = indexCIs;
         *lengthCIsPtr = thisCI->bpLength;
-        if(verbose)
+
+        if (debug.recomputeOffsetsVerboseLV > 1)
           fprintf(stderr, "Length of CI %d," F_CID " %f\n",
                   indexCIs, thisCI->id, lengthCIsPtr->mean);
 
@@ -796,10 +805,12 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
             NodeCGW_T *otherCI = GetGraphNode(ScaffoldGraph->RezGraph, (isA ? edge->idB : edge->idA));
 
             if (otherCI->scaffoldID == -1) {
-              fprintf(stderr, "RecomputeOffsetsInScaffold()--  WARNING!  otherCI is in scaffold -1!\n");
-              fprintf(stderr, "   edge:  idA:%d idB:%d\n", edge->idA, edge->idB);
-              fprintf(stderr, " thisCI:  scaffoldID:%d is idA:%d\n", thisCI->scaffoldID, edge->idA == thisCI->id);
-              fprintf(stderr, "otherCI:  scaffoldID:%d is idA:%d\n", otherCI->scaffoldID, edge->idA == otherCI->id);
+              if (debug.recomputeOffsetsLV > 1) {
+                fprintf(stderr, "RecomputeOffsetsInScaffold()--  WARNING!  otherCI is in scaffold -1!\n");
+                fprintf(stderr, "   edge:  idA:%d idB:%d\n", edge->idA, edge->idB);
+                fprintf(stderr, " thisCI:  scaffoldID:%d is idA:%d\n", thisCI->scaffoldID, edge->idA == thisCI->id);
+                fprintf(stderr, "otherCI:  scaffoldID:%d is idA:%d\n", otherCI->scaffoldID, edge->idA == otherCI->id);
+              }
               continue;
             }
 
@@ -821,22 +832,23 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
 
 
             numClones++;
-            if(verbose)
-                fprintf(stderr,"RecomputeOffsets: adding clone between %d and %d\n",
-                        thisCI->id,otherCI->id);
+            if (debug.recomputeOffsetsVerboseLV > 1)
+              fprintf(stderr,"RecomputeOffsets: adding clone between %d and %d\n",
+                      thisCI->id,otherCI->id);
 
             if((otherCI->indexInScaffold - thisCI->indexInScaffold) >
                     maxDiagonals){
                 maxDiagonals = otherCI->indexInScaffold - thisCI->indexInScaffold;
-                if(verbose){
-                    fprintf(GlobalData->logfp, "Max Diagonals %d (%d,%d) [" F_CID "." F_CID "," F_CID "." F_CID "]\n",
-                            maxDiagonals, thisCI->indexInScaffold,
-                            otherCI->indexInScaffold, thisCI->scaffoldID,
-                            thisCI->id, otherCI->scaffoldID, otherCI->id);
-                    fprintf(stderr, "Max Diagonals %d (%d,%d) [" F_CID "." F_CID "," F_CID "." F_CID "]\n",
-                            maxDiagonals, thisCI->indexInScaffold,
-                            otherCI->indexInScaffold, thisCI->scaffoldID,
-                            thisCI->id, otherCI->scaffoldID, otherCI->id);
+
+                if (debug.recomputeOffsetsVerboseLV > 1) {
+                  fprintf(stderr, "Max Diagonals %d (%d,%d) [" F_CID "." F_CID "," F_CID "." F_CID "]\n",
+                          maxDiagonals, thisCI->indexInScaffold,
+                          otherCI->indexInScaffold, thisCI->scaffoldID,
+                          thisCI->id, otherCI->scaffoldID, otherCI->id);
+                  fprintf(stderr, "Max Diagonals %d (%d,%d) [" F_CID "." F_CID "," F_CID "." F_CID "]\n",
+                          maxDiagonals, thisCI->indexInScaffold,
+                          otherCI->indexInScaffold, thisCI->scaffoldID,
+                          thisCI->id, otherCI->scaffoldID, otherCI->id);
                 }
             }
         }
@@ -852,25 +864,19 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
         double *gapEnd, *gapPtr;
 
         data.sizeofCloneGapStart = numClones * sizeof(*cloneGapStart);
-        data.cloneGapStart =
-            cloneGapStart = (int32 *)malloc(data.sizeofCloneGapStart);
+        data.cloneGapStart = cloneGapStart = (int32 *)malloc(data.sizeofCloneGapStart);
         AssertPtr(cloneGapStart);
         data.sizeofCloneGapEnd = numClones * sizeof(*cloneGapEnd);
-        data.cloneGapEnd =
-            cloneGapEnd = (int32 *)malloc(data.sizeofCloneGapEnd);
+        data.cloneGapEnd = cloneGapEnd = (int32 *)malloc(data.sizeofCloneGapEnd);
         AssertPtr(cloneGapEnd);
         data.sizeofGapConstants = numGaps * sizeof(*gapConstants);
-        data.gapConstants =
-            gapConstants = (double *)malloc(data.sizeofGapConstants);
+        data.gapConstants = gapConstants = (double *)malloc(data.sizeofGapConstants);
         AssertPtr(gapConstants);
-        for(gapPtr = gapConstants, gapEnd = gapPtr + numGaps;
-                gapPtr < gapEnd; gapPtr++){
+        for(gapPtr = gapConstants, gapEnd = gapPtr + numGaps; gapPtr < gapEnd; gapPtr++){
             *gapPtr = 0.0;
         }
-        data.sizeofGapCoefficients = (maxDiagonals * numGaps) *
-            sizeof(*gapCoefficients);
-        data.gapCoefficients =
-            gapCoefficients = (double *)malloc(data.sizeofGapCoefficients);
+        data.sizeofGapCoefficients = (maxDiagonals * numGaps) * sizeof(*gapCoefficients);
+        data.gapCoefficients = gapCoefficients = (double *)malloc(data.sizeofGapCoefficients);
         AssertPtr(gapCoefficients);
         for(gapPtr = gapCoefficients, gapEnd = gapPtr + (maxDiagonals * numGaps);
                 gapPtr < gapEnd; gapPtr++){
@@ -882,14 +888,12 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
         data.cloneMean = cloneMean = (double *)malloc(data.sizeofCloneMean);
         AssertPtr(cloneMean);
         data.sizeofCloneVariance = numClones * sizeof(*cloneVariance);
-        data.cloneVariance =
-            cloneVariance = (double *)malloc(data.sizeofCloneVariance);
+        data.cloneVariance = cloneVariance = (double *)malloc(data.sizeofCloneVariance);
         AssertPtr(cloneVariance);
         data.sizeofGapVariance = numGaps * sizeof(*gapVariance);
         data.gapVariance = gapVariance = (double *)malloc(data.sizeofGapVariance);
         AssertPtr(gapVariance);
-        for(gapPtr = gapVariance, gapEnd = gapPtr + numGaps;
-                gapPtr < gapEnd; gapPtr++){
+        for(gapPtr = gapVariance, gapEnd = gapPtr + numGaps; gapPtr < gapEnd; gapPtr++){
             *gapPtr = 0.0;
         }
         data.sizeofSpannedGaps = numGaps * sizeof(*spannedGaps);
@@ -899,16 +903,13 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
         data.gapSize = gapSize = (double *)malloc(data.sizeofGapSize);
         AssertPtr(gapSize);
         data.sizeofGapSizeVariance = numGaps * sizeof(*gapSizeVariance);
-        data.gapSizeVariance =
-            gapSizeVariance = (double *)malloc(data.sizeofGapSizeVariance);
+        data.gapSizeVariance = gapSizeVariance = (double *)malloc(data.sizeofGapSizeVariance);
         AssertPtr(gapSizeVariance);
         data.sizeofGapsToComputeGaps = numGaps * sizeof(*gapsToComputeGaps);
-        data.gapsToComputeGaps =
-            gapsToComputeGaps = (int32 *)malloc(data.sizeofGapsToComputeGaps);
+        data.gapsToComputeGaps = gapsToComputeGaps = (int32 *)malloc(data.sizeofGapsToComputeGaps);
         AssertPtr(gapsToComputeGaps);
         data.sizeofComputeGapsToGaps = numGaps * sizeof(*computeGapsToGaps);
-        data.computeGapsToGaps =
-            computeGapsToGaps = (int32 *)malloc(data.sizeofComputeGapsToGaps);
+        data.computeGapsToGaps = computeGapsToGaps = (int32 *)malloc(data.sizeofComputeGapsToGaps);
         AssertPtr(computeGapsToGaps);
         for(numComputeGaps = 0; numComputeGaps < numGaps; numComputeGaps++){
             gapsToComputeGaps[numComputeGaps] =
@@ -979,7 +980,9 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
 
                 if(indexClones>=numClones){
 
-                    fprintf(stderr,"ROIS: Enlarging clone-dependent arrays -- must have improved layout enough to rescue some more clones\n");
+                    if (debug.recomputeOffsetsVerboseLV > 1)
+                      fprintf(stderr,"ROIS: Enlarging clone-dependent arrays -- must have improved layout enough to rescue some more clones\n");
+
                     numClones*=1.2;
                     data.numClones=numClones;
 
@@ -987,20 +990,16 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
                     data.cloneMean = cloneMean = (double *)realloc(cloneMean,data.sizeofCloneMean);
                     AssertPtr(cloneMean);
                     data.sizeofCloneVariance = numClones * sizeof(*cloneVariance);
-                    data.cloneVariance =
-                        cloneVariance = (double *)realloc(cloneVariance,data.sizeofCloneVariance);
+                    data.cloneVariance = cloneVariance = (double *)realloc(cloneVariance,data.sizeofCloneVariance);
                     AssertPtr(cloneVariance);
 
                     data.sizeofCloneGapStart = numClones * sizeof(*cloneGapStart);
-                    data.cloneGapStart =
-                        cloneGapStart = (int32 *)realloc(cloneGapStart,data.sizeofCloneGapStart);
+                    data.cloneGapStart = cloneGapStart = (int32 *)realloc(cloneGapStart,data.sizeofCloneGapStart);
                     AssertPtr(cloneGapStart);
 
                     data.sizeofCloneGapEnd = numClones * sizeof(*cloneGapEnd);
-                    data.cloneGapEnd =
-                        cloneGapEnd = (int32 *)realloc(cloneGapEnd,data.sizeofCloneGapEnd);
+                    data.cloneGapEnd = cloneGapEnd = (int32 *)realloc(cloneGapEnd,data.sizeofCloneGapEnd);
                     AssertPtr(cloneGapEnd);
-
                 }
 
 
@@ -1034,12 +1033,12 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
                    total size of the gaps spanned by this clone. */
                 cloneMean[indexClones] = constant;
                 cloneVariance[indexClones] = constantVariance;
-                if(verbose){
-                    fprintf(GlobalData->logfp, "Gap clone %f,%f (%d,%d)\n",
-                            constant, sqrt(constantVariance),
-                            thisCI->indexInScaffold, otherCI->indexInScaffold);
-                    fflush(GlobalData->logfp);
-                }
+
+                if (debug.recomputeOffsetsVerboseLV > 1)
+                  fprintf(stderr, "Gap clone %f,%f (%d,%d)\n",
+                          constant, sqrt(constantVariance),
+                          thisCI->indexInScaffold, otherCI->indexInScaffold);
+
                 constant /= constantVariance;
                 inverseVariance = 1.0 / constantVariance;
                 /* Store which gaps each clone spans so that we can iterate over
@@ -1106,34 +1105,33 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
             FTN_INT rows = numComputeGaps;
             FTN_INT info = 0;
 
-            if(verbose){
+            if (debug.recomputeOffsetsVerboseLV > 1) {
                 int i = 0;
                 double *gapEnd, *gapPtr;
                 for(gapPtr = gapConstants, gapEnd = gapPtr + numComputeGaps;
                         gapPtr < gapEnd; gapPtr++){
-                    fprintf(GlobalData->logfp, "Gap Constants %g\n", *gapPtr);
+                    fprintf(stderr, "Gap Constants %g\n", *gapPtr);
                 }
-                fprintf(GlobalData->logfp, "Gap Coefficients\n");
+                fprintf(stderr, "Gap Coefficients\n");
                 for(gapPtr = gapCoefficients, gapEnd = gapPtr + (maxDiagonals * numComputeGaps);
                         gapPtr < gapEnd; gapPtr++){
-                    fprintf(GlobalData->logfp, "%g", *gapPtr);
+                    fprintf(stderr, "%g", *gapPtr);
                     i++;
                     if(i == maxDiagonals){
-                        fprintf(GlobalData->logfp, "\n");
+                        fprintf(stderr, "\n");
                         i = 0;
                     }else{
-                        fprintf(GlobalData->logfp, "\t\t");
+                        fprintf(stderr, "\t\t");
                     }
                 }
 
                 fprintf(stderr, "rows " F_FTN_INT " bands " F_FTN_INT " ldab " F_FTN_INT " info " F_FTN_INT "\n",
                         rows, bands, ldab, info);
-
             }
 
             dpbtrf_("L", &rows, &bands, gapCoefficients, &ldab, &info);
-            if(verbose)
-                fprintf(GlobalData->logfp, "dpbtrf: rows " F_FTN_INT " bands " F_FTN_INT " ldab " F_FTN_INT " info " F_FTN_INT "\n",
+            if (debug.recomputeOffsetsVerboseLV > 1)
+                fprintf(stderr, "dpbtrf: rows " F_FTN_INT " bands " F_FTN_INT " ldab " F_FTN_INT " info " F_FTN_INT "\n",
                         rows, bands, ldab, info);
             if(info < 0){
                 freeRecomputeData(&data);
@@ -1142,20 +1140,19 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
             }else if(info > 0){
                 freeRecomputeData(&data);
 
-#ifdef FIXED_RECOMPUTE_SINGULAR        
+                fprintf(stderr,"SOMEBODY IS SCREWING UP SCAFFOLDING -- RecomputeOffsetsInScaffold has a singularity -- assert skipped!\n");
+
                 // mjf 3/9/2001
                 // this assert was causing trouble in the mouse_20010307 run, commented it out
                 // and the run proceeded w/o further trouble
                 // need to figure out why scaffolds that were apparently connected go singular
-                DumpACIScaffoldNew(GlobalData->logfp,ScaffoldGraph,scaffold,TRUE);
-                DumpACIScaffoldNew(GlobalData->logfp,ScaffoldGraph,scaffold,FALSE);
+                //
+                if (debug.fixedRecomputeSingluarLV) {
+                  DumpACIScaffoldNew(stderr,ScaffoldGraph,scaffold,TRUE);
+                  DumpACIScaffoldNew(stderr,ScaffoldGraph,scaffold,FALSE);
+                  assert(0 /* RECOMPUTE_SINGULAR */);
+                }
 
-                fprintf(stderr,"WARNING : SOMEBODY IS SCREWING UP SCAFFOLDING -- RecomputeOffsetsInScaffold has a singularity\n");
-#ifdef LIVE_ON_THE_EDGE  
-                assert(0 /* RECOMPUTE_SINGULAR */);
-#endif
-
-#endif
                 return (RECOMPUTE_SINGULAR);
             }
             /* Call an LAPACK routine to multiply the inverse of the gapCoefficients
@@ -1164,8 +1161,8 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
                vector. */
             dpbtrs_("L", &rows, &bands, &nrhs, gapCoefficients, &ldab,
                     gapConstants, &rows, &info);
-            if(verbose)
-                fprintf(GlobalData->logfp, "dpbtrs (call1): rows " F_FTN_INT " bands " F_FTN_INT " ldab " F_FTN_INT " nrhs " F_FTN_INT " info " F_FTN_INT "\n",
+            if (debug.recomputeOffsetsVerboseLV > 1)
+                fprintf(stderr, "dpbtrs (call1): rows " F_FTN_INT " bands " F_FTN_INT " ldab " F_FTN_INT " nrhs " F_FTN_INT " info " F_FTN_INT "\n",
                         rows, bands, ldab, nrhs, info);
             if(info < 0){
                 freeRecomputeData(&data);
@@ -1225,8 +1222,8 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
                    by Philip R. Bevington. */
                 dpbtrs_("L", &rows, &bands, &nrhs, gapCoefficients, &ldab,
                         spannedGaps, &rows, &info);
-                if(verbose)
-                    fprintf(GlobalData->logfp, "dpbtrs (call2): rows " F_FTN_INT " bands " F_FTN_INT " ldab " F_FTN_INT " nrhs " F_FTN_INT " info " F_FTN_INT "\n",
+                if (debug.recomputeOffsetsVerboseLV > 1)
+                    fprintf(stderr, "dpbtrs (call2): rows " F_FTN_INT " bands " F_FTN_INT " ldab " F_FTN_INT " nrhs " F_FTN_INT " info " F_FTN_INT "\n",
                             rows, bands, ldab, nrhs, info);
                 if(info < 0){
                     freeRecomputeData(&data);
@@ -1259,11 +1256,10 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
             for(gapIndex = 0; gapIndex < numComputeGaps; gapIndex++){
                 gapSize[computeGapsToGaps[gapIndex]] = gapConstants[gapIndex];
                 gapSizeVariance[computeGapsToGaps[gapIndex]] = gapVariance[gapIndex];
-                if(verbose){
-                    fprintf(GlobalData->logfp,"GapSize(%d:%d) %f:%f\n", gapIndex,
+                if (debug.recomputeOffsetsVerboseLV > 1)
+                    fprintf(stderr,"GapSize(%d:%d) %f:%f\n", gapIndex,
                             computeGapsToGaps[gapIndex], gapConstants[gapIndex],
                             sqrt(gapVariance[gapIndex]));
-                }
             }
 
             if(forceNonOverlaps){
@@ -1309,77 +1305,84 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
 
                     if(overlapEdge && alternate){ // found a node that is out of order!!!!
 
+#ifdef TEST_FIXUPMISORDER
                       //  XXXX:  BPW is slightly confused as to why we are not
                       //  FixUpMisorderedContigs(), instead we are merging the contig.
                       //  This was if'd out before I got here.
-
-#if 0
-                        // Fix up the positions and return order problem --> recompute
-                        FixUpMisorderedContigs(scaffold, prevCI, thisCI, edgeOrient, gapSize[gapIndex], gapSizeVariance[gapIndex], overlapEdge);
+                      //
+                      //  OK, so test it!
+                      //
+                      //  If it succeeds, return, if not, continue with the original method.
+                      //
+                      fprintf(stderr, "FixUpMisorderedContigs\n");
+                      if (FixUpMisorderedContigs(scaffold, prevCI, thisCI, edgeOrient, gapSize[gapIndex], gapSizeVariance[gapIndex], overlapEdge))
+                        return(RECOMPUTE_FAILED_REORDER_NEEDED);
 #endif
 
-                        fprintf(stderr,"*** Least Squares found the following alternate edge...contig NOW!\n");
-                        PrintGraphEdge(stderr, ScaffoldGraph->ContigGraph, " alternateEdge: ", overlapEdge, overlapEdge->idA);
-
-#ifdef BPWDEBUG
-                        fprintf(stderr, "BEFORE ContigContainment, scaffold "F_CID" %s connected\n",
-                                scaffold->id,
-                                IsScaffoldInternallyConnected(ScaffoldGraph,
-                                                              scaffold, ALL_TRUSTED_EDGES) ? "is" : "is NOT");
-                        dumpTrustedEdges(ScaffoldGraph, scaffold, ALL_TRUSTED_EDGES);
-                        DumpACIScaffold(stderr, graph, scaffold, FALSE);
-                        CheckInternalEdgeStatus(graph, scaffold, PAIRWISECHI2THRESHOLD_CGW, 100000000000.0, 0, FALSE);
-#endif
+                        if (debug.leastSquaresGapsLV > 0) {
+                          fprintf(stderr,"*** Least Squares found the following alternate edge...contig NOW!\n");
+                          PrintGraphEdge(stderr, ScaffoldGraph->ContigGraph, " alternateEdge: ", overlapEdge, overlapEdge->idA);
+                        }
+                        if (debug.leastSquaresGapsLV > 1) {
+                          fprintf(stderr, "BEFORE ContigContainment, scaffold "F_CID" %s connected\n",
+                                  scaffold->id,
+                                  IsScaffoldInternallyConnected(ScaffoldGraph,
+                                                                scaffold, ALL_TRUSTED_EDGES) ? "is" : "is NOT");
+                          dumpTrustedEdges(ScaffoldGraph, scaffold, ALL_TRUSTED_EDGES);
+                          DumpACIScaffold(stderr, graph, scaffold, FALSE);
+                          CheckInternalEdgeStatus(graph, scaffold, PAIRWISECHI2THRESHOLD_CGW, 100000000000.0, 0, FALSE);
+                        }
 
                         // We want to merge the two contigs immediately, since these are problematic,
                         // but we know we want to overlap these guys.
                         //
                         ContigContainment(scaffold, prevCI, thisCI, overlapEdge, TRUE);
 
-#ifdef BPWDEBUG
-                        fprintf(stderr, "AFTER ContigContainment, scaffold "F_CID" %s connected\n",
-                                scaffold->id,
-                                IsScaffoldInternallyConnected(ScaffoldGraph,
-                                                              scaffold, ALL_TRUSTED_EDGES) ? "is" : "is NOT");
-                        dumpTrustedEdges(ScaffoldGraph, scaffold, ALL_TRUSTED_EDGES);
-                        DumpACIScaffold(stderr, graph, scaffold, FALSE);
-                        CheckInternalEdgeStatus(graph, scaffold, PAIRWISECHI2THRESHOLD_CGW, 100000000000.0, 0, FALSE);
-#endif
+                        if (debug.leastSquaresGapsLV > 1) {
+                          fprintf(stderr, "AFTER ContigContainment, scaffold "F_CID" %s connected\n",
+                                  scaffold->id,
+                                  IsScaffoldInternallyConnected(ScaffoldGraph,
+                                                                scaffold, ALL_TRUSTED_EDGES) ? "is" : "is NOT");
+                          dumpTrustedEdges(ScaffoldGraph, scaffold, ALL_TRUSTED_EDGES);
+                          DumpACIScaffold(stderr, graph, scaffold, FALSE);
+                          CheckInternalEdgeStatus(graph, scaffold, PAIRWISECHI2THRESHOLD_CGW, 100000000000.0, 0, FALSE);
+                        }
 
                         return RECOMPUTE_CONTIGGED_CONTAINMENTS;
-                        //      return RECOMPUTE_FAILED_REORDER_NEEDED;
                     }
                     if(overlapEdge && isContainmentEdge(overlapEdge)){
-                        fprintf(stderr,"*** Least Squares found the following containment edge...contig NOW!\n");
-                        fprintf(stderr,"*** " F_CID " (length %g) should be contained within " F_CID " (length %g)\n",
-                                thisCI->id, thisCI->bpLength.mean,
-                                prevCI->id, prevCI->bpLength.mean);
-                        PrintGraphEdge(stderr, ScaffoldGraph->ContigGraph, " overlapEdge: ", overlapEdge, overlapEdge->idA);
 
-#ifdef BPWDEBUG
-                        fprintf(stderr, "BEFORE ContigContainment, scaffold "F_CID" %s connected\n",
-                                scaffold->id,
-                                IsScaffoldInternallyConnected(ScaffoldGraph,
-                                                              scaffold, ALL_TRUSTED_EDGES) ? "is" : "is NOT");
-                        dumpTrustedEdges(ScaffoldGraph, scaffold, ALL_TRUSTED_EDGES);
-                        DumpACIScaffold(stderr, graph, scaffold, FALSE);
-                        CheckInternalEdgeStatus(graph, scaffold, PAIRWISECHI2THRESHOLD_CGW, 100000000000.0, 0, FALSE);
-#endif
+                        if (debug.leastSquaresGapsLV > 0) {
+                          fprintf(stderr,"*** Least Squares found the following containment edge...contig NOW!\n");
+                          fprintf(stderr,"*** " F_CID " (length %g) should be contained within " F_CID " (length %g)\n",
+                                  thisCI->id, thisCI->bpLength.mean,
+                                  prevCI->id, prevCI->bpLength.mean);
+                          PrintGraphEdge(stderr, ScaffoldGraph->ContigGraph, " overlapEdge: ", overlapEdge, overlapEdge->idA);
+                        }
+                        if (debug.leastSquaresGapsLV > 1) {
+                          fprintf(stderr, "BEFORE ContigContainment, scaffold "F_CID" %s connected\n",
+                                  scaffold->id,
+                                  IsScaffoldInternallyConnected(ScaffoldGraph,
+                                                                scaffold, ALL_TRUSTED_EDGES) ? "is" : "is NOT");
+                          dumpTrustedEdges(ScaffoldGraph, scaffold, ALL_TRUSTED_EDGES);
+                          DumpACIScaffold(stderr, graph, scaffold, FALSE);
+                          CheckInternalEdgeStatus(graph, scaffold, PAIRWISECHI2THRESHOLD_CGW, 100000000000.0, 0, FALSE);
+                        }
 
                         // When we find a containment relationship in a scaffold we want to merge the two contigs
                         // immediately, since containments have the potential to induce situations that are confusing
                         // for least squares
-                        ContigContainment(scaffold, prevCI, thisCI, overlapEdge, TRUE); // see CIScaffold_Cleanup_CGW.c
+                        ContigContainment(scaffold, prevCI, thisCI, overlapEdge, TRUE);
 
-#ifdef BPWDEBUG
-                        fprintf(stderr, "AFTER ContigContainment, scaffold "F_CID" %s connected\n",
-                                scaffold->id,
-                                IsScaffoldInternallyConnected(ScaffoldGraph,
-                                                              scaffold, ALL_TRUSTED_EDGES) ? "is" : "is NOT");
-                        dumpTrustedEdges(ScaffoldGraph, scaffold, ALL_TRUSTED_EDGES);
-                        DumpACIScaffold(stderr, graph, scaffold, FALSE);
-                        CheckInternalEdgeStatus(graph, scaffold, PAIRWISECHI2THRESHOLD_CGW, 100000000000.0, 0, FALSE);
-#endif
+                        if (debug.leastSquaresGapsLV > 1) {
+                          fprintf(stderr, "AFTER ContigContainment, scaffold "F_CID" %s connected\n",
+                                  scaffold->id,
+                                  IsScaffoldInternallyConnected(ScaffoldGraph,
+                                                                scaffold, ALL_TRUSTED_EDGES) ? "is" : "is NOT");
+                          dumpTrustedEdges(ScaffoldGraph, scaffold, ALL_TRUSTED_EDGES);
+                          DumpACIScaffold(stderr, graph, scaffold, FALSE);
+                          CheckInternalEdgeStatus(graph, scaffold, PAIRWISECHI2THRESHOLD_CGW, 100000000000.0, 0, FALSE);
+                        }
 
                         return RECOMPUTE_CONTIGGED_CONTAINMENTS;
                     }
@@ -1392,13 +1395,13 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
                         double newStd = (newLeftEdge - (-CGW_MISSED_OVERLAP))/3.0;
                         double newVariance = newStd * newStd;
 
-                        if(verbose){
-                            fprintf(GlobalData->stderrc,"GapChange Gap(%d:%d) CIs: " F_CID "," F_CID " new:(%f,%f) old(%f,%f)\n",
-                                    gapsToComputeGaps[gapIndex], gapIndex,
-                                    prevCI->id, thisCI->id,
-                                    (float)(- CGW_MISSED_OVERLAP), newVariance,
-                                    gapSize[gapIndex], gapSizeVariance[gapIndex]);
-                        }
+                        if (debug.recomputeOffsetsVerboseLV > 1)
+                          fprintf(stderr,"GapChange Gap(%d:%d) CIs: " F_CID "," F_CID " new:(%f,%f) old(%f,%f)\n",
+                                  gapsToComputeGaps[gapIndex], gapIndex,
+                                  prevCI->id, thisCI->id,
+                                  (float)(- CGW_MISSED_OVERLAP), newVariance,
+                                  gapSize[gapIndex], gapSizeVariance[gapIndex]);
+
                         //
                         // Adjust the gap variance so that the least squares computed mean position is within
                         // 3 sigma of the CGW_MISSED_OVERLAP positioning.  Otherwise, mate-induced edges between
@@ -1429,11 +1432,12 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
                         computeGapIndex++;
                         continue;
                     }
-                    if(verbose){
-                        fprintf(GlobalData->logfp,"GapChange(%d:%d) %f:%f\n",
-                                gapsToComputeGaps[gapIndex], gapIndex,
-                                overlapEdge->distance.mean, gapSize[gapIndex]);
-                    }
+
+                    if (debug.recomputeOffsetsVerboseLV > 1)
+                      fprintf(stderr,"GapChange(%d:%d) %f:%f\n",
+                              gapsToComputeGaps[gapIndex], gapIndex,
+                              overlapEdge->distance.mean, gapSize[gapIndex]);
+
                     gapSize[gapIndex] = overlapEdge->distance.mean;
                     gapsToComputeGaps[gapIndex] = NULLINDEX;
                     hardConstraintSet = TRUE;
@@ -1459,10 +1463,11 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
         }
     }while(forceNonOverlaps && hardConstraintSet && (numComputeGaps > 0));
 
-    if(verbose)
-        fprintf(GlobalData->logfp,"LSE: %f,%f #clones: %d,%d\n",
+    if (debug.recomputeOffsetsVerboseLV > 1)
+        fprintf(stderr,"LSE: %f,%f #clones: %d,%d\n",
                 scaffold->info.Scaffold.leastSquareError, squaredError,
                 scaffold->info.Scaffold.numLeastSquareClones, numClones);
+
     scaffold->info.Scaffold.leastSquareError = squaredError;
     scaffold->info.Scaffold.numLeastSquareClones = numClones;
     {// Start
@@ -1472,8 +1477,8 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
 
         InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
 
-        if(verbose)
-            fprintf(GlobalData->logfp,"Reestimate gaps for scaffold\n");
+        if (debug.recomputeOffsetsVerboseLV > 1)
+            fprintf(stderr,"Reestimate gaps for scaffold\n");
         prevCI = NextCIScaffoldTIterator(&CIs);
         if(GetNodeOrient(prevCI) == A_B){
             prevLeftEnd = &(prevCI->offsetAEnd);
@@ -1482,13 +1487,14 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
             prevLeftEnd = &(prevCI->offsetBEnd);
             prevRightEnd = &(prevCI->offsetAEnd);
         }
-        if(verbose)
-            fprintf(GlobalData->logfp, "Old %f,%f ",
+        if (debug.recomputeOffsetsVerboseLV > 1)
+            fprintf(stderr, "Old %f,%f ",
                     prevLeftEnd->mean, sqrt(prevLeftEnd->variance));
         prevLeftEnd->mean = 0.0;
         prevLeftEnd->variance = 0.0;
-        if(verbose)
-            fprintf(GlobalData->logfp, "New %f,%f\n",
+
+        if (debug.recomputeOffsetsVerboseLV > 1)
+            fprintf(stderr, "New %f,%f\n",
                     prevLeftEnd->mean, sqrt(prevLeftEnd->variance));
 
         for(gapPtr = gapSize, gapVarPtr = gapSizeVariance;
@@ -1515,22 +1521,26 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
 
             gapDistance.mean = thisLeftEnd->mean - prevRightEnd->mean;
             gapDistance.variance = thisLeftEnd->variance - prevRightEnd->variance;
-            if(verbose)
-                fprintf(GlobalData->logfp, "Old %f,%f ",
+
+            if (debug.recomputeOffsetsVerboseLV > 1)
+                fprintf(stderr, "Old %f,%f ",
                         prevRightEnd->mean, sqrt(prevRightEnd->variance));
+
             prevRightEnd->mean = prevLeftEnd->mean + prevCI->bpLength.mean;
             prevRightEnd->variance = prevLeftEnd->variance +
                 prevCI->bpLength.variance;
-            if(verbose){
-                fprintf(GlobalData->logfp, "New %f,%f\n",
+
+            if (debug.recomputeOffsetsVerboseLV > 1) {
+                fprintf(stderr, "New %f,%f\n",
                         prevRightEnd->mean, sqrt(prevRightEnd->variance));
-                fprintf(GlobalData->logfp, "Old %f,%f ",
+                fprintf(stderr, "Old %f,%f ",
                         thisLeftEnd->mean, sqrt(thisLeftEnd->variance));
             }
+
             thisLeftEnd->mean = prevRightEnd->mean + *gapPtr;
             thisLeftEnd->variance = prevRightEnd->variance + *gapVarPtr;
-            if(verbose)
-                fprintf(GlobalData->logfp, "New %f,%f\n",
+            if (debug.recomputeOffsetsVerboseLV > 1)
+                fprintf(stderr, "New %f,%f\n",
                         thisLeftEnd->mean, sqrt(thisLeftEnd->variance));
             if(GetNodeOrient(thisCI) == A_B){
                 if(GetNodeOrient(prevCI) == A_B){
@@ -1545,33 +1555,30 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
                     realDistance = thisCI->bEndCoord - prevCI->aEndCoord;
                 }
             }
-            if(verbose)
-                fprintf(GlobalData->logfp, "Old %f New %f Real " F_COORD " StdDev %f,%f\n",
+            if (debug.recomputeOffsetsVerboseLV > 1)
+                fprintf(stderr, "Old %f New %f Real " F_COORD " StdDev %f,%f\n",
                         gapDistance.mean, *gapPtr, realDistance,
                         sqrt(gapDistance.variance), sqrt(*gapVarPtr));
 
         }
-        if(verbose)
-            fprintf(GlobalData->logfp, "Old %f,%f ",
+        if (debug.recomputeOffsetsVerboseLV > 1)
+            fprintf(stderr, "Old %f,%f ",
                     prevRightEnd->mean, sqrt(prevRightEnd->variance));
         prevRightEnd->mean = prevLeftEnd->mean + prevCI->bpLength.mean;
         prevRightEnd->variance = prevLeftEnd->variance +
             prevCI->bpLength.variance;
-        if(verbose)
-            fprintf(GlobalData->logfp, "New %f,%f\n",
+        if (debug.recomputeOffsetsVerboseLV > 1)
+            fprintf(stderr, "New %f,%f\n",
                     prevRightEnd->mean, sqrt(prevRightEnd->variance));
 
-#if 0
-        fprintf(stderr,"Scaffold " F_CID " Length %f,%f-%f,%f\n",
-                scaffold->id,
-                scaffold->bpLength.mean, sqrt(scaffold->bpLength.variance),
-                prevRightEnd->mean, sqrt(prevRightEnd->variance));
-#endif
-        fprintf(GlobalData->logfp,"Scaffold " F_CID " Length %f,%f-%f,%f\n",
-                scaffold->id,
-                scaffold->bpLength.mean, sqrt(scaffold->bpLength.variance),
-                maxOffset->mean, sqrt(maxOffset->variance));
-        //      DumpCIScaffold(graph, scaffold, FALSE);
+        if (debug.recomputeOffsetsVerboseLV > 2) {
+          fprintf(stderr,"Scaffold " F_CID " Length %f,%f-%f,%f\n",
+                  scaffold->id,
+                  scaffold->bpLength.mean, sqrt(scaffold->bpLength.variance),
+                  maxOffset->mean, sqrt(maxOffset->variance));
+          DumpCIScaffold(stderr, graph, scaffold, FALSE);
+        }
+
         scaffold->bpLength = *maxOffset;
 
         SetCIScaffoldTLength(ScaffoldGraph, scaffold, TRUE); // recompute scaffold length, just to be sure
@@ -1603,13 +1610,16 @@ void MarkInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
     int confirmedInternalEdges = 0; /* Number of merged edges confirmed by
                                        current CI positions */
 
-    //  Debugging is much easier if this is NOT GlobalData->logfp
-    FILE  *logfile = stderr;
+    //  Figure out where to put our debug info
+    //
+    FILE  *debugfp = debug.markInternalEdgeStatusFP;
+    if ((debugfp == NULL) && (debug.markInternalEdgeStatusLV > 0))
+      debugfp = stderr;
 
-#ifdef DEBUG_MARKINTERNAL
-    fprintf(logfile, "Marking Edges for Scaffold " F_CID " markTrusted=%d markUntrusted=%d\n",
-            scaffold->id, markTrusted, markUntrusted);
-#endif
+    if (debug.markInternalEdgeStatusLV > 1)
+      fprintf(debugfp, "Marking Edges for Scaffold " F_CID " markTrusted=%d markUntrusted=%d\n",
+              scaffold->id, markTrusted, markUntrusted);
+
     InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
 
     for(indexCIs = 0;
@@ -1619,12 +1629,10 @@ void MarkInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
     }
     numCIs = indexCIs;
     if(numCIs != scaffold->info.Scaffold.numElements){
-        fprintf(logfile, "NumElements inconsistent %d,%d\n",
-                numCIs, scaffold->info.Scaffold.numElements);
-        scaffold->info.Scaffold.numElements = numCIs;
+      if (debug.markInternalEdgeStatusLV > 0)
+        fprintf(debugfp, "NumElements inconsistent.  Reset from %d to %d\n", scaffold->info.Scaffold.numElements, numCIs);
+      scaffold->info.Scaffold.numElements = numCIs;
     }
-
-    assert(indexCIs == numCIs);
 
     InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
 
@@ -1651,15 +1659,13 @@ void MarkInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
             float chiSquareResult;
 
 
-#ifdef DEBUG_MARKINTERNAL
-#if 0
-            fprintf(logfile, " examining edge [" F_CID "," F_CID "] (%f,%f) weight %d ori: %c\n",
-                    thisCI->id, otherCI->id,
-                    edge->distance.mean, edge->distance.variance,
-                    edge->edgesContributing,
-                    GetEdgeOrientationWRT(edge, thisCI->id));
-#endif      
-#endif      
+            if (debug.markInternalEdgeStatusLV > 1)
+              fprintf(debugfp, " examining edge [" F_CID "," F_CID "] (%f,%f) weight %d ori: %c\n",
+                      thisCI->id, otherCI->id,
+                      edge->distance.mean, edge->distance.variance,
+                      edge->edgesContributing,
+                      GetEdgeOrientationWRT(edge, thisCI->id));
+
             /* We do not want to change the labels for edges with certain
                labels as specified in the doNotChange mask. */
             if(edge->flags.bits.edgeStatus & doNotChange){
@@ -1731,12 +1737,13 @@ void MarkInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
                     (GetNodeOrient(otherCI) != otherCIorient)){
                 /* Mark as untrusted an edge whose orientation does not agree
                    with the orientation of the CIs in the scaffold. */
-#ifdef DEBUG_MARKINTERNAL
-                fprintf(logfile, "[" F_CID "," F_CID "]Bad orientation (%c,%c) (%c,%c)\n",
-                        thisCI->id, otherCI->id,
-                        GetNodeOrient(thisCI), thisCIorient, GetNodeOrient(otherCI),
-                        otherCIorient);
-#endif
+
+                if (debug.markInternalEdgeStatusLV > 0)
+                  fprintf(debugfp, "[" F_CID "," F_CID "]Bad orientation (%c,%c) (%c,%c)\n",
+                          thisCI->id, otherCI->id,
+                          GetNodeOrient(thisCI), thisCIorient, GetNodeOrient(otherCI),
+                          otherCIorient);
+
                 SetEdgeStatus(graph->RezGraph, edge, markUntrusted ? UNTRUSTED_EDGE_STATUS :
                         TENTATIVE_UNTRUSTED_EDGE_STATUS);
                 continue;
@@ -1750,14 +1757,17 @@ void MarkInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
 
                 //  If you're serious about debugging this, enable these dumps, otherwise,
                 //  don't fill up the cgwlog with useless crud.
-                //DumpACIScaffoldNew(logfile,ScaffoldGraph,scaffold,TRUE);
-                //DumpACIScaffoldNew(logfile,ScaffoldGraph,scaffold,FALSE);
+                if (debug.markInternalEdgeStatusLV > 1) {
+                  DumpACIScaffoldNew(debugfp,ScaffoldGraph,scaffold,TRUE);
+                  DumpACIScaffoldNew(debugfp,ScaffoldGraph,scaffold,FALSE);
+                }
 
-                fprintf(logfile, "[" F_CID "." F_CID "," F_CID "." F_CID "]Bad Gap Variance (%f,%f) (%f,%f) DANGER WILL ROBINSON!!!\n",
-                        thisCI->id, thisCI->scaffoldID, otherCI->id,
-                        otherCI->scaffoldID,
-                        gapDistance.mean, gapDistance.variance,
-                        edge->distance.mean, edge->distance.variance);
+                if (debug.markInternalEdgeStatusLV > 0)
+                  fprintf(debugfp, "[" F_CID "." F_CID "," F_CID "." F_CID "]Bad Gap Variance (%f,%f) (%f,%f) DANGER WILL ROBINSON!!!\n",
+                          thisCI->id, thisCI->scaffoldID, otherCI->id,
+                          otherCI->scaffoldID,
+                          gapDistance.mean, gapDistance.variance,
+                          edge->distance.mean, edge->distance.variance);
 
                 SetEdgeStatus(graph->RezGraph, edge, markUntrusted ? UNTRUSTED_EDGE_STATUS :
                         TENTATIVE_UNTRUSTED_EDGE_STATUS);
@@ -1772,39 +1782,39 @@ void MarkInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
                 /* Mark  this edge as untrusted if the distance of the edge is not
                    consistent with the estimated gap distance as judged by the
                    Chi Squared Test. */
-#ifdef DEBUG_MARKINTERNAL
-                fprintf(logfile, "[" F_CID "," F_CID "]Bad Chi Squared %f (%f,%f) (%f,%f)\n",
-                        thisCI->id, otherCI->id,
-                        chiSquareResult, gapDistance.mean, gapDistance.variance,
-                        edge->distance.mean, edge->distance.variance);
-#endif
+                if (debug.markInternalEdgeStatusLV > 1)
+                  fprintf(debugfp, "[" F_CID "," F_CID "]Bad Chi Squared %f (%f,%f) (%f,%f)\n",
+                          thisCI->id, otherCI->id,
+                          chiSquareResult, gapDistance.mean, gapDistance.variance,
+                          edge->distance.mean, edge->distance.variance);
+
                 SetEdgeStatus(graph->RezGraph, edge, markUntrusted ? UNTRUSTED_EDGE_STATUS :
                         TENTATIVE_UNTRUSTED_EDGE_STATUS);
                 continue;
             }
-#ifdef DEBUG_MARKINTERNAL
-#if 0
-            fprintf(logfile, "[" F_CID "," F_CID "]Good Chi Squared %f (%f,%f) (%f,%f)\n",
-                    thisCI->id, otherCI->id,
-                    chiSquareResult, gapDistance.mean, gapDistance.variance,
-                    edge->distance.mean, edge->distance.variance);
-#endif
-#endif
+
+            if (debug.markInternalEdgeStatusLV > 1)
+              fprintf(debugfp, "[" F_CID "," F_CID "]Good Chi Squared %f (%f,%f) (%f,%f)\n",
+                      thisCI->id, otherCI->id,
+                      chiSquareResult, gapDistance.mean, gapDistance.variance,
+                      edge->distance.mean, edge->distance.variance);
+
             if(edge->distance.variance > maxVariance){
-#ifdef DEBUG_MARKINTERNAL
-                fprintf(logfile, "[" F_CID "," F_CID "]Variance too large %f\n",
+              if (debug.markInternalEdgeStatusLV > 1)
+                fprintf(debugfp, "[" F_CID "," F_CID "]Variance too large %f\n",
                         thisCI->id, otherCI->id,
                         edge->distance.variance);
-#endif
+
                 SetEdgeStatus(graph->RezGraph,edge, LARGE_VARIANCE_EDGE_STATUS);
                 continue;
             }
-#ifdef DEBUG_MARKINTERNAL
-            fprintf(logfile, "[" F_CID "," F_CID "]Trusted Edge!  Mean %f Variance %f\n",
-                    thisCI->id, otherCI->id,
-                    edge->distance.mean,
-                    edge->distance.variance);
-#endif
+
+            if (debug.markInternalEdgeStatusLV > 1)
+              fprintf(debugfp, "[" F_CID "," F_CID "]Trusted Edge!  Mean %f Variance %f\n",
+                      thisCI->id, otherCI->id,
+                      edge->distance.mean,
+                      edge->distance.variance);
+
             SetEdgeStatus(graph->RezGraph,edge, markTrusted ? TRUSTED_EDGE_STATUS :
                     TENTATIVE_TRUSTED_EDGE_STATUS);
         }
@@ -1840,11 +1850,12 @@ void MarkInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
             }
         }
     }
-#ifdef DEBUG_MARKINTERNAL
-    fprintf(logfile,"#Internal Edges %d,%d confirmed %d,%d\n",
-            scaffold->info.Scaffold.internalEdges, internalEdges,
-            scaffold->info.Scaffold.confirmedInternalEdges, confirmedInternalEdges);
-#endif
+
+    if (debug.markInternalEdgeStatusLV > 1)
+      fprintf(debugfp,"#Internal Edges %d,%d confirmed %d,%d\n",
+              scaffold->info.Scaffold.internalEdges, internalEdges,
+              scaffold->info.Scaffold.confirmedInternalEdges, confirmedInternalEdges);
+
     scaffold->info.Scaffold.internalEdges = internalEdges;
     scaffold->info.Scaffold.confirmedInternalEdges = confirmedInternalEdges;
     return;
@@ -1870,22 +1881,23 @@ int IsInternalEdgeStatusVaguelyOK(EdgeCGW_T *edge,CDS_CID_t thisCIid){
   NodeCGW_T *thisCI = GetGraphNode(ScaffoldGraph->RezGraph,thisCIid);
   GraphEdgeIterator edges;
 
-  //  Debugging is much easier if this is NOT GlobalData->logfp
-  FILE  *logfile = stderr;
+  //  Figure out where to put our debug info
+  //
+  FILE  *debugfp = debug.markInternalEdgeStatusFP;
+  if ((debugfp == NULL) && (debug.markInternalEdgeStatusLV > 0))
+    debugfp = stderr;
 
   // WE ASSUME edge COMES FROM SOMETHING LIKE THE FOLLOWING:
-  /*
+  //
+  //
+  //  InitGraphEdgeIterator(ScaffoldGraph->RezGraph, thisCI->id, 
+  //                        ALL_END,
+  //                        ALL_EDGES, 
+  //                        GRAPH_EDGES_RAW_ONLY,
+  //                        &edges); 
+  //  while((edge = NextGraphEdgeIterator(&edges))!= NULL){
+  //
 
-  InitGraphEdgeIterator(ScaffoldGraph->RezGraph, thisCI->id, 
-      ALL_END,
-      ALL_EDGES, 
-      GRAPH_EDGES_RAW_ONLY,
-      &edges); 
-
-  while((edge = NextGraphEdgeIterator(&edges))!= NULL){
-
-  */
-    
   int isA = (edge->idA == thisCI->id);
   NodeCGW_T *otherCI =
     GetGraphNode(ScaffoldGraph->RezGraph,
@@ -1967,26 +1979,29 @@ int IsInternalEdgeStatusVaguelyOK(EdgeCGW_T *edge,CDS_CID_t thisCIid){
      (GetNodeOrient(otherCI) != otherCIorient)){
     /* edge orientation does not agree
        with the orientation of the CIs in the scaffold. */
-#ifdef DEBUG_MARKINTERNAL
-    fprintf(logfile, "[" F_CID "," F_CID "]Bad orientation (%c,%c) (%c,%c)\n",
-      thisCI->id, otherCI->id,
-      GetNodeOrient(thisCI), thisCIorient, GetNodeOrient(otherCI),
-      otherCIorient);
-#endif
+
+    if (debug.markInternalEdgeStatusLV > 1)
+      fprintf(debugfp, "[" F_CID "," F_CID "]Bad orientation (%c,%c) (%c,%c)\n",
+              thisCI->id, otherCI->id,
+              GetNodeOrient(thisCI), thisCIorient, GetNodeOrient(otherCI),
+              otherCIorient);
+
     return FALSE;
   }
   if(gapDistance.variance <= 0.0){
     /* This condition should not occur, so kill it now!
     */
 
-    fprintf(logfile, "[" F_CID "." F_CID "," F_CID "." F_CID "]Bad Gap Variance (%f,%f) (%f,%f) DANGER WILL ROBINSON!!!\n",
-      thisCI->id, thisCI->scaffoldID, otherCI->id,
-      otherCI->scaffoldID,
-      gapDistance.mean, gapDistance.variance,
-      edge->distance.mean, edge->distance.variance);
+    if (debug.markInternalEdgeStatusLV > 0)
+      fprintf(debugfp, "[" F_CID "." F_CID "," F_CID "." F_CID "]Bad Gap Variance (%f,%f) (%f,%f) DANGER WILL ROBINSON!!!\n",
+              thisCI->id, thisCI->scaffoldID, otherCI->id,
+              otherCI->scaffoldID,
+              gapDistance.mean, gapDistance.variance,
+              edge->distance.mean, edge->distance.variance);
+
 #ifdef NEG_GAP_VARIANCE_PROBLEM_FIXED
-    DumpACIScaffoldNew(logfile,ScaffoldGraph,GetGraphNode(ScaffoldGraph->ScaffoldGraph,thisCI->scaffoldID),TRUE);
-    DumpACIScaffoldNew(logfile,ScaffoldGraph,GetGraphNode(ScaffoldGraph->ScaffoldGraph,thisCI->scaffoldID),FALSE);
+    DumpACIScaffoldNew(debugfp,ScaffoldGraph,GetGraphNode(ScaffoldGraph->ScaffoldGraph,thisCI->scaffoldID),TRUE);
+    DumpACIScaffoldNew(debugfp,ScaffoldGraph,GetGraphNode(ScaffoldGraph->ScaffoldGraph,thisCI->scaffoldID),FALSE);
     assert(0);
 #endif
   }
@@ -1994,15 +2009,15 @@ int IsInternalEdgeStatusVaguelyOK(EdgeCGW_T *edge,CDS_CID_t thisCIid){
     /* This condition should not occur, so kill it now!
     */
 
-    fprintf(logfile, "[" F_CID "." F_CID "," F_CID "." F_CID "]Bad Edge Variance (%f,%f) (%f,%f) DANGER WILL ROBINSON!!!\n",
-      thisCI->id, thisCI->scaffoldID, otherCI->id,
-      otherCI->scaffoldID,
-      gapDistance.mean, gapDistance.variance,
-      edge->distance.mean, edge->distance.variance);
-    //  Unlike the above, we leave these in, since we are asserting.
-    DumpACIScaffoldNew(logfile,ScaffoldGraph,GetGraphNode(ScaffoldGraph->ScaffoldGraph,thisCI->scaffoldID),TRUE);
-    DumpACIScaffoldNew(logfile,ScaffoldGraph,GetGraphNode(ScaffoldGraph->ScaffoldGraph,thisCI->scaffoldID),FALSE);
+    if (debug.markInternalEdgeStatusLV > 0)
+      fprintf(debugfp, "[" F_CID "." F_CID "," F_CID "." F_CID "]Bad Edge Variance (%f,%f) (%f,%f) DANGER WILL ROBINSON!!!\n",
+              thisCI->id, thisCI->scaffoldID, otherCI->id,
+              otherCI->scaffoldID,
+              gapDistance.mean, gapDistance.variance,
+              edge->distance.mean, edge->distance.variance);
 
+    DumpACIScaffoldNew(debugfp,ScaffoldGraph,GetGraphNode(ScaffoldGraph->ScaffoldGraph,thisCI->scaffoldID),TRUE);
+    DumpACIScaffoldNew(debugfp,ScaffoldGraph,GetGraphNode(ScaffoldGraph->ScaffoldGraph,thisCI->scaffoldID),FALSE);
     assert(0);
   }
   if(!EdgeAndGapAreVaguelyCompatible((double)gapDistance.mean-edge->distance.mean,
@@ -2012,24 +2027,89 @@ int IsInternalEdgeStatusVaguelyOK(EdgeCGW_T *edge,CDS_CID_t thisCIid){
     /* Mark  this edge as untrusted if the distance of the edge is not
        consistent with the estimated gap distance as judged by the
        Chi Squared Test. */
-#ifdef DEBUG_MARKINTERNAL
-    fprintf(logfile, "[" F_CID "," F_CID "]Not vaguely compatible %f (%f,%f) (%f,%f)\n",
-      thisCI->id, otherCI->id,
-      chiSquareResult, gapDistance.mean, gapDistance.variance,
-      edge->distance.mean, edge->distance.variance);
-#endif
+
+    if (debug.markInternalEdgeStatusLV > 1)
+      fprintf(debugfp, "[" F_CID "," F_CID "]Not vaguely compatible %f (%f,%f) (%f,%f)\n",
+              thisCI->id, otherCI->id,
+              chiSquareResult, gapDistance.mean, gapDistance.variance,
+              edge->distance.mean, edge->distance.variance);
+
     return FALSE;
   }
 
-#ifdef DEBUG_MARKINTERNAL
-  fprintf(logfile, "[" F_CID "," F_CID "]At least vaguely compatible %f (%f,%f) (%f,%f)\n",
-    thisCI->id, otherCI->id,
-    chiSquareResult, gapDistance.mean, gapDistance.variance,
-    edge->distance.mean, edge->distance.variance);
-#endif
+  if (debug.markInternalEdgeStatusLV > 1)
+    fprintf(debugfp, "[" F_CID "," F_CID "]At least vaguely compatible %f (%f,%f) (%f,%f)\n",
+            thisCI->id, otherCI->id,
+            chiSquareResult, gapDistance.mean, gapDistance.variance,
+            edge->distance.mean, edge->distance.variance);
 
   return TRUE;
 }
+
+
+
+void  CheckLSScaffoldWierdnesses(char *string, ScaffoldGraphT *graph, CIScaffoldT *scaffold){
+  CIScaffoldTIterator CIs;
+  ChunkInstanceT *firstCI, *secondCI;
+  LengthT delta, *minOffsetp, *maxOffsetp;
+  
+  InitCIScaffoldTIterator(graph, scaffold, TRUE,  FALSE, &CIs);
+  firstCI = NextCIScaffoldTIterator(&CIs);
+  if(firstCI->offsetAEnd.mean < firstCI->offsetBEnd.mean){
+    minOffsetp = &firstCI->offsetAEnd;;
+    maxOffsetp = &firstCI->offsetBEnd;
+  }else{
+    minOffsetp = &firstCI->offsetBEnd;;
+    maxOffsetp = &firstCI->offsetAEnd;
+  }
+  
+  if(minOffsetp->mean < 0.0){
+    delta.mean = -minOffsetp->mean;
+    delta.variance = minOffsetp->variance;
+
+    if (debug.leastSquaresGapsLV > 0)
+      fprintf(stderr,"CheckLSScaffoldWierdnesses < 0 %s for scaffold " F_CID ", shifting by (%g,%g)...fixing...\n",
+              string, scaffold->id,
+              delta.mean, delta.variance);
+    if (debug.leastSquaresGapsLV > 1)
+      DumpCIScaffold(stderr,graph, scaffold, FALSE);
+
+    minOffsetp->mean = minOffsetp->variance = 0.0;
+    maxOffsetp->mean += delta.mean;
+    maxOffsetp->variance += -delta.variance;
+  }else if(minOffsetp->mean > 0.0){
+    delta.mean = -minOffsetp->mean;
+    delta.variance = -minOffsetp->variance;
+
+    if (debug.leastSquaresGapsLV > 0)
+      fprintf(stderr,"CheckLSScaffoldWierdnesses > 0 %s for scaffold " F_CID ", shifting by (%g,%g)...fixing...\n",
+              string, scaffold->id,
+              delta.mean, delta.variance);
+    if (debug.leastSquaresGapsLV > 1)
+      DumpCIScaffold(stderr,graph, scaffold, FALSE);
+
+    minOffsetp->mean = minOffsetp->variance = 0.0;
+    maxOffsetp->mean += delta.mean;
+    maxOffsetp->variance += delta.variance;
+  }else{
+    return; // we are done
+  }
+  secondCI = NextCIScaffoldTIterator(&CIs);
+  
+  if(secondCI == NULL){
+    scaffold->bpLength = (firstCI->offsetAEnd.mean < firstCI->offsetBEnd.mean) ?
+      firstCI->offsetBEnd : firstCI->offsetAEnd;
+    return;
+  }
+  
+  AddDeltaToScaffoldOffsets(graph, scaffold->id,  secondCI->id, TRUE, FALSE, delta);
+  
+  if (debug.leastSquaresGapsLV > 1) {
+    fprintf(stderr, "Done!! Scaffold after is:\n"); 
+    DumpCIScaffold(stderr,graph, scaffold, FALSE);
+  }
+}
+
 
 
 
@@ -2043,10 +2123,9 @@ void LeastSquaresGapEstimates(ScaffoldGraphT *graph, int markEdges,
     int cnt = 0;
     int sID;
 
-#ifdef BPWDEBUG
-    fprintf(stderr,"* Start of LeastSquaresGapEstimates() markEdges:%d useGuides:%d*\n",
-            markEdges, useGuides);
-#endif
+    if (debug.leastSquaresGapsLV > 1)
+      fprintf(stderr,"* Start of LeastSquaresGapEstimates() markEdges:%d useGuides:%d*\n",
+              markEdges, useGuides);
 
     // if we are marking edges, we don't need to check now
     if(!markEdges)
@@ -2065,28 +2144,29 @@ void LeastSquaresGapEstimates(ScaffoldGraphT *graph, int markEdges,
     {
         CIScaffoldT * scaffold = GetCIScaffoldT(graph->CIScaffolds, sID);
 
-#ifdef BPWDEBUG
-        fprintf(stderr, "LeastSquaresGapEstimates() begins another iteration on scaffold %d, redo=%d\n", sID, redo);
-        DumpCIScaffold(stderr, graph, scaffold, TRUE);
-        dumpTrustedEdges(graph, scaffold, ALL_TRUSTED_EDGES);
-#endif
+        if (debug.leastSquaresGapsLV > 1) {
+          fprintf(stderr, "LeastSquaresGapEstimates() begins another iteration on scaffold %d, redo=%d\n", sID, redo);
+          DumpCIScaffold(stderr, graph, scaffold, TRUE);
+          dumpTrustedEdges(graph, scaffold, ALL_TRUSTED_EDGES);
+        }
 
         if(isDeadCIScaffoldT(scaffold) || scaffold->type != REAL_SCAFFOLD){
             assert(!redo);
             continue;
         }
-        if(++cnt % 10000 == 0){
-            fprintf(GlobalData->stderrc," LeastSquaresGapEstimates %d   scaffold " F_CID "/%d\n",
-                    cnt - 1, scaffold->id, numScaffolds);
-            fflush(GlobalData->stderrc);
-        }
+
+        if(++cnt % 10000 == 0)
+            fprintf(stderr," LeastSquaresGapEstimates %d   scaffold " F_CID "/%d\n", cnt - 1, scaffold->id, numScaffolds);
+
         redo = FALSE;
 
         if(markEdges){
             MarkInternalEdgeStatus(graph, scaffold, PAIRWISECHI2THRESHOLD_CGW,
                                    (useGuides ? (1000.0 * SLOPPY_EDGE_VARIANCE_THRESHHOLD) : SLOPPY_EDGE_VARIANCE_THRESHHOLD),
                                    TRUE, TRUE, 0, TRUE);
-            //dumpTrustedEdges(graph, scaffold, ALL_TRUSTED_EDGES);
+
+            if (debug.leastSquaresGapsLV > 1)
+              dumpTrustedEdges(graph, scaffold, ALL_TRUSTED_EDGES);
         }
 
         // Check that the scaffold is connected by trusted edges - otherwise
@@ -2097,29 +2177,30 @@ void LeastSquaresGapEstimates(ScaffoldGraphT *graph, int markEdges,
         if(checkConnectivity){
             int numComponents = CheckScaffoldConnectivityAndSplit(graph,scaffold, ALL_TRUSTED_EDGES, verbose);
 
-#ifdef BPWDEBUG
-            fprintf(stderr, "* Scaffold "F_CID" has %d components.\n", scaffold->id, numComponents);
-#endif
+            if (debug.leastSquaresGapsLV > 1)
+              fprintf(stderr, "* Scaffold "F_CID" has %d components.\n", scaffold->id, numComponents);
 
             if(numComponents > 1){ // we split the scaffold because it wasn't connected
                 fprintf(stderr,"* Scaffold not connected: Split scaffold " F_CID " into %d pieces\n",
                         scaffold->id, numComponents);
                 continue;
             }else{
-#ifdef BPWDEBUG
+              if (debug.leastSquaresGapsLV > 1)
                 fprintf(stderr,"* BPW Scaffold connected " F_CID " hooray!\n",
                         scaffold->id, numComponents);
-#endif
 
                 if(!IsScaffold2EdgeConnected(ScaffoldGraph, scaffold)){
+                  if (debug.leastSquaresGapsLV > 0)
                     fprintf(stderr,"*###### Scaffold " F_CID " is not 2-edge connected... SPLIT IT!\n",
                             scaffold->id);
-                    numComponents = CheckScaffoldConnectivityAndSplit(ScaffoldGraph, scaffold, ALL_TRUSTED_EDGES, FALSE);
-                    if(numComponents > 1){
-                        fprintf(stderr,"* Scaffold not 2 edge-connected: Split scaffold " F_CID " into %d pieces\n",
-                                scaffold->id, numComponents);
-                        continue;
-                    }
+
+                  numComponents = CheckScaffoldConnectivityAndSplit(ScaffoldGraph, scaffold, ALL_TRUSTED_EDGES, FALSE);
+                  if (numComponents > 1) {
+                    if (debug.leastSquaresGapsLV > 0)
+                      fprintf(stderr,"* Scaffold not 2 edge-connected: Split scaffold " F_CID " into %d pieces\n",
+                              scaffold->id, numComponents);
+                    continue;
+                  }
                 }
             }
         }
@@ -2130,18 +2211,25 @@ void LeastSquaresGapEstimates(ScaffoldGraphT *graph, int markEdges,
             for(i = 0; i < 100; i++){
                 CheckLSScaffoldWierdnesses("BEFORE", graph, scaffold);
                 status =  RecomputeOffsetsInScaffold(graph, scaffold, TRUE, forceNonOverlaps, verbose);
-                if(status == RECOMPUTE_CONTIGGED_CONTAINMENTS){
+
+                if(status == RECOMPUTE_CONTIGGED_CONTAINMENTS) {
                   // We want to restart from the top of the loop, including edge marking
-                  //fprintf(stderr, "RecomputeOffsetsInScaffold() returned RECOMPUTE_CONTIGGED_CONTAINMENTS, begin anew!\n");
+                  if (debug.leastSquaresGapsLV > 1)
+                    fprintf(stderr, "RecomputeOffsetsInScaffold() returned RECOMPUTE_CONTIGGED_CONTAINMENTS, begin anew!\n");
                   redo = TRUE;
                   break;
                 }
+
                 if(status != RECOMPUTE_FAILED_REORDER_NEEDED) {
-                  //fprintf(stderr, "RecomputeOffsetsInScaffold() returned OK!\n");
+                  if (debug.leastSquaresGapsLV > 1)
+                    fprintf(stderr, "RecomputeOffsetsInScaffold() returned OK!\n");
                   break;
                 }
+
                 // We want to simply try again, since we just changed the scaffold order
-                fprintf(stderr,"* RecomputeOffsetsInScaffold " F_CID " attempt %d failed...iterating\n", scaffold->id, i);
+
+                if (debug.leastSquaresGapsLV > 1)
+                  fprintf(stderr,"* RecomputeOffsetsInScaffold " F_CID " attempt %d failed...iterating\n", scaffold->id, i);
             }
         }
 
@@ -2150,8 +2238,8 @@ void LeastSquaresGapEstimates(ScaffoldGraphT *graph, int markEdges,
 
 
         if(status != RECOMPUTE_OK){
-            fprintf(GlobalData->logfp, "RecomputeOffsetsInScaffold failed (%d) for scaffold " F_CID "\n",
-                    status, scaffold->id);
+          if (debug.leastSquaresGapsLV > 0)
+            fprintf(stderr, "RecomputeOffsetsInScaffold failed (%d) for scaffold " F_CID "\n", status, scaffold->id);
 
             //  If we are 'redo'ing stuff, we have just merged
             //  contigs.  The merge process does not rebuild trusted
@@ -2165,61 +2253,4 @@ void LeastSquaresGapEstimates(ScaffoldGraphT *graph, int markEdges,
         }
     }
     return;
-}
-
-
-void  CheckLSScaffoldWierdnesses(char *string, ScaffoldGraphT *graph, CIScaffoldT *scaffold){
-  CIScaffoldTIterator CIs;
-  ChunkInstanceT *firstCI, *secondCI;
-  int oops = 0;
-  LengthT delta, *minOffsetp, *maxOffsetp;
-  
-  InitCIScaffoldTIterator(graph, scaffold, TRUE,  FALSE, &CIs);
-  firstCI = NextCIScaffoldTIterator(&CIs);
-  if(firstCI->offsetAEnd.mean < firstCI->offsetBEnd.mean){
-    minOffsetp = &firstCI->offsetAEnd;;
-    maxOffsetp = &firstCI->offsetBEnd;
-  }else{
-    minOffsetp = &firstCI->offsetBEnd;;
-    maxOffsetp = &firstCI->offsetAEnd;
-  }
-  
-  if(minOffsetp->mean < 0.0){
-    delta.mean = -minOffsetp->mean;
-    delta.variance = minOffsetp->variance;
-    fprintf(GlobalData->stderrc,"*****SQUAWK1!!!!  CheckLSScaffoldWierdnesses %s for scaffold " F_CID ", shifting by (%g,%g)\n...Fixing...\n",
-            string, scaffold->id,
-            delta.mean, delta.variance);
-    DumpCIScaffold(GlobalData->stderrc,graph, scaffold, FALSE);
-    minOffsetp->mean = minOffsetp->variance = 0.0;
-    maxOffsetp->mean += delta.mean;
-    maxOffsetp->variance += -delta.variance;
-    oops = 1;
-  }else if(minOffsetp->mean > 0.0){
-    delta.mean = -minOffsetp->mean;
-    delta.variance = -minOffsetp->variance;
-    fprintf(GlobalData->stderrc,"*****SQUAWK2!!!!  CheckLSScaffoldWierdnesses %s for scaffold " F_CID ", shifting by (%g,%g)\n...Fixing...\n",
-            string, scaffold->id,
-            delta.mean, delta.variance);
-    DumpCIScaffold(GlobalData->stderrc,graph, scaffold, FALSE);
-    minOffsetp->mean = minOffsetp->variance = 0.0;
-    maxOffsetp->mean += delta.mean;
-    maxOffsetp->variance += delta.variance;
-    oops = 1;
-  }else{
-    return; // we are done
-  }
-  secondCI = NextCIScaffoldTIterator(&CIs);
-  
-  if(secondCI == NULL){
-    scaffold->bpLength = (firstCI->offsetAEnd.mean < firstCI->offsetBEnd.mean) ?
-      firstCI->offsetBEnd : firstCI->offsetAEnd;
-    return;
-  }
-  
-  AddDeltaToScaffoldOffsets(graph, scaffold->id,  secondCI->id, TRUE, FALSE, delta);
-  
-  fprintf(GlobalData->stderrc, "Done!! Scaffold after is:\n"); 
-  DumpCIScaffold(GlobalData->stderrc,graph, scaffold, FALSE);
-  
 }

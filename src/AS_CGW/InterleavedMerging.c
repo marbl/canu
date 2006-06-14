@@ -159,6 +159,22 @@ typedef struct
 VA_DEF(COSData)
 
 
+void
+printCOSdata(FILE *out, COSData *cos, int element) {
+  fprintf(stderr, "COSdata[%2d] - index=%d firstOverlap=%d lastOverlap=%d\n",
+          element,
+          cos[element].index,
+          cos[element].firstOverlap,
+          cos[element].lastOverlap);
+  fprintf(stderr, "              Ainterval min %d(%f) max %d(%f)\n",
+          cos[element].a.minIndex, cos[element].a.minCoord,
+          cos[element].b.minIndex, cos[element].b.minCoord);
+  fprintf(stderr, "              Binterval min %d(%f) max %d(%f)\n",
+          cos[element].a.minIndex, cos[element].a.minCoord,
+          cos[element].b.minIndex, cos[element].b.minCoord);
+}
+
+
 int GetNumSegmentsInList(Segment * segmentList)
 {
   int numSegments = 0;
@@ -1023,6 +1039,14 @@ int PopulateScaffoldAlignmentInterface(CIScaffoldT * scaffoldA,
   CDS_CID_t idB;
   ChunkOrientationType orient;
 
+  if(sEdge->distance.mean -
+     INTERLEAVE_CUTOFF * sqrt((double) sEdge->distance.variance) >= 0.0)
+  {
+    fprintf(GlobalData->stderrc, "PopulateScaffoldAlignmentInterface"
+            " called with non-negative edge!\n");
+    return 1;
+  }
+
   idA = sEdge->idA;
   idB = sEdge->idB;
   orient = sEdge->orient;
@@ -1166,13 +1190,15 @@ int PopulateScaffoldAlignmentInterface(CIScaffoldT * scaffoldA,
   fprintf(GlobalData->stderrc, "Scaffold A CGW data structure:\n");
   DumpCIScaffold(GlobalData->stderrc, ScaffoldGraph, scaffoldA, FALSE);
   DumpACIScaffold(GlobalData->stderrc, ScaffoldGraph, scaffoldA, FALSE);
+
   fprintf(GlobalData->stderrc, "Scaffold B CGW data structure:\n");
   DumpCIScaffold(GlobalData->stderrc, ScaffoldGraph, scaffoldB, FALSE);
   DumpACIScaffold(GlobalData->stderrc, ScaffoldGraph, scaffoldB, FALSE);
+
   fprintf(GlobalData->stderrc, "\nsEdge cgw data structure:\n");
-  PrintSEdgeT(GlobalData->stderrc, ScaffoldGraph, "sEdge", sEdge,
-              scaffoldA->id);
+  PrintSEdgeT(GlobalData->stderrc, ScaffoldGraph, "sEdge", sEdge, scaffoldA->id);
 #endif
+
   return 0;
 }
 
@@ -1352,22 +1378,18 @@ int AdjustNonOverlappingContigsLeftToRight(Scaffold_Tig * contigsA,
       preExpansionA = ComputeCurrentGapExpansion(contigsA, gapsA, ia - 1);
       preExpansionB = ComputeCurrentGapExpansion(contigsB, gapsB, ib - 1);
       
-      // expansion of gaps to accomodate other contig
-      // fitting contigsB[ib] in gapsA[ia-1]
-      addExpansionA = ComputeAdditionalLeftGapExpansion(contigsA, ia,
-                                                        contigsB, ib);
-      addExpansionB = ComputeAdditionalLeftGapExpansion(contigsB, ib,
-                                                        contigsA, ia);
-      /*
-        compression of gapsX[ix-1] to put contigsX[ix] to the left of
-        contigsY[iy]
-      */
-      compressionA = ComputeLeftGapCompression(contigsA, gapsA, ia,
-                                               contigsB, ib,
-                                               addExpansionB);
-      compressionB = ComputeLeftGapCompression(contigsB, gapsB, ib,
-                                               contigsA, ia,
-                                               addExpansionA);
+      // expansion of gaps to accomodate other contig fitting
+      // contigsB[ib] in gapsA[ia-1]
+      //
+      addExpansionA = ComputeAdditionalLeftGapExpansion(contigsA, ia, contigsB, ib);
+      addExpansionB = ComputeAdditionalLeftGapExpansion(contigsB, ib, contigsA, ia);
+
+
+      //  compression of gapsX[ix-1] to put contigsX[ix] to the left
+      //  of contigsY[iy]
+      //
+      compressionA = ComputeLeftGapCompression(contigsA, gapsA, ia, contigsB, ib, addExpansionB);
+      compressionB = ComputeLeftGapCompression(contigsB, gapsB, ib, contigsA, ia, addExpansionA);
 
       // deltaAB is stddevs involved in placing A to the left of B
       deltaAB = (preExpansionB + addExpansionB) / stddevGapB +
@@ -1378,23 +1400,15 @@ int AdjustNonOverlappingContigsLeftToRight(Scaffold_Tig * contigsA,
       {
         // place contigsB[ib] in gapsA[ia-1]
         contigsB[ib].lft_end =
-          max(contigsA[ia-1].lft_end +
-              contigsA[ia-1].length +
-              MIN_GAP_LENGTH,
-              contigsB[ib-1].lft_end +
-              contigsB[ib-1].length +
-              gapsB[ib-1].gap_length);
+          max(contigsA[ia-1].lft_end + contigsA[ia-1].length + MIN_GAP_LENGTH,
+              contigsB[ib-1].lft_end + contigsB[ib-1].length + gapsB[ib-1].gap_length);
         ib++;
       }
       else
       {
         contigsA[ia].lft_end =
-          max(contigsB[ib-1].lft_end +
-              contigsB[ib-1].length +
-              MIN_GAP_LENGTH,
-              contigsA[ia-1].lft_end +
-              contigsA[ia-1].length +
-              gapsA[ia-1].gap_length);
+          max(contigsB[ib-1].lft_end + contigsB[ib-1].length + MIN_GAP_LENGTH,
+              contigsA[ia-1].lft_end + contigsA[ia-1].length + gapsA[ia-1].gap_length);
         ia++;
       }
     }
@@ -1477,10 +1491,8 @@ void PlaceContigsBetweenOverlapSets(COSData * cosLeft,
       {
         // warning - changing gap_length field in the gap structure
         // yes, gap_var is actually used as stddev in Align_Scaffold()
-        gapsA[ia-1].gap_length +=
-          spreadInA * gapsA[ia-1].gap_var / sumStddevsA;
-        contigsA[ia].lft_end = contigsA[ia-1].lft_end +
-          contigsA[ia-1].length + gapsA[ia-1].gap_length;
+        gapsA[ia-1].gap_length += spreadInA * gapsA[ia-1].gap_var / sumStddevsA;
+        contigsA[ia].lft_end = contigsA[ia-1].lft_end + contigsA[ia-1].length + gapsA[ia-1].gap_length;
       }
     }
     else
@@ -1489,10 +1501,8 @@ void PlaceContigsBetweenOverlapSets(COSData * cosLeft,
       {
         // warning - changing gap_length field in the gap structure
         // yes, gap_var is actually used as stddev in Align_Scaffold()
-        gapsB[ib-1].gap_length -=
-          spreadInA * gapsB[ib-1].gap_var / sumStddevsB;
-        contigsB[ib].lft_end = contigsB[ib-1].lft_end +
-          contigsB[ib-1].length + gapsB[ib-1].gap_length;
+        gapsB[ib-1].gap_length -= spreadInA * gapsB[ib-1].gap_var / sumStddevsB;
+        contigsB[ib].lft_end = contigsB[ib-1].lft_end + contigsB[ib-1].length + gapsB[ib-1].gap_length;
       }
     }
   }
@@ -1532,6 +1542,11 @@ int PlaceContigsInOverlapSet(COSData * cos,
   }
   else
   {
+    //  You may be able to get around this assert by undef
+    //  ALLOW_NEG_GAP_BACKUP in CA_ALN_scafcomp.c.  You may also want
+    //  to restart from scratch instead of a checkpoint after doing
+    //  that.
+    //
     assert(contigsB[ib].lft_end == 0);
     if(ib == 0)
       offset = 0;
@@ -1557,13 +1572,6 @@ int PlaceContigsInOverlapSet(COSData * cos,
 #define NO_OVERLAP_SET             -1
 #define SKIPPED_CONTIG             -2
 #define SWITCHED_CONTIG            -3
-
-void InitializeContigOverlapSets(Scaffold_Tig * contigs, int numContigs)
-{
-  int i;
-  for(i = 0; i < numContigs; i++)
-    contigs[i].insert_pnt = NO_OVERLAP_SET;
-}
 
 
 int MarkSkippedContigsInOverlapSet(COSData * cos,
@@ -1699,7 +1707,9 @@ int ExamineContigOverlapSets(ScaffoldAlignmentInterface * sai,
     An overlap set implies a new contig will be created upon scaffold merging
     Iterate through overlaps & traverse overlap sets
     Figure out how to detect implicit reorderings
+
       Overlap set will have following pattern of a_contig, b_contig indices
+
       2,1
       ----
       3,2 |
@@ -1709,9 +1719,11 @@ int ExamineContigOverlapSets(ScaffoldAlignmentInterface * sai,
       4,4 |
       ---
       6,5
+
       To traverse an overlap set, keep min & max contig index in A & B
        while a_contig is within minA:maxA or b_contig is within minB:maxB
        you're in the same overlap set
+
       Two potential problems:
         1) a contig is skipped in an overlap set
            such a contig must be moved to before or after the set,
@@ -1721,8 +1733,11 @@ int ExamineContigOverlapSets(ScaffoldAlignmentInterface * sai,
 
   // overload the insert_pnt field of Scaffold_Tig for identifying
   // which overlap set each contig is in. Initialize all to -1
-  InitializeContigOverlapSets(contigsA, numContigsA);
-  InitializeContigOverlapSets(contigsB, numContigsB);
+  //
+  for(i=0; i<numContigsA; i++)
+    contigsA[i].insert_pnt = NO_OVERLAP_SET;
+  for(i=0; i<numContigsB; i++)
+    contigsB[i].insert_pnt = NO_OVERLAP_SET;
 
   // loop over overlaps to identify contig overlap sets
   numSkippedA = numSkippedB = 0;
@@ -1732,10 +1747,8 @@ int ExamineContigOverlapSets(ScaffoldAlignmentInterface * sai,
     // while this contig is in the set, label & increment i
     for( ;
          i < numOverlaps &&
-           ((overlaps[i].a_contig >= cos.a.minIndex &&
-             overlaps[i].a_contig <= cos.a.maxIndex) ||
-            (overlaps[i].b_contig >= cos.b.minIndex &&
-             overlaps[i].b_contig <= cos.b.maxIndex));
+           ((overlaps[i].a_contig >= cos.a.minIndex && overlaps[i].a_contig <= cos.a.maxIndex) ||
+            (overlaps[i].b_contig >= cos.b.minIndex && overlaps[i].b_contig <= cos.b.maxIndex));
          i++)
     {
       /*
@@ -1751,25 +1764,19 @@ int ExamineContigOverlapSets(ScaffoldAlignmentInterface * sai,
         if(contigsB[overlaps[i].b_contig].insert_pnt == NO_OVERLAP_SET)
         {
           // new overlap set
-          contigsA[overlaps[i].a_contig].lft_end =
-            max(0, -overlaps[i].overlap->begpos);
-          contigsB[overlaps[i].b_contig].lft_end =
-            max(0, overlaps[i].overlap->begpos);
+          contigsA[overlaps[i].a_contig].lft_end = max(0, -overlaps[i].overlap->begpos);
+          contigsB[overlaps[i].b_contig].lft_end = max(0, overlaps[i].overlap->begpos);
         }
         else
         {
           // b left end has been set
-          contigsA[overlaps[i].a_contig].lft_end =
-            contigsB[overlaps[i].b_contig].lft_end -
-            overlaps[i].overlap->begpos;
+          contigsA[overlaps[i].a_contig].lft_end = contigsB[overlaps[i].b_contig].lft_end - overlaps[i].overlap->begpos;
         }
       }
       else if(contigsB[overlaps[i].b_contig].insert_pnt == NO_OVERLAP_SET)
       {
         // a left end has been set
-        contigsB[overlaps[i].b_contig].lft_end =
-          contigsA[overlaps[i].a_contig].lft_end +
-          overlaps[i].overlap->begpos;
+        contigsB[overlaps[i].b_contig].lft_end = contigsA[overlaps[i].a_contig].lft_end + overlaps[i].overlap->begpos;
       }
       else
       {
@@ -1790,8 +1797,7 @@ int ExamineContigOverlapSets(ScaffoldAlignmentInterface * sai,
     if(cos.a.minCoord != 0 && cos.b.minCoord != 0)
     {
       // adjust cos & contig coordinates so min = 0
-      AdjustContigOverlapSetOffsets(&cos, contigsA, contigsB,
-                                    -min(cos.a.minCoord, cos.b.minCoord));
+      AdjustContigOverlapSetOffsets(&cos, contigsA, contigsB, -min(cos.a.minCoord, cos.b.minCoord));
     }
     // find skipped contigs in this overlap set
     numSkippedA += MarkSkippedContigsInOverlapSet(&cos, contigsA, TRUE);
@@ -1899,41 +1905,29 @@ void PlaceContigsLeftOfFirstOverlapSet(COSData * cos,
       preExpansionA = ComputeCurrentGapExpansion(contigsA, gapsA, ia);
       preExpansionB = ComputeCurrentGapExpansion(contigsB, gapsB, ib);
 
-      addExpansionA = ComputeAdditionalRightGapExpansion(contigsA, ia,
-                                                         contigsB, ib);
-      addExpansionB = ComputeAdditionalRightGapExpansion(contigsB, ib,
-                                                         contigsA, ia);
+      addExpansionA = ComputeAdditionalRightGapExpansion(contigsA, ia, contigsB, ib);
+      addExpansionB = ComputeAdditionalRightGapExpansion(contigsB, ib, contigsA, ia);
 
       // calculate compression of gaps needed to place this contig
-      compressionA = ComputeRightGapCompression(contigsA, gapsA, ia,
-                                                contigsB, ib,
-                                                addExpansionB);
-      compressionB = ComputeRightGapCompression(contigsB, gapsB, ib,
-                                                contigsA, ia,
-                                                addExpansionA);
+      compressionA = ComputeRightGapCompression(contigsA, gapsA, ia, contigsB, ib, addExpansionB);
+      compressionB = ComputeRightGapCompression(contigsB, gapsB, ib, contigsA, ia, addExpansionA);
 
       // deltaAB is stddevs involved in placing B to right of A
-      deltaAB = (preExpansionA + addExpansionA) / stddevGapA +
-        compressionB / stddevGapB;
-      deltaBA = (preExpansionB + addExpansionB) / stddevGapB +
-        compressionA / stddevGapA;
+      deltaAB = (preExpansionA + addExpansionA) / stddevGapA + compressionB / stddevGapB;
+      deltaBA = (preExpansionB + addExpansionB) / stddevGapB + compressionA / stddevGapA;
       if(deltaBA > deltaAB)
       {
         // place contigB to the right of contigA
         contigsB[ib].lft_end =
-          min(contigsB[ib+1].lft_end -
-              gapsB[ib].gap_length,
-              contigsA[ia+1].lft_end -
-              MIN_GAP_LENGTH) - contigsB[ib].length;
+          min(contigsB[ib+1].lft_end - gapsB[ib].gap_length,
+              contigsA[ia+1].lft_end - MIN_GAP_LENGTH) - contigsB[ib].length;
         ib--;
       }
       else
       {
         contigsA[ia].lft_end =
-          min(contigsA[ia+1].lft_end -
-              gapsA[ia].gap_length,
-              contigsB[ib+1].lft_end -
-              MIN_GAP_LENGTH) - contigsA[ia].length;
+          min(contigsA[ia+1].lft_end - gapsA[ia].gap_length,
+              contigsB[ib+1].lft_end - MIN_GAP_LENGTH) - contigsA[ia].length;
         ia--;
       }
     }
@@ -1950,8 +1944,7 @@ int AdjustScaffoldContigPositions(CIScaffoldT * scaffold,
   CIScaffoldTIterator contigIterator;
 
   offset = contigs[0].lft_end;
-  scaffoldLength = contigs[numContigs - 1].lft_end +
-    contigs[numContigs - 1].length - offset;
+  scaffoldLength = contigs[numContigs - 1].lft_end + contigs[numContigs - 1].length - offset;
   scaffold->bpLength.mean = scaffoldLength;
   
   InitCIScaffoldTIterator(ScaffoldGraph, scaffold,
@@ -2230,12 +2223,10 @@ SEdgeT * MakeScaffoldAlignmentAdjustments(CIScaffoldT * scaffoldA,
 {
   Scaffold_Gap * gapsA = GetVA_Scaffold_Gap(sai->scaffoldA->pools->gapPool, 0);
   Scaffold_Gap * gapsB = GetVA_Scaffold_Gap(sai->scaffoldB->pools->gapPool, 0);
-  Scaffold_Tig * contigsA =
-    GetVA_Scaffold_Tig(sai->scaffoldA->pools->tigPool, 0);
+  Scaffold_Tig * contigsA = GetVA_Scaffold_Tig(sai->scaffoldA->pools->tigPool, 0);
   int numContigsA = GetNumVA_Scaffold_Tig(sai->scaffoldA->pools->tigPool);
   int lastPlacedA = 0;
-  Scaffold_Tig * contigsB =
-    GetVA_Scaffold_Tig(sai->scaffoldB->pools->tigPool, 0);
+  Scaffold_Tig * contigsB = GetVA_Scaffold_Tig(sai->scaffoldB->pools->tigPool, 0);
   int numContigsB = GetNumVA_Scaffold_Tig(sai->scaffoldB->pools->tigPool);
   int lastPlacedB = 0;
   Segment * overlaps;
@@ -2297,8 +2288,20 @@ SEdgeT * MakeScaffoldAlignmentAdjustments(CIScaffoldT * scaffoldA,
               scaffoldA->id, scaffoldB->id,
               sEdge->distance.mean, sEdge->distance.variance,
               numReordered);
+
+      // change sEdge back to what it was
+      sEdge->idA = idA;
+      sEdge->idB = idB;
+      sEdge->orient = orient;
+
       return NULL;
     }
+
+    //  Dump debug on cosData
+#ifdef DEBUG1
+    for(i = 1; i < GetNumVA_COSData(cosData); i++)
+      printCOSdata(stderr, GetVA_COSData(cosData, 0), i);
+#endif
 
     // Set positions of contigs to the left of the first overlap set
     PlaceContigsLeftOfFirstOverlapSet(GetVA_COSData(cosData,0),

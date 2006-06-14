@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: eCR.c,v 1.6 2006-02-14 16:23:47 eliv Exp $";
+static const char CM_ID[] = "$Id: eCR.c,v 1.7 2006-06-14 19:57:23 brianwalenz Exp $";
 
 #include "eCR.h"
 
@@ -227,10 +227,7 @@ main(int argc, char **argv) {
 
   GlobalData  = data = CreateGlobal_CGW();
   data->stderrc   = stderr;
-  data->stderro   = stderr;
-  data->stderrfp  = stderr;
   data->timefp    = stderr;
-  data->logfp     = stderr;
 
   //  This is used all over the place, do not remove it!
   //
@@ -316,7 +313,7 @@ main(int argc, char **argv) {
   if (doRevertFirst) {
     int             firstFrag=0, lastFrag=0;
     int             fragIid=0;
-    int             cnsBeg=0, cnsEnd=0, cgwBeg=0, cgwEnd=0;
+    unsigned int    cnsBeg=0, cnsEnd=0, cgwBeg=0, cgwEnd=0;
     int             modified=0;
     FragStoreHandle fragStore;
     
@@ -972,7 +969,7 @@ main(int argc, char **argv) {
                 //DumpContigUngappedOffsets(rcontig->id);
 
                 fprintf(stderr, "CreateAContigInScaffold()-- newOffsetAEnd=%d newOffsetBEnd=%d\n",
-                        newOffsetAEnd, newOffsetBEnd);
+                        (int)newOffsetAEnd.mean, (int)newOffsetBEnd.mean);
 
                 // have to call this routine with normalized positions
 
@@ -1074,9 +1071,7 @@ main(int argc, char **argv) {
               (numLargeGaps == 0) ? 0 : 100.0 * numLargeGapsClosed / numLargeGaps);
       fprintf(stderr, "                  allGaps: %d (closed %d, %.2f%%)\n", 
               numSmallGaps + numLargeGaps, numSmallGapsClosed + numLargeGapsClosed, 
-              (numSmallGaps + numLargeGaps == 0) ? 0 : 100.0 * (numSmallGapsClosed + 
-numLargeGapsClosed) / (numSmallGaps + numLargeGaps));
-
+              (numSmallGaps + numLargeGaps == 0) ? 0 : 100.0 * (numSmallGapsClosed + numLargeGapsClosed) / (numSmallGaps + numLargeGaps));
 
       gapNumber++;
       lcontig = rcontig;
@@ -1084,18 +1079,19 @@ numLargeGapsClosed) / (numSmallGaps + numLargeGaps));
       rcontigID = lcontig->BEndNext;
 
       fprintf(stderr, "at bottom of loop: lcontig->BEndNext: %d\n", lcontig->BEndNext);
-    }
-	
+    }  //  over all contigs in the scaffold
+
     fprintf(stderr, "scaffold stats, scaff %10d, smallGaps %8d closed %8d, largeGaps %8d closed %8d\n",
             scaff->id, numSmallGapsThisScaff, numSmallGapsClosedThisScaff,
             numLargeGapsThisScaff, numLargeGapsClosedThisScaff);
 
-    if (numSmallGapsClosedThisScaff + numLargeGapsClosedThisScaff > 0){
+    if (numSmallGapsClosedThisScaff + numLargeGapsClosedThisScaff > 0) {
       int status = RECOMPUTE_SINGULAR;
       int recomputeIteration = 0;
-      while(recomputeIteration++ < 3 &&
-            (status == RECOMPUTE_SINGULAR ||
-             status == RECOMPUTE_CONTIGGED_CONTAINMENTS)) {
+
+      while ((recomputeIteration++ < 3) &&
+             (status == RECOMPUTE_SINGULAR ||
+              status == RECOMPUTE_CONTIGGED_CONTAINMENTS)) {
 
         // need to make sure scaffold is connected with trusted raw edges
 
@@ -1105,22 +1101,18 @@ numLargeGapsClosed) / (numSmallGaps + numLargeGaps));
         //  never is.
         //
         MarkInternalEdgeStatus(ScaffoldGraph,
-                               GetGraphNode(ScaffoldGraph->ScaffoldGraph,
-                                            sid),
+                               GetGraphNode(ScaffoldGraph->ScaffoldGraph, sid),
                                PAIRWISECHI2THRESHOLD_CGW,
                                SLOPPY_EDGE_VARIANCE_THRESHHOLD,
                                TRUE, TRUE, 0, TRUE);
 
         assert(IsScaffoldInternallyConnected(ScaffoldGraph,
-                                             GetGraphNode(ScaffoldGraph->ScaffoldGraph,
-                                                          sid),
+                                             GetGraphNode(ScaffoldGraph->ScaffoldGraph, sid),
                                              ALL_EDGES));
 	      
-        status =
-          RecomputeOffsetsInScaffold(ScaffoldGraph,
-                                     GetGraphNode(ScaffoldGraph->ScaffoldGraph,
-                                                  sid),
-                                     TRUE, TRUE, FALSE);
+        status = RecomputeOffsetsInScaffold(ScaffoldGraph,
+                                            GetGraphNode(ScaffoldGraph->ScaffoldGraph, sid),
+                                            TRUE, TRUE, FALSE);
       }
     }
 
@@ -1726,7 +1718,7 @@ int GetNewUnitigMultiAlign(NodeCGW_T *unitig, fragPositions *fragPoss, int exten
 #endif
     ium_mesg.forced = 0;
     ium_mesg.num_frags = GetNumIntMultiPoss(ma->f_list);
-
+    ium_mesg.num_vars = 0;
 
     // replace the positions in the f_list with the adjusted positions
     extendedFragLeftward = FALSE;
@@ -1936,25 +1928,10 @@ getAlteredFragPositions(NodeCGW_T *unitig, fragPositions **fragPoss, int altered
 
 void
 SynchUnitigTWithMultiAlignT(NodeCGW_T *unitig) {
-  MultiAlignT *uma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, unitig->id, TRUE);
 
-  // unitig->bpLength.mean = strlen(Getchar(uma->consensus, 0));      // set length
-  unitig->bpLength.mean = GetMultiAlignUngappedLength(uma);
-
-  fprintf(stderr, "in SynchUnitigTWithMultiAlignT, for unitig %d strlen(ma->consensus)=%d  ungapped=%d\n",
-          unitig->id,
-          strlen(Getchar(uma->consensus, 0)),
-          (int)unitig->bpLength.mean);
-
-#if 0
-  if (unitig->offsetAEnd.mean < unitig->offsetBEnd.mean) {         // ordering info is okay
-    unitig->offsetAEnd.mean = pos->position.bgn;
-    unitig->offsetBEnd.mean = pos->position.end;
-  } else {
-    unitig->offsetAEnd.mean = pos->position.end;
-    unitig->offsetBEnd.mean = pos->position.bgn;
-  }
-#endif  
+  unitig->bpLength.mean = GetMultiAlignUngappedLength(LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB,
+                                                                                    unitig->id,
+                                                                                    TRUE));
 }
 
 

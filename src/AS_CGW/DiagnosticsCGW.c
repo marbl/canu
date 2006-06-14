@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: DiagnosticsCGW.c,v 1.4 2005-03-22 19:48:35 jason_miller Exp $";
+static char CM_ID[] = "$Id: DiagnosticsCGW.c,v 1.5 2006-06-14 19:57:22 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -366,7 +366,7 @@ void  ScaffoldGraphComponents(ScaffoldGraphT *graph){
   }
 
   numComponents = UFRenumberSets(UFData);
-  fprintf(GlobalData->logfp," Chunk Instnce Graph has " F_CID " components\n",
+  fprintf(GlobalData->stderrc," Chunk Instnce Graph has " F_CID " components\n",
 	  numComponents);
 
   for(set = 0; set < UFData->numSets; set++){
@@ -375,7 +375,7 @@ void  ScaffoldGraphComponents(ScaffoldGraphT *graph){
 
     chunk->setID = chunkSet->component;
 #ifdef DEBUG_DIAG
-    fprintf(GlobalData->logfp,"* Chunk " F_CID " has component " F_CID "\n",
+    fprintf(GlobalData->stderrc,"* Chunk " F_CID " has component " F_CID "\n",
 	    chunk->id, chunk->setID);
 #endif
   }
@@ -452,7 +452,7 @@ void  ExtendedChunkGraphComponents(ChunkGraphT *graph){
   }
 
   numComponents = UFRenumberSets(UFData);
-  fprintf(GlobalData->logfp," Extended Chunk Graph has %d components\n",
+  fprintf(GlobalData->stderrc," Extended Chunk Graph has %d components\n",
 	  numComponents);
 
   for(set = 0; set < UFData->numSets; set++){
@@ -461,7 +461,7 @@ void  ExtendedChunkGraphComponents(ChunkGraphT *graph){
 
     chunk->setID = chunkSet->component;
 #ifdef DEBUG_DIAG
-    fprintf(GlobalData->logfp,"* Chunk " F_CID " has component " F_CID "\n",
+    fprintf(GlobalData->stderrc,"* Chunk " F_CID " has component " F_CID "\n",
 	    chunk->cid, chunk->setID);
 #endif
   }

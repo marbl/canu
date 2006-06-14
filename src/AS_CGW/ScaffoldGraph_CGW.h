@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: ScaffoldGraph_CGW.h,v 1.6 2005-09-22 23:58:54 brianwalenz Exp $	 */
+/* 	$Id: ScaffoldGraph_CGW.h,v 1.7 2006-06-14 19:57:23 brianwalenz Exp $	 */
 /***************************************************************************
  *  ScaffoldGraph
  *  
@@ -333,7 +333,7 @@ void DumpACIScaffold(FILE *stream, ScaffoldGraphT *graph,
                      CIScaffoldT *scaffold, int raw);
 void DumpACIScaffoldNew(FILE *stream, ScaffoldGraphT *graph,
                         CIScaffoldT *scaffold, int raw);
-void PrintContigEdgeInScfContext(FILE *logfp, GraphCGW_T *graph,
+void PrintContigEdgeInScfContext(FILE *fp, GraphCGW_T *graph,
                                  char *label, EdgeCGW_T *edge, 
                                  CDS_CID_t cid);
 
@@ -386,6 +386,13 @@ Returns TRUE if connected, FALSE if not connected.
 int IsScaffoldInternallyConnected(ScaffoldGraphT *graph,
                                   CIScaffoldT *scaffold, int32 edgeTypes);
 
+
+// New test code to partly substitute for the status given by
+// MarkInternalEdgeStatus, for to help handle slightly messier cases!
+//
+int IsInternalEdgeStatusVaguelyOK(EdgeCGW_T *edge,CDS_CID_t thisCIid);
+
+
 /*
   CheckScaffoldConnectivityAndSplit
   Calls isScaffoldInternallyConnected.  If not, splits the scaffold into
@@ -396,10 +403,9 @@ int CheckScaffoldConnectivityAndSplit(ScaffoldGraphT *graph,
                                       int32 edgeTypes, int verbose);
 
 
-
-void PrintCIEdgeT(FILE *logfp, ScaffoldGraphT *graph,
+void PrintCIEdgeT(FILE *fp, ScaffoldGraphT *graph,
                   char *label, CIEdgeT *edge, CDS_CID_t cid);
-void PrintSEdgeT(FILE *logfp, ScaffoldGraphT *graph,
+void PrintSEdgeT(FILE *fp, ScaffoldGraphT *graph,
                  char *label, SEdgeT *edge, CDS_CID_t sid);
 
 

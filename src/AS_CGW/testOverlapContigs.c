@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: testOverlapContigs.c,v 1.4 2005-03-22 19:48:40 jason_miller Exp $";
+static char CM_ID[] = "$Id: testOverlapContigs.c,v 1.5 2006-06-14 19:57:23 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -97,8 +97,6 @@ int main(int argc, char *argv[]){
   int ckptNum = NULLINDEX;
   GlobalData  = data = CreateGlobal_CGW();
   data->stderrc = stderr;
-  data->stderro = stderr;
-  data->stderrfp = fopen("loadcgw.stderr","w");
 
   straight_test(1);
   // exit(1);
@@ -146,10 +144,6 @@ int main(int argc, char *argv[]){
 	}
   }
 
-  // cgwlog file
-  sprintf(data->Output_File_Name,"%s.cgwlog_loadcgw",outputPath);
-  data->logfp = File_Open (data->Output_File_Name, "w", TRUE);
-  
   ScaffoldGraph = LoadScaffoldGraphFromCheckpoint(data->File_Name_Prefix,
                                                   ckptNum, FALSE);    
 

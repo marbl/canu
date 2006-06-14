@@ -34,7 +34,7 @@
 
  **********************************************************************/
 
-static char fileID[] = "$Id: FbacREZ.c,v 1.5 2006-02-13 22:16:31 eliv Exp $";
+static char fileID[] = "$Id: FbacREZ.c,v 1.6 2006-06-14 19:57:23 brianwalenz Exp $";
 
 #define FBACDEBUG 2
 
@@ -69,6 +69,9 @@ static char fileID[] = "$Id: FbacREZ.c,v 1.5 2006-02-13 22:16:31 eliv Exp $";
 #include "RepeatRez.h"
 #include "dpc_CNS.h"
 #include "GWDriversREZ.h"
+
+extern FILE
+  * gwlogfp;
 
 //
 // vars
@@ -2968,7 +2971,7 @@ int GetFragInfo (ChunkInstanceT* chunk, int locale, unsigned int* minFragIid, un
 	
 	if (0)
 	{
-	  fprintf(GlobalData->gwlogfp,
+	  fprintf(gwlogfp,
 			  "frag->iid %d: containing contig: %d, celsim coords: %d, %d, locale: %d\n",
 			  frag->iid,
 			  frag->contigID,
@@ -3114,81 +3117,79 @@ void dumpContigInfo(ChunkInstanceT *contig)
 
 void dumpGapInfo(ChunkInstanceT *leftContig, ChunkInstanceT *rightContig)
 {
-
-  // return;
+  CIEdgeT* e;
+  GraphEdgeIterator edges;
   
-  fprintf( stderr, "*********************** gap analysis **************************\n");
-  fprintf( stderr, "analyzing gap (%d, %d)\n", leftContig->id, rightContig->id);
+#ifdef DEBUG
+  fprintf(stderr, "*********************** gap analysis **************************\n");
+  fprintf(stderr, "analyzing gap (%d, %d)\n", leftContig->id, rightContig->id);
   fflush(stderr);
+#endif
 
-  // DumpContig( GlobalData->stderrc, ScaffoldGraph, leftContig, TRUE);
-  // DumpContig( GlobalData->stderrc, ScaffoldGraph, rightContig, TRUE);
+  //DumpContig(stderr, ScaffoldGraph, leftContig, TRUE);
+  //DumpContig(stderr, ScaffoldGraph, rightContig, TRUE);
 
-  if (1)
-  {
-	CIEdgeT* e;
-	GraphEdgeIterator edges;
-	
-	InitGraphEdgeIterator(ScaffoldGraph->RezGraph, leftContig->id,
-						  ALL_END, ALL_EDGES, ITERATOR_VERBOSE | GRAPH_EDGE_RAW_ONLY, &edges);
-	while((e = NextGraphEdgeIterator(&edges)) != NULL)
-	{
-	  CIFragT *leftFrag, *rightFrag, *tempFrag;	  
-	  int leftFragLeftEnd, leftFragRightEnd, leftFragScaffoldOrientation;
-	  int rightFragLeftEnd, rightFragRightEnd, rightFragScaffoldOrientation;
-	  int leftContigLeftEnd, leftContigRightEnd, leftContigOrientation;
-	  int rightContigLeftEnd, rightContigRightEnd, rightContigOrientation;
+  InitGraphEdgeIterator(ScaffoldGraph->RezGraph, leftContig->id,
+                        ALL_END, ALL_EDGES, ITERATOR_VERBOSE | GRAPH_EDGE_RAW_ONLY, &edges);
+  while((e = NextGraphEdgeIterator(&edges)) != NULL)
+    {
+      CIFragT *leftFrag, *rightFrag, *tempFrag;	  
+      int leftFragLeftEnd, leftFragRightEnd, leftFragScaffoldOrientation;
+      int rightFragLeftEnd, rightFragRightEnd, rightFragScaffoldOrientation;
+      int leftContigLeftEnd, leftContigRightEnd, leftContigOrientation;
+      int rightContigLeftEnd, rightContigRightEnd, rightContigOrientation;
 	  
-	  assert(e != NULL);
+      assert(e != NULL);
 
- 	  //fprintf( stderr, "e->idA: %d (frag: %d), e->idB: %d (frag: %d), e->distance.mean: %f\n", 
-	  //	   e->idA, e->fragA, e->idB, e->fragB, e->distance.mean);
+      //fprintf( stderr, "e->idA: %d (frag: %d), e->idB: %d (frag: %d), e->distance.mean: %f\n", 
+      //	   e->idA, e->fragA, e->idB, e->fragB, e->distance.mean);
 
-	  if (e->fragA == NULLINDEX || e->fragB == NULLINDEX)
-		continue;
+      if (e->fragA == NULLINDEX || e->fragB == NULLINDEX)
+        continue;
 	  
-	  if (e->fragA < 0 || e->fragB < 0)
-		continue;
+      if (e->fragA < 0 || e->fragB < 0)
+        continue;
 	  
-	  leftFrag = GetCIFragT(ScaffoldGraph->CIFrags, e->fragA);
-	  if (leftFrag->contigID != leftContig->id)
-		continue;
+      leftFrag = GetCIFragT(ScaffoldGraph->CIFrags, e->fragA);
+      if (leftFrag->contigID != leftContig->id)
+        continue;
 	  
-	  rightFrag = GetCIFragT(ScaffoldGraph->CIFrags, e->fragB);
-	  if (rightFrag->contigID != rightContig->id)
-		continue;
+      rightFrag = GetCIFragT(ScaffoldGraph->CIFrags, e->fragB);
+      if (rightFrag->contigID != rightContig->id)
+        continue;
 
-	  // if idA, idB != leftContig, rightContig
-	  if (e->idA != leftContig->id)
-	  {
-		tempFrag = leftFrag;
-		leftFrag = rightFrag;
-		rightFrag = tempFrag;
-	  }
+      // if idA, idB != leftContig, rightContig
+      if (e->idA != leftContig->id)
+        {
+          tempFrag = leftFrag;
+          leftFrag = rightFrag;
+          rightFrag = tempFrag;
+        }
 
-	  GetFragmentPositionInScaffold( leftFrag, &leftFragLeftEnd, &leftFragRightEnd, &leftFragScaffoldOrientation);
-	  GetContigPositionInScaffold( leftContig, &leftContigLeftEnd, &leftContigRightEnd, &leftContigOrientation);
+      GetFragmentPositionInScaffold( leftFrag, &leftFragLeftEnd, &leftFragRightEnd, &leftFragScaffoldOrientation);
+      GetContigPositionInScaffold( leftContig, &leftContigLeftEnd, &leftContigRightEnd, &leftContigOrientation);
 
-	  GetFragmentPositionInScaffold( rightFrag, &rightFragLeftEnd, &rightFragRightEnd, &rightFragScaffoldOrientation);
-	  GetContigPositionInScaffold( rightContig, &rightContigLeftEnd, &rightContigRightEnd, &rightContigOrientation);	  
+      GetFragmentPositionInScaffold( rightFrag, &rightFragLeftEnd, &rightFragRightEnd, &rightFragScaffoldOrientation);
+      GetContigPositionInScaffold( rightContig, &rightContigLeftEnd, &rightContigRightEnd, &rightContigOrientation);	  
 
-	  // we are looking for 10k mates
-	  if ( rightFragLeftEnd - leftFragRightEnd > 35000 ||
-		   rightFragLeftEnd - leftFragRightEnd < 4000)
-		continue;
+      // we are looking for 10k mates
+      if ( rightFragLeftEnd - leftFragRightEnd > 35000 ||
+           rightFragLeftEnd - leftFragRightEnd < 4000)
+        continue;
 
-	  fprintf( stderr, "%d to %d, o: %c, len: %f ", e->idA, e->idB, (char) e->orient, e->distance.mean);
-	  fprintf( stderr, "lfrag: %d (ctg: %d, %d from end), rfrag: %d (ctg: %d, %d from end)\n",
-			   leftFrag->iid, leftFrag->contigID, leftContigRightEnd - leftFragRightEnd,
-			   rightFrag->iid, rightFrag->contigID, rightFragLeftEnd - rightContigLeftEnd);
+#ifdef DEBUG
+      fprintf( stderr, "%d to %d, o: %c, len: %f ", e->idA, e->idB, (char) e->orient, e->distance.mean);
+      fprintf( stderr, "lfrag: %d (ctg: %d, %d from end), rfrag: %d (ctg: %d, %d from end)\n",
+               leftFrag->iid, leftFrag->contigID, leftContigRightEnd - leftFragRightEnd,
+               rightFrag->iid, rightFrag->contigID, rightFragLeftEnd - rightContigLeftEnd);
 
-	  PrintGraphEdge( stderr, ScaffoldGraph->ContigGraph, "\t", e, leftContig->id);
+      PrintGraphEdge( stderr, ScaffoldGraph->ContigGraph, "\t", e, leftContig->id);
+#endif
 
-	  // fprintf( stderr, "edge: %d to %d, orient: %c, length: %f\n", e->idA, e->idB, (char) e->orient, e->distance.mean);
-	  // PrintGraphEdge( stderr, ScaffoldGraph->RezGraph, "Analyzing edge", e, 0);
+      // fprintf( stderr, "edge: %d to %d, orient: %c, length: %f\n", e->idA, e->idB, (char) e->orient, e->distance.mean);
+      // PrintGraphEdge( stderr, ScaffoldGraph->RezGraph, "Analyzing edge", e, 0);
 
-	}
-  }
+    }
 }
 
 void GetContigPositionInScaffold(ChunkInstanceT *contig, int *left_end, int *right_end, 
