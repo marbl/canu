@@ -17,7 +17,6 @@
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "sim4db.H"
-#include "configuration.H"
 #include "sweatShop.H"
 
 char   *getNextScript(u32bit     &ESTseq,
@@ -307,6 +306,7 @@ main(int argc, char **argv) {
                        writer);
   }
 
+  ss->numberOfWorkers(config.numThreads);
   ss->run(0L, config.beVerbose);
 
   //  Only close the file if it isn't stdout

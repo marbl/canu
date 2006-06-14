@@ -1,5 +1,4 @@
 #include "sim4db.H"
-#include "configuration.H"
 
 #include "buildinfo-sim4th.h"
 #include "buildinfo-libbio.h"
@@ -19,6 +18,8 @@ const char *usage =
 "       -output       write output to this file\n"
 "       -stats        write execution statistics to this file\n"
 "       -touch        create this file when the program finishes execution\n"
+"\n"
+"       -threads      Use n threads.\n"
 "\n"
 "       -mincoverage  iteratively find all exon models with the specified\n"
 "                     minimum PERCENT COVERAGE\n"
@@ -134,11 +135,14 @@ configuration::parseCommandLine(int argc, char **argv) {
     } else if (strncmp(argv[arg], "-to", 3) == 0) {
       arg++;
       touchFileName = argv[arg];
-    } else if (strncmp(argv[arg], "-v", 2) == 0) {
+    } else if (strncmp(argv[arg], "-verbose", 2) == 0) {
       beVerbose = true;
     } else if (strncmp(argv[arg], "-YN", 3) == 0) {
       arg++;
       yesnoFileName = argv[arg];
+    } else if (strncmp(argv[arg], "-threads", 3) == 0) {
+      arg++;
+      numThreads = strtou32bit(argv[arg], 0L);
     } else if (strncmp(argv[arg], "-H", 2) == 0) {
       arg++;
       sim4params.setRelinkWeight(atoi(argv[arg]));
