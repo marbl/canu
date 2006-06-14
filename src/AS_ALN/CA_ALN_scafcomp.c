@@ -808,6 +808,9 @@ interval_list *cleanup_ilist(interval_list *list){
   // trace through the list, deleting as we go
   while(list!=NULL){
     link = (fromTail ? list->prev : list->next);
+    //  munge the memory
+    list->prev = 0x87654321;
+    list->next = 0x12345678;
     free(list);
     list=link;
   }
@@ -839,6 +842,9 @@ interval_list *add_to_ilist_special(interval_list *tail, interval to_add){
   if (curr)
     curr->next=NULL;
 
+  if (curr)
+    curr->next=NULL;
+
   // for all elements in chain headed by next, append them serially,
   // unless the rest of the chain can simply be tacked on,
   // in which case we need to prepare for a special cleanup
@@ -862,6 +868,8 @@ interval_list *add_to_ilist_special(interval_list *tail, interval to_add){
   while(curr->next!=NULL){
     curr=curr->next;
   }
+
+  fprintf(stderr,"Inefficient addition into interval list - finished.\n");
 
   assert(curr->prev!=curr);
   return(curr);
@@ -978,7 +986,7 @@ interval_list *add_to_ilist(interval_list *tail, interval to_add){
 
       }
     }
-  } 
+  }
 
   il = (interval_list*) malloc(sizeof(interval_list));
   assert(il!=NULL);
@@ -1033,7 +1041,7 @@ int Project_across_Agap_one_interval(interval *inoutIval,COvlps **bestTerm, doub
 
     // what SHOULD we do if minimum length of gap is negative?
 
-#define ALLOW_NEG_GAP_BACKUP
+#undef ALLOW_NEG_GAP_BACKUP
 #ifdef ALLOW_NEG_GAP_BACKUP
     remainingToUseUp = Agap_length -  Agap_var * varwin;
     if(remainingToUseUp < 0){
