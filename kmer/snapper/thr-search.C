@@ -181,8 +181,8 @@ doSearch(searcherState       *state,
         if ((query->getSkip(qi) == false) &&
             (PS->get(query->getMer(qi), state->posn, state->posnMax, state->posnLen))) {
 
-          if (state->posnLen-1 < COUNT_MAX)
-            numHitsAtCount[state->posnLen-1]++;
+          if (state->posnLen < COUNT_MAX)
+            numHitsAtCount[state->posnLen] += state->posnLen;
 
           //  Collect some statistics
 
@@ -197,9 +197,9 @@ doSearch(searcherState       *state,
       numHitsAtCount[0] = 0;
 
       for (u32bit qi=1; qi<COUNT_MAX; qi++) {
-        numHitsAtCount[qi] = numHitsAtCount[qi-1] + qi * numHitsAtCount[qi];
+        numHitsAtCount[qi] = numHitsAtCount[qi-1] + numHitsAtCount[qi];
 
-        if (numHitsAtCount[qi] < 50000)
+        if (numHitsAtCount[qi] <= numMers * config._repeatThreshold)
           countLimit = qi;
       }
 
@@ -213,7 +213,7 @@ doSearch(searcherState       *state,
       for (u32bit qi=0; qi<query->numberOfMers(); qi++) {
         if ((query->getSkip(qi) == false) &&
             (PS->get(query->getMer(qi), state->posn, state->posnMax, state->posnLen))) {
-          if (state->posnLen < 3) {
+          if (state->posnLen < countLimit) {
             for (u32bit x=0; x<state->posnLen; x++)
               state->posn[x] += GENlo + config._useList.startOf(theHits[h]._dsIdx);
 

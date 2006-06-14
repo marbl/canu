@@ -111,7 +111,7 @@ searchThread(void *U) {
 #ifdef VERBOSE_SEARCH
         double endTime = getTime();
         if ((endTime - startTime) > VERBOSE_SEARCH_MINIMUM_TIME) {
-          theLog->add(u64bitFMT" done with idx = "u32bitFMT" ("u32bitFMT" bp, "u32bitFMT" raw hits, "u32bitFMT" filtered) search %f filter %f polish %f  search %f chain %f polish %f\n",
+          theLog->add(u64bitFMT" done with idx = "u32bitFMT" ("u32bitFMT" bp, "u32bitFMT" raw hits, "u32bitFMT" filtered) search %f filter %f polish %f  search %f chain %f polish %f\n\n",
                       state->threadID, idx, seq->sequenceLength(), theHitsLen, numF,
                       searchTime - startTime,
                       filterTime - searchTime,

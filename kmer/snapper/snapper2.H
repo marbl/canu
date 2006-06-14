@@ -90,6 +90,8 @@ public:
   u32bit           _extendMinimum;
   double           _extendWeight;
 
+  u32bit           _repeatThreshold;
+
   //  Minimums for hits
   double           _minHitCoverage;
   u32bit           _minHitLength;

@@ -477,7 +477,7 @@ hitMatrix::filter(char      direction,
           o = new aHit [theHitsMax];
         } catch (std::bad_alloc) {
           fprintf(stderr, "hitMatrix::filter()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
-          fprintf(stderr, "hitMatrix::filter()-- tried to extend output string from %lu to %lu.\n", theHitsPos, theHitsMax);
+          fprintf(stderr, "hitMatrix::filter()-- tried to extend output string from "u32bitFMT" to "u32bitFMT".\n", theHitsPos, theHitsMax);
           exit(1);
         }
         memcpy(o, theHits, theHitsPos * sizeof(aHit));

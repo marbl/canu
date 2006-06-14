@@ -37,6 +37,8 @@ configuration::configuration(void) {
   _extendWeight         = 2.0;
   _extendMinimum        = 100;
 
+  _repeatThreshold      = 3;
+
   _minHitLength         = 0;
   _minHitCoverage       = 0.2;
 
@@ -107,6 +109,7 @@ static char const *usageString =
 "    -discardexonquality p   Discard exons less than p percent identity (90).\n"
 "    -extendweight w         For each unhit base, extend by this much (2).\n"
 "    -extendminimum e        Always extend hits by at least this much (100).\n"
+"    -repeatthreshold t      Tune hits to expect t local repeat count (3).\n"
 "\n"
 "  Filter and Filter Validation:\n"
 "    -validate               Enable tuning of the filter (expensive!).\n"
@@ -257,6 +260,9 @@ configuration::read(int argc, char **argv) {
     } else if (strncmp(argv[arg], "-extendminimum", 8) == 0) {
       arg++;
       _extendMinimum = strtou32bit(argv[arg], 0L);
+    } else if (strncmp(argv[arg], "-repeatthreshold", 8) == 0) {
+      arg++;
+      _repeatThreshold = strtou32bit(argv[arg], 0L);
     } else if (strncmp(argv[arg], "-loaderhighwatermark", 8) == 0) {
       _loaderHighWaterMark = strtou32bit(argv[++arg], 0L);
     } else if (strncmp(argv[arg], "-loadersleep",         8) == 0) {

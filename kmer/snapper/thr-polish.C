@@ -100,7 +100,7 @@ doPolish(searcherState       *state,
 #ifdef SHOW_HITS_ADDED_AFTER_QUERY
             if (ESTseq->getIID() > SHOW_HITS_ADDED_AFTER_QUERY)
 #endif
-              theLog->add(stderr, "FORWARDHIT GEN: hi:"u32bitFMT"-lo:"u32bitFMT" pos:"u32bitFMT" EST: len:"u32bitFMT" pos:"u32bitFMT"\n",
+              theLog->add("FORWARDHIT GEN: hi:"u32bitFMT"-lo:"u32bitFMT" pos:"u32bitFMT" EST: len:"u32bitFMT" pos:"u32bitFMT"\n",
                           GENhi, GENlo, y, (u32bit)ESTseq->sequenceLength(), x);
 #endif
             P4->addSeed(y - GENlo + config._merSize,
@@ -113,7 +113,7 @@ doPolish(searcherState       *state,
 #ifdef SHOW_HITS_ADDED_AFTER_QUERY
             if (ESTseq->getIID() > SHOW_HITS_ADDED_AFTER_QUERY)
 #endif
-              theLog->add(stderr, "REVERSEHIT GEN: hi:"u32bitFMT"-lo:"u32bitFMT" pos:"u32bitFMT" EST: len:"u32bitFMT" pos:"u32bitFMT"\n",
+              theLog->add("REVERSEHIT GEN: hi:"u32bitFMT"-lo:"u32bitFMT" pos:"u32bitFMT" EST: len:"u32bitFMT" pos:"u32bitFMT"\n",
                           GENhi, GENlo, y, (u32bit)ESTseq->sequenceLength(), x);
 #endif
             //  Original form was (GENhi-GENlo) - (y-GENlo), which
