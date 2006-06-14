@@ -38,10 +38,8 @@ main(int argc , char **argv) {
 
   GlobalData = data = CreateGlobal_CGW();
   data->stderrc  = stderr;
-  data->stderro  = stderr;
-  data->stderrfp = stderr;
   data->timefp   = stderr;
-  data->logfp    = stderr;
+  data->aligner  = DP_Compare;
 
   if (argc != 3) {
     fprintf(stderr, "usage: %s cgw-checkpoint-prefix checkpoint-number\n", argv[0]);
@@ -50,5 +48,7 @@ main(int argc , char **argv) {
 
   ScaffoldGraph = LoadScaffoldGraphFromCheckpoint(argv[1], atoi(argv[2]), FALSE);
   fprintf(stdout, "%d\n", GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph));
+
+  exit(0);
 }
 
