@@ -25,6 +25,9 @@
 #include "eliasDeltaEncoding.h"
 #include "fibonacciEncoding.h"
 
+//  Lists?
+#include "u32bitList.H"
+
 //  Now the good stuff!
 //
 #include "speedCounter.H"
