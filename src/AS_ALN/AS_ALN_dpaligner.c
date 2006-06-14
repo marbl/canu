@@ -91,7 +91,7 @@ static double BinomialProb(int n, int d, double e)
       double *newp;
 				/* Re-allocate */
       max = (int)((float)n*1.2 + 2048);
-      fprintf(stderr,"DP_COMPARE (BinomialProb): reallocing " F_SIZE_T " bytes\n",(max+1)*sizeof(double));
+      //fprintf(stderr,"DP_COMPARE (BinomialProb): reallocing " F_SIZE_T " bytes\n",(max+1)*sizeof(double));
       newp = (double *) realloc(LogTable,(max+1)*sizeof(double));
       if (newp == NULL) return (-1.);
 
@@ -166,8 +166,7 @@ static int Space_n_Tables(int max, double erate, double thresh)
 	max  = (int)(1.2*max);
         max  = ((max + 2048)/WordSize + 1)*WordSize;
 	BinomialProb(2*max,1,.1);
-        fprintf(stderr,"DP_COMPARE (Space_n_Tables): reallocing " F_SIZE_T " bytes\n",(2*max+2)*sizeof(int)+
-                                                                              (max+1)*sizeof(float));
+        //fprintf(stderr,"DP_COMPARE (Space_n_Tables): reallocing " F_SIZE_T " bytes\n",(2*max+2)*sizeof(int)+(max+1)*sizeof(float));
         newd = (int *) realloc(DistThresh,
                             (2*max+2)*sizeof(int) + (max+1)*sizeof(float));
         if (newd == NULL) return (1);
@@ -276,7 +275,7 @@ int *AS_ALN_OKNAlign(char *a, int alen, char *b, int blen, int *spnt, int diff)
 
       max = (int)(1.2*diff) + 50;
       del = (max+5)*(max+1);
-      fprintf(stderr,"DP_COMPARE (AS_ALN_OKNAlign): reallocing " F_SIZE_T " bytes\n",del*sizeof(int)+(max+1)*sizeof(int));
+      //fprintf(stderr,"DP_COMPARE (AS_ALN_OKNAlign): reallocing " F_SIZE_T " bytes\n",del*sizeof(int)+(max+1)*sizeof(int));
       newp = (int *) realloc(Wave,del*sizeof(int) + (max+1)*sizeof(int));
       if (newp == NULL) return (NULL);
       Wtop = max-1;
