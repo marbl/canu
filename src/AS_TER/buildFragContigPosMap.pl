@@ -23,6 +23,7 @@ open(CTGLEN, "> $prefix.ctglen");
 open(CTGSCF, "> $prefix.ctgscf");
 open(SCFLEN, "> $prefix.scflen");
 open(FRGSCF, "> $prefix.frgscf");
+open(FRGSURR, "> $prefix.frgsurr");
 
 
 sub readMultiLineDot {
@@ -43,6 +44,7 @@ sub skipRecord {
 }
 
 my %contigLength;
+my %surrFrags;
 
 my $numCCO = 0;
 my $numSCF = 0;
@@ -71,15 +73,51 @@ while (!eof(STDIN)) {
         my $for = <STDIN>;
         my $nfr = <STDIN>;
 
+        if ($acc =~ m/acc:\((\d+),(\d+)\)/) {
+            $acc= $1;
+        } else {
+            die "Failed to find acc in $acc\n";
+        }
         #  Read and ignore MPS records
 
         my $tag = <STDIN>;
         while ($tag =~ m/\{MPS/) {
-            skipRecord();
-            $tag = <STDIN>;  chomp $tag;
-        }
+            if ( $sta eq "sta:S\n" ) {
+                my $typ = <STDIN>;  chomp $typ;
+                my $mid = <STDIN>;  chomp $mid;
+                my $src = readMultiLineDot();
+                my $pos = <STDIN>;  chomp $pos;
+                my $dln = <STDIN>;  chomp $dln;
+                my $del = <STDIN>;  chomp $del;
+                my $jnk = <STDIN>;  chomp $jnk;  #  closing bracket
 
+#  If there are del's read them too -- we could read in $dln integers, but we could
+#  also just skip the rest of the message!  Some del's are multiple lines!
+#
+                    chomp $jnk;
+                if ($jnk ne "}") {
+                    skipRecord();
+                }
+
+                if ($mid =~ m/mid:(\d+)$/) {
+                    $mid = $1;
+                    $surrFrags{ $acc }{ $mid } = 1;
+                } else {
+                    die "Failed to find mid in $mid\n";
+                }
+
+                $tag = <STDIN>;  chomp $tag;
+
+                if (($tag ne "{MPS") && ($tag ne "}")) {
+                    die "Incorrect end tag $tag in MPS\n";
+                }
+            } else {
+                skipRecord();
+                $tag = <STDIN>;  chomp $tag;
+            }
+        }
         next;
+
     } elsif ($tag eq "{CCO") {
         $numCCO++;
 
@@ -180,8 +218,39 @@ while (!eof(STDIN)) {
         #  Handle UPS's
 
         while ($tag =~ m/\{UPS/) {
-            skipRecord();
+
+            my $typ = <STDIN>;  chomp $typ;
+            my $lid = <STDIN>;  chomp $lid;
+            my $pos = <STDIN>;  chomp $pos;
+            my $dln = <STDIN>;  chomp $dln;
+            my $del = <STDIN>;  chomp $del;
+            my $jnk = <STDIN>;  chomp $jnk;  #  closing bracket
+
+#  If there are del's read them too -- we could read in $dln integers, but we could
+#  also just skip the rest of the message!  Some del's are multiple lines!
+#
+            if ($jnk ne "}") {
+                skipRecord();
+            }
+
+            if ($lid =~ m/lid:(\d+)$/) {
+                $lid = $1;
+            } else {
+                die "Failed to find lid in $lid\n";
+            }
+
             $tag = <STDIN>;  chomp $tag;
+
+            if (($tag ne "{UPS") && ($tag ne "}")) {
+                die "Incorrect end tag $tag in MPS\n";
+            }
+            if (exists $surrFrags{ $lid }) {
+                #$ctgWithSurr{ $acc }{ $lid } = 1;
+                # Could build to scafs myself, but join FRGSURR CTGSCF will do 
+                foreach my $frag (keys %{$surrFrags{$lid}}) {
+                    print FRGSURR "$frag $lid $acc\n";
+                }
+            }
         }
 
         die "End of CCO, got '$tag'\n", if (($tag ne "") && ($tag ne "}"));
@@ -336,11 +405,13 @@ while (!eof(STDIN)) {
 }
 
 
+close(FRGSURR);
 close(FRGCTG);
 close(CTGLEN);
 close(CTGSCF);
 close(SCFLEN);
 
+undef %surrFrags;
 #
 #  frag onto scaffold mapping
 #
@@ -359,6 +430,10 @@ while(<CTGSCF>){
     $ctgScfRv{$w[0]}  = $w[4];
 }
 close(CTGSCF);
+# could do stuff to get surrogate frags by scaffold, but join works to
+#    join -1 3 -2 1 -o '1.1 1.2 1.3 2.2' asm.frgsurr asm.ctgscf
+system "join -1 3 -2 1 -o '1.1 1.2 1.3 2.2' $prefix.frgsurr $prefix.ctgscf > $prefix.surrscf";
+
 
 open(FRGCTG, "< $prefix.frgctg");
 while(<FRGCTG>){
