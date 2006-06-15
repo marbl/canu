@@ -808,9 +808,6 @@ interval_list *cleanup_ilist(interval_list *list){
   // trace through the list, deleting as we go
   while(list!=NULL){
     link = (fromTail ? list->prev : list->next);
-    //  munge the memory
-    list->prev = 0x87654321;
-    list->next = 0x12345678;
     free(list);
     list=link;
   }
