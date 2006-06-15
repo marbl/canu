@@ -86,8 +86,6 @@ main(int argc, char **argv) {
 
   GlobalData            = CreateGlobal_CGW();
   GlobalData->stderrc   = stderr;
-  GlobalData->stderro   = stderr;
-  GlobalData->stderrfp  = stderr;
 
   strcpy(GlobalData->File_Name_Prefix,      ckptFileName);
   strcpy(GlobalData->Frag_Store_Name,       frgStoreName);
