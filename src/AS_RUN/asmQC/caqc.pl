@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl
 
-# $Id: caqc.pl,v 1.4 2006-05-24 17:28:50 eliv Exp $
+# $Id: caqc.pl,v 1.5 2006-06-19 18:13:30 eliv Exp $
 #
 # This program reads a Celera .asm file and produces aggregate information
 # about the assembly
@@ -18,7 +18,7 @@ use TIGR::AsmLib;
 
 use Time::HiRes;
 
-my $MY_VERSION = " Version 2.11 (Build " . (qw/$Revision: 1.4 $/ )[1] . ")";
+my $MY_VERSION = " Version 2.11 (Build " . (qw/$Revision: 1.5 $/ )[1] . ")";
 
 # Constants
 my $MINQUAL = 20;
@@ -879,7 +879,7 @@ sub printp($$$$)
 {
     my ($tag,$rh_value,$rfh,$tot) = @_;
     
-    my $val = sprintf "%s(%.1d%%)", $$rh_value{$tag}, $$rh_value{$tag}/$tot*100;
+    my $val = sprintf "%s(%.2f%%)", $$rh_value{$tag}, $$rh_value{$tag}/$tot*100;
     printf("%-32s%-10s\n", $tag, $val) if (! $silent); 
     $rfh->print("$tag=$val\n");   
 }
