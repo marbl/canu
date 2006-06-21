@@ -7,7 +7,6 @@
 #include <string.h>
 #include <fcntl.h>
 
-
 //
 //  N.B. any read/write pair (either way) must have a seek (or a fflush) in between.
 //
@@ -45,7 +44,6 @@ bitPackedFile::bitPackedFile(char const *name, u64bit offset) {
     exit(1);
   }
 
-  _bfrmax = 4096;
   _bfrmax = 1048576 / 8;
   _bfr    = new u64bit [_bfrmax];
   _pos    = u64bitZERO;
@@ -127,46 +125,46 @@ bitPackedFile::~bitPackedFile() {
 void
 bitPackedFile::flushDirty(void) {
 
-  if (_bfrDirty) {
-    stat_dirtyFlushes++;
+  if (_bfrDirty == false)
+    return;
 
-    errno = 0;
-    lseek(_file, _pos * sizeof(u64bit) + endianess_offset, SEEK_SET);
-    if (errno) {
-      fprintf(stderr, "bitPackedFile::seek() failed: %s\n", strerror(errno));
-      exit(1);
-    }
+  stat_dirtyFlushes++;
 
-    //  We should only write bits up to _bit, the position we are
-    //  currently at.  However, we don't know if the block is being
-    //  flushed because we're totally finished with it, or because we
-    //  are moving on to the next block.  If we're done with it, we
-    //  want to flush the word that contains _bit, and if we're moving
-    //  on to the next one, we'll flush that word again.  So, in
-    //  either case, we flush the word that contains _bit.
-    //
-
-    //  If we need to , flip all the words we are going to write
-    //
-    if (endianess_flipped)
-      for (u32bit i=0; i<_bfrmax; i++)
-        _bfr[i] = u64bitSwap(_bfr[i]);
-
-    errno = 0;
-    write(_file, _bfr, sizeof(u64bit) * _bfrmax);
-    if (errno) {
-      fprintf(stderr, "bitPackedFile::write() failed: %s\n", strerror(errno));
-      exit(1);
-    }
-
-    //  And then flip them back
-    //
-    if (endianess_flipped)
-      for (u32bit i=0; i<_bfrmax; i++)
-        _bfr[i] = u64bitSwap(_bfr[i]);
-
-    _bfrDirty = false;
+  errno = 0;
+  lseek(_file, _pos * sizeof(u64bit) + endianess_offset, SEEK_SET);
+  if (errno) {
+    fprintf(stderr, "bitPackedFile::seek() failed: %s\n", strerror(errno));
+    exit(1);
   }
+
+  //  If we need to, flip all the words we are going to write
+  //
+  if (endianess_flipped)
+    for (u32bit i=0; i<_bfrmax; i++)
+      _bfr[i] = u64bitSwap(_bfr[i]);
+
+  //  We should only write bits up to _bit, the position we are
+  //  currently at.  However, we don't know if the block is being
+  //  flushed because we're totally finished with it, or because we
+  //  are moving on to the next block.  If we're done with it, we
+  //  want to flush the word that contains _bit, and if we're moving
+  //  on to the next one, we'll flush that word again.  So, in
+  //  either case, we flush the word that contains _bit.
+  //
+  errno = 0;
+  write(_file, _bfr, sizeof(u64bit) * _bfrmax);
+  if (errno) {
+    fprintf(stderr, "bitPackedFile::write() failed: %s\n", strerror(errno));
+    exit(1);
+  }
+
+  //  And then flip them back
+  //
+  if (endianess_flipped)
+    for (u32bit i=0; i<_bfrmax; i++)
+      _bfr[i] = u64bitSwap(_bfr[i]);
+
+  _bfrDirty = false;
 }
 
 
@@ -224,14 +222,16 @@ bitPackedFile::seek(u64bit bitpos, bool forceLoad) {
   errno = 0;
   lseek(_file, _pos * 8 + endianess_offset, SEEK_SET);
   if (errno) {
-    fprintf(stderr, "bitPackedFile::seek() failed: %s\n", strerror(errno));
+    fprintf(stderr, "bitPackedFile::seek() pos="u64bitFMT" failed: %s\n",
+            _pos * 8 + endianess_offset, strerror(errno));
+    abort();
     exit(1);
   }
 
   errno = 0;
   size_t wordsread = read(_file, _bfr, sizeof(u64bit) * _bfrmax);
   if (errno) {
-    fprintf(stderr, "bitPackedFile::bitPackedFile got %s\n", strerror(errno));
+    fprintf(stderr, "bitPackedFile::bitPackedFile read failed: %s\n", strerror(errno));
     exit(1);
   }
 
@@ -248,41 +248,4 @@ bitPackedFile::seek(u64bit bitpos, bool forceLoad) {
     _bfr[wordsread++] = u64bitZERO;
 
   //fprintf(stderr, "SEEK OUTSIDE to _pos="u64bitFMT" _bit="u64bitFMT"\n", _pos, _bit);
-}
-
-
-
-
-u64bit
-bitPackedFile::getBits(u32bit siz) {
-  sync();
-  u64bit ret = getDecodedValue(_bfr, _bit, siz);
-  _bit += siz;
-  return(ret);
-}
-
-void
-bitPackedFile::putBits(u64bit bits, u32bit siz) {
-  sync();
-  setDecodedValue(_bfr, _bit, siz, bits);
-  _bit += siz;
-  _bfrDirty = true;
-}
-
-u64bit
-bitPackedFile::getNumber(void) {
-  sync();
-  u64bit siz = 0;
-  u64bit ret = getFibonacciEncodedNumber(_bfr, _bit, &siz);
-  _bit += siz;
-  return(ret);
-}
-
-void
-bitPackedFile::putNumber(u64bit val) {
-  sync();
-  u64bit siz = 0;
-  setFibonacciEncodedNumber(_bfr, _bit, &siz, val);
-  _bit += siz;
-  _bfrDirty = true;
 }

@@ -1,19 +1,18 @@
 #ifndef BITPACKEDFILE_H
 #define BITPACKEDFILE_H
 
-////////////////////////////////////////
-//
-//  bitPackedFile
-//
+
 class bitPackedFile {
 public:
   bitPackedFile(char const *name, u64bit offset=0);
   ~bitPackedFile();
 
   u64bit     getBits(u32bit size);
+  u64bit     getBits(u64bit pos, u32bit size);
   u64bit     getNumber(void);
 
   void       putBits(u64bit bits, u32bit size);
+  void       putBits(u64bit pos, u64bit bits, u32bit size);
   void       putNumber(u64bit val);
 
   void       seek(u64bit pos, bool forceLoad=false);
@@ -25,16 +24,13 @@ public:
 private:
 
   //  Ensure that the buffer has enough space for any future
-  //  operation.  If the buffer doesn't have 128 bits free (2 words
-  //  currently) flush it (if dirty) and read in a new page.  128 was
-  //  chosen because the fibonacci encoded numbers use up to 90-some
-  //  bits.
+  //  operation.
+  //
+  //  This constant, currently 31 bytes, must be strictly less than
+  //  the constant used in deciding if seek() is moving forward or
+  //  backwards.
   //
   void       sync(void) {
-
-    //  This constant must be strictly less than the constant used in deciding
-    //  if seek() is moving forward or backwards.
-    //
     if (((_bit >> 6) + 31) >= _bfrmax)
       seek((_pos << 6) + _bit, true);
   };
@@ -65,6 +61,64 @@ private:
   u64bit  endianess_offset;
   bool    endianess_flipped;
 };
+
+
+inline
+u64bit
+bitPackedFile::getBits(u32bit siz) {
+  sync();
+  u64bit ret = getDecodedValue(_bfr, _bit, siz);
+  _bit += siz;
+  return(ret);
+}
+
+inline
+void
+bitPackedFile::putBits(u64bit bits, u32bit siz) {
+  sync();
+  setDecodedValue(_bfr, _bit, siz, bits);
+  _bit += siz;
+  _bfrDirty = true;
+}
+
+
+inline
+u64bit
+bitPackedFile::getBits(u64bit pos, u32bit siz) {
+  seek(pos);
+  u64bit ret = getDecodedValue(_bfr, _bit, siz);
+  return(ret);
+}
+
+inline
+void
+bitPackedFile::putBits(u64bit pos, u64bit bits, u32bit siz) {
+  seek(pos);
+  setDecodedValue(_bfr, _bit, siz, bits);
+  _bfrDirty = true;
+}
+
+
+
+inline
+u64bit
+bitPackedFile::getNumber(void) {
+  sync();
+  u64bit siz = 0;
+  u64bit ret = getFibonacciEncodedNumber(_bfr, _bit, &siz);
+  _bit += siz;
+  return(ret);
+}
+
+inline
+void
+bitPackedFile::putNumber(u64bit val) {
+  sync();
+  u64bit siz = 0;
+  setFibonacciEncodedNumber(_bfr, _bit, &siz, val);
+  _bit += siz;
+  _bfrDirty = true;
+}
 
 
 #endif  //  BITPACKEDFILE_H
