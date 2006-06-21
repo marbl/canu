@@ -23,7 +23,7 @@
 #define MT_LOWER_MASK 0x7fffffffUL /* least significant r bits */
 
 
-struct mt {
+struct mtctx {
   //  The array for the state vector
   //
   u32bit  mt[MT_N];

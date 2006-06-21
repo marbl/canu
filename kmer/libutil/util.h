@@ -346,7 +346,7 @@ void              md5_increment_destroy(md5_increment_s *m);
 //  Matsumoto and Nichimura's Mersenne Twister pseudo random number
 //  generator.  The struct and functions are defined in external/mt19937ar.[ch]
 //
-typedef struct mt mt_s;
+typedef struct mtctx mt_s;
 
 mt_s          *mtInit(u32bit s);
 mt_s          *mtInitArray(u32bit *init_key, u32bit key_length);
