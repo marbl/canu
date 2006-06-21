@@ -38,11 +38,132 @@ private:
   u32bit   _valueWidth;
   u32bit   _segmentSize;
   u64bit   _nextElement;  //  the first invalid element
-  u32bit   _valuesPerSegment;
+  u64bit   _valuesPerSegment;
 
   u32bit   _numSegments;
   u32bit   _maxSegments;
   u64bit **_segments;
 };
 
+
+//  An array of bits.  Exactly the same as the bitPackedArray, but
+//  optimized for width=1.
+//
+class bitArray {
+public:
+
+  bitArray(u32bit segmentSize = 1024);
+  ~bitArray();
+
+  u64bit   get(u64bit idx);
+
+  u64bit   getAndSet(u64bit idx);
+
+  void     set(u64bit idx);
+  void     clr(u64bit idx);
+
+  void     clear(void);
+
+private:
+  void     resize(u64bit s);
+
+  u32bit   _segmentSize;
+  u64bit   _valuesPerSegment;
+
+  u32bit   _numSegments;
+  u32bit   _maxSegments;
+  u64bit **_segments;
+};
+
+
+
+
+
+
+inline
+u64bit
+bitArray::get(u64bit idx) {
+  u64bit s = idx / _valuesPerSegment;
+  u64bit p = idx % _valuesPerSegment;
+
+  u64bit wrd = (p >> 6) & 0x0000cfffffffffffllu;
+  u64bit bit = (p     ) & 0x000000000000003fllu;
+
+  return((_segments[s][wrd] >> bit) & 0x0000000000000001llu);
+}
+
+
+inline
+void
+bitArray::resize(u64bit s) {
+
+  if (s < _numSegments)
+    return;
+
+  if (s > _maxSegments) {
+    _maxSegments = s + 16;
+    u64bit **S = new u64bit * [_maxSegments];
+    for (u32bit i=0; i<_numSegments; i++)
+      S[i] = _segments[i];
+    delete [] _segments;
+    _segments = S;
+  }
+
+  while (_numSegments <= s)
+    _segments[_numSegments++] = new u64bit [_segmentSize * 1024 / 8];
+}
+
+
+inline
+u64bit
+bitArray::getAndSet(u64bit idx) {
+  u64bit s = idx / _valuesPerSegment;
+  u64bit p = idx % _valuesPerSegment;
+
+  u64bit wrd = (p >> 6) & 0x0000cfffffffffffllu;
+  u64bit bit = (p     ) & 0x000000000000003fllu;
+
+  u64bit ret = (_segments[s][wrd] >> bit) & 0x0000000000000001llu;
+  
+  _segments[s][wrd] |= u64bitONE << bit;
+
+  return(ret);
+}
+
+
+inline
+void
+bitArray::set(u64bit idx) {
+  u64bit s = idx / _valuesPerSegment;
+  u64bit p = idx % _valuesPerSegment;
+
+  resize(s);
+
+  u64bit wrd = (p >> 6) & 0x0000cfffffffffffllu;
+  u64bit bit = (p     ) & 0x000000000000003fllu;
+
+  _segments[s][wrd] |= u64bitONE << bit;
+}
+
+
+inline
+void
+bitArray::clr(u64bit idx) {
+  u64bit s = idx / _valuesPerSegment;
+  u64bit p = idx % _valuesPerSegment;
+
+  resize(s);
+
+  u64bit wrd = (p >> 6) & 0x0000cfffffffffffllu;
+  u64bit bit = (p     ) & 0x000000000000003fllu;
+
+  _segments[s][wrd] &= ~(0x0000000000000001llu << bit);
+}
+
+
+
+
+
 #endif  // BITPACKEDARRAY_H
+
+
