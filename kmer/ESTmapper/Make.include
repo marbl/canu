@@ -15,7 +15,6 @@ CP=cp -p
 RM=rm -f
 
 EXECS :=  $/leaff \
-          $/sim4db \
           $/sim4th \
           $/seagen \
           $/filterEST \
@@ -61,11 +60,6 @@ $/leaff: ${LEAFF/}leaff
 	$(RM) $/leaff
 	$(CP) ${LEAFF/}leaff $/leaff
 	chmod 555 $/leaff
-
-$/sim4db: ${SIM4DB/}sim4db
-	$(RM) $/sim4db
-	$(CP) ${SIM4DB/}sim4db $/sim4db
-	chmod 555 $/sim4db
 
 $/sim4th: ${SIM4DB/}sim4th
 	$(RM) $/sim4th
