@@ -150,7 +150,7 @@ readBuffer::seek(off_t pos) {
       fillBuffer();
       break;
     case 2:
-      if (pos < _bufferLen) {
+      if (pos < (off_t)_bufferLen) {
         _bufferPos = pos;
         _eof       = false;
       } else {
@@ -214,7 +214,7 @@ readBuffer::read(char *buf, size_t len) {
         bAct = (u32bit)::read(_file, buf + bCopied + bRead, (len - bCopied - bRead) * sizeof(char));
         if (errno) {
           fprintf(stderr, "readBuffer()-- couldn't read %d bytes from '%s': n%s\n",
-                  len * sizeof(char), _filename, strerror(errno));
+                  (u32bit)len * sizeof(char), _filename, strerror(errno));
           exit(1);
         }
 
