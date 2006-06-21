@@ -42,6 +42,13 @@ class kMer {
 public:
   inline
   void    setMerSize(u32bit ms);
+  u32bit  getMerSize(void) { return(_merSize); };
+
+#ifdef __GNU_MP__
+  void    setMPZ(mpz_t m) {
+    mpz_import(m, KMER_WORDS, 1, 8, 0, 0, _wd);
+  };
+#endif
 
 public:
   //  If constructed using the default mersize of zero, you'll get a
