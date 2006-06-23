@@ -23,7 +23,7 @@ cc -g -pg -qfullpath   -qstrict -qbitfields=signed -qchars=signed -qlanglvl=ext 
 -o /work/assembly/rbolanos/IBM_PORT_CDS/ibm_migration_work_dir/cds/AS/obj/GraphCGW_T.o GraphCGW_T.c
 */
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.18 2006-06-14 19:57:22 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.19 2006-06-23 14:35:28 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -3908,6 +3908,11 @@ void ComputeMatePairDetailedStatus() {
         continue;
       }
       mate = GetCIFragT(ScaffoldGraph->CIFrags,frag->mateOf);
+      if (mate == NULL) {
+        numNoMate++;
+        frag->flags.bits.mateDetail = NO_MATE;
+        continue;
+      }
       if ( mate->mateOf != (CDS_CID_t)mp->sourceInt) {
           assert(0);
       }
