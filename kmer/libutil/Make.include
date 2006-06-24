@@ -8,6 +8,8 @@ src    := $/util++.H \
           $/util.h \
           $/bigQueue.H \
           $/bigQueue.C \
+          $/bzipBuffer.H \
+          $/bzipBuffer.C \
           $/sweatShop.H \
           $/sweatShop.C \
           $/time.C \
@@ -16,6 +18,7 @@ src    := $/util++.H \
           $/md5.c \
           $/memory.c \
           $/palloc.c \
+          $/readBuffer.H \
           $/readBuffer.C \
           $/stat.c \
           $/bitOperations.h \
