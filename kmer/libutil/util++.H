@@ -31,6 +31,7 @@
 //  Now the good stuff!
 //
 #include "speedCounter.H"
+#include "bzipBuffer.H"
 #include "readBuffer.H"
 #include "splitToWords.H"
 #include "bitPackedArray.H"
