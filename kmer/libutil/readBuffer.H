@@ -31,9 +31,7 @@ private:
 
   int      _file;
   int      _fileType;  //  0=stdin, 1=normal, 2=mmap
-#ifdef __APPLE__
-  int      _pad1;
-#endif
+
   off_t    _filePos;
 
   bool     _eof;
@@ -45,9 +43,6 @@ private:
   size_t   _bufferLen;
   size_t   _bufferMax;
   char    *_buffer;
-#ifdef __APPLE__
-  int      _pad2;
-#endif
 };
 
 
