@@ -13,32 +13,84 @@
 //
 //  Takes no options, reads from stdin, writes to stdout.
 
+void
+usage(char *name) {
+  fprintf(stderr, "usage: %s [-mask in.fasta] [-cov dat] < sim4db-results\n", name);
+  fprintf(stderr, "       -mask    Read sequences from in.fasta, lower-case mask\n");
+  fprintf(stderr, "                any base with an alignment, write to out.fasta\n");
+  fprintf(stderr, "       -cov     Write coverage statistics to 'dat' instead of stdout\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Output on stdout is the masked sequence if -mask is specified,\n");
+  fprintf(stderr, "otherwise, it is the coverage statistics.\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "-mask is almost a required option - we need it to get the length.\n");
+  fprintf(stderr, "of sequences with no mapping (100%% uncovered) and to get the\n");
+  fprintf(stderr, "number of sequences.\n");
+  fprintf(stderr, "\n");
+
+  if (isatty(fileno(stdin)))
+    fprintf(stderr, "error: I cannot read polishes from the terminal!\n\n");
+}
+
+
 int
 main(int argc, char **argv) {
-  sim4polish     *p;
-  u32bit          covMax = 8 * 1024 * 1024;
-  intervalList  **cov    = new intervalList * [covMax];
-  u32bit         *len    = new u32bit [covMax];
+  sim4polish           *p      = 0L;
+  u32bit                covMax = 0;
+  intervalList        **cov    = 0L;
+  u32bit               *len    = 0L;
 
+  char                 *fastaname = 0L;
+  char                 *covname   = 0L;
 
-  for (u32bit i=0; i<covMax; i++)
-    cov[i] = 0L;
+  FastAWrapper         *F = 0L;
+  FastASequenceInCore  *S = 0L;
 
+  FILE                 *C = stdout;
 
-  if (isatty(fileno(stdin))) {
-    fprintf(stderr, "usage: %s < file > file\n", argv[0]);
+  if (isatty(fileno(stdin)))
+    usage(argv[0]), exit(1);
 
-    if (isatty(fileno(stdin)))
-      fprintf(stderr, "error: I cannot read polishes from the terminal!\n\n");
+  int arg=1;
+  while (arg < argc) {
+    if        (strcmp(argv[arg], "-mask") == 0) {
+      fastaname = argv[++arg];
+    } else if (strcmp(argv[arg], "-cov") == 0) {
+      covname   = argv[++arg];
+    } else {
+      fprintf(stderr, "unknown arg: '%s'\n", argv[arg]);
+    }
+    arg++;
+  }
 
-    exit(1);
+  if (fastaname) {
+    C = 0L;
+    F = new FastAWrapper(fastaname);
+    F->openIndex();
+  }
+
+  if (covname) {
+    errno = 0;
+    C     = fopen(covname, "w");
+    if (errno)
+      fprintf(stderr, "Failed to open '%s' for write: %s\n", covname, strerror(errno)), exit(1);
   }
 
 
+  covMax = F->getNumberOfSequences();
+  cov    = new intervalList * [covMax];
+  len    = new u32bit [covMax];
+
+  fprintf(stderr, "Found "u32bitFMT" sequences in the input file.\n", covMax);
+
+  for (u32bit i=0; i<covMax; i++) {
+    cov[i] = 0L;
+    len[i] = 0;
+  }
 
   while ((p = s4p_readPolish(stdin)) != 0L) {
     if (p->estID > covMax)
-      fprintf(stderr, "DIE!  I should make my space bigger.\n"), exit(1);
+      fprintf(stderr, "DIE!  You have more sequences in your polishes than in your source!\n"), exit(1);
 
     if (cov[p->estID] == 0L) {
       cov[p->estID] = new intervalList;
@@ -46,7 +98,7 @@ main(int argc, char **argv) {
     }
 
     for (u32bit e=0; e<p->numExons; e++)
-      cov[p->estID]->add(p->exons[e].estFrom, p->exons[e].estTo - p->exons[e].estFrom + 1);
+      cov[p->estID]->add(p->exons[e].estFrom - 1, p->exons[e].estTo - p->exons[e].estFrom + 1);
 
     s4p_destroyPolish(p);
   }
@@ -54,19 +106,72 @@ main(int argc, char **argv) {
 
   //  Scan the list of intervalLists, compute the amount covered, print.
   //
-  for (u32bit i=0; i<covMax; i++) {
-    if (cov[i]) {
-      u32bit  numRegions = cov[i]->numberOfIntervals();
-      u32bit  sumLengths = cov[i]->sumOfLengths();
+  for (u32bit iid=0; iid<covMax; iid++) {
 
-      cov[i]->merge();
+    //  Argh!  If there are no intervals, we need to report the whole
+    //  sequence is uncovered!
 
-      fprintf(stdout, u32bitFMT"\t"u32bitFMT"\t%5.3f\t"u32bitFMT"\t"u32bitFMT"\n",
-              i,
-              len[i],
-              cov[i]->sumOfLengths() / (double)len[i],
+    u32bit  numRegions  = 0;
+    u32bit  sumLengths  = 0;
+    u32bit  l, h;
+
+    //  Save the number of regions and the sum of their lengths,
+    //  then merge regions
+    //
+    if (cov[iid]) {
+      numRegions = cov[iid]->numberOfIntervals();
+      sumLengths = cov[iid]->sumOfLengths();
+      cov[iid]->merge();
+    }
+
+
+    if (F) {
+      F->find(iid);
+      S = F->getSequence();
+
+      if (len[iid] == 0)
+        len[iid] = S->sequenceLength();
+
+      assert(len[iid] == S->sequenceLength());
+
+      char   *seq = new char [len[iid] + 1];
+      strcpy(seq, S->sequence());
+
+      for (u32bit p=0; p<len[iid]; p++)
+        seq[p] = toUpper[seq[p]];
+
+      if (cov[iid]) {
+        for (u32bit c=0; c<cov[iid]->numberOfIntervals(); c++) {
+          l = cov[iid]->lo(c);
+          h = cov[iid]->hi(c);
+
+          assert(h <= len[iid]);
+
+          for (u32bit p=l; p<h; p++)
+            //seq[p] = toLower[seq[p]];
+            seq[p] = 'N';
+        }
+      }
+
+      fprintf(stdout, "%s\n%s\n", S->header(), seq);
+
+      delete [] seq;
+      delete    S;
+    }
+
+    if (C) {
+      double  percentCovered = 0.00;
+
+      if (cov[iid])
+        percentCovered = cov[iid]->sumOfLengths() / (double)len[iid];
+
+      fprintf(C, u32bitFMT"\t"u32bitFMT"\t%5.3f\t"u32bitFMT"\t"u32bitFMT"\n",
+              iid,
+              len[iid],
+              percentCovered,
               numRegions,
               sumLengths);
     }
   }
 }
+
