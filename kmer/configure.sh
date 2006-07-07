@@ -481,8 +481,8 @@ CLD               := \${CC}
 CXXLD             := \${CXX}
 CCDEP		  := gcc -MM -MG
 CXXDEP	          := g++ -MM -MG
-CLIBS             += -lm
-CXXLIBS           += -lm
+CLIBS             += -lm -lbz2
+CXXLIBS           += -lm -lbz2
 EOF
 
 cat Make.compilers
