@@ -30,6 +30,7 @@ $(eval $(call Include,$/sim4db/))
 $(eval $(call Include,$/snapper/))
 
 $(eval $(call Include,$/mst/))
+$(eval $(call Include,$/bigmeroverlaps/))
 
 $(eval $(call Include,${LIBSIM4/}))
 $(eval $(call Include,${LIBKMER/}))
