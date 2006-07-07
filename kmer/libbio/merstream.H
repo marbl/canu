@@ -46,6 +46,12 @@ public:
 
   kMer const &           theFMer(void)        { return(*_fMerP); };
   kMer const &           theRMer(void)        { return(*_rMerP); };
+  kMer const &           theCMer(void)        {
+    if (_fMerP < _rMerP)
+      return(*_fMerP);
+    else
+      return(*_rMerP);
+  };
 
   bool                   nextMer(u32bit skip=0);
   bool                   rewind(void);
