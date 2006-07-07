@@ -40,8 +40,8 @@ private:
   u64bit   _nextElement;  //  the first invalid element
   u64bit   _valuesPerSegment;
 
-  u32bit   _numSegments;
-  u32bit   _maxSegments;
+  u64bit   _numSegments;
+  u64bit   _maxSegments;
   u64bit **_segments;
 };
 
@@ -70,8 +70,8 @@ private:
   u32bit   _segmentSize;
   u64bit   _valuesPerSegment;
 
-  u32bit   _numSegments;
-  u32bit   _maxSegments;
+  u64bit   _numSegments;
+  u64bit   _maxSegments;
   u64bit **_segments;
 };
 
