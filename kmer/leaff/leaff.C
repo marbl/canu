@@ -55,7 +55,11 @@ const char *usage =
 "\n"
 "SEQUENCE SELECTION (no index needed)\n"
 "       -L s l:      print all sequences such that s <= length < l\n"
-"       -G n s l:    print n random sequences of length 0 < s <= length <= l)\n"
+"       -N l h:      print all sequences such that l <= % N composition < h\n"
+"                      (NOTE 0.0 <= l < h < 100.0)\n"
+"                      (NOTE that you cannot print sequences with 100% N\n"
+"                       This is a useful bug).\n"
+"       -G n s l:    print n randomly generated sequences, 0 < s <= length <= l\n"
 "       -W:          print all sequences (do the whole file)\n"
 "\n"
 "SEQUENCE SELECTION (index needed)\n"
@@ -394,13 +398,34 @@ printIID(u32bit iid, FastASequenceInCore *s=0L) {
 void
 printSequenceBetweenSize(u32bit small, u32bit large) {
 
-  //  XXX: could be faster (maybe) with an index
+  //  XXX: Would probably be faster if we used the index
 
   while (!fasta->eof()) {
     FastASequenceInCore *s = loadSequence(fasta);
 
-    if ((small <= s->sequenceLength()) &&
-        (s->sequenceLength() < large))
+    if ((small <= s->sequenceLength()) && (s->sequenceLength() < large))
+      printIID(0, s);
+
+    delete s;
+  }
+}
+
+void
+printSequenceBetweenNComposition(double small, double large) {
+
+  while (!fasta->eof()) {
+    FastASequenceInCore *s = loadSequence(fasta);
+
+    u32bit   Ns  = 0;
+    u32bit   len = s->sequenceLength();
+    char    *seq = s->sequence();
+    for (u32bit i=0; i<len; i++)
+      if ((seq[i] == 'n') || (seq[i] == 'N'))
+        Ns++;
+
+    double Np = 100.0 * Ns / len;
+
+    if ((small <= Np) && (Np < large))
       printIID(0, s);
 
     delete s;
@@ -1092,9 +1117,6 @@ processArray(int argc, char **argv) {
       int    C = strtou32bit(argv[++arg], 0L);  //  number of mutations per copy
       double P = atof(argv[++arg]);             //  probability of mutation
       
-      //  hacking to get rid of 'mode' in simseq (and driver and here)
-      //  hacking to load seq
-
       FastASequenceInCore *S = fasta->getSequence();
       while (S) {
         char   *seq = S->sequence();
@@ -1159,6 +1181,12 @@ processArray(int argc, char **argv) {
           failIfNoSource();
           printSequenceBetweenSize(strtou32bit(argv[arg+1], 0L),
                                    strtou32bit(argv[arg+2], 0L));
+          arg += 2;
+          break;
+        case 'N':
+          failIfNoSource();
+          printSequenceBetweenNComposition(atof(argv[arg+1]),
+                                           atof(argv[arg+2]));
           arg += 2;
           break;
         case 'W':
