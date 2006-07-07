@@ -1,11 +1,11 @@
 #ifndef THR_H
 #define THR_H
 
-
 #include "posix.H"
 #include "snapper2.H"
 #include "bio++.H"
 #include "sim4.H"
+
 
 //  If you really, really, really want to know the exact number
 //  of bases left in the query, use the interval list.  Otherwise,
@@ -13,27 +13,36 @@
 //
 //#define USEEXACTSIZE
 
+
+//  A meta-option.  Enable all the good stuff.  Or not, I guess.
+//
+#if 0
+
 //  Define this to print a message for each search, showing times and
 //  stats, unless it finished quicker than some minimum time.
 //
-//#define VERBOSE_SEARCH
-//#define VERBOSE_SEARCH_MINIMUM_TIME  1.0
+#define VERBOSE_SEARCH
+#define VERBOSE_SEARCH_MINIMUM_TIME  1.0
 
 //  Define this to print the number of hits (raw and filtered) for each
 //  sequence, unless it has fewer than some minimum number of raw hits.
 //
-//#define VERBOSE_FILTER
-//#define VERBOSE_FILTER_MINIMUM  10
+#define VERBOSE_FILTER
+#define VERBOSE_FILTER_MINIMUM  10
 
 //  Define this to print a message whenever a polish starts.
 //
-//#define SHOW_POLISHING
+#define SHOW_POLISHING
 
 //  Define these to show polishes that take a long time -- individual
 //  polishes, not all polishes for a single sequence.  The time is in
 //  seconds.
 //
-//#define SHOW_POLISHING_EXPENSIVE  0.5
+#define SHOW_POLISHING_EXPENSIVE  0.5
+
+//  Define this to show the exon discarding and match splitting.
+//
+#define SHOW_MATCH_SPLITTING
 
 //  Define this to create a bazillion files that contain information
 //  about the signal for each match.  One file per query sequence.
@@ -44,13 +53,16 @@
 //  that look like they are repeats are re-searched using nearly
 //  unique mers.
 //
-//#define SHOW_HIT_DISCARDING
+#define SHOW_HIT_DISCARDING
 
-//  Define this to show the hits being added to the sim4command from
+//  Define this to show the kmers being added to the sim4command from
 //  thr-polish.C.  This generates a lot of output!
 //
 //#define SHOW_HITS_ADDED
 //#define SHOW_HITS_ADDED_AFTER_QUERY   4600
+
+//  END OF GOOD STUFF!
+#endif
 
 
 class searcherState {
@@ -102,8 +114,6 @@ public:
 };
 
 
-
-
 void
 doSearch(searcherState       *state,
          FastASequenceInCore *seq,
@@ -114,15 +124,11 @@ doSearch(searcherState       *state,
          u32bit              &theHitsMax,
          logMsg              *theLog);
 
-
-
 u32bit
 doFilter(searcherState       *state,
          aHit               *&theHits,
          u32bit              &theHitsLen,
          logMsg              *theLog);
-
-
 
 char*
 doPolish(searcherState       *state,
@@ -130,8 +136,5 @@ doPolish(searcherState       *state,
          aHit               *&theHits,
          u32bit              &theHitsLen,
          logMsg              *theLog);
-
-
-
 
 #endif  //  THR_H
