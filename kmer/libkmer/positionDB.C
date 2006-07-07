@@ -71,7 +71,7 @@ positionDB::positionDB(merStream   *MS,
   //
   if (tblBits > 2 * merSize) {
     //fprintf(stderr, "positionDB::positionDB()--  WARNING!  tblBits="u32bitFMT" > merBits="u32bitFMT", reset tblBits to merBits-4\n", tblBits, 2*merSize);
-    tblBits = 2 * merSize - 4;            
+    tblBits = 2 * merSize - 4;
   }
 
   _merSizeInBases        = merSize;
@@ -157,16 +157,23 @@ positionDB::positionDB(merStream   *MS,
   }
   bool     bktAllocIsJunk = false;
 
-  for (u64bit i=_tableSizeInEntries / 2 + 2; i--; )
-    bktAlloc[i] = 0;
+  //  Who knows which one is better...we'll assume that, by now,
+  //  library writers know how to zero out memory pretty fast.
+  //
+#if 1
+  bzero(bktAlloc, sizeof(u64bit) * _tableSizeInEntries / 2 + 2);
+#else
+  for (u64bit i=0; i<_tableSizeInEntries / 2 + 2; i++)
+    bktAlloc[i] = u64bitZERO;
+#endif
 
   _bucketSizes = (u32bit *)(bktAlloc + 1);
 
 #ifdef ERROR_CHECK_COUNTING
   fprintf(stdout, "ERROR_CHECK_COUNTING is defined.\n");
   u32bit *_errbucketSizes = new u32bit [_tableSizeInEntries + 2];
-  for (u64bit i=_tableSizeInEntries + 2; i--; )
-    _errbucketSizes[i] = 0;
+  for (u64bit i=0; i<_tableSizeInEntries + 2; i++)
+    _errbucketSizes[i] = u32bitZERO;
 #endif
 
   if (beVerbose)
@@ -299,7 +306,11 @@ positionDB::positionDB(merStream   *MS,
     exit(1);
   }
 
-  for (u64bit i=bucketsSpace; i--; )
+  //  Maybe we should be using memset() here??  I'd hate to track down
+  //  that bug, though.
+  //
+  //bzero(_countingBuckets, sizeof(u64bit) * bucketsSpace);
+  for (u64bit i=0; i<bucketsSpace; i++)
     _countingBuckets[i] = ~u64bitZERO;
 
   for (u32bit i=0; i<_tableSizeInEntries; i++) {
@@ -463,10 +474,17 @@ positionDB::positionDB(merStream   *MS,
   //      also need to repack the sorted things
   //
   if (beVerbose)
-    fprintf(MSG_OUTPUT, "    Sorting and repacking buckets.\n");
+    fprintf(MSG_OUTPUT, "    Sorting and repacking buckets ("u64bitFMT" buckets).\n", _tableSizeInEntries);
 
-  for (u32bit i=0; i<_tableSizeInEntries; i++)
+  C = new speedCounter("    %7.2f Mbuckets -- %5.2f Mbuckets/second\r", 1000000.0, 0x1fffff, beVerbose);
+
+  for (u32bit i=0; i<_tableSizeInEntries; i++) {
     sortAndRepackBucket(i);
+    C->tick();
+  }
+
+  delete C;
+  C = 0L;
 
   if (beVerbose)
     fprintf(MSG_OUTPUT,
@@ -542,6 +560,11 @@ positionDB::positionDB(merStream   *MS,
       exit(1);
     }
     bktAllocIsJunk = true;
+
+    //  Optional bzero.  Was maybe useful in getting older redhat to
+    //  not page us out.
+    //
+    //bzero(_hashTable, sizeof(u64bit) * hs);
   }
 
 
@@ -561,7 +584,7 @@ positionDB::positionDB(merStream   *MS,
 
     _buckets = _countingBuckets;
 
-    bs = bucketsSpace; // for output at the end
+    bs = bucketsSpace;  // for output at the end
   } else {
     if (beVerbose)
       fprintf(MSG_OUTPUT, "    Allocated "u64bitFMTW(10)"KB for buckets    ("u64bitFMT" 64-bit words)\n", bs >> 7, bs);
@@ -573,6 +596,9 @@ positionDB::positionDB(merStream   *MS,
       fprintf(stderr, "positionDB::positionDB()-- _buckets = new u64bit ["u64bitFMT"]\n", bs);
       exit(1);
     }
+
+    //  Another optional bzero.  See the last one.
+    //bzero(_buckets, sizeof(u64bit) * bs);
   }
 
   if (beVerbose)
@@ -585,12 +611,15 @@ positionDB::positionDB(merStream   *MS,
     exit(1);
   }
 
+  //  Another optional bzero.  See the last last one.
+  //bzero(_positions, sizeof(u64bit) * ps);
+
   ////////////////////////////////////////////////////////////////////////////////
   //
   //  6)  Transfer from the sorted buckets to the hash table.
   //
   if (beVerbose)
-    fprintf(MSG_OUTPUT, "    Transferring to final structure.\n");
+    fprintf(MSG_OUTPUT, "    Transferring to final structure ("u64bitFMT" buckets).\n", _tableSizeInEntries);
 
   u64bit   bucketStartPosition = 0;
   u64bit   checkMask = ~_posnMask;
