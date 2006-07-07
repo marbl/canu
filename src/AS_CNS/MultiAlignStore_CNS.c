@@ -25,7 +25,7 @@
    Assumptions:  libAS_UTL.a
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.14 2006-02-13 22:16:31 eliv Exp $";
+static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.15 2006-07-07 16:20:10 mcschatz Exp $";
 
 
 #include <assert.h>
@@ -400,6 +400,12 @@ CreateMultiAlignTFromIUM(IntUnitigMesg *ium, int localID, int sequenceOnly)
   IntUnitigPos unitigPos;
   long localFragID = localID;
   int delta_len=0;
+
+  if (ium->length != strlen(ium->consensus))
+  {
+    fprintf(stderr, "Reported Length of IUM %d (%d) doesnt matches strlen (%d)\n",
+            ium->iaccession, ium->length, strlen(ium->consensus));
+  }
 
   assert(ium->length == strlen(ium->consensus));
   assert(ium->length == strlen(ium->quality));
