@@ -1,3 +1,6 @@
+#ifndef LOGMSG_H
+#define LOGMSG_H
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -5,6 +8,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdarg.h>
+#include <errno.h>
 
 #include "util.h"
 
@@ -95,3 +99,6 @@ private:
   char    *_log;
   bool     _toScreenToo;
 };
+
+
+#endif //  LOGMSG_H
