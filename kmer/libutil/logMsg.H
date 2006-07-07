@@ -1,43 +1,40 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <sys/uio.h>
+#include <unistd.h>
 #include <string.h>
 #include <stdarg.h>
 
-#include "bio.h"
-
-//  Define this to also get log messages to the screen
-//
-//#define LOG_TO_SCREEN
+#include "util.h"
 
 class logMsg {
 public:
-  u32bit   theLogLen;
-  u32bit   theLogMax;
-  char    *theLog;
-
-  logMsg() {
-    theLogLen = 0;
-    theLogMax = 8192;
-    theLog    = new char [theLogMax];
+  logMsg(bool toScreen=false) {
+    _logLen       = 0;
+    _logMax       = 8192;
+    _log          = new char [_logMax];
+    _toScreenToo  = toScreen;
   };
+
 
   ~logMsg() {
-    delete [] theLog;
+    delete [] _log;
   };
-
 
 
   //  Ensure that the string has at least 'moreSpace' available.
   //
   void     resize(u32bit moreSpace) {
-    if (theLogLen + moreSpace >= theLogMax) {
-      theLogMax += theLogMax + moreSpace;
-      char *ll = new char [theLogMax];
-      memcpy(ll, theLog, sizeof(char) * theLogLen);
-      delete [] theLog;
-      theLog = ll;
+    if (_logLen + moreSpace >= _logMax) {
+      _logMax += _logMax + moreSpace;
+      char *ll = new char [_logMax];
+      memcpy(ll, _log, sizeof(char) * _logLen);
+      delete [] _log;
+      _log = ll;
     }
   };
+
 
   //  Add a message to the log, assume the message is less than 1024
   //  bytes.  Would be nice to parse the fmt string (and any args) but
@@ -47,22 +44,54 @@ public:
   //
   void     add(char *fmt, ...) {
     va_list   ap;
+
     resize(1024);
+
     va_start(ap, fmt);
-    int ret = vsprintf(theLog + theLogLen, fmt, ap);
-    theLogLen += ret;
-    if (theLogLen > theLogMax) {
-      fprintf(stderr, "WARNING:  logMsg::add() wrote "u32bitFMT" bytes beyond the end of the buffer!\n",
-              theLogLen - theLogMax);
-      fprintf(stderr, "WARNING:  This program will probably crash soon.\n");
-    }
+
+    if (_toScreenToo)
+      vfprintf(stderr, fmt, ap);
+
+    _logLen += vsprintf(_log + _logLen, fmt, ap);
+
     va_end(ap);
 
-#ifdef LOG_TO_SCREEN
-    va_start(ap, fmt);
-    vfprintf(stderr, fmt, ap);
-    va_end(ap);
-#endif
-
+    if (_logLen > _logMax)
+      fprintf(stderr,
+              "logMsg::add()-- HEY!  I wrote "u32bitFMT" bytes beyond the end of the buffer!\n"
+              "logMsg::add()-- This program will probably crash soon....\n",
+              _logLen - _logMax);
   };
+
+
+  //  Dump the message to a file, taking care of errors.
+  //
+  void     write(int file, char *name=0L) {
+    errno = 0;
+    ::write(file, _log, sizeof(char) * _logLen);
+    if (errno) {
+      fprintf(stderr, "logMsg::write()-- Couldn't write to the log message file '%s': %s\n",
+              name ? name : "(unknown)",
+              strerror(errno));
+      exit(1);
+    }
+  };
+
+  void     fwrite(FILE *file, char *name=0L) {
+    errno = 0;
+    ::fwrite(_log, sizeof(char), _logLen, file);
+    if (errno) {
+      fprintf(stderr, "logMsg::fwrite()-- Couldn't write to the log message file '%s': %s\n",
+              name ? name : "(unknown)",
+              strerror(errno));
+      exit(1);
+    }
+  };
+
+
+private:
+  u32bit   _logLen;
+  u32bit   _logMax;
+  char    *_log;
+  bool     _toScreenToo;
 };

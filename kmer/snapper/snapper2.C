@@ -504,15 +504,8 @@ main(int argc, char **argv) {
 
       //  Write the log messages, if any, and if there is a log file
       //
-      if (logmsgFILE && logmsg[outputPos]) {
-        errno = 0;
-        write(logmsgFILE, logmsg[outputPos]->theLog, sizeof(char) * logmsg[outputPos]->theLogLen);
-        if (errno) {
-          fprintf(stderr, "Couldn't write to the log message file '%s'.\n%s\n",
-                  config._logmsgFileName, strerror(errno));
-          exit(1);
-        }
-      }
+      if (logmsgFILE && logmsg[outputPos])
+        logmsg[outputPos]->write(logmsgFILE, config._logmsgFileName);
 
       //  If we are supposed to be doing validation, test a bunch of
       //  filters here.

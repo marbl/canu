@@ -4,12 +4,16 @@ PROG    = test-bigQueue \
           test-bitPacking \
           test-freeDiskSpace \
           test-intervalList \
+          test-logMsg \
           test-md5 \
           test-mmap \
           test-palloc \
           test-readBuffer \
           test-types \
           tcat
+
+	  #  Broken, don't test.
+          #test-bzipBuffer
 
 INCLUDE = -I..
 LIBS    = -L.. -lutil -lm
@@ -34,7 +38,7 @@ test-bitPackedArray: test-bitPackedArray.C ../libutil.a ../util.h ../util++.H
 
 test-bitPackedFile: test-bitPackedFile.C ../libutil.a ../util.h ../util++.H
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-bitPackedFile.o test-bitPackedFile.C $(INCLUDE)
-	$(CXX) $(CXXLDFLAGS) -o test-bitPackedFile test-bitPackedFile.o $(LIBS)
+	$(CXX) $(CXXLDFLAGS) -o test-bitPackedFile test-bitPackedFile.o $(LIBS) -lbz2
 	./test-bitPackedFile 500000 200
 
 test-bitPacking: test-bitPacking.C ../libutil.a ../util.h ../util++.H
@@ -51,6 +55,11 @@ test-intervalList: test-intervalList.C ../libutil.a ../util.h ../util++.H
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-intervalList.o test-intervalList.C $(INCLUDE)
 	$(CXX) $(CXXLDFLAGS) -o test-intervalList test-intervalList.o $(LIBS)
 	./test-intervalList
+
+test-logMsg: test-logMsg.C ../libutil.a ../util.h ../util++.H
+	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-logMsg.o test-logMsg.C $(INCLUDE)
+	$(CXX) $(CXXLDFLAGS) -o test-logMsg test-logMsg.o $(LIBS)
+	./test-logMsg
 
 test-md5: test-md5.c ../libutil.a ../util.h ../util++.H
 	$(CC) $(CFLAGS_COMPILE) -c -o test-md5.o test-md5.c $(INCLUDE)
@@ -71,6 +80,12 @@ test-readBuffer: test-readBuffer.C ../libutil.a ../util.h ../util++.H
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-readBuffer.o test-readBuffer.C $(INCLUDE)
 	$(CXX) $(CXXLDFLAGS) -o test-readBuffer test-readBuffer.o $(LIBS)
 	./test-readBuffer
+
+test-bzipBuffer: test-bzipBuffer.C ../libutil.a ../util.h ../util++.H
+	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-bzipBuffer.o test-bzipBuffer.C $(INCLUDE)
+	$(CXX) $(CXXLDFLAGS) -o test-bzipBuffer test-bzipBuffer.o -lbz2 $(LIBS)
+	bzip2 -9vc ./test-bzipBuffer > ./test-bzipBuffer.bz2
+	./test-bzipBuffer ./test-bzipBuffer.bz2
 
 test-types: test-types.c ../libutil.a ../util.h ../util++.H
 	$(CC) $(CFLAGS_COMPILE) -c -o test-types.o test-types.c $(INCLUDE)

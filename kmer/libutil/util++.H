@@ -31,7 +31,7 @@
 //  Now the good stuff!
 //
 #include "speedCounter.H"
-#include "bzipBuffer.H"
+//#include "bzipBuffer.H"
 #include "readBuffer.H"
 #include "splitToWords.H"
 #include "bitPackedArray.H"
@@ -39,6 +39,7 @@
 #include "intervalList.H"
 #include "bigQueue.H"
 #include "sweatShop.H"
+#include "logMsg.H"
 
 #endif  //  UTIL_PLUS_PLUS_H
 

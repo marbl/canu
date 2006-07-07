@@ -8,8 +8,6 @@ src    := $/util++.H \
           $/util.h \
           $/bigQueue.H \
           $/bigQueue.C \
-          $/bzipBuffer.H \
-          $/bzipBuffer.C \
           $/sweatShop.H \
           $/sweatShop.C \
           $/time.C \
@@ -20,6 +18,7 @@ src    := $/util++.H \
           $/palloc.c \
           $/readBuffer.H \
           $/readBuffer.C \
+          $/logMsg.H \
           $/stat.c \
           $/bitOperations.h \
           $/bitPackedArray.C \
@@ -30,6 +29,12 @@ src    := $/util++.H \
           $/eliasGammaEncoding.h \
           $/eliasDeltaEncoding.h \
           $/unaryEncoding.h
+
+#  broken
+#          $/bzipBuffer.H \
+#          $/bzipBuffer.C \
+#
+
 
 $/.C_SRCS    :=$(filter %.c,${src})
 $/.CXX_SRCS  :=$(filter %.C,${src})
@@ -51,4 +56,3 @@ $/buildinfo-libutil.c: $/buildinfo-libutil.h
 $/buildinfo-libutil.h: ${src}
 	@${LIBUTL/}buildinfo.pl libutil "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
 	@[ `dirname $@` = "." ] || mv buildinfo-libutil.[ch] `dirname $@`
-
