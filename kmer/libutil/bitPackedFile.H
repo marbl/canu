@@ -1,6 +1,15 @@
 #ifndef BITPACKEDFILE_H
 #define BITPACKEDFILE_H
 
+#include <stdio.h>
+#include <stdlib.h>
+#include "util.h"
+
+//#define WITH_BZIP2
+
+#ifdef WITH_BZIP2
+#include <bzlib.h>
+#endif
 
 class bitPackedFile {
 public:
@@ -15,7 +24,7 @@ public:
   void       putBits(u64bit pos, u64bit bits, u32bit size);
   void       putNumber(u64bit val);
 
-  void       seek(u64bit pos, bool forceLoad=false);
+  void       seek(u64bit pos);
 
   void       showStats(FILE *f) {
     fprintf(f, "inside: "u64bitFMT"  outside: "u64bitFMT"\n", stat_seekInside, stat_seekOutside);
@@ -32,12 +41,21 @@ private:
   //
   void       sync(void) {
     if (((_bit >> 6) + 31) >= _bfrmax)
-      seek((_pos << 6) + _bit, true);
+      seek((_pos << 6) + _bit);
   };
 
   void       flushDirty(void);
+  void       seekReadOnly(u64bit bitpos);
+  void       seekNormal(u64bit bitpos);
 
   int       _file;
+
+#ifdef WITH_BZIP2
+  FILE     *_bzFILE;
+  int       _bzerr;
+  BZFILE   *_bzfile;
+#endif
+
 
   u64bit   *_bfr;     //  A chunk of the bitPackedFile in core
   u64bit    _bfrmax;  //  Number of words in the buffer
@@ -45,9 +63,8 @@ private:
   u64bit    _bit;     //  The bit position we are modifying relative to _pos
 
   bool      _bfrDirty;
-#ifdef __APPLE__
-  u32bit    _pad;
-#endif
+  bool      _forceFirstLoad;
+  bool      _readOnly;
 
   //  For collecting statistics on our usage
   //
