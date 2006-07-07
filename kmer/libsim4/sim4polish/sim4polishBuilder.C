@@ -258,7 +258,7 @@ sim4polishBuilder::release(void) {
 
   //  Last, compute the querySeqIdentity using other fields.
   //
-  it->querySeqIdentity = it->querySeqIdentity = (int)floor(100 * (double)(it->numMatches) / (double)(it->estLen - it->estPolyA - it->estPolyT));
+  it->querySeqIdentity = s4p_percentCoverageApprox(it);
 
   it    = 0L;
 

@@ -292,13 +292,11 @@ main(int argc, char **argv) {
                   (*A)[a]->estLen,
                   overlap[a][b],
                   score,
-                  s4p_percentIdentity( (*A)[a] ),  //->percentIdentity,
-                  100.0 * (double)((*A)[a]->numCovered) / (double)((*A)[a]->estLen - (*A)[a]->estPolyA - (*A)[a]->estPolyT),
-                  //(*A)[a]->querySeqIdentity,
+                  s4p_percentIdentityExact( (*A)[a] ),
+                  s4p_percentCoverageExact( (*A)[a] ),
                   AgenLen, (*A)[a]->numExons, Agaps,
-                  s4p_percentIdentity( (*B)[b] ),  //->percentIdentity,
-                  100.0 * (double)((*B)[b]->numCovered) / (double)((*B)[b]->estLen - (*B)[b]->estPolyA - (*B)[b]->estPolyT),
-                  //(*B)[b]->querySeqIdentity,
+                  s4p_percentIdentityExact( (*B)[b] ),
+                  s4p_percentCoverageExact( (*B)[b] ),
                   BgenLen, (*B)[b]->numExons, Bgaps);
                   
           if (fasame)

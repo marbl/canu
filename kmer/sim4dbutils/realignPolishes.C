@@ -105,8 +105,8 @@ main(int argc, char **argv) {
     double id = 0.0;
     double cv = 0.0;
     if (mergeLog) {
-      id = s4p_percentIdentity(p);
-      cv = s4p_percentCoverage(p);
+      id = s4p_percentIdentityExact(p);
+      cv = s4p_percentCoverageExact(p);
     }
 
     int   merged = 0;
@@ -243,7 +243,7 @@ main(int argc, char **argv) {
 
     if (merged) {
       fprintf(mergeLog, "MERGED\tEST\t"u32bitFMT"\tfrom\t%8.3f\t%8.3f\tto\t%8.3f\t%8.3f\n",
-              p->estID, id, cv, s4p_percentIdentity(p), s4p_percentCoverage(p));
+              p->estID, id, cv, s4p_percentIdentityExact(p), s4p_percentCoverageExact(p));
     }
 
     s4p_destroyPolish(p);

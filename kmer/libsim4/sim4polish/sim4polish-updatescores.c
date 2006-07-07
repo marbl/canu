@@ -1,6 +1,7 @@
 #include <math.h>
 #include "sim4polish.h"
 
+
 void
 s4p_updateAlignmentScores(sim4polish *p) {
 
@@ -76,7 +77,7 @@ s4p_updateAlignmentScores(sim4polish *p) {
           ne);
     nc = (p->exons[exon].genTo - p->exons[exon].genFrom + 1);
 
-    p->exons[exon].percentIdentity = (int)floor(100*(1 - 2.0 * ne / (double)(al)));
+    p->exons[exon].percentIdentity = s4p_percentIdentityApprox(ne, al);
 
     numInDel        += ni;
     numEdits        += ne;
@@ -99,25 +100,33 @@ s4p_updateAlignmentScores(sim4polish *p) {
   fprintf(stderr, "numCovered  = %d\n", numCovered);
 #endif
 
-  p->percentIdentity  = 0;
-  if (alignmentLength > 0)
-    p->percentIdentity  = (int)floor(100*(1 - 2.0 * numEdits / (double)(alignmentLength)));
-
-  p->querySeqIdentity = (int)floor(100 * (double)(p->numCovered) / (double)(p->estLen - p->estPolyA - p->estPolyT));
+  p->percentIdentity  = s4p_percentIdentityApprox(numEdits, alignmentLength);
+  p->querySeqIdentity = s4p_percentCoverageApprox(p);
 }
 
 
+int
+s4p_percentCoverageApprox(sim4polish *p) {
+  return((int)floor(100.0 * p->numCovered / (double)(p->estLen - p->estPolyA - p->estPolyT) + 0.5));
+}
+
+
+int
+s4p_percentIdentityApprox(int numEdits, int alignmentLength) {
+  if (alignmentLength == 0)
+    return(0);
+  return((int)floor(100.0 * (1 - 2.0 * numEdits / alignmentLength) + 0.5));
+}
+
 
 double
-s4p_percentCoverage(sim4polish *p) {
+s4p_percentCoverageExact(sim4polish *p) {
   return( 100 * (double)(p->numCovered) / (double)(p->estLen - p->estPolyA - p->estPolyT) );
 }
 
 
-
-//  A very expensive and accurate calculation of the percent identity.
 double
-s4p_percentIdentity(sim4polish *p) {
+s4p_percentIdentityExact(sim4polish *p) {
 
   int  exon;
 
@@ -186,7 +195,7 @@ s4p_percentIdentity(sim4polish *p) {
     nc = (p->exons[exon].genTo - p->exons[exon].genFrom + 1);
 
 #if 0
-    p->exons[exon].percentIdentity = (int)floor(100*(1 - 2.0 * ne / (double)(al)));
+    p->exons[exon].percentIdentity = s4p_percentIdentityApprox(ne, al);
 #endif
 
     numInDel        += ni;

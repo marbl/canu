@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include <string.h>
 #include <unistd.h>
 #include <signal.h>
@@ -434,6 +435,12 @@ script_flip_list(edit_script_list **left) {
   }  
   *left = ep;
 }    
+
+  int   computePercentIdentity(int numEdits, int alignLen) {
+    if (alignLen == 0)
+      return(0);
+    return((int)floor(100.0 * (1 - 2.0 * numEdits / alignLen) + 0.5));
+  };
 
 
 private:

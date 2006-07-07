@@ -14,6 +14,8 @@ public:
   ~sim4polishList();
 
   void          push(sim4polish *p);
+  void          remove(u32bit i);
+
   u32bit        length(void)         { return(len); };
 
   sim4polish   *operator[](u32bit i) { if (i >= len) return(0L); return(list[i]); };
@@ -24,6 +26,7 @@ public:
 
   //  Removes polishes below the specified quality
   void          filterByQuality(u32bit minI, u32bit minC);
+
 private:
   u32bit        len;
   u32bit        max;

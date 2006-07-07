@@ -97,8 +97,16 @@ main(int argc, char **argv) {
       len[p->estID] = p->estLen;
     }
 
-    for (u32bit e=0; e<p->numExons; e++)
-      cov[p->estID]->add(p->exons[e].estFrom - 1, p->exons[e].estTo - p->exons[e].estFrom + 1);
+    for (u32bit e=0; e<p->numExons; e++) {
+      p->exons[e].estFrom--;        //  Convert to space-based
+
+      if (p->matchOrientation == SIM4_MATCH_FORWARD)
+        cov[p->estID]->add(p->exons[e].estFrom,
+                           p->exons[e].estTo - p->exons[e].estFrom);
+      else
+        cov[p->estID]->add(p->estLen - p->exons[e].estTo,
+                           p->exons[e].estTo - p->exons[e].estFrom);
+    }
 
     s4p_destroyPolish(p);
   }

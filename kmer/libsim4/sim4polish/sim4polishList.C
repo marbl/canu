@@ -56,6 +56,20 @@ sim4polishList::push(sim4polish *p) {
 }
 
 void
+sim4polishList::remove(u32bit i) {
+
+  if (i >= len)
+    return;
+
+  s4p_destroyPolish(list[i]);
+
+  len--;
+  for ( ; i < len; i++)
+    list[i] = list[i+1];
+}
+
+
+void
 sim4polishList::sortBycDNAIID(void) {
   qsort(list, len, sizeof(sim4polish *), s4p_estIDcompare);
 }
@@ -64,9 +78,6 @@ void
 sim4polishList::sortByGenomicIID(void) {
   qsort(list, len, sizeof(sim4polish *), s4p_genIDcompare);
 }
-
-
-
 
 
 void

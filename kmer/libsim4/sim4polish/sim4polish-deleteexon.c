@@ -11,6 +11,7 @@ s4p_deleteExon(sim4polish *p, int a) {
   int    i;
   int    editDistance    = 0;
   int    alignmentLength = 0;
+  int    numCovered      = 0;
 
   //  Warn if we don't have alignments -- this is now done by the
   //  driver (e.g., cleanPolishes.C)
@@ -64,11 +65,12 @@ s4p_deleteExon(sim4polish *p, int a) {
     p->strandOrientation = SIM4_STRAND_UNKNOWN;
 
 
-
   //  Compute the alignment length and the number of edits.
   //
   alignmentLength = 0;
   editDistance    = 0;
+
+  p->numCovered   = 0;
 
   for (i=0; i<p->numExons; i++) {
     ed = p->exons[i].estAlignment;
@@ -86,6 +88,8 @@ s4p_deleteExon(sim4polish *p, int a) {
       alignmentLength += len;
       editDistance    += len / 2 - p->exons[i].numMatches - p->exons[i].numMatchesN;
     }
+
+    p->numCovered += p->exons[i].genTo - p->exons[i].genFrom + 1;
   }
 
 #if 0
@@ -100,13 +104,10 @@ s4p_deleteExon(sim4polish *p, int a) {
   if (p->numExons == 1)
     p->percentIdentity = p->exons[0].percentIdentity;
   else
-    if (alignmentLength > 0)
-      p->percentIdentity = (int)floor(100 * (1 - 2 * (double)editDistance / (double)alignmentLength));
-    else
-      p->percentIdentity = 0;
+    p->percentIdentity = s4p_percentIdentityApprox(editDistance, alignmentLength);
 
   //  Update the query sequence identity
   //
-  p->querySeqIdentity = (int)floor(100 * (double)(p->numMatches) / (double)(p->estLen - p->estPolyA - p->estPolyT));
+  p->querySeqIdentity = s4p_percentCoverageApprox(p);
 }
 

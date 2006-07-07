@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <string.h>
 
+
 sim4polish *
 s4p_copyPolish(sim4polish *orig) {
   int         i;
@@ -32,8 +33,6 @@ s4p_copyPolish(sim4polish *orig) {
 
   return(copy);
 }
-
-
 
 
 sim4polish *
@@ -66,7 +65,7 @@ s4p_copyPolish_OneExon(sim4polish *orig, int exon) {
   copy->numMatchesN      = copy->exons[0].numMatchesN;
   copy->numCovered       = copy->exons[0].genTo - copy->exons[0].genFrom + 1;
   copy->percentIdentity  = copy->exons[0].percentIdentity;
-  copy->querySeqIdentity = (int)floor(100 * (double)(copy->numCovered) / (double)(copy->estLen - copy->estPolyA - copy->estPolyT));
+  copy->querySeqIdentity = s4p_percentCoverageApprox(copy);
 
   return(copy);
 }

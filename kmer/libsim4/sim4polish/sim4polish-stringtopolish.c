@@ -193,7 +193,7 @@ s4p_stringToPolish(char *s) {
       break;
   }
 
-  p->querySeqIdentity = (int)floor(100 * (double)(p->numMatches) / (double)(p->estLen - p->estPolyA - p->estPolyT));
+  p->querySeqIdentity = (int)s4p_percentCoverage(p);
 
   curLine++;
 

@@ -227,8 +227,8 @@ Sim4::pluri_align(int *dist_ptr,
     nextExon->alignmentLength = (nextExon->toGEN - nextExon->frGEN + 1 +
                                  nextExon->toEST - nextExon->frEST + 1 +
                                  nextExon->numInDel);
-    nextExon->percentID = (int)floor(100*(1 - 2 * nextExon->numEdits /
-                                          (float)(nextExon->alignmentLength)));
+    nextExon->percentID = computePercentIdentity(nextExon->numEdits,
+                                                 nextExon->alignmentLength);
 
 
     st->numberOfMatches += nextExon->numMatches;
@@ -276,9 +276,7 @@ Sim4::pluri_align(int *dist_ptr,
     }
   }
 
-  st->percentID = 0;
-  if (AlignmentLength > 0)
-    st->percentID = (int)floor(100 * (1 - 2 * (double)EditDistance / (double)AlignmentLength));
+  st->percentID = computePercentIdentity(EditDistance, AlignmentLength);
 }
 
 
@@ -308,7 +306,5 @@ Sim4::updateStatistics(Exon *theExon,
     theExon = theExon->next_exon;
   }
 
-  st->percentID = 0;
-  if (AlignmentLength > 0)
-    st->percentID = (int)floor(100 * (1 - 2 * (double)EditDistance / (double)AlignmentLength));
+  st->percentID = computePercentIdentity(EditDistance, AlignmentLength);
 }

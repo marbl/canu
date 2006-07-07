@@ -263,8 +263,8 @@ Sim4::trim_polyA_align(struct edit_script_list **Sptr, Exon *lblock, Exon **exon
     (*exons)->alignmentLength = ((*exons)->toGEN - (*exons)->frGEN + 1 +
                                  (*exons)->toEST - (*exons)->frEST + 1 +
                                  (*exons)->numInDel);
-    (*exons)->percentID   = (int)floor(100*(1 - 2 * (*exons)->numEdits /
-                                            (float)((*exons)->alignmentLength)));
+    (*exons)->percentID   = computePercentIdentity((*exons)->numEdits,
+                                                   (*exons)->alignmentLength);
   }
   *pA = i+1;
 
@@ -500,8 +500,8 @@ Sim4::trim_polyT_align(struct edit_script_list **Sptr, Exon **exons, const int e
     (*exons)->alignmentLength = ((*exons)->toGEN - (*exons)->frGEN + 1 +
                                  (*exons)->toEST - (*exons)->frEST + 1 +
                                  (*exons)->numInDel);
-    (*exons)->percentID   = (int)floor(100*(1 - 2 * (*exons)->numEdits /
-                                            (float)((*exons)->alignmentLength)));
+    (*exons)->percentID   = computePercentIdentity((*exons)->numEdits,
+                                                   (*exons)->alignmentLength);
   }
   *pT = i-1;
   return;

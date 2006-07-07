@@ -102,10 +102,15 @@ int            s4p_makeReverse(sim4polish *p);
 //
 void           s4p_updateAlignmentScores(sim4polish *p);
 
+//  Approximate (integer) percent identity and coverage.
+//
+int            s4p_percentIdentityApprox(int numEdits, int alignmentLength);
+int            s4p_percentCoverageApprox(sim4polish *p);
+
 //  A very expensive and accurate calculation of the percent identity.
 //
-double         s4p_percentIdentity(sim4polish *p);
-double         s4p_percentCoverage(sim4polish *p);
+double         s4p_percentIdentityExact(sim4polish *p);
+double         s4p_percentCoverageExact(sim4polish *p);
 
 
 //  We allow the polish to be printed in different ways:

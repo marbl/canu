@@ -187,10 +187,6 @@ s4p_readPolish(FILE *F) {
       break;
   }
 
-#ifdef OLD_COVERAGE
-  p->querySeqIdentity = (int)floor(100 * (double)(p->numMatches) / (double)(p->estLen - p->estPolyA - p->estPolyT));
-#endif
-
   readLine(F, l);
 
   p->comment = 0L;
@@ -278,9 +274,7 @@ s4p_readPolish(FILE *F) {
     if ((l->s[l->l-2] == '=') && (l->s[l->l-1] == '='))
       ex[el].intronOrientation = '=';
 
-#ifndef OLD_COVERAGE
     p->numCovered += ex[el].estTo - ex[el].estFrom + 1;
-#endif
 
     el++;
 
@@ -292,9 +286,7 @@ s4p_readPolish(FILE *F) {
   }
 
 
-#ifndef OLD_COVERAGE
-  p->querySeqIdentity = (int)floor(100 * (double)(p->numCovered) / (double)(p->estLen - p->estPolyA - p->estPolyT));
-#endif
+  p->querySeqIdentity = s4p_percentCoverageApprox(p);
 
 
   //  All done.  Save the exons to the sim4polish.
