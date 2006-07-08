@@ -37,10 +37,14 @@ cmpheap(void const *a, void const *b) {
 }
 #endif
 
+
+
+
 void
 positionDB::sortAndRepackBucket(u64bit b) {
   u64bit st = _bucketSizes[b];
   u64bit ed = _bucketSizes[b+1];
+  u32bit le = (u32bit)(ed - st);
 
 #ifdef ERROR_CHECK
   //  This passes!
@@ -49,17 +53,15 @@ positionDB::sortAndRepackBucket(u64bit b) {
     fprintf(stdout, "ERROR: Bucket %10lu starts at %10lu ends at %10lu?\n", b, st, ed);
 #endif
 
-  _sortedListLen = (u32bit)(ed - st);
-
   //  No mers in the list?  We're done.
   //
-  if (_sortedListLen == 0)
+  if (ed == st)
     return;
 
   //  One mer in the list?  It's distinct and unique!  (and doesn't contribute
   //  to the position list space count)
   //
-  if (_sortedListLen == 1) {
+  if (le == 1) {
     _numberOfDistinct++;
     _numberOfUnique++;
     return;
@@ -67,10 +69,10 @@ positionDB::sortAndRepackBucket(u64bit b) {
 
   //  Allocate more space, if we need to.
   //
-  if (_sortedListLen > _sortedListMax) {
+  if (_sortedListMax <= le) {
     delete [] _sortedList;
-    _sortedList    = new heapbit [_sortedListLen + 1];
-    _sortedListMax = _sortedListLen;
+    _sortedListMax = le + 16;
+    _sortedList    = new heapbit [_sortedListMax];
   }
 
   //  Unpack the check values
@@ -84,8 +86,8 @@ positionDB::sortAndRepackBucket(u64bit b) {
   //
   u32bit duplicates = 0;
 
-  for (u32bit i=0; i<_sortedListLen; i++)
-    for (u32bit j=i+1; j<_sortedListLen; j++)
+  for (u32bit i=0; i<le; i++)
+    for (u32bit j=i+1; j<le; j++)
       if (_sortedList[i] == _sortedList[j])
         duplicates++;
 
@@ -97,10 +99,10 @@ positionDB::sortAndRepackBucket(u64bit b) {
 
 #ifdef ERROR_CHECK
   int unsetBucket = 0;
-  for (u32bit t=0; t<_sortedListLen; t++)
+  for (u32bit t=0; t<le; t++)
     if ((_sortedList[t] & _posnMask) == _posnMask) {
       unsetBucket = 1;
-      fprintf(stdout, "WARNING!  Unset countingBucket --i=%lu len=%lu 0x%016lx\n", t, _sortedListLen, _sortedList[t]);
+      fprintf(stdout, "WARNING!  Unset countingBucket --i=%lu len=%lu 0x%016lx\n", t, le, _sortedList[t]);
       fprintf(stdout, "          Bucket %10lu starts at %10lu ends at %10lu\n\n", b, st, ed);
     }
 #endif
@@ -109,7 +111,7 @@ positionDB::sortAndRepackBucket(u64bit b) {
 #ifdef ERROR_CHECK
   if (unsetBucket) {
     fprintf(stdout, "entries are BEFORE:\n");
-    for (u32bit t=0; t<_sortedListLen; t++)
+    for (u32bit t=0; t<le; t++)
       fprintf(stdout, "%4u] 0x%016lx\n", t, _sortedList[t]);
     fprintf(stdout, "\n");
   }
@@ -123,23 +125,23 @@ positionDB::sortAndRepackBucket(u64bit b) {
   //  compare the two outputs.
   //
 
-  heapbit *sortTest = new heapbit [_sortedListLen];
-  for (u32bit t=0; t<_sortedListLen; t++)
+  heapbit *sortTest = new heapbit [le];
+  for (u32bit t=0; t<le; t++)
     sortTest[t] = _sortedList[t];
 
-  qsort(sortTest, _sortedListLen, sizeof(heapbit), cmpheap);
+  qsort(sortTest, le, sizeof(heapbit), cmpheap);
 #endif
 
 
 
   //  Create the heap of lines.
   //
-  for (s64bit t=(_sortedListLen-2)/2; t>=0; t--)
-    adjustHeap(_sortedList, t, _sortedListLen);
+  for (s64bit t=(le-2)/2; t>=0; t--)
+    adjustHeap(_sortedList, t, le);
 
   //  Interchange the new maximum with the element at the end of the tree
   //
-  for (s64bit t=_sortedListLen-1; t>0; t--) {
+  for (s64bit t=le-1; t>0; t--) {
     heapbit          tv = _sortedList[t];
     _sortedList[t]      = _sortedList[0];
     _sortedList[0]      = tv;
@@ -150,23 +152,22 @@ positionDB::sortAndRepackBucket(u64bit b) {
 
 #if 0
   //  Define this (and SORT_CHECK) to use qsort() exclusively
-  for (u32bit t=0; t<_sortedListLen; t++)
+  for (u32bit t=0; t<le; t++)
     _sortedList[t] = sortTest[t];
-
 #endif
 
 
 #ifdef SORT_CHECK
-  for (u32bit t=0; t<_sortedListLen; t++)
+  for (u32bit t=0; t<le; t++)
     if (sortTest[t] != _sortedList[t])
-      fprintf(stderr, "ERROR with sort: %5u/%5u\n", t, _sortedListLen);
+      fprintf(stderr, "ERROR with sort: %5u/%5u\n", t, le);
   delete [] sortTest;
 #endif
 
 #ifdef ERROR_CHECK
   if (unsetBucket) {
     fprintf(stdout, "entries are AFTER:\n");
-    for (u32bit t=0; t<_sortedListLen; t++)
+    for (u32bit t=0; t<le; t++)
       fprintf(stdout, "%4u] 0x%016lx\n", t, _sortedList[t]);
     fprintf(stdout, "\n");
   }
@@ -180,19 +181,14 @@ positionDB::sortAndRepackBucket(u64bit b) {
   //
   //  ON BOTH versions.
   //
-  for (u32bit t=1; t<_sortedListLen; t++) {
+  for (u32bit t=1; t<le; t++) {
     if (_sortedList[t-1] == _sortedList[t])
-      fprintf(stdout, "ERROR: %6u %4u/%4u: 0x%016llx == 0x%016llx\n", b, t, _sortedListLen, _sortedList[t-1], _sortedList[t]);
+      fprintf(stdout, "ERROR: %6u %4u/%4u: 0x%016llx == 0x%016llx\n", b, t, le, _sortedList[t-1], _sortedList[t]);
     if (_sortedList[t-1] > _sortedList[t])
-      fprintf(stdout, "ERROR: %6u %4u/%4u: 0x%016llx  > 0x%016llx\n", b, t, _sortedListLen, _sortedList[t-1], _sortedList[t]);
+      fprintf(stdout, "ERROR: %6u %4u/%4u: 0x%016llx  > 0x%016llx\n", b, t, le, _sortedList[t-1], _sortedList[t]);
   }
 #endif
 
-
-
-  //  First was original, second has the same effect
-  //
-  //u64bit  checkMask = ~_posnMask;
   u64bit  checkMask = _mask2 << _posnWidth;
 
   //
@@ -204,7 +200,7 @@ positionDB::sortAndRepackBucket(u64bit b) {
   //
   u64bit   entries = 1;
 
-  for (u32bit t=1; t<_sortedListLen; t++) {
+  for (u32bit t=1; t<le; t++) {
 
     //  If the current check is not the last check, then we have a new
     //  mer.  Update the counts.

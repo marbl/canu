@@ -101,10 +101,8 @@ positionDB::positionDB(merStream   *MS,
   _numberOfEntries       = u64bitZERO;
   _maximumEntries        = u64bitZERO;
 
-  _sortedListMax         = u32bitZERO;
-  _sortedListLen         = u32bitZERO;
-  _sortedList            = 0L;
-
+  _sortedListMax         = 4096;
+  _sortedList            = new heapbit [_sortedListMax];
 
 #if 0
   fprintf(stderr, "positionDB::positionDB()--  _merSizeInBases       = "u32bitFMT"\n", _merSizeInBases);
@@ -149,7 +147,7 @@ positionDB::positionDB(merStream   *MS,
   //
   u64bit *bktAlloc;
   try {
-    bktAlloc = new u64bit [_tableSizeInEntries / 2 + 2];
+    bktAlloc = new u64bit [_tableSizeInEntries / 2 + 4];
   } catch (std::bad_alloc) {
     fprintf(stderr, "positionDB::positionDB()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
     fprintf(stderr, "positionDB::positionDB()-- bktAlloc = new u64bit ["u64bitFMT"]\n", _tableSizeInEntries / 2 + 2);
@@ -160,14 +158,19 @@ positionDB::positionDB(merStream   *MS,
   //  Who knows which one is better...we'll assume that, by now,
   //  library writers know how to zero out memory pretty fast.
   //
-#if 1
-  bzero(bktAlloc, sizeof(u64bit) * _tableSizeInEntries / 2 + 2);
+#if 0
+  bzero(bktAlloc, sizeof(u64bit) * _tableSizeInEntries / 2 + 4);
 #else
-  for (u64bit i=0; i<_tableSizeInEntries / 2 + 2; i++)
+  for (u64bit i=0; i<_tableSizeInEntries / 2 + 4; i++)
     bktAlloc[i] = u64bitZERO;
 #endif
 
-  _bucketSizes = (u32bit *)(bktAlloc + 1);
+  //  Why +2?  We try to reuse the bktAlloc space for the hash table,
+  //  which is constructed from the bucketSizes.  The hashTable is
+  //  built from the bucketSizes.  It definitely needs to be +1, and
+  //  so we use +2 just in case the human is being stupid again.
+  //
+  _bucketSizes = (u32bit *)(bktAlloc + 2);
 
 #ifdef ERROR_CHECK_COUNTING
   fprintf(stdout, "ERROR_CHECK_COUNTING is defined.\n");
@@ -541,7 +544,7 @@ positionDB::positionDB(merStream   *MS,
   u64bit  bs = _numberOfDistinct   * _wFin      / 64 + 1;
   u64bit  ps = _numberOfEntries    * _posnWidth / 64 + 1;
 
-  if (_hashWidth < 32) {
+  if (_hashWidth <= 32) {
     if (beVerbose)
       fprintf(MSG_OUTPUT, "    Reusing bucket counting space for hash table.\n");
 
@@ -668,14 +671,16 @@ positionDB::positionDB(merStream   *MS,
     //
     u64bit st = _bucketSizes[b];
     u64bit ed = _bucketSizes[b+1];
-    u64bit le = ed - st;
+    u32bit le = ed - st;
 
-    //  NOTE:  If all the mers are unique, _sortedList will not be allocated
-    //  in sortAndRepackBucket().  In that case, we need to allocate some space.
-    //
-    if (_sortedList == 0L) {
-      _sortedListMax = 1024;
-      _sortedListLen = u32bitZERO;
+    //  NOTE: If all the mers are unique, _sortedList will not be
+    //  allocated in sortAndRepackBucket().  In that case, we need to
+    //  allocate some space.  We can be very safe though and just
+    //  always check that we have enough space.
+
+    if (_sortedListMax <= le) {
+      delete [] _sortedList;
+      _sortedListMax = le + 128;
       _sortedList    = new heapbit [_sortedListMax];
     }
 
@@ -694,8 +699,8 @@ positionDB::positionDB(merStream   *MS,
     //  start and end locations of the mer.  For mers with only
     //  one occurrance (unique mers), stM+1 == edM.
     //
-    u64bit  stM = u64bitZERO;
-    u64bit  edM = u64bitZERO;
+    u32bit  stM = u32bitZERO;
+    u32bit  edM = u32bitZERO;
     u64bit  v;
 
     while (stM < le) {
@@ -970,7 +975,6 @@ positionDB::positionDB(merStream   *MS,
   delete [] _sortedList;
 
   _sortedListMax = 0;
-  _sortedListLen = 0;
   _sortedList    = 0L;
 
   if (bktAllocIsJunk)

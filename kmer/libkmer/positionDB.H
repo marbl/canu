@@ -182,12 +182,7 @@ private:
   //  For sorting the mers
   //
   u32bit   _sortedListMax;
-  u32bit   _sortedListLen;
   heapbit *_sortedList;
-
-#ifdef __APPLE__
-  u32bit      _pad;
-#endif
 };
 
 #endif  //  POSITIONDB_H
