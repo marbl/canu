@@ -65,6 +65,7 @@ sim4polishBuilder::create(u32bit estid, u32bit estlen,
 
   it->numMatches        = 0;
   it->numMatchesN       = 0;
+  it->numCovered        = 0;
   it->percentIdentity   = 0;
   it->querySeqIdentity  = 0;
   it->matchOrientation  = SIM4_MATCH_ERROR;
@@ -247,16 +248,20 @@ sim4polishBuilder::release(void) {
   if (exPos == 0)
     return(0L);
 
-  it->numExons = exPos;
-  it->exons    = (sim4polishExon *)malloc(exPos * sizeof(sim4polishExon));
+  it->numCovered = 0;
+  it->numExons   = exPos;
+  it->exons      = (sim4polishExon *)malloc(exPos * sizeof(sim4polishExon));
 
   for (u32bit i=0; i<exPos; i++) {
     memcpy(it->exons + i, ex[i], sizeof(sim4polishExon));
     ex[i]->estAlignment = 0L;  //  Owned by 'it' now
     ex[i]->genAlignment = 0L;
+
+    it->numCovered += (ex[i]->genTo - ex[i]->genFrom + 1);
   }
 
-  //  Last, compute the querySeqIdentity using other fields.
+  //  Last, compute the querySeqIdentity using other fields (like our
+  //  just updated numCovered).
   //
   it->querySeqIdentity = s4p_percentCoverageApprox(it);
 
