@@ -16,36 +16,19 @@
 // License along with this program; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-
-/***********************************************************************
-*
-*             Copyright (c) 2003 Celera Genomics Corporation.
-*                            All rights reserved.
-*
-***********************************************************************/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <assert.h>
 #include <string.h>
 
-#include "GF_ALN_cds.h"
 #include "GF_ALN_local.h"
-#include "GF_ALN_aligners.h"
 
-#define TUNED_FOR_FRAGMENT_OVERLAPS
-#ifdef TUNED_FOR_FRAGMENT_OVERLAPS
+#define  max(x,y)        ((x<y) ? (y):(x))
+#define  min(x,y)        ((x>y) ? (y):(x))
+
+
 #define MIN_USABLE 3  /* Smallest subpart of a segment usable for chaining */
-#else
-#define MIN_USABLE 20  /* Smallest subpart of a segment usable for chaining */
-#endif
-
-
-#define AIMFORGLOBAL
-#define AIMFORLONGEST
-#undef INSIST_ON_DIFF_LT_LENGTH
-#undef WARN_ON_DIFF
 
 
 int MIN_ALIGNED_COLS=30; /* minimum length of a local overlap in the following
@@ -57,9 +40,6 @@ int MIN_ALIGNED_COLS=30; /* minimum length of a local overlap in the following
 			    that make up the overlap */
 
 #define BIG_INT 0x7FFFFFFF
-
-#undef DEBUG_DP
-#undef DEBUG_CLIST
 
 typedef struct {
   int  start;
@@ -104,9 +84,6 @@ static AVLnode *NIL;
 #define SEL  AVLselect
 #define RNK  AVLrank
 #define ADD  AVLinsert
-#ifdef DEL
-#undef DEL
-#endif
 #define DEL  AVLdelete
 
 static void AVLinit(void)
@@ -315,35 +292,7 @@ static AVLnode *AVLdelete(AVLnode *v, int k)
   return (t);
 }
 
-#ifdef DEBUG_CLIST
 
-static void (*ghand)(Candidate *);
-
-static void ALL(AVLnode *v)
-{ if (v->L != NIL) ALL(INC(v->L));
-  ghand(&(v->V));
-  if (v->R != NIL) ALL(INC(v->R));
-  DEC(v);
-}
-
-static void AVLall(AVLnode *v, void (*handler)(Candidate *))
-{ ghand = handler;
-  if (v != NIL)
-    ALL(INC(v));
-}
-
-#endif
-
-/*** INDEX CONSTRUCTION AND APPLICATION TO FILTERING ***/
-
-#ifdef DEBUG_CLIST
-
-void CHANDLER(Candidate *c)
-{ printf(" (%d,%d,%d,%d)\n",c->start,c->base,c->best,c->segment);
-  fflush(stdout);
-}
-
-#endif
 
 static int SSORT(const void *l, const void *r)
 { Event *x, *y;
@@ -474,25 +423,6 @@ Local_Overlap *Find_Local_Overlap(int Alen, int Blen, int comp, int nextbest,
 
   qsort(EventList,2*NumSegs,sizeof(Event),SSORT);
 
-#ifdef DEBUG_DP
-  { int e;
-    printf("\nEvent List:\n");
-    for (e = 0; e < 2*NumSegs; e++)
-      { Local_Segment *s;
-
-        s = EventList[e].item;
-        if (EventList[e].isadd)
-          printf("  Add (%d,%d) -> (%d,%d)\n",
-                 s->abpos,s->bbpos,s->aepos,s->bepos);
-        else
-          printf("  Del (%d,%d) -> (%d,%d)\n",
-                 s->abpos,s->bbpos,s->aepos,s->bepos);
-      }
-  }
-
-  printf("\nSeg: ^Pred(Start) = Score Segment(BP..EP)\n");
-#endif
-
   { int e;
     AVLnode *elist, *ilist, *olist;
 
@@ -506,18 +436,6 @@ Local_Overlap *Find_Local_Overlap(int Alen, int Blen, int comp, int nextbest,
 
         /* Determine least gapped path to i'th segment */
 
-#ifdef DEBUG_CLIST
-        printf("\nElist:\nStart Base Best Segment\n");
-        AVLall(elist,CHANDLER);
-        printf("\n");
-        printf("\nIlist:\nStart Base Best Segment\n");
-        AVLall(ilist,CHANDLER);
-        printf("\n");
-        printf("\nOlist:\nStart Base Best Segment\n");
-        AVLall(olist,CHANDLER);
-        printf("\n");
-#endif
-
         i = EventList[e].item - Segs;
         bb = Segs[i].bbpos;
         be = Segs[i].bepos;
@@ -528,18 +446,11 @@ Local_Overlap *Find_Local_Overlap(int Alen, int Blen, int comp, int nextbest,
         if (EventList[e].isadd)  /* Segment begins */
           { int clen, best, srce;
 
-#ifdef AIMFORGLOBAL
 	  /* this definition of best differs from the original (below)
 	     it is designed to encourage global alignment */
 
             best = ab+bb;                 /* Best from boundary */
 
-#else
-            best = ab;                 /* Best from boundary */
-            if (best > bb)
-              best = bb;
-            best *= 2;
-#endif
             srce = -1;
             clen = AVLlength(AVLinc(elist));
 
@@ -601,18 +512,13 @@ Local_Overlap *Find_Local_Overlap(int Alen, int Blen, int comp, int nextbest,
 
             Trace[i].value  = best;
             Trace[i].source = srce;
+
 	    Trace[i].colsAligned = (int)((1.-err)*(double)(min(ae-ab,be-bb)+1));
             if (srce >= 0){
               Trace[i].start = Trace[srce].start;
 	      Trace[i].colsAligned += Trace[srce].colsAligned;
 	    } else
               Trace[i].start = i;
-
-#ifdef DEBUG_DP
-            printf("  %3d: ^%d(%d) = %d [%d,%d] .. [%d,%d]\n",
-                   i,Trace[i].source,Trace[i].start,Trace[i].value,
-                   Segs[i].abpos,Segs[i].bbpos,Segs[i].aepos,Segs[i].bepos);
-#endif
 
             /* Add segment to ilist and olist */
 
@@ -708,31 +614,16 @@ Gen_Overlap:
       if (Trace[i].start >= 0&&Trace[i].colsAligned >= MIN_ALIGNED_COLS)
         { int sfx;
 
-#ifdef AIMFORGLOBAL
 	/* this definition of sfx differs from the original (below)
 	   it is designed to encourage global alignment */
 	   
-          sfx = Alen - Segs[i].aepos + 
+        sfx = Alen - Segs[i].aepos + 
                 Blen - Segs[i].bepos;
-#else
-          sfx = Alen - Segs[i].aepos;
-          if (Blen - Segs[i].bepos < sfx)
-            sfx = Blen - Segs[i].bepos;
-          sfx *= 2;
-#endif
-          if (Trace[i].value + sfx 
 
-#ifdef AIMFORLONGEST
-	      -2*Trace[i].colsAligned
-#endif
-	      < best)
-            { best = Trace[i].value 
-#ifdef AIMFORLONGEST
-		-2*Trace[i].colsAligned
-#endif
-		+ sfx;
-              end  = i;
-            }
+          if (Trace[i].value + sfx - 2*Trace[i].colsAligned < best) {
+            best = Trace[i].value - 2*Trace[i].colsAligned + sfx;
+            end  = i;
+          }
         }  
     }
 
@@ -939,259 +830,7 @@ Gen_Overlap:
         Chain[i].reversed = 0;
   }
 
-
-  if (Descriptor->diffs > GapThresh * Descriptor->length)
-    {
-#ifdef INSIST_ON_DIFF_LT_LENGTH
-      free(Descriptor);
-      goto Gen_Overlap;
-#else
-#ifdef WARN_ON_DIFF
-    printf("@@#k Warning: diffs > length!\n");
-#endif
-#endif
-    }
-
   restore_segs(Segs,NumSegs,comp,Alen,Blen); /* undo comp and rc changes */
 
   return (Descriptor);
-}
-
-void Print_Local_Overlap_Picture(FILE *file, Local_Overlap *align, int indent)
-{ int   sym1,  sym2;
-
-fprintf(file,"begpos %d endpos %d comp %d\n",
-	align->begpos, align->endpos, align->comp);
-
-  if (align->comp)
-    { sym1 = '<'; sym2 = '-'; }
-  else
-    { sym1 = '-'; sym2 = '>'; }
-  if (align->begpos >= 0)
-    if (align->endpos <= 0)
-      { fprintf(file,"%*s",indent,"");
-        fprintf(file,"  A -----+------+---->");
-        fprintf(file,"    idif+edif/len = %d+%d/%d = %5.2f%%\n",
-                     align->indif,align->diffs-align->indif,align->length,
-                     (100.*align->diffs)/align->length);
-        fprintf(file,"%*s",indent,"");
-        fprintf(file,"  B %4d %c------%c %-4d\n",
-                     align->begpos,sym1,sym2,-align->endpos);
-      }
-    else
-      { fprintf(file,"%*s",indent,"");
-        fprintf(file,"  A -----+------> %-4d",align->endpos);
-        fprintf(file,"       idif+edif/len = %d+%d/%d = %5.2f%%\n",
-                     align->indif,align->diffs-align->indif,align->length,
-                     (100.*align->diffs)/align->length);
-        fprintf(file,"%*s",indent,"");
-        fprintf(file,"  B %4d %c------+----%c\n",align->begpos,sym1,sym2);
-      }
-  else
-    if (align->endpos >= 0)
-      { fprintf(file,"%*s",indent,"");
-        fprintf(file,"  A %4d -------> %-4d",
-                     -align->begpos,align->endpos);
-        fprintf(file,"       idif+edif/len = %d+%d/%d = %5.2f%%\n",
-                     align->indif,align->diffs-align->indif,align->length,
-                     (100.*align->diffs)/align->length);
-        fprintf(file,"%*s",indent,"");
-        fprintf(file,"  B %c----+------+----%c\n",sym1,sym2);
-      }
-    else
-      { fprintf(file,"%*s",indent,"");
-        fprintf(file,"  A %4d -------+---->",-align->begpos);
-        fprintf(file,"    idif+edif/len = %d+%d/%d = %5.2f%%\n",
-                     align->indif,align->diffs-align->indif,align->length,
-                     (100.*align->diffs)/align->length);
-        fprintf(file,"%*s",indent,"");
-        fprintf(file,"  B %c----+------%c %-4d\n",sym1,sym2,-align->endpos);
-      }
-  fprintf(file,"\n");
-}
-
-static char *Gap_Types[] = { "Boundary", "Minor", "Mismatch", "Indel",
-                             "Tandem Repeat", "Tandem w. Spacer"};
-
-void Print_Local_Overlap(FILE *file, Local_Overlap *desc, int indent)
-{ 
-  Print_Local_Overlap_Picture(file,desc,indent);
-
-  { int i, type;
-    Local_Chain *chain;
-    Local_Segment *seg;
-
-    fprintf(file,"%*s",indent+2,"");
-    fprintf(file,"%d segments ", desc->num_pieces);
-    if(desc->num_pieces > 1){
-      fprintf(file," with %d unaligned bp's between them",
-                 desc->score);
-    }
-    fprintf(file," diffs = %d indif = %d score = %d overlap = %d\n\n",
-	    desc->diffs, desc->indif, desc->score, desc->length);
-
-    chain = desc->chain;
-    for (i = 0; i < desc->num_pieces; i++)
-      { type = chain[i].type;
-        fprintf(file,"%*s    %s (%d,%d)\n",indent,"",
-                     Gap_Types[type],chain[i].agap,chain[i].bgap);
-        seg = & (chain[i].piece);
-        fprintf(file,"%*s        [%d,%d] x [%d,%d] @%.2f%%",indent,"",
-                     seg->abpos,seg->aepos,
-                     seg->bbpos,seg->bepos,100.*seg->error);
-        if (chain[i].reversed)
-          fprintf(file,"  REVERSED");
-        fprintf(file,"\n");
-      }
-    type = chain[i].type;
-    fprintf(file,"%*s    %s (%d,%d)\n",indent,"",
-                 Gap_Types[type],chain[i].agap,chain[i].bgap);
-  }
-}
-
-
-// NEW STUFF
-
-static void Complement(char *seq, int len)
-{ static char WCinvert[256];
-  static int Firstime = 1;
-
-  if (Firstime)          /* Setup complementation array */
-    { int i;
-
-      Firstime = 0;
-      for(i = 0; i < 256;i++){
-        WCinvert[i] = '?';
-      }
-      WCinvert[(int)'a'] = 't';
-      WCinvert[(int)'c'] = 'g';
-      WCinvert[(int)'g'] = 'c';
-      WCinvert[(int)'t'] = 'a';
-      WCinvert[(int)'n'] = 'n';
-      WCinvert[(int)'A'] = 'T';
-      WCinvert[(int)'C'] = 'G';
-      WCinvert[(int)'G'] = 'C';
-      WCinvert[(int)'T'] = 'A';
-      WCinvert[(int)'N'] = 'N';
-      WCinvert[(int)'-'] = '-'; // added this to enable alignment of gapped consensi
-    }
-
-  /* Complement and reverse sequence */
-
-  { register char *s, *t;
-    int c;
-
-    s = seq;
-    t = seq + (len-1);
-    while (s < t)
-      { c = *s;
-        *s++ = WCinvert[(int) *t];
-        *t-- = WCinvert[c];
-      }
-    if (s == t)
-      *s = WCinvert[(int) *s];
-  }
-}
-
-static void Print_Local_Overlap_Piece(FILE *file, char *A, char *B, Local_Segment *seg)
-{ 
-  char aseg[100000],bseg[100000];
-  char *aptr,*bptr;
-  int spnt=0;
-
-  int *trace;
-  int revA=0,revB=0;
-  int alen,blen;
-
-  /*N.B. bseq[bepos] is *NOT* to be included in the segment!*/
-  if(seg->abpos < seg->aepos){
-    alen=seg->aepos - seg->abpos;
-    assert(alen<100000);
-    strncpy(aseg,A+seg->abpos,alen);
-    aseg[alen]='\0';
-  } else {
-    alen=seg->abpos - seg->aepos;
-    assert(alen<100000);
-    strncpy(aseg,A+seg->aepos,alen);
-    aseg[alen]='\0';
-    revA=1;
-  }
-  if(seg->bbpos < seg->bepos){
-    blen=seg->bepos - seg->bbpos;
-    assert(blen<100000);
-    strncpy(bseg,B+seg->bbpos,blen);
-    bseg[blen]='\0';
-  } else {
-    blen=seg->bbpos - seg->bepos;
-    assert(blen<100000);
-    strncpy(bseg,B+seg->bepos,blen);
-    bseg[blen]='\0';
-    revB=1;
-  }
-  
-
-  if((revA||revB)&&!(revA&&revB)){
-    Complement(bseg,blen);
-  }
-  
-  
-  //    OverlapMesg ovlmsg;
-  //    ovlmsg.overlap_type = AS_CONTAINMENT;
-  //    ovlmsg.ahg=0;
-  //    ovlmsg.bhg=0;
-  //    ovlmsg.aifrag=&A;
-  //    ovlmsg.bifrag=&B;
-  //    if(revA||revB){
-  //      ovlmsg.orientation = AS_INNIE;
-  //    } else {
-  //      ovlmsg.orientation = NORMAL;
-  //    }
-#ifndef max
-#define max(a,b) (a > b ? a : b)
-#endif
-
-  aptr=aseg;
-  aptr--;
-  bptr=bseg;
-  bptr--;
-  trace=AS_ALN_OKNAlign(aptr,
-		 alen,
-		 bptr,
-		 blen,
-		 &spnt,
-		 max(10,blen/50));
-
-  PrintAlign(stdout,0,0,aseg,bseg,trace);
-
-}
-
-void Print_Local_Overlap_withAlign(FILE *file, Local_Overlap *desc,char *a,char *b)
-{ int indent=4;
-  fprintf(file,"\nLocal Overlap: %d segments scoring %d\n\n",
-               desc->num_pieces,desc->score);
-
-  Print_Local_Overlap_Picture(file,desc,indent);
-
-  { int i, type;
-    Local_Chain *chain;
-    Local_Segment *seg;
-
-    chain = desc->chain;
-    for (i = 0; i < desc->num_pieces; i++)
-      { type = chain[i].type;
-        fprintf(file,"    %s (%d,%d)\n",
-                     Gap_Types[type],chain[i].agap,chain[i].bgap);
-        seg = & (chain[i].piece);
-        fprintf(file,"\t[%d,%d] x [%d,%d] @%.2f%%",
-                     seg->abpos,seg->aepos,
-                     seg->bbpos,seg->bepos,100.*seg->error);
-        if (chain[i].reversed)
-          fprintf(file,"  REVERSED");
-        fprintf(file,"\n");
-        Print_Local_Overlap_Piece(file, a, b, &(chain[i].piece));
-    }
-    type = chain[i].type;
-    fprintf(file,"    %s (%d,%d)\n",
-                 Gap_Types[type],chain[i].agap,chain[i].bgap);
-  }
 }

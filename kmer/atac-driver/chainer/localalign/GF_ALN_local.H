@@ -19,16 +19,46 @@
 **************************************************************************/
 
 
-/***********************************************************************
-*
-*             Copyright (c) 2003 Celera Genomics Corporation.
-*                            All rights reserved.
-*
-***********************************************************************/
-
 #ifndef CA_ALN_local_h
 #define CA_ALN_local_h
+
 #include <stdio.h>
+
+
+inline
+void *
+ckalloc(size_t size) {
+  void *newp = NULL;
+  assert(size>0); 
+  assert(NULL != (newp = malloc(size)));
+  return(newp);
+}
+
+inline
+void *
+ckrealloc(void* ptr, size_t size) {
+  void *newp = NULL;
+  assert(size>0);
+  assert(NULL != (newp = realloc(ptr, size)));
+  return(newp);
+}
+
+
+
+
+
+
+/* O(kn) identity-based alignment algorithm.  Find alignment between
+   a and b (of lengths alen and blen), that begins at finishing
+   boundary position *spnt.  Return at *spnt the diagonal at which the
+   alignment starts.
+*/
+int *AS_ALN_OKNAlign(const char *a, int alen,
+                     const char *b, int blen,
+                     int *spnt,
+                     int diff);
+
+
 
 /* Local alignment record:
      Coordinates are in terms of the d.p. matrix that go from (0,0)
@@ -176,6 +206,13 @@ typedef struct {
                          local segments in the overlap chain            */
 } Local_Overlap;
 
+
+
+
+
+
+
+
 /* Find_Local_Overlap takes an array of local alignments as returned by
    Compare_Local and finds the best scoring local overlap between the
    underlying sequences.  One must pass in the length of the two sequences
@@ -201,55 +238,37 @@ Local_Overlap *Find_Local_Overlap(int Alen, int Blen, int comp, int nextbest,
                                   Local_Segment *Segs, int NumSegs,
                                   int MinorThresh, float GapThresh);
 
-/* Print out a representation of the local overlap, desc, on the file ofile.
-   Indent the input by "indent" spaces.                                     */
-
-void Print_Local_Overlap(FILE *ofile, Local_Overlap *desc, int indent);
-void Print_Local_Overlap_Picture(FILE *file, Local_Overlap *align, int indent);
-void Print_Local_Overlap_withAlign(FILE *file, Local_Overlap *desc,char *a,char *b);
 
 
-/*** FORWARD AND REVERSE D.P. EXTENSION ROUTINES ***/
-/*      Called at the mid-point of trapezoid -- mid X [lo,hi], the extension
-        is computed to an end point and the lowest and highest diagonals
-        are recorded.  These are returned in a partially filled Local_Segment
-        record, that will be merged with that returned for extension in the
-        opposite direction.
 
-	These can be used to do local alignment out from a seed point (x,y)
-	by setting mid, lo and hi appropriately.  mid=x; lo=hi=y-x
+
+
+
+
+/* Create a trace to be interpreted as with DP_Compare_AS, but based
+   on a Local_Overlap record.  A Local_Segment within the overlap
+   will be aligned using OKNAlign(), generating a subtrace.  Subtraces,
+   with their indices appropriately adjusted, will be spliced together
+   by an encoding of the gaps between segments; for now, we'll simply insert
+   gaps as follows:
+
+      A "gap" with x bases in A and y bases in B will become a section
+      of the alignment x+y positions long, with the A fragment first
+      and the B fragment second:
+
+               AAAAAAAAAA--------------
+               ----------BBBBBBBBBBBBBB
+
+   Obviously, a more compact treatment is possible!
+
+   Assumptions: both sequences should be in the forward orientation
+   and all segments are forward.
+
 */
+int *AS_Local_Trace(Local_Overlap  *local_overlap,
+                    const char     *aseq,
+                    const char     *bseq);
 
-Local_Segment *TraceForwardPath
-( char const * const A, int const Alen,
-  char const * const B, int const Blen,
-  int const mid, int lo, int hi);
-Local_Segment *TraceReversePath
-(char const * const A, int const Alen,
- char const * const B, int const Blen,
- int const top, int lo, int hi,
- int const bot, int xfactor);
-
-
-
-/* the following "setup" function does enough initialization 
-   to support reusing of TraceForwardPath and TraceReversePath for
-   alignment extension out from a seed, without doing setup for
-   computing the Table, hits, or trapezoids */
-void setup_local_extension_only(int const Alen,
-				int const Blen,
-				float const MaxDiff,
-				int const MaxiGap);
-
-
-/* allow external calling of TraceReversePath to have the appropriate
-   xfactor value ... */
-int compute_xfactor(int mid);
-
-/* stand-alone computation of error rate from a Local_Segment* */
-float  compute_error(Local_Segment *seg);
 
 #endif
-
-
 
