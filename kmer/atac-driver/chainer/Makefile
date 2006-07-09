@@ -13,10 +13,8 @@ CCFLAGS = -fpic -g -Wall                    -I/usr/local/include/python2.3
 SOURCE  = localalign/GF_ALN_dpaligner.cc \
           localalign/GF_ALN_local.cc \
           localalign/GF_ALN_overlap.cc \
-          localalign/GF_ALN_qvaligner.cc \
           localalign/GF_ALN_loverlapper.cc \
           localalign/GF_ALN_pieceOlap.cc \
-          localalign/localAlignerInterface.cc \
           localalign/localAlignerInterfacemodule.cc \
           halign/halign.cc \
           halign/halignmodule.cc
@@ -34,7 +32,7 @@ atacdriver.sh: Makefile
 	echo \#!/bin/sh > atacdriver.sh
 	echo if [ x\$$TMPDIR = x ] \; then >> atacdriver.sh
 	echo echo WARNING: TMPDIR not set, defaulting to . >> atacdriver.sh
-	echo export TMPDIR=`pwd` >> atacdriver.sh
+	echo export TMPDIR=\`pwd\` >> atacdriver.sh
 	echo fi >> atacdriver.sh
 	echo export PYTHONPATH=`pwd`:`pwd`/python >> atacdriver.sh
 	echo python `pwd`/python/AtacDriver.py $$\* >> atacdriver.sh
@@ -42,10 +40,8 @@ atacdriver.sh: Makefile
 localAlignerInterfacemodule.so:   localalign/GF_ALN_dpaligner.o \
                                   localalign/GF_ALN_local.o \
                                   localalign/GF_ALN_overlap.o \
-                                  localalign/GF_ALN_qvaligner.o \
                                   localalign/GF_ALN_loverlapper.o \
                                   localalign/GF_ALN_pieceOlap.o \
-                                  localalign/localAlignerInterface.o \
                                   localalign/localAlignerInterfacemodule.o
 	$(CC) -shared -o $@ $^
 
