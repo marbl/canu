@@ -16,53 +16,42 @@
 // License along with this program; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-
 #include "halign.h"
 
-//static char Usage[] = "%s seq1 seq2";
+int main(int argc, char **argv) {
+   char *seq1 = "ATCGTCCGGATGAAAATGTCTCGGGGGGGGGGGTCGGG";
+   char *seq2 = "ATCGTCTGGATGAAAAAGTCTCAAGGG";
 
-int main(int argc, char *argv[])
-{
-   char *seq1, *seq2;
-   int   len1, len2;
-   int   offset1, offset2;
+   // This is the setting for the coordinate system to be just the match.
+   int   offset1 = 0;
+   int   offset2 = 0;
+
+   int bgn1, bgn2, len1, len2, nmat;
+
    H_Alignment_t * aln_ptr = NULL;
 
-   seq1 = "ATCGTCCGGATGAAAATGTCTCGGGGGGGGGGGTCGGG";
-   seq2 = "ATCGTCTGGATGAAAAAGTCTCAAGGG";
-   len1 = strlen(seq1);
-   len2 = strlen(seq2);
-   
-   // This is the setting for the coordinate system to be just the match.
-   offset1 = 0;
-   offset2 = 0;
-
    // Sequence coordinates are base-based, starting from 0
-   halignStart( seq1+offset1, // This is the first base in the comparison.
-	   seq2+offset2,
-	   offset1, offset2,
-	   len1, len2,
-	   &aln_ptr);
-   
-#if 0
-   printUngappedAlign(aln_ptr);
-   printUngappedAlignSharpEnds(aln_ptr);
-#endif
+   halignStart(seq1+offset1, // This is the first base in the comparison.
+               seq2+offset2,
+               offset1,
+               offset2,
+               strlen(seq1),
+               strlen(seq2),
+               &aln_ptr);
+
+   //printUngappedAlign(aln_ptr);
+   //printUngappedAlignSharpEnds(aln_ptr);
 
    printUngappedAlignSharpEndsOnConsole(aln_ptr, seq1, seq2, 0);
    printUngappedAlignSharpEndsOnConsole(aln_ptr, seq1, seq2, 1);
    printUngappedAlignSharpEndsOnConsole(aln_ptr, seq1, seq2, 2);
 
-   if(1){
-     int bgn1, bgn2, len1, len2, nmat;
-     printf("Try iterator\n");
-     while(iterateUngappedAlignSharpEnds(aln_ptr, bgn1, bgn2, len1, len2, nmat)) {
-       printf("%d %d %d %d\n", bgn1, bgn2, len1, len2 );
-     }
-     printf("Tried iterator\n");
-   }
+   while(iterateUngappedAlignSharpEnds(aln_ptr, bgn1, bgn2, len1, len2, nmat))
+     printf("%d %d %d %d\n", bgn1, bgn2, len1, len2 );
 
-   if(aln_ptr != NULL) Free_align(aln_ptr);
+   if(aln_ptr != NULL)
+     Free_align(aln_ptr);
+
    // Must call for each halign() but after printing output.
    
    exit(0);

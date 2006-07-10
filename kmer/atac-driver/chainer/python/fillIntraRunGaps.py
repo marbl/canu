@@ -224,7 +224,7 @@ def analyzeGap(x,y,left,right,outfile,maxgap,erate,margin):
                         print >>sys.stderr, "# xseq=%s" % x_seq[bgn1:bgn1+len1]
                         print >>sys.stderr, "# yseq=%s" % y_seq[bgn2:bgn2+len2]
 
-                    halign.halignStart(x_seq[bgn1:bgn1+len1],y_seq[bgn2:bgn2+len2])
+                    halign.halignStart(x_seq[bgn1:bgn1+len1], y_seq[bgn2:bgn2+len2])
                     outfile.flush()
                     for hsegment in iter(halign.halignDedash,None):
                         #print >>outfile, segment
@@ -247,7 +247,6 @@ def analyzeGap(x,y,left,right,outfile,maxgap,erate,margin):
                         FM.extend['mm'] = str(mismatches)
                         #FM.identifier = ""  # BEWARE
                         print >>outfile, FM
-                    halign.halignFree()
 
                 # localAlignerInterface.free()
                 # print >>outfile,"# FINISHED localAlignerInterface.syntenicSegments"

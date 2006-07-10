@@ -18,50 +18,37 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 **************************************************************************/
 
-
 #ifndef _ALIGN__HALIGN_H_
 #define _ALIGN__HALIGN_H_
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <string.h>
+// CMM 2004 Feb 05: The variable "first" does not really belong in
+// the alignment object.  We should put it into a separate iterator
+// over alignment struct/class.  Currently, this is called by Python
+// so I would need to learn how to make C++ glue code for Python
+// objects.  Currently I just make glue code for Python modules.
 
-typedef 
-struct H_Alignment_t {
-        int    offset1, offset2;
-        int    len1, len2;
-        int    score;
-        int    first;
-  // CMM 2004 Feb 05: The variable "first" does not really belong in
-  // the alignment object.  We should put it into a separate iterator
-  // over alignment struct/class.  Currently, this is called by Python
-  // so I would need to learn how to make C++ glue code for Python
-  // objects.  Currently I just make glue code for Python modules.
-        int  * scriptAsArray;
+typedef struct H_Alignment_t {
+  int   offset1;
+  int   offset2;
+  int   len1;
+  int   len2;
+  int   score;
+  int   first;
+  int   scriptAsArrayMax;
+  int  *scriptAsArray;
 } H_Alignment_t;
 
-void halignStart
-( char const * const string1,
-  char const * const string2,
-  int const offset1,
-  int const offset2,
-  int const len1,
-  int const len2,
-  H_Alignment_t ** alignment
-  );
+void halignStart(char *string1,
+                 char *string2,
+                 H_Alignment_t *alignment);
 
-void Free_align(H_Alignment_t* aln_ptr);
-/* To free the alignment returned by HALIGN. */
   
-void printUngappedAlign(H_Alignment_t* aln);
-void printUngappedAlignSharpEnds(H_Alignment_t* aln);
-void printUngappedAlignSharpEndsOnConsole
-( H_Alignment_t* aln, char const * const seq1, char const * const seq2, int const opt);
-
-int iterateUngappedAlignSharpEnds
-( H_Alignment_t* aln,
-  int& bgn1, int& bgn2, int& len1, int& len2, int& nmat);
+int iterateUngappedAlignSharpEnds(H_Alignment_t *aln,
+                                  int &bgn1,
+                                  int &bgn2,
+                                  int &len1,
+                                  int &len2,
+                                  int &nmat);
 
 #endif
 

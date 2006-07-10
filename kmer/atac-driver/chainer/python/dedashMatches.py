@@ -66,7 +66,8 @@ def main( inpfile, outfile, xIdx, yIdx):
                                           FM.y_scaf_uid, FM.y_start, FM.y_length));
                 ii = 0
                 # Here we call the dedasher.
-                halign.halignStart(x_substring,y_substring)
+                halign.halignStart(x_substring,
+                                   y_substring)
                 for segment in iter(halign.halignDedash,None):
                     #print >>outfile, segment
                     (bgn1,bgn2,len1,len2,nmat) = segment
@@ -87,7 +88,6 @@ def main( inpfile, outfile, xIdx, yIdx):
                     FM.extend['mm'] = str(mismatches)
                     FM.identifier = ""  # BEWARE
                     print >>outfile, FM
-                # halign.halignFree()
             else:
                 print >>outfile, line,
         else:

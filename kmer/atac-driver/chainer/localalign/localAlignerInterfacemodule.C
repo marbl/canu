@@ -232,9 +232,8 @@ registration_table[] = {
 };
 
 
-extern "C" {
+extern "C"
 void initlocalAlignerInterface() {
   Py_InitModule("localAlignerInterface", registration_table);
-}
 }
 
