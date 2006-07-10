@@ -91,9 +91,9 @@ public:
   searcherState(u64bit U) {
     threadID    = U;
 
-    posnMax     = 16384;
+    posnMax     = 0;
     posnLen     = 0;
-    posn        = new u64bit [ posnMax ];
+    posn        = 0L;
 
     maskTime    = 0.0;
     searchTime  = 0.0;
