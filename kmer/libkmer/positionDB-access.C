@@ -17,7 +17,21 @@ positionDB::get(u64bit   mer,
   //
   posnLen = 0;
 
-  if (le == 0) return(false);
+  if (le == 0)
+    return(false);
+
+  //  Get this out of the way.  If we have no space, allocate a little
+  //  bit.
+  //
+  if (posnMax == 0) {
+    posnMax = 16384;
+    try {
+      posn    = new u64bit [posnMax];
+    } catch (...) {
+      fprintf(stderr, "positionDB::get()-- Can't allocate space for initial positions, requested "u64bitFMT" u64bit's.\n", posnMax);
+      abort();
+    }
+  }
 
   u64bit  v;
   u64bit  uniqMask = u64bitONE << (_wFin - 1);
@@ -30,24 +44,19 @@ positionDB::get(u64bit   mer,
     if ((v & _chckMask) == c) {
       pos = (v >> _chckWidth) & _posnPtrMask;
 
-      if (posnMax == 0) {
-        posnMax = 16384;
-        try {
-          posn    = new u64bit [posnMax];
-        } catch (...) {
-          fprintf(stderr, "positionDB::get()-- Can't allocate space for initial positions, requested "u64bitFMT" u64bit's.\n", posnMax);
-          abort();
-        }
-      }
-
       if (v & uniqMask) {
+        //  We allocated space already.
         posnLen = 1;
         posn[0] = pos;
       } else {
         ptr  = pos * _posnWidth;
         len  = getDecodedValue(_positions, ptr, _posnWidth);
 
+        //  Whoops!  Need more space!
+        //
         if (posnMax < len) {
+          delete [] posn;
+
           posnMax = len + (len >> 2);
           try {
             posn    = new u64bit [posnMax];
