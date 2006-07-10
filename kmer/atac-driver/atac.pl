@@ -38,6 +38,9 @@ my $ATACdir           = undef;
 my $GENOMEdir         = "default";   #  Location of genome assemblies
 my $MERYLdir          = "default";   #  Location of genome mercount databases
 
+my $BINdir            = undef;
+my $SRCdir            = undef;
+
 my $mersize           = 20; # the mer size
 my $minfill           = 20; # the mimimum fill for a reported match.
 my $merlimit          = 1;  # unique mers only
@@ -60,8 +63,6 @@ my $merylOnly         = 0;
 my $segmentIDtorun    = undef;
 my $buildOnly         = undef;
 
-my $execHome          = undef;
-
 
 
 if (scalar(@ARGV) < 6) {
@@ -83,8 +84,9 @@ if (scalar(@ARGV) < 6) {
     print STDERR "Paths should be FULL PATHS, not relative paths.\n";
     print STDERR "\n";
     print STDERR "    -genomedir path        -- path to the GENOMES directory\n"; # MANDATORY
-    print STDERR "    -meryldir  path        -- path to the MERYL directory\n"; # MANDATORY
-    print STDERR "    -bindir  path          -- path to the binaries (hack!)\n"; # MANDATORY
+    print STDERR "    -meryldir  path        -- path to the MERYL directory\n";   # MANDATORY
+    print STDERR "    -bindir  path          -- path to the binaries (hack!)\n";  # MANDATORY
+    print STDERR "    -srcdir  path          -- path to the source   (hack!)\n";  # MANDATORY
     print STDERR "\n";
     print STDERR "    -numsegments s         -- number of segments to do the search in\n";
     print STDERR "    -numthreads t          -- number of threads to use per search\n";
@@ -129,7 +131,9 @@ while (scalar(@ARGV) > 0) {
     } elsif ($arg eq "-numthreads") {
         $numThreads = shift @ARGV;
     } elsif ($arg eq "-bindir") {
-        $execHome = shift @ARGV;
+        $BINdir = shift @ARGV;
+    } elsif ($arg eq "-srcdir") {
+        $SRCdir = shift @ARGV;
     } elsif ($arg eq "-merylonly") {
         $merylOnly = 1;
     } elsif ($arg eq "-merylthreads") {
@@ -180,24 +184,24 @@ while (scalar(@ARGV) > 0) {
 #  Decide on a path to the executables.  This is probably
 #  a hack.
 #
-my $leaff   = "$execHome/leaff";
-my $meryl   = "$execHome/meryl";
-my $existDB = "$execHome/existDB";
-my $seatac  = "$execHome/seatac";
+my $leaff   = "$BINdir/leaff";
+my $meryl   = "$BINdir/meryl";
+my $existDB = "$BINdir/existDB";
+my $seatac  = "$BINdir/seatac";
 
 die "Can't run $leaff\n"   if (! -x $leaff);
 die "Can't run $meryl\n"   if (! -x $meryl);
 die "Can't run $existDB\n" if (! -x $existDB);
 die "Can't run $seatac\n"  if (! -x $seatac);
 
-#  Try to find the filter, check here, $execHome and $execHome/../lib
+#  Try to find the filter, check here, $BINdir and $BINdir/../lib
 #
 if      (-e $filtername) {
     #  nop!
-} elsif (-e "$execHome/$filtername") {
-    $filtername = "$execHome/$filtername";
-} elsif (-e "$execHome/../lib/$filtername") {
-    $filtername = "$execHome/../lib/$filtername";
+} elsif (-e "$BINdir/$filtername") {
+    $filtername = "$BINdir/$filtername";
+} elsif (-e "$BINdir/../lib/$filtername") {
+    $filtername = "$BINdir/../lib/$filtername";
 } else {
     print STDERR "Didn't find $filtername.\n";
 }
@@ -584,7 +588,7 @@ if (! -e "$ATACdir/$matches.matches.sorted") {
 if ((! -e "$ATACdir/$matches.matches.sorted.extended") ||
     (0 == -s "$ATACdir/$matches.matches.sorted.extended")) {
     my $cmd;
-    $cmd  = "$execHome/matchExtender $matchExtenderOpts ";
+    $cmd  = "$BINdir/matchExtender $matchExtenderOpts ";
     $cmd .= "< $ATACdir/$matches.matches.sorted ";
     $cmd .= "> $ATACdir/$matches.matches.sorted.extended ";
 
@@ -595,9 +599,58 @@ if ((! -e "$ATACdir/$matches.matches.sorted.extended") ||
 }
 
 
+#  Finish with the chainer
+#
+if (! -e "$ATACdir/$matches.atac") {
+
+    if (!defined($ENV{"TMPDIR"})) {
+        print STDERR "WARNING:  TMPDIR not set, defaulting to '$ATACdir'.\n";
+        $ENV{"TMPDIR"} = $ATACdir;
+    }
+
+    #  Path to the python shared-objects (in lib) and the python scripts.
+    #
+    $ENV{'PYTHONPATH'} = "$SRCdir/atac-driver/chainer/python:$SRCdir/atac-driver/chainer:$BINdir/../lib";
+
+    print STDERR "setenv PYTHONPATH $ENV{'PYTHONPATH'}\n";
+
+    my $cmd;
+    $cmd  = "python $SRCdir/atac-driver/chainer/python/AtacDriver.py ";
+    $cmd .= "$ATACdir/$matches.matches.sorted.extended";
+
+    if (runCommand($cmd)) {
+        print STDERR "Chainer failed.\n";
+        exit(1);
+    }
+
+    if (! -e "$ATACdir/$matches.atac") {
+        system("ln -s $ATACdir/$matches.matches.sorted.extended.ckpLast $ATACdir/$matches.atac");
+    }
+}
+
+
+#  OK, no, really finish with clumps.
+#
+if (! -e "$matches.atac.clumps5000") {
+    my $cmd;
+    $cmd  = "cd $ATACdir && ";
+    $cmd .= "grep ^M $ATACdir/$matches.atac | ";
+    $cmd .= "cut -d' ' -f 1-12 | ";
+    $cmd .= "sort -k5,5 -k6n ";
+    $cmd .= "> $ATACdir/$matches.atac.sorted && ";
+    $cmd .= "$BINdir/clumpMaker -c 5000 -2 -S -f $ATACdir/$matches.atac.sorted ";
+    $cmd .= "> $matches.atac.clumps5000";
+
+    system($cmd) and die "Failed to atacdriver.sh!\n";
+}
+
+print STDERR "Output is\n";
+print STDERR "$matches.atac\n";
+print STDERR "$matches.atac.clumps5000\n";
 
 
 
+#  Subroutines below!
 
 
 

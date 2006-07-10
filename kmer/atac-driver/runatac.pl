@@ -46,3 +46,5 @@ $cmd .= "time sh /bioinfo/assembly/walenz/src/genomics/atac/atacdriver.sh $name.
 $cmd .= "grep ^M $name.atac.ckpLast | cut -d' ' -f 1-12 | sort -k5,5 -k6n > $name.atac.ckpLast.sorted && ";
 $cmd .= "/bioinfo/assembly/walenz/src/genomics/atac-driver/clumpMaker/clumpMaker -c 5000 -2 -S -f $name.atac.ckpLast.sorted > $name.atac.ckpLast.clumps";
 system($cmd) and die "Failed to atacdriver.sh!\n";
+
+

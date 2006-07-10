@@ -19,23 +19,28 @@ SOURCE  = localalign/GF_ALN_dpaligner.cc \
           halign/halign.cc \
           halign/halignmodule.cc
 
-all: atacdriver.sh localAlignerInterfacemodule.so halignmodule.so
+PY_EXES = python/AtacDriver.py \
+          python/AtacFile.py \
+          python/DNA.py \
+          python/IdxStore.py \
+          python/MatchRecord.py \
+          python/MyFile.py \
+          python/PerfectRuns.py \
+          python/TrimMatchOverlaps.py \
+          python/UniqueFilter.py \
+          python/dedashMatches.py \
+          python/fillIntraRunGaps.py \
+          python/mkstats.py \
+          python/squeezeIntraRunGaps.py
 
-install: atacdriver.sh localAlignerInterfacemodule.so halignmodule.so
+all:     localAlignerInterfacemodule.so halignmodule.so
+
+install: localAlignerInterfacemodule.so halignmodule.so
 
 clean:
-	rm -f */*.o *.so python/*.pyc atacdriver.sh
+	rm -f */*.o *.so python/*.pyc
 real-clean:
-	rm -f */*.o *.so python/*.pyc atacdriver.sh
-
-atacdriver.sh: Makefile
-	echo \#!/bin/sh > atacdriver.sh
-	echo if [ x\$$TMPDIR = x ] \; then >> atacdriver.sh
-	echo echo WARNING: TMPDIR not set, defaulting to . >> atacdriver.sh
-	echo export TMPDIR=\`pwd\` >> atacdriver.sh
-	echo fi >> atacdriver.sh
-	echo export PYTHONPATH=`pwd`:`pwd`/python >> atacdriver.sh
-	echo python `pwd`/python/AtacDriver.py $$\* >> atacdriver.sh
+	rm -f */*.o *.so python/*.pyc
 
 localAlignerInterfacemodule.so:   localalign/GF_ALN_dpaligner.o \
                                   localalign/GF_ALN_local.o \
@@ -50,6 +55,3 @@ halignmodule.so: halign/halignmodule.o halign/halign.o
 
 %.o: %.cc
 	$(CC) $(CCFLAGS) -o $@ -c $<
-
-#%.so:
-#	ar 

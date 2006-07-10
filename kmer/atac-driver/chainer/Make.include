@@ -1,9 +1,5 @@
 $(eval $(call MakeRecursive))
 
-#$/atac/atac-driver.sh:                 $/.all
-#$/atac/localAlignerInterfacemodule.so: $/.all
-#$/atac/halignmodule.so:                $/.all
-
 $/.all:
 	cd `dirname $@` && ${MAKE} all
 
