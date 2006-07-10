@@ -18,7 +18,6 @@ LIBSIM4/      :=$/libsim4/
 #  For reasons unknown, this will not work from here.
 #$(eval $(call Include,$/ESTmapper/))
 
-#$(eval $(call Include,$/atac/))
 $(eval $(call Include,$/atac-driver/))
 
 $(eval $(call Include,$/leaff/))
