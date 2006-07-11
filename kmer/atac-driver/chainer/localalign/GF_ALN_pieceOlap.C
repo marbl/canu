@@ -31,12 +31,16 @@ typedef struct {
 
 
 
-/* safely copy a substring of a string into static space which is enlarged
-   as needed */
-
+// safely copy a substring of a string into static space which is
+// enlarged as needed
+//
 static
 int
-safe_substr(char **seg,int *segspace,const char *seq,int beg,int end){
+safe_substr(char      **seg,
+            int        *segspace,
+            const char *seq,
+            int         beg,
+            int         end){
 
   if(*segspace<end-beg+1){
     *segspace=2*(end-beg)+1;

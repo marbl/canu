@@ -369,7 +369,7 @@ static void restore_segs(Local_Segment *Segs,int NumSegs,int comp,int Alen,int B
 
 Local_Overlap *Find_Local_Overlap(int Alen, int Blen, int comp, int nextbest,
                                   Local_Segment *Segs, int NumSegs,
-                                  int MinorThresh, float GapThresh)
+                                  int MinorThresh, double GapThresh)
 { static Candidate Cvals;
   static int MaxTrace = -1;
   static TraceElement *Trace = NULL;
@@ -446,10 +446,16 @@ Local_Overlap *Find_Local_Overlap(int Alen, int Blen, int comp, int nextbest,
         if (EventList[e].isadd)  /* Segment begins */
           { int clen, best, srce;
 
-	  /* this definition of best differs from the original (below)
-	     it is designed to encourage global alignment */
-
+	  // this definition of best differs from the original (below)
+	  // it is designed to encourage global alignment
+          //
             best = ab+bb;                 /* Best from boundary */
+
+            //best = ab;                 /* Best from boundary */
+            //if (best > bb)
+            //  best = bb;
+            //best *= 2;
+
 
             srce = -1;
             clen = AVLlength(AVLinc(elist));
@@ -611,20 +617,26 @@ Gen_Overlap:
     end  = -1;
     for (i = 0; i < NumSegs; i++){
       //      if (Trace[i].start >= 0)
-      if (Trace[i].start >= 0&&Trace[i].colsAligned >= MIN_ALIGNED_COLS)
-        { int sfx;
+      if (Trace[i].start >= 0&&Trace[i].colsAligned >= MIN_ALIGNED_COLS) {
+        int sfx;
 
-	/* this definition of sfx differs from the original (below)
-	   it is designed to encourage global alignment */
-	   
-        sfx = Alen - Segs[i].aepos + 
-                Blen - Segs[i].bepos;
+	//  this definition of sfx differs from the original (below)
+	//  it is designed to encourage global alignment
+        //
+        sfx = Alen - Segs[i].aepos + Blen - Segs[i].bepos;
 
-          if (Trace[i].value + sfx - 2*Trace[i].colsAligned < best) {
-            best = Trace[i].value - 2*Trace[i].colsAligned + sfx;
-            end  = i;
-          }
-        }  
+        //sfx = Alen - Segs[i].aepos;
+        //if (Blen - Segs[i].bepos < sfx)
+        //  sfx = Blen - Segs[i].bepos;
+        //sfx *= 2;
+
+        //  The "- 2 * Trace[i].colsAligned" makes us encourage longer alignments
+        //
+        if (Trace[i].value + sfx - 2*Trace[i].colsAligned < best) {
+          best = Trace[i].value - 2*Trace[i].colsAligned + sfx;
+          end  = i;
+        }
+      }  
     }
 
     if (end < 0) {

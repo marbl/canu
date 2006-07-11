@@ -76,11 +76,11 @@ int *AS_ALN_OKNAlign(const char *a, int alen,
 */
 
 typedef struct {
-  int abpos, bbpos;  /* Start coordinate of local alignment */
-  int aepos, bepos;  /* End coordinate of local alignment */
-  int ldiag, hdiag;  /* Alignment is between (anti)diagonals ldiag & hdiag */
-  int   score;       /* Score of alignment where match = 1, difference = -3 */
-  float error;       /* Lower bound on error rate of match */
+  int     abpos, bbpos;  /* Start coordinate of local alignment */
+  int     aepos, bepos;  /* End coordinate of local alignment */
+  int     ldiag, hdiag;  /* Alignment is between (anti)diagonals ldiag & hdiag */
+  int     score;       /* Score of alignment where match = 1, difference = -3 */
+  double  error;       /* Lower bound on error rate of match */
 } Local_Segment;
 
 #define LOCAL_FORW 0  /* Compare A to B only */
@@ -124,7 +124,7 @@ Local_Segment *Find_Local_Segments
 (char const * const A, int const Alen,
  char const * const B, int const Blen,
  int const Action,
- int const MinLen, float const MaxDiff, int * const Seglen);
+ int const MinLen, double const MaxDiff, int * const Seglen);
 
 /* Local_Overlap Record:
      A local overlap is a chain of Local_Segments computed by
@@ -236,7 +236,7 @@ typedef struct {
 
 Local_Overlap *Find_Local_Overlap(int Alen, int Blen, int comp, int nextbest,
                                   Local_Segment *Segs, int NumSegs,
-                                  int MinorThresh, float GapThresh);
+                                  int MinorThresh, double GapThresh);
 
 
 

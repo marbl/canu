@@ -30,15 +30,15 @@ static Local_Overlap *desc = NULL;
 
 //  This should be in the "library" not in the client.  Sigh.
 
-void syntenicSegments(char const * const Aseq, int const Astart, int const Astop,
-                      char const * const Bseq, int const Bstart, int const Bstop,
-                      double const erate) {
+void
+syntenicSegments(char const * const Aseq, int const Astart, int const Astop,
+                 char const * const Bseq, int const Bstart, int const Bstop,
+                 double const erate) {
 
   desc = NULL; // In case an early exit happens!
 
   //  Key data types ("Local_Segment" and "Local_Overlap") are defined
   //  in "CA_ALN_local.h"
-
 
   assert(Astop >= Astart);
   assert(Bstop >= Bstart);
@@ -60,11 +60,10 @@ void syntenicSegments(char const * const Aseq, int const Astart, int const Astop
                                                      16,              /* minimum length of a reportable match */
                                                      erate,           /* maximum error for a match to be returned */
                                                      &NumSegs);       /* number of local matches returned */
-  
+
   if(NumSegs==0)
     return;
   
-
   // Step 2: get a chain of local segments:
 
   Local_Overlap *Ov = Find_Local_Overlap(alen,          /* length of sequence A */
@@ -79,8 +78,10 @@ void syntenicSegments(char const * const Aseq, int const Astart, int const Astop
   if(Ov == NULL)
     return;
 
-          
   // Step 3 (optional): 
+  //
+  // NOT optional!  AS_Local_Trace seems to have been extended to
+  // clean up segments.
   //
   // a) fix the chain of segments so that the segments don't overlap.
   // It must be a 1-1 mapping. (can either trim or delete segments--or
@@ -90,43 +91,37 @@ void syntenicSegments(char const * const Aseq, int const Astart, int const Astop
   //
   // The "trace" is the standard "AS" encoding of an alignment.
 
-  if(Ov != NULL) {
+  // coordinate munge between Gene's local aligner and
+  // DP_Compare()-related routines coordinates from Find_Local
+  // routines will be one off from those expected by the trace
+  // routines, so adjust them!
 
-    // coordinate munge between Gene's local aligner and
-    // DP_Compare()-related routines coordinates from Find_Local
-    // routines will be one off from those expected by the trace
-    // routines, so adjust them!
-
-    for(int i=0;i<=Ov->num_pieces;i++){
-      if(i<Ov->num_pieces){
-        Ov->chain[i].piece.abpos++;
-        Ov->chain[i].piece.bbpos++;
-        Ov->chain[i].piece.aepos++;
-        Ov->chain[i].piece.bepos++;
-      }
-    }
-
-    //  AS_Local_Trace assumes string pointer one before start of string!
-
-    if(Ov != NULL) {
-      int *trace = AS_Local_Trace(Ov,Ausable-1,Busable-1);
-
-      if(trace == NULL)
-        fprintf(stderr,"EXCEPTION Ov=%p trace=NULL\n", Ov);
-    }
-
-    for(int i=0;i<=Ov->num_pieces;i++){
-      if(i<Ov->num_pieces){
-        Ov->chain[i].piece.abpos--;
-        Ov->chain[i].piece.bbpos--;
-        Ov->chain[i].piece.aepos--;
-        Ov->chain[i].piece.bepos--;
-      }
+  for(int i=0;i<=Ov->num_pieces;i++){
+    if(i<Ov->num_pieces){
+      Ov->chain[i].piece.abpos++;
+      Ov->chain[i].piece.bbpos++;
+      Ov->chain[i].piece.aepos++;
+      Ov->chain[i].piece.bepos++;
     }
   }
 
-  if(Ov != NULL)
-    Ov->next = 0;
+  //  AS_Local_Trace assumes string pointer one before start of string!
+  //
+  //  The original used to complain if no trace was returned, but we
+  //  don't care...and, in fact, we disabled trace generation anyway!
+  //
+  AS_Local_Trace(Ov, Ausable - 1, Busable - 1);
+
+  for(int i=0;i<=Ov->num_pieces;i++){
+    if(i<Ov->num_pieces){
+      Ov->chain[i].piece.abpos--;
+      Ov->chain[i].piece.bbpos--;
+      Ov->chain[i].piece.aepos--;
+      Ov->chain[i].piece.bepos--;
+    }
+  }
+
+  Ov->next = 0;
 
   desc = Ov;
 }
@@ -188,7 +183,7 @@ spam_syntenicSegments(PyObject *self, PyObject *args) {
 
   PyObject *py_outfile = NULL;
 
-  if (!PyArg_ParseTuple(args, "Osiisiif", &py_outfile, &Aseq, &Astart, &Astop, &Bseq, &Bstart, &Bstop, &erate))
+  if (!PyArg_ParseTuple(args, "Osiisiid", &py_outfile, &Aseq, &Astart, &Astop, &Bseq, &Bstart, &Bstop, &erate))
     return NULL;
 
   try {
@@ -215,7 +210,7 @@ spam_iterateSegments(PyObject *self, PyObject *args) {
   double  seg_error = 0.0;
     
   if (iterate_Local_Overlap(seg_bgn1, seg_bgn2, seg_len1, seg_len2, seg_error))
-    return(Py_BuildValue("(iiiif)", seg_bgn1, seg_bgn2, seg_len1, seg_len2, seg_error));
+    return(Py_BuildValue("(iiiid)", seg_bgn1, seg_bgn2, seg_len1, seg_len2, seg_error));
 
   Py_INCREF(Py_None);  // This is a module function returning void.
   return(Py_None);

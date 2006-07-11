@@ -27,11 +27,6 @@
 #define max(a,b) (a>b?a:b)
 
 
-
-
-
-
-
 /*  Handle Local_Overlap pieces (local segments) which overlap,
  *  by trimming them back until they abut, 
  *  such that the number of mismatches is minimized
@@ -41,13 +36,6 @@ void fix_overlapping_pieces(const char *aseq,
                             Local_Overlap *O,
                             int piece0,
                             int piece1);
-
-
-
-
-
-
-
 
 
 
@@ -116,7 +104,10 @@ int *AS_Local_Trace(Local_Overlap *O, const char *aseq, const char *bseq){
   static int allocatedspace=0;
   int tracespace=0;
   static char *aseg=NULL,*bseg=NULL;
-  const int computeTraceFlag = 1;
+
+  //  Not computing traces generates slight differences.  Why?
+  //
+  const int computeTraceFlag = 0;
 
   static int aseglen=0,bseglen=0;
   int abeg=0,bbeg=0; /* begining of segment; overloaded */
@@ -159,7 +150,7 @@ int *AS_Local_Trace(Local_Overlap *O, const char *aseq, const char *bseq){
         TraceBuffer=(int*)ckrealloc(TraceBuffer,sizeof(int)*allocatedspace);
       }
     }
-  }
+  }  //  computeTraceFlag
   
   /* for each Local_Overlap chain[i].piece, 
      need to handle the gap at the beginning and
@@ -445,36 +436,39 @@ int *AS_Local_Trace(Local_Overlap *O, const char *aseq, const char *bseq){
 	O->endpos=-O->chain[i].agap;
 	O->chain[i].agap=0;
       }
-
     }
 
-    if(O->chain[i].agap <= O->chain[i].bgap || ! useSizeToOrderBlocks ){
 
-      /* start by putting len(agap) gaps before the chunk of B in the gap */
+    if (computeTraceFlag) {
+      if(O->chain[i].agap <= O->chain[i].bgap || ! useSizeToOrderBlocks ){
+        /* start by putting len(agap) gaps before the chunk of B in the gap */
+        for(j=0; j<O->chain[i].agap ;j++)
+          TraceBuffer[tracep++]=bbeg;
 
-      for(j=0; j<O->chain[i].agap ;j++)
-        TraceBuffer[tracep++]=bbeg;
+        /* then put len(bgap) gaps before the chunk of A in the gap */
+        for(j=0; j<O->chain[i].bgap ;j++)
+          TraceBuffer[tracep++]=-abeg;
+      } else { // if the bgap is smaller,
+        abeg-=O->chain[i].agap;
+        bbeg+=O->chain[i].bgap;
 
-      /* then put len(bgap) gaps before the chunk of A in the gap */
+        /* start by putting len(bgap) gaps before the chunk of A in the gap */
+        for(j=0;j<O->chain[i].bgap   ;j++)
+          TraceBuffer[tracep++]=-abeg;
 
-      for(j=0; j<O->chain[i].bgap ;j++)
-	TraceBuffer[tracep++]=-abeg;
-
-    } else { // if the bgap is smaller,
-
-      abeg-=O->chain[i].agap;
-      bbeg+=O->chain[i].bgap;
-
-      /* start by putting len(bgap) gaps before the chunk of A in the gap */
-
-      for(j=0;j<O->chain[i].bgap   ;j++)
-	TraceBuffer[tracep++]=-abeg;
-
-      /* then put len(agap) gaps before the chunk of B in the gap */
-
-      for(j=0;j<O->chain[i].agap ;j++)
-	TraceBuffer[tracep++]=bbeg;
+        /* then put len(agap) gaps before the chunk of B in the gap */
+        for(j=0;j<O->chain[i].agap ;j++)
+          TraceBuffer[tracep++]=bbeg;
+      }
+    } else {
+      //  Not computing traces!
+      if(O->chain[i].agap <= O->chain[i].bgap || ! useSizeToOrderBlocks ){
+      } else {
+        abeg-=O->chain[i].agap;
+        bbeg+=O->chain[i].bgap;
+      }
     }
+
 
     ///////////////////////////////////////  
 
@@ -513,8 +507,8 @@ int *AS_Local_Trace(Local_Overlap *O, const char *aseq, const char *bseq){
       }
     }
   
-    /* CMM we do not need the trace computed */ {
-    if (computeTraceFlag)
+    /* CMM we do not need the trace computed */
+    if (computeTraceFlag) {
 
       /* copy the segments */
 
@@ -540,9 +534,7 @@ int *AS_Local_Trace(Local_Overlap *O, const char *aseq, const char *bseq){
 
       /* guesstimate the required number of diagonals/edits to consider to
          get optimal alignment */
-      segdiff=1+(int)((O->chain[i].piece.aepos     
-                       -O->chain[i].piece.abpos)   
-                      *1.5*O->chain[i].piece.error);
+      segdiff = 1 + (int)((O->chain[i].piece.aepos - O->chain[i].piece.abpos) * 1.5 * O->chain[i].piece.error);
 
 
       /* get trace for the segment from AS_ALN_OKNAlign */
@@ -573,15 +565,11 @@ int *AS_Local_Trace(Local_Overlap *O, const char *aseq, const char *bseq){
       j=0;
 
       if(spnt<0){
-        int ctr;
-        for(ctr=0;ctr<abs(spnt);ctr++){
+        for(int ctr=0;ctr<abs(spnt);ctr++)
           TraceBuffer[tracep++]=-abeg;
-        }
       } else {
-        int ctr;
-        for(ctr=0;ctr<spnt;ctr++){
+        for(int ctr=0;ctr<spnt;ctr++)
           TraceBuffer[tracep++]=bbeg;
-        }
       }
 
       while(segtrace[j]!=0){
@@ -591,15 +579,14 @@ int *AS_Local_Trace(Local_Overlap *O, const char *aseq, const char *bseq){
           TraceBuffer[tracep++]=bbeg+segtrace[j++]-1 /* +max(0,-spnt) ?? */;
         }
       }
-
-    } // computeTraceFlag
+    }  //  computeTraceFlag
     
     /* set lastgood to this segment */
 
     lastgood=i;
 
     /* and back to the top of the loop for another overlap piece */
-  }		      
+  }  
 
   /* terminate the trace */
   if(TraceBuffer != NULL) {
