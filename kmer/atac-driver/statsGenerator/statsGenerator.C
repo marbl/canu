@@ -636,7 +636,7 @@ main(int argc, char **argv) {
   }
 
   if (!atacFile || !prefix || error) {
-    fprintf(stderr, "usage: %s -m <file.atac> -p <outprefix> [-t trfile] [-g {A | B | g}]\n", argv[0]);
+    fprintf(stderr, "usage: %s -a <file.atac> -p <outprefix> [-t trfile] [-g {A | B | g}]\n", argv[0]);
     fprintf(stderr, "  -a          read input from 'file.atac'\n");
     fprintf(stderr, "  -p          write stats to files prefixed with 'outprefix'\n");
     fprintf(stderr, "  -g          use a genome size of g for the Nx computation, defaults to\n");
