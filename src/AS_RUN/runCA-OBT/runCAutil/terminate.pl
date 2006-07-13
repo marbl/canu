@@ -128,7 +128,12 @@ sub terminate ($) {
 
     if (! -e "$wrk/$asm.qc") {
         if (!defined($ENV{'PERL5LIB'})) {
+          if (-d "/home/smurphy/preassembly/test/TIGR/scripts") {
             $ENV{'PERL5LIB'} = "/home/smurphy/preassembly/test/TIGR/scripts";
+          } elsif (defined $ENV{PERLLIB}) {
+            ## MCS: For some reason at CBCB PERL5LIB needs to be set from PERLLIB
+            $ENV{'PERL5LIB'} = $ENV{PERLLIB};
+          }
         }
 
         my $cmd;
