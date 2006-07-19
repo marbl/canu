@@ -7,8 +7,6 @@ use lib "$FindBin::Bin/util";
 #use fasta;
 
 require "run.pl";
-require "lsf.pl";
-require "util.pl";
 
 
 #  configureESTmapper.pl
@@ -210,7 +208,7 @@ close(F);
 
 my $merBeg = 0;
 my $merEnd = 0;
-my $segId  = "00";
+my $segId  = "000";
 
 open(F, "> $path/segments");
 open(S, "> $path/create.dat");
@@ -243,6 +241,7 @@ if      ($local) {
         }
 
         $seg++;
+        $seg = substr("000$seg", -3);
     }
 } elsif ($sge) {
 
