@@ -252,18 +252,21 @@ writer(void *U, void *S) {
 
 
 int
-openOutputFile(char *outputFileName) {
+openOutputFile(char *name) {
   int  f = 0;
 
-  if (strcmp(outputFileName, "-") == 0) {
+  if (name == 0L)
+    return(0);
+
+  if (strcmp(name, "-") == 0) {
     f = fileno(stdout);
   } else {
     errno = 0;
-    f = open(outputFileName,
+    f = open(name,
              O_WRONLY | O_LARGEFILE | O_CREAT | O_TRUNC,
              S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
     if (errno)
-      fprintf(stderr, "Couldn't open the output file '%s': %s\n", outputFileName, strerror(errno)), exit(1);
+      fprintf(stderr, "Couldn't open the output file '%s': %s\n", name, strerror(errno)), exit(1);
   }
   return(f);
 }
