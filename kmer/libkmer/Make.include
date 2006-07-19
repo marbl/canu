@@ -17,8 +17,8 @@ src := $/existDB-create-from-fasta.C \
        $/positionDB.C \
        $/positionDB.H
 
-$/.CXX_SRCS   := $/driver-existDB.C $/driver-posDB.C $/percentCovered.C $(filter %.C,${src})
-$/.CXX_EXES   := $/existDB $/positionDB $/percentCovered
+$/.CXX_SRCS   := $/driver-existDB.C $/driver-posDB.C $/percentCovered.C $/mask.C $(filter %.C,${src})
+$/.CXX_EXES   := $/existDB $/positionDB $/percentCovered $/mask
 $/.CXX_LIBS   := $/libkmer.a
 $/.CLEAN      := $/*.o
 $/.REAL-CLEAN := $/buildinfo-*
@@ -27,6 +27,7 @@ $/libkmer.a:      $/buildinfo-libkmer.o $(filter %.o,${src:.C=.o})
 $/existDB:        $/driver-existDB.o $/libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a 
 $/positionDB:     $/driver-posDB.o   $/libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a 
 $/percentCovered: $/percentCovered.o $/libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a 
+$/mask:           $/mask.o           $/libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a 
 
 # $/merTableTest
 #$/merTableTest:  $/merTableTest.o   $/libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a 
