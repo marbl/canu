@@ -10,10 +10,11 @@ hitMatrix::hitMatrix(u32bit qsLen, u32bit qsIdx) {
   //  1/4 a genome, we expect a LOT of hits.  Start off with a good
   //  amount of memory.
   //
-  //  At 8 bytes per diagonalLine, 128M of these is 1GB.
+  //  At 8 bytes per diagonalLine, 128M of these is 1GB.  Which works
+  //  great for aligning mamalian chromosomes and stinks for microbes.
   //
   _hitsLen  = 0;
-  _hitsMax  = 128 * 1024 * 1024;
+  _hitsMax  = 32 * 1024 * 1024;
   _hits     = new diagonalLine [_hitsMax];
 }
 
