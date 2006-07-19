@@ -22,7 +22,7 @@ sub polish {
     my $batchsize    = ($args{'batchsize'} or 0);
     my $numbatches   = ($args{'numbatches'} or 256);
 
-    my $numproc      = ($args{'localsearches'} or 4);
+    my $numproc      = ($args{'localpolishes'} or 4);
 
     my $aligns       = "-aligns" if ($args{'aligns'});
     my $stats        = 1;
