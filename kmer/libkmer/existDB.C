@@ -10,6 +10,13 @@
 existDB::existDB(char const  *filename,
                  bool         loadData) {
   clear();
+
+  //  XXX  we should extend this function to take flags like the other constructor.
+
+  _compressedHash   = false;
+  _compressedBucket = false;
+  _beVerbose        = false;
+
   if (loadState(filename, true, loadData) == false) {
     fprintf(stderr, "existDB::existDB()-- Tried to read state from '%s', but failed.\n", filename);
     exit(1);
