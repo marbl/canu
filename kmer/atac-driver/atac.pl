@@ -180,6 +180,9 @@ while (scalar(@ARGV) > 0) {
     }
 }
 
+die "Unset BINdir?'\n"  if (! defined($BINdir));
+die "Unset SRCdir?'\n"  if (! defined($SRCdir));
+
 
 #  Decide on a path to the executables.  This is probably
 #  a hack.
@@ -188,11 +191,13 @@ my $leaff   = "$BINdir/leaff";
 my $meryl   = "$BINdir/meryl";
 my $existDB = "$BINdir/existDB";
 my $seatac  = "$BINdir/seatac";
+my $chainer = "$SRCdir/atac-driver/chainer/python/AtacDriver.py";
 
-die "Can't run $leaff\n"   if (! -x $leaff);
-die "Can't run $meryl\n"   if (! -x $meryl);
-die "Can't run $existDB\n" if (! -x $existDB);
-die "Can't run $seatac\n"  if (! -x $seatac);
+die "Can't run $leaff\n"    if (! -x $leaff);
+die "Can't run $meryl\n"    if (! -x $meryl);
+die "Can't run $existDB\n"  if (! -x $existDB);
+die "Can't run $seatac\n"   if (! -x $seatac);
+die "Can't run $chainer\n"  if (! -x $chainer);
 
 #  Try to find the filter, check here, $BINdir and $BINdir/../lib
 #
@@ -206,11 +211,27 @@ if      (-e $filtername) {
     print STDERR "Didn't find $filtername.\n";
 }
 
+my $pwd = `pwd`;
+$pwd =~ s/^\s+//;
+$pwd =~ s/\s+$//;
+
+$GENOMEdir = "$pwd/$GENOMEdir" if ($GENOMEdir !~ m!^/!);
+$MERYLdir  = "$pwd/$MERYLdir"  if ($MERYLdir !~ m!^/!);
+$ATACdir   = "$pwd/$ATACdir"   if ($ATACdir !~ m!^/!);
+
 die "Unset GENOMEdir?'\n" if (! defined($GENOMEdir));
 die "Unset MERYLdir?'\n"  if (! defined($MERYLdir));
 die "Unset ATACdir?'\n"   if (! defined($ATACdir));
 
-die "Can't find the GENOMEdir '$GENOMEdir'\n" if (! -d $GENOMEdir);
+if (!defined($seq1) || (!defined($seq2))) {
+    die "Can't find the GENOMEdir '$GENOMEdir'\n" if (! -d $GENOMEdir);
+}
+if (defined($seq1)) {
+    $seq1 = "$pwd/$seq1" if ($seq1 !~ m!^/!);
+}
+if (defined($seq2)) {
+    $seq2 = "$pwd/$seq2" if ($seq1 !~ m!^/!);
+}
 
 system("mkdir $ATACdir")        if (! -d "$ATACdir");
 system("mkdir $MERYLdir")       if (! -d "$MERYLdir");
@@ -462,6 +483,9 @@ foreach my $segmentID (@segmentIDs) {
             die "Failed to run $matches-$segmentID\n";
         }
     }
+
+    #  Aggressively remove the table.
+    unlink "$ATACdir/$matches-segment-$segmentID.table";
 }
 
 #  End early if the segment id to run is defined.
@@ -615,7 +639,7 @@ if (! -e "$ATACdir/$matches.atac") {
     print STDERR "setenv PYTHONPATH $ENV{'PYTHONPATH'}\n";
 
     my $cmd;
-    $cmd  = "python $SRCdir/atac-driver/chainer/python/AtacDriver.py ";
+    $cmd  = "python $chainer ";
     $cmd .= "$ATACdir/$matches.matches.sorted.extended";
 
     if (runCommand($cmd)) {
@@ -631,7 +655,7 @@ if (! -e "$ATACdir/$matches.atac") {
 
 #  OK, no, really finish with clumps.
 #
-if (! -e "$matches.atac.clumps5000") {
+if (! -e "$ATACdir/$matches.atac.clumps5000") {
     my $cmd;
     $cmd  = "cd $ATACdir && ";
     $cmd .= "grep ^M $ATACdir/$matches.atac | ";
@@ -639,14 +663,17 @@ if (! -e "$matches.atac.clumps5000") {
     $cmd .= "sort -k5,5 -k6n ";
     $cmd .= "> $ATACdir/$matches.atac.sorted && ";
     $cmd .= "$BINdir/clumpMaker -c 5000 -2 -S -f $ATACdir/$matches.atac.sorted ";
-    $cmd .= "> $matches.atac.clumps5000";
+    $cmd .= "> $ATACdir/$matches.atac.clumps5000";
 
-    system($cmd) and die "Failed to atacdriver.sh!\n";
+    print "$cmd\n";
+
+    system($cmd) and die "Failed to make clumps!\n";
 }
 
-print STDERR "Output is\n";
-print STDERR "$matches.atac\n";
-print STDERR "$matches.atac.clumps5000\n";
+print STDERR "\n";
+print STDERR "Finished!  Output is:\n";
+print STDERR "  $ATACdir/$matches.atac\n";
+print STDERR "  $ATACdir/$matches.atac.clumps5000\n";
 
 
 
@@ -667,23 +694,36 @@ sub findSources {
     #  lets us move the directory around (e.g., for running on a
     #  laptop).
     #
-    open(F, "cat $GENOMEdir/*.atai |") or die "Can't cat $GENOMEdir/*.atai\n";
-    while (<F>) {
-        chomp;
+    if (-d $GENOMEdir) {
+        #  What?  No GENOMEdir?  The main already checked that we know both
+        #  sequence files.  Plus, we'd just fail below.
 
-        if (m/^!\s*format\s+atac\s+(.*)$/) {
-            print STDERR "Found format $1\n";
-        } elsif (m/^S\s+(\S+)\s+(\S+)$/) {
-            if (-e $2) {
-                $GENOMEaliases{$1} = $2;
-            } else {
-                print STDERR "WARNING:  File '$2' not found for alias '$1'.\n";
+        open(A, "ls $GENOMEdir |");
+        while (<A>) {
+            chomp;
+            if (m/\.atai$/) {
+                my $ataifile = "$GENOMEdir/$_";
+                open(F, "< $ataifile") or die "Can't open '$ataifile'\n";
+                while (<F>) {
+                    chomp;
+
+                    if (m/^!\s*format\s+atac\s+(.*)$/) {
+                        print STDERR "Found format $1\n";
+                    } elsif (m/^S\s+(\S+)\s+(\S+)$/) {
+                        if (-e $2) {
+                            $GENOMEaliases{$1} = $2;
+                        } else {
+                            print STDERR "WARNING:  File '$2' not found for alias '$1'.\n";
+                        }
+                    } else {
+                        #die "Error parsing genome description.\n  '$_'\n";
+                    }
+                }
+                close(F);
             }
-        } else {
-            #die "Error parsing genome description.\n  '$_'\n";
         }
     }
-    close(F);
+    close(A);
 
     #  If the user gave both an id and a sequence, make sure that
     #  the id is distinct.
