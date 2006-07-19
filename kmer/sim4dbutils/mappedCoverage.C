@@ -15,10 +15,14 @@
 
 void
 usage(char *name) {
-  fprintf(stderr, "usage: %s [-mask in.fasta] [-cov dat] < sim4db-results\n", name);
+  fprintf(stderr, "usage: %s [-mask in.fasta] [-cov dat] [-raw | -blast] < sim4db-results\n", name);
   fprintf(stderr, "       -mask    Read sequences from in.fasta, lower-case mask\n");
   fprintf(stderr, "                any base with an alignment, write to out.fasta\n");
   fprintf(stderr, "       -cov     Write coverage statistics to 'dat' instead of stdout\n");
+  fprintf(stderr, "       -raw     If present, assume the 'sim4db-results' are\n");
+  fprintf(stderr, "                a space-separated list of 'iid begin end', one per line\n");
+  fprintf(stderr, "       -blast   Same idea as raw, expects 'UID.IID' for query id,\n");
+  fprintf(stderr, "                blast format (-m) 9.\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "Output on stdout is the masked sequence if -mask is specified,\n");
   fprintf(stderr, "otherwise, it is the coverage statistics.\n");
@@ -35,10 +39,12 @@ usage(char *name) {
 
 int
 main(int argc, char **argv) {
-  sim4polish           *p      = 0L;
-  u32bit                covMax = 0;
-  intervalList        **cov    = 0L;
-  u32bit               *len    = 0L;
+  u32bit                covMax    = 0;
+  intervalList        **cov       = 0L;
+  u32bit               *len       = 0L;
+
+  bool                  isRaw     = false;
+  bool                  isBlast   = false;
 
   char                 *fastaname = 0L;
   char                 *covname   = 0L;
@@ -57,6 +63,10 @@ main(int argc, char **argv) {
       fastaname = argv[++arg];
     } else if (strcmp(argv[arg], "-cov") == 0) {
       covname   = argv[++arg];
+    } else if (strcmp(argv[arg], "-raw") == 0) {
+      isRaw = true;
+    } else if (strcmp(argv[arg], "-blast") == 0) {
+      isBlast = true;
     } else {
       fprintf(stderr, "unknown arg: '%s'\n", argv[arg]);
     }
@@ -88,27 +98,66 @@ main(int argc, char **argv) {
     len[i] = 0;
   }
 
-  while ((p = s4p_readPolish(stdin)) != 0L) {
-    if (p->estID > covMax)
-      fprintf(stderr, "DIE!  You have more sequences in your polishes than in your source!\n"), exit(1);
+  if (isRaw || isBlast) {
+    char          inLine[1024];
+    splitToWords  S;
 
-    if (cov[p->estID] == 0L) {
-      cov[p->estID] = new intervalList;
-      len[p->estID] = p->estLen;
+    while (!feof(stdin)) {
+      fgets(inLine, 1024, stdin);
+      S.split(inLine);
+
+      u32bit  iid=0, beg=0, end=0;
+
+      if (isRaw) {
+        iid = strtou32bit(S[0], 0L);
+        beg = strtou32bit(S[1], 0L) - 1;   //  Convert to space-based
+        end = strtou32bit(S[2], 0L);
+      }
+      if (isBlast) {
+        char *iii = S[0];
+        while ((*iii != '.') && (*iii))
+          iii++;
+        iii++;
+        if (*iii == 0)
+          fprintf(stderr, "UID.IID error: '%s'\n", S[0]);
+
+        iid = strtou32bit(iii, 0L);
+        beg = strtou32bit(S[6], 0L) - 1;   //  Convert to space-based
+        end = strtou32bit(S[7], 0L);
+      }
+
+      if (cov[iid] == 0L) {
+        cov[iid] = new intervalList;
+        len[iid] = 0;
+      }
+
+      cov[iid]->add(beg, end-beg);
     }
+  } else {
+    sim4polish  *p = 0L;
 
-    for (u32bit e=0; e<p->numExons; e++) {
-      p->exons[e].estFrom--;        //  Convert to space-based
+    while ((p = s4p_readPolish(stdin)) != 0L) {
+      if (p->estID > covMax)
+        fprintf(stderr, "DIE!  You have more sequences in your polishes than in your source!\n"), exit(1);
 
-      if (p->matchOrientation == SIM4_MATCH_FORWARD)
-        cov[p->estID]->add(p->exons[e].estFrom,
-                           p->exons[e].estTo - p->exons[e].estFrom);
-      else
-        cov[p->estID]->add(p->estLen - p->exons[e].estTo,
-                           p->exons[e].estTo - p->exons[e].estFrom);
+      if (cov[p->estID] == 0L) {
+        cov[p->estID] = new intervalList;
+        len[p->estID] = p->estLen;
+      }
+
+      for (u32bit e=0; e<p->numExons; e++) {
+        p->exons[e].estFrom--;        //  Convert to space-based
+
+        if (p->matchOrientation == SIM4_MATCH_FORWARD)
+          cov[p->estID]->add(p->exons[e].estFrom,
+                             p->exons[e].estTo - p->exons[e].estFrom);
+        else
+          cov[p->estID]->add(p->estLen - p->exons[e].estTo,
+                             p->exons[e].estTo - p->exons[e].estFrom);
+      }
+
+      s4p_destroyPolish(p);
     }
-
-    s4p_destroyPolish(p);
   }
 
 
@@ -132,7 +181,6 @@ main(int argc, char **argv) {
       cov[iid]->merge();
     }
 
-
     if (F) {
       F->find(iid);
       S = F->getSequence();
@@ -153,7 +201,11 @@ main(int argc, char **argv) {
           l = cov[iid]->lo(c);
           h = cov[iid]->hi(c);
 
-          assert(h <= len[iid]);
+          if (h > len[iid]) {
+            fprintf(stderr, "ERROR:  range "u32bitFMT"-"u32bitFMT" out of bounds (seqLen = "u32bitFMT")\n",
+                    l, h, len[iid]);
+            assert(h <= len[iid]);
+          }
 
           for (u32bit p=l; p<h; p++)
             //seq[p] = toLower[seq[p]];
