@@ -20,6 +20,7 @@ sub setExecutables {
     $prog{'pickBest'}            = "$exechome/pickBestPolish";
     $prog{'positionDB'}          = "$exechome/positionDB";
     $prog{'mersInMerStreamFile'} = "$exechome/mersInMerStreamFile";
+    $prog{'terminate'}           = "$exechome/terminate";
 
     foreach my $e (keys %prog) {
         die "Can't find/execute $e ('$prog{$e}')\n" if (! -e $prog{$e});

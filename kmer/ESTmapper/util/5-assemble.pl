@@ -160,7 +160,7 @@ sub assembleOutput {
         close(F);
 
         my $cmd;
-        $cmd  = "/home/work/src/genomics/ESTmapper/terminate";
+        $cmd  = "$prog{'terminate'}";
         $cmd .= " -P $path/polishes-best $path/cDNA-best.fasta";
         $cmd .= " -P $path/polishes-good $path/cDNA-good.fasta";
         $cmd .= " -I $path/zero-hit-iid  $path/cDNA-zero.fasta";
