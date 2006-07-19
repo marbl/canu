@@ -61,8 +61,6 @@ my $merylThreads      = 2;
 my $merylOnly         = 0;
 
 my $segmentIDtorun    = undef;
-my $buildOnly         = undef;
-
 
 
 if (scalar(@ARGV) < 6) {
@@ -103,7 +101,6 @@ if (scalar(@ARGV) < 6) {
     print STDERR "\n";
     print STDERR "    -segmentid x           -- only run segment with id x\n";
     print STDERR "                              (don't use unless you really know what it does)\n";
-    print STDERR "    -buildonly             -- if defined, don't run the search if the table exists\n";
     print STDERR "\n";
     exit(1);
 }
@@ -140,8 +137,6 @@ while (scalar(@ARGV) > 0) {
         $merylThreads = shift @ARGV;
     } elsif ($arg eq "-segmentid") {
         $segmentIDtorun = shift @ARGV;
-    } elsif ($arg eq "-buildonly") {
-        $buildOnly = 1;
     } elsif ($arg eq "-samespecies") {
         $mersize      = 20; # the mer size
         $merlimit     = 1;  # unique mers only
@@ -420,15 +415,8 @@ close(F);
 #  Now, for each segment that hasn't run, run it.
 #
 
-
-#  First seatac run, to build the search tables
-#
 foreach my $segmentID (@segmentIDs) {
     next if (defined($segmentIDtorun) && ($segmentID ne $segmentIDtorun));
-
-    #  We only want to build in this stage.
-    #
-    next if (-e "$ATACdir/$matches-segment-$segmentID.table");
 
     if (! -e "$ATACdir/$matches-segment-$segmentID.build.stats") {
         if (runCommand("sh $ATACdir/$matches-$segmentID.build.sh > $ATACdir/$matches-$segmentID.build.out 2>&1")) {
@@ -439,40 +427,13 @@ foreach my $segmentID (@segmentIDs) {
             die "Failed to build tables for $matches-$segmentID\n";
         }
     }
-}
-
-
-#  End early if we are only building
-#
-if (defined($buildOnly)) {
-    print STDERR "Terminating execution because we only wanted to build tables.\n";
-    exit(0);
-}
-
-
-#  Check that all the tables are here
-#
-my $tableNotFound = 0;
-foreach my $segmentID (@segmentIDs) {
-    if (! -e "$ATACdir/$matches-segment-$segmentID.table") {
-        print STDERR "Didn't find a table for $segmentID\n";
-        $tableNotFound++;
-    }
-}
-die if ($tableNotFound);
-
-
-#  Second seatac run, to do the search
-#
-foreach my $segmentID (@segmentIDs) {
-    next if (defined($segmentIDtorun) && ($segmentID ne $segmentIDtorun));
 
     if (! -e "$ATACdir/$matches-segment-$segmentID.stats") {
 
         #  Prevent me from overwriting a run in progress
         #
         if (-e "$ATACdir/$matches-segment-$segmentID.matches") {
-            die "WARNING:  Matches already exist!  Exiting!\n";
+            die "WARNING:  Matches already exist!  Is someone else computing me?!?  Exiting!\n";
         }
 
         if (runCommand("sh $ATACdir/$matches-$segmentID.sh > $ATACdir/$matches-$segmentID.out 2>&1")) {
