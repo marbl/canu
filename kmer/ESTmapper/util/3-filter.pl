@@ -28,7 +28,7 @@ sub filter {
     #
     if (! -e "$path/2-filter/hitCounts") {
         print STDERR "ESTmapper/filter-- Merging counts.\n";
-        if (runCommand("$prog{'mergeCounts'} $path/1-search/??.count > $path/2-filter/hitCounts")) {
+        if (runCommand("$prog{'mergeCounts'} $path/1-search/[0-9]*[0-9].count > $path/2-filter/hitCounts")) {
             unlink "$path/2-filter/hitCounts";
             die "Failed.\n";
         }
