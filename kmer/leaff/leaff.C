@@ -1026,6 +1026,8 @@ dumpBlocks(void) {
       }
     }
 
+    fprintf(stdout, "%c "u32bitFMT" "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
+            begseq, seqno, begpos, pos, pos - begpos);
     fprintf(stdout, ". "u32bitFMT" "u32bitFMT" "u32bitFMT"\n", seqno, pos, u32bitZERO);
 
     delete S;
