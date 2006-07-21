@@ -529,14 +529,6 @@ class localExecutable :
 
 def main(runName):
 
-    if (0):
-        junkfile = sys.stderr
-        localAlignerInterface.hello(junkfile)
-        return
-
-    print >>STDERR, "I read the output from MatchExtender.\n";
-    print >>STDERR, "Start reading checkpoint ...."
-
     t0 = time.time()
     obj = AtacDriver(runName)
 
@@ -601,4 +593,10 @@ def main(runName):
     print >>STDERR, "Wrote checkpoint in %d seconds." % (t1-t0)
 
 if __name__ == '__main__':
+    if (len(sys.argv) == 1):
+        print >>sys.stderr, "usage: $sys.argv[0] file.atac"
+        sys.exit(1)
+    if (sys.argv[1] == "justtestingifitworks"):
+        sys.exit(0)
     main(sys.argv[1])
+

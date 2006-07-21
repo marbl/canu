@@ -18,16 +18,8 @@
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-$| = 1;
 use strict;
-
-use vars qw();
-
 use FindBin;
-use lib "$FindBin::Bin/util";
-
-require "run.pl";
-
 
 my $id1               = undef;
 my $seq1              = undef;
@@ -38,19 +30,21 @@ my $ATACdir           = undef;
 my $GENOMEdir         = "default";   #  Location of genome assemblies
 my $MERYLdir          = "default";   #  Location of genome mercount databases
 
-my $BINdir            = undef;
-my $SRCdir            = undef;
+my $BINdir            = "$FindBin::Bin";
+my $LIBdir            = "$FindBin::Bin/../lib";
 
 my $mersize           = 20; # the mer size
 my $minfill           = 20; # the mimimum fill for a reported match.
 my $merlimit          = 1;  # unique mers only
 my $maxgap            = 0;  # the maximum substitution gap
 
-my $crossSpecies      = 0;  # annotates the resulting atac file with parameters
-                            # for cross species, also sets match extender options
+# annotates the resulting atac file with parameters
+# for cross species, also sets match extender options
+my $crossSpecies      = 0;  
+
 my $matchExtenderOpts = "";
 
-my $filtername        = "filter-heavychains.so";
+my $filtername        = "$LIBdir/filter-heavychains.so";
 my $filteropts        = "-S 100 -J 100000";
 
 my $numSegments       = 2;
@@ -62,8 +56,51 @@ my $merylOnly         = 0;
 
 my $segmentIDtorun    = undef;
 
+#  Check that we have everything we need to run
+#
+my $leaff             = "$BINdir/leaff";
+my $meryl             = "$BINdir/meryl";
+my $existDB           = "$BINdir/existDB";
+my $seatac            = "$BINdir/seatac";
+my $chainer           = "$BINdir/AtacDriver.py";
 
-if (scalar(@ARGV) < 6) {
+die "Can't run $leaff\n"        if (! -x $leaff);
+die "Can't run $meryl\n"        if (! -x $meryl);
+die "Can't run $existDB\n"      if (! -x $existDB);
+die "Can't run $seatac\n"       if (! -x $seatac);
+die "Can't find $chainer\n"     if (! -e $chainer);
+die "Can't find $filtername\n"  if (! -e $filtername);
+
+
+
+parseArgs();
+findSources();
+
+my $mercount1 = countMers($id1, $mersize, $merlimit);
+my $mercount2 = countMers($id2, $mersize, $merlimit);
+
+my $matches   = "${id1}vs${id2}.k$mersize.u$merlimit.f$minfill.g$maxgap";
+
+buildMask();
+
+my @segmentIDs = findHits();
+
+sortMatches(@segmentIDs);
+extendMatches();
+
+makeChains();
+makeClumps();
+
+print STDERR "\n";
+print STDERR "Finished!  Output is:\n";
+print STDERR "  $ATACdir/$matches.atac\n";
+print STDERR "  $ATACdir/$matches.atac.clumps5000\n";
+
+
+#  Subroutines below!
+
+
+sub usage {
     print STDERR "usage: $0 [opts]\n";
     print STDERR "\n";
     print STDERR "    -dir run-directory\n"; # MANDATORY
@@ -105,543 +142,103 @@ if (scalar(@ARGV) < 6) {
     exit(1);
 }
 
+sub parseArgs {
 
-while (scalar(@ARGV) > 0) {
-    my $arg = shift @ARGV;
+    while (scalar(@ARGV) > 0) {
+        my $arg = shift @ARGV;
 
-    if      ($arg eq "-dir") {
-        $ATACdir = shift @ARGV;
-    } elsif ($arg eq "-id1") {
-        $id1 = shift @ARGV;
-    } elsif ($arg eq "-seq1") {
-        $seq1 = shift @ARGV;
-    } elsif ($arg eq "-id2") {
-        $id2 = shift @ARGV;
-    } elsif ($arg eq "-seq2") {
-        $seq2 = shift @ARGV;
-    } elsif ($arg eq "-genomedir") {
-        $GENOMEdir = shift @ARGV;
-    } elsif ($arg eq "-meryldir") {
-        $MERYLdir = shift @ARGV;
-    } elsif ($arg eq "-numsegments") {
-        $numSegments = shift @ARGV;
-    } elsif ($arg eq "-numthreads") {
-        $numThreads = shift @ARGV;
-    } elsif ($arg eq "-bindir") {
-        $BINdir = shift @ARGV;
-    } elsif ($arg eq "-srcdir") {
-        $SRCdir = shift @ARGV;
-    } elsif ($arg eq "-merylonly") {
-        $merylOnly = 1;
-    } elsif ($arg eq "-merylthreads") {
-        $merylThreads = shift @ARGV;
-    } elsif ($arg eq "-segmentid") {
-        $segmentIDtorun = shift @ARGV;
-    } elsif ($arg eq "-samespecies") {
-        $mersize      = 20; # the mer size
-        $merlimit     = 1;  # unique mers only
-        $minfill      = 20; # the mimimum fill for a reported match.
-        $maxgap       = 0;  # the maximum substitution gap
-    } elsif ($arg eq "-samespecies9") {
-        $mersize      = 20; # the mer size
-        $merlimit     = 9;  # mostly unique mers only
-        $minfill      = 20; # the mimimum fill for a reported match.
-        $maxgap       = 0;  # the maximum substitution gap
-    } elsif ($arg eq "-crossspecies1") {
-        $mersize      = 20; # the mer size
-        $merlimit     = 1;  # mostly unique mers only
-        $minfill      = 20; # the mimimum fill for a reported match.
-        $maxgap       = 0;  # the maximum substitution gap
-        $crossSpecies = 1;  # extra parameters in the atac file
-    } elsif ($arg eq "-crossspecies") {
-        $mersize      = 18; # the mer size
-        $merlimit     = 9;  # mostly unique mers only
-        $minfill      = 18; # the mimimum fill for a reported match.
-        $maxgap       = 0;  # the maximum substitution gap
-        $crossSpecies = 1;  # extra parameters in the atac file
-    } elsif($arg eq "-filtername") {
-        $filtername = shift @ARGV;
-    } elsif($arg eq "-filteropts") {
-        $filteropts = shift @ARGV;
-    } elsif ($arg eq "-mersize") {
-        $mersize   = shift @ARGV;
-        $minfill   = $mersize;
-    } elsif ($arg eq "-merlimit") {
-        $merlimit  = shift @ARGV;
-    } elsif ($arg eq "-atac") {
-        die "-atac unimplemented.  Sorry.\n";
-    } else {
-        die "unknown option $arg\n";
-    }
-}
-
-die "Unset BINdir?'\n"  if (! defined($BINdir));
-die "Unset SRCdir?'\n"  if (! defined($SRCdir));
-
-
-#  Decide on a path to the executables.  This is probably
-#  a hack.
-#
-my $leaff   = "$BINdir/leaff";
-my $meryl   = "$BINdir/meryl";
-my $existDB = "$BINdir/existDB";
-my $seatac  = "$BINdir/seatac";
-my $chainer = "$SRCdir/atac-driver/chainer/python/AtacDriver.py";
-
-die "Can't run $leaff\n"    if (! -x $leaff);
-die "Can't run $meryl\n"    if (! -x $meryl);
-die "Can't run $existDB\n"  if (! -x $existDB);
-die "Can't run $seatac\n"   if (! -x $seatac);
-die "Can't run $chainer\n"  if (! -x $chainer);
-
-#  Try to find the filter, check here, $BINdir and $BINdir/../lib
-#
-if      (-e $filtername) {
-    #  nop!
-} elsif (-e "$BINdir/$filtername") {
-    $filtername = "$BINdir/$filtername";
-} elsif (-e "$BINdir/../lib/$filtername") {
-    $filtername = "$BINdir/../lib/$filtername";
-} else {
-    print STDERR "Didn't find $filtername.\n";
-}
-
-my $pwd = `pwd`;
-$pwd =~ s/^\s+//;
-$pwd =~ s/\s+$//;
-
-$GENOMEdir = "$pwd/$GENOMEdir" if ($GENOMEdir !~ m!^/!);
-$MERYLdir  = "$pwd/$MERYLdir"  if ($MERYLdir !~ m!^/!);
-$ATACdir   = "$pwd/$ATACdir"   if ($ATACdir !~ m!^/!);
-
-die "Unset GENOMEdir?'\n" if (! defined($GENOMEdir));
-die "Unset MERYLdir?'\n"  if (! defined($MERYLdir));
-die "Unset ATACdir?'\n"   if (! defined($ATACdir));
-
-if (!defined($seq1) || (!defined($seq2))) {
-    die "Can't find the GENOMEdir '$GENOMEdir'\n" if (! -d $GENOMEdir);
-}
-if (defined($seq1)) {
-    $seq1 = "$pwd/$seq1" if ($seq1 !~ m!^/!);
-}
-if (defined($seq2)) {
-    $seq2 = "$pwd/$seq2" if ($seq1 !~ m!^/!);
-}
-
-system("mkdir $ATACdir")        if (! -d "$ATACdir");
-system("mkdir $MERYLdir")       if (! -d "$MERYLdir");
-
-
-findSources();
-
-my $mercount1 = countMers($id1, $mersize, $merlimit);
-my $mercount2 = countMers($id2, $mersize, $merlimit);
-
-my $matches   = "${id1}vs${id2}.k$mersize.u$merlimit.f$minfill.g$maxgap";
-
-#
-#  Find the include or exclude mask
-#
-if (! -e "$ATACdir/$matches.mask.done") {
-
-    my $minFile="min.$mercount1.$mercount2";
-
-    #  $mercount1 and $mercount2 are the mers we want to use for
-    #  searching.  Obviously, only in-common mers can be found, we
-    #  make a file of those mers here.
-
-    if (! -e "$ATACdir/$minFile.mcdat") {
-        print STDERR "Finding the min count between $mercount1 and $mercount2.\n";
-        
-        my $cmd;
-        $cmd  = "$meryl ";
-        $cmd .= "-M min ";
-        $cmd .= "-s $MERYLdir/$mercount1 ";
-        $cmd .= "-s $MERYLdir/$mercount2 ";
-        $cmd .= "-o $ATACdir/$minFile ";
-        $cmd .= "-stats $ATACdir/$minFile.stats";
-
-        if (runCommand($cmd)) {
-            unlink "$ATACdir/$minFile.mcidx";
-            unlink "$ATACdir/$minFile.mcdat";
-            die "Failed to find the min count between $mercount1 and $mercount2\n";
-        }
-    }
-
-    die "Failed to make the mask?\n" if (! -e "$ATACdir/$minFile.mcdat");
-
-    #  From that list of in-common mers (in-common and below some
-    #  count) we want to make a list of the mers that can be used in
-    #  the search table.  We can either make a positive (use these
-    #  mers) or negative (don't use these mers) list, we just want to
-    #  pick the smaller of the two.
-    #
-    #
-    #  The positive 'include' list is just the 'min' mers found above.
-    #
-    #  The negative 'exclude' list is the min mers, removed from the mers in id1.
-    #
-    my $includeSize = (-s "$ATACdir/$minFile.mcdat");
-    my $excludeSize = (-s "$MERYLdir/$id1.ms$mersize.mcdat") - (-s "$ATACdir/$minFile.mcdat");
-
-    print STDERR "includeSize is proportional to $includeSize.\n";
-    print STDERR "excludeSize is proportional to $excludeSize.\n";
-
-    #  But this sometimes breaks (if the mcidx files are different sizes), so we now
-    #  pay the cost of actually counting the number of mers.
-    #
-    $includeSize = numberOfMers("$ATACdir/$minFile");
-    $excludeSize = numberOfMers("$MERYLdir/$id1.ms$mersize") - $includeSize;
-
-    print STDERR "includeSize is exactly $includeSize mers.\n";
-    print STDERR "excludeSize is exactly $excludeSize mers.\n";
-
-    if ($includeSize < $excludeSize) {
-        rename "$ATACdir/$minFile.mcidx", "$ATACdir/$matches.include.mcidx";
-        rename "$ATACdir/$minFile.mcdat", "$ATACdir/$matches.include.mcdat";
-    } else {
-        if (! -e "$ATACdir/$matches.exclude.mcdat") {
-            print STDERR "Finding 'exclude' mers!\n";
-
-            #  Our use of xor here is really just a subtraction.  We
-            #  want to report those mers that are only in the first
-            #  file, not in the second.  All mers in the second file
-            #  should be in the first file, by construction.
-
-            my $cmd;
-            $cmd  = "$meryl ";
-            $cmd .= "-M xor ";
-            $cmd .= "-s $MERYLdir/$id1.ms$mersize ";
-            $cmd .= "-s $ATACdir/$minFile ";
-            $cmd .= "-o $ATACdir/$matches.exclude ";
-            $cmd .= "-stats $ATACdir/$matches.exclude.stats";
-
-            if (runCommand($cmd)) {
-                unlink "$ATACdir/$matches.exclude.mcidx";
-                unlink "$ATACdir/$matches.exclude.mcdat";
-                die "Failed to make exclude mers!\n";
-            }
-        }
-
-        if (-e "$ATACdir/$matches.exclude.mcdat") {
-            unlink "$ATACdir/$minFile.mcdat";
-            unlink "$ATACdir/$minFile.mcidx";
+        if      ($arg eq "-dir") {
+            $ATACdir = shift @ARGV;
+        } elsif ($arg eq "-id1") {
+            $id1 = shift @ARGV;
+        } elsif ($arg eq "-seq1") {
+            $seq1 = shift @ARGV;
+        } elsif ($arg eq "-id2") {
+            $id2 = shift @ARGV;
+        } elsif ($arg eq "-seq2") {
+            $seq2 = shift @ARGV;
+        } elsif ($arg eq "-genomedir") {
+            $GENOMEdir = shift @ARGV;
+        } elsif ($arg eq "-meryldir") {
+            $MERYLdir = shift @ARGV;
+        } elsif ($arg eq "-numsegments") {
+            $numSegments = shift @ARGV;
+        } elsif ($arg eq "-numthreads") {
+            $numThreads = shift @ARGV;
+        } elsif ($arg eq "-merylonly") {
+            $merylOnly = 1;
+        } elsif ($arg eq "-merylthreads") {
+            $merylThreads = shift @ARGV;
+        } elsif ($arg eq "-segmentid") {
+            $segmentIDtorun = shift @ARGV;
+        } elsif ($arg eq "-samespecies") {
+            $mersize      = 20; # the mer size
+            $merlimit     = 1;  # unique mers only
+            $minfill      = 20; # the mimimum fill for a reported match.
+            $maxgap       = 0;  # the maximum substitution gap
+        } elsif ($arg eq "-samespecies9") {
+            $mersize      = 20; # the mer size
+            $merlimit     = 9;  # mostly unique mers only
+            $minfill      = 20; # the mimimum fill for a reported match.
+            $maxgap       = 0;  # the maximum substitution gap
+        } elsif ($arg eq "-crossspecies1") {
+            $mersize      = 20; # the mer size
+            $merlimit     = 1;  # mostly unique mers only
+            $minfill      = 20; # the mimimum fill for a reported match.
+            $maxgap       = 0;  # the maximum substitution gap
+            $crossSpecies = 1;  # extra parameters in the atac file
+        } elsif ($arg eq "-crossspecies") {
+            $mersize      = 18; # the mer size
+            $merlimit     = 9;  # mostly unique mers only
+            $minfill      = 18; # the mimimum fill for a reported match.
+            $maxgap       = 0;  # the maximum substitution gap
+            $crossSpecies = 1;  # extra parameters in the atac file
+        } elsif($arg eq "-filtername") {
+            $filtername = shift @ARGV;
+        } elsif($arg eq "-filteropts") {
+            $filteropts = shift @ARGV;
+        } elsif ($arg eq "-mersize") {
+            $mersize   = shift @ARGV;
+            $minfill   = $mersize;
+        } elsif ($arg eq "-merlimit") {
+            $merlimit  = shift @ARGV;
+        } elsif ($arg eq "-justtestingifitworks") {
+            exit(0);
         } else {
-            die "Failed to find exclude mers?\n";
+            die "unknown option $arg\n";
         }
     }
 
-    #  Success!
-    #
-    open(F, "> $ATACdir/$matches.mask.done");
-    close(F);
+    if (!defined($id1) ||
+        !defined($id2)) {
+        usage();
+    }
+
+    my $pwd = `pwd`;
+    $pwd =~ s/^\s+//;
+    $pwd =~ s/\s+$//;
+
+    $GENOMEdir = "$pwd/$GENOMEdir" if ($GENOMEdir !~ m!^/!);
+    $MERYLdir  = "$pwd/$MERYLdir"  if ($MERYLdir !~ m!^/!);
+    $ATACdir   = "$pwd/$ATACdir"   if ($ATACdir !~ m!^/!);
+
+    die "Unset GENOMEdir?'\n" if (! defined($GENOMEdir));
+    die "Unset MERYLdir?'\n"  if (! defined($MERYLdir));
+    die "Unset ATACdir?'\n"   if (! defined($ATACdir));
+
+    if (!defined($seq1) || (!defined($seq2))) {
+        die "Can't find the GENOMEdir '$GENOMEdir'\n" if (! -d $GENOMEdir);
+    }
+    if (defined($seq1)) {
+        $seq1 = "$pwd/$seq1" if ($seq1 !~ m!^/!);
+    }
+    if (defined($seq2)) {
+        $seq2 = "$pwd/$seq2" if ($seq1 !~ m!^/!);
+    }
+
+    system("mkdir $ATACdir")        if (! -d "$ATACdir");
+    system("mkdir $MERYLdir")       if (! -d "$MERYLdir");
 }
-
-exit(0) if ($merylOnly == 1);
-
-#
-#  This is the segmented search routine.  By default, it will segment into two pieces.
-#
-
-my $segmentID   = "000";
-my @segmentIDs;
-
-open(F, "$leaff -F $MERYLdir/$id1.fasta --partitionmap $numSegments |");
-$numSegments = <F>;
-while(<F>) {
-    my $segments = "";
-    my @pieces   = split '\s+', $_;
-    my $memory   = shift @pieces;
-
-    foreach my $piece (@pieces) {
-        if ($piece =~ m/(\d+)\(\d+\)/) {
-            $segments .= "$1\n";
-        } else {
-            die "Error parsing segment: $piece\n";
-        }
-    }
-
-    open(S, "> $ATACdir/$matches-segment-$segmentID");
-    print S $segments;
-    close(S);
-
-    open(S, "> $ATACdir/$matches-$segmentID.build.sh");
-    print S "#!/bin/sh\n";
-    print S "$seatac \\\n";
-    print S "-verbose \\\n";
-    print S "-mersize     $mersize \\\n";
-    print S "-minlength   $minfill \\\n";
-    print S "-maxgap      $maxgap \\\n";
-    print S "-numthreads  $numThreads \\\n";
-    print S "-table       $MERYLdir/$id1.fasta \\\n";
-    print S "-stream      $MERYLdir/$id2.fasta \\\n";
-    print S "-only        $ATACdir/$matches.include \\\n" if (-e "$ATACdir/$matches.include.mcdat");
-    print S "-mask        $ATACdir/$matches.exclude \\\n" if (-e "$ATACdir/$matches.exclude.mcdat");
-    print S "-use         $ATACdir/$matches-segment-$segmentID \\\n";
-    print S "-output      $ATACdir/$matches-segment-$segmentID.matches \\\n";
-    print S "-stats       $ATACdir/$matches-segment-$segmentID.build.stats \\\n";
-    print S "-buildtables $ATACdir/$matches-segment-$segmentID.table \\\n";
-    print S "-filtername  $filtername \\\n" if (defined($filtername));
-    print S "-filteropts  \"-1 $id1 -2 $id2 $filteropts\" \n";
-    close(S);
-
-    open(S, "> $ATACdir/$matches-$segmentID.sh");
-    print S "#!/bin/sh\n";
-    print S "$seatac \\\n";
-    print S "-verbose \\\n";
-    print S "-mersize     $mersize \\\n";
-    print S "-minlength   $minfill \\\n";
-    print S "-maxgap      $maxgap \\\n";
-    print S "-numthreads  $numThreads \\\n";
-    print S "-table       $MERYLdir/$id1.fasta \\\n";
-    print S "-stream      $MERYLdir/$id2.fasta \\\n";
-    print S "-only        $ATACdir/$matches.include \\\n" if (-e "$ATACdir/$matches.include.mcdat");
-    print S "-mask        $ATACdir/$matches.exclude \\\n" if (-e "$ATACdir/$matches.exclude.mcdat");
-    print S "-use         $ATACdir/$matches-segment-$segmentID \\\n";
-    print S "-output      $ATACdir/$matches-segment-$segmentID.matches \\\n";
-    print S "-usetables   $ATACdir/$matches-segment-$segmentID.table \\\n";
-    print S "-stats       $ATACdir/$matches-segment-$segmentID.stats \\\n";
-    print S "-filtername  $filtername \\\n" if (defined($filtername));
-    print S "-filteropts  \"-1 $id1 -2 $id2 $filteropts\" \n";
-    close(S);
-
-    push @segmentIDs, $segmentID;
-
-    $segmentID++;
-}
-close(F);
-
-#
-#  Now, for each segment that hasn't run, run it.
-#
-
-foreach my $segmentID (@segmentIDs) {
-    next if (defined($segmentIDtorun) && ($segmentID ne $segmentIDtorun));
-
-    if (! -e "$ATACdir/$matches-segment-$segmentID.build.stats") {
-        if (runCommand("sh $ATACdir/$matches-$segmentID.build.sh > $ATACdir/$matches-$segmentID.build.out 2>&1")) {
-            unlink "$ATACdir/$matches-segment-$segmentID.matches.crash";
-            rename "$ATACdir/$matches-segment-$segmentID.matches", "$ATACdir/$matches-segment-$segmentID.matches.crash";
-            unlink "$ATACdir/$matches-segment-$segmentID.build.stats.crash";
-            rename "$ATACdir/$matches-segment-$segmentID.build.stats", "$ATACdir/$matches-segment-$segmentID.build.stats.crash";
-            die "Failed to build tables for $matches-$segmentID\n";
-        }
-    }
-
-    if (! -e "$ATACdir/$matches-segment-$segmentID.stats") {
-
-        #  Prevent me from overwriting a run in progress
-        #
-        if (-e "$ATACdir/$matches-segment-$segmentID.matches") {
-            die "WARNING:  Matches already exist!  Is someone else computing me?!?  Exiting!\n";
-        }
-
-        if (runCommand("sh $ATACdir/$matches-$segmentID.sh > $ATACdir/$matches-$segmentID.out 2>&1")) {
-            unlink "$ATACdir/$matches-segment-$segmentID.matches.crash";
-            rename "$ATACdir/$matches-segment-$segmentID.matches", "$ATACdir/$matches-segment-$segmentID.matches.crash";
-            unlink "$ATACdir/$matches-segment-$segmentID.stats.crash";
-            rename "$ATACdir/$matches-segment-$segmentID.stats", "$ATACdir/$matches-segment-$segmentID.stats.crash";
-            die "Failed to run $matches-$segmentID\n";
-        }
-    }
-
-    #  Aggressively remove the table.
-    unlink "$ATACdir/$matches-segment-$segmentID.table";
-}
-
-#  End early if the segment id to run is defined.
-#
-if (defined($segmentIDtorun)) {
-    print STDERR "Terminating execution because a specific segmentID was supplied.\n";
-    exit(0);
-}
-
-
-
-#
-#  Join and sort the matches
-#
-if (! -e "$ATACdir/$matches.matches.sorted") {
-    my $mfiles;
-
-    #  Check that each search finished, and build a list of all the match files.
-    #
-    foreach my $segmentID (@segmentIDs) {
-        if (-e "$ATACdir/$matches-segment-$segmentID.stats") {
-            $mfiles .= "$ATACdir/$matches-segment-$segmentID.matches ";
-        } else {
-            die "$ATACdir/$matches-segment-$segmentID.matches failed to complete.\n";
-        }
-    }
-
-    open(ATACFILE, "> $ATACdir/$matches.matches.sorted");
-    print ATACFILE "!format atac 1.0\n";
-    print ATACFILE  "#\n";
-    print ATACFILE  "# Legend:\n";
-    print ATACFILE  "#\n";
-    print ATACFILE  "# Field 0: the row class\n";
-    print ATACFILE  "# Field 1: the match type u=ungapped, x=exact, ....\n";
-    print ATACFILE  "# Field 2: the match instance index\n";
-    print ATACFILE  "# Field 3: the parent index\n";
-    print ATACFILE  "# Field 4: the FASTA sequence id in the first assembly\n";
-    print ATACFILE  "# Field 5: the offset from the start of the sequence for the match\n";
-    print ATACFILE  "# Field 6: the length of the match in the first assembly\n";
-    print ATACFILE  "# Field 7: the orientation of the match sequence in the first assembly.\n";
-    print ATACFILE  "# Field 8: the FASTA sequence id for the second assembly\n";
-    print ATACFILE  "# Field 9: the offset from the start of the sequence for the match\n";
-    print ATACFILE  "# Field 10: the length of the match in the second assembly\n";
-    print ATACFILE  "# Field 11: the orientation of the match sequence in the second assembly.\n";
-    print ATACFILE  "#\n";
-    print ATACFILE "/assemblyId1=$id1\n";
-    print ATACFILE "/assemblyId2=$id2\n";
-    print ATACFILE "/assemblyFile1=$MERYLdir/$id1.fasta\n";
-    print ATACFILE "/assemblyFile2=$MERYLdir/$id2.fasta\n";
-
-    #  We used to trim off the fasta from the filename...why?
-    my $seq1trimmed = $seq1;
-    my $seq2trimmed = $seq2;
-    $seq1trimmed = $1 if ($seq1trimmed =~ m/(.*).fasta$/);
-    $seq2trimmed = $1 if ($seq2trimmed =~ m/(.*).fasta$/);
-
-    print ATACFILE "/rawMatchMerSize=$mersize\n";
-    print ATACFILE "/rawMatchMerMaxDegeneracy=$merlimit\n";
-    print ATACFILE "/rawMatchAllowedSubstutionBlockSize=$maxgap\n";
-    print ATACFILE "/rawMatchMinFillSize=$minfill\n";
-
-    print ATACFILE "/heavyChainsOn=1\n";
-    print ATACFILE "/heavyMaxJump=100000\n";
-    print ATACFILE "/heavyMinFill=100\n";
-
-    print ATACFILE "/matchExtenderOn=1\n";
-
-    print ATACFILE "/uniqueFilterOn=1\n";
-    print ATACFILE "/fillIntraRunGapsOn=1\n";
-
-    if ($crossSpecies){
-        # The non-default parameters for Mouse versus Rat.
-        print ATACFILE "/matchExtenderMinEndRunLen=4\n";
-        print ATACFILE "/matchExtenderMaxMMBlock=5\n";
-        print ATACFILE "/matchExtenderMinBlockSep=5\n";
-        print ATACFILE "/matchExtenderMinIdentity=0.7\n";
-        print ATACFILE "/matchExtenderMaxNbrSep=100\n";
-        print ATACFILE "/matchExtenderMaxNbrPathMM=25\n";
-        print ATACFILE "/globalMatchMinSize=20\n";
-        print ATACFILE "/fillIntraRunGapsErate=0.30\n";
-
-        $matchExtenderOpts = "-e 4 -b 5 -s 5 -i 0.70 -p 100 -d 25";
-    }
-
-    #print ATACFILE "/matchesFile=$ATACdir/$matches.matches.sorted.bz2\n";
-
-    close(ATACFILE);
-
-
-
-
-    #  The original sort used keys seq1, seq2, pos1, pos2.  The next
-    #  consumer of this data, matchextender certainly benefits from
-    #  the first two keys, and probably needs the last two....nope, it
-    #  does an internal sort given all matches for a pair of
-    #  sequences.
-
-    my $tmpdir;
-    $tmpdir = "$ATACdir";
-    $tmpdir = "/scratch" if (-d "/scratch");
-
-    #  Kill LANG, linux grep sucks if this is set.
-
-    delete $ENV{'LANG'};
-
-    #  Sort the first index
-    #
-    #print STDERR "Sorting by the FIRST axis.\n";
-    #if (runCommand("cat $mfiles | grep -- \^M\  | sort -y -T $tmpdir -k 5,5 -k 9,9 >> $ATACdir/$matches.matches.sorted")) {
-    #    die "Failed to sort $ATACdir!\n";
-    #}
-
-    #  Sort the second index, useful if that one is chromosome.
-    #
-    print STDERR "Sorting by the SECOND axis.\n";
-    if (runCommand("cat $mfiles | grep -- '^M ' | sort -y -T $tmpdir -k 9,9 -k 5,5 >> $ATACdir/$matches.matches.sorted")) {
-        die "Failed to sort $ATACdir!\n";
-    }
-}
-
-
-#  Run matchExtender
-#
-if ((! -e "$ATACdir/$matches.matches.sorted.extended") ||
-    (0 == -s "$ATACdir/$matches.matches.sorted.extended")) {
-    my $cmd;
-    $cmd  = "$BINdir/matchExtender $matchExtenderOpts ";
-    $cmd .= "< $ATACdir/$matches.matches.sorted ";
-    $cmd .= "> $ATACdir/$matches.matches.sorted.extended ";
-
-    if (runCommand($cmd)) {
-        print STDERR "matchExtender failed.\n";
-        exit(1);
-    }
-}
-
-
-#  Finish with the chainer
-#
-if (! -e "$ATACdir/$matches.atac") {
-
-    if (!defined($ENV{"TMPDIR"})) {
-        print STDERR "WARNING:  TMPDIR not set, defaulting to '$ATACdir'.\n";
-        $ENV{"TMPDIR"} = $ATACdir;
-    }
-
-    #  Path to the python shared-objects (in lib) and the python scripts.
-    #
-    $ENV{'PYTHONPATH'} = "$SRCdir/atac-driver/chainer/python:$SRCdir/atac-driver/chainer:$BINdir/../lib";
-
-    print STDERR "setenv PYTHONPATH $ENV{'PYTHONPATH'}\n";
-
-    my $cmd;
-    $cmd  = "python $chainer ";
-    $cmd .= "$ATACdir/$matches.matches.sorted.extended";
-
-    if (runCommand($cmd)) {
-        print STDERR "Chainer failed.\n";
-        exit(1);
-    }
-
-    if (! -e "$ATACdir/$matches.atac") {
-        system("ln -s $ATACdir/$matches.matches.sorted.extended.ckpLast $ATACdir/$matches.atac");
-    }
-}
-
-
-#  OK, no, really finish with clumps.
-#
-if (! -e "$ATACdir/$matches.atac.clumps5000") {
-    my $cmd;
-    $cmd  = "cd $ATACdir && ";
-    $cmd .= "grep ^M $ATACdir/$matches.atac | ";
-    $cmd .= "cut -d' ' -f 1-12 | ";
-    $cmd .= "sort -k5,5 -k6n ";
-    $cmd .= "> $ATACdir/$matches.atac.sorted && ";
-    $cmd .= "$BINdir/clumpMaker -c 5000 -2 -S -f $ATACdir/$matches.atac.sorted ";
-    $cmd .= "> $ATACdir/$matches.atac.clumps5000";
-
-    print "$cmd\n";
-
-    system($cmd) and die "Failed to make clumps!\n";
-}
-
-print STDERR "\n";
-print STDERR "Finished!  Output is:\n";
-print STDERR "  $ATACdir/$matches.atac\n";
-print STDERR "  $ATACdir/$matches.atac.clumps5000\n";
-
-
-
-#  Subroutines below!
-
-
-
 
 
 #  Read the nickname file, set up symlinks to the data sources
@@ -769,3 +366,419 @@ sub numberOfMers ($) {
     return($mers);
 }
 
+
+
+
+sub buildMask {
+
+    return if (-e "$ATACdir/$matches.mask.done");
+
+        my $minFile="min.$mercount1.$mercount2";
+
+        #  $mercount1 and $mercount2 are the mers we want to use for
+        #  searching.  Obviously, only in-common mers can be found, we
+        #  make a file of those mers here.
+
+        if (! -e "$ATACdir/$minFile.mcdat") {
+            print STDERR "Finding the min count between $mercount1 and $mercount2.\n";
+            
+            my $cmd;
+            $cmd  = "$meryl ";
+            $cmd .= "-M min ";
+            $cmd .= "-s $MERYLdir/$mercount1 ";
+            $cmd .= "-s $MERYLdir/$mercount2 ";
+            $cmd .= "-o $ATACdir/$minFile ";
+            $cmd .= "-stats $ATACdir/$minFile.stats";
+
+            if (runCommand($cmd)) {
+                unlink "$ATACdir/$minFile.mcidx";
+                unlink "$ATACdir/$minFile.mcdat";
+                die "Failed to find the min count between $mercount1 and $mercount2\n";
+            }
+        }
+
+        die "Failed to make the mask?\n" if (! -e "$ATACdir/$minFile.mcdat");
+
+        #  From that list of in-common mers (in-common and below some
+        #  count) we want to make a list of the mers that can be used in
+        #  the search table.  We can either make a positive (use these
+        #  mers) or negative (don't use these mers) list, we just want to
+        #  pick the smaller of the two.
+        #
+        #
+        #  The positive 'include' list is just the 'min' mers found above.
+        #
+        #  The negative 'exclude' list is the min mers, removed from the mers in id1.
+        #
+        my $includeSize = (-s "$ATACdir/$minFile.mcdat");
+        my $excludeSize = (-s "$MERYLdir/$id1.ms$mersize.mcdat") - (-s "$ATACdir/$minFile.mcdat");
+
+        print STDERR "includeSize is proportional to $includeSize.\n";
+        print STDERR "excludeSize is proportional to $excludeSize.\n";
+
+        #  But this sometimes breaks (if the mcidx files are different sizes), so we now
+        #  pay the cost of actually counting the number of mers.
+        #
+        $includeSize = numberOfMers("$ATACdir/$minFile");
+        $excludeSize = numberOfMers("$MERYLdir/$id1.ms$mersize") - $includeSize;
+
+        print STDERR "includeSize is exactly $includeSize mers.\n";
+        print STDERR "excludeSize is exactly $excludeSize mers.\n";
+
+        if ($includeSize < $excludeSize) {
+            rename "$ATACdir/$minFile.mcidx", "$ATACdir/$matches.include.mcidx";
+            rename "$ATACdir/$minFile.mcdat", "$ATACdir/$matches.include.mcdat";
+        } else {
+            if (! -e "$ATACdir/$matches.exclude.mcdat") {
+                print STDERR "Finding 'exclude' mers!\n";
+
+                #  Our use of xor here is really just a subtraction.  We
+                #  want to report those mers that are only in the first
+                #  file, not in the second.  All mers in the second file
+                #  should be in the first file, by construction.
+
+                my $cmd;
+                $cmd  = "$meryl ";
+                $cmd .= "-M xor ";
+                $cmd .= "-s $MERYLdir/$id1.ms$mersize ";
+                $cmd .= "-s $ATACdir/$minFile ";
+                $cmd .= "-o $ATACdir/$matches.exclude ";
+                $cmd .= "-stats $ATACdir/$matches.exclude.stats";
+
+                if (runCommand($cmd)) {
+                    unlink "$ATACdir/$matches.exclude.mcidx";
+                    unlink "$ATACdir/$matches.exclude.mcdat";
+                    die "Failed to make exclude mers!\n";
+                }
+            }
+
+            if (-e "$ATACdir/$matches.exclude.mcdat") {
+                unlink "$ATACdir/$minFile.mcdat";
+                unlink "$ATACdir/$minFile.mcidx";
+            } else {
+                die "Failed to find exclude mers?\n";
+            }
+        }
+
+        #  Success!
+        #
+        open(F, "> $ATACdir/$matches.mask.done");
+        close(F);
+
+    exit(0) if ($merylOnly == 1);
+}
+
+
+
+sub findHits {
+    my $segmentID   = "000";
+    my @segmentIDs;
+
+    open(F, "$leaff -F $MERYLdir/$id1.fasta --partitionmap $numSegments |");
+    $numSegments = <F>;
+    while(<F>) {
+        my $segments = "";
+        my @pieces   = split '\s+', $_;
+        my $memory   = shift @pieces;
+
+        foreach my $piece (@pieces) {
+            if ($piece =~ m/(\d+)\(\d+\)/) {
+                $segments .= "$1\n";
+            } else {
+                die "Error parsing segment: $piece\n";
+            }
+        }
+
+        open(S, "> $ATACdir/$matches-segment-$segmentID");
+        print S $segments;
+        close(S);
+
+        open(S, "> $ATACdir/$matches-$segmentID.build.sh");
+        print S "#!/bin/sh\n";
+        print S "$seatac \\\n";
+        print S "-verbose \\\n";
+        print S "-mersize     $mersize \\\n";
+        print S "-minlength   $minfill \\\n";
+        print S "-maxgap      $maxgap \\\n";
+        print S "-numthreads  $numThreads \\\n";
+        print S "-table       $MERYLdir/$id1.fasta \\\n";
+        print S "-stream      $MERYLdir/$id2.fasta \\\n";
+        print S "-only        $ATACdir/$matches.include \\\n" if (-e "$ATACdir/$matches.include.mcdat");
+        print S "-mask        $ATACdir/$matches.exclude \\\n" if (-e "$ATACdir/$matches.exclude.mcdat");
+        print S "-use         $ATACdir/$matches-segment-$segmentID \\\n";
+        print S "-output      $ATACdir/$matches-segment-$segmentID.matches \\\n";
+        print S "-stats       $ATACdir/$matches-segment-$segmentID.build.stats \\\n";
+        print S "-buildtables $ATACdir/$matches-segment-$segmentID.table \\\n";
+        print S "-filtername  $filtername \\\n" if (defined($filtername));
+        print S "-filteropts  \"-1 $id1 -2 $id2 $filteropts\" \n";
+        close(S);
+
+        open(S, "> $ATACdir/$matches-$segmentID.sh");
+        print S "#!/bin/sh\n";
+        print S "$seatac \\\n";
+        print S "-verbose \\\n";
+        print S "-mersize     $mersize \\\n";
+        print S "-minlength   $minfill \\\n";
+        print S "-maxgap      $maxgap \\\n";
+        print S "-numthreads  $numThreads \\\n";
+        print S "-table       $MERYLdir/$id1.fasta \\\n";
+        print S "-stream      $MERYLdir/$id2.fasta \\\n";
+        print S "-only        $ATACdir/$matches.include \\\n" if (-e "$ATACdir/$matches.include.mcdat");
+        print S "-mask        $ATACdir/$matches.exclude \\\n" if (-e "$ATACdir/$matches.exclude.mcdat");
+        print S "-use         $ATACdir/$matches-segment-$segmentID \\\n";
+        print S "-output      $ATACdir/$matches-segment-$segmentID.matches \\\n";
+        print S "-usetables   $ATACdir/$matches-segment-$segmentID.table \\\n";
+        print S "-stats       $ATACdir/$matches-segment-$segmentID.stats \\\n";
+        print S "-filtername  $filtername \\\n" if (defined($filtername));
+        print S "-filteropts  \"-1 $id1 -2 $id2 $filteropts\" \n";
+        close(S);
+
+        push @segmentIDs, $segmentID;
+
+        $segmentID++;
+    }
+    close(F);
+
+    #
+    #  Now, for each segment that hasn't run, run it.
+    #
+
+    foreach my $segmentID (@segmentIDs) {
+        next if (defined($segmentIDtorun) && ($segmentID ne $segmentIDtorun));
+
+        if (! -e "$ATACdir/$matches-segment-$segmentID.build.stats") {
+            if (runCommand("sh $ATACdir/$matches-$segmentID.build.sh > $ATACdir/$matches-$segmentID.build.out 2>&1")) {
+                unlink "$ATACdir/$matches-segment-$segmentID.matches.crash";
+                rename "$ATACdir/$matches-segment-$segmentID.matches", "$ATACdir/$matches-segment-$segmentID.matches.crash";
+                unlink "$ATACdir/$matches-segment-$segmentID.build.stats.crash";
+                rename "$ATACdir/$matches-segment-$segmentID.build.stats", "$ATACdir/$matches-segment-$segmentID.build.stats.crash";
+                die "Failed to build tables for $matches-$segmentID\n";
+            }
+        }
+
+        if (! -e "$ATACdir/$matches-segment-$segmentID.stats") {
+
+            #  Prevent me from overwriting a run in progress
+            #
+            if (-e "$ATACdir/$matches-segment-$segmentID.matches") {
+                die "WARNING:  Matches already exist!  Is someone else computing me?!?  Exiting!\n";
+            }
+
+            if (runCommand("sh $ATACdir/$matches-$segmentID.sh > $ATACdir/$matches-$segmentID.out 2>&1")) {
+                unlink "$ATACdir/$matches-segment-$segmentID.matches.crash";
+                rename "$ATACdir/$matches-segment-$segmentID.matches", "$ATACdir/$matches-segment-$segmentID.matches.crash";
+                unlink "$ATACdir/$matches-segment-$segmentID.stats.crash";
+                rename "$ATACdir/$matches-segment-$segmentID.stats", "$ATACdir/$matches-segment-$segmentID.stats.crash";
+                die "Failed to run $matches-$segmentID\n";
+            }
+        }
+
+        #  Aggressively remove the table.
+        unlink "$ATACdir/$matches-segment-$segmentID.table";
+    }
+
+    #  End early if the segment id to run is defined.
+    #
+    if (defined($segmentIDtorun)) {
+        print STDERR "Terminating execution because a specific segmentID was supplied.\n";
+        exit(0);
+    }
+
+    return(@segmentIDs);
+}
+
+
+
+sub sortMatches (@) {
+    my @segmentIDs = @_;
+
+    return if (-e "$ATACdir/$matches.matches.sorted");
+
+    my $mfiles;
+
+    #  Check that each search finished, and build a list of all the match files.
+    #
+    foreach my $segmentID (@segmentIDs) {
+        if (-e "$ATACdir/$matches-segment-$segmentID.stats") {
+            $mfiles .= "$ATACdir/$matches-segment-$segmentID.matches ";
+        } else {
+            die "$ATACdir/$matches-segment-$segmentID.matches failed to complete.\n";
+        }
+    }
+
+    open(ATACFILE, "> $ATACdir/$matches.matches.sorted");
+    print ATACFILE "!format atac 1.0\n";
+    print ATACFILE  "#\n";
+    print ATACFILE  "# Legend:\n";
+    print ATACFILE  "#\n";
+    print ATACFILE  "# Field 0: the row class\n";
+    print ATACFILE  "# Field 1: the match type u=ungapped, x=exact, ....\n";
+    print ATACFILE  "# Field 2: the match instance index\n";
+    print ATACFILE  "# Field 3: the parent index\n";
+    print ATACFILE  "# Field 4: the FASTA sequence id in the first assembly\n";
+    print ATACFILE  "# Field 5: the offset from the start of the sequence for the match\n";
+    print ATACFILE  "# Field 6: the length of the match in the first assembly\n";
+    print ATACFILE  "# Field 7: the orientation of the match sequence in the first assembly.\n";
+    print ATACFILE  "# Field 8: the FASTA sequence id for the second assembly\n";
+    print ATACFILE  "# Field 9: the offset from the start of the sequence for the match\n";
+    print ATACFILE  "# Field 10: the length of the match in the second assembly\n";
+    print ATACFILE  "# Field 11: the orientation of the match sequence in the second assembly.\n";
+    print ATACFILE  "#\n";
+    print ATACFILE "/assemblyId1=$id1\n";
+    print ATACFILE "/assemblyId2=$id2\n";
+    print ATACFILE "/assemblyFile1=$MERYLdir/$id1.fasta\n";
+    print ATACFILE "/assemblyFile2=$MERYLdir/$id2.fasta\n";
+
+    #  We used to trim off the fasta from the filename...why?
+    my $seq1trimmed = $seq1;
+    my $seq2trimmed = $seq2;
+    $seq1trimmed = $1 if ($seq1trimmed =~ m/(.*).fasta$/);
+    $seq2trimmed = $1 if ($seq2trimmed =~ m/(.*).fasta$/);
+
+    print ATACFILE "/rawMatchMerSize=$mersize\n";
+    print ATACFILE "/rawMatchMerMaxDegeneracy=$merlimit\n";
+    print ATACFILE "/rawMatchAllowedSubstutionBlockSize=$maxgap\n";
+    print ATACFILE "/rawMatchMinFillSize=$minfill\n";
+
+    print ATACFILE "/heavyChainsOn=1\n";
+    print ATACFILE "/heavyMaxJump=100000\n";
+    print ATACFILE "/heavyMinFill=100\n";
+
+    print ATACFILE "/matchExtenderOn=1\n";
+
+    print ATACFILE "/uniqueFilterOn=1\n";
+    print ATACFILE "/fillIntraRunGapsOn=1\n";
+
+    if ($crossSpecies){
+        # The non-default parameters for Mouse versus Rat.
+        print ATACFILE "/matchExtenderMinEndRunLen=4\n";
+        print ATACFILE "/matchExtenderMaxMMBlock=5\n";
+        print ATACFILE "/matchExtenderMinBlockSep=5\n";
+        print ATACFILE "/matchExtenderMinIdentity=0.7\n";
+        print ATACFILE "/matchExtenderMaxNbrSep=100\n";
+        print ATACFILE "/matchExtenderMaxNbrPathMM=25\n";
+        print ATACFILE "/globalMatchMinSize=20\n";
+        print ATACFILE "/fillIntraRunGapsErate=0.30\n";
+
+        $matchExtenderOpts = "-e 4 -b 5 -s 5 -i 0.70 -p 100 -d 25";
+    }
+
+    #print ATACFILE "/matchesFile=$ATACdir/$matches.matches.sorted.bz2\n";
+
+    close(ATACFILE);
+
+
+
+    #  The original sort used keys seq1, seq2, pos1, pos2.  The next
+    #  consumer of this data, matchextender certainly benefits from
+    #  the first two keys, and probably needs the last two....nope, it
+    #  does an internal sort given all matches for a pair of
+    #  sequences.
+
+    my $tmpdir;
+    $tmpdir = "$ATACdir";
+    $tmpdir = "/scratch" if (-d "/scratch");
+
+    #  Kill LANG, gnu grep sucks if this is set.
+    delete $ENV{'LANG'};
+
+    #  Sort the first index
+    #
+    #print STDERR "Sorting by the FIRST axis.\n";
+    #if (runCommand("cat $mfiles | grep -- \^M\  | sort -y -T $tmpdir -k 5,5 -k 9,9 >> $ATACdir/$matches.matches.sorted")) {
+    #    die "Failed to sort $ATACdir!\n";
+    #}
+
+    #  Sort the second index, useful if that one is chromosome.
+    #
+    print STDERR "Sorting by the SECOND axis.\n";
+    if (runCommand("cat $mfiles | grep -- '^M ' | sort -y -T $tmpdir -k 9,9 -k 5,5 >> $ATACdir/$matches.matches.sorted")) {
+        die "Failed to sort $ATACdir!\n";
+    }
+}
+
+
+
+
+
+sub extendMatches {
+
+    return if (-e "$ATACdir/$matches.matches.sorted.extended");
+
+    my $cmd;
+    $cmd  = "$BINdir/matchExtender $matchExtenderOpts ";
+    $cmd .= "< $ATACdir/$matches.matches.sorted ";
+    $cmd .= "> $ATACdir/$matches.matches.sorted.extended ";
+
+    if (runCommand($cmd)) {
+        rename("$ATACdir/$matches.matches.sorted.extended",
+               "$ATACdir/$matches.matches.sorted.extended.FAILED");
+        die "matchExtender failed.\n";
+    }
+}
+
+
+
+sub makeChains {
+
+    return if (-e "$ATACdir/$matches.atac");
+
+    if (!defined($ENV{"TMPDIR"})) {
+        print STDERR "WARNING:  TMPDIR not set, defaulting to '$ATACdir'.\n";
+        $ENV{"TMPDIR"} = $ATACdir;
+    }
+
+    #  Path to the python shared-objects (in lib) and the python scripts.
+    #
+    $ENV{'PYTHONPATH'} = "$LIBdir";
+
+    if (runCommand("python $chainer $ATACdir/$matches.matches.sorted.extended")) {
+        print STDERR "PYTHONPATH=$ENV{'PYTHONPATH'}\n";
+        die "Chainer failed.\n";
+    }
+
+    if (! -e "$ATACdir/$matches.atac") {
+        system("ln -s $ATACdir/$matches.matches.sorted.extended.ckpLast $ATACdir/$matches.atac");
+    }
+}
+
+
+
+
+
+#  OK, no, really finish with clumps.
+#
+sub makeClumps {
+
+    return if (-e "$ATACdir/$matches.atac.clumps5000");
+
+    my $cmd;
+    $cmd  = "cd $ATACdir && ";
+    $cmd .= "grep ^M $ATACdir/$matches.atac | ";
+    $cmd .= "cut -d' ' -f 1-12 | ";
+    $cmd .= "sort -k5,5 -k6n ";
+    $cmd .= "> $ATACdir/$matches.atac.sorted && ";
+    $cmd .= "$BINdir/clumpMaker -c 5000 -2 -S -f $ATACdir/$matches.atac.sorted ";
+    $cmd .= "> $ATACdir/$matches.atac.clumps5000";
+
+    if (runCommand($cmd)) {
+        rename("$ATACdir/$matches.atac.clumps5000", "$ATACdir/$matches.atac.clumps5000.FAILED");
+        die "Failed to make clumps!\n";
+    }
+}
+
+
+
+#  Utility to run a command and check the exit status.  We used to try
+#  to decode the exit status...sigh.
+#
+sub runCommand {
+    my $cmd = shift @_;
+
+    print STDERR "$cmd\n";
+
+    if (system($cmd)) {
+        return(1);
+    }
+    return(0);
+}

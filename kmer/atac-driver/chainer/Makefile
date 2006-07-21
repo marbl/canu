@@ -1,8 +1,9 @@
 
-# Ross's build system wasn't doing well here.  We need to include
-# -fpic to make the python shared libraries work, and I wanted to put
-# the C++ gunk in subdirectories.  As a result, you'll need to
-# tweak the CCFLAGS a bit, probably.
+# The standard build system doesn't work well here.  We need to
+# include -fpic to make the python shared libraries work, we need to
+# include the python header, and I wanted to put the C++ gunk in
+# subdirectories.  As a result, you'll need to tweak the CCFLAGS a
+# bit, probably.
 
 CC      = g++
 CCFLAGS = -fpic -g -Wall -fmessage-length=0 -I/usr/local/include/python2.3
