@@ -1,0 +1,21 @@
+Helpful hints on how to run ATAC, aka, A2Amapper
+ -or-
+How I couldn't get the build system to do what I wanted.
+
+
+
+COMPILING and INSTALLING
+------------------------
+
+If you are very lucky, you can simply do:
+
+% sh configure.sh
+% gmake
+% cd atac-driver
+% sh install.sh <location-to-install>
+
+However, when gmake complains or crashes, you'll need to build a
+patched gmake.  Instructions for doing this are in
+build/patches/README.
+
+
