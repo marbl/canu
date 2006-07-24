@@ -51,15 +51,12 @@ public:
   //  Returns true if a call to openIndex() will find a valid index to load.
   //  Returns false if openIndex() will need to build an index.
   //
-  bool         isIndexValid(u32bit indextypetoload, const char *indexname);
-  bool         isIndexValid(const char *indexname=0L)  { return(isIndexValid(FASTA_INDEX_ANY, indexname)); };
-  bool         isIndexValid(u32bit indextypetoload)    { return(isIndexValid(indextypetoload, 0L));        };
+  bool         isIndexValid(u32bit indextypetoload=FASTA_INDEX_ANY,
+                            bool   beVerbose=false);
 
   //  Opens an existing index, or creates and opens an index if none exists.
   //
-  void         openIndex(u32bit indextypetoload, const char *indexname);
-  void         openIndex(const char *indexname=0L)  { openIndex(FASTA_INDEX_ANY, indexname); };
-  void         openIndex(u32bit indextypetoload)    { openIndex(indextypetoload, 0L);        };
+  void         openIndex(u32bit indextypetoload=FASTA_INDEX_ANY);
 
   //  Tell the wrapper that we are going to be doing mostly random access, and
   //  it should adjust it's buffer size appropriately.
@@ -78,12 +75,6 @@ public:
   bool         isSqueezed(void)      { return(_theGlobalDesc._squeezedSequences); };
   bool         isChecksummed(void)   { return(_isChecksummed); };
 private:
-
-  //  Tests on a disk resident index.
-  //    Returns true if there is an index on disk and it is compatible
-  //    with what we want.
-  //
-  bool             isIndexOnDiskCompatible(u32bit indextype, const char *indexname, bool beVerbose=true);
 
   //  Creates an index on disk
   void             createIndex(u32bit indextype);

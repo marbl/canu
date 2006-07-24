@@ -21,14 +21,32 @@ FastAWrapper::FastAWrapper(const char *filename, u32bit bufferSize) {
     _filename = new char [6];
     strcpy(_filename, "stdin");
 
+    _indexname = 0L;
+
     if (bufferSize != ~u32bitZERO)
       _filebuffer    = new readBuffer(fileno(stdin), _filename, bufferSize);
     else
       _filebuffer    = new readBuffer(fileno(stdin), _filename);
     _isStreamInput = true;
   } else {
-    _filename = new char [strlen(filename)+1];
+    u32bit l = strlen(filename);
+
+    _filename = new char [l + 1];
     strcpy(_filename, filename);
+
+    //  If the filename ends in '.fasta' then append a 'idx',
+    //  otherwise, append '.fastaidx'.  Rather complicated for such a
+    //  trivial thing....
+    //
+    if ((l > 5) && (strcmp(filename + l - 6, ".fasta") == 0)) {
+      _indexname = new char [l + 4];
+      strcpy(_indexname, _filename);
+      strcat(_indexname, "idx");
+    } else {
+      _indexname = new char [l + 10];
+      strcpy(_indexname, _filename);
+      strcat(_indexname, ".fastaidx");
+    }
 
     if (bufferSize != ~u32bitZERO)
       _filebuffer    = new readBuffer(_filename, bufferSize);

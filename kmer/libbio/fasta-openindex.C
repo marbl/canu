@@ -19,36 +19,28 @@
 //    The index doesn't match the fasta file and would need to be rebuilt
 //
 bool
-FastAWrapper::isIndexOnDiskCompatible(u32bit indextype, const char *indexname, bool beVerbose) {
+FastAWrapper::isIndexValid(u32bit indextype, bool beVerbose) {
   errno = 0;
 
-  // Construct an index filename if one wasn't given.
-  //
-  if (indexname) {
-    _indexname = new char [strlen(indexname) + 1];
-    strcpy(_indexname, indexname);
-  } else {
-    _indexname = new char [strlen(_filename) + 4];
-    strcpy(_indexname, _filename);
-    strcat(_indexname, "idx");
-  }
+  //  No indexname?  Must be stdin.
+  if (_indexname == 0L)
+    return(false);
 
-
-  //  Stat the index to see if it exists
+  //  Index exists?
   struct stat    st;
   stat(_indexname, &st);
   if (errno)
     return(false);
 
+  //  Index is empty?
   if (st.st_size == 0)
-    //  Index is empty
     return(false);
 
   //  Stat the -> fasta <- file to get the modification time
   // 
   stat(_filename, &st);
   if (errno) {
-    fprintf(stderr, "ERROR: Can't stat '%s'.\n%s\n", _filename, strerror(errno));
+    fprintf(stderr, "ERROR: Can't stat '%s': %s\n", _filename, strerror(errno));
     exit(1);
   }
 
@@ -61,7 +53,7 @@ FastAWrapper::isIndexOnDiskCompatible(u32bit indextype, const char *indexname, b
   int indexfile = open(_indexname, O_RDONLY | O_LARGEFILE);
   if (errno) {
     //  Index doesn't exist??
-    fprintf(stderr, "ERROR: Index file exists, but can't be opened for reading?\n%s\n", strerror(errno));
+    fprintf(stderr, "ERROR: Index file exists, but can't be opened for reading: %s\n", strerror(errno));
     exit(1);
   }
 
@@ -71,7 +63,7 @@ FastAWrapper::isIndexOnDiskCompatible(u32bit indextype, const char *indexname, b
   read(indexfile, &theGlobalDesc, sizeof(_idxfa_global));
   if (errno) {
     //  can't read
-    fprintf(stderr, "ERROR: Index file exists, but can't read description.\n%s\n", strerror(errno));
+    fprintf(stderr, "ERROR: Index file exists, but can't read description: %s\n", strerror(errno));
     exit(1);
   }
 
@@ -145,14 +137,9 @@ FastAWrapper::isIndexOnDiskCompatible(u32bit indextype, const char *indexname, b
 }
 
 
-bool
-FastAWrapper::isIndexValid(u32bit indextype, const char *indexname) {
-  return (isIndexOnDiskCompatible(indextype, indexname, false));
-}
-
 
 void
-FastAWrapper::openIndex(u32bit indextype, const char *indexname) {
+FastAWrapper::openIndex(u32bit indextypetoload) {
 
 
   //  If we've been told to open an index, but we're not random
@@ -167,14 +154,14 @@ FastAWrapper::openIndex(u32bit indextype, const char *indexname) {
   //  can just return.  Downgrading an index is not allowed -- if you open
   //  a FASTA_INDEX_PLUS_DEFLINES, you're stuck with it.
   //
-  if ((_isRandomAccess) && (indextype & FASTA_INDEX_MASK <= _theGlobalDesc._indexType & FASTA_INDEX_MASK))
+  if ((_isRandomAccess) && (indextypetoload & FASTA_INDEX_MASK <= _theGlobalDesc._indexType & FASTA_INDEX_MASK))
     return;
 
 
   //  If no index, or it's not current, build a new one.
   //
-  if (! isIndexOnDiskCompatible(indextype, indexname, true))
-    createIndex(indextype);
+  if (isIndexValid(indextypetoload, true) == false)
+    createIndex(indextypetoload);
 
   //  Index exists, or we wouldn't have made it here.
   //
@@ -185,7 +172,7 @@ FastAWrapper::openIndex(u32bit indextype, const char *indexname) {
   errno = 0;
   int indexfile = open(_indexname, O_RDONLY | O_LARGEFILE);
   if (errno) {
-    fprintf(stderr, "FastAWrapper()-- couldn't open the index '%s'.\n%s\n", _indexname, strerror(errno));
+    fprintf(stderr, "FastAWrapper()-- couldn't open the index '%s': %s\n", _indexname, strerror(errno));
     exit(1);
   }
 
@@ -194,11 +181,9 @@ FastAWrapper::openIndex(u32bit indextype, const char *indexname) {
   //
   read(indexfile, &_theGlobalDesc, sizeof(_idxfa_global));
   if (errno) {
-    fprintf(stderr, "FastAWrapper()-- couldn't read description from the index '%s'.\n%s\n", _indexname, strerror(errno));
+    fprintf(stderr, "FastAWrapper()-- couldn't read description from the index '%s': %s\n", _indexname, strerror(errno));
     exit(1);
   }
-
-
 
 
   //  Fix endianess issues in the index.
@@ -229,7 +214,7 @@ FastAWrapper::openIndex(u32bit indextype, const char *indexname) {
 
   read(indexfile, _theSeqs, sizeof(_idxfa_desc) * _theGlobalDesc._numberOfSequences);
   if (errno) {
-    fprintf(stderr, "FastAWrapper()-- couldn't read sequence descriptions from the index '%s'.\n%s\n", _indexname, strerror(errno));
+    fprintf(stderr, "FastAWrapper()-- couldn't read sequence descriptions from the index '%s': %s\n", _indexname, strerror(errno));
     exit(1);
   }
 
@@ -248,17 +233,17 @@ FastAWrapper::openIndex(u32bit indextype, const char *indexname) {
   //  If indextype is FASTA_INDEX_ANY, open the index as reported by
   //  the file.  Otherwise, open the index as specified.
   //
-  if ((indextype & FASTA_INDEX_MASK) == FASTA_INDEX_ANY)
-    indextype = _theGlobalDesc._indexType;
+  if ((indextypetoload & FASTA_INDEX_MASK) == FASTA_INDEX_ANY)
+    indextypetoload = _theGlobalDesc._indexType;
   else
-    _theGlobalDesc._indexType = indextype;
+    _theGlobalDesc._indexType = indextypetoload;
 
 
   if (((_theGlobalDesc._indexType & FASTA_INDEX_MASK) == FASTA_INDEX_PLUS_IDS) ||
       ((_theGlobalDesc._indexType & FASTA_INDEX_MASK) == FASTA_INDEX_PLUS_DEFLINES)) {
     read(indexfile, &_theNamesLen, sizeof(u32bit));
     if (errno) {
-      fprintf(stderr, "FastAWrapper()-- couldn't read lengths of names from the index '%s'.\n%s\n", _indexname, strerror(errno));
+      fprintf(stderr, "FastAWrapper()-- couldn't read lengths of names from the index '%s': %s\n", _indexname, strerror(errno));
       exit(1);
     }
 
@@ -271,7 +256,7 @@ FastAWrapper::openIndex(u32bit indextype, const char *indexname) {
 
     read(indexfile, _theNames, sizeof(char) * _theNamesLen);
     if (errno) {
-      fprintf(stderr, "FastAWrapper()-- couldn't read names from the index '%s'.\n%s\n", _indexname, strerror(errno));
+      fprintf(stderr, "FastAWrapper()-- couldn't read names from the index '%s': %s\n", _indexname, strerror(errno));
       exit(1);
     }
   }
@@ -283,7 +268,7 @@ FastAWrapper::openIndex(u32bit indextype, const char *indexname) {
     errno = 0;
     read(indexfile, _theMD5s, sizeof(md5_s) * _theGlobalDesc._numberOfSequences);
     if (errno) {
-      fprintf(stderr, "FastA::buildIndex() couldn't read checksums from the index '%s'.\n%s\n", _filename, strerror(errno));
+      fprintf(stderr, "FastA::buildIndex() couldn't read checksums from the index '%s': %s\n", _filename, strerror(errno));
       exit(1);
     }
 
@@ -301,10 +286,8 @@ FastAWrapper::openIndex(u32bit indextype, const char *indexname) {
 
   errno = 0;
   close(indexfile);
-  if (errno) {
-    fprintf(stderr, "FastAWrapper()-- couldn't close the index '%s'.\n%s\n", _indexname, strerror(errno));
-    //exit(1);
-  }
+  if (errno)
+    fprintf(stderr, "FastAWrapper()-- couldn't close the index '%s': %s\n", _indexname, strerror(errno));
 }
 
 
