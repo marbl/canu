@@ -8,6 +8,7 @@
 
 //  We need to test how to swap off_t and size_t
 
+//  See also test/endianess.c
 
 //  If we wanted to convert to network order for everything, rather
 //  than convert only when needed, this would be useful.
