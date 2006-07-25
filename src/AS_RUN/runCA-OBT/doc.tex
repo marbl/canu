@@ -44,37 +44,48 @@
 
 \section{Running}
 
-\runCA\ has no actual required arguments, but makes several assumptions
-if no options are supplied.
-
-It looks for fragments files *.frg in the current directory.  The
-assembly is performed in the current directory, using the prefix
-'asm'.
-
-\subsection{Command Line Options}
-
-The available command line options are:
-
+\runCA\ has three options:
 
 \begin{longtable}{lp{3.0in}}
 -d {\it directory} &
 Place the assembly in {\it directory}, if {\it directory} doesn't exist,
-create it.
-\\
--s {\it specfile} &
-Read options from the specifications file {\it specfile}.  These options
-may also be supplied on the command line, as 'optionKey=optionValue',
-for example, 'useGrid=1'.  Please quote appropriately.
+create it.  This is a required option.
 \\
 -p {\it prefix} &
-Call the assembly {\it prefix}, for example, 'prefix.asm'.
+Call the assembly {\it prefix}, for example, 'prefix.asm'.  If not
+specified, the prefix {\tt asm} is used.
+\\
+-s {\it specfile} &
+Read options from the specifications file {\it specfile}.  These
+options may also be supplied on the command line, as
+'optionKey=optionValue', for example, 'useGrid=1'.  See the example
+below for the appropriate way to quote spaces!
 \end{longtable}
 
-\section{Specification File}
+Any remaining command line parameters are either fragment files or
+options, depending on if the parameter refers to a file or not.  For example,
 
-NOTE: the 'sample.spec' file in the source directory is likely more up
-to date than this document.  If glaring inconsistencies are found,
-please notify the authors.
+\begin{verbatim}
+perl $ASMBIN/runCA-OBT.pl \
+  -d /home/work/assembly/bigfoot-v1 \
+  -p bigfoot \
+  useGrid=1 \
+  ovlMemory=''2GB --hashload 0.8 --hashstrings 110000'' \
+  ovlHashBlockSize=600000 \
+  ovlRefBlockSize=7630000 \
+  frgCorrBatchSize=1000000 \
+  frgCorrThreads=4 \
+  fragments1.frg \
+  fragments2.frg.gz \
+  fragments3.frg.bz2 \
+  fragments4.frg
+\end{verbatim}
+
+would assemble the {\tt bigfoot} genome using four fragment files, two
+of which are compressed.  Instead of a {\it specfile} we specify our
+few options on the command line.
+
+\section{Specification File}
 
 The specification file contains algorithmic and computational options
 for an assembler run.  For example, how many threads to use when
@@ -86,7 +97,7 @@ White-space is allowed in option values.  A line of:
 ovlMemory    =    1GB --hashload 0.8
 \end{verbatim}
 will set the {\tt ovlMemory} option to the value {\tt 1GB --hashload
-0.8} (in particular, trimming whitespace from the ends).
+0.8}, in particular, trimming whitespace from the ends.
 
 \subsection{Suggested Configurations}
 
@@ -96,17 +107,17 @@ computational performance.  It is left as an exercise to the reader to
 decide how to get acceptable algorithmic performance (i.e., a decent
 assembly).
 
-\subsubsection{Microbe}
+\subsubsection{Microbes}
 
 No special settings are needed.
 
-\subsubsection{Drosophilia}
+\subsubsection{Flies}
 
 No special setting are needed, however, using the grid ({tt
 useGrid=1}) is suggested.  If possible, use local disk for the
-fragment store.  See Human below.
+fragment store.  See {\em Mammals} below.
 
-\subsubsection{Human}
+\subsubsection{Mammals}
 
 Use of the grid is essential for both overlapper and consensus.
 
@@ -175,12 +186,12 @@ defaults to the result of {\it uname}.
 
 gridMachine={\it string} &
 The architecture of the grid machines, {\tt i686} by default.  See
-{\it localMachine}.
+{\it localMachine} for supported machines.
 \\
 
 gridHost={\it string} &
 The operating system of the grid machines {\tt Linux} by default.  See
-{\it localHost}.
+{\it localHost} for supported hosts.
 \\
 
 useGrid={\it integer} &
@@ -221,8 +232,8 @@ consensus as they execute.  This is {\tt /scratch} by default.
 \end{longtable}
 
 
-
 \subsection{Overlap Based Trimming Options}
+\label{sec:obtopts}
 
 Overlap Based Trimming invokes the overlap module, see
 Section~\ref{sec:overlapopts} for options to configure the overlapper.
@@ -266,14 +277,14 @@ modified by overlap-based trimming.  One UID per line.
 
 ovlSortMemory={\it integer} &
 The amount of memory, in megabytes, to use for sorting overlaps.  The
-default is to use 1GB memory.
+default is to use 1024MB memory.
 \\
 \end{longtable}
 
 
 
 \subsection{Overlapper Options}
-\label{sec:overlapopt}
+\label{sec:overlapopts}
 
 Overlapper performs an all-fragments against all-fragments alignment.
 Each pair of fragments is aligned to decide if they overlap.  In
@@ -330,7 +341,7 @@ overlapping, by default is not done on the grid.
 ovlStoreMemory={\it integer} &
 The amount of memory, in megabytes, to use for building the overlap
 store.  It is critical that this value be as large as possible,
-especially with large assemblies.  The default is 512MB memory.
+especially with large assemblies.  The default is 1024MB memory.
 \\
 \end{longtable}
 
@@ -342,7 +353,7 @@ especially with large assemblies.  The default is 512MB memory.
 frgCorrBatchSize={\it integer} &
 The number of reads to load into core at once.  Fragment error
 correction will then scan the entire fragment store, recomputing
-overlaps.  As a rough guide:
+overlaps.  As a (very) rough guide:
 
 \begin{center}
 \begin{tabular}{|c|c|}
@@ -388,7 +399,7 @@ time.  Default is 1.
 \\
 
 ovlCorrBatchSize={\it integer} &
-{\it what do we load, again?}  1,000,000 uses about 2.5GB memory.  400,000 uses 750MB.
+{\it more documentation needed!}  1,000,000 uses about 2.5GB memory.  400,000 uses 750MB.
 \\
 
 ovlCorrOnGrid={\it integer} &
@@ -449,7 +460,7 @@ delayInterleavedMerging={\it integer} &
 If non-zero, interleaved scaffold merging will be performed only when
 stones are thrown, usually the last iteration of cgw, in particular,
 after all iterations of {\it extendClearRanges}.  The default is to
-delay merging until stones are thrown.
+not delay merging, and do merging in the very first cgw.
 \\
 
 doExtendClearRanges={\it integer} &
@@ -458,7 +469,13 @@ until after all rounds.
 \\
 
 doUpdateDistanceRecords={\it integer} &
-If non-zero, update the distance records after each round of {\it extendClearRanges}.
+If non-zero, update the distance records after each round of {\it extendClearRanges}.  THIS IS
+CURRENTLY BROKEN.  Instead, if {\it updateDistanceType} is ``pre'', distance records are
+updated by computing a scratch cgw before the normal scaffolding process starts.
+\\
+
+updateDistanceType={\it string} &
+Should currently always be set to ``pre''.
 \\
 
 doResolveSurrogates={\it integer} &

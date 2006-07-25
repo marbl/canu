@@ -25,10 +25,10 @@ sub unitigger (@) {
         if ((! -e "$wrk/4-unitigger/$asm.ofg") ||
             (-M "$wrk/$asm.frgStore/db.frg" < -M "$wrk/4-unitigger/$asm.ofg")) {
             my $cmd;
-            #$cmd  = "[ $wrk/$asm.frgStore/db.frg -nt $wrk/0-preoverlap/$asm.ofg ] && ";
-            #$cmd .= "$bin/make_OFG_from_FragStore $wrk/$asm.frgStore > $wrk/0-preoverlap/$asm.ofg || ";
-            #$cmd .= "true";
-            $cmd .= "$bin/make_OFG_from_FragStore $wrk/$asm.frgStore > $wrk/4-unitigger/$asm.ofg";
+            $cmd  = "$bin/make_OFG_from_FragStore $wrk/$asm.frgStore ";
+            $cmd .= " > $wrk/4-unitigger/$asm.ofg ";
+            $cmd .= " 2> $wrk/4-unitigger/$asm.ofg.err";
+
             if (runCommand($cmd)) {
                 rename "$wrk/4-unitigger/$asm.ofg", "$wrk/4-unitigger/$asm.ofg.FAILED";
                 die "Failed.\n";

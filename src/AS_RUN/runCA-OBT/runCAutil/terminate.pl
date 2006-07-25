@@ -44,7 +44,7 @@ sub terminate ($) {
         $cmd .= " -g $wrk/$asm.gkpStore ";
         $cmd .= " -o $wrk/$asm.asm ";
         $cmd .= " -m $wrk/$asm.map ";
-        $cmd .= "> $wrk/terminator.err 2>&1 ";
+        $cmd .= " > $wrk/terminator.err 2>&1 ";
 
         if (runCommand($cmd)) {
             print STDERR "Failed.\n";
@@ -79,7 +79,10 @@ sub terminate ($) {
         $cmd .= "$bin/dumpSingletons ";
         $cmd .= " -f $wrk/$asm.frgStore ";
         $cmd .= " -g $wrk/$asm.gkpStore ";
-        $cmd .= " -c $cgwDir/$asm -n $lastckp -U > $wrk/$asm.singleton.fasta";
+        $cmd .= " -c $cgwDir/$asm -n $lastckp -U ";
+        $cmd .= "> $wrk/$asm.singleton.fasta ";
+        $cmd .= "2> $wrk/dumpSingletons.err ";
+
         if (runCommand($cmd)) {
             print STDERR "Failed.\n";
             rename "$wrk/$asm.singleton.fasta", "$wrk/$asm.singleton.fasta.FAILED";
@@ -121,12 +124,12 @@ sub terminate ($) {
     }
 
     ########################################
-
-    #  Generate statistics.  There be magic here.
-    #  It lives in CVS under tools/asm_scripts.
-    #  But not in the assembly tree.
+    #  Generate statistics.
 
     if (! -e "$wrk/$asm.qc") {
+
+        #  Some amazingly ugly magic to get the perl libs.
+        #
         if (!defined($ENV{'PERL5LIB'})) {
           if (-d "/home/smurphy/preassembly/test/TIGR/scripts") {
             $ENV{'PERL5LIB'} = "/home/smurphy/preassembly/test/TIGR/scripts";

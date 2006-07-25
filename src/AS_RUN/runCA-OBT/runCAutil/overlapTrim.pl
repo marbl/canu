@@ -126,6 +126,7 @@ sub overlapTrim {
         $cmd .= " -maxiid $numFrags ";
         $cmd .= " -L $wrk/0-overlaptrim/all-overlaps-trim.ovllist";
         $cmd .= " > $wrk/0-overlaptrim/$asm.ovl.sorted";
+        $cmd .= " 2> $wrk/0-overlaptrim/$asm.ovl.sorted.err";
 
         if (runCommand($cmd)) {
             unlink "$wrk/0-overlaptrim/$asm.ovl.sorted";
@@ -161,6 +162,7 @@ sub overlapTrim {
         $cmd .= "-log $wrk/0-overlaptrim/$asm.mergeLog ";
         $cmd .= "-frg $wrk/$asm.frgStore ";
         $cmd .= "-ovl $wrk/0-overlaptrim/$asm.ovl.consolidated";
+        $cmd .= "> $wrk/0-overlaptrim/$asm.ovl.consolidated.err 2>&1";
 
         if (runCommand($cmd)) {
             unlink "$wrk/0-overlaptrim/$asm.mergeLog";

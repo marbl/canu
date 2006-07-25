@@ -10,7 +10,7 @@ sub preoverlap {
     #  are no fragments and no source files.
     #
     return if ($numFrags > 0);
-    die "ERROR: No fragment files specified, and stores not created.\n" if (scalar(@fragFiles) == 0);
+    die "ERROR: No fragment files specified, and stores not already created.\n" if (scalar(@fragFiles) == 0);
 
     system("mkdir $wrk/0-preoverlap") if (! -d "$wrk/0-preoverlap");
 

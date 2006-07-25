@@ -51,8 +51,8 @@ sub applyOverlapCorrection {
             $cmd  = "$bin/cat-erates ";
             $cmd .= "-L $wrk/3-ovlcorr/all-corrections.eratelist ";
             $cmd .= "-o $wrk/3-ovlcorr/$asm.erates ";
-            $cmd .= "> $wrk/3-ovlcorr/cat-erates.out ";
-            $cmd .= "2> $wrk/3-ovlcorr/cat-erates.err";
+            $cmd .= "> $wrk/3-ovlcorr/cat-erates.err 2>&1";
+
             if (runCommand($cmd)) {
                 print STDERR "Failed to concatenate the fragment corrections.\n";
                 exit(1);
@@ -65,8 +65,8 @@ sub applyOverlapCorrection {
         $cmd  = "$bin/update-erates ";
         $cmd .= "$wrk/$asm.ovlStore ";
         $cmd .= "$wrk/3-ovlcorr/$asm.erates";
-        $cmd .= "> $wrk/3-ovlcorr/update-erates.out";
-        $cmd .= "2> $wrk/3-ovlcorr/update-erates.err";
+        $cmd .= "> $wrk/3-ovlcorr/update-erates.err 2>&1";
+
         if (runCommand($cmd)) {
             print STDERR "Failed to apply the overlap corrections.\n";
             exit(1);

@@ -120,11 +120,11 @@ sub setDefaults {
     $global{"ovlCorrBatchSize"}            = 175000;
     $global{"ovlCorrOnGrid"}               = 0;
     $global{"ovlCorrConcurrency"}          = 4;
-    $global{"ovlHashBlockSize"}            = 40000;
-    $global{"ovlMemory"}                   = "1GB";
-    $global{"ovlRefBlockSize"}             = 2000000;
-    $global{"ovlSortMemory"}               = 1000;
-    $global{"ovlStoreMemory"}              = 512;
+    $global{"ovlHashBlockSize"}            = 40000;   # 150000
+    $global{"ovlMemory"}                   = "1GB";   # 2GB
+    $global{"ovlRefBlockSize"}             = 2000000; # 5000000
+    $global{"ovlSortMemory"}               = 1024;
+    $global{"ovlStoreMemory"}              = 1024;
     $global{"ovlThreads"}                  = 2;
     $global{"ovlOnGrid"}                   = 1;
     $global{"processStats"}                = undef;
@@ -156,6 +156,7 @@ sub setParameters {
                 my ($var, $val) = ($1, $2);
                 $var =~ s/^\s+//; $var =~ s/\s+$//;
                 $val =~ s/^\s+//; $val =~ s/\s+$//;
+                undef $val if ($val eq "undef");
                 setGlobal($var, $val);
             } else {
                 print STDERR "WARNING!  Invalid specFile line '$_'\n";
@@ -270,7 +271,7 @@ sub findNumScaffoldsInCheckpoint ($$) {
     $numscaf = int($numscaf);
 
     die "findNumSCaffoldsInCheckpoint($dir, $lastckp) found no scaffolds?!" if ($numscaf == 0);
-    print STDERR "Found $numscaf in $dir checkpoint $lastckp\n";
+    print STDERR "Found $numscaf scaffolds in $dir checkpoint number $lastckp.\n";
     return($numscaf);
 }
 
