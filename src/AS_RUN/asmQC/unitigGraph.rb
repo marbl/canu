@@ -1,8 +1,17 @@
 #!/usr/bin/env ruby
 
-require 'rgl/adjacency'
-require 'rgl/dot'
+#require 'rgl/adjacency'
+#require 'rgl/dot'
+require 'graph/graphviz_dot'
 
+class Link
+    attr_accessor :from, :to, :info
+    def initialize(from, to, info)
+        @from = from
+        @to = to
+        @info = info
+    end
+end
 class Unitig
     attr_accessor :firstFrag, :lastFrag
     attr_reader   :accession
@@ -41,7 +50,7 @@ end
 $firstLast = {}
 $fragsUnitig = {}
 def readUnitigsFromIUMFile(iumFile)
-    unitigs = []
+    unitigs = {}
     iumFile.each_line do |line|
         if line[0,4] == '{IUM'
             ac,acc = iumFile.readline.chomp.split(':')
@@ -85,7 +94,7 @@ def readUnitigsFromIUMFile(iumFile)
             utg.deleteInternalFrag( lastNonContain )
             utg.lastFrag = lastNonContain
             $firstLast[ lastNonContain ] = whichEnd
-            unitigs.push( utg )
+            unitigs[acc] = utg
         end
     end
     return unitigs
@@ -122,40 +131,70 @@ iumFile      = File.open( iumFilePath )
 bestEdgeFile = File.open( bestEdgeFilePath )
 
 unitigs = readUnitigsFromIUMFile( iumFile )
-lu = unitigs[-1]
-puts "Last unitig is #{lu.accession} with #{lu.numInternalFrags+2} frags, last is #{lu.lastFrag}"
 
 bestEdges = readBestEdgeFile( bestEdgeFile )
 puts "Best edge for 15824 is #{bestEdges['15824']}, 13920 is #{bestEdges['13920']}"
 puts "Best edge for 27 is #{bestEdges['27']}, 36838 is #{bestEdges['36838']}"
 puts "Best edge for 12124 is #{bestEdges['12124']}, 36480 is #{bestEdges['36480']}"
-graph = RGL::DirectedAdjacencyGraph.new()
-unitigs.each do |utg|
+#graph = RGL::DirectedAdjacencyGraph.new()
+links = []
+unitigs.each_pair do |acc,utg|
     firstEdge = bestEdges[ utg.firstFrag ]
     if firstEdge == nil
         raise "nil firstEdge"
     elsif firstEdge == '0'
-        puts "Skip #{utg.accession} first frag #{utg.firstFrag} with '0' edge."
+        puts "Skip #{acc} first frag #{utg.firstFrag} with '0' edge."
     elsif firstEdge == 0
-        puts "Skip #{utg.accession} first frag #{utg.firstFrag} with 0 edge."
+        puts "Skip #{acc} first frag #{utg.firstFrag} with 0 edge."
     elsif !$fragsUnitig.has_key?(firstEdge)
-        puts "Skip #{utg.accession} first frag #{utg.firstFrag} singleton edge."
+        puts "Skip #{acc} first frag #{utg.firstFrag} singleton edge."
     else 
-        graph.add_edge( utg.accession, $fragsUnitig[firstEdge])
+#        graph.add_edge( utg.accession, $fragsUnitig[firstEdge])
+        color = 'black'
+        otherUtg = $fragsUnitig[firstEdge]
+        if unitigs[otherUtg].firstFrag == firstEdge
+            # begin to begin, make it green
+            color = 'green'
+        elsif unitigs[otherUtg].lastFrag == firstEdge
+            # begin to end, make it red
+            color = 'red'
+        end
+        link = Link.new(acc, otherUtg, "5' #{color}")
+#links.push([acc, otherUtg, "5' color=#{color}"])
+        links.push(link)
     end
 
     lastEdge  = bestEdges[ utg.lastFrag ]
     if lastEdge == nil
-        raise "nil lastEdge #{utg.accession} #{utg.lastFrag}"
+        raise "nil lastEdge #{acc} #{utg.lastFrag}"
     elsif lastEdge == '0'
-        puts "Skip #{utg.accession} last frag #{utg.lastFrag} with '0' edge."
+        puts "Skip #{acc} last frag #{utg.lastFrag} with '0' edge."
     elsif lastEdge == 0 
-        puts "Skip #{utg.accession} last frag #{utg.lastFrag} with 0 edge."
+        puts "Skip #{acc} last frag #{utg.lastFrag} with 0 edge."
     elsif !$fragsUnitig.has_key?(lastEdge)
-        puts "Skip #{utg.accession} last frag #{utg.lastFrag} singleton edge."
+        puts "Skip #{acc} last frag #{utg.lastFrag} singleton edge."
     else 
-        graph.add_edge( utg.accession, $fragsUnitig[lastEdge])
+#        graph.add_edge( utg.accession, $fragsUnitig[lastEdge])
+        color = 'black'
+        otherUtg = $fragsUnitig[lastEdge]
+        if unitigs[otherUtg].firstFrag == lastEdge
+            # end to begin, make it green
+            color = 'green'
+        elsif unitigs[otherUtg].lastFrag == lastEdge
+            # end to end, make it red
+            color = 'red'
+        end
+        link = Link.new(acc, otherUtg, "3' #{color}")
+#        links.push([acc, otherUtg, "3' #{color}"])
+        links.push(link)
     end
 end
+dgp = DotGraphPrinter.new(links)
+dgp.node_shaper = proc {|n| 'circle'}
+dgp.link_labeler = proc { |info| ["\"#{info[0,2]}\"","\"#{info[3,info.length]}\""] }
+#puts dgp.to_dot_specification
+dgp.write_to_file("utggraph.png","png")
+dgp.orientation = "landscape"      # Dot problem with PS orientation
+dgp.write_to_file("utggraph.ps")          # Generate postscript file
 
-graph.write_to_graphic_file
+#graph.write_to_graphic_file
