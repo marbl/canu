@@ -34,6 +34,9 @@ FastAWrapper::find(char *id) {
   char          *ptr = _theNames;
   char          *res = 0L;
 
+  if (id == 0L)
+    return(false);
+
   //
   //  need to trim off the whitespace from the front/end of the id
   //
