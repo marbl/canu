@@ -43,6 +43,8 @@ main(int argc, char **argv) {
   intervalList        **cov       = 0L;
   u32bit               *len       = 0L;
 
+  u32bit                lastIID   = 0;
+
   bool                  isRaw     = false;
   bool                  isBlast   = false;
 
@@ -86,10 +88,11 @@ main(int argc, char **argv) {
       fprintf(stderr, "Failed to open '%s' for write: %s\n", covname, strerror(errno)), exit(1);
   }
 
-
-  covMax = F->getNumberOfSequences();
-  cov    = new intervalList * [covMax];
-  len    = new u32bit [covMax];
+  covMax   = 1024 * 1024;
+  if (F)
+    covMax = F->getNumberOfSequences();
+  cov      = new intervalList * [covMax];
+  len      = new u32bit [covMax];
 
   fprintf(stderr, "Found "u32bitFMT" sequences in the input file.\n", covMax);
 
@@ -126,11 +129,18 @@ main(int argc, char **argv) {
         end = strtou32bit(S[7], 0L);
       }
 
+      if (iid >= covMax) {
+        fprintf(stderr, "ERROR:  Found iid "u32bitFMT", but only allocated "u32bitFMT" places!\n",
+                iid, covMax);
+        exit(1);
+      }
       if (cov[iid] == 0L) {
         cov[iid] = new intervalList;
         len[iid] = 0;
       }
-
+      if (iid >= lastIID) {
+        lastIID = iid + 1;
+      }
       cov[iid]->add(beg, end-beg);
     }
   } else {
@@ -140,9 +150,17 @@ main(int argc, char **argv) {
       if (p->estID > covMax)
         fprintf(stderr, "DIE!  You have more sequences in your polishes than in your source!\n"), exit(1);
 
+      if (p->estID >= covMax) {
+        fprintf(stderr, "ERROR:  Found iid "u32bitFMT", but only allocated "u32bitFMT" places!\n",
+                p->estID, covMax);
+        exit(1);
+      }
       if (cov[p->estID] == 0L) {
         cov[p->estID] = new intervalList;
         len[p->estID] = p->estLen;
+      }
+      if (p->estID >= lastIID) {
+        lastIID = p->estID + 1;
       }
 
       for (u32bit e=0; e<p->numExons; e++) {
@@ -163,7 +181,7 @@ main(int argc, char **argv) {
 
   //  Scan the list of intervalLists, compute the amount covered, print.
   //
-  for (u32bit iid=0; iid<covMax; iid++) {
+  for (u32bit iid=0; iid<lastIID; iid++) {
 
     //  Argh!  If there are no intervals, we need to report the whole
     //  sequence is uncovered!
