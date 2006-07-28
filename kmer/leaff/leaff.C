@@ -105,7 +105,7 @@ const char *usage =
 "                    3) If a fastaidx file exists and checksums are present,\n"
 "                       the checksums are verified.\n"
 "\n"
-"       --testindex a.fasta [a.fastaidx]\n"
+"       --testindex a.fasta\n"
 "                    Test the index of 'file'.  If index is up-to-date, leaff\n"
 "                    exits successfully, else, leaff exits with code 1.  If an\n"
 "                    index file is supplied, that one is tested, otherwise, the\n"
@@ -1105,10 +1105,8 @@ processArray(int argc, char **argv) {
       checksum(argv[arg]);
     } else if (strncmp(argv[arg], "--testindex", 3) == 0) {
       fasta = new FastAWrapper(argv[arg+1]);
-
-      if (fasta->isIndexValid(argv[arg+2]))
+      if (fasta->isIndexValid())
         exit(0);
-
       exit(1);
     } else if (strncmp(argv[arg], "--dumpblocks", 3) == 0) {
       dumpBlocks();
