@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl
 
-# $Id: caqc.pl,v 1.5 2006-06-19 18:13:30 eliv Exp $
+# $Id: caqc.pl,v 1.6 2006-07-28 15:29:00 moweis Exp $
 #
 # This program reads a Celera .asm file and produces aggregate information
 # about the assembly
@@ -18,7 +18,7 @@ use TIGR::AsmLib;
 
 use Time::HiRes;
 
-my $MY_VERSION = " Version 2.11 (Build " . (qw/$Revision: 1.5 $/ )[1] . ")";
+my $MY_VERSION = " Version 2.11 (Build " . (qw/$Revision: 1.6 $/ )[1] . ")";
 
 # Constants
 my $MINQUAL = 20;
@@ -654,15 +654,15 @@ MAIN:
 	0.0;
 
     $Results{'ContigAndSurrogates'} = ($Results{'TotalBasesInScaffolds'} > 0) ? 
-	(($Results{'UnPlacedSurrogatReadLen'} + $contigReadLen) / $Results{'TotalBasesInScaffolds'}) : 
+	(($Results{'UnPlacedSurrReadLen'} + $contigReadLen) / $Results{'TotalBasesInScaffolds'}) : 
 	0.0;
 
 #    print STDERR "surrReadLen = $surrReadLen\ncontigReadLen = $contigReadLen\ndegenReadLen = $degenReadLen\ntotalReadLen = $totalReadLength\n";
 
     $Results{'ContigsAndDegens'} = ($Results{'TotalBasesInScaffolds'} +
-				    $Results{'DegenContigLen'} > 0) 
-	? (($Results{'UnPlacedSurrogatReadLen'} + $contigReadLen + $degenReadLen) /
-	   ($Results{'TotalBasesInScaffolds'} + $Results{'DegenContigLen'}))
+				    $Results{'DegenContigLength'} > 0) 
+	? (($Results{'UnPlacedSurrReadLen'} + $contigReadLen + $degenReadLen) /
+	   ($Results{'TotalBasesInScaffolds'} + $Results{'DegenContigLength'}))
 	: 0.0;
     
     
