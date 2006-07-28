@@ -68,6 +68,28 @@ reverseBits64(u64bit x) {
 
 
 
+
+#if 0
+#if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 4)
+
+//  Untested, unused.  Now, if we had a reverseBits builtin...
+
+inline
+u32bit
+countNumberOfSetBits32(u32bit x) {
+  return(__builtin_popcount(x));
+}
+
+inline
+u64bit
+countNumberOfSetBits64(u64bit x) {
+  return(__builtin_popcountl(x));
+}
+
+#endif
+#endif
+
+
 inline
 u32bit
 countNumberOfSetBits32(u32bit x) {
@@ -83,13 +105,14 @@ inline
 u64bit
 countNumberOfSetBits64(u64bit x) {
   x = ((x >>  1) & u64bitNUMBER(0x5555555555555555)) + (x & u64bitNUMBER(0x5555555555555555));
-  x = ((x >>  2) & u64bitNUMBER(0x3333333333333333)) + (x & u64bitNUMBER(0x3333333333333333));          
+  x = ((x >>  2) & u64bitNUMBER(0x3333333333333333)) + (x & u64bitNUMBER(0x3333333333333333));
   x = ((x >>  4) & u64bitNUMBER(0x0f0f0f0f0f0f0f0f)) + (x & u64bitNUMBER(0x0f0f0f0f0f0f0f0f));
-  x = ((x >>  8) & u64bitNUMBER(0x00ff00ff00ff00ff)) + (x & u64bitNUMBER(0x00ff00ff00ff00ff));              
+  x = ((x >>  8) & u64bitNUMBER(0x00ff00ff00ff00ff)) + (x & u64bitNUMBER(0x00ff00ff00ff00ff));
   x = ((x >> 16) & u64bitNUMBER(0x0000ffff0000ffff)) + (x & u64bitNUMBER(0x0000ffff0000ffff));
   x = ((x >> 32) & u64bitNUMBER(0x00000000ffffffff)) + (x & u64bitNUMBER(0x00000000ffffffff));
   return(x);
 }
+
 
 
 
