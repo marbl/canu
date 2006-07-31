@@ -47,6 +47,14 @@ class Unitig
     end
 end
 
+class File
+    def readTo(str)
+        line = ''
+        line = readline while line[0,4] != str
+        line
+    end
+end
+
 $firstLast = {}
 $fragsUnitig = {}
 def readUnitigsFromIUMFile(iumFile)
@@ -56,11 +64,11 @@ def readUnitigsFromIUMFile(iumFile)
             ac,acc = iumFile.readline.chomp.split(':')
             raise "Expected acc:<id>" unless ac == 'acc'
 
-            line = iumFile.readline while line[0,4] != 'nfr:'
+            line = iumFile.readTo('nfr:')
             nfr = line.chop[4,line.length].to_i
             next if nfr == 1
 
-            line = iumFile.readline while line[0,4] != 'mid:'
+            line = iumFile.readTo('mid:')
             mid = line.chop[4,line.length]
             $fragsUnitig[ mid ] = acc
 
@@ -68,7 +76,7 @@ def readUnitigsFromIUMFile(iumFile)
             utg = Unitig.new(acc)
             utg.firstFrag = mid
             
-            line = iumFile.readline while line[0,4] != 'pos:'
+            line = iumFile.readTo('pos:')
             b,e = line.chop[4,line.length].split(',')
             whichEnd = "5'"
             whichEnd = "3'" if e < b 
@@ -78,11 +86,11 @@ def readUnitigsFromIUMFile(iumFile)
             nfr -= 1
             lastNonContain = 0
             nfr.times do
-                line = iumFile.readline while line[0,4] != 'mid:'
+                line = iumFile.readTo('mid:')
                 mid = line.chop[4,line.length]
                 utg.addInternalFrag( mid )
                 $fragsUnitig[ mid ] = acc
-                line = iumFile.readline while line[0,4] != 'con:'
+                line = iumFile.readTo('con:')
                 if line == "con:0\n"
                     lastNonContain = mid
                     b,e = iumFile.readline.chop[4..-1].split(',')
@@ -90,7 +98,10 @@ def readUnitigsFromIUMFile(iumFile)
                     whichEnd = "5'" if e < b 
                 end
             end
-            next if lastNonContain == 0
+            if lastNonContain == 0
+                $fragsUnitig.delete( utg.firstFrag )
+                next
+            end
             utg.deleteInternalFrag( lastNonContain )
             utg.lastFrag = lastNonContain
             $firstLast[ lastNonContain ] = whichEnd
@@ -125,18 +136,57 @@ def readBestEdgeFile( bestEdgeFile )
     end
     return bestEdge
 end
+def readUnitigsFromAsmFile(asmFile)
+    uidToIID = {}
+    links = []
+    ulk = {}
+    asmFile.each_line do |line|
+        if line[0,4] == '{UTG'
+            uid,iid = asmFile.readline.scan(/\d+/)
+            raise "Bad acc: #{uid}" if uid == nil || iid == nil
+            line = asmFile.readTo('len:')
+            len = line[4,line.length]
+            next unless len.to_i > 1000
+            uidToIID[ uid ] = iid
+
+        elsif line[0,4] == '{ULK'
+            u,ut1 = asmFile.readline.scan(/\d+/)
+            u,ut2 = asmFile.readline.scan(/\d+/)
+            ut1 = uidToIID[ ut1 ]
+            ut2 = uidToIID[ ut2 ]
+            next unless ut1 != nil && ut2 != nil
+            if ulk.has_key?( ut1 )
+                if ulk[ut1].has_key?(ut2)
+                    ulk[ut1][ut2] += 1
+                else
+                    ulk[ut1][ut2] = 1
+                    link = Link.new(ut1, ut2, "#{ut1} #{ut2}")
+                    links.push( link )
+                end
+            else
+                ulk[ut1] = { ut2 => 1 }
+                link = Link.new(ut1, ut2, "#{ut1} #{ut2}")
+                links.push( link )
+            end
+        end
+    end
+    return links,ulk
+end
+
 iumFilePath      = ARGV[0]
 bestEdgeFilePath = ARGV[1]
-iumFile      = File.open( iumFilePath )
-bestEdgeFile = File.open( bestEdgeFilePath )
+#iumFile      = File.open( iumFilePath )
+asmFile      = File.open( iumFilePath )
+unitigs = {}
+#bestEdgeFile = File.open( bestEdgeFilePath )
 
-unitigs = readUnitigsFromIUMFile( iumFile )
+#unitigs = readUnitigsFromIUMFile( iumFile )
 
-bestEdges = readBestEdgeFile( bestEdgeFile )
-puts "Best edge for 15824 is #{bestEdges['15824']}, 13920 is #{bestEdges['13920']}"
-puts "Best edge for 27 is #{bestEdges['27']}, 36838 is #{bestEdges['36838']}"
-puts "Best edge for 12124 is #{bestEdges['12124']}, 36480 is #{bestEdges['36480']}"
-#graph = RGL::DirectedAdjacencyGraph.new()
+#bestEdges = readBestEdgeFile( bestEdgeFile )
+#puts "Best edge for 15824 is #{bestEdges['15824']}, 13920 is #{bestEdges['13920']}"
+#puts "Best edge for 27 is #{bestEdges['27']}, 36838 is #{bestEdges['36838']}"
+#puts "Best edge for 12124 is #{bestEdges['12124']}, 36480 is #{bestEdges['36480']}"
+##graph = RGL::DirectedAdjacencyGraph.new()
 links = []
 unitigs.each_pair do |acc,utg|
     firstEdge = bestEdges[ utg.firstFrag ]
@@ -171,12 +221,14 @@ unitigs.each_pair do |acc,utg|
         puts "Skip #{acc} last frag #{utg.lastFrag} with '0' edge."
     elsif lastEdge == 0 
         puts "Skip #{acc} last frag #{utg.lastFrag} with 0 edge."
-    elsif !$fragsUnitig.has_key?(lastEdge)
+    elsif not $fragsUnitig.has_key?(lastEdge)
         puts "Skip #{acc} last frag #{utg.lastFrag} singleton edge."
     else 
 #        graph.add_edge( utg.accession, $fragsUnitig[lastEdge])
         color = 'black'
         otherUtg = $fragsUnitig[lastEdge]
+        raise "Edge #{lastEdge} from #{acc} to bad untig #{otherUtg}" if not
+         unitigs.has_key?( otherUtg )
         if unitigs[otherUtg].firstFrag == lastEdge
             # end to begin, make it green
             color = 'green'
@@ -189,9 +241,28 @@ unitigs.each_pair do |acc,utg|
         links.push(link)
     end
 end
+links,ulk = readUnitigsFromAsmFile(asmFile)
+
 dgp = DotGraphPrinter.new(links)
 dgp.node_shaper = proc {|n| 'circle'}
-dgp.link_labeler = proc { |info| ["\"#{info[0,2]}\"","\"#{info[3,info.length]}\""] }
+#dgp.link_labeler = proc { |info| ["\"#{info[0,2]}\"","\"#{info[3,info.length]}\""] }
+dgp.link_labeler = proc { |info|
+    u1,u2 = info.split
+    cnt = ulk[u1][u2]
+    color = 'black'
+    if 15 < cnt
+        color = 'yellow'
+    elsif 11 < cnt
+        color = 'orange'
+    elsif 7 < cnt
+        color = 'red'
+    elsif 4 < cnt
+        color = 'green'
+    elsif 2 < cnt
+        color = 'blue'
+    end
+    ["\"#{ulk[u1][u2]}\"","\"#{color}\""]
+}
 #puts dgp.to_dot_specification
 dgp.write_to_file("utggraph.png","png")
 dgp.orientation = "landscape"      # Dot problem with PS orientation
