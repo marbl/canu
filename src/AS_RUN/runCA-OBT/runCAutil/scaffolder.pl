@@ -9,7 +9,7 @@ sub CGW ($$$$$) {
     my $stoneLevel = shift @_;
     my $logickp    = shift @_;
 
-    return $thisDir if (-e "$wrk/$thisDir/cgw.success");
+    return($thisDir) if (-e "$wrk/$thisDir/cgw.success");
 
     my $lastckp = findLastCheckpoint($lastDir)  if (defined($lastDir));
     my $ckp     = "-y -R $lastckp -N $logickp"  if (defined($lastckp) && defined($logickp));
@@ -236,7 +236,7 @@ sub scaffolder ($) {
     my $thisDir    = 0;
     my $stoneLevel = getGlobal("stoneLevel");
 
-    return if (-e "$wrk/7-CGW/cgw.success");
+    goto alldone if (-e "$wrk/7-CGW/cgw.success");
 
     #  Do an initial CGW to update distances, then update the
     #  gatekeeper.  This initial run shouldn't be used for later
@@ -308,6 +308,9 @@ sub scaffolder ($) {
     #  And, finally, hold on, we're All Done!  Point to the correct output directory.
     #
     system("ln -s $lastDir $wrk/7-CGW") if (! -d "$wrk/7-CGW");
+
+  alldone:
+    stopAfter("scaffolder");
 }
 
 

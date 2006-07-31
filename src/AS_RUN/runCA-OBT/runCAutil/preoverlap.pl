@@ -9,7 +9,8 @@ sub preoverlap {
     #  Return if there are fragments in the store, and die if there
     #  are no fragments and no source files.
     #
-    return if ($numFrags > 0);
+    goto alldone if ($numFrags > 0);
+
     die "ERROR: No fragment files specified, and stores not already created.\n" if (scalar(@fragFiles) == 0);
 
     system("mkdir $wrk/0-preoverlap") if (! -d "$wrk/0-preoverlap");
@@ -107,9 +108,10 @@ sub preoverlap {
         }
     }
 
-    #  Lots of people need this, so we just make it a global.
     $numFrags = getNumberOfFragsInStore($bin, $wrk, $asm);
-    print STDERR "Found $numFrags frags!\n";
+
+alldone:
+    stopAfter("initialStoreBuilding");
 }
 
 1;

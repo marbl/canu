@@ -158,6 +158,58 @@ before/after trimming results are in {\tt *.mergeLog}; the columns are
 uid, iid, original clear, new clear, and a free-form text annotation
 of if the fragment was deleted and why.
 
+
+
+\section{Options}
+
+
+
+\subsection{Stopping Options}
+\label{sec:obtopts}
+
+\runCA\ can stop after various modules have computed.  There is no
+corresponding {\it startBefore} option because \runCA\ requires a very
+specific directory layout that is both difficult to describe and
+difficult to recreate manually.  {\em XXXX but it is possible to get
+much the same effect using the {\it do*} options, and having some
+Stores around.}
+
+
+\begin{longtable}{lp{3.0in}}
+
+stopAfter=initialStoreBuilding &
+Stop after the fragment and gatekeeper stores are created.
+\\
+
+stopAfter=overlapBasedTrimming &
+Stop after the fragment and gatekeeper stores are created, and the
+Overlap Based Trimming algorithm has updated the clear ranges.
+{\tt OBT} is an alias for this.
+\\
+
+stopAfter=overlapper &
+Stop after the overlapper finishes, and the overlap store is created.
+\\
+
+stopAfter=unitigger &
+Stop after the unitigger finishes.
+\\
+
+stopAfter=consensusAfterUnitigger &
+Stop after the consensus after unitigger finishes.
+\\
+
+stopAfter=scaffolder &
+Stop after all stages of scaffolding are finished.
+\\
+
+stopAfter=consensusAfterScaffolder &
+Stop after the consensus after scaffolding finishes.
+\\
+
+\end{longtable}
+
+
 \subsection{General Configuration Options}
 
 \begin{longtable}{lp{3.0in}}
@@ -230,6 +282,7 @@ consensus as they execute.  This is {\tt /scratch} by default.
 \\
 
 \end{longtable}
+
 
 
 \subsection{Overlap Based Trimming Options}

@@ -1,45 +1,10 @@
 use strict;
 
-########################################
-#
-#  Do overlap based trimming
-#
-#  Do a leniant quality filter.  Run overlapper with the Granger
-#  option (-G).  We used to fiddle with the sequences to convert
-#  any N into a random base with low quality.
-
-sub backupFragStore ($) {
-    my $backupName = shift @_;
-    my $doBackups  = getGlobal("doBackupFragStore");
-
-    return if ($doBackups == 0);
-
-    if (-e "$wrk/$asm.frgStore/db.frg.$backupName") {
-
-        print STDERR "Found a backup for $backupName!  Restoring!\n";
-
-        unlink "$wrk/$asm.frgStore/db.frg";
-        if (runCommand("cp -p $wrk/$asm.frgStore/db.frg.$backupName $wrk/$asm.frgStore/db.frg")) {
-            unlink "$wrk/$asm.frgStore/db.frg";
-            die "Failed to restore frgStore from backup.\n";
-        }
-    }
-    if (! -e "$wrk/$asm.frgStore/db.frg.$backupName") {
-
-        print STDERR "Backing up the frgStore to $backupName.\n";
-
-        if (runCommand("cp -p $wrk/$asm.frgStore/db.frg $wrk/$asm.frgStore/db.frg.$backupName")) {
-            unlink "$wrk/$asm.frgStore/db.frg.$backupName";
-            die "Failed to backup frgStore.\n";
-        }
-    }
-}
-
-
 sub overlapTrim {
 
     return if (getGlobal("doOverlapTrimming") == 0);
-    return if (-e "$wrk/0-overlaptrim/overlaptrim.success");
+
+    goto alldone if (-e "$wrk/0-overlaptrim/overlaptrim.success");
 
     system("mkdir $wrk/0-overlaptrim")         if (! -d "$wrk/0-overlaptrim");
     system("mkdir $wrk/0-overlaptrim-overlap") if (! -d "$wrk/0-overlaptrim-overlap");
@@ -272,9 +237,6 @@ sub overlapTrim {
     #  Finally, fix up gatekeeper, delete any mate links for fragments that we've deleted.
     #
     if (! -e "$wrk/0-overlaptrim/$asm.deletelinks.out") {
-
-        #backupFragStore("beforeChimera");
-
         my $cmd;
         $cmd  = "$bin/deleteLinks ";
         $cmd .= " -f $wrk/$asm.frgStore ";
@@ -286,8 +248,11 @@ sub overlapTrim {
         }
     }
 
-
     touch("$wrk/0-overlaptrim/overlaptrim.success");
+
+  alldone:
+    stopAfter("overlapBasedTrimming");
+    stopAfter("OBT");
 }
 
 1;

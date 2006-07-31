@@ -4,30 +4,6 @@ sub terminate ($) {
     my $cgwDir = shift @_;
     $cgwDir = "$wrk/7-CGW" if (!defined($cgwDir));
 
-    my $failedJobs       = 0;
-
-    open(CGWIN, "ls $cgwDir/$asm.cgw_contigs.* |") or die;
-    while (<CGWIN>) {
-        chomp;
-
-        if (m/cgw_contigs.(\d+)/) {
-            if (! -e "$wrk/8-consensus/$asm.cns_contigs.$1.success") {
-                print STDERR "$wrk/8-consensus/$asm.cns_contigs.$1 failed.\n";
-                $failedJobs++;
-            }
-        } else {
-            print STDERR "WARNING: didn't match $_ for cgw_contigs filename!\n";
-        }
-    }
-    close(CGWIN);
-
-    if ($failedJobs) {
-        print STDERR "$failedJobs failed.  Good luck.\n";
-        exit(1);
-    }
-
-    ########################################
-
     if (! -e "$wrk/$asm.asm") {
         my $uidServer = getGlobal("uidServer");
         my $fakeUIDs  = getGlobal("fakeUIDs");

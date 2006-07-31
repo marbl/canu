@@ -1,14 +1,8 @@
 use strict;
 
-#  Create the post-unitigger consensus jobs.
-
-sub createPostUnitiggerConsensusJobs (@) {
+sub createPostUnitiggerConsensusJobs(@) {
     my @cgbFiles  = @_;
     my $pstats    = getGlobal("processStats");
-
-    system("mkdir $wrk/5-consensus") if (! -d "$wrk/5-consensus");
-
-    return if (-e "$wrk/5-consensus/jobsCreated.success");
 
     if (! -e "$wrk/5-consensus/$asm.partFile") {
 
@@ -126,6 +120,63 @@ sub createPostUnitiggerConsensusJobs (@) {
 
         touch("$wrk/5-consensus/jobsCreated.success");
     }
+}
+
+
+
+sub postUnitiggerConsensus (@) {
+    my @cgbFiles  = @_;
+
+    system("mkdir $wrk/5-consensus") if (! -d "$wrk/5-consensus");
+
+    goto alldone if (-e "$wrk/5-consensus/consensus.success");
+
+    #
+    #  Create and/or run consensus jobs
+    #
+
+    createPostUnitiggerConsensusJobs(@cgbFiles) if (! -e "$wrk/5-consensus/jobsCreated.success");
+
+    #
+    #  Check that consensus finished properly
+    #
+
+    my $failedJobs = 0;
+    my @cgbIndices;
+
+    foreach my $f (@cgbFiles) {
+        if ($f =~ m/^.*(\d\d\d).cgb$/) {
+            push @cgbIndices, $1;
+        } else {
+            die "Didn't match '$f' for CGB filename!\n";
+        }
+    }
+
+    foreach my $f (@cgbIndices) {
+        if ((! -e "$wrk/5-consensus/${asm}_$f.success") ||
+            (! -e "$wrk/5-consensus/${asm}_$f.cgi")) {
+            print STDERR "$wrk/5-consensus/$f failed -- no .success or no .cgi!\n";
+            $failedJobs++;
+        }
+    }
+
+    die  "$failedJobs consensusAfterUnitigger jobs failed.  Good luck.\n" if ($failedJobs);
+
+    #
+    #  Consolidate all the output
+    #
+
+    foreach my $fid (@cgbIndices) {
+        if (runCommand("cat $wrk/5-consensus/${asm}_$fid.cgi >> $wrk/5-consensus/$asm.cgi")) {
+            rename "$wrk/5-consensus/$asm.cgi", "$wrk/5-consensus/$asm.cgi.FAILED";
+            die "cat failed?\n";
+        }
+    }
+
+    touch ("$wrk/5-consensus/consensus.success");
+
+  alldone:
+    stopAfter("consensusAfterUnitigger");
 }
 
 1;

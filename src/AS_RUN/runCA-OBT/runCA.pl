@@ -126,12 +126,11 @@ applyOverlapCorrection();
 
 @cgbFiles = unitigger(@cgbFiles);
 
-createPostUnitiggerConsensusJobs(@cgbFiles);
-checkPostUnitiggerConsensus(@cgbFiles);
+postUnitiggerConsensus(@cgbFiles);
 
 scaffolder($cgiFile);
 
-createConsensusJobs($scaffoldDir);
+postScaffolderConsensus($scaffoldDir);
 
 terminate($scaffoldDir);
 

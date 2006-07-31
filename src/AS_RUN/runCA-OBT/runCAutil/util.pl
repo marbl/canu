@@ -130,6 +130,7 @@ sub setDefaults {
     $global{"processStats"}                = undef;
     $global{"scratch"}                     = "/scratch";
     $global{"stoneLevel"}                  = 2;
+    $global{"stopAfter"}                   = undef;
     $global{"uidServer"}                   = undef;
     $global{"updateDistanceType"}          = "pre";
     $global{"utgEdges"}                    = undef;
@@ -276,7 +277,7 @@ sub findNumScaffoldsInCheckpoint ($$) {
 }
 
 
-sub getNumberOfFragsInStore {
+sub getNumberOfFragsInStore ($$$) {
     my $bin = shift @_;
     my $wrk = shift @_;
     my $asm = shift @_;
@@ -291,6 +292,44 @@ sub getNumberOfFragsInStore {
     die "No frags in the store?\n" if ($numFrags == 0);
     return($numFrags);
 }
+
+
+sub backupFragStore ($) {
+    my $backupName = shift @_;
+
+    return if (getGlobal("doBackupFragStore") == 0);
+
+    if (-e "$wrk/$asm.frgStore/db.frg.$backupName") {
+
+        print STDERR "Found a backup for $backupName!  Restoring!\n";
+
+        unlink "$wrk/$asm.frgStore/db.frg";
+        if (runCommand("cp -p $wrk/$asm.frgStore/db.frg.$backupName $wrk/$asm.frgStore/db.frg")) {
+            unlink "$wrk/$asm.frgStore/db.frg";
+            die "Failed to restore frgStore from backup.\n";
+        }
+    }
+    if (! -e "$wrk/$asm.frgStore/db.frg.$backupName") {
+
+        print STDERR "Backing up the frgStore to $backupName.\n";
+
+        if (runCommand("cp -p $wrk/$asm.frgStore/db.frg $wrk/$asm.frgStore/db.frg.$backupName")) {
+            unlink "$wrk/$asm.frgStore/db.frg.$backupName";
+            die "Failed to backup frgStore.\n";
+        }
+    }
+}
+
+
+
+sub stopAfter ($) {
+    my $stopAfter = shift @_;
+    if (getGlobal('stopAfter') eq $stopAfter) {
+        print STDERR "Stop requested after '$stopAfter'.\n";
+        exit(0);
+    }
+}
+
 
 
 #  Create an empty file.  Much faster than system("touch ...").

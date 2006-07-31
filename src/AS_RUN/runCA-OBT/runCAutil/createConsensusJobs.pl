@@ -4,7 +4,7 @@ use strict;
 #    Partition the contigs
 #    Repartition the frag store
 
-sub createConsensusJobs ($) {
+sub createPostScaffolderConsensusJobs ($) {
     my $cgwDir   = shift @_;
     my $pstats   = getGlobal("processStats");
 
@@ -19,8 +19,6 @@ sub createConsensusJobs ($) {
 
     my $partitionSize = int($numFrags / getGlobal("cnsPartitions"));
     $partitionSize = getGlobal("cnsMinFrags") if ($partitionSize < getGlobal("cnsMinFrags"));
-
-    system("mkdir $wrk/8-consensus") if (! -d "$wrk/8-consensus");
 
     my $lastckpt = findLastCheckpoint($cgwDir);
     die "Didn't find any checkpoints in '$cgwDir'\n" if (!defined($lastckpt));
@@ -143,6 +141,44 @@ sub createConsensusJobs ($) {
 
         touch("$wrk/8-consensus/jobsCreated.success");
     }
+}
+
+
+sub postScaffolderConsensus ($) {
+    my $cgwDir   = shift @_;
+
+    system("mkdir $wrk/8-consensus") if (! -d "$wrk/8-consensus");
+
+    goto alldone if (-e "$wrk/8-consensus/consensus.success");
+
+    createPostScaffolderConsensusJobs($cgwDir) if (! -e "$wrk/8-consensus/jobsCreated.success");
+
+    #
+    #  Check that consensus finished properly
+    #
+    my $failedJobs = 0;
+
+    open(CGWIN, "ls $cgwDir/$asm.cgw_contigs.* |") or die;
+    while (<CGWIN>) {
+        chomp;
+
+        if (m/cgw_contigs.(\d+)/) {
+            if (! -e "$wrk/8-consensus/$asm.cns_contigs.$1.success") {
+                print STDERR "$wrk/8-consensus/$asm.cns_contigs.$1 failed.\n";
+                $failedJobs++;
+            }
+        } else {
+            print STDERR "WARNING: didn't match $_ for cgw_contigs filename!\n";
+        }
+    }
+    close(CGWIN);
+
+    die "$failedJobs consensusAfterScaffolder jobs failed.  Good luck.\n" if ($failedJobs);
+
+    touch("$wrk/8-consensus/consensus.success");
+
+  alldone:
+    stopAfter("consensusAfterScaffolder");
 }
 
 1;

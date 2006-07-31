@@ -3,13 +3,11 @@ use strict;
 sub unitigger (@) {
     my @cgbFiles = @_;
 
-    if (scalar(@cgbFiles) > 0) {
-        return(@cgbFiles);
-    }
+    goto alldone if (scalar(@cgbFiles) > 0);
 
     if ($global{'useBogUnitig'}) {
         bogUnitigger();
-        return;
+        goto alldone;
     }
 
     if (! -e "$wrk/4-unitigger/unitigger.success") {
@@ -86,6 +84,8 @@ sub unitigger (@) {
     close(F);
     chomp @cgbFiles;
 
+  alldone:
+    stopAfter("unitigger");
     return(@cgbFiles);
 }
 

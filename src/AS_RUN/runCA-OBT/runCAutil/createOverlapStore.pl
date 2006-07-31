@@ -1,13 +1,9 @@
 use strict;
 
-#  Create the overlap store
-#
-#  This could be split into smaller batches, use option -A instead of -cf
-
 sub createOverlapStore {
     my $ovlStoreMemory    = getGlobal("ovlStoreMemory");
 
-    return if (-d "$wrk/$asm.ovlStore");
+    goto alldone if (-d "$wrk/$asm.ovlStore");
 
     if (! -e "$wrk/1-overlapper/all-overlaps.ovllist") {
         if (runCommand("find $wrk/1-overlapper/ -name \\*ovl -print > $wrk/1-overlapper/all-overlaps.ovllist")) {
@@ -15,6 +11,8 @@ sub createOverlapStore {
             die "Failed to generate a list of all the overlap files.\n";
         }
     }
+
+    #  This could be split into smaller batches, use option -A instead of -cf
 
     my $cmd;
     $cmd  = "$bin/grow-olap-store ";
@@ -28,6 +26,9 @@ sub createOverlapStore {
         rename "$wrk/$asm.ovlStore", "$wrk/$asm.ovlStore.FAILED";
         die "Failed to grow the overlap store.\n";
     }
+
+  alldone:
+    stopAfter("overlapper");
 }
 
 1;
