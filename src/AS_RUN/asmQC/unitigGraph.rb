@@ -1,8 +1,11 @@
 #!/usr/bin/env ruby
 
-#require 'rgl/adjacency'
-#require 'rgl/dot'
-require 'graph/graphviz_dot'
+require 'rgl/adjacency'
+require 'rgl/traversal'
+require 'rgl/implicit'
+require 'rgl/mutable'
+require 'rgl/rdot'
+#require 'graph/graphviz_dot'
 
 class Link
     attr_accessor :from, :to, :info
@@ -55,6 +58,7 @@ class File
     end
 end
 
+$edgeInfo = {}
 $firstLast = {}
 $fragsUnitig = {}
 def readUnitigsFromIUMFile(iumFile)
@@ -146,7 +150,7 @@ def readUnitigsFromAsmFile(asmFile)
             raise "Bad acc: #{uid}" if uid == nil || iid == nil
             line = asmFile.readTo('len:')
             len = line[4,line.length]
-            next unless len.to_i > 1000
+#            next unless len.to_i > 1000
             uidToIID[ uid ] = iid
 
         elsif line[0,4] == '{ULK'
@@ -155,22 +159,66 @@ def readUnitigsFromAsmFile(asmFile)
             ut1 = uidToIID[ ut1 ]
             ut2 = uidToIID[ ut2 ]
             next unless ut1 != nil && ut2 != nil
+            line = asmFile.readline
+            ori = line[4]
+            o1= o2 = ''
+            case ori
+            when 78 then o1,o2 = "3'","5'"
+            when 65 then o1,o2 = "5'","3'"
+            when 79 then o1,o2 = "5'","5'"
+            when 73 then o1,o2 = "3'","3'"
+            else raise "Invalid ori: #{ori}, #{line}"
+            end
+            line = asmFile.readTo('mea:')
+            mean = line[4,line.length].to_i
+            line = asmFile.readTo('num:')
+            num = line[4,line.length].to_i
+            next if num < 2 || mean < 1
             if ulk.has_key?( ut1 )
                 if ulk[ut1].has_key?(ut2)
                     ulk[ut1][ut2] += 1
                 else
                     ulk[ut1][ut2] = 1
-                    link = Link.new(ut1, ut2, "#{ut1} #{ut2}")
-                    links.push( link )
+#                    link = Link.new(ut1, ut2, "#{ut1} #{ut2}")
+                    $edgeInfo["#{ut1} #{ut2}"] = "#{o1} #{mean} #{o2}"
+                    links.push( [ut1,ut2] )
                 end
             else
                 ulk[ut1] = { ut2 => 1 }
-                link = Link.new(ut1, ut2, "#{ut1} #{ut2}")
-                links.push( link )
+#                link = Link.new(ut1, ut2, "#{ut1} #{ut2}")
+                $edgeInfo["#{ut1} #{ut2}"] = "#{o1} #{mean} #{o2}"
+                links.push( [ut1,ut2] )
             end
         end
     end
     return links,ulk
+end
+
+def graphrStuff()
+    dgp = DotGraphPrinter.new(links)
+    dgp.node_shaper = proc {|n| 'circle'}
+#dgp.link_labeler = proc { |info| ["\"#{info[0,2]}\"","\"#{info[3,info.length]}\""] }
+    dgp.link_labeler = proc { |info|
+        u1,u2 = info.split
+        cnt = ulk[u1][u2]
+        color = 'black'
+        if 15 < cnt
+            color = 'yellow'
+        elsif 11 < cnt
+            color = 'orange'
+        elsif 7 < cnt
+            color = 'red'
+        elsif 4 < cnt
+            color = 'green'
+        elsif 2 < cnt
+            color = 'blue'
+        end
+        ["\"#{ulk[u1][u2]}\"","\"#{color}\""]
+    }
+#puts dgp.to_dot_specification
+    dgp.write_to_file("utggraph.png","png")
+    dgp.orientation = "landscape"      # Dot problem with PS orientation
+    dgp.write_to_file("utggraph.ps")          # Generate postscript file
 end
 
 iumFilePath      = ARGV[0]
@@ -186,7 +234,7 @@ unitigs = {}
 #puts "Best edge for 15824 is #{bestEdges['15824']}, 13920 is #{bestEdges['13920']}"
 #puts "Best edge for 27 is #{bestEdges['27']}, 36838 is #{bestEdges['36838']}"
 #puts "Best edge for 12124 is #{bestEdges['12124']}, 36480 is #{bestEdges['36480']}"
-##graph = RGL::DirectedAdjacencyGraph.new()
+graph = RGL::AdjacencyGraph.new()
 links = []
 unitigs.each_pair do |acc,utg|
     firstEdge = bestEdges[ utg.firstFrag ]
@@ -241,31 +289,77 @@ unitigs.each_pair do |acc,utg|
         links.push(link)
     end
 end
-links,ulk = readUnitigsFromAsmFile(asmFile)
+def findAdjacentAtDepth(graph, startNode, maxDepth)
+    links = []
+    used = {}
+    nodes = [startNode]
+    adj = []
+    maxDepth.times {
+        nodes.each { |node|
+            if used.has_key?( node )
+                next
+            else
+                used[ node  ] = 1
+            end
+            adj = graph.adjacent_vertices( node )
+            adj.each { |adjNode| links.push( [node, adjNode] ) }
+        }
+        nodes = adj
+    }
+#    graph.each_edge { |u,v| puts "#{v} #{v.info}" if used.has_key?(v) }
+    links
+end
+def graphToRDot(graph)
+    nodes = {}
+    graph.each_edge { |u,v| 
+        key = "#{u} #{v}"
+        yek = "#{v} #{u}"
+        key,u,v = yek,v,u if $edgeInfo.has_key?( yek )
+        if $edgeInfo.has_key?( key )
 
-dgp = DotGraphPrinter.new(links)
-dgp.node_shaper = proc {|n| 'circle'}
-#dgp.link_labeler = proc { |info| ["\"#{info[0,2]}\"","\"#{info[3,info.length]}\""] }
-dgp.link_labeler = proc { |info|
-    u1,u2 = info.split
-    cnt = ulk[u1][u2]
-    color = 'black'
-    if 15 < cnt
-        color = 'yellow'
-    elsif 11 < cnt
-        color = 'orange'
-    elsif 7 < cnt
-        color = 'red'
-    elsif 4 < cnt
-        color = 'green'
-    elsif 2 < cnt
-        color = 'blue'
+            nodes[u] = DOT::DOTNode.new({'name' => u}) unless nodes.has_key?(u)
+
+            edge = DOT::DOTDirectedEdge.new( {"from" => u, "to" => v,
+                        "label" => "#{$edgeInfo[key]}",
+                        "fontsize" => 9}
+            )
+            nodes[ u ] << edge
+        end
+    }
+    DOT::DOTDigraph.new({'name' => 'UnitigGraph','nodes' => nodes.values})
+end
+class DOT::DOTSubgraph
+    def write_rdot_to_graphic_file (fmt='png', dotfile="graph")
+        src = dotfile + ".dot"
+        dot = dotfile + "." + fmt
+
+        File.open(src, 'w') do |f|
+            f << self.to_s << "\n"
+        end
+
+        system( "dot -T#{fmt} #{src} -o #{dot}" )
+        dot
     end
-    ["\"#{ulk[u1][u2]}\"","\"#{color}\""]
-}
-#puts dgp.to_dot_specification
-dgp.write_to_file("utggraph.png","png")
-dgp.orientation = "landscape"      # Dot problem with PS orientation
-dgp.write_to_file("utggraph.ps")          # Generate postscript file
+end
 
-#graph.write_to_graphic_file
+links,ulk = readUnitigsFromAsmFile(asmFile)
+graph.add_edges(*links)
+#visitor = RGL::DFSVisitor.new(graph)
+#visitor.attach_distance_map
+node = '235'
+#node = '1097326128195'
+#node = '0'
+#graph.write_to_graphic_file('ps','allutg')
+#graph.each_vertex {|v| puts "#{v}"}
+#puts graph.adjacent_vertices( node ) 
+#graph.depth_first_visit( node, visitor) {}
+#fgraph = graph.vertices_filtered_by {|v| visitor.distance_to_root(v) < 4}
+#fgraph = findAdjacentAtDepth(graph, node, 2)
+links = findAdjacentAtDepth(graph, node, 2)
+#fgraph.each_edge { |u,v| puts "#{u}-#{v}" }
+fgraph = RGL::AdjacencyGraph.new()
+fgraph.add_edges(*links)
+#fgraph.write_to_graphic_file('ps',"unitigOrig#{node}")
+dotGraph = graphToRDot( fgraph )
+puts dotGraph
+dotGraph.write_rdot_to_graphic_file('ps',"unitig#{node}")
