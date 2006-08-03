@@ -140,6 +140,7 @@ def readBestEdgeFile( bestEdgeFile )
     end
     return bestEdge
 end
+$iidToLen = {}
 def readUnitigsFromAsmFile(asmFile)
     uidToIID = {}
     links = []
@@ -149,9 +150,10 @@ def readUnitigsFromAsmFile(asmFile)
             uid,iid = asmFile.readline.scan(/\d+/)
             raise "Bad acc: #{uid}" if uid == nil || iid == nil
             line = asmFile.readTo('len:')
-            len = line[4,line.length]
+            len = line[4,line.length].chomp
 #            next unless len.to_i > 1000
             uidToIID[ uid ] = iid
+            $iidToLen[ iid ] = len
 
         elsif line[0,4] == '{ULK'
             u,ut1 = asmFile.readline.scan(/\d+/)
@@ -161,32 +163,33 @@ def readUnitigsFromAsmFile(asmFile)
             next unless ut1 != nil && ut2 != nil
             line = asmFile.readline
             ori = line[4]
-            o1= o2 = ''
+            o1= o2 = color =''
             case ori
-            when 78 then o1,o2 = "3'","5'"
-            when 65 then o1,o2 = "5'","3'"
-            when 79 then o1,o2 = "5'","5'"
-            when 73 then o1,o2 = "3'","3'"
+            when 78 then o1,o2,color = "3'","5'",'blue'
+            when 65 then o1,o2,color = "5'","3'",'green'
+            when 79 then o1,o2,color = "5'","5'",'yellow'
+            when 73 then o1,o2,color = "3'","3'",'red'
             else raise "Invalid ori: #{ori}, #{line}"
             end
             line = asmFile.readTo('mea:')
             mean = line[4,line.length].to_i
             line = asmFile.readTo('num:')
             num = line[4,line.length].to_i
-            next if num < 2 || mean < 1
+#            next if num < 2 || mean < 1
+            next if num < 2 
             if ulk.has_key?( ut1 )
                 if ulk[ut1].has_key?(ut2)
                     ulk[ut1][ut2] += 1
                 else
                     ulk[ut1][ut2] = 1
 #                    link = Link.new(ut1, ut2, "#{ut1} #{ut2}")
-                    $edgeInfo["#{ut1} #{ut2}"] = "#{o1} #{mean} #{o2}"
+                    $edgeInfo["#{ut1} #{ut2}"] = "#{color},#{o1}  #{mean}  #{o2}"
                     links.push( [ut1,ut2] )
                 end
             else
                 ulk[ut1] = { ut2 => 1 }
 #                link = Link.new(ut1, ut2, "#{ut1} #{ut2}")
-                $edgeInfo["#{ut1} #{ut2}"] = "#{o1} #{mean} #{o2}"
+                $edgeInfo["#{ut1} #{ut2}"] = "#{color},#{o1}  #{mean}  #{o2}"
                 links.push( [ut1,ut2] )
             end
         end
@@ -294,19 +297,23 @@ def findAdjacentAtDepth(graph, startNode, maxDepth)
     used = {}
     nodes = [startNode]
     adj = []
-    maxDepth.times {
+    (maxDepth+1).times {
         nodes.each { |node|
             if used.has_key?( node )
                 next
             else
-                used[ node  ] = 1
+                used[ node  ] = true
             end
-            adj = graph.adjacent_vertices( node )
-            adj.each { |adjNode| links.push( [node, adjNode] ) }
+            adj.concat( graph.adjacent_vertices( node ) )
         }
-        nodes = adj
+        nodes = Array.new(adj)
+        adj.clear
     }
-#    graph.each_edge { |u,v| puts "#{v} #{v.info}" if used.has_key?(v) }
+    graph.each_edge { |u,v|
+        if used.has_key?( u ) && used.has_key?( v )
+                links.push( [u, v] )
+        end
+    }
     links
 end
 def graphToRDot(graph)
@@ -316,11 +323,16 @@ def graphToRDot(graph)
         yek = "#{v} #{u}"
         key,u,v = yek,v,u if $edgeInfo.has_key?( yek )
         if $edgeInfo.has_key?( key )
-
-            nodes[u] = DOT::DOTNode.new({'name' => u}) unless nodes.has_key?(u)
+            [u,v].each { |l| lab = "\"#{l} :#{$iidToLen[l]}\""
+                unless nodes.has_key?(l)
+                    nodes[l]=DOT::DOTNode.new({'name' => l,'label' => lab})
+                end
+            }
+            color,label = $edgeInfo[key].split(',')
 
             edge = DOT::DOTDirectedEdge.new( {"from" => u, "to" => v,
-                        "label" => "#{$edgeInfo[key]}",
+                        "label" => label,
+                        "color" => color,
                         "fontsize" => 9}
             )
             nodes[ u ] << edge
