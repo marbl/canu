@@ -18,7 +18,7 @@
 #
 ###########################################################################
 #
-# $Id: apply_assembler.pl,v 1.4 2005-12-16 22:12:38 catmandew Exp $
+# $Id: apply_assembler.pl,v 1.5 2006-08-03 22:22:50 catmandew Exp $
 #
 
 use strict;
@@ -42,7 +42,7 @@ my $user = getlogin;
 my $CONFIG  = "$RUN_CA_DIR/run_CA.config.$PLATFORM.$VERSION";  
 
 my $WORKDIR = "$VERSION-$PLATFORM";
-my $ASM_CMD = "$RUN_CA_DIR/run_CA.pl tmp.frg -dir $WORKDIR -C $CONFIG -local -noedit -nojoin -noupload -clean 0";
+my $ASM_CMD = "$RUN_CA_DIR/run_CA.pl tmp.frg -dir $WORKDIR -C $CONFIG -local -noedit -nojoin -noupload -clean 1";
 
 # Read names of all subdirectories.
 my @subdirs;
