@@ -1,0 +1,117 @@
+Celera Assembler Test Bench.
+Created by Mike Schatz, 2004.
+This document by Jason Miller, Jan 2005.
+Modified by Ian Dew, Oct 2005.
+
+in wgs-assembler/src/AS_RUN/testing (or wgs-assembler/PLATFORM/bin),
+there are several useful scripts for running & comparing assemblies.
+
+######################################################################
+# testVersionOnPlatform.sh - the main script to run test assemblies
+######################################################################
+The testVersionOnPlatform.sh script is the master script. It iterates
+through a list of input data sets and runs the local copy of
+apply_assembler.pl on each for a given version of the CA assembler on
+a given platform.
+
+Usage: testVersionOnPlatform.sh  version  platform
+
+version & platform are whatever you want to specify. They are used in
+naming output directories and files.  The directory in which the
+script is run must have the copy of run_CA.pl you want to use AND the
+run_CA.config.platform.version config file. The reason for those two
+is that this is for testing, and it's assumed you may want to control
+those things.
+
+Before launching a test, set the path to your assembly executables
+(production of development) by setting the 'root' value in the file
+run_CA.config.platform.version.  For production runs, the file should
+have this line: root = /usr/local/packages/CA3
+
+Note that the apply_assembler.pl script runs run_CA.pl with -clean 0,
+which leaves lots of big files & directories in each assembly
+directory. Some of these are needed for subsequent evaluation
+programs. Please clean them up as soon as they are no longer needed.
+
+######################################################################
+# assemblyCompare - wrapper that runs qcCompare, runTampa,
+#   tampaCompare, and mummerCompare to compare assemblies
+######################################################################
+Runs the qcCompare, runTampa (as needed), tampaCompare and mummerCompare
+Currently mummerCompare is disabled as it isn't finished.
+
+assemblyCompare  [options]  -d refDir  -a refAssembly
+                            -d queryDir  -a queryAssembly
+
+  -d refDir        The 'reference' assembly directory
+
+  -a refAssembly   The 'reference' assembly name
+
+  -d queryDir        The 'query' assembly directory
+
+  -a queryAssembly   The 'query' assembly name
+
+  Reference directory and assembly name must both be listed before
+  the query reference directory and assembly name.
+
+  options:
+    -h               Print help.
+
+    -v <level>       Set verbosity to level.
+
+    -c               Do not compare qc files
+
+    -t               Do not compare TAMPA results
+
+    -m               Do not run mummer and compare results
+
+Version 1.01 (Build 1.1.2.2)
+                                                                                               
+
+
+######################################################################
+# qcCompare - to compare qc files
+######################################################################
+To compare multiple assemblies' qc files, run qcCompare.
+
+Usage: qcCompare  -f refQCfile -f queryQCfile ...
+
+Any number of query QC files can be specified, and they'll all be
+compared against the reference QC file. Every statistic in the
+reference QC file will be compared against corresponding statistics in
+the query QC files. Only differences will be reported.
+
+
+######################################################################
+# runTampa - to run TAMPA on an assembly
+######################################################################
+TBD
+
+######################################################################
+# tampaCompare - to compare TAMPA results files
+######################################################################
+TBD
+
+######################################################################
+# mummerCompare - to run mummer on a pair of assemblies and
+#   generate summary sequence/assembly comparison data
+######################################################################
+TBD
+
+
+######################################################################
+# Test genomes
+# 
+######################################################################
+
+The list is arbitrary, but versions 3.07 and 3.10 were tested on the
+following genomes.
+
+aspergillusFlavus      (AFNG)
+brugiaMalayi           (BRG)
+defect                 (unitig-cons - a problematic set of frags)
+small/AAA[A-O]         (a series of very small genomes/data sets)
+trichonomasVaginalis   (TVG)
+trypanosomaBrucei      (TBG)
+wolbachiaPipientis     (DMG)
+yersinaPestis          (E1979001 and F1991016)
