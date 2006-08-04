@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.70 2006-06-12 20:01:26 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.71 2006-08-04 21:04:15 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -297,103 +297,103 @@ void SequenceComplement(char *sequence, char *quality) {
 // Manipulation of the BaseCount struct which reflects a char profile
 //*********************************************************************************
 
-int IncBaseCount(BaseCount *b,char c) {
-   int i= BaseToInt(c);
-   if (c == 'N' || c == 'n' ) i=5;
-   b->depth++;
-   if( i<0 || i>5 ){
-     CleanExit("IncBaseCount i out of range",__LINE__,1);
-   }
-   return b->count[i]++;
+int IncBaseCount(BaseCount *b, char c) {
+    int i= BaseToInt(c);
+    if (c == 'N' || c == 'n' ) i=5;
+    b->depth++;
+    if( i<0 || i>5 ){
+        CleanExit("IncBaseCount i out of range",__LINE__,1);
+    }
+    return b->count[i]++;
 }
 
-int DecBaseCount(BaseCount *b,char c) {
-   int i= BaseToInt(c);
-   if (c == 'N' || c == 'n' ) i=5;
-   b->depth--;
-   if( i<0 || i>5 ){
-     CleanExit("DecBaseCount i out of range",__LINE__,1);
-   }
-   return b->count[i]--;
+int DecBaseCount(BaseCount *b, char c) {
+    int i= BaseToInt(c);
+    if (c == 'N' || c == 'n' ) i=5;
+    b->depth--;
+    if( i<0 || i>5 ){
+        CleanExit("DecBaseCount i out of range",__LINE__,1);
+    }
+    return b->count[i]--;
 }
 
-int GetBaseCount(BaseCount *b,char c) {
-   int i= BaseToInt(c);
-   if (c == 'N' || c == 'n' ) i=5;
-   return b->count[i];
+int GetBaseCount(BaseCount *b, char c) {
+    int i= BaseToInt(c);
+    if (c == 'N' || c == 'n' ) i=5;
+    return b->count[i];
 }
 
-int GetColumnBaseCount(Column *b,char c) {
-   return GetBaseCount(&b->base_count,c);
+int GetColumnBaseCount(Column *b, char c) {
+    return GetBaseCount(&b->base_count,c);
 }
 
 int GetDepth(Column *c) {
-   return c->base_count.depth;
+    return c->base_count.depth;
 }
 
 void ResetBaseCount(BaseCount *b) {
-  memset(b,'\0',sizeof(BaseCount)); 
+    memset(b,'\0',sizeof(BaseCount)); 
 }
 
 void ShowBaseCount(BaseCount *b) {
-   int i;
-   fprintf(stderr,"%d total\n",b->depth);
-   for (i=0;i<CNS_NALPHABET;i++) {
-      fprintf(stderr,"%c\t",ALPHABET[i]);
-   }
-   fprintf(stderr,"\n");
-   for (i=0;i<CNS_NALPHABET;i++) {
-      fprintf(stderr,"%d\t",b->count[i]);
-   }
-   fprintf(stderr,"\n");
+    int i;
+    fprintf(stderr,"%d total\n",b->depth);
+    for (i=0;i<CNS_NALPHABET;i++) {
+        fprintf(stderr,"%c\t",ALPHABET[i]);
+    }
+    fprintf(stderr,"\n");
+    for (i=0;i<CNS_NALPHABET;i++) {
+        fprintf(stderr,"%d\t",b->count[i]);
+    }
+    fprintf(stderr,"\n");
 }
 
 void ShowBaseCountPlain(FILE *out,BaseCount *b) {
-   int i;
-   fprintf(out,"%d\t",b->depth);
-   for (i=0;i<CNS_NALPHABET;i++) {
-      fprintf(out,"%d\t",b->count[i]);
-   }
+    int i;
+    fprintf(out,"%d\t",b->depth);
+    for (i=0;i<CNS_NALPHABET;i++) {
+        fprintf(out,"%d\t",b->count[i]);
+    }
 }
 
 char GetConfMM(BaseCount *b,int mask) {  // mask out the consensus base
-   int i;
-   for (i=0;i<CNS_NALPHABET-1;i++) {
-      if ( i==mask ) {
-         continue; 
-      }
-      if ( b->count[i] >= 2 ) {
-         return toupper(ALPHABET[i]);
-      }
-   }
-   return  toupper(ALPHABET[mask]); // return the consensus base if there's no confirmed mismatch
+    int i;
+    for (i=0;i<CNS_NALPHABET-1;i++) {
+        if ( i==mask ) {
+            continue; 
+        }
+        if ( b->count[i] >= 2 ) {
+            return toupper(ALPHABET[i]);
+        }
+    }
+    return  toupper(ALPHABET[mask]); // return the consensus base if there's no confirmed mismatch
 }
 
 char GetMaxBaseCount(BaseCount *b,int start_index) {  // start at 1 to disallow gap
-   int max_index = start_index,i;
-   int tied = 0,tie_breaker,max_tie=0;
-   for (i=start_index;i<CNS_NALPHABET-1;i++) {
-      if (b->count[i] > b->count[max_index] ) {
-         max_index = i;
-         tied = 0;
-      } else if ( b->count[i] == b->count[max_index]) {
-         tied++;
-      }
-   }
-   if ( tied > 1 ) {
-      for (i=1;i<CNS_NALPHABET-1;i++) { /* i starts at 1 to prevent ties */
-                                        /* from being broken with '-'    */
-        if ( b->count[i] == b->count[max_index] ) {
-           /* Break unresolved ties with random numbers: */
-           tie_breaker = random();
-           if (tie_breaker > max_tie) {
-              max_tie = tie_breaker;
-              max_index = i;
-           }
+    int max_index = start_index,i;
+    int tied = 0,tie_breaker,max_tie=0;
+    for (i=start_index;i<CNS_NALPHABET-1;i++) {
+        if (b->count[i] > b->count[max_index] ) {
+            max_index = i;
+            tied = 0;
+        } else if ( b->count[i] == b->count[max_index]) {
+            tied++;
         }
-      }
-   }
-   return toupper(ALPHABET[max_index]);
+    }
+    if ( tied > 1 ) {
+        for (i=1;i<CNS_NALPHABET-1;i++) { /* i starts at 1 to prevent ties */
+                                        /* from being broken with '-'    */
+            if ( b->count[i] == b->count[max_index] ) {
+                /* Break unresolved ties with random numbers: */
+                tie_breaker = random();
+                if (tie_breaker > max_tie) {
+                    max_tie = tie_breaker;
+                    max_index = i;
+                }
+            }
+        }
+    }
+    return toupper(ALPHABET[max_index]);
 }
 
   
@@ -402,26 +402,26 @@ char GetMaxBaseCount(BaseCount *b,int start_index) {  // start at 1 to disallow 
 //*********************************************************************************
 
 MANode * CreateMANode(int32 iid){
-  MANode ma;
-  ma.lid = GetNumMANodes(manodeStore);
-  ma.iid = iid;
-  ma.first = -1;
-  ma.last = -1;
-  ma.columns = CreateVA_int32(GetAllocatedColumns(columnStore));
-  AppendVA_MANode(manodeStore,&ma);
-  return GetMANode(manodeStore,ma.lid);
+    MANode ma;
+    ma.lid = GetNumMANodes(manodeStore);
+    ma.iid = iid;
+    ma.first = -1;
+    ma.last = -1;
+    ma.columns = CreateVA_int32(GetAllocatedColumns(columnStore));
+    AppendVA_MANode(manodeStore,&ma);
+    return GetMANode(manodeStore,ma.lid);
 }
 
 void DeleteMANode(int32 iid){
-  MANode *ma=GetMANode(manodeStore,iid);
-  // Columns are in the columnStore, which is automatically refreshed
-  DeleteVA_int32(ma->columns);
+    MANode *ma=GetMANode(manodeStore,iid);
+    // Columns are in the columnStore, which is automatically refreshed
+    DeleteVA_int32(ma->columns);
 }
 
 int32 GetMANodeLength(int32 mid) {
-  MANode *ma = GetMANode(manodeStore,mid);
-  if ((ma) == NULL) return -1;
-  return GetNumint32s(ma->columns);
+    MANode *ma = GetMANode(manodeStore,mid);
+    if ((ma) == NULL) return -1;
+    return GetNumint32s(ma->columns);
 }
 
 //*********************************************************************************
@@ -4581,138 +4581,138 @@ Abacus *CreateAbacus(int32 mid, int32 from, int32 end)
      }
    }
 
-   abacus = (Abacus *) safe_malloc(sizeof(Abacus));
-   abacus->start_column = from;
-   abacus->end_column = last->lid;
-   abacus->rows = rows;
-   abacus->window_width = orig_columns;
-   abacus->columns = 3*orig_columns;
-   abacus->shift = UNSHIFTED;
-   abacus->beads = (char *) safe_calloc(rows*(abacus->columns+2),sizeof(char)); 
-   abacus->calls = (char *) safe_calloc((abacus->columns),sizeof(char)); 
+    abacus = (Abacus *) safe_malloc(sizeof(Abacus));
+    abacus->start_column = from;
+    abacus->end_column = last->lid;
+    abacus->rows = rows;
+    abacus->window_width = orig_columns;
+    abacus->columns = 3*orig_columns;
+    abacus->shift = UNSHIFTED;
+    abacus->beads = (char *) safe_calloc(rows*(abacus->columns+2),sizeof(char)); 
+    abacus->calls = (char *) safe_calloc((abacus->columns),sizeof(char)); 
        // two extra gap columns, plus "null" borders
 
-   // now, fill the center third of abacus with chars from the columns
+    // now, fill the center third of abacus with chars from the columns
 
-   for (i=0;i<rows*(abacus->columns+2);i++) {
-     abacus->beads[i] = 'n'; // initialize to "null" code
-   } 
-   columns = 0;
-   while( column->lid != end  && column->lid != -1) {
-     if(!CreateColumnBeadIterator(column->lid,&bi)){
-       CleanExit("CreateAbacus CreateColumnBeadIterator failed",__LINE__,1);
-     }
-     set_column = columns+orig_columns;
-     while ( (bid = NextColumnBead(&bi)) != -1 ) {
-       bead = GetBead(beadStore,bid);
-       SetAbacus(abacus,
-                 *Getint32(abacus_indices,bead->frag_index)-1,
-                 set_column,
-                 *Getchar(sequenceStore,bead->soffset));
-     }
-     columns++;
-     column = GetColumn(columnStore,column->next);
-   }
+    for (i=0;i<rows*(abacus->columns+2);i++) {
+        abacus->beads[i] = 'n'; // initialize to "null" code
+    } 
+    columns = 0;
+    while( column->lid != end  && column->lid != -1) {
+        if(!CreateColumnBeadIterator(column->lid,&bi)){
+            CleanExit("CreateAbacus CreateColumnBeadIterator failed",__LINE__,1);
+        }
+        set_column = columns+orig_columns;
+        while ( (bid = NextColumnBead(&bi)) != -1 ) {
+            bead = GetBead(beadStore,bid);
+            SetAbacus(abacus, *Getint32(abacus_indices,bead->frag_index)-1,
+                 set_column, *Getchar(sequenceStore,bead->soffset));
+        }
+        columns++;
+        column = GetColumn(columnStore,column->next);
+    }
 
-   for (i=0;i<rows;i++) {
-     set_column = orig_columns;
-     for (j=0;j<set_column;j++) {
-         SetAbacus(abacus,i,j,'-');
-     }
-     set_column = 2*orig_columns-1;
-     for (j=set_column+1;j<abacus->columns;j++) {
-         SetAbacus(abacus,i,j,'-');
-     }
-   }
-   ResetCalls(abacus);
-   return abacus;
+    for (i=0;i<rows;i++) {
+        set_column = orig_columns;
+        for (j=0;j<set_column;j++) {
+            SetAbacus(abacus,i,j,'-');
+        }
+        set_column = 2*orig_columns-1;
+        for (j=set_column+1;j<abacus->columns;j++) {
+            SetAbacus(abacus,i,j,'-');
+        }
+    }
+    ResetCalls(abacus);
+    return abacus;
 }
 
 void DeleteAbacus(Abacus *abacus) {
-   free(abacus->beads);
-   free(abacus->calls);
-   free(abacus);
+    free(abacus->beads);
+    free(abacus->calls);
+    free(abacus);
 }
 
 Abacus *CloneAbacus(Abacus *abacus) {
-   Abacus *clone;
-   int32 rows=abacus->rows;
-   int32 columns=abacus->columns;
-   clone = (Abacus *) safe_malloc(sizeof(Abacus));
-   clone->beads = (char *) safe_calloc(rows*(columns+2),sizeof(char)); // 
-   clone->calls = (char *) safe_calloc((columns),sizeof(char)); 
-   clone->rows = rows;
-   clone->window_width = abacus->window_width;
-   clone->columns = columns;
-   clone->start_column = abacus->start_column;
-   clone->end_column = abacus->end_column;
-   clone->shift = abacus->shift;
-   memcpy(clone->beads,abacus->beads,rows*(columns+2)*sizeof(char));
-   memcpy(clone->calls,abacus->calls,columns*sizeof(char));
-   return clone;
+    Abacus *clone;
+    int32 rows=abacus->rows;
+    int32 columns=abacus->columns;
+    clone = (Abacus *) safe_malloc(sizeof(Abacus));
+    clone->beads = (char *) safe_calloc(rows*(columns+2),sizeof(char)); // 
+    clone->calls = (char *) safe_calloc((columns),sizeof(char)); 
+    clone->rows = rows;
+    clone->window_width = abacus->window_width;
+    clone->columns = columns;
+    clone->start_column = abacus->start_column;
+    clone->end_column = abacus->end_column;
+    clone->shift = abacus->shift;
+    memcpy(clone->beads,abacus->beads,rows*(columns+2)*sizeof(char));
+    memcpy(clone->calls,abacus->calls,columns*sizeof(char));
+    return clone;
 }
 
 
 void ShowAbacus(Abacus *abacus) {
-   int32 i;
-   char form[10];
-   sprintf(form,"%%%d.%ds\n",abacus->columns,abacus->columns);
-#if 0
-   fprintf(stderr, "form = %s\n", form);
+    int32 i;
+    char form[10];
+    sprintf(form,"%%%d.%ds\n",abacus->columns,abacus->columns);
+#if  0
+    fprintf(stderr, "form = %s\n", form);
 #endif
-   fprintf(stderr,"\nstart column: %d\n",abacus->start_column);
-   for (i=0;i<abacus->rows;i++) {
-      fprintf(stderr,form,GetAbacus(abacus,i,0));
-   }
-   fprintf(stderr,"\n");
-   fprintf(stderr,form,abacus->calls);
+    fprintf(stderr,"\nstart column: %d\n",abacus->start_column);
+    for (i=0;i<abacus->rows;i++) {
+        fprintf(stderr,form,GetAbacus(abacus,i,0));
+    }
+    fprintf(stderr,"\n");
+    fprintf(stderr,form,abacus->calls);
 }  
 
 int32 ScoreAbacus(Abacus *abacus, int *cols)  
 { 
-   // cols is the number of "good" (non-null) columns found
-   // GD: This function counts the total number of bases which
-   //   - are different from column's "consensus" call and
-   //   - are not 'n'
-   //
-   BaseCount *counts;
-   int score=0;
-   char b;
-   int i,j;
-   counts = (BaseCount *) safe_calloc(abacus->columns,sizeof(BaseCount));
-   memset(counts,'\0',abacus->columns*sizeof(BaseCount));
-  *cols=0;
+    // cols is the number of "good" (non-null) columns found
+    // GD: This function counts the total number of bases which
+    //   - are different from column's "consensus" call and
+    //   - are not 'n'
+    //
+    BaseCount *counts;
+    int score=0;
+    char b;
+    int i,j;
+    counts = (BaseCount *) safe_calloc(abacus->columns,sizeof(BaseCount));
+    memset(counts,'\0',abacus->columns*sizeof(BaseCount));
+   *cols=0;
 
-   for (i=0;i<abacus->rows;i++) {
-     for (j=0;j<abacus->columns;j++) {
-        b = *GetAbacus(abacus,i,j);
-        if ( b == '-' ) {
-          if ( j>0 && j < abacus->columns-1) {
-            if ( *GetAbacus(abacus,i,j-1) == 'n'  ||
-                  *GetAbacus(abacus,i,j+1) == 'n' ) {
-              b = 'n';
+    for (i=0;i<abacus->rows;i++) {
+        for (j=0;j<abacus->columns;j++) {
+            b = *GetAbacus(abacus,i,j);
+            if ( b == '-' ) {
+                if ( j>0 && j < abacus->columns-1) {
+                    if ((*GetAbacus(abacus,i,j-1) == 'n')  ||
+                        (*GetAbacus(abacus,i,j+1) == 'n') ) 
+                    {
+                        b = 'n';
+                    }
+                }
             }
-          }
+            IncBaseCount(&counts[j],b);
         }
-        IncBaseCount(&counts[j],b);
-     }
-   }
-   // now, for each column, generate the majority call
-   for (j=0;j<abacus->columns;j++) {
-     if ( GetBaseCount(&counts[j],'-') + GetBaseCount(&counts[j],'n') == counts[j].depth ) {
-        // null (all-gap) column. Flag with an 'n' basecall
-        abacus->calls[j] = 'n';
-     } else {
-       *cols=*cols+1;
-        abacus->calls[j] = GetMaxBaseCount(&counts[j],0);
-        // and then tally edit score
-        score += counts[j].depth - counts[j].count[BaseToInt(abacus->calls[j])] -
+    }
+    // now, for each column, generate the majority call
+    for (j=0;j<abacus->columns;j++) {
+        if ( GetBaseCount(&counts[j],'-') + GetBaseCount(&counts[j],'n') == counts[j].depth ) {
+            // null (all-gap) column. Flag with an 'n' basecall
+            abacus->calls[j] = 'n';
+        } 
+        else {
+           *cols=*cols+1;
+            abacus->calls[j] = GetMaxBaseCount(&counts[j],0);
+            // and then tally edit score
+            score += counts[j].depth - counts[j].count[BaseToInt(abacus->calls[j])] -
                      counts[j].count[CNS_NALPHABET-1]; // don't count 'n's
-     }
-   }
+        }
+    }
 
-   free(counts);
-   return score;       
+    free(counts);
+    return score;       
 }
 
 int32 AffineScoreAbacus(Abacus *abacus)
@@ -4769,24 +4769,25 @@ int32 AffineScoreAbacus(Abacus *abacus)
    return score;
 }
 
-int MergeAbacus(Abacus *abacus)
+int MergeAbacus(Abacus *abacus, int merge_dir)
 {
-// sweep through abacus from left to right
-// testing for Level 1 (neighbor) merge compatibility of each column
-// with right neighbor
-// and merge if compatible
-//
-//  GD: this code will merge practically any
-    int i,j,mergeok, next_column_good;
-    char b,m;
-    int last_non_null=abacus->columns-1;
+    // sweep through abacus from left to right
+    // testing for Level 1 (neighbor) merge compatibility of each column
+    // with right neighbor and merge if compatible
+    //
+    //  GD: this code will merge practically any
+    int i, j, mergeok, next_column_good;
+    char curr, next;
+    int last_non_null = abacus->columns-1;
     int columns_merged = 0;
+    
+    // determine the rightmost column not totally composed of gaps
     for (j=abacus->columns-1;j>0;j--)
     {
         int null_column = 1;
         for (i=0; i<abacus->rows; i++) {
-            b = *GetAbacus(abacus,i,j);
-            if (b != '-') null_column = 0;
+            curr = *GetAbacus(abacus,i,j);
+            if (curr != '-') null_column = 0;
         }
         if (!null_column)
            break;
@@ -4801,21 +4802,20 @@ int MergeAbacus(Abacus *abacus)
         mergeok = 1;
         next_column_good = -1;
         for (i=0;i<abacus->rows;i++) {
-            b = *GetAbacus(abacus,i,j);
-            m = *GetAbacus(abacus,i,j+1);
+            curr = *GetAbacus(abacus,i,j);
+            next = *GetAbacus(abacus,i,j+1);
             // at least in one column there should be a gap
             // or, alternatively, both should be 'n'
-            if (b != '-' && m != '-') {
-                if (b != 'n' || m != 'n') {
+            if (curr != '-' && next != '-') {
+                if (curr != 'n' || next != 'n') {
                     mergeok = 0;
                     break;
                 }
             }
 
             // next column should contain at least one good base - a, c, g or t
-            if (m != '-' && m != 'n') {
+            if (next != '-' && next != 'n') {
                 next_column_good = i;
-
             }
         }
       //fprintf(stderr, "mergeok= %d next_column_good= %d\n", mergeok, next_column_good);
@@ -4823,13 +4823,17 @@ int MergeAbacus(Abacus *abacus)
         {
             columns_merged++;
             for (i=0;i<abacus->rows;i++) {
-                b = *GetAbacus(abacus,i,j);
-                m = *GetAbacus(abacus,i,j+1);
-                if (b == 'n' && m == 'n')
+                curr = *GetAbacus(abacus,i,j  );
+                next = *GetAbacus(abacus,i,j+1);
+                if (curr == 'n' && next == 'n')
                     continue;
-                if ( b != '-' && b != 'n' ) {
-                    SetAbacus(abacus,i,j,m);
-                    SetAbacus(abacus,i,j+1,b);
+                if (merge_dir >= 0 && curr != '-' && curr != 'n' ) {
+                        SetAbacus(abacus, i, j  , next);
+                        SetAbacus(abacus, i, j+1, curr);
+                }
+                if (merge_dir < 0 && next != '-' && next != 'n' ) {
+                        SetAbacus(abacus, i, j  , next);
+                        SetAbacus(abacus, i, j+1, curr);
                 }
             }
         }
@@ -4843,51 +4847,75 @@ int MergeAbacus(Abacus *abacus)
 
 int32 LeftShift(Abacus *abacus, int *lcols) 
 {  
-   // lcols is the number of non-null columns in result
-   int32 i,j,ccol,pcol;
-   char c,call;
-   ResetCalls(abacus);
-   for (j=abacus->window_width;j<2*abacus->window_width;j++) {
-     for (i=0;i<abacus->rows;i++) {
-        c = *GetAbacus(abacus,i,j);
-        ccol = j;
-        if ( c != '-' ) {
-           //look to the left for a suitable placement
-           // will be safe on left since abacus has 'n' border
-           while ( *GetAbacus(abacus,i,ccol-1) == '-' ) {
-              ccol--;
-           }
-           // now, from ccol back up to j, look for column with matching call
-           for ( pcol = ccol;pcol<j;pcol++) {
-              call = abacus->calls[pcol]; 
-              if ( call != 'n' && call != c && c != 'n') {
-                 // GD: consensus in a column == '-' ? 
-                 continue;
-              } 
-              if ( call == 'n') {
-                 // GD: found the leftmost column with non-gap consensus =>
-                 //     reset it consensus "dynamically" to the current base
-                 //     Potential problem: this code is biased  in the sense that
-                 //     the result will generally depend on the order in which 
-                 //     reads i(or rows) are processed
-                 abacus->calls[pcol] = c;
-              } 
-              if (abacus->calls[pcol] == c || c == 'n') {
-                 // swap bases in columns pcol and j of row i
-                 SetAbacus(abacus,i,j,'-');
-                 SetAbacus(abacus,i,pcol,c);
-                 break;
-              }
-           }
-           if ( *GetAbacus(abacus,i,j) != '-' ) {
-             abacus->calls[j] = c;
-           }
+    // lcols is the number of non-null columns in result
+    int32 i,j,ccol,pcol;
+    char c,call;
+    ResetCalls(abacus);
+    for (j=abacus->window_width;j<2*abacus->window_width;j++) {
+        for (i=0;i<abacus->rows;i++) {
+            c = *GetAbacus(abacus,i,j);
+            ccol = j;
+            if ( c != '-' ) 
+            {
+                //look to the left for a suitable placement
+                // will be safe on left since abacus has 'n' border
+                while (*GetAbacus(abacus,i,ccol-1) == '-') {
+                    ccol--;
+                }
+#if 0
+                fprintf(stderr, "j= %d i= %d ccol= %d\n", j, i, ccol);
+#endif
+                // from ccol back up to j, look for column with matching call
+                for (pcol = ccol;pcol<j;pcol++) {
+                    call = abacus->calls[pcol]; 
+                    if ( call != 'n' && call != c && c != 'n') {
+                        // GD: consensus in a column == '-' ? 
+                        continue;
+                    } 
+                    if ( call == 'n') {
+                        // GD: 
+                        // Found the leftmost column with non-gap consensus.
+                        // Now, reset its consensus "dynamically" to the 
+                        // current base
+                        // Potential problem: the result will generally 
+                        // depend on the order in which rows 
+                        // are processed
+                        abacus->calls[pcol] = c;
+#if 0
+                        fprintf(stderr, "j= %d i= %d calls[%d]= %c\n", j, i, pcol, c);
+#endif
+                    } 
+                    if (abacus->calls[pcol] == c || c == 'n') {
+                        // swap bases in columns pcol and j of row i
+                        SetAbacus(abacus,i,j,'-');
+                        SetAbacus(abacus,i,pcol,c);
+                        break;
+                    }
+                }
+                if (*GetAbacus(abacus,i,j) != '-') {
+                    abacus->calls[j] = c;
+#if 0
+                    fprintf(stderr, "j= %d i= %d calls[%d]= %c\n", j, i, j, c);
+#endif
+                }
+            }
         }
-     }
-  }
-  MergeAbacus(abacus);
-  abacus->shift = LEFT_SHIFT;
-  return ScoreAbacus(abacus,lcols);
+    }
+#if 0
+    fprintf(stderr, "Test calls=\n");
+    for (j=0;j<abacus->columns;j++)
+        fprintf(stderr, "%c", abacus->calls[j]);
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Abacus after LeftShift before Merge:\n");
+    ShowAbacus(abacus); 
+#endif
+    MergeAbacus(abacus, -1);
+#if 0
+    fprintf(stderr, "Abacus after Merge:\n");
+    ShowAbacus(abacus);
+#endif
+    abacus->shift = LEFT_SHIFT;
+    return ScoreAbacus(abacus,lcols);
 }
 
 int32 RightShift(Abacus *abacus, int *rcols) 
@@ -4926,7 +4954,7 @@ int32 RightShift(Abacus *abacus, int *rcols)
         }
      }
   }
-  MergeAbacus(abacus);
+  MergeAbacus(abacus, 1);
   abacus->shift = RIGHT_SHIFT;
   return ScoreAbacus(abacus,rcols);
 }
@@ -5073,7 +5101,7 @@ int32 MixedShift(Abacus *abacus, int *mcols, AlPair ap, int lpos, int rpos,
          }
       }
    }
-   MergeAbacus(abacus);
+   MergeAbacus(abacus, 1);
    abacus->shift = MIXED_SHIFT;
    return ScoreAbacus(abacus,mcols);
 }
@@ -5436,9 +5464,9 @@ PopulateDistMatrixForAbacus(char **bases, int len, int *max_element, AlPair *ap,
 void ShowCalls(Abacus *abacus)
 {
     int j;
-    fprintf(stderr, "Calls=\n");
+//  fprintf(stderr, "Calls=\n");
     for (j=0;j<abacus->columns;j++) 
-       fprintf(stderr, "%c", abacus->calls[j]);
+        fprintf(stderr, "%c", abacus->calls[j]);
     fprintf(stderr, "\n");
 }
 
@@ -5978,10 +6006,9 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
     AlPair  ap;
 
     SetDefault(&ap);
-    left_abacus = CreateAbacus(ma->lid,start_column->lid,stab_bgn);
-    orig_abacus = CloneAbacus(left_abacus);
+    orig_abacus = CreateAbacus(ma->lid,start_column->lid,stab_bgn);
     //ShowAbacus(orig_abacus);
-    MergeAbacus(orig_abacus);
+    MergeAbacus(orig_abacus, 1);
     orig_score = ScoreAbacus(orig_abacus,&orig_columns);
 #if 0
     fprintf(stderr, "OrigCalls=\n");
@@ -5990,7 +6017,7 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
     ShowAbacus(orig_abacus);
 #endif
     //ShowAbacus(orig_abacus);
-    right_abacus = CloneAbacus(left_abacus);
+    left_abacus = CloneAbacus(orig_abacus);
     left_score = LeftShift(left_abacus,&left_columns);
 #if 0
     fprintf(stderr, "LeftShiftCalls=\n");
@@ -5998,6 +6025,7 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
     fprintf(stderr, "Abacus=\n");
     ShowAbacus(left_abacus);
 #endif
+    right_abacus = CloneAbacus(orig_abacus);
     right_score = RightShift(right_abacus,&right_columns);
 #if 0
     fprintf(stderr, "RightShiftCalls=\n");
@@ -6021,7 +6049,8 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
 
 #if 0
     fprintf(stderr, "In RefineWindow: beg= %lu end= %d\n", start_column->lid, stab_bgn);
-     fprintf(stderr, "    w_width left= %d orig= %d right= %d\n", left_abacus->window_width, orig_abacus->window_width,
+    fprintf(stderr, "    abacus->columns= %d, abacus->rows= %d\n", orig_abacus->columns, orig_abacus->rows);
+    fprintf(stderr, "    w_width left= %d orig= %d right= %d\n", left_abacus->window_width, orig_abacus->window_width,
                                                                      right_abacus->window_width);
     fprintf(stderr, "       score left= %d orig= %d right= %d\n", left_score, orig_score, right_score);
     fprintf(stderr, "   gap_score left= %d orig= %d right= %d\n", left_gap_score, orig_gap_score, right_gap_score);
