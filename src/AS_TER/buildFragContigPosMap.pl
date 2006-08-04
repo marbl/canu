@@ -18,11 +18,18 @@ if (!defined($prefix)) {
     die "usage: $0 prefix < prefix.asm\n";
 }
 
-open(FRGCTG, "> $prefix.frgctg");
 open(CTGLEN, "> $prefix.ctglen");
-open(CTGSCF, "> $prefix.ctgscf");
 open(SCFLEN, "> $prefix.scflen");
+
+open(FRGCTG, "> $prefix.frgctg");
+open(UTGCTG, "> $prefix.utgctg");
+open(VARCTG, "> $prefix.varctg");
+
 open(FRGSCF, "> $prefix.frgscf");
+open(UTGSCF, "> $prefix.utgscf");
+open(CTGSCF, "> $prefix.ctgscf");
+open(VARSCF, "> $prefix.varscf");
+
 open(FRGSURR, "> $prefix.frgsurr");
 
 
@@ -78,11 +85,10 @@ while (!eof(STDIN)) {
         } else {
             die "Failed to find acc in $acc\n";
         }
-        #  Read and ignore MPS records
 
         my $tag = <STDIN>;
         while ($tag =~ m/\{MPS/) {
-            if ( $sta eq "sta:S\n" ) {
+            if ($sta =~ m/^sta:S/) {
                 my $typ = <STDIN>;  chomp $typ;
                 my $mid = <STDIN>;  chomp $mid;
                 my $src = readMultiLineDot();
@@ -91,10 +97,11 @@ while (!eof(STDIN)) {
                 my $del = <STDIN>;  chomp $del;
                 my $jnk = <STDIN>;  chomp $jnk;  #  closing bracket
 
-#  If there are del's read them too -- we could read in $dln integers, but we could
-#  also just skip the rest of the message!  Some del's are multiple lines!
-#
-                    chomp $jnk;
+                #  If there are del's read them too -- we could read
+                #  in $dln integers, but we could also just skip the
+                #  rest of the message!  Some del's are multiple
+                #  lines!
+                #
                 if ($jnk ne "}") {
                     skipRecord();
                 }
@@ -112,6 +119,7 @@ while (!eof(STDIN)) {
                     die "Incorrect end tag $tag in MPS\n";
                 }
             } else {
+                #  Read and ignore MPS records
                 skipRecord();
                 $tag = <STDIN>;  chomp $tag;
             }
@@ -158,7 +166,24 @@ while (!eof(STDIN)) {
 
         my $tag = <STDIN>;
         while ($tag =~ m/\{VAR/) {
-            skipRecord();
+            my $pos = <STDIN>;  chomp $pos;
+            my $nrd = <STDIN>;  chomp $nrd;
+            my $nba = <STDIN>;  chomp $nba;
+            my $nal = <STDIN>;  chomp $nal;
+            my $rat = <STDIN>;  chomp $rat;
+            my $win = <STDIN>;  chomp $win;
+            my $len = <STDIN>;  chomp $len;
+            my $var = readMultiLineDot();
+            my $jnk = <STDIN>;  chomp $jnk;  #  closing bracket
+
+            if ($pos =~ m/pos:(\d+),(\d+)$/) {
+                my $b = $ctgCoords[$1];
+                my $e = $ctgCoords[$2];
+                print VARCTG "$var $acc $b $e $nrd $nba $nal $rat $win $len\n";
+            } else {
+                die "Failed to find VAR pos in $pos\n";
+            }
+
             $tag = <STDIN>;  chomp $tag;
         }
 
@@ -173,8 +198,9 @@ while (!eof(STDIN)) {
             my $del = <STDIN>;  chomp $del;
             my $jnk = <STDIN>;  chomp $jnk;  #  closing bracket
 
-            #  If there are del's read them too -- we could read in $dln integers, but we could
-            #  also just skip the rest of the message!  Some del's are multiple lines!
+            #  If there are del's read them too -- we could read in
+            #  $dln integers, but we could also just skip the rest of
+            #  the message!  Some del's are multiple lines!
             #
             chomp $jnk;
             if ($jnk ne "}") {
@@ -205,7 +231,7 @@ while (!eof(STDIN)) {
 
                 print FRGCTG "$mid $acc $b $e $rev\n";
             } else {
-                die "Failed to find pos in $pos\n";
+                die "Failed to find MPS pos in $pos\n";
             }
 
             $tag = <STDIN>;  chomp $tag;
@@ -226,9 +252,10 @@ while (!eof(STDIN)) {
             my $del = <STDIN>;  chomp $del;
             my $jnk = <STDIN>;  chomp $jnk;  #  closing bracket
 
-#  If there are del's read them too -- we could read in $dln integers, but we could
-#  also just skip the rest of the message!  Some del's are multiple lines!
-#
+            #  If there are del's read them too -- we could read in
+            #  $dln integers, but we could also just skip the rest of
+            #  the message!  Some del's are multiple lines!
+            # 
             if ($jnk ne "}") {
                 skipRecord();
             }
@@ -239,17 +266,33 @@ while (!eof(STDIN)) {
                 die "Failed to find lid in $lid\n";
             }
 
+            if (exists $surrFrags{ $lid }) {
+                foreach my $frag (keys %{$surrFrags{$lid}}) {
+                    print FRGSURR "$frag $lid $acc\n";
+                }
+            }
+
+            #  See similar block above
+            #
+            if ($pos =~ m/pos:(\d+),(\d+)$/) {
+                my $b = $ctgCoords[$1];
+                my $e = $ctgCoords[$2];
+
+                my $rev = 0;
+                if ($1 > $2){
+                    ($b, $e) = ($e, $b);
+                    $rev = 1;
+                }
+
+                print UTGCTG "$lid $acc $b $e $rev\n";
+            } else {
+                die "Failed to find UPS pos in $pos\n";
+            }
+
             $tag = <STDIN>;  chomp $tag;
 
             if (($tag ne "{UPS") && ($tag ne "}")) {
                 die "Incorrect end tag $tag in MPS\n";
-            }
-            if (exists $surrFrags{ $lid }) {
-                #$ctgWithSurr{ $acc }{ $lid } = 1;
-                # Could build to scafs myself, but join FRGSURR CTGSCF will do 
-                foreach my $frag (keys %{$surrFrags{$lid}}) {
-                    print FRGSURR "$frag $lid $acc\n";
-                }
             }
         }
 
@@ -380,8 +423,6 @@ while (!eof(STDIN)) {
                 print CTGSCF "$ctgI $acc $ctgB $ctgE $rev\n";
             }
 
-
-
             $tag = <STDIN>;  chomp $tag;
         }
 
@@ -405,13 +446,16 @@ while (!eof(STDIN)) {
 }
 
 
-close(FRGSURR);
-close(FRGCTG);
 close(CTGLEN);
-close(CTGSCF);
 close(SCFLEN);
+close(FRGCTG);
+close(UTGCTG);
+close(VARCTG);
+close(CTGSCF);
+close(FRGSURR);
 
 undef %surrFrags;
+
 #
 #  frag onto scaffold mapping
 #
@@ -430,8 +474,9 @@ while(<CTGSCF>){
     $ctgScfRv{$w[0]}  = $w[4];
 }
 close(CTGSCF);
+
 # could do stuff to get surrogate frags by scaffold, but join works to
-#    join -1 3 -2 1 -o '1.1 1.2 1.3 2.2' asm.frgsurr asm.ctgscf
+#
 system "join -1 3 -2 1 -o '1.1 1.2 1.3 2.2' $prefix.frgsurr $prefix.ctgscf > $prefix.surrscf";
 
 
@@ -441,12 +486,13 @@ while(<FRGCTG>){
 
     if(defined($ctgScfID{$w[1]})){
         my $frgScfRv = 1;
+        my $frgScfLo;
+        my $frgScfHi;
+
         if ($w[4] == $ctgScfRv{$w[1]}) { # orientations match
             $frgScfRv = 0;
         }
 
-        my $frgScfLo;
-        my $frgScfHi;
         if ($ctgScfRv{$w[1]} == 0) { # ctg fwd in scf
             $frgScfLo = $ctgScfLo{$w[1]} + $w[2];
             $frgScfHi = $ctgScfLo{$w[1]} + $w[3];
@@ -462,3 +508,58 @@ while(<FRGCTG>){
 }
 close(FRGCTG);
 close(FRGSCF);
+
+
+open(UTGCTG, "< $prefix.utgctg");
+while(<UTGCTG>){
+    my @w =split;
+
+    if(defined($ctgScfID{$w[1]})){
+        my $utgScfRv = 1;
+        my $utgScfLo;
+        my $utgScfHi;
+
+        if ($w[4] == $ctgScfRv{$w[1]}) { # orientations match
+            $utgScfRv = 0;
+        }
+
+        if ($ctgScfRv{$w[1]} == 0) { # ctg fwd in scf
+            $utgScfLo = $ctgScfLo{$w[1]} + $w[2];
+            $utgScfHi = $ctgScfLo{$w[1]} + $w[3];
+        } else {
+            $utgScfLo = $ctgScfHi{$w[1]} - $w[3];
+            $utgScfHi = $ctgScfHi{$w[1]} - $w[2];
+        }
+
+        print UTGSCF "$w[0] $ctgScfID{$w[1]} $utgScfLo $utgScfHi $utgScfRv\n";
+    } else {
+        print UTGSCF "$w[0] $w[1] $w[2] $w[3] $w[4] CTG\n";
+    }
+}
+close(UTGCTG);
+close(UTGSCF);
+
+
+open(VARCTG, "< $prefix.varctg");
+while(<VARCTG>){
+    my @w =split;
+
+    if(defined($ctgScfID{$w[1]})){
+        my $varScfLo;
+        my $varScfHi;
+
+        if ($ctgScfRv{$w[1]} == 0) { # ctg fwd in scf
+            $varScfLo = $ctgScfLo{$w[1]} + $w[2];
+            $varScfHi = $ctgScfLo{$w[1]} + $w[3];
+        } else {
+            $varScfLo = $ctgScfHi{$w[1]} - $w[3];
+            $varScfHi = $ctgScfHi{$w[1]} - $w[2];
+        }
+
+        print VARSCF "$w[0] $ctgScfID{$w[1]} $varScfLo $varScfHi $w[4] $w[5] $w[6] $w[7] $w[8] $w[9]\n";
+    } else {
+        print VARSCF "$w[0] $w[1] $w[2] $w[3] $w[4] $w[5] $w[6] $w[7] $w[8] $w[9] CTG\n";
+    }
+}
+close(VARCTG);
+close(VARSCF);
