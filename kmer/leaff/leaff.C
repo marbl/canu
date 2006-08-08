@@ -1156,21 +1156,17 @@ processArray(int argc, char **argv) {
           }
           break;
         case 'i':
-          switch (argv[arg][2]) {
-            case 0:
-              failIfNoSource();
-              failIfNotRandomAccess();
-              fasta->printATADescription(stdout, argv[++arg]);
-              break;
-            case 'i':
-              failIfNoSource();
-              failIfNotRandomAccess();
-              fasta->printTextDescription(stdout);
-              break;
-            default:
-              fprintf(stderr, "WARNING: unknown option '%s'\n", argv[arg]);
-              break;
-          }
+          failIfNoSource();
+          failIfNotRandomAccess();
+
+          //  Check that the next arg is something reasonable -- not NULL and not another option.
+          //
+          ++arg;
+          if ((argv[arg] == 0L) || (argv[arg][0] == '-'))
+            fprintf(stderr, "ERROR: next arg to -i should be ATA label, I got '%s'\n",
+                    (argv[arg] == 0L) ? "(nullpointer)" : argv[arg]), exit(1);
+
+          fasta->printDescription(stdout, argv[arg]);
           break;
         case 'd':
           failIfNoSource();

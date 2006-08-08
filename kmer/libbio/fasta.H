@@ -68,8 +68,7 @@ public:
   u32bit       getNumberOfSequences(void);
   char const  *getSourceName(void);
 
-  void         printATADescription(FILE *out, char *name);
-  void         printTextDescription(FILE *out);
+  void         printDescription(FILE *out, char *name);
 
   bool         isRandomAccess(void)  { return(_isRandomAccess); };
   bool         isSqueezed(void)      { return(_theGlobalDesc._squeezedSequences); };

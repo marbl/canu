@@ -198,7 +198,8 @@ FastAWrapper::createIndex(u32bit indextype) {
 
     while ((!B.eof()) && (B.get() != '\r') && (B.get() != '\n')) {
 
-      if (((theGlobalDesc._indexType & FASTA_INDEX_MASK) == FASTA_INDEX_PLUS_IDS) && (whitespaceSymbol[B.get()]))
+      if (((theGlobalDesc._indexType & FASTA_INDEX_MASK) == FASTA_INDEX_PLUS_IDS) &&
+          (whitespaceSymbol[B.get()]))
         saveDefLine = false;
 
       if (saveDefLine) {

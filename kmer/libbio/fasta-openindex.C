@@ -154,7 +154,8 @@ FastAWrapper::openIndex(u32bit indextypetoload) {
   //  can just return.  Downgrading an index is not allowed -- if you open
   //  a FASTA_INDEX_PLUS_DEFLINES, you're stuck with it.
   //
-  if ((_isRandomAccess) && (indextypetoload & FASTA_INDEX_MASK <= _theGlobalDesc._indexType & FASTA_INDEX_MASK))
+  if ((_isRandomAccess) &&
+      (indextypetoload & FASTA_INDEX_MASK <= _theGlobalDesc._indexType & FASTA_INDEX_MASK))
     return;
 
 
@@ -210,7 +211,7 @@ FastAWrapper::openIndex(u32bit indextypetoload) {
 #endif
 
 
- _theSeqs = new _idxfa_desc [ _theGlobalDesc._numberOfSequences ];
+  _theSeqs = new _idxfa_desc [ _theGlobalDesc._numberOfSequences ];
 
   read(indexfile, _theSeqs, sizeof(_idxfa_desc) * _theGlobalDesc._numberOfSequences);
   if (errno) {
@@ -238,7 +239,6 @@ FastAWrapper::openIndex(u32bit indextypetoload) {
   else
     _theGlobalDesc._indexType = indextypetoload;
 
-
   if (((_theGlobalDesc._indexType & FASTA_INDEX_MASK) == FASTA_INDEX_PLUS_IDS) ||
       ((_theGlobalDesc._indexType & FASTA_INDEX_MASK) == FASTA_INDEX_PLUS_DEFLINES)) {
     read(indexfile, &_theNamesLen, sizeof(u32bit));
@@ -248,8 +248,8 @@ FastAWrapper::openIndex(u32bit indextypetoload) {
     }
 
 #if FASTA_VERSIONNUMBER > 4
-  if (swapIndex)
-    _theNamesLen = u32bitSwap(_theNamesLen);
+    if (swapIndex)
+      _theNamesLen = u32bitSwap(_theNamesLen);
 #endif
 
     _theNames = new char [sizeof(char) * _theNamesLen];
@@ -349,143 +349,66 @@ FastAWrapper::optimizeRandomAccess(void) {
 
 
 
+//  seq == unknown sequence
+//  chr == chromosomes
+//  scf == scaffold
+//  ctg == contig
+//
 void
-FastAWrapper::printATADescription(FILE *out, char *name) {
+FastAWrapper::printDescription(FILE *out, char *name) {
 
-    fprintf(out, "! format ata 1.0\n");
-    fprintf(out, "S %s %s FASTA DNA ",
-            name,
-            _filename);
+  fprintf(out, "!format ata 1.0\n");
 
-    for (u32bit i=0; i<256; i++)
-      if (_theGlobalDesc._alphabet[i])
-        fprintf(out, "%c", (char)i);
-    
-    if      (_theGlobalDesc._squeezedSequences) {
-      fprintf(out, " SQUEEZED ");
-    } else if (_theGlobalDesc._fixedWidth) {
-      fprintf(out, " FIXED ");
-    } else {
-      fprintf(out, " VARIABLE ");
-    }
-
-    fprintf(out, u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
-            _theGlobalDesc._seqlineLength,
-            _theGlobalDesc._seqendlLength,
-            _theGlobalDesc._numberOfSequences);
-
-    //
-    //  XXX:  assumes these are chromosomes, which is probably wrong.
-    //
-    //  ch == chromosomes
-    //  s  == scaffold
-    //  c  == contig
-    //
-
-    const char *dumpIndex1 = "G ch %s:%u . 0 1 %s 0 "u32bitFMT" "u64bitFMT" "u32bitFMT" "u32bitFMT" "u64bitFMT" . .\n";
-    const char *dumpIndex2 = "G ch %s:%u . 0 1 %s 0 "u32bitFMT" "u64bitFMT" "u32bitFMT" "u32bitFMT" "u64bitFMT" %s . %s\n";
-
-    char *names = _theNames;
-    char  seqid[16 * 1024];
-
-    for (u32bit iid=0; iid<_theGlobalDesc._numberOfSequences; iid++) {
-      switch (_theGlobalDesc._indexType & FASTA_INDEX_MASK) {
-        case FASTA_INDEX_ONLY:
-          fprintf(out, dumpIndex1,
-                  name,
-                  iid,
-                  name,
-                  _theSeqs[iid]._seqLen,
-                  _theSeqs[iid]._seqStart,
-                  iid,
-                  _theSeqs[iid]._headerLen,
-                  _theSeqs[iid]._headerStart);
-          break;
-        case FASTA_INDEX_PLUS_IDS:
-        case FASTA_INDEX_PLUS_DEFLINES:
-          strcpy(seqid, names+1);
-          for (u32bit x=0; seqid[x]; x++)
-            if (whitespaceSymbol[seqid[x]]) {
-              seqid[x] = 0;
-              break;
-            }
-
-          fprintf(out, dumpIndex2,
-                  name,
-                  iid,
-                  name,
-                  _theSeqs[iid]._seqLen,
-                  _theSeqs[iid]._seqStart,
-                  iid,
-                  _theSeqs[iid]._headerLen,
-                  _theSeqs[iid]._headerStart,
-                  seqid,
-                  names);
-
-          names = moveToNextName(names, iid);
-          break;
-      }
-    }
-
-}
-
-
-
-void
-FastAWrapper::printTextDescription(FILE *out) {
-
-  fprintf(out, "/FastAIndex magic="u64bitHEX" version="u32bitFMT"\n",
-          _theGlobalDesc._magic,
-          _theGlobalDesc._version);
-
-  fprintf(out, "/indexType             = %s\n", indexTypeNames(_theGlobalDesc._indexType));
-
-  switch (_theGlobalDesc._fastaType) {
-    case FASTA_UNDECLARED:
-      fprintf(out, "/fastaType             = undeclared\n");
-      break;
-    default:
-      fprintf(out, "/fastaType             = unknown\n");
-      break;
-  }
-
-  fprintf(out, "/filename              = %s\n",          _filename);
-  fprintf(out, "/numberOfSequences     = "u32bitFMT"\n", _theGlobalDesc._numberOfSequences);
-  fprintf(out, "/fastaFileSize         = "u64bitFMT"\n", _theGlobalDesc._fastaFileSize);
-  fprintf(out, "/fastaModificationTime = "s64bitFMT"\n", _theGlobalDesc._fastaModificationTime);
-  fprintf(out, "/fastaCreationTime     = "s64bitFMT"\n", _theGlobalDesc._fastaCreationTime);
-  fprintf(out, "/seqlineLength         = "u32bitFMT"\n", _theGlobalDesc._seqlineLength);
-  fprintf(out, "/seqendlLength         = "u32bitFMT"\n", _theGlobalDesc._seqendlLength);
-  fprintf(out, "/fixedWidth            = %s\n",          _theGlobalDesc._fixedWidth ? "yes" : "no");
-  fprintf(out, "/squeezedSequences     = %s\n",          _theGlobalDesc._squeezedSequences ? "yes" : "no");
-
-  fprintf(out, "/alphabet              = ");
+  //  Remember the alphabet.
+  //
+  char    alpha[257] = {0};
+  u32bit  alphalen = 0;
   for (u32bit i=0; i<256; i++)
     if (_theGlobalDesc._alphabet[i])
-      fprintf(out, "%c", (char)i);
-  fprintf(out, "\n");
+      alpha[alphalen++] = (char)i;
+  alpha[alphalen] = 0;
+
+
+  //  Print the description of these sequences as comments
+  //
+  fprintf(out, "!filename              = %s\n",          _filename);
+  fprintf(out, "!numberOfSequences     = "u32bitFMT"\n", _theGlobalDesc._numberOfSequences);
+  fprintf(out, "!fastaFileSize         = "u64bitFMT"\n", _theGlobalDesc._fastaFileSize);
+  fprintf(out, "!fastaModificationTime = "s64bitFMT"\n", _theGlobalDesc._fastaModificationTime);
+  fprintf(out, "!fastaCreationTime     = "s64bitFMT"\n", _theGlobalDesc._fastaCreationTime);
+  fprintf(out, "!seqlineLength         = "u32bitFMT"\n", _theGlobalDesc._seqlineLength);
+  fprintf(out, "!seqendlLength         = "u32bitFMT"\n", _theGlobalDesc._seqendlLength);
+  fprintf(out, "!fixedWidth            = %s\n",          _theGlobalDesc._fixedWidth ? "yes" : "no");
+  fprintf(out, "!squeezedSequences     = %s\n",          _theGlobalDesc._squeezedSequences ? "yes" : "no");
+  fprintf(out, "!alphabet              = %s\n",          alpha);
+
+  //  Print the same stuff on a single line
+  //
+  fprintf(out, "S %s %s FASTA DNA %s %s "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
+          name,
+          _filename,
+          alpha,
+          (_theGlobalDesc._squeezedSequences) ? "SQUEEZED" : 
+          (_theGlobalDesc._fixedWidth) ? "FIXED" : "VARIABLE",
+          _theGlobalDesc._seqlineLength,
+          _theGlobalDesc._seqendlLength,
+          _theGlobalDesc._numberOfSequences);
 
   char *names = _theNames;
 
   for (u32bit iid=0; iid<_theGlobalDesc._numberOfSequences; iid++) {
-    switch (_theGlobalDesc._indexType & FASTA_INDEX_MASK) {
-      case FASTA_INDEX_ONLY:
-        fprintf(out, "I "u32bitFMT"\t"u64bitFMT"\t"u32bitFMT"\t"u64bitFMT"\n",
-                _theSeqs[iid]._headerLen,
-                _theSeqs[iid]._headerStart,
-                _theSeqs[iid]._seqLen,
-                _theSeqs[iid]._seqStart);
-        break;
-      case FASTA_INDEX_PLUS_IDS:
-      case FASTA_INDEX_PLUS_DEFLINES:
-        fprintf(out, "I "u32bitFMT"\t"u64bitFMT"\t"u32bitFMT"\t"u64bitFMT"\t%s\n",
-                _theSeqs[iid]._headerLen,
-                _theSeqs[iid]._headerStart,
-                _theSeqs[iid]._seqLen,
-                _theSeqs[iid]._seqStart,
-                names);
-        names = moveToNextName(names, iid);
-        break;
-    }
+    fprintf(out, "G seq %s:%u . 0 1 %s 0 "u32bitFMT" "u64bitFMT" "u32bitFMT" "u32bitFMT" "u64bitFMT" %s\n",
+            name,
+            iid,
+            name,
+            _theSeqs[iid]._seqLen,
+            _theSeqs[iid]._seqStart,
+            iid,
+            _theSeqs[iid]._headerLen,
+            _theSeqs[iid]._headerStart,
+            names ? names : ".");
+
+    if (names)
+      names = moveToNextName(names, iid);
   }
 }

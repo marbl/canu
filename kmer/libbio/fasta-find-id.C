@@ -15,7 +15,7 @@ FastAWrapper::moveToNextName(char *ptr, u32bit iid) {
   //
   //  If we have the whole defline, then we know the length.
   //
-  if (_theGlobalDesc._indexType & FASTA_INDEX_MASK == FASTA_INDEX_PLUS_IDS) {
+  if ((_theGlobalDesc._indexType & FASTA_INDEX_MASK) == FASTA_INDEX_PLUS_IDS) {
     while (*ptr)
       ptr++;
     ptr++;
