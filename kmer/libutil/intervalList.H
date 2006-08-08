@@ -64,6 +64,14 @@ public:
                           u32bit           &intervalsLen,
                           u32bit           &intervalsMax);
 
+  //  Populates this intervalList with the intersection of A and B.
+  //  This intervalList is not cleared prior to adding new intervals.
+  //
+  //  Both A and B call merge().
+  //
+  void        intersect(intervalList &A,
+                        intervalList &B);
+
   intervalNumber      lo(u32bit i) { return(_list[i].lo); };
   intervalNumber      hi(u32bit i) { return(_list[i].hi); };
 
@@ -74,6 +82,9 @@ private:
   u32bit                    _listMax;
   _intervalPair            *_list;
 };
+
+
+
 
 
 #endif  //  INTERVALLIST_H

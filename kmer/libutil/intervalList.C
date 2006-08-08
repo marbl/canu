@@ -262,3 +262,60 @@ intervalList::overlapping(intervalNumber    rangelo,
 
   return(intervalsLen);
 }
+
+
+
+void
+intervalList::intersect(intervalList &A,
+                        intervalList &B) {
+  A.merge();
+  B.merge();
+
+  u32bit  ai = 0;
+  u32bit  bi = 0;
+
+  while ((ai < A.numberOfIntervals()) &&
+         (bi < B.numberOfIntervals())) {
+    u32bit   al = A.lo(ai);
+    u32bit   ah = A.hi(ai);
+    u32bit   bl = B.lo(bi);
+    u32bit   bh = B.hi(bi);
+    u32bit   nl = 0;
+    u32bit   nh = 0;
+
+    //  If they intersect, make a new region
+    //
+    if ((al <= bl) && (bl < ah)) {
+      nl = bl;
+      nh = (ah < bh) ? ah : bh;
+    }
+
+    if ((bl <= al) && (al < bh)) {
+      nl = al;
+      nh = (ah < bh) ? ah : bh;
+    }
+
+    if (nh - nl > 0)
+      add(nl, nh - nl);
+
+    //  Advance the list with the earlier region.
+    //
+    if        (al < bl) {
+      //  A begins before B
+      ai++;
+    } else if (al > bl) {
+      //  B begins before A
+      bi++;
+    } else if (ah < bh) {
+      //  A and B begin at the same point, A ends first
+      ai++;
+    } else if (ah > bh) {
+      //  A and B begin at the same point, B ends first
+      bi++;
+    } else {
+      //  Exactly the same!
+      ai++;
+      bi++;
+    }
+  }
+}
