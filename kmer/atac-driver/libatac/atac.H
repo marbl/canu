@@ -85,7 +85,6 @@ public:
   char    parentuid[16];
   u32bit  featureiid;
   char    type[4];
-  u32bit  axisiid;
   u32bit  iid, pos, len;
 
   void  print(FILE *f, char *label) {
