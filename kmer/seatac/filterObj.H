@@ -145,7 +145,7 @@ filterObj::addHit(char   orientation,
         o = new char [theOutputMax];
       } catch (std::bad_alloc) {
         fprintf(stderr, "hitMatrix::filter()-- caught std::bad_alloc in %s at line %d\n", __FILE__, __LINE__);
-        fprintf(stderr, "hitMatrix::filter()-- tried to extend output string from %lu to %lu bytes.\n", theOutputPos, theOutputMax);
+        fprintf(stderr, "hitMatrix::filter()-- tried to extend output string from "u32bitFMT" to "u32bitFMT" bytes.\n", theOutputPos, theOutputMax);
         exit(1);
       }
       memcpy(o, theOutput, theOutputPos);
