@@ -10,6 +10,7 @@ src  := $/cleanPolishes.C \
         $/fixPolishesIID.C \
         $/comparePolishes.C \
         $/convertToAtac.C \
+        $/convertToExtent.C \
         $/filterPolishes.c \
         $/headPolishes.c \
         $/mappedCoverage.C \
@@ -40,6 +41,7 @@ $/.CXX_EXES := $/cleanPolishes \
                $/fixPolishesIID \
                $/comparePolishes \
                $/convertToAtac \
+               $/convertToExtent \
                $/filterPolishes \
                $/headPolishes \
                $/mappedCoverage \
@@ -78,6 +80,7 @@ $/plotCoverageVsIdentity      : $/plotCoverageVsIdentity.o
 $/parseSNP                    : $/parseSNP.o
 $/comparePolishes             : $/comparePolishes.o $/s4p_overlap.o
 $/convertToAtac               : $/convertToAtac.o
+$/convertToExtent             : $/convertToExtent.o
 $/trimSequencesBasedOnMatches : $/trimSequencesBasedOnMatches.o
 $/uniqPolishes                : $/uniqPolishes.o
 $/summarizePolishes           : $/summarizePolishes.o
