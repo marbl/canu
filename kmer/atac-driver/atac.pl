@@ -54,8 +54,6 @@ my $merylThreads      = 2;
 
 my $merylOnly         = 0;
 
-my $segmentIDtorun    = undef;
-
 #  Check that we have everything we need to run
 #
 my $leaff             = "$BINdir/leaff";
@@ -169,8 +167,6 @@ sub parseArgs {
             $merylOnly = 1;
         } elsif ($arg eq "-merylthreads") {
             $merylThreads = shift @ARGV;
-        } elsif ($arg eq "-segmentid") {
-            $segmentIDtorun = shift @ARGV;
         } elsif ($arg eq "-samespecies") {
             $mersize      = 20; # the mer size
             $merlimit     = 1;  # unique mers only
@@ -493,46 +489,6 @@ sub findHits {
         print S $segments;
         close(S);
 
-        open(S, "> $ATACdir/$matches-$segmentID.build.sh");
-        print S "#!/bin/sh\n";
-        print S "$seatac \\\n";
-        print S "-verbose \\\n";
-        print S "-mersize     $mersize \\\n";
-        print S "-minlength   $minfill \\\n";
-        print S "-maxgap      $maxgap \\\n";
-        print S "-numthreads  $numThreads \\\n";
-        print S "-table       $MERYLdir/$id1.fasta \\\n";
-        print S "-stream      $MERYLdir/$id2.fasta \\\n";
-        print S "-only        $ATACdir/$matches.include \\\n" if (-e "$ATACdir/$matches.include.mcdat");
-        print S "-mask        $ATACdir/$matches.exclude \\\n" if (-e "$ATACdir/$matches.exclude.mcdat");
-        print S "-use         $ATACdir/$matches-segment-$segmentID \\\n";
-        print S "-output      $ATACdir/$matches-segment-$segmentID.matches \\\n";
-        print S "-stats       $ATACdir/$matches-segment-$segmentID.build.stats \\\n";
-        print S "-buildtables $ATACdir/$matches-segment-$segmentID.table \\\n";
-        print S "-filtername  $filtername \\\n" if (defined($filtername));
-        print S "-filteropts  \"-1 $id1 -2 $id2 $filteropts\" \n";
-        close(S);
-
-        open(S, "> $ATACdir/$matches-$segmentID.sh");
-        print S "#!/bin/sh\n";
-        print S "$seatac \\\n";
-        print S "-verbose \\\n";
-        print S "-mersize     $mersize \\\n";
-        print S "-minlength   $minfill \\\n";
-        print S "-maxgap      $maxgap \\\n";
-        print S "-numthreads  $numThreads \\\n";
-        print S "-table       $MERYLdir/$id1.fasta \\\n";
-        print S "-stream      $MERYLdir/$id2.fasta \\\n";
-        print S "-only        $ATACdir/$matches.include \\\n" if (-e "$ATACdir/$matches.include.mcdat");
-        print S "-mask        $ATACdir/$matches.exclude \\\n" if (-e "$ATACdir/$matches.exclude.mcdat");
-        print S "-use         $ATACdir/$matches-segment-$segmentID \\\n";
-        print S "-output      $ATACdir/$matches-segment-$segmentID.matches \\\n";
-        print S "-usetables   $ATACdir/$matches-segment-$segmentID.table \\\n";
-        print S "-stats       $ATACdir/$matches-segment-$segmentID.stats \\\n";
-        print S "-filtername  $filtername \\\n" if (defined($filtername));
-        print S "-filteropts  \"-1 $id1 -2 $id2 $filteropts\" \n";
-        close(S);
-
         push @segmentIDs, $segmentID;
 
         $segmentID++;
@@ -544,44 +500,40 @@ sub findHits {
     #
 
     foreach my $segmentID (@segmentIDs) {
-        next if (defined($segmentIDtorun) && ($segmentID ne $segmentIDtorun));
 
-        if (! -e "$ATACdir/$matches-segment-$segmentID.build.stats") {
-            if (runCommand("sh $ATACdir/$matches-$segmentID.build.sh > $ATACdir/$matches-$segmentID.build.out 2>&1")) {
+        #  For large runs, while developing, we found it very useful
+        #  to build the tables first, save them to disk, then do the
+        #  compute.  This is also mandatory if one wants to segment
+        #  the other assembly to reduce the time each piece runs.
+        #
+        #  However, doing so adds a lot of complexity to this script,
+        #  and isn't terribly useful anymore.
+        #
+
+        my $cmd;
+        $cmd  = "$seatac ";
+        $cmd .= "-verbose ";
+        $cmd .= "-mersize     $mersize ";
+        $cmd .= "-minlength   $minfill ";
+        $cmd .= "-maxgap      $maxgap ";
+        $cmd .= "-numthreads  $numThreads ";
+        $cmd .= "-table       $MERYLdir/$id1.fasta ";
+        $cmd .= "-stream      $MERYLdir/$id2.fasta ";
+        $cmd .= "-only        $ATACdir/$matches.include " if (-e "$ATACdir/$matches.include.mcdat");
+        $cmd .= "-mask        $ATACdir/$matches.exclude " if (-e "$ATACdir/$matches.exclude.mcdat");
+        $cmd .= "-use         $ATACdir/$matches-segment-$segmentID ";
+        $cmd .= "-output      $ATACdir/$matches-segment-$segmentID.matches ";
+        $cmd .= "-filtername  $filtername " if (defined($filtername));
+        $cmd .= "-filteropts  \"-1 $id1 -2 $id2 $filteropts\" ";
+        $cmd .= "> $ATACdir/$matches-$segmentID.out 2>&1";
+
+        if (! -e "$ATACdir/$matches-segment-$segmentID.matches") {
+            if (runCommand($cmd)) {
                 unlink "$ATACdir/$matches-segment-$segmentID.matches.crash";
                 rename "$ATACdir/$matches-segment-$segmentID.matches", "$ATACdir/$matches-segment-$segmentID.matches.crash";
-                unlink "$ATACdir/$matches-segment-$segmentID.build.stats.crash";
-                rename "$ATACdir/$matches-segment-$segmentID.build.stats", "$ATACdir/$matches-segment-$segmentID.build.stats.crash";
-                die "Failed to build tables for $matches-$segmentID\n";
-            }
-        }
-
-        if (! -e "$ATACdir/$matches-segment-$segmentID.stats") {
-
-            #  Prevent me from overwriting a run in progress
-            #
-            if (-e "$ATACdir/$matches-segment-$segmentID.matches") {
-                die "WARNING:  Matches already exist!  Is someone else computing me?!?  Exiting!\n";
-            }
-
-            if (runCommand("sh $ATACdir/$matches-$segmentID.sh > $ATACdir/$matches-$segmentID.out 2>&1")) {
-                unlink "$ATACdir/$matches-segment-$segmentID.matches.crash";
-                rename "$ATACdir/$matches-segment-$segmentID.matches", "$ATACdir/$matches-segment-$segmentID.matches.crash";
-                unlink "$ATACdir/$matches-segment-$segmentID.stats.crash";
-                rename "$ATACdir/$matches-segment-$segmentID.stats", "$ATACdir/$matches-segment-$segmentID.stats.crash";
                 die "Failed to run $matches-$segmentID\n";
             }
         }
-
-        #  Aggressively remove the table.
-        unlink "$ATACdir/$matches-segment-$segmentID.table";
-    }
-
-    #  End early if the segment id to run is defined.
-    #
-    if (defined($segmentIDtorun)) {
-        print STDERR "Terminating execution because a specific segmentID was supplied.\n";
-        exit(0);
     }
 
     return(@segmentIDs);
@@ -599,7 +551,7 @@ sub sortMatches (@) {
     #  Check that each search finished, and build a list of all the match files.
     #
     foreach my $segmentID (@segmentIDs) {
-        if (-e "$ATACdir/$matches-segment-$segmentID.stats") {
+        if (-e "$ATACdir/$matches-segment-$segmentID.matches") {
             $mfiles .= "$ATACdir/$matches-segment-$segmentID.matches ";
         } else {
             die "$ATACdir/$matches-segment-$segmentID.matches failed to complete.\n";
