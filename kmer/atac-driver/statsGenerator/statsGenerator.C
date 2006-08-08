@@ -111,6 +111,9 @@ public:
         maxy = _h[i];
     }
 
+    if ((maxx == 0) || (maxy == 0))
+      return;
+
     char   filename[1024];
     sprintf(filename, "%s.%s.histogram.gnuplot", prefix, label);
     FILE *out = fopen(filename, "w");
@@ -185,20 +188,91 @@ totalLength(atacMatchList &matches, FastACache *A, FastACache *B) {
 
 
 
-void
-totalLength(atacFeatureList &features) {
-  histogram     hi(100, 100000);
-  intervalList  il;
 
-  for (u32bit i=0; i<features.numberOfFeatures(); i++)
-    il.add(features[i]->pos, features[i]->len);
+u64bit
+tandemRepeatACGTLength(intervalList &mma,
+                       u64bit       *offset1,
+                       FastACache   *A) {
 
-  fprintf(stdout, "numberOfItems "u64bitFMT"\n", (u64bit)features.numberOfFeatures());
-  fprintf(stdout, "totalLength   "u64bitFMT" # sum of lengths of all features\n", il.sumOfLengths());
-  il.merge();
-  fprintf(stdout, "coveredLength "u64bitFMT" # sequence covered by a feature, including N\n", il.sumOfLengths());
+  mma.sort();  //  Both should be done already.
+  mma.merge();
+  u64bit length1 = 0;
+  for (u32bit i=0, s=0; i<mma.numberOfIntervals(); i++) {
+    while ((offset1[s + 1]) < mma.lo(i)) 
+      s++;
+    char *S = A->getSequence(s)->sequence();
+    for (u64bit j=mma.lo(i)-offset1[s]; j < mma.hi(i)-offset1[s]; j++)
+      if (validSymbol[S[j]])
+        length1++;
+  }
+
+  return(length1);
 }
 
+
+void
+tandemRepeatStats(atacFeatureList &AF, atacFeatureList &BF,
+                  atacMatchList &matches,
+                  FastACache *A, FastACache *B) {
+  intervalList  ifa, ifb;
+  intervalList  ima, imb;
+  intervalList  mma, mmb;
+
+  //  XXX  Stolen from mappedLengths() below
+  //
+  u64bit  *offset1 = new u64bit [matches.fastaA()->getNumberOfSequences()];
+  u64bit  *offset2 = new u64bit [matches.fastaB()->getNumberOfSequences()];
+  offset1[0] = 1000000;
+  for (u32bit i=1; i<=matches.fastaA()->getNumberOfSequences(); i++)
+    offset1[i] = offset1[i-1] + matches.fastaA()->sequenceLength(i-1) + 1;
+  offset2[0] = 1000000;
+  for (u32bit i=1; i<=matches.fastaB()->getNumberOfSequences(); i++)
+    offset2[i] = offset2[i-1] + matches.fastaB()->sequenceLength(i-1) + 1;
+
+  for (u32bit i=0; i<AF.numberOfFeatures(); i++)
+    ifa.add(offset1[AF[i]->iid] + AF[i]->pos, AF[i]->len);
+  for (u32bit i=0; i<BF.numberOfFeatures(); i++)
+    ifb.add(offset2[BF[i]->iid] + BF[i]->pos, BF[i]->len);
+
+  for (u32bit m=0; m<matches.numberOfMatches(); m++)
+    ima.add(offset1[matches[m]->iid1] + (u64bit)matches[m]->pos1, (u64bit)matches[m]->len1);
+  for (u32bit m=0; m<matches.numberOfMatches(); m++)
+    imb.add(offset2[matches[m]->iid2] + (u64bit)matches[m]->pos2, (u64bit)matches[m]->len2);
+
+
+  fprintf(stdout, "\nTANDEM REPEATS in %s\n", AF.label());
+  fprintf(stdout, "numberOfItems "u64bitFMT"\n", (u64bit)AF.numberOfFeatures());
+  fprintf(stdout, "totalLength   "u64bitFMT" # sum of lengths of all features\n", ifa.sumOfLengths());
+  ifa.merge();
+  fprintf(stdout, "numberOfItems "u64bitFMT" # after merging overlapping regions\n", (u64bit)ifa.numberOfIntervals());
+  fprintf(stdout, "coveredLength "u64bitFMT" # sequence covered by a feature, including N\n", ifa.sumOfLengths());
+  fprintf(stdout, "coveredLength "u64bitFMT" # sequence covered by a feature, ACGT only\n",
+          tandemRepeatACGTLength(ifa, offset1, A));
+  mma.intersect(ifa, ima);
+  fprintf(stdout, "numberOfItems "u64bitFMT" # after merging overlapping regions, only in matches\n", (u64bit)mma.numberOfIntervals());
+  fprintf(stdout, "inMatches     "u64bitFMT" # sequence covered by a feature and in a match, including N\n", mma.sumOfLengths());
+  fprintf(stdout, "inMatches     "u64bitFMT" # sequence covered by a feature and in a match, ACGT only\n",
+          tandemRepeatACGTLength(mma, offset1, A));
+
+
+  fprintf(stdout, "\nTANDEM REPEATS in %s\n", BF.label());
+  fprintf(stdout, "numberOfItems "u64bitFMT"\n", (u64bit)BF.numberOfFeatures());
+  fprintf(stdout, "totalLength   "u64bitFMT" # sum of lengths of all features\n", ifb.sumOfLengths());
+  ifb.merge();
+  fprintf(stdout, "numberOfItems "u64bitFMT" # after merging overlapping regions\n", (u64bit)ifb.numberOfIntervals());
+  fprintf(stdout, "coveredLength "u64bitFMT" # sequence covered by a feature, including N\n", ifb.sumOfLengths());
+  fprintf(stdout, "coveredLength "u64bitFMT" # sequence covered by a feature, ACGT only\n",
+          tandemRepeatACGTLength(ifb, offset2, B));
+  mmb.intersect(ifb, imb);
+  fprintf(stdout, "numberOfItems "u64bitFMT" # after merging overlapping regions, only in matches\n", (u64bit)mmb.numberOfIntervals());
+  fprintf(stdout, "inMatches     "u64bitFMT" # sequence covered by a feature and in a match, including N\n", mmb.sumOfLengths());
+  fprintf(stdout, "inMatches     "u64bitFMT" # sequence covered by a feature and in a match, ACGT only\n",
+          tandemRepeatACGTLength(mmb, offset2, B));
+
+
+  delete [] offset1;
+  delete [] offset2;
+}
 
 
 
@@ -213,13 +287,11 @@ mappedLengths(atacMatchList &matches, char *prefix) {
   //
   u64bit  *offset1 = new u64bit [matches.fastaA()->getNumberOfSequences()];
   u64bit  *offset2 = new u64bit [matches.fastaB()->getNumberOfSequences()];
-
   offset1[0] = 1000000;
-  for (u32bit i=1; i<matches.fastaA()->getNumberOfSequences(); i++)
+  for (u32bit i=1; i<=matches.fastaA()->getNumberOfSequences(); i++)
     offset1[i] = offset1[i-1] + matches.fastaA()->sequenceLength(i-1) + 1;
-
   offset2[0] = 1000000;
-  for (u32bit i=1; i<matches.fastaB()->getNumberOfSequences(); i++)
+  for (u32bit i=1; i<=matches.fastaB()->getNumberOfSequences(); i++)
     offset2[i] = offset2[i-1] + matches.fastaB()->sequenceLength(i-1) + 1;
 
   intervalList  intervalA;
@@ -329,8 +401,8 @@ mappedNs(atacMatchList &matches, FastACache *A, FastACache *B, char *prefix) {
 //  Generate an Nx plot
 void
 NxOfMapped(atacMatchList &matches,
-                  u64bit  genomeSize,
-                  char *prefix) {
+           u64bit  genomeSize,
+           char *prefix) {
 
   u32bit   *n50             = new u32bit [matches.numberOfMatches()];
 
@@ -492,10 +564,10 @@ MappedByChromosome(atacMatchList &matches, FastACache *A, FastACache *B, char *p
 
 void
 statsInACGT(FastASequenceInCore  *S,
-      u32bit                beg,
-      u32bit                len,
-      intervalList         *IL,
-      histogram            *HI) {
+            u32bit                beg,
+            u32bit                len,
+            intervalList         *IL,
+            histogram            *HI) {
   char     *s = S->sequence() + beg;
   u32bit    length = 0;
 
@@ -636,13 +708,14 @@ main(int argc, char **argv) {
   }
 
   if (!atacFile || !prefix || error) {
-    fprintf(stderr, "usage: %s -a <file.atac> -p <outprefix> [-t trfile] [-g {A | B | g}]\n", argv[0]);
+    fprintf(stderr, "usage: %s -a <file.atac> -p <outprefix> [-ta trfile] [-tb trfile] [-g {A | B | g}]\n", argv[0]);
     fprintf(stderr, "  -a          read input from 'file.atac'\n");
     fprintf(stderr, "  -p          write stats to files prefixed with 'outprefix'\n");
     fprintf(stderr, "  -g          use a genome size of g for the Nx computation, defaults to\n");
-    fprintf(stderr, "  -t          read tandem repeats from trfile\n");
     fprintf(stderr, "              the length of the A sequence.  Or use the actual length\n");
     fprintf(stderr, "              of sequence A or B.\n");
+    fprintf(stderr, "  -ta         read tandem repeats for A from trfile\n");
+    fprintf(stderr, "  -tb         read tandem repeats for B from trfile\n");
     exit(1);
   }
 
@@ -660,11 +733,10 @@ main(int argc, char **argv) {
   fprintf(stdout, "\nSEQUENCE\n");
   totalLength(matches, A, B);
 
-  fprintf(stdout, "\nTANDEM REPEATS in %s\n", tr1.label());
-  totalLength(tr1);
+  fprintf(stdout, "\nTANDEM REPEATS\n");
+  tandemRepeatStats(tr1, tr2, matches, A, B);
 
-  fprintf(stdout, "\nTANDEM REPEATS in %s\n", tr2.label());
-  totalLength(tr2);
+  exit(1);
 
   fprintf(stdout, "\nMATCHES IN RUNS\n");
   unmappedInRuns(matches, A, B, prefix);
