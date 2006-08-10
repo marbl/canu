@@ -24,27 +24,47 @@
 #include "atac.H"
 
 //  Reads a set of matches, coalesces those on the same diagonal.
-//  Does not preserve runs or comments or much else in the input
-//  file(s).
+//  Does not preserve runs.
+//
+//  No args, reads stdin, writes stdout.
 
 int
 main(int argc, char *argv[]) {
+  atacMatchList  ML("-", 'm', stdout);
+  atacMatch     *l = 0L;
+  atacMatch     *r = 0L;
 
-  //  No args, reads stdin, writes stdout.
-
-  atacMatchList  ML("-", 'm');
-
-  //  Sort by the ID's; we'll coalesce 
   ML.sortDiagonal();
 
-  for (u32bit i=0; i<ML.numMatches(); i++) {
-    atacMatch *m1 = ML[i];
+  for (u32bit i=1; i<ML.numMatches(); i++) {
+    l = ML[i-1];
+    r = ML[i];
 
-    fprintf(stdout, "M u %s %s B35LC:"u32bitFMT" "u32bitFMT" "u32bitFMT" 1  HUREF2:"u32bitFMT" "u32bitFMT" "u32bitFMT" %d\n",
-            m1->matchuid, m1->parentuid,
-            m1->iid1, m1->pos1, m1->len1,
-            m1->iid2, m1->pos2, m1->len2, m1->fwd2 ? 1 : -1);
+    if ((l->iid1 == r->iid1) &&
+        (l->iid2 == r->iid2) &&
+        (l->fwd1 == r->fwd1) &&
+        (l->fwd2 == r->fwd2) &&
+        (l->pos1 + l->len1 == r->pos1) &&
+        (l->pos2 + l->len2 == r->pos2) &&
+        (strcmp(l->type, r->type) == 0) &&
+        (strcmp(l->parentuid, r->parentuid) == 0)) {
+
+      fprintf(stderr, "MERGE:\n");
+      l->print(stderr, ML.labelA(), ML.labelB());
+      r->print(stderr, ML.labelA(), ML.labelB());
+
+      l->len1 += r->len1;
+      l->len2 += r->len2;
+
+      l->print(stderr, ML.labelA(), ML.labelB());
+    } else {
+      l->print(stdout, ML.labelA(), ML.labelB());
+      l = 0L;
+    }
   }
+
+  if (l)
+    l->print(stdout, ML.labelA(), ML.labelB());
 
   return(0);
 }
