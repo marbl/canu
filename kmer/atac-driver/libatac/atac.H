@@ -49,7 +49,7 @@ public:
   u32bit  iid1, pos1, len1, fwd1;
   u32bit  iid2, pos2, len2, fwd2;
 
-  void  print(FILE *f, char *label1, char *label2) {
+  void  print(FILE *f, char const *label1, char const *label2) const {
     fprintf(f, "M %s %s %s %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" %d %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" %d\n",
             type,
             matchuid, parentuid,
@@ -87,7 +87,7 @@ public:
   char    type[4];
   u32bit  iid, pos, len;
 
-  void  print(FILE *f, char *label) {
+  void  print(FILE *f, char const *label) const {
     fprintf(f, "F %s %s %s %s:"u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
             type,
             featureuid, parentuid,
@@ -98,7 +98,7 @@ public:
 
 class atacMatchList {
 public:
-  atacMatchList(char *filename, char matchOrRun = 'm', FILE *headerOut=0L);
+  atacMatchList(char const *filename, char matchOrRun = 'm', FILE *headerOut=0L);
   ~atacMatchList() {
     delete _seq1;
     delete _seq2;

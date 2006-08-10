@@ -24,7 +24,7 @@
 #include "atac.H"
 
 
-atacMatchList::atacMatchList(char *filename, char matchOrRun, FILE *headerOut) {
+atacMatchList::atacMatchList(char const *filename, char matchOrRun, FILE *headerOut) {
 
   if ((matchOrRun != 'u') && (matchOrRun != 'x') && (matchOrRun != 'r') && (matchOrRun != 'm')) {
     fprintf(stderr, "atacMatchList::atacMatchList()-- Invalid value '%c' for matchOrRun, should be:\n", matchOrRun);
@@ -67,7 +67,7 @@ atacMatchList::atacMatchList(char *filename, char matchOrRun, FILE *headerOut) {
   _label2[0] = 0;
 
   _matchesLen = 0;
-  _matchesMax = 32 * 1048576;
+  _matchesMax = 1 * 1048576;
   _matches    = new atacMatch [_matchesMax];
 
   while (!feof(inFile)) {
@@ -117,9 +117,11 @@ atacMatchList::atacMatchList(char *filename, char matchOrRun, FILE *headerOut) {
           //  Add it to our list of matches
           //
           if (_matchesLen > _matchesMax) {
-            fprintf(stderr, "SORRY!  I don't feel like reallocating matches.  Increase\n");
-            fprintf(stderr, "the preallocated size in %s\n", __FILE__);
-            exit(1);
+            _matchesMax *= 2;
+            atacMatch *n = new atacMatch [_matchesMax];
+            memcpy(n, _matches, sizeof(atacMatch));
+            delete [] _matches;
+            _matches = n;
           }
 
           strncpy(_matches[_matchesLen].matchuid,  S[2], 16);
