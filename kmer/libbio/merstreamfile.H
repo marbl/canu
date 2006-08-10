@@ -83,15 +83,15 @@ public:
   //  ~u64bitZERO for an infinite limit.  Zero really does mean zero,
   //  not infinity.
   //
-  bool                   setIterationStart(u64bit start) {
-    //fprintf(stderr, "merStreamFileReader::setInterationStart()-- Set to "u64bitFMT"\n", start);
-    _iterationStart = start;
+  bool                   setIterationStart(u64bit s) {
+    //fprintf(stderr, "merStreamFileReader::setInterationStart()-- Set to "u64bitFMT"\n", s);
+    _iterationStart = s;
     _iteration      = u64bitZERO;
     return(seekToMer(_iterationStart));
   };
-  void                   setIterationLimit(u64bit limit) {
-    //fprintf(stderr, "merStreamFileReader::setInterationLimit()-- Set to "u64bitFMT"\n", limit);
-    _iterationLimit = limit;
+  void                   setIterationLimit(u64bit l) {
+    //fprintf(stderr, "merStreamFileReader::setInterationLimit()-- Set to "u64bitFMT"\n", l);
+    _iterationLimit = l;
     _iteration      = u64bitZERO;
   };
 
