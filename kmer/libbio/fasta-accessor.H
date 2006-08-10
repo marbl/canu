@@ -11,7 +11,7 @@
   if ((POS) > _len) { \
     fprintf(stderr, "%s-- position "u32bitFMT" larger than length "u32bitFMT"\n", \
             NAM, (POS), _len); \
-    abort(); \
+    assert((POS) <= _len); \
   }
 #else
 #define SANITY(NAM, POS)
@@ -106,7 +106,7 @@ public:
     } else {
       fprintf(stderr, "FastAAccessor::setReverseComplementRange()-- base="u32bitFMT" and length="u32bitFMT" exceed sequence length of "u32bitFMT"\n",
               base, length, _len);
-      abort();
+      assert(0);
       return(false);
     }
   };
@@ -126,7 +126,7 @@ public:
     } else {
       fprintf(stderr, "operator[]-- Tried to access to "u32bitFMT", but range is "u32bitFMT"-"u32bitFMT"\n",
               p, _rcBase, _rcBase + _rcLen);
-      abort();
+      assert(0);
       return(0);
     }
   };
@@ -143,7 +143,7 @@ public:
     } else {
       fprintf(stderr, "setPosition()-- Tried to set to "u32bitFMT", but range is "u32bitFMT"-"u32bitFMT".\n",
               p, _rcBase, _rcBase + _rcLen);
-      abort();
+      assert(0);
       return(false);
     }
   };
@@ -165,7 +165,7 @@ public:
     if ((_rcBase > _len) || (_rcBase + _rcLen > _len)) {
       fprintf(stderr, "FastAAccessor::extendLeft()-- extend by "s32bitFMT" makes invalid: length is "u32bitFMT", new range is "u32bitFMT"-"u32bitFMT"\n",
               x, _len, _rcBase, _rcBase + _rcLen);
-      abort();
+      assert(0);
       return(false);
     }
     return(true);
@@ -179,7 +179,7 @@ public:
     if ((_rcBase > _len) || (_rcBase + _rcLen > _len)) {
       fprintf(stderr, "FastAAccessor::extendRight()-- extend by "s32bitFMT" makes invalid: length is "u32bitFMT", new range is "u32bitFMT"-"u32bitFMT"\n",
               x, _len, _rcBase, _rcBase + _rcLen);
-      abort();
+      assert(0);
       return(false);
     }
     return(true);
