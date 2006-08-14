@@ -35,59 +35,60 @@
 
 static uint64 SYS_UID_uidStart = 99000000000LL;
 
-int32 get_uids(uint64 blockSize, uint64 *interval, int32 real)
-{
-  /******************************************************************/
-  // Allocates blockSize many UIDs from the UID server if real
-  // is TRUE. Otherwise it allocates some dummy numbers.
-  /*****************************************************************/
+// Allocates blockSize many UIDs from the UID server if real
+// is TRUE. Otherwise it allocates some dummy numbers.
+//
+void
+get_uids(uint64 blockSize, uint64 *interval, int32 real) {
   int32  uidStatus;
   uint64 maxBlockSize;
 
-  if( ! real )
-    {
-      interval[0] = 4711;
-      interval[1] = blockSize;
-      interval[2] = 4711+2*blockSize;
-      interval[3] = blockSize;
-    }
-  else
-    {
+  if (!real) {
+    interval[0] = 4711;
+    interval[1] = blockSize;
+    interval[2] = 4711+2*blockSize;
+    interval[3] = blockSize;
+  } else {
 
-      /* First check whether the UID server can accomodate for our buffer */
-      uidStatus = SYS_UIDgetMaxUIDSize(&maxBlockSize);
+    // First check whether the UID server can accomodate for our buffer
+    uidStatus = SYS_UIDgetMaxUIDSize(&maxBlockSize);
       
-      if( uidStatus != UID_CODE_OK || maxBlockSize < blockSize ) {
-        fprintf(stderr, "UID blocksize query failed\n");
-        assert(0);
-      }
+    if ((uidStatus != UID_CODE_OK) ||
+        (maxBlockSize < blockSize)) {
+      fprintf(stderr, "UID blocksize query failed\n");
+      assert(uidStatus == UID_CODE_OK);
+      assert(maxBlockSize >= blockSize);
+    }
 
-      /* Now set the blocksize of th UID server appropriately */
-      SYS_UIDsetUIDSize(blockSize);
+    // Now set the blocksize of th UID server appropriately
+    SYS_UIDsetUIDSize(blockSize);
 
-      /* Finally, get the actual interval */
-      uidStatus = SYS_UIDgetNewUIDInterval(interval);
-      if( uidStatus != UID_CODE_OK ) {
-        fprintf(stderr, "UID query failed failed\n");
-        assert(1);
-      }
-    }  
-  return UID_CODE_OK;
+    // Finally, get the actual interval
+    uidStatus = SYS_UIDgetNewUIDInterval(interval);
+    if (uidStatus != UID_CODE_OK) {
+      fprintf(stderr, "SYS_UIDgetNewUIDInterval failed.\n");
+      assert(uidStatus == UID_CODE_OK);
+    }
+  }
 }
 
-int32 get_next_uid(uint64 *uid, int32 real){
+int32
+get_next_uid(uint64 *uid, int32 real) {
   if( real == FALSE ){
     *uid = SYS_UID_uidStart++;
     return UID_CODE_OK;
-  }
-  else
+  } else {
     return SYS_UIDgetNextUID(uid);
+  }
 }
 
-void set_start_uid(uint64 s) {
+void
+set_start_uid(uint64 s) {
   SYS_UID_uidStart = s;
 }
-uint64 get_start_uid(void) {
+
+uint64
+get_start_uid(void) {
   return(SYS_UID_uidStart);
 }
 

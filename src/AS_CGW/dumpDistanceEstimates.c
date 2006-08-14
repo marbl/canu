@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.9 2006-06-14 19:57:23 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.10 2006-08-14 19:21:39 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -76,12 +76,7 @@ dde_getUID(int real) {
   CDS_UID_t  interval[4] = {0};
   int        sta         = 0;
 
-  sta = get_uids(1, interval, real);
-  if (sta != UID_CODE_OK) {
-    fprintf(stderr, "Couldn't get a UID (get_uids()).\n");
-    exit(1);
-  }
-
+  get_uids(1, interval, real);
   sta = get_next_uid(&uid, real);
   if (sta != UID_CODE_OK) {
     fprintf(stderr, "Couldn't get a UID (get_uids()).\n");

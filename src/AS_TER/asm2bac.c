@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /* RCS info
- * $Id: asm2bac.c,v 1.3 2006-04-29 05:16:26 brianwalenz Exp $
+ * $Id: asm2bac.c,v 1.4 2006-08-14 19:21:39 brianwalenz Exp $
  */
 
 #include <stdio.h>
@@ -69,16 +69,12 @@ CDS_UID_t grab_uid(int use_real_ids)  {
   int32  uidStatus;
   CDS_UID_t NEW_ID;
   if ( ! uid_init ) {
-    uidStatus = get_uids(uid_blockSize,interval_UID,use_real_ids); // keep fake for initial testing
-    if ( uidStatus != UID_CODE_OK ) {
-      fprintf(stderr,"Abnormal return from get_uids (SYS). Return code %d\n",uidStatus);
-      CleanExit(1);
-    }
+    get_uids(uid_blockSize,interval_UID,use_real_ids); // keep fake for initial testing
     uid_init=1;
   }
   uidStatus = get_next_uid(&NEW_ID, use_real_ids);
   if ( uidStatus != UID_CODE_OK ) {
-      uidStatus = get_uids(uid_blockSize,interval_UID,use_real_ids);
+      get_uids(uid_blockSize,interval_UID,use_real_ids);
       uidStatus = get_next_uid(&NEW_ID,use_real_ids);
       if ( uidStatus != UID_CODE_OK ) {
         fprintf(stderr,"Abnormal return from get_next_uid (SYS). Return code %d\n",uidStatus);

@@ -25,7 +25,7 @@
  Assumptions: There is no UID 0
 **********************************************************************/
 
-static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.13 2006-02-13 22:16:31 eliv Exp $";
+static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.14 2006-08-14 19:21:39 brianwalenz Exp $";
 
 
 
@@ -89,11 +89,6 @@ static VA_TYPE(uint32) *SMASizeMap;
 
 static int PipeIn=FALSE;
 static int PipeOut=FALSE;
-static char *OutFileNameREZ = NULL;
-static char *IID2UIDFileNameREZ = NULL;
-static FILE *IFPREZ = NULL;
-static FILE *OFPREZ = NULL;
-static FILE *IID2UIDFPREZ = NULL;
 
 /* the store handles are global such that we can open them
    in output_snapshot and use them in read_stores and the various fetch functions */
@@ -103,18 +98,6 @@ static GateKeeperStore GKPStore;
 
 static void remove_output(void)
 {
-  if( IFPREZ != NULL )
-    fclose(IFPREZ);
-  if( OFPREZ != NULL )
-    fclose(OFPREZ);
-  if( IID2UIDFPREZ != NULL )
-    fclose(IID2UIDFPREZ);
-  if( ! PipeOut ){ 
-    if (OutFileNameREZ)
-      unlink(OutFileNameREZ);
-    if (IID2UIDFileNameREZ)
-      unlink(IID2UIDFileNameREZ);
-  }
 }
 
 
@@ -494,8 +477,8 @@ static SnapUnitigMesg* convert_IUM_to_UTG(IntUnitigMesg* iumMesg, int64 blockSiz
   uidStatus = get_next_uid(&uid,real);
   if( uidStatus != UID_CODE_OK )
     {
-      uidStatus = get_uids(blockSize,interval_UID,real);
-      get_next_uid(&uid,real);
+      get_uids(blockSize,interval_UID,real);
+      uidStatus = get_next_uid(&uid,real);
     }	  
   if( UID_CODE_OK != uidStatus )
     { 
@@ -674,8 +657,8 @@ static SnapConConMesg* convert_ICM_to_CCO(IntConConMesg* icmMesg, int64 blockSiz
   uidStatus = get_next_uid(&uid,real);
   if( uidStatus != UID_CODE_OK )
     {
-      uidStatus = get_uids(blockSize,interval_UID,real);
-      get_next_uid(&uid,real);
+      get_uids(blockSize,interval_UID,real);
+      uidStatus = get_next_uid(&uid,real);
     }	  
   if( UID_CODE_OK != uidStatus )
     { 
@@ -1000,8 +983,8 @@ static SnapScaffoldMesg* convert_ISF_to_SCF(IntScaffoldMesg* isfMesg, int64 bloc
   uidStatus = get_next_uid(&uid,real);
   if( uidStatus != UID_CODE_OK )
     {
-      uidStatus = get_uids(blockSize,interval_UID,real);
-      get_next_uid(&uid,real);
+      get_uids(blockSize,interval_UID,real);
+      uidStatus = get_next_uid(&uid,real);
     }	  
   if( UID_CODE_OK != uidStatus )
     { 
@@ -1216,8 +1199,8 @@ static SnapDegenerateScaffoldMesg* convert_IDS_to_DSC(IntDegenerateScaffoldMesg*
   uidStatus = get_next_uid(&uid,real);
   if( uidStatus != UID_CODE_OK )
     {
-      uidStatus = get_uids(blockSize,interval_UID,real);
-      get_next_uid(&uid,real);
+      get_uids(blockSize,interval_UID,real);
+      uidStatus = get_next_uid(&uid,real);
     }	  
   if( UID_CODE_OK != uidStatus )
     { 
@@ -1509,8 +1492,6 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
   GenericMesg *pmesg       = NULL; 
   FILE        *fileInput   = NULL;
   FILE        *fileOutput  = NULL;
-  FILE        *fileIID2UID = NULL;
-  char        *IID2UIDFileName = NULL;
   MesgReader   readerFn   = NULL;
   MesgWriter   writerFn   = NULL;
   CDS_UID_t       interval_UID[4];
@@ -1620,13 +1601,6 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
     read_stores(fragStoreName,bactigStoreName,gkpStoreName);
   
 
-  IID2UIDFileName    = mapFileName;
-  OutFileNameREZ     = outputFileName;
-  IID2UIDFileNameREZ = IID2UIDFileName;
-
-
-
-
   if( strcmp(outputFileName,"-") == 0 ){
     PipeOut = TRUE;
     fprintf(stderr,"*** Terminator : Print output to stdout ***\n");
@@ -1637,11 +1611,6 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
   else
     fileOutput = stdout;
 
-  fileIID2UID = file_open(IID2UIDFileName,"w");  
-
-
-  /* set static global variables for emergency exit */
-  OFPREZ = fileOutput;
 
   /* Allocate the buffer of UIDS. If real is TRUE, the server is queried
      Otherwise a dummy contiguous number is assigned */
@@ -1680,9 +1649,6 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
       fileInput = file_open(inputFileName,"r");  
     else
       fileInput = stdin;
-
-    /* set static global variables for emergency exit */
-    IFPREZ = fileInput;
 
     /* detect whether reader is ASCII or binary and set
        writer to provided parameter */
@@ -1818,30 +1784,67 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
 
   fclose(fileInput);
   fclose(fileOutput);
-  
-  fprintf(fileIID2UID,"Fragment IID2UID map\n");
-  DumpIID2UIDmap(FRGmap,fileIID2UID);
-  fprintf(fileIID2UID,"Fragment IID2UID map\n");
-  DumpIID2UIDmap(FRGmap,fileIID2UID);
-  fprintf(fileIID2UID,"Unitig IID2UID map\n");
-  DumpIID2UIDmap(IUMmap,fileIID2UID);
-  fprintf(fileIID2UID,"Contig IID2UID map\n");
-  DumpIID2UIDmap(ICMmap,fileIID2UID);
-  fprintf(fileIID2UID,"Scaffold IID2UID map\n");
-  DumpIID2UIDmap(ISFmap,fileIID2UID);
-  fprintf(fileIID2UID,"Bactig IID2UID map\n");
-  DumpIID2UIDmap(BTGmap,fileIID2UID);
-  fprintf(fileIID2UID,"Distrib IID2UID map\n");
-  DumpIID2UIDmap(DSTmap,fileIID2UID);
-  fprintf(fileIID2UID,"Screen Item IID2UID map\n");
-  DumpIID2UIDmap(SCNmap,fileIID2UID);
-  fprintf(fileIID2UID,"Repeat Item IID2UID map\n");
-  DumpIID2UIDmap(RPTmap,fileIID2UID);
-  fprintf(fileIID2UID,"Degenerate Contig IID to Scaffold UID map\n");
-  DumpIID2UIDmap(DSCmap,fileIID2UID);
 
-  fflush(NULL);
-  fclose(fileIID2UID);
+
+  {
+    FILE    *F = NULL;
+    char     N[1024];
+
+    sprintf(N, "%s.fragment.iidtouid", mapFileName);
+    F = file_open(N, "w");  
+    fprintf(F,"Fragment IID2UID map\n");
+    DumpIID2UIDmap(FRGmap,F);
+    fclose(F);
+
+    sprintf(N, "%s.unitig.iidtouid", mapFileName);
+    F = file_open(N, "w");  
+    fprintf(F,"Unitig IID2UID map\n");
+    DumpIID2UIDmap(IUMmap,F);
+    fclose(F);
+
+    sprintf(N, "%s.contig.iidtouid", mapFileName);
+    F = file_open(N, "w");  
+    fprintf(F,"Contig IID2UID map\n");
+    DumpIID2UIDmap(ICMmap,F);
+    fclose(F);
+
+    sprintf(N, "%s.scaffold.iidtouid", mapFileName);
+    F = file_open(N, "w");  
+    fprintf(F,"Scaffold IID2UID map\n");
+    DumpIID2UIDmap(ISFmap,F);
+    fclose(F);
+
+    sprintf(N, "%s.bactig.iidtouid", mapFileName);
+    F = file_open(N, "w");  
+    fprintf(F,"Bactig IID2UID map\n");
+    DumpIID2UIDmap(BTGmap,F);
+    fclose(F);
+
+    sprintf(N, "%s.distrib.iidtouid", mapFileName);
+    F = file_open(N, "w");  
+    fprintf(F,"Distrib IID2UID map\n");
+    DumpIID2UIDmap(DSTmap,F);
+    fclose(F);
+
+    sprintf(N, "%s.screen.iidtouid", mapFileName);
+    F = file_open(N, "w");  
+    fprintf(F,"Screen Item IID2UID map\n");
+    DumpIID2UIDmap(SCNmap,F);
+    fclose(F);
+
+    sprintf(N, "%s.repeatitem.iidtouid", mapFileName);
+    F = file_open(N, "w");  
+    fprintf(F,"Repeat Item IID2UID map\n");
+    DumpIID2UIDmap(RPTmap,F);
+    fclose(F);
+
+    sprintf(N, "%s.degeneratecontig.iidtouid", mapFileName);
+    F = file_open(N, "w");  
+    fprintf(F,"Degenerate Contig IID to Scaffold UID map\n");
+    DumpIID2UIDmap(DSCmap,F);
+    fclose(F);
+  }
+
 
   closeFragStore(FSHandle);
   

@@ -213,8 +213,8 @@ int main( int argc, char *argv[])
       uidStatus = get_next_uid(&mergeUid,realUID);
       if( uidStatus != UID_CODE_OK )
 	{
-	  uidStatus = get_uids(blockSize,&(interval_UID[0]),realUID);
-	  get_next_uid(&mergeUid,realUID);
+	  get_uids(blockSize,&(interval_UID[0]),realUID);
+	  uidStatus = get_next_uid(&mergeUid,realUID);
 	}	  
       if( UID_CODE_OK != uidStatus )
 	{ 
@@ -322,9 +322,9 @@ int main( int argc, char *argv[])
 	uidStatus = get_next_uid(&mergeUid,realUID);
 	if( uidStatus != UID_CODE_OK )
 	  {
-	    uidStatus = get_uids(blockSize,&(interval_UID[0]),realUID);
-	    get_next_uid(&mergeUid,realUID);
-	  }	  
+	    get_uids(blockSize,&(interval_UID[0]),realUID);
+	    uidStatus = get_next_uid(&mergeUid,realUID);
+	  }
 	if( UID_CODE_OK != uidStatus )
 	  { 
             fprintf(stderr, "Could not get UID \n");

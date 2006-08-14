@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpSingletons.c,v 1.6 2006-06-14 19:57:23 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpSingletons.c,v 1.7 2006-08-14 19:21:39 brianwalenz Exp $";
 
 
 /*********************************************************************/
@@ -288,8 +288,8 @@ int main( int argc, char *argv[])
 	  uidStatus = get_next_uid(&uid,realUID);
 	  if( uidStatus != UID_CODE_OK )
 	    {
-	      uidStatus = get_uids(blockSize,interval_UID,realUID);
-	      get_next_uid(&uid,realUID);
+	      get_uids(blockSize,interval_UID,realUID);
+	      uidStatus = get_next_uid(&uid,realUID);
 	    }	  
 	  if( UID_CODE_OK != uidStatus )
 	    { 

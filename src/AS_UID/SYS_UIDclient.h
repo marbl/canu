@@ -36,7 +36,7 @@ void         SYS_UIDset_euid_server(const char * servers);
 // Allocates blockSize many UIDs from the UID server if real is
 // TRUE. Otherwise it allocates some dummy numbers.
 //
-int32 get_uids(uint64 blockSize, uint64 *interval, int32 real);
+void get_uids(uint64 blockSize, uint64 *interval, int32 real);
 
 
 // Returns the next available uid. (A real if real==TRUE, o.w. a fake
