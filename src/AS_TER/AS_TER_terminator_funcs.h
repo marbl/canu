@@ -19,24 +19,15 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
-   CVS_ID:  $Id: AS_TER_terminator_funcs.h,v 1.4 2005-03-22 19:49:27 jason_miller Exp $
+   CVS_ID:  $Id: AS_TER_terminator_funcs.h,v 1.5 2006-08-15 17:12:01 brianwalenz Exp $
  *********************************************************************/
 #ifndef AS_TER_TERMINATOR_FUNCS_H
 #define AS_TER_TERMINATOR_FUNCS_H
 
 #include "AS_global.h"
 
-void output_snapshot(char* fragStoreName, char* bactigStoreName,
-		     char* gkpStoreName,
-		     char** inputFileList, int32 numInputFiles, 
-		     char* outputFileName,
-		     char* mapFileName,
-		     OutputType output, 
-		     int32 blockSize, int32 real, int32 quiet,
-		     int32 random, uint64 uidStart,
-		     int argc, char *argv[]);
-/******************************************************************/
 // Outputs the genome snapshot
+//
 // The parameter output specifies whether the out put should be
 // ACII or binary. 
 // blockSize is the number of UIDs requested in one request
@@ -47,7 +38,15 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
 // Precondition: filePrefix and fragStoreName are not NULL and do 
 // not point to an empty string.
 // 
-/*****************************************************************/
+void output_snapshot(char* fragStoreName, char* bactigStoreName,
+		     char* gkpStoreName,
+		     char** inputFileList, int32 numInputFiles, 
+		     char* outputFileName,
+		     char* mapFileName,
+		     OutputType output, 
+		     int32 real, int32 quiet,
+		     int32 random, uint64 uidStart,
+		     int argc, char *argv[]);
 
 #endif
 

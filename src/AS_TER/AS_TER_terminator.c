@@ -28,18 +28,7 @@ accession numbers.
 
 **********************************************************************/
 
-/* RCS info
- * $Id: AS_TER_terminator.c,v 1.10 2006-04-29 05:16:26 brianwalenz Exp $
- * $Revision: 1.10 $
- */
-
-
-static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.10 2006-04-29 05:16:26 brianwalenz Exp $";
-
-
-/*************************************************************************/
-/* System include files */
-/*************************************************************************/
+static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.11 2006-08-15 17:12:01 brianwalenz Exp $";
 
 #include  <stdlib.h>
 #include  <stdio.h>
@@ -48,18 +37,14 @@ static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.10 2006-04-29 05:16:26
 #include  <sys/types.h>
 #include  <string.h>
 
-/*************************************************************************/
-/* Local include files */
-/*************************************************************************/
-
 #include "AS_global.h"
-#include "AS_TER_terminator.h"
-#include "AS_TER_utils.h" 
+#include "AS_TER_utils.h"
 #include "AS_TER_terminator_funcs.h"
 #include "AS_MSG_pmesg.h"
 
-#include <SYS_UIDcommon.h>
-#include <SYS_UIDclient.h>
+#include "SYS_UIDcommon.h"
+#include "SYS_UIDclient.h"
+
 
 int main (int argc, char *argv[]) {
   char *inputFileName   = NULL;
@@ -69,18 +54,16 @@ int main (int argc, char *argv[]) {
   char *bactigStoreName = NULL;
   char *gkpStoreName    = NULL;
   char *euidServerNames = NULL;
-  /*Variable defintions for parsing the commandline */
 
-  /* The default behaviour of the Terminator. Should
-     be changed to binary */
   OutputType  output = AS_BINARY_OUTPUT;
-  int32 illegal = 0;
-  int32 realUIDs = FALSE;
-  int32 help     = FALSE;
-  uint32 random  = FALSE;
-  uint32 quiet   = FALSE;
+
+  int32 illegal   = 0;
+  int32 realUIDs  = FALSE;
+  int32 help      = FALSE;
+  uint32 random   = FALSE;
+  uint32 quiet    = FALSE;
   uint64 uidStart = 0;
-  novar          = 0;
+  novar           = 0;
 
   fprintf(stderr, "Version: %s\n",CM_ID);
 
@@ -120,11 +103,6 @@ int main (int argc, char *argv[]) {
 	case 'i':	  
 	  inputFileName = strdup(optarg);
 	  assert(inputFileName != NULL);
-#if 0
-	  fprintf(stderr,"**** -i option is no longer supported!  Please specify input file(s) at end of command line\n");
-	  fprintf(stderr,"**** to read from stdin, specify no files at end of command line\n");
-	  exit(1);
-#endif
 	  break;
 	case 'o':	  
 	  outputFileName = strdup(optarg);
@@ -168,13 +146,14 @@ int main (int argc, char *argv[]) {
 	     "-u forces real UIDs\n"
              "-N don't output variation record to .asm file\n"
 	     "-Q runs also for simulator\n");
-    exit (AS_TER_EXIT_FAILURE);
+    exit(1);
   }
   
   {
     char *stdinInput = "-";
     char **inputList;
     int32 numInputs;
+
     if(inputFileName != NULL){
       inputList = &inputFileName;
       numInputs = 1;
@@ -187,25 +166,38 @@ int main (int argc, char *argv[]) {
 	fprintf(stderr,"\n");
       }
     }else if(argc - optind < 1 ){
-// handle the special case where NO files are specified on the command line. 
-// This means read from stdin.  Since output_snapshot already understands a file with name '-' to
-// mean read from stdin, we create an input file list with a single file named '-'.
+      // handle the special case where NO files are specified on the
+      // command line.  This means read from stdin.  Since
+      // output_snapshot already understands a file with name '-' to
+      // mean read from stdin, we create an input file list with a
+      // single file named '-'.
+      //
       inputList = &stdinInput;
       numInputs = 1;
     }else{
-// This is the normal case, where there are one or more files on the command line
-//
+      // This is the normal case, where there are one or more files on
+      // the command line
+      //
       inputList = argv + optind;
       numInputs = argc - optind;
     }
     
-  /* Start the main routines */  
-  //check_environment();
-  output_snapshot(fragStoreName,bactigStoreName,gkpStoreName,inputList,numInputs,outputFileName,mapFileName,output,300,realUIDs,quiet,random,uidStart,argc,argv);
-  
+
+    output_snapshot(fragStoreName,
+                    bactigStoreName,
+                    gkpStoreName,
+                    inputList,
+                    numInputs,
+                    outputFileName,
+                    mapFileName,
+                    output,
+                    realUIDs,
+                    quiet,
+                    random,
+                    uidStart,
+                    argc,
+                    argv);
   }
 
-
-
-  return (int)AS_TER_EXIT_SUCCESS;
+  return(0);
 } 

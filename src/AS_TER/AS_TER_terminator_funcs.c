@@ -25,11 +25,9 @@
  Assumptions: There is no UID 0
 **********************************************************************/
 
-static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.14 2006-08-14 19:21:39 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.15 2006-08-15 17:12:01 brianwalenz Exp $";
 
 
-
-#include "AS_TER_terminator.h"
 #include "AS_TER_terminator_funcs.h"
 #include "AS_TER_utils.h"
 
@@ -55,28 +53,18 @@ static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.14 2006-08-14 19:21:39
 /*  correctly replaced by the UIDs                                    */
 /*--------------------------------------------------------------------*/
 
-
-/* allocate dynamic arrays for each message type that has his */
-/* accession number replaced. These array are allocated and
-   freed by output snapshot */
-
-
-// artifical counter to keep track of assigned UIDs for scaffolds
-// and output them to the map file
-
-     //static ISFcount = 0;
 static int32 simulator = FALSE;
 
-static VA_TYPE(short)  *FRGpresent; // NEW
-static VA_TYPE(short)  *BTGpresent; // NEW
+static VA_TYPE(short)  *FRGpresent;
+static VA_TYPE(short)  *BTGpresent;
 static VA_TYPE(int)    *ICM1inISFmap;
 static VA_TYPE(int)    *ICM2inISFmap;
 static VA_TYPE(CDS_UID_t) *IUMmap;
 static VA_TYPE(CDS_UID_t) *ICMmap;
 static VA_TYPE(CDS_UID_t) *ISFmap;
 static VA_TYPE(CDS_UID_t) *FRGmap;
-static VA_TYPE(CDS_UID_t) *BTGmap; // NEW
-static VA_TYPE(CDS_UID_t) *DSCmap; // NEW
+static VA_TYPE(CDS_UID_t) *BTGmap;
+static VA_TYPE(CDS_UID_t) *DSCmap;
 static VA_TYPE(CDS_UID_t) *DSTmap;
 static VA_TYPE(CDS_UID_t) *SCNmap;
 static VA_TYPE(CDS_UID_t) *RPTmap;
@@ -90,15 +78,51 @@ static VA_TYPE(uint32) *SMASizeMap;
 static int PipeIn=FALSE;
 static int PipeOut=FALSE;
 
-/* the store handles are global such that we can open them
-   in output_snapshot and use them in read_stores and the various fetch functions */
+// the store handles are global such that we can open them in
+// output_snapshot and use them in read_stores and the various fetch
+// functions
+//
 static FragStoreHandle FSHandle,BSHandle;
 static GateKeeperStore GKPStore;
 
 
-static void remove_output(void)
-{
+
+//  Initial size of our arrays
+//
+#define ARRAYSIZE  2048
+
+
+
+// For reporting errors
+//
+static char errorreport[1024];
+
+#define   AS_TER_EXIT_SUCCESS 0
+#define   AS_TER_EXIT_FAILURE 1
+
+void
+error(const char* errorMesg,
+      int ex, 
+      const char* file,
+      int line) {
+
+  fprintf(stderr,"%s:%d %s\n", file, line, errorMesg);
+  exit(ex);
 }
+
+FILE*
+file_open(const char* fileName, const char* mode) {
+   FILE* fp;
+
+   fp = fopen (fileName,mode);
+   if(fp == NULL) {
+     char dummy[40];
+     sprintf(dummy,"Could not open file '%s'",fileName);
+     error(dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__);
+   }
+   return  fp;
+}
+
 
 
 
@@ -107,7 +131,7 @@ void DumpIID2UIDmap(VA_TYPE(CDS_UID_t) *map,FILE *file){
   for(i=0; i<GetNumCDS_UID_ts(map); i++){
       CDS_UID_t *di;
       di = GetCDS_UID_t(map,i);
-      if( *di != 0 )
+      if (*di != 0)
 	fprintf(file,"%d " F_U64 "\n",i,*di);
     }
 }
@@ -218,12 +242,10 @@ static CDS_UID_t *fetch_UID_from_bactigStore(CDS_IID_t iid){
       CDS_UID_t *di;
       getAccID_ReadStruct(input,&uid);
       di = GetCDS_UID_t(BTGmap,iid);
-      if( di != NULL )
-	if( *di != 0 ){
-	  char dummy[40];
-	  sprintf(dummy,"Internal fragment ID %d occurred twice (BTGmap)",iid);
-	  error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
-	}
+      if ((di != NULL) && (*di != 0)) {
+        sprintf(errorreport,"Internal fragment ID %d occurred twice (BTGmap)",iid);
+        error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+      }
 #if DEBUG >1
       fprintf(stderr,"Setting BTGmap for iid = %d\n",iid);
 #endif
@@ -231,9 +253,8 @@ static CDS_UID_t *fetch_UID_from_bactigStore(CDS_IID_t iid){
       delete_ReadStruct(input); 
     }
     else{
-      char dummy[40];
-      sprintf(dummy,"Internal fragment ID %d is not present in the bactig store",iid);
-      error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+      sprintf(errorreport,"Internal fragment ID %d is not present in the bactig store",iid);
+      error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
     }
     input = new_ReadStruct();
     if( 0 == getFragStore(BSHandle,iid,FRAG_S_FIXED,input) ){
@@ -271,18 +292,15 @@ static CDS_UID_t *fetch_UID_from_fragStore(CDS_IID_t iid){
       getAccID_ReadStruct(input,&uid);
       delete_ReadStruct(input);
       di = GetCDS_UID_t(FRGmap,iid);
-      if( di != NULL )
-	if( *di != 0 ){
-	  char dummy[40];
-	  sprintf(dummy,"Internal fragment ID %d occurred twice (FRGmap)",iid);
-	  error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
-	}
+      if ((di != NULL) && (*di != 0)) {
+        sprintf(errorreport,"Internal fragment ID %d occurred twice (FRGmap)",iid);
+        error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+      }
       SetCDS_UID_t(FRGmap,iid,&uid);
     }
     else{
-      char dummy[40];
-      sprintf(dummy,"Internal fragment ID %d is not present in the fragment store",iid);
-      error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+      sprintf(errorreport,"Internal fragment ID %d is not present in the fragment store",iid);
+      error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
     }
     { 
       IntScreenMatch *matches;
@@ -345,19 +363,16 @@ static CDS_UID_t *fetch_UID_from_distStore(VA_TYPE(CDS_UID_t) *map, CDS_IID_t ii
     if( 0 == getGateKeeperDistanceStore(GKPStore.dstStore,iid,&gkpd) ){
       CDS_UID_t *di;
       di = GetCDS_UID_t(map,iid);
-      if( di != NULL )
-	if( *di != 0 ){
-	  char dummy[40];
-	  sprintf(dummy,"Internal DST ID %d occurred twice",iid);
-	  error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
-	}
+      if ((di != NULL) && (*di != 0)) {
+        sprintf(errorreport,"Internal DST ID %d occurred twice",iid);
+        error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+      }
       SetCDS_UID_t(map,iid,&gkpd.UID);
       return GetCDS_UID_t(map,iid);
     }
     else{
-      char dummy[40];
-      sprintf(dummy,"Internal dist ID %d is not present in the dist store",iid);
-      error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+      sprintf(errorreport,"Internal dist ID %d is not present in the dist store",iid);
+      error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
     }
   }
   return ret;
@@ -377,24 +392,21 @@ static CDS_UID_t *fetch_UID_from_repeatStore(VA_TYPE(CDS_UID_t) *map, CDS_IID_t 
     if( 0 == getGateKeeperRepeatStore(GKPStore.rptStore,iid,&gkpr) ){
       CDS_UID_t *di;
       di = GetCDS_UID_t(map,iid);
-      if( di != NULL )
-	if( *di != 0 ){
-	  char dummy[40];
-	  sprintf(dummy,"Internal RPT ID %d occurred twice",iid);
-	  error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
-	}
+      if ((di != NULL) && (*di != 0)) {
+        sprintf(errorreport,"Internal RPT ID %d occurred twice",iid);
+        error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+      }
       SetCDS_UID_t(map,iid,&gkpr.UID);
       return GetCDS_UID_t(map,iid);
     }
     else{
-      char dummy[40];
       // BEWARE. I return NULL in the case the repeat and screen library 
       // are not submitted (normally in the simulator)
       if( simulator )
 	return NULL;
 
-      sprintf(dummy,"Internal repeat ID %d is not present in the dist store",iid);
-      error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+      sprintf(errorreport,"Internal repeat ID %d is not present in the dist store",iid);
+      error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
     }
   }
 }
@@ -414,28 +426,55 @@ static CDS_UID_t *fetch_UID_from_screenStore(VA_TYPE(CDS_UID_t) *map, CDS_IID_t 
     if( 0 == getGateKeeperScreenStore(GKPStore.scnStore,iid,&gkps) ){
       CDS_UID_t *di;
       di = GetCDS_UID_t(map,iid);
-      if( di != NULL )
-	if( *di != 0 ){
-	  char dummy[40];
-	  sprintf(dummy,"Internal SCN ID %d occurred twice",iid);
-	  error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
-	}
+      if ((di != NULL) && (*di != 0)) {
+        sprintf(errorreport,"Internal SCN ID %d occurred twice",iid);
+        error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+      }
       SetCDS_UID_t(map,iid,&gkps.UID);
       return GetCDS_UID_t(map,iid);
     }
     else{
-      char dummy[40];
       // BEWARE. I return NULL in the case the repeat and screen library are not
       // submitted (normally in the simulator)
      if( simulator )
        return NULL;
 
-      sprintf(dummy,"Internal SCN ID %d is not present in the dist store",iid);
-      error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+      sprintf(errorreport,"Internal SCN ID %d is not present in the dist store",iid);
+      error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
     }
   }
 }
 
+
+static
+void
+initUID(int32 real) {
+  CDS_UID_t  interval_UID[4];
+
+  //  Allocate the buffer of UIDS. If real is TRUE, the server is
+  //  queried, otherwise a dummy contiguous number is assigned
+  //
+  get_uids(1024, interval_UID, real);
+}
+
+
+static
+CDS_UID_t
+getUID(int32 real) {
+  CDS_UID_t  uid = 0;
+  CDS_UID_t  interval_UID[4];
+  int32      uidStatus = 0;
+
+  uidStatus = get_next_uid(&uid, real);
+  if (uidStatus != UID_CODE_OK) {
+    get_uids(1024, interval_UID, real);
+    uidStatus = get_next_uid(&uid, real);
+  }	  
+  if (uidStatus != UID_CODE_OK) {
+    error("Could not get UID.", AS_TER_EXIT_FAILURE, __FILE__, __LINE__); 
+  }
+  return(uid);
+}
 
 
 
@@ -444,7 +483,7 @@ static CDS_UID_t *fetch_UID_from_screenStore(VA_TYPE(CDS_UID_t) *map, CDS_IID_t 
 /***********************/
 
 
-static SnapUnitigMesg* convert_IUM_to_UTG(IntUnitigMesg* iumMesg, int64 blockSize, int32 real)
+static SnapUnitigMesg* convert_IUM_to_UTG(IntUnitigMesg* iumMesg, int32 real)
      /*
        converts an IntUnitigMesg to a SnapUnitigMessage.
        What happend ?
@@ -453,8 +492,6 @@ static SnapUnitigMesg* convert_IUM_to_UTG(IntUnitigMesg* iumMesg, int64 blockSiz
 {
   int i;
   CDS_UID_t uid;
-  int32  uidStatus;
-  CDS_UID_t interval_UID[4];
 
   CDS_UID_t *di;
   SnapUnitigMesg *utgMesg = 
@@ -464,29 +501,14 @@ static SnapUnitigMesg* convert_IUM_to_UTG(IntUnitigMesg* iumMesg, int64 blockSiz
   fprintf(stderr,"IUM internal acc %u\n",iumMesg->iaccession);
 #endif
   di = fetch_UID(IUMmap,iumMesg->iaccession);
-  if( (di != NULL) && (*di != 0))
-    {
-      char dummy[40];
-      sprintf(dummy,"Spotted IUM internal ID %d second time \n",
-	      iumMesg->iaccession);
-      remove_output();
-      error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
-    }
+  if( (di != NULL) && (*di != 0)) {
+    sprintf(errorreport,"Spotted IUM internal ID %d second time",
+            iumMesg->iaccession);
+    error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+  }
 
   /* This is a new message. We assign it a UID */
-  uidStatus = get_next_uid(&uid,real);
-  if( uidStatus != UID_CODE_OK )
-    {
-      get_uids(blockSize,interval_UID,real);
-      uidStatus = get_next_uid(&uid,real);
-    }	  
-  if( UID_CODE_OK != uidStatus )
-    { 
-      char dummy[40];
-      sprintf(dummy,"Could not get UID \n");
-      remove_output();
-      error(AS_TER_UIDSERVER_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
-    }
+  uid = getUID(real);
   SetCDS_UID_t(IUMmap,iumMesg->iaccession,&uid);
   
   /* Set all toplevel fields */
@@ -520,11 +542,9 @@ static SnapUnitigMesg* convert_IUM_to_UTG(IntUnitigMesg* iumMesg, int64 blockSiz
 	di = fetch_UID_from_fragStore(iumMesg->f_list[i].ident);
       
       if( di == NULL ){
-	char dummy[40];
-	sprintf(dummy,"Reference before definition for fragment/bactig ID %d\n",
+	sprintf(errorreport,"Reference before definition for fragment/bactig ID %d",
 		iumMesg->f_list[i].ident);
-	remove_output();
-	error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+	error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
       }
       
       utgMesg->f_list[i].eident       = *di;
@@ -546,7 +566,7 @@ static SnapUnitigMesg* convert_IUM_to_UTG(IntUnitigMesg* iumMesg, int64 blockSiz
 /************************************************/
 
 
-static SnapUnitigLinkMesg* convert_IUL_to_ULK(IntUnitigLinkMesg* iulMesg, int64 blockSize, int32 real)
+static SnapUnitigLinkMesg* convert_IUL_to_ULK(IntUnitigLinkMesg* iulMesg, int32 real)
      /*
        converts an IntUnitigLinkMesg to a SnapUnitigLinkMessage.
        What happend ?
@@ -564,22 +584,16 @@ static SnapUnitigLinkMesg* convert_IUL_to_ULK(IntUnitigLinkMesg* iulMesg, int64 
   /* Set all toplevel fields */
   /* look up the external IDs of the unitigs */
   di = GetCDS_UID_t(IUMmap,iulMesg->unitig1);
-  if( di == NULL )
-    {
-      char dummy[40];
-      sprintf(dummy,"IUL reference before definition error for unitig ID %d",iulMesg->unitig1);
-      remove_output();
-      error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
-    }
+  if ((di == NULL) || (*di == 0)) {
+    sprintf(errorreport,"IUL reference before definition error for unitig ID %d",iulMesg->unitig1);
+    error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+  }
   ulkMesg->eunitig1 = *di;
   di = GetCDS_UID_t(IUMmap,iulMesg->unitig2);
-  if( di == NULL )
-    {
-      char dummy[40];
-      sprintf(dummy,"IUL reference before definition error for unitig ID %d",iulMesg->unitig2);
-      remove_output();
-      error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
-    }
+  if ((di == NULL) || (*di == 0)) {
+    sprintf(errorreport,"IUL reference before definition error for unitig ID %d",iulMesg->unitig2);
+    error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+  }
   ulkMesg->eunitig2        = *di;
 
   ulkMesg->orientation    = iulMesg->orientation;
@@ -610,19 +624,15 @@ static SnapUnitigLinkMesg* convert_IUL_to_ULK(IntUnitigLinkMesg* iulMesg, int64 
       di = fetch_UID_from_fragStore(iulMesg->jump_list[i].in1);
       if( di == NULL )
 	{
-	  char dummy[40];
-	  sprintf(dummy,"Internal Fragment ID %d does not exist in Fragstore",iulMesg->jump_list[i].in1);
-	  remove_output();
-	  error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+	  sprintf(errorreport,"Internal Fragment ID %d does not exist in Fragstore",iulMesg->jump_list[i].in1);
+	  error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
 	}  
       ulkMesg->jump_list[i].in1 = *di;
       di = fetch_UID_from_fragStore(iulMesg->jump_list[i].in2);
       if( di == NULL )
 	{
-	  char dummy[40];
-	  sprintf(dummy,"Internal Fragment ID %d does not exist in Fragstore",iulMesg->jump_list[i].in2);
-	  remove_output();
-	  error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+	  sprintf(errorreport,"Internal Fragment ID %d does not exist in Fragstore",iulMesg->jump_list[i].in2);
+	  error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
 	}  
       ulkMesg->jump_list[i].in2 = *di; 
       // the next line is due to SAULS change in proto I/O
@@ -636,7 +646,7 @@ static SnapUnitigLinkMesg* convert_IUL_to_ULK(IntUnitigLinkMesg* iulMesg, int64 
 /************************************************/
 
 
-static SnapConConMesg* convert_ICM_to_CCO(IntConConMesg* icmMesg, int64 blockSize, int32 real)
+static SnapConConMesg* convert_ICM_to_CCO(IntConConMesg* icmMesg, int32 real)
      /* converts an IntConConMesg to a SnapConConMessage.
 	What happend ?
 	- A new UID is assigned to the ConConMesg
@@ -645,38 +655,22 @@ static SnapConConMesg* convert_ICM_to_CCO(IntConConMesg* icmMesg, int64 blockSiz
 {
   int i;
   CDS_UID_t uid;
-  int32  uidStatus;
-  CDS_UID_t interval_UID[4];
   CDS_UID_t *di;
   int false = FALSE;
 
   SnapConConMesg *ccoMesg = (SnapConConMesg*) safe_malloc(sizeof(SnapConConMesg));
   
   /* Set all toplevel fields */
-  /* This is a new message. Hence we get a new UID */
-  uidStatus = get_next_uid(&uid,real);
-  if( uidStatus != UID_CODE_OK )
-    {
-      get_uids(blockSize,interval_UID,real);
-      uidStatus = get_next_uid(&uid,real);
-    }	  
-  if( UID_CODE_OK != uidStatus )
-    { 
-      char dummy[40];
-      sprintf(dummy,"Could not get UID \n");
-      remove_output();
-      error(AS_TER_UIDSERVER_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
-    }
 
   /* we assume that the numbers are in ascending order */
   di = GetCDS_UID_t(ICMmap,icmMesg->iaccession);
-  if( (di != NULL) && (*di != 0)){
-    char dummy[40];
-    sprintf(dummy,"ICM internal contig number %d spotted second time \n",
+  if ((di != NULL) && (*di != 0)) {
+    sprintf(errorreport,"ICM internal contig number %d spotted second time",
 	      icmMesg->iaccession);
-    remove_output();
-    error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+    error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
   }
+
+  uid = getUID(real);
   SetCDS_UID_t(ICMmap,icmMesg->iaccession,&uid);
 
   // record that we have used that icm so far in no scaffold
@@ -735,11 +729,9 @@ static SnapConConMesg* convert_ICM_to_CCO(IntConConMesg* icmMesg, int64 blockSiz
 	di = fetch_UID_from_fragStore(icmMesg->pieces[i].ident);
       }
       if( di == NULL ){
-	char dummy[40];
-	sprintf(dummy,"Reference before definition for fragment ID %d\n",
+	sprintf(errorreport,"Reference before definition for fragment ID %d",
 		icmMesg->pieces[i].ident);
-	remove_output();
-	error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+	error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
       }
       ccoMesg->pieces[i].eident       = *di;
       ccoMesg->pieces[i].delta_length = icmMesg->pieces[i].delta_length;
@@ -759,12 +751,10 @@ static SnapConConMesg* convert_ICM_to_CCO(IntConConMesg* icmMesg, int64 blockSiz
     for(i=0; i<icmMesg->num_unitigs; i++){
       ccoMesg->unitigs[i].type  = icmMesg->unitigs[i].type;
       di = GetCDS_UID_t(IUMmap,icmMesg->unitigs[i].ident);
-      if( di == NULL ){
-	char dummy[40];
-	sprintf(dummy,"Reference before definition for unitig ID %d\n",
+      if ((di == NULL) || (*di == 0)) {
+	sprintf(errorreport,"Reference before definition for unitig ID %d",
 		icmMesg->pieces[i].ident);
-	remove_output();
-	error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+	error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
       }
       ccoMesg->unitigs[i].eident = *di;
       ccoMesg->unitigs[i].position = icmMesg->unitigs[i].position;
@@ -777,7 +767,7 @@ static SnapConConMesg* convert_ICM_to_CCO(IntConConMesg* icmMesg, int64 blockSiz
 
 /************************************************/
 
-static SnapContigLinkMesg* convert_ICL_to_CLK(IntContigLinkMesg* iclMesg, int64 blockSize, int32 real)
+static SnapContigLinkMesg* convert_ICL_to_CLK(IntContigLinkMesg* iclMesg, int32 real)
      /* converts an IntContigLinkMesg to a SnapContigLinkMessage.
 	What happend ? 
 	- The two internal contig IDs are replaced by UIDs
@@ -794,22 +784,16 @@ static SnapContigLinkMesg* convert_ICL_to_CLK(IntContigLinkMesg* iclMesg, int64 
   /* Set all toplevel fields */
   /* replace the internal IDs by the external IDs */
   di = GetCDS_UID_t(ICMmap,iclMesg->contig1);
-  if( di == NULL )
-    {
-      char dummy[40];
-      sprintf(dummy,"ICL reference before definition error for contig ID %d",iclMesg->contig1);
-      remove_output();
-      error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
-    }
+  if ((di == NULL) || (*di == 0)) {
+    sprintf(errorreport,"ICL reference before definition error for contig ID %d",iclMesg->contig1);
+    error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+  }
   clkMesg->econtig1 = *di;
   di = GetCDS_UID_t(ICMmap,iclMesg->contig2);
-  if( di == NULL )
-    {
-      char dummy[40];
-      sprintf(dummy,"ICL reference before definition error for contig ID %d",iclMesg->contig2);
-      remove_output();
-      error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
-    }
+  if ((di == NULL) || (*di == 0)) {
+    sprintf(errorreport,"ICL reference before definition error for contig ID %d",iclMesg->contig2);
+    error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+  }
   clkMesg->econtig2 = *di;
 
   clkMesg->orientation    = iclMesg->orientation;
@@ -840,19 +824,15 @@ static SnapContigLinkMesg* convert_ICL_to_CLK(IntContigLinkMesg* iclMesg, int64 
     di = fetch_UID_from_fragStore(iclMesg->jump_list[i].in1);
     
     if( di == NULL ){
-      char dummy[40];
-      sprintf(dummy,"Internal Fragment ID %d does not exist in Fragstore",iclMesg->jump_list[i].in1);
-      remove_output();
-      error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+      sprintf(errorreport,"Internal Fragment ID %d does not exist in Fragstore",iclMesg->jump_list[i].in1);
+      error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
     }  
     clkMesg->jump_list[i].in1 = *di;
     
     di = fetch_UID_from_fragStore(iclMesg->jump_list[i].in2);
     if( di == NULL ){
-      char dummy[40];
-      sprintf(dummy,"Internal Fragment ID %d does not exist in Fragstore",iclMesg->jump_list[i].in2);
-      remove_output();
-      error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+      sprintf(errorreport,"Internal Fragment ID %d does not exist in Fragstore",iclMesg->jump_list[i].in2);
+      error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
     }  
     clkMesg->jump_list[i].in2 = *di; 
     // the next line is due to SAULS change in proto I/O
@@ -864,7 +844,7 @@ static SnapContigLinkMesg* convert_ICL_to_CLK(IntContigLinkMesg* iclMesg, int64 
 
 
 
-static SnapScaffoldLinkMesg* convert_ISL_to_SLK(InternalScaffoldLinkMesg* islMesg, int64 blockSize, int32 real)
+static SnapScaffoldLinkMesg* convert_ISL_to_SLK(InternalScaffoldLinkMesg* islMesg, int32 real)
      /* converts an InternalScaffoldLinkMesg to a SnapScaffoldLinkMessage.
 	What happend ?
 	- The two internal scaffold IDs are replaced by UIDs
@@ -881,22 +861,16 @@ static SnapScaffoldLinkMesg* convert_ISL_to_SLK(InternalScaffoldLinkMesg* islMes
   /* Set all toplevel fields */
   /* replace the internal IDs by the external IDs */
   di = GetCDS_UID_t(ISFmap,islMesg->iscaffold1);
-  if( di == NULL )
-    {
-      char dummy[40];
-      sprintf(dummy,"ISL reference before definition error for scaffold ID %d",islMesg->iscaffold1);
-      remove_output();
-      error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
-    }
+  if ((di == NULL) || (*di == 0)) {
+    sprintf(errorreport,"ISL reference before definition error for scaffold ID %d",islMesg->iscaffold1);
+    error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+  }
   slkMesg->escaffold1 = *di;
   di = GetCDS_UID_t(ISFmap,islMesg->iscaffold2);
-  if( di == NULL )
-    {
-      char dummy[40];
-      sprintf(dummy,"ISL reference before definition error for scaffold ID %d",islMesg->iscaffold2);
-      remove_output();
-      error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
-    }
+  if ((di == NULL) || (*di == 0)) {
+    sprintf(errorreport,"ISL reference before definition error for scaffold ID %d",islMesg->iscaffold2);
+    error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+  }
   slkMesg->escaffold2 = *di;
 
 
@@ -920,19 +894,15 @@ static SnapScaffoldLinkMesg* convert_ISL_to_SLK(InternalScaffoldLinkMesg* islMes
     di = fetch_UID_from_fragStore(islMesg->jump_list[i].in1);
 
     if( di == NULL ){
-      char dummy[40];
-      sprintf(dummy,"Internal Fragment ID %d does not exist in Fragstore",islMesg->jump_list[i].in1);
-      remove_output();
-      error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+      sprintf(errorreport,"Internal Fragment ID %d does not exist in Fragstore",islMesg->jump_list[i].in1);
+      error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
     }  
     slkMesg->jump_list[i].in1 = *di;
     
     di = fetch_UID_from_fragStore(islMesg->jump_list[i].in2);
     if( di == NULL ){
-      char dummy[40];
-      sprintf(dummy,"Internal Fragment ID %d does not exist in Fragstore",islMesg->jump_list[i].in2);
-      remove_output();
-      error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+      sprintf(errorreport,"Internal Fragment ID %d does not exist in Fragstore",islMesg->jump_list[i].in2);
+      error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
     }  
     slkMesg->jump_list[i].in2 = *di; 
     // the next line is due to SAULS change in proto I/O
@@ -948,19 +918,17 @@ static SnapScaffoldLinkMesg* convert_ISL_to_SLK(InternalScaffoldLinkMesg* islMes
 /************************************************/
 
 
-static SnapScaffoldMesg* convert_ISF_to_SCF(IntScaffoldMesg* isfMesg, int64 blockSize, int32 real)
-     /* converts an IntScaffoldMesg to a SnapScaffoldMessage.
-	What happend ?
-	- The contigs list is traversed and for each IntContigPair
-	a SnapContigPair is created with the internal contig IDs replaced
-	by external IDs
-	- (07/01/00) in addition we store now the assigned UIDs in a VA
-	in order to be able to dump them in the map file.
-     */
+/* converts an IntScaffoldMesg to a SnapScaffoldMessage.
+   What happend ?
+   - The contigs list is traversed and for each IntContigPair
+   a SnapContigPair is created with the internal contig IDs replaced
+   by external IDs
+   - (07/01/00) in addition we store now the assigned UIDs in a VA
+   in order to be able to dump them in the map file.
+*/
+static SnapScaffoldMesg* convert_ISF_to_SCF(IntScaffoldMesg* isfMesg, int32 real)
 {
   CDS_UID_t uid;
-  int32  uidStatus;
-  CDS_UID_t interval_UID[4];
   CDS_UID_t *di;
   int *used;
   int i;
@@ -972,29 +940,13 @@ static SnapScaffoldMesg* convert_ISF_to_SCF(IntScaffoldMesg* isfMesg, int64 bloc
      so we can now check for the IID to UID mapping */
 
   di = GetCDS_UID_t(ISFmap,isfMesg->iaccession);
-  if( di != NULL )
-    {
-      char dummy[40];
-      sprintf(dummy,"ISF internal id %d spotted second time \n",
-	      isfMesg->iaccession);
-      remove_output();
-      error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
-    }
-  uidStatus = get_next_uid(&uid,real);
-  if( uidStatus != UID_CODE_OK )
-    {
-      get_uids(blockSize,interval_UID,real);
-      uidStatus = get_next_uid(&uid,real);
-    }	  
-  if( UID_CODE_OK != uidStatus )
-    { 
-      char dummy[40];
-      sprintf(dummy,"Could not get UID \n");
-      remove_output();
-      error(AS_TER_UIDSERVER_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
-    }
-  SetCDS_UID_t(ISFmap,isfMesg->iaccession,&uid);
+  if ((di != NULL) && (*di != 0)) {
+    sprintf(errorreport,"ISF internal id %d spotted second time", isfMesg->iaccession);
+    error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+  }
 
+  uid = getUID(real);
+  SetCDS_UID_t(ISFmap,isfMesg->iaccession,&uid);
 
   scfMesg->iaccession = isfMesg->iaccession;
   scfMesg->eaccession = uid;
@@ -1017,17 +969,13 @@ static SnapScaffoldMesg* convert_ISF_to_SCF(IntScaffoldMesg* isfMesg, int64 bloc
 	  used = Getint(ICM1inISFmap,con1);
 	  if( used == NULL )
 	    {
-	      char dummy[40];
-	      sprintf(dummy,"ICM1inISFmap is not initialized for contig ID %d",con1);
-	      remove_output();
-	      error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+	      sprintf(errorreport,"ICM1inISFmap is not initialized for contig ID %d",con1);
+	      error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
 	    }  
 	  if( *used == TRUE )
 	    {
-	      char dummy[40];
-	      sprintf(dummy,"Contig ID %d was already used as ct1 in a scaffold",con1);
-	      remove_output();
-	      error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+	      sprintf(errorreport,"Contig ID %d was already used as ct1 in a scaffold",con1);
+	      error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
 	    }  
 	  else
 	    Setint(ICM1inISFmap,con1,&true);
@@ -1036,17 +984,13 @@ static SnapScaffoldMesg* convert_ISF_to_SCF(IntScaffoldMesg* isfMesg, int64 bloc
 	  used = Getint(ICM2inISFmap,con2);
 	  if( used == NULL )
 	    {
-	      char dummy[40];
-	      sprintf(dummy,"ICM2inISFmap is not initialized for contig ID %d",con2);
-	      remove_output();
-	      error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+	      sprintf(errorreport,"ICM2inISFmap is not initialized for contig ID %d",con2);
+	      error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
 	    }  
 	  if( *used == TRUE )
 	    {
-	      char dummy[40];
-	      sprintf(dummy,"Contig ID %d was already used as ct2 in a scaffold",con2);
-	      remove_output();
-	      error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+	      sprintf(errorreport,"Contig ID %d was already used as ct2 in a scaffold",con2);
+	      error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
 	    }  
 	  else
 	    Setint(ICM2inISFmap,con2,&true);
@@ -1054,23 +998,17 @@ static SnapScaffoldMesg* convert_ISF_to_SCF(IntScaffoldMesg* isfMesg, int64 bloc
 
 
 	  di = GetCDS_UID_t(ICMmap,con1);
-	  if( di == NULL )
-	    {
-	      char dummy[40];
-	      sprintf(dummy,"ISF reference before definition for contig ID %d",con1);
-	      remove_output();
-	      error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
-	    }  
+	  if ((di == NULL) || (*di == 0)) {
+            sprintf(errorreport,"ISF reference before definition for contig ID %d",con1);
+            error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+          }  
 	  scfMesg->contig_pairs[i].econtig1 = *di;
 	  
 	  di = GetCDS_UID_t(ICMmap,con2);
-	  if( di == NULL )
-	    {
-	      char dummy[40];
-	      sprintf(dummy,"ISF reference before definition for contig ID %d",con2);
-	      remove_output();
-	      error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
-	    }  
+	  if ((di == NULL) || (*di == 0)) {
+            sprintf(errorreport,"ISF reference before definition for contig ID %d",con2);
+            error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+          }  
 	  scfMesg->contig_pairs[i].econtig2 = *di; 
       
 	  scfMesg->contig_pairs[i].mean   = isfMesg->contig_pairs[i].mean;
@@ -1088,29 +1026,22 @@ static SnapScaffoldMesg* convert_ISF_to_SCF(IntScaffoldMesg* isfMesg, int64 bloc
 	used = Getint(ICM1inISFmap,con1);
 	if( used == NULL )
 	  {
-	    char dummy[40];
-	    sprintf(dummy,"ICM1inISFmap is not initialized for contig ID %d",con1);
-	    remove_output();
-	    error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+	    sprintf(errorreport,"ICM1inISFmap is not initialized for contig ID %d",con1);
+	    error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
 	  }  
 	if( *used == TRUE )
 	  {
-	    char dummy[40];
-	    sprintf(dummy,"Contig ID %d was already used as ct1 in a scaffold",con1);
-	    remove_output();
-	    error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+	    sprintf(errorreport,"Contig ID %d was already used as ct1 in a scaffold",con1);
+	    error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
 	  }  
 	else
 	  Setint(ICM1inISFmap,con1,&true);	
 
 	di = GetCDS_UID_t(ICMmap,con1);
-	if( di == NULL )
-	  {
-	    char dummy[40];
-	    sprintf(dummy,"ISF reference before definition for contig ID %d",con1);
-	    remove_output();
-	    error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
-	  }  	
+	if ((di == NULL) || (*di == 0)) {
+          sprintf(errorreport,"ISF reference before definition for contig ID %d",con1);
+          error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+        }  	
 
 	scfMesg->contig_pairs[0].econtig1 = *di;
       	scfMesg->contig_pairs[0].econtig2 = *di;
@@ -1128,7 +1059,7 @@ static SnapScaffoldMesg* convert_ISF_to_SCF(IntScaffoldMesg* isfMesg, int64 bloc
 /************************************************/
 
 
-static SnapMateDistMesg* convert_IMD_to_MDI(IntMateDistMesg* imdMesg, int64 blockSize, int32 real)
+static SnapMateDistMesg* convert_IMD_to_MDI(IntMateDistMesg* imdMesg, int32 real)
      /* converts an IntMateDistMesg to a SnapMateDistMessage.
 	What happend ?
 	- The intDistance ID is replaced by the corresponding UIDs
@@ -1142,10 +1073,8 @@ static SnapMateDistMesg* convert_IMD_to_MDI(IntMateDistMesg* imdMesg, int64 bloc
   di = fetch_UID_from_distStore(DSTmap,imdMesg->refines);
   if( di == NULL )
     {
-      char dummy[40];
-      sprintf(dummy,"IMD reference before definition error for ID %d",imdMesg->refines);
-      remove_output();
-      error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+      sprintf(errorreport,"IMD reference before definition error for ID %d",imdMesg->refines);
+      error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
     }
   mdiMesg->erefines = *di;
   mdiMesg->irefines = imdMesg->refines;
@@ -1168,7 +1097,7 @@ static SnapMateDistMesg* convert_IMD_to_MDI(IntMateDistMesg* imdMesg, int64 bloc
 /************************************************/
 
 
-static SnapDegenerateScaffoldMesg* convert_IDS_to_DSC(IntDegenerateScaffoldMesg* idsMesg, int64 blockSize, int32 real)
+static SnapDegenerateScaffoldMesg* convert_IDS_to_DSC(IntDegenerateScaffoldMesg* idsMesg, int32 real)
      /* converts an  IntDegenerateScaffoldMesg to a  SnapDegenerateScaffoldMesg
 	What happend ?
 	- The icontig is replaced by the corresponding UID
@@ -1176,39 +1105,22 @@ static SnapDegenerateScaffoldMesg* convert_IDS_to_DSC(IntDegenerateScaffoldMesg*
      */
 {
   CDS_UID_t uid;
-  int32  uidStatus;
-  CDS_UID_t interval_UID[4];
   CDS_UID_t *di;
 
   SnapDegenerateScaffoldMesg* dscMesg = (SnapDegenerateScaffoldMesg*) safe_malloc(sizeof(SnapDegenerateScaffoldMesg));
   
   /* check whether the internal id is defined */
   di = GetCDS_UID_t(ICMmap,idsMesg->icontig);
-  if( di == NULL )
-    {
-      char dummy[40];
-      sprintf(dummy,"Could not find Contig iid %d in ICMmap \n",
-	      idsMesg->icontig);
-      remove_output();
-      error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
-    }
+  if ((di == NULL) || (*di == 0)) {
+    sprintf(errorreport,"Could not find Contig iid %d in ICMmap", idsMesg->icontig);
+    error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+  }
 
   dscMesg->econtig = *di;
 
   /* This is a new message. Hence we get a new UID */
-  uidStatus = get_next_uid(&uid,real);
-  if( uidStatus != UID_CODE_OK )
-    {
-      get_uids(blockSize,interval_UID,real);
-      uidStatus = get_next_uid(&uid,real);
-    }	  
-  if( UID_CODE_OK != uidStatus )
-    { 
-      char dummy[40];
-      sprintf(dummy,"Could not get UID \n");
-      remove_output();
-      error(AS_TER_UIDSERVER_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
-    }
+
+  uid = getUID(real);
   dscMesg->eaccession = uid;
   SetCDS_UID_t(DSCmap,idsMesg->icontig,&uid);
 
@@ -1221,7 +1133,7 @@ static SnapDegenerateScaffoldMesg* convert_IDS_to_DSC(IntDegenerateScaffoldMesg*
 /************************************************/
 
 
-static AugFragMesg* convert_IAF_to_AFG(IntAugFragMesg* iafMesg, int64 blockSize, int32 real)
+static AugFragMesg* convert_IAF_to_AFG(IntAugFragMesg* iafMesg, int32 real)
      /* converts an IntAugFragMesg to a AugFragMessage.
 	What happend ?
 	- The internal frgament ID is replaced with the external UID
@@ -1247,14 +1159,9 @@ static AugFragMesg* convert_IAF_to_AFG(IntAugFragMesg* iafMesg, int64 blockSize,
     di = fetch_UID_from_fragStore(iafMesg->iaccession);
 
   if( di == NULL ){
-    char dummy[40];
-    sprintf(dummy,"No fragment with ID %d in the frag/bactigstore",iafMesg->iaccession);
-    remove_output();
-    error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+    sprintf(errorreport,"No fragment with ID %d in the frag/bactigstore",iafMesg->iaccession);
+    error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
   }
-
-  /*  fprintf(stderr,"*Fragment with iid %d has uid %ld\n",
-      iafMesg->iaccession, *di); */
 
   afgMesg->eaccession = *di;
   afgMesg->iaccession = iafMesg->iaccession;
@@ -1285,10 +1192,8 @@ static AugFragMesg* convert_IAF_to_AFG(IntAugFragMesg* iafMesg, int64 blockSize,
 	sdi = fetch_clearRange_from_fragStore(ClearStartMap,iafMesg->iaccession);
       if( sdi == NULL )
 	{
-	  char dummy[40];
-	  sprintf(dummy,"No SeqInterval associated with ID %d in the frag/bactig store",iafMesg->iaccession);
-	  remove_output();
-	  error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+	  sprintf(errorreport,"No SeqInterval associated with ID %d in the frag/bactig store",iafMesg->iaccession);
+	  error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
 	}
       afgMesg->clear_rng.bgn = *sdi;
 
@@ -1298,10 +1203,8 @@ static AugFragMesg* convert_IAF_to_AFG(IntAugFragMesg* iafMesg, int64 blockSize,
 	sdi = fetch_clearRange_from_fragStore(ClearEndMap,iafMesg->iaccession);
       if( sdi == NULL )
 	{
-	  char dummy[40];
-	  sprintf(dummy,"No SeqInterval associated with ID %d in the frag store",iafMesg->iaccession);
-	  remove_output();
-	  error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+	  sprintf(errorreport,"No SeqInterval associated with ID %d in the frag store",iafMesg->iaccession);
+	  error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
 	}
       afgMesg->clear_rng.end = *sdi;
     }
@@ -1338,10 +1241,8 @@ static AugFragMesg* convert_IAF_to_AFG(IntAugFragMesg* iafMesg, int64 blockSize,
 	  di = fetch_UID_from_screenStore(SCNmap,ismMesg->iwhat);
 	  if( di == NULL )
 	    {
-	      char dummy[40];
-	      sprintf(dummy,"No Screen match with ID %d in the frag store",ismMesg->iwhat);
-	      remove_output();
-	      error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+	      sprintf(errorreport,"No Screen match with ID %d in the frag store",ismMesg->iwhat);
+	      error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
 	    }	  
 	  // BEWARE. I return NULL in the case the repeat and screen library are not
 	  // submitted (normally in the simulator)
@@ -1355,10 +1256,8 @@ static AugFragMesg* convert_IAF_to_AFG(IntAugFragMesg* iafMesg, int64 blockSize,
 	  di = fetch_UID_from_repeatStore(RPTmap,ismMesg->repeat_id);
 	  if( di == NULL )
 	    {
-	      char dummy[40];
-	      sprintf(dummy,"No Repeat item with ID %d in the frag store",ismMesg->repeat_id);
-	      remove_output();
-	      error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+	      sprintf(errorreport,"No Repeat item with ID %d in the frag store",ismMesg->repeat_id);
+	      error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
 	    }
 	  // BEWARE. I return NULL in the case the repeat and screen library are not
 	  // submitted (normally in the simulator)
@@ -1485,7 +1384,7 @@ static void read_stores(char* fragStoreName, char* bactigStoreName, char* gkpSto
 void output_snapshot(char* fragStoreName, char* bactigStoreName, 
 		     char* gkpStoreName, char** inputFileList, int32 numInputFiles,
 		     char* outputFileName, char* mapFileName, OutputType output, 
-		     int32 blockSize, int32 real, int32 quiet,
+		     int32 real, int32 quiet,
 		     int32 random, CDS_UID_t uidStart, 
 		     int argc, char *argv[])
 {
@@ -1494,7 +1393,6 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
   FILE        *fileOutput  = NULL;
   MesgReader   readerFn   = NULL;
   MesgWriter   writerFn   = NULL;
-  CDS_UID_t       interval_UID[4];
   int32        ifile;
   char        *inputFileName;
   int numIAF = 0;
@@ -1504,38 +1402,26 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
   /* Test preconditions */
   if( outputFileName == NULL )
     {
-      char dummy[40];
-      sprintf(dummy,"Argument outputFileName is NULL \n");
-      remove_output();
-      error(AS_TER_PRECONDITION_ERROR,dummy,
-	    AS_TER_EXIT_FAILURE,__FILE__,__LINE__);
+      sprintf(errorreport,"Argument outputFileName is NULL");
+      error(errorreport, AS_TER_EXIT_FAILURE,__FILE__,__LINE__);
     }
 
   if( strlen(outputFileName) == 0 )
     {
-      char dummy[40];
-      sprintf(dummy,"Argument outputFileName is empty \n");
-      remove_output();
-      error(AS_TER_PRECONDITION_ERROR,dummy,
-	    AS_TER_EXIT_FAILURE,__FILE__,__LINE__);
+      sprintf(errorreport,"Argument outputFileName is empty");
+      error(errorreport, AS_TER_EXIT_FAILURE,__FILE__,__LINE__);
     }
   /* Test preconditions */
   if( mapFileName == NULL )
     {
-      char dummy[40];
-      sprintf(dummy,"Argument mapFileName is NULL \n");
-      remove_output();
-      error(AS_TER_PRECONDITION_ERROR,dummy,
-	    AS_TER_EXIT_FAILURE,__FILE__,__LINE__);
+      sprintf(errorreport,"Argument mapFileName is NULL");
+      error(errorreport, AS_TER_EXIT_FAILURE,__FILE__,__LINE__);
     }
 
   if( strlen(mapFileName) == 0 )
     {
-      char dummy[40];
-      sprintf(dummy,"Argument mapFileName is empty \n");
-      remove_output();
-      error(AS_TER_PRECONDITION_ERROR,dummy,
-	    AS_TER_EXIT_FAILURE,__FILE__,__LINE__);
+      sprintf(errorreport,"Argument mapFileName is empty");
+      error(errorreport, AS_TER_EXIT_FAILURE,__FILE__,__LINE__);
     }
 
 
@@ -1579,17 +1465,12 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
   if( gkpStoreName == NULL )
     gkpStoreName = fragStoreName;
 
-//  fprintf(stderr,"%s\n",gkpStoreName);
-//  fprintf(stderr,"%s\n",fragStoreName);
- 
   /* Read the The Frag store, the gatekeeper Store 
      and maybe the Bactig store */  
   // first initialize the global static variables
   if( existsFragStore(fragStoreName) == FALSE ){
-    char dummy[60];
-    sprintf(dummy,"Frag Store %s does not exist \n",fragStoreName);
-    error(AS_TER_PRECONDITION_ERROR,dummy,
-          AS_TER_EXIT_FAILURE,__FILE__,__LINE__);
+    sprintf(errorreport,"Frag Store %s does not exist",fragStoreName);
+    error(errorreport, AS_TER_EXIT_FAILURE,__FILE__,__LINE__);
   }
   FSHandle     = openFragStore(fragStoreName,"r");
   if( bactigStoreName != NULL )
@@ -1612,9 +1493,7 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
     fileOutput = stdout;
 
 
-  /* Allocate the buffer of UIDS. If real is TRUE, the server is queried
-     Otherwise a dummy contiguous number is assigned */
-  get_uids(blockSize,interval_UID,real);
+  initUID(real);
 
 
   for(ifile = 0; ifile < numInputFiles; ifile++){
@@ -1624,20 +1503,14 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
     /* Test preconditions */
     if( inputFileName == NULL )
       {
-	char dummy[40];
-	sprintf(dummy,"Argument inputFileName is NULL \n");
-	remove_output();
-	error(AS_TER_PRECONDITION_ERROR,dummy,
-	      AS_TER_EXIT_FAILURE,__FILE__,__LINE__);
+	sprintf(errorreport,"Argument inputFileName is NULL");
+	error(errorreport, AS_TER_EXIT_FAILURE,__FILE__,__LINE__);
       }
 
     if( strlen(inputFileName) == 0 )
       {
-	char dummy[40];
-	sprintf(dummy,"Argument inputFileName is empty \n");
-	remove_output();
-	error(AS_TER_PRECONDITION_ERROR,dummy,
-	      AS_TER_EXIT_FAILURE,__FILE__,__LINE__);
+	sprintf(errorreport,"Argument inputFileName is empty");
+	error(errorreport, AS_TER_EXIT_FAILURE,__FILE__,__LINE__);
       }
 
     if( strcmp(inputFileName,"-") == 0 ){
@@ -1676,7 +1549,7 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
       break; 
       case MESG_IAF :{
 	IntAugFragMesg *iafMesg = (IntAugFragMesg*) pmesg->m;
-	AugFragMesg *afgMesg = convert_IAF_to_AFG(iafMesg,blockSize,real);
+	AugFragMesg *afgMesg = convert_IAF_to_AFG(iafMesg,real);
 	pmesg->m = afgMesg;
 	pmesg->t = MESG_AFG;
 	writerFn(fileOutput,pmesg);
@@ -1689,7 +1562,7 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
       break;
       case MESG_IUM :{
 	IntUnitigMesg  *iumMesg = (IntUnitigMesg*) pmesg->m;
-	SnapUnitigMesg *utgMesg = convert_IUM_to_UTG(iumMesg,blockSize,real);
+	SnapUnitigMesg *utgMesg = convert_IUM_to_UTG(iumMesg,real);
 	pmesg->m = utgMesg;
 	pmesg->t = MESG_UTG;
 	writerFn(fileOutput,pmesg);
@@ -1702,7 +1575,7 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
       break;
       case MESG_IUL : {
 	IntUnitigLinkMesg  *iulMesg = (IntUnitigLinkMesg*) pmesg->m;
-	SnapUnitigLinkMesg *ulkMesg = convert_IUL_to_ULK(iulMesg,blockSize,real);
+	SnapUnitigLinkMesg *ulkMesg = convert_IUL_to_ULK(iulMesg,real);
 	pmesg->m = ulkMesg;
 	pmesg->t = MESG_ULK;
 	writerFn(fileOutput,pmesg);
@@ -1711,7 +1584,7 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
       break;
       case MESG_ICM : {
 	IntConConMesg *icmMesg = (IntConConMesg*) pmesg->m;
-	SnapConConMesg *ccoMesg = convert_ICM_to_CCO(icmMesg,blockSize,real);
+	SnapConConMesg *ccoMesg = convert_ICM_to_CCO(icmMesg,real);
 	pmesg->m = ccoMesg;
 	pmesg->t = MESG_CCO;
 	writerFn(fileOutput,pmesg);
@@ -1724,7 +1597,7 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
       break;
       case MESG_ICL : {
 	IntContigLinkMesg *iclMesg = (IntContigLinkMesg*) pmesg->m;
-	SnapContigLinkMesg *clkMesg = convert_ICL_to_CLK(iclMesg,blockSize,real);
+	SnapContigLinkMesg *clkMesg = convert_ICL_to_CLK(iclMesg,real);
 	pmesg->m = clkMesg;
 	pmesg->t = MESG_CLK;
 	writerFn(fileOutput,pmesg);
@@ -1733,7 +1606,7 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
       break;
       case MESG_ISL : {
 	InternalScaffoldLinkMesg *islMesg = (InternalScaffoldLinkMesg*) pmesg->m;
-	SnapScaffoldLinkMesg *slkMesg = convert_ISL_to_SLK(islMesg,blockSize,real);
+	SnapScaffoldLinkMesg *slkMesg = convert_ISL_to_SLK(islMesg,real);
 	pmesg->m = slkMesg;
 	pmesg->t = MESG_SLK;
 	writerFn(fileOutput,pmesg);
@@ -1742,7 +1615,7 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
       break;
       case MESG_ISF : {
 	IntScaffoldMesg *isfMesg = (IntScaffoldMesg*) pmesg->m;
-	SnapScaffoldMesg *scfMesg = convert_ISF_to_SCF(isfMesg,blockSize,real);
+	SnapScaffoldMesg *scfMesg = convert_ISF_to_SCF(isfMesg,real);
 	pmesg->m = scfMesg;
 	pmesg->t = MESG_SCF;
 	writerFn(fileOutput,pmesg);
@@ -1751,7 +1624,7 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
       break;
       case MESG_IMD : {
 	IntMateDistMesg *imdMesg = (IntMateDistMesg*) pmesg->m;
-	SnapMateDistMesg *mdiMesg = convert_IMD_to_MDI(imdMesg,blockSize,real);
+	SnapMateDistMesg *mdiMesg = convert_IMD_to_MDI(imdMesg,real);
 	pmesg->m = mdiMesg;
 	pmesg->t = MESG_MDI;
 	writerFn(fileOutput,pmesg);
@@ -1760,7 +1633,7 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
       break;
       case MESG_IDS : {
 	IntDegenerateScaffoldMesg *idsMesg = (IntDegenerateScaffoldMesg*) pmesg->m;
-	SnapDegenerateScaffoldMesg *dscMesg = convert_IDS_to_DSC(idsMesg,blockSize,real);
+	SnapDegenerateScaffoldMesg *dscMesg = convert_IDS_to_DSC(idsMesg,real);
 	pmesg->m = dscMesg;
 	pmesg->t = MESG_DSC;
 	writerFn(fileOutput,pmesg);
@@ -1892,25 +1765,19 @@ void read_stores(char* fragStoreName, char* bactigStoreName, char* gkpStoreName)
 
   /* Test preconditions */
   if( fragStoreName == NULL ){
-    char dummy[40];
-    sprintf(dummy,"Argument fragStoreName is NULL \n");
-    error(AS_TER_PRECONDITION_ERROR,dummy,
-	  AS_TER_EXIT_FAILURE,__FILE__,__LINE__);
+    sprintf(errorreport,"Argument fragStoreName is NULL");
+    error(errorreport, AS_TER_EXIT_FAILURE,__FILE__,__LINE__);
   }
 
   if( strlen(fragStoreName) == 0 ){
-    char dummy[40];
-    sprintf(dummy,"Argument fragStoreName is empty \n");
-    error(AS_TER_PRECONDITION_ERROR,dummy,
-	  AS_TER_EXIT_FAILURE,__FILE__,__LINE__);
+    sprintf(errorreport,"Argument fragStoreName is empty");
+    error(errorreport, AS_TER_EXIT_FAILURE,__FILE__,__LINE__);
   }
 
     
   if( existsFragStore(fragStoreName) == FALSE ){
-    char dummy[60];
-    sprintf(dummy,"Frag Store %s does not exist \n",fragStoreName);
-    error(AS_TER_PRECONDITION_ERROR,dummy,
-	  AS_TER_EXIT_FAILURE,__FILE__,__LINE__);
+    sprintf(errorreport,"Frag Store %s does not exist",fragStoreName);
+    error(errorreport, AS_TER_EXIT_FAILURE,__FILE__,__LINE__);
   }
 
   streamHandle = openFragStream(FSHandle,NULL,0);
@@ -1935,11 +1802,9 @@ void read_stores(char* fragStoreName, char* bactigStoreName, char* gkpStoreName)
       fflush(stderr);
     }
     /* test whether the iid is not already present */
-    //di = GetCDS_UID_t(FRGmap,iid);
-    if( test_frg_present(iid) ){
-      char dummy[40];
-      sprintf(dummy,"Internal fragment ID %d occurred twice (FRGmap)",iid);
-      error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+    if (test_frg_present(iid)) {
+      sprintf(errorreport,"Internal fragment ID %d occurred twice (FRGmap)",iid);
+      error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
     }
     SetCDS_UID_t(FRGmap,iid,&uid);
     Setshort(FRGpresent,iid,&truedummy);
@@ -1978,9 +1843,8 @@ void read_stores(char* fragStoreName, char* bactigStoreName, char* gkpStoreName)
       
       pi = (IntScreenMatch *)GetPtrT(SMAmap,iid);
       if( pi != NULL ){
-	char dummy[40];
-	sprintf(dummy,"Two screen match lists for internal ID %d in the frag store",iid);
-	error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+	sprintf(errorreport,"Two screen match lists for internal ID %d in the frag store",iid);
+	error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
       }
       SetPtrT(SMAmap,iid,(PtrT)&matches);
     }
@@ -2011,10 +1875,9 @@ void read_stores(char* fragStoreName, char* bactigStoreName, char* gkpStoreName)
 #endif
 
        di = GetCDS_UID_t(DSTmap,i);
-       if( di != NULL ){
-	 char dummy[40];
-	 sprintf(dummy,"Internal DST ID %d occurred twice",i);
-	 error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+       if ((di != NULL) && (*di != 0)) {
+	 sprintf(errorreport,"Internal DST ID %d occurred twice",i);
+	 error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
        }
        SetCDS_UID_t(DSTmap,i,&gkpd.UID);
        if( get_start_uid() <= gkpd.UID )
@@ -2043,10 +1906,9 @@ void read_stores(char* fragStoreName, char* bactigStoreName, char* gkpStoreName)
 	       i, gkpr.UID, gkpr.which);
 #endif
        di = GetCDS_UID_t(RPTmap,i);
-       if( di != NULL ){
-	 char dummy[40];
-	 sprintf(dummy,"Internal RPT ID %d occurred twice",i);
-	 error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+       if ((di != NULL) && (*di != 0)) {
+	 sprintf(errorreport,"Internal RPT ID %d occurred twice",i);
+	 error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
        }
        SetCDS_UID_t(RPTmap,i,&gkpr.UID);
        if(get_start_uid() <= gkpr.UID)
@@ -2071,10 +1933,9 @@ void read_stores(char* fragStoreName, char* bactigStoreName, char* gkpStoreName)
 #endif
        
        di = GetCDS_UID_t(SCNmap,i);
-       if( di != NULL ){
-	 char dummy[40];
-	 sprintf(dummy,"Internal SCN ID %d occurred twice",i);
-	 error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+       if ((di != NULL) && (*di != 0)) {
+	 sprintf(errorreport,"Internal SCN ID %d occurred twice",i);
+	 error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
        }
        SetCDS_UID_t(SCNmap,i,&gkps.UID);
        if(get_start_uid() <= gkps.UID)
@@ -2094,17 +1955,13 @@ void read_stores(char* fragStoreName, char* bactigStoreName, char* gkpStoreName)
   if( bactigStoreName != NULL ){
     fprintf(stderr,"*** Terminator : Reading Bactig Store ***\n");
     if( strlen(bactigStoreName) == 0 ){
-      char dummy[40];
-      sprintf(dummy,"Argument bactigStoreName is empty \n");
-      error(AS_TER_PRECONDITION_ERROR,dummy,
-	    AS_TER_EXIT_FAILURE,__FILE__,__LINE__);
+      sprintf(errorreport,"Argument bactigStoreName is empty");
+      error(errorreport, AS_TER_EXIT_FAILURE,__FILE__,__LINE__);
     }
     
     if( existsFragStore(bactigStoreName) == FALSE ){
-      char dummy[60];
-      sprintf(dummy,"Bactig Store %s does not exist \n",fragStoreName);
-      error(AS_TER_PRECONDITION_ERROR,dummy,
-	    AS_TER_EXIT_FAILURE,__FILE__,__LINE__);
+      sprintf(errorreport,"Bactig Store %s does not exist",fragStoreName);
+      error(errorreport, AS_TER_EXIT_FAILURE,__FILE__,__LINE__);
     }
     
     streamHandle = openFragStream(BSHandle,NULL,0);
@@ -2122,16 +1979,13 @@ void read_stores(char* fragStoreName, char* bactigStoreName, char* gkpStoreName)
       getAccID_ReadStruct(input,&uid);
       
       /* test whether the iid is not already present */
-      //di = GetCDS_UID_t(BTGmap,iid);
-      //      if( di != NULL )
-      if( test_btg_present(iid) ){
-	char dummy[40];
-	sprintf(dummy,"Internal bactig ID %d occurred twice (BTGmap)",iid);
-	error(AS_TER_PRECONDITION_ERROR,dummy,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
+      if (test_btg_present(iid)) {
+	sprintf(errorreport,"Internal bactig ID %d occurred twice (BTGmap)",iid);
+	error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
       }
       SetCDS_UID_t(BTGmap,iid,&uid);
       Setshort(BTGpresent,iid,&truedummy);
-      
+
       if(get_start_uid() <= uid)
 	set_start_uid(uid+1);
 
