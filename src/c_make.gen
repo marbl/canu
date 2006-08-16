@@ -208,6 +208,9 @@ LOCAL_OS_TYPE = $(OSTYPE)
 ifeq ($(MACHINETYPE), x86_64)
   LOCAL_OS_TYPE = Linux64
 endif
+ifeq ($(MACHINETYPE), ia64)
+  LOCAL_OS_TYPE = Linux-ia64
+endif
 
 #### Set up paths
 LOCAL_INC=$(LOCAL_WORK)/inc

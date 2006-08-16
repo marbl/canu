@@ -55,6 +55,9 @@ sub setBinDirectory ($$) {
     } elsif (($host eq "Linux") && ($mach eq "x86_64")) {
         #  Linux on Opteron
         $binDir       = "$binRoot/Linux64/bin";
+    } elsif (($host eq "Linux") && ($mach eq "ia64")) {
+        #  Linux on IA64
+        $binDir       = "$binRoot/Linux-ia64/bin";
     } elsif (($host eq "FreeBSD") && ($mach eq "i386")) {
         #  FreeBSD on Intel
         $binDir       = "$binRoot/FreeBSD/bin";

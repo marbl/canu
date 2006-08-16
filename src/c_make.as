@@ -78,25 +78,28 @@ ifeq ($(OSTYPE), Linux)
   CC         = gcc
   CXX        = g++
   CFLAGS_OPT = -g
-  CFLAGS    += -Os -DANSI_C -DX86_GCC_LINUX -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
-  CXXFLAGS  += -Os -DANSI_C -DX86_GCC_LINUX -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+  CFLAGS    += -Os -DANSI_C -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+  CXXFLAGS  += -Os -DANSI_C -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
   USRLIB     = /usr/X11R6/lib
   CXXDEFS    = -D__cplusplus
   LDFLAGS   += --gc-sections
 
   ifeq ($(MACHINETYPE), i686)
-    CFLAGS   += -march=i686
-    CXXFLAGS += -march=i686
+    CFLAGS   += -march=i686 -DX86_GCC_LINUX
+    CXXFLAGS += -march=i686 -DX86_GCC_LINUX
     LDFLAGS  += -march=i686
   endif
   ifeq ($(MACHINETYPE), x86_64)
     CC        = gcc
     CXX       = g++
-    CFLAGS   += -m64 -mcmodel=medium 
-    CXXFLAGS += -m64 -mcmodel=medium
+    CFLAGS   += -m64 -mcmodel=medium -DX86_GCC_LINUX
+    CXXFLAGS += -m64 -mcmodel=medium -DX86_GCC_LINUX
     ifneq ($(SITE_NAME), TIGR)
       USRLIB    = /usr/lib64 /usr/X11R6/lib64
     endif
+  endif
+  ifeq ($(MACHINETYPE), ia64)
+  ## Don't set X86_GCC_LINUX because IEEE floating point mode is not available.
   endif
 endif
 
