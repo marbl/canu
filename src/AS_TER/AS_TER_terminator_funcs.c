@@ -25,11 +25,7 @@
  Assumptions: There is no UID 0
 **********************************************************************/
 
-static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.15 2006-08-15 17:12:01 brianwalenz Exp $";
-
-
-#include "AS_TER_terminator_funcs.h"
-#include "AS_TER_utils.h"
+static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.16 2006-08-16 00:48:25 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_ReadStruct.h"
@@ -40,6 +36,8 @@ static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.15 2006-08-15 17:12:01
 #include "AS_UTL_version.h"
 #include "PrimitiveVA.h"
 #include "PrimitiveVA_MSG.h"
+
+#include "AS_TER_terminator_funcs.h"
 
 #include <SYS_UIDcommon.h>
 #include <SYS_UIDclient.h>

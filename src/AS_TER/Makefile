@@ -115,7 +115,7 @@
 ######################## Variable Definitions #########################
 LOCAL_WORK = $(shell cd ../../; pwd)
 
-TERM_SRCS=AS_TER_terminator.c AS_TER_utils.c AS_TER_terminator_funcs.c
+TERM_SRCS=AS_TER_terminator.c AS_TER_terminator_funcs.c
 TERM_OBJS=$(TERM_SRCS:.c=.o)
 
 SMA_SRCS = SMAcount.c
