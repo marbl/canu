@@ -113,6 +113,7 @@ if ($isContinuation) {
 preoverlap(@fragFiles);
 
 overlapTrim();
+updateFragmentFiles(@fragFiles);
 
 createOverlapJobs("normal");
 checkOverlap("normal");

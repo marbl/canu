@@ -136,6 +136,7 @@ sub setDefaults {
     $global{"stopAfter"}                   = undef;
     $global{"uidServer"}                   = undef;
     $global{"updateDistanceType"}          = "pre";
+    $global{"updateFragFiles"}             = undef;
     $global{"utgEdges"}                    = undef;
     $global{"utgErrorRate"}                = 15;
     $global{"utgFragments"}                = undef;

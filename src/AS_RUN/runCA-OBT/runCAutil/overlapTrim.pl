@@ -255,4 +255,125 @@ sub overlapTrim {
     stopAfter("OBT");
 }
 
+
+
+sub updateFragmentFiles (@) {
+    my @frgFiles = @_;
+
+    return if (!defined(getGlobal("updateFragFiles")));
+
+    system("mkdir $wrk/0-overlaptrim-updatedfrg") if (! -d "$wrk/0-overlaptrim-updatedfrg");
+
+    #  Strategy 1) read the list of frag UID and new clear range (and
+    #  "is deleted") from the fragstore.  Build a hash here mapping
+    #  UID to new ranges.  Stream each fragment file, updating as
+    #  needed.
+
+    my %updatedClearRanges;
+    my $acc;
+    my $deleted;
+    open(F, "$bin/dumpFragStore $wrk/$asm.frgStore | egrep 'Deleted|accID|Orig' |");
+    while (<F>) {
+        if (m/Deleted:\s*(\d+)\s/) {
+            $deleted = $1;
+        } elsif (m/accID:(\d+)\s/) {
+            $acc = $1;
+        } elsif (m/Ovl\((\d+,\d+),\d+\)\s/) {
+            if ($deleted ne "1") {
+                $updatedClearRanges{$acc} = "$1";
+            }
+        } else {
+            die "Misformed line '$_' updating clear ranges.\n";
+        }
+    }
+    close(F);
+
+    foreach my $f (@frgFiles) {
+        my @fn = split '/', $f;
+        my $fn = pop @fn;
+
+        if      ($fn =~ m/(.*).gz/) {
+            open(F, "gzip -dc $f |");
+            $fn = $1;
+        } elsif ($fn =~ m/(.*).bz2/) {
+            open(F, "bzip2 -dc $f |");
+            $fn = $1;
+        } else {
+            open(F, "< $f");
+        }
+
+        my $inFRG;
+        my $frg;
+        my $inLKG;
+        my $lkg;
+        my $fg1;
+        my $fg2;
+
+        $fn = "$wrk/0-overlaptrim-updatedfrg/$fn";
+        open(FN, "> $fn")         or die "Failed to open '$fn'\n";
+        open(FD, "> $fn.deleted") or die "Failed to open '$fn.deleted'\n";
+        while (<F>) {
+            if      (m/^\{FRG$/) {
+                $inFRG = 1;
+                $frg = $_;
+            } elsif ($inFRG) {
+                $acc = $1 if (m/acc:(\d+)$/);
+
+                if (m/^clr:\d+,\d+$/) {
+                    my $cl = $updatedClearRanges{$acc};
+                    if (defined($cl)) {
+                        $_ = "clr:$cl\n";
+                    }
+                }
+                $frg .= $_;
+
+                if (m/^\}$/) {
+                    if (defined($updatedClearRanges{$acc})) {
+                        print FN $frg;
+                    } else {
+                        print FD $frg;
+                    }
+                    undef $acc;
+                    undef $frg;
+                    undef $inFRG;
+                }
+            } elsif (m/^\{LKG$/) {
+                $inLKG = 1;
+                $lkg = $_;
+            } elsif ($inLKG) {
+                $fg1 = $1 if (m/^fg1:(\d+)/);
+                $fg2 = $1 if (m/^fg2:(\d+)/);
+                $lkg .= $_;
+
+                if (m/^\}$/) {
+
+                    #print STDERR "fg1 -- $fg1 -- $updatedClearRanges{$fg1}\n";
+                    #print STDERR "fg2 -- $fg2 -- $updatedClearRanges{$fg2}\n";
+
+                    if (defined($updatedClearRanges{$fg1}) &&
+                        defined($updatedClearRanges{$fg2})) {
+                        #print STDERR $lkg;
+                        print FN $lkg;
+                    } else {
+                        print FD $lkg;
+                    }
+                    undef $fg1;
+                    undef $fg2;
+                    undef $lkg;
+                    undef $inLKG;
+                }
+            } else {
+                print FN $_;
+            }
+        }
+        close(FD);
+        close(FN);
+        close(F);
+    }
+
+    print STDERR "Fragment files updated.  Bye.\n";
+    exit(0);
+}
+
+
 1;
