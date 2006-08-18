@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.72 2006-08-18 15:19:21 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.73 2006-08-18 15:43:31 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -6012,6 +6012,8 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
     int32 score_reduction=0;
     int32 orig_gap_score=0, left_gap_score=0, right_gap_score=0,
           best_gap_score = 0;
+    int32 orig_total_score, left_total_score, right_total_score, 
+          best_total_score;
     int   max_element = 0;
     BaseCount abacus_count;
     Abacus *left_abacus, *orig_abacus, *right_abacus, *best_abacus;
@@ -6022,7 +6024,7 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
     //ShowAbacus(orig_abacus);
     MergeAbacus(orig_abacus, 1);
     orig_mm_score = ScoreAbacus(orig_abacus,&orig_columns);
-#if 1
+#if 0
     fprintf(stderr, "\n\nOrigCalls=\n");
     ShowCalls(orig_abacus);
     fprintf(stderr, "Abacus=\n");
@@ -6032,7 +6034,7 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
     //ShowAbacus(orig_abacus);
     left_abacus = CloneAbacus(orig_abacus);
     left_mm_score = LeftShift(left_abacus,&left_columns);
-#if 1
+#if 0
     fprintf(stderr, "\n\nLeftShiftCalls=\n");
     ShowCalls(left_abacus);
     fprintf(stderr, "Abacus=\n");
@@ -6041,7 +6043,7 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
 #endif
     right_abacus = CloneAbacus(orig_abacus);
     right_mm_score = RightShift(right_abacus,&right_columns);
-#if 1
+#if 0
     fprintf(stderr, "\n\nRightShiftCalls=\n");
     ShowCalls(right_abacus);
     fprintf(stderr, "Abacus=\n");
@@ -6060,107 +6062,49 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
     best_columns    = orig_columns;
     best_gap_score  = orig_gap_score;
     best_mm_score   = orig_mm_score;
+    orig_total_score  = orig_mm_score  + orig_columns  + orig_gap_score;
+    left_total_score  = left_mm_score  + left_columns  + left_gap_score; 
+    right_total_score = right_mm_score + right_columns + right_gap_score;
+    best_total_score  = orig_total_score;
 
-
-#if 1
+#if 0
     fprintf(stderr, "In RefineWindow: beg= %lu end= %d\n", start_column->lid, stab_bgn);
     fprintf(stderr, "    abacus->columns= %d, abacus->rows= %d\n", orig_abacus->columns, orig_abacus->rows);
     fprintf(stderr, "    w_width left= %d orig= %d right= %d\n", left_abacus->window_width, orig_abacus->window_width,
                                                                      right_abacus->window_width);
-    fprintf(stderr, "       score left= %d orig= %d right= %d\n", left_mm_score, orig_mm_score, right_mm_score);
-    fprintf(stderr, "   gap_score left= %d orig= %d right= %d\n", left_gap_score, orig_gap_score, right_gap_score);
+    fprintf(stderr, "    mm_score left= %d orig= %d right= %d\n", left_mm_score, orig_mm_score, right_mm_score);
     fprintf(stderr, "     columns left= %d orig= %d right= %d\n", left_columns, orig_columns, right_columns);
+    fprintf(stderr, "   gap_score left= %d orig= %d right= %d\n", left_gap_score, orig_gap_score, right_gap_score);
+    fprintf(stderr, " total_score left= %d orig= %d right= %d\n", left_total_score, orig_total_score, right_total_score);
 #endif
-    // Changed by Gennady Denisov:
-    // Apply hyerarchically three criteria to refine abacus:
-    //      1) mm_score (=mismatch score)
-    //      2) number of columns
-    //      3) gap score
-    if ( left_mm_score < orig_mm_score || right_mm_score < orig_mm_score )
+
+    // Use the total score to refine the abacus
+    if ( left_total_score < orig_total_score || 
+        right_total_score < orig_total_score )
     {
-       if ( left_mm_score <= right_mm_score ) {
-          score_reduction += orig_mm_score - left_mm_score;
-          //fprintf(stderr,"\nTry to apply LEFT abacus:\n");
-          //ShowAbacus(left_abacus);
-          GetAbacusBaseCount(left_abacus,&abacus_count);
+        if ( left_total_score <= right_total_score ) {
+            score_reduction += orig_total_score - left_total_score;
+            //fprintf(stderr,"\nTry to apply LEFT abacus:\n");
+            //ShowAbacus(left_abacus);
+            GetAbacusBaseCount(left_abacus, &abacus_count);
 #if 0
-          fprintf(stderr, " Applying left abacus\n");
+            fprintf(stderr, " Applying left abacus\n");
 #endif
-          best_abacus    = left_abacus;
-          best_mm_score     = left_mm_score;
-          best_columns   = left_columns;
-          best_gap_score = left_gap_score;
-       }
-       else
-       {
-          score_reduction += orig_mm_score - right_mm_score;
-          //fprintf(stderr,"\nTry to apply RIGHT abacus:\n");
-          //ShowAbacus(right_abacus);
-          GetAbacusBaseCount(right_abacus,&abacus_count);
+            best_abacus      = left_abacus;
+            best_total_score = left_total_score;
+        }
+        else
+        {
+            score_reduction += orig_total_score - right_total_score;
+            //fprintf(stderr,"\nTry to apply RIGHT abacus:\n");
+            //ShowAbacus(right_abacus);
+            GetAbacusBaseCount(right_abacus,&abacus_count);
 #if 0
-          fprintf(stderr, " Applying right abacus\n");
+            fprintf(stderr, " Applying right abacus\n");
 #endif
-          best_abacus    = right_abacus;
-          best_mm_score  = right_mm_score;
-          best_columns   = right_columns;
-          best_gap_score = right_gap_score;
-       }
-    }
-    else if ( left_mm_score == orig_mm_score && right_mm_score == orig_mm_score)
-    {
-       if (left_columns < orig_columns || right_columns < orig_columns)
-       {
-          if (left_columns <= right_columns)
-          {
-             GetAbacusBaseCount(left_abacus,&abacus_count);
-#if 0
-             fprintf(stderr, " Applying left abacus\n");
-#endif
-             best_abacus    = left_abacus;
-             best_mm_score     = left_mm_score;
-             best_columns   = left_columns;
-             best_gap_score = left_gap_score;
-          }
-          else // left_columns > right_columns
-          {
-             GetAbacusBaseCount(right_abacus,&abacus_count);
-#if 0
-             fprintf(stderr, " Applying right abacus\n");
-#endif
-             best_abacus    = right_abacus;
-             best_mm_score  = right_mm_score;
-             best_columns   = right_columns;
-             best_gap_score = right_gap_score;
-          }
-       }
-       else if (left_columns == orig_columns &&  right_columns == orig_columns)
-       {
-          if (left_gap_score < orig_gap_score || right_gap_score < orig_gap_score)
-          {
-             if (left_gap_score <= right_gap_score)
-             {
-                GetAbacusBaseCount(left_abacus,&abacus_count);
-#if 0
-                fprintf(stderr, " Applying left abacus\n");
-#endif
-                best_abacus    = left_abacus;
-                best_mm_score  = left_mm_score;
-                best_columns   = left_columns;
-                best_gap_score = left_gap_score;
-             }
-             else
-             {
-                GetAbacusBaseCount(right_abacus,&abacus_count);
-#if 0
-                fprintf(stderr, " Applying right abacus\n");
-#endif
-                best_abacus    = right_abacus;
-                best_mm_score  = right_mm_score;
-                best_columns   = right_columns;
-                best_gap_score = right_gap_score;
-             }
-          }
-       }
+            best_abacus      = right_abacus;
+            best_total_score = right_total_score;
+        }
     }
 #if 0
     fprintf(stderr, "Best Abacus Before MixedShift=\n");
@@ -6209,7 +6153,9 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
     fprintf(stderr, "Max element =%d ap.nr=%d num_rows=%d\n", max_element,
               ap.nr, best_abacus->rows);
 #endif
-//    OutputDistMatrix(&ap);
+#if 0
+      OutputDistMatrix(&ap);
+#endif
 
     /* If only one allele is detected, as indicated by small distance between
      * the reads, apply the best abacus so far and quit
