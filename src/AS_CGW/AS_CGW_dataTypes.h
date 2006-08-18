@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_CGW_dataTypes.h,v 1.5 2006-08-17 21:28:57 brianwalenz Exp $	 */
+/* 	$Id: AS_CGW_dataTypes.h,v 1.6 2006-08-18 20:55:28 brianwalenz Exp $	 */
 #ifndef AS_CGW_DATATYPES_H
 #define AS_CGW_DATATYPES_H
 
@@ -38,9 +38,7 @@
 
 #define CGW_FUDGE_FACTOR (0.026)
 
-// TEST!  What happens if we use 0.05 instead of 0.10?  0.15?
-#warning TESTING CGW_DP_ERATE of 0.05 instead of usual 0.10
-#define CGW_DP_ERATE 0.05
+#define CGW_DP_ERATE 0.10
 #define CGW_DP_THRESH 1e-6
 #define CGW_DP_MINLEN 20
 #define CGW_DP_TRY_HARDER_MINLEN 20
