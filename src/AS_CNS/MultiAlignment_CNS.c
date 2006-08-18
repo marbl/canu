@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.71 2006-08-04 21:04:15 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.72 2006-08-18 15:19:21 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -125,8 +125,10 @@ int NumGapsInUnitigs;
 int NumColumnsInContigs;
 int NumRunsOfGapsInContigReads;
 int NumGapsInContigs;
-int NumAAMismatches;
-int NumFAMismatches;
+int NumAAMismatches; // mismatches b/w consensi of two different alleles
+int NumFAMismatches; // mismatches b/w fragments and consensus of the same allele
+int NumVARRecords;
+int NumVARStringsWithFlankingGaps;
 
 //*********************************************************************************
 //  Tables to facilitate SNP Basecalling
@@ -2803,6 +2805,7 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
                 (*v_list)[*nvars].var_length = end+1-beg;
                 (*v_list)[*nvars].var_seq
                       = (char*)safe_calloc(2*(end-beg)+4, sizeof(char));
+                NumVARRecords++;
                 {
                     int m;
                     for (m=0; m<end-beg+1; m++)
@@ -2820,6 +2823,14 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
                     }
                     (*v_list)[*nvars].var_seq[end-beg+1] = '/';
                     (*v_list)[*nvars].var_seq[2*(end-beg)+3] = '\0';
+                    if (((*v_list)[*nvars].var_seq[0      ] == '-' &&
+                         (*v_list)[*nvars].var_seq[end-beg] == '-')
+                         ||
+                        ((*v_list)[*nvars].var_seq[end-beg+2] == '-' &&
+                         (*v_list)[*nvars].var_seq[2*(end-beg)+2] == '-'))
+                    {
+                        NumVARStringsWithFlankingGaps++;
+                    }
                 }
                 (*nvars)++;
             }
@@ -5996,7 +6007,8 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
 {
     int   orig_columns=0, left_columns=0, right_columns=0, 
           best_columns=0;
-    int32 orig_score=0, left_score=0, right_score=0, best_score=0;
+    // Mismatch scores:
+    int32 orig_mm_score=0, left_mm_score=0, right_mm_score=0, best_mm_score=0;
     int32 score_reduction=0;
     int32 orig_gap_score=0, left_gap_score=0, right_gap_score=0,
           best_gap_score = 0;
@@ -6009,32 +6021,35 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
     orig_abacus = CreateAbacus(ma->lid,start_column->lid,stab_bgn);
     //ShowAbacus(orig_abacus);
     MergeAbacus(orig_abacus, 1);
-    orig_score = ScoreAbacus(orig_abacus,&orig_columns);
-#if 0
-    fprintf(stderr, "OrigCalls=\n");
+    orig_mm_score = ScoreAbacus(orig_abacus,&orig_columns);
+#if 1
+    fprintf(stderr, "\n\nOrigCalls=\n");
     ShowCalls(orig_abacus);
     fprintf(stderr, "Abacus=\n");
     ShowAbacus(orig_abacus);
+    fprintf(stderr, "\n");
 #endif
     //ShowAbacus(orig_abacus);
     left_abacus = CloneAbacus(orig_abacus);
-    left_score = LeftShift(left_abacus,&left_columns);
-#if 0
-    fprintf(stderr, "LeftShiftCalls=\n");
+    left_mm_score = LeftShift(left_abacus,&left_columns);
+#if 1
+    fprintf(stderr, "\n\nLeftShiftCalls=\n");
     ShowCalls(left_abacus);
     fprintf(stderr, "Abacus=\n");
     ShowAbacus(left_abacus);
+    fprintf(stderr, "\n");
 #endif
     right_abacus = CloneAbacus(orig_abacus);
-    right_score = RightShift(right_abacus,&right_columns);
-#if 0
-    fprintf(stderr, "RightShiftCalls=\n");
+    right_mm_score = RightShift(right_abacus,&right_columns);
+#if 1
+    fprintf(stderr, "\n\nRightShiftCalls=\n");
     ShowCalls(right_abacus);
     fprintf(stderr, "Abacus=\n");
     ShowAbacus(right_abacus);
+    fprintf(stderr, "\n");
 #endif
-    //fprintf(stderr,"Abacus Report:\norig_score: %d left_score: %d right_score: %d\n",
-    //             orig_score,left_score,right_score);
+    //fprintf(stderr,"Abacus Report:\norig_mm_score: %d left_mm_score: %d right_mm_score: %d\n",
+    //             orig_mm_score,left_mm_score,right_mm_score);
     //ShowAbacus(left_abacus);
     //ShowAbacus(right_abacus);
     // determine best score and apply abacus to real columns
@@ -6044,27 +6059,27 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
     best_abacus     = orig_abacus;
     best_columns    = orig_columns;
     best_gap_score  = orig_gap_score;
-    best_score      = orig_score;
+    best_mm_score   = orig_mm_score;
 
 
-#if 0
+#if 1
     fprintf(stderr, "In RefineWindow: beg= %lu end= %d\n", start_column->lid, stab_bgn);
     fprintf(stderr, "    abacus->columns= %d, abacus->rows= %d\n", orig_abacus->columns, orig_abacus->rows);
     fprintf(stderr, "    w_width left= %d orig= %d right= %d\n", left_abacus->window_width, orig_abacus->window_width,
                                                                      right_abacus->window_width);
-    fprintf(stderr, "       score left= %d orig= %d right= %d\n", left_score, orig_score, right_score);
+    fprintf(stderr, "       score left= %d orig= %d right= %d\n", left_mm_score, orig_mm_score, right_mm_score);
     fprintf(stderr, "   gap_score left= %d orig= %d right= %d\n", left_gap_score, orig_gap_score, right_gap_score);
     fprintf(stderr, "     columns left= %d orig= %d right= %d\n", left_columns, orig_columns, right_columns);
 #endif
     // Changed by Gennady Denisov:
     // Apply hyerarchically three criteria to refine abacus:
-    //      1) score
+    //      1) mm_score (=mismatch score)
     //      2) number of columns
     //      3) gap score
-    if ( left_score < orig_score || right_score < orig_score )
+    if ( left_mm_score < orig_mm_score || right_mm_score < orig_mm_score )
     {
-       if ( left_score <= right_score ) {
-          score_reduction += orig_score - left_score;
+       if ( left_mm_score <= right_mm_score ) {
+          score_reduction += orig_mm_score - left_mm_score;
           //fprintf(stderr,"\nTry to apply LEFT abacus:\n");
           //ShowAbacus(left_abacus);
           GetAbacusBaseCount(left_abacus,&abacus_count);
@@ -6072,13 +6087,13 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
           fprintf(stderr, " Applying left abacus\n");
 #endif
           best_abacus    = left_abacus;
-          best_score     = left_score;
+          best_mm_score     = left_mm_score;
           best_columns   = left_columns;
           best_gap_score = left_gap_score;
        }
        else
        {
-          score_reduction += orig_score - right_score;
+          score_reduction += orig_mm_score - right_mm_score;
           //fprintf(stderr,"\nTry to apply RIGHT abacus:\n");
           //ShowAbacus(right_abacus);
           GetAbacusBaseCount(right_abacus,&abacus_count);
@@ -6086,12 +6101,12 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
           fprintf(stderr, " Applying right abacus\n");
 #endif
           best_abacus    = right_abacus;
-          best_score     = right_score;
+          best_mm_score  = right_mm_score;
           best_columns   = right_columns;
           best_gap_score = right_gap_score;
        }
     }
-    else if ( left_score == orig_score && right_score == orig_score)
+    else if ( left_mm_score == orig_mm_score && right_mm_score == orig_mm_score)
     {
        if (left_columns < orig_columns || right_columns < orig_columns)
        {
@@ -6102,7 +6117,7 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
              fprintf(stderr, " Applying left abacus\n");
 #endif
              best_abacus    = left_abacus;
-             best_score     = left_score;
+             best_mm_score     = left_mm_score;
              best_columns   = left_columns;
              best_gap_score = left_gap_score;
           }
@@ -6113,7 +6128,7 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
              fprintf(stderr, " Applying right abacus\n");
 #endif
              best_abacus    = right_abacus;
-             best_score     = right_score;
+             best_mm_score  = right_mm_score;
              best_columns   = right_columns;
              best_gap_score = right_gap_score;
           }
@@ -6129,7 +6144,7 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
                 fprintf(stderr, " Applying left abacus\n");
 #endif
                 best_abacus    = left_abacus;
-                best_score     = left_score;
+                best_mm_score  = left_mm_score;
                 best_columns   = left_columns;
                 best_gap_score = left_gap_score;
              }
@@ -6140,7 +6155,7 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
                 fprintf(stderr, " Applying right abacus\n");
 #endif
                 best_abacus    = right_abacus;
-                best_score     = right_score;
+                best_mm_score  = right_mm_score;
                 best_columns   = right_columns;
                 best_gap_score = right_gap_score;
              }
@@ -6160,7 +6175,7 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
         int     gapcount[2], short_allele=-1, long_allele=-1;
         int     lscore=0, rscore=0, lpos=-1, rpos=-1;
         int     mixed_columns=0;
-        int32   mixed_score=0, mixed_gap_score=0;
+        int32   mixed_mm_score=0, mixed_gap_score=0;
         Abacus *mixed_abacus=NULL;
 
         SetDefault(&ap);
@@ -6356,29 +6371,29 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
    fprintf(stderr, "   Final lpos=%d rpos=%d window_width=%d long_allele=%d short_allele=%d\n",
           lpos, rpos, best_abacus->window_width, long_allele, short_allele);
 #endif
-        mixed_score = MixedShift(mixed_abacus, &mixed_columns, ap, lpos, rpos,
+        mixed_mm_score = MixedShift(mixed_abacus, &mixed_columns, ap, lpos, rpos,
             template, long_allele, short_allele);
 
 #if 0
    fprintf(stderr, "Mixed abacus=\n");
     ShowAbacus(mixed_abacus);
    fprintf(stderr, "End calling MixedShift\n\n");
-   fprintf(stderr, "mixed_score=%d bast_score=%d\n", mixed_score, best_score);
+   fprintf(stderr, "mixed_mm_score=%d bast_score=%d\n", mixed_mm_score, best_mm_score);
    fprintf(stderr, "mixed_columns=%d best_columns=%d\n", mixed_columns, best_columns);
    fprintf(stderr, "mixed_gap_score=%d best_gap_score=%d\n", mixed_gap_score, best_gap_score);
 #endif
         mixed_gap_score  = AffineScoreAbacus(mixed_abacus);
 #if 0
-         fprintf(stderr, "mixed_gap_score=%d best_gap_score=%d mixed_columns=%d best_columns=%d mixed_score=%d best_score=%d\n", mixed_gap_score, best_gap_score, mixed_columns, best_columns, mixed_score, best_score);
+         fprintf(stderr, "mixed_gap_score=%d best_gap_score=%d mixed_columns=%d best_columns=%d mixed_mm_score=%d best_mm_score=%d\n", mixed_gap_score, best_gap_score, mixed_columns, best_columns, mixed_mm_score, best_mm_score);
 #endif
         if ( (mixed_gap_score <  best_gap_score) ||
             ((mixed_gap_score == best_gap_score) && (mixed_columns < best_columns))
              ||
             ((mixed_gap_score == best_gap_score) && (mixed_columns == best_columns) &&
-             (mixed_score < best_score)))
+             (mixed_mm_score < best_mm_score)))
         {
             best_abacus    = mixed_abacus;
-            best_score     = mixed_score;
+            best_mm_score  = mixed_mm_score;
             best_columns   = mixed_columns;
             best_gap_score = mixed_gap_score;
         }
