@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.74 2006-08-21 17:08:46 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.75 2006-08-21 17:13:06 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -7684,6 +7684,7 @@ int MultiAlignContig(IntConConMesg *contig,
               }
             }
         }
+
         if ( ! olap_success ) {
            fprintf(stderr,"Could (really) not find overlap between %d (%c) and %d (%c), estimated ahang %d", 
                    afrag->iid,afrag->type,bfrag->iid,bfrag->type, ahang);
@@ -7696,20 +7697,95 @@ int MultiAlignContig(IntConConMesg *contig,
 
            forced_contig = 1; 
 
-           //  BUG! (?)  if there is no overlap between the first and
+           //  BUG! (?)  If there is no overlap between the first and
            //  second frag, we might not have *_first set.
+           //
+           //  The following happened.  The original placement was:
+           //
+           //    unitig1    ------------------
+           //    unitig2                     -----
+           //    unitig3                       --------
+           //
+           //  BUT, that thin overlap wasn't found between #2 and #1,
+           //  instead, we have this:
+           //
+           //    unitig1    ------------------
+           //    unitig2         ------
+           //    unitig3                       --------
+           //
+           //  #3 tried to align to #2, saw it was contained, skipped
+           //  it.  There is now no overlap between #3 and #1, and so
+           //  we never set the *_first variables.
+           //  
+           //  We're likely pretty screwed up here already, and since
+           //  it took manual intervention to get here (being a
+           //  recompilation), we're gonna force it to go together by
+           //  picking the closest unitig (#1 in this case) as our
+           //  first.
+           //
+           //  If you do see this again, bpw suggests yanking out
+           //  unitig#2 (it's a rock, right?)  and forcing the
+           //  alignment.
+           //
 
-           afrag = afrag_first;
-           ahang = ahang_first;
+           if (afrag_first) {
+             afrag = afrag_first;
+             ahang = ahang_first;
+           } else {
+             //  Dang, we're really screwed.  Nobody overlapped with us.
+             //  Cross our fingers and find the closest end point.
+             //
+             int   maxOvl = -offsets[blid].bgn;
+
+             if (VERBOSE_MULTIALIGN_OUTPUT)
+               fprintf(stderr, "MultiAlignContig:  YIKES!  Your unitig doesn't overlap with anything!  Picking the closest thing!\n");
+
+             align_to = i-1;
+
+             while (align_to >= 0) {
+               if ((try_contained) ? 0 : IsContained(align_to)) {
+                 //  NOP!  Found a contained frag, and we want to skip it.
+               } else if (maxOvl < offsets[alid].end - offsets[blid].bgn) {
+                 afrag  = GetFragment(fragmentStore, align_to);
+                 alid   = afrag->lid;
+                 maxOvl = offsets[alid].end - offsets[blid].bgn;
+                 ahang  = offsets[blid].bgn - offsets[alid].bgn;
+
+                 fprintf(stderr, "MultiAlignContig:  RESET align_to=%d alid=%d maxOvl=%d ahang=%d\n", align_to, alid, maxOvl, ahang);
+               }
+
+               align_to--;
+             }
+           }
+
+           if (VERBOSE_MULTIALIGN_OUTPUT)
+             fprintf(stderr, "MultiAlignContig:  Forcing abut between afrag %d (%c) and bfrag %d (%c).\n",
+                     afrag->iid, afrag->type,
+                     bfrag->iid, bfrag->type);
+
            assert(afrag);
-           if (ahang > afrag->length)
+
+           //  If our ahang is too big, force a 20bp overlap.
+           //
+           if (ahang + 20 > afrag->length) {
+             fprintf(stderr, "RESET: ahang from %d to %d\n", ahang, afrag->length-20);
              ahang = afrag->length - 20;
+           }
+
+           //  And now, after all this work, we simply die in the
+           //  ApplyAlignment() ten lines below.  Too bad.....
+
            otype = AS_DOVETAIL;
-        }
+        }  //  End of forcing the unitig to abut.
+
+        //  Unitig is placed, or we just forced it to be placed.
+
         if ( otype == AS_CONTAINMENT ) { 
           MarkAsContained(i);
         }
+
         last_b_aligned=ApplyAlignment(afrag->lid,0,bfrag->lid,ahang,Getint32(trace,0));
+
         PlaceFragments(bfrag->lid,COMPARE_FUNC, opp);
         //assert( GetNumFragments(fragmentStore) < total_aligned_elements);
      }
