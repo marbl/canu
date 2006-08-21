@@ -27,7 +27,7 @@
                  
  *********************************************************************/
 
-static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.26 2006-08-21 17:07:19 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.27 2006-08-21 18:15:51 brianwalenz Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -79,6 +79,13 @@ extern int NumAAMismatches;
 extern int NumFAMismatches;
 extern int NumVARRecords;
 extern int NumVARStringsWithFlankingGaps;
+
+//  Multialignment_CNS.c options
+//
+extern int DUMP_UNITIGS_IN_MULTIALIGNCONTIG;
+extern int VERBOSE_MULTIALIGN_OUTPUT;
+extern int FORCE_UNITIG_ABUT;
+
 
 float CNS_SEQUENCING_ERROR_EST = .02; // Used to calculate '-' probability
 float CNS_SNP_RATE   = 0.0003; // Used to calculate BIAS
@@ -181,6 +188,8 @@ help_message(int argc, char *argv[])
     "                  > 1 will include publice data is the Celera depth falls below the given value\n"
     "    -X           Allow 'expert' options (following)\n"
     "\n Expert option flags:\n"
+    "    -D opt       Enable debugging option 'opt'.  One of 'dumpunitigs', 'verbosemultialign',\n"
+    "                 and 'forceunitigabut'.  (-X not needed).\n"
     "    -R %%d        Restart from the given ICM/IUM by internal id, appending to output file\n"
     "    -i           Realign IUM messages (while processing .cgw file)\n"
     "    -q string    Override default quality call parameters\n"
@@ -343,7 +352,6 @@ int main (int argc, char *argv[])
     novar = 0;
 
     optarg = NULL;
-    debug_out = 1;
     terminate_cond = 1;
     partitioned=0;
     allow_forced_frags=0;
@@ -414,7 +422,6 @@ int main (int argc, char *argv[])
         case 'O':
           bactigs = 1;
           terminate_cond = 0;
-          debug_out = 1;
           strcpy(BactigStoreFileName, optarg);
           ALIGNMENT_CONTEXT = AS_OVERLAY;
           iflags++;
@@ -488,39 +495,23 @@ int main (int argc, char *argv[])
           iflags++;
           iflags++;
           break;
-        case 'z':
-          //do_rez = 1;
-          iflags++;
-          break;
         case 'X':
           expert = 1;
           iflags++;
           break;
+
         case 'D':
-          if ( ! expert ) {
-             fprintf(stderr,"Command line switch %c requires -X; try adding -X...\n",
-                  ch); 
-             illegal_use = 1;
+          if        (strcmp(optarg, "dumpunitigs") == 0) {
+            DUMP_UNITIGS_IN_MULTIALIGNCONTIG = 1;
+          } else if (strcmp(optarg, "verbosemultialign") == 0) {
+            VERBOSE_MULTIALIGN_OUTPUT = 1;
+          } else if (strcmp(optarg, "forceunitigabut") == 0) {
+            FORCE_UNITIG_ABUT = 1;
           } else {
-            debug_out = atoi(optarg);
-            iflags++;
-            iflags++;
+            fprintf(stderr, "Unrecognized option '%s' to -D.\n", optarg);
           }
           break;
-        case 'A':
-        case 'E':
-        case 'C':
-          if ( ! expert ) {
-             fprintf(stderr,"Command line switch %c requires -X; try adding -X...\n",
-                  ch); 
-             illegal_use = 1;
-          } else {
-            fprintf(stderr,"Command line switch %c <%d> not supported; ignoring...\n",
-                  ch, atoi(optarg)); 
-          }
-          iflags++;
-          iflags++;
-          break;
+
         case 'R':  // restart (formerly 'continue')
           if ( ! expert ) {
              fprintf(stderr,"Command line switch %c requires -X; try adding -X...\n",
@@ -914,7 +905,7 @@ int main (int argc, char *argv[])
       VA_TYPE(char) *quality=CreateVA_char(200000);
       time_t t;
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.26 $ processing. Started %s\n",
+      fprintf(stderr,"# Consensus $Revision: 1.27 $ processing. Started %s\n",
         ctime(&t));
       InitializeAlphTable();
       if ( ! align_ium && USE_SDB && extract > -1 ) 
@@ -1242,7 +1233,7 @@ int main (int argc, char *argv[])
             {
               AuditLine auditLine;
               AppendAuditLine_AS(adt_mesg, &auditLine, t,
-                                 "Consensus", "$Revision: 1.26 $","(empty)");
+                                 "Consensus", "$Revision: 1.27 $","(empty)");
             }
 #endif
               VersionStampADT(adt_mesg,argc,argv);
@@ -1266,7 +1257,7 @@ int main (int argc, char *argv[])
       }
 
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.26 $ Finished %s\n",ctime(&t));
+      fprintf(stderr,"# Consensus $Revision: 1.27 $ Finished %s\n",ctime(&t));
       if (printcns) 
       {
         int unitig_length = (unitig_count>0)? (int) input_lengths/unitig_count: 0; 
