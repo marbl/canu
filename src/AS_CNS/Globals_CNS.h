@@ -118,6 +118,7 @@
    VA_TYPE(int32) *bactig_delta_length;
    VA_TYPE(PtrT) *bactig_deltas;
 
+
 static void CleanExit(char *mesg, int lineno, int rc) {
   char command[100+FILENAME_MAX];
 
@@ -144,9 +145,11 @@ static void CleanExit(char *mesg, int lineno, int rc) {
     fprintf(stderr,"%s\n",command);
     system(command);
   }
+  assert(terminate_cond == 0);
   exit(terminate_cond);
   //exit(rc);
 }
+
 
 static float CNS_eff_cov[37] = {
 1.00, 1.25, 1.50, 1.75, 2.00, 2.25, 2.50, 2.75, 3.00, 3.25, 3.50, 3.75, 4.00, 4.25, 4.50, 4.75,

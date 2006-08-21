@@ -25,8 +25,7 @@
 #VERBOSE=1
 REQD_LIBS = libAS_PER.a libAS_UTL.a libAS_MSG.a libAS_ALN.a libAS_CNS.a libAS_REZ.a libAS_CGW.a
 
-LIB_SOURCES = MultiAlignment_CNS.c MultiAlignStore_CNS.c \
-	Array_CNS.c Utilities_CNS.c
+LIB_SOURCES = MultiAlignment_CNS.c MultiAlignStore_CNS.c Array_CNS.c
 LIB_OBJECTS = $(LIB_SOURCES:.c=.o)
 LIBRARIES = libAS_CNS.a
 LOCAL_WORK = $(shell cd ../..; pwd)
@@ -60,26 +59,22 @@ LIBS =  libAS_CGW.a libAS_REZ.a libAS_CGW.a libAS_PER.a libAS_MSG.a \
 	libAS_CGW.a libAS_REZ.a libAS_CGW.a libAS_REZ.a libAS_CGW.a libAS_OVL.a  libAS_ALN.a libAS_UTL.a libAS_PER.a libAS_LIN.a libAS_MSG.a 
 
 consensus: Consensus_CNS.o  MultiAlignment_CNS.o MultiAlignStore_CNS.o \
-	Array_CNS.o Utilities_CNS.o $(LIBS) 
+	Array_CNS.o $(LIBS) 
 
 testbasecall: TestBaseCall_CNS.o  MultiAlignment_CNS.o MultiAlignStore_CNS.o \
-	Array_CNS.o Utilities_CNS.o $(LIBS)
+	Array_CNS.o $(LIBS)
 
 testalignment: TestAlign_CNS.o  MultiAlignment_CNS.o MultiAlignStore_CNS.o \
-	Array_CNS.o Utilities_CNS.o $(LIBS)
+	Array_CNS.o $(LIBS)
 
 rebuildalignment: RebuildMultiAlign_CNS.o  MultiAlignment_CNS.o MultiAlignStore_CNS.o \
-	Array_CNS.o Utilities_CNS.o $(LIBS)
+	Array_CNS.o $(LIBS)
 
 rebuildscaffolds: RebuildScaffolds_CNS.o  MultiAlignment_CNS.o MultiAlignStore_CNS.o \
-	Array_CNS.o Utilities_CNS.o colCorr_CNS.o $(LIBS)
+	Array_CNS.o colCorr_CNS.o $(LIBS)
 
 scaffoldunitigs: ScaffoldUnitigProfile_CNS.o  MultiAlignment_CNS.o MultiAlignStore_CNS.o \
-	Array_CNS.o Utilities_CNS.o $(LIBS)
-
-#alignstats: AlignStats_CNS.o  MultiAlignment_CNS.o MultiAlignStore_CNS.o \
-#	Array_CNS.o Utilities_CNS.o \
-#	libAS_MSG.a libAS_PER.a libAS_ALN.a libAS_SDB.a libAS_UTL.a libAS_REZ.a 
+	Array_CNS.o $(LIBS)
 
 post_analysis: post_analysis.o \
          $(LIBS)

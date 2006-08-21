@@ -26,20 +26,13 @@
  *
  **************************************************************/
 /*********************************************************************
- $Id: PublicAPI_CNS.h,v 1.6 2005-07-08 21:05:34 brianwalenz Exp $
+ $Id: PublicAPI_CNS.h,v 1.7 2006-08-21 17:41:55 brianwalenz Exp $
  *********************************************************************/
 
 #ifndef PUBLICAPI_CNS_INCLUDE
 #define PUBLICAPI_CNS_INCLUDE
 
 #include "Globals_CNS.h"
-
-void CNS_setExitStatus (int) ;
-
-void CNS_setConsensusParametersToDefault() ;
-
-void CNS_setConsensusParametersIndividually( int , int , float , float ,
-    int , int , int , int , int ) ;
 
 int MultiAlignUnitig(IntUnitigMesg *, FragStoreHandle , VA_TYPE(char) *,
     VA_TYPE(char) *, VA_TYPE(int32) *, CNS_PrintKey , int, 
