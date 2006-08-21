@@ -93,61 +93,52 @@
 //
 // (All are reset after each multialignment)
 
-   VA_TYPE(Fragment) *fragmentStore;
-   VA_TYPE(Column) *columnStore;
-   VA_TYPE(MANode) *manodeStore;
+VA_TYPE(Fragment) *fragmentStore;
+VA_TYPE(Column) *columnStore;
+VA_TYPE(MANode) *manodeStore;
 
 //====================================================================
 // Convenience arrays for misc. fragment information
 // (All are reset after each multialignment)
-   typedef enum ALIGN_TYPE { AS_CONSENSUS = (int) 'C', AS_OVERLAY = (int) 'O', AS_MERGE = (int) 'M' } ALIGN_TYPE;
-   ALIGN_TYPE ALIGNMENT_CONTEXT; 
-   int USE_SDB;
-   int USE_SDB_PART;
+
+typedef enum ALIGN_TYPE { AS_CONSENSUS = (int) 'C', AS_OVERLAY = (int) 'O', AS_MERGE = (int) 'M' } ALIGN_TYPE;
+ALIGN_TYPE ALIGNMENT_CONTEXT; 
+
+int USE_SDB;
+int USE_SDB_PART;
 
 
-   VA_TYPE(int32) *fragment_indices;
-   VA_TYPE(int32) *abacus_indices;
-   VA_TYPE(PtrT) *fragment_positions;
-   VA_TYPE(PtrT) *fragment_source;
-   int64 gaps_in_alignment;
-   int debug_out;
-   int terminate_cond;
-   int allow_forced_frags;
-   int allow_neg_hang;
-   VA_TYPE(int32) *bactig_delta_length;
-   VA_TYPE(PtrT) *bactig_deltas;
+VA_TYPE(int32) *fragment_indices;
+VA_TYPE(int32) *abacus_indices;
+VA_TYPE(PtrT) *fragment_positions;
+VA_TYPE(PtrT) *fragment_source;
+int64 gaps_in_alignment;
+int terminate_cond;
+int allow_forced_frags;
+int allow_neg_hang;
+VA_TYPE(int32) *bactig_delta_length;
+VA_TYPE(PtrT) *bactig_deltas;
 
 
 static void CleanExit(char *mesg, int lineno, int rc) {
-  char command[100+FILENAME_MAX];
+  char dbgname[FILENAME_MAX];
 
   fprintf(stderr,"%s at line: %d, rc: %d\n",mesg,lineno,rc);
+
   if( cnsout != NULL && ! std_output ){
     fclose(cnsout);
-    if ( debug_out ) {
-      sprintf(command,"mv -f %s %s.dbg",OutputFileName,OutputFileName);
-    } else {
-      sprintf(command,"rm -f %s",OutputFileName);
-    }
-    fprintf(stderr,"%s\n",command);
-    system(command);
-    sprintf(command,"touch %s",OutputFileName);
-    system(command);
+    sprintf(dbgname, "%s.dbg", OutputFileName);
+    unlink(dbgname);
+    rename(OutputFileName, dbgname);
   }
   if( cnslog != NULL && ! std_error_log) {
     fclose(cnslog);
-    if ( debug_out ) {
-      sprintf(command,"mv -f %s %s.dbg",LogFileName,LogFileName);
-    } else {
-      sprintf(command,"rm -f %s",LogFileName);
-    }
-    fprintf(stderr,"%s\n",command);
-    system(command);
+    sprintf(dbgname, "%s.dbg", LogFileName);
+    unlink(dbgname);
+    rename(LogFileName, dbgname);
   }
   assert(terminate_cond == 0);
   exit(terminate_cond);
-  //exit(rc);
 }
 
 
