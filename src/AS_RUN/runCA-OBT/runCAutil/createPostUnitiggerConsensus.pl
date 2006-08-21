@@ -78,7 +78,7 @@ sub createPostUnitiggerConsensusJobs(@) {
     print F "\n";
     print F "echo \\\n";
     print F "$gin/consensus \\\n";
-    print F "  -P -m -U -z \\\n";
+    print F "  -P -m -U \\\n";
     print F "  -S \$jobp \\\n";
     print F "  -o $wrk/5-consensus/${asm}_\$jobp.cgi \\\n";
     print F "  $wrk/$asm.frgStore_cns1part \\\n";
@@ -88,7 +88,7 @@ sub createPostUnitiggerConsensusJobs(@) {
     print F "\n";
     print F "$pstats \\\n" if (defined($pstats));
     print F "$gin/consensus \\\n";
-    print F "  -P -m -U -z \\\n";
+    print F "  -P -m -U \\\n";
     print F "  -S \$jobp \\\n";
     print F "  -o $wrk/5-consensus/${asm}_\$jobp.cgi \\\n";
     print F "  $wrk/$asm.frgStore_cns1part \\\n";
