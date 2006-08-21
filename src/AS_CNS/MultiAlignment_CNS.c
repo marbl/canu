@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.73 2006-08-18 15:43:31 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.74 2006-08-21 17:08:46 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -153,6 +153,12 @@ int DUMP_UNITIGS_IN_MULTIALIGNCONTIG = 0;
 // which made it difficult to switch on in the middle of a debug.
 //
 int VERBOSE_MULTIALIGN_OUTPUT = 0;
+
+//  If non-zero, we'll force-abut unitigs that don't align together.
+//  Typically, these are caused by microscopic overlaps between
+//  unitigs -- certainly less than 20bp long.
+//
+int FORCE_UNITIG_ABUT = 0;
 
 
 int isRead(FragType type){
@@ -7679,16 +7685,15 @@ int MultiAlignContig(IntConConMesg *contig,
             }
         }
         if ( ! olap_success ) {
-           fprintf(stderr,"Could (really) not find overlap between %d (%c) and %d (%c)", 
-                   afrag->iid,afrag->type,bfrag->iid,bfrag->type);
-           fprintf(stderr,"estimated ahang: %d\n", ahang);
-           fprintf(stderr,"You can force these to abut; see code at line %d in MultiAlignment_CNS.c\n", __LINE__+2);
-           FREE(offsets);
-           return EXIT_FAILURE;
-           // if you remove the above FREE() and return(),
-           // the following should  have the affect of abutting the unitigs
-           //   NEW: rather than abutting, let's try forced identity alignment
-           //        to original placement.
+           fprintf(stderr,"Could (really) not find overlap between %d (%c) and %d (%c), estimated ahang %d", 
+                   afrag->iid,afrag->type,bfrag->iid,bfrag->type, ahang);
+           fprintf(stderr,"You can force these to abut; see FORCE_UNITIG_ABUT in %s.\n", __FILE__);
+
+           if (FORCE_UNITIG_ABUT == 0) {
+             FREE(offsets);
+             return EXIT_FAILURE;
+           }
+
            forced_contig = 1; 
 
            //  BUG! (?)  if there is no overlap between the first and
