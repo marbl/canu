@@ -10,8 +10,6 @@ sub createPostScaffolderConsensusJobs ($) {
 
     return if (-e "$wrk/8-consensus/jobsCreated.success");
 
-    $cgwDir = "$wrk/7-CGW" if (!defined($cgwDir));
-
     #  Check that $cgwDir is complete
     #
     die "Didn't find '$cgwDir/$asm.SeqStore'.\n"    if (! -d "$cgwDir/$asm.SeqStore");
@@ -150,6 +148,8 @@ sub postScaffolderConsensus ($) {
     system("mkdir $wrk/8-consensus") if (! -d "$wrk/8-consensus");
 
     goto alldone if (-e "$wrk/8-consensus/consensus.success");
+
+    $cgwDir = "$wrk/7-CGW" if (!defined($cgwDir));
 
     createPostScaffolderConsensusJobs($cgwDir) if (! -e "$wrk/8-consensus/jobsCreated.success");
 
