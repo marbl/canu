@@ -26,8 +26,8 @@
  *********************************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap.h,v 1.7 2006-03-28 04:02:51 ahalpern Exp $
- * $Revision: 1.7 $
+ * $Id: AS_OVL_overlap.h,v 1.8 2006-08-22 03:16:10 ahalpern Exp $
+ * $Revision: 1.8 $
 */
 
 
@@ -187,12 +187,24 @@
     //  cannot initiate an overlap.  Can be changed on the command
     //  line with  -K  option
 
-#ifdef HIGH_ERR_MODEL_IN_AS_GLOBAL_H
+
+#if ERR_MODEL_IN_AS_GLOBAL_H == 35
   #define  DEFAULT_BRANCH_MATCH_VAL    0.259259
   #define  PARTIAL_BRANCH_MATCH_VAL    0.259259
-#else
-  #define  DEFAULT_BRANCH_MATCH_VAL    0.0566
-  #define  PARTIAL_BRANCH_MATCH_VAL    0.0566
+#elif ERR_MODEL_IN_AS_GLOBAL_H == 20
+  #define  DEFAULT_BRANCH_MATCH_VAL    0.166667
+  #define  PARTIAL_BRANCH_MATCH_VAL    0.166667
+#elif ERR_MODEL_IN_AS_GLOBAL_H == 15
+  #define  DEFAULT_BRANCH_MATCH_VAL    0.130435
+  #define  PARTIAL_BRANCH_MATCH_VAL    0.130435
+#elif ERR_MODEL_IN_AS_GLOBAL_H == 10
+  #define  DEFAULT_BRANCH_MATCH_VAL    0.0909091
+  #define  PARTIAL_BRANCH_MATCH_VAL    0.0909091
+#elif ERR_MODEL_IN_AS_GLOBAL_H == 6
+  #define  DEFAULT_BRANCH_MATCH_VAL    0.0566038
+  #define  PARTIAL_BRANCH_MATCH_VAL    0.0566038
+#else // default values
+  #error ERR_MODEL_IN_AS_GLOBAL_H value not supported
 #endif
     //  Value to add for a match in finding branch points.
     //  ALH: Note that AS_READ_ERROR_RATE also affects what overlaps get found
@@ -206,6 +218,8 @@
     //  goal p, we have x = p/(1+p).  E.g. 
     //  for p=0.06, x = .06/(1.06) = .0566038; 
     //  for p=0.35, x = .35/(1.35) = .259259
+    //  for p=0.2, x = .2/(1.2) = .166667
+    //  for p=0.15, x = .15/(1.15) = .130435
     //
     //  Value was for 6% vs 35% error discrimination.
     //  Converting to integers didn't make it faster.
@@ -319,7 +333,7 @@
 #define  MIN_BRANCH_END_DIST     20
     //  Branch points must be at least this many bases from the
     //  end of the fragment to be reported
-#ifdef HIGH_ERR_MODEL_IN_AS_GLOBAL_H
+#if ERR_MODEL_IN_AS_GLOBAL_H > 6
   #define  MIN_BRANCH_TAIL_SLOPE   1.0
 #else
   #define  MIN_BRANCH_TAIL_SLOPE   0.20
@@ -387,7 +401,7 @@
 #if  FOR_CARL_FOSLER
   #define  WINDOW_SIZE             28
 #else
-  #ifdef HIGH_ERR_MODEL_IN_AS_GLOBAL_H
+  #if ERR_MODEL_IN_AS_GLOBAL_H > 6
     #define  WINDOW_SIZE             14
   #else
     #define  WINDOW_SIZE             22

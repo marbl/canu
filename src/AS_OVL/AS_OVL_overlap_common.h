@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.17 2006-06-05 17:47:06 brianwalenz Exp $
- * $Revision: 1.17 $
+ * $Id: AS_OVL_overlap_common.h,v 1.18 2006-08-22 03:16:10 ahalpern Exp $
+ * $Revision: 1.18 $
 */
 
 
@@ -236,7 +236,7 @@ static size_t  Used_Data_Len = 0;
     //  Number of bytes of Data currently occupied, including
     //  regular strings and extra kmer screen strings
 
-#ifdef HIGH_ERR_MODEL_IN_AS_GLOBAL_H
+#if ERR_MODEL_IN_AS_GLOBAL_H > 6
 static int  Use_Hopeless_Check = FALSE;
 #else
 static int  Use_Hopeless_Check = TRUE;
@@ -734,8 +734,8 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
             Unique_Olap_Per_Pair = TRUE;
             break;
           case  'w' :
-            #ifndef HIGH_ERR_MODEL_IN_AS_GLOBAL_H
-              Use_Window_Filter = TRUE;
+            #if ERR_MODEL_IN_AS_GLOBAL_H > 6
+	      Use_Window_Filter = TRUE;
             #else
               Use_Window_Filter = FALSE;
 	      fprintf(stderr,"This overlap executable looks for high-error overlaps -- window-filter turned off despite -w flag!\n");
@@ -1853,6 +1853,8 @@ static int  Binomial_Bound
            Normal_Z = (e - 0.5 - n * p) / sqrt (n * p * q);
            if  (Normal_Z <= NORMAL_DISTRIB_THOLD)
                return  n;
+#undef COMPUTE_IN_LOG_SPACE
+#ifndef COMPUTE_IN_LOG_SPACE
            Sum = 0.0;
            Mu_Power = 1.0;
            Factorial = 1.0;
@@ -1863,6 +1865,18 @@ static int  Binomial_Bound
               Mu_Power *= n * p;
               Factorial *= k + 1;
              }
+#else
+           Sum = 0.0;
+           Mu_Power = 0.0;
+           Factorial = 0.0;
+           Poisson_Coeff = - n * p;
+           for  (k = 0;  k < e;  k ++)
+             {
+	      Sum += exp(Mu_Power + Poisson_Coeff - Factorial);
+              Mu_Power += log(n * p);
+              Factorial = lgamma(k + 1);
+             }
+#endif
            if  (1.0 - Sum > Limit)
                return  n;
           }

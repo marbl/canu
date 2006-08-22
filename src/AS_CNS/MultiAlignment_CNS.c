@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.76 2006-08-21 17:41:55 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.77 2006-08-22 03:16:10 ahalpern Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -62,10 +62,9 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.76 2006-08-21 17:41:55 bria
 #define CNS_DP_THRESH                       1e-6
 #define CNS_DP_MINLEN                      30
 #define CNS_DP_THIN_MINLEN                 10
-#undef  GOS_ALIGNMENTS_FOR_RECRUITED_FRGS
-#ifdef  GOS_ALIGNMENTS_FOR_RECRUITED_FRGS
+#if ERR_MODEL_IN_AS_GLOBAL_H > 6
   #define CNS_TIGHTSEMIBANDWIDTH          100
-  #define CNS_DP_ERATE                       .35
+  #define CNS_DP_ERATE                    ERR_FRACTION_IN_AS_GLOBAL_H
 #else
   #define CNS_TIGHTSEMIBANDWIDTH            6
   #define CNS_DP_ERATE                       .06
@@ -4190,7 +4189,8 @@ void PrintAlignment(FILE *print, int32 mid, int32 from, int32 to, CNS_PrintKey w
     to = ((int) to/100)*100;
   }
 
-#ifdef GOS_ALIGNMENTS_FOR_RECRUITED_FRGS
+#undef SHOW_MSA_ON_ONE_PAGE
+#ifdef SHOW_MSA_ON_ONE_PAGE
   ALNPAGEWIDTH=to-from+1;
 #endif
 

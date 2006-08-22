@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_CGW_dataTypes.h,v 1.6 2006-08-18 20:55:28 brianwalenz Exp $	 */
+/* 	$Id: AS_CGW_dataTypes.h,v 1.7 2006-08-22 03:16:10 ahalpern Exp $	 */
 #ifndef AS_CGW_DATATYPES_H
 #define AS_CGW_DATATYPES_H
 
@@ -37,8 +37,11 @@
 #define CGW_MIN_READS_IN_UNIQUE  2
 
 #define CGW_FUDGE_FACTOR (0.026)
-
-#define CGW_DP_ERATE 0.10
+#if ERR_MODEL_IN_AS_GLOBAL_H > 10
+  #define CGW_DP_ERATE ERR_FRACTION_IN_AS_GLOBAL_H
+#else
+  #define CGW_DP_ERATE 0.10
+#endif
 #define CGW_DP_THRESH 1e-6
 #define CGW_DP_MINLEN 20
 #define CGW_DP_TRY_HARDER_MINLEN 20
