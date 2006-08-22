@@ -26,8 +26,8 @@
  *********************************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap.h,v 1.8 2006-08-22 03:16:10 ahalpern Exp $
- * $Revision: 1.8 $
+ * $Id: AS_OVL_overlap.h,v 1.9 2006-08-22 19:27:59 ahalpern Exp $
+ * $Revision: 1.9 $
 */
 
 
@@ -201,8 +201,8 @@
   #define  DEFAULT_BRANCH_MATCH_VAL    0.0909091
   #define  PARTIAL_BRANCH_MATCH_VAL    0.0909091
 #elif ERR_MODEL_IN_AS_GLOBAL_H == 6
-  #define  DEFAULT_BRANCH_MATCH_VAL    0.0566038
-  #define  PARTIAL_BRANCH_MATCH_VAL    0.0566038
+  #define  DEFAULT_BRANCH_MATCH_VAL    0.0566
+  #define  PARTIAL_BRANCH_MATCH_VAL    0.0566
 #else // default values
   #error ERR_MODEL_IN_AS_GLOBAL_H value not supported
 #endif
