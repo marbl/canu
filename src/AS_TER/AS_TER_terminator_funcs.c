@@ -25,7 +25,7 @@
  Assumptions: There is no UID 0
 **********************************************************************/
 
-static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.16 2006-08-16 00:48:25 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.17 2006-08-23 10:55:47 jason_miller Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_ReadStruct.h"
@@ -443,6 +443,18 @@ static CDS_UID_t *fetch_UID_from_screenStore(VA_TYPE(CDS_UID_t) *map, CDS_IID_t 
   }
 }
 
+// This is an inelegant way to achieve large block sizes at VI
+// and small block sizes at TIGR. Later, define an EUID service
+// configuration file, to be parsed at run time, containing
+// primary and backup URLs plus the block size.
+// Also, take the opportunity to clean up the dozens of places
+// in the code where block size is set explicitly, usually to 300.
+// -- Jason Miller, 8/22/2006.
+#ifdef USE_SOAP_UID
+#define UID_BLOCK_SIZE 100
+#else
+#define UID_BLOCK_SIZE 1024
+#endif
 
 static
 void
@@ -452,7 +464,7 @@ initUID(int32 real) {
   //  Allocate the buffer of UIDS. If real is TRUE, the server is
   //  queried, otherwise a dummy contiguous number is assigned
   //
-  get_uids(1024, interval_UID, real);
+  get_uids(UID_BLOCK_SIZE, interval_UID, real);
 }
 
 
@@ -465,7 +477,7 @@ getUID(int32 real) {
 
   uidStatus = get_next_uid(&uid, real);
   if (uidStatus != UID_CODE_OK) {
-    get_uids(1024, interval_UID, real);
+    get_uids(UID_BLOCK_SIZE, interval_UID, real);
     uidStatus = get_next_uid(&uid, real);
   }	  
   if (uidStatus != UID_CODE_OK) {

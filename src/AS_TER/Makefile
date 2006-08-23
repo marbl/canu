@@ -112,8 +112,17 @@
 #######################################################################
 
 
+
+
 ######################## Variable Definitions #########################
 LOCAL_WORK = $(shell cd ../../; pwd)
+
+#### RESTORED FOR TIGR UNTIL WE ELIMINATE THE SOAP INTERFACE --- JASON
+include $(LOCAL_WORK)/src/site_name.as
+ifeq ($(SITE_NAME), TIGR)
+  USE_SOAP_UID = 1
+endif
+
 
 TERM_SRCS=AS_TER_terminator.c AS_TER_terminator_funcs.c
 TERM_OBJS=$(TERM_SRCS:.c=.o)
@@ -138,7 +147,6 @@ PROGS   = terminator count-sma asmProcessScaffolds_TER asmOutputContigsFasta asm
 ################### Project Rule Makefile Inclusion ###################
 #include $(LOCAL_WORK)/src/AS_UID/uid_transport.as
 include $(LOCAL_WORK)/src/c_make.as
-
 
 ######################### Target Definitions ##########################
 all: $(OBJECTS) $(LIBRARIES) $(PROGS)
