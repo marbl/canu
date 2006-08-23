@@ -31,6 +31,14 @@ sub createPostScaffolderConsensusJobs ($) {
         touch("$wrk/8-consensus/partitionSDB1.success");
     }
 
+    if (-z "$wrk/8-consensus/UnitigPartition.txt") {
+        print STDERR "WARNING!  Nothing for consensus to do!  Forcing consensus to skip!\n";
+        touch("$wrk/8-consensus/partitionSDB2.success");
+        touch("$wrk/8-consensus/partitionFragStore.success");
+        touch("$wrk/8-consensus/jobsCreated.success");
+        return;
+    }
+
     if (! -e "$wrk/8-consensus/partitionSDB2.success") {
         my $cmd;
         $cmd  = "cd $wrk/8-consensus && ";
@@ -163,7 +171,8 @@ sub postScaffolderConsensus ($) {
         chomp;
 
         if (m/cgw_contigs.(\d+)/) {
-            if (! -e "$wrk/8-consensus/$asm.cns_contigs.$1.success") {
+            if ((-e "$wrk/8-consensus/$asm.cns_contigs.$1.failed") ||
+                ((! -z $_) && (! -e "$wrk/8-consensus/$asm.cns_contigs.$1.success"))) {
                 print STDERR "$wrk/8-consensus/$asm.cns_contigs.$1 failed.\n";
                 $failedJobs++;
             }
