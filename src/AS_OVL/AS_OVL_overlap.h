@@ -26,8 +26,8 @@
  *********************************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap.h,v 1.9 2006-08-22 19:27:59 ahalpern Exp $
- * $Revision: 1.9 $
+ * $Id: AS_OVL_overlap.h,v 1.10 2006-08-23 13:14:05 ahalpern Exp $
+ * $Revision: 1.10 $
 */
 
 
@@ -188,24 +188,8 @@
     //  line with  -K  option
 
 
-#if ERR_MODEL_IN_AS_GLOBAL_H == 35
-  #define  DEFAULT_BRANCH_MATCH_VAL    0.259259
-  #define  PARTIAL_BRANCH_MATCH_VAL    0.259259
-#elif ERR_MODEL_IN_AS_GLOBAL_H == 20
-  #define  DEFAULT_BRANCH_MATCH_VAL    0.166667
-  #define  PARTIAL_BRANCH_MATCH_VAL    0.166667
-#elif ERR_MODEL_IN_AS_GLOBAL_H == 15
-  #define  DEFAULT_BRANCH_MATCH_VAL    0.130435
-  #define  PARTIAL_BRANCH_MATCH_VAL    0.130435
-#elif ERR_MODEL_IN_AS_GLOBAL_H == 10
-  #define  DEFAULT_BRANCH_MATCH_VAL    0.0909091
-  #define  PARTIAL_BRANCH_MATCH_VAL    0.0909091
-#elif ERR_MODEL_IN_AS_GLOBAL_H == 6
-  #define  DEFAULT_BRANCH_MATCH_VAL    0.0566
-  #define  PARTIAL_BRANCH_MATCH_VAL    0.0566
-#else // default values
-  #error ERR_MODEL_IN_AS_GLOBAL_H value not supported
-#endif
+#define  DEFAULT_BRANCH_MATCH_VAL    ( ERR_FRACTION_IN_AS_GLOBAL_H / (1.+ERR_FRACTION_IN_AS_GLOBAL_H) )
+#define  PARTIAL_BRANCH_MATCH_VAL    DEFAULT_BRANCH_MATCH_VAL
     //  Value to add for a match in finding branch points.
     //  ALH: Note that AS_READ_ERROR_RATE also affects what overlaps get found
     //  ALH: Scoring seems to be unusual: given an alignment
