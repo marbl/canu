@@ -26,7 +26,7 @@
 #include "cds.h"
 #include "SYS_UIDcommon.h"
 
-const char *TIGR_DefaultEuidServerNames = "http://intranet.tigr.org/servlet/axis/services/EUIDServer";
+const char *TIGR_DefaultEuidServerNames = "http://tools2.tigr.org/servlet/axis/services/EUIDServer";
 char * EuidServerNames = NULL;
 const int DUMMY_BUFFER_LENGTH = 1000;
 
@@ -95,7 +95,8 @@ CDS_UID_t getGUIDBlock(int guidRequestSize)
     // If URL is too long, truncate it. Let the SOAP request fail.
     strncpy (dummy, servers[i], DUMMY_BUFFER_LENGTH);
 
-    fprintf(stderr, "Trying to contact %s\n", dummy);
+    fprintf(stderr, "Trying to contact %s, block size %ld\n", 
+	    dummy, guidRequestSize);
 
     if (soap_call_impl__getEUIDBlock (&soap, dummy,	"", "TIGR_DEFAULT", 
                                       guidRequestSize, &euid ) == SOAP_OK) 
