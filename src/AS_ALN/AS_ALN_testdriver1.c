@@ -158,6 +158,15 @@ char *get_sequence(FILE *input, char **seq, char **name )
     int i;
     for(i=0;newbuf[i]!='\0';i++){
       newbuf[i]=toupper(newbuf[i]);
+      switch(newbuf[i]){
+      case 'A':
+      case 'C':
+      case 'G':
+      case 'T':
+	break;
+      default:
+	newbuf[i]='N';
+      }
     }
   }
   
@@ -229,8 +238,8 @@ int main(int argc, char *argv[])
   FILE *OVLFile=NULL;
   MesgWriter WriteMesg_AS = NULL;
   int ori;
-  int abnd;
-  int bbnd;
+  int abnd=0;
+  int bbnd=0;
   int abndFromUser=0;
   int bbndFromUser=0;
   int minlen=40;
@@ -354,7 +363,7 @@ int main(int argc, char *argv[])
 	for(ori=0;ori<=1;ori++){
 
 
-	  if(strlen(A.sequence)<abnd)
+	  if(strlen(B.sequence)<-bbnd)
 	  bbnd=-strlen(B.sequence);
 
 	  O = DP_Compare_AS(&A,&B,
