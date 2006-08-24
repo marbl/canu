@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.22 2006-06-14 19:57:22 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.23 2006-08-24 14:00:03 ahalpern Exp $";
 
 
 static const char *usage = 
@@ -69,7 +69,8 @@ static const char *usage =
 "   [-W <startWalkFromScaffold> ]\n"
 "   [-X <Estimated number of nodes>]\n"
 "   [-Y <Estimated number of edges>]\n"
-"   [-Z] Don't demote singleton scaffolds\n"
+"   [-Z]           Don't demote singleton scaffolds\n"
+"   [-4]           Allow forced fragments inside consensus ... useful for high-error runs\n"
 "\n"
 "CGBInputFiles: The file with new IUM,OUM, etc records to process.\n"
 "\n"
@@ -152,6 +153,7 @@ static const char *usage =
 #include "AS_CGW_EdgeDiagnostics.h"
 #endif
 
+extern int allow_forced_frags;
 
 FILE *  File_Open (const char * Filename, const char * Mode, int exitOnFailure);
 
@@ -252,7 +254,8 @@ int main(int argc, char *argv[]){
     optarg = NULL;
     while (!errflg && ((ch = getopt(argc, argv,
                                     "abcde:f:g:hi:j:k:l:m:n:o:p:q:r:s:tuvw:xyz:"
-                                    "ABCD:EFGHIJK:L:N:MO:PQR:STUV:W:X:Y:Z")) != EOF)){
+                                    "ABCD:EFGHIJK:L:N:MO:PQR:STUV:W:X:Y:Z"
+				    "4" )) != EOF)){
       switch(ch) {
       case 'O':
 	fprintf(GlobalData->stderrc,"* Immediate output specified: arg %s\n", optarg);
@@ -481,6 +484,10 @@ int main(int argc, char *argv[]){
           fprintf(GlobalData->stderrc,"* DON'T demote singleton scaffolds\n");
           demoteSingletonScaffolds = FALSE;
           break;
+
+      case '4':
+	allow_forced_frags=1;
+	break;
 
         case '?':
           fprintf(GlobalData->stderrc,"Unrecognized option -%c",optopt);
