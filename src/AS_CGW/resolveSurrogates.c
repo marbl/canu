@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: resolveSurrogates.c,v 1.6 2006-06-14 19:57:23 brianwalenz Exp $";
+static char CM_ID[] = "$Id: resolveSurrogates.c,v 1.7 2006-08-24 13:42:01 ahalpern Exp $";
 
 
 /*********************************************************************/
@@ -84,6 +84,7 @@ int main( int argc, char *argv[])
   int allocedImpLists = 100;
   int i;
   int numReallyPlaced=0;
+  int totalNumParentFrags=0;
 
   if(impLists==NULL){
     impLists = (VA_TYPE(IntMultiPos)**) malloc(allocedImpLists*sizeof(VA_TYPE(IntMultiPos)*));
@@ -182,6 +183,7 @@ int main( int argc, char *argv[])
     //      fprintf(stderr, "parentChunk " F_CID " has %d fragments\n", 
     //	      parentChunk->id, numFragmentsInParent);
 
+    totalNumParentFrags += numFragmentsInParent;
 
     for(i=0;i<numInstances;i++){
       ChunkInstanceT *candidateChunk;
@@ -330,6 +332,7 @@ int main( int argc, char *argv[])
   CheckpointScaffoldGraph(ScaffoldGraph, -1);
 
   fprintf(data->stderrc,"Placed  %d surrogate fragments\n",numReallyPlaced);
+  fprintf(data->stderrc,"\tout of %d surrogate fragments\n",totalNumParentFrags);
 
   exit(0);
 }
