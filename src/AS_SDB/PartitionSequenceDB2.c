@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: PartitionSequenceDB2.c,v 1.6 2005-06-20 17:43:36 brianwalenz Exp $";
+static char CM_ID[] = "$Id: PartitionSequenceDB2.c,v 1.7 2006-08-24 13:38:55 ahalpern Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -120,14 +120,20 @@ int main(int argc, char **argv){
   CDS_CID_t lastBin, lastUnitig;
   tMARecord mar;
   int i;
+  int forced=0;
 
-  if(argc < 3)
+  if(argc < 4)
     usage();
 
 
   storeName = argv[1];
   storeVersion = atoi(argv[2]);
   partitionFileName = argv[3];
+  if(argc>4){
+    if(strcmp("-F",argv[4])==0){
+      forced=1;
+    }
+  }
 
   partitionfp = fopen(partitionFileName,"r");
   AssertPtr(partitionfp);
@@ -168,7 +174,7 @@ int main(int argc, char **argv){
   //
   if (outputIndices == NULL) {
     fprintf(stderr, "* Found no partitions in the input (empty input file?) -- I fail!\n");
-    exit(1);
+    exit(forced!=1);
   } else {
     for(i = 1; i < GetNumPtrTs(outputIndices); i++){
       char buffer[2048];
