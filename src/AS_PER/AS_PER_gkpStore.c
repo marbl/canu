@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.6 2006-05-13 18:42:14 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.7 2006-08-24 13:34:13 ahalpern Exp $";
 
 /*************************************************************************
  Module:  AS_PER_gkpfrgStore
@@ -38,8 +38,8 @@ static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.6 2006-05-13 18:42:14 brianwal
  *************************************************************************/
 
 /* RCS Info
- * $Id: AS_PER_gkpStore.c,v 1.6 2006-05-13 18:42:14 brianwalenz Exp $
- * $Revision: 1.6 $
+ * $Id: AS_PER_gkpStore.c,v 1.7 2006-08-24 13:34:13 ahalpern Exp $
+ * $Revision: 1.7 $
  *
  */
 #include <assert.h>
@@ -355,7 +355,7 @@ int linkLink_GKP(GateKeeperLinkStore gkplStore,
   return(0);
 }
 
-void InitGateKeeperStore(GateKeeperStore *gkpStore, char *path){
+void InitGateKeeperStore(GateKeeperStore *gkpStore, const char *path){
   AssertPtr(gkpStore);
   strcpy(gkpStore->storePath, path);
   gkpStore->hashTable = NULL;

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_PER_gkpStore.h,v 1.8 2005-08-12 20:48:51 ahalpern Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.9 2006-08-24 13:34:13 ahalpern Exp $	 */
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
 /*************************************************************************
@@ -539,7 +539,7 @@ int CopyGateKeeperStoreFiles(GateKeeperStore *gkpStore, char *path);
 int RemoveGateKeeperStoreFiles(GateKeeperStore *gkpStore);
 int TestOpenGateKeeperStore(GateKeeperStore *gkpStore);
 int TestOpenReadOnlyGateKeeperStore(GateKeeperStore *gkpStore);
-void InitGateKeeperStore(GateKeeperStore *gkpStore, char *path);
+void InitGateKeeperStore(GateKeeperStore *gkpStore, const char *path);
 void CloseGateKeeperStore(GateKeeperStore *gkpStore);
 int UpgradeGateKeeperStore(GateKeeperStore *gkpStore);
 
