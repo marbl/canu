@@ -6,7 +6,7 @@
  *********************************************************************/
 
 
-static char CM_ID[] = "$Id: combineMates.c,v 1.7 2006-08-14 19:21:39 brianwalenz Exp $";
+static char CM_ID[] = "$Id: combineMates.c,v 1.8 2006-08-24 13:52:22 ahalpern Exp $";
 
 
 /*********************************************************************/
@@ -162,6 +162,7 @@ int main( int argc, char *argv[])
   int firstIID =1;
   int lastIID = 0;
   int useNegHangs=0;
+  int verbose=0;
 
   //  setbuf(stdout,NULL);
 
@@ -169,7 +170,7 @@ int main( int argc, char *argv[])
     int ch,errflg=0;
     optarg = NULL;
     while (!errflg && ((ch = getopt(argc, argv,
-				    "f:g:Us:e:n")) != EOF)){
+				    "f:g:Us:e:nV")) != EOF)){
       switch(ch) {
       case 'e':
 	lastIID = atoi(argv[optind-1]);
@@ -193,6 +194,9 @@ int main( int argc, char *argv[])
       case 'U':
 	realUID=1;
 	break;
+      case 'V':
+	verbose=1;
+	break;
       case '?':
 	fprintf(stderr,"Unrecognized option -%c",optopt);
       default :
@@ -204,8 +208,9 @@ int main( int argc, char *argv[])
       {
 	fprintf(stderr,"* argc = %d optind = %d setFragStore = %d setGatekeeperStore = %d\n",
 		argc, optind, setFragStore,setGatekeeperStore);
-	fprintf (stderr, "USAGE:  %s -f <FragStoreName> -g <GatekeeperStoreName> [-U] [-s <firstIID>] [-e <lastIID>] [-n]\n",argv[0]);
+	fprintf (stderr, "USAGE:  %s -f <FragStoreName> -g <GatekeeperStoreName> [-U] [-V] [-s <firstIID>] [-e <lastIID>] [-n]\n",argv[0]);
 	fprintf (stderr, "\t-U causes generation of real UIDs\n");
+	fprintf (stderr, "\t-V causes info about used overlaps to be printed to stderr\n");
 	fprintf (stderr, "\t-s specifies first IID to examine (default = 1)\n");
 	fprintf (stderr, "\t-e specifies last IID to examine (default = last frag in stores)\n");
 	fprintf (stderr, "\t-n specifies that even mates with negative hangs should be merged\n");
@@ -218,7 +223,7 @@ int main( int argc, char *argv[])
   frgStore = openFragStore(Frag_Store_Name,"r");
 
   InitGateKeeperStore(&gkpStore,GKP_Store_Name);
-  assert(TestOpenGateKeeperStore(&gkpStore) == TRUE);
+  assert(TestOpenReadOnlyGateKeeperStore(&gkpStore) == TRUE);
   OpenReadOnlyGateKeeperStore(&gkpStore);
 
   seq1=(char*)malloc(sizeof(char)*alloclen1);
@@ -372,7 +377,9 @@ int main( int argc, char *argv[])
       }
     }
 
-    fprintf(stderr,"Using overlap with length %d\n",ovl->length);
+    if(verbose){
+      fprintf(stderr,"Using overlap with length %d between %d and %d\n",ovl->length,fragIID,mateIID);
+    }
 
 #undef REALLY_USE_CONSENSUS
 #ifdef REALLY_USE_CONSENSUS
