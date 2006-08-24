@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: PartitionSequenceDB1.c,v 1.8 2006-04-06 16:39:17 brianwalenz Exp $";
+static char CM_ID[] = "$Id: PartitionSequenceDB1.c,v 1.9 2006-08-24 13:39:27 ahalpern Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -153,6 +153,8 @@ int main(int argc, char **argv){
   fragPartitionElems = CreateVA_tPartitionElement(numUnitigs * 5);
 
   quanta = numContigs/100;
+
+  if(quanta==0)exit(0);
 
   while (reader(inputFile,&pmesg) != EOF){
     int nfrags;
