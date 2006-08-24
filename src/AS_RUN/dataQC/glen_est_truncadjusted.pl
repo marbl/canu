@@ -191,7 +191,8 @@ if($prev>0){
 }
 
 if( $nonrepeatreads/$nfr < .7 ) {
-    print "SERIOUS WARNING! More than thirty percent of data marked repeat!\n";
+    my $usedFrac=1-$nonrepeatreads/$nfr;
+    print "SERIOUS WARNING! More than thirty percent ($usedFrac) of data marked repeat!\n";
     print "\tYou may have specified too small a value for K, which\n";
     print "\tcan lead to a BIG misestimation of genome length!\n";
 } else {
