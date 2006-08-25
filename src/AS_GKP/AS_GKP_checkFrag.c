@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.7 2006-05-18 18:30:31 vrainish Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.8 2006-08-25 15:35:58 brianwalenz Exp $";
 
 //#define DEBUG_GKP 1
 //#define DEBUG_GKP_VERBOSE 1
@@ -167,6 +167,21 @@ int Check_FragMesg(FragMesg *frg_mesg,
 	return GATEKEEPER_FAILURE;
       }
 
+      //  Check the length before checking the quality, to handle
+      //  fragments with too short of a clear range.
+      //
+      /* Check lengths and sequence intervals */
+      if(GATEKEEPER_FAILURE == CheckLengthsIntervalsLocales(frg_mesg, ifg_mesg,
+							    seqLength, quaLength,
+							    assembler,
+							    verbose)){
+        /*
+        fprintf(stderr,"# Check_FragMessage: ID: " F_U64 " lengths and intervals are incompatible\n",
+                frg_mesg->eaccession);
+        */
+	return GATEKEEPER_FAILURE;
+      }
+
 
       if( check_qvs ){
 	double fractionError = checkOverallQuality(frg_mesg->quality, frg_mesg->clear_rng);
@@ -182,19 +197,7 @@ int Check_FragMesg(FragMesg *frg_mesg,
 	}
       }
 
-      /* Check lengths and sequence intervals */
-      if(GATEKEEPER_FAILURE == CheckLengthsIntervalsLocales(frg_mesg, ifg_mesg,
-							    seqLength, quaLength,
-							    assembler,
-							    verbose)){
-        /*
-        fprintf(stderr,"# Check_FragMessage: ID: " F_U64 " lengths and intervals are incompatible\n",
-                frg_mesg->eaccession);
-        */
-	return GATEKEEPER_FAILURE;
-      }
-      
-	    
+
       if(frg_mesg->type != AS_FULLBAC &&
 	 frg_mesg->type != AS_BACTIG){
 	value.type = AS_IID_FRAG;
