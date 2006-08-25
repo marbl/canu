@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.77 2006-08-22 03:16:10 ahalpern Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.78 2006-08-25 17:07:31 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -77,6 +77,7 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.77 2006-08-22 03:16:10 ahal
 #define MAX_EXTEND_LENGTH                2048
 #define SHOW_ABACUS                        0
 #define STABWIDTH                           6
+#define DEBUG_ABACUS                        1
 
 // Parameters used by Abacus processing code
 #define MSTRING_SIZE                        3
@@ -2836,6 +2837,9 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
                         NumVARStringsWithFlankingGaps++;
                     }
                 }
+#if DEBUG_ABACUS
+                    fprintf(stderr, "VARiation= %s\n", (*v_list)[*nvars].var_seq);
+#endif
                 (*nvars)++;
             }
             
@@ -4792,10 +4796,12 @@ int MergeAbacus(Abacus *abacus, int merge_dir)
     // with right neighbor and merge if compatible
     //
     //  GD: this code will merge practically any
-    int i, j, mergeok, next_column_good;
-    char curr, next;
-    int last_non_null = abacus->columns-1;
-    int columns_merged = 0;
+    int  i, j, k; 
+    int  mergeok, next_column_good, curr_column_good, gap_column;
+    char prev, curr, next;
+    int  last_non_null = abacus->columns-1;
+    int  first_non_null = 0;                    
+    int  columns_merged = 0;
     
     // determine the rightmost column not totally composed of gaps
     for (j=abacus->columns-1;j>0;j--)
@@ -4809,47 +4815,143 @@ int MergeAbacus(Abacus *abacus, int merge_dir)
            break;
         last_non_null = j;
     }
-#if 0
-    fprintf(stderr, "abacus->columns=%d last non-null = %d\n", 
-        abacus->columns, last_non_null);
-#endif
-    for (j=0;j<last_non_null;j++) {
-        //for (j=0;j<abacus->columns-1;j++) {
-        mergeok = 1;
-        next_column_good = -1;
-        for (i=0;i<abacus->rows;i++) {
+    for (j=0; j<abacus->columns;j++)
+    {
+        int null_column = 1;
+        for (i=0; i<abacus->rows; i++) {
             curr = *GetAbacus(abacus,i,j);
-            next = *GetAbacus(abacus,i,j+1);
-            // at least in one column there should be a gap
-            // or, alternatively, both should be 'n'
-            if (curr != '-' && next != '-') {
-                if (curr != 'n' || next != 'n') {
-                    mergeok = 0;
-                    break;
+            if (curr != '-') null_column = 0;
+        }
+        if (!null_column)
+           break;
+        first_non_null = j;
+    }
+#if DEBUG_ABACUS
+        fprintf(stderr, "abacus->columns=%d first_non_null = %d last_non_null= %d\n", 
+            abacus->columns, first_non_null, last_non_null);
+#endif
+    if (merge_dir < 0)
+    {
+        for (j=0;j<last_non_null;j++) 
+        {
+            mergeok = 1;
+            next_column_good = -1;
+            for (i=0;i<abacus->rows;i++) 
+            {
+                curr = *GetAbacus(abacus,i,j);
+                next = *GetAbacus(abacus,i,j+1);
+                // at least in one column there should be a gap
+                // or, alternatively, both should be 'n'
+                if (curr != '-' && next != '-') {
+                    if (curr != 'n' || next != 'n') {
+                        mergeok = 0;
+                        break;
+                    }
+                }
+
+                // next column should contain at least one good base - a, c, g or t
+                if (next != '-' && next != 'n') {
+                    next_column_good = i;
                 }
             }
-
-            // next column should contain at least one good base - a, c, g or t
-            if (next != '-' && next != 'n') {
-                next_column_good = i;
+          //fprintf(stderr, "mergeok= %d next_column_good= %d\n", mergeok, next_column_good);
+            if (mergeok && next_column_good >= 0)  // next column contains a, c, g or t)  
+            {
+                columns_merged++;
+                gap_column = 1;
+                for (i=0;i<abacus->rows;i++) {
+                    curr = *GetAbacus(abacus,i,j  );
+                    next = *GetAbacus(abacus,i,j+1);
+                    if (curr == 'n' && next == 'n')
+                    {
+                        gap_column = 0;
+                        continue;
+                    }
+                    if (merge_dir < 0 && next != '-' && next != 'n' ) 
+                    {
+                        SetAbacus(abacus, i, j  , next);
+                        SetAbacus(abacus, i, j+1, curr);
+                    }
+                }
+                if (gap_column)
+                {
+                    // The entire j+1-th column contains gaps
+                    // Remove it by shifting all the subsequent columns
+                    // one position to the left  
+                    for (i=0;i<abacus->rows;i++)
+                    {
+                        for (k=j+1; k<last_non_null; k++)
+                        {
+                            next= *GetAbacus(abacus,i,k+1);     
+                            SetAbacus(abacus, i, k, next);      
+                        }
+                        SetAbacus(abacus, i, last_non_null, '-');
+                    }
+                }
             }
         }
-      //fprintf(stderr, "mergeok= %d next_column_good= %d\n", mergeok, next_column_good);
-        if (mergeok && next_column_good >= 0)  // next column contains a, c, g or t) {
+    }
+    else /* merge_dir > 0 */
+    {
+        for (j=last_non_null-1; j>0; j--)
         {
-            columns_merged++;
-            for (i=0;i<abacus->rows;i++) {
-                curr = *GetAbacus(abacus,i,j  );
+            mergeok = 1;
+            curr_column_good = -1;
+            for (i=0;i<abacus->rows;i++)
+            {
+                curr = *GetAbacus(abacus,i,j);
                 next = *GetAbacus(abacus,i,j+1);
-                if (curr == 'n' && next == 'n')
-                    continue;
-                if (merge_dir >= 0 && curr != '-' && curr != 'n' ) {
-                        SetAbacus(abacus, i, j  , next);
-                        SetAbacus(abacus, i, j+1, curr);
+                // in at least one column there should be a gap
+                // or, alternatively, both should be 'n'
+                if (curr != '-' && next != '-') {
+                    if (curr != 'n' || next != 'n') {
+                        mergeok = 0;
+                        break;
+                    }
                 }
-                if (merge_dir < 0 && next != '-' && next != 'n' ) {
+  
+                // current column should contain at least one good base - a, c, g or t
+//              if (curr != '-' && curr != 'n') 
+                if (next != '-' && next != 'n') 
+                {
+                    curr_column_good = i;
+                }
+            }
+#if 0
+            fprintf(stderr, "column= %d mergeok= %d next_column_good= %d\n", j, mergeok, next_column_good);
+#endif
+          //fprintf(stderr, "mergeok= %d next_column_good= %d\n", mergeok, next_column_good);
+            if (mergeok && curr_column_good >= 0)  // next column contains a, c, g or t)
+            {
+                columns_merged++;
+                gap_column = 1;
+                for (i=0;i<abacus->rows;i++) {
+                    curr = *GetAbacus(abacus,i,j  );
+                    next = *GetAbacus(abacus,i,j+1);
+                    if (curr == 'n' && next == 'n')
+                    {
+                        gap_column = 0;
+                        continue;
+                    }
+                    if (merge_dir >= 0 && curr != '-' && curr != 'n' ) {
                         SetAbacus(abacus, i, j  , next);
                         SetAbacus(abacus, i, j+1, curr);
+                    }
+                }
+                if (gap_column)
+                {
+                    // The entire j-th column contains gaps
+                    // Remove it by shifting all the previous columns
+                    // one position to the right
+                    for (i=0;i<abacus->rows;i++)
+                    {
+                        for (k=j; k>0; k--)
+                        {
+                            prev = *GetAbacus(abacus,i,k-1);
+                            SetAbacus(abacus, i, k, prev);
+                        }
+                        SetAbacus(abacus, i, 0, '-');
+                    }
                 }
             }
         }
@@ -4922,8 +5024,10 @@ int32 LeftShift(Abacus *abacus, int *lcols)
     for (j=0;j<abacus->columns;j++)
         fprintf(stderr, "%c", abacus->calls[j]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "Abacus after LeftShift before Merge:\n");
-    ShowAbacus(abacus); 
+#endif
+#if DEBUG_ABACUS
+        fprintf(stderr, "Abacus after LeftShift before Merge:\n");
+        ShowAbacus(abacus); 
 #endif
     MergeAbacus(abacus, -1);
 #if 0
@@ -4970,6 +5074,10 @@ int32 RightShift(Abacus *abacus, int *rcols)
         }
      }
   }
+#if DEBUG_ABACUS
+        fprintf(stderr, "Abacus after RightShift before Merge:\n");
+        ShowAbacus(abacus);
+#endif
   MergeAbacus(abacus, 1);
   abacus->shift = RIGHT_SHIFT;
   return ScoreAbacus(abacus,rcols);
@@ -6029,31 +6137,31 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
     //ShowAbacus(orig_abacus);
     MergeAbacus(orig_abacus, 1);
     orig_mm_score = ScoreAbacus(orig_abacus,&orig_columns);
-#if 0
-    fprintf(stderr, "\n\nOrigCalls=\n");
-    ShowCalls(orig_abacus);
-    fprintf(stderr, "Abacus=\n");
-    ShowAbacus(orig_abacus);
-    fprintf(stderr, "\n");
+#if DEBUG_ABACUS
+        fprintf(stderr, "\n\nOrigCalls=\n");
+        ShowCalls(orig_abacus);
+        fprintf(stderr, "Abacus=\n");
+        ShowAbacus(orig_abacus);
+        fprintf(stderr, "\n");
 #endif
     //ShowAbacus(orig_abacus);
     left_abacus = CloneAbacus(orig_abacus);
     left_mm_score = LeftShift(left_abacus,&left_columns);
-#if 0
-    fprintf(stderr, "\n\nLeftShiftCalls=\n");
-    ShowCalls(left_abacus);
-    fprintf(stderr, "Abacus=\n");
-    ShowAbacus(left_abacus);
-    fprintf(stderr, "\n");
+#if DEBUG_ABACUS
+        fprintf(stderr, "\n\nLeftShiftCalls=\n");
+        ShowCalls(left_abacus);
+        fprintf(stderr, "Abacus=\n");
+        ShowAbacus(left_abacus);
+        fprintf(stderr, "\n");
 #endif
     right_abacus = CloneAbacus(orig_abacus);
     right_mm_score = RightShift(right_abacus,&right_columns);
-#if 0
-    fprintf(stderr, "\n\nRightShiftCalls=\n");
-    ShowCalls(right_abacus);
-    fprintf(stderr, "Abacus=\n");
-    ShowAbacus(right_abacus);
-    fprintf(stderr, "\n");
+#if DEBUG_ABACUS
+        fprintf(stderr, "\n\nRightShiftCalls=\n");
+        ShowCalls(right_abacus);
+        fprintf(stderr, "Abacus=\n");
+        ShowAbacus(right_abacus);
+        fprintf(stderr, "\n");
 #endif
     //fprintf(stderr,"Abacus Report:\norig_mm_score: %d left_mm_score: %d right_mm_score: %d\n",
     //             orig_mm_score,left_mm_score,right_mm_score);
@@ -6072,15 +6180,22 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
     right_total_score = right_mm_score + right_columns + right_gap_score;
     best_total_score  = orig_total_score;
 
-#if 0
-    fprintf(stderr, "In RefineWindow: beg= %lu end= %d\n", start_column->lid, stab_bgn);
-    fprintf(stderr, "    abacus->columns= %d, abacus->rows= %d\n", orig_abacus->columns, orig_abacus->rows);
-    fprintf(stderr, "    w_width left= %d orig= %d right= %d\n", left_abacus->window_width, orig_abacus->window_width,
-                                                                     right_abacus->window_width);
-    fprintf(stderr, "    mm_score left= %d orig= %d right= %d\n", left_mm_score, orig_mm_score, right_mm_score);
-    fprintf(stderr, "     columns left= %d orig= %d right= %d\n", left_columns, orig_columns, right_columns);
-    fprintf(stderr, "   gap_score left= %d orig= %d right= %d\n", left_gap_score, orig_gap_score, right_gap_score);
-    fprintf(stderr, " total_score left= %d orig= %d right= %d\n", left_total_score, orig_total_score, right_total_score);
+#if DEBUG_ABACUS
+        fprintf(stderr, "In RefineWindow: beg= %lu end= %d\n", 
+            start_column->lid, stab_bgn);
+        fprintf(stderr, "    abacus->columns= %d, abacus->rows= %d\n", 
+            orig_abacus->columns, orig_abacus->rows);
+        fprintf(stderr, "    w_width left= %d orig= %d right= %d\n", 
+            left_abacus->window_width, orig_abacus->window_width,
+            right_abacus->window_width);
+        fprintf(stderr, "    mm_score left= %d orig= %d right= %d\n", 
+            left_mm_score, orig_mm_score, right_mm_score);
+        fprintf(stderr, "     columns left= %d orig= %d right= %d\n", 
+            left_columns, orig_columns, right_columns);
+        fprintf(stderr, "   gap_score left= %d orig= %d right= %d\n", 
+            left_gap_score, orig_gap_score, right_gap_score);
+        fprintf(stderr, " total_score left= %d orig= %d right= %d\n", 
+            left_total_score, orig_total_score, right_total_score);
 #endif
 
     // Use the total score to refine the abacus
@@ -6096,6 +6211,9 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
             fprintf(stderr, " Applying left abacus\n");
 #endif
             best_abacus      = left_abacus;
+            best_mm_score    = left_mm_score;
+            best_columns     = left_columns;
+            best_gap_score   = left_gap_score;
             best_total_score = left_total_score;
         }
         else
@@ -6108,14 +6226,17 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
             fprintf(stderr, " Applying right abacus\n");
 #endif
             best_abacus      = right_abacus;
+            best_mm_score    = right_mm_score;
+            best_columns     = right_columns;
+            best_gap_score   = right_gap_score;
             best_total_score = right_total_score;
         }
     }
+
 #if 0
     fprintf(stderr, "Best Abacus Before MixedShift=\n");
     ShowAbacus(best_abacus);
 #endif
-
     { 
         int i;
         AlPair  ap;
@@ -6158,8 +6279,8 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
     fprintf(stderr, "Max element =%d ap.nr=%d num_rows=%d\n", max_element,
               ap.nr, best_abacus->rows);
 #endif
-#if 0
-      OutputDistMatrix(&ap);
+#if DEBUG_ABACUS
+           OutputDistMatrix(&ap);
 #endif
 
     /* If only one allele is detected, as indicated by small distance between
@@ -6310,7 +6431,7 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
             ugconsensus, uglen, lpos, rpos, imap, adjleft, adjright,
             short_allele, long_allele);
 
-        mixed_abacus = CloneAbacus(best_abacus);
+        mixed_abacus = CloneAbacus(orig_abacus);
 #if 0
    {
    fprintf(stderr, "Template = \n");
@@ -6423,7 +6544,7 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
 //   applied to window of the MultiAlignment
 //*********************************************************************************
 
-int AbacusRefine(MANode *ma,int32 from, int32 to, CNS_RefineLevel level,
+int AbacusRefine(MANode *ma, int32 from, int32 to, CNS_RefineLevel level,
     CNS_Options *opp) 
 {
   // from and to are in ma's column coordinates
@@ -6444,17 +6565,20 @@ int AbacusRefine(MANode *ma,int32 from, int32 to, CNS_RefineLevel level,
   }
 
   ResetIndex(abacus_indices,GetNumFragments(fragmentStore));
-  sid = *Getint32(ma->columns,from);
-  eid = *Getint32(ma->columns,to);
+  sid = *Getint32(ma->columns,from);   // id of the starting column
+  eid = *Getint32(ma->columns,to);     // id of the ending column
   start_column = GetColumn(columnStore,sid);
 
   while (start_column->lid != eid) 
   {
-    int window_width=0;
+    int window_width = IdentifyWindow(&start_column,&stab_bgn, level);
     // start_column stands as the candidate for first column in window 
     // look for window start and stop
-      if ( (window_width = IdentifyWindow(&start_column,&stab_bgn, level)) > 0 ) 
+      if (window_width > 0) 
       {
+#if DEBUG_ABACUS
+          fprintf(stderr, "In AbacusRefine window_width= %d\n", window_width);
+#endif
        //
        // refine in window
           if ( start_column->prev == -1 ) {
@@ -6471,12 +6595,10 @@ int AbacusRefine(MANode *ma,int32 from, int32 to, CNS_RefineLevel level,
                            newbead, firstbead->boffset);
            ColumnAppend(firstbead->column_index,newbead);
           }
-          if ( window_width < 100 ) { // if the window is too big, there's likely a 
-                                      // polymorphism that won't respond well to abacus, so skip it
-#if 0
-            fprintf(stderr, "window_width = %d\n", window_width);
-#endif
-            score_reduction += RefineWindow(ma,start_column,stab_bgn, opp);
+//        if ( window_width < 100 ) 
+          { // if the window is too big, there's likely a 
+            int delta = RefineWindow(ma,start_column,stab_bgn, opp); 
+            score_reduction += delta;                                            
           } 
           start_column = GetColumn(columnStore, stab_bgn);
       }
@@ -7809,6 +7931,7 @@ int MultiAlignContig(IntConConMesg *contig,
      {
         IntMultiVar  *vl=NULL;
         int32 nv=0;
+        int score_reduction;
         MergeRefine(ma->lid, NULL, NULL, opp, 0);
         AbacusRefine(ma,0,-1,CNS_POLYX, opp);
         if ( cnslog != NULL && printwhat == CNS_VERBOSE) {
@@ -7816,7 +7939,7 @@ int MultiAlignContig(IntConConMesg *contig,
           PrintAlignment(cnslog,ma->lid,0,-1,printwhat);
         }
         RefreshMANode(ma->lid, 0, opp, &nv, &vl, 0, 0);
-        AbacusRefine(ma,0,-1,CNS_INDEL, opp);
+        score_reduction = AbacusRefine(ma,0,-1,CNS_INDEL, opp);
         MergeRefine(ma->lid, &(contig->v_list), &(contig->num_vars), opp, 2);
      }
 
