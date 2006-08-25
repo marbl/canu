@@ -34,7 +34,7 @@ LOCAL_WORK = $(shell cd ../..; pwd)
 AS_CNS_SRCS = $(LIB_SOURCES) Consensus_CNS.c null_scaffolder.c quality_assess.c \
               placed_contigs.c TestBaseCall_CNS.c TestAlign_CNS.c \
 		RebuildMultiAlign_CNS.c RebuildScaffolds_CNS.c ScaffoldUnitigProfile_CNS.c \
-	      colCorr_CNS.c post_analysis.c AS_CNS_asmReBaseCall.c
+	      colCorr_CNS.c post_analysis.c AS_CNS_asmReBaseCall.c dumpUnitigConsensusFromIUM.c
 # AlignStats_CNS.c
 
 AS_CNS_OBJS = $(AS_CNS_SRCS:.c=.o)
@@ -42,7 +42,19 @@ AS_CNS_OBJS = $(AS_CNS_SRCS:.c=.o)
 SOURCES = $(AS_CNS_SRCS)
 OBJECTS = $(AS_CNS_OBJS)
 
-PROGS = consensus null_scaffolder quality_assess placed_contigs testbasecall testalignment rebuildalignment rebuildscaffolds scaffoldunitigs post_analysis asmReBaseCall
+PROGS = consensus \
+        null_scaffolder \
+        quality_assess \
+        placed_contigs \
+        testbasecall \
+        testalignment \
+        rebuildalignment \
+        rebuildscaffolds \
+        scaffoldunitigs \
+        post_analysis \
+        asmReBaseCall \
+        dumpUnitigConsensusFromIUM
+
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
@@ -80,6 +92,9 @@ post_analysis: post_analysis.o \
          $(LIBS)
 
 asmReBaseCall: AS_CNS_asmReBaseCall.o \
+         $(LIBS)
+
+dumpUnitigConsensusFromIUM: dumpUnitigConsensusFromIUM.o \
          $(LIBS)
 
 

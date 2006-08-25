@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_cga.c,v 1.5 2006-03-24 21:38:26 eliv Exp $";
+= "$Id: AS_CGB_cga.c,v 1.6 2006-08-25 22:41:14 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module: AS_CGB_cga.c
@@ -57,7 +57,6 @@ static int TIMINGS = TRUE;
 #define DEBUG_VISUAL
 #undef DEBUG_VISUAL
 
-#define DEBUG_1
 #ifdef DEBUGGING
 #define ORDERING
 #define DEBUG01

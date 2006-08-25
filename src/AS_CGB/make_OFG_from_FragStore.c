@@ -31,17 +31,39 @@
 #define READ_FRAG_SOURCE_FIELD
 #define MAX_SOURCE_LENGTH  1000
 
-void reapFragStore(int load, int32 begin, int32 end, char * frag_store_name)
-{  
+int main(int argc, char *argv[]){
+
+  CDS_COORD_t begin = -1, end = -1;
+
+  if(argc  < 2 ){
+    fprintf(stderr,"Usage: %s [-b <firstElem>] [-e <lastElem>] <StorePath> \n", argv[0]);
+    exit(1);
+  }
+
+  {
+    int ch;
+    while ((ch = getopt(argc, argv, "b:e:l")) != EOF){
+      switch(ch) {
+        case 'e':
+          end = atoi(optarg);
+          fprintf(stderr,"* end = "F_COORD"\n", end);
+          break;
+        case 'b':
+          begin = atoi(optarg);
+          fprintf(stderr,"* begin = "F_COORD"\n", begin);
+          break;
+        default:
+          fprintf(stderr,"* Unknown option %s\n", optarg);
+          break;
+      }
+    }
+  }
+
+  char *frag_store_name = argv[optind];
+
   FragStoreHandle source;
 
-  if(load){
-    fprintf(stderr,"* LOADing FragStore %s\n", frag_store_name);
-    source = loadFragStorePartial(frag_store_name,STREAM_FROMSTART, STREAM_UNTILEND);
-  }else{
-    fprintf(stderr,"* Opening FragStore %s\n", frag_store_name);
-    source = openFragStore(frag_store_name,"r");
-  }
+  source = openFragStore(frag_store_name,"r");
 
   if(source == NULLSTOREHANDLE){
     exit(1);
@@ -74,154 +96,132 @@ void reapFragStore(int load, int32 begin, int32 end, char * frag_store_name)
       
 #ifndef READ_FRAG_SOURCE_FIELD
       getFragStore(source, ii, FRAG_S_FIXED, myRead);
-#else // READ_FRAG_SOURCE_FIELD
+#else
       getFragStore(source, ii, FRAG_S_SOURCE, myRead);
-#endif // READ_FRAG_SOURCE_FIELD
-      // Options: FRAG_S_FIXED, FRAG_S_SOURCE, FRAG_S_SEQUENCE, FRAG_S_ALL
-      // dump_ReadStruct(myRead, stdout, FALSE);
+#endif
 
-      iret = getIsDeleted_ReadStruct( myRead, &isDeleted);
-      assert(iret == 0);
-
-      iret = getAccID_ReadStruct( myRead, &uid);
-      assert(iret == 0);
-      iret = getReadIndex_ReadStruct( myRead, &iid);
-      assert(iret == 0);
-      iret = getReadType_ReadStruct( myRead, &read_type);
-      assert(iret == 0);
-      iret = getLocID_ReadStruct( myRead, &locID);
-      assert(iret == 0);
+      iret  = 0;
+      iret += getIsDeleted_ReadStruct( myRead, &isDeleted);
+      iret += getAccID_ReadStruct( myRead, &uid);
+      iret += getReadIndex_ReadStruct( myRead, &iid);
+      iret += getReadType_ReadStruct( myRead, &read_type);
+      iret += getLocID_ReadStruct( myRead, &locID);
 #if 0
-      iret = getLocalIndex_ReadStruct( myRead, &lid);
+      iret += getLocalIndex_ReadStruct( myRead, &lid);
 #else
       lid = 1;
 #endif      
-      assert(iret == 0);
-      iret = getLocalePos_ReadStruct( myRead, &locale_pos_bgn, &locale_pos_end);
-      assert(iret == 0);
+      iret += getLocalePos_ReadStruct( myRead, &locale_pos_bgn, &locale_pos_end);
+
 #ifdef READ_FRAG_SOURCE_FIELD
-      iret = getSource_ReadStruct( myRead, src_text, src_len);
-      assert(iret == 0);
+      iret += getSource_ReadStruct( myRead, src_text, src_len);
 #endif      
-      iret = getEntryTime_ReadStruct( myRead, &etm);
-      assert(iret == 0);
-      iret = getClearRegion_ReadStruct( myRead, &clr_rng_bgn, &clr_rng_end,
+      iret += getEntryTime_ReadStruct( myRead, &etm);
+      iret += getClearRegion_ReadStruct( myRead, &clr_rng_bgn, &clr_rng_end,
 					READSTRUCT_LATEST);  // Clear range
+
       assert(iret == 0);
+
       assert(clr_rng_end >= clr_rng_bgn);
       clr_rng_len = clr_rng_end - clr_rng_bgn;
 
 
-      if( isDeleted ) {
-        printf("{OFG\nact:D\nacc:(" F_UID "," F_IID ")\n}\n",
-               uid, iid);
+      if (isDeleted) {
+        printf("{OFG\nact:D\nacc:("F_UID","F_IID")\n}\n", uid, iid);
       } else { // (!isDeleted)
-#if 0
-        printf(" " F_IID " %c " F_U32 " " F_U32 " " F_U32 " " F_U32 "\n",
-               iid, read_type, isDeleted, clr_rng_bgn, clr_rng_end, clr_rng_len);
-#else
-      switch(read_type) {
-        // definitions in cds/AS/src/AS_MSG/AS_MSG_pmesg.h
 
-      case AS_READ:  // (int)'R',  // Celera Read
-      case AS_EXTR:  // (int)'X',  // External WGS read
-      case AS_TRNR:  // (int)'T',  // Transposon library read
-      case AS_B_READ: // (int)'G',  // BGLII read
-        printf("{OFG\nact:A\nacc:(" F_UID "," F_IID ")\ntyp:%c\nsrc:\n%s.\netm:" F_TIME_T "\nclr:0," F_U32 "\nscn:\n.\n}\n",
-               uid, iid, read_type, src_text, etm, clr_rng_len );
-        break;
-      case AS_EBAC: // (int)'E',  //End of BAC
-        printf("{OFG\nact:A\nacc:(" F_UID "," F_IID ")\ntyp:%c\n"
-               "loc:(" F_UID "," F_IID ")\n"
-               "src:\n%s.\netm:" F_TIME_T "\nclr:0," F_U32 "\nscn:\n.\n}\n",
-               uid, iid, read_type,
-               locID, lid,
-               src_text, etm, clr_rng_len );
-        break;
-      case AS_FBAC: // (int)'F',  //Finished
-        printf("{OFG\nact:A\nacc:(" F_UID "," F_IID ")\ntyp:%c\n"
-               "loc:(" F_UID "," F_IID ")\n"
-               "sid:(%d,%d)\n"
-               "pos:%d,%d\n"
-               "src:\n%s.\netm:" F_TIME_T "\nclr:0," F_U32 "\nscn:\n.\n}\n",
-               uid, iid, read_type,
-               locID, lid,
-               0,0, 0,0, // These are incorrect values.
-               src_text, etm, clr_rng_len );
-        break;
-      case AS_UBAC: // (int)'U',  //Unfinished BACs
-        printf("{OFG\nact:A\nacc:(" F_UID "," F_IID ")\ntyp:%c\n"
-               "loc:(" F_UID "," F_IID ")\n"
-               "sid:(%d,%d)\n"
-               "btd:(%d,%d)\n"
-               "pos:%d,%d\n"
-               "src:\n%s.\netm:" F_TIME_T "\nclr:0," F_U32 "\nscn:\n.\n}\n",
-               uid, iid, read_type,
-               locID, lid,
-               0,0,  // These are incorrect values.
-               0,0, 0,0,  // These are incorrect values.
-               src_text, etm, clr_rng_len );
-        break;
-      case AS_LBAC: // (int)'L',  //Lightly shotgunned BACs
-      case AS_STS:  // (int)'S',  //Sts
-        /* The following are never intended to be for Unitigger input. */
-      case AS_UNITIG: // (int)'u',  //Unitig
-      case AS_CONTIG: // (int)'c',   //Contig
-      case AS_BACTIG: // (int) 'B',   // BacTig
-      case AS_FULLBAC: // (int)'C'   // Full Bac C = Complete)
-      default:
-        fprintf(stderr,"Unsupported fragment type ASCII:%c Decimal:%d\n", read_type, read_type);
-        assert(FALSE);
-        break;
-      }
-#endif
-      }
-    }
-  }
-}
-
-
-int main(int argc, char *argv[]){
-
-  int load = FALSE;
-  CDS_COORD_t begin = -1, end = -1;
-
-  if(argc  < 2 ){
-    fprintf(stderr,"Usage: %s [-b <firstElem>] [-e <lastElem>] [-l] <StorePath1> \n",
-            argv[0]);
-    fprintf(stderr,"   -l option causes frag store to be loaded into memory, rather than opened\n");
-    exit(1);
-  }
-
-  {
-    int ch;
-    while ((ch = getopt(argc, argv, "b:e:l")) != EOF){
-      switch(ch) {
-      case 'l':
-        load = TRUE;
-        break;
-      case 'e':
-        end = atoi(optarg);
-        fprintf(stderr,"* end = " F_COORD "\n", end);
-        break;
-      case 'b':
-        begin = atoi(optarg);
-        fprintf(stderr,"* begin = " F_COORD "\n", begin);
-        break;
-      default:
-        fprintf(stderr,"* Unknown option %s\n", optarg);
-        break;
+        switch(read_type) {
+          case AS_READ:    //  Celera Read
+          case AS_EXTR:    //  External WGS read
+          case AS_TRNR:    //  Transposon library read
+          case AS_B_READ:  //  BGLII read
+            printf("{OFG\n"
+                   "act:A\n"
+                   "acc:("F_UID","F_IID")\n"
+                   "typ:%c\n"
+                   "src:\n"
+                   "%s.\n"
+                   "etm:"F_TIME_T"\n"
+                   "clr:0,"F_U32"\n"
+                   "scn:\n"
+                   ".\n"
+                   "}\n",
+                   uid, iid, read_type, src_text, etm, clr_rng_len );
+            break;
+          case AS_EBAC: //  End of BAC
+            printf("{OFG\n"
+                   "act:A\n"
+                   "acc:("F_UID","F_IID")\n"
+                   "typ:%c\n"
+                   "loc:("F_UID","F_IID")\n"
+                   "src:\n"
+                   "%s.\n"
+                   "etm:"F_TIME_T"\n"
+                   "clr:0,"F_U32"\n"
+                   "scn:\n"
+                   ".\n"
+                   "}\n",
+                   uid, iid, read_type,
+                   locID, lid,
+                   src_text, etm, clr_rng_len );
+            break;
+          case AS_FBAC: // Finished BACs
+            printf("{OFG\n"
+                   "act:A\n"
+                   "acc:("F_UID","F_IID")\n"
+                   "typ:%c\n"
+                   "loc:("F_UID","F_IID")\n"
+                   "sid:(%d,%d)\n"
+                   "pos:%d,%d\n"
+                   "src:\n"
+                   "%s.\n"
+                   "etm:"F_TIME_T"\n"
+                   "clr:0,"F_U32"\n"
+                   "scn:\n"
+                   ".\n"
+                   "}\n",
+                   uid, iid, read_type,
+                   locID, lid,
+                   0,0, 0,0, // These are incorrect values.
+                   src_text, etm, clr_rng_len );
+            break;
+          case AS_UBAC: // Unfinished BACs
+            printf("{OFG\n"
+                   "act:A\n"
+                   "acc:("F_UID","F_IID")\n"
+                   "typ:%c\n"
+                   "loc:("F_UID","F_IID")\n"
+                   "sid:(%d,%d)\n"
+                   "btd:(%d,%d)\n"
+                   "pos:%d,%d\n"
+                   "src:\n"
+                   "%s.\n"
+                   "etm:"F_TIME_T"\n"
+                   "clr:0,"F_U32"\n"
+                   "scn:\n"
+                   ".\n"
+                   "}\n",
+                   uid, iid, read_type,
+                   locID, lid,
+                   0,0,  // These are incorrect values.
+                   0,0, 0,0,  // These are incorrect values.
+                   src_text, etm, clr_rng_len );
+            break;
+          case AS_LBAC:    //  Lightly shotgunned BACs
+          case AS_STS:     //  STS
+          case AS_UNITIG:  //  Unitig (not for unitigger!)
+          case AS_CONTIG:  //  Contig (not for unitigger!)
+          case AS_BACTIG:  //  BacTig (not for unitigger!)
+          case AS_FULLBAC: //  Full Bac (C = Complete) (not for unitigger!)
+          default:
+            fprintf(stderr,"Unsupported fragment type ASCII:%c Decimal:%d\n",
+                    read_type, read_type);
+            assert(FALSE);
+            break;
+        }
       }
     }
   }
 
-  reapFragStore( load, begin, end, argv[optind]);
-
-  fprintf(stderr,"* Bye Bye\n");
   exit(0);
 }
-
-
-
-
-
