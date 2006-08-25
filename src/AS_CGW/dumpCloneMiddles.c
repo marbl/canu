@@ -113,8 +113,21 @@ void finished_with_ovlStore(void){
 }
 
 void usage(char *pgm){
-  fprintf (stderr, "USAGE:  %s -f <FragStoreName> -g <GatekeeperStoreName> -o <OVLStoreName> -c <CkptFileName> -n <CkpPtNum> [ -s <single scfIID> ] [-l <min length>] [-U] \n\t-s causes a single scaffold to be generated\n\t-l causes only scaffolds larger than min length to be generated\n\t-U causes clones to be named using the UIDs of their reads\n",
-		 pgm);
+  fprintf(stderr, "usage: %s -f <frgStore> -g <gkpStore> -o <ovlStore> -c <ckpName> -n <ckpNum> [other options]\n", pgm);
+  fprintf(stderr, "  META OPTION\n");
+  fprintf(stderr, "    -p <prefix>          -- attempt to guess all the required options, if your assembly\n");
+  fprintf(stderr, "                            follows runCA-OBT naming conventions.\n");
+  fprintf(stderr, "  REQUIRED OPTIONS\n");
+  fprintf(stderr, "    -f <FragStoreName>\n");
+  fprintf(stderr, "    -g <GatekeeperStoreName>\n");
+  fprintf(stderr, "    -o <OVLStoreName>\n");
+  fprintf(stderr, "    -c <CkptFileName>\n");
+  fprintf(stderr, "    -n <CkpPtNum>\n");
+  fprintf(stderr, "  OPTIONAL OPTIONS\n");
+  fprintf(stderr, "    -s <single scfIID>   -- generate a single scaffold\n");
+  fprintf(stderr, "    -l <min length>      -- generate only scaffolds larger than min length\n");
+  fprintf(stderr, "    -U                   -- name clones with the UID of their read\n");
+
 }
 
 int main (int argc , char * argv[] ) {
@@ -145,11 +158,11 @@ int main (int argc , char * argv[] ) {
   { /* Parse the argument list using "man 3 getopt". */ 
     int ch,errflg=0;
     optarg = NULL;
-    while (!errflg && ((ch = getopt(argc, argv,"c:f:g:n:s:o:l:SU")) != EOF)){
+    while (!errflg && ((ch = getopt(argc, argv,"c:f:g:n:s:o:p:l:SU")) != EOF)){
       switch(ch) {
       case 'c':
 	strcpy( data->File_Name_Prefix, argv[optind - 1]);
-	setPrefixName = TRUE;		  
+	setPrefixName = TRUE;
 	break;
       case 'f':
 	strcpy( data->Frag_Store_Name, argv[optind - 1]);
@@ -170,9 +183,55 @@ int main (int argc , char * argv[] ) {
 	strcpy( data->OVL_Store_Name, argv[optind - 1]);
 	setOvlStore = TRUE;
 	break;	  
+      case 'p':
+        prefix = argv[optind - 1];
+        sprintf(data->Frag_Store_Name, "%s.frgStore", prefix);
+        sprintf(data->Gatekeeper_Store_Name, "%s.gkpStore", prefix);
+        sprintf(data->OVL_Store_Name, "%s.ovlStore", prefix);
+        sprintf(data->File_Name_Prefix, "7-CGW/%s", prefix);
+
+	setFragStore = TRUE;
+	setGatekeeperStore = TRUE;
+	setOvlStore = TRUE;
+	setPrefixName = TRUE;
+
+        //  Find the checkpoint number by testing what files open.  We
+        //  assume checkpoints are numbered contiguously.
+
+        {
+          int  foundFirst = 0;
+          int  i = 0;
+
+          ckptNum = -1;
+
+          for (i=0; i<256; i++) {
+            char         testname[1024];
+            struct stat  teststat;
+
+            sprintf(testname, "%s.ckp.%d", data->File_Name_Prefix, i);
+            fprintf(stderr, "Testing '%s'\n", testname);
+            if (stat(testname, &teststat) == 0) {
+              foundFirst++;
+            } else {
+              if (foundFirst) {
+                //  Found the checkpoint number!  It's the one before this!
+                fprintf(stderr, "Checkpoint number %d found!\n", i-1);
+                ckptNum = i - 1;
+                break;
+              }
+            }
+          }
+        }
+
+        if (ckptNum < 1) {
+          fprintf(stderr, "ERROR:  I couldn't find the checkpoints.\n");
+          exit(1);
+        }
+
+        break;
       case 's':
 	specificScf = atoi(argv[optind - 1]);
-	break;	  
+	break;
       case 'S':
 	do_surrogate_tracking=0;
 	break;
