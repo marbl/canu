@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.78 2006-08-25 17:07:31 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.79 2006-08-25 17:18:27 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -77,7 +77,7 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.78 2006-08-25 17:07:31 gden
 #define MAX_EXTEND_LENGTH                2048
 #define SHOW_ABACUS                        0
 #define STABWIDTH                           6
-#define DEBUG_ABACUS                        1
+#define DEBUG_ABACUS                        0
 
 // Parameters used by Abacus processing code
 #define MSTRING_SIZE                        3
