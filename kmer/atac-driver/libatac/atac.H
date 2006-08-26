@@ -59,6 +59,119 @@ public:
 };
 
 
+
+class atacMatchList {
+public:
+  atacMatchList(char const *filename, char matchOrRun = 'm', FILE *headerOut=0L);
+  ~atacMatchList() {
+    delete _seqA;
+    delete _seqB;
+    delete [] _matches;
+  };
+
+  u32bit         numMatches(void)      { return(_matchesLen);  };
+  u32bit         numberOfMatches(void) { return(_matchesLen);  };
+
+  atacMatch     *getMatch(u32bit i)    { return(_matches + i); };
+  atacMatch     *operator[](u32bit i)  { return(_matches + i); };
+
+  char          *labelA(void) { return(_labelA); };
+  char          *labelB(void) { return(_labelB); };
+
+  char          *assemblyFileA(void) { return(_fileA); };
+  char          *assemblyFileB(void) { return(_fileB); };
+
+  FastAWrapper  *fastaA(void) { return(_seqA); };
+  FastAWrapper  *fastaB(void) { return(_seqB); };
+
+private:
+  char          _labelA[256];  //  The label of each of the sequences
+  char          _labelB[256];
+
+  char          _fileA[1024];  //  The name of our genome files
+  char          _fileB[1024];
+
+  FastAWrapper *_seqA;
+  FastAWrapper *_seqB;
+
+  u32bit        _matchesLen;
+  u32bit        _matchesMax;
+  atacMatch    *_matches;
+};
+
+
+class atacMatchOrder {
+private:
+  void           initialize(atacMatchList *ML) {
+    _matchesLen    = ML->numberOfMatches();
+    _matchesMax    = ML->numberOfMatches();
+    _matches       = new atacMatch * [_matchesLen];
+    _matchIIDtoIdx = new u32bit      [_matchesLen];
+    for (u32bit i=0; i<_matchesLen; i++) {
+      _matches[i] = ML->getMatch(i);
+      _matchIIDtoIdx[i] = ~u32bitZERO;
+    }
+  };
+public:
+  atacMatchOrder(atacMatchList *ML) {
+    initialize(ML);
+  };
+  atacMatchOrder(atacMatchList &ML) {
+    initialize(&ML);
+  };
+  ~atacMatchOrder() {
+    delete [] _matches;
+  };
+
+  u32bit            numMatches(void)      { return(_matchesLen);  };
+  u32bit            numberOfMatches(void) { return(_matchesLen);  };
+
+  //  Return match i in our list.  Common usage would be
+  //    getMatch(index(iid) + 1)  //  return the match after the one we have
+  //    getMatch(index(iid) - 1)
+  //
+  atacMatch        *getMatch(u32bit i)    {
+    return(_matches[i]);
+  };
+  atacMatch        *operator[](u32bit i)  {
+    return(_matches[i]);
+  };
+
+  //  Return the index, in our sorted list, of the matchiid supplied.
+  //
+  u32bit            index(u32bit matchiid) {
+    return(_matchIIDtoIdx[matchiid]);
+  };
+
+  //  Merge the r match into the l match.  The l match gets the result.
+  void              mergeMatches(atacMatch *l, atacMatch *r, u32bit mergeuid);
+
+  void              sortA(u32bit first=0, u32bit len=0);
+  void              sortB(u32bit first=0, u32bit len=0);
+  void              sortDiagonal(u32bit first=0, u32bit len=0);
+  void              sortMatchUID(u32bit first=0, u32bit len=0);
+  void              sortParentUID(u32bit first=0, u32bit len=0);
+
+private:
+  u32bit           _matchesLen;
+  u32bit           _matchesMax;
+  atacMatch      **_matches;
+
+  atacMatchList   *_ML;
+
+  void              updateIndex(void) {
+    for (u32bit i=0; i<_matchesLen; i++)
+      _matchIIDtoIdx[i] = ~u32bitZERO;
+    for (u32bit i=0; i<_matchesLen; i++)
+      _matchIIDtoIdx[_matches[i]->matchiid] = i;
+  };
+
+  u32bit          *_matchIIDtoIdx;
+};
+
+
+
+
 //  A barebones feature.
 //
 //  F type featureuid parentuid LABEL:IID POS
@@ -96,57 +209,6 @@ public:
 };
 
 
-class atacMatchList {
-public:
-  atacMatchList(char const *filename, char matchOrRun = 'm', FILE *headerOut=0L);
-  ~atacMatchList() {
-    delete _seq1;
-    delete _seq2;
-    delete [] _matches;
-  };
-
-  u32bit         numMatches(void)      { return(_matchesLen);  };
-  u32bit         numberOfMatches(void) { return(_matchesLen);  };
-  atacMatch     *getMatch(u32bit i)    { return(_matches + i); };
-  atacMatch     *operator[](u32bit i)  { return(_matches + i); };
-
-  char          *labelA(void) { return(_label1); };
-  char          *labelB(void) { return(_label2); };
-
-  char          *assemblyFileA(void) { return(_file1); };
-  char          *assemblyFileB(void) { return(_file2); };
-
-  FastAWrapper  *fastaA(void) { return(_seq1); };
-  FastAWrapper  *fastaB(void) { return(_seq2); };
-
-  //  Sort by the A assembly or B assembly location
-  void           sort1(u32bit first=0, u32bit len=0);
-  void           sort2(u32bit first=0, u32bit len=0);
-  void           sortDiagonal(u32bit first=0, u32bit len=0);
-  void           sortMatchUID(u32bit first=0, u32bit len=0);
-  void           sortParentUID(u32bit first=0, u32bit len=0);
-
-  //  Merge the r match into the l match.  The l match gets the result.
-  void           mergeMatches(atacMatch *l, atacMatch *r, u32bit mergeuid);
-
-private:
-  char          _label1[256];  //  The label of each of the sequences
-  char          _label2[256];
-
-  char          _file1[1024];  //  The name of our genome files
-  char          _file2[1024];
-
-  FastAWrapper *_seq1;
-  FastAWrapper *_seq2;
-
-  u32bit        _matchesLen;
-  u32bit        _matchesMax;
-  atacMatch    *_matches;
-};
-
-
-
-
 class atacFeatureList {
 public:
   atacFeatureList(char *filename, char *featureType=0L, bool saveLine=false);
@@ -155,7 +217,6 @@ public:
     delete [] _features;
   };
 
-  //u32bit         numFeatures(void)      { return(_featuresLen);  };
   u32bit         numberOfFeatures(void) { return(_featuresLen);  };
   atacFeature   *getFeature(u32bit i)   { return(_features + i); };
   atacFeature   *operator[](u32bit i)   { return(_features + i); };
@@ -170,7 +231,7 @@ public:
 
 private:
   char          _label[256];   //  The label of the sequence
-  char          _file[1024];  //  The name of our genome files
+  char          _file[1024];   //  The name of our genome file
   FastAWrapper *_seq;
 
   u32bit        _featuresLen;

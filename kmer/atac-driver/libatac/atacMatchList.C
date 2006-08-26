@@ -26,6 +26,19 @@
 
 atacMatchList::atacMatchList(char const *filename, char matchOrRun, FILE *headerOut) {
 
+  _labelA[0]  = 0;
+  _labelB[0]  = 0;
+  _fileA[0]   = 0;
+  _fileB[0]   = 0;
+  _seqA       = 0L;
+  _seqB       = 0L;
+  _matchesLen = 0;
+  _matchesMax = 0;
+  _matches    = 0L;
+
+  if (filename == 0L)
+    return;
+
   if ((matchOrRun != 'u') && (matchOrRun != 'x') && (matchOrRun != 'r') && (matchOrRun != 'm')) {
     fprintf(stderr, "atacMatchList::atacMatchList()-- Invalid value '%c' for matchOrRun, should be:\n", matchOrRun);
     fprintf(stderr, "                                 'u' -- ungapped matches, with mismatches\n");
@@ -44,27 +57,27 @@ atacMatchList::atacMatchList(char const *filename, char matchOrRun, FILE *header
   }
 
   //  Read the preamble, look for our data sources.  This leaves us with
-  //  the first match in the inLine, and fills in file1 and file2.
+  //  the first match in the inLine, and fills in fileA and fileB.
   //
   char    inLine[1024];
-  readHeader(inLine, inFile, _file1, _file2, headerOut);
+  readHeader(inLine, inFile, _fileA, _fileB, headerOut);
 
   //  Open some FastAWrappers for each of the files -- we use these
   //  only to get the length of the sequence.
   //
-  _seq1 = 0L;
-  _seq2 = 0L;
-  if (_file1 && _file1[0]) {
-    _seq1 = new FastAWrapper(_file1);
-    _seq1->openIndex();
+  _seqA = 0L;
+  _seqB = 0L;
+  if (_fileA && _fileA[0]) {
+    _seqA = new FastAWrapper(_fileA);
+    _seqA->openIndex();
   }
-  if (_file2 && _file2[0]) {
-    _seq2 = new FastAWrapper(_file2);
-    _seq2->openIndex();
+  if (_fileB && _fileB[0]) {
+    _seqB = new FastAWrapper(_fileB);
+    _seqB->openIndex();
   }
 
-  _label1[0] = 0;
-  _label2[0] = 0;
+  _labelA[0] = 0;
+  _labelB[0] = 0;
 
   _matchesLen = 0;
   _matchesMax = 1 * 1048576;
@@ -78,9 +91,9 @@ atacMatchList::atacMatchList(char const *filename, char matchOrRun, FILE *header
           ((matchOrRun == 'm') && ((S[1][0] == 'u') || (S[1][0] == 'x')))) {
 
         //  Save the name/label
-        if (_label1[0] == 0) {
-          decodeAtacName(S[4], _label1);
-          decodeAtacName(S[8], _label2);
+        if (_labelA[0] == 0) {
+          decodeAtacName(S[4], _labelA);
+          decodeAtacName(S[8], _labelB);
         }
 
         u32bit  iid1=0, pos1=0, len1=0, fwd1=0;
@@ -88,24 +101,24 @@ atacMatchList::atacMatchList(char const *filename, char matchOrRun, FILE *header
         decodeMatch(S, iid1, pos1, len1, fwd1, iid2, pos2, len2, fwd2);
 
         bool matchOK = true;
-        if (_seq1 && _seq2) {
-          if ((pos1) > _seq1->sequenceLength(iid1) || (pos1 + len1) > _seq1->sequenceLength(iid1)) {
+        if (_seqA && _seqB) {
+          if ((pos1) > _seqA->sequenceLength(iid1) || (pos1 + len1) > _seqA->sequenceLength(iid1)) {
             chomp(inLine);
             fprintf(stderr, "Match longer than sequence (by "u32bitFMT"bp) in 1: seqLen="u32bitFMTW(8)" %s\n",
-                    pos1 + len1 - _seq1->sequenceLength(iid1),
-                    _seq1->sequenceLength(iid1), inLine);
+                    pos1 + len1 - _seqA->sequenceLength(iid1),
+                    _seqA->sequenceLength(iid1), inLine);
             matchOK = false;
           }
 
-          if ((pos2) > _seq2->sequenceLength(iid2) || (pos2 + len2) > _seq2->sequenceLength(iid2)) {
+          if ((pos2) > _seqB->sequenceLength(iid2) || (pos2 + len2) > _seqB->sequenceLength(iid2)) {
             chomp(inLine);
             fprintf(stderr, "Match longer than sequence (by "u32bitFMT"bp) in 2: seqLen="u32bitFMTW(8)" %s\n",
-                    pos2 + len2 - _seq2->sequenceLength(iid2),
-                    _seq2->sequenceLength(iid2), inLine);
+                    pos2 + len2 - _seqB->sequenceLength(iid2),
+                    _seqB->sequenceLength(iid2), inLine);
             matchOK = false;
           }
 
-          if ((iid1 >= _seq1->getNumberOfSequences()) || (iid2 >= _seq2->getNumberOfSequences())) {
+          if ((iid1 >= _seqA->getNumberOfSequences()) || (iid2 >= _seqB->getNumberOfSequences())) {
             chomp(inLine);
             fprintf(stderr, "Match references invalid sequence iid: %s\n", inLine);
             matchOK = false;
@@ -158,14 +171,21 @@ atacMatchList::atacMatchList(char const *filename, char matchOrRun, FILE *header
 }
 
 
+//  atacMatchOrder
+
+
+
 void
-atacMatchList::mergeMatches(atacMatch *l, atacMatch *r, u32bit mergeuid) {
+atacMatchOrder::mergeMatches(atacMatch *l, atacMatch *r, u32bit mergeuid) {
   atacMatch   n;
+
+  //  Create a new match record for the merged match.  We could
+  //  probably do this inplace in l.
 
   sprintf(n.matchuid, "merge"u32bitFMT, mergeuid);
   strcpy(n.parentuid, l->parentuid);
 
-  n.matchiid = 0;
+  n.matchiid = l->matchiid;
 
   n.iid1 = l->iid1;
   n.pos1 = l->pos1;
@@ -179,25 +199,30 @@ atacMatchList::mergeMatches(atacMatch *l, atacMatch *r, u32bit mergeuid) {
   n.len2 = n.len1;
   n.fwd2 = r->fwd2;
 
+  //  Update l with the new contents.
+
   memcpy(l, &n, sizeof(atacMatch));
 
-  //  Hopefully faster than sorting!
-
-  l = r;
-  r++;
-  while (r != _matches + _matchesLen)
-    memcpy(l++, r++, sizeof(atacMatch));
-
+  //  Remove the r match from our set.  The hardest part is figuring
+  //  out what index the r match is at.  The easiest way to do that is
+  //  the most inefficient (start at zero, when we find the r match,
+  //  start updating).  The quickest way (given we want an array)
+  //  makes us trust our index.
+  //
   _matchesLen--;
+  for (u32bit idx = index(r->matchiid); idx < _matchesLen; idx++) {
+    _matches[idx]                           = _matches[idx+1];
+    _matchIIDtoIdx[_matches[idx]->matchiid] = idx;
+  }
 }
 
 
 
 static
 int
-sort1_(const void *a, const void *b) {
-  const atacMatch *A = (const atacMatch *)a;
-  const atacMatch *B = (const atacMatch *)b;
+sortA_(const void *a, const void *b) {
+  const atacMatch *A = *(const atacMatch **)a;
+  const atacMatch *B = *(const atacMatch **)b;
 
   if (A->iid1 < B->iid1)  return(-1);
   if (A->iid1 > B->iid1)  return(1);
@@ -216,9 +241,9 @@ sort1_(const void *a, const void *b) {
 
 static
 int
-sort2_(const void *a, const void *b) {
-  const atacMatch *A = (const atacMatch *)a;
-  const atacMatch *B = (const atacMatch *)b;
+sortB_(const void *a, const void *b) {
+  const atacMatch *A = *(const atacMatch **)a;
+  const atacMatch *B = *(const atacMatch **)b;
 
   if (A->iid2 < B->iid2)  return(-1);
   if (A->iid2 > B->iid2)  return(1);
@@ -239,8 +264,8 @@ sort2_(const void *a, const void *b) {
 static
 int
 sortdiagonal_(const void *a, const void *b) {
-  const atacMatch *A = (const atacMatch *)a;
-  const atacMatch *B = (const atacMatch *)b;
+  const atacMatch *A = *(const atacMatch **)a;
+  const atacMatch *B = *(const atacMatch **)b;
 
   if (A->iid2 < B->iid2)  return(-1);
   if (A->iid2 > B->iid2)  return(1);
@@ -281,8 +306,8 @@ sortdiagonal_(const void *a, const void *b) {
 static
 int
 sortmatchuid_(const void *a, const void *b) {
-  const atacMatch *A = (const atacMatch *)a;
-  const atacMatch *B = (const atacMatch *)b;
+  const atacMatch *A = *(const atacMatch **)a;
+  const atacMatch *B = *(const atacMatch **)b;
 
   int  r = strcmp(A->matchuid, B->matchuid);
   if (r < 0)  return(-1);
@@ -297,8 +322,8 @@ sortmatchuid_(const void *a, const void *b) {
 static
 int
 sortparentuid_(const void *a, const void *b) {
-  const atacMatch *A = (const atacMatch *)a;
-  const atacMatch *B = (const atacMatch *)b;
+  const atacMatch *A = *(const atacMatch **)a;
+  const atacMatch *B = *(const atacMatch **)b;
 
   int  r = strcmp(A->parentuid, B->parentuid);
   if (r < 0)  return(-1);
@@ -312,31 +337,36 @@ sortparentuid_(const void *a, const void *b) {
 
 
 void
-atacMatchList::sort1(u32bit first, u32bit len) {
+atacMatchOrder::sortA(u32bit first, u32bit len) {
   if (len == 0) len = _matchesLen;
-  qsort(_matches + first, len, sizeof(atacMatch), sort1_);
+  qsort(_matches + first, len, sizeof(atacMatch*), sortA_);
+  updateIndex();
 }
 
 void
-atacMatchList::sort2(u32bit first, u32bit len) {
+atacMatchOrder::sortB(u32bit first, u32bit len) {
   if (len == 0) len = _matchesLen;
-  qsort(_matches + first, len, sizeof(atacMatch), sort2_);
+  qsort(_matches + first, len, sizeof(atacMatch*), sortB_);
+  updateIndex();
 }
 
 void
-atacMatchList::sortDiagonal(u32bit first, u32bit len) {
+atacMatchOrder::sortDiagonal(u32bit first, u32bit len) {
   if (len == 0) len = _matchesLen;
-  qsort(_matches + first, len, sizeof(atacMatch), sortdiagonal_);
+  qsort(_matches + first, len, sizeof(atacMatch*), sortdiagonal_);
+  updateIndex();
 }
 
 void
-atacMatchList::sortMatchUID(u32bit first, u32bit len) {
+atacMatchOrder::sortMatchUID(u32bit first, u32bit len) {
   if (len == 0) len = _matchesLen;
-  qsort(_matches + first, len, sizeof(atacMatch), sortmatchuid_);
+  qsort(_matches + first, len, sizeof(atacMatch*), sortmatchuid_);
+  updateIndex();
 }
 
 void
-atacMatchList::sortParentUID(u32bit first, u32bit len) {
+atacMatchOrder::sortParentUID(u32bit first, u32bit len) {
   if (len == 0) len = _matchesLen;
-  qsort(_matches + first, len, sizeof(atacMatch), sortparentuid_);
+  qsort(_matches + first, len, sizeof(atacMatch*), sortparentuid_);
+  updateIndex();
 }
