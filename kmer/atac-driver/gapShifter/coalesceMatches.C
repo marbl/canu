@@ -30,15 +30,16 @@
 
 int
 main(int argc, char *argv[]) {
-  atacMatchList  ML("-", 'm', stdout);
-  atacMatch     *l = 0L;
-  atacMatch     *r = 0L;
+  atacMatchList   ML("-", 'm', stdout);
+  atacMatchOrder  MO(ML);
+  atacMatch      *l = 0L;
+  atacMatch      *r = 0L;
 
-  ML.sortDiagonal();
+  MO.sortDiagonal();
 
-  for (u32bit i=1; i<ML.numMatches(); i++) {
-    l = ML[i-1];
-    r = ML[i];
+  for (u32bit i=1; i<MO.numMatches(); i++) {
+    l = MO[i-1];
+    r = MO[i];
 
     if ((l->iid1 == r->iid1) &&
         (l->iid2 == r->iid2) &&

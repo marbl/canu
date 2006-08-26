@@ -58,9 +58,10 @@ main(int argc, char *argv[]) {
     usage(argv[0]), exit(1);
 
   atacMatchList  ML(matchesFile, 'm');
+  atacMatchOrder MO(ML);
 
   //  Sort by either axis.
-  ML.sort1();
+  MO.sortA();
 
   //  We need to compute the identity of the gap; our metric (thanks to Nelson) is
   //  if ("long" and "not low identity") or ("short"), close the gap
@@ -68,8 +69,8 @@ main(int argc, char *argv[]) {
   //  We could use the FastACache, but with only a handful of gaps, we
   //  just let the OS cache stuff.
 
-  FastACache           *C1 = new FastACache(ML.assemblyFileA(),    2, true, false);
-  FastACache           *C2 = new FastACache(ML.assemblyFileB(), 1024, true, false);
+  FastACache           *C1 = new FastACache(ML.assemblyFileA(),    2, false, false);
+  FastACache           *C2 = new FastACache(ML.assemblyFileB(), 1024, false, false);
 
   FastASequenceInCore  *S1 = 0L;
   FastASequenceInCore  *S2 = 0L;
@@ -81,9 +82,9 @@ main(int argc, char *argv[]) {
 
     int mergeuid = 1;
 
-    for (u32bit i=1; i<ML.numMatches(); i++) {
-      atacMatch  *l = ML[i-1];
-      atacMatch  *r = ML[i];
+    for (u32bit i=1; i<MO.numMatches(); i++) {
+      atacMatch  *l = MO[i-1];
+      atacMatch  *r = MO[i];
 
       bool  joinMatches = false;
 
@@ -221,7 +222,7 @@ main(int argc, char *argv[]) {
         l->print(logFile, ML.labelA(), ML.labelB());
         r->print(logFile, ML.labelA(), ML.labelB());
 
-        ML.mergeMatches(l, r, mergeuid);
+        MO.mergeMatches(l, r, mergeuid);
 
         l->print(logFile, ML.labelA(), ML.labelB());
 
@@ -287,8 +288,8 @@ main(int argc, char *argv[]) {
 
   //  Write the new output to stdout.
   //
-  for (u32bit i=0; i<ML.numMatches(); i++)
-    ML[i]->print(stdout, ML.labelA(), ML.labelB());
+  for (u32bit i=0; i<MO.numMatches(); i++)
+    MO[i]->print(stdout, ML.labelA(), ML.labelB());
 
   return(0);
 }

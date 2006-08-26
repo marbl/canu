@@ -372,22 +372,12 @@ extractUnmappedRuns(FastACache *A, FastACache *B,
   FastASequenceInCore  *S1 = 0L;
   FastASequenceInCore  *S2 = 0L;
 
-  //FastAWrapper         *W1 = ML.fastaA();
-  //FastAWrapper         *W2 = ML.fastaB();
+  atacMatchOrder  MO(ML);
+  MO.sortA();
 
-  ML.sort1();
-
-  //W1->find(ML[0]->iid1);
-  //S1 = W1->getSequence();
-  //W2->find(ML[0]->iid2);
-  //S2 = W2->getSequence();
-
-  //S1 = A->getSequence(ML[0]->iid1);
-  //S2 = B->getSequence(ML[0]->iid2);
-
-  for (u32bit i=1; i<ML.numMatches(); i++) {
-    atacMatch *l = ML[i-1];
-    atacMatch *r = ML[i];
+  for (u32bit i=1; i<MO.numMatches(); i++) {
+    atacMatch *l = MO[i-1];
+    atacMatch *r = MO[i];
 
     if (l->iid1 != r->iid1)
       continue;
@@ -557,8 +547,8 @@ main(int argc, char *argv[]) {
       u32bit len    = strtou32bit(W[3], 0L);
       bool   fwd    = (W[4][0] != '-');
 
-      FastASequenceInCore  *S;
-      char *s;
+      FastASequenceInCore  *S = 0L;
+      char                 *s = 0L;
 
       if (source == 'B') {
         S = A->getSequence(iid);
@@ -570,6 +560,7 @@ main(int argc, char *argv[]) {
         statidx = 1;
       } else {
         fprintf(stderr, "Unknown source '%c'\n", source);
+        exit(1);
       }
 
       //fprintf(stderr, "Masking %c "u32bitFMTW(8)" from "u32bitFMTW(9)" to "u32bitFMTW(9)" on strand %c\r",

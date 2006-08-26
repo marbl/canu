@@ -477,6 +477,10 @@ MappedByChromosome(atacMatchList &matches, FastACache *A, FastACache *B, char *p
   histogram    **hist1full;
   histogram    **hist1acgt;
 
+  if (matches.fastaA()->getNumberOfSequences() > 30) {
+    fprintf(stderr, "too many sequences to be chromosomes, MappedByChromosome skipped.\n");
+    return;
+  }
 
   //  We could cache this when we compute the totalLength() above
   u64bit   *nonNlength = new u64bit [maxIID1+1];
@@ -601,7 +605,8 @@ unmappedInRuns(atacMatchList &matches, FastACache *A, FastACache *B, char *prefi
   //  stream through, we check that the pair of matches are in the
   //  same parent.
   //
-  matches.sort1();
+  atacMatchOrder  MO(matches);
+  MO.sortA();
 
   intervalList  il1full, il2full;
   intervalList  il1acgt, il2acgt;
@@ -609,20 +614,20 @@ unmappedInRuns(atacMatchList &matches, FastACache *A, FastACache *B, char *prefi
   histogram     hist1full(100, 1000000), hist2full(100, 1000000);
   histogram     hist1acgt(100, 1000000), hist2acgt(100, 1000000);
 
-  for (u32bit i=1; i<matches.numberOfMatches(); i++) {
-    if (strcmp(matches[i-1]->parentuid, matches[i]->parentuid) == 0) {
+  for (u32bit i=1; i<MO.numberOfMatches(); i++) {
+    if (strcmp(MO[i-1]->parentuid, MO[i]->parentuid) == 0) {
       u32bit  l1, r1, l2, r2;
 
-      if (matches[i]->fwd2 == 1) {
-        l1 = matches[i-1]->pos1 + matches[i-1]->len1;
-        r1 = matches[i]->pos1;
-        l2 = matches[i-1]->pos2 + matches[i-1]->len2;
-        r2 = matches[i]->pos2;
+      if (MO[i]->fwd2 == 1) {
+        l1 = MO[i-1]->pos1 + MO[i-1]->len1;
+        r1 = MO[i]->pos1;
+        l2 = MO[i-1]->pos2 + MO[i-1]->len2;
+        r2 = MO[i]->pos2;
       } else {
-        l1 = matches[i-1]->pos1 + matches[i-1]->len1;
-        r1 = matches[i]->pos1;
-        l2 = matches[i]->pos2 + matches[i]->len2;
-        r2 = matches[i-1]->pos2;
+        l1 = MO[i-1]->pos1 + MO[i-1]->len1;
+        r1 = MO[i]->pos1;
+        l2 = MO[i]->pos2 + MO[i]->len2;
+        r2 = MO[i-1]->pos2;
       }
 
       il1full.add(l1, r1-l1);
@@ -634,12 +639,12 @@ unmappedInRuns(atacMatchList &matches, FastACache *A, FastACache *B, char *prefi
       //  Crimeny!  I really should put this in a function....  Lessee...it needs the
       //  sequence, the begin and length, the il and the histogram.
 
-      statsInACGT(A->getSequence(matches[i]->iid1),
+      statsInACGT(A->getSequence(MO[i]->iid1),
                   l1,
                   r1-l1,
                   &il1acgt,
                   &hist1acgt);
-      statsInACGT(B->getSequence(matches[i]->iid2),
+      statsInACGT(B->getSequence(MO[i]->iid2),
                   l2,
                   r2-l2,
                   &il2acgt,
@@ -733,10 +738,10 @@ main(int argc, char **argv) {
   fprintf(stdout, "\nSEQUENCE\n");
   totalLength(matches, A, B);
 
-  fprintf(stdout, "\nTANDEM REPEATS\n");
-  tandemRepeatStats(tr1, tr2, matches, A, B);
-
-  exit(1);
+  if (trFile1 && trFile2) {
+    fprintf(stdout, "\nTANDEM REPEATS\n");
+    tandemRepeatStats(tr1, tr2, matches, A, B);
+  }
 
   fprintf(stdout, "\nMATCHES IN RUNS\n");
   unmappedInRuns(matches, A, B, prefix);
