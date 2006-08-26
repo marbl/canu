@@ -4,8 +4,8 @@ LIBUTL/     :=$(call MakePath,$/../../libutil/)
 LIBBIO/     :=$(call MakePath,$/../../libbio/)
 LIBATAC/    :=$(call MakePath,$/../libatac/)
 
-$/.CXX_EXES := $/gapShifter   $/extractSequence   $/extractUnmapped   $/coalesceMatches   $/correctGaps   $/testAtac   $/cleanAtac
-$/.CXX_SRCS := $/gapShifter.C $/extractSequence.C $/extractUnmapped.C $/coalesceMatches.C $/correctGaps.C $/testAtac.C $/cleanAtac.C
+$/.CXX_EXES := $/gapShifter   $/extractSequence   $/extractUnmapped   $/coalesceMatches   $/correctGaps   $/testAtac   $/cleanAtac   $/projectFeatures
+$/.CXX_SRCS := $/gapShifter.C $/extractSequence.C $/extractUnmapped.C $/coalesceMatches.C $/correctGaps.C $/testAtac.C $/cleanAtac.C $/projectFeatures.C
 
 $/.CLEAN :=$/*.o $/*~ $/core
 
@@ -22,6 +22,8 @@ $/correctGaps:         $/correctGaps.o \
 $/testAtac:            $/testAtac.o \
                        ${LIBATAC/}libatac.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 $/cleanAtac:           $/cleanAtac.o \
+                       ${LIBATAC/}libatac.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+$/projectFeatures:     $/projectFeatures.o \
                        ${LIBATAC/}libatac.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 
 $(eval $/%.d $/%.o:   CXXFLAGS+=-I${LIBATAC/} -I${LIBBIO/} -I${LIBUTL/})
