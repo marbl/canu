@@ -12,6 +12,12 @@ struct _intervalPair {
   intervalNumber    hi;
 };
 
+struct _intervalDepth {
+  intervalNumber    lo;
+  intervalNumber    hi;
+  u32bit            de;
+};
+
 
 class intervalList {
 public:
@@ -83,6 +89,33 @@ private:
   _intervalPair            *_list;
 };
 
+
+
+//  Takes as input an intervalList, computes the number of intervals
+//  covering every position in there, stores this as a new set of
+//  intervals, annotated with the depth.
+//
+//  This is a static object, initialized once by the intervalList.
+//
+class intervalDepth {
+public:
+  intervalDepth(intervalList &IL);
+  ~intervalDepth();
+
+  //  Returns the number of intervals
+  u32bit      numberOfIntervals(void) {
+    return(_listLen);
+  };
+
+  intervalNumber      lo(u32bit i) { return(_list[i].lo); };
+  intervalNumber      hi(u32bit i) { return(_list[i].hi); };
+  u32bit              de(u32bit i) { return(_list[i].de); };
+
+private:
+  u32bit                    _listLen;
+  u32bit                    _listMax;
+  _intervalDepth           *_list;
+};
 
 
 

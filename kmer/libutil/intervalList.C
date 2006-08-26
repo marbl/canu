@@ -319,3 +319,99 @@ intervalList::intersect(intervalList &A,
     }
   }
 }
+
+
+
+
+
+
+
+
+static
+int
+intervalDepth_sort_helper(const void *a, const void *b) {
+  _intervalDepth *A = (_intervalDepth *)a;
+  _intervalDepth *B = (_intervalDepth *)b;
+
+  if (A->lo < B->lo) return(-1);
+  if (A->lo > B->lo) return(1);
+  if (A->hi < B->hi) return(-1);
+  if (A->hi > B->hi) return(1);
+  return(0);
+}
+
+
+intervalDepth::intervalDepth(intervalList &IL) {
+
+  u32bit           idlen = IL.numberOfIntervals() * 2;
+  _intervalDepth  *id    = new _intervalDepth [idlen];
+
+  for (u32bit i=0; i<IL.numberOfIntervals(); i++) {
+    id[2*i  ].lo = IL.lo(i);
+    id[2*i  ].hi = 0;
+    id[2*i  ].de = 1;
+    id[2*i+1].lo = IL.hi(i);
+    id[2*i+1].hi = 0;
+    id[2*i+1].de = 0;
+  }
+
+  qsort(id, idlen, sizeof(_intervalDepth), intervalDepth_sort_helper);
+
+  //  Scan the list, counting how many times we change depth.
+  //
+  _listMax = 1;
+  for (u32bit i=1; i<idlen; i++) {
+    if (id[i-1].lo != id[i].lo)
+      _listMax++;
+  }
+
+  //  Allocate the real depth of coverage intervals
+  //
+  _listLen = 0;
+  _list    = new _intervalDepth [_listMax];
+
+  //  Build new intervals
+  //
+  //  Initialize the first interval
+  //
+  _list[_listLen].lo = id[0].lo;
+  _list[_listLen].hi = id[0].lo;
+  _list[_listLen].de = 1;
+
+  for (u32bit i=1; i<idlen; i++) {
+
+    if (_list[_listLen].de == 0) {
+      //  Update the start position if the current interval is at zero
+      //  depth.
+      //
+      _list[_listLen].lo = id[i].lo;
+    } else {
+
+      //  If we are at a position different from the start, we need to
+      //  close out the current interval and make a new one.
+      //
+      if (id[i-1].lo != id[i].lo) {
+        _list[_listLen].hi = id[i].lo;
+
+        _listLen++;
+
+        _list[_listLen].lo = id[i].lo;
+        _list[_listLen].hi = id[i].lo;
+        _list[_listLen].de = _list[_listLen-1].de;
+      }
+    }
+
+    //  Finally, update the depth of the current interval
+    //
+    if (id[i].de)
+      _list[_listLen].de++;
+    else
+      _list[_listLen].de--;
+  }
+
+  delete [] id;
+}
+
+intervalDepth::~intervalDepth() {
+  delete [] _list;
+}
