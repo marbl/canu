@@ -11,6 +11,7 @@ src  := $/cleanPolishes.C \
         $/comparePolishes.C \
         $/convertToAtac.C \
         $/convertToExtent.C \
+        $/depthOfPolishes.C \
         $/filterPolishes.c \
         $/headPolishes.c \
         $/mappedCoverage.C \
@@ -42,6 +43,7 @@ $/.CXX_EXES := $/cleanPolishes \
                $/comparePolishes \
                $/convertToAtac \
                $/convertToExtent \
+               $/depthOfPolishes \
                $/filterPolishes \
                $/headPolishes \
                $/mappedCoverage \
@@ -81,6 +83,7 @@ $/parseSNP                    : $/parseSNP.o
 $/comparePolishes             : $/comparePolishes.o $/s4p_overlap.o
 $/convertToAtac               : $/convertToAtac.o
 $/convertToExtent             : $/convertToExtent.o
+$/depthOfPolishes             : $/depthOfPolishes.o
 $/trimSequencesBasedOnMatches : $/trimSequencesBasedOnMatches.o
 $/uniqPolishes                : $/uniqPolishes.o
 $/summarizePolishes           : $/summarizePolishes.o
