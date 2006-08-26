@@ -74,7 +74,7 @@ writeValidationFile(char *name, filterStats *theFilters, u32bit numFilters) {
     if (theFilters[f].tn + theFilters[f].fp > 0)
       spec = (double)theFilters[f].tn / (theFilters[f].tn + theFilters[f].fp);
 
-    fprintf(F, "%6.4f %6.4f %6.4f  %6.4f %6.4f  %8lu %8lu %8lu %8lu\n",
+    fprintf(F, "%6.4f %6.4f %6.4f  %6.4f %6.4f  "u32bitFMTW(8)" "u32bitFMTW(8)" "u32bitFMTW(8)" "u32bitFMTW(8)"\n",
             theFilters[f].L,
             theFilters[f].H,
             theFilters[f].V,
@@ -176,6 +176,40 @@ main(int argc, char **argv) {
   }
   config.read(argc, argv);
   //config.display();
+
+
+  //  Open and init the query sequence.
+  //
+  if (config._beVerbose)
+    fprintf(stderr, "Opening the cDNA sequences.\n");
+
+  qsFASTA = new FastAWrapper(config._qsFileName);
+  qsFASTA->openIndex();
+
+  numberOfQueries  = qsFASTA->getNumberOfSequences();
+
+
+  //  We can save some time and warn of short sequences before the
+  //  table is built.
+  //
+  u32bit  numShortQueries = 0;
+  u32bit  numLongQueries  = 0;
+  for (u32bit i=0; i<numberOfQueries; i++) {
+    if (qsFASTA->sequenceLength(i) <= config._discardExonLength)
+      numShortQueries++;
+    else
+      numLongQueries++;
+  }
+  if (numShortQueries > 0) {
+    fprintf(stderr, "WARNING:\n");
+    fprintf(stderr, "WARNING:  Found "u32bitFMT" queries shorter than minimum reportable size (-discardexonlength = "u32bitFMT")\n",
+            numShortQueries, config._discardExonLength);
+    fprintf(stderr, "WARNING:\n");
+  }
+  if (numLongQueries == 0) {
+    fprintf(stderr, "ERROR:  Found no queries longer than minimum reportable size.\n");
+    exit(1);
+  }
 
 
   //  Allocate some structures for doing a validation run.  This is
@@ -311,7 +345,6 @@ main(int argc, char **argv) {
   config._buildTime = getTime() - config._startTime - config._initTime;
 
 
-
   //  Open and init the genomic sequences.
   //
   if (config._beVerbose)
@@ -320,17 +353,6 @@ main(int argc, char **argv) {
   cache = new FastACache(config._dbFileName, 0, true);
   //cache = new FastACache(config._dbFileName, 256, false);
 
-
-
-  //  Open and init the query sequence.
-  //
-  if (config._beVerbose)
-    fprintf(stderr, "Opening the cDNA sequences.\n");
-
-  qsFASTA = new FastAWrapper(config._qsFileName);
-  qsFASTA->openIndex();
-
-  numberOfQueries  = qsFASTA->getNumberOfSequences();
 
 #if 0
   //  All we use the index for is to count the number of sequences for
