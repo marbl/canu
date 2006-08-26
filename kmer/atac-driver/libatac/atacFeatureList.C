@@ -26,6 +26,17 @@
 
 atacFeatureList::atacFeatureList(char *filename, char *type, bool saveLine) {
 
+  _label[0]    = 0;
+  _file[0]     = 0;
+  _seq         = 0L;
+
+  _featuresLen = 0;
+  _featuresMax = 0;
+  _features    = 0L;
+
+  if (filename == 0L)
+    return;
+
   FILE *inFile = stdin;
   if ((filename != 0L) && (strcmp(filename, "-") != 0)) {
     errno = 0;
@@ -40,12 +51,9 @@ atacFeatureList::atacFeatureList(char *filename, char *type, bool saveLine) {
   char    inLine[1024];
   readHeader(inLine, inFile, _file, 0L, 0L);
 
-  _label[0] = 0;
-
   //  Open some FastAWrappers for each of the files -- we use these
   //  only to get the length of the sequence.
   //
-  _seq = 0L;
   if (_file && _file[0]) { 
     _seq = new FastAWrapper(_file);
     _seq->openIndex();
