@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: dumpGatekeeperRecords.c,v 1.4 2005-03-22 19:48:56 jason_miller Exp $";
+static char CM_ID[] = "$Id: dumpGatekeeperRecords.c,v 1.5 2006-08-29 20:18:55 brianwalenz Exp $";
 
 /* Dump the gatekeeper stores for debug */
 
@@ -162,25 +162,3 @@ int  main(int argc, char * argv [])
   }
   return 0;
 }
-
-
-/************************************************************************/
-FILE *  File_Open
-    (const char * Filename, const char * Mode, int exitOnFailure)
-
-/* Open  Filename  in  Mode  and return a pointer to its control
-*  block.  If fail, print a message and exit. */
-
-  {
-   FILE  *  fp;
-
-   fp = fopen (Filename, Mode);
-   if  (fp == NULL && exitOnFailure)
-       {
-        fprintf (stderr, "ERROR:  Could not open file  %s \n", Filename);
-        exit (EXIT_FAILURE);
-       }
-
-   return  fp;
-  }
-
