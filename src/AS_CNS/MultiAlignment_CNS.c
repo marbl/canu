@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.79 2006-08-25 17:18:27 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.80 2006-08-29 04:47:58 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -4471,11 +4471,11 @@ void SetAbacus(Abacus *a, int32 i, int32 j, char c)
 {
    int32 offset = i*(a->columns+2)+j+1;
    if(i<0 || i>a->rows-1){
-     fprintf(stderr, "i=%d a->rows=%d\n", i, a->rows);
+     fprintf(stderr, "i=%d j=%d a->rows=%d\n", i, j, a->rows);
      CleanExit("SetAbacus attempt to write beyond row range",__LINE__,1);
    }
    if(j<0 || j>a->columns-1){
-     fprintf(stderr, "i=%d a->columns=%d\n", i, a->columns);
+     fprintf(stderr, "i=%d j=%d a->columns=%d\n", i, j, a->columns);
      CleanExit("SetAbacus attempt to write beyond column range",__LINE__,1);
    }
    a->beads[offset] = c; 
@@ -6574,7 +6574,8 @@ int AbacusRefine(MANode *ma, int32 from, int32 to, CNS_RefineLevel level,
     int window_width = IdentifyWindow(&start_column,&stab_bgn, level);
     // start_column stands as the candidate for first column in window 
     // look for window start and stop
-      if (window_width > 0) 
+
+      if (window_width > 0)
       {
 #if DEBUG_ABACUS
           fprintf(stderr, "In AbacusRefine window_width= %d\n", window_width);
@@ -6595,11 +6596,18 @@ int AbacusRefine(MANode *ma, int32 from, int32 to, CNS_RefineLevel level,
                            newbead, firstbead->boffset);
            ColumnAppend(firstbead->column_index,newbead);
           }
-//        if ( window_width < 100 ) 
-          { // if the window is too big, there's likely a 
-            int delta = RefineWindow(ma,start_column,stab_bgn, opp); 
-            score_reduction += delta;                                            
-          } 
+
+          //  if the window is too big, there's likely a polymorphism
+          //  that won't respond well to abacus, so skip it
+          //
+          //  BPW saw crashes with large window_width's (1333, 3252,
+          //  1858, 675, 855, 1563, 601, 1102).  The longest
+          //  window_width that worked was 573.  Previous versions
+          //  used 100 here.  Not sure what it should be.
+          //
+          if ( window_width < 600 )
+            score_reduction += RefineWindow(ma,start_column,stab_bgn, opp); 
+
           start_column = GetColumn(columnStore, stab_bgn);
       }
       start_column = GetColumn(columnStore, stab_bgn);
