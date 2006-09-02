@@ -12,8 +12,8 @@ PROG    = test-bigQueue \
           test-types \
           tcat
 
-	  #  Broken, don't test.
-          #test-bzipBuffer
+#  Broken, don't test.
+#test-bzipBuffer
 
 INCLUDE = -I..
 LIBS    = -L.. -lutil -lm
