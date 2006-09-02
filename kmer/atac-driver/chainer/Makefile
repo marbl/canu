@@ -10,6 +10,7 @@ CCFLAGS = -fpic -g -Wall -fmessage-length=0 -I/usr/local/include/python2.3
 CCFLAGS = -fPIC -g -Wall -fmessage-length=0 -I/home/bwalenz/linux64/include/python2.4
 CCFLAGS = -fpic -g -Wall -fmessage-length=0 -I/home/bwalenz/linux/include/python2.4
 CCFLAGS = -fpic -g -Wall                    -I/usr/local/include/python2.3
+CCFLAGS = -fpic -g -Wall                    -I/usr/local/include/python2.4
 
 SOURCE  = localalign/GF_ALN_dpaligner.cc \
           localalign/GF_ALN_local.cc \
