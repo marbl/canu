@@ -15,6 +15,7 @@ const char *usage =
 "       -cdna         use these cDNA sequences\n"
 "       -genomic      use these genomic sequences\n"
 "       -script       use this script file\n"
+"       -pairwise     do pairs of sequences\n"
 "       -output       write output to this file\n"
 "       -stats        write execution statistics to this file\n"
 "       -touch        create this file when the program finishes execution\n"
