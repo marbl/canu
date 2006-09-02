@@ -210,7 +210,7 @@ main(int argc, char **argv) {
   }
 
   if (isatty(fileno(stdin))) {
-    fprintf(stderr, "usage: %s < file > file\n", argv[0]);
+    fprintf(stderr, "usage: %s [-n numPolishes] [-q qualDiff] < file > file\n", argv[0]);
 
     if (isatty(fileno(stdin)))
       fprintf(stderr, "error: I cannot read polishes from the terminal!\n\n");
