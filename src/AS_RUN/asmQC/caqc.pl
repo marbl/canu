@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl
 
-# $Id: caqc.pl,v 1.6 2006-07-28 15:29:00 moweis Exp $
+# $Id: caqc.pl,v 1.7 2006-09-04 07:15:37 brianwalenz Exp $
 #
 # This program reads a Celera .asm file and produces aggregate information
 # about the assembly
@@ -8,6 +8,10 @@
 # Written by Mihai Pop, Martin Shumway
 #
 #
+
+
+use FindBin;
+use lib "$FindBin::Bin";
 
 use strict;
 use IO::File;
@@ -18,7 +22,7 @@ use TIGR::AsmLib;
 
 use Time::HiRes;
 
-my $MY_VERSION = " Version 2.11 (Build " . (qw/$Revision: 1.6 $/ )[1] . ")";
+my $MY_VERSION = " Version 2.11 (Build " . (qw/$Revision: 1.7 $/ )[1] . ")";
 
 # Constants
 my $MINQUAL = 20;
