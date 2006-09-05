@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.80 2006-08-29 04:47:58 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.81 2006-09-05 15:34:20 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -52,7 +52,7 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.80 2006-08-29 04:47:58 bria
 #define ALT_QV_THRESH                      30
 #define IDENT_NAMESPACE                     1
 #define DONT_SHOW_OLAP                      0
-#define MIN_QV_FOR_VARIATION               22
+#define MIN_QV_FOR_VARIATION               40
 #define QV_FOR_MULTI_GAP                   14
 #define SHOW_OLAP                           1
 #undef  ALIGN_TO_CONSENSUS
