@@ -77,6 +77,7 @@ sub unitigger (@) {
         touch("$wrk/4-unitigger/unitigger.success");
     }
 
+  alldone:
     #  Other steps (consensus) need the list of cgb files, so we just do it here.
     #
     open(F, "ls $wrk/4-unitigger/*.cgb |") or die;
@@ -84,7 +85,6 @@ sub unitigger (@) {
     close(F);
     chomp @cgbFiles;
 
-  alldone:
     stopAfter("unitigger");
     return(@cgbFiles);
 }
