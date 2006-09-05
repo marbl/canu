@@ -23,7 +23,7 @@ cc -g -pg -qfullpath   -qstrict -qbitfields=signed -qchars=signed -qlanglvl=ext 
 -o /work/assembly/rbolanos/IBM_PORT_CDS/ibm_migration_work_dir/cds/AS/obj/GraphCGW_T.o GraphCGW_T.c
 */
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.19 2006-06-23 14:35:28 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.20 2006-09-05 15:41:35 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -3844,6 +3844,8 @@ void ComputeMatePairDetailedStatus() {
   int numSkipChaff  = 0;
   int numSkipSurr   = 0;
   int numSkipDegen  = 0;
+  int numDeadNode   = 0;
+  int numDeadCtg    = 0;
 
   int duCI = 0;
   int urCI = 0;
@@ -3869,6 +3871,8 @@ void ComputeMatePairDetailedStatus() {
   int foScaf = 0;
   int fsScaf = 0;
 
+  UIDHashTable_AS *surrHash = CreateUIDHashTable_AS( 262144 );
+
   InitGraphNodeIterator(&nodes, graph, GRAPH_NODE_DEFAULT);
   
   while(NULL != (node = NextGraphNodeIterator(&nodes)))
@@ -3891,7 +3895,15 @@ void ComputeMatePairDetailedStatus() {
     }
 
     ReLoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ma, node->id, graph->type == CI_GRAPH);
+    if (node->info.CI.baseID != node->id ) {
+        fprintf(GlobalData->stderrc,"* skip surr chunk id %d, baseID %d, type %d, isStone %d\n",node->id,node->info.CI.baseID, node->type, node->flags.bits.isStoneSurrogate);
+        //continue;
+    }
     int numFrags  = GetNumIntMultiPoss(ma->f_list);
+    if (node->flags.bits.isDead) {
+        numDeadNode+=numFrags;
+        continue;
+    }
     numTotalFrags += numFrags;
     int i;
     for( i = 0; i < numFrags; i++)
@@ -3940,6 +3952,9 @@ void ComputeMatePairDetailedStatus() {
       NodeCGW_T *fragContig, *mateContig;
       fragContig = GetGraphNode( ScaffoldGraph->ContigGraph, frag->contigID);
       AssertPtr(fragContig);
+      if (fragContig->flags.bits.isDead) {
+          numDeadCtg++;
+      }
       switch (fragContig->type)
       {
           case DISCRIMINATORUNIQUECHUNK_CGW: fduCI++; break;
@@ -3963,33 +3978,6 @@ void ComputeMatePairDetailedStatus() {
       if ( node->type == RESOLVEDREPEATCHUNK_CGW)
           numInResRep++;
 
-      if ( node->type != DISCRIMINATORUNIQUECHUNK_CGW ) {
-          if (node->info.CI.numInstances == 0) {
-              numZero++;
-          } else if (node->info.CI.numInstances == 1) {
-              numOne++;
-          } else {
-              numMore++;
-          }
-      if ( node->flags.bits.isStoneSurrogate ) {
-          if (mchunk->flags.bits.isStoneSurrogate) {
-              if (mate->flags.bits.mateDetail != BOTH_SURR_MATE) {
-                  numBothSurr+=2;
-                  mate->flags.bits.mateDetail = BOTH_SURR_MATE;
-                  frag->flags.bits.mateDetail = BOTH_SURR_MATE;
-              }
-          } else {
-              numSurrogate+=2;
-              mate->flags.bits.mateDetail = SURR_MATE;
-              frag->flags.bits.mateDetail = SURR_MATE;
-          }
-          continue;
-      }
-      }
-      if( mchunk->flags.bits.isStoneSurrogate ) {
-          numSkipSurr++;
-          continue;
-      }
       if( fragContig->scaffoldID == NULLINDEX ) {
           assert( node->type != DISCRIMINATORUNIQUECHUNK_CGW );
           if (mateContig->scaffoldID == NULLINDEX) {
@@ -4011,6 +3999,76 @@ void ComputeMatePairDetailedStatus() {
           continue;
       }
 
+      if ( node->type != DISCRIMINATORUNIQUECHUNK_CGW ) {
+          if (node->info.CI.numInstances == 0) {
+              numZero++;
+          } else if (node->info.CI.numInstances == 1) {
+              numOne++;
+          } else {
+              numMore++;
+          }
+          if ( node->info.CI.numInstances > 1 || node->flags.bits.isStoneSurrogate ) {
+              int *frgAlready = LookupInUID2IIDHashTable_AS( surrHash, frag->iid );
+              int *mateAlready = LookupInUID2IIDHashTable_AS( surrHash, mate->iid );
+              if (frgAlready != NULL && mateAlready != NULL) {
+                  if (mate->flags.bits.mateDetail != BOTH_SURR_MATE) {
+                      numSurrogate-=1;
+                      numBothSurr+=2;
+                      mate->flags.bits.mateDetail = BOTH_SURR_MATE;
+                      frag->flags.bits.mateDetail = BOTH_SURR_MATE;
+/*                      fprintf(GlobalData->stderrc,
+                        "* Both surr %d,%d from chunks %d.\n",
+                        frag->iid, mate->iid, node->id, mchunk->id); 
+*/
+                  }
+                  *frgAlready++;
+                  *mateAlready++;
+              } else {
+                  numSurrogate++;
+                  mate->flags.bits.mateDetail = SURR_MATE;
+                  frag->flags.bits.mateDetail = SURR_MATE;
+                  if (frgAlready == NULL) {
+/*                      fprintf(GlobalData->stderrc,
+                          "* Add frag %d from repeat chunk %d to surr hash, num: %d\n",
+                          frag->iid, node->id, node->info.CI.numInstances );
+*/
+                      InsertInUID2IIDHashTable_AS( surrHash, frag->iid, 1);
+                  }
+              }
+              continue;
+          } else {
+//              fprintf(GlobalData->stderrc,"* Non surrogate node %d, num %d, frag %d\n",
+//                      node->id, node->info.CI.numInstances, frag->iid);
+          }
+      }
+      if( mchunk->info.CI.numInstances > 1 || mchunk->flags.bits.isStoneSurrogate ) {
+          int *frgAlready = LookupInUID2IIDHashTable_AS( surrHash, frag->iid );
+          if (frgAlready != NULL) { // already seen
+              if (frag->flags.bits.mateDetail != BOTH_SURR_MATE) {
+                  numSurrogate-=1;
+                  numBothSurr+=2;
+                  mate->flags.bits.mateDetail = BOTH_SURR_MATE;
+                  frag->flags.bits.mateDetail = BOTH_SURR_MATE;
+                  InsertInUID2IIDHashTable_AS( surrHash, mate->iid, 1);
+              }
+              *frgAlready++;
+              continue;
+          } 
+          int *mateAlready = LookupInUID2IIDHashTable_AS( surrHash, mate->iid );
+          if (mateAlready != NULL) { // already seen
+              *mateAlready++;
+          } else {
+/*              fprintf(GlobalData->stderrc,
+                "* Add frag %d from chunk %d to surr hash, num: %d\n",
+                mate->iid, mchunk->id, mchunk->info.CI.numInstances );
+*/
+              InsertInUID2IIDHashTable_AS( surrHash, mate->iid, 1);
+              numSurrogate++;
+              mate->flags.bits.mateDetail = SURR_MATE;
+              frag->flags.bits.mateDetail = SURR_MATE;
+          }
+          continue;
+      }
       if ( node->type == UNRESOLVEDCHUNK_CGW)
           numInUnresolv++;
       if ( fragContig->scaffoldID == NULLINDEX )
@@ -4082,6 +4140,8 @@ void ComputeMatePairDetailedStatus() {
   fprintf(GlobalData->stderrc,"\n* Mate counts from ComputeMatePairDetailedStatus()\n");
   fprintf(GlobalData->stderrc,"* num Frags %d\n",numTotalFrags);
   fprintf(GlobalData->stderrc,"* num reverse frags %d\n",numReverse);
+  fprintf(GlobalData->stderrc,"* num frags in dead chunks %d\n",numDeadNode);
+  fprintf(GlobalData->stderrc,"* num frags in dead ctgs %d\n",numDeadCtg);
   fprintf(GlobalData->stderrc,"* num frags in unresolved chunks %d\n",numInUnresolv);
   fprintf(GlobalData->stderrc,"* num frags in repeat chunks %d\n",numInResRep);
   fprintf(GlobalData->stderrc,"* num frags in zero instance chunks %d\n",numZero);
@@ -4102,7 +4162,6 @@ void ComputeMatePairDetailedStatus() {
   fprintf(GlobalData->stderrc,"* num skiped degen %d\n",numSkipDegen);
   fprintf(GlobalData->stderrc,"* num both surrogate mates %d\n",numBothSurr);
   fprintf(GlobalData->stderrc,"* num surrogate mates %d\n",numSurrogate);
-  fprintf(GlobalData->stderrc,"* num skiped surr %d\n",numSkipSurr);
   fprintf(GlobalData->stderrc,"* num other scaffold %d\n",numDiffScaf);
   int sum = numNoMate + numGood + numShort + numLong + numSame + numOuttie +
          numBothChaff + numChaff + numBothSurr + numSurrogate + numBothDegen +
@@ -4133,6 +4192,8 @@ void ComputeMatePairDetailedStatus() {
   fprintf(GlobalData->stderrc,"* num REAL_SCAFFOLD                %d\n", frScaf);
   fprintf(GlobalData->stderrc,"* num OUTPUT_SCAFFOLD              %d\n", foScaf);
   fprintf(GlobalData->stderrc,"* num SCRATCH_SCAFFOLD             %d\n\n", fsScaf);
+
+  DeleteUIDHashTable_AS( surrHash );
 }
 
 /******************************************************************************
@@ -4812,6 +4873,8 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
       
       dptr->mean = dptr->mu;
       dptr->stddev = dptr->sigma;
+      dptr->lower = dptr->mean - CGW_CUTOFF*dptr->stddev;
+      dptr->upper = dptr->mean + CGW_CUTOFF*dptr->stddev;
     }
     
     fprintf(GlobalData->stderrc,
