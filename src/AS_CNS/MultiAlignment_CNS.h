@@ -37,19 +37,17 @@
                     double erate, double thresh, int minlen, \
 				 CompareOptions what
 
-#define SMOOTHING_WINDOW 10
 #define MIN_SIZE_OF_MANODE 10000
 #define BC_MAX(a,b)  (((a)>(b))?(a):(b))
 #define BC_MIN(a,b)  (((a)<(b))?(a):(b))
 #define FREE(x) if((x)!=NULL) {free((char *)(x));(x)=NULL;}
 #define MIN_ALLOCATED_DEPTH 100
-#define SMOOTHING_WINDOW    10
 
 extern int DUMP_UNITIGS_IN_MULTIALIGNCONTIG;
 extern int VERBOSE_MULTIALIGN_OUTPUT;
 
 #define CNS_OPTIONS_SPLIT_ALLELES_DEFAULT  1
-#define CNS_OPTIONS_SMOOTH_WIN_DEFAULT     2
+#define CNS_OPTIONS_SMOOTH_WIN_DEFAULT    10
 #define CNS_OPTIONS_MAX_NUM_ALLELES        2
 
 typedef struct {
