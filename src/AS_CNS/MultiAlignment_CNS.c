@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.81 2006-09-05 15:34:20 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.82 2006-09-06 22:45:38 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -53,6 +53,7 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.81 2006-09-05 15:34:20 gden
 #define IDENT_NAMESPACE                     1
 #define DONT_SHOW_OLAP                      0
 #define MIN_QV_FOR_VARIATION               40
+#define MIN_SUM_QVS_FOR_VARIATION          50
 #define QV_FOR_MULTI_GAP                   14
 #define SHOW_OLAP                           1
 #undef  ALIGN_TO_CONSENSUS
@@ -1791,7 +1792,7 @@ BaseCall(int32 cid, int quality, double *var, AlPair *ap,
         while ( (bid = NextColumnBead(&ci)) != -1)
         {
             bead =  GetBead(beadStore,bid);
-            cbase = *Getchar(sequenceStore,bead->soffset);
+            cbase = *Getchar(sequenceStore,bead->soffset);    // current base
             qv = (int) ( *Getchar(qualityStore,bead->soffset)-'0');
             if ( cbase == 'N' ) {
                 // skip 'N' base calls
@@ -1810,6 +1811,7 @@ BaseCall(int32 cid, int quality, double *var, AlPair *ap,
                 (type == AS_EXTR)   ||
                 (type == AS_TRNR))
             {
+                // Will be used when detecting alleles
                 if (target_allele < 0 && get_scores)
                 {
                     ap->bases[ap->nb] = cbase;
@@ -1825,6 +1827,7 @@ BaseCall(int32 cid, int quality, double *var, AlPair *ap,
                     }
                 }
 
+                // Will be used when detecting variation
                 if (((target_allele < 0)  ||   // use any allele
                      !opp->split_alleles  ||   // use any allele
                      (ap->nr >  0  &&
@@ -1977,8 +1980,7 @@ BaseCall(int32 cid, int quality, double *var, AlPair *ap,
         }
 
         // Set the consensus base quality value
-        // cbase = toupper(RALPHABET[max_ind]);
-        cbase = RALPHABET[max_ind];
+        cbase = RALPHABET[max_ind];      // consensus base
         if (DBL_EQ_DBL(max_cw, (double)1.0)) {
             cqv = CNS_MAX_QV+'0';
             Setchar(qualityStore, call->soffset, &cqv);
@@ -2024,6 +2026,7 @@ BaseCall(int32 cid, int quality, double *var, AlPair *ap,
             Setchar(qualityStore, call->soffset, &cqv);
         }
 
+        // Detecting variation
         for (bi=0; bi<CNS_NALPHABET-1; bi++)
             b_read_count += best_read_base_count[bi];
 
@@ -2036,10 +2039,14 @@ BaseCall(int32 cid, int quality, double *var, AlPair *ap,
                       + guide_base_count[bi];
             }
             /* To be considered, base should either have high enough quality
-             * or be confirmed by another base (Granger's suggestion - GD)
+             * or be confirmed by another base, also of reasonably high quality 
+             * (Granger's suggestion - GD)
              */
-            if ((best_read_base_count[bi] > 1) ||
-                (best_read_qv_count[bi] > MIN_QV_FOR_VARIATION))
+            if ((best_read_base_count[bi] == 1 && 
+                 best_read_qv_count[bi]   >= MIN_QV_FOR_VARIATION) 
+                 ||
+                (best_read_qv_count[bi]   >  1 &&
+                 best_read_qv_count[bi]   >= MIN_SUM_QVS_FOR_VARIATION))
             {
                 sum_qv_all += best_read_qv_count[bi];
                 if (IntToBase(bi) == cbase)
@@ -2634,8 +2641,8 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
                 varf  = (double *)safe_realloc(varf,  len_manode*sizeof(double));
                 cids = (int32 *)safe_realloc(cids, len_manode*sizeof(int32));
             }
-            // Call consensus using both the alleles
-            // The goal is to calculate variation at a given position
+            // Call consensus using both alleles
+            // The current goal is to detect a variation at a given position
             BaseCall(cid, quality, &(varf[index]), &ap, -1, &cbase, 0, get_scores, 
                 opp);
             cids[index] = cid;
@@ -5253,7 +5260,7 @@ int ApplyAbacus(Abacus *a, CNS_Options *opp)
   int columns=0;
   int32 bid,eid,i;
   char a_entry;
-  double var;   // variation is a column
+  double fict_var;   // variation is a column
   Bead *bead,*exch_bead;
   AlPair ap;
 
@@ -5332,7 +5339,7 @@ int ApplyAbacus(Abacus *a, CNS_Options *opp)
                 exch_bead->boffset);
          */
        }
-       BaseCall(column->lid, 1, &var, &ap, -1, &base, 0, 0, opp);
+       BaseCall(column->lid, 1, &fict_var, &ap, -1, &base, 0, 0, opp);
        column = GetColumn(columnStore,column->next);
        columns++;
      } 
@@ -5401,7 +5408,7 @@ int ApplyAbacus(Abacus *a, CNS_Options *opp)
                 exch_bead->boffset);
          */
        }
-       BaseCall(column->lid, 1, &var, &ap, -1, &base, 0, 0, opp);
+       BaseCall(column->lid, 1, &fict_var, &ap, -1, &base, 0, 0, opp);
        column = GetColumn(columnStore,column->prev);
        columns++;
      } 
