@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.82 2006-09-06 22:45:38 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.83 2006-09-07 19:42:44 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -52,7 +52,6 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.82 2006-09-06 22:45:38 gden
 #define ALT_QV_THRESH                      30
 #define IDENT_NAMESPACE                     1
 #define DONT_SHOW_OLAP                      0
-#define MIN_QV_FOR_VARIATION               40
 #define MIN_SUM_QVS_FOR_VARIATION          50
 #define QV_FOR_MULTI_GAP                   14
 #define SHOW_OLAP                           1
@@ -2042,11 +2041,8 @@ BaseCall(int32 cid, int quality, double *var, AlPair *ap,
              * or be confirmed by another base, also of reasonably high quality 
              * (Granger's suggestion - GD)
              */
-            if ((best_read_base_count[bi] == 1 && 
-                 best_read_qv_count[bi]   >= MIN_QV_FOR_VARIATION) 
-                 ||
-                (best_read_qv_count[bi]   >  1 &&
-                 best_read_qv_count[bi]   >= MIN_SUM_QVS_FOR_VARIATION))
+            if (best_read_qv_count[bi]   >  1 &&
+                best_read_qv_count[bi]   >= MIN_SUM_QVS_FOR_VARIATION)
             {
                 sum_qv_all += best_read_qv_count[bi];
                 if (IntToBase(bi) == cbase)
