@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.85 2006-09-08 21:34:07 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.86 2006-09-09 21:02:45 ahalpern Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -7755,6 +7755,17 @@ int MultiAlignContig(IntConConMesg *contig,
                 fprintf(stderr, "overlaps with current unitig %d\n",
                         bfrag->iid);
               }
+
+              if ( align_to < 0 && ! try_contained ) {
+                try_contained = 1;
+                if (VERBOSE_MULTIALIGN_OUTPUT) {
+                  fprintf(stderr, "MultiAligncontig: trying contained afrags ");
+                  fprintf(stderr, "for bfrag %d\n", bfrag->iid);
+                }
+                align_to = i-1;
+		continue;
+              }
+
               break;
             }
             afrag = GetFragment(fragmentStore, align_to);
