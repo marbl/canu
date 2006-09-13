@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.86 2006-09-09 21:02:45 ahalpern Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.87 2006-09-13 21:19:57 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -2050,9 +2050,19 @@ BaseCall(int32 cid, int quality, double *var, AlPair *ap,
             }
         }
         if ((b_read_count == 1 ) || (sum_qv_all == 0))
+        {
            *var = 0.;
+            if (cbase == '-')
+              *var = -2;
+        }
         else
+        {
            *var = 1. - (double)sum_qv_cbase / (double)sum_qv_all;
+            if (cbase == '-')
+            {
+                *var = - (*var);
+            }
+        }
         return score;
     }
     else if (quality == 0 )
@@ -2150,21 +2160,44 @@ SetDefault(AlPair *ap)
 }
 
 static void
-SmoothenVariation(double *var, int dim, int window)
+SmoothenVariation(double *var, int len, int window)
 {
-    int i, j, beg, end;
-    double *y = (double *)safe_malloc(dim * sizeof(double));
-    for (i=0; i<dim; i++)
+    int i;
+    double *y = (double *)safe_malloc(len * sizeof(double));
+    for (i=0; i<len; i++)
     {
-        double sum_var = 0.;
-        beg = BC_MAX(0, i - window/2);
-        end = BC_MIN(beg + window, dim);
-        for (j=beg; j<end; j++) {
-            sum_var += var[j];
+        int j, left_win=0, right_win=0;
+        double sum_var = (var[i]>ZERO_MINUS)?var[i]:((var[i]<-1.)?0.:-var[i]);
+
+        j = i-1;
+        while (j>=0 && left_win<window/2)
+        {
+            if (var[j] > ZERO_MINUS)   // consensus is not gap
+            {
+                left_win++;
+                sum_var += var[j];
+            }
+            else if (var[j]>-1+ZERO_MINUS) // consensus is gap, var != 0 
+                sum_var -= var[j];
+            
+            j--;
         }
-        y[i] = (window > 0) ? sum_var/(double)window : var[i];
+        j = i+1;
+        while (j<len && right_win<window/2)
+        {
+            if (var[j] > ZERO_MINUS)  // consensus is not gap
+            {
+                right_win++;
+                sum_var += var[j];
+            }
+            else if (var[j]>-1+ZERO_MINUS) // consensus is gap, var != 0
+                sum_var -= var[j];
+            j++;
+        } 
+        y[i] = (left_win+right_win > 0) ? 
+                sum_var/(double)(left_win+right_win) : var[i];
     }
-    for (i=0; i<dim; i++)
+    for (i=0; i<len; i++)
     {
         var[i] = y[i];
     }
@@ -2717,9 +2750,21 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
     svarf= (double *)safe_calloc(len_manode, sizeof(double));
     for (i=0; i<len_manode; i++) {
         svarf[i] = varf[i];
+        if (varf[i] < ZERO_MINUS)
+            varf[i] = -varf[i];
     }
     SmoothenVariation(svarf, len_manode, window);
 
+#if 1
+    for (i=0; i<len_manode; i++) {
+        if (svarf[i] < 0)
+        {
+            fprintf(stderr, "swarf[%d] = %f\n", i, svarf[i]);
+            break;
+        }
+    }
+#endif
+ 
     // Recall beses using only one of two alleles
     for (i=0; i<len_manode; i++) 
     { 
