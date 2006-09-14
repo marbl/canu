@@ -1,9 +1,8 @@
 #ifndef MER_LIST_H
 #define MER_LIST_H
 
+//  A simple list of mers.  Implemented as a list of lists.
 
-
-//  A simple list of mers
 class merList {
 public:
   merList() {
@@ -78,12 +77,11 @@ private:
   };
 
   //  The number of mer blocks we have space for, and the current mer
-  //  block
+  //  block.
   //
   u32bit         _ptrsMax;
   u32bit         _ptrsLen;
-
-  coord     **_ptrs;
+  coord        **_ptrs;
 
   //  The number of mers available in each block, and the current mer
   //  we are at in the current block (for adding new mers).
@@ -92,8 +90,5 @@ private:
   u32bit         _mersMax;
   u32bit         _mersLen;
 };
-
-
-
 
 #endif  //  MER_LIST_H
