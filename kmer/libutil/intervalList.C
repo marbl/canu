@@ -68,12 +68,6 @@ intervalList::add(intervalNumber position, intervalNumber length) {
   if ((_listLen > 0) &&
       (_list[_listLen-1].lo > _list[_listLen].lo)) {
     _isSorted = false;
-  }
-
-  //  XXX  not sure if we need >= here or not
-  //
-  if ((_listLen > 0) &&
-      (_list[_listLen-1].lo >= _list[_listLen].lo)) {
     _isMerged = false;
   }
 
