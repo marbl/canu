@@ -44,11 +44,11 @@ foreach my $file (@ARGV) {
 #        }
 
     if ($hdrshown == 0) {
-        print "                                               $hdr\n";
+        print "                                                         $hdr\n";
         $hdrshown = 1;
     }
 
-    $file = substr("$file                              ", 0, 30);
+    $file = substr("$file                              ", 0, 40);
     my @sortedK = sort { $b <=> $a } keys %spec;
     $#sortedK = $numToShow - 1;
     foreach my $k (@sortedK) {
