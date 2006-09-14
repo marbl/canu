@@ -27,7 +27,7 @@
                  
  *********************************************************************/
 
-static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.30 2006-08-30 21:04:56 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.31 2006-09-14 19:41:33 gdenisov Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -907,7 +907,7 @@ int main (int argc, char *argv[])
       VA_TYPE(char) *quality=CreateVA_char(200000);
       time_t t;
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.30 $ processing. Started %s\n",
+      fprintf(stderr,"# Consensus $Revision: 1.31 $ processing. Started %s\n",
         ctime(&t));
       InitializeAlphTable();
       if ( ! align_ium && USE_SDB && extract > -1 ) 
@@ -964,16 +964,14 @@ int main (int argc, char *argv[])
            PrintMultiAlignT(cnslog,ma1,global_fragStore,global_fragStorePartition, 
                             global_bactigStore, 1,0,READSTRUCT_LATEST);
            fflush(cnslog);
-           if (ctmp.v_list != NULL)
-           {
-              int i;
-              for (i=0; i<ctmp.num_vars; i++)
-//                if (ctmp.v_list[i].var_seq != 0)
-                      free(ctmp.v_list[i].var_seq);      
-              free(ctmp.v_list);
-           }
+           DeleteVA_char(ma1->consensus);
+           DeleteVA_char(ma1->quality);
+           DeleteVA_int32(ma1->delta);
+           DeleteVA_IntMultiPos(ma1->f_list);
+           DeleteVA_int32(ma1->udelta);
+           DeleteVA_IntUnitigPos(ma1->u_list);
+           DeleteVA_IntMultiVar(ma1->v_list);
            ctmp.num_vars = 0;
-//         FREE(ma1);
         }
 
         OutputScores(NumColumnsInUnitigs, NumRunsOfGapsInUnitigReads, 
@@ -1237,7 +1235,7 @@ int main (int argc, char *argv[])
             {
               AuditLine auditLine;
               AppendAuditLine_AS(adt_mesg, &auditLine, t,
-                                 "Consensus", "$Revision: 1.30 $","(empty)");
+                                 "Consensus", "$Revision: 1.31 $","(empty)");
             }
 #endif
               VersionStampADT(adt_mesg,argc,argv);
@@ -1261,7 +1259,7 @@ int main (int argc, char *argv[])
       }
 
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.30 $ Finished %s\n",ctime(&t));
+      fprintf(stderr,"# Consensus $Revision: 1.31 $ Finished %s\n",ctime(&t));
       if (printcns) 
       {
         int unitig_length = (unitig_count>0)? (int) input_lengths/unitig_count: 0; 
