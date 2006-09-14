@@ -11,6 +11,7 @@ src  := $/cleanPolishes.C \
         $/comparePolishes.C \
         $/convertToAtac.C \
         $/convertToExtent.C \
+        $/detectChimera.C \
         $/depthOfPolishes.C \
         $/filterPolishes.c \
         $/headPolishes.c \
@@ -43,6 +44,7 @@ $/.CXX_EXES := $/cleanPolishes \
                $/comparePolishes \
                $/convertToAtac \
                $/convertToExtent \
+               $/detectChimera \
                $/depthOfPolishes \
                $/filterPolishes \
                $/headPolishes \
@@ -84,6 +86,7 @@ $/comparePolishes             : $/comparePolishes.o $/s4p_overlap.o
 $/convertToAtac               : $/convertToAtac.o
 $/convertToExtent             : $/convertToExtent.o
 $/depthOfPolishes             : $/depthOfPolishes.o
+$/detectChimera               : $/detectChimera.o
 $/trimSequencesBasedOnMatches : $/trimSequencesBasedOnMatches.o
 $/uniqPolishes                : $/uniqPolishes.o
 $/summarizePolishes           : $/summarizePolishes.o
