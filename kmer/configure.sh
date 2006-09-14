@@ -184,37 +184,14 @@ THREADS           := -D_THREAD_SAFE -pthread
 THREADL           := -pthread
 CC                := cc
 SHLIB_FLAGS       := -shared
-CFLAGS_COMPILE    := -g \$(THREADS) -Wall -Wshadow -Wtraditional -Wpointer-arith -Wcast-qual \
+CFLAGS_COMPILE    := -g \$(THREADS) -Wall -Wshadow -Wpointer-arith -Wcast-qual \
   -Wcast-align -Wwrite-strings -Wconversion -Wstrict-prototypes -Wmissing-prototypes \
   -Wmissing-declarations -Wnested-externs  
 CLDFLAGS          := -L/usr/local/lib
 CLIBS             := \$(THREADL)
 CXX               := g++
-CXXFLAGS_COMPILE  := -g \$(THREADS) -Wall -Wshadow -Wtraditional -Wpointer-arith -Wcast-qual \
-  -Wcast-align -Wwrite-strings -Wconversion -Wstrict-prototypes -Wmissing-prototypes \
-  -Wmissing-declarations  -Wnested-externs  
-CXXLDFLAGS        := -L/usr/local/lib
-CXXLIBS           := \$(THREADL)
-ARFLAGS           := ruvs
-INSTALL/          := freebsd/
-EOF
-    ;;
-  freebsd-debug-34)
-    rm -f Make.compilers
-    cat <<EOF > Make.compilers
-# -*- makefile -*-
-#  FreeBSD, debug, warnings
-THREADS           := -D_THREAD_SAFE -pthread
-THREADL           := -pthread
-CC                := cc
-SHLIB_FLAGS       := -shared
-CFLAGS_COMPILE    := -g \$(THREADS) -Wall -Wshadow -Wtraditional -Wpointer-arith -Wcast-qual -Wcast-align \
-  -Wwrite-strings -Wconversion -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wnested-externs
-CLDFLAGS          := -L/usr/local/lib
-CLIBS             := \$(THREADL)
-CXX               := g++
-CXXFLAGS_COMPILE  := -g \$(THREADS) -Wall -Wshadow -Wtraditional -Wpointer-arith -Wcast-qual -Wcast-align \
-  -Wwrite-strings -Wconversion -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wnested-externs  
+CXXFLAGS_COMPILE  := -g \$(THREADS) -Wall -Wshadow -Wpointer-arith -Wcast-qual \
+  -Wcast-align -Wwrite-strings -Wconversion
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := \$(THREADL)
 ARFLAGS           := ruvs
