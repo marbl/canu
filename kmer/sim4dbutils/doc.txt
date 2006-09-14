@@ -1,0 +1,82 @@
+sim4db tools as of July 17, 2006
+
+filterPolishes
+headPolishes
+mappedCoverage
+mergePolishes
+sortPolishes
+pickBestPolish
+pickUniquePolish
+pickUniquePolish-nhgri
+cleanPolishes
+fixPolishesIID
+plotIntronSize
+plotCoverageVsIdentity
+parseSNP
+comparePolishes
+convertToAtac
+trimSequencesBasedOnMatches
+uniqPolishes
+summarizePolishes
+removeDuplicate
+vennPolishes
+realignPolishes
+removeRedundant
+reportAlignmentDifferences
+
+----------------------------------------
+
+filterPolishes
+
+Filters polishes by percent identity, percent coverage, length of
+alignment (number of matches), number of exons, query of genomic IID.
+Can segregate polishes, placing polishes for each genomic IID into a
+separate file.
+
+Also, can remove deflines or alignments, and can "normalize" the
+genomic coordinates by adding in the match offset.
+
+----------------------------------------
+
+headPolishes
+
+Like the UNIX head command, returns the first N polishes in a file.
+
+----------------------------------------
+
+mappedCoverage
+
+Returns the percentage of each query that is covered by an alignment.
+Also can mask out those regions with N's.
+
+----------------------------------------
+
+mergePolishes
+
+Merges multiple sets of polishes, mapped to the same genomic
+sequences, into one file, updating the query IID.
+
+----------------------------------------
+
+sortPolishes
+
+
+
+pickBestPolish
+pickUniquePolish
+pickUniquePolish-nhgri
+cleanPolishes
+fixPolishesIID
+plotIntronSize
+plotCoverageVsIdentity
+parseSNP
+comparePolishes
+convertToAtac
+trimSequencesBasedOnMatches
+uniqPolishes
+summarizePolishes
+removeDuplicate
+vennPolishes
+realignPolishes
+removeRedundant
+reportAlignmentDifferences
