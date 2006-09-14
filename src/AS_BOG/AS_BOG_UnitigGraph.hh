@@ -34,15 +34,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.hh,v 1.15 2006-05-15 19:35:37 eliv Exp $
- * $Revision: 1.15 $
+ * $Id: AS_BOG_UnitigGraph.hh,v 1.16 2006-09-14 15:33:36 eliv Exp $
+ * $Revision: 1.16 $
 */
 
 
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.15 2006-05-15 19:35:37 eliv Exp $";
+static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.16 2006-09-14 15:33:36 eliv Exp $";
 
 #include <vector>
 #include <map>
@@ -194,7 +194,7 @@ namespace AS_BOG{
             void mergeUnitigs(Unitig*, std::set<iuid> *, std::map<iuid,iuid> *);
 
             // handles next iteration setup for mergUnitigs
-            BestEdgeOverlap* UnitigGraph::nextJoiner( Unitig*,
+            BestEdgeOverlap* nextJoiner( Unitig*,
                     iuid &aPrev, iuid &fragA, int &tigEnd, bool &begRev,
                     BestEdgeOverlap *&fivePrime, BestEdgeOverlap *&threePrime );
 
