@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.24 2006-05-18 18:30:31 vrainish Exp $
- * $Revision: 1.24 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.25 2006-09-14 15:42:20 eliv Exp $
+ * $Revision: 1.25 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.24 2006-05-18 18:30:31 vrainish Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.25 2006-09-14 15:42:20 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -52,7 +52,7 @@ static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 extern "C" {
 	#include "AS_global.h"
 }
-
+#undef max
 namespace AS_BOG{
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -86,6 +86,8 @@ namespace AS_BOG{
 		// Step through all the fragments 
 		std::cerr << "Building Unitigs from " << num_frags << " fragments.\n"; 
 		for(frag_idx=1; frag_idx<=num_frags; frag_idx++){
+            if (BestOverlapGraph::fragLen(frag_idx) == std::numeric_limits<uint16>::max())
+                continue; // Deleted frag
 
 			//std::cerr << "Working on " << frag_idx << std::endl; 
 
@@ -256,78 +258,44 @@ namespace AS_BOG{
             // asserts one of the in_degree's should always be none zero at a unitig break
             // then make sure the both frags agree on which ends are being used
             if ( bestEdge == threePrime ) {
-                if ( addFivePrime->frag_b_id == beginId) {
+                if ( bestEdge->bend == FIVE_PRIME ) {
                     if (begRev ^ lastReverse)
                         reverse = true;
                     fprintf(stderr,"3'->5' %d %d bR %d lR %d R %d\n", beginId, joiner,
                                             begRev, lastReverse, reverse);
                     assert( bDisagree || bestEdge->in_degree != 1 ||
                             addFivePrime->in_degree != 1);
-                    assert( bestEdge->bend == FIVE_PRIME );
-                } else if ( addThreePrime->frag_b_id == beginId) {
+                } else if ( bestEdge->bend == THREE_PRIME ) {
                     if (!(begRev ^ lastReverse))
                         reverse = true;
                     fprintf(stderr,"3'->3' %d %d bR %d lR %d R %d\n", beginId, joiner,
                                             begRev, lastReverse, reverse);
                     assert( bDisagree || bestEdge->in_degree != 1 ||
                                 addThreePrime->in_degree != 1);
-                    assert( bestEdge->bend == THREE_PRIME );
                 } else {
-                    if ( bestEdge->bend == FIVE_PRIME ) {
-                        if (begRev ^ lastReverse)
-                            reverse = true;
-                        fprintf(stderr,"?3'->5' %d %d bR %d lR %d R %d\n", beginId,
-                                joiner, begRev, lastReverse, reverse);
-                        assert( bDisagree || bestEdge->in_degree != 1 ||
-                                    addFivePrime->in_degree != 1);
-                        assert( bestEdge->bend == FIVE_PRIME );
-                    } else {
-                        if (!(begRev ^ lastReverse))
-                            reverse = true;
-                        fprintf(stderr,"?3'->3' %d %d bR %d lR %d R %d\n", beginId,
-                                joiner, begRev, lastReverse, reverse);
-                        assert( bDisagree || bestEdge->in_degree != 1 ||
-                                    addThreePrime->in_degree != 1);
-                        assert( bestEdge->bend == THREE_PRIME );
-                    }
+                    assert(0);
                 }
             } else {
-                if ( addFivePrime->frag_b_id == beginId) {
+                if ( bestEdge->bend == FIVE_PRIME ) {
                     if (!(begRev ^ lastReverse))
                         reverse = true;
                     fprintf(stderr,"5'->5' %d %d bR %d lR %d R %d\n", beginId, joiner,
                                             begRev, lastReverse, reverse);
                     assert( bDisagree || bestEdge->in_degree != 1 ||
                                 addFivePrime->in_degree != 1 );
-                    assert( bestEdge->bend == FIVE_PRIME );
-                } else if ( addThreePrime->frag_b_id == beginId) {
+                } else if ( bestEdge->bend == THREE_PRIME ) {
                     if (begRev ^ lastReverse)
                         reverse = true;
                     fprintf(stderr,"5'->3' %d %d bR %d lR %d R %d\n", beginId, joiner,
                                             begRev, lastReverse, reverse);
                     assert( bDisagree || bestEdge->in_degree != 1 ||
                                 addThreePrime->in_degree != 1);
-                    assert( bestEdge->bend == THREE_PRIME );
                 } else {
-                    if ( bestEdge->bend == FIVE_PRIME ) {
-                        if (!(begRev ^ lastReverse))
-                            reverse = true;
-                        fprintf(stderr,"?5'->5' %d %d bR %d lR %d R %d\n", beginId,
-                                joiner, begRev, lastReverse, reverse);
-                        assert( bDisagree || bestEdge->in_degree != 1 ||
-                                    addFivePrime->in_degree != 1);
-                        assert( bestEdge->bend == FIVE_PRIME );
-                    } else {
-                        if (begRev ^ lastReverse)
-                            reverse = true;
-                        fprintf(stderr,"?5'->3' %d %d bR %d lR %d R %d\n", beginId,
-                                joiner, begRev, lastReverse, reverse);
-                        assert( bDisagree || bestEdge->in_degree != 1 ||
-                                    addThreePrime->in_degree != 1);
-                        assert( bestEdge->bend == THREE_PRIME );
-                    }
+                    assert(0);
                 }
                 if (!begRev) {
+                    if ( beforeLast == 0 ) // skip singleton, doesn't add much
+                        return;
                     fprintf(stderr, "Begin needs reverse: %d to %d.\n",beginId,joiner);
                     // should only ever try to join this end on a singleton
                     assert( first.ident == last.ident);
