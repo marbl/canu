@@ -31,6 +31,9 @@ char const *usage =
 "  -j o           Write intractable and aborted polishes to the 'o' file.  By\n"
 "                 default these are silently discarded.\n"
 "\n"
+"  -selfhits      Filter out alignments to ourself -- if you did an all-to-all\n"
+"                 mapping of a set onto itself.  Deflines needed!\n"
+"\n"
 "  -segregate     Segregate polishes by genomic idx.  Must be used with -o,\n"
 "                 will create numerous files 'o.%%05d'.\n"
 "\n"
@@ -63,6 +66,7 @@ main(int argc, char ** argv) {
   u64bit       good = 0;
   u64bit       crap = 0;
   u64bit       junk = 0;
+  int          doSelfFilter = 0;
   int          doSegregation = 0;
   char        *filePrefix = 0L;
   FILE       **SEGREGATE = 0L;
@@ -71,11 +75,7 @@ main(int argc, char ** argv) {
   //  We limit scaffolds to be below the number of open files per
   //  process.
   //
-  //#ifdef OPEN_MAX
-  //u32bit       maxScaffold = OPEN_MAX;
-  //#else
   u32bit       maxScaffold = sysconf(_SC_OPEN_MAX);
-  //#endif
 
   arg = 1;
   while (arg < argc) {
@@ -128,7 +128,9 @@ main(int argc, char ** argv) {
       cdna = atoi(argv[++arg]);
     } else if (strncmp(argv[arg], "-G", 2) == 0) {
       geno = atoi(argv[++arg]);
-    } else if (strncmp(argv[arg], "-segregate", 2) == 0) {
+    } else if (strncmp(argv[arg], "-selfhits", 4) == 0) {
+      doSelfFilter = 1;
+    } else if (strncmp(argv[arg], "-segregate", 4) == 0) {
       doSegregation = 1;
       SEGREGATE = (FILE **)calloc(maxScaffold, sizeof(FILE *));
     } else if (strncmp(argv[arg], "-nodeflines", 4) == 0) {
@@ -137,6 +139,9 @@ main(int argc, char ** argv) {
       printOpts |= S4P_PRINTPOLISH_NOALIGNS;
     } else if (strncmp(argv[arg], "-normalized", 4) == 0) {
       printOpts |= S4P_PRINTPOLISH_NORMALIZED;
+    } else {
+      fprintf(stderr, "UNKNOWN option '%s'\n", argv[arg]);
+      exit(1);
     }
 
     arg++;
@@ -184,7 +189,8 @@ main(int argc, char ** argv) {
           ((cdna == -1) || (cdna == p->estID)) &&
           ((geno == -1) || (geno == p->genID)) &&
           (minExons <= p->numExons) &&
-          (p->numExons <= maxExons)) {
+          (p->numExons <= maxExons) &&
+          ((doSelfFilter == 0) || (strcmp(p->estDefLine, p->genDefLine) != 0))) {
         good++;
         if (doSegregation) {
           if (p->genID >= maxScaffold) {
