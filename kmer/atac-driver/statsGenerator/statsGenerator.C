@@ -220,8 +220,8 @@ tandemRepeatStats(atacFeatureList &AF, atacFeatureList &BF,
 
   //  XXX  Stolen from mappedLengths() below
   //
-  u64bit  *offset1 = new u64bit [matches.fastaA()->getNumberOfSequences()];
-  u64bit  *offset2 = new u64bit [matches.fastaB()->getNumberOfSequences()];
+  u64bit  *offset1 = new u64bit [matches.fastaA()->getNumberOfSequences() + 1];
+  u64bit  *offset2 = new u64bit [matches.fastaB()->getNumberOfSequences() + 1];
   offset1[0] = 1000000;
   for (u32bit i=1; i<=matches.fastaA()->getNumberOfSequences(); i++)
     offset1[i] = offset1[i-1] + matches.fastaA()->sequenceLength(i-1) + 1;
@@ -285,8 +285,8 @@ mappedLengths(atacMatchList &matches, char *prefix) {
   //  intervalList per input sequence, or build a table of the chained
   //  sequence positions.
   //
-  u64bit  *offset1 = new u64bit [matches.fastaA()->getNumberOfSequences()];
-  u64bit  *offset2 = new u64bit [matches.fastaB()->getNumberOfSequences()];
+  u64bit  *offset1 = new u64bit [matches.fastaA()->getNumberOfSequences() + 1];
+  u64bit  *offset2 = new u64bit [matches.fastaB()->getNumberOfSequences() + 1];
   offset1[0] = 1000000;
   for (u32bit i=1; i<=matches.fastaA()->getNumberOfSequences(); i++)
     offset1[i] = offset1[i-1] + matches.fastaA()->sequenceLength(i-1) + 1;
@@ -477,14 +477,14 @@ MappedByChromosome(atacMatchList &matches, FastACache *A, FastACache *B, char *p
   histogram    **hist1full;
   histogram    **hist1acgt;
 
-  if (matches.fastaA()->getNumberOfSequences() > 30) {
-    fprintf(stderr, "too many sequences to be chromosomes, MappedByChromosome skipped.\n");
-    return;
+  if (matches.fastaA()->getNumberOfSequences() > 24) {
+    fprintf(stderr, "WARNING: too many sequences to be chromosomes, only using the first 24.\n");
+    maxIID1 = 24;
   }
 
   //  We could cache this when we compute the totalLength() above
   u64bit   *nonNlength = new u64bit [maxIID1+1];
-  for (u32bit i=0; i<matches.fastaA()->getNumberOfSequences(); i++) {
+  for (u32bit i=0; i<maxIID1; i++) {
     FastASequenceInCore *S = A->getSequence(i);
     char                *s = S->sequence();
     nonNlength[i] = 0;
@@ -499,35 +499,37 @@ MappedByChromosome(atacMatchList &matches, FastACache *A, FastACache *B, char *p
   hist1full = new histogram * [maxIID1 + 1];
   hist1acgt = new histogram * [maxIID1 + 1];
 
-  for (u32bit i=0; i<matches.fastaA()->getNumberOfSequences(); i++) {
+  for (u32bit i=0; i<maxIID1; i++) {
     hist1full[i] = new histogram(100, 1000000);
     hist1acgt[i] = new histogram(100, 1000000);
   }
 
   for (u32bit m=0; m<matches.numberOfMatches(); m++) {
-    il1full[matches[m]->iid1].add(matches[m]->pos1, matches[m]->len1);
-    hist1full[matches[m]->iid1]->add(matches[m]->len1);
+    if (matches[m]->iid1 < maxIID1) {
+      il1full[matches[m]->iid1].add(matches[m]->pos1, matches[m]->len1);
+      hist1full[matches[m]->iid1]->add(matches[m]->len1);
 
-    FastASequenceInCore *Sa = A->getSequence(matches[m]->iid1);
-    char                *sa = Sa->sequence() + matches[m]->pos1;
+      FastASequenceInCore *Sa = A->getSequence(matches[m]->iid1);
+      char                *sa = Sa->sequence() + matches[m]->pos1;
 
-    u32bit               length = 0;
+      u32bit               length = 0;
 
-    for (u32bit j=0; j<matches[m]->len1; j++) {
-      bool invalid = (validSymbol[sa[j]] == 0);
+      for (u32bit j=0; j<matches[m]->len1; j++) {
+        bool invalid = (validSymbol[sa[j]] == 0);
 
-      if (!invalid)
-        length++;
+        if (!invalid)
+          length++;
 
-      if (length && invalid) {        //  Last time we were ACGT, this time not.
-        il1acgt[matches[m]->iid1].add(matches[m]->pos1 + j - length, length);
-        hist1acgt[matches[m]->iid1]->add(length);
-        length = 0;
+        if (length && invalid) {        //  Last time we were ACGT, this time not.
+          il1acgt[matches[m]->iid1].add(matches[m]->pos1 + j - length, length);
+          hist1acgt[matches[m]->iid1]->add(length);
+          length = 0;
+        }
       }
-    }
-    if (length) {
-      il1acgt[matches[m]->iid1].add(matches[m]->pos1 + matches[m]->len1 - length, length);
-      hist1acgt[matches[m]->iid1]->add(length);
+      if (length) {
+        il1acgt[matches[m]->iid1].add(matches[m]->pos1 + matches[m]->len1 - length, length);
+        hist1acgt[matches[m]->iid1]->add(length);
+      }
     }
   }
 
@@ -552,7 +554,7 @@ MappedByChromosome(atacMatchList &matches, FastACache *A, FastACache *B, char *p
 
   delete [] il1full;
   delete [] il1acgt;
-  for (u32bit i=0; i<matches.fastaA()->getNumberOfSequences(); i++) {
+  for (u32bit i=0; i<maxIID1; i++) {
     delete hist1full[i];
     delete hist1acgt[i];
   }
@@ -727,9 +729,6 @@ main(int argc, char **argv) {
   atacMatchList      matches(atacFile, 'm');
   atacMatchList      runs(atacFile,    'r');
 
-  atacFeatureList    tr1(trFile1);
-  atacFeatureList    tr2(trFile2);
-
   //  We end up using sequences a lot here, so just bite it and load them in a cache.
   //
   FastACache  *A = new FastACache(matches.assemblyFileA(), 0, true, true);
@@ -739,6 +738,9 @@ main(int argc, char **argv) {
   totalLength(matches, A, B);
 
   if (trFile1 && trFile2) {
+    atacFeatureList    tr1(trFile1);
+    atacFeatureList    tr2(trFile2);
+
     fprintf(stdout, "\nTANDEM REPEATS\n");
     tandemRepeatStats(tr1, tr2, matches, A, B);
   }
