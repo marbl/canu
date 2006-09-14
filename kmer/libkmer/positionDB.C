@@ -69,7 +69,8 @@ positionDB::positionDB(merStream   *MS,
 
   //  Reset the tblBits if it is too big for our mersize
   //
-  if (tblBits > 2 * merSize) {
+  if (tblBits >= 2 * merSize - 4) {
+    //  If this is uncommented, snapper2 continually complains.
     //fprintf(stderr, "positionDB::positionDB()--  WARNING!  tblBits="u32bitFMT" > merBits="u32bitFMT", reset tblBits to merBits-4\n", tblBits, 2*merSize);
     tblBits = 2 * merSize - 4;
   }
