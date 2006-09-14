@@ -37,15 +37,16 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.29 2006-04-10 18:07:22 eliv Exp $
- * $Revision: 1.29 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.30 2006-09-14 15:43:28 eliv Exp $
+ * $Revision: 1.30 $
 */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.29 2006-04-10 18:07:22 eliv Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.30 2006-09-14 15:43:28 eliv Exp $";
 
 //  System include files
 #include<iostream>
 #include<vector>
+#include<limits>
 
 #include "AS_BOG_BestOverlapGraph.hh"
 //#include "AS_BOG_BestOverlapGraphVisitor.hh"
@@ -54,6 +55,7 @@ extern "C" {
 #include "AS_PER_fragStore.h"
 }
 
+#undef max
 namespace AS_BOG{
 
     ///////////////////////////////////////////////////////////////////////////
@@ -295,7 +297,8 @@ namespace AS_BOG{
     uint16 BestOverlapGraph::fragLen( iuid iid ) {
         // If fragLength is not already cached, compute it after reading it
         //   in from the fragStore, store it and return it to the caller.
-        assert(BestOverlapGraph::fragLength[ iid ] != 0);
+//        if (BestOverlapGraph::fragLength[ iid ] == std::numeric_limits<uint16>::max()) 
+//            fprintf(stderr, "NULL fragLen for %d\n",iid);
         return BestOverlapGraph::fragLength[ iid ];
     }
 
@@ -570,10 +573,15 @@ For debugging i386, alpha differences on float conversion
 
         // Allocate and Initialize fragLength array
         BestOverlapGraph::fragLength = new uint16[BestOverlapGraph::lastFrg+1];
-        memset( BestOverlapGraph::fragLength, 0, sizeof(uint16)*(BestOverlapGraph::lastFrg+1));
+        memset( BestOverlapGraph::fragLength, std::numeric_limits<uint16>::max(),
+                sizeof(uint16)*(BestOverlapGraph::lastFrg+1));
         iuid iid = 1;
         while(nextFragStream( fragStream, fsread, FRAG_S_FIXED)) {
-            uint32 clrBgn, clrEnd;
+            uint32 clrBgn, clrEnd, isDeleted;
+            getIsDeleted_ReadStruct(   fsread, &isDeleted);
+            if (isDeleted) {
+                iid++; continue;
+            }
             getClearRegion_ReadStruct( fsread, &clrBgn, &clrEnd, READSTRUCT_OVL);
             BestOverlapGraph::fragLength[ iid++ ] = clrEnd - clrBgn;
         }
