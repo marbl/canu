@@ -123,6 +123,24 @@ readBuffer::seek(off_t pos) {
   fprintf(stderr, "readBuffer::seek()-- seek to "u64bitFMT"\n", (u64bit)pos);
 #endif
 
+  //  The file is currently at _filePos, and there are _bufferMax -
+  //  _bufferPos bytes left in the buffer.  If we are seeking to
+  //  something inside the buffer, the don't do a new seek/read,
+  //  just move the buffer pointer.
+  //
+#if 0
+  //  It's a nice idea, but it's broken.
+  if (_fileType == 1) {
+    if ((_filePos <= pos) && (pos <= _filePos + _bufferLen - _bufferPos - 256)) {
+      u32bit offset = pos - _filePos;
+      _filePos   += offset;
+      _bufferPos += offset;
+    }
+
+    return(true);
+  }
+#endif
+
   switch(_fileType) {
     case 0:
       fprintf(stderr, "readBuffer()-- seek() not available for file '%s'.\n", _filename);
