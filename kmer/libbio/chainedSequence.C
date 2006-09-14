@@ -77,6 +77,14 @@ chainedSequence::setSource(FastAWrapper *file) {
   _file     = file;
   _file->openIndex();
 
+  if (_file->isSqueezed() == false) {
+    fprintf(stderr, "ERROR:  chainedSequence::setSource()-- source file '%s' isn't squeezed,\n", _file->getSourceName());
+    fprintf(stderr, "ERROR:      and this causes errors in indexing.  Bri should really fix this.\n");
+    fprintf(stderr, "ERROR:      until then, squeeze it with:\n");
+    fprintf(stderr, "ERROR:  leaff -f %s -W > %s.squeezed\n", _file->getSourceName(), _file->getSourceName());
+    exit(1);
+  }
+
   _filename = new char [strlen(_file->getSourceName()) + 1];
   strcpy(_filename, _file->getSourceName());
 }
@@ -259,6 +267,13 @@ chainedSequence::finish(void) {
       _useList[_useListLen].iid    = i;
       _useList[_useListLen].length = _file->sequenceLength(i);
       _useList[_useListLen].start  = startPos;
+
+#if 0
+      fprintf(stderr, "chainedSequence::finish()-- added iid="u32bitFMTW(6)" len="u32bitFMTW(9)" start="u32bitFMTW(9)"\n",
+              _useList[_useListLen].iid,
+              _useList[_useListLen].length,
+              _useList[_useListLen].start);
+#endif
 
       startPos += _useList[_useListLen].length + _separatorLength + 1;
 

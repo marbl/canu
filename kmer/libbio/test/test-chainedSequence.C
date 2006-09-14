@@ -111,8 +111,8 @@ main(int argc, char **argv) {
 
   while ((a != 0) && (b != 0) && (c != 0)) {
 
-    //  Skip the _sequence_ _breaks_ in the fasta sourced stream
-    if (a == 254)
+    //  Skip the _sequence_ _breaks_ and _gaps_ in the fasta sourced stream
+    while ((a == 254) || (a == 253))
       a = F1->nextSymbol();
 
     //  Skip the _sequence_ _gaps_ in the chainedSequence sourced stream
