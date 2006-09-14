@@ -42,33 +42,33 @@ typedef unsigned long listcount_t;
 #define LISTCOUNT_T_MAX ULONG_MAX
 
 typedef struct lnode_t {
-    #if defined(LIST_IMPLEMENTATION) || !defined(KAZLIB_OPAQUE_DEBUG)
+#if defined(LIST_IMPLEMENTATION) || !defined(KAZLIB_OPAQUE_DEBUG)
     struct lnode_t *list_next;
     struct lnode_t *list_prev;
     void *list_data;
-    #else
+#else
     int list_dummy;
-    #endif
+#endif
 } lnode_t;
 
 typedef struct lnodepool_t {
-    #if defined(LIST_IMPLEMENTATION) || !defined(KAZLIB_OPAQUE_DEBUG)
+#if defined(LIST_IMPLEMENTATION) || !defined(KAZLIB_OPAQUE_DEBUG)
     struct lnode_t *list_pool;
     struct lnode_t *list_free;
     listcount_t list_size;
-    #else
+#else
     int list_dummy;
-    #endif
+#endif
 } lnodepool_t;
 
 typedef struct list_t {
-    #if defined(LIST_IMPLEMENTATION) || !defined(KAZLIB_OPAQUE_DEBUG)
+#if defined(LIST_IMPLEMENTATION) || !defined(KAZLIB_OPAQUE_DEBUG)
     lnode_t list_nilnode;
     listcount_t list_nodecount;
     listcount_t list_maxcount;
-    #else
+#else
     int list_dummy;
-    #endif
+#endif
 } list_t;
 
 lnode_t *lnode_create(void *);

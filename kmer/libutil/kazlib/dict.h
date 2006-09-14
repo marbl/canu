@@ -44,16 +44,16 @@ typedef unsigned long dictcount_t;
 typedef enum { dnode_red, dnode_black } dnode_color_t;
 
 typedef struct dnode_t {
-    #if defined(DICT_IMPLEMENTATION) || !defined(KAZLIB_OPAQUE_DEBUG)
+#if defined(DICT_IMPLEMENTATION) || !defined(KAZLIB_OPAQUE_DEBUG)
     struct dnode_t *dict_left;
     struct dnode_t *dict_right;
     struct dnode_t *dict_parent;
     dnode_color_t dict_color;
     const void *dict_key;
     void *dict_data;
-    #else
+#else
     int dict_dummy;
-    #endif
+#endif
 } dnode_t;
 
 typedef int (*dict_comp_t)(const void *, const void *);
@@ -61,7 +61,7 @@ typedef dnode_t *(*dnode_alloc_t)(void *);
 typedef void (*dnode_free_t)(dnode_t *, void *);
 
 typedef struct dict_t {
-    #if defined(DICT_IMPLEMENTATION) || !defined(KAZLIB_OPAQUE_DEBUG)
+#if defined(DICT_IMPLEMENTATION) || !defined(KAZLIB_OPAQUE_DEBUG)
     dnode_t dict_nilnode;
     dictcount_t dict_nodecount;
     dictcount_t dict_maxcount;
@@ -70,20 +70,20 @@ typedef struct dict_t {
     dnode_free_t dict_freenode;
     void *dict_context;
     int dict_dupes;
-    #else
+#else
     int dict_dummmy;
-    #endif
+#endif
 } dict_t;
 
 typedef void (*dnode_process_t)(dict_t *, dnode_t *, void *);
 
 typedef struct dict_load_t {
-    #if defined(DICT_IMPLEMENTATION) || !defined(KAZLIB_OPAQUE_DEBUG)
+#if defined(DICT_IMPLEMENTATION) || !defined(KAZLIB_OPAQUE_DEBUG)
     dict_t *dict_dictptr;
     dnode_t dict_nilnode;
-    #else
+#else
     int dict_dummmy;
-    #endif
+#endif
 } dict_load_t;
 
 extern dict_t *dict_create(dictcount_t, dict_comp_t);
