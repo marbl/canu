@@ -23,10 +23,9 @@ sub terminate ($) {
         $cmd .= " > $wrk/terminator.err 2>&1 ";
 
         if (runCommand($cmd)) {
-            print STDERR "Failed.\n";
             rename "$wrk/$asm.asm", "$wrk/$asm.asm.FAILED";
             rename "$wrk/$asm.map", "$wrk/$asm.map.FAILED";
-            exit(1);
+            die "Failed.\n";
         }
     }
 
@@ -37,9 +36,8 @@ sub terminate ($) {
         $cmd  = "cd $wrk && ";
         $cmd .= "$bin/asmProcessScaffolds_TER -q -d -f $wrk/$asm.scaffold.fasta < $wrk/$asm.asm";
         if (runCommand($cmd)) {
-            print "Failed.\n";
             rename "$wrk/$asm.scaffold.fasta", "$wrk/$asm.scaffold.fasta.FAILED";
-            exit(1);
+            die "Failed.\n";
         }
     }
 
@@ -71,47 +69,86 @@ sub terminate ($) {
     $perl = "/usr/local/bin/perl" if (-e "/usr/local/bin/perl");
     $perl = "/usr/bin/perl"       if (-e "/usr/bin/perl");
 
-    if (0) {
-        if (! -e "$wrk/$asm.scflen") {
-            my $cmd;
-            $cmd  = "cd $wrk && ";
-            $cmd .= "$perl /home/ahalpern/asm_parse.pl $wrk/$asm.frgctg $wrk/$asm.ctglen $wrk/$asm.ctgscf $wrk/$asm.scflen ";
-            $cmd .= "$wrk/$asm.asm";
-            if (runCommand($cmd)) {
-                print "Failed.\n";
-                rename "$wrk/$asm.frgctg", "$wrk/$asm.frgctg.FAILED";
-                rename "$wrk/$asm.ctglen", "$wrk/$asm.ctglen.FAILED";
-                rename "$wrk/$asm.ctgscf", "$wrk/$asm.ctgscf.FAILED";
-                rename "$wrk/$asm.scflen", "$wrk/$asm.scflen.FAILED";
-                exit(1);
-            }
-        }
-
-        if (! -e "$wrk/$asm.frgscf") {
-            my $cmd;
-            $cmd  = "cd $wrk && ";
-            $cmd .= "$perl /home/ahalpern/frg_onto_scf_map.pl $wrk/$asm.ctgscf $wrk/$asm.frgctg > $wrk/$asm.frgscf";
-            if (runCommand($cmd)) {
-                print "Failed.\n";
-                rename "$wrk/$asm.frgscf", "$wrk/$asm.frgscf.FAILED";
-                exit(1);
-            }
+    ########################################
+    #
+    #  Generate fragment/unitig/contig/scaffold mappings
+    #
+    if (! -e "$wrk/$asm.posmap.frgscf") {
+        my $cmd;
+        $cmd  = "cd $wrk && ";
+        $cmd .= "$perl $bin/buildFragContigPosMap.pl $asm.posmap < $wrk/$asm.asm";
+        if (runCommand($cmd)) {
+            rename "$wrk/$asm.posmap.frgscf", "$wrk/$asm.posmap.frgscf.FAILED";
+            die "buildFragContigMap failed.\n";
         }
     }
 
     ########################################
-    #  Generate statistics.
+    #
+    #  Sum up the consensus stats, so we can tack them onto the end of
+    #  the qc report.
+    #
+    if (! -e "$wrk/8-consensus/consensus.stats.summary") {
+        my $NumColumnsInUnitigs           = 0;
+        my $NumGapsInUnitigs              = 0;
+        my $NumRunsOfGapsInUnitigReads    = 0;
+        my $NumColumnsInContigs           = 0;
+        my $NumGapsInContigs              = 0;
+        my $NumRunsOfGapsInContigReads    = 0;
+        my $NumAAMismatches               = 0;
+        my $NumFAMismatches               = 0;
+        my $NumVARRecords                 = 0;
+        my $NumVARStringsWithFlankingGaps = 0;
 
+        open(F, "ls $wrk/8-consensus/$asm.cns_contigs.*.err |");
+        my @files = <F>;
+        chomp @files;
+        close(F);
+
+        foreach my $f (@files) {
+            open(F, "< $f");
+            while (<F>) {
+                $NumColumnsInUnitigs += $1           if (m/NumColumnsInUnitigs\s+=\s+(\d+)/);
+                $NumGapsInUnitigs += $1              if (m/NumGapsInUnitigs\s+=\s+(\d+)/);
+                $NumRunsOfGapsInUnitigReads += $1    if (m/NumRunsOfGapsInUnitigReads\s+=\s+(\d+)/);
+                $NumColumnsInContigs += $1           if (m/NumColumnsInContigs\s+=\s+(\d+)/);
+                $NumGapsInContigs += $1              if (m/NumGapsInContigs\s+=\s+(\d+)/);
+                $NumRunsOfGapsInContigReads += $1    if (m/NumRunsOfGapsInContigReads\s+=\s+(\d+)/);
+                $NumAAMismatches += $1               if (m/NumAAMismatches\s+=\s+(\d+)/);
+                $NumFAMismatches += $1               if (m/NumFAMismatches\s+=\s+(\d+)/);
+                $NumVARRecords += $1                 if (m/NumVARRecords\s+=\s+(\d+)/);
+                $NumVARStringsWithFlankingGaps += $1 if (m/NumVARStringsWithFlankingGaps\s+=\s+(\d+)/);
+            }
+            close(F);
+        }
+
+        open(F, "> $wrk/8-consensus/consensus.stats.summary");
+        print F "[Consensus]\n";
+        print F "NumColumnsInUnitigs=$NumColumnsInUnitigs\n";
+        print F "NumGapsInUnitigs=$NumGapsInUnitigs\n";
+        print F "NumRunsOfGapsInUnitigReads=$NumRunsOfGapsInUnitigReads\n";
+        print F "NumColumnsInContigs=$NumColumnsInContigs\n";
+        print F "NumGapsInContigs=$NumGapsInContigs\n";
+        print F "NumRunsOfGapsInContigReads=$NumRunsOfGapsInContigReads\n";
+        print F "NumAAMismatches=$NumAAMismatches\n";
+        print F "NumFAMismatches=$NumFAMismatches\n";
+        print F "NumVARRecords=$NumVARRecords\n";
+        print F "NumVARStringsWithFlankingGaps=$NumVARStringsWithFlankingGaps\n";
+        close(F);
+    }
+
+
+    ########################################
+    #
+    #  Generate statistics.
+    #
     if (! -e "$wrk/$asm.qc") {
 
         #  Some amazingly ugly magic to get the perl libs.
         #
-        if (!defined($ENV{'PERL5LIB'})) {
+        if (!defined($ENV{'PERL5LIB'}) && !defined($ENV{'PERLLIB'})) {
           if (-d "/home/smurphy/preassembly/test/TIGR/scripts") {
             $ENV{'PERL5LIB'} = "/home/smurphy/preassembly/test/TIGR/scripts";
-          } elsif (defined $ENV{PERLLIB}) {
-            ## MCS: For some reason at CBCB PERL5LIB needs to be set from PERLLIB
-            $ENV{'PERL5LIB'} = $ENV{PERLLIB};
           }
         }
 
@@ -119,10 +156,19 @@ sub terminate ($) {
         $cmd  = "cd $wrk && ";
         $cmd .= "$perl $bin/caqc.pl $wrk/$asm.asm";
         if (runCommand($cmd)) {
-            print "Failed.\n";
             rename "$wrk/$asm.qc", "$wrk/$asm.qc.FAILED";
-            exit(1);
+            die "Failed.\n";
         }
+
+        open(F, ">> $wrk/$asm.qc") or die;
+        print F "\n";
+
+        open(G, "<  $wrk/8-consensus/consensus.stats.summary") or die;
+        while (<G>) {
+            print F $_;
+        }
+        close(G);
+        close(F);
     }
 }
 
