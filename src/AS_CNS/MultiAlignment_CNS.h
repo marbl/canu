@@ -57,22 +57,41 @@ typedef struct {
 } CNS_Options;
 
 typedef struct {
+int      id;
+char    *bases;
+int     *qvs;        // will need to compute the consensus qv
+double   ave_qv; 
+int      allele_id;
+} Read;
+
+typedef struct {
+int    id;
+int    num_reads;
+int   *read_ids;
+double weight;
+} Allele;
+
+typedef struct {
 /*  This structure is used when recalling consensus bases
  *  to use only one of two alleles
  */
+int32    beg;
+int32    end;
 int32    nr;          // number of reads in the region of variation
 int32    max_nr;
 int32    nb;
 int32    nr_best_allele;
 int32    best_allele;
+int32    na;          // total number of detected alleles
+int32    nca;         // number of confirmed alleles
 double   ratio;
-char    *bases;
-char    *alleles;     // may be 0 or 1
-char    *types;
+char    *curr_bases;  // dim = nr
+char    *types;       // dim = nr
 int32   *iids;        // iids of the reads
-int32   *sum_qvs;     // used to select the best allele
+Read    *reads;
+Allele  *alleles;
 int32  **dist_matrix; // nr x nr matrix of cross-distances between reads
-} AlPair;
+} VarRegion;
 
 // -----------------------------------
 // Jason introduced this new structure to address previous
@@ -349,7 +368,7 @@ MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *, FragStoreHandle ,
 
 void ResetStores(int32 num_frags, int32 num_columns);
 int SetupSingleColumn(char *, char *, char *, char *, CNS_Options *opp);
-int BaseCall(int32 , int , double *, AlPair *, int, char *, int, int,
+int BaseCall(int32 , int , double *, VarRegion  *, int, char *, int, int,
    CNS_Options *);
 void ShowColumn(int32 cid);
 
