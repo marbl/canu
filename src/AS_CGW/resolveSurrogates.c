@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: resolveSurrogates.c,v 1.7 2006-08-24 13:42:01 ahalpern Exp $";
+static char CM_ID[] = "$Id: resolveSurrogates.c,v 1.8 2006-09-18 18:36:41 ahalpern Exp $";
 
 
 /*********************************************************************/
@@ -66,6 +66,7 @@ int main( int argc, char *argv[])
 						 only used once in the assembly; "aggressively" means place
 						 all the fragments in the unitig, regardless of mate status,
 					         alignment quality etc */
+  float cutoffToInferSingleCopyStatus=1.0;
   Global_CGW *data;
   char *outputPath = NULL;
   int setFragStore = FALSE;
@@ -107,7 +108,7 @@ int main( int argc, char *argv[])
     int ch,errflg=0;
     optarg = NULL;
     while (!errflg && ((ch = getopt(argc, argv,
-				    "c:f:g:n:1")) != EOF)){
+				    "c:f:g:n:S:1")) != EOF)){
       switch(ch) {
 		case 'c':
 		{
@@ -129,6 +130,10 @@ int main( int argc, char *argv[])
 		break;	  
 		case 'n':
 		  ckptNum = atoi(argv[optind - 1]);
+		  break;
+                case 'S':
+		  cutoffToInferSingleCopyStatus=atof(argv[optind-1]);
+		  assert( cutoffToInferSingleCopyStatus >= 0.0 && cutoffToInferSingleCopyStatus <= 1.0 );
 		  break;
 		case '1':
 		  placeAllFragsInSinglePlacedSurros = 1;
@@ -306,6 +311,35 @@ int main( int argc, char *argv[])
 	AppendVA_CDS_CID_t(toplace,&iid);
       }
 
+
+      // now, second-guess ourselves: if a sufficient fraction of reads can be placed with mates, then
+      // place all fragments
+      { 
+	int reallyPlaced;
+	float fractionPlaced;
+
+	reallyPlaced = GetNumCDS_CID_ts(toplace);
+	fractionPlaced = ((float) reallyPlaced)/ ((float) numFragmentsInParent);
+
+	if( numInstances==1 && fractionPlaced>cutoffToInferSingleCopyStatus ){
+
+	  CGWFragIterator frags;
+	  CIFragT *nextfrg;
+	  InitCIFragTInChunkIterator(&frags,parentChunk,FALSE);
+
+	  ResetVA_CDS_CID_t(toplace);
+
+	  while(NextCIFragTInChunkIterator(&frags, &nextfrg)){
+	    AppendVA_CDS_CID_t(toplace,&(nextfrg->iid));  
+	  }
+
+	  CleanupCIFragTInChunkIterator(&frags);
+	}
+
+      }
+
+
+      // now really do the placement
       ReallyAssignFragsToResolvedCI(ScaffoldGraph->CIGraph,
                                     parentChunk->id, 
                                     my_getChunkInstanceID(parentChunk,i),
