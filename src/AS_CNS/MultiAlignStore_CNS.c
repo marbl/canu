@@ -25,7 +25,7 @@
    Assumptions:  libAS_UTL.a
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.15 2006-07-07 16:20:10 mcschatz Exp $";
+static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.16 2006-09-19 20:28:14 brianwalenz Exp $";
 
 
 #include <assert.h>
@@ -643,7 +643,7 @@ CreateMultiAlignTFromICM(IntConConMesg *icm, int localID, int sequenceOnly)
          tmp.num_alleles = cvr_mesg->num_alleles;
          tmp.window_size = cvr_mesg->window_size;
          tmp.var_length = cvr_mesg->var_length;
-         tmp.var_seq = (char *) safe_malloc(((tmp.var_length+1)*tmp.num_alleles+1)*sizeof(char));
+         tmp.var_seq = (char *) safe_malloc((strlen(cvr_mesg->var_seq)+1)*sizeof(char));
          strcpy(tmp.var_seq, cvr_mesg->var_seq);
          SetIntMultiVar(ma->v_list, cvr, &tmp);
       }
@@ -768,7 +768,7 @@ CreateMultiAlignTFromCCO(SnapConConMesg *cco, int localID, int sequenceOnly)
          tmp.num_alleles = cvr_mesg->num_alleles;
          tmp.window_size = cvr_mesg->window_size;
          tmp.var_length = cvr_mesg->var_length;
-         tmp.var_seq = (char *) safe_malloc(((tmp.var_length+1)*tmp.num_alleles+1)*sizeof(char));
+         tmp.var_seq = (char *) safe_malloc((strlen(cvr_mesg->var_seq)+1)*sizeof(char));
          strcpy(tmp.var_seq, cvr_mesg->var_seq);
          SetIntMultiVar(ma->v_list, cvr, &tmp);
       }
