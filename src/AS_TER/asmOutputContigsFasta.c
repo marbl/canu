@@ -22,58 +22,57 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#ifdef _OSF_SOURCE
-#include <sys/mode.h>
-#endif
-#include <unistd.h>
-#include <dirent.h>
-#include "assert.h"
+#include <assert.h>
+
 #include "AS_global.h"
-#include "AS_PER_ReadStruct.h"
-#include "AS_PER_fragStore.h"
-#include "AS_PER_genericStore.h"
-#include "AS_UTL_Var.h"
-#include "AS_UTL_Hash.h"
-#include "AS_UTL_ID_store.h"
-#include "PrimitiveVA.h"
-#include "PrimitiveVA_MSG.h"
-#include "MultiAlignStore_CNS.h"
 
-#define FASTA_SEQ_LINE_LENGTH 60
+int
+main(int argc, char **argv) {
+  MesgReader        reader;
+  GenericMesg      *pmesg;
+  SnapConConMesg   *contig;
+  char              status[265];
 
-int main(int argc, char *argv[])
-{ GenericMesg *pmesg;
-  SnapConConMesg *contig;
-  MesgReader   reader;
-
-  if ( argc> 1 ) {
-     fprintf(stderr,"Usage: %s < asmfile > contigs_fasta_file\n",argv[0]);
-     exit(1);
+  if (isatty(fileno(stdin)) || (argc > 1)) {
+    fprintf(stderr,"Usage: %s < asmfile > contigs_fasta_file\n", argv[0]);
+    exit(1);
   }
   
-  reader = (MesgReader)InputFileType_AS( stdin );
+  reader = (MesgReader)InputFileType_AS(stdin);
 
-  while (reader(stdin,&pmesg) != EOF){
+  while (reader(stdin, &pmesg) != EOF) {
     if (pmesg->t ==MESG_CCO)  {
-      int intoline=0;
-      int i;
       contig = pmesg->m;
-      printf(">" F_S64 " contig\n",contig->eaccession);
-      assert ( strlen(contig->consensus) == contig->length);
-      for(i=0;i<contig->length;i++){
-	if(contig->consensus[i] != '-'){
-	  if(intoline==FASTA_SEQ_LINE_LENGTH){
-	    intoline=0;
-	    printf("\n");
-	  }
-	  printf("%c",contig->consensus[i]);
-	  intoline++;
-	}
+      int src, dst;
+
+      assert(strlen(contig->consensus) == contig->length);
+
+      src = 0;
+      dst = 0;
+      while (src < contig->length) {
+        if (contig->consensus[src] != '-') {
+          if (src != dst)
+            contig->consensus[dst] = contig->consensus[src];
+          dst++;
+        }
+        src++;
       }
-      printf("\n");
+
+      contig->consensus[dst] = 0;
+
+      strcpy(status, "???");
+      if (contig->placed  == AS_PLACED)
+        strcpy(status, "true");
+      if (contig->placed  == AS_UNPLACED)
+        strcpy(status, "false");
+
+      printf(">contig"F_UID","F_IID" placed=%s\n%s\n",
+             contig->eaccession,
+             contig->iaccession,
+             status,
+             contig->consensus);
     }
- }
- exit (0);
+  }
+
+  return(0);
 }
