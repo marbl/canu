@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl
 
-# $Id: caqc.pl,v 1.7 2006-09-04 07:15:37 brianwalenz Exp $
+# $Id: caqc.pl,v 1.8 2006-09-19 20:55:28 brianwalenz Exp $
 #
 # This program reads a Celera .asm file and produces aggregate information
 # about the assembly
@@ -22,7 +22,7 @@ use TIGR::AsmLib;
 
 use Time::HiRes;
 
-my $MY_VERSION = " Version 2.11 (Build " . (qw/$Revision: 1.7 $/ )[1] . ")";
+my $MY_VERSION = " Version 2.11 (Build " . (qw/$Revision: 1.8 $/ )[1] . ")";
 
 # Constants
 my $MINQUAL = 20;
@@ -157,8 +157,6 @@ MAIN:
 
     my %readLen;
     my $scaffLinkWeights = 0; # sum of links connecting scaffolds
-
-    print STDERR "Starting read ", time(), "\n";
 
     my $minqualtest;
     for (my $i=0; $i<$MINQUAL; $i++) {
@@ -354,14 +352,6 @@ MAIN:
 	
     } # while $record
     
-    print STDERR "timecco = $timecco\n";
-    print STDERR "timeutg = $timeutg\n";
-    print STDERR "timescf = $timescf\n";
-    print STDERR "timeslk = $timeslk\n";
-    print STDERR "timeafg = $timeafg\n";
-
-    print STDERR "Init ", time(), "\n";
-
     # Initialize the Results hash so that we never get blanks for values
 
     $Results{TotalScaffolds}                 = 0;
@@ -690,14 +680,14 @@ MAIN:
     my $fh = new IO::File("> $prefix.qc") 
 	or $base->bail("Could not open $prefix.qc ($!)");
     
-    print "[Scaffolds]\n" if (! $silent);
+    print STDERR "[Scaffolds]\n" if (! $silent);
     $fh->print("[Scaffolds]\n");
     printl('TotalScaffolds',          \%Results, $fh);
     printl('TotalContigsInScaffolds', \%Results, $fh);
     printlf('MeanContigsPerScaffold', \%Results, $fh);
     printl('MinContigsPerScaffold',   \%Results, $fh);
     printl('MaxContigsPerScaffold',   \%Results, $fh);
-    print "\n" if (! $silent);
+    print STDERR "\n" if (! $silent);
     $fh->print("\n");
     printl('TotalBasesInScaffolds',   \%Results, $fh);
     printlf('MeanBasesInScaffolds',   \%Results, $fh);
@@ -709,7 +699,7 @@ MAIN:
     for my $val (@{$Results{'IncrScaffoldBases'}}) {
         print $fh "ScaffoldAt$val->[0]=$val->[1]\n";
     }
-    print "\n" if (! $silent);
+    print STDERR "\n" if (! $silent);
     $fh->print("\n");
     printl('TotalSpanOfScaffolds',    \%Results, $fh);
     printlf('MeanSpanOfScaffolds',    \%Results, $fh);
@@ -717,18 +707,18 @@ MAIN:
     printl('MaxScaffoldSpan',         \%Results, $fh);
     printl('IntraScaffoldGaps',       \%Results, $fh);
     printlf('MeanSequenceGapSize',    \%Results, $fh);
-    print "\n" if (! $silent);
+    print STDERR "\n" if (! $silent);
     $fh->print("\n");
     
-    print "[Top5Scaffolds${d}contigs${s}size${s}span${s}avgContig${s}avgGap)]\n" if (! $silent);
+    print STDERR "[Top5Scaffolds${d}contigs${s}size${s}span${s}avgContig${s}avgGap)]\n" if (! $silent);
     $fh->print("[Top5Scaffolds".$d."contigs".$s."size".$s."span".$s."avgContig".$s."avgGap]\n"
 	       );
-    print $top5scaff if (! $silent);
+    print STDERR $top5scaff if (! $silent);
     $fh->print($top5scaff);
-    print "\n" if (! $silent);
+    print STDERR "\n" if (! $silent);
     $fh->print("\n");
     
-    print "[Contigs]\n" if (! $silent);
+    print STDERR "[Contigs]\n" if (! $silent);
     $fh->print("[Contigs]\n");
     printl('TotalContigsInScaffolds', \%Results, $fh);
     printl('TotalBasesInScaffolds',   \%Results, $fh);
@@ -742,10 +732,10 @@ MAIN:
     for my $val (@{$Results{'IncrContigBases'}}) {
         print $fh "ContigAt$val->[0]=$val->[1]\n";
     }
-    print "\n" if (! $silent);
+    print STDERR "\n" if (! $silent);
     $fh->print("\n");
     
-    print "[BigContigs_greater_$MINCONTIG]\n" if (! $silent);
+    print STDERR "[BigContigs_greater_$MINCONTIG]\n" if (! $silent);
     $fh->print("[BigContigs_greater_$MINCONTIG]\n");
     printl('TotalBigContigs',         \%Results, $fh);
     printl('BigContigLength',         \%Results, $fh);
@@ -753,10 +743,10 @@ MAIN:
     printl('MinBigContig',            \%Results, $fh);
     printl('MaxBigContig',            \%Results, $fh);
     printlf('BigContigsPercentBases', \%Results, $fh);
-    print "\n" if (! $silent);
+    print STDERR "\n" if (! $silent);
     $fh->print("\n");
 
-    print "[SmallContigs]\n" if (! $silent);
+    print STDERR "[SmallContigs]\n" if (! $silent);
     $fh->print("[SmallContigs]\n");
     printl('TotalSmallContigs',       \%Results, $fh);
     printl('SmallContigLength',       \%Results, $fh);
@@ -764,10 +754,10 @@ MAIN:
     printl('MinSmallContig',          \%Results, $fh);
     printl('MaxSmallContig',          \%Results, $fh);
     printlf('SmallContigsPercentBases',\%Results, $fh);
-    print "\n" if (! $silent);
+    print STDERR "\n" if (! $silent);
     $fh->print("\n");
     
-    print "[DegenContigs]\n" if (! $silent);
+    print STDERR "[DegenContigs]\n" if (! $silent);
     $fh->print("[DegenContigs]\n");
     printl('TotalDegenContigs',       \%Results, $fh);
     printl('DegenContigLength',       \%Results, $fh);
@@ -775,17 +765,17 @@ MAIN:
     printl('MinDegenContig',          \%Results, $fh);
     printl('MaxDegenContig',          \%Results, $fh);
     printlf('DegenPercentBases',      \%Results, $fh);
-    print "\n" if (! $silent);
+    print STDERR "\n" if (! $silent);
     $fh->print("\n");
 
-    print "[Top5Contigs${d}reads${s}bases)]\n" if (! $silent);
+    print STDERR "[Top5Contigs${d}reads${s}bases)]\n" if (! $silent);
     $fh->print("[Top5Contigs"  .$d. "reads" .$s. "bases]\n");
-    print $top5contig if (! $silent);
+    print STDERR $top5contig if (! $silent);
     $fh->print($top5contig);
-    print "\n" if (! $silent);
+    print STDERR "\n" if (! $silent);
     $fh->print("\n");
 
-    print "[Surrogates]\n" if (! $silent);
+    print STDERR "[Surrogates]\n" if (! $silent);
     $fh->print("[Surrogates]\n");
     printl('TotalSurrogates',         \%Results, $fh);
     printl('SurrogateInstances',      \%Results, $fh);
@@ -796,10 +786,10 @@ MAIN:
     printl('MaxSurrogateSize',        \%Results, $fh);
     printlf('MeanSurrogateSize',      \%Results, $fh);
     printlf('SDSurrogateSize',        \%Results, $fh);
-    print "\n" if (! $silent);
+    print STDERR "\n" if (! $silent);
     $fh->print("\n");
 
-    print "[Mates]\n" if (! $silent);
+    print STDERR "[Mates]\n" if (! $silent);
     $fh->print("[Mates]\n");
     printp('ReadsWithNoMate',         \%Results, $fh, $totalSeqs);
     printp('ReadsWithGoodMate',       \%Results, $fh, $totalSeqs);
@@ -817,10 +807,10 @@ MAIN:
     printp('ReadsWithUnassigned',     \%Results, $fh, $totalSeqs);
     printl('TotalScaffoldLinks',      \%Results, $fh);
     printlf('MeanScaffoldLinkWeight', \%Results, $fh);
-    print "\n" if (! $silent);
+    print STDERR "\n" if (! $silent);
     $fh->print("\n");
 
-    print "[Reads]\n" if (! $silent);
+    print STDERR "[Reads]\n" if (! $silent);
     $fh->print("[Reads]\n");
     printl('TotalReads',              \%Results, $fh);
     printlf('AvgClearRange',           \%Results, $fh);
@@ -832,16 +822,16 @@ MAIN:
     printp('PlacedSurrogateReads',    \%Results, $fh, $totalSeqs);
     printp('SingletonReads',          \%Results, $fh, $totalSeqs);
     printp('ChaffReads',              \%Results, $fh, $totalSeqs);
-    print "\n" if (! $silent);
+    print STDERR "\n" if (! $silent);
     $fh->print("\n");
 
-    print "[Coverage]\n" if (! $silent);
+    print STDERR "[Coverage]\n" if (! $silent);
     $fh->print("[Coverage]\n");
     printlf('ContigsOnly',            \%Results, $fh);
     printlf('ContigAndSurrogates',   \%Results, $fh);
     printlf('ContigsAndDegens',       \%Results, $fh);
     printlf('AllReads',               \%Results, $fh);
-    print "\n" if (! $silent);
+    print STDERR "\n" if (! $silent);
     $fh->print("\n");
     
     $fh->close() or $base->bail("Could not close $prefix.qc ($!)"); 
@@ -859,7 +849,7 @@ sub printl($$$)
     my $rfh = shift;
     
     my $s1 = sprintf("%-32s", $tag);
-    print(sprintf("%s%-10s", $s1, $$rh_value{$tag}) . "\n") if (! $silent); 
+    print(STDERR sprintf("%s%-10s", $s1, $$rh_value{$tag}) . "\n") if (! $silent); 
     $rfh->print("$tag=" . $$rh_value{$tag} . "\n");   
 }
 
@@ -873,7 +863,7 @@ sub printlf($$$)
     my $rfh = shift;
     
     my $s1 = sprintf("%-32s", $tag);
-    print(sprintf("%s%-0.2f", $s1, $$rh_value{$tag}) . "\n") if (! $silent); 
+    print(STDERR sprintf("%s%-0.2f", $s1, $$rh_value{$tag}) . "\n") if (! $silent); 
     $rfh->print("$tag=" . sprintf("%0.2f", $$rh_value{$tag}) . "\n");   
 }
 
@@ -884,7 +874,7 @@ sub printp($$$$)
     my ($tag,$rh_value,$rfh,$tot) = @_;
     
     my $val = sprintf "%s(%.2f%%)", $$rh_value{$tag}, $$rh_value{$tag}/$tot*100;
-    printf("%-32s%-10s\n", $tag, $val) if (! $silent); 
+    printf(STDERR "%-32s%-10s\n", $tag, $val) if (! $silent); 
     $rfh->print("$tag=$val\n");   
 }
 
