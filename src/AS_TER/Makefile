@@ -150,6 +150,8 @@ include $(LOCAL_WORK)/src/c_make.as
 
 ######################### Target Definitions ##########################
 all: $(OBJECTS) $(LIBRARIES) $(PROGS)
+	cp -f buildFragContigPosMap.pl $(LOCAL_BIN)
+	chmod 775 $(LOCAL_BIN)/buildFragContigPosMap.pl
 
 count-sma:               $(SMA_OBJS)     libAS_MSG.a libAS_UTL.a
 terminator:              $(TERM_OBJS)    libAS_CNS.a libAS_CGW.a libAS_SDB.a libAS_REZ.a libAS_CGW.a libAS_PER.a libAS_UTL.a libAS_MSG.a libAS_ALN.a libAS_LIN.a libAS_OVL.a libAS_UID.a
