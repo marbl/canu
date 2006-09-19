@@ -113,7 +113,6 @@ sub eCR ($$) {
             $cmd .= " -g $wrk/$asm.gkpStore ";
             $cmd .= " -c $asm ";
             $cmd .= " -n $lastckp ";
-            $cmd .= " -s -1 ";
             $cmd .= " > $wrk/$thisDir/extendClearRanges-scaffold.$curScaffold.err 2>&1";
 
             open(F, "> $wrk/$thisDir/extendClearRanges-scaffold.$curScaffold.sh");
