@@ -76,7 +76,7 @@ sub createOverlapCorrectionJobs {
             print F "touch $wrk/3-ovlcorr/$jobName.success\n";
             close(F);
 
-            &scheduler::schedulerSubmit("sh $wrk/3-ovlcorr/$jobName.sh");
+            &scheduler::schedulerSubmit("sh $wrk/3-ovlcorr/$jobName.sh > /dev/null 2>&1");
         }
 
         $frgBeg = $frgEnd + 1;

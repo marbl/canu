@@ -80,7 +80,7 @@ sub createFragmentCorrectionJobs {
 
             chmod 0755, "$wrk/2-frgcorr/$batchName/$jobName.sh";
 
-            &scheduler::schedulerSubmit("$wrk/2-frgcorr/$batchName/$jobName.sh");
+            &scheduler::schedulerSubmit("$wrk/2-frgcorr/$batchName/$jobName.sh > /dev/null 2>&1");
         }
 
         $frgBeg = $frgEnd + 1;

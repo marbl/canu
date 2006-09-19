@@ -139,7 +139,7 @@ sub createPostScaffolderConsensusJobs ($) {
         exit(0);
     } else {
         for (my $i=1; $i<=$jobs; $i++) {
-            &scheduler::schedulerSubmit("sh $wrk/8-consensus/consensus.sh $i");
+            &scheduler::schedulerSubmit("sh $wrk/8-consensus/consensus.sh $i > /dev/null 2>&1");
         }
 
         &scheduler::schedulerSetNumberOfProcesses(getGlobal("cnsConcurrency"));
