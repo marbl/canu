@@ -111,17 +111,17 @@ void finished_with_ovlStore(void){
 }
 
 void print_olap(Long_Olap_Data_t olap){
-        printf ("    %8d %8d %c %5d %5d %4.1f %4.1f\n",
-		olap . a_iid,
-		olap . b_iid,
-		olap . flipped ? 'I' : 'N',
-		olap . a_hang, olap . b_hang,
-		olap . orig_erate / 10.0, olap . corr_erate / 10.0);
+  printf ("    %8d %8d %c %5d %5d %4.1f %4.1f\n",
+          olap . a_iid,
+          olap . b_iid,
+          olap . flipped ? 'I' : 'N',
+          olap . a_hang, olap . b_hang,
+          olap . orig_erate / 10.0, olap . corr_erate / 10.0);
 }
 
 void usage(char *pgm){
   fprintf (stderr, "USAGE:  %s -f <FragStoreName> -g <GatekeeperStoreName> -o <OVLStoreName> -c <CkptFileName> -n <CkpPtNum>\n",
-		 pgm);
+           pgm);
 }
 
 int main (int argc , char * argv[] ) {
@@ -152,39 +152,39 @@ int main (int argc , char * argv[] ) {
     optarg = NULL;
     while (!errflg && ((ch = getopt(argc, argv,"c:f:g:n:1:2:o:")) != EOF)){
       switch(ch) {
-      case 'c':
-	strcpy( data->File_Name_Prefix, argv[optind - 1]);
-	setPrefixName = TRUE;		  
-	break;
-      case 'f':
-	strcpy( data->Frag_Store_Name, argv[optind - 1]);
-	setFragStore = TRUE;
-	break;
-      case 'g':
-	strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
-	setGatekeeperStore = TRUE;
-	break;	  
-      case 'n':
-	ckptNum = atoi(argv[optind - 1]);
-	break;
-      case 'o':
-	strcpy( data->OVL_Store_Name, argv[optind - 1]);
-	setOvlStore = TRUE;
-	break;	  
-      case '?':
-	fprintf(stderr,"Unrecognized option -%c",optopt);
-      default :
-	errflg++;
+        case 'c':
+          strcpy( data->File_Name_Prefix, argv[optind - 1]);
+          setPrefixName = TRUE;		  
+          break;
+        case 'f':
+          strcpy( data->Frag_Store_Name, argv[optind - 1]);
+          setFragStore = TRUE;
+          break;
+        case 'g':
+          strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
+          setGatekeeperStore = TRUE;
+          break;	  
+        case 'n':
+          ckptNum = atoi(argv[optind - 1]);
+          break;
+        case 'o':
+          strcpy( data->OVL_Store_Name, argv[optind - 1]);
+          setOvlStore = TRUE;
+          break;	  
+        case '?':
+          fprintf(stderr,"Unrecognized option -%c",optopt);
+        default :
+          errflg++;
       }
     }
 
     if((setPrefixName == FALSE) || (setFragStore == 0) || (setGatekeeperStore == 0) || ( setOvlStore == 0)){
-	fprintf(stderr,"* argc = %d optind = %d setFragStore = %d setGatekeeperStore = %d\n",
-		argc, optind, setFragStore,setGatekeeperStore);
+      fprintf(stderr,"* argc = %d optind = %d setFragStore = %d setGatekeeperStore = %d\n",
+              argc, optind, setFragStore,setGatekeeperStore);
 
-	usage(argv[0]);
-	exit (-1);
-      }
+      usage(argv[0]);
+      exit (-1);
+    }
   }
 
   ScaffoldGraph = 

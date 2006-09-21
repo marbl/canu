@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: ScaffoldGraph_CGW.h,v 1.7 2006-06-14 19:57:23 brianwalenz Exp $	 */
+/* 	$Id: ScaffoldGraph_CGW.h,v 1.8 2006-09-21 21:34:00 brianwalenz Exp $	 */
 /***************************************************************************
  *  ScaffoldGraph
  *  
@@ -90,15 +90,15 @@ typedef struct {
   unsigned int fragIndex:31;
 }InfoByIID;
 
-VA_DEF(InfoByIID)
+VA_DEF(InfoByIID);
 
 
-VA_DEF(ChunkInstanceT)
-VA_DEF(CIScaffoldT)
-VA_DEF(ContigT)
-VA_DEF(CIEdgeT)
-VA_DEF(SEdgeT)
-VA_DEF(InternalLinkMesg)
+VA_DEF(ChunkInstanceT);
+VA_DEF(CIScaffoldT);
+VA_DEF(ContigT);
+VA_DEF(CIEdgeT);
+VA_DEF(SEdgeT);
+VA_DEF(InternalLinkMesg);
 
 
 
@@ -171,7 +171,7 @@ void DumpScaffoldSnapshot(char *name);
 
 /*****************************************************************************
 	Operations on Chunk Instances
- ****************************************************************************/
+****************************************************************************/
 
 void DumpChunkInstances(FILE *stream, ScaffoldGraphT *graph, int confirmedOnly,
 			int scaffoldedOnly, int uniqueToUniqueOnly,
@@ -192,7 +192,7 @@ void DumpChunkInstance(FILE *stream, ScaffoldGraphT *graph,
 
 /****************************************************************************
 	Operations on Scaffolds
- ***************************************************************************/
+***************************************************************************/
 
 
 int InsertScaffoldContentsIntoScaffold(ScaffoldGraphT *sgraph,
@@ -207,14 +207,14 @@ void MergeScaffoldsAggressive(ScaffoldGraphT *sgraph, int logicalcheckpointnumbe
 
 
 /*
-InsertCIInScaffold
+  InsertCIInScaffold
 
-Insert chunk instance ci int scaffold sid at offset with orientation orient.
-offsetFromAEnd = offset of the end of the CI that is closest to the A end
-of the scaffold. If the CI has edges that are marked isContigConfirming,
-it will be merged into a contig with the indicated CIs.  The edges must
-either be non-tandem overlap singleton overlap edges, or must have a
-distance variance of less than N base pairs.
+  Insert chunk instance ci int scaffold sid at offset with orientation orient.
+  offsetFromAEnd = offset of the end of the CI that is closest to the A end
+  of the scaffold. If the CI has edges that are marked isContigConfirming,
+  it will be merged into a contig with the indicated CIs.  The edges must
+  either be non-tandem overlap singleton overlap edges, or must have a
+  distance variance of less than N base pairs.
 */
 int InsertCIInScaffold(ScaffoldGraphT *sgraph, CDS_CID_t ci, CDS_CID_t sid,
                        LengthT aEndOffset, LengthT bEndOffset,
@@ -225,9 +225,9 @@ void  MarkCIElementsForScaffoldMembership(ChunkInstanceT *chunkInstance,
 
 
 /*
-RemoveCIFromScaffold
-Remove chunk instance ci from scaffold sid
-Returns 0 if successful.
+  RemoveCIFromScaffold
+  Remove chunk instance ci from scaffold sid
+  Returns 0 if successful.
 */
 int RemoveCIFromScaffold(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold,
                          ChunkInstanceT *CI, int adjustPositions);
@@ -296,31 +296,31 @@ int BuildContigEdges(ScaffoldGraphT *graph);
 
 
 /*
-Iterators
+  Iterators
 
-Iterate over all Scaffold Edges incident no a particular scaffold
-Iterate over all Scaffold Edges incident on a pair (i,j)
+  Iterate over all Scaffold Edges incident no a particular scaffold
+  Iterate over all Scaffold Edges incident on a pair (i,j)
 */
 
 /****************************************************************************
 	Operations on Scaffold Graph
- ***************************************************************************/
+***************************************************************************/
 
 /*
-Rebuild Scaffold Edges
+  Rebuild Scaffold Edges
 
-Using the CIEdges from all scaffolded chunkInstances, rebuild
-and merge the Scaffold Edges.  We can probably do this incrementally
-at some point.
+  Using the CIEdges from all scaffolded chunkInstances, rebuild
+  and merge the Scaffold Edges.  We can probably do this incrementally
+  at some point.
 */
 int RebuildScaffoldEdges(ScaffoldGraphT *sgraph);
 
 /*
-AssignFragmentsToCIs
+  AssignFragmentsToCIs
 
-Assigns a list of FragInfoT records to each ChunkInstance that is not a
-contig. We expect this to be peformed prior to microhet seperation and/or
-prior to output.
+  Assigns a list of FragInfoT records to each ChunkInstance that is not a
+  contig. We expect this to be peformed prior to microhet seperation and/or
+  prior to output.
 */
 int AssignFragmentsToCIs(ScaffoldGraphT *sgraph);
 
@@ -338,30 +338,30 @@ void PrintContigEdgeInScfContext(FILE *fp, GraphCGW_T *graph,
                                  CDS_CID_t cid);
 
 typedef enum {
-        RECOMPUTE_OK = 0,
-        RECOMPUTE_SINGULAR = 1,
-	RECOMPUTE_LAPACK = 2,
-	RECOMPUTE_NO_GAPS = 3,
-	RECOMPUTE_FAILED_REORDER_NEEDED = 4,
-	RECOMPUTE_NOT_ENOUGH_CLONES = 5,
-	RECOMPUTE_CONTIGGED_CONTAINMENTS = 6
+  RECOMPUTE_OK = 0,
+  RECOMPUTE_SINGULAR = 1,
+  RECOMPUTE_LAPACK = 2,
+  RECOMPUTE_NO_GAPS = 3,
+  RECOMPUTE_FAILED_REORDER_NEEDED = 4,
+  RECOMPUTE_NOT_ENOUGH_CLONES = 5,
+  RECOMPUTE_CONTIGGED_CONTAINMENTS = 6
 }RecomputeOffsetsStatus;
 
 /*
-RecomputeOffsetsInScaffold
+  RecomputeOffsetsInScaffold
 
-Recomputes the positions of the CIs in a scaffold using a least
-square error approach
-Arguments:
-    allowOrderChanges -- if TRUE, reordering the CIs in a scaffold can occur
-                         if FALSE, reordering will cause a return value
-                            of RECOMPUTE_FAILED_REORDER_NEEDED
-Preconditions:
-    scaffold should be internally connected (IsScaffoldInternallyConnected)
-Return Values:
-    RECOMPUTE_OK    CI positions are updated and scaffold's least
-                    square error measure and number of least square
-                    clones are set.
+  Recomputes the positions of the CIs in a scaffold using a least
+  square error approach
+  Arguments:
+  allowOrderChanges -- if TRUE, reordering the CIs in a scaffold can occur
+  if FALSE, reordering will cause a return value
+  of RECOMPUTE_FAILED_REORDER_NEEDED
+  Preconditions:
+  scaffold should be internally connected (IsScaffoldInternallyConnected)
+  Return Values:
+  RECOMPUTE_OK    CI positions are updated and scaffold's least
+  square error measure and number of least square
+  clones are set.
 */
 RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *sgraph,
                                                   CIScaffoldT *scaffold,
@@ -373,15 +373,15 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *sgraph,
 int IsScaffold2EdgeConnected(ScaffoldGraphT *graph, CIScaffoldT *scaffold);
 
 /*
-IsScaffoldInternallyConnected
+  IsScaffoldInternallyConnected
 
-Determines whether the scaffold is connected by edges marked TRUSTED
-and TENTATIVELY_TRUSTED. This is a necessary condition for boths sanity
-and successful recomputation of positions of Scaffold CI positions.  Also
-interesting to evaluate this after MarkInternalCIEdgeStatus. edgeTypes
-defines the set of edges used.  LeastSquares uses ALL_TRUSTED_EDGES,
-other manipulations use ALL_EDGES.
-Returns TRUE if connected, FALSE if not connected.
+  Determines whether the scaffold is connected by edges marked TRUSTED
+  and TENTATIVELY_TRUSTED. This is a necessary condition for boths sanity
+  and successful recomputation of positions of Scaffold CI positions.  Also
+  interesting to evaluate this after MarkInternalCIEdgeStatus. edgeTypes
+  defines the set of edges used.  LeastSquares uses ALL_TRUSTED_EDGES,
+  other manipulations use ALL_EDGES.
+  Returns TRUE if connected, FALSE if not connected.
 */
 int IsScaffoldInternallyConnected(ScaffoldGraphT *graph,
                                   CIScaffoldT *scaffold, int32 edgeTypes);
@@ -437,9 +437,9 @@ void DumpCelamyMateColors(FILE *file);
 void DumpCelamyFragColors(FILE *file);
 void MarkMisplacedContigs(void);
 void CelamyCIScaffolds(char * name, ScaffoldGraphT *graph);
- /* Celamy Scaffold
+/* Celamy Scaffold
    The workhorse routine for drawing a simulator-coordinate independent view of a scaffold.
- */
+*/
 void CelamyScaffold(FILE *fout, CIScaffoldT *scaffold, int64 scaffoldAEndCoord, int64 scaffoldBEndCoord);
 void CelamyAssembly(char *name);
  
@@ -525,19 +525,19 @@ void SetContigScaffoldIds(ContigT *contig, CDS_CID_t scaffoldID);
 
 
 /*
-MarkInternalEdgeStatus
+  MarkInternalEdgeStatus
 
-Using the CI positions, determines the trustworthiness of all CI edges
-that are internal to the scaffold, and marks them with a (new) status.
-This routine only changes the status of edges which are not masked by the
-doNotChange mask which should be the bitwise OR of CIEdgeStatus enums
-the user does not want changed.
-Edges with variance > maxVariance will be marked with
-LARGE_VARIANCE_EDGE_STATUS
-As an additional side effect, it also updates the scaffolds count of
-internal edges and confirmed internal edges.
-If operateOnMerged == TRUE, checks merged edges
-else                        checks raw edges
+  Using the CI positions, determines the trustworthiness of all CI edges
+  that are internal to the scaffold, and marks them with a (new) status.
+  This routine only changes the status of edges which are not masked by the
+  doNotChange mask which should be the bitwise OR of CIEdgeStatus enums
+  the user does not want changed.
+  Edges with variance > maxVariance will be marked with
+  LARGE_VARIANCE_EDGE_STATUS
+  As an additional side effect, it also updates the scaffolds count of
+  internal edges and confirmed internal edges.
+  If operateOnMerged == TRUE, checks merged edges
+  else                        checks raw edges
 */
 void MarkInternalEdgeStatus(ScaffoldGraphT *graph, 
                             CIScaffoldT *scaffold, 

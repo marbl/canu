@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: SEdgeT_CGW.c,v 1.5 2006-06-14 19:57:23 brianwalenz Exp $";
+static char CM_ID[] = "$Id: SEdgeT_CGW.c,v 1.6 2006-09-21 21:34:00 brianwalenz Exp $";
 
 //#define DEBUG 1
 //#define TRY_IANS_SEDGES
@@ -52,57 +52,57 @@ static char CM_ID[] = "$Id: SEdgeT_CGW.c,v 1.5 2006-06-14 19:57:23 brianwalenz E
 
 /* ************************************************************/
 void PrintSEdgeT(FILE *fp, ScaffoldGraphT *graph, char *label, SEdgeT *edge, CDS_CID_t sid){
-      char actualOverlap[LOG_LINE_LEN + 1];
-      int actual = 0;
-      int delta = 0;
-      char* flag = "  ";
-      CIScaffoldT *scaffoldA = GetCIScaffoldT(graph->CIScaffolds, edge->idA);
-      CIScaffoldT *scaffoldB = GetCIScaffoldT(graph->CIScaffolds, edge->idB);
+  char actualOverlap[LOG_LINE_LEN + 1];
+  int actual = 0;
+  int delta = 0;
+  char* flag = "  ";
+  CIScaffoldT *scaffoldA = GetCIScaffoldT(graph->CIScaffolds, edge->idA);
+  CIScaffoldT *scaffoldB = GetCIScaffoldT(graph->CIScaffolds, edge->idB);
 
-      assert(scaffoldA && scaffoldB);
+  assert(scaffoldA && scaffoldB);
 
-      if(edge->flags.bits.isDeleted) return;
+  if(edge->flags.bits.isDeleted) return;
       
-      if(edge->flags.bits.isBogus){
-	if(edge->flags.bits.isProbablyBogus)
-	  strcpy(actualOverlap," *Bogus and Prob Bogus*");
-	else
-  	  strcpy(actualOverlap," *Bogus*");
-      }else if(scaffoldA->aEndCoord > 0 && scaffoldB->aEndCoord > 0){
-	actual = -IntervalsOverlap(scaffoldA->aEndCoord, scaffoldA->bEndCoord, 
-                                   scaffoldB->aEndCoord, scaffoldB->bEndCoord,-500000);
-	delta = edge->distance.mean - actual;
-	sprintf(actualOverlap,"actual = %d(%d) %s", actual,delta, "");
-        assert (strlen (actualOverlap) < LOG_LINE_LEN);
-      }else
-	*actualOverlap = '\0';
+  if(edge->flags.bits.isBogus){
+    if(edge->flags.bits.isProbablyBogus)
+      strcpy(actualOverlap," *Bogus and Prob Bogus*");
+    else
+      strcpy(actualOverlap," *Bogus*");
+  }else if(scaffoldA->aEndCoord > 0 && scaffoldB->aEndCoord > 0){
+    actual = -IntervalsOverlap(scaffoldA->aEndCoord, scaffoldA->bEndCoord, 
+                               scaffoldB->aEndCoord, scaffoldB->bEndCoord,-500000);
+    delta = edge->distance.mean - actual;
+    sprintf(actualOverlap,"actual = %d(%d) %s", actual,delta, "");
+    assert (strlen (actualOverlap) < LOG_LINE_LEN);
+  }else
+    *actualOverlap = '\0';
 
-      if(edge->flags.bits.hasContributingOverlap){
-	if(edge->flags.bits.isPossibleChimera)
-	  flag = "$C";
-	else 
-	  flag = "$O";
-      }else if(edge->flags.bits.hasRepeatOverlap){
-	  flag = "$R";
-      }else if(edge->flags.bits.hasTandemOverlap){
-	  flag = "$T";
-      }else if(edge->flags.bits.hasGuide){
-	flag = "$G";
-      }
+  if(edge->flags.bits.hasContributingOverlap){
+    if(edge->flags.bits.isPossibleChimera)
+      flag = "$C";
+    else 
+      flag = "$O";
+  }else if(edge->flags.bits.hasRepeatOverlap){
+    flag = "$R";
+  }else if(edge->flags.bits.hasTandemOverlap){
+    flag = "$T";
+  }else if(edge->flags.bits.hasGuide){
+    flag = "$G";
+  }
 
 
-      fprintf(fp,"\t  cidA:" F_CID " cidB:" F_CID " weight:%d %s ori:%c con:%d distance:%d stddev:%g %s (" F_CID "," F_CID ")\n",
-              edge->idA, edge->idB, 
-              edge->edgesContributing,
-	      flag,
-              GetEdgeOrientationWRT(edge, sid),
-	      edge->flags.bits.hasContainmentOverlap,
-              (int)edge->distance.mean, sqrt(edge->distance.variance),
-              actualOverlap, edge->fragA, edge->fragB);
+  fprintf(fp,"\t  cidA:" F_CID " cidB:" F_CID " weight:%d %s ori:%c con:%d distance:%d stddev:%g %s (" F_CID "," F_CID ")\n",
+          edge->idA, edge->idB, 
+          edge->edgesContributing,
+          flag,
+          GetEdgeOrientationWRT(edge, sid),
+          edge->flags.bits.hasContainmentOverlap,
+          (int)edge->distance.mean, sqrt(edge->distance.variance),
+          actualOverlap, edge->fragA, edge->fragB);
 
 #ifdef NEVER
   fprintf(fp,
-         "\tidA:" F_CID " idB:" F_CID " orient:%s edgesContributing:%d quality:%d all:" F_S64 "\n",
+          "\tidA:" F_CID " idB:" F_CID " orient:%s edgesContributing:%d quality:%d all:" F_S64 "\n",
           edge->idA,
           edge->idB,
           edge->orient == AB_AB ? "AB_AB" :
@@ -214,8 +214,8 @@ double CorrectEdgeVariance(ScaffoldGraphT *graph, CIEdgeT *edge){
 
 
 /* Compute the offset and orientation of a fragment in its chunk and scaffold
-     Offset is from 5p end of fragment to the end of the chunk/scaffold end in the
-     direction of the 3p end of the fragment.
+   Offset is from 5p end of fragment to the end of the chunk/scaffold end in the
+   direction of the 3p end of the fragment.
 
 */
 
@@ -243,113 +243,113 @@ int CIOffsetAndOrientation(ScaffoldGraphT *graph,
   fprintf(stderr,"* CI " F_CID " is oriented %c in scaffold " F_CID " (FragOrient = %c)\n",
 	  cid, CIInScaffoldOrient, CI->scaffoldID, chunkOrient);
 #endif
-     /* Find the offset of the B end of the chunk within its chunkOfScaffolds.  The fragments
-	offset is additive with this */
+  /* Find the offset of the B end of the chunk within its chunkOfScaffolds.  The fragments
+     offset is additive with this */
 
-     switch(chunkOrient){
-     case A_B:  // Fragment is A_B in CI
-       switch(CIInScaffoldOrient){
-       case A_B:// Chunk is A_B in COS
-       /*    COS    ------------------------------------------------------->
-	     CI      A_B     ---------------------->  
-             Frag       A_B            ------>
-	     Offset                                |==========================|
-       */ 
+  switch(chunkOrient){
+    case A_B:  // Fragment is A_B in CI
+      switch(CIInScaffoldOrient){
+        case A_B:// Chunk is A_B in COS
+          /*    COS    ------------------------------------------------------->
+                CI      A_B     ---------------------->  
+                Frag       A_B            ------>
+                Offset                                |==========================|
+          */ 
 	 
-	 *ciOrient = A_B;
-	 ciOffset->mean = 
-	   (CIS->bpLength.mean -  CI->offsetBEnd.mean);
-	 ciFlipOffset->mean = CI->offsetBEnd.mean;
+          *ciOrient = A_B;
+          ciOffset->mean = 
+            (CIS->bpLength.mean -  CI->offsetBEnd.mean);
+          ciFlipOffset->mean = CI->offsetBEnd.mean;
 		 
-	 ciOffset->variance = 
-	   (CIS->bpLength.variance - CI->offsetBEnd.variance);
-	 ciFlipOffset->variance = CI->offsetAEnd.variance;
+          ciOffset->variance = 
+            (CIS->bpLength.variance - CI->offsetBEnd.variance);
+          ciFlipOffset->variance = CI->offsetAEnd.variance;
 
-	 if(ciOffset->variance < 0.0){
-	   fprintf(stderr,"* A_B Negative offset variance %g for position of CI " F_CID " in scaffold " F_CID "==> set to 1\n",
-		   ciOffset->variance, CI->id, CIS->id);
-	   ciOffset->variance = 1.0;
-	 }
-	 break;
-       case B_A: // Chunk is B_A in COS
-       /*    COS    ------------------------------------------------------->
-	     Chunk     B_A  <----------------------   
-             Frag      A_B         <------    
-	     Offset |=======|
-       */ 
-	 *ciOrient = B_A;
-	 ciOffset->mean = CI->offsetBEnd.mean;
-	 ciFlipOffset->mean = 
-	   (CIS->bpLength.mean - CI->offsetBEnd.mean);
-	 ciOffset->variance = CI->offsetBEnd.variance;
-	 ciFlipOffset->variance = 
-	   (CIS->bpLength.variance - CI->offsetAEnd.variance);
+          if(ciOffset->variance < 0.0){
+            fprintf(stderr,"* A_B Negative offset variance %g for position of CI " F_CID " in scaffold " F_CID "==> set to 1\n",
+                    ciOffset->variance, CI->id, CIS->id);
+            ciOffset->variance = 1.0;
+          }
+          break;
+        case B_A: // Chunk is B_A in COS
+          /*    COS    ------------------------------------------------------->
+                Chunk     B_A  <----------------------   
+                Frag      A_B         <------    
+                Offset |=======|
+          */ 
+          *ciOrient = B_A;
+          ciOffset->mean = CI->offsetBEnd.mean;
+          ciFlipOffset->mean = 
+            (CIS->bpLength.mean - CI->offsetBEnd.mean);
+          ciOffset->variance = CI->offsetBEnd.variance;
+          ciFlipOffset->variance = 
+            (CIS->bpLength.variance - CI->offsetAEnd.variance);
 
-	 if(ciFlipOffset->variance < 0.0){
-	   fprintf(stderr,"* A_B Negative Flip offset variance %g for position of CI " F_CID " in scaffold " F_CID "==> set to 1\n",
-		   ciFlipOffset->variance, CI->id, CIS->id);
-	   ciFlipOffset->variance = 1.0;
-	 }
-	 break;
-       default:
-	 assert(0);
-       }
-       break;
+          if(ciFlipOffset->variance < 0.0){
+            fprintf(stderr,"* A_B Negative Flip offset variance %g for position of CI " F_CID " in scaffold " F_CID "==> set to 1\n",
+                    ciFlipOffset->variance, CI->id, CIS->id);
+            ciFlipOffset->variance = 1.0;
+          }
+          break;
+        default:
+          assert(0);
+      }
+      break;
 
-     case B_A:  // Fragment is B_A in Chunk
-       switch(CIInScaffoldOrient){
-       case A_B:// Chunk is A_B in COS
-       /*    COS    ------------------------------------------------------->
-	     Chunk      A_B     ---------------------->  
-             Frag       B_A            <------
-	     Offset |===========|
-       */ 
+    case B_A:  // Fragment is B_A in Chunk
+      switch(CIInScaffoldOrient){
+        case A_B:// Chunk is A_B in COS
+          /*    COS    ------------------------------------------------------->
+                Chunk      A_B     ---------------------->  
+                Frag       B_A            <------
+                Offset |===========|
+          */ 
 	 
-	 *ciOrient = B_A; // in scaffold
-	 ciOffset->mean = CI->offsetAEnd.mean;
-	 ciFlipOffset->mean = 
-	   (CIS->bpLength.mean - CI->offsetAEnd.mean);
-	 ciOffset->variance = CI->offsetAEnd.variance;
-	 ciFlipOffset->variance = 
-	   (CIS->bpLength.variance - CI->offsetBEnd.variance);
+          *ciOrient = B_A; // in scaffold
+          ciOffset->mean = CI->offsetAEnd.mean;
+          ciFlipOffset->mean = 
+            (CIS->bpLength.mean - CI->offsetAEnd.mean);
+          ciOffset->variance = CI->offsetAEnd.variance;
+          ciFlipOffset->variance = 
+            (CIS->bpLength.variance - CI->offsetBEnd.variance);
 
-	 if(ciFlipOffset->variance < 0.0){
-	   fprintf(stderr,"* B_A Negative Flip offset variance %g for position of CI " F_CID " in scaffold " F_CID "==> set to 1\n",
-		   ciFlipOffset->variance, CI->id, CIS->id);
-	   ciFlipOffset->variance = 1.0;
-	 }
-	 break;
-       case B_A: // Chunk is B_A in COS
-       /*    COS    ------------------------------------------------------->
-	     Chunk           <----------------------   B_A
-             Frag                   ------>    B_A
-	     Offset                                |========================|
-       */ 
-	 *ciOrient = A_B; // in scaffold
-	 ciOffset->mean =  
-	   (CIS->bpLength.mean - CI->offsetAEnd.mean);
-	 ciFlipOffset->mean = CI->offsetAEnd.mean;
+          if(ciFlipOffset->variance < 0.0){
+            fprintf(stderr,"* B_A Negative Flip offset variance %g for position of CI " F_CID " in scaffold " F_CID "==> set to 1\n",
+                    ciFlipOffset->variance, CI->id, CIS->id);
+            ciFlipOffset->variance = 1.0;
+          }
+          break;
+        case B_A: // Chunk is B_A in COS
+          /*    COS    ------------------------------------------------------->
+                Chunk           <----------------------   B_A
+                Frag                   ------>    B_A
+                Offset                                |========================|
+          */ 
+          *ciOrient = A_B; // in scaffold
+          ciOffset->mean =  
+            (CIS->bpLength.mean - CI->offsetAEnd.mean);
+          ciFlipOffset->mean = CI->offsetAEnd.mean;
 
-	 ciOffset->variance =   
-	   (CIS->bpLength.variance - CI->offsetAEnd.variance);
-	 ciFlipOffset->variance = CI->offsetBEnd.variance;
+          ciOffset->variance =   
+            (CIS->bpLength.variance - CI->offsetAEnd.variance);
+          ciFlipOffset->variance = CI->offsetBEnd.variance;
 
-	 if(ciOffset->variance < 0.0){
-	   fprintf(stderr,"* B_A Negative offset variance %g for position of CI " F_CID " in scaffold " F_CID "==> set to 1\n",
-		   ciOffset->variance, CI->id, CIS->id);
-	   ciOffset->variance = 1.0;
-	 }
-	 break;
+          if(ciOffset->variance < 0.0){
+            fprintf(stderr,"* B_A Negative offset variance %g for position of CI " F_CID " in scaffold " F_CID "==> set to 1\n",
+                    ciOffset->variance, CI->id, CIS->id);
+            ciOffset->variance = 1.0;
+          }
+          break;
 
-       default:
-	 assert(0);
-       }
-       break;
-     default:
-       assert(0);
-     }
+        default:
+          assert(0);
+      }
+      break;
+    default:
+      assert(0);
+  }
 
-     return TRUE;
+  return TRUE;
 
 }
 
@@ -361,20 +361,20 @@ void PopulateReverseEdge(EdgeCGW_T * reverseEdge, EdgeCGW_T * forwardEdge)
   reverseEdge->idB = forwardEdge->idA;
 
   switch(forwardEdge->orient)
-  {
-    case AB_BA:
-    case BA_AB:
-      break;
-    case AB_AB:
-      reverseEdge->orient = BA_BA;
-      break;
-    case BA_BA:
-      reverseEdge->orient = AB_AB;
-      break;
-    default:
-      assert(0);
-      break;
-  }
+    {
+      case AB_BA:
+      case BA_AB:
+        break;
+      case AB_AB:
+        reverseEdge->orient = BA_BA;
+        break;
+      case BA_BA:
+        reverseEdge->orient = AB_AB;
+        break;
+      default:
+        assert(0);
+        break;
+    }
   
   reverseEdge->flags.bits.aContainsB = forwardEdge->flags.bits.bContainsA;
   reverseEdge->flags.bits.bContainsA = forwardEdge->flags.bits.aContainsB;
@@ -593,13 +593,13 @@ int BuildSEdgeFromChunkEdge(ScaffoldGraphT * graph,
   sedge.nextALink = sedge.nextBLink = sedge.prevALink = sedge.prevBLink = NULLINDEX;
   
   if(sedge.idA > sedge.idB)
-  {
-    SEdgeT reverseEdge;
+    {
+      SEdgeT reverseEdge;
     
-    assert(canonicalOnly == FALSE);
-    PopulateReverseEdge(&reverseEdge, &sedge);
-    sedge = reverseEdge;
-  }
+      assert(canonicalOnly == FALSE);
+      PopulateReverseEdge(&reverseEdge, &sedge);
+      sedge = reverseEdge;
+    }
 
 
   {
@@ -628,7 +628,7 @@ int BuildSEdgesForScaffold(ScaffoldGraphT * graph,
      scaffold->type != REAL_SCAFFOLD)
     return 0;
 
-    //#define DEBUG_SEDGE
+  //#define DEBUG_SEDGE
 #ifdef DEBUG_SEDGE
   fprintf(stderr,"* Building SEdges incident on scaffold " F_CID "\n", scaffold->id);
 #endif
@@ -660,15 +660,15 @@ int BuildSEdgesForScaffold(ScaffoldGraphT * graph,
         continue;
       
       if(canonicalOnly)
-      {
-        if(otherCI->scaffoldID < thisCI->scaffoldID)       // not canonical
-          continue;
-      }
+        {
+          if(otherCI->scaffoldID < thisCI->scaffoldID)       // not canonical
+            continue;
+        }
       else
-      {
-        if(thisCI->scaffoldID < otherCI->scaffoldID)       // not canonical
-          continue;
-      }
+        {
+          if(thisCI->scaffoldID < otherCI->scaffoldID)       // not canonical
+            continue;
+        }
 
       if(otherCI->scaffoldID == thisCI->scaffoldID){
         stats->edgesInternal++;
@@ -679,11 +679,11 @@ int BuildSEdgesForScaffold(ScaffoldGraphT * graph,
 
       if(BuildSEdgeFromChunkEdge(graph, thisCI, otherCI, edge,
                                  canonicalOnly) == TRUE)
-      {
-        stats->edgesSucceeded++;
-        if(edge->flags.bits.hasGuide)
-          stats->guidesSucceeded++;
-      }
+        {
+          stats->edgesSucceeded++;
+          if(edge->flags.bits.hasGuide)
+            stats->guidesSucceeded++;
+        }
     }
   }
   return 0;
@@ -721,31 +721,31 @@ void PrintSEdgesForScaffold(ScaffoldGraphT * graph,
   
   InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
   while((thisCI = NextCIScaffoldTIterator(&CIs)) != NULL)
-  {
-    GraphEdgeIterator edges;
-    CIEdgeT *edge;
-    
-    InitGraphEdgeIterator(graph->RezGraph,
-                          thisCI->id,
-                          ALL_END,
-                          ALL_EDGES,
-                          GRAPH_EDGE_DEFAULT,
-                          &edges);
-    while((edge = NextGraphEdgeIterator(&edges)) != NULL)
     {
-      if(edge->idA != edge->idB)
-      {
-        int isA = (edge->idA == thisCI->id);
-        ChunkInstanceT *otherCI = GetGraphNode(graph->RezGraph,
-                                               (isA? edge->idB: edge->idA));
+      GraphEdgeIterator edges;
+      CIEdgeT *edge;
+    
+      InitGraphEdgeIterator(graph->RezGraph,
+                            thisCI->id,
+                            ALL_END,
+                            ALL_EDGES,
+                            GRAPH_EDGE_DEFAULT,
+                            &edges);
+      while((edge = NextGraphEdgeIterator(&edges)) != NULL)
+        {
+          if(edge->idA != edge->idB)
+            {
+              int isA = (edge->idA == thisCI->id);
+              ChunkInstanceT *otherCI = GetGraphNode(graph->RezGraph,
+                                                     (isA? edge->idB: edge->idA));
 
-        fprintf(fp, "" F_CID " to " F_CID " in scaffold " F_CID ". %s",
-                thisCI->id, otherCI->id, otherCI->scaffoldID,
-                (edge->flags.bits.isRaw) ? "Raw\n" : "\n");
-        numEdges++;
-      }
+              fprintf(fp, "" F_CID " to " F_CID " in scaffold " F_CID ". %s",
+                      thisCI->id, otherCI->id, otherCI->scaffoldID,
+                      (edge->flags.bits.isRaw) ? "Raw\n" : "\n");
+              numEdges++;
+            }
+        }
     }
-  }
   fprintf(fp, "Done printing %d inter-scaffold contig edges for " F_CID "\n",
           numEdges, scaffold->id);
 
@@ -762,11 +762,11 @@ void PrintSEdgesForScaffold(ScaffoldGraphT * graph,
     InitSEdgeTIterator(ScaffoldGraph, scaffold->id,
                        TRUE, FALSE, ALL_END, FALSE, &SEdges);
     while((sEdge = NextSEdgeTIterator(&SEdges)) != NULL)
-    {
-      fprintf(fp, "" F_CID " to " F_CID ", weight %d\n",
-              sEdge->idA, sEdge->idB, sEdge->edgesContributing);
-      numEdges++;
-    }
+      {
+        fprintf(fp, "" F_CID " to " F_CID ", weight %d\n",
+                sEdge->idA, sEdge->idB, sEdge->edgesContributing);
+        numEdges++;
+      }
     
     fprintf(fp,
             "\nPrinting merged inter-scaffold scaffold edges for scaffold " F_CID "\n",
@@ -776,11 +776,11 @@ void PrintSEdgesForScaffold(ScaffoldGraphT * graph,
     InitSEdgeTIterator(ScaffoldGraph, scaffold->id,
                        FALSE, FALSE, ALL_END, FALSE, &SEdges);
     while((sEdge = NextSEdgeTIterator(&SEdges)) != NULL)
-    {
-      fprintf(fp, "" F_CID " to " F_CID ", weight %d\n",
-              sEdge->idA, sEdge->idB, sEdge->edgesContributing);
-      numEdges++;
-    }
+      {
+        fprintf(fp, "" F_CID " to " F_CID ", weight %d\n",
+                sEdge->idA, sEdge->idB, sEdge->edgesContributing);
+        numEdges++;
+      }
     
     fprintf(fp, "Done printing %d inter-scaffold scaffold edges for " F_CID "\n",
             numEdges, scaffold->id);
@@ -798,7 +798,7 @@ void BuildSEdges(ScaffoldGraphT *graph, int includeNegativeEdges)
   
   t = time(0);
   fprintf(stderr,"*Entering BuildSEdges (%d edges) at %s*\n", 
-		  (int) GetNumGraphEdges(graph->ScaffoldGraph), ctime(&t));
+          (int) GetNumGraphEdges(graph->ScaffoldGraph), ctime(&t));
   fflush(stderr);
 
   StartTimerT(&GlobalData->BuildSEdgesTimer);
@@ -830,7 +830,7 @@ void BuildSEdges(ScaffoldGraphT *graph, int includeNegativeEdges)
 	  stats.edgesAttempted, stats.edgesInternal, stats.edgesSucceeded);
   fprintf(stderr,"* Attempted %d guides of which %d were internal and %d were successful\n",
 	  stats.guidesAttempted, stats.guidesInternal, stats.guidesSucceeded);
- fflush(stderr);
+  fflush(stderr);
   fprintf(GlobalData->stderrc,"* BuildSEdges *\n");
   fprintf(GlobalData->stderrc,"* Attempted %d edges of which %d were internal and %d were successful\n",
 	  stats.edgesAttempted, stats.edgesInternal, stats.edgesSucceeded);
@@ -858,8 +858,8 @@ void CheckCITypes(ScaffoldGraphT *sgraph){
   while((CI = NextGraphNodeIterator(&nodes)) != NULL){
     if(CI->flags.bits.isUnique ){
       if(CI->scaffoldID == NULLINDEX){
-		DumpChunkInstance(stderr, ScaffoldGraph, CI, FALSE, FALSE, FALSE, FALSE);
-		// DumpSuspiciousCI(CI);
+        DumpChunkInstance(stderr, ScaffoldGraph, CI, FALSE, FALSE, FALSE, FALSE);
+        // DumpSuspiciousCI(CI);
 	assert(0);
       }
     }else{
@@ -899,13 +899,13 @@ void DumpSuspiciousCI(ChunkInstanceT *CI){
     nidA = (nA->idA == CI->id? nA->idB: nA->idA);
     CIa = GetChunkInstanceT (ScaffoldGraph->ChunkInstances, nidA);
     PrintCIEdgeT(stderr, ScaffoldGraph, " ", nA , nidA);
- }
+  }
   if(CI->essentialEdgeB != NULLINDEX){
     nB = GetCIEdgeT(ScaffoldGraph->CIEdges, CI->essentialEdgeB);
     nidB = (nB->idA == CI->id? nB->idB: nB->idA);
     CIb = GetChunkInstanceT (ScaffoldGraph->ChunkInstances, nidB);
     PrintCIEdgeT(stderr, ScaffoldGraph, " ", nB, nidB);
- }
+  }
   fprintf(stderr,"* Essential Neighbors *\n");
   if(CIa){
     fprintf(stderr,"* Chunk " F_CID " in Scaffold " F_CID " of type %d\n", CIa->id, CIa->scaffoldID, CIa->type);

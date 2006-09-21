@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: dumpBinaryUnitigMAs.c,v 1.7 2006-06-14 19:57:23 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpBinaryUnitigMAs.c,v 1.8 2006-09-21 21:34:00 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -85,37 +85,37 @@ void FindPattern()
   
   InitGraphNodeIterator(&nodes, graph, GRAPH_NODE_DEFAULT);
   while((ctg = NextGraphNodeIterator(&nodes)) != NULL)
-  {
-    NodeCGW_T * utg;
+    {
+      NodeCGW_T * utg;
     
 
-    if(ctg->flags.bits.isDead) continue;
-    if(ctg->flags.bits.isChaff) continue;
-    if(ctg->info.Contig.numCI > 1) continue;
-    if(ctg->scaffoldID != NULLINDEX) continue;
+      if(ctg->flags.bits.isDead) continue;
+      if(ctg->flags.bits.isChaff) continue;
+      if(ctg->info.Contig.numCI > 1) continue;
+      if(ctg->scaffoldID != NULLINDEX) continue;
 
-    utg = GetGraphNode(ScaffoldGraph->CIGraph, ctg->info.Contig.AEndCI);
-    if(utg->type != UNRESOLVEDCHUNK_CGW ||
-       utg->scaffoldID == NULLINDEX ||
-       utg->info.CI.numInstances > 0) continue;
+      utg = GetGraphNode(ScaffoldGraph->CIGraph, ctg->info.Contig.AEndCI);
+      if(utg->type != UNRESOLVEDCHUNK_CGW ||
+         utg->scaffoldID == NULLINDEX ||
+         utg->info.CI.numInstances > 0) continue;
 
-    /*
-    fprintf(stderr, "utg " F_CID ", scaffold " F_CID ", type %s, rock: %c, potential rock: %c, stone: %c, potential stone: %c, numInstances: %d\n",
-            utg->id, utg->scaffoldID,
-            (utg->type == UNRESOLVEDCHUNK_CGW) ? "unresolved" :
-            ((utg->type == DISCRIMINATORUNIQUECHUNK_CGW) ? "Dunique" :
-             ((utg->type == UNIQUECHUNK_CGW) ? "Unique" :
-              ((utg->type == RESOLVEDREPEATCHUNK_CGW) ? "resolved" : "null"))),
-            utg->flags.bits.isRock ? 'Y' : 'N',
-            utg->flags.bits.isPotentialRock ? 'Y' : 'N',
-            utg->flags.bits.isStone ? 'Y' : 'N',
-            utg->flags.bits.isPotentialStone ? 'Y' : 'N',
-            utg->info.CI.numInstances);
-    */
+      /*
+        fprintf(stderr, "utg " F_CID ", scaffold " F_CID ", type %s, rock: %c, potential rock: %c, stone: %c, potential stone: %c, numInstances: %d\n",
+        utg->id, utg->scaffoldID,
+        (utg->type == UNRESOLVEDCHUNK_CGW) ? "unresolved" :
+        ((utg->type == DISCRIMINATORUNIQUECHUNK_CGW) ? "Dunique" :
+        ((utg->type == UNIQUECHUNK_CGW) ? "Unique" :
+        ((utg->type == RESOLVEDREPEATCHUNK_CGW) ? "resolved" : "null"))),
+        utg->flags.bits.isRock ? 'Y' : 'N',
+        utg->flags.bits.isPotentialRock ? 'Y' : 'N',
+        utg->flags.bits.isStone ? 'Y' : 'N',
+        utg->flags.bits.isPotentialStone ? 'Y' : 'N',
+        utg->info.CI.numInstances);
+      */
 
-    fprintf(stdout, F_CID "\n", utg->id);
-    numMatches++;
-  }
+      fprintf(stdout, F_CID "\n", utg->id);
+      numMatches++;
+    }
 
   fprintf(stderr, "%d matches.\n", numMatches);
 }
@@ -127,11 +127,11 @@ void PrintFasta(FILE * fp, char * header, char * seq,
   fprintf( fp, "%s", header );
 
   for( i = start; i < end; i++ )
-  {
-    if( i != start && (i-start) % 60 == 0 )
-      fprintf( fp, "\n" );
-    fprintf( fp, "%c", seq[i] );
-  }
+    {
+      if( i != start && (i-start) % 60 == 0 )
+        fprintf( fp, "\n" );
+      fprintf( fp, "%c", seq[i] );
+    }
   fprintf( fp, "\n" );
 }
 
@@ -182,23 +182,23 @@ void DumpUnitigMultiAlignInfo ( CDS_CID_t unitigID )
            unitigID, strlen( Getchar( uma->consensus, 0 )));
 
   for ( i = 0; i < GetNumIntMultiPoss( uma->f_list ); i++)
-  {
-    IntMultiPos *pos = GetIntMultiPos( uma->f_list, i);
+    {
+      IntMultiPos *pos = GetIntMultiPos( uma->f_list, i);
     
-    getFragStore(ScaffoldGraph->fragStore, pos->ident, FRAG_S_ALL, myRead);
-    sprintf(fname,"U" F_CID "_%d_F" F_IID ".fa",
-            unitigID, i, pos->ident);
-    fp = fopen(fname, "w");
-    PrintRSFasta(fp, pos->ident, myRead);
-    fclose(fp);
+      getFragStore(ScaffoldGraph->fragStore, pos->ident, FRAG_S_ALL, myRead);
+      sprintf(fname,"U" F_CID "_%d_F" F_IID ".fa",
+              unitigID, i, pos->ident);
+      fp = fopen(fname, "w");
+      PrintRSFasta(fp, pos->ident, myRead);
+      fclose(fp);
     
-    fprintf( stderr, "\t\tfragment %8" F_IIDP ", bgn: %10" F_COORDP ", "
-             "end: %10" F_COORDP ", length: %10" F_COORDP ", source: %d\n", 
-             pos->ident,
-             pos->position.bgn, pos->position.end,
-             abs(pos->position.bgn - pos->position.end),
-             pos->sourceInt);
-  }
+      fprintf( stderr, "\t\tfragment %8" F_IIDP ", bgn: %10" F_COORDP ", "
+               "end: %10" F_COORDP ", length: %10" F_COORDP ", source: %d\n", 
+               pos->ident,
+               pos->position.bgn, pos->position.end,
+               abs(pos->position.bgn - pos->position.end),
+               pos->sourceInt);
+    }
 }
 
 
@@ -226,35 +226,35 @@ void DumpContigMultiAlignInfo ( CDS_CID_t contigID )
            contigID, strlen( Getchar( cma->consensus, 0 )));
 
   for ( i = 0; i < GetNumIntMultiPoss( cma->f_list ); i++)
-  {
-    IntMultiPos *pos = GetIntMultiPos(cma->f_list,i);
+    {
+      IntMultiPos *pos = GetIntMultiPos(cma->f_list,i);
     
-    getFragStore(ScaffoldGraph->fragStore, pos->ident, FRAG_S_ALL, myRead);
-    sprintf(fname,"C" F_CID "_%d_F" F_IID ".fa",
-            contigID, i, pos->ident);
-    fp = fopen(fname, "w");
-    PrintRSFasta(fp, pos->ident, myRead);
-    fclose(fp);
+      getFragStore(ScaffoldGraph->fragStore, pos->ident, FRAG_S_ALL, myRead);
+      sprintf(fname,"C" F_CID "_%d_F" F_IID ".fa",
+              contigID, i, pos->ident);
+      fp = fopen(fname, "w");
+      PrintRSFasta(fp, pos->ident, myRead);
+      fclose(fp);
     
-    fprintf( stderr, "\t\tfragment %8" F_IIDP ", "
-             "bgn: %10" F_COORDP ", end: %10" F_COORDP ", length: %10" F_COORDP "\n", 
-             pos->ident,
-             pos->position.bgn, pos->position.end,
-             abs(pos->position.bgn - pos->position.end));
-  }
+      fprintf( stderr, "\t\tfragment %8" F_IIDP ", "
+               "bgn: %10" F_COORDP ", end: %10" F_COORDP ", length: %10" F_COORDP "\n", 
+               pos->ident,
+               pos->position.bgn, pos->position.end,
+               abs(pos->position.bgn - pos->position.end));
+    }
   for ( i = 0; i < GetNumIntUnitigPoss( cma->u_list ); i++)
-  {
-    IntUnitigPos *pos = GetIntUnitigPos( cma->u_list, i);
-    NodeCGW_T *unitig = GetGraphNode( ScaffoldGraph->CIGraph, pos->ident);
+    {
+      IntUnitigPos *pos = GetIntUnitigPos( cma->u_list, i);
+      NodeCGW_T *unitig = GetGraphNode( ScaffoldGraph->CIGraph, pos->ident);
     
-    fprintf( stderr, "\tunitig %8" F_CIDP ", "
-             "bgn: %10" F_COORDP ", end: %10" F_COORDP ", length: %10" F_COORDP "\n", 
-             unitig->id,
-             pos->position.bgn, pos->position.end,
-             abs(pos->position.bgn - pos->position.end));
+      fprintf( stderr, "\tunitig %8" F_CIDP ", "
+               "bgn: %10" F_COORDP ", end: %10" F_COORDP ", length: %10" F_COORDP "\n", 
+               unitig->id,
+               pos->position.bgn, pos->position.end,
+               abs(pos->position.bgn - pos->position.end));
     
-    DumpUnitigMultiAlignInfo( unitig->id );	
-  }
+      DumpUnitigMultiAlignInfo( unitig->id );	
+    }
   fprintf( stderr, "\n");
 }
 
@@ -278,41 +278,41 @@ int main(int argc, char *argv[]){
     while (!errflg && ((ch = getopt(argc, argv,
 				    "i:f:g:n:c:u:")) != EOF)){
       switch(ch) {
-      case 'n':
-	ckptNum = atoi(argv[optind - 1]);
-	break;
-      case 'c':
-	{
-	  strcpy( data->File_Name_Prefix, argv[optind - 1]);
-	  setPrefixName = 1;
+        case 'n':
+          ckptNum = atoi(argv[optind - 1]);
+          break;
+        case 'c':
+          {
+            strcpy( data->File_Name_Prefix, argv[optind - 1]);
+            setPrefixName = 1;
 
-	}
-	break;
-      case 'f':
-	{
-	  strcpy( data->Frag_Store_Name, argv[optind - 1]);
-	  setFragStore = 1;
-	}
-	break;
-      case 'g':
-	{
-	  strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
-	  setGatekeeperStore = 1;
-	}
-	break;
+          }
+          break;
+        case 'f':
+          {
+            strcpy( data->Frag_Store_Name, argv[optind - 1]);
+            setFragStore = 1;
+          }
+          break;
+        case 'g':
+          {
+            strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
+            setGatekeeperStore = 1;
+          }
+          break;
         case 'i':
-        {
-          CDS_CID_t iid = atoi(argv[optind-1]);
-          AppendVA_CDS_CID_t(clist, &iid);
-        }
-        break;
+          {
+            CDS_CID_t iid = atoi(argv[optind-1]);
+            AppendVA_CDS_CID_t(clist, &iid);
+          }
+          break;
         case 'u':
           unitigIDsFile = argv[optind-1];
           break;
-      case '?':
-	fprintf(stderr,"Unrecognized option -%c",optopt);
-      default :
-	errflg++;
+        case '?':
+          fprintf(stderr,"Unrecognized option -%c",optopt);
+        default :
+          errflg++;
       }
     }
     if((setPrefixName == FALSE) || (setFragStore == 0) || (setGatekeeperStore == 0) || unitigIDsFile == NULL)
@@ -341,10 +341,10 @@ int main(int argc, char *argv[]){
     /*
       Open file listing unitig IIDs
       Loop over them
-        get the MA
-        convert to protoIO
-        write out
-     */
+      get the MA
+      convert to protoIO
+      write out
+    */
     FILE * fp = fopen(unitigIDsFile, "r");
     FILE * fpout = fopen("outFile.mas", "w");
     VA_TYPE(CDS_CID_t) * iids = CreateVA_CDS_CID_t(100);
@@ -352,19 +352,19 @@ int main(int argc, char *argv[]){
     int i;
 
     while(fgets(line, 1024, fp))
-    {
-      CDS_CID_t id = atoi(line);
-      AppendVA_CDS_CID_t(iids, &id);
-    }
+      {
+        CDS_CID_t id = atoi(line);
+        AppendVA_CDS_CID_t(iids, &id);
+      }
 
     for(i = 0; i < GetNumVA_CDS_CID_t(iids); i++)
-    {
-      CDS_CID_t * idp = GetVA_CDS_CID_t(iids, i);
-      MultiAlignT * ma =
-        LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, *idp, TRUE);
+      {
+        CDS_CID_t * idp = GetVA_CDS_CID_t(iids, i);
+        MultiAlignT * ma =
+          LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, *idp, TRUE);
 
-      WriteMAToFile(ma, fpout);
-    }
+        WriteMAToFile(ma, fpout);
+      }
     fclose(fp);
     fclose(fpout);
   }
@@ -372,9 +372,9 @@ int main(int argc, char *argv[]){
   /*
     Experiment to redo unitig 298448 in contig 517900 in scaffold 4000
     in dros checkpoint 25 in /prod/IR03/dros5_20011107/workbox/mike/dewim/
-      Get multialignT of unitig
-      Set up ZLFScaffold data structure
-      Call FixZLFContigs()
+    Get multialignT of unitig
+    Set up ZLFScaffold data structure
+    Call FixZLFContigs()
   */
   {
     VA_TYPE(ZLFScaffold) * zlfScaffolds;
@@ -393,9 +393,9 @@ int main(int argc, char *argv[]){
     // to check that fix 'took'
     consensus = GetVA_char(ma->consensus, 0);
     for(i = 450; i < 1000; i++)
-    {
-      consensus[i] = 'C';
-    }
+      {
+        consensus[i] = 'C';
+      }
           
     zlfContig.id = 517900;
     zlfContig.zlfUMAs = CreateVA_MultiAlignT(1);
@@ -421,88 +421,88 @@ int main(int argc, char *argv[]){
 
     consensus = GetVA_char(ma->consensus, 0);
     for(i = 450; i < 1000; i++)
-    {
-      if(consensus[i] != 'C')
       {
-        fprintf(stderr, "Fix didn't 'take'!\n");
-        break;
+        if(consensus[i] != 'C')
+          {
+            fprintf(stderr, "Fix didn't 'take'!\n");
+            break;
+          }
       }
-    }
     if(i == 1000)
       fprintf(stderr, "Fix 'took'!\n");
   }
 #endif
 
   /*
-  fprintf(stderr,"* Hit Interrupt in Debugger to Proceed!!!! *\n");
-  fflush(stderr);
-  while(1){
+    fprintf(stderr,"* Hit Interrupt in Debugger to Proceed!!!! *\n");
+    fflush(stderr);
+    while(1){
     // wait for interrupt in debugger
-  }
+    }
   */
 
-/* 
-    myRead =  new_ReadStruct();
+  /* 
+     myRead =  new_ReadStruct();
 
+     {
+     int i;
+     for(i = 0; i < GetNumVA_CDS_CID_t(clist); i++)
+     DumpContigMultiAlignInfo(*(GetVA_CDS_CID_t(clist, i)));
+     }
+  */
+  /*
     {
-      int i;
-      for(i = 0; i < GetNumVA_CDS_CID_t(clist); i++)
-        DumpContigMultiAlignInfo(*(GetVA_CDS_CID_t(clist, i)));
-    }
-*/
-    /*
+    int i;
+    for(i = 1; i < GetNumDistTs(ScaffoldGraph->Dists); i++)
     {
-      int i;
-      for(i = 1; i < GetNumDistTs(ScaffoldGraph->Dists); i++)
-      {
-        DistT *dptr;
-        dptr = GetDistT(ScaffoldGraph->Dists,i);
+    DistT *dptr;
+    dptr = GetDistT(ScaffoldGraph->Dists,i);
         
-        fprintf(stderr, "\tiid:%d, mean:%f, stddev:%f\n", i,
-                dptr->mean, dptr->stddev);
-      }
+    fprintf(stderr, "\tiid:%d, mean:%f, stddev:%f\n", i,
+    dptr->mean, dptr->stddev);
     }
-    */
+    }
+  */
     
-    /*
+  /*
     {
-      FILE * fp;
-      char line[1024];
+    FILE * fp;
+    char line[1024];
       
-      fp = fopen("/prod/IR04/RAT_ASSEMBLY/workbox/dewim/reestimatedDists.txt", "r");
-      assert(fp != NULL);
-      while(fgets(line, 1023, fp) != NULL)
-      {
-        DistT *dptr;
-        CDS_CID_t iid;
-        float32 mean;
-        float32 stddev;
+    fp = fopen("/prod/IR04/RAT_ASSEMBLY/workbox/dewim/reestimatedDists.txt", "r");
+    assert(fp != NULL);
+    while(fgets(line, 1023, fp) != NULL)
+    {
+    DistT *dptr;
+    CDS_CID_t iid;
+    float32 mean;
+    float32 stddev;
 
-        fprintf(stderr, "line is : %s", line);
+    fprintf(stderr, "line is : %s", line);
         
-        sscanf(line, "%d %f %f", &iid, &mean, &stddev);
-        if(iid <= 0 || iid >= GetNumDistTs(ScaffoldGraph->Dists))
-          continue;
+    sscanf(line, "%d %f %f", &iid, &mean, &stddev);
+    if(iid <= 0 || iid >= GetNumDistTs(ScaffoldGraph->Dists))
+    continue;
         
-        fprintf(stderr, "\tiid:%d, mean:%f, stddev:%f\n", iid, mean, stddev);
+    fprintf(stderr, "\tiid:%d, mean:%f, stddev:%f\n", iid, mean, stddev);
         
-        dptr = GetDistT(ScaffoldGraph->Dists,iid);
+    dptr = GetDistT(ScaffoldGraph->Dists,iid);
 
-        fprintf(stderr, "got dist pointer\n");
+    fprintf(stderr, "got dist pointer\n");
 
-        fprintf(stdout, "%d: was (%f,%f) is (%f,%f)\n",
-                iid, dptr->mean, dptr->stddev, mean, stddev);
-        fflush(stdout);
+    fprintf(stdout, "%d: was (%f,%f) is (%f,%f)\n",
+    iid, dptr->mean, dptr->stddev, mean, stddev);
+    fflush(stdout);
         
-        dptr->mean = mean;
-        dptr->stddev = stddev;
-      }
-      fclose(fp);
+    dptr->mean = mean;
+    dptr->stddev = stddev;
+    }
+    fclose(fp);
     }
     fprintf(stderr,"Checkpoint %d written after distance re-estimation\n",
-            ScaffoldGraph->checkPointIteration);
+    ScaffoldGraph->checkPointIteration);
     CheckpointScaffoldGraph(ScaffoldGraph, 2);
-    */
+  */
   return 0;
 }
 

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: ChunkOverlap_CGW.h,v 1.4 2005-03-22 19:48:35 jason_miller Exp $	 */
+/* 	$Id: ChunkOverlap_CGW.h,v 1.5 2006-09-21 21:34:00 brianwalenz Exp $	 */
 
 /* ChunkOverlap_CGW provides tools for invoking Gene's dpalign tool to compute
    overlaps between chunks.  Such overlaps are first 'collected' and then 'computed'.
@@ -28,10 +28,10 @@
    stored in a symbol table based on AS_UTL_Hash to facilitate quick lookups and insertions.
    Key to this database is a canonical overlap representation.  The canonical storage for a
    potential overlap is as follows:
-        if(orientation is symettric -- AB_BA or BA_AB )
-        	then the overlap is stored with the lower numbered chunk first
-	if(orientation is antinormal -- BA_BA)
-	        then the overlap is stored as an normal overlap with the chunks reversed
+   if(orientation is symettric -- AB_BA or BA_AB )
+   then the overlap is stored with the lower numbered chunk first
+   if(orientation is antinormal -- BA_BA)
+   then the overlap is stored as an normal overlap with the chunks reversed
 	    
    The idea of the collection phase, is to determine the maximal overlap range between
    two chunks that is worth computing.  So, during the construction of the raw
@@ -53,7 +53,7 @@
    April 1999
 
 
-  Additions made by Knut Reinert
+   Additions made by Knut Reinert
    09/10/99
 
    We make use of the above hash table to compute and store quality values with the overlaps
@@ -126,13 +126,13 @@ HEAP_DEF(ChunkOverlapCheckT)
 
 
 
-typedef struct {
-  // This is the symbol table supporting database access
-  HashTable_AS *hashTable;
+     typedef struct {
+       // This is the symbol table supporting database access
+       HashTable_AS *hashTable;
   
-  // This is the heap of values
-  HEAP_TYPE(ChunkOverlapCheckT) *ChunkOverlaps; 
-}ChunkOverlapperT;
+       // This is the heap of values
+       HEAP_TYPE(ChunkOverlapCheckT) *ChunkOverlaps; 
+     }ChunkOverlapperT;
 
 
 // Constructor

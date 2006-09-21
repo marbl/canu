@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: InstrumentCheckpoint.c,v 1.5 2006-06-14 19:57:22 brianwalenz Exp $";
+static char CM_ID[] = "$Id: InstrumentCheckpoint.c,v 1.6 2006-09-21 21:34:00 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -67,7 +67,7 @@ void Usage(char * prog_name)
           "<-S file>              file listing scaffold IIDs\n"
           "<-c IID>               contig IID to instrument\n"
           "<-C file>              file listing contig IIDs\n"
-    );
+          );
   
   exit(1);
 }
@@ -80,18 +80,18 @@ int AddFileIIDsToList(char * filename, VA_TYPE(CDS_CID_t) * list)
 
   // open the file that lists IIDs, one per line
   if((fp = fopen(filename, "r")) == NULL)
-  {
-    fprintf(stderr, "Failed to opten file %s for reading\n", filename);
-    return 1;
-  }
+    {
+      fprintf(stderr, "Failed to opten file %s for reading\n", filename);
+      return 1;
+    }
 
   // read each line
   while(fgets(line, 1024, fp))
-  {
-    // get the IID and add it to the list
-    CDS_CID_t iid = atoi(line);
-    AppendVA_CDS_CID_t(list, &iid);
-  }
+    {
+      // get the IID and add it to the list
+      CDS_CID_t iid = atoi(line);
+      AppendVA_CDS_CID_t(list, &iid);
+    }
 
   // close the file & return success
   fclose(fp);
@@ -145,115 +145,115 @@ int main(int argc, char *argv[])
            ((ch = getopt( argc,
                           argv,
                           "a:n:g:iobjv:s:S:c:C:u:l:" )) != EOF) )
-    {
-      switch(ch)
       {
-        case 'a':
-          strcpy(GlobalData->File_Name_Prefix, optarg);
-          break;
-        case 'n':
-          checkPointNumber = atoi(optarg);
-          break;
-        case 'g':
-          strcpy(GlobalData->Gatekeeper_Store_Name, optarg);
-          break;
-        case 'i':
-          options ^= INST_OPT_INTRA_MATES;
-          break;
-        case 'o':
-          options ^= INST_OPT_INTER_MATES;
-          break;
-        case 'b':
-          options ^= INST_OPT_BREAKPOINTS;
-          break;
-        case 'j':
-          justGapSizes = 1;
-          break;
-        case 'v':
-          switch(atoi(optarg))
+        switch(ch)
           {
-            case 1:
-              verbosity = InstrumenterVerbose1;
+            case 'a':
+              strcpy(GlobalData->File_Name_Prefix, optarg);
               break;
-            case 2:
-              verbosity = InstrumenterVerbose2;
+            case 'n':
+              checkPointNumber = atoi(optarg);
               break;
-            case 3:
-              verbosity = InstrumenterVerbose3;
+            case 'g':
+              strcpy(GlobalData->Gatekeeper_Store_Name, optarg);
               break;
-            case 4:
-              verbosity = InstrumenterVerbose4;
+            case 'i':
+              options ^= INST_OPT_INTRA_MATES;
               break;
-            case 5:
-              verbosity = InstrumenterVerbose5;
+            case 'o':
+              options ^= INST_OPT_INTER_MATES;
+              break;
+            case 'b':
+              options ^= INST_OPT_BREAKPOINTS;
+              break;
+            case 'j':
+              justGapSizes = 1;
+              break;
+            case 'v':
+              switch(atoi(optarg))
+                {
+                  case 1:
+                    verbosity = InstrumenterVerbose1;
+                    break;
+                  case 2:
+                    verbosity = InstrumenterVerbose2;
+                    break;
+                  case 3:
+                    verbosity = InstrumenterVerbose3;
+                    break;
+                  case 4:
+                    verbosity = InstrumenterVerbose4;
+                    break;
+                  case 5:
+                    verbosity = InstrumenterVerbose5;
+                    break;
+                  default:
+                    fprintf(stderr, "Only verbosity levels 1 - 5 supported\n");
+                    Usage(argv[0]);
+                    break;
+                }
+              break;
+            case 's':
+            case 'S':
+              {
+                if(scf_iids == NULL)
+                  {
+                    scf_iids = CreateVA_CDS_CID_t(100);
+                    if(scf_iids == NULL)
+                      {
+                        fprintf(stderr,
+                                "Failed to allocate scaffold IID variable array\n");
+                        return 1;
+                      }
+                  }
+                if(ch == 's')
+                  {
+                    CDS_CID_t s_iid = atoi(optarg);
+                    AppendVA_CDS_CID_t(scf_iids, &s_iid);
+                  }
+                else
+                  {
+                    if(AddFileIIDsToList(optarg, scf_iids))
+                      return 1;
+                  }
+              }
+              break;
+            case 'c':
+            case 'C':
+              {
+                if(ctg_iids == NULL)
+                  {
+                    ctg_iids = CreateVA_CDS_CID_t(100);
+                    if(ctg_iids == NULL)
+                      {
+                        fprintf(stderr,
+                                "Failed to allocate scaffold IID variable array\n");
+                        return 1;
+                      }
+                  }
+                if(ch == 'c')
+                  {
+                    CDS_CID_t c_iid = atoi(optarg);
+                    AppendVA_CDS_CID_t(ctg_iids, &c_iid);
+                  }
+                else
+                  {
+                    if(AddFileIIDsToList(optarg, ctg_iids))
+                      return 1;
+                  }
+              }
+              break;
+            case 'l':
+              lower_limit = atoi(optarg);
+              break;
+            case 'u':
+              upper_limit = atoi(optarg);
               break;
             default:
-              fprintf(stderr, "Only verbosity levels 1 - 5 supported\n");
               Usage(argv[0]);
               break;
           }
-          break;
-        case 's':
-        case 'S':
-        {
-          if(scf_iids == NULL)
-          {
-            scf_iids = CreateVA_CDS_CID_t(100);
-            if(scf_iids == NULL)
-            {
-              fprintf(stderr,
-                      "Failed to allocate scaffold IID variable array\n");
-              return 1;
-            }
-          }
-          if(ch == 's')
-          {
-            CDS_CID_t s_iid = atoi(optarg);
-            AppendVA_CDS_CID_t(scf_iids, &s_iid);
-          }
-          else
-          {
-            if(AddFileIIDsToList(optarg, scf_iids))
-              return 1;
-          }
-        }
-        break;
-        case 'c':
-        case 'C':
-        {
-          if(ctg_iids == NULL)
-          {
-            ctg_iids = CreateVA_CDS_CID_t(100);
-            if(ctg_iids == NULL)
-            {
-              fprintf(stderr,
-                      "Failed to allocate scaffold IID variable array\n");
-              return 1;
-            }
-          }
-          if(ch == 'c')
-          {
-            CDS_CID_t c_iid = atoi(optarg);
-            AppendVA_CDS_CID_t(ctg_iids, &c_iid);
-          }
-          else
-          {
-            if(AddFileIIDsToList(optarg, ctg_iids))
-              return 1;
-          }
-        }
-        break;
-        case 'l':
-          lower_limit = atoi(optarg);
-          break;
-        case 'u':
-          upper_limit = atoi(optarg);
-          break;
-        default:
-          Usage(argv[0]);
-          break;
       }
-    }
   }
 
   if(checkPointNumber < 0 ||
@@ -262,10 +262,10 @@ int main(int argc, char *argv[])
     Usage(argv[0]);
 
   if(lower_limit > upper_limit)
-  {
-    fprintf(stderr, "lower limit may not exceed upper limit!\n");
-    Usage(argv[0]);
-  }
+    {
+      fprintf(stderr, "lower limit may not exceed upper limit!\n");
+      Usage(argv[0]);
+    }
 
   if(justGapSizes)
     verbosity = InstrumenterSilent;
@@ -277,124 +277,124 @@ int main(int argc, char *argv[])
                                           checkPointNumber,
                                           FALSE );
   if(graph == NULL)
-  {
-    fprintf(stderr, "Failed to load graph from checkpoint!\n");
-    return 1;
-  }
+    {
+      fprintf(stderr, "Failed to load graph from checkpoint!\n");
+      return 1;
+    }
 
   // open the gatekeeper store
   InitGateKeeperStore(&(graph->gkpStore), GlobalData->Gatekeeper_Store_Name);
   OpenReadOnlyGateKeeperStore(&(graph->gkpStore));
   
   if(!scf_iids && !ctg_iids)
-  {
-    /*
-    ContigInstrumenter * ci = CreateContigInstrumenter(graph, options);
-    ScaffoldInstrumenter * si = CreateScaffoldInstrumenter(graph, options);
-    GraphNodeIterator scaffolds;
-    CIScaffoldT * scaff;
-    CDS_CID_t i = 0;
-
-    // make sure verbosity is high enough to generate output
-    if(verbosity < InstrumenterVerbose3)
-      verbosity = InstrumenterVerbose3;
-
-    // loop over all scaffolds in the graph
-    InitGraphNodeIterator(&scaffolds,
-                          graph->ScaffoldGraph,
-                          GRAPH_NODE_DEFAULT);
-    while(NULL != (scaff = NextGraphNodeIterator(&scaffolds)))
     {
-      if(scaff->flags.bits.isDead == FALSE && scaff->type == REAL_SCAFFOLD)
-      {
-        i++;
-        fprintf(stderr, "\r" F_CID "\t" F_CID "\t%15.0fbp",
-                i, scaff->id, scaff->bpLength.mean);
-        if(InstrumentScaffold(graph, NULL, scaff, si, ci, verbosity, stdout))
-        {
-          fprintf(stderr,
-                  "Failed to instrument scaffold " F_CID "\n",scaff->scaffoldID);
-          return 1;
-        }
-      }
-    }
-    DestroyScaffoldInstrumenter(si);
-    DestroyContigInstrumenter(ci);
-    */
+      /*
+        ContigInstrumenter * ci = CreateContigInstrumenter(graph, options);
+        ScaffoldInstrumenter * si = CreateScaffoldInstrumenter(graph, options);
+        GraphNodeIterator scaffolds;
+        CIScaffoldT * scaff;
+        CDS_CID_t i = 0;
 
-    ScaffoldGraphInstrumenter * sgi =
-      CreateScaffoldGraphInstrumenter(graph, options);
-    // no scaffold or contig IIDs specified, instrument the whole graph
-    if(InstrumentScaffoldGraph(graph, sgi, lower_limit, upper_limit,
-                               verbosity, stdout))
-    {
-      fprintf(GlobalData->stderrc, "Failed to instrument scaffold graph\n");
-      return 1;
-    }
-    DestroyScaffoldGraphInstrumenter(sgi);
-
-  }
-  else
-  {
-    int i;
-    ContigInstrumenter * ci = CreateContigInstrumenter(graph, options);
-    
-    if(ctg_iids)
-    {
-      // sort the contig IIDs - may make things go faster
-      if(GetNumVA_CDS_CID_t(ctg_iids) > 1)
-        qsort(ctg_iids->Elements,
-              GetNumVA_CDS_CID_t(ctg_iids),
-              sizeof(CDS_CID_t),
-              (int (*) (const void *, const void *)) iid_compare);
-
-      // loop over contig IIDs & instrument & print
-      for(i = 0; i < GetNumVA_CDS_CID_t(ctg_iids); i++)
-      {
-        CDS_CID_t * c_iid = GetVA_CDS_CID_t(ctg_iids, i);
-        ChunkInstanceT * contig = GetGraphNode(graph->RezGraph, *c_iid);
-        if(contig != NULL)
-        {
-          InstrumentContig(graph, NULL, NULL, contig, ci,
-                           0.0f, contig->bpLength.mean);
-          PrintContigInstrumenter(graph, ci, verbosity, "", stdout);
-        }
-        else
-          fprintf(stderr, "Contig " F_CID " doesn't exist.\n", *c_iid);
-      }
-      DeleteVA_CDS_CID_t(ctg_iids);
-    }
-    
-    if(scf_iids)
-    {
-      ScaffoldInstrumenter * si = CreateScaffoldInstrumenter(graph, options);
-      
-      // sort the scaffold IIDs - may make things go faster
-      if(GetNumVA_CDS_CID_t(scf_iids) > 1)
-        qsort(scf_iids->Elements,
-              GetNumVA_CDS_CID_t(scf_iids),
-              sizeof(CDS_CID_t),
-              (int (*) (const void *, const void *)) iid_compare);
-
-      // make sure verbosity is high enough to generate output
-      if(verbosity < InstrumenterVerbose3)
+        // make sure verbosity is high enough to generate output
+        if(verbosity < InstrumenterVerbose3)
         verbosity = InstrumenterVerbose3;
 
-      // loop over scaffold IIDs and instrument/print
-      for(i = 0; i < GetNumVA_CDS_CID_t(scf_iids); i++)
-      {
-        CDS_CID_t * s_iid = GetVA_CDS_CID_t(scf_iids, i);
-        CIScaffoldT * scaffold = GetGraphNode(graph->ScaffoldGraph, *s_iid);
-        if(scaffold != NULL)
-          InstrumentScaffold(graph, scaffold, si, verbosity, stdout);
-        else
-          fprintf(stderr, "Scaffold " F_CID " doesn't exist.\n", *s_iid);
-      }
-      DestroyScaffoldInstrumenter(si);
-      DeleteVA_CDS_CID_t(scf_iids);
+        // loop over all scaffolds in the graph
+        InitGraphNodeIterator(&scaffolds,
+        graph->ScaffoldGraph,
+        GRAPH_NODE_DEFAULT);
+        while(NULL != (scaff = NextGraphNodeIterator(&scaffolds)))
+        {
+        if(scaff->flags.bits.isDead == FALSE && scaff->type == REAL_SCAFFOLD)
+        {
+        i++;
+        fprintf(stderr, "\r" F_CID "\t" F_CID "\t%15.0fbp",
+        i, scaff->id, scaff->bpLength.mean);
+        if(InstrumentScaffold(graph, NULL, scaff, si, ci, verbosity, stdout))
+        {
+        fprintf(stderr,
+        "Failed to instrument scaffold " F_CID "\n",scaff->scaffoldID);
+        return 1;
+        }
+        }
+        }
+        DestroyScaffoldInstrumenter(si);
+        DestroyContigInstrumenter(ci);
+      */
+
+      ScaffoldGraphInstrumenter * sgi =
+        CreateScaffoldGraphInstrumenter(graph, options);
+      // no scaffold or contig IIDs specified, instrument the whole graph
+      if(InstrumentScaffoldGraph(graph, sgi, lower_limit, upper_limit,
+                                 verbosity, stdout))
+        {
+          fprintf(GlobalData->stderrc, "Failed to instrument scaffold graph\n");
+          return 1;
+        }
+      DestroyScaffoldGraphInstrumenter(sgi);
+
     }
-    DestroyContigInstrumenter(ci);
-  }
+  else
+    {
+      int i;
+      ContigInstrumenter * ci = CreateContigInstrumenter(graph, options);
+    
+      if(ctg_iids)
+        {
+          // sort the contig IIDs - may make things go faster
+          if(GetNumVA_CDS_CID_t(ctg_iids) > 1)
+            qsort(ctg_iids->Elements,
+                  GetNumVA_CDS_CID_t(ctg_iids),
+                  sizeof(CDS_CID_t),
+                  (int (*) (const void *, const void *)) iid_compare);
+
+          // loop over contig IIDs & instrument & print
+          for(i = 0; i < GetNumVA_CDS_CID_t(ctg_iids); i++)
+            {
+              CDS_CID_t * c_iid = GetVA_CDS_CID_t(ctg_iids, i);
+              ChunkInstanceT * contig = GetGraphNode(graph->RezGraph, *c_iid);
+              if(contig != NULL)
+                {
+                  InstrumentContig(graph, NULL, NULL, contig, ci,
+                                   0.0f, contig->bpLength.mean);
+                  PrintContigInstrumenter(graph, ci, verbosity, "", stdout);
+                }
+              else
+                fprintf(stderr, "Contig " F_CID " doesn't exist.\n", *c_iid);
+            }
+          DeleteVA_CDS_CID_t(ctg_iids);
+        }
+    
+      if(scf_iids)
+        {
+          ScaffoldInstrumenter * si = CreateScaffoldInstrumenter(graph, options);
+      
+          // sort the scaffold IIDs - may make things go faster
+          if(GetNumVA_CDS_CID_t(scf_iids) > 1)
+            qsort(scf_iids->Elements,
+                  GetNumVA_CDS_CID_t(scf_iids),
+                  sizeof(CDS_CID_t),
+                  (int (*) (const void *, const void *)) iid_compare);
+
+          // make sure verbosity is high enough to generate output
+          if(verbosity < InstrumenterVerbose3)
+            verbosity = InstrumenterVerbose3;
+
+          // loop over scaffold IIDs and instrument/print
+          for(i = 0; i < GetNumVA_CDS_CID_t(scf_iids); i++)
+            {
+              CDS_CID_t * s_iid = GetVA_CDS_CID_t(scf_iids, i);
+              CIScaffoldT * scaffold = GetGraphNode(graph->ScaffoldGraph, *s_iid);
+              if(scaffold != NULL)
+                InstrumentScaffold(graph, scaffold, si, verbosity, stdout);
+              else
+                fprintf(stderr, "Scaffold " F_CID " doesn't exist.\n", *s_iid);
+            }
+          DestroyScaffoldInstrumenter(si);
+          DeleteVA_CDS_CID_t(scf_iids);
+        }
+      DestroyContigInstrumenter(ci);
+    }
 
   return 0;
 }

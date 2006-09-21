@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.11 2006-06-14 19:57:22 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.12 2006-09-21 21:34:00 brianwalenz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -119,46 +119,46 @@ int ProcessInput(Global_CGW *data, int optind, int argc, char *argv[]){
 
       switch(pmesg->t){
 
-      case MESG_IDT:
-        //  We load these from the gatekeeper store
-	numIDT++;
-	break;
-      case MESG_UOM:  // UnitigOverlapMesg
-	if (ScaffoldGraph->ignoreUOMs == 0)
-	  {
-	    if(numUOM == 0){
-	      fprintf(stderr,"* After reading all IUMs \n");
-	      ReportMemorySize(ScaffoldGraph, stderr);
-	    }
-	    numUOM++;
-	    ProcessUOM(pmesg->m, data->transQualityCutoff);
-	  }
-	break;
-      case MESG_IUM:  // IntUnitigMesg
-	numIUM++;
-	if(numIUM % 10000 == 0)
-	  fprintf(stderr,"Read %d unitigs\n",numIUM);
-	ProcessIUM(pmesg->m);
-	break;
-      case MESG_ADT:
-	// We already processes this
-	break;
-      case MESG_ILK:
-	numILK++;
-	break;
-      case MESG_IRP:
-      case MESG_IBA:
-      case MESG_FOM:
-	break;
+        case MESG_IDT:
+          //  We load these from the gatekeeper store
+          numIDT++;
+          break;
+        case MESG_UOM:  // UnitigOverlapMesg
+          if (ScaffoldGraph->ignoreUOMs == 0)
+            {
+              if(numUOM == 0){
+                fprintf(stderr,"* After reading all IUMs \n");
+                ReportMemorySize(ScaffoldGraph, stderr);
+              }
+              numUOM++;
+              ProcessUOM(pmesg->m, data->transQualityCutoff);
+            }
+          break;
+        case MESG_IUM:  // IntUnitigMesg
+          numIUM++;
+          if(numIUM % 10000 == 0)
+            fprintf(stderr,"Read %d unitigs\n",numIUM);
+          ProcessIUM(pmesg->m);
+          break;
+        case MESG_ADT:
+          // We already processes this
+          break;
+        case MESG_ILK:
+          numILK++;
+          break;
+        case MESG_IRP:
+        case MESG_IBA:
+        case MESG_FOM:
+          break;
 
-      default:
-	fprintf(stderr,"* Oops: Read Message with type = %d\n", pmesg->t);
+        default:
+          fprintf(stderr,"* Oops: Read Message with type = %d\n", pmesg->t);
 #ifdef DEBUG
-	(data->errorWriter)(data->outfp,pmesg);      // Echo to error output
-	exit(1);
+          (data->errorWriter)(data->outfp,pmesg);      // Echo to error output
+          exit(1);
 #endif
-	(data->writer)(data->outfp,pmesg);      // Echo to output
-	break;
+          (data->writer)(data->outfp,pmesg);      // Echo to output
+          break;
       }
     
     }
@@ -238,7 +238,7 @@ int ProcessInputADT(Global_CGW *data, FILE *infp, int argc, char **argv){
   }
   (data->reader)(infp, &pmesg);  // Read 1 message
 
-    switch(pmesg->t){
+  switch(pmesg->t){
 
     case MESG_ADT:
       {
@@ -252,20 +252,20 @@ int ProcessInputADT(Global_CGW *data, FILE *infp, int argc, char **argv){
     default:
       fprintf(stderr,"* Oops: Read Message with type = %d ... expecting ADT message\n", pmesg->t);
       break;
-    }
+  }
     
-    if(!finished){
-      // cook up an ADT message
-      adt_mesg = &dummy_mesg;
-      dummypmesg.m = adt_mesg;
-      dummypmesg.t = MESG_ADT;
-      pmesg = &dummypmesg;
-      adt_mesg->list = NULL;
-    }
+  if(!finished){
+    // cook up an ADT message
+    adt_mesg = &dummy_mesg;
+    dummypmesg.m = adt_mesg;
+    dummypmesg.t = MESG_ADT;
+    pmesg = &dummypmesg;
+    adt_mesg->list = NULL;
+  }
 
-    VersionStampADT(adt_mesg, argc, argv);
+  VersionStampADT(adt_mesg, argc, argv);
     
-    (data->writer)(data->outfp,pmesg);        // Echo to output
+  (data->writer)(data->outfp,pmesg);        // Echo to output
 
   return(!finished);
 }
@@ -284,58 +284,58 @@ void ProcessUOM(UnitigOverlapMesg *uom_mesg, float transQualityCutoff){
 
 
   switch(overlap_type){
-  case AS_TOUCHES_CONTAINED_OVERLAP: // M
-    TouchesContained++;
-    break;
-  case AS_TANDEM_OVERLAP:   // T
-    Tandem++;
-    break;
-  case AS_BETWEEN_CONTAINED_OVERLAP: // Y
-    BetweenContained++;
-    if(ScaffoldGraph->ignoreUOMBetweenContained)
-      return;
-    break;
+    case AS_TOUCHES_CONTAINED_OVERLAP: // M
+      TouchesContained++;
+      break;
+    case AS_TANDEM_OVERLAP:   // T
+      Tandem++;
+      break;
+    case AS_BETWEEN_CONTAINED_OVERLAP: // Y
+      BetweenContained++;
+      if(ScaffoldGraph->ignoreUOMBetweenContained)
+        return;
+      break;
 
-  case AS_OVERLAP:          // O
-    DoveTail++;
-    break;
-  case AS_TRANSCHUNK_OVERLAP: // X
-  case AS_DOVETAIL_CHORD_OVERLAP: // d
-    TransChunk++;
-    if(ScaffoldGraph->ignoreUOMTranschunk)
-      return;
-    if(uom_mesg->quality > transQualityCutoff){
-      fprintf(stderr,"* Bad Quality overlap (" F_CID "," F_CID ",%c,%c) overlap " F_COORD "  quality: %g  .... ignored\n",
-	      uom_mesg->chunk1, 
-	      uom_mesg->chunk2,
-	      uom_mesg->orient,
-	      uom_mesg->overlap_type,
-	      uom_mesg->best_overlap_length,
-	      uom_mesg->quality);
-      BadQuality++;
-      return;
-    }
-    break;
+    case AS_OVERLAP:          // O
+      DoveTail++;
+      break;
+    case AS_TRANSCHUNK_OVERLAP: // X
+    case AS_DOVETAIL_CHORD_OVERLAP: // d
+      TransChunk++;
+      if(ScaffoldGraph->ignoreUOMTranschunk)
+        return;
+      if(uom_mesg->quality > transQualityCutoff){
+        fprintf(stderr,"* Bad Quality overlap (" F_CID "," F_CID ",%c,%c) overlap " F_COORD "  quality: %g  .... ignored\n",
+                uom_mesg->chunk1, 
+                uom_mesg->chunk2,
+                uom_mesg->orient,
+                uom_mesg->overlap_type,
+                uom_mesg->best_overlap_length,
+                uom_mesg->quality);
+        BadQuality++;
+        return;
+      }
+      break;
 
 #if 0
-  case AS_1_CONTAINS_2_STACK_OVERLAP: // Z
-  case AS_CONTAINMENT_CHORD_OVERLAP: // c
-    ContainStack++;
-    if(ScaffoldGraph->ignoreUOMContains
-       || ScaffoldGraph->ignoreUOMContainStack)
-      return;
-    break;
+    case AS_1_CONTAINS_2_STACK_OVERLAP: // Z
+    case AS_CONTAINMENT_CHORD_OVERLAP: // c
+      ContainStack++;
+      if(ScaffoldGraph->ignoreUOMContains
+         || ScaffoldGraph->ignoreUOMContainStack)
+        return;
+      break;
 #endif
     
-  case AS_1_CONTAINS_2_OVERLAP: // C
-  case AS_2_CONTAINS_1_OVERLAP: // I
-    Containment++;
-    if(ScaffoldGraph->ignoreUOMContains)
-      return;
-    break;
-  case AS_NO_OVERLAP:  // N
-  default:
-    assert(0);
+    case AS_1_CONTAINS_2_OVERLAP: // C
+    case AS_2_CONTAINS_1_OVERLAP: // I
+      Containment++;
+      if(ScaffoldGraph->ignoreUOMContains)
+        return;
+      break;
+    case AS_NO_OVERLAP:  // N
+    default:
+      assert(0);
 
   }
 
@@ -364,14 +364,14 @@ void ProcessUOM(UnitigOverlapMesg *uom_mesg, float transQualityCutoff){
       // The containment edges are anti-symmetric in the unitig
       // overlap type.
       switch(overlap_type) {
-      case AS_1_CONTAINS_2_OVERLAP:
-	overlap_type = AS_2_CONTAINS_1_OVERLAP; 
-	break;
-      case AS_2_CONTAINS_1_OVERLAP:
-	overlap_type = AS_1_CONTAINS_2_OVERLAP; 
-	break;
-      default:
-	break;
+        case AS_1_CONTAINS_2_OVERLAP:
+          overlap_type = AS_2_CONTAINS_1_OVERLAP; 
+          break;
+        case AS_2_CONTAINS_1_OVERLAP:
+          overlap_type = AS_1_CONTAINS_2_OVERLAP; 
+          break;
+        default:
+          break;
       }
     }
   }
@@ -416,24 +416,24 @@ void ProcessUOM(UnitigOverlapMesg *uom_mesg, float transQualityCutoff){
       CDS_COORD_t maxOverlap = uom_mesg->max_overlap_length;
 
       switch(orient){
-      case AB_AB:
-	aEnd = B_END;
-	bEnd = A_END;
-	break;
-      case AB_BA:
-	aEnd = B_END;
-	bEnd = B_END;
-	break;
-      case BA_AB:
-	aEnd = A_END;
-	bEnd = A_END;
-	break;
-      case BA_BA:
-	aEnd = A_END;
-	bEnd = B_END;
-	break;
-      default:
-	assert(0);
+        case AB_AB:
+          aEnd = B_END;
+          bEnd = A_END;
+          break;
+        case AB_BA:
+          aEnd = B_END;
+          bEnd = B_END;
+          break;
+        case BA_AB:
+          aEnd = A_END;
+          bEnd = A_END;
+          break;
+        case BA_BA:
+          aEnd = A_END;
+          bEnd = B_END;
+          break;
+        default:
+          assert(0);
       }
 
       if(aEnd == A_END){
@@ -452,73 +452,73 @@ void ProcessUOM(UnitigOverlapMesg *uom_mesg, float transQualityCutoff){
 
     switch(overlap_type){
       /* These are all of the dovetails */
-    case AS_OVERLAP:          // O
-    case AS_TOUCHES_CONTAINED_OVERLAP: // M
-    case AS_TANDEM_OVERLAP:   // T
-    case AS_BETWEEN_CONTAINED_OVERLAP: // Y
-    case AS_TRANSCHUNK_OVERLAP: // X
-    case AS_DOVETAIL_CHORD_OVERLAP: // d
-      if(uom_mesg->best_overlap_length >  chunkB->bpLength.mean){
-	if(GlobalData->verbose > 0)
-	  fprintf(stderr,"* Warning: non-contain overlap is really A contains B:\n\tidA " F_CID " lenA %g idB " F_CID " lenB %g overlap " F_COORD "\n",
-		  cidA, chunkA->bpLength.mean,
-		  cidB, chunkB->bpLength.mean,
-		  uom_mesg->best_overlap_length);
+      case AS_OVERLAP:          // O
+      case AS_TOUCHES_CONTAINED_OVERLAP: // M
+      case AS_TANDEM_OVERLAP:   // T
+      case AS_BETWEEN_CONTAINED_OVERLAP: // Y
+      case AS_TRANSCHUNK_OVERLAP: // X
+      case AS_DOVETAIL_CHORD_OVERLAP: // d
+        if(uom_mesg->best_overlap_length >  chunkB->bpLength.mean){
+          if(GlobalData->verbose > 0)
+            fprintf(stderr,"* Warning: non-contain overlap is really A contains B:\n\tidA " F_CID " lenA %g idB " F_CID " lenB %g overlap " F_COORD "\n",
+                    cidA, chunkA->bpLength.mean,
+                    cidB, chunkB->bpLength.mean,
+                    uom_mesg->best_overlap_length);
 	      
-	aContainsB = TRUE;
-	hasContributingOverlap = FALSE;
-      }
-      else if(   uom_mesg->best_overlap_length >  chunkA->bpLength.mean){
-	if(GlobalData->verbose > 0)
-	  fprintf(stderr,"* Warning: non-contain overlap is really B contains A:\n\tidA " F_CID " lenA %g idB " F_CID " lenB %g overlap " F_COORD "\n",
-		  cidA, chunkA->bpLength.mean,
-		  cidB, chunkB->bpLength.mean,
-		  uom_mesg->best_overlap_length);
-	bContainsA = TRUE;
-	hasContributingOverlap = FALSE;
-      }
+          aContainsB = TRUE;
+          hasContributingOverlap = FALSE;
+        }
+        else if(   uom_mesg->best_overlap_length >  chunkA->bpLength.mean){
+          if(GlobalData->verbose > 0)
+            fprintf(stderr,"* Warning: non-contain overlap is really B contains A:\n\tidA " F_CID " lenA %g idB " F_CID " lenB %g overlap " F_COORD "\n",
+                    cidA, chunkA->bpLength.mean,
+                    cidB, chunkB->bpLength.mean,
+                    uom_mesg->best_overlap_length);
+          bContainsA = TRUE;
+          hasContributingOverlap = FALSE;
+        }
 
-      if(overlap_type == AS_TANDEM_OVERLAP)
-	hasContributingOverlap = FALSE;
+        if(overlap_type == AS_TANDEM_OVERLAP)
+          hasContributingOverlap = FALSE;
 
-      break;
+        break;
 	    
 #if 0
-    case AS_1_CONTAINS_2_STACK_OVERLAP: // Z
-    case AS_CONTAINMENT_CHORD_OVERLAP: // c
+      case AS_1_CONTAINS_2_STACK_OVERLAP: // Z
+      case AS_CONTAINMENT_CHORD_OVERLAP: // c
 #endif
-    case AS_1_CONTAINS_2_OVERLAP: // C
-      // make sure that the containment can possibly hold
-      //	    assert(chunkA->bpLength.mean >= chunkB->bpLength.mean);
-      //	    assert(uom_mesg->best_overlap_length >= chunkB->bpLength.mean);
-      // If we are ingoring these, just return, don't add any edges
-      hasContributingOverlap = FALSE;
-      aContainsB = TRUE;
-      hasContributingOverlap = FALSE;
-      if( chunkA->bpLength.mean < chunkB->bpLength.mean ){
-	fprintf(stderr,"* Warning: containing chunk " F_CID " (%g) is shorter than contained chunk " F_CID " (%g)\n",
-		cidA, chunkA->bpLength.mean,
-		cidB, chunkB->bpLength.mean);
-      }
-      break;
+      case AS_1_CONTAINS_2_OVERLAP: // C
+        // make sure that the containment can possibly hold
+        //	    assert(chunkA->bpLength.mean >= chunkB->bpLength.mean);
+        //	    assert(uom_mesg->best_overlap_length >= chunkB->bpLength.mean);
+        // If we are ingoring these, just return, don't add any edges
+        hasContributingOverlap = FALSE;
+        aContainsB = TRUE;
+        hasContributingOverlap = FALSE;
+        if( chunkA->bpLength.mean < chunkB->bpLength.mean ){
+          fprintf(stderr,"* Warning: containing chunk " F_CID " (%g) is shorter than contained chunk " F_CID " (%g)\n",
+                  cidA, chunkA->bpLength.mean,
+                  cidB, chunkB->bpLength.mean);
+        }
+        break;
 
-    case AS_2_CONTAINS_1_OVERLAP: // I
-      // make sure that the containment can possibly hold
-      //	    assert(chunkA->bpLength.mean <= chunkB->bpLength.mean);
-      //    assert(uom_mesg->best_overlap_length <= chunkB->bpLength.mean);
-      // If we are ingoring these, just return, don't add any edges
-      hasContributingOverlap = FALSE;
-      bContainsA = TRUE;
-      if( chunkA->bpLength.mean > chunkB->bpLength.mean ){
-	fprintf(stderr,"* Warning: containing chunk " F_CID " (%g) is shorter than contained chunk " F_CID " (%g)\n",
-		chunkB->id, chunkB->bpLength.mean,
-		chunkA->id, chunkA->bpLength.mean);
-      }
-      break;
+      case AS_2_CONTAINS_1_OVERLAP: // I
+        // make sure that the containment can possibly hold
+        //	    assert(chunkA->bpLength.mean <= chunkB->bpLength.mean);
+        //    assert(uom_mesg->best_overlap_length <= chunkB->bpLength.mean);
+        // If we are ingoring these, just return, don't add any edges
+        hasContributingOverlap = FALSE;
+        bContainsA = TRUE;
+        if( chunkA->bpLength.mean > chunkB->bpLength.mean ){
+          fprintf(stderr,"* Warning: containing chunk " F_CID " (%g) is shorter than contained chunk " F_CID " (%g)\n",
+                  chunkB->id, chunkB->bpLength.mean,
+                  chunkA->id, chunkA->bpLength.mean);
+        }
+        break;
 
-    case AS_NO_OVERLAP:  // N
-    default:
-      assert(0);
+      case AS_NO_OVERLAP:  // N
+      default:
+        assert(0);
 
     }
 	    
@@ -562,31 +562,31 @@ void ProcessUOM(UnitigOverlapMesg *uom_mesg, float transQualityCutoff){
     }
 
 
-      AddGraphEdge(ScaffoldGraph->CIGraph, 
-		   cidA, 
-		   cidB, 
-		   NULLINDEX, NULLINDEX, // frags
-		   NULLINDEX,  // dist
-		   distance,
-		   quality,
-		   range/2,  // fudge
-		   orient,
-		   FALSE, // inducedByUnknownOrient,
-		   FALSE, // hasGuide,
-		   FALSE, // hasSTSGuide,
-		   FALSE, // hasMayJoin,
-		   FALSE, // hasMustJoin,
-		   hasContributingOverlap,
-		   hasRepeatOverlap, //   isRepeat
-		   hasTandemOverlap,
-		   aContainsB,
-		   bContainsA,
-		   hasTransChunk,
-		   FALSE, // isExtremalA
-		   FALSE, // isExtremalB
-		   UNKNOWN_EDGE_STATUS,
-		   FALSE,  // collectOverlap
-		   FALSE /* FALSE */); // do NOT insert
+    AddGraphEdge(ScaffoldGraph->CIGraph, 
+                 cidA, 
+                 cidB, 
+                 NULLINDEX, NULLINDEX, // frags
+                 NULLINDEX,  // dist
+                 distance,
+                 quality,
+                 range/2,  // fudge
+                 orient,
+                 FALSE, // inducedByUnknownOrient,
+                 FALSE, // hasGuide,
+                 FALSE, // hasSTSGuide,
+                 FALSE, // hasMayJoin,
+                 FALSE, // hasMustJoin,
+                 hasContributingOverlap,
+                 hasRepeatOverlap, //   isRepeat
+                 hasTandemOverlap,
+                 aContainsB,
+                 bContainsA,
+                 hasTransChunk,
+                 FALSE, // isExtremalA
+                 FALSE, // isExtremalB
+                 UNKNOWN_EDGE_STATUS,
+                 FALSE,  // collectOverlap
+                 FALSE /* FALSE */); // do NOT insert
   }
 }
 
@@ -708,7 +708,7 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg,
 
   if(ium_mesg->coverage_stat >= GlobalData->cgbUniqueCutoff){
     if(length < CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH ||
-      ium_mesg->num_frags < CGW_MIN_READS_IN_UNIQUE){
+       ium_mesg->num_frags < CGW_MIN_READS_IN_UNIQUE){
       ShortDiscriminatorUniques++;
     }else{
       DiscriminatorUniques++;
@@ -720,7 +720,7 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg,
     int isUnique = FALSE;
     if(ium_mesg->coverage_stat >= GlobalData->cgbUniqueCutoff &&
        length >= CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH &&
-      ium_mesg->num_frags >= CGW_MIN_READS_IN_UNIQUE){
+       ium_mesg->num_frags >= CGW_MIN_READS_IN_UNIQUE){
       // microhetScore is actually the probability of the sequence
       // being UNIQUE, based on microhet considerations.
       // Falling below threshhold makes something a repeat.
@@ -822,11 +822,11 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg,
 	cifrag.label = AS_SINGLETON; // interim
 
 
-	  if(ium_mesg->num_frags < 2){
-	    CI.flags.bits.isChaff = TRUE;
-	    if(GlobalData->debugLevel > 0)
-	      fprintf(stderr,"* Singleton chunk " F_CID " is CHAFF\n", CI.id);
-	  }
+        if(ium_mesg->num_frags < 2){
+          CI.flags.bits.isChaff = TRUE;
+          if(GlobalData->debugLevel > 0)
+            fprintf(stderr,"* Singleton chunk " F_CID " is CHAFF\n", CI.id);
+        }
 
 
 
@@ -906,9 +906,9 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg,
 	    
 #ifdef DEBUG_DATA
 	{
-	    cifrag.aEndCoord = cifrag.bEndCoord = -1;
+          cifrag.aEndCoord = cifrag.bEndCoord = -1;
 	}
-	  cifrag.source = NULLINDEX;
+        cifrag.source = NULLINDEX;
 #endif	    
 	    
 	AppendCIFragT(ScaffoldGraph->CIFrags, &cifrag);
@@ -968,28 +968,28 @@ void ProcessIDT(InternalDistMesg *idt_mesg)
 
 
   switch(idt_mesg->action){
-  case AS_DELETE:
-    return;
-    break; // Nothing to do...they won't be referenced
-  case AS_ADD:
-  case AS_REDEFINE:
-    {
-      DistT dist;
-      dist.mean = idt_mesg->mean;
-      dist.stddev = idt_mesg->stddev;
-      dist.mu = dist.sigma = 0.0;
-      dist.min = CDS_COORD_MAX;
-      dist.max = CDS_COORD_MIN;
-      dist.bsize = 0;
-      dist.histogram = NULL;
-      dist.lower = dist.upper = 0;
-      dist.samples = CreateVA_CDS_COORD_t(1024);
-      dist.numReferences = dist.numBad = 0;
-      SetDistT(ScaffoldGraph->Dists, idt_mesg->iaccession, &dist);
-    }
-    break;
-  default:
-    assert(0);
+    case AS_DELETE:
+      return;
+      break; // Nothing to do...they won't be referenced
+    case AS_ADD:
+    case AS_REDEFINE:
+      {
+        DistT dist;
+        dist.mean = idt_mesg->mean;
+        dist.stddev = idt_mesg->stddev;
+        dist.mu = dist.sigma = 0.0;
+        dist.min = CDS_COORD_MAX;
+        dist.max = CDS_COORD_MIN;
+        dist.bsize = 0;
+        dist.histogram = NULL;
+        dist.lower = dist.upper = 0;
+        dist.samples = CreateVA_CDS_COORD_t(1024);
+        dist.numReferences = dist.numBad = 0;
+        SetDistT(ScaffoldGraph->Dists, idt_mesg->iaccession, &dist);
+      }
+      break;
+    default:
+      assert(0);
   }
 }
 #endif
@@ -1008,22 +1008,22 @@ void LoadDistData(void){ // Load the distance record info from the gkpStore
     if(gkpd.deleted)
       continue;
 
-      dist.mean = gkpd.mean;
-      dist.stddev = gkpd.stddev;
-      dist.mu = dist.sigma = 0.0;
-      dist.min = CDS_COORD_MAX;
-      dist.max = CDS_COORD_MIN;
-      dist.bsize = 0;
-      dist.histogram = NULL;
-      dist.lower = dist.upper = 0;
-      dist.samples = CreateVA_CDS_COORD_t(1024);
-      dist.numReferences = dist.numBad = 0;
+    dist.mean = gkpd.mean;
+    dist.stddev = gkpd.stddev;
+    dist.mu = dist.sigma = 0.0;
+    dist.min = CDS_COORD_MAX;
+    dist.max = CDS_COORD_MIN;
+    dist.bsize = 0;
+    dist.histogram = NULL;
+    dist.lower = dist.upper = 0;
+    dist.samples = CreateVA_CDS_COORD_t(1024);
+    dist.numReferences = dist.numBad = 0;
 
-      if(GlobalData->verbose)
-	fprintf(GlobalData->stderrc,"* Loaded dist " F_CID " (%g +/- %g)\n", i, gkpd.mean, gkpd.stddev);
+    if(GlobalData->verbose)
+      fprintf(GlobalData->stderrc,"* Loaded dist " F_CID " (%g +/- %g)\n", i, gkpd.mean, gkpd.stddev);
 
-      SetDistT(ScaffoldGraph->Dists, i, &dist);
-    }
+    SetDistT(ScaffoldGraph->Dists, i, &dist);
+  }
 }
 
 
@@ -1069,21 +1069,21 @@ void NullifyNodeEdges(NodeCGW_T * node)
   node->essentialEdgeA = node->essentialEdgeB = NULLINDEX;
   node->edgeHead = NULLINDEX;
   if(node->flags.bits.isScaffold)
-  {
-    node->info.Scaffold.internalEdges =
-      node->info.Scaffold.confirmedInternalEdges = 0;
-  }
-  else
-  {
-    node->scaffoldID = NULLINDEX;
-    node->prevScaffoldID = NULLINDEX;
-    node->indexInScaffold = NULLINDEX;
-    if(node->flags.bits.isContig)
     {
-      node->BEndNext = node->AEndNext = NULLINDEX;
-      node->smoothExpectedCID = NULLINDEX;
+      node->info.Scaffold.internalEdges =
+        node->info.Scaffold.confirmedInternalEdges = 0;
     }
-  }
+  else
+    {
+      node->scaffoldID = NULLINDEX;
+      node->prevScaffoldID = NULLINDEX;
+      node->indexInScaffold = NULLINDEX;
+      if(node->flags.bits.isContig)
+        {
+          node->BEndNext = node->AEndNext = NULLINDEX;
+          node->smoothExpectedCID = NULLINDEX;
+        }
+    }
 }
 
 void NullifyAllNodeEdges(GraphCGW_T * graph)
@@ -1093,9 +1093,9 @@ void NullifyAllNodeEdges(GraphCGW_T * graph)
   
   InitGraphNodeIterator(&nodes, graph, GRAPH_NODE_DEFAULT);
   while(NULL != (node = NextGraphNodeIterator(&nodes)))
-  {
-    NullifyNodeEdges(node);
-  }
+    {
+      NullifyNodeEdges(node);
+    }
 }
 
 void ActivateLBACMatePairs(void)
@@ -1108,171 +1108,171 @@ void ActivateLBACMatePairs(void)
 
   // loop to identify mated LBAC fragments
   for(i = 0; i < GetNumInfoByIIDs(ScaffoldGraph->iidToFragIndex); i++)
-  {
-    InfoByIID *info = GetInfoByIID(ScaffoldGraph->iidToFragIndex,i);
-    CIFragT *cifrag = GetCIFragT(ScaffoldGraph->CIFrags, info->fragIndex);
-    GateKeeperFragmentRecord gkf;
+    {
+      InfoByIID *info = GetInfoByIID(ScaffoldGraph->iidToFragIndex,i);
+      CIFragT *cifrag = GetCIFragT(ScaffoldGraph->CIFrags, info->fragIndex);
+      GateKeeperFragmentRecord gkf;
     
-    // assert(cifrag->iid == i); 
-    getGateKeeperFragmentStore(ScaffoldGraph->gkpStore.frgStore, cifrag->iid, &gkf);
-    if(gkf.type != AS_LBAC)
-      continue;
-    /*
-    if(gkf.type != AS_EBAC)
-      continue;
-    */
+      // assert(cifrag->iid == i); 
+      getGateKeeperFragmentStore(ScaffoldGraph->gkpStore.frgStore, cifrag->iid, &gkf);
+      if(gkf.type != AS_LBAC)
+        continue;
+      /*
+        if(gkf.type != AS_EBAC)
+        continue;
+      */
 
-    lBACFrags++;
-    cifrag->linkHead = gkf.linkHead;
-    cifrag->numLinks = gkf.numLinks;
+      lBACFrags++;
+      cifrag->linkHead = gkf.linkHead;
+      cifrag->numLinks = gkf.numLinks;
 
-    assert((cifrag->linkHead == NULL_LINK && gkf.numLinks == 0) ||
-           (cifrag->linkHead != NULL_LINK && gkf.numLinks > 0));
+      assert((cifrag->linkHead == NULL_LINK && gkf.numLinks == 0) ||
+             (cifrag->linkHead != NULL_LINK && gkf.numLinks > 0));
 
-    if(gkf.numLinks == 0)
-    {
-      unMated++;
+      if(gkf.numLinks == 0)
+        {
+          unMated++;
+        }
+      else if(gkf.numLinks > 1)
+        {
+          cifrag->flags.bits.getLinksFromStore = TRUE;  // get links from store
+          multiMated++;
+        }
+      else
+        {
+          cifrag->flags.bits.getLinksFromStore = FALSE;  // get links from store
+          singleMated++;
+        }
     }
-    else if(gkf.numLinks > 1)
-    {
-      cifrag->flags.bits.getLinksFromStore = TRUE;  // get links from store
-      multiMated++;
-    }
-    else
-    {
-      cifrag->flags.bits.getLinksFromStore = FALSE;  // get links from store
-      singleMated++;
-    }
-  }
 
   // Cycle through all of the fragments in iid order
   for(i = 0; i < GetNumInfoByIIDs(ScaffoldGraph->iidToFragIndex); i++)
-  {
-    InfoByIID *info = GetInfoByIID(ScaffoldGraph->iidToFragIndex,i);
-    CIFragT *cifrag;
-    GateKeeperLinkRecordIterator GKPLinks;
-    GateKeeperLinkRecord GKPLink;
-    CIFragT *mcifrag;
-    CDS_CID_t j;
-
-    if(!info->set)
-      continue;
-    
-    cifrag = GetCIFragT(ScaffoldGraph->CIFrags,info->fragIndex);
-    if(cifrag->type != AS_LBAC || cifrag->linkHead == NULL_LINK)
-      continue;
-    /*
-    if(cifrag->type != AS_EBAC || cifrag->linkHead == NULL_LINK)
-      continue;
-    */
-
-    CreateGateKeeperLinkRecordIterator(ScaffoldGraph->gkpStore.lnkStore,
-                                       cifrag->linkHead, cifrag->iid, &GKPLinks);
-    while(NextGateKeeperLinkRecordIterator(&GKPLinks, &GKPLink))
     {
-      if(GKPLink.type != AS_MATE &&
-	 GKPLink.type != AS_BAC_GUIDE)
-	continue;
+      InfoByIID *info = GetInfoByIID(ScaffoldGraph->iidToFragIndex,i);
+      CIFragT *cifrag;
+      GateKeeperLinkRecordIterator GKPLinks;
+      GateKeeperLinkRecord GKPLink;
+      CIFragT *mcifrag;
+      CDS_CID_t j;
 
-      assert(GKPLink.type == (unsigned int) AS_MATE &&
-             cifrag->type == AS_LBAC);
+      if(!info->set)
+        continue;
+    
+      cifrag = GetCIFragT(ScaffoldGraph->CIFrags,info->fragIndex);
+      if(cifrag->type != AS_LBAC || cifrag->linkHead == NULL_LINK)
+        continue;
       /*
-      assert(GKPLink.type == (unsigned int) AS_BAC_GUIDE &&
-             cifrag->type == AS_EBAC);
+        if(cifrag->type != AS_EBAC || cifrag->linkHead == NULL_LINK)
+        continue;
       */
-      
-      assert(cifrag->iid == GKPLink.frag1 || cifrag->iid == GKPLink.frag2);
 
-      if(cifrag->iid == GKPLink.frag2)
-      {
-        /* Avoid doing things i,j and j,i */
-	InfoByIID *info2 =
-          GetInfoByIID(ScaffoldGraph->iidToFragIndex,GKPLink.frag1);
-	if(!info2->set)
+      CreateGateKeeperLinkRecordIterator(ScaffoldGraph->gkpStore.lnkStore,
+                                         cifrag->linkHead, cifrag->iid, &GKPLinks);
+      while(NextGateKeeperLinkRecordIterator(&GKPLinks, &GKPLink))
         {
-	  fprintf(stderr,"* Fragment with iid " F_CID ", mate of fragment with iid " F_CID " is NOT in assembly\n",
-		  GKPLink.frag1, GKPLink.frag2);
-	  cifrag->linkHead = NULL_LINK;
-	  cifrag->numLinks = 0;
-	}
-	continue;
-      }
+          if(GKPLink.type != AS_MATE &&
+             GKPLink.type != AS_BAC_GUIDE)
+            continue;
 
-      if(GKPLink.frag2 >= GetNumCIFragTs(ScaffoldGraph->CIFrags))
-	continue;
-
-      j = GKPLink.frag2;
+          assert(GKPLink.type == (unsigned int) AS_MATE &&
+                 cifrag->type == AS_LBAC);
+          /*
+            assert(GKPLink.type == (unsigned int) AS_BAC_GUIDE &&
+            cifrag->type == AS_EBAC);
+          */
       
-      {
-	InfoByIID *infoj = GetInfoByIID(ScaffoldGraph->iidToFragIndex,j);
+          assert(cifrag->iid == GKPLink.frag1 || cifrag->iid == GKPLink.frag2);
+
+          if(cifrag->iid == GKPLink.frag2)
+            {
+              /* Avoid doing things i,j and j,i */
+              InfoByIID *info2 =
+                GetInfoByIID(ScaffoldGraph->iidToFragIndex,GKPLink.frag1);
+              if(!info2->set)
+                {
+                  fprintf(stderr,"* Fragment with iid " F_CID ", mate of fragment with iid " F_CID " is NOT in assembly\n",
+                          GKPLink.frag1, GKPLink.frag2);
+                  cifrag->linkHead = NULL_LINK;
+                  cifrag->numLinks = 0;
+                }
+              continue;
+            }
+
+          if(GKPLink.frag2 >= GetNumCIFragTs(ScaffoldGraph->CIFrags))
+            continue;
+
+          j = GKPLink.frag2;
+      
+          {
+            InfoByIID *infoj = GetInfoByIID(ScaffoldGraph->iidToFragIndex,j);
 	  
-	if(!infoj->set)
-        {
-          // 2nd fragment is not part of assembly input
-	  fprintf(stderr,"* Fragment with iid " F_CID ", mate of fragment with iid " F_CID " is NOT in assembly\n",
-		  GKPLink.frag2, GKPLink.frag1);
-	  continue;
-	}
+            if(!infoj->set)
+              {
+                // 2nd fragment is not part of assembly input
+                fprintf(stderr,"* Fragment with iid " F_CID ", mate of fragment with iid " F_CID " is NOT in assembly\n",
+                        GKPLink.frag2, GKPLink.frag1);
+                continue;
+              }
 
-	mcifrag = GetCIFragT(ScaffoldGraph->CIFrags,infoj->fragIndex);
-	cifrag->mateOf = infoj->fragIndex;
-	mcifrag->mateOf = info->fragIndex;
+            mcifrag = GetCIFragT(ScaffoldGraph->CIFrags,infoj->fragIndex);
+            cifrag->mateOf = infoj->fragIndex;
+            mcifrag->mateOf = info->fragIndex;
 
-	// If we saved the one and only link in the fragment
-	// record, don't look in the store for it
-	if(mcifrag->numLinks == 1 && mcifrag->mateOf != NULLINDEX)
-	  mcifrag->flags.bits.getLinksFromStore = FALSE;
-	if(cifrag->numLinks == 1 && cifrag->mateOf != NULLINDEX)
-	  cifrag->flags.bits.getLinksFromStore = FALSE;
+            // If we saved the one and only link in the fragment
+            // record, don't look in the store for it
+            if(mcifrag->numLinks == 1 && mcifrag->mateOf != NULLINDEX)
+              mcifrag->flags.bits.getLinksFromStore = FALSE;
+            if(cifrag->numLinks == 1 && cifrag->mateOf != NULLINDEX)
+              cifrag->flags.bits.getLinksFromStore = FALSE;
 
-	mcifrag->dist = cifrag->dist = GKPLink.distance;
-	cifrag->linkType = GKPLink.type;
-	mcifrag->linkType = GKPLink.type;
+            mcifrag->dist = cifrag->dist = GKPLink.distance;
+            cifrag->linkType = GKPLink.type;
+            mcifrag->linkType = GKPLink.type;
 
-	// The CIFragT data structure has been optimized for the case that
-	// a fragment has one and only one mate/bac end link.  We need to know
-	// whether the mate is a standard innie, or a funky outtie link.  We
-	// use a flag bit to distinguish.  The main clients of this bit are
-	// in ComputeMatePairStatistics and BuildGraphEdgesFromMultiAlign in GraphCGW_T.c
-	//
-	cifrag->flags.bits.innieMate = FALSE;
-	mcifrag->flags.bits.innieMate = FALSE;
-	// Mates can be either INNIE or OUTTIE
-	if((GKPLink.type == AS_MATE &&
-	   GKPLink.orientation == AS_GKP_INNIE) ||
-	   (GKPLink.type == AS_BAC_GUIDE)){
-	  mcifrag->flags.bits.innieMate = TRUE;
-	  cifrag->flags.bits.innieMate = TRUE;
-	}
-	if(cifrag->flags.bits.hasFalseMate ||
-	   mcifrag->flags.bits.hasFalseMate ){
-	  // They must BOTH be false
-	  if (!(cifrag->flags.bits.hasFalseMate ==
-		mcifrag->flags.bits.hasFalseMate  )){
-	    fprintf(stderr,"* Frag " F_CID " and Frag " F_CID " have inconsistent mate status\n",
-		    cifrag->iid, mcifrag->iid);
-	    assert(0);
-	  }
-	  cifrag->flags.bits.mateStatus = mcifrag->flags.bits.mateStatus = MATE_FALSE;
-	  cifrag->flags.bits.edgeStatus = UNKNOWN_EDGE_STATUS;
-	  mcifrag->flags.bits.edgeStatus = UNKNOWN_EDGE_STATUS;
-	}else
-	cifrag->flags.bits.mateStatus = mcifrag->flags.bits.mateStatus = MATE_OK;
-	cifrag->flags.bits.edgeStatus = UNKNOWN_EDGE_STATUS;
-	mcifrag->flags.bits.edgeStatus = UNKNOWN_EDGE_STATUS;
-      }
+            // The CIFragT data structure has been optimized for the case that
+            // a fragment has one and only one mate/bac end link.  We need to know
+            // whether the mate is a standard innie, or a funky outtie link.  We
+            // use a flag bit to distinguish.  The main clients of this bit are
+            // in ComputeMatePairStatistics and BuildGraphEdgesFromMultiAlign in GraphCGW_T.c
+            //
+            cifrag->flags.bits.innieMate = FALSE;
+            mcifrag->flags.bits.innieMate = FALSE;
+            // Mates can be either INNIE or OUTTIE
+            if((GKPLink.type == AS_MATE &&
+                GKPLink.orientation == AS_GKP_INNIE) ||
+               (GKPLink.type == AS_BAC_GUIDE)){
+              mcifrag->flags.bits.innieMate = TRUE;
+              cifrag->flags.bits.innieMate = TRUE;
+            }
+            if(cifrag->flags.bits.hasFalseMate ||
+               mcifrag->flags.bits.hasFalseMate ){
+              // They must BOTH be false
+              if (!(cifrag->flags.bits.hasFalseMate ==
+                    mcifrag->flags.bits.hasFalseMate  )){
+                fprintf(stderr,"* Frag " F_CID " and Frag " F_CID " have inconsistent mate status\n",
+                        cifrag->iid, mcifrag->iid);
+                assert(0);
+              }
+              cifrag->flags.bits.mateStatus = mcifrag->flags.bits.mateStatus = MATE_FALSE;
+              cifrag->flags.bits.edgeStatus = UNKNOWN_EDGE_STATUS;
+              mcifrag->flags.bits.edgeStatus = UNKNOWN_EDGE_STATUS;
+            }else
+              cifrag->flags.bits.mateStatus = mcifrag->flags.bits.mateStatus = MATE_OK;
+            cifrag->flags.bits.edgeStatus = UNKNOWN_EDGE_STATUS;
+            mcifrag->flags.bits.edgeStatus = UNKNOWN_EDGE_STATUS;
+          }
+        }
     }
-  }
 
   fprintf(GlobalData->stderrc, "Reactivated LBAC mate pairs.\n");
   fprintf(GlobalData->stderrc,
           "\t%d LBAC fragments: %d un-mated, %d singly-mated, %d multiply-mated\n",
           lBACFrags, unMated, singleMated, multiMated);
   /*
-  fprintf(GlobalData->stderrc, "Reactivated EBAC mate pairs.\n");
-  fprintf(GlobalData->stderrc,
-          "\t%d EBAC fragments: %d un-mated, %d singly-mated, %d multiply-mated\n",
-          lBACFrags, unMated, singleMated, multiMated);
+    fprintf(GlobalData->stderrc, "Reactivated EBAC mate pairs.\n");
+    fprintf(GlobalData->stderrc,
+    "\t%d EBAC fragments: %d un-mated, %d singly-mated, %d multiply-mated\n",
+    lBACFrags, unMated, singleMated, multiMated);
   */
 }
 
@@ -1321,22 +1321,22 @@ void ProcessFrags(void)
 #endif
     
     assert((cifrag->linkHead == NULL_LINK && gkf.numLinks == 0) ||
-       (cifrag->linkHead != NULL_LINK && gkf.numLinks > 0));
+           (cifrag->linkHead != NULL_LINK && gkf.numLinks > 0));
 
 #ifdef RAT_RUN_1
     if(gkf.type == AS_LBAC)
-    {
-      fprintf(stderr, "Invalidating mate of AS_LBAC fragment " F_CID "\n", i);
-      cifrag->linkHead = NULL_LINK;
-      cifrag->numLinks = 0;
-    }
+      {
+        fprintf(stderr, "Invalidating mate of AS_LBAC fragment " F_CID "\n", i);
+        cifrag->linkHead = NULL_LINK;
+        cifrag->numLinks = 0;
+      }
     /*
-    if(gkf.type == AS_EBAC)
-    {
+      if(gkf.type == AS_EBAC)
+      {
       fprintf(stderr, "Invalidating mate of AS_EBAC fragment " F_CID "\n", i);
       cifrag->linkHead = NULL_LINK;
       cifrag->numLinks = 0;
-    }
+      }
     */
 #endif
     
@@ -1456,7 +1456,7 @@ void ProcessFrags(void)
 	fprintf(stderr,"* cifrag->iid " F_CID " i " F_CID " mcifrag->iid " F_CID " j " F_CID " dist:" F_CID "\n",
 		cifrag->iid,i,mcifrag->iid,j, GKPLink.distance);
         fprintf(stderr,"* Frag " F_CID " (" F_CID ")'s mate is " F_CID "(" F_CID ")\n",
-			  i, GKPLink.frag1, j, GKPLink.frag2);
+                i, GKPLink.frag1, j, GKPLink.frag2);
 #endif
 	cifrag->mateOf = infoj->fragIndex;
 	mcifrag->mateOf = info->fragIndex;
@@ -1482,7 +1482,7 @@ void ProcessFrags(void)
 	mcifrag->flags.bits.innieMate = FALSE;
 	// Mates can be either INNIE or OUTTIE
 	if((GKPLink.type == AS_MATE &&
-	   GKPLink.orientation == AS_GKP_INNIE) ||
+            GKPLink.orientation == AS_GKP_INNIE) ||
 	   (GKPLink.type == AS_BAC_GUIDE)){
 	  mcifrag->flags.bits.innieMate = TRUE;
 	  cifrag->flags.bits.innieMate = TRUE;
@@ -1500,7 +1500,7 @@ void ProcessFrags(void)
 	  cifrag->flags.bits.edgeStatus = UNKNOWN_EDGE_STATUS;
 	  mcifrag->flags.bits.edgeStatus = UNKNOWN_EDGE_STATUS;
 	}else
-	cifrag->flags.bits.mateStatus = mcifrag->flags.bits.mateStatus = MATE_OK;
+          cifrag->flags.bits.mateStatus = mcifrag->flags.bits.mateStatus = MATE_OK;
 	cifrag->flags.bits.edgeStatus = UNKNOWN_EDGE_STATUS;
 	mcifrag->flags.bits.edgeStatus = UNKNOWN_EDGE_STATUS;
       }
@@ -1612,120 +1612,120 @@ static int CompareEdgesByIdB_Quality(const void *c1, const void *c2){
 
 /********************************************/
 int  EliminateDuplicates(void)
-  {
-    int32 numEdges = 0;
-    CDS_CID_t idA = NULLINDEX;
-    CDS_CID_t idB = NULLINDEX;
-    ChunkOrientationType orient = XX_XX;
-    int32 numSeen = 0;
-    CDS_CID_t i;
-    EdgeCGW_T *edges = GetGraphEdge(ScaffoldGraph->CIGraph,0);
-    EdgeCGW_T *headEdge = NULL;
+{
+  int32 numEdges = 0;
+  CDS_CID_t idA = NULLINDEX;
+  CDS_CID_t idB = NULLINDEX;
+  ChunkOrientationType orient = XX_XX;
+  int32 numSeen = 0;
+  CDS_CID_t i;
+  EdgeCGW_T *edges = GetGraphEdge(ScaffoldGraph->CIGraph,0);
+  EdgeCGW_T *headEdge = NULL;
 
-    for(i = 0; i < GetNumGraphEdges(ScaffoldGraph->CIGraph);i++){
-      EdgeCGW_T *edge = &edges[i];
+  for(i = 0; i < GetNumGraphEdges(ScaffoldGraph->CIGraph);i++){
+    EdgeCGW_T *edge = &edges[i];
 
-      if(edge->idA != idA ||
-	 edge->idB != idB ||
-	 edge->orient != orient){
-	headEdge = edge;
-	numSeen = 1;
-	idA = edge->idA;
-	idB = edge->idB;
-	orient = edge->orient;
-      }else{
-	numSeen++;
-      }
-      if(numSeen > 1){
-	/* We are sorted in order of decreasing quality.  So the first edge is the best. */
-	edge->flags.bits.isDeleted = TRUE;
-#ifdef DEBUG_DETAILED
-	fprintf(stderr,"* Deleted duplicate edge \n");
-	PrintGraphEdge(stderr,ScaffoldGraph->CIGraph,"head ", headEdge, idA);
-	PrintGraphEdge(stderr,ScaffoldGraph->CIGraph,"dupl ", edge, idA);
-#endif	
-	numEdges++;
-      }
-      
+    if(edge->idA != idA ||
+       edge->idB != idB ||
+       edge->orient != orient){
+      headEdge = edge;
+      numSeen = 1;
+      idA = edge->idA;
+      idB = edge->idB;
+      orient = edge->orient;
+    }else{
+      numSeen++;
     }
-    return numEdges;
+    if(numSeen > 1){
+      /* We are sorted in order of decreasing quality.  So the first edge is the best. */
+      edge->flags.bits.isDeleted = TRUE;
+#ifdef DEBUG_DETAILED
+      fprintf(stderr,"* Deleted duplicate edge \n");
+      PrintGraphEdge(stderr,ScaffoldGraph->CIGraph,"head ", headEdge, idA);
+      PrintGraphEdge(stderr,ScaffoldGraph->CIGraph,"dupl ", edge, idA);
+#endif	
+      numEdges++;
+    }
+      
   }
+  return numEdges;
+}
 
 
 int  MarkTopEdges(int32 maxDegree, int32 maxDegreeUnique, int useIDA)
-  {
-    int32 numEdges = 0;
-    int32 numAEnd = 0;
-    int32 numBEnd = 0;
-    int32 maxEndDegree = 0;
-    NodeCGW_T *node = NULL;
-    int nodeIsUnique = FALSE;
-    int32 i;
-    int32 maxEdges = (int32) GetNumGraphEdges(ScaffoldGraph->CIGraph);
+{
+  int32 numEdges = 0;
+  int32 numAEnd = 0;
+  int32 numBEnd = 0;
+  int32 maxEndDegree = 0;
+  NodeCGW_T *node = NULL;
+  int nodeIsUnique = FALSE;
+  int32 i;
+  int32 maxEdges = (int32) GetNumGraphEdges(ScaffoldGraph->CIGraph);
 
-    fprintf(stderr,"* MarkTopEdges maxDegree:%d useIDA:%d edges:%d\n",
-	    maxDegree, useIDA, maxEdges);
+  fprintf(stderr,"* MarkTopEdges maxDegree:%d useIDA:%d edges:%d\n",
+          maxDegree, useIDA, maxEdges);
 
-    for(i = 0; i < maxEdges;i++){
-      EdgeCGW_T *edge = GetGraphEdge(ScaffoldGraph->CIGraph, i);
-      CDS_CID_t nodeID = (useIDA?edge->idA:edge->idB);
-      int markEdge = FALSE;
+  for(i = 0; i < maxEdges;i++){
+    EdgeCGW_T *edge = GetGraphEdge(ScaffoldGraph->CIGraph, i);
+    CDS_CID_t nodeID = (useIDA?edge->idA:edge->idB);
+    int markEdge = FALSE;
 
-      if(edge->flags.bits.isDeleted)
-	continue;
+    if(edge->flags.bits.isDeleted)
+      continue;
 
-      //      PrintGraphEdge(stderr,ScaffoldGraph->CIGraph," ", edge, nodeID);
+    //      PrintGraphEdge(stderr,ScaffoldGraph->CIGraph," ", edge, nodeID);
 
-      if(!node || node->id != nodeID){
-	assert(!node || nodeID > node->id);
-	node = GetGraphNode(ScaffoldGraph->CIGraph, nodeID);
-	numAEnd = 0;
-	numBEnd = 0;
-	nodeIsUnique = (node->info.CI.coverageStat > 0);
-	maxEndDegree = maxDegree;
-	if(nodeIsUnique){   /* Keep more edges for 'unique' nodes */
-	  maxEndDegree = maxDegreeUnique;
-	}
-#ifdef DEBUG_DETAILED
-	fprintf(stderr,"* Node " F_CID " %s maxEndDegree = %d\n",
-		node->id, (nodeIsUnique?" Unique ":" Not Unique "), maxEndDegree);
-#endif
+    if(!node || node->id != nodeID){
+      assert(!node || nodeID > node->id);
+      node = GetGraphNode(ScaffoldGraph->CIGraph, nodeID);
+      numAEnd = 0;
+      numBEnd = 0;
+      nodeIsUnique = (node->info.CI.coverageStat > 0);
+      maxEndDegree = maxDegree;
+      if(nodeIsUnique){   /* Keep more edges for 'unique' nodes */
+        maxEndDegree = maxDegreeUnique;
       }
-    
-	switch (GetEdgeOrientationWRT(edge,nodeID)){
-	case AB_BA:
-	case AB_AB:
-	  if(numBEnd++ < maxEndDegree)
-	    markEdge = TRUE;
-	  break;
-	case BA_BA:
-	case BA_AB:
-	  if(numAEnd++ < maxEndDegree)
-	    markEdge = TRUE;
-	  break;
-	default:
-	  assert(0);
-	}
-
-	if(useIDA)
-	  edge->flags.bits.highQualityA = markEdge;
-	else
-	  edge->flags.bits.highQualityB = markEdge;
-
-	if(edge->flags.bits.highQualityA ||
-	   edge->flags.bits.highQualityB){
-	  numEdges++;
-	}else{
-#if 0
-	  if(!useIDA)
-	    PrintGraphEdge(stderr,ScaffoldGraph->CIGraph," Low Quality ", edge, nodeID);
+#ifdef DEBUG_DETAILED
+      fprintf(stderr,"* Node " F_CID " %s maxEndDegree = %d\n",
+              node->id, (nodeIsUnique?" Unique ":" Not Unique "), maxEndDegree);
 #endif
-	}
+    }
+    
+    switch (GetEdgeOrientationWRT(edge,nodeID)){
+      case AB_BA:
+      case AB_AB:
+        if(numBEnd++ < maxEndDegree)
+          markEdge = TRUE;
+        break;
+      case BA_BA:
+      case BA_AB:
+        if(numAEnd++ < maxEndDegree)
+          markEdge = TRUE;
+        break;
+      default:
+        assert(0);
+    }
+
+    if(useIDA)
+      edge->flags.bits.highQualityA = markEdge;
+    else
+      edge->flags.bits.highQualityB = markEdge;
+
+    if(edge->flags.bits.highQualityA ||
+       edge->flags.bits.highQualityB){
+      numEdges++;
+    }else{
+#if 0
+      if(!useIDA)
+        PrintGraphEdge(stderr,ScaffoldGraph->CIGraph," Low Quality ", edge, nodeID);
+#endif
+    }
 	  
 
-    }
-    return numEdges;
   }
+  return numEdges;
+}
 
 void  CopyActiveEdges(int32 activeEdges){
   VA_TYPE(EdgeCGW_T) *newEdges = CreateVA_EdgeCGW_T(activeEdges);
@@ -1739,12 +1739,12 @@ void  CopyActiveEdges(int32 activeEdges){
 
   for(i = 0; i < GetNumGraphEdges(ScaffoldGraph->CIGraph); i++){
     EdgeCGW_T *edge = GetGraphEdge(ScaffoldGraph->CIGraph, i);
-	if(!edge->flags.bits.isDeleted && 
-	   (edge->flags.bits.highQualityA ||
-	    edge->flags.bits.highQualityB)){
-	  AppendEdgeCGW_T(newEdges,edge);
-	  numInserted++;
-	}
+    if(!edge->flags.bits.isDeleted && 
+       (edge->flags.bits.highQualityA ||
+        edge->flags.bits.highQualityB)){
+      AppendEdgeCGW_T(newEdges,edge);
+      numInserted++;
+    }
   }
 
   assert(numInserted == activeEdges);
@@ -1768,9 +1768,9 @@ void  CopyActiveEdges(int32 activeEdges){
   for(i = 0; i < GetNumGraphEdges(ScaffoldGraph->CIGraph); i++){
     EdgeCGW_T *edge = GetGraphEdge(ScaffoldGraph->CIGraph, i);
     assert(!edge->flags.bits.isDeleted);
-      edge->topLevelEdge = i;
-      InsertGraphEdge(ScaffoldGraph->CIGraph, i, FALSE);
-      CreateChunkOverlapFromEdge(ScaffoldGraph->CIGraph, edge, TRUE);
+    edge->topLevelEdge = i;
+    InsertGraphEdge(ScaffoldGraph->CIGraph, i, FALSE);
+    CreateChunkOverlapFromEdge(ScaffoldGraph->CIGraph, edge, TRUE);
   }
 
   fprintf(stderr,"* Inserted %d edges\n", numInserted);

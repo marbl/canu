@@ -31,7 +31,7 @@ typedef struct
   LengthT aEnd;
   LengthT bEnd;
 } IEPish;
-VA_DEF(IEPish)
+VA_DEF(IEPish);
 
 typedef struct
 {
@@ -39,7 +39,7 @@ typedef struct
   cds_int32 zlfUsFound;
   VA_TYPE(MultiAlignT) * zlfUMAs;
 } ZLFContig;
-VA_DEF(ZLFContig)
+VA_DEF(ZLFContig);
   
 typedef struct
 {
@@ -47,7 +47,7 @@ typedef struct
   cds_int32 zlfContigsFound;
   VA_TYPE(ZLFContig) * zlfContigs;
 } ZLFScaffold;
-VA_DEF(ZLFScaffold)
+VA_DEF(ZLFScaffold);
 
   
 void PopulateContigUnitigCoords(ContigT * contig,

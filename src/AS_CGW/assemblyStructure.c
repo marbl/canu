@@ -20,7 +20,7 @@
  *************************************************************************/
 
 
-static char CM_ID[] = "$Id: assemblyStructure.c,v 1.4 2006-06-14 19:57:23 brianwalenz Exp $";
+static char CM_ID[] = "$Id: assemblyStructure.c,v 1.5 2006-09-21 21:34:00 brianwalenz Exp $";
 
 
 /*********************************************************************/
@@ -68,35 +68,35 @@ void process_frags_in_UTG(ChunkInstanceT *ci, int ciIsAtoB){
   UnitigStatus   status;
 
   switch(ci->type){
-  case DISCRIMINATORUNIQUECHUNK_CGW:
-    status = AS_UNIQUE;
-    fprintf(stdout,"* Unitig %d is UNIQUE: DISCRIMINATOR output %d \n",ci->id, cid);
-    break;
-  case UNIQUECHUNK_CGW:
-    status = AS_UNIQUE;
-    fprintf(stdout,"* Unitig %d is UNIQUE: output %d \n",ci->id, cid);
-    break;
-  case UNRESOLVEDCHUNK_CGW:
-    if(ci->info.CI.numInstances > 0){
-      assert(!ci->flags.bits.isUnique);
-      status = AS_SEP;
-      fprintf(stdout,"* Unitig %d has %d instances--- output %d SEP\n",ci->id, ci->info.CI.numInstances,cid);
-    }else{
-      if(ci->scaffoldID != NULLINDEX){
-	status = AS_UNIQUE;
-	fprintf(stdout,"* Unitig %d has %d instances--- output %d UNIQUE\n",ci->id, ci->info.CI.numInstances,cid);
+    case DISCRIMINATORUNIQUECHUNK_CGW:
+      status = AS_UNIQUE;
+      fprintf(stdout,"* Unitig %d is UNIQUE: DISCRIMINATOR output %d \n",ci->id, cid);
+      break;
+    case UNIQUECHUNK_CGW:
+      status = AS_UNIQUE;
+      fprintf(stdout,"* Unitig %d is UNIQUE: output %d \n",ci->id, cid);
+      break;
+    case UNRESOLVEDCHUNK_CGW:
+      if(ci->info.CI.numInstances > 0){
+        assert(!ci->flags.bits.isUnique);
+        status = AS_SEP;
+        fprintf(stdout,"* Unitig %d has %d instances--- output %d SEP\n",ci->id, ci->info.CI.numInstances,cid);
       }else{
-	status = AS_NOTREZ;
-	fprintf(stdout,"* Unitig %d has %d instances--- output %d NOTREZ\n",ci->id, ci->info.CI.numInstances,cid);
+        if(ci->scaffoldID != NULLINDEX){
+          status = AS_UNIQUE;
+          fprintf(stdout,"* Unitig %d has %d instances--- output %d UNIQUE\n",ci->id, ci->info.CI.numInstances,cid);
+        }else{
+          status = AS_NOTREZ;
+          fprintf(stdout,"* Unitig %d has %d instances--- output %d NOTREZ\n",ci->id, ci->info.CI.numInstances,cid);
+        }
       }
-    }
-    break;
-  case RESOLVEDREPEATCHUNK_CGW:
-    /* SKIP THESE */
-    fprintf(stdout,"* Skipping unitig %d --- RESOLVEDREPEAT\n",ci->id);
-    return;
-  default:
-    assert(0);
+      break;
+    case RESOLVEDREPEATCHUNK_CGW:
+      /* SKIP THESE */
+      fprintf(stdout,"* Skipping unitig %d --- RESOLVEDREPEAT\n",ci->id);
+      return;
+    default:
+      assert(0);
   }
 
   ReLoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ma, ci->id, TRUE);
@@ -117,14 +117,14 @@ void process_frags_in_UTG(ChunkInstanceT *ci, int ciIsAtoB){
 
   fprintf(stdout,"     sta:%c cov:%.3f nfr:%d\n",ium_mesg.status,ium_mesg.coverage_stat,ium_mesg.num_frags);
   { int i;
-    for (i=0; i < numFrag; ++i){
-      fprintf(stdout,"      fragment %d [ %d , %d ] typ:%c\n",
+  for (i=0; i < numFrag; ++i){
+    fprintf(stdout,"      fragment %d [ %d , %d ] typ:%c\n",
 	    ium_mesg.f_list[i].ident,
 	    ium_mesg.f_list[i].position.bgn,
 	    ium_mesg.f_list[i].position.end,
 	    ium_mesg.f_list[i].type
 	    );
-    }
+  }
   }
 }
 
@@ -152,20 +152,20 @@ int main( int argc, char *argv[])
     while (!errflg && ((ch = getopt(argc, argv,
 				    "c:n:s:")) != EOF)){
       switch(ch) {
-      case 'c':
-	strcpy( data->File_Name_Prefix, argv[optind - 1]);
-	setPrefixName = TRUE;		  
-	break;
-      case 'n':
-	ckptNum = atoi(argv[optind - 1]);
-	break;
-      case 's':
-	singleSid = atoi(argv[optind - 1]);
-	setSingleSid = TRUE;
-	fprintf( stderr, "setting singleSid to %d\n", singleSid);
-	break;
-      default :
-	errflg++;
+        case 'c':
+          strcpy( data->File_Name_Prefix, argv[optind - 1]);
+          setPrefixName = TRUE;		  
+          break;
+        case 'n':
+          ckptNum = atoi(argv[optind - 1]);
+          break;
+        case 's':
+          singleSid = atoi(argv[optind - 1]);
+          setSingleSid = TRUE;
+          fprintf( stderr, "setting singleSid to %d\n", singleSid);
+          break;
+        default :
+          errflg++;
       }
     }
   }
@@ -214,7 +214,7 @@ int main( int argc, char *argv[])
 	  int utgIsAtoB;
 	  utgIsAtoB = (utg->offsetAEnd.mean < utg->offsetBEnd.mean ? 1 : 0 );
 	  fprintf(stdout,"    Working on unitig %d [ %.0f , %.0f ] ori in contig %s\n",utg->id,
-		utg->offsetAEnd.mean,utg->offsetBEnd.mean,
+                  utg->offsetAEnd.mean,utg->offsetBEnd.mean,
 		  (utgIsAtoB ? "fwd" : "rev"));
 	  process_frags_in_UTG(utg,utgIsAtoB);
 	}

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: examineFragStore.c,v 1.5 2006-06-14 19:57:23 brianwalenz Exp $";
+static char CM_ID[] = "$Id: examineFragStore.c,v 1.6 2006-09-21 21:34:01 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -85,15 +85,15 @@ int examineClearRanges( int fragIid )
   if( fsread == NULL ) fsread = new_ReadStruct();
 
   if ( fragIid != -1)
-  {
-	getFragStore( fragStore, fragIid, FRAG_S_ALL, fsread);	
+    {
+      getFragStore( fragStore, fragIid, FRAG_S_ALL, fsread);	
 
-	getClearRegion_ReadStruct( fsread, &clr_bgn_orig, &clr_end_orig, READSTRUCT_ORIGINAL);
-	getClearRegion_ReadStruct( fsread, &clr_bgn_latest, &clr_end_latest, READSTRUCT_LATEST);
+      getClearRegion_ReadStruct( fsread, &clr_bgn_orig, &clr_end_orig, READSTRUCT_ORIGINAL);
+      getClearRegion_ReadStruct( fsread, &clr_bgn_latest, &clr_end_latest, READSTRUCT_LATEST);
 
-	if (( clr_bgn_orig != clr_bgn_latest ) || ( clr_end_orig != clr_end_latest ))
-	  printClearRanges( fragIid );	
-  }
+      if (( clr_bgn_orig != clr_bgn_latest ) || ( clr_end_orig != clr_end_latest ))
+        printClearRanges( fragIid );	
+    }
   return ( setStatus ); 
 }
 
@@ -105,29 +105,29 @@ int printClearRanges( CDS_CID_t fragIid )
   if( fsread == NULL ) fsread = new_ReadStruct();
 
   if ( fragIid != -1)
-  {
-	getFragStore( fragStore, fragIid, FRAG_S_ALL, fsread);	
+    {
+      getFragStore( fragStore, fragIid, FRAG_S_ALL, fsread);	
 
-	getClearRegion_ReadStruct( fsread, &clr_bgn, &clr_end, READSTRUCT_ORIGINAL);
-	fprintf( stderr, "printClearRanges, frag %8" F_CIDP " READSTRUCT_ORG clr_bgn: %5" F_U32P ", clr_end %5" F_U32P ", len: %4" F_U32P "\n",
-			 fragIid, clr_bgn, clr_end, clr_end - clr_bgn);
+      getClearRegion_ReadStruct( fsread, &clr_bgn, &clr_end, READSTRUCT_ORIGINAL);
+      fprintf( stderr, "printClearRanges, frag %8" F_CIDP " READSTRUCT_ORG clr_bgn: %5" F_U32P ", clr_end %5" F_U32P ", len: %4" F_U32P "\n",
+               fragIid, clr_bgn, clr_end, clr_end - clr_bgn);
 
-	getClearRegion_ReadStruct( fsread, &clr_bgn, &clr_end, READSTRUCT_OVL);
-	fprintf( stderr, "printClearRanges, frag %8" F_CIDP " READSTRUCT_OVL clr_bgn: %5" F_U32P ", clr_end %5" F_U32P ", len: %4" F_U32P "\n",
-			 fragIid, clr_bgn, clr_end, clr_end - clr_bgn);
+      getClearRegion_ReadStruct( fsread, &clr_bgn, &clr_end, READSTRUCT_OVL);
+      fprintf( stderr, "printClearRanges, frag %8" F_CIDP " READSTRUCT_OVL clr_bgn: %5" F_U32P ", clr_end %5" F_U32P ", len: %4" F_U32P "\n",
+               fragIid, clr_bgn, clr_end, clr_end - clr_bgn);
 
-	getClearRegion_ReadStruct( fsread, &clr_bgn, &clr_end, READSTRUCT_CNS);
-	fprintf( stderr, "printClearRanges, frag %8" F_CIDP " READSTRUCT_CNS clr_bgn: %5" F_U32P ", clr_end %5" F_U32P ", len: %4" F_U32P "\n",
-			 fragIid, clr_bgn, clr_end, clr_end - clr_bgn);
+      getClearRegion_ReadStruct( fsread, &clr_bgn, &clr_end, READSTRUCT_CNS);
+      fprintf( stderr, "printClearRanges, frag %8" F_CIDP " READSTRUCT_CNS clr_bgn: %5" F_U32P ", clr_end %5" F_U32P ", len: %4" F_U32P "\n",
+               fragIid, clr_bgn, clr_end, clr_end - clr_bgn);
 
-	getClearRegion_ReadStruct( fsread, &clr_bgn, &clr_end, READSTRUCT_CGW);
-	fprintf( stderr, "printClearRanges, frag %8" F_CIDP " READSTRUCT_CGW clr_bgn: %5" F_U32P ", clr_end %5" F_U32P ", len: %4" F_U32P "\n",
-			 fragIid, clr_bgn, clr_end, clr_end - clr_bgn);
+      getClearRegion_ReadStruct( fsread, &clr_bgn, &clr_end, READSTRUCT_CGW);
+      fprintf( stderr, "printClearRanges, frag %8" F_CIDP " READSTRUCT_CGW clr_bgn: %5" F_U32P ", clr_end %5" F_U32P ", len: %4" F_U32P "\n",
+               fragIid, clr_bgn, clr_end, clr_end - clr_bgn);
 
-	getClearRegion_ReadStruct( fsread, &clr_bgn, &clr_end, READSTRUCT_LATEST);
-	fprintf( stderr, "printClearRanges, frag %8" F_CIDP " READSTRUCT_LAT clr_bgn: %5" F_U32P ", clr_end %5" F_U32P ", len: %4" F_U32P "\n",
-			 fragIid, clr_bgn, clr_end, clr_end - clr_bgn);
-  }
+      getClearRegion_ReadStruct( fsread, &clr_bgn, &clr_end, READSTRUCT_LATEST);
+      fprintf( stderr, "printClearRanges, frag %8" F_CIDP " READSTRUCT_LAT clr_bgn: %5" F_U32P ", clr_end %5" F_U32P ", len: %4" F_U32P "\n",
+               fragIid, clr_bgn, clr_end, clr_end - clr_bgn);
+    }
 
   return ( setStatus ); 
 }
@@ -142,54 +142,54 @@ int main( int argc, char *argv[])
   char Frag_Store_Name[1024];
   
   if (0)
-  {
-	GlobalData  = data = CreateGlobal_CGW();
-	data->stderrc = stderr;
-	data->timefp = stderr;
-  }
+    {
+      GlobalData  = data = CreateGlobal_CGW();
+      data->stderrc = stderr;
+      data->timefp = stderr;
+    }
   
   /* Parse the argument list using "man 3 getopt". */ 
   optarg = NULL;
   while (!errflg && ((ch = getopt(argc, argv, "c:f:g:n:")) != EOF))
-  {
-	switch(ch) 
+    {
+      switch(ch) 
 	{
 	  case 'f':
-	  {
-		strcpy( Frag_Store_Name, argv[optind - 1]);
-		setFragStoreName = TRUE;
-	  }
-	  break;
+            {
+              strcpy( Frag_Store_Name, argv[optind - 1]);
+              setFragStoreName = TRUE;
+            }
+            break;
 	  case '?':
-		fprintf(stderr,"Unrecognized option -%c",optopt);
+            fprintf(stderr,"Unrecognized option -%c",optopt);
 	  default :
-		errflg++;
+            errflg++;
 	}
-  }
+    }
   if (setFragStoreName == 0)
-  {
-	fprintf(stderr, "* argc = %d optind = %d setFragStoreName = %d\n",
-			argc, optind, setFragStoreName); // , setGatekeeperStore, setCkptNum, setPrefixName);
-	fprintf (stderr, "USAGE:  %s -f <FragStoreName> \n", argv[0]);
-	exit (EXIT_FAILURE);
-  }
+    {
+      fprintf(stderr, "* argc = %d optind = %d setFragStoreName = %d\n",
+              argc, optind, setFragStoreName); // , setGatekeeperStore, setCkptNum, setPrefixName);
+      fprintf (stderr, "USAGE:  %s -f <FragStoreName> \n", argv[0]);
+      exit (EXIT_FAILURE);
+    }
 
   t1 = time(0);
   fprintf( stderr, "====> Starting at %s\n", ctime(&t1));
 
   fragStore = openFragStore( Frag_Store_Name, "r");
   if ( fragStore == NULLSTOREHANDLE )
-	assert(0);
+    assert(0);
 
   fprintf( stderr, "examining frags from " F_S64 " to " F_S64 "\n",
-		   getFirstElemFragStore(fragStore), getLastElemFragStore(fragStore));
+           getFirstElemFragStore(fragStore), getLastElemFragStore(fragStore));
   
   for ( i = getFirstElemFragStore(fragStore); i <= getLastElemFragStore(fragStore); i++)
-  {
-	examineClearRanges( i );
-	if ( (i + 1) % 10000 == 0)
-	  fprintf( stderr, "examined frag " F_S64 "\n", i);
-  }
+    {
+      examineClearRanges( i );
+      if ( (i + 1) % 10000 == 0)
+        fprintf( stderr, "examined frag " F_S64 "\n", i);
+    }
   
   closeFragStore( fragStore );
   return 0;

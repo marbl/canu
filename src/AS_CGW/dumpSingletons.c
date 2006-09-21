@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpSingletons.c,v 1.7 2006-08-14 19:21:39 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpSingletons.c,v 1.8 2006-09-21 21:34:01 brianwalenz Exp $";
 
 
 /*********************************************************************/
@@ -59,43 +59,43 @@ int USE_SDB_PART;
 
 static void Complement(char *seq, int len)
 { static char WCinvert[256];
-  static int Firstime = 1;
+ static int Firstime = 1;
 
-  if (Firstime)          /* Setup complementation array */
-    { int i;
+ if (Firstime)          /* Setup complementation array */
+   { int i;
 
-      Firstime = 0;
-      for(i = 0; i < 256;i++){
-        WCinvert[i] = '?';
-      }
-      WCinvert['a'] = 't';
-      WCinvert['c'] = 'g';
-      WCinvert['g'] = 'c';
-      WCinvert['t'] = 'a';
-      WCinvert['n'] = 'n';
-      WCinvert['A'] = 'T';
-      WCinvert['C'] = 'G';
-      WCinvert['G'] = 'C';
-      WCinvert['T'] = 'A';
-      WCinvert['N'] = 'N';
-      WCinvert['-'] = '-'; // added this to enable alignment of gapped consensi
-    }
+   Firstime = 0;
+   for(i = 0; i < 256;i++){
+     WCinvert[i] = '?';
+   }
+   WCinvert['a'] = 't';
+   WCinvert['c'] = 'g';
+   WCinvert['g'] = 'c';
+   WCinvert['t'] = 'a';
+   WCinvert['n'] = 'n';
+   WCinvert['A'] = 'T';
+   WCinvert['C'] = 'G';
+   WCinvert['G'] = 'C';
+   WCinvert['T'] = 'A';
+   WCinvert['N'] = 'N';
+   WCinvert['-'] = '-'; // added this to enable alignment of gapped consensi
+   }
 
-  /* Complement and reverse sequence */
+ /* Complement and reverse sequence */
 
-  { register char *s, *t;
-    int c;
+ { register char *s, *t;
+ int c;
 
-    s = seq;
-    t = seq + (len-1);
-    while (s < t)
-      { c = *s;
-        *s++ = WCinvert[(int) *t];
-        *t-- = WCinvert[c];
-      }
-    if (s == t)
-      *s = WCinvert[(int) *s];
-  }
+ s = seq;
+ t = seq + (len-1);
+ while (s < t)
+   { c = *s;
+   *s++ = WCinvert[(int) *t];
+   *t-- = WCinvert[c];
+   }
+ if (s == t)
+   *s = WCinvert[(int) *s];
+ }
 }
 
 int main( int argc, char *argv[])
@@ -146,28 +146,28 @@ int main( int argc, char *argv[])
     while (!errflg && ((ch = getopt(argc, argv,
 				    "c:f:g:n:U")) != EOF)){
       switch(ch) {
-      case 'c':
-	strcpy( data->File_Name_Prefix, argv[optind - 1]);
-	setPrefixName = TRUE;		  
-	break;
-      case 'f':
-	strcpy( data->Frag_Store_Name, argv[optind - 1]);
-	setFragStore = TRUE;
-	break;
-      case 'g':
-	strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
-	setGatekeeperStore = TRUE;
-	break;	  
-      case 'n':
-	ckptNum = atoi(argv[optind - 1]);
-	break;
-      case 'U':
-	realUID=1;
-	break;
-      case '?':
-	fprintf(stderr,"Unrecognized option -%c",optopt);
-      default :
-	errflg++;
+        case 'c':
+          strcpy( data->File_Name_Prefix, argv[optind - 1]);
+          setPrefixName = TRUE;		  
+          break;
+        case 'f':
+          strcpy( data->Frag_Store_Name, argv[optind - 1]);
+          setFragStore = TRUE;
+          break;
+        case 'g':
+          strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
+          setGatekeeperStore = TRUE;
+          break;	  
+        case 'n':
+          ckptNum = atoi(argv[optind - 1]);
+          break;
+        case 'U':
+          realUID=1;
+          break;
+        case '?':
+          fprintf(stderr,"Unrecognized option -%c",optopt);
+        default :
+          errflg++;
       }
     }
 

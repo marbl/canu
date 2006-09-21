@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Stats_CGW.c,v 1.6 2006-05-18 18:30:31 vrainish Exp $";
+static char CM_ID[] = "$Id: Stats_CGW.c,v 1.7 2006-09-21 21:34:00 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,19 +38,19 @@ static char CM_ID[] = "$Id: Stats_CGW.c,v 1.6 2006-05-18 18:30:31 vrainish Exp $
 #include "ChunkOverlap_CGW.h"
 
 void MakeStatDir(void){
-    mode_t mode = S_IRWXU | S_IRWXG | S_IROTH;
-    DIR* statDir;
+  mode_t mode = S_IRWXU | S_IRWXG | S_IROTH;
+  DIR* statDir;
     
-    statDir = opendir("./stat");
+  statDir = opendir("./stat");
     
-    if(statDir == NULL) {
-      fprintf(GlobalData->stderrc,"Could not open stat dir\n");
-      if(mkdir("./stat",mode)) {
-        exit(1);
-      }
-    } else {
-      closedir(statDir);
+  if(statDir == NULL) {
+    fprintf(GlobalData->stderrc,"Could not open stat dir\n");
+    if(mkdir("./stat",mode)) {
+      exit(1);
     }
+  } else {
+    closedir(statDir);
+  }
 }
 
 /* Generate statistics on the U-Unitig induced subgraph of
@@ -407,8 +407,8 @@ void GenerateScaffoldGraphStats(char *label, int iteration){
   fScaffoldGapStds = fopen(buffer,"w");
   AssertPtr(fScaffoldGapStds);
 
-	fprintf(fLinksPerEdge_WBacs, "Links Per Edge including BACs\n");
-	fprintf(fLinksPerEdge_WOBacs, "Links Per Edge excluding BACs\n");
+  fprintf(fLinksPerEdge_WBacs, "Links Per Edge including BACs\n");
+  fprintf(fLinksPerEdge_WOBacs, "Links Per Edge excluding BACs\n");
 
   InitGraphNodeIterator(&Nodes, graph, GRAPH_NODE_DEFAULT);
   while(NULL != (node = NextGraphNodeIterator(&Nodes))){
@@ -429,15 +429,15 @@ void GenerateScaffoldGraphStats(char *label, int iteration){
 	  numberRemoved++;
 	}
 	if(edge->edgesContributing > 1){
-	edges++;
-	EdgeDegree(graph,edge, &totalDegree, &noBacDegree);
-	assert(edge->edgesContributing == totalDegree);
-	if(totalDegree && (totalDegree == noBacDegree))
-	   bacOnlyEdges++;
-	fprintf(fLinksPerEdge_WBacs,  "%d\n",totalDegree);
-	fprintf(fLinksPerEdge_WOBacs,  "%d\n",noBacDegree);
-      }
-      cnt++;
+          edges++;
+          EdgeDegree(graph,edge, &totalDegree, &noBacDegree);
+          assert(edge->edgesContributing == totalDegree);
+          if(totalDegree && (totalDegree == noBacDegree))
+            bacOnlyEdges++;
+          fprintf(fLinksPerEdge_WBacs,  "%d\n",totalDegree);
+          fprintf(fLinksPerEdge_WOBacs,  "%d\n",noBacDegree);
+        }
+        cnt++;
       }
     }
 
@@ -448,13 +448,13 @@ void GenerateScaffoldGraphStats(char *label, int iteration){
     while(NULL != (edge = NextGraphEdgeIterator(&Edges))){
       if(edge->idA == node->id){
 	if( edge->edgesContributing > 1){
-	edges++;
-	EdgeDegree(graph,edge, &totalDegree, &noBacDegree);
-	assert(edge->edgesContributing == totalDegree);
-	if(totalDegree && (totalDegree == noBacDegree))
-	   bacOnlyEdges++;
-	fprintf(fLinksPerEdge_WBacs,  "%d\n",totalDegree);
-	fprintf(fLinksPerEdge_WOBacs,  "%d\n",noBacDegree);
+          edges++;
+          EdgeDegree(graph,edge, &totalDegree, &noBacDegree);
+          assert(edge->edgesContributing == totalDegree);
+          if(totalDegree && (totalDegree == noBacDegree))
+            bacOnlyEdges++;
+          fprintf(fLinksPerEdge_WBacs,  "%d\n",totalDegree);
+          fprintf(fLinksPerEdge_WOBacs,  "%d\n",noBacDegree);
 	}
 	cnt++;
       }
@@ -555,9 +555,9 @@ void GenerateScaffoldGraphStats(char *label, int iteration){
 /* Compute statistics on links
    # of mates per link edge
    std of link edges by
-      all
-      overlap confirmed (non tandem)
-      not confirmed (no overlap)
+   all
+   overlap confirmed (non tandem)
+   not confirmed (no overlap)
 */
 void GenerateLinkStats(GraphCGW_T *graph, char *label, int iteration){
   int i;
@@ -664,7 +664,7 @@ int32 ApproximateUnitigCoverage(NodeCGW_T *unitig){
        pos->type == AS_UBAC)
       continue;
 
-      length += abs(pos->position.bgn - pos->position.end);
+    length += abs(pos->position.bgn - pos->position.end);
   }
 
   if(length == 0)
@@ -716,26 +716,26 @@ void GenerateSurrogateStats(char *phase){
   while(NULL != (node = NextGraphNodeIterator(&Nodes))){
     char type;
     switch(node->type){
-    case DISCRIMINATORUNIQUECHUNK_CGW:
-      type = 'U';
-      break;
-    case UNIQUECHUNK_CGW:
-      type = 'u';
-      break;
-    case UNRESOLVEDCHUNK_CGW:
-      type = '?';
-      break;
-    case RESOLVEDREPEATCHUNK_CGW:
-      type = 'R';
-      if(node->flags.bits.isWalkSurrogate){
-	walkSurrogs++;
-      }else if(node->flags.bits.isStoneSurrogate){
-	stoneSurrogs++;
-      }
-      break;
-    default:
-      type = 'X';
-      break;
+      case DISCRIMINATORUNIQUECHUNK_CGW:
+        type = 'U';
+        break;
+      case UNIQUECHUNK_CGW:
+        type = 'u';
+        break;
+      case UNRESOLVEDCHUNK_CGW:
+        type = '?';
+        break;
+      case RESOLVEDREPEATCHUNK_CGW:
+        type = 'R';
+        if(node->flags.bits.isWalkSurrogate){
+          walkSurrogs++;
+        }else if(node->flags.bits.isStoneSurrogate){
+          stoneSurrogs++;
+        }
+        break;
+      default:
+        type = 'X';
+        break;
     }
 #ifdef DEBUG_DETAILED
     fprintf(GlobalData->stderrc,"* Node " F_CID " %c contig:" F_CID "  numInstances %d\n", 

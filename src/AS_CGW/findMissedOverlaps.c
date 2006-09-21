@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: findMissedOverlaps.c,v 1.5 2006-06-14 19:57:23 brianwalenz Exp $";
+static char CM_ID[] = "$Id: findMissedOverlaps.c,v 1.6 2006-09-21 21:34:01 brianwalenz Exp $";
 
 
 /*********************************************************************/
@@ -61,14 +61,14 @@ static char CM_ID[] = "$Id: findMissedOverlaps.c,v 1.5 2006-06-14 19:57:23 brian
 // externable variables for controlling use of Local_Overlap_AS_forCNS
 extern int MaxGaps;		    // [initialized value is 12 -- no more than this many segments in the chain]
 extern CDS_COORD_t MaxBegGap;       // [ init value is 200; this could be set to the amount you extend the clear 
-                            // range of seq b, plus 10 for good measure]
+// range of seq b, plus 10 for good measure]
 extern CDS_COORD_t MaxEndGap;	    // [ init value is 200; this could be set to the amount you extend the 
-                            // clear range of seq a, plus 10 for good measure]
+// clear range of seq a, plus 10 for good measure]
 extern CDS_COORD_t MaxInteriorGap;	// [ initial value is 1000 (should have almost no effect)
-                            // and defines the largest gap between segments in the chain]
-                            // Also: allowed size of gap within the alignment
-                            // -- forcing relatively good alignments, compared to those
- 				            // allowed in bubble-smoothing where indel polymorphisms are expected
+// and defines the largest gap between segments in the chain]
+// Also: allowed size of gap within the alignment
+// -- forcing relatively good alignments, compared to those
+// allowed in bubble-smoothing where indel polymorphisms are expected
 extern int asymmetricEnds;  // boolean to cause the size of an "end gap" to
                             // be evaluated with regard to the clear range extension
 extern CDS_COORD_t max_indel_AS_ALN_LOCOLAP_GLOBAL;
@@ -86,12 +86,12 @@ void SequenceComplement(char *sequence, char *quality);
 void initVarArrays(void)
 {
   if ( lContigConsensus == NULL )
-  {
-	lContigConsensus = CreateVA_char(1024);
-	rContigConsensus = CreateVA_char(1024);
-	lContigQuality = CreateVA_char(1024);
-	rContigQuality = CreateVA_char(1024);
-  }
+    {
+      lContigConsensus = CreateVA_char(1024);
+      rContigConsensus = CreateVA_char(1024);
+      lContigQuality = CreateVA_char(1024);
+      rContigQuality = CreateVA_char(1024);
+    }
 }
 
 int evalGap( CDS_CID_t sid,
@@ -120,15 +120,15 @@ int evalGap( CDS_CID_t sid,
   minlen = CNS_DP_MINLEN;
 
   if (lcontig->offsetAEnd.mean < lcontig->offsetBEnd.mean){
-	lContigOrientation = A_B;
+    lContigOrientation = A_B;
   }else{
-	lContigOrientation = B_A;
+    lContigOrientation = B_A;
   }
   
   if (rcontig->offsetAEnd.mean < rcontig->offsetBEnd.mean){
-	rContigOrientation = A_B;
+    rContigOrientation = A_B;
   }else{
-	rContigOrientation = B_A;
+    rContigOrientation = B_A;
   }
 
   mean=gapSize.mean;
@@ -147,14 +147,14 @@ int evalGap( CDS_CID_t sid,
   rLen = (CDS_COORD_t) strlen(rSequence);
   
   if (lContigOrientation == B_A)  //
-  {
-	SequenceComplement( lSequence, NULL);
-  }
+    {
+      SequenceComplement( lSequence, NULL);
+    }
   
   if (rContigOrientation == B_A)  // the frag is oriented opposite to the contig in this case
-  {
-	SequenceComplement( rSequence, NULL);  // flip contig sequence to its orientation in scaffold
-  }
+    {
+      SequenceComplement( rSequence, NULL);  // flip contig sequence to its orientation in scaffold
+    }
   
   if(dumpSeqs){
     fprintf(stdout,"\n>ctg %d%s\n%s\n>ctg %d%s\n%s\n",
@@ -317,9 +317,9 @@ int evalGap( CDS_CID_t sid,
 
 
   overlap = Local_Overlap_AS_forCNS( lSequence, rSequence,
-			beg, end, opposite,
-			erate, thresh, minlen,
-			what);
+                                     beg, end, opposite,
+                                     erate, thresh, minlen,
+                                     what);
 	  
   fprintf(stdout,",");
   if(overlap!=NULL){
@@ -355,9 +355,9 @@ int evalGap( CDS_CID_t sid,
 
 
   overlap = Local_Overlap_AS_forCNS( rSequence, lSequence,
-			-wideend, -widebeg, opposite,
-			erate, thresh, minlen,
-			what);
+                                     -wideend, -widebeg, opposite,
+                                     erate, thresh, minlen,
+                                     what);
 	  
   fprintf(stdout,",");
   if(overlap!=NULL){
@@ -376,11 +376,11 @@ int evalGap( CDS_CID_t sid,
   SequenceComplement(lSequence,0);
   SequenceComplement(rSequence,0);
   overlap = Local_Overlap_AS_forCNS( lSequence, rSequence,
-			-(rLen+mean+NUM_STDDEV_CUTOFF*stddev)-10000,
-			-(rLen+mean-NUM_STDDEV_CUTOFF*stddev)+10000,
-			opposite,
-			erate, thresh, minlen,
-			what);
+                                     -(rLen+mean+NUM_STDDEV_CUTOFF*stddev)-10000,
+                                     -(rLen+mean-NUM_STDDEV_CUTOFF*stddev)+10000,
+                                     opposite,
+                                     erate, thresh, minlen,
+                                     what);
 	  
   fprintf(stdout,",");
   if(overlap!=NULL){
@@ -402,9 +402,9 @@ int evalGap( CDS_CID_t sid,
   opposite=1;
 
   overlap = Local_Overlap_AS_forCNS( lSequence, rSequence,
-			widebeg, wideend, opposite,
-			erate, thresh, minlen,
-			what);
+                                     widebeg, wideend, opposite,
+                                     erate, thresh, minlen,
+                                     what);
 	  
   fprintf(stdout,",");
   if(overlap!=NULL){
@@ -474,51 +474,51 @@ int main( int argc, char *argv[])
     while (!errflg && ((ch = getopt(argc, argv,
 				    "c:C:df:g:m:n:s:")) != EOF)){
       switch(ch) {
-		case 'c':
-		{
-		  strcpy( data->File_Name_Prefix, argv[optind - 1]);
-		  setPrefixName = TRUE;		  
-		}
-		break;
-		case 'C':
-		  startingGap = atoi(argv[optind - 1]);
-		  setStartingGap = TRUE;
-		  break;
-                case 'd':
-		{
-		  dumpSeqs=1;
-		}
-		break;
-		case 'f':
-		{
-		  strcpy( data->Frag_Store_Name, argv[optind - 1]);
-		  setFragStore = TRUE;
-		}
-		break;
-		case 'g':
-		{
-		  strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
-		  setGatekeeperStore = TRUE;
-		}
-		break;	  
-		case 'm':
-		  MaxInteriorGap = atoi(argv[optind - 1]);
-		  fprintf( stderr, "setting MaxInteriorGap to " F_COORD "\n",
-                           MaxInteriorGap);
-		  break;
-		case 'n':
-		  ckptNum = atoi(argv[optind - 1]);
-		  break;
-		case 's':
-		  singleSid = atoi(argv[optind - 1]);
-		  setSingleSid = TRUE;
-		  fprintf( stderr, "setting singleSid to " F_CID "\n",
-                           singleSid);
-		  break;
-		case '?':
-		  fprintf(stderr,"Unrecognized option -%c",optopt);
-		default :
-		  errflg++;
+        case 'c':
+          {
+            strcpy( data->File_Name_Prefix, argv[optind - 1]);
+            setPrefixName = TRUE;		  
+          }
+          break;
+        case 'C':
+          startingGap = atoi(argv[optind - 1]);
+          setStartingGap = TRUE;
+          break;
+        case 'd':
+          {
+            dumpSeqs=1;
+          }
+          break;
+        case 'f':
+          {
+            strcpy( data->Frag_Store_Name, argv[optind - 1]);
+            setFragStore = TRUE;
+          }
+          break;
+        case 'g':
+          {
+            strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
+            setGatekeeperStore = TRUE;
+          }
+          break;	  
+        case 'm':
+          MaxInteriorGap = atoi(argv[optind - 1]);
+          fprintf( stderr, "setting MaxInteriorGap to " F_COORD "\n",
+                   MaxInteriorGap);
+          break;
+        case 'n':
+          ckptNum = atoi(argv[optind - 1]);
+          break;
+        case 's':
+          singleSid = atoi(argv[optind - 1]);
+          setSingleSid = TRUE;
+          fprintf( stderr, "setting singleSid to " F_CID "\n",
+                   singleSid);
+          break;
+        case '?':
+          fprintf(stderr,"Unrecognized option -%c",optopt);
+        default :
+          errflg++;
       }
     }
 
@@ -532,7 +532,7 @@ int main( int argc, char *argv[])
   }
 
   if (setStartingGap == TRUE)
-	fprintf( stderr, "set starting gap to %d\n", startingGap);
+    fprintf( stderr, "set starting gap to %d\n", startingGap);
   
   ScaffoldGraph = LoadScaffoldGraphFromCheckpoint( data->File_Name_Prefix, ckptNum, FALSE);
   GlobalData->aligner=Local_Overlap_AS_forCNS;
@@ -550,20 +550,20 @@ int main( int argc, char *argv[])
     // make sure the scaffold is there
     assert(scaff != NULL);
     
-	// not interested in dead scaffold, not real scaffolds, or singleton scaffolds
+    // not interested in dead scaffold, not real scaffolds, or singleton scaffolds
     
     if ((isDeadCIScaffoldT(scaff)) ||
 	(scaff->type != REAL_SCAFFOLD) ||
 	(scaff->info.Scaffold.numElements < 2))
-    {
-      continue;
-    }
+      {
+        continue;
+      }
 
     /*
-    fprintf(stdout,"\n=====================================================================\n");
-    fprintf(stdout,"=== examing scaffold " F_CID ", size %f\n",
-            sid, scaff->bpLength.mean);
-    fprintf(stderr,"Scaffold " F_CID "\n", sid);
+      fprintf(stdout,"\n=====================================================================\n");
+      fprintf(stdout,"=== examing scaffold " F_CID ", size %f\n",
+      sid, scaff->bpLength.mean);
+      fprintf(stderr,"Scaffold " F_CID "\n", sid);
     */
     
     // speed hack
@@ -579,8 +579,8 @@ int main( int argc, char *argv[])
 	    CIsTemp.next != GetNumGraphNodes( ScaffoldGraph->ContigGraph ) - 1)
       {
         /*
-	fprintf( stderr, "prev, curr, next: " F_CID ", " F_CID ", " F_CID "\n",
-                 CIsTemp.prev, CIsTemp.curr, CIsTemp.next);
+          fprintf( stderr, "prev, curr, next: " F_CID ", " F_CID ", " F_CID "\n",
+          CIsTemp.prev, CIsTemp.curr, CIsTemp.next);
         */
       }
 
@@ -613,14 +613,14 @@ int main( int argc, char *argv[])
 	rcontigOrientation = B_A;
 
       /*
-      fprintf( stdout, "\n\n\n---------------------------------------------------------------\n");
-      fprintf( stdout, "examining gap %d from " F_CID " (orient: %c, pos: %f, %f) to " F_CID " (orient: %c, pos: %f, %f), size: %f \n", 
-	       gapNumber, 
-	       lcontig->id, lcontigOrientation,
-               lcontig->offsetAEnd.mean, lcontig->offsetBEnd.mean,
-	       rcontig->id, rcontigOrientation,
-               rcontig->offsetAEnd.mean, rcontig->offsetBEnd.mean,
-	       gapSize.mean);
+        fprintf( stdout, "\n\n\n---------------------------------------------------------------\n");
+        fprintf( stdout, "examining gap %d from " F_CID " (orient: %c, pos: %f, %f) to " F_CID " (orient: %c, pos: %f, %f), size: %f \n", 
+        gapNumber, 
+        lcontig->id, lcontigOrientation,
+        lcontig->offsetAEnd.mean, lcontig->offsetBEnd.mean,
+        rcontig->id, rcontigOrientation,
+        rcontig->offsetAEnd.mean, rcontig->offsetBEnd.mean,
+        gapSize.mean);
       */
 	  
       if ( setStartingGap == TRUE && gapNumber < startingGap ) continue;

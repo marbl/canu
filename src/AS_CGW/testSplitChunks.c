@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: testSplitChunks.c,v 1.4 2005-03-22 19:48:40 jason_miller Exp $";
+static char CM_ID[] = "$Id: testSplitChunks.c,v 1.5 2006-09-21 21:34:01 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,14 +39,14 @@ int main(int argc, char ** argv)
   ScaffoldGraphT * graph = NULL;
   
   if( argc != 5 )
-  {
-    fprintf(stderr,
-            "Usage: %s <checkPointName> <checkPointNumber> "
-            "<gkpStoreName> <fragStoreName>\n",
-            argv[0] );
-    fprintf(stderr,"\ttests unitig splitting code.\n" );
-    return 1;
-  }
+    {
+      fprintf(stderr,
+              "Usage: %s <checkPointName> <checkPointNumber> "
+              "<gkpStoreName> <fragStoreName>\n",
+              argv[0] );
+      fprintf(stderr,"\ttests unitig splitting code.\n" );
+      return 1;
+    }
 
   GlobalData = CreateGlobal_CGW();
   GlobalData->stderrc = stderr;
@@ -60,10 +60,10 @@ int main(int argc, char ** argv)
                                      checkPointNumber,
                                      FALSE );
   if( graph == NULL )
-  {
-    fprintf( stderr, "Failed to load scaffold graph.\n" );
-    return 1;
-  }
+    {
+      fprintf( stderr, "Failed to load scaffold graph.\n" );
+      return 1;
+    }
 
   SplitInputUnitigs(graph);
   DeleteGlobal_CGW(GlobalData);

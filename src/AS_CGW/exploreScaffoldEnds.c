@@ -134,12 +134,12 @@ void setup_ovlStore(void){
 }
 
 void print_olap(Long_Olap_Data_t olap){
-        printf ("    %8d %8d %c %5d %5d %4.1f %4.1f\n",
-		olap . a_iid,
-		olap . b_iid,
-		olap . flipped ? 'I' : 'N',
-		olap . a_hang, olap . b_hang,
-		olap . orig_erate / 10.0, olap . corr_erate / 10.0);
+  printf ("    %8d %8d %c %5d %5d %4.1f %4.1f\n",
+          olap . a_iid,
+          olap . b_iid,
+          olap . flipped ? 'I' : 'N',
+          olap . a_hang, olap . b_hang,
+          olap . orig_erate / 10.0, olap . corr_erate / 10.0);
 }
 
 int count_overlaps_off_end(int id, int offAEnd){
@@ -163,7 +163,7 @@ int count_overlaps_off_end(int id, int offAEnd){
 	//	print_olap(olap);
 	retval++;
       }
-     }
+    }
   }
  
   Free_OVL_Stream (my_stream);
@@ -184,12 +184,12 @@ void usage(char *pgm){
 }
 
 void find_first_and_last_unitigs(
-  int ctgID,
-  int ctgIsAtoB,
-  int *firstUTGid, 
-  int *lastUTGid, 
-  int *firstUTGisAtoB, 
-  int *lastUTGisAtoB)
+                                 int ctgID,
+                                 int ctgIsAtoB,
+                                 int *firstUTGid, 
+                                 int *lastUTGid, 
+                                 int *firstUTGisAtoB, 
+                                 int *lastUTGisAtoB)
 {
   ContigTIterator UTGs;
   ChunkInstanceT *utg;
@@ -279,7 +279,7 @@ void getTipFrag(int utgID,int *theFrg, int *theFrgIsAtoB, int wantAEnd){
       int frgIsAtoB = ( imp[i].position.bgn < imp[i].position.end ?
 			1 : 0 );
       int tail = ( frgIsAtoB ? 
-		  imp[i].position.end : imp[i].position.bgn);
+                   imp[i].position.end : imp[i].position.bgn);
 
       if(best<tail){
 	best=tail;
@@ -293,51 +293,51 @@ void getTipFrag(int utgID,int *theFrg, int *theFrgIsAtoB, int wantAEnd){
 
 void explore_ending_of_contig(ContigT *contig, int *frontCnt, int *tailCnt){
 
-   VA_TYPE(IntElementPos) *positions = CreateVA_IntElementPos(5000);
-   MultiAlignT *ma =  LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE);
-   int num_tigs = GetNumIntUnitigPoss(ma->u_list);
-   int i;
-   for (i=0;i<num_tigs;i++) {
-     IntUnitigPos *upos = GetIntUnitigPos(ma->u_list,i);
-     IntElementPos pos;
-     pos.type = AS_UNITIG;
-     pos.ident = upos->ident;
-     pos.position.bgn = upos->position.bgn;
-     pos.position.end = upos->position.end;
-     SetVA_IntElementPos(positions,i,&pos);
-   }
+  VA_TYPE(IntElementPos) *positions = CreateVA_IntElementPos(5000);
+  MultiAlignT *ma =  LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE);
+  int num_tigs = GetNumIntUnitigPoss(ma->u_list);
+  int i;
+  for (i=0;i<num_tigs;i++) {
+    IntUnitigPos *upos = GetIntUnitigPos(ma->u_list,i);
+    IntElementPos pos;
+    pos.type = AS_UNITIG;
+    pos.ident = upos->ident;
+    pos.position.bgn = upos->position.bgn;
+    pos.position.end = upos->position.end;
+    SetVA_IntElementPos(positions,i,&pos);
+  }
    
-   {
-     MultiAlignT *newma = MergeMultiAlignsFast_new(ScaffoldGraph->sequenceDB, NULLFRAGSTOREHANDLE, positions, 0, 1, NULL, NULL);
+  {
+    MultiAlignT *newma = MergeMultiAlignsFast_new(ScaffoldGraph->sequenceDB, NULLFRAGSTOREHANDLE, positions, 0, 1, NULL, NULL);
 
-     int nfr = GetNumIntMultiPoss(newma->f_list);
-     int len = GetMultiAlignLength(newma);
-     *frontCnt=0;
-     *tailCnt=0;
+    int nfr = GetNumIntMultiPoss(newma->f_list);
+    int len = GetMultiAlignLength(newma);
+    *frontCnt=0;
+    *tailCnt=0;
 
-     //     fprintf(stdout,"Numfrgs in contig %d , len = %d\n",nfr,len);
-     {int i;
-     for(i=0;i<nfr;i++){
-       IntMultiPos *mpos = GetIntMultiPos(newma->f_list,i);
-       int beg = mpos->position.bgn;
-       int end = mpos->position.end;
-       if(end< beg){
-	 int tmp=end;
-	 end=beg;
-	 beg=tmp;
-       }
-       //       fprintf(stdout,"  frg pos %d %d\n",beg,end);
-       if(beg<40){
-	 (*frontCnt)++;
-	 //	 fprintf(stdout,"    front incremented to %d\n",*frontCnt);
-       }
-       if(len-end<40){
-	 (*tailCnt)++;
-	 //	 fprintf(stdout,"    tail incremented to %d\n",*tailCnt);
-       }
-     }}
-   } 
-   DeleteVA_IntElementPos(positions);
+    //     fprintf(stdout,"Numfrgs in contig %d , len = %d\n",nfr,len);
+    {int i;
+    for(i=0;i<nfr;i++){
+      IntMultiPos *mpos = GetIntMultiPos(newma->f_list,i);
+      int beg = mpos->position.bgn;
+      int end = mpos->position.end;
+      if(end< beg){
+        int tmp=end;
+        end=beg;
+        beg=tmp;
+      }
+      //       fprintf(stdout,"  frg pos %d %d\n",beg,end);
+      if(beg<40){
+        (*frontCnt)++;
+        //	 fprintf(stdout,"    front incremented to %d\n",*frontCnt);
+      }
+      if(len-end<40){
+        (*tailCnt)++;
+        //	 fprintf(stdout,"    tail incremented to %d\n",*tailCnt);
+      }
+    }}
+  } 
+  DeleteVA_IntElementPos(positions);
 }
 
 void explore_end_of_contig(ContigT *contig,int whichEnd){
@@ -447,7 +447,7 @@ void explore_end_of_contig(ContigT *contig,int whichEnd){
     
 #ifdef VERBOSE
     fprintf(stdout,"Last frg of contig is %d ori %s\n",lastFrag,
-	  lastFragisAtoB ? "fwd" : "rev");
+            lastFragisAtoB ? "fwd" : "rev");
 #endif
     fprintf(stdout,"  overlaps off scaffold END (contig %d %c end frag %d %c end): %d\n",
 	    contig->id,contigIsAtoB ? 'B' : 'A',
@@ -540,29 +540,29 @@ int main (int argc , char * argv[] ) {
     optarg = NULL;
     while (!errflg && ((ch = getopt(argc, argv,"c:f:g:n:o:")) != EOF)){
       switch(ch) {
-      case 'c':
-	strcpy( data->File_Name_Prefix, argv[optind - 1]);
-	setPrefixName = TRUE;		  
-	break;
-      case 'f':
-	strcpy( data->Frag_Store_Name, argv[optind - 1]);
-	setFragStore = TRUE;
-	break;
-      case 'g':
-	strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
-	setGatekeeperStore = TRUE;
-	break;	  
-      case 'n':
-	ckptNum = atoi(argv[optind - 1]);
-	break;
-      case 'o':
-	strcpy( data->OVL_Store_Name, argv[optind - 1]);
-	setOvlStore = TRUE;
-	break;	  
-      case '?':
-	fprintf(stderr,"Unrecognized option -%c",optopt);
-      default :
-	errflg++;
+        case 'c':
+          strcpy( data->File_Name_Prefix, argv[optind - 1]);
+          setPrefixName = TRUE;		  
+          break;
+        case 'f':
+          strcpy( data->Frag_Store_Name, argv[optind - 1]);
+          setFragStore = TRUE;
+          break;
+        case 'g':
+          strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
+          setGatekeeperStore = TRUE;
+          break;	  
+        case 'n':
+          ckptNum = atoi(argv[optind - 1]);
+          break;
+        case 'o':
+          strcpy( data->OVL_Store_Name, argv[optind - 1]);
+          setOvlStore = TRUE;
+          break;	  
+        case '?':
+          fprintf(stderr,"Unrecognized option -%c",optopt);
+        default :
+          errflg++;
       }
     }
 

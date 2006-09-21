@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: DiagnosticsCGW.c,v 1.5 2006-06-14 19:57:22 brianwalenz Exp $";
+static char CM_ID[] = "$Id: DiagnosticsCGW.c,v 1.6 2006-09-21 21:34:00 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -74,7 +74,7 @@ void CheckSmallScaffoldGaps(ScaffoldGraphT *graph){
     ContigT *curr, *next;
     ChunkOrientationType pairwiseOrient;
 
-  fprintf(stderr,"* scaffold " F_CID "\n", scaffold->id);
+    fprintf(stderr,"* scaffold " F_CID "\n", scaffold->id);
     if(scaffold->info.Scaffold.numElements < 2)
       continue;
 
@@ -82,139 +82,139 @@ void CheckSmallScaffoldGaps(ScaffoldGraphT *graph){
 
     curr = NextCIScaffoldTIterator(&contigs);
     while(NULL != (next = NextCIScaffoldTIterator(&contigs))){
-        CDS_COORD_t actual = IntervalsOverlap(next->offsetAEnd.mean,
-                                              next->offsetBEnd.mean,
-                                              curr->offsetAEnd.mean,
-                                              curr->offsetBEnd.mean, -15000);
-        IntUnitigPos *nextUnitigPos, *currUnitigPos;
-	MultiAlignT *currMA, *nextMA;
+      CDS_COORD_t actual = IntervalsOverlap(next->offsetAEnd.mean,
+                                            next->offsetBEnd.mean,
+                                            curr->offsetAEnd.mean,
+                                            curr->offsetBEnd.mean, -15000);
+      IntUnitigPos *nextUnitigPos, *currUnitigPos;
+      MultiAlignT *currMA, *nextMA;
 
-	/* If this is an overlap that will be contigged...skip it */
-	if(actual >= CGW_DP_MINLEN)
-	  continue;
+      /* If this is an overlap that will be contigged...skip it */
+      if(actual >= CGW_DP_MINLEN)
+        continue;
 
-        currMA = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, curr->id, ScaffoldGraph->RezGraph->type == CI_GRAPH);
-        nextMA = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, next->id, ScaffoldGraph->RezGraph->type == CI_GRAPH);
-	//	currMA = GetMultiAlignInStore(ScaffoldGraph->RezGraph->maStore, curr->id);
-	//	nextMA = GetMultiAlignInStore(ScaffoldGraph->RezGraph->maStore, next->id);
+      currMA = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, curr->id, ScaffoldGraph->RezGraph->type == CI_GRAPH);
+      nextMA = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, next->id, ScaffoldGraph->RezGraph->type == CI_GRAPH);
+      //	currMA = GetMultiAlignInStore(ScaffoldGraph->RezGraph->maStore, curr->id);
+      //	nextMA = GetMultiAlignInStore(ScaffoldGraph->RezGraph->maStore, next->id);
 
-	gapsChecked++;
-	if(actual > 0)
-	  overlapsChecked++;
+      gapsChecked++;
+      if(actual > 0)
+        overlapsChecked++;
 
-	pairwiseOrient = AB_AB;
-	/**** THIS WORKS ONLY IF THERE ARE NO CONTAINMENTS!!! ***/
-	if(curr->offsetAEnd.mean < curr->offsetBEnd.mean){
+      pairwiseOrient = AB_AB;
+      /**** THIS WORKS ONLY IF THERE ARE NO CONTAINMENTS!!! ***/
+      if(curr->offsetAEnd.mean < curr->offsetBEnd.mean){
 
-	  if(next->offsetAEnd.mean < next->offsetBEnd.mean){
-	    pairwiseOrient = AB_AB;
-	    currEnd = B_END;
-	    nextEnd = A_END;
-	    currUnitigPos = GetBendUnitigPos(currMA);
-	    nextUnitigPos = GetAendUnitigPos(nextMA);
-	    gap.mean = next->offsetAEnd.mean - curr->offsetBEnd.mean;
-	    gap.variance = next->offsetAEnd.variance - curr->offsetAEnd.variance;
-	  }else{
-	    pairwiseOrient = AB_BA;
-	    currEnd = B_END;
-	    nextEnd = B_END;
-	    currUnitigPos = GetBendUnitigPos(currMA);
-	    nextUnitigPos = GetBendUnitigPos(nextMA);
-	    gap.mean = next->offsetBEnd.mean - curr->offsetBEnd.mean;
-	    gap.variance = next->offsetBEnd.variance - curr->offsetBEnd.variance;
-	  }
-	}else{
-	  if(next->offsetAEnd.mean < next->offsetBEnd.mean){
-	    pairwiseOrient = BA_AB;
-	    currEnd = A_END;
-	    nextEnd = A_END;
-	    currUnitigPos = GetAendUnitigPos(currMA);
-	    nextUnitigPos = GetAendUnitigPos(nextMA);
-	    gap.mean = next->offsetAEnd.mean - curr->offsetAEnd.mean;
-	    gap.variance = next->offsetAEnd.variance - curr->offsetAEnd.variance;
-	  }else{
-	    currEnd = A_END;
-	    nextEnd = B_END;
-	    currUnitigPos = GetAendUnitigPos(currMA);
-	    nextUnitigPos = GetBendUnitigPos(nextMA);
-	    pairwiseOrient = BA_BA;
-	    gap.mean = next->offsetBEnd.mean - curr->offsetAEnd.mean;
-	    gap.variance = next->offsetBEnd.variance - curr->offsetAEnd.variance;
-	  }
-	}
+        if(next->offsetAEnd.mean < next->offsetBEnd.mean){
+          pairwiseOrient = AB_AB;
+          currEnd = B_END;
+          nextEnd = A_END;
+          currUnitigPos = GetBendUnitigPos(currMA);
+          nextUnitigPos = GetAendUnitigPos(nextMA);
+          gap.mean = next->offsetAEnd.mean - curr->offsetBEnd.mean;
+          gap.variance = next->offsetAEnd.variance - curr->offsetAEnd.variance;
+        }else{
+          pairwiseOrient = AB_BA;
+          currEnd = B_END;
+          nextEnd = B_END;
+          currUnitigPos = GetBendUnitigPos(currMA);
+          nextUnitigPos = GetBendUnitigPos(nextMA);
+          gap.mean = next->offsetBEnd.mean - curr->offsetBEnd.mean;
+          gap.variance = next->offsetBEnd.variance - curr->offsetBEnd.variance;
+        }
+      }else{
+        if(next->offsetAEnd.mean < next->offsetBEnd.mean){
+          pairwiseOrient = BA_AB;
+          currEnd = A_END;
+          nextEnd = A_END;
+          currUnitigPos = GetAendUnitigPos(currMA);
+          nextUnitigPos = GetAendUnitigPos(nextMA);
+          gap.mean = next->offsetAEnd.mean - curr->offsetAEnd.mean;
+          gap.variance = next->offsetAEnd.variance - curr->offsetAEnd.variance;
+        }else{
+          currEnd = A_END;
+          nextEnd = B_END;
+          currUnitigPos = GetAendUnitigPos(currMA);
+          nextUnitigPos = GetBendUnitigPos(nextMA);
+          pairwiseOrient = BA_BA;
+          gap.mean = next->offsetBEnd.mean - curr->offsetAEnd.mean;
+          gap.variance = next->offsetBEnd.variance - curr->offsetAEnd.variance;
+        }
+      }
 
-	{
-	  NodeCGW_T *currUnitig = GetGraphNode(ScaffoldGraph->CIGraph, currUnitigPos->ident);
-	  NodeCGW_T *nextUnitig = GetGraphNode(ScaffoldGraph->CIGraph, nextUnitigPos->ident);
-	  if(currUnitig->type == RESOLVEDREPEATCHUNK_CGW &&
-	     nextUnitig->type == RESOLVEDREPEATCHUNK_CGW &&
-	     currUnitig->info.CI.baseID == nextUnitig->info.CI.baseID){
-	    fprintf(stderr,"**** >>> SURROGATE DUPLICATION!!! Unitigs on either side of this gap are surrogates (" F_CID " and " F_CID ") derived from unitig " F_CID "\n",
-		    currUnitig->id, nextUnitig->id, currUnitig->info.CI.baseID);
+      {
+        NodeCGW_T *currUnitig = GetGraphNode(ScaffoldGraph->CIGraph, currUnitigPos->ident);
+        NodeCGW_T *nextUnitig = GetGraphNode(ScaffoldGraph->CIGraph, nextUnitigPos->ident);
+        if(currUnitig->type == RESOLVEDREPEATCHUNK_CGW &&
+           nextUnitig->type == RESOLVEDREPEATCHUNK_CGW &&
+           currUnitig->info.CI.baseID == nextUnitig->info.CI.baseID){
+          fprintf(stderr,"**** >>> SURROGATE DUPLICATION!!! Unitigs on either side of this gap are surrogates (" F_CID " and " F_CID ") derived from unitig " F_CID "\n",
+                  currUnitig->id, nextUnitig->id, currUnitig->info.CI.baseID);
 
-	  }
-	}
+        }
+      }
 
 #if 0
-	// Sequence is reverse complemented so coordinate 0 is the end in the gap
-	reverseCurr = (currEnd == B_END);
-	reverseNext = (nextEnd == A_END);
-	DumpNodeEndUngappedToFasta(fastaFile, ScaffoldGraph->RezGraph, curr->id, currEnd, reverseCurr);
-	DumpNodeEndUngappedToFasta(fastaFile, ScaffoldGraph->RezGraph, next->id, nextEnd, reverseNext);
+      // Sequence is reverse complemented so coordinate 0 is the end in the gap
+      reverseCurr = (currEnd == B_END);
+      reverseNext = (nextEnd == A_END);
+      DumpNodeEndUngappedToFasta(fastaFile, ScaffoldGraph->RezGraph, curr->id, currEnd, reverseCurr);
+      DumpNodeEndUngappedToFasta(fastaFile, ScaffoldGraph->RezGraph, next->id, nextEnd, reverseNext);
 #endif
-	  fprintf(stderr,"\n\n\n########### sc:" F_CID " (" F_CID "," F_CID ",%c) gap = (%g +/- %g)\n",
-		   scaffold->id,curr->id, next->id, pairwiseOrient, gap.mean, sqrt(gap.variance + 0.1));
-	  fprintf(stderr,"* Scaffold " F_CID " Contigs " F_CID " and " F_CID " oriented %c overlap in scaffold coordinates by " F_COORD "\n",
-		   scaffold->id,curr->id, next->id, pairwiseOrient,actual);
+      fprintf(stderr,"\n\n\n########### sc:" F_CID " (" F_CID "," F_CID ",%c) gap = (%g +/- %g)\n",
+              scaffold->id,curr->id, next->id, pairwiseOrient, gap.mean, sqrt(gap.variance + 0.1));
+      fprintf(stderr,"* Scaffold " F_CID " Contigs " F_CID " and " F_CID " oriented %c overlap in scaffold coordinates by " F_COORD "\n",
+              scaffold->id,curr->id, next->id, pairwiseOrient,actual);
 
-	  {
-	  EdgeCGW_T *edge = FindGraphEdge(graph->RezGraph, curr->id, next->id, pairwiseOrient);
-	  CDS_COORD_t overlap;
+      {
+        EdgeCGW_T *edge = FindGraphEdge(graph->RezGraph, curr->id, next->id, pairwiseOrient);
+        CDS_COORD_t overlap;
 				      
 	  
-	  while(edge){
-	    PrintGraphEdge(stderr, graph->RezGraph, " Found associated edge ", edge, curr->id);
-	    if(edge->nextALink == edge->nextBLink &&
-	       edge->nextALink != NULLINDEX)
-	      edge = GetGraphEdge(graph->RezGraph, edge->nextALink);
-	    else
-	      break;
-	  }
+        while(edge){
+          PrintGraphEdge(stderr, graph->RezGraph, " Found associated edge ", edge, curr->id);
+          if(edge->nextALink == edge->nextBLink &&
+             edge->nextALink != NULLINDEX)
+            edge = GetGraphEdge(graph->RezGraph, edge->nextALink);
+          else
+            break;
+        }
 
-	  overlap = SmallOverlapExists(graph->RezGraph, curr->id, next->id, pairwiseOrient, CGW_DP_DESPERATION_MINLEN);
+        overlap = SmallOverlapExists(graph->RezGraph, curr->id, next->id, pairwiseOrient, CGW_DP_DESPERATION_MINLEN);
 	
-	  if(overlap){
-	    fprintf(stderr,">>>>> YES SMALL Overlap of " F_COORD " found  gap mean: %g std: %g <<<<<<\n",
-		    overlap, gap.mean, sqrt(gap.variance));
-	    curr = next;
+        if(overlap){
+          fprintf(stderr,">>>>> YES SMALL Overlap of " F_COORD " found  gap mean: %g std: %g <<<<<<\n",
+                  overlap, gap.mean, sqrt(gap.variance));
+          curr = next;
 
-	    if(actual > 0){
-	      overlapsConfirmed++;
-	      overlapDistances += actual;
-	    }else{
-	      overlapsFound++;
-	      gapDistances += actual;
-	    }
-	  }else{
-	    fprintf(stderr,">>>>> No SMALL Overlap found <<<<<<\n");
-	  }
+          if(actual > 0){
+            overlapsConfirmed++;
+            overlapDistances += actual;
+          }else{
+            overlapsFound++;
+            gapDistances += actual;
+          }
+        }else{
+          fprintf(stderr,">>>>> No SMALL Overlap found <<<<<<\n");
+        }
 
-	  overlap = LargeOverlapExists(graph->RezGraph, curr->id, next->id, pairwiseOrient, CGW_DP_MINLEN, 750);
-	  if(overlap){
-	    fprintf(stderr,">>>>> YES LARGE Overlap of " F_COORD " found  gap mean: %g std: %g <<<<<<\n",
-		    overlap, gap.mean, sqrt(gap.variance));
-	    curr = next;
+        overlap = LargeOverlapExists(graph->RezGraph, curr->id, next->id, pairwiseOrient, CGW_DP_MINLEN, 750);
+        if(overlap){
+          fprintf(stderr,">>>>> YES LARGE Overlap of " F_COORD " found  gap mean: %g std: %g <<<<<<\n",
+                  overlap, gap.mean, sqrt(gap.variance));
+          curr = next;
 
-	    if(actual > 0){
-	      overlapsConfirmed++;
-	      overlapDistances += actual;
-	    }else{
-	      overlapsFound++;
-	      gapDistances += actual;
-	    }
-	  }else{
-	    fprintf(stderr,">>>>> No LARGE Overlap found <<<<<<\n");
-	  }
+          if(actual > 0){
+            overlapsConfirmed++;
+            overlapDistances += actual;
+          }else{
+            overlapsFound++;
+            gapDistances += actual;
+          }
+        }else{
+          fprintf(stderr,">>>>> No LARGE Overlap found <<<<<<\n");
+        }
 
 
 
@@ -244,32 +244,32 @@ void CheckSmallScaffoldGaps(ScaffoldGraphT *graph){
 #if 1
 	{
 	  BranchPointResult bpResult;
-	bpResult = OverlapChunksWithBPDetection(ScaffoldGraph->RezGraph, curr->id, next->id, pairwiseOrient, CGW_DP_MINLEN, 1000);
-	if(bpResult.apnt != NULLINDEX &&
-	   bpResult.bpnt != NULLINDEX){
-	  fprintf(stderr,"* >>><<>>><<< YES Branchpoint found! gap mean:%g std:%g\n",
-		  gap.mean, sqrt(gap.variance));
-	}else{
-	  fprintf(stderr,"* >>>###>>>### NO Branchpoint found! gap mean:%g std:%g\n", gap.mean, sqrt(gap.variance));
-	}
+          bpResult = OverlapChunksWithBPDetection(ScaffoldGraph->RezGraph, curr->id, next->id, pairwiseOrient, CGW_DP_MINLEN, 1000);
+          if(bpResult.apnt != NULLINDEX &&
+             bpResult.bpnt != NULLINDEX){
+            fprintf(stderr,"* >>><<>>><<< YES Branchpoint found! gap mean:%g std:%g\n",
+                    gap.mean, sqrt(gap.variance));
+          }else{
+            fprintf(stderr,"* >>>###>>>### NO Branchpoint found! gap mean:%g std:%g\n", gap.mean, sqrt(gap.variance));
+          }
 #endif
 	}
-	  }
+      }
       curr = next;
-	  }
-
     }
-  fprintf(stderr,"* Gaps Checked %d Overlaps checked %d confirmed %d (avg " F_COORD ")    Overlaps found %d (avg " F_COORD ")\n",
-	 gapsChecked, overlapsChecked, overlapsConfirmed,  (overlapsConfirmed?overlapDistances/overlapsConfirmed:0), overlapsFound, (overlapsFound?gapDistances/overlapsFound:0));
+
   }
+  fprintf(stderr,"* Gaps Checked %d Overlaps checked %d confirmed %d (avg " F_COORD ")    Overlaps found %d (avg " F_COORD ")\n",
+          gapsChecked, overlapsChecked, overlapsConfirmed,  (overlapsConfirmed?overlapDistances/overlapsConfirmed:0), overlapsFound, (overlapsFound?gapDistances/overlapsFound:0));
+}
 #endif
 
 
 #ifdef DEBUG_DATA
 void CheckFragmentOrientation(ScaffoldGraphT *graph){
-    int totalChecked = 0;
-    int totalBad = 0;
-    CDS_CID_t i;
+  int totalChecked = 0;
+  int totalBad = 0;
+  CDS_CID_t i;
   for(i = 0; i < GetNumChunkInstanceTs(graph->ChunkInstances);i++){
     int j;
     ChunkInstanceT *CI = GetChunkInstanceT(graph->ChunkInstances,i);
@@ -284,21 +284,21 @@ void CheckFragmentOrientation(ScaffoldGraphT *graph){
 	chunkRealOrient = B_A;
 
       for(j = 0; j < CI->info.CI.numFragments; j++){
-	    CIFragT *cifrag = GetCIFragT(graph->CIFrags, CI->info.CI.headOfFragments + j);
+        CIFragT *cifrag = GetCIFragT(graph->CIFrags, CI->info.CI.headOfFragments + j);
 
-	    totalChecked++;
-	    fragOrient = getCIFragOrient(cifrag);
-	    if(cifrag->bEndCoord > cifrag->aEndCoord)
-	      fragRealOrient = (chunkRealOrient == A_B? A_B:B_A);
-	    else
-	      fragRealOrient = (chunkRealOrient == A_B? B_A:A_B);
+        totalChecked++;
+        fragOrient = getCIFragOrient(cifrag);
+        if(cifrag->bEndCoord > cifrag->aEndCoord)
+          fragRealOrient = (chunkRealOrient == A_B? A_B:B_A);
+        else
+          fragRealOrient = (chunkRealOrient == A_B? B_A:A_B);
 	    
-	    if(fragRealOrient != fragOrient){
-	      fprintf(stderr,"*** Frag " F_CID " is oriented incorrectly in its chunk " F_CID " fragReal:%c chunkReal:%c frag:%c\n",
-		      cifrag->iid, i,
-		      fragRealOrient, chunkRealOrient, fragOrient);
-	      totalBad++;
-	    }
+        if(fragRealOrient != fragOrient){
+          fprintf(stderr,"*** Frag " F_CID " is oriented incorrectly in its chunk " F_CID " fragReal:%c chunkReal:%c frag:%c\n",
+                  cifrag->iid, i,
+                  fragRealOrient, chunkRealOrient, fragOrient);
+          totalBad++;
+        }
       }
     }
   }
@@ -309,7 +309,7 @@ void CheckFragmentOrientation(ScaffoldGraphT *graph){
 }
 #endif
 
-  // Compute connected components, and label Unique Chunks
+// Compute connected components, and label Unique Chunks
 void  ScaffoldGraphComponents(ScaffoldGraphT *graph){
   int numChunks = GetNumChunkInstanceTs(graph->ChunkInstances);
   UFDataT *UFData;
@@ -387,7 +387,7 @@ void  ScaffoldGraphComponents(ScaffoldGraphT *graph){
 
 
 #ifdef CREATE_CHUNK_GRAPH
-  // Compute connected components, and label Unique Chunks
+// Compute connected components, and label Unique Chunks
 void  ExtendedChunkGraphComponents(ChunkGraphT *graph){
   int numChunks;
   CDS_CID_t startChunk;

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: GraphCGW_T.h,v 1.9 2006-06-14 19:57:22 brianwalenz Exp $	 */
+/* 	$Id: GraphCGW_T.h,v 1.10 2006-09-21 21:34:00 brianwalenz Exp $	 */
 
 /**************************************************************************
  *  GraphCGW
@@ -40,114 +40,114 @@
 #include "dpc_CNS.h"
 
 typedef enum {
-        INVALID_EDGE_STATUS = 0,
-        UNKNOWN_EDGE_STATUS = 1,
-        UNTRUSTED_EDGE_STATUS = 2,
-	TENTATIVE_UNTRUSTED_EDGE_STATUS = 4,
-	TENTATIVE_TRUSTED_EDGE_STATUS = 8,
-        TRUSTED_EDGE_STATUS = 16,
-	LARGE_VARIANCE_EDGE_STATUS = 32,
-	INTER_SCAFFOLD_EDGE_STATUS = 64
+  INVALID_EDGE_STATUS = 0,
+  UNKNOWN_EDGE_STATUS = 1,
+  UNTRUSTED_EDGE_STATUS = 2,
+  TENTATIVE_UNTRUSTED_EDGE_STATUS = 4,
+  TENTATIVE_TRUSTED_EDGE_STATUS = 8,
+  TRUSTED_EDGE_STATUS = 16,
+  LARGE_VARIANCE_EDGE_STATUS = 32,
+  INTER_SCAFFOLD_EDGE_STATUS = 64
 }EdgeStatus;
 
 EdgeStatus AS_CGW_SafeConvert_uintToEdgeStatus(unsigned int input);
 
 
 typedef struct {
-	CDS_CID_t idA;
-	CDS_CID_t idB;
-	ChunkOrientationType orient; // Orientation of idA <-> idB, BE CAREFUL IF YOU WANT idB<->idA
-	//
-	int32 edgesContributing;
-        float quality;   // Used to order edges by decreasing quality (quality = 0.0 is the best, 1.0 is the worst)
+  CDS_CID_t idA;
+  CDS_CID_t idB;
+  ChunkOrientationType orient; // Orientation of idA <-> idB, BE CAREFUL IF YOU WANT idB<->idA
+  //
+  int32 edgesContributing;
+  float quality;   // Used to order edges by decreasing quality (quality = 0.0 is the best, 1.0 is the worst)
 
-        union{
-	  int64 all;  // Used for overlap, repeatoverlap, tandemOverlap, etc
-	  struct {
-	    unsigned int isInferred:1; // Is this an inferred edge.
-	    unsigned int isTentative:1; // Is this inferred edge finalized.
-	    unsigned int isLeastSquares:1; // High confidence edge based on
-	    // least squares calculation.
-	    unsigned int isEssential:1; // Is this edge essential.
-	    unsigned int wasEssential:1; // wass this edge essential before.
-	    unsigned int isActive:1; // Is this edge currently of interest.
-	    unsigned int isConfirmed:1; // Is this edge confirmed.
-	    unsigned int isContigConfirming:1; /* This edge indicates to the contigger that the two
-						elements should be merged into a contig */
-	    unsigned int isUniquetoUnique:1; /* Is this edge from one unique CI
-						to another unique CI. */
-	    unsigned int isTransitivelyRemoved:1; /* Has this edge been transitively removed */
-	    unsigned int isInferredRemoved:1;  /*Has this edge been
-						 transitively removed by an inferred edge. */
-	    unsigned int isRedundantRemoved:1; /*Has this edge been
-						 removed by another edge between the sam pair of unique CIs. */
-	    unsigned int isDeleted:1; // Is edge deleted.
-	    unsigned int isPossibleChimera:1;         /* An edgemate consisting of a single raw edgemate
-							 and an overlap, where the same read participates 
-							 both the mate and overlap relationship */
+  union{
+    int64 all;  // Used for overlap, repeatoverlap, tandemOverlap, etc
+    struct {
+      unsigned int isInferred:1; // Is this an inferred edge.
+      unsigned int isTentative:1; // Is this inferred edge finalized.
+      unsigned int isLeastSquares:1; // High confidence edge based on
+      // least squares calculation.
+      unsigned int isEssential:1; // Is this edge essential.
+      unsigned int wasEssential:1; // wass this edge essential before.
+      unsigned int isActive:1; // Is this edge currently of interest.
+      unsigned int isConfirmed:1; // Is this edge confirmed.
+      unsigned int isContigConfirming:1; /* This edge indicates to the contigger that the two
+                                            elements should be merged into a contig */
+      unsigned int isUniquetoUnique:1; /* Is this edge from one unique CI
+                                          to another unique CI. */
+      unsigned int isTransitivelyRemoved:1; /* Has this edge been transitively removed */
+      unsigned int isInferredRemoved:1;  /*Has this edge been
+                                           transitively removed by an inferred edge. */
+      unsigned int isRedundantRemoved:1; /*Has this edge been
+                                           removed by another edge between the sam pair of unique CIs. */
+      unsigned int isDeleted:1; // Is edge deleted.
+      unsigned int isPossibleChimera:1;         /* An edgemate consisting of a single raw edgemate
+                                                   and an overlap, where the same read participates 
+                                                   both the mate and overlap relationship */
 
-	    /* Flags relating to the type of relationship that induced this edge */
+      /* Flags relating to the type of relationship that induced this edge */
 
-	    unsigned int inducedByUnknownOrientation:1; /* One of 4 raw edges induced by a LKG with AS_UNKNOWN orientation */
-	    unsigned int hasContributingOverlap:1;  /* EdgeMate includes contribution from an overlap, not repeat only */
-	    unsigned int hasRepeatOverlap:1;        /* Has overlaps beyond branch points ==> repeat only */
-	    unsigned int hasTandemOverlap:1;  /* Overlapper reported a min-max range of overlaps */
-	    unsigned int aContainsB:1;        /* From CGB for multiply contained fragments */
-	    unsigned int bContainsA:1;        /* From CGB for multiply contained fragments */
-	    unsigned int mustOverlap:1;       /* Marked on merged edges when mate-link variance is signficantly less than overlap length */
-	    unsigned int hasGuide:1;                /* Contains one or more guide edges */
-	    unsigned int hasSTSGuide:1;             /* Contains an STS Guide */
-	    unsigned int hasMayJoin:1;             /* Contains a may join constraint */
-	    unsigned int hasMustJoin:1;             /* Contains a must join constraint */
-	    unsigned int hasTransChunk:1;           /* was a transitively removed edge in cgb */
-	    unsigned int hasContainmentOverlap:1;  /* Implies a containment */
-	    unsigned int isRaw:1;                   /* True for raw edges, false for merged edges */
+      unsigned int inducedByUnknownOrientation:1; /* One of 4 raw edges induced by a LKG with AS_UNKNOWN orientation */
+      unsigned int hasContributingOverlap:1;  /* EdgeMate includes contribution from an overlap, not repeat only */
+      unsigned int hasRepeatOverlap:1;        /* Has overlaps beyond branch points ==> repeat only */
+      unsigned int hasTandemOverlap:1;  /* Overlapper reported a min-max range of overlaps */
+      unsigned int aContainsB:1;        /* From CGB for multiply contained fragments */
+      unsigned int bContainsA:1;        /* From CGB for multiply contained fragments */
+      unsigned int mustOverlap:1;       /* Marked on merged edges when mate-link variance is signficantly less than overlap length */
+      unsigned int hasGuide:1;                /* Contains one or more guide edges */
+      unsigned int hasSTSGuide:1;             /* Contains an STS Guide */
+      unsigned int hasMayJoin:1;             /* Contains a may join constraint */
+      unsigned int hasMustJoin:1;             /* Contains a must join constraint */
+      unsigned int hasTransChunk:1;           /* was a transitively removed edge in cgb */
+      unsigned int hasContainmentOverlap:1;  /* Implies a containment */
+      unsigned int isRaw:1;                   /* True for raw edges, false for merged edges */
 
-	    unsigned int hasExtremalAFrag:1; /* Used in merging raw edge mates, meaningless elsewhere */
-	    unsigned int hasExtremalBFrag:1; /* Used in merging raw edge mates, meaningless elsewhere */
-            unsigned int rangeTruncated:1;    /* TRUE if we looked for an overlap and didn't find any,
-						 and thus truncated the range of distances */
-	    unsigned int inAssembly:1;
-	    unsigned int isBogus:1;  // determined from simulator annotations, overloaded by scaffold merging code (see CIScaffold_Merge_CGW.c)
-	    unsigned int isProbablyBogus:1; // determined from distance and distIndex empirically, overloaded for one-sided edges in CIScaffold_Merge
-	    unsigned int hasConfirmingPath:1; // Has this edge another path that confirms its length & var (used in GapWalkerREZ.c)
+      unsigned int hasExtremalAFrag:1; /* Used in merging raw edge mates, meaningless elsewhere */
+      unsigned int hasExtremalBFrag:1; /* Used in merging raw edge mates, meaningless elsewhere */
+      unsigned int rangeTruncated:1;    /* TRUE if we looked for an overlap and didn't find any,
+                                           and thus truncated the range of distances */
+      unsigned int inAssembly:1;
+      unsigned int isBogus:1;  // determined from simulator annotations, overloaded by scaffold merging code (see CIScaffold_Merge_CGW.c)
+      unsigned int isProbablyBogus:1; // determined from distance and distIndex empirically, overloaded for one-sided edges in CIScaffold_Merge
+      unsigned int hasConfirmingPath:1; // Has this edge another path that confirms its length & var (used in GapWalkerREZ.c)
 	    
 
-	    unsigned int edgeStatus:7; 
+      unsigned int edgeStatus:7; 
 	    
-	    unsigned int isMarkedForDeletion:1;   // We plan to delete this guy
-	    unsigned int MeanChangedByWalking:1;
-            unsigned int highQualityA:1;           // One of the top-ranked edges incident on node idA
-            unsigned int highQualityB:1;           // One of the top-ranked edges incident on node idB
-	    unsigned int isSloppy:1;
-	    unsigned int isBridge:1;               // Bridge edge in a scaffold
+      unsigned int isMarkedForDeletion:1;   // We plan to delete this guy
+      unsigned int MeanChangedByWalking:1;
+      unsigned int highQualityA:1;           // One of the top-ranked edges incident on node idA
+      unsigned int highQualityB:1;           // One of the top-ranked edges incident on node idB
+      unsigned int isSloppy:1;
+      unsigned int isBridge:1;               // Bridge edge in a scaffold
 
-	  }bits;
-	}flags;
-	//	
-	LengthT distance; // gap/overlap length
+    }bits;
+  }flags;
+  //	
+  LengthT distance; // gap/overlap length
 
   /* vvvvv Iterator does not fill in fields below this line vvvvvv */
-	//
-	CDS_CID_t nextALink; // next edge involving cidA, -1 if none
-	CDS_CID_t nextBLink; // next edge involving cidB, -1 if none
-	CDS_CID_t prevALink; // prev edge involving cidA, -1 if none
-	CDS_CID_t prevBLink; // prev edge involving cidB, -1 if none
+  //
+  CDS_CID_t nextALink; // next edge involving cidA, -1 if none
+  CDS_CID_t nextBLink; // next edge involving cidB, -1 if none
+  CDS_CID_t prevALink; // prev edge involving cidA, -1 if none
+  CDS_CID_t prevBLink; // prev edge involving cidB, -1 if none
 
-        float32 minDistance;  /* negative implies potential overlap 
-			       * This Field is overloaded to store the distance.mean when
-			       * the flag MeanChangedByWalk is true.  The function RestoreEdgeMeans
-			       * restores the value and unsets the flag.
-			       */
+  float32 minDistance;  /* negative implies potential overlap 
+                         * This Field is overloaded to store the distance.mean when
+                         * the flag MeanChangedByWalk is true.  The function RestoreEdgeMeans
+                         * restores the value and unsets the flag.
+                         */
 
   /*** We need these to reference back to the fragment pair that induced the edge */
-      CDS_CID_t fragA;    // The fragment in chunk/contigA, or NULLINDEX
-      CDS_CID_t fragB;    // The fragment in chunk/contigB or NULLINDEX
-      CDS_CID_t distIndex; // Index of underlying distance record or NULLINDEX
-      CDS_CID_t nextRawEdge; // index to next raw edge in the chain.  These are maintained in a singly linked list.
-      CDS_CID_t topLevelEdge; /* If this is a raw edge, references the 'owner' or top-level edge in which the raw
+  CDS_CID_t fragA;    // The fragment in chunk/contigA, or NULLINDEX
+  CDS_CID_t fragB;    // The fragment in chunk/contigB or NULLINDEX
+  CDS_CID_t distIndex; // Index of underlying distance record or NULLINDEX
+  CDS_CID_t nextRawEdge; // index to next raw edge in the chain.  These are maintained in a singly linked list.
+  CDS_CID_t topLevelEdge; /* If this is a raw edge, references the 'owner' or top-level edge in which the raw
 			     edge is linked */
-      CDS_CID_t referenceEdge;  /*** Reference to inducing edge */
+  CDS_CID_t referenceEdge;  /*** Reference to inducing edge */
       
 }EdgeCGW_T;
 
@@ -159,19 +159,19 @@ typedef struct
 } MateInfoT;
 
 typedef enum {
-	DISCRIMINATORUNIQUECHUNK_CGW,  // Initially, all scaffolded chunks are these
-	UNRESOLVEDCHUNK_CGW,     // Not discriminator unique
-	UNIQUECHUNK_CGW,               // These are unique chunks that were not discriminator unique
-	RESOLVEDREPEATCHUNK_CGW,        // A subset of a repeat chunk that has been instantiated
-	//
-	CONTIG_CGW,                     // A contig that has subsumed >=1 chunk
-	UNIQUECONTIG_CGW,
-	RESOLVEDCONTIG_CGW,
-	UNRESOLVEDCONTIG_CGW,
-	//
-	REAL_SCAFFOLD,     // the genuine article
-	OUTPUT_SCAFFOLD,    // an artefact generated for output
-	SCRATCH_SCAFFOLD    // a temporary scaffold 
+  DISCRIMINATORUNIQUECHUNK_CGW,  // Initially, all scaffolded chunks are these
+  UNRESOLVEDCHUNK_CGW,     // Not discriminator unique
+  UNIQUECHUNK_CGW,               // These are unique chunks that were not discriminator unique
+  RESOLVEDREPEATCHUNK_CGW,        // A subset of a repeat chunk that has been instantiated
+  //
+  CONTIG_CGW,                     // A contig that has subsumed >=1 chunk
+  UNIQUECONTIG_CGW,
+  RESOLVEDCONTIG_CGW,
+  UNRESOLVEDCONTIG_CGW,
+  //
+  REAL_SCAFFOLD,     // the genuine article
+  OUTPUT_SCAFFOLD,    // an artefact generated for output
+  SCRATCH_SCAFFOLD    // a temporary scaffold 
 } ChunkInstanceType;
 
 
@@ -202,19 +202,19 @@ typedef enum {
    The enum ChunkInstanceType and the flag bits isCI, isContig, and isScaffold
    should be maintained consistently as follows:
    isCI = TRUE (isContig = FALSE, isScaffold = FALSE)
-	DISCRIMINATORUNIQUECHUNK_CGW,  // Initially, all scaffolded chunks are these
-	UNRESOLVEDCHUNK_CGW,     // Not discriminator unique
-	UNIQUECHUNK_CGW,               // These are unique chunks that were not discriminator unique
-	RESOLVEDREPEATCHUNK_CGW,        // A subset of a repeat chunk that has been instantiated
+   DISCRIMINATORUNIQUECHUNK_CGW,  // Initially, all scaffolded chunks are these
+   UNRESOLVEDCHUNK_CGW,     // Not discriminator unique
+   UNIQUECHUNK_CGW,               // These are unique chunks that were not discriminator unique
+   RESOLVEDREPEATCHUNK_CGW,        // A subset of a repeat chunk that has been instantiated
    isContig = TRUE (isCI = FALSE, isScaffold = FALSE)
-	CONTIG_CGW,                     // A contig that has subsumed >=1 chunk
-	UNIQUECONTIG_CGW,
-	RESOLVEDCONTIG_CGW,
-	UNRESOLVEDCONTIG_CGW,
+   CONTIG_CGW,                     // A contig that has subsumed >=1 chunk
+   UNIQUECONTIG_CGW,
+   RESOLVEDCONTIG_CGW,
+   UNRESOLVEDCONTIG_CGW,
    isScaffold = TRUE (isCI = FALSE, isContig = FALSE)
-	REAL_SCAFFOLD,     // the genuine article
-	OUTPUT_SCAFFOLD,    // an artefact generated for output
-	SCRATCH_SCAFFOLD    // a temporary scaffold 
+   REAL_SCAFFOLD,     // the genuine article
+   OUTPUT_SCAFFOLD,    // an artefact generated for output
+   SCRATCH_SCAFFOLD    // a temporary scaffold 
 */	
 
         
@@ -254,14 +254,14 @@ typedef struct{
       // to the same info by looking in the multiAlignT for this CI
       // at some point we should nuke them
       CDS_CID_t headOfFragments; /* Index of first FragInfoT record belonging to this  chunkInstance
-				These will be linked together.  */
+                                    These will be linked together.  */
       int32 numFragments;
       /* ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
       CDS_COORD_t  branchPointA;
       CDS_COORD_t  branchPointB;    
       int32        coverageStat;
       CDS_CID_t    baseID;    /* If this is a  RESOLVEDREPEAT, the id of the original 
-			     CI from which it was spawned */
+                                 CI from which it was spawned */
       int32 numInstances; /* Number of actual or surrogate instances in scaffolds
 			     If this is not a RESOLVEDREPEAT, numInstances should be = 0 */
       union{
@@ -284,9 +284,9 @@ typedef struct{
       CDS_COORD_t branchPointB;    
     }Contig;
     struct CISCAFFOLD_TAG{
-        CDS_CID_t AEndCI; // Index of Chunk Instance at A end of Scaffold
-	CDS_CID_t BEndCI; // Index of Chunk Instance at B End of Scaffold
-        cds_int32 numElements; // If containsCIs, these are CIs, else they are Contigs
+      CDS_CID_t AEndCI; // Index of Chunk Instance at A end of Scaffold
+      CDS_CID_t BEndCI; // Index of Chunk Instance at B End of Scaffold
+      cds_int32 numElements; // If containsCIs, these are CIs, else they are Contigs
       /*** Info computed by RecomputeScaffoldPositions ***/
       float32 leastSquareError;   // Measure of chi-squared of computed positions
       cds_int32 numLeastSquareClones; // Relates to degrees of freedom for chi-square calculation
@@ -353,29 +353,29 @@ typedef struct{
   CDS_CID_t edgeHead;  // Pointer to linked list of edges  in edges;
 
   float32 microhetScore; /* Score from Knut&Aaron's microhet detecter, valid for CIs only! Could be in union above, but CI
-			  variant is biggest one.  So I reused an unused field at the top level SAK */
+                            variant is biggest one.  So I reused an unused field at the top level SAK */
 
 
   CDS_CID_t setID;
 
 }NodeCGW_T;
 
-VA_DEF(NodeCGW_T)
-VA_DEF(EdgeCGW_T)
+VA_DEF(NodeCGW_T);
+VA_DEF(EdgeCGW_T);
 
 
 /* GraphCGW_T
    This is the basis structure for holding CGW graphs, of which there are 3:
-      Graph of CIs
-      Graph of Contigs
-      Graph of Scaffolds
+   Graph of CIs
+   Graph of Contigs
+   Graph of Scaffolds
 */
 
 typedef enum{
   CI_GRAPH =       'c',
-  CONTIG_GRAPH =   'C',
-  SCAFFOLD_GRAPH = 'S'
-}GraphType;
+    CONTIG_GRAPH =   'C',
+    SCAFFOLD_GRAPH = 'S'
+    }GraphType;
 
 
 typedef struct{
@@ -450,32 +450,32 @@ static NodeCGW_T *CreateNewGraphNode(GraphCGW_T *graph){
   node.setID = 0;
 
   switch(graph->type){
-  case CI_GRAPH:
-    node.type = UNRESOLVEDCHUNK_CGW;
-    node.flags.bits.isCI = TRUE;
-    node.info.CI.contigID = NULLINDEX;
-    node.info.CI.headOfFragments = NULLINDEX;
-    node.info.CI.numFragments = 0;
-    node.info.CI.branchPointA = node.info.CI.branchPointB = 0;
-    node.microhetScore = -1.0;
-    node.info.CI.coverageStat = 0;
-    node.info.CI.numInstances = 0;
-    node.info.CI.instances.va = NULL;
-    break;
-  case CONTIG_GRAPH:
-    node.type = CONTIG_CGW;
-    node.flags.bits.isContig = TRUE;
-    node.info.Contig.AEndCI = node.info.Contig.BEndCI = NULLINDEX;
-    node.info.Contig.numCI = 0;
-    break;
-  case SCAFFOLD_GRAPH:
-    node.type = REAL_SCAFFOLD;
-    node.flags.bits.isScaffold = TRUE;
-    node.info.Scaffold.AEndCI =     node.info.Scaffold.BEndCI = NULLINDEX;
-    node.info.Scaffold.numElements = 0;
-    break;
-  default:
-    assert(0);
+    case CI_GRAPH:
+      node.type = UNRESOLVEDCHUNK_CGW;
+      node.flags.bits.isCI = TRUE;
+      node.info.CI.contigID = NULLINDEX;
+      node.info.CI.headOfFragments = NULLINDEX;
+      node.info.CI.numFragments = 0;
+      node.info.CI.branchPointA = node.info.CI.branchPointB = 0;
+      node.microhetScore = -1.0;
+      node.info.CI.coverageStat = 0;
+      node.info.CI.numInstances = 0;
+      node.info.CI.instances.va = NULL;
+      break;
+    case CONTIG_GRAPH:
+      node.type = CONTIG_CGW;
+      node.flags.bits.isContig = TRUE;
+      node.info.Contig.AEndCI = node.info.Contig.BEndCI = NULLINDEX;
+      node.info.Contig.numCI = 0;
+      break;
+    case SCAFFOLD_GRAPH:
+      node.type = REAL_SCAFFOLD;
+      node.flags.bits.isScaffold = TRUE;
+      node.info.Scaffold.AEndCI =     node.info.Scaffold.BEndCI = NULLINDEX;
+      node.info.Scaffold.numElements = 0;
+      break;
+    default:
+      assert(0);
   }
   node.scaffoldID = NULLINDEX;
   node.smoothExpectedCID = NULLINDEX;
@@ -517,18 +517,18 @@ static EdgeStatus GetEdgeStatus(EdgeCGW_T *edge){
 
 #if 0
 /*
-Create a new node by extracting fragments from  an existing node.
-The node must be either a contig or a CI.
+  Create a new node by extracting fragments from  an existing node.
+  The node must be either a contig or a CI.
  
-The fragsToExtract argument is a list of fragments, all of which must belong
-to the node, that are to be extracted and become the basis for the new node.
-The multi-alignment of the new node will include these fragments,as well as
-all unitigs that are present in the base node's multi-alignment.
+  The fragsToExtract argument is a list of fragments, all of which must belong
+  to the node, that are to be extracted and become the basis for the new node.
+  The multi-alignment of the new node will include these fragments,as well as
+  all unitigs that are present in the base node's multi-alignment.
  
-Following the split, the new node will have copies of all raw overlap edges
-incident on the base node, and the raw link edges will be distributed between
-the two as a function of the split of the fragments.  Re-merging of edges
-incident on both nodes completes the operation.
+  Following the split, the new node will have copies of all raw overlap edges
+  incident on the base node, and the raw link edges will be distributed between
+  the two as a function of the split of the fragments.  Re-merging of edges
+  incident on both nodes completes the operation.
 */
 CDS_CID_t CreateNewNodeByExtractingEdges(GraphCGW_T *graph,
                                          CDS_CID_t id,
@@ -559,18 +559,18 @@ static ChunkOrientationType InvertEdgeOrient
 (const ChunkOrientationType orient){
   ChunkOrientationType new_orient = orient;
   switch(orient){
-  case AB_BA:
-    new_orient = BA_AB; break;
-  case BA_AB:
-    new_orient = AB_BA; break;
-  case XX_XX:
-    new_orient = orient; break;
-  case AB_AB:
-    new_orient = BA_BA; break;
-  case BA_BA:
-    new_orient = AB_AB; break;
-  default:
-    assert(0);
+    case AB_BA:
+      new_orient = BA_AB; break;
+    case BA_AB:
+      new_orient = AB_BA; break;
+    case XX_XX:
+      new_orient = orient; break;
+    case AB_AB:
+      new_orient = BA_BA; break;
+    case BA_BA:
+      new_orient = AB_AB; break;
+    default:
+      assert(0);
   }
   return new_orient;
 }
@@ -579,16 +579,16 @@ static ChunkOrientationType InvertEdgeOrient
 static ChunkOrientationType FlipEdgeOrient(ChunkOrientationType orient){
   ChunkOrientationType new_orient = orient;
   switch(orient){
-  case AB_BA:
-  case BA_AB:
-  case XX_XX:
-    new_orient = orient; break;
-  case AB_AB:
-    new_orient = BA_BA; break;
-  case BA_BA:
-    new_orient = AB_AB; break;
-  default:
-    assert(0);
+    case AB_BA:
+    case BA_AB:
+    case XX_XX:
+      new_orient = orient; break;
+    case AB_AB:
+      new_orient = BA_BA; break;
+    case BA_BA:
+      new_orient = AB_AB; break;
+    default:
+      assert(0);
   }
   return new_orient;
 }
@@ -599,18 +599,18 @@ static ChunkOrientationType EdgeOrientSwap
 (const ChunkOrientationType orient){
   ChunkOrientationType new_orient = orient;
   switch(orient){
-  case AB_BA:
-    new_orient = BA_AB; break;
-  case BA_AB:
-    new_orient = AB_BA; break;
-  case XX_XX:
-    new_orient = orient; break;
-  case AB_AB:
-    new_orient = AB_AB; break;
-  case BA_BA:
-    new_orient = BA_BA; break;
-  default:
-    assert(0);
+    case AB_BA:
+      new_orient = BA_AB; break;
+    case BA_AB:
+      new_orient = AB_BA; break;
+    case XX_XX:
+      new_orient = orient; break;
+    case AB_AB:
+      new_orient = AB_AB; break;
+    case BA_BA:
+      new_orient = BA_BA; break;
+    default:
+      assert(0);
   }
   return new_orient;
 }
@@ -619,14 +619,14 @@ static ChunkOrientationType EdgeOrientSwap
 static NodeOrient FlipNodeOrient(NodeOrient orient){
   NodeOrient new_orient = orient;
   switch(orient){
-  case A_B:
-    new_orient = B_A; break;
-  case B_A:
-    new_orient = A_B; break;
-  case X_X:
-    new_orient = orient; break;
-  default:
-    assert(0);
+    case A_B:
+      new_orient = B_A; break;
+    case B_A:
+      new_orient = A_B; break;
+    case X_X:
+      new_orient = orient; break;
+    default:
+      assert(0);
   }
   return new_orient;
 }
@@ -661,15 +661,15 @@ typedef enum {LEFT_SIDE, RIGHT_SIDE, THE_SEED} SeedSideType;
 static SeedSideType GetChunkSeedSide( ChunkOrientationType edgeOrient){
   SeedSideType ret = RIGHT_SIDE;
   switch(edgeOrient){
-  case AB_AB:
-  case AB_BA:
-    ret = RIGHT_SIDE; break;
-  case BA_BA: 
-  case BA_AB: 
-    ret = LEFT_SIDE; break;
-  default:
-    assert(0);
-    break;
+    case AB_AB:
+    case AB_BA:
+      ret = RIGHT_SIDE; break;
+    case BA_BA: 
+    case BA_AB: 
+      ret = LEFT_SIDE; break;
+    default:
+      assert(0);
+      break;
   }
   return ret;
 }
@@ -679,17 +679,17 @@ static SeedSideType GetChunkSeedSide( ChunkOrientationType edgeOrient){
 static ChunkOrient GetRelativeChunkOrientation( ChunkOrientationType edgeOrient){
   ChunkOrient ret = A_B;
   switch(edgeOrient){
-  case AB_AB:
-  case BA_BA:  // flip so that it is really AB_AB with the seed on the right
-    ret = A_B;
-    break;
-  case AB_BA:
-  case BA_AB: // flip so that it is really BA_AB with the seed on the left
-    ret = B_A;
-    break;
-  default:
-    assert(0);
-    break;
+    case AB_AB:
+    case BA_BA:  // flip so that it is really AB_AB with the seed on the right
+      ret = A_B;
+      break;
+    case AB_BA:
+    case BA_AB: // flip so that it is really BA_AB with the seed on the left
+      ret = B_A;
+      break;
+    default:
+      assert(0);
+      break;
   }
   return ret;
 }
@@ -737,32 +737,32 @@ static ChunkInstanceType GetNodeType(NodeCGW_T *ci){
 static void ResetNodeType(NodeCGW_T *ci){
   if(ci->flags.bits.isCI){
     switch(ci->type){
-    case DISCRIMINATORUNIQUECHUNK_CGW:
-      ci->flags.bits.isUnique = 1;
-      break;
-    case UNIQUECHUNK_CGW:
-      ci->type = UNRESOLVEDCHUNK_CGW;
-      ci->flags.bits.isUnique = 0;
-      break;
-    case UNRESOLVEDCHUNK_CGW:
-    case RESOLVEDREPEATCHUNK_CGW:
-      assert(0); // Shouldn't happen
-      break;
-    default:
-      assert(0);
-      break;
+      case DISCRIMINATORUNIQUECHUNK_CGW:
+        ci->flags.bits.isUnique = 1;
+        break;
+      case UNIQUECHUNK_CGW:
+        ci->type = UNRESOLVEDCHUNK_CGW;
+        ci->flags.bits.isUnique = 0;
+        break;
+      case UNRESOLVEDCHUNK_CGW:
+      case RESOLVEDREPEATCHUNK_CGW:
+        assert(0); // Shouldn't happen
+        break;
+      default:
+        assert(0);
+        break;
     }
   }else if(ci->flags.bits.isContig){
     assert(ci->type == CONTIG_CGW);
     assert(0);     // don't know how to handle this yet
   }else if(ci->flags.bits.isScaffold){
     switch(ci->type){
-    case REAL_SCAFFOLD:     // the genuine article
-    case OUTPUT_SCAFFOLD:    // an artefact generated for output
-    case SCRATCH_SCAFFOLD:    // a temporary scaffold 
-    default:
-      assert(0); // shouldn't be here
-      break;
+      case REAL_SCAFFOLD:     // the genuine article
+      case OUTPUT_SCAFFOLD:    // an artefact generated for output
+      case SCRATCH_SCAFFOLD:    // a temporary scaffold 
+      default:
+        assert(0); // shouldn't be here
+        break;
     }
   }else{
     assert(0);
@@ -773,28 +773,28 @@ static void ResetNodeType(NodeCGW_T *ci){
 static void SetNodeType(NodeCGW_T *ci, ChunkInstanceType type){
   if(ci->flags.bits.isCI){
     switch(type){
-    case DISCRIMINATORUNIQUECHUNK_CGW:
-    case UNIQUECHUNK_CGW:
-      ci->flags.bits.isUnique = 1;
-      break;
-    case UNRESOLVEDCHUNK_CGW:
-    case RESOLVEDREPEATCHUNK_CGW:
-      ci->flags.bits.isUnique = 0;
-      break;
-    default:
-      assert(0);
-      break;
+      case DISCRIMINATORUNIQUECHUNK_CGW:
+      case UNIQUECHUNK_CGW:
+        ci->flags.bits.isUnique = 1;
+        break;
+      case UNRESOLVEDCHUNK_CGW:
+      case RESOLVEDREPEATCHUNK_CGW:
+        ci->flags.bits.isUnique = 0;
+        break;
+      default:
+        assert(0);
+        break;
     }
   }else if(ci->flags.bits.isContig){
     assert(type == CONTIG_CGW);
   }else if(ci->flags.bits.isScaffold){
     switch(type){
-    case REAL_SCAFFOLD:     // the genuine article
-    case OUTPUT_SCAFFOLD:    // an artefact generated for output
-    case SCRATCH_SCAFFOLD:    // a temporary scaffold 
-      break;
-    default:
-      assert(0);
+      case REAL_SCAFFOLD:     // the genuine article
+      case OUTPUT_SCAFFOLD:    // an artefact generated for output
+      case SCRATCH_SCAFFOLD:    // a temporary scaffold 
+        break;
+      default:
+        assert(0);
     }
   }else{
     assert(0);
@@ -823,10 +823,10 @@ static int isInferredEdge(EdgeCGW_T *edge){
 
 static int isOverlapEdge(EdgeCGW_T *edge){
   return (edge->flags.bits.hasContributingOverlap || 
-    edge->flags.bits.hasRepeatOverlap || 
-    edge->flags.bits.hasTandemOverlap ||
-    edge->flags.bits.aContainsB ||
-    edge->flags.bits.bContainsA);
+          edge->flags.bits.hasRepeatOverlap || 
+          edge->flags.bits.hasTandemOverlap ||
+          edge->flags.bits.aContainsB ||
+          edge->flags.bits.bContainsA);
 }
 
 static int edgeContainsCI(EdgeCGW_T *edge, CDS_CID_t id){
@@ -858,9 +858,9 @@ static int isSloppyEdge(EdgeCGW_T *edge){
     return 0;
   }
   if(edge->flags.bits.hasGuide || 
-    edge->flags.bits.hasSTSGuide || 
-      edge->flags.bits.isSloppy){
-     return 1;
+     edge->flags.bits.hasSTSGuide || 
+     edge->flags.bits.isSloppy){
+    return 1;
   }
      
   // for older files
@@ -988,7 +988,7 @@ static NodeCGW_T *NextGraphNodeIterator(GraphNodeIterator *e){
     if(isInitialized &&
        (!node->flags.bits.isDead) &&
        (!node->flags.bits.isFree) && 
-        isUniqueEnough ){
+       isUniqueEnough ){
       retNode = node;
       if(e->verbose)
 	fprintf(stderr,"* Returning node " F_CID "\n", node->id);
@@ -1055,9 +1055,9 @@ static void InitGraphEdgeIterator(GraphCGW_T *graph,
   e->edgeStatusSet = edgeStatusSet;
   e->cid = cid;
   if(e->verbose)
-  fprintf(stderr,
-          "* Iterator for CI " F_CID " end %d  head = " F_CID " confirmed:%d raw:%d \n",
-	  cid, e->end, e->next,e->confirmedOnly, e->rawOnly);
+    fprintf(stderr,
+            "* Iterator for CI " F_CID " end %d  head = " F_CID " confirmed:%d raw:%d \n",
+            cid, e->end, e->next,e->confirmedOnly, e->rawOnly);
 }
 
 
@@ -1070,7 +1070,7 @@ static  EdgeCGW_T *NextGraphEdgeIterator(GraphEdgeIterator *e){
   if(e->verbose)
     fprintf(stderr,
             "* NextGraphEdgeIterator nextRaw:" F_CID " prev:" F_CID " curr:" F_CID " next:" F_CID "\n",
-	  e->nextRaw, e->prev, e->curr, e->next);
+            e->nextRaw, e->prev, e->curr, e->next);
 
   if(e->nextRaw == NULLINDEX){
     if(e->currRaw != NULLINDEX){ // do this once
@@ -1171,21 +1171,21 @@ static  EdgeCGW_T *NextGraphEdgeIterator(GraphEdgeIterator *e){
       // Only top level edges are marked with status values
       if(retEdge &&
          !((uint32)GetEdgeStatus(retEdge) & (uint32)e->edgeStatusSet)){
-	  if(e->verbose)
-	    fprintf(stderr,"* Looking for status 0x%x only, found an edge with status 0x%x\n",
-		    e->edgeStatusSet, GetEdgeStatus(retEdge));
-	  retEdge = NULL;    // This stops us from exiting the loop */
+        if(e->verbose)
+          fprintf(stderr,"* Looking for status 0x%x only, found an edge with status 0x%x\n",
+                  e->edgeStatusSet, GetEdgeStatus(retEdge));
+        retEdge = NULL;    // This stops us from exiting the loop */
       }
       /* If we are iterating over raw edges, dive into teh raw edge list */
       /* assert((!retEdge->flags.bits.isRaw &&
-	      (retEdge->nextRawEdge != NULLINDEX)) ||
-	     (retEdge->flags.bits.isRaw &&
-	     (retEdge->nextRawEdge == NULLINDEX))); */
+         (retEdge->nextRawEdge != NULLINDEX)) ||
+         (retEdge->flags.bits.isRaw &&
+         (retEdge->nextRawEdge == NULLINDEX))); */
       if(retEdge && !retEdge->flags.bits.isRaw && e->rawOnly){
-	  if(e->verbose)
-	    fprintf(stderr,"* Looking for raw only, found a merged edge\n");
-	  e->nextRaw = r->nextRawEdge;
-	  retEdge = NULL;    // This stops us from exiting the loop */
+        if(e->verbose)
+          fprintf(stderr,"* Looking for raw only, found a merged edge\n");
+        e->nextRaw = r->nextRawEdge;
+        retEdge = NULL;    // This stops us from exiting the loop */
       }
     }
   }
@@ -1225,11 +1225,11 @@ void MergeAllGraphEdges(GraphCGW_T *graph, int includeGuides);
 
 /* MergeGraphEdges
    Input:  GraphCGW_T *graph    the edges manipulated are all in graph->edges
-           VA_TYPE(int) *inputEdges  of references to edges that link the
-           same two IDs, to be merged. The merged CIEdgeTs reference the
-           raw edges they incorporate by a singly linked list via the
-           nextRawEdge field.  The merged edges are marked as not raw.
-           The merged edges are APPENDED to the edges array.
+   VA_TYPE(int) *inputEdges  of references to edges that link the
+   same two IDs, to be merged. The merged CIEdgeTs reference the
+   raw edges they incorporate by a singly linked list via the
+   nextRawEdge field.  The merged edges are marked as not raw.
+   The merged edges are APPENDED to the edges array.
 
    The return value is the number of edges that this routine appended to
    the edges array.
@@ -1371,7 +1371,7 @@ int IsRepeatOverlap(GraphCGW_T *graph,
 
 /* Check that edge with index eid is properly wired in the graph:
    - we find it when looking for it in both lists which it is supposed
-     to be a member
+   to be a member
    - we can walk backwards from the edge to the heads of the two lists
 */
 
@@ -1396,9 +1396,9 @@ Overlap* OverlapContigs(NodeCGW_T *contig1, NodeCGW_T *contig2,
                         CDS_COORD_t minAhang, CDS_COORD_t maxAhang,
                         int computeAhang);
 /*
-Overlap* OverlapContigsLocal(NodeCGW_T *contig1, NodeCGW_T *contig2, 
-                             ChunkOrientationType overlapOrientation,
-                             int minAhang, int maxAhang, int computeAhang);
+  Overlap* OverlapContigsLocal(NodeCGW_T *contig1, NodeCGW_T *contig2, 
+  ChunkOrientationType overlapOrientation,
+  int minAhang, int maxAhang, int computeAhang);
 */
 
 /* OverlapChunksWithMultipleCoverage:
@@ -1488,17 +1488,17 @@ void UpdateNodeUnitigs(MultiAlignT *ma, NodeCGW_T *contig);
 
 /* Compute the offset and orientation of a fragment in its chunk
    orientIsOpposite == TRUE
-     Offset is from 5p end of fragment to the end of the chunk in the
-     direction of the 3p end of the fragment.
+   Offset is from 5p end of fragment to the end of the chunk in the
+   direction of the 3p end of the fragment.
    orientIsOpposite == FALSE
-     Offset is from 5p end of fragment to the end of the chunk in the
-     direction of the 5p end of the fragment.
+   Offset is from 5p end of fragment to the end of the chunk in the
+   direction of the 5p end of the fragment.
 */
 /* orientIsOpposite:
-     TRUE if offset should be calculated from 5' towards end of
-       chunk closest to 3' end of fragment.  
-     FALSE if offset should be calculated from 5' towards end of
-       chunk closest to 5' end.
+   TRUE if offset should be calculated from 5' towards end of
+   chunk closest to 3' end of fragment.  
+   FALSE if offset should be calculated from 5' towards end of
+   chunk closest to 5' end.
 */
 int FragOffsetAndOrientation(CIFragT     *frag,
 			     NodeCGW_T *chunk,
@@ -1561,7 +1561,7 @@ int  MarkTandemEdge(GraphCGW_T *graph, EdgeCGW_T *edge);
    The fragments listed are marked for membership (via their CIid field) in
    the new element
    An empty fragments array is handled the same as fragments == NULL.
- */
+*/
 int32 SplitUnresolvedCI(GraphCGW_T *graph, CDS_CID_t nodeID,
                         VA_TYPE(CDS_CID_t) *fragments);
 
@@ -1579,7 +1579,7 @@ int32 SplitUnresolvedCI(GraphCGW_T *graph, CDS_CID_t nodeID,
    the split Contig being contained, are duplicated and assigned to the new
    contig.  If FALSE, only overlaps indicative of the contig CONTAINING
    another contig are duplicated and assigned.
- */
+*/
 int32 SplitUnresolvedContig(GraphCGW_T *graph, CDS_CID_t nodeID,
                             VA_TYPE(CDS_CID_t) *fragments,
                             int32 copyAllOverlaps);
@@ -1590,11 +1590,11 @@ UnitigOverlapType existsContainmentRelationship(NodeCGW_T *ci,
 
 /*
   ComputeMatePairStatistics:
-   Compute the mate pair distance distributions on either contigs
-   (operateOnContigs == TRUE) or Unitigs, optionally updating the
-   nominal values stored in the DistT records.
+  Compute the mate pair distance distributions on either contigs
+  (operateOnContigs == TRUE) or Unitigs, optionally updating the
+  nominal values stored in the DistT records.
 
-   Should also bucketize the data.
+  Should also bucketize the data.
 */
 
 #define UNITIG_OPERATIONS   0
@@ -1614,8 +1614,8 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
 CDS_CID_t GetOriginalContigID(CDS_CID_t contigID);
 
 /* IsDefinitielyUniqueContig
- Returns TRUE if this is either a multi-unitig contig, or a single unitig
- contig where the unitig has a coverageState above threshhold
+   Returns TRUE if this is either a multi-unitig contig, or a single unitig
+   contig where the unitig has a coverageState above threshhold
 */
 int32 IsDefinitelyUniqueContig(NodeCGW_T *contig);
 

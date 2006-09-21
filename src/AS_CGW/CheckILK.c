@@ -39,7 +39,7 @@
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
 
-VA_DEF(InternalLinkMesg)
+VA_DEF(InternalLinkMesg);
 
 VA_TYPE(InternalLinkMesg) *Links;
 
@@ -72,17 +72,17 @@ int main(void){
   Links = CreateVA_InternalLinkMesg(100);
   while(  (EOF != (reader)(stdin, &pmesg))){
     switch(pmesg->t){
-    case MESG_ILK:
-      links = pmesg->m;
-      if(links->ifrag1 > links->ifrag2){
-	tmp = links->ifrag1;
-	links->ifrag1 = links->ifrag2;
-	links->ifrag2 = tmp;
-      }
-      AppendInternalLinkMesg(Links, (InternalLinkMesg *)pmesg->m);
-      break;
-    default:
-      break;
+      case MESG_ILK:
+        links = pmesg->m;
+        if(links->ifrag1 > links->ifrag2){
+          tmp = links->ifrag1;
+          links->ifrag1 = links->ifrag2;
+          links->ifrag2 = tmp;
+        }
+        AppendInternalLinkMesg(Links, (InternalLinkMesg *)pmesg->m);
+        break;
+      default:
+        break;
     }
   }
 

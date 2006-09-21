@@ -37,7 +37,7 @@ typedef struct
   FragOrient orient;
 } OrientHolder;
 
-VA_DEF(OrientHolder)
+VA_DEF(OrientHolder);
 
 
 typedef struct

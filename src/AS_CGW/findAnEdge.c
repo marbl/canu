@@ -56,7 +56,7 @@
 
 void usage(char *pgm){
   fprintf (stderr, "USAGE:  %s -f <FragStoreName> -g <GatekeeperStoreName> -c <CkptFileName> -n <CkpPtNum>\n",
-		 pgm);
+           pgm);
 }
 
 int main (int argc , char * argv[] ) {
@@ -87,35 +87,35 @@ int main (int argc , char * argv[] ) {
     optarg = NULL;
     while (!errflg && ((ch = getopt(argc, argv,"c:f:g:n:")) != EOF)){
       switch(ch) {
-      case 'c':
-	strcpy( data->File_Name_Prefix, argv[optind - 1]);
-	setPrefixName = TRUE;		  
-	break;
-      case 'f':
-	strcpy( data->Frag_Store_Name, argv[optind - 1]);
-	setFragStore = TRUE;
-	break;
-      case 'g':
-	strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
-	setGatekeeperStore = TRUE;
-	break;	  
-      case 'n':
-	ckptNum = atoi(argv[optind - 1]);
-	break;
-      case '?':
-	fprintf(stderr,"Unrecognized option -%c",optopt);
-      default :
-	errflg++;
+        case 'c':
+          strcpy( data->File_Name_Prefix, argv[optind - 1]);
+          setPrefixName = TRUE;		  
+          break;
+        case 'f':
+          strcpy( data->Frag_Store_Name, argv[optind - 1]);
+          setFragStore = TRUE;
+          break;
+        case 'g':
+          strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
+          setGatekeeperStore = TRUE;
+          break;	  
+        case 'n':
+          ckptNum = atoi(argv[optind - 1]);
+          break;
+        case '?':
+          fprintf(stderr,"Unrecognized option -%c",optopt);
+        default :
+          errflg++;
       }
     }
 
     if((setPrefixName == FALSE) || (setFragStore == 0) || (setGatekeeperStore == 0) ){
-	fprintf(stderr,"* argc = %d optind = %d setFragStore = %d setGatekeeperStore = %d\n",
-		argc, optind, setFragStore,setGatekeeperStore);
+      fprintf(stderr,"* argc = %d optind = %d setFragStore = %d setGatekeeperStore = %d\n",
+              argc, optind, setFragStore,setGatekeeperStore);
 
-	usage(argv[0]);
-	exit (-1);
-      }
+      usage(argv[0]);
+      exit (-1);
+    }
   }
 
   ScaffoldGraph = 

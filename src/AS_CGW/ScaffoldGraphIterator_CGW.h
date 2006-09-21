@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: ScaffoldGraphIterator_CGW.h,v 1.4 2005-03-22 19:48:36 jason_miller Exp $ */
+/* $Id: ScaffoldGraphIterator_CGW.h,v 1.5 2006-09-21 21:34:00 brianwalenz Exp $ */
 /*****************************************************************************
  *  ScaffoldGraphIterators
  *  
@@ -76,13 +76,13 @@ typedef struct {
 
 
 static void InitCIEdgeTIterator(ScaffoldGraphT *graph,
-				  CDS_CID_t cid,
-			     	  int rawOnly,      // if TRUE, raw Edges, if FALSE merged
-				  int confirmedOnly,
-				  int end, 
-				  int edgeStatusSet,
-				  int verbose,
-				  CIEdgeTIterator *e){
+                                CDS_CID_t cid,
+                                int rawOnly,      // if TRUE, raw Edges, if FALSE merged
+                                int confirmedOnly,
+                                int end, 
+                                int edgeStatusSet,
+                                int verbose,
+                                CIEdgeTIterator *e){
   ChunkInstanceT *CI;
 
   assert(graph && e);
@@ -101,8 +101,8 @@ static void InitCIEdgeTIterator(ScaffoldGraphT *graph,
   e->edgeStatusSet = edgeStatusSet;
   e->cid = cid;
   if(e->verbose)
-  fprintf(stderr,"* Iterator for CI " F_CID " end %d head = " F_CID " confirmed:%d raw:%d \n",
-	  cid, e->end, e->next,e->confirmedOnly, e->rawOnly);
+    fprintf(stderr,"* Iterator for CI " F_CID " end %d head = " F_CID " confirmed:%d raw:%d \n",
+            cid, e->end, e->next,e->confirmedOnly, e->rawOnly);
 }
 
 
@@ -114,7 +114,7 @@ static CIEdgeT *NextCIEdgeTIterator(CIEdgeTIterator *e){
 
   if(e->verbose)
     fprintf(stderr,"* NextCIEdgeTIterator nextRaw:" F_CID " prev:" F_CID " curr:" F_CID " next:" F_CID "\n",
-	  e->nextRaw, e->prev, e->curr, e->next);
+            e->nextRaw, e->prev, e->curr, e->next);
 
   if(e->nextRaw == NULLINDEX){
     if(e->currRaw != NULLINDEX){ // do this once
@@ -168,30 +168,30 @@ static CIEdgeT *NextCIEdgeTIterator(CIEdgeTIterator *e){
       /* Check for correct end and confirmed status */
       switch(orient){
 	/* EdgeMate from the A-End */
-      case BA_BA:
-      case BA_AB:
-	if((e->end & A_END) &&
-	   (e->confirmedOnly == 0 || isConfirmedEdge(r))){
-	  retEdge = r;
-	}else{
-	  if(e->verbose)
-	    fprintf(stderr,"* Skipping edge (" F_CID "," F_CID ") with orient:%c orientWRT %c (e->end&A_END) = %d confirmedOnly = %d\n",
-		    r->idA, r->idB, r->orient, orient,e->end&A_END, e->confirmedOnly);
-	}
-	break;
-      case AB_BA:
-      case AB_AB:
-	if((e->end & B_END) &&
-	   (e->confirmedOnly == 0 || isConfirmedEdge(r))){
-	  retEdge = r;
-	}else{
-	  if(e->verbose)
-	    fprintf(stderr,"* Skipping edge (" F_CID "," F_CID ") with orient %c orientWRT:%c (e->end&B_END) = %d confirmedOnly = %d\n",
-		     r->idA, r->idB, r->orient, orient, e->end&B_END, e->confirmedOnly);
-	}
-	break;
-      default:
-	assert(0);
+        case BA_BA:
+        case BA_AB:
+          if((e->end & A_END) &&
+             (e->confirmedOnly == 0 || isConfirmedEdge(r))){
+            retEdge = r;
+          }else{
+            if(e->verbose)
+              fprintf(stderr,"* Skipping edge (" F_CID "," F_CID ") with orient:%c orientWRT %c (e->end&A_END) = %d confirmedOnly = %d\n",
+                      r->idA, r->idB, r->orient, orient,e->end&A_END, e->confirmedOnly);
+          }
+          break;
+        case AB_BA:
+        case AB_AB:
+          if((e->end & B_END) &&
+             (e->confirmedOnly == 0 || isConfirmedEdge(r))){
+            retEdge = r;
+          }else{
+            if(e->verbose)
+              fprintf(stderr,"* Skipping edge (" F_CID "," F_CID ") with orient %c orientWRT:%c (e->end&B_END) = %d confirmedOnly = %d\n",
+                      r->idA, r->idB, r->orient, orient, e->end&B_END, e->confirmedOnly);
+          }
+          break;
+        default:
+          assert(0);
       }
       e->prev = e->curr;
       e->curr = e->next;
@@ -205,21 +205,21 @@ static CIEdgeT *NextCIEdgeTIterator(CIEdgeTIterator *e){
       // Found a top level (not a raw under a merged) that is inappropriate
       // Only top level edges are marked with status values
       if(retEdge && !((uint32)GetEdgeStatus(retEdge) & (uint32)e->edgeStatusSet)){
-	  if(e->verbose)
-	    fprintf(stderr,"* Looking for status 0x%x only, found an edge with status 0x%x\n",
-		    e->edgeStatusSet, GetEdgeStatus(retEdge));
-	  retEdge = NULL;    // This stops us from exiting the loop */
+        if(e->verbose)
+          fprintf(stderr,"* Looking for status 0x%x only, found an edge with status 0x%x\n",
+                  e->edgeStatusSet, GetEdgeStatus(retEdge));
+        retEdge = NULL;    // This stops us from exiting the loop */
       }
       /* If we are iterating over raw edges, dive into teh raw edge list */
       /* assert((!retEdge->flags.bits.isRaw &&
-	      (retEdge->nextRawEdge != NULLINDEX)) ||
-	     (retEdge->flags.bits.isRaw &&
-	     (retEdge->nextRawEdge == NULLINDEX))); */
+         (retEdge->nextRawEdge != NULLINDEX)) ||
+         (retEdge->flags.bits.isRaw &&
+         (retEdge->nextRawEdge == NULLINDEX))); */
       if(retEdge && !retEdge->flags.bits.isRaw && e->rawOnly){
-	  if(e->verbose)
-	    fprintf(stderr,"* Looking for raw only, found a merged edge\n");
-	  e->nextRaw = r->nextRawEdge;
-	  retEdge = NULL;    // This stops us from exiting the loop */
+        if(e->verbose)
+          fprintf(stderr,"* Looking for raw only, found a merged edge\n");
+        e->nextRaw = r->nextRawEdge;
+        retEdge = NULL;    // This stops us from exiting the loop */
       }
     }
   }
@@ -244,12 +244,12 @@ typedef CIEdgeTIterator SEdgeTIterator;
 
 
 static void InitSEdgeTIterator(ScaffoldGraphT *graph,
-				  CDS_CID_t sid,
-			     	  int rawOnly,      // if TRUE, raw Edges, if FALSE merged
-				  int confirmedOnly,
-				  int end, 
-				  int verbose,
-				  SEdgeTIterator *e){
+                               CDS_CID_t sid,
+                               int rawOnly,      // if TRUE, raw Edges, if FALSE merged
+                               int confirmedOnly,
+                               int end, 
+                               int verbose,
+                               SEdgeTIterator *e){
   CIScaffoldT *CIS;
 
   assert(graph && e);
@@ -268,8 +268,8 @@ static void InitSEdgeTIterator(ScaffoldGraphT *graph,
   e->edgeStatusSet = ALL_EDGES;
   e->cid = sid;
   if(verbose)
-  fprintf(stderr,"* Iterator for Scaffold " F_CID " end %d  head = " F_CID " end = %d  confirmed=%d\n",
-	  sid, end, e->next, e->end, e->confirmedOnly);
+    fprintf(stderr,"* Iterator for Scaffold " F_CID " end %d  head = " F_CID " end = %d  confirmed=%d\n",
+            sid, end, e->next, e->end, e->confirmedOnly);
 }
 
 /* *********************************************************************** */
@@ -327,8 +327,8 @@ static void InitCIScaffoldTIterator(ScaffoldGraphT *graph,
   e->verbose = verbose;
   e->sid = scaffold->id;
   if(verbose)
-  fprintf(stderr,"* Iterator for CIScaffold " F_CID " end = %s  head = " F_CID " scaffold (" F_CID "," F_CID ") \n",
-	  e->sid, (aEndToBEnd? "a->b": "b->a"), e->next, scaffold->info.Scaffold.AEndCI, scaffold->info.Scaffold.BEndCI);
+    fprintf(stderr,"* Iterator for CIScaffold " F_CID " end = %s  head = " F_CID " scaffold (" F_CID "," F_CID ") \n",
+            e->sid, (aEndToBEnd? "a->b": "b->a"), e->next, scaffold->info.Scaffold.AEndCI, scaffold->info.Scaffold.BEndCI);
 }
 
 
@@ -342,27 +342,27 @@ static ChunkInstanceT *NextCIScaffoldTIterator(CIScaffoldTIterator *e){
     return r;
   }
 
-    r = GetGraphNode(e->graph->RezGraph, e->next);
-    AssertPtr(r);
+  r = GetGraphNode(e->graph->RezGraph, e->next);
+  AssertPtr(r);
 
-    e->prev = e->curr;
-    e->curr = e->next;
-    if(e->aEndToBEnd){
-      e->next = r->BEndNext;
-    }else{
-      e->next = r->AEndNext;
-    }
+  e->prev = e->curr;
+  e->curr = e->next;
+  if(e->aEndToBEnd){
+    e->next = r->BEndNext;
+  }else{
+    e->next = r->AEndNext;
+  }
 
-    if(e->verbose){
-      if(r)
-	  fprintf(stderr,"* Found CI " F_CID " in scaffold " F_CID " next = " F_CID "\n",
-		  r->id, e->sid, e->next);
-      else
-	  fprintf(stderr,"* Found CI NULL in scaffold " F_CID "\n",
-		  r->id);
-    }
+  if(e->verbose){
+    if(r)
+      fprintf(stderr,"* Found CI " F_CID " in scaffold " F_CID " next = " F_CID "\n",
+              r->id, e->sid, e->next);
+    else
+      fprintf(stderr,"* Found CI NULL in scaffold " F_CID "\n",
+              r->id);
+  }
 
-    return r;
+  return r;
 }
 
 static ChunkInstanceT *PrevCIScaffoldTIterator(CIScaffoldTIterator *e){
@@ -375,27 +375,27 @@ static ChunkInstanceT *PrevCIScaffoldTIterator(CIScaffoldTIterator *e){
     return r;
   }
 
-    r = GetGraphNode(e->graph->RezGraph, e->prev);
-    AssertPtr(r);
+  r = GetGraphNode(e->graph->RezGraph, e->prev);
+  AssertPtr(r);
 
-    e->next = e->curr;
-    e->curr = e->prev;
-    if(e->aEndToBEnd){
-      e->prev = r->AEndNext;
-    }else{
-      e->prev = r->BEndNext;
-    }
+  e->next = e->curr;
+  e->curr = e->prev;
+  if(e->aEndToBEnd){
+    e->prev = r->AEndNext;
+  }else{
+    e->prev = r->BEndNext;
+  }
 
-    if(e->verbose){
-      if(r)
-	  fprintf(stderr,"* Found CI " F_CID " in scaffold " F_CID " next = " F_CID "\n",
-		  r->id, e->sid, e->next);
-      else
-	  fprintf(stderr,"* Found CI NULL in scaffold " F_CID "\n",
-		  r->id);
-    }
+  if(e->verbose){
+    if(r)
+      fprintf(stderr,"* Found CI " F_CID " in scaffold " F_CID " next = " F_CID "\n",
+              r->id, e->sid, e->next);
+    else
+      fprintf(stderr,"* Found CI NULL in scaffold " F_CID "\n",
+              r->id);
+  }
 
-    return r;
+  return r;
 }
 
 static ChunkInstanceT *GetNextFromCIScaffoldT(CIScaffoldTIterator *e){
@@ -506,10 +506,10 @@ typedef struct {
 
 
 static void InitContigTIterator(ScaffoldGraphT *graph,
-				    CDS_CID_t cid, 
-				    int aEndToBEnd,
-				    int verbose,
-				    ContigTIterator *e){
+                                CDS_CID_t cid, 
+                                int aEndToBEnd,
+                                int verbose,
+                                ContigTIterator *e){
   ContigT *contig = GetGraphNode(graph->ContigGraph, cid);
 
   assert(graph && e && contig);
@@ -522,8 +522,8 @@ static void InitContigTIterator(ScaffoldGraphT *graph,
   e->verbose = verbose;
   e->cid = cid;
   if(verbose)
-  fprintf(stderr,"* Iterator for Contig " F_CID " end = %s  head = " F_CID " scaffold (" F_CID "," F_CID ") \n",
-	  cid, (aEndToBEnd? "a->b": "b->a"), e->next, contig->info.Contig.AEndCI, contig->info.Contig.BEndCI);
+    fprintf(stderr,"* Iterator for Contig " F_CID " end = %s  head = " F_CID " scaffold (" F_CID "," F_CID ") \n",
+            cid, (aEndToBEnd? "a->b": "b->a"), e->next, contig->info.Contig.AEndCI, contig->info.Contig.BEndCI);
 }
 
 
@@ -540,27 +540,27 @@ static ChunkInstanceT *NextContigTIterator(ContigTIterator *e){
     return r;
   }
 
-    r = GetGraphNode(e->graph->CIGraph, e->next);
-    AssertPtr(r);
+  r = GetGraphNode(e->graph->CIGraph, e->next);
+  AssertPtr(r);
 
-    e->prev = e->curr;
-    e->curr = e->next;
-    if(e->aEndToBEnd){
-      e->next = r->BEndNext;
-    }else{
-      e->next = r->AEndNext;
-    }
+  e->prev = e->curr;
+  e->curr = e->next;
+  if(e->aEndToBEnd){
+    e->next = r->BEndNext;
+  }else{
+    e->next = r->AEndNext;
+  }
 
-    if(e->verbose){
-      if(r)
-	  fprintf(stderr,"* Found CI " F_CID " in contig " F_CID " next = " F_CID "\n",
-		  r->id, e->cid, e->next);
-      else
-	  fprintf(stderr,"* Found CI NULL in contig  " F_CID "\n",
-		  r->id);
-    }
+  if(e->verbose){
+    if(r)
+      fprintf(stderr,"* Found CI " F_CID " in contig " F_CID " next = " F_CID "\n",
+              r->id, e->cid, e->next);
+    else
+      fprintf(stderr,"* Found CI NULL in contig  " F_CID "\n",
+              r->id);
+  }
 
-    return r;
+  return r;
 }
 
 

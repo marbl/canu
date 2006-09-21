@@ -25,9 +25,9 @@
 
 
 typedef enum {
-   CGW_IN_SCAFFOLD = (int) 'S',
-   CGW_PLACED =      (int) 'P',
-   CGW_UNPLACED =    (int) 'U'
+  CGW_IN_SCAFFOLD = (int) 'S',
+  CGW_PLACED =      (int) 'P',
+  CGW_UNPLACED =    (int) 'U'
 } CIStatus; 
 
 typedef struct ChunkPlacement {

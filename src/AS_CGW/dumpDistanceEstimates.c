@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.10 2006-08-14 19:21:39 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.11 2006-09-21 21:34:01 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -381,7 +381,7 @@ dde_stats(int         operateOnNodes,
         dptr->sigma += (((double)dist)*(double)dist);
 
       }
-          }
+    }
 
     // Mark unitigs as potential Rocks and Stones
     if (operateOnNodes == UNITIG_OPERATIONS) {

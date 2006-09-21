@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: testOverlapContigs.c,v 1.5 2006-06-14 19:57:23 brianwalenz Exp $";
+static char CM_ID[] = "$Id: testOverlapContigs.c,v 1.6 2006-09-21 21:34:01 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -107,99 +107,99 @@ int main(int argc, char *argv[]){
     while (!errflg && ((ch = getopt(argc, argv,
                                     "f:g:n:c:")) != EOF)){
       switch(ch) {
-		case 'n':
-		  ckptNum = atoi(argv[optind - 1]);
-		  break;
-		case 'c':
-		{
-		  strcpy( data->File_Name_Prefix, argv[optind - 1]);
-		  setPrefixName = 1;
+        case 'n':
+          ckptNum = atoi(argv[optind - 1]);
+          break;
+        case 'c':
+          {
+            strcpy( data->File_Name_Prefix, argv[optind - 1]);
+            setPrefixName = 1;
 
-		}
-		break;
-		case 'f':
-		{
-		  strcpy( data->Frag_Store_Name, argv[optind - 1]);
-		  setFragStore = 1;
-		}
-		break;
-		case 'g':
-		{
-		  strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
-		  setGatekeeperStore = 1;
-		}
-		break;	  
-		case '?':
-		  fprintf(stderr,"Unrecognized option -%c",optopt);
-		default :
-		  errflg++;
+          }
+          break;
+        case 'f':
+          {
+            strcpy( data->Frag_Store_Name, argv[optind - 1]);
+            setFragStore = 1;
+          }
+          break;
+        case 'g':
+          {
+            strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
+            setGatekeeperStore = 1;
+          }
+          break;	  
+        case '?':
+          fprintf(stderr,"Unrecognized option -%c",optopt);
+        default :
+          errflg++;
       }
     }
     if((setPrefixName == FALSE) || (setFragStore == 0) || (setGatekeeperStore == 0))
-	{
-	  fprintf(stderr,"* argc = %d optind = %d setFragStore = %d setGatekeeperStore = %d outputPath = %s\n",
-                  argc, optind, setFragStore,setGatekeeperStore, outputPath);
-	  fprintf (stderr, "USAGE:  loadcgw -f <FragStoreName> -g <GatekeeperStoreName> -c <CkptFileName> -n <CkpPtNum>\n");
-	  exit (EXIT_FAILURE);
-	}
+      {
+        fprintf(stderr,"* argc = %d optind = %d setFragStore = %d setGatekeeperStore = %d outputPath = %s\n",
+                argc, optind, setFragStore,setGatekeeperStore, outputPath);
+        fprintf (stderr, "USAGE:  loadcgw -f <FragStoreName> -g <GatekeeperStoreName> -c <CkptFileName> -n <CkpPtNum>\n");
+        exit (EXIT_FAILURE);
+      }
   }
 
   ScaffoldGraph = LoadScaffoldGraphFromCheckpoint(data->File_Name_Prefix,
                                                   ckptNum, FALSE);    
 
   {
-	ChunkOrientationType olapOrient;
-	CDS_COORD_t minAhang, maxAhang;
-        int computeAhang, tryReverseComplement;
-	NodeCGW_T *contig1, *contig2;
-	NodeCGW_T *scaff;
+    ChunkOrientationType olapOrient;
+    CDS_COORD_t minAhang, maxAhang;
+    int computeAhang, tryReverseComplement;
+    NodeCGW_T *contig1, *contig2;
+    NodeCGW_T *scaff;
 
-	contig1 = GetGraphNode( ScaffoldGraph->ContigGraph, 2107284);
-	contig2 = GetGraphNode( ScaffoldGraph->ContigGraph, 3460124);
-	scaff = GetGraphNode( ScaffoldGraph->ScaffoldGraph,
-                              contig1->scaffoldID);
+    contig1 = GetGraphNode( ScaffoldGraph->ContigGraph, 2107284);
+    contig2 = GetGraphNode( ScaffoldGraph->ContigGraph, 3460124);
+    scaff = GetGraphNode( ScaffoldGraph->ScaffoldGraph,
+                          contig1->scaffoldID);
 
-	contig1->offsetAEnd.mean = 17585;
-	contig1->offsetBEnd.mean = 15614;
-	contig2->offsetAEnd.mean = 17473;
-	contig2->offsetBEnd.mean = 15827;
+    contig1->offsetAEnd.mean = 17585;
+    contig1->offsetBEnd.mean = 15614;
+    contig2->offsetAEnd.mean = 17473;
+    contig2->offsetBEnd.mean = 15827;
 	
-	ContigContainment( scaff, contig1, contig2, NULL, TRUE);
+    ContigContainment( scaff, contig1, contig2, NULL, TRUE);
   }
 
 #if 0
   {
-	ChunkOrientationType olapOrient;
-	CDS_COORD_t minAhang, maxAhang;
-        int computeAhang, tryReverseComplement;
-	NodeCGW_T *contig1, *contig2;
+    ChunkOrientationType olapOrient;
+    CDS_COORD_t minAhang, maxAhang;
+    int computeAhang, tryReverseComplement;
+    NodeCGW_T *contig1, *contig2;
 	
-	contig1 = GetGraphNode( ScaffoldGraph->ContigGraph, 2107284);
-	contig2 = GetGraphNode( ScaffoldGraph->ContigGraph, 3460124);
-	olapOrient = AB_AB;
-	computeAhang = TRUE;
-	tryReverseComplement = TRUE;
+    contig1 = GetGraphNode( ScaffoldGraph->ContigGraph, 2107284);
+    contig2 = GetGraphNode( ScaffoldGraph->ContigGraph, 3460124);
+    olapOrient = AB_AB;
+    computeAhang = TRUE;
+    tryReverseComplement = TRUE;
 	
-	OverlapContigs_test( contig1, contig2, &olapOrient,
-                             minAhang, maxAhang, computeAhang,
-                             tryReverseComplement);
+    OverlapContigs_test( contig1, contig2, &olapOrient,
+                         minAhang, maxAhang, computeAhang,
+                         tryReverseComplement);
   }
 
   {
-	ChunkOrientationType olapOrient;
-	CDS_COORD_t minAhang, maxAhang;
-        int computeAhang, tryReverseComplement;
-	NodeCGW_T *contig1, *contig2;
+    ChunkOrientationType olapOrient;
+    CDS_COORD_t minAhang, maxAhang;
+    int computeAhang, tryReverseComplement;
+    NodeCGW_T *contig1, *contig2;
 	
-	contig1 = GetGraphNode( ScaffoldGraph->ContigGraph, 2107284);
-	contig2 = GetGraphNode( ScaffoldGraph->ContigGraph, 3460124);
-	olapOrient = BA_BA;
-	computeAhang = TRUE;
-	tryReverseComplement = TRUE;
+    contig1 = GetGraphNode( ScaffoldGraph->ContigGraph, 2107284);
+    contig2 = GetGraphNode( ScaffoldGraph->ContigGraph, 3460124);
+    olapOrient = BA_BA;
+    computeAhang = TRUE;
+    tryReverseComplement = TRUE;
 	
-	OverlapContigs_test( contig1, contig2, &olapOrient,
-                             minAhang, maxAhang, computeAhang,
-                             tryReverseComplement);
+    OverlapContigs_test( contig1, contig2, &olapOrient,
+                         minAhang, maxAhang, computeAhang,
+                         tryReverseComplement);
   }
 #endif
 }
@@ -224,9 +224,9 @@ Overlap* OverlapContigs_test(NodeCGW_T *contig1, NodeCGW_T *contig2,
   fprintf( stderr, "in OverlapContigs_test\n");
 
   /*
-  fprintf( GlobalData->stderrc, "\ncomputing overlap for contig1: " F_CID " and contig2: " F_CID "\n", 
-           contig1->id, contig2->id);
-  fprintf( GlobalData->stderrc, "orientation is %c\n", (char) *overlapOrientation);
+    fprintf( GlobalData->stderrc, "\ncomputing overlap for contig1: " F_CID " and contig2: " F_CID "\n", 
+    contig1->id, contig2->id);
+    fprintf( GlobalData->stderrc, "orientation is %c\n", (char) *overlapOrientation);
   */
   
   erate = CGW_DP_ERATE;
@@ -235,29 +235,29 @@ Overlap* OverlapContigs_test(NodeCGW_T *contig1, NodeCGW_T *contig2,
 
   // if computeAhang is TRUE, allow a lot of slide in ahang
   if (computeAhang == TRUE)
-  {
-    minAhang = - (CDS_COORD_t) contig2->bpLength.mean;
-    maxAhang = (CDS_COORD_t) contig1->bpLength.mean;
-    // we subtract 3 because of an asymmetry in DP_COMPARE re AB_BA and BA_AB
-    minlen -= 3;  
-  }
+    {
+      minAhang = - (CDS_COORD_t) contig2->bpLength.mean;
+      maxAhang = (CDS_COORD_t) contig1->bpLength.mean;
+      // we subtract 3 because of an asymmetry in DP_COMPARE re AB_BA and BA_AB
+      minlen -= 3;  
+    }
   /* 
-	 fprintf( stderr, "computeAhang is %s\n", ((computeAhang == TRUE) ? "TRUE" : "FALSE"));
-	 fprintf( stderr, "minAhang is " F_COORD "\n", minAhang);
-	 fprintf( stderr, "maxAhang is " F_COORD "\n", maxAhang);
+     fprintf( stderr, "computeAhang is %s\n", ((computeAhang == TRUE) ? "TRUE" : "FALSE"));
+     fprintf( stderr, "minAhang is " F_COORD "\n", minAhang);
+     fprintf( stderr, "maxAhang is " F_COORD "\n", maxAhang);
   */
   if(consensus1 == NULL)
-  {
-    consensus1 = CreateVA_char(1024);
-    consensus2 = CreateVA_char(1024);
-    quality1 = CreateVA_char(1024);
-    quality2 = CreateVA_char(1024);
-  }else{
-    ResetVA_char(consensus1);
-    ResetVA_char(consensus2);
-    ResetVA_char(quality1);
-    ResetVA_char(quality2);
-  }
+    {
+      consensus1 = CreateVA_char(1024);
+      consensus2 = CreateVA_char(1024);
+      quality1 = CreateVA_char(1024);
+      quality2 = CreateVA_char(1024);
+    }else{
+      ResetVA_char(consensus1);
+      ResetVA_char(consensus2);
+      ResetVA_char(quality1);
+      ResetVA_char(quality2);
+    }
   // Get the consensus sequences for both chunks from the Store
   GetConsensus(ScaffoldGraph->RezGraph, contig1->id, consensus1, quality1);
   GetConsensus(ScaffoldGraph->RezGraph, contig2->id, consensus2, quality2);
@@ -266,7 +266,7 @@ Overlap* OverlapContigs_test(NodeCGW_T *contig1, NodeCGW_T *contig2,
   seq2 = Getchar(consensus2, 0);
 
   fprintf( stderr, "calling OverlapSequences with orient: %c, minAhang: " F_COORD ", maxAhang: " F_COORD "\n",
-		   *overlapOrientation, minAhang, maxAhang);
+           *overlapOrientation, minAhang, maxAhang);
 
   // tempOlap1 is a static down inside of DP_Compare
   tempOlap1 = OverlapSequences( seq1, seq2, *overlapOrientation,
@@ -274,48 +274,48 @@ Overlap* OverlapContigs_test(NodeCGW_T *contig1, NodeCGW_T *contig2,
                                 erate, thresh, minlen, AS_FIND_ALIGN);
 
   if (tempOlap1 != NULL)
-  {
-    fprintf( stderr,
-             F_CID ", " F_CID " ahang: " F_COORD ", bhang:" F_COORD "\n", 
-             contig1->id, contig2->id,
-             tempOlap1->begpos, tempOlap1->endpos);
-    return tempOlap1;
-  }
-  else
-  {
-    fprintf( stderr, F_CID ", " F_CID " do not overlap\n",
-             contig1->id, contig2->id);
-    // dumpContigInfo(contig1);
-    // dumpContigInfo(contig2);
-    
-    if ( tryReverseComplement == TRUE )
     {
-      ChunkOrientationType overlapOrientationTemp = *overlapOrientation;
-      
-      fprintf (stderr,
-               "trying reverse complementing " F_CID " and " F_CID "\n",
-               contig1->id, contig2->id);
-      
-      Complement_Seq( seq1 );
-      Complement_Seq( seq2 );
-      // *overlapOrientation = InvertEdgeOrient( (const ChunkOrientationType) overlapOrientationTemp );
-      
-      fprintf( stderr, "calling OverlapSequences with orient: %c, minAhang: " F_COORD ", maxAhang: " F_COORD "\n",
-               *overlapOrientation, minAhang, maxAhang);
-      
-      // tempOlap1 is a static down inside of DP_Compare
-      tempOlap1 = OverlapSequences( seq1, seq2, *overlapOrientation, minAhang, maxAhang, 
-                                    erate, thresh, minlen, AS_FIND_ALIGN);
-      
-      if (tempOlap1 != NULL)
-        return tempOlap1;
-      else
-        fprintf( stderr, F_CID ", " F_CID " do not overlap even when reverse complemented\n",
-                 contig1->id, contig2->id);
+      fprintf( stderr,
+               F_CID ", " F_CID " ahang: " F_COORD ", bhang:" F_COORD "\n", 
+               contig1->id, contig2->id,
+               tempOlap1->begpos, tempOlap1->endpos);
+      return tempOlap1;
     }
-    else
-      return NULL;	
-  }
+  else
+    {
+      fprintf( stderr, F_CID ", " F_CID " do not overlap\n",
+               contig1->id, contig2->id);
+      // dumpContigInfo(contig1);
+      // dumpContigInfo(contig2);
+    
+      if ( tryReverseComplement == TRUE )
+        {
+          ChunkOrientationType overlapOrientationTemp = *overlapOrientation;
+      
+          fprintf (stderr,
+                   "trying reverse complementing " F_CID " and " F_CID "\n",
+                   contig1->id, contig2->id);
+      
+          Complement_Seq( seq1 );
+          Complement_Seq( seq2 );
+          // *overlapOrientation = InvertEdgeOrient( (const ChunkOrientationType) overlapOrientationTemp );
+      
+          fprintf( stderr, "calling OverlapSequences with orient: %c, minAhang: " F_COORD ", maxAhang: " F_COORD "\n",
+                   *overlapOrientation, minAhang, maxAhang);
+      
+          // tempOlap1 is a static down inside of DP_Compare
+          tempOlap1 = OverlapSequences( seq1, seq2, *overlapOrientation, minAhang, maxAhang, 
+                                        erate, thresh, minlen, AS_FIND_ALIGN);
+      
+          if (tempOlap1 != NULL)
+            return tempOlap1;
+          else
+            fprintf( stderr, F_CID ", " F_CID " do not overlap even when reverse complemented\n",
+                     contig1->id, contig2->id);
+        }
+      else
+        return NULL;	
+    }
   return NULL;
 }
 
@@ -332,7 +332,7 @@ int straight_test(int waste)
   // contig 2107284
   strcpy ( seq1, "CTTCCTCTTCTTCTTCCTCTTCTTCCTTCTTCCTCTTCTCTCTTCTTCCTCTTCTTCTCCTTCTCCTCCTCCTTCTCCTCCTCCTCCTTCTTCTTCTTTTCTTCTTCTTCTTCCTATTCTTCTTCTCTTCCTCCTCCTCATTCTTCTTTTTCTGGCACAGTTGCACTACATAGCCCTGGTTAGCCTAAAACTCTCTATGTAGAACAGACTGGATTCTAAACAATTGAGATTTGCTTAATAATCTCATGAAATCCATTTGGGGATATATCTATTCATAACTATTTGGTCTATAGGACAAATTTTATAAGATAATTAATTGTATTTAGTCTGCTGGTAAATAAAAATAAATATTTAGATATAGGGGCACATTCTTGTGATCTCAGCACTTGGAAGGTAGAAGAGGGAAGATCAGGAATTCAAGGTCTAGAATTAAACTCATTGGCTATCAAGTCTAGCTAGAAGTCATGATTTTATAGTTAACACATAATTTTAAATTACTTAAAATGTAATTGAAAAACATAGATTAATGATTTGGTTTGATCTCATGCATGAATTGACAACTATGGTAAGTTTTATTGGTCTAATAGGTACATTACTATTCTTTGTAGTTTTATTTCAATTATTTTTCTTTCATATATCCTGACTACAGCTTCCCCTTCCTTCCTCTCGCCCAACCCCTTACCTCTTCTCTTTCCCAGATACACTCCTTTCCCCATGTCCTCCCATGAATATTAATTGAATACAATACAACAAGATACAATAATACCAGGCACACACCCTCACATCAAGGCTGGGCAAGACAACCAAGTAAGAGATAAAAACATCCCAAGTGCAGGGAAAAAAGACAGAAGCCCTCTTACTCCCACTATCTGAAGTCCTAAATAAATACACAAGTGTAAATATTAAACATGGATCTTTCAAATATACATTAGGAAAGTGTTCTCTTCAGGACACTTAGGAATTGCCAGGAAATGTATGGTTGTTGGGGATTGGTTCTAATGGTTTGTCTTAATTTGGCTCCCCAAATCACAGGAGAATCTGTGTGTTGAGATATTGAGAGTCCCTGTCCCCAGTTGGTTATCAATTGATTAATAAAGAGCCAACAGCCAATGACTGGGCAGGGTGAAAAATTCCCAGGAAAGAAACACAGAGGAAAGAAGGAACAGAAACACCATCATATGGAAGCAGGAAGATCAGACTTAAGAGCTATAGGATAGAAATCATCTAGCAATGAAGGTTCAAAGGGAAGCAGCCCCATGCAAGGACTGCCCAGAAGGAAACATGGCAGCAAAGATAAAATTAGATTTAGAAAGTATTAACTCAGGAATAATGAAGGGGAGTGTGTGCTAGTGGAGGGGAGATTTGGAAGTGCCCAACCACTGAGCTAGTTAAGGCAGATTAAATATAAAGGTTGCATGTGTGTCTGTTTTCATTTGAGAAAACAGTCCTTGGGTGGGTGTAGAGCCACATGCATCCACCAGGAGCATAGAGCAGCTATGAACAATTCACTGCTACATACACTAAGATCAAACTTAATAATGTAGCAAACCCTATAAAATAAGAATATATAGCAAGCCTAAAGAATAACAGAGAGAAAATGAAAACACAAATCAAGGAGTATACATGGGCTGTTTCATGACCTCAGGCACATGTATAACAGAAGACTGCCTTGTCTGCTCTCAGTAAGAGAAGCTGTACTTAATCCTGTTGAAATTTGATTCCCCAGGGTAGAGGGATGCAGGTAGGGTTGAGGTGAGGGTGGGTATGTGGGGGAGCGCTGTCTTAGAGGTGGATCAGGAATAGGGTTGATGGGGTGGAAAATTCGGGAGGAGGGACCAAGAAGGGAGTCAACTTTTGGAATGCAAATAAATAAAATAATTTAATAAAAAATACACGCATCAATTGATTGAATTCTGCTTGATCTTTTCAGTTGGTGTCACACATTGGAGGTTATGACAGGTTGGCAGAAAG");
   
-// contig 3460124
+  // contig 3460124
   strcpy ( seq2, "CTCCTCCTCCTCCTCCTCCTCCTTCTTCTTCTTCTTCTTCTTCTTCTTCTTCTTCTTCTTCTTCTTCTTTTCTTCTTCTTCTTCCTATTCTTCTTCTCTTCCTCCTCCTCATTCTTCTTTTTCTGGCACAGTTGCACTACATGGCCCTGGTTAGCCTAAAACTCTCTATGTAGACCAGACTGGATTCTAAATAATTGAGATTTGCATGGCTTTGCTTTCCAAGGTCTAGAATTAAACTCATTGGTTATCAAGTCTAGCTAGAAGTCATGATTTTATAGATAACACATAATTTTAAATTACTTAAGATGTAATTGAAAAACATAGATTAATGATTTGGTTTGATCTCATGCATGAATTGACAATTATGGTAAGTTTTATTGGTCTAATAGGTACATTATTATTCTTTGTAGTTTTATTTCAATTATTTTTCTTTCATATATCCTGACTATAGCTTCCCCTTCCTTCCTCTCCCCCAACCCCTTACCTCTTCTCTTTCCCAGATACACTCCTTTCCCCATGTCCTCCCATGAATAGTAATTGAATACAATACAACAAGATACAATAATACCAGGCACACACCCTCACATCAAGGCTGGGCAAGACAACCAAGTAAGAGATAAAAACATCCCAAGTGCAGGGAAAAGAGTCAGAGGCCCTCTTACTCCCACTATCTGGAGTCCTAAATAAATACACAAGTGTAAATATTAAACATGGATCTTTCAAATATACATTAGGAAAGTGTTCTCTTCAGGACACTTAGGAATTGCCAGGAAATGTATGGTTGTTGGGGATTGGTTCTAATGCTTTGCCTTAATTTGGCTCCCCAAATCACAGGAGAATCTGTGTGTTGAGATATTGAGAGTCCCGGTCCCCAGTTGGTTTTCAATTGATTAATAAAGAGCCAACAGCCAATGACTGGGCAGGGTGAAAAATTCCCAGGAAAGAAACAGAGGAAAGAAGGAACAGAAGCACCATCATGTGGAAGCAGGGAGATCAGACTTAAGAGCTATAGGATAGAAATCATCTAGCAATGTAGGTTCAAAGGGAAGGAGCCCCATGCGCGGACTGCCCAGAAGGAAACATGGCAGCAAAGATGAAATGAGATTTATAAAGTATTAACTCAGGAATAATGAAGGGGAGTGTGTGCTAGTGGAGGGGAGATTTGGAAGTGCCCAACCATTGAGCTAGTTAAGGCAGATTAAATATAAACGTTGCATGTATGTCTGTTTTCATTTGAGAAACCAGAGCTCTTGGGTGGGTGTAGAGCCACATGCATCCACCAGGAGCATAGAGCAGCTATGAACAATTCACTGCTACATACACTAAGATCAAACTTAATAATGTAGCAAACCCTATAAAATAAGAATATATAGCAAGCCCAAAGAATAACAGAGAGAAAATGAAAACACAAATCAAGGAGTATACATGGGCTGTTTCATGACCTCAGGCACATGTATAACAGAAGACTGCCTTGTCTGCTCTCAGTAAGAGAAGCTGTACTTAATCCTGTTGAAATTTGATTCCCCAGGGTAGAGGGATGCAGGTAGGGTTGAGGTGAGGGTGGGTATGTGGGGGAGCGCTGTCTTAGAGGTGGATCAGGAATAGGGTTGATGGGGTGGAAAACTCGGGAGGAGGGACCAAGAAGG");
 
   // Complement_Seq( seq0 );
@@ -354,21 +354,21 @@ int straight_test(int waste)
                                 erate, thresh, minlen, AS_FIND_ALIGN);
 
   if (tempOlap1 == NULL)
-	fprintf( stderr,
-                 "no overlap found between seq1 and seq2 in straight_test\n");
+    fprintf( stderr,
+             "no overlap found between seq1 and seq2 in straight_test\n");
   else
-	fprintf( stderr,
-                 "found overlap between seq1 and seq2 in straight_test\n");	
+    fprintf( stderr,
+             "found overlap between seq1 and seq2 in straight_test\n");	
 
   return 0;
 }
 
 /****************************************************************************/
 /*  
-	This function is meant to be called by LeastSquares to merge
-        together two contigs that have a containment relationship between them,
-	but it can actually handle dovetails.  If there is no overlap,
-        it asserts.
+    This function is meant to be called by LeastSquares to merge
+    together two contigs that have a containment relationship between them,
+    but it can actually handle dovetails.  If there is no overlap,
+    it asserts.
 */
 void ContigContainment_test(CIScaffoldT *scaffold,
                             NodeCGW_T *prevCI, NodeCGW_T *thisCI,
@@ -385,69 +385,69 @@ void ContigContainment_test(CIScaffoldT *scaffold,
   static VA_TYPE(IntElementPos) *ContigPositions = NULL;
 
   if(ContigPositions == NULL)
-  {
-    ContigPositions = CreateVA_IntElementPos(10);
-  }
+    {
+      ContigPositions = CreateVA_IntElementPos(10);
+    }
   ResetVA_IntElementPos(ContigPositions);
 
   if ( min( prevCI->offsetAEnd.mean, prevCI->offsetBEnd.mean) <= 
        min( thisCI->offsetAEnd.mean, thisCI->offsetBEnd.mean))
-  {
-    leftContig = prevCI;
-    rightContig = thisCI;
-  }
+    {
+      leftContig = prevCI;
+      rightContig = thisCI;
+    }
   else
-  {
-    leftContig = thisCI;
-    rightContig = prevCI;
-  }
+    {
+      leftContig = thisCI;
+      rightContig = prevCI;
+    }
 
   if(ContigPositions == NULL)
-  {
-    ContigPositions = CreateVA_IntElementPos(10);
-  }
+    {
+      ContigPositions = CreateVA_IntElementPos(10);
+    }
   ResetVA_IntElementPos(ContigPositions);
 
   if ( leftContig->offsetAEnd.mean < leftContig->offsetBEnd.mean)
-  {
-    // leftContig is AB
-    if ( rightContig->offsetAEnd.mean < rightContig->offsetBEnd.mean) 
     {
-      // rightContig is AB
-      overlapOrientation = AB_AB;
-      minAhang = (CDS_COORD_t) (rightContig->offsetAEnd.mean -
-                                leftContig->offsetAEnd.mean) - AHANGSLOP;
-      maxAhang = minAhang + (2 * AHANGSLOP);
+      // leftContig is AB
+      if ( rightContig->offsetAEnd.mean < rightContig->offsetBEnd.mean) 
+        {
+          // rightContig is AB
+          overlapOrientation = AB_AB;
+          minAhang = (CDS_COORD_t) (rightContig->offsetAEnd.mean -
+                                    leftContig->offsetAEnd.mean) - AHANGSLOP;
+          maxAhang = minAhang + (2 * AHANGSLOP);
+        }
+      else
+        {
+          // rightContig is BA
+          overlapOrientation = AB_BA;
+          minAhang = (CDS_COORD_t) (rightContig->offsetBEnd.mean -
+                                    leftContig->offsetAEnd.mean) - AHANGSLOP;
+          maxAhang = minAhang + (2 * AHANGSLOP);
+        }
     }
-    else
-    {
-      // rightContig is BA
-      overlapOrientation = AB_BA;
-      minAhang = (CDS_COORD_t) (rightContig->offsetBEnd.mean -
-                                leftContig->offsetAEnd.mean) - AHANGSLOP;
-      maxAhang = minAhang + (2 * AHANGSLOP);
-    }
-  }
   else
-  {
-    // leftContig is BA
-    if ( rightContig->offsetAEnd.mean < rightContig->offsetBEnd.mean)
     {
-      // rightContig is AB
-      overlapOrientation = BA_AB;
-      minAhang = (CDS_COORD_t) (rightContig->offsetAEnd.mean -
-                                leftContig->offsetBEnd.mean) - AHANGSLOP;
-      maxAhang = minAhang + (2 * AHANGSLOP);
+      // leftContig is BA
+      if ( rightContig->offsetAEnd.mean < rightContig->offsetBEnd.mean)
+        {
+          // rightContig is AB
+          overlapOrientation = BA_AB;
+          minAhang = (CDS_COORD_t) (rightContig->offsetAEnd.mean -
+                                    leftContig->offsetBEnd.mean) - AHANGSLOP;
+          maxAhang = minAhang + (2 * AHANGSLOP);
+        }
+      else 
+        {
+          // rightContig is BA
+          overlapOrientation = BA_BA;
+          minAhang = (CDS_COORD_t) (rightContig->offsetBEnd.mean -
+                                    leftContig->offsetBEnd.mean) - AHANGSLOP;
+          maxAhang = minAhang + (2 * AHANGSLOP);
+        }
     }
-    else 
-    {
-      // rightContig is BA
-      overlapOrientation = BA_BA;
-      minAhang = (CDS_COORD_t) (rightContig->offsetBEnd.mean -
-                                leftContig->offsetBEnd.mean) - AHANGSLOP;
-      maxAhang = minAhang + (2 * AHANGSLOP);
-    }
-  }
 
   overlapOrientation = BA_BA;
   
@@ -458,126 +458,126 @@ void ContigContainment_test(CIScaffoldT *scaffold,
                                   minAhang, maxAhang, TRUE);
 
   if ( tryHarder )
-  {
-    // if no overlap found, try flipping orientation in case DPCompare asymmetry is biting us
-    if (contigOverlap == NULL)
     {
-      fprintf( stderr, "no overlap found between " F_CID " and " F_CID ", retrying with flipped orientation\n",
-               leftContig->id, rightContig->id);
+      // if no overlap found, try flipping orientation in case DPCompare asymmetry is biting us
+      if (contigOverlap == NULL)
+        {
+          fprintf( stderr, "no overlap found between " F_CID " and " F_CID ", retrying with flipped orientation\n",
+                   leftContig->id, rightContig->id);
 	  
-      // try with the reverse orientation
-      overlapOrientation =
-        InvertEdgeOrient( (const ChunkOrientationType) overlapOrientation );
+          // try with the reverse orientation
+          overlapOrientation =
+            InvertEdgeOrient( (const ChunkOrientationType) overlapOrientation );
 	  
-      contigOverlap = OverlapContigs( leftContig, rightContig,
-                                      &overlapOrientation,
-                                      minAhang, maxAhang, TRUE);
+          contigOverlap = OverlapContigs( leftContig, rightContig,
+                                          &overlapOrientation,
+                                          minAhang, maxAhang, TRUE);
 	  
-      if ( contigOverlap != NULL)
-      {
-        CDS_COORD_t temp;
+          if ( contigOverlap != NULL)
+            {
+              CDS_COORD_t temp;
         
-        temp = -contigOverlap->begpos;
-        contigOverlap->begpos = -contigOverlap->endpos;
-        contigOverlap->endpos = temp;
-      }
-      // restore the orientation
-      // overlapOrientation = InvertEdgeOrient( (const ChunkOrientationType) overlapOrientation );
-    }
+              temp = -contigOverlap->begpos;
+              contigOverlap->begpos = -contigOverlap->endpos;
+              contigOverlap->endpos = temp;
+            }
+          // restore the orientation
+          // overlapOrientation = InvertEdgeOrient( (const ChunkOrientationType) overlapOrientation );
+        }
 	
-    // if still no overlap found, try maxing out hangs
-    if (contigOverlap == NULL)
-    {
-      CDS_COORD_t maxLength;
+      // if still no overlap found, try maxing out hangs
+      if (contigOverlap == NULL)
+        {
+          CDS_COORD_t maxLength;
       
-      fprintf( stderr, "no overlap found between " F_CID " and " F_CID ", retrying with max AHANGSLOP\n",
-               leftContig->id, rightContig->id);
+          fprintf( stderr, "no overlap found between " F_CID " and " F_CID ", retrying with max AHANGSLOP\n",
+                   leftContig->id, rightContig->id);
 	  
-      maxLength = max( leftContig->bpLength.mean, rightContig->bpLength.mean);
+          maxLength = max( leftContig->bpLength.mean, rightContig->bpLength.mean);
 	  
-      fprintf( stderr, "overlapOrientation: %c, minAhang: " F_COORD ", maxAhang: " F_COORD "\n", 
-               (char) overlapOrientation, -maxLength, maxLength);
+          fprintf( stderr, "overlapOrientation: %c, minAhang: " F_COORD ", maxAhang: " F_COORD "\n", 
+                   (char) overlapOrientation, -maxLength, maxLength);
 	  
-      contigOverlap = OverlapContigs( leftContig, rightContig,
-                                      &overlapOrientation,
-                                      -maxLength, maxLength, FALSE);	  
-    }
+          contigOverlap = OverlapContigs( leftContig, rightContig,
+                                          &overlapOrientation,
+                                          -maxLength, maxLength, FALSE);	  
+        }
   
-    // if still no overlap found, try flipping orientation and maxing out hangs
-    if (contigOverlap == NULL)
-    {
-      CDS_COORD_t maxLength;
+      // if still no overlap found, try flipping orientation and maxing out hangs
+      if (contigOverlap == NULL)
+        {
+          CDS_COORD_t maxLength;
       
-      fprintf( stderr, 
-               "no overlap found between " F_CID " and " F_CID ", retrying with flipped orientation and max AHANGSLOP\n",
-               leftContig->id, rightContig->id);
+          fprintf( stderr, 
+                   "no overlap found between " F_CID " and " F_CID ", retrying with flipped orientation and max AHANGSLOP\n",
+                   leftContig->id, rightContig->id);
 	  
-      maxLength = max( leftContig->bpLength.mean, rightContig->bpLength.mean);
+          maxLength = max( leftContig->bpLength.mean, rightContig->bpLength.mean);
 	  
-      // try with the reverse orientation
-      overlapOrientation =
-        InvertEdgeOrient( (const ChunkOrientationType) overlapOrientation );
+          // try with the reverse orientation
+          overlapOrientation =
+            InvertEdgeOrient( (const ChunkOrientationType) overlapOrientation );
 	  
-      fprintf( stderr, "overlapOrientation: %c, minAhang: " F_COORD ", maxAhang: " F_COORD "\n", 
-               (char) overlapOrientation, -maxLength, maxLength);
+          fprintf( stderr, "overlapOrientation: %c, minAhang: " F_COORD ", maxAhang: " F_COORD "\n", 
+                   (char) overlapOrientation, -maxLength, maxLength);
 	  
-      contigOverlap = OverlapContigs( leftContig, rightContig,
-                                      &overlapOrientation,
-                                      -maxLength, maxLength, FALSE);
+          contigOverlap = OverlapContigs( leftContig, rightContig,
+                                          &overlapOrientation,
+                                          -maxLength, maxLength, FALSE);
 	  
-      if ( contigOverlap != NULL)
-      {
-        CDS_COORD_t temp;
+          if ( contigOverlap != NULL)
+            {
+              CDS_COORD_t temp;
         
-        temp = -contigOverlap->begpos;
-        contigOverlap->begpos = -contigOverlap->endpos;
-        contigOverlap->endpos = temp;
-      }
+              temp = -contigOverlap->begpos;
+              contigOverlap->begpos = -contigOverlap->endpos;
+              contigOverlap->endpos = temp;
+            }
 	  
-      // restore the orientation
-      // overlapOrientation = InvertEdgeOrient( (const ChunkOrientationType) overlapOrientation );
+          // restore the orientation
+          // overlapOrientation = InvertEdgeOrient( (const ChunkOrientationType) overlapOrientation );
+        }
     }
-  }
 
   if (contigOverlap == NULL)
-  {
-    fprintf( stderr, "no overlap found between " F_CID " and " F_CID ", aborting...\n",
-             leftContig->id, rightContig->id);
-    dumpContigInfo(leftContig);
-    dumpContigInfo(rightContig);
-    assert(0);
-  }	
+    {
+      fprintf( stderr, "no overlap found between " F_CID " and " F_CID ", aborting...\n",
+               leftContig->id, rightContig->id);
+      dumpContigInfo(leftContig);
+      dumpContigInfo(rightContig);
+      assert(0);
+    }	
   
   if (contigOverlap->begpos < 0) // contigs need to be reversed
-  {
-    leftContig = thisCI;
-    rightContig = prevCI;
-    // adjust Overlap fields for later use in positioning
-    contigOverlap->begpos = - contigOverlap->begpos;
-    contigOverlap->endpos = - contigOverlap->endpos;	
-    
-    switch(overlapOrientation)
     {
-      case AB_AB:
-      case BA_BA:
-        actualOverlapOrientation = overlapOrientation;	  
-        break;
-      case AB_BA:
-        actualOverlapOrientation = BA_AB;
-        break;
-      case BA_AB:
-        actualOverlapOrientation = AB_BA;
-        break;
-      default:
-        assert(0);
+      leftContig = thisCI;
+      rightContig = prevCI;
+      // adjust Overlap fields for later use in positioning
+      contigOverlap->begpos = - contigOverlap->begpos;
+      contigOverlap->endpos = - contigOverlap->endpos;	
+    
+      switch(overlapOrientation)
+        {
+          case AB_AB:
+          case BA_BA:
+            actualOverlapOrientation = overlapOrientation;	  
+            break;
+          case AB_BA:
+            actualOverlapOrientation = BA_AB;
+            break;
+          case BA_AB:
+            actualOverlapOrientation = AB_BA;
+            break;
+          default:
+            assert(0);
+        }
+      fprintf( stderr, "* Switched right-left  orientation went from %c to %c\n",
+               overlapOrientation, actualOverlapOrientation);
     }
-    fprintf( stderr, "* Switched right-left  orientation went from %c to %c\n",
-             overlapOrientation, actualOverlapOrientation);
-  }
   else
-  {
-    actualOverlapOrientation = overlapOrientation;
-  }
+    {
+      actualOverlapOrientation = overlapOrientation;
+    }
   
   fprintf( stderr, "* Containing contig is " F_CID " contained contig is " F_CID " ahg:" F_COORD "  bhg:" F_COORD " orient:%c\n",
            leftContig->id, rightContig->id,
@@ -593,33 +593,33 @@ void ContigContainment_test(CIScaffoldT *scaffold,
   
   // assume we leave the leftContig where it is
   if ( actualOverlapOrientation == AB_AB)
-  {
-    rightContig->offsetAEnd.mean =
-      leftContig->offsetAEnd.mean + contigOverlap->begpos;
-    rightContig->offsetBEnd.mean =
-      rightContig->offsetAEnd.mean + rightContig->bpLength.mean;
-  }
+    {
+      rightContig->offsetAEnd.mean =
+        leftContig->offsetAEnd.mean + contigOverlap->begpos;
+      rightContig->offsetBEnd.mean =
+        rightContig->offsetAEnd.mean + rightContig->bpLength.mean;
+    }
   else if ( actualOverlapOrientation == AB_BA)
-  {
-    rightContig->offsetBEnd.mean =
-      leftContig->offsetAEnd.mean + contigOverlap->begpos;
-    rightContig->offsetAEnd.mean =
-      rightContig->offsetBEnd.mean + rightContig->bpLength.mean;
-  }
+    {
+      rightContig->offsetBEnd.mean =
+        leftContig->offsetAEnd.mean + contigOverlap->begpos;
+      rightContig->offsetAEnd.mean =
+        rightContig->offsetBEnd.mean + rightContig->bpLength.mean;
+    }
   else if ( actualOverlapOrientation == BA_AB)
-  {
-    rightContig->offsetAEnd.mean =
-      leftContig->offsetBEnd.mean + contigOverlap->begpos;
-    rightContig->offsetBEnd.mean =
-      rightContig->offsetAEnd.mean + rightContig->bpLength.mean;
-  }
+    {
+      rightContig->offsetAEnd.mean =
+        leftContig->offsetBEnd.mean + contigOverlap->begpos;
+      rightContig->offsetBEnd.mean =
+        rightContig->offsetAEnd.mean + rightContig->bpLength.mean;
+    }
   if ( actualOverlapOrientation == BA_BA)
-  {
-    rightContig->offsetBEnd.mean =
-      leftContig->offsetBEnd.mean + contigOverlap->begpos;
-    rightContig->offsetAEnd.mean =
-      rightContig->offsetBEnd.mean + rightContig->bpLength.mean;
-  }
+    {
+      rightContig->offsetBEnd.mean =
+        leftContig->offsetBEnd.mean + contigOverlap->begpos;
+      rightContig->offsetAEnd.mean =
+        rightContig->offsetBEnd.mean + rightContig->bpLength.mean;
+    }
   
   contigPos.ident = leftContig->id;
   contigPos.type = AS_CONTIG;
@@ -641,17 +641,17 @@ void ContigContainment_test(CIScaffoldT *scaffold,
   
   flip = (leftContig->offsetBEnd.mean < leftContig->offsetAEnd.mean);
   if(flip)
-  {
-    mergeStatus = CreateAContigInScaffold(scaffold, ContigPositions,
-                                          leftContig->offsetBEnd,
-                                          leftContig->offsetAEnd);
-  }
+    {
+      mergeStatus = CreateAContigInScaffold(scaffold, ContigPositions,
+                                            leftContig->offsetBEnd,
+                                            leftContig->offsetAEnd);
+    }
   else
-  {
-    mergeStatus = CreateAContigInScaffold(scaffold, ContigPositions,
-                                          leftContig->offsetAEnd,
-                                          leftContig->offsetBEnd);
-  }
+    {
+      mergeStatus = CreateAContigInScaffold(scaffold, ContigPositions,
+                                            leftContig->offsetAEnd,
+                                            leftContig->offsetBEnd);
+    }
   assert(mergeStatus == TRUE);
 }
 

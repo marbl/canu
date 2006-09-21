@@ -60,10 +60,10 @@ void ReadIMPFromFile(IntMultiPos * imp, FILE * fp)
   fread(&(imp->position), sizeof(imp->position), 1, fp);
   fread(&(imp->delta_length), sizeof(imp->delta_length), 1, fp);
   if(imp->delta_length > 0)
-  {
-    imp->delta = safe_malloc(imp->delta_length * sizeof(int32));
-    fread(imp->delta, sizeof(int32), imp->delta_length, fp);
-  }
+    {
+      imp->delta = safe_malloc(imp->delta_length * sizeof(int32));
+      fread(imp->delta, sizeof(int32), imp->delta_length, fp);
+    }
   else
     imp->delta = NULL;
 }
@@ -85,15 +85,15 @@ VA_TYPE(IntMultiPos) * ReadIMPsFromFile(FILE * fp)
   
   fread(&numIMPs, sizeof(numIMPs), 1, fp);
   if(numIMPs > 0)
-  {
-    imps = CreateVA_IntMultiPos(numIMPs);
-    for(i = 0; i < numIMPs; i++)
     {
-      IntMultiPos imp;
-      ReadIMPFromFile(&imp, fp);
-      AppendVA_IntMultiPos(imps, &imp);
+      imps = CreateVA_IntMultiPos(numIMPs);
+      for(i = 0; i < numIMPs; i++)
+        {
+          IntMultiPos imp;
+          ReadIMPFromFile(&imp, fp);
+          AppendVA_IntMultiPos(imps, &imp);
+        }
     }
-  }
   else
     imps = CreateVA_IntMultiPos(1);
   return imps;
@@ -117,10 +117,10 @@ void ReadIUPFromFile(IntUnitigPos * iup, FILE * fp)
   fread(&(iup->position), sizeof(iup->position), 1, fp);
   fread(&(iup->delta_length), sizeof(iup->delta_length), 1, fp);
   if(iup->delta_length > 0)
-  {
-    iup->delta = safe_malloc(iup->delta_length * sizeof(int32));
-    fread(iup->delta, sizeof(int32), iup->delta_length, fp);
-  }
+    {
+      iup->delta = safe_malloc(iup->delta_length * sizeof(int32));
+      fread(iup->delta, sizeof(int32), iup->delta_length, fp);
+    }
   else
     iup->delta = NULL;
 }
@@ -142,15 +142,15 @@ VA_TYPE(IntUnitigPos) * ReadIUPsFromFile(FILE * fp)
   
   fread(&numIUPs, sizeof(numIUPs), 1, fp);
   if(numIUPs > 0)
-  {
-    iups = CreateVA_IntUnitigPos(numIUPs);
-    for(i = 0; i < numIUPs; i++)
     {
-      IntUnitigPos iup;
-      ReadIUPFromFile(&iup, fp);
-      AppendVA_IntUnitigPos(iups, &iup);
+      iups = CreateVA_IntUnitigPos(numIUPs);
+      for(i = 0; i < numIUPs; i++)
+        {
+          IntUnitigPos iup;
+          ReadIUPFromFile(&iup, fp);
+          AppendVA_IntUnitigPos(iups, &iup);
+        }
     }
-  }
   else
     iups = CreateVA_IntUnitigPos(1);
   
@@ -215,7 +215,7 @@ int ReadMAFromFile(MultiAlignT * ma, FILE * fp)
 
 /*
   Cannibalized from MergeScaffolds(), primarily
- */
+*/
 void ReplaceOldScaffoldWithNew(CIScaffoldT * oldScaffold,
                                VA_TYPE(IEPish) * cCoords)
 {
@@ -248,15 +248,15 @@ void ReplaceOldScaffoldWithNew(CIScaffoldT * oldScaffold,
   
   // insert CIs into new scaffold
   for(i = 0; i < GetNumVA_IEPish(cCoords); i++)
-  {
-    IEPish * iep = GetVA_IEPish(cCoords, i);
+    {
+      IEPish * iep = GetVA_IEPish(cCoords, i);
     
-    InsertCIInScaffold(ScaffoldGraph,
-                       iep->ident,
-                       newScaffoldO.id,
-                       iep->aEnd, iep->bEnd,
-                       TRUE, ALL_CONTIGGING);
-  }
+      InsertCIInScaffold(ScaffoldGraph,
+                         iep->ident,
+                         newScaffoldO.id,
+                         iep->aEnd, iep->bEnd,
+                         TRUE, ALL_CONTIGGING);
+    }
 
   fprintf(stderr, "\t\tRemarking edges of scaffold " F_CID "\n",
           newScaffoldO.id);
@@ -269,30 +269,30 @@ void ReplaceOldScaffoldWithNew(CIScaffoldT * oldScaffold,
     while(recomputeIteration < 3 &&
           (status == RECOMPUTE_SINGULAR ||
            status == RECOMPUTE_CONTIGGED_CONTAINMENTS))
-    {
+      {
 #endif
-      // need to make sure scaffold is connected with trusted raw edges
-      MarkInternalEdgeStatus(ScaffoldGraph,
-                             GetGraphNode(ScaffoldGraph->ScaffoldGraph,
-                                          newScaffoldO.id),
-                             PAIRWISECHI2THRESHOLD_CGW,
-                             1000.0 * SLOPPY_EDGE_VARIANCE_THRESHHOLD,
-                             TRUE, TRUE, 0, TRUE);
+        // need to make sure scaffold is connected with trusted raw edges
+        MarkInternalEdgeStatus(ScaffoldGraph,
+                               GetGraphNode(ScaffoldGraph->ScaffoldGraph,
+                                            newScaffoldO.id),
+                               PAIRWISECHI2THRESHOLD_CGW,
+                               1000.0 * SLOPPY_EDGE_VARIANCE_THRESHHOLD,
+                               TRUE, TRUE, 0, TRUE);
 #ifdef NEVER
-      status =
-        RecomputeOffsetsInScaffold(ScaffoldGraph,
-                                   GetGraphNode(ScaffoldGraph->ScaffoldGraph,
-                                                newScaffoldO.id),
-                                   TRUE, TRUE, FALSE);
-      recomputeIteration++;
-    }
+        status =
+          RecomputeOffsetsInScaffold(ScaffoldGraph,
+                                     GetGraphNode(ScaffoldGraph->ScaffoldGraph,
+                                                  newScaffoldO.id),
+                                     TRUE, TRUE, FALSE);
+        recomputeIteration++;
+      }
     if(status != RECOMPUTE_OK)
-    {
-      fprintf(GlobalData->stderrc,
-              "\t\tReomputeOffsetsInScaffold failed (%d) "
-              "for scaffold " F_CID " in MergeScaffolds\n",
-              status, newScaffoldO.id);
-    }
+      {
+        fprintf(GlobalData->stderrc,
+                "\t\tReomputeOffsetsInScaffold failed (%d) "
+                "for scaffold " F_CID " in MergeScaffolds\n",
+                status, newScaffoldO.id);
+      }
 #endif
   }
 }
@@ -317,35 +317,35 @@ void PopulateContigUnitigCoords(ContigT * contig,
   
   InitContigTIterator(ScaffoldGraph, contig->id, flip, FALSE, &iterator);
   while((unitig = NextContigTIterator(&iterator)) != NULL)
-  {
-    IEPish iep;
-
-    iep.ident = unitig->id;
-
-    if(!flip)
     {
-      iep.aEnd.mean = contig->offsetAEnd.mean + unitig->offsetAEnd.mean;
-      iep.aEnd.variance =
-        contig->offsetAEnd.variance + unitig->offsetAEnd.variance;
+      IEPish iep;
+
+      iep.ident = unitig->id;
+
+      if(!flip)
+        {
+          iep.aEnd.mean = contig->offsetAEnd.mean + unitig->offsetAEnd.mean;
+          iep.aEnd.variance =
+            contig->offsetAEnd.variance + unitig->offsetAEnd.variance;
       
-      iep.bEnd.mean = contig->offsetAEnd.mean + unitig->offsetBEnd.mean;
-      iep.bEnd.variance =
-        contig->offsetAEnd.variance + unitig->offsetBEnd.variance;
-    }
-    else
-    {
-      iep.aEnd.mean = contig->offsetBEnd.mean +
-        contig->bpLength.mean - unitig->offsetAEnd.mean;
-      iep.aEnd.variance = contig->offsetBEnd.variance +
-        contig->bpLength.variance - unitig->offsetAEnd.variance;
+          iep.bEnd.mean = contig->offsetAEnd.mean + unitig->offsetBEnd.mean;
+          iep.bEnd.variance =
+            contig->offsetAEnd.variance + unitig->offsetBEnd.variance;
+        }
+      else
+        {
+          iep.aEnd.mean = contig->offsetBEnd.mean +
+            contig->bpLength.mean - unitig->offsetAEnd.mean;
+          iep.aEnd.variance = contig->offsetBEnd.variance +
+            contig->bpLength.variance - unitig->offsetAEnd.variance;
       
-      iep.bEnd.mean = contig->offsetBEnd.mean +
-        contig->bpLength.mean - unitig->offsetBEnd.mean;
-      iep.bEnd.variance = contig->offsetBEnd.variance +
-        contig->bpLength.variance - unitig->offsetBEnd.variance;
+          iep.bEnd.mean = contig->offsetBEnd.mean +
+            contig->bpLength.mean - unitig->offsetBEnd.mean;
+          iep.bEnd.variance = contig->offsetBEnd.variance +
+            contig->bpLength.variance - unitig->offsetBEnd.variance;
+        }
+      AppendVA_IEPish(uCoords, &iep);
     }
-    AppendVA_IEPish(uCoords, &iep);
-  }
   qsort(GetVA_IEPish(uCoords, 0),
         GetNumVA_IEPish(uCoords),
         sizeof(IEPish),
@@ -366,27 +366,27 @@ void PopulateContigScaffoldCoords(CIScaffoldT * scaffold,
   // iterate over contigs in this scaffold
   InitCIScaffoldTIterator(ScaffoldGraph, scaffold, TRUE, FALSE, &CIsTemp);
   while((contig = NextCIScaffoldTIterator(&CIsTemp)) != NULL)
-  {
-    VA_TYPE(IEPish) * uCoords;
-    if((uCoords = LookupInHashTable_AS(zlfCUOs,
-                                       (void *) &(contig->id),
-                                       sizeof(int32))) != NULL)
     {
-      int i;
-      for(i = 0; i < GetNumVA_IEPish(uCoords); i++)
-      {
-        AppendVA_IEPish(cCoords, GetVA_IEPish(uCoords, i));
-      }
+      VA_TYPE(IEPish) * uCoords;
+      if((uCoords = LookupInHashTable_AS(zlfCUOs,
+                                         (void *) &(contig->id),
+                                         sizeof(int32))) != NULL)
+        {
+          int i;
+          for(i = 0; i < GetNumVA_IEPish(uCoords); i++)
+            {
+              AppendVA_IEPish(cCoords, GetVA_IEPish(uCoords, i));
+            }
+        }
+      else
+        {
+          IEPish iep;
+          iep.ident = contig->id;
+          iep.aEnd = contig->offsetAEnd;
+          iep.bEnd = contig->offsetBEnd;
+          AppendVA_IEPish(cCoords, &iep);
+        }
     }
-    else
-    {
-      IEPish iep;
-      iep.ident = contig->id;
-      iep.aEnd = contig->offsetAEnd;
-      iep.bEnd = contig->offsetBEnd;
-      AppendVA_IEPish(cCoords, &iep);
-    }
-  }
 }
 
 
@@ -395,11 +395,11 @@ MultiAlignT * GetZLFUMA(ZLFContig * zlfContig, CDS_CID_t unitigID)
 {
   int32 i;
   for(i = 0; i < GetNumVA_MultiAlignT(zlfContig->zlfUMAs); i++)
-  {
-    MultiAlignT * zlfUMA  = GetVA_MultiAlignT(zlfContig->zlfUMAs, i);
-    if(unitigID == zlfUMA->id)
-      return zlfUMA;
-  }
+    {
+      MultiAlignT * zlfUMA  = GetVA_MultiAlignT(zlfContig->zlfUMAs, i);
+      if(unitigID == zlfUMA->id)
+        return zlfUMA;
+    }
   return NULL;
 }
 
@@ -409,140 +409,140 @@ void UpdateFragLinkFlags(CIFragT * frag,
 {
   CDS_CID_t fragIndex = GetVAIndex_CIFragT(ScaffoldGraph->CIFrags, frag);
   if(frag->numLinks == 0)
-  {
-    assert(frag->mateOf == NULLINDEX);
-    return;
-  }
+    {
+      assert(frag->mateOf == NULLINDEX);
+      return;
+    }
   
   if(frag->flags.bits.getLinksFromStore)
-  {
-    GateKeeperLinkRecordIterator GKPLinks;
-    GateKeeperLinkRecord GKPLink;
-    int prevSetting;
-    int newSetting;
+    {
+      GateKeeperLinkRecordIterator GKPLinks;
+      GateKeeperLinkRecord GKPLink;
+      int prevSetting;
+      int newSetting;
 
-    if(node->flags.bits.isContig)
-    {
-      prevSetting = frag->flags.bits.hasInternalOnlyContigLinks;
-      frag->flags.bits.hasInternalOnlyContigLinks = TRUE;
-    }
-    else
-    {
-      prevSetting = frag->flags.bits.hasInternalOnlyCILinks;
-      frag->flags.bits.hasInternalOnlyCILinks = TRUE;
-    }
-    newSetting = TRUE;
-    
-    assert(frag->linkHead != NULLINDEX);
-    CreateGateKeeperLinkRecordIterator(ScaffoldGraph->gkpStore.lnkStore,
-                                       frag->linkHead,
-                                       fragIndex, &GKPLinks);
-    while(NextGateKeeperLinkRecordIterator(&GKPLinks, &GKPLink))
-    {
-      CIFragT * mfrag;
-      CDS_CID_t mfragIndex =
-        (fragIndex == GKPLink.frag1) ? GKPLink.frag2 : GKPLink.frag1;
-      
-      assert(fragIndex == GKPLink.frag1 || fragIndex == GKPLink.frag2 );
-
-      mfrag = GetCIFragT(ScaffoldGraph->CIFrags, mfragIndex);
       if(node->flags.bits.isContig)
-      {
-        if(frag->contigID != mfrag->contigID)
         {
-          frag->flags.bits.hasInternalOnlyContigLinks = FALSE;
-          newSetting = FALSE;
-          break;
+          prevSetting = frag->flags.bits.hasInternalOnlyContigLinks;
+          frag->flags.bits.hasInternalOnlyContigLinks = TRUE;
         }
-      }
       else
-      {
-        if(frag->cid != mfrag->cid)
         {
-          frag->flags.bits.hasInternalOnlyCILinks = FALSE;
-          newSetting = FALSE;
-          break;
+          prevSetting = frag->flags.bits.hasInternalOnlyCILinks;
+          frag->flags.bits.hasInternalOnlyCILinks = TRUE;
         }
-      }
-    }
-
-    if(prevSetting != newSetting && setMatesToo == TRUE)
-    {
-      // need to examine all mates & possibly reset their flags
+      newSetting = TRUE;
+    
+      assert(frag->linkHead != NULLINDEX);
       CreateGateKeeperLinkRecordIterator(ScaffoldGraph->gkpStore.lnkStore,
                                          frag->linkHead,
                                          fragIndex, &GKPLinks);
       while(NextGateKeeperLinkRecordIterator(&GKPLinks, &GKPLink))
-      {
-        CIFragT * mfrag = NULL;
-        int32 mfragIndex =
-          (fragIndex == GKPLink.frag1) ? GKPLink.frag2 : GKPLink.frag1;
-        ChunkInstanceT * ci;
+        {
+          CIFragT * mfrag;
+          CDS_CID_t mfragIndex =
+            (fragIndex == GKPLink.frag1) ? GKPLink.frag2 : GKPLink.frag1;
+      
+          assert(fragIndex == GKPLink.frag1 || fragIndex == GKPLink.frag2 );
 
-        if(mfragIndex != NULLINDEX)
+          mfrag = GetCIFragT(ScaffoldGraph->CIFrags, mfragIndex);
+          if(node->flags.bits.isContig)
+            {
+              if(frag->contigID != mfrag->contigID)
+                {
+                  frag->flags.bits.hasInternalOnlyContigLinks = FALSE;
+                  newSetting = FALSE;
+                  break;
+                }
+            }
+          else
+            {
+              if(frag->cid != mfrag->cid)
+                {
+                  frag->flags.bits.hasInternalOnlyCILinks = FALSE;
+                  newSetting = FALSE;
+                  break;
+                }
+            }
+        }
+
+      if(prevSetting != newSetting && setMatesToo == TRUE)
+        {
+          // need to examine all mates & possibly reset their flags
+          CreateGateKeeperLinkRecordIterator(ScaffoldGraph->gkpStore.lnkStore,
+                                             frag->linkHead,
+                                             fragIndex, &GKPLinks);
+          while(NextGateKeeperLinkRecordIterator(&GKPLinks, &GKPLink))
+            {
+              CIFragT * mfrag = NULL;
+              int32 mfragIndex =
+                (fragIndex == GKPLink.frag1) ? GKPLink.frag2 : GKPLink.frag1;
+              ChunkInstanceT * ci;
+
+              if(mfragIndex != NULLINDEX)
+                {
+                  mfrag = GetCIFragT(ScaffoldGraph->CIFrags, mfragIndex);
+                }
+        
+              if(node->flags.bits.isContig)
+                ci = GetGraphNode(ScaffoldGraph->ContigGraph, mfrag->contigID);
+              else
+                ci = GetGraphNode(ScaffoldGraph->CIGraph, mfrag->cid);
+              UpdateFragLinkFlags(mfrag, ci, FALSE);
+            }
+        }
+    }
+  else
+    {
+      CDS_CID_t mfragIndex = frag->mateOf;
+      CIFragT * mfrag = NULL;
+      int prevSetting;
+      int newSetting;
+    
+      if(mfragIndex != NULLINDEX)
         {
           mfrag = GetCIFragT(ScaffoldGraph->CIFrags, mfragIndex);
         }
-        
-        if(node->flags.bits.isContig)
-          ci = GetGraphNode(ScaffoldGraph->ContigGraph, mfrag->contigID);
-        else
-          ci = GetGraphNode(ScaffoldGraph->CIGraph, mfrag->cid);
-        UpdateFragLinkFlags(mfrag, ci, FALSE);
-      }
-    }
-  }
-  else
-  {
-    CDS_CID_t mfragIndex = frag->mateOf;
-    CIFragT * mfrag = NULL;
-    int prevSetting;
-    int newSetting;
-    
-    if(mfragIndex != NULLINDEX)
-    {
-      mfrag = GetCIFragT(ScaffoldGraph->CIFrags, mfragIndex);
-    }
-    if(node->flags.bits.isContig)
-    {
-      prevSetting = frag->flags.bits.hasInternalOnlyContigLinks;
-      if(frag->contigID == mfrag->contigID)
-      {
-        frag->flags.bits.hasInternalOnlyContigLinks = TRUE;
-        newSetting = TRUE;
-      }
-      else
-      {
-        frag->flags.bits.hasInternalOnlyContigLinks = FALSE;
-        newSetting = FALSE;
-      }
-    }
-    else
-    {
-      prevSetting = frag->flags.bits.hasInternalOnlyCILinks;
-      if(frag->cid == mfrag->cid)
-      {
-        frag->flags.bits.hasInternalOnlyContigLinks = TRUE;
-        newSetting = TRUE;
-      }
-      else
-      {
-        frag->flags.bits.hasInternalOnlyContigLinks = FALSE;
-        newSetting = FALSE;
-      }
-    }
-    if(prevSetting != newSetting && setMatesToo == TRUE)
-    {
-      ChunkInstanceT * ci;
-      
       if(node->flags.bits.isContig)
-        ci = GetGraphNode(ScaffoldGraph->ContigGraph, mfrag->contigID);
+        {
+          prevSetting = frag->flags.bits.hasInternalOnlyContigLinks;
+          if(frag->contigID == mfrag->contigID)
+            {
+              frag->flags.bits.hasInternalOnlyContigLinks = TRUE;
+              newSetting = TRUE;
+            }
+          else
+            {
+              frag->flags.bits.hasInternalOnlyContigLinks = FALSE;
+              newSetting = FALSE;
+            }
+        }
       else
-        ci = GetGraphNode(ScaffoldGraph->CIGraph, mfrag->cid);
+        {
+          prevSetting = frag->flags.bits.hasInternalOnlyCILinks;
+          if(frag->cid == mfrag->cid)
+            {
+              frag->flags.bits.hasInternalOnlyContigLinks = TRUE;
+              newSetting = TRUE;
+            }
+          else
+            {
+              frag->flags.bits.hasInternalOnlyContigLinks = FALSE;
+              newSetting = FALSE;
+            }
+        }
+      if(prevSetting != newSetting && setMatesToo == TRUE)
+        {
+          ChunkInstanceT * ci;
+      
+          if(node->flags.bits.isContig)
+            ci = GetGraphNode(ScaffoldGraph->ContigGraph, mfrag->contigID);
+          else
+            ci = GetGraphNode(ScaffoldGraph->CIGraph, mfrag->cid);
 
-      UpdateFragLinkFlags(mfrag, ci, FALSE);
+          UpdateFragLinkFlags(mfrag, ci, FALSE);
+        }
     }
-  }
 }
 
 
@@ -555,18 +555,18 @@ void UpdateNodeFragmentLinkFlags(GraphCGW_T * cGraph, ChunkInstanceT * node)
   
   /* Determine extremal fragments so we can label the fragments */
   for(findex = 0; findex < GetNumIntMultiPoss(localMA->f_list); findex++)
-  {
-    IntMultiPos *mp = GetIntMultiPos(localMA->f_list, findex);
-    CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags, (int32) mp->sourceInt);
+    {
+      IntMultiPos *mp = GetIntMultiPos(localMA->f_list, findex);
+      CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags, (int32) mp->sourceInt);
 
-    UpdateFragLinkFlags(frag, node, TRUE);
-  }
+      UpdateFragLinkFlags(frag, node, TRUE);
+    }
 }
 
 
 /*
   cannibalized from CreateAContigInScaffold, primarily
- */
+*/
 void CreateNewContigsFromUnitigs(ContigT * oldContig,
                                  ZLFContig * zlfContig,
                                  VA_TYPE(IEPish) * uCoords)
@@ -578,112 +578,112 @@ void CreateNewContigsFromUnitigs(ContigT * oldContig,
   
   zlfContig->zlfUsFound = 0;
   for(i = 0; i < GetNumVA_IEPish(uCoords); i++)
-  {
-    IEPish * iep = GetVA_IEPish(uCoords, i);
-    ChunkInstanceT * ci = GetGraphNode(ScaffoldGraph->CIGraph, iep->ident);
-    ContigT * contig = CreateNewGraphNode(ScaffoldGraph->ContigGraph);
-    MultiAlignT * zlfUMA;
-
-    fprintf(stderr, "\t\tNew singleton contig " F_CID " corresponds to unitig " F_CID "\n",
-            contig->id, ci->id);
-    
-    if((zlfUMA = GetZLFUMA(zlfContig, iep->ident)) != NULL)
     {
-      if(ci->flags.bits.isStoneSurrogate || ci->flags.bits.isWalkSurrogate)
-      {
-        fprintf(stderr,
-                "\t\tWARNING: Unitig " F_CID " in contig " F_CID " in scaffold " F_CID " "
-                "is a surrogate!\n",
-                ci->id, zlfContig->id, contig->scaffoldID);
-        fprintf(stderr, "\tUnsafe to replace unitig multialignment.\n");
-      }
-      else
-      {
-        int j;
-        ReadStructp fsread = new_ReadStruct();
+      IEPish * iep = GetVA_IEPish(uCoords, i);
+      ChunkInstanceT * ci = GetGraphNode(ScaffoldGraph->CIGraph, iep->ident);
+      ContigT * contig = CreateNewGraphNode(ScaffoldGraph->ContigGraph);
+      MultiAlignT * zlfUMA;
 
-        zlfContig->zlfUsFound++;
-        fprintf(stderr,
-                "\t\tChanging unitig " F_CID " multialignment in "
-                "contig " F_CID " in scaffold " F_CID "\n",
-                ci->id, zlfContig->id, oldContig->scaffoldID);
-
-        fprintf(stderr, "\t\tReverting fragments to CNS clear ranges.\n");
-        
-        // update fragment clear ranges
-        for(j = 0; j < GetNumVA_IntMultiPos(zlfUMA->f_list); j++)
+      fprintf(stderr, "\t\tNew singleton contig " F_CID " corresponds to unitig " F_CID "\n",
+              contig->id, ci->id);
+    
+      if((zlfUMA = GetZLFUMA(zlfContig, iep->ident)) != NULL)
         {
-          IntMultiPos * imp = GetVA_IntMultiPos(zlfUMA->f_list, j);
-          cds_uint32 preBgn, preEnd;
-          cds_uint32 postBgn, postEnd;
+          if(ci->flags.bits.isStoneSurrogate || ci->flags.bits.isWalkSurrogate)
+            {
+              fprintf(stderr,
+                      "\t\tWARNING: Unitig " F_CID " in contig " F_CID " in scaffold " F_CID " "
+                      "is a surrogate!\n",
+                      ci->id, zlfContig->id, contig->scaffoldID);
+              fprintf(stderr, "\tUnsafe to replace unitig multialignment.\n");
+            }
+          else
+            {
+              int j;
+              ReadStructp fsread = new_ReadStruct();
+
+              zlfContig->zlfUsFound++;
+              fprintf(stderr,
+                      "\t\tChanging unitig " F_CID " multialignment in "
+                      "contig " F_CID " in scaffold " F_CID "\n",
+                      ci->id, zlfContig->id, oldContig->scaffoldID);
+
+              fprintf(stderr, "\t\tReverting fragments to CNS clear ranges.\n");
+        
+              // update fragment clear ranges
+              for(j = 0; j < GetNumVA_IntMultiPos(zlfUMA->f_list); j++)
+                {
+                  IntMultiPos * imp = GetVA_IntMultiPos(zlfUMA->f_list, j);
+                  cds_uint32 preBgn, preEnd;
+                  cds_uint32 postBgn, postEnd;
           
-          getFragStore(ScaffoldGraph->fragStore,
-                       imp->ident, FRAG_S_ALL, fsread);
-          getClearRegion_ReadStruct(fsread,
-                                    &preBgn, &preEnd,
-                                    READSTRUCT_CNS);
-          getClearRegion_ReadStruct(fsread,
-                                    &postBgn, &postEnd,
-                                    READSTRUCT_CGW);
-          if(preBgn != postBgn || preEnd != postEnd)
-          {
-            fprintf(stderr,
-                    "\t\t\tFragment " F_IID " clear range reset "
-                    "from %u %u to %u %u\n",
-                    imp->ident, postBgn, postEnd, preBgn, preEnd);
-            setClearRegion_ReadStruct(fsread, preBgn, preEnd, READSTRUCT_CGW);
-            setFragStore(ScaffoldGraph->fragStore, imp->ident, fsread);
-          }
-        }
-        delete_ReadStruct(fsread);
+                  getFragStore(ScaffoldGraph->fragStore,
+                               imp->ident, FRAG_S_ALL, fsread);
+                  getClearRegion_ReadStruct(fsread,
+                                            &preBgn, &preEnd,
+                                            READSTRUCT_CNS);
+                  getClearRegion_ReadStruct(fsread,
+                                            &postBgn, &postEnd,
+                                            READSTRUCT_CGW);
+                  if(preBgn != postBgn || preEnd != postEnd)
+                    {
+                      fprintf(stderr,
+                              "\t\t\tFragment " F_IID " clear range reset "
+                              "from %u %u to %u %u\n",
+                              imp->ident, postBgn, postEnd, preBgn, preEnd);
+                      setClearRegion_ReadStruct(fsread, preBgn, preEnd, READSTRUCT_CGW);
+                      setFragStore(ScaffoldGraph->fragStore, imp->ident, fsread);
+                    }
+                }
+              delete_ReadStruct(fsread);
         
-        fprintf(stderr, "\t\tReplacing unitig multialignment.\n");
-        // revert to the old multialignment
-        {
-          UnloadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB,
-                                          zlfUMA->id, TRUE);
-          InsertMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB,
-                                        zlfUMA->id, TRUE, zlfUMA, FALSE);
+              fprintf(stderr, "\t\tReplacing unitig multialignment.\n");
+              // revert to the old multialignment
+              {
+                UnloadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB,
+                                                zlfUMA->id, TRUE);
+                InsertMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB,
+                                              zlfUMA->id, TRUE, zlfUMA, FALSE);
+              }
+            }
         }
-      }
+
+      // update the IEP for later use
+      iep->ident = contig->id;
+    
+      // update the unitig structure
+      ci->info.CI.contigID = contig->id;
+      ci->offsetAEnd.mean = ci->offsetAEnd.variance = 0;
+      ci->offsetBEnd = ci->bpLength;
+      ci->prevScaffoldID = ci->scaffoldID;
+      ci->scaffoldID = NULLINDEX;
+      ci->indexInScaffold = NULLINDEX;
+      ci->AEndNext = ci->BEndNext = NULLINDEX;
+
+      // set up the new contig
+      // several things are already initialized in CreateNewGraphNode()
+      contig->bpLength = ci->bpLength;
+      contig->offsetAEnd = ci->offsetAEnd;
+      contig->offsetBEnd = ci->offsetBEnd;
+      contig->info.Contig.AEndCI = contig->info.Contig.BEndCI = ci->id;
+      contig->info.Contig.numCI = 1;
+      contig->flags = oldContig->flags;
+      contig->flags.bits.includesFinishedBacFragments =
+        ci->flags.bits.includesFinishedBacFragments;
+    
+      // create contig multialign from the unitig's
+      DuplicateEntryInSequenceDB(ScaffoldGraph->sequenceDB,
+                                 ci->id, TRUE, // from is unitig
+                                 contig->id, FALSE, // to is contig
+                                 FALSE);
+    
+      // update fragments
+      // first FALSE means not to mark fragments as placed
+      // second FALSE means not to mark fragment unitig coords
+      UpdateNodeFragments(ScaffoldGraph->ContigGraph, contig->id, FALSE, FALSE);
+
+    
     }
-
-    // update the IEP for later use
-    iep->ident = contig->id;
-    
-    // update the unitig structure
-    ci->info.CI.contigID = contig->id;
-    ci->offsetAEnd.mean = ci->offsetAEnd.variance = 0;
-    ci->offsetBEnd = ci->bpLength;
-    ci->prevScaffoldID = ci->scaffoldID;
-    ci->scaffoldID = NULLINDEX;
-    ci->indexInScaffold = NULLINDEX;
-    ci->AEndNext = ci->BEndNext = NULLINDEX;
-
-    // set up the new contig
-    // several things are already initialized in CreateNewGraphNode()
-    contig->bpLength = ci->bpLength;
-    contig->offsetAEnd = ci->offsetAEnd;
-    contig->offsetBEnd = ci->offsetBEnd;
-    contig->info.Contig.AEndCI = contig->info.Contig.BEndCI = ci->id;
-    contig->info.Contig.numCI = 1;
-    contig->flags = oldContig->flags;
-    contig->flags.bits.includesFinishedBacFragments =
-      ci->flags.bits.includesFinishedBacFragments;
-    
-    // create contig multialign from the unitig's
-    DuplicateEntryInSequenceDB(ScaffoldGraph->sequenceDB,
-                               ci->id, TRUE, // from is unitig
-                               contig->id, FALSE, // to is contig
-                               FALSE);
-    
-    // update fragments
-    // first FALSE means not to mark fragments as placed
-    // second FALSE means not to mark fragment unitig coords
-    UpdateNodeFragments(ScaffoldGraph->ContigGraph, contig->id, FALSE, FALSE);
-
-    
-  }
 
   // delete the original contig & its edges
   fprintf(stderr, "\t\tDeleting original contig " F_CID "\n", oldContig->id);
@@ -692,31 +692,31 @@ void CreateNewContigsFromUnitigs(ContigT * oldContig,
   // create edges for new contigs
   fprintf(stderr, "\t\tCreating edges for new contigs\n");
   for(i = 0; i < GetNumVA_IEPish(uCoords); i++)
-  {
-    GraphEdgeStatT stats;
-    IEPish * iep = GetVA_IEPish(uCoords, i);
-    ContigT * contig = GetGraphNode(ScaffoldGraph->ContigGraph, iep->ident);
-    MultiAlignT * newMA =
-      LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB,
-                                    iep->ident, FALSE);
+    {
+      GraphEdgeStatT stats;
+      IEPish * iep = GetVA_IEPish(uCoords, i);
+      ContigT * contig = GetGraphNode(ScaffoldGraph->ContigGraph, iep->ident);
+      MultiAlignT * newMA =
+        LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB,
+                                      iep->ident, FALSE);
     
-    UpdateNodeUnitigs(newMA, contig);
+      UpdateNodeUnitigs(newMA, contig);
     
-    BuildGraphEdgesFromMultiAlign(ScaffoldGraph->ContigGraph,
-                                  contig, newMA, &stats, TRUE);
-    MergeNodeGraphEdges(ScaffoldGraph->ContigGraph, contig,
-                        FALSE, TRUE, FALSE);
-  }
+      BuildGraphEdgesFromMultiAlign(ScaffoldGraph->ContigGraph,
+                                    contig, newMA, &stats, TRUE);
+      MergeNodeGraphEdges(ScaffoldGraph->ContigGraph, contig,
+                          FALSE, TRUE, FALSE);
+    }
 
   if(zlfContig->zlfUsFound != GetNumVA_MultiAlignT(zlfContig->zlfUMAs))
-  {
-    fprintf(stderr,
-            "WARNING: Incorrect number of unitigs changed in contig " F_CID "\n",
-            zlfContig->id);
-    fprintf(stderr, "\t%d unitigs identified. %d unitigs changed.\n",
-            (int) GetNumVA_MultiAlignT(zlfContig->zlfUMAs),
-            zlfContig->zlfUsFound);
-  }
+    {
+      fprintf(stderr,
+              "WARNING: Incorrect number of unitigs changed in contig " F_CID "\n",
+              zlfContig->id);
+      fprintf(stderr, "\t%d unitigs identified. %d unitigs changed.\n",
+              (int) GetNumVA_MultiAlignT(zlfContig->zlfUMAs),
+              zlfContig->zlfUsFound);
+    }
 }
 
 
@@ -729,20 +729,20 @@ int ShiftContigsInScaffoldToMin0(CIScaffoldT * scaffold)
   // iterate over contigs in this scaffold
   InitCIScaffoldTIterator(ScaffoldGraph, scaffold, TRUE, FALSE, &CIsTemp);
   while((contig = NextCIScaffoldTIterator(&CIsTemp)) != NULL)
-  {
-    minOffset = min(minOffset, min(contig->offsetAEnd.mean,
-                                   contig->offsetBEnd.mean));
-  }
-  if(minOffset != 0)
-  {
-    InitCIScaffoldTIterator(ScaffoldGraph, scaffold, TRUE, FALSE, &CIsTemp);
-    while((contig = NextCIScaffoldTIterator(&CIsTemp)) != NULL)
     {
-      contig->offsetAEnd.mean -= minOffset;
-      contig->offsetBEnd.mean -= minOffset;
+      minOffset = min(minOffset, min(contig->offsetAEnd.mean,
+                                     contig->offsetBEnd.mean));
     }
-    return 1;
-  }
+  if(minOffset != 0)
+    {
+      InitCIScaffoldTIterator(ScaffoldGraph, scaffold, TRUE, FALSE, &CIsTemp);
+      while((contig = NextCIScaffoldTIterator(&CIsTemp)) != NULL)
+        {
+          contig->offsetAEnd.mean -= minOffset;
+          contig->offsetBEnd.mean -= minOffset;
+        }
+      return 1;
+    }
   return 0;
 }
 
@@ -752,171 +752,171 @@ int FixZLFContigs(VA_TYPE(ZLFScaffold) * zlfScaffolds,
 {
   /*
     For each zlfScaffold
-      For each zlfContig in the scaffold
-        break up the contig
-          revert to older MA for identified unitigs in this contig
-   */
+    For each zlfContig in the scaffold
+    break up the contig
+    revert to older MA for identified unitigs in this contig
+  */
   int scaffoldsFixed = 0;
   int i;
   static ScaffoldInstrumenter * si = NULL;
 
   fprintf(stderr, "Fixing scaffolds with messed up unitigs/contigs\n");
   for(i = 0; i < GetNumVA_ZLFScaffold(zlfScaffolds); i++)
-  {
-    int j;
-    ZLFScaffold * zlfScaffold = GetVA_ZLFScaffold(zlfScaffolds, i);
-    CIScaffoldT * scaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph,
-                                          zlfScaffold->id);
-    VA_TYPE(IEPish) * cCoords = NULL;
-    VA_TYPE(IEPish) ** cUOs = NULL;
-    HashTable_AS * zlfCUOs = NULL;
-
-    zlfScaffold->zlfContigsFound = 0;
-    if(scaffold == NULL ||
-       scaffold->flags.bits.isDead ||
-       scaffold->type != REAL_SCAFFOLD)
     {
-      fprintf(stderr, "\tScaffold " F_CID " is bad/dead/not real!\n",
-              zlfScaffold->id);
-      continue;
-    }
+      int j;
+      ZLFScaffold * zlfScaffold = GetVA_ZLFScaffold(zlfScaffolds, i);
+      CIScaffoldT * scaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph,
+                                            zlfScaffold->id);
+      VA_TYPE(IEPish) * cCoords = NULL;
+      VA_TYPE(IEPish) ** cUOs = NULL;
+      HashTable_AS * zlfCUOs = NULL;
+
+      zlfScaffold->zlfContigsFound = 0;
+      if(scaffold == NULL ||
+         scaffold->flags.bits.isDead ||
+         scaffold->type != REAL_SCAFFOLD)
+        {
+          fprintf(stderr, "\tScaffold " F_CID " is bad/dead/not real!\n",
+                  zlfScaffold->id);
+          continue;
+        }
     
-    cCoords = CreateVA_IEPish(100);
-    zlfCUOs =
-      CreateHashTable_int32_AS(GetNumVA_ZLFContig(zlfScaffold->zlfContigs));
+      cCoords = CreateVA_IEPish(100);
+      zlfCUOs =
+        CreateHashTable_int32_AS(GetNumVA_ZLFContig(zlfScaffold->zlfContigs));
 
-    cUOs =
-      (VA_TYPE(IEPish) **) safe_malloc(GetNumVA_ZLFContig(zlfScaffold->zlfContigs) *
-                                  sizeof(void *));
+      cUOs =
+        (VA_TYPE(IEPish) **) safe_malloc(GetNumVA_ZLFContig(zlfScaffold->zlfContigs) *
+                                         sizeof(void *));
 
-    fprintf(stderr, "\tFixing scaffold " F_CID "\n", scaffold->id);
+      fprintf(stderr, "\tFixing scaffold " F_CID "\n", scaffold->id);
 
 #ifdef NEVER
-    if(checkScaffolds)
-    {
-      fprintf(stderr,
-              "****************** INCOMING SCAFFOLD *****************\n");
-      DumpACIScaffold(stderr, ScaffoldGraph, scaffold, TRUE);
-
-      if(si == NULL)
-        si = CreateScaffoldInstrumenter(ScaffoldGraph, INST_OPT_ALL_MATES);
-      InstrumentScaffold(ScaffoldGraph, scaffold, si,
-                         InstrumenterVerbose3, stderr);
-    }
-#endif
-
-    
-    // need memory for unitig orders in each zlfContig
-    for(j = 0; j < GetNumVA_ZLFContig(zlfScaffold->zlfContigs); j++)
-    {
-      ZLFContig * zlfContig = GetVA_ZLFContig(zlfScaffold->zlfContigs, j);
-      ContigT * contig = GetGraphNode(ScaffoldGraph->ContigGraph,
-                                      zlfContig->id);
-
-      if(contig == NULL ||
-         contig->flags.bits.isDead)
-      {
-        fprintf(stderr, "WARNING: Contig " F_CID " not found in scaffold " F_CID "!\n",
-                zlfContig->id, zlfScaffold->id);
-        continue;
-      }
-      zlfScaffold->zlfContigsFound++;
-      
-      cUOs[j] = CreateVA_IEPish(10);
-      assert(cUOs[j] != NULL);
-      
-      // insert the contig ID & con/unitig order array in a hashtable
-      InsertInHashTable_AS(zlfCUOs,
-                           (void *) &(zlfContig->id),
-                           sizeof(int32),
-                           (void *) cUOs[j]);
-      
-      PopulateContigUnitigCoords(contig, cUOs[j]);
-      CreateNewContigsFromUnitigs(contig, zlfContig, cUOs[j]);
-    }
-    PopulateContigScaffoldCoords(scaffold, zlfCUOs, cCoords);
-    ReplaceOldScaffoldWithNew(scaffold, cCoords);
-
-    if(zlfScaffold->zlfContigsFound !=
-       GetNumVA_ZLFContig(zlfScaffold->zlfContigs))
-    {
-      fprintf(stderr,
-              "WARNING: Incorrect number of contigs found in scaffold " F_CID "\n",
-              zlfScaffold->id);
-      fprintf(stderr, "\t%d contigs identified. %d contigs found.\n",
-              (int) GetNumVA_MultiAlignT(zlfScaffold->zlfContigs),
-              zlfScaffold->zlfContigsFound);
-    }
-    
-    // NOTE: run scaffold checks here
-    if(checkScaffolds)
-    {
-      scaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph,
-                              GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph)-1);
-
-#ifdef NEVER
-      fprintf(stderr,
-              "****************** OUTGOING SCAFFOLD *****************\n");
-      DumpACIScaffold(stderr, ScaffoldGraph, scaffold, TRUE);
-      
-      InstrumentScaffold(ScaffoldGraph, scaffold, si,
-                         InstrumenterVerbose3, stderr);
-#endif
-      
-      fprintf(stderr, "****************** CheckCIScaffoldT:\n");
-      CheckCIScaffoldT(ScaffoldGraph,scaffold);
-      fprintf(stderr, "****************** CheckCIScaffoldTLength:\n");
-      CheckCIScaffoldTLength(ScaffoldGraph, scaffold);
-      fprintf(stderr, "****************** CheckLSScaffoldWierdnesses:\n");
-      CheckLSScaffoldWierdnesses("CHECK", ScaffoldGraph, scaffold);
-      fprintf(stderr, "****************** CheckScaffoldOrder:\n");
-      CheckScaffoldOrder(scaffold, ScaffoldGraph);
-      fprintf(stderr, "****************** CheckInternalEdgeStatus:\n");
-      CheckInternalEdgeStatus(ScaffoldGraph, scaffold,
-                              PAIRWISECHI2THRESHOLD_CGW,
-                              100000000000.0, 0, FALSE);
-      if(splitAsNeeded)
-      {
-        fprintf(stderr, "****************** RecomputeOffsetsInScaffold:\n");
-        RecomputeOffsetsInScaffold(ScaffoldGraph, scaffold,
-                                   TRUE, FALSE, FALSE);
-
-        // iterate over contigs to make sure min offset = 0
-        if(ShiftContigsInScaffoldToMin0(scaffold))
+      if(checkScaffolds)
         {
           fprintf(stderr,
-                  "RecomputeOffsetsInScaffold required contig shifting "
-                  "to maintain 0 offset\n");
+                  "****************** INCOMING SCAFFOLD *****************\n");
+          DumpACIScaffold(stderr, ScaffoldGraph, scaffold, TRUE);
+
+          if(si == NULL)
+            si = CreateScaffoldInstrumenter(ScaffoldGraph, INST_OPT_ALL_MATES);
+          InstrumentScaffold(ScaffoldGraph, scaffold, si,
+                             InstrumenterVerbose3, stderr);
         }
-        CheckCIScaffoldT(ScaffoldGraph,scaffold);
-        RecomputeOffsetsInScaffold(ScaffoldGraph, scaffold,
-                                   FALSE, FALSE, FALSE);
-        InstrumentScaffold(ScaffoldGraph, scaffold, si,
-                           InstrumenterVerbose3, stderr);
+#endif
+
+    
+      // need memory for unitig orders in each zlfContig
+      for(j = 0; j < GetNumVA_ZLFContig(zlfScaffold->zlfContigs); j++)
+        {
+          ZLFContig * zlfContig = GetVA_ZLFContig(zlfScaffold->zlfContigs, j);
+          ContigT * contig = GetGraphNode(ScaffoldGraph->ContigGraph,
+                                          zlfContig->id);
+
+          if(contig == NULL ||
+             contig->flags.bits.isDead)
+            {
+              fprintf(stderr, "WARNING: Contig " F_CID " not found in scaffold " F_CID "!\n",
+                      zlfContig->id, zlfScaffold->id);
+              continue;
+            }
+          zlfScaffold->zlfContigsFound++;
+      
+          cUOs[j] = CreateVA_IEPish(10);
+          assert(cUOs[j] != NULL);
+      
+          // insert the contig ID & con/unitig order array in a hashtable
+          InsertInHashTable_AS(zlfCUOs,
+                               (void *) &(zlfContig->id),
+                               sizeof(int32),
+                               (void *) cUOs[j]);
+      
+          PopulateContigUnitigCoords(contig, cUOs[j]);
+          CreateNewContigsFromUnitigs(contig, zlfContig, cUOs[j]);
+        }
+      PopulateContigScaffoldCoords(scaffold, zlfCUOs, cCoords);
+      ReplaceOldScaffoldWithNew(scaffold, cCoords);
+
+      if(zlfScaffold->zlfContigsFound !=
+         GetNumVA_ZLFContig(zlfScaffold->zlfContigs))
+        {
+          fprintf(stderr,
+                  "WARNING: Incorrect number of contigs found in scaffold " F_CID "\n",
+                  zlfScaffold->id);
+          fprintf(stderr, "\t%d contigs identified. %d contigs found.\n",
+                  (int) GetNumVA_MultiAlignT(zlfScaffold->zlfContigs),
+                  zlfScaffold->zlfContigsFound);
+        }
+    
+      // NOTE: run scaffold checks here
+      if(checkScaffolds)
+        {
+          scaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph,
+                                  GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph)-1);
+
+#ifdef NEVER
+          fprintf(stderr,
+                  "****************** OUTGOING SCAFFOLD *****************\n");
+          DumpACIScaffold(stderr, ScaffoldGraph, scaffold, TRUE);
+      
+          InstrumentScaffold(ScaffoldGraph, scaffold, si,
+                             InstrumenterVerbose3, stderr);
+#endif
+      
+          fprintf(stderr, "****************** CheckCIScaffoldT:\n");
+          CheckCIScaffoldT(ScaffoldGraph,scaffold);
+          fprintf(stderr, "****************** CheckCIScaffoldTLength:\n");
+          CheckCIScaffoldTLength(ScaffoldGraph, scaffold);
+          fprintf(stderr, "****************** CheckLSScaffoldWierdnesses:\n");
+          CheckLSScaffoldWierdnesses("CHECK", ScaffoldGraph, scaffold);
+          fprintf(stderr, "****************** CheckScaffoldOrder:\n");
+          CheckScaffoldOrder(scaffold, ScaffoldGraph);
+          fprintf(stderr, "****************** CheckInternalEdgeStatus:\n");
+          CheckInternalEdgeStatus(ScaffoldGraph, scaffold,
+                                  PAIRWISECHI2THRESHOLD_CGW,
+                                  100000000000.0, 0, FALSE);
+          if(splitAsNeeded)
+            {
+              fprintf(stderr, "****************** RecomputeOffsetsInScaffold:\n");
+              RecomputeOffsetsInScaffold(ScaffoldGraph, scaffold,
+                                         TRUE, FALSE, FALSE);
+
+              // iterate over contigs to make sure min offset = 0
+              if(ShiftContigsInScaffoldToMin0(scaffold))
+                {
+                  fprintf(stderr,
+                          "RecomputeOffsetsInScaffold required contig shifting "
+                          "to maintain 0 offset\n");
+                }
+              CheckCIScaffoldT(ScaffoldGraph,scaffold);
+              RecomputeOffsetsInScaffold(ScaffoldGraph, scaffold,
+                                         FALSE, FALSE, FALSE);
+              InstrumentScaffold(ScaffoldGraph, scaffold, si,
+                                 InstrumenterVerbose3, stderr);
       
 
-        fprintf(stderr,
-                "****************** CheckScaffoldConnectivityAndSplit:\n");
-        CheckScaffoldConnectivityAndSplit(ScaffoldGraph, scaffold,
-                                          ALL_TRUSTED_EDGES, FALSE);
-      }
-    }
+              fprintf(stderr,
+                      "****************** CheckScaffoldConnectivityAndSplit:\n");
+              CheckScaffoldConnectivityAndSplit(ScaffoldGraph, scaffold,
+                                                ALL_TRUSTED_EDGES, FALSE);
+            }
+        }
     
-    DeleteVA_IEPish(cCoords);
-    DeleteHashTable_AS(zlfCUOs);
-    for(j = 0; j < GetNumVA_ZLFContig(zlfScaffold->zlfContigs); j++)
-    {
-      DeleteVA_IEPish(cUOs[j]);
-    }
-    free(cUOs);
+      DeleteVA_IEPish(cCoords);
+      DeleteHashTable_AS(zlfCUOs);
+      for(j = 0; j < GetNumVA_ZLFContig(zlfScaffold->zlfContigs); j++)
+        {
+          DeleteVA_IEPish(cUOs[j]);
+        }
+      free(cUOs);
     
-    scaffoldsFixed++;
-  }
+      scaffoldsFixed++;
+    }
   if(scaffoldsFixed != GetNumVA_ZLFScaffold(zlfScaffolds))
-  {
-    fprintf(stderr, "WARNING: Incorrect number of scaffolds fixed!\n");
-    fprintf(stderr, "\t%d scaffolds identified. %d scaffolds fixed.\n",
-            (int) GetNumVA_MultiAlignT(zlfScaffolds), scaffoldsFixed);
-  }
+    {
+      fprintf(stderr, "WARNING: Incorrect number of scaffolds fixed!\n");
+      fprintf(stderr, "\t%d scaffolds identified. %d scaffolds fixed.\n",
+              (int) GetNumVA_MultiAlignT(zlfScaffolds), scaffoldsFixed);
+    }
   return scaffoldsFixed;
 }

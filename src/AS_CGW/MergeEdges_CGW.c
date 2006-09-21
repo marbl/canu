@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: MergeEdges_CGW.c,v 1.7 2006-06-14 19:57:23 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MergeEdges_CGW.c,v 1.8 2006-09-21 21:34:00 brianwalenz Exp $";
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -46,7 +46,7 @@ static char CM_ID[] = "$Id: MergeEdges_CGW.c,v 1.7 2006-06-14 19:57:23 brianwale
 //#define USE_MALLOC_FOR_ALLOC
 
 /* Check that another fragment besides the terminal fragment extends
- by at least the minimal detectable amount into the overlap region. */
+   by at least the minimal detectable amount into the overlap region. */
 static int ConfirmAnotherFragmentOverlap(GraphCGW_T *graph, 
 					 CDS_CID_t chunkID,
 					 int endB, 
@@ -68,8 +68,8 @@ static int ConfirmAnotherFragmentOverlap(GraphCGW_T *graph,
     maxOffset = -overlap;
   }
 #ifdef DEBUG_CONFIRM
-   fprintf(stderr,"* chunk = " F_CID " endB = %d minOffset = " F_COORD " maxoffset = " F_COORD " overlap = " F_COORD "\n",
-   chunkID, endB, minOffset, maxOffset,overlap);
+  fprintf(stderr,"* chunk = " F_CID " endB = %d minOffset = " F_COORD " maxoffset = " F_COORD " overlap = " F_COORD "\n",
+          chunkID, endB, minOffset, maxOffset,overlap);
 #endif
   
   /* Now we have to find if there are intraChunk or terminal fragments, other
@@ -93,14 +93,14 @@ static int ConfirmAnotherFragmentOverlap(GraphCGW_T *graph,
 	 (endB && (frag->label == AS_INTERCHUNK_B)) ||
 	 frag->label == AS_SINGLETON){
 #ifdef DEBUG_CONFIRM	
-	    fprintf(stderr,"* Skipping Extremal Frag " F_CID " with label %c\n",
-	      frag->iid, frag->label);
+        fprintf(stderr,"* Skipping Extremal Frag " F_CID " with label %c\n",
+                frag->iid, frag->label);
 #endif
 	continue;
       }
       if((overlap = IntervalsOverlap(frag->offset3p.mean, 
-				    frag->offset5p.mean, minOffset,
-				    maxOffset,  CGW_DP_MINLEN)) != 0){
+                                     frag->offset5p.mean, minOffset,
+                                     maxOffset,  CGW_DP_MINLEN)) != 0){
 	return TRUE;
       }
     }
@@ -125,94 +125,94 @@ static int ConfirmOverlap(GraphCGW_T *graph,
     return TRUE;
   }
 
- overlap = overlapEdge->distance.mean;
+  overlap = overlapEdge->distance.mean;
 
- if(mateEdge->flags.bits.hasExtremalAFrag){
-   if(mateEdge->orient == AB_BA || mateEdge->orient == AB_AB){
-     endB = TRUE; /* The fragment is on the B end of Chunk A */
-   }else{
-     endB = FALSE; /* On the A end of Chunk A */
-   }
-   goodOverlapA = ConfirmAnotherFragmentOverlap(graph, mateEdge->idA, endB,
-						overlap);
+  if(mateEdge->flags.bits.hasExtremalAFrag){
+    if(mateEdge->orient == AB_BA || mateEdge->orient == AB_AB){
+      endB = TRUE; /* The fragment is on the B end of Chunk A */
+    }else{
+      endB = FALSE; /* On the A end of Chunk A */
+    }
+    goodOverlapA = ConfirmAnotherFragmentOverlap(graph, mateEdge->idA, endB,
+                                                 overlap);
 #ifdef DEBUG_CONFIRM
-      if(goodOverlapA){
-	fprintf(stderr,"*3*  Confirming edge between chunks (" F_CID "," F_CID ") found overlap of " F_COORD "\n",
-	mateEdge->idA, mateEdge->idB, overlap);
-	}else{
-	fprintf(stderr,
-                "* Refuting edge between chunks (" F_CID "," F_CID ")\n",
-                mateEdge->idA, mateEdge->idB);
-	} 
+    if(goodOverlapA){
+      fprintf(stderr,"*3*  Confirming edge between chunks (" F_CID "," F_CID ") found overlap of " F_COORD "\n",
+              mateEdge->idA, mateEdge->idB, overlap);
+    }else{
+      fprintf(stderr,
+              "* Refuting edge between chunks (" F_CID "," F_CID ")\n",
+              mateEdge->idA, mateEdge->idB);
+    } 
 #endif
- }
- if(mateEdge->flags.bits.hasExtremalBFrag){
-   if(mateEdge->orient == AB_BA || mateEdge->orient == BA_BA){
-     endB = TRUE;  /* B end of Chunk B */
-   }else{
-     endB = FALSE;  /* A end of Chunk B */
-   }
-   goodOverlapB = ConfirmAnotherFragmentOverlap(graph, mateEdge->idB, endB,
-						overlap);
+  }
+  if(mateEdge->flags.bits.hasExtremalBFrag){
+    if(mateEdge->orient == AB_BA || mateEdge->orient == BA_BA){
+      endB = TRUE;  /* B end of Chunk B */
+    }else{
+      endB = FALSE;  /* A end of Chunk B */
+    }
+    goodOverlapB = ConfirmAnotherFragmentOverlap(graph, mateEdge->idB, endB,
+                                                 overlap);
 #ifdef DEBUG_CONFIRM
-     if(goodOverlapB){
-	fprintf(stderr,"*3*  Confirming edge between chunks (" F_CID "," F_CID ") found overlap of " F_COORD "\n",
-	mateEdge->idA, mateEdge->idB, overlap);
-	}else{
-	fprintf(stderr,
-                "* Refuting edge between chunks (" F_CID "," F_CID ")\n",
-                mateEdge->idA, mateEdge->idB);
-	} 
+    if(goodOverlapB){
+      fprintf(stderr,"*3*  Confirming edge between chunks (" F_CID "," F_CID ") found overlap of " F_COORD "\n",
+              mateEdge->idA, mateEdge->idB, overlap);
+    }else{
+      fprintf(stderr,
+              "* Refuting edge between chunks (" F_CID "," F_CID ")\n",
+              mateEdge->idA, mateEdge->idB);
+    } 
 #endif
- }
- return(goodOverlapA && goodOverlapB);
+  }
+  return(goodOverlapA && goodOverlapB);
 }
 
 
 #define CHI_SQUARED995_TABLE_SIZE 41
 /* This is the chiSquared threshholds for 0.995 probability */
 static double chiSquared995[CHI_SQUARED995_TABLE_SIZE /* index is degrees of freedom */] = {
-    0.0,        /* 0 degrees of freedom */
-    7.879,
-    10.597,
-    12.838,
-    14.860,
-    16.750,
-    18.548,
-    20.278,
-    21.955,
-    23.589,
-    25.188, /* 10 */
-    26.757,
-    28.299,
-    29.819,
-    31.319,
-    32.801,
-    34.267,
-    35.718,
-    37.156,
-    38.582,
-    39.997,/*20*/
-    41.401,
-    42.796,
-    44.181,
-    45.559,
-    46.928,
-    48.290,
-    49.645,
-    50.993,
-    52.336,
-    53.672,/* 30 */
-    55.003,
-    56.328,
-    57.648,
-    58.964,
-    60.275,
-    61.581,
-    62.883,
-    64.181,
-    65.476,
-    66.766   /* 40 */
+  0.0,        /* 0 degrees of freedom */
+  7.879,
+  10.597,
+  12.838,
+  14.860,
+  16.750,
+  18.548,
+  20.278,
+  21.955,
+  23.589,
+  25.188, /* 10 */
+  26.757,
+  28.299,
+  29.819,
+  31.319,
+  32.801,
+  34.267,
+  35.718,
+  37.156,
+  38.582,
+  39.997,/*20*/
+  41.401,
+  42.796,
+  44.181,
+  45.559,
+  46.928,
+  48.290,
+  49.645,
+  50.993,
+  52.336,
+  53.672,/* 30 */
+  55.003,
+  56.328,
+  57.648,
+  58.964,
+  60.275,
+  61.581,
+  62.883,
+  64.181,
+  65.476,
+  66.766   /* 40 */
 };
 
 /* ComputeChiSquared:
@@ -272,7 +272,7 @@ static void InitializeMergedEdge(CIEdgeT *newEdge, CIEdgeT *overlapEdgeAll,
   VA_TYPE(CIEdgeT) *edges = graph->edges;
   CDS_CID_t thisEdgeIndex;
   CIEdgeT *overlapEdge = NULL, 
-          *nonOverlapEdge = NULL;
+    *nonOverlapEdge = NULL;
   int numEdges = (int) GetNumCDS_CID_ts(inputEdges);
   CDS_CID_t edgeIndex;
 
@@ -305,28 +305,28 @@ static void InitializeMergedEdge(CIEdgeT *newEdge, CIEdgeT *overlapEdgeAll,
     EdgeStatus status = GetEdgeStatus(newEdge);
     switch(status){
       /* If this edge has a 'pure' status, leave it alone */
-    case UNKNOWN_EDGE_STATUS:
-    case UNTRUSTED_EDGE_STATUS:
-    case TENTATIVE_UNTRUSTED_EDGE_STATUS:
-    case TENTATIVE_TRUSTED_EDGE_STATUS:
-    case TRUSTED_EDGE_STATUS:
-    case LARGE_VARIANCE_EDGE_STATUS:
-    case INTER_SCAFFOLD_EDGE_STATUS:
-      break;
-    default:
-    /* TRUSTED dominates all but UNTRUSTED */
-      if(status & TRUSTED_EDGE_STATUS){
-	if(status & UNTRUSTED_EDGE_STATUS){
-	  SetGraphEdgeStatus(graph, newEdge, UNTRUSTED_EDGE_STATUS);
-	}else{
-	  SetGraphEdgeStatus(graph, newEdge, TRUSTED_EDGE_STATUS);
-	}
-	/* UNTRUSTED dominates everything else */
-      }else if(status & UNTRUSTED_EDGE_STATUS){
-	SetGraphEdgeStatus(graph, newEdge, UNTRUSTED_EDGE_STATUS);
-      }else{ /* Otherwise, if ambiguous, make it UNKNOWN */
-	SetGraphEdgeStatus(graph, newEdge, UNKNOWN_EDGE_STATUS);
-      }
+      case UNKNOWN_EDGE_STATUS:
+      case UNTRUSTED_EDGE_STATUS:
+      case TENTATIVE_UNTRUSTED_EDGE_STATUS:
+      case TENTATIVE_TRUSTED_EDGE_STATUS:
+      case TRUSTED_EDGE_STATUS:
+      case LARGE_VARIANCE_EDGE_STATUS:
+      case INTER_SCAFFOLD_EDGE_STATUS:
+        break;
+      default:
+        /* TRUSTED dominates all but UNTRUSTED */
+        if(status & TRUSTED_EDGE_STATUS){
+          if(status & UNTRUSTED_EDGE_STATUS){
+            SetGraphEdgeStatus(graph, newEdge, UNTRUSTED_EDGE_STATUS);
+          }else{
+            SetGraphEdgeStatus(graph, newEdge, TRUSTED_EDGE_STATUS);
+          }
+          /* UNTRUSTED dominates everything else */
+        }else if(status & UNTRUSTED_EDGE_STATUS){
+          SetGraphEdgeStatus(graph, newEdge, UNTRUSTED_EDGE_STATUS);
+        }else{ /* Otherwise, if ambiguous, make it UNKNOWN */
+          SetGraphEdgeStatus(graph, newEdge, UNKNOWN_EDGE_STATUS);
+        }
     }
   }
 
@@ -353,11 +353,11 @@ static void InitializeMergedEdge(CIEdgeT *newEdge, CIEdgeT *overlapEdgeAll,
   newEdge->edgesContributing = numEdges;
   {
     CDS_COORD_t fudge = 3.0 * sqrt(distance.variance);
-  newEdge->minDistance = distance.mean - fudge;
-  newEdge->distance = distance;
+    newEdge->minDistance = distance.mean - fudge;
+    newEdge->distance = distance;
 #if 0
-  newEdge->fudgeDistance = fudge;
-  newEdge->maxDistance = distance.mean + fudge;
+    newEdge->fudgeDistance = fudge;
+    newEdge->maxDistance = distance.mean + fudge;
 #endif
   }
   if(newEdge->flags.bits.isProbablyBogus && isOverlapEdge(newEdge)){
@@ -396,14 +396,14 @@ static int CompareChi2Scores (const void *c1, const void *c2){
 
 /* MergeGraphEdges
    Input:
-           VA_TYPE(CDS_CID_t) *inputEdges is the array of references to CIEdges
-	     that link the same two elements (unitigs/contigs/etc) with the
-	     same orientation.
-	   GraphT *graph is the graph containing the edges and is
-	     needed to detect possible chimeric edges where an overlap edge
-	     and a mate edge are the only edges and they both depend on the
-	     same fragment which may be chimeric and so the edge is not
-	     being independently supported by two kinds of evidence.
+   VA_TYPE(CDS_CID_t) *inputEdges is the array of references to CIEdges
+   that link the same two elements (unitigs/contigs/etc) with the
+   same orientation.
+   GraphT *graph is the graph containing the edges and is
+   needed to detect possible chimeric edges where an overlap edge
+   and a mate edge are the only edges and they both depend on the
+   same fragment which may be chimeric and so the edge is not
+   being independently supported by two kinds of evidence.
 
    The edges have associated distance records which include mean and variance
    statistics. This routine merges edges which when merged pass a Chi Squared
@@ -435,7 +435,7 @@ static int CompareChi2Scores (const void *c1, const void *c2){
 
    The client of this routine must INSERT the resulting edges into the
    appropriate graph.
- */
+*/
 
 int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
   CIEdgeT *newEdge, *edge;
@@ -452,7 +452,7 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
 #ifdef USE_MALLOC_FOR_ALLOC
 
   Chi2ComputeT *edgeChi2Compute = (Chi2ComputeT *)safe_malloc(numEdges *
-					   sizeof(*edgeChi2Compute));
+                                                              sizeof(*edgeChi2Compute));
 
 #else
   Chi2ComputeT edgeChi2Compute[numEdges + FUDGE];
@@ -630,9 +630,9 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
     ClusterScoreChi2T **sortClusterScoreChi2 =
       (ClusterScoreChi2T **)safe_malloc(numPairs * sizeof(*sortClusterScoreChi2));
     ClusterChi2T *edgeClusterChi2 = (ClusterChi2T *)safe_malloc(numEdges *
-					     sizeof(*edgeClusterChi2));
+                                                                sizeof(*edgeClusterChi2));
     Chi2ComputeT *clusterChi2Compute = (Chi2ComputeT *)safe_malloc(numEdges *
-						sizeof(*clusterChi2Compute));
+                                                                   sizeof(*clusterChi2Compute));
 #else    
     ClusterScoreChi2T pairClusterScoreChi2[numPairs + FUDGE];
     ClusterScoreChi2T *sortClusterScoreChi2[numPairs + FUDGE];
@@ -815,8 +815,8 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
 	    groupClusterChi2Ptr = groupClusterChi2Ptr->replaced,
 	      numInCluster++){
 	  AppendCDS_CID_t(clusterEdges,
-		      GetCDS_CID_t(inputEdges, (groupClusterChi2Ptr -
-                                                edgeClusterChi2)));
+                          GetCDS_CID_t(inputEdges, (groupClusterChi2Ptr -
+                                                    edgeClusterChi2)));
 	}
 	assert(numInCluster == edgeClusterChi2Ptr->numInCluster);
 	if(numInCluster > 1){
@@ -848,33 +848,33 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
       AppendCDS_CID_t(inputEdges, GetCDS_CID_t(tmpInputEdges, edgeIndex));
     }
     edge = GetGraphEdge(graph, *GetCDS_CID_t(inputEdges, 0));
-	if (GlobalData->verbose)
-	{
-	  fprintf(GlobalData->stderrc,"**** Couldn't merge these \n");
-	  fprintf(GlobalData->stderrc,"**** MORE THAN ONE (%d)  EDGE BETWEEN " F_CID " and " F_CID "\n",
-			  numClusters, edge->idA, edge->idB);
-	  switch(graph->type){
-		case CI_GRAPH:
-		  DumpChunkInstance(GlobalData->stderrc,ScaffoldGraph,GetGraphNode(graph, edge->idA), FALSE, FALSE, FALSE, FALSE);
-		  DumpChunkInstance(GlobalData->stderrc,ScaffoldGraph,GetGraphNode(graph, edge->idB), FALSE, FALSE, FALSE, FALSE);
-		  break;
-		case CONTIG_GRAPH:
-		  DumpContig(GlobalData->stderrc,ScaffoldGraph,GetGraphNode(graph, edge->idA), FALSE);
-		  DumpContig(GlobalData->stderrc,ScaffoldGraph,GetGraphNode(graph, edge->idB), FALSE);
-		  break;
-		case SCAFFOLD_GRAPH:
-		  DumpCIScaffold(GlobalData->stderrc,ScaffoldGraph,GetGraphNode(graph, edge->idA), FALSE);
-		  DumpCIScaffold(GlobalData->stderrc,ScaffoldGraph,GetGraphNode(graph, edge->idB), FALSE);
-		  break;
-		default:
-		  break;
-	  }
+    if (GlobalData->verbose)
+      {
+        fprintf(GlobalData->stderrc,"**** Couldn't merge these \n");
+        fprintf(GlobalData->stderrc,"**** MORE THAN ONE (%d)  EDGE BETWEEN " F_CID " and " F_CID "\n",
+                numClusters, edge->idA, edge->idB);
+        switch(graph->type){
+          case CI_GRAPH:
+            DumpChunkInstance(GlobalData->stderrc,ScaffoldGraph,GetGraphNode(graph, edge->idA), FALSE, FALSE, FALSE, FALSE);
+            DumpChunkInstance(GlobalData->stderrc,ScaffoldGraph,GetGraphNode(graph, edge->idB), FALSE, FALSE, FALSE, FALSE);
+            break;
+          case CONTIG_GRAPH:
+            DumpContig(GlobalData->stderrc,ScaffoldGraph,GetGraphNode(graph, edge->idA), FALSE);
+            DumpContig(GlobalData->stderrc,ScaffoldGraph,GetGraphNode(graph, edge->idB), FALSE);
+            break;
+          case SCAFFOLD_GRAPH:
+            DumpCIScaffold(GlobalData->stderrc,ScaffoldGraph,GetGraphNode(graph, edge->idA), FALSE);
+            DumpCIScaffold(GlobalData->stderrc,ScaffoldGraph,GetGraphNode(graph, edge->idB), FALSE);
+            break;
+          default:
+            break;
+        }
 
-	  for(edgeIndex = 0; edgeIndex < GetNumCDS_CID_ts(inputEdges); edgeIndex++){
-		edge = GetGraphEdge(graph, *GetCDS_CID_t(inputEdges, edgeIndex));
-		PrintGraphEdge(GlobalData->stderrc, graph," *  ", edge, edge->idA);
-	  }
-	}
+        for(edgeIndex = 0; edgeIndex < GetNumCDS_CID_ts(inputEdges); edgeIndex++){
+          edge = GetGraphEdge(graph, *GetCDS_CID_t(inputEdges, edgeIndex));
+          PrintGraphEdge(GlobalData->stderrc, graph," *  ", edge, edge->idA);
+        }
+      }
 	
 #ifdef USE_MALLOC_FOR_ALLOC
     free(pairClusterScoreChi2);
@@ -891,16 +891,16 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
   /* If we reached here none of the inputEdges was mergable so just return them. */
   edge = GetGraphEdge(graph, *GetCDS_CID_t(inputEdges, 0));
   if (GlobalData->verbose)
-  {
-	fprintf(GlobalData->stderrc,"**** Couldn't merge these \n");
-	fprintf(GlobalData->stderrc,"**** MORE THAN ONE (%d)  EDGE BETWEEN " F_CID " and " F_CID "\n",
-			numEdges, edge->idA, edge->idB);
-  }
+    {
+      fprintf(GlobalData->stderrc,"**** Couldn't merge these \n");
+      fprintf(GlobalData->stderrc,"**** MORE THAN ONE (%d)  EDGE BETWEEN " F_CID " and " F_CID "\n",
+              numEdges, edge->idA, edge->idB);
+    }
   numEdgesAdded = numEdges;
 
   if (GlobalData->verbose)
-  {
-	for(edgeIndex = 0; edgeIndex < numEdges; edgeIndex++)
+    {
+      for(edgeIndex = 0; edgeIndex < numEdges; edgeIndex++)
 	{
 	  edge = GetGraphEdge(graph, *GetCDS_CID_t(inputEdges, edgeIndex));
 #if 0 // Not currently supported for ScaffoldGraphT
@@ -908,7 +908,7 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
 #endif
 	  PrintGraphEdge(GlobalData->stderrc, graph," *  ", edge, edge->idA);
 	}
-  }
+    }
 #ifdef USE_MALLOC_FOR_ALLOC
   free(edgeChi2Compute);
 #endif

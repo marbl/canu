@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.10 2006-06-14 19:57:23 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.11 2006-09-21 21:34:00 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -80,7 +80,7 @@ ScaffoldGraphT *LoadScaffoldGraphFromCheckpoint( char *name,
   if(graph->checkPointIteration != (checkPointNum + 1)){
     fprintf(stderr,"**** Loaded checkpoint has checkpoint iteration %d, but we tried to load checkpoint %d...fishy!\n",
 	    graph->checkPointIteration, checkPointNum);
-            graph->checkPointIteration = checkPointNum + 1;
+    graph->checkPointIteration = checkPointNum + 1;
   }
   
   AssertPtr(graph);
@@ -92,45 +92,45 @@ void CheckpointOnDemand(int whatToDoAfter)
 {
   FILE * fp;
   if((fp = fopen(CHECKPOINT_DEMAND_FILE, "r")) != NULL)
-  {
-    char command[1024];
-    
-    fclose(fp);
-    
-    CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, FALSE);
-    fprintf( GlobalData->stderrc, "Checkpoint %d written during MergeScaffoldsAggressive demanded by user\n", ScaffoldGraph->checkPointIteration);
-    fprintf( GlobalData->timefp,"Checkpoint %d written during MergeScaffoldsAggressive demanded by user\n", ScaffoldGraph->checkPointIteration);
-    CheckpointScaffoldGraph(ScaffoldGraph, -1);
-    
-    sprintf(command, "rm -f %s", CHECKPOINT_DEMAND_FILE);
-    if(system(command) != 0)
     {
-      fprintf(GlobalData->stderrc,
-              "ALERT!!!!! Failed to remove checkpoint-on-demand file, %s\n",
-              CHECKPOINT_DEMAND_FILE);
-      fprintf(GlobalData->stderrc, "Please remove it immediately!!!!\n");
-    }
+      char command[1024];
+    
+      fclose(fp);
+    
+      CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, FALSE);
+      fprintf( GlobalData->stderrc, "Checkpoint %d written during MergeScaffoldsAggressive demanded by user\n", ScaffoldGraph->checkPointIteration);
+      fprintf( GlobalData->timefp,"Checkpoint %d written during MergeScaffoldsAggressive demanded by user\n", ScaffoldGraph->checkPointIteration);
+      CheckpointScaffoldGraph(ScaffoldGraph, -1);
+    
+      sprintf(command, "rm -f %s", CHECKPOINT_DEMAND_FILE);
+      if(system(command) != 0)
+        {
+          fprintf(GlobalData->stderrc,
+                  "ALERT!!!!! Failed to remove checkpoint-on-demand file, %s\n",
+                  CHECKPOINT_DEMAND_FILE);
+          fprintf(GlobalData->stderrc, "Please remove it immediately!!!!\n");
+        }
 
-    switch(whatToDoAfter)
-    {
-      case EXIT_AFTER_CHECKPOINTING:
-        fprintf(GlobalData->stderrc,
-                "FYI: Exiting after checkpointing on user demand!!\n");
-        exit(0);
-        break;
-      case RETURN_AFTER_CHECKPOINTING:
-        return;
-        break;
-      default:
-        fprintf(GlobalData->stderrc,
-                "WARNING: Checkpoint written on user demand with invalid instruction.\n");
-        fprintf(GlobalData->stderrc,
-                "\t\tOptions are to exit or continue running.\n");
-        fprintf(GlobalData->stderrc,
-                "Continuing with run.\n");
-        break;
+      switch(whatToDoAfter)
+        {
+          case EXIT_AFTER_CHECKPOINTING:
+            fprintf(GlobalData->stderrc,
+                    "FYI: Exiting after checkpointing on user demand!!\n");
+            exit(0);
+            break;
+          case RETURN_AFTER_CHECKPOINTING:
+            return;
+            break;
+          default:
+            fprintf(GlobalData->stderrc,
+                    "WARNING: Checkpoint written on user demand with invalid instruction.\n");
+            fprintf(GlobalData->stderrc,
+                    "\t\tOptions are to exit or continue running.\n");
+            fprintf(GlobalData->stderrc,
+                    "Continuing with run.\n");
+            break;
+        }
     }
-  }
 }
 
 
@@ -246,36 +246,36 @@ ScaffoldGraphT * LoadScaffoldGraphFromStream(FILE *stream){
   //  BPW is unsure why we copy names to 'buffer'
 
   if(strlen(GlobalData->Frag_Store_Name) > 1)
-  {
-    char buffer[256];
-    sprintf(buffer,"%s", GlobalData->Frag_Store_Name);
-    fprintf(GlobalData->stderrc,"* Trying to open %s\n", buffer);
+    {
+      char buffer[256];
+      sprintf(buffer,"%s", GlobalData->Frag_Store_Name);
+      fprintf(GlobalData->stderrc,"* Trying to open %s\n", buffer);
 
-    //  BPW switched to read-only.
-    //  Instead of opening, we could load:
-    //    sgraph->fragStore = loadFragStore( buffer);
-    //
-    sgraph->fragStore = openFragStore( buffer, "r");
+      //  BPW switched to read-only.
+      //  Instead of opening, we could load:
+      //    sgraph->fragStore = loadFragStore( buffer);
+      //
+      sgraph->fragStore = openFragStore( buffer, "r");
 
-    if(sgraph->fragStore == NULLSTOREHANDLE){
-      fprintf(stderr,"**** Failure to open frag store %s ...exiting\n",buffer);
-      exit(1);
-    }else{
-      fprintf(stderr,"*** Succeeded to open frag Store.\n");
+      if(sgraph->fragStore == NULLSTOREHANDLE){
+        fprintf(stderr,"**** Failure to open frag store %s ...exiting\n",buffer);
+        exit(1);
+      }else{
+        fprintf(stderr,"*** Succeeded to open frag Store.\n");
+      }
+
+      sprintf(buffer,"%s", GlobalData->Gatekeeper_Store_Name);
+      InitGateKeeperStore(&sgraph->gkpStore, buffer);
+      if(OpenReadOnlyGateKeeperStore(&sgraph->gkpStore)){
+        fprintf(stderr,"*** Failure to open Gatekeeper Store...exiting\n");
+        exit(1);
+      }else{
+        fprintf(stderr,"*** Succeeded to open Gatekeeper Store.\n");
+      }
+    } else {
+      fprintf(stderr,"*** No fragStore to open!\n");
+      sgraph->fragStore = NULLSTOREHANDLE;
     }
-
-    sprintf(buffer,"%s", GlobalData->Gatekeeper_Store_Name);
-    InitGateKeeperStore(&sgraph->gkpStore, buffer);
-    if(OpenReadOnlyGateKeeperStore(&sgraph->gkpStore)){
-      fprintf(stderr,"*** Failure to open Gatekeeper Store...exiting\n");
-      exit(1);
-    }else{
-      fprintf(stderr,"*** Succeeded to open Gatekeeper Store.\n");
-    }
-  } else {
-    fprintf(stderr,"*** No fragStore to open!\n");
-    sgraph->fragStore = NULLSTOREHANDLE;
-  }
 
   status = safeRead(stream, sgraph->name, 256 * sizeof(char));
   assert(status == FALSE);
@@ -368,24 +368,24 @@ ScaffoldGraphT * LoadScaffoldGraphFromStream(FILE *stream){
   }
 #else
   if(strlen(GlobalData->Frag_Store_Name) > 1)
-  {
-    char buffer[256];
-    sprintf(buffer,"%s", GlobalData->Frag_Store_Name);
-    fprintf(GlobalData->stderrc,"* Trying to open %s\n", buffer);
-    sgraph->fragStore = openFragStore( buffer, "r");
+    {
+      char buffer[256];
+      sprintf(buffer,"%s", GlobalData->Frag_Store_Name);
+      fprintf(GlobalData->stderrc,"* Trying to open %s\n", buffer);
+      sgraph->fragStore = openFragStore( buffer, "r");
 
-    if(sgraph->fragStore == NULLSTOREHANDLE){
-      fprintf(stderr,"**** Failure to open frag store %s ...exiting\n",buffer);
-      exit(1);
-    }
+      if(sgraph->fragStore == NULLSTOREHANDLE){
+        fprintf(stderr,"**** Failure to open frag store %s ...exiting\n",buffer);
+        exit(1);
+      }
 
-    sprintf(buffer,"%s", GlobalData->Gatekeeper_Store_Name);
-    InitGateKeeperStore(&sgraph->gkpStore, buffer);
-    if(OpenReadOnlyGateKeeperStore(&sgraph->gkpStore)){
-      fprintf(stderr,"*** Failure to open Gatekeeper Store...exiting\n");
-      exit(1);
+      sprintf(buffer,"%s", GlobalData->Gatekeeper_Store_Name);
+      InitGateKeeperStore(&sgraph->gkpStore, buffer);
+      if(OpenReadOnlyGateKeeperStore(&sgraph->gkpStore)){
+        fprintf(stderr,"*** Failure to open Gatekeeper Store...exiting\n");
+        exit(1);
+      }
     }
-  }
   else
     sgraph->fragStore = NULLSTOREHANDLE;
 #endif
@@ -576,10 +576,10 @@ void DestroyScaffoldGraph(ScaffoldGraphT *sgraph){
   DeleteGraphCGW(sgraph->ScaffoldGraph);
 
   if(sgraph->fragStore != NULLSTOREHANDLE)
-  {
-    CloseGateKeeperStore(&(sgraph->gkpStore));
-    closeFragStore(sgraph->fragStore);
-  }
+    {
+      CloseGateKeeperStore(&(sgraph->gkpStore));
+      closeFragStore(sgraph->fragStore);
+    }
 
   DeleteVA_CIFragT(sgraph->CIFrags);
   DeleteVA_char(sgraph->SourceFields);
@@ -700,42 +700,42 @@ void CheckScaffoldOrder(CIScaffoldT *scaffold, ScaffoldGraphT *graph)
   
   assert(scaffold->flags.bits.isScaffold);
   if(scaffold->type != REAL_SCAFFOLD)
-	return;
+    return;
 
   CI = GetGraphNode(graph->RezGraph, scaffold->info.Scaffold.AEndCI);
 
   currentMinPos = min( CI->offsetAEnd.mean, CI->offsetBEnd.mean);
   InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
   while(NULL != (CI = NextCIScaffoldTIterator(&CIs)))
-  {
-    if( min( CI->offsetAEnd.mean, CI->offsetBEnd.mean) < currentMinPos)
-    {	  
-      fprintf( GlobalData->stderrc,
-               "CIs " F_CID " and " F_CID "are out of order\n",
-               CI->id, prevCI->id);
-      fprintf( GlobalData->stderrc,
-               "CI " F_CID ": AEndOffset.mean: %f, AEndOffset.mean: %f\n",
-               CI->id, CI->offsetAEnd.mean, CI->offsetBEnd.mean);
-      fprintf( GlobalData->stderrc,
-               "CI " F_CID ": AEndOffset.mean: %f, AEndOffset.mean: %f\n",
-               prevCI->id, prevCI->offsetAEnd.mean, prevCI->offsetBEnd.mean);
-      DumpCIScaffold(GlobalData->stderrc, graph, scaffold, FALSE);
+    {
+      if( min( CI->offsetAEnd.mean, CI->offsetBEnd.mean) < currentMinPos)
+        {	  
+          fprintf( GlobalData->stderrc,
+                   "CIs " F_CID " and " F_CID "are out of order\n",
+                   CI->id, prevCI->id);
+          fprintf( GlobalData->stderrc,
+                   "CI " F_CID ": AEndOffset.mean: %f, AEndOffset.mean: %f\n",
+                   CI->id, CI->offsetAEnd.mean, CI->offsetBEnd.mean);
+          fprintf( GlobalData->stderrc,
+                   "CI " F_CID ": AEndOffset.mean: %f, AEndOffset.mean: %f\n",
+                   prevCI->id, prevCI->offsetAEnd.mean, prevCI->offsetBEnd.mean);
+          DumpCIScaffold(GlobalData->stderrc, graph, scaffold, FALSE);
       
-      // allow for a base of rounding error, but fix it
-      if( min( CI->offsetAEnd.mean, CI->offsetBEnd.mean) - currentMinPos < 1.0)
-      {
-        CI->offsetAEnd.mean += 1.0;
-        CI->offsetBEnd.mean += 1.0;
-        fprintf( GlobalData->stderrc,
-                 "shifted pos of CI " F_CID " to (%f, %f)\n", 
-                 CI->id, CI->offsetAEnd.mean, CI->offsetBEnd.mean);
-      }
-      else
-        assert(0);
+          // allow for a base of rounding error, but fix it
+          if( min( CI->offsetAEnd.mean, CI->offsetBEnd.mean) - currentMinPos < 1.0)
+            {
+              CI->offsetAEnd.mean += 1.0;
+              CI->offsetBEnd.mean += 1.0;
+              fprintf( GlobalData->stderrc,
+                       "shifted pos of CI " F_CID " to (%f, %f)\n", 
+                       CI->id, CI->offsetAEnd.mean, CI->offsetBEnd.mean);
+            }
+          else
+            assert(0);
+        }
+      currentMinPos = min( CI->offsetAEnd.mean, CI->offsetBEnd.mean);
+      prevCI = CI;
     }
-    currentMinPos = min( CI->offsetAEnd.mean, CI->offsetBEnd.mean);
-    prevCI = CI;
-  }
 }
 
 
@@ -936,71 +936,71 @@ int RepeatRez(int repeatRezLevel, char *name){
     fflush(stderr);
     
     do
-    {
-      normal_inserts = Fill_Gaps (GlobalData, name, repeatRezLevel, iter);
-      if  (normal_inserts > 0)
       {
-        didSomething = TRUE;
-        fprintf(stderr,"* Calling CheckCIScaffoldTs\n");
-        fflush(stderr);
-        CheckCIScaffoldTs(ScaffoldGraph);
-        fprintf(stderr,"* Done with CheckCIScaffoldTs\n");
-        fflush(stderr);
+        normal_inserts = Fill_Gaps (GlobalData, name, repeatRezLevel, iter);
+        if  (normal_inserts > 0)
+          {
+            didSomething = TRUE;
+            fprintf(stderr,"* Calling CheckCIScaffoldTs\n");
+            fflush(stderr);
+            CheckCIScaffoldTs(ScaffoldGraph);
+            fprintf(stderr,"* Done with CheckCIScaffoldTs\n");
+            fflush(stderr);
         
-        TidyUpScaffolds (ScaffoldGraph);
-        CheckEdgesAgainstOverlapper(ScaffoldGraph->RezGraph);
+            TidyUpScaffolds (ScaffoldGraph);
+            CheckEdgesAgainstOverlapper(ScaffoldGraph->RezGraph);
         
-        fprintf(stderr,"* Calling CheckCIScaffoldTs\n");
-        fflush(stderr);
-        CheckCIScaffoldTs(ScaffoldGraph);
-        fprintf(stderr,"* Done with CheckCIScaffoldTs\n");
-        fflush(stderr);
+            fprintf(stderr,"* Calling CheckCIScaffoldTs\n");
+            fflush(stderr);
+            CheckCIScaffoldTs(ScaffoldGraph);
+            fprintf(stderr,"* Done with CheckCIScaffoldTs\n");
+            fflush(stderr);
         
-        GeneratePlacedContigGraphStats("rocks", iter);
-        GenerateLinkStats(ScaffoldGraph->ContigGraph,"rocks",iter);
-        GenerateScaffoldGraphStats("rocks",iter);
-      }
+            GeneratePlacedContigGraphStats("rocks", iter);
+            GenerateLinkStats(ScaffoldGraph->ContigGraph,"rocks",iter);
+            GenerateScaffoldGraphStats("rocks",iter);
+          }
       
-      if  (DO_CONTAINED_ROCKS && iter == 0)
-      {
-        contained_inserts = Hurl_Contained_Rocks (name, repeatRezLevel, iter);
-        if  (contained_inserts > 0)
-        {
-          didSomething = TRUE;
-          TidyUpScaffolds (ScaffoldGraph);
-          CheckEdgesAgainstOverlapper(ScaffoldGraph->RezGraph);
-          GeneratePlacedContigGraphStats("controcks", iter);
-          GenerateLinkStats(ScaffoldGraph->ContigGraph,"controcks",iter);
-          GenerateScaffoldGraphStats("controcks",iter);
+        if  (DO_CONTAINED_ROCKS && iter == 0)
+          {
+            contained_inserts = Hurl_Contained_Rocks (name, repeatRezLevel, iter);
+            if  (contained_inserts > 0)
+              {
+                didSomething = TRUE;
+                TidyUpScaffolds (ScaffoldGraph);
+                CheckEdgesAgainstOverlapper(ScaffoldGraph->RezGraph);
+                GeneratePlacedContigGraphStats("controcks", iter);
+                GenerateLinkStats(ScaffoldGraph->ContigGraph,"controcks",iter);
+                GenerateScaffoldGraphStats("controcks",iter);
+              }
+          }
+        else
+          contained_inserts = 0;
+      
+        if  (DO_CONTAINED_STONES && iter == 0)
+          {
+            contained_stones = Toss_Contained_Stones (name, repeatRezLevel, iter);
+            if  (contained_stones > 0)
+              {
+                didSomething = TRUE;
+                TidyUpScaffolds (ScaffoldGraph);
+                CheckEdgesAgainstOverlapper(ScaffoldGraph->RezGraph);
+                GeneratePlacedContigGraphStats("contstones", iter);
+                GenerateLinkStats(ScaffoldGraph->ContigGraph,"contstones",iter);
+                GenerateScaffoldGraphStats("contstones",iter);
+              }
+          }
+        else
+          contained_stones = 0;
+      
+        iter++;
+        if (iter >= MAX_REZ_ITERATIONS) {
+          fprintf (GlobalData->stderrc,
+                   "Maximum number of REZ iterations reached\n");
+          break;
         }
-      }
-      else
-        contained_inserts = 0;
-      
-      if  (DO_CONTAINED_STONES && iter == 0)
-      {
-        contained_stones = Toss_Contained_Stones (name, repeatRezLevel, iter);
-        if  (contained_stones > 0)
-        {
-          didSomething = TRUE;
-          TidyUpScaffolds (ScaffoldGraph);
-          CheckEdgesAgainstOverlapper(ScaffoldGraph->RezGraph);
-          GeneratePlacedContigGraphStats("contstones", iter);
-          GenerateLinkStats(ScaffoldGraph->ContigGraph,"contstones",iter);
-          GenerateScaffoldGraphStats("contstones",iter);
-        }
-      }
-      else
-        contained_stones = 0;
-      
-      iter++;
-      if (iter >= MAX_REZ_ITERATIONS) {
-	fprintf (GlobalData->stderrc,
-                 "Maximum number of REZ iterations reached\n");
-	break;
-      }
-    }  while  (normal_inserts + contained_inserts
-               + contained_stones > FILL_GAPS_THRESHHOLD);
+      }  while  (normal_inserts + contained_inserts
+                 + contained_stones > FILL_GAPS_THRESHHOLD);
     
     fprintf(GlobalData->stderrc,"**** AFTER repeat rez ****\n");
   }
@@ -1100,7 +1100,7 @@ void  TidyUpScaffolds(ScaffoldGraphT *ScaffoldGraph)
 #endif
 
   ClearCacheSequenceDB(ScaffoldGraph->sequenceDB, FALSE);
-  }
+}
 
 
 

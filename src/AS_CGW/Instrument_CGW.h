@@ -29,8 +29,8 @@
 #include "InputDataTypes_CGW.h"
 #include "ScaffoldGraph_CGW.h"
 
-VA_DEF(cds_float32)
-VA_DEF(IntContigPairs)
+VA_DEF(cds_float32);
+VA_DEF(IntContigPairs);
 
 
 
@@ -58,14 +58,14 @@ VA_DEF(IntContigPairs)
   levels of verbosity
 */
 typedef enum
-{
-  InstrumenterSilent,
-  InstrumenterVerbose1,
-  InstrumenterVerbose2,
-  InstrumenterVerbose3,
-  InstrumenterVerbose4,
-  InstrumenterVerbose5
-} InstrumenterVerbosity;
+  {
+    InstrumenterSilent,
+    InstrumenterVerbose1,
+    InstrumenterVerbose2,
+    InstrumenterVerbose3,
+    InstrumenterVerbose4,
+    InstrumenterVerbose5
+  } InstrumenterVerbosity;
 
 /* what to print for mate details for scaffold instrumenter */
 typedef enum { PRINTCELAMY, PRINTTABLE }  printtypes;
@@ -74,23 +74,23 @@ typedef enum { PRINTCELAMY, PRINTTABLE }  printtypes;
   types of results
 */
 typedef enum
-{
-  InstrumenterIndeterminate,
-  InstrumenterSame,
-  InstrumenterBetter,
-  InstrumenterWorse
-} InstrumenterResult;
+  {
+    InstrumenterIndeterminate,
+    InstrumenterSame,
+    InstrumenterBetter,
+    InstrumenterWorse
+  } InstrumenterResult;
 
 /*
   types of instrumenters
- */
+*/
 typedef enum
-{
-  InstrumenterUnitigLevel,
-  InstrumenterContigLevel,
-  InstrumenterScaffoldLevel,
-  InstrumenterScaffoldGraphLevel
-} InstrumenterLevel;
+  {
+    InstrumenterUnitigLevel,
+    InstrumenterContigLevel,
+    InstrumenterScaffoldLevel,
+    InstrumenterScaffoldGraphLevel
+  } InstrumenterLevel;
 
 
 /*
@@ -113,31 +113,31 @@ typedef struct
 /*
   Set of instrumenter orientations. Used for tracking orientations and
   for array indices
- */
+*/
 typedef enum
-{
-  INNIE_INSTR = 0,
-  OUTTIE_INSTR,
-  NORMAL_INSTR,
-  ANTINORMAL_INSTR,
-  NUM_ORIENTATIONS_INSTR
-} InstrumentOrientations;
+  {
+    INNIE_INSTR = 0,
+    OUTTIE_INSTR,
+    NORMAL_INSTR,
+    ANTINORMAL_INSTR,
+    NUM_ORIENTATIONS_INSTR
+  } InstrumentOrientations;
 
 
 /*
   Set of distance status categories
- */
+*/
 typedef enum
-{
-  DISTANCE_OKAY_INSTR,
-  DISTANCE_TOO_CLOSE_INSTR,
-  DISTANCE_TOO_FAR_INSTR
-} InstrumentDistStatus;
+  {
+    DISTANCE_OKAY_INSTR,
+    DISTANCE_TOO_CLOSE_INSTR,
+    DISTANCE_TOO_FAR_INSTR
+  } InstrumentDistStatus;
 
 
 /*
   Structure to hold mate pair fragment indices & positions in contig/scaffold
- */
+*/
 typedef struct
 {
   CDS_CID_t   fragIID;
@@ -153,7 +153,7 @@ typedef struct
   cds_float32 mateOffset3p;
 #endif
 } MateDetail;
-VA_DEF(MateDetail)
+VA_DEF(MateDetail);
 
 
 /*
@@ -165,7 +165,7 @@ typedef struct
   FragType    type;
   cds_float32 offset5p;
 } FragDetail;
-VA_DEF(FragDetail)
+VA_DEF(FragDetail);
 
 typedef struct
 {
@@ -179,7 +179,7 @@ typedef struct
 /*
   Structure to hold variable arrays of MateDetails to keep track of
   how many & where good/bad mate pairs are
- */
+*/
 typedef struct
 {
   MateStatusPositions * intra;
@@ -221,7 +221,7 @@ typedef struct
 /*
   Structure to keep track of a position of a fragment in a surrogate in
   a contig or scaffold
- */
+*/
 typedef struct
 {
   CDS_CID_t contig;
@@ -235,27 +235,27 @@ typedef struct
   Types of breakpoints
 */
 typedef enum
-{
-  INST_BP_TOO_CLOSE,
-  INST_BP_TOO_FAR,
-  INST_BP_NORMAL,
-  INST_BP_ANTINORMAL,
-  INST_BP_OUTTIE,
-  INST_BP_INNIE,
-  INST_BP_UNKNOWN
-} InstBreakpointType;
+  {
+    INST_BP_TOO_CLOSE,
+    INST_BP_TOO_FAR,
+    INST_BP_NORMAL,
+    INST_BP_ANTINORMAL,
+    INST_BP_OUTTIE,
+    INST_BP_INNIE,
+    INST_BP_UNKNOWN
+  } InstBreakpointType;
 
 
 /*
   Sections of breakpoint intervals
 */
 typedef enum
-{
-  BP_ALL,
-  BP_LEFT,
-  BP_MIDDLE,
-  BP_RIGHT
-} BreakpointSection;
+  {
+    BP_ALL,
+    BP_LEFT,
+    BP_MIDDLE,
+    BP_RIGHT
+  } BreakpointSection;
 
 /*
   Structure to identify a breakpoint
@@ -267,17 +267,17 @@ typedef struct
   BreakpointSection section;
   CDS_CID_t contig1;
   CDS_COORD_t end1;
-//  FragOrient orient1;
+  //  FragOrient orient1;
   CDS_CID_t contig2;
   CDS_COORD_t end2;
   // because end2 may be to the left of the rightmost contig
   CDS_COORD_t contigEnd;
-//  FragOrient orient2;
+  //  FragOrient orient2;
   InstBreakpointType type;
   VA_TYPE(MateDetail *) mates;
   cds_int32 pairs;
 } InstrumenterBreakpoint;
-VA_DEF(InstrumenterBreakpoint)
+VA_DEF(InstrumenterBreakpoint);
 
 #define INST_MIN_BREAK_MATES   2
 
@@ -291,7 +291,7 @@ typedef struct
   cds_float32 distPref;
   ChunkOrientationType orientPref;
 } InstrumenterContigPair;
-VA_DEF(InstrumenterContigPair)
+VA_DEF(InstrumenterContigPair);
 
 typedef struct
 {
@@ -300,7 +300,7 @@ typedef struct
   cds_float32 length;
   FragOrient orient;
 } ContigPlacement;
-VA_DEF(ContigPlacement)
+VA_DEF(ContigPlacement);
 
 typedef struct
 {
@@ -310,11 +310,11 @@ typedef struct
   cds_float32      dist;
   ChunkOrientationType orient;
 } CP_Index;
-VA_DEF(CP_Index)
+VA_DEF(CP_Index);
   
 /*
   Structure to keep track of many fragments in surrogates
- */
+*/
 typedef struct
 {
   // bookkeeping for the multiple positions of fragments in surrogate unitigs
@@ -331,7 +331,7 @@ typedef struct
 
 /*
   Structure to keep track of fragments & locales in contig/scaffold
- */
+*/
 typedef struct
 {
   // bookkeeping items for mate relationships
@@ -549,8 +549,8 @@ void DestroyMateInstrumenter(MateInstrumenter * mi);
 int InitializeMateInstrumenter(ScaffoldGraphT * graph,
                                MateInstrumenter * mi);
 void CreateMateInstrumenterFromScaffoldGraphInstrumenter(
-  MateInstrumenter * mi,
-  ScaffoldGraphInstrumenter *sgi);
+                                                         MateInstrumenter * mi,
+                                                         ScaffoldGraphInstrumenter *sgi);
 void CreateMateInstrumenterFromScaffoldInstrumenter(MateInstrumenter * mi,
                                                     ScaffoldInstrumenter * si);
 void AddMateInstrumenterCounts(MateInstrumenter * dest,
@@ -619,8 +619,8 @@ void PrintScaffoldInstrumenter(ScaffoldGraphT * graph,
 
 void DestroyScaffoldGraphInstrumenter(ScaffoldGraphInstrumenter * sgi);
 ScaffoldGraphInstrumenter * CreateScaffoldGraphInstrumenter(
-  ScaffoldGraphT * graph,
-  cds_uint32 options);
+                                                            ScaffoldGraphT * graph,
+                                                            cds_uint32 options);
 int InitializeScaffoldGraphInstrumenter(ScaffoldGraphT * graph,
                                         ScaffoldGraphInstrumenter * sgi);
 int InstrumentScaffoldGraph(ScaffoldGraphT * graph,
@@ -646,8 +646,8 @@ int InstrumentContigEndPartial(ScaffoldGraphT * graph,
                                int end,
                                cds_int32 numContigs);
 void GetMateInstrumenterFromScaffoldGraphInstrumenter(
-  MateInstrumenter * mi,
-  ScaffoldGraphInstrumenter * sgi);
+                                                      MateInstrumenter * mi,
+                                                      ScaffoldGraphInstrumenter * sgi);
 void GetMateInstrumenterFromScaffoldInstrumenter(MateInstrumenter * mi,
                                                  ScaffoldInstrumenter * si);
 int InstrumentContigPath(ScaffoldGraphT * graph,

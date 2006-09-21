@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: InputDataTypes_CGW.h,v 1.5 2006-05-24 13:56:29 eliv Exp $	 */
+/* 	$Id: InputDataTypes_CGW.h,v 1.6 2006-09-21 21:34:00 brianwalenz Exp $	 */
 /****************************************************************************
  *  InputDataTypes_CGW
  *  
@@ -96,7 +96,7 @@ typedef struct {
   int32 ctgori;		// orientation within contig, 1 = forward & 0 = reverse
   // This is probably unneccessary, now that we are storying multiAlignments for 
   // unitigs and contigs
- int32 nextCIFrag;         // fragments in a CI are linked together, NULLINDEX terminates
+  int32 nextCIFrag;         // fragments in a CI are linked together, NULLINDEX terminates
 #endif  
 
 #ifdef DEBUG_DATA     // This is used for debug purposes only
@@ -121,7 +121,7 @@ typedef struct {
       unsigned int isChaff:1;                    // Must be isSingleton, and is not used either directly or indirectly (surrogate) in scaffold
       unsigned int innieMate:1;                  // True for regular mate pairs, false for Outtie pairs
       MateStatType mateDetail:8;
-  }bits;
+    }bits;
     int32 all;
   }flags;
 
@@ -131,7 +131,7 @@ typedef struct {
 
 }CIFragT;
 
-VA_DEF(CIFragT)
+VA_DEF(CIFragT);
 
 
 static MateStatusType getCIFragMateStatus(CIFragT *frag){
@@ -198,6 +198,6 @@ typedef struct {
   VA_TYPE(CDS_COORD_t) *samples;
 }DistT;
 
-VA_DEF(DistT)
+VA_DEF(DistT);
 
 #endif

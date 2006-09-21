@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: localUnitigging_CGW.c,v 1.10 2006-06-14 19:57:23 brianwalenz Exp $";
+static char CM_ID[] = "$Id: localUnitigging_CGW.c,v 1.11 2006-09-21 21:34:01 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -62,9 +62,9 @@ static char CM_ID[] = "$Id: localUnitigging_CGW.c,v 1.10 2006-06-14 19:57:23 bri
 #define CNS_DP_THRESH 1e-6
 #define CNS_DP_MINLEN 30
 
-VA_DEF(OFGMesg)
-VA_DEF(OverlapMesg)
-VA_DEF(IntUnitigMesg)
+VA_DEF(OFGMesg);
+VA_DEF(OverlapMesg);
+VA_DEF(IntUnitigMesg);
 
 #include "AS_CGB_miniunitigger.h"
 #include "localUnitigging_CGW.h"
@@ -104,7 +104,7 @@ int totalContigsBaseChange = 0;
 MiniUnitiggerObject *muo = NULL;
 static VA_TYPE(IntElementPos) *ContigPositions = NULL;
 
-VA_DEF(ChunkPlacement)
+VA_DEF(ChunkPlacement);
 static int OverlapPieceList(VA_TYPE(ChunkPlacement) *piece_list,
                             VA_TYPE(OFGMesg) *pieces,
                             VA_TYPE(OverlapMesg) *olaps);
@@ -128,22 +128,22 @@ static void DumpUnitigMultiAlignInfo ( VA_TYPE(ChunkPlacement) *piece_list,
            ium->iaccession);
 
   for ( i = 0; i < ium->num_frags; i++,pos++)
-  {
-        piece = GetChunkPlacement(piece_list, pos->ident-1);
-	fprintf( stderr, "	in DUMAI, %c fragment %8" F_UIDP ",%8" F_IIDP ", bgn: %10" F_COORDP ", end: %10" F_COORDP ", length: %10" F_COORDP ", source: " F_IIDP "\n", 
-                 piece->status,
-                 ofgs[pos->ident-1].eaccession,
-                 pos->ident, pos->position.bgn, pos->position.end,
-                 abs(pos->position.bgn - pos->position.end),
-                 pos->sourceInt);
-	InitContigTIterator(ScaffoldGraph, ofgs[pos->ident-1].eaccession,
-                            TRUE, FALSE, &cis);
-	while(NULL != (ci = NextContigTIterator(&cis))){
-	  CDS_CID_t cid = ci->id;
-          fprintf(stderr,"		CI " F_CID ", cov: %d\n",
-                  cid,ci->info.CI.coverageStat);
-        }
-  }
+    {
+      piece = GetChunkPlacement(piece_list, pos->ident-1);
+      fprintf( stderr, "	in DUMAI, %c fragment %8" F_UIDP ",%8" F_IIDP ", bgn: %10" F_COORDP ", end: %10" F_COORDP ", length: %10" F_COORDP ", source: " F_IIDP "\n", 
+               piece->status,
+               ofgs[pos->ident-1].eaccession,
+               pos->ident, pos->position.bgn, pos->position.end,
+               abs(pos->position.bgn - pos->position.end),
+               pos->sourceInt);
+      InitContigTIterator(ScaffoldGraph, ofgs[pos->ident-1].eaccession,
+                          TRUE, FALSE, &cis);
+      while(NULL != (ci = NextContigTIterator(&cis))){
+        CDS_CID_t cid = ci->id;
+        fprintf(stderr,"		CI " F_CID ", cov: %d\n",
+                cid,ci->info.CI.coverageStat);
+      }
+    }
 }
 
 static void DumpUnitigVAInfo ( VA_TYPE(ChunkPlacement) *piece_list,
@@ -154,14 +154,14 @@ static void DumpUnitigVAInfo ( VA_TYPE(ChunkPlacement) *piece_list,
   OFGMesg *ofgs=GetOFGMesg(pieces,0);
   int i;
   for (i=0;i<n_pieces;i++) {
-     ium=GetIntUnitigMesg(iumVA,i);
-     DumpUnitigMultiAlignInfo(piece_list,ofgs,ium++);
+    ium=GetIntUnitigMesg(iumVA,i);
+    DumpUnitigMultiAlignInfo(piece_list,ofgs,ium++);
   }
 } 
 
 static int CheckMetaUnitigOrderConsistency(VA_TYPE(ChunkPlacement) *piece_list,
                                            IntUnitigMesg *ium) {
-   // If order is consistent with the scaffold order, return 1, else return 0
+  // If order is consistent with the scaffold order, return 1, else return 0
   int i;
   int rc=1;
   int num_frags=ium->num_frags;
@@ -170,37 +170,37 @@ static int CheckMetaUnitigOrderConsistency(VA_TYPE(ChunkPlacement) *piece_list,
   IntMultiPos *imp=ium->f_list;
   ChunkPlacement *piece; /*was:  =GetChunkPlacement(piece_list,imp->ident-1);*/
   for(i=0;i<num_frags;i++,imp++) {
-     piece = GetChunkPlacement(piece_list,imp->ident-1);
-     if ( piece->status == CGW_IN_SCAFFOLD) {
-        if ( preo==-1) {
-          preo=imp->ident; 
-        } else if ( monotone_incr<0 ) {
-          if ( imp->ident>preo ) {
-            monotone_incr=1;
-          } else {
-            monotone_incr=0;
-          }
-          preo=imp->ident;
+    piece = GetChunkPlacement(piece_list,imp->ident-1);
+    if ( piece->status == CGW_IN_SCAFFOLD) {
+      if ( preo==-1) {
+        preo=imp->ident; 
+      } else if ( monotone_incr<0 ) {
+        if ( imp->ident>preo ) {
+          monotone_incr=1;
         } else {
-          if ( monotone_incr && imp->ident < preo ) {
-            rc =0;
-            break;
-          } else if ( ! monotone_incr && imp->ident > preo ) {
-            rc =0;
-            break;
-          }
-          preo=imp->ident;
+          monotone_incr=0;
         }
-     }
-   } 
-   if ( !rc ) fprintf(stderr,"Input ordering of scaffolded contigs is changed upon meta-unitigging\n");
-   return rc; // no conflicts
+        preo=imp->ident;
+      } else {
+        if ( monotone_incr && imp->ident < preo ) {
+          rc =0;
+          break;
+        } else if ( ! monotone_incr && imp->ident > preo ) {
+          rc =0;
+          break;
+        }
+        preo=imp->ident;
+      }
+    }
+  } 
+  if ( !rc ) fprintf(stderr,"Input ordering of scaffolded contigs is changed upon meta-unitigging\n");
+  return rc; // no conflicts
 }
 
 int CheckMetaUnitigOrientConsistency(VA_TYPE(ChunkPlacement) *piece_list,
                                      IntUnitigMesg *ium) {
 
-   // true if orientation is consistent with scaffolded orientation and orientation implied by edges
+  // true if orientation is consistent with scaffolded orientation and orientation implied by edges
 
   int i;
   int rc=1;
@@ -231,26 +231,26 @@ int CheckMetaUnitigOrientConsistency(VA_TYPE(ChunkPlacement) *piece_list,
 int CheckMetaUnitigPotential(VA_TYPE(ChunkPlacement) *piece_list,
                              IntUnitigMesg *ium) {
   if ( ium->num_frags < 2 ) return 0;
-   // If orientation is consistent with the contigs' orientation in the scaffold, return 1, else return 0
+  // If orientation is consistent with the contigs' orientation in the scaffold, return 1, else return 0
   return 1;
 }
 
 // check whether the meta unitig contains any relevant contigs from original scaffold
 // between anchor and max(anchor, rcontig-1) inclusive, reject
 int MetaUnitigIncludesPiecesFromScaffold(VA_TYPE(ChunkPlacement) *piece_list,
-					      IntUnitigMesg *ium,
-					      int32 endCtgOrder){
+                                         IntUnitigMesg *ium,
+                                         int32 endCtgOrder){
   int i;
   int rc=0;
   int num_frags=ium->num_frags;
   IntMultiPos *imp=ium->f_list;
   ChunkPlacement *piece;
   for(i=0;i<num_frags;i++,imp++) {
-     piece = GetChunkPlacement(piece_list,imp->ident-1);
-     if(piece->order>-1 && piece->order <= endCtgOrder){
-       rc=1;
-       break;
-     }
+    piece = GetChunkPlacement(piece_list,imp->ident-1);
+    if(piece->order>-1 && piece->order <= endCtgOrder){
+      rc=1;
+      break;
+    }
   }	
   return rc;
 }
@@ -280,52 +280,52 @@ int MergeMetaUnitigIntoContig(VA_TYPE(ChunkPlacement) *piece_list,
   // start a list of the contigs which will be merged...
   //  for some of the pieces, we may want to instantiate new ci's
  
-   for (i=0;i<ium->num_frags;i++,imp++ ) {
-      piece = GetChunkPlacement(piece_list,imp->ident-1);
+  for (i=0;i<ium->num_frags;i++,imp++ ) {
+    piece = GetChunkPlacement(piece_list,imp->ident-1);
 
-      contigPos.ident = piece->ident;
-      contigPos.type = imp->type;
-      if (imp->contained) {
-          contained = GetChunkPlacement(piece_list,imp->contained-1);
-          contigPos.contained = contained->ident; 
-      } else {
-          contigPos.contained = 0; 
-      }
-      contigPos.position.bgn = imp->position.bgn;
-      contigPos.position.end = imp->position.end;
-      AppendIntMultiPos(ContigPositions, &contigPos);
-      if ( piece->status == CGW_PLACED ) {
-        // consider here whether to instantiate one or more fragments
-        fprintf(stderr,"Considering fragment from placed piece " F_CID "\n",piece->ident);
-      } else if (piece->status == CGW_IN_SCAFFOLD) {
-	fprintf(stderr,"Considering in-scaffold piece " F_CID " -- keep all fragments\n",
-		piece->ident);
-	sid = piece->scaff_id;
-      } else {
-	fprintf(stderr,"Considering fragment from unplaced piece " F_CID "\n",
-		piece->ident);
-      }
+    contigPos.ident = piece->ident;
+    contigPos.type = imp->type;
+    if (imp->contained) {
+      contained = GetChunkPlacement(piece_list,imp->contained-1);
+      contigPos.contained = contained->ident; 
+    } else {
+      contigPos.contained = 0; 
     }
-    // here, we'll call MergeMultiAligns on the meta-unitig.
-   newMultiAlign = MergeMultiAligns(ScaffoldGraph->sequenceDB,
-                                    ScaffoldGraph->fragStore,
-                                    ContigPositions, FALSE, TRUE,
-                                    GlobalData->aligner,
-                                    NULL);
-   fprintf(stderr," Returned from call to MergeMultiAlign\n");
-   PrintMultiAlignT(stderr,newMultiAlign,ScaffoldGraph->fragStore,0,0,0,0,0);
+    contigPos.position.bgn = imp->position.bgn;
+    contigPos.position.end = imp->position.end;
+    AppendIntMultiPos(ContigPositions, &contigPos);
+    if ( piece->status == CGW_PLACED ) {
+      // consider here whether to instantiate one or more fragments
+      fprintf(stderr,"Considering fragment from placed piece " F_CID "\n",piece->ident);
+    } else if (piece->status == CGW_IN_SCAFFOLD) {
+      fprintf(stderr,"Considering in-scaffold piece " F_CID " -- keep all fragments\n",
+              piece->ident);
+      sid = piece->scaff_id;
+    } else {
+      fprintf(stderr,"Considering fragment from unplaced piece " F_CID "\n",
+              piece->ident);
+    }
+  }
+  // here, we'll call MergeMultiAligns on the meta-unitig.
+  newMultiAlign = MergeMultiAligns(ScaffoldGraph->sequenceDB,
+                                   ScaffoldGraph->fragStore,
+                                   ContigPositions, FALSE, TRUE,
+                                   GlobalData->aligner,
+                                   NULL);
+  fprintf(stderr," Returned from call to MergeMultiAlign\n");
+  PrintMultiAlignT(stderr,newMultiAlign,ScaffoldGraph->fragStore,0,0,0,0,0);
 
 
-   OutputMergedMetaUnitig(sid,newMultiAlign);
-   // then 
-   return 1;
+  OutputMergedMetaUnitig(sid,newMultiAlign);
+  // then 
+  return 1;
 }
 
 int  UnitigPieceList(VA_TYPE(OFGMesg) *pieces,VA_TYPE(OverlapMesg) *olaps,
                      VA_TYPE(IntUnitigMesg) *iums, VA_TYPE(IntMultiPos) *imps){
 
 
-// these aren't used at present, but they need to be around for the interface
+  // these aren't used at present, but they need to be around for the interface
   static VA_TYPE(char)        * the_ofg_source=NULL;
   static VA_TYPE(char)        * the_ovl_source=NULL;
   static VA_TYPE(char)        * the_imp_source=NULL;
@@ -347,15 +347,15 @@ int  UnitigPieceList(VA_TYPE(OFGMesg) *pieces,VA_TYPE(OverlapMesg) *olaps,
 
   {
     RunMiniUnitiggerParams params =
-    { pieces,
-      olaps,
-      the_ofg_source,
-      the_ovl_source };
+      { pieces,
+        olaps,
+        the_ofg_source,
+        the_ovl_source };
     RunMiniUnitiggerResults results =
-    { imps,
-      iums,
-      the_imp_source,
-      the_ium_source };
+      { imps,
+        iums,
+        the_imp_source,
+        the_ium_source };
 
     run_MiniUnitigger( muo, &params, &results);
   }
@@ -405,44 +405,44 @@ int main( int argc, char *argv[])
     while (!errflg && ((ch = getopt(argc, argv,
 				    "c:C:f:g:m:n:s:")) != EOF)){
       switch(ch) {
-		case 'c':
-		{
-		  strcpy( data->File_Name_Prefix, argv[optind - 1]);
-		  setPrefixName = TRUE;		  
-		}
-		break;
-		case 'C':
-		  startingGap = atoi(argv[optind - 1]);
-		  setStartingGap = TRUE;
-		  break;
-		case 'f':
-		{
-		  strcpy( data->Frag_Store_Name, argv[optind - 1]);
-		  setFragStore = TRUE;
-		}
-		break;
-		case 'g':
-		{
-		  strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
-		  setGatekeeperStore = TRUE;
-		}
-		break;	  
-		case 'm':
-		  MaxInteriorGap = atoi(argv[optind - 1]);
-		  fprintf( stderr, "setting MaxInteriorGap to %d\n", MaxInteriorGap);
-		  break;
-		case 'n':
-		  ckptNum = atoi(argv[optind - 1]);
-		  break;
-		case 's':
-		  singleSid = atoi(argv[optind - 1]);
-		  setSingleSid = TRUE;
-		  fprintf( stderr, "setting singleSid to %d\n", singleSid);
-		  break;
-		case '?':
-		  fprintf(stderr,"Unrecognized option -%c",optopt);
-		default :
-		  errflg++;
+        case 'c':
+          {
+            strcpy( data->File_Name_Prefix, argv[optind - 1]);
+            setPrefixName = TRUE;		  
+          }
+          break;
+        case 'C':
+          startingGap = atoi(argv[optind - 1]);
+          setStartingGap = TRUE;
+          break;
+        case 'f':
+          {
+            strcpy( data->Frag_Store_Name, argv[optind - 1]);
+            setFragStore = TRUE;
+          }
+          break;
+        case 'g':
+          {
+            strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
+            setGatekeeperStore = TRUE;
+          }
+          break;	  
+        case 'm':
+          MaxInteriorGap = atoi(argv[optind - 1]);
+          fprintf( stderr, "setting MaxInteriorGap to %d\n", MaxInteriorGap);
+          break;
+        case 'n':
+          ckptNum = atoi(argv[optind - 1]);
+          break;
+        case 's':
+          singleSid = atoi(argv[optind - 1]);
+          setSingleSid = TRUE;
+          fprintf( stderr, "setting singleSid to %d\n", singleSid);
+          break;
+        case '?':
+          fprintf(stderr,"Unrecognized option -%c",optopt);
+        default :
+          errflg++;
       }
     }
     if((setPrefixName == FALSE) || (setFragStore == 0) || (setGatekeeperStore == 0))
@@ -460,15 +460,15 @@ int main( int argc, char *argv[])
   iums = CreateVA_IntUnitigMesg(5000);
 
   if (setStartingGap == TRUE)
-	fprintf( stderr, "set starting gap to %d\n", startingGap);
+    fprintf( stderr, "set starting gap to %d\n", startingGap);
   
   // hack
   {
-	char temp_buf[1024];
-	sprintf( temp_buf, "cp %s/db.frg.orig %s/db.frg", GlobalData->Frag_Store_Name, GlobalData->Frag_Store_Name);
-	system( temp_buf );
+    char temp_buf[1024];
+    sprintf( temp_buf, "cp %s/db.frg.orig %s/db.frg", GlobalData->Frag_Store_Name, GlobalData->Frag_Store_Name);
+    system( temp_buf );
 	
-	// system( "cp chrom21_dup.frgStore/db.frg.orig chrom21_dup.frgStore/db.frg" );
+    // system( "cp chrom21_dup.frgStore/db.frg.orig chrom21_dup.frgStore/db.frg" );
   }
 
   t1 = time(0);
@@ -499,377 +499,377 @@ int main( int argc, char *argv[])
   // scan all the scaffolds
   //
   if (setSingleSid) { 
-      // test the input sid and ensure that it is within range
-      if ( singleSid >= GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph) ) {
-          fprintf(stderr," Specified single SID %d is out of range of the scaffold graph.\n",singleSid);
-          assert(0);
-      }
+    // test the input sid and ensure that it is within range
+    if ( singleSid >= GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph) ) {
+      fprintf(stderr," Specified single SID %d is out of range of the scaffold graph.\n",singleSid);
+      assert(0);
+    }
   }
 
 
   for (sid = singleSid; sid < GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph); sid++)
-  {
-        int scaff_order=0;
-        CDS_CID_t anchor=0;
-        ChunkPlacement cip;
+    {
+      int scaff_order=0;
+      CDS_CID_t anchor=0;
+      ChunkPlacement cip;
 #if 0
-	NodeOrient lcontigOrientation;
+      NodeOrient lcontigOrientation;
 #endif
-        NodeOrient rcontigOrientation;
-        int potential_fill_count=0;
-        CDS_COORD_t potential_fill_length=0;
-	CIScaffoldTIterator CIsTemp;
-	CIScaffoldT * scaff;
-	int icnt, lextension, rextension;
-	CDS_CID_t rcontigID;
-	ContigT *lcontig, *rcontig;
+      NodeOrient rcontigOrientation;
+      int potential_fill_count=0;
+      CDS_COORD_t potential_fill_length=0;
+      CIScaffoldTIterator CIsTemp;
+      CIScaffoldT * scaff;
+      int icnt, lextension, rextension;
+      CDS_CID_t rcontigID;
+      ContigT *lcontig, *rcontig;
 	
-	lextension = rextension = 0;
-        if ( setSingleSid && sid != singleSid ) break;
+      lextension = rextension = 0;
+      if ( setSingleSid && sid != singleSid ) break;
 	
-	scaff = GetGraphNode(ScaffoldGraph->ScaffoldGraph, sid);
-	// make sure the scaffold is there
-	assert(scaff != NULL);
+      scaff = GetGraphNode(ScaffoldGraph->ScaffoldGraph, sid);
+      // make sure the scaffold is there
+      assert(scaff != NULL);
     
-	// not interested in dead scaffold, not real scaffolds, or singleton scaffolds
+      // not interested in dead scaffold, not real scaffolds, or singleton scaffolds
     
-	if ((isDeadCIScaffoldT(scaff)) ||
-		(scaff->type != REAL_SCAFFOLD))
+      if ((isDeadCIScaffoldT(scaff)) ||
+          (scaff->type != REAL_SCAFFOLD))
 	{
 	  continue;
 	}
-	fprintf(stderr,"\n=====================================================================\n");
-	fprintf(stderr,  "=== examining scaffold " F_CID ", size %f\n", sid, scaff->bpLength.mean);
+      fprintf(stderr,"\n=====================================================================\n");
+      fprintf(stderr,  "=== examining scaffold " F_CID ", size %f\n", sid, scaff->bpLength.mean);
 	  
-	fprintf( stderr, "before unitigging in scaffold " F_CID "\n",
-                 scaff->id);
-	InitCIScaffoldTIterator( ScaffoldGraph, scaff, TRUE, FALSE, &CIsTemp);
-	while ( NextCIScaffoldTIterator( &CIsTemp ) && 
-			CIsTemp.next != GetNumGraphNodes( ScaffoldGraph->ContigGraph ) - 1)
+      fprintf( stderr, "before unitigging in scaffold " F_CID "\n",
+               scaff->id);
+      InitCIScaffoldTIterator( ScaffoldGraph, scaff, TRUE, FALSE, &CIsTemp);
+      while ( NextCIScaffoldTIterator( &CIsTemp ) && 
+              CIsTemp.next != GetNumGraphNodes( ScaffoldGraph->ContigGraph ) - 1)
 	{
 	  fprintf( stderr, "prev, curr, next: " F_CID "," F_CID "," F_CID "\n",
                    CIsTemp.prev, CIsTemp.curr, CIsTemp.next);
 	}
 
-	icnt = 0;
-        ResetVA_ChunkPlacement(piece_list);
-        ResetVA_OFGMesg(pieces);
-        ResetVA_OverlapMesg(olaps);
-        ResetVA_IntMultiPos(imps);
-        ResetVA_IntUnitigMesg(iums);
+      icnt = 0;
+      ResetVA_ChunkPlacement(piece_list);
+      ResetVA_OFGMesg(pieces);
+      ResetVA_OverlapMesg(olaps);
+      ResetVA_IntMultiPos(imps);
+      ResetVA_IntUnitigMesg(iums);
 
-	lcontig = GetGraphNode( ScaffoldGraph->ContigGraph, scaff->info.Scaffold.AEndCI);
-        anchor = lcontig->id;
+      lcontig = GetGraphNode( ScaffoldGraph->ContigGraph, scaff->info.Scaffold.AEndCI);
+      anchor = lcontig->id;
 #if 0
-        cip.ident = anchor;
-        cip.order = scaff_order++;
-        cip.status = CGW_IN_SCAFFOLD;
-        cip.scaff_id = sid;
-        cip.scaff_bpLength = (CDS_COORD_t) scaff->bpLength.mean;
-        cip.scaff_numCI = scaff->info.Contig.numCI;
-        cip.orient = lcontigOrientation;
-        cip.AEndCI = lcontig->info.Contig.AEndCI;
-        cip.BEndCI = lcontig->info.Contig.BEndCI;
-        cip.edge = NULL;
-        AppendVA_ChunkPlacement(piece_list,&cip);
+      cip.ident = anchor;
+      cip.order = scaff_order++;
+      cip.status = CGW_IN_SCAFFOLD;
+      cip.scaff_id = sid;
+      cip.scaff_bpLength = (CDS_COORD_t) scaff->bpLength.mean;
+      cip.scaff_numCI = scaff->info.Contig.numCI;
+      cip.orient = lcontigOrientation;
+      cip.AEndCI = lcontig->info.Contig.AEndCI;
+      cip.BEndCI = lcontig->info.Contig.BEndCI;
+      cip.edge = NULL;
+      AppendVA_ChunkPlacement(piece_list,&cip);
 #endif
 
 
-        potential_fill_count=0;
-        potential_fill_length=0;
-	//rcontigID = lcontig->BEndNext;
-        rcontigID = anchor;
-	while ( rcontigID != -1 )
+      potential_fill_count=0;
+      potential_fill_length=0;
+      //rcontigID = lcontig->BEndNext;
+      rcontigID = anchor;
+      while ( rcontigID != -1 )
 	{
           GraphEdgeIterator  ci_edges;
           CIEdgeT  * edge;
 
 	  rcontig = GetGraphNode( ScaffoldGraph->ContigGraph, rcontigID);
 	  if (rcontig->offsetAEnd.mean < rcontig->offsetBEnd.mean)
-		rcontigOrientation = A_B;
+            rcontigOrientation = A_B;
           else
-		rcontigOrientation = B_A;
+            rcontigOrientation = B_A;
 
 
-            cip.ident = rcontig->id;
-            cip.order = scaff_order++;
-            cip.status = CGW_IN_SCAFFOLD;
-            cip.scaff_id = sid;
-            cip.scaff_numCI = scaff->info.Contig.numCI;
-            cip.scaff_bpLength = (CDS_COORD_t) scaff->bpLength.mean;
-            cip.orient = rcontigOrientation;
-            cip.AEndCI = rcontig->info.Contig.AEndCI;
-            cip.BEndCI = rcontig->info.Contig.BEndCI;
-            cip.edge = NULL;
-	    cip.type = AS_CONTIG;
-            AppendVA_ChunkPlacement(piece_list,&cip);
+          cip.ident = rcontig->id;
+          cip.order = scaff_order++;
+          cip.status = CGW_IN_SCAFFOLD;
+          cip.scaff_id = sid;
+          cip.scaff_numCI = scaff->info.Contig.numCI;
+          cip.scaff_bpLength = (CDS_COORD_t) scaff->bpLength.mean;
+          cip.orient = rcontigOrientation;
+          cip.AEndCI = rcontig->info.Contig.AEndCI;
+          cip.BEndCI = rcontig->info.Contig.BEndCI;
+          cip.edge = NULL;
+          cip.type = AS_CONTIG;
+          AppendVA_ChunkPlacement(piece_list,&cip);
 
 	  
           
-           // collect edges from chunk to other chunks
+          // collect edges from chunk to other chunks
 
-           InitGraphEdgeIterator (ScaffoldGraph->RezGraph, rcontig -> id, ALL_END,
-                                  ALL_EDGES, GRAPH_EDGE_DEFAULT,
-                                  & ci_edges);
-           while  ((edge = NextGraphEdgeIterator (& ci_edges)) != NULL)
-             {
+          InitGraphEdgeIterator (ScaffoldGraph->RezGraph, rcontig -> id, ALL_END,
+                                 ALL_EDGES, GRAPH_EDGE_DEFAULT,
+                                 & ci_edges);
+          while  ((edge = NextGraphEdgeIterator (& ci_edges)) != NULL)
+            {
               ChunkInstanceT  * other_chunk;
 
               if  (edge -> idA == rcontig->id)
-                  other_chunk = GetGraphNode(ScaffoldGraph->RezGraph,
-                                                   edge -> idB);
-                else
-                  other_chunk = GetGraphNode(ScaffoldGraph->RezGraph,
-                                                   edge -> idA);
+                other_chunk = GetGraphNode(ScaffoldGraph->RezGraph,
+                                           edge -> idB);
+              else
+                other_chunk = GetGraphNode(ScaffoldGraph->RezGraph,
+                                           edge -> idA);
 
-            {
-	       CIScaffoldT * oscaff;
-               EdgeCGW_T *rawEdge;
-               cip.ident = other_chunk->id;
-               cip.order = -1;
-               if ( other_chunk->scaffoldID != -1 ) {
-                   oscaff = GetGraphNode(ScaffoldGraph->ScaffoldGraph, other_chunk->scaffoldID);
-                   if ( other_chunk->scaffoldID == sid ) {
-                     cip.status = CGW_IN_SCAFFOLD;
-                   } else {
-                     cip.status = CGW_PLACED;
+              {
+                CIScaffoldT * oscaff;
+                EdgeCGW_T *rawEdge;
+                cip.ident = other_chunk->id;
+                cip.order = -1;
+                if ( other_chunk->scaffoldID != -1 ) {
+                  oscaff = GetGraphNode(ScaffoldGraph->ScaffoldGraph, other_chunk->scaffoldID);
+                  if ( other_chunk->scaffoldID == sid ) {
+                    cip.status = CGW_IN_SCAFFOLD;
+                  } else {
+                    cip.status = CGW_PLACED;
 
-		     fprintf(stderr,"Chunk " F_CID " in region is CGW_PLACED status; type is %d; fragments are as follows:\n",cip.ident,other_chunk->type);
-		     dumpFragsInChunk(stderr,other_chunk);
+                    fprintf(stderr,"Chunk " F_CID " in region is CGW_PLACED status; type is %d; fragments are as follows:\n",cip.ident,other_chunk->type);
+                    dumpFragsInChunk(stderr,other_chunk);
 		     
-                   }
-                   cip.scaff_id=other_chunk->scaffoldID;
-                   cip.scaff_bpLength= (CDS_COORD_t) oscaff->bpLength.mean;
-                   cip.scaff_numCI=oscaff->info.Contig.numCI;
-               } else {
-                   cip.status = CGW_UNPLACED;
-                   cip.scaff_id=-1;
-                   cip.scaff_bpLength=0;
-                   cip.scaff_numCI=0;
+                  }
+                  cip.scaff_id=other_chunk->scaffoldID;
+                  cip.scaff_bpLength= (CDS_COORD_t) oscaff->bpLength.mean;
+                  cip.scaff_numCI=oscaff->info.Contig.numCI;
+                } else {
+                  cip.status = CGW_UNPLACED;
+                  cip.scaff_id=-1;
+                  cip.scaff_bpLength=0;
+                  cip.scaff_numCI=0;
 
-		   fprintf(stderr,"Chunk " F_CID " in region is CGW_UNPLACED status; type is %d; fragments are as follows:\n",cip.ident,other_chunk->type);
-		   dumpFragsInChunk(stderr,other_chunk);
+                  fprintf(stderr,"Chunk " F_CID " in region is CGW_UNPLACED status; type is %d; fragments are as follows:\n",cip.ident,other_chunk->type);
+                  dumpFragsInChunk(stderr,other_chunk);
 
-               }
-               cip.AEndCI = cip.ident;
-               cip.BEndCI = cip.ident;
-               cip.edge = edge;
+                }
+                cip.AEndCI = cip.ident;
+                cip.BEndCI = cip.ident;
+                cip.edge = edge;
               
-            if ( other_chunk->scaffoldID == sid ) {
-               fprintf(stderr,"\t\t(saw link to chunk " F_CID " already in this scaffold " F_CID " from chunk " F_CID " in scaffold " F_CID ")\n", 
-                       other_chunk -> id,
-                       other_chunk->scaffoldID,
-                       rcontig->id,
-                       sid );
-            } else {
+                if ( other_chunk->scaffoldID == sid ) {
+                  fprintf(stderr,"\t\t(saw link to chunk " F_CID " already in this scaffold " F_CID " from chunk " F_CID " in scaffold " F_CID ")\n", 
+                          other_chunk -> id,
+                          other_chunk->scaffoldID,
+                          rcontig->id,
+                          sid );
+                } else {
 
 #undef UNITIG_CHUNKS	       
 #ifdef UNITIG_CHUNKS	       
-               fprintf(stderr,"  Putting unplaced or other chunk " F_CID " onto stack (from chunk " F_CID ")\n", 
-                               other_chunk -> id, rcontig->id );
-               AppendVA_ChunkPlacement(piece_list,&cip);
-               potential_fill_count+=1;
-               potential_fill_length+= (CDS_COORD_t) other_chunk->bpLength.mean;
+                  fprintf(stderr,"  Putting unplaced or other chunk " F_CID " onto stack (from chunk " F_CID ")\n", 
+                          other_chunk -> id, rcontig->id );
+                  AppendVA_ChunkPlacement(piece_list,&cip);
+                  potential_fill_count+=1;
+                  potential_fill_length+= (CDS_COORD_t) other_chunk->bpLength.mean;
 
-    #if 0
-	       {
-		 CIFragT *otherfrg;
-		 CGWFragIterator frags;
-		 fprintf(stderr,"Testing chunk frag iterator ...\n");
-		 InitCIFragTInChunkIterator(&frags,other_chunk,TRUE);
-		 while( NextCIFragTInChunkIterator(&frags,&otherfrg) ){
-		   fprintf(stderr,
-			   "\tChecking frag " F_CID " ... mate is%s in scaffold " F_CID "\n",
-			   otherfrg->iid,
-			   matePlacedIn(otherfrg,sid) ? "" : " not",
-			   sid);
-		 }
-	       }
-    #endif
+#if 0
+                  {
+                    CIFragT *otherfrg;
+                    CGWFragIterator frags;
+                    fprintf(stderr,"Testing chunk frag iterator ...\n");
+                    InitCIFragTInChunkIterator(&frags,other_chunk,TRUE);
+                    while( NextCIFragTInChunkIterator(&frags,&otherfrg) ){
+                      fprintf(stderr,
+                              "\tChecking frag " F_CID " ... mate is%s in scaffold " F_CID "\n",
+                              otherfrg->iid,
+                              matePlacedIn(otherfrg,sid) ? "" : " not",
+                              sid);
+                    }
+                  }
+#endif
 #else
-	       {
-		 CIFragT *otherfrg;
-		 ChunkPlacement frgcip;
-		 CGWFragIterator frags;
+                  {
+                    CIFragT *otherfrg;
+                    ChunkPlacement frgcip;
+                    CGWFragIterator frags;
 
-		 frgcip.order = -1;
-		 frgcip.status = cip.status;
-		 frgcip.scaff_id = cip.scaff_id;
+                    frgcip.order = -1;
+                    frgcip.status = cip.status;
+                    frgcip.scaff_id = cip.scaff_id;
 
-		 InitCIFragTInChunkIterator(&frags,other_chunk,TRUE);
-		 while( NextCIFragTInChunkIterator(&frags,&otherfrg) ){
-		   int beg,end,ori;
+                    InitCIFragTInChunkIterator(&frags,other_chunk,TRUE);
+                    while( NextCIFragTInChunkIterator(&frags,&otherfrg) ){
+                      int beg,end,ori;
 
-		   // if we get here, we should be looking at fragments
-		   // in chunks outside the scaffold of interest
-		   assert(scaffoldOf(otherfrg->iid) != sid);
+                      // if we get here, we should be looking at fragments
+                      // in chunks outside the scaffold of interest
+                      assert(scaffoldOf(otherfrg->iid) != sid);
 
-		   // we want to restrict our attention to fragments
-		   // that are mated into the scaffold of interest
-		   if(! matePlacedIn(otherfrg,sid))continue;
-
-
-		   beg = (int) otherfrg->contigOffset5p.mean;
-		   end = (int) otherfrg->contigOffset3p.mean;
-		   if(beg<end){
-		     ori=1;
-		   } else {
-		     ori=-1;
-		   }
-		   frgcip.ident = otherfrg->iid;
-		   frgcip.AEndCI = otherfrg->iid;
-		   frgcip.BEndCI = otherfrg->iid;
-		   frgcip.type = otherfrg->type;
-
-		   frgcip.orient = cip.orient;
-		   if(ori==-1){
-		     switch(frgcip.orient){
-		     case 'F':
-		       frgcip.orient = 'R';
-		       break;
-		     case 'R':
-		       frgcip.orient = 'F';
-		       break;
-		     default:
-		       assert(0);
-		     }
-		   }
-
-    #define NO_EDGE_ASSOCIATED_WITH_FRG
-    #ifdef  NO_EDGE_ASSOCIATED_WITH_FRG
-		   frgcip.edge=NULL;
-    #else
-		   frgcip.edge->orient = cip.edge->orient;
-		   if(ori==-1){
-		     switch(cip.edge->orient){
-		     case AB_BA:
-		     case BA_AB:
-		     case XX_XX:
-		       break;
-		     case AB_AB:
-		       frgcip.edge->orient = BA_BA; 
-		       break;
-		     case BA_BA:
-		       frgcip.edge->orient = AB_AB;
-		       break;
-		     default:
-		       assert(0);
-		     }
-		   }
-    #endif
+                      // we want to restrict our attention to fragments
+                      // that are mated into the scaffold of interest
+                      if(! matePlacedIn(otherfrg,sid))continue;
 
 
-		   frgcip.scaff_numCI=0;
-		   frgcip.scaff_bpLength = (ori==1 ? end-beg : beg-end);
+                      beg = (int) otherfrg->contigOffset5p.mean;
+                      end = (int) otherfrg->contigOffset3p.mean;
+                      if(beg<end){
+                        ori=1;
+                      } else {
+                        ori=-1;
+                      }
+                      frgcip.ident = otherfrg->iid;
+                      frgcip.AEndCI = otherfrg->iid;
+                      frgcip.BEndCI = otherfrg->iid;
+                      frgcip.type = otherfrg->type;
 
+                      frgcip.orient = cip.orient;
+                      if(ori==-1){
+                        switch(frgcip.orient){
+                          case 'F':
+                            frgcip.orient = 'R';
+                            break;
+                          case 'R':
+                            frgcip.orient = 'F';
+                            break;
+                          default:
+                            assert(0);
+                        }
+                      }
 
-		   fprintf(stderr,"  Putting fragment " F_CID " from unplaced or other chunk " F_CID " onto stack (based on edge from chunk " F_CID ")\n", 
-			   frgcip.ident,other_chunk -> id, rcontig->id );
-
-		   AppendVA_ChunkPlacement(piece_list,&frgcip);
-
-		   potential_fill_count+=1;
-		   potential_fill_length+= (CDS_COORD_t) frgcip.scaff_bpLength;
-
-		 }
-		 CleanupCIFragTInChunkIterator(&frags);
-	       }
+#define NO_EDGE_ASSOCIATED_WITH_FRG
+#ifdef  NO_EDGE_ASSOCIATED_WITH_FRG
+                      frgcip.edge=NULL;
+#else
+                      frgcip.edge->orient = cip.edge->orient;
+                      if(ori==-1){
+                        switch(cip.edge->orient){
+                          case AB_BA:
+                          case BA_AB:
+                          case XX_XX:
+                            break;
+                          case AB_AB:
+                            frgcip.edge->orient = BA_BA; 
+                            break;
+                          case BA_BA:
+                            frgcip.edge->orient = AB_AB;
+                            break;
+                          default:
+                            assert(0);
+                        }
+                      }
 #endif
 
 
-            }
+                      frgcip.scaff_numCI=0;
+                      frgcip.scaff_bpLength = (ori==1 ? end-beg : beg-end);
 
 
-               if ( edge->nextRawEdge > 0 ) {
-                 for(rawEdge = GetGraphEdge(ScaffoldGraph->RezGraph,edge->nextRawEdge);
-                   rawEdge != NULL;
-                   rawEdge = GetGraphEdge(ScaffoldGraph->RezGraph,rawEdge->nextRawEdge)){
-                   assert(!rawEdge->flags.bits.isDeleted);
-                   PrintGraphEdge(GlobalData->stderrc,ScaffoldGraph->RezGraph,"*raw* ", rawEdge, rawEdge->idA );
-                   if (rawEdge->distIndex > 0 ) {
-                     DistT *dist=GetDistT(ScaffoldGraph->Dists,rawEdge->distIndex);
-                     fprintf(stderr," based on dist information from library " F_CID ", mean %d\n",rawEdge->distIndex,
-                                    (int)dist->mean);
-                   }
-                 }
-               } else {
-                   PrintGraphEdge(GlobalData->stderrc,ScaffoldGraph->RezGraph,"*raw* ", edge, edge->idA );
-                   if (edge->distIndex > 0 ) {
-                     DistT *dist=GetDistT(ScaffoldGraph->Dists,edge->distIndex);
-                     fprintf(stderr," based on dist information from library " F_CID ", mean %d\n",edge->distIndex,
-                                    (int)dist->mean);
-                   }
-               }
-            }
+                      fprintf(stderr,"  Putting fragment " F_CID " from unplaced or other chunk " F_CID " onto stack (based on edge from chunk " F_CID ")\n", 
+                              frgcip.ident,other_chunk -> id, rcontig->id );
+
+                      AppendVA_ChunkPlacement(piece_list,&frgcip);
+
+                      potential_fill_count+=1;
+                      potential_fill_length+= (CDS_COORD_t) frgcip.scaff_bpLength;
+
+                    }
+                    CleanupCIFragTInChunkIterator(&frags);
+                  }
+#endif
+
+
+                }
+
+
+                if ( edge->nextRawEdge > 0 ) {
+                  for(rawEdge = GetGraphEdge(ScaffoldGraph->RezGraph,edge->nextRawEdge);
+                      rawEdge != NULL;
+                      rawEdge = GetGraphEdge(ScaffoldGraph->RezGraph,rawEdge->nextRawEdge)){
+                    assert(!rawEdge->flags.bits.isDeleted);
+                    PrintGraphEdge(GlobalData->stderrc,ScaffoldGraph->RezGraph,"*raw* ", rawEdge, rawEdge->idA );
+                    if (rawEdge->distIndex > 0 ) {
+                      DistT *dist=GetDistT(ScaffoldGraph->Dists,rawEdge->distIndex);
+                      fprintf(stderr," based on dist information from library " F_CID ", mean %d\n",rawEdge->distIndex,
+                              (int)dist->mean);
+                    }
+                  }
+                } else {
+                  PrintGraphEdge(GlobalData->stderrc,ScaffoldGraph->RezGraph,"*raw* ", edge, edge->idA );
+                  if (edge->distIndex > 0 ) {
+                    DistT *dist=GetDistT(ScaffoldGraph->Dists,edge->distIndex);
+                    fprintf(stderr," based on dist information from library " F_CID ", mean %d\n",edge->distIndex,
+                            (int)dist->mean);
+                  }
+                }
+              }
                
-             }
+            }
 
           if ( ( anchor != rcontigID && rcontig->bpLength.mean > 20000 ) || rcontig->BEndNext == -1 ) {
-             fprintf(stderr, "\n\tFound a region from anchor contig " F_CID " to " F_CID "\n",anchor,rcontig->id);
-             fprintf(stderr,"\t Should try local unitigging here\n");
-	     if(GetNumChunkPlacements(piece_list)>1){
-	       overlapFound= OverlapPieceList(piece_list,pieces,olaps);
-	       fprintf(stderr,"\t OverlapPieceList returned %d overlaps\n",overlapFound);
-	       if ( overlapFound > 0 ) {
-		 UnitigPieceList(pieces,olaps,iums,imps);
-		 DumpUnitigVAInfo ( piece_list, pieces, iums );
-		 { size_t i;
-                 IntUnitigMesg *ium; 
-                 for (i=0;i<GetNumIntUnitigMesgs(iums);i++) {
-                   ium=GetIntUnitigMesg(iums,i);
+            fprintf(stderr, "\n\tFound a region from anchor contig " F_CID " to " F_CID "\n",anchor,rcontig->id);
+            fprintf(stderr,"\t Should try local unitigging here\n");
+            if(GetNumChunkPlacements(piece_list)>1){
+              overlapFound= OverlapPieceList(piece_list,pieces,olaps);
+              fprintf(stderr,"\t OverlapPieceList returned %d overlaps\n",overlapFound);
+              if ( overlapFound > 0 ) {
+                UnitigPieceList(pieces,olaps,iums,imps);
+                DumpUnitigVAInfo ( piece_list, pieces, iums );
+                { size_t i;
+                IntUnitigMesg *ium; 
+                for (i=0;i<GetNumIntUnitigMesgs(iums);i++) {
+                  ium=GetIntUnitigMesg(iums,i);
 
-		   // if only one element, no merging done
-                   if ( !CheckMetaUnitigPotential( piece_list,ium)) continue;
+                  // if only one element, no merging done
+                  if ( !CheckMetaUnitigPotential( piece_list,ium)) continue;
 
-		   // if the unitig changes the order of contigs in scaffold, reject
-                   if ( !CheckMetaUnitigOrderConsistency( piece_list,ium)){
+                  // if the unitig changes the order of contigs in scaffold, reject
+                  if ( !CheckMetaUnitigOrderConsistency( piece_list,ium)){
 #ifdef NO_CONTIG_REORDERING		   
-		     continue; 
+                    continue; 
 #else
-		     fprintf(stderr,"DIRE WARNING: Contigs reordered -- did you want to allow that?\n");
+                    fprintf(stderr,"DIRE WARNING: Contigs reordered -- did you want to allow that?\n");
 #endif
-		   }
+                  }
 
-		   // the overlap checker should have restricted orientations so that only allowed ones
-		   // occur, but just in case ...
-                   assert( CheckMetaUnitigOrientConsistency( piece_list,ium));
+                  // the overlap checker should have restricted orientations so that only allowed ones
+                  // occur, but just in case ...
+                  assert( CheckMetaUnitigOrientConsistency( piece_list,ium));
 
-		   // if the unitig doesn't contain any contigs from original scaffold
-		   // between anchor and and rcontig, reject
-		   // Also, if it only contains rcontig and rcontig != anchor, then reject.
-		   // This latter case should be rejected because we are going to reprocess
-		   // this contig next time through the loop ...
-		   if ( ! MetaUnitigIncludesPiecesFromScaffold(piece_list,ium,
-							       scaff_order - (anchor==rcontigID ? 1 : 2))) {
+                  // if the unitig doesn't contain any contigs from original scaffold
+                  // between anchor and and rcontig, reject
+                  // Also, if it only contains rcontig and rcontig != anchor, then reject.
+                  // This latter case should be rejected because we are going to reprocess
+                  // this contig next time through the loop ...
+                  if ( ! MetaUnitigIncludesPiecesFromScaffold(piece_list,ium,
+                                                              scaff_order - (anchor==rcontigID ? 1 : 2))) {
 
-		     if ( anchor!=rcontigID &&
-			  MetaUnitigIncludesPiecesFromScaffold(piece_list,ium,
-							       scaff_order - 1)){
-		       fprintf(stderr,"DIRE WARNING: meta-unitig affects only last contig in region, which will be reprocessed next time through looping on anchor!\n");
-		     }
+                    if ( anchor!=rcontigID &&
+                         MetaUnitigIncludesPiecesFromScaffold(piece_list,ium,
+                                                              scaff_order - 1)){
+                      fprintf(stderr,"DIRE WARNING: meta-unitig affects only last contig in region, which will be reprocessed next time through looping on anchor!\n");
+                    }
 
 
-		     continue;
+                    continue;
 
-		   }
+                  }
 
-		   // apply the unitig
-                   MergeMetaUnitigIntoContig(piece_list,ium);
-                 }
-		 }
-	       }
-	     }
-             anchor=rcontig->id;
-             scaff_order=0;
-             ResetVA_ChunkPlacement(piece_list);
-             ResetVA_OFGMesg(pieces);
-             ResetVA_OverlapMesg(olaps);
-             ResetVA_IntMultiPos(imps);
-             ResetVA_IntUnitigMesg(iums);
+                  // apply the unitig
+                  MergeMetaUnitigIntoContig(piece_list,ium);
+                }
+                }
+              }
+            }
+            anchor=rcontig->id;
+            scaff_order=0;
+            ResetVA_ChunkPlacement(piece_list);
+            ResetVA_OFGMesg(pieces);
+            ResetVA_OverlapMesg(olaps);
+            ResetVA_IntMultiPos(imps);
+            ResetVA_IntUnitigMesg(iums);
           }
 	  rcontigID = rcontig->BEndNext;
 	}
-  }
+    }
 
   t1 = time(0);
   fprintf( stderr, "====> Ending at %s\n", ctime(&t1));
@@ -882,244 +882,244 @@ int compCP( const void *i1, const void *i2)
   ChunkPlacement *c1=(ChunkPlacement *) i1;
   ChunkPlacement *c2=(ChunkPlacement *) i2;
   if ( c1->ident >  c2->ident )
-        return 1;
+    return 1;
   else if ( c1->ident < c2->ident )
-        return -1;
+    return -1;
   else if ( c1->type != c2->type )
-        return c1->type - c2->type;
+    return c1->type - c2->type;
   else 
-        return 0;
+    return 0;
 }
 
 
 static void dumpFastaRecord(FILE *stream, char *header, char *sequence);
 
 static int OverlapPieceList(VA_TYPE(ChunkPlacement) *piece_list, VA_TYPE(OFGMesg) *pieces,VA_TYPE(OverlapMesg) *olaps ) {
-   static VA_TYPE(char) *consensusA=NULL, *qualityA=NULL;
-   static VA_TYPE(char) *consensusB=NULL, *qualityB=NULL;
-   MultiAlignT *ma;
-   MultiAlignT **multialigns;
-   char **seqs;
-   size_t *seqlen;
-   OverlapMesg *O;
-   ChunkPlacement *cip;
-   ChunkPlacement *left_ci,*right_ci;
-   // first of all, sort the list and remove duplicates
-   ChunkPlacement *unsorted_pieces;
-   size_t n_pieces = GetNumints(piece_list);
-   size_t i;
-   CDS_CID_t this_chunk,prev_chunk;
-   int32 this_ori,prev_ori;
-   FragType this_type, prev_type;
+  static VA_TYPE(char) *consensusA=NULL, *qualityA=NULL;
+  static VA_TYPE(char) *consensusB=NULL, *qualityB=NULL;
+  MultiAlignT *ma;
+  MultiAlignT **multialigns;
+  char **seqs;
+  size_t *seqlen;
+  OverlapMesg *O;
+  ChunkPlacement *cip;
+  ChunkPlacement *left_ci,*right_ci;
+  // first of all, sort the list and remove duplicates
+  ChunkPlacement *unsorted_pieces;
+  size_t n_pieces = GetNumints(piece_list);
+  size_t i;
+  CDS_CID_t this_chunk,prev_chunk;
+  int32 this_ori,prev_ori;
+  FragType this_type, prev_type;
 
-   if(n_pieces==1)return 0;
-   if (consensusA== NULL ) 
-   {
-    consensusA = CreateVA_char(0);
-    qualityA = CreateVA_char(0);
-    consensusB = CreateVA_char(0);
-    qualityB = CreateVA_char(0);
-   } 
-   else 
-   {
-    ResetVA_char(consensusA);
-    ResetVA_char(qualityA);
-    ResetVA_char(consensusB);
-    ResetVA_char(qualityB);
-   }
-   if ( n_pieces > 0 ) {
-      ContigTIterator cis;
-      ChunkInstanceT *ci;
-      InternalFragMesg  A, B;
-      MultiAlignT *afrag,*bfrag;
-      CIStatus cistat;
-      OFGMesg ofg;
-      char *aseq,*bseq;
-      size_t length=0;
-      time_t currentTime = time(0);
-      CDS_CID_t iuniq=0;
-      int is_placed=0;
-      ofg.sequence = NULL;
-      ofg.quality = NULL;
-      ofg.source = NULL;
-      ofg.action = AS_ADD;
-      ofg.elocale = 0;
-      ofg.ebactig_id = 0;
-      ofg.ibactig_id = 0;
-      ofg.entry_time = currentTime;
-      A.quality=NULL;
-      B.quality=NULL;
-      unsorted_pieces = GetChunkPlacement(piece_list,0);
-      qsort( unsorted_pieces, n_pieces, sizeof( ChunkPlacement ), &compCP );
-      multialigns = (MultiAlignT **) safe_malloc(n_pieces*sizeof(MultiAlignT *));
-      seqs = (char **) safe_malloc(n_pieces*sizeof(char *));
-      seqlen = (size_t *) safe_malloc(n_pieces*sizeof(size_t));
-      prev_chunk=0;
-      this_chunk=0;
-      for (i=0;i<n_pieces;i++) {
-        cip = GetChunkPlacement(piece_list,i);
-        this_chunk=cip->ident;
-        cistat=cip->status;
-	this_type = cip->type;
-	this_ori = cip->orient;
-	//process, avoiding duplicates
-        if ( this_chunk != prev_chunk || 
-	     this_type != prev_type
+  if(n_pieces==1)return 0;
+  if (consensusA== NULL ) 
+    {
+      consensusA = CreateVA_char(0);
+      qualityA = CreateVA_char(0);
+      consensusB = CreateVA_char(0);
+      qualityB = CreateVA_char(0);
+    } 
+  else 
+    {
+      ResetVA_char(consensusA);
+      ResetVA_char(qualityA);
+      ResetVA_char(consensusB);
+      ResetVA_char(qualityB);
+    }
+  if ( n_pieces > 0 ) {
+    ContigTIterator cis;
+    ChunkInstanceT *ci;
+    InternalFragMesg  A, B;
+    MultiAlignT *afrag,*bfrag;
+    CIStatus cistat;
+    OFGMesg ofg;
+    char *aseq,*bseq;
+    size_t length=0;
+    time_t currentTime = time(0);
+    CDS_CID_t iuniq=0;
+    int is_placed=0;
+    ofg.sequence = NULL;
+    ofg.quality = NULL;
+    ofg.source = NULL;
+    ofg.action = AS_ADD;
+    ofg.elocale = 0;
+    ofg.ebactig_id = 0;
+    ofg.ibactig_id = 0;
+    ofg.entry_time = currentTime;
+    A.quality=NULL;
+    B.quality=NULL;
+    unsorted_pieces = GetChunkPlacement(piece_list,0);
+    qsort( unsorted_pieces, n_pieces, sizeof( ChunkPlacement ), &compCP );
+    multialigns = (MultiAlignT **) safe_malloc(n_pieces*sizeof(MultiAlignT *));
+    seqs = (char **) safe_malloc(n_pieces*sizeof(char *));
+    seqlen = (size_t *) safe_malloc(n_pieces*sizeof(size_t));
+    prev_chunk=0;
+    this_chunk=0;
+    for (i=0;i<n_pieces;i++) {
+      cip = GetChunkPlacement(piece_list,i);
+      this_chunk=cip->ident;
+      cistat=cip->status;
+      this_type = cip->type;
+      this_ori = cip->orient;
+      //process, avoiding duplicates
+      if ( this_chunk != prev_chunk || 
+           this_type != prev_type
 #ifdef ALLOW_BOTH_ORI	  
-	  || this_ori != prev_ori
+           || this_ori != prev_ori
 #endif
-	     ){ 
-          char stat;
+           ){ 
+        char stat;
 
 
-	  // get the sequence -- different ways for contigs and reads, of course
-	  if(this_type == AS_CONTIG){
-	    GetConsensus(ScaffoldGraph->RezGraph, this_chunk, consensusA, qualityA);
-	    seqlen[iuniq] = GetNumchars(consensusA);
-	    seqs[iuniq] = (char *) safe_malloc((seqlen[iuniq]+1)*sizeof(char));
-	    strcpy(seqs[iuniq],Getchar(consensusA,0));
-	    ma = LoadMultiAlignTFromSequenceDB( ScaffoldGraph->sequenceDB, this_chunk, FALSE);
-	  } else {
-	    static ReadStructp fsread = NULL;
-	    static char frgSeqBuffer[AS_BACTIG_MAX_LEN+1], frgQltbuffer[AS_BACTIG_MAX_LEN+1];
-	    uint clr_bgn, clr_end;
+        // get the sequence -- different ways for contigs and reads, of course
+        if(this_type == AS_CONTIG){
+          GetConsensus(ScaffoldGraph->RezGraph, this_chunk, consensusA, qualityA);
+          seqlen[iuniq] = GetNumchars(consensusA);
+          seqs[iuniq] = (char *) safe_malloc((seqlen[iuniq]+1)*sizeof(char));
+          strcpy(seqs[iuniq],Getchar(consensusA,0));
+          ma = LoadMultiAlignTFromSequenceDB( ScaffoldGraph->sequenceDB, this_chunk, FALSE);
+        } else {
+          static ReadStructp fsread = NULL;
+          static char frgSeqBuffer[AS_BACTIG_MAX_LEN+1], frgQltbuffer[AS_BACTIG_MAX_LEN+1];
+          uint clr_bgn, clr_end;
 
-	    assert(this_type = AS_READ);
+          assert(this_type = AS_READ);
 
-	    if ( fsread == NULL ) fsread = new_ReadStruct();
+          if ( fsread == NULL ) fsread = new_ReadStruct();
 
-	    // get the read and its sequence
-	    getFragStore( ScaffoldGraph->fragStore, this_chunk, FRAG_S_ALL, fsread);
-	    getClearRegion_ReadStruct( fsread, &clr_bgn, &clr_end, READSTRUCT_CNS);
-	    getSequence_ReadStruct( fsread, frgSeqBuffer, frgQltbuffer, AS_BACTIG_MAX_LEN);
-	    frgSeqBuffer[clr_end]='\0';
+          // get the read and its sequence
+          getFragStore( ScaffoldGraph->fragStore, this_chunk, FRAG_S_ALL, fsread);
+          getClearRegion_ReadStruct( fsread, &clr_bgn, &clr_end, READSTRUCT_CNS);
+          getSequence_ReadStruct( fsread, frgSeqBuffer, frgQltbuffer, AS_BACTIG_MAX_LEN);
+          frgSeqBuffer[clr_end]='\0';
 
-	    // copy its sequence
-	    seqlen[iuniq] = clr_end - clr_bgn;
-	    seqs[iuniq] = (char *) safe_malloc((seqlen[iuniq]+1)*sizeof(char));
-	    strcpy(seqs[iuniq],frgSeqBuffer+clr_bgn);
-	    ma = NULL;
-	  }
-	  length+=seqlen[iuniq];
-	  ofg.clear_rng.bgn = 0;
-	  ofg.clear_rng.end = seqlen[iuniq];
-
-
-
-          ofg.iaccession = iuniq+1;
-          ofg.eaccession = this_chunk;
-	  ofg.type = cip->type;
-          AppendVA_OFGMesg(pieces,&ofg);
-          fprintf(stderr,"Chunk " F_UID " ",ofg.eaccession);
-          if ( cistat == CGW_IN_SCAFFOLD ) {
-            fprintf(stderr," * "); 
-            is_placed++;
-          }
-          if ( cistat == CGW_IN_SCAFFOLD ) {
-            stat = 'S';
-          } else if ( cistat == CGW_PLACED ) {
-            stat = 'P';
-          } else {
-            stat = 'U';
-          }
-          fprintf(stderr," (local index " F_IID ")\n",ofg.iaccession); 
-          fprintf(stderr,"GenGraphNODE: " F_UID " %c " F_CID " " F_CID " " F_COORD " " F_COORD " " F_SIZE_T " " F_SIZE_T "\n",
-                   ofg.eaccession, stat, cip->scaff_id, cip->scaff_numCI, cip->scaff_bpLength,
-                   ofg.clear_rng.end,ma!=NULL ? GetNumIntMultiPoss(ma->f_list) : 1,
-                   ma!=NULL ? GetNumIntUnitigPoss(ma->u_list) : 0);
-	  InitContigTIterator(ScaffoldGraph, ofg.eaccession, TRUE, FALSE, &cis);
-	  while(NULL != (ci = NextContigTIterator(&cis))){
-	    CDS_CID_t cid = ci->id;
-            fprintf(stderr,"	CI " F_CID ", cov: %d\n",cid,ci->info.CI.coverageStat);
-          }
-          SetVA_ChunkPlacement(piece_list,iuniq,cip);
-          multialigns[iuniq++] = ma; 
+          // copy its sequence
+          seqlen[iuniq] = clr_end - clr_bgn;
+          seqs[iuniq] = (char *) safe_malloc((seqlen[iuniq]+1)*sizeof(char));
+          strcpy(seqs[iuniq],frgSeqBuffer+clr_bgn);
+          ma = NULL;
         }
-        prev_chunk = this_chunk;
-	prev_type  = this_type;
-	prev_ori = this_ori;
+        length+=seqlen[iuniq];
+        ofg.clear_rng.bgn = 0;
+        ofg.clear_rng.end = seqlen[iuniq];
+
+
+
+        ofg.iaccession = iuniq+1;
+        ofg.eaccession = this_chunk;
+        ofg.type = cip->type;
+        AppendVA_OFGMesg(pieces,&ofg);
+        fprintf(stderr,"Chunk " F_UID " ",ofg.eaccession);
+        if ( cistat == CGW_IN_SCAFFOLD ) {
+          fprintf(stderr," * "); 
+          is_placed++;
+        }
+        if ( cistat == CGW_IN_SCAFFOLD ) {
+          stat = 'S';
+        } else if ( cistat == CGW_PLACED ) {
+          stat = 'P';
+        } else {
+          stat = 'U';
+        }
+        fprintf(stderr," (local index " F_IID ")\n",ofg.iaccession); 
+        fprintf(stderr,"GenGraphNODE: " F_UID " %c " F_CID " " F_CID " " F_COORD " " F_COORD " " F_SIZE_T " " F_SIZE_T "\n",
+                ofg.eaccession, stat, cip->scaff_id, cip->scaff_numCI, cip->scaff_bpLength,
+                ofg.clear_rng.end,ma!=NULL ? GetNumIntMultiPoss(ma->f_list) : 1,
+                ma!=NULL ? GetNumIntUnitigPoss(ma->u_list) : 0);
+        InitContigTIterator(ScaffoldGraph, ofg.eaccession, TRUE, FALSE, &cis);
+        while(NULL != (ci = NextContigTIterator(&cis))){
+          CDS_CID_t cid = ci->id;
+          fprintf(stderr,"	CI " F_CID ", cov: %d\n",cid,ci->info.CI.coverageStat);
+        }
+        SetVA_ChunkPlacement(piece_list,iuniq,cip);
+        multialigns[iuniq++] = ma; 
       }
-      ResetToRange_ChunkPlacement(piece_list,iuniq);
-      fprintf(stderr,"\n" F_CID " pieces to unitig, combined length of " F_SIZE_T "\n",iuniq,length);
-      for (i=0;i<iuniq-1;i++) {
-         // do overlaps here
-        int j;
-        int i_placed=0,j_placed;
-        int i_orient,where;
-        left_ci=NULL;
-        right_ci=NULL;
-        afrag=multialigns[i];
-        A.sequence = seqs[i];
-        A.iaccession = i+1;
-        A.eaccession = i+1;
-        aseq=seqs[i];
-        cip = GetChunkPlacement(piece_list,i);
-	i_orient = cip->orient;
+      prev_chunk = this_chunk;
+      prev_type  = this_type;
+      prev_ori = this_ori;
+    }
+    ResetToRange_ChunkPlacement(piece_list,iuniq);
+    fprintf(stderr,"\n" F_CID " pieces to unitig, combined length of " F_SIZE_T "\n",iuniq,length);
+    for (i=0;i<iuniq-1;i++) {
+      // do overlaps here
+      int j;
+      int i_placed=0,j_placed;
+      int i_orient,where;
+      left_ci=NULL;
+      right_ci=NULL;
+      afrag=multialigns[i];
+      A.sequence = seqs[i];
+      A.iaccession = i+1;
+      A.eaccession = i+1;
+      aseq=seqs[i];
+      cip = GetChunkPlacement(piece_list,i);
+      i_orient = cip->orient;
+      if ( cip->status == CGW_IN_SCAFFOLD ) {
+        assert(cip->order>=0);
+        i_placed=1;
+        if ( cip->order == 0 ) {
+          left_ci = cip;
+        } else if (cip->order == is_placed-1) {
+          right_ci = cip;
+        }
+      }
+      for (j=i+1;j<iuniq;j++) {
+        j_placed=0;
+        bfrag = multialigns[j];
+        bseq = seqs[j];
+        B.sequence = seqs[j];
+        B.iaccession = j+1;
+        B.eaccession = j+1;
+        cip = GetChunkPlacement(piece_list,j);
         if ( cip->status == CGW_IN_SCAFFOLD ) {
-  	    assert(cip->order>=0);
-	    i_placed=1;
-            if ( cip->order == 0 ) {
-               left_ci = cip;
-            } else if (cip->order == is_placed-1) {
-               right_ci = cip;
-            }
+          j_placed=1;
+          if ( cip->order == 0 ) {
+            left_ci = cip;
+          } else if (cip->order == is_placed-1) {
+            right_ci = cip;
+          }
         }
-        for (j=i+1;j<iuniq;j++) {
-            j_placed=0;
-            bfrag = multialigns[j];
-            bseq = seqs[j];
-            B.sequence = seqs[j];
-            B.iaccession = j+1;
-            B.eaccession = j+1;
-            cip = GetChunkPlacement(piece_list,j);
-            if ( cip->status == CGW_IN_SCAFFOLD ) {
-              j_placed=1;
-              if ( cip->order == 0 ) {
-                 left_ci = cip;
-              } else if (cip->order == is_placed-1) {
-                 right_ci = cip;
+        if ( ! (j_placed && i_placed ) ) {
+          //           for (ori=0;ori<2;ori++){ 
+          {
+            int ori = (cip->orient == i_orient ? 0 : 1);
+            int band_bgn=-seqlen[j];
+            int band_end=seqlen[i];
+            if ( left_ci != NULL ) {
+              fprintf(stderr,"Examining potential overlap at left end of region (ci = " F_CID ")\n",left_ci->ident);
+              if (  seqlen[i] > 10000) {
+                band_bgn=band_end-10000;
+              } 
+            }
+            if ( right_ci != NULL ) {
+              fprintf(stderr,"Examining potential overlap at right end of region (ci = " F_CID ")\n",right_ci->ident);
+              if ( seqlen[i] > 10000 ) {
+                band_end=10000;
               }
             }
-            if ( ! (j_placed && i_placed ) ) {
-	      //           for (ori=0;ori<2;ori++){ 
-	      {
-              int ori = (cip->orient == i_orient ? 0 : 1);
-              int band_bgn=-seqlen[j];
-              int band_end=seqlen[i];
-              if ( left_ci != NULL ) {
-                 fprintf(stderr,"Examining potential overlap at left end of region (ci = " F_CID ")\n",left_ci->ident);
-                 if (  seqlen[i] > 10000) {
-                    band_bgn=band_end-10000;
-                 } 
-              }
-              if ( right_ci != NULL ) {
-                 fprintf(stderr,"Examining potential overlap at right end of region (ci = " F_CID ")\n",right_ci->ident);
-                 if ( seqlen[i] > 10000 ) {
-                    band_end=10000;
-                 }
-              }
-	      O = Local_Overlap_AS(&A,&B,band_bgn,band_end, ori, .10, 1e-6, 30, AS_FIND_LOCAL_ALIGN, &where);
-	      //O = Local_Overlap_AS_forCNS(aseq,bseq,-seqlen[j], seqlen[i],0, .10, 1e-6, 30, AS_FIND_LOCAL_ALIGN);
-              if ( O != NULL ) {
-               fprintf(overlapfp,"Found overlap between chunks " F_CID " and " F_CID " (orient %d)\n",
-		       GetChunkPlacement(piece_list,i)->ident,
-		       GetChunkPlacement(piece_list,j)->ident,
-		       ori);
-               O->min_offset=O->max_offset=O->ahg;
-               Print_Overlap_AS(overlapfp,&A,&B,O);
-               //Print_Overlap(stderr,aseq,bseq,O);
-               AppendVA_OverlapMesg(olaps,O);
-              }
+            O = Local_Overlap_AS(&A,&B,band_bgn,band_end, ori, .10, 1e-6, 30, AS_FIND_LOCAL_ALIGN, &where);
+            //O = Local_Overlap_AS_forCNS(aseq,bseq,-seqlen[j], seqlen[i],0, .10, 1e-6, 30, AS_FIND_LOCAL_ALIGN);
+            if ( O != NULL ) {
+              fprintf(overlapfp,"Found overlap between chunks " F_CID " and " F_CID " (orient %d)\n",
+                      GetChunkPlacement(piece_list,i)->ident,
+                      GetChunkPlacement(piece_list,j)->ident,
+                      ori);
+              O->min_offset=O->max_offset=O->ahg;
+              Print_Overlap_AS(overlapfp,&A,&B,O);
+              //Print_Overlap(stderr,aseq,bseq,O);
+              AppendVA_OverlapMesg(olaps,O);
             }
-          }   
-        }
-        free(seqs[i]);
-      }  
-      free(multialigns);
-      free(seqs);
-      free(seqlen);
-   }
-   return GetNumOverlapMesgs(olaps);
+          }
+        }   
+      }
+      free(seqs[i]);
+    }  
+    free(multialigns);
+    free(seqs);
+    free(seqlen);
+  }
+  return GetNumOverlapMesgs(olaps);
 }
    
 /***********************************************/
@@ -1398,7 +1398,7 @@ void OutputMergedMetaUnitig(CDS_CID_t sid,MultiAlignT *ma){
     }     
   }
       
-free(icm_mesg.unitigs);
-fflush(NULL);
+  free(icm_mesg.unitigs);
+  fflush(NULL);
 
 }

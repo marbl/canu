@@ -1,4 +1,24 @@
 
+/**************************************************************************
+ * This file is part of Celera Assembler, a software program that 
+ * assembles whole-genome shotgun reads into contigs and scaffolds.
+ * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ * License along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *************************************************************************/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -29,28 +49,28 @@
 int my_getChunkInstanceID(ChunkInstanceT *chunk, int index)
 {
   if (chunk->info.CI.numInstances == 0)  // chunk is not a surrogate
-  {
-	if (index == 0)  // just return chunk's id
-	  return(chunk->id);
-	else
-	  return(-1);
-  }
+    {
+      if (index == 0)  // just return chunk's id
+        return(chunk->id);
+      else
+        return(-1);
+    }
   else  // chunk is a surrogate
-  {
-	if (chunk->info.CI.numInstances == 1  && index == 0)
-	  return( chunk->info.CI.instances.in_line.instance1 );
-	else if (chunk->info.CI.numInstances == 2 && (index == 0 || index == 1))
+    {
+      if (chunk->info.CI.numInstances == 1  && index == 0)
+        return( chunk->info.CI.instances.in_line.instance1 );
+      else if (chunk->info.CI.numInstances == 2 && (index == 0 || index == 1))
 	{
 	  if (index == 0)
-		return( chunk->info.CI.instances.in_line.instance1);
+            return( chunk->info.CI.instances.in_line.instance1);
 	  else if (index == 1)
-		return( chunk->info.CI.instances.in_line.instance2);
+            return( chunk->info.CI.instances.in_line.instance2);
 	}
-	else if (index < chunk->info.CI.numInstances)
-	  return( * (int32 *) Getint32(chunk->info.CI.instances.va, index));
-	else
-	  return(-1);
-  }
+      else if (index < chunk->info.CI.numInstances)
+        return( * (int32 *) Getint32(chunk->info.CI.instances.va, index));
+      else
+        return(-1);
+    }
 
   assert(0); //we should never get here
   return -1;
@@ -273,8 +293,8 @@ void CleanupCIFragTInChunkIterator(CGWFragIterator* frags){
     frags->subchunkIterator=NULL;
   } else {
     if(frags->ma!=NULL){
-       DeleteMultiAlignT(frags->ma);
-       frags->ma=NULL;
+      DeleteMultiAlignT(frags->ma);
+      frags->ma=NULL;
     }
   }
   return;
@@ -450,7 +470,7 @@ int matePlacedIn(CIFragT *frg, CDS_CID_t sid){
   while(NextCGWMateIterator(&mates,&linkIID)){
     if(sid == scaffoldOf(linkIID)) return TRUE;
   }
-    return FALSE;
+  return FALSE;
 }
 
 int matePlacedOnlyIn(CIFragT *frg, CDS_CID_t sid, CIFragT **mate, ChunkInstanceT **mateChunk){
@@ -521,9 +541,9 @@ void PlaceFragmentsInMultiAlignT(CDS_CID_t toID, int isUnitig,
 
   /* It might be a good idea to recompute consensus! */
   if(! isUnitig){
-  //     2'. construct an ICM or IUM containing the new fragments
-  //     2''. run consensus on it
-  //     2'''. convert the returned ICM or IUM back to a multialignment
+    //     2'. construct an ICM or IUM containing the new fragments
+    //     2''. run consensus on it
+    //     2'''. convert the returned ICM or IUM back to a multialignment
   }  
 
   //     3. update the multialign

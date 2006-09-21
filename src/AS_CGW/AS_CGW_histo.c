@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGW_histo.c,v 1.4 2005-03-22 19:48:33 jason_miller Exp $";
+static char CM_ID[] = "$Id: AS_CGW_histo.c,v 1.5 2006-09-21 21:34:00 brianwalenz Exp $";
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -63,32 +63,32 @@ void aggregateChunks(DataType *aa,int i,DataType *bb) {
     }
 #if 0
     fprintf(stderr,"* aggChunks:\n");
-      printChunkAggregate(stderr, b);
-      printChunkAggregate(stderr, a + i);
+    printChunkAggregate(stderr, b);
+    printChunkAggregate(stderr, a + i);
 #endif
-      if(a[i].nsamples){
-    a[i].nsamples  += b->nsamples;
-    AGGREGATE_FIELD(bases)
-    AGGREGATE_FIELD(span)
-    AGGREGATE_FIELD(oedges)
-    AGGREGATE_FIELD(cedges)
-    AGGREGATE_FIELD(uedges)
-    AGGREGATE_FIELD(nScaffolds)
-    AGGREGATE_FIELD(nScaffoldsConfirmed)
-    AGGREGATE_FIELD(nScaffoldsProblem)
-      if(b->sum_cedges > 0){
-	if(a[i].sum_cedges > 0){
- 	      AGGREGATE_FIELD(wcedges)
-	    }else{
-	      a[i].sum_wcedges = a[i].min_wcedges = a[i].max_wcedges  = b->sum_wcedges;
-	    }
-      }
-    AGGREGATE_FIELD(ratio)
-      }else{
-	a[i] = *b;
-      }
+    if(a[i].nsamples){
+      a[i].nsamples  += b->nsamples;
+      AGGREGATE_FIELD(bases)
+        AGGREGATE_FIELD(span)
+        AGGREGATE_FIELD(oedges)
+        AGGREGATE_FIELD(cedges)
+        AGGREGATE_FIELD(uedges)
+        AGGREGATE_FIELD(nScaffolds)
+        AGGREGATE_FIELD(nScaffoldsConfirmed)
+        AGGREGATE_FIELD(nScaffoldsProblem)
+        if(b->sum_cedges > 0){
+          if(a[i].sum_cedges > 0){
+            AGGREGATE_FIELD(wcedges)
+              }else{
+                a[i].sum_wcedges = a[i].min_wcedges = a[i].max_wcedges  = b->sum_wcedges;
+              }
+        }
+      AGGREGATE_FIELD(ratio)
+        }else{
+          a[i] = *b;
+        }
 #if 0
-      printChunkAggregate(stderr, a + i);
+    printChunkAggregate(stderr, a + i);
 #endif
   }
 }

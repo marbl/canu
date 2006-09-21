@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_CGW_dataTypes.h,v 1.7 2006-08-22 03:16:10 ahalpern Exp $	 */
+/* 	$Id: AS_CGW_dataTypes.h,v 1.8 2006-09-21 21:34:00 brianwalenz Exp $	 */
 #ifndef AS_CGW_DATATYPES_H
 #define AS_CGW_DATATYPES_H
 
@@ -38,9 +38,9 @@
 
 #define CGW_FUDGE_FACTOR (0.026)
 #if ERR_MODEL_IN_AS_GLOBAL_H > 10
-  #define CGW_DP_ERATE ERR_FRACTION_IN_AS_GLOBAL_H
+#define CGW_DP_ERATE ERR_FRACTION_IN_AS_GLOBAL_H
 #else
-  #define CGW_DP_ERATE 0.10
+#define CGW_DP_ERATE 0.10
 #endif
 #define CGW_DP_THRESH 1e-6
 #define CGW_DP_MINLEN 20
@@ -61,8 +61,8 @@
 
 /* We've moved to a linear model of variance as a function of length.
    We chose the FUDGE_FACTOR as follows:
-  3 * sqrt(variance(600bp fragment)) = 2% of 600bp   3-sigma = 2% of 600bp
-  variance(600bp fragment) = (.02 * 600)^2 /3 = FUDGE_FACTOR * 600
+   3 * sqrt(variance(600bp fragment)) = 2% of 600bp   3-sigma = 2% of 600bp
+   variance(600bp fragment) = (.02 * 600)^2 /3 = FUDGE_FACTOR * 600
 */
 
 static double ComputeFudgeVariance(double length){

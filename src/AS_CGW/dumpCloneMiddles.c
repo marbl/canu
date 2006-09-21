@@ -160,98 +160,98 @@ int main (int argc , char * argv[] ) {
     optarg = NULL;
     while (!errflg && ((ch = getopt(argc, argv,"c:f:g:n:s:o:p:l:SU")) != EOF)){
       switch(ch) {
-      case 'c':
-	strcpy( data->File_Name_Prefix, argv[optind - 1]);
-	setPrefixName = TRUE;
-	break;
-      case 'f':
-	strcpy( data->Frag_Store_Name, argv[optind - 1]);
-	setFragStore = TRUE;
-	break;
-      case 'g':
-	strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
-	setGatekeeperStore = TRUE;
-	break;	  
-      case 'l':
-	minLen=atoi(optarg);
-	assert(minLen>0);
-	break;
-      case 'n':
-	ckptNum = atoi(argv[optind - 1]);
-	break;
-      case 'o':
-	strcpy( data->OVL_Store_Name, argv[optind - 1]);
-	setOvlStore = TRUE;
-	break;	  
-      case 'p':
-        prefix = argv[optind - 1];
-        sprintf(data->Frag_Store_Name, "%s.frgStore", prefix);
-        sprintf(data->Gatekeeper_Store_Name, "%s.gkpStore", prefix);
-        sprintf(data->OVL_Store_Name, "%s.ovlStore", prefix);
-        sprintf(data->File_Name_Prefix, "7-CGW/%s", prefix);
+        case 'c':
+          strcpy( data->File_Name_Prefix, argv[optind - 1]);
+          setPrefixName = TRUE;
+          break;
+        case 'f':
+          strcpy( data->Frag_Store_Name, argv[optind - 1]);
+          setFragStore = TRUE;
+          break;
+        case 'g':
+          strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
+          setGatekeeperStore = TRUE;
+          break;	  
+        case 'l':
+          minLen=atoi(optarg);
+          assert(minLen>0);
+          break;
+        case 'n':
+          ckptNum = atoi(argv[optind - 1]);
+          break;
+        case 'o':
+          strcpy( data->OVL_Store_Name, argv[optind - 1]);
+          setOvlStore = TRUE;
+          break;	  
+        case 'p':
+          prefix = argv[optind - 1];
+          sprintf(data->Frag_Store_Name, "%s.frgStore", prefix);
+          sprintf(data->Gatekeeper_Store_Name, "%s.gkpStore", prefix);
+          sprintf(data->OVL_Store_Name, "%s.ovlStore", prefix);
+          sprintf(data->File_Name_Prefix, "7-CGW/%s", prefix);
 
-	setFragStore = TRUE;
-	setGatekeeperStore = TRUE;
-	setOvlStore = TRUE;
-	setPrefixName = TRUE;
+          setFragStore = TRUE;
+          setGatekeeperStore = TRUE;
+          setOvlStore = TRUE;
+          setPrefixName = TRUE;
 
-        //  Find the checkpoint number by testing what files open.  We
-        //  assume checkpoints are numbered contiguously.
+          //  Find the checkpoint number by testing what files open.  We
+          //  assume checkpoints are numbered contiguously.
 
-        {
-          int  foundFirst = 0;
-          int  i = 0;
+          {
+            int  foundFirst = 0;
+            int  i = 0;
 
-          ckptNum = -1;
+            ckptNum = -1;
 
-          for (i=0; i<256; i++) {
-            char         testname[1024];
-            struct stat  teststat;
+            for (i=0; i<256; i++) {
+              char         testname[1024];
+              struct stat  teststat;
 
-            sprintf(testname, "%s.ckp.%d", data->File_Name_Prefix, i);
-            fprintf(stderr, "Testing '%s'\n", testname);
-            if (stat(testname, &teststat) == 0) {
-              foundFirst++;
-            } else {
-              if (foundFirst) {
-                //  Found the checkpoint number!  It's the one before this!
-                fprintf(stderr, "Checkpoint number %d found!\n", i-1);
-                ckptNum = i - 1;
-                break;
+              sprintf(testname, "%s.ckp.%d", data->File_Name_Prefix, i);
+              fprintf(stderr, "Testing '%s'\n", testname);
+              if (stat(testname, &teststat) == 0) {
+                foundFirst++;
+              } else {
+                if (foundFirst) {
+                  //  Found the checkpoint number!  It's the one before this!
+                  fprintf(stderr, "Checkpoint number %d found!\n", i-1);
+                  ckptNum = i - 1;
+                  break;
+                }
               }
             }
           }
-        }
 
-        if (ckptNum < 1) {
-          fprintf(stderr, "ERROR:  I couldn't find the checkpoints.\n");
-          exit(1);
-        }
+          if (ckptNum < 1) {
+            fprintf(stderr, "ERROR:  I couldn't find the checkpoints.\n");
+            exit(1);
+          }
 
-        break;
-      case 's':
-	specificScf = atoi(argv[optind - 1]);
-	break;
-      case 'S':
-	do_surrogate_tracking=0;
-	break;
-      case 'U':
-	printMateUIDs=1;
-	break;
-      case '?':
-	fprintf(stderr,"Unrecognized option -%c",optopt);
-      default :
-	errflg++;
+          break;
+        case 's':
+          specificScf = atoi(argv[optind - 1]);
+          break;
+        case 'S':
+          do_surrogate_tracking=0;
+          break;
+        case 'U':
+          printMateUIDs=1;
+          break;
+        case '?':
+          fprintf(stderr,"Unrecognized option -%c",optopt);
+        default :
+          errflg++;
       }
     }
 
     if((setPrefixName == FALSE) || (setFragStore == 0) || (setGatekeeperStore == 0) || ( setOvlStore == 0)){
-	fprintf(stderr,"* argc = %d optind = %d setFragStore = %d setGatekeeperStore = %d\n",
-		argc, optind, setFragStore,setGatekeeperStore);
+      fprintf(stderr,"* argc = %d optind = %d setFragStore = %d setGatekeeperStore = %d\n",
+              argc, optind, setFragStore,setGatekeeperStore);
 
-	usage(argv[0]);
-	exit (-1);
-      }
+      usage(argv[0]);
+      exit (-1);
+    }
   }
 
   ScaffoldGraph = 
@@ -277,7 +277,7 @@ int main (int argc , char * argv[] ) {
 
     // over all scfs in graph
     if(specificScf!=NULLINDEX){
-	dumpCloneMiddle(specificScf);
+      dumpCloneMiddle(specificScf);
     } else {
       int sid;
       for (sid = 0; sid < GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph); sid++){

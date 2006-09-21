@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.24 2006-09-21 20:53:27 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.25 2006-09-21 21:34:00 brianwalenz Exp $";
 
 
 static const char *usage = 
@@ -257,40 +257,40 @@ int main(int argc, char *argv[]){
                                     "ABCD:EFGHIJK:L:N:MO:PQR:STUV:W:X:Y:Z"
 				    "4" )) != EOF)){
       switch(ch) {
-      case 'O':
-	fprintf(GlobalData->stderrc,"* Immediate output specified: arg %s\n", optarg);
-	switch(*optarg){
-	case 'C':
-	  immediateOutput = 3;
-	  camFileOnly = 1;
-	  generateOutput = 0;
-	  break;
-	case 'i':
-	  immediateOutput = 2;
-	  break;
-	case 'c':
-	  immediateOutput = 1;
-	  break;
-	case 'm': //MergeScaffolds no cgw file
-	  immediateOutput = -1;
-	  camFileOnly = 1;
-	  generateOutput = 0;
-	  break;
-	default:
-	  break;
-	}
-      case 'a':
-	alignOverlaps = 1;
-	break;
-      case 'A':
-	alignOverlaps = 0;
-	break;
-      case 'C':
-	performCleanupScaffolds = 0;
-	fprintf(GlobalData->stderrc,"* -C ==> No Cleanup Scaffolds!\n");
-	fflush(stderr);
-	break;
-      case 'f':
+        case 'O':
+          fprintf(GlobalData->stderrc,"* Immediate output specified: arg %s\n", optarg);
+          switch(*optarg){
+            case 'C':
+              immediateOutput = 3;
+              camFileOnly = 1;
+              generateOutput = 0;
+              break;
+            case 'i':
+              immediateOutput = 2;
+              break;
+            case 'c':
+              immediateOutput = 1;
+              break;
+            case 'm': //MergeScaffolds no cgw file
+              immediateOutput = -1;
+              camFileOnly = 1;
+              generateOutput = 0;
+              break;
+            default:
+              break;
+          }
+        case 'a':
+          alignOverlaps = 1;
+          break;
+        case 'A':
+          alignOverlaps = 0;
+          break;
+        case 'C':
+          performCleanupScaffolds = 0;
+          fprintf(GlobalData->stderrc,"* -C ==> No Cleanup Scaffolds!\n");
+          fflush(stderr);
+          break;
+        case 'f':
 	  {
             strcpy( data->Frag_Store_Name, argv[optind - 1]);
             setFragStore = 1;
@@ -485,9 +485,9 @@ int main(int argc, char *argv[]){
           demoteSingletonScaffolds = FALSE;
           break;
 
-      case '4':
-	allow_forced_frags=1;
-	break;
+        case '4':
+          allow_forced_frags=1;
+          break;
 
         case '?':
           fprintf(GlobalData->stderrc,"Unrecognized option -%c",optopt);

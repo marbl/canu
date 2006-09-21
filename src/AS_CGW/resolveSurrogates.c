@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: resolveSurrogates.c,v 1.8 2006-09-18 18:36:41 ahalpern Exp $";
+static char CM_ID[] = "$Id: resolveSurrogates.c,v 1.9 2006-09-21 21:34:01 brianwalenz Exp $";
 
 
 /*********************************************************************/
@@ -80,7 +80,7 @@ int main( int argc, char *argv[])
   LengthT
     gap;
   GraphNodeIterator
-	CIGraphIterator;
+    CIGraphIterator;
   VA_TYPE(IntMultiPos) **impLists = NULL;
   int allocedImpLists = 100;
   int i;
@@ -110,37 +110,37 @@ int main( int argc, char *argv[])
     while (!errflg && ((ch = getopt(argc, argv,
 				    "c:f:g:n:S:1")) != EOF)){
       switch(ch) {
-		case 'c':
-		{
-		  strcpy( data->File_Name_Prefix, argv[optind - 1]);
-		  setPrefixName = TRUE;		  
-		}
-		break;
-		case 'f':
-		{
-		  strcpy( data->Frag_Store_Name, argv[optind - 1]);
-		  setFragStore = TRUE;
-		}
-		break;
-		case 'g':
-		{
-		  strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
-		  setGatekeeperStore = TRUE;
-		}
-		break;	  
-		case 'n':
-		  ckptNum = atoi(argv[optind - 1]);
-		  break;
-                case 'S':
-		  cutoffToInferSingleCopyStatus=atof(argv[optind-1]);
-		  assert( cutoffToInferSingleCopyStatus >= 0.0 && cutoffToInferSingleCopyStatus <= 1.0 );
-		  break;
-		case '1':
-		  placeAllFragsInSinglePlacedSurros = 1;
-		  break;
-		default :
-		  fprintf(stderr,"Unrecognized option -%c",optopt);
-		  errflg++;
+        case 'c':
+          {
+            strcpy( data->File_Name_Prefix, argv[optind - 1]);
+            setPrefixName = TRUE;		  
+          }
+          break;
+        case 'f':
+          {
+            strcpy( data->Frag_Store_Name, argv[optind - 1]);
+            setFragStore = TRUE;
+          }
+          break;
+        case 'g':
+          {
+            strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
+            setGatekeeperStore = TRUE;
+          }
+          break;	  
+        case 'n':
+          ckptNum = atoi(argv[optind - 1]);
+          break;
+        case 'S':
+          cutoffToInferSingleCopyStatus=atof(argv[optind-1]);
+          assert( cutoffToInferSingleCopyStatus >= 0.0 && cutoffToInferSingleCopyStatus <= 1.0 );
+          break;
+        case '1':
+          placeAllFragsInSinglePlacedSurros = 1;
+          break;
+        default :
+          fprintf(stderr,"Unrecognized option -%c",optopt);
+          errflg++;
       }
     }
 

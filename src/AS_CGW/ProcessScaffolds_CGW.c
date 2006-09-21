@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: ProcessScaffolds_CGW.c,v 1.8 2006-04-12 19:51:12 brianwalenz Exp $ */
+/* $Id: ProcessScaffolds_CGW.c,v 1.9 2006-09-21 21:34:00 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -83,22 +83,22 @@ static char *Colors[MAXCOLORS] = {
 
 
 static  char  * Colour_String [NUM_COLOURS]
-      = {
-	"C000000 T2 S  # Unused",
-	"CFFFF00 T2 S  # DUnique",
-	"CFF8040 T2 S  # Consistent",
-	"C808000 T2 S  # OneFrag",
-	"CFF0000 T2 S  # Repeat",
-	"CFF00FF T2 S  # BadUnique",
-	"CFF9A11 T2 S  # ContBadUnique",
-        "C00FFFF T2 S  # OrphanFrag",  // Cyan
-	"C00FF00 # LeftBP",
-	"CFF0000 # RightBP",
-	"CFF0077 T2 S  # PUnique",
-	"CFF0000 T2 S  # RockCI",
-	"C77EF77 T2 S  # StoneCI",
-	"C8080FF T2 S  # WalkCI"
-     };
+= {
+  "C000000 T2 S  # Unused",
+  "CFFFF00 T2 S  # DUnique",
+  "CFF8040 T2 S  # Consistent",
+  "C808000 T2 S  # OneFrag",
+  "CFF0000 T2 S  # Repeat",
+  "CFF00FF T2 S  # BadUnique",
+  "CFF9A11 T2 S  # ContBadUnique",
+  "C00FFFF T2 S  # OrphanFrag",  // Cyan
+  "C00FF00 # LeftBP",
+  "CFF0000 # RightBP",
+  "CFF0077 T2 S  # PUnique",
+  "CFF0000 T2 S  # RockCI",
+  "C77EF77 T2 S  # StoneCI",
+  "C8080FF T2 S  # WalkCI"
+};
 
 
 #define SCAFFOLD_ROW 1
@@ -149,74 +149,74 @@ void CleanExit(int rc) {
 }
 
 int HandleDir(char *filePathAndName, char *fileName) {
-   mode_t mode = S_IRWXU | S_IRWXG | S_IROTH;
-   char *suffix;
-   char *DirName;
-   char *FileName;
-   DIR *Dir;
-   suffix = strrchr(filePathAndName,(int)'/');
-   if ( suffix != NULL ) {
-      *suffix = '\0';
-      DirName = filePathAndName; 
-      if ( DirName != NULL ) {
-        Dir = opendir(DirName);
-        if ( Dir == NULL ) {
-          if(mkdir(DirName,mode)){
-            fprintf(stderr,"Failure to create directory %s\n", DirName);
-            CleanExit(1);
-          }
-        } else {
-          closedir(Dir);
+  mode_t mode = S_IRWXU | S_IRWXG | S_IROTH;
+  char *suffix;
+  char *DirName;
+  char *FileName;
+  DIR *Dir;
+  suffix = strrchr(filePathAndName,(int)'/');
+  if ( suffix != NULL ) {
+    *suffix = '\0';
+    DirName = filePathAndName; 
+    if ( DirName != NULL ) {
+      Dir = opendir(DirName);
+      if ( Dir == NULL ) {
+        if(mkdir(DirName,mode)){
+          fprintf(stderr,"Failure to create directory %s\n", DirName);
+          CleanExit(1);
         }
+      } else {
+        closedir(Dir);
       }
-      *suffix = '/';
-      FileName = filePathAndName;
-    } else {
-      FileName = filePathAndName;
     }
-    strcpy(fileName,FileName);
-    return 1;
+    *suffix = '/';
+    FileName = filePathAndName;
+  } else {
+    FileName = filePathAndName;
+  }
+  strcpy(fileName,FileName);
+  return 1;
 }
 
 /* DumpCelamy Colors */
 
 static void DumpCelamyColors(FILE *file){
-   { int icolour;
-    for(icolour=0; icolour<NUM_COLOURS; icolour++) {
-      fprintf(file,"%dCGBColor: %s\n",icolour,Colour_String[icolour]);
-    }
-    }
+  { int icolour;
+  for(icolour=0; icolour<NUM_COLOURS; icolour++) {
+    fprintf(file,"%dCGBColor: %s\n",icolour,Colour_String[icolour]);
+  }
+  }
 
   {
-  int i;
-  for(i = 0; i < MAXCOLORS; i++){
-    fprintf(file,"%dCGWColor: %s T2 S # C%d\n",
-	    i + COLOR_OFFSET, Colors[i],COLOR_OFFSET + i);
-  }
-  fprintf(file, "0ContigColor: %s T2 S # Contigs\n",
-	  Colors[11]);
-  fprintf(file, "0InvalidContigColor: %s T2 S # InvalidContigs\n",
-	  Colors[4]);
-  fprintf(file, "0ContigRealColor: %s T2 S # RealContigs\n",
-	  Colors[10]);
-  fprintf(file, "0ScaffoldColor: %s T2 S # Scaffolds\n",
-	  Colors[6]);
-  fprintf(file, "0SingleScaffoldColor: %s T2 S # SingleScaffolds\n",
-	  Colors[9]);
-  fprintf(file, "0ContigLinkColor: %s T1 S # ContigLinks\n",
-	  Colors[1]);
-  fprintf(file, "0ScaffoldEdgeColor: %s T2 S # ScaffoldEdges\n",
-	  Colors[7]);
-  fprintf(file, "0FragColor: %s T2 S # Bactigs\n",
-	  Colors[4]);
-  fprintf(file, "1FragColor: %s T1 S # CeleraRead\n",
-	  Colors[1]);
-  fprintf(file, "2FragColor: %s T1 S # EBAC\n",
-	  Colors[12]);
-  fprintf(file, "3FragColor: %s T1 S # OtherGuides\n",
-	  Colors[3]);
-  fprintf(file, "4FragColor: %s T1 S # ShreddedBacFrag\n",
-	  Colors[4]);
+    int i;
+    for(i = 0; i < MAXCOLORS; i++){
+      fprintf(file,"%dCGWColor: %s T2 S # C%d\n",
+              i + COLOR_OFFSET, Colors[i],COLOR_OFFSET + i);
+    }
+    fprintf(file, "0ContigColor: %s T2 S # Contigs\n",
+            Colors[11]);
+    fprintf(file, "0InvalidContigColor: %s T2 S # InvalidContigs\n",
+            Colors[4]);
+    fprintf(file, "0ContigRealColor: %s T2 S # RealContigs\n",
+            Colors[10]);
+    fprintf(file, "0ScaffoldColor: %s T2 S # Scaffolds\n",
+            Colors[6]);
+    fprintf(file, "0SingleScaffoldColor: %s T2 S # SingleScaffolds\n",
+            Colors[9]);
+    fprintf(file, "0ContigLinkColor: %s T1 S # ContigLinks\n",
+            Colors[1]);
+    fprintf(file, "0ScaffoldEdgeColor: %s T2 S # ScaffoldEdges\n",
+            Colors[7]);
+    fprintf(file, "0FragColor: %s T2 S # Bactigs\n",
+            Colors[4]);
+    fprintf(file, "1FragColor: %s T1 S # CeleraRead\n",
+            Colors[1]);
+    fprintf(file, "2FragColor: %s T1 S # EBAC\n",
+            Colors[12]);
+    fprintf(file, "3FragColor: %s T1 S # OtherGuides\n",
+            Colors[3]);
+    fprintf(file, "4FragColor: %s T1 S # ShreddedBacFrag\n",
+            Colors[4]);
 
   }
 
@@ -239,24 +239,24 @@ static int ComputeFragRow(IntMultiPos *fi){
 static int ComputeCIColor(IntUnitigPos *ci) {
   int color;
   switch (ci->type) {
-  case AS_UNIQUE_UNITIG:
-     color = DUNIQUE_COLOUR;
-     break;
-  case AS_ROCK_UNITIG:
-     color = PROCK_COLOUR;
-     break;
-  case AS_STONE_UNITIG:
-     color = PSTONE_COLOUR;
-     break;
-  case AS_PEBBLE_UNITIG:
-     color = PWALK_COLOUR;
-     break;
-  case AS_SINGLE_UNITIG:
-     color = ONEFRAG_COLOUR;
-     break;
-  default:
-     fprintf(stderr,"Invalid UnitigType %d\n",ci->type);
-     assert(0);
+    case AS_UNIQUE_UNITIG:
+      color = DUNIQUE_COLOUR;
+      break;
+    case AS_ROCK_UNITIG:
+      color = PROCK_COLOUR;
+      break;
+    case AS_STONE_UNITIG:
+      color = PSTONE_COLOUR;
+      break;
+    case AS_PEBBLE_UNITIG:
+      color = PWALK_COLOUR;
+      break;
+    case AS_SINGLE_UNITIG:
+      color = ONEFRAG_COLOUR;
+      break;
+    default:
+      fprintf(stderr,"Invalid UnitigType %d\n",ci->type);
+      assert(0);
   }
   return color;
 }
@@ -264,28 +264,28 @@ static int ComputeCIColor(IntUnitigPos *ci) {
 static int ComputeFragColor(IntMultiPos *fi) {
   int color;
   switch (fi->type) {
-  case AS_BACTIG:
-     color = 0;
-     break;
-  case AS_READ:
-  case AS_EXTR:
-  case AS_TRNR:
-     color = 1;
-     break;
-  case AS_EBAC:
-     color = 2;
-     break;
-  case AS_LBAC:
-  case AS_STS :
-     color = 3;
-     break;
-  case AS_UBAC:
-  case AS_FBAC:
-     color = 4;
-    break;
-  default:
-     fprintf(stderr,"Invalid FragType %d\n",fi->type);
-     assert(0);
+    case AS_BACTIG:
+      color = 0;
+      break;
+    case AS_READ:
+    case AS_EXTR:
+    case AS_TRNR:
+      color = 1;
+      break;
+    case AS_EBAC:
+      color = 2;
+      break;
+    case AS_LBAC:
+    case AS_STS :
+      color = 3;
+      break;
+    case AS_UBAC:
+    case AS_FBAC:
+      color = 4;
+      break;
+    default:
+      fprintf(stderr,"Invalid FragType %d\n",fi->type);
+      assert(0);
   }
   return color;
 }
@@ -321,75 +321,75 @@ int CelamyContig(FILE *out, CDS_IID_t scaffid, CDS_IID_t contigid, int reverse) 
   leftcoord = global_coord;
   rightcoord = global_coord+GetNumchars(contig->consensus);
   fprintf(out,F_IID "ScaCtg" F_IID ": " F_COORD " %s " F_COORD " R%d # Scaffold " F_IID " Ctg " F_IID "\n",
-		  scaffid, contigid,
-		  leftcoord,
-		  "A0ContigColor",
-		  rightcoord,
-		  CONTIG_ROW,
-		  scaffid, contigid);
+          scaffid, contigid,
+          leftcoord,
+          "A0ContigColor",
+          rightcoord,
+          CONTIG_ROW,
+          scaffid, contigid);
   u_list = GetIntUnitigPos(contig->u_list,0);
   for (i=0;i<num_unitigs;i++) {
-     unitig = GetMultiAlignInStore(ustore,u_list[i].ident);
-     t_rightcoord = max(u_list[i].position.bgn,u_list[i].position.end);
-     t_leftcoord =  min(u_list[i].position.bgn,u_list[i].position.end);
-     if(reverse){
-	ci_leftcoord = rightcoord - t_rightcoord;
-	ci_rightcoord = rightcoord - t_leftcoord;
-     }else{
-        ci_leftcoord = leftcoord + t_leftcoord;
-        ci_rightcoord = leftcoord + t_rightcoord;
-     }
-     buffer[0] = '\0';
-     fprintf(out,F_IID "CtgCI" F_IID ": " F_COORD " A%dCGBColor " F_COORD " R%d # Contig " F_IID " CI " F_IID "%s\n",
-		  contigid, unitig->id,
-		  ci_leftcoord,
-		  ComputeCIColor(&u_list[i]),
-		  ci_rightcoord,
-		  ComputeCIRow(&u_list[i]),
-		  contigid, unitig->id,buffer);
+    unitig = GetMultiAlignInStore(ustore,u_list[i].ident);
+    t_rightcoord = max(u_list[i].position.bgn,u_list[i].position.end);
+    t_leftcoord =  min(u_list[i].position.bgn,u_list[i].position.end);
+    if(reverse){
+      ci_leftcoord = rightcoord - t_rightcoord;
+      ci_rightcoord = rightcoord - t_leftcoord;
+    }else{
+      ci_leftcoord = leftcoord + t_leftcoord;
+      ci_rightcoord = leftcoord + t_rightcoord;
+    }
+    buffer[0] = '\0';
+    fprintf(out,F_IID "CtgCI" F_IID ": " F_COORD " A%dCGBColor " F_COORD " R%d # Contig " F_IID " CI " F_IID "%s\n",
+            contigid, unitig->id,
+            ci_leftcoord,
+            ComputeCIColor(&u_list[i]),
+            ci_rightcoord,
+            ComputeCIRow(&u_list[i]),
+            contigid, unitig->id,buffer);
   }
   f_list = GetIntMultiPos(contig->f_list,0);
   for (i=0;i<num_frags;i++) {
-     CDS_UID_t fuid;
-     frag = &f_list[i];
-     t_rightcoord = max(frag->position.bgn,frag->position.end);
-     t_leftcoord =  min(frag->position.bgn,frag->position.end);
-     if(reverse){
-	ci_leftcoord = rightcoord - t_rightcoord;
-	ci_rightcoord = rightcoord - t_leftcoord;
-     }else{
-        ci_leftcoord = leftcoord + t_leftcoord;
-        ci_rightcoord = leftcoord + t_rightcoord;
-     }
-     coord_start = NULL;
-     buffer[0] = '\0';
-     if (show_uids) {
+    CDS_UID_t fuid;
+    frag = &f_list[i];
+    t_rightcoord = max(frag->position.bgn,frag->position.end);
+    t_leftcoord =  min(frag->position.bgn,frag->position.end);
+    if(reverse){
+      ci_leftcoord = rightcoord - t_rightcoord;
+      ci_rightcoord = rightcoord - t_leftcoord;
+    }else{
+      ci_leftcoord = leftcoord + t_leftcoord;
+      ci_rightcoord = leftcoord + t_rightcoord;
+    }
+    coord_start = NULL;
+    buffer[0] = '\0';
+    if (show_uids) {
       if (frag->type == AS_BACTIG ) {
-       getFragStore(bactig_store,frag->ident,FRAG_S_FIXED,rsp);
+        getFragStore(bactig_store,frag->ident,FRAG_S_FIXED,rsp);
       } else {
-       getFragStore(frag_store,frag->ident,FRAG_S_FIXED,rsp);
+        getFragStore(frag_store,frag->ident,FRAG_S_FIXED,rsp);
       }
       getAccID_ReadStruct(rsp, &fuid);
-     } else {
+    } else {
       fuid = 0;
-     }
-     if ( frag->type == AS_BACTIG ) {
-       fprintf(out,F_IID "CtgBFrag" F_IID ": " F_COORD " A%dFragColor " F_COORD " R%d # Contig " F_IID " Frag " F_IID " (" F_UID ",%c)%s\n",
-		  contigid, frag->ident,
-		  ci_leftcoord,
-		  ComputeFragColor(frag),
-		  ci_rightcoord,
-		  ComputeFragRow(frag),
-		  contigid, frag->ident,fuid,frag->type,buffer);
-     } else {
-       fprintf(out,F_IID "CtgFrag" F_IID ": " F_COORD " A%dFragColor " F_COORD " R%d # Contig " F_IID " Frag " F_IID " (" F_UID ",%c)%s\n",
-		  contigid, frag->ident,
-		  ci_leftcoord,
-		  ComputeFragColor(frag),
-		  ci_rightcoord,
-		  ComputeFragRow(frag),
-		  contigid, frag->ident,fuid,frag->type,buffer);
-     }
+    }
+    if ( frag->type == AS_BACTIG ) {
+      fprintf(out,F_IID "CtgBFrag" F_IID ": " F_COORD " A%dFragColor " F_COORD " R%d # Contig " F_IID " Frag " F_IID " (" F_UID ",%c)%s\n",
+              contigid, frag->ident,
+              ci_leftcoord,
+              ComputeFragColor(frag),
+              ci_rightcoord,
+              ComputeFragRow(frag),
+              contigid, frag->ident,fuid,frag->type,buffer);
+    } else {
+      fprintf(out,F_IID "CtgFrag" F_IID ": " F_COORD " A%dFragColor " F_COORD " R%d # Contig " F_IID " Frag " F_IID " (" F_UID ",%c)%s\n",
+              contigid, frag->ident,
+              ci_leftcoord,
+              ComputeFragColor(frag),
+              ci_rightcoord,
+              ComputeFragRow(frag),
+              contigid, frag->ident,fuid,frag->type,buffer);
+    }
   }
   global_coord=rightcoord;
   delete_ReadStruct(rsp);
@@ -426,13 +426,13 @@ int FastaScaffold(FILE *out, IntScaffoldMesg *scaff)  {
     scaffold_sequence = CreateVA_char(200000);
   }
 
-    ResetVA_CDS_IID_t(cids);
-    ResetVA_int32(reversedVA);
-    ResetVA_char(ctmp);
-    ResetVA_char(qtmp);
-    ResetVA_char(scaffold_sequence);
+  ResetVA_CDS_IID_t(cids);
+  ResetVA_int32(reversedVA);
+  ResetVA_char(ctmp);
+  ResetVA_char(qtmp);
+  ResetVA_char(scaffold_sequence);
 
-    reversed = Getint32(reversedVA,0);
+  reversed = Getint32(reversedVA,0);
   contigid = cp[0].contig1;
   // output label line for this scaffold
 
@@ -461,32 +461,32 @@ int FastaScaffold(FILE *out, IntScaffoldMesg *scaff)  {
     reversed[0] = FALSE;
   }else{
     switch(cp[0].orient){
-    case AB_AB:
-    case AB_BA:
-      reversed[0] = FALSE;
-      break;
-    case BA_AB:
-    case BA_BA:
-      reversed[0] = TRUE;
-      break;
-    default:
-      assert(0);
-      break;
+      case AB_AB:
+      case AB_BA:
+        reversed[0] = FALSE;
+        break;
+      case BA_AB:
+      case BA_BA:
+        reversed[0] = TRUE;
+        break;
+      default:
+        assert(0);
+        break;
     }
   
     for ( i=0;i<num_pairs;i++ ) {
       switch(cp[i].orient){
-      case AB_AB:
-      case BA_BA:
-	reversed[i+1] = reversed[i];
-	break;
-      case BA_AB:
-      case AB_BA:
-	reversed[i+1] = !reversed[i];
-	break;
-      default:
-        assert(0);
-        break;
+        case AB_AB:
+        case BA_BA:
+          reversed[i+1] = reversed[i];
+          break;
+        case BA_AB:
+        case AB_BA:
+          reversed[i+1] = !reversed[i];
+          break;
+        default:
+          assert(0);
+          break;
       }
     }
   }
@@ -514,27 +514,27 @@ int FastaScaffold(FILE *out, IntScaffoldMesg *scaff)  {
   for ( i=0;i<num_pairs;i++ ) {
     ngaps = compute_gap(cp[i].mean);
 
-     // append ngaps N's to string as intercontig space
-     ResetVA_char(ctmp);  
-     EnableRangeVA_char(ctmp,ngaps+1);
-     running_length+=ngaps;
-     memset(Getchar(ctmp,0),nchar,ngaps);
-     memset(fseq, nchar, ngaps);
-     fseq+=ngaps;
-     contigid = cp[i].contig2;
-     contig = GetMultiAlignInStore(cstore,contigid);
-     contig_length = GetMultiAlignUngappedLength(contig);
-     GetMultiAlignUngappedConsensus(contig,ctmp,qtmp);
-     if(reversed[i+1]){
-       cseq = Getchar(ctmp,0);
-       Complement(cseq,contig_length);
-     }
-     running_length+=contig_length;
-     if (running_length > GetNumchars(scaffold_sequence)) {
-       fprintf(stderr,"FastaScaffold warning: unexpectedly long string in scaffold\n");
-     }
-     memcpy(fseq, Getchar(ctmp,0),contig_length);
-     fseq +=contig_length;
+    // append ngaps N's to string as intercontig space
+    ResetVA_char(ctmp);  
+    EnableRangeVA_char(ctmp,ngaps+1);
+    running_length+=ngaps;
+    memset(Getchar(ctmp,0),nchar,ngaps);
+    memset(fseq, nchar, ngaps);
+    fseq+=ngaps;
+    contigid = cp[i].contig2;
+    contig = GetMultiAlignInStore(cstore,contigid);
+    contig_length = GetMultiAlignUngappedLength(contig);
+    GetMultiAlignUngappedConsensus(contig,ctmp,qtmp);
+    if(reversed[i+1]){
+      cseq = Getchar(ctmp,0);
+      Complement(cseq,contig_length);
+    }
+    running_length+=contig_length;
+    if (running_length > GetNumchars(scaffold_sequence)) {
+      fprintf(stderr,"FastaScaffold warning: unexpectedly long string in scaffold\n");
+    }
+    memcpy(fseq, Getchar(ctmp,0),contig_length);
+    fseq +=contig_length;
   }
   // now, output the scaffold
   fseq = Getchar(scaffold_sequence,0);
@@ -616,7 +616,7 @@ int CelamyProcessScaffold(FILE *out, IntScaffoldMesg *scaff)  {
 
   if ( contigid == cp[0].contig2 && num_pairs > 0) {
     fprintf(stderr,"Warning: Singleton Scaffold " F_IID " has invalid num_contig_pairs "
-                   "fields (should be 0)\n",scaff->iaccession);
+            "fields (should be 0)\n",scaff->iaccession);
     num_pairs = 0;
   }
   // draw first contig (forward oriented)
@@ -625,10 +625,10 @@ int CelamyProcessScaffold(FILE *out, IntScaffoldMesg *scaff)  {
   if ( num_pairs == 0 ) { // singleton scaffold
     global_coord += INTERSCAFFDIST;
     fprintf(out,"LNK: " F_IID "ScaCtg" F_IID " A0SingleScaffoldColor\n",
-		scaff->iaccession, contigid);
+            scaff->iaccession, contigid);
   } else {
     for ( i=0;i<num_pairs;i++ ) {
-	global_coord += cp[i].mean;
+      global_coord += cp[i].mean;
       contigid = cp[i].contig2;
       AppendVA_CDS_IID_t(cids,&contigid);
       reverse = (cp[i].orient == AB_AB || cp[i].orient == BA_AB)?0:1;
@@ -636,8 +636,8 @@ int CelamyProcessScaffold(FILE *out, IntScaffoldMesg *scaff)  {
     }
     fprintf(out,"LNK: ");
     for (i=0;i<GetNumCDS_IID_ts(cids);i++) {
-	fprintf(out,F_IID "ScaCtg" F_IID " ",
-		scaff->iaccession, *GetCDS_IID_t(cids,i));
+      fprintf(out,F_IID "ScaCtg" F_IID " ",
+              scaff->iaccession, *GetCDS_IID_t(cids,i));
     }
     fprintf(out," A0ScaffoldColor \n");
   }
@@ -646,255 +646,255 @@ int CelamyProcessScaffold(FILE *out, IntScaffoldMesg *scaff)  {
   return 1;
 }
 
-VA_DEF(IntContigLinkMesg)
+VA_DEF(IntContigLinkMesg);
 
 int main(int argc, char *argv[])
 { GenericMesg *pmesg;
-  MesgReader   reader;
-  IntConConMesg *contig;
-  IntUnitigMesg *unitig;
-  IntContigLinkMesg *link;
-  MultiAlignT *ma;
-  char *suffix;
-  char fastaNameBuffer[FILENAME_MAX];
-  char fastaIdentifier[FILENAME_MAX];
-  char celamyNameBuffer[FILENAME_MAX];
-  VA_TYPE(char) *dummy_consensus;
-  VA_TYPE(CDS_IID_t) *link_index;
-  VA_TYPE(IntContigLinkMesg) *clinks;
-  VA_TYPE(CDS_IID_t) *is_placed;
-  uint32 placed=1;
-  uint32 unplaced=0;
-  CDS_IID_t linkid;
-  CDS_IID_t num_links;
-  int ch;
-  int do_all = 0;
-  int celamy = 0;
-  show_stddev =0;
-  show_uids = 0;
-  do_all = 1;
-  cstore = CreateMultiAlignStoreT(0);
-  ustore = CreateMultiAlignStoreT(0);
-  link_index = CreateVA_CDS_IID_t(0);
-  scaff_index = CreateVA_CDS_IID_t(0);
-  is_placed = CreateVA_CDS_IID_t(0);
-  clinks = CreateVA_IntContigLinkMesg(0);
-  global_coord = 0;
-  optarg = NULL;
-  fasta = 0;
-  fastaDregs = 0;
-  if ( argc < 2 ) {
-     fprintf(stderr,"Try -h for usage\n");
-     exit(1);
-  }
-  while ( ((ch = getopt(argc, argv, "h?df:c:sF:B:HZ")) != EOF)) {
-        switch(ch) {
-	case 'd':
-	  fastaDregs = 1;
-	  break;
-        case 'f':
-          fasta = 1;
-          strcpy(fastaNameBuffer, optarg);
-          HandleDir(fastaNameBuffer,fastaFileName);
-          fastaFile = fopen(fastaFileName,"w");
-          if (fastaFile == NULL ) {
-            fprintf(stderr,"Failure to create fasta file %s\n", fastaFileName);
-            CleanExit(1);
-          }
-	  if(fastaDregs){
-	    fastaDregsFile = fopen(fastaDregsFileName,"w");
-	    if (fastaDregsFile == NULL ) {
-	      fprintf(stderr,"Failure to create fasta file %s\n", fastaDregsFileName);
-	      CleanExit(1);
-	    }
-	  }
-          strcpy(fastaIdentifier,fastaFileName);
-          fastaIdent = strrchr(fastaIdentifier,'/');
-          if ( fastaIdent == NULL ) { 
-            fastaIdent = fastaIdentifier;
-          } else {
-            fastaIdent++;
-          }
-          suffix = strrchr(fastaIdentifier,(int)'.'); 
-          if(suffix!=NULL) *suffix = '\0'; // this cuts off the ext, so filename root can be used
-          while ( (suffix = strchr(fastaIdent,'.')) != NULL ) {
-             *suffix = '_';
-          }
-          break;
-        case 'c':
-          celamy = 1;
-          strcpy(celamyNameBuffer, optarg);
-          HandleDir(celamyNameBuffer,celamyFileName);
-          celamyFile = fopen(celamyFileName,"w");
-          if (celamyFile == NULL ) {
-            fprintf(stderr,"Failure to create celamy file %s\n", celamyFileName);
-            CleanExit(1);
-          }
-          DumpCelamyColors(celamyFile);
-          break;
-        case 'F':  // specify FragStore for use to get fragment UIDs in Celamy file
-          show_uids = 1;
-          frag_store = openFragStore(optarg, "rb");
-          break;
-        case 'B':  // specify BactigStore for use to get fragment UIDs in Celamy file
-          bactig_store = openFragStore(optarg, "rb");
-          break;
-        case 's':
-          show_stddev=1; 
-          break;
-        case 'h':
-        case '?':
-          {
-            fprintf(stderr,"\n\nUsage: process_scaffolds [-H] [-d] [-h] [-c celamy.output.filename [-F Frag.Store -B Bactig.Store]] [-f fasta.output.filename [-s]]\n");
-            fprintf(stderr,"\n The -f option produces a multi-fasta file, with one fasta record for each scaffold,\n");
-            fprintf(stderr," and 'n's used as intercontig gap placeholders.  For positive gaps, the number of 'n's\n");
-            fprintf(stderr," used represents the calculated mean gap size.  For negative gaps, 20 'n's are used.\n");
-            fprintf(stderr," The -s suboption to -f (fasta output) directs the program to include gap standard\n");
-            fprintf(stderr," deviations to the comment line of each scaffold.  The convention for this output is\n");
-            fprintf(stderr,"\n   >UBAC_IID_UID_Scaffold_SID stddev: num_gaps fp[0] ... fp[num_gaps-1]\n");
-            fprintf(stderr,"\n that is, num_gaps specifies how many floats to expect in remainder of line.\n");
-            fprintf(stderr,"\n The -c option produces a celamy file for the assembly, down to the fragment level\n\n");
-            fprintf(stderr,"\n        -F and -B can be used to open frag stores to capture fragment uids for comment field\n\n");
-            fprintf(stderr,"\n The -d option produces a multi-fasta dregs file, with one fasta record for each degenerate scaffold,\n");
-            fprintf(stderr,"\n The -d option is only meaningful when specified with -f\n");
-            fprintf(stderr,"\n The -H option, handles the gaps as per Scott Henderson's spec \n");
-            fprintf(stderr,"\n The -Z option, handles the headers and gaps as per Z Lai's  spec \n");
-            CleanExit(1);
-          }
-        default:
-          {
-            fprintf(stderr,"Invalid option -%c, try -h for usage\n",ch);
-            CleanExit(1);
-          }
-        }
-  }
+ MesgReader   reader;
+ IntConConMesg *contig;
+ IntUnitigMesg *unitig;
+ IntContigLinkMesg *link;
+ MultiAlignT *ma;
+ char *suffix;
+ char fastaNameBuffer[FILENAME_MAX];
+ char fastaIdentifier[FILENAME_MAX];
+ char celamyNameBuffer[FILENAME_MAX];
+ VA_TYPE(char) *dummy_consensus;
+ VA_TYPE(CDS_IID_t) *link_index;
+ VA_TYPE(IntContigLinkMesg) *clinks;
+ VA_TYPE(CDS_IID_t) *is_placed;
+ uint32 placed=1;
+ uint32 unplaced=0;
+ CDS_IID_t linkid;
+ CDS_IID_t num_links;
+ int ch;
+ int do_all = 0;
+ int celamy = 0;
+ show_stddev =0;
+ show_uids = 0;
+ do_all = 1;
+ cstore = CreateMultiAlignStoreT(0);
+ ustore = CreateMultiAlignStoreT(0);
+ link_index = CreateVA_CDS_IID_t(0);
+ scaff_index = CreateVA_CDS_IID_t(0);
+ is_placed = CreateVA_CDS_IID_t(0);
+ clinks = CreateVA_IntContigLinkMesg(0);
+ global_coord = 0;
+ optarg = NULL;
+ fasta = 0;
+ fastaDregs = 0;
+ if ( argc < 2 ) {
+   fprintf(stderr,"Try -h for usage\n");
+   exit(1);
+ }
+ while ( ((ch = getopt(argc, argv, "h?df:c:sF:B:HZ")) != EOF)) {
+   switch(ch) {
+     case 'd':
+       fastaDregs = 1;
+       break;
+     case 'f':
+       fasta = 1;
+       strcpy(fastaNameBuffer, optarg);
+       HandleDir(fastaNameBuffer,fastaFileName);
+       fastaFile = fopen(fastaFileName,"w");
+       if (fastaFile == NULL ) {
+         fprintf(stderr,"Failure to create fasta file %s\n", fastaFileName);
+         CleanExit(1);
+       }
+       if(fastaDregs){
+         fastaDregsFile = fopen(fastaDregsFileName,"w");
+         if (fastaDregsFile == NULL ) {
+           fprintf(stderr,"Failure to create fasta file %s\n", fastaDregsFileName);
+           CleanExit(1);
+         }
+       }
+       strcpy(fastaIdentifier,fastaFileName);
+       fastaIdent = strrchr(fastaIdentifier,'/');
+       if ( fastaIdent == NULL ) { 
+         fastaIdent = fastaIdentifier;
+       } else {
+         fastaIdent++;
+       }
+       suffix = strrchr(fastaIdentifier,(int)'.'); 
+       if(suffix!=NULL) *suffix = '\0'; // this cuts off the ext, so filename root can be used
+       while ( (suffix = strchr(fastaIdent,'.')) != NULL ) {
+         *suffix = '_';
+       }
+       break;
+     case 'c':
+       celamy = 1;
+       strcpy(celamyNameBuffer, optarg);
+       HandleDir(celamyNameBuffer,celamyFileName);
+       celamyFile = fopen(celamyFileName,"w");
+       if (celamyFile == NULL ) {
+         fprintf(stderr,"Failure to create celamy file %s\n", celamyFileName);
+         CleanExit(1);
+       }
+       DumpCelamyColors(celamyFile);
+       break;
+     case 'F':  // specify FragStore for use to get fragment UIDs in Celamy file
+       show_uids = 1;
+       frag_store = openFragStore(optarg, "rb");
+       break;
+     case 'B':  // specify BactigStore for use to get fragment UIDs in Celamy file
+       bactig_store = openFragStore(optarg, "rb");
+       break;
+     case 's':
+       show_stddev=1; 
+       break;
+     case 'h':
+     case '?':
+       {
+         fprintf(stderr,"\n\nUsage: process_scaffolds [-H] [-d] [-h] [-c celamy.output.filename [-F Frag.Store -B Bactig.Store]] [-f fasta.output.filename [-s]]\n");
+         fprintf(stderr,"\n The -f option produces a multi-fasta file, with one fasta record for each scaffold,\n");
+         fprintf(stderr," and 'n's used as intercontig gap placeholders.  For positive gaps, the number of 'n's\n");
+         fprintf(stderr," used represents the calculated mean gap size.  For negative gaps, 20 'n's are used.\n");
+         fprintf(stderr," The -s suboption to -f (fasta output) directs the program to include gap standard\n");
+         fprintf(stderr," deviations to the comment line of each scaffold.  The convention for this output is\n");
+         fprintf(stderr,"\n   >UBAC_IID_UID_Scaffold_SID stddev: num_gaps fp[0] ... fp[num_gaps-1]\n");
+         fprintf(stderr,"\n that is, num_gaps specifies how many floats to expect in remainder of line.\n");
+         fprintf(stderr,"\n The -c option produces a celamy file for the assembly, down to the fragment level\n\n");
+         fprintf(stderr,"\n        -F and -B can be used to open frag stores to capture fragment uids for comment field\n\n");
+         fprintf(stderr,"\n The -d option produces a multi-fasta dregs file, with one fasta record for each degenerate scaffold,\n");
+         fprintf(stderr,"\n The -d option is only meaningful when specified with -f\n");
+         fprintf(stderr,"\n The -H option, handles the gaps as per Scott Henderson's spec \n");
+         fprintf(stderr,"\n The -Z option, handles the headers and gaps as per Z Lai's  spec \n");
+         CleanExit(1);
+       }
+     default:
+       {
+         fprintf(stderr,"Invalid option -%c, try -h for usage\n",ch);
+         CleanExit(1);
+       }
+   }
+ }
 
-  if(fasta&&fastaDregs){
-    sprintf(fastaDregsFileName,"%s.dregs",fastaFileName);
-    fastaDregsFile = fopen(fastaDregsFileName,"w");
-    if (fastaDregsFile == NULL ) {
-      fprintf(stderr,"Failure to create fasta file %s\n", fastaDregsFileName);
-      CleanExit(1);
-    }
-  }
+ if(fasta&&fastaDregs){
+   sprintf(fastaDregsFileName,"%s.dregs",fastaFileName);
+   fastaDregsFile = fopen(fastaDregsFileName,"w");
+   if (fastaDregsFile == NULL ) {
+     fprintf(stderr,"Failure to create fasta file %s\n", fastaDregsFileName);
+     CleanExit(1);
+   }
+ }
 
-  reader = (MesgReader)InputFileType_AS( stdin );
+ reader = (MesgReader)InputFileType_AS( stdin );
 #if 0
-  sublist_file = argv[1];
-  if ( sublist_file[0] == 'A' ) { do_all = 1;}
+ sublist_file = argv[1];
+ if ( sublist_file[0] == 'A' ) { do_all = 1;}
    
-  if ( !do_all ) {
-      char   string[1000];
-      CDS_UID_t uid;
-      CDS_UID_t  num_uids;
-      sublist = fopen(sublist_file,"r");
-      if( sublist == NULL )
-      {
-        fprintf( stderr, "Failed to open list file %s for reading.\n", argv[2] );
-        CleanExit(1);
-      }
-      num_uids = 0;
-      while( fgets( string, 1000, sublist ) )
-      {
-        num_uids++;
-      }
-      rewind( sublist );
-      tig_iids = AllocateID_Array( num_uids );
-      tig_iids_found = AllocateID_Array( num_uids );
-      if( tig_iids == NULL || tig_iids_found == NULL ) return 1;
-      for( this_id = 0; this_id < num_uids - 1; this_id++ )
-      {
-        fgets( string, 1000, sublist );
-        sscanf(string, F_UID, &uid);
-        AppendToID_Array( tig_iids, uid, 0 );
-      }
-      fgets( string, 1000, sublist );
-      sscanf(string, F_UID, &uid);
-      AppendToID_Array( tig_iids, uid, 1 );
+ if ( !do_all ) {
+   char   string[1000];
+   CDS_UID_t uid;
+   CDS_UID_t  num_uids;
+   sublist = fopen(sublist_file,"r");
+   if( sublist == NULL )
+     {
+       fprintf( stderr, "Failed to open list file %s for reading.\n", argv[2] );
+       CleanExit(1);
+     }
+   num_uids = 0;
+   while( fgets( string, 1000, sublist ) )
+     {
+       num_uids++;
+     }
+   rewind( sublist );
+   tig_iids = AllocateID_Array( num_uids );
+   tig_iids_found = AllocateID_Array( num_uids );
+   if( tig_iids == NULL || tig_iids_found == NULL ) return 1;
+   for( this_id = 0; this_id < num_uids - 1; this_id++ )
+     {
+       fgets( string, 1000, sublist );
+       sscanf(string, F_UID, &uid);
+       AppendToID_Array( tig_iids, uid, 0 );
+     }
+   fgets( string, 1000, sublist );
+   sscanf(string, F_UID, &uid);
+   AppendToID_Array( tig_iids, uid, 1 );
   
-      fclose( sublist );
-  }
+   fclose( sublist );
+ }
 #endif
  dummy_consensus = CreateVA_char(200000);
 
  while (reader(stdin,&pmesg) != EOF){
-    if (pmesg->t ==MESG_IUM)  {
-      unitig = pmesg->m;
-      if ( strlen(unitig->consensus) != unitig->length) {
-         char *cptr;
+   if (pmesg->t ==MESG_IUM)  {
+     unitig = pmesg->m;
+     if ( strlen(unitig->consensus) != unitig->length) {
+       char *cptr;
 #if 0
-         if ( fasta ) {
-           fprintf(stderr,"Input appears to be pre-consensus. Fasta information not available.\n");
-           fprintf(stderr,"For fasta file, run consensus first.\n");
-           CleanExit(1);
-         }
+       if ( fasta ) {
+         fprintf(stderr,"Input appears to be pre-consensus. Fasta information not available.\n");
+         fprintf(stderr,"For fasta file, run consensus first.\n");
+         CleanExit(1);
+       }
 #endif
-         ResetVA_char(dummy_consensus);
-         EnableRangeVA_char(dummy_consensus,unitig->length+1);
-         cptr = Getchar(dummy_consensus,0); 
-         memset(cptr,'N',unitig->length);
-         unitig->consensus = cptr;
-         unitig->quality = cptr;
-      }
-      SetVA_CDS_IID_t(is_placed, unitig->iaccession,  
-                      ((unitig->status == AS_SEP) ? &placed : &unplaced));
-      if(celamy){
-	ma = CreateMultiAlignTFromIUM(unitig, -1,  0);
-	SetMultiAlignInStore(ustore,ma->id,ma);
-      }
-    }
-    if (pmesg->t ==MESG_ICM)  {
-      contig = pmesg->m;
-      if ( strlen(contig->consensus) != contig->length) {
-         char *cptr;
+       ResetVA_char(dummy_consensus);
+       EnableRangeVA_char(dummy_consensus,unitig->length+1);
+       cptr = Getchar(dummy_consensus,0); 
+       memset(cptr,'N',unitig->length);
+       unitig->consensus = cptr;
+       unitig->quality = cptr;
+     }
+     SetVA_CDS_IID_t(is_placed, unitig->iaccession,  
+                     ((unitig->status == AS_SEP) ? &placed : &unplaced));
+     if(celamy){
+       ma = CreateMultiAlignTFromIUM(unitig, -1,  0);
+       SetMultiAlignInStore(ustore,ma->id,ma);
+     }
+   }
+   if (pmesg->t ==MESG_ICM)  {
+     contig = pmesg->m;
+     if ( strlen(contig->consensus) != contig->length) {
+       char *cptr;
 #if 0
-         if ( fasta ) {
-           fprintf(stderr,"Input appears to be pre-consensus. Fasta information not available.\n");
-           fprintf(stderr,"For fasta file, run consensus first.\n");
-           CleanExit(1);
-         }
+       if ( fasta ) {
+         fprintf(stderr,"Input appears to be pre-consensus. Fasta information not available.\n");
+         fprintf(stderr,"For fasta file, run consensus first.\n");
+         CleanExit(1);
+       }
 #endif
-         ResetVA_char(dummy_consensus);
-         EnableRangeVA_char(dummy_consensus,contig->length+1);
-         cptr = Getchar(dummy_consensus,0); 
-         memset(cptr,'N',contig->length);
-         contig->consensus = cptr;
-         contig->quality = cptr;
-      }
-      ma = CreateMultiAlignTFromICM(contig, -1,  0);
-      SetMultiAlignInStore(cstore,ma->id,ma);
-    }
-    if (pmesg->t ==MESG_ICL)  {
-      link = pmesg->m;
-      linkid = GetNumCDS_IID_ts(link_index);
-      SetVA_CDS_IID_t(link_index, link->contig1, &linkid);
-      AppendVA_IntContigLinkMesg(clinks,link);
-    }
-    if (pmesg->t ==MESG_ISF)  {
-      if ( celamy ) {
-        CelamyProcessScaffold(celamyFile, (IntScaffoldMesg *)pmesg->m);
-      }
-      if ( fasta ) {
-        FastaScaffold(fastaFile, (IntScaffoldMesg *)pmesg->m);
-        fflush(fastaFile);
-      }
-    }
-    if (pmesg->t ==MESG_IDS)  {
-      if ( fasta  && fastaDregs) {
-        FastaDegenerateScaffold(fastaDregsFile, (IntDegenerateScaffoldMesg *)pmesg->m,is_placed);
-        fflush(fastaDregsFile);
-      }
-    }
+       ResetVA_char(dummy_consensus);
+       EnableRangeVA_char(dummy_consensus,contig->length+1);
+       cptr = Getchar(dummy_consensus,0); 
+       memset(cptr,'N',contig->length);
+       contig->consensus = cptr;
+       contig->quality = cptr;
+     }
+     ma = CreateMultiAlignTFromICM(contig, -1,  0);
+     SetMultiAlignInStore(cstore,ma->id,ma);
+   }
+   if (pmesg->t ==MESG_ICL)  {
+     link = pmesg->m;
+     linkid = GetNumCDS_IID_ts(link_index);
+     SetVA_CDS_IID_t(link_index, link->contig1, &linkid);
+     AppendVA_IntContigLinkMesg(clinks,link);
+   }
+   if (pmesg->t ==MESG_ISF)  {
+     if ( celamy ) {
+       CelamyProcessScaffold(celamyFile, (IntScaffoldMesg *)pmesg->m);
+     }
+     if ( fasta ) {
+       FastaScaffold(fastaFile, (IntScaffoldMesg *)pmesg->m);
+       fflush(fastaFile);
+     }
+   }
+   if (pmesg->t ==MESG_IDS)  {
+     if ( fasta  && fastaDregs) {
+       FastaDegenerateScaffold(fastaDregsFile, (IntDegenerateScaffoldMesg *)pmesg->m,is_placed);
+       fflush(fastaDregsFile);
+     }
+   }
  }
  // Now, draw in the contig links:
  num_links = GetNumIntContigLinkMesgs(clinks);
 #if 0
  for (i=0;i<num_links;i++ ) {
-    link = GetIntContigLinkMesg(clinks,i);
-    fprintf(stdout,"LNK: " F_IID "ScaCtg" F_IID " " F_IID "ScaCtg" F_IID " A0ContigLinkColor # %c %c (%.3f,%.3f)\n",
-		*GetCDS_IID_t(scaff_index,link->contig1),link->contig1,
-		*GetCDS_IID_t(scaff_index,link->contig2),link->contig2,
-                link->orientation,link->overlap_type,link->mean_distance,link->std_deviation);
+   link = GetIntContigLinkMesg(clinks,i);
+   fprintf(stdout,"LNK: " F_IID "ScaCtg" F_IID " " F_IID "ScaCtg" F_IID " A0ContigLinkColor # %c %c (%.3f,%.3f)\n",
+           *GetCDS_IID_t(scaff_index,link->contig1),link->contig1,
+           *GetCDS_IID_t(scaff_index,link->contig2),link->contig2,
+           link->orientation,link->overlap_type,link->mean_distance,link->std_deviation);
  } 
 #endif
  if (fasta) {
@@ -917,47 +917,47 @@ int main(int argc, char *argv[])
 // Stolen from AS_ALN
 static void Complement(char *in, CDS_COORD_t len)
 { static char WCinvert[256];
-  static int Firstime = 1;
+ static int Firstime = 1;
 
-  if (Firstime)          /* Setup complementation array */
-    { 
-      int i;
-      Firstime = 0;
-      for(i = 0; i < 256;i++){
-	WCinvert[i] = '?';
-      }
-      WCinvert['a'] = 't';
-      WCinvert['c'] = 'g';
-      WCinvert['g'] = 'c';
-      WCinvert['t'] = 'a';
-      WCinvert['n'] = 'n';
-      WCinvert['A'] = 'T';
-      WCinvert['C'] = 'G';
-      WCinvert['G'] = 'C';
-      WCinvert['T'] = 'A';
-      WCinvert['N'] = 'N';
-      WCinvert['-'] = '-'; // added this to enable alignment of gapped consensi
-    }
+ if (Firstime)          /* Setup complementation array */
+   { 
+     int i;
+     Firstime = 0;
+     for(i = 0; i < 256;i++){
+       WCinvert[i] = '?';
+     }
+     WCinvert['a'] = 't';
+     WCinvert['c'] = 'g';
+     WCinvert['g'] = 'c';
+     WCinvert['t'] = 'a';
+     WCinvert['n'] = 'n';
+     WCinvert['A'] = 'T';
+     WCinvert['C'] = 'G';
+     WCinvert['G'] = 'C';
+     WCinvert['T'] = 'A';
+     WCinvert['N'] = 'N';
+     WCinvert['-'] = '-'; // added this to enable alignment of gapped consensi
+   }
       
-  { /* Complement and reverse sequence */
+ { /* Complement and reverse sequence */
 
-    { register char *s, *t;
-      int c;
+   { register char *s, *t;
+   int c;
 
-      s = in;
-      t = in + (len-1);
-      while (s < t)
-        { // Sanity Check!
-	  assert(WCinvert[(int) *t] != '?' &&
-		 WCinvert[(int) *s] != '?');
+   s = in;
+   t = in + (len-1);
+   while (s < t)
+     { // Sanity Check!
+       assert(WCinvert[(int) *t] != '?' &&
+              WCinvert[(int) *s] != '?');
 
-	  c = *s;
-          *s++ = WCinvert[(int) *t];
-          *t-- = WCinvert[c];
-        }
-      if (s == t)
-        *s = WCinvert[(int) *s];
-    }
+       c = *s;
+       *s++ = WCinvert[(int) *t];
+       *t-- = WCinvert[c];
+     }
+   if (s == t)
+     *s = WCinvert[(int) *s];
+   }
 
-  }
+ }
 }

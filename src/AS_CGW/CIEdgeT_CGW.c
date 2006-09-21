@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIEdgeT_CGW.c,v 1.5 2006-06-14 19:57:22 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIEdgeT_CGW.c,v 1.6 2006-09-21 21:34:00 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -47,81 +47,81 @@ static char CM_ID[] = "$Id: CIEdgeT_CGW.c,v 1.5 2006-06-14 19:57:22 brianwalenz 
 
 void PrintCIEdgeT(FILE *fp, ScaffoldGraphT *graph,
                   char *label, CIEdgeT *edge, CDS_CID_t cid){
-      char actualOverlap[256];
-      CDS_COORD_t actual = 0;
-      CDS_COORD_t delta = 0;
-      char *flag = "  ", *flagTrans = "  ";
-      ChunkInstanceT *ChunkInstanceA =
-        GetChunkInstanceT(graph->ChunkInstances, edge->idA);
-      ChunkInstanceT *ChunkInstanceB =
-        GetChunkInstanceT(graph->ChunkInstances, edge->idB);
+  char actualOverlap[256];
+  CDS_COORD_t actual = 0;
+  CDS_COORD_t delta = 0;
+  char *flag = "  ", *flagTrans = "  ";
+  ChunkInstanceT *ChunkInstanceA =
+    GetChunkInstanceT(graph->ChunkInstances, edge->idA);
+  ChunkInstanceT *ChunkInstanceB =
+    GetChunkInstanceT(graph->ChunkInstances, edge->idB);
 
-      assert(ChunkInstanceA && ChunkInstanceB);
+  assert(ChunkInstanceA && ChunkInstanceB);
 
-	*actualOverlap = '\0';
+  *actualOverlap = '\0';
 
-      if(edge->flags.bits.isBogus){
-	if(edge->flags.bits.isProbablyBogus)
-	  strcpy(actualOverlap," *Bogus and Prob Bogus*");
-	else
-	  strcpy(actualOverlap," *Bogus*");
-      }else if(ChunkInstanceA->aEndCoord > 0 && ChunkInstanceB->aEndCoord > 0){
-	actual = -IntervalsOverlap(ChunkInstanceA->aEndCoord,
-                                   ChunkInstanceA->bEndCoord, 
-                                   ChunkInstanceB->aEndCoord,
-                                   ChunkInstanceB->bEndCoord,-500000);
-	delta = edge->distance.mean - actual;
-	if(actual != 0)
-	  sprintf(actualOverlap,"actual = " F_COORD "(" F_COORD ") %s",
-                  actual,delta, (edge->flags.bits.isProbablyBogus?"*PB*":""));
-      }
+  if(edge->flags.bits.isBogus){
+    if(edge->flags.bits.isProbablyBogus)
+      strcpy(actualOverlap," *Bogus and Prob Bogus*");
+    else
+      strcpy(actualOverlap," *Bogus*");
+  }else if(ChunkInstanceA->aEndCoord > 0 && ChunkInstanceB->aEndCoord > 0){
+    actual = -IntervalsOverlap(ChunkInstanceA->aEndCoord,
+                               ChunkInstanceA->bEndCoord, 
+                               ChunkInstanceB->aEndCoord,
+                               ChunkInstanceB->bEndCoord,-500000);
+    delta = edge->distance.mean - actual;
+    if(actual != 0)
+      sprintf(actualOverlap,"actual = " F_COORD "(" F_COORD ") %s",
+              actual,delta, (edge->flags.bits.isProbablyBogus?"*PB*":""));
+  }
 
-      assert(!(edge->flags.bits.hasContributingOverlap &&
-               edge->flags.bits.hasTandemOverlap));
+  assert(!(edge->flags.bits.hasContributingOverlap &&
+           edge->flags.bits.hasTandemOverlap));
 
-      if(edge->flags.bits.hasContributingOverlap){
-	if(edge->flags.bits.isPossibleChimera)
-	  flag = "$C";
-	else 
-	  flag = "$O";
-      }else if(edge->flags.bits.hasRepeatOverlap){
-	  flag = "$R";
-      }else if(edge->flags.bits.hasTandemOverlap){
-	  flag = "$T";
-      }else if(edge->flags.bits.hasGuide){
-	flag = "$G";
-      }
-      if(edge->flags.bits.isEssential){
-	if(edge->flags.bits.isInferred){
-	  flagTrans = "&I";
-	}else{
-	  flagTrans = "&E";
-	}
-      }else if(edge->flags.bits.isTransitivelyRemoved){
-	flagTrans = "&T";
-      }else if(edge->flags.bits.isRedundantRemoved){
-	flagTrans = "&R";
-      }else if(edge->flags.bits.isInferredRemoved){
-	flagTrans = "&t";
-      }else if(edge->flags.bits.isActive){
-	if(edge->flags.bits.isConfirmed){
-	  flagTrans = "&C";
-	}else{
-	  flagTrans = "&A";
-	}
-      }else if(edge->flags.bits.isProbablyBogus){
-	flagTrans = "&B";
-      }
+  if(edge->flags.bits.hasContributingOverlap){
+    if(edge->flags.bits.isPossibleChimera)
+      flag = "$C";
+    else 
+      flag = "$O";
+  }else if(edge->flags.bits.hasRepeatOverlap){
+    flag = "$R";
+  }else if(edge->flags.bits.hasTandemOverlap){
+    flag = "$T";
+  }else if(edge->flags.bits.hasGuide){
+    flag = "$G";
+  }
+  if(edge->flags.bits.isEssential){
+    if(edge->flags.bits.isInferred){
+      flagTrans = "&I";
+    }else{
+      flagTrans = "&E";
+    }
+  }else if(edge->flags.bits.isTransitivelyRemoved){
+    flagTrans = "&T";
+  }else if(edge->flags.bits.isRedundantRemoved){
+    flagTrans = "&R";
+  }else if(edge->flags.bits.isInferredRemoved){
+    flagTrans = "&t";
+  }else if(edge->flags.bits.isActive){
+    if(edge->flags.bits.isConfirmed){
+      flagTrans = "&C";
+    }else{
+      flagTrans = "&A";
+    }
+  }else if(edge->flags.bits.isProbablyBogus){
+    flagTrans = "&B";
+  }
 
-      fprintf(fp,"%s A:" F_CID " B:" F_CID " wgt:%d %s %s %s %s%s ori:%c con:%d dst:%d std:%g %s\n",
-	      label, edge->idA, edge->idB, edge->edgesContributing, flag,
-	      (edge->flags.bits.hasExtremalAFrag?"$A":"  "),
-	      (edge->flags.bits.hasExtremalBFrag?"$B":"  "),
-	      flagTrans, (edge->flags.bits.isLeastSquares?"L":" "),
-	      GetEdgeOrientationWRT(edge, cid),
-              edge->flags.bits.hasContainmentOverlap,
-	      (int)edge->distance.mean, sqrt(edge->distance.variance),
-	      actualOverlap);
+  fprintf(fp,"%s A:" F_CID " B:" F_CID " wgt:%d %s %s %s %s%s ori:%c con:%d dst:%d std:%g %s\n",
+          label, edge->idA, edge->idB, edge->edgesContributing, flag,
+          (edge->flags.bits.hasExtremalAFrag?"$A":"  "),
+          (edge->flags.bits.hasExtremalBFrag?"$B":"  "),
+          flagTrans, (edge->flags.bits.isLeastSquares?"L":" "),
+          GetEdgeOrientationWRT(edge, cid),
+          edge->flags.bits.hasContainmentOverlap,
+          (int)edge->distance.mean, sqrt(edge->distance.variance),
+          actualOverlap);
 
 }
 
@@ -131,20 +131,20 @@ void PrintChunkInstanceHeader(FILE *stream, ScaffoldGraphT *graph,
   unsigned int tandems = GetNodeTandemOverlaps(chunk);
 
   switch(tandems){
-  case NO_TANDEM_OVERLAP:
-    tandem = "  ";
-    break;
-  case BOTH_END_TANDEM_OVERLAP:
-    tandem = "AB";
-    break;
-  case AEND_TANDEM_OVERLAP:
-    tandem = "A ";
-    break;
-  case BEND_TANDEM_OVERLAP:
-    tandem = " B";
-    break;
-  default:
-    assert(0);
+    case NO_TANDEM_OVERLAP:
+      tandem = "  ";
+      break;
+    case BOTH_END_TANDEM_OVERLAP:
+      tandem = "AB";
+      break;
+    case AEND_TANDEM_OVERLAP:
+      tandem = "A ";
+      break;
+    case BEND_TANDEM_OVERLAP:
+      tandem = " B";
+      break;
+    default:
+      assert(0);
   }
   fprintf(stream,"\n* CI " F_CID "  fbac:%d tan:%s(%d) cov:%d len:%d frags:%d interval: [" F_COORD "," F_COORD "]\n",
           chunk->id, 
@@ -387,14 +387,14 @@ int AddImplicitOverlaps_(GraphCGW_T *graph){
   while(NULL != (chunk = NextGraphNodeIterator(&nodes))){
     cid = chunk->id;
 
-  /* For each pair of chunks to the A side of this 'seed'
-     that don't have any links between them and potentially
-     overlap, collect an overlap record for later evaluation */
+    /* For each pair of chunks to the A side of this 'seed'
+       that don't have any links between them and potentially
+       overlap, collect an overlap record for later evaluation */
     CheckImplicitOverlaps_(graph, cid, A_END);
 
-  /* For each pair of chunks to the B side of this 'seed'
-     that don't have any links between them and potentially
-     overlap, collect an overlap record for later evaluation */
+    /* For each pair of chunks to the B side of this 'seed'
+       that don't have any links between them and potentially
+       overlap, collect an overlap record for later evaluation */
 
     CheckImplicitOverlaps_(graph, cid, B_END);
 

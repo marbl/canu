@@ -1,7 +1,23 @@
-static char CM_ID[] = "$Id:";
 
-
-/*********************************************************************/
+/**************************************************************************
+ * This file is part of Celera Assembler, a software program that 
+ * assembles whole-genome shotgun reads into contigs and scaffolds.
+ * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ * License along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *************************************************************************/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,62 +47,62 @@ static char CM_ID[] = "$Id:";
 
 void RevCompl(char *seq, char *qul)
 { static char WCinvert[256];
-  static int Firstime = 1;
+ static int Firstime = 1;
 
-  if (Firstime)          /* Setup complementation array */
-    { 
-      int i;
-      Firstime = 0;
-      for(i = 0; i < 256;i++){
-	WCinvert[i] = '?';
-      }
-      WCinvert['a'] = 't';
-      WCinvert['c'] = 'g';
-      WCinvert['g'] = 'c';
-      WCinvert['t'] = 'a';
-      WCinvert['n'] = 'n';
-      WCinvert['A'] = 'T';
-      WCinvert['C'] = 'G';
-      WCinvert['G'] = 'C';
-      WCinvert['T'] = 'A';
-      WCinvert['N'] = 'N';
-      WCinvert['-'] = '-'; // added this to enable alignment of gapped consensi
-    }
+ if (Firstime)          /* Setup complementation array */
+   { 
+     int i;
+     Firstime = 0;
+     for(i = 0; i < 256;i++){
+       WCinvert[i] = '?';
+     }
+     WCinvert['a'] = 't';
+     WCinvert['c'] = 'g';
+     WCinvert['g'] = 'c';
+     WCinvert['t'] = 'a';
+     WCinvert['n'] = 'n';
+     WCinvert['A'] = 'T';
+     WCinvert['C'] = 'G';
+     WCinvert['G'] = 'C';
+     WCinvert['T'] = 'A';
+     WCinvert['N'] = 'N';
+     WCinvert['-'] = '-'; // added this to enable alignment of gapped consensi
+   }
       
-  { int len;                    /* Complement and reverse sequence */
-    len = strlen(seq);
+ { int len;                    /* Complement and reverse sequence */
+ len = strlen(seq);
 
-    { register char *s, *t;
-      int c;
+ { register char *s, *t;
+ int c;
 
-      s = seq;
-      t = seq + (len-1);
-      while (s < t)
-        { // Sanity Check!
-	  assert(WCinvert[(int) *t] != '?' &&
-		 WCinvert[(int) *s] != '?');
+ s = seq;
+ t = seq + (len-1);
+ while (s < t)
+   { // Sanity Check!
+     assert(WCinvert[(int) *t] != '?' &&
+            WCinvert[(int) *s] != '?');
 
-	  c = *s;
-          *s++ = WCinvert[(int) *t];
-          *t-- = WCinvert[c];
-        }
-      if (s == t)
-        *s = WCinvert[(int) *s];
-    }
+     c = *s;
+     *s++ = WCinvert[(int) *t];
+     *t-- = WCinvert[c];
+   }
+ if (s == t)
+   *s = WCinvert[(int) *s];
+ }
 
-    if (qul != NULL)
-      { register char *s, *t;   /* Reverse quality value array */
-        int c;
+ if (qul != NULL)
+   { register char *s, *t;   /* Reverse quality value array */
+   int c;
     
-        s = qul;
-        t = qul + (len-1);
-        while (s < t)
-          { c = *s;
-            *s++ = *t;
-            *t-- = c;
-          }
-      }
-  }
+   s = qul;
+   t = qul + (len-1);
+   while (s < t)
+     { c = *s;
+     *s++ = *t;
+     *t-- = c;
+     }
+   }
+ }
 }
 
 
@@ -138,27 +154,27 @@ int main( int argc, char *argv[])
     while (!errflg && ((ch = getopt(argc, argv,
 				    "f:g:NUC")) != EOF)){
       switch(ch) {
-      case 'C':
-	runConsensus=1;
-	break;
-      case 'f':
-	strcpy( Frag_Store_Name, argv[optind - 1]);
-	setFragStore = TRUE;
-	break;
-      case 'g':
-	strcpy( GKP_Store_Name, argv[optind - 1]);
-	setGatekeeperStore = TRUE;
-	break;	  
-      case 'N':
-	Ngaps=1;
-	break;
-      case 'U':
-	realUID=1;
-	break;
-      case '?':
-	fprintf(stderr,"Unrecognized option -%c",optopt);
-      default :
-	errflg++;
+        case 'C':
+          runConsensus=1;
+          break;
+        case 'f':
+          strcpy( Frag_Store_Name, argv[optind - 1]);
+          setFragStore = TRUE;
+          break;
+        case 'g':
+          strcpy( GKP_Store_Name, argv[optind - 1]);
+          setGatekeeperStore = TRUE;
+          break;	  
+        case 'N':
+          Ngaps=1;
+          break;
+        case 'U':
+          realUID=1;
+          break;
+        case '?':
+          fprintf(stderr,"Unrecognized option -%c",optopt);
+        default :
+          errflg++;
       }
     }
 
@@ -420,9 +436,9 @@ int main( int argc, char *argv[])
 	    //      fprintf(stderr,"Doing the multialignment\n");
 
 	    if (MultiAlignUnitig(&ium,frgStore,sequence,quality,deltas,printwhat,do_rez,
-                COMPARE_FUNC, NULL)==-1 ) {
+                                 COMPARE_FUNC, NULL)==-1 ) {
 	      fprintf(stderr,"MultiAlignUnitig failed for overlap of fragments %d and %d\n",
-                  fragIID,mateIID);
+                      fragIID,mateIID);
 	      assert(FALSE);
 	    }
 

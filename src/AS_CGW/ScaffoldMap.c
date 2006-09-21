@@ -21,7 +21,7 @@
 /* ScaffoldMap
  *    Prints an iid-uid map of the SCF messages in a protoIO file
  *
- * $Id: ScaffoldMap.c,v 1.5 2005-09-15 15:20:15 eliv Exp $
+ * $Id: ScaffoldMap.c,v 1.6 2006-09-21 21:34:00 brianwalenz Exp $
  *
  */
 
@@ -37,21 +37,21 @@ int main(int argc, char *argv[])
   int i = 0;
   MesgReader reader = (MesgReader)InputFileType_AS(stdin);
 
- while (reader(stdin,&pmesg) != EOF){
-   assert(pmesg->t <= MAX_MESG );
-   switch(pmesg->t){
-   default:
-     break;
-   case MESG_SCF:
-     {
-       SnapScaffoldMesg *m = pmesg->m;
-       if(i++ == 0){
-	 fprintf(stdout,"* Int  Ext IDs of Scaffolds\n");
-       }
-       fprintf(stdout,F_IID " " F_UID "\n",
-	       m->iaccession, m->eaccession);
-     }
-   }
- }
+  while (reader(stdin,&pmesg) != EOF){
+    assert(pmesg->t <= MAX_MESG );
+    switch(pmesg->t){
+      default:
+        break;
+      case MESG_SCF:
+        {
+          SnapScaffoldMesg *m = pmesg->m;
+          if(i++ == 0){
+            fprintf(stdout,"* Int  Ext IDs of Scaffolds\n");
+          }
+          fprintf(stdout,F_IID " " F_UID "\n",
+                  m->iaccession, m->eaccession);
+        }
+    }
+  }
   exit (0);
 }

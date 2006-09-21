@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGW_LoadCheckpoint.c,v 1.5 2006-06-14 19:57:22 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGW_LoadCheckpoint.c,v 1.6 2006-09-21 21:34:00 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -87,32 +87,32 @@ int main(int argc, char *argv[]){
     while (!errflg && ((ch = getopt(argc, argv,
 				    "f:g:n:c:")) != EOF)){
       switch(ch) {
-      case 'n':
-	ckptNum = atoi(argv[optind - 1]);
-	break;
-      case 'c':
-	{
-	  strcpy( data->File_Name_Prefix, argv[optind - 1]);
-	  setPrefixName = 1;
+        case 'n':
+          ckptNum = atoi(argv[optind - 1]);
+          break;
+        case 'c':
+          {
+            strcpy( data->File_Name_Prefix, argv[optind - 1]);
+            setPrefixName = 1;
 
-	}
-	break;
-      case 'f':
-	{
-	  strcpy( data->Frag_Store_Name, argv[optind - 1]);
-	  setFragStore = 1;
-	}
-	break;
-      case 'g':
-	{
-	  strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
-	  setGatekeeperStore = 1;
-	}
-	break;	  
-      case '?':
-	fprintf(stderr,"Unrecognized option -%c",optopt);
-      default :
-	errflg++;
+          }
+          break;
+        case 'f':
+          {
+            strcpy( data->Frag_Store_Name, argv[optind - 1]);
+            setFragStore = 1;
+          }
+          break;
+        case 'g':
+          {
+            strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
+            setGatekeeperStore = 1;
+          }
+          break;	  
+        case '?':
+          fprintf(stderr,"Unrecognized option -%c",optopt);
+        default :
+          errflg++;
       }
     }
     if((setPrefixName == FALSE) || (setFragStore == 0) || (setGatekeeperStore == 0))
@@ -124,10 +124,10 @@ int main(int argc, char *argv[]){
       }
   }
 
-    ScaffoldGraph = LoadScaffoldGraphFromCheckpoint(data->File_Name_Prefix,ckptNum, FALSE);    
-    fprintf(stderr,"* Hit Interrupt in Debugger to Proceed!!!! *\n");
-    fflush(stderr);
-    while(1){
-      // wait for interrupt in debugger
-    }
+  ScaffoldGraph = LoadScaffoldGraphFromCheckpoint(data->File_Name_Prefix,ckptNum, FALSE);    
+  fprintf(stderr,"* Hit Interrupt in Debugger to Proceed!!!! *\n");
+  fflush(stderr);
+  while(1){
+    // wait for interrupt in debugger
   }
+}

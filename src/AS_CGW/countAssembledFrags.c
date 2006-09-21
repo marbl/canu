@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: countAssembledFrags.c,v 1.6 2006-06-14 19:57:23 brianwalenz Exp $";
+static char CM_ID[] = "$Id: countAssembledFrags.c,v 1.7 2006-09-21 21:34:00 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -98,10 +98,10 @@ int compRanges( const void *s1, const void *s2)
   else if ( t1->firstRange > t2->firstRange )
     return 1;
   else 
-  {
-    assert(0);   // ranges are unique
-    return 0;
-  }
+    {
+      assert(0);   // ranges are unique
+      return 0;
+    }
 }
 
 int compContigIDs( const void *s1, const void *s2)
@@ -116,14 +116,14 @@ int compContigIDs( const void *s1, const void *s2)
   else   if ( t1->contigID > t2->contigID )
     return 1;
   else // in same contig, sort by contigOffset5p
-  {
-    if (t1->contigOffset5p < t2->contigOffset5p)
-      return -1;
-    else if (t1->contigOffset5p > t2->contigOffset5p)
-      return 1;
-    else
-      return 0;
-  }
+    {
+      if (t1->contigOffset5p < t2->contigOffset5p)
+        return -1;
+      else if (t1->contigOffset5p > t2->contigOffset5p)
+        return 1;
+      else
+        return 0;
+    }
 }
 
 int compScaffoldIids( const void *s1, const void *s2)
@@ -153,14 +153,14 @@ int compConsistentRangesByScaffold( const void *s1, const void *s2)
   else if ( t1->scaffoldID > t2->scaffoldID )
     return 1;
   else 
-  {
-    if ( t1->scaffoldOffsetMin < t2->scaffoldOffsetMin )
-      return -1;
-    else if ( t1->scaffoldOffsetMin > t2->scaffoldOffsetMin )
-      return 1;
-    else
-      return 0;
-  }
+    {
+      if ( t1->scaffoldOffsetMin < t2->scaffoldOffsetMin )
+        return -1;
+      else if ( t1->scaffoldOffsetMin > t2->scaffoldOffsetMin )
+        return 1;
+      else
+        return 0;
+    }
 }
 
 int main(int argc, char *argv[])
@@ -224,24 +224,24 @@ int main(int argc, char *argv[])
 				    "c:f:g:n:")) != EOF)){
       switch(ch) {
         case 'c':
-        {
-          strcpy( data->File_Name_Prefix, argv[optind - 1]);
-          setPrefixName = 1;
+          {
+            strcpy( data->File_Name_Prefix, argv[optind - 1]);
+            setPrefixName = 1;
           
-        }
-        break;
+          }
+          break;
         case 'f':
-        {
-          strcpy( data->Frag_Store_Name, argv[optind - 1]);
-          setFragStore = 1;
-        }
-        break;
+          {
+            strcpy( data->Frag_Store_Name, argv[optind - 1]);
+            setFragStore = 1;
+          }
+          break;
         case 'g':
-        {
-          strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
-          setGatekeeperStore = 1;
-        }
-        break;	  
+          {
+            strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
+            setGatekeeperStore = 1;
+          }
+          break;	  
         case 'n':
           ckptNum = atoi(argv[optind - 1]);
           break;
@@ -252,12 +252,12 @@ int main(int argc, char *argv[])
       }
     }
     if((setPrefixName == FALSE) || (setFragStore == 0) || (setGatekeeperStore == 0))
-    {
-      fprintf(stderr,"* argc = %d optind = %d setFragStore = %d setGatekeeperStore = %d outputPath = %s\n",
-              argc, optind, setFragStore,setGatekeeperStore, outputPath);
-      fprintf (stderr, "USAGE:  loadcgw -f <FragStoreName> -g <GatekeeperStoreName> -c <CkptFileName> -n <CkpPtNum>\n");
-      exit (EXIT_FAILURE);
-    }
+      {
+        fprintf(stderr,"* argc = %d optind = %d setFragStore = %d setGatekeeperStore = %d outputPath = %s\n",
+                argc, optind, setFragStore,setGatekeeperStore, outputPath);
+        fprintf (stderr, "USAGE:  loadcgw -f <FragStoreName> -g <GatekeeperStoreName> -c <CkptFileName> -n <CkpPtNum>\n");
+        exit (EXIT_FAILURE);
+      }
   }
   
   ScaffoldGraph = LoadScaffoldGraphFromCheckpoint( data->File_Name_Prefix, ckptNum, FALSE);
@@ -270,40 +270,40 @@ int main(int argc, char *argv[])
   
   maxLocale = NULLINDEX;
   for (ifrag = 0; ifrag < GetNumVA_CIFragT( ScaffoldGraph->CIFrags ); ifrag++)
-  {
-    frag = GetCIFragT( ScaffoldGraph->CIFrags, ifrag);
-    if (frag->locale >= 0)
     {
-      numBACFrags++;
-      unitig = GetGraphNode( ScaffoldGraph->CIGraph, frag->cid);
-      contig = GetGraphNode( ScaffoldGraph->ContigGraph, frag->contigID);
-      
-      if (contig->scaffoldID != NULLINDEX)
-        numBACFragsInAss++;
-      else if (unitig->info.CI.numInstances > 0)
-      {
-        numBACFragsInSurrogates += 1; // unitig->info.CI.numInstances;
-      }
-      else
-      {
-        numBACFragsNotInSurrogates += 1;
-        
-        if ( !seenUnitig[ unitig->id ])
+      frag = GetCIFragT( ScaffoldGraph->CIFrags, ifrag);
+      if (frag->locale >= 0)
         {
-          unitigLengthsBFNIS += unitig->bpLength.mean;
-          seenUnitig[ unitig->id ] = TRUE;
-          numUnitigsBFNIS++;
+          numBACFrags++;
+          unitig = GetGraphNode( ScaffoldGraph->CIGraph, frag->cid);
+          contig = GetGraphNode( ScaffoldGraph->ContigGraph, frag->contigID);
+      
+          if (contig->scaffoldID != NULLINDEX)
+            numBACFragsInAss++;
+          else if (unitig->info.CI.numInstances > 0)
+            {
+              numBACFragsInSurrogates += 1; // unitig->info.CI.numInstances;
+            }
+          else
+            {
+              numBACFragsNotInSurrogates += 1;
+        
+              if ( !seenUnitig[ unitig->id ])
+                {
+                  unitigLengthsBFNIS += unitig->bpLength.mean;
+                  seenUnitig[ unitig->id ] = TRUE;
+                  numUnitigsBFNIS++;
+                }
+            }
+      
+          if (ifrag % 100 == 0 && 0)
+            fprintf( stderr, "frag->contigID: " F_CID ", contig->scaffoldID: " F_CID "\n", 
+                     frag->contigID, contig->scaffoldID);
+      
+          if (frag->locale >= maxLocale)
+            maxLocale = frag->locale;
         }
-      }
-      
-      if (ifrag % 100 == 0 && 0)
-        fprintf( stderr, "frag->contigID: " F_CID ", contig->scaffoldID: " F_CID "\n", 
-                 frag->contigID, contig->scaffoldID);
-      
-      if (frag->locale >= maxLocale)
-        maxLocale = frag->locale;
     }
-  }
   
   fragsNotInAss = (int *) safe_malloc( numBACFragsNotInSurrogates * sizeof( int ));
   sizesUnitigContainedGaps = (int *) safe_malloc( numBACFragsNotInSurrogates * sizeof( int ));
@@ -318,38 +318,38 @@ int main(int argc, char *argv[])
   numContigContainedGapsPerLocale = (int *) safe_malloc( maxLocale * sizeof( int ));  // contig contains range of missing frags
   
   for (i = 1; i <= maxLocale; i++)
-  {
-    numFragsInLocale[i] = 0;
-    missingFragsPerLocale[i] = 0;
-    // these arrays should be filled when we walk across scaffolds, not here where we walk frags by index
-    // contigsPerLocale[i] = 0;
-    // scaffoldGapsPerLocale[i] = 0;
-    // fragGapsPerLocale[i] = 0;
-    numUnitigContainedGapsPerLocale[i] = 0;
-    numContigContainedGapsPerLocale[i] = 0;	
-    numMissingBACFragRangesPerLocale[i] = 0;
-  }
+    {
+      numFragsInLocale[i] = 0;
+      missingFragsPerLocale[i] = 0;
+      // these arrays should be filled when we walk across scaffolds, not here where we walk frags by index
+      // contigsPerLocale[i] = 0;
+      // scaffoldGapsPerLocale[i] = 0;
+      // fragGapsPerLocale[i] = 0;
+      numUnitigContainedGapsPerLocale[i] = 0;
+      numContigContainedGapsPerLocale[i] = 0;	
+      numMissingBACFragRangesPerLocale[i] = 0;
+    }
   
   index = 0;
   for (ifrag = 0; ifrag < GetNumVA_CIFragT( ScaffoldGraph->CIFrags ); ifrag++)
-  {
-    frag = GetCIFragT( ScaffoldGraph->CIFrags, ifrag);
-    if (frag->locale >= 0)
     {
-      unitig = GetGraphNode( ScaffoldGraph->CIGraph, frag->cid);
-      contig = GetGraphNode( ScaffoldGraph->ContigGraph, frag->contigID);
+      frag = GetCIFragT( ScaffoldGraph->CIFrags, ifrag);
+      if (frag->locale >= 0)
+        {
+          unitig = GetGraphNode( ScaffoldGraph->CIGraph, frag->cid);
+          contig = GetGraphNode( ScaffoldGraph->ContigGraph, frag->contigID);
       
-      numFragsInLocale[ frag->locale ]++;
+          numFragsInLocale[ frag->locale ]++;
       
-      // if frag is not in a scaffold or a surrogate he's missing from the assembly
-      if ( !(contig->scaffoldID != NULLINDEX || unitig->info.CI.numInstances > 0))
-      {
-        fragsNotInAss[ index ] = frag->iid;
-        missingFragsPerLocale[ frag->locale ]++;
-        index++;
-      }
+          // if frag is not in a scaffold or a surrogate he's missing from the assembly
+          if ( !(contig->scaffoldID != NULLINDEX || unitig->info.CI.numInstances > 0))
+            {
+              fragsNotInAss[ index ] = frag->iid;
+              missingFragsPerLocale[ frag->locale ]++;
+              index++;
+            }
+        }
     }
-  }
   
   qsort( fragsNotInAss, numBACFragsNotInSurrogates, sizeof( int ), &compFrags);
   
@@ -357,237 +357,237 @@ int main(int argc, char *argv[])
   
   prior = -2;
   for ( ifrag = 0; ifrag < numBACFragsNotInSurrogates; ifrag++)
-  {
-    InfoByIID *info;
-    // fprintf( stderr, "frag: %d\n", fragsNotInAss[ ifrag ]);
-    
-    if ( fragsNotInAss[ ifrag ] != prior + 1)
     {
-      int dec = -1;
-      int inScaffold = FALSE;
-      
-      // get info on the frags that preceed the current frag
-      // looking for the first one that's in a scaffold
-      while (!inScaffold)
-      {
-        info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, fragsNotInAss[ ifrag ] + dec);
-        assert(info->set);
-        previousFrag = frag = GetCIFragT(ScaffoldGraph->CIFrags, info->fragIndex);
-        unitig = GetGraphNode( ScaffoldGraph->CIGraph, frag->cid);
-        contig = GetGraphNode( ScaffoldGraph->ContigGraph, frag->contigID);
-        if (contig->scaffoldID != NULLINDEX)
-        {
-          inScaffold = TRUE;
-          scaffold = GetGraphNode( ScaffoldGraph->ScaffoldGraph,
-                                   contig->scaffoldID);
-          if (scaffold->info.Scaffold.AEndCI == contig->id ||
-              scaffold->info.Scaffold.BEndCI == contig->id)
-            onEnd = TRUE;
-          else
-            onEnd = FALSE;
-          fprintf( stderr, "          fragiid\t utg_id\t utg_len\t ctg_id\t scf_id\t onEnd\n" );
-          fprintf( stderr, "previous: " F_CID "\t " F_CID "\t %lf\t " F_CID "\t " F_CID "\t %d\n",
-                   frag->iid, unitig->id, unitig->bpLength.mean,
-                   frag->contigID, contig->scaffoldID,
-                   onEnd);
-          previousFragIid = frag->iid;
-          previousUnitigId = unitig->id;
-          previousContigId = contig->id;
-          previousScaffoldId = contig->scaffoldID;
-          previousLocale = frag->locale;
-        }
-        else
-          dec--;
-      }
-      
-      // get info on the current frag
-      info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, fragsNotInAss[ ifrag ]);
-      assert(info->set);
-      frag = GetCIFragT(ScaffoldGraph->CIFrags, info->fragIndex);
-      unitig = GetGraphNode( ScaffoldGraph->CIGraph, frag->cid);
-      beginFragIid = frag->iid;
-      numMissingBACFragRanges++;
-      numMissingBACFragRangesPerLocale[ frag->locale ]++;
-      fprintf( stderr, "   begin: " F_CID "\t " F_CID "\t %lf\t " F_CID "\t %d\n",
-               frag->iid, unitig->id, unitig->bpLength.mean,
-               frag->contigID, -1);
-    }	  
+      InfoByIID *info;
+      // fprintf( stderr, "frag: %d\n", fragsNotInAss[ ifrag ]);
     
-    if ( (fragsNotInAss[ ifrag ] != fragsNotInAss[ ifrag + 1 ] - 1) || 
-         (ifrag == numBACFragsNotInSurrogates - 1) )
-    {
-      // get info on this frag
-      info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, fragsNotInAss[ ifrag ]);
-      assert(info->set);
-      frag = GetCIFragT(ScaffoldGraph->CIFrags, info->fragIndex);
-      unitig = GetGraphNode( ScaffoldGraph->CIGraph, frag->cid);
-      endFragIid = frag->iid;
-      fprintf( stderr, "  ending: " F_CID "\t " F_CID "\t %lf\t " F_CID "\t %d\n",
-               frag->iid, unitig->id, unitig->bpLength.mean, 
-               frag->contigID, -1);
-      
-      // get info on the frags that follows this one, providing it exists
-      if (fragsNotInAss[ ifrag ] + 1 <= GetNumVA_CIFragT( ScaffoldGraph->CIFrags ))
-      {
-        int inc = 1;
-        int inScaffold = FALSE;
-        
-        // get info on the frags that follow the current frag
-        // looking for the first one that's in a scaffold
-        while (!inScaffold && 
-               fragsNotInAss[ ifrag ] + inc + 1 < GetNumVA_CIFragT( ScaffoldGraph->CIFrags ))
+      if ( fragsNotInAss[ ifrag ] != prior + 1)
         {
-          info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, fragsNotInAss[ ifrag ] + inc);
+          int dec = -1;
+          int inScaffold = FALSE;
+      
+          // get info on the frags that preceed the current frag
+          // looking for the first one that's in a scaffold
+          while (!inScaffold)
+            {
+              info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, fragsNotInAss[ ifrag ] + dec);
+              assert(info->set);
+              previousFrag = frag = GetCIFragT(ScaffoldGraph->CIFrags, info->fragIndex);
+              unitig = GetGraphNode( ScaffoldGraph->CIGraph, frag->cid);
+              contig = GetGraphNode( ScaffoldGraph->ContigGraph, frag->contigID);
+              if (contig->scaffoldID != NULLINDEX)
+                {
+                  inScaffold = TRUE;
+                  scaffold = GetGraphNode( ScaffoldGraph->ScaffoldGraph,
+                                           contig->scaffoldID);
+                  if (scaffold->info.Scaffold.AEndCI == contig->id ||
+                      scaffold->info.Scaffold.BEndCI == contig->id)
+                    onEnd = TRUE;
+                  else
+                    onEnd = FALSE;
+                  fprintf( stderr, "          fragiid\t utg_id\t utg_len\t ctg_id\t scf_id\t onEnd\n" );
+                  fprintf( stderr, "previous: " F_CID "\t " F_CID "\t %lf\t " F_CID "\t " F_CID "\t %d\n",
+                           frag->iid, unitig->id, unitig->bpLength.mean,
+                           frag->contigID, contig->scaffoldID,
+                           onEnd);
+                  previousFragIid = frag->iid;
+                  previousUnitigId = unitig->id;
+                  previousContigId = contig->id;
+                  previousScaffoldId = contig->scaffoldID;
+                  previousLocale = frag->locale;
+                }
+              else
+                dec--;
+            }
+      
+          // get info on the current frag
+          info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, fragsNotInAss[ ifrag ]);
           assert(info->set);
           frag = GetCIFragT(ScaffoldGraph->CIFrags, info->fragIndex);
           unitig = GetGraphNode( ScaffoldGraph->CIGraph, frag->cid);
-          contig = GetGraphNode( ScaffoldGraph->ContigGraph, frag->contigID);
-          if (contig->scaffoldID != NULLINDEX)
-          {
-            inScaffold = TRUE;
-            scaffold = GetGraphNode( ScaffoldGraph->ScaffoldGraph, contig->scaffoldID);
-            if (scaffold->info.Scaffold.AEndCI == contig->id ||
-                scaffold->info.Scaffold.BEndCI == contig->id)
-              onEnd = TRUE;
-            else
-              onEnd = FALSE;
-            fprintf( stderr, "    next: " F_CID "\t " F_CID "\t %lf\t " F_CID "\t " F_CID "\t %d\n",
-                     frag->iid, unitig->id, unitig->bpLength.mean, 
-                     frag->contigID, contig->scaffoldID,
-                     onEnd);
-            if (contig->scaffoldID == previousScaffoldId && 
-                frag->contigID != previousContigId &&
-                frag->locale == previousLocale)
+          beginFragIid = frag->iid;
+          numMissingBACFragRanges++;
+          numMissingBACFragRangesPerLocale[ frag->locale ]++;
+          fprintf( stderr, "   begin: " F_CID "\t " F_CID "\t %lf\t " F_CID "\t %d\n",
+                   frag->iid, unitig->id, unitig->bpLength.mean,
+                   frag->contigID, -1);
+        }	  
+    
+      if ( (fragsNotInAss[ ifrag ] != fragsNotInAss[ ifrag + 1 ] - 1) || 
+           (ifrag == numBACFragsNotInSurrogates - 1) )
+        {
+          // get info on this frag
+          info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, fragsNotInAss[ ifrag ]);
+          assert(info->set);
+          frag = GetCIFragT(ScaffoldGraph->CIFrags, info->fragIndex);
+          unitig = GetGraphNode( ScaffoldGraph->CIGraph, frag->cid);
+          endFragIid = frag->iid;
+          fprintf( stderr, "  ending: " F_CID "\t " F_CID "\t %lf\t " F_CID "\t %d\n",
+                   frag->iid, unitig->id, unitig->bpLength.mean, 
+                   frag->contigID, -1);
+      
+          // get info on the frags that follows this one, providing it exists
+          if (fragsNotInAss[ ifrag ] + 1 <= GetNumVA_CIFragT( ScaffoldGraph->CIFrags ))
             {
-              fprintf( stderr, "flankingFragsInSameScaffold!\n");
-              fprintf( stderr, "previousContigId: " F_CID ", contig->AEndNext: " F_CID ", contig->BEndNext: " F_CID ", frag->locale: " F_CID "\n",
-                       previousContigId, contig->AEndNext, contig->BEndNext, frag->locale);
-              if (contig->BEndNext == previousContigId)
-                flankingContigsAdjacent++;
+              int inc = 1;
+              int inScaffold = FALSE;
+        
+              // get info on the frags that follow the current frag
+              // looking for the first one that's in a scaffold
+              while (!inScaffold && 
+                     fragsNotInAss[ ifrag ] + inc + 1 < GetNumVA_CIFragT( ScaffoldGraph->CIFrags ))
+                {
+                  info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, fragsNotInAss[ ifrag ] + inc);
+                  assert(info->set);
+                  frag = GetCIFragT(ScaffoldGraph->CIFrags, info->fragIndex);
+                  unitig = GetGraphNode( ScaffoldGraph->CIGraph, frag->cid);
+                  contig = GetGraphNode( ScaffoldGraph->ContigGraph, frag->contigID);
+                  if (contig->scaffoldID != NULLINDEX)
+                    {
+                      inScaffold = TRUE;
+                      scaffold = GetGraphNode( ScaffoldGraph->ScaffoldGraph, contig->scaffoldID);
+                      if (scaffold->info.Scaffold.AEndCI == contig->id ||
+                          scaffold->info.Scaffold.BEndCI == contig->id)
+                        onEnd = TRUE;
+                      else
+                        onEnd = FALSE;
+                      fprintf( stderr, "    next: " F_CID "\t " F_CID "\t %lf\t " F_CID "\t " F_CID "\t %d\n",
+                               frag->iid, unitig->id, unitig->bpLength.mean, 
+                               frag->contigID, contig->scaffoldID,
+                               onEnd);
+                      if (contig->scaffoldID == previousScaffoldId && 
+                          frag->contigID != previousContigId &&
+                          frag->locale == previousLocale)
+                        {
+                          fprintf( stderr, "flankingFragsInSameScaffold!\n");
+                          fprintf( stderr, "previousContigId: " F_CID ", contig->AEndNext: " F_CID ", contig->BEndNext: " F_CID ", frag->locale: " F_CID "\n",
+                                   previousContigId, contig->AEndNext, contig->BEndNext, frag->locale);
+                          if (contig->BEndNext == previousContigId)
+                            flankingContigsAdjacent++;
               
-              // determine separation in scaffold
-              // if (getScaffoldSeparation( previousFragIid, frag->iid, &fragsScaffoldSeparation, TRUE) != -1)
-              {
-                LengthT scaffoldGapSize;
-                ContigT *previousContig = GetGraphNode( ScaffoldGraph->ContigGraph, previousContigId);
+                          // determine separation in scaffold
+                          // if (getScaffoldSeparation( previousFragIid, frag->iid, &fragsScaffoldSeparation, TRUE) != -1)
+                          {
+                            LengthT scaffoldGapSize;
+                            ContigT *previousContig = GetGraphNode( ScaffoldGraph->ContigGraph, previousContigId);
                 
-                // since we are moving along in fragIid space, not on scaffolds
-                // we're not sure of relative postions of contig and previousContig in their scaffold
-                if (contig->offsetAEnd.mean < previousContig->offsetAEnd.mean)
-                  scaffoldGapSize = FindGapLength( contig, previousContig, FALSE);
-                else
-                  scaffoldGapSize = FindGapLength( previousContig, contig, FALSE);
+                            // since we are moving along in fragIid space, not on scaffolds
+                            // we're not sure of relative postions of contig and previousContig in their scaffold
+                            if (contig->offsetAEnd.mean < previousContig->offsetAEnd.mean)
+                              scaffoldGapSize = FindGapLength( contig, previousContig, FALSE);
+                            else
+                              scaffoldGapSize = FindGapLength( previousContig, contig, FALSE);
                 
-                if (scaffoldGapSize.mean == -20)
-                {
-                  // fprintf( stderr, "scaffoldGapSize.mean: %f, scaffoldGapSize.variance: %f\n",
-                  //   scaffoldGapSize.mean, scaffoldGapSize.variance);				
-                  scaffoldGapSize.variance = 10.0;
+                            if (scaffoldGapSize.mean == -20)
+                              {
+                                // fprintf( stderr, "scaffoldGapSize.mean: %f, scaffoldGapSize.variance: %f\n",
+                                //   scaffoldGapSize.mean, scaffoldGapSize.variance);				
+                                scaffoldGapSize.variance = 10.0;
+                              }
+                
+                            // if (scaffoldGapSize.mean != -20)
+                            {
+                              gapsFlanked[ flankingFragsInSameScaffold++ ] = (int) 
+                                (abs( fragsScaffoldSeparation -
+                                      (frag->localePos.bgn - previousFrag->localePos.end)) / 
+                                 sqrt(scaffoldGapSize.variance));
+                            }
+                
+                            fprintf( stderr, " fragsScaffoldSeparation: " F_COORD "\n", fragsScaffoldSeparation);
+                            fprintf( stderr, "   fragsLocaleSeparation: " F_COORD "\n", frag->localePos.bgn - previousFrag->localePos.end);
+                            fprintf( stderr, "    scaffoldGapSize.mean: %.2lf\n", scaffoldGapSize.mean);
+                            fprintf( stderr, "scaffoldGapSize.variance: %.2lf (%.2lf)\n", scaffoldGapSize.variance,
+                                     sqrt( scaffoldGapSize.variance ));
+                          }
+                        }
+                    }
+                  else
+                    inc++;
                 }
-                
-                // if (scaffoldGapSize.mean != -20)
-                {
-                  gapsFlanked[ flankingFragsInSameScaffold++ ] = (int) 
-                    (abs( fragsScaffoldSeparation -
-                          (frag->localePos.bgn - previousFrag->localePos.end)) / 
-                     sqrt(scaffoldGapSize.variance));
-                }
-                
-                fprintf( stderr, " fragsScaffoldSeparation: " F_COORD "\n", fragsScaffoldSeparation);
-                fprintf( stderr, "   fragsLocaleSeparation: " F_COORD "\n", frag->localePos.bgn - previousFrag->localePos.end);
-                fprintf( stderr, "    scaffoldGapSize.mean: %.2lf\n", scaffoldGapSize.mean);
-                fprintf( stderr, "scaffoldGapSize.variance: %.2lf (%.2lf)\n", scaffoldGapSize.variance,
-                         sqrt( scaffoldGapSize.variance ));
-              }
             }
-          }
-          else
-            inc++;
-        }
-      }
       
-      gapSizeInFrags = endFragIid - beginFragIid + 1;
-      fprintf( stderr, "gap size: " F_CID " (" F_CID "," F_CID ")\n",
-               gapSizeInFrags, beginFragIid, endFragIid);
-      // if (gapSizeInFrags > 1)
-      //	largegap = TRUE;
+          gapSizeInFrags = endFragIid - beginFragIid + 1;
+          fprintf( stderr, "gap size: " F_CID " (" F_CID "," F_CID ")\n",
+                   gapSizeInFrags, beginFragIid, endFragIid);
+          // if (gapSizeInFrags > 1)
+          //	largegap = TRUE;
       
-      fragsMisoriented = FALSE;
-      if ( previousContigId == contig->id && previousLocale == frag->locale)
-      {
-        fprintf( stderr, "***--- contig contained gap ---*** (" F_CID "," F_CID ")\n", beginFragIid, endFragIid);
-        if (previousLocale == frag->locale)
-        {
-          int fragsScaffoldSeparation;
+          fragsMisoriented = FALSE;
+          if ( previousContigId == contig->id && previousLocale == frag->locale)
+            {
+              fprintf( stderr, "***--- contig contained gap ---*** (" F_CID "," F_CID ")\n", beginFragIid, endFragIid);
+              if (previousLocale == frag->locale)
+                {
+                  int fragsScaffoldSeparation;
           
-          // a -1 return from getScaffoldSeparation indicates problems
-          if (getScaffoldSeparation( previousFragIid, frag->iid, &fragsScaffoldSeparation, TRUE) != -1)
-          {  
-            fprintf( stderr, " fragsScaffoldSeparation: " F_COORD "\n", fragsScaffoldSeparation);
-            fprintf( stderr, "   fragsLocaleSeparation: " F_COORD "\n", frag->localePos.bgn - previousFrag->localePos.end);
-            sizesContigContainedGaps[ numContigContainedGaps++ ] = 
-              abs( fragsScaffoldSeparation -
-                   (frag->localePos.bgn - previousFrag->localePos.end));
-            numContigContainedGapsPerLocale[ frag->locale ]++;					 
-          }
-          else
-          {
-            fragsMisoriented = TRUE;
-          }
-        }
-        if ( previousUnitigId != unitig->id && fragsMisoriented == FALSE)
-        {
-          numPureContigContainedGaps++;
-          fprintf( stderr, "***--- contig contained gap (pure) ---*** (" F_CID "," F_CID ")\n", beginFragIid, endFragIid);
-        }
-      }
-      
-      if ( fragsMisoriented == TRUE )
-        fprintf( stderr, "***--- fragsMisoriented  ---*** (" F_CID "," F_CID ")\n", beginFragIid, endFragIid);
-      
-      if ( fragsMisoriented == FALSE )
-      {
-        if ( previousUnitigId == unitig->id && gapSizeInFrags == 1 )
-        {
-          fprintf( stderr, "***--- unitig contained gap ---*** (" F_CID "," F_CID ")\n", beginFragIid, endFragIid);
-          if (previousLocale == frag->locale)
-          {
-            int fragsScaffoldSeparation;
-            
-            if (getScaffoldSeparation( previousFragIid, frag->iid, &fragsScaffoldSeparation, TRUE) != -1)
-            {  
-              fprintf( stderr, " fragsScaffoldSeparation: " F_COORD "\n", fragsScaffoldSeparation);
-              fprintf( stderr, "   fragsLocaleSeparation: " F_COORD "\n", frag->localePos.bgn - previousFrag->localePos.end);
-              sizesUnitigContainedGaps[ numUnitigContainedGaps++ ] = 
-                abs( fragsScaffoldSeparation -
-                     (frag->localePos.bgn - previousFrag->localePos.end));
-              numUnitigContainedGapsPerLocale[ frag->locale ]++;
+                  // a -1 return from getScaffoldSeparation indicates problems
+                  if (getScaffoldSeparation( previousFragIid, frag->iid, &fragsScaffoldSeparation, TRUE) != -1)
+                    {  
+                      fprintf( stderr, " fragsScaffoldSeparation: " F_COORD "\n", fragsScaffoldSeparation);
+                      fprintf( stderr, "   fragsLocaleSeparation: " F_COORD "\n", frag->localePos.bgn - previousFrag->localePos.end);
+                      sizesContigContainedGaps[ numContigContainedGaps++ ] = 
+                        abs( fragsScaffoldSeparation -
+                             (frag->localePos.bgn - previousFrag->localePos.end));
+                      numContigContainedGapsPerLocale[ frag->locale ]++;					 
+                    }
+                  else
+                    {
+                      fragsMisoriented = TRUE;
+                    }
+                }
+              if ( previousUnitigId != unitig->id && fragsMisoriented == FALSE)
+                {
+                  numPureContigContainedGaps++;
+                  fprintf( stderr, "***--- contig contained gap (pure) ---*** (" F_CID "," F_CID ")\n", beginFragIid, endFragIid);
+                }
             }
-          }
-        }
-        else if ( previousUnitigId == unitig->id )
-        {
-          fprintf( stderr, "***--- unitig contained gap (multiple frags) ---*** (" F_CID ", " F_CID ")\n", beginFragIid, endFragIid);
-          if (previousLocale == frag->locale)
-          {
-            int fragsScaffoldSeparation;
+      
+          if ( fragsMisoriented == TRUE )
+            fprintf( stderr, "***--- fragsMisoriented  ---*** (" F_CID "," F_CID ")\n", beginFragIid, endFragIid);
+      
+          if ( fragsMisoriented == FALSE )
+            {
+              if ( previousUnitigId == unitig->id && gapSizeInFrags == 1 )
+                {
+                  fprintf( stderr, "***--- unitig contained gap ---*** (" F_CID "," F_CID ")\n", beginFragIid, endFragIid);
+                  if (previousLocale == frag->locale)
+                    {
+                      int fragsScaffoldSeparation;
             
-            if (getScaffoldSeparation( previousFragIid, frag->iid, &fragsScaffoldSeparation, TRUE) != -1)
-            {  
-              fprintf( stderr, " fragsScaffoldSeparation: " F_COORD "\n", fragsScaffoldSeparation);
-              fprintf( stderr, "   fragsLocaleSeparation: " F_COORD "\n", frag->localePos.bgn - previousFrag->localePos.end);
-              sizesUnitigContainedGaps[ numUnitigContainedGaps++ ] = 
-                abs( fragsScaffoldSeparation -
-                     (frag->localePos.bgn - previousFrag->localePos.end));
-              numUnitigContainedGapsPerLocale[ frag->locale ]++;
+                      if (getScaffoldSeparation( previousFragIid, frag->iid, &fragsScaffoldSeparation, TRUE) != -1)
+                        {  
+                          fprintf( stderr, " fragsScaffoldSeparation: " F_COORD "\n", fragsScaffoldSeparation);
+                          fprintf( stderr, "   fragsLocaleSeparation: " F_COORD "\n", frag->localePos.bgn - previousFrag->localePos.end);
+                          sizesUnitigContainedGaps[ numUnitigContainedGaps++ ] = 
+                            abs( fragsScaffoldSeparation -
+                                 (frag->localePos.bgn - previousFrag->localePos.end));
+                          numUnitigContainedGapsPerLocale[ frag->locale ]++;
+                        }
+                    }
+                }
+              else if ( previousUnitigId == unitig->id )
+                {
+                  fprintf( stderr, "***--- unitig contained gap (multiple frags) ---*** (" F_CID ", " F_CID ")\n", beginFragIid, endFragIid);
+                  if (previousLocale == frag->locale)
+                    {
+                      int fragsScaffoldSeparation;
+            
+                      if (getScaffoldSeparation( previousFragIid, frag->iid, &fragsScaffoldSeparation, TRUE) != -1)
+                        {  
+                          fprintf( stderr, " fragsScaffoldSeparation: " F_COORD "\n", fragsScaffoldSeparation);
+                          fprintf( stderr, "   fragsLocaleSeparation: " F_COORD "\n", frag->localePos.bgn - previousFrag->localePos.end);
+                          sizesUnitigContainedGaps[ numUnitigContainedGaps++ ] = 
+                            abs( fragsScaffoldSeparation -
+                                 (frag->localePos.bgn - previousFrag->localePos.end));
+                          numUnitigContainedGapsPerLocale[ frag->locale ]++;
+                        }
+                    }
+                }
+              fprintf( stderr, "\n");
             }
-          }
         }
-        fprintf( stderr, "\n");
-      }
+      prior = fragsNotInAss[ ifrag ];
     }
-    prior = fragsNotInAss[ ifrag ];
-  }
   
   fprintf( stderr, "\n\n");
   fprintf( stderr, "                  numBACFrags: %9ld\n", numBACFrags);
@@ -626,13 +626,13 @@ int main(int argc, char *argv[])
   fprintf( stderr, "      \t             numBACFragsNot\t numUnitig    \t numContig    \t numMissingBAC\n");
   fprintf( stderr, "locale\t numBACFrags   InSurrogates\t ContainedGaps\t ContainedGaps\t FragRanges\n");
   for (i = 1; i <= maxLocale; i++)
-  {
-    fprintf( stderr, "%3d     %7d\t %7d  (%5.2f %%)\t %5d\t\t %5d\t\t %5d\n", 
-             i, numFragsInLocale[i], missingFragsPerLocale[i],
-             (100.0 * missingFragsPerLocale[i]) / numFragsInLocale[i],
-             numUnitigContainedGapsPerLocale[i], numContigContainedGapsPerLocale[i],
-             numMissingBACFragRangesPerLocale[i]);
-  }
+    {
+      fprintf( stderr, "%3d     %7d\t %7d  (%5.2f %%)\t %5d\t\t %5d\t\t %5d\n", 
+               i, numFragsInLocale[i], missingFragsPerLocale[i],
+               (100.0 * missingFragsPerLocale[i]) / numFragsInLocale[i],
+               numUnitigContainedGapsPerLocale[i], numContigContainedGapsPerLocale[i],
+               numMissingBACFragRangesPerLocale[i]);
+    }
   fprintf( stderr, "\n");
   
   dumpCelagram( gapsFlanked, flankingFragsInSameScaffold, "gapsFlanked");
@@ -658,76 +658,76 @@ int main(int argc, char *argv[])
   // we don't have a lot of choice
   fprintf( stderr, "locale\t numUnitigsInLocale\t numContigsInLocale\t numScaffoldsInLocale\t missingFragsRecount\n");
   for (i = 1; i <= maxLocale; i++)
-  {	
-    for (ifrag = 0; ifrag < GetNumVA_CIFragT( ScaffoldGraph->CIFrags ); ifrag++)
-    {
-      frag = GetCIFragT( ScaffoldGraph->CIFrags, ifrag);
+    {	
+      for (ifrag = 0; ifrag < GetNumVA_CIFragT( ScaffoldGraph->CIFrags ); ifrag++)
+        {
+          frag = GetCIFragT( ScaffoldGraph->CIFrags, ifrag);
       
-      if (frag->locale == i)
-      {
-        CDS_CID_t scaffID = GetGraphNode(ScaffoldGraph->ContigGraph, frag->contigID)->scaffoldID;
-        // we need to do something with surrogates to get the true contig/scaffold stats
-        // NodeCGW_T *unitig = GetGraphNode(ScaffoldGraph->CIGraph, frag->cid);
+          if (frag->locale == i)
+            {
+              CDS_CID_t scaffID = GetGraphNode(ScaffoldGraph->ContigGraph, frag->contigID)->scaffoldID;
+              // we need to do something with surrogates to get the true contig/scaffold stats
+              // NodeCGW_T *unitig = GetGraphNode(ScaffoldGraph->CIGraph, frag->cid);
         
         
-        {
-          CDS_CID_t tempiid = 370253;
-          NodeCGW_T *unitiggy = GetGraphNode(ScaffoldGraph->CIGraph, frag->cid);
+              {
+                CDS_CID_t tempiid = 370253;
+                NodeCGW_T *unitiggy = GetGraphNode(ScaffoldGraph->CIGraph, frag->cid);
           
-          if (frag->iid == tempiid)
-            fprintf( stderr, "frag " F_CID " shows as being in scaff " F_CID ", unitig: " F_CID " (numInstances: %d)\n", 
-                     tempiid, scaffID, frag->cid, unitiggy->info.CI.numInstances);
-        }
+                if (frag->iid == tempiid)
+                  fprintf( stderr, "frag " F_CID " shows as being in scaff " F_CID ", unitig: " F_CID " (numInstances: %d)\n", 
+                           tempiid, scaffID, frag->cid, unitiggy->info.CI.numInstances);
+              }
         
         
         
         
-        if ( localeFragsInUnitig[ frag->cid ] != i)
-        {
-          numUnitigsInLocale++;
-          localeFragsInUnitig[ frag->cid ] = i;
-        }
-        if ( localeFragsInContig[ frag->contigID ] != i)
-        {
-          numContigsInLocale++;
-          localeFragsInContig[ frag->contigID ] = i;
-        }
-        if ( localeFragsInScaffold[ scaffID ] != i && scaffID != NULLINDEX)
-        {
-          numScaffoldsInLocale++;
-          localeFragsInScaffold[ scaffID ] = i;
-          fprintf( stderr, "locale %d claims to be in scaffold " F_CID " via frag iid " F_CID " (unitig " F_CID ")\n", 
-                   i, scaffID, frag->iid, frag->cid);
-        }
+              if ( localeFragsInUnitig[ frag->cid ] != i)
+                {
+                  numUnitigsInLocale++;
+                  localeFragsInUnitig[ frag->cid ] = i;
+                }
+              if ( localeFragsInContig[ frag->contigID ] != i)
+                {
+                  numContigsInLocale++;
+                  localeFragsInContig[ frag->contigID ] = i;
+                }
+              if ( localeFragsInScaffold[ scaffID ] != i && scaffID != NULLINDEX)
+                {
+                  numScaffoldsInLocale++;
+                  localeFragsInScaffold[ scaffID ] = i;
+                  fprintf( stderr, "locale %d claims to be in scaffold " F_CID " via frag iid " F_CID " (unitig " F_CID ")\n", 
+                           i, scaffID, frag->iid, frag->cid);
+                }
         
-        // some temp stuff for double checking
-        if (scaffID == NULLINDEX)
-          missingFragsRecount++;
-        {
-          NodeCGW_T *unitig = GetGraphNode(ScaffoldGraph->CIGraph, frag->cid);
-          if ( unitig->info.CI.numInstances > 0 )
-            missingFragsRecount--;	
+              // some temp stuff for double checking
+              if (scaffID == NULLINDEX)
+                missingFragsRecount++;
+              {
+                NodeCGW_T *unitig = GetGraphNode(ScaffoldGraph->CIGraph, frag->cid);
+                if ( unitig->info.CI.numInstances > 0 )
+                  missingFragsRecount--;	
+              }
+            }
         }
-      }
+      fprintf( stderr, "%d\t %7d\t\t %7d\t\t %7d\t\t %d\n", i, 
+               numUnitigsInLocale, numContigsInLocale, numScaffoldsInLocale, missingFragsRecount);
+      numUnitigsInLocale = 0;
+      numContigsInLocale = 0;
+      numScaffoldsInLocale = 0;	
+      missingFragsRecount = 0;
     }
-    fprintf( stderr, "%d\t %7d\t\t %7d\t\t %7d\t\t %d\n", i, 
-             numUnitigsInLocale, numContigsInLocale, numScaffoldsInLocale, missingFragsRecount);
-    numUnitigsInLocale = 0;
-    numContigsInLocale = 0;
-    numScaffoldsInLocale = 0;	
-    missingFragsRecount = 0;
-  }
   
   
   {
     int numRealScaffolds = 0;
     
     for ( i= 0; i < GetNumGraphNodes( ScaffoldGraph->ScaffoldGraph); i++)
-    {
-      NodeCGW_T *scaff = GetGraphNode( ScaffoldGraph->ScaffoldGraph, i);
-      if(scaff->type == REAL_SCAFFOLD)
-        numRealScaffolds++;
-    }
+      {
+        NodeCGW_T *scaff = GetGraphNode( ScaffoldGraph->ScaffoldGraph, i);
+        if(scaff->type == REAL_SCAFFOLD)
+          numRealScaffolds++;
+      }
     fprintf( stderr, "numRealScaffolds: %d\n", numRealScaffolds);
   }
   
@@ -761,21 +761,21 @@ int	getScaffoldSeparation( CDS_CID_t frag1Iid,
   GetFragmentPositionInScaffold( frag2, &frag2LeftEnd, &frag2RightEnd, &frag2Orientation);
   
   if (frag1Orientation != frag2Orientation)
-  {
-    if (verbose)
-      fprintf( stderr, "frags " F_CID " and " F_CID " have different orientations!\n", frag1Iid, frag2Iid);
-    return -1;
-  }
+    {
+      if (verbose)
+        fprintf( stderr, "frags " F_CID " and " F_CID " have different orientations!\n", frag1Iid, frag2Iid);
+      return -1;
+    }
   
   scaffold1 = GetGraphNode( ScaffoldGraph->ContigGraph, frag1->contigID)->scaffoldID;
   scaffold2 = GetGraphNode( ScaffoldGraph->ContigGraph, frag2->contigID)->scaffoldID;
   
   if (scaffold1 != scaffold2)
-  {
-    if (verbose)
-      fprintf( stderr, "frags " F_CID " and " F_CID " are in different scaffolds!\n", frag1Iid, frag2Iid);
-    assert( 0 );
-  }
+    {
+      if (verbose)
+        fprintf( stderr, "frags " F_CID " and " F_CID " are in different scaffolds!\n", frag1Iid, frag2Iid);
+      assert( 0 );
+    }
   
   if ( min( frag1LeftEnd, frag1RightEnd) < min( frag2LeftEnd, frag2RightEnd))          // frag1 left of frag2
     *fragScaffoldSeparation = min( frag2LeftEnd, frag2RightEnd) - max( frag1LeftEnd, frag1RightEnd);
@@ -794,10 +794,10 @@ void dumpCelagram( int *array, int numArrayItems, char *label)
   sprintf( fname, "%s.cgm", label);
   outFile = fopen( fname, "w");
   if (outFile == NULL)
-  {
-    fprintf( stderr, "can not open file named %s in dumpCelagram\n", fname);
-    exit(1);
-  }
+    {
+      fprintf( stderr, "can not open file named %s in dumpCelagram\n", fname);
+      exit(1);
+    }
   
   fprintf( outFile, "%s\n", label);
   for (i = 0; i < numArrayItems; i++)
@@ -821,20 +821,20 @@ int compareLocales(const void *e1,
   else if ( frag1->locale > frag2->locale)
     return 1;
   else // sort by pos
-  {
-    if ( frag1->localePos.bgn < frag2->localePos.bgn )
-      return -1;
-    else if ( frag1->localePos.bgn > frag2->localePos.bgn )
-      return 1;
-    else
     {
-      fprintf( stderr, "frag1->iid: " F_CID ", frag1->localePos.bgn: " F_COORD "\n",
-               frag1->iid, frag1->localePos.bgn);
-      fprintf( stderr, "frag2->iid: " F_CID ", frag2->localePos.bgn: " F_COORD "\n",
-               frag2->iid, frag2->localePos.bgn);
-      assert(0);
+      if ( frag1->localePos.bgn < frag2->localePos.bgn )
+        return -1;
+      else if ( frag1->localePos.bgn > frag2->localePos.bgn )
+        return 1;
+      else
+        {
+          fprintf( stderr, "frag1->iid: " F_CID ", frag1->localePos.bgn: " F_COORD "\n",
+                   frag1->iid, frag1->localePos.bgn);
+          fprintf( stderr, "frag2->iid: " F_CID ", frag2->localePos.bgn: " F_COORD "\n",
+                   frag2->iid, frag2->localePos.bgn);
+          assert(0);
+        }
     }
-  }
   return(0);  // useless statement to make the compiler stop complaining
 }
 
@@ -853,33 +853,33 @@ void prepareBACFragInfo( int numBACFrags, CDS_CID_t maxLocale)
     fragsPerLocale[ ilocale ] = 0;
   
   for (ifrag = 0; ifrag < GetNumVA_CIFragT( ScaffoldGraph->CIFrags ); ifrag++)
-  {
-    CIFragT *frag = GetCIFragT( ScaffoldGraph->CIFrags, ifrag);
-    if (frag->locale >= 0)
     {
-      gatherBACFragInfo( frag, &allBACFragsData[ BACFragCount++ ]);
-      fragsPerLocale[ frag->locale ]++;
-      if (frag->localePos.end > localeLength[ frag->locale ])
-        localeLength[ frag->locale ] = frag->localePos.end;
+      CIFragT *frag = GetCIFragT( ScaffoldGraph->CIFrags, ifrag);
+      if (frag->locale >= 0)
+        {
+          gatherBACFragInfo( frag, &allBACFragsData[ BACFragCount++ ]);
+          fragsPerLocale[ frag->locale ]++;
+          if (frag->localePos.end > localeLength[ frag->locale ])
+            localeLength[ frag->locale ] = frag->localePos.end;
+        }
     }
-  }
   
   // sort by locale, then by position in locale
   qsort( allBACFragsData, numBACFrags, sizeof( fragDataT ), compareLocales);
   
   if (0)
     for ( ifrag = 0; ifrag < numBACFrags; ifrag++)
-    {
-      fprintf( stderr, "allBACFragsData[%7d]: %2" F_CIDP " %7" F_COORDP " %7" F_COORDP,
-               ifrag, allBACFragsData[ifrag].locale,
-               allBACFragsData[ifrag].localePos.bgn,
-               allBACFragsData[ifrag].localePos.end);
-      if (ifrag > 0 && 
-          allBACFragsData[ifrag].localePos.bgn > allBACFragsData[ifrag - 1].localePos.end &&
-          allBACFragsData[ifrag].locale == allBACFragsData[ifrag - 1].locale)
-        fprintf( stderr, " ***** delta ");
-      fprintf( stderr, "\n");
-    }
+      {
+        fprintf( stderr, "allBACFragsData[%7d]: %2" F_CIDP " %7" F_COORDP " %7" F_COORDP,
+                 ifrag, allBACFragsData[ifrag].locale,
+                 allBACFragsData[ifrag].localePos.bgn,
+                 allBACFragsData[ifrag].localePos.end);
+        if (ifrag > 0 && 
+            allBACFragsData[ifrag].localePos.bgn > allBACFragsData[ifrag - 1].localePos.end &&
+            allBACFragsData[ifrag].locale == allBACFragsData[ifrag - 1].locale)
+          fprintf( stderr, " ***** delta ");
+        fprintf( stderr, "\n");
+      }
   
   computeGoodnessMeasure( allBACFragsData, numBACFrags, fragsPerLocale, maxLocale);
   
@@ -912,58 +912,58 @@ void computeGoodnessMeasure( fragDataT *allBACFragsData,
     unitigCorrectOverlaps[ ilocale ] = contigCorrectOverlaps[ ilocale ] = scaffoldCorrectOverlaps[ ilocale ] = 0;
   
   for ( ifrag = 0; ifrag < numBACFrags - 1; ifrag++)
-  {
-    int localeOverlap = abs( allBACFragsData[ifrag].localePos.end - allBACFragsData[ifrag + 1].localePos.bgn);
-    int unitigOverlap = abs( allBACFragsData[ifrag].unitigOffset3p - allBACFragsData[ifrag + 1].unitigOffset5p);
-    int contigOverlap = abs( allBACFragsData[ifrag].contigOffset3p - allBACFragsData[ifrag + 1].contigOffset5p);
-    int scaffoldOverlap = abs( allBACFragsData[ifrag].scaffoldOffset3p - allBACFragsData[ifrag + 1].scaffoldOffset5p);
-    int unitigCorrect, contigCorrect, scaffoldCorrect;
-    
-    unitigCorrect = contigCorrect = scaffoldCorrect = FALSE;
-    
-    if ( abs( localeOverlap - unitigOverlap ) < UNITIG_CONSISTENCY_CONSTANT && 
-         allBACFragsData[ifrag].unitigID == allBACFragsData[ifrag + 1].unitigID &&
-         allBACFragsData[ifrag].locale == allBACFragsData[ifrag + 1].locale)
-    { 
-      unitigCorrectOverlaps[ allBACFragsData[ifrag].locale ]++;
-      unitigCorrect = TRUE;
-    }
-    
-    if ( abs( localeOverlap - contigOverlap ) < CONTIG_CONSISTENCY_CONSTANT && 
-         allBACFragsData[ifrag].contigID == allBACFragsData[ifrag + 1].contigID &&
-         allBACFragsData[ifrag].locale == allBACFragsData[ifrag + 1].locale)
     {
-      contigCorrectOverlaps[ allBACFragsData[ifrag].locale ]++;
-      contigCorrect = TRUE;
-    }
+      int localeOverlap = abs( allBACFragsData[ifrag].localePos.end - allBACFragsData[ifrag + 1].localePos.bgn);
+      int unitigOverlap = abs( allBACFragsData[ifrag].unitigOffset3p - allBACFragsData[ifrag + 1].unitigOffset5p);
+      int contigOverlap = abs( allBACFragsData[ifrag].contigOffset3p - allBACFragsData[ifrag + 1].contigOffset5p);
+      int scaffoldOverlap = abs( allBACFragsData[ifrag].scaffoldOffset3p - allBACFragsData[ifrag + 1].scaffoldOffset5p);
+      int unitigCorrect, contigCorrect, scaffoldCorrect;
     
-    // since unscaffolded contigs all have scaffoldID = NULLINDEX have to dig a bit
-    if ( allBACFragsData[ifrag].scaffoldID == allBACFragsData[ifrag + 1].scaffoldID)
-    {
-      // the case where they are in the same real scaffold
-      if ( abs( localeOverlap - scaffoldOverlap ) < SCAFFOLD_CONSISTENCY_CONSTANT && 
-           allBACFragsData[ifrag].scaffoldID != NULLINDEX &&
+      unitigCorrect = contigCorrect = scaffoldCorrect = FALSE;
+    
+      if ( abs( localeOverlap - unitigOverlap ) < UNITIG_CONSISTENCY_CONSTANT && 
+           allBACFragsData[ifrag].unitigID == allBACFragsData[ifrag + 1].unitigID &&
            allBACFragsData[ifrag].locale == allBACFragsData[ifrag + 1].locale)
-      {
-        scaffoldCorrectOverlaps[ allBACFragsData[ifrag].locale ]++;
-        scaffoldCorrect = TRUE;
-      }
+        { 
+          unitigCorrectOverlaps[ allBACFragsData[ifrag].locale ]++;
+          unitigCorrect = TRUE;
+        }
+    
+      if ( abs( localeOverlap - contigOverlap ) < CONTIG_CONSISTENCY_CONSTANT && 
+           allBACFragsData[ifrag].contigID == allBACFragsData[ifrag + 1].contigID &&
+           allBACFragsData[ifrag].locale == allBACFragsData[ifrag + 1].locale)
+        {
+          contigCorrectOverlaps[ allBACFragsData[ifrag].locale ]++;
+          contigCorrect = TRUE;
+        }
+    
+      // since unscaffolded contigs all have scaffoldID = NULLINDEX have to dig a bit
+      if ( allBACFragsData[ifrag].scaffoldID == allBACFragsData[ifrag + 1].scaffoldID)
+        {
+          // the case where they are in the same real scaffold
+          if ( abs( localeOverlap - scaffoldOverlap ) < SCAFFOLD_CONSISTENCY_CONSTANT && 
+               allBACFragsData[ifrag].scaffoldID != NULLINDEX &&
+               allBACFragsData[ifrag].locale == allBACFragsData[ifrag + 1].locale)
+            {
+              scaffoldCorrectOverlaps[ allBACFragsData[ifrag].locale ]++;
+              scaffoldCorrect = TRUE;
+            }
       
-      // the case where they are in the same contig but the scaffold has NULLINDEX
-      if ( contigCorrect == TRUE &&
-           allBACFragsData[ifrag].scaffoldID == NULLINDEX &&
-           allBACFragsData[ifrag].locale == allBACFragsData[ifrag + 1].locale)
-      {
-        scaffoldCorrectOverlaps[ allBACFragsData[ifrag].locale ]++;
-        scaffoldCorrect = TRUE;
-      }
+          // the case where they are in the same contig but the scaffold has NULLINDEX
+          if ( contigCorrect == TRUE &&
+               allBACFragsData[ifrag].scaffoldID == NULLINDEX &&
+               allBACFragsData[ifrag].locale == allBACFragsData[ifrag + 1].locale)
+            {
+              scaffoldCorrectOverlaps[ allBACFragsData[ifrag].locale ]++;
+              scaffoldCorrect = TRUE;
+            }
+        }
+    
+      if ( !contigCorrect && scaffoldCorrect )
+        fprintf( stderr, "overlap in scaffold but not in contig for frags " F_CID " and " F_CID " (locale: " F_CID ")\n",
+                 allBACFragsData[ifrag].iid, allBACFragsData[ifrag + 1].iid, allBACFragsData[ifrag + 1].locale);
+    
     }
-    
-    if ( !contigCorrect && scaffoldCorrect )
-      fprintf( stderr, "overlap in scaffold but not in contig for frags " F_CID " and " F_CID " (locale: " F_CID ")\n",
-               allBACFragsData[ifrag].iid, allBACFragsData[ifrag + 1].iid, allBACFragsData[ifrag + 1].locale);
-    
-  }
   
   fprintf( stderr,   "                                         unitig                contig             scaff\n");
   fprintf( stderr,   "locale     fragsPerLocale       CorrectOverlaps       CorrectOverlaps   CorrectOverlaps\n");
@@ -992,15 +992,15 @@ int computeConsistentRanges( fragDataT *allBACFragsData,
   // of frags on an equal footing with the real ones, but no parents of surrogates
   // count them
   for ( ifrag = 0; ifrag < numBACFrags; ifrag++)
-  {
-    if (allBACFragsData[ ifrag ].surrogateCount > 0)
-      totalFrags += allBACFragsData[ ifrag ].surrogateCount;  // count each surrogate
-    else
-      totalFrags++;  // add original
+    {
+      if (allBACFragsData[ ifrag ].surrogateCount > 0)
+        totalFrags += allBACFragsData[ ifrag ].surrogateCount;  // count each surrogate
+      else
+        totalFrags++;  // add original
     
-    if (totalFrags < ifrag)
-      fprintf( stderr, "WTF?\n");
-  }
+      if (totalFrags < ifrag)
+        fprintf( stderr, "WTF?\n");
+    }
   
   // make space for them
   allBACFragsDataWithSurrogates = (fragDataT *) safe_malloc( totalFrags * sizeof( fragDataT ));
@@ -1008,16 +1008,16 @@ int computeConsistentRanges( fragDataT *allBACFragsData,
   // transfer them
   icnt = 0;
   for ( ifrag = 0; ifrag < numBACFrags; ifrag++)
-  {
-    if ( allBACFragsData[ ifrag ].surrogateCount == 0)  // frag exists only in a unitig, no surrogates
-      allBACFragsDataWithSurrogates[ icnt++ ] = allBACFragsData[ ifrag ];
-    else  // frag exists in at least one surrogate
-      for (i = 0; i < allBACFragsData[ ifrag ].surrogateCount; i++)
-        allBACFragsDataWithSurrogates[ icnt++ ] = allBACFragsData[ ifrag ].surrogates[i];
+    {
+      if ( allBACFragsData[ ifrag ].surrogateCount == 0)  // frag exists only in a unitig, no surrogates
+        allBACFragsDataWithSurrogates[ icnt++ ] = allBACFragsData[ ifrag ];
+      else  // frag exists in at least one surrogate
+        for (i = 0; i < allBACFragsData[ ifrag ].surrogateCount; i++)
+          allBACFragsDataWithSurrogates[ icnt++ ] = allBACFragsData[ ifrag ].surrogates[i];
     
-    if (allBACFragsDataWithSurrogates[ icnt - 1].scaffoldOffset3p < 0)
-      fprintf( stderr, "just copied some crap!\n");
-  }
+      if (allBACFragsDataWithSurrogates[ icnt - 1].scaffoldOffset3p < 0)
+        fprintf( stderr, "just copied some crap!\n");
+    }
   
   // now sort by contig, secondarily by contigOffset5p
   qsort( allBACFragsDataWithSurrogates, totalFrags, sizeof( fragDataT ), compContigIDs);
@@ -1025,154 +1025,154 @@ int computeConsistentRanges( fragDataT *allBACFragsData,
   // now step through contigs, finding the consistent ranges
   inRange = FALSE;
   for ( ifrag = 0; ifrag < totalFrags - 1; ifrag++)
-  {
-    int localeOverlap, contigOverlap;
-    
-    if ( allBACFragsDataWithSurrogates[ifrag].iid == 370155 ||
-         allBACFragsDataWithSurrogates[ifrag].iid == 370150)
-      fprintf( stderr, "at problem ifrag\n");
-    
-    // now compare the positions of ifragData and ifragPlusOneData 
-    localeOverlap = abs( allBACFragsDataWithSurrogates[ifrag].localePos.end - 
-                         allBACFragsDataWithSurrogates[ifrag + 1].localePos.bgn);
-    contigOverlap = abs( allBACFragsDataWithSurrogates[ifrag].contigOffset3p - 
-                         allBACFragsDataWithSurrogates[ifrag + 1].contigOffset5p );
-    
-    if ( inRange == FALSE )
     {
-      fprintf( stderr, "begin: " F_CID " (ifrag: %d)\n", allBACFragsDataWithSurrogates[ifrag].iid, ifrag);
-      inRange = TRUE;
-      currentContigID = allBACFragsDataWithSurrogates[ifrag].contigID;
-      contigConsistentRanges[ numConsistentRanges ].locale = allBACFragsDataWithSurrogates[ifrag].locale;
-      contigConsistentRanges[ numConsistentRanges ].scaffoldID = allBACFragsDataWithSurrogates[ifrag].scaffoldID;
-      contigConsistentRanges[ numConsistentRanges ].contigID = allBACFragsDataWithSurrogates[ifrag].contigID;
-      contigConsistentRanges[ numConsistentRanges ].iidStart = allBACFragsDataWithSurrogates[ifrag].iid;
-      // contigConsistentRanges[ numConsistentRanges ].scaffoldOffsetMin = 
-      // allBACFragsDataWithSurrogates[ifrag].scaffoldOffset5p;	  
-      // contigConsistentRanges[ numConsistentRanges ].localePosStart = allBACFragsDataWithSurrogates[ifrag].localePos;
+      int localeOverlap, contigOverlap;
+    
+      if ( allBACFragsDataWithSurrogates[ifrag].iid == 370155 ||
+           allBACFragsDataWithSurrogates[ifrag].iid == 370150)
+        fprintf( stderr, "at problem ifrag\n");
+    
+      // now compare the positions of ifragData and ifragPlusOneData 
+      localeOverlap = abs( allBACFragsDataWithSurrogates[ifrag].localePos.end - 
+                           allBACFragsDataWithSurrogates[ifrag + 1].localePos.bgn);
+      contigOverlap = abs( allBACFragsDataWithSurrogates[ifrag].contigOffset3p - 
+                           allBACFragsDataWithSurrogates[ifrag + 1].contigOffset5p );
+    
+      if ( inRange == FALSE )
+        {
+          fprintf( stderr, "begin: " F_CID " (ifrag: %d)\n", allBACFragsDataWithSurrogates[ifrag].iid, ifrag);
+          inRange = TRUE;
+          currentContigID = allBACFragsDataWithSurrogates[ifrag].contigID;
+          contigConsistentRanges[ numConsistentRanges ].locale = allBACFragsDataWithSurrogates[ifrag].locale;
+          contigConsistentRanges[ numConsistentRanges ].scaffoldID = allBACFragsDataWithSurrogates[ifrag].scaffoldID;
+          contigConsistentRanges[ numConsistentRanges ].contigID = allBACFragsDataWithSurrogates[ifrag].contigID;
+          contigConsistentRanges[ numConsistentRanges ].iidStart = allBACFragsDataWithSurrogates[ifrag].iid;
+          // contigConsistentRanges[ numConsistentRanges ].scaffoldOffsetMin = 
+          // allBACFragsDataWithSurrogates[ifrag].scaffoldOffset5p;	  
+          // contigConsistentRanges[ numConsistentRanges ].localePosStart = allBACFragsDataWithSurrogates[ifrag].localePos;
       
-      ifragStart = ifrag;
-    }
-    
-    if ( allBACFragsDataWithSurrogates[ifrag].iid >= 486916 && 
-         allBACFragsDataWithSurrogates[ifrag].iid <= 486954)
-    {
-      fprintf( stderr, "anfjdanf allBACFragsDataWithSurrogates[ %d ].contigID (iid: " F_CID "): " F_CID "\n",
-               ifrag, allBACFragsDataWithSurrogates[ifrag].iid, allBACFragsDataWithSurrogates[ifrag].contigID);
-    }
-    
-    if ( abs( localeOverlap - contigOverlap ) < CONTIG_CONSISTENCY_CONSTANT && // overlap properly
-         abs( allBACFragsDataWithSurrogates[ifrag].iid - 
-              allBACFragsDataWithSurrogates[ifrag + 1].iid == 1) &&       
-         allBACFragsDataWithSurrogates[ifrag].contigID == allBACFragsDataWithSurrogates[ifrag + 1].contigID &&
-         allBACFragsDataWithSurrogates[ifrag].locale == allBACFragsDataWithSurrogates[ifrag + 1].locale)
-    {
-      // fprintf( stderr, F_CID " <-> " F_CID " are consistent\n", allBACFragsDataWithSurrogates[ifrag].iid, 
-      // allBACFragsDataWithSurrogates[ifrag + 1].iid);
-    }
-    else
-    {
-      if (inRange)
-      {
-        NodeCGW_T *contig = GetGraphNode( ScaffoldGraph->ContigGraph, allBACFragsDataWithSurrogates[ifrag].contigID);
-        int contigOrientation = ( contig->offsetAEnd.mean < contig->offsetBEnd.mean ) ? 0 : 1;
-        
-        if ( allBACFragsDataWithSurrogates[ifrag].iid == 413190)
-          fprintf( stderr, "\n");
-        
-        fprintf( stderr, "end: " F_CID " (ifrag: %d)\n", allBACFragsDataWithSurrogates[ifrag].iid, ifrag);
-        inRange = FALSE;
-        currentContigID = -1;	
-        contigConsistentRanges[ numConsistentRanges ].iidEnd = allBACFragsDataWithSurrogates[ifrag].iid;
-        
-        contigConsistentRanges[ numConsistentRanges ].localePosStart = 
-          allBACFragsDataWithSurrogates[ ifragStart ].localePos;
-        contigConsistentRanges[ numConsistentRanges ].localePosEnd = 
-          allBACFragsDataWithSurrogates[ ifrag ].localePos;
-        
-        if ( contigConsistentRanges[ numConsistentRanges ].iidStart < 
-             contigConsistentRanges[ numConsistentRanges ].iidEnd )       // ascending in frag iid in the contig
-        {
-          if (contigOrientation == 0)
-          {
-            contigConsistentRanges[ numConsistentRanges ].scaffoldOffsetMin = 
-              allBACFragsDataWithSurrogates[ ifragStart ].scaffoldOffset5p;	  
-            contigConsistentRanges[ numConsistentRanges ].scaffoldOffsetMax = 
-              allBACFragsDataWithSurrogates[ ifrag ].scaffoldOffset3p;	  
-          }
-          else // contigOrientation == 1
-          {
-            contigConsistentRanges[ numConsistentRanges ].scaffoldOffsetMin = 
-              allBACFragsDataWithSurrogates[ ifrag ].scaffoldOffset3p;	  
-            contigConsistentRanges[ numConsistentRanges ].scaffoldOffsetMax = 
-              allBACFragsDataWithSurrogates[ ifragStart ].scaffoldOffset5p;	  
-          }
+          ifragStart = ifrag;
         }
-        else if ( contigConsistentRanges[ numConsistentRanges ].iidStart > 
-                  contigConsistentRanges[ numConsistentRanges ].iidEnd )  // descending in iid in the contig
+    
+      if ( allBACFragsDataWithSurrogates[ifrag].iid >= 486916 && 
+           allBACFragsDataWithSurrogates[ifrag].iid <= 486954)
         {
-          if (contigOrientation == 0)
-          {
-            contigConsistentRanges[ numConsistentRanges ].scaffoldOffsetMin = 
-              allBACFragsDataWithSurrogates[ ifragStart ].scaffoldOffset3p;	  
-            contigConsistentRanges[ numConsistentRanges ].scaffoldOffsetMax = 
-              allBACFragsDataWithSurrogates[ ifrag ].scaffoldOffset5p;	  
-          }
-          else // contigOrientation == 1
-          {
-            contigConsistentRanges[ numConsistentRanges ].scaffoldOffsetMin = 
-              allBACFragsDataWithSurrogates[ ifrag ].scaffoldOffset5p;	  
-            contigConsistentRanges[ numConsistentRanges ].scaffoldOffsetMax = 
-              allBACFragsDataWithSurrogates[ ifragStart ].scaffoldOffset3p;	  
-          }
-        }		  
-        else  // single frag in range
-        {
-          contigConsistentRanges[ numConsistentRanges ].scaffoldOffsetMin = 
-            min( allBACFragsDataWithSurrogates[ ifragStart ].scaffoldOffset3p,
-                 allBACFragsDataWithSurrogates[ ifragStart ].scaffoldOffset5p);
-          contigConsistentRanges[ numConsistentRanges ].scaffoldOffsetMax = 
-            max( allBACFragsDataWithSurrogates[ ifragStart ].scaffoldOffset3p,
-                 allBACFragsDataWithSurrogates[ ifragStart ].scaffoldOffset5p);
+          fprintf( stderr, "anfjdanf allBACFragsDataWithSurrogates[ %d ].contigID (iid: " F_CID "): " F_CID "\n",
+                   ifrag, allBACFragsDataWithSurrogates[ifrag].iid, allBACFragsDataWithSurrogates[ifrag].contigID);
         }
+    
+      if ( abs( localeOverlap - contigOverlap ) < CONTIG_CONSISTENCY_CONSTANT && // overlap properly
+           abs( allBACFragsDataWithSurrogates[ifrag].iid - 
+                allBACFragsDataWithSurrogates[ifrag + 1].iid == 1) &&       
+           allBACFragsDataWithSurrogates[ifrag].contigID == allBACFragsDataWithSurrogates[ifrag + 1].contigID &&
+           allBACFragsDataWithSurrogates[ifrag].locale == allBACFragsDataWithSurrogates[ifrag + 1].locale)
+        {
+          // fprintf( stderr, F_CID " <-> " F_CID " are consistent\n", allBACFragsDataWithSurrogates[ifrag].iid, 
+          // allBACFragsDataWithSurrogates[ifrag + 1].iid);
+        }
+      else
+        {
+          if (inRange)
+            {
+              NodeCGW_T *contig = GetGraphNode( ScaffoldGraph->ContigGraph, allBACFragsDataWithSurrogates[ifrag].contigID);
+              int contigOrientation = ( contig->offsetAEnd.mean < contig->offsetBEnd.mean ) ? 0 : 1;
+        
+              if ( allBACFragsDataWithSurrogates[ifrag].iid == 413190)
+                fprintf( stderr, "\n");
+        
+              fprintf( stderr, "end: " F_CID " (ifrag: %d)\n", allBACFragsDataWithSurrogates[ifrag].iid, ifrag);
+              inRange = FALSE;
+              currentContigID = -1;	
+              contigConsistentRanges[ numConsistentRanges ].iidEnd = allBACFragsDataWithSurrogates[ifrag].iid;
+        
+              contigConsistentRanges[ numConsistentRanges ].localePosStart = 
+                allBACFragsDataWithSurrogates[ ifragStart ].localePos;
+              contigConsistentRanges[ numConsistentRanges ].localePosEnd = 
+                allBACFragsDataWithSurrogates[ ifrag ].localePos;
+        
+              if ( contigConsistentRanges[ numConsistentRanges ].iidStart < 
+                   contigConsistentRanges[ numConsistentRanges ].iidEnd )       // ascending in frag iid in the contig
+                {
+                  if (contigOrientation == 0)
+                    {
+                      contigConsistentRanges[ numConsistentRanges ].scaffoldOffsetMin = 
+                        allBACFragsDataWithSurrogates[ ifragStart ].scaffoldOffset5p;	  
+                      contigConsistentRanges[ numConsistentRanges ].scaffoldOffsetMax = 
+                        allBACFragsDataWithSurrogates[ ifrag ].scaffoldOffset3p;	  
+                    }
+                  else // contigOrientation == 1
+                    {
+                      contigConsistentRanges[ numConsistentRanges ].scaffoldOffsetMin = 
+                        allBACFragsDataWithSurrogates[ ifrag ].scaffoldOffset3p;	  
+                      contigConsistentRanges[ numConsistentRanges ].scaffoldOffsetMax = 
+                        allBACFragsDataWithSurrogates[ ifragStart ].scaffoldOffset5p;	  
+                    }
+                }
+              else if ( contigConsistentRanges[ numConsistentRanges ].iidStart > 
+                        contigConsistentRanges[ numConsistentRanges ].iidEnd )  // descending in iid in the contig
+                {
+                  if (contigOrientation == 0)
+                    {
+                      contigConsistentRanges[ numConsistentRanges ].scaffoldOffsetMin = 
+                        allBACFragsDataWithSurrogates[ ifragStart ].scaffoldOffset3p;	  
+                      contigConsistentRanges[ numConsistentRanges ].scaffoldOffsetMax = 
+                        allBACFragsDataWithSurrogates[ ifrag ].scaffoldOffset5p;	  
+                    }
+                  else // contigOrientation == 1
+                    {
+                      contigConsistentRanges[ numConsistentRanges ].scaffoldOffsetMin = 
+                        allBACFragsDataWithSurrogates[ ifrag ].scaffoldOffset5p;	  
+                      contigConsistentRanges[ numConsistentRanges ].scaffoldOffsetMax = 
+                        allBACFragsDataWithSurrogates[ ifragStart ].scaffoldOffset3p;	  
+                    }
+                }		  
+              else  // single frag in range
+                {
+                  contigConsistentRanges[ numConsistentRanges ].scaffoldOffsetMin = 
+                    min( allBACFragsDataWithSurrogates[ ifragStart ].scaffoldOffset3p,
+                         allBACFragsDataWithSurrogates[ ifragStart ].scaffoldOffset5p);
+                  contigConsistentRanges[ numConsistentRanges ].scaffoldOffsetMax = 
+                    max( allBACFragsDataWithSurrogates[ ifragStart ].scaffoldOffset3p,
+                         allBACFragsDataWithSurrogates[ ifragStart ].scaffoldOffset5p);
+                }
         
 #if 0
-        if ( contigConsistentRanges[ numConsistentRanges ].iidEnd - contigConsistentRanges[ numConsistentRanges ].iidStart 
-             > 10 
-             &&
-             ( contigConsistentRanges[ numConsistentRanges ].iidStart >
-               contigConsistentRanges[ numConsistentRanges ].iidEnd ) )
-          fprintf( stderr, "long stretch!\n");
+              if ( contigConsistentRanges[ numConsistentRanges ].iidEnd - contigConsistentRanges[ numConsistentRanges ].iidStart 
+                   > 10 
+                   &&
+                   ( contigConsistentRanges[ numConsistentRanges ].iidStart >
+                     contigConsistentRanges[ numConsistentRanges ].iidEnd ) )
+                fprintf( stderr, "long stretch!\n");
 #endif		  
         
-        if ( contigConsistentRanges[ numConsistentRanges ].iidEnd == 413190)
-          fprintf( stderr, "at contig range ending with iid %d\n", 413190);
+              if ( contigConsistentRanges[ numConsistentRanges ].iidEnd == 413190)
+                fprintf( stderr, "at contig range ending with iid %d\n", 413190);
         
-        numConsistentRanges++;
-      }
+              numConsistentRanges++;
+            }
+        }
     }
-  }
   
   if (1)
-  {
-    fprintf( stderr, "range    iidStart      iidEnd    locale     scaffoldID    numFrags\n");
-    for (i = 0; i < numConsistentRanges; i++)
     {
-      fprintf( stderr, "%5d    %8d      %6d    %6d     %10d    %8d\n", i, contigConsistentRanges[i].iidStart, 
-               contigConsistentRanges[i].iidEnd, contigConsistentRanges[i].locale, 
-               contigConsistentRanges[i].scaffoldID, 
-               abs( contigConsistentRanges[i].iidEnd - contigConsistentRanges[i].iidStart) + 1);
+      fprintf( stderr, "range    iidStart      iidEnd    locale     scaffoldID    numFrags\n");
+      for (i = 0; i < numConsistentRanges; i++)
+        {
+          fprintf( stderr, "%5d    %8d      %6d    %6d     %10d    %8d\n", i, contigConsistentRanges[i].iidStart, 
+                   contigConsistentRanges[i].iidEnd, contigConsistentRanges[i].locale, 
+                   contigConsistentRanges[i].scaffoldID, 
+                   abs( contigConsistentRanges[i].iidEnd - contigConsistentRanges[i].iidStart) + 1);
       
-      if ( contigConsistentRanges[i].scaffoldOffsetMin > contigConsistentRanges[i].scaffoldOffsetMax)
-      {
-        fprintf( stderr, "contigConsistentRanges[ %d ].scaffoldOffsetMin: %f\n",
-                 i, contigConsistentRanges[i].scaffoldOffsetMin);
-        fprintf( stderr, "contigConsistentRanges[ %d ].scaffoldOffsetMax: %f\n",
-                 i, contigConsistentRanges[i].scaffoldOffsetMax);
-        assert(0);
-      }
+          if ( contigConsistentRanges[i].scaffoldOffsetMin > contigConsistentRanges[i].scaffoldOffsetMax)
+            {
+              fprintf( stderr, "contigConsistentRanges[ %d ].scaffoldOffsetMin: %f\n",
+                       i, contigConsistentRanges[i].scaffoldOffsetMin);
+              fprintf( stderr, "contigConsistentRanges[ %d ].scaffoldOffsetMax: %f\n",
+                       i, contigConsistentRanges[i].scaffoldOffsetMax);
+              assert(0);
+            }
+        }
     }
-  }
   free ( allBACFragsDataWithSurrogates );
   return( numConsistentRanges );
 }
@@ -1191,96 +1191,96 @@ int computeConsistentRanges_old( fragDataT *allBACFragsData,
   fragDataT *ifragData, *ifragPlusOneData;
   
   for ( ifrag = 0; ifrag < numBACFrags - 1; ifrag++)
-  {
-    int localeOverlap = abs( allBACFragsData[ifrag].localePos.end - allBACFragsData[ifrag + 1].localePos.bgn);
-    int contigOverlap;
-    int contigCorrect;
-    
-    // initialize pointers to the base fragDataT for both ifrag and ifrag+1
-    ifragData = &allBACFragsData[ifrag];
-    ifragPlusOneData = &allBACFragsData[ifrag + 1];
-    // contigOverlap = abs( allBACFragsData[ifrag].contigOffset3p - allBACFragsData[ifrag + 1].contigOffset5p);
-    
-    // if we are currently in a contig and ifrag has surrogates find the surrogate that's in this contig
-    if ( allBACFragsData[ifrag].surrogateCount > 0 && currentContigID != -1 )
     {
-      for ( i = 0; i < allBACFragsData[ifrag].surrogateCount; i++)
-      {
-        if ( allBACFragsData[ifrag].surrogates[i].contigID == currentContigID )
-        {		  
-          ifragData = &(allBACFragsData[ifrag].surrogates[i]);
-          break;
+      int localeOverlap = abs( allBACFragsData[ifrag].localePos.end - allBACFragsData[ifrag + 1].localePos.bgn);
+      int contigOverlap;
+      int contigCorrect;
+    
+      // initialize pointers to the base fragDataT for both ifrag and ifrag+1
+      ifragData = &allBACFragsData[ifrag];
+      ifragPlusOneData = &allBACFragsData[ifrag + 1];
+      // contigOverlap = abs( allBACFragsData[ifrag].contigOffset3p - allBACFragsData[ifrag + 1].contigOffset5p);
+    
+      // if we are currently in a contig and ifrag has surrogates find the surrogate that's in this contig
+      if ( allBACFragsData[ifrag].surrogateCount > 0 && currentContigID != -1 )
+        {
+          for ( i = 0; i < allBACFragsData[ifrag].surrogateCount; i++)
+            {
+              if ( allBACFragsData[ifrag].surrogates[i].contigID == currentContigID )
+                {		  
+                  ifragData = &(allBACFragsData[ifrag].surrogates[i]);
+                  break;
+                }
+            }
         }
-      }
-    }
     
-    // if we are currently in a contig and ifrag+1 has surrogates find the surrogate that's in this contig
-    if ( allBACFragsData[ifrag + 1].surrogateCount > 0 && currentContigID != -1 )
-    {
-      for ( i = 0; i < allBACFragsData[ifrag + 1].surrogateCount; i++)
-      {
-        if ( allBACFragsData[ifrag + 1].surrogates[i].contigID == currentContigID )
-        {		  
-          ifragPlusOneData = &(allBACFragsData[ifrag + 1].surrogates[i]);
-          break;
+      // if we are currently in a contig and ifrag+1 has surrogates find the surrogate that's in this contig
+      if ( allBACFragsData[ifrag + 1].surrogateCount > 0 && currentContigID != -1 )
+        {
+          for ( i = 0; i < allBACFragsData[ifrag + 1].surrogateCount; i++)
+            {
+              if ( allBACFragsData[ifrag + 1].surrogates[i].contigID == currentContigID )
+                {		  
+                  ifragPlusOneData = &(allBACFragsData[ifrag + 1].surrogates[i]);
+                  break;
+                }
+            }
         }
-      }
+    
+      // now compare the positions of ifragData and ifragPlusOneData 
+      contigOverlap = abs( ifragData->contigOffset3p - ifragPlusOneData->contigOffset5p );
+    
+      if ( allBACFragsData[ifrag].iid == 412443 ||
+           allBACFragsData[ifrag].iid == 412446)
+        fprintf( stderr, "frag " F_CID " has contigOffset3p %d in contig " F_CID " contigOverlap %d localeOverlap %d\n",
+                 allBACFragsData[ifrag].iid, allBACFragsData[ifrag].contigOffset3p, allBACFragsData[ifrag].contigID,
+                 contigOverlap, localeOverlap);
+    
+      contigCorrect = FALSE;
+    
+      if ( inRange == FALSE && allBACFragsData[ifrag].surrogateCount == 0)
+        {
+          fprintf( stderr, "begin: " F_CID "\n", allBACFragsData[ifrag].iid);
+          inRange = TRUE;
+          currentContigID = allBACFragsData[ifrag].contigID;
+          contigConsistentRanges[ numConsistentRanges ].locale = allBACFragsData[ifrag].locale;
+          contigConsistentRanges[ numConsistentRanges ].scaffoldID = allBACFragsData[ifrag].scaffoldID;
+          contigConsistentRanges[ numConsistentRanges ].contigID = allBACFragsData[ifrag].contigID;
+          contigConsistentRanges[ numConsistentRanges ].iidStart = allBACFragsData[ifrag].iid;
+          contigConsistentRanges[ numConsistentRanges ].scaffoldOffsetMin = allBACFragsData[ifrag].scaffoldOffset5p;	  
+        }
+    
+      if ( abs( localeOverlap - contigOverlap ) < CONTIG_CONSISTENCY_CONSTANT && 
+           ifragData->contigID == ifragPlusOneData->contigID &&
+           ifragData->locale == ifragPlusOneData->locale)
+        {
+          // fprintf( stderr, F_CID " <-> " F_CID " are consistent\n", allBACFragsData[ifrag].iid, allBACFragsData[ifrag + 1].iid);
+        }
+      else
+        {
+          if (inRange)
+            {
+              fprintf( stderr, "end: " F_CID "\n", allBACFragsData[ifrag].iid);
+              inRange = FALSE;
+              currentContigID = NULLINDEX;	
+              contigConsistentRanges[ numConsistentRanges ].iidEnd = ifragData->iid;
+              contigConsistentRanges[ numConsistentRanges ].scaffoldOffsetMax = ifragData->scaffoldOffset3p;	  
+              numConsistentRanges++;
+            }
+        }
     }
-    
-    // now compare the positions of ifragData and ifragPlusOneData 
-    contigOverlap = abs( ifragData->contigOffset3p - ifragPlusOneData->contigOffset5p );
-    
-    if ( allBACFragsData[ifrag].iid == 412443 ||
-         allBACFragsData[ifrag].iid == 412446)
-      fprintf( stderr, "frag " F_CID " has contigOffset3p %d in contig " F_CID " contigOverlap %d localeOverlap %d\n",
-               allBACFragsData[ifrag].iid, allBACFragsData[ifrag].contigOffset3p, allBACFragsData[ifrag].contigID,
-               contigOverlap, localeOverlap);
-    
-    contigCorrect = FALSE;
-    
-    if ( inRange == FALSE && allBACFragsData[ifrag].surrogateCount == 0)
-    {
-      fprintf( stderr, "begin: " F_CID "\n", allBACFragsData[ifrag].iid);
-      inRange = TRUE;
-      currentContigID = allBACFragsData[ifrag].contigID;
-      contigConsistentRanges[ numConsistentRanges ].locale = allBACFragsData[ifrag].locale;
-      contigConsistentRanges[ numConsistentRanges ].scaffoldID = allBACFragsData[ifrag].scaffoldID;
-      contigConsistentRanges[ numConsistentRanges ].contigID = allBACFragsData[ifrag].contigID;
-      contigConsistentRanges[ numConsistentRanges ].iidStart = allBACFragsData[ifrag].iid;
-      contigConsistentRanges[ numConsistentRanges ].scaffoldOffsetMin = allBACFragsData[ifrag].scaffoldOffset5p;	  
-    }
-    
-    if ( abs( localeOverlap - contigOverlap ) < CONTIG_CONSISTENCY_CONSTANT && 
-         ifragData->contigID == ifragPlusOneData->contigID &&
-         ifragData->locale == ifragPlusOneData->locale)
-    {
-      // fprintf( stderr, F_CID " <-> " F_CID " are consistent\n", allBACFragsData[ifrag].iid, allBACFragsData[ifrag + 1].iid);
-    }
-    else
-    {
-      if (inRange)
-      {
-        fprintf( stderr, "end: " F_CID "\n", allBACFragsData[ifrag].iid);
-        inRange = FALSE;
-        currentContigID = NULLINDEX;	
-        contigConsistentRanges[ numConsistentRanges ].iidEnd = ifragData->iid;
-        contigConsistentRanges[ numConsistentRanges ].scaffoldOffsetMax = ifragData->scaffoldOffset3p;	  
-        numConsistentRanges++;
-      }
-    }
-  }
   
   if (1)
-  {
-    fprintf( stderr, "range    iidStart      iidEnd    locale     scaffoldID    numFrags\n");
-    for (i = 0; i < numConsistentRanges; i++)
     {
-      fprintf( stderr, "%5d    %8d      %6d    %6d     %10d    %8d\n", i, contigConsistentRanges[i].iidStart, 
-               contigConsistentRanges[i].iidEnd, contigConsistentRanges[i].locale, 
-               contigConsistentRanges[i].scaffoldID, 
-               contigConsistentRanges[i].iidEnd - contigConsistentRanges[i].iidStart + 1);
+      fprintf( stderr, "range    iidStart      iidEnd    locale     scaffoldID    numFrags\n");
+      for (i = 0; i < numConsistentRanges; i++)
+        {
+          fprintf( stderr, "%5d    %8d      %6d    %6d     %10d    %8d\n", i, contigConsistentRanges[i].iidStart, 
+                   contigConsistentRanges[i].iidEnd, contigConsistentRanges[i].locale, 
+                   contigConsistentRanges[i].scaffoldID, 
+                   contigConsistentRanges[i].iidEnd - contigConsistentRanges[i].iidStart + 1);
+        }
     }
-  }
   return( numConsistentRanges );
 }
 
@@ -1306,46 +1306,46 @@ void compareBACsToScaffolds( fragDataT *allBACFragsData,
   
   // for each locale find the scaffolds that are in that locale
   for ( ilocale = 0; ilocale <= maxLocale; ilocale++)
-  {
-    // clear mapping of ranges to scaffolds for current locale
-    for ( i = 0; i < numScaffolds; i++)
-      BACScaffoldRange[i].firstRange = -1;
-    
-    // now step through ranges, seeing which scaffolds map to current locale 
-    // when we're done, BACScaffoldRange[iscaffold] will hold the first and last contig consistent range
-    // for scaffold "iscaffold" as determined by position in the scaffold
-    for ( irange = 0; irange < numContigConsistentRanges; irange++)
     {
-      if ( contigConsistentRanges[ irange ].scaffoldID != NULLINDEX &&
-           contigConsistentRanges[ irange ].locale == ilocale)
-      {
-        // store the starting range in BACScaffoldRange.firstRange
-        if ( BACScaffoldRange[ contigConsistentRanges[ irange ].scaffoldID ].firstRange == -1)
-        {
-          BACScaffoldRange[ contigConsistentRanges[ irange ].scaffoldID ].scaffoldID = 
-            contigConsistentRanges[ irange ].scaffoldID;
-          BACScaffoldRange[ contigConsistentRanges[ irange ].scaffoldID ].firstRange = irange;
-          BACScaffoldRange[ contigConsistentRanges[ irange ].scaffoldID ].lastRange = irange;
-        }
-        else  // we also want the ending range, which is last irange that hits
-        {
-          BACScaffoldRange[ contigConsistentRanges[ irange ].scaffoldID ].lastRange = irange;
-        }
-      }
-    }
+      // clear mapping of ranges to scaffolds for current locale
+      for ( i = 0; i < numScaffolds; i++)
+        BACScaffoldRange[i].firstRange = -1;
     
-    // now we have all the ranges for all scaffolds in this locale
-    for ( iscaff = 0; iscaff < numScaffolds; iscaff++)
-    {
-      if ( BACScaffoldRange[ iscaff ].firstRange != -1 )
-        computeBACScaffoldConsistency( iscaff, ilocale, allBACFragsData, numBACFrags,
-                                       contigConsistentRanges, numContigConsistentRanges,
-                                       BACScaffoldRange[ iscaff ].firstRange,
-                                       BACScaffoldRange[ iscaff ].lastRange);
-    }
+      // now step through ranges, seeing which scaffolds map to current locale 
+      // when we're done, BACScaffoldRange[iscaffold] will hold the first and last contig consistent range
+      // for scaffold "iscaffold" as determined by position in the scaffold
+      for ( irange = 0; irange < numContigConsistentRanges; irange++)
+        {
+          if ( contigConsistentRanges[ irange ].scaffoldID != NULLINDEX &&
+               contigConsistentRanges[ irange ].locale == ilocale)
+            {
+              // store the starting range in BACScaffoldRange.firstRange
+              if ( BACScaffoldRange[ contigConsistentRanges[ irange ].scaffoldID ].firstRange == -1)
+                {
+                  BACScaffoldRange[ contigConsistentRanges[ irange ].scaffoldID ].scaffoldID = 
+                    contigConsistentRanges[ irange ].scaffoldID;
+                  BACScaffoldRange[ contigConsistentRanges[ irange ].scaffoldID ].firstRange = irange;
+                  BACScaffoldRange[ contigConsistentRanges[ irange ].scaffoldID ].lastRange = irange;
+                }
+              else  // we also want the ending range, which is last irange that hits
+                {
+                  BACScaffoldRange[ contigConsistentRanges[ irange ].scaffoldID ].lastRange = irange;
+                }
+            }
+        }
     
-    findContainedScaffolds( contigConsistentRanges, numContigConsistentRanges, BACScaffoldRange, ilocale );
-  }
+      // now we have all the ranges for all scaffolds in this locale
+      for ( iscaff = 0; iscaff < numScaffolds; iscaff++)
+        {
+          if ( BACScaffoldRange[ iscaff ].firstRange != -1 )
+            computeBACScaffoldConsistency( iscaff, ilocale, allBACFragsData, numBACFrags,
+                                           contigConsistentRanges, numContigConsistentRanges,
+                                           BACScaffoldRange[ iscaff ].firstRange,
+                                           BACScaffoldRange[ iscaff ].lastRange);
+        }
+    
+      findContainedScaffolds( contigConsistentRanges, numContigConsistentRanges, BACScaffoldRange, ilocale );
+    }
 }
 
 void findContainedScaffolds( rangeDataT *contigConsistentRanges,
@@ -1360,66 +1360,66 @@ void findContainedScaffolds( rangeDataT *contigConsistentRanges,
   
   // first thin out the scaffolds not in this BAC
   for (i = 0; i < numScaffolds; i++)
-  {
-    if ( BACScaffoldRange[i].firstRange != -1)
-      compressedScaffolds[ numBACScaffolds++ ] = BACScaffoldRange[i];
-  }
+    {
+      if ( BACScaffoldRange[i].firstRange != -1)
+        compressedScaffolds[ numBACScaffolds++ ] = BACScaffoldRange[i];
+    }
   
   // now step through the compressed scaffolds, finding the first and last iids for each scaffold
   for ( i = 0; i < numBACScaffolds; i++)
-  {
-    // initialize to a valid value
-    compressedScaffoldsIids[i].scaffoldID = compressedScaffolds[i].scaffoldID;
-    compressedScaffoldsIids[i].iidStart = CDS_CID_MAX;
-    compressedScaffoldsIids[i].iidEnd = NULLINDEX;
-    
-    fprintf( stderr, "compressedScaffolds[ %d ].firstRange: %d, compressedScaffolds[i].lastRange: %d\n",
-             i, compressedScaffolds[i].firstRange, compressedScaffolds[i].lastRange);
-    
-    for ( j = compressedScaffolds[i].firstRange; j <= compressedScaffolds[i].lastRange; j++)
     {
-      if (contigConsistentRanges[j].locale != locale)
-        continue;
+      // initialize to a valid value
+      compressedScaffoldsIids[i].scaffoldID = compressedScaffolds[i].scaffoldID;
+      compressedScaffoldsIids[i].iidStart = CDS_CID_MAX;
+      compressedScaffoldsIids[i].iidEnd = NULLINDEX;
+    
+      fprintf( stderr, "compressedScaffolds[ %d ].firstRange: %d, compressedScaffolds[i].lastRange: %d\n",
+               i, compressedScaffolds[i].firstRange, compressedScaffolds[i].lastRange);
+    
+      for ( j = compressedScaffolds[i].firstRange; j <= compressedScaffolds[i].lastRange; j++)
+        {
+          if (contigConsistentRanges[j].locale != locale)
+            continue;
       
-      // contigConsistentRanges[].iidStart is not necessarily less than contigConsistentRanges[].iidEnd
-      // so have to check them both
-      if ( contigConsistentRanges[j].iidStart < compressedScaffoldsIids[i].iidStart )
-        compressedScaffoldsIids[i].iidStart = contigConsistentRanges[j].iidStart;
-      if ( contigConsistentRanges[j].iidEnd < compressedScaffoldsIids[i].iidStart )
-        compressedScaffoldsIids[i].iidStart = contigConsistentRanges[j].iidEnd;
+          // contigConsistentRanges[].iidStart is not necessarily less than contigConsistentRanges[].iidEnd
+          // so have to check them both
+          if ( contigConsistentRanges[j].iidStart < compressedScaffoldsIids[i].iidStart )
+            compressedScaffoldsIids[i].iidStart = contigConsistentRanges[j].iidStart;
+          if ( contigConsistentRanges[j].iidEnd < compressedScaffoldsIids[i].iidStart )
+            compressedScaffoldsIids[i].iidStart = contigConsistentRanges[j].iidEnd;
       
-      if ( contigConsistentRanges[j].iidStart > compressedScaffoldsIids[i].iidEnd )
-        compressedScaffoldsIids[i].iidEnd = contigConsistentRanges[j].iidStart;
-      if ( contigConsistentRanges[j].iidEnd > compressedScaffoldsIids[i].iidEnd )
-        compressedScaffoldsIids[i].iidEnd = contigConsistentRanges[j].iidEnd;
+          if ( contigConsistentRanges[j].iidStart > compressedScaffoldsIids[i].iidEnd )
+            compressedScaffoldsIids[i].iidEnd = contigConsistentRanges[j].iidStart;
+          if ( contigConsistentRanges[j].iidEnd > compressedScaffoldsIids[i].iidEnd )
+            compressedScaffoldsIids[i].iidEnd = contigConsistentRanges[j].iidEnd;
+        }
     }
-  }
   
   // now sort compressedScaffoldsIids by iid
   qsort ( compressedScaffoldsIids, numBACScaffolds, sizeof( scaffoldIidRangeT ), &compScaffoldIids);
   
   for ( i = 0; i < numBACScaffolds; i++)
-  {
-    fprintf( stderr, "compressedScaffoldsIids[ %d ].iidStart: %d, iidEnd: %d\n",
-             i, compressedScaffoldsIids[i].iidStart, compressedScaffoldsIids[i].iidEnd);
-    
-    for ( j = i + 1; j < numBACScaffolds; j++)
     {
-      if ( compressedScaffoldsIids[i].iidStart < compressedScaffoldsIids[j].iidStart &&
-           compressedScaffoldsIids[i].iidEnd > compressedScaffoldsIids[j].iidEnd)
-      {
-        fprintf( stderr, 
-                 "scaffold " F_CID " ( iids (%d, %d)) contains scaffold " F_CID " ( iids (%d, %d)), locale " F_CID "\n",
-                 compressedScaffoldsIids[i].scaffoldID,
-                 compressedScaffoldsIids[i].iidStart,
-                 compressedScaffoldsIids[i].iidEnd,
-                 compressedScaffoldsIids[j].scaffoldID,
-                 compressedScaffoldsIids[j].iidStart,
-                 compressedScaffoldsIids[j].iidEnd,
-                 locale);
-      }
+      fprintf( stderr, "compressedScaffoldsIids[ %d ].iidStart: %d, iidEnd: %d\n",
+               i, compressedScaffoldsIids[i].iidStart, compressedScaffoldsIids[i].iidEnd);
+    
+      for ( j = i + 1; j < numBACScaffolds; j++)
+        {
+          if ( compressedScaffoldsIids[i].iidStart < compressedScaffoldsIids[j].iidStart &&
+               compressedScaffoldsIids[i].iidEnd > compressedScaffoldsIids[j].iidEnd)
+            {
+              fprintf( stderr, 
+                       "scaffold " F_CID " ( iids (%d, %d)) contains scaffold " F_CID " ( iids (%d, %d)), locale " F_CID "\n",
+                       compressedScaffoldsIids[i].scaffoldID,
+                       compressedScaffoldsIids[i].iidStart,
+                       compressedScaffoldsIids[i].iidEnd,
+                       compressedScaffoldsIids[j].scaffoldID,
+                       compressedScaffoldsIids[j].iidStart,
+                       compressedScaffoldsIids[j].iidEnd,
+                       locale);
+            }
+        }
     }
-  }
 }
 
 int computeBACScaffoldConsistency( CDS_CID_t scaffoldID,
@@ -1444,29 +1444,29 @@ int computeBACScaffoldConsistency( CDS_CID_t scaffoldID,
   previousRange = firstRange;
   
   for ( irange = firstRange + 1; irange <= lastRange; irange++)
-  {
-    int scaffPosDiff, localePosDiff;
-    
-    if ( contigConsistentRanges[ irange ].locale == locale && 
-         contigConsistentRanges[ irange ].scaffoldID == scaffoldID && 
-         contigConsistentRanges[ irange ].scaffoldID != NULLINDEX )
     {
-      numRanges++;
-      info = GetInfoByIID( ScaffoldGraph->iidToFragIndex, contigConsistentRanges[ irange ].iidStart);
-      assert(info->set);
-      currFrag = GetCIFragT( ScaffoldGraph->CIFrags, info->fragIndex);
+      int scaffPosDiff, localePosDiff;
+    
+      if ( contigConsistentRanges[ irange ].locale == locale && 
+           contigConsistentRanges[ irange ].scaffoldID == scaffoldID && 
+           contigConsistentRanges[ irange ].scaffoldID != NULLINDEX )
+        {
+          numRanges++;
+          info = GetInfoByIID( ScaffoldGraph->iidToFragIndex, contigConsistentRanges[ irange ].iidStart);
+          assert(info->set);
+          currFrag = GetCIFragT( ScaffoldGraph->CIFrags, info->fragIndex);
       
-      scaffPosDiff = abs( previousOffsetMin - contigConsistentRanges[ irange ].scaffoldOffsetMin);
-      localePosDiff = abs( currFrag->localePos.bgn - previousFrag->localePos.bgn );
+          scaffPosDiff = abs( previousOffsetMin - contigConsistentRanges[ irange ].scaffoldOffsetMin);
+          localePosDiff = abs( currFrag->localePos.bgn - previousFrag->localePos.bgn );
       
-      if ( abs( scaffPosDiff - localePosDiff) > tolerance)
-        numInconsistentRanges++;
+          if ( abs( scaffPosDiff - localePosDiff) > tolerance)
+            numInconsistentRanges++;
       
-      previousFrag = currFrag;
-      previousOffsetMin = contigConsistentRanges[ irange ].scaffoldOffsetMin;
-      previousRange = irange;
+          previousFrag = currFrag;
+          previousOffsetMin = contigConsistentRanges[ irange ].scaffoldOffsetMin;
+          previousRange = irange;
+        }
     }
-  }
   
   fprintf( stderr, "locale: %3" F_CIDP ", scaffoldID: %6" F_CIDP ", numRanges: %6d, numInconsistentRanges: %6d tolerance: %3d\n",
            locale, scaffoldID, numRanges, numInconsistentRanges, tolerance);
@@ -1505,146 +1505,146 @@ int gatherBACFragInfo( CIFragT *frag, fragDataT *allFragsData)
   allFragsData->localePos = frag->localePos;
   
   if ( allFragsData->surrogateCount == 0 ) // the non-surrogate case
-  {
-    if ( allFragsData->scaffoldID != NULLINDEX)
     {
-      GetFragmentPositionInScaffold( frag, &fragLeftEnd, &fragRightEnd, &fragOrientation);
-      allFragsData->scaffoldID = contig->scaffoldID;
-      if ( fragOrientation == 0 )
-      {
-        allFragsData->scaffoldOffset5p = fragLeftEnd;
-        allFragsData->scaffoldOffset3p = fragRightEnd;
-      }
-      else
-      {
-        allFragsData->scaffoldOffset5p = fragRightEnd;
-        allFragsData->scaffoldOffset3p = fragLeftEnd;
-      }
+      if ( allFragsData->scaffoldID != NULLINDEX)
+        {
+          GetFragmentPositionInScaffold( frag, &fragLeftEnd, &fragRightEnd, &fragOrientation);
+          allFragsData->scaffoldID = contig->scaffoldID;
+          if ( fragOrientation == 0 )
+            {
+              allFragsData->scaffoldOffset5p = fragLeftEnd;
+              allFragsData->scaffoldOffset3p = fragRightEnd;
+            }
+          else
+            {
+              allFragsData->scaffoldOffset5p = fragRightEnd;
+              allFragsData->scaffoldOffset3p = fragLeftEnd;
+            }
+        }
     }
-  }
   else // we have to step through surrogates
-  {
-    NodeCGW_T *surrogate;
-    int instances[10];
-    
-    // put the surrogate info in an array
-    allFragsData->surrogates = 
-      (fragDataT *) safe_malloc ( allFragsData->surrogateCount * sizeof( fragDataT ));
-    
-    if (allFragsData->surrogateCount > 10)  // need to make instances[] bigger
-      assert(0);
-    
-    // whether surrogateCount is greater than or less than 2 put it into instances array
-    if (allFragsData->surrogateCount < 3)
     {
-      instances[0] = unitig->info.CI.instances.in_line.instance1;
-      if (allFragsData->surrogateCount == 2)
-        instances[1] = unitig->info.CI.instances.in_line.instance2;
-    }
-    else
-    {
+      NodeCGW_T *surrogate;
+      int instances[10];
+    
+      // put the surrogate info in an array
+      allFragsData->surrogates = 
+        (fragDataT *) safe_malloc ( allFragsData->surrogateCount * sizeof( fragDataT ));
+    
+      if (allFragsData->surrogateCount > 10)  // need to make instances[] bigger
+        assert(0);
+    
+      // whether surrogateCount is greater than or less than 2 put it into instances array
+      if (allFragsData->surrogateCount < 3)
+        {
+          instances[0] = unitig->info.CI.instances.in_line.instance1;
+          if (allFragsData->surrogateCount == 2)
+            instances[1] = unitig->info.CI.instances.in_line.instance2;
+        }
+      else
+        {
+          for ( i = 0; i < allFragsData->surrogateCount; i++)
+            instances[i] = *GetVA_int( unitig->info.CI.instances.va, i);
+        }
+    
+      // now that we have all the instance ids gathered, step through them collecting info
       for ( i = 0; i < allFragsData->surrogateCount; i++)
-        instances[i] = *GetVA_int( unitig->info.CI.instances.va, i);
-    }
-    
-    // now that we have all the instance ids gathered, step through them collecting info
-    for ( i = 0; i < allFragsData->surrogateCount; i++)
-    {
-      CDS_COORD_t surrogateLeftEnd, surrogateRightEnd;
-      CDS_COORD_t contigOfSurrogateLeftEnd, contigOfSurrogateRightEnd;
-      CDS_COORD_t fragLeftEnd, fragRightEnd;
-      int surrogateScaffoldOrientation,
-        contigOfSurrogateScaffoldOrientation,
-        fragScaffoldOrientation;
+        {
+          CDS_COORD_t surrogateLeftEnd, surrogateRightEnd;
+          CDS_COORD_t contigOfSurrogateLeftEnd, contigOfSurrogateRightEnd;
+          CDS_COORD_t fragLeftEnd, fragRightEnd;
+          int surrogateScaffoldOrientation,
+            contigOfSurrogateScaffoldOrientation,
+            fragScaffoldOrientation;
       
-      fragDataT *currSurrogateData = &(allFragsData->surrogates[i]);
-      NodeCGW_T *contigOfSurrogate;
+          fragDataT *currSurrogateData = &(allFragsData->surrogates[i]);
+          NodeCGW_T *contigOfSurrogate;
       
-      surrogate = GetGraphNode( ScaffoldGraph->CIGraph, instances[i]);
+          surrogate = GetGraphNode( ScaffoldGraph->CIGraph, instances[i]);
       
-      // frag's position in surrograte is same as in original untitig
-      currSurrogateData->iid = frag->iid;
-      currSurrogateData->locale = frag->locale;
-      currSurrogateData->localePos = frag->localePos;
-      currSurrogateData->unitigID = instances[i];
-      currSurrogateData->unitigOffset5p = frag->offset5p.mean;
-      currSurrogateData->unitigOffset3p = frag->offset3p.mean;
+          // frag's position in surrograte is same as in original untitig
+          currSurrogateData->iid = frag->iid;
+          currSurrogateData->locale = frag->locale;
+          currSurrogateData->localePos = frag->localePos;
+          currSurrogateData->unitigID = instances[i];
+          currSurrogateData->unitigOffset5p = frag->offset5p.mean;
+          currSurrogateData->unitigOffset3p = frag->offset3p.mean;
       
-      currSurrogateData->contigID = surrogate->info.CI.contigID;
-      contigOfSurrogate = GetGraphNode( ScaffoldGraph->ContigGraph, currSurrogateData->contigID);
+          currSurrogateData->contigID = surrogate->info.CI.contigID;
+          contigOfSurrogate = GetGraphNode( ScaffoldGraph->ContigGraph, currSurrogateData->contigID);
       
 #if 0
-      GetContigPositionInScaffold( contigOfSurrogate, &contigOfSurrogateLeftEnd, 
-                                   &contigOfSurrogateRightEnd, &contigOfSurrogateScaffoldOrientation);
+          GetContigPositionInScaffold( contigOfSurrogate, &contigOfSurrogateLeftEnd, 
+                                       &contigOfSurrogateRightEnd, &contigOfSurrogateScaffoldOrientation);
       
-      if ( contigOfSurrogate->offsetAEnd.mean < contigOfSurrogate->offsetBEnd.mean)  // contigOfSurrogate is A_B in scaffold
-      {
-        // determine surrogate orientation in contig
-        if ( surrogate->offsetAEnd.mean < surrogate->offsetBEnd.mean )  // surrogate is A_B in contig
-        {
-          currSurrogateData->contigOffset5p = contigOfSurrogateLeftEnd + surrogate->offsetAEnd.mean + frag->offset5p.mean;
-          currSurrogateData->contigOffset3p = contigOfSurrogateLeftEnd + surrogate->offsetAEnd.mean + frag->offset3p.mean;
-        }
-        else  // surrogate is flipped in contig
-        {
-          currSurrogateData->contigOffset5p = contigOfSurrogateLeftEnd + surrogate->offsetAEnd.mean - frag->offset5p.mean;
-          currSurrogateData->contigOffset3p = contigOfSurrogateLeftEnd + surrogate->offsetAEnd.mean - frag->offset3p.mean;
-        }
-      }
-      else  // contigOfSurrogate is B_A in its scaffold
-      {
-        // determine surrogate orientation in contig
-        if ( surrogate->offsetAEnd.mean < surrogate->offsetBEnd.mean )  // surrogate is A_B in contig
-        {
-          currSurrogateData->contigOffset5p = contigOfSurrogateRightEnd - surrogate->offsetAEnd.mean - frag->offset5p.mean;
-          currSurrogateData->contigOffset3p = contigOfSurrogateRightEnd - surrogate->offsetAEnd.mean - frag->offset3p.mean;
-        }
-        else  // surrogate is flipped in contig
-        {
-          currSurrogateData->contigOffset5p = contigOfSurrogateRightEnd - surrogate->offsetAEnd.mean + frag->offset5p.mean;
-          currSurrogateData->contigOffset3p = contigOfSurrogateRightEnd - surrogate->offsetAEnd.mean + frag->offset3p.mean;
-        }
-      }
+          if ( contigOfSurrogate->offsetAEnd.mean < contigOfSurrogate->offsetBEnd.mean)  // contigOfSurrogate is A_B in scaffold
+            {
+              // determine surrogate orientation in contig
+              if ( surrogate->offsetAEnd.mean < surrogate->offsetBEnd.mean )  // surrogate is A_B in contig
+                {
+                  currSurrogateData->contigOffset5p = contigOfSurrogateLeftEnd + surrogate->offsetAEnd.mean + frag->offset5p.mean;
+                  currSurrogateData->contigOffset3p = contigOfSurrogateLeftEnd + surrogate->offsetAEnd.mean + frag->offset3p.mean;
+                }
+              else  // surrogate is flipped in contig
+                {
+                  currSurrogateData->contigOffset5p = contigOfSurrogateLeftEnd + surrogate->offsetAEnd.mean - frag->offset5p.mean;
+                  currSurrogateData->contigOffset3p = contigOfSurrogateLeftEnd + surrogate->offsetAEnd.mean - frag->offset3p.mean;
+                }
+            }
+          else  // contigOfSurrogate is B_A in its scaffold
+            {
+              // determine surrogate orientation in contig
+              if ( surrogate->offsetAEnd.mean < surrogate->offsetBEnd.mean )  // surrogate is A_B in contig
+                {
+                  currSurrogateData->contigOffset5p = contigOfSurrogateRightEnd - surrogate->offsetAEnd.mean - frag->offset5p.mean;
+                  currSurrogateData->contigOffset3p = contigOfSurrogateRightEnd - surrogate->offsetAEnd.mean - frag->offset3p.mean;
+                }
+              else  // surrogate is flipped in contig
+                {
+                  currSurrogateData->contigOffset5p = contigOfSurrogateRightEnd - surrogate->offsetAEnd.mean + frag->offset5p.mean;
+                  currSurrogateData->contigOffset3p = contigOfSurrogateRightEnd - surrogate->offsetAEnd.mean + frag->offset3p.mean;
+                }
+            }
 #endif
       
-      // determine surrogate orientation in contig
-      if ( surrogate->offsetAEnd.mean < surrogate->offsetBEnd.mean )  // surrogate is A_B in contig
-      {
-        currSurrogateData->contigOffset5p = surrogate->offsetAEnd.mean + frag->offset5p.mean;
-        currSurrogateData->contigOffset3p = surrogate->offsetAEnd.mean + frag->offset3p.mean;
-      }
-      else  // surrogate is flipped in contig
-      {
-        currSurrogateData->contigOffset5p = surrogate->offsetAEnd.mean - frag->offset5p.mean;
-        currSurrogateData->contigOffset3p = surrogate->offsetAEnd.mean - frag->offset3p.mean;
-      }
+          // determine surrogate orientation in contig
+          if ( surrogate->offsetAEnd.mean < surrogate->offsetBEnd.mean )  // surrogate is A_B in contig
+            {
+              currSurrogateData->contigOffset5p = surrogate->offsetAEnd.mean + frag->offset5p.mean;
+              currSurrogateData->contigOffset3p = surrogate->offsetAEnd.mean + frag->offset3p.mean;
+            }
+          else  // surrogate is flipped in contig
+            {
+              currSurrogateData->contigOffset5p = surrogate->offsetAEnd.mean - frag->offset5p.mean;
+              currSurrogateData->contigOffset3p = surrogate->offsetAEnd.mean - frag->offset3p.mean;
+            }
       
-      currSurrogateData->scaffoldID = contigOfSurrogate->scaffoldID;
+          currSurrogateData->scaffoldID = contigOfSurrogate->scaffoldID;
       
-      // now we need to compute frag's position in scaffold (via surrogate)
-      if (frag->iid == 486952)
-        GetCIPositionInScaffold( surrogate, &surrogateLeftEnd, &surrogateRightEnd, &surrogateScaffoldOrientation);
-      else
-        GetCIPositionInScaffold( surrogate, &surrogateLeftEnd, &surrogateRightEnd, &surrogateScaffoldOrientation);
-      if (frag->iid == 486952)
-        GetFragmentPositionInScaffoldFromCI( frag, &fragLeftEnd, &fragRightEnd, &fragScaffoldOrientation,
-                                             surrogateLeftEnd, surrogateRightEnd, surrogateScaffoldOrientation);
-      else
-        GetFragmentPositionInScaffoldFromCI( frag, &fragLeftEnd, &fragRightEnd, &fragScaffoldOrientation,
-                                             surrogateLeftEnd, surrogateRightEnd, surrogateScaffoldOrientation);
+          // now we need to compute frag's position in scaffold (via surrogate)
+          if (frag->iid == 486952)
+            GetCIPositionInScaffold( surrogate, &surrogateLeftEnd, &surrogateRightEnd, &surrogateScaffoldOrientation);
+          else
+            GetCIPositionInScaffold( surrogate, &surrogateLeftEnd, &surrogateRightEnd, &surrogateScaffoldOrientation);
+          if (frag->iid == 486952)
+            GetFragmentPositionInScaffoldFromCI( frag, &fragLeftEnd, &fragRightEnd, &fragScaffoldOrientation,
+                                                 surrogateLeftEnd, surrogateRightEnd, surrogateScaffoldOrientation);
+          else
+            GetFragmentPositionInScaffoldFromCI( frag, &fragLeftEnd, &fragRightEnd, &fragScaffoldOrientation,
+                                                 surrogateLeftEnd, surrogateRightEnd, surrogateScaffoldOrientation);
       
-      if (fragScaffoldOrientation == 0)
-      {
-        currSurrogateData->scaffoldOffset5p = fragLeftEnd;
-        currSurrogateData->scaffoldOffset3p = fragRightEnd;
-      }	
-      else
-      {
-        currSurrogateData->scaffoldOffset5p = fragRightEnd;
-        currSurrogateData->scaffoldOffset3p = fragLeftEnd;
-      }
+          if (fragScaffoldOrientation == 0)
+            {
+              currSurrogateData->scaffoldOffset5p = fragLeftEnd;
+              currSurrogateData->scaffoldOffset3p = fragRightEnd;
+            }	
+          else
+            {
+              currSurrogateData->scaffoldOffset5p = fragRightEnd;
+              currSurrogateData->scaffoldOffset3p = fragLeftEnd;
+            }
+        }
     }
-  }
   return 0;
 }
 
@@ -1665,14 +1665,14 @@ void dumpGraphFile( fragDataT *allBACFragsData,
   // first we dump scaffold lengths
   fprintf( vizfile, "{DATA pieces_x\n");
   for ( i = 0; i < GetNumGraphNodes( ScaffoldGraph->ScaffoldGraph ); i++)
-  {
-    NodeCGW_T *scaff = GetGraphNode( ScaffoldGraph->ScaffoldGraph, i);
+    {
+      NodeCGW_T *scaff = GetGraphNode( ScaffoldGraph->ScaffoldGraph, i);
     
-    if ((isDeadCIScaffoldT(scaff)) || (scaff->type != REAL_SCAFFOLD))
-      continue;
+      if ((isDeadCIScaffoldT(scaff)) || (scaff->type != REAL_SCAFFOLD))
+        continue;
     
-    fprintf( vizfile, F_CID " 0: 1 %d\n", scaff->id, (int) scaff->bpLength.mean);
-  }
+      fprintf( vizfile, F_CID " 0: 1 %d\n", scaff->id, (int) scaff->bpLength.mean);
+    }
   fprintf( vizfile, "}\n");
   
   // then we dump BAC lengths - do we have these somewhere?
@@ -1684,33 +1684,33 @@ void dumpGraphFile( fragDataT *allBACFragsData,
   // then we dump matches in the form scaff_start, bac_start, scaff_end, bac_end
   fprintf( vizfile, "{DATA matches_x_y\n");  
   for ( irange = 0; irange < numContigConsistentRanges; irange++)
-  {
-    if (contigConsistentRanges[ irange ].scaffoldID != NULLINDEX)
     {
-      if ( contigConsistentRanges[ irange ].scaffoldOffsetMin < contigConsistentRanges[ irange ].scaffoldOffsetMax)
-      {
-        fprintf( vizfile, F_CID "_" F_CID " 0: " F_COORD " " F_COORD " " F_COORD " " F_COORD "\n",
-                 contigConsistentRanges[ irange ].scaffoldID,
-                 contigConsistentRanges[ irange ].locale,
-                 (int) contigConsistentRanges[ irange ].scaffoldOffsetMin,
-                 contigConsistentRanges[ irange ].localePosStart.bgn, 
-                 (int) contigConsistentRanges[ irange ].scaffoldOffsetMax,
-                 contigConsistentRanges[ irange ].localePosEnd.end);
-      }
-      else
-        fprintf( vizfile, F_CID "_" F_CID " 0: " F_COORD " " F_COORD " " F_COORD " " F_COORD "\n",
-                 contigConsistentRanges[ irange ].scaffoldID,
-                 contigConsistentRanges[ irange ].locale,
-                 (int) contigConsistentRanges[ irange ].scaffoldOffsetMax,
-                 contigConsistentRanges[ irange ].localePosStart.bgn,
-                 (int) contigConsistentRanges[ irange ].scaffoldOffsetMin,
-                 contigConsistentRanges[ irange ].localePosEnd.end);
-      if (contigConsistentRanges[ irange ].localePosStart.bgn -
-          contigConsistentRanges[ irange ].localePosEnd.end == 0)
-        fprintf( stderr, "contigConsistentRanges[ %d ].localePosStart.bgn: " F_COORD "\n",
-                 irange, contigConsistentRanges[ irange ].localePosStart.bgn);
+      if (contigConsistentRanges[ irange ].scaffoldID != NULLINDEX)
+        {
+          if ( contigConsistentRanges[ irange ].scaffoldOffsetMin < contigConsistentRanges[ irange ].scaffoldOffsetMax)
+            {
+              fprintf( vizfile, F_CID "_" F_CID " 0: " F_COORD " " F_COORD " " F_COORD " " F_COORD "\n",
+                       contigConsistentRanges[ irange ].scaffoldID,
+                       contigConsistentRanges[ irange ].locale,
+                       (int) contigConsistentRanges[ irange ].scaffoldOffsetMin,
+                       contigConsistentRanges[ irange ].localePosStart.bgn, 
+                       (int) contigConsistentRanges[ irange ].scaffoldOffsetMax,
+                       contigConsistentRanges[ irange ].localePosEnd.end);
+            }
+          else
+            fprintf( vizfile, F_CID "_" F_CID " 0: " F_COORD " " F_COORD " " F_COORD " " F_COORD "\n",
+                     contigConsistentRanges[ irange ].scaffoldID,
+                     contigConsistentRanges[ irange ].locale,
+                     (int) contigConsistentRanges[ irange ].scaffoldOffsetMax,
+                     contigConsistentRanges[ irange ].localePosStart.bgn,
+                     (int) contigConsistentRanges[ irange ].scaffoldOffsetMin,
+                     contigConsistentRanges[ irange ].localePosEnd.end);
+          if (contigConsistentRanges[ irange ].localePosStart.bgn -
+              contigConsistentRanges[ irange ].localePosEnd.end == 0)
+            fprintf( stderr, "contigConsistentRanges[ %d ].localePosStart.bgn: " F_COORD "\n",
+                     irange, contigConsistentRanges[ irange ].localePosStart.bgn);
+        }
     }
-  }
   fprintf( vizfile, "}\n");
 }
 

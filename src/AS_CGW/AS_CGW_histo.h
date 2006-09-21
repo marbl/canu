@@ -78,9 +78,9 @@ static void SetChunkAggregate(ChunkAggregate *ca, int bases, int span, int uEdge
 }
 
 extern void printChunks(FILE *fout,
-		 DataType *d,
-		 DataType *s,
-		 DataType *a);
+                        DataType *d,
+                        DataType *s,
+                        DataType *a);
 
 extern void aggregateChunks(DataType *aa,int i,DataType *bb) ;
 

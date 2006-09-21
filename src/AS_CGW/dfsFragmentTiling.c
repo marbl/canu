@@ -1,4 +1,24 @@
 
+/**************************************************************************
+ * This file is part of Celera Assembler, a software program that 
+ * assembles whole-genome shotgun reads into contigs and scaffolds.
+ * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received (LICENSE.txt) a copy of the GNU General Public 
+ * License along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *************************************************************************/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -59,13 +79,13 @@ void finished_with_stores(void){
 }
 
 void print_olap(Long_Olap_Data_t olap,FILE*fs,char *space){
-        fprintf (fs,"%s%8d %8d %c %5d %5d %4.1f %4.1f\n",
-		 space,
-		olap . a_iid,
-		olap . b_iid,
-		olap . flipped ? 'I' : 'N',
-		olap . a_hang, olap . b_hang,
-		olap . orig_erate / 10.0, olap . corr_erate / 10.0);
+  fprintf (fs,"%s%8d %8d %c %5d %5d %4.1f %4.1f\n",
+           space,
+           olap . a_iid,
+           olap . b_iid,
+           olap . flipped ? 'I' : 'N',
+           olap . a_hang, olap . b_hang,
+           olap . orig_erate / 10.0, olap . corr_erate / 10.0);
 }
 
 
@@ -155,29 +175,29 @@ typedef struct ovlfilt_tag {
 
 
 int usefulOverlap(  Long_Olap_Data_t olap, int id, int offAEnd, overlapFilters filter){
-    // exclude too-sloppy overlaps
+  // exclude too-sloppy overlaps
 
-    assert(olap.a_iid == id);
+  assert(olap.a_iid == id);
 
-    if(filter.useCorrected&&olap.corr_erate>filter.erate*1000)return 0;
+  if(filter.useCorrected&&olap.corr_erate>filter.erate*1000)return 0;
 
-    if(!filter.useCorrected&&olap.orig_erate>filter.erate*1000)return 0;
+  if(!filter.useCorrected&&olap.orig_erate>filter.erate*1000)return 0;
 
-    // exclude contained overlaps
-    if( olap.a_hang > 0 && olap.b_hang < 0)return 0;
+  // exclude contained overlaps
+  if( olap.a_hang > 0 && olap.b_hang < 0)return 0;
 
-    // exclude containing overlaps
-    if( filter.skipContaining && olap.a_hang < 0 && olap.b_hang > 0)return 0;
+  // exclude containing overlaps
+  if( filter.skipContaining && olap.a_hang < 0 && olap.b_hang > 0)return 0;
 
-    // exclude too-short overlaps
-    if(get_clr_len((uint)id)-max(0,olap.a_hang)+min(0,olap.b_hang) < filter.minlen)return 0;
+  // exclude too-short overlaps
+  if(get_clr_len((uint)id)-max(0,olap.a_hang)+min(0,olap.b_hang) < filter.minlen)return 0;
 
-    // if it's off the correct end ...
-    if( (offAEnd ? (olap . a_hang < 0) : (olap.b_hang > 0))){
-      return 1;
-    }
+  // if it's off the correct end ...
+  if( (offAEnd ? (olap . a_hang < 0) : (olap.b_hang > 0))){
+    return 1;
+  }
 
-    return 0;
+  return 0;
 }
        
 int extra_height(int id, int offAEnd, Long_Olap_Data_t olap){
@@ -216,44 +236,44 @@ int thickestSort(const void *A,const void *B){
 void DFS_longest_chain(dfsGreedyFrg *frgNodes,overlapFilters filter,int startingFrg){
 
 
-/* THE PLAN:
+  /* THE PLAN:
 
-set current = first fragment
-while (current <= last fragment )
+  set current = first fragment
+  while (current <= last fragment )
   if current not already marked finished
-    mark current visit time
-    init overlap iterator
-    set finished = 1
-    foreach overlap
-      if target not yet visited, 
-        set finished = 0 
-        set target's parent as current
-        set current to target
-        break
-      if target currently in stack (i.e. visit time valid but not marked finished), continue
-      else (i.e. if target is already marked finished)
-         if current's height through this one is an improvement
-           set height
-           set best child
-    end
-    if finished (i.e. we didn't go down farther)
-      mark current finished
-      if current has a parent
-        set current = current's parent
-      else 
-        advance current to next unfinished node
-end
+  mark current visit time
+  init overlap iterator
+  set finished = 1
+  foreach overlap
+  if target not yet visited, 
+  set finished = 0 
+  set target's parent as current
+  set current to target
+  break
+  if target currently in stack (i.e. visit time valid but not marked finished), continue
+  else (i.e. if target is already marked finished)
+  if current's height through this one is an improvement
+  set height
+  set best child
+  end
+  if finished (i.e. we didn't go down farther)
+  mark current finished
+  if current has a parent
+  set current = current's parent
+  else 
+  advance current to next unfinished node
+  end
 
 
-NOTES ON EFFICIENCY:
+  NOTES ON EFFICIENCY:
 
-     We will either be 
-       - inefficient, having to loop through the N overlaps of a node in O(N*N) steps ... plus a *lot* of time setting up iterators
-       - memory bloated (if we add all overlaps to the stack)
-       - tricky (if we let each node know how many of its overlaps we have already processed and we can jump to the i'th overlap)
-            but still we have a lot of overlap iterators to set up
+  We will either be 
+  - inefficient, having to loop through the N overlaps of a node in O(N*N) steps ... plus a *lot* of time setting up iterators
+  - memory bloated (if we add all overlaps to the stack)
+  - tricky (if we let each node know how many of its overlaps we have already processed and we can jump to the i'th overlap)
+  but still we have a lot of overlap iterators to set up
 
-*/
+  */
 
 
   OVL_Stream_t  * my_stream = New_OVL_Stream ();
@@ -356,15 +376,15 @@ NOTES ON EFFICIENCY:
       target = olap.b_iid;
       targetWouldBeFlippedGlobally = (flipped != olap.flipped);
 
-      #ifdef DEBUG_DFS
-	    fprintf(stderr," overlaps %d -- visit %d finished %d height %d flipped %d\n",
-		    target,
-		    frgNodes[target].orderReached,
-		    frgNodes[target].finished,
-		    frgNodes[target].height,
-		    frgNodes[target].flipped ? "<--" : "-->");
-	    print_olap(olap,stderr,"   "); 
-      #endif
+#ifdef DEBUG_DFS
+      fprintf(stderr," overlaps %d -- visit %d finished %d height %d flipped %d\n",
+              target,
+              frgNodes[target].orderReached,
+              frgNodes[target].finished,
+              frgNodes[target].height,
+              frgNodes[target].flipped ? "<--" : "-->");
+      print_olap(olap,stderr,"   "); 
+#endif
       
       // filter out overlaps we aren't interested in -- wrong end or not good enough
       if( (frgNodes[target].flipped !=-1 && frgNodes[target].flipped != targetWouldBeFlippedGlobally ) ){
@@ -451,10 +471,10 @@ NOTES ON EFFICIENCY:
 
       } else {
 #ifdef DEBUG_DFS
-	  fprintf(stderr," no improvement\n");
+        fprintf(stderr," no improvement\n");
 #endif
       }
-	frgNodes[curr].numOvlsCompleted++;
+      frgNodes[curr].numOvlsCompleted++;
     }
 
 
@@ -548,13 +568,13 @@ NOTES ON EFFICIENCY:
 
 
 void usage(char *pgm){
-	fprintf (stderr, 
-		 "USAGE:  %s -f <FragStoreName> -g <GkpStoreName> -o <OvlStoreName> [-C] [-e <erate cutoff>] [-E] [-m <minlen>] [-N startingFrg]\n"
-		 "\t-C specifies to use containing fragments; default is only dovetails\n"
-		 "\t-e specifies the maximum mismatch rate (as a fraction, i.e. .01 means one percent)\n"
-		 "\t-E specifies that the corrected error rate rather than the original is to be used\n"
-		 "\t-N specifies the first fragment to examine; useful for partial ovlStore\n",
-		 pgm);
+  fprintf (stderr, 
+           "USAGE:  %s -f <FragStoreName> -g <GkpStoreName> -o <OvlStoreName> [-C] [-e <erate cutoff>] [-E] [-m <minlen>] [-N startingFrg]\n"
+           "\t-C specifies to use containing fragments; default is only dovetails\n"
+           "\t-e specifies the maximum mismatch rate (as a fraction, i.e. .01 means one percent)\n"
+           "\t-E specifies that the corrected error rate rather than the original is to be used\n"
+           "\t-N specifies the first fragment to examine; useful for partial ovlStore\n",
+           pgm);
 }
 
 
@@ -586,37 +606,37 @@ int main (int argc , char * argv[] ) {
     optarg = NULL;
     while (!errflg && ((ch = getopt(argc, argv,"Ce:Ef:g:m:N:o:")) != EOF)){
       switch(ch) {
-      case 'C':
-	filter.skipContaining = 0;
-	break;
-      case 'e':
-	filter.erate = atof(optarg);
-	break;
-      case 'E':
-	filter.useCorrected=1;
-	break;
-      case 'f':
-	strcpy(full_frgPath, argv[optind - 1]);
-	setFullFrg=1;
-	break;
-      case 'g':
-	strcpy(full_gkpPath, argv[optind - 1]);
-	setFullGkp=1;
-	break;
-      case 'm':
-	filter.minlen=atoi(optarg);
-	break;
-      case 'N':
-	startingFrg = atoi(optarg);
-	break;
-      case 'o':
-	strcpy(full_ovlPath,argv[optind-1]);
-	setFullOvl=1;
-	break;
-      case '?':
-	fprintf(stderr,"Unrecognized option -%c",optopt);
-      default :
-	errflg++;
+        case 'C':
+          filter.skipContaining = 0;
+          break;
+        case 'e':
+          filter.erate = atof(optarg);
+          break;
+        case 'E':
+          filter.useCorrected=1;
+          break;
+        case 'f':
+          strcpy(full_frgPath, argv[optind - 1]);
+          setFullFrg=1;
+          break;
+        case 'g':
+          strcpy(full_gkpPath, argv[optind - 1]);
+          setFullGkp=1;
+          break;
+        case 'm':
+          filter.minlen=atoi(optarg);
+          break;
+        case 'N':
+          startingFrg = atoi(optarg);
+          break;
+        case 'o':
+          strcpy(full_ovlPath,argv[optind-1]);
+          setFullOvl=1;
+          break;
+        case '?':
+          fprintf(stderr,"Unrecognized option -%c",optopt);
+        default :
+          errflg++;
       }
     }
 

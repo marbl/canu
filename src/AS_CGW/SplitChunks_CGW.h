@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: SplitChunks_CGW.h,v 1.4 2005-03-22 19:48:36 jason_miller Exp $ */
+/* $Id: SplitChunks_CGW.h,v 1.5 2006-09-21 21:34:00 brianwalenz Exp $ */
 
 #ifndef SPLITCHUNKS_H
 #define SPLITCHUNKS_H
@@ -35,7 +35,7 @@ typedef struct
   SeqInterval interval;
 } SplitInterval;
 
-VA_DEF(SplitInterval)
+VA_DEF(SplitInterval);
   
 int SplitInputUnitigs(ScaffoldGraphT * graph);
 VA_TYPE(SplitInterval) * DetectChimericChunksInGraph(ScaffoldGraphT * graph);

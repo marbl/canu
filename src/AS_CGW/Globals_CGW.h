@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: Globals_CGW.h,v 1.6 2006-06-14 19:57:22 brianwalenz Exp $	 */
+/* 	$Id: Globals_CGW.h,v 1.7 2006-09-21 21:34:00 brianwalenz Exp $	 */
 #ifndef GLOBALS_CGW_H
 #define GLOBALS_CGW_H
 
@@ -109,23 +109,23 @@ extern void DeleteGlobal_CGW(Global_CGW *);
 
 /****************************************************************************/
 static FILE *  File_Open
-    (const char * Filename, const char * Mode, int exitOnFailure)
+(const char * Filename, const char * Mode, int exitOnFailure)
 
-/* Open  Filename  in  Mode  and return a pointer to its control
-*  block.  If fail, print a message and exit. */
+     /* Open  Filename  in  Mode  and return a pointer to its control
+      *  block.  If fail, print a message and exit. */
 
-  {
-   FILE  *  fp;
+{
+  FILE  *  fp;
 
-   fp = fopen (Filename, Mode);
-   if  (fp == NULL && exitOnFailure)
-       {
-        fprintf (stderr, "ERROR:  Could not open file  %s \n", Filename);
-        exit (EXIT_FAILURE);
-       }
+  fp = fopen (Filename, Mode);
+  if  (fp == NULL && exitOnFailure)
+    {
+      fprintf (stderr, "ERROR:  Could not open file  %s \n", Filename);
+      exit (EXIT_FAILURE);
+    }
 
-   return  fp;
-  }
+  return  fp;
+}
 
 #ifdef NEVER
 void ResetHistograms_CGW(struct Global_CGW_tag *);

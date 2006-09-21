@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: fixECRCheckpoint.c,v 1.6 2006-06-14 19:57:23 brianwalenz Exp $";
+static char CM_ID[] = "$Id: fixECRCheckpoint.c,v 1.7 2006-09-21 21:34:01 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -79,17 +79,17 @@ typedef struct
   CDS_CID_t contigID;
   CDS_CID_t scaffoldID;
 } ThreeIDs;
-VA_DEF(ThreeIDs)
+VA_DEF(ThreeIDs);
 
 static int ThreeIDsCompare(const ThreeIDs * a, const ThreeIDs * b)
 {
   if(a->scaffoldID == b->scaffoldID)
-  {
-    if(a->contigID == b->contigID)
-      return 0;
-    else
-      return (int) (a->contigID - b->contigID);
-  }
+    {
+      if(a->contigID == b->contigID)
+        return 0;
+      else
+        return (int) (a->contigID - b->contigID);
+    }
   else
     return (int) (a->scaffoldID - b->scaffoldID);
 }
@@ -121,9 +121,9 @@ void AppendNewContigToScaffold(ZLFScaffold * zlfScaffold,
 
 
 void AppendNewScaffold(VA_TYPE(ZLFScaffold) * zlfScaffolds,
-                      ZLFScaffold * zlfScaffold,
-                      ZLFContig * zlfContig,
-                      ThreeIDs * tidp)
+                       ZLFScaffold * zlfScaffold,
+                       ZLFContig * zlfContig,
+                       ThreeIDs * tidp)
 {
   memset(zlfScaffold, 0, sizeof(ZLFScaffold));
   zlfScaffold->id = tidp->scaffoldID;
@@ -157,44 +157,44 @@ int main(int argc, char *argv[]){
     while (!errflg && ((ch = getopt(argc, argv,
 				    "i:f:g:n:c:u:m:")) != EOF)){
       switch(ch) {
-      case 'n':
-	ckptNum = atoi(argv[optind - 1]);
-	break;
-      case 'c':
-	{
-	  strcpy( data->File_Name_Prefix, argv[optind - 1]);
-	  setPrefixName = 1;
+        case 'n':
+          ckptNum = atoi(argv[optind - 1]);
+          break;
+        case 'c':
+          {
+            strcpy( data->File_Name_Prefix, argv[optind - 1]);
+            setPrefixName = 1;
 
-	}
-	break;
-      case 'f':
-	{
-	  strcpy( data->Frag_Store_Name, argv[optind - 1]);
-	  setFragStore = 1;
-	}
-	break;
-      case 'g':
-	{
-	  strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
-	  setGatekeeperStore = 1;
-	}
-	break;
+          }
+          break;
+        case 'f':
+          {
+            strcpy( data->Frag_Store_Name, argv[optind - 1]);
+            setFragStore = 1;
+          }
+          break;
+        case 'g':
+          {
+            strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
+            setGatekeeperStore = 1;
+          }
+          break;
         case 'i':
-        {
-          CDS_CID_t iid = atoi(argv[optind-1]);
-          AppendVA_CDS_CID_t(clist, &iid);
-        }
-        break;
+          {
+            CDS_CID_t iid = atoi(argv[optind-1]);
+            AppendVA_CDS_CID_t(clist, &iid);
+          }
+          break;
         case 'u':
-         unitigIDFile = argv[optind-1];
-         break;
+          unitigIDFile = argv[optind-1];
+          break;
         case 'm':
-         maFile = argv[optind-1];
-         break;
-      case '?':
-	fprintf(stderr,"Unrecognized option -%c",optopt);
-      default :
-	errflg++;
+          maFile = argv[optind-1];
+          break;
+        case '?':
+          fprintf(stderr,"Unrecognized option -%c",optopt);
+        default :
+          errflg++;
       }
     }
 
@@ -234,10 +234,10 @@ int main(int argc, char *argv[]){
     /*
       Open file listing unitig IIDs
       Loop over them
-        get the MA
-        convert to protoIO
-        write out
-     */
+      get the MA
+      convert to protoIO
+      write out
+    */
     FILE * fp = fopen(unitigIDFile, "r");
     char line[1024];
     VA_TYPE(ThreeIDs) * threeIDs = CreateVA_ThreeIDs(100);
@@ -248,17 +248,17 @@ int main(int argc, char *argv[]){
     int i, j, k;
 
     while(fgets(line, 1024, fp))
-    {
-      ThreeIDs tid;
-      ChunkInstanceT * ci;
+      {
+        ThreeIDs tid;
+        ChunkInstanceT * ci;
       
-      tid.unitigID = atoi(line);
-      ci = GetGraphNode(ScaffoldGraph->CIGraph, tid.unitigID);
-      tid.contigID = ci->info.CI.contigID;
-      tid.scaffoldID = ci->scaffoldID;
+        tid.unitigID = atoi(line);
+        ci = GetGraphNode(ScaffoldGraph->CIGraph, tid.unitigID);
+        tid.contigID = ci->info.CI.contigID;
+        tid.scaffoldID = ci->scaffoldID;
 
-      AppendVA_ThreeIDs(threeIDs, &tid);
-    }
+        AppendVA_ThreeIDs(threeIDs, &tid);
+      }
     fclose(fp);
     qsort(GetVA_ThreeIDs(threeIDs, 0),
           GetNumVA_ThreeIDs(threeIDs),
@@ -269,62 +269,62 @@ int main(int argc, char *argv[]){
     zlfContig.id = -1;
     
     for(i = 0; i < GetNumVA_ThreeIDs(threeIDs); i++)
-    {
-      ThreeIDs * tidp = GetVA_ThreeIDs(threeIDs, i);
+      {
+        ThreeIDs * tidp = GetVA_ThreeIDs(threeIDs, i);
 
-      if(tidp->scaffoldID == zlfScaffold.id)
-      {
-        // continue populating zlfScaffold
-        if(tidp->contigID == zlfContig.id)
-        {
-          // continue populating the contig
-          AppendNewMAToContig(&zlfContig, tidp);
-        }
+        if(tidp->scaffoldID == zlfScaffold.id)
+          {
+            // continue populating zlfScaffold
+            if(tidp->contigID == zlfContig.id)
+              {
+                // continue populating the contig
+                AppendNewMAToContig(&zlfContig, tidp);
+              }
+            else
+              {
+                // same scaffold, different contig
+                AppendNewContigToScaffold(&zlfScaffold, &zlfContig, tidp);
+              }
+          }
         else
-        {
-          // same scaffold, different contig
-          AppendNewContigToScaffold(&zlfScaffold, &zlfContig, tidp);
-        }
+          {
+            // new scaffold (& new contig)
+            AppendNewScaffold(zlfScaffolds, &zlfScaffold, &zlfContig, tidp);
+          }
       }
-      else
-      {
-        // new scaffold (& new contig)
-        AppendNewScaffold(zlfScaffolds, &zlfScaffold, &zlfContig, tidp);
-      }
-    }
 
     // append MA pointers to hashtable for quick loading from protoIO file
     tidHT = CreateHashTable_int32_AS(GetNumVA_ThreeIDs(threeIDs));
     for(i = 0; i < GetNumVA_ZLFScaffold(zlfScaffolds); i++)
-    {
-      ZLFScaffold * zlfsp = GetVA_ZLFScaffold(zlfScaffolds, i);
-      
-      for(j = 0; j < GetNumVA_ZLFContig(zlfsp->zlfContigs); j++)
       {
-        ZLFContig * zlfcp = GetVA_ZLFContig(zlfsp->zlfContigs, j);
-
-        for(k = 0; k < GetNumVA_MultiAlignT(zlfcp->zlfUMAs); k++)
-        {
-          MultiAlignT * map = GetVA_MultiAlignT(zlfcp->zlfUMAs, k);
-
-          if(LookupInHashTable_AS(tidHT,
-                                  (void *) &(map->id),
-                                  sizeof(map->id)))
+        ZLFScaffold * zlfsp = GetVA_ZLFScaffold(zlfScaffolds, i);
+      
+        for(j = 0; j < GetNumVA_ZLFContig(zlfsp->zlfContigs); j++)
           {
-            fprintf(stderr, "ERROR: unitig " F_CID " listed multiple times!\n",
-                    map->id);
-            exit(-1);
+            ZLFContig * zlfcp = GetVA_ZLFContig(zlfsp->zlfContigs, j);
+
+            for(k = 0; k < GetNumVA_MultiAlignT(zlfcp->zlfUMAs); k++)
+              {
+                MultiAlignT * map = GetVA_MultiAlignT(zlfcp->zlfUMAs, k);
+
+                if(LookupInHashTable_AS(tidHT,
+                                        (void *) &(map->id),
+                                        sizeof(map->id)))
+                  {
+                    fprintf(stderr, "ERROR: unitig " F_CID " listed multiple times!\n",
+                            map->id);
+                    exit(-1);
+                  }
+                else
+                  {
+                    InsertInHashTable_AS(tidHT,
+                                         (void *) &(map->id),
+                                         sizeof(map->id),
+                                         (void *) map);
+                  }
+              }
           }
-          else
-          {
-            InsertInHashTable_AS(tidHT,
-                                 (void *) &(map->id),
-                                 sizeof(map->id),
-                                 (void *) map);
-          }
-        }
       }
-    }
 
     // now read MultiAlignT store
     fp = fopen(maFile, "r");
@@ -332,19 +332,19 @@ int main(int argc, char *argv[]){
       MultiAlignT ma;
 
       while(ReadMAFromFile(&ma, fp))
-      {
-        MultiAlignT * map = LookupInHashTable_AS(tidHT,
-                                                 (void *) &(ma.id),
-                                                 sizeof(ma.id));
-        if(map != NULL)
         {
-          assert(map->id == ma.id);
+          MultiAlignT * map = LookupInHashTable_AS(tidHT,
+                                                   (void *) &(ma.id),
+                                                   sizeof(ma.id));
+          if(map != NULL)
+            {
+              assert(map->id == ma.id);
 
-          // copy the fields - the variable arrays will persist
+              // copy the fields - the variable arrays will persist
           
-          CopyMultiAlignT(map, &ma);
+              CopyMultiAlignT(map, &ma);
+            }
         }
-      }
       fclose(fp);
 
       // fix zlf contigs
