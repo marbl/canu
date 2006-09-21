@@ -303,6 +303,18 @@ void InitCGWMateIterator(CGWMateIterator* mates,CDS_CID_t fragIID, int external_
     return;
   }
 
+  //  An early OBT bug left in mates to reads that are deleted, so
+  //  it's possibly to have links but no fragment.  Check and warn
+  //  when this happens.
+  //
+  if (frag->mateOf == NULLINDEX) {
+    if (numLinks > 0)
+      fprintf(stderr, "InitCGWMateIterator()-- WARNING!  Fragment "F_IID" has no mate, but still has a matelink!\n",
+              fragIID);
+    return;
+  }
+
+
   /* Determine whether we want to know about all mates or only those outside the node
      of interest (asserted below to be one containing the fragment) */
   mates->external_only = external_only;
