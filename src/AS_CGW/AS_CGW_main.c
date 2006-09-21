@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.23 2006-08-24 14:00:03 ahalpern Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.24 2006-09-21 20:53:27 brianwalenz Exp $";
 
 
 static const char *usage = 
@@ -905,60 +905,57 @@ int main(int argc, char *argv[]){
   
   // Convert single-contig scaffolds that are marginally unique back
   // to unplaced contigs so they might be placed as stones
-
-  if(demoteSingletonScaffolds){
-    fprintf(GlobalData->stderrc,"* Before DemoteSmallSingletonScaffolds\n");
+  //
+  if (demoteSingletonScaffolds)
     DemoteSmallSingletonScaffolds();
-    fprintf(GlobalData->stderrc,"* Before MergeScaffoldsAggressive\n");
-  }
+
   /* Now we throw stones */
-  if  (((immediateOutput == -1)
-        || (immediateOutput <= 1 &&
-            (restartFromLogicalCheckpoint <= CHECKPOINT_BEFORE_STONES)))
-       && GlobalData->stoneLevel > 0)
-    {
-      fprintf (GlobalData -> stderrc,
-               "**** Running Stone Throwing level %d ****\n",
-               GlobalData -> stoneLevel);
+  if  (((immediateOutput == -1) ||
+        ((immediateOutput <= 1) &&
+         (restartFromLogicalCheckpoint <= CHECKPOINT_BEFORE_STONES))) &&
+       (GlobalData->stoneLevel > 0)) {
+    fprintf(GlobalData->stderrc, "**** Running Stone Throwing level %d ****\n",
+            GlobalData->stoneLevel);
 
-      CheckCIScaffoldTs(ScaffoldGraph);
-      StartTimerT (& data -> StoneThrowingTimer);
-      Throw_Stones (GlobalData -> File_Name_Prefix, GlobalData -> stoneLevel, FALSE);
-      StopTimerT (& data -> StoneThrowingTimer);
+    CheckCIScaffoldTs(ScaffoldGraph);
 
-      CheckCIScaffoldTs (ScaffoldGraph);
-      fprintf (GlobalData -> stderrc,
-               "**** FORCE variances after Stone Throwing  ****\n");
-      Force_Increasing_Variances ();
-      fprintf (GlobalData -> stderrc,
-               "**** Finished Stone Throwing level %d ****\n",
-               GlobalData -> stoneLevel);
+    StartTimerT(&data->StoneThrowingTimer);
+    Throw_Stones(GlobalData->File_Name_Prefix, GlobalData->stoneLevel, FALSE);
+    StopTimerT(&data->StoneThrowingTimer);
+
+    CheckCIScaffoldTs(ScaffoldGraph);
+
+    Force_Increasing_Variances();
+
+    fprintf(GlobalData->stderrc, "**** Finished Stone Throwing level %d ****\n",
+            GlobalData->stoneLevel);
 
 #ifdef FIX_CONTIG_EDGES
-      fprintf(GlobalData->stderrc, "VALIDATING ALL CONTIG EDGES...\n");
-      ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
+    fprintf(GlobalData->stderrc, "VALIDATING ALL CONTIG EDGES...\n");
+    ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
 #endif
-      CleanupScaffolds (ScaffoldGraph, FALSE, NULLINDEX, FALSE);
+
+    CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, FALSE);
        
 #if defined(CHECK_CONTIG_ORDERS) || defined(CHECK_CONTIG_ORDERS_INCREMENTAL)
-      fprintf(stderr,
-              "---Checking contig orders after Throw_Stones\n\n");
-      CheckAllContigOrientationsInAllScaffolds(ScaffoldGraph, coc, POPULATE_COC_HASHTABLE);
+    fprintf(stderr, "---Checking contig orders after Throw_Stones\n\n");
+    CheckAllContigOrientationsInAllScaffolds(ScaffoldGraph, coc, POPULATE_COC_HASHTABLE);
 #endif
+
 #ifdef CHECK_CONTIG_ORDERS_INCREMENTAL
-      ResetContigOrientChecker(coc);
-      AddAllScaffoldsToContigOrientChecker(ScaffoldGraph, coc);
+    ResetContigOrientChecker(coc);
+    AddAllScaffoldsToContigOrientChecker(ScaffoldGraph, coc);
 #endif
 
-      fprintf(data -> timefp, "Checkpoint %d written after Stone Throwing and CleanupScaffolds\n",
-              ScaffoldGraph -> checkPointIteration);
-      CheckpointScaffoldGraph (ScaffoldGraph, CHECKPOINT_BEFORE_STONES+1);
+    fprintf(data->timefp, "Checkpoint %d written after Stone Throwing and CleanupScaffolds\n",
+            ScaffoldGraph->checkPointIteration);
+    CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_BEFORE_STONES+1);
 
-      GenerateLinkStats (ScaffoldGraph -> CIGraph, "Stones", 0);
-      GeneratePlacedContigGraphStats ("Stones", 0);
-      GenerateLinkStats (ScaffoldGraph -> ContigGraph, "Stones", 0);
-      GenerateScaffoldGraphStats ("Stones", 0);
-    }
+    GenerateLinkStats(ScaffoldGraph->CIGraph, "Stones", 0);
+    GeneratePlacedContigGraphStats("Stones", 0);
+    GenerateLinkStats(ScaffoldGraph->ContigGraph, "Stones", 0);
+    GenerateScaffoldGraphStats("Stones", 0);
+  }
 
 
   // More aggressive external gap walking
@@ -1112,12 +1109,15 @@ int main(int argc, char *argv[]){
       fprintf (GlobalData -> stderrc, "* Starting Partial_Stones\n");
 
       CheckCIScaffoldTs (ScaffoldGraph);
+
       StartTimerT (& data -> StoneThrowingTimer);
       partial_stones
         = Throw_Stones (GlobalData -> File_Name_Prefix,
                         GlobalData -> stoneLevel, TRUE);
       StopTimerT (& data -> StoneThrowingTimer);
+
       CheckCIScaffoldTs (ScaffoldGraph);
+
       fprintf (GlobalData -> stderrc,
                "**** FORCE variances after Partial Stones  ****\n");
       Force_Increasing_Variances ();
