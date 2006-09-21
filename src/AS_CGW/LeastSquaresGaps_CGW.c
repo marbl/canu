@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: LeastSquaresGaps_CGW.c,v 1.12 2006-06-14 19:57:22 brianwalenz Exp $";
+static char CM_ID[] = "$Id: LeastSquaresGaps_CGW.c,v 1.13 2006-09-21 20:52:44 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -79,6 +79,9 @@ extern int dpbtrs_(char *, FTN_INT *, FTN_INT *, FTN_INT *, double *,
 //  function that is usually a very similar name.  This would be
 //  incredibly useful if someone wants to, say, merge two classes into
 //  one.
+//
+//  If we ever create a file of serious warnings, look for "//assert" for
+//  things to put into it.
 //
 typedef struct {
   int   fixUpMisorderedContigsLV;
@@ -755,9 +758,9 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
     if(IsScaffoldInternallyConnected(ScaffoldGraph,scaffold,ALL_TRUSTED_EDGES)!=1){
         standardEdgeStatusFails = 1;
         if (debug.recomputeOffsetsLV > 0) {
-          fprintf(stderr, "RecomputeOffsetsInScaffold()- WARNING: scaffold " F_CID " is not internally connected using ALL_TRUSTED_EDGES\n");
-          fprintf(stderr, "                              will proceed with edge set determined by IsInternalEdgeStatusVaguelyOK\n");
-          fprintf(stderr, "                              instead of PairwiseChiSquare test\n",scaffold->id);
+          fprintf(stderr, "RecomputeOffsetsInScaffold()- WARNING: scaffold " F_CID " is not internally connected using\n", scaffold->id);
+          fprintf(stderr, "                              ALL_TRUSTED_EDGES will proceed with edge set determined by \n");
+          fprintf(stderr, "                              IsInternalEdgeStatusVaguelyOK instead of PairwiseChiSquare test\n");
         }
         //assert(0);
     }
@@ -822,10 +825,14 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
             }
 
 
-            // the following is invoked if we are looking at ALL_EDGES rather than ALL_TRUSTED_EDGES;
-            // this occurs as a desperate attempt to resurrect some scaffold edges that will reconnect 
-            // a scaffold that is otherwise disconnected and results in a singularity; however, if
-            // this edge is really really bad, we need to throw it away ...
+            // the following is invoked if we are looking at ALL_EDGES
+            // rather than ALL_TRUSTED_EDGES; this occurs as a
+            // desperate attempt to resurrect some scaffold edges that
+            // will reconnect a scaffold that is otherwise
+            // disconnected and results in a singularity; however, if
+            // this edge is really really bad, we need to throw it
+            // away ...
+            //
             if(standardEdgeStatusFails && !IsInternalEdgeStatusVaguelyOK(edge,thisCI->id)){
                 continue;
             }
@@ -1909,11 +1916,19 @@ int IsInternalEdgeStatusVaguelyOK(EdgeCGW_T *edge,CDS_CID_t thisCIid){
 
   /* We only want to label edges between CIs in the same scaffold; this is up to the caller. */
   if(otherCI->scaffoldID != thisCI->scaffoldID){
+
+    //  This is a good candidate for including in a file of serious warnings!
+
     fprintf(stderr, "WARNING:  IsInternalEdgeStatusVaguelyOK() got an edge between different scaffolds.\n");
     fprintf(stderr, "   edge:  idA:%d idB:%d\n", edge->idA, edge->idB);
     fprintf(stderr, " thisCI:  scaffoldID:%d isA:%d\n", thisCI->scaffoldID, edge->idA == thisCI->id);
     fprintf(stderr, "otherCI:  scaffoldID:%d isA:%d\n", otherCI->scaffoldID, edge->idA == otherCI->id);
-    assert(0);
+
+    //  With motivation from MarkInternalEdgeStatus(), we simply mark
+    //  this edge as inter scaffold and return.
+    //
+    SetEdgeStatus(ScaffoldGraph->RezGraph, edge, INTER_SCAFFOLD_EDGE_STATUS);
+    //assert(0);
     return(0);
   }
 
