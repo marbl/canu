@@ -27,7 +27,7 @@
                  
  *********************************************************************/
 
-static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.31 2006-09-14 19:41:33 gdenisov Exp $";
+static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.32 2006-09-22 19:12:28 gdenisov Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -76,7 +76,6 @@ extern int NumColumnsInContigs;
 extern int NumRunsOfGapsInContigReads;
 extern int NumGapsInContigs;
 extern int NumAAMismatches;
-extern int NumFAMismatches;
 extern int NumVARRecords;
 extern int NumVARStringsWithFlankingGaps;
 
@@ -217,7 +216,7 @@ static void
 OutputScores(int NumColumnsInUnitigs,        int NumRunsOfGapsInUnitigReads, 
              int NumGapsInUnitigs,           int NumColumnsInContigs, 
              int NumRunsOfGapsInContigReads, int NumGapsInContigs,
-             int NumAAMismatches,            int NumFAMismatches,
+             int NumAAMismatches,          
              int NumVARRecords,              int NumVARStringsWithFlankingGaps)
 {
      fprintf(stderr, "\nNumColumnsInUnitigs      = %d\n", NumColumnsInUnitigs);
@@ -229,7 +228,6 @@ OutputScores(int NumColumnsInUnitigs,        int NumRunsOfGapsInUnitigReads,
      fprintf(stderr, "NumRunsOfGapsInContigReads = %d\n", 
          NumRunsOfGapsInContigReads);
      fprintf(stderr, "NumAAMismatches            = %d\n", NumAAMismatches);
-     fprintf(stderr, "NumFAMismatches            = %d\n", NumFAMismatches);
      fprintf(stderr, "NumVARRecords              = %d\n", NumVARRecords);
      fprintf(stderr, "NumVARStringsWithFlankingGaps = %d\n", 
          NumVARStringsWithFlankingGaps);
@@ -365,7 +363,6 @@ int main (int argc, char *argv[])
     NumRunsOfGapsInContigReads = 0;
     NumGapsInContigs = 0;
     NumAAMismatches = 0;
-    NumFAMismatches = 0;
  
     while ( !errflg && 
            ( (ch = getopt(argc, argv, 
@@ -907,7 +904,7 @@ int main (int argc, char *argv[])
       VA_TYPE(char) *quality=CreateVA_char(200000);
       time_t t;
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.31 $ processing. Started %s\n",
+      fprintf(stderr,"# Consensus $Revision: 1.32 $ processing. Started %s\n",
         ctime(&t));
       InitializeAlphTable();
       if ( ! align_ium && USE_SDB && extract > -1 ) 
@@ -977,7 +974,7 @@ int main (int argc, char *argv[])
         OutputScores(NumColumnsInUnitigs, NumRunsOfGapsInUnitigReads, 
                      NumGapsInUnitigs, NumColumnsInContigs, 
                      NumRunsOfGapsInContigReads, NumGapsInContigs,
-                     NumAAMismatches, NumFAMismatches,
+                     NumAAMismatches, 
                      NumVARRecords, NumVARStringsWithFlankingGaps);
 
         if (num_contig_failures > 0) {
@@ -1203,7 +1200,7 @@ int main (int argc, char *argv[])
               OutputScores(NumColumnsInUnitigs, NumRunsOfGapsInUnitigReads,
                      NumGapsInUnitigs, NumColumnsInContigs,
                      NumRunsOfGapsInContigReads, NumGapsInContigs,
-                     NumAAMismatches, NumFAMismatches,
+                     NumAAMismatches, 
                      NumVARRecords, NumVARStringsWithFlankingGaps);
                   exit(0);
             }
@@ -1235,7 +1232,7 @@ int main (int argc, char *argv[])
             {
               AuditLine auditLine;
               AppendAuditLine_AS(adt_mesg, &auditLine, t,
-                                 "Consensus", "$Revision: 1.31 $","(empty)");
+                                 "Consensus", "$Revision: 1.32 $","(empty)");
             }
 #endif
               VersionStampADT(adt_mesg,argc,argv);
@@ -1259,7 +1256,7 @@ int main (int argc, char *argv[])
       }
 
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.31 $ Finished %s\n",ctime(&t));
+      fprintf(stderr,"# Consensus $Revision: 1.32 $ Finished %s\n",ctime(&t));
       if (printcns) 
       {
         int unitig_length = (unitig_count>0)? (int) input_lengths/unitig_count: 0; 
@@ -1307,7 +1304,7 @@ int main (int argc, char *argv[])
     OutputScores(NumColumnsInUnitigs, NumRunsOfGapsInUnitigReads,
                      NumGapsInUnitigs, NumColumnsInContigs,
                      NumRunsOfGapsInContigReads, NumGapsInContigs,
-                     NumAAMismatches, NumFAMismatches,
+                     NumAAMismatches, 
                      NumVARRecords, NumVARStringsWithFlankingGaps);
 
     if (num_unitig_failures)
