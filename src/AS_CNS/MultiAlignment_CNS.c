@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.88 2006-09-18 18:44:24 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.89 2006-09-22 19:08:29 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -126,7 +126,6 @@ int NumColumnsInContigs;
 int NumRunsOfGapsInContigReads;
 int NumGapsInContigs;
 int NumAAMismatches; // mismatches b/w consensi of two different alleles
-int NumFAMismatches; // mismatches b/w fragments and consensus of the same allele
 int NumVARRecords;
 int NumVARStringsWithFlankingGaps;
 
@@ -2019,7 +2018,7 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
 
 
        *cons_base = cbase;
-        if (target_allele <  0 || target_allele == vreg->best_allele)
+        if (target_allele <  0 || target_allele == vreg->alleles[0].id)
         {
             Setchar(sequenceStore, call->soffset, &cbase);
             Setchar(qualityStore, call->soffset, &cqv);
@@ -2459,35 +2458,26 @@ UpdateScoreNumGaps(char cbase, int get_scores)
 }
 
 static void
-UpdateScores(VarRegion vreg, char cbase, char abase)
+UpdateScores(VarRegion vreg, char *cbase, int nca)
 {
     int i, j;
 
-    if (cbase != abase)
-        NumAAMismatches++;
-
-    // Updating count of fragment bases mismatching
-    // the consensus base of the corresponding allele
-    for (i=0; i<vreg.nr; i++)
+    for (i=0; i<nca; i++)
     {
-       if ((vreg.reads[i].allele_id == vreg.alleles[0].id) &&
-           is_good_base(vreg.curr_bases[i])         &&
-           (vreg.curr_bases[i]   != cbase))
-            NumFAMismatches++;
-
-       if ((vreg.reads[i].allele_id != vreg.alleles[0].id) &&
-           is_good_base(vreg.curr_bases[i])         &&
-           (vreg.curr_bases[i]   != abase))
-            NumFAMismatches++;
+        for (j=i+1; j<nca; j++)
+        {
+            if (cbase[i] != cbase[j])
+               NumAAMismatches++;
+        }
     }
 }
+
 
 static void 
 GetReadsForVARRecord(Read *reads, int32 *iids, int32 nr,
     int beg, int end, int32 *cids)
 {
     int k;
-    int *count = (int *)safe_calloc(nr, sizeof(int));
 
     for (k=beg; k<=end; k++)
     {
@@ -2516,7 +2506,33 @@ GetReadsForVARRecord(Read *reads, int32 *iids, int32 nr,
                 (type == AS_TRNR))
             {
                 base = *Getchar(sequenceStore,bead->soffset);
-                qv   = (int)(*Getchar(qualityStore,bead->soffset)-'0');
+                if (base != '-')
+                {
+                    qv = (int)(*Getchar(qualityStore,bead->soffset)-'0');
+                }
+                else // set qvs of boundary gaps to qvs of adjacent bases
+                {
+                    Bead *prev_bead = GetBead(beadStore, bead->prev);
+                    Bead *next_bead = GetBead(beadStore, bead->next);
+                    qv = 0;
+                    if (prev_bead != NULL)
+                    {
+                        char prev_base=*Getchar(sequenceStore, prev_bead->soffset);
+                        int  prev_qv  =(int)(*Getchar(qualityStore,
+                            prev_bead->soffset)-'0');
+                        if (prev_base != '-') { qv = prev_qv; } 
+                        // otherwise, it stays QV_FOR_MULTI_GAP
+                    }
+                    if (next_bead != NULL)
+                    {
+                        char next_base=*Getchar(sequenceStore, next_bead->soffset);
+                        int  next_qv  =(int)(*Getchar(qualityStore,
+                            next_bead->soffset)-'0');
+                        if (next_base != '-' && 
+                           (qv == 0 || qv > next_qv)) 
+                            qv = next_qv; 
+                    }
+                }
                 iid  =  GetFragment(fragmentStore,bead->frag_index)->iid;
                 i    =  Iid2ReadId(iid, iids, nr);
     
@@ -2524,29 +2540,61 @@ GetReadsForVARRecord(Read *reads, int32 *iids, int32 nr,
                     continue;
                 }
                 reads[i].bases[k-beg] = base;
-                if (base != '-')
-                {
-                    reads[i].ave_qv += qv;
-                    count[i]++;
-                }
-#if 0
-                fprintf(stderr, "In GetReads: i= %d k-beg= %d base= %c qv= %d count= %d\n", i, k-beg, base, qv, count[i]);
-#endif
+                reads[i].qvs[k-beg] = qv;
             }
         }
     }
+
+    // Reset qvs of internal gaps to min(qv_first_gap, qv_last_gap); 
+    // Compute ave_qvs
     for (k=0; k<nr; k++)
-        if (count[k] > 0)
-            reads[k].ave_qv /= (double)count[k];
-        else
-            reads[k].ave_qv = 0.;
+    {
+        int i, j, m = end-beg+1;
+        reads[k].ave_qv = 0.;
+        for (i=0; i<m; i++)
+        {
+            if (reads[k].bases[i] != '-')
+                reads[k].ave_qv += (double)reads[k].qvs[i];
+            else   // gap
+            {
+                int first_gap = i;
+                int first_qv  = reads[k].qvs[first_gap];
+                int last_gap  = i;
+                int last_qv;
+                int min_qv;
+                if (first_qv == 0 && i>0) first_qv = reads[k].qvs[i-1];
+                while (last_gap<m && reads[k].bases[last_gap] == '-')
+                    last_gap++;
+                if (last_gap == m || reads[k].bases[last_gap] != '-')
+                    last_gap--;
+                last_qv = reads[k].qvs[last_gap];
+                if (last_qv == 0 && last_gap<m-1) 
+                    last_qv = reads[k].qvs[last_gap+1];
+                if (first_qv != 0 && last_qv  != 0) 
+                    min_qv = (first_qv < last_qv) ? first_qv : last_qv;
+                else if (first_qv == 0 && last_qv != 0)
+                    min_qv = last_qv;
+                else if (first_qv != 0 && last_qv == 0)
+                    min_qv = first_qv;
+                else // both == 0               
+                    min_qv = QV_FOR_MULTI_GAP;
+                for (j=first_gap; j<=last_gap; j++)
+                {
+                    reads[k].qvs[j] = min_qv;
+                    reads[k].ave_qv += (double)min_qv;
+                } 
+                i = last_gap;
+            } 
+        }
+        reads[k].ave_qv /= (double)m;
+    }
+
 #if 0
     fprintf(stderr, "In GetReads: ave_qvs= ");
     for (k=0; k<nr; k++) 
-        fprintf(stderr, "3.2%f ", reads[k].ave_qv);
+        fprintf(stderr, "%3.1f ", reads[k].ave_qv);
     fprintf(stderr, "\n");
 #endif
-    FREE(count);
 }
 
 static int
@@ -2585,6 +2633,161 @@ PopulateDistMatrix(Read *reads, int len, VarRegion  *vreg)
                 GetDistanceBetweenReads(reads[i].bases, reads[j].bases, len);
             vreg->dist_matrix[j][i] = vreg->dist_matrix[i][j];
         }
+    }
+}
+
+static int
+GetTheMostDistantRead(int curr_read_id, int32 nr, int32 **dist_matrix)
+{
+    int i, dist_read_id = -1;
+    int max_dist = 0;
+    for (i=0; i<nr; i++)
+    {
+        if (i == curr_read_id)
+            continue;
+
+        if (max_dist < dist_matrix[curr_read_id][i])
+        {
+            max_dist = dist_matrix[curr_read_id][i];
+            dist_read_id = i;
+        }
+    }
+    return dist_read_id; 
+}
+
+static void
+GenerateVarRecord(int32 *cids, int32 *nvars, int32 *min_len_vlist,
+    IntMultiVar **v_list, VarRegion vreg, CNS_Options *opp, int get_scores)
+{
+    double fict_var;
+    int m;
+    int num_reported_alleles= (vreg.nca < 2) ? 2 : vreg.nca;
+    char  *cbase = (char*)safe_calloc(num_reported_alleles,sizeof(char));
+
+    if (!(*v_list)) {
+       *v_list = (IntMultiVar *)safe_malloc(*min_len_vlist*
+            sizeof(IntMultiVar));
+    }
+    if (*nvars == *min_len_vlist) {
+        *min_len_vlist += 10;
+       *v_list = (IntMultiVar *)safe_realloc(*v_list, *min_len_vlist*
+            sizeof(IntMultiVar));
+    }
+    (*v_list)[*nvars].position.bgn = vreg.beg;
+    (*v_list)[*nvars].position.end = vreg.end+1;
+    (*v_list)[*nvars].num_reads = (int32)vreg.nr;
+    (*v_list)[*nvars].nr_best_allele = (int32)vreg.alleles[0].num_reads;
+    (*v_list)[*nvars].num_alleles = vreg.nca;
+    (*v_list)[*nvars].ratio = vreg.alleles[1].weight / vreg.alleles[0].weight;
+    (*v_list)[*nvars].window_size = opp->smooth_win;
+    (*v_list)[*nvars].var_length = vreg.end+1-vreg.beg;
+    (*v_list)[*nvars].var_seq
+        = (char*)safe_malloc(num_reported_alleles*(vreg.end-vreg.beg+2)* 
+        sizeof(char));
+    NumVARRecords++;
+    {
+        int al;
+        int32 shift   = vreg.end-vreg.beg+2;
+        int distant_read_id;
+        if (num_reported_alleles <= vreg.nca)
+        {
+            int distant_allele_id;  
+            distant_read_id = GetTheMostDistantRead(vreg.alleles[0].read_ids[0],
+                vreg.nr, vreg.dist_matrix);
+            distant_allele_id = vreg.reads[distant_read_id].allele_id;
+            (*v_list)[*nvars].ratio = vreg.alleles[distant_read_id].weight / 
+                                      vreg.alleles[0              ].weight;
+        }
+       
+        for (m=0; m<vreg.end-vreg.beg+1; m++)           
+        {
+            for (al=num_reported_alleles-1; al >=0; al--)
+            {
+                if (al == 0)
+                {
+                    BaseCall(cids[vreg.beg+m], 1, &fict_var, &vreg,
+                    vreg.alleles[al].id, &cbase[al], 0, 0, opp);
+                    (*v_list)[*nvars].var_seq[m+al*shift] = cbase[al];
+                }
+                else if (num_reported_alleles <= vreg.nca) // nca >= 2
+                {
+                    int read_id = vreg.alleles[al].read_ids[0];
+                    cbase[al] = vreg.reads[read_id].bases[m];
+                    (*v_list)[*nvars].var_seq[m+al*shift] = cbase[al];
+                }
+                else // nca < 2
+                {
+                    cbase[al] = vreg.reads[distant_read_id].bases[m];
+                    (*v_list)[*nvars].var_seq[m+al*shift] = cbase[al]; 
+                }
+            }
+            if (get_scores > 0)
+               UpdateScores(vreg, cbase, num_reported_alleles);
+        }
+
+        for (al=0; al < num_reported_alleles; al++)
+        {
+            if (al < num_reported_alleles-1)
+                (*v_list)[*nvars].var_seq[-1+(al+1)*shift] = '/';
+            else
+                (*v_list)[*nvars].var_seq[-1+(al+1)*shift] = '\0';
+        }
+#if 0
+        fprintf(stderr, "len= %d var_seq = %s\n", vreg.end-vreg.beg+1, (*v_list)[*nvars].var_seq);
+        
+#endif        
+        for (al=0; al < num_reported_alleles; al++)
+        { 
+            if ((*v_list)[*nvars].var_seq[al*shift]             == '-' &&
+                (*v_list)[*nvars].var_seq[al*shift + shift - 2] == '-')
+            {
+                NumVARStringsWithFlankingGaps++;
+            }
+        }
+    }
+    FREE(cbase);
+#if DEBUG_ABACUS
+    fprintf(stderr, "VARiation= %s\n", (*v_list)[*nvars].var_seq);
+#endif
+                (*nvars)++;
+}
+
+
+// Allocate memrory for reads
+static void
+AllocateMemoryForReads(Read **reads, int32 nr, int32 len,
+    int default_qv)
+{
+    int i, j;    
+
+   *reads = (Read *)safe_malloc(nr*sizeof(Read));
+    for (i=0; i<nr; i++) 
+    {
+      (*reads)[i].allele_id = -1;
+      (*reads)[i].ave_qv = 0.;
+      (*reads)[i].bases = (char *)safe_malloc(len*sizeof(char));
+      (*reads)[i].qvs   = (int  *)safe_malloc(len*sizeof(int ));
+        for(j=0; j<len; j++)
+        {
+          (*reads)[i].bases[j] = '-';
+          (*reads)[i].qvs[j] = default_qv;
+        }
+    }
+}
+
+// Allocate memrory for alleles
+static void
+AllocateMemoryForAlleles(Allele **alleles, int32 nr, int32 *na)
+{
+    int j;
+
+   *na = 0;
+   *alleles = (Allele *)safe_calloc(nr, sizeof(Allele));
+    for (j=0; j<nr; j++)
+    {
+      (*alleles)[j].id = -1;
+      (*alleles)[j].weight = 0.;
+      (*alleles)[j].read_ids = (int *)safe_calloc(nr, sizeof(int));
     }
 }
 
@@ -2787,15 +2990,9 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
                 GetReadIidsAndNumReads(cids[j], &vreg);
    
             // Allocate memrory for reads
-            vreg.reads = (Read *)safe_malloc(vreg.nr*sizeof(Read));
-            for (l=0; l<vreg.nr; l++) {
-                vreg.reads[l].allele_id = -1;
-                vreg.reads[l].ave_qv = 0.;
-                vreg.reads[l].bases = (char *)safe_malloc((vreg.end - vreg.beg + 1)*sizeof(char));
-                for(j=0; j<vreg.end - vreg.beg + 1; j++) 
-                    vreg.reads[l].bases[j] = '-';
+            AllocateMemoryForReads(&vreg.reads, vreg.nr, vreg.end - vreg.beg + 1, 
+                0);
 
-            }
 #if 0
             fprintf(stderr, "Num_reads= %d vreg.beg= %d vreg.end= %d\n", vreg.nr, vreg.beg, vreg.end);
             fprintf(stderr, "Reads=\n");
@@ -2834,14 +3031,7 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
 //          OutputDistMatrix(&vreg);
 
             // Allocate memory for alleles
-            vreg.na = 0;
-            vreg.alleles = (Allele *)safe_calloc(vreg.nr, sizeof(Allele));
-            for (j=0; j<vreg.nr; j++)
-            {
-                vreg.alleles[j].id = -1;
-                vreg.alleles[j].weight = 0.;
-                vreg.alleles[j].read_ids = (int *)safe_calloc(vreg.nr, sizeof(int));
-            }
+            AllocateMemoryForAlleles(&vreg.alleles, vreg.nr, &vreg.na);
 
             // Populate vreg.alleles array
             // Determine the best allele and the number of reads in this allele
@@ -2855,65 +3045,12 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
             fprintf(stderr, "\n");
 #endif
             SortAlleles(vreg.alleles, vreg.na);
-            vreg.best_allele = vreg.alleles[0].id;
 
             /* Store variations in a v_list */
-            if ((quality > 0) && make_v_list 
-                                             // && (vreg.nr > 0)
-                                                              )
+            if (quality > 0 && make_v_list)
             {
-                if (!(*v_list))
-                {
-                   *v_list = (IntMultiVar *)safe_malloc(min_len_vlist*
-                        sizeof(IntMultiVar));
-                }
-                if ((*nvars == min_len_vlist) && quality > 0 && make_v_list)
-                {
-                    min_len_vlist += 10;
-                   *v_list = (IntMultiVar *)safe_realloc(*v_list, min_len_vlist*
-                        sizeof(IntMultiVar));
-                }
-                (*v_list)[*nvars].position.bgn = vreg.beg;
-                (*v_list)[*nvars].position.end = vreg.end+1;
-                (*v_list)[*nvars].num_reads = (int32)vreg.nr;
-                (*v_list)[*nvars].nr_best_allele = (int32)vreg.alleles[0].id; 
-                (*v_list)[*nvars].num_alleles = vreg.nca;
-                (*v_list)[*nvars].ratio = vreg.alleles[1].weight / vreg.alleles[0].weight;
-                (*v_list)[*nvars].window_size = opp->smooth_win;
-                (*v_list)[*nvars].var_length = vreg.end+1-vreg.beg;
-                (*v_list)[*nvars].var_seq
-                      = (char*)safe_calloc(2*(vreg.end-vreg.beg)+4, sizeof(char));
-                NumVARRecords++;
-                {
-                    int m;
-                    for (m=0; m<vreg.end-vreg.beg+1; m++)
-                    {
-                       // Get the consensus base for an alternative allele
-                       BaseCall(cids[vreg.beg+m], quality, &fict_var, &vreg,
-                           vreg.alleles[1].id, &abase, 0, 0, opp);
-                       // Get the consensus base for the best allele
-                       BaseCall(cids[vreg.beg+m], quality, &fict_var, &vreg,
-                           vreg.alleles[0].id, &cbase, 0, 0, opp);
-                       (*v_list)[*nvars].var_seq[vreg.end-vreg.beg+2+m] = abase;
-                       (*v_list)[*nvars].var_seq[m          ] = cbase;
-                       if (get_scores > 0)
-                           UpdateScores(vreg, cbase, abase); 
-                    }
-                    (*v_list)[*nvars].var_seq[vreg.end-vreg.beg+1] = '/';
-                    (*v_list)[*nvars].var_seq[2*(vreg.end-vreg.beg)+3] = '\0';
-                    if (((*v_list)[*nvars].var_seq[0      ] == '-' &&
-                         (*v_list)[*nvars].var_seq[vreg.end-vreg.beg] == '-')
-                         ||
-                        ((*v_list)[*nvars].var_seq[vreg.end-vreg.beg+2] == '-' &&
-                         (*v_list)[*nvars].var_seq[2*(vreg.end-vreg.beg)+2] == '-'))
-                    {
-                        NumVARStringsWithFlankingGaps++;
-                    }
-                }
-#if DEBUG_ABACUS
-                    fprintf(stderr, "VARiation= %s\n", (*v_list)[*nvars].var_seq);
-#endif
-                (*nvars)++;
+                GenerateVarRecord(cids, nvars, &min_len_vlist, v_list, vreg,
+                    opp, get_scores); 
             }
             
             i = vend;
@@ -2922,6 +3059,7 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
             {
                 FREE(vreg.dist_matrix[j]);
                 FREE(vreg.reads[j].bases);
+                FREE(vreg.reads[j].qvs);
                 FREE(vreg.alleles[j].read_ids);
             }
             FREE(vreg.dist_matrix); 
@@ -6197,22 +6335,10 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
 
         SetDefault(&vreg);
         vreg.nr = best_abacus->rows;
-        vreg.na = 0;
-        vreg.alleles = (Allele *)safe_calloc(vreg.nr, sizeof(Allele));
-        for (j=0; j<vreg.nr; j++)
-        {
-            vreg.alleles[j].id = -1;
-            vreg.alleles[j].read_ids = (int *)safe_calloc(vreg.nr, sizeof(int));
-        }
 
         AllocateDistMatrix(&vreg, 0);
-        vreg.reads = (Read *)safe_malloc(orig_abacus->rows * sizeof(Read));
-        for (i=0; i<orig_abacus->rows; i++) {
-            vreg.reads[i].allele_id = -1;
-            vreg.reads[i].bases = (char *)safe_malloc(orig_abacus->columns *sizeof(char));
-            for (j=0; j<orig_abacus->window_width; j++)
-                vreg.reads[i].bases[j] = '-';
-        }
+        AllocateMemoryForReads(&vreg.reads, orig_abacus->rows, orig_abacus->columns, 
+            QV_FOR_MULTI_GAP);
         GetReadsForAbacus(vreg.reads, best_abacus);
 #if 0
     fprintf(stderr, "\nReads =\n");
@@ -6231,11 +6357,10 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
 #if DEBUG_ABACUS
         OutputDistMatrix(&vreg);
 #endif
-
+        AllocateMemoryForAlleles(&vreg.alleles, vreg.nr, &vreg.na);
         ClusterReads(vreg.reads, vreg.nr, vreg.alleles, &vreg.na, 
             &vreg.nca, vreg.dist_matrix);
         SortAlleles(vreg.alleles, vreg.na);
-        vreg.best_allele = vreg.alleles[0].id;
 #if 0
         fprintf(stderr, "vreg.alleles= ");
         for (i=0; i<vreg.nr; i++)
@@ -6277,6 +6402,7 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
                     FREE(vreg.alleles[j].read_ids);
                     FREE(vreg.dist_matrix[j]);
                     FREE(vreg.reads[j].bases);
+                    FREE(vreg.reads[j].qvs);
                 }
                 FREE(vreg.reads);
                 FREE(vreg.alleles);
@@ -6309,6 +6435,7 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
                     FREE(vreg.alleles[j].read_ids);
                     FREE(vreg.dist_matrix[j]);
                     FREE(vreg.reads[j].bases);
+                    FREE(vreg.reads[j].qvs);
                 }
                 FREE(vreg.reads);
                 FREE(vreg.alleles);
@@ -6450,6 +6577,7 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
                 FREE(vreg.alleles[j].read_ids);
                 FREE(vreg.dist_matrix[j]);
                 FREE(vreg.reads[j].bases);
+                FREE(vreg.reads[j].qvs);
             }
             FREE(vreg.reads);
             FREE(vreg.alleles);
@@ -8154,7 +8282,7 @@ int ExamineMANode(FILE *outFile,int32 sid, int32 mid, UnitigData *tigData,int nu
     qv = *Getchar(qualityStore,cbead->soffset);
     fprintf(outFile,"%d\t%d\t%d\t%d\t%c\t%c\t" ,sid,ma->iid,index,ugindex,base,qv);
     ShowBaseCountPlain(outFile,&column->base_count);
-    BaseCall(cid, 1, &var, &vreg, vreg.best_allele, &base, 0, 0, opp); 
+    BaseCall(cid, 1, &var, &vreg, vreg.alleles[0].id, &base, 0, 0, opp); 
          // recall with quality on (and QV parameters set by user)
     fprintf(outFile,"%c\t%c\t", *Getchar(sequenceStore,cbead->soffset), 
         *Getchar(qualityStore,cbead->soffset));
