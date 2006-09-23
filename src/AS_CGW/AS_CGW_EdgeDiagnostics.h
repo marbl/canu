@@ -79,7 +79,7 @@ void PopulateChunkEdgeBasics(ScaffoldGraphT * graph,
                              ChunkInstanceT * chunkB,
                              DistT * dist,
                              EdgeCGW_T * edge);
-int ValidateAllContigEdges(ScaffoldGraphT * graph, int fixBadOnes);
+void ValidateAllContigEdges(ScaffoldGraphT * graph, int fixBadOnes);
 
 
 void DestroyContigOrientChecker(ContigOrientChecker * coc);

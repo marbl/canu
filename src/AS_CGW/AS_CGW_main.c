@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.25 2006-09-21 21:34:00 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.26 2006-09-23 05:35:54 brianwalenz Exp $";
 
 
 static const char *usage = 
@@ -89,10 +89,6 @@ static const char *usage =
 "Writes multiAlignments to <OutputPath>.SeqStore\n"
 "Writes output to <OutputPath>.cgw\n";
 
-//#define DEBUG 1
-//#define DEBUG_BUCIS 1
-//#define DEBUG_MERGE_SCAF 1
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -111,8 +107,9 @@ static const char *usage =
 #include <fpu_control.h>
 #endif
 
+#define DEBUG_MERGE_SCAF FALSE
+
 #undef INSTRUMENT_CGW
-//#define INSTRUMENT_CGW
 //#define CHECK_CONTIG_ORDERS
 //#define CHECK_CONTIG_ORDERS_INCREMENTAL
 
@@ -122,8 +119,10 @@ static const char *usage =
 #define POPULATE_COC_HASHTABLE 0
 #endif
 
-//#define FIX_CONTIG_EDGES 0
-//#define FIX_CONTIG_EDGES 1
+//  If -1, do not test or fix edges.  If 0, test but do not fix.  If
+//  1, test and fix edges.
+//
+#define FIX_CONTIG_EDGES -1
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -144,22 +143,13 @@ static const char *usage =
 #include "FbacREZ.h"
 #include "Stats_CGW.h"
 #include "AS_ALN_forcns.h"
-
-#ifdef INSTRUMENT_CGW
 #include "Instrument_CGW.h"
-#endif
-
-#if defined(CHECK_CONTIG_ORDERS) || defined(CHECK_CONTIG_ORDERS_INCREMENTAL)
 #include "AS_CGW_EdgeDiagnostics.h"
-#endif
+#include "Checkpoints_CGW.h"
 
 extern int allow_forced_frags;
 
 FILE *  File_Open (const char * Filename, const char * Mode, int exitOnFailure);
-
-
-//  The checkpoint list that used to be here is now in Checkpoints_CGW.h
-#include "Checkpoints_CGW.h"
 
 
 int main(int argc, char *argv[]){
@@ -760,17 +750,12 @@ int main(int argc, char *argv[]){
       data->repeatRezLevel > 0)){
     int skipInitialScaffolds = 0;
 
-#ifdef RAT_LBAC_REACTIVATION
-#include obsolete/rat_lbac_reactivation
-#endif
+    //#include obsolete/rat_lbac_reactivation
 
     if(GlobalData->debugLevel > 0)
       DumpContigs(data->stderrc,ScaffoldGraph, FALSE);
 
-#ifdef FIX_CONTIG_EDGES
-    fprintf(GlobalData->stderrc, "VALIDATING ALL CONTIG EDGES...\n");
     ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
-#endif
 
     skipInitialScaffolds = (restartFromLogicalCheckpoint >= CHECKPOINT_AFTER_BUILDING_SCAFFOLDS);
 
@@ -803,9 +788,7 @@ int main(int argc, char *argv[]){
 
   }
 
-#ifdef COMPUTE_NEW_DIST_ESTIMATES
-#include obsolete/compute_new_dist_estimates
-#endif
+  //#include obsolete/compute_new_dist_estimates
 
   // Conservative external gap walking
 
@@ -823,10 +806,7 @@ int main(int argc, char *argv[]){
         Walk_Gaps(GlobalData, GlobalData->File_Name_Prefix, GlobalData->walkLevel, startScaffoldWalkFrom, 
                   CONSERVATIVE_WALKING_STD_DEVS);
         StopTimerT(&data->GapWalkerTimer);
-#ifdef FIX_CONTIG_EDGES
-        fprintf(GlobalData->stderrc, "VALIDATING ALL CONTIG EDGES...\n");
         ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
-#endif
         CheckCIScaffoldTs(ScaffoldGraph);
 
 
@@ -871,13 +851,9 @@ int main(int argc, char *argv[]){
       DumpScaffoldSnapshot("PreScafMerge");
     }
     /* First we try to merge Scaffolds agressively */
-#define DEBUG_MERGE_SCAF FALSE
     MergeScaffoldsAggressive(ScaffoldGraph, CHECKPOINT_BEFORE_1ST_SCAFF_MERGE, DEBUG_MERGE_SCAF);
 
-#ifdef FIX_CONTIG_EDGES
-    fprintf(GlobalData->stderrc, "VALIDATING ALL CONTIG EDGES...\n");
     ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
-#endif
     CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, FALSE);
 
 #if defined(CHECK_CONTIG_ORDERS) || defined(CHECK_CONTIG_ORDERS_INCREMENTAL)
@@ -930,10 +906,7 @@ int main(int argc, char *argv[]){
     fprintf(GlobalData->stderrc, "**** Finished Stone Throwing level %d ****\n",
             GlobalData->stoneLevel);
 
-#ifdef FIX_CONTIG_EDGES
-    fprintf(GlobalData->stderrc, "VALIDATING ALL CONTIG EDGES...\n");
     ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
-#endif
 
     CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, FALSE);
        
@@ -1002,10 +975,7 @@ int main(int argc, char *argv[]){
       DestroyScaffoldGraphInstrumenter(sg_inst);
 #endif
 
-#ifdef FIX_CONTIG_EDGES
-      fprintf(GlobalData->stderrc, "VALIDATING ALL CONTIG EDGES...\n");
       ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
-#endif
       CheckCIScaffoldTs(ScaffoldGraph);
 
 
@@ -1042,10 +1012,7 @@ int main(int argc, char *argv[]){
 
     MergeScaffoldsAggressive(ScaffoldGraph, CHECKPOINT_BEFORE_2ND_SCAFF_MERGE, DEBUG_MERGE_SCAF);
 
-#ifdef FIX_CONTIG_EDGES
-    fprintf(GlobalData->stderrc, "VALIDATING ALL CONTIG EDGES...\n");
     ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
-#endif
     CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, FALSE);
 
 #if defined(CHECK_CONTIG_ORDERS) || defined(CHECK_CONTIG_ORDERS_INCREMENTAL)
@@ -1125,10 +1092,7 @@ int main(int argc, char *argv[]){
                "**** Finished Partial Stones level %d ****\n",
                GlobalData -> stoneLevel);
       
-#ifdef FIX_CONTIG_EDGES
-      fprintf(GlobalData->stderrc, "VALIDATING ALL CONTIG EDGES...\n");
       ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
-#endif
       CleanupScaffolds (ScaffoldGraph, FALSE, NULLINDEX, FALSE);
       ClearCacheSequenceDB (ScaffoldGraph -> sequenceDB, FALSE);
 
@@ -1173,10 +1137,7 @@ int main(int argc, char *argv[]){
         = Toss_Contained_Stones (GlobalData -> File_Name_Prefix,
                                  GlobalData -> stoneLevel, 0);
       StopTimerT (& data -> StoneThrowingTimer);
-#ifdef FIX_CONTIG_EDGES
-      fprintf(GlobalData->stderrc, "VALIDATING ALL CONTIG EDGES...\n");
       ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
-#endif
       CheckCIScaffoldTs (ScaffoldGraph);
       fprintf (GlobalData -> stderrc,
                "**** Finished Final Contained Stones level %d ****\n",
@@ -1234,10 +1195,7 @@ int main(int argc, char *argv[]){
       ResetContigOrientChecker(coc);
       AddAllScaffoldsToContigOrientChecker(ScaffoldGraph, coc);
 #endif
-#ifdef FIX_CONTIG_EDGES
-      fprintf(GlobalData->stderrc, "VALIDATING ALL CONTIG EDGES...\n");
       ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
-#endif
       fprintf(data->timefp,"Checkpoint %d written after Inter_Scaffold_Walking\n", 
               ScaffoldGraph->checkPointIteration);
       CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_BEFORE_INTER_SCAFFOLD_WALKING+1);
@@ -1255,11 +1213,7 @@ int main(int argc, char *argv[]){
       fprintf(data->timefp,"Checkpoint %d written after CleanupFailedMergesInScaffolds\n",ScaffoldGraph->checkPointIteration);
       CheckpointScaffoldGraph(ScaffoldGraph, -1);
 
-
-#ifdef FIX_CONTIG_EDGES
-      fprintf(GlobalData->stderrc, "VALIDATING ALL CONTIG EDGES...\n");
       ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
-#endif
       
       // This call deletes surrogate-only contigs that failed to merge
       if( CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, TRUE)){
@@ -1271,10 +1225,7 @@ int main(int argc, char *argv[]){
                 "---Checking contig orders after final cleanup\n\n");
         CheckAllContigOrientationsInAllScaffolds(ScaffoldGraph, coc, POPULATE_COC_HASHTABLE);
 #endif
-#ifdef FIX_CONTIG_EDGES
-        fprintf(GlobalData->stderrc, "VALIDATING ALL CONTIG EDGES...\n");
         ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
-#endif
       }
     }
   }
@@ -1387,7 +1338,6 @@ int main(int argc, char *argv[]){
 	    TotalTimerT(&data->OutputTimer, NULL));
   }
 
-  /******************/
 
   {
     long cycles;
@@ -1413,19 +1363,12 @@ int main(int argc, char *argv[]){
 	    TotalTimerT(&data->ConsensusTimer, &cycles), cycles);
   }
 
-  if(data->verbose)
-    fprintf(GlobalData->stderrc,"* Deleting Scaffold Graph *\n");
   DestroyScaffoldGraph(ScaffoldGraph);
 
-  if(restartFromCheckpoint == NULLINDEX){
-    fprintf(GlobalData->stderrc,"* Deleting Globals\n");
+  if(restartFromCheckpoint == NULLINDEX)
     DeleteGlobal_CGW(data);
-  }
 
   fprintf(stderr,"* Bye *\n");
 
   exit(0);
 }
-  
-/****************************************************************************/
-

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.5 2006-09-21 21:34:00 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.6 2006-09-23 05:35:54 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -891,11 +891,16 @@ int CheckAllEdgesForChunk(ScaffoldGraphT * graph,
 }
 
 
-int ValidateAllContigEdges(ScaffoldGraphT * graph, int fixBadOnes)
+void ValidateAllContigEdges(ScaffoldGraphT * graph, int fixBadOnes)
 {
   CDS_CID_t sID;
   int retVal = 0;
-  
+
+  if (fixBadOnes == -1)
+    return;
+
+  fprintf(GlobalData->stderrc, "ValidateAllContigEdges()-- VALIDATING ALL CONTIG EDGES\n");
+
   for(sID = 0; sID < GetNumCIScaffoldTs(graph->CIScaffolds); sID++)
     {
       CIScaffoldT * scaffold = GetCIScaffoldT(graph->CIScaffolds, sID);
@@ -912,8 +917,8 @@ int ValidateAllContigEdges(ScaffoldGraphT * graph, int fixBadOnes)
           retVal |= CheckAllEdgesForChunk(graph, contig, 0, 1, fixBadOnes);
         }
     }
-  
-  return retVal;
+
+  fprintf(stderr, "ValidateAllContigEdges()--  retVal = %d\n", retVal);
 }
 
 
