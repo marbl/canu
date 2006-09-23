@@ -25,7 +25,7 @@
                  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: TestBaseCall_CNS.c,v 1.12 2006-09-18 18:48:17 gdenisov Exp $";
+static char CM_ID[] = "$Id: TestBaseCall_CNS.c,v 1.13 2006-09-23 11:21:02 gdenisov Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -156,7 +156,7 @@ int main (int argc, char *argv[])
    ResetStores(LINE_MAX,20);
    cid = SetupSingleColumn(seq,qlt,frag_type,unitig_type, NULL);
    
-   BaseCall(cid,CNS_USE_QVS, &var, &vr, vr.best_allele, &base, 1, 0, NULL);
+   BaseCall(cid,CNS_USE_QVS, &var, &vr, vr.alleles[0].id, &base, 1, 0, NULL);
    ShowColumn(cid);
    fprintf(stdout,"\nparameters:\n");
    fprintf(stdout,"             CNS_USE_QVS = %d\n",CNS_USE_QVS); 

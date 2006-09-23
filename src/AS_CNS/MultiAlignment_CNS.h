@@ -75,16 +75,13 @@ typedef struct {
 /*  This structure is used when recalling consensus bases
  *  to use only one of two alleles
  */
-int32    beg;
-int32    end;
+int32    beg;         // position of the left boundary
+int32    end;         // position of the right boundary
 int32    nr;          // number of reads in the region of variation
 int32    max_nr;
-int32    nb;
-int32    nr_best_allele;
-int32    best_allele;
+int      nb;          // number of "current" bases
 int32    na;          // total number of detected alleles
 int32    nca;         // number of confirmed alleles
-double   ratio;
 char    *curr_bases;  // dim = nr
 char    *types;       // dim = nr
 int32   *iids;        // iids of the reads
