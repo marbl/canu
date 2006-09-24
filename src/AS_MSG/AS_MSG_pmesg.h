@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.21 2006-05-24 14:06:13 eliv Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.22 2006-09-24 13:07:48 gdenisov Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -842,13 +842,13 @@ typedef struct IntMultiPos {
 
 typedef struct IntMultiVar {
   SeqInterval     position;
-  int32           var_length;
-  char           *var_seq;
   int32           num_reads;
-  int32           nr_best_allele;
-  float           ratio;     
-  int32           num_alleles;
-  int32           window_size;  
+  int32           num_conf_alleles;
+  int32           anchor_size;
+  int32           var_length;
+  char           *nr_conf_alleles;
+  char           *weights;
+  char           *var_seq;
 } IntMultiVar;
 
 /* This is a variant of IntMultiPos to handle deltas in a longer (unitig) sequence */
@@ -857,8 +857,8 @@ typedef struct {
   IntUnitig_ID  ident;
   SeqInterval   position;
   int32         delta_length;
-  int32                 wordPad;
-  int32         *delta;
+  int32         wordPad;
+  int32        *delta;
 #ifdef i386
   int32 ptrPad;
 #endif
@@ -1151,9 +1151,9 @@ typedef struct {
   Contig_ID                   eaccession;
   IntContig_ID                iaccession;
   ContigPlacementStatusType   placed;
-  CDS_COORD_t              length;
-  char                        *consensus;
-  char                        *quality;
+  CDS_COORD_t                 length;
+  char                       *consensus;
+  char                       *quality;
   int32                       forced;
   int32                       num_pieces;
   int32                       num_unitigs;

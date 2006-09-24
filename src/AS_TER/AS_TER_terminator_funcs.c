@@ -25,7 +25,7 @@
  Assumptions: There is no UID 0
 **********************************************************************/
 
-static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.17 2006-08-23 10:55:47 jason_miller Exp $";
+static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.18 2006-09-24 13:08:44 gdenisov Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_ReadStruct.h"
@@ -702,14 +702,14 @@ static SnapConConMesg* convert_ICM_to_CCO(IntConConMesg* icmMesg, int32 real)
      ccoMesg->vars = (IntMultiVar*) safe_malloc(icmMesg->num_vars*sizeof(IntMultiVar));
      for(i=0; i<icmMesg->num_vars; i++) // i loop
      {
-        ccoMesg->vars[i].position       = icmMesg->v_list[i].position;
-        ccoMesg->vars[i].num_reads      = icmMesg->v_list[i].num_reads; 
-        ccoMesg->vars[i].nr_best_allele = icmMesg->v_list[i].nr_best_allele;
-        ccoMesg->vars[i].num_alleles    = icmMesg->v_list[i].num_alleles;
-        ccoMesg->vars[i].ratio          = icmMesg->v_list[i].ratio;       
-        ccoMesg->vars[i].window_size    = icmMesg->v_list[i].window_size;
-        ccoMesg->vars[i].var_length     = icmMesg->v_list[i].var_length ;
-        ccoMesg->vars[i].var_seq        = strdup(icmMesg->v_list[i].var_seq);  
+        ccoMesg->vars[i].position         = icmMesg->v_list[i].position;
+        ccoMesg->vars[i].num_reads        = icmMesg->v_list[i].num_reads; 
+        ccoMesg->vars[i].num_conf_alleles = icmMesg->v_list[i].num_conf_alleles;
+        ccoMesg->vars[i].anchor_size      = icmMesg->v_list[i].anchor_size;
+        ccoMesg->vars[i].var_length       = icmMesg->v_list[i].var_length ;
+        ccoMesg->vars[i].nr_conf_alleles  = strdup(icmMesg->v_list[i].nr_conf_alleles);
+        ccoMesg->vars[i].weights          = strdup(icmMesg->v_list[i].weights);
+        ccoMesg->vars[i].var_seq          = strdup(icmMesg->v_list[i].var_seq);  
      }
       
   }
