@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.89 2006-09-22 19:08:29 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.90 2006-09-24 13:00:00 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -2656,13 +2656,14 @@ GetTheMostDistantRead(int curr_read_id, int32 nr, int32 **dist_matrix)
 }
 
 static void
-GenerateVarRecord(int32 *cids, int32 *nvars, int32 *min_len_vlist,
+PopulateVarRecord(int32 *cids, int32 *nvars, int32 *min_len_vlist,
     IntMultiVar **v_list, VarRegion vreg, CNS_Options *opp, int get_scores)
 {
     double fict_var;
     int m;
     int num_reported_alleles= (vreg.nca < 2) ? 2 : vreg.nca;
     char  *cbase = (char*)safe_calloc(num_reported_alleles,sizeof(char));
+    char buf[10000];
 
     if (!(*v_list)) {
        *v_list = (IntMultiVar *)safe_malloc(*min_len_vlist*
@@ -2676,27 +2677,27 @@ GenerateVarRecord(int32 *cids, int32 *nvars, int32 *min_len_vlist,
     (*v_list)[*nvars].position.bgn = vreg.beg;
     (*v_list)[*nvars].position.end = vreg.end+1;
     (*v_list)[*nvars].num_reads = (int32)vreg.nr;
-    (*v_list)[*nvars].nr_best_allele = (int32)vreg.alleles[0].num_reads;
-    (*v_list)[*nvars].num_alleles = vreg.nca;
-    (*v_list)[*nvars].ratio = vreg.alleles[1].weight / vreg.alleles[0].weight;
-    (*v_list)[*nvars].window_size = opp->smooth_win;
+    (*v_list)[*nvars].num_conf_alleles = vreg.nca;
+    (*v_list)[*nvars].anchor_size = opp->smooth_win;
     (*v_list)[*nvars].var_length = vreg.end+1-vreg.beg;
-    (*v_list)[*nvars].var_seq
-        = (char*)safe_malloc(num_reported_alleles*(vreg.end-vreg.beg+2)* 
-        sizeof(char));
+
+    (*v_list)[*nvars].weights = (char*)safe_calloc(num_reported_alleles,
+        (5+2)* sizeof(char));
+    (*v_list)[*nvars].nr_conf_alleles = (char*)safe_calloc(num_reported_alleles,
+        (2+2)* sizeof(char));
+    (*v_list)[*nvars].var_seq = (char*)safe_malloc(num_reported_alleles*
+        (vreg.end-vreg.beg+2)* sizeof(char));
+
     NumVARRecords++;
     {
         int al;
         int32 shift   = vreg.end-vreg.beg+2;
-        int distant_read_id;
+        int distant_read_id, distant_allele_id;
         if (num_reported_alleles <= vreg.nca)
         {
-            int distant_allele_id;  
             distant_read_id = GetTheMostDistantRead(vreg.alleles[0].read_ids[0],
                 vreg.nr, vreg.dist_matrix);
             distant_allele_id = vreg.reads[distant_read_id].allele_id;
-            (*v_list)[*nvars].ratio = vreg.alleles[distant_read_id].weight / 
-                                      vreg.alleles[0              ].weight;
         }
        
         for (m=0; m<vreg.end-vreg.beg+1; m++)           
@@ -2707,31 +2708,47 @@ GenerateVarRecord(int32 *cids, int32 *nvars, int32 *min_len_vlist,
                 {
                     BaseCall(cids[vreg.beg+m], 1, &fict_var, &vreg,
                     vreg.alleles[al].id, &cbase[al], 0, 0, opp);
-                    (*v_list)[*nvars].var_seq[m+al*shift] = cbase[al];
                 }
                 else if (num_reported_alleles <= vreg.nca) // nca >= 2
                 {
                     int read_id = vreg.alleles[al].read_ids[0];
                     cbase[al] = vreg.reads[read_id].bases[m];
-                    (*v_list)[*nvars].var_seq[m+al*shift] = cbase[al];
                 }
                 else // nca < 2
                 {
                     cbase[al] = vreg.reads[distant_read_id].bases[m];
-                    (*v_list)[*nvars].var_seq[m+al*shift] = cbase[al]; 
                 }
+                (*v_list)[*nvars].var_seq[m+al*shift] = cbase[al];
             }
             if (get_scores > 0)
                UpdateScores(vreg, cbase, num_reported_alleles);
         }
 
+        sprintf((*v_list)[*nvars].weights, "");
+        sprintf((*v_list)[*nvars].nr_conf_alleles, "");
         for (al=0; al < num_reported_alleles; al++)
         {
-            if (al < num_reported_alleles-1)
-                (*v_list)[*nvars].var_seq[-1+(al+1)*shift] = '/';
-            else
-                (*v_list)[*nvars].var_seq[-1+(al+1)*shift] = '\0';
+            double weight = vreg.alleles[al].weight;
+            int    num_reads = vreg.alleles[al].num_reads;
+            char *format_weight = (al < num_reported_alleles-1) ?
+                "%.1f/" : "%.1f\0";
+            char *format_num_reads = (al < num_reported_alleles-1) ?
+                "%d/" : "%d\0";
+            
+            (*v_list)[*nvars].var_seq[-1+(al+1)*shift] =
+                (al < num_reported_alleles-1) ? '/' : '\0';
+
+            sprintf(buf, format_weight, weight);
+            (*v_list)[*nvars].weights = strcat((*v_list)[*nvars].weights, buf);
+        
+            sprintf(buf, format_num_reads, num_reads);
+            (*v_list)[*nvars].nr_conf_alleles = strcat((*v_list)[*nvars].nr_conf_alleles, buf);
         }
+#if 0
+        fprintf(stderr, "In PolulateVarRecord: weights= %s , nr_conf_alleles= %s\n",
+            (*v_list)[*nvars].weights, (*v_list)[*nvars].nr_conf_alleles);
+#endif
+
 #if 0
         fprintf(stderr, "len= %d var_seq = %s\n", vreg.end-vreg.beg+1, (*v_list)[*nvars].var_seq);
         
@@ -3049,7 +3066,7 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
             /* Store variations in a v_list */
             if (quality > 0 && make_v_list)
             {
-                GenerateVarRecord(cids, nvars, &min_len_vlist, v_list, vreg,
+                PopulateVarRecord(cids, nvars, &min_len_vlist, v_list, vreg,
                     opp, get_scores); 
             }
             

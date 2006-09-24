@@ -25,7 +25,7 @@
    Assumptions:  libAS_UTL.a
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.16 2006-09-19 20:28:14 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.17 2006-09-24 13:00:00 gdenisov Exp $";
 
 
 #include <assert.h>
@@ -254,7 +254,7 @@ CopyMultiAlignT(MultiAlignT *newma, MultiAlignT *ma)
   newma->source_alloc = ma->source_alloc;
   {/* Adjust the delta pointers in the clone */
     int i;
-    char *old_source, *old_var_seq;
+    char *old_source, *old_var_seq, *old_nr_conf_alleles, *old_weights;
     int src_len;
     int32 *oldbase = Getint32(ma->delta, 0);
     int32 *newbase = Getint32(newma->delta, 0);
@@ -268,9 +268,16 @@ CopyMultiAlignT(MultiAlignT *newma, MultiAlignT *ma)
     for(i = 0; i < numv; i++)
     {
       IntMultiVar *nvar = GetIntMultiVar(newma->v_list,i);
-      old_var_seq = nvar->var_seq;
+      old_nr_conf_alleles = nvar->nr_conf_alleles;
+      old_weights         = nvar->weights;
+      old_var_seq         = nvar->var_seq;
       nvar->var_seq = (char *) safe_malloc((strlen(old_var_seq)+1)*sizeof(char));
-      strcpy(nvar->var_seq, old_var_seq);
+      nvar->nr_conf_alleles = (char *) safe_malloc((strlen(old_nr_conf_alleles)+1)
+           *sizeof(char));
+      nvar->weights = (char *) safe_malloc((strlen(old_weights)+1)*sizeof(char));
+      strcpy(nvar->nr_conf_alleles, old_nr_conf_alleles);
+      strcpy(nvar->weights,         old_weights);
+      strcpy(nvar->var_seq,         old_var_seq);
     }
   }
   {/* Adjust the delta pointers in the clone */
@@ -640,10 +647,17 @@ CreateMultiAlignTFromICM(IntConConMesg *icm, int localID, int sequenceOnly)
          tmp = *cvr_mesg;
          tmp.position = cvr_mesg->position;
          tmp.num_reads = cvr_mesg->num_reads;
-         tmp.num_alleles = cvr_mesg->num_alleles;
-         tmp.window_size = cvr_mesg->window_size;
+         tmp.num_conf_alleles = cvr_mesg->num_conf_alleles;
+         tmp.anchor_size = cvr_mesg->anchor_size;
          tmp.var_length = cvr_mesg->var_length;
-         tmp.var_seq = (char *) safe_malloc((strlen(cvr_mesg->var_seq)+1)*sizeof(char));
+         tmp.nr_conf_alleles = (char *) safe_malloc(4*sizeof(char)
+            *((cvr_mesg->num_conf_alleles < 2)?2:cvr_mesg->num_conf_alleles));
+         tmp.weights = (char *) safe_malloc(7*sizeof(char)
+            *((cvr_mesg->num_conf_alleles < 2)?2:cvr_mesg->num_conf_alleles));
+         tmp.var_seq = (char *) safe_malloc((cvr_mesg->var_length+1)*sizeof(char)
+            *((cvr_mesg->num_conf_alleles < 2)?2:cvr_mesg->num_conf_alleles));
+         strcpy(tmp.nr_conf_alleles, cvr_mesg->nr_conf_alleles);
+         strcpy(tmp.weights, cvr_mesg->weights);
          strcpy(tmp.var_seq, cvr_mesg->var_seq);
          SetIntMultiVar(ma->v_list, cvr, &tmp);
       }
@@ -765,10 +779,17 @@ CreateMultiAlignTFromCCO(SnapConConMesg *cco, int localID, int sequenceOnly)
          tmp = *cvr_mesg;
          tmp.position = cvr_mesg->position;
          tmp.num_reads = cvr_mesg->num_reads;
-         tmp.num_alleles = cvr_mesg->num_alleles;
-         tmp.window_size = cvr_mesg->window_size;
+         tmp.num_conf_alleles = cvr_mesg->num_conf_alleles;
+         tmp.anchor_size = cvr_mesg->anchor_size;
          tmp.var_length = cvr_mesg->var_length;
-         tmp.var_seq = (char *) safe_malloc((strlen(cvr_mesg->var_seq)+1)*sizeof(char));
+         tmp.nr_conf_alleles = (char *) safe_malloc(4*sizeof(char)
+            *((cvr_mesg->num_conf_alleles < 2)?2:cvr_mesg->num_conf_alleles));
+         tmp.weights = (char *) safe_malloc(7*sizeof(char)
+            *((cvr_mesg->num_conf_alleles < 2)?2:cvr_mesg->num_conf_alleles));
+         tmp.var_seq = (char *) safe_malloc((cvr_mesg->var_length+1)*sizeof(char)
+            *((cvr_mesg->num_conf_alleles < 2)?2:cvr_mesg->num_conf_alleles));
+         strcpy(tmp.nr_conf_alleles, cvr_mesg->nr_conf_alleles);
+         strcpy(tmp.weights, cvr_mesg->weights);
          strcpy(tmp.var_seq, cvr_mesg->var_seq);
          SetIntMultiVar(ma->v_list, cvr, &tmp);
       }
@@ -844,7 +865,9 @@ DeleteMultiAlignT(MultiAlignT *ma)
     if (n_frags > 0) t=GetIntMultiPos(ma->f_list,0);
     if (n_vars > 0) v=GetIntMultiVar(ma->v_list, 0);
     for (i=0;i<n_vars;i++){
-       if ( v->var_seq) free(v->var_seq);
+       if (v->nr_conf_alleles) free(v->nr_conf_alleles);
+       if (v->weights) free(v->weights);
+       if (v->var_seq) free(v->var_seq);
        v++;
     }
   }   

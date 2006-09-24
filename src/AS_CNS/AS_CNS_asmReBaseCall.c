@@ -39,7 +39,7 @@
 #include "Globals_CNS.h"
 #include "PublicAPI_CNS.h"
 
-static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.2 2006-03-28 05:38:13 ahalpern Exp $";
+static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.3 2006-09-24 13:00:00 gdenisov Exp $";
 
 static UIDHashTable_AS *utgUID2IID;
 
@@ -191,11 +191,10 @@ static IntConConMesg* convert_CCO_to_ICM(SnapConConMesg* ccoMesg)
      {
         icmMesg->v_list[i].position       = ccoMesg->vars[i].position;
         icmMesg->v_list[i].num_reads      = ccoMesg->vars[i].num_reads; 
-        icmMesg->v_list[i].nr_best_allele = ccoMesg->vars[i].nr_best_allele;
-        icmMesg->v_list[i].num_alleles    = ccoMesg->vars[i].num_alleles;
-        icmMesg->v_list[i].ratio          = ccoMesg->vars[i].ratio;       
-        icmMesg->v_list[i].window_size    = ccoMesg->vars[i].window_size;
+        icmMesg->v_list[i].anchor_size    = ccoMesg->vars[i].anchor_size;
         icmMesg->v_list[i].var_length     = ccoMesg->vars[i].var_length ;
+        icmMesg->v_list[i].nr_conf_alleles=strdup(ccoMesg->vars[i].nr_conf_alleles);
+        icmMesg->v_list[i].weights        = strdup(ccoMesg->vars[i].weights);
         icmMesg->v_list[i].var_seq        = strdup(ccoMesg->vars[i].var_seq);  
      }
       
@@ -486,7 +485,7 @@ int main (int argc, char *argv[]) {
       MultiAlignT *ma;
       time_t t;
       t = time(0);
-      fprintf(stderr,"# asmReBaseCall $Revision: 1.2 $ processing. Started %s\n",
+      fprintf(stderr,"# asmReBaseCall $Revision: 1.3 $ processing. Started %s\n",
 	      ctime(&t));
       InitializeAlphTable();
 
@@ -538,6 +537,8 @@ int main (int argc, char *argv[]) {
 	      int i;
 	      if(icontig->v_list!=NULL){
 		for(i=0;i<icontig->num_vars;i++){
+                  free(icontig->v_list[i].nr_conf_alleles);
+                  free(icontig->v_list[i].weights);
 		  free(icontig->v_list[i].var_seq);
 		}
 		free(icontig->v_list);

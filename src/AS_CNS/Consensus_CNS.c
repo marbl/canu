@@ -27,7 +27,7 @@
                  
  *********************************************************************/
 
-static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.32 2006-09-22 19:12:28 gdenisov Exp $";
+static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.33 2006-09-24 13:00:00 gdenisov Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -904,7 +904,7 @@ int main (int argc, char *argv[])
       VA_TYPE(char) *quality=CreateVA_char(200000);
       time_t t;
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.32 $ processing. Started %s\n",
+      fprintf(stderr,"# Consensus $Revision: 1.33 $ processing. Started %s\n",
         ctime(&t));
       InitializeAlphTable();
       if ( ! align_ium && USE_SDB && extract > -1 ) 
@@ -1208,8 +1208,11 @@ int main (int argc, char *argv[])
             {
                 int i;
                 for (i=0; i<pcontig->num_vars; i++)
-//                  if (pcontig->v_list[i].var_seq != 0)
-                        free(pcontig->v_list[i].var_seq);
+                {
+                    free(pcontig->v_list[i].nr_conf_alleles);
+                    free(pcontig->v_list[i].weights);
+                    free(pcontig->v_list[i].var_seq);
+                }
                 free(pcontig->v_list);
             }
             pcontig->num_vars = 0;
@@ -1232,7 +1235,7 @@ int main (int argc, char *argv[])
             {
               AuditLine auditLine;
               AppendAuditLine_AS(adt_mesg, &auditLine, t,
-                                 "Consensus", "$Revision: 1.32 $","(empty)");
+                                 "Consensus", "$Revision: 1.33 $","(empty)");
             }
 #endif
               VersionStampADT(adt_mesg,argc,argv);
@@ -1256,7 +1259,7 @@ int main (int argc, char *argv[])
       }
 
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.32 $ Finished %s\n",ctime(&t));
+      fprintf(stderr,"# Consensus $Revision: 1.33 $ Finished %s\n",ctime(&t));
       if (printcns) 
       {
         int unitig_length = (unitig_count>0)? (int) input_lengths/unitig_count: 0; 
