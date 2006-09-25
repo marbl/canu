@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_global.h,v 1.8 2006-08-22 03:16:10 ahalpern Exp $	 */
+/* 	$Id: AS_global.h,v 1.9 2006-09-25 13:37:33 gdenisov Exp $	 */
 
 /* This is the global include file that all C files in the AS subsystem should
    include.
@@ -69,6 +69,7 @@
 
 // These macros are use to eliminate inter-platform differnces between 
 // calculated results
+#define FREE(x)         if((x)!=NULL) {free((char *)(x));(x)=NULL;}
 #define DBL_TO_INT(X)   ((int)((1.0+16.0*DBL_EPSILON)*(X)))
 #define ROUNDPOS(X)     (DBL_TO_INT((X)+0.5) )
 #define ROUND(X)        (((X)>0.0) ? ROUNDPOS(X) : -ROUNDPOS(-(X)) )
