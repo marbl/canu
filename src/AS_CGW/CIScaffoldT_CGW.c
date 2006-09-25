@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.8 2006-09-22 01:09:04 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.9 2006-09-25 20:31:53 brianwalenz Exp $";
 
 #undef DEBUG
 #undef DEBUG_INSERT
@@ -1769,7 +1769,7 @@ void CheckCIScaffoldT(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
                            chunk->offsetAEnd, chunk->offsetBEnd, TRUE, FALSE);
       }
 
-#if 0	   
+#if 0
       // special one-time hack added for mouse_20010307 run
       MarkInternalEdgeStatus(sgraph, scaffold, PAIRWISECHI2THRESHOLD_CGW,
                              SLOPPY_EDGE_VARIANCE_THRESHHOLD, TRUE, TRUE, 0, TRUE);	   
@@ -1789,9 +1789,7 @@ void CheckCIScaffoldT(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
       }
       fprintf(stderr,"* improvement = %g LSE = %g\n", improvement, LSE);
       LSE = scaffold->info.Scaffold.leastSquareError;
-
     }
-
   }
 
   if(iteration > 20){

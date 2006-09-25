@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.11 2006-09-21 21:34:00 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.12 2006-09-25 20:31:53 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -624,6 +624,8 @@ void ScaffoldSanity(CIScaffoldT *scaffold, ScaffoldGraphT *graph){
   double scaffoldMinPos = (double)CDS_COORD_MAX;
   double scaffoldMaxPos = (double)CDS_COORD_MIN;
   double scratch;
+  int    scaffoldInsane = 0;
+
   assert(scaffold->flags.bits.isScaffold);
   if(scaffold->type != REAL_SCAFFOLD)
     return;
@@ -649,9 +651,8 @@ void ScaffoldSanity(CIScaffoldT *scaffold, ScaffoldGraphT *graph){
             "*!!! Sanity  scaffold " F_CID " length %g not equal to (max - min) %g\n",
             scaffold->id,
             scaffold->bpLength.mean, (scaffoldMaxPos - scaffoldMinPos));
-    DumpCIScaffold(GlobalData->stderrc,ScaffoldGraph, scaffold, FALSE);
 #ifdef STRICT_SCAFFOLD_CHECKING	   
-    assert(0);
+    scaffoldInsane = 1;
 #endif
     scaffold->bpLength.mean = scaffoldMaxPos - scaffoldMinPos;
   }
@@ -664,25 +665,30 @@ void ScaffoldSanity(CIScaffoldT *scaffold, ScaffoldGraphT *graph){
       numElements++;
     }else{
       fprintf(GlobalData->stderrc,
-              "* Scaffold Sanity: node " F_CID " is screwed %s %s %s in scaffold " F_CID "\n",
+              "* Scaffold Sanity: node " F_CID " is screwed: %s%s%sin scaffold " F_CID "\n",
               CI->id,
               (CI->scaffoldID == scaffold->id?"":"scaffoldID is wrong "),
               (!CI->flags.bits.isDead?"":"Dead "),
               (CI->flags.bits.isUnique?"":"Not Unique "),
               scaffold->id);
-      DumpCIScaffold(GlobalData->stderrc,graph, scaffold, FALSE);
 #ifdef STRICT_SCAFFOLD_CHECKING
-      assert(0 /* Scaffold Sanity */);	  
+      scaffoldInsane = 1;
 #endif
     }
   }
+
   if(numElements != scaffold->info.Scaffold.numElements){
     fprintf(GlobalData->stderrc,
             "* numElements = %d scaffold says it has %d elements\n",
             numElements, scaffold->info.Scaffold.numElements);
-    DumpCIScaffold(GlobalData->stderrc,graph, scaffold, FALSE);
-    assert(0);
+    scaffoldInsane = 1;
   }
+
+  if (scaffoldInsane) {
+    DumpCIScaffold(GlobalData->stderrc,graph, scaffold, FALSE);
+    assert(!scaffoldInsane);
+  }
+
   // CheckScaffoldOrder(scaffold, graph);
 }
 

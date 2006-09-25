@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.15 2006-09-21 21:34:00 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.16 2006-09-25 20:31:53 brianwalenz Exp $";
 
 #undef DEBUG_CHECKFORCTGS
 #undef DEBUG_DETAILED
@@ -1461,7 +1461,7 @@ static VA_TYPE(IntElementPos) *ContigPositions = NULL;
 
 /****************************************************************************/
 // Cleanup contigs for a single scaffold
-//n
+//
 // If after resolving all repeats, we have placed Contigs that overlap by > threshhold,
 // we merge them together into a single contig
 //
