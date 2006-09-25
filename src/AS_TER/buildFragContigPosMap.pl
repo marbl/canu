@@ -166,20 +166,33 @@ while (!eof(STDIN)) {
 
         my $tag = <STDIN>;
         while ($tag =~ m/\{VAR/) {
+
+            if (0) {
+                my $pos = <STDIN>;  chomp $pos;
+                my $nrd = <STDIN>;  chomp $nrd;
+                my $nba = <STDIN>;  chomp $nba;
+                my $nal = <STDIN>;  chomp $nal;
+                my $rat = <STDIN>;  chomp $rat;
+                my $win = <STDIN>;  chomp $win;
+                my $len = <STDIN>;  chomp $len;
+                my $var = readMultiLineDot();
+                my $jnk = <STDIN>;  chomp $jnk;  #  closing bracket
+            }
+
             my $pos = <STDIN>;  chomp $pos;
             my $nrd = <STDIN>;  chomp $nrd;
-            my $nba = <STDIN>;  chomp $nba;
-            my $nal = <STDIN>;  chomp $nal;
-            my $rat = <STDIN>;  chomp $rat;
-            my $win = <STDIN>;  chomp $win;
+            my $nca = <STDIN>;  chomp $nca;
+            my $anc = <STDIN>;  chomp $anc;
             my $len = <STDIN>;  chomp $len;
+            my $nra = readMultiLineDot();
+            my $wgt = readMultiLineDot();
             my $var = readMultiLineDot();
             my $jnk = <STDIN>;  chomp $jnk;  #  closing bracket
 
             if ($pos =~ m/pos:(\d+),(\d+)$/) {
                 my $b = $ctgCoords[$1];
                 my $e = $ctgCoords[$2];
-                print VARCTG "$var $acc $b $e $nrd $nba $nal $rat $win $len\n";
+                print VARCTG "$var $acc $b $e $nrd $nca $anc $len $nra $wgt\n";
             } else {
                 die "Failed to find VAR pos in $pos\n";
             }
