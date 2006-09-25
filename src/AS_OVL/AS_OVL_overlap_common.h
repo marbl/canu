@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.18 2006-08-22 03:16:10 ahalpern Exp $
- * $Revision: 1.18 $
+ * $Id: AS_OVL_overlap_common.h,v 1.19 2006-09-25 19:28:14 brianwalenz Exp $
+ * $Revision: 1.19 $
 */
 
 
@@ -760,12 +760,12 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
 
      if (Max_Hash_Strings == 0) {
        fprintf(stderr, "* No memory model supplied; -M needed!\n");
-       exit(1);
+       illegal = 1;
      }
 
      if (Max_Hash_Strings > MAX_STRING_NUM) {
        fprintf(stderr, "Too many strings (--hashstrings), must be less than %d\n", MAX_STRING_NUM);
-       exit(1);
+       illegal = 1;
      }
      
      if  ((illegal == 1)
