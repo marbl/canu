@@ -73,34 +73,6 @@ void CleanExit(int rc) {
   exit(rc);
 }
 
-int HandleDir(char *filePathAndName, char *fileName) {
-  char *suffix;
-  char *DirName;
-  char *FileName;
-  DIR *Dir;
-  suffix = strrchr(filePathAndName,(int)'/');
-  if ( suffix != NULL ) {
-    *suffix = '\0';
-    DirName = filePathAndName; 
-    if ( DirName != NULL ) {
-      Dir = opendir(DirName);
-      if ( Dir == NULL ) {
-        if(mkdir(DirName, S_IRWXU | S_IRWXG | S_IROTH)){
-          fprintf(stderr,"Failure to create directory %s\n", DirName);
-          CleanExit(1);
-        }
-      }
-    }
-    *suffix = '/';
-    FileName = filePathAndName;
-  } else {
-    FileName = filePathAndName;
-  }
-  strcpy(fileName,FileName);
-  return 1;
-}
-
-
 int IsForward(SeqInterval s) {
   return (s.bgn < s.end);
 }
@@ -220,15 +192,6 @@ int FastaScaffold(FILE *out, FILE *qual, SnapScaffoldMesg *scaff){
 
     // append ngaps N's (or n's, depending on alternate_gap_spec)  to string as intercontig space
 
-#if 0
-    ResetVA_char(ctmp);
-    ResetVA_char(qtmp);
-    EnableRangeVA_char(ctmp,ngaps+1);
-    EnableRangeVA_char(qtmp,ngaps+1);
-    memset(Getchar(ctmp,0),nchar,ngaps);
-    memset(Getchar(qtmp,0),nchar,ngaps);
-#endif
-
     memset(sseq, nchar, ngaps);
     memset(qseq, '0', ngaps);
     sseq+=ngaps;
@@ -247,7 +210,8 @@ int FastaScaffold(FILE *out, FILE *qual, SnapScaffoldMesg *scaff){
 
     running_length += ngaps + contig_length;
 
-    if ((running_length > GetNumchars(scaffold_sequence)) || (running_length > GetNumchars(quality_sequence))) {
+    if ((running_length > GetNumchars(scaffold_sequence)) ||
+        (running_length > GetNumchars(quality_sequence))) {
       fprintf(stderr,"FastaScaffold warning: unexpectedly long string in scaffold\n");
     }
 
@@ -351,7 +315,6 @@ int main(int argc, char *argv[]) {
   SnapConConMesg *contig;
   SnapUnitigMesg *unitig;
   MultiAlignT *ma;
-  char fastaNameBuffer[FILENAME_MAX];
   char fastaIdentifier[FILENAME_MAX];
   char  *suffix = NULL;
   VA_TYPE(int32) *is_placed;
@@ -372,13 +335,13 @@ int main(int argc, char *argv[]) {
         fastaQuals = 1;
         break;
       case 'f':
-        strcpy(fastaNameBuffer, optarg);
-        HandleDir(fastaNameBuffer,fastaFileName);
+        strcpy(fastaFileName, optarg);
         fastaFile = fopen(fastaFileName,"w");
         if (fastaFile == NULL ) {
           fprintf(stderr,"Failure to create fasta file %s\n", fastaFileName);
           CleanExit(1);
         }
+
         strcpy(fastaIdentifier,fastaFileName);
         fastaIdent = strrchr(fastaIdentifier,'/');
         if ( fastaIdent == NULL ) { 
@@ -393,9 +356,9 @@ int main(int argc, char *argv[]) {
 
         while ( (suffix = strchr(fastaIdent,'.')) != NULL )
           *suffix = '_';
+
         break;
       case 'h':
-      case '?':
         usage(argv[0]);
         break;
       default:
@@ -443,37 +406,22 @@ int main(int argc, char *argv[]) {
     if (pmesg->t ==MESG_UTG)  {
       unitig = pmesg->m;
       InsertInUID2IIDHashTable_AS(uid2iid,unitig->eaccession,unitig->iaccession);
-      /*
-        printf("utg inserted %lld : %d, lookup gives %d\n",
-        unitig->eaccession, 
-        unitig->iaccession, 
-        *LookupInUID2IIDHashTable_AS(uid2iid,unitig->eaccession)); 
-        */
       SetVA_int32(is_placed, unitig->iaccession,  
                   ( unitig->status == AS_SEP )? &placed : &unplaced );
     }
     if (pmesg->t ==MESG_CCO)  {
       contig = pmesg->m;
       InsertInUID2IIDHashTable_AS(uid2iid,contig->eaccession,contig->iaccession);
-      //      assert(LookupInUID2IIDHashTable_AS(uid2iid,contig->eaccession)!=NULL); 
-      /*
-        printf("ctg inserted %lld : %d, lookup gives %d\n",
-        contig->eaccession, 
-        contig->iaccession, 
-        *LookupInUID2IIDHashTable_AS(uid2iid,contig->eaccession)); 
-        */
       assert ( strlen(contig->consensus) == contig->length);
       ma = CreateMultiAlignTFromCCO(contig, -1,  0);
       SetMultiAlignInStore(cstore,ma->id,ma);
     }
     if (pmesg->t ==MESG_SCF)  {
       FastaScaffold(fastaFile, fastaQualsFile, (SnapScaffoldMesg *)pmesg->m);
-      fflush(fastaFile);
     }
     if (pmesg->t ==MESG_DSC)  {
       if (fastaDregs) {
         FastaDegenerateScaffold(fastaDregsFile, (SnapDegenerateScaffoldMesg *)pmesg->m,is_placed);
-        fflush(fastaDregsFile);
       }
     }
   }
