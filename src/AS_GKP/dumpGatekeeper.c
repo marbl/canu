@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: dumpGatekeeper.c,v 1.6 2006-02-13 19:58:04 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpGatekeeper.c,v 1.7 2006-09-25 19:28:53 brianwalenz Exp $";
 
 /* Dump the gatekeeper stores for debug */
 
@@ -48,15 +48,10 @@ static MesgReader reader;
 static MesgWriter writer;
 
 
-int  main(int argc, char * argv [])
+int
+main(int argc, char * argv []) {
 
-{
    int status = 0;
-#if 0
-   char  Output_File_Name [FILENAME_MAX];
-   char cmd[FILENAME_MAX * 4];
-   char tmpFilePath[FILENAME_MAX];
-#endif
    int  summary;
    int  quiet;
    int fragID = -1;
@@ -559,25 +554,3 @@ int  main(int argc, char * argv [])
    
    exit(status != GATEKEEPER_SUCCESS);
 }
-
-
-/***********************************************************************************/
-FILE *  File_Open
-    (const char * Filename, const char * Mode, int exitOnFailure)
-
-/* Open  Filename  in  Mode  and return a pointer to its control
-*  block.  If fail, print a message and exit. */
-
-  {
-   FILE  *  fp;
-
-   fp = fopen (Filename, Mode);
-   if  (fp == NULL && exitOnFailure)
-       {
-        fprintf (stderr, "ERROR:  Could not open file  %s \n", Filename);
-        exit (EXIT_FAILURE);
-       }
-
-   return  fp;
-  }
-
