@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: GrowOlapStoreOVL.c,v 1.8 2005-10-26 14:23:21 brianwalenz Exp $
- * $Revision: 1.8 $
+ * $Id: GrowOlapStoreOVL.c,v 1.9 2006-09-25 19:26:27 brianwalenz Exp $
+ * $Revision: 1.9 $
 */
 
-static char CM_ID[] = "$Id: GrowOlapStoreOVL.c,v 1.8 2005-10-26 14:23:21 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GrowOlapStoreOVL.c,v 1.9 2006-09-25 19:26:27 brianwalenz Exp $";
 
 
 //  System include files
@@ -890,6 +890,8 @@ static void  Process_OVL_Files
         fp = popen(cmd, "r");
         if (errno)
           fprintf(stderr,"ERROR: cannot open '%s': %s\n", filename, strerror(errno)), exit(1);
+        if (fp == NULL)
+          fprintf(stderr,"ERROR: cannot open '%s': (returned null pointer)\n", filename), exit(1);
         filenameiscompressed = 1;
       } else if (strcmp(filename + filenamelen - 4, ".bz2") == 0) {
         char  cmd[1024];
@@ -898,6 +900,8 @@ static void  Process_OVL_Files
         fp = popen(cmd, "r");
         if (errno)
           fprintf(stderr,"ERROR: cannot open '%s': %s\n", filename, strerror(errno)), exit(1);
+        if (fp == NULL)
+          fprintf(stderr,"ERROR: cannot open '%s': (returned null pointer)\n", filename), exit(1);
         filenameiscompressed = 1;
       } else {
         fp = File_Open (filename, "r");
