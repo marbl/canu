@@ -33,7 +33,7 @@
 
  **********************************************************************/
 
-static char fileID[] = "$Id: UpdateREZ.c,v 1.5 2006-06-14 19:57:23 brianwalenz Exp $";
+static char fileID[] = "$Id: UpdateREZ.c,v 1.6 2006-09-25 20:17:12 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <assert.h>
@@ -715,24 +715,8 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
       // If we split we do not Recompute the Offsets
       if( ! noRecompute )
 	  {
-#if  0
-if  (scaff_id == 209)
-    {
-     fprintf (stderr, "\n### BEFORE  RecomputeOffsetsInScaffold  for scaff %d\n",
-              scaff_id);
-     DumpCIScaffold(stderr,sgraph, scaffold, FALSE);
-    }
-#endif
 		res = RecomputeOffsetsInScaffold(sgraph, scaffold, TRUE, TRUE, FALSE);
 //		res = RecomputeOffsetsInScaffold(sgraph, scaffold, TRUE, TRUE, TRUE);
-#if  0
-if  (scaff_id == 209)
-    {
-     fprintf (stderr, "\n### AFTER  RecomputeOffsetsInScaffold  for scaff %d\n",
-              scaff_id);
-     DumpCIScaffold(stderr,sgraph, scaffold, FALSE);
-    }
-#endif
 		switch (res) {
 		  case RECOMPUTE_OK:
 #       if DEBUG_UPDATE > 0
