@@ -25,12 +25,12 @@
       Definitions of functions declared in  delcher.h
    Assumptions:  Input meets specifications in the ProtoIO documents
  *********************************************************************/
-static char fileID[] = "$Id: AS_OVL_delcher.c,v 1.4 2005-03-22 19:49:16 jason_miller Exp $";
+static char fileID[] = "$Id: AS_OVL_delcher.c,v 1.5 2006-09-26 21:07:45 brianwalenz Exp $";
 
 
 /* RCS info
- * $Id: AS_OVL_delcher.c,v 1.4 2005-03-22 19:49:16 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Id: AS_OVL_delcher.c,v 1.5 2006-09-26 21:07:45 brianwalenz Exp $
+ * $Revision: 1.5 $
 */
 
 
@@ -114,27 +114,6 @@ int File_Exists (const char * Filename){
 
 
 
-void *  Safe_calloc
-    (size_t N, size_t Len)
-
-/* Allocate and return a pointer to an array of  N  elements of
-*   Len  bytes each.  All set to 0.  Exit if fail. */
-
-  {
-   void  * P;
-
-   P = calloc (N, Len);
-   if  (P == NULL)
-       {
-        fprintf (stderr, "ERROR:  calloc failed\n");
-        exit (EXIT_FAILURE);
-       }
-
-   return  P;
-  }
-
-
-
 size_t  Safe_fread
     (void * ptr, size_t size, size_t ct, FILE * fp)
 
@@ -172,52 +151,6 @@ size_t  Safe_fwrite
 
    return  result;
   }
-
-
-
-void *  Safe_malloc
-    (size_t Len)
-
-/* Allocate and return a pointer to  Len  bytes of memory.
-*  Exit if fail. */
-
-  {
-   void  * P;
-
-   P = malloc (Len);
-   if  (P == NULL)
-       {
-        fprintf (stderr, "ERROR:  malloc failed\n");
-        exit (EXIT_FAILURE);
-       }
-
-   return  P;
-  }
-
-
-
-void *  Safe_realloc
-    (void * Q, size_t Len)
-
-/* Reallocate memory for  Q  to  Len  bytes and return a
-*  pointer to the new memory.  Exit if fail. */
-
-  {
-   void  * P;
-
-   if  (Q == NULL)
-       P = malloc (Len);
-     else
-       P = realloc (Q, Len);
-   if  (P == NULL)
-       {
-        fprintf (stderr, "ERROR:  realloc failed\n");
-        exit (EXIT_FAILURE);
-       }
-
-   return  P;
-  }
-
 
 
 int  Safe_remove

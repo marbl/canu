@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: GrowOlapStoreOVL.c,v 1.9 2006-09-25 19:26:27 brianwalenz Exp $
- * $Revision: 1.9 $
+ * $Id: GrowOlapStoreOVL.c,v 1.10 2006-09-26 21:07:45 brianwalenz Exp $
+ * $Revision: 1.10 $
 */
 
-static char CM_ID[] = "$Id: GrowOlapStoreOVL.c,v 1.9 2006-09-25 19:26:27 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GrowOlapStoreOVL.c,v 1.10 2006-09-26 21:07:45 brianwalenz Exp $";
 
 
 //  System include files
@@ -187,11 +187,11 @@ int  main
 
    File_Status_Size = INITIAL_FILE_LIST_LEN;
    File_Status
-       = (File_Status_t *) Safe_malloc (File_Status_Size * sizeof (File_Status_t));
+       = (File_Status_t *) safe_malloc (File_Status_Size * sizeof (File_Status_t));
 
    Tmp_File_Info_Size = INITIAL_FILE_LIST_LEN;
    Tmp_File_Info
-       = (Tmp_File_Info_t *) Safe_malloc
+       = (Tmp_File_Info_t *) safe_malloc
              (Tmp_File_Info_Size * sizeof (Tmp_File_Info_t));
 
    Num_Files = 0;
@@ -244,7 +244,7 @@ static void  Output_New_Batch
 
    fprintf (stderr, "Outputting new overlaps  Highest_Frag = %d\n", Highest_Frag);
 
-   combined_offset = (uint32 *) Safe_malloc ((Highest_Frag + 2) * sizeof (uint32));
+   combined_offset = (uint32 *) safe_malloc ((Highest_Frag + 2) * sizeof (uint32));
    combined_offset [0] = 0;
 
    for  (file_index = 1;  file_index <= Num_Files;  file_index ++)
@@ -676,7 +676,7 @@ static void  Parse_Command_Line
         assert (header [1] == sizeof (Short_Olap_Data_t));
         Frags_Per_File = header [2];
 
-        Old_Offset = (uint32 *) Safe_malloc ((Max_Old_Frag + 2) * sizeof (uint32));
+        Old_Offset = (uint32 *) safe_malloc ((Max_Old_Frag + 2) * sizeof (uint32));
         Safe_fread (Old_Offset, sizeof (uint32), Max_Old_Frag + 2, fp);
 
         fclose (fp);
@@ -722,7 +722,7 @@ static void  Process_New_Batch
    if  (New_Offset_Size < Max_ID + 2)
        {
         New_Offset_Size = Max_ID + 2;
-        New_Offset = (uint32 *) Safe_realloc (New_Offset,
+        New_Offset = (uint32 *) safe_realloc (New_Offset,
                                              New_Offset_Size * sizeof (uint32));
        }
 
@@ -756,7 +756,7 @@ static void  Process_New_Batch
         File_Status_Size *= 2;
         if  (Num_Files >= File_Status_Size)
             File_Status_Size = Num_Files + 1;
-        File_Status = (File_Status_t *) Safe_realloc (File_Status,
+        File_Status = (File_Status_t *) safe_realloc (File_Status,
                           File_Status_Size * sizeof (File_Status_t));
        }
    for  (i = old_num_files + 1;  i <= Num_Files;  i ++)
@@ -1093,7 +1093,7 @@ static void  Tmp_Output_Olap
         Tmp_File_Info_Size *= 2;
         if  (file_index >= Tmp_File_Info_Size)
             Tmp_File_Info_Size = file_index + 1;
-        Tmp_File_Info = (Tmp_File_Info_t *) Safe_realloc (Tmp_File_Info,
+        Tmp_File_Info = (Tmp_File_Info_t *) safe_realloc (Tmp_File_Info,
                           Tmp_File_Info_Size * sizeof (Tmp_File_Info_t));
        }
 

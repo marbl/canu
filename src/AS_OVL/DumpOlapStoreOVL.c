@@ -33,11 +33,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: DumpOlapStoreOVL.c,v 1.4 2005-03-22 19:49:18 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Id: DumpOlapStoreOVL.c,v 1.5 2006-09-26 21:07:45 brianwalenz Exp $
+ * $Revision: 1.5 $
 */
 
-static char CM_ID[] = "$Id: DumpOlapStoreOVL.c,v 1.4 2005-03-22 19:49:18 jason_miller Exp $";
+static char CM_ID[] = "$Id: DumpOlapStoreOVL.c,v 1.5 2006-09-26 21:07:45 brianwalenz Exp $";
 
 
 //  System include files
@@ -131,7 +131,7 @@ int  main
    printf ("sizeof (Short_Olap_Data_t) = %u\n", header [1]);
    printf ("Frags per File = %u\n", Frags_Per_File);
 
-   Old_Offset = (uint32 *) Safe_malloc ((Max_Old_Frag + 2) * sizeof (uint32));
+   Old_Offset = (uint32 *) safe_malloc ((Max_Old_Frag + 2) * sizeof (uint32));
    Safe_fread (Old_Offset, sizeof (uint32), Max_Old_Frag + 2, fp);
 
    fclose (fp);

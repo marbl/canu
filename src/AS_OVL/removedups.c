@@ -54,11 +54,11 @@ int  main
    int  i, j, ct = 0, kept = 0;
 
    buff_size = 10000;
-   buff = (char *) Safe_malloc (buff_size);
+   buff = (char *) safe_malloc (buff_size);
 
    while  (Read_String (stdin, & buff, & buff_size, header))
      {
-      S = (String_t *) Safe_realloc (S, (ct + 1) * sizeof (String_t));
+      S = (String_t *) safe_realloc (S, (ct + 1) * sizeof (String_t));
       S [ct] . header = strdup (header);
       S [ct] . seq = strdup (buff);
       S [ct] . len = strlen (buff);
@@ -164,7 +164,7 @@ static int  Read_String
       if  (Ct >= (* Size) - 1)
           {
            (* Size) += INCR_SIZE;
-           (* T) = (char *) Safe_realloc ((* T), (* Size));
+           (* T) = (char *) safe_realloc ((* T), (* Size));
           }
       Ch = tolower (Ch);
       if  (! isalpha (Ch))

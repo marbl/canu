@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: get-uid-olaps.c,v 1.5 2005-09-15 15:20:16 eliv Exp $
- * $Revision: 1.5 $
+ * $Id: get-uid-olaps.c,v 1.6 2006-09-26 21:07:45 brianwalenz Exp $
+ * $Revision: 1.6 $
 */
 
-static char fileID[] = "$Id: get-uid-olaps.c,v 1.5 2005-09-15 15:20:16 eliv Exp $";
+static char fileID[] = "$Id: get-uid-olaps.c,v 1.6 2006-09-26 21:07:45 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -122,12 +122,12 @@ int main  (int argc, char * argv [])
 
    read_msg_fn = (MesgReader)InputFileType_AS (ovlfile);
 
-   pmesg = (GenericMesg *) Safe_malloc (sizeof (GenericMesg));
+   pmesg = (GenericMesg *) safe_malloc (sizeof (GenericMesg));
    pmesg -> t = MESG_ADT;
-   pmesg -> m = (AuditMesg *) Safe_malloc (sizeof (AuditMesg));
+   pmesg -> m = (AuditMesg *) safe_malloc (sizeof (AuditMesg));
       
    list_len = 10000;
-   list = (ID_Pair_t *) Safe_calloc (list_len, sizeof (ID_Pair_t));
+   list = (ID_Pair_t *) safe_calloc (list_len, sizeof (ID_Pair_t));
    frag_ct = 0;
 
    while  (read_msg_fn (ovlfile, & gmesg) != EOF && gmesg != NULL)
@@ -139,7 +139,7 @@ int main  (int argc, char * argv [])
           
            if  (frag_ct >= list_len - 1)
                {list_len *= 2;
-                list = (ID_Pair_t *) Safe_realloc
+                list = (ID_Pair_t *) safe_realloc
                            (list, list_len * sizeof (ID_Pair_t));
                }
 

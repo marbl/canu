@@ -34,7 +34,7 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_buildfragindex.c,v 1.4 2005-03-22 19:49:15 jason_miller Exp $
+ * $Id: AS_OVL_buildfragindex.c,v 1.5 2006-09-26 21:07:45 brianwalenz Exp $
  */
 
 #include "AS_global.h"
@@ -126,7 +126,7 @@ int  main  (int argc, char * argv [])
         exit (EXIT_FAILURE);
        }
 
-   File_Name = (char *) Safe_malloc (strlen (argv [1]) + LONGEST_EXTENSION);
+   File_Name = (char *) safe_malloc (strlen (argv [1]) + LONGEST_EXTENSION);
 
    myFragStoreHandle = createFragStore(argv[1], "george", 1);
    myReadStruct = new_ReadStruct();  

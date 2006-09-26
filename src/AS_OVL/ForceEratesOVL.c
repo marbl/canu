@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: ForceEratesOVL.c,v 1.5 2005-06-16 19:57:21 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ForceEratesOVL.c,v 1.6 2006-09-26 21:07:45 brianwalenz Exp $";
 
 
 //  System include files
@@ -114,7 +114,7 @@ int  main
    }
 
    B_ID_List_Size = 100;
-   B_ID_List = (int32 *) Safe_calloc (B_ID_List_Size, sizeof (int32));
+   B_ID_List = (int32 *) safe_calloc (B_ID_List_Size, sizeof (int32));
 
    if  (fscanf (Olap_List_fp, "%d %d", & Next_A_ID, & Next_B_ID) != 2)
        {
@@ -252,7 +252,7 @@ static void  Set_New_Erates
          }
 
      num_frags = 2 + hi_id - lo_id;   // go 1 past the end
-     olap_offset = (uint32 *) Safe_malloc (num_frags * sizeof (uint32));
+     olap_offset = (uint32 *) safe_malloc (num_frags * sizeof (uint32));
      CDS_FSEEK (fp, lo_id * sizeof (uint32), SEEK_CUR);
      Safe_fread (olap_offset, sizeof (uint32), num_frags, fp);
      
@@ -396,7 +396,7 @@ static void  Update_ID_List
       if  (B_ID_List_Len == B_ID_List_Size)
           {
            B_ID_List_Size *= 2;
-           B_ID_List = (int32 *) Safe_realloc (B_ID_List,
+           B_ID_List = (int32 *) safe_realloc (B_ID_List,
                 B_ID_List_Size * sizeof (int32));
           }
       B_ID_List [B_ID_List_Len ++] = Next_B_ID;

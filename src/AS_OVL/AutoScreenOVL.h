@@ -26,8 +26,8 @@
 
 
 /* RCS info
- * $Id: AutoScreenOVL.h,v 1.4 2005-03-22 19:49:18 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Id: AutoScreenOVL.h,v 1.5 2006-09-26 21:07:45 brianwalenz Exp $
+ * $Revision: 1.5 $
 */
 
 
@@ -62,12 +62,6 @@ int  All_White_Space
     (const char *);
 int  File_Exists
     (const char *);
-void *  Safe_calloc
-    (size_t, size_t);
-void *  Safe_malloc
-    (size_t);
-void *  Safe_realloc
-    (void *, size_t);
 
 
 #endif

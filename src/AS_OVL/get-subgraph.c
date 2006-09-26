@@ -38,11 +38,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: get-subgraph.c,v 1.5 2005-09-15 15:20:16 eliv Exp $
- * $Revision: 1.5 $
+ * $Id: get-subgraph.c,v 1.6 2006-09-26 21:07:45 brianwalenz Exp $
+ * $Revision: 1.6 $
 */
 
-static char fileID[] = "$Id: get-subgraph.c,v 1.5 2005-09-15 15:20:16 eliv Exp $";
+static char fileID[] = "$Id: get-subgraph.c,v 1.6 2006-09-26 21:07:45 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -118,7 +118,7 @@ int main  (int argc, char * argv [])
    assert (infile_name != NULL);
    fprintf (stderr, "Input Overlap File = %s\n", infile_name);
    len = strlen (infile_name);
-   outfile_name = (char *) Safe_malloc (len + 20);
+   outfile_name = (char *) safe_malloc (len + 20);
    for  (i = len - 1;  i >= 0;  i --)
      if  (infile_name [i] == '.')
          break;
@@ -141,9 +141,9 @@ fprintf (stderr, "Hash table size = %d\n", hash_table_size);
      else
        write_msg_fn = (MesgWriter)OutputFileType_AS (AS_PROTO_OUTPUT);
 
-   pmesg = (GenericMesg *) Safe_malloc (sizeof (GenericMesg));
+   pmesg = (GenericMesg *) safe_malloc (sizeof (GenericMesg));
    pmesg -> t = MESG_ADT;
-   pmesg -> m = (AuditMesg *) Safe_malloc (sizeof (AuditMesg));
+   pmesg -> m = (AuditMesg *) safe_malloc (sizeof (AuditMesg));
    new_adt_mesg = pmesg -> m;
    new_adt_mesg -> list = & audit_line;
       
@@ -158,7 +158,7 @@ fprintf (stderr, "Hash table size = %d\n", hash_table_size);
            sprintf (label_line, "%s %s %s", argv [0], infile_name,
                     argv [optind]);
            AppendAuditLine_AS (adt_mesg, & audit_line, time (0), "get-subgraph",
-                               "$Revision: 1.5 $", label_line);
+                               "$Revision: 1.6 $", label_line);
            write_msg_fn (outfile, gmesg);
            break;
           }
@@ -267,7 +267,7 @@ static void  Read_Frag_IDs
 fprintf (stderr, "ct = %d\n", ct);
    (* size) = Next_Odd_Prime ((int32) (ct / HASH_LOAD_FACTOR));
    assert (* size > 0);
-   (* tab) = (int32 *) Safe_malloc ((* size) * sizeof (int32));
+   (* tab) = (int32 *) safe_malloc ((* size) * sizeof (int32));
 
 fprintf (stderr, "(* size) = %d\n", (* size));
    for  (i = 0;  i < (* size);  i ++)

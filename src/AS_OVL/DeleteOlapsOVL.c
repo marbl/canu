@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: DeleteOlapsOVL.c,v 1.5 2005-09-15 15:20:16 eliv Exp $
- * $Revision: 1.5 $
+ * $Id: DeleteOlapsOVL.c,v 1.6 2006-09-26 21:07:45 brianwalenz Exp $
+ * $Revision: 1.6 $
 */
 
-static char CM_ID[] = "$Id: DeleteOlapsOVL.c,v 1.5 2005-09-15 15:20:16 eliv Exp $";
+static char CM_ID[] = "$Id: DeleteOlapsOVL.c,v 1.6 2006-09-26 21:07:45 brianwalenz Exp $";
 
 
 //  System include files
@@ -185,7 +185,7 @@ static void  Build_Delete_List
    int  list_size = 10000;
    int  lo, hi;
 
-   Delete_List = (Frag_Pair_t *) Safe_malloc (list_size * sizeof (Frag_Pair_t));
+   Delete_List = (Frag_Pair_t *) safe_malloc (list_size * sizeof (Frag_Pair_t));
    Num_Deletes = 0;
 
    fp = File_Open (Delete_Path, "r");
@@ -196,7 +196,7 @@ static void  Build_Delete_List
       if  (Num_Deletes >= list_size)
           {
            list_size *= EXPANSION_FACTOR;
-           Delete_List = (Frag_Pair_t *) Safe_realloc (Delete_List,
+           Delete_List = (Frag_Pair_t *) safe_realloc (Delete_List,
                           list_size * sizeof (Frag_Pair_t));
            assert (Num_Deletes < list_size);
           }
@@ -206,7 +206,7 @@ static void  Build_Delete_List
       Num_Deletes ++;
      }
 
-   Delete_List = (Frag_Pair_t *) Safe_realloc (Delete_List,
+   Delete_List = (Frag_Pair_t *) safe_realloc (Delete_List,
                   Num_Deletes * sizeof (Frag_Pair_t));
 
    fclose (fp);

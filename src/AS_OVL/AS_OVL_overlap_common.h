@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.19 2006-09-25 19:28:14 brianwalenz Exp $
- * $Revision: 1.19 $
+ * $Id: AS_OVL_overlap_common.h,v 1.20 2006-09-26 21:07:45 brianwalenz Exp $
+ * $Revision: 1.20 $
 */
 
 
@@ -1052,8 +1052,8 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
    
    if  (LSF_Mode && ! Contig_Mode)
        {
-        GenericMesg   * pmesg = (GenericMesg *) Safe_malloc (sizeof (GenericMesg));
-        AuditMesg  * adtmesg = (AuditMesg *) Safe_malloc (sizeof (AuditMesg));
+        GenericMesg   * pmesg = (GenericMesg *) safe_malloc (sizeof (GenericMesg));
+        AuditMesg  * adtmesg = (AuditMesg *) safe_malloc (sizeof (AuditMesg));
 
         pmesg->t = MESG_ADT;
         adtmesg -> list = NULL;
@@ -1240,7 +1240,7 @@ static String_Ref_t  Add_Extra_Hash_String
              String_Start_Size *= MEMORY_EXPANSION_FACTOR;
              if  (sub >= String_Start_Size)
                  String_Start_Size = sub;
-             String_Start = (int64 *) Safe_realloc (String_Start,
+             String_Start = (int64 *) safe_realloc (String_Start,
                   String_Start_Size * sizeof (int64));
             }
         String_Start [sub] = Used_Data_Len;
@@ -1254,7 +1254,7 @@ static String_Ref_t  Add_Extra_Hash_String
         Extra_Data_Len = (size_t) (Extra_Data_Len * MEMORY_EXPANSION_FACTOR);
         if  (new_len > Extra_Data_Len)
             Extra_Data_Len = new_len;
-        Data = (char *) Safe_realloc (Data, Extra_Data_Len);
+        Data = (char *) safe_realloc (Data, Extra_Data_Len);
        }
    strncpy (Data + String_Start [sub] + KMER_LEN * Extra_String_Subcount,
         s, KMER_LEN + 1);
@@ -1334,7 +1334,7 @@ Kmer_Hits_Ct ++;
                MEMORY_EXPANSION_FACTOR);
         //fprintf (stderr, "### reallocing  Match_Node_Space  Size = %d\n",
         //         wa -> Match_Node_Size);
-        wa -> Match_Node_Space = (Match_Node_t *) Safe_realloc
+        wa -> Match_Node_Space = (Match_Node_t *) safe_realloc
                (wa -> Match_Node_Space,
                 wa -> Match_Node_Size * sizeof (Match_Node_t));
        }
@@ -1471,7 +1471,7 @@ static void  Add_Ref
                        MEMORY_EXPANSION_FACTOR);
                 //fprintf (stderr, "### reallocing  String_Olap_Space  Size = %d\n",
                 //         WA -> String_Olap_Size);
-                WA -> String_Olap_Space = (String_Olap_t *) Safe_realloc
+                WA -> String_Olap_Space = (String_Olap_t *) safe_realloc
                        (WA -> String_Olap_Space,
                         WA -> String_Olap_Size * sizeof (String_Olap_t));
                }
@@ -1542,10 +1542,10 @@ int  Build_Hash_Index
    if  (Data == NULL)
        {
         Extra_Data_Len = Data_Len = Max_Hash_Data_Len + AS_READ_MAX_LEN;
-        Data = (char *) Safe_realloc (Data, Data_Len);
-        Quality_Data = (char *) Safe_realloc (Quality_Data, Data_Len);
+        Data = (char *) safe_realloc (Data, Data_Len);
+        Quality_Data = (char *) safe_realloc (Quality_Data, Data_Len);
         old_ref_len = Data_Len / (HASH_KMER_SKIP + 1);
-        Next_Ref = (String_Ref_t *) Safe_realloc
+        Next_Ref = (String_Ref_t *) safe_realloc
              (Next_Ref, old_ref_len * sizeof (String_Ref_t));
        }
 
@@ -1553,9 +1553,9 @@ int  Build_Hash_Index
    memset (Hash_Table, 0, HASH_TABLE_SIZE * sizeof (Hash_Bucket_t));
    memset (Hash_Check_Array, 0, HASH_TABLE_SIZE * sizeof (Check_Vector_t));
 
-   screen . match = (IntScreenMatch *) Safe_malloc
+   screen . match = (IntScreenMatch *) safe_malloc
                          (INIT_SCREEN_MATCHES * sizeof (IntScreenMatch));
-   screen . range = (Screen_Range_t *) Safe_malloc
+   screen . range = (Screen_Range_t *) safe_malloc
                          (INIT_SCREEN_MATCHES * sizeof (Screen_Range_t));
    screen . match_len = INIT_SCREEN_MATCHES;
    screen . num_matches = 0;
@@ -1607,7 +1607,7 @@ int  Build_Hash_Index
                           //fprintf (stderr, "### reallocing  Screen_Space  Size = %d\n",
                           //         Screen_Space_Size);
                           Screen_Space
-                              = (Screen_Range_t *) Safe_realloc
+                              = (Screen_Range_t *) safe_realloc
                                     (Screen_Space,
                                      Screen_Space_Size * sizeof (Screen_Range_t));
                          }
@@ -1644,16 +1644,16 @@ if  (Align_Ct_Size == 0)
     {
      Align_Ct_Size = 200;
      Align_Ct = (Align_Ct_t *)
-                    Safe_malloc (Align_Ct_Size * sizeof (Align_Ct_t));
+                    safe_malloc (Align_Ct_Size * sizeof (Align_Ct_t));
     }
 if  (String_Ct >= Align_Ct_Size - 1)
     {
      Align_Ct_Size *= 2;
      Align_Ct = (Align_Ct_t *)
-                    Safe_realloc (Align_Ct, Align_Ct_Size * sizeof (Align_Ct_t));
+                    safe_realloc (Align_Ct, Align_Ct_Size * sizeof (Align_Ct_t));
     }
 Align_Ct [String_Ct] = (Align_Entry_t *)
-                               Safe_calloc (1 + len, sizeof (Align_Entry_t));
+                               safe_calloc (1 + len, sizeof (Align_Entry_t));
 #endif
 
       if  (new_len > Data_Len)
@@ -1665,12 +1665,12 @@ Align_Ct [String_Ct] = (Align_Entry_t *)
            //         Data_Len);
            if  (Data_Len > Extra_Data_Len)
                {
-                Data = (char *) Safe_realloc (Data, Data_Len);
+                Data = (char *) safe_realloc (Data, Data_Len);
                 Extra_Data_Len = Data_Len;
                }
-           Quality_Data = (char *) Safe_realloc (Quality_Data, Data_Len);
+           Quality_Data = (char *) safe_realloc (Quality_Data, Data_Len);
            new_ref_len = Data_Len / (HASH_KMER_SKIP + 1);
-           Next_Ref = (String_Ref_t *) Safe_realloc
+           Next_Ref = (String_Ref_t *) safe_realloc
                 (Next_Ref, new_ref_len * sizeof (String_Ref_t));
            memset (Next_Ref + old_ref_len, '\377',
                 (new_ref_len - old_ref_len) * sizeof (String_Ref_t));
@@ -1737,7 +1737,7 @@ fprintf (Stat_File, "total_len:\n %10ld\n", total_len);
         fprintf (stderr,
                  "### realloc  Extra_Ref_Space  max_extra_ref_ct = " F_S64 "\n",
                  max_extra_ref_ct);
-        Extra_Ref_Space = (String_Ref_t *) Safe_realloc (Extra_Ref_Space,
+        Extra_Ref_Space = (String_Ref_t *) safe_realloc (Extra_Ref_Space,
                                max_extra_ref_ct * sizeof (String_Ref_t));
        }
 
@@ -3101,28 +3101,28 @@ static void  Initialize_Globals
 
    Screen_Space_Size = Max_Hash_Strings;
    Screen_Space
-       = (Screen_Range_t *) Safe_malloc
+       = (Screen_Range_t *) safe_malloc
              (Screen_Space_Size * sizeof (Screen_Range_t));
 
-   Hash_Table = (Hash_Bucket_t *) Safe_malloc
+   Hash_Table = (Hash_Bucket_t *) safe_malloc
                     (HASH_TABLE_SIZE * sizeof (Hash_Bucket_t));
    fprintf (stderr, "### Bytes in hash table = " F_SIZE_T "\n",
             HASH_TABLE_SIZE * sizeof (Hash_Bucket_t));
    
-   Hash_Check_Array = (Check_Vector_t *) Safe_malloc
+   Hash_Check_Array = (Check_Vector_t *) safe_malloc
                           (HASH_TABLE_SIZE * sizeof (Check_Vector_t));
-   Loc_ID = (uint64 *) Safe_calloc (Max_Hash_Strings, sizeof (uint64));
-   String_Info = (Hash_Frag_Info_t *) Safe_calloc (Max_Hash_Strings,
+   Loc_ID = (uint64 *) safe_calloc (Max_Hash_Strings, sizeof (uint64));
+   String_Info = (Hash_Frag_Info_t *) safe_calloc (Max_Hash_Strings,
                      sizeof (Hash_Frag_Info_t));
-   String_Start = (int64 *) Safe_calloc (Max_Hash_Strings, sizeof (int64));
+   String_Start = (int64 *) safe_calloc (Max_Hash_Strings, sizeof (int64));
    String_Start_Size = Max_Hash_Strings;
-   Kind_Of_Frag = (FragType *) Safe_calloc (Max_Hash_Strings, sizeof (FragType));
-   Screen_Sub = (int *) Safe_calloc (Max_Hash_Strings, sizeof (int));
+   Kind_Of_Frag = (FragType *) safe_calloc (Max_Hash_Strings, sizeof (FragType));
+   Screen_Sub = (int *) safe_calloc (Max_Hash_Strings, sizeof (int));
 
 #if  USE_SOURCE_FIELD
-   Left_Repeat_Tag = (char *) Safe_malloc (Max_Hash_Strings);
-   Right_Repeat_Tag = (char *) Safe_malloc (Max_Hash_Strings);
-   Other_Repeat_Tag = (char *) Safe_malloc (Max_Hash_Strings);
+   Left_Repeat_Tag = (char *) safe_malloc (Max_Hash_Strings);
+   Right_Repeat_Tag = (char *) safe_malloc (Max_Hash_Strings);
+   Other_Repeat_Tag = (char *) safe_malloc (Max_Hash_Strings);
 #endif
 
 #if  SHOW_STATS
@@ -3238,10 +3238,10 @@ void  Initialize_Work_Area
    int  i, Offset, Del;
 
    WA -> String_Olap_Size = INIT_STRING_OLAP_SIZE;
-   WA -> String_Olap_Space = (String_Olap_t *) Safe_malloc
+   WA -> String_Olap_Space = (String_Olap_t *) safe_malloc
            (WA -> String_Olap_Size * sizeof (String_Olap_t));
    WA -> Match_Node_Size = INIT_MATCH_NODE_SIZE;
-   WA -> Match_Node_Space = (Match_Node_t *) Safe_malloc
+   WA -> Match_Node_Space = (Match_Node_t *) safe_malloc
            (WA -> Match_Node_Size * sizeof (Match_Node_t));
 
    Offset = 2;
@@ -3256,9 +3256,9 @@ void  Initialize_Work_Area
    WA -> status = 0;
    WA -> myRead = new_ReadStruct ();
 
-   WA -> screen_info . match = (IntScreenMatch *) Safe_malloc
+   WA -> screen_info . match = (IntScreenMatch *) safe_malloc
                                    (INIT_SCREEN_MATCHES * sizeof (IntScreenMatch));
-   WA -> screen_info . range = (Screen_Range_t *) Safe_malloc
+   WA -> screen_info . range = (Screen_Range_t *) safe_malloc
                                    (INIT_SCREEN_MATCHES * sizeof (Screen_Range_t));
    WA -> screen_info . match_len = INIT_SCREEN_MATCHES;
    WA -> screen_info . num_matches = 0;
@@ -5087,9 +5087,9 @@ void  Profile_Hits
    int  status;
    int  kmer_ct, i, j;
 
-   screen . match = (IntScreenMatch *) Safe_malloc
+   screen . match = (IntScreenMatch *) safe_malloc
                          (INIT_SCREEN_MATCHES * sizeof (IntScreenMatch));
-   screen . range = (Screen_Range_t *) Safe_malloc
+   screen . range = (Screen_Range_t *) safe_malloc
                          (INIT_SCREEN_MATCHES * sizeof (Screen_Range_t));
    screen . match_len = INIT_SCREEN_MATCHES;
    screen . num_matches = 0;
@@ -5457,10 +5457,10 @@ static int  Read_Next_Frag
              fprintf (stderr,
                       "### realloc  screen match & range  match_ct = %d\n",
                       match_ct);
-             screen -> match = (IntScreenMatch *) Safe_realloc
+             screen -> match = (IntScreenMatch *) safe_realloc
                                    (screen -> match,
                                     match_ct * sizeof (IntScreenMatch));
-             screen -> range = (Screen_Range_t *) Safe_realloc
+             screen -> range = (Screen_Range_t *) safe_realloc
                                    (screen -> range,
                                     match_ct * sizeof (Screen_Range_t));
             }
@@ -5515,7 +5515,7 @@ static void  Read_uint32_List
    while  (fscanf (fp, "%u", & num) == 1)
      {
       (* n) ++;
-      (* list) = (uint32 *) Safe_realloc ((* list), (* n) * sizeof (uint32));
+      (* list) = (uint32 *) safe_realloc ((* list), (* n) * sizeof (uint32));
       (* list) [(* n) - 1] = num;
      }
 

@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: CombineMUMsOVL.c,v 1.4 2005-03-22 19:49:18 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Id: CombineMUMsOVL.c,v 1.5 2006-09-26 21:07:45 brianwalenz Exp $
+ * $Revision: 1.5 $
 */
 
-static char CM_ID[] = "$Id: CombineMUMsOVL.c,v 1.4 2005-03-22 19:49:18 jason_miller Exp $";
+static char CM_ID[] = "$Id: CombineMUMsOVL.c,v 1.5 2006-09-26 21:07:45 brianwalenz Exp $";
 
 
 //  System include files
@@ -326,7 +326,7 @@ int  main
 
    fp = Local_File_Open (Ref_File_Path, "r");
    Ref_Size = 100000;
-   Ref = (char *) Safe_malloc (Ref_Size);
+   Ref = (char *) safe_malloc (Ref_Size);
 
    if(Read_String (fp, & Ref, & Ref_Size, ref_header) == 0)
      assert(0);
@@ -335,7 +335,7 @@ int  main
    fclose (fp);
 
    Ref_Len = strlen (Ref + 1);
-   Ref = (char *) Safe_realloc (Ref, 1 + Ref_Len);
+   Ref = (char *) safe_realloc (Ref, 1 + Ref_Len);
    for  (i = 1;  i <= Ref_Len;  i ++)
      switch  (Ref [i])
        {
@@ -353,7 +353,7 @@ int  main
    fp = Local_File_Open (Gaps_File_Path, "r");
    match_fp = Local_File_Open (Match_File_Path, "r");
    query_size = 100000;
-   Query = (char *) Safe_malloc (query_size);
+   Query = (char *) safe_malloc (query_size);
 
    while  (fgets (line, MAX_LINE, fp) != NULL)
      {
@@ -576,7 +576,7 @@ static void  Add_Coverage
 
    if  ((* list) == NULL || hi + 1 < (* list) -> lo)
        {
-        new_node = (Cover_t *) Safe_malloc (sizeof (Cover_t));
+        new_node = (Cover_t *) safe_malloc (sizeof (Cover_t));
         new_node -> lo = lo;
         new_node -> hi = hi;
         new_node -> next = (* list);
@@ -590,7 +590,7 @@ static void  Add_Coverage
    if  (p == NULL || hi + 1 < p -> lo)
        {  // insert between or on end
         assert (prev != NULL);
-        new_node = (Cover_t *) Safe_malloc (sizeof (Cover_t));
+        new_node = (Cover_t *) safe_malloc (sizeof (Cover_t));
         new_node -> lo = lo;
         new_node -> hi = hi;
         new_node -> next = p;
@@ -1395,7 +1395,7 @@ static int  Read_String
       if  (Ct >= (* Size) - 1)
           {
            (* Size) *= EXPANSION_FACTOR;
-           (* T) = (char *) Safe_realloc ((* T), (* Size));
+           (* T) = (char *) safe_realloc ((* T), (* Size));
           }
       Ch = tolower (Ch);
       if  (! isalpha (Ch))

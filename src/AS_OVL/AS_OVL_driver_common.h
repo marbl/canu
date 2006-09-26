@@ -26,8 +26,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_driver_common.h,v 1.5 2005-06-16 20:02:37 brianwalenz Exp $
- * $Revision: 1.5 $
+ * $Id: AS_OVL_driver_common.h,v 1.6 2006-09-26 21:07:45 brianwalenz Exp $
+ * $Revision: 1.6 $
 */
 
 
@@ -150,15 +150,15 @@ fprintf (stderr, "### sizeof (Work_Area_t) = " F_SIZE_T "\n",
 fprintf (stderr, "### Using %d pthreads  %d hash bits  %d bucket entries\n",
          Num_PThreads, Hash_Mask_Bits, ENTRIES_PER_BUCKET);
 
-   thread_id = (pthread_t *) Safe_calloc
+   thread_id = (pthread_t *) safe_calloc
                    (Num_PThreads, sizeof (pthread_t));
 
-   new_stream_segment = (Frag_Stream *) Safe_calloc
+   new_stream_segment = (Frag_Stream *) safe_calloc
                    (Num_PThreads, sizeof (Frag_Stream));
-   old_stream_segment = (Frag_Stream *) Safe_calloc
+   old_stream_segment = (Frag_Stream *) safe_calloc
                    (Num_PThreads, sizeof (Frag_Stream));
-//   driver_wa = (Work_Area_t *) Safe_malloc (sizeof (Work_Area_t));
-   thread_wa = (Work_Area_t *) Safe_calloc
+//   driver_wa = (Work_Area_t *) safe_malloc (sizeof (Work_Area_t));
+   thread_wa = (Work_Area_t *) safe_calloc
                    (Num_PThreads, sizeof (Work_Area_t));
    if  (Contig_Mode)
        NewFragStore
@@ -745,7 +745,7 @@ static void  Extract_Screen_Match_Info
                fprintf (stderr,
                         "### realloc  Screen_Space  Screen_Space_Size = %d\n",
                         Screen_Space_Size);
-               Screen_Space = (Screen_Range_t *) Safe_realloc
+               Screen_Space = (Screen_Range_t *) safe_realloc
                                   (Screen_Space,
                                   Screen_Space_Size * sizeof (Screen_Range_t));
               }

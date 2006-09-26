@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: CorrectOlapsOVL.c,v 1.5 2005-09-15 15:20:16 eliv Exp $
- * $Revision: 1.5 $
+ * $Id: CorrectOlapsOVL.c,v 1.6 2006-09-26 21:07:45 brianwalenz Exp $
+ * $Revision: 1.6 $
 */
 
-static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.5 2005-09-15 15:20:16 eliv Exp $";
+static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.6 2006-09-26 21:07:45 brianwalenz Exp $";
 
 
 //  System include files
@@ -528,7 +528,7 @@ static void  Add_To_List
          return;
 
    a -> len ++;
-   a -> list = (int *) Safe_realloc (a -> list, a -> len * sizeof (int));
+   a -> list = (int *) safe_realloc (a -> list, a -> len * sizeof (int));
    a -> list [a -> len - 1] = b;
 
    return;
@@ -635,9 +635,9 @@ static void  Apply_Seq_Corrects
        {
         int  size;
 
-        (* seq) = (char *) Safe_realloc ((* seq), 1 + new_len);
+        (* seq) = (char *) safe_realloc ((* seq), 1 + new_len);
         size = OVL_Max_int (ct, 1);   // Prevent realloc failures
-        (* adjust) = (Adjust_t *) Safe_realloc ((* adjust), size * sizeof (Adjust_t));
+        (* adjust) = (Adjust_t *) safe_realloc ((* adjust), size * sizeof (Adjust_t));
        }
    strcpy ((* seq), buff);
    for  (i = 0;  i < ct;  i ++)
@@ -736,16 +736,16 @@ static void  Build_FOM_List
    int  list_size = 10000;
    int  i;
 
-   FOM_List = (Frag_Pair_t *) Safe_malloc (list_size * sizeof (Frag_Pair_t));
+   FOM_List = (Frag_Pair_t *) safe_malloc (list_size * sizeof (Frag_Pair_t));
    Num_FOMs = 0;
 
    IUM_Size = 1 + Hi_Frag_IID;
-   IUM = (int *) Safe_malloc (IUM_Size * sizeof (int));
+   IUM = (int *) safe_malloc (IUM_Size * sizeof (int));
    for  (i = 0;  i < IUM_Size;  i ++)
      IUM [i] = -1;
    
    Num_Frags = 1 + Hi_Frag_IID - Lo_Frag_IID;
-   UF = (int *) Safe_malloc ((1 + Num_Frags) * sizeof (int));
+   UF = (int *) safe_malloc ((1 + Num_Frags) * sizeof (int));
    for  (i = 0;  i <= Num_Frags;  i ++)
      UF [i] = -1;
 
@@ -765,7 +765,7 @@ static void  Build_FOM_List
            if  (Num_FOMs >= list_size)
                {
                 list_size *= EXPANSION_FACTOR;
-                FOM_List = (Frag_Pair_t *) Safe_realloc (FOM_List,
+                FOM_List = (Frag_Pair_t *) safe_realloc (FOM_List,
                                list_size * sizeof (Frag_Pair_t));
                 assert (Num_FOMs < list_size);
                }
@@ -800,7 +800,7 @@ static void  Build_FOM_List
                    int  new_size, j;
 
                    new_size = OVL_Max_int (1 + imp -> ident, 2 * IUM_Size);
-                   IUM = (int *) Safe_realloc (IUM, new_size * sizeof (int));
+                   IUM = (int *) safe_realloc (IUM, new_size * sizeof (int));
                    for  (j = IUM_Size;  j < new_size;  j ++)
                      IUM [j] = -1;
                    IUM_Size = new_size;
@@ -821,7 +821,7 @@ static void  Build_FOM_List
      }
 
    if  (Num_FOMs > 0)
-       FOM_List = (Frag_Pair_t *) Safe_realloc (FOM_List,
+       FOM_List = (Frag_Pair_t *) safe_realloc (FOM_List,
                       Num_FOMs * sizeof (Frag_Pair_t));
 
    qsort (FOM_List, Num_FOMs, sizeof (Frag_Pair_t), By_Lo_IID);
@@ -837,7 +837,7 @@ static void  Build_FOM_List
 
    fclose (fp);
 
-   Keep_Pair = (Int_List_t *) Safe_malloc ((1 + Hi_Unitig) * sizeof (Int_List_t));
+   Keep_Pair = (Int_List_t *) safe_malloc ((1 + Hi_Unitig) * sizeof (Int_List_t));
    for  (i = 0;  i <= Hi_Unitig;  i ++)
      {
       Keep_Pair [i] . list = NULL;
@@ -1285,7 +1285,7 @@ static void  Dump_Erate_File
    header [2] = num;
    Safe_fwrite (header, sizeof (int32), 3, fp);
 
-   erate = (uint16 *) Safe_malloc (num * sizeof (uint16));
+   erate = (uint16 *) safe_malloc (num * sizeof (uint16));
    for  (i = 0;  i < num;  i ++)
      erate [i] = olap [i] . corr_erate;
 
@@ -1608,7 +1608,7 @@ static void  Get_Olaps_From_Store
        }
 
    num_frags = 2 + hi_id - lo_id;   // go 1 past the end
-   Olap_Offset = (uint32 *) Safe_malloc (num_frags * sizeof (uint32));
+   Olap_Offset = (uint32 *) safe_malloc (num_frags * sizeof (uint32));
    CDS_FSEEK (fp, (off_t) (lo_id * sizeof (uint32)), SEEK_CUR);
    Safe_fread (Olap_Offset, sizeof (uint32), num_frags, fp);
 
@@ -1643,7 +1643,7 @@ static void  Get_Olaps_From_Store
      }
 
 
-   (* olap) = (Olap_Info_t*) Safe_malloc (olap_size * sizeof (Olap_Info_t));
+   (* olap) = (Olap_Info_t*) safe_malloc (olap_size * sizeof (Olap_Info_t));
 
    ct = 0;
    for  (i = lo_id;  i <= hi_id;  i ++)
@@ -1663,7 +1663,7 @@ static void  Get_Olaps_From_Store
              if  (ct >= olap_size)
                  {
                   olap_size *= EXPANSION_FACTOR;
-                  (* olap) = (Olap_Info_t *) Safe_realloc ((* olap),
+                  (* olap) = (Olap_Info_t *) safe_realloc ((* olap),
                                            olap_size * sizeof (Olap_Info_t));
                  }
              (* olap) [ct] . a_iid = i;
@@ -1685,7 +1685,7 @@ static void  Get_Olaps_From_Store
              if  (ct >= olap_size)
                  {
                   olap_size *= EXPANSION_FACTOR;
-                  (* olap) = (Olap_Info_t *) Safe_realloc ((* olap),
+                  (* olap) = (Olap_Info_t *) safe_realloc ((* olap),
                                            olap_size * sizeof (Olap_Info_t));
                  }
              (* olap) [ct] . a_iid = i;
@@ -1709,7 +1709,7 @@ static void  Get_Olaps_From_Store
      }
 
    (* num) = ct;
-   (* olap) = (Olap_Info_t *) Safe_realloc ((* olap), ct * sizeof (Olap_Info_t));
+   (* olap) = (Olap_Info_t *) safe_realloc ((* olap), ct * sizeof (Olap_Info_t));
 
    return;
   }
@@ -2599,7 +2599,7 @@ static char *  Read_Fasta
 
   {
    int  buff_size = 50000;
-   char  * buff = (char *) Safe_malloc (buff_size);
+   char  * buff = (char *) safe_malloc (buff_size);
    int  len, buff_len = 0;
    char  line [MAX_FASTA_LINE];
 
@@ -2624,7 +2624,7 @@ static char *  Read_Fasta
            while  (buff_size <= buff_len + len)
              {
               buff_size *= EXPANSION_FACTOR;
-              buff = (char *) Safe_realloc (buff, buff_size);
+              buff = (char *) safe_realloc (buff, buff_size);
              }
            for  (i = 0;  i < len;  i ++)
              line [i] = tolower (line [i]);
@@ -2633,7 +2633,7 @@ static char *  Read_Fasta
            assert (buff [buff_len] == '\0');
         }
      }
-   buff = (char *) Safe_realloc (buff, buff_len + 1);
+   buff = (char *) safe_realloc (buff, buff_len + 1);
    fprintf (stderr, "buff_len = %d\n", buff_len);
 
    return  buff;
@@ -2663,7 +2663,7 @@ static void  Read_Frags
        }
 
    Num_Frags = 1 + Hi_Frag_IID - Lo_Frag_IID;
-   Frag = (Frag_Info_t *) Safe_calloc (Num_Frags, sizeof (Frag_Info_t));
+   Frag = (Frag_Info_t *) safe_calloc (Num_Frags, sizeof (Frag_Info_t));
 
    frag_read = new_ReadStruct ();
 
@@ -2766,7 +2766,7 @@ static void  Read_Olaps
         fp = File_Open (Olap_Path, "r");
 
         olap_size = 1000;
-        Olap = (Olap_Info_t *) Safe_malloc 
+        Olap = (Olap_Info_t *) safe_malloc 
                    (olap_size * sizeof (Olap_Info_t));
 
         while  (fscanf (fp, "%d %d %d %d %s %lf",
@@ -2779,7 +2779,7 @@ static void  Read_Olaps
                 if  (ct >= olap_size)
                     {
                      olap_size *= EXPANSION_FACTOR;
-                     Olap = (Olap_Info_t*) Safe_realloc 
+                     Olap = (Olap_Info_t*) safe_realloc 
 		       (Olap, olap_size * sizeof (Olap_Info_t));
                     }
                 Olap [ct] . a_iid = a_iid;
@@ -2805,7 +2805,7 @@ static void  Read_Olaps
           }
 
         Num_Olaps = ct;
-        Olap = (Olap_Info_t*) Safe_realloc 
+        Olap = (Olap_Info_t*) safe_realloc 
 	  (Olap, Num_Olaps * sizeof (Olap_Info_t));
 
         fclose (fp);

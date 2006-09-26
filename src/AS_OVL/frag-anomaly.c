@@ -38,11 +38,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: frag-anomaly.c,v 1.5 2005-09-15 15:20:16 eliv Exp $
- * $Revision: 1.5 $
+ * $Id: frag-anomaly.c,v 1.6 2006-09-26 21:07:45 brianwalenz Exp $
+ * $Revision: 1.6 $
 */
 
-static char fileID[] = "$Id: frag-anomaly.c,v 1.5 2005-09-15 15:20:16 eliv Exp $";
+static char fileID[] = "$Id: frag-anomaly.c,v 1.6 2006-09-26 21:07:45 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -146,7 +146,7 @@ int main  (int argc, char * argv [])
    assert (infile_name != NULL);
    fprintf (stderr, "Input Overlap File = %s\n", infile_name);
    len = strlen (infile_name);
-   outfile_name = (char *) Safe_malloc (len + 20);
+   outfile_name = (char *) safe_malloc (len + 20);
    for  (i = len - 1;  i >= 0;  i --)
      if  (infile_name [i] == '.')
          break;
@@ -169,7 +169,7 @@ int main  (int argc, char * argv [])
    // Get fragment count and allocate array to hold adjacency lists
 
    frag_size = 1000000;
-   Frag = (Frag_Entry_t *) Safe_calloc (frag_size, sizeof (Frag_Entry_t));
+   Frag = (Frag_Entry_t *) safe_calloc (frag_size, sizeof (Frag_Entry_t));
 
    if  (show_progress)
        fprintf (stderr, "\n");
@@ -188,7 +188,7 @@ int main  (int argc, char * argv [])
                {
                 int  new_size = 2 * frag_size;
 
-                Frag = (Frag_Entry_t *) Safe_realloc
+                Frag = (Frag_Entry_t *) safe_realloc
                            (Frag, new_size * sizeof (Frag_Entry_t));
                 for  (i = frag_size;  i < new_size;  i ++)
                   memset (Frag + i, 0, sizeof (Frag_Entry_t));
@@ -210,7 +210,7 @@ int main  (int argc, char * argv [])
        }
 
    frag_size = 1 + max_fragid;
-   Frag = (Frag_Entry_t *) Safe_realloc (Frag, frag_size * sizeof (Frag_Entry_t));
+   Frag = (Frag_Entry_t *) safe_realloc (Frag, frag_size * sizeof (Frag_Entry_t));
 
    if  (show_progress)
        fprintf (stderr, "\r Frags read = %d\n", frag_size);
@@ -511,9 +511,9 @@ printf ("\n olap1 = %d %c %c %d  olap2 = %d %c %c %d",
 
    rewind (ovlfile);
 
-   pmesg = (GenericMesg *) Safe_malloc (sizeof (GenericMesg));
+   pmesg = (GenericMesg *) safe_malloc (sizeof (GenericMesg));
    pmesg -> t = MESG_ADT;
-   pmesg -> m = (AuditMesg *) Safe_malloc (sizeof (AuditMesg));
+   pmesg -> m = (AuditMesg *) safe_malloc (sizeof (AuditMesg));
    new_adt_mesg = (AuditMesg*) pmesg -> m;
    new_adt_mesg -> list = & audit_line;
 
@@ -531,7 +531,7 @@ printf ("\n olap1 = %d %c %c %d  olap2 = %d %c %c %d",
            sprintf (label_line, "%s %s %s", argv [0], infile_name,
                     argv [optind]);
            AppendAuditLine_AS (adt_mesg, & audit_line, time (0), "frag-anomaly screen",
-                               "$Revision: 1.5 $", label_line);
+                               "$Revision: 1.6 $", label_line);
            write_msg_fn (outfile, gmesg);
            break;
           }
@@ -582,7 +582,7 @@ static void  Add_Entry
 //  fragment  frag_id .
 
   {
-   f -> olap = (Olap_Entry_t *) Safe_realloc (f -> olap,
+   f -> olap = (Olap_Entry_t *) safe_realloc (f -> olap,
                  1 + f -> num_olaps * sizeof (Olap_Entry_t));
    f -> olap [f -> num_olaps] . end = end;
    f -> olap [f -> num_olaps] . orient = orient;

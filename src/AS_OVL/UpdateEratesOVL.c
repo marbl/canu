@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: UpdateEratesOVL.c,v 1.6 2006-04-14 18:36:15 adelcher Exp $
- * $Revision: 1.6 $
+ * $Id: UpdateEratesOVL.c,v 1.7 2006-09-26 21:07:45 brianwalenz Exp $
+ * $Revision: 1.7 $
 */
 
-static char CM_ID[] = "$Id: UpdateEratesOVL.c,v 1.6 2006-04-14 18:36:15 adelcher Exp $";
+static char CM_ID[] = "$Id: UpdateEratesOVL.c,v 1.7 2006-09-26 21:07:45 brianwalenz Exp $";
 
 
 //  System include files
@@ -114,7 +114,7 @@ int  main
      FILE * fp = File_Open (Erate_File_Path, "rb");
      Safe_fread (header, sizeof (int32), 3, fp);
      num = header [2];
-     erate = (uint16 *) Safe_malloc (num * sizeof (uint16));
+     erate = (uint16 *) safe_malloc (num * sizeof (uint16));
      Safe_fread (erate, sizeof (uint16), num, fp);
      fclose (fp);
    }
@@ -244,7 +244,7 @@ static void  Set_Corrected_Erate
          }
 
      num_frags = 2 + hi_id - lo_id;   // go 1 past the end
-     olap_offset = (uint32 *) Safe_malloc (num_frags * sizeof (uint32));
+     olap_offset = (uint32 *) safe_malloc (num_frags * sizeof (uint32));
      CDS_FSEEK (fp, (off_t) (lo_id * sizeof (uint32)), SEEK_CUR);
      Safe_fread (olap_offset, sizeof (uint32), num_frags, fp);
      

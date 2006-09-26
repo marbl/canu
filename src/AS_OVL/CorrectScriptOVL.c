@@ -32,12 +32,12 @@
 *************************************************/
 
 /* RCS info
- * $Id: CorrectScriptOVL.c,v 1.4 2005-03-22 19:49:18 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Id: CorrectScriptOVL.c,v 1.5 2006-09-26 21:07:45 brianwalenz Exp $
+ * $Revision: 1.5 $
 */
 
 static char  CM_ID []
-    = "$Id: CorrectScriptOVL.c,v 1.4 2005-03-22 19:49:18 jason_miller Exp $";
+    = "$Id: CorrectScriptOVL.c,v 1.5 2006-09-26 21:07:45 brianwalenz Exp $";
 
 
 /*************************************************************************/
@@ -251,7 +251,7 @@ static void  Calculate_Batches
         olap_ct = 0;
         max_olaps = 0;
         batch_ct = 1;
-        (* batch_range) = (Range_t *) Safe_malloc
+        (* batch_range) = (Range_t *) safe_malloc
                                   (batch_ct * sizeof (Range_t));
         batch_lo = 1;
 
@@ -278,7 +278,7 @@ static void  Calculate_Batches
 fprintf (stderr, "Frag space = %.0f   Olap space = %.0f\n",
          frag_ct * space_per_frag, olap_ct * space_per_olap);
                 batch_ct ++;
-                (* batch_range) = (Range_t *) Safe_realloc
+                (* batch_range) = (Range_t *) safe_realloc
                      ((* batch_range), batch_ct * sizeof (Range_t));
                 batch_lo = i;
                 frag_ct = 1;
@@ -297,7 +297,7 @@ for  (i = 0;  i < batch_ct;  i ++)
      else
        {
         (* num_batches) = (int) ceil ((double) num_frags / fixed_batch_size);
-        bp = (* batch_range) = (Range_t *) Safe_malloc
+        bp = (* batch_range) = (Range_t *) safe_malloc
                                   ((* num_batches) * sizeof (Range_t));
 
         batch_lo = 1;

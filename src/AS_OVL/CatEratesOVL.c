@@ -37,11 +37,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: CatEratesOVL.c,v 1.3 2005-03-22 19:49:18 jason_miller Exp $
- * $Revision: 1.3 $
+ * $Id: CatEratesOVL.c,v 1.4 2006-09-26 21:07:45 brianwalenz Exp $
+ * $Revision: 1.4 $
 */
 
-static char CM_ID[] = "$Id: CatEratesOVL.c,v 1.3 2005-03-22 19:49:18 jason_miller Exp $";
+static char CM_ID[] = "$Id: CatEratesOVL.c,v 1.4 2006-09-26 21:07:45 brianwalenz Exp $";
 
 
 //  System include files
@@ -182,7 +182,7 @@ int  main
       fp = File_Open (filename, "rb");
       Safe_fread (header, sizeof (int32), 3, fp);
       num = header[2];
-      erate = (int16 *) Safe_malloc (num * sizeof (int16));
+      erate = (int16 *) safe_malloc (num * sizeof (int16));
       Safe_fread (erate, sizeof (int16), num, fp);
       Safe_fwrite(erate, sizeof(int16),num,outfile);
       fclose (fp);

@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FragCorrectOVL.c,v 1.8 2006-05-18 18:30:31 vrainish Exp $
- * $Revision: 1.8 $
+ * $Id: FragCorrectOVL.c,v 1.9 2006-09-26 21:07:45 brianwalenz Exp $
+ * $Revision: 1.9 $
 */
 
-static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.8 2006-05-18 18:30:31 vrainish Exp $";
+static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.9 2006-09-26 21:07:45 brianwalenz Exp $";
 
 
 //  System include files
@@ -1128,7 +1128,7 @@ static void  Extract_Needed_Frags
           {
            list -> size *= 2;
            assert (list -> size > list -> ct);
-           list -> entry = (Frag_List_Entry_t *) Safe_realloc
+           list -> entry = (Frag_List_Entry_t *) safe_realloc
                              (list -> entry, list -> size * sizeof (Frag_List_Entry_t));
           }
 
@@ -1140,7 +1140,7 @@ static void  Extract_Needed_Frags
           {
            list -> buffer_size *= 2;
            assert (list -> buffer_size >= new_total);
-           list -> buffer = (char *) Safe_realloc
+           list -> buffer = (char *) safe_realloc
                                (list -> buffer, list -> buffer_size);
           }
       list -> entry [list -> ct] . start = total_len;
@@ -1238,7 +1238,7 @@ static void  Get_Olaps_From_Store
        }
 
    num_frags = 2 + hi_id - lo_id;   // go 1 past the end
-   offset = (uint32 *) Safe_malloc (num_frags * sizeof (uint32));
+   offset = (uint32 *) safe_malloc (num_frags * sizeof (uint32));
    CDS_FSEEK (fp, (off_t) (lo_id * sizeof (uint32)), SEEK_CUR);
    Safe_fread (offset, sizeof (uint32), num_frags, fp);
 
@@ -1271,7 +1271,7 @@ static void  Get_Olaps_From_Store
           olap_size += offset [last_frag_in_file - lo_id] + 1000 - lo_offset;
      }
 
-   (* olap) = (Olap_Info_t*) Safe_malloc (olap_size * sizeof (Olap_Info_t));
+   (* olap) = (Olap_Info_t*) safe_malloc (olap_size * sizeof (Olap_Info_t));
 
    ct = 0;
    for  (i = lo_id;  i <= hi_id;  i ++)
@@ -1291,7 +1291,7 @@ static void  Get_Olaps_From_Store
              if  (ct >= olap_size)
                  {
                   olap_size *= EXPANSION_FACTOR;
-                  (* olap) = (Olap_Info_t *) Safe_realloc ((* olap),
+                  (* olap) = (Olap_Info_t *) safe_realloc ((* olap),
                                            olap_size * sizeof (Olap_Info_t));
                  }
              (* olap) [ct] . a_iid = i;
@@ -1311,7 +1311,7 @@ static void  Get_Olaps_From_Store
              if  (ct >= olap_size)
                  {
                   olap_size *= EXPANSION_FACTOR;
-                  (* olap) = (Olap_Info_t *) Safe_realloc ((* olap),
+                  (* olap) = (Olap_Info_t *) safe_realloc ((* olap),
                                            olap_size * sizeof (Olap_Info_t));
                  }
              (* olap) [ct] . a_iid = i;
@@ -1333,7 +1333,7 @@ static void  Get_Olaps_From_Store
      }
 
    (* num) = ct;
-   (* olap) = (Olap_Info_t *) Safe_realloc ((* olap), ct * sizeof (Olap_Info_t));
+   (* olap) = (Olap_Info_t *) safe_realloc ((* olap), ct * sizeof (Olap_Info_t));
 
    return;
   }
@@ -1348,10 +1348,10 @@ static void  Init_Frag_List
  {
   list -> ct = 0;
   list -> size = 1000;
-  list -> entry = (Frag_List_Entry_t *) Safe_malloc
+  list -> entry = (Frag_List_Entry_t *) safe_malloc
                         (Frag_List . size * sizeof (Frag_List_Entry_t));
   list -> buffer_size = Frag_List . size * 550;
-  list -> buffer = (char *) Safe_malloc (Frag_List . buffer_size);
+  list -> buffer = (char *) safe_malloc (Frag_List . buffer_size);
 
   return;
  }
@@ -1396,10 +1396,10 @@ static void  Initialize_Globals
 
    Frag_List . ct = 0;
    Frag_List . size = 1000;
-   Frag_List . entry = (Frag_List_Entry_t *) Safe_malloc
+   Frag_List . entry = (Frag_List_Entry_t *) safe_malloc
                          (Frag_List . size * sizeof (Frag_List_Entry_t));
    Frag_List . buffer_size = Frag_List . size * 550;
-   Frag_List . buffer = (char *) Safe_malloc (Frag_List . buffer_size);
+   Frag_List . buffer = (char *) safe_malloc (Frag_List . buffer_size);
 
    return;
   }
@@ -2152,7 +2152,7 @@ static void  Read_Frags
        }
 
    Num_Frags = 1 + Hi_Frag_IID - Lo_Frag_IID;
-   Frag = (Frag_Info_t *) Safe_calloc (Num_Frags, sizeof (Frag_Info_t));
+   Frag = (Frag_Info_t *) safe_calloc (Num_Frags, sizeof (Frag_Info_t));
 
    frag_read = new_ReadStruct ();
 
@@ -2218,7 +2218,7 @@ static void  Read_Frags
          seq_buff [j] = Filter (seq_buff [j]);
 
       Frag [i] . sequence = strdup (seq_buff + clear_start);
-      Frag [i] . vote = (Vote_Tally_t *) Safe_calloc (frag_len - clear_start,
+      Frag [i] . vote = (Vote_Tally_t *) safe_calloc (frag_len - clear_start,
                                                       sizeof (Vote_Tally_t));
       Frag [i] . left_degree = Frag [i] . right_degree = 0;
      }
@@ -2258,7 +2258,7 @@ static void  Read_Olaps
      else
        {
         olap_size = 1000;
-        Olap = (Olap_Info_t*) Safe_malloc (olap_size * sizeof (Olap_Info_t));
+        Olap = (Olap_Info_t*) safe_malloc (olap_size * sizeof (Olap_Info_t));
 
         fp = File_Open (Olap_Path, "r");
 
@@ -2272,7 +2272,7 @@ static void  Read_Olaps
                 if  (ct >= olap_size)
                     {
                      olap_size *= EXPANSION_FACTOR;
-                     Olap = (Olap_Info_t *) Safe_realloc (Olap,
+                     Olap = (Olap_Info_t *) safe_realloc (Olap,
                                 olap_size * sizeof (Olap_Info_t));
                     }
                 Olap [ct] . a_iid = a_iid;
@@ -2305,7 +2305,7 @@ static void  Read_Olaps
              exit (EXIT_FAILURE);
             }
 
-        Olap = (Olap_Info_t *) Safe_realloc (Olap, Num_Olaps * sizeof (Olap_Info_t));
+        Olap = (Olap_Info_t *) safe_realloc (Olap, Num_Olaps * sizeof (Olap_Info_t));
        }
 
    return;
@@ -2542,9 +2542,9 @@ static void  Threaded_Stream_Old_Frags
    pthread_mutex_init (& Print_Mutex, NULL);
    pthread_attr_init (& attr);
    pthread_attr_setstacksize (& attr, THREAD_STACKSIZE);
-   thread_id = (pthread_t *) Safe_calloc
+   thread_id = (pthread_t *) safe_calloc
                    (Num_PThreads, sizeof (pthread_t));
-   thread_wa = (Thread_Work_Area_t *) Safe_malloc
+   thread_wa = (Thread_Work_Area_t *) safe_malloc
                    (Num_PThreads * sizeof (Thread_Work_Area_t));
 
    for  (i = 0;  i < Num_PThreads;  i ++)

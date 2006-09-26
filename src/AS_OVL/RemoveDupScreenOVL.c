@@ -37,11 +37,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: RemoveDupScreenOVL.c,v 1.4 2005-03-22 19:49:19 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Id: RemoveDupScreenOVL.c,v 1.5 2006-09-26 21:07:45 brianwalenz Exp $
+ * $Revision: 1.5 $
 */
 
-static char CM_ID[] = "$Id: RemoveDupScreenOVL.c,v 1.4 2005-03-22 19:49:19 jason_miller Exp $";
+static char CM_ID[] = "$Id: RemoveDupScreenOVL.c,v 1.5 2006-09-26 21:07:45 brianwalenz Exp $";
 
 
 #include  "AS_OVL_delcher.h"
@@ -130,11 +130,11 @@ int  main
    Parse_Command_Line  (argc, argv);
 
    buff_size = 10000;
-   buff = (char *) Safe_malloc (buff_size);
+   buff = (char *) safe_malloc (buff_size);
 
    while  (Read_String (stdin, & buff, & buff_size, header))
      {
-      S = (String_t *) Safe_realloc (S, (ct + 1) * sizeof (String_t));
+      S = (String_t *) safe_realloc (S, (ct + 1) * sizeof (String_t));
       S [ct] . header = strdup (header);
       S [ct] . seq = strdup (buff);
       S [ct] . len = strlen (buff);
@@ -250,7 +250,7 @@ int  main
            if  (best_result . endpos > 0)
                {
                 S [best_i] . len += best_result . endpos;
-                S [best_i] . seq = (char *) Safe_realloc (S [best_i] . seq,
+                S [best_i] . seq = (char *) safe_realloc (S [best_i] . seq,
                                        1 + S [best_i] . len);
                 if  (best_orient == AB_BA)
                     Complement_Seq (S [j] . seq);
@@ -264,7 +264,7 @@ int  main
            if  (best_result . begpos < 0)
                {
                 S [best_i] . len -= best_result . begpos;
-                S [best_i] . seq = (char *) Safe_realloc (S [best_i] . seq,
+                S [best_i] . seq = (char *) safe_realloc (S [best_i] . seq,
                                        1 + S [best_i] . len);
                 memmove (S [best_i] . seq - best_result . begpos, S [best_i] . seq,
                          1 + S [best_i] . len + best_result . begpos);
@@ -446,7 +446,7 @@ static void  Merge_Headers
        sprintf (new_header, " iids %s,%s  len = %d",
                 range1, range2, len);
    
-   (* h1) = (char *) Safe_realloc ((* h1), 1 + strlen (new_header));
+   (* h1) = (char *) safe_realloc ((* h1), 1 + strlen (new_header));
    strcpy ((* h1), new_header);
 
    return;
@@ -551,7 +551,7 @@ static int  Read_String
       if  (Ct >= (* Size) - 1)
           {
            (* Size) += INCR_SIZE;
-           (* T) = (char *) Safe_realloc ((* T), (* Size));
+           (* T) = (char *) safe_realloc ((* T), (* Size));
           }
       Ch = tolower (Ch);
       if  (! isalpha (Ch))

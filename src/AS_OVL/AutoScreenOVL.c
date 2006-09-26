@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AutoScreenOVL.c,v 1.4 2005-03-22 19:49:18 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Id: AutoScreenOVL.c,v 1.5 2006-09-26 21:07:45 brianwalenz Exp $
+ * $Revision: 1.5 $
 */
 
-static char CM_ID[] = "$Id: AutoScreenOVL.c,v 1.4 2005-03-22 19:49:18 jason_miller Exp $";
+static char CM_ID[] = "$Id: AutoScreenOVL.c,v 1.5 2006-09-26 21:07:45 brianwalenz Exp $";
 
 
 //  System include files
@@ -371,7 +371,7 @@ static void  Add_Olap_To_List
   {
    int  new_len = (* list_len) + 1;
 
-   * list = (Graph_Edge_t *) Safe_realloc
+   * list = (Graph_Edge_t *) safe_realloc
                 (* list, new_len * sizeof (Graph_Edge_t));
    (* list) [* list_len] . iid = iid;
    (* list) [* list_len] . over_left = over_left;
@@ -993,7 +993,7 @@ static void  Get_Consensus
         if  (new_size < 2 * (hi - lo))
             new_size = 2 * (hi - lo);
 
-        (* buff) = (char *) Safe_realloc ((* buff), new_size);
+        (* buff) = (char *) safe_realloc ((* buff), new_size);
         (* buff_size) = new_size;
        }
 
@@ -1904,7 +1904,7 @@ static void  Process_Graph
       if  (Frag [i] . high_right_degree)
           ref_ct ++;
      }
-   ref = (End_Ref_t *) Safe_malloc (ref_ct * sizeof (End_Ref_t));
+   ref = (End_Ref_t *) safe_malloc (ref_ct * sizeof (End_Ref_t));
    ref_ct = 0;
    for  (i = Lo_Frag_IID;  i <= Hi_Frag_IID;  i ++)
      {
@@ -2106,7 +2106,7 @@ static void  Read_Degrees
    Lo_Frag_IID = 1;
 
    frag_size = 1000;
-   Frag = (Frag_Info_t *) Safe_malloc (frag_size * sizeof (Frag_Info_t));
+   Frag = (Frag_Info_t *) safe_malloc (frag_size * sizeof (Frag_Info_t));
    for  (i = 0;  i < frag_size;  i ++)
      {
       Frag [i] . sequence = NULL;
@@ -2125,7 +2125,7 @@ static void  Read_Degrees
            if  (iid >= new_size)
                new_size = iid + 1;
 
-           Frag = (Frag_Info_t *) Safe_realloc (Frag,
+           Frag = (Frag_Info_t *) safe_realloc (Frag,
                      new_size * sizeof (Frag_Info_t));
 
            for (i = frag_size;  i < new_size;  i ++)
@@ -2164,7 +2164,7 @@ else if  (Frag [iid] . high_right_degree)
           Hi_Frag_IID = iid;
      }
 
-   Frag = (Frag_Info_t *) Safe_realloc (Frag, (1 + Hi_Frag_IID) * sizeof (Frag_Info_t));
+   Frag = (Frag_Info_t *) safe_realloc (Frag, (1 + Hi_Frag_IID) * sizeof (Frag_Info_t));
 
    fclose (fp);
 
@@ -2266,7 +2266,7 @@ static void  Read_Frags
          seq_buff [clear_end] = '\0';
 
          Frag [iid] . sequence = strdup (seq_buff + clear_start);
-         Frag [iid] . vote = (Vote_Tally_t *) Safe_calloc (clear_end - clear_start,
+         Frag [iid] . vote = (Vote_Tally_t *) safe_calloc (clear_end - clear_start,
                                                          sizeof (Vote_Tally_t));
          Frag [iid] . len = clear_end - clear_start;
         }
@@ -2453,9 +2453,9 @@ static void  Traverse
    if  (cum_buff == NULL)
        {
         cum_size = INITIAL_BUFFER_SIZE;
-        cum_buff = (char *) Safe_malloc (cum_size);
+        cum_buff = (char *) safe_malloc (cum_size);
         seq_size = INITIAL_BUFFER_SIZE;
-        seq_buff = (char *) Safe_malloc (seq_size);
+        seq_buff = (char *) safe_malloc (seq_size);
        }
 
    Get_Consensus (iid, use_left, use_left, & seq_buff, & seq_size);
@@ -2464,7 +2464,7 @@ static void  Traverse
    if  (cum_len >= cum_size)
        {
         cum_size = 1 + cum_len;
-        cum_buff = (char *) Safe_realloc (cum_buff, cum_size);
+        cum_buff = (char *) safe_realloc (cum_buff, cum_size);
        }
    strcpy (cum_buff, seq_buff);
 
@@ -2668,7 +2668,7 @@ static void  Traverse
           {
            cum_size = OVL_Max_int ((int) (cum_size * EXPANSION_FACTOR),
                                cum_len + seq_len + 1);
-           cum_buff = (char *) Safe_realloc (cum_buff, cum_size);
+           cum_buff = (char *) safe_realloc (cum_buff, cum_size);
           }
       strcpy (cum_buff + cum_len, cat_seq);
       cum_len += seq_len;

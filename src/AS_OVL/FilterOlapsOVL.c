@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FilterOlapsOVL.c,v 1.5 2005-09-15 15:20:16 eliv Exp $
- * $Revision: 1.5 $
+ * $Id: FilterOlapsOVL.c,v 1.6 2006-09-26 21:07:45 brianwalenz Exp $
+ * $Revision: 1.6 $
 */
 
-static char CM_ID[] = "$Id: FilterOlapsOVL.c,v 1.5 2005-09-15 15:20:16 eliv Exp $";
+static char CM_ID[] = "$Id: FilterOlapsOVL.c,v 1.6 2006-09-26 21:07:45 brianwalenz Exp $";
 
 
 //  System include files
@@ -206,7 +206,7 @@ static void  Read_Unitig_Pairs
    int  list_size = 10000;
    int  lo, hi;
 
-   Unitig_Pair_List = (ID_Pair_t *) Safe_malloc (list_size * sizeof (ID_Pair_t));
+   Unitig_Pair_List = (ID_Pair_t *) safe_malloc (list_size * sizeof (ID_Pair_t));
    Num_Unitig_Pairs = 0;
 
    fp = File_Open (Unitig_Pair_Path, "r");
@@ -217,7 +217,7 @@ static void  Read_Unitig_Pairs
       if  (Num_Unitig_Pairs >= list_size)
           {
            list_size *= EXPANSION_FACTOR;
-           Unitig_Pair_List = (ID_Pair_t *) Safe_realloc (Unitig_Pair_List,
+           Unitig_Pair_List = (ID_Pair_t *) safe_realloc (Unitig_Pair_List,
                           list_size * sizeof (ID_Pair_t));
            assert (Num_Unitig_Pairs < list_size);
           }
@@ -227,7 +227,7 @@ static void  Read_Unitig_Pairs
       Num_Unitig_Pairs ++;
      }
 
-   Unitig_Pair_List = (ID_Pair_t *) Safe_realloc (Unitig_Pair_List,
+   Unitig_Pair_List = (ID_Pair_t *) safe_realloc (Unitig_Pair_List,
                         Num_Unitig_Pairs * sizeof (ID_Pair_t));
 
    fclose (fp);
@@ -348,7 +348,7 @@ static void  Read_IUM_List
 
    fread (& IUM_List_Len, sizeof (int), 1, fp);
 
-   IUM_List = (int *) Safe_malloc (IUM_List_Len * sizeof (int));
+   IUM_List = (int *) safe_malloc (IUM_List_Len * sizeof (int));
 
    fread (IUM_List, sizeof (int), IUM_List_Len, fp);
 

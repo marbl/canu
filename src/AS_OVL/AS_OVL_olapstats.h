@@ -26,8 +26,8 @@
  *********************************************************************/
 
 /* RCS info
- * $Id: AS_OVL_olapstats.h,v 1.4 2005-03-22 19:49:17 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Id: AS_OVL_olapstats.h,v 1.5 2006-09-26 21:07:45 brianwalenz Exp $
+ * $Revision: 1.5 $
 */
 
 
@@ -79,8 +79,8 @@ void  Init_Distrib  (Distrib_t * D, int N)
    D -> Max = - DBL_MAX;
    D -> Sum = 0.0;
    D -> N = N;
-   D -> Ct = (int *) Safe_calloc (N + 1, sizeof (int));
-   D -> Thold = (double *) Safe_calloc (N + 1, sizeof (double));
+   D -> Ct = (int *) safe_calloc (N + 1, sizeof (int));
+   D -> Thold = (double *) safe_calloc (N + 1, sizeof (double));
 
    return;
   }

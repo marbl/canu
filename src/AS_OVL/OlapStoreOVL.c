@@ -26,8 +26,8 @@
 
 
 /* RCS info
- * $Id: OlapStoreOVL.c,v 1.7 2005-09-22 03:49:49 ahalpern Exp $
- * $Revision: 1.7 $
+ * $Id: OlapStoreOVL.c,v 1.8 2006-09-26 21:07:45 brianwalenz Exp $
+ * $Revision: 1.8 $
 */
 
 
@@ -138,7 +138,7 @@ void  Init_OVL_Stream
    stream -> stop_id = last;
    len = 2 + last - first;
 
-   stream -> offset_buff = (uint32 *) Safe_realloc (stream -> offset_buff,
+   stream -> offset_buff = (uint32 *) safe_realloc (stream -> offset_buff,
                                                     len * sizeof (uint32));
    CDS_FSEEK (store -> offset_fp,
               (off_t) (first * sizeof (uint32)), SEEK_CUR);
@@ -209,7 +209,7 @@ void  Init_OVL_Stream_Intra_Frg
    stream -> stop_id = iid;
    len = 2;
 
-   stream -> offset_buff = (uint32 *) Safe_realloc (stream -> offset_buff,
+   stream -> offset_buff = (uint32 *) safe_realloc (stream -> offset_buff,
                                                     len * sizeof (uint32));
    CDS_FSEEK (store -> offset_fp,
               (off_t) (iid * sizeof (uint32)), SEEK_CUR);
@@ -277,7 +277,7 @@ uint32 *  Load_Frag_Offsets
    num_frags = 2 + store -> max_frag;
      // empty spot for non-existent frag 0 and one spot for fragment
      // off the end
-   offset = (uint32 *) Safe_malloc (num_frags * sizeof (uint32));
+   offset = (uint32 *) safe_malloc (num_frags * sizeof (uint32));
    CDS_FSEEK (store -> offset_fp,
               (off_t) (3 * sizeof (uint32)), SEEK_SET);
      // skip over header
@@ -319,7 +319,7 @@ OVL_Store_t *  New_OVL_Store
   {
    OVL_Store_t  * store;
 
-   store = (OVL_Store_t *) Safe_malloc (sizeof (OVL_Store_t));
+   store = (OVL_Store_t *) safe_malloc (sizeof (OVL_Store_t));
    store -> name = NULL;
    store -> offset_fp = NULL;
 
@@ -336,7 +336,7 @@ OVL_Stream_t *  New_OVL_Stream
   {
    OVL_Stream_t  * stream;
 
-   stream = (OVL_Stream_t *) Safe_malloc (sizeof (OVL_Stream_t));
+   stream = (OVL_Stream_t *) safe_malloc (sizeof (OVL_Stream_t));
    stream -> store = NULL;
    stream -> offset_buff = NULL; // For realloc of PC/Linux/gcc !
    stream -> start_id = stream -> stop_id = stream -> curr_id = 0;
