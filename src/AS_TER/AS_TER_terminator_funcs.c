@@ -25,7 +25,7 @@
  Assumptions: There is no UID 0
 **********************************************************************/
 
-static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.18 2006-09-24 13:08:44 gdenisov Exp $";
+static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.19 2006-09-26 20:31:13 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_ReadStruct.h"
@@ -523,8 +523,8 @@ static SnapUnitigMesg* convert_IUM_to_UTG(IntUnitigMesg* iumMesg, int32 real)
   
   /* Set all toplevel fields */
   
-  utgMesg->iaccession      = iumMesg->iaccession;
   utgMesg->eaccession      = uid;
+  utgMesg->iaccession      = iumMesg->iaccession;
 #ifdef AS_ENABLE_SOURCE
   utgMesg->source         = strdup(iumMesg->source);
 #endif
@@ -537,6 +537,9 @@ static SnapUnitigMesg* convert_IUM_to_UTG(IntUnitigMesg* iumMesg, int32 real)
   utgMesg->quality        = strdup(iumMesg->quality);
   utgMesg->forced         = iumMesg->forced;
   utgMesg->num_frags      = iumMesg->num_frags;
+  utgMesg->num_vars       = 0;
+  utgMesg->f_list         = NULL;
+  utgMesg->v_list         = NULL;
 
   if( iumMesg->num_frags > 0 ){
     utgMesg->f_list = (SnapMultiPos*) safe_malloc(iumMesg->num_frags*sizeof(SnapMultiPos));
@@ -697,7 +700,10 @@ static SnapConConMesg* convert_ICM_to_CCO(IntConConMesg* icmMesg, int32 real)
   ccoMesg->num_pieces = icmMesg->num_pieces;
   ccoMesg->num_unitigs= icmMesg->num_unitigs;
   ccoMesg->num_vars   = icmMesg->num_vars;  // affects .asm/CCO
- 
+  ccoMesg->pieces     = NULL;
+  ccoMesg->vars       = NULL;
+  ccoMesg->unitigs    = NULL;
+
   if (ccoMesg->num_vars > 0) {
      ccoMesg->vars = (IntMultiVar*) safe_malloc(icmMesg->num_vars*sizeof(IntMultiVar));
      for(i=0; i<icmMesg->num_vars; i++) // i loop
@@ -1306,64 +1312,68 @@ static AugFragMesg* convert_IAF_to_AFG(IntAugFragMesg* iafMesg, int32 real)
 /* free routines */
 /*****************/
 
+#ifndef TERFREE
+#define TERFREE(X) { free(X); (X) = NULL; }
+#endif
+
 static void free_DSC(SnapDegenerateScaffoldMesg* dscMesg){
-  free(dscMesg);
+  TERFREE(dscMesg);
 }
 
 static void free_UTG(SnapUnitigMesg* utgMesg){
   /*** DO NOT FREE DELTA ARRAYS...THESE WERE COPIED BY REFERENCE */
   if( utgMesg->f_list != NULL )
-    free(utgMesg->f_list);
+    TERFREE(utgMesg->f_list);
   if( utgMesg->consensus != NULL )
-    free(utgMesg->consensus);
+    TERFREE(utgMesg->consensus);
   if( utgMesg->quality != NULL )
-    free(utgMesg->quality);
-  free(utgMesg);
+    TERFREE(utgMesg->quality);
+  TERFREE(utgMesg);
 }
 
 static void free_ULK(SnapUnitigLinkMesg* ulkMesg){
   if( ulkMesg->jump_list != NULL )
-    free(ulkMesg->jump_list);
-  free(ulkMesg);
+    TERFREE(ulkMesg->jump_list);
+  TERFREE(ulkMesg);
 }
 
 static void free_CCO(SnapConConMesg* ccoMesg){
   /*** DO NOT FREE DELTA ARRAYS...THESE WERE COPIED BY REFERENCE */
   if( ccoMesg->num_vars > 0)
-    free(ccoMesg->vars);
+    TERFREE(ccoMesg->vars);
   if( ccoMesg->num_pieces > 0)
-    free(ccoMesg->pieces);
+    TERFREE(ccoMesg->pieces);
   if( ccoMesg->num_unitigs > 0)
-    free(ccoMesg->unitigs);
+    TERFREE(ccoMesg->unitigs);
   if( ccoMesg->consensus != NULL )
-    free(ccoMesg->consensus);
+    TERFREE(ccoMesg->consensus);
   if( ccoMesg->quality != NULL )
-    free(ccoMesg->quality);
-  free(ccoMesg);
+    TERFREE(ccoMesg->quality);
+  TERFREE(ccoMesg);
 }
 
 static void free_CLK(SnapContigLinkMesg* clkMesg){
   if( clkMesg->jump_list != NULL )
-    free(clkMesg->jump_list);
-  free(clkMesg);
+    TERFREE(clkMesg->jump_list);
+  TERFREE(clkMesg);
 }
 
 static void free_SLK(SnapScaffoldLinkMesg* slkMesg){
   if( slkMesg->jump_list != NULL )
-    free(slkMesg->jump_list);
-  free(slkMesg);
+    TERFREE(slkMesg->jump_list);
+  TERFREE(slkMesg);
 }
 
 static void free_SCF(SnapScaffoldMesg* scfMesg){
   if( scfMesg->contig_pairs != NULL )
-    free(scfMesg->contig_pairs);
-  free(scfMesg);
+    TERFREE(scfMesg->contig_pairs);
+  TERFREE(scfMesg);
 }
 
 static void free_MDI(SnapMateDistMesg* mdiMesg){
   if( mdiMesg->histogram != NULL )
-    free(mdiMesg->histogram);
-  free(mdiMesg);
+    TERFREE(mdiMesg->histogram);
+  TERFREE(mdiMesg);
 }
 
 static void free_AFG(AugFragMesg* afgMesg){
@@ -1372,10 +1382,10 @@ static void free_AFG(AugFragMesg* afgMesg){
   while( match != NULL)
     {
       next = match->next;
-      free(match);
+      TERFREE(match);
       match = next;
     }
-  free(afgMesg);
+  TERFREE(afgMesg);
 }
 
 

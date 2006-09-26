@@ -25,7 +25,7 @@
    Assumptions:  libAS_UTL.a
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.17 2006-09-24 13:00:00 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.18 2006-09-26 20:31:13 brianwalenz Exp $";
 
 
 #include <assert.h>
@@ -733,8 +733,8 @@ CreateMultiAlignTFromCCO(SnapConConMesg *cco, int localID, int sequenceOnly)
       ma->f_list = CreateVA_SnapMultiPos(cco->num_pieces);
       ma->v_list = CreateVA_IntMultiVar(cco->num_vars);  
       ma->udelta = CreateVA_int32(0);
-      ma->u_list = CreateVA_UnitigPos(0);
-      
+      ma->u_list = CreateVA_UnitigPos(cco->num_unitigs);
+
 
       for(cfr = 0,delta_len=0; cfr < cco->num_pieces; cfr++){
 	SnapMultiPos *cfr_mesg = cco->pieces + cfr;
