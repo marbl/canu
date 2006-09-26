@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.90 2006-09-24 13:00:00 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.91 2006-09-26 20:31:40 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -2692,8 +2692,8 @@ PopulateVarRecord(int32 *cids, int32 *nvars, int32 *min_len_vlist,
     {
         int al;
         int32 shift   = vreg.end-vreg.beg+2;
-        int distant_read_id, distant_allele_id;
-        if (num_reported_alleles <= vreg.nca)
+        int distant_read_id = -42, distant_allele_id = -42;
+        if ((num_reported_alleles <= vreg.nca) || (vreg.nca < 2))
         {
             distant_read_id = GetTheMostDistantRead(vreg.alleles[0].read_ids[0],
                 vreg.nr, vreg.dist_matrix);
@@ -3045,7 +3045,9 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
             AllocateDistMatrix(&vreg, -1);
             PopulateDistMatrix(vreg.reads, vreg.end-vreg.beg+1, &vreg);    
 
-//          OutputDistMatrix(&vreg);
+#if 0
+            OutputDistMatrix(&vreg);
+#endif
 
             // Allocate memory for alleles
             AllocateMemoryForAlleles(&vreg.alleles, vreg.nr, &vreg.na);
