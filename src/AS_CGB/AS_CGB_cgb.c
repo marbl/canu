@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_cgb.c,v 1.4 2005-03-22 19:48:24 jason_miller Exp $";
+= "$Id: AS_CGB_cgb.c,v 1.5 2006-09-26 22:21:13 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_CGB_cgb.c
@@ -1619,7 +1619,7 @@ void chunk_graph_build_1
 
   int *fragment_timesinchunks = NULL;
 
-  SAFE_MALLOC(fragment_timesinchunks, int, nfrag);
+  fragment_timesinchunks = safe_malloc(sizeof(int) * nfrag);
   
   assert(chunkfrags != NULL);
   assert(thechunks  != NULL);
@@ -1721,7 +1721,7 @@ void chunk_graph_build_1
     }
   }
     
-  SAFE_FREE(fragment_timesinchunks);
+  safe_free(fragment_timesinchunks);
 }
 
 void chunk_graph_build_2

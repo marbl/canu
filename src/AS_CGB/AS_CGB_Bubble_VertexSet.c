@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_Bubble_VertexSet.c,v 1.5 2006-03-09 17:42:34 brianwalenz Exp $";
+= "$Id: AS_CGB_Bubble_VertexSet.c,v 1.6 2006-09-26 22:21:13 brianwalenz Exp $";
 
 #include <string.h>
 #include "AS_CGB_all.h"
@@ -57,9 +57,7 @@ BVS__alloc(void)
 {
   if (BVS_memstack_top_G == 0) {
     for (BVS_memstack_top_G = 0; BVS_memstack_top_G < BVS_MEMSTACK_SIZE / 2; ++BVS_memstack_top_G) {
-      BVS_memstack_G[BVS_memstack_top_G] = NULL;
-      SAFE_MALLOC(BVS_memstack_G[BVS_memstack_top_G], BubVertexEntry,  
-		  AS_CGB_BUBBLE_set_size_G );
+      BVS_memstack_G[BVS_memstack_top_G] = safe_malloc(sizeof(BubVertexEntry) * AS_CGB_BUBBLE_set_size_G );
     }
   }
   return (BVS_memstack_G[--BVS_memstack_top_G]);
@@ -75,7 +73,7 @@ BVS__free(BubVertexEntry *block)
   if (BVS_memstack_top_G < BVS_MEMSTACK_SIZE) {
     BVS_memstack_G[BVS_memstack_top_G++] = block;
   } else {
-    SAFE_FREE(block);
+    safe_free(block);
   }
 }
 
@@ -150,10 +148,9 @@ BVS__insertWithAge(BubVertexSet_t bvs, IntFragment_ID id, int age)
 void
 BVS_sysInit(void)
 {
-  SAFE_CALLOC(BVS_memstack_G, BubVertexEntry *, BVS_MEMSTACK_SIZE);
+  BVS_memstack_G = (BubVertexEntry **)safe_calloc(sizeof(BubVertexEntry *), BVS_MEMSTACK_SIZE);
   for (BVS_memstack_top_G = 0; BVS_memstack_top_G < BVS_MEMSTACK_SIZE / 2; ++BVS_memstack_top_G) {
-    SAFE_MALLOC(BVS_memstack_G[BVS_memstack_top_G], BubVertexEntry, 
-		AS_CGB_BUBBLE_set_size_G );
+    BVS_memstack_G[BVS_memstack_top_G] = (BubVertexEntry *)safe_malloc(sizeof(BubVertexEntry) * AS_CGB_BUBBLE_set_size_G );
   }
 }
 
@@ -164,9 +161,9 @@ BVS_sysDone(void)
   int t;
 
   for (t = 0; t < BVS_memstack_top_G; ++t) {
-    SAFE_FREE(BVS_memstack_G[t]);
+    safe_free(BVS_memstack_G[t]);
   }
-  SAFE_FREE(BVS_memstack_G);
+  safe_free(BVS_memstack_G);
 }
 
 
@@ -182,12 +179,7 @@ void
 BVS_destroy(BubVertexSet_t bvs)
 {
   if (bvs->entries) {
-#if 0
-    BVS__free(bvs->entries);
-    bvs->entries = NULL;
-#else
-    SAFE_FREE(bvs->entries);
-#endif    
+    safe_free(bvs->entries);
   }
 }
 

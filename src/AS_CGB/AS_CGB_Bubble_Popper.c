@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_Bubble_Popper.c,v 1.5 2006-03-09 17:42:34 brianwalenz Exp $";
+= "$Id: AS_CGB_Bubble_Popper.c,v 1.6 2006-09-26 22:21:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -67,17 +67,17 @@ BP_init(BubblePopper_t bp, BubGraph_t bg, TChunkMesg *chunks,
   assert( NULLFRAGSTOREHANDLE != bp->FragStore );
   
   bp->rsp = new_ReadStruct();
-  SAFE_MALLOC(bp->vidToBid, int, GetNumFragments(BG_vertices(bg)));
+  bp->vidToBid     = (int *)safe_malloc(sizeof(int) * GetNumFragments(BG_vertices(bg)));
 
-  SAFE_MALLOC(bp->topDistArray, int, POPPER_MAX_BUBBLE_SIZE);
-  SAFE_MALLOC(bp->dfsStack, BG_E_Iter, POPPER_MAX_BUBBLE_SIZE);
-  SAFE_MALLOC(bp->bubFrags, IntFragment_ID, POPPER_MAX_BUBBLE_SIZE);
-  SAFE_CALLOC(bp->bubMesgs, InternalFragMesg, POPPER_MAX_BUBBLE_SIZE);
-  SAFE_MALLOC(bp->adj, int, BP_SQR(POPPER_MAX_BUBBLE_SIZE));
-  SAFE_CALLOC(bp->bubOlaps, OverlapMesg, BP_SQR(POPPER_MAX_BUBBLE_SIZE));
+  bp->topDistArray = (int *)safe_malloc(sizeof(int) * POPPER_MAX_BUBBLE_SIZE);
+  bp->dfsStack     = (BG_E_Iter *)safe_malloc(sizeof(BG_E_Iter) * POPPER_MAX_BUBBLE_SIZE);
+  bp->bubFrags     = (IntFragment_ID *)safe_malloc(sizeof(IntFragment_ID) * POPPER_MAX_BUBBLE_SIZE);
+  bp->bubMesgs     = (InternalFragMesg *)safe_calloc(sizeof(InternalFragMesg), POPPER_MAX_BUBBLE_SIZE);
+  bp->adj          = (int *)safe_malloc(sizeof(int) * BP_SQR(POPPER_MAX_BUBBLE_SIZE));
+  bp->bubOlaps     = (OverlapMesg *)safe_calloc(sizeof(OverlapMesg), BP_SQR(POPPER_MAX_BUBBLE_SIZE));
 
   for (i = 0; i < POPPER_MAX_BUBBLE_SIZE; ++i) {
-    SAFE_MALLOC(bp->bubMesgs[i].sequence, char, (AS_FRAG_MAX_LEN + 3));
+    bp->bubMesgs[i].sequence = safe_malloc(sizeof(char) * (AS_FRAG_MAX_LEN + 3));
     /* This is a hack for DP_compare.  It might not be necessary. */
     bp->bubMesgs[i].sequence[0] = '\0';
     (bp->bubMesgs[i].sequence)++;
@@ -87,14 +87,14 @@ BP_init(BubblePopper_t bp, BubGraph_t bg, TChunkMesg *chunks,
 
 #ifndef DONT_ALLOC_OLAP_DELTAS
   for (i = 0; i < BP_SQR(POPPER_MAX_BUBBLE_SIZE); ++i) {
-    SAFE_MALLOC(bp->bubOlaps[i].delta, signed char, 1);
+    bp->bubOlaps[i].delta = safe_malloc(sizeof(signed char) * 1);
     bp->bubOlaps[i].delta[0] = 0;
   }
 #endif // DONT_ALLOC_OLAP_DELTAS
 
 #if AS_CGB_BUBBLE_DIST_OUTPUT
   {
-    char * filename = malloc(strlen(fileprefix) + 80);
+    char * filename = safe_malloc(strlen(fileprefix) + 80);
     sprintf(filename,"%s.bubble.nfrags.celagram",fileprefix);
     bp->nfragsFile = fopen(filename, "w");
     if (bp->nfragsFile)
@@ -394,8 +394,8 @@ AS_CGB_Bubble_Popper_create
   BubblePopper_t bp = NULL;
   BubGraph_t bg = NULL;
 
-  SAFE_MALLOC(bp, BubblePopper, 1);
-  SAFE_MALLOC(bg, BubGraph, 1);
+  bp = safe_malloc(sizeof(BubblePopper));
+  bg = safe_malloc(sizeof(BubGraph));
 
   BG_initialize(bg, frags, edges);
   AS_CGB_Bubble_dfs(bg);
@@ -575,25 +575,25 @@ AS_CGB_Bubble_Popper_destroy(BubblePopper_t bp)
 
   for (i = 0; i < POPPER_MAX_BUBBLE_SIZE; ++i) {
     (bp->bubMesgs[i].sequence)--; /* Other end of the hack in _init() */
-    SAFE_FREE(bp->bubMesgs[i].sequence);
+    safe_free(bp->bubMesgs[i].sequence);
   }
   
 #ifndef DONT_ALLOC_OLAP_DELTAS
   for (i = 0; i < BP_SQR(POPPER_MAX_BUBBLE_SIZE); ++i) {
-    SAFE_FREE(bp->bubOlaps[i].delta);
+    safe_free(bp->bubOlaps[i].delta);
   }
 #endif // DONT_ALLOC_OLAP_DELTAS
   
   BG_destroy(bp->bg);
   delete_ReadStruct(bp->rsp);
-  SAFE_FREE(bp->vidToBid); // proportional to the number of fragments
+  safe_free(bp->vidToBid); // proportional to the number of fragments
 
-  SAFE_FREE(bp->topDistArray); // POPPER_MAX_BUBBLE_SIZE
-  SAFE_FREE(bp->dfsStack); // POPPER_MAX_BUBBLE_SIZE
-  SAFE_FREE(bp->bubFrags); // POPPER_MAX_BUBBLE_SIZE
-  SAFE_FREE(bp->bubMesgs); // POPPER_MAX_BUBBLE_SIZE
-  SAFE_FREE(bp->adj);      // BP_SQR(POPPER_MAX_BUBBLE_SIZE)
-  SAFE_FREE(bp->bubOlaps); // BP_SQR(POPPER_MAX_BUBBLE_SIZE)
+  safe_free(bp->topDistArray); // POPPER_MAX_BUBBLE_SIZE
+  safe_free(bp->dfsStack); // POPPER_MAX_BUBBLE_SIZE
+  safe_free(bp->bubFrags); // POPPER_MAX_BUBBLE_SIZE
+  safe_free(bp->bubMesgs); // POPPER_MAX_BUBBLE_SIZE
+  safe_free(bp->adj);      // BP_SQR(POPPER_MAX_BUBBLE_SIZE)
+  safe_free(bp->bubOlaps); // BP_SQR(POPPER_MAX_BUBBLE_SIZE)
   
   if (bp->nfragsFile)
     fclose(bp->nfragsFile);
@@ -603,8 +603,8 @@ AS_CGB_Bubble_Popper_destroy(BubblePopper_t bp)
     fclose(bp->sdiffFile);
 
   if (bp->allocatedByCreate) {
-    SAFE_FREE(bp->bg);
-    SAFE_FREE(bp);
+    safe_free(bp->bg);
+    safe_free(bp);
   }
 }
 

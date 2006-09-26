@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_Bubble_Graph.c,v 1.4 2005-03-22 19:48:09 jason_miller Exp $";
+= "$Id: AS_CGB_Bubble_Graph.c,v 1.5 2006-09-26 22:21:13 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include "AS_global.h"
@@ -37,9 +37,9 @@ BG_initialize(BubGraph_t bg, Tfragment *frags, Tedge *edges)
   bg->e = edges;
   bg->v = frags;
 
-  SAFE_CALLOC(bg->vFlags, uint16, num_v);
-  SAFE_CALLOC(bg->eFlags, uint16, num_e);
-  SAFE_CALLOC(bg->vPos,   int64,  num_v);
+  bg->vFlags = (uint16 *)safe_calloc(sizeof(uint16), num_v);
+  bg->eFlags = (uint16 *)safe_calloc(sizeof(uint16), num_e);
+  bg->vPos   = (int64 *)safe_calloc(sizeof(int64),  num_v);
 
   for (e = 0; e < num_e; ++e) 
     switch (get_nes_edge(edges, e)) {
@@ -80,9 +80,9 @@ BG_initialize(BubGraph_t bg, Tfragment *frags, Tedge *edges)
 void 
 BG_destroy(BubGraph_t bg)
 {
-  SAFE_FREE(bg->vFlags);
-  SAFE_FREE(bg->eFlags);
-  SAFE_FREE(bg->vPos);
+  safe_free(bg->vFlags);
+  safe_free(bg->eFlags);
+  safe_free(bg->vPos);
 }
 
 

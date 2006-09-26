@@ -265,27 +265,15 @@ BreakerSetp AllocateBreakerSet( int num_breakers, BreakerType type )
 {
   int num_chunks = (type == Chimera) ? CHIMERA_CHUNKS : CRAPPY_CHUNKS;
   BreakerSetp bs;
-  bs = (BreakerSetp) calloc( 1, sizeof( BreakerSet ) );
-  if( bs == NULL )
-    return NULL;
+  bs = (BreakerSetp) safe_calloc( 1, sizeof( BreakerSet ) );
 
   bs->type = type;
   
-  bs->breakers = (Breakerp) calloc( num_breakers, sizeof( Breaker ) );
-  if( bs->breakers == NULL )
-  {
-    FreeBreakerSet( bs );
-    return NULL;
-  }
+  bs->breakers = (Breakerp) safe_calloc( num_breakers, sizeof( Breaker ) );
   bs->num_breakers = num_breakers;
 
-  bs->indexes = (ChunkItemp) calloc( num_breakers * num_chunks,
-                                     sizeof( ChunkItem ) );
-  if( bs->indexes == NULL )
-  {
-    FreeBreakerSet( bs );
-    return NULL;
-  }
+  bs->indexes = (ChunkItemp) safe_calloc( num_breakers * num_chunks,
+                                          sizeof( ChunkItem ) );
   return bs;
 }
 
@@ -296,9 +284,7 @@ int AllocateAndCopyString( char ** dest, char * src )
 {
   if( src != NULL )
   {
-    *dest = (char *) calloc( strlen( src ) + 1, sizeof( char ) );
-    if( *dest == NULL )
-      return 1;
+    *dest = (char *) safe_calloc( strlen( src ) + 1, sizeof( char ) );
     strcpy( *dest, src );
   }
   else
@@ -525,9 +511,7 @@ int AllocateAndCopyIMPs( cds_int32 * dest_num, IntMultiPos ** dest_f_list,
 {
   int i;
 
-  *dest_f_list = (IntMultiPos *) calloc( src_num, sizeof( IntMultiPos ) );
-  if( *dest_f_list == NULL )
-    return 1;
+  *dest_f_list = (IntMultiPos *) safe_calloc( src_num, sizeof( IntMultiPos ) );
   
   for( i = 0; i < src_num; i++ )
   {
@@ -767,13 +751,8 @@ int PopulateFragmentSequence( IntMultiPos * f, FragStoreHandle fs )
   getSequence_ReadStruct( rs, temp_seq, temp_qvs, AS_READ_MAX_LEN );
   f->delta_length = end - bgn;
   
-  if( (f->delta = (cds_int32 *) calloc( f->delta_length + 1,
-                                        sizeof( char ) )) == NULL )
-  {
-    fprintf( stderr, "Failed to allocate frag " F_IID " sequence of %d bases\n",
-             f->ident, f->delta_length );
-    return 1;
-  }
+  if( (f->delta = (cds_int32 *) safe_calloc( f->delta_length + 1,
+                                             sizeof( char ) )) == NULL )
   strncpy( (char *) f->delta, &(temp_seq[bgn]), f->delta_length );
   
   delete_ReadStruct( rs );
@@ -1377,7 +1356,7 @@ typedef CheckGlobals * CheckGlobalsp;
 void InitializeGlobals( CheckGlobalsp globals, char * program_name )
 {
   globals->program_name = program_name;
-  globals->version = "$Revision: 1.7 $";
+  globals->version = "$Revision: 1.8 $";
   globals->chims_file = NULL;
   globals->craps_file = NULL;
   globals->cgb_file = NULL;

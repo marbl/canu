@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_io.c,v 1.6 2006-02-13 22:16:31 eliv Exp $";
+= "$Id: AS_CGB_io.c,v 1.7 2006-09-26 22:21:13 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_CGB_io.c
@@ -122,7 +122,7 @@ void output_the_chunks
 
   if(analysis_level > 1 && (fragsrc != NULL)) {
 
-    SAFE_MALLOC(frag_source_index, size_t, nfrag);
+    frag_source_index = safe_malloc(sizeof(size_t) * nfrag);
     newfragsrc = CreateVA_char(2*GetNumVA_char(fragsrc));
 
     // Append to the fragment source field.  This needs to be a separate
@@ -292,7 +292,7 @@ void output_the_chunks
   if( NULL != frag_source_index ) {
     assert(NULL != newfragsrc);
     DeleteVA_char(newfragsrc); newfragsrc = NULL;
-    SAFE_FREE(frag_source_index);
+    safe_free(frag_source_index);
   }
 
   if( output_fom_messages ) {

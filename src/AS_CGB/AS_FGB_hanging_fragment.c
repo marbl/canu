@@ -67,8 +67,8 @@ void identify_early_spur_fragments
   int * thru_fragment_prefix_dovetail_overlap_count = NULL;
   int * thru_fragment_suffix_dovetail_overlap_count = NULL;
 
-  SAFE_MALLOC(thru_fragment_prefix_dovetail_overlap_count, int, nfrag);
-  SAFE_MALLOC(thru_fragment_suffix_dovetail_overlap_count, int, nfrag);
+  thru_fragment_prefix_dovetail_overlap_count = safe_malloc(sizeof(int) * nfrag);
+  thru_fragment_suffix_dovetail_overlap_count = safe_malloc(sizeof(int) * nfrag);
 
   {
     // Initialize the incoming dovetail degree at each fragment.
@@ -207,8 +207,8 @@ void identify_early_spur_fragments
     }
   }
   fprintf(stderr, "Classification of early spur hanging fragments done.\n");
-  SAFE_FREE(thru_fragment_prefix_dovetail_overlap_count);
-  SAFE_FREE(thru_fragment_suffix_dovetail_overlap_count);
+  safe_free(thru_fragment_prefix_dovetail_overlap_count);
+  safe_free(thru_fragment_suffix_dovetail_overlap_count);
 }
 
 
@@ -233,8 +233,8 @@ void separate_fragments_as_solo_hanging_thru
   int * all_fragment_prefix_dovetail_overlap_count = NULL;
   int * all_fragment_suffix_dovetail_overlap_count = NULL;
 
-  SAFE_MALLOC(all_fragment_prefix_dovetail_overlap_count, int, nfrag);
-  SAFE_MALLOC(all_fragment_suffix_dovetail_overlap_count, int, nfrag);
+  all_fragment_prefix_dovetail_overlap_count = safe_malloc(sizeof(int) * nfrag);
+  all_fragment_suffix_dovetail_overlap_count = safe_malloc(sizeof(int) * nfrag);
 
   {
     // Initialize the outgoing dovetail degree at each fragment.
@@ -409,7 +409,7 @@ void separate_fragments_as_solo_hanging_thru
 
   }
 #ifndef USE_REAPERS_DVT_DEGREE
-  SAFE_FREE(all_fragment_prefix_dovetail_overlap_count);
-  SAFE_FREE(all_fragment_suffix_dovetail_overlap_count);
+  safe_free(all_fragment_prefix_dovetail_overlap_count);
+  safe_free(all_fragment_suffix_dovetail_overlap_count);
 #endif // USE_REAPERS_DVT_DEGREE
 }

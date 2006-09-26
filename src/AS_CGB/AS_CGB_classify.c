@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_classify.c,v 1.4 2005-03-22 19:48:24 jason_miller Exp $";
+= "$Id: AS_CGB_classify.c,v 1.5 2006-09-26 22:21:13 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_CGB_classify.c
@@ -470,8 +470,8 @@ static void intrachunk_classification_of_overlaps
   const IntEdge_ID nedge = GetNumEdges(edges);
   int *fragment_npx = NULL; 
   int *fragment_nsx = NULL;
-  SAFE_MALLOC(fragment_npx, int, nfrag);
-  SAFE_MALLOC(fragment_nsx, int, nfrag);
+  fragment_npx = safe_malloc(sizeof(int) * nfrag);
+  fragment_nsx = safe_malloc(sizeof(int) * nfrag);
 
 #ifdef DEBUGVIEW
   view_fgb_chkpnt("Q0", frags, edges);
@@ -560,8 +560,8 @@ static void intrachunk_classification_of_overlaps
       } // End switch statement.
     }
   }
-  SAFE_FREE(fragment_npx);
-  SAFE_FREE(fragment_nsx);
+  safe_free(fragment_npx);
+  safe_free(fragment_nsx);
 }
 
 static void chunk_classification_of_fragments
@@ -591,10 +591,10 @@ static void chunk_classification_of_fragments
   char *interchunk_npx = NULL; // boolean
   char *interchunk_nsx = NULL;
 
-  SAFE_MALLOC(intrachunk_npx, char, nfrag); // boolean
-  SAFE_MALLOC(intrachunk_nsx, char, nfrag);
-  SAFE_MALLOC(interchunk_npx, char, nfrag); // boolean
-  SAFE_MALLOC(interchunk_nsx, char, nfrag);
+  intrachunk_npx = safe_malloc(sizeof(char) * nfrag); // boolean
+  intrachunk_nsx = safe_malloc(sizeof(char) * nfrag);
+  interchunk_npx = safe_malloc(sizeof(char) * nfrag); // boolean
+  interchunk_nsx = safe_malloc(sizeof(char) * nfrag);
 
   /* Label each singleton chunk with a label consistent with its
      fragment graph status.  */
@@ -776,10 +776,10 @@ static void chunk_classification_of_fragments
   }
 
   // check_edges(frags, edges);
-  SAFE_FREE(intrachunk_npx);
-  SAFE_FREE(intrachunk_nsx);
-  SAFE_FREE(interchunk_npx);
-  SAFE_FREE(interchunk_nsx);
+  safe_free(intrachunk_npx);
+  safe_free(intrachunk_nsx);
+  safe_free(interchunk_npx);
+  safe_free(interchunk_nsx);
 }
 
 void chunk_classification_dvt

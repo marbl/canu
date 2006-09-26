@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_fgb.c,v 1.5 2005-09-20 20:54:10 brianwalenz Exp $";
+= "$Id: AS_CGB_fgb.c,v 1.6 2006-09-26 22:21:13 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module: AS_CGB_fgb.c
@@ -123,7 +123,7 @@ static void in_place_permute
   char  saved_source[size], saved_target[size];
   size_t ii, jj=0;
 
-  SAFE_MALLOC(done, char, ndata);
+  done = safe_malloc(sizeof(char) * ndata);
   
   fprintf(stderr,"Permutation in-place " F_SIZE_T " items of " F_SIZE_T " bytes\n",
           ndata, size);
@@ -158,7 +158,7 @@ static void in_place_permute
     }
   }
   assert(jj == ndata); // Was this a permutation??
-  SAFE_FREE(done);
+  safe_free(done);
 }
 
 
@@ -277,7 +277,7 @@ static void reorder_fragments
   {
     IntFragment_ID ivold;
     IntRank * fragment_tmp = NULL;
-    SAFE_MALLOC(fragment_tmp, IntRank, nfrag);
+    fragment_tmp = safe_malloc(sizeof(IntRank) * nfrag);
 
     /* Begin validating the permutation. */
     // #pragma omp parallel for
@@ -293,7 +293,7 @@ static void reorder_fragments
       assert(fragment_tmp[ivold] != FRAGMENT_NOT_VISITED);
     }
     /* End validating the permutation. */
-    SAFE_FREE(fragment_tmp);
+    safe_free(fragment_tmp);
   }
 #endif // CHECK96
 
@@ -686,9 +686,9 @@ static void reorder_edges_bin_and_qsort
     assert(nedge != 0);
     assert(max_nbins != 0);
 
-    SAFE_MALLOC(seglen, IntEdge_ID, max_nbins);
-    SAFE_MALLOC(segstart, IntEdge_ID, max_nbins);
-    SAFE_MALLOC(edge_rank, IntRank, nedge);
+    seglen    = safe_malloc(sizeof(IntEdge_ID) * max_nbins);
+    segstart  = safe_malloc(sizeof(IntEdge_ID) * max_nbins);
+    edge_rank = safe_malloc(sizeof(IntRank) * nedge);
 
     { // FRAGMENT-END SORT
       if(TIMINGS) {
@@ -779,7 +779,7 @@ static void reorder_edges_bin_and_qsort
 	IntEdge_ID * edge_index = NULL;
 	IntEdge_ID ie;
 
-	SAFE_MALLOC(edge_index, IntEdge_ID, nedge);
+	safe_malloc(edge_index, IntEdge_ID, nedge);
 	for(ie=0;ie<nedge;ie++) {
 	  edge_index[ie] = AS_FGB_EDGE_NOT_VISITED;
 	}
@@ -791,7 +791,7 @@ static void reorder_edges_bin_and_qsort
 	  // assert(edge_index[ie] >= 0 );
 	  assert(edge_index[ie] < nedge );
 	}
-	SAFE_FREE(edge_index);
+	safe_free(edge_index);
       }
 #endif // CHECK99
 
@@ -827,9 +827,9 @@ static void reorder_edges_bin_and_qsort
 
     } // FRAGMENT-END SORT
 
-    SAFE_FREE(edge_rank);
-    SAFE_FREE(seglen);
-    SAFE_FREE(segstart);
+    safe_free(edge_rank);
+    safe_free(seglen);
+    safe_free(segstart);
   }
   
    { // Sort the edges (in fragment-end segments)
@@ -985,7 +985,7 @@ static void reorder_graph
   const IntFragment_ID nfrag = GetNumFragments(frags);
   IntRank * fragment_rank = NULL;
 
-  SAFE_MALLOC(fragment_rank, IntRank, nfrag); // for graph traversal
+  fragment_rank = safe_malloc((sizeof(IntRank) * nfrag); // for graph traversal
   
   if(output_graph_locality_diagnostic){
     graph_locality_diagnostic( frags, edges, "Before.diagd", "Before.diagc");
@@ -1047,7 +1047,7 @@ static void reorder_graph
   }
 #endif /*DEBUG_GRAPH_DIAGNOSTICS*/
   
-  SAFE_FREE(fragment_rank);
+  safe_free(fragment_rank);
 }
 #endif
 
@@ -1143,7 +1143,7 @@ static void find_median_fragment_end_degree
     }}
     assert(totcount == nedge);
 
-    SAFE_MALLOC(bincount, int, (maxcount+1));
+    bincount = safe_malloc(sizeof(int) * (maxcount+1));
 
     { int ii; for(ii=0;ii<maxcount+1;ii++) {
       bincount[ii] = 0;
@@ -1173,7 +1173,7 @@ static void find_median_fragment_end_degree
       }
       (*median_fragment_end_degree) = ii;
     }
-    SAFE_FREE(bincount);
+    safe_free(bincount);
   }
 }
 #endif
@@ -1212,175 +1212,9 @@ static void histogram_initialize
   histogram->min_bin = 0;
   histogram->max_bin = allocated_number_of_bins - 1;
   histogram->bins = NULL;
-  SAFE_MALLOC(histogram->bins, int, allocated_number_of_bins);
+  histogram->bins = safe_malloc(sizeof(int) * allocated_number_of_bins);
   histogram_clear( histogram );
 }
-
-#if 0
-static void histogram_finalize
-( QuickHistogram * histogram)
-{
-  assert(NULL != histogram);
-  SAFE_FREE(histogram->bins);
-  histogram->allocated_number_of_bins = 0;
-  histogram->min_bin = 0;
-  histogram->max_bin = 0;
-}
-#endif
-
-#if 0
-static void histogram_add
-( QuickHistogram * histogram,
-  int ibin
-  ) 
-{
-  assert(NULL != histogram);
-  //assert( ibin >= 0);
-  //assert( ibin <  histogram->allocated_number_of_bins);
-  ibin = max(0,ibin);
-  ibin = min(ibin, histogram->allocated_number_of_bins-1);
-  histogram->bins[ibin] ++;
-  histogram->min_bin = min( histogram->min_bin, ibin);
-  histogram->max_bin = max( histogram->max_bin, ibin);
-}
-#endif
-
-#if 0
-static int histogram_counts( QuickHistogram * histogram )
-{
-  int ibin, counts=0;
-  assert(NULL != histogram);
-  for(ibin=histogram->min_bin; ibin <= histogram->max_bin; ibin++) {
-    counts += histogram->bins[ibin];
-  }
-  return counts;
-}
-#endif
-
-#if 0
-static int histogram_bounding_bin_for_threshold_number_of_counts
-( QuickHistogram * histogram, int threshold_number_of_counts )
-{
-  int ibin, counts=0;
-  assert(NULL != histogram);
-  for(ibin=histogram->min_bin; ibin <= histogram->max_bin; ibin++) {
-    counts += histogram->bins[ibin];
-    if(counts > threshold_number_of_counts) break;
-  }
-  return ibin;
-}
-#endif
-
-#if 0
-static QuickHistogram * histogram_create(int allocated_number_of_bins)
-{
-  QuickHistogram * histogram = NULL;
-  SAFE_MALLOC(histogram, QuickHistogram, 1);
-  histogram_initialize( histogram, allocated_number_of_bins);
-  return histogram;
-}
-#endif
-
-#if 0
-static void histogram_destroy(QuickHistogram * histogram)
-{
-  SAFE_FREE(histogram);
-}
-#endif
-
-/////////////////////////////////////////////////////////////////////
-
-#if 0
-static int
-count_number_of_dovetails_in_interval_of_edges
-(
- Tedge * edges,
- IntEdge_ID ie0,
- IntEdge_ID ie1,
- int degree_cutoff
- )
-{
-  // The cutoff is necessary to limit computation time in high degree
-  // cross-bars.
-  IntEdge_ID iei, count=0;
-  assert(ie0 <= ie1);
-  assert(degree_cutoff >= 0);
-  for( iei = ie0; iei <= ie1; iei++) {
-    const int ahg = get_ahg_edge(edges,iei);
-    const int bhg = get_bhg_edge(edges,iei);
-    if(is_a_dvt_simple(ahg,bhg)) {
-      // This is a dovetail overlap.  We might replace this witha
-      // query function.
-      count++;
-    }
-    if( count > degree_cutoff ) break;  
-  }
-  return count;
-}
-#endif
-
-#if 0
-static int
-count_number_of_containments_in_interval_of_edges
-(
- Tedge * edges,
- IntEdge_ID ie0,
- IntEdge_ID ie1,
- int degree_cutoff
- )
-{
-  // The cutoff is necessary to limit computation time in high degree
-  // cross-bars.
-  IntEdge_ID iei, count=0;
-  assert(ie0 <= ie1);
-  assert(degree_cutoff >= 0);
-  for( iei = ie0; iei <= ie1; iei++) {
-    const int ahg = get_ahg_edge(edges,iei);
-    const int bhg = get_bhg_edge(edges,iei);
-    if(
-#if 1
-       ! is_a_dvt_simple(ahg,bhg)
-#else
-       is_a_frc_simple(ahg,bhg) || is_a_toc_simple(ahg,bhg) || is_a_dgn_simple(ahg,bhg)
-#endif       
-       ) {
-      count++;
-    }
-    if( count > degree_cutoff ) break;  
-  }
-  return count;
-}
-#endif
-
-#if 0
-static IntEdge_ID get_dvt_segstart_vertex
-(
- Tfragment * frags,
- Tedge     * edges, 
- IntFragment_ID vid,
- int suf
- ) {
-  // Returns the index of the first dovetail or to-contained overlap
-  // edge in this fragment-end's adjacency list.  If there are no such
-  // overlaps then the return value is the index of the next segment.
-
-  IntEdge_ID ie_s = get_segstart_vertex( frags, vid, suf);
-  int        ne_s = get_seglen_vertex( frags, vid, suf);
-  IntEdge_ID ie;
-  for( ie=ie_s; ie < ie_s + ne_s; ie++) {
-    const int ahg = get_ahg_edge(edges, ie);
-    const int bhg = get_bhg_edge(edges, ie);
-    if( is_a_dvt_simple(ahg,bhg) ) { 
-      break;
-    }
-  }
-
-  assert(ie >= ie_s);
-  assert(ie <= ie_s + ne_s);
-  return ie;
-}
-#endif
-
 
 void transitive_edge_marking
 (
@@ -1435,8 +1269,9 @@ void transitive_edge_marking
   const int check_point_interval = 4*60*60; // four hours
   time_t tp3,next_report_time,next_check_point_time;
 
-  SAFE_MALLOC(visited_a, IntFragment_ID, 2*nfrag);
-  SAFE_MALLOC(visited_b, IntFragment_ID, 2*nfrag);
+  visited_a = safe_malloc(sizeof(IntFragment_ID) * 2 * nfrag);
+  visited_b = safe_malloc(sizeof(IntFragment_ID) * 2 * nfrag);
+
   // Was this fragment seen from the target overlap edge before?
   
 #ifdef DONT_RUN_IN_SYMMETRIC_MODE    
@@ -1981,6 +1816,6 @@ void transitive_edge_marking
     fflush(ftrans);
   }
   if(NULL != ftrans) { fclose(ftrans);}
-  SAFE_FREE(visited_a);
-  SAFE_FREE(visited_b);
+  safe_free(visited_a);
+  safe_free(visited_b);
 }

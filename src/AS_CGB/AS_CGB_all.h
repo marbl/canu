@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- $Id: AS_CGB_all.h,v 1.6 2006-03-09 17:42:34 brianwalenz Exp $
+ $Id: AS_CGB_all.h,v 1.7 2006-09-26 22:21:13 brianwalenz Exp $
  Module: Chunk Graph Builder
  Description: A catch-all include file for the Chunk Graph Builder
  Assumptions:
@@ -82,40 +82,6 @@ VA_DEF(OverlapMesg)
 /**************************************************************/
 /* Utility functions */
 
-//  See also a copy in AS_FGB_FragmentHash.c
-
-#define  SAFE_MALLOC(the_name, the_type, length) \
-  assert(NULL == the_name); \
-  the_name = (the_type *) malloc(length*sizeof(the_type)); \
-  assert(NULL != the_name)
-#define  SAFE_MALLOC_NOISY(the_name, the_type, length) \
-  fprintf(stderr, "SAFE_MALLOC " F_SIZE_T " " #the_name " " #the_type  " " F_SIZE_T " " F_SIZE_T "\n", length * sizeof(the_type), length, sizeof(the_type) ); \
-  SAFE_MALLOC(the_name, the_type, length)
-
-#define  SAFE_CALLOC(the_name, the_type, length) \
-  assert(NULL == the_name); \
-  the_name = (the_type *) calloc(length,sizeof(the_type)); \
-  assert(NULL != the_name)
-#define  SAFE_CALLOC_NOISY(the_name, the_type, length) \
-  fprintf(stderr, "SAFE_CALLOC " F_SIZE_T " " #the_name " " #the_type  " " F_SIZE_T " " F_SIZE_T "\n", length * sizeof(the_type), length, sizeof(the_type) ); \
-  SAFE_CALLOC(the_name, the_type, length)
-
-#define  SAFE_REALLOC(the_name, the_type, length) \
-  assert(NULL != the_name); \
-  the_name = (the_type *) realloc(the_name,length * sizeof(the_type)); \
-  assert(NULL != the_name)
-#define  SAFE_REALLOC_NOISY(the_name, the_type, length) \
-  fprintf(stderr, "SAFE_REALLOC " F_SIZE_T " " #the_name " " #the_type  " " F_SIZE_T " " F_SIZE_T "\n", length * sizeof(the_type), length, sizeof(the_type) ); \
-  SAFE_REALLOC(the_name, the_type, length)
-
-#define SAFE_FREE(the_name) \
-  assert(NULL != the_name); \
-  free(the_name); \
-  the_name = NULL
-#define SAFE_FREE_NOISY(the_name) \
-  fprintf(stderr, "SAFE_FREE " #the_name  "\n" ); \
-  SAFE_FREE(the_name)
-
 
 #define SAFE_FOPEN( file_handle, file_name, the_mode) \
 assert(NULL == file_handle); \
@@ -132,13 +98,9 @@ assert(NULL != file_handle); fclose(file_handle); file_handle = NULL;
 #define ABS(a) ((a)>= 0 ?(a):-(a))
 
 static void system_date(void) {
-#if 1
-  system("`date 1>&2`");
-#endif  
 }
 
 static void system_top(void) {
-  system_date();
 }
 
 /**************************************************************/

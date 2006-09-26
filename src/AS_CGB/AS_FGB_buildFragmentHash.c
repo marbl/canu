@@ -91,7 +91,7 @@ static void check_for_fragment_corruption
   IntFragment_ID ifrag;
   IntFragment_ID *afr_to_avx = NULL;
 
-  SAFE_MALLOC(afr_to_avx, IntFragment_ID, (max_frag_iid+1));
+  afr_to_avx = safe_malloc(sizoef(IntFragment_ID) * (max_frag_iid+1));
   for( ifrag=0; ifrag <= max_frag_iid ; ifrag++ ) { 
     afr_to_avx[ifrag] = FRAGMENT_NOT_FOUND;
   }
@@ -107,6 +107,6 @@ static void check_for_fragment_corruption
       assert(FALSE);
     }
   }
-  SAFE_FREE(afr_to_avx);
+  safe_free(afr_to_avx);
 }
 #endif

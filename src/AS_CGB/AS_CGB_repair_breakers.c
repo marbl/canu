@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGB_repair_breakers.c,v 1.5 2005-09-15 15:20:15 eliv Exp $";
+static char CM_ID[] = "$Id: AS_CGB_repair_breakers.c,v 1.6 2006-09-26 22:21:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -551,73 +551,6 @@ static int ParseCommandLine
 }
 #endif // STANDALONE
 
-/*
-static void FreeOverlapSet
-(
-  VA_TYPE(OverlapMesg) * os
-  )
-{
-  if( os )
-    DeleteVA_OverlapMesg(os);
-}
-
-static OverlapSetp AllocateOverlapSet
-(
-  cds_uint32 num_ovls
-  )
-{
-  OverlapSetp os;
-
-  if( (os = (OverlapSetp) calloc( 1, sizeof( OverlapSet ) )) == NULL )
-    return NULL;
-
-  os->ovls = (OverlapMesg *) calloc( num_ovls, sizeof( OverlapMesg ) );
-  if( os->ovls == NULL )
-  {
-    FreeOverlapSet( os );
-    return NULL;
-  }
-  os->num_allocated = num_ovls;
-  
-  return os;
-}
-*/
-
-/*
-static void FreeIIDSet
-(
-  IIDSetp is
-  )
-{
-  if( is )
-  {
-    if( is->iids )
-      free( is->iids );
-    free( is );
-  }
-}
-
-static IIDSetp AllocateIIDSet
-(
-  cds_uint32 num_iids
-  )
-{
-  IIDSetp is;
-
-  if( (is = (IIDSetp) calloc( 1, sizeof( IIDSet ) )) == NULL )
-    return NULL;
-
-  is->iids = (FragmentEnd *) calloc( num_iids, sizeof( FragmentEnd ) );
-  if( is->iids == NULL )
-  {
-    FreeIIDSet( is );
-    return NULL;
-  }
-  is->num_allocated = num_iids;
-  
-  return is;
-}
-*/
 
 static int AddIIDToIIDSet( IntFragment_ID iid, int suffix, VA_TYPE(FragmentEnd) * is )
 {
@@ -626,19 +559,6 @@ static int AddIIDToIIDSet( IntFragment_ID iid, int suffix, VA_TYPE(FragmentEnd) 
   fe.suffix = suffix;
 
   AppendVA_FragmentEnd(is, &fe);
-  /*
-  if( is->num_allocated <= is->num_iids )
-  {
-    is->iids =
-      (FragmentEnd *) realloc( is->iids, (++(is->num_allocated)) *
-                               sizeof( FragmentEnd ) );
-    if( is->iids == NULL )
-      return 1;
-  }
-  is->iids[is->num_iids].suffix = suffix;
-  is->iids[is->num_iids].iid = iid;
-  is->num_iids++;
-  */
   return 0;
 }
 
@@ -650,27 +570,6 @@ static void AddOvlToOvls
   )
 {
   AppendVA_OverlapMesg(ovls, ovl);
-/*  
-  // allocate or reallocate
-  if( ovls_in == NULL )
-  {
-    ovls_out = (OverlapMesg *) calloc( 1, sizeof( OverlapMesg ) );
-    if( ovls_out == NULL )
-      return NULL;
-  }
-  else
-  {
-    ovls_out = (OverlapMesg *) realloc( ovls_in, (*num_ovls + 1) *
-                                        sizeof( OverlapMesg ) );
-    if( ovls_out == NULL )
-      return NULL;
-  }
-  
-  // copy the overlap's memory into the last element of the ovls_out array
-  memcpy( &(ovls_out[*num_ovls]), ovl, sizeof( OverlapMesg ) );
-  (*num_ovls)++;
-  return ovls_out;
-*/
 }
 
 
@@ -683,29 +582,6 @@ static int AddOvlsToOvls
   int i;
   for(i = 0; i < GetNumVA_OverlapMesg(ovls_in); i++)
     AppendVA_OverlapMesg(ovls_out, GetVA_OverlapMesg(ovls_in, i));
-  /*
-  // allocate or reallocate
-  if( *ovls_out == NULL )
-  {
-    *ovls_out = (OverlapMesg *) calloc( num_ovls_in, sizeof( OverlapMesg ) );
-    if( *ovls_out == NULL )
-      return 1;
-  }
-  else
-  {
-    *ovls_out = (OverlapMesg *) realloc( *ovls_out,
-                                         (*num_ovls_out + num_ovls_in) *
-                                         sizeof( OverlapMesg ) );
-    if( *ovls_out == NULL )
-      return 1;
-  }
-  
-  // copy the overlap array's memory into the last element of the ovls_out array
-  memcpy( &((*ovls_out)[*num_ovls_out]),
-          ovls_in,
-          num_ovls_in * sizeof( OverlapMesg ) );
-  (*num_ovls_out) += num_ovls_in;
-  */
   return 0;
 }
 
@@ -719,20 +595,6 @@ static int AddOvlsToOvlSet
   int i;
   for(i = 0; i < GetNumVA_OverlapMesg(ovls_in); i++)
     AppendVA_OverlapMesg(ovls_out, GetVA_OverlapMesg(ovls_in, i));
-  /*
-  // see if OverlapSet's memory needs to grow
-  if( os->num_allocated - os->num_ovls < num_ovls )
-  {
-    os->ovls =
-      (OverlapMesg *) realloc( os->ovls,
-                               (os->num_ovls + num_ovls) *
-                               sizeof( OverlapMesg ) );
-    if( os->ovls == NULL )
-      return 1;
-  }
-  memcpy( &(os->ovls[os->num_ovls]), ovls, num_ovls * sizeof( OverlapMesg ) );
-  os->num_ovls += num_ovls;
-  */
   return 0;
 }
 
@@ -769,24 +631,12 @@ static int PopulateFragment
   ifg->clear_rng.end = end - bgn;
 
   // allocate/copy sequence
-  if( (ifg->sequence = (char *) malloc( ifg->clear_rng.end + 1 *
-                                        sizeof( char ) )) == NULL )
-  {
-    fprintf( stderr, "Failed to allocate frag " F_IID " sequence of " F_COORD " bases\n",
-             iid, ifg->clear_rng.end );
-    return 1;
-  }
+  ifg->sequence = (char *) safe_malloc( ifg->clear_rng.end + 1 * sizeof( char ))
   strncpy( (char *) ifg->sequence, &(temp_seq[bgn]), ifg->clear_rng.end );
   ifg->sequence[ifg->clear_rng.end] = '\0';
 
   // allocate/copy quality
-  if( (ifg->quality = (char *) malloc( ifg->clear_rng.end + 1 *
-                                        sizeof( char ) )) == NULL )
-  {
-    fprintf( stderr, "Failed to allocate frag " F_IID " quality of " F_COORD " bases\n",
-             iid, ifg->clear_rng.end );
-    return 1;
-  }
+  ifg->quality = (char *) safe_malloc( ifg->clear_rng.end + 1 * sizeof( char ))
   strncpy( (char *) ifg->quality, &(temp_qvs[bgn]), ifg->clear_rng.end );
   ifg->quality[ifg->clear_rng.end] = '\0';
 
@@ -1415,7 +1265,7 @@ static int write_overlap_file
     adl.next = NULL;
     adl.name = rg->program_name;
     adl.complete = time(0);
-    adl.version = "$Revision: 1.5 $";
+    adl.version = "$Revision: 1.6 $";
     adl.comment = "";
     adt.list = &adl;
     gen.m = &adt;
@@ -1618,7 +1468,7 @@ int main_repair_globals
     LabelFragments( heapva, iid_list, afr_to_avx, rg->breaker_fix );
     
     destroy_FragmentHash(afr_to_avx);
-    SAFE_FREE(afr_to_avx);
+    safe_free(afr_to_avx);
 
     if( rg->Output_Graph_Store )
     {

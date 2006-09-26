@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_dfs.c,v 1.4 2005-03-22 19:48:27 jason_miller Exp $";
+= "$Id: AS_CGB_dfs.c,v 1.5 2006-09-26 22:21:13 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module: AS_CGB_dfs.c
@@ -93,19 +93,18 @@ typedef struct {
 
 static DFSstackobj * dfs_stack_create(IntRank nfrag) {
   DFSstackobj *  self = NULL;
-  SAFE_MALLOC( self, DFSstackobj, 1);
+  self = safe_malloc(sizeof(DFSstackobj));
   self->next = 0;
   self->size = nfrag;
-  self->memory = NULL;
-  SAFE_MALLOC(self->memory, DFSstackrec, nfrag);
+  self->memory = safe_malloc(sizeof(DFSstackrec) * nfrag);
   return(self);
 }
 
 static void dfs_stack_destroy(DFSstackobj *self) {
   self->next = 0;
   self->size = 0;
-  SAFE_FREE(self->memory);
-  SAFE_FREE(self);
+  safe_free(self->memory);
+  safe_free(self);
 }
 
 static void dfs_stack_push(DFSstackobj *self, DFSstackrec *x) {
@@ -487,12 +486,11 @@ void as_dfs_graph_traversal
   IntRank * dfs_finished = NULL; 
   DFScolor * dfs_color = NULL; 
   
-  SAFE_MALLOC(dfs_predecessor, IntRank, nfrag);
-  SAFE_MALLOC(dfs_discovered,  IntRank, nfrag);
-  SAFE_MALLOC(dfs_finished,    IntRank, nfrag);
-  SAFE_MALLOC(dfs_color,      DFScolor, nfrag);
-  
-  
+  dfs_predecessor = safe_malloc(sizeof(IntRank) * nfrag);
+  dfs_discovered  = safe_malloc(sizeof(IntRank) * nfrag);
+  dfs_finished    = safe_malloc(sizeof(IntRank) * nfrag);
+  dfs_color       = safe_malloc(sizeof(DFScolor) * nfrag);
+
   for(vid=0; vid<nfrag; vid++) {
     dfs_predecessor[vid] = AS_DFS_NOT_RANKED;
     fragment_rank[vid] = AS_DFS_NOT_RANKED;
@@ -595,10 +593,10 @@ void as_dfs_graph_traversal
      If this assert ever fails than look for fragments with
      get_lab_fragment() == AS_CGB_INTRACHUNK_FRAG, but have not been visited.
   */
-  SAFE_FREE(dfs_predecessor);
-  SAFE_FREE(dfs_discovered);
-  SAFE_FREE(dfs_finished);
-  SAFE_FREE(dfs_color);
+  safe_free(dfs_predecessor);
+  safe_free(dfs_discovered);
+  safe_free(dfs_finished);
+  safe_free(dfs_color);
   dfs_stack_destroy(dfs_stack);
   
 }

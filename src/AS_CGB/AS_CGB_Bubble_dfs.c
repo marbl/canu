@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_Bubble_dfs.c,v 1.4 2005-03-22 19:48:09 jason_miller Exp $";
+= "$Id: AS_CGB_Bubble_dfs.c,v 1.5 2006-09-26 22:21:13 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -249,13 +249,7 @@ AS_CGB_Bubble_dfs(BubGraph_t bg)
     BG_E_setFlag(bg, e, AS_CGB_BUBBLE_E_UNUSED);
 
   /* Allocate stack space */
-  SAFE_MALLOC(stack, BG_E_Iter, num_v);
-#if 0
-  if (!stack) {
-    fprintf(BUB_LOG_G, "Insufficient stack space to mark bubbles.  Aborting.\n");
-    assert(0);
-  }
-#endif
+  stack = safe_malloc(sizeof(BG_E_Iter) * num_v);
 
   for (v = 0; v < num_v; v++)
     if ((!BG_V_isSetFlag(bg, v, AS_CGB_BUBBLE_V_DONE)) && 
@@ -267,5 +261,5 @@ AS_CGB_Bubble_dfs(BubGraph_t bg)
       _do_dfs(bg, v, stack);
     }
   
-  SAFE_FREE(stack);
+  safe_free(stack);
 }

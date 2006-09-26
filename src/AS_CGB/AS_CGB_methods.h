@@ -1006,25 +1006,6 @@ static int compare_edge_strong(const void * const aa, const void * const bb)
   return icom ;
 }
 
-#if 0
-static void * AS_CGB_malloc(const size_t size) {
-  void * ptr = malloc(size);
-  fprintf(stderr, "AS_CGB_malloc: %p " F_SIZE_T "\n", ptr, size);
-  assert(ptr != NULL);
-  return ptr;
-}
-static void * AS_CGB_calloc(const size_t nmemb, const size_t size) {
-  void * ptr = calloc(nmemb,size);
-  fprintf(stderr, "AS_CGB_calloc: %p " F_SIZE_T "\n", ptr,nmemb*size);
-  assert(ptr != NULL);
-  return ptr;
-}
-static void AS_CGB_free(void *ptr) {
-  assert(NULL != ptr);
-  fprintf(stderr, "AS_CGB_free: %p\n", ptr);
-  free(ptr);
-}
-#endif
 
 static int accept_tmp_as_final_file
 ( const char *thePath1,

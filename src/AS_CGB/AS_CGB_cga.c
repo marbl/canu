@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_cga.c,v 1.6 2006-08-25 22:41:14 brianwalenz Exp $";
+= "$Id: AS_CGB_cga.c,v 1.7 2006-09-26 22:21:13 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module: AS_CGB_cga.c
@@ -312,9 +312,9 @@ static void exhale_term_rep
   IntFragment_ID * fragment_ranking = NULL;
   IntFragment_ID * fragment_visited = NULL;
 
-  SAFE_MALLOC(fragment_mapping, Arec, nfrag);
-  SAFE_MALLOC(fragment_ranking, IntFragment_ID, nfrag);
-  SAFE_MALLOC(fragment_visited, IntFragment_ID, nfrag);
+  fragment_mapping = safe_malloc(sizeof(Arec) * nfrag);
+  fragment_ranking = safe_malloc(sizeof(IntFragment_ID) * nfrag);
+  fragment_visited = safe_malloc(sizeof(IntFragment_ID) * nfrag);
 
   {
     time_t tp1,tp2;
@@ -504,9 +504,9 @@ static void exhale_term_rep
   fprintf(fp,"]\n");    /* ending the graph */
   }
 
-  SAFE_FREE(fragment_ranking);
-  SAFE_FREE(fragment_mapping);
-  SAFE_FREE(fragment_visited);
+  safe_free(fragment_ranking);
+  safe_free(fragment_mapping);
+  safe_free(fragment_visited);
 }
 
 
@@ -1947,9 +1947,9 @@ static void analyze_the_chunks
 		   myindexdata,mysetdata,myaggregate,myprintdata);
 #endif /*GENINFO*/
 
-  fragment_visited = (IntFragment_ID *)malloc(nfrag*sizeof(IntFragment_ID));
+  fragment_visited = (IntFragment_ID *)safe_malloc(nfrag*sizeof(IntFragment_ID));
   afr_to_avx = create_FragmentHash((max_frag_iid+1));
-  fragment_timesinchunks = (int *)malloc(nfrag*sizeof(int));
+  fragment_timesinchunks = (int *)safe_malloc(nfrag*sizeof(int));
 
   assert(fragment_visited != NULL);
   assert(fragment_timesinchunks != NULL);
@@ -2633,8 +2633,8 @@ static void analyze_the_chunks
   }
 #endif /*SIMINFO*/
 #endif //NEVER
-  SAFE_FREE(fragment_visited);
-  SAFE_FREE(fragment_timesinchunks);
+  safe_free(fragment_visited);
+  safe_free(fragment_timesinchunks);
   destroy_FragmentHash(afr_to_avx);
 } 
 
@@ -2671,7 +2671,7 @@ void chunk_graph_analysis
   const IntChunk_ID nchunks = (IntChunk_ID)GetNumVA_AChunkMesg(thechunks);
 
   ChunkAnnotation *chunkinfo
-    = (ChunkAnnotation *)malloc((nchunks)*sizeof(ChunkAnnotation));
+    = (ChunkAnnotation *)safe_malloc((nchunks)*sizeof(ChunkAnnotation));
 
 #ifdef DEBUG
   time_t tp1,tp2;
@@ -3462,7 +3462,7 @@ void chunk_graph_analysis
 #endif
 #endif /*DEBUG_VISUAL*/
 
-  SAFE_FREE(chunkinfo);
+  safe_free(chunkinfo);
   if( ProcessFragmentAnnotationsForSimulatorCoordinates ) {
     DeleteVA_Afraginfo(fraginfo);
   }

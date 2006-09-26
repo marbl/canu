@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_CGB_histo.c,v 1.4 2005-03-22 19:48:27 jason_miller Exp $
+ * $Id: AS_CGB_histo.c,v 1.5 2006-09-26 22:21:13 brianwalenz Exp $
  * Module:  AS_CGB_histo.c
  * Description: A histogramming routine and auxillary functions.
  * Assumptions:
@@ -39,7 +39,7 @@
 #undef DEBUGGING2
 
 /*************************************************************************/
-static char CM_ID[] = "$Id: AS_CGB_histo.c,v 1.4 2005-03-22 19:48:27 jason_miller Exp $";
+static char CM_ID[] = "$Id: AS_CGB_histo.c,v 1.5 2006-09-26 22:21:13 brianwalenz Exp $";
 /*************************************************************************/
 
 /* Histogram library */
@@ -92,9 +92,9 @@ Histogram_t *create_histogram(
   HISTOGRAM *h;
   int *bucket_cnt,*bucket_min,*bucket_max;
   int *thescore;
-  h = (HISTOGRAM *) malloc(sizeof(HISTOGRAM));
-  thescore   = (int *)calloc(nsample,sizeof(int));
-  bucket_cnt = (int *)calloc(nbucket,sizeof(int));
+  h = (HISTOGRAM *) safe_malloc(sizeof(HISTOGRAM));
+  thescore   = (int *)safe_calloc(nsample,sizeof(int));
+  bucket_cnt = (int *)safe_calloc(nbucket,sizeof(int));
   h->cnt         = 0;
   h->filled      = filled;
 #ifdef USE_SYNC
@@ -124,8 +124,8 @@ Histogram_t *create_histogram(
   h->aggregate   = NULL;
   h->printdata   = NULL;
   /* */
-  bucket_min = (int *)calloc(nbucket,sizeof(int));
-  bucket_max = (int *)calloc(nbucket,sizeof(int));
+  bucket_min = (int *)safe_calloc(nbucket,sizeof(int));
+  bucket_max = (int *)safe_calloc(nbucket,sizeof(int));
   h->bucket_min  = bucket_min;
   h->bucket_max  = bucket_max;
   
@@ -158,16 +158,11 @@ void extend_histogram(
 
   assert(h != NULL);
   assert(nbytes > 0 );
-  sample_data = (HistoDataType *) malloc((h->nsample)*nbytes);
-  bucket_data = (HistoDataType *) malloc((h->nbucket)*nbytes);
-  temp_data   = (HistoDataType *) malloc(nbytes);
-  scan_data   = (HistoDataType *) malloc(nbytes);
-  aggr_data   = (HistoDataType *) malloc(nbytes);
-  assert(temp_data != NULL);
-  assert(indexdata != NULL);
-  assert(setdata   != NULL);
-  assert(aggregate != NULL);
-  assert(printdata != NULL);
+  sample_data = (HistoDataType *) safe_malloc((h->nsample)*nbytes);
+  bucket_data = (HistoDataType *) safe_malloc((h->nbucket)*nbytes);
+  temp_data   = (HistoDataType *) safe_malloc(nbytes);
+  scan_data   = (HistoDataType *) safe_malloc(nbytes);
+  aggr_data   = (HistoDataType *) safe_malloc(nbytes);
 
   h->temp_data   = temp_data;
   h->scan_data   = scan_data;

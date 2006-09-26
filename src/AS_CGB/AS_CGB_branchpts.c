@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_branchpts.c,v 1.4 2005-03-22 19:48:22 jason_miller Exp $";
+= "$Id: AS_CGB_branchpts.c,v 1.5 2006-09-26 22:21:13 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_CGB_branchpts.c
@@ -598,8 +598,8 @@ static void  Init_Distrib  (Distrib_t * D, int N)
   D -> Max = - FLT_MAX;
   D -> Sum = 0.0;
   D -> N = N;
-  SAFE_CALLOC(D -> Ct, int, N + 1);
-  SAFE_CALLOC(D -> Thold, double, N + 1);
+  D->Ct    = safe_calloc(sizeof(int), N + 1);
+  D->Thold = safe_calloc(sizeof(double), N + 1);
   assert (D -> Thold != NULL);
   
   return;
@@ -681,8 +681,8 @@ static void  Find_Branch_Points
   
   if(avail_len == 0) {
     avail_len = (int)(MAX_BP_CALLS * HEADROOM_FACTOR);
-    SAFE_MALLOC(avail, int, avail_len);
-    SAFE_MALLOC(chosen, char, avail_len);
+    avail  = safe_malloc(sizeof(int) * avail_len);
+    chosen = safe_malloc(sizeof(char) * avail_len);
     
     Init_Distrib (& BP_List_Len_Distrib, 38);
     for  (i = 0;  i < 10;  i ++)
@@ -705,8 +705,8 @@ static void  Find_Branch_Points
 #endif
   if(n > avail_len) {
     avail_len = (int)(n * HEADROOM_FACTOR);
-    SAFE_REALLOC(avail, int, avail_len);
-    SAFE_REALLOC(chosen, char, avail_len);
+    avail = safe_realloc(sizeof(int) avail_len);
+    chosen = safe_realloc(sizeof(char) avail_len);
   }
   
   assert (brncholaps[0].use_me);

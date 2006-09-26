@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGB_breakers.c,v 1.6 2006-02-13 22:16:31 eliv Exp $";
+static char CM_ID[] = "$Id: AS_CGB_breakers.c,v 1.7 2006-09-26 22:21:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -95,27 +95,11 @@ BreakerSetp AllocateBreakerSet( int num_breakers, BreakerType type )
 {
   int num_chunks = (type == Chimera) ? CHIMERA_CHUNKS : SPUR_CHUNKS;
   BreakerSetp bs;
-  bs = (BreakerSetp) calloc( 1, sizeof( BreakerSet ) );
-  if( bs == NULL )
-    return NULL;
-
+  bs = (BreakerSetp) safe_calloc( 1, sizeof( BreakerSet ) );
   bs->type = type;
-  
-  bs->breakers = (Breakerp) calloc( num_breakers, sizeof( Breaker ) );
-  if( bs->breakers == NULL )
-  {
-    FreeBreakerSet( bs );
-    return NULL;
-  }
+  bs->breakers = (Breakerp) safe_calloc( num_breakers, sizeof( Breaker ) );
   bs->num_breakers = num_breakers;
-
-  bs->indexes = (ChunkItemp) calloc( num_breakers * num_chunks,
-                                     sizeof( ChunkItem ) );
-  if( bs->indexes == NULL )
-  {
-    FreeBreakerSet( bs );
-    return NULL;
-  }
+  bs->indexes = (ChunkItemp) safe_calloc( num_breakers * num_chunks, sizeof( ChunkItem ) );
   return bs;
 }
 
@@ -124,9 +108,7 @@ static int AllocateAndCopyString( char ** dest, char * src )
 {
   if( src != NULL )
   {
-    *dest = (char *) calloc( strlen( src ) + 1, sizeof( char ) );
-    if( *dest == NULL )
-      return 1;
+    *dest = (char *) safe_calloc( strlen( src ) + 1, sizeof( char ) );
     strcpy( *dest, src );
   }
   else
@@ -310,9 +292,7 @@ static int AllocateAndCopyIMPs( cds_int32 * dest_num, IntMultiPos ** dest_f_list
 {
   int i;
 
-  *dest_f_list = (IntMultiPos *) calloc( src_num, sizeof( IntMultiPos ) );
-  if( *dest_f_list == NULL )
-    return 1;
+  *dest_f_list = (IntMultiPos *) safe_calloc( src_num, sizeof( IntMultiPos ) );
   
   for( i = 0; i < src_num; i++ )
   {
