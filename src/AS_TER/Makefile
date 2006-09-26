@@ -153,9 +153,9 @@ all: $(OBJECTS) $(LIBRARIES) $(PROGS)
 	cp -f buildFragContigPosMap.pl $(LOCAL_BIN)
 	chmod 775 $(LOCAL_BIN)/buildFragContigPosMap.pl
 
-count-sma:               $(SMA_OBJS)     libAS_MSG.a libAS_UTL.a
-terminator:              $(TERM_OBJS)    libAS_CNS.a libAS_CGW.a libAS_SDB.a libAS_REZ.a libAS_CGW.a libAS_PER.a libAS_UTL.a libAS_MSG.a libAS_ALN.a libAS_LIN.a libAS_OVL.a libAS_UID.a
-asmProcessScaffolds_TER: $(PRCSCF_OBJS)  libAS_CNS.a libAS_CGW.a libAS_SDB.a libAS_REZ.a libAS_CGW.a libAS_PER.a libAS_UTL.a libAS_MSG.a libAS_ALN.a libAS_LIN.a libAS_OVL.a libAS_UID.a
-asmOutputContigsFasta:   $(CTGOUT_OBJS)  libAS_MSG.a libAS_PER.a libAS_UTL.a
-asm2bac:                 $(ASM2BAC_OBJS) libAS_CNS.a libAS_REZ.a libAS_SDB.a libAS_MSG.a             libAS_CGW.a libAS_REZ.a libAS_CGW.a libAS_REZ.a libAS_ALN.a libAS_LIN.a libAS_OVL.a libAS_PER.a libAS_MSG.a libAS_UTL.a libAS_UID.a
+count-sma:               $(SMA_OBJS)     libCA.a
+terminator:              $(TERM_OBJS)    libCA.a
+asmProcessScaffolds_TER: $(PRCSCF_OBJS)  libCA.a
+asmOutputContigsFasta:   $(CTGOUT_OBJS)  libCA.a
+asm2bac:                 $(ASM2BAC_OBJS) libCA.a
 

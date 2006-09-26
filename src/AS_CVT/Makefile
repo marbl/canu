@@ -82,7 +82,8 @@ concatRegions: concatRegions.o
 dumpMappedBACFragIntervals: dumpMappedBACFragIntervals.o ASMData.o \
 	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
-ofg2asm: ofg2asm.o libAS_MSG.a libAS_UTL.a
+ofg2asm: ofg2asm.o \
+	libAS_MSG.a libAS_UTL.a
 
 dumpMappedMatePairsBinary: dumpMappedMatePairsBinary.o ASMData.o \
 	libAS_MSG.a libAS_PER.a libAS_UTL.a
@@ -141,7 +142,8 @@ dumpClones: dumpClones.o ASMData.o \
 dumpFragScaffCoords: dumpFragScaffoldCoordinates.o ASMData.o \
 	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
-getMDIDataFromASM: getMDIDataFromASM.o libAS_MSG.a libAS_UTL.a
+getMDIDataFromASM: getMDIDataFromASM.o \
+	libAS_MSG.a libAS_UTL.a
 
 dumpContigLengths: dumpContigLengths.o ASMData.o \
 	libAS_MSG.a libAS_PER.a libAS_UTL.a
@@ -170,9 +172,11 @@ extract_from_uids: extract_from_uids.o \
 	AS_CVT_hashtable.o AS_CVT_uid_interface.o \
 	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
-make_cns_list: make_cns_list.o libAS_MSG.a
+make_cns_list: make_cns_list.o \
+	libAS_MSG.a
 
-make_range_file: make_range_file.o libAS_UTL.a
+make_range_file: make_range_file.o \
+	libAS_UTL.a
 
 run_components_thru_grande:
 	cp -f run_components_thru_grande.sh $(LOCAL_BIN)

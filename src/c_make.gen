@@ -361,6 +361,8 @@ $(LIBRARIES):
 	@ echo "################### " $@ "#####################";
 	cd $(LOCAL_OBJ); \
 	  $(AR) $(ARFLAGS) $(LOCAL_LIB)/$(notdir $@) $+ 
+	cd $(LOCAL_OBJ); \
+	  $(AR) $(ARFLAGS) $(LOCAL_LIB)/libCA.a $+ 
 
 $(PROGS):
 	@ echo "++++++++++++++++++++ " $@ "++++++++++++++++++++++";

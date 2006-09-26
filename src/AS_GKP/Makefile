@@ -48,17 +48,12 @@ all:    $(OBJECTS) $(LIBRARIES) $(PROGS)
 install: all
 	echo "Nothing to be done for AS_GKP"
 
-gatekeeper: $(GKPOBJECTS) \
-	libAS_PER.a libAS_UTL.a libAS_MSG.a 
+gatekeeper: $(GKPOBJECTS) libAS_PER.a libAS_UTL.a libAS_MSG.a 
 
-dumpGatekeeper: dumpGatekeeper.o \
-	libAS_PER.a libAS_UTL.a libAS_MSG.a 
+dumpGatekeeper: dumpGatekeeper.o libAS_PER.a libAS_UTL.a libAS_MSG.a 
 
-dumpGatekeeperRecords: dumpGatekeeperRecords.o \
-	libAS_PER.a libAS_UTL.a libAS_MSG.a 
+dumpGatekeeperRecords: dumpGatekeeperRecords.o libAS_PER.a libAS_UTL.a libAS_MSG.a 
 
-dumpGatekeeperName: dumpGatekeeperName.o \
-	libAS_PER.a libAS_UTL.a libAS_MSG.a 
+dumpGatekeeperName: dumpGatekeeperName.o libAS_PER.a libAS_UTL.a libAS_MSG.a 
 
-debugGatekeeperStore: debugGatekeeperStore.o \
-	libAS_PER.a libAS_UTL.a libAS_MSG.a 
+debugGatekeeperStore: debugGatekeeperStore.o libAS_PER.a libAS_UTL.a libAS_MSG.a 

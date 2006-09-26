@@ -22,7 +22,7 @@
 ###########################################################################
 #
 # *********************************************************************
-# $Id: Makefile,v 1.4 2005-03-22 19:48:56 jason_miller Exp $
+# $Id: Makefile,v 1.5 2006-09-26 21:06:46 brianwalenz Exp $
 # Module: AS_MER
 # Description: The merCounter.
 # Assumptions:
@@ -57,13 +57,10 @@ PROGS = meryl
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
 
-# These variables influence cds/SEP/makefiles/c_make.gen
-#VERBOSE = 1
-#CFLAGS += -O
 LDFLAGS += -lm
 
 CXXDEFS = 
-#CXXFLAGS += -g -pg -qcpluscmt -qstrict 
+
 # DEC cxx requires tlocal for template linking. Not recognized by g++.
 ifeq "$(OSTYPE)" "osf1"
 CXXFLAGS += -tlocal
@@ -74,11 +71,6 @@ CLEANABLE_FILES = *.o *~
 
 INST_SET= $(PROGS)
 
-# Careful! Library order matters.
-STORE_LIBS = libAS_PER.a libAS_UTL.a 
-
 all: $(OBJECTS) $(LIBRARIES) $(PROGS) 
 
-meryl: AS_MER_meryl.o \
-	$(AS_MER_GENERAL_OBJECTS) \
-	$(STORE_LIBS)
+meryl: AS_MER_meryl.o $(AS_MER_GENERAL_OBJECTS) libAS_PER.a libAS_UTL.a 

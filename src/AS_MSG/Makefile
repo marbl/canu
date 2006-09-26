@@ -53,35 +53,25 @@ default: clean all regression tester install
 
 libAS_MSG.a:   AS_MSG_pmesg.o AS_MSG_bmesg.o AS_MSG_Utility.o
 
-AS_MSG_pmesg_test: AS_MSG_pmesg_test.o AS_MSG_pmesg.o AS_MSG_bmesg.o \
-	libAS_UTL.a
+AS_MSG_pmesg_test: AS_MSG_pmesg_test.o AS_MSG_pmesg.o AS_MSG_bmesg.o libAS_UTL.a
 
-proto2binary: proto2binary.o AS_MSG_bmesg.o AS_MSG_pmesg.o \
-	libAS_UTL.a
+proto2binary: proto2binary.o AS_MSG_bmesg.o AS_MSG_pmesg.o libAS_UTL.a
 
-binary2proto: binary2proto.o AS_MSG_bmesg.o AS_MSG_pmesg.o \
-	libAS_UTL.a
+binary2proto: binary2proto.o AS_MSG_bmesg.o AS_MSG_pmesg.o libAS_UTL.a
 
-proto2proto: proto2proto.o AS_MSG_bmesg.o AS_MSG_pmesg.o \
-	libAS_UTL.a
+proto2proto: proto2proto.o AS_MSG_bmesg.o AS_MSG_pmesg.o libAS_UTL.a
 
-proto_append: proto_append.o AS_MSG_bmesg.o AS_MSG_pmesg.o \
-	libAS_UTL.a
+proto_append: proto_append.o AS_MSG_bmesg.o AS_MSG_pmesg.o libAS_UTL.a
 
-binary_append: binary_append.o AS_MSG_bmesg.o AS_MSG_pmesg.o \
-	libAS_UTL.a
+binary_append: binary_append.o AS_MSG_bmesg.o AS_MSG_pmesg.o libAS_UTL.a
 
-remove_fragment: remove_fragment.o AS_MSG_bmesg.o AS_MSG_pmesg.o \
-	libAS_UTL.a
+remove_fragment: remove_fragment.o AS_MSG_bmesg.o AS_MSG_pmesg.o libAS_UTL.a
 
-track_fragment: track_fragment.o AS_MSG_bmesg.o AS_MSG_pmesg.o \
-	libAS_UTL.a
+track_fragment: track_fragment.o AS_MSG_bmesg.o AS_MSG_pmesg.o libAS_UTL.a
 
-countmessages: CountMessages.o AS_MSG_bmesg.o AS_MSG_pmesg.o \
-	libAS_UTL.a
+countmessages: CountMessages.o AS_MSG_bmesg.o AS_MSG_pmesg.o libAS_UTL.a
 
-extractmessages: ExtractMessages.o AS_MSG_bmesg.o AS_MSG_pmesg.o \
-	libAS_UTL.a
+extractmessages: ExtractMessages.o AS_MSG_bmesg.o AS_MSG_pmesg.o libAS_UTL.a
 
 extractxchunkmessages: ExtractXChunkMessages.o AS_MSG_bmesg.o AS_MSG_pmesg.o
 

@@ -20,10 +20,6 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 ###########################################################################
-#
-# gmake Makefile for AS_CNS
-#VERBOSE=1
-REQD_LIBS = libAS_PER.a libAS_UTL.a libAS_MSG.a libAS_ALN.a libAS_CNS.a libAS_REZ.a libAS_CGW.a
 
 LIB_SOURCES = MultiAlignment_CNS.c MultiAlignStore_CNS.c Array_CNS.c
 LIB_OBJECTS = $(LIB_SOURCES:.c=.o)
@@ -66,9 +62,7 @@ install: all
 
 libAS_CNS.a: $(LIB_OBJECTS)
 
-LIBS =  libAS_CGW.a libAS_REZ.a libAS_CGW.a libAS_PER.a libAS_MSG.a \
-        libAS_CNS.a libAS_SDB.a libAS_ALN.a libAS_OVL.a \
-	libAS_CGW.a libAS_REZ.a libAS_CGW.a libAS_REZ.a libAS_CGW.a libAS_OVL.a  libAS_ALN.a libAS_UTL.a libAS_PER.a libAS_LIN.a libAS_MSG.a 
+LIBS =  libCA.a
 
 consensus: Consensus_CNS.o  MultiAlignment_CNS.o MultiAlignStore_CNS.o \
 	Array_CNS.o $(LIBS) 

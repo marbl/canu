@@ -66,10 +66,7 @@ OBJECTS = $(AS_OVL_CA_OBJS) $(AS_OVL_OBJS) $(AS_OVL_CMN_OBJS) $(CORRECT_OBJS) \
 
 LIBRARIES = libAS_OVL.a
 
-AS_LIBRARIES = libAS_PER.a libAS_UTL.a libAS_MSG.a libAS_ALN.a libAS_CNS.a \
-	libAS_CGW.a libAS_REZ.a libAS_SDB.a libAS_CNS.a libAS_CGW.a \
-	libAS_REZ.a libAS_SDB.a libAS_ALN.a libAS_UTL.a libAS_PER.a \
-	libAS_OVL.a libAS_MSG.a libAS_LIN.a
+AS_LIBRARIES = libCA.a
 SYS_LIBRARIES = 
 
 AS_OVL_PROGS = overlap overlap_ca
@@ -139,7 +136,7 @@ install: $(SCRIPTS)
 	chmod ugo+x $(SCRIPTS)
 	cp -f $(SCRIPTS) $(LOCAL_BIN)
 
-auto-screen:  AutoScreenOVL.o libAS_OVL.a $(AS_LIBRARIES) $(SYS_LIBRARIES)
+auto-screen:  AutoScreenOVL.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
 
 cat-corrects:  CatCorrectsOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
 
@@ -147,23 +144,21 @@ cat-erates:  CatEratesOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
 
 combine-mums:  CombineMUMsOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
 
-correct-frags:  FragCorrectOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) \
-  $(SYS_LIBRARIES) $(PTHREADS_LIBS)
+correct-frags:  FragCorrectOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES) $(PTHREADS_LIBS)
 
 correct-olaps:  CorrectOlapsOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
 
-correct-script:  CorrectScriptOVL.o AS_OVL_delcher.o libAS_OVL.a \
-  $(AS_LIBRARIES) $(SYS_LIBRARIES)
+correct-script:  CorrectScriptOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
 
 delete-olaps:  DeleteOlapsOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
 
-dump-olap-store:  DumpOlapStoreOVL.o libAS_OVL.a $(AS_LIBRARIES) $(SYS_LIBRARIES)
+dump-olap-store:  DumpOlapStoreOVL.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
 
 filter-olaps:  FilterOlapsOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
 
 frag-anomaly:  frag-anomaly.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
 
-get-degrees:  get-degrees.o libAS_OVL.a $(AS_LIBRARIES) $(SYS_LIBRARIES)
+get-degrees:  get-degrees.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
 
 get-subgraph:  get-subgraph.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
 
@@ -171,7 +166,7 @@ get-iidgraph:  get-iidgraph.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
 
 get-uid-olaps:  get-uid-olaps.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
 
-grow-olap-store:  GrowOlapStoreOVL.o libAS_OVL.a $(AS_LIBRARIES) $(SYS_LIBRARIES)
+grow-olap-store:  GrowOlapStoreOVL.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
 
 hit-limit:  Hit_Limit_OVL.o $(SYS_LIBRARIES)
 

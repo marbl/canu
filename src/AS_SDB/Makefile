@@ -99,14 +99,14 @@ all: $(OBJECTS) $(LIBRARIES) $(PROGS)
 
 libAS_SDB.a: $(SDB_LIB_OBJECTS)
 
-TestSDBP: TestSequenceDBPartition.o libAS_SDB.a libAS_CNS.a libAS_SDB.a libAS_CNS.a libAS_SDB.a libAS_MSG.a libAS_CGW.a libAS_REZ.a libAS_CGW.a $(LIN_ALG_LIB) libAS_ALN.a libAS_OVL.a libAS_PER.a libAS_UTL.a libAS_MSG.a
-BeatOnSDB: BeatOnSDB.o libAS_SDB.a libAS_CNS.a libAS_PER.a  libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_SDB.a libAS_MSG.a libAS_ALN.a libAS_CGW.a libAS_REZ.a libAS_MSG.a libAS_UTL.a libAS_PER.a libAS_OVL.a libAS_CGW.a libAS_ALN.a $(LIN_ALG_LIB)
-AlignContigs: AlignContigs.o libAS_SDB.a libAS_CNS.a libAS_PER.a  libAS_UTL.a libAS_REZ.a libAS_CNS.a libAS_SDB.a libAS_MSG.a libAS_ALN.a libAS_CGW.a libAS_REZ.a libAS_MSG.a libAS_UTL.a libAS_PER.a libAS_OVL.a libAS_CGW.a libAS_ALN.a $(LIN_ALG_LIB)
-FetchContigs: FetchContigs.o libAS_SDB.a libAS_CNS.a libAS_REZ.a libAS_CNS.a libAS_PER.a  libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_ALN.a libAS_CGW.a libAS_REZ.a libAS_MSG.a libAS_UTL.a libAS_PER.a libAS_OVL.a libAS_CGW.a libAS_ALN.a $(LIN_ALG_LIB)
-BuildSequenceDB: BuildSequenceDB.o libAS_SDB.a libAS_CNS.a libAS_REZ.a libAS_CNS.a libAS_PER.a  libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_ALN.a libAS_CGW.a libAS_REZ.a libAS_MSG.a libAS_UTL.a libAS_PER.a libAS_OVL.a libAS_CGW.a libAS_ALN.a $(LIN_ALG_LIB)
-LookAtSDB: LookAtSDB.o libAS_SDB.a libAS_CNS.a libAS_REZ.a libAS_CNS.a libAS_PER.a  libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_ALN.a libAS_CGW.a libAS_REZ.a libAS_MSG.a libAS_UTL.a libAS_PER.a libAS_OVL.a libAS_CGW.a libAS_ALN.a $(LIN_ALG_LIB)
-dumpSDB_MultiAlignConsensus: dumpSDB_MultiAlignConsensus.o  libAS_SDB.a libAS_CNS.a libAS_REZ.a libAS_CNS.a libAS_PER.a  libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_ALN.a libAS_CGW.a libAS_REZ.a libAS_MSG.a libAS_UTL.a libAS_PER.a libAS_OVL.a libAS_CGW.a libAS_ALN.a $(LIN_ALG_LIB)
-ViewMultiAlignT: ViewMultiAlignment.o libAS_SDB.a libAS_CNS.a libAS_REZ.a libAS_CNS.a libAS_PER.a  libAS_UTL.a libAS_REZ.a libAS_SDB.a libAS_MSG.a libAS_ALN.a libAS_CGW.a libAS_REZ.a libAS_MSG.a libAS_UTL.a libAS_PER.a libAS_OVL.a libAS_CGW.a libAS_ALN.a $(LIN_ALG_LIB)
-PartitionSDB1: PartitionSequenceDB1.o libAS_SDB.a libAS_CNS.a libAS_REZ.a libAS_CNS.a libAS_PER.a  libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_ALN.a libAS_CGW.a libAS_REZ.a libAS_MSG.a libAS_UTL.a libAS_PER.a libAS_OVL.a libAS_CGW.a libAS_ALN.a $(LIN_ALG_LIB) 
-PartitionSDB2: PartitionSequenceDB2.o libAS_SDB.a libAS_CNS.a libAS_REZ.a libAS_SDB.a libAS_CNS.a libAS_PER.a  libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_ALN.a libAS_CGW.a libAS_REZ.a libAS_MSG.a libAS_UTL.a libAS_PER.a libAS_OVL.a libAS_CGW.a libAS_ALN.a $(LIN_ALG_LIB) 
-ReplaceEndUnitigTest: ReplaceEndUnitigTest.o libAS_SDB.a libAS_CNS.a libAS_REZ.a libAS_SDB.a libAS_CNS.a libAS_PER.a  libAS_UTL.a libAS_SDB.a libAS_MSG.a libAS_ALN.a libAS_CGW.a libAS_REZ.a libAS_MSG.a libAS_UTL.a libAS_PER.a libAS_OVL.a libAS_CGW.a libAS_ALN.a $(LIN_ALG_LIB)
+TestSDBP:                     TestSequenceDBPartition.o       libCA.a
+BeatOnSDB:                    BeatOnSDB.o                     libCA.a
+AlignContigs:                 AlignContigs.o                  libCA.a
+FetchContigs:                 FetchContigs.o                  libCA.a
+BuildSequenceDB:              BuildSequenceDB.o               libCA.a
+LookAtSDB:                    LookAtSDB.o                     libCA.a
+dumpSDB_MultiAlignConsensus:  dumpSDB_MultiAlignConsensus.o   libCA.a
+ViewMultiAlignT:              ViewMultiAlignment.o            libCA.a
+PartitionSDB1:                PartitionSequenceDB1.o          libCA.a
+PartitionSDB2:                PartitionSequenceDB2.o          libCA.a
+ReplaceEndUnitigTest:         ReplaceEndUnitigTest.o          libCA.a

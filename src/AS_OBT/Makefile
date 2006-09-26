@@ -68,10 +68,7 @@ dumpRandomMatedFrags: dumpRandomMatedFrags.o -lAS_PER -lAS_UTL
 
 findDuplicateFragsInStore: findDuplicateFragsInStore.o -lAS_PER -lAS_UTL
 
-#  This is about the most disgusting thing I've seen, linking in 
-#  thirty libraries twice to link a four line program.
-#
-getNumScaffolds: getNumScaffolds.o -lAS_CGW -lAS_CNS -lAS_PER -lAS_ALN -lAS_REZ -lAS_CGW -lAS_ALN -lAS_CNS -lAS_UTL -lAS_SDB -lAS_MSG -lAS_CGW -lAS_CGW -lAS_OVL -lAS_UTL -lAS_LIN
+getNumScaffolds: getNumScaffolds.o libCA.a
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
