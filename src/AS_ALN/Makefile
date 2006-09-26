@@ -80,15 +80,15 @@ all: $(OBJECTS) $(LIBRARIES) $(PROGS)
 
 libAS_ALN.a: $(LIB_OBJECTS)
 
-AS_ALN_testdriver1: $(TEST1_OBJECTS) $(LIBRARIES) libAS_MSG.a libAS_UTL.a libAS_PER.a libAS_OVL.a
+AS_ALN_testdriver1: $(TEST1_OBJECTS) $(LIBRARIES) libCA.a
 
-AS_ALN_testdriver2: $(TEST2_OBJECTS) $(LIB_OBJECTS) libAS_UTL.a
+AS_ALN_testdriver2: $(TEST2_OBJECTS) $(LIB_OBJECTS) libCA.a
 
-AS_ALN_testdriver4: $(TEST4_OBJECTS) $(LIBRARIES) libAS_MSG.a libAS_UTL.a libAS_PER.a libAS_OVL.a
+AS_ALN_testdriver4: $(TEST4_OBJECTS) $(LIBRARIES) libCA.a
 
-AS_ALN_testdriver5: $(TEST5_OBJECTS) $(LIBRARIES) libAS_MSG.a libAS_UTL.a libAS_PER.a libAS_OVL.a
+AS_ALN_testdriver5: $(TEST5_OBJECTS) $(LIBRARIES) libCA.a
 
-AS_ALN_boxfiller: $(BOXFILL_OBJECTS) $(LIBRARIES) libAS_MSG.a libAS_UTL.a libAS_PER.a libAS_OVL.a
+AS_ALN_boxfiller: $(BOXFILL_OBJECTS) $(LIBRARIES) libCA.a
 
 AS_ALN_revcompl:  $(RC_OBJECTS) $(LIBRARIES) libAS_UTL.a
 

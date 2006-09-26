@@ -89,15 +89,15 @@ libAS_CGB.a: $(LIB_OBJECTS)
 
 make_OFG_from_FragStore: make_OFG_from_FragStore.o libAS_PER.a libAS_UTL.a 
 
-miniunitigger_test: miniunitigger_test.o $(LIB_OBJECTS) libAS_OVL.a libAS_PER.a libAS_ALN.a libAS_MSG.a libAS_UTL.a 
+miniunitigger_test: miniunitigger_test.o $(LIB_OBJECTS) libCA.a
 
-unitigger: AS_CGB_unitigger.o $(LIB_OBJECTS) libAS_OVL.a libAS_PER.a libAS_ALN.a libAS_MSG.a libAS_UTL.a 
+unitigger: AS_CGB_unitigger.o $(LIB_OBJECTS) libCA.a
 
-AS_CGB_fom2uom:        AS_CGB_fom2uom.o AS_CGB_histo.o libAS_PER.a libAS_OVL.a libAS_MSG.a libAS_UTL.a 
+AS_CGB_fom2uom:        AS_CGB_fom2uom.o AS_CGB_histo.o libCA.a
 
-AS_CGB_iid2cid:        AS_CGB_iid2cid.o AS_CGB_histo.o libAS_PER.a libAS_OVL.a libAS_MSG.a libAS_UTL.a 
+AS_CGB_iid2cid:        AS_CGB_iid2cid.o AS_CGB_histo.o libCA.a
 
-check_breakers:        check_breakers.o  libAS_ALN.a libAS_MSG.a libAS_PER.a libAS_UTL.a libAS_UID.a
+check_breakers:        check_breakers.o  libCA.a
 
 install: 
 
