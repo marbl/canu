@@ -28,4 +28,13 @@ void *safe_calloc(size_t num, size_t len);
 void *safe_malloc(size_t len);
 void *safe_realloc(void *q, size_t len);
 
+#define safe_free(Q) { free(Q); Q = NULL; }
+
+#if 0
+#define malloc(X)  ERROR_MALLOC(X)
+#define calloc(X)  ERROR_CALLOC(X)
+#define realloc(X) ERROR_REALLOC(X)
+#defien free(X)    ERROR_FREE(X)
+#endif
+
 #endif // AS_UTL_ALLOC_H
