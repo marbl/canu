@@ -21,9 +21,6 @@
 #
 ###########################################################################
 #
-#VERBOSE=1
-#######################################################################
-
 #     SOURCES = 
 #       Lists all sources compiled by this makefile.
 #
@@ -50,54 +47,47 @@
 #       the following definition would work:
 #          LOCAL_WORK = $(shell cd ../..; pwd)
 
-#
-# Also include dependencies of programs and libraries on objects and
-# libraries, e.g.:
-#
-#    my_program: $(OBJECTS) libxxx.a
-#
-
-# Also include as first target, an "all" target, e.g.:
-#
-#    all: $(PROGS)
-#
-
-
-LIN_ALG_LIB = libAS_LIN.a
-#ifeq ($(OSTYPE), osf3.2)
-#LIN_ALG_LIB = libdxml.so
-#endif
-
 LOCAL_WORK = $(shell cd ../../; pwd)
 
-SDB_SOURCES = BuildSequenceDB.c
-SDB_OBJECTS = $(SDB_SOURCES:.c=.o) 
+LIB_SOURCES     = AS_SDB_SequenceDBPartition.c AS_SDB_SequenceDB.c
+LIB_OBJECTS     = $(LIB_SOURCES:.c=.o)
 
-SDB_LIB_SOURCES = AS_SDB_SequenceDBPartition.c AS_SDB_SequenceDB.c 
-LIB_SOURCES = $(SDB_LIB_SOURCES) 
-SDB_LIB_OBJECTS = $(SDB_LIB_SOURCES:.c=.o) 
-
-TST_SOURCES = LookAtSDB.c ViewMultiAlignment.c AlignContigs.c BeatOnSDB.c FetchContigs.c PartitionSequenceDB1.c  PartitionSequenceDB2.c \
-	TestSequenceDBPartition.c dumpSDB_MultiAlignConsensus.c ReplaceEndUnitigTest.c
-
-OBJECTS = $(SDB_OBJECTS) $(SDB_LIB_OBJECTS) $(TST_SOURCES)
-SOURCES = $(SDB_SOURCES) $(SDB_LIB_SOURCES) $(TST_SOURCES)
-
+SOURCES = $(LIB_SOURCES) \
+          BuildSequenceDB.c \
+          LookAtSDB.c \
+          ViewMultiAlignment.c \
+          AlignContigs.c \
+          BeatOnSDB.c \
+          FetchContigs.c \
+          PartitionSDB.c \
+          PartitionSequenceDB1.c \
+          PartitionSequenceDB2.c \
+          TestSequenceDBPartition.c \
+          dumpSDB_MultiAlignConsensus.c \
+          ReplaceEndUnitigTest.c
+OBJECTS = $(SOURCES:.c=.o)
 
 LIBRARIES = libAS_SDB.a
 
-#PROGS = AlignContigs 
-PROGS = TestSDBP BuildSequenceDB LookAtSDB ViewMultiAlignT AlignContigs BeatOnSDB FetchContigs PartitionSDB1 PartitionSDB2 dumpSDB_MultiAlignConsensus ReplaceEndUnitigTest
+PROGS = TestSDBP \
+        BuildSequenceDB \
+        LookAtSDB \
+        ViewMultiAlignT \
+        AlignContigs \
+        BeatOnSDB \
+        FetchContigs \
+        PartitionSDB \
+        PartitionSDB1 \
+        PartitionSDB2 \
+        dumpSDB_MultiAlignConsensus \
+        ReplaceEndUnitigTest
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
 
-#-include make.conf
-
-
 all: $(OBJECTS) $(LIBRARIES) $(PROGS)
 
-libAS_SDB.a: $(SDB_LIB_OBJECTS)
+libAS_SDB.a: $(LIB_OBJECTS)
 
 TestSDBP:                     TestSequenceDBPartition.o       libCA.a
 BeatOnSDB:                    BeatOnSDB.o                     libCA.a
@@ -107,6 +97,7 @@ BuildSequenceDB:              BuildSequenceDB.o               libCA.a
 LookAtSDB:                    LookAtSDB.o                     libCA.a
 dumpSDB_MultiAlignConsensus:  dumpSDB_MultiAlignConsensus.o   libCA.a
 ViewMultiAlignT:              ViewMultiAlignment.o            libCA.a
+PartitionSDB:                 PartitionSDB.o                  libCA.a
 PartitionSDB1:                PartitionSequenceDB1.o          libCA.a
 PartitionSDB2:                PartitionSequenceDB2.o          libCA.a
 ReplaceEndUnitigTest:         ReplaceEndUnitigTest.o          libCA.a
