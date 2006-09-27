@@ -18,23 +18,24 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: PartitionSDB.c,v 1.1 2006-09-27 06:49:59 brianwalenz Exp $";
+static char CM_ID[] = "$Id: PartitionSDB.c,v 1.2 2006-09-27 09:34:02 brianwalenz Exp $";
 
-//  PartitionSequenceDB:
-//  
 //  Given a SequenceDB and a partition size, measured in number of
 //  fragments, produce the following:
 //
-//  1) A set of SequenceDBs called partition0-partitionN where:
-//    - partition0 contains all live contigs containing a single
-//      unitig (can grow to arbitrary size) Paritition 0 is really
-//      not very interesting and should be omitted later
-//    - partition1-partitionN contain contigs with >1 unitig, together
-//      will all unitigs and unitig surrogates referenced by the
-//      contig. This may cause a unitig to appear in more than one
-//      partition
-//    - The partition file, UnitigPartition.txt, is the input to
-//      PartitionSequenceDB2.c
+//  1) A set of SequenceDBs called partition1-partitionN where:
+//
+//    - partition1 - partitionN contain contigs with more than one
+//    unitig (see -all below), together will all unitigs and unitig
+//    surrogates referenced by the contig. This may cause a unitig to
+//    appear in more than one partition
+//
+//    - If -all is present, then all live contigs containing a single
+//    unitig are included.  This is only interesting if consensus is
+//    run to output VAR records.
+//
+//    - The partition file, UnitigPartition.txt, is the input to the
+//    second stage.
 //
 //  2) A fragment partition file specifying for each fragment which
 //  partition (possibly partition 0) its contig belongs.  This file,
@@ -43,10 +44,7 @@ static char CM_ID[] = "$Id: PartitionSDB.c,v 1.1 2006-09-27 06:49:59 brianwalenz
 //  This tool will operate in two phases, first partitioning the
 //  Contigs and generating a fragment partition file, and an in-memory
 //  unitig assignment list.  The second phase will read the unitigs
-//  and partition them according the the assignment list.  Partition 0
-//  contigs/unitigs can be dealt with on the first pass.
-
-//  input is cgw_contigs
+//  and partition them according the the assignment list.
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -167,23 +165,22 @@ main(int argc, char **argv) {
   GenericMesg  *pmesg;
 
   while (reader(inputFile, &pmesg) != EOF) {
-    IntConConMesg *ma;
-
     if (pmesg->t == MESG_ICM) {
+      IntConConMesg *ma = pmesg->m;
       int nunitigs = ma->num_unitigs;
       int nfrags   = ma->num_pieces;
 
       if ((includeAllUnitigs) || (nunitigs > 1)) {
         int u, f;
 
-        for (u = 0; u < nunitigs; u++) {
+        for (u=0; u<nunitigs; u++) {
           tPartitionElement partElem;
           partElem.elemID      = ma->unitigs[u].ident;
           partElem.partitionID = currentPartition;
           AppendtPartitionElement(utgPartitionElems, &partElem);
         }	    
 
-        for (f = 0; f < nfrags; f++) {
+        for (f=0; f<nfrags; f++) {
           tPartitionElement partElem;
           partElem.elemID      = ma->pieces[f].ident;
           partElem.partitionID = currentPartition;
@@ -229,6 +226,10 @@ main(int argc, char **argv) {
     FILE *output = NULL;
     int i;
 
+#if 1
+    //  Not used anymore, maybe useful for debugging.  OK, used by the
+    //  script to decide if consensus needs to run.
+    //
     errno = 0;
     output = fopen("UnitigPartition.txt", "w");
     if (errno)
@@ -238,6 +239,7 @@ main(int argc, char **argv) {
       tPartitionElement *pElem = GettPartitionElement(utgPartitionElems,i);
       fprintf(output, "%d %d\n", pElem->elemID, pElem->partitionID);
     }
+#endif
 
     errno = 0;
     output = fopen("FragPartition.txt", "w");
@@ -261,9 +263,6 @@ main(int argc, char **argv) {
   //
   int i;
 
-  //MultiAlignT *ma = CreateEmptyMultiAlignT();
-  MultiAlignT *ma = NULL;
-
   //  We know there are 'currentPartition + 1' partitions, so we can
   //  allocate all our output files ahead of time.
   //
@@ -284,19 +283,20 @@ main(int argc, char **argv) {
     pIndex[i] = CreateVA_tMARecord(100);
   }
 
+  int lastBin = -1;
+  int lastUtg = -1;
 
-  int lastBin    = -1;
-  int lastUnitig = -1;
+  MultiAlignT *ma = CreateEmptyMultiAlignT();
 
   for (i=0; i<GetNumtPartitionElements(utgPartitionElems); i++) {
     tPartitionElement *pElem = GettPartitionElement(utgPartitionElems, i);
 
-    int unitigID = pElem->partitionID;
-    int binID    = pElem->elemID;
+    int binID = pElem->partitionID;
+    int utgID = pElem->elemID;
 
-    if ((lastBin    == binID) && 
-        (lastUnitig == unitigID)) {
-      fprintf(stderr, "* Attempt to Duplicate unitig "F_CID" in bin "F_CID"...skipping\n", unitigID, binID);
+    if ((lastBin == binID) && 
+        (lastUtg == utgID)) {
+      fprintf(stderr, "* Attempt to Duplicate unitig "F_CID" in bin "F_CID"...skipping\n", utgID, binID);
       continue;
     }
 
@@ -306,16 +306,16 @@ main(int argc, char **argv) {
     tMARecord mar;
 
     mar.flags.all = 0;
-    mar.storeID   = unitigID;
+    mar.storeID   = utgID;
     mar.offset    = CDS_FTELL(pOutput[binID]);
 
     AppendtMARecord(pIndex[binID], &mar);
 
-    ReLoadMultiAlignTFromSequenceDB(sequenceDB, ma, unitigID, TRUE);    // This will load the ma from the disk file
+    ReLoadMultiAlignTFromSequenceDB(sequenceDB, ma, utgID, TRUE);
     SaveMultiAlignTToStream(ma, pOutput[binID]);
 
-    lastUnitig = unitigID;
-    lastBin    = binID;
+    lastUtg = utgID;
+    lastBin = binID;
   }
 
 
