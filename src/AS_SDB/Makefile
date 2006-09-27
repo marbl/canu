@@ -53,34 +53,18 @@ LIB_SOURCES     = AS_SDB_SequenceDBPartition.c AS_SDB_SequenceDB.c
 LIB_OBJECTS     = $(LIB_SOURCES:.c=.o)
 
 SOURCES = $(LIB_SOURCES) \
-          BuildSequenceDB.c \
-          LookAtSDB.c \
-          ViewMultiAlignment.c \
-          AlignContigs.c \
-          BeatOnSDB.c \
-          FetchContigs.c \
+          SDButil.c \
           PartitionSDB.c \
           PartitionSequenceDB1.c \
-          PartitionSequenceDB2.c \
-          TestSequenceDBPartition.c \
-          dumpSDB_MultiAlignConsensus.c \
-          ReplaceEndUnitigTest.c
+          PartitionSequenceDB2.c
 OBJECTS = $(SOURCES:.c=.o)
 
 LIBRARIES = libAS_SDB.a
 
-PROGS = TestSDBP \
-        BuildSequenceDB \
-        LookAtSDB \
-        ViewMultiAlignT \
-        AlignContigs \
-        BeatOnSDB \
-        FetchContigs \
+PROGS = SDButil \
         PartitionSDB \
         PartitionSDB1 \
-        PartitionSDB2 \
-        dumpSDB_MultiAlignConsensus \
-        ReplaceEndUnitigTest
+        PartitionSDB2
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
@@ -89,15 +73,7 @@ all: $(OBJECTS) $(LIBRARIES) $(PROGS)
 
 libAS_SDB.a: $(LIB_OBJECTS)
 
-TestSDBP:                     TestSequenceDBPartition.o       libCA.a
-BeatOnSDB:                    BeatOnSDB.o                     libCA.a
-AlignContigs:                 AlignContigs.o                  libCA.a
-FetchContigs:                 FetchContigs.o                  libCA.a
-BuildSequenceDB:              BuildSequenceDB.o               libCA.a
-LookAtSDB:                    LookAtSDB.o                     libCA.a
-dumpSDB_MultiAlignConsensus:  dumpSDB_MultiAlignConsensus.o   libCA.a
-ViewMultiAlignT:              ViewMultiAlignment.o            libCA.a
+SDButil:                      SDButil.o                       libCA.a
 PartitionSDB:                 PartitionSDB.o                  libCA.a
 PartitionSDB1:                PartitionSequenceDB1.o          libCA.a
 PartitionSDB2:                PartitionSequenceDB2.o          libCA.a
-ReplaceEndUnitigTest:         ReplaceEndUnitigTest.o          libCA.a
