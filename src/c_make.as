@@ -72,17 +72,16 @@ CFLAGS_OPT = -g
 CXXDEFS    = -D__cplusplus
 ARFLAGS    = rvs
 USRLIB     = /usr/lib
-LDFLAGS   += -O3
+LDFLAGS   += -Wl,-O1
 
 ifeq ($(OSTYPE), Linux)
   CC         = gcc
   CXX        = g++
   CFLAGS_OPT = -g
-  CFLAGS    += -Os -DANSI_C -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
-  CXXFLAGS  += -Os -DANSI_C -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+  CFLAGS    += -O2 -DANSI_C -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+  CXXFLAGS  += -O2 -DANSI_C -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
   USRLIB     = /usr/X11R6/lib
   CXXDEFS    = -D__cplusplus
-  LDFLAGS   += --gc-sections
 
   ifeq ($(MACHINETYPE), i686)
     CFLAGS   += -march=i686 -DX86_GCC_LINUX
