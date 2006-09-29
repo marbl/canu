@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.25 2006-09-14 15:42:20 eliv Exp $
- * $Revision: 1.25 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.26 2006-09-29 20:39:10 eliv Exp $
+ * $Revision: 1.26 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.25 2006-09-14 15:42:20 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.26 2006-09-29 20:39:10 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -76,6 +76,8 @@ namespace AS_BOG{
 		iuid frag_idx;
 		iuid fp_dst_frag_id, tp_dst_frag_id;
 
+        bool inUnitig[num_frags+1];
+        memset( inUnitig, 0, (num_frags+1)*sizeof(bool));
 		// Initialize where we've been to nowhere; "Do not retraverse list"
 		std::map<iuid, iuid> *visited_map = new std::map<iuid,iuid>;
 		visited_map->clear();
@@ -133,6 +135,13 @@ namespace AS_BOG{
 								frag_idx, THREE_PRIME, cg_ptr);
 					}
 
+                    DoveTailPath::const_iterator dt_itr;
+                    for(dt_itr  = utg->dovetail_path_ptr->begin();
+                        dt_itr != utg->dovetail_path_ptr->end(); dt_itr++ )
+                    {
+                        inUnitig[ dt_itr->ident ] = true;
+                    }
+
 					// Get the fragment ID of the last fragment in the
 					//   dovetail, then store it in the "do not retraverse
 					//   list"
@@ -162,10 +171,62 @@ namespace AS_BOG{
 				}
 			}
 		}
-        delete cntnrmap_ptr;
         std::cerr << std::endl;
 
-        mergeAllUnitigs( visited_map );
+        ContainerMap::const_iterator ctmp_itr = cntnrmap_ptr->begin();
+        for(; ctmp_itr != cntnrmap_ptr->end(); ctmp_itr++) {
+            ContaineeList::const_iterator cntee_itr;
+            for( cntee_itr  = ctmp_itr->second.begin();
+                 cntee_itr != ctmp_itr->second.end(); cntee_itr++)
+            {
+                iuid cntee = *cntee_itr;
+                inUnitig[ cntee ] = true;
+            }
+        }
+        delete cntnrmap_ptr;
+        
+        for(frag_idx=1; frag_idx<=num_frags; frag_idx++){
+            if (inUnitig[ frag_idx ] == false) {
+				cg_ptr->getChunking( frag_idx, fp_dst_frag_id, tp_dst_frag_id);
+
+                if ( fp_dst_frag_id != NULL_FRAG_ID &&
+                     tp_dst_frag_id != NULL_FRAG_ID )
+                {
+                    if ( visited_map->find(frag_idx) != visited_map->end() )
+                        continue;
+
+					Unitig *utg=new Unitig;
+                    // need to make _extract_dovetail break circle
+                    utg->dovetail_path_ptr = _extract_dovetail_path(
+								frag_idx, THREE_PRIME, cg_ptr );
+
+                    DoveTailPath::const_iterator dt_itr;
+                    for(dt_itr  = utg->dovetail_path_ptr->begin();
+                        dt_itr != utg->dovetail_path_ptr->end(); dt_itr++ )
+                    {
+                        (*visited_map)[dt_itr->ident] = unitig_id;
+                    }
+                    
+                    utg->computeFragmentPositions(cntnrmap_ptr, best_cntr);
+
+                    fprintf(stderr,"Circular unitig %d 1st frag %d\n",
+                            unitig_id,frag_idx);
+
+					utg->id = unitig_id++;
+					unitigs->push_back(utg);
+
+                } else {
+                    // Should both be null or neither null
+                    // otherwise main loop failed to find it
+                    assert( fp_dst_frag_id == NULL_FRAG_ID );
+                    assert( tp_dst_frag_id == NULL_FRAG_ID );
+                }
+            }
+        }
+
+        printUnitigBreaks();
+
+        //mergeAllUnitigs( visited_map );
         delete visited_map;
 
 		std::cerr << "Setting Global Arrival Rate.\n";
@@ -528,6 +589,8 @@ namespace AS_BOG{
 
 			// Set current to next
 			current_frag_id = chunkNextId;
+            if ( current_frag_id == src_frag_id )
+                break; // Break a circle
             if ( bestEdge->bend == FIVE_PRIME ) {
                 whichEnd = THREE_PRIME;
             } else {
@@ -537,6 +600,41 @@ namespace AS_BOG{
 		return(dtp_ptr);
 	}
 
+	//////////////////////////////////////////////////////////////////////////////
+    void UnitigGraph::printUnitigBreaks() {
+
+        UnitigVector::iterator tigIter = unitigs->begin();
+        for(;tigIter != unitigs->end(); tigIter++) {
+            Unitig* tig = *tigIter;
+            DoveTailNode first = tig->dovetail_path_ptr->front();
+            iuid prev = 0;
+            DoveTailNode last = tig->getLastBackboneNode(prev);
+            if ( prev == 0 )
+                continue; // skip singletons
+            iuid id1 = first.ident;
+            iuid id2 = last.ident;
+            assert( prev != id2 );
+            assert( last.contained == 0 );
+            BestEdgeOverlap *firstBest, *lastBest;
+            if ( first.position.bgn < first.position.end) {
+                firstBest = bog_ptr->getBestEdgeOverlap( id1, FIVE_PRIME );
+            } else {
+                firstBest = bog_ptr->getBestEdgeOverlap( id1, THREE_PRIME );
+            }
+            if ( last.position.bgn < last.position.end) {
+                lastBest = bog_ptr->getBestEdgeOverlap( id2, THREE_PRIME );
+            } else {
+                lastBest = bog_ptr->getBestEdgeOverlap( id2, FIVE_PRIME );
+            }
+            if (lastBest->frag_b_id == 0 || firstBest->frag_b_id == 0)
+                continue; // Skip non bubbles, anchored ends
+            fprintf(stderr, "Bubble %d to %d len %d\n",firstBest->frag_b_id,
+                    lastBest->frag_b_id, tig->getLength() );  
+            if (firstBest->frag_b_id == lastBest->frag_b_id) {  
+                fprintf(stderr, "Self Bubble %d to %d\n",id1,id2);  
+            }
+        }
+    }
 	//////////////////////////////////////////////////////////////////////////////
 
 	ContainerMap *UnitigGraph::_build_container_map(BestContainmentMap *best_cntr){
@@ -867,6 +965,9 @@ namespace AS_BOG{
     void Unitig::placeContains( const ContainerMap* cntnrp, BestContainmentMap *bestCtn,
                                 const iuid container, const SeqInterval intvl)
     {
+        if (cntnrp->size() == 0);
+            return;
+
             ContainerMap::const_iterator ctmp_itr = cntnrp->find( container );
             if (ctmp_itr != cntnrp->end() ) {
 

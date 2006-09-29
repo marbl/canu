@@ -34,15 +34,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.hh,v 1.16 2006-09-14 15:33:36 eliv Exp $
- * $Revision: 1.16 $
+ * $Id: AS_BOG_UnitigGraph.hh,v 1.17 2006-09-29 20:39:10 eliv Exp $
+ * $Revision: 1.17 $
 */
 
 
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.16 2006-09-14 15:33:36 eliv Exp $";
+static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.17 2006-09-29 20:39:10 eliv Exp $";
 
 #include <vector>
 #include <map>
@@ -164,6 +164,8 @@ namespace AS_BOG{
 		void writeIUMtoFile(char *filename);
 
 		float getGlobalArrivalRate(long total_random_frags_in_genome=0, long genome_size=0);
+
+        void printUnitigBreaks();
 
 		///////////////////////////////////////////////////////////////
 		// Member Variables
