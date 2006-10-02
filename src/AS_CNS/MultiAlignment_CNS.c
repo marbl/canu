@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.91 2006-09-26 20:31:40 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.92 2006-10-02 14:18:45 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -75,6 +75,7 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.91 2006-09-26 20:31:40 bria
 #define INITIAL_NR                        100
 #define MAX_ALLOWED_MA_DEPTH               40
 #define MAX_EXTEND_LENGTH                2048
+#define MAX_WINDOW_FOR_ABACUS_REFINE      100
 #define SHOW_ABACUS                         0
 #define SHOW_READS                          0
 #define STABWIDTH                           6
@@ -2304,7 +2305,7 @@ OutputDistMatrix(VarRegion  *vreg)
 
 /*******************************************************************************
  * Function: ClusterReads
- * Purpose:  split reads between two alleles, determine the best allele
+ * Purpose:  detect allele and split reads between the alleles
  *******************************************************************************
  */
 static void
@@ -2331,8 +2332,8 @@ ClusterReads(Read *reads, int nr, Allele *alleles, int32 *na, int32 *nca,
                 // New allele
                 reads[row].allele_id = *na;
                 reads[col].allele_id = *na;
-                alleles[*na].weight = 
-                    reads[row].ave_qv + reads[col].ave_qv;
+                alleles[*na].weight = reads[row].ave_qv + reads[col].ave_qv;
+                alleles[*na].uglen  = reads[row].uglen;
                 alleles[*na].read_ids[0] = row;
                 alleles[*na].read_ids[1] = col;
                 alleles[*na].num_reads = 2;
@@ -2373,6 +2374,7 @@ ClusterReads(Read *reads, int nr, Allele *alleles, int32 *na, int32 *nca,
            // New allele
            reads[row].allele_id = *na;
            alleles[*na].weight = reads[row].ave_qv;
+           alleles[*na].uglen  = reads[row].uglen;
            alleles[*na].read_ids[0] = row;
            alleles[*na].num_reads = 1;
            alleles[*na].id = *na;
@@ -2380,8 +2382,9 @@ ClusterReads(Read *reads, int nr, Allele *alleles, int32 *na, int32 *nca,
         }
     }
 }
-
-SortAlleles(Allele *alleles, int32 num_alleles)
+// Reverse sort by weight
+static void
+SortAllelesByWeight(Allele *alleles, int32 num_alleles)
 {
     int i, j, best_id;
     Allele temp;
@@ -2400,7 +2403,35 @@ SortAlleles(Allele *alleles, int32 num_alleles)
         }
         if (best_id >= 0)
         {
-            temp = alleles[i];
+            temp       = alleles[i];
+            alleles[i] = alleles[j];
+            alleles[j] = temp;
+        }
+    }
+}
+
+// Reverse sort confirmed alleles by ungapped length
+static void
+SortConfirmedAllelesByLength(Allele *alleles, int32 num_alleles)
+{
+    int i, j, best_id;
+    Allele temp;
+
+    for (i=0; i<num_alleles; i++)
+    {
+        double best_uglen = alleles[i].uglen; 
+        best_id = -1;
+        for (j=i+1; j<num_alleles; j++)
+        {
+            if (best_uglen  < alleles[i].uglen )
+            {
+                best_uglen  = alleles[i].uglen ;
+                best_id = j;
+            }
+        }
+        if (best_id >= 0)
+        {
+            temp       = alleles[i];
             alleles[i] = alleles[j];
             alleles[j] = temp;
         }
@@ -2550,11 +2581,15 @@ GetReadsForVARRecord(Read *reads, int32 *iids, int32 nr,
     for (k=0; k<nr; k++)
     {
         int i, j, m = end-beg+1;
+        reads[k].uglen = 0;
         reads[k].ave_qv = 0.;
         for (i=0; i<m; i++)
         {
             if (reads[k].bases[i] != '-')
+            {
                 reads[k].ave_qv += (double)reads[k].qvs[i];
+                reads[k].uglen++;
+            }
             else   // gap
             {
                 int first_gap = i;
@@ -2973,7 +3008,6 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
     }
     SmoothenVariation(svarf, len_manode, window);
 
-    // Recall beses using only one of two alleles
     for (i=0; i<len_manode; i++) 
     { 
         if (svarf[i] == 0) {
@@ -3022,12 +3056,14 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
                 fprintf(stderr, "\n");
             }
 #endif
-            GetReadsForVARRecord(vreg.reads, vreg.iids, vreg.nr, vreg.beg, vreg.end, cids);
+            GetReadsForVARRecord(vreg.reads, vreg.iids, vreg.nr, vreg.beg, 
+                vreg.end, cids);
             // Calculate a sum of qvs for each read within a variation region
             // Populate the distance matrix
 
 #if SHOW_READS
-            fprintf(stderr, "Num_reads= %d vreg.beg= %d vreg.end= %d\n", vreg.nr, vreg.beg, vreg.end);
+            fprintf(stderr, "Num_reads= %d vreg.beg= %d vreg.end= %d\n", vreg.nr, 
+                vreg.beg, vreg.end);
             fprintf(stderr, "Reads=\n");
             for (j=0; j<vreg.nr; j++)
             {
@@ -3063,7 +3099,7 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
                 fprintf(stderr, "%3.2f ", vreg.alleles[j].weight);
             fprintf(stderr, "\n");
 #endif
-            SortAlleles(vreg.alleles, vreg.na);
+            SortAllelesByWeight(vreg.alleles, vreg.na);
 
             /* Store variations in a v_list */
             if (quality > 0 && make_v_list)
@@ -5198,58 +5234,59 @@ int MergeAbacus(Abacus *abacus, int merge_dir)
 }
 
 
-int32 LeftShift(Abacus *abacus, int *lcols) 
+int32 
+LeftShift(Abacus *abacus, VarRegion vreg, int *lcols) 
 {  
     // lcols is the number of non-null columns in result
-    int32 i,j,ccol,pcol;
-    char c,call;
+    int32 i, j, k, l, ccol, pcol;
+    char c, call;
     ResetCalls(abacus);
-    for (j=abacus->window_width;j<2*abacus->window_width;j++) {
-        for (i=0;i<abacus->rows;i++) {
-            c = *GetAbacus(abacus,i,j);
-            ccol = j;
-            if ( c != '-' ) 
+    for (j=abacus->window_width; j<2*abacus->window_width; j++) 
+    {
+        for (k=0; k<vreg.na; k++)
+        {
+            for (l=0; l<vreg.alleles[k].num_reads; l++) 
             {
-                //look to the left for a suitable placement
-                // will be safe on left since abacus has 'n' border
-                while (*GetAbacus(abacus,i,ccol-1) == '-') {
-                    ccol--;
-                }
-#if 0
-                fprintf(stderr, "j= %d i= %d ccol= %d\n", j, i, ccol);
-#endif
-                // from ccol back up to j, look for column with matching call
-                for (pcol = ccol;pcol<j;pcol++) {
-                    call = abacus->calls[pcol]; 
-                    if ( call != 'n' && call != c && c != 'n') {
-                        // GD: consensus in a column == '-' ? 
-                        continue;
-                    } 
-                    if ( call == 'n') {
-                        // GD: 
-                        // Found the leftmost column with non-gap consensus.
-                        // Now, reset its consensus "dynamically" to the 
-                        // current base
-                        // Potential problem: the result will generally 
-                        // depend on the order in which rows 
-                        // are processed
-                        abacus->calls[pcol] = c;
-#if 0
-                        fprintf(stderr, "j= %d i= %d calls[%d]= %c\n", j, i, pcol, c);
-#endif
-                    } 
-                    if (abacus->calls[pcol] == c || c == 'n') {
-                        // swap bases in columns pcol and j of row i
-                        SetAbacus(abacus,i,j,'-');
-                        SetAbacus(abacus,i,pcol,c);
-                        break;
+                i = vreg.alleles[k].read_ids[l];
+                c = *GetAbacus(abacus, i, j);
+                ccol = j;
+                if ( c != '-' ) 
+                {
+                    //look to the left for a suitable placement
+                    // will be safe on left since abacus has 'n' border
+                    while (*GetAbacus(abacus, i, ccol-1) == '-') {
+                        ccol--;
                     }
-                }
-                if (*GetAbacus(abacus,i,j) != '-') {
-                    abacus->calls[j] = c;
+                    // from ccol back up to j, look for column with matching call
+                    for (pcol = ccol; pcol<j; pcol++) 
+                    {
+                        call = abacus->calls[pcol]; 
+                        if ( call != 'n' && call != c && c != 'n') {
+                            // GD: consensus in a column == '-' ? 
+                            continue;
+                        }     
+                        if ( call == 'n') {
+                            // GD: 
+                            // Found the leftmost column with non-gap consensus.
+                            // Now, reset its consensus "dynamically" to the 
+                            // current base
+                            // Potential problem: the result will generally 
+                            // depend on the order in which rows 
+                            // are processed
+                            abacus->calls[pcol] = c;
 #if 0
-                    fprintf(stderr, "j= %d i= %d calls[%d]= %c\n", j, i, j, c);
+                            fprintf(stderr, "j= %d i= %d calls[%d]= %c\n", j, i, pcol, c);
 #endif
+                        } 
+                        if (abacus->calls[pcol] == c || c == 'n') {
+                            // swap bases in columns pcol and j of row i
+                            SetAbacus(abacus, i, j, '-');
+                            SetAbacus(abacus, i, pcol, c);
+                            break;
+                        }
+                    }
+                    if (*GetAbacus(abacus, i, j) != '-') 
+                        abacus->calls[j] = c;
                 }
             }
         }
@@ -5273,42 +5310,46 @@ int32 LeftShift(Abacus *abacus, int *lcols)
     return ScoreAbacus(abacus,lcols);
 }
 
-int32 RightShift(Abacus *abacus, int *rcols) 
+int32 RightShift(Abacus *abacus, VarRegion vreg, int *rcols) 
 { // rcols is the number of non-null columns in result
-   int32 i,j,ccol,pcol;
-   char c,call;
-   ResetCalls(abacus);
-   for (j=2*abacus->window_width-1;j>abacus->window_width-1;j--) {
-     for (i=0;i<abacus->rows;i++) {
-        c = *GetAbacus(abacus,i,j);
-        ccol = j;
-        if ( c != '-' ) {
-           //look to the right for a suitable placement
-           // will be safe on right since abacus has 'n' border
-           while ( *GetAbacus(abacus,i,ccol+1) == '-' ) {
-              ccol++;
-           }
-           // now, from ccol back down to j, look for column with matching call
-           for ( pcol = ccol;pcol>j;pcol--) {
-              call = abacus->calls[pcol]; 
-              if ( call != 'n' && call != c && c != 'n' ) {
-                 continue;
-              } 
-              if ( call == 'n') {
-                 abacus->calls[pcol] = c;
-              } 
-              if (abacus->calls[pcol] == c || c == 'n' ) {
-                 SetAbacus(abacus,i,j,'-');
-                 SetAbacus(abacus,i,pcol,c);
-                 break;
-              }
-           }
-           if ( *GetAbacus(abacus,i,j) != '-' ) {
-             abacus->calls[j] = c;
-           }
+    int32 i, j, k, l, ccol, pcol;
+    char c, call;
+    ResetCalls(abacus);
+    for (j=2*abacus->window_width-1;j>abacus->window_width-1;j--) 
+    {
+        for (k=0; k<vreg.na; k++)
+        {
+            for (l=0; l<vreg.alleles[k].num_reads; l++)
+            {
+                i = vreg.alleles[k].read_ids[l];
+                c = *GetAbacus(abacus,i,j);
+                ccol = j;
+                if ( c != '-' ) 
+                {
+                    //look to the right for a suitable placement
+                    // will be safe on right since abacus has 'n' border
+                    while ( *GetAbacus(abacus,i,ccol+1) == '-' ) 
+                        ccol++;
+                    // now, from ccol back down to j, look for column with matching call
+                    for ( pcol = ccol;pcol>j;pcol--) 
+                    {
+                        call = abacus->calls[pcol]; 
+                        if ( call != 'n' && call != c && c != 'n' ) 
+                            continue;
+                        if ( call == 'n') 
+                            abacus->calls[pcol] = c;
+                        if (abacus->calls[pcol] == c || c == 'n' ) {
+                            SetAbacus(abacus,i,j,'-');
+                            SetAbacus(abacus,i,pcol,c);
+                            break;
+                        }
+                    }
+                    if ( *GetAbacus(abacus,i,j) != '-' ) 
+                        abacus->calls[j] = c;
+                }
+            }
         }
-     }
-  }
+    }
 #if DEBUG_ABACUS
         fprintf(stderr, "Abacus after RightShift before Merge:\n");
         ShowAbacus(abacus);
@@ -5322,8 +5363,8 @@ int32 MixedShift(Abacus *abacus, int *mcols, VarRegion  vreg, int lpos, int rpos
    char *template, int long_allele, int short_allele)
 {
    // lcols is the number of non-null columns in result
-   int32 i,j,ccol,pcol;
-   char c,call;
+   int32 i, j, k, l, ccol, pcol;
+   char c, call;
    ResetCalls(abacus);
    int32 window_beg, window_end;
    int shift =0;
@@ -5348,54 +5389,57 @@ int32 MixedShift(Abacus *abacus, int *mcols, VarRegion  vreg, int lpos, int rpos
    for (j=window_beg; j<window_end; j++)
       abacus->calls[j] = template[j];
 
-   /* Perform left shift */
-   for (j=window_beg;j<=min(window_end, lpos);j++)
-   {
-      for (i=0;i<abacus->rows;i++)
-      {
-         // Only reads from short allele shouls be shifted
-         if (vreg.alleles[i].id != short_allele)
-            continue;
+    /* Perform left shift */
+    for (j=window_beg;j<=min(window_end, lpos);j++)
+    {
+        for (k=0; k<vreg.na; k++)
+        {
+            for (l=0; l<vreg.alleles[k].num_reads; l++)
+            {
+                i = vreg.alleles[k].read_ids[l];
+                // Only reads from short allele shouls be shifted
+                if (vreg.alleles[i].id != short_allele)
+                    continue;
 
-         c = *GetAbacus(abacus,i,j);
-         ccol = j;
-         if ( c != '-' )
-         {
-            //look to the left for a suitable placement
-            // will be safe on left since abacus has 'n' border
-            while (( *GetAbacus(abacus,i,ccol-1) == '-' ) &&
-                   (ccol > window_beg)) {
-               ccol--;
-            }
-            // now, from ccol back up to j, look for column with matching call
-            for ( pcol = ccol;pcol<j;pcol++) {
-               call = abacus->calls[pcol];
-               if ( call != 'n' && call != c && c != 'n') {
-                  // GD: consensus in a column == '-' ?
-                  continue;
-               }
-               if ( call == 'n') {
-                  // GD: found the leftmost column with non-gap consensus =>
-                  //     reset it consensus "dynamically" to the current base
-                  //     Potential problem: this code is biased  in the sense that
-                  //     the result will generally depend on the order in which
-                  //     reads i(or rows) are processed
-                  abacus->calls[pcol] = c;
-               }
-               if (abacus->calls[pcol] == c || c == 'n') {
-                  // swap bases in columns pcol and j of row i
-                  SetAbacus(abacus,i,j,'-');
-                  SetAbacus(abacus,i,pcol,c);
-                  break;
-               }
-            }
-            if ( *GetAbacus(abacus,i,j) != '-' ) {
-              abacus->calls[j] = c;
-            }
+                c = *GetAbacus(abacus,i,j);
+                ccol = j;
+                if ( c != '-' )
+                {
+                    //look to the left for a suitable placement
+                    // will be safe on left since abacus has 'n' border
+                    while (( *GetAbacus(abacus,i,ccol-1) == '-' ) &&
+                        (ccol > window_beg)) {
+                        ccol--;
+                    }
+                    // now, from ccol back up to j, look for column with matching call
+                    for ( pcol = ccol;pcol<j;pcol++) {
+                        call = abacus->calls[pcol];
+                        if ( call != 'n' && call != c && c != 'n') 
+                            // GD: consensus in a column == '-' ?
+                            continue;
+                        
+                        if ( call == 'n') {
+                        // GD: found the leftmost column with non-gap consensus =>
+                        //     reset it consensus "dynamically" to the current base
+                        //     Potential problem: this code is biased  in the sense that
+                        //     the result will generally depend on the order in which
+                        //     reads i(or rows) are processed
+                           abacus->calls[pcol] = c;
+                        }
+                        if (abacus->calls[pcol] == c || c == 'n') {
+                           // swap bases in columns pcol and j of row i
+                           SetAbacus(abacus,i,j,'-');
+                           SetAbacus(abacus,i,pcol,c);
+                           break;
+                        }
+                     }
+                     if ( *GetAbacus(abacus,i,j) != '-' ) {
+                       abacus->calls[j] = c;
+                     }
+                 }
+             }
          }
-      }
-   }
-
+    }
 #if 0
    fprintf(stderr, "In MixedShift: window_beg=%d lpos=%d rpos=%d  window_end=%d\n",
        window_beg, lpos, rpos, window_end);
@@ -5404,62 +5448,67 @@ int32 MixedShift(Abacus *abacus, int *mcols, VarRegion  vreg, int lpos, int rpos
       fprintf(stderr, "%c", abacus->calls[i]);
    fprintf(stderr, "\n");
 #endif
+
    /* Perform right shift */
-   for (j=window_end-1;j>(rpos>0?rpos:window_end);j--)
-   {
-      for (i=0;i<abacus->rows;i++)
-      {
-         // Only reads from short allele shouls be shifted
+    for (j=window_end-1;j>(rpos>0?rpos:window_end);j--)
+    {
+        for (k=0; k<vreg.na; k++)
+        {
+            for (l=0; l<vreg.alleles[k].num_reads; l++)
+            {
+                i = vreg.alleles[k].read_ids[l];
+                // Only reads from short allele shouls be shifted
 #if 0
-         fprintf(stderr, "i=%d vreg.alleles[i]=%d short_allele=%d\n", i, vreg.alleles[i], short_allele);
+         fprintf(stderr, "i=%d vreg.alleles[i]=%d short_allele=%d\n", 
+             i, vreg.alleles[i], short_allele);
 #endif
-         if (vreg.alleles[i].id != short_allele)
-            continue;
+                if (vreg.alleles[i].id != short_allele)
+                    continue;
 
-         c = *GetAbacus(abacus,i,j);
-         ccol = j;
-         if ( c != '-' )
-         {
-            //look to the right for a suitable placement
-            // will be safe on right since abacus has 'n' border
-            while (( *GetAbacus(abacus,i,ccol+1) == '-') &&
-                   (ccol+1<window_end) ) {
-               ccol++;
+                c = *GetAbacus(abacus,i,j);
+                ccol = j;
+                if ( c != '-' )
+                {
+                   //look to the right for a suitable placement
+                   // will be safe on right since abacus has 'n' border
+                    while (( *GetAbacus(abacus,i,ccol+1) == '-') &&
+                        (ccol+1<window_end) ) 
+                        ccol++;
+#if 0
+                    fprintf(stderr, "ccol=%d\n", ccol);
+#endif
+                    // now, from ccol back down to j, look for column with matching call
+                    for ( pcol = ccol;pcol>j;pcol--) {
+                        call = abacus->calls[pcol];
+#if 0
+                        fprintf(stderr, "i=%d j=%d c=%c pcol=%d call=%d \n", 
+                            i, j, c, pcol, call);
+#endif
+                        if ( call != 'n' && call != c && c != 'n' ) {
+                            continue;
+                        }
+                        if ( call == 'n') {
+                            abacus->calls[pcol] = c;
+                        }
+#if 0
+                        fprintf(stderr, "abacus->calls=%c c=%c\n", abacus->calls, c);
+#endif
+                        if (abacus->calls[pcol] == c || c == 'n' ) {
+#if 0
+                            fprintf(stderr, "Swapping elements (%d, %d)=%c  and (%d, %d)='-'\n", 
+                                i, j, c, i, pcol);
+#endif
+                            SetAbacus(abacus,i,j,'-');
+                            SetAbacus(abacus,i,pcol,c);
+                            break;
+                        }
+                    }
+                    if ( *GetAbacus(abacus,i,j) != '-' ) 
+                      abacus->calls[j] = c;
+                }
             }
-#if 0
-            fprintf(stderr, "ccol=%d\n", ccol);
-#endif
-            // now, from ccol back down to j, look for column with matching call
-            for ( pcol = ccol;pcol>j;pcol--) {
-               call = abacus->calls[pcol];
-#if 0
-               fprintf(stderr, "i=%d j=%d c=%c pcol=%d call=%d \n", i, j, c, pcol, call);
-#endif
-               if ( call != 'n' && call != c && c != 'n' ) {
-                  continue;
-               }
-               if ( call == 'n') {
-                  abacus->calls[pcol] = c;
-               }
-#if 0
-               fprintf(stderr, "abacus->calls=%c c=%c\n", abacus->calls, c);
-#endif
-               if (abacus->calls[pcol] == c || c == 'n' ) {
-#if 0
-               fprintf(stderr, "Swapping elements (%d, %d)=%c  and (%d, %d)='-'\n", i, j, c, i, pcol);
-#endif
-                  SetAbacus(abacus,i,j,'-');
-                  SetAbacus(abacus,i,pcol,c);
-                  break;
-               }
-            }
-            if ( *GetAbacus(abacus,i,j) != '-' ) {
-              abacus->calls[j] = c;
-            }
-
-         }
-      }
-   }
+        }
+    }
 // MergeAbacus(abacus, 1);
    abacus->shift = MIXED_SHIFT;
    return ScoreAbacus(abacus,mcols);
@@ -5819,10 +5868,13 @@ GetReadsForAbacus(Read *reads, Abacus *abacus)
         reads[i].id = i;
         reads[i].allele_id = -1;
         reads[i].ave_qv = 20.;        // qvs are hardly available for abacus
+        reads[i].uglen = 0;
         for (j=0; j<abacus->columns; j++) {
             base = *GetAbacus(abacus,i,j);
             if (is_good_base(base))
                 reads[i].bases[j] = base;                        
+            if (base != '-')
+                reads[i].uglen++;
         }
     }
 }
@@ -6219,38 +6271,72 @@ void  GetTemplateForAbacus(char **template, char **consensus, int len,
     }
 }
 
+static void
+OutputReads(Read *reads, int32 nr, int32 width)
+{
+    int i, j;
+    fprintf(stderr, "\nReads =\n");
+
+    for (i=0; i<nr; i++) {
+        for (j=0; j<width; j++)
+            fprintf(stderr, "%c", reads[i].bases[j]);
+        fprintf(stderr, "\n");
+    }
+    fprintf(stderr, "\n\n");
+}
+
 int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
     CNS_Options *opp ) 
 {
-    int   orig_columns=0, left_columns=0, right_columns=0, 
-          best_columns=0;
-    // Mismatch scores:
+    int orig_columns=0, left_columns=0, right_columns=0, best_columns=0;
+    // Mismatch, gap and total scores:
     int32 orig_mm_score=0, left_mm_score=0, right_mm_score=0, best_mm_score=0;
-    int32 score_reduction=0;
     int32 orig_gap_score=0, left_gap_score=0, right_gap_score=0,
           best_gap_score = 0;
     int32 orig_total_score, left_total_score, right_total_score, 
           best_total_score;
-    int   max_element = 0;
+    int32 max_element = 0, score_reduction;
     BaseCount abacus_count;
     Abacus *left_abacus, *orig_abacus, *right_abacus, *best_abacus;
     VarRegion  vreg;
 
-    SetDefault(&vreg);
     orig_abacus = CreateAbacus(ma->lid,start_column->lid,stab_bgn);
+    SetDefault(&vreg);
+    vreg.nr = orig_abacus->rows;
     //ShowAbacus(orig_abacus);
-//  MergeAbacus(orig_abacus, 1);
     orig_mm_score = ScoreAbacus(orig_abacus,&orig_columns);
+
+    // Process reads of the original abacus
+    AllocateDistMatrix(&vreg, 0);
+    AllocateMemoryForReads(&vreg.reads, orig_abacus->rows, orig_abacus->columns,
+        QV_FOR_MULTI_GAP);
+    GetReadsForAbacus(vreg.reads, orig_abacus);
+    // OutputReads(vreg.reads, vreg.nr, orig_abacus->window_width);
+    PopulateDistMatrix(vreg.reads, 3*orig_abacus->window_width, &vreg);
 #if DEBUG_ABACUS
-        fprintf(stderr, "\n\nOrigCalls=\n");
-        ShowCalls(orig_abacus);
-        fprintf(stderr, "Abacus=\n");
-        ShowAbacus(orig_abacus);
-        fprintf(stderr, "\n");
+    OutputDistMatrix(&vreg);
+#endif
+    AllocateMemoryForAlleles(&vreg.alleles, vreg.nr, &vreg.na);
+    ClusterReads(vreg.reads, vreg.nr, vreg.alleles, &vreg.na,
+        &vreg.nca, vreg.dist_matrix);
+    SortConfirmedAllelesByLength(vreg.alleles, vreg.nca);
+#if 0
+        fprintf(stderr, "vreg.alleles= ");
+        for (i=0; i<vreg.nr; i++)
+            fprintf(stderr, "%d", vreg.alleles[i]);
+
+#endif
+
+#if DEBUG_ABACUS
+    fprintf(stderr, "\n\nOrigCalls=\n");
+    ShowCalls(orig_abacus);
+    fprintf(stderr, "Abacus=\n");
+    ShowAbacus(orig_abacus);
+    fprintf(stderr, "\n");
 #endif
     //ShowAbacus(orig_abacus);
     left_abacus = CloneAbacus(orig_abacus);
-    left_mm_score = LeftShift(left_abacus,&left_columns);
+    left_mm_score = LeftShift(left_abacus, vreg, &left_columns);
 #if DEBUG_ABACUS
         fprintf(stderr, "\n\nLeftShiftCalls=\n");
         ShowCalls(left_abacus);
@@ -6259,7 +6345,7 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
         fprintf(stderr, "\n");
 #endif
     right_abacus = CloneAbacus(orig_abacus);
-    right_mm_score = RightShift(right_abacus,&right_columns);
+    right_mm_score = RightShift(right_abacus, vreg, &right_columns);
 #if DEBUG_ABACUS
         fprintf(stderr, "\n\nRightShiftCalls=\n");
         ShowCalls(right_abacus);
@@ -6285,21 +6371,21 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
     best_total_score  = orig_total_score;
 
 #if DEBUG_ABACUS
-        fprintf(stderr, "In RefineWindow: beg= %lu end= %d\n", 
-            start_column->lid, stab_bgn);
-        fprintf(stderr, "    abacus->columns= %d, abacus->rows= %d\n", 
-            orig_abacus->columns, orig_abacus->rows);
-        fprintf(stderr, "    w_width left= %d orig= %d right= %d\n", 
-            left_abacus->window_width, orig_abacus->window_width,
-            right_abacus->window_width);
-        fprintf(stderr, "    mm_score left= %d orig= %d right= %d\n", 
-            left_mm_score, orig_mm_score, right_mm_score);
-        fprintf(stderr, "     columns left= %d orig= %d right= %d\n", 
-            left_columns, orig_columns, right_columns);
-        fprintf(stderr, "   gap_score left= %d orig= %d right= %d\n", 
-            left_gap_score, orig_gap_score, right_gap_score);
-        fprintf(stderr, " total_score left= %d orig= %d right= %d\n", 
-            left_total_score, orig_total_score, right_total_score);
+    fprintf(stderr, "In RefineWindow: beg= %lu end= %d\n", 
+        start_column->lid, stab_bgn);
+    fprintf(stderr, "    abacus->columns= %d, abacus->rows= %d\n", 
+        orig_abacus->columns, orig_abacus->rows);
+    fprintf(stderr, "    w_width left= %d orig= %d right= %d\n", 
+        left_abacus->window_width, orig_abacus->window_width,
+        right_abacus->window_width);
+    fprintf(stderr, "    mm_score left= %d orig= %d right= %d\n", 
+        left_mm_score, orig_mm_score, right_mm_score);
+    fprintf(stderr, "     columns left= %d orig= %d right= %d\n", 
+        left_columns, orig_columns, right_columns);
+    fprintf(stderr, "   gap_score left= %d orig= %d right= %d\n", 
+        left_gap_score, orig_gap_score, right_gap_score);
+    fprintf(stderr, " total_score left= %d orig= %d right= %d\n", 
+        left_total_score, orig_total_score, right_total_score);
 #endif
 
     // Use the total score to refine the abacus
@@ -6343,7 +6429,6 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
 #endif
     { 
         int i, j;
-        VarRegion  vreg;
         char  **consensus=NULL, **ugconsensus=NULL, *template=NULL;
         int   **imap=NULL, uglen[2]={0,0}, adjleft[2]={-1,-1}, adjright[2]={-1,-1};
         int     gapcount[2], short_allele=-1, long_allele=-1;
@@ -6352,40 +6437,6 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
         int32   mixed_mm_score=0, mixed_gap_score=0;
         Abacus *mixed_abacus=NULL;
 
-        SetDefault(&vreg);
-        vreg.nr = best_abacus->rows;
-
-        AllocateDistMatrix(&vreg, 0);
-        AllocateMemoryForReads(&vreg.reads, orig_abacus->rows, orig_abacus->columns, 
-            QV_FOR_MULTI_GAP);
-        GetReadsForAbacus(vreg.reads, best_abacus);
-#if 0
-    fprintf(stderr, "\nReads =\n");
-    {
-        int j;
-        for (i=0; i<vreg.nr; i++)
-        {
-            for (j=0; j<3*best_abacus->window_width; j++)
-                fprintf(stderr, "%c", reads[i][j]);
-            fprintf(stderr, "\n");
-        }
-        fprintf(stderr, "\n\n");
-    }
-#endif
-        PopulateDistMatrix(vreg.reads, 3*best_abacus->window_width, &vreg);
-#if DEBUG_ABACUS
-        OutputDistMatrix(&vreg);
-#endif
-        AllocateMemoryForAlleles(&vreg.alleles, vreg.nr, &vreg.na);
-        ClusterReads(vreg.reads, vreg.nr, vreg.alleles, &vreg.na, 
-            &vreg.nca, vreg.dist_matrix);
-        SortAlleles(vreg.alleles, vreg.na);
-#if 0
-        fprintf(stderr, "vreg.alleles= ");
-        for (i=0; i<vreg.nr; i++)
-            fprintf(stderr, "%d", vreg.alleles[i]);
-
-#endif
         GetConsensusForAbacus(&vreg, vreg.reads, best_abacus, &consensus);
 #if 0
         fprintf(stderr, "\nconsensus[0]=\n");
@@ -6562,8 +6613,8 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
 #endif
 
     /* Otherwise, try to do a more sophisticated shift:
-     * - only shifting reads of the short allele
-     * - only within a subregion of abacus window where the two alleles match
+     * - only shifting reads of the shortest allele
+     * - only within a subregion of abacus window where the alleles match
      */
 #if 0
         fprintf(stderr, "Applying the Best abacus\n");
@@ -6677,7 +6728,7 @@ int AbacusRefine(MANode *ma, int32 from, int32 to, CNS_RefineLevel level,
           //  window_width that worked was 573.  Previous versions
           //  used 100 here.  Not sure what it should be.
           //
-          if ( window_width < 600 )
+          if ( window_width < MAX_WINDOW_FOR_ABACUS_REFINE )
             score_reduction += RefineWindow(ma,start_column,stab_bgn, opp); 
 
           start_column = GetColumn(columnStore, stab_bgn);
