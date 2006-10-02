@@ -58,10 +58,11 @@ typedef struct {
 
 typedef struct {
 int      id;
-char    *bases;
-int     *qvs;        // will need to compute the consensus qv
+char    *bases;      // gapped sequence
+int     *qvs;        // quality values
 double   ave_qv; 
 int      allele_id;
+int      uglen;      // ungapped length
 } Read;
 
 typedef struct {
@@ -69,6 +70,7 @@ int    id;
 int    num_reads;
 int   *read_ids;
 double weight;
+int    uglen;      // ungapped length
 } Allele;
 
 typedef struct {
