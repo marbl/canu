@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_CGB_histo.c,v 1.5 2006-09-26 22:21:13 brianwalenz Exp $
+ * $Id: AS_CGB_histo.c,v 1.6 2006-10-03 17:02:36 brianwalenz Exp $
  * Module:  AS_CGB_histo.c
  * Description: A histogramming routine and auxillary functions.
  * Assumptions:
@@ -29,17 +29,14 @@
 #include <stdlib.h>
 #include <math.h>
 #include <assert.h>
+#include "AS_global.h"
 #include "AS_CGB_histo.h"
-
-#define max(a,b) (a > b ? a : b)
-#define min(a,b) (a < b ? a : b)
-#define FALSE 0
 
 #undef DEBUGGING1
 #undef DEBUGGING2
 
 /*************************************************************************/
-static char CM_ID[] = "$Id: AS_CGB_histo.c,v 1.5 2006-09-26 22:21:13 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_histo.c,v 1.6 2006-10-03 17:02:36 brianwalenz Exp $";
 /*************************************************************************/
 
 /* Histogram library */
