@@ -19,7 +19,7 @@
  *************************************************************************/
 
 
-static char CM_ID[] = "$Id: asmInfoForFrg.c,v 1.5 2006-09-21 21:34:00 brianwalenz Exp $";
+static char CM_ID[] = "$Id: asmInfoForFrg.c,v 1.6 2006-10-03 21:49:53 brianwalenz Exp $";
 
 
 /*********************************************************************/
@@ -54,7 +54,6 @@ int main( int argc, char *argv[])
   char *prefix;
   MesgReader reader;
   MesgWriter writer;
-  MesgWriter errorWriter;
   FILE *myerr = stderr; 
   FILE *myout = stdout; 
   char *outputPath = NULL;

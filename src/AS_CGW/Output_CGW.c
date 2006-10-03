@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Output_CGW.c,v 1.13 2006-09-21 21:34:00 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Output_CGW.c,v 1.14 2006-10-03 21:49:53 brianwalenz Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -82,7 +82,7 @@ void OutputMateDists(ScaffoldGraphT *graph){
 #endif
     imd.refines = i;
     imd.histogram = dptr->histogram;
-    (GlobalData->writer)(GlobalData->outfp,&pmesg);
+    (GlobalData->writer)(GlobalData->cgwfp,&pmesg);
     free(dptr->histogram);
     dptr->histogram = NULL;
   }
@@ -171,7 +171,7 @@ void OutputFrags(ScaffoldGraphT *graph){
     af_mesg.clear_rng.bgn = -1;
     af_mesg.clear_rng.end = -1;
 	  
-    (GlobalData->writer)(GlobalData->outfp,&pmesg);
+    (GlobalData->writer)(GlobalData->cgwfp,&pmesg);
   }
   fprintf(GlobalData->stderrc,"* Saw %d good mates\n", goodMates);
   fprintf(GlobalData->stderrc,"* Saw %d trusted mates (good)\n", ctrusted);
@@ -373,7 +373,7 @@ void OutputContigsFromMultiAligns(){
       
       if(icm_mesg.num_unitigs > 1){
         assert(ctg->scaffoldID != NULLINDEX);
-        (GlobalData->writer)(GlobalData->outfp1,&pmesg);
+        (GlobalData->writer)(GlobalData->ctgfp,&pmesg);
       }else{
         if(ctg->scaffoldID == NULLINDEX) {// contig is not placed
           GenericMesg		mesg;
@@ -386,13 +386,13 @@ void OutputContigsFromMultiAligns(){
             mesg.m = &dsc_mesg;
             mesg.t = MESG_IDS;
             
-            (GlobalData->writer)(GlobalData->outfp,&pmesg); // write the contig
-            (GlobalData->writer)(GlobalData->outfp,&mesg);  // write the associated degenerate scaffold
+            (GlobalData->writer)(GlobalData->ctgfp,&pmesg); // write the contig
+            (GlobalData->writer)(GlobalData->scffp,&mesg);  // write the associated degenerate scaffold
           }else{
             // do nothing. The unitig in this contig appears as a surrogate elsewhere in the assembly
           }
         }else{ // Contig is placed
-	  (GlobalData->writer)(GlobalData->outfp,&pmesg); // write the contig
+	  (GlobalData->writer)(GlobalData->ctgfp,&pmesg); // write the contig
         }     
       }
       
@@ -591,7 +591,7 @@ void OutputContigLinks(ScaffoldGraphT *graph, int outputOverlapOnlyContigEdges)
 	assert(edgeCount == edgeTotal);
       }		// if (edge . . . 
       clm.jump_list = GetIntMate_Pairs(JumpList,0);
-      (GlobalData->writer)(GlobalData->outfp2,&pmesg);
+      (GlobalData->writer)(GlobalData->scffp,&pmesg);
     }	// while (edge . . .
   }	// for (i . . .
   fflush(NULL);
@@ -699,7 +699,7 @@ void OutputScaffoldLink(ScaffoldGraphT * graph,
   assert(GetNumIntMate_Pairss(JumpList) == edgeTotal);
   assert(edgeCount == edgeTotal);
   slm.jump_list = GetIntMate_Pairs(JumpList,0);
-  (GlobalData->writer)(GlobalData->outfp2,&pmesg);
+  (GlobalData->writer)(GlobalData->scffp,&pmesg);
 }
 
 
@@ -823,7 +823,7 @@ void OutputUnitigsFromMultiAligns(void){
       ium_mesg.num_vars = GetNumIntMultiVars(ma->v_list); // affects .cns
       ium_mesg.v_list = GetIntMultiVar(ma->v_list,0);
 
-      (GlobalData->writer)(GlobalData->outfp,&pmesg);
+      (GlobalData->writer)(GlobalData->cgwfp,&pmesg);  //  write the unitig
       //    UnloadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ci->id, TRUE);
     }
   }	// while NextGraphNode
@@ -1028,217 +1028,16 @@ void OutputUnitigLinksFromMultiAligns(void){
         assert(edgeCount == edgeTotal);
       }
       ulm.jump_list = GetIntMate_Pairs(JumpList,0);
-      (GlobalData->writer)(GlobalData->outfp,&pmesg);
+      (GlobalData->writer)(GlobalData->cgwfp,&pmesg);  //  write the unitig link
     }
   }
   fflush(NULL);
-
 }
 
 
 
-void OutputContigLinksFromMultiAligns(void){
+//#include "obsolete/output_unitig_links"
 
-}
-
-
-#if 0
-void OutputUnitigLinks(ScaffoldGraphT *graph)
-{
-  IntUnitigLinkMesg		ulm;
-  GenericMesg			pmesg;
-  GraphNodeIterator nodes;
-  ChunkInstanceT *ci;
-  pmesg.m = &ulm;
-  pmesg.t = MESG_IUL;
-
-
-  if(JumpList == NULL){
-    JumpList = CreateVA_IntMate_Pairs(256);
-  }
-
-  InitGraphNodeIterator(&nodes, ScaffoldGraph->CIGraph, GRAPH_NODE_DEFAULT);
-  while((ci = NextGraphNodeIterator(&nodes)) != NULL){
-    ContigT		*mate;
-    GraphEdgeIterator	edges;
-    CIEdgeT		*edge, *redge;
-    CIFragT		*frag;
-    int 		edgeTotal;
-    int 		edgeCount;	// This var used for sanity checks
-    IntMate_Pairs	imp;
-
-    assert (ci->type != CONTIG_CGW);
-    
-    ulm.unitig1 = ci->id;
-    InitGraphEdgeIterator(ScaffoldGraph->CIGraph, ci->id, ALL_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);
-    while((edge = NextGraphEdgeIterator(&edges)) != NULL){
-      if (edge->idA != ci->id ||
-	  edge->flags.bits.isInferred ||
-	  edge->flags.bits.isInferredRemoved ||
-	  edge->flags.bits.isMarkedForDeletion)
-	continue;
-      ulm.unitig2 = edge->idB;
-      /* Don't need to map orientation, always using canonical orientation*/
-      ulm.orientation = edge->orient;
-      if(!isOverlapEdge(edge)){
-	ulm.overlap_type = AS_NO_OVERLAP;
-      }else if (edge->flags.bits.hasTandemOverlap){
-	ulm.overlap_type = AS_TANDEM_OVERLAP;
-      }else {
-	ulm.overlap_type = AS_OVERLAP;
-      }
-
-      ulm.is_possible_chimera = edge->flags.bits.isPossibleChimera;
-      ulm.includes_guide = edge->flags.bits.hasGuide;
-      ulm.mean_distance = edge->distance.mean;
-      ulm.std_deviation = sqrt(edge->distance.variance);
-      edgeTotal = ulm.num_contributing = edge->edgesContributing;
-      if (ulm.overlap_type != AS_NO_OVERLAP)
-	--edgeTotal;
-      if (!edgeTotal)
-	continue;	// don't output pure overlap edges
-
-      mate = GetGraphNode(ScaffoldGraph->CIGraph, edge->idB);
-
-      // THIS IS TEMPORARY!!!!
-      if (ci->scaffoldID != mate->scaffoldID || ci->scaffoldID < 0){
-	ulm.status = AS_UNKNOWN_IN_ASSEMBLY;
-      }else {
-	float	m1,m2,v1,v2,rv;
-	LengthT	*ciLeft, *ciRight, *mateLeft, *mateRight;
-	int	oriFlag;	// to record relative orientation
-
-	/* set the mean & variance according to the edge */
-	m1 = edge->distance.mean;
-	v1 = edge->distance.variance;
-
-	/* now set the mean and varience according to the assembly */
-	/* start by determining orientation of the unitigs in the assembly */
-	if (ci->offsetAEnd.mean <= ci->offsetBEnd.mean) {
-	  ciLeft = &ci->offsetAEnd;	// ci oriented AB
-	  ciRight = &ci->offsetBEnd;
-	  oriFlag = 0;
-	} else { //
-	  ciLeft = &ci->offsetBEnd;	// ci oriented BA
-	  ciRight = &ci->offsetAEnd;
-	  oriFlag = 1;
-	}
-	if (mate->offsetAEnd.mean <= mate->offsetBEnd.mean) {
-	  mateLeft = &(mate->offsetAEnd);	// mate oriented AB
-	  mateRight = &(mate->offsetBEnd);
-	} else {
-	  mateLeft = &(mate->offsetBEnd);	// mate oriented BA
-	  mateRight = &(mate->offsetAEnd);
-	  ++oriFlag;
-	}
-
-	/* If oriFlag is even, unitigs have same relative orientation */
-	ulm.status = AS_IN_ASSEMBLY;
-	if (oriFlag == 1) {
-	  if (edge->orient == AB_AB || edge->orient == BA_BA)
-	    ulm.status = AS_BAD;
-	} else if (edge->orient == AB_BA || edge->orient == BA_AB)
-	  ulm.status = AS_BAD;
-
-	if (ulm.status == AS_IN_ASSEMBLY) {
-
-	  /* now look at the distance from the right side of the left
-	     unitig to the left side of the right unitig */
-	  if (ciLeft->mean <= mateLeft->mean) {
-	    m2 = mateLeft->mean - ciRight->mean;
-	    v2 = mateLeft->variance - ciRight->variance;
-	  } else {
-	    m2 = ciLeft->mean - mateRight->mean;
-	    v2 = ciLeft->variance - mateRight->variance;
-	  }
-
-	  //	  assert(v2 >= 0.0);
-	  if(v2 <= 0.0){
-	    fprintf(GlobalData->stderrc,"* Edge between CIs " F_CID " [%d+/-%g,%d+/-%g] and " F_CID " [%d+/-%g,%d+/-%g] has mean:%g var:%g =>1.0\n",
-		    edge->idA, 
-		    (int)ci->offsetAEnd.mean, ci->offsetAEnd.variance,
-		    (int)ci->offsetBEnd.mean, ci->offsetBEnd.variance,
-		    edge->idB,
-		    (int)mate->offsetAEnd.mean, mate->offsetAEnd.variance,
-		    (int)mate->offsetBEnd.mean, mate->offsetBEnd.variance,
-		    m2, v2);
-	    v2 = 1.0;
-	  }
-	  if (!PairwiseChiSquare(m1,v1,m2,v2,NULL,&rv,
-				 PAIRWISECHI2THRESHOLD_CGW))
-	    ulm.status = AS_BAD;
-	}
-      }
-
-      ResetVA_IntMate_Pairs(JumpList);
-
-      if (edge->flags.bits.isRaw) {
-	assert(edgeTotal == 1);		// sanity check
-	frag = GetCIFragT(ScaffoldGraph->CIFrags, edge->fragA);
-	imp.in1 = frag->iid;
-	frag = GetCIFragT(ScaffoldGraph->CIFrags, edge->fragB);
-	imp.in2 = frag->iid;
-	assert(!isOverlapEdge(edge));
-	if(edge->flags.bits.hasGuide)
-	  imp.type = AS_BAC_GUIDE;
-	else if(edge->flags.bits.hasSTSGuide)
-	  imp.type = AS_STS_GUIDE;
-	else if(edge->flags.bits.hasMayJoin)
-	  imp.type = AS_MAY_JOIN;
-	else if(edge->flags.bits.hasMustJoin)
-	  imp.type = AS_MUST_JOIN;
-	else
-	  imp.type = AS_MATE;
-	AppendIntMate_Pairs(JumpList, &imp);
-      } else {
-	redge = edge;
-
-	assert(redge->nextRawEdge != NULLINDEX); // must have >= 1 raw edge
-	edgeCount = 0;
-
-	while(redge->nextRawEdge != NULLINDEX) {
-	  redge = GetGraphEdge(ScaffoldGraph->CIGraph,redge->nextRawEdge);
-	  if (isOverlapEdge(redge))
-	    continue;		// overlap edges don't count
-	  ++edgeCount;
-	  frag = GetCIFragT(ScaffoldGraph->CIFrags, redge->fragA);
-	  imp.in1 = frag->iid;
-	  frag = GetCIFragT(ScaffoldGraph->CIFrags, redge->fragB);
-	  imp.in2 = frag->iid;
-	  assert(!isOverlapEdge(redge));
-	  if(redge->flags.bits.hasGuide)
-	    imp.type = AS_BAC_GUIDE;
-	  else if(redge->flags.bits.hasSTSGuide)
-	    imp.type = AS_STS_GUIDE;
-	  else if(redge->flags.bits.hasMayJoin)
-	    imp.type = AS_MAY_JOIN;
-	  else if(redge->flags.bits.hasMustJoin)
-	    imp.type = AS_MUST_JOIN;
-	  else
-	    imp.type = AS_MATE;
-	  AppendIntMate_Pairs(JumpList, &imp);
-	}
-	if(edgeCount != edgeTotal){
-	  fprintf(GlobalData->stderrc,"* edgeCount = %d edgeTotal = %d\n",
-		  edgeCount, edgeTotal);
-	  PrintGraphEdge(GlobalData->stderrc,ScaffoldGraph->CIGraph," ", edge, edge->idA);
-
-	  redge = edge;
-	  assert(redge->nextRawEdge != NULLINDEX); // must have >= 1 raw edge
-
-          while(redge->nextRawEdge != NULLINDEX) {
-            redge = GetGraphEdge(ScaffoldGraph->CIGraph,redge->nextRawEdge);
-            PrintGraphEdge(GlobalData->stderrc,ScaffoldGraph->CIGraph," ", redge, redge->idA);
-          }
-          assert(edgeCount == edgeTotal);
-	}
-      }
-      ulm.jump_list = GetIntMate_Pairs(JumpList,0);
-      (GlobalData->writer)(GlobalData->outfp,&pmesg);
-    }	
-  }	// while (edge . . .
-}
-#endif
 
 void OutputScaffolds(ScaffoldGraphT *graph)
 {
@@ -1330,7 +1129,7 @@ void OutputScaffolds(ScaffoldGraphT *graph)
         ++pairCount;
       }		// while (curr . . .
     }
-    (GlobalData->writer)(GlobalData->outfp2,&pmesg);
+    (GlobalData->writer)(GlobalData->scffp,&pmesg);
   }		// for (sid=0; . . .
   free(ism.contig_pairs);
   fflush(NULL);

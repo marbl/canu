@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: countAssembledFrags.c,v 1.7 2006-09-21 21:34:00 brianwalenz Exp $";
+static char CM_ID[] = "$Id: countAssembledFrags.c,v 1.8 2006-10-03 21:49:53 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -171,7 +171,6 @@ int main(int argc, char *argv[])
   char *prefix;
   MesgReader reader;
   MesgWriter writer;
-  MesgWriter errorWriter;
   FILE *myerr = stderr; 
   FILE *myout = stdout; 
   char *outputPath = NULL;

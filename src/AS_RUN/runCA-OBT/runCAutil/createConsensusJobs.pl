@@ -21,34 +21,23 @@ sub createPostScaffolderConsensusJobs ($) {
     my $lastckpt = findLastCheckpoint($cgwDir);
     die "Didn't find any checkpoints in '$cgwDir'\n" if (!defined($lastckpt));
 
-    if (! -e "$wrk/8-consensus/partitionSDB1.success") {
+    if (! -e "$wrk/8-consensus/partitionSDB.success") {
         my $cmd;
         $cmd  = "cd $wrk/8-consensus && ";
-        $cmd .= "$bin/PartitionSDB1 $cgwDir/$asm.SeqStore $lastckpt $partitionSize $cgwDir/$asm.cgw_contigs ";
-        $cmd .= "> $wrk/8-consensus/partitionSDB1.err 2>&1";
+        $cmd .= "$bin/PartitionSDB -all -seqstore $cgwDir/$asm.SeqStore -version $lastckpt -fragsper $partitionSize -input $cgwDir/$asm.cgw_contigs ";
+        $cmd .= "> $wrk/8-consensus/partitionSDB.err 2>&1";
 
         die "Failed.\n" if (runCommand($cmd));
-        touch("$wrk/8-consensus/partitionSDB1.success");
+        touch("$wrk/8-consensus/partitionSDB.success");
     }
 
     if (-z "$wrk/8-consensus/UnitigPartition.txt") {
         print STDERR "WARNING!  Nothing for consensus to do!  Forcing consensus to skip!\n";
-        touch("$wrk/8-consensus/partitionSDB2.success");
         touch("$wrk/8-consensus/partitionFragStore.success");
         touch("$wrk/8-consensus/jobsCreated.success");
         return;
     }
 
-    if (! -e "$wrk/8-consensus/partitionSDB2.success") {
-        my $cmd;
-        $cmd  = "cd $wrk/8-consensus && ";
-        $cmd .= "$bin/PartitionSDB2 $cgwDir/$asm.SeqStore $lastckpt $wrk/8-consensus/UnitigPartition.txt ";
-        $cmd .= "> $wrk/8-consensus/partitionSDB2.err 2>&1";
-
-        die "Failed.\n" if (runCommand($cmd));
-        touch("$wrk/8-consensus/partitionSDB2.success");
-    }
-    
     if (! -e "$wrk/8-consensus/partitionFragStore.success") {
         my $cmd;
         $cmd  = "cd $wrk/8-consensus && ";

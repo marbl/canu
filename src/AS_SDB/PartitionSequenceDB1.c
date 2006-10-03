@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: PartitionSequenceDB1.c,v 1.9 2006-08-24 13:39:27 ahalpern Exp $";
+static char CM_ID[] = "$Id: PartitionSequenceDB1.c,v 1.10 2006-10-03 21:49:53 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -175,7 +175,7 @@ int main(int argc, char **argv){
     nunitigs = ma->num_unitigs;
     nfrags = ma->num_pieces;
 
-    if(nunitigs > 1){
+    if(nunitigs > 0){
       int u,f;
       for(u = 0; u < nunitigs; u++){
         tPartitionElement partElem;

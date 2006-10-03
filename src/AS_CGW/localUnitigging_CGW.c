@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: localUnitigging_CGW.c,v 1.11 2006-09-21 21:34:01 brianwalenz Exp $";
+static char CM_ID[] = "$Id: localUnitigging_CGW.c,v 1.12 2006-10-03 21:49:53 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -395,7 +395,7 @@ int main( int argc, char *argv[])
   data->timefp = stderr;
   data->writer =  (MesgWriter)OutputFileType_AS(AS_PROTO_OUTPUT);
   sprintf(data->Output_File_Name,"localUnitigging.ICMs",outputPath);
-  data->outfp = File_Open (data->Output_File_Name, "w", TRUE);     // cgw file
+  data->cgwfp = File_Open (data->Output_File_Name, "w", TRUE);     // cgw file
 
   overlapfp = fopen("localUnitigging.overlaps","w");
   
@@ -1374,7 +1374,7 @@ void OutputMergedMetaUnitig(CDS_CID_t sid,MultiAlignT *ma){
       
   if(icm_mesg.num_unitigs > 1){
     assert(sid != NULLINDEX);
-    (GlobalData->writer)(GlobalData->outfp1,&pmesg);
+    (GlobalData->writer)(GlobalData->ctgfp,&pmesg);
   }else{
     if(sid == NULLINDEX) {// contig is not placed
       GenericMesg		mesg;
@@ -1388,13 +1388,13 @@ void OutputMergedMetaUnitig(CDS_CID_t sid,MultiAlignT *ma){
 	mesg.m = &dsc_mesg;
 	mesg.t = MESG_IDS;
             
-	(GlobalData->writer)(GlobalData->outfp,&pmesg); // write the contig
-	(GlobalData->writer)(GlobalData->outfp,&mesg);  // write the associated degenerate scaffold
+	(GlobalData->writer)(GlobalData->cgwfp,&pmesg); // write the contig
+	(GlobalData->writer)(GlobalData->cgwfp,&mesg);  // write the associated degenerate scaffold
       }else{
 	// do nothing. The unitig in this contig appears as a surrogate elsewhere in the assembly
       }
     }else{ // Contig is placed
-      (GlobalData->writer)(GlobalData->outfp,&pmesg); // write the contig
+      (GlobalData->writer)(GlobalData->cgwfp,&pmesg); // write the contig
     }     
   }
       

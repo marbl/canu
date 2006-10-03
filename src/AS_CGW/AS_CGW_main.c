@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.27 2006-09-25 20:28:08 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.28 2006-10-03 21:49:53 brianwalenz Exp $";
 
 
 static const char *usage = 
@@ -191,10 +191,10 @@ int main(int argc, char *argv[]){
   Global_CGW *data;
   MesgReader reader;
   MesgWriter writer; 
-  FILE *infp = NULL, 
-    *outfp = NULL, /* .cgw file */
-    *outfp1 = NULL, /* .cgw_contigs file */
-    *outfp2 = NULL; /* .cgw_scaffolds file */
+  FILE *infp = NULL;
+  FILE *cgwfp = NULL; /* .cgw file */
+  FILE *ctgfp = NULL; /* .cgw_contigs file */
+  FILE *scffp = NULL; /* .cgw_scaffolds file */
   float transQualityCutoff = 0.1; // quality cutoff for TransChunkEdges
   float cgbMicrohetProb = 1.e-05;      // scores less than this are considered repeats
   float cgbApplyMicrohetCutoff = -1; // This basically turns it off, unless enabled
@@ -523,19 +523,29 @@ int main(int argc, char *argv[]){
 
     if(optind < argc) 
       {
-	//	fprintf(GlobalData->stderrc,"Input file is %s suffix is %s\n",argv[optind], suffix);
 	strcpy(data->Input_File_Name, argv[optind]);
 	infp = File_Open (data->Input_File_Name, "r", TRUE);     // frg file
 	AssertPtr(infp);
 	data->reader = reader = (MesgReader)InputFileType_AS(infp);
 	data->writer = writer = (MesgWriter)OutputFileType_AS(outputFormat);
-	data->errorWriter = (MesgWriter)OutputFileType_AS(AS_PROTO_OUTPUT);
 
 	strcpy(data->File_Name_Prefix, outputPath);
-	sprintf(data->TempFileName,"%s.tempium", outputPath);
 
-	sprintf(data->Output_File_Name,"%s.timing",outputPath);
-	data->timefp = File_Open(data->Output_File_Name,"a", TRUE); // timing file
+        {
+          char  filepath[2048];
+
+          sprintf(filepath, "%s.cgw", outputPath);
+          data->cgwfp = cgwfp = File_Open(filepath, "w", TRUE);
+
+          sprintf(filepath, "%s.cgw_contigs", outputPath);
+          data->ctgfp = ctgfp = File_Open(filepath, "w", TRUE);
+
+          sprintf(filepath, "%s.cgw_scaffolds", outputPath);
+          data->scffp = scffp = File_Open(filepath, "w", TRUE);
+
+          sprintf(filepath, "%s.timing", outputPath);
+          data->timefp = File_Open(filepath, "a", TRUE); // timing file
+        }
 
 	{
 	  time_t t;
@@ -543,12 +553,6 @@ int main(int argc, char *argv[]){
 	  fprintf(data->timefp,"\n\n>>>>*************************************************************************<<<<\n");
 	  fprintf(data->timefp,"* Restarting from checkpoint %d at time %s\n", restartFromCheckpoint,ctime(&t));
 	}
-	sprintf(data->Output_File_Name,"%s.cgw",outputPath);
-	data->outfp = outfp = File_Open (data->Output_File_Name, "w", TRUE);     // cgw file
-	sprintf(data->Output_File_Name,"%s.cgw_contigs",outputPath);
-	data->outfp1 = outfp1 = File_Open (data->Output_File_Name, "w", TRUE);     // cgw file
-	sprintf(data->Output_File_Name,"%s.cgw_scaffolds",outputPath);
-	data->outfp2 = outfp2 = File_Open (data->Output_File_Name, "w", TRUE);     // cgw file
 
 	//	optind++;
       }

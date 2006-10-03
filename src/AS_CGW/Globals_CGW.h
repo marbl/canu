@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: Globals_CGW.h,v 1.8 2006-09-25 20:31:53 brianwalenz Exp $	 */
+/* 	$Id: Globals_CGW.h,v 1.9 2006-10-03 21:49:53 brianwalenz Exp $	 */
 #ifndef GLOBALS_CGW_H
 #define GLOBALS_CGW_H
 
@@ -35,7 +35,7 @@ typedef struct Global_CGW_tag {
   int verbose;
   MesgReader reader;
   MesgWriter writer;
-  MesgWriter errorWriter;
+
   float transQualityCutoff; // quality cutoff for TransChunkEdges
   uint64 maxSequencedbSize; // maximum size of a sequencedb between checkpoints
   uint64 maxSequencedbCacheSize; // maximum size of cache before flushing
@@ -59,10 +59,10 @@ typedef struct Global_CGW_tag {
   float cgbMicrohetProb;
   int  annotateUnitigs;
   int  doInterleavedScaffoldMerging;
-  FILE *outfp;  // .cgw    frags, unitigs, singleton contigs and degenerate scaffolds
-  FILE *outfp1;  // .cgw_contigs   input for post-cgw consensus
-  FILE *outfp2;  // .cgw_scaffolds non-degenerate scaffolds
-  FILE *timefp;  // .timing
+  FILE *cgwfp;    // .cgw            frags, unitigs
+  FILE *ctgfp;    // .cgw_contigs    all contigs (input for post-cgw consensus)
+  FILE *scffp;    // .cgw_scaffolds  all scaffolds
+  FILE *timefp;   // .timing
   FILE *stderrc;  // current - initially set to stderr
 #ifdef NEVER
   HISTOGRAM *scaffold_unique;   
@@ -84,7 +84,7 @@ typedef struct Global_CGW_tag {
   TimerT StoneThrowingTimer;
   TimerT BccTimer;
   TimerT ConsensusTimer;
-  char TempFileName[1024];
+
   char Input_File_Name[1024];
   char File_Name_Prefix[1024];
   char Output_File_Name[1024];

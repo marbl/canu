@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.12 2006-09-21 21:34:00 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.13 2006-10-03 21:49:53 brianwalenz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -97,18 +97,11 @@ static int32 numIDT = 0, numILK = 0, numILKReread = 0, numIUM = 0, numUOM = 0, n
 
 /****************************************************************************/
 int ProcessInput(Global_CGW *data, int optind, int argc, char *argv[]){
-  //  FILE		*tempfp;
   GenericMesg   *pmesg;
   FILE *infp;
   int i,j = 0;
 
   StartTimerT(&GlobalData->InputTimer);
-
-  //  ILKs = CreateVA_InternalLinkMesg(1024);
-
-
-  //  tempfp = fopen(data->TempFileName,"w");
-  //  assert(tempfp != NULL);
 
   for(i = optind; i < argc; i++){
     fprintf(stderr,"* Opening file %d %s\n", j ++, argv[i]);
@@ -153,11 +146,7 @@ int ProcessInput(Global_CGW *data, int optind, int argc, char *argv[]){
 
         default:
           fprintf(stderr,"* Oops: Read Message with type = %d\n", pmesg->t);
-#ifdef DEBUG
-          (data->errorWriter)(data->outfp,pmesg);      // Echo to error output
-          exit(1);
-#endif
-          (data->writer)(data->outfp,pmesg);      // Echo to output
+          (data->writer)(data->cgwfp,pmesg);      // Echo to output
           break;
       }
     
@@ -165,7 +154,6 @@ int ProcessInput(Global_CGW *data, int optind, int argc, char *argv[]){
     fclose(infp);
   }
   
-  //  fclose(tempfp);
   ScaffoldGraph->numLiveCIs = ScaffoldGraph->numOriginalCIs = GetNumGraphNodes(ScaffoldGraph->CIGraph);
   fprintf(stderr,"* cgw read the following messages:\n");
   fprintf(stderr,"\tIUM:%d  (max IUM acc = %d) with %d fragments\n",
@@ -265,7 +253,7 @@ int ProcessInputADT(Global_CGW *data, FILE *infp, int argc, char **argv){
 
   VersionStampADT(adt_mesg, argc, argv);
     
-  (data->writer)(data->outfp,pmesg);        // Echo to output
+  (data->writer)(data->cgwfp,pmesg);        // Echo to output
 
   return(!finished);
 }
