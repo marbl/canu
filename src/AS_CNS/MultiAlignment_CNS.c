@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.93 2006-10-02 14:22:25 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.94 2006-10-04 03:18:35 ahalpern Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -4777,9 +4777,11 @@ Abacus *CreateAbacus(int32 mid, int32 from, int32 end)
    ColumnBeadIterator  bi;
    Bead               *bead;
    MANode             *ma;
-   int                 mid_column_num = 6;
-   Column             *mid_column[6] = { 0 };
-   int                 mid_column_points[6] = { 75, 150, -1, -1, -1, -1 };
+#define  MAX_MID_COLUMN_NUM 50
+   static int                 mid_column_points[MAX_MID_COLUMN_NUM] = { 75, 150};
+   Column             *mid_column[MAX_MID_COLUMN_NUM] = { NULL, NULL };
+   int                 next_mid_column=0;
+   int                 max_mid_columns = 0;
 
    //  Macaque, using overlap based trimming, needed mid_column points
    //  at rather small intervals to pass.  Even without OBT, macaque
@@ -4787,10 +4789,21 @@ Abacus *CreateAbacus(int32 mid, int32 from, int32 end)
    //
    //  This change was tested on macaque, and did not change the
    //  results (except for allowing one partition to finish....).  You
-   //  can revert to the original behavior by disabling this loop.
+   //  can revert to the original behavior by undef'ing the following.
    //
-   for (i=0; i<6; i++)
-     mid_column_points[i] = i * 30 + 30;
+#define EXTRA_MID_COLUMNS 1
+#ifdef EXTRA_MID_COLUMNS
+   if(mid_column_points[0]==75){
+     for (i=0; i<MAX_MID_COLUMN_NUM; i++){
+       mid_column_points[i] = i * (AS_FRAG_MIN_LEN-1) + 30;
+       mid_column[i]=NULL;
+     }
+   }
+   max_mid_columns=MAX_MID_COLUMN_NUM;
+
+#else
+   max_mid_columns=2;
+#endif
 
    ma = GetMANode(manodeStore, mid);
    if (ma == NULL ) CleanExit("CreateAbacus ma==NULL",__LINE__,1);
@@ -4806,21 +4819,32 @@ Abacus *CreateAbacus(int32 mid, int32 from, int32 end)
    fprintf(stderr, "column_ids= %lu", from);
 #endif
    // first, just determine requires number of rows and columns for Abacus
-   while( column->next != end  && column->next != -1) {
+   while( column->next != end  && column->next != -1) { // this test looks subtly wrong: most of the loop could be done
+                                                        // as long as column!=NULL?  -- ALH
      columns++;
-#if 0
-   fprintf(stderr, ",%lu", column->next);
-#endif
-     for (i=0; i<6; i++)
-       if (columns == mid_column_points[i])
-         mid_column[i] = GetColumn(columnStore,column->lid);
 
+#if 0
+     fprintf(stderr, ",%lu", column->next);
+#endif
+
+     if( next_mid_column<MAX_MID_COLUMN_NUM && 
+	 columns == mid_column_points[next_mid_column]){
+       mid_column[next_mid_column] = GetColumn(columnStore,column->lid);
+       next_mid_column++;
+     }
      column = GetColumn(columnStore,column->next);
      // GD: this is where base calling code should be called  
    }
+
 #if 0
    fprintf(stderr, "\n");
 #endif
+
+   if(columns>MAX_MID_COLUMN_NUM*(AS_FRAG_MIN_LEN-1)){
+     fprintf(stderr,"WARNING: CreateAbacus called with such a large window that small fragments might slip through the cracks...\n");
+   }
+
+   max_mid_columns=next_mid_column;
 
    orig_columns = columns;
    last = column;
@@ -4856,7 +4880,7 @@ Abacus *CreateAbacus(int32 mid, int32 from, int32 end)
    // "SetAbacus" beyond row range error.  putting in two mid-columns
    // will hopefully catch all fragments in the abacus range.
    //
-   for (i=0; i<6; i++) {
+   for (i=0; i<max_mid_columns; i++) {
      if (mid_column[i] != NULL) {
        if(!CreateColumnBeadIterator(mid_column[i]->lid,&bi))
          CleanExit("CreateAbacus CreateColumnBeadIterator failed",__LINE__,1);
