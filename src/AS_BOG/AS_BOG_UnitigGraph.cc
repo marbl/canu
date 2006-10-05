@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.26 2006-09-29 20:39:10 eliv Exp $
- * $Revision: 1.26 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.27 2006-10-05 14:50:03 eliv Exp $
+ * $Revision: 1.27 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.26 2006-09-29 20:39:10 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.27 2006-10-05 14:50:03 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -965,7 +965,7 @@ namespace AS_BOG{
     void Unitig::placeContains( const ContainerMap* cntnrp, BestContainmentMap *bestCtn,
                                 const iuid container, const SeqInterval intvl)
     {
-        if (cntnrp->size() == 0);
+        if (cntnrp->size() == 0)
             return;
 
             ContainerMap::const_iterator ctmp_itr = cntnrp->find( container );
