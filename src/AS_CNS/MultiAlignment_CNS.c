@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.94 2006-10-04 03:18:35 ahalpern Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.95 2006-10-05 22:56:09 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -2333,7 +2333,8 @@ ClusterReads(Read *reads, int nr, Allele *alleles, int32 *na, int32 *nca,
                 // New allele
                 reads[row].allele_id = *na;
                 reads[col].allele_id = *na;
-                alleles[*na].weight = reads[row].ave_qv + reads[col].ave_qv;
+                alleles[*na].weight = 
+                    ROUND(reads[row].ave_qv) + ROUND(reads[col].ave_qv);
                 alleles[*na].uglen  = reads[row].uglen;
                 alleles[*na].read_ids[0] = row;
                 alleles[*na].read_ids[1] = col;
@@ -2347,7 +2348,7 @@ ClusterReads(Read *reads, int nr, Allele *alleles, int32 *na, int32 *nca,
                 // Already existing allele
                 aid = reads[col].allele_id;
                 reads[row].allele_id = aid;
-                alleles[aid].weight += reads[row].ave_qv; 
+                alleles[aid].weight += ROUND(reads[row].ave_qv); 
                 anr = alleles[aid].num_reads;
                 alleles[aid].read_ids[anr] = row;
                 alleles[aid].num_reads++;
@@ -2358,7 +2359,7 @@ ClusterReads(Read *reads, int nr, Allele *alleles, int32 *na, int32 *nca,
                 // Already existing allele
                 aid = reads[row].allele_id;
                 reads[col].allele_id = aid;
-                alleles[aid].weight += reads[col].ave_qv;
+                alleles[aid].weight += ROUND(reads[col].ave_qv);
                 anr = alleles[aid].num_reads;
                 alleles[aid].read_ids[anr] = col;
                 alleles[aid].num_reads++;
@@ -2374,7 +2375,7 @@ ClusterReads(Read *reads, int nr, Allele *alleles, int32 *na, int32 *nca,
         {
            // New allele
            reads[row].allele_id = *na;
-           alleles[*na].weight = reads[row].ave_qv;
+           alleles[*na].weight = ROUND(reads[row].ave_qv);
            alleles[*na].uglen  = reads[row].uglen;
            alleles[*na].read_ids[0] = row;
            alleles[*na].num_reads = 1;
@@ -2392,21 +2393,21 @@ SortAllelesByWeight(Allele *alleles, int32 num_alleles)
 
     for (i=0; i<num_alleles; i++)
     {
-        double best_weight = alleles[i].weight;
+        int best_weight = alleles[i].weight;
         best_id = -1;
         for (j=i+1; j<num_alleles; j++)
         {
-            if (best_weight < alleles[i].weight)
+            if (best_weight < alleles[j].weight)
             {
-                best_weight = alleles[i].weight;
+                best_weight = alleles[j].weight;
                 best_id = j;
             }
         }
         if (best_id >= 0)
         {
             temp       = alleles[i];
-            alleles[i] = alleles[j];
-            alleles[j] = temp;
+            alleles[i] = alleles[best_id];
+            alleles[best_id] = temp;
         }
     }
 }
@@ -2420,21 +2421,21 @@ SortConfirmedAllelesByLength(Allele *alleles, int32 num_alleles)
 
     for (i=0; i<num_alleles; i++)
     {
-        double best_uglen = alleles[i].uglen; 
+        int best_uglen = alleles[i].uglen; 
         best_id = -1;
         for (j=i+1; j<num_alleles; j++)
         {
-            if (best_uglen  < alleles[i].uglen )
+            if (best_uglen  < alleles[j].uglen )
             {
-                best_uglen  = alleles[i].uglen ;
+                best_uglen  = alleles[j].uglen ;
                 best_id = j;
             }
         }
         if (best_id >= 0)
         {
             temp       = alleles[i];
-            alleles[i] = alleles[j];
-            alleles[j] = temp;
+            alleles[i] = alleles[best_id];
+            alleles[best_id] = temp;
         }
     }
 }
@@ -2764,17 +2765,17 @@ PopulateVarRecord(int32 *cids, int32 *nvars, int32 *min_len_vlist,
         sprintf((*v_list)[*nvars].nr_conf_alleles, "");
         for (al=0; al < num_reported_alleles; al++)
         {
-            double weight = vreg.alleles[al].weight;
+            int    weight = vreg.alleles[al].weight;
             int    num_reads = vreg.alleles[al].num_reads;
             char *format_weight = (al < num_reported_alleles-1) ?
-                "%.1f/" : "%.1f\0";
+                "%d/" : "%d\0";
             char *format_num_reads = (al < num_reported_alleles-1) ?
                 "%d/" : "%d\0";
             
             (*v_list)[*nvars].var_seq[-1+(al+1)*shift] =
                 (al < num_reported_alleles-1) ? '/' : '\0';
 
-            sprintf(buf, format_weight, weight);
+            sprintf(buf, format_weight, ROUND(weight));
             (*v_list)[*nvars].weights = strcat((*v_list)[*nvars].weights, buf);
         
             sprintf(buf, format_num_reads, num_reads);
@@ -2839,7 +2840,7 @@ AllocateMemoryForAlleles(Allele **alleles, int32 nr, int32 *na)
     for (j=0; j<nr; j++)
     {
       (*alleles)[j].id = -1;
-      (*alleles)[j].weight = 0.;
+      (*alleles)[j].weight = 0;
       (*alleles)[j].read_ids = (int *)safe_calloc(nr, sizeof(int));
     }
 }
@@ -3097,7 +3098,7 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
             fprintf(stderr, "Total number of alleles after ClusterReads %d\n", vreg.na);
             fprintf(stderr, "Allele weights= \n");
             for (j=0; j<vreg.na; j++)
-                fprintf(stderr, "%3.2f ", vreg.alleles[j].weight);
+                fprintf(stderr, "%d ", vreg.alleles[j].weight);
             fprintf(stderr, "\n");
 #endif
             SortAllelesByWeight(vreg.alleles, vreg.na);
