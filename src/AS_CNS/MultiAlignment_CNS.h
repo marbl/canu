@@ -69,7 +69,7 @@ typedef struct {
 int    id;
 int    num_reads;
 int   *read_ids;
-double weight;
+int    weight;
 int    uglen;      // ungapped length
 } Allele;
 
