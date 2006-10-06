@@ -25,7 +25,7 @@
    Assumptions:  libAS_UTL.a
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.18 2006-09-26 20:31:13 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.19 2006-10-06 18:35:37 brianwalenz Exp $";
 
 
 #include <assert.h>
@@ -643,19 +643,17 @@ CreateMultiAlignTFromICM(IntConConMesg *icm, int localID, int sequenceOnly)
       {
          IntMultiVar *cvr_mesg = icm->v_list + cvr;
          IntMultiVar tmp;
+         int         na  = (cvr_mesg->num_conf_alleles < 2) ? 2 : cvr_mesg->num_conf_alleles;
 
          tmp = *cvr_mesg;
-         tmp.position = cvr_mesg->position;
-         tmp.num_reads = cvr_mesg->num_reads;
+         tmp.position         = cvr_mesg->position;
+         tmp.num_reads        = cvr_mesg->num_reads;
          tmp.num_conf_alleles = cvr_mesg->num_conf_alleles;
-         tmp.anchor_size = cvr_mesg->anchor_size;
-         tmp.var_length = cvr_mesg->var_length;
-         tmp.nr_conf_alleles = (char *) safe_malloc(4*sizeof(char)
-            *((cvr_mesg->num_conf_alleles < 2)?2:cvr_mesg->num_conf_alleles));
-         tmp.weights = (char *) safe_malloc(7*sizeof(char)
-            *((cvr_mesg->num_conf_alleles < 2)?2:cvr_mesg->num_conf_alleles));
-         tmp.var_seq = (char *) safe_malloc((cvr_mesg->var_length+1)*sizeof(char)
-            *((cvr_mesg->num_conf_alleles < 2)?2:cvr_mesg->num_conf_alleles));
+         tmp.anchor_size      = cvr_mesg->anchor_size;
+         tmp.var_length       = cvr_mesg->var_length;
+         tmp.nr_conf_alleles  = (char *) safe_malloc(4*sizeof(char)*na + 1);
+         tmp.weights          = (char *) safe_malloc(7*sizeof(char)*na + 1);
+         tmp.var_seq          = (char *) safe_malloc((cvr_mesg->var_length+1)*sizeof(char)*na + 1);
          strcpy(tmp.nr_conf_alleles, cvr_mesg->nr_conf_alleles);
          strcpy(tmp.weights, cvr_mesg->weights);
          strcpy(tmp.var_seq, cvr_mesg->var_seq);
@@ -775,19 +773,17 @@ CreateMultiAlignTFromCCO(SnapConConMesg *cco, int localID, int sequenceOnly)
       {
          IntMultiVar *cvr_mesg = cco->vars + cvr;
          IntMultiVar tmp;
+         int         na  = (cvr_mesg->num_conf_alleles < 2) ? 2 : cvr_mesg->num_conf_alleles;
 
          tmp = *cvr_mesg;
-         tmp.position = cvr_mesg->position;
-         tmp.num_reads = cvr_mesg->num_reads;
+         tmp.position         = cvr_mesg->position;
+         tmp.num_reads        = cvr_mesg->num_reads;
          tmp.num_conf_alleles = cvr_mesg->num_conf_alleles;
-         tmp.anchor_size = cvr_mesg->anchor_size;
-         tmp.var_length = cvr_mesg->var_length;
-         tmp.nr_conf_alleles = (char *) safe_malloc(4*sizeof(char)
-            *((cvr_mesg->num_conf_alleles < 2)?2:cvr_mesg->num_conf_alleles));
-         tmp.weights = (char *) safe_malloc(7*sizeof(char)
-            *((cvr_mesg->num_conf_alleles < 2)?2:cvr_mesg->num_conf_alleles));
-         tmp.var_seq = (char *) safe_malloc((cvr_mesg->var_length+1)*sizeof(char)
-            *((cvr_mesg->num_conf_alleles < 2)?2:cvr_mesg->num_conf_alleles));
+         tmp.anchor_size      = cvr_mesg->anchor_size;
+         tmp.var_length       = cvr_mesg->var_length;
+         tmp.nr_conf_alleles  = (char *) safe_malloc(4*sizeof(char)*na + 1);
+         tmp.weights          = (char *) safe_malloc(7*sizeof(char)*na + 1);
+         tmp.var_seq          = (char *) safe_malloc((cvr_mesg->var_length+1)*sizeof(char)*na + 1);
          strcpy(tmp.nr_conf_alleles, cvr_mesg->nr_conf_alleles);
          strcpy(tmp.weights, cvr_mesg->weights);
          strcpy(tmp.var_seq, cvr_mesg->var_seq);
