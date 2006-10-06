@@ -74,7 +74,7 @@ ifeq ($(OSTYPE), Linux)
   CFLAGS    += -O2 -DANSI_C -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
   CXXFLAGS  += -O2 -DANSI_C -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
   USRLIB     = /usr/X11R6/lib
-  LDFLAGS   += -Wl,-O1
+  LDFLAGS   += -Wl,-O1 -pipe --gc-sections
   CXXDEFS    = -D__cplusplus
 
   ifeq ($(MACHINETYPE), i686)
