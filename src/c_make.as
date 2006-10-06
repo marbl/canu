@@ -20,10 +20,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 ###########################################################################
-#
-# Tell c_make.gen to echo commands.
 
-## Uncomment to enable
 VERBOSE=1
 ifdef $(VERBOSE)
 export VERBOSE
@@ -66,13 +63,9 @@ SUBDIRS = AS_MSG \
 
 # Compiler & flags
 
-CC         = gcc
-CXX        = g++
-CFLAGS_OPT = -g
-CXXDEFS    = -D__cplusplus
-ARFLAGS    = rvs
-USRLIB     = /usr/lib
-LDFLAGS   += -Wl,-O1
+# Please, please do not put defaults here.  They tend to break
+# compiles on other architectures!
+
 
 ifeq ($(OSTYPE), Linux)
   CC         = gcc
@@ -81,6 +74,7 @@ ifeq ($(OSTYPE), Linux)
   CFLAGS    += -O2 -DANSI_C -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
   CXXFLAGS  += -O2 -DANSI_C -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
   USRLIB     = /usr/X11R6/lib
+  LDFLAGS   += -Wl,-O1
   CXXDEFS    = -D__cplusplus
 
   ifeq ($(MACHINETYPE), i686)
@@ -98,7 +92,7 @@ ifeq ($(OSTYPE), Linux)
     endif
   endif
   ifeq ($(MACHINETYPE), ia64)
-  ## Don't set X86_GCC_LINUX because IEEE floating point mode is not available.
+    # Don't set X86_GCC_LINUX because IEEE floating point mode is not available.
   endif
 endif
 
@@ -117,7 +111,7 @@ endif
 ifeq ($(OSTYPE), Darwin)
   CC         = gcc
   CXX        = g++
-  CFLAGS_OPT = -O3 -g
+  CFLAGS_OPT = -fast -pipe
   CFLAGS    += -DNEEDXDRUHYPER -D_THREAD_SAFE
   USRLIB    += /usr/local/lib /usr/X11R6/lib
 endif
@@ -139,74 +133,48 @@ endif
 ifeq ($(OSTYPE), aix)
   CC = xlc
   CFLAGS_OPT = -O3
-  # CFLAGS_OPT = -g
-  # CFLAGS_OPT = -q64 -g -D_LARGE_FILES -qcpluscmt
-  # THRINC  = -qthreaded -D_REENTRANT
-  # THRLIB  = -lpthread
-  # FLAGS  = -O3 -qarch=pwr3 -qtune=pwr3 -qthreaded -D_REENTRANT
-  # FLAGS  = -O3 -qarch=pwr3 -qtune=pwr3
-  # DEBUG  = -DDEBUG
   CFLAGS_OPT += -qflag=W:W \
-             -qcpluscmt \
-             -q64 \
-             -qlonglong \
-             -D_LARGE_FILES \
-             -qarch=auto \
-             -qtune=auto \
-             -qcache=auto \
-             -bhalt:8 \
-             -qstaticinline \
-             -qlanglvl=ext \
-             -qignerrno \
-             -qupconv \
-             -qstrict
+                -qcpluscmt \
+                -q64 \
+                -qlonglong \
+                -D_LARGE_FILES \
+                -qarch=auto \
+                -qtune=auto \
+                -qcache=auto \
+                -bhalt:8 \
+                -qstaticinline \
+                -qlanglvl=ext \
+                -qignerrno \
+                -qupconv \
+                -qstrict
   CXX     = xlC_r $(CFLAGS_OPT)
   CXXDEFS =
   CXXFLAGS  = $(CFLAGS)
-  # LDFLAGS = -g -q64 \
   LDFLAGS = -O3 -q64 \
-          -qlonglong \
-          -D_LARGE_FILES \
-          -qarch=auto \
-          -qtune=auto \
-          -qcache=auto \
-          -bhalt:8 \
-          -qstaticinline \
-          -qlanglvl=ext \
-          -qignerrno \
-          -qupconv \
-          -qstrict \
-          -lpthread
-  # -bnoquiet -lpthread
-  #AR = ar -X32
-  #CPP = cc -E
-  #CPPFLAGS  =  -I/scratch/hannone/incl -qcpluscmt -DAIX
-  #CcOPTS  =  -O -qstrict -D_LARGE_FILES -qcpluscmt
-  #ccWARNS = 
-  #CC      = xlC
-  #CCOPTS  = -q64 -O3 -qstrict -D_LARGE_FILES
-  #CCWARNS =
+            -qlonglong \
+            -D_LARGE_FILES \
+            -qarch=auto \
+            -qtune=auto \
+            -qcache=auto \
+            -bhalt:8 \
+            -qstaticinline \
+            -qlanglvl=ext \
+            -qignerrno \
+            -qupconv \
+            -qstrict \
+            -lpthread
 endif
 
 ifeq ($(OSTYPE), OSF1)
   CC = cc
   CXX = c++
   CFLAGS_OPT=  -pthread -fast -O4
-  # To get accurate variable prints in the debuggers:
-  # CFLAGS_OPT= -g 
-  # CFLAGS_OPT= -g -check_bounds
-  # Note that "-g" implies "-O0", which turns off all inlining.
-  # Note that "-fast" implies "-inline speed"
-  # CFLAGS_OPT= -g -O1 -inline manual
-  # CFLAGS_OPT= -g -O1 -inline manual -check_bounds
-  # CFLAGS_OPT= -O4 
-  # CFLAGS_OPT= -fast -O4 -tune ev56 -arch ev56
-  # CFLAGS_OPT= -fast -O4 -tune ev6 -arch ev6
-  # -omp
-  # -msg_enable c_to_cxx obsolescent
-  # -check_bounds
-  #
-  CFLAGS_WARNINGS = -w0 -warnprotos -trapuv -float_const -readonly_strings \
+  CFLAGS_WARNINGS = \
+    -w0 \
+    -warnprotos \
+    -trapuv \
+    -float_const \
+    -readonly_strings \
     -msg_enable overflow \
     -msg_enable check \
     -msg_enable defunct \
@@ -234,12 +202,6 @@ ifeq ($(OSTYPE), OSF1)
     -msg_disable truncfltasn \
     -msg_disable truncfltint \
     -msg_disable extrasemi
-  #  -msg_disable hexoctunsign
-  #  -omp  -check_omp 
-  #  -msg_enable unused 
-  #  -msg_enable returnchecks
-  #  -msg_enable  strctpadding
-  #  -msg_enable level6
   INC_IMPORT_DIRS +=  /usr/local/include /usr/include
 endif
 
@@ -250,13 +212,6 @@ INC_IMPORT_DIRS += $(patsubst %, $(LOCAL_WORK)/src/%, $(strip $(SUBDIRS))) \
 LIB_IMPORT_DIRS += $(LOCAL_LIB) $(USRLIB) 
 OBJ_SEARCH_PATH = $(LOCAL_OBJ)
 
-#/usr/shlib /usr/X11R6/lib /usr/X/lib /usr/shlib/X11
-
-
-
-## Load if we are using SOAP or CURL as our UID transport
-## This has to be external to this file so that AS_UID/Makefile will work
-#include $(LOCAL_WORK)/src/AS_UID/uid_transport.as
 
 ifeq ($(USE_SOAP_UID), 1)
   CFLAGS   += -DUSE_SOAP_UID
