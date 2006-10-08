@@ -2,7 +2,7 @@
 #define CONSTANTS_H
 
 extern "C" {
-#include "GlobalConstants.h" 
+#include "AS_global.h" 
 }
 
 //
