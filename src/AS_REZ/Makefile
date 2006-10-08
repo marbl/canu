@@ -106,7 +106,8 @@ include $(LOCAL_WORK)/src/c_make.as
 #-include make.conf
 
 install: $(SCRIPTS)
-	chmod ugo+x $(SCRIPTS); cp -f $(SCRIPTS) $(LOCAL_BIN)
+	@chmod ugo+x $(SCRIPTS)
+	@cp -f $(SCRIPTS) $(LOCAL_BIN)
 
 
 all: $(OBJECTS) $(LIBRARIES) $(PROGS) install

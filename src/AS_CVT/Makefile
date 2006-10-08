@@ -179,22 +179,22 @@ make_range_file: make_range_file.o \
 	libAS_UTL.a
 
 run_components_thru_grande:
-	cp -f run_components_thru_grande.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/run_components_thru_grande.sh
+	@cp -f run_components_thru_grande.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/run_components_thru_grande.sh
 
 run_grande_on_component:
-	cp -f run_grande_on_component.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/run_grande_on_component.sh
+	@cp -f run_grande_on_component.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/run_grande_on_component.sh
 
 run_grande_on_frgs:
-	cp -f run_grande_on_frgs.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/run_grande_on_frgs.sh
+	@cp -f run_grande_on_frgs.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/run_grande_on_frgs.sh
 
 setup_status_file:
-	cp -f setup_status_file.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/setup_status_file.sh
+	@cp -f setup_status_file.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/setup_status_file.sh
 
 mdi2ps.sh:
-	cp -f mdi2ps.sh $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/mdi2ps.sh
+	@cp -f mdi2ps.sh $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/mdi2ps.sh
 

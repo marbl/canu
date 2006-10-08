@@ -133,8 +133,8 @@ endif
 all:    $(OBJECTS) $(LIBRARIES) $(PROGS) install
 
 install: $(SCRIPTS)
-	chmod ugo+x $(SCRIPTS)
-	cp -f $(SCRIPTS) $(LOCAL_BIN)
+	@chmod ugo+x $(SCRIPTS)
+	@cp -f $(SCRIPTS) $(LOCAL_BIN)
 
 auto-screen:  AutoScreenOVL.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
 

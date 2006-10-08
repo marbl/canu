@@ -36,7 +36,7 @@ LOCAL_WORK = $(shell cd ../..; pwd)
 include $(LOCAL_WORK)/src/c_make.as
 
 install: $(SCRIPTS) 
-	cp -f $(SCRIPTS) $(LOCAL_BIN)
+	@cp -f $(SCRIPTS) $(LOCAL_BIN)
 
 objects: $(OBJECTS)
 

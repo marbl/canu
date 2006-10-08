@@ -150,8 +150,8 @@ include $(LOCAL_WORK)/src/c_make.as
 
 ######################### Target Definitions ##########################
 all: $(OBJECTS) $(LIBRARIES) $(PROGS)
-	cp -f buildFragContigPosMap.pl $(LOCAL_BIN)
-	chmod 775 $(LOCAL_BIN)/buildFragContigPosMap.pl
+	@cp -f buildFragContigPosMap.pl $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/buildFragContigPosMap.pl
 
 count-sma:               $(SMA_OBJS)     libCA.a
 terminator:              $(TERM_OBJS)    libCA.a
