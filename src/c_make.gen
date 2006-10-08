@@ -372,7 +372,7 @@ $(PROGS):
 	  else \
 	    todo='$(CXX) -o $(LOCAL_BIN)/$(notdir $@) $(LD_DIRS) $(LDFLAGS) $(filter-out lib%.a, $+) $(patsubst lib%.a, -l%, $(filter lib%.a, $+))'; \
 	  fi ; \
-	  if [ -n "$(VERBOSE)" ]; then echo "$$todo"; fi; \
+	  echo "$$todo"; \
 	  if eval "$$todo"; then true; else rm -f $(LOCAL_BIN)/$(notdir $@); fi
 
 #### For making dependencies
