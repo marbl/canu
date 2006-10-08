@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.17 2006-09-21 21:34:00 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.18 2006-10-08 08:47:39 brianwalenz Exp $";
 
 #undef ORIG_MERGE_EDGE_INVERT
 #define MINSATISFIED_CUTOFF 0.985
@@ -83,7 +83,6 @@ extern int do_draw_frags_in_CelamyScaffold;
 #include "DataTypesREZ.h"
 #include "CommonREZ.h"
 #include "Stats_CGW.h"   // for collecting scaffold merging stats
-#include "PrimitiveVA.h"
 #ifdef INSTRUMENT_CGW
 #include "Instrument_CGW.h"
 #endif

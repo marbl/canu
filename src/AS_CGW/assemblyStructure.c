@@ -20,7 +20,7 @@
  *************************************************************************/
 
 
-static char CM_ID[] = "$Id: assemblyStructure.c,v 1.5 2006-09-21 21:34:00 brianwalenz Exp $";
+static char CM_ID[] = "$Id: assemblyStructure.c,v 1.6 2006-10-08 08:47:39 brianwalenz Exp $";
 
 
 /*********************************************************************/
@@ -40,7 +40,7 @@ static char CM_ID[] = "$Id: assemblyStructure.c,v 1.5 2006-09-21 21:34:00 brianw
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "cds.h"
+
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
 #include "AS_UTL_timer.h"

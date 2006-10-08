@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AssessedMatePair.h,v 1.5 2005-09-21 20:13:07 catmandew Exp $ */
+/* $Id: AssessedMatePair.h,v 1.6 2006-10-08 08:47:39 brianwalenz Exp $ */
 #ifndef ASSESSEDMATEPAIR_H
 #define ASSESSEDMATEPAIR_H
 
@@ -36,7 +36,7 @@ public:
 
   AssessedMatePair(const FragmentPosition & leftFrag,
                    const FragmentPosition & rightFrag,
-                   uint64 libUID) :
+                   uint64_t libUID) :
     MatePair(leftFrag, rightFrag, libUID)
     {
       _mpi = MPI_UNKNOWN;
@@ -45,7 +45,7 @@ public:
   AssessedMatePair(const FragmentPosition & leftFrag,
                    const FragmentPosition & rightFrag,
                    PairOrientation_e orient,
-                   uint64 libUID) :
+                   uint64_t libUID) :
     MatePair(leftFrag, rightFrag, orient, libUID)
     {
       _mpi = MPI_UNKNOWN;
@@ -54,7 +54,7 @@ public:
   AssessedMatePair(const FragmentPosition & leftFrag,
                    const FragmentPosition & rightFrag,
                    PairOrientation_e orient,
-                   uint64 libUID,
+                   uint64_t libUID,
                    int32 tooFar,
                    int32 tooClose) :
     MatePair(leftFrag, rightFrag, orient, libUID)

@@ -18,13 +18,15 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: Polygon.h,v 1.4 2005-03-22 19:48:56 jason_miller Exp $ */
+/* $Id: Polygon.h,v 1.5 2006-10-08 08:47:39 brianwalenz Exp $ */
 #ifndef POLYGON_H
 #define POLYGON_H
 
 #include <iostream>
 #include <vector>
 #include <cassert>
+#include <inttypes.h>
+#include <stdint.h>
 
 #include "Point.h"
 #include "Interval.h"

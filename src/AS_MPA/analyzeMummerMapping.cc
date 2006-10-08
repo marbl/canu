@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: analyzeMummerMapping.cc,v 1.3 2005-12-16 22:13:27 catmandew Exp $ */
+/* $Id: analyzeMummerMapping.cc,v 1.4 2006-10-08 08:47:39 brianwalenz Exp $ */
 #include <cstdio>  // for sscanf
 #include <cmath>
 #include <cassert>
@@ -30,9 +30,13 @@
 #include <map>
 #include <unistd.h> /* man 3 getopt */
 
+extern "C" {
+#include "AS_global.h"
+}
+
 using namespace std;
 
-#include "cds.h"
+
 
 /****************************************************************************
   Purpose: Analyze & summarize output of show-coords program, which itself

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//static char CM_ID[] = "$Id: AS_UTL_fileIO.c,v 1.2 2005-09-28 15:24:15 brianwalenz Exp $";
+//static char CM_ID[] = "$Id: AS_UTL_fileIO.c,v 1.3 2006-10-08 08:47:40 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,7 +27,7 @@
 #include <errno.h>
 #include <string.h>
 
-#include "cds.h"
+#include "AS_global.h"
 
 /*******************************************************************
  *

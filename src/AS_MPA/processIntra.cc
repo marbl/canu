@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: processIntra.cc,v 1.9 2005-10-28 19:52:16 catmandew Exp $ */
+/* $Id: processIntra.cc,v 1.10 2006-10-08 08:47:39 brianwalenz Exp $ */
 #include <cstdio>  // for sscanf
 #include <iostream>
 #include <iomanip>
@@ -154,7 +154,7 @@ void PrintDoubleBPFieldLabels(ofstream & listOS)
 void PrintOutput(vector<CompositeMPPolygon<UNIT_TYPE> > & printmpps,
                  MatePairIndex_e mpii,
                  vector<CompositeMPPolygon<UNIT_TYPE> > & mpps,
-                 map<uint64, int> & mppsMap,
+                 map<uint64_t, int> & mppsMap,
                  char * assembly,
                  char * seqID,
                  char * status,
@@ -361,7 +361,7 @@ int main(int argc, char ** argv)
 
   vector<MatePair> smpsv;
   vector<CompositeMPPolygon<UNIT_TYPE> > mpps[MPI_NUM_INDICES]; // input
-  map<uint64, int> mppsMap[MPI_NUM_INDICES];
+  map<uint64_t, int> mppsMap[MPI_NUM_INDICES];
   {
     vector<MatePair> mps;
     ifstream fmp(mpFilename, ios::in);
@@ -380,7 +380,7 @@ int main(int argc, char ** argv)
     list<MatePair> mpl[MPI_NUM_INDICES];
     list<MatePair>::iterator mpli;
     int badLibMatePairs = 0;
-    uint64 rightMostCoord = 0;
+    uint64_t rightMostCoord = 0;
     for(i = 0; i < mps.size(); i++)
     {
       libs[mps[i].getLibUID()].incrementCount();

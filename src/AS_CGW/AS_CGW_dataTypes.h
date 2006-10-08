@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_CGW_dataTypes.h,v 1.8 2006-09-21 21:34:00 brianwalenz Exp $	 */
+/* 	$Id: AS_CGW_dataTypes.h,v 1.9 2006-10-08 08:47:39 brianwalenz Exp $	 */
 #ifndef AS_CGW_DATATYPES_H
 #define AS_CGW_DATATYPES_H
 
@@ -56,8 +56,6 @@
 #define A_END 1
 #define B_END 2
 #define ALL_END (A_END | B_END)
-
-#include "PrimitiveVA.h"
 
 /* We've moved to a linear model of variance as a function of length.
    We chose the FUDGE_FACTOR as follows:

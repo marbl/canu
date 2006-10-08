@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: MultiAlignStore_CNS.h,v 1.5 2005-07-19 21:35:05 gdenisov Exp $	 */
+/* 	$Id: MultiAlignStore_CNS.h,v 1.6 2006-10-08 08:47:39 brianwalenz Exp $	 */
 #ifndef MULTIALIGNSTORE_H
 #define MULTIALIGNSTORE_H
 
@@ -27,12 +27,7 @@
 #include "AS_PER_ReadStruct.h"
 #include "AS_PER_fragStore.h"
 #include "AS_PER_fragStorePartition.h"
-#ifndef PRIMITIVE_VA
-#include "PrimitiveVA.h"
-#endif
-#ifndef PRIMITIVE_VA_MSG
 #include "PrimitiveVA_MSG.h"
-#endif
 
 
 #define MULTIALIGN_FORCED (-1)

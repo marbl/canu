@@ -25,7 +25,7 @@
  Assumptions:
 **********************************************************************/
 
-static char CM_ID[] = "$Id: MicroHetIUMdiffsPrint.c,v 1.4 2005-09-15 15:20:16 eliv Exp $";
+static char CM_ID[] = "$Id: MicroHetIUMdiffsPrint.c,v 1.5 2006-10-08 08:47:40 brianwalenz Exp $";
 
 
 #include <unistd.h> /* man 3 getopt */
@@ -49,7 +49,7 @@ static char CM_ID[] = "$Id: MicroHetIUMdiffsPrint.c,v 1.4 2005-09-15 15:20:16 el
 //#include <time.h>
 //#include <ctype.h>
 //#include <math.h>
-#include "cds.h"
+
 
 typedef enum {
   PRINT_DOTS,

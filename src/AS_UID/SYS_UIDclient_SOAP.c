@@ -23,7 +23,7 @@
 #include "soapEUIDServerService.nsmap"
 #include <assert.h>
 
-#include "cds.h"
+
 #include "SYS_UIDcommon.h"
 
 const char *TIGR_DefaultEuidServerNames = "http://tools2.tigr.org/servlet/axis/services/EUIDServer";

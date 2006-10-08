@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: CloneLibrary.h,v 1.5 2005-09-21 20:13:07 catmandew Exp $ */
+/* $Id: CloneLibrary.h,v 1.6 2006-10-08 08:47:39 brianwalenz Exp $ */
 #ifndef CLONELIBRARY_H
 #define CLONELIBRARY_H
 
@@ -40,7 +40,7 @@ public:
       pCount = 0;
     }
 
-  CloneLibrary(uint64 uid, double mean, double stddev,
+  CloneLibrary(uint64_t uid, double mean, double stddev,
                PairOrientation_e orient = PAIR_INNIE)
     {
       pUID = uid;
@@ -56,7 +56,7 @@ public:
       pOrient = PAIR_INNIE;
     }
 
-  void setUID(uint64 uid) {pUID = uid;}
+  void setUID(uint64_t uid) {pUID = uid;}
   void setMean(double mean) {pMean = mean;}
   void setStddev(double stddev) {pStddev = stddev;}
   void setOrientation(PairOrientation_e orient) {pOrient = orient;}
@@ -64,7 +64,7 @@ public:
   void setCount(uint32 count) {pCount = count;}
   void incrementCount() {pCount++;}
 
-  uint64 getUID() const {return pUID;}
+  uint64_t getUID() const {return pUID;}
   double getMean() const {return pMean;}
   double getStddev() const {return pStddev;}
   PairOrientation_e getOrientation() const {return pOrient;}
@@ -76,7 +76,7 @@ public:
       return os;
     }
 private:
-  uint64  pUID;
+  uint64_t  pUID;
   double pMean;
   double pStddev;
   PairOrientation_e pOrient;

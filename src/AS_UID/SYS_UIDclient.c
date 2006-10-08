@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#include "cds.h"
+
 #include "SYS_UIDcommon.h"
 #include "SYS_UIDerror.h"
 #include "SYS_UIDclient.h"

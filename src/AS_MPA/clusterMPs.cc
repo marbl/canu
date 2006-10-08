@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: clusterMPs.cc,v 1.5 2005-09-21 20:13:07 catmandew Exp $ */
+/* $Id: clusterMPs.cc,v 1.6 2006-10-08 08:47:39 brianwalenz Exp $ */
 #include <iostream>
 #include <vector>
 #include <list>
@@ -999,7 +999,7 @@ void FilterMislabelledLibs(vector<CompositeMPPolygon<UNIT_TYPE> > & cmpps,
       continue;
     }
 
-    uint64 libUID = mppIter->getMP(0).getLibUID();
+    uint64_t libUID = mppIter->getMP(0).getLibUID();
     bool badMP = true;
     for(unsigned int j = 1; j < mppIter->getNumMPs(); j++)
     {

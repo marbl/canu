@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_fragDB.c,v 1.7 2006-05-18 18:30:31 vrainish Exp $";
+static char CM_ID[] = "$Id: AS_PER_fragDB.c,v 1.8 2006-10-08 08:47:40 brianwalenz Exp $";
 /*************************************************************************
  Module:  AS_PER_fragDB
  Description:
@@ -50,7 +50,6 @@ static char CM_ID[] = "$Id: AS_PER_fragDB.c,v 1.7 2006-05-18 18:30:31 vrainish E
 #include "AS_PER_fragDB.h"
 #include "AS_PER_encodeSequenceQuality.h"
 #include "AS_UTL_Var.h"
-#include "PrimitiveVA.h"
 
 #define AS_ORACLEx
 

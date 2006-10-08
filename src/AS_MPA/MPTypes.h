@@ -18,19 +18,21 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: MPTypes.h,v 1.6 2005-09-30 19:51:52 eliv Exp $ */
+/* $Id: MPTypes.h,v 1.7 2006-10-08 08:47:39 brianwalenz Exp $ */
 #ifndef MPTYPES_H
 #define MPTYPES_H 1
 
-extern "C" {
-#include "cds.h"
-}
 #include <limits>
+#include <inttypes.h>
+
+extern "C" {
+#include "AS_global.h"
+}
 
 #define ID_TYPE CDS_UID_t
 #define F_MPID  F_UID
 
-#define UNIT_TYPE int64
+#define UNIT_TYPE int64_t
 #define F_MPUNIT  F_S64
 
 #define COINCIDENT_THRESHOLD  50  // bp

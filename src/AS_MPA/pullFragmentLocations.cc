@@ -18,7 +18,8 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: pullFragmentLocations.cc,v 1.5 2005-09-21 20:13:07 catmandew Exp $ */
+/* $Id: pullFragmentLocations.cc,v 1.6 2006-10-08 08:47:39 brianwalenz Exp $ */
+
 #include <cstdio>  // for sscanf
 #include <iostream>
 #include <iomanip>
@@ -27,7 +28,9 @@
 #include <list>
 #include <map>
 
-#include "cds.h"
+extern "C" {
+#include "AS_global.h"
+}
 
 using namespace std;
 

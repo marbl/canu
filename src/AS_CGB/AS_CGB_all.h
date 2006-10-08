@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- $Id: AS_CGB_all.h,v 1.7 2006-09-26 22:21:13 brianwalenz Exp $
+ $Id: AS_CGB_all.h,v 1.8 2006-10-08 08:47:39 brianwalenz Exp $
  Module: Chunk Graph Builder
  Description: A catch-all include file for the Chunk Graph Builder
  Assumptions:
@@ -69,7 +69,6 @@
 #include "AS_PER_ReadStruct.h"
 #include "AS_PER_fragStore.h"
 #include "AS_UTL_Var.h"
-#include "PrimitiveVA.h"
 #include "AS_UTL_param_proc.h"
 
 VA_DEF(BranchMesg)

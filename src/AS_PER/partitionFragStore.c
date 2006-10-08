@@ -30,7 +30,6 @@
 #include "AS_PER_genericStore.h"
 #include "AS_PER_distStore.h"
 #include "AS_UTL_Var.h"
-#include "PrimitiveVA.h"
 
 int32 ProcessPartitionFile(FILE *partitionfp,
                            CDS_IID_t firstFragID, CDS_IID_t lastFragID,

@@ -36,7 +36,6 @@
 #include "AS_UTL_Var.h"
 #include "AS_UTL_Hash.h"
 #include "AS_UTL_ID_store.h"
-#include "PrimitiveVA.h"
 #include "PrimitiveVA_MSG.h"
 #include "MultiAlignStore_CNS.h"
 

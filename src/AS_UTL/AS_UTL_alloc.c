@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-#include "cds.h"
+#include "AS_global.h"
 #include "AS_UTL_alloc.h"
 
 // Allocate and return a pointer to an array of  num  elements of

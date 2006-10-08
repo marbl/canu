@@ -24,7 +24,6 @@
 #include "AS_UTL_Var.h"
 #include "UtilsREZ.h"
 #include "AS_UTL_ID_store.h"
-#include "PrimitiveVA.h"
 #include "PrimitiveVA_MSG.h"
 #include "AS_UTL_version.h"
 #include "AS_PER_genericStore.h"
@@ -39,7 +38,7 @@
 #include "Globals_CNS.h"
 #include "PublicAPI_CNS.h"
 
-static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.3 2006-09-24 13:00:00 gdenisov Exp $";
+static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.4 2006-10-08 08:47:39 brianwalenz Exp $";
 
 static UIDHashTable_AS *utgUID2IID;
 
@@ -485,7 +484,7 @@ int main (int argc, char *argv[]) {
       MultiAlignT *ma;
       time_t t;
       t = time(0);
-      fprintf(stderr,"# asmReBaseCall $Revision: 1.3 $ processing. Started %s\n",
+      fprintf(stderr,"# asmReBaseCall $Revision: 1.4 $ processing. Started %s\n",
 	      ctime(&t));
       InitializeAlphTable();
 

@@ -26,11 +26,14 @@
 #include <stdlib.h>
 #include <errno.h>
 
-#include "cds.h"
+#include "AS_global.h"
 
 CDS_UID_t
 getGUIDBlock(int guidRequestSize) {
-  CDS_UID_t guidStart = 7180000000000;
+  CDS_UID_t guidStart = 7180000;
+
+  guidStart *= 1000;  //  Gets around integer overflow on 32-bit.
+  guidStart *= 1000;
 
   errno = 0;
   FILE *F = fopen(".local-guid", "r+");

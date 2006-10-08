@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.11 2006-09-21 21:34:01 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.12 2006-10-08 08:47:39 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,7 +32,7 @@ static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.11 2006-09-21 21:34:01 b
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "cds.h"
+
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
 #include "AS_UTL_timer.h"

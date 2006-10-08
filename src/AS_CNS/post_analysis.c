@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: post_analysis.c,v 1.7 2006-03-28 17:27:48 ahalpern Exp $ */
+/* $Id: post_analysis.c,v 1.8 2006-10-08 08:47:39 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,7 +26,6 @@
 #include "assert.h"
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
-#include "PrimitiveVA.h"
 #include "PrimitiveVA_MSG.h"
 #include "MultiAlignStore_CNS.h"
 #include "MultiAlignment_CNS.h"

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_fragStore.c,v 1.9 2006-05-18 18:30:31 vrainish Exp $";
+static char CM_ID[] = "$Id: AS_PER_fragStore.c,v 1.10 2006-10-08 08:47:40 brianwalenz Exp $";
 
 /*************************************************************************
  Module:  AS_PER_fragStore
@@ -58,7 +58,6 @@ static char CM_ID[] = "$Id: AS_PER_fragStore.c,v 1.9 2006-05-18 18:30:31 vrainis
 #include "AS_PER_fragStore_private.h"
 #include "AS_PER_SafeIO.h"
 #include "AS_UTL_Var.h"
-#include "PrimitiveVA.h"
 
 /************** Globals ********************/
 static FragStore *gFragStores = NULL;

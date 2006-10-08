@@ -19,7 +19,7 @@
  *************************************************************************/
 
 
-static char CM_ID[] = "$Id: asmInfoForFrg.c,v 1.6 2006-10-03 21:49:53 brianwalenz Exp $";
+static char CM_ID[] = "$Id: asmInfoForFrg.c,v 1.7 2006-10-08 08:47:39 brianwalenz Exp $";
 
 
 /*********************************************************************/
@@ -35,7 +35,7 @@ static char CM_ID[] = "$Id: asmInfoForFrg.c,v 1.6 2006-10-03 21:49:53 brianwalen
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "cds.h"
+
 #include "AS_global.h"
 #include "AS_CGW_dataTypes.h"
 #include "ScaffoldGraph_CGW.h"

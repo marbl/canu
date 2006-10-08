@@ -30,7 +30,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "cds.h"
+
 #include "AS_global.h"
 
 #include "AS_PER_gkpStore.h"

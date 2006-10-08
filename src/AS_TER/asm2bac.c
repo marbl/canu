@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /* RCS info
- * $Id: asm2bac.c,v 1.4 2006-08-14 19:21:39 brianwalenz Exp $
+ * $Id: asm2bac.c,v 1.5 2006-10-08 08:47:40 brianwalenz Exp $
  */
 
 #include <stdio.h>
@@ -35,7 +35,6 @@
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_UTL_Var.h"
-#include "PrimitiveVA.h"
 #include "PrimitiveVA_MSG.h"
 #include "MultiAlignStore_CNS.h"
 #include "SYS_UIDcommon.h"

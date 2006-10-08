@@ -29,7 +29,6 @@
 #include "AS_PER_fragStore_private.h" 
 #include "AS_PER_distStore.h"
 #include "AS_UTL_Var.h"
-#include "PrimitiveVA.h"
 
 int main(int argc, char *argv[]){
 

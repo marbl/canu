@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: ScaffoldGraph_CGW.h,v 1.8 2006-09-21 21:34:00 brianwalenz Exp $	 */
+/* 	$Id: ScaffoldGraph_CGW.h,v 1.9 2006-10-08 08:47:39 brianwalenz Exp $	 */
 /***************************************************************************
  *  ScaffoldGraph
  *  
@@ -35,7 +35,6 @@
 #include "AS_PER_gkpStore.h"
 #include "InputDataTypes_CGW.h"
 #include "GraphCGW_T.h"
-#include "PrimitiveVA.h"
 #include "Globals_CGW.h"
 #include "AS_SDB_SequenceDB.h"
 #include "OlapStoreOVL.h"

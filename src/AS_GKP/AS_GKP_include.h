@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_GKP_include.h,v 1.6 2006-04-06 18:53:14 brianwalenz Exp $ */
+/* $Id: AS_GKP_include.h,v 1.7 2006-10-08 08:47:39 brianwalenz Exp $ */
 
 /*************************************************
 * Module:  AS_GKP_include.h
@@ -44,7 +44,6 @@
 #include <errno.h>
 #include "AS_PER_gkpStore.h"
 #include "AS_UTL_Var.h"
-#include "PrimitiveVA.h"
 #include "AS_UTL_PHash.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_UTL_SequenceBucket.h"

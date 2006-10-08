@@ -18,10 +18,9 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_UTL_version.c,v 1.8 2005-09-22 13:35:21 catmandew Exp $";
+static const char CM_ID[] = "$Id: AS_UTL_version.c,v 1.9 2006-10-08 08:47:40 brianwalenz Exp $";
 
 #include "AS_UTL_version.h"
-#include "PrimitiveVA.h"
 
 #define  SAFE_MALLOC(command_name, the_type, length) \
   assert(NULL == command_name); \

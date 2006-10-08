@@ -22,21 +22,17 @@
 #include <stdlib.h> 
 #include <stdio.h> 
 #include <assert.h>
-#include "cds.h" 
+
 #include <unistd.h>
-//#include "AS_UTL_PHash-portable.h"
 #include "AS_UTL_PHash.h"
 #include "AS_PER_ReadStruct.h" 
 #include "AS_PER_fragStore.h" 
-//#include "AS_PER_fragStore_private-portable.h" 
-//#include "AS_PER_gkpStore-portable.h" 
 #include "AS_PER_fragStore_private.h" 
 #include "AS_PER_gkpStore.h" 
 #include "AS_PER_genericStore.h"
 #include "AS_PER_distStore.h"
 #include "AS_UTL_Var.h"
 #include "AS_SDB_SequenceDB.h"
-#include "PrimitiveVA.h"
 
 /* the following copied from AS_UTL_Var.c so that somethign not of
    general use doesn't have to be put in AS_UTL_Var.h */

@@ -22,7 +22,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "cds.h"
+
 #include "SYS_UIDcommon.h"
 #include "SYS_UIDclient.h"
 

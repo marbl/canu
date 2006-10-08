@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Biconnected_CGW.c,v 1.5 2006-09-21 21:34:00 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Biconnected_CGW.c,v 1.6 2006-10-08 08:47:39 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -47,7 +47,7 @@ static char CM_ID[] = "$Id: CIScaffoldT_Biconnected_CGW.c,v 1.5 2006-09-21 21:34
 #include "DataTypesREZ.h"
 #include "CommonREZ.h"
 #include "Stats_CGW.h"   // for collecting scaffold merging stats
-#include "PrimitiveVA.h"
+
 /****************************************************************************/
 /* IsScaffold2EdgeConnected is intended to identify the case where a single mate link
    is all that holds a scaffold together.  Basically we are looking for a 'bridge' edge,

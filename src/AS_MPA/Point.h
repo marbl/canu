@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: Point.h,v 1.4 2005-03-22 19:48:56 jason_miller Exp $ */
+/* $Id: Point.h,v 1.5 2006-10-08 08:47:39 brianwalenz Exp $ */
 #ifndef POINT_H
 #define POINT_H
 
@@ -80,7 +80,7 @@ public:
       return sqrt(((double) px * px) + ((double) py * py));
     }
   
-  void rotateByRadians(double radians, int64 x, int64 y)
+  void rotateByRadians(double radians, int64_t x, int64_t y)
     {
       double r = sqrt(((double) x) * x + ((double) y) * y);
       double oldTheta = (x != 0) ? atan(((double) y) / x) :

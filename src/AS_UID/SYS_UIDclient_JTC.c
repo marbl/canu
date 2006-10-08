@@ -24,7 +24,7 @@
 #include <curl/types.h>
 #include <curl/easy.h>
 
-#include "cds.h"
+
 
 struct JTC_GUIDMemoryStruct {
   char *memory;

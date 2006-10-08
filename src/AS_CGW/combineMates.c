@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: combineMates.c,v 1.9 2006-09-21 21:34:00 brianwalenz Exp $";
+static char CM_ID[] = "$Id: combineMates.c,v 1.10 2006-10-08 08:47:39 brianwalenz Exp $";
 
 
 /*********************************************************************/
@@ -35,7 +35,7 @@ static char CM_ID[] = "$Id: combineMates.c,v 1.9 2006-09-21 21:34:00 brianwalenz
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "cds.h"
+
 #include "AS_global.h"
 
 #include "AS_PER_gkpStore.h"

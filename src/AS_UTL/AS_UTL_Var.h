@@ -72,7 +72,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include "cds.h"
+#include "AS_global.h"
 
 #define VA_TYPENAMELEN 32 /* The number of significant characters used to 
 			     distinguish a array element type. */
@@ -497,5 +497,41 @@ static void *PopStack_##type (Stack_##type *stack){\
   item = Get##type (stack->stack, (stack->top)--);\
   return *item;\
 }
+
+
+
+
+////////////////////////////////////////
+//
+//  PrimitiveVA.h
+//
+typedef void *PtrT;
+
+VA_DEF(char);
+VA_DEF(short);
+VA_DEF(int);
+VA_DEF(uint);
+VA_DEF(int16);
+VA_DEF(cds_int16);
+VA_DEF(uint16);
+VA_DEF(cds_uint16);
+VA_DEF(int32);
+VA_DEF(cds_int32);
+VA_DEF(uint32);
+VA_DEF(cds_uint32);
+VA_DEF(uint64);
+VA_DEF(cds_uint64);
+VA_DEF(PtrT);
+
+VA_DEF(CDS_UID_t);
+VA_DEF(CDS_IID_t);
+VA_DEF(CDS_CID_t);
+VA_DEF(CDS_COORD_t);
+//
+//
+//
+////////////////////////////////////////
+
+
 
 #endif // AS_UTL_VAR_H
