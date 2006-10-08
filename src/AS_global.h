@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_global.h,v 1.1 2006-10-08 08:47:39 brianwalenz Exp $	 */
+/* 	$Id: AS_global.h,v 1.2 2006-10-08 09:00:23 brianwalenz Exp $	 */
 
 /* This is the global include file that all C files in the AS subsystem should
    include.
@@ -419,6 +419,14 @@ typedef cds_int32  CDS_COORD_t;
 // A convenient assert for testing whether ptrs are null
 // without bothering lint
 #define AssertPtr(ptr) (assert((ptr) != NULL))
+
+
+
+//  Really for lack of a better location in this file....
+//
+#define AS_FRAG_MAX_LEN (2048)
+#define AS_FRAG_MIN_LEN (64)
+
 
 
 #endif
