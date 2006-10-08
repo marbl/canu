@@ -24,6 +24,7 @@
 #include <curl/types.h>
 #include <curl/easy.h>
 
+#include "SYS_UIDcommon.h"
 
 
 struct JTC_GUIDMemoryStruct {
