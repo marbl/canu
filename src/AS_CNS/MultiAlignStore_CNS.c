@@ -25,7 +25,7 @@
    Assumptions:  libAS_UTL.a
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.19 2006-10-06 18:35:37 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.20 2006-10-09 18:54:29 gdenisov Exp $";
 
 
 #include <assert.h>
@@ -658,6 +658,9 @@ CreateMultiAlignTFromICM(IntConConMesg *icm, int localID, int sequenceOnly)
          strcpy(tmp.weights, cvr_mesg->weights);
          strcpy(tmp.var_seq, cvr_mesg->var_seq);
          SetIntMultiVar(ma->v_list, cvr, &tmp);
+         FREE(tmp.nr_conf_alleles);
+         FREE(tmp.weights);
+         FREE(tmp.var_seq);
       }
     }
 
