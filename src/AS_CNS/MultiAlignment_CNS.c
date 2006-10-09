@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.96 2006-10-08 08:47:39 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.97 2006-10-09 18:38:57 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -2737,17 +2737,12 @@ PopulateVarRecord(int32 *cids, int32 *nvars, int32 *min_len_vlist,
         {
             for (al=num_reported_alleles-1; al >=0; al--)
             {
-                if (al == 0)
-                {
-                    BaseCall(cids[vreg.beg+m], 1, &fict_var, &vreg,
-                    vreg.alleles[al].id, &cbase[al], 0, 0, opp);
-                }
-                else if (num_reported_alleles <= vreg.nca) // nca >= 2
+                if (al == 0 || al < vreg.nca)
                 {
                     int read_id = vreg.alleles[al].read_ids[0];
                     cbase[al] = vreg.reads[read_id].bases[m];
                 }
-                else // nca < 2
+                else // vreg.nca < 2 and al == 1
                 {
                     cbase[al] = vreg.reads[distant_read_id].bases[m];
                 }
