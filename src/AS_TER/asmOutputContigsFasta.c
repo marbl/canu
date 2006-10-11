@@ -32,9 +32,27 @@ main(int argc, char **argv) {
   GenericMesg      *pmesg;
   SnapConConMesg   *contig;
   char              status[265];
+  int               inclDegenerate = 0;
+  int               onlyDegenerate = 0;
 
-  if (isatty(fileno(stdin)) || (argc > 1)) {
-    fprintf(stderr,"Usage: %s < asmfile > contigs_fasta_file\n", argv[0]);
+  int arg=1;
+  int err=0;
+  while (arg < argc) {
+    if        (strcmp(argv[arg], "-d") == 0) {
+      inclDegenerate = 1;
+    } else if (strcmp(argv[arg], "-D") == 0) {
+      inclDegenerate = 1;
+      onlyDegenerate = 1;
+    } else {
+      fprintf(stderr, "unknown options '%s'\n", argv[arg]);
+      err = 1;
+    }
+    arg++;
+  }
+
+  if (isatty(fileno(stdin)) || (err > 0)) {
+    fprintf(stderr,"Usage: %s [-d | -D] < asmfile > contigs_fasta_file\n", argv[0]);
+    fprintf(stderr, "  -d (-D)    also (only) print degenerate contigs\n");
     exit(1);
   }
   
@@ -43,12 +61,23 @@ main(int argc, char **argv) {
   while (reader(stdin, &pmesg) != EOF) {
     if (pmesg->t ==MESG_CCO)  {
       contig = pmesg->m;
-      int src, dst;
+
+      //  By "definition", a degenerate contig has one unitig and is
+      //  unplaced.
+      //
+      int isDeg = 0;
+      if ((contig->num_unitigs == 1) &&
+          (contig->placed      == AS_UNPLACED))
+        isDeg = 1;
+
+      if (((isDeg == 1) && (inclDegenerate == 0)) ||
+          ((isDeg == 0) && (onlyDegenerate == 1)))
+        continue;
 
       assert(strlen(contig->consensus) == contig->length);
 
-      src = 0;
-      dst = 0;
+      int src = 0;
+      int dst = 0;
       while (src < contig->length) {
         if (contig->consensus[src] != '-') {
           if (src != dst)
@@ -60,13 +89,19 @@ main(int argc, char **argv) {
 
       contig->consensus[dst] = 0;
 
-      strcpy(status, "???");
       if (contig->placed  == AS_PLACED)
-        strcpy(status, "true");
-      if (contig->placed  == AS_UNPLACED)
-        strcpy(status, "false");
+        strcpy(status, "placed=true");
+      else if (contig->placed  == AS_UNPLACED)
+        strcpy(status, "placed=false");
+      else
+        strcpy(status, "placed=????");
 
-      printf(">contig"F_UID","F_IID" placed=%s\n%s\n",
+      if (contig->num_unitigs == 1)
+        strcat(status, " degenerate=true");
+      else
+        strcat(status, " degenerate=false");
+
+      printf(">contig"F_UID","F_IID" %s\n%s\n",
              contig->eaccession,
              contig->iaccession,
              status,
