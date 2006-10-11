@@ -56,138 +56,146 @@ sub terminate ($) {
     my $cgwDir = shift @_;
     $cgwDir = "$wrk/7-CGW" if (!defined($cgwDir));
 
-    if (! -e "$wrk/$asm.asm") {
-        my $uidServer = getGlobal("uidServer");
-        my $fakeUIDs  = getGlobal("fakeUIDs");
+    if (! -e "$wrk/9-terminator/terminator.success") {
+        system("mkdir $wrk/9-terminator") if (! -e "$wrk/9-terminator");
 
-        my $cmd;
-        $cmd  = "cd $wrk && ";
-        $cmd .= "cat $cgwDir/$asm.cgw ";
-        $cmd .= " $wrk/8-consensus/$asm.cns_contigs.*[0-9] ";
-        $cmd .= " $cgwDir/$asm.cgw_scaffolds | ";
-        $cmd .= "$bin/terminator -P -s $fakeUIDs " if ($fakeUIDs != 0);
-        $cmd .= "$bin/terminator -P -u "           if ($fakeUIDs == 0);
-        $cmd .= " $uidServer "                     if (defined($uidServer));
-        $cmd .= " -f $wrk/$asm.frgStore ";
-        $cmd .= " -g $wrk/$asm.gkpStore ";
-        $cmd .= " -o $wrk/$asm.asm ";
-        $cmd .= " -m $wrk/$asm.map ";
-        $cmd .= " > $wrk/terminator.err 2>&1 ";
+        if (! -e "$wrk/9-terminator/$asm.asm") {
+            my $uidServer = getGlobal("uidServer");
+            my $fakeUIDs  = getGlobal("fakeUIDs");
 
-        if (runCommand($cmd)) {
-            rename "$wrk/$asm.asm", "$wrk/$asm.asm.FAILED";
-            rename "$wrk/$asm.map", "$wrk/$asm.map.FAILED";
-            die "Failed.\n";
+            my $cmd;
+            $cmd  = "cd $wrk/9-terminator && ";
+            $cmd .= "cat $cgwDir/$asm.cgw ";
+            $cmd .= " $wrk/8-consensus/$asm.cns_contigs.*[0-9] ";
+            $cmd .= " $cgwDir/$asm.cgw_scaffolds | ";
+            $cmd .= "$bin/terminator -P -s $fakeUIDs " if ($fakeUIDs != 0);
+            $cmd .= "$bin/terminator -P -u "           if ($fakeUIDs == 0);
+            $cmd .= " $uidServer "                     if (defined($uidServer));
+            $cmd .= " -f $wrk/$asm.frgStore ";
+            $cmd .= " -g $wrk/$asm.gkpStore ";
+            $cmd .= " -o $wrk/9-terminator/$asm.asm ";
+            $cmd .= " -m $wrk/9-terminator/$asm.map ";
+            $cmd .= " > $wrk/9-terminator/terminator.err 2>&1 ";
+
+            if (runCommand($cmd)) {
+                rename "$wrk/9-terminator/$asm.asm", "$wrk/9-terminator/$asm.asm.FAILED";
+                rename "$wrk/9-terminator/$asm.map", "$wrk/9-terminator/$asm.map.FAILED";
+                die "Failed.\n";
+            }
         }
-    }
 
-    ########################################
+        ########################################
 
-    if (! -e "$wrk/$asm.scaffold.fasta") {
-        my $cmd;
-        $cmd  = "cd $wrk && ";
-        $cmd .= "$bin/asmProcessScaffolds_TER -q -d -f $wrk/$asm.scaffold.fasta < $wrk/$asm.asm";
-        if (runCommand($cmd)) {
-            rename "$wrk/$asm.scaffold.fasta", "$wrk/$asm.scaffold.fasta.FAILED";
-            die "Failed.\n";
+        if (! -e "$wrk/9-terminator/$asm.scaffold.fasta") {
+            my $cmd;
+            $cmd  = "cd $wrk/9-terminator && ";
+            $cmd .= "$bin/asmProcessScaffolds_TER -q -d -f $wrk/9-terminator/$asm.scaffold.fasta < $wrk/9-terminator/$asm.asm";
+            if (runCommand($cmd)) {
+                rename "$wrk/9-terminator/$asm.scaffold.fasta", "$wrk/9-terminator/$asm.scaffold.fasta.FAILED";
+                die "Failed.\n";
+            }
         }
-    }
 
-    ########################################
-    #
-    #  Generate singletons
-    #
-    if (! -e "$wrk/$asm.singleton.fasta") {
-        my $lastckp = findLastCheckpoint("$wrk/7-CGW");
-
-        my $cmd;
-        $cmd  = "cd $wrk && ";
-        $cmd .= "$bin/dumpSingletons ";
-        $cmd .= " -f $wrk/$asm.frgStore ";
-        $cmd .= " -g $wrk/$asm.gkpStore ";
-        $cmd .= " -c $cgwDir/$asm -n $lastckp -U ";
-        $cmd .= "> $wrk/$asm.singleton.fasta ";
-        $cmd .= "2> $wrk/dumpSingletons.err ";
-
-        if (runCommand($cmd)) {
-            print STDERR "Failed.\n";
-            rename "$wrk/$asm.singleton.fasta", "$wrk/$asm.singleton.fasta.FAILED";
-        }
-    }
-
-    ########################################
-
-    my $perl = "perl";
-    if (-e "/usr/local/bin/perl") {
-        system "/usr/local/bin/perl -c $bin/caqc.pl >/dev/null 2>&1";
-        $perl = "/usr/local/bin/perl" if ($? == 0);
-    }
-    if (-e "/usr/bin/perl") {
-        system "/usr/bin/perl -c $bin/caqc.pl >/dev/null 2>&1";
-        $perl = "/usr/bin/perl" if ($? == 0);
-    }
-
-
-    ########################################
-    #
-    #  Generate fragment/unitig/contig/scaffold mappings
-    #
-    if (! -e "$wrk/$asm.posmap.frgscf") {
-        my $cmd;
-        $cmd  = "cd $wrk && ";
-        $cmd .= "$perl $bin/buildFragContigPosMap.pl $asm.posmap < $wrk/$asm.asm";
-        if (runCommand($cmd)) {
-            rename "$wrk/$asm.posmap.frgscf", "$wrk/$asm.posmap.frgscf.FAILED";
-            die "buildFragContigMap failed.\n";
-        }
-    }
-
-    ########################################
-    #
-    #  Sum up the consensus stats, so we can tack them onto the end of
-    #  the qc report.
-    #
-    summarizeConsensusStatistics("$wrk/5-consensus");
-    summarizeConsensusStatistics("$wrk/8-consensus");
-
-
-    ########################################
-    #
-    #  Generate statistics.
-    #
-    if (! -e "$wrk/$asm.qc") {
-
-        #  Some amazingly ugly magic to get the perl libs.
+        ########################################
         #
-        if (!defined($ENV{'PERL5LIB'}) && !defined($ENV{'PERLLIB'})) {
-          if (-d "/home/smurphy/preassembly/test/TIGR/scripts") {
-            $ENV{'PERL5LIB'} = "/home/smurphy/preassembly/test/TIGR/scripts";
-          }
+        #  Generate singletons
+        #
+        if (! -e "$wrk/9-terminator/$asm.singleton.fasta") {
+            my $lastckp = findLastCheckpoint("$wrk/7-CGW");
+
+            my $cmd;
+            $cmd  = "cd $wrk/9-terminator && ";
+            $cmd .= "$bin/dumpSingletons ";
+            $cmd .= " -f $wrk/$asm.frgStore ";
+            $cmd .= " -g $wrk/$asm.gkpStore ";
+            $cmd .= " -c $cgwDir/$asm -n $lastckp -U ";
+            $cmd .= "> $wrk/9-terminator/$asm.singleton.fasta ";
+            $cmd .= "2> $wrk/9-terminator/dumpSingletons.err ";
+
+            if (runCommand($cmd)) {
+                print STDERR "Failed.\n";
+                rename "$wrk/9-terminator/$asm.singleton.fasta", "$wrk/9-terminator/$asm.singleton.fasta.FAILED";
+            }
         }
 
-        my $cmd;
-        $cmd  = "cd $wrk && ";
-        $cmd .= "$perl $bin/caqc.pl $wrk/$asm.asm";
-        if (runCommand($cmd)) {
-            rename "$wrk/$asm.qc", "$wrk/$asm.qc.FAILED";
-            die "Failed.\n";
+        ########################################
+
+        my $perl = "perl";
+        if (-e "/usr/local/bin/perl") {
+            system "/usr/local/bin/perl -c $bin/caqc.pl >/dev/null 2>&1";
+            $perl = "/usr/local/bin/perl" if ($? == 0);
+        }
+        if (-e "/usr/bin/perl") {
+            system "/usr/bin/perl -c $bin/caqc.pl >/dev/null 2>&1";
+            $perl = "/usr/bin/perl" if ($? == 0);
         }
 
-        open(F, ">> $wrk/$asm.qc") or die;
-        print F "\n[Unitig Consensus]\n";
-        open(G, "<  $wrk/5-consensus/consensus.stats.summary") or die;
-        while (<G>) {
-            print F $_;
-        }
-        close(G);
 
-        print F "\n[Contig Consensus]\n";
-        open(G, "<  $wrk/8-consensus/consensus.stats.summary") or die;
-        while (<G>) {
-            print F $_;
+        ########################################
+        #
+        #  Generate fragment/unitig/contig/scaffold mappings
+        #
+        if (! -e "$wrk/9-terminator/$asm.posmap.frgscf") {
+            my $cmd;
+            $cmd  = "cd $wrk/9-terminator && ";
+            $cmd .= "$perl $bin/buildFragContigPosMap.pl $asm.posmap < $wrk/9-terminator/$asm.asm";
+            if (runCommand($cmd)) {
+                rename "$wrk/9-terminator/$asm.posmap.frgscf", "$wrk/9-terminator/$asm.posmap.frgscf.FAILED";
+                die "buildFragContigMap failed.\n";
+            }
         }
-        close(G);
-        close(F);
+
+        ########################################
+        #
+        #  Sum up the consensus stats, so we can tack them onto the end of
+        #  the qc report.
+        #
+        summarizeConsensusStatistics("$wrk/5-consensus");
+        summarizeConsensusStatistics("$wrk/8-consensus");
+
+
+        ########################################
+        #
+        #  Generate statistics.
+        #
+        if (! -e "$wrk/9-terminator/$asm.qc") {
+
+            #  Some amazingly ugly magic to get the perl libs.
+            #
+            if (!defined($ENV{'PERL5LIB'}) && !defined($ENV{'PERLLIB'})) {
+                if (-d "/home/smurphy/preassembly/test/TIGR/scripts") {
+                    $ENV{'PERL5LIB'} = "/home/smurphy/preassembly/test/TIGR/scripts";
+                }
+            }
+
+            my $cmd;
+            $cmd  = "cd $wrk/9-terminator && ";
+            $cmd .= "$perl $bin/caqc.pl $wrk/9-terminator/$asm.asm";
+            if (runCommand($cmd)) {
+                rename "$wrk/9-terminator/$asm.qc", "$wrk/9-terminator/$asm.qc.FAILED";
+                die "Failed.\n";
+            }
+
+            open(F, ">> $wrk/9-terminator/$asm.qc") or die;
+            print F "\n[Unitig Consensus]\n";
+            open(G, "<  $wrk/5-consensus/consensus.stats.summary") or die;
+            while (<G>) {
+                print F $_;
+            }
+            close(G);
+
+            print F "\n[Contig Consensus]\n";
+            open(G, "<  $wrk/8-consensus/consensus.stats.summary") or die;
+            while (<G>) {
+                print F $_;
+            }
+            close(G);
+            close(F);
+        }
+
+        touch("$wrk/9-terminator/terminator.success");
+        system("ln $wrk/9-terminator/$asm.asm $wrk/$asm.asm");
+        system("ln $wrk/9-terminator/$asm.qc  $wrk/$asm.qc");
     }
 }
 
