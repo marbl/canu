@@ -18,15 +18,10 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_SDB_SequenceDBPartition.h,v 1.4 2005-03-22 19:49:27 jason_miller Exp $	 */
+
 #ifndef AS_SDB_SEQUENCEDB_PARTITION_H
 #define AS_SDB_SEQUENCEDB_PARTITION_H
 
-/*************************************************************************
- Module:  AS_SDB_SequenceDBPartition.h
- Description:
-
- *************************************************************************/
 #include "AS_UTL_Hash.h"
 #include "AS_SDB_SequenceDB.h"
 
@@ -37,12 +32,12 @@ typedef struct {
 
 VA_DEF(tPartitionElement)
 
-typedef struct SequenceDBPartition_tag{
+typedef struct {
   char *sequenceDBPath;      
   VA_TYPE(tMARecord) *multiAligns; // the fileID in the tMARecord is used for the multi-alignID
   FILE *datafp;                    // single FILE* for the data, all is loaded into memory
   HashTable_AS *index;
-}tSequenceDBPartition;
+} tSequenceDBPartition;
 
 int32 testOpenSequenceDBPartition(char *path, int32 revision, int32 partition);
 tSequenceDBPartition *openSequenceDBPartition(char *path, int32 revision, int32 partition);
@@ -54,6 +49,5 @@ MultiAlignT *loadFromSequenceDBPartition(tSequenceDBPartition *partition, int32 
 int isMemberSequenceDBPartition(tSequenceDBPartition *partition, int32 indx);
 
 VA_TYPE(int32) *GetContentSequenceDBPartition(tSequenceDBPartition *partition);
-
 
 #endif
