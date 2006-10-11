@@ -18,75 +18,108 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* CountMessages
- *    Extracts messages of a given set of types
- *
- * $Id: ExtractMessages.c,v 1.5 2005-09-15 15:20:16 eliv Exp $
- *
- */
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "AS_global.h"
+#include <errno.h>
+#include <string.h>
 #include <assert.h>
+#include "AS_global.h"
 
-#define MAX_MESG NUM_OF_REC_TYPES
-int main(int argc, char **argv)
-{ 
-  GenericMesg *pmesg;
-  int include[MAX_MESG + 1];
-  int i;
-  int Include = TRUE;
-  int numTypesExtracted = 0;
-  MesgReader reader = (MesgReader)InputFileType_AS(stdin);
+void
+usage(char *name) {
+  fprintf(stderr, "usage: %s [-x] [-i] [-m message type] [-o outputfile] < <input file>\n", name);
+  fprintf(stderr, "       -i      include the following messages in the next output\n");
+  fprintf(stderr, "       -x      exclude the following messages from the next output\n");
+  fprintf(stderr, "       -m      message\n");
+  fprintf(stderr, "       -o      write output here\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "extractmessages attempts to construct a filter chain to put every message\n");
+  fprintf(stderr, "into a specific file.  Using the -i and -x switches, you can specify messages\n");
+  fprintf(stderr, "to include in the next file or to exclude from the next file.\n");
+  fprintf(stderr, "For example:\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "  extractmessages -i -m ICM -m IDS -o icm-and-ids -x -m IAF -o everythingelse > /dev/null\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "includes only ICM and IDS messages in the first file, then excludes IAF messages\n");
+  fprintf(stderr, "from the second file, and everything else (here, just IAF messages) are written\n");
+  fprintf(stderr, "to stdout.\n");
+  fprintf(stderr, "\n");
+}
 
-  if(argc < 2){
-    fprintf(stderr,"* usage: extractmessages [-x] [list of message types] < <input file>\n");
-    fprintf(stderr,"*        e.g., extractmessages IUM < a004.cgb \n");
-    exit(1);
+  
+int
+main(int argc, char **argv) {
+  int            msglist[NUM_OF_REC_TYPES + 1];
+  FILE          *outfile[NUM_OF_REC_TYPES + 1];
+  int            i;
+
+  for (i=0; i<=NUM_OF_REC_TYPES; i++) {
+    msglist[i] = 0;
+    outfile[i] = NULL;
   }
 
-  if(argv[1][0] == '-' ){
-    if( argv[1][1] == 'x'){
-      Include = FALSE;
-    }else{
-      fprintf(stderr,"* Illegal option %s...ignored\n",
-	      argv[1]);
+  int arg = 1;
+  int inc = 0;
+  int err = 0;
+  int msg = 0;
+
+  while (arg < argc) {
+    if        (strcmp(argv[arg], "-i") == 0) {
+      inc = 0;
+    } else if (strcmp(argv[arg], "-x") == 0) {
+      inc = 1;
+    } else if (strcmp(argv[arg], "-m") == 0) {
+      int type = GetMessageType(argv[++arg]);
+      if ((type >= 1) && (type <= NUM_OF_REC_TYPES)) {
+        msglist[type]++;
+      } else {
+        fprintf(stderr, "%s: invalid message type '%s'.\n", argv[arg]);
+        err = 1;
+      }
+      msg++;
+    } else if (strcmp(argv[arg], "-f") == 0) {
+      errno = 0;
+      FILE *F = fopen(argv[++arg], "w");
+      if (errno)
+        fprintf(stderr, "%s: failed to open output file '%s': %s\n", argv[arg], strerror(errno)), exit(1);
+
+      //  Depending on the include flag, we either write all messages
+      //  listed in our msglist (or write all message not in the
+      //  msglist) to the freshly opened file.
+      //
+      if (inc) {
+        //  Include message i in the output if it was listed
+        for (i=1; i<=NUM_OF_REC_TYPES; i++)
+          if ((outfile[i] == NULL) && (msglist[i] > 0))
+            outfile[i] = F;
+      } else {
+        //  Include message i in the output if it was not listed
+        for (i=1; i<=NUM_OF_REC_TYPES; i++)
+          if ((outfile[i] == NULL) && (msglist[i] == 0))
+            outfile[i] = F;
+      }
+
+      for (i=0; i<=NUM_OF_REC_TYPES; i++)
+        msglist[i] = 0;
+    } else {
+      err = 1;
     }
   }
-  for(i = 0; i <= MAX_MESG; i++)
-    include[i] = !Include;
 
-  for(i = 1; i < argc; i++){
-    int type;
+  if ((err) || (msg == 0))
+    usage(argv[0]), exit(1);
 
-    if(argv[i][0] == '-')
-      continue;
+  GenericMesg   *pmesg;
+  MesgReader     reader = (MesgReader)InputFileType_AS(stdin);
 
-      type = GetMessageType(argv[i]);
-    if(type >= 1 && type <= MAX_MESG){
-      include[type] = Include;
-      fprintf(stderr,"* %s messages of type %d %s\n",
-	      (Include?"Including":"Excluding"),type, GetMessageName(type));
-      numTypesExtracted++;
-    }else{
-      fprintf(stderr,"* Unknown message type %s...ignoring\n",
-	      argv[i]);
-    }
-  }
-  if(numTypesExtracted == 0){
-    fprintf(stderr,"*** No message types specified...exiting\n");
-    exit(1);
-  }
- while (reader(stdin,&pmesg) != EOF){
-   //   fprintf(stderr,"* MAX_MESG %d pmesg->t %d\n",
-   //	   MAX_MESG, pmesg->t);
-   assert(pmesg->t <= MAX_MESG );
-   if(include[pmesg->t]){
-    WriteProtoMesg_AS(stdout,pmesg);
-    fflush(stdout);
-   }
+ while (reader(stdin, &pmesg) != EOF) {
+   assert(pmesg->t <= NUM_OF_REC_TYPES);
+   assert(outfile[pmesg->t] != NULL);
+
+   WriteProtoMesg_AS(outfile[pmesg->t], pmesg);
  }
+
  exit(0);
 }
 
