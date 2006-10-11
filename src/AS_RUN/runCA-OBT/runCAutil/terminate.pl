@@ -108,7 +108,7 @@ sub terminate ($) {
             $cmd .= "$bin/dumpSingletons ";
             $cmd .= " -f $wrk/$asm.frgStore ";
             $cmd .= " -g $wrk/$asm.gkpStore ";
-            $cmd .= " -c $cgwDir/$asm -n $lastckp -U ";
+            $cmd .= " -c $cgwDir/$asm -n $lastckp -S ";
             $cmd .= "> $wrk/9-terminator/$asm.singleton.fasta ";
             $cmd .= "2> $wrk/9-terminator/dumpSingletons.err ";
 

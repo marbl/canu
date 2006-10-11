@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpSingletons.c,v 1.11 2006-10-11 08:53:20 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpSingletons.c,v 1.12 2006-10-11 17:55:25 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -82,7 +82,7 @@ getFragmentClear(int iid,
   }
   
   strcpy(*toprint, *seq + clr_bgn);
-  *toprint[clr_end - clr_bgn] = 0;
+  (*toprint)[clr_end - clr_bgn] = 0;
 
   if (reversecomplement)
     Complement_Seq(*toprint);
@@ -166,7 +166,7 @@ main( int argc, char **argv) {
     fprintf(stderr, "  -f      Path to frgStore\n");
     fprintf(stderr, "  -g      Path to gkpStore\n");
     fprintf(stderr, "  -n      Checkpoint number to load\n");
-    fprintf(stderr, "  -U      Use real UIDs, otherwise, UIDs start at 1230000\n");
+    fprintf(stderr, "  -U      Use real UIDs for miniscaffolds, otherwise, UIDs start at 1230000\n");
     fprintf(stderr, "  -S      Do NOT make mini scaffolds.\n");
     exit(1);
   }
@@ -196,8 +196,8 @@ main( int argc, char **argv) {
     //  dangling mates.  Somebody else seems to be doing this too.
     //
     if (frag->numLinks > 0) {
-      mate = GetCIFragT(ScaffoldGraph->CIFrags,frag->mateOf);
-      if (mate == 0L)
+      mate = GetCIFragT(ScaffoldGraph->CIFrags, frag->mateOf);
+      if (mate == NULL)
         frag->numLinks = 0;
     }
 
@@ -205,7 +205,6 @@ main( int argc, char **argv) {
     //
     if (GetGraphNode(ScaffoldGraph->CIGraph,frag->cid)->flags.bits.isChaff == 0)
       continue;
-
 
     //  Print a singleton if there is no mate, the mate isn't chaff,
     //  or we were told to not make miniscaffolds.
@@ -224,11 +223,11 @@ main( int argc, char **argv) {
       CDS_UID_t  fUID = getFragmentClear(frag->iid, 0, &alloclen1, &seq1, &qul1, &toprint1);
       CDS_UID_t  mUID = getFragmentClear(mate->iid, 1, &alloclen2, &seq2, &qul2, &toprint2);
 
-      // make sure the following chain of Ns is divisible by three;
-      // the exact length is arbitrary but Doug Rusch points out that
-      // by making it divisible by 3, we can get lucky and maintain
-      // the phase of a protein ...  which helps in the
-      // auto-annotation of environmental samples
+      //  make sure the following chain of Ns is divisible by three;
+      //  the exact length is arbitrary but Doug Rusch points out that
+      //  by making it divisible by 3, we can get lucky and maintain
+      //  the phase of a protein ...  which helps in the
+      //  auto-annotation of environmental samples
 
       fprintf(stdout, ">"F_S64" /type=mini_scaffold /frgs=("F_S64","F_S64")\n%sNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN%s\n",
               getUID(realUID),
