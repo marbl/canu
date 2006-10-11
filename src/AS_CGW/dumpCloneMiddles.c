@@ -184,50 +184,11 @@ int main (int argc , char * argv[] ) {
           setOvlStore = TRUE;
           break;	  
         case 'p':
-          prefix = argv[optind - 1];
-          sprintf(data->Frag_Store_Name, "%s.frgStore", prefix);
-          sprintf(data->Gatekeeper_Store_Name, "%s.gkpStore", prefix);
-          sprintf(data->OVL_Store_Name, "%s.ovlStore", prefix);
-          sprintf(data->File_Name_Prefix, "7-CGW/%s", prefix);
-
-          setFragStore = TRUE;
+          ckptNum = SetFileNamePrefix_CGW(data, argv[optind - 1]);
+          setFragStore       = TRUE;
           setGatekeeperStore = TRUE;
-          setOvlStore = TRUE;
-          setPrefixName = TRUE;
-
-          //  Find the checkpoint number by testing what files open.  We
-          //  assume checkpoints are numbered contiguously.
-
-          {
-            int  foundFirst = 0;
-            int  i = 0;
-
-            ckptNum = -1;
-
-            for (i=0; i<256; i++) {
-              char         testname[1024];
-              struct stat  teststat;
-
-              sprintf(testname, "%s.ckp.%d", data->File_Name_Prefix, i);
-              fprintf(stderr, "Testing '%s'\n", testname);
-              if (stat(testname, &teststat) == 0) {
-                foundFirst++;
-              } else {
-                if (foundFirst) {
-                  //  Found the checkpoint number!  It's the one before this!
-                  fprintf(stderr, "Checkpoint number %d found!\n", i-1);
-                  ckptNum = i - 1;
-                  break;
-                }
-              }
-            }
-          }
-
-          if (ckptNum < 1) {
-            fprintf(stderr, "ERROR:  I couldn't find the checkpoints.\n");
-            exit(1);
-          }
-
+          setOvlStore        = TRUE;
+          setPrefixName      = TRUE;
           break;
         case 's':
           specificScf = atoi(argv[optind - 1]);

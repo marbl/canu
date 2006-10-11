@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: Globals_CGW.h,v 1.9 2006-10-03 21:49:53 brianwalenz Exp $	 */
+/* 	$Id: Globals_CGW.h,v 1.10 2006-10-11 08:51:39 brianwalenz Exp $	 */
 #ifndef GLOBALS_CGW_H
 #define GLOBALS_CGW_H
 
@@ -100,6 +100,8 @@ Global_CGW *GlobalData;
 
 extern Global_CGW *CreateGlobal_CGW(void);
 extern void DeleteGlobal_CGW(Global_CGW *);
+
+extern int  SetFileNamePrefix_CGW(Global_CGW *data, char *name);
 
 /****************************************************************************/
 static FILE *  File_Open

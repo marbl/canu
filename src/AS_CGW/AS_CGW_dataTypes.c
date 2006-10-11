@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGW_dataTypes.c,v 1.6 2006-10-03 21:49:53 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGW_dataTypes.c,v 1.7 2006-10-11 08:51:39 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -26,6 +26,8 @@ static char CM_ID[] = "$Id: AS_CGW_dataTypes.c,v 1.6 2006-10-03 21:49:53 brianwa
 #include <math.h>
 #include <string.h>
 #include <unistd.h>
+#include <dirent.h>
+#include <sys/stat.h>
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
@@ -71,6 +73,47 @@ Global_CGW *CreateGlobal_CGW(void){
 
   return(g);
 }
+
+int SetFileNamePrefix_CGW(Global_CGW *g, char *prefix) {
+  int  foundFirst = 0;
+  int  i = 0;
+  int  ckp = -1;
+
+  sprintf(g->Frag_Store_Name,       "%s.frgStore", prefix);
+  sprintf(g->Gatekeeper_Store_Name, "%s.gkpStore", prefix);
+  sprintf(g->OVL_Store_Name,        "%s.ovlStore", prefix);
+  sprintf(g->File_Name_Prefix,      "7-CGW/%s",    prefix);
+
+  //  Find the checkpoint number by testing what files open.  We
+  //  assume checkpoints are numbered contiguously, and stop after the
+  //  first non-contiguous block -- e.g., "4, 5, 6" would return 6.
+
+  for (i=0; i<1024; i++) {
+    char         testname[1024];
+    struct stat  teststat;
+
+    sprintf(testname, "%s.ckp.%d", g->File_Name_Prefix, i);
+
+    if (stat(testname, &teststat) == 0) {
+      foundFirst++;
+    } else {
+      if (foundFirst) {
+        //  Found the checkpoint number!  It's the one before this!
+        fprintf(stderr, "Checkpoint number %d found!\n", i-1);
+        ckp = i - 1;
+        break;
+      }
+    }
+  }
+
+  if (ckp < 1) {
+    fprintf(stderr, "SetFileNamePrefix_CGW()-- I couldn't find any checkpoints.\n");
+    exit(1);
+  }
+
+  return(ckp);
+}
+
 
 #ifdef NEVER
 void ResetHistograms_CGW(Global_CGW *g){
