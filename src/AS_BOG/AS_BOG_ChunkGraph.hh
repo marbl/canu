@@ -36,14 +36,14 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_ChunkGraph.hh,v 1.4 2006-03-22 16:39:26 eliv Exp $
- * $Revision: 1.4 $
+ * $Id: AS_BOG_ChunkGraph.hh,v 1.5 2006-10-11 14:36:27 eliv Exp $
+ * $Revision: 1.5 $
 */
 
 #ifndef INCLUDE_AS_BOG_CHUNKGRAPH
 #define INCLUDE_AS_BOG_CHUNKGRAPH
 
-static char AS_BOG_CHUNK_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_ChunkGraph.hh,v 1.4 2006-03-22 16:39:26 eliv Exp $";
+static char AS_BOG_CHUNK_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_ChunkGraph.hh,v 1.5 2006-10-11 14:36:27 eliv Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -70,7 +70,7 @@ namespace AS_BOG{
 			BestEdgeOverlap *beo,
 			BestOverlapGraph *bovlg);
 
-	        bool isChunkable(
+	    virtual bool isChunkable(
 			iuid frag_a_id, fragment_end_type which_end,
 			BestOverlapGraph *bovlg);
 
@@ -105,6 +105,13 @@ namespace AS_BOG{
 		iuid _max_fragments;
 
 	};
+
+    struct PromiscuousChunkGraph : public ChunkGraph {
+         bool isChunkable(
+            iuid frag_id, fragment_end_type which_end,
+            BestOverlapGraph *);
+
+    };
 
 } //AS_BOG namespace
 

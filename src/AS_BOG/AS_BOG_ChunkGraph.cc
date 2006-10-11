@@ -33,11 +33,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_ChunkGraph.cc,v 1.5 2006-03-22 16:39:26 eliv Exp $
- * $Revision: 1.5 $
+ * $Id: AS_BOG_ChunkGraph.cc,v 1.6 2006-10-11 14:36:27 eliv Exp $
+ * $Revision: 1.6 $
 */
 
-static char AS_BOG_CHUNK_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_ChunkGraph.cc,v 1.5 2006-03-22 16:39:26 eliv Exp $";
+static char AS_BOG_CHUNK_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_ChunkGraph.cc,v 1.6 2006-10-11 14:36:27 eliv Exp $";
 
 //  System include files
 
@@ -175,7 +175,22 @@ namespace AS_BOG{
 		}
 
 	}
+	bool PromiscuousChunkGraph::isChunkable(
+		iuid frag_a_id, fragment_end_type which_end, 
+		BestOverlapGraph *bovlg) {
 
+		// Translate from fragment id to best overlap
+		BestEdgeOverlap *a_beo=bovlg->getBestEdgeOverlap(frag_a_id, which_end);
+        return true;
+        BestEdgeOverlap *b_beo=bovlg->getBestEdgeOverlap(a_beo->frag_b_id, a_beo->bend);
+
+        // If b points to a, as well
+        if((b_beo->frag_b_id == frag_a_id) && (b_beo->bend == which_end)) {
+            return(true);
+		}else{
+			return(false);
+		}
+	}
 	//////////////////////////////////////////////////////////////////////////////
 
 	void ChunkGraph::printFrom(iuid begin, iuid end){
