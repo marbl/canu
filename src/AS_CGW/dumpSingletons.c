@@ -19,10 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpSingletons.c,v 1.10 2006-10-08 08:47:39 brianwalenz Exp $";
-
-
-/*********************************************************************/
+static char CM_ID[] = "$Id: dumpSingletons.c,v 1.11 2006-10-11 08:53:20 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,7 +32,6 @@ static char CM_ID[] = "$Id: dumpSingletons.c,v 1.10 2006-10-08 08:47:39 brianwal
 #include <sys/stat.h>
 #include <unistd.h>
 
-
 #include "AS_global.h"
 #include "AS_CGW_dataTypes.h"
 #include "ScaffoldGraph_CGW.h"
@@ -45,273 +41,200 @@ static char CM_ID[] = "$Id: dumpSingletons.c,v 1.10 2006-10-08 08:47:39 brianwal
 #include "SYS_UIDcommon.h"
 #include "SYS_UIDclient.h"
 
-int USE_SDB;
-int USE_SDB_PART;
-
-#ifndef LD
-#ifdef linux
-#define LD "%lld"
-#else
-#define LD "%ld"
-#endif
-#endif
 
 
-static void Complement(char *seq, int len)
-{ static char WCinvert[256];
- static int Firstime = 1;
+CDS_UID_t
+getFragmentClear(int iid,
+                 int reversecomplement,
+                 int  *alloclen,
+                 char **seq,
+                 char **qul,
+                 char **toprint) {
 
- if (Firstime)          /* Setup complementation array */
-   { int i;
+  static ReadStructp               fs = NULL;
+  static GateKeeperFragmentRecord  gs;
 
-   Firstime = 0;
-   for(i = 0; i < 256;i++){
-     WCinvert[i] = '?';
-   }
-   WCinvert['a'] = 't';
-   WCinvert['c'] = 'g';
-   WCinvert['g'] = 'c';
-   WCinvert['t'] = 'a';
-   WCinvert['n'] = 'n';
-   WCinvert['A'] = 'T';
-   WCinvert['C'] = 'G';
-   WCinvert['G'] = 'C';
-   WCinvert['T'] = 'A';
-   WCinvert['N'] = 'N';
-   WCinvert['-'] = '-'; // added this to enable alignment of gapped consensi
-   }
+  if (fs == NULL)
+    fs = new_ReadStruct();
 
- /* Complement and reverse sequence */
+  if (getFragStore(ScaffoldGraph->fragStore,
+                   iid,
+                   FRAG_S_ALL, fs) != 0) {
+    fprintf(stderr,"Couldn't get fragment from frgStore for iid %d\n", iid);
+    assert(0);
+  }
 
- { register char *s, *t;
- int c;
+  if (getGateKeeperFragmentStore(ScaffoldGraph->gkpStore.frgStore,
+                                 iid,
+                                 &gs) != 0) {
+    fprintf(stderr,"Couldn't get fragment from gkpStore for iid %d\n", iid);
+    assert(0);
+  }
 
- s = seq;
- t = seq + (len-1);
- while (s < t)
-   { c = *s;
-   *s++ = WCinvert[(int) *t];
-   *t-- = WCinvert[c];
-   }
- if (s == t)
-   *s = WCinvert[(int) *s];
- }
+  unsigned int  clr_bgn, clr_end;
+  
+  getClearRegion_ReadStruct(fs, &clr_bgn, &clr_end, READSTRUCT_LATEST);
+  while (getSequence_ReadStruct(fs, *seq, *qul, *alloclen) != 0) {
+    *alloclen *= 2;
+    *seq       = (char*)safe_realloc(*seq,     *alloclen * sizeof(char));
+    *qul       = (char*)safe_realloc(*qul,     *alloclen * sizeof(char));
+    *toprint   = (char*)safe_realloc(*toprint, *alloclen * sizeof(char));
+  }
+  
+  strcpy(*toprint, *seq + clr_bgn);
+  *toprint[clr_end - clr_bgn] = 0;
+
+  if (reversecomplement)
+    Complement_Seq(*toprint);
+
+  return(gs.readUID);
 }
 
-int main( int argc, char *argv[])
-{
-  int32 restartFromCheckpoint = NULLINDEX;
-  Global_CGW *data;
-  char *inputPath;
-  char *prefix;
-  MesgReader reader;
-  MesgWriter writer;
-  FILE *myerr = stderr; 
-  FILE *myout = stdout; 
-  char *outputPath = NULL;
-  int setFragStore = FALSE;
-  int setGatekeeperStore = FALSE;
-  int setPrefixName = FALSE;
-  int setSingleSid = FALSE, singleSid;
-  int ckptNum = NULLINDEX;
-  int mateIID;
-  int ifrag;
-  FragStoreHandle storeHandle = 0;
-  GateKeeperStore gkpStore;
-  GateKeeperFragmentRecord gkpFrag,gkpMate;
-  CIFragT *frag,*mate;
-  uint64 uid, mateuid;
-  char *seq1,*seq2,*qul1,*qul2,*toprint1,*toprint2;
-  uint clr_bgn1,clr_end1;
-  uint clr_bgn2,clr_end2;
-  int alloclen1=1000;
-  int alloclen2=1000;
-  ReadStructp fsread=new_ReadStruct();
-  ReadStructp fsmate=new_ReadStruct();
-  int realUID=0;
-  int UIDstart=1230000;
-  int firstUID=1;
-  CDS_UID_t       interval_UID[4];
 
-  GlobalData  = data = CreateGlobal_CGW();
-  data->stderrc = stderr;
-  data->timefp = stderr;
 
-  setbuf(stdout,NULL);
+CDS_UID_t
+getUID(int realUID) {
+  static uint64        blockSize = 0;
+  static int           UIDstart  = 1230000;
+  static CDS_UID_t     interval_UID[4];
 
-  { /* Parse the argument list using "man 3 getopt". */ 
-    int ch,errflg=0;
-    optarg = NULL;
-    while (!errflg && ((ch = getopt(argc, argv,
-				    "c:f:g:n:U")) != EOF)){
-      switch(ch) {
-        case 'c':
-          strcpy( data->File_Name_Prefix, argv[optind - 1]);
-          setPrefixName = TRUE;		  
-          break;
-        case 'f':
-          strcpy( data->Frag_Store_Name, argv[optind - 1]);
-          setFragStore = TRUE;
-          break;
-        case 'g':
-          strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
-          setGatekeeperStore = TRUE;
-          break;	  
-        case 'n':
-          ckptNum = atoi(argv[optind - 1]);
-          break;
-        case 'U':
-          realUID=1;
-          break;
-        case '?':
-          fprintf(stderr,"Unrecognized option -%c",optopt);
-        default :
-          errflg++;
-      }
-    }
+  CDS_UID_t            uid       = 0;;
 
-    if((setPrefixName == FALSE) || (setFragStore == 0) || (setGatekeeperStore == 0))
-      {
-	fprintf(stderr,"* argc = %d optind = %d setFragStore = %d setGatekeeperStore = %d outputPath = %s\n",
-		argc, optind, setFragStore,setGatekeeperStore, outputPath);
-	fprintf (stderr, "USAGE:  %s -f <FragStoreName> -g <GatekeeperStoreName> -c <CkptFileName> -n <CkpPtNum> [-U]\n",argv[0]);
-	exit (EXIT_FAILURE);
-      }
-
+  if (blockSize == 0) {
+    blockSize = 300;
+    set_start_uid(UIDstart); /* used if realUID == FALSE */
+    get_uids(blockSize, interval_UID, realUID);
   }
-  seq1=(char*)malloc(sizeof(char)*alloclen1);
-  qul1=(char*)malloc(sizeof(char)*alloclen1);
-  toprint1=(char*)malloc(sizeof(char)*alloclen1);
-  assert(seq1!=NULL);
-  assert(qul1!=NULL);
-  assert(toprint1!=NULL);
-  seq2=(char*)malloc(sizeof(char)*alloclen2);
-  qul2=(char*)malloc(sizeof(char)*alloclen2);
-  toprint2=(char*)malloc(sizeof(char)*alloclen2);
-  assert(seq2!=NULL);
-  assert(qul2!=NULL);
-  assert(toprint2!=NULL);
 
-  ScaffoldGraph = LoadScaffoldGraphFromCheckpoint( data->File_Name_Prefix, ckptNum, FALSE);
+  if (get_next_uid(&uid, realUID) != UID_CODE_OK) {
+    get_uids(blockSize, interval_UID, realUID);
+    if (get_next_uid(&uid, realUID) != UID_CODE_OK) {
+      fprintf(stderr, "Could not get UID!\n");
+      assert(0);
+    }
+  }
 
-  for (ifrag = 0; ifrag < GetNumVA_CIFragT( ScaffoldGraph->CIFrags ); ifrag++){
-
-    frag = GetCIFragT( ScaffoldGraph->CIFrags, ifrag);
-    assert(frag->cid!=NULLINDEX);
-
-    if(GetGraphNode(ScaffoldGraph->CIGraph,frag->cid)->flags.bits.isChaff){
-      InfoByIID * info;
-
-      if(frag->numLinks>0){
-	assert(frag->numLinks==1);
-	mate = GetCIFragT(ScaffoldGraph->CIFrags,frag->mateOf);
-
-        //  Hmmm, why don't we have a mate?!  Probably a bug somewhere
-        //  (in the input, perhaps??)  Perhaps this is from OBT
-        //  deleting fragments, but not deleting the link.
-        //
-        if (!mate) {
-          frag->numLinks = 0;
-        } else {
-          if(mate->flags.bits.isChaff){
-            if(frag->iid>mate->iid) {
-              //	    printf("%d is chaff ",frag->iid);
-              //	    printf(" would not print (should have been taken care of already)\n");
-              continue;
-            }
-          }
-	}
-
-      }
-	    
-      if(getFragStore(ScaffoldGraph->fragStore,frag->iid,FRAG_S_ALL,fsread)!=0){
-	fprintf(stderr,"Couldn't get fragment from frgStore for iid %d\n",frag->iid);
-	assert(0);
-      } else {
-	int rv1;
-	rv1 = getGateKeeperFragmentStore(ScaffoldGraph->gkpStore.frgStore,frag->iid,&gkpFrag);
-	assert(rv1==0);
-	getClearRegion_ReadStruct(fsread, &clr_bgn1,&clr_end1, READSTRUCT_LATEST);
-	while(getSequence_ReadStruct(fsread,seq1,qul1,alloclen1)!=0){
-	  alloclen1*=2;
-	  seq1=(char*)realloc(seq1,alloclen1*sizeof(char));
-	  qul1=(char*)realloc(qul1,alloclen1*sizeof(char));
-	  toprint1=(char*)realloc(toprint1,alloclen1*sizeof(char));
-	}
-	strcpy(toprint1,seq1+clr_bgn1);
-	toprint1[clr_end1-clr_bgn1]='\0';
-      }
+  return(uid);
+}
 
 
-      if(frag->numLinks==0 || ! mate->flags.bits.isChaff){
-	//	printf("%d should print by itself\n",frag->iid);
 
+int
+main( int argc, char **argv) {
+  int ckptNum           = NULLINDEX;
+  int realUID           = 0;
+  int makeMiniScaffolds = 1;
 
-	printf(">" F_S64 " /type=singleton\n%s\n",
-	       gkpFrag.readUID,toprint1);
-      } else {
-	int rv2;
+  GlobalData          = CreateGlobal_CGW();
+  GlobalData->stderrc = stderr;
+  GlobalData->timefp  = stderr;
 
-	//	printf("%d and %d should print as mini-scaffold\n",frag->iid,mate->iid);
+  GlobalData->File_Name_Prefix[0] = 0;
+  GlobalData->Frag_Store_Name[0] = 0;
+  GlobalData->Gatekeeper_Store_Name[0] = 0;
 
-	rv2 = getGateKeeperFragmentStore(ScaffoldGraph->gkpStore.frgStore,mate->iid,&gkpMate);
-	assert(rv2==0);
-	
-	if(getFragStore(ScaffoldGraph->fragStore,mate->iid,FRAG_S_ALL,fsmate)!=0){
-	  fprintf(stderr,"Couldn't get fragment from frgStore for iid %d\n",mate->iid);
-	  assert(0);
-	} else {
-	  getClearRegion_ReadStruct(fsmate, &clr_bgn2,&clr_end2, READSTRUCT_LATEST);
-	  while(getSequence_ReadStruct(fsmate,seq2,qul2,alloclen2)!=0){
-	    alloclen2*=2;
-	    seq2=(char*)realloc(seq2,alloclen2*sizeof(char));
-	    qul2=(char*)realloc(qul2,alloclen2*sizeof(char));
-	    toprint2=(char*)realloc(toprint2,alloclen2*sizeof(char));
-	  }
-	  strcpy(toprint2,seq2+clr_bgn2);
-	  toprint2[clr_end2-clr_bgn2]='\0';
-	  //	  printf(" before rc, 2nd frg is:\n%s\n",toprint2);
-	  Complement(toprint2,strlen(toprint2));
-	}
-	{
-	  uint64 blockSize = 300;
-	  CDS_UID_t uid;
-	  int32  uidStatus;
-	  CDS_UID_t interval_UID[4];
-	  if(firstUID){
-	    firstUID=0;
-	    set_start_uid(UIDstart); /* used if readUID == FALSE */
-	    get_uids(blockSize,interval_UID,realUID);
-	  }
-
-	  uidStatus = get_next_uid(&uid,realUID);
-	  if( uidStatus != UID_CODE_OK )
-	    {
-	      get_uids(blockSize,interval_UID,realUID);
-	      uidStatus = get_next_uid(&uid,realUID);
-	    }	  
-	  if( UID_CODE_OK != uidStatus )
-	    { 
-	      fprintf(stderr, "Could not get UID \n");
-              assert(0);
-	    }
-
-	  // make sure the following chain of Ns is divisible by three; the exact
-	  // length is arbitrary but Doug Rusch points out that by making it
-	  // divisible by 3, we can get lucky and maintain the phase of a protein ...
-	  // which helps in the auto-annotation of environmental samples
-	  printf(">" F_S64 " /type=mini_scaffold /frgs=(" F_S64 "," F_S64 ")\n"
-		 "%sNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN%s\n",
-		 uid,
-		 gkpFrag.readUID,gkpMate.readUID,
-		 toprint1,toprint2);
-	}
-
-      }
-
+  int err=0;
+  int arg=1;
+  while (arg < argc) {
+    if        (strcmp(argv[arg], "-p") == 0) {
+      ckptNum = SetFileNamePrefix_CGW(GlobalData, argv[++arg]);
+    } else if (strcmp(argv[arg], "-c") == 0) {
+      strcpy(GlobalData->File_Name_Prefix, argv[++arg]);
+    } else if (strcmp(argv[arg], "-f") == 0) {
+      strcpy(GlobalData->Frag_Store_Name, argv[++arg]);
+    } else if (strcmp(argv[arg], "-g") == 0) {
+      strcpy(GlobalData->Gatekeeper_Store_Name, argv[++arg]);
+    } else if (strcmp(argv[arg], "-n") == 0) {
+      ckptNum = atoi(argv[++arg]);
+    } else if (strcmp(argv[arg], "-U") == 0) {
+      realUID = 1;
+    } else if (strcmp(argv[arg], "-S") == 0) {
+      makeMiniScaffolds = 0;
     } else {
-      continue; // non-chaff fragment -- do nothing
+      fprintf(stderr, "unknown option '%s'\n", argv[arg]);
+      err = 1;
+    }
+    arg++;
+  }
+
+  if ((GlobalData->File_Name_Prefix[0]      == 0) ||
+      (GlobalData->Frag_Store_Name[0]       == 0) ||
+      (GlobalData->Gatekeeper_Store_Name[0] == 0)) {
+    fprintf(stderr, "usage: %s [[-p prefix] | [-c name -f frgstore -g gkpstore -n ckptNum]] [-U] [-S]\n", argv[0]);
+    fprintf(stderr, "  -p      Attempt to locate the last checkpoint in directory 7-CGW.\n");
+    fprintf(stderr, "  -c      Look for checkpoints in 'name'\n");
+    fprintf(stderr, "  -f      Path to frgStore\n");
+    fprintf(stderr, "  -g      Path to gkpStore\n");
+    fprintf(stderr, "  -n      Checkpoint number to load\n");
+    fprintf(stderr, "  -U      Use real UIDs, otherwise, UIDs start at 1230000\n");
+    fprintf(stderr, "  -S      Do NOT make mini scaffolds.\n");
+    exit(1);
+  }
+
+  int   alloclen1  = 2048;
+  char *seq1       = (char *)safe_malloc(sizeof(char) * alloclen1);
+  char *qul1       = (char *)safe_malloc(sizeof(char) * alloclen1);
+  char *toprint1   = (char *)safe_malloc(sizeof(char) * alloclen1);
+
+  int   alloclen2  = 2048;
+  char *seq2       = (char *)safe_malloc(sizeof(char) * alloclen2);
+  char *qul2       = (char *)safe_malloc(sizeof(char) * alloclen2);
+  char *toprint2   = (char *)safe_malloc(sizeof(char) * alloclen2);
+
+
+  ScaffoldGraph = LoadScaffoldGraphFromCheckpoint(GlobalData->File_Name_Prefix, ckptNum, FALSE);
+
+  int ifrag;
+  for (ifrag=0; ifrag < GetNumVA_CIFragT(ScaffoldGraph->CIFrags); ifrag++) {
+    CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags, ifrag);
+    CIFragT *mate = NULL;
+
+    assert(frag->cid != NULLINDEX);
+    assert((frag->numLinks == 0) || (frag->numLinks == 1));
+
+    //  Fix for missing mates -- OBT used to not delete mate links, leaving
+    //  dangling mates.  Somebody else seems to be doing this too.
+    //
+    if (frag->numLinks > 0) {
+      mate = GetCIFragT(ScaffoldGraph->CIFrags,frag->mateOf);
+      if (mate == 0L)
+        frag->numLinks = 0;
+    }
+
+    //  If this fragment is not chaff, we have nothing to do here.
+    //
+    if (GetGraphNode(ScaffoldGraph->CIGraph,frag->cid)->flags.bits.isChaff == 0)
+      continue;
+
+
+    //  Print a singleton if there is no mate, the mate isn't chaff,
+    //  or we were told to not make miniscaffolds.
+    //
+    if ((mate == NULL) ||
+        (mate->flags.bits.isChaff == 0) ||
+        (makeMiniScaffolds == 0)) {
+      CDS_UID_t  fUID = getFragmentClear(frag->iid, 0, &alloclen1, &seq1, &qul1, &toprint1);
+
+      fprintf(stdout, ">"F_S64" /type=singleton\n%s\n",
+             fUID, toprint1);
+    } else if ((mate != NULL) &&
+               (mate->flags.bits.isChaff == 1) &&
+               (makeMiniScaffolds == 1) &&
+               (frag->iid < mate->iid)) {
+      CDS_UID_t  fUID = getFragmentClear(frag->iid, 0, &alloclen1, &seq1, &qul1, &toprint1);
+      CDS_UID_t  mUID = getFragmentClear(mate->iid, 1, &alloclen2, &seq2, &qul2, &toprint2);
+
+      // make sure the following chain of Ns is divisible by three;
+      // the exact length is arbitrary but Doug Rusch points out that
+      // by making it divisible by 3, we can get lucky and maintain
+      // the phase of a protein ...  which helps in the
+      // auto-annotation of environmental samples
+
+      fprintf(stdout, ">"F_S64" /type=mini_scaffold /frgs=("F_S64","F_S64")\n%sNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN%s\n",
+              getUID(realUID),
+              fUID, mUID, toprint1, toprint2);
     }
   }
+
   exit(0);
 }
