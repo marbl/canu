@@ -56,7 +56,7 @@ main(int argc, char **argv) {
 
   for (i=0; i<=NUM_OF_REC_TYPES; i++) {
     msglist[i] = 0;
-    outfile[i] = NULL;
+    outfile[i] = 0L;
   }
 
   int arg = 1;
@@ -66,18 +66,9 @@ main(int argc, char **argv) {
 
   while (arg < argc) {
     if        (strcmp(argv[arg], "-i") == 0) {
-      inc = 0;
-    } else if (strcmp(argv[arg], "-x") == 0) {
       inc = 1;
-    } else if (strcmp(argv[arg], "-m") == 0) {
-      int type = GetMessageType(argv[++arg]);
-      if ((type >= 1) && (type <= NUM_OF_REC_TYPES)) {
-        msglist[type]++;
-      } else {
-        fprintf(stderr, "%s: invalid message type '%s'.\n", argv[arg]);
-        err = 1;
-      }
-      msg++;
+    } else if (strcmp(argv[arg], "-x") == 0) {
+      inc = 0;
     } else if (strcmp(argv[arg], "-f") == 0) {
       errno = 0;
       FILE *F = fopen(argv[++arg], "w");
@@ -102,24 +93,56 @@ main(int argc, char **argv) {
 
       for (i=0; i<=NUM_OF_REC_TYPES; i++)
         msglist[i] = 0;
+    } else if (strcmp(argv[arg], "-m") == 0) {
+      int type = GetMessageType(argv[++arg]);
+      if ((type >= 1) && (type <= NUM_OF_REC_TYPES)) {
+        msglist[type]++;
+        msg++;
+      } else {
+        fprintf(stderr, "%s: invalid message type '%s'.\n", argv[arg]);
+        err = 1;
+      }
     } else {
-      err = 1;
+      int type = GetMessageType(argv[++arg]);
+      if ((type >= 1) && (type <= NUM_OF_REC_TYPES)) {
+        msglist[type]++;
+        msg++;
+      } else {
+        fprintf(stderr, "%s: invalid option '%s'.\n", argv[0], argv[arg]);
+        err = 1;
+      }
     }
+    arg++;
   }
 
   if ((err) || (msg == 0))
     usage(argv[0]), exit(1);
 
+  //  Assume everything else goes to stdout.  We need to obey the inc
+  //  flag, still, though.
+  //
+  if (inc) {
+    //  Include message i in the output if it was listed
+    for (i=1; i<=NUM_OF_REC_TYPES; i++)
+      if ((outfile[i] == NULL) && (msglist[i] > 0))
+        outfile[i] = stdout;
+  } else {
+    //  Include message i in the output if it was not listed
+    for (i=1; i<=NUM_OF_REC_TYPES; i++)
+      if ((outfile[i] == NULL) && (msglist[i] == 0))
+        outfile[i] = stdout;
+  }
+
   GenericMesg   *pmesg;
   MesgReader     reader = (MesgReader)InputFileType_AS(stdin);
 
- while (reader(stdin, &pmesg) != EOF) {
-   assert(pmesg->t <= NUM_OF_REC_TYPES);
-   assert(outfile[pmesg->t] != NULL);
+  while (reader(stdin, &pmesg) != EOF) {
+    assert(pmesg->t <= NUM_OF_REC_TYPES);
 
-   WriteProtoMesg_AS(outfile[pmesg->t], pmesg);
- }
+    if (outfile[pmesg->t] != NULL)
+      WriteProtoMesg_AS(outfile[pmesg->t], pmesg);
+  }
 
- exit(0);
+  exit(0);
 }
 
