@@ -66,7 +66,7 @@ public:
 
         u64bit  uid  = strtou64bit(W[0], 0L);
         u32bit  intl = strtou32bit(W[1], 0L) - 1;
-        u32bit  intr = strtou32bit(W[2], 0L) - 1;
+        u32bit  intr = strtou32bit(W[2], 0L);
 
         //  Silently swap, if needed
 
