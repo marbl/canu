@@ -1,0 +1,174 @@
+From TransitiveReduction_CGW.c
+
+
+
+
+/************************************************************
+ * AddInferredScaffoldEdgesEnd
+ *
+ *  This computes edges between scaffolds, inferred
+ *  by the positions of a pair of scaffolds relative on an end
+ *  to a third scaffold whose index is seedID
+ *
+ ***********************************************************/
+  void AddInferredScaffoldEdgesEnd(ScaffoldGraphT *graph, CDS_CID_t seedID, int end, int verbose){
+    SEdgeTIterator sourceEdges, targetEdges;
+    SEdgeT *source, *target;
+    LengthT seedSource, seedTarget, sourceTarget;
+    int sourceCloserThanTarget;
+    CDS_CID_t targetSid, sourceSid;
+
+    if(verbose)
+      fprintf(stderr,"* AddInferredScaffoldEdgesEnd sid:" F_CID " end:%d\n",
+    	    seedID, end);
+
+    InitSEdgeTIterator(graph, seedID, FALSE /* raw */, TRUE /* confirmed */, end, FALSE,  &sourceEdges);
+
+    if(verbose)
+      fprintf(stderr,"* Seed " F_CID "\n", seedID);
+
+    while((source = NextSEdgeTIterator(&sourceEdges)) != NULL){
+	CIScaffoldT *sourceScaffold, *targetScaffold;
+	CDS_CID_t sourceSID = (source->idA == seedID? source->idB:source->idA);
+
+
+	/* If this looks like a containment, or the implied overlap
+	   is significant, punt */
+      if( source->flags.bits.hasContainmentOverlap ||
+	 source->distance.mean  < -1000){
+	continue;
+      }
+
+	if(verbose)
+	  PrintGraphEdge(stderr,ScaffoldGraph->RezGraph," Considering source", source, seedID);
+
+	/* Iterate over the targets implied by the remaining edges from seedID */
+      targetEdges = sourceEdges;
+
+      while((target = NextSEdgeTIterator(&targetEdges)) != NULL){
+	CIScaffoldT *scaffoldTarget;
+	CDS_CID_t targetSID = (target->idA == seedID? target->idB:target->idA);
+	scaffoldTarget = GetCIScaffoldT(graph->CIScaffolds, targetSID);
+
+	assert((seedID == target->idA  || seedID == target->idB));
+
+      if( target->flags.bits.hasContainmentOverlap ||
+	 target->distance.mean  < -1000){
+	continue;
+      }
+	/* Both target and source connect scaffolds seedID and the same other sid */
+	if(sourceSID == targetSID)
+	  continue;
+
+	if(verbose)
+	  PrintGraphEdge(stderr,ScaffoldGraph->RezGraph," Considering target", target, seedID);
+
+	seedSource = source->distance;
+	seedTarget = target->distance;
+
+
+	// Always work with the chunk that is closest as the source
+	sourceCloserThanTarget = seedSource.mean <= seedTarget.mean;
+
+	if(sourceCloserThanTarget){
+	  targetSid = targetSID;
+	  sourceSid = sourceSID;
+	}else{
+	  targetSid = sourceSID;
+	  sourceSid = targetSID;
+	  seedSource = target->distance;
+	  seedTarget = source->distance;
+	}
+
+	if(verbose)
+	  fprintf(stderr,"* Source = " F_CID " Target = " F_CID " seedSource:%g seedTarget:%g \n", sourceSid, targetSid, seedSource.mean, seedTarget.mean);
+
+
+	sourceScaffold = GetCIScaffoldT(graph->CIScaffolds, sourceSid);
+	targetScaffold = GetCIScaffoldT(graph->CIScaffolds, targetSid);
+
+	sourceTarget.mean = seedTarget.mean - (seedSource.mean + sourceScaffold->bpLength.mean);
+	sourceTarget.variance = seedTarget.variance + seedSource.variance + sourceScaffold->bpLength.variance;
+	/* Figure out orientation of scaffolds */
+	{
+	  fprintf(stderr,"** Found an inferred scaffold edge (" F_CID "," F_CID ") distance(%g +/- %f)\n",
+		source->idB, target->idB, sourceTarget.mean, sqrt(sourceTarget.variance));
+
+	  /* Just checking that the two scaffolds are on the same side of the seed scaffold */
+	  assert(GetChunkSeedSide(GetEdgeOrientationWRT(target, seedID)) == 
+		 GetChunkSeedSide(GetEdgeOrientationWRT(source, seedID)) );
+
+	  /*** Add in INFERRED Scaffold Edge Here ****/
+
+
+	}
+      }
+    }
+  }
+
+
+/************************************************************
+ * AddInferredScaffoldEdges
+ *
+ *  This computes edges between scaffolds, inferred
+ *  by the positions of a pair of scaffolds relative
+ *  to a third scaffold.
+ *
+ ***********************************************************/
+
+void AddInferredScaffoldEdges(ScaffoldGraphT *graph,  int verbose){
+
+  CDS_CID_t seedID;
+
+  /* For each scaffold */
+  for(seedID = 0; seedID < GetNumCIScaffoldTs(graph->CIScaffolds); seedID++){
+
+    /* Find its neighbors on the AEND */
+    AddInferredScaffoldEdgesEnd(graph, seedID, A_END, verbose);
+    AddInferredScaffoldEdgesEnd(graph, seedID, B_END, verbose);
+  }
+}
+
+
+
+
+/*****************************************************************************
+ * TransitiveReductionOfScaffoldGraph
+ *  This is my start on the transitive reduction code for scaffolds
+ *  The inferred scaffold edges are a bit different than their CI counterparts, since
+ * we don't have a scaffold of scaffolds.  More like the way we compute implicit overlaps
+ * for CIs.
+ *
+ *  Not sure we want to do two hops at all.  In addition, not sure we want to rely on
+ *  two edges to make a confirmed edge.  There ARE spurious confirmed scaffold edges!
+ *
+ *  MarkPathRemoved, SmoothWithInferred, and DeleteInferred need to be parametrized to
+ *  iterate over scaffold edges, instead of CIEdges.
+ *
+ *  CreateScaffolds needs to be replaecd with a simpler version of my brain-dead
+ *  scaffold merging code that will use the essential edges comptued by this routine,
+ *  rather than figuring them out itself.
+******************************************************************************/
+void TransitiveReductionOfScaffoldGraph(ScaffoldGraphT *graph, int verbose){
+
+  /* We don't have scaffolds of scaffolds, so this will simply look through the confirmed edges on the
+     AEnd of a scaffold, and add inferred edges between the scaffolds to the right/left of each 
+     scaffold.  We have to be careful, since there are FALSE confirmed edges.
+     Also, inferred scaffold edges should be marked as confirmed, since they are computed only
+     from confirmed scaffold edges
+  */
+  AddInferredScaffoldEdges(graph, verbose);
+
+  MarkRedundantScaffoldEdges(graph, verbose);
+
+#if 0
+  /* Do we need this for scaffold edges? */
+  MarkTwoHopConfirmedEdges(graph, FALSE, verbose);
+#endif
+
+  MarkPathRemovedEdges(graph, FALSE, FALSE);
+  SmoothWithInferredEdges(graph, FALSE, verbose);
+  //  CreateScaffolds(graph, verbose);
+  DeleteInferredEdges(graph, FALSE, verbose);
+  return;
+}
