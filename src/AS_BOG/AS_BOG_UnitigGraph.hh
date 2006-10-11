@@ -34,15 +34,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.hh,v 1.17 2006-09-29 20:39:10 eliv Exp $
- * $Revision: 1.17 $
+ * $Id: AS_BOG_UnitigGraph.hh,v 1.18 2006-10-11 14:32:46 eliv Exp $
+ * $Revision: 1.18 $
 */
 
 
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.17 2006-09-29 20:39:10 eliv Exp $";
+static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.18 2006-10-11 14:32:46 eliv Exp $";
 
 #include <vector>
 #include <map>
@@ -172,6 +172,9 @@ namespace AS_BOG{
 
 		// Unitigs are the dove tails and their contained fragments
 		UnitigVector *unitigs;
+
+        // inUnitig records if that frg has be incorporated into a unitg or not
+        bool *inUnitig;
 
 		// Overlaps are unitig overlaps
 		std::vector<UnitigOverlap*> overlaps;

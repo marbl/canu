@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.27 2006-10-05 14:50:03 eliv Exp $
- * $Revision: 1.27 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.28 2006-10-11 14:32:46 eliv Exp $
+ * $Revision: 1.28 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.27 2006-10-05 14:50:03 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.28 2006-10-11 14:32:46 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -76,11 +76,9 @@ namespace AS_BOG{
 		iuid frag_idx;
 		iuid fp_dst_frag_id, tp_dst_frag_id;
 
-        bool inUnitig[num_frags+1];
-        memset( inUnitig, 0, (num_frags+1)*sizeof(bool));
 		// Initialize where we've been to nowhere; "Do not retraverse list"
-		std::map<iuid, iuid> *visited_map = new std::map<iuid,iuid>;
-		visited_map->clear();
+        inUnitig = new bool[num_frags+1];
+        memset( inUnitig, 0, (num_frags+1)*sizeof(bool));
 
 		BestContainmentMap *best_cntr = &(bog_ptr->_best_containments);
 		ContainerMap *cntnrmap_ptr = _build_container_map(best_cntr);
@@ -95,7 +93,7 @@ namespace AS_BOG{
 
 			// Check the map to so we don't visit a unitig twice (once from
 			//   both ends)
-			if(visited_map->find(frag_idx) == visited_map->end() && 
+			if( !inUnitig[ frag_idx ] && 
 				 best_cntr->find(frag_idx) == best_cntr->end() )
             { 
 				cg_ptr->getChunking(
@@ -119,7 +117,6 @@ namespace AS_BOG{
 					// Allocated a new unitig node
 					Unitig *utg=new Unitig;
 
-					(*visited_map)[frag_idx]=unitig_id;
 					// Store the dovetails
 					if(fp_dst_frag_id == NULL_FRAG_ID && tp_dst_frag_id != NULL_FRAG_ID){
 						utg->dovetail_path_ptr=
@@ -134,22 +131,6 @@ namespace AS_BOG{
 							_extract_dovetail_path(
 								frag_idx, THREE_PRIME, cg_ptr);
 					}
-
-                    DoveTailPath::const_iterator dt_itr;
-                    for(dt_itr  = utg->dovetail_path_ptr->begin();
-                        dt_itr != utg->dovetail_path_ptr->end(); dt_itr++ )
-                    {
-                        inUnitig[ dt_itr->ident ] = true;
-                    }
-
-					// Get the fragment ID of the last fragment in the
-					//   dovetail, then store it in the "do not retraverse
-					//   list"
-                    iuid notUsed;
-					iuid last_frag_id_in_dovetail= utg->getLastBackboneNode(notUsed).ident;
-					(*visited_map)[last_frag_id_in_dovetail]=unitig_id;
-
-					//std::cerr << "Containment Extracted. " << std::endl;
 
                     utg->computeFragmentPositions(cntnrmap_ptr, best_cntr);
 
@@ -175,16 +156,13 @@ namespace AS_BOG{
 
         ContainerMap::const_iterator ctmp_itr = cntnrmap_ptr->begin();
         for(; ctmp_itr != cntnrmap_ptr->end(); ctmp_itr++) {
-            ContaineeList::const_iterator cntee_itr;
-            for( cntee_itr  = ctmp_itr->second.begin();
+            for(ContaineeList::const_iterator cntee_itr = ctmp_itr->second.begin();
                  cntee_itr != ctmp_itr->second.end(); cntee_itr++)
             {
                 iuid cntee = *cntee_itr;
                 inUnitig[ cntee ] = true;
             }
         }
-        delete cntnrmap_ptr;
-        
         for(frag_idx=1; frag_idx<=num_frags; frag_idx++){
             if (inUnitig[ frag_idx ] == false) {
 				cg_ptr->getChunking( frag_idx, fp_dst_frag_id, tp_dst_frag_id);
@@ -192,21 +170,11 @@ namespace AS_BOG{
                 if ( fp_dst_frag_id != NULL_FRAG_ID &&
                      tp_dst_frag_id != NULL_FRAG_ID )
                 {
-                    if ( visited_map->find(frag_idx) != visited_map->end() )
-                        continue;
-
 					Unitig *utg=new Unitig;
                     // need to make _extract_dovetail break circle
                     utg->dovetail_path_ptr = _extract_dovetail_path(
 								frag_idx, THREE_PRIME, cg_ptr );
 
-                    DoveTailPath::const_iterator dt_itr;
-                    for(dt_itr  = utg->dovetail_path_ptr->begin();
-                        dt_itr != utg->dovetail_path_ptr->end(); dt_itr++ )
-                    {
-                        (*visited_map)[dt_itr->ident] = unitig_id;
-                    }
-                    
                     utg->computeFragmentPositions(cntnrmap_ptr, best_cntr);
 
                     fprintf(stderr,"Circular unitig %d 1st frag %d\n",
@@ -223,11 +191,12 @@ namespace AS_BOG{
                 }
             }
         }
+        delete cntnrmap_ptr;
+        
 
         printUnitigBreaks();
 
         //mergeAllUnitigs( visited_map );
-        delete visited_map;
 
 		std::cerr << "Setting Global Arrival Rate.\n";
 		float globalARate = getGlobalArrivalRate(num_rand_frags, genome_size);
@@ -516,7 +485,8 @@ namespace AS_BOG{
 
 		//std::cerr<<"Working on: "<<src_frag_id<< " Dir: " << travel_dir <<std::endl;
 		iuid last_frag_id;
-		while(current_frag_id != NULL_FRAG_ID) {
+		while(current_frag_id != NULL_FRAG_ID && !inUnitig[ current_frag_id ]) {
+            inUnitig[ current_frag_id ] = true;
 			// Store the current fragment into dovetail path
 			BestEdgeOverlap* bestEdge = bog_ptr->getBestEdgeOverlap(
 				current_frag_id, whichEnd
