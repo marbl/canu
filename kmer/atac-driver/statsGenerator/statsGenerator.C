@@ -190,23 +190,36 @@ totalLength(atacMatchList &matches, FastACache *A, FastACache *B) {
 
 
 u64bit
-tandemRepeatACGTLength(intervalList &mma,
-                       u64bit       *offset1,
+tandemRepeatACGTLength(intervalList &il,
+                       u64bit       *offset,
                        FastACache   *A) {
 
-  mma.sort();  //  Both should be done already.
-  mma.merge();
-  u64bit length1 = 0;
-  for (u32bit i=0, s=0; i<mma.numberOfIntervals(); i++) {
-    while ((offset1[s + 1]) < mma.lo(i)) 
+  //  s -- the sequence
+  //  i -- the interval list index
+
+  il.sort();  //  Both should be done already.
+  il.merge();
+  u64bit length = 0;
+  for (u32bit i=0, s=0; i<il.numberOfIntervals(); i++) {
+    while ((offset[s + 1]) < il.lo(i)) 
       s++;
     char *S = A->getSequence(s)->sequence();
-    for (u64bit j=mma.lo(i)-offset1[s]; j < mma.hi(i)-offset1[s]; j++)
+    for (u64bit j=il.lo(i)-offset[s]; j < il.hi(i)-offset[s]; j++)
       if (validSymbol[S[j]])
-        length1++;
+        length++;
   }
 
-  return(length1);
+  return(length);
+}
+
+
+u64bit *
+buildOffset(FastAWrapper *F) {
+  u64bit  *offset = new u64bit [F->getNumberOfSequences() + 1];
+  offset[0] = 1000000;
+  for (u32bit i=0; i<F->getNumberOfSequences(); i++)
+    offset[i+1] = offset[i] + F->sequenceLength(i) + 1;
+  return(offset);
 }
 
 
@@ -218,22 +231,20 @@ tandemRepeatStats(atacFeatureList &AF, atacFeatureList &BF,
   intervalList  ima, imb;
   intervalList  mma, mmb;
 
-  //  XXX  Stolen from mappedLengths() below
-  //
-  u64bit  *offset1 = new u64bit [matches.fastaA()->getNumberOfSequences() + 1];
-  u64bit  *offset2 = new u64bit [matches.fastaB()->getNumberOfSequences() + 1];
-  offset1[0] = 1000000;
-  for (u32bit i=1; i<=matches.fastaA()->getNumberOfSequences(); i++)
-    offset1[i] = offset1[i-1] + matches.fastaA()->sequenceLength(i-1) + 1;
-  offset2[0] = 1000000;
-  for (u32bit i=1; i<=matches.fastaB()->getNumberOfSequences(); i++)
-    offset2[i] = offset2[i-1] + matches.fastaB()->sequenceLength(i-1) + 1;
+  u64bit  *offset1 = buildOffset(matches.fastaA());
+  u64bit  *offset2 = buildOffset(matches.fastaB());
 
+  //  ifa, ifb are intervalLists, storing the intervals labeled as
+  //  tandem repeats.  They are using the offset[] to encode the
+  //  entire sequence as one consecutive string.
+  //
   for (u32bit i=0; i<AF.numberOfFeatures(); i++)
     ifa.add(offset1[AF[i]->iid] + AF[i]->pos, AF[i]->len);
   for (u32bit i=0; i<BF.numberOfFeatures(); i++)
     ifb.add(offset2[BF[i]->iid] + BF[i]->pos, BF[i]->len);
 
+  //  ima, imb, like if?, encode the matches in one string.
+  //
   for (u32bit m=0; m<matches.numberOfMatches(); m++)
     ima.add(offset1[matches[m]->iid1] + (u64bit)matches[m]->pos1, (u64bit)matches[m]->len1);
   for (u32bit m=0; m<matches.numberOfMatches(); m++)
@@ -285,14 +296,8 @@ mappedLengths(atacMatchList &matches, char *prefix) {
   //  intervalList per input sequence, or build a table of the chained
   //  sequence positions.
   //
-  u64bit  *offset1 = new u64bit [matches.fastaA()->getNumberOfSequences() + 1];
-  u64bit  *offset2 = new u64bit [matches.fastaB()->getNumberOfSequences() + 1];
-  offset1[0] = 1000000;
-  for (u32bit i=1; i<=matches.fastaA()->getNumberOfSequences(); i++)
-    offset1[i] = offset1[i-1] + matches.fastaA()->sequenceLength(i-1) + 1;
-  offset2[0] = 1000000;
-  for (u32bit i=1; i<=matches.fastaB()->getNumberOfSequences(); i++)
-    offset2[i] = offset2[i-1] + matches.fastaB()->sequenceLength(i-1) + 1;
+  u64bit  *offset1 = buildOffset(matches.fastaA());
+  u64bit  *offset2 = buildOffset(matches.fastaB());
 
   intervalList  intervalA;
   intervalList  intervalB;
@@ -734,8 +739,10 @@ main(int argc, char **argv) {
   FastACache  *A = new FastACache(matches.assemblyFileA(), 0, true, true);
   FastACache  *B = new FastACache(matches.assemblyFileB(), 0, true, true);
 
+#if 0
   fprintf(stdout, "\nSEQUENCE\n");
   totalLength(matches, A, B);
+#endif
 
   if (trFile1 && trFile2) {
     atacFeatureList    tr1(trFile1);
