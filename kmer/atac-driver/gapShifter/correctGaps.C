@@ -57,7 +57,7 @@ main(int argc, char *argv[]) {
   if (logFile == 0L)
     usage(argv[0]), exit(1);
 
-  atacMatchList  ML(matchesFile, 'm');
+  atacMatchList  ML(matchesFile, 'm', stdout);
   atacMatchOrder MO(ML);
 
   //  Sort by either axis.
