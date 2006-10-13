@@ -63,6 +63,8 @@ main(int argc, char **argv) {
     }
   }
 
+  //  This stolen to leaff.C for %GC computation
+
   u32bit  ave3    = 0;
   u32bit  ave5    = 0;
   u32bit  ave11   = 0;
