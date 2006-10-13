@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.98 2006-10-10 20:22:27 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.99 2006-10-13 17:02:23 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -2633,24 +2633,42 @@ GetReadsForVARRecord(Read *reads, int32 *iids, int32 nr,
 static int
 GetDistanceBetweenReads(char *read1, char *read2, int len)
 {
-    int i, j, k;
+    int i, j, k, uglen1=0, uglen2=0, uglen;
     int dist, gapped_dist = 0, ungapped_dist = 0;
+    char *ugread1 = (char*)safe_malloc(len*sizeof(char));
+    char *ugread2 = (char*)safe_malloc(len*sizeof(char));
 
+    // Compute gapped distance
     for (k=0; k<len; k++) {
-
-        // Compute distance between the gapped (aligned) reads
-        if (read1[k] != read2[k] && read1[k] != 'n' && read2[k] != 'n')
+        if (read1[k] != read2[k])
             gapped_dist++;
 
-        // Compute distance between the ungapped reads
-        for (i=k; i<len && read1[i] == '-'; i++);
-        for (j=k; j<len && read2[j] == '-'; j++);
-
-        if (i<len && j<len && read1[i] != read2[j]) ungapped_dist++;
-        else if (i <len && j==len)                  ungapped_dist++;
-        else if (i==len && j <len)                  ungapped_dist++;
+        if (read1[k] != '-')
+        {
+            ugread1[uglen1] = read1[k];
+            uglen1++;
+        }
+        if (read2[k] != '-')
+        {
+            ugread2[uglen2] = read2[k];
+            uglen2++;
+        }
+    }
+    
+    uglen = (uglen1<uglen2) ? uglen2:uglen1;
+    for (k=0; k<uglen; k++)
+    {
+        // Compute ungapped distance
+        if (k<uglen1 && k<uglen2 && read1[k] != read2[k]) 
+            ungapped_dist++;
+        else if (k <uglen1 && k>=uglen2)  
+            ungapped_dist++;
+        else if (k>=uglen1 && k <uglen2)                  
+            ungapped_dist++;
     }
     dist = (gapped_dist < ungapped_dist) ? gapped_dist : ungapped_dist;
+    FREE(ugread1);
+    FREE(ugread2);
     return dist;
 }
 
@@ -2833,6 +2851,40 @@ AllocateMemoryForAlleles(Allele **alleles, int32 nr, int32 *na)
       (*alleles)[j].id = -1;
       (*alleles)[j].weight = 0;
       (*alleles)[j].read_ids = (int *)safe_calloc(nr, sizeof(int));
+    }
+}
+
+static void
+OutputAllelesSortedByWeight(VarRegion *vreg)
+{
+    int i, j;
+    fprintf(stderr, "Outputting alleles:\n");
+    fprintf(stderr, "nr= %d na= %d nca= %d\n", vreg->nr, vreg->na, vreg->nca);
+    fprintf(stderr, "Num_reads= ");
+    for (i=0; i<vreg->na; i++)
+    {
+        fprintf(stderr, "%d ", vreg->alleles[i].num_reads);   
+    }
+    fprintf(stderr, "\n");
+    fprintf(stderr, "= ");
+    for (i=0; i<vreg->na; i++)
+    {
+        fprintf(stderr, "%d ", vreg->alleles[i].num_reads);
+    }
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Reads= \n");
+    for (i=0; i<vreg->na; i++)
+    {
+        fprintf(stderr, "   Allele %d:\n", i);
+        for (j=0; j<vreg->alleles[i].num_reads; j++)
+        {
+            int k, read_id = vreg->alleles[i].read_ids[j];
+            int len = vreg->end-vreg->beg+1;
+            fprintf(stderr, "    %d   ", read_id);
+            for (k=0; k<len; k++)
+                fprintf(stderr, "%c", vreg->reads[read_id].bases[k]);
+            fprintf(stderr, "\n");
+        }
     }
 }
 
@@ -3093,7 +3145,9 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
             fprintf(stderr, "\n");
 #endif
             SortAllelesByWeight(vreg.alleles, vreg.na);
-
+#if 0
+            OutputAllelesSortedByWeight(&vreg);
+#endif
             /* Store variations in a v_list */
             if (quality > 0 && make_v_list)
             {
@@ -5264,6 +5318,26 @@ LeftShift(Abacus *abacus, VarRegion vreg, int *lcols)
     int32 i, j, k, l, ccol, pcol;
     char c, call;
     ResetCalls(abacus);
+#if 0
+    fprintf(stderr, "Abacus region:\n");
+    fprintf(stderr, "nr= %d na= %d nca= %d\n", vreg.nr, vreg.na, vreg.nca);
+    fprintf(stderr, "Order of left-shifting alleles:\n");
+    for (i=0; i<vreg.na; i++)
+    {
+        fprintf(stderr, "Allele %d uglen=%d weight= %d\n", i,
+            vreg.alleles[i].uglen, vreg.alleles[i].weight);
+        fprintf(stderr, "   Reads:\n");
+        for (j=0; j<vreg.alleles[i].num_reads; j++)
+        {
+            int k, read_id = vreg.alleles[i].read_ids[j];
+            int len = vreg.end-vreg.beg+1;
+            fprintf(stderr, "    %d   ", read_id);
+            for (k=0; k<len; k++)
+                fprintf(stderr, "%c", vreg.reads[read_id].bases[k]);
+            fprintf(stderr, "\n");
+        }
+    }
+#endif
     for (j=abacus->window_width; j<2*abacus->window_width; j++) 
     {
         for (k=0; k<vreg.na; k++)
@@ -5338,6 +5412,27 @@ int32 RightShift(Abacus *abacus, VarRegion vreg, int *rcols)
     int32 i, j, k, l, ccol, pcol;
     char c, call;
     ResetCalls(abacus);
+#if 0
+    fprintf(stderr, "Abacus region:\n");
+    fprintf(stderr, "nr= %d na= %d nca= %d\n", vreg.nr, vreg.na, vreg.nca);
+    fprintf(stderr, "Order of left-shifting alleles:\n");
+    for (i=0; i<vreg.na; i++)
+    {
+        fprintf(stderr, "Allele %d uglen=%d weight= %d\n", i,
+            vreg.alleles[i].uglen, vreg.alleles[i].weight);
+        fprintf(stderr, "   Reads:\n");
+        for (j=0; j<vreg.alleles[i].num_reads; j++)
+        {
+            int k, read_id = vreg.alleles[i].read_ids[j];
+            int len = vreg.end-vreg.beg+1;
+            fprintf(stderr, "    %d   ", read_id);
+            for (k=0; k<len; k++)
+                fprintf(stderr, "%c", vreg.reads[read_id].bases[k]);
+            fprintf(stderr, "\n");
+        }
+    }
+#endif
+
     for (j=2*abacus->window_width-1;j>abacus->window_width-1;j--) 
     {
         for (k=0; k<vreg.na; k++)
@@ -6333,9 +6428,13 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
     AllocateDistMatrix(&vreg, 0);
     AllocateMemoryForReads(&vreg.reads, orig_abacus->rows, orig_abacus->columns,
         QV_FOR_MULTI_GAP);
+    vreg.beg = 0;
+    vreg.end = orig_abacus->columns-1;
     GetReadsForAbacus(vreg.reads, orig_abacus);
-    // OutputReads(vreg.reads, vreg.nr, orig_abacus->window_width);
-    PopulateDistMatrix(vreg.reads, 3*orig_abacus->window_width, &vreg);
+#if 0
+    OutputReads(vreg.reads, vreg.nr, orig_abacus->columns);
+#endif
+    PopulateDistMatrix(vreg.reads, orig_abacus->columns, &vreg);
 #if DEBUG_ABACUS
     OutputDistMatrix(&vreg);
 #endif
