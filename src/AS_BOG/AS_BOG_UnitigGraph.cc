@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.28 2006-10-11 14:32:46 eliv Exp $
- * $Revision: 1.28 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.29 2006-10-13 17:58:07 eliv Exp $
+ * $Revision: 1.29 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.28 2006-10-11 14:32:46 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.29 2006-10-13 17:58:07 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -59,6 +59,7 @@ namespace AS_BOG{
     UnitigGraph::UnitigGraph(BestOverlapGraph *in_bog_ptr) : bog_ptr(in_bog_ptr)
     {
         unitigs = new UnitigVector;
+        unitigIntersect = new FragmentEdgeList;
     }
 
     UnitigGraph::~UnitigGraph() {
@@ -77,8 +78,8 @@ namespace AS_BOG{
 		iuid fp_dst_frag_id, tp_dst_frag_id;
 
 		// Initialize where we've been to nowhere; "Do not retraverse list"
-        inUnitig = new bool[num_frags+1];
-        memset( inUnitig, 0, (num_frags+1)*sizeof(bool));
+        inUnitig = new iuid[num_frags+1];
+        memset( inUnitig, 0, (num_frags+1)*sizeof(iuid));
 
 		BestContainmentMap *best_cntr = &(bog_ptr->_best_containments);
 		ContainerMap *cntnrmap_ptr = _build_container_map(best_cntr);
@@ -120,23 +121,20 @@ namespace AS_BOG{
 					// Store the dovetails
 					if(fp_dst_frag_id == NULL_FRAG_ID && tp_dst_frag_id != NULL_FRAG_ID){
 						utg->dovetail_path_ptr=
-							_extract_dovetail_path(
+							_extract_dovetail_path( unitig_id,
 								frag_idx, THREE_PRIME, cg_ptr);
 					}else if(tp_dst_frag_id == NULL_FRAG_ID && fp_dst_frag_id != NULL_FRAG_ID){
 						utg->dovetail_path_ptr=
-							_extract_dovetail_path(
+							_extract_dovetail_path( unitig_id,
 								frag_idx, FIVE_PRIME, cg_ptr);
 					}else{
 						utg->dovetail_path_ptr=
-							_extract_dovetail_path(
+							_extract_dovetail_path( unitig_id,
 								frag_idx, THREE_PRIME, cg_ptr);
 					}
+					utg->id = unitig_id++;
 
                     utg->computeFragmentPositions(cntnrmap_ptr, best_cntr);
-
-					// Set id
-					utg->id=unitig_id;
-					unitig_id++;
 
                     // must be sorted before merge
                     utg->sort();
@@ -160,11 +158,12 @@ namespace AS_BOG{
                  cntee_itr != ctmp_itr->second.end(); cntee_itr++)
             {
                 iuid cntee = *cntee_itr;
-                inUnitig[ cntee ] = true;
+                // unitig id of it's container
+                inUnitig[ cntee ] = inUnitig[(*best_cntr)[cntee].container];
             }
         }
         for(frag_idx=1; frag_idx<=num_frags; frag_idx++){
-            if (inUnitig[ frag_idx ] == false) {
+            if (inUnitig[ frag_idx ] == 0) {
 				cg_ptr->getChunking( frag_idx, fp_dst_frag_id, tp_dst_frag_id);
 
                 if ( fp_dst_frag_id != NULL_FRAG_ID &&
@@ -173,14 +172,14 @@ namespace AS_BOG{
 					Unitig *utg=new Unitig;
                     // need to make _extract_dovetail break circle
                     utg->dovetail_path_ptr = _extract_dovetail_path(
-								frag_idx, THREE_PRIME, cg_ptr );
+								unitig_id, frag_idx, THREE_PRIME, cg_ptr );
 
+					utg->id = unitig_id++;
                     utg->computeFragmentPositions(cntnrmap_ptr, best_cntr);
 
                     fprintf(stderr,"Circular unitig %d 1st frag %d\n",
-                            unitig_id,frag_idx);
+                            unitig_id-1,frag_idx);
 
-					utg->id = unitig_id++;
 					unitigs->push_back(utg);
 
                 } else {
@@ -192,9 +191,9 @@ namespace AS_BOG{
             }
         }
         delete cntnrmap_ptr;
-        
 
         printUnitigBreaks();
+        printUnitigEdges();
 
         //mergeAllUnitigs( visited_map );
 
@@ -469,7 +468,7 @@ namespace AS_BOG{
     }
 	//////////////////////////////////////////////////////////////////////////////
 
-	DoveTailPath *UnitigGraph::_extract_dovetail_path(
+	DoveTailPath *UnitigGraph::_extract_dovetail_path( const iuid unitig_id,
 		iuid src_frag_id, fragment_end_type firstEnd, ChunkGraph *cg_ptr){
 
 	// Note:  I only need BestOverlapGraph for it's frag_len and olap_length
@@ -486,7 +485,7 @@ namespace AS_BOG{
 		//std::cerr<<"Working on: "<<src_frag_id<< " Dir: " << travel_dir <<std::endl;
 		iuid last_frag_id;
 		while(current_frag_id != NULL_FRAG_ID && !inUnitig[ current_frag_id ]) {
-            inUnitig[ current_frag_id ] = true;
+            inUnitig[ current_frag_id ] = unitig_id;
 			// Store the current fragment into dovetail path
 			BestEdgeOverlap* bestEdge = bog_ptr->getBestEdgeOverlap(
 				current_frag_id, whichEnd
@@ -544,7 +543,6 @@ namespace AS_BOG{
             fragPrevEnd = end;
 			dtp_ptr->push_back(dt_node);
 
-
             // Prep the start position of the next fragment
             if (bestEdge->ahang < 0 && bestEdge->bhang < 0 ) {
                 fragNextEnd -= bestEdge->ahang ;
@@ -558,6 +556,7 @@ namespace AS_BOG{
                 assert( chunkNextId == next_frag_id );
 
 			// Set current to next
+			next_frag_id = current_frag_id;
 			current_frag_id = chunkNextId;
             if ( current_frag_id == src_frag_id )
                 break; // Break a circle
@@ -567,13 +566,86 @@ namespace AS_BOG{
                 whichEnd = FIVE_PRIME;
             }
         }
+		if ( inUnitig[ current_frag_id ] ) {
+            // record unitig join/break point
+            (*unitigIntersect)[current_frag_id].push_back( next_frag_id );
+            fprintf(stderr,"Unitig %5d frag %7d -> Unitig %5d frag %7d\n",
+                    unitig_id-1, next_frag_id, inUnitig[current_frag_id]-1, current_frag_id );
+
+        }
 		return(dtp_ptr);
 	}
+	//////////////////////////////////////////////////////////////////////////////
+    void UnitigGraph::printUnitigEdges() {
 
+        const char * fiveP  = "5'";
+        const char * threeP = "3'";
+        UnitigVector::const_iterator tigIter = unitigs->begin();
+        for(;tigIter != unitigs->end(); tigIter++)
+        {
+            Unitig* tig = *tigIter;
+            DoveTailPath::const_iterator dt_itr;
+            for( dt_itr  = tig->dovetail_path_ptr->begin();
+                 dt_itr != tig->dovetail_path_ptr->end(); dt_itr++)
+            {
+                DoveTailNode node = *dt_itr;
+                iuid dtFrag = node.ident;
+                BestEdgeOverlap *bestEdge;
+                if ( dt_itr == tig->dovetail_path_ptr->begin() ||
+                    dt_itr+1 == tig->dovetail_path_ptr->end() )
+                {
+                    fragment_end_type dtEnd = THREE_PRIME;
+                    const char *endStr = threeP;
+                    if (node.position.bgn > node.position.end)
+                        dtEnd = FIVE_PRIME;
+                    if (dt_itr == tig->dovetail_path_ptr->begin()) {
+                        dtEnd = dtEnd == FIVE_PRIME ? THREE_PRIME : FIVE_PRIME;
+                        endStr = fiveP;
+                    }
+
+                    bestEdge = bog_ptr->getBestEdgeOverlap(dtFrag,dtEnd);
+                    iuid bFrg = bestEdge->frag_b_id;
+                    fprintf(stderr,"Unitig %5d %s frag %7d points to Unitig %5d frag %7d\n",
+                            tig->id-1, endStr, dtFrag, inUnitig[bFrg]-1, bFrg);
+                }
+
+                FragmentEdgeList::const_iterator edge_itr =
+                                            unitigIntersect->find( dtFrag );
+                if (edge_itr != unitigIntersect->end() ) {
+
+                    FragmentList::const_iterator fragItr;
+                    for( fragItr  = edge_itr->second.begin();
+                         fragItr != edge_itr->second.end();  fragItr++)
+                    {
+                        iuid inFrag = *fragItr;
+                        BestEdgeOverlap *bestEdge;
+                        fragment_end_type bestEnd = FIVE_PRIME;
+                        bestEdge = bog_ptr->getBestEdgeOverlap( inFrag, bestEnd );
+                        if (bestEdge->frag_b_id != dtFrag)
+                        { 
+                            bestEnd = THREE_PRIME;
+                            bestEdge = bog_ptr->getBestEdgeOverlap( inFrag, bestEnd );
+                        }
+                        assert( bestEdge->frag_b_id == dtFrag );
+                        const char *inEnd = bestEnd == FIVE_PRIME ? fiveP : threeP;
+                        const char *dtEnd = fiveP;
+                        int pos = node.position.bgn;
+                        if ( bestEdge->bend == FIVE_PRIME) {
+                            dtEnd = threeP;
+                            pos = node.position.end;
+                        }
+                        fprintf(stderr,"  Unitig %5d frag %7d end %s intersects Unitig %5d frag %7d end %s pos %6d\n",
+                                inUnitig[inFrag]-1, inFrag, inEnd,
+                                tig->id-1, dtFrag, dtEnd, pos );
+                    }
+                }
+            }
+        }
+    }
 	//////////////////////////////////////////////////////////////////////////////
     void UnitigGraph::printUnitigBreaks() {
 
-        UnitigVector::iterator tigIter = unitigs->begin();
+        UnitigVector::const_iterator tigIter = unitigs->begin();
         for(;tigIter != unitigs->end(); tigIter++) {
             Unitig* tig = *tigIter;
             DoveTailNode first = tig->dovetail_path_ptr->front();

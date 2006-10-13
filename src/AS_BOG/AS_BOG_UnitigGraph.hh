@@ -34,15 +34,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.hh,v 1.18 2006-10-11 14:32:46 eliv Exp $
- * $Revision: 1.18 $
+ * $Id: AS_BOG_UnitigGraph.hh,v 1.19 2006-10-13 17:58:07 eliv Exp $
+ * $Revision: 1.19 $
 */
 
 
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.18 2006-10-11 14:32:46 eliv Exp $";
+static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.19 2006-10-13 17:58:07 eliv Exp $";
 
 #include <vector>
 #include <map>
@@ -64,6 +64,7 @@ namespace AS_BOG{
 	typedef iuid containee_id;
 	typedef iuid fragment_id;
 	typedef std::vector<fragment_id> FragmentList;
+	typedef std::map<iuid, FragmentList> FragmentEdgeList;
 
 	///////////////////////////////////////////////////////////////////////
 
@@ -165,6 +166,7 @@ namespace AS_BOG{
 
 		float getGlobalArrivalRate(long total_random_frags_in_genome=0, long genome_size=0);
 
+        void printUnitigEdges();
         void printUnitigBreaks();
 
 		///////////////////////////////////////////////////////////////
@@ -174,7 +176,7 @@ namespace AS_BOG{
 		UnitigVector *unitigs;
 
         // inUnitig records if that frg has be incorporated into a unitg or not
-        bool *inUnitig;
+        iuid *inUnitig;
 
 		// Overlaps are unitig overlaps
 		std::vector<UnitigOverlap*> overlaps;
@@ -184,6 +186,7 @@ namespace AS_BOG{
 			// Given a fragment, it will follow it's overlaps until 
 			//   the end, and return the path that it traversed.
 			DoveTailPath *_extract_dovetail_path(
+				const iuid unitig_id, 
 				iuid src_frag_id, 
 				fragment_end_type whichEnd,
 				ChunkGraph *cg_ptr);
@@ -207,6 +210,7 @@ namespace AS_BOG{
 			float _compute_global_arrival_rate(void);
 
             BestOverlapGraph *bog_ptr;
+            FragmentEdgeList *unitigIntersect;
 	};
 		
 	///////////////////////////////////////////////////////////////////////
