@@ -145,11 +145,15 @@ atacMatchList::atacMatchList(char const *filename, char matchOrRun, FILE *header
 
           _matches[_matchesLen].matchiid = _matchesLen;
 
+          _matches[_matchesLen].type[0] = 0;
+          _matches[_matchesLen].type[1] = 0;
+          _matches[_matchesLen].type[2] = 0;
+          _matches[_matchesLen].type[3] = 0;
+
           _matches[_matchesLen].type[0] = S[1][0];
           _matches[_matchesLen].type[1] = S[1][1];
           if (S[1][1])
             _matches[_matchesLen].type[2] = S[1][2];
-          _matches[_matchesLen].type[3] = 0;
 
           _matches[_matchesLen].iid1 = iid1;
           _matches[_matchesLen].pos1 = pos1;
@@ -182,21 +186,18 @@ atacMatchOrder::mergeMatches(atacMatch *l, atacMatch *r, u32bit mergeuid) {
   //  Create a new match record for the merged match.  We could
   //  probably do this inplace in l.
 
+  //  Copy all the defaults from L first.  This copies most of the stuff.
+  //
+  memcpy(&n, l, sizeof(atacMatch));
+
   sprintf(n.matchuid, "merge"u32bitFMT, mergeuid);
-  strcpy(n.parentuid, l->parentuid);
 
-  n.matchiid = l->matchiid;
-
-  n.iid1 = l->iid1;
-  n.pos1 = l->pos1;
   n.len1 = (r->pos1 + r->len1) - (l->pos1);
-  n.fwd1 = l->fwd1;
+  n.len2 = n.len1;
 
-  n.iid2 = l->iid2;
-  n.pos2 = l->pos2;
   if (r->fwd2 == false)
     n.pos2 = r->pos2;
-  n.len2 = n.len1;
+
   n.fwd2 = r->fwd2;
 
   //  Update l with the new contents.
