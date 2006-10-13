@@ -21,13 +21,14 @@ else
  $(warning Use WITH_THREADS to build $/meryl with multithreading support.)
 endif
 
-$/.CXX_SRCS   := ${src_C} $/merle.C
-$/.CXX_EXES   := $/meryl $/merle
+$/.CXX_SRCS   := ${src_C} $/merle.C $/asmMerQC.C
+$/.CXX_EXES   := $/meryl  $/merle   $/asmMerQC
 $/.CLEAN      := $/*.o
 $/.REAL-CLEAN := $/buildinfo-*
 
 $/merle         : $/merle.o      $/buildinfo-merle.o ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 $/meryl         : ${src_C:.C=.o} $/buildinfo-meryl.o ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+$/asmMerQC      : $/asmMerQC.o   ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 
 $(eval $/%.d $/%.o:  CXXFLAGS+=-I${LIBMERYL/} -I${LIBBIO/} -I${LIBUTL/})
 
@@ -44,7 +45,3 @@ $/buildinfo-merle.c: $/buildinfo-merle.h
 $/buildinfo-merle.h: $/merle.C
 	@${LIBUTL/}buildinfo.pl merle "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
 	@[ `dirname $@` = "." ] || mv buildinfo-merle.[ch] `dirname $@`
-
-
-
-
