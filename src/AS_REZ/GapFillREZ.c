@@ -34,7 +34,7 @@
 *
 *************************************************/
 
-static char fileID[] = "$Id: GapFillREZ.c,v 1.13 2006-09-25 20:26:02 brianwalenz Exp $";
+static char fileID[] = "$Id: GapFillREZ.c,v 1.14 2006-10-13 20:37:15 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -12991,6 +12991,13 @@ PALLOC (Num_Scaffolds * sizeof (char));
    fprintf (stderr, "             Scaffolds split because they were disconnected: %d\n", splitscaffolds);
 
    fclose (log_file);
+
+    //  But since Throw_Stones can now split scaffolds, we should be
+    //  rebuilding scaffold edges.
+   //
+   if (splitscaffolds > 0)
+     BuildNewScaffoldEdges(ScaffoldGraph, 0);
+
 
 #if  MAKE_CAM_FILE
    Update_Colours (fill_stones);
