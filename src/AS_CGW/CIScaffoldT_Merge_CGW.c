@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.19 2006-10-13 17:43:45 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.20 2006-10-13 20:36:01 brianwalenz Exp $";
 
 #undef ORIG_MERGE_EDGE_INVERT
 #define MINSATISFIED_CUTOFF 0.985
@@ -5100,8 +5100,10 @@ void BuildNewScaffoldEdges(ScaffoldGraphT * graph,
       CIScaffoldT * newScaffold = GetCIScaffoldT(graph->CIScaffolds, i);
     
       assert(newScaffold != NULL);
-      assert(!newScaffold->flags.bits.isDead &&
-             newScaffold->type == REAL_SCAFFOLD);
+
+      if ((newScaffold->flags.bits.isDead) ||
+          (newScaffold->type != REAL_SCAFFOLD))
+        continue;
     
       BuildSEdgesForScaffold(graph, newScaffold, FALSE,
                              GlobalData->doInterleavedScaffoldMerging,
