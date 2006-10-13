@@ -82,7 +82,6 @@ typedef struct
 typedef struct
 {
   ScaffoldAlignmentInterface * sai;
-  int doInterleaving;
   int contigNow;
   int checkForTinyScaffolds;
   int checkAbutting;

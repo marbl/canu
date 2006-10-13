@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.18 2006-10-08 08:47:39 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.19 2006-10-13 17:43:45 brianwalenz Exp $";
 
 #undef ORIG_MERGE_EDGE_INVERT
 #define MINSATISFIED_CUTOFF 0.985
@@ -2045,7 +2045,6 @@ void SortSEdges(VA_TYPE(PtrT) * sEdges, int32 verbose)
 
 void BuildUsableSEdges(VA_TYPE(PtrT) *sEdges,
                        VA_TYPE(PtrT) *overlapSEdges,
-                       InterleavingSpec * iSpec,
                        int32 verbose)
 {
   int32 numRealScaffolds = 0;
@@ -2090,7 +2089,7 @@ void BuildUsableSEdges(VA_TYPE(PtrT) *sEdges,
                              ALL_END, NULL,
                              TRUE,
                              CONFIRMED_SCAFFOLD_EDGE_THRESHHOLD,
-                             iSpec->doInterleaving,
+                             GlobalData->doInterleavedScaffoldMerging,
                              verbose);
     }
   
@@ -3667,7 +3666,7 @@ void ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
   if(CONFIRMED_SCAFFOLD_EDGE_THRESHHOLD > curEdge->edgesContributing)
     return;
   
-  if(iSpec->doInterleaving == FALSE && isLargeOverlap(curEdge)){   /// too big an overlap
+  if(GlobalData->doInterleavedScaffoldMerging == FALSE && isLargeOverlap(curEdge)){   /// too big an overlap
     MarkScaffoldsForMerging(curEdge, FALSE  /* mark for simply exclusion from other merges */);
     return;
   }
@@ -3773,7 +3772,7 @@ void ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
   }
   
   
-  if(iSpec->doInterleaving == FALSE)
+  if (GlobalData->doInterleavedScaffoldMerging == FALSE)
     {
       if(mustOverlap){
         // All edges that got this far passed the !isLargeOverlap test, so we will
@@ -3782,7 +3781,7 @@ void ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
       
       }else{
       
-        mergeEdge = FindMoreAttractiveMergeEdge(curEdge, scaffoldA, scaffoldB, 0, iSpec->doInterleaving, iSpec->checkForTinyScaffolds, verbose);
+        mergeEdge = FindMoreAttractiveMergeEdge(curEdge, scaffoldA, scaffoldB, 0, GlobalData->doInterleavedScaffoldMerging, iSpec->checkForTinyScaffolds, verbose);
         if(verbose){
           if(!mergeEdge){
             fprintf(GlobalData->stderrc,"*(NONE) Return from Top Level call to FindMoreAttractiveMergeEdge (" F_CID "," F_CID ",%c) (" F_CID "," F_CID ") ==> NONE!\n",
@@ -4353,7 +4352,7 @@ void ExamineUsableSEdges(VA_TYPE(PtrT) *sEdges,
       int32 maxWeightEdge = 0;
       int i;
     
-      if(! iSpec->doInterleaving)
+      if(! GlobalData->doInterleavedScaffoldMerging)
         {
           // find the max weight non-negative distance edge
           for(i = 0; i < GetNumVA_PtrT(sEdges); i++)
@@ -4394,11 +4393,11 @@ void ExamineUsableSEdges(VA_TYPE(PtrT) *sEdges,
 }
 
 
-void BuildMergedScaffoldEdges(ScaffoldGraphT * graph, InterleavingSpec * iSpec)
+void BuildMergedScaffoldEdges(ScaffoldGraphT * graph)
 {
   // create a scaffold edge for every inter-scaffold contig edge
   fprintf(GlobalData->stderrc, "* Building scaffold edges from scratch\n");
-  BuildSEdges(graph, iSpec->doInterleaving);
+  BuildSEdges(graph, GlobalData->doInterleavedScaffoldMerging);
   
   // merge all inter-scaffold edges that are compatible with each other
   fprintf(GlobalData->stderrc, "* Merging scaffold edges from scratch\n");
@@ -4442,14 +4441,14 @@ int BuildSEdgesForMerging(ScaffoldGraphT * graph,
   // may be used for merging
   fprintf(GlobalData->stderrc, "* Building usable SEdges\n");
   fflush(GlobalData->stderrc);
-  BuildUsableSEdges(*sEdges, *overlapSEdges, iSpec, verbose);
+  BuildUsableSEdges(*sEdges, *overlapSEdges, verbose);
   
   if(adjustThreshold)
     {
       if (firstTime == TRUE && GetPtrT(*sEdges, 0) != NULL)
         {
           SEdgeT ** sEdge = (SEdgeT **)GetPtrT(*sEdges,0);
-          if(iSpec->doInterleaving)
+          if (GlobalData->doInterleavedScaffoldMerging)
             {
               int j;
               for(j = 0; j < GetNumVA_PtrT(*sEdges); j++)
@@ -4495,7 +4494,7 @@ int SetUpSEdges(ScaffoldGraphT * graph,
 {
   int retVal;
   
-  BuildMergedScaffoldEdges(graph, iSpec);
+  BuildMergedScaffoldEdges(graph);
   
   retVal = BuildSEdgesForMerging(graph,
                                  sEdges, overlapSEdges,
@@ -5082,7 +5081,6 @@ void ResetScaffoldAndEdgeFlags(ScaffoldGraphT * graph)
 
 
 void BuildNewScaffoldEdges(ScaffoldGraphT * graph,
-                           InterleavingSpec * iSpec,
                            CDS_CID_t firstScaffoldID)
 {
   CDS_CID_t i;
@@ -5106,7 +5104,8 @@ void BuildNewScaffoldEdges(ScaffoldGraphT * graph,
              newScaffold->type == REAL_SCAFFOLD);
     
       BuildSEdgesForScaffold(graph, newScaffold, FALSE,
-                             iSpec->doInterleaving, &buildStats);
+                             GlobalData->doInterleavedScaffoldMerging,
+                             &buildStats);
       MergeNodeGraphEdges(graph->ScaffoldGraph, newScaffold, TRUE, TRUE, FALSE);
     }
   fprintf(stderr, "Added %d raw scaffold edges\n", buildStats.edgesSucceeded);
@@ -5193,7 +5192,7 @@ int MergeScaffoldsExhaustively(ScaffoldGraphT * graph,
         DeleteDeadScaffoldEdges(graph, deadScaffoldIDs);
 
         // raw & merged edges from new scaffolds to all other scaffolds
-        BuildNewScaffoldEdges(graph, iSpec, prevFirstNewScaffoldID);
+        BuildNewScaffoldEdges(graph, prevFirstNewScaffoldID);
 
         // flags used in marking scaffolds for merging
         ResetScaffoldAndEdgeFlags(graph);
@@ -5286,12 +5285,11 @@ void MergeScaffoldsAggressive(ScaffoldGraphT *graph, int logicalcheckpointnumber
     fprintf(GlobalData->stderrc, "** MinSatisfied: %f, MaxDelta: %f\n",
             iSpec.minSatisfied, iSpec.maxDelta);
 
-    // GlobalData->aligner = Local_Overlap_AS_forCNS;
+    //GlobalData->aligner = Local_Overlap_AS_forCNS;
     iSpec.checkForTinyScaffolds = FALSE;
-    iSpec.doInterleaving        = TRUE;
-    //    LeastSquaresGapEstimates(graph, TRUE, FALSE, TRUE, TRUE, FALSE);
+    //LeastSquaresGapEstimates(graph, TRUE, FALSE, TRUE, TRUE, FALSE);
     MergeScaffoldsExhaustively(graph, &iSpec, logicalcheckpointnumber, verbose);
-    // GlobalData->aligner = DP_Compare;
+    //GlobalData->aligner = DP_Compare;
 
   } else {
 
@@ -5302,7 +5300,6 @@ void MergeScaffoldsAggressive(ScaffoldGraphT *graph, int logicalcheckpointnumber
             iSpec.minSatisfied, iSpec.maxDelta);
 
     iSpec.checkForTinyScaffolds = TRUE;
-    iSpec.doInterleaving        = FALSE;
     MergeScaffoldsExhaustively(graph, &iSpec, logicalcheckpointnumber, verbose);
   }
   
