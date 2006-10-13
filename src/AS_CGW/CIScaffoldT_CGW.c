@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.9 2006-09-25 20:31:53 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.10 2006-10-13 20:34:51 brianwalenz Exp $";
 
 #undef DEBUG
 #undef DEBUG_INSERT
@@ -1257,8 +1257,8 @@ int32 CheckScaffoldConnectivityAndSplit(ScaffoldGraphT *graph, CIScaffoldT *scaf
     NodeCGW_T *thisNode;
     CIScaffoldTIterator scaffoldNodes;
 
-    fprintf(stderr,"WARNING! Scaffold " F_CID " is not connected has %d components\nSplitting into Scaffolds:",
-            scaffold->id, numComponents);
+    fprintf(stderr, "WARNING! Scaffold " F_CID " is not connected has %d components\n", scaffold->id, numComponents);
+    fprintf(stderr, "Splitting into scaffolds: (search for \"Splitting "F_CID" into scaffold\" to get the new scaffolds)\n", scaffold->id);
 
     if(verbose)
       DumpACIScaffold(stderr,graph, scaffold, FALSE);
@@ -1276,7 +1276,7 @@ int32 CheckScaffoldConnectivityAndSplit(ScaffoldGraphT *graph, CIScaffoldT *scaf
       assert(inode < numNodes);
       nodes[inode++] = thisNode->id;
     }
-    scaffold->flags.bits.isDead = TRUE;  // Mark the old scaffold dead
+
     // For each component, create a scaffold and insert the relevant
     // contigs
     for(component = 0; component < numComponents; component++){
@@ -1310,20 +1310,19 @@ int32 CheckScaffoldConnectivityAndSplit(ScaffoldGraphT *graph, CIScaffoldT *scaf
             }
             seenFirstOffset = TRUE;
           }
-          offsetAEnd.mean = thisNode->offsetAEnd.mean - firstOffset.mean;
-          offsetAEnd.variance = thisNode->offsetAEnd.variance -
-            firstOffset.variance;
-          offsetBEnd.mean = thisNode->offsetBEnd.mean - firstOffset.mean;
-          offsetBEnd.variance = thisNode->offsetBEnd.variance -
-            firstOffset.variance;
+          offsetAEnd.mean     = thisNode->offsetAEnd.mean     - firstOffset.mean;
+          offsetAEnd.variance = thisNode->offsetAEnd.variance - firstOffset.variance;
+          offsetBEnd.mean     = thisNode->offsetBEnd.mean     - firstOffset.mean;
+          offsetBEnd.variance = thisNode->offsetBEnd.variance - firstOffset.variance;
 
-          InsertCIInScaffold(graph, thisNode->id, newScaffoldID,
-                             offsetAEnd, offsetBEnd, TRUE, FALSE);
+          RemoveCIFromScaffold(graph, scaffold, thisNode, FALSE);
+          InsertCIInScaffold(graph, thisNode->id, newScaffoldID, offsetAEnd, offsetBEnd, TRUE, FALSE);
         }
       }
       assert((GetGraphNode(graph->ScaffoldGraph,
                            newScaffoldID))->info.Scaffold.numElements > 0);
-      fprintf(stderr," " F_CID "", newScaffoldID);
+
+      fprintf(stderr, "Splitting "F_CID" into scaffold "F_CID"\n", scaffold->id, newScaffoldID);
 
 #ifdef DEBUG_SPLIT
       fprintf(stderr,"... post split ...");
@@ -1333,8 +1332,17 @@ int32 CheckScaffoldConnectivityAndSplit(ScaffoldGraphT *graph, CIScaffoldT *scaf
 #endif 
 
     }
-    fprintf(stderr,"\n");
 
+    // Delete any remaining edges
+    DeleteScaffoldEdgesForScaffold(graph, scaffold);
+
+    // Mark the old scaffold dead
+    scaffold->flags.bits.isDead         = TRUE;
+    scaffold->info.Scaffold.AEndCI      = NULLINDEX;
+    scaffold->info.Scaffold.BEndCI      = NULLINDEX;
+    scaffold->info.Scaffold.numElements = 0;
+    scaffold->bpLength.mean             = 0.0;
+    scaffold->bpLength.variance         = 0.0;
   }
   return numComponents;
 }
@@ -1373,7 +1381,7 @@ void CheckTrustedEdges(ScaffoldGraphT * sgraph,  CDS_CID_t cid) {
     assert(next_chunk != NULL);
 
     if (next_chunk->scaffoldID != sid)
-#     if 1
+#if 1
       fprintf(stderr,"-=> BAD edge id:" F_CID " " F_CID "(" F_CID ")->" F_CID "(" F_CID ") (weight %d, status %d)\n",
               (CDS_CID_t) GetVAIndex_CIEdgeT(sgraph->RezGraph->edges, edge),
               cid,
@@ -1382,7 +1390,7 @@ void CheckTrustedEdges(ScaffoldGraphT * sgraph,  CDS_CID_t cid) {
               next_chunk->scaffoldID,
               edge->edgesContributing,
               edge->flags.bits.edgeStatus);
-#     endif
+#endif
   }
 }
 
@@ -1455,7 +1463,6 @@ int CheckAllEdges(ScaffoldGraphT * sgraph,  CDS_CID_t sid, CDS_CID_t cid) {
 
 /*****************************************************************************/
 
-static  VA_TYPE(PtrT) *chunksToBeRemoved = NULL;
 
 void CheckCIScaffoldTs(ScaffoldGraphT *sgraph){
   GraphNodeIterator scaffolds;
@@ -1645,6 +1652,8 @@ void CheckCIScaffoldT(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
   int iteration = 0;
   double LSE;
   double improvement = 1.0;
+
+  static  VA_TYPE(PtrT) *chunksToBeRemoved = NULL;
 
   if(chunksToBeRemoved == NULL){
     chunksToBeRemoved = CreateVA_PtrT(2048);
