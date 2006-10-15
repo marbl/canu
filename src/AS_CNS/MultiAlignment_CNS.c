@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.99 2006-10-13 17:02:23 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.100 2006-10-15 13:18:44 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -2711,10 +2711,11 @@ PopulateVarRecord(int32 *cids, int32 *nvars, int32 *min_len_vlist,
     IntMultiVar **v_list, VarRegion vreg, CNS_Options *opp, int get_scores)
 {
     double fict_var;
-    int m;
-    int num_reported_alleles= (vreg.nca < 2) ? 2 : vreg.nca;
-    char  *cbase = (char*)safe_calloc(num_reported_alleles,sizeof(char));
-    char buf[10000];
+    int   m;
+    int   num_reported_alleles= (vreg.nca < 2) ? 2 : vreg.nca;
+    char  cbase;
+    char *base = (char*)safe_calloc(num_reported_alleles,sizeof(char));
+    char  buf[10000];
 
     if (!(*v_list)) {
        *v_list = (IntMultiVar *)safe_malloc(*min_len_vlist*
@@ -2758,16 +2759,27 @@ PopulateVarRecord(int32 *cids, int32 *nvars, int32 *min_len_vlist,
                 if (al == 0 || al < vreg.nca)
                 {
                     int read_id = vreg.alleles[al].read_ids[0];
-                    cbase[al] = vreg.reads[read_id].bases[m];
+                    base[al] = vreg.reads[read_id].bases[m];
+                    if (al == 0)
+                    {
+                        // Setting the consensus case
+                        BaseCall(cids[vreg.beg+m], 1, &fict_var, &vreg,
+                             vreg.alleles[al].id, &cbase, 0, 0, opp);
+                        if (cbase != base[al])
+                        {
+                            fprintf(stderr, "Error setting the consensus base\n");
+                            exit(-1);
+                        }
+                    }
                 }
                 else // vreg.nca < 2 and al == 1
                 {
-                    cbase[al] = vreg.reads[distant_read_id].bases[m];
+                    base[al] = vreg.reads[distant_read_id].bases[m];
                 }
-                (*v_list)[*nvars].var_seq[m+al*shift] = cbase[al];
+                (*v_list)[*nvars].var_seq[m+al*shift] = base[al];
             }
             if (get_scores > 0)
-               UpdateScores(vreg, cbase, num_reported_alleles);
+               UpdateScores(vreg, base, num_reported_alleles);
         }
 
         sprintf((*v_list)[*nvars].weights, "");
@@ -2808,7 +2820,7 @@ PopulateVarRecord(int32 *cids, int32 *nvars, int32 *min_len_vlist,
             }
         }
     }
-    FREE(cbase);
+    FREE(base);
 #if DEBUG_ABACUS
     fprintf(stderr, "VARiation= %s\n", (*v_list)[*nvars].var_seq);
 #endif
