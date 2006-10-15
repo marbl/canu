@@ -103,7 +103,7 @@ main(int argc, char **argv) {
         err = 1;
       }
     } else {
-      int type = GetMessageType(argv[++arg]);
+      int type = GetMessageType(argv[arg]);
       if ((type >= 1) && (type <= NUM_OF_REC_TYPES)) {
         msglist[type]++;
         msg++;
