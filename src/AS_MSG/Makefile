@@ -29,14 +29,13 @@ LOCAL_WORK = $(shell cd ../..; pwd)
 LIBRARIES = libAS_MSG.a
 
 SOURCES = AS_MSG_pmesg.c AS_MSG_bmesg.c  \
-          proto2binary.c binary2proto.c  proto2proto.c \
           proto_append.c binary_append.c remove_fragment.c \
-          AS_MSG_pmesg_test.c CountMessages.c ExtractMessages.c \
+          AS_MSG_pmesg_test.c ExtractMessages.c \
 	  track_fragment.c AS_MSG_Utility.c
 OBJECTS = $(SOURCES:.c=.o)
 
-PROGS = AS_MSG_pmesg_test proto2binary binary2proto proto2proto \
-	proto_append binary_append remove_fragment countmessages \
+PROGS = AS_MSG_pmesg_test \
+	proto_append binary_append remove_fragment \
 	extractmessages track_fragment
 
 # Include for AS project rules
@@ -47,19 +46,11 @@ all: $(OBJECTS) $(LIBRARIES) $(PROGS)
 install: all
 	echo "Nothing to be done for AS_MSG"
 
-Clean:
-
 default: clean all regression tester install 
 
 libAS_MSG.a:   AS_MSG_pmesg.o AS_MSG_bmesg.o AS_MSG_Utility.o
 
 AS_MSG_pmesg_test: AS_MSG_pmesg_test.o AS_MSG_pmesg.o AS_MSG_bmesg.o libAS_UTL.a
-
-proto2binary: proto2binary.o AS_MSG_bmesg.o AS_MSG_pmesg.o libAS_UTL.a
-
-binary2proto: binary2proto.o AS_MSG_bmesg.o AS_MSG_pmesg.o libAS_UTL.a
-
-proto2proto: proto2proto.o AS_MSG_bmesg.o AS_MSG_pmesg.o libAS_UTL.a
 
 proto_append: proto_append.o AS_MSG_bmesg.o AS_MSG_pmesg.o libAS_UTL.a
 
@@ -69,14 +60,8 @@ remove_fragment: remove_fragment.o AS_MSG_bmesg.o AS_MSG_pmesg.o libAS_UTL.a
 
 track_fragment: track_fragment.o AS_MSG_bmesg.o AS_MSG_pmesg.o libAS_UTL.a
 
-countmessages: CountMessages.o AS_MSG_bmesg.o AS_MSG_pmesg.o libAS_UTL.a
-
 extractmessages: ExtractMessages.o AS_MSG_bmesg.o AS_MSG_pmesg.o libAS_UTL.a
 
-extractxchunkmessages: ExtractXChunkMessages.o AS_MSG_bmesg.o AS_MSG_pmesg.o
-
-
-# asm_tables: asm_tables.o  AS_MSG_bmesg.o AS_MSG_pmesg.o
 
 
 tester: AS_MSG_pmesg_test AS_MSG_testfile.in
