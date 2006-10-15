@@ -80,7 +80,7 @@ main(int argc, char **argv) {
       outBinary = 1;
     } else if (strcmp(argv[arg], "-p") == 0) {
       outBinary = 0;
-    } else if (strcmp(argv[arg], "-f") == 0) {
+    } else if (strcmp(argv[arg], "-o") == 0) {
       errno = 0;
       FILE *F = fopen(argv[++arg], "w");
       if (errno)
