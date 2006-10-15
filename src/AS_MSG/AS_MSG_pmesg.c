@@ -18,13 +18,16 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.21 2006-09-24 13:07:48 gdenisov Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.22 2006-10-15 06:51:35 brianwalenz Exp $";
 
 //  reads old and new AFG message (with and w/o chaff field)
 #define AFG_BACKWARDS_COMPATIBLE
 #define IAF_BACKWARDS_COMPATIBLE
 
-
+//  FreeBSD 6.1 fgets() sporadically replaces \n with \0, which
+//  horribly breaks this reader.  Defined this to replace
+//  fgets() with fgetc().
+#undef FGETS_IS_BROKEN
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -111,11 +114,7 @@ ProtoIOMode GetProtoMode_AS(void){
 }
 
 #define ZERO 0
-#define MAX_LINE_LEN 100000    /* Maximum input line length (checked) */
-// CMM: I bumped this up high because a buffer this long is used to
-// store the command line used to evoke each executable in the
-// Assembly pipeline.  The fragment graph builder is given hundreds
-// of files to process at once in the Human assembly.
+#define MAX_LINE_LEN (128 * 1024)    /* Maximum input line length (checked) */
 
 #define ROUNDUP(n,u) ((((n)-1)/(u) + 1)*(u))  /* Round n up to nearest
                                                  multiple of u */
@@ -124,7 +123,7 @@ static int LineNum = 0;   /* Current line number */
 
 static const char *Mcode;       /* 3-code of current read/write routine */
 
-static char *MemBuffer = NULL;   /* Memory allocation buffer for messages */
+static char *MemBuffer = NULL;      /* Memory allocation buffer for messages */
 static int   MemMax = -1, MemTop;   /* Memory ceiling and current top */
 
 int novar = 0;  /*  Output or not the variation records */
@@ -138,7 +137,6 @@ int novar = 0;  /*  Output or not the variation records */
 
 static void MakeSpace(const int size){
   size_t newsize=1;
-  //  int newsize=1;
   char *newbufr;
 
   if(MemMax> size)
@@ -149,20 +147,10 @@ static void MakeSpace(const int size){
   else
     newsize = 2 * size;
 
-      newsize = ROUNDUP(newsize,8);
-      newbufr = (char *) realloc(MemBuffer,newsize);
-      /*
-      if(MemBuffer == NULL)
-	fprintf(stderr,"* Reallocing MemBuffer to size " F_SIZE_T "  old:%p  new:%p\n",
-		newsize, MemBuffer, newbufr);
-      */
-      if (newbufr == NULL)
-        { fprintf(stderr,"ERROR: Out of memory (%s)",Mcode);
-          fprintf(stderr," at line %d\n",LineNum);
-          exit (1);
-        }
-      MemBuffer = newbufr;
-      MemMax    = newsize;
+  newsize = ROUNDUP(newsize,8);
+  newbufr = (char *)safe_realloc(MemBuffer,newsize);
+  MemBuffer = newbufr;
+  MemMax    = newsize;
 }
 
 
@@ -180,42 +168,57 @@ static long MoreSpace(const int size, const int boundary)
 }
 
 static char  CurLine[MAX_LINE_LEN];     /* Line buffer for reading messages. */
-static char *Sentinal = CurLine + (MAX_LINE_LEN-2); /* ...for line overflow. */
 
-static char *ReadLine(char *line, int lineMax, FILE *fin) {
+static char *ReadLine(FILE *fin) {
 
-  line[lineMax-2] = '\n';
-  line[lineMax-1] = 0;
+  CurLine[MAX_LINE_LEN-2] = '\n';
+  CurLine[MAX_LINE_LEN-1] = 0;
 
   errno = 0;
 
   LineNum++;
-  if (fgets(line, lineMax-1, fin) == NULL) {
+
+#ifdef FGETS_IS_BROKEN
+  int p=0;
+  for (p=0; p<MAX_LINE_LEN-1; p++) {
+    CurLine[p] = fgetc(fin);
+    if (CurLine[p] == 0)
+      CurLine[p] = '\n';
+    if (CurLine[p] == '\n') {
+      CurLine[p+1] = 0;
+      break;
+    }
+  }
+#else
+  if (fgets(CurLine, MAX_LINE_LEN-1, fin) == NULL) {
     fprintf(stderr,"ERROR: AS_MSG_pmesg.c::ReadLine()-- Premature end of input at line %d (%s)\n", LineNum, Mcode);
-    fprintf(stderr,"       %100s\n", CurLine);
+    fprintf(stderr,"       '%s'\n", CurLine);
     exit(1);
   }
+#endif
 
   if (errno) {
     fprintf(stderr,"ERROR: AS_MSG_pmesg.c::ReadLine()-- Read error at line %d: '%s'\n", LineNum, strerror(errno));
-    fprintf(stderr,"       %100s\n", CurLine);
+    fprintf(stderr,"       '%s'\n", CurLine);
     exit(1);
   }
 
-  if (*Sentinal != '\n') {
-    fprintf(stderr,"ERROR: Input line %d is too long (%s)", LineNum, Mcode);
-    fprintf(stderr,"       %100s\n", CurLine);
+  if (CurLine[MAX_LINE_LEN-2] != '\n') {
+    fprintf(stderr,"ERROR: Input line %d is too long (%s)\n", LineNum, Mcode);
+    fprintf(stderr,"       '%s'\n", CurLine);
     exit(1);
   }
 
-  return(line);
+  //fprintf(stderr, "READLINE -- %d %d %s", CurLine[0], CurLine[1], CurLine);
+
+  return(CurLine);
 }
 
 
 static char *GetLine(FILE *fin, int skipComment)   /* Get next input line (there must be one). */
 { 
     do {
-        ReadLine(CurLine, MAX_LINE_LEN, fin);
+        ReadLine(fin);
     }
     while (skipComment && CurLine[0] == '#');
     return (CurLine);
@@ -225,9 +228,8 @@ static char *GetLine(FILE *fin, int skipComment)   /* Get next input line (there
 
 static void MtypeError(const char * const name)
 {   
-    fprintf(stderr,"ERROR: Illegal %s type value \"%c\"(%s)",
-        name,CurLine[4],Mcode);
-    fprintf(stderr," at line %d\n",LineNum);
+    fprintf(stderr,"ERROR: Illegal %s type value \"%c\" (%s) at line %d\n",
+            name,CurLine[4],Mcode, LineNum);
     exit (1);
 }
 
@@ -235,8 +237,8 @@ static void MtypeError(const char * const name)
 
 static void MtagError(const char * const tag)
 { 
-    fprintf(stderr,"ERROR: Illegal tag \"%s\"(%s)",tag,Mcode);
-    fprintf(stderr," at line %d\n",LineNum);
+    fprintf(stderr,"ERROR: Illegal tag \"%s\" (expected \"%s\") (%s) at line %d\n",
+            CurLine, tag, Mcode, LineNum);
     exit (1);
 }
 
@@ -249,8 +251,8 @@ static void MfieldError(const char * const mesg)
     len = strlen(CurLine)-1;
     if (CurLine[len] == '\n')
         CurLine[len] = '\0';
-    fprintf(stderr,"ERROR: %s \"%s\"(%s)",mesg,CurLine+4,Mcode);
-    fprintf(stderr," at line %d\n",LineNum);
+    fprintf(stderr,"ERROR: %s \"%s\" (%s) at line %d\n",
+            mesg,CurLine,Mcode,LineNum);
     exit (1);
 }
 
@@ -258,8 +260,8 @@ static void MfieldError(const char * const mesg)
 
 static void MgenError(const char * const mesg)
 { 
-    fprintf(stderr,"ERROR: %s (%s)",mesg,Mcode);
-    fprintf(stderr," at line %d\n",LineNum);
+    fprintf(stderr,"ERROR: %s (%s) at line %d\n",
+            mesg,Mcode,LineNum);
     exit (1);
 }
 
@@ -277,7 +279,8 @@ static long GetText(const char * const tag, FILE *fin, const int delnewlines)
   while (1)
   { 
       char *line = GetLine(fin, FALSE);
-      if (line[0] == '.' && line[1] == '\n') break;
+      if ((line[0] == '.') && (line[1] == '\n'))
+        break;
       len = strlen(CurLine);
       if (delnewlines && CurLine[len-1] == '\n') len -= 1;
       idx = MoreSpace(len,1);
@@ -300,7 +303,7 @@ static long GetString(const char * const tag, FILE *fin)
   text = MemTop;
   do
     {
-      ReadLine(CurLine, MAX_LINE_LEN, fin);
+      ReadLine(fin);
     }
   while (CurLine[0] == '#');
   if (strncmp(CurLine,tag,4) != 0)
@@ -314,7 +317,7 @@ static long GetString(const char * const tag, FILE *fin)
       idx = MoreSpace(len,1);
       strncpy(MemBuffer+idx,str,len);
       if (eos) break;
-      str = ReadLine(CurLine,MAX_LINE_LEN,fin);
+      str = ReadLine(fin);
     }
   idx = MoreSpace(1,1);
   MemBuffer[idx] = '\0';
@@ -329,7 +332,7 @@ static void PutText(FILE *fout, const char * const tag,
     // Note that the data of "text" is modified!!!
     int i, len;
     fprintf(fout,"%s\n",tag);
-    if(text != NULL){
+    if ((text != NULL) && (text[0] != 0)) {
         len = strlen(text);
         if (format) { 
             for (i = 0; i < len; i += 70)
@@ -344,7 +347,7 @@ static void PutText(FILE *fout, const char * const tag,
             fprintf(fout,"%s\n.\n", text);
         }
     } else{
-        fprintf(fout,"\n.\n");
+        fprintf(fout,".\n");
     }
 }
 
@@ -3973,7 +3976,7 @@ int ReadProtoMesg_AS(FILE *fin, GenericMesg **pmesg)
 
   errno = 0;
 
-  *Sentinal = '\n';
+  CurLine[MAX_LINE_LEN-2] = '\n';
   MemTop    = 0;
   do {
     //  Can't use ReadLine() here, because we want to return EOF if we
@@ -3997,9 +4000,8 @@ int ReadProtoMesg_AS(FILE *fin, GenericMesg **pmesg)
       len = strlen(CurLine)-1;
       if (CurLine[len] == '\n')
         CurLine[len] = '\0';
-      fprintf(stderr,"ERROR: Unrecognized message type (%d > %d) \"%s\"",
-	      t, NUM_OF_REC_TYPES, CurLine);
-      fprintf(stderr," at line %d\n",LineNum);
+      fprintf(stderr,"ERROR: Unrecognized message type (%d > %d) \"%s\" at line %d\n",
+	      t, NUM_OF_REC_TYPES, CurLine,LineNum);
       exit (1);
     }     
   Mcode = CallTable[t].header+1;
