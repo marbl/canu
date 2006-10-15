@@ -30,13 +30,15 @@ LIBRARIES = libAS_MSG.a
 
 SOURCES = AS_MSG_pmesg.c AS_MSG_bmesg.c  \
           proto_append.c binary_append.c remove_fragment.c \
-          AS_MSG_pmesg_test.c ExtractMessages.c \
-	  track_fragment.c AS_MSG_Utility.c
+          AS_MSG_pmesg_test.c \
+          ExtractMessages.c \
+	  AS_MSG_Utility.c
 OBJECTS = $(SOURCES:.c=.o)
 
 PROGS = AS_MSG_pmesg_test \
-	proto_append binary_append remove_fragment \
-	extractmessages track_fragment
+	proto_append binary_append \
+        remove_fragment \
+	extractmessages
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
@@ -57,8 +59,6 @@ proto_append: proto_append.o AS_MSG_bmesg.o AS_MSG_pmesg.o libAS_UTL.a
 binary_append: binary_append.o AS_MSG_bmesg.o AS_MSG_pmesg.o libAS_UTL.a
 
 remove_fragment: remove_fragment.o AS_MSG_bmesg.o AS_MSG_pmesg.o libAS_UTL.a
-
-track_fragment: track_fragment.o AS_MSG_bmesg.o AS_MSG_pmesg.o libAS_UTL.a
 
 extractmessages: ExtractMessages.o AS_MSG_bmesg.o AS_MSG_pmesg.o libAS_UTL.a
 
