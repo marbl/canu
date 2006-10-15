@@ -104,7 +104,7 @@ dumpFrag: $(AS_PER_OBJS)  dumpFrag.o libAS_UTL.a
 
 dumpFragFromPartition: $(AS_PER_OBJS) dumpFragFromPartition.o libAS_UTL.a 
 
-PopulateFragStore: $(AS_PER_OBJS)  PopulateFragStore.o libAS_UTL.a libAS_MSG.a libAS_PER.a 
+PopulateFragStore: $(AS_PER_OBJS)  PopulateFragStore.o libAS_MSG.a libAS_PER.a libAS_UTL.a
 
 binaryDumpFragStore: $(AS_PER_OBJS) binaryDumpFragStore.o libAS_UTL.a 
 
