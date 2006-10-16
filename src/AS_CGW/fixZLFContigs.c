@@ -894,10 +894,7 @@ int FixZLFContigs(VA_TYPE(ZLFScaffold) * zlfScaffolds,
               InstrumentScaffold(ScaffoldGraph, scaffold, si,
                                  InstrumenterVerbose3, stderr);
       
-
-              fprintf(stderr,
-                      "****************** CheckScaffoldConnectivityAndSplit:\n");
-              CheckScaffoldConnectivityAndSplit(ScaffoldGraph, scaffold,
+              CheckScaffoldConnectivityAndSplit(ScaffoldGraph, scaffold->id,
                                                 ALL_TRUSTED_EDGES, FALSE);
             }
         }

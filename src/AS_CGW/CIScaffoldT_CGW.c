@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.10 2006-10-13 20:34:51 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.11 2006-10-16 03:30:14 brianwalenz Exp $";
 
 #undef DEBUG
 #undef DEBUG_INSERT
@@ -626,8 +626,8 @@ int RemoveCIFromScaffold(ScaffoldGraphT *sgraph, CIScaffoldT *ciScaffold,
   DumpCIScaffold(stderr,sgraph, ciScaffold, FALSE);
   }
 #endif
-  
-  assert(ciScaffold->info.Scaffold.AEndCI!= NULLINDEX && ciScaffold->info.Scaffold.BEndCI != NULLINDEX);
+
+  assert(ciScaffold->info.Scaffold.AEndCI != NULLINDEX && ciScaffold->info.Scaffold.BEndCI != NULLINDEX);
   assert(ciScaffold && (CI->scaffoldID == ciScaffold->id));
 
   ciScaffold = GetGraphNode(sgraph->ScaffoldGraph, CI->scaffoldID);
@@ -1240,9 +1240,10 @@ int IsScaffoldInternallyConnectedCheck(ScaffoldGraphT *sgraph,
 }
 
 /***********************************************************************/
-int32 CheckScaffoldConnectivityAndSplit(ScaffoldGraphT *graph, CIScaffoldT *scaffold, int32 edgeTypes, int verbose){
-  int numComponents = IsScaffoldInternallyConnected(graph, scaffold, edgeTypes);
-  int32 numNodes    = scaffold->info.Scaffold.numElements;
+int32 CheckScaffoldConnectivityAndSplit(ScaffoldGraphT *graph, CDS_CID_t scaffoldID, int32 edgeTypes, int verbose){
+  CIScaffoldT  *scaffold      = GetCIScaffoldT(graph->CIScaffolds, scaffoldID);
+  int           numComponents = IsScaffoldInternallyConnected(graph, scaffold, edgeTypes);
+  int32         numNodes      = scaffold->info.Scaffold.numElements;
 
   // Expected case, Scaffold is connected
   if(numComponents > 1){
@@ -1257,8 +1258,8 @@ int32 CheckScaffoldConnectivityAndSplit(ScaffoldGraphT *graph, CIScaffoldT *scaf
     NodeCGW_T *thisNode;
     CIScaffoldTIterator scaffoldNodes;
 
-    fprintf(stderr, "WARNING! Scaffold " F_CID " is not connected has %d components\n", scaffold->id, numComponents);
-    fprintf(stderr, "Splitting into scaffolds: (search for \"Splitting "F_CID" into scaffold\" to get the new scaffolds)\n", scaffold->id);
+    fprintf(stderr, "WARNING! Scaffold " F_CID " is not connected has %d components\n", scaffoldID, numComponents);
+    fprintf(stderr, "Splitting into scaffolds: (search for \"Splitting "F_CID" into scaffold\" to get the new scaffolds)\n", scaffoldID);
 
     if(verbose)
       DumpACIScaffold(stderr,graph, scaffold, FALSE);
@@ -1298,6 +1299,9 @@ int32 CheckScaffoldConnectivityAndSplit(ScaffoldGraphT *graph, CIScaffoldT *scaf
       CIScaffold.numEssentialA = CIScaffold.numEssentialB = 0;
       CIScaffold.essentialEdgeB = CIScaffold.essentialEdgeA = NULLINDEX;
       AppendGraphNode(graph->ScaffoldGraph, &CIScaffold);
+
+      scaffold = GetCIScaffoldT(graph->CIScaffolds, scaffoldID);
+
       for(inode = 0, seenFirstOffset = FALSE; inode < numNodes; inode++){
         NodeCGW_T *thisNode = GetGraphNode(graph->RezGraph, nodes[inode]);
         if(thisNode->setID == component){
@@ -1319,10 +1323,9 @@ int32 CheckScaffoldConnectivityAndSplit(ScaffoldGraphT *graph, CIScaffoldT *scaf
           InsertCIInScaffold(graph, thisNode->id, newScaffoldID, offsetAEnd, offsetBEnd, TRUE, FALSE);
         }
       }
-      assert((GetGraphNode(graph->ScaffoldGraph,
-                           newScaffoldID))->info.Scaffold.numElements > 0);
+      assert((GetGraphNode(graph->ScaffoldGraph, newScaffoldID))->info.Scaffold.numElements > 0);
 
-      fprintf(stderr, "Splitting "F_CID" into scaffold "F_CID"\n", scaffold->id, newScaffoldID);
+      fprintf(stderr, "Splitting "F_CID" into scaffold "F_CID"\n", scaffoldID, newScaffoldID);
 
 #ifdef DEBUG_SPLIT
       fprintf(stderr,"... post split ...");

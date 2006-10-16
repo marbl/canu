@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: ScaffoldGraph_CGW.h,v 1.10 2006-10-13 17:43:45 brianwalenz Exp $	 */
+/* 	$Id: ScaffoldGraph_CGW.h,v 1.11 2006-10-16 03:30:14 brianwalenz Exp $	 */
 /***************************************************************************
  *  ScaffoldGraph
  *  
@@ -397,13 +397,12 @@ int IsScaffoldInternallyConnected(ScaffoldGraphT *graph,
 int IsInternalEdgeStatusVaguelyOK(EdgeCGW_T *edge,CDS_CID_t thisCIid);
 
 
-/*
-  CheckScaffoldConnectivityAndSplit
-  Calls isScaffoldInternallyConnected.  If not, splits the scaffold into
-  its components
-*/
+
+// Uses isScaffoldInternallyConnected to decide if a scaffold is
+// connected.  If not, splits the scaffold into its components.
+//
 int CheckScaffoldConnectivityAndSplit(ScaffoldGraphT *graph,
-                                      CIScaffoldT *scaffold,
+                                      CDS_CID_t sid,
                                       int32 edgeTypes, int verbose);
 
 

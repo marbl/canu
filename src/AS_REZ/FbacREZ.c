@@ -34,7 +34,7 @@
 
  **********************************************************************/
 
-static char fileID[] = "$Id: FbacREZ.c,v 1.6 2006-06-14 19:57:23 brianwalenz Exp $";
+static char fileID[] = "$Id: FbacREZ.c,v 1.7 2006-10-16 03:30:14 brianwalenz Exp $";
 
 #define FBACDEBUG 2
 
@@ -4194,11 +4194,8 @@ void CheckAlteredScaffolds( int *checkScaffold, int checkScaffoldCount)
   
   for (icnt = 0; icnt < checkScaffoldCount; icnt++)
   {
-	CIScaffoldT *scaff= GetCIScaffoldT(ScaffoldGraph->CIScaffolds, checkScaffold[icnt]);
-	
-	fprintf( stderr, "checking scaffold %d for connectivity\n", scaff->id);
-	
-	CheckScaffoldConnectivityAndSplit( ScaffoldGraph, scaff, ALL_EDGES, FALSE);
+	fprintf( stderr, "checking scaffold %d for connectivity\n", checkScaffold[icnt]);
+	CheckScaffoldConnectivityAndSplit( ScaffoldGraph, checkScaffold[icnt], ALL_EDGES, FALSE);
   }
 }
 

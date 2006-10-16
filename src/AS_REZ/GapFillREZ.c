@@ -34,7 +34,7 @@
 *
 *************************************************/
 
-static char fileID[] = "$Id: GapFillREZ.c,v 1.14 2006-10-13 20:37:15 brianwalenz Exp $";
+static char fileID[] = "$Id: GapFillREZ.c,v 1.15 2006-10-16 03:30:14 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -12946,7 +12946,7 @@ PALLOC (Num_Scaffolds * sizeof (char));
 #if 1
           //  A bad idea to use ALL_TRUSTED_EDGES.  We destroy our nice big scaffolds.
           //
-          components1 = CheckScaffoldConnectivityAndSplit(ScaffoldGraph, scaff, ALL_EDGES, FALSE);  //  last arg is verbose
+          components1 = CheckScaffoldConnectivityAndSplit(ScaffoldGraph, scaff_id, ALL_EDGES, FALSE);  //  last arg is verbose
 
           if (components1 > 1) {
             splitscaffolds++;

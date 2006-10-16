@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: LeastSquaresGaps_CGW.c,v 1.14 2006-09-21 21:34:00 brianwalenz Exp $";
+static char CM_ID[] = "$Id: LeastSquaresGaps_CGW.c,v 1.15 2006-10-16 03:30:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2190,30 +2190,30 @@ void LeastSquaresGapEstimates(ScaffoldGraphT *graph, int markEdges,
       // scaffolds which are connected.
       //
       if(checkConnectivity){
-        int numComponents = CheckScaffoldConnectivityAndSplit(graph,scaffold, ALL_TRUSTED_EDGES, verbose);
+        int numComponents = CheckScaffoldConnectivityAndSplit(graph, sID, ALL_TRUSTED_EDGES, verbose);
 
         if (debug.leastSquaresGapsLV > 1)
-          fprintf(stderr, "* Scaffold "F_CID" has %d components.\n", scaffold->id, numComponents);
+          fprintf(stderr, "* Scaffold "F_CID" has %d components.\n", sID, numComponents);
 
         if(numComponents > 1){ // we split the scaffold because it wasn't connected
           fprintf(stderr,"* Scaffold not connected: Split scaffold " F_CID " into %d pieces\n",
-                  scaffold->id, numComponents);
+                  sID, numComponents);
           continue;
         }else{
           if (debug.leastSquaresGapsLV > 1)
             fprintf(stderr,"* BPW Scaffold connected " F_CID " hooray!\n",
-                    scaffold->id, numComponents);
+                    sID, numComponents);
 
           if(!IsScaffold2EdgeConnected(ScaffoldGraph, scaffold)){
             if (debug.leastSquaresGapsLV > 0)
               fprintf(stderr,"*###### Scaffold " F_CID " is not 2-edge connected... SPLIT IT!\n",
-                      scaffold->id);
+                      sID);
 
-            numComponents = CheckScaffoldConnectivityAndSplit(ScaffoldGraph, scaffold, ALL_TRUSTED_EDGES, FALSE);
+            numComponents = CheckScaffoldConnectivityAndSplit(ScaffoldGraph, sID, ALL_TRUSTED_EDGES, FALSE);
             if (numComponents > 1) {
               if (debug.leastSquaresGapsLV > 0)
                 fprintf(stderr,"* Scaffold not 2 edge-connected: Split scaffold " F_CID " into %d pieces\n",
-                        scaffold->id, numComponents);
+                        sID, numComponents);
               continue;
             }
           }
@@ -2244,7 +2244,7 @@ void LeastSquaresGapEstimates(ScaffoldGraphT *graph, int markEdges,
           // We want to simply try again, since we just changed the scaffold order
 
           if (debug.leastSquaresGapsLV > 1)
-            fprintf(stderr,"* RecomputeOffsetsInScaffold " F_CID " attempt %d failed...iterating\n", scaffold->id, i);
+            fprintf(stderr,"* RecomputeOffsetsInScaffold " F_CID " attempt %d failed...iterating\n", sID, i);
         }
       }
 
@@ -2266,6 +2266,6 @@ void LeastSquaresGapEstimates(ScaffoldGraphT *graph, int markEdges,
         if (!redo)
           CheckCIScaffoldT(graph, scaffold);
       }
-    }
+    }  //  end of sID loop
   return;
 }
