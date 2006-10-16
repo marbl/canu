@@ -21,41 +21,50 @@
 #
 ###########################################################################
 #
-#VERBOSE=1
-
-# gmake Makefile for AS_SIM
 
 LIBRARIES =
-SOURCES = AS_SIM_frag.c AS_SIM_poly.c AS_SIM_massage.c AS_SIM_outputADT.c AS_SIM_outputBAC.c AS_SIM_outputDST.c AS_SIM_tobatches.c
+SOURCES = AS_SIM_frag.c \
+          AS_SIM_poly.c \
+          AS_SIM_massage.c \
+          AS_SIM_outputADT.c \
+          AS_SIM_outputBAC.c \
+          AS_SIM_outputDST.c \
+          AS_SIM_tobatches.c
 OBJECTS = $(SOURCES:.c=.o)
-PROGS = massage frag poly outputADT outputDST tobatches outputBAC
-SCRIPTS = AS_SIM_celsim.awk AS_SIM_labelfrag.pl AS_SIM_extractLength.pl celsim
+PROGS = AS_SIM_massage \
+        AS_SIM_frag \
+        AS_SIM_poly \
+        AS_SIM_outputADT \
+        AS_SIM_outputDST \
+        AS_SIM_outputBAC \
+        AS_SIM_tobatches
 
 # Include for AS project rules
 LOCAL_WORK = $(shell cd ../..; pwd)
 include $(LOCAL_WORK)/src/c_make.as
 
-install: $(SCRIPTS) 
-	@cp -f $(SCRIPTS) $(LOCAL_BIN)
-
 objects: $(OBJECTS)
 
-all: $(OBJECTS) $(LIBRARIES) $(PROGS) install
+all: $(OBJECTS) $(LIBRARIES) $(PROGS)
+	@cp -f AS_SIM_celsim.pl $(LOCAL_BIN)/AS_SIM_celsim.pl
+	@chmod ugo+x $(LOCAL_BIN)/AS_SIM_celsim.pl
+	@cp -f AS_SIM_celsim.awk $(LOCAL_BIN)/AS_SIM_celsim.awk
+	@chmod ugo+x $(LOCAL_BIN)/AS_SIM_celsim.awk
+	@cp -f AS_SIM_labelfrag.pl $(LOCAL_BIN)/AS_SIM_labelfrag.pl
+	@chmod ugo+x $(LOCAL_BIN)/AS_SIM_labelfrag.pl
+	@cp -f AS_SIM_extractLength.pl $(LOCAL_BIN)/AS_SIM_extractLength.pl
+	@chmod ugo+x $(LOCAL_BIN)/AS_SIM_extractLength.pl
 
-massage: AS_SIM_massage.o libAS_MSG.a libAS_UTL.a
+AS_SIM_massage: AS_SIM_massage.o libAS_MSG.a libAS_UTL.a
 
-outputADT: AS_SIM_outputADT.o libAS_MSG.a libAS_UTL.a
+AS_SIM_frag: AS_SIM_frag.o libAS_UTL.a
 
-outputDST: AS_SIM_outputDST.o libAS_MSG.a libAS_UTL.a
+AS_SIM_poly: AS_SIM_poly.o
 
-outputBAC: AS_SIM_outputBAC.o libAS_MSG.a libAS_UTL.a
+AS_SIM_outputADT: AS_SIM_outputADT.o libAS_MSG.a libAS_UTL.a
 
-frag: AS_SIM_frag.o libAS_UTL.a
+AS_SIM_outputDST: AS_SIM_outputDST.o libAS_MSG.a libAS_UTL.a
 
-poly: AS_SIM_poly.o
+AS_SIM_outputBAC: AS_SIM_outputBAC.o libAS_MSG.a libAS_UTL.a
 
-tobatches: AS_SIM_tobatches.o libAS_MSG.a libAS_UTL.a
-
-celsim: AS_SIM_celsim
-	cp -f AS_SIM_celsim celsim
-	chmod ug+x celsim
+AS_SIM_tobatches: AS_SIM_tobatches.o libAS_MSG.a libAS_UTL.a

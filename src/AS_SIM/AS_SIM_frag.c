@@ -50,7 +50,7 @@
 #include "AS_global.h"
 #include "AS_UTL_rand.h"
 
-char FragVersion[] = "$Revision: 1.2 $";
+char FragVersion[] = "$Revision: 1.3 $";
 
 double drand48();
 void   srand48();
@@ -199,7 +199,7 @@ char *read_seq(FILE *input, int *len);
 char *ckalloc(int size)
 { char *m;
   if ((m = (char *) malloc(size)) == NULL)
-    { fprintf(stdout,"Out of Memory (frag %d)\n",size);
+    { fprintf(stderr,"Out of Memory (frag %d)\n",size);
       exit (2);
     }
   return (m);
@@ -612,7 +612,7 @@ void build_trav(DEFINITION *e, int lev)
 #ifdef DEBUG
               fprintf(stderr,"\t%c.%d: o=%d e=%g(%d,%d,%d) length = %d value = 0x%x\n",
                       x->refer->name+'A',x->level,x->forw,x->erate,x->errors,
-                      x->begpos,x->endpos,x->length,x->oprand); fflush(stdout);
+                      x->begpos,x->endpos,x->length,x->oprand);
 #endif
 
 		}
@@ -1097,7 +1097,6 @@ void outputfrag(int index, char c, int isFalseMate)
     else
       printf("%.*s\n",SEGLEN,Frag+i);
 
-  fflush(stdout);
 /* output quality */
   fprintf(QualityFile,"> %d%c Interval: [%d,%d] %s %s (Quality Values)\n",
 	 index,c,
@@ -1115,7 +1114,6 @@ void outputfrag(int index, char c, int isFalseMate)
       fprintf(QualityFile,"%.*s\n",FragLen-i,Qual+i);
     else
       fprintf(QualityFile,"%.*s\n",SEGLEN,Qual+i);
-  fflush(QualityFile);
 }
 
 
@@ -1157,11 +1155,11 @@ int nextsymbol(void)
    including re-entry prompts.  Query is always false when in batch mode. */
 
 int getnatural(char *label)
-{ int datum;
+{ int datum = 0;
  
   if (fscanf(sfile," %d",&datum) != 1 || datum <= 0)
-    {      fprintf(stderr,"\nFrag Error:\n\t*** %s must be a positive int\n",label);
-     fflush(stderr);
+    {
+      fprintf(stderr,"\nFrag Error:\n\t*** %s must be a positive int (%d)\n",label, datum);
       exit(1);
     }
   return(datum);
@@ -1642,7 +1640,6 @@ REFERENCE *getreference(DEFINITION *e)
 	printf(" 0%% Fractures");
       }
       printf("\n");
-      fflush(stdout);
     }
 
   return (r);
@@ -1690,7 +1687,6 @@ void getgrammar(void)
         }
       if (comments)
         { printf("# Element: ");
-          fflush(stdout);
         }
                           /* Get name and basis (if any) */
       name = c = nextsymbol();
@@ -1776,7 +1772,6 @@ void getgrammar(void)
             }
           else
             printf("#    Concatenation of:\n");
-          fflush(stdout);
         }
 
       rlink = (REFERENCE *) e;    /* Get references */
@@ -1873,7 +1868,6 @@ void getfile(void)
   SeqFile = NULL;
   if (comments)
     { printf("# Seed = %d\n#\n",Seed);
-      fflush(stdout);
     }
   n = nextsymbol();
   n = nextsymbol();
@@ -1900,7 +1894,6 @@ void getfile(void)
     }
   if (comments)
     { printf("# Sequence from file: %s\n",buffer);
-      fflush(stdout);
     }
 }
 
@@ -1935,12 +1928,10 @@ int getinput(void)
   if (comments)
     { printf("# Fragments:\n");   /* Get fragment parameters */
       printf("#    Number = ");
-      fflush(stdout);
     }
   NumFrag = getnatural("Number of fragments");
   if (comments)
     { printf("%d, Length Range = ",NumFrag);
-      fflush(stdout);
     }
   MinLen = getnatural("Min fragment length");
   MaxLen = getnatural("Max fragment length");
@@ -1951,24 +1942,20 @@ int getinput(void)
 
   if (comments)
     { printf("[%d,%d], F/R odds = ",MinLen,MaxLen);
-      fflush(stdout);
     }
   Orient = getprobability("Orientation Odds");
   if (comments)
     { printf("%.2f/%.2f\n",Orient,1.0-Orient);
       printf("# Edit Characteristics:\n");
       printf("#    Error Ramp = ");
-      fflush(stdout);
     }
   BegErr = getprobability("Start error rate");
   if (comments)
     { printf("%.2f->",BegErr);
-      fflush(stdout);
     }
   EndErr = getprobability("Final error rate");
   if (comments)
     { printf("%.2f, Ins/Del/Sub Odds = ",EndErr);
-      fflush(stdout);
     }
   if(BegErr < 1.e-9 &&
      EndErr < 1.e-9){ // Special case of NO sequencing error
@@ -1992,7 +1979,6 @@ int getinput(void)
     }
   if (comments)
     { printf("%.2f/%.2f/%.2f\n",ProbI,ProbID-ProbI,1.-ProbID);
-      fflush(stdout);
     }
 
   n = nextsymbol();
@@ -2009,12 +1995,10 @@ int getinput(void)
   if (comments)
     { printf("# Dual-End Inserts:\n");   /* Get fragment parameters */
       printf("#    Single Odds = "); /* Get dual-end parameters */
-      fflush(stdout);
     }
   SingleFract = getprobability("Odds of single read");
   if (comments)
     { printf("%.2f\n#    Insert Range = ",SingleFract);
-      fflush(stdout);
     }
   MinIns  = getnatural("Min insert length");
   MaxIns  = getnatural("Max insert length");
@@ -2030,7 +2014,6 @@ int getinput(void)
     }
   if (comments)
     { printf("[%d,%d]\n#    Pairing Error Rate = ",MinIns,MaxIns);
-      fflush(stdout);
     }
   PairError  = getprobability("Pairing Error Rate");
   if (comments)
