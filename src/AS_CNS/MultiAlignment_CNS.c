@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.100 2006-10-15 13:18:44 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.101 2006-10-16 16:49:34 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -100,7 +100,6 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.100 2006-10-15 13:18:44 gde
 #include "UtilsREZ.h"
 #include "AS_UTL_HashCommon.h"
 #include "AS_UTL_PHash.h"
-#include "AS_UTL_systemdebug.h"
 #include "AS_MSG_pmesg.h"
 #include "PrimitiveVA_MSG.h"
 #include "Globals_CNS.h"
@@ -3490,6 +3489,19 @@ void ReportTrick(FILE *fp, CNS_AlignTrick trick) {
 //*********************************************************************************
 // Look for the required overlap between two fragments, and return trace
 //*********************************************************************************
+
+static void utl_showstring(FILE *out,const char *cs, int width)
+{
+  int len=strlen(cs);
+  int s=0;
+  const char *p;
+  while( s<len ) {
+    p=cs+s;
+    fprintf(out,"%.*s\n",width,p);
+    s+=width;
+  }
+}
+
 
 int GetAlignmentTrace(int32 afid, int32 aoffset, int32 bfid, int32 *ahang, 
     int32 ovl, VA_TYPE(int32) *trace, OverlapType *otype, 
@@ -8514,7 +8526,7 @@ int ExamineMANode(FILE *outFile,int32 sid, int32 mid, UnitigData *tigData,int nu
   return 1;
 }
 
-static int utl_counts[4]={0,0,0,0};
+//static int utl_counts[4]={0,0,0,0};
 
 
 int ExamineConfirmedMMColumns(FILE *outFile,int32 sid, int32 mid, UnitigData *tigData,int num_unitigs) {

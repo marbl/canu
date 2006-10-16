@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_unitigger.c,v 1.6 2006-09-26 22:21:13 brianwalenz Exp $";
+= "$Id: AS_CGB_unitigger.c,v 1.7 2006-10-16 16:49:34 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module: AS_CGB_unitigger.c
@@ -57,7 +57,6 @@ static char CM_ID[]
 
 #include "AS_CGB_all.h"
 #include "AS_UTL_version.h"
-#include "AS_UTL_systemdebug.h"
 #include "AS_CGB_unitigger_globals.h"
 #include "AS_CGB_Bubble.h"
 #ifdef REPAIR_BREAKERS
