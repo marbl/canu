@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.101 2006-10-16 16:49:34 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.102 2006-10-16 21:05:40 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -2658,7 +2658,7 @@ GetDistanceBetweenReads(char *read1, char *read2, int len)
     for (k=0; k<uglen; k++)
     {
         // Compute ungapped distance
-        if (k<uglen1 && k<uglen2 && read1[k] != read2[k]) 
+        if (k<uglen1 && k<uglen2 && ugread1[k] != ugread2[k]) 
             ungapped_dist++;
         else if (k <uglen1 && k>=uglen2)  
             ungapped_dist++;
