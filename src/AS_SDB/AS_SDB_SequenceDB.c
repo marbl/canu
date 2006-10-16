@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_SDB_SequenceDB.c,v 1.7 2006-09-21 23:09:36 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_SDB_SequenceDB.c,v 1.8 2006-10-16 03:26:12 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,8 +46,7 @@ tSequenceDB *CreateSequenceDB(char *path, int initialSize, int force){
   struct stat dirstat;
   FILE *indexfp, *datafp;
   char buffer[FILENAME_MAX + 30];
-  tSequenceDB *sequenceDB = (tSequenceDB *)malloc(sizeof(tSequenceDB));
-  assert(path && sequenceDB);
+  tSequenceDB *sequenceDB = (tSequenceDB *)safe_calloc(1, sizeof(tSequenceDB));
 
   errno = 0;
   if (stat(path, &dirstat) != 0) {
@@ -126,7 +125,7 @@ void DeleteSequenceDB(tSequenceDB *db){
    for revision+1 is opened r/w.
 */
 tSequenceDB *OpenSequenceDB(char *path, int readWrite, int revision){
-  tSequenceDB *sequenceDB = (tSequenceDB *)malloc(sizeof(tSequenceDB));
+  tSequenceDB *sequenceDB = (tSequenceDB *)safe_calloc(1, sizeof(tSequenceDB));
   char buffer[FILENAME_MAX + 30];
   FILE *datafp;
   FILE *testfp;
