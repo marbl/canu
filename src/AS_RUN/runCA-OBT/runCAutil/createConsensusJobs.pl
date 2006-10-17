@@ -118,14 +118,22 @@ sub createPostScaffolderConsensusJobs ($) {
     chmod 0755, "$wrk/8-consensus/consensus.sh";
 
     if (getGlobal("cnsOnGrid") && getGlobal("useGrid")) {
-        my $cmd;
-        $cmd  = "qsub -p 0 -r y -N cns2_${asm} ";
-        $cmd .= "-t 1-$jobs ";
-        $cmd .= "-j y -o /dev/null ";
-        $cmd .= "$wrk/8-consensus/consensus.sh\n";
-        pleaseExecute($cmd);
-        touch("$wrk/8-consensus/jobsCreated.success");
-        exit(0);
+        my $SGE;
+        $SGE  = "qsub -p 0 -r y -N cns2_${asm} ";
+        $SGE .= "-t 1-$jobs ";
+        $SGE .= "-j y -o /dev/null ";
+        $SGE .= "$wrk/8-consensus/consensus.sh\n";
+
+        if (runningOnGrid()) {
+            touch("$wrk/8-consensus/jobsCreated.success");
+            system($SGE) and die "Failed to submit consensus jobs.\n";
+            submitScript("cns2_$asm");
+            exit(0);
+        } else {
+            pleaseExecute($SGE);
+            touch("$wrk/8-consensus/jobsCreated.success");
+            exit(0);
+        }
     } else {
         for (my $i=1; $i<=$jobs; $i++) {
             &scheduler::schedulerSubmit("sh $wrk/8-consensus/consensus.sh $i > /dev/null 2>&1");

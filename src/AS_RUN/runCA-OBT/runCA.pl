@@ -24,6 +24,12 @@ my $scaffoldDir;
 
 setDefaults();
 
+#  Stash the original options, quoted, for later use.
+my $commandLineOptions;
+foreach my $a (@ARGV) {
+    $commandLineOptions .= " \"$a\" ";
+}
+
 while (scalar(@ARGV)) {
     my $arg = shift @ARGV;
 
@@ -74,15 +80,11 @@ if ($isContinuation) {
     setGlobal("doOverlapTrimming", 0);
     setGlobal("doFragmentCorrection", 0);
 
-    print STDERR "IS CONTINUE!\n";
-
     #  If given cgb files, we don't need to do anything more
 
     #  If given cgi files, we need to tell unitigger and consensus that
     #  we're done.
     if (defined($cgiFile)) {
-        print STDERR "IS CONTINUE SCAFFOLDER!\n";
-
         system("mkdir $wrk/4-unitigger") if (! -d "$wrk/4-unitigger");
         touch("$wrk/4-unitigger/unitigger.success");
 
@@ -94,7 +96,6 @@ if ($isContinuation) {
     #  If given a scaffold directory, tell unitigeger, consensus and
     #  scaffolder that they are done.
     if (defined($scaffoldDir)) {
-        print STDERR "IS CONTINUE CONSENSUS!\n";
         system("mkdir $wrk/4-unitigger") if (! -d "$wrk/4-unitigger");
         touch("$wrk/4-unitigger/unitigger.success");
 
@@ -105,10 +106,13 @@ if ($isContinuation) {
         system("mkdir $wrk/7-CGW") if (! -d "$wrk/7-CGW");
         touch ("$wrk/7-CGW/cgw.success");
     }
-
-  }
+}
 
 #  Begin
+
+#  If not already on the grid, see if we should be on the grid.
+#
+submitScript("") if (!runningOnGrid());
 
 preoverlap(@fragFiles);
 

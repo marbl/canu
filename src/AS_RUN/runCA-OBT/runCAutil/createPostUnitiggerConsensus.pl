@@ -102,14 +102,22 @@ sub createPostUnitiggerConsensusJobs(@) {
     chmod 0755, "$wrk/5-consensus/consensus.sh";
 
     if (getGlobal("useGrid") && getGlobal("cnsOnGrid")) {
-        my $cmd;
-        $cmd  = "qsub -p 0 -r y -N cns1_${asm} ";
-        $cmd .= "-t 1-$jobs ";
-        $cmd .= "-j y -o /dev/null ";
-        $cmd .= "$wrk/5-consensus/consensus.sh\n";
-        pleaseExecute($cmd);
-        touch("$wrk/5-consensus/jobsCreated.success");
-        exit(0);
+        my $SGE;
+        $SGE  = "qsub -p 0 -r y -N cns1_$asm ";
+        $SGE .= "-t 1-$jobs ";
+        $SGE .= "-j y -o /dev/null ";
+        $SGE .= "$wrk/5-consensus/consensus.sh\n";
+
+        if (runningOnGrid()) {
+            touch("$wrk/5-consensus/jobsCreated.success");
+            system($SGE) and die "Failed to submit consensus jobs.\n";
+            submitScript("cns1_$asm");
+            exit(0);
+        } else {
+            pleaseExecute($SGE);
+            touch("$wrk/5-consensus/jobsCreated.success");
+            exit(0);
+        }
     } else {
         for (my $i=1; $i<=$jobs; $i++) {
             &scheduler::schedulerSubmit("sh $wrk/5-consensus/consensus.sh $i > /dev/null 2>&1");

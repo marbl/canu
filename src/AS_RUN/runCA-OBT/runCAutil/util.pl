@@ -132,6 +132,13 @@ sub setDefaults {
     $global{"ovlOnGrid"}                   = 1;
     $global{"processStats"}                = undef;
     $global{"scratch"}                     = "/scratch";
+    $global{"scriptOnGrid"}                = 0;
+    $global{"sge"}                         = undef;
+    $global{"sgeScript"}                   = undef;
+    $global{"sgeOverlap"}                  = undef;
+    $global{"sgeConsensus"}                = undef;
+    $global{"sgeFragmentCorrection"}       = undef;
+    $global{"sgeOverlapCorrection"}        = undef;
     $global{"stoneLevel"}                  = 2;
     $global{"stopAfter"}                   = undef;
     $global{"uidServer"}                   = undef;
@@ -328,11 +335,78 @@ sub backupFragStore ($) {
 
 sub stopAfter ($) {
     my $stopAfter = shift @_;
-    if (getGlobal('stopAfter') eq $stopAfter) {
+    if (defined($stopAfter) &&
+        defined(getGlobal('stopAfter')) &&
+        (getGlobal('stopAfter') eq $stopAfter)) {
         print STDERR "Stop requested after '$stopAfter'.\n";
         exit(0);
     }
 }
+
+
+
+
+
+sub runningOnGrid () {
+    return(defined($ENV{'SGE_TASK_ID'}));
+}
+
+sub findNextScriptOutputFile () {
+    my $idx = "00";
+    while (-e "$wrk/runCA.sge.out.$idx") {
+        $idx++;
+    }
+    return("$wrk/runCA.sge.out.$idx");
+}
+
+sub submitScript ($) {
+    my $waitTag = shift @_;
+
+    return if (getGlobal("scriptOnGrid") == 0);
+
+    my $perl = "perl";
+    if (-x "/usr/bin/perl") {
+        system "/usr/bin/perl -c $bin/runCA-OBT.pl >/dev/null 2>&1";
+        $perl = "/usr/bin/perl" if ($? == 0);
+    }
+    if (-x "/usr/local/bin/perl") {
+        system "/usr/local/bin/perl -c $bin/runCA-OBT.pl >/dev/null 2>&1";
+        $perl = "/usr/local/bin/perl" if ($? == 0);
+    }
+
+    my $output = findNextScriptOutputFile();
+    my $script = "$output.sh";
+    my $cmd;
+
+    open(F, "> $script") or die "Failed to open '$script' for writing\n";
+    print F "#!/bin/sh\n";
+    print F "#\n";
+    print F "#  Attempt to (re)configure SGE.  For reasons Bri doesn't know,\n";
+    print F "#  jobs submitted to SGE, and running under SGE, fail to read his\n";
+    print F "#  .tcshrc (or .bashrc, limited testing), and so they don't setup\n";
+    print F "#  SGE (or ANY other paths, etc) properly.  For the record,\n";
+    print F "#  interactive SGE logins (qlogin, etc) DO set the environment.\n";
+    print F "#\n";
+    print F ". \$SGE_ROOT/\$SGE_CELL/common/settings.sh\n";
+    print F "$perl $bin/runCA-OBT.pl $commandLineOptions\n";
+    close(F);
+
+    if (!defined($waitTag) || ($waitTag eq "")) {
+        $cmd = "qsub -cwd -p 0 -r y -N runCA_${asm} -j y -o $output $script";
+    } else {
+        $cmd = "qsub -cwd -p 0 -r y -N runCA_${asm} -j y -o $output -hold_jid \"$waitTag\" $script";
+    }
+
+    print STDERR "$cmd\n";
+    system($cmd) and die "Failed to sumbit script.\n";
+
+    #unlink("$script");
+
+    exit(0);
+}
+
+
+
 
 
 

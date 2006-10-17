@@ -211,17 +211,23 @@ sub createOverlapJobs {
     #
     if (getGlobal("useGrid") && getGlobal("ovlOnGrid")) {
         my $SGE;
-        $SGE .= "\n";
-        $SGE .= "qsub -p 0 -r y -N ovl_${asm} \\\n";
+        $SGE .= "qsub -p 0 -r y -N ovl_$asm \\\n";
         $SGE .= "  -pe thread 2 \\\n";
         $SGE .= "  -t 1-$jobs \\\n";
         $SGE .= "  -j y -o $wrk/$outDir/overlap.\\\$TASK_ID.out \\\n";
         $SGE .= "  -e $wrk/$outDir/overlap.\\\$TASK_ID.err \\\n";
         $SGE .= "  $wrk/$outDir/overlap.sh\n";
 
-        pleaseExecute($SGE);
-        touch("$wrk/$outDir/jobsCreated.success");
-        exit(0);
+        if (runningOnGrid()) {
+            touch("$wrk/$outDir/jobsCreated.success");
+            system($SGE) and die "Failed to submit overlap jobs.\n";
+            submitScript("ovl_$asm");
+            exit(0);
+        } else {
+            pleaseExecute($SGE);
+            touch("$wrk/$outDir/jobsCreated.success");
+            exit(0);
+        }
     } else {
         my $failures = 0;
         for (my $i=1; $i<=$jobs; $i++) {

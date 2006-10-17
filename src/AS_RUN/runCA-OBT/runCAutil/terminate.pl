@@ -121,13 +121,13 @@ sub terminate ($) {
         ########################################
 
         my $perl = "perl";
-        if (-e "/usr/local/bin/perl") {
-            system "/usr/local/bin/perl -c $bin/caqc.pl >/dev/null 2>&1";
-            $perl = "/usr/local/bin/perl" if ($? == 0);
-        }
-        if (-e "/usr/bin/perl") {
+        if (-x "/usr/bin/perl") {
             system "/usr/bin/perl -c $bin/caqc.pl >/dev/null 2>&1";
             $perl = "/usr/bin/perl" if ($? == 0);
+        }
+        if (-x "/usr/local/bin/perl") {
+            system "/usr/local/bin/perl -c $bin/caqc.pl >/dev/null 2>&1";
+            $perl = "/usr/local/bin/perl" if ($? == 0);
         }
 
 
