@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl
 
-# $Id: caqc.pl,v 1.10 2006-10-17 15:30:07 brianwalenz Exp $
+# $Id: caqc.pl,v 1.11 2006-10-17 21:18:56 moweis Exp $
 #
 # This program reads a Celera .asm file and produces aggregate information
 # about the assembly
@@ -20,7 +20,7 @@ use File::Basename;
 use Statistics::Descriptive;
 use File::Copy;
 
-my $MY_VERSION = " Version 2.11 (Build " . (qw/$Revision: 1.10 $/ )[1] . ")";
+my $MY_VERSION = "caqc Version 2.11 (Build " . (qw/$Revision: 1.11 $/ )[1] . ")";
 
 # Constants
 my $MINQUAL   = 20;
@@ -53,6 +53,8 @@ caqc requires that the file be in the current directory.
       -metrics         Option to output a <prefix>.qc.metrics file which is inputted to ametrics.  This option
       		       requires that a <prefix>.frg file exist in the current directory. 
 		       [Note: -frg is a subset of -metrics]
+      -h               Print out this help text.
+      -v               Print out version.
 		       
     output files:
 	<prefix>.qc		Described below.
@@ -97,6 +99,7 @@ MAIN:
   my $frg = undef;
   my $metrics = undef;
   my $helpflag = undef;
+  my $version = undef;
 
   Getopt::Long::Configure('no_ignore_case');
   my $err = GetOptions(
@@ -110,7 +113,8 @@ MAIN:
     't=i'         => \$topCount,
     'metrics'	  => \$metrics,
     'frg'	  => \$frg,
-    'h'           => \$helpflag
+    'h'           => \$helpflag,
+    'v'	          => \$version
   );
 
   if ( $err == 0 ) {
@@ -118,6 +122,11 @@ MAIN:
   }
   if ( $helpflag ) {
       print STDERR $MY_HELPTEXT;
+      exit(1);
+  }
+
+  if ( $version ) {
+      print STDERR $MY_VERSION . "\n";
       exit(1);
   }
 
@@ -729,7 +738,7 @@ MAIN:
   my $bases_tot = 0;
   for ( my $cc = 0 ; $cc <= $#sortContig && $cc < $topCount ; $cc++ ) {
     $top5contig .=
-      "$cc$d$sortContig[$cc]$s$seqs{$sortContig[$cc]}$s$lens{$sortContig[$cc]}\n";
+      "$cc$d$seqs{$sortContig[$cc]}$s$lens{$sortContig[$cc]}$s$sortContig[$cc]\n";
     $reads_tot += $seqs{ $sortContig[$cc] };
     $bases_tot += $lens{ $sortContig[$cc] };
   }
@@ -795,7 +804,7 @@ MAIN:
   for ( my $ss = 0 ; $ss <= $#sortScaff && $ss < $topCount ; $ss++ ) {
     my $scf = $sortScaff[$ss];
     $top5scaff .=
-        "$ss$d$scf$s$scafcontig{$scf}$s$scaflen{$scf}$s$adjscaflen{$scf}$s"
+        "$ss$d$scafcontig{$scf}$s$scaflen{$scf}$s$adjscaflen{$scf}"
       . sprintf( '%.2f', $scaflen{$scf} * 1.0 / $scafcontig{$scf} )
       . $s
       . sprintf(
@@ -806,6 +815,7 @@ MAIN:
         )
       : 0.0
       )
+      . "$s$scf"
       . "\n";
 
     $contigs_tot += $scafcontig{$scf};
@@ -924,9 +934,11 @@ MAIN:
   printl( 'MaxBasesInScaffolds', \%Results, $fh );
   for my $val ( @{ $Results{'NScaffoldBases'} } ) {
     printf $fh "N%2d%s=%d\n", $val->[0] * 100, 'ScaffoldBases', $val->[1];
+    printf STDERR "N%2d%-29s%d\n", $val->[0] * 100, 'ScaffoldBases', $val->[1];
   }
   for my $val ( @{ $Results{'IncrScaffoldBases'} } ) {
     print $fh "ScaffoldAt$val->[0]=$val->[1]\n";
+    printf STDERR "ScaffoldAt%-22s%d\n",$val->[0],$val->[1];
   }
   print STDERR "\n" if ( !$silent );
   $fh->print("\n");
@@ -942,20 +954,19 @@ MAIN:
   $fh->print("\n");
 
   print STDERR
-"[Top${topCount}Scaffolds${d}contigs${s}size${s}span${s}avgContig${s}avgGap)]\n"
+"[Top${topCount}Scaffolds${d}contigs${s}size${s}span${s}avgContig${s}avgGap${s}EUID)]\n"
     if ( !$silent );
   $fh->print( '[Top'
       . $topCount
       . 'Scaffolds'
       . $d
-      . 'EUID'
-      . $s . 'contigs'
+      . 'contigs'
       . $s . 'size'
       . $s . 'span'
-      . $s
-      . 'avgContig'
-      . $s
-      . "avgGap]\n" );
+      . $s . 'avgContig'
+      . $s . 'avgGap'
+      . $s . 'EUID'
+      ."]\n" );
   print STDERR $top5scaff if ( !$silent );
   $fh->print($top5scaff);
   print STDERR "\n" if ( !$silent );
@@ -971,9 +982,11 @@ MAIN:
   printl( 'MaxContigSize', \%Results, $fh );
   for my $val ( @{ $Results{'NContigBases'} } ) {
     printf $fh "N%2d%s=%d\n", $val->[0] * 100, 'ContigBases', $val->[1];
+    printf STDERR "N%2d%-29s%d\n", $val->[0] * 100, 'ContigBases', $val->[1];
   }
   for my $val ( @{ $Results{'IncrContigBases'} } ) {
     print $fh "ContigAt$val->[0]=$val->[1]\n";
+    printf STDERR "ContigAt%-24s%d\n",$val->[0],$val->[1];
   }
   print STDERR "\n" if ( !$silent );
   $fh->print("\n");
@@ -1011,8 +1024,8 @@ MAIN:
   print STDERR "\n" if ( !$silent );
   $fh->print("\n");
 
-  print STDERR "[Top${topCount}Contigs${d}reads${s}bases)]\n" if ( !$silent );
-  $fh->print( '[Top' . $topCount . 'Contigs' . $d . 'EUID' . $s . 'reads' . $s . "bases]\n" );
+  print STDERR "[Top${topCount}Contigs${d}reads${s}bases${s}EUID)]\n" if ( !$silent );
+  $fh->print( '[Top' . $topCount . 'Contigs' . $d . 'reads' . $s . 'bases' . $s . 'EUID' . "]\n" );
   print STDERR $top5contig if ( !$silent );
   $fh->print($top5contig);
   print STDERR "\n" if ( !$silent );
