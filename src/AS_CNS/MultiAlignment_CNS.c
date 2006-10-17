@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.103 2006-10-17 15:19:07 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.104 2006-10-17 15:48:47 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -101,7 +101,6 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.103 2006-10-17 15:19:07 gde
 #include "UtilsREZ.h"
 #include "AS_UTL_HashCommon.h"
 #include "AS_UTL_PHash.h"
-#include "AS_UTL_systemdebug.h"
 #include "AS_MSG_pmesg.h"
 #include "PrimitiveVA_MSG.h"
 #include "Globals_CNS.h"
@@ -3519,6 +3518,18 @@ void ReportTrick(FILE *fp, CNS_AlignTrick trick) {
       ReportTrick(stderr,trick);
    }
    return;
+}
+
+static void utl_showstring(FILE *out,const char *cs, int width)
+{
+  int len=strlen(cs);
+  int s=0;
+  const char *p;
+  while( s<len ) {
+    p=cs+s;
+    fprintf(out,"%.*s\n",width,p);
+    s+=width;
+  }
 }
 
 //*********************************************************************************
@@ -8535,7 +8546,7 @@ int ExamineMANode(FILE *outFile,int32 sid, int32 mid, UnitigData *tigData,int nu
   return 1;
 }
 
-static int utl_counts[4]={0,0,0,0};
+// static int utl_counts[4]={0,0,0,0};
 
 
 int ExamineConfirmedMMColumns(FILE *outFile,int32 sid, int32 mid, UnitigData *tigData,int num_unitigs) {
