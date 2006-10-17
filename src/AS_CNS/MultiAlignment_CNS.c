@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.102 2006-10-16 21:05:40 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.103 2006-10-17 15:19:07 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -80,6 +80,7 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.102 2006-10-16 21:05:40 gde
 #define SHOW_READS                          0
 #define STABWIDTH                           6
 #define DEBUG_ABACUS                        0
+#define DEBUG_CONSENSUS_CALL                0
 
 // Parameters used by Abacus processing code
 #define MSTRING_SIZE                        3
@@ -100,6 +101,7 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.102 2006-10-16 21:05:40 gde
 #include "UtilsREZ.h"
 #include "AS_UTL_HashCommon.h"
 #include "AS_UTL_PHash.h"
+#include "AS_UTL_systemdebug.h"
 #include "AS_MSG_pmesg.h"
 #include "PrimitiveVA_MSG.h"
 #include "Globals_CNS.h"
@@ -2285,16 +2287,16 @@ AllocateDistMatrix(VarRegion  *vreg, int init)
 }
 
 static void
-OutputDistMatrix(VarRegion  *vreg)
+OutputDistMatrix(FILE *fout, VarRegion  *vreg)
 {
     int j, k;
 
-    fprintf(stderr, "Distance matrix=\n");
+    fprintf(fout, "Distance matrix=\n");
     for (j=0; j<vreg->nr; j++)
     {
         for (k=0; k<vreg->nr; k++)
-           fprintf(stderr, " %d", vreg->dist_matrix[j][k]);             
-        fprintf(stderr, "\n");
+           fprintf(fout, " %d", vreg->dist_matrix[j][k]);             
+        fprintf(fout, "\n");
     }
 }
 
@@ -2313,7 +2315,7 @@ ClusterReads(Read *reads, int nr, Allele *alleles, int32 *na, int32 *nca,
    *na = 0;
 
     // Iniytialize alleles
-    
+   
     // Process zero elements first                                         
     for (row=0; row<nr; row++)
     {
@@ -2706,6 +2708,55 @@ GetTheMostDistantRead(int curr_read_id, int32 nr, int32 **dist_matrix)
 }
 
 static void
+OutputReads(FILE *fout, Read *reads, int32 nr, int32 width)
+{
+    int i, j;
+    fprintf(fout, "\nReads =\n");
+
+    for (i=0; i<nr; i++) {
+        fprintf(fout, "%d   ", reads[i].allele_id);
+        for (j=0; j<width; j++)
+            fprintf(fout, "%c", reads[i].bases[j]);
+        fprintf(fout, "\n");
+    }
+    fprintf(fout, "\n\n");
+}
+
+static void
+OutputAlleles(FILE *fout, VarRegion *vreg)
+{
+    int i, j;
+    fprintf(fout,   "Outputting alleles:\n");
+    fprintf(fout,   "nr= %d na= %d nca= %d\n", vreg->nr, vreg->na, vreg->nca);
+    fprintf(fout,   "Num_reads= ");
+    for (i=0; i<vreg->na; i++)
+    {
+        fprintf(fout,   "%d ", vreg->alleles[i].num_reads);
+    }
+    fprintf(fout,   "\n");
+    fprintf(fout,   "Weights= ");
+    for (i=0; i<vreg->na; i++)
+    {
+        fprintf(fout,   "%d ", vreg->alleles[i].weight);
+    }
+    fprintf(fout,   "\n");
+    fprintf(fout,   "Reads= \n");
+    for (i=0; i<vreg->na; i++)
+    {
+        fprintf(fout,   "   Allele order= %d, id= %d:\n", i, vreg->alleles[i].id);
+        for (j=0; j<vreg->alleles[i].num_reads; j++)
+        {
+            int k, read_id = vreg->alleles[i].read_ids[j];
+            int len = vreg->end-vreg->beg+1;
+            fprintf(fout,   "    %d   ", read_id);
+            for (k=0; k<len; k++)
+                fprintf(fout,   "%c", vreg->reads[read_id].bases[k]);
+            fprintf(fout,   "\n");
+        }
+    }
+}
+
+static void
 PopulateVarRecord(int32 *cids, int32 *nvars, int32 *min_len_vlist,
     IntMultiVar **v_list, VarRegion vreg, CNS_Options *opp, int get_scores)
 {
@@ -2761,14 +2812,32 @@ PopulateVarRecord(int32 *cids, int32 *nvars, int32 *min_len_vlist,
                     base[al] = vreg.reads[read_id].bases[m];
                     if (al == 0)
                     {
-                        // Setting the consensus case
+                        int32 cid = cids[vreg.beg+m];
+                        Column *column=GetColumn(columnStore,cid);
+                        Bead *call = GetBead(beadStore, column->call);
+#if DEBUG_CONSENSUS_CALL
+                        // Check the consistency of a consensus call
                         BaseCall(cids[vreg.beg+m], 1, &fict_var, &vreg,
                              vreg.alleles[al].id, &cbase, 0, 0, opp);
                         if (cbase != base[al])
                         {
+                            fprintf(cnslog, "Error setting the consensus base #%d  %c/%c\n",
+                                m, cbase, base[al]);
+                            OutputReads(cnslog, vreg.reads, vreg.nr, vreg.end-vreg.beg+1);
+                            OutputDistMatrix(cnslog, &vreg);
+                            OutputAlleles(cnslog, &vreg);
                             fprintf(stderr, "Error setting the consensus base\n");
                             exit(-1);
                         }
+#endif
+
+                        // Set the consensus quality
+                        BaseCall(cids[vreg.beg+m], 1, &fict_var, &vreg,
+                             -1, &cbase, 0, 0, opp);
+
+                        // Set the consensus base
+                        Setchar(sequenceStore, call->soffset, &base[al]);
+
                     }
                 }
                 else // vreg.nca < 2 and al == 1
@@ -2865,40 +2934,6 @@ AllocateMemoryForAlleles(Allele **alleles, int32 nr, int32 *na)
     }
 }
 
-static void
-OutputAllelesSortedByWeight(VarRegion *vreg)
-{
-    int i, j;
-    fprintf(stderr, "Outputting alleles:\n");
-    fprintf(stderr, "nr= %d na= %d nca= %d\n", vreg->nr, vreg->na, vreg->nca);
-    fprintf(stderr, "Num_reads= ");
-    for (i=0; i<vreg->na; i++)
-    {
-        fprintf(stderr, "%d ", vreg->alleles[i].num_reads);   
-    }
-    fprintf(stderr, "\n");
-    fprintf(stderr, "= ");
-    for (i=0; i<vreg->na; i++)
-    {
-        fprintf(stderr, "%d ", vreg->alleles[i].num_reads);
-    }
-    fprintf(stderr, "\n");
-    fprintf(stderr, "Reads= \n");
-    for (i=0; i<vreg->na; i++)
-    {
-        fprintf(stderr, "   Allele %d:\n", i);
-        for (j=0; j<vreg->alleles[i].num_reads; j++)
-        {
-            int k, read_id = vreg->alleles[i].read_ids[j];
-            int len = vreg->end-vreg->beg+1;
-            fprintf(stderr, "    %d   ", read_id);
-            for (k=0; k<len; k++)
-                fprintf(stderr, "%c", vreg->reads[read_id].bases[k]);
-            fprintf(stderr, "\n");
-        }
-    }
-}
-
 //*********************************************************************************
 // Basic MultiAlignmentNode (MANode) manipulation
 //*********************************************************************************
@@ -2938,7 +2973,7 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
    *nvars = 0;
 
 #if 0
-    fprintf(stderr, "Calling RefreshMANode, quality = %d\n", quality);
+    fprintf(fout,   "Calling RefreshMANode, quality = %d\n", quality);
 #endif
     if (ma == NULL ) 
         CleanExit("RefreshMANode ma==NULL",__LINE__,1);
@@ -3138,7 +3173,7 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
             PopulateDistMatrix(vreg.reads, vreg.end-vreg.beg+1, &vreg);    
 
 #if 0
-            OutputDistMatrix(&vreg);
+            OutputDistMatrix(stderr, &vreg);
 #endif
 
             // Allocate memory for alleles
@@ -3156,8 +3191,8 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
             fprintf(stderr, "\n");
 #endif
             SortAllelesByWeight(vreg.alleles, vreg.na);
-#if 0
-            OutputAllelesSortedByWeight(&vreg);
+#if 0            
+            OutputAlleles(stderr, &vreg);
 #endif
             /* Store variations in a v_list */
             if (quality > 0 && make_v_list)
@@ -3489,19 +3524,6 @@ void ReportTrick(FILE *fp, CNS_AlignTrick trick) {
 //*********************************************************************************
 // Look for the required overlap between two fragments, and return trace
 //*********************************************************************************
-
-static void utl_showstring(FILE *out,const char *cs, int width)
-{
-  int len=strlen(cs);
-  int s=0;
-  const char *p;
-  while( s<len ) {
-    p=cs+s;
-    fprintf(out,"%.*s\n",width,p);
-    s+=width;
-  }
-}
-
 
 int GetAlignmentTrace(int32 afid, int32 aoffset, int32 bfid, int32 *ahang, 
     int32 ovl, VA_TYPE(int32) *trace, OverlapType *otype, 
@@ -6413,20 +6435,6 @@ void  GetTemplateForAbacus(char **template, char **consensus, int len,
     }
 }
 
-static void
-OutputReads(Read *reads, int32 nr, int32 width)
-{
-    int i, j;
-    fprintf(stderr, "\nReads =\n");
-
-    for (i=0; i<nr; i++) {
-        for (j=0; j<width; j++)
-            fprintf(stderr, "%c", reads[i].bases[j]);
-        fprintf(stderr, "\n");
-    }
-    fprintf(stderr, "\n\n");
-}
-
 int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
     CNS_Options *opp ) 
 {
@@ -6456,11 +6464,11 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
     vreg.end = orig_abacus->columns-1;
     GetReadsForAbacus(vreg.reads, orig_abacus);
 #if 0
-    OutputReads(vreg.reads, vreg.nr, orig_abacus->columns);
+    OutputReads(stderr, vreg.reads, vreg.nr, orig_abacus->columns);
 #endif
     PopulateDistMatrix(vreg.reads, orig_abacus->columns, &vreg);
 #if DEBUG_ABACUS
-    OutputDistMatrix(&vreg);
+    OutputDistMatrix(stderr, &vreg);
 #endif
     AllocateMemoryForAlleles(&vreg.alleles, vreg.nr, &vreg.na);
     ClusterReads(vreg.reads, vreg.nr, vreg.alleles, &vreg.na,
@@ -6742,7 +6750,7 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
         ShowAbacus(best_abacus);
 #endif
 
-//      OutputDistMatrix(&vreg);
+//      OutputDistMatrix(stderr, &vreg);
 
 #if 0
         {
@@ -7896,6 +7904,7 @@ int MultiAlignContig(IntConConMesg *contig,
        fprintf(stderr, "Null contig #%d detected\n", contig->iaccession);
        return EXIT_FAILURE;
    }
+
    num_unitigs = contig->num_unitigs;
    num_frags = contig->num_pieces;
    upositions = contig->unitigs;
@@ -7934,7 +7943,7 @@ int MultiAlignContig(IntConConMesg *contig,
        hash_rc = InsertInPHashTable_AS(&thash,IDENT_NAMESPACE, (uint64) contig->pieces[i].ident, &value, FALSE,FALSE);
      }
      //if ( cnslog != NULL ) {
-     //  fprintf(cnslog,"Contigging ICM %d:\n",contig->iaccession);
+     fprintf(cnslog,"Contigging ICM %d:\n",contig->iaccession);
      //}
      for (i=0;i<num_unitigs;i++) {
        complement = (upositions[i].position.bgn<upositions[i].position.end)?0:1;
@@ -8526,7 +8535,7 @@ int ExamineMANode(FILE *outFile,int32 sid, int32 mid, UnitigData *tigData,int nu
   return 1;
 }
 
-//static int utl_counts[4]={0,0,0,0};
+static int utl_counts[4]={0,0,0,0};
 
 
 int ExamineConfirmedMMColumns(FILE *outFile,int32 sid, int32 mid, UnitigData *tigData,int num_unitigs) {
