@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl
 
-# $Id: caqc.pl,v 1.9 2006-10-05 15:41:27 moweis Exp $
+# $Id: caqc.pl,v 1.10 2006-10-17 15:30:07 brianwalenz Exp $
 #
 # This program reads a Celera .asm file and produces aggregate information
 # about the assembly
@@ -14,13 +14,13 @@ use FindBin;
 use lib "$FindBin::Bin";
 
 use strict;
+use Getopt::Long;
 use IO::File;
 use File::Basename;
 use Statistics::Descriptive;
-use TIGR::Foundation;
 use File::Copy;
 
-my $MY_VERSION = " Version 2.11 (Build " . (qw/$Revision: 1.9 $/ )[1] . ")";
+my $MY_VERSION = " Version 2.11 (Build " . (qw/$Revision: 1.10 $/ )[1] . ")";
 
 # Constants
 my $MINQUAL   = 20;
@@ -78,13 +78,6 @@ See also:
   TIGR::ConfigFile 
 ~;
 
-my $base = new TIGR::Foundation;
-
-if ( !defined $base ) {
-  print STDERR "Nasty error, hide!\n";
-  exit(1);
-}
-
 # Global delimiters
 my $DEFAULT_TAG_DELIM   = '=';
 my $DEFAULT_FIELD_DELIM = ',';
@@ -96,8 +89,6 @@ my $silent              = 0;
 
 MAIN:
 {
-  $base->setHelpInfo($MY_HELPTEXT);
-  $base->setVersionInfo($MY_VERSION);
   my $infile;
   my $delim = undef;
   my $sep   = undef;
@@ -105,9 +96,10 @@ MAIN:
   my $topCount = undef;
   my $frg = undef;
   my $metrics = undef;
-  
+  my $helpflag = undef;
 
-  my $err = $base->TIGR_GetOptions(
+  Getopt::Long::Configure('no_ignore_case');
+  my $err = GetOptions(
     'i=s'         => \$infile,
     'minqual=i'   => \$MINQUAL,
     'mincontig=i' => \$MINCONTIG,
@@ -117,11 +109,16 @@ MAIN:
     'g=i'         => \$genomesize,
     't=i'         => \$topCount,
     'metrics'	  => \$metrics,
-    'frg'	  => \$frg
+    'frg'	  => \$frg,
+    'h'           => \$helpflag
   );
 
   if ( $err == 0 ) {
-	$base->bail("Command line parsing failed.  See -h option");
+      die "Try -h for help.\n";
+  }
+  if ( $helpflag ) {
+      print STDERR $MY_HELPTEXT;
+      exit(1);
   }
 
   $d = ( defined $delim ) ? $delim : $d;
@@ -129,11 +126,12 @@ MAIN:
   $topCount = $DEFAULT_TOP_COUNT if ( !defined $topCount );
 
   if ( !defined $infile ) {
-    if ( $#ARGV < 0 ) {
-	    $base->bail("Must specify an input file name.  See -h option");
-	} else {
-      $infile = $ARGV[0];
-    }
+      if ( $#ARGV < 0 ) {
+          print STDERR $MY_HELPTEXT;
+          die("\nMust specify an input file name.\n");
+      } else {
+          $infile = $ARGV[0];
+      }
   }
 
   #If input is just the prefix i.e. "gbaf" it will append the ".asm",
@@ -141,7 +139,7 @@ MAIN:
   if ( $infile !~ /\.asm$/ ) {
     $infile .= '.asm';
   }
-  open( IN, $infile ) or $base->bail("Cannot open $infile: ($!)");
+  open( IN, $infile ) or die("Cannot open $infile: ($!)");
 
   my ( $prefix, $path, $suffix ) = fileparse( $infile, '.asm' );
 
@@ -150,8 +148,8 @@ MAIN:
   my $frgOpen = undef;
   my $catOpen = undef;
   if ( defined $frg or defined $metrics ) {
-	  $frgOpen = open( FRG, $frgfile ) or $base->logLocal("Cannot open $frgfile");
-	  $catOpen = open( CAT, $catmapfile ) or $base->logLocal( "Cannot open $catmapfile", 1 );
+	  $frgOpen = open( FRG, $frgfile )    or die("Cannot open $frgfile");
+	  $catOpen = open( CAT, $catmapfile ) or die("Cannot open $catmapfile");
   }
 
   
@@ -866,7 +864,7 @@ MAIN:
     ? ( ($contigReadLen) / $Results{'TotalBasesInScaffolds'} )
     : 0.0;
 
-  $base->logLocal( "surrReadLen = $surrReadLen\ncontigReadLen = $contigReadLen\ndegenReadLen = $degenReadLen\ntotalReadLen = $totalCLRReadLengthASM", 2 );
+  #$base->logLocal( "surrReadLen = $surrReadLen\ncontigReadLen = $contigReadLen\ndegenReadLen = $degenReadLen\ntotalReadLen = $totalCLRReadLengthASM", 2 );
 
   # Bases
   $Results{ContigBaseLength}        = $contigReadLen;
@@ -909,7 +907,7 @@ MAIN:
 
   # Emit the results
   my $fh = new IO::File("> $prefix.qc")
-    or $base->bail("Could not open $prefix.qc ($!)");
+    or die("Could not open $prefix.qc ($!)");
 
   print STDERR "[Scaffolds]\n" if ( !$silent );
   $fh->print("[Scaffolds]\n");
@@ -1109,14 +1107,14 @@ MAIN:
   print STDERR "\n" if ( !$silent );
   $fh->print("\n");
 
-  $fh->close() or $base->bail("Could not close $prefix.qc ($!)");
+  $fh->close() or die("Could not close $prefix.qc ($!)");
 
   if ( $metrics ) {
-     $base->bail("Could not copy $prefix.qc to $prefix.qc.metrics")
+     die("Could not copy $prefix.qc to $prefix.qc.metrics")
        if ( !copy( "$prefix.qc", "$prefix.qc.metrics" ) );
 
      my $fm = new IO::File(">>$prefix.qc.metrics")
-       or $base->bail("Could not open $prefix.qc.metrics ($!)");
+       or die("Could not open $prefix.qc.metrics ($!)");
 
      my @lib_ids = keys %libs_initial;
 
@@ -1147,7 +1145,7 @@ MAIN:
      my @sorted_len_arr = sort { $a <=> $b } @len_arr;
      my $len_list       = join( ',', @sorted_len_arr );
      $fm->print("hist=$len_list\n");
-     $fm->close() or $base->bail("Could not close $prefix.qc.metrics ($!)");
+     $fm->close() or die("Could not close $prefix.qc.metrics ($!)");
   }
   
   exit(0);
