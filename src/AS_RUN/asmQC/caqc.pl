@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl
 
-# $Id: caqc.pl,v 1.11 2006-10-17 21:18:56 moweis Exp $
+# $Id: caqc.pl,v 1.12 2006-10-17 21:25:08 moweis Exp $
 #
 # This program reads a Celera .asm file and produces aggregate information
 # about the assembly
@@ -12,7 +12,7 @@
 
 use FindBin;
 use lib "$FindBin::Bin";
-
+use warnings;
 use strict;
 use Getopt::Long;
 use IO::File;
@@ -20,7 +20,7 @@ use File::Basename;
 use Statistics::Descriptive;
 use File::Copy;
 
-my $MY_VERSION = "caqc Version 2.11 (Build " . (qw/$Revision: 1.11 $/ )[1] . ")";
+my $MY_VERSION = "caqc Version 2.11 (Build " . (qw/$Revision: 1.12 $/ )[1] . ")";
 
 # Constants
 my $MINQUAL   = 20;
@@ -53,8 +53,8 @@ caqc requires that the file be in the current directory.
       -metrics         Option to output a <prefix>.qc.metrics file which is inputted to ametrics.  This option
       		       requires that a <prefix>.frg file exist in the current directory. 
 		       [Note: -frg is a subset of -metrics]
-      -h               Print out this help text.
-      -v               Print out version.
+      -h	       Print out this help text.
+      -v	       Print out version.
 		       
     output files:
 	<prefix>.qc		Described below.
@@ -88,6 +88,282 @@ my $d                   = $DEFAULT_TAG_DELIM;      # tag-value delimiter
 my $s                   = $DEFAULT_FIELD_DELIM;    # list separator
 my $silent              = 0;
 
+##############################################
+
+=over
+
+=item B<my $rec = getCARecord(\*STDIN);>
+
+Reads from stdin the text between "extreme" { and } .
+
+ for example:
+
+  {A
+    {B
+    }
+   }
+ 
+Returns the whole: {A{B}}
+
+=cut
+
+sub getCARecord {
+	my $file = shift;
+
+	my $level = 0;
+	my $block = "";
+
+	while (<$file>) {
+		if (/^\s*\{/) {
+			$level++;
+		}
+		if (/^\s*\}/) {
+			$level--;
+		}
+		$block .= $_;
+		if ( $level == 0 ) {
+			last;
+		}
+	}
+
+	if ( $level != 0 ) {
+		die("end of file reached before end of block\n");
+	}
+
+	if ( $block ne "" ) {
+		return $block;
+	}
+	else {
+		return undef;
+	}
+}    # getCARecord
+
+######################################################3
+
+=item B<my($id, $fields, $recs) = parseCARecord($rec);>
+
+Parses a record and returns a triplet consisting of
+   - record type
+   - hash of fields and values
+   - array of sub-records
+
+=cut
+
+sub parseCARecord {
+	my $record = shift;
+
+	my @lines = split( '\n', $record );
+
+	my $type;
+	my %fields;
+	my @recs;
+
+	# get record type
+	$lines[0] =~ /\{(\w+)/;
+	if ( !defined $1 ) {
+		die("Wierd start of record: $record\n");
+	}
+	$type = $1;
+
+	if ( $lines[$#lines] !~ /^\s*\}/ ) {
+		die("Wierd end of record: $record\n");
+	}
+
+	my $level = 0;
+	my $fieldname;
+	for ( my $i = 1 ; $i < $#lines ; $i++ ) {
+		if ( $lines[$i] =~ /^(\w+):(\S+)$/ ) {    # simple field
+			$fields{$1} = $2;
+		}    # simple field
+		if ( $lines[$i] =~ /^(\w+):$/ ) {    # complex field
+			$fieldname = $1;
+			$fields{$fieldname} = "";
+			$i++;
+			while ( $i < $#lines && ( $lines[$i] !~ /^\.$/ ) ) {
+				$fields{$fieldname} .= "$lines[$i]\n";
+				$i++;
+			}
+		}    # complex field
+		if ( $lines[$i] =~ /^\s*\{/ ) {    # subrecord
+			my $level = 1;
+
+			my $thisrec = ++$#recs;
+
+			$recs[$thisrec] .= "$lines[$i]\n";
+			$i++;
+			while ( $level > 0 && $i < $#lines ) {
+				if ( $lines[$i] =~ /^\s*\{/ ) {
+					$level++;
+				}
+				if ( $lines[$i] =~ /^\s*\}/ ) {
+					$level--;
+				}
+				$recs[$thisrec] .= "$lines[$i]\n";
+				if ( $level == 0 ) {
+					last;
+				}
+				else {
+					$i++;
+				}
+			}
+			if ( $level != 0 ) {
+				die("Error parsing sub_record in: $record\n");
+			}
+		}    # subrecord
+	}    # for $i...
+
+	return ( $type, \%fields, \@recs );
+}    # parseCARecord
+
+
+################################################
+
+=item B<my($id) = getBothCAIds($CAid);>
+
+Obtains both IDs from a "paired" id, that is, converts (10, 1000) into 10,1000.
+If the Id is not a pair in parantheses, it returns the input.
+Thus, getBothCAIds('(10, 1000)') returns 10,1000 while getBothCAIds("abba") returns "abba".
+
+=cut
+
+sub getBothCAIds {
+	my $string = shift;
+
+	if ( $string =~ /\((\d+),(\d+)\)/ ) {
+		return ($1,$2);
+	}
+	else {
+		return $string;    # just in case we have a real ID
+	}
+}    # getBothCAIds
+
+################################################
+
+=item B<my($id) = getCAId($CAid);>
+
+Obtains the ID from a "paired" id, that is, converts (10, 1000) into 10.
+If the Id is not a pair in parantheses, it returns the input.
+Thus, getCAId('(10, 1000)') returns 10 while getCAId("abba") returns "abba".
+
+=cut
+
+sub getCAId {
+	my $string = shift;
+
+	if ( $string =~ /\((\d+),(\d+)\)/ ) {
+		return $1;
+	}
+	else {
+		return $string;    # just in case we have a real ID
+	}
+}    # getCAId
+
+
+################################################
+
+# calculate the gc content of contigs in scaffolds by getting the
+# the percentage of g and c bases in the contig consensus for all the
+# scaffold contigs
+sub calculateGC($$$) {
+  my $scaffcontigs_ref = shift;
+  my $gcs_ref          = shift;
+  my $sizes_ref        = shift;
+  my %scaffcontigs     = %$scaffcontigs_ref;
+  my %gcs              = %$gcs_ref;
+  my %sizes            = %$sizes_ref;
+  my @contigids        = keys(%scaffcontigs);
+  my $gc_tot           = 0;
+  my $cons_tot         = 0;
+  foreach my $contig_id (@contigids) {
+    my $gc_num      = $gcs{$contig_id};
+    my $contig_size = $sizes{$contig_id};
+    $gc_tot   += $gc_num;
+    $cons_tot += $contig_size;
+  }
+  my $gc_perc = 0;
+  if ( $cons_tot != 0 ) {
+    $gc_perc = ( $gc_tot / $cons_tot );
+  }
+  return $gc_perc;
+}
+
+# Emit the results to the terminal, and if prefix specified, to the
+# prefix.qc file, as a config-readable output.
+#
+sub printl($$$)
+{
+  my $tag      = shift;
+  my $rh_value = shift;
+  my $rfh      = shift;
+
+  my $s1 = sprintf( '%-32s', $tag );
+  print(STDERR  sprintf( "%s%-10s", $s1, $$rh_value{$tag} ) . "\n" ) if ( !$silent );
+  $rfh->print( "$tag=" . $$rh_value{$tag} . "\n" );
+}
+
+# Emit the results to the terminal, and if prefix specified, to the
+# prefix.qc file, as a config-readable output.  Float form.
+#
+sub printlf($$$)
+{
+  my $tag      = shift;
+  my $rh_value = shift;
+  my $rfh      = shift;
+
+  my $s1 = sprintf( "%-32s", $tag );
+  print(STDERR  sprintf( "%s%-0.2f", $s1, $$rh_value{$tag} ) . "\n" ) if ( !$silent );
+  $rfh->print( "$tag=" . sprintf( "%0.2f", $$rh_value{$tag} ) . "\n" );
+}
+
+# output percentage of total reads
+
+sub printp($$$$)
+{
+  my ( $tag, $rh_value, $rfh, $tot ) = @_;
+
+    my $val = sprintf "%s(%.2f%%)", $$rh_value{$tag}, $$rh_value{$tag}/$tot*100;
+  printf(STDERR  "%-32s%-10s\n", $tag, $val ) if ( !$silent );
+  $rfh->print("$tag=$val\n");
+}
+
+sub max($$)
+{
+  my ( $a, $b ) = @_;
+  return ( $a > $b ) ? $a : $b;
+}
+
+sub min($$)
+{
+  my ( $a, $b ) = @_;
+  return $a if ( $a != 0 && $b == 0 );
+  return $b if ( $a == 0 && $b != 0 );
+  return ( $a < $b ) ? $a : $b;
+}
+
+sub calcNStats($$$$$) {
+  my ( $type, $gsz, $lens, $sortContig, $Results ) = @_;
+  my $prevSz   = 0;
+  my $prevIncr = 0;
+  my $incrSize = 1000000;
+  my @N        = ( .25, .5, .75 );
+  my $sum      = 0;
+  foreach my $cc (@$sortContig) {
+    my $len = $lens->{$cc};
+    $sum += $len;
+  # use while loops instead of if's since big contig/scaffold can span divisions
+    while ( @N && $sum > $gsz * $N[0] ) {
+      push @{ $Results->{"N${type}Bases"} }, [ shift(@N), $len ];
+    }
+    while ( int( $sum / $incrSize ) > $prevIncr ) {
+      $prevIncr++;
+      if ( $len != $prevSz ) {
+                push @{$Results->{"Incr${type}Bases"}},[$prevIncr*$incrSize,$len];
+        $prevSz = $len;
+      }
+    }
+  }
+}
+
 
 MAIN:
 {
@@ -114,7 +390,7 @@ MAIN:
     'metrics'	  => \$metrics,
     'frg'	  => \$frg,
     'h'           => \$helpflag,
-    'v'	          => \$version
+    'v'		  => \$version
   );
 
   if ( $err == 0 ) {
@@ -628,6 +904,35 @@ MAIN:
     $Results{MeanScaffoldLinkWeight} =
       $scaffLinkWeights / $Results{TotalScaffoldLinks};
   }
+  
+  #Begin Marwan 10-17-06: 
+  #Statistics::Descriptive::Sparse->new() functions return undef if no value exists
+  if ( !defined $Results{MeanSurrogateSize} ) {
+    $Results{MeanSurrogateSize} = 0;
+  }
+  if ( !defined $Results{MinSurrogateSize} ) {
+    $Results{MinSurrogateSize} = 0;
+  }
+  if ( !defined $Results{MaxSurrogateSize} ) {
+    $Results{MaxSurrogateSize} = 0;
+  }
+  if ( !defined $Results{SDSurrogateSize} ) {
+    $Results{SDSurrogateSize} = 0;
+  }
+
+  if ( !defined $Results{MeanUUnitigSize} ) {
+    $Results{MeanUUnitigSize} = 0;
+  }
+  if ( !defined $Results{MinUUnitigSize} ) {
+    $Results{MinSurrogateSize} = 0;
+  }
+  if ( !defined $Results{MaxUUnitigSize} ) {
+    $Results{MaxSurrogateSize} = 0;
+  }
+  if ( !defined $Results{SDUUnitigSize} ) {
+    $Results{SDSurrogateSize} = 0;
+  }
+  #End Marwan 10-17-06
 
   my $totlen    = 0;
   my $totseqs   = 0;
@@ -967,6 +1272,7 @@ MAIN:
       . $s . 'avgGap'
       . $s . 'EUID'
       ."]\n" );
+      
   print STDERR $top5scaff if ( !$silent );
   $fh->print($top5scaff);
   print STDERR "\n" if ( !$silent );
@@ -1164,278 +1470,3 @@ MAIN:
   exit(0);
 }
 
-##############################################
-
-=over
-
-=item B<my $rec = getCARecord(\*STDIN);>
-
-Reads from stdin the text between "extreme" { and } .
-
- for example:
-
-  {A
-    {B
-    }
-   }
- 
-Returns the whole: {A{B}}
-
-=cut
-
-sub getCARecord {
-	my $file = shift;
-
-	my $level = 0;
-	my $block = "";
-
-	while (<$file>) {
-		if (/^\s*\{/) {
-			$level++;
-		}
-		if (/^\s*\}/) {
-			$level--;
-		}
-		$block .= $_;
-		if ( $level == 0 ) {
-			last;
-		}
-	}
-
-	if ( $level != 0 ) {
-		die("end of file reached before end of block\n");
-	}
-
-	if ( $block ne "" ) {
-		return $block;
-	}
-	else {
-		return undef;
-	}
-}    # getCARecord
-
-######################################################3
-
-=item B<my($id, $fields, $recs) = parseCARecord($rec);>
-
-Parses a record and returns a triplet consisting of
-   - record type
-   - hash of fields and values
-   - array of sub-records
-
-=cut
-
-sub parseCARecord {
-	my $record = shift;
-
-	my @lines = split( '\n', $record );
-
-	my $type;
-	my %fields;
-	my @recs;
-
-	# get record type
-	$lines[0] =~ /\{(\w+)/;
-	if ( !defined $1 ) {
-		die("Wierd start of record: $record\n");
-	}
-	$type = $1;
-
-	if ( $lines[$#lines] !~ /^\s*\}/ ) {
-		die("Wierd end of record: $record\n");
-	}
-
-	my $level = 0;
-	my $fieldname;
-	for ( my $i = 1 ; $i < $#lines ; $i++ ) {
-		if ( $lines[$i] =~ /^(\w+):(\S+)$/ ) {    # simple field
-			$fields{$1} = $2;
-		}    # simple field
-		if ( $lines[$i] =~ /^(\w+):$/ ) {    # complex field
-			$fieldname = $1;
-			$fields{$fieldname} = "";
-			$i++;
-			while ( $i < $#lines && ( $lines[$i] !~ /^\.$/ ) ) {
-				$fields{$fieldname} .= "$lines[$i]\n";
-				$i++;
-			}
-		}    # complex field
-		if ( $lines[$i] =~ /^\s*\{/ ) {    # subrecord
-			my $level = 1;
-
-			my $thisrec = ++$#recs;
-
-			$recs[$thisrec] .= "$lines[$i]\n";
-			$i++;
-			while ( $level > 0 && $i < $#lines ) {
-				if ( $lines[$i] =~ /^\s*\{/ ) {
-					$level++;
-				}
-				if ( $lines[$i] =~ /^\s*\}/ ) {
-					$level--;
-				}
-				$recs[$thisrec] .= "$lines[$i]\n";
-				if ( $level == 0 ) {
-					last;
-				}
-				else {
-					$i++;
-				}
-			}
-			if ( $level != 0 ) {
-				die("Error parsing sub_record in: $record\n");
-			}
-		}    # subrecord
-	}    # for $i...
-
-	return ( $type, \%fields, \@recs );
-}    # parseCARecord
-
-
-################################################
-
-=item B<my($id) = getBothCAIds($CAid);>
-
-Obtains both IDs from a "paired" id, that is, converts (10, 1000) into 10,1000.
-If the Id is not a pair in parantheses, it returns the input.
-Thus, getBothCAIds('(10, 1000)') returns 10,1000 while getBothCAIds("abba") returns "abba".
-
-=cut
-
-sub getBothCAIds {
-	my $string = shift;
-
-	if ( $string =~ /\((\d+),(\d+)\)/ ) {
-		return ($1,$2);
-	}
-	else {
-		return $string;    # just in case we have a real ID
-	}
-}    # getBothCAIds
-
-################################################
-
-=item B<my($id) = getCAId($CAid);>
-
-Obtains the ID from a "paired" id, that is, converts (10, 1000) into 10.
-If the Id is not a pair in parantheses, it returns the input.
-Thus, getCAId('(10, 1000)') returns 10 while getCAId("abba") returns "abba".
-
-=cut
-
-sub getCAId {
-	my $string = shift;
-
-	if ( $string =~ /\((\d+),(\d+)\)/ ) {
-		return $1;
-	}
-	else {
-		return $string;    # just in case we have a real ID
-	}
-}    # getCAId
-
-
-################################################
-
-# calculate the gc content of contigs in scaffolds by getting the
-# the percentage of g and c bases in the contig consensus for all the
-# scaffold contigs
-sub calculateGC($$$) {
-  my $scaffcontigs_ref = shift;
-  my $gcs_ref          = shift;
-  my $sizes_ref        = shift;
-  my %scaffcontigs     = %$scaffcontigs_ref;
-  my %gcs              = %$gcs_ref;
-  my %sizes            = %$sizes_ref;
-  my @contigids        = keys(%scaffcontigs);
-  my $gc_tot           = 0;
-  my $cons_tot         = 0;
-  foreach my $contig_id (@contigids) {
-    my $gc_num      = $gcs{$contig_id};
-    my $contig_size = $sizes{$contig_id};
-    $gc_tot   += $gc_num;
-    $cons_tot += $contig_size;
-  }
-  my $gc_perc = 0;
-  if ( $cons_tot != 0 ) {
-    $gc_perc = ( $gc_tot / $cons_tot );
-  }
-  return $gc_perc;
-}
-
-# Emit the results to the terminal, and if prefix specified, to the
-# prefix.qc file, as a config-readable output.
-#
-sub printl($$$)
-{
-  my $tag      = shift;
-  my $rh_value = shift;
-  my $rfh      = shift;
-
-  my $s1 = sprintf( '%-32s', $tag );
-  print(STDERR  sprintf( "%s%-10s", $s1, $$rh_value{$tag} ) . "\n" ) if ( !$silent );
-  $rfh->print( "$tag=" . $$rh_value{$tag} . "\n" );
-}
-
-# Emit the results to the terminal, and if prefix specified, to the
-# prefix.qc file, as a config-readable output.  Float form.
-#
-sub printlf($$$)
-{
-  my $tag      = shift;
-  my $rh_value = shift;
-  my $rfh      = shift;
-
-  my $s1 = sprintf( "%-32s", $tag );
-  print(STDERR  sprintf( "%s%-0.2f", $s1, $$rh_value{$tag} ) . "\n" ) if ( !$silent );
-  $rfh->print( "$tag=" . sprintf( "%0.2f", $$rh_value{$tag} ) . "\n" );
-}
-
-# output percentage of total reads
-
-sub printp($$$$)
-{
-  my ( $tag, $rh_value, $rfh, $tot ) = @_;
-
-    my $val = sprintf "%s(%.2f%%)", $$rh_value{$tag}, $$rh_value{$tag}/$tot*100;
-  printf(STDERR  "%-32s%-10s\n", $tag, $val ) if ( !$silent );
-  $rfh->print("$tag=$val\n");
-}
-
-sub max($$)
-{
-  my ( $a, $b ) = @_;
-  return ( $a > $b ) ? $a : $b;
-}
-
-sub min($$)
-{
-  my ( $a, $b ) = @_;
-  return $a if ( $a != 0 && $b == 0 );
-  return $b if ( $a == 0 && $b != 0 );
-  return ( $a < $b ) ? $a : $b;
-}
-
-sub calcNStats($$$$$) {
-  my ( $type, $gsz, $lens, $sortContig, $Results ) = @_;
-  my $prevSz   = 0;
-  my $prevIncr = 0;
-  my $incrSize = 1000000;
-  my @N        = ( .25, .5, .75 );
-  my $sum      = 0;
-  foreach my $cc (@$sortContig) {
-    my $len = $lens->{$cc};
-    $sum += $len;
-  # use while loops instead of if's since big contig/scaffold can span divisions
-    while ( @N && $sum > $gsz * $N[0] ) {
-      push @{ $Results->{"N${type}Bases"} }, [ shift(@N), $len ];
-    }
-    while ( int( $sum / $incrSize ) > $prevIncr ) {
-      $prevIncr++;
-      if ( $len != $prevSz ) {
-                push @{$Results->{"Incr${type}Bases"}},[$prevIncr*$incrSize,$len];
-        $prevSz = $len;
-      }
-    }
-  }
-}
