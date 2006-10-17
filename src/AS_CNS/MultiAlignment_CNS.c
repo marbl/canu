@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.104 2006-10-17 15:48:47 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.105 2006-10-17 21:39:40 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -2691,7 +2691,7 @@ static int
 GetTheMostDistantRead(int curr_read_id, int32 nr, int32 **dist_matrix)
 {
     int i, dist_read_id = -1;
-    int max_dist = 0;
+    int max_dist = -1;
     for (i=0; i<nr; i++)
     {
         if (i == curr_read_id)
