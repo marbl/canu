@@ -36,14 +36,14 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_ChunkGraph.hh,v 1.5 2006-10-11 14:36:27 eliv Exp $
- * $Revision: 1.5 $
+ * $Id: AS_BOG_ChunkGraph.hh,v 1.6 2006-10-18 17:31:46 eliv Exp $
+ * $Revision: 1.6 $
 */
 
 #ifndef INCLUDE_AS_BOG_CHUNKGRAPH
 #define INCLUDE_AS_BOG_CHUNKGRAPH
 
-static char AS_BOG_CHUNK_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_ChunkGraph.hh,v 1.5 2006-10-11 14:36:27 eliv Exp $";
+static char AS_BOG_CHUNK_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_ChunkGraph.hh,v 1.6 2006-10-18 17:31:46 eliv Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -53,6 +53,9 @@ namespace AS_BOG{
 	struct ChunkGraph{
 
 	    public:
+
+        // Number of frags edges to cross in 
+        static const short FRAG_WALK_NUM = 101;
 
 		// Constructor
 		ChunkGraph(void);
@@ -94,14 +97,27 @@ namespace AS_BOG{
 
 		void checkInDegree(BestOverlapGraph *bovlg);
 
+        iuid ChunkGraph::nextFragByChunkLength();
+
 	    private:
 
 		struct _chunk_unit_struct{
 			iuid five_prime;
 			iuid three_prime;
 		};
+        struct _chunk_length {
+            iuid fragId;
+            short cnt;
+//            short fpCnt;
+//            short tpCnt;
+        };
+
+        short countChunkWidth(iuid, fragment_end_type, BestOverlapGraph*);
+
+        static int sortChunkLens(const void*,const void*);
 
 		_chunk_unit_struct *_chunkable_array;
+		_chunk_length *_chunk_lengths;
 		iuid _max_fragments;
 
 	};

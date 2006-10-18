@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.29 2006-10-13 17:58:07 eliv Exp $
- * $Revision: 1.29 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.30 2006-10-18 17:31:46 eliv Exp $
+ * $Revision: 1.30 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.29 2006-10-13 17:58:07 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.30 2006-10-18 17:31:46 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -86,69 +86,63 @@ namespace AS_BOG{
 
 		// Step through all the fragments 
 		std::cerr << "Building Unitigs from " << num_frags << " fragments.\n"; 
-		for(frag_idx=1; frag_idx<=num_frags; frag_idx++){
+        while( frag_idx = cg_ptr->nextFragByChunkLength() ) {
             if (BestOverlapGraph::fragLen(frag_idx) == std::numeric_limits<uint16>::max())
                 continue; // Deleted frag
 
-			//std::cerr << "Working on " << frag_idx << std::endl; 
+            //std::cerr << "Working on " << frag_idx << std::endl; 
 
-			// Check the map to so we don't visit a unitig twice (once from
-			//   both ends)
-			if( !inUnitig[ frag_idx ] && 
-				 best_cntr->find(frag_idx) == best_cntr->end() )
+            // Check the map to so we don't visit a unitig twice (once from
+            //   both ends)
+            if( !inUnitig[ frag_idx ] && 
+                    best_cntr->find(frag_idx) == best_cntr->end() )
             { 
-				cg_ptr->getChunking(
-					frag_idx, 
-					fp_dst_frag_id, 
-					tp_dst_frag_id);
+                cg_ptr->getChunking(
+                        frag_idx, 
+                        fp_dst_frag_id, 
+                        tp_dst_frag_id);
 
-				if(  // If the 5' end is NULL but 3' end isn't, or vice versa
-				    (fp_dst_frag_id == NULL_FRAG_ID &&
-				     tp_dst_frag_id != NULL_FRAG_ID ) ||
-				    (tp_dst_frag_id == NULL_FRAG_ID &&
-				     fp_dst_frag_id != NULL_FRAG_ID ) ||
-				    (tp_dst_frag_id == NULL_FRAG_ID &&
-				     fp_dst_frag_id == NULL_FRAG_ID ) 
-				){
+                if(!(unitig_id%10000)){
+                    std::cerr << ".";
+                }
 
-					if(!(unitig_id%10000)){
-						std::cerr << ".";
-					}
+                // Allocated a new unitig node
+                Unitig *utg=new Unitig;
 
-					// Allocated a new unitig node
-					Unitig *utg=new Unitig;
+                DoveTailPath *utgFrg = utg->dovetail_path_ptr;
 
-					// Store the dovetails
-					if(fp_dst_frag_id == NULL_FRAG_ID && tp_dst_frag_id != NULL_FRAG_ID){
-						utg->dovetail_path_ptr=
-							_extract_dovetail_path( unitig_id,
-								frag_idx, THREE_PRIME, cg_ptr);
-					}else if(tp_dst_frag_id == NULL_FRAG_ID && fp_dst_frag_id != NULL_FRAG_ID){
-						utg->dovetail_path_ptr=
-							_extract_dovetail_path( unitig_id,
-								frag_idx, FIVE_PRIME, cg_ptr);
-					}else{
-						utg->dovetail_path_ptr=
-							_extract_dovetail_path( unitig_id,
-								frag_idx, THREE_PRIME, cg_ptr);
-					}
-					utg->id = unitig_id++;
+                utgFrg = _extract_dovetail_path( unitig_id,
+                                frag_idx, FIVE_PRIME, cg_ptr, 0);
+                utg->dovetail_path_ptr = utgFrg;
+                fragment_end_type whichEnd = THREE_PRIME;
+                BestEdgeOverlap *tpBest = bog_ptr->getBestEdgeOverlap( frag_idx, whichEnd);
+                // if other end is also 3' we need to walk of it's 5'
+                if (tpBest->bend == whichEnd)
+                    whichEnd = FIVE_PRIME;
 
-                    utg->computeFragmentPositions(cntnrmap_ptr, best_cntr);
+                DoveTailPath *tpPath = _extract_dovetail_path( unitig_id,
+                              tpBest->frag_b_id, whichEnd, cg_ptr,utg->getLength());
 
-                    // must be sorted before merge
-                    utg->sort();
+                utg->reverseComplement( 0, bog_ptr);
+                utgFrg = utg->dovetail_path_ptr;
+                utgFrg->insert( utgFrg->end(), tpPath->begin(),tpPath->end() );
 
-					// Store unitig in unitig graph
-					unitigs->push_back(utg);
+                utg->id = unitig_id++;
 
-				}else{
-					// We are either in the middle of a dovetail sequence,
-					// it is a singleton, or we are going from 3' to 5'
-					// across a dovetail.
+                utg->computeFragmentPositions(cntnrmap_ptr, best_cntr);
 
-				}
-			}
+                // must be sorted before merge
+                utg->sort();
+
+                // Store unitig in unitig graph
+                unitigs->push_back(utg);
+
+            }else{
+                // We are either in the middle of a dovetail sequence,
+                // it is a singleton, or we are going from 3' to 5'
+                // across a dovetail.
+
+            }
 		}
         std::cerr << std::endl;
 
@@ -172,7 +166,7 @@ namespace AS_BOG{
 					Unitig *utg=new Unitig;
                     // need to make _extract_dovetail break circle
                     utg->dovetail_path_ptr = _extract_dovetail_path(
-								unitig_id, frag_idx, THREE_PRIME, cg_ptr );
+								unitig_id, frag_idx, FIVE_PRIME, cg_ptr, 0 );
 
 					utg->id = unitig_id++;
                     utg->computeFragmentPositions(cntnrmap_ptr, best_cntr);
@@ -347,69 +341,11 @@ namespace AS_BOG{
                     addIter->position.end += offset;
                     tig->dovetail_path_ptr->push_back( *addIter );
                 }
-            } else { // reverse complement
-                int lastEnd = last.position.end > last.position.bgn ? 
-                              last.position.end : last.position.bgn;
-                int prevBeg = 0;
-                DoveTailPath contains;
-                DoveTailPath::reverse_iterator rend =
-                                 tigToAdd->dovetail_path_ptr->rend();
-                DoveTailPath::reverse_iterator addIter =
-                                 tigToAdd->dovetail_path_ptr->rbegin();
-                for(; addIter != rend; addIter++) {
-                    addIter->position.bgn = lastEnd - addIter->position.bgn + offset;
-                    addIter->position.end = lastEnd - addIter->position.end + offset;
-                    if (addIter->contained != 0) {
-#ifdef NEW_UNITIGGER_INTERFACE
-                      int tmp = addIter->ahang;
-                      addIter->ahang = -addIter->bhang;
-                      addIter->bhang = -tmp;
-#endif
-                      contains.push_back( *addIter );
-                    } else {
-#ifdef NEW_UNITIGGER_INTERFACE
-                      int left = addIter->position.end < addIter->position.bgn ? 
-                                 addIter->position.end : addIter->position.bgn;
-                      assert( prevBeg <= left ); 
-                      DoveTailPath::reverse_iterator prev = addIter+1;
-                      while (prev != rend &&
-                             prev->contained != 0) 
-                      {
-                        prev = prev+1;
-                      }
-                      if (prev == rend) {
-
-                          // After reverse, need to switch to other edge
-                          BestEdgeOverlap* other;
-                          iuid id = addIter->ident;
-                          if (addIter->position.bgn > addIter->position.end) {
-                              other = bog_ptr->getBestEdgeOverlap( id, FIVE_PRIME );
-                          } else {
-                              other = bog_ptr->getBestEdgeOverlap( id, THREE_PRIME );
-                          }
-                          addIter->ident2 = other->frag_b_id;
-                          if (other->ahang < 0 && other->bhang < 0 ) {
-                              addIter->ahang = -other->bhang;
-                              addIter->bhang = -other->ahang;
-                          } else {
-                              addIter->ahang = other->ahang;
-                              addIter->bhang = other->bhang;
-                          }
-                      } else {
-                          assert( prev->contained == 0 );
-                          addIter->ident2 = prev->ident;
-                          addIter->bhang = prev->ahang;
-                          addIter->ahang = prev->bhang;
-                      }
-#endif
-                      tig->dovetail_path_ptr->push_back( *addIter );
-                      if (contains.size() > 0) {
-                        tig->dovetail_path_ptr->insert(tig->dovetail_path_ptr->end(),
-                                           contains.begin(), contains.end());
-                         contains.clear();
-                      }
-                    }
-                }
+            } else { // reverse complement and append
+                tigToAdd->reverseComplement( offset, bog_ptr);
+                tig->dovetail_path_ptr->insert( tig->dovetail_path_ptr->end(),
+                                           tigToAdd->dovetail_path_ptr->begin(),
+                                           tigToAdd->dovetail_path_ptr->end() );
             }
             delete tigToAdd;
             unitigs->at( tigIdToAdd - 1) = NULL;
@@ -469,7 +405,7 @@ namespace AS_BOG{
 	//////////////////////////////////////////////////////////////////////////////
 
 	DoveTailPath *UnitigGraph::_extract_dovetail_path( const iuid unitig_id,
-		iuid src_frag_id, fragment_end_type firstEnd, ChunkGraph *cg_ptr){
+		iuid src_frag_id, fragment_end_type firstEnd, ChunkGraph *cg_ptr, int offset){
 
 	// Note:  I only need BestOverlapGraph for it's frag_len and olap_length
 
@@ -480,7 +416,7 @@ namespace AS_BOG{
 		iuid next_frag_id;
 		fragment_end_type whichEnd = firstEnd;
         int frag_end,frag_begin,fragNextEnd,fragPrevEnd;
-        frag_begin = fragNextEnd = fragPrevEnd = 0;
+        frag_begin = fragNextEnd = fragPrevEnd = offset;
 
 		//std::cerr<<"Working on: "<<src_frag_id<< " Dir: " << travel_dir <<std::endl;
 		iuid last_frag_id;
@@ -514,12 +450,12 @@ namespace AS_BOG{
             // or as end of previous frag + b_hang. They should be the same
             // if there are no gaps, but with gaps the 2nd method should be better
             frag_end = frag_begin + currLen;
-            if ( fragNextEnd == 0 )
-                fragNextEnd = currLen;
+            if ( fragNextEnd == offset )
+                fragNextEnd = currLen + offset;
 
-            fprintf(stderr,"Frag %d len %d beg %d end %d ahang %d bhang %d nEnd %d\n",
-                    current_frag_id, currLen, frag_begin, frag_end,
-                     bestEdge->ahang, bestEdge->bhang, fragNextEnd);
+//            fprintf(stderr,"Frag %d len %d beg %d end %d ahang %d bhang %d nEnd %d\n",
+//                    current_frag_id, currLen, frag_begin, frag_end,
+//                     bestEdge->ahang, bestEdge->bhang, fragNextEnd);
 
             int end;
             // pick the smallest end that's greater then the previous end
@@ -584,6 +520,7 @@ namespace AS_BOG{
         for(;tigIter != unitigs->end(); tigIter++)
         {
             Unitig* tig = *tigIter;
+            DoveTailNode lastBackbone;
             DoveTailPath::const_iterator dt_itr;
             for( dt_itr  = tig->dovetail_path_ptr->begin();
                  dt_itr != tig->dovetail_path_ptr->end(); dt_itr++)
@@ -596,6 +533,9 @@ namespace AS_BOG{
                 {
                     fragment_end_type dtEnd = THREE_PRIME;
                     const char *endStr = threeP;
+                    if (node.contained)
+                        node = lastBackbone;
+
                     if (node.position.bgn > node.position.end)
                         dtEnd = FIVE_PRIME;
                     if (dt_itr == tig->dovetail_path_ptr->begin()) {
@@ -603,11 +543,14 @@ namespace AS_BOG{
                         endStr = fiveP;
                     }
 
-                    bestEdge = bog_ptr->getBestEdgeOverlap(dtFrag,dtEnd);
+                    bestEdge = bog_ptr->getBestEdgeOverlap(node.ident,dtEnd);
                     iuid bFrg = bestEdge->frag_b_id;
                     fprintf(stderr,"Unitig %5d %s frag %7d points to Unitig %5d frag %7d\n",
-                            tig->id-1, endStr, dtFrag, inUnitig[bFrg]-1, bFrg);
+                            tig->id-1, endStr, node.ident, inUnitig[bFrg]-1, bFrg);
                 }
+                if (dtFrag != node.ident)
+                    continue;
+                lastBackbone = node;
 
                 FragmentEdgeList::const_iterator edge_itr =
                                             unitigIntersect->find( dtFrag );
@@ -626,7 +569,7 @@ namespace AS_BOG{
                             bestEnd = THREE_PRIME;
                             bestEdge = bog_ptr->getBestEdgeOverlap( inFrag, bestEnd );
                         }
-                        assert( bestEdge->frag_b_id == dtFrag );
+//                        assert( bestEdge->frag_b_id == dtFrag );
                         const char *inEnd = bestEnd == FIVE_PRIME ? fiveP : threeP;
                         const char *dtEnd = fiveP;
                         int pos = node.position.bgn;
@@ -1000,6 +943,74 @@ namespace AS_BOG{
 		_numRandomFrags=getNumFrags();
 		return(_numRandomFrags);
 	}
+	//////////////////////////////////////////////////////////////////////////////
+    void Unitig::reverseComplement(int offset, BestOverlapGraph *bog_ptr)
+    {
+        iuid notUsed;
+        DoveTailNode last  = getLastBackboneNode(notUsed);
+        int lastEnd = last.position.end > last.position.bgn ? 
+                      last.position.end : last.position.bgn;
+        int prevBeg = 0;
+        DoveTailPath contains;
+        DoveTailPath *revP = new DoveTailPath;
+        DoveTailPath::reverse_iterator rend = dovetail_path_ptr->rend();
+        DoveTailPath::reverse_iterator addIter = dovetail_path_ptr->rbegin();
+        for(; addIter != rend; addIter++) {
+            addIter->position.bgn = lastEnd - addIter->position.bgn + offset;
+            addIter->position.end = lastEnd - addIter->position.end + offset;
+            if (addIter->contained != 0) {
+#ifdef NEW_UNITIGGER_INTERFACE
+                int tmp = addIter->ahang;
+                addIter->ahang = -addIter->bhang;
+                addIter->bhang = -tmp;
+#endif
+                contains.push_back( *addIter );
+            } else {
+#ifdef NEW_UNITIGGER_INTERFACE
+                int left = addIter->position.end < addIter->position.bgn ? 
+                           addIter->position.end : addIter->position.bgn;
+                assert( prevBeg <= left ); 
+                DoveTailPath::reverse_iterator prev = addIter+1;
+                while (prev != rend &&
+                        prev->contained != 0) 
+                {
+                    prev = prev+1;
+                }
+                if (prev == rend) {
+
+                    // After reverse, need to switch to other edge
+                    BestEdgeOverlap* other;
+                    iuid id = addIter->ident;
+                    if (addIter->position.bgn > addIter->position.end) {
+                        other = bog_ptr->getBestEdgeOverlap( id, FIVE_PRIME );
+                    } else {
+                        other = bog_ptr->getBestEdgeOverlap( id, THREE_PRIME );
+                    }
+                    addIter->ident2 = other->frag_b_id;
+                    if (other->ahang < 0 && other->bhang < 0 ) {
+                        addIter->ahang = -other->bhang;
+                        addIter->bhang = -other->ahang;
+                    } else {
+                        addIter->ahang = other->ahang;
+                        addIter->bhang = other->bhang;
+                    }
+                } else {
+                    assert( prev->contained == 0 );
+                    addIter->ident2 = prev->ident;
+                    addIter->bhang = prev->ahang;
+                    addIter->ahang = prev->bhang;
+                }
+#endif
+                revP->push_back( *addIter );
+                if (contains.size() > 0) {
+                    revP->insert(revP->end(), contains.begin(), contains.end());
+                    contains.clear();
+                }
+            }
+        }
+        delete dovetail_path_ptr;
+        dovetail_path_ptr = revP;
+    }
 
 	//////////////////////////////////////////////////////////////////////////////
     //Recursively place all contains under this one into the FragmentPositionMap

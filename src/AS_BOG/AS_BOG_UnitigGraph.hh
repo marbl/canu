@@ -34,15 +34,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.hh,v 1.19 2006-10-13 17:58:07 eliv Exp $
- * $Revision: 1.19 $
+ * $Id: AS_BOG_UnitigGraph.hh,v 1.20 2006-10-18 17:31:46 eliv Exp $
+ * $Revision: 1.20 $
 */
 
 
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.19 2006-10-13 17:58:07 eliv Exp $";
+static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.20 2006-10-18 17:31:46 eliv Exp $";
 
 #include <vector>
 #include <map>
@@ -92,6 +92,7 @@ namespace AS_BOG{
 		// Compute unitig based on given dovetails and containments
 		void computeFragmentPositions(ContainerMap*, BestContainmentMap*);
 
+        void reverseComplement( int offset, BestOverlapGraph *);
 		// Accessor methods
 		float getAvgRho(void);
 		void setGlobalArrivalRate(float global_arrival_rate);
@@ -189,7 +190,8 @@ namespace AS_BOG{
 				const iuid unitig_id, 
 				iuid src_frag_id, 
 				fragment_end_type whichEnd,
-				ChunkGraph *cg_ptr);
+				ChunkGraph *cg_ptr,
+                int offset);
 
 			// Inverts the containment map to key by container, instead of containee
 			ContainerMap *_build_container_map(BestContainmentMap*);
