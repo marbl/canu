@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.30 2006-10-18 17:31:46 eliv Exp $
- * $Revision: 1.30 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.31 2006-10-19 15:13:03 eliv Exp $
+ * $Revision: 1.31 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.30 2006-10-18 17:31:46 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.31 2006-10-19 15:13:03 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -120,8 +120,15 @@ namespace AS_BOG{
                 if (tpBest->bend == whichEnd)
                     whichEnd = FIVE_PRIME;
 
+                int len = utg->getLength();
+                int flen = BestOverlapGraph::fragLen(frag_idx);
+                int ahng = tpBest->ahang;
+                int offset = len - flen + ahng;
+                fprintf(stderr,"Join unitig %d len %d at %d len %d and %d ahang %d offset %d\n",
+                        unitig_id, len, frag_idx, flen, tpBest->frag_b_id, ahng, offset );
+
                 DoveTailPath *tpPath = _extract_dovetail_path( unitig_id,
-                              tpBest->frag_b_id, whichEnd, cg_ptr,utg->getLength());
+                              tpBest->frag_b_id, whichEnd, cg_ptr,offset);
 
                 utg->reverseComplement( 0, bog_ptr);
                 utgFrg = utg->dovetail_path_ptr;
