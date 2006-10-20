@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.105 2006-10-17 21:39:40 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.106 2006-10-20 19:52:46 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -81,6 +81,8 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.105 2006-10-17 21:39:40 bri
 #define STABWIDTH                           6
 #define DEBUG_ABACUS                        0
 #define DEBUG_CONSENSUS_CALL                0
+#define DEBUG_VAR_RECORDS                   0
+
 
 // Parameters used by Abacus processing code
 #define MSTRING_SIZE                        3
@@ -1688,6 +1690,19 @@ Iid2ReadId(int32 iid, int32 *iids, int nr)
     return (-1);
 }
 
+static int
+IsNewRead(int32 iid, int32 *iid_list, int nr)
+{
+    int i;
+    for (i=0; i<nr; i++)
+    {
+        if (iid_list[i] == iid)
+            return 0;
+    }
+    return 1;
+}
+
+
 //*********************************************************************************
 // Function: BaseCalling
 // Purpose: Calculate the consensus base for the given column
@@ -1763,6 +1778,8 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
         int16  max_ind=0;
         double max_cw=0.0;   // max of "consensus weights" of all bases
         double normalize=0.;
+        int    nr=0, max_nr=100;
+        int32 *iid_list = (int32 *)safe_malloc(max_nr*sizeof(int32));
 
         if (!guides_alloc) {
             guides = CreateVA_Bead(16);
@@ -1802,6 +1819,19 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
             type  = GetFragment(fragmentStore,bead->frag_index)->type;
             iid   = GetFragment(fragmentStore,bead->frag_index)->iid;
             k     = Iid2ReadId(iid, vreg->iids, vreg->nr);
+
+            // Filter out "duplicated" reads with the same iid
+            if (!IsNewRead(iid, iid_list, nr))
+                continue;
+
+            iid_list[nr] = iid;
+            nr++;
+            if (nr == max_nr)
+            {
+                max_nr += 100;
+                iid_list = (int32 *)safe_realloc(iid_list,
+                        max_nr*sizeof(int32));
+            }
 
             if ((type == AS_READ)   ||
                 (type == AS_B_READ) ||
@@ -2060,6 +2090,7 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
                 *var = - (*var);
             }
         }
+        FREE(iid_list);
         return score;
     }
     else if (quality == 0 )
@@ -2201,18 +2232,6 @@ SmoothenVariation(double *var, int len, int window)
     FREE(y);
 }
 
-static int 
-IsNewRead(int32 iid, VarRegion  *vreg)
-{
-    int i;
-    for (i=0; i<vreg->nr; i++)
-    {
-        if (vreg->iids[i] == iid)
-            return 0;
-    }
-    return 1;
-}
-
 static void
 GetReadIidsAndNumReads(int cid, VarRegion  *vreg)
 {
@@ -2247,7 +2266,7 @@ GetReadIidsAndNumReads(int cid, VarRegion  *vreg)
             (type == AS_TRNR))
         {
             num_reads++;
-            if (IsNewRead(iid, vreg)) {
+            if (IsNewRead(iid, vreg->iids, vreg->nr)) {
 
                 if (vreg->nr == vreg->max_nr) {
                     int l;
@@ -2794,8 +2813,14 @@ PopulateVarRecord(int32 *cids, int32 *nvars, int32 *min_len_vlist,
         int al;
         int32 shift   = vreg.end-vreg.beg+2;
         int distant_read_id = -42, distant_allele_id = -42;
-        if ((num_reported_alleles <= vreg.nca) || (vreg.nca < 2))
+        if (vreg.nca < 2)
         {
+#if DEBUG_VAR_RECORDS
+            fprintf(stderr, "\nbeg= %d end= %d\n", vreg.beg, vreg.end);
+            OutputReads(stderr, vreg.reads, vreg.nr, vreg.end-vreg.beg+1);
+            OutputDistMatrix(stderr, &vreg);
+            OutputAlleles(stderr, &vreg);
+#endif
             distant_read_id = GetTheMostDistantRead(vreg.alleles[0].read_ids[0],
                 vreg.nr, vreg.dist_matrix);
             distant_allele_id = vreg.reads[distant_read_id].allele_id;
