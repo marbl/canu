@@ -2,8 +2,9 @@
 
 #include "util++.H"
 
+
 int
-main(int argc, char **argv) {
+test(void) {
   int           e = 0;
   intervalList  I;
 
@@ -45,5 +46,14 @@ main(int argc, char **argv) {
   if ((I.lo(3) != 70) || (I.hi(3) != 76))
     fprintf(stderr, "Interval 3 is wrong.\n"), e++;
 
-  exit(e);
+  if (e)
+    exit(e);
+}
+
+
+
+int
+main(int argc, char **argv) {
+  test();
+  exit(0);
 }
