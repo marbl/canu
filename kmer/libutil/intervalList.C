@@ -289,32 +289,66 @@ intervalList::intersect(intervalList &A,
       nh = (ah < bh) ? ah : bh;
     }
 
-    if (nh - nl > 0)
+    if (nl < nh)
       add(nl, nh - nl);
 
     //  Advance the list with the earlier region.
     //
-    if        (al < bl) {
-      //  A begins before B
-      ai++;
-    } else if (al > bl) {
-      //  B begins before A
-      bi++;
-    } else if (ah < bh) {
-      //  A and B begin at the same point, A ends first
+    if        (ah < bh) {
+      //  A ends before B
       ai++;
     } else if (ah > bh) {
-      //  A and B begin at the same point, B ends first
+      //  B ends before A
       bi++;
     } else {
-      //  Exactly the same!
+      //  Exactly the same ending!
       ai++;
       bi++;
     }
   }
 }
 
+void
+intervalList::contained(intervalList &A,
+                        intervalList &B) {
+  A.merge();
+  B.merge();
 
+  u32bit  ai = 0;
+  u32bit  bi = 0;
+
+  while ((ai < A.numberOfIntervals()) &&
+         (bi < B.numberOfIntervals())) {
+    u32bit   al = A.lo(ai);
+    u32bit   ah = A.hi(ai);
+    u32bit   bl = B.lo(bi);
+    u32bit   bh = B.hi(bi);
+
+    //  If A is contained in B, make a new region.
+    //
+    if ((bl <= al) && (ah <= bh))
+      add(bl, bh - bl);
+
+#if 0
+    if ((al <= bl) && (bh <= ah))
+      add(al, ah - al);
+#endif
+
+    //  Advance the list with the earlier region.
+    //
+    if        (ah < bh) {
+      //  A ends before B
+      ai++;
+    } else if (ah > bh) {
+      //  B ends before A
+      bi++;
+    } else {
+      //  Exactly the same ending!
+      ai++;
+      bi++;
+    }
+  }
+}
 
 
 

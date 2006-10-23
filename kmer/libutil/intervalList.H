@@ -75,8 +75,17 @@ public:
   //
   //  Both A and B call merge().
   //
-  void        intersect(intervalList &A,
-                        intervalList &B);
+  void                intersect(intervalList &A,
+                                intervalList &B);
+
+  //  Populates this intervalList with regions in A that are completely
+  //  contained in a region in B.
+  //
+  //  Both A and B call merge().
+  //
+  void                contained(intervalList &A,
+                                intervalList &B);
+
 
   intervalNumber      lo(u32bit i) { return(_list[i].lo); };
   intervalNumber      hi(u32bit i) { return(_list[i].hi); };
