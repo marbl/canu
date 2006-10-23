@@ -16,10 +16,21 @@
 //  You'll also need to modify compare() and output() if you change this.
 #define NUMCATEGORIES  6
 
+//  The output files are global for convenience.  Otherwise, we'd be passing
+//  them to compare() for every single mer.
+//
+FILE  *dumpSCZF = NULL;
+FILE  *dumpMCZF = NULL;
+FILE  *dumpMCSF = NULL;
+FILE  *dumpMCMF = NULL;
+char   merstring[1024];
+
 u32bit
 findMode(char *name) {
   merylStreamReader  *M = new merylStreamReader(name);
   u32bit             *H = new u32bit [16384];
+
+  fprintf(stderr, "Finding mode of '%s'\n", name);
 
   for (u32bit i=0; i<16384; i++)
     H[i] = 0;
@@ -39,6 +50,7 @@ findMode(char *name) {
 
   return(mi);
 }
+
 
 void
 compare(merylStreamReader *F,
@@ -90,8 +102,16 @@ compare(merylStreamReader *F,
   //
   if ((Ftype == 0) || (Ctype == 0)) {
     if (((Ftype == 0) && (Cmer == minmer)) ||
-        ((Ctype == 0) && (Fmer == minmer)))
+        ((Ctype == 0) && (Fmer == minmer))) {
       R[Ftype][Ctype]++;
+
+      //  Save the mer if it's in contigs, but not fragments.
+      if (Ftype == 0)
+        if (Ctype == 1)
+          fprintf(dumpSCZF, ">"u32bitFMT"\n%s\n", Ccnt, Cmer.merToString(merstring));
+        else
+          fprintf(dumpMCZF, ">"u32bitFMT"\n%s\n", Ccnt, Cmer.merToString(merstring));
+    }
     return;
   }
 
@@ -99,10 +119,18 @@ compare(merylStreamReader *F,
   //  minmer, note that we saw it.
   //
   if (Fmer != Cmer) {
-    if (Cmer == minmer)
-      R[0][Ctype]++;
     if (Fmer == minmer)
       R[Ftype][0]++;
+    if (Cmer == minmer) {
+      R[0][Ctype]++;
+
+      //  Again, save the mer since it's in contigs, but not fragments.
+      if (Ctype == 1)
+        fprintf(dumpSCZF, ">"u32bitFMT"\n%s\n", Ccnt, Cmer.merToString(merstring));
+      else
+        fprintf(dumpMCZF, ">"u32bitFMT"\n%s\n", Ccnt, Cmer.merToString(merstring));
+    }
+
     return;
   }
 
@@ -111,7 +139,19 @@ compare(merylStreamReader *F,
     return;
 
   //  Otherwise, the mers are in both inputs
-  R[Ftype][Ctype]++;  
+  R[Ftype][Ctype]++;
+
+  //  Save the mer if it's in contigs "more" than if in fragments.
+  if (Ftype < Ctype)
+    if (Ctype == 2)
+      fprintf(dumpMCSF, ">"u32bitFMT"\n%s\n", Ccnt, Cmer.merToString(merstring));
+    else
+      fprintf(dumpMCMF, ">"u32bitFMT"\n%s\n", Ccnt, Cmer.merToString(merstring));
+
+
+  if ((Ftype == 0) && (Ctype == 1))
+    fprintf(dumpSCZF, ">"u32bitFMT"\n%s\n", Ccnt, Cmer.merToString(merstring));
+
 }
 
 
@@ -153,6 +193,12 @@ main(int argc, char **argv) {
   u32bit              AFmode = 0;
   u32bit              TFmode = 0;
 
+  bool                dumpFlag = false;
+  char                dumpSCZFname[1024] = {0};  //  single contig, zero frags
+  char                dumpMCZFname[1024] = {0};  //  low contig, zero frags
+  char                dumpMCSFname[1024] = {0};  //  medium contig, low frags
+  char                dumpMCMFname[1024] = {0};  //  everything else, contig > frags
+
   bool                beVerbose = false;
 
   //fprintf(stderr, "using cached modes for testing!\n");
@@ -161,14 +207,14 @@ main(int argc, char **argv) {
   while (arg < argc) {
     if        (strcmp(argv[arg], "-af") == 0) {  //  All frags
       ++arg;
-      AFmode = findMode(argv[arg]);
-      //AFmode = 9;
+      //AFmode = findMode(argv[arg]);
+      AFmode = 8;
       AF = new merylStreamReader(argv[arg]);
       AF->nextMer();
     } else if (strcmp(argv[arg], "-tf") == 0) {  //  Trimmed frags
       ++arg;
-      TFmode = findMode(argv[arg]);
-      //TFmode = 8;
+      //TFmode = findMode(argv[arg]);
+      TFmode = 8;
       TF = new merylStreamReader(argv[arg]);
       TF->nextMer();
     } else if (strcmp(argv[arg], "-ac") == 0) {  //  All contigs
@@ -180,6 +226,13 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-co") == 0) {  //  Contigs
       CO = new merylStreamReader(argv[++arg]);
       CO->nextMer();
+    } else if (strcmp(argv[arg], "-dump") == 0) {
+      arg++;
+      dumpFlag = true;
+      sprintf(dumpSCZFname, "%s.0.singlecontig.zerofrag.fasta",       argv[arg]);
+      sprintf(dumpMCZFname, "%s.1.multiplecontig.zerofrag.fasta",     argv[arg]);
+      sprintf(dumpMCSFname, "%s.2.multiplecontig.lowfrag.fasta",      argv[arg]);
+      sprintf(dumpMCMFname, "%s.3.multiplecontig.multiplefrag.fasta", argv[arg]);
     } else if (strcmp(argv[arg], "-v") == 0) {
       beVerbose = true;
     } else {
@@ -189,7 +242,12 @@ main(int argc, char **argv) {
   }
 
   if ((AF == 0L) && (TF == 0L) && (AC == 0L) && (DC == 0L) && (CO == 0L)) {
-    fprintf(stderr, "usage: %s [-af | -tf] fragcounts [-ac | -dc | -co] contigcounts\n", argv[0]);
+    fprintf(stderr, "usage: %s [opts] [-v] [-dump prefix]\n", argv[0]);
+    fprintf(stderr, "At least one fragcounts and one contigcounts are needed.\n");
+    fprintf(stderr, "          -af | -tf        fragcounts\n");
+    fprintf(stderr, "          -ac | -dc | -co  contigcounts \n");
+    fprintf(stderr, "Dumping is probably only useful with exactly one frag and\n");
+    fprintf(stderr, "one contig, but I'll let you do it with any number.\n");
     exit(1);
   }
   if ((AF == 0L) && (TF == 0L)) {
@@ -206,31 +264,39 @@ main(int argc, char **argv) {
   u32bit  merSize = 0;
   u32bit  ms[5] = { 0 };
 
-    if (AF)  merSize = ms[0] = AF->merSize();
-    if (TF)  merSize = ms[1] = TF->merSize();
-    if (AC)  merSize = ms[2] = AC->merSize();
-    if (DC)  merSize = ms[3] = DC->merSize();
-    if (CO)  merSize = ms[4] = CO->merSize();
+  if (AF)  merSize = ms[0] = AF->merSize();
+  if (TF)  merSize = ms[1] = TF->merSize();
+  if (AC)  merSize = ms[2] = AC->merSize();
+  if (DC)  merSize = ms[3] = DC->merSize();
+  if (CO)  merSize = ms[4] = CO->merSize();
 
-    bool  differ = false;
+  bool  differ = false;
 
-    if ((ms[0] > 0) && (ms[0] != merSize))  differ = true;
-    if ((ms[1] > 0) && (ms[1] != merSize))  differ = true;
-    if ((ms[2] > 0) && (ms[2] != merSize))  differ = true;
-    if ((ms[3] > 0) && (ms[3] != merSize))  differ = true;
-    if ((ms[4] > 0) && (ms[4] != merSize))  differ = true;
+  if ((ms[0] > 0) && (ms[0] != merSize))  differ = true;
+  if ((ms[1] > 0) && (ms[1] != merSize))  differ = true;
+  if ((ms[2] > 0) && (ms[2] != merSize))  differ = true;
+  if ((ms[3] > 0) && (ms[3] != merSize))  differ = true;
+  if ((ms[4] > 0) && (ms[4] != merSize))  differ = true;
   
-    if (differ) {
-      fprintf(stderr, "error:  mer size differ.\n");
-      fprintf(stderr, "        AF - "u32bitFMT"\n", ms[0]);
-      fprintf(stderr, "        TF - "u32bitFMT"\n", ms[1]);
-      fprintf(stderr, "        AC - "u32bitFMT"\n", ms[2]);
-      fprintf(stderr, "        DC - "u32bitFMT"\n", ms[3]);
-      fprintf(stderr, "        CO - "u32bitFMT"\n", ms[4]);
-      exit(1);
-    }
+  if (differ) {
+    fprintf(stderr, "error:  mer size differ.\n");
+    fprintf(stderr, "        AF - "u32bitFMT"\n", ms[0]);
+    fprintf(stderr, "        TF - "u32bitFMT"\n", ms[1]);
+    fprintf(stderr, "        AC - "u32bitFMT"\n", ms[2]);
+    fprintf(stderr, "        DC - "u32bitFMT"\n", ms[3]);
+    fprintf(stderr, "        CO - "u32bitFMT"\n", ms[4]);
+    exit(1);
+  }
 
-
+  if (dumpFlag) {
+    errno = 0;
+    dumpSCZF = fopen(dumpSCZFname, "w");
+    dumpMCZF = fopen(dumpMCZFname, "w");
+    dumpMCSF = fopen(dumpMCSFname, "w");
+    dumpMCMF = fopen(dumpMCMFname, "w");
+    if (errno)
+      fprintf(stderr, "Failed to open the dump files: %s\n", strerror(errno)), exit(1);
+  }
 
   u32bit   AFvsAC[NUMCATEGORIES][NUMCATEGORIES];
   u32bit   AFvsDC[NUMCATEGORIES][NUMCATEGORIES];
