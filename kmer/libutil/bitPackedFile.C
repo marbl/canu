@@ -24,24 +24,30 @@ bitPackedFile::bitPackedFile(char const *name, u64bit offset) {
   _file = open(name,
                O_RDWR | O_CREAT | O_LARGEFILE,
                S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-  int errno_fopen = errno;
 
 #ifdef WITH_BZIP2
+  _bzFILE = 0L;
+  _bzerr  = 0;
   _bzfile = 0L;
 #endif
-
-  _readOnly = false;
 
   _bfrmax = 1048576 / 8;
   _bfr    = new u64bit [_bfrmax];
   _pos    = u64bitZERO;
   _bit    = u64bitZERO;
 
-  _bfrDirty = false;
+  _inCore         = false;
+  _bfrDirty       = false;
+  _forceFirstLoad = false;
+  _readOnly       = false;
 
   stat_seekInside   = u64bitZERO;
   stat_seekOutside  = u64bitZERO;
   stat_dirtyFlushes = u64bitZERO;
+
+  file_offset        = 0;
+  endianess_offset   = 0;
+  endianess_flipped  = false;
 
   //  Move to the correct position in the file.
   //
@@ -291,6 +297,11 @@ bitPackedFile::seekReadOnly(u64bit bitpos) {
 void
 bitPackedFile::seekNormal(u64bit bitpos) {
 
+  if (_inCore) {
+    fprintf(stderr, "bitPackedFile::bitPackedFile()-- file is in core, but still needed to seek??\n");
+    exit(1);
+  }
+
   //  Somewhat of a gross hack to allow sequential access backwards.
   //
   //  If the new position (bitpos >> 6) is just before the old
@@ -368,6 +379,11 @@ bitPackedFile::seek(u64bit bitpos) {
     }
   }
 
+  if (_inCore) {
+    fprintf(stderr, "bitPackedFile::bitPackedFile()-- file is in core, but still needed to seek??\n");
+    exit(1);
+  }
+
   stat_seekOutside++;
 
   flushDirty();
@@ -382,3 +398,36 @@ bitPackedFile::seek(u64bit bitpos) {
   //fprintf(stderr, "SEEK OUTSIDE to _pos="u64bitFMT" _bit="u64bitFMT"\n", _pos, _bit);
 }
 
+
+
+
+void
+bitPackedFile::loadInCore(void) {
+  struct stat  sb;
+
+  //  Convert this disk-based, read/write bitPackedFile to memory-based read-only.
+
+  flushDirty();
+
+  fstat(_file, &sb);
+
+  //  The extra 1024 words is to keep seek() from attempting to grab
+  //  the next block (there isn't a next block, we've got it all!)
+  //  when we're near the end of this block.  We just make the block
+  //  a little bigger than it really is.
+
+  delete [] _bfr;
+
+  _bfrmax = sb.st_size / 8 + 1024;
+  _bfr    = new u64bit [_bfrmax];
+  _pos    = 0;
+  _bit    = 0;
+
+  //  Tada!  All we need to do now is load the block!
+
+  _forceFirstLoad = true;
+
+  seek(0);
+
+  _inCore = true;
+}
