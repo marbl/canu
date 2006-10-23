@@ -2,8 +2,9 @@
 
 #include "util++.H"
 
+mt_s  *mt = 0L;
 
-int
+void
 test(void) {
   int           e = 0;
   intervalList  I;
@@ -52,8 +53,167 @@ test(void) {
 
 
 
+void
+testIntersect(u32bit type) {
+  u32bit   numTests = 1000000;
+  u32bit  *beg     = new u32bit [numTests];
+  u32bit  *len     = new u32bit [numTests];
+  u32bit  *end     = new u32bit [numTests];
+  u32bit  *abegh   = new u32bit [numTests];
+  u32bit  *aendh   = new u32bit [numTests];
+  u32bit  *bbegh   = new u32bit [numTests];
+  u32bit  *bendh   = new u32bit [numTests];
+  u32bit   errors  = 0;
+  u32bit   passed  = 0;
+
+  intervalList  A;
+  intervalList  B;
+
+  //
+  //  Build two interval lists
+  //
+  //  type == 0 --> all pairwise
+  //  type == 1 --> A sequence is solid
+  //  type == 2 --> B sequence is solid
+  //
+
+  if (type == 1)
+    A.add(1, 1500000000);
+  if (type == 2)
+    B.add(1, 1500000000);
+
+  for (u32bit i=0; i<numTests; i++) {
+
+    //  Compute the result we want to get
+    //
+    len[i] = mtRandom32(mt) % 200;
+    if (len[i] < 100) {
+      beg[i] = end[i] = mtRandom32(mt) % 100 + 100;
+    } else {
+      beg[i] = mtRandom32(mt) % 100 + 100;
+      end[i] = beg[i] + len[i];
+    }
+
+    //  Reset if the type is 1 or 2.
+    //
+    if ((type == 1) || (type == 2)) {
+      len[i] = mtRandom32(mt) % 100 + 100;
+      beg[i] = mtRandom32(mt) % 100 + 100;
+      end[i] = beg[i] + len[i];
+    }
+
+    //  Extend it to an interval -- we can extend exactly one end, or
+    //  two opposite ends.
+    //
+    abegh[i] = 0;
+    aendh[i] = 0;
+    bbegh[i] = 0;
+    bendh[i] = 0;
+
+    if (type == 0) {
+      switch (mtRandom32(mt) % 8) {
+        case 0:
+          abegh[i] = mtRandom32(mt) % 50;
+          break;
+        case 1:
+          aendh[i] = mtRandom32(mt) % 50;
+          break;
+        case 2:
+          bbegh[i] = mtRandom32(mt) % 50;
+          break;
+        case 3:
+          bendh[i] = mtRandom32(mt) % 50;
+          break;
+        case 4:
+          abegh[i] = mtRandom32(mt) % 50;
+          aendh[i] = mtRandom32(mt) % 50;
+          break;
+        case 5:
+          bbegh[i] = mtRandom32(mt) % 50;
+          bendh[i] = mtRandom32(mt) % 50;
+          break;
+        case 6:
+          abegh[i] = mtRandom32(mt) % 50;
+          bendh[i] = mtRandom32(mt) % 50;
+          break;
+        case 7:
+          aendh[i] = mtRandom32(mt) % 50;
+          bbegh[i] = mtRandom32(mt) % 50;
+          break;
+      }
+    }
+
+    //  Add it to the lists -- if type == 1 or 2, these should then
+    //  get merged into the one big thing.
+    //
+    A.add(1000 * i + beg[i] - abegh[i], abegh[i] + end[i] - beg[i] + aendh[i]);
+    B.add(1000 * i + beg[i] - bbegh[i], bbegh[i] + end[i] - beg[i] + bendh[i]);
+  }
+
+  intervalList I;
+  I.intersect(A, B);
+
+  //
+  //  Check the result.
+  //
+
+  for (u32bit i=0, j=0; i<numTests; i++) {
+    u32bit  b = I.lo(j) - 1000 * i;
+    u32bit  e = I.hi(j) - 1000 * i;
+
+#if 0
+    switch (type) {
+      case 0:
+        break;
+      case 1:
+        b -= bbegh[i];
+        e += bbegh[i] + bendh[i];
+        break;
+      case 2:
+        b -= abegh[i];
+        e += abegh[i] + aendh[i];
+        break;
+    }
+#endif
+
+    if (len[i] < 100) {
+      //
+      //  Expect no result here.  We ca only test that the stuff that
+      //  should be intersecting is correct, and if all that is, then
+      //  I guess the non-intersection stuff is correct too.
+      //
+#if 0
+    } else if ((type == 1) && (bbegh[i] + bendh[i] == 0)) {
+    } else if ((type == 2) && (abegh[i] + aendh[i] == 0)) {
+#endif
+    } else {
+      if ((b != beg[i]) || (e != end[i])) {
+        fprintf(stderr, "FAILED[%4d]: "u32bitFMT"-"u32bitFMT" X "u32bitFMT"-"u32bitFMT" -> "u32bitFMT","u32bitFMT" ("u32bitFMT","u32bitFMT") (should have been "u32bitFMT","u32bitFMT")\n",
+                i,
+                beg[i] - abegh[i], beg[i] - abegh[i] + abegh[i] + end[i] - beg[i] + aendh[i],
+                beg[i] - bbegh[i], beg[i] - bbegh[i] + bbegh[i] + end[i] - beg[i] + bendh[i],
+                b, e, (u32bit)I.lo(j), (u32bit)I.hi(j),
+                beg[i], end[i]);
+        errors++;
+      } else {
+        passed++;
+      }
+      j++;
+    }
+  }
+
+  fprintf(stderr, "intersection test had "u32bitFMT" successes and "u32bitFMT" errors.\n", passed, errors);
+}
+
+
 int
 main(int argc, char **argv) {
+
+  mt = mtInit(time(NULL));
+
   test();
+  testIntersect(0);
+  testIntersect(1);
+  testIntersect(2);
   exit(0);
 }
