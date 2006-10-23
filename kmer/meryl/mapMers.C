@@ -2,10 +2,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "bio++.H"
 #include "libmeryl.H"
+#include "existDB.H"
 
 int
 main(int argc, char **argv) {
+  u32bit    merSize    = 16;
   char     *merylFile  = 0L;
   char     *fastaFile  = 0L;
   bool      beVerbose  = false;
@@ -13,8 +16,10 @@ main(int argc, char **argv) {
   int arg=1;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-m") == 0) {
+      merSize = strtou32bit(argv[++arg], 0L);
+    } else if (strcmp(argv[arg], "-mers") == 0) {
       merylFile = argv[++arg];
-    } else if (strcmp(argv[arg], "-f") == 0) {
+    } else if (strcmp(argv[arg], "-seq") == 0) {
       fastaFile = argv[++arg];
     } else if (strcmp(argv[arg], "-v") == 0) {
       beVerbose = true;
@@ -25,29 +30,47 @@ main(int argc, char **argv) {
   }
 
   if ((merylFile == 0L) || (fastaFile == 0L)) {
-    fprintf(stderr, "usage: %s -m meryl -f fasta > output\n", argv[0]);
+    fprintf(stderr, "usage: %s -m mersize -mers mers -seq fasta > output\n", argv[0]);
     exit(1);
   }
 
-  merylStreamReader    *M = new merylStreamReader(merylFile);
-  existDB              *E = new existDB(merylFile, M->merSize(), 16);
+  char                  merstring[1024];
 
+  existDB              *E = new existDB(merylFile, merSize, 16);
   FastAWrapper         *F = new FastAWrapper(fastaFile);
   FastASequenceInCore  *S = F->getSequence();
 
   while (S) {
-    merStream  *MS = new merStream(M->merSize(), F->sequence(), F->sequenceLength());
+    merStream  *MS = new merStream(merSize, S->sequence(), S->sequenceLength());
+
+    u64bit    beg = ~u64bitZERO;
+    u64bit    end = ~u64bitZERO;
+    u64bit    pos = ~u64bitZERO;
 
     while (MS->nextMer()) {
-      if (E->exists(MS->theFMer())) {
-        fprintf(stderr, "%s\tc\t"u32bitFMT"\n", F->defline, MS->thePositionInSequence());
-      }
-      if (E->exists(MS->theFMer())) {
-        fprintf(stderr, "%s\tf\t"u32bitFMT"\n", F->defline, MS->thePositionInSequence());
+
+      //  Orientation tells us nothing, since the mers are probably canonical
+
+      if (E->exists(MS->theFMer()) || E->exists(MS->theRMer())) {
+        pos = MS->thePositionInSequence();
+
+        if (beg == ~u64bitZERO)
+          beg = end = pos;
+
+        if (pos <= end + merSize) {
+          end = pos;
+        } else {
+          fprintf(stdout, "%s\t"u64bitFMT"\t"u64bitFMT"\t"u64bitFMT"\n", S->header(), beg, end+22, end+22 - beg);
+          beg = end = pos;
+        }
       }
     }
 
+    if (beg != ~u64bitZERO)
+      fprintf(stdout, "%s\t"u64bitFMT"\t"u64bitFMT"\t"u64bitFMT"\n", S->header(), beg, end+22, end+22 - beg);
+
     delete MS;
+    delete S;
 
     S = F->getSequence();
   }
@@ -55,5 +78,4 @@ main(int argc, char **argv) {
   delete S;
   delete F;
   delete E;
-  delete M;
 }
