@@ -10,7 +10,8 @@ src    := $/util++.H \
           $/bigQueue.C \
           $/sweatShop.H \
           $/sweatShop.C \
-          $/time.C \
+          $/time.c \
+          $/speedCounter.C \
           $/file.c \
           $/intervalList.C \
           $/md5.c \
