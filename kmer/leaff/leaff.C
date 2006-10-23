@@ -842,10 +842,10 @@ computeGCcontent(char *name) {
     fprintf(stdout, ">%s\n", S->header());
 
     int gc[256] = {0};
-    gc['c'] = 1;
-    gc['C'] = 1;
-    gc['g'] = 1;
-    gc['G'] = 1;
+    gc[(int)'c'] = 1;
+    gc[(int)'C'] = 1;
+    gc[(int)'g'] = 1;
+    gc[(int)'G'] = 1;
 
     //  Replace the sequence with "g or c".  We can't do this inline,
     //  since output reports the sequence too.  The extra 1000 at the
@@ -856,7 +856,7 @@ computeGCcontent(char *name) {
     for (u32bit i=0; i<genomeLength+1000; i++)
       g[i] = 0;
     for (u32bit i=0; i<genomeLength; i++)
-      g[i] = gc[s[i]];
+      g[i] = gc[(int)s[i]];
 
     //  This stolen from depthOfPolishes.C
 
@@ -1174,9 +1174,9 @@ processArray(int argc, char **argv) {
       int     al = (int)strlen(argv[arg]);
       u64bit  ps = (u32bit)strtou32bit(argv[arg], 0L);
 
-      char a3 = (al<3) ? '0' : (char)toLower[argv[arg][al-3]];
-      char a2 = (al<2) ? '0' : (char)toLower[argv[arg][al-2]];
-      char a1 = (al<1) ? '0' : (char)toLower[argv[arg][al-1]];
+      char a3 = (al<3) ? '0' : (char)toLower[(int)argv[arg][al-3]];
+      char a2 = (al<2) ? '0' : (char)toLower[(int)argv[arg][al-2]];
+      char a1 = (al<1) ? '0' : (char)toLower[(int)argv[arg][al-1]];
 
       if (!isdigit(a1) || !isdigit(a2) || !isdigit(a3)) {
         if        ((a3 == 'g') && (a2 == 'b') && (a1 == 'p')) {
