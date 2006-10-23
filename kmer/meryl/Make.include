@@ -22,17 +22,17 @@ else
  $(warning Use WITH_THREADS to build $/meryl with multithreading support.)
 endif
 
-$/.CXX_SRCS   := ${src_C} $/merle.C $/asmMerQC.C
-$/.CXX_EXES   := $/meryl  $/merle   $/asmMerQC
+$/.CXX_SRCS   := ${src_C} $/merle.C $/asmMerQC.C $/mapMers.C
+$/.CXX_EXES   := $/meryl  $/merle   $/asmMerQC   $/mapMers
 $/.CLEAN      := $/*.o
 $/.REAL-CLEAN := $/buildinfo-*
 
 $/merle         : $/merle.o      $/buildinfo-merle.o ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 $/meryl         : ${src_C:.C=.o} $/buildinfo-meryl.o ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 $/asmMerQC      : $/asmMerQC.o   ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
-$/mapMers       : $/mapMers.o    ${LIBMERYL/}libmeryl.a ${LIBKMER/}libkmer.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+$/mapMers       : $/mapMers.o    ${LIBKMER/}libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 
-$(eval $/%.d $/%.o:  CXXFLAGS+=-I${LIBMERYL/} -I${LIBBIO/} -I${LIBUTL/})
+$(eval $/%.d $/%.o:  CXXFLAGS+=-I${LIBMERYL/} -I${LIBKMER/} -I${LIBBIO/} -I${LIBUTL/})
 
 $/%.d:  ${LIBBIO/}buildinfo-libbio.h ${LIBBIO/}alphabet.h
 $/meryl.C.d: $/buildinfo-meryl.h ${LIBBIO/}buildinfo-libbio.h ${LIBUTL/}buildinfo-libutil.h
