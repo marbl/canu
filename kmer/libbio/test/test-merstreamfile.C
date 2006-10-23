@@ -12,6 +12,11 @@
 #define BUILD_SIZE   14
 #define TEST_SIZE    109
 
+#if KMER_WORDS * 16 < TEST_SIZE
+#error KMER_WORDS too small for TEST_SIZE
+#endif
+
+
 
 int
 test(u64bit compared, merStream *M, merStreamFileReader *R) {
@@ -43,12 +48,20 @@ test(u64bit compared, merStream *M, merStreamFileReader *R) {
 
 
 int
-streamingTest(char *msfile) {
+streamingTest(char *msfile, bool inCore) {
+
+  fprintf(stderr, "streamingTest-- %s %s\n", msfile, (inCore) ? "inCore" : "disk-based");
+
   int                  errors = 0;
   u64bit               compared = 0;
   merStreamFileReader *R = new merStreamFileReader("junk", TEST_SIZE);
   FastAstream         *F = new FastAstream(msfile);
   merStream           *M = new merStream(TEST_SIZE, F);
+
+  if (inCore)
+    R->loadInCore();
+
+  double startTime = getTime();
 
   fprintf(stderr, "Testing streaming access.\n");
   while (M->nextMer() && R->nextMer()) {
@@ -56,7 +69,7 @@ streamingTest(char *msfile) {
     errors += test(compared, M, R);
   }
 
-  fprintf(stderr, "Compared "u64bitFMT" mers.\n", compared);
+  fprintf(stderr, "Compared "u64bitFMT" mers. (%f seconds)\n", compared, getTime() - startTime);
 
   if (M->nextMer()) {
     fprintf(stderr, "ERROR: Extra mers in the merStream!\n");
@@ -77,16 +90,24 @@ streamingTest(char *msfile) {
 
 
 
-
 int
-randomAccessTest(char *msfile) {
+randomAccessTest(char *msfile, bool inCore) {
+
+  fprintf(stderr, "randomAccessTest -- %s %s\n", msfile, (inCore) ? "inCore" : "disk-based");
+
   int                  errors = 0;
   u64bit               merNum   = 0;
   merStreamFileReader *R = new merStreamFileReader("junk", TEST_SIZE);
   FastAstream         *F = new FastAstream(msfile);
   merStream           *M = new merStream(TEST_SIZE, F);
 
+  if (inCore)
+    R->loadInCore();
+
   u64bit numMers = R->numberOfMers();
+
+  double startTime = 0.0;
+  double seekTime  = 0.0;
 
   //  Load the first mer from the stream.
   M->nextMer();
@@ -94,14 +115,11 @@ randomAccessTest(char *msfile) {
   //  How many seeks?  At most 100, but we'll decrease if the seeks
   //  are less than 1000 bases.
   //
-  u64bit numSeeks = 1000;
+  u64bit numSeeks = 100000;
   while (numMers / numSeeks < 1000)
     numSeeks = (u64bit)floor(numSeeks * 0.8);
 
-  fprintf(stderr, "Testing random access on "u64bitFMT" seeks of size "u64bitFMT".\n", numSeeks, numMers / numSeeks);
   for (u64bit s=numSeeks; --s; ) {
-    fprintf(stderr, " "u64bitFMT" seeks remain\r", s);
-    fflush(stderr);
 
     //  Skip 'skipSize' mers in M
     //
@@ -110,11 +128,15 @@ randomAccessTest(char *msfile) {
 
     //  Seek to the proper spot in R
     //
+    startTime = getTime();
     R->setIterationStart(merNum);
     R->nextMer();
+    seekTime += getTime() - startTime;
 
     errors += test(merNum, M, R);
   }
+
+  fprintf(stderr, "(%f seconds)\n", seekTime);
 
   delete M;
   delete F;
@@ -122,9 +144,6 @@ randomAccessTest(char *msfile) {
 
   return(errors);
 }
-
-
-
 
 
 
@@ -146,8 +165,10 @@ main(int argc, char **argv) {
   fprintf(stderr, "Found "u64bitFMT" mers in %s at mersize %d\n", numMers, argv[1], BUILD_SIZE);
 
   u32bit errors = 0;
-  errors += streamingTest(argv[1]);
-  errors += randomAccessTest(argv[1]);
+  errors += streamingTest(argv[1], false);
+  errors += streamingTest(argv[1], true);
+  errors += randomAccessTest(argv[1], false);
+  errors += randomAccessTest(argv[1], true);
 
   if (errors > 0) {
     fprintf(stderr, "\nThere were "u32bitFMT" errors.\n", errors);
