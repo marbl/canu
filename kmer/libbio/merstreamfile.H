@@ -53,6 +53,8 @@ public:
   merStreamFileReader(const char *filename, u32bit desiredMerSize=u32bitZERO);
   ~merStreamFileReader();
 
+  void                   loadInCore(void) { _streamFile->loadInCore(); };
+
   u32bit                 merSize(void)      { return(_merSizeDesired); };
   u64bit                 numberOfMers(void) { return(_numMers); };
 
