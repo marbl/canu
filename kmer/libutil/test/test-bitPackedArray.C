@@ -5,7 +5,7 @@
 #include "util++.H"
 
 u32bit wordSize = 41;
-u32bit testSize = 96 * 1024 * 1024;
+u32bit testSize = 48 * 1024 * 1024;
 u32bit arrySize =  8 * 1024 * 1024;
 
 int
