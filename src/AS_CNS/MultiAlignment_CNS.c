@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.108 2006-10-23 15:32:07 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.109 2006-10-23 20:09:27 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -128,6 +128,7 @@ int NumGapsInContigs;
 int NumAAMismatches; // mismatches b/w consensi of two different alleles
 int NumVARRecords;
 int NumVARStringsWithFlankingGaps;
+int contig_id;
 
 //*********************************************************************************
 //  Tables to facilitate SNP Basecalling
@@ -1822,7 +1823,12 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
 
             // Filter out "duplicated" reads with the same iid
             if (!IsNewRead(iid, column_iid_list, nr))
+            {
+                fprintf(stderr, "Read iid= %d occurs more than once ", iid);
+                fprintf(stderr, "in a MSA for contig #%d\n",
+                    contig_id);    
                 continue;
+            }
 
             column_iid_list[nr] = iid;
             nr++;
@@ -8029,7 +8035,8 @@ int MultiAlignContig(IntConConMesg *contig,
        hash_rc = InsertInPHashTable_AS(&thash,IDENT_NAMESPACE, (uint64) contig->pieces[i].ident, &value, FALSE,FALSE);
      }
      //if ( cnslog != NULL ) {
-     fprintf(cnslog,"Contigging ICM %d:\n",contig->iaccession);
+     // fprintf(cnslog,"Contigging ICM %d:\n",contig->iaccession);
+     contig_id = contig->iaccession;
      //}
      for (i=0;i<num_unitigs;i++) {
        complement = (upositions[i].position.bgn<upositions[i].position.end)?0:1;
