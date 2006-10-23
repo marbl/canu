@@ -43,10 +43,10 @@ public:
 
     if ((filename == 0L) ||
         ((filename[0] == '-') && (filename[1] == 0))) {
-      fprintf(stderr, "FastAstream::FastAstream()--  Opening stdin\n");
+      //fprintf(stderr, "FastAstream::FastAstream()--  Opening stdin\n");
       _rb = new readBuffer(fileno(stdin), "stdin");
     } else {
-      fprintf(stderr, "FastAstream::FastAstream()--  Opening '%s'\n", filename);
+      //fprintf(stderr, "FastAstream::FastAstream()--  Opening '%s'\n", filename);
       _rb = new readBuffer(filename);
     }
   };

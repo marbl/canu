@@ -27,7 +27,6 @@ public:
 
   u64bit            hash(kMer const &mer) {
     return(mer.startOfMer(numBuckets_log2));
-    //return((mer >> merDataWidth) & bucketPointerMask);
   };
 
   bool              writeConfig(void);
@@ -56,7 +55,6 @@ public:
   u32bit            numBuckets_log2;
   u32bit            merDataWidth;
   u64bit            merDataMask;
-  //u64bit            bucketPointerMask;
   u32bit            bucketPointerWidth;
 
   u32bit            numThreads;
@@ -87,10 +85,6 @@ public:
   char            **mergeFiles;
 
   char              personality;
-#ifdef __APPLE__
-  char              pad1[3];
-#endif
-
 };
 
 
@@ -110,8 +104,6 @@ void multipleOperations(merylArgs *args);
 void binaryOperations(merylArgs *args);
 void unaryOperations(merylArgs *args);
 
-//  Debugging stuff
-//
 void dump(merylArgs *args);
 void dumpThreshold(merylArgs *args);
 void countUnique(merylArgs *args);
