@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.107 2006-10-21 22:53:58 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.108 2006-10-23 15:32:07 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -2410,7 +2410,7 @@ ClusterReads(Read *reads, int nr, Allele *alleles, int32 *na, int32 *nca,
 }
 // Reverse sort by weight
 static void
-SortAllelesByWeight(Allele *alleles, int32 num_alleles)
+SortAllelesByWeight(Allele *alleles, int32 num_alleles, Read *reads)
 {
     int i, j, best_id;
     Allele temp;
@@ -2434,11 +2434,20 @@ SortAllelesByWeight(Allele *alleles, int32 num_alleles)
             alleles[best_id] = temp;
         }
     }
+    // Update allele_id of reads
+    for (i=0; i<num_alleles; i++)
+    {
+        for (j=0; j<alleles[i].num_reads; j++)
+        {
+           int read_id = alleles[i].read_ids[j];
+           reads[read_id].allele_id = i;
+        }
+    } 
 }
 
 // Reverse sort confirmed alleles by ungapped length
 static void
-SortConfirmedAllelesByLength(Allele *alleles, int32 num_alleles)
+SortConfirmedAllelesByLength(Allele *alleles, int32 num_alleles, Read *reads)
 {
     int i, j, best_id;
     Allele temp;
@@ -2460,6 +2469,15 @@ SortConfirmedAllelesByLength(Allele *alleles, int32 num_alleles)
             temp       = alleles[i];
             alleles[i] = alleles[best_id];
             alleles[best_id] = temp;
+        }
+    }
+    // Update allele_id of reads
+    for (i=0; i<num_alleles; i++)
+    {
+        for (j=0; j<alleles[i].num_reads; j++)
+        {
+           int read_id = alleles[i].read_ids[j];
+           reads[read_id].allele_id = i;
         }
     }
 }
@@ -2852,7 +2870,12 @@ PopulateVarRecord(int32 *cids, int32 *nvars, int32 *min_len_vlist,
                 vreg.nr, vreg.dist_matrix);
             distant_allele_id = vreg.reads[distant_read_id].allele_id;
         }
-       
+    
+        fprintf(stderr, "VAR beg= %d end= %d\n", vreg.beg, vreg.end);
+        OutputReads(stderr, vreg.reads, vreg.nr, vreg.end-vreg.beg+1);
+                            OutputDistMatrix(stderr, &vreg);
+                            OutputAlleles(stderr, &vreg);
+   
         for (m=0; m<vreg.end-vreg.beg+1; m++)           
         {
             for (al=num_reported_alleles-1; al >=0; al--)
@@ -3241,7 +3264,7 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
                 fprintf(stderr, "%d ", vreg.alleles[j].weight);
             fprintf(stderr, "\n");
 #endif
-            SortAllelesByWeight(vreg.alleles, vreg.na);
+            SortAllelesByWeight(vreg.alleles, vreg.na, vreg.reads);
 #if 0            
             OutputAlleles(stderr, &vreg);
 #endif
@@ -6536,7 +6559,7 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
     AllocateMemoryForAlleles(&vreg.alleles, vreg.nr, &vreg.na);
     ClusterReads(vreg.reads, vreg.nr, vreg.alleles, &vreg.na,
         &vreg.nca, vreg.dist_matrix);
-    SortConfirmedAllelesByLength(vreg.alleles, vreg.nca);
+    SortConfirmedAllelesByLength(vreg.alleles, vreg.nca, vreg.reads);
 #if 0
         fprintf(stderr, "vreg.alleles= ");
         for (i=0; i<vreg.nr; i++)
