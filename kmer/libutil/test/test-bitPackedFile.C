@@ -4,11 +4,16 @@
 
 #include "util++.H"
 
-u32bit   testSize = 5000000;
+//  This will perform various tests on the bitPackedFile class,
+//  returning 0 if OK and 1 if error.
+//
+//  testSize -- the number of words to use in a write then read test
+//  testIter -- the number of random access tests to do
+
+u32bit   testSize = 50000000;
 u32bit   testIter = 200;
 
 mt_s  *mtctx;
-
 
 //  Generate a list of random 64-bit numbers, remember the number and the size
 //
@@ -27,7 +32,6 @@ generateRandom(u32bit *siz, u64bit *val) {
     val[i] &= u64bitMASK(siz[i]);
   }
 }
-
 
 
 void
@@ -85,35 +89,66 @@ testStreaming(void) {
 
 
 void
-testRandomReading(void) {
+testRandomReading(bool inCore) {
   bitPackedFile *F = 0L;
   u32bit         i;
-  u32bit        *siz = new u32bit [testSize];
+  u32bit        *siz = new u32bit [testSize + 1];
   u64bit        *val = new u64bit [testSize];
   u32bit         errs = 0;
 
+  fprintf(stderr, "BUILDING random test set.\n");
   generateRandom(siz, val);
 
   //  Create a new bitpacked file, writing just numbers as binary encoded.
   //
+  fprintf(stderr, "SAVING random test set.\n");
   F = new bitPackedFile("bittest.junk");
   for (i=0; i<testSize; i++)
     F->putBits(val[i], siz[i]);
   delete F;
 
+  //  Covert the siz[] into offsets
+  //
+  u32bit t = siz[0];
+  siz[0] = 0;
+  for (u32bit i=1; i<testSize; i++) {
+    u32bit x = siz[i];
+    siz[i] = t;
+    t += x;
+  }
+  siz[testSize] = t;
+
+  //  Attempt to flush memory
+  //
+  {
+    u32bit  ll = 400 * 1024 * 1024 / 8;
+    u64bit *xx = new u64bit [ll];
+    xx[0] = 1;
+    xx[1] = 1;
+    for (u32bit i=2; i<ll; i++)
+      xx[i] = xx[i-1] + xx[i-2];
+    fprintf(stdout, "FLUSHED: "u32bitFMT"\n", xx[ll-1]);
+    delete [] xx;
+  }
 
   //  Do several seek tests.  Seek to a random element, and read it.
   //
   F = new bitPackedFile("bittest.junk");
+
+  if (inCore) {
+    F->loadInCore();
+    fprintf(stderr, "Begin INCORE seek test!\n");
+  } else {
+    fprintf(stderr, "Begin DISKBASED seek test!\n");
+  }
+
+  double  startTime = getTime();
+
   for (i=0; i<testIter; i++) {
     u32bit idx = (u32bit)lrand48() % testSize;
-    u64bit pos = 0;
 
-    for (u32bit j=0; j<idx; j++)
-      pos += siz[j];
-
-    F->seek(pos);
-    u64bit r = F->getBits(siz[idx]);
+    F->seek(siz[idx]);
+    u64bit r = F->getBits(siz[idx+1] - siz[idx]);
 
     if (r != val[idx]) {
       fprintf(stderr, u32bitFMT"] ERROR in seek()/getBits()   -- retrieved "u64bitHEX" != expected "u64bitHEX" ("u32bitFMT" bits).\n", i, r, val[i], siz[i]);
@@ -122,15 +157,17 @@ testRandomReading(void) {
   }
   delete F;
 
-  delete [] val;
-  delete [] siz;
-
   if (errs > 0) {
-    fprintf(stderr, "There are "u32bitFMT" errors in the random access.\n", errs);
+    fprintf(stderr, "There are "u32bitFMT" errors in the %s random access.\n", errs, (inCore) ? "inCore" : "disk");
     exit(1);
   } else {
-    fprintf(stderr, "The seek test PASSED.\n");
+    fprintf(stderr, "The %s seek test PASSED (%f seconds).\n",
+            (inCore) ? "inCore" : "disk",
+            getTime() - startTime);
   }
+
+  delete [] val;
+  delete [] siz;
 
   unlink("bittest.junk");
 }
@@ -220,26 +257,15 @@ testReWrite(void) {
 int
 main(int argc, char **argv) {
 
-  if (argc != 3) {
-    fprintf(stderr, "usage: %s testSize testIter\n", argv[0]);
-    fprintf(stderr, "  This will perform various tests on the bitPackedFile class,\n");
-    fprintf(stderr, "  returning 0 if OK and 1 if error.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  testSize -- the number of words to use in a write then read test\n");
-    fprintf(stderr, "  testIter -- the number of random access tests to do\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "I'll assume reasonable values and continue\n");
-    fprintf(stderr, "  testSize = "u32bitFMT"\n", testSize);
-    fprintf(stderr, "  testIter = "u32bitFMT"\n", testIter);
-  } else {
-    testSize = strtou32bit(argv[1], 0L);
-    testIter = strtou32bit(argv[2], 0L);
-  }
-
   mtctx = mtInit(time(NULL));
 
-  testStreaming();
-  testRandomReading();
-  testReWrite();
-}
+  testSize = 30000000;
+  testIter = 2000;
+  //testStreaming();
+  //testReWrite();
 
+  testSize = 40000000;
+  testIter = 10000;
+  testRandomReading(false);
+  testRandomReading(true);
+}

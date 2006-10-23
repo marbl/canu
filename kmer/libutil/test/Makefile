@@ -39,7 +39,7 @@ test-bitPackedArray: test-bitPackedArray.C ../libutil.a ../util.h ../util++.H
 test-bitPackedFile: test-bitPackedFile.C ../libutil.a ../util.h ../util++.H
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-bitPackedFile.o test-bitPackedFile.C $(INCLUDE)
 	$(CXX) $(CXXLDFLAGS) -o test-bitPackedFile test-bitPackedFile.o $(LIBS) -lbz2
-	./test-bitPackedFile 500000 200
+	./test-bitPackedFile
 
 test-bitPacking: test-bitPacking.C ../libutil.a ../util.h ../util++.H
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-bitPacking.o test-bitPacking.C $(INCLUDE)
