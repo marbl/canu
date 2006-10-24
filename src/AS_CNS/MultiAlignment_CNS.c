@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.109 2006-10-23 20:09:27 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.110 2006-10-24 21:35:06 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -1821,15 +1821,6 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
             iid   = GetFragment(fragmentStore,bead->frag_index)->iid;
             k     = Iid2ReadId(iid, vreg->iids, vreg->nr);
 
-            // Filter out "duplicated" reads with the same iid
-            if (!IsNewRead(iid, column_iid_list, nr))
-            {
-                fprintf(stderr, "Read iid= %d occurs more than once ", iid);
-                fprintf(stderr, "in a MSA for contig #%d\n",
-                    contig_id);    
-                continue;
-            }
-
             column_iid_list[nr] = iid;
             nr++;
             if (nr == max_nr)
@@ -1844,6 +1835,15 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
                 (type == AS_EXTR)   ||
                 (type == AS_TRNR))
             {
+                // Filter out "duplicated" reads with the same iid
+                if (!IsNewRead(iid, column_iid_list, nr))
+                {
+                    fprintf(stderr, "Read iid= %d occurs more than once ", iid);
+                    fprintf(stderr, "in MSA for contig #%d at pos= %d\n",
+                        contig_id, cid);
+                    continue;
+                }
+
                 // Will be used when detecting alleles
                 if (target_allele < 0 && get_scores)
                 {
@@ -2268,26 +2268,25 @@ GetReadIidsAndNumReads(int cid, VarRegion  *vreg)
         type = GetFragment(fragmentStore,bead->frag_index)->type;
         iid  = GetFragment(fragmentStore,bead->frag_index)->iid;
 
-        // Filter out "duplicated" reads with the same iid
-        if (!IsNewRead(iid, column_iid_list, nr))
-            continue;
-
-        column_iid_list[nr] = iid;
-        nr++;
-        if (nr == max_nr)
-        {
-            max_nr += 100;
-            column_iid_list = (int32 *)safe_realloc(column_iid_list,
-                    max_nr*sizeof(int32));
-        }
-
         if ((type == AS_READ) ||
             (type == AS_B_READ) ||
             (type == AS_EXTR) ||
             (type == AS_TRNR))
         {
-            if (IsNewRead(iid, vreg->iids, vreg->nr)) {
+            // Filter out "duplicated" reads with the same iid
+            if (!IsNewRead(iid, column_iid_list, nr))
+                continue;
 
+            column_iid_list[nr] = iid;
+            nr++;
+            if (nr == max_nr)
+            {
+                max_nr += 100;
+                column_iid_list = (int32 *)safe_realloc(column_iid_list,
+                        max_nr*sizeof(int32));
+            }
+
+            if (IsNewRead(iid, vreg->iids, vreg->nr)) {
                 if (vreg->nr == vreg->max_nr) {
                     int l;
                     vreg->max_nr += MIN_ALLOCATED_DEPTH;
@@ -2585,24 +2584,24 @@ GetReadsForVARRecord(Read *reads, int32 *iids, int32 nr,
             type = GetFragment(fragmentStore,bead->frag_index)->type;
             iid  = GetFragment(fragmentStore,bead->frag_index)->iid;
 
-            // Filter out "duplicated" reads with the same iid
-            if (!IsNewRead(iid, column_iid_list, nr))
-                continue;
-
-            column_iid_list[nr] = iid;
-            nr++;
-            if (nr == max_nr)
-            {
-                max_nr += 100;
-                column_iid_list = (int32 *)safe_realloc(column_iid_list,
-                        max_nr*sizeof(int32));
-            }
-
             if ((type == AS_READ)   ||
                 (type == AS_B_READ) ||
                 (type == AS_EXTR)   ||
                 (type == AS_TRNR))
             {
+                // Filter out "duplicated" reads with the same iid
+                if (!IsNewRead(iid, column_iid_list, nr))
+                    continue;
+
+                column_iid_list[nr] = iid;
+                nr++;
+                if (nr == max_nr)
+                {
+                    max_nr += 100;
+                    column_iid_list = (int32 *)safe_realloc(column_iid_list,
+                            max_nr*sizeof(int32));
+                }
+
                 base = *Getchar(sequenceStore,bead->soffset);
                 if (base != '-')
                 {
