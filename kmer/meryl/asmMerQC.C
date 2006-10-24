@@ -19,10 +19,11 @@
 //  The output files are global for convenience.  Otherwise, we'd be passing
 //  them to compare() for every single mer.
 //
-FILE  *dumpSCZF = NULL;
-FILE  *dumpMCZF = NULL;
-FILE  *dumpMCSF = NULL;
-FILE  *dumpMCMF = NULL;
+bool   dumpFlag = false;
+FILE  *dumpSCZF = 0L;
+FILE  *dumpMCZF = 0L;
+FILE  *dumpMCSF = 0L;
+FILE  *dumpMCMF = 0L;
 char   merstring[1024];
 
 u32bit
@@ -106,11 +107,12 @@ compare(merylStreamReader *F,
       R[Ftype][Ctype]++;
 
       //  Save the mer if it's in contigs, but not fragments.
-      if (Ftype == 0)
-        if (Ctype == 1)
-          fprintf(dumpSCZF, ">"u32bitFMT"\n%s\n", Ccnt, Cmer.merToString(merstring));
-        else
-          fprintf(dumpMCZF, ">"u32bitFMT"\n%s\n", Ccnt, Cmer.merToString(merstring));
+      if (dumpFlag)
+        if (Ftype == 0)
+          if (Ctype == 1)
+            fprintf(dumpSCZF, ">"u32bitFMT"\n%s\n", Ccnt, Cmer.merToString(merstring));
+          else
+            fprintf(dumpMCZF, ">"u32bitFMT"\n%s\n", Ccnt, Cmer.merToString(merstring));
     }
     return;
   }
@@ -125,10 +127,11 @@ compare(merylStreamReader *F,
       R[0][Ctype]++;
 
       //  Again, save the mer since it's in contigs, but not fragments.
-      if (Ctype == 1)
-        fprintf(dumpSCZF, ">"u32bitFMT"\n%s\n", Ccnt, Cmer.merToString(merstring));
-      else
-        fprintf(dumpMCZF, ">"u32bitFMT"\n%s\n", Ccnt, Cmer.merToString(merstring));
+      if (dumpFlag)
+        if (Ctype == 1)
+          fprintf(dumpSCZF, ">"u32bitFMT"\n%s\n", Ccnt, Cmer.merToString(merstring));
+        else
+          fprintf(dumpMCZF, ">"u32bitFMT"\n%s\n", Ccnt, Cmer.merToString(merstring));
     }
 
     return;
@@ -142,16 +145,16 @@ compare(merylStreamReader *F,
   R[Ftype][Ctype]++;
 
   //  Save the mer if it's in contigs "more" than if in fragments.
-  if (Ftype < Ctype)
-    if (Ctype == 2)
-      fprintf(dumpMCSF, ">"u32bitFMT"\n%s\n", Ccnt, Cmer.merToString(merstring));
-    else
-      fprintf(dumpMCMF, ">"u32bitFMT"\n%s\n", Ccnt, Cmer.merToString(merstring));
+  if (dumpFlag) {
+    if (Ftype < Ctype)
+      if (Ctype == 2)
+        fprintf(dumpMCSF, ">"u32bitFMT"\n%s\n", Ccnt, Cmer.merToString(merstring));
+      else
+        fprintf(dumpMCMF, ">"u32bitFMT"\n%s\n", Ccnt, Cmer.merToString(merstring));
 
-
-  if ((Ftype == 0) && (Ctype == 1))
-    fprintf(dumpSCZF, ">"u32bitFMT"\n%s\n", Ccnt, Cmer.merToString(merstring));
-
+    if ((Ftype == 0) && (Ctype == 1))
+      fprintf(dumpSCZF, ">"u32bitFMT"\n%s\n", Ccnt, Cmer.merToString(merstring));
+  }
 }
 
 
@@ -193,7 +196,6 @@ main(int argc, char **argv) {
   u32bit              AFmode = 0;
   u32bit              TFmode = 0;
 
-  bool                dumpFlag = false;
   char                dumpSCZFname[1024] = {0};  //  single contig, zero frags
   char                dumpMCZFname[1024] = {0};  //  low contig, zero frags
   char                dumpMCSFname[1024] = {0};  //  medium contig, low frags
