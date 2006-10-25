@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.110 2006-10-24 21:35:06 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.111 2006-10-25 17:45:13 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -1821,15 +1821,6 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
             iid   = GetFragment(fragmentStore,bead->frag_index)->iid;
             k     = Iid2ReadId(iid, vreg->iids, vreg->nr);
 
-            column_iid_list[nr] = iid;
-            nr++;
-            if (nr == max_nr)
-            {
-                max_nr += 100;
-                column_iid_list = (int32 *)safe_realloc(column_iid_list,
-                        max_nr*sizeof(int32));
-            }
-
             if ((type == AS_READ)   ||
                 (type == AS_B_READ) ||
                 (type == AS_EXTR)   ||
@@ -1842,6 +1833,15 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
                     fprintf(stderr, "in MSA for contig #%d at pos= %d\n",
                         contig_id, cid);
                     continue;
+                }
+
+                column_iid_list[nr] = iid;
+                nr++;
+                if (nr == max_nr)
+                {
+                    max_nr += 100;
+                    column_iid_list = (int32 *)safe_realloc(column_iid_list,
+                            max_nr*sizeof(int32));
                 }
 
                 // Will be used when detecting alleles
