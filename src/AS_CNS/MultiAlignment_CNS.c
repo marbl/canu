@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.111 2006-10-25 17:45:13 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.112 2006-10-26 00:32:43 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -2554,7 +2554,7 @@ UpdateScores(VarRegion vreg, char *cbase, int nca)
 
 
 static void 
-GetReadsForVARRecord(Read *reads, int32 *iids, int32 nr,
+GetReadsForVARRecord(Read *reads, int32 *iids, int32 nvr,
     int beg, int end, int32 *cids)
 {
     int k;
@@ -2631,9 +2631,9 @@ GetReadsForVARRecord(Read *reads, int32 *iids, int32 nr,
                     }
                 }
                 iid  =  GetFragment(fragmentStore,bead->frag_index)->iid;
-                i    =  Iid2ReadId(iid, iids, nr);
+                i    =  Iid2ReadId(iid, iids, nvr);
     
-                if (i < 0 || i>=nr) {
+                if (i < 0 || i>=nvr) {
                     continue;
                 }
                 reads[i].bases[k-beg] = base;
@@ -2645,7 +2645,7 @@ GetReadsForVARRecord(Read *reads, int32 *iids, int32 nr,
 
     // Reset qvs of internal gaps to min(qv_first_gap, qv_last_gap); 
     // Compute ave_qvs
-    for (k=0; k<nr; k++)
+    for (k=0; k<nvr; k++)
     {
         int i, j, m = end-beg+1;
         reads[k].uglen = 0;
@@ -2693,7 +2693,7 @@ GetReadsForVARRecord(Read *reads, int32 *iids, int32 nr,
 
 #if 0
     fprintf(stderr, "In GetReads: ave_qvs= ");
-    for (k=0; k<nr; k++) 
+    for (k=0; k<nvr; k++) 
         fprintf(stderr, "%3.1f ", reads[k].ave_qv);
     fprintf(stderr, "\n");
 #endif
@@ -2865,21 +2865,16 @@ PopulateVarRecord(int32 *cids, int32 *nvars, int32 *min_len_vlist,
         int distant_read_id = -42, distant_allele_id = -42;
         if (vreg.nca < 2)
         {
-#if DEBUG_VAR_RECORDS
-            fprintf(stderr, "\nbeg= %d end= %d\n", vreg.beg, vreg.end);
-            OutputReads(stderr, vreg.reads, vreg.nr, vreg.end-vreg.beg+1);
-            OutputDistMatrix(stderr, &vreg);
-            OutputAlleles(stderr, &vreg);
-#endif
             distant_read_id = GetTheMostDistantRead(vreg.alleles[0].read_ids[0],
                 vreg.nr, vreg.dist_matrix);
             distant_allele_id = vreg.reads[distant_read_id].allele_id;
         }
-    
+#if DEBUG_VAR_RECORDS
         fprintf(stderr, "VAR beg= %d end= %d\n", vreg.beg, vreg.end);
         OutputReads(stderr, vreg.reads, vreg.nr, vreg.end-vreg.beg+1);
-                            OutputDistMatrix(stderr, &vreg);
-                            OutputAlleles(stderr, &vreg);
+        OutputDistMatrix(stderr, &vreg);
+        OutputAlleles(stderr, &vreg);
+#endif
    
         for (m=0; m<vreg.end-vreg.beg+1; m++)           
         {
