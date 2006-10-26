@@ -1,6 +1,9 @@
 #ifndef BITPACKEDARRAY_H
 #define BITPACKEDARRAY_H
 
+#undef  DEBUG_BPH_ADD
+#undef  DEBUG_BPH_GET
+
 ////////////////////////////////////////
 //
 //  bitPackedArray
@@ -76,7 +79,158 @@ private:
 };
 
 
+//  Uses the bitPackedArray to implement a heap.  The bitPackedArray is dynamically sized,
+//  so this can be too.
+//
+class bitPackedHeap {
+public:
+  bitPackedHeap(u32bit width, u64bit size=16) {
+    _array    = new bitPackedArray(width, size);
+    _array->set(0, 0);
+    _lastVal  = 0;
+  };
 
+  ~bitPackedHeap() {
+    delete _array;
+  };
+
+  u64bit    get(void) {
+    u64bit  biggestVal = ~u64bitZERO;
+
+    if (_lastVal == 0)
+      return(biggestVal);
+
+    biggestVal = _array->get(0);
+    _lastVal--;
+
+    if (_lastVal == 0)
+      return(biggestVal);
+
+    u64bit  t    = _array->get(_lastVal);
+
+    _array->set(0, t);
+
+    u64bit  pidx = 0;
+    u64bit  pval = t;
+    u64bit  cidx = 1;
+    u64bit  cval = 0;  //  set below
+
+    while (cidx < _lastVal) {
+      //  Set cval here, so we can first test if cidx is in range.
+      cval = _array->get(cidx);
+
+      //  Pick the smallest of the two kids
+      if (cidx+1 < _lastVal) {
+        t = _array->get(cidx+1);
+        if (cval > t) {
+          cidx++;
+          cval = t;
+        }
+      }
+
+#ifdef DEBUG_BPH_GET
+      fprintf(stderr, "test c="u64bitFMT" and p="u64bitFMT" lastVal="u64bitFMT"\n",
+              cidx, pidx, _lastVal);
+      fprintf(stderr, "test c="u64bitFMT"="u64bitFMT"\n",
+              cidx, cval);
+      fprintf(stderr, "test p="u64bitFMT"="u64bitFMT"\n",
+              pidx, pval);
+      fprintf(stderr, "test c="u64bitFMT"="u64bitFMT" and p="u64bitFMT"="u64bitFMT"\n",
+              cidx, cval, pidx, pval);
+#endif
+
+      if (cval < pval) {
+
+#ifdef DEBUG_BPH_GET
+        fprintf(stderr, "swap c="u64bitFMT"="u64bitFMT" and p="u64bitFMT"="u64bitFMT"\n",
+                cidx, cval, pidx, pval);
+#endif
+
+        //  Swap p and c
+        _array->set(pidx, cval);
+        _array->set(cidx, pval);
+
+        //  Move down the tree -- pval doesn't change, we moved it into cidx!
+        pidx = cidx;
+        cidx = cidx * 2 + 1;
+      } else {
+        cidx = _lastVal;
+      }
+    }
+
+    return(biggestVal);
+  };
+
+  void      add(u64bit value) {
+    u64bit  cidx = _lastVal;
+    u64bit  cval = value;
+    u64bit  pidx = 0;
+    u64bit  pval = 0;
+    bool    more = false;
+
+#ifdef DEBUG_BPH_ADD
+    fprintf(stderr, "add  c="u64bitFMT"="u64bitFMT" -- lastVal="u64bitFMT"\n",
+            cidx, cval, _lastVal);
+#endif
+
+    _array->set(cidx, cval);
+
+    if (cidx > 0)
+      more = true;
+
+    while (more) {
+      pidx = (cidx-1) / 2;
+
+#ifdef DEBUG_BPH_ADD
+      fprintf(stderr, "more c="u64bitFMT" and p="u64bitFMT"\n", cidx, pidx);
+#endif
+
+      pval = _array->get(pidx);
+
+#ifdef DEBUG_BPH_ADD
+      fprintf(stderr, "test c="u64bitFMT"="u64bitFMT" and p="u64bitFMT"="u64bitFMT"\n",
+              cidx, cval, pidx, pval);
+#endif
+
+      if (pval > cval) {
+
+#ifdef DEBUG_BPH_ADD
+        fprintf(stderr, "swap c="u64bitFMT"="u64bitFMT" and p="u64bitFMT"="u64bitFMT"\n",
+                cidx, cval, pidx, pval);
+#endif
+
+        //  Swap p and c
+        _array->set(cidx, pval);
+        _array->set(pidx, cval);
+
+        //  Move up the tree -- cval doesn't change, we moved it into pidx!
+        cidx = pidx;
+      } else {
+        more = false;
+      }
+      if (cidx == 0)
+        more = false;
+    }
+
+    _lastVal++;
+
+    //dump();
+  };
+
+  void      dump(void) {
+    for (u32bit i=0; i<_lastVal; i++)
+      fprintf(stderr, "HEAP["u32bitFMT"]="u64bitFMT"\n", i, _array->get(i));
+  }
+
+  void      clear(void) {
+    _array->clear();
+    _lastVal = 0;
+  };
+
+private:
+  bitPackedArray   *_array;
+  u64bit            _lastVal;
+};
 
 
 
@@ -161,9 +315,4 @@ bitArray::clr(u64bit idx) {
 }
 
 
-
-
-
 #endif  // BITPACKEDARRAY_H
-
-
