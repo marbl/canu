@@ -401,7 +401,7 @@ bitPackedFile::seek(u64bit bitpos) {
 
 
 
-void
+u64bit
 bitPackedFile::loadInCore(void) {
   struct stat  sb;
 
@@ -430,4 +430,6 @@ bitPackedFile::loadInCore(void) {
   seek(0);
 
   _inCore = true;
+
+  return(_bfrmax * 8);
 }

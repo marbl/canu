@@ -26,7 +26,7 @@ public:
 
   void       seek(u64bit pos);
 
-  void       loadInCore(void);
+  u64bit     loadInCore(void);
 
   void       showStats(FILE *f) {
     fprintf(f, "inside: "u64bitFMT"  outside: "u64bitFMT"\n", stat_seekInside, stat_seekOutside);
