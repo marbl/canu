@@ -45,13 +45,12 @@ bitPackedArray::set(u64bit idx, u64bit val) {
   u64bit s = idx / _valuesPerSegment;
   u64bit p = _valueWidth * (idx % _valuesPerSegment);
 
-  //fprintf(stderr, "s="u64bitFMT" p="u64bitFMT"\n", s, p);
+  //fprintf(stderr, "s="u64bitFMT" p="u64bitFMT" segments="u64bitFMT"/"u64bitFMT"\n", s, p, _numSegments, _maxSegments);
 
-  if (idx >= _nextElement) {
+  if (idx >= _nextElement)
     _nextElement = idx+1;
-  }
 
-  if (s > _maxSegments) {
+  if (s >= _maxSegments) {
     _maxSegments = s + 16;
     u64bit **S = new u64bit * [_maxSegments];
     for (u32bit i=0; i<_numSegments; i++)
