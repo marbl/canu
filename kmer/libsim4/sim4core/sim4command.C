@@ -17,8 +17,8 @@ sim4command::sim4command(u32bit        ESTid,
                          u32bit        GENlo,
                          u32bit        GENhi,
                          FastAWrapper *GENs,
-                         bool          doForward,
-                         bool          doReverse) {
+                         bool          doFor,
+                         bool          doRev) {
 
   _estIdx = ESTid;
 
@@ -36,8 +36,8 @@ sim4command::sim4command(u32bit        ESTid,
   _GENsequence       = 0L;
   _GENsequenceLength = 0;
 
-  _doForward = doForward;
-  _doReverse = doReverse;
+  _doForward = doFor;
+  _doReverse = doRev;
 
   _externalSeedsLen   = 0;
   _externalSeedsMax   = 0;
@@ -49,8 +49,8 @@ sim4command::sim4command(FastASequenceInCore  *EST,
                          FastASequenceInCore  *GEN,
                          u32bit                GENlo,
                          u32bit                GENhi,
-                         bool                  doForward,
-                         bool                  doReverse) {
+                         bool                  doFor,
+                         bool                  doRev) {
 
   _estIdx = EST->getIID();
 
@@ -68,8 +68,8 @@ sim4command::sim4command(FastASequenceInCore  *EST,
   _GENsequence       = 0L;
   _GENsequenceLength = 0;
 
-  _doForward = doForward;
-  _doReverse = doReverse;
+  _doForward = doFor;
+  _doReverse = doRev;
 
   _externalSeedsLen   = 0;
   _externalSeedsMax   = 0;
@@ -85,8 +85,8 @@ sim4command::sim4command(char             *EST,
                          u32bit            GENlen,
                          u32bit            GENlo,
                          u32bit            GENhi,
-                         bool              doForward,
-                         bool              doReverse) {
+                         bool              doFor,
+                         bool              doRev) {
   _estIdx = 0;
 
   _ESTs              = 0L;
@@ -103,8 +103,8 @@ sim4command::sim4command(char             *EST,
   _GENsequence       = GEN;
   _GENsequenceLength = GENlen;
 
-  _doForward = doForward;
-  _doReverse = doReverse;
+  _doForward = doFor;
+  _doReverse = doRev;
 
   _externalSeedsLen   = 0;
   _externalSeedsMax   = 0;

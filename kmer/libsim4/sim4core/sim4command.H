@@ -133,8 +133,8 @@ private:
   };
 
   int                   _externalSeedsCompare(const void *a, const void *b) {
-    externalSeed *A = *((externalSeed **)a);
-    externalSeed *B = *((externalSeed **)b);
+    const externalSeed *A = *((const externalSeed * const *)a);
+    const externalSeed *B = *((const externalSeed * const *)b);
 
     if (A->_GENposition < B->_GENposition)
       return(-1);
