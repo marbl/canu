@@ -125,6 +125,9 @@ intervalList::merge(void) {
 
       _list[thisInterval].lo = _list[nextInterval].lo;
       _list[thisInterval].hi = _list[nextInterval].hi;
+
+      _list[nextInterval].lo = 0;
+      _list[nextInterval].hi = 0;
       nextInterval++;
     } else {
 
