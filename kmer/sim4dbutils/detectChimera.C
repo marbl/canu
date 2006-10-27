@@ -12,7 +12,7 @@
 //  blocks that do not overlap, then it is chimeric.  Intervals are
 //  decreased by 3bp before merging.
 
-#define QUERY_LENGTH     256
+#define QUERY_LENGTH     2048
 
 int
 main(int argc, char **argv) {
@@ -32,6 +32,7 @@ main(int argc, char **argv) {
   }
 
   intervalList   IL;
+  intervalList   ILfull;
   u32bit         ILid = 0;
   char           lastdefline[1024] = { 0 };
 
@@ -40,25 +41,47 @@ main(int argc, char **argv) {
   u32bit        *begPt = new u32bit [maxPts];
   u32bit        *endPt = new u32bit [maxPts];
 
+  u32bit        *genBeg = new u32bit [maxPts];
+  u32bit        *genEnd = new u32bit [maxPts];
+
   u32bit         queryLength = 0;
 
-  char   spaces[QUERY_LENGTH];
-  char   lines[QUERY_LENGTH];
-  char   equals[QUERY_LENGTH];
+  char   spaces[QUERY_LENGTH+1];
+  char   lines[QUERY_LENGTH+1];
+  char   equals[QUERY_LENGTH+1];
 
   for (u32bit i=0; i<QUERY_LENGTH; i++) {
-    spaces[i] = ' ';
-    lines[i]  = '-';
+    spaces[i]  = ' ';
+    lines[i]   = '-';
     equals[i]  = '=';
   }
+  spaces[QUERY_LENGTH] = 0;
+  lines[QUERY_LENGTH]  = 0;
+  equals[QUERY_LENGTH] = 0;
 
   while (!feof(stdin)) {
     sim4polish *p = s4p_readPolish(stdin);
 
     if ((p == 0L) || (p->estID != ILid)) {
       if (lastdefline[0]) {
+
+#if 0
+        fprintf(stdout, "\n\n");
+
+        fprintf(stdout, "IL "u32bitFMT"\n", IL.numberOfIntervals());
+        for (u32bit i=0; i<IL.numberOfIntervals(); i++)
+          fprintf(stderr, "IL["u32bitFMTW(3)"] "u64bitFMT" "u64bitFMT"\n", i, IL.lo(i), IL.hi(i));
+
+        fprintf(stdout, "ILfull "u32bitFMT"\n", ILfull.numberOfIntervals());
+        for (u32bit i=0; i<ILfull.numberOfIntervals(); i++)
+          fprintf(stderr, "ILfull["u32bitFMTW(3)"] "u64bitFMT" "u64bitFMT"\n", i, ILfull.lo(i), ILfull.hi(i));
+#endif
+
         IL.merge();
-        if (IL.numberOfIntervals() > 1) {
+        ILfull.merge();
+
+        if ((IL.numberOfIntervals() > 1) &&
+            (ILfull.sumOfLengths() >= 0.9 * queryLength)) {
           fprintf(stdout, "%s\n", lastdefline);
 
           equals[queryLength] = 0;
@@ -77,17 +100,24 @@ main(int argc, char **argv) {
                 endPt[a] = endPt[b];
                 begPt[b] = x;
                 endPt[b] = y;
+
+                x         = genBeg[a];
+                y         = genEnd[a];
+                genBeg[a] = genBeg[b];
+                genEnd[a] = genEnd[b];
+                genBeg[b] = x;
+                genEnd[b] = y;
               }
             }
           }
 
 
           for (u32bit i=0; i<numPts && i<maxPts; i++) {
-            if (begPt[i] > 255) {
+            if (begPt[i] >= QUERY_LENGTH) {
               fprintf(stdout, "WARNING:  Next line (begin) truncated to %d positions!\n", QUERY_LENGTH);
               begPt[i] = QUERY_LENGTH-1;
             }
-            if (endPt[i] > 255) {
+            if (endPt[i] >= QUERY_LENGTH) {
               fprintf(stdout, "WARNING:  Next line (end) truncated to %d positions!\n", QUERY_LENGTH);
               endPt[i] = QUERY_LENGTH-1;
             }
@@ -95,7 +125,8 @@ main(int argc, char **argv) {
 
             spaces[begPt[i]] = 0;
             lines[endPt[i] - begPt[i]] = 0;
-            fprintf(stdout, u32bitFMTW(3)"-"u32bitFMTW(3)" %s%s\n", begPt[i], endPt[i], spaces, lines);
+            fprintf(stdout, u32bitFMTW(3)"-"u32bitFMTW(3)" %s%s ("u32bitFMT","u32bitFMT")\n",
+                    begPt[i], endPt[i], spaces, lines, genBeg[i], genEnd[i]);
             spaces[begPt[i]] = ' ';
             lines[endPt[i] - begPt[i]] = '-';
           }
@@ -105,6 +136,7 @@ main(int argc, char **argv) {
       }
 
       IL.clear();
+      ILfull.clear();
       numPts = 0;
     }
 
@@ -123,14 +155,17 @@ main(int argc, char **argv) {
       } else if (numPts < maxPts) {
         begPt[numPts] = beg;
         endPt[numPts] = end;
+        genBeg[numPts] = p->genLo + p->exons[0].genFrom - 1;
+        genEnd[numPts] = p->genLo + p->exons[p->numExons-1].genTo;
       }
       numPts++;
 
-      beg += chimeraOverlap;
-      end -= chimeraOverlap;
+      //fprintf(stdout, "beg,end = %d,%d\n", (int)beg, (int)end);
 
-      if (beg < end)
-        IL.add(beg, end-beg);
+      if (end - beg > 2 * chimeraOverlap) {
+        IL.add(beg + chimeraOverlap, end - beg - 2 * chimeraOverlap);
+        ILfull.add(beg, end - beg);
+      }
 
       s4p_destroyPolish(p);
     }
