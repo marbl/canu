@@ -118,8 +118,11 @@ sub createPostScaffolderConsensusJobs ($) {
     chmod 0755, "$wrk/8-consensus/consensus.sh";
 
     if (getGlobal("cnsOnGrid") && getGlobal("useGrid")) {
+        my $sge          = getGlobal("sge");
+        my $sgeConsensus = getGlobal("sgeConsensus");
+
         my $SGE;
-        $SGE  = "qsub -p 0 -r y -N cns2_${asm} ";
+        $SGE  = "qsub $sge $sgeConsensus -r y -N cns2_${asm} ";
         $SGE .= "-t 1-$jobs ";
         $SGE .= "-j y -o /dev/null ";
         $SGE .= "$wrk/8-consensus/consensus.sh\n";

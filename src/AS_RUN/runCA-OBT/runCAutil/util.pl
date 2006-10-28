@@ -120,6 +120,13 @@ sub setDefaults {
     $global{"immutableFrags"}              = undef;
     $global{"localHost"}                   = undef;
     $global{"localMachine"}                = undef;
+
+    #  Undocumented!
+    $global{"merylMemory"}                 = 800;
+    $global{"merylObtThreshold"}           = 1000;
+    $global{"merylOvlThreshold"}           = 500;
+    $global{"merSize"}                     = 22;
+
     $global{"ovlCorrBatchSize"}            = 175000;
     $global{"ovlCorrOnGrid"}               = 0;
     $global{"ovlCorrConcurrency"}          = 4;
@@ -133,12 +140,15 @@ sub setDefaults {
     $global{"processStats"}                = undef;
     $global{"scratch"}                     = "/scratch";
     $global{"scriptOnGrid"}                = 0;
-    $global{"sge"}                         = undef;
-    $global{"sgeScript"}                   = undef;
-    $global{"sgeOverlap"}                  = undef;
-    $global{"sgeConsensus"}                = undef;
-    $global{"sgeFragmentCorrection"}       = undef;
-    $global{"sgeOverlapCorrection"}        = undef;
+
+    #  Undocumented!
+    $global{"sge"}                         = undef;           #  Options to all qsub
+    $global{"sgeScript"}                   = undef;           #  Options to qsub of the script (high-memory)
+    $global{"sgeOverlap"}                  = "-pe thread 2";  #  Options to overlap jobs
+    $global{"sgeConsensus"}                = "-pe thread 2";  #  Options to consensus jobs
+    $global{"sgeFragmentCorrection"}       = "-pe thread 2";  #  Options to fragment correction jobs
+    $global{"sgeOverlapCorrection"}        = "-pe thread 2";  #  Options to overlap correction jobs
+
     $global{"stoneLevel"}                  = 2;
     $global{"stopAfter"}                   = undef;
     $global{"uidServer"}                   = undef;
@@ -152,6 +162,10 @@ sub setDefaults {
     $global{"useGrid"}                     = 0;
     $global{"useBogUnitig"}                = 0;
     $global{"vectorIntersect"}             = undef;
+
+    #  Undocumented!  Unimplemented
+    $global{"metagenomics"}                = undef;   #  disable frgCorr, ....
+    $global{"globalErrorRate"}             = 6;
 }
 
 sub setParameters {
@@ -391,10 +405,13 @@ sub submitScript ($) {
     print F "$perl $bin/runCA-OBT.pl $commandLineOptions\n";
     close(F);
 
+    my $sge       = getGlobal("sge");
+    my $sgeScript = getGlobal("sgeScript");
+
     if (!defined($waitTag) || ($waitTag eq "")) {
-        $cmd = "qsub -cwd -p 0 -r y -N runCA_${asm} -j y -o $output $script";
+        $cmd = "qsub $sge $sgeScript -cwd -r y -N runCA_${asm} -j y -o $output $script";
     } else {
-        $cmd = "qsub -cwd -p 0 -r y -N runCA_${asm} -j y -o $output -hold_jid \"$waitTag\" $script";
+        $cmd = "qsub $sge $sgeScript -p 0 -cwd -r y -N runCA_${asm} -j y -o $output -hold_jid \"$waitTag\" $script";
     }
 
     print STDERR "$cmd\n";

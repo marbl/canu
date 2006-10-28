@@ -104,18 +104,17 @@ sub createOverlapJobs {
         print F "&& \\\n";
         print F "cp -p $scratch/$asm.\$bat-\$job.\$jid.ovb \\\n";
         print F "      $wrk/$outDir/\$bat/\$job.ovb \\\n";
-        #print F "&& \\\n";
-        #print F "cp -p $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
-        #print F "      $wrk/$outDir/\$bat/\$job.ovl \\\n";
         print F "&& \\\n";
         print F "rm -f $scratch/$asm.\$bat-\$job.\$jid.ovb \\\n";
         print F "&& \\\n";
         print F "rm -f $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
     } else {
-        print F "cp -p $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
-        print F "      $wrk/$outDir/\$bat/\$job.ovl \\\n";
+        print F "bzip2 -9v $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
         print F "&& \\\n";
-        print F "rm -f $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
+        print F "cp -p $scratch/$asm.\$bat-\$job.\$jid.ovl.bz2 \\\n";
+        print F "      $wrk/$outDir/\$bat/\$job.ovl.bz2 \\\n";
+        print F "&& \\\n";
+        print F "rm -f $scratch/$asm.\$bat-\$job.\$jid.ovl.bz2 \\\n";
     }
 
     print F "&& \\\n";
@@ -210,9 +209,11 @@ sub createOverlapJobs {
     #  things here
     #
     if (getGlobal("useGrid") && getGlobal("ovlOnGrid")) {
+        my $sge        = getGlobal("sge");
+        my $sgeOverlap = getGlobal("sgeOverlap");
+
         my $SGE;
-        $SGE .= "qsub -p 0 -r y -N ovl_$asm \\\n";
-        $SGE .= "  -pe thread 2 \\\n";
+        $SGE .= "qsub $sge $sgeOverlap -r y -N ovl_$asm \\\n";
         $SGE .= "  -t 1-$jobs \\\n";
         $SGE .= "  -j y -o $wrk/$outDir/overlap.\\\$TASK_ID.out \\\n";
         $SGE .= "  -e $wrk/$outDir/overlap.\\\$TASK_ID.err \\\n";

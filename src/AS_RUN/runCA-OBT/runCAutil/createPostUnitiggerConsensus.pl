@@ -102,8 +102,11 @@ sub createPostUnitiggerConsensusJobs(@) {
     chmod 0755, "$wrk/5-consensus/consensus.sh";
 
     if (getGlobal("useGrid") && getGlobal("cnsOnGrid")) {
+        my $sge          = getGlobal("sge");
+        my $sgeConsensus = getGlobal("sgeConsensus");
+
         my $SGE;
-        $SGE  = "qsub -p 0 -r y -N cns1_$asm ";
+        $SGE  = "qsub $sge $sgeConsensus -r y -N cns1_$asm ";
         $SGE .= "-t 1-$jobs ";
         $SGE .= "-j y -o /dev/null ";
         $SGE .= "$wrk/5-consensus/consensus.sh\n";

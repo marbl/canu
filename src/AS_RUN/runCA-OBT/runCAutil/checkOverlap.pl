@@ -41,8 +41,10 @@ sub checkOverlap {
             print STDERR "$wrk/$outDir/$batchName/$jobName failed, job index $jobIndex.\n";
 
             if (getGlobal("useGrid") && getGlobal("ovlOnGrid")) {
-                print F "qsub -p 0 -r y -N ovl_${asm} \\\n";
-                print F "  -pe thread 2 \\\n";
+                my $sge        = getGlobal("sge");
+                my $sgeOverlap = getGlobal("sgeOverlap");
+
+                print F "qsub $sge $sgeOverlap -r y -N ovl_${asm} \\\n";
                 print F "  -t $jobIndex \\\n";
                 print F "  -j y -o $wrk/$outDir/overlap.\\\$TASK_ID.out \\\n";
                 print F "  -e $wrk/$outDir/overlap.\\\$TASK_ID.err \\\n";

@@ -52,12 +52,12 @@ sub createOverlapCorrectionJobs {
 
             chmod 0755, "$wrk/3-ovlcorr/$jobName.sh";
 
-            print SUB "qsub ";
-            print SUB "-p 0 ";      #  Priority
-            print SUB "-r y ";      #  Rerunnable
-            print SUB "-N ovc_${asm}_$jobName ";
-            print SUB "-j y ";
-            print SUB "-o $wrk/3-ovlcorr/$jobName.grid.err ";
+            my $sge                  = getGlobal("sge");
+            my $sgeOverlapCorrection = getGlobal("sgeOverlapCorrection");
+
+            print SUB "qsub $sge $sgeOverlapCorrection ";
+            print SUB " -r y -N ovc_${asm}_$jobName ";
+            print SUB " -j y -o $wrk/3-ovlcorr/$jobName.grid.err ";
             print SUB "$wrk/3-ovlcorr/$jobName.sh\n";
         } else {
             #  Run right here, right now

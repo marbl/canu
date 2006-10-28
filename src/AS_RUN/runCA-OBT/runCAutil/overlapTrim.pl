@@ -53,26 +53,6 @@ sub overlapTrim {
         #
         meryl();
 
-        #  Filter the standard set of nmers, throw out things below 100.
-        #  If you change 100, you should also change meryl.pl.
-
-        if (! -e "$wrk/0-overlaptrim-overlap/$asm.nmers.fasta") {
-            open(F, "< $wrk/0-preoverlap/$asm.nmers.fasta")  or die "Failed to open $wrk/0-preoverlap/$asm.nmers.fasta for reading.\n";
-            open(G, "> $wrk/0-overlaptrim-overlap/$asm.nmers.fasta") or die "Failed to open $wrk/0-overlaptrim-overlap/$asm.nmers.fasta for writing.\n";
-            while (!eof(F)) {
-                my $def = <F>;
-                my $mer = <F>;
-                if ($def =~ m/^>(\d+)$/) {
-                    print G "$def$mer" if ($1 > 100);
-                } else {
-                    chomp $def;
-                    print STDERR "ERROR:  Got '$def' for a defline!\n";
-                }
-            }
-            close(G);
-            close(F);
-        }
-
         createOverlapJobs("trim");
         checkOverlap("trim");
 

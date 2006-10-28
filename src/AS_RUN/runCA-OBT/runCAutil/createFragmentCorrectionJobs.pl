@@ -54,12 +54,12 @@ sub createFragmentCorrectionJobs {
 
             chmod 0755, "$wrk/2-frgcorr/$batchName/$jobName.sh";
 
-            print SUB "qsub ";
-            print SUB "-p 0 ";  #  Priority
-            print SUB "-r y ";  #  Rerunnable
-            print SUB "-N frg_${asm}_${batchName}_$jobName ";
-            print SUB "-j y ";
-            print SUB "-o $wrk/2-frgcorr/$batchName/$jobName.grid.err ";
+            my $sge                   = getGlobal("sge");
+            my $sgeFragmentCorrection = getGlobal("sgeFragmentCorrection");
+
+            print SUB "qsub $sge $sgeFragmentCorrection ";
+            print SUB " -r y -N frg_${asm}_${batchName}_$jobName ";
+            print SUB " -j y -o $wrk/2-frgcorr/$batchName/$jobName.grid.err ";
             print SUB "$wrk/2-frgcorr/$batchName/$jobName.sh\n";
         } else {
             #  Run the correction job right here, right now.
