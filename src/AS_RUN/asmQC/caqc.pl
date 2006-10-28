@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl
 
-# $Id: caqc.pl,v 1.12 2006-10-17 21:25:08 moweis Exp $
+# $Id: caqc.pl,v 1.13 2006-10-28 22:19:11 brianwalenz Exp $
 #
 # This program reads a Celera .asm file and produces aggregate information
 # about the assembly
@@ -20,7 +20,7 @@ use File::Basename;
 use Statistics::Descriptive;
 use File::Copy;
 
-my $MY_VERSION = "caqc Version 2.11 (Build " . (qw/$Revision: 1.12 $/ )[1] . ")";
+my $MY_VERSION = "caqc Version 2.11 (Build " . (qw/$Revision: 1.13 $/ )[1] . ")";
 
 # Constants
 my $MINQUAL   = 20;
@@ -344,9 +344,18 @@ sub calcNStats($$$$$) {
   my ( $type, $gsz, $lens, $sortContig, $Results ) = @_;
   my $prevSz   = 0;
   my $prevIncr = 0;
-  my $incrSize = 1000000;
+  my $incrSize = $gsz / 10;
   my @N        = ( .25, .5, .75 );
   my $sum      = 0;
+  if      ($gsz < 10000000) {  # 10M
+      $incrSize = 1000000;
+  } elsif ($gsz < 100000000) {  # 100M
+      $incrSize = 10000000;
+  } elsif ($gsz < 1000000000) {  # 1G
+      $incrSize = 100000000;
+  } elsif ($gsz < 10000000000) {  # 10G
+      $incrSize = 1000000000;
+  }
   foreach my $cc (@$sortContig) {
     my $len = $lens->{$cc};
     $sum += $len;
