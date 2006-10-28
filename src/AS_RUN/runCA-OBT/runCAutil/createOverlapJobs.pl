@@ -94,7 +94,8 @@ sub createOverlapJobs {
     print F "$pstats \\\n" if (defined($pstats));
     print F "$gin/overlap -P $ovlOpt -M $ovlMemory -t $ovlThreads \\\n";
     print F "  \$opt \\\n";
-    print F "  -k $wrk/0-preoverlap/$asm.nmers.fasta \\\n";
+    print F "  -k $wrk/0-preoverlap/$asm.nmers.fasta \\\n"          if ($isTrim ne "trim");
+    print F "  -k $wrk/0-overlaptrim-overlap/$asm.nmers.fasta \\\n" if ($isTrim eq "trim");
     print F "  -o $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
     print F "  $wrk/$asm.frgStore \\\n";
     print F "&& \\\n";
