@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.113 2006-10-29 17:56:49 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.114 2006-10-29 18:27:26 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -1704,39 +1704,57 @@ IsNewRead(int32 iid, int32 *iid_list, int nr)
 }
 
 
-
 //*********************************************************************************
 // Function: BaseCalling
 // Purpose: Calculate the consensus base for the given column
 //*********************************************************************************
 int
 BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
-    int target_allele, char *cons_base, int verbose, int purpose,   
+    int target_allele, char *cons_base, int verbose, int get_scores,
     CNS_Options *opp)
 {
     /* NOTE: negative target_allele means the the alleles will be used */
 
     Column *column=GetColumn(columnStore,cid);
-    Bead   *call = GetBead(beadStore, column->call);
-    Bead   *bead;
-    int     read_base_count[CNS_NP]  = {0};
-    int     guide_base_count[CNS_NP] = {0};
-    int     read_qv_count[CNS_NP] = {0};
-    int     read_depth=0, guide_depth=0;
-    int     score=0;
-    int     bi;
-    int32   bid;
-    int32   iid = 0;
-    char    cqv, cbase;
-    int     qv = 0;
+    Bead *call = GetBead(beadStore, column->call);
+    Bead *bead;
+    int best_read_base_count[CNS_NP]  = {0};
+    int other_read_base_count[CNS_NP] = {0};
+    int guide_base_count[CNS_NP]      = {0};
+
+    int best_read_qv_count[CNS_NP] = {0};
+    int other_read_qv_count[CNS_NP] = {0};
+
+    int b_read_depth=0, o_read_depth=0, guide_depth=0;
+    int score=0;
+    int bi;
+    int32 bid;
+    int32 iid = 0;
+    char cqv, cbase;
+    int qv = 0;
     static  double cw[CNS_NP];      // "consensus weight" for a given base
     static  double tau[CNS_NP];
     FragType type;
     UnitigType utype;
     ColumnBeadIterator ci;
     int used_surrogate=0;
-    int sum_qv_non_cbase=0;
+    int sum_qv_cbase=0, sum_qv_all=0;
     int k;
+
+    vreg->nb = 0;
+
+    //  Make sure that we have valid options here, we then reset the
+    //  pointer to the freshly copied options, so that we can always
+    //  assume opp is a valid pointer
+    //
+    CNS_Options  opp_private;
+    if (opp == NULL) {
+      opp_private.split_alleles   = CNS_OPTIONS_SPLIT_ALLELES_DEFAULT;
+      opp_private.smooth_win      = CNS_OPTIONS_SMOOTH_WIN_DEFAULT;
+      opp_private.max_num_alleles = CNS_OPTIONS_MAX_NUM_ALLELES;
+      opp = &opp_private;
+    }
+
 
     if(!CreateColumnBeadIterator(cid, &ci)){
         CleanExit("BaseCall CreateColumnBeadIterator failed",__LINE__,1);
@@ -1747,29 +1765,34 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
     {
         static int guides_alloc=0;
         static VarArrayBead  *guides;
-        static VarArrayBead  *reads;
+        static VarArrayBead  *b_reads;
+        static VarArrayBead  *o_reads;
         static VarArrayint16 *tied;
         uint32 bmask;
-        int    num_reads, num_guides;
+        int    num_b_reads, num_o_reads, num_guides;
         Bead  *gb;
         int    cind;
         double tmpqv;
         int16  bi;
-        int    read_count = 0;
+        int    b_read_count = 0;
         int    frag_cov=0;
         int16  max_ind=0;
         double max_cw=0.0;   // max of "consensus weights" of all bases
         double normalize=0.;
+        int    nr=0, max_nr=100;
+        int32 *column_iid_list = (int32 *)safe_malloc(max_nr*sizeof(int32));
 
         if (!guides_alloc) {
             guides = CreateVA_Bead(16);
-            reads  = CreateVA_Bead(16);
+            b_reads  = CreateVA_Bead(16);
+            o_reads  = CreateVA_Bead(16);
             tied   = CreateVA_int16(32);
             guides_alloc = 1;
         }
         else {
             ResetBead(guides);
-            ResetBead(reads);
+            ResetBead(b_reads);
+            ResetBead(o_reads);
             Resetint16(tied);
         }
         for (bi=0;bi<CNS_NP;bi++) {
@@ -1783,9 +1806,9 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
         //      - those corresponding to non-read fragments (aka guides)
         while ( (bid = NextColumnBead(&ci)) != -1)
         {
-            bead =      GetBead(beadStore,bid);
-            cbase =    *Getchar(sequenceStore,bead->soffset);    // current base
-            qv = (int)(*Getchar(qualityStore,bead->soffset)-'0');
+            bead =  GetBead(beadStore,bid);
+            cbase = *Getchar(sequenceStore,bead->soffset);    // current base
+            qv = (int) ( *Getchar(qualityStore,bead->soffset)-'0');
             if ( cbase == 'N' ) {
                 // skip 'N' base calls
                 // fprintf(stderr,
@@ -1796,15 +1819,63 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
             bmask = AMASK[BaseToInt(cbase)];
             type  = GetFragment(fragmentStore,bead->frag_index)->type;
             iid   = GetFragment(fragmentStore,bead->frag_index)->iid;
+            k     = Iid2ReadId(iid, vreg->iids, vreg->nr);
 
             if ((type == AS_READ)   ||
                 (type == AS_B_READ) ||
                 (type == AS_EXTR)   ||
                 (type == AS_TRNR))
             {
-                read_base_count[BaseToInt(cbase)]++;
-                read_qv_count[BaseToInt(cbase)] += qv;
-                AppendBead(reads, bead);
+                // Filter out "duplicated" reads with the same iid
+                if (!IsNewRead(iid, column_iid_list, nr))
+                {
+                    fprintf(stderr, "Read iid= %d occurs more than once ", iid);
+                    fprintf(stderr, "in MSA for contig #%d at pos= %d\n",
+                        contig_id, cid);
+                    continue;
+                }
+
+                column_iid_list[nr] = iid;
+                nr++;
+                if (nr == max_nr)
+                {
+                    max_nr += 100;
+                    column_iid_list = (int32 *)safe_realloc(column_iid_list,
+                            max_nr*sizeof(int32));
+                }
+
+                // Will be used when detecting alleles
+                if (target_allele < 0 && get_scores)
+                {
+                    vreg->curr_bases[vreg->nb] = cbase;
+                    vreg->iids[vreg->nb]  = iid;
+                    vreg->nb++;
+                    if (vreg->nb == vreg->max_nr)
+                    {
+                       vreg->max_nr += INITIAL_NR;
+                       vreg->curr_bases = (char *)safe_realloc(vreg->curr_bases,
+                                   vreg->max_nr*sizeof(char));
+                       vreg->iids = (int32 *)safe_realloc(vreg->iids,
+                                   vreg->max_nr*sizeof(int32));
+                    }
+                }
+
+                // Will be used when detecting variation
+                if (((target_allele < 0)  ||   // use any allele
+                     !opp->split_alleles  ||   // use any allele
+                     (vreg->nr >  0  &&
+                      vreg->reads[k].allele_id == target_allele))) // use the best allele
+                {
+                    best_read_base_count[BaseToInt(cbase)]++;
+                    best_read_qv_count[BaseToInt(cbase)] += qv;
+                    AppendBead(b_reads, bead);
+                }
+                else
+                {
+                    other_read_base_count[BaseToInt(cbase)]++;
+                    other_read_qv_count[BaseToInt(cbase)] += qv;
+                    AppendBead(o_reads, bead);
+                }
             }
             else
             {
@@ -1817,17 +1888,18 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
             }
         }
 
-        read_depth = GetNumBeads(reads);
+        b_read_depth = GetNumBeads(b_reads);
+        o_read_depth = GetNumBeads(o_reads);
         guide_depth  = GetNumBeads(guides);
         //COMP_BIAS[0] = (read_depth+other_depth) * CNS_SEQUENCING_ERROR_EST;
 
         // For each base, calculate tau
         // It will be used to calculate cw
-        if (read_depth > 0)
+        if (b_read_depth > 0)
         {
-            for (cind = 0; cind < read_depth; cind++)
+            for (cind = 0; cind < b_read_depth; cind++)
             {
-                gb = GetBead(reads, cind);
+                gb = GetBead(b_reads, cind);
                 cbase = *Getchar(sequenceStore,gb->soffset);
                 qv = (int) ( *Getchar(qualityStore,gb->soffset)-'0');
                 if ( qv == 0 )
@@ -1844,9 +1916,9 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
         }
         else
         {
-            for (cind = 0; cind < read_depth; cind++)
+            for (cind = 0; cind < o_read_depth; cind++)
             {
-                gb = GetBead(reads, cind);
+                gb = GetBead(o_reads, cind);
                 cbase = *Getchar(sequenceStore,gb->soffset);
                 qv = (int) ( *Getchar(qualityStore,gb->soffset)-'0');
                 if ( qv == 0 )
@@ -1863,7 +1935,7 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
         }
 
         // If there are no reads, use fragments of other types
-        if (read_depth == 0)
+        if (b_read_depth == 0 && o_read_depth == 0)
         {
             for (cind = 0; cind < guide_depth; cind++) {
                 gb = GetBead(guides,cind);
@@ -1873,7 +1945,7 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
                 if ( type == AS_UNITIG &&
                          ((utype != AS_STONE_UNITIG &&
                            utype != AS_PEBBLE_UNITIG &&
-                           utype != AS_OTHER_UNITIG)))
+                           utype != AS_OTHER_UNITIG) || b_read_depth > 0))
                 {
                     continue;
                 }
@@ -1980,6 +2052,7 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
 
 
        *cons_base = cbase;
+        if (target_allele <  0 || target_allele == vreg->alleles[0].id)
         {
             Setchar(sequenceStore, call->soffset, &cbase);
             Setchar(qualityStore, call->soffset, &cqv);
@@ -1987,39 +2060,43 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
 
         // Detecting variation
         for (bi=0; bi<CNS_NALPHABET-1; bi++)
-            read_count += read_base_count[bi];
+            b_read_count += best_read_base_count[bi];
 
-        // CNS_NALPHABET-1 == 5 (-, A, C, G, T)
-        for (bi=0; bi<CNS_NALPHABET-1; bi++) 
-        {
+        for (bi=0; bi<CNS_NALPHABET-1; bi++) {
             // NALAPHBET-1 to exclude "n" base call
             bmask = AMASK[bi];  // mask for indicated base
             if ( ! ((bmask>>max_ind) & 1) ) {
                 // penalize only if base in not represented in call
-                score += read_base_count[bi] + guide_base_count[bi];
+                score += best_read_base_count[bi] + other_read_base_count[bi]
+                      + guide_base_count[bi];
             }
-            /* To be considered, the non-consensus base should 
-             * be confirmed by another base and both the
-             * bases should be of high enough quality
+            /* To be considered, base should either have high enough quality
+             * or be confirmed by another base, also of reasonably high quality 
+             * (Granger's suggestion - GD)
              */
-            if ((IntToBase(bi) != cbase) &&
-                read_base_count[bi] >  1 &&
-                read_qv_count[bi] >= MIN_SUM_QVS_FOR_VARIATION)
+            if (best_read_qv_count[bi]   >  1 &&
+                best_read_qv_count[bi]   >= MIN_SUM_QVS_FOR_VARIATION)
             {
-                if (sum_qv_non_cbase < read_qv_count[bi])
-                {
-                    sum_qv_non_cbase = read_qv_count[bi];
-                    fprintf(stderr, "pos= %d cbase= %c obase= %c num= %d sum_qvs= %d",
-                        cid, cbase, IntToBase(bi), read_base_count[bi], read_qv_count[bi]);
-                }
+                sum_qv_all += best_read_qv_count[bi];
+                if (IntToBase(bi) == cbase)
+                    sum_qv_cbase = best_read_qv_count[bi];
             }
         }
-        if (sum_qv_non_cbase == 0) {
-           *var = (cbase != '-') ? 0. : -2.;
+        if ((b_read_count == 1 ) || (sum_qv_all == 0))
+        {
+           *var = 0.;
+            if (cbase == '-')
+              *var = -2;
         }
-        else {
-           *var = (cbase != '-') ? 1. : -1.;
+        else
+        {
+           *var = 1. - (double)sum_qv_cbase / (double)sum_qv_all;
+            if (cbase == '-')
+            {
+                *var = - (*var);
+            }
         }
+        FREE(column_iid_list);
         return score;
     }
     else if (quality == 0 )
@@ -2042,24 +2119,25 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
                 guide_base_count[BaseToInt(cbase)]++;
             }
             else {
-                read_base_count[BaseToInt(cbase)]++;
+                best_read_base_count[BaseToInt(cbase)]++;
             }
         }
         for (i=0; i<CNS_NALPHABET; i++) {
-            if (read_base_count[i]+guide_base_count[i] > max_count) {
-                max_count = read_base_count[i] + guide_base_count[i];
+            if (best_read_base_count[i]+guide_base_count[i] > max_count) {
+                max_count = best_read_base_count[i] + guide_base_count[i];
                 max_index = i;
             }
         }
-        if ( read_base_count[max_index] + guide_base_count[max_index] >
-            (read_depth                 + guide_depth)/2 )
+        if ( best_read_base_count[max_index] + guide_base_count[max_index] >
+            (b_read_depth                 + guide_depth)/2 )
         {
             tie_count = 0;
         }
         else
         {
-            for (i=0;i<CNS_NALPHABET;i++) {
-                if (read_base_count[i]+guide_base_count[i] == max_count)
+            for (i=0;i<CNS_NALPHABET;i++)
+            {
+                if (best_read_base_count[i]+guide_base_count[i] == max_count)
                 {
                     max_index = i;
                     tie_count++;
@@ -2071,7 +2149,7 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
             for (i=1;i<CNS_NALPHABET;i++)
             {     /* i starts at 1 to prevent ties */
                   /* from being broken with '-'    */
-                if ( read_base_count[i]+guide_base_count[i] == max_count )
+                if ( best_read_base_count[i]+guide_base_count[i] == max_count )
                 {
                     /* Break unresolved ties with random numbers: */
                     tie_breaker = random();
@@ -2089,7 +2167,7 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
         for (bi=0;bi<CNS_NALPHABET;bi++) {
             if (bi != BaseToInt(cbase))
             {
-                score += read_base_count[bi]+guide_base_count[bi];
+                score += best_read_base_count[bi]+guide_base_count[bi];
             }
         }
         return score;
