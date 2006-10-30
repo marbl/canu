@@ -7,72 +7,56 @@ sub applyOverlapCorrection {
     return if (getGlobal("doFragmentCorrection") == 0);
 
     my $ovlCorrBatchSize    = getGlobal("ovlCorrBatchSize");
-    my $ovlCorrOnGrid       = getGlobal("ovlCorrOnGrid") && getGlobal("useGrid");
 
-    if (! -e "$wrk/3-ovlcorr/$asm.eratesupdated") {
+    if (! -e "$wrk/3-ovlcorr/update-erates.success") {
         my $failedJobs = 0;
 
-        my $frgBeg = 1;
-        my $frgEnd = 0;
+        open(F, "> $wrk/3-ovlcorr/cat-erates.eratelist");
 
-        while ($frgBeg < $numFrags) {
-            $frgEnd = $frgBeg + $ovlCorrBatchSize - 1;
-            $frgEnd = $numFrags if ($frgEnd > $numFrags);
+        my $jobs = int($numFrags / ($ovlCorrBatchSize-1)) + 1;
+        for (my $i=1; $i<=$jobs; $i++) {
+            my $frgBeg = $i * $ovlCorrBatchSize - $ovlCorrBatchSize + 1;
+            my $frgEnd = $i * $ovlCorrBatchSize;
+            if ($frgEnd > $numFrags) {
+                $frgEnd = $numFrags - 1;
+            }
+            $frgBeg = substr("00000000$frgBeg", -8);
+            $frgEnd = substr("00000000$frgEnd", -8);
 
-            my $jobName   = substr("0000000000" . $frgBeg, -8);
-
-            if (! -e "$wrk/3-ovlcorr/$jobName.success") {
-                print STDERR "$wrk/3-ovlcorr/$jobName failed.\n";
+            if (! -e "$wrk/3-ovlcorr/$asm-$frgBeg-$frgEnd.success") {
+                print STDERR "Overlap correction job $i ($wrk/3-ovlcorr/$asm-$frgBeg-$frgEnd) failed.\n";
                 $failedJobs++;
             }
 
-            $frgBeg = $frgEnd + 1;
+            print F "$wrk/3-ovlcorr/$asm-$frgBeg-$frgEnd.erate\n";
         }
 
-        if ($failedJobs) {
-            print STDERR "$failedJobs failed.  Good luck.\n";
-            exit(1);
-        }
+        close(F);
 
-        ########################################
-
-        if (! -e "$wrk/3-ovlcorr/all-corrections.eratelist") {
-            if (runCommand("find $wrk/3-ovlcorr -name \\*.erate -print | sort > $wrk/3-ovlcorr/all-corrections.eratelist")) {
-                print STDERR "Failed to generate a list of all the overlap correction files.\n";
-                rename "$wrk/3-ovlcorr/all-corrections.eratelist", "$wrk/3-ovlcorr/all-corrections.eratelist.FAILED";
-                exit(1);
-            }
-        }
-
-        ########################################
+        die "$failedJobs failed.  Good luck.\n" if ($failedJobs);
 
         if (! -e "$wrk/3-ovlcorr/$asm.erates") {
             my $cmd;
             $cmd  = "$bin/cat-erates ";
-            $cmd .= "-L $wrk/3-ovlcorr/all-corrections.eratelist ";
+            $cmd .= "-L $wrk/3-ovlcorr/cat-erates.eratelist ";
             $cmd .= "-o $wrk/3-ovlcorr/$asm.erates ";
             $cmd .= "> $wrk/3-ovlcorr/cat-erates.err 2>&1";
-
             if (runCommand($cmd)) {
-                print STDERR "Failed to concatenate the fragment corrections.\n";
-                exit(1);
+                rename "$wrk/3-ovlcorr/$asm.erates", "$wrk/3-ovlcorr/$asm.erates.FAILED";
+                die "Failed to concatenate the overlap erate corrections.\n";
             }
         }
-
-        ########################################
 
         my $cmd;
         $cmd  = "$bin/update-erates ";
         $cmd .= "$wrk/$asm.ovlStore ";
         $cmd .= "$wrk/3-ovlcorr/$asm.erates";
         $cmd .= "> $wrk/3-ovlcorr/update-erates.err 2>&1";
-
         if (runCommand($cmd)) {
-            print STDERR "Failed to apply the overlap corrections.\n";
-            exit(1);
+            die "Failed to apply the overlap corrections.\n";
         }
 
-        touch("$wrk/3-ovlcorr/$asm.eratesupdated");
+        touch("$wrk/3-ovlcorr/update-erates.success");
     }
 }
 

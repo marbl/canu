@@ -411,13 +411,11 @@ sub submitScript ($) {
     if (!defined($waitTag) || ($waitTag eq "")) {
         $cmd = "qsub $sge $sgeScript -cwd -r y -N runCA_${asm} -j y -o $output $script";
     } else {
-        $cmd = "qsub $sge $sgeScript -p 0 -cwd -r y -N runCA_${asm} -j y -o $output -hold_jid \"$waitTag\" $script";
+        $cmd = "qsub $sge $sgeScript -cwd -r y -N runCA_${asm} -j y -o $output -hold_jid \"$waitTag\" $script";
     }
 
-    print STDERR "$cmd\n";
     system($cmd) and die "Failed to sumbit script.\n";
-
-    #unlink("$script");
+    unlink("$script");
 
     exit(0);
 }
