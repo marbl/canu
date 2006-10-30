@@ -15,7 +15,7 @@ sub summarizeConsensusStatistics ($) {
         my $NumVARRecords                 = 0;
         my $NumVARStringsWithFlankingGaps = 0;
 
-        open(F, "ls $dir/$asm.cns_contigs.*.err |");
+        open(F, "ls $dir/$asm*.err |");
         my @files = <F>;
         chomp @files;
         close(F);
@@ -38,16 +38,16 @@ sub summarizeConsensusStatistics ($) {
         }
 
         open(F, "> $dir/consensus.stats.summary");
-        print F "NumColumnsInUnitigs=$NumColumnsInUnitigs\n";
-        print F "NumGapsInUnitigs=$NumGapsInUnitigs\n";
-        print F "NumRunsOfGapsInUnitigReads=$NumRunsOfGapsInUnitigReads\n";
-        print F "NumColumnsInContigs=$NumColumnsInContigs\n";
-        print F "NumGapsInContigs=$NumGapsInContigs\n";
-        print F "NumRunsOfGapsInContigReads=$NumRunsOfGapsInContigReads\n";
-        print F "NumAAMismatches=$NumAAMismatches\n";
-        print F "NumFAMismatches=$NumFAMismatches\n";
-        print F "NumVARRecords=$NumVARRecords\n";
-        print F "NumVARStringsWithFlankingGaps=$NumVARStringsWithFlankingGaps\n";
+        print F "NumColumnsInUnitigs=$NumColumnsInUnitigs\n"                     if ($NumColumnsInUnitigs > 0);
+        print F "NumGapsInUnitigs=$NumGapsInUnitigs\n"                           if ($NumGapsInUnitigs > 0);
+        print F "NumRunsOfGapsInUnitigReads=$NumRunsOfGapsInUnitigReads\n"       if ($NumRunsOfGapsInUnitigReads > 0);
+        print F "NumColumnsInContigs=$NumColumnsInContigs\n"                     if ($NumColumnsInContigs > 0);
+        print F "NumGapsInContigs=$NumGapsInContigs\n"                           if ($NumGapsInContigs > 0);
+        print F "NumRunsOfGapsInContigReads=$NumRunsOfGapsInContigReads\n"       if ($NumRunsOfGapsInContigReads > 0);
+        print F "NumAAMismatches=$NumAAMismatches\n"                             if ($NumAAMismatches > 0);
+        print F "NumFAMismatches=$NumFAMismatches\n"                             if ($NumFAMismatches > 0);
+        print F "NumVARRecords=$NumVARRecords\n"                                 if ($NumVARRecords > 0);
+        print F "NumVARStringsWithFlankingGaps=$NumVARStringsWithFlankingGaps\n" if ($NumVARStringsWithFlankingGaps > 0);
         close(F);
     }
 }
@@ -162,11 +162,11 @@ sub terminate ($) {
 
             #  Some amazingly ugly magic to get the perl libs.
             #
-            if (!defined($ENV{'PERL5LIB'}) && !defined($ENV{'PERLLIB'})) {
-                if (-d "/home/smurphy/preassembly/test/TIGR/scripts") {
-                    $ENV{'PERL5LIB'} = "/home/smurphy/preassembly/test/TIGR/scripts";
-                }
-            }
+            #if (!defined($ENV{'PERL5LIB'}) && !defined($ENV{'PERLLIB'})) {
+            #    if (-d "/home/smurphy/preassembly/test/TIGR/scripts") {
+            #        $ENV{'PERL5LIB'} = "/home/smurphy/preassembly/test/TIGR/scripts";
+            #    }
+            #}
 
             my $cmd;
             $cmd  = "cd $wrk/9-terminator && ";
