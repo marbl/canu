@@ -10,9 +10,9 @@
 //#define SHOW_CORRECT
 
 #define BUILD_SIZE   14
-#define TEST_SIZE    109
+#define TEST_SIZE    31
 
-#if KMER_WORDS * 16 < TEST_SIZE
+#if KMER_WORDS * 32 < TEST_SIZE
 #error KMER_WORDS too small for TEST_SIZE
 #endif
 
@@ -157,6 +157,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "       Returns 1 if error, 0 if OK\n");
     exit(1);
   }
+
+  fprintf(stderr, "Building merStreamFile.\n");
 
   merStreamFileBuilder   *B = new merStreamFileBuilder(BUILD_SIZE, argv[1], "junk");
   u64bit numMers = B->build(true);
