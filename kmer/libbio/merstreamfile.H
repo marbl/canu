@@ -18,17 +18,6 @@
 //  Returns true if the merStreamFile exists.
 bool  merStreamFileExists(const char *i);
 
-//  Defline support in the merStreamFile is very broken -- we possibly
-//  construct it correctly, but we don't access it at all.  Nobody is
-//  currently using it, so the functionality has been completely
-//  disabled (which will save some space in the file).
-//
-//  It's not been removed from the class, we just don't save the
-//  deflines to the file.
-//
-//#define ENABLE_DEFLINE_SUPPORT
-
-
 class merStream;
 
 class merStreamFileBuilder {
@@ -48,6 +37,10 @@ private:
 };
 
 
+
+
+
+
 class merStreamFileReader {
 public:
   merStreamFileReader(const char *filename, u32bit desiredMerSize=u32bitZERO);
@@ -65,18 +58,23 @@ public:
   u64bit                 thePositionInStream(void)   { return(_posInStr); };
   u64bit                 theSequenceNumber(void)     { return(_sequence); };
 
-#ifdef ENABLE_DEFLINE_SUPPORT
-  char const            *theDefLine(void)            { return(_defline);  };
-#else
-  char const            *theDefLine(void)            { return(">nodefline");  };
-#endif
-
 private:
-  //  These used to be public, but seekToMer() has been replaced by
-  //  setIterationStart(), and nobody was using seekToSequence().
-  //
+  void                   findBlock(u64bit merNumber,
+                                   u32bit  &block,
+                                   u64bit  &totalMers,
+                                   u64bit  &totalMersInFile);
   bool                   seekToMer(u64bit merNumber);
-  bool                   seekToSequence(u64bit seqNumber);
+  bool                   flipToCanonicalize(u64bit merNum);
+
+public:
+  //  Useful to bigmeryl or whatever it ends up being called.
+  //
+
+  //  Returns true if the mer at merNum1 is smaller than the mer
+  //  at merNum2.  Be aware that unless your merstream is in core,
+  //  there are serious performance hits here!
+  //
+  bool                   smaller(u64bit merNum1, u64bit merNum2, bool doCanonical);
 
 public:
   //  This will limit the number of mers returned to 'limit'.  The
@@ -114,21 +112,29 @@ private:
   u32bit                _merSizeDesired;
   u64bit                _numMers;
   u64bit                _numBlocks;
-  u64bit                _numDefs;
-  u64bit                _defLength;
   off_t                 _blockFileSize;
-  off_t                 _deflineFileSize;
   off_t                 _streamFileSize;
   off_t                 _blkStart;
-  off_t                 _defStart;
   off_t                 _strStart;
 
+  //  When used for bigmeryl, we'll have 32 million (to 45 million)
+  //  reads.  Reads should have no non-acgt, so each read should be in
+  //  exactly one block.  Per block, we want to store
+  //    32 bits - block size
+  //    32 bits - block sequence number
+  //    64 bits - block position in the sequence
+  //    64 bits - block position in the stream
+  //    64 bits - first mer number in this block
+  //    32 bits - correction to the first mer number to get the total mers in the file so far
+  //   ---
+  //   256 bits (32 bytes) -- so, 1GB data for 32 million reads.
+  //
   u32bit               *_blockSize;
   u32bit               *_blockSequence;
   u64bit               *_blockPosInSeq;
   u64bit               *_blockPosInStr;
-  char                 *_deflineStorage;
-  char                **_deflines;
+  u64bit               *_blockFirstMerNum;
+  u32bit               *_blockTotalMerCorrection;
 
   //  Things used to decode the stream
   //
@@ -149,8 +155,6 @@ private:
   u64bit                _posInSeq;
   u64bit                _posInStr;
   u64bit                _sequence;
-
-  char                 *_defline;
 };
 
 

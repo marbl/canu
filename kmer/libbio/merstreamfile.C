@@ -44,30 +44,19 @@ merStreamFileBuilder::build(bool beVerbose) {
   u64bit             blockSize         = 0;
   u64bit             numMers           = 0;
   u64bit             numBlocks         = 0;
-  u64bit             numDefs           = 0;
-  u64bit             defLength         = 0;
 
   //  Open the output files
   //
   char *blocksName = new char [strlen(_outputFile) + 32];
-  char *deflinName = new char [strlen(_outputFile) + 32];
   char *streamName = new char [strlen(_outputFile) + 32];
   char *outputName = new char [strlen(_outputFile) + 32];
 
   sprintf(blocksName, "%s.merstreamfilebuilder.b.tmp", _outputFile);
-  sprintf(deflinName, "%s.merstreamfilebuilder.d.tmp", _outputFile);
   sprintf(streamName, "%s.merstreamfilebuilder.s.tmp", _outputFile);
   sprintf(outputName, "%s.merStream",                  _outputFile);
 
   bitPackedFile *BLOCKS = new bitPackedFile(blocksName);
   bitPackedFile *STREAM = new bitPackedFile(streamName);
-
-  errno = 0;
-  FILE  *DEFLIN  = fopen(deflinName, "w");
-  if (errno) {
-    fprintf(stderr, "merStreamFileBuilder::build()-- failed to open defline storage: %s\n", strerror(errno));
-    exit(1);
-  }
 
 
   speedCounter       C("    %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, beVerbose);
@@ -82,9 +71,6 @@ merStreamFileBuilder::build(bool beVerbose) {
   u64bit lastSeq           = _merStream->theSequenceNumber();
   u64bit lastBlockPosInSeq = _merStream->thePositionInSequence();
   u64bit lastBlockPosInStr = _merStream->thePositionInStream();
-#ifdef ENABLE_DEFLINE_SUPPORT
-  u32bit lastDef           = ~u32bitZERO;
-#endif
 
   lastMer.writeToBitPackedFile(STREAM);
 
@@ -95,22 +81,6 @@ merStreamFileBuilder::build(bool beVerbose) {
 
   do {
     thisMer = _merStream->theFMer();
-
-    //  Save the defline if the sequence number has changed.
-    //
-#ifdef ENABLE_DEFLINE_SUPPORT
-    if (lastDef != _merStream->theSequenceNumber()) {
-      u32bit  l = strlen(_merStream->theDefLine()) + 1;
-
-      fwrite(&l, sizeof(u32bit), 1, DEFLIN);
-      fwrite(_merStream->theDefLine(), sizeof(char), l, DEFLIN);
-
-      lastDef = _merStream->theSequenceNumber();
-
-      numDefs++;
-      defLength += l;
-    }
-#endif
 
     //  See if this mer is adjacent to the last one.  We used to check
     //  for overlap in the mer, which worked great for storing just
@@ -165,7 +135,6 @@ merStreamFileBuilder::build(bool beVerbose) {
   BLOCKS->putNumber(lastBlockPosInStr);
   numBlocks++;
 
-  fclose(DEFLIN);
   delete STREAM;
   delete BLOCKS;
 
@@ -185,12 +154,10 @@ merStreamFileBuilder::build(bool beVerbose) {
   }
 
   off_t blockFileSize   = sizeOfFile(blocksName);
-  off_t deflineFileSize = sizeOfFile(deflinName);
   off_t streamFileSize  = sizeOfFile(streamName);
 
-  off_t blkStart = sizeof(char) * 16 + sizeof(u32bit) * 2 + sizeof(u64bit) * 4 + sizeof(off_t) * 6;
+  off_t blkStart = sizeof(char) * 16 + sizeof(u32bit) * 2 + sizeof(u64bit) * 2 + sizeof(off_t) * 4;
   off_t strStart = blkStart + blockFileSize;
-  off_t defStart = blkStart + blockFileSize + streamFileSize;
 
   //
   //  This block MUST be a multiple of 64 bits long to keep the
@@ -202,44 +169,20 @@ merStreamFileBuilder::build(bool beVerbose) {
   fwrite(&_merSize,        sizeof(u32bit), 1,  fOUT);
   fwrite(&numMers,         sizeof(u64bit), 1,  fOUT);
   fwrite(&numBlocks,       sizeof(u64bit), 1,  fOUT);
-  fwrite(&numDefs,         sizeof(u64bit), 1,  fOUT);
-  fwrite(&defLength,       sizeof(u64bit), 1,  fOUT);
   fwrite(&blockFileSize,   sizeof(off_t),  1,  fOUT);
-  fwrite(&deflineFileSize, sizeof(off_t),  1,  fOUT);
   fwrite(&streamFileSize,  sizeof(off_t),  1,  fOUT);
   fwrite(&blkStart,        sizeof(off_t),  1,  fOUT);
-  fwrite(&defStart,        sizeof(off_t),  1,  fOUT);
   fwrite(&strStart,        sizeof(off_t),  1,  fOUT);
 
-#if 0
-  fprintf(stderr, "merStreamFileWriter()-- merSize:         "u32bitFMT" bases\n", _merSize);
-  fprintf(stderr, "merStreamFileWriter()-- numMers:         "u64bitFMT" mers\n", numMers);
-  fprintf(stderr, "merStreamFileWriter()-- numBlocks:       "u64bitFMT" blocks\n", numBlocks);
-  fprintf(stderr, "merStreamFileWriter()-- numDefs:         "u64bitFMT" lines\n", numDefs);
-  fprintf(stderr, "merStreamFileWriter()-- defLength:       "u64bitFMT" characters\n", defLength);
-  fprintf(stderr, "merStreamFileWriter()-- blockFileSize:   "u64bitFMT" bytes\n", blockFileSize);
-  fprintf(stderr, "merStreamFileWriter()-- deflineFileSize: "u64bitFMT" bytes\n", deflineFileSize);
-  fprintf(stderr, "merStreamFileWriter()-- streamFileSize:  "u64bitFMT" bytes\n", streamFileSize);
-  fprintf(stderr, "merStreamFileWriter()-- blkStart:        "u64bitFMT" bits\n", blkStart);
-  fprintf(stderr, "merStreamFileWriter()-- defStart:        "u64bitFMT" bits\n", defStart);
-  fprintf(stderr, "merStreamFileWriter()-- strStart:        "u64bitFMT" bits\n", strStart);
-#endif
-
-
-  //  To keep the bitPackedFiles aligned on 64-bit boundaries, we put the deflines last.
-  //
   copyFile(blocksName, fOUT);
   copyFile(streamName, fOUT);
-  copyFile(deflinName, fOUT);
 
   fclose(fOUT);
 
   unlink(blocksName);
-  unlink(deflinName);
   unlink(streamName);
 
   delete [] blocksName;
-  delete [] deflinName;
   delete [] streamName;
   delete [] outputName;
 
@@ -267,60 +210,43 @@ merStreamFileReader::merStreamFileReader(const char *i, u32bit desiredMerSize) {
 
   errno = 0;
   FILE *rawFile = fopen(streamName, "r");
-  if (errno) {
-    fprintf(stderr, "merStreamFileReader()-- Failed to open merStream '%s': %s\n", streamName, strerror(errno));
-    exit(1);
-  }
+  if (errno)
+    fprintf(stderr, "merStreamFileReader()-- Failed to open merStream '%s': %s\n", streamName, strerror(errno)), exit(1);
 
-  errno = 0;
   fread(cigam,             sizeof(char),   16, rawFile);
   fread(&_merSizeInFile,   sizeof(u32bit), 1,  rawFile);  //  Padding.
   fread(&_merSizeInFile,   sizeof(u32bit), 1,  rawFile);
   fread(&_numMers,         sizeof(u64bit), 1,  rawFile);
   fread(&_numBlocks,       sizeof(u64bit), 1,  rawFile);
-  fread(&_numDefs,         sizeof(u64bit), 1,  rawFile);
-  fread(&_defLength,       sizeof(u64bit), 1,  rawFile);
   fread(&_blockFileSize,   sizeof(off_t),  1,  rawFile);
-  fread(&_deflineFileSize, sizeof(off_t),  1,  rawFile);
   fread(&_streamFileSize,  sizeof(off_t),  1,  rawFile);
   fread(&_blkStart,        sizeof(off_t),  1,  rawFile);
-  fread(&_defStart,        sizeof(off_t),  1,  rawFile);
   fread(&_strStart,        sizeof(off_t),  1,  rawFile);
+  fclose(rawFile);
 
-  if (errno) {
-    fprintf(stderr, "merStreamFileReader()-- Failed to read header: %s\n", strerror(errno));
-    exit(1);
-  }
+  if (errno)
+    fprintf(stderr, "merStreamFileReader()-- Failed to read header: %s\n", strerror(errno)), exit(1);
 
-  if (strncmp(magic, cigam, 16) != 0) {
-    fprintf(stderr, "merStreamFileReader()-- '%s' isn't a merStream file.\n", streamName);
-    exit(1);
-  }
+  if (strncmp(magic, cigam, 16) != 0)
+    fprintf(stderr, "merStreamFileReader()-- '%s' isn't a merStream file.\n", streamName), exit(1);
 
   if (desiredMerSize)
     _merSizeDesired = desiredMerSize;
   else
     _merSizeDesired = _merSizeInFile;
 
-  if (_merSizeDesired < _merSizeInFile) {
+  if (_merSizeDesired < _merSizeInFile)
     fprintf(stderr, "merStreamFileReader()-- '%s' has a minimum merSize of "u32bitFMT", but you requested size "u32bitFMT".\n",
-            streamName, _merSizeInFile, _merSizeDesired);
-    exit(1);
-  }
-
+            streamName, _merSizeInFile, _merSizeDesired), exit(1);
 
 #if 0
   fprintf(stderr, "merStreamFileReader()-- merSizeDesired:  "u32bitFMT" bases\n", _merSizeDesired);
   fprintf(stderr, "merStreamFileReader()-- merSizeInFile:   "u32bitFMT" bases\n", _merSizeInFile);
   fprintf(stderr, "merStreamFileReader()-- numMers:         "u64bitFMT" mers\n", _numMers);
   fprintf(stderr, "merStreamFileReader()-- numBlocks:       "u64bitFMT" blocks\n", _numBlocks);
-  fprintf(stderr, "merStreamFileReader()-- numDefs:         "u64bitFMT" lines\n", _numDefs);
-  fprintf(stderr, "merStreamFileReader()-- defLength:       "u64bitFMT" characters\n", _defLength);
   fprintf(stderr, "merStreamFileReader()-- blockFileSize:   "u64bitFMT" bytes\n", _blockFileSize);
-  fprintf(stderr, "merStreamFileReader()-- deflineFileSize: "u64bitFMT" bytes\n", _deflineFileSize);
   fprintf(stderr, "merStreamFileReader()-- streamFileSize:  "u64bitFMT" bytes\n", _streamFileSize);
   fprintf(stderr, "merStreamFileReader()-- blkStart:        "u64bitFMT" bits\n", _blkStart);
-  fprintf(stderr, "merStreamFileReader()-- defStart:        "u64bitFMT" bits\n", _defStart);
   fprintf(stderr, "merStreamFileReader()-- strStart:        "u64bitFMT" bits\n", _strStart);
 #endif
 
@@ -328,90 +254,54 @@ merStreamFileReader::merStreamFileReader(const char *i, u32bit desiredMerSize) {
   //
   bitPackedFile *blocksFile = new bitPackedFile(streamName, _blkStart);
 
-  _blockSize      = new u32bit [_numBlocks];
-  _blockSequence  = new u32bit [_numBlocks];
-  _blockPosInSeq  = new u64bit [_numBlocks];
-  _blockPosInStr  = new u64bit [_numBlocks];
+  _blockSize               = new u32bit [_numBlocks];
+  _blockSequence           = new u32bit [_numBlocks];
+  _blockPosInSeq           = new u64bit [_numBlocks];
+  _blockPosInStr           = new u64bit [_numBlocks];
+  _blockFirstMerNum        = new u64bit [_numBlocks + 1];
+  _blockTotalMerCorrection = new u32bit [_numBlocks + 1];
 
   //  We (re)compute the number of mers in this file, given that the
   //  desired mersize might be larger than that used to construct the
   //  file.
   //
-  u64bit   numMersAtSizeDesired = 0;
+  u64bit   origNumMers          = _numMers;
+  u64bit   totMers              = 0;
   u32bit   merSizeDifference    = _merSizeDesired - _merSizeInFile;
 
+  _numMers = 0;
+
   for (u64bit b=0; b<_numBlocks; b++) {
-    _blockSize[b]     = (u32bit)blocksFile->getNumber();
-    _blockSequence[b] = (u32bit)blocksFile->getNumber();
-    _blockPosInSeq[b] = (u64bit)blocksFile->getNumber();
-    _blockPosInStr[b] = (u64bit)blocksFile->getNumber();
+    _blockSize[b]               = (u32bit)blocksFile->getNumber();
+    _blockSequence[b]           = (u32bit)blocksFile->getNumber();
+    _blockPosInSeq[b]           = (u64bit)blocksFile->getNumber();
+    _blockPosInStr[b]           = (u64bit)blocksFile->getNumber();
+    _blockFirstMerNum[b]        = _numMers;
+    _blockTotalMerCorrection[b] = totMers - _numMers;
 
-    //  XXX recompute the number of mers in this file here!
+    totMers += _blockSize[b];
 
+    //  Because we now allow building on some mer size k, and accesses
+    //  for all mersizes k or bigger, the number of mers per block can
+    //  be smaller than what the file says it is.  We explicitly count
+    //  how many mers at the requested size there are.
+    //
     if (_blockSize[b] > merSizeDifference)
-      numMersAtSizeDesired += _blockSize[b] - merSizeDifference;
-
-#if 0
-    fprintf(stderr, "redaing block: "u64bitFMTW(2)" size="u32bitFMT" seq="u32bitFMT" posinseq="u64bitFMT" posinstr="u64bitFMT"\n",
-            b, _blockSize[b], _blockSequence[b], _blockPosInSeq[b], _blockPosInStr[b]);
-#endif
+      _numMers += _blockSize[b] - merSizeDifference;
   }
+
+  //  Useful for the binary search below!
+  _blockFirstMerNum[_numBlocks] = _numMers;
+
+  fprintf(stderr, "Found "u64bitFMT" mers at size "u32bitFMT", and "u64bitFMT" mers at desired size of "u32bitFMT"\n",
+          origNumMers, _merSizeInFile, _numMers, _merSizeDesired);
 
   delete blocksFile;
 
-  fprintf(stderr, "Found "u64bitFMT" mers at size "u32bitFMT", and "u64bitFMT" mers at desired size of "u32bitFMT"\n",
-          _numMers, _merSizeInFile, numMersAtSizeDesired, _merSizeDesired);
-
-  //  Reset the number of mers in this file at the desired size
-  //
-  _numMers = numMersAtSizeDesired;
-
-
-  //  Read the deflines (maybe)
-  //
-#ifdef ENABLE_DEFLINE_SUPPORT
-  _deflineStorage = new char  [_defLength];
-  _deflines       = new char* [_numDefs];
-
-  errno = 0;
-
-  fseeko(rawFile, _defStart, SEEK_SET);
-
-  if (errno) {
-    fprintf(stderr, "merStreamFileReader()-- Failed to position file to deflines: %s\n", strerror(errno));
-    exit(1);
-  }
-
-  for (u32bit d=0, o=0; d<_numDefs; d++) {
-    u32bit len = 0;
-
-    _deflines[d] = _deflineStorage + o;
-
-    errno = 0;
-
-    fread(&len, sizeof(u32bit), 1, rawFile);
-    fread(_deflines[d], sizeof(char), len, rawFile);
-
-    if (errno) {
-      fprintf(stderr, "merStreamFileReader()-- Failed to read defline "u32bitFMT": %s\n", d, strerror(errno));
-      exit(1);
-    }
-
-    o += len;
-  }
-#else
-  _deflineStorage = 0L;
-  _deflines       = 0L;
-#endif
-
-  //  We're all done with the raw file access, close it.
-  //
-  fclose(rawFile);
 
   //  Position the bitPackedFile to the start of the merStream
   //
   _streamFile = new bitPackedFile(streamName, _strStart);
-
   delete [] streamName;
 
   //  Setup the decoder.  _firstMer is a terribly ugly hack (or maybe
@@ -438,8 +328,6 @@ merStreamFileReader::merStreamFileReader(const char *i, u32bit desiredMerSize) {
   _posInSeq   = 0;
   _posInStr   = 0;
   _sequence   = 0;
-
-  _defline    = 0L;
 }
 
 
@@ -448,10 +336,95 @@ merStreamFileReader::~merStreamFileReader() {
   delete [] _blockSequence;
   delete [] _blockPosInSeq;
   delete [] _blockPosInStr;
-  delete [] _deflineStorage;
-  delete [] _deflines;
+  delete [] _blockFirstMerNum;
   delete    _streamFile;
 }
+
+
+
+void
+merStreamFileReader::findBlock(u64bit merNumber,
+                               u32bit  &block,
+                               u64bit  &totalMers,
+                               u64bit  &totalMersInFile) {
+
+  u32bit merSizeDifference  = _merSizeDesired - _merSizeInFile;
+  bool   stillLooking       = true;
+
+  //  Use a binary search if there are lots of blocks, otherwise, linear search.
+
+  if (_numBlocks < 128) {
+    //
+    //  Linear search
+    //
+    while ((stillLooking) && (block < _numBlocks)) {
+      if        (_blockSize[block] < merSizeDifference) {
+        //  Block size too small to hold this mersize, keep looking.
+        totalMersInFile += _blockSize[block];
+        block++;
+
+      } else if (totalMers + _blockSize[block] - merSizeDifference > merNumber) {
+        //  Got it!  Stop.
+        stillLooking = false;
+
+      } else {
+        //  Big block, but not the right one.  Increment the sizes.
+        totalMersInFile += _blockSize[block];
+        totalMers       += _blockSize[block] - merSizeDifference;
+        block++;
+      }
+    }
+  } else {
+    //
+    //  Binary search
+    //
+
+    u32bit  lo = 0;
+    u32bit  hi = _numBlocks;
+    u32bit  md = 0;
+
+    while (lo <= hi) {
+      md = (lo + hi) / 2;
+
+      if        (merNumber < _blockFirstMerNum[md]) {
+        //  This block starts after the mer we're looking for.  
+        //
+        hi = md;
+
+      } else if ((_blockFirstMerNum[md] <= merNumber) && (merNumber < _blockFirstMerNum[md+1])) {
+        //  Got it!
+        lo           = md + 1;
+        hi           = md;
+        block        = md;
+        stillLooking = false;
+
+      } else {
+        //  By default, then, the block is too low.
+        lo = md;
+      }
+    }
+
+    totalMersInFile = _blockFirstMerNum[md] + _blockTotalMerCorrection[md];
+    totalMers       = _blockFirstMerNum[md];
+  }
+
+
+#if 0
+  fprintf(stderr, "mer="u64bitFMT"  block="u32bitFMT" total="u64bitFMT"/"u64bitFMT"\n",
+          merNumber, block, totalMersInFile, totalMers);
+#endif
+
+  //  stillLooking is true if we failed to find the guy.
+  //
+  if (stillLooking) {
+    fprintf(stderr, "merStreamFileReader::seekToMer()--  Looking for "u64bitFMT", but didn't find it.\n", merNumber);
+    exit(1);
+  }
+}
+
+
+
+
 
 
 bool
@@ -480,8 +453,6 @@ merStreamFileReader::seekToMer(u64bit merNumber) {
     _posInStr   = 0;
     _sequence   = 0;
 
-    _defline    = 0L;
-
     _streamFile->seek(0);
 
     return(true);
@@ -496,38 +467,9 @@ merStreamFileReader::seekToMer(u64bit merNumber) {
   u32bit block              = 0;
   u64bit totalMers          = 0;  //  total mers at desired size
   u64bit totalMersInFile    = 0;  //  total mers we see at default size
-  u32bit merSizeDifference  = _merSizeDesired - _merSizeInFile;
 
-  bool   stillLooking       = true;
+  findBlock(merNumber, block, totalMers, totalMersInFile);
 
-  while ((stillLooking) && (block < _numBlocks)) {
-    if        (_blockSize[block] < merSizeDifference) {
-      //  Block size too small, keep looking.
-      totalMersInFile += _blockSize[block];
-    } else if (totalMers + _blockSize[block] - merSizeDifference > merNumber) {
-      //  Got it!  Stop.
-      stillLooking = false;
-    } else {
-      //  Big block, increment the sizes.
-      totalMersInFile += _blockSize[block];
-      totalMers       += _blockSize[block] - merSizeDifference;
-    }
-
-    block++;
-  }
-
-  //  We count one too many -- stillLooking is true if we failed to find the guy.
-  block--;
-
-  if (stillLooking) {
-    fprintf(stderr, "merStreamFileReader::seekToMer()--  Looking for "u64bitFMT", but didn't find it.\n", merNumber);
-    exit(1);
-  }
-
-#if 0
-  fprintf(stderr, "mer="u64bitFMT"  block="u32bitFMT" total="u64bitFMT"/"u64bitFMT"\n",
-          merNumber, block, totalMersInFile, totalMers);
-#endif
 
   //  Now we're in the right block, and just need to load the mer.
   //
@@ -546,11 +488,11 @@ merStreamFileReader::seekToMer(u64bit merNumber) {
                     (merNumber - totalMers) * 2);     //  mers in this block before the mer we want
 
   _thisBlock     = block;
-  _thisBlockSize = _blockSize[_thisBlock] - (merNumber - totalMers) - merSizeDifference;
+  _thisBlockSize = _blockSize[_thisBlock] - (merNumber - totalMers) - (_merSizeDesired - _merSizeInFile);
 
-  _posInSeq  = _blockPosInSeq[_thisBlock] + (merNumber - totalMers) - 1;
-  _posInStr  = _blockPosInStr[_thisBlock] + (merNumber - totalMers) - 1;
-  _sequence  = _blockSequence[_thisBlock];
+  _posInSeq      = _blockPosInSeq[_thisBlock] + (merNumber - totalMers) - 1;
+  _posInStr      = _blockPosInStr[_thisBlock] + (merNumber - totalMers) - 1;
+  _sequence      = _blockSequence[_thisBlock];
 
   //  We read in mersize-1 bases into the FMer, but reverse complement
   //  the whole mer.  On the nextMer(), we shift out the extra junk
@@ -586,10 +528,6 @@ merStreamFileReader::seekToMer(u64bit merNumber) {
 }
 
 
-bool
-merStreamFileReader::seekToSequence(u64bit seqNumber) {
-  return(false);
-}
 
 
 bool
@@ -683,4 +621,45 @@ merStreamFileReader::nextMer(u32bit skip) {
   _iteration++;
 
   return(true);
+}
+
+
+
+
+bool
+merStreamFileReader::flipToCanonicalize(u64bit merNum) {
+  return(false);
+};
+
+
+bool
+merStreamFileReader::smaller(u64bit merNum1,
+                             u64bit merNum2,
+                             bool   doCanonical) {
+  bool  mer1flip = false;
+  bool  mer2flip = false;
+
+  if ((merNum1 >= _numMers) || (merNum2 >= _numMers)) {
+    fprintf(stderr, "merStreamFileReader::smaller()-- merNum out of range: "u64bitFMT" "u64bitFMT" but only "u64bitFMT" mers.\n",
+            merNum1, merNum2, _numMers);
+    return(false);
+  }
+
+  //  Get rid of the easy case
+  //
+  if (doCanonical == false) {
+
+    
+  }
+
+
+
+  if (doCanonical) {
+    mer1flip = flipToCanonicalize(merNum1);
+    mer2flip = flipToCanonicalize(merNum2);
+  }
+
+
+
+  return(false);
 }
