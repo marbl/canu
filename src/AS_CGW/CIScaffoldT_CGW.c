@@ -18,13 +18,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.11 2006-10-16 03:30:14 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.12 2006-10-31 22:22:25 brianwalenz Exp $";
 
 #undef DEBUG
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
 #undef DEBUG_SPLIT
-#undef DEBUG_DEMOTE
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1934,82 +1933,78 @@ void FixupLengthScaffoldT(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
 
 
 
-/* DemoteSmallSingletonScaffolds
-   We want to demote the contigs/unitigs in small singleton scaffolds so that they can
-   be candidates for stone/rock throwing.
-*/
-void DemoteSmallSingletonScaffolds(void){
-  GraphNodeIterator scaffolds;
-  CIScaffoldT *scaffold;
-  int numScaffolds = 0;
-  int numSingletonScaffolds = 0;
-  int numDemoted= 0;
-
-  /* Iterate through all of the Scaffolds */
+//  DemoteSmallSingletonScaffolds
+//
+//  We want to demote the contigs/unitigs in small singleton scaffolds
+//  so that they can be candidates for stone/rock throwing.
+//
+void DemoteSmallSingletonScaffolds(void) {
+  GraphNodeIterator   scaffolds;
+  CIScaffoldT        *scaffold;
+  int                 numScaffolds = 0;
+  int                 numSingletonScaffolds = 0;
+  int                 numDemoted= 0;
 
   InitGraphNodeIterator(&scaffolds, ScaffoldGraph->ScaffoldGraph, GRAPH_NODE_DEFAULT);
-  while((scaffold = NextGraphNodeIterator(&scaffolds)) != NULL){
-    ContigT *contig;
+  while ((scaffold = NextGraphNodeIterator(&scaffolds)) != NULL) {
+    ContigT        *contig;
     ChunkInstanceT *CI;
-    if(scaffold->info.Scaffold.numElements > 1)
+
+    if (scaffold->info.Scaffold.numElements > 1)
       continue;
 
     contig = GetGraphNode(ScaffoldGraph->ContigGraph, scaffold->info.Scaffold.AEndCI);
 
     numScaffolds++;
-    if(contig->info.Contig.numCI > 1)
+    if (contig->info.Contig.numCI > 1)
       continue;
 
     CI = GetGraphNode(ScaffoldGraph->CIGraph, contig->info.Contig.AEndCI);
 
     numSingletonScaffolds++;
-    if(CI->info.CI.coverageStat > GlobalData->cgbDefinitelyUniqueCutoff ||
-       CI->bpLength.mean > 2000.0)
+    if ((CI->info.CI.coverageStat > GlobalData->cgbDefinitelyUniqueCutoff) ||
+        (CI->bpLength.mean > 2000.0))
       continue;
 
-    numDemoted++;
-    /* We've found a victim!!! */
+    // We've found a victim!!!
 
-#ifdef DEBUG_DEMOTE
+    numDemoted++;
+
     fprintf(GlobalData->stderrc,
             "** Demoting Contig/Unitig " F_CID "/" F_CID " with coverage stat %d length %g scaffold " F_CID "\n",
             contig->id, CI->id, CI->info.CI.coverageStat, scaffold->bpLength.mean, scaffold->id);
-#else
-    { 
-      static int first=1;
-      if(first){
-        fprintf(GlobalData->stderrc,
-                "** Demoting Contig/Unitig " F_CID "/" F_CID " with coverage stat %d length %g scaffold " F_CID "\n",
-                contig->id, CI->id, CI->info.CI.coverageStat, scaffold->bpLength.mean, scaffold->id);
-        fprintf(GlobalData->stderrc,
-                "** THE PRECEDING MESSAGE TYPE WILL ONLY BE PRINTED ONCE--TO SEE ALL DEMOTIONS, SET DEBUG_DEMOTE in %s near line %d\n",
-                __FILE__,__LINE__);
-        first=0;
-      }
-    }
-#endif
 
-    /* Remove the Contig from the Scaffold 
-       We don't need to use the RemoveCIFromScaffold machinery, since we are
-       dealing with a pathological case */
+    // Remove the Contig from the Scaffold.  We don't need to use the
+    // RemoveCIFromScaffold machinery, since we are dealing with a
+    // pathological case
+    //
     contig->flags.bits.isUnique = 0;
-    contig->scaffoldID = NULLINDEX;
-    contig->AEndNext = contig->BEndNext = NULLINDEX;
+    contig->scaffoldID          = NULLINDEX;
+    contig->AEndNext            = NULLINDEX;
+    contig->BEndNext            = NULLINDEX;
     
-    /* Delete the Scaffold */
-    scaffold->flags.bits.isDead = TRUE; 
-    scaffold->info.Scaffold.AEndCI = scaffold->info.Scaffold.BEndCI = NULLINDEX;
+    // Delete any remaining edges
+    DeleteScaffoldEdgesForScaffold(ScaffoldGraph, scaffold);
+
+    // Mark the scaffold dead
+    scaffold->flags.bits.isDead         = TRUE;
+    scaffold->info.Scaffold.AEndCI      = NULLINDEX;
+    scaffold->info.Scaffold.BEndCI      = NULLINDEX;
     scaffold->info.Scaffold.numElements = 0;
-    scaffold->bpLength.mean = scaffold->bpLength.variance = 0.0;
+    scaffold->bpLength.mean             = 0.0;
+    scaffold->bpLength.variance         = 0.0;
 
-
-    /* Mark the Underlying Unitig as un-scaffolded, and not-unique */
+    // Mark the Underlying Unitig as un-scaffolded, and not-unique
     SetNodeType(CI, UNRESOLVEDCHUNK_CGW);
-
   }
+
+  //  If we removed any scaffolds, rebuild all the edges.
+  //
+  if (numDemoted > 0)
+    BuildNewScaffoldEdges(ScaffoldGraph, 0);
+
   fprintf(GlobalData->stderrc,
-          "# Considered %d scaffolds of which %d were single and %d (%g %%) were demoted\n",
+          "# Considered %d scaffolds of which %d were single and %d (%g%%) were demoted\n",
           numScaffolds, numSingletonScaffolds, numDemoted, 
           (numSingletonScaffolds > 0? ((double)(numDemoted)/(double)(numSingletonScaffolds)): 0.0));
-
 }
