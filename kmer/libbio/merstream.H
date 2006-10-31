@@ -165,12 +165,10 @@ merStream::theSequenceNumber(void) {
 inline
 char const *
 merStream::theDefLine(void) {
-  if      (_ms_mers)
-    return(_ms_mers->theDefLine());
-  else if (_fs_file)
+  if (_fs_file)
     return(_fs_file->theDefLine());
   else
-    return(">");
+    return(">not-available");
 }
 
 
