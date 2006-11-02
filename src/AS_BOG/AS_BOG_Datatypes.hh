@@ -33,8 +33,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_Datatypes.hh,v 1.9 2006-10-08 08:47:39 brianwalenz Exp $
- * $Revision: 1.9 $
+ * $Id: AS_BOG_Datatypes.hh,v 1.10 2006-11-02 19:44:30 eliv Exp $
+ * $Revision: 1.10 $
 */
 
 #ifndef INCLUDE_AS_BOG_DATATYPES
@@ -96,6 +96,11 @@ namespace AS_BOG{
 
 	typedef CDS_IID_t iuid;
 	const iuid NULL_FRAG_ID=0;
+
+    struct FragmentEnd {
+        iuid id;
+        fragment_end_type end;
+    };
 
 } //AS_BOG namespace
 

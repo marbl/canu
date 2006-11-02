@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.31 2006-10-19 15:13:03 eliv Exp $
- * $Revision: 1.31 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.32 2006-11-02 19:44:30 eliv Exp $
+ * $Revision: 1.32 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.31 2006-10-19 15:13:03 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.32 2006-11-02 19:44:30 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -69,6 +69,8 @@ namespace AS_BOG{
         delete unitigs;
     }
 
+    static std::map<iuid,int>* containPartialOrder;
+    static int maxContainDepth = 0;
 	void UnitigGraph::build(ChunkGraph *cg_ptr, long num_rand_frags, long genome_size){
 
 		iuid num_frags=cg_ptr->getNumFragments();
@@ -130,16 +132,14 @@ namespace AS_BOG{
                 DoveTailPath *tpPath = _extract_dovetail_path( unitig_id,
                               tpBest->frag_b_id, whichEnd, cg_ptr,offset);
 
-                utg->reverseComplement( 0, bog_ptr);
+                utg->reverseComplement();
                 utgFrg = utg->dovetail_path_ptr;
                 utgFrg->insert( utgFrg->end(), tpPath->begin(),tpPath->end() );
 
                 utg->id = unitig_id++;
 
-                utg->computeFragmentPositions(cntnrmap_ptr, best_cntr);
-
                 // must be sorted before merge
-                utg->sort();
+//                utg->sort();
 
                 // Store unitig in unitig graph
                 unitigs->push_back(utg);
@@ -176,7 +176,6 @@ namespace AS_BOG{
 								unitig_id, frag_idx, FIVE_PRIME, cg_ptr, 0 );
 
 					utg->id = unitig_id++;
-                    utg->computeFragmentPositions(cntnrmap_ptr, best_cntr);
 
                     fprintf(stderr,"Circular unitig %d 1st frag %d\n",
                             unitig_id-1,frag_idx);
@@ -191,10 +190,19 @@ namespace AS_BOG{
                 }
             }
         }
-        delete cntnrmap_ptr;
-
         printUnitigBreaks();
-        printUnitigEdges();
+        breakUnitigs();
+
+        UnitigsConstIter uIter = unitigs->begin();
+        for (; uIter != unitigs->end(); uIter++ ) {
+            Unitig* tig = *uIter;
+            if (tig == NULL)
+                continue;
+            tig->recomputeFragmentPositions(cntnrmap_ptr, best_cntr, bog_ptr);
+        }
+        fprintf(stderr,"Max contain depth is %d\n",maxContainDepth);
+        delete cntnrmap_ptr;
+        delete[] inUnitig;
 
         //mergeAllUnitigs( visited_map );
 
@@ -411,6 +419,118 @@ namespace AS_BOG{
     }
 	//////////////////////////////////////////////////////////////////////////////
 
+    void Unitig::computeFragmentPositions(BestOverlapGraph* bog_ptr) {
+        if (dovetail_path_ptr == NULL || dovetail_path_ptr->empty())
+            return;
+        // we need to determine which orientation the first frag is in
+        // so we peek ahead to the 2nd frag to find out
+        DoveTailIter iter = dovetail_path_ptr->begin();
+        int frag_begin,fragPrevEnd,fragNextEnd;
+        frag_begin = fragPrevEnd = fragNextEnd = 0;
+        iuid first = iter->ident;
+        int frag_end = BestOverlapGraph::fragLen(first);
+        fragPrevEnd = frag_end;
+        if(  dovetail_path_ptr->size() == 1) {
+            // still set singleton's coords
+            dovetail_path_ptr->front().position.bgn = frag_begin;
+            dovetail_path_ptr->front().position.end = frag_end;
+            return;
+        }
+        BestEdgeOverlap* bestEdge = bog_ptr->getBestEdgeOverlap(
+                first, FIVE_PRIME );
+        BestEdgeOverlap* threeP = bog_ptr->getBestEdgeOverlap(
+                first, THREE_PRIME );
+        fprintf(stderr,"1stFrag %d beg %d end %d\n",
+                    first, frag_begin, frag_end );
+        iter++;
+        if (iter->ident == bestEdge->frag_b_id) {
+            dovetail_path_ptr->front().position.bgn = frag_end;
+            dovetail_path_ptr->front().position.end = frag_begin;
+            fprintf(stderr,"Go off 5' edge and get frag %d\n",iter->ident);
+        } else {
+            // doesn't handle contianed, only backbone
+            fprintf(stderr,"Go off 3' edge and get frag %d %d\n",iter->ident,threeP->frag_b_id);
+            assert( iter->ident == threeP->frag_b_id );
+            bestEdge = threeP;
+            dovetail_path_ptr->front().position.bgn = frag_begin;
+            dovetail_path_ptr->front().position.end = frag_end;
+        }
+        fprintf(stderr,"ahang %d bhang %d\n", bestEdge->ahang, bestEdge->bhang);
+        if ( bestEdge->ahang > 0 )
+            frag_begin = bestEdge->ahang;
+        else 
+            frag_begin = -bestEdge->bhang;
+
+        fragment_end_type whichEnd = FIVE_PRIME; // the end to walk off for next frag
+        if (bestEdge->bend == FIVE_PRIME)
+            whichEnd = THREE_PRIME;
+
+        for (; iter != dovetail_path_ptr->end(); iter++ ) {
+            DoveTailNode* node = &*iter;
+            //DoveTailNode* nextNode = &*(iter+1);
+			bestEdge = bog_ptr->getBestEdgeOverlap( node->ident, whichEnd);
+            int currLen = BestOverlapGraph::fragLen(node->ident);
+            // The end of the fragment can be calulated as start + length
+            // or as end of previous frag + b_hang. They should be the same
+            // if there are no gaps, but with gaps the 2nd method should be better
+            frag_end = frag_begin + currLen;
+
+            fprintf(stderr,"Frag %d len %d beg %d end %d ahang %d bhang %d end %s bfrg %d bend %s\n",
+                    node->ident, currLen, frag_begin, frag_end,
+                     bestEdge->ahang, bestEdge->bhang, whichEnd == FIVE_PRIME ? "5'":"3'",
+                     bestEdge->frag_b_id, bestEdge->bend == FIVE_PRIME ? "5'":"3'");
+
+            int end;
+            // pick the smallest end that's greater then the previous end
+            // this is critical for preserving the correct frag order after
+            // a reverse complement in the unitig merging code
+            if (frag_end < fragPrevEnd) {
+                end = fragNextEnd;
+            } else if (fragNextEnd < fragPrevEnd) {
+                end = frag_end;
+            } else {
+                end = fragNextEnd > frag_end ? frag_end : fragNextEnd;
+            }
+/* only if I can't find a better way to fix up reverse complemented unitigs
+           if (nextNode != dovetail_path_ptr->end() &&
+                bestEdge->frag_b_id  != nextNode->ident) {
+                // disagreement, use next node's end and hangs
+                BestEdgeOverlap tP = bog_ptr->getBestEdgeOverlap( nextNode->ident,THREE_PRIME);
+                BestEdgeOverlap fP = bog_ptr->getBestEdgeOverlap( nextNode->ident,FIVE_PRIME);
+                if (node->ident == fP->frag_b_id) {
+                    if (whichEnd == FIVE_PRIME) {
+                       if ( fp->bend == FIVE_PRIME) {
+                       }
+                    }
+                }
+            }
+*/
+
+			if(whichEnd == FIVE_PRIME){
+				node->position.bgn = end;
+				node->position.end = frag_begin;
+			}else {
+				node->position.bgn = frag_begin;
+				node->position.end = end;
+			}
+            fragNextEnd = frag_end;
+            fragPrevEnd = end;
+
+            // Prep the start position of the next fragment
+            if (bestEdge->ahang < 0 && bestEdge->bhang < 0 ) {
+                fragNextEnd -= bestEdge->ahang ;
+			    frag_begin  -= bestEdge->bhang ;
+            } else {
+                fragNextEnd += bestEdge->bhang ;
+			    frag_begin  += bestEdge->ahang ;
+            }
+            if ( bestEdge->bend == FIVE_PRIME ) {
+                whichEnd = THREE_PRIME;
+            } else {
+                whichEnd = FIVE_PRIME;
+            }
+        }
+    }
 	DoveTailPath *UnitigGraph::_extract_dovetail_path( const iuid unitig_id,
 		iuid src_frag_id, fragment_end_type firstEnd, ChunkGraph *cg_ptr, int offset){
 
@@ -420,7 +540,7 @@ namespace AS_BOG{
 
 		iuid fp_frag_id, tp_frag_id;
 		iuid current_frag_id=src_frag_id;
-		iuid next_frag_id;
+		iuid next_frag_id = 0;
 		fragment_end_type whichEnd = firstEnd;
         int frag_end,frag_begin,fragNextEnd,fragPrevEnd;
         frag_begin = fragNextEnd = fragPrevEnd = offset;
@@ -509,7 +629,7 @@ namespace AS_BOG{
                 whichEnd = FIVE_PRIME;
             }
         }
-		if ( inUnitig[ current_frag_id ] ) {
+		if ( next_frag_id != 0 && inUnitig[ current_frag_id ] ) {
             // record unitig join/break point
             (*unitigIntersect)[current_frag_id].push_back( next_frag_id );
             fprintf(stderr,"Unitig %5d frag %7d -> Unitig %5d frag %7d\n",
@@ -519,14 +639,16 @@ namespace AS_BOG{
 		return(dtp_ptr);
 	}
 	//////////////////////////////////////////////////////////////////////////////
-    void UnitigGraph::printUnitigEdges() {
+    void UnitigGraph::breakUnitigs() {
 
         const char * fiveP  = "5'";
         const char * threeP = "3'";
-        UnitigVector::const_iterator tigIter = unitigs->begin();
+        UnitigVector* splits = new UnitigVector();
+        UnitigVector::iterator tigIter = unitigs->begin();
         for(;tigIter != unitigs->end(); tigIter++)
         {
             Unitig* tig = *tigIter;
+            FragmentEnds breaks;
             DoveTailNode lastBackbone;
             DoveTailPath::const_iterator dt_itr;
             for( dt_itr  = tig->dovetail_path_ptr->begin();
@@ -578,19 +700,47 @@ namespace AS_BOG{
                         }
 //                        assert( bestEdge->frag_b_id == dtFrag );
                         const char *inEnd = bestEnd == FIVE_PRIME ? fiveP : threeP;
-                        const char *dtEnd = fiveP;
-                        int pos = node.position.bgn;
+                        const char *dtEnd = threeP;
+                        int pos = node.position.end;
                         if ( bestEdge->bend == FIVE_PRIME) {
-                            dtEnd = threeP;
-                            pos = node.position.end;
+                            dtEnd = fiveP;
+                            pos = node.position.bgn;
                         }
                         fprintf(stderr,"  Unitig %5d frag %7d end %s intersects Unitig %5d frag %7d end %s pos %6d\n",
                                 inUnitig[inFrag]-1, inFrag, inEnd,
                                 tig->id-1, dtFrag, dtEnd, pos );
+
+                        Unitig *inTig = (*unitigs)[inUnitig[inFrag]-1];
+                        if (inTig->getLength() > 2500) {
+                            fprintf(stderr, "Break tig %5d at frag %7d because tig %5d has len %d\n",
+                                    tig->id-1, dtFrag, inTig->id-1, inTig->getLength());
+                            FragmentEnd breakPoint;
+                            breakPoint.id = dtFrag;
+                            breakPoint.end = bestEdge->bend;
+                            breaks.push( breakPoint );
+                        }
                     }
                 }
             }
+            if ( !breaks.empty() ) {
+                UnitigVector* newUs = breakUnitigAt( tig, breaks );
+                int frgCnt = 0;
+                UnitigsConstIter newIter = newUs->begin();
+                for(;newIter != newUs->end(); newIter++) {
+                    Unitig* tig = *newIter;
+                    frgCnt += tig->dovetail_path_ptr->size();
+                }
+                fprintf(stderr,"Num frgs after splits is %d\n",frgCnt);
+                splits->insert( splits->end(), newUs->begin(), newUs->end());
+//                (*unitigs)[ tig->id-1 ] = NULL;
+                *tigIter = NULL;
+//                delete tig;
+                delete newUs;
+            }
         }
+        fprintf(stderr,"Num splits %d\n",splits->size());
+        unitigs->insert( unitigs->end(), splits->begin(), splits->end());
+        delete splits;
     }
 	//////////////////////////////////////////////////////////////////////////////
     void UnitigGraph::printUnitigBreaks() {
@@ -716,6 +866,9 @@ namespace AS_BOG{
 			    iter!=unitigs->end();
 			    iter++){
 				
+                if (*iter == NULL)
+                    continue;
+
 				float avg_rho = (*iter)->getAvgRho();
 				total_rho += avg_rho;
 				float unitig_random_frags = (*iter)->getNumRandomFrags();
@@ -777,6 +930,10 @@ namespace AS_BOG{
 		//   of the rhos through both directions.
 
 		DoveTailPath::const_iterator dtp_iter;
+        if (dovetail_path_ptr == NULL || dovetail_path_ptr->empty()) {
+            fprintf(stderr,"NULL dovetailpath\n");
+            return 1;
+        }
 
 		// Get first fragment's length
 		dtp_iter=dovetail_path_ptr->begin();
@@ -863,35 +1020,15 @@ namespace AS_BOG{
 	// The length of the unitig is just the position of the fragment 
 	//   with the large begin or end value 
 
-		if(_length!=-1){
-			return(_length);
-		}
-		
-		long max_pos=-1;
-
 		if(dovetail_path_ptr->size()==0){
 			std::cerr << "This Unitig has an empty fragPositions." << std::endl;	
 		}
+        iuid notUsed;
+        DoveTailNode last  = getLastBackboneNode(notUsed);
+        int lastEnd = last.position.end > last.position.bgn ? 
+                      last.position.end : last.position.bgn;
 
-        DoveTailPath::const_iterator fpm_itr;
-		for(
-		    fpm_itr=dovetail_path_ptr->begin();
-		    fpm_itr!=dovetail_path_ptr->end();
-		    fpm_itr++){
-
-			SeqInterval intrvl=fpm_itr->position;
-
-			if(max_pos<intrvl.bgn){
-				max_pos=intrvl.bgn;
-			}
-			if(max_pos<intrvl.end){
-				max_pos=intrvl.end;
-			}
-		}
-
-		_length=max_pos;
-		return(_length);
-
+		return lastEnd;
 	}
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -950,6 +1087,41 @@ namespace AS_BOG{
 		_numRandomFrags=getNumFrags();
 		return(_numRandomFrags);
 	}
+	//////////////////////////////////////////////////////////////////////////////
+    void Unitig::shiftCoordinates(int offset) {
+        //simple version
+        if (dovetail_path_ptr->empty()) {
+        } else {
+        fprintf(stderr,"shift unitig by %d 1st frg %d\n",
+                offset,dovetail_path_ptr->front().ident);
+        }
+        DoveTailIter iter = dovetail_path_ptr->begin();
+        for(; iter != dovetail_path_ptr->end(); iter++) {
+            iter->position.bgn += offset;
+            iter->position.end += offset;
+        }
+    }
+	//////////////////////////////////////////////////////////////////////////////
+    void Unitig::reverseComplement() {
+        //simple version
+        int length = this->getLength();
+        DoveTailNode first = dovetail_path_ptr->front();
+        DoveTailNode last = dovetail_path_ptr->back();
+        fprintf(stderr,"Before reverse 1st %d %d %d last %d %d %d\n",
+                first.ident,first.position.bgn,first.position.end,
+                last.ident,last.position.bgn,last.position.end);
+        DoveTailIter iter = dovetail_path_ptr->begin();
+        for(; iter != dovetail_path_ptr->end(); iter++) {
+            iter->position.bgn = length - iter->position.bgn;
+            iter->position.end = length - iter->position.end;
+        }
+        reverse(dovetail_path_ptr->begin(),dovetail_path_ptr->end());
+        first = dovetail_path_ptr->front();
+        last = dovetail_path_ptr->back();
+        fprintf(stderr,"Before reverse 1st %d %d %d last %d %d %d\n",
+                first.ident,first.position.bgn,first.position.end,
+                last.ident,last.position.bgn,last.position.end);
+    }
 	//////////////////////////////////////////////////////////////////////////////
     void Unitig::reverseComplement(int offset, BestOverlapGraph *bog_ptr)
     {
@@ -1023,7 +1195,7 @@ namespace AS_BOG{
     //Recursively place all contains under this one into the FragmentPositionMap
 
     void Unitig::placeContains( const ContainerMap* cntnrp, BestContainmentMap *bestCtn,
-                                const iuid container, const SeqInterval intvl)
+                                const iuid container, const SeqInterval intvl, const int level)
     {
         if (cntnrp->size() == 0)
             return;
@@ -1042,6 +1214,9 @@ namespace AS_BOG{
                         continue;
 
                     assert( best.container == container );
+                    (*containPartialOrder)[ cntee ] = level;
+                    if (level > maxContainDepth)
+                        maxContainDepth = level;
 
                     int offset = best.a_hang;
                     int bhang  = best.b_hang;
@@ -1085,13 +1260,13 @@ namespace AS_BOG{
 
                     dovetail_path_ptr->push_back( pos );
                     best.isPlaced = true;
-                    placeContains( cntnrp, bestCtn, cntee, pos.position);
+                    placeContains( cntnrp, bestCtn, cntee, pos.position, level+1);
                 }
             }
     }
 
-    void Unitig::computeFragmentPositions(ContainerMap *allcntnr_ptr,
-                 BestContainmentMap *bestContain)
+    void Unitig::recomputeFragmentPositions(ContainerMap *allcntnr_ptr,
+                 BestContainmentMap *bestContain, BestOverlapGraph *bog_ptr)
     {
 		long frag_ins_begin = 0;
 		long frag_ins_end;
@@ -1101,6 +1276,10 @@ namespace AS_BOG{
 #endif
 		//std::cerr << "Positioning dovetails." << std::endl;
 		// place dovetails in a row
+        if (dovetail_path_ptr == NULL)
+            return;
+//        computeFragmentPositions( bog_ptr );
+        containPartialOrder = new std::map<iuid,int>;
         long numDoveTail = dovetail_path_ptr->size();
 		for(long i=0; i < numDoveTail; i++) {
             DoveTailNode *dt_itr = &(*dovetail_path_ptr)[i];
@@ -1113,8 +1292,10 @@ namespace AS_BOG{
 #endif
             lastFrag = fragId;
 
-            placeContains( allcntnr_ptr, bestContain, fragId, dt_itr->position);
+            placeContains( allcntnr_ptr, bestContain, fragId, dt_itr->position,1);
 		}
+        this->sort();
+        delete containPartialOrder;
         // Compute assuming that containee is the same orientation as container
         //	if(cntnr_intvl.begin < cntnr_intvl.end)
 
@@ -1153,6 +1334,96 @@ namespace AS_BOG{
         //   definition of olap_offset is based on 3' origin.
 
 	}
+	//////////////////////////////////////////////////////////////////////////////
+
+    UnitigVector* UnitigGraph::breakUnitigAt(Unitig *tig, FragmentEnds &breaks)
+    {
+        if (breaks.empty())
+            return NULL;
+        fprintf(stderr,"Before break size is %d, unitig %d\n",breaks.size(),tig->dovetail_path_ptr->size());
+        UnitigVector* splits = new UnitigVector();
+        Unitig* newTig = new Unitig();
+        newTig->dovetail_path_ptr = new DoveTailPath();
+        splits->push_back( newTig );
+        DoveTailIter dtIter = tig->dovetail_path_ptr->begin();
+        FragmentEnd breakPoint = breaks.front();
+        breaks.pop();
+        int frgCnt = 0;
+        int offset = 0;
+        for( ; dtIter != tig->dovetail_path_ptr->end(); dtIter++) {
+            frgCnt++;
+            DoveTailNode frg = *dtIter;
+            FragmentEnd nextBP = breaks.front();
+            bool bothEnds = false;
+            while ( !breaks.empty() && nextBP.id == breakPoint.id ) {
+                if (nextBP.end != breakPoint.end)
+                    bothEnds = true;
+                breaks.pop();
+                nextBP = breaks.front();
+            }
+            bool reverse = frg.position.bgn > frg.position.end;
+            if (breakPoint.id == frg.ident) {
+                if (bothEnds) {
+                    // create singleton when split at both ends
+                    fprintf(stderr,"Breaking tig %d at both ends of %d num %d\n",tig->id,breakPoint.id,frgCnt);
+                    newTig->shiftCoordinates( offset );
+                    newTig = new Unitig();
+                    newTig->dovetail_path_ptr = new DoveTailPath();
+                    splits->push_back( newTig );
+                    frg.position.bgn = 0;
+                    frg.position.end = BestOverlapGraph::fragLen( frg.ident );
+                    newTig->dovetail_path_ptr->push_back( frg );
+                    newTig = new Unitig();
+                    newTig->dovetail_path_ptr = new DoveTailPath();
+                }
+                else if (breakPoint.end ==  FIVE_PRIME && !reverse ||
+                         breakPoint.end == THREE_PRIME && reverse)
+                {
+                    // break at end, frg starts new tig
+                    fprintf(stderr,"Breaking tig %d before %d num %d\n",tig->id,breakPoint.id,frgCnt);
+                    newTig->shiftCoordinates( offset );
+                    newTig = new Unitig();
+                    newTig->dovetail_path_ptr = new DoveTailPath();
+                    offset = reverse ? -frg.position.end : -frg.position.bgn;
+                    fprintf(stderr,"Offset is %d for frg %d %d,%d\n",
+                            offset,frg.ident,frg.position.bgn,frg.position.end);
+                    newTig->dovetail_path_ptr->push_back( frg );
+                }
+                else if (breakPoint.end ==  FIVE_PRIME && reverse ||
+                         breakPoint.end == THREE_PRIME && !reverse )
+                {
+                    fprintf(stderr,"Breaking tig %d after %d num %d\n",tig->id,breakPoint.id,frgCnt);
+                    newTig->dovetail_path_ptr->push_back( frg );
+                    newTig->shiftCoordinates( offset );
+                    newTig = new Unitig();
+                    newTig->dovetail_path_ptr = new DoveTailPath();
+                    // break at begin, frg goes in existing tig
+                } else {
+                    // ack!
+                    assert(0);
+                }
+                splits->push_back( newTig );
+                if (breaks.empty()) {
+                    breakPoint.id = 0;
+                    continue;
+                }
+                else {
+                    breakPoint = breaks.front();
+                    breaks.pop();
+                }
+            } else {
+                if (newTig->dovetail_path_ptr->empty()) {
+                    offset = reverse ? -frg.position.end : -frg.position.bgn;
+                    fprintf(stderr,"Offset is %d for frg %d %d,%d\n",
+                            offset,frg.ident,frg.position.bgn,frg.position.end);
+                }
+                newTig->dovetail_path_ptr->push_back( frg );
+            }
+        }
+        newTig->shiftCoordinates( offset );
+        fprintf(stderr,"After break size is %d\n",breaks.size());
+        return splits;
+    }
 
 	//////////////////////////////////////////////////////////////////////////////
 
@@ -1186,6 +1457,10 @@ namespace AS_BOG{
 		}
         else if (aright != bright)
         {
+            if (impa->contained==0 && impb->contained!=0)
+                return(-1);
+            else if (impa->contained!=0 && impb->contained==0)
+                return(1);
             if (impa->contained!=0 || impb->contained!=0)
                 return(bright - aright);
             else 
@@ -1196,6 +1471,8 @@ namespace AS_BOG{
                 return(1);
 			if(impb->contained == impa->ident)
                 return(-1);
+			if(impa->contained!=0 && impb->contained!=0)
+                return((*containPartialOrder)[impa->ident] - (*containPartialOrder)[impb->ident]);
 			if(impa->contained!=0)
 				return(1);
 			if(impb->contained!=0)
@@ -1217,7 +1494,7 @@ namespace AS_BOG{
 		//void qsort(void *base, size_t nmemb, size_t size,
                 //  int(*compar)(const void *, const void *));
 		// Sort by 5' end of fragment position
-		qsort(imp_msg_arr, getNumFrags(), sizeof(IntMultiPos), &IntMultiPosCmp);
+		//qsort(imp_msg_arr, getNumFrags(), sizeof(IntMultiPos), &IntMultiPosCmp);
 
 		// Populate the IUM message with unitig info
 		#ifdef AS_ENABLE_SOURCE
@@ -1256,6 +1533,11 @@ namespace AS_BOG{
         int iumId = 0;
 		UnitigVector::iterator utg_itr;
 		for(utg_itr=unitigs->begin(); utg_itr!=unitigs->end(); utg_itr++){
+            if( *utg_itr == NULL)
+                continue;
+
+            if( (*utg_itr)->getNumFrags() == 0 )
+                continue;
 
 			IntUnitigMesg *ium_mesg_ptr;
 			ium_mesg_ptr=(*utg_itr)->getIUM_Mesg();

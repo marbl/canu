@@ -30,11 +30,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: BuildUnitigs.cc,v 1.11 2006-10-11 14:36:27 eliv Exp $
- * $Revision: 1.11 $
+ * $Id: BuildUnitigs.cc,v 1.12 2006-11-02 19:44:30 eliv Exp $
+ * $Revision: 1.12 $
 */
 
-static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.11 2006-10-11 14:36:27 eliv Exp $";
+static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.12 2006-11-02 19:44:30 eliv Exp $";
 
 //  System include files
 
@@ -187,6 +187,8 @@ void outputHistograms(AS_BOG::UnitigGraph *utg) {
     for(;uiter != utg->unitigs->end(); uiter++) {
 
         AS_BOG::Unitig *u = *uiter;
+        if (u == NULL)
+            continue;
         zork.nsamples = 1;
         int numFrags = u->getNumFrags();
         zork.sum_frags = zork.min_frags = zork.max_frags = numFrags;

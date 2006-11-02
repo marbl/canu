@@ -34,17 +34,18 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.hh,v 1.20 2006-10-18 17:31:46 eliv Exp $
- * $Revision: 1.20 $
+ * $Id: AS_BOG_UnitigGraph.hh,v 1.21 2006-11-02 19:44:30 eliv Exp $
+ * $Revision: 1.21 $
 */
 
 
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.20 2006-10-18 17:31:46 eliv Exp $";
+static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.21 2006-11-02 19:44:30 eliv Exp $";
 
 #include <vector>
+#include <queue>
 #include <map>
 #include <set>
 #include <iostream>
@@ -64,12 +65,15 @@ namespace AS_BOG{
 	typedef iuid containee_id;
 	typedef iuid fragment_id;
 	typedef std::vector<fragment_id> FragmentList;
+	typedef std::queue<FragmentEnd> FragmentEnds;
 	typedef std::map<iuid, FragmentList> FragmentEdgeList;
 
 	///////////////////////////////////////////////////////////////////////
 
     typedef IntMultiPos DoveTailNode;
 	typedef std::vector<DoveTailNode> DoveTailPath;
+	typedef DoveTailPath::iterator    DoveTailIter;
+	typedef DoveTailPath::reverse_iterator    DoveTailRIter;
 
 	typedef std::vector<iuid> ContaineeList;	
 	typedef std::map<container_id, ContaineeList> ContainerMap;
@@ -90,8 +94,12 @@ namespace AS_BOG{
         void sort();
 
 		// Compute unitig based on given dovetails and containments
-		void computeFragmentPositions(ContainerMap*, BestContainmentMap*);
+		void recomputeFragmentPositions(ContainerMap*, BestContainmentMap*,
+                                      BestOverlapGraph*);
+		void computeFragmentPositions(BestOverlapGraph*);
 
+        void shiftCoordinates(int);
+        void reverseComplement( );
         void reverseComplement( int offset, BestOverlapGraph *);
 		// Accessor methods
 		float getAvgRho(void);
@@ -116,7 +124,7 @@ namespace AS_BOG{
 
 		private:
             void placeContains( const ContainerMap*, BestContainmentMap*,
-                            const iuid , const SeqInterval );
+                            const iuid , const SeqInterval, const int level );
 
 			// Do not access these private variables directly, they may not be
 			//  computed yet, use accessors!
@@ -149,6 +157,9 @@ namespace AS_BOG{
 	///////////////////////////////////////////////////////////////////////
 
 	typedef std::vector<Unitig*> UnitigVector;
+	typedef UnitigVector::iterator UnitigsIter;
+	typedef UnitigVector::const_iterator UnitigsConstIter;
+	typedef UnitigVector::reverse_iterator UnitigsRIter;
 
 	struct UnitigGraph{
 		// This will store the entire set of unitigs that are generated
@@ -167,8 +178,10 @@ namespace AS_BOG{
 
 		float getGlobalArrivalRate(long total_random_frags_in_genome=0, long genome_size=0);
 
-        void printUnitigEdges();
+        void breakUnitigs();
         void printUnitigBreaks();
+
+        UnitigVector* breakUnitigAt( Unitig *, FragmentEnds &);
 
 		///////////////////////////////////////////////////////////////
 		// Member Variables

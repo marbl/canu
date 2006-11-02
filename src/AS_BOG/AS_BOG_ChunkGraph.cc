@@ -33,11 +33,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_ChunkGraph.cc,v 1.7 2006-10-18 17:31:46 eliv Exp $
- * $Revision: 1.7 $
+ * $Id: AS_BOG_ChunkGraph.cc,v 1.8 2006-11-02 19:44:30 eliv Exp $
+ * $Revision: 1.8 $
 */
 
-static char AS_BOG_CHUNK_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_ChunkGraph.cc,v 1.7 2006-10-18 17:31:46 eliv Exp $";
+static char AS_BOG_CHUNK_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_ChunkGraph.cc,v 1.8 2006-11-02 19:44:30 eliv Exp $";
 
 //  System include files
 
@@ -66,6 +66,9 @@ namespace AS_BOG{
 		if(_chunkable_array != NULL){
 			delete[] _chunkable_array;
 		}
+		if(_chunk_lengths != NULL){
+            delete[] _chunk_lengths;
+        }
 	}
 
 
