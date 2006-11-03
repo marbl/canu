@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.32 2006-11-02 19:44:30 eliv Exp $
- * $Revision: 1.32 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.33 2006-11-03 20:19:01 eliv Exp $
+ * $Revision: 1.33 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.32 2006-11-02 19:44:30 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.33 2006-11-03 20:19:01 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -118,23 +118,35 @@ namespace AS_BOG{
                 utg->dovetail_path_ptr = utgFrg;
                 fragment_end_type whichEnd = THREE_PRIME;
                 BestEdgeOverlap *tpBest = bog_ptr->getBestEdgeOverlap( frag_idx, whichEnd);
-                // if other end is also 3' we need to walk of it's 5'
-                if (tpBest->bend == whichEnd)
-                    whichEnd = FIVE_PRIME;
+                iuid tpId = tpBest->frag_b_id;
+                // if it the other end is already in a unitig, don't try to extend
+                if (inUnitig[tpId]) {
+                    if (tpId != 0 && unitig_id != inUnitig[tpId])
+                    {
+                      (*unitigIntersect)[tpId].push_back( frag_idx );
+                      fprintf(stderr,"Unitig %5d 1st frag %7d -> Unitig %5d frag %7d\n",
+                            unitig_id-1, frag_idx, inUnitig[tpId]-1, tpId );
+                    }
+                } else {
+                    // if other end is also 3' we need to walk of it's 5'
+                    if (tpBest->bend == whichEnd)
+                        whichEnd = FIVE_PRIME;
 
-                int len = utg->getLength();
-                int flen = BestOverlapGraph::fragLen(frag_idx);
-                int ahng = tpBest->ahang;
-                int offset = len - flen + ahng;
-                fprintf(stderr,"Join unitig %d len %d at %d len %d and %d ahang %d offset %d\n",
-                        unitig_id, len, frag_idx, flen, tpBest->frag_b_id, ahng, offset );
+                    int len = utg->getLength();
+                    int flen = BestOverlapGraph::fragLen(frag_idx);
+                    int ahng = tpBest->ahang;
+                    int offset = len - flen + ahng;
+                    fprintf(stderr,
+                        "Join unitig %d len %d at %d len %d and %d ahang %d offset %d\n",
+                         unitig_id, len, frag_idx, flen, tpBest->frag_b_id, ahng, offset );
 
-                DoveTailPath *tpPath = _extract_dovetail_path( unitig_id,
-                              tpBest->frag_b_id, whichEnd, cg_ptr,offset);
+                    DoveTailPath *tpPath = _extract_dovetail_path( unitig_id,
+                            tpBest->frag_b_id, whichEnd, cg_ptr,offset);
 
-                utg->reverseComplement();
-                utgFrg = utg->dovetail_path_ptr;
-                utgFrg->insert( utgFrg->end(), tpPath->begin(),tpPath->end() );
+                    utg->reverseComplement();
+                    utgFrg = utg->dovetail_path_ptr;
+                    utgFrg->insert( utgFrg->end(), tpPath->begin(),tpPath->end() );
+                }
 
                 utg->id = unitig_id++;
 
@@ -711,8 +723,12 @@ namespace AS_BOG{
                                 tig->id-1, dtFrag, dtEnd, pos );
 
                         Unitig *inTig = (*unitigs)[inUnitig[inFrag]-1];
-                        if (inTig->getLength() > 2500) {
-                            fprintf(stderr, "Break tig %5d at frag %7d because tig %5d has len %d\n",
+                        if (inTig == NULL) {
+                            fprintf(stderr, "  NullBreak tig %5d at frag %7d\n",
+                                    tig->id-1, dtFrag );
+                        }
+                        else if (inTig->getLength() > 2500) {
+                            fprintf(stderr, "  Break tig %5d at frag %7d because tig %5d has len %d\n",
                                     tig->id-1, dtFrag, inTig->id-1, inTig->getLength());
                             FragmentEnd breakPoint;
                             breakPoint.id = dtFrag;
@@ -1118,7 +1134,7 @@ namespace AS_BOG{
         reverse(dovetail_path_ptr->begin(),dovetail_path_ptr->end());
         first = dovetail_path_ptr->front();
         last = dovetail_path_ptr->back();
-        fprintf(stderr,"Before reverse 1st %d %d %d last %d %d %d\n",
+        fprintf(stderr,"After reverse 1st %d %d %d last %d %d %d\n",
                 first.ident,first.position.bgn,first.position.end,
                 last.ident,last.position.bgn,last.position.end);
     }
@@ -1365,7 +1381,7 @@ namespace AS_BOG{
             if (breakPoint.id == frg.ident) {
                 if (bothEnds) {
                     // create singleton when split at both ends
-                    fprintf(stderr,"Breaking tig %d at both ends of %d num %d\n",tig->id,breakPoint.id,frgCnt);
+                    fprintf(stderr,"  Breaking tig %d at both ends of %d num %d\n",tig->id-1,breakPoint.id,frgCnt);
                     newTig->shiftCoordinates( offset );
                     newTig = new Unitig();
                     newTig->dovetail_path_ptr = new DoveTailPath();
@@ -1380,7 +1396,7 @@ namespace AS_BOG{
                          breakPoint.end == THREE_PRIME && reverse)
                 {
                     // break at end, frg starts new tig
-                    fprintf(stderr,"Breaking tig %d before %d num %d\n",tig->id,breakPoint.id,frgCnt);
+                    fprintf(stderr,"  Breaking tig %d before %d num %d\n",tig->id-1,breakPoint.id,frgCnt);
                     newTig->shiftCoordinates( offset );
                     newTig = new Unitig();
                     newTig->dovetail_path_ptr = new DoveTailPath();
@@ -1392,7 +1408,7 @@ namespace AS_BOG{
                 else if (breakPoint.end ==  FIVE_PRIME && reverse ||
                          breakPoint.end == THREE_PRIME && !reverse )
                 {
-                    fprintf(stderr,"Breaking tig %d after %d num %d\n",tig->id,breakPoint.id,frgCnt);
+                    fprintf(stderr,"  Breaking tig %d after %d num %d\n",tig->id-1,breakPoint.id,frgCnt);
                     newTig->dovetail_path_ptr->push_back( frg );
                     newTig->shiftCoordinates( offset );
                     newTig = new Unitig();
