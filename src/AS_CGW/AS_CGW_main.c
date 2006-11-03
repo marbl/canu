@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.28 2006-10-03 21:49:53 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.29 2006-11-03 20:13:26 brianwalenz Exp $";
 
 
 static const char *usage = 
@@ -760,16 +760,6 @@ int main(int argc, char *argv[]){
     fprintf(GlobalData->stderrc,"**** Running BuildScaffoldsFromFirstPriniciples ****\n");
     fprintf(GlobalData->stderrc,"**** with skipInitialScaffolds = %d\n", skipInitialScaffolds);
 
-
-#if 0
-    //  BPW HACK!  We still have big edges that aren't getting updated.
-
-    ScaffoldGraph->ScaffoldGraph = CreateGraphCGW(SCAFFOLD_GRAPH, NULLINDEX, NULLINDEX);
-    ScaffoldGraph->CIScaffolds   = ScaffoldGraph->ScaffoldGraph->nodes;
-    ScaffoldGraph->SEdges        = ScaffoldGraph->ScaffoldGraph->edges;
-#endif
-
-
     BuildScaffoldsFromFirstPriniciples(ScaffoldGraph, skipInitialScaffolds);  // rocks is called inside of here
 
 #if defined(CHECK_CONTIG_ORDERS) || defined(CHECK_CONTIG_ORDERS_INCREMENTAL)
@@ -1270,44 +1260,28 @@ int main(int argc, char *argv[]){
   if(GlobalData->debugLevel > 0)
     CheckSmallScaffoldGaps(ScaffoldGraph);
 
-  fprintf(GlobalData->stderrc,"* Before Output *\n");
-  ReportMemorySize(ScaffoldGraph,stderr);
-  fflush(stderr);
-
   if(generateOutput){
-    fprintf(GlobalData->stderrc,"* Output cgw files *\n");
     StartTimerT(&data->OutputTimer);
+
     MarkContigEdges();
     OutputMateDists(ScaffoldGraph);
-    fprintf(GlobalData->stderrc,"* Before Output Mate Dists*\n");
-    ReportMemorySize(ScaffoldGraph,stderr);
-    fflush(stderr);
     OutputFrags(ScaffoldGraph);
-    fprintf(GlobalData->stderrc,"* Before OutputUnitigs *\n");
-    ReportMemorySize(ScaffoldGraph,stderr);
-    fflush(stderr);
+
     // We always have multiAlignments for Unitigs
     OutputUnitigsFromMultiAligns();
     OutputUnitigLinksFromMultiAligns();
-    fprintf(GlobalData->stderrc,"* Before OutputContigs *\n");
-    ReportMemorySize(ScaffoldGraph,stderr);
-    fflush(stderr);
-    fprintf(data->stderrc,"* Before OutputContigs *\n");
-
 
     if(GlobalData->debugLevel > 0){
       DumpContigs(data->stderrc,ScaffoldGraph, FALSE);
       DumpCIScaffolds(GlobalData->stderrc,ScaffoldGraph, FALSE);
     }
-    if(!ScaffoldGraph->doRezOnContigs){
+
+    if (!ScaffoldGraph->doRezOnContigs)
       assert(0);
-    }else{
-      OutputContigsFromMultiAligns();
-    }
+
+    OutputContigsFromMultiAligns();
     OutputContigLinks(ScaffoldGraph, outputOverlapOnlyContigEdges);
-    fprintf(GlobalData->stderrc,"* Before OutputScaffolds *\n");
-    ReportMemorySize(ScaffoldGraph,stderr);
-    fflush(stderr);
+
     OutputScaffolds(ScaffoldGraph);
     OutputScaffoldLinks(ScaffoldGraph);
 
