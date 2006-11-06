@@ -340,6 +340,9 @@ merylArgs::merylArgs(int argc, char **argv) {
       buildinfo_libbio(stderr);
       buildinfo_libutil(stderr);
       exit(1);
+    } else if (strncmp(argv[arg], "-V", 2) == 0) {
+      fprintf(stdout, "meryl the Mighty Mer Counter version $Id$\n");
+      exit(0);
     } else if (strcmp(argv[arg], "-m") == 0) {
       arg++;
       merSize = strtou32bit(argv[arg], 0L);
