@@ -366,8 +366,6 @@ intervalDepth_sort_helper(const void *a, const void *b) {
 
   if (A->lo < B->lo) return(-1);
   if (A->lo > B->lo) return(1);
-  if (A->hi < B->hi) return(-1);
-  if (A->hi > B->hi) return(1);
   return(0);
 }
 
@@ -439,6 +437,12 @@ intervalDepth::intervalDepth(intervalList &IL) {
     else
       _list[_listLen].de--;
   }
+
+  //  Toss out the last one if it's zero length -- I think it's always
+  //  zero length, just can convince myself.
+  //
+  if (_list[_listLen].lo == _list[_listLen].hi)
+    _listLen--;
 
   delete [] id;
 }
