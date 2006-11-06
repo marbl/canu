@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: LeastSquaresGaps_CGW.c,v 1.15 2006-10-16 03:30:14 brianwalenz Exp $";
+static char CM_ID[] = "$Id: LeastSquaresGaps_CGW.c,v 1.16 2006-11-06 22:45:37 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -100,7 +100,7 @@ typedef struct {
 
 } debugflags_t;
 
-static debugflags_t  debug = {0, 0L, 0, 0, 1, 0L, 0, 1, 0};
+static debugflags_t  debug = {0, 0L, 0, 0, 0, 0L, 0, 1, 0};
 
 
 
