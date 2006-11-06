@@ -35,7 +35,7 @@ safe_malloc(size_t len) {
     assert(p != NULL);
   }
 
-#define TRASH_MEMORY_FIRST
+#undef TRASH_MEMORY_FIRST
 #ifdef TRASH_MEMORY_FIRST
   memset(p, 0xff, len);
 #endif

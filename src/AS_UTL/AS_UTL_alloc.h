@@ -34,7 +34,7 @@ void *safe_realloc(void *q, size_t len);
 #define malloc(X)  ERROR_MALLOC(X)
 #define calloc(X)  ERROR_CALLOC(X)
 #define realloc(X) ERROR_REALLOC(X)
-#defien free(X)    ERROR_FREE(X)
+#define free(X)    ERROR_FREE(X)
 #endif
 
 #endif // AS_UTL_ALLOC_H
