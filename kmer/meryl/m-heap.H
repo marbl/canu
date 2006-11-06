@@ -29,8 +29,8 @@ public:
   kMer const  &getMer(u64bit idx) {
     _mers->setIterationStart(idx);
     _mers->nextMer();
-    //if (_mers->theRMer() < _mers->theFMer())
-    //  return(_mers->theRMer());
+    if (_mers->theRMer() < _mers->theFMer())
+      return(_mers->theRMer());
     return(_mers->theFMer());
   }
 
