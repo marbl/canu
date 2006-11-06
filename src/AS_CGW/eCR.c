@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: eCR.c,v 1.7 2006-06-14 19:57:23 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: eCR.c,v 1.8 2006-11-06 22:46:17 brianwalenz Exp $";
 
 #include "eCR.h"
 
@@ -299,10 +299,10 @@ main(int argc, char **argv) {
         case 's':
           fprintf(stderr, "singleSid is no longer a valid option; use -b and -e.\n");
           break;
-        case '?':
-          fprintf(stderr,"Unrecognized option -%c",optopt);
         default :
+          fprintf(stderr,"Unrecognized option -%c",optopt);
           errflg++;
+          break;
       }
     }
   }
@@ -1688,7 +1688,7 @@ int GetNewUnitigMultiAlign(NodeCGW_T *unitig, fragPositions *fragPoss, int exten
 
   ReLoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ma, unitig->id, TRUE);
 
-#if 1
+#if 0
   fprintf(stderr, "for unitig %d, before reforming, strlen(ma->consensus) = " F_SIZE_T "\n", unitig->id, strlen(Getchar(ma->consensus, 0)));
   fprintf(stderr, "for unitig %d, before reforming, consensus:\n%s\n", unitig->id, Getchar(ma->consensus, 0));
 #endif
@@ -1856,8 +1856,6 @@ getAlteredFragPositions(NodeCGW_T *unitig, fragPositions **fragPoss, int altered
   // currently code does not handle negative extensions, ie, trimming
   if (extension <= 0)
     fprintf(stderr, "negative extension: %d\n", extension);
-
-  // assert (extension > 0);
 
   uma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, unitig->id, TRUE);
 
