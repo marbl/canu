@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.13 2006-09-19 20:56:48 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.14 2006-11-06 22:42:51 brianwalenz Exp $";
 /********************************************************************/
 /* Variable Length C Array Package 
  * 
@@ -30,8 +30,8 @@ static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.13 2006-09-19 20:56:48 brianwalenz 
  * It defines a basic set of operations, and provides a set of
  * macros that expand to support typesafe manipulation of the
  * arrays.
- * Revision: $Revision: 1.13 $
- * Date:     $Date: 2006-09-19 20:56:48 $
+ * Revision: $Revision: 1.14 $
+ * Date:     $Date: 2006-11-06 22:42:51 $
  * CMM, 1999/03/29:  Ported to large arrays on the Digital systems by declaring
  * array sizes using size_t, rather than unit32.
  *
@@ -100,12 +100,11 @@ int MakeRoom_VA
 
 #ifdef DEBUG
   fprintf(stderr,"* MakeRoom_VA for handle %p\n",va);
-  fprintf(stderr,"* Elements = %p\n", va->Elements);
-  fprintf(stderr,"* numElements = " F_SIZE_T "\n", va->numElements);
-  fprintf(stderr,"* allocatedElements = " F_SIZE_T "\n",
-          va->allocatedElements);
-  fprintf(stderr,"* sizeofElement = " F_SIZE_T "\n", va->sizeofElement);
-  fprintf(stderr,"* typeofElement = %s\n", va->typeofElement);
+  fprintf(stderr,"* Elements              = %p\n", va->Elements);
+  fprintf(stderr,"* numElements           = " F_SIZE_T "\n", va->numElements);
+  fprintf(stderr,"* allocatedElements     = " F_SIZE_T "\n", va->allocatedElements);
+  fprintf(stderr,"* sizeofElement         = " F_SIZE_T "\n", va->sizeofElement);
+  fprintf(stderr,"* typeofElement         = %s\n", va->typeofElement);
   fprintf(stderr,"* requested maxElements = " F_SIZE_T "\n", maxElements);
 #endif
 
@@ -118,7 +117,6 @@ int MakeRoom_VA
 	    "maxElements " F_SIZE_T " < allocElements " F_SIZE_T "...returning\n",
 	    maxElements, va->allocatedElements);
 #endif
-    // assert(va->Elements != NULL);
     return FALSE;
   }
 #endif
@@ -167,15 +165,15 @@ int MakeRoom_VA
 #endif
 
   if( NULL == va->Elements ) {
-    mem = (char *)malloc(newSize);
+    mem = (char *)safe_malloc(newSize);
   } else {
 #ifdef ALWAYS_MOVE_VA_ON_MAKEROOM
-    mem = (char *)malloc(newSize);
+    mem = (char *)safe_malloc(newSize);
     memcpy(mem, va->Elements, oldSize);
     memset(va->Elements, 0xff, oldSize);
-    free(va->Elements);
+    safe_free(va->Elements);
 #else
-    mem = (char *)realloc(va->Elements, newSize);
+    mem = (char *)safe_realloc(va->Elements, newSize);
 #endif
   }
 
@@ -195,7 +193,8 @@ int MakeRoom_VA
   assert(va->Elements != NULL);
 
 #ifdef ALWAYS_MOVE_VA_ON_MAKEROOM
-  fprintf(stderr, "* MakeRoom_VA reallocated '%s' from %d bytes to %d bytes.\n", va->typeofElement, oldSize, newSize);
+  if (oldSize > 0)
+    fprintf(stderr, "* MakeRoom_VA reallocated '%s' from %d bytes to %d bytes.\n", va->typeofElement, oldSize, newSize);
 #endif
 
   return TRUE;
@@ -206,7 +205,7 @@ void Clear_VA(VarArrayType * const va){
   if(NULL == va)
     return;
   if( NULL != va->Elements ) {
-    free(va->Elements);
+    safe_free(va->Elements);
   }
   va->allocatedElements = 0;
   va->numElements = 0;
@@ -387,8 +386,7 @@ void ReInitialize_VA
   assert(va != NULL);
   if(va->sizeofElement != sizeofElement ||
      strcmp(va->typeofElement, thetype)){
-    free(va->Elements);
-    va->Elements = NULL;
+    safe_free(va->Elements);
     va->sizeofElement = sizeofElement;
     va->numElements = 0;
     va->allocatedElements = 0;
@@ -639,7 +637,7 @@ void CheckFile_VA
     //  nothing when the writer properly catches errors.
 
     {
-      char *tmp = (char *)malloc(nelem * nsize);
+      char *tmp = (char *)safe_malloc(nelem * nsize);
       size_t ii; 
 
       AS_UTL_safeRead(fp, tmp, "CheckFile_VA", nelem * nsize);
@@ -647,11 +645,13 @@ void CheckFile_VA
       for(ii=0;ii<nelem*nsize;ii++)
         assert(elems[ii] == tmp[ii]);
 
-      free(tmp);
+      safe_free(tmp);
     }
   }
   return;
 }
+
+#if 0
 
 void ScatterInPlace_VA
 (
@@ -663,15 +663,12 @@ void ScatterInPlace_VA
 
   // This routine has the problem that it assumes that rank[] is a
   // correct permutation!!
-  const size_t num  = va->numElements;
-  const size_t mitems = max(nrange,(va->allocatedElements));
-  const size_t size = va->sizeofElement;
-  char * const old_array  = va->Elements;
-  char * const new_array  = (char *) calloc(mitems,size);
+  size_t  num        = va->numElements;
+  size_t  mitems     = max(nrange,(va->allocatedElements));
+  size_t  size       = va->sizeofElement;
+  char   *old_array  = va->Elements;
+  char   *new_array  = (char *)safe_calloc(mitems,size);
   size_t io,in;
-  assert(NULL != old_array);
-  assert(NULL != new_array);
-  // assert(nrange == num); // For a permutation 
   assert(nrange >= num); // Allow an unpack operation.
   for(io=0;io<num;io++) {
     in = rank[io];
@@ -679,9 +676,9 @@ void ScatterInPlace_VA
     assert(in < nrange);
     memmove(new_array+in*size,old_array+io*size,size);
   }
-  va->Elements = new_array;
   va->numElements = nrange;
-  free(old_array);
+  va->Elements    = new_array;
+  safe_free(old_array);
 }
 
 void GatherInPlace_VA
@@ -694,13 +691,11 @@ void GatherInPlace_VA
 
   // This routine has the problem that it assumes that indx[] is a
   // correct permutation!!
-  const size_t num  = va->numElements;
-  const size_t size = va->sizeofElement;
-  char * const old_array = va->Elements;
-  char * const new_array = (char *) calloc((va->allocatedElements),size);
+  size_t  num       = va->numElements;
+  size_t  size      = va->sizeofElement;
+  char   *old_array = va->Elements;
+  char   *new_array = (char *)safe_calloc((va->allocatedElements),size);
   size_t io,in;
-  assert(NULL != old_array);
-  assert(NULL != new_array);
   assert(num >= nitems);
   for(in=0;in<nitems;in++) {
     io = indx[in];
@@ -709,6 +704,8 @@ void GatherInPlace_VA
     memmove(new_array+in*size,old_array+io*size,size);
   }
   va->numElements = nitems;
-  va->Elements = new_array;
-  free(old_array);
+  va->Elements    = new_array;
+  safe_free(old_array);
 }
+
+#endif
